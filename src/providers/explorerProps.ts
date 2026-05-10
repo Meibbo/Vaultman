@@ -230,6 +230,11 @@ export class explorerProps implements ExplorerProvider<PropMeta> {
 	private _decorateTree(nodes: TreeNode<PropMeta>[], parentDeleted = false): TreeNode<PropMeta>[] {
 		const operations = this.plugin.operationsIndex.nodes;
 		const activeFilters = this.plugin.activeFiltersIndex.nodes;
+		const revisions = {
+			propsRevision: this.plugin.propsIndex?.revision,
+			queueRevision: this.plugin.operationsIndex?.revision,
+			filterRevision: this.plugin.activeFiltersIndex?.revision,
+		};
 		return nodes.map((node) => {
 			const meta = node.meta;
 			let currentCls = node.cls || '';
@@ -241,6 +246,7 @@ export class explorerProps implements ExplorerProvider<PropMeta> {
 				nodes: [node],
 				operations,
 				activeFilters,
+				revisions,
 				getLabel: (item) => item.label,
 				getDecorationContext: () => ({
 					kind: 'prop',

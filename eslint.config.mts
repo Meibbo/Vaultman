@@ -8,6 +8,7 @@ export default tseslint.config(
 		ignores: [
 			'node_modules',
 			'dist',
+			'codeql',
 			'obsidian-sample-plugin',
 			'esbuild.config.mjs',
 			'vite.config.ts',

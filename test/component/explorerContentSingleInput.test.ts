@@ -13,9 +13,14 @@ import { mockApp, mockTFile, type TFile } from '../helpers/obsidian-mocks';
 class MutableIndex<TNode extends { id: string }> implements INodeIndex<TNode> {
 	private current: TNode[] = [];
 	private subs = new Set<() => void>();
+	private currentRevision = 0;
 
 	get nodes(): readonly TNode[] {
 		return this.current;
+	}
+
+	get revision(): number {
+		return this.currentRevision;
 	}
 
 	async refresh(): Promise<void> {
@@ -33,6 +38,7 @@ class MutableIndex<TNode extends { id: string }> implements INodeIndex<TNode> {
 
 	emit(nodes: TNode[]): void {
 		this.current = nodes;
+		this.currentRevision += 1;
 		for (const cb of this.subs) cb();
 	}
 }

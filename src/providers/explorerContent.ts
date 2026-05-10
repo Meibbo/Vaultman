@@ -40,6 +40,11 @@ export class explorerContent implements ExplorerProvider<ContentMeta> {
 
 		const operations = this.plugin.operationsIndex.nodes;
 		const activeFilters = this.plugin.activeFiltersIndex.nodes;
+		const revisions = {
+			contentRevision: this.plugin.contentIndex?.revision,
+			queueRevision: this.plugin.operationsIndex?.revision,
+			filterRevision: this.plugin.activeFiltersIndex?.revision,
+		};
 
 		return [...grouped.entries()].map(([filePath, matches]) => {
 			const file = this.resolveFile(filePath);
@@ -64,7 +69,13 @@ export class explorerContent implements ExplorerProvider<ContentMeta> {
 				nodes: [node],
 				operations,
 				activeFilters,
+				revisions,
 				getLabel: (item) => item.label,
+				getDecorationContext: () => ({
+					kind: 'file',
+					filePath,
+					basename: file?.basename,
+				}),
 			}).rows[0];
 
 			node.icon = viewRow.icon;

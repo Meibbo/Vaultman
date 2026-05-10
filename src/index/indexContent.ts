@@ -16,6 +16,7 @@ export function createContentIndex(app: App): IContentIndex {
 	let byId = new Map<string, ContentMatch>();
 	let status: ContentSearchStatus = { ...IDLE_STATUS };
 	let refreshVersion = 0;
+	let publishedRevision = 0;
 	const subs = new Set<() => void>();
 
 	const fire = (): void => {
@@ -26,6 +27,7 @@ export function createContentIndex(app: App): IContentIndex {
 		nodes = nextNodes;
 		byId = new Map(nextNodes.map((node) => [node.id, node]));
 		status = nextStatus;
+		publishedRevision += 1;
 		const probe = getActivePerfProbe();
 		if (probe) {
 			probe.measure('index.content.fire', { nodes: nextNodes.length }, fire);
@@ -40,6 +42,9 @@ export function createContentIndex(app: App): IContentIndex {
 		},
 		get status(): ContentSearchStatus {
 			return status;
+		},
+		get revision(): number {
+			return publishedRevision;
 		},
 		async refresh(): Promise<void> {
 			const currentVersion = ++refreshVersion;

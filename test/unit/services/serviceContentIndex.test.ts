@@ -152,4 +152,15 @@ describe('serviceContentIndex', () => {
 		await idx.refresh();
 		expect(callCount).toBeGreaterThan(0);
 	});
+
+	it('increments revision when publishing content snapshots', async () => {
+		const f = mockTFile('a.md');
+		const app = mockApp({ files: [f], adapterFiles: new Map([['a.md', 'foobar']]) });
+		const idx = createContentIndex(app);
+
+		expect(idx.revision).toBe(0);
+		idx.setQuery('foobar');
+		await idx.refresh();
+		expect(idx.revision).toBeGreaterThan(0);
+	});
 });

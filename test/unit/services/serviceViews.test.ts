@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import {
 	clearActivePerfProbe,
 	createPerfProbe,
@@ -182,6 +182,99 @@ describe('ViewService', () => {
 		});
 		expect(model.rows[0].layers.badges?.ops?.[0].label).toBe('Queued');
 		expect(model.rows[0].layers.highlights?.query).toEqual([{ start: 0, end: 6 }]);
+	});
+
+	it('reuses semantic row layers across selection-only changes when revisions are stable', () => {
+		const decorate = vi.fn(() => ({
+			icons: ['lucide-file'],
+			badges: [{ label: '1', accent: 'blue' }],
+			highlights: [],
+		}));
+		const service = new ViewService({
+			decorationManager: {
+				decorate,
+				subscribe() {
+					return () => {};
+				},
+			},
+		});
+		const nodes: TestNode[] = [{ id: 'a', label: 'Alpha' }];
+		const input = {
+			explorerId: 'files',
+			mode: 'tree',
+			nodes,
+			revisions: {
+				filesRevision: 1,
+				queueRevision: 1,
+				filterRevision: 1,
+			},
+			getLabel: (node: TestNode) => node.label,
+			getDecorationContext: () => ({ kind: 'file' }),
+		} as ExplorerViewInput<TestNode> & {
+			revisions: { filesRevision: number; queueRevision: number; filterRevision: number };
+		};
+
+		expect(service.getModel(input).rows[0].layers.state?.selected).toBeUndefined();
+		service.select('files', 'a');
+		expect(service.getModel(input).rows[0].layers.state?.selected).toBe(true);
+
+		expect(decorate).toHaveBeenCalledTimes(1);
+	});
+
+	it('records semantic cache hit, miss, and eviction probe counters', () => {
+		const probe = createPerfProbe({ now: () => 0 });
+		setActivePerfProbe(probe.api);
+		const service = new ViewService({
+			decorationManager: {
+				decorate: vi.fn(() => ({
+					icons: ['lucide-file'],
+					badges: [],
+					highlights: [],
+				})),
+				subscribe() {
+					return () => {};
+				},
+			},
+		});
+		const input: ExplorerViewInput<TestNode> = {
+			explorerId: 'files',
+			mode: 'tree',
+			nodes: [{ id: 'a', label: 'Alpha' }],
+			revisions: {
+				filesRevision: 1,
+				queueRevision: 1,
+				filterRevision: 1,
+			},
+			getLabel: (node) => node.label,
+			getDecorationContext: () => ({ kind: 'file' }),
+		};
+
+		service.getModel(input);
+		service.select('files', 'a');
+		service.getModel(input);
+
+		const churnNodes: TestNode[] = Array.from({ length: 5001 }, (_, index) => ({
+			id: `node-${index}`,
+			label: `Node ${index}`,
+		}));
+		service.getModel({
+			...input,
+			nodes: churnNodes,
+			revisions: { ...input.revisions, filesRevision: 2 },
+		});
+
+		const snapshot = probe.snapshot();
+		expect(snapshot.counters['viewService.semanticCache.miss']).toMatchObject({
+			count: 5002,
+			totalNodes: 5002,
+		});
+		expect(snapshot.counters['viewService.semanticCache.hit']).toMatchObject({
+			count: 1,
+			totalNodes: 1,
+		});
+		expect(snapshot.counters['viewService.semanticCache.evict']).toMatchObject({
+			count: 1,
+		});
 	});
 
 	it('maps queue changes to operation badges and pending state without decoration badges', () => {

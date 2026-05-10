@@ -6,7 +6,7 @@ parent: "[[docs/work/hardening/specs/2026-05-06-node-selection-service/index|nod
 archive_source: "docs/archive/hardening/active-docs/2026-05-06T050935-current-status.md"
 compacted: true
 created: 2026-05-04T01:36:20
-updated: 2026-05-09T18:59:22
+updated: 2026-05-09T21:54:00
 tags:
   - agent/current
 created_by: dec
@@ -82,17 +82,26 @@ Archived completed/superseded status:
 
 ## Current Verification
 
+- 2026-05-09 revision-gated explorer model caches DONE:
+  [[docs/work/performance/plans/2026-05-09-revision-gated-explorer-model-caches|Revision-gated explorer model caches]].
+  Indexes now publish revisions; files/props/tags/content providers pass
+  source plus queue/filter revisions into `ViewService`; semantic row layers
+  are cached only when revisions are present, while selection/focus state stays
+  outside the cache. Continuation added perf-probe counters for semantic cache
+  hit/miss/evict. Latest local verification passed: `lint`, `check`, `build`,
+  and `test:unit` (77 files / 530 tests).
 - 2026-05-09 CodeQL performance guardrails DONE:
   [[docs/work/performance/plans/2026-05-09-codeql-guardrails|CodeQL performance guardrails]].
   `vaultman/virtualizer-missing-item-key` now flags TanStack virtualizer
   options passed to `createVirtualizer` or `.setOptions` without durable
   `getItemKey`; `vaultman/trailing-debounce-explorer-refresh` now flags
   `debounce(...)` and raw `setTimeout(...)` explorer index refresh callbacks
-  that should use `leadingDebounce` or an approved scheduler. The custom query
-  pack is wired into CodeQL analysis and a query-test workflow job. Local
-  `codeql test run --additional-packs codeql\queries\javascript codeql\tests
-  --threads=0` passed with 2 tests. Next static slice:
-  `unbounded-vault-read-promise-all`.
+  that should use `leadingDebounce` or an approved scheduler; and
+  `vaultman/unbounded-vault-read-promise-all` now flags full-vault
+  `Promise.all(files.map(...vault.read/cachedRead...))` shapes outside bounded
+  chunk/pool patterns. The custom query pack is wired into CodeQL analysis and
+  a query-test workflow job. Local `codeql test run --additional-packs
+  codeql\queries\javascript codeql\tests --threads=0` passed with 3 tests.
 - 2026-05-09 durable virtualizer keys DONE:
   [[docs/work/performance/research/2026-05-09-durable-virtualizer-keys|Durable TanStack virtualizer keys]].
   `viewTree`, `ViewNodeGrid`, and `ViewNodeTable` now pass durable

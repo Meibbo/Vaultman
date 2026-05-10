@@ -1,15 +1,69 @@
 import { describe, expect, it, vi } from 'vitest';
+import type { App } from 'obsidian';
 import { mockApp, mockTFile, type CachedMetadata, type TFile } from '../../helpers/obsidian-mocks';
 import { explorerProps } from '../../../src/components/containers/explorerProps';
 import { DecorationManager } from '../../../src/services/serviceDecorate';
 import { ViewService } from '../../../src/services/serviceViews.svelte';
 import { showInputModal } from '../../../src/utils/inputModal';
 import type { VaultmanPlugin } from '../../../src/main';
-import type { ActiveFilterEntry, QueueChange } from '../../../src/types/typeContracts';
+import type {
+	ActiveFilterEntry,
+	IPropsIndex,
+	PropNode,
+	QueueChange,
+} from '../../../src/types/typeContracts';
 
 vi.mock('../../../src/utils/inputModal', () => ({
 	showInputModal: vi.fn(),
 }));
+
+function makePropsIndex(app: App, subscribe = vi.fn(() => vi.fn())): IPropsIndex {
+	const nodes = propsNodesFromApp(app);
+	return {
+		nodes,
+		revision: 1,
+		refresh: vi.fn(),
+		subscribe,
+		byId: (id: string) => nodes.find((node) => node.id === id),
+	};
+}
+
+function propsNodesFromApp(app: App): PropNode[] {
+	const acc = new Map<string, { values: Map<string, number>; files: Set<string> }>();
+	for (const file of app.vault.getMarkdownFiles()) {
+		const fm = app.metadataCache.getFileCache(file)?.frontmatter;
+		if (!fm) continue;
+		for (const [property, value] of Object.entries(fm)) {
+			if (property === 'position') continue;
+			let entry = acc.get(property);
+			if (!entry) {
+				entry = { values: new Map(), files: new Set() };
+				acc.set(property, entry);
+			}
+			entry.files.add(file.path);
+			for (const raw of Array.isArray(value) ? value : [value]) {
+				if (raw == null) continue;
+				const key = propValueKey(raw);
+				entry.values.set(key, (entry.values.get(key) ?? 0) + 1);
+			}
+		}
+	}
+	return Array.from(acc.entries()).map(([property, entry]) => ({
+		id: property,
+		property,
+		values: Array.from(entry.values.keys()),
+		valueFrequencies: Object.fromEntries(entry.values),
+		fileCount: entry.files.size,
+	}));
+}
+
+function propValueKey(value: unknown): string {
+	if (typeof value === 'string') return value;
+	if (typeof value === 'number' || typeof value === 'boolean' || typeof value === 'bigint') {
+		return value.toString();
+	}
+	return JSON.stringify(value) ?? '';
+}
 
 function makePlugin(overrides: Partial<VaultmanPlugin> = {}): VaultmanPlugin {
 	const a = mockTFile('a.md', { frontmatter: { status: 'draft', owner: 'vic' } });
@@ -30,8 +84,9 @@ function makePlugin(overrides: Partial<VaultmanPlugin> = {}): VaultmanPlugin {
 	const decorationManager = new DecorationManager(app);
 	const addNode = vi.fn();
 	const removeNodeByProperty = vi.fn();
+	const pluginApp = overrides.app ?? app;
 	return {
-		app,
+		app: pluginApp,
 		contextMenuService: { registerAction: vi.fn() },
 		queueService: { queue: [], add: vi.fn() },
 		operationsIndex: { nodes: [], refresh: vi.fn(), subscribe: vi.fn(), byId: vi.fn() },
@@ -46,7 +101,7 @@ function makePlugin(overrides: Partial<VaultmanPlugin> = {}): VaultmanPlugin {
 		decorationManager,
 		viewService: new ViewService({ decorationManager }),
 		iconicService: { getIcon: vi.fn(() => null) },
-		propsIndex: { refresh: vi.fn(), subscribe: vi.fn(() => vi.fn()), byId: vi.fn() },
+		propsIndex: makePropsIndex(pluginApp),
 		...overrides,
 	} as unknown as VaultmanPlugin;
 }
@@ -416,16 +471,24 @@ describe('explorerProps search', () => {
 		).getAllPropertyInfos = () => propertyInfos;
 		const decorationManager = new DecorationManager(app);
 		let notifyPropsChanged: (() => void) | undefined;
+		let propsNodes = propsNodesFromApp(app);
+		let revision = 1;
 		const explorer = new explorerProps(
 			makePlugin({
 				app,
 				propsIndex: {
+					get nodes() {
+						return propsNodes;
+					},
+					get revision() {
+						return revision;
+					},
 					refresh: vi.fn(),
 					subscribe: vi.fn((callback: () => void) => {
 						notifyPropsChanged = callback;
 						return vi.fn();
 					}),
-					byId: vi.fn(),
+					byId: (id: string) => propsNodes.find((node) => node.id === id),
 				},
 				filterService: { filteredFiles: files, addNode: vi.fn() },
 				decorationManager,
@@ -439,6 +502,8 @@ describe('explorerProps search', () => {
 		propertyInfos = {
 			pressbarbench: { type: 'number' },
 		};
+		propsNodes = propsNodesFromApp(app);
+		revision += 1;
 		notifyPropsChanged?.();
 
 		expect(explorer.getTree().map((node) => node.label)).toEqual([]);

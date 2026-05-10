@@ -12,6 +12,7 @@ import type {
 	ExplorerRenderModel,
 	ExplorerViewInput,
 	ExplorerViewMode,
+	ExplorerViewRevisions,
 	IViewService,
 	ViewBadge,
 	ViewBadgeLayers,
@@ -29,6 +30,17 @@ interface ViewServiceOptions {
 	decorationManager?: IDecorationManager;
 	defaultMode?: ExplorerViewMode;
 }
+
+const EXPLORER_REVISION_FIELDS = [
+	'filesRevision',
+	'propsRevision',
+	'tagsRevision',
+	'contentRevision',
+	'queueRevision',
+	'filterRevision',
+] as const satisfies readonly (keyof ExplorerViewRevisions)[];
+
+const MAX_SEMANTIC_LAYER_CACHE_ENTRIES = 5000;
 
 interface SemanticContext {
 	kind?: string;
@@ -66,6 +78,7 @@ interface SemanticTarget {
 export class ViewService implements IViewService {
 	private readonly decorationManager?: IDecorationManager;
 	private readonly defaultMode: ExplorerViewMode;
+	private decorationRevision = 0;
 
 	// Svelte 5 Native Reactivity
 	private readonly modes = new SvelteMap<string, ExplorerViewMode>();
@@ -79,10 +92,16 @@ export class ViewService implements IViewService {
 	private lastFilters: readonly ActiveFilterEntry[] | undefined;
 	private cachedOpIndex: ReturnType<ViewService['indexOperations']> | undefined;
 	private cachedFilterIndex: ReturnType<ViewService['indexActiveFilters']> | undefined;
+	private readonly semanticLayerCache = new Map<string, ViewLayers>();
 
 	constructor(options: ViewServiceOptions = {}) {
 		this.decorationManager = options.decorationManager;
 		this.defaultMode = options.defaultMode ?? 'tree';
+		this.decorationManager?.subscribe(() => {
+			this.decorationRevision += 1;
+			this.semanticLayerCache.clear();
+			this.notifyAll();
+		});
 	}
 
 	getModel<TNode extends NodeBase>(input: ExplorerViewInput<TNode>): ExplorerRenderModel<TNode> {
@@ -163,6 +182,7 @@ export class ViewService implements IViewService {
 		const byProp = new Map<string, ActiveFilterEntry[]>();
 		const byTag = new Map<string, ActiveFilterEntry[]>();
 		const byPath = new Map<string, ActiveFilterEntry[]>();
+		const byFileTarget: ActiveFilterEntry[] = [];
 		const all = filters ?? [];
 
 		for (const entry of all) {
@@ -186,9 +206,11 @@ export class ViewService implements IViewService {
 					if (!byPath.has(key)) byPath.set(key, []);
 					byPath.get(key)!.push(entry);
 				}
+			} else if (isFileTargetFilter(r.filterType)) {
+				byFileTarget.push(entry);
 			}
 		}
-		return { byProp, byTag, byPath, all };
+		return { byProp, byTag, byPath, byFileTarget, all };
 	}
 
 	setViewMode(explorerId: string, mode: ExplorerViewMode): void {
@@ -290,6 +312,31 @@ export class ViewService implements IViewService {
 		filterIndex: ReturnType<ViewService['indexActiveFilters']>,
 	): ViewLayers {
 		const context = input.getDecorationContext?.(node);
+		const revisionKey = revisionCacheKey(input.revisions);
+		if (revisionKey) {
+			const cacheKey = this.semanticLayerCacheKey(input, node, label, context, revisionKey);
+			const cached = this.semanticLayerCache.get(cacheKey);
+			if (cached) {
+				getActivePerfProbe()?.count('viewService.semanticCache.hit', { nodes: 1 });
+				return cached;
+			}
+
+			getActivePerfProbe()?.count('viewService.semanticCache.miss', { nodes: 1 });
+			const layers = this.computeLayers(node, context, label, opIndex, filterIndex);
+			this.rememberSemanticLayers(cacheKey, layers);
+			return layers;
+		}
+
+		return this.computeLayers(node, context, label, opIndex, filterIndex);
+	}
+
+	private computeLayers<TNode extends NodeBase>(
+		node: TNode,
+		context: unknown,
+		label: string,
+		opIndex: ReturnType<ViewService['indexOperations']>,
+		filterIndex: ReturnType<ViewService['indexActiveFilters']>,
+	): ViewLayers {
 		const decoration = this.decorationManager?.decorate(node, context);
 		const semanticLayers = semanticLayersFor(node, context, label, opIndex, filterIndex);
 		if (!decoration) return semanticLayers;
@@ -307,6 +354,34 @@ export class ViewService implements IViewService {
 			highlights: decoration.highlights.length > 0 ? { query: decoration.highlights } : undefined,
 		};
 		return mergeLayers(decorationLayers, semanticLayers);
+	}
+
+	private semanticLayerCacheKey<TNode extends NodeBase>(
+		input: ExplorerViewInput<TNode>,
+		node: TNode,
+		label: string,
+		context: unknown,
+		revisionKey: string,
+	): string {
+		return [
+			input.explorerId,
+			input.mode,
+			revisionKey,
+			`decor:${this.decorationRevision}`,
+			node.id,
+			label,
+			stableValueKey(context),
+		].join('\u0000');
+	}
+
+	private rememberSemanticLayers(key: string, layers: ViewLayers): void {
+		if (this.semanticLayerCache.size >= MAX_SEMANTIC_LAYER_CACHE_ENTRIES) {
+			getActivePerfProbe()?.count('viewService.semanticCache.evict', {
+				nodes: this.semanticLayerCache.size,
+			});
+			this.semanticLayerCache.clear();
+		}
+		this.semanticLayerCache.set(key, layers);
 	}
 
 	private selectionFor(explorerId: string): SvelteSet<string> {
@@ -331,6 +406,10 @@ export class ViewService implements IViewService {
 		const callbacks = this.subscribers.get(explorerId);
 		if (!callbacks) return;
 		for (const cb of callbacks) cb();
+	}
+
+	private notifyAll(): void {
+		for (const explorerId of this.subscribers.keys()) this.notify(explorerId);
 	}
 }
 
@@ -538,7 +617,9 @@ function matchedActiveFilterLayersFor(
 	} else if (target.kind === 'tag' && target.tag) {
 		candidates = filterIndex.byTag.get(target.tag) ?? [];
 	} else if (target.kind === 'file' && target.filePath) {
-		candidates = filterIndex.byPath.get(target.filePath) ?? [];
+		candidates = [...(filterIndex.byPath.get(target.filePath) ?? []), ...filterIndex.byFileTarget];
+	} else if (target.kind === 'file') {
+		candidates = filterIndex.byFileTarget;
 	}
 
 	const matches = candidates.flatMap((entry, index) =>
@@ -700,6 +781,16 @@ function filterMatchesTarget(rule: FilterRule, target: SemanticTarget): boolean 
 	}
 }
 
+function isFileTargetFilter(type: FilterType): boolean {
+	return (
+		type === 'folder' ||
+		type === 'folder_exclude' ||
+		type === 'file_folder' ||
+		type === 'file_name' ||
+		type === 'file_name_exclude'
+	);
+}
+
 function changeTargetsFile(change: PendingChange, target: SemanticTarget): boolean {
 	if (!('files' in change)) return false;
 	return change.files.some((file) => {
@@ -807,6 +898,57 @@ function normalizeTag(value: string | undefined): string | undefined {
 
 function normalizePath(value: string | undefined): string | undefined {
 	return value?.replaceAll('\\', '/').replace(/^\/+/, '').replace(/\/+$/, '').toLowerCase();
+}
+
+function revisionCacheKey(revisions: ExplorerViewRevisions | undefined): string | null {
+	if (!revisions) return null;
+	let hasRevision = false;
+	const key = EXPLORER_REVISION_FIELDS.map((field) => {
+		const value = revisions[field];
+		if (typeof value === 'number') {
+			hasRevision = true;
+			return `${field}:${value}`;
+		}
+		return `${field}:-`;
+	}).join('|');
+	return hasRevision ? key : null;
+}
+
+function stableValueKey(value: unknown): string {
+	if (value == null) return '';
+	if (typeof value === 'string') return value;
+	if (typeof value === 'number' || typeof value === 'boolean' || typeof value === 'bigint') {
+		return value.toString();
+	}
+	if (typeof value === 'symbol') return value.toString();
+	if (typeof value === 'function') return '[Function]';
+	try {
+		return stableSerialize(value, new WeakSet<object>());
+	} catch {
+		return Object.prototype.toString.call(value);
+	}
+}
+
+function stableSerialize(value: unknown, seen: WeakSet<object>): string {
+	if (value == null || typeof value !== 'object') {
+		const json = JSON.stringify(value);
+		if (json != null) return json;
+		return typeof value === 'symbol' ? value.toString() : String(value);
+	}
+	if (seen.has(value)) return '"[Circular]"';
+	seen.add(value);
+	if (Array.isArray(value)) {
+		const serialized = `[${value.map((entry) => stableSerialize(entry, seen)).join(',')}]`;
+		seen.delete(value);
+		return serialized;
+	}
+	const record = value as Record<string, unknown>;
+	const body = Object.keys(record)
+		.sort()
+		.map((key) => `${JSON.stringify(key)}:${stableSerialize(record[key], seen)}`)
+		.join(',');
+	seen.delete(value);
+	return `{${body}}`;
 }
 
 function isQueueChange(node: NodeBase): node is QueueChange {

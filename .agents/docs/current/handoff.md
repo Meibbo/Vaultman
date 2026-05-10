@@ -6,7 +6,7 @@ parent: "[[docs/work/hardening/specs/2026-05-06-node-selection-service/index|nod
 archive_source: "docs/archive/hardening/active-docs/2026-05-06T050935-current-handoff.md"
 compacted: true
 created: 2026-05-04T01:36:20
-updated: 2026-05-09T18:59:22
+updated: 2026-05-09T21:54:00
 tags:
   - agent/current
 created_by: dec
@@ -21,13 +21,20 @@ Archived completed/superseded handoff:
 ## Where To Resume
 
 - Latest completed performance slice:
-  [[docs/work/performance/plans/2026-05-09-codeql-guardrails|CodeQL performance guardrails]].
-  The `virtualizer-missing-item-key` and
-  `trailing-debounce-explorer-refresh` query pack slices are done and wired
-  into CodeQL analysis plus a custom query-test job. Next performance slice
-  should add `unbounded-vault-read-promise-all` or shift to revision-gated
-  explorer model caches.
+  [[docs/work/performance/plans/2026-05-09-revision-gated-explorer-model-caches|Revision-gated explorer model caches]].
+  `INodeIndex` and `contentIndex` now publish revisions; explorer providers
+  pass source/queue/filter revisions into `ViewService`; semantic row layers
+  are cached behind revision keys while transient selection state is recomputed
+  per model request. Continuation added perf-probe counters for
+  `viewService.semanticCache.hit`, `.miss`, and `.evict`. Latest verification
+  passed: `lint`, `check`, `build`, and `test:unit`.
 - Previous completed performance slice:
+  [[docs/work/performance/plans/2026-05-09-codeql-guardrails|CodeQL performance guardrails]].
+  The `virtualizer-missing-item-key`,
+  `trailing-debounce-explorer-refresh`, and
+  `unbounded-vault-read-promise-all` query pack slices are done and wired into
+  CodeQL analysis plus a custom query-test job.
+- Earlier completed performance slice:
   [[docs/work/performance/research/2026-05-09-durable-virtualizer-keys|Durable TanStack virtualizer keys]].
 - Latest performance research:
   [[docs/work/performance/research/2026-05-09-ecosystem-performance-codeql-research|Ecosystem performance and CodeQL guardrail research]].

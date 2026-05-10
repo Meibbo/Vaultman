@@ -123,6 +123,11 @@ export class explorerFiles implements ExplorerProvider<FileMeta> {
 	private _decorateTree(nodes: TreeNode<FileMeta>[]): void {
 		const operations = this.plugin.operationsIndex.nodes;
 		const activeFilters = this.plugin.activeFiltersIndex.nodes;
+		const revisions = {
+			filesRevision: this.plugin.filesIndex?.revision,
+			queueRevision: this.plugin.operationsIndex?.revision,
+			filterRevision: this.plugin.activeFiltersIndex?.revision,
+		};
 
 		for (const n of nodes) {
 			const viewRow = this.plugin.viewService.getModel({
@@ -131,11 +136,15 @@ export class explorerFiles implements ExplorerProvider<FileMeta> {
 				nodes: [n],
 				operations,
 				activeFilters,
+				revisions,
 				getLabel: (item) => item.label,
 				getDecorationContext: () => ({
 					kind: 'file',
 					highlightQuery: n.meta.isFolder ? this.searchFolder : this.searchName,
 					isFolder: n.meta.isFolder,
+					filePath: n.meta.file?.path,
+					basename: n.meta.file?.basename ?? n.label,
+					folderPath: n.meta.folderPath,
 					extension: n.meta.file?.extension,
 				}),
 			}).rows[0];

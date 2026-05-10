@@ -4,11 +4,16 @@ import type { INodeIndex, IDecorationManager, NodeBase } from '../../../src/type
 
 function stubIdx<T extends NodeBase>(nodes: T[]): INodeIndex<T> {
 	const subs = new Set<() => void>();
+	let revision = 0;
 	return {
 		get nodes() {
 			return nodes;
 		},
+		get revision() {
+			return revision;
+		},
 		refresh: async () => {
+			revision += 1;
 			for (const s of subs) s();
 		},
 		subscribe: (cb) => {

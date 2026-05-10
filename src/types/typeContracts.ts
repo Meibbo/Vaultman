@@ -106,6 +106,8 @@ export interface BasesImportTargetNode extends NodeBase {
 export interface INodeIndex<TNode extends NodeBase> {
 	/** Reactive list of nodes (rune-backed in svelte.ts impls; readonly array elsewhere). */
 	readonly nodes: readonly TNode[];
+	/** Monotonic publish revision; changes only when this index publishes a new snapshot. */
+	readonly revision: number;
 	/** Re-scan source of truth and rebuild `nodes`. */
 	refresh(): void | Promise<void>;
 	/** Subscribe to changes; returns unsubscribe fn. */

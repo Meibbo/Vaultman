@@ -1,12 +1,31 @@
 import { describe, expect, it, vi } from 'vitest';
 import { explorerContent } from '../../../src/components/containers/explorerContent';
+import { ViewService } from '../../../src/services/serviceViews.svelte';
 import type { VaultmanPlugin } from '../../../src/main';
-import type { ContentMatch, IContentIndex } from '../../../src/types/typeContracts';
+import type {
+	ActiveFilterEntry,
+	ContentMatch,
+	IContentIndex,
+	INodeIndex,
+	NodeBase,
+	QueueChange,
+} from '../../../src/types/typeContracts';
 import { mockApp, mockTFile, type TFile } from '../../helpers/obsidian-mocks';
+
+function makeIndex<TNode extends NodeBase>(nodes: TNode[]): INodeIndex<TNode> {
+	return {
+		nodes,
+		revision: 0,
+		refresh: vi.fn(),
+		subscribe: vi.fn(() => () => {}),
+		byId: (id: string) => nodes.find((node) => node.id === id),
+	};
+}
 
 function makeContentIndex(nodes: ContentMatch[]): IContentIndex {
 	return {
 		nodes,
+		revision: 0,
 		refresh: vi.fn(),
 		subscribe: vi.fn(() => () => {}),
 		byId: (id: string) => nodes.find((node) => node.id === id),
@@ -28,6 +47,9 @@ function makePlugin(nodes: ContentMatch[]): {
 		plugin: {
 			app,
 			contentIndex: makeContentIndex(nodes),
+			operationsIndex: makeIndex<QueueChange>([]),
+			activeFiltersIndex: makeIndex<ActiveFilterEntry>([]),
+			viewService: new ViewService(),
 			contextMenuService: { registerAction: vi.fn(), openPanelMenu: vi.fn() },
 			queueService: { add: vi.fn() },
 		} as unknown as VaultmanPlugin,

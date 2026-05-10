@@ -200,12 +200,22 @@ export interface ViewEmptyState {
 	icon?: string;
 }
 
+export interface ExplorerViewRevisions {
+	filesRevision?: number;
+	propsRevision?: number;
+	tagsRevision?: number;
+	contentRevision?: number;
+	queueRevision?: number;
+	filterRevision?: number;
+}
+
 export interface ExplorerViewInput<TNode extends NodeBase = NodeBase> {
 	explorerId: string;
 	mode: ExplorerViewMode;
 	nodes: readonly TNode[];
 	operations?: readonly QueueChange[];
 	activeFilters?: readonly ActiveFilterEntry[];
+	revisions?: ExplorerViewRevisions;
 	columns?: readonly ViewColumn<TNode>[];
 	groups?: readonly ViewGroup<TNode>[];
 	actions?: readonly ViewAction<TNode>[];

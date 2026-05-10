@@ -30,6 +30,17 @@ describe('createNodeIndex', () => {
 		expect(cb).toHaveBeenCalledTimes(1); // unsubscribed
 	});
 
+	it('increments revision only when a refresh publishes', async () => {
+		const build = vi.fn<() => TestNode[]>().mockReturnValue([{ id: 'a', label: 'A' }]);
+		const idx = createNodeIndex<TestNode>({ build });
+
+		expect(idx.revision).toBe(0);
+		await idx.refresh();
+		expect(idx.revision).toBe(1);
+		await idx.refresh();
+		expect(idx.revision).toBe(2);
+	});
+
 	it('byId returns undefined for missing ids', async () => {
 		const build = vi.fn<() => TestNode[]>().mockReturnValue([]);
 		const idx = createNodeIndex<TestNode>({ build });

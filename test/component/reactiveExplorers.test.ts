@@ -4,6 +4,7 @@ import { flushSync, mount, unmount, type Component } from 'svelte';
 import ContentTab from '../../src/components/pages/tabContent.svelte';
 import ExplorerQueue from '../../src/components/containers/explorerQueue.svelte';
 import ExplorerActiveFilters from '../../src/components/containers/explorerActiveFilters.svelte';
+import { ViewService } from '../../src/services/serviceViews.svelte';
 import type {
 	ActiveFilterEntry,
 	ContentMatch,
@@ -16,9 +17,14 @@ import { mockApp, mockTFile, type TFile } from '../helpers/obsidian-mocks';
 class MutableIndex<TNode extends { id: string }> implements INodeIndex<TNode> {
 	private current: TNode[] = [];
 	private subs = new Set<() => void>();
+	private currentRevision = 0;
 
 	get nodes(): readonly TNode[] {
 		return this.current;
+	}
+
+	get revision(): number {
+		return this.currentRevision;
 	}
 
 	async refresh(): Promise<void> {
@@ -36,6 +42,7 @@ class MutableIndex<TNode extends { id: string }> implements INodeIndex<TNode> {
 
 	emit(nodes: TNode[]): void {
 		this.current = nodes;
+		this.currentRevision += 1;
 		for (const cb of this.subs) cb();
 	}
 }
@@ -81,11 +88,7 @@ describe('reactive explorer components', () => {
 			},
 			operationsIndex: new MutableIndex<QueueChange>(),
 			activeFiltersIndex: new MutableIndex<ActiveFilterEntry>(),
-			viewService: {
-				clearSelection: vi.fn(),
-				select: vi.fn(),
-				setFocused: vi.fn(),
-			},
+			viewService: new ViewService(),
 			propertyIndex: { fileCount: 1 },
 			contextMenuService: { openPanelMenu: vi.fn() },
 		} as unknown as VaultmanPlugin;
@@ -138,11 +141,7 @@ describe('reactive explorer components', () => {
 			},
 			operationsIndex: new MutableIndex<QueueChange>(),
 			activeFiltersIndex: new MutableIndex<ActiveFilterEntry>(),
-			viewService: {
-				clearSelection: vi.fn(),
-				select: vi.fn(),
-				setFocused: vi.fn(),
-			},
+			viewService: new ViewService(),
 			propertyIndex: { fileCount: 1 },
 			contextMenuService: { openPanelMenu: vi.fn() },
 		} as unknown as VaultmanPlugin;
@@ -191,11 +190,7 @@ describe('reactive explorer components', () => {
 			},
 			operationsIndex: new MutableIndex<QueueChange>(),
 			activeFiltersIndex: new MutableIndex<ActiveFilterEntry>(),
-			viewService: {
-				clearSelection: vi.fn(),
-				select: vi.fn(),
-				setFocused: vi.fn(),
-			},
+			viewService: new ViewService(),
 			propertyIndex: { fileCount: 1 },
 			contextMenuService: { openPanelMenu: vi.fn() },
 		} as unknown as VaultmanPlugin;
