@@ -3,8 +3,8 @@ title: Node note UI assimilation research
 type: agent-research
 status: active
 parent: "[[docs/work/hardening/specs/2026-05-07-multifacet-2/05-note-binding-and-set|binding notes and set]]"
-created: 2026-05-09T01:25:51-05:00
-updated: 2026-05-09T01:25:51-05:00
+created: 2026-05-09T01:25:51
+updated: 2026-05-09T01:25:51
 tags:
   - agent/research
   - obsidian/dom

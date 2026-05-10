@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { flushSync, mount, unmount, type Component } from 'svelte';
-import NavbarExplorer from '../../src/components/layout/navbarExplorer.svelte';
+import Toolbar from '../../src/components/layout/Toolbar.svelte';
 import { FnRIslandService } from '../../src/services/serviceFnRIsland.svelte';
 
 function baseProps(service: FnRIslandService, overrides: Record<string, unknown> = {}) {
@@ -54,13 +54,21 @@ describe('searchbox island modifier toggles', () => {
 		return el!;
 	}
 
+	function openSearchIsland(): void {
+		const button = target.querySelector<HTMLElement>('[aria-label="Search"]');
+		expect(button).toBeTruthy();
+		button!.click();
+		flushSync();
+	}
+
 	it('renders three flag buttons inside the searchbox island', () => {
 		const service = new FnRIslandService();
-		app = mount(NavbarExplorer as unknown as Component<Record<string, unknown>>, {
+		app = mount(Toolbar as unknown as Component<Record<string, unknown>>, {
 			target,
 			props: baseProps(service),
 		});
 		flushSync();
+		openSearchIsland();
 		expect(target.querySelectorAll('.vm-filters-search-flag').length).toBe(3);
 		// All three live inside the searchbox island root, not the outer toolbar.
 		const wrap = target.querySelector('.vm-filters-header-search-wrap');
@@ -71,11 +79,12 @@ describe('searchbox island modifier toggles', () => {
 
 	it('toggles matchCase / wholeWord / regex through the service', () => {
 		const service = new FnRIslandService();
-		app = mount(NavbarExplorer as unknown as Component<Record<string, unknown>>, {
+		app = mount(Toolbar as unknown as Component<Record<string, unknown>>, {
 			target,
 			props: baseProps(service),
 		});
 		flushSync();
+		openSearchIsland();
 
 		flag('matchCase').click();
 		flushSync();
@@ -90,11 +99,12 @@ describe('searchbox island modifier toggles', () => {
 	it('regex ON disables the wholeWord toggle (mutual exclusion)', () => {
 		const service = new FnRIslandService();
 		service.setFlag('wholeWord', true);
-		app = mount(NavbarExplorer as unknown as Component<Record<string, unknown>>, {
+		app = mount(Toolbar as unknown as Component<Record<string, unknown>>, {
 			target,
 			props: baseProps(service),
 		});
 		flushSync();
+		openSearchIsland();
 
 		flag('regex').click();
 		flushSync();
@@ -111,11 +121,12 @@ describe('searchbox island modifier toggles', () => {
 	it('surfaces an inline error for unknown templating tokens and disables crear', () => {
 		const service = new FnRIslandService();
 		service.setQuery('hello {{bogus}}');
-		app = mount(NavbarExplorer as unknown as Component<Record<string, unknown>>, {
+		app = mount(Toolbar as unknown as Component<Record<string, unknown>>, {
 			target,
 			props: baseProps(service, { filtersSearch: 'hello {{bogus}}' }),
 		});
 		flushSync();
+		openSearchIsland();
 
 		const error = target.querySelector('.vm-filters-search-error');
 		expect(error).toBeTruthy();
@@ -131,11 +142,12 @@ describe('searchbox island modifier toggles', () => {
 		const service = new FnRIslandService();
 		service.setQuery('([)');
 		service.setFlag('regex', true);
-		app = mount(NavbarExplorer as unknown as Component<Record<string, unknown>>, {
+		app = mount(Toolbar as unknown as Component<Record<string, unknown>>, {
 			target,
 			props: baseProps(service, { filtersSearch: '([)' }),
 		});
 		flushSync();
+		openSearchIsland();
 
 		const error = target.querySelector('.vm-filters-search-error');
 		expect(error).toBeTruthy();

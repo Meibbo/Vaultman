@@ -32,7 +32,7 @@
 
 	const GRID_FALLBACK_WIDTH = 480;
 	const GRID_FALLBACK_HEIGHT = 360;
-	const GRID_OVERSCAN = 3;
+	const GRID_OVERSCAN = 6;
 	const EMPTY_EXPANDED_IDS: ReadonlySet<string> = new Set();
 	type ScrollTarget = { id: string; serial: number };
 
@@ -154,7 +154,11 @@
 		initialRect: { width: GRID_FALLBACK_WIDTH, height: GRID_FALLBACK_HEIGHT },
 	});
 	const virtualRows = $derived($rowVirtualizer.getVirtualItems());
-	const renderedRows = $derived(virtualRows.filter((row) => row.index < gridRows.length));
+	const renderedRows = $derived.by(() => {
+		const rows = virtualRows.filter((row) => row.index < gridRows.length);
+		if (rows.length > 0 || gridRows.length === 0) return rows;
+		return fallbackGridRows(gridRows);
+	});
 	const totalHeight = $derived($rowVirtualizer.getTotalSize() + viewSize.gap * 2);
 
 	$effect(() => {
@@ -511,6 +515,30 @@
 
 	function gridVirtualRowKey(rows: readonly GridRow[], index: number): string | number {
 		return rows[index]?.key ?? index;
+	}
+
+	function fallbackGridRows(rows: readonly GridRow[]) {
+		const viewportHeight = outerEl?.clientHeight || GRID_FALLBACK_HEIGHT;
+		const scrollTop = outerEl?.scrollTop ?? 0;
+		let top = viewSize.gap;
+		let startIndex = 0;
+		for (let index = 0; index < rows.length; index += 1) {
+			const bottom = top + rows[index].height;
+			if (bottom >= scrollTop) {
+				startIndex = Math.max(0, index - GRID_OVERSCAN);
+				break;
+			}
+			top = bottom + viewSize.gap;
+		}
+		const out: Array<{ index: number; key: string | number; start: number }> = [];
+		let start = viewSize.gap;
+		for (let index = 0; index < rows.length; index += 1) {
+			if (index >= startIndex && start <= scrollTop + viewportHeight + GRID_OVERSCAN * gridRowBaseHeight) {
+				out.push({ index, key: gridVirtualRowKey(rows, index), start });
+			}
+			start += rows[index].height + viewSize.gap;
+		}
+		return out;
 	}
 </script>
 

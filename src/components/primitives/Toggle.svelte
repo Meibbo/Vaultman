@@ -18,7 +18,7 @@
 </script>
 
 <label class="vm-toggle" class:is-disabled={disabled}>
-	<input type="checkbox" bind:checked {disabled} onchange={handleChange} />
+	<input type="checkbox" {checked} {disabled} onchange={handleChange} />
 	<span class="vm-toggle-knob"></span>
 	<span class="vm-toggle-label">{label}</span>
 </label>

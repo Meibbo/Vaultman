@@ -11,6 +11,8 @@
 	import { normalizeOperationScope } from '../../services/serviceOperationScope';
 	import {
 		resolveLayoutSettings,
+		type LayoutDockDrawerDirection,
+		type LayoutDockPresentationMode,
 		type LayoutLabelPosition,
 		type LayoutSurfaceContent,
 	} from '../../services/serviceLayout';
@@ -25,6 +27,7 @@
 			islandDismissOnOutsideClick: src.islandDismissOnOutsideClick,
 			islandBackdropBlur: src.islandBackdropBlur,
 			glassBlurIntensity: src.glassBlurIntensity,
+			faintAccentsWhenWorkspaceFocused: src.faintAccentsWhenWorkspaceFocused === true,
 			defaultPropertyType: src.defaultPropertyType,
 			filterTemplates: src.filterTemplates,
 			sessionFilePath: src.sessionFilePath,
@@ -153,6 +156,34 @@
 				labels: {
 					...s.layout[surface].labels,
 					position,
+				},
+			},
+		};
+		persistSettings();
+	}
+
+	function setDockPresentationMode(mode: LayoutDockPresentationMode): void {
+		s.layout = {
+			...s.layout,
+			dock: {
+				...s.layout.dock,
+				presentation: {
+					...s.layout.dock.presentation,
+					mode,
+				},
+			},
+		};
+		persistSettings();
+	}
+
+	function setDockDrawerDirection(direction: LayoutDockDrawerDirection): void {
+		s.layout = {
+			...s.layout,
+			dock: {
+				...s.layout.dock,
+				presentation: {
+					...s.layout.dock.presentation,
+					drawerDirection: direction,
 				},
 			},
 		};
@@ -354,6 +385,11 @@
 		label={translate('settings.island_backdrop_blur')}
 		onChange={persistSettings}
 	/>
+	<Toggle
+		bind:checked={s.faintAccentsWhenWorkspaceFocused}
+		label="Faint accents during workspace focus"
+		onChange={persistSettings}
+	/>
 
 	<label class="vm-settings-slider">
 		<span class="vm-settings-label">Background blur intensity</span>
@@ -394,6 +430,26 @@
 		options={[
 			{ value: 'bottom', label: 'Below icon' },
 			{ value: 'side', label: 'Beside icon' },
+		]}
+	/>
+	<Dropdown
+		label="Dock presentation"
+		value={s.layout.dock.presentation.mode}
+		onChange={(value) => setDockPresentationMode(value as LayoutDockPresentationMode)}
+		options={[
+			{ value: 'bar', label: 'Bottom bar' },
+			{ value: 'drawer', label: 'FAB drawer' },
+		]}
+	/>
+	<Dropdown
+		label="Dock drawer direction"
+		value={s.layout.dock.presentation.drawerDirection}
+		onChange={(value) => setDockDrawerDirection(value as LayoutDockDrawerDirection)}
+		options={[
+			{ value: 'up', label: 'Up' },
+			{ value: 'down', label: 'Down' },
+			{ value: 'left', label: 'Left' },
+			{ value: 'right', label: 'Right' },
 		]}
 	/>
 

@@ -3,6 +3,11 @@
 	import type { VaultmanPlugin } from '../../main';
 	import ViewList from '../views/viewList.svelte';
 	import { ViewService } from '../../services/serviceViews.svelte';
+	import {
+		createLogicGroup,
+		moveFilterNodeWithinParent,
+		type GroupDropPosition,
+	} from '../../services/serviceGroups';
 	import type { ActiveFilterEntry, NodeBase } from '../../types/typeContracts';
 	import type { ExplorerRenderModel, ViewAction, ViewRow } from '../../types/typeViews';
 	import { translate } from '../../index/i18n/lang';
@@ -126,13 +131,7 @@
 	}
 
 	function addLogicGroup() {
-		plugin.filterService.addNode({
-			type: 'group',
-			logic: 'and',
-			children: [],
-			label: 'Group',
-			enabled: true,
-		});
+		plugin.filterService.addNode(createLogicGroup());
 		importExportOpen = false;
 	}
 
@@ -156,11 +155,38 @@
 				{ id: 'remove', label: translate('filters.remove'), icon: 'lucide-x', tone: 'danger' },
 			],
 			getDecorationContext: () => ({ kind: 'filter' }),
+			capabilities: { canDrag: true, canDrop: true },
 		}) as unknown as ExplorerRenderModel<NodeBase>;
 	}
 
 	function handleAction(action: ViewAction<NodeBase>, row: ViewRow<NodeBase>) {
 		if (action.id === 'remove') removeFilter(row.node as ActiveFilterEntry);
+	}
+
+	function handleReorder(request: {
+		sourceId: string;
+		targetId: string;
+		position: GroupDropPosition;
+	}) {
+		const source = plugin.activeFiltersIndex.byId(request.sourceId);
+		const target = plugin.activeFiltersIndex.byId(request.targetId);
+		if (!source || !target) return;
+		if (source.source === 'search' || target.source === 'search') return;
+
+		const sourceParent = source.parent ?? plugin.filterService.activeFilter;
+		const targetParent = target.parent ?? plugin.filterService.activeFilter;
+		if (sourceParent !== targetParent) return;
+
+		if (
+			moveFilterNodeWithinParent(
+				sourceParent,
+				request.sourceId,
+				request.targetId,
+				request.position,
+			)
+		) {
+			plugin.filterService.setFilter({ ...plugin.filterService.activeFilter });
+		}
 	}
 
 	function emptyModel(): ExplorerRenderModel<NodeBase> {
@@ -252,7 +278,7 @@
 		{#if !hasItems}
 			<div class="vm-explorer-popup-empty">{translate('filters.active.empty')}</div>
 		{:else}
-			<ViewList {model} {icon} onAction={handleAction} />
+			<ViewList {model} {icon} onAction={handleAction} onReorder={handleReorder} />
 		{/if}
 	</div>
 </div>

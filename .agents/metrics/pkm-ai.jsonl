@@ -99,3 +99,37 @@
 {"ts":"2026-05-10T13:43:36","event":"health_failed","path":".agents/docs","detail":"48 failures"}
 {"ts":"2026-05-10T13:44:59","event":"health_failed","path":".agents/docs","detail":"48 failures"}
 {"ts":"2026-05-10T14:13:55","event":"health_failed","path":".agents/docs","detail":"48 failures"}
+{"ts":"2026-05-10T14:25:34","event":"health_failed","path":".agents/docs","detail":"48 failures"}
+{"ts":"2026-05-10T09:30:00","event":"archive_created","path":".agents/docs/archive/pkm-ai/active-docs/2026-05-10T093000-current-handoff.md","detail":"compact current handoff after Svelte code-index retrieval cut"}
+{"ts":"2026-05-10T09:30:00","event":"archive_created","path":".agents/docs/archive/pkm-ai/active-docs/2026-05-10T093000-current-status.md","detail":"compact current status after Svelte code-index retrieval cut"}
+{"ts":"2026-05-10T14:33:10","event":"health_failed","path":".agents/docs","detail":"46 failures"}
+{"ts":"2026-05-10T14:34:36","event":"health_failed","path":".agents/docs","detail":"46 failures"}
+{"ts":"2026-05-10T15:35:56","event":"line_limit_sharded","path":".agents/docs/work/hardening/backlog/2026-05-08-backlog-cut-4-view-size/index.md","detail":"216 lines into 1 shard(s)"}
+{"ts":"2026-05-10T15:35:56","event":"line_limit_sharded","path":".agents/docs/work/hardening/backlog/2026-05-09-node-notes-next-priority/index.md","detail":"257 lines into 1 shard(s)"}
+{"ts":"2026-05-10T15:35:56","event":"line_limit_sharded","path":".agents/docs/work/hardening/plans/2026-05-07-multifacet-2/index.md","detail":"276 lines into 1 shard(s)"}
+{"ts":"2026-05-10T15:35:56","event":"line_limit_sharded","path":".agents/docs/work/hardening/plans/2026-05-09-node-notes-nn4-native-surface-adapter/index.md","detail":"339 lines into 1 shard(s)"}
+{"ts":"2026-05-10T15:35:56","event":"line_limit_sharded","path":".agents/docs/work/performance/plans/2026-05-09-codeql-guardrails.md","detail":"249 lines into 1 shard(s)"}
+{"ts":"2026-05-10T15:35:56","event":"line_limit_sharded","path":".agents/docs/work/polish/plans/2026-05-10-pretext-grid-cards/01-field-visibility.md","detail":"341 lines into 1 shard(s)"}
+{"ts":"2026-05-10T15:35:56","event":"line_limit_sharded","path":".agents/docs/work/polish/plans/2026-05-10-pretext-grid-cards/02-pretext-measurement.md","detail":"272 lines into 1 shard(s)"}
+{"ts":"2026-05-10T15:35:56","event":"line_limit_sharded","path":".agents/docs/work/polish/plans/2026-05-10-pretext-grid-cards/03-card-layout.md","detail":"347 lines into 1 shard(s)"}
+{"ts":"2026-05-10T15:35:56","event":"line_limit_sharded","path":".agents/docs/work/polish/plans/2026-05-10-pretext-grid-cards/04-view-menu-routing.md","detail":"263 lines into 1 shard(s)"}
+{"ts":"2026-05-10T15:35:56","event":"line_limit_sharded","path":".agents/docs/work/polish/plans/2026-05-10-pretext-grid-cards/05-card-view.md","detail":"252 lines into 1 shard(s)"}
+{"ts":"2026-05-10T15:35:56","event":"line_limit_sharded","path":".agents/docs/work/polish/specs/2026-05-10-pretext-grid-cards/index.md","detail":"378 lines into 2 shard(s)"}
+{"ts":"2026-05-10T15:35:58","event":"health_failed","path":".agents/docs","detail":"35 failures"}
+{"ts":"2026-05-10T15:36:20","event":"health_failed","path":".agents/docs","detail":"35 failures"}
+{"ts":"2026-05-10T15:37:10","event":"health_failed","path":".agents/docs","detail":"35 failures"}
+{"ts":"2026-05-10T15:39:54","event":"health_failed","path":".agents/docs","detail":"36 failures"}
+{"ts":"2026-05-10T15:40:29","event":"health_failed","path":".agents/docs","detail":"35 failures"}
+{"ts":"2026-05-10T15:41:47","event":"health_failed","path":".agents/docs","detail":"35 failures"}
+{"ts":"2026-05-10T15:49:28","event":"health_failed","path":".agents/docs","detail":"35 failures"}
+{"ts":"2026-05-10T15:53:09","event":"archive_created","path":".agents/docs/archive/pkm-ai/public-docs/2026-05-10T155309-superpowers","detail":"moved forbidden public docs/superpowers into agent archive"}
+{"ts":"2026-05-10T15:53:11","event":"health_passed","path":".agents/docs","detail":"23 warnings"}
+{"ts":"2026-05-10T15:54:01","event":"health_passed","path":".agents/docs","detail":"23 warnings"}
+{"ts":"2026-05-10T15:55:49","event":"health_passed","path":".agents/docs","detail":"23 warnings"}
+{"ts":"2026-05-10T16:07:59","event":"health_passed","path":".agents/docs","detail":"23 warnings"}
+{"ts":"2026-05-10T16:11:17","event":"glossary_checked","path":".agents/docs/architecture/glossary.md","detail":"SVAR filemanager"}
+{"ts":"2026-05-10T16:11:18","event":"health_passed","path":".agents/docs","detail":"1 warnings"}
+{"ts":"2026-05-10T16:11:18","event":"glossary_checked","path":".agents/docs/architecture/glossary.md","detail":"node selection service"}
+{"ts":"2026-05-10T16:11:54","event":"glossary_checked","path":".agents/docs/architecture/glossary.md","detail":"active node"}
+{"ts":"2026-05-10T16:11:55","event":"health_passed","path":".agents/docs","detail":"0 warnings"}
+{"ts":"2026-05-10T16:17:03","event":"health_passed","path":".agents/docs","detail":"0 warnings"}

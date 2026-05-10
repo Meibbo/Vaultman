@@ -1,7 +1,7 @@
 ---
 title: Spec 10 - Visual Polish & Gadgets
 type: expansion-spec
-parent: "[[index]]"
+parent: "[[docs/superpowers/specs/2026-05-10-shadcn-tailwind-transition/index|index]]"
 created: 2026-05-10
 ---
 

@@ -3,7 +3,7 @@ title: Test Plan
 type: plan
 status: done
 initiative: draft
-parent: docs/work/draft/index|draft
+parent: "[[docs/work/draft/index|draft]]"
 created: 2026-05-07T02:00:15
 updated: 2026-05-07T02:00:39
 created_by: antigravity

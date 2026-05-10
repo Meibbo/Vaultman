@@ -240,7 +240,7 @@ export function registerVaultmanCommands(
 					service.setMode('replace');
 					service.expand();
 					// Focus the searchbox via the DOM contract that
-					// `navbarExplorer.svelte` provides — the `.vm-filters-search-input`
+					// `Toolbar.svelte` provides — the `.vm-filters-search-input`
 					// class is the canonical anchor.
 					const win = typeof activeWindow !== 'undefined' ? activeWindow : null;
 					const doc = typeof activeDocument !== 'undefined' ? activeDocument : null;

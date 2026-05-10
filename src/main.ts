@@ -378,6 +378,10 @@ export class VaultmanPlugin extends Plugin {
 		body.toggleClass('vm-theme-polish', theme === 'polish');
 		body.toggleClass('vm-theme-glass', theme === 'glass');
 		body.toggleClass('vm-island-backdrop-enabled', this.settings.islandBackdropBlur === true);
+		body.toggleClass(
+			'vm-faint-accents-workspace-focus',
+			this.settings.faintAccentsWhenWorkspaceFocused === true,
+		);
 	}
 
 	async activateView(): Promise<void> {

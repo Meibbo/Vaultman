@@ -3,6 +3,10 @@
 	import type { VaultmanPlugin } from '../../main';
 	import ViewList from '../views/viewList.svelte';
 	import { ViewService } from '../../services/serviceViews.svelte';
+	import {
+		groupQueueChangesByAction,
+		type QueueActionGroupNode,
+	} from '../../services/serviceGroups';
 	import type { NodeBase, QueueChange } from '../../types/typeContracts';
 	import type { ExplorerRenderModel, ViewAction, ViewRow } from '../../types/typeViews';
 	import { translate } from '../../index/i18n/lang';
@@ -47,18 +51,35 @@
 		model = (plugin.viewService ?? fallbackViewService).getModel({
 			explorerId: 'queue',
 			mode: 'list',
-			nodes: [...plugin.operationsIndex.nodes],
-			getLabel: (node) => (node as QueueChange).change.type,
-			getDetail: (node) => (node as QueueChange).change.details ?? '',
-			getActions: () => [
-				{ id: 'remove', label: translate('queue.remove'), icon: 'lucide-x', tone: 'danger' },
-			],
+			nodes: groupQueueChangesByAction(plugin.operationsIndex.nodes),
+			getLabel: (node) =>
+				isQueueActionGroupNode(node) ? node.label : (node as QueueChange).change.type,
+			getDetail: (node) =>
+				isQueueActionGroupNode(node)
+					? `${node.count} operation${node.count === 1 ? '' : 's'}`
+					: ((node as QueueChange).change.details ?? ''),
+			getActions: (node) =>
+				isQueueActionGroupNode(node)
+					? []
+					: [
+							{
+								id: 'remove',
+								label: translate('queue.remove'),
+								icon: 'lucide-x',
+								tone: 'danger',
+							},
+						],
 			getDecorationContext: () => ({ kind: 'operation' }),
 		}) as unknown as ExplorerRenderModel<NodeBase>;
 	}
 
 	function handleAction(action: ViewAction<NodeBase>, row: ViewRow<NodeBase>) {
-		if (action.id === 'remove') removeItem(row.id);
+		if (action.id === 'remove' && !isQueueActionGroupNode(row.node)) removeItem(row.id);
+	}
+
+	function isQueueActionGroupNode(node: NodeBase): node is QueueActionGroupNode {
+		const candidate = node as { kind?: string; groupKey?: unknown };
+		return candidate.kind === 'group' && typeof candidate.groupKey === 'string';
 	}
 
 	function emptyModel(): ExplorerRenderModel<NodeBase> {

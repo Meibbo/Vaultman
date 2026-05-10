@@ -1,5 +1,7 @@
 export type LayoutSurfaceContent = 'frame-pages' | 'filter-tabs' | 'tool-tabs' | 'none';
 export type LayoutLabelPosition = 'bottom' | 'side';
+export type LayoutDockPresentationMode = 'bar' | 'drawer';
+export type LayoutDockDrawerDirection = 'up' | 'down' | 'left' | 'right';
 
 export interface LayoutLabelSettings {
 	visible: boolean;
@@ -9,6 +11,12 @@ export interface LayoutLabelSettings {
 export interface LayoutSurfaceSettings {
 	content: LayoutSurfaceContent;
 	labels: LayoutLabelSettings;
+	presentation: LayoutDockPresentationSettings;
+}
+
+export interface LayoutDockPresentationSettings {
+	mode: LayoutDockPresentationMode;
+	drawerDirection: LayoutDockDrawerDirection;
 }
 
 export interface LayoutSettings {
@@ -23,15 +31,27 @@ const VALID_CONTENT: ReadonlySet<LayoutSurfaceContent> = new Set([
 	'none',
 ]);
 const VALID_LABEL_POSITIONS: ReadonlySet<LayoutLabelPosition> = new Set(['bottom', 'side']);
+const VALID_PRESENTATION_MODES: ReadonlySet<LayoutDockPresentationMode> = new Set([
+	'bar',
+	'drawer',
+]);
+const VALID_DRAWER_DIRECTIONS: ReadonlySet<LayoutDockDrawerDirection> = new Set([
+	'up',
+	'down',
+	'left',
+	'right',
+]);
 
 export const DEFAULT_LAYOUT_SETTINGS: LayoutSettings = {
 	dock: {
 		content: 'filter-tabs',
 		labels: { visible: false, position: 'bottom' },
+		presentation: { mode: 'bar', drawerDirection: 'up' },
 	},
 	tabs: {
 		content: 'frame-pages',
 		labels: { visible: false, position: 'side' },
+		presentation: { mode: 'bar', drawerDirection: 'up' },
 	},
 };
 
@@ -60,17 +80,37 @@ function normalizeLabels(raw: unknown, fallback: LayoutLabelSettings): LayoutLab
 	};
 }
 
+function normalizePresentation(
+	raw: unknown,
+	fallback: LayoutDockPresentationSettings,
+): LayoutDockPresentationSettings {
+	if (!isRecord(raw)) return { ...fallback };
+	return {
+		mode:
+			typeof raw.mode === 'string' && VALID_PRESENTATION_MODES.has(raw.mode as LayoutDockPresentationMode)
+				? (raw.mode as LayoutDockPresentationMode)
+				: fallback.mode,
+		drawerDirection:
+			typeof raw.drawerDirection === 'string' &&
+			VALID_DRAWER_DIRECTIONS.has(raw.drawerDirection as LayoutDockDrawerDirection)
+				? (raw.drawerDirection as LayoutDockDrawerDirection)
+				: fallback.drawerDirection,
+	};
+}
+
 function normalizeSurface(raw: unknown, fallback: LayoutSurfaceSettings): LayoutSurfaceSettings {
 	if (!isRecord(raw)) {
 		return {
 			content: fallback.content,
 			labels: { ...fallback.labels },
+			presentation: { ...fallback.presentation },
 		};
 	}
 
 	return {
 		content: normalizeContent(raw.content, fallback.content),
 		labels: normalizeLabels(raw.labels, fallback.labels),
+		presentation: normalizePresentation(raw.presentation, fallback.presentation),
 	};
 }
 

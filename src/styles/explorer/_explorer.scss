@@ -277,3 +277,17 @@
 		}
 	}
 }
+
+.vm-toolbar-search-island {
+	position: absolute;
+	top: calc(100% + 4px);
+	left: 8px;
+	right: 8px;
+	z-index: 20;
+	padding: 6px;
+	border: 1px solid var(--background-modifier-border);
+	border-radius: 12px;
+	background: color-mix(in srgb, var(--background-primary) 94%, transparent);
+	box-shadow: var(--shadow-l);
+	backdrop-filter: blur(var(--vm-glass-blur, 12px));
+}

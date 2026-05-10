@@ -31,7 +31,7 @@
 	const TREE_ROW_HEIGHT = DEFAULT_VIEW_SIZE.treeRowHeight;
 	const TREE_FALLBACK_WIDTH = 320;
 	const TREE_FALLBACK_HEIGHT = 400;
-	const TREE_OVERSCAN = 5;
+	const TREE_OVERSCAN = 12;
 	type ScrollTarget = { id: string; serial: number };
 
 	interface Props {
@@ -112,6 +112,14 @@
 		}
 	}
 
+	function iconForNode(node: TreeNode, flat: FlatNode): string | undefined {
+		if (!node.icon) return undefined;
+		if (flat.hasChildren && flat.isExpanded && node.icon === 'lucide-folder') {
+			return 'lucide-folder-open';
+		}
+		return node.icon;
+	}
+
 	let outerEl: HTMLDivElement | undefined = $state();
 	let rowHeight = $state(TREE_ROW_HEIGHT);
 	let dragStart = $state<{ x: number; y: number; pointerId: number } | null>(null);
@@ -143,9 +151,11 @@
 		initialRect: { width: TREE_FALLBACK_WIDTH, height: TREE_FALLBACK_HEIGHT },
 	});
 	const virtualRows = $derived($rowVirtualizer.getVirtualItems());
-	const renderedVirtualRows = $derived(
-		virtualRows.filter((virtualRow) => virtualRow.index < flatArray.length),
-	);
+	const renderedVirtualRows = $derived.by(() => {
+		const rows = virtualRows.filter((virtualRow) => virtualRow.index < flatArray.length);
+		if (rows.length > 0 || flatArray.length === 0) return rows;
+		return fallbackTreeRows(flatArray, rowHeight);
+	});
 	const totalH = $derived($rowVirtualizer.getTotalSize());
 
 	$effect(() => {
@@ -470,6 +480,22 @@
 	function treeVirtualItemKey(items: readonly FlatNode[], index: number): string | number {
 		return items[index]?.node.id ?? index;
 	}
+
+	function fallbackTreeRows(items: readonly FlatNode[], height: number) {
+		const viewportHeight = outerEl?.clientHeight || TREE_FALLBACK_HEIGHT;
+		const scrollTop = outerEl?.scrollTop ?? 0;
+		const rawStart = Math.max(0, Math.floor(scrollTop / height) - TREE_OVERSCAN);
+		const visible = Math.ceil(viewportHeight / height);
+		const end = Math.min(items.length, rawStart + visible + TREE_OVERSCAN * 2);
+		return Array.from({ length: Math.max(0, end - rawStart) }, (_, offset) => {
+			const index = rawStart + offset;
+			return {
+				index,
+				key: treeVirtualItemKey(items, index),
+				start: index * height,
+			};
+		});
+	}
 </script>
 
 <div
@@ -498,6 +524,7 @@
 			{@const directBadges = ownBadges(node)}
 			{@const childBadges = inheritedBadges(node)}
 			{@const hoverBadges = hoverBadgesFor(node)}
+			{@const rowIcon = iconForNode(node, flat)}
 
 			<div
 				class="vm-tree-virtual-row {node.cls ?? ''}"
@@ -528,27 +555,25 @@
 					class:is-editing={isEditing}
 				>
 					<!-- Chevron / Spacer -->
-					<div
-						class="vm-tree-toggle"
-						onclick={(e) => {
-							e.stopPropagation();
-							if (flat.hasChildren) onToggle(node.id);
-						}}
-						onkeydown={() => {}}
-						role="button"
-						tabindex="-1"
-					>
-						{#if flat.hasChildren}
+					{#if flat.hasChildren}
+						<div
+							class="vm-tree-toggle"
+							onclick={(e) => {
+								e.stopPropagation();
+								onToggle(node.id);
+							}}
+							onkeydown={() => {}}
+							role="button"
+							tabindex="-1"
+						>
 							<span use:icon={flat.isExpanded ? 'lucide-chevron-down' : 'lucide-chevron-right'}
 							></span>
-						{/if}
-					</div>
+						</div>
+					{/if}
 
 					<!-- Icon -->
-					{#if node.icon}
-						<span class="vm-tree-icon" use:icon={node.icon}></span>
-					{:else}
-						<span class="vm-tree-icon-placeholder" aria-hidden="true"></span>
+					{#if rowIcon}
+						<span class="vm-tree-icon" use:icon={rowIcon}></span>
 					{/if}
 
 					<!-- Label / Input -->

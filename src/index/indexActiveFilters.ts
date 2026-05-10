@@ -65,5 +65,5 @@ function getSearchRules(filter: IFilterService): FilterRule[] {
 }
 
 function isVisibleGroup(group: FilterGroup): boolean {
-	return group.id === 'selected-files' || group.kind === 'selected_files';
+	return group.id !== 'root';
 }

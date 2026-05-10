@@ -12,6 +12,7 @@ created_by: codex
 updated_by: codex
 ---
 
+
 # Backlog cut 4 - serviceViewSize and stable node sizing
 
 ## Trigger
@@ -195,21 +196,5 @@ are holding cuts that still need a focused spec before implementation.
   - Sources:
     [[docs/work/hardening/backlog/regressions/navbar|navbar regression]] and
     [[docs/work/hardening/backlog/2026-05-07-v1-scope-audit/02-v1-polish-scope|v1 polish scope]].
-  - Workspace tab behavior, navbar/tab placement, responsive page/tab bars, and
-    command-center status visibility.
-- Cut 23 - Explorer polish bundle.
-  - Source:
-    [[docs/work/hardening/backlog/2026-05-07-v1-scope-audit/02-v1-polish-scope|v1 polish scope]].
-  - Auto-scroll/reveal, column visibility controls, select-all variants, group
-    drawers, empty states, list/filter UX, Files explorer features, and default
-    order settings.
-- Cut 24 - Programmable interface foundation.
-  - Source:
-    [[docs/work/hardening/backlog/2026-05-07-v1-scope-audit/02-v1-polish-scope|v1 polish scope]].
-  - `serviceAPI`, Bases I/O text parse/emit, and Agent Guardrail Skill
-    consumer.
-- Cut 25 - Post-rc.1 holding cut.
-  - Source:
-    [[docs/work/hardening/backlog/2026-05-07-v1-scope-audit/02-v1-polish-scope|post-rc.1 boundary]].
-  - `serviceMarks`, `tabLinter`, `tabMarks`, manual sort via marks, and
-    Templates settings remain valid but outside the v1.0 Polish release path.
+
+Continua en [[docs/work/hardening/backlog/2026-05-08-backlog-cut-4-view-size/index-shard-1|continuacion 1]].

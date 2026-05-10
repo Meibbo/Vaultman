@@ -1,7 +1,7 @@
 ---
 title: Shard 5 - State & Reactivity (Exhaustive)
 type: research-shard
-parent: "[[index]]"
+parent: "[[docs/work/research/2026-05-10-vaultman-codebase-recognition/index|index]]"
 created: 2026-05-10
 ---
 

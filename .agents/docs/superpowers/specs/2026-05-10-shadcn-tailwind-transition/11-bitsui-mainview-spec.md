@@ -1,7 +1,7 @@
 ---
 title: Spec 11 - Bits UI Bridge & Multi-Column Main View
 type: architecture-spec
-parent: "[[index]]"
+parent: "[[docs/superpowers/specs/2026-05-10-shadcn-tailwind-transition/index|index]]"
 created: 2026-05-10
 tags:
   - architecture/ui

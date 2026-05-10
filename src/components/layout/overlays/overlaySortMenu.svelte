@@ -97,12 +97,12 @@
 		filesShowSelectedOnly = $bindable(false),
 		filesShowHidden = $bindable(false),
 		manualDndEnabled = $bindable(false),
-		nodeExpansionSummary = { canToggle: false, hasExpandedParents: false },
+		nodeExpansionSummary: _nodeExpansionSummary = { canToggle: false, hasExpandedParents: false },
 		onOperationScopeChange,
 		onFilesShowHiddenChange,
 		onManualDndChange,
 		onSortTargetChange,
-		onToggleNodeExpansion,
+		onToggleNodeExpansion: _onToggleNodeExpansion,
 		icon,
 	}: {
 		activeTab: FiltersTab;
@@ -168,15 +168,6 @@
 				: 'lucide-list'
 			: 'lucide-chevrons-down',
 	);
-	const nodeExpansionLabel = $derived(
-		nodeExpansionSummary.hasExpandedParents
-			? translate('sort.collapse_all_nodes')
-			: translate('sort.expand_all_nodes'),
-	);
-	const nodeExpansionIcon = $derived(
-		nodeExpansionSummary.hasExpandedParents ? 'lucide-chevrons-up' : 'lucide-chevrons-down',
-	);
-
 	function toggleVertBottom() {
 		if (activeTab === 'files') {
 			filesShowSelectedOnly = !filesShowSelectedOnly;
@@ -290,22 +281,6 @@
 				tabindex="0"
 				use:icon={'lucide-bookmark'}
 			></div>
-			{#if nodeExpansionSummary.canToggle}
-				<div
-					class="vm-sort-circle-btn"
-					class:is-active={nodeExpansionSummary.hasExpandedParents}
-					data-vm-sort-node-expansion
-					aria-label={nodeExpansionLabel}
-					title={nodeExpansionLabel}
-					onclick={() => onToggleNodeExpansion?.()}
-					onkeydown={(e: KeyboardEvent) => {
-						if (e.key === 'Enter' || e.key === ' ') onToggleNodeExpansion?.();
-					}}
-					role="button"
-					tabindex="0"
-					use:icon={nodeExpansionIcon}
-				></div>
-			{/if}
 			<button
 				type="button"
 				class="vm-sort-circle-btn vm-sort-toggle-btn"

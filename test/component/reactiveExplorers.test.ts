@@ -324,6 +324,8 @@ describe('reactive explorer components', () => {
 		flushSync();
 
 		expect(target.textContent).toContain('Set status');
+		expect(target.textContent).toContain('set');
+		expect(target.querySelector('[data-id="queue-action:set"]')).toBeTruthy();
 	});
 
 	it('renders the Queue island toolbar without a redundant close squircle', () => {
@@ -381,6 +383,100 @@ describe('reactive explorer components', () => {
 		flushSync();
 
 		expect(target.textContent).toContain('has: status');
+	});
+
+	it('adds visible logic groups through serviceGroups from the Active Filters island', () => {
+		const activeFiltersIndex = new MutableIndex<ActiveFilterEntry>();
+		const addNode = vi.fn();
+		const plugin = {
+			activeFiltersIndex,
+			filterService: {
+				filteredFiles: [],
+				removeNode: vi.fn(),
+				clearFilters: vi.fn(),
+				addNode,
+			},
+		} as unknown as VaultmanPlugin;
+
+		app = mount(ExplorerActiveFilters as unknown as Component<{ plugin: VaultmanPlugin }>, {
+			target,
+			props: { plugin },
+		});
+		flushSync();
+
+		target.querySelector<HTMLButtonElement>('[aria-label="Add logic group"]')?.click();
+		flushSync();
+
+		expect(addNode).toHaveBeenCalledWith(
+			expect.objectContaining({
+				type: 'group',
+				kind: 'logic_group',
+				logic: 'and',
+				label: 'Group',
+				enabled: true,
+				children: [],
+			}),
+		);
+	});
+
+	it('reorders active filter rows inside the same parent via list drag and drop', () => {
+		const activeFiltersIndex = new MutableIndex<ActiveFilterEntry>();
+		const root = {
+			id: 'root',
+			type: 'group' as const,
+			logic: 'and' as const,
+			children: [
+				{
+					id: 'rule-a',
+					type: 'rule' as const,
+					filterType: 'has_property' as const,
+					property: 'alpha',
+					values: [],
+				},
+				{
+					id: 'rule-b',
+					type: 'rule' as const,
+					filterType: 'has_property' as const,
+					property: 'beta',
+					values: [],
+				},
+			],
+		};
+		const setFilter = vi.fn();
+		const plugin = {
+			activeFiltersIndex,
+			filterService: {
+				activeFilter: root,
+				filteredFiles: [],
+				removeNode: vi.fn(),
+				clearFilters: vi.fn(),
+				addNode: vi.fn(),
+				setFilter,
+			},
+		} as unknown as VaultmanPlugin;
+
+		app = mount(ExplorerActiveFilters as unknown as Component<{ plugin: VaultmanPlugin }>, {
+			target,
+			props: { plugin },
+		});
+		flushSync();
+
+		activeFiltersIndex.emit([
+			{ id: 'rule-a', kind: 'rule', rule: root.children[0], parent: root, depth: 0 },
+			{ id: 'rule-b', kind: 'rule', rule: root.children[1], parent: root, depth: 0 },
+		] as ActiveFilterEntry[]);
+		flushSync();
+
+		target
+			.querySelector<HTMLElement>('[data-id="rule-b"]')
+			?.dispatchEvent(new Event('dragstart', { bubbles: true, cancelable: true }));
+		target
+			.querySelector<HTMLElement>('[data-id="rule-a"]')
+			?.dispatchEvent(new Event('drop', { bubbles: true, cancelable: true }));
+		flushSync();
+
+		expect(root.children.map((child) => child.id)).toEqual(['rule-b', 'rule-a']);
+		expect(setFilter).toHaveBeenCalledWith(expect.objectContaining({ id: 'root' }));
 	});
 
 	it('shows active filters import/export flyout from the toolbar', () => {

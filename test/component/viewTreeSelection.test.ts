@@ -109,7 +109,7 @@ describe('ViewTree selection gestures', () => {
 		expect(handlers.onPrimaryAction).not.toHaveBeenCalled();
 	});
 
-	it('reserves stable icon slots for rows without icons', () => {
+	it('does not render placeholder icon slots for rows without icons', () => {
 		renderTree([
 			{ id: 'with-icon', label: 'With icon', depth: 0, meta: {}, icon: 'lucide-file' },
 			{ id: 'without-icon', label: 'Without icon', depth: 0, meta: {} },
@@ -120,9 +120,29 @@ describe('ViewTree selection gestures', () => {
 		const withoutIcon = target.querySelector('[data-id="without-icon"]') as HTMLElement;
 
 		expect(withIcon.querySelector('.vm-tree-icon')).not.toBeNull();
-		expect(withoutIcon.querySelector('.vm-tree-icon-placeholder')).not.toBeNull();
+		expect(withoutIcon.querySelector('.vm-tree-icon-placeholder')).toBeNull();
+		expect(withoutIcon.querySelector('.vm-tree-icon')).toBeNull();
 		expect(tree.getAttribute('style')).toContain('--vm-tree-row-h: 28px');
 		expect(tree.getAttribute('style')).toContain('--vm-tree-icon-size: 16px');
+	});
+
+	it('uses an open folder icon for expanded folder rows', () => {
+		const icon = vi.fn(() => ({ update: vi.fn() }));
+		renderTree(
+			[
+				{
+					id: 'folder',
+					label: 'Folder',
+					depth: 0,
+					meta: {},
+					icon: 'lucide-folder',
+					children: [{ id: 'child', label: 'Child', depth: 1, meta: {} }],
+				},
+			],
+			{ expandedIds: new Set(['folder']), icon },
+		);
+
+		expect(icon).toHaveBeenCalledWith(expect.any(HTMLElement), 'lucide-folder-open');
 	});
 
 	it('does not start box selection when the SVG inside a chevron receives pointerdown', () => {

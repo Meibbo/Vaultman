@@ -242,6 +242,7 @@
 	let filtersSortTarget = $state<ExplorerSortTarget>('top');
 	let filtersViewMode = $state<any>('tree');
 	let addMode = $state(false);
+	let dockDrawerOpen = $state(false);
 	const initialOperationScope = untrack(() =>
 		normalizeOperationScope(plugin.settings.explorerOperationScope),
 	);
@@ -274,7 +275,7 @@
 	}
 
 	function activeForSurface(content: LayoutSurfaceContent): string {
-		if (content === 'filter-tabs') return filtersActiveTab;
+		if (content === 'filter-tabs') return activePage === 'filters' ? filtersActiveTab : '';
 		if (content === 'frame-pages') return activePage;
 		return '';
 	}
@@ -587,6 +588,9 @@
 			active={dockActive}
 			showLabels={layoutSettings.dock.labels.visible}
 			labelPosition={layoutSettings.dock.labels.position}
+			presentationMode={layoutSettings.dock.presentation.mode}
+			drawerDirection={layoutSettings.dock.presentation.drawerDirection}
+			bind:drawerOpen={dockDrawerOpen}
 			{leftFab}
 			{rightFab}
 			navCollapsed={navReorder.navCollapsed}

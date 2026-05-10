@@ -3,8 +3,8 @@ title: obsidian-web safety and test-harness assessment
 type: agent-research-shard
 status: active
 parent: "[[02-rendering-quick-switcher-obsidian-web|rendering quick switcher obsidian-web]]"
-created: 2026-05-09T01:25:51-05:00
-updated: 2026-05-09T01:25:51-05:00
+created: 2026-05-09T01:25:51
+updated: 2026-05-09T01:25:51
 tags:
   - agent/research
   - obsidian/testing

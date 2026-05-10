@@ -1,9 +1,9 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { flushSync, mount, unmount, type Component } from 'svelte';
-import NavbarExplorer from '../../src/components/layout/navbarExplorer.svelte';
+import Toolbar from '../../src/components/layout/Toolbar.svelte';
 import { FnRIslandService } from '../../src/services/serviceFnRIsland.svelte';
 
-function baseProps(service: FnRIslandService) {
+function baseProps(service: FnRIslandService, overrides: Record<string, unknown> = {}) {
 	return {
 		activeTab: 'tags',
 		filtersSearch: '',
@@ -25,10 +25,11 @@ function baseProps(service: FnRIslandService) {
 		addOpCount: 0,
 		fnrIslandService: service,
 		onCrear: vi.fn(),
+		...overrides,
 	};
 }
 
-describe('NavbarExplorer toolbar menu placement', () => {
+describe('Toolbar toolbar menu placement', () => {
 	let target: HTMLDivElement;
 	let app: ReturnType<typeof mount> | null = null;
 
@@ -47,7 +48,7 @@ describe('NavbarExplorer toolbar menu placement', () => {
 
 	it('renders view + sort menus on the right side of the crear button with minimalist class', () => {
 		const service = new FnRIslandService();
-		app = mount(NavbarExplorer as unknown as Component<Record<string, unknown>>, {
+		app = mount(Toolbar as unknown as Component<Record<string, unknown>>, {
 			target,
 			props: baseProps(service),
 		});
@@ -79,12 +80,40 @@ describe('NavbarExplorer toolbar menu placement', () => {
 		expect(minimalist!.contains(viewBtn!) || minimalist!.contains(sortBtn!)).toBe(true);
 	});
 
+	it('renders search and node expansion commands in the toolbar button cluster', () => {
+		const service = new FnRIslandService();
+		const onToggleNodeExpansion = vi.fn();
+		app = mount(Toolbar as unknown as Component<Record<string, unknown>>, {
+			target,
+			props: baseProps(service, {
+				nodeExpansionSummary: { canToggle: true, hasExpandedParents: false },
+				onToggleNodeExpansion,
+			}),
+		});
+		flushSync();
+
+		const search = target.querySelector<HTMLElement>('[aria-label="Search"]');
+		const expansion = target.querySelector<HTMLElement>('[data-vm-toolbar-node-expansion]');
+		expect(search).toBeTruthy();
+		expect(expansion).toBeTruthy();
+
+		search!.click();
+		flushSync();
+		expect(target.querySelector('.vm-filters-header-search-wrap')).toBeTruthy();
+
+		expansion!.click();
+		expect(onToggleNodeExpansion).toHaveBeenCalledOnce();
+	});
+
 	it('keeps search syntax help inside the searchbox instead of beside the toolbar FABs', () => {
 		const service = new FnRIslandService();
-		app = mount(NavbarExplorer as unknown as Component<Record<string, unknown>>, {
+		app = mount(Toolbar as unknown as Component<Record<string, unknown>>, {
 			target,
 			props: baseProps(service),
 		});
+		flushSync();
+
+		target.querySelector<HTMLElement>('[aria-label="Search"]')!.click();
 		flushSync();
 
 		const searchWrap = target.querySelector('.vm-filters-header-search-wrap');

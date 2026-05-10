@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { flushSync, mount, unmount, type Component } from 'svelte';
-import NavbarExplorer from '../../src/components/layout/navbarExplorer.svelte';
+import Toolbar from '../../src/components/layout/Toolbar.svelte';
 import { FnRIslandService } from '../../src/services/serviceFnRIsland.svelte';
 
 function baseProps(
@@ -32,7 +32,7 @@ function baseProps(
 	};
 }
 
-describe('NavbarExplorer crear button', () => {
+describe('Toolbar crear button', () => {
 	let target: HTMLDivElement;
 	let app: ReturnType<typeof mount> | null = null;
 
@@ -52,7 +52,7 @@ describe('NavbarExplorer crear button', () => {
 	it('enables the crear button for the tag explorer and dispatches one queue.add', () => {
 		const service = new FnRIslandService();
 		const queueAdd = vi.fn();
-		app = mount(NavbarExplorer as unknown as Component<Record<string, unknown>>, {
+		app = mount(Toolbar as unknown as Component<Record<string, unknown>>, {
 			target,
 			props: baseProps(service, {
 				activeTab: 'tags',
@@ -79,7 +79,7 @@ describe('NavbarExplorer crear button', () => {
 	it('renders the crear button disabled for the content explorer', () => {
 		const service = new FnRIslandService();
 		const queueAdd = vi.fn();
-		app = mount(NavbarExplorer as unknown as Component<Record<string, unknown>>, {
+		app = mount(Toolbar as unknown as Component<Record<string, unknown>>, {
 			target,
 			props: baseProps(service, {
 				activeTab: 'content',

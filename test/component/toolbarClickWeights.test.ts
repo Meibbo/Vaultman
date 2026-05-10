@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { flushSync, mount, unmount, type Component } from 'svelte';
-import NavbarExplorer from '../../src/components/layout/navbarExplorer.svelte';
+import Toolbar from '../../src/components/layout/Toolbar.svelte';
 import { FnRIslandService } from '../../src/services/serviceFnRIsland.svelte';
 
 function baseProps(overrides: Record<string, unknown> = {}) {
@@ -29,7 +29,7 @@ function baseProps(overrides: Record<string, unknown> = {}) {
 	};
 }
 
-describe('NavbarExplorer menu click weights', () => {
+describe('Toolbar menu click weights', () => {
 	let target: HTMLDivElement;
 	let app: ReturnType<typeof mount> | null = null;
 
@@ -49,7 +49,7 @@ describe('NavbarExplorer menu click weights', () => {
 	});
 
 	function render(props: Record<string, unknown> = {}) {
-		app = mount(NavbarExplorer as unknown as Component<Record<string, unknown>>, {
+		app = mount(Toolbar as unknown as Component<Record<string, unknown>>, {
 			target,
 			props: baseProps(props),
 		});

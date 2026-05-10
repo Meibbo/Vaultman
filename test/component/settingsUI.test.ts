@@ -137,6 +137,7 @@ describe('SettingsUI mount (regression: effect_update_depth_exceeded)', () => {
 		flushSync();
 
 		expect(target.textContent).toContain('Dock content');
+		expect(target.textContent).toContain('Dock presentation');
 		expect(target.textContent).toContain('Top tabs content');
 		expect(target.textContent).toContain('Primary node action');
 
@@ -149,6 +150,40 @@ describe('SettingsUI mount (regression: effect_update_depth_exceeded)', () => {
 		flushSync();
 
 		expect(plugin.settings.layout?.dock.labels.visible).toBe(true);
+		expect(plugin.saveSettings).toHaveBeenCalledOnce();
+
+		const presentation = [...target.querySelectorAll('select')].find((candidate) =>
+			[...candidate.options].some((option) => option.textContent === 'FAB drawer'),
+		) as HTMLSelectElement;
+		presentation.value = 'drawer';
+		presentation.dispatchEvent(new Event('change', { bubbles: true }));
+		flushSync();
+
+		expect(plugin.settings.layout?.dock.presentation.mode).toBe('drawer');
+	});
+
+	it('persists faint accent focus mode without autosaving on mount', () => {
+		const plugin = makeFakePlugin();
+
+		app = mount(SettingsUI as unknown as Component<{ plugin: iVaultmanPlugin }>, {
+			target,
+			props: { plugin: plugin as unknown as iVaultmanPlugin },
+		});
+		flushSync();
+
+		const toggle = [...target.querySelectorAll<HTMLInputElement>('input[type="checkbox"]')].find(
+			(candidate) =>
+				candidate.closest('label')?.textContent?.includes('Faint accents during workspace focus'),
+		);
+		expect(toggle).toBeTruthy();
+		expect(plugin.saveSettings).not.toHaveBeenCalled();
+
+		toggle!.checked = true;
+		toggle!.dispatchEvent(new Event('change', { bubbles: true }));
+		flushSync();
+
+		expect(plugin.settings.faintAccentsWhenWorkspaceFocused).toBe(true);
+		expect(plugin.updateGlassBlur).toHaveBeenCalledOnce();
 		expect(plugin.saveSettings).toHaveBeenCalledOnce();
 	});
 });

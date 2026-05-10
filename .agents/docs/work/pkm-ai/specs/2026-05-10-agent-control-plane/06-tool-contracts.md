@@ -4,7 +4,7 @@ type: spec-shard
 status: draft
 parent: "[[docs/work/pkm-ai/specs/2026-05-10-agent-control-plane/index|Agent Control Plane]]"
 created: 2026-05-10T05:26:33
-updated: 2026-05-10T09:06:09
+updated: 2026-05-10T10:56:07
 created_by: codex
 updated_by: codex
 tags:
@@ -34,7 +34,7 @@ architecture or completion claim by itself.
 
 | Tool | Confidence | Contract |
 | --- | --- | --- |
-| `check-doc-health.mjs` | evidence-bearing | Proves the documented health rules it implements for the scanned tree; global failure still requires path-specific interpretation. |
+| `check-doc-health.mjs` | evidence-bearing | Proves the documented health rules it implements for the scanned tree; global failure still requires path-specific interpretation. With `--repair-line-limits`, it mutates only oversized active Markdown files by preserving source lines, creating continuation shards with source/parent YAML, adding continuation wikilinks, and recording `line_limit_sharded` metrics. With `--repair-residuals`, it also normalizes parent link shape, strips timestamp offsets, and archives forbidden root `docs/superpowers` under `.agents/docs/archive/pkm-ai/public-docs/`. |
 | `query-docs.mjs` | evidence-bearing | Proves frontmatter/index/glossary lookup for indexed docs; absence can mean cache staleness, parse failure, or unindexed content. |
 | `record-metric.mjs` | evidence-bearing | Proves a workflow event was appended with evidence details; it does not prove the underlying work succeeded. |
 | `archive-active-doc.mjs` | authoritative | Authoritative for archive creation when the command succeeds and the replacement source links the archive. |

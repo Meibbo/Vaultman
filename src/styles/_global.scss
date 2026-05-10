@@ -60,3 +60,9 @@
 		}
 	}
 }
+
+body.vm-faint-accents-workspace-focus:has(.workspace:focus-within) {
+	--interactive-accent: color-mix(in srgb, var(--text-muted) 72%, var(--background-primary));
+	--interactive-accent-hover: color-mix(in srgb, var(--text-muted) 84%, var(--background-primary));
+	--text-accent: var(--text-muted);
+}

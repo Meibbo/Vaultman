@@ -3,8 +3,8 @@ title: pageTools snippets and plugins explorers
 type: agent-research-shard
 status: active
 parent: "[[index|node note UI assimilation research]]"
-created: 2026-05-09T01:25:51-05:00
-updated: 2026-05-09T01:25:51-05:00
+created: 2026-05-09T01:25:51
+updated: 2026-05-09T01:25:51
 tags:
   - agent/research
   - obsidian/snippets

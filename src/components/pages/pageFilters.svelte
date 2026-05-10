@@ -1,4 +1,4 @@
-﻿<script lang="ts">
+<script lang="ts">
 	import type { VaultmanPlugin } from '../../main';
 	// TODO: por quÃ© importo los tabs y los explorer?
 	import FiltersPropsTab from './tabProps.svelte';
@@ -7,7 +7,7 @@
 	import ContentTab from './tabContent.svelte';
 	// TODO: por quÃ© importa navbartabs??
 	import NavbarTabs from '../layout/navbarTabs.svelte';
-	import NavbarExplorer from '../layout/navbarExplorer.svelte';
+	import Toolbar from '../layout/Toolbar.svelte';
 	import PanelExplorer from '../containers/panelExplorer.svelte';
 	import { FTabs, type FilTab } from '../../types/typeTab';
 	import { explorerProps } from '../../providers/explorerProps';
@@ -61,7 +61,7 @@
 	// TODO: por quÃ© setIcon?
 	import { setIcon, type TFile } from 'obsidian';
 
-	type NavbarExplorerApi = {
+	type ToolbarApi = {
 		openViewMenu: () => void;
 		openSortMenu: () => void;
 	};
@@ -181,7 +181,7 @@
 		initialFlags: initialFnRFlags(),
 		dispatch: handleFnRSubmit,
 	});
-	let navbarExplorerApi = $state<NavbarExplorerApi | null>(null);
+	let toolbarApi = $state<ToolbarApi | null>(null);
 
 	$effect(() => {
 		fnrIslandService.setActiveExplorer(filtersActiveTab);
@@ -206,8 +206,8 @@
 	});
 
 	$effect(() => {
-		const openViewMenu = () => navbarExplorerApi?.openViewMenu();
-		const openSortMenu = () => navbarExplorerApi?.openSortMenu();
+		const openViewMenu = () => toolbarApi?.openViewMenu();
+		const openSortMenu = () => toolbarApi?.openSortMenu();
 		const openContentSearch = (term: string) => {
 			filtersActiveTab = 'content';
 			setContentSearch(term);
@@ -432,8 +432,8 @@
 	/>
 {/if}
 
-<NavbarExplorer
-	bind:this={navbarExplorerApi}
+<Toolbar
+	bind:this={toolbarApi}
 	activeTab={filtersActiveTab}
 	filtersSearch={activeFiltersSearch}
 	onSearchChange={setActiveFiltersSearch}

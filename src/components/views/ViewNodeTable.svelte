@@ -13,7 +13,7 @@
 	} from '../../services/serviceMouse';
 
 	const TABLE_ROW_HEIGHT = 32;
-	const TABLE_OVERSCAN = 8;
+	const TABLE_OVERSCAN = 14;
 	const TABLE_FALLBACK_WIDTH = 640;
 	const TABLE_FALLBACK_HEIGHT = 360;
 	const EMPTY_SELECTED_IDS: ReadonlySet<string> = new Set();

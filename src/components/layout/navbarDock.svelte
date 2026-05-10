@@ -2,14 +2,13 @@
 	import { setIcon } from 'obsidian';
 	import type { FabDef } from '../../types/typePrimitives';
 	import { translate } from '../../index/i18n/lang';
-	import { describeFabBadge } from '../../badges/serviceBadge';
-	import {
-		COMMAND_MOUSE_GESTURE_CONFIG,
-		createMouseGestureService,
-		mergeMouseGestureConfig,
-		type MouseGestureConfig,
-	} from '../../services/serviceMouse';
-	import type { LayoutLabelPosition } from '../../services/serviceLayout';
+	import type { MouseGestureConfig } from '../../services/serviceMouse';
+	import type {
+		LayoutDockDrawerDirection,
+		LayoutDockPresentationMode,
+		LayoutLabelPosition,
+	} from '../../services/serviceLayout';
+	import PrimitiveFab from '../primitives/PrimitiveFab.svelte';
 
 	type DockItem = {
 		id: string;
@@ -26,6 +25,9 @@
 		active = $bindable(),
 		showLabels = false,
 		labelPosition = 'bottom',
+		presentationMode = 'bar',
+		drawerDirection = 'up',
+		drawerOpen = $bindable(false),
 		leftFab,
 		rightFab,
 		navCollapsed,
@@ -48,6 +50,9 @@
 		active: string;
 		showLabels?: boolean;
 		labelPosition?: LayoutLabelPosition;
+		presentationMode?: LayoutDockPresentationMode;
+		drawerDirection?: LayoutDockDrawerDirection;
+		drawerOpen?: boolean;
 		leftFab: FabDef | null;
 		rightFab: FabDef | null;
 		navCollapsed: boolean;
@@ -71,82 +76,99 @@
 		return { update: (n: string) => setIcon(node, n) };
 	}
 
-	function countForFab(fab: FabDef | null): number {
-		if (fab?.badgeKind === 'queue') return queuedCount;
-		if (fab?.badgeKind === 'filters') return filterRuleCount;
-		return 0;
-	}
-
-	const leftFabBadge = $derived(
-		leftFab?.badgeKind ? describeFabBadge(leftFab.badgeKind, countForFab(leftFab), translate) : null,
-	);
-	const rightFabBadge = $derived(
-		rightFab?.badgeKind ? describeFabBadge(rightFab.badgeKind, countForFab(rightFab), translate) : null,
-	);
-	const mouse = createMouseGestureService();
-
-	$effect(() => () => mouse.cancelAll());
-
-	const leftFabClick = $derived.by(() => makeFabClickHandler(leftFab, 'left'));
-	const rightFabClick = $derived.by(() => makeFabClickHandler(rightFab, 'right'));
-	const leftFabAuxClick = $derived.by(() => makeFabAuxClickHandler(leftFab, 'left'));
-	const rightFabAuxClick = $derived.by(() => makeFabAuxClickHandler(rightFab, 'right'));
-
-	function mouseConfigForFab(fab: FabDef): MouseGestureConfig {
-		return mergeMouseGestureConfig(
-			COMMAND_MOUSE_GESTURE_CONFIG,
-			{
-				secondary: fab.onDoubleClick ? 'double-click' : [],
-				tertiary: fab.onTertiaryClick ? ['alt-click', 'middle-click'] : [],
-			},
-			mouseGestureConfig,
-		);
-	}
-
-	function makeFabClickHandler(fab: FabDef | null, side: 'left' | 'right'): (e: MouseEvent) => void {
-		if (!fab) return () => {};
-		return (e: MouseEvent) => {
-			e.stopPropagation();
-			mouse.handleClick(
-				{ key: `fab:${side}`, eventTarget: e.target },
-				e,
-				{
-					primary: () => fab.action?.(),
-					secondary: () => fab.onDoubleClick?.(),
-					tertiary: () => fab.onTertiaryClick?.(),
-				},
-				mouseConfigForFab(fab),
-			);
-		};
-	}
-
-	function makeFabAuxClickHandler(
-		fab: FabDef | null,
-		side: 'left' | 'right',
-	): (e: MouseEvent) => void {
-		if (!fab) return () => {};
-		return (e: MouseEvent) => {
-			e.stopPropagation();
-			mouse.handleAuxClick(
-				{ key: `fab:${side}`, eventTarget: e.target },
-				e,
-				{
-					primary: () => fab.action?.(),
-					secondary: () => fab.onDoubleClick?.(),
-					tertiary: () => fab.onTertiaryClick?.(),
-				},
-				mouseConfigForFab(fab),
-			);
-		};
-	}
-
 	function selectItem(item: DockItem): void {
 		if (item.disabled || isReordering) return;
 		active = item.id;
 		onSelect?.(item.id);
 	}
+
+	const drawerFab = $derived<FabDef>({
+		icon: 'lucide-panel-bottom-open',
+		label: drawerOpen ? 'Close dock' : 'Open dock',
+		action: () => {
+			drawerOpen = !drawerOpen;
+		},
+	});
 </script>
 
+{#if presentationMode === 'drawer'}
+	<div class={`vm-nav-drawer-host direction-${drawerDirection}`}>
+		<div class="vm-nav-drawer-trigger">
+			<PrimitiveFab
+				fab={drawerFab}
+				side="center"
+				{queuedCount}
+				{filterRuleCount}
+				{mouseGestureConfig}
+			/>
+		</div>
+		{#if drawerOpen}
+			<div class={`vm-nav-drawer-panel direction-${drawerDirection}`}>
+				<PrimitiveFab
+					fab={leftFab}
+					side="left"
+					{queuedCount}
+					{filterRuleCount}
+					{mouseGestureConfig}
+				/>
+				<div
+					class={`vm-nav-dock vm-nav-pill label-${labelPosition}`}
+					class:has-labels={showLabels}
+					class:is-reordering={isReordering}
+					bind:this={dockEl}
+					onpointermove={(e: PointerEvent) => onDockPointerMove?.(e)}
+					onpointerup={() => onDockPointerUp?.()}
+					onpointerleave={() => exitReorder?.()}
+					role="tablist"
+					tabindex="-1"
+				>
+					{#each items as item, i (item.id)}
+						<div
+							class="vm-nav-icon vm-nav-dock-item"
+							class:is-active={active === item.id && !isReordering}
+							class:is-disabled={item.disabled}
+							class:is-faint={item.faint}
+							class:has-label={showLabels}
+							class:is-reorder-target={isReordering && reorderTargetIdx === i}
+							aria-label={item.label}
+							aria-disabled={item.disabled ? 'true' : undefined}
+							onpointerdown={(e: PointerEvent) => onItemPointerDown?.(e, i)}
+							onpointercancel={() => exitReorder?.()}
+							onclick={(e: MouseEvent) => {
+								e.stopPropagation();
+								selectItem(item);
+							}}
+							onkeydown={(e: KeyboardEvent) => {
+								if (e.key === 'Enter' || e.key === ' ') {
+									e.preventDefault();
+									e.stopPropagation();
+									selectItem(item);
+								}
+							}}
+							role="tab"
+							tabindex={item.disabled ? -1 : active === item.id ? 0 : -1}
+						>
+							<span class="vm-nav-dock-icon" use:attachIcon={item.icon}></span>
+							{#if showLabels}
+								<span class="vm-nav-dock-label">{item.label}</span>
+							{/if}
+							{#if item.dot}
+								<div class="vm-nav-dot-badge"></div>
+							{/if}
+						</div>
+					{/each}
+				</div>
+				<PrimitiveFab
+					fab={rightFab}
+					side="right"
+					{queuedCount}
+					{filterRuleCount}
+					{mouseGestureConfig}
+				/>
+			</div>
+		{/if}
+	</div>
+{:else}
 <div
 	class="vm-bottom-nav vm-glass vm-glass--bottom"
 	class:is-island-open={isIslandOpen}
@@ -168,35 +190,9 @@
 	{/if}
 
 	{#if leftFab}
-		<div class="vm-nav-fab-wrap">
-			<div
-				class="vm-nav-fab"
-				aria-label={leftFab.label}
-				use:attachIcon={leftFab.icon}
-				onclick={leftFabClick}
-				onauxclick={leftFabAuxClick}
-				onkeydown={(e: KeyboardEvent) => {
-					if (e.key === 'Enter' || e.key === ' ') {
-						e.stopPropagation();
-						leftFab.action?.();
-					}
-				}}
-				role="button"
-				tabindex="0"
-			></div>
-			{#if leftFabBadge}
-				<div
-					class="vm-fab-badge"
-					data-vm-badge-kind={leftFabBadge.kind}
-					aria-label={leftFabBadge.label}
-					title={leftFabBadge.title}
-				>
-					{leftFabBadge.text}
-				</div>
-			{/if}
-		</div>
+		<PrimitiveFab fab={leftFab} side="left" {queuedCount} {filterRuleCount} {mouseGestureConfig} />
 	{:else}
-		<div class="vm-nav-fab-placeholder"></div>
+		<PrimitiveFab fab={null} side="left" />
 	{/if}
 
 	<div
@@ -248,34 +244,9 @@
 	</div>
 
 	{#if rightFab}
-		<div class="vm-nav-fab-wrap">
-			<div
-				class="vm-nav-fab"
-				aria-label={rightFab.label}
-				use:attachIcon={rightFab.icon}
-				onclick={rightFabClick}
-				onauxclick={rightFabAuxClick}
-				onkeydown={(e: KeyboardEvent) => {
-					if (e.key === 'Enter' || e.key === ' ') {
-						e.stopPropagation();
-						rightFab.action?.();
-					}
-				}}
-				role="button"
-				tabindex="0"
-			></div>
-			{#if rightFabBadge}
-				<div
-					class="vm-fab-badge"
-					data-vm-badge-kind={rightFabBadge.kind}
-					aria-label={rightFabBadge.label}
-					title={rightFabBadge.title}
-				>
-					{rightFabBadge.text}
-				</div>
-			{/if}
-		</div>
+		<PrimitiveFab fab={rightFab} side="right" {queuedCount} {filterRuleCount} {mouseGestureConfig} />
 	{:else}
-		<div class="vm-nav-fab-placeholder"></div>
+		<PrimitiveFab fab={null} side="right" />
 	{/if}
 </div>
+{/if}

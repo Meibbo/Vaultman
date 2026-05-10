@@ -6,12 +6,20 @@
 	interface Props {
 		model: ExplorerRenderModel<NodeBase>;
 		onAction?: (action: ViewAction<NodeBase>, row: ViewRow<NodeBase>) => void;
+		onReorder?: (request: ListReorderRequest) => void;
 		icon?: (node: HTMLElement, name: string) => { update(n: string): void };
 	}
 
-	let { model, onAction, icon }: Props = $props();
+	interface ListReorderRequest {
+		sourceId: string;
+		targetId: string;
+		position: 'before' | 'after';
+	}
+
+	let { model, onAction, onReorder, icon }: Props = $props();
 
 	let outerEl: HTMLDivElement | undefined = $state();
+	let draggingRowId: string | null = $state(null);
 	const virtualizer = new Virtualizer<ViewRow<NodeBase>>();
 
 	const totalH = $derived(virtualizer.items.length * virtualizer.rowHeight);
@@ -64,9 +72,50 @@
 	function isGroupRow(row: ViewRow<NodeBase>): boolean {
 		return (row.node as { kind?: string }).kind === 'group';
 	}
+
+	function dragEnabled(): boolean {
+		return Boolean(model.capabilities.canDrag && model.capabilities.canDrop && onReorder);
+	}
+
+	function handleDragStart(event: DragEvent, row: ViewRow<NodeBase>) {
+		if (!dragEnabled()) return;
+		draggingRowId = row.id;
+		event.dataTransfer?.setData('text/plain', row.id);
+		if (event.dataTransfer) event.dataTransfer.effectAllowed = 'move';
+	}
+
+	function handleDragOver(event: DragEvent, row: ViewRow<NodeBase>) {
+		if (!dragEnabled() || !draggingRowId || draggingRowId === row.id) return;
+		event.preventDefault();
+		if (event.dataTransfer) event.dataTransfer.dropEffect = 'move';
+	}
+
+	function handleDrop(event: DragEvent, row: ViewRow<NodeBase>) {
+		if (!dragEnabled() || !draggingRowId || draggingRowId === row.id) {
+			draggingRowId = null;
+			return;
+		}
+		event.preventDefault();
+		onReorder?.({
+			sourceId: draggingRowId,
+			targetId: row.id,
+			position: dropPosition(event.currentTarget as HTMLElement, event),
+		});
+		draggingRowId = null;
+	}
+
+	function handleDragEnd() {
+		draggingRowId = null;
+	}
+
+	function dropPosition(rowEl: HTMLElement, event: DragEvent): 'before' | 'after' {
+		const rect = rowEl.getBoundingClientRect();
+		const clientY = Number.isFinite(event.clientY) ? event.clientY : rect.top;
+		return clientY <= rect.top + rect.height / 2 ? 'before' : 'after';
+	}
 </script>
 
-<div bind:this={outerEl} class="vm-view-list vm-explorer-popup-list" onscroll={onScroll}>
+<div bind:this={outerEl} class="vm-view-list vm-explorer-popup-list" role="list" onscroll={onScroll}>
 	<div class="vm-view-list-inner vm-explorer-popup-inner" style="height: {totalH}px">
 		{#each virtualizer.visible as row, i (row.id)}
 			{@const absIdx = virtualizer.window.startIndex + i}
@@ -77,9 +126,16 @@
 				class:is-selected={row.layers.state?.selected}
 				class:is-disabled={row.disabled || row.layers.state?.disabled}
 				class:is-group={isGroupRow(row)}
+				class:is-dragging={draggingRowId === row.id}
 				style="transform: translateY({absIdx *
 					virtualizer.rowHeight}px); --vm-list-depth-indent: {(row.depth ?? 0) * 14}px"
 				data-id={row.id}
+				role="listitem"
+				draggable={dragEnabled()}
+				ondragstart={(event) => handleDragStart(event, row)}
+				ondragover={(event) => handleDragOver(event, row)}
+				ondrop={(event) => handleDrop(event, row)}
+				ondragend={handleDragEnd}
 			>
 				{#if iconName}
 					<span class="vm-view-list-icon" use:iconAction={iconName}></span>

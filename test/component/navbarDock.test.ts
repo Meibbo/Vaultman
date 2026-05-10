@@ -107,4 +107,27 @@ describe('NavbarDock', () => {
 		expect(target.querySelector('[data-vm-badge-kind="queue"]')?.textContent).toBe('4');
 		expect(target.querySelector('[data-vm-badge-kind="filters"]')?.textContent).toBe('2');
 	});
+
+	it('can render dock items inside a FAB-triggered drawer', () => {
+		app = mount(NavbarDock as unknown as Component<Record<string, unknown>>, {
+			target,
+			props: baseProps({
+				presentationMode: 'drawer',
+				drawerDirection: 'up',
+				drawerOpen: false,
+			}),
+		});
+		flushSync();
+
+		expect(target.querySelector('.vm-nav-drawer-host')).toBeTruthy();
+		expect(target.querySelector('.vm-nav-dock')).toBeFalsy();
+
+		target.querySelector<HTMLElement>('.vm-nav-drawer-trigger .vm-nav-fab')!.click();
+		flushSync();
+
+		expect(target.querySelector('.vm-nav-dock')).toBeTruthy();
+		expect(target.querySelector('.vm-nav-drawer-panel')?.classList.contains('direction-up')).toBe(
+			true,
+		);
+	});
 });

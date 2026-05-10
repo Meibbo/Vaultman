@@ -19,6 +19,7 @@ describe('serviceLayout', () => {
 			dock: {
 				content: 'frame-pages',
 				labels: { visible: true, position: 'side' },
+				presentation: { mode: 'drawer', drawerDirection: 'left' },
 			},
 			tabs: {
 				content: 'bogus',
@@ -30,11 +31,23 @@ describe('serviceLayout', () => {
 			dock: {
 				content: 'frame-pages',
 				labels: { visible: true, position: 'side' },
+				presentation: { mode: 'drawer', drawerDirection: 'left' },
 			},
 			tabs: {
 				content: 'frame-pages',
 				labels: { visible: true, position: 'bottom' },
+				presentation: { mode: 'bar', drawerDirection: 'up' },
 			},
 		});
+	});
+
+	it('falls back to a bottom-up drawer direction for invalid dock presentation settings', () => {
+		expect(
+			resolveLayoutSettings({
+				dock: {
+					presentation: { mode: 'bad', drawerDirection: 'diagonal' },
+				},
+			}),
+		).toEqual(DEFAULT_LAYOUT_SETTINGS);
 	});
 });

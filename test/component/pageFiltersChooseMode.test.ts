@@ -38,6 +38,7 @@ function plugin(): VaultmanPlugin {
 	(app.metadataCache as unknown as { getTags: () => Record<string, number> }).getTags = vi.fn(
 		() => ({}),
 	);
+	const markdownFiles = app.vault.getMarkdownFiles();
 
 	return {
 		app,
@@ -48,7 +49,7 @@ function plugin(): VaultmanPlugin {
 		},
 		saveSettings: vi.fn(),
 		filterService: {
-			filteredFiles: [],
+			filteredFiles: markdownFiles,
 			selectedFiles: [],
 			setSelectedFiles: vi.fn(),
 			setFilter: vi.fn(),

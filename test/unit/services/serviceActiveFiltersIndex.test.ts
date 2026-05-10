@@ -85,7 +85,7 @@ describe('serviceActiveFiltersIndex', () => {
 		expect(idx.byId('node-id')?.rule.property).toBe('x');
 	});
 
-	it('flattens nested groups into a flat list of rules', async () => {
+	it('keeps user logic groups visible with nested rule children indented', async () => {
 		const filter: IFilterService = {
 			activeFilter: {
 				type: 'group',
@@ -127,9 +127,13 @@ describe('serviceActiveFiltersIndex', () => {
 		};
 		const idx = createActiveFiltersIndex(filter);
 		await idx.refresh();
-		expect(idx.nodes.length).toBe(2);
-		expect(idx.nodes[0].rule.property).toBe('a');
-		expect(idx.nodes[1].rule.property).toBe('b');
+
+		expect(idx.nodes.map((node) => node.id)).toEqual(['r-a', 'inner', 'r-b']);
+		expect(idx.nodes.map((node) => node.kind)).toEqual(['rule', 'group', 'rule']);
+		expect(idx.nodes.map((node) => node.depth)).toEqual([0, 0, 1]);
+		expect((idx.nodes[2] as Extract<ActiveFilterEntry, { kind: 'rule' }>).parent?.id).toBe(
+			'inner',
+		);
 	});
 
 	it('keeps selected-files as a group row with file children', async () => {

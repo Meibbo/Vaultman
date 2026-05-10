@@ -92,4 +92,38 @@ describe('ViewList', () => {
 
 		expect(onAction).toHaveBeenCalledWith(remove, expect.objectContaining({ id: 'op-1' }));
 	});
+
+	it('emits row reorder requests when drag and drop is enabled', () => {
+		const onReorder = vi.fn();
+		app = mount(ViewList as unknown as Component<Record<string, unknown>>, {
+			target,
+			props: {
+				model: {
+					...model([
+						row('op-1', 'property', 'Set status', []),
+						row('op-2', 'tag', 'Add #project', []),
+					]),
+					capabilities: { canDrag: true, canDrop: true },
+				},
+				onReorder,
+				icon: vi.fn(() => ({ update: vi.fn() })),
+			},
+		});
+		flushSync();
+
+		const source = target.querySelector<HTMLElement>('[data-id="op-2"]');
+		const targetRow = target.querySelector<HTMLElement>('[data-id="op-1"]');
+		expect(source?.getAttribute('draggable')).toBe('true');
+		expect(targetRow?.getAttribute('draggable')).toBe('true');
+
+		source!.dispatchEvent(new Event('dragstart', { bubbles: true, cancelable: true }));
+		targetRow!.dispatchEvent(new Event('dragover', { bubbles: true, cancelable: true }));
+		targetRow!.dispatchEvent(new Event('drop', { bubbles: true, cancelable: true }));
+
+		expect(onReorder).toHaveBeenCalledWith({
+			sourceId: 'op-2',
+			targetId: 'op-1',
+			position: 'before',
+		});
+	});
 });

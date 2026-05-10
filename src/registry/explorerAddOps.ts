@@ -10,7 +10,6 @@
  */
 
 import type { PendingChange } from '../types/typeOps';
-import { buildTagAddChange } from '../services/serviceTagQueue';
 
 /**
  * Builder signature: takes the user-entered label (raw query string from the
@@ -49,7 +48,25 @@ export function getAddOpBuilder(explorerKind: string): AddOpBuilder | null {
 function buildTagAdd(label: string): PendingChange | null {
 	const trimmed = label.trim();
 	if (trimmed.length === 0) return null;
-	return buildTagAddChange(trimmed, []);
+	const tag = trimmed.replace(/^#+/, '');
+	if (!tag) return null;
+	return {
+		type: 'tag',
+		tag,
+		action: 'add',
+		details: `Add tag "#${tag}"`,
+		files: [],
+		customLogic: true,
+		logicFunc: (_file, fm: Record<string, unknown>) => {
+			const tags = Array.isArray(fm.tags)
+				? fm.tags.filter((value): value is string => typeof value === 'string')
+				: typeof fm.tags === 'string'
+					? [fm.tags]
+					: [];
+			if (tags.some((value) => value.replace(/^#+/, '') === tag)) return null;
+			return { tags: [...tags, tag] };
+		},
+	};
 }
 
 function buildPropAdd(label: string): PendingChange | null {

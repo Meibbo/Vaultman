@@ -19,6 +19,8 @@ export interface VaultmanSettings {
 	islandBackdropBlur: boolean;
 	/** Glassmorphism blur intensity for bottom bar and popups (0–100, maps to 0–20px) */
 	glassBlurIntensity: number;
+	/** Desaturate accent tokens when the Obsidian workspace, not Vaultman chrome, has focus. */
+	faintAccentsWhenWorkspaceFocused: boolean;
 	// after this line these settings are not used
 	//
 	// -----------------------------------------------------------------
@@ -129,6 +131,7 @@ export const DEFAULT_SETTINGS: VaultmanSettings = {
 	islandDismissOnOutsideClick: false,
 	islandBackdropBlur: false,
 	glassBlurIntensity: 15,
+	faintAccentsWhenWorkspaceFocused: false,
 	// after this line these settings are not used
 	//
 	// -----------------------------------------------------------------

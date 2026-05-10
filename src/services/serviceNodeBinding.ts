@@ -7,8 +7,8 @@
  * Given a non-file node (tag/prop/value/folder/snippet/template/plugin) this service
  * computes a per-kind alias token, searches the vault metadataCache for
  * notes whose `aliases` frontmatter contains that token, and then:
- *   - 0 matches: creates a new note in the configured binding folder with
- *     `aliases: [token]` and opens it.
+ *   - 0 matches: creates a new note in the configured binding folder using
+ *     the node label as basename, with `aliases: [token]`, and opens it.
  *   - 1 match: opens the matching note (no mutation).
  *   - 2+ matches: routes to the filter pane with a synthetic
  *     `aliases has <token>` filter and surfaces a notice.
@@ -152,9 +152,8 @@ function aliasMatches(value: unknown, token: string): boolean {
 	return false;
 }
 
-function tokenToFilename(token: string): string {
-	// Strip filesystem-unsafe characters; preserve the readable token.
-	const cleaned = token.replace(/[\\/:*?"<>|]/g, '_').replace(/\s+/g, ' ').trim();
+function titleToFilename(title: string): string {
+	const cleaned = title.replace(/[\\/:*?"<>|]/g, '_').replace(/\s+/g, ' ').trim();
 	return cleaned.length > 0 ? cleaned : 'binding-note';
 }
 
@@ -174,14 +173,14 @@ export class NodeBindingService {
 	async bindOrCreate(node: BindingNodeInput): Promise<BindingResult> {
 		const token = computeAliasToken(node);
 		const matches = findNotesByAlias(this.deps.app, token);
-		if (matches.length === 0) return this.createBindingNote(token);
+		if (matches.length === 0) return this.createBindingNote(token, titleLabelForNode(node));
 		if (matches.length === 1) return this.openExisting(token, matches[0]);
 		return this.routeToFilter(token, matches.length);
 	}
 
-	private async createBindingNote(token: string): Promise<BindingResult> {
+	private async createBindingNote(token: string, titleLabel: string): Promise<BindingResult> {
 		const folder = this.deps.getFolder();
-		const filename = tokenToFilename(token);
+		const filename = titleToFilename(titleLabel);
 		const path = joinFolder(folder, filename);
 		const yaml = `---\naliases:\n  - ${quoteYamlValue(token)}\n---\n`;
 		const created = await this.deps.app.vault.create(path, yaml);
@@ -211,6 +210,25 @@ export class NodeBindingService {
 			return;
 		}
 		await ws.openLinkText?.(file.path, '', false);
+	}
+}
+
+function titleLabelForNode(node: BindingNodeInput): string {
+	const label = node.label.trim();
+	switch (node.kind) {
+		case 'prop':
+			return label.replace(/^\[/, '').replace(/\]$/, '');
+		case 'tag':
+			return label.replace(/^#/, '');
+		case 'snippet':
+			return label.replace(/^\$/, '');
+		case 'plugin':
+			return label.replace(/^%/, '');
+		case 'folder':
+		case 'value':
+		case 'template':
+		default:
+			return label;
 	}
 }
 

@@ -2,7 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { flushSync, mount, unmount, type Component } from 'svelte';
 import SortPopup from '../../src/components/layout/overlays/overlaySortMenu.svelte';
 
-describe('SortPopup node expansion toggle', () => {
+describe('SortPopup controls', () => {
 	let target: HTMLDivElement;
 	let app: ReturnType<typeof mount> | null = null;
 
@@ -50,30 +50,23 @@ describe('SortPopup node expansion toggle', () => {
 		};
 	}
 
-	it('shows expand-all when no parent nodes are expanded', () => {
+	it('does not render node expansion; Toolbar owns that command', () => {
 		renderSortPopup({
 			nodeExpansionSummary: { canToggle: true, hasExpandedParents: false },
 			onToggleNodeExpansion: vi.fn(),
 		});
 
-		const button = target.querySelector('[data-vm-sort-node-expansion]') as HTMLElement;
-		expect(button).not.toBeNull();
-		expect(button.getAttribute('aria-label')).toBe('Expand all');
+		expect(target.querySelector('[data-vm-sort-node-expansion]')).toBeNull();
 	});
 
-	it('shows collapse-all and calls the generic expansion callback when parents are expanded', () => {
+	it('keeps sort controls functional when parent nodes are expanded', () => {
 		const onToggleNodeExpansion = vi.fn();
 		renderSortPopup({
 			nodeExpansionSummary: { canToggle: true, hasExpandedParents: true },
 			onToggleNodeExpansion,
 		});
 
-		const button = target.querySelector('[data-vm-sort-node-expansion]') as HTMLElement;
-		expect(button.getAttribute('aria-label')).toBe('Collapse all');
-
-		button.click();
-
-		expect(onToggleNodeExpansion).toHaveBeenCalledOnce();
+		expect(onToggleNodeExpansion).not.toHaveBeenCalled();
 		expect(target.querySelector('.vm-squircle.is-accent')?.getAttribute('aria-label')).toContain(
 			'Name',
 		);

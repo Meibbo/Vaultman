@@ -123,9 +123,18 @@
 		CATEGORY_LABELS[activeTab]?.[filtersSearchCategory[activeTab] ?? 0] ??
 			translate('filter.search_mode'),
 	);
+	const nodeExpansionLabel = $derived(
+		nodeExpansionSummary.hasExpandedParents
+			? translate('sort.collapse_all_nodes')
+			: translate('sort.expand_all_nodes'),
+	);
+	const nodeExpansionIcon = $derived(
+		nodeExpansionSummary.hasExpandedParents ? 'lucide-chevrons-up' : 'lucide-chevrons-down',
+	);
 
 	let headerMode = $state<HeaderMode>('header');
 	let headerExitDir = $state<'left' | 'right'>('right');
+	let searchIslandOpen = $state(false);
 	let searchFocused = $state(false);
 	let helpOpen = $state(false);
 	let renameInput = $state<HTMLInputElement | undefined>();
@@ -216,6 +225,13 @@
 			return;
 		}
 		openViewModePopup();
+	}
+	function toggleSearchIsland() {
+		searchIslandOpen = !searchIslandOpen;
+		if (searchIslandOpen) {
+			headerMode = 'header';
+			queueMicrotask(() => searchboxRoot?.querySelector('input')?.focus());
+		}
 	}
 	function cycleOperationScope() {
 		const currentIndex = OPERATION_SCOPE_ORDER.indexOf(operationScope);
@@ -363,13 +379,15 @@
 		if (fnrIslandService && islandExpanded) {
 			fnrIslandService.collapse();
 		}
+		searchIslandOpen = false;
 	}
 
 	function handleDocumentPointerDown(event: MouseEvent) {
-		if (!fnrIslandService || !islandExpanded) return;
+		if ((!fnrIslandService || !islandExpanded) && !searchIslandOpen) return;
 		const target = event.target instanceof Node ? event.target : null;
 		if (target && searchboxRoot?.contains(target)) return;
-		fnrIslandService.collapse();
+		fnrIslandService?.collapse();
+		searchIslandOpen = false;
 	}
 
 	$effect(() => {
@@ -398,12 +416,13 @@
 	<div class="vm-filters-header-wrap">
 		{#if headerMode === 'header'}
 			<div class="vm-filters-header">
-				<div
-					class="vm-filters-header-search-wrap"
-					bind:this={searchboxRoot}
-					onkeydown={handleSearchboxKeydown}
-					role="presentation"
-				>
+				{#if searchIslandOpen || activeRename || islandExpanded || hasIslandErrors}
+					<div
+						class="vm-filters-header-search-wrap vm-toolbar-search-island"
+						bind:this={searchboxRoot}
+						onkeydown={handleSearchboxKeydown}
+						role="presentation"
+					>
 					{#if fnrIslandService && hasIslandErrors}
 						<div
 							class="vm-filters-search-error"
@@ -602,7 +621,8 @@
 							{/each}
 						</div>
 					{/if}
-				</div>
+					</div>
+				{/if}
 				{#if fnrIslandService}
 					<button
 						type="button"
@@ -611,7 +631,7 @@
 						aria-label="crear"
 						title={crearTooltip}
 						disabled={crearDisabled}
-						onclick={handleCrearClick}
+						onclick={() => handleCrearClick()}
 					>
 						<span class="vm-filters-crear-icon" use:icon={'lucide-plus'}></span>
 						<span class="vm-filters-crear-label">crear</span>
@@ -628,7 +648,7 @@
 						onkeydown={(e: KeyboardEvent) => {
 							if (e.key === 'Enter' || e.key === ' ') openViewModePopup();
 						}}
-						use:icon={'lucide-layout-list'}
+						use:icon={'lucide-eye'}
 					></div>
 					<div
 						class="vm-nav-icon vm-nav-icon-min is-active"
@@ -642,6 +662,35 @@
 						}}
 						use:icon={'lucide-arrow-up-down'}
 					></div>
+					<div
+						class="vm-nav-icon vm-nav-icon-min"
+						class:is-active={searchIslandOpen}
+						role="button"
+						tabindex="0"
+						aria-label={translate('explorer.btn.search')}
+						aria-pressed={searchIslandOpen}
+						onclick={toggleSearchIsland}
+						onkeydown={(e: KeyboardEvent) => {
+							if (e.key === 'Enter' || e.key === ' ') toggleSearchIsland();
+						}}
+						use:icon={'lucide-search'}
+					></div>
+					{#if nodeExpansionSummary.canToggle}
+						<div
+							class="vm-nav-icon vm-nav-icon-min"
+							class:is-active={nodeExpansionSummary.hasExpandedParents}
+							data-vm-toolbar-node-expansion
+							role="button"
+							tabindex="0"
+							aria-label={nodeExpansionLabel}
+							title={nodeExpansionLabel}
+							onclick={() => onToggleNodeExpansion?.()}
+							onkeydown={(e: KeyboardEvent) => {
+								if (e.key === 'Enter' || e.key === ' ') onToggleNodeExpansion?.();
+							}}
+							use:icon={nodeExpansionIcon}
+						></div>
+					{/if}
 				</div>
 			</div>
 		{:else if headerMode === 'sort'}

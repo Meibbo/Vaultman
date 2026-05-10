@@ -76,8 +76,8 @@ describe('NodeBindingService.bindOrCreate', () => {
 		const result = await svc.bindOrCreate({ kind: 'prop', label: 'status', propName: 'status' });
 		expect(result.outcome).toBe('created');
 		expect(result.token).toBe('[status]');
-		expect(result.filePath).toBe('[status].md');
-		const created = app.vault.getFileByPath('[status].md');
+		expect(result.filePath).toBe('status.md');
+		const created = app.vault.getFileByPath('status.md');
 		expect(created).not.toBeNull();
 		expect(openFile).toHaveBeenCalledTimes(1);
 	});
@@ -89,11 +89,29 @@ describe('NodeBindingService.bindOrCreate', () => {
 		});
 		const svc = new NodeBindingService({ app, getFolder: () => '' });
 		await svc.bindOrCreate({ kind: 'tag', label: 'urgent', tagPath: 'urgent' });
-		const f = app.vault.getFileByPath('#urgent.md');
+		const f = app.vault.getFileByPath('urgent.md');
 		expect(f).not.toBeNull();
 		const raw = await app.vault.read(f!);
 		expect(raw).toContain("aliases:");
 		expect(raw).toContain("'#urgent'");
+	});
+
+	it('uses the node label as the note title while keeping prefixed aliases', async () => {
+		const app = mockApp();
+		(app.workspace as unknown as Record<string, unknown>).getLeaf = () => ({
+			openFile: () => Promise.resolve(),
+		});
+		const svc = new NodeBindingService({ app, getFolder: () => 'Bindings' });
+
+		const result = await svc.bindOrCreate({
+			kind: 'plugin',
+			label: 'Calendar',
+			pluginId: 'calendar-plugin',
+		});
+
+		expect(result.filePath).toBe('Bindings/Calendar.md');
+		const raw = await app.vault.read(app.vault.getFileByPath('Bindings/Calendar.md')!);
+		expect(raw).toContain("'%calendar-plugin'");
 	});
 
 	it('opens the matching note when exactly one note matches (cardinality 1)', async () => {
