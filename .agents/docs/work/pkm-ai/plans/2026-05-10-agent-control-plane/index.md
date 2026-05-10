@@ -4,7 +4,7 @@ type: plan-index
 status: draft
 parent: "[[docs/work/pkm-ai/specs/2026-05-10-agent-control-plane/index|Agent Control Plane]]"
 created: 2026-05-10T03:29:53
-updated: 2026-05-10T03:29:53
+updated: 2026-05-10T04:43:22
 created_by: codex
 updated_by: codex
 tags:
@@ -70,6 +70,8 @@ It does not implement:
   [[docs/work/pkm-ai/plans/2026-05-10-agent-control-plane/04-tool-contracts|04 Tool Contracts]]
 - Create:
   [[docs/work/pkm-ai/plans/2026-05-10-agent-control-plane/05-verification-close|05 Verification Close]]
+- Create:
+  [[docs/work/pkm-ai/plans/2026-05-10-agent-control-plane/06-handoff|06 Handoff]]
 - Modify: [[docs/work/pkm-ai/index|PKM-AI index]]
 - Optional later code files, only after this plan is accepted:
   `.agents/tools/pkm-ai/verify-matrix.mjs`,
@@ -83,6 +85,10 @@ It does not implement:
 3. [[docs/work/pkm-ai/plans/2026-05-10-agent-control-plane/03-route-retrieval-profiles|Route and retrieval profiles]]
 4. [[docs/work/pkm-ai/plans/2026-05-10-agent-control-plane/04-tool-contracts|Tool contracts]]
 5. [[docs/work/pkm-ai/plans/2026-05-10-agent-control-plane/05-verification-close|Verification and close]]
+
+## Current Handoff
+
+- [[docs/work/pkm-ai/plans/2026-05-10-agent-control-plane/06-handoff|Agent control plane subagent handoff]]
 
 ## Stop Conditions
 

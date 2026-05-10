@@ -6,7 +6,7 @@ parent: "[[docs/work/hardening/specs/2026-05-06-node-selection-service/index|nod
 archive_source: "docs/archive/hardening/active-docs/2026-05-06T050935-current-handoff.md"
 compacted: true
 created: 2026-05-04T01:36:20
-updated: 2026-05-10T02:37:32
+updated: 2026-05-10T04:38:24
 tags:
   - agent/current
 created_by: dec
@@ -58,14 +58,21 @@ Archived completed/superseded handoff:
 - Current polish continuation:
   [[docs/work/polish/specs/2026-05-07-tanstack-node-table/index|TanStack node table spec]] and
   [[docs/work/polish/plans/2026-05-07-tanstack-node-table/index|TanStack node table plan]].
+- 2026-05-10 table open freeze is fixed:
+  [[docs/work/polish/research/2026-05-10-table-open-freeze|Table open freeze diagnosis]].
+  Preserve the bounded startup fallback and direct `ViewRow`/`ViewColumn`
+  virtual render path in `ViewNodeTable.svelte`; live Obsidian table smoke and
+  focused stress verification are green.
 - Completed Pretext/cards continuation:
   [[docs/work/polish/specs/2026-05-10-pretext-grid-cards/index|Pretext grid cards hybrid layout]]
   and
   [[docs/work/polish/plans/2026-05-10-pretext-grid-cards/index|Pretext grid cards implementation plan]].
-  Tasks 1-6 are done, including cards view routing and final verification.
+  Tasks 1-6 and the CSS font snapshot follow-up are done, including cards view
+  routing, final verification, and
+  [[docs/work/polish/plans/2026-05-10-pretext-grid-cards/07-css-font-snapshot|rendered CSS measurement]].
   Next action: choose the next hardening or polish cut; Pretext deferred work
-  remains exact CSS font snapshotting, `dnd-kit`, resize handles, and multiline
-  table rows.
+  remains `dnd-kit`, resize handles, multiline table rows, persisted card
+  sizing, and the SVAR absorption/deletion decision.
 - Read [[docs/current/engineering-context|engineering context]] with this file
   and status; `start.md` now links it explicitly.
 - User explicitly said to ignore the no-commit rule and active-doc compactness

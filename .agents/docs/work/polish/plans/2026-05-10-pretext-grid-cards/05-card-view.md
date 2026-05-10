@@ -142,8 +142,8 @@ const CARD_MEASURE_STYLE = {
 };
 ```
 
-Keep this as a service input so the next font-snapshot slice can resolve exact Obsidian CSS
-font values.
+Superseded by the CSS font snapshot follow-up. These fixed values now live only
+as the fallback in `serviceNodeCardStyle.ts`.
 
 - [x] **Step 4: Add card SCSS**
 

@@ -90,8 +90,9 @@ If implementation is completed, append a compact implementation status to
 - files changed;
 - verification commands and results;
 - any deviations from the plan;
-- deferred follow-up for exact CSS font snapshotting, `dnd-kit`, resize, and
-  multiline table rows.
+- deferred follow-up for `dnd-kit`, resize, and multiline table rows. Exact CSS
+  font snapshotting is superseded by
+  [[docs/work/polish/plans/2026-05-10-pretext-grid-cards/07-css-font-snapshot|CSS font snapshot follow-up result]].
 
 - [x] **Step 8: Keep current docs compact**
 

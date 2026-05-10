@@ -1,6 +1,6 @@
 {
 	"id": "vaultman",
-	"version": "1.0.0-rc.1",
+	"version": "1.0.0-beta.26",
 	"name": "Vaultman",
 	"minAppVersion": "1.12.0",
 	"description": "Bulk property editor and vault management tool for Obsidian.",

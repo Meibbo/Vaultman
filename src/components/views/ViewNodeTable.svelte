@@ -1,19 +1,9 @@
 <script lang="ts" generics="TNode extends NodeBase = NodeBase">
 	import { untrack } from 'svelte';
-	import {
-		createTable,
-		functionalUpdate,
-		getCoreRowModel,
-		getSortedRowModel,
-		type Column,
-		type RowSelectionState,
-		type SortingState,
-		type TableOptionsResolved,
-	} from '@tanstack/table-core';
+	import type { SortingState } from '@tanstack/table-core';
 	import { createVirtualizer, type Rect, type Virtualizer } from '@tanstack/svelte-virtual';
 	import type { NodeBase } from '../../types/typeContracts';
 	import type { ViewColumn, ViewRow } from '../../types/typeViews';
-	import { buildNodeTableColumnDefs } from '../../services/serviceViewTableAdapter';
 	import {
 		NODE_MOUSE_GESTURE_CONFIG,
 		NODE_MOUSE_IGNORE_SELECTOR,
@@ -74,30 +64,7 @@
 
 	$effect(() => () => mouse.cancelAll());
 
-	const columnDefs = $derived(buildNodeTableColumnDefs(columns));
-	const rowSelection = $derived.by(() => {
-		const out: RowSelectionState = {};
-		for (const id of selectedIds) out[id] = true;
-		return out;
-	});
-	const table = $derived.by(() =>
-		createTable<ViewRow<TNode>>({
-			data: rows,
-			columns: columnDefs,
-			getCoreRowModel: getCoreRowModel(),
-			getSortedRowModel: getSortedRowModel(),
-			getRowId: (row) => row.id,
-			enableRowSelection: true,
-			state: { sorting, rowSelection, columnPinning: { left: [], right: [] } },
-			onSortingChange: (updater) => {
-				sorting = functionalUpdate(updater, sorting);
-			},
-			onRowSelectionChange: () => {},
-			onStateChange: () => {},
-			renderFallbackValue: '',
-		} as TableOptionsResolved<ViewRow<TNode>>),
-	);
-	const tableRows = $derived(table.getRowModel().rows);
+	const tableRows = $derived(sortRows(rows, columns, sorting));
 	const columnTemplate = $derived(
 		columns
 			.map((column) => `minmax(${column.minWidth ?? 120}px, ${column.width ?? 1}fr)`)
@@ -118,11 +85,7 @@
 			.filter((row) => row.index < tableRows.length)
 			.map((row) => ({ key: row.key, index: row.index, start: row.start }));
 		if (visibleRows.length > 0 || tableRows.length === 0) return visibleRows;
-		return tableRows.map((row, index) => ({
-			key: row.id,
-			index,
-			start: index * TABLE_ROW_HEIGHT,
-		}));
+		return fallbackRenderedRows(tableRows);
 	});
 	const totalHeight = $derived(
 		Math.max($rowVirtualizer.getTotalSize(), tableRows.length * TABLE_ROW_HEIGHT),
@@ -152,9 +115,10 @@
 		if (rowIndex >= 0) scrollTableRowIntoView(rowIndex);
 	});
 
-	function handleHeaderClick(column: Column<ViewRow<TNode>, unknown>) {
-		if (!column.getCanSort()) return;
-		column.toggleSorting(column.getIsSorted() === 'asc');
+	function handleHeaderClick(column: ViewColumn<TNode>) {
+		if (column.sortable !== true) return;
+		const current = headerSortState(column.id);
+		sorting = [{ id: column.id, desc: current === 'asc' }];
 	}
 
 	function scrollTableRowIntoView(rowIndex: number): void {
@@ -221,17 +185,81 @@
 		}
 	}
 
+	function headerSortState(columnId: string): false | 'asc' | 'desc' {
+		const current = sorting[0];
+		if (!current || current.id !== columnId) return false;
+		return current.desc ? 'desc' : 'asc';
+	}
+
 	function cellDataId(row: ViewRow<TNode>, columnId: string): string {
 		return row.cells.find((cell) => cell.columnId === columnId)?.id ?? `${row.id}:${columnId}`;
 	}
 
-	function cellDisplay(row: ViewRow<TNode>, columnId: string, fallback: unknown): string {
-		const cell = row.cells.find((item) => item.columnId === columnId);
-		return cell?.display ?? (fallback == null ? '' : String(fallback));
+	function cellDisplay(row: ViewRow<TNode>, column: ViewColumn<TNode>): string {
+		const cell = row.cells.find((item) => item.columnId === column.id);
+		if (cell) return cell.display;
+		return displayForValue(valueForColumn(row, column));
 	}
 
 	function tableVirtualRowKey(rows: readonly { id: string }[], index: number): string | number {
 		return rows[index]?.id ?? index;
+	}
+
+	function fallbackRenderedRows(rows: readonly { id: string }[]): {
+		key: string;
+		index: number;
+		start: number;
+	}[] {
+		const visibleCount = Math.min(
+			rows.length,
+			Math.ceil(TABLE_FALLBACK_HEIGHT / TABLE_ROW_HEIGHT) + TABLE_OVERSCAN * 2,
+		);
+		return rows.slice(0, visibleCount).map((row, index) => ({
+			key: row.id,
+			index,
+			start: index * TABLE_ROW_HEIGHT,
+		}));
+	}
+
+	function sortRows(
+		sourceRows: readonly ViewRow<TNode>[],
+		sourceColumns: readonly ViewColumn<TNode>[],
+		state: SortingState,
+	): ViewRow<TNode>[] {
+		const current = state[0];
+		if (!current) return sourceRows as ViewRow<TNode>[];
+		const column = sourceColumns.find((item) => item.id === current.id);
+		if (!column || column.sortable !== true) return sourceRows as ViewRow<TNode>[];
+		const dir = current.desc ? -1 : 1;
+		return [...sourceRows].sort(
+			(a, b) => dir * compareValues(valueForColumn(a, column), valueForColumn(b, column)),
+		);
+	}
+
+	function valueForColumn(row: ViewRow<TNode>, column: ViewColumn<TNode>): unknown {
+		if (column.getValue) return column.getValue(row.node);
+		const cell = row.cells.find((item) => item.columnId === column.id);
+		if (cell) return cell.value;
+		if (column.id === 'label') return row.label;
+		if (column.id === 'detail') return row.detail ?? '';
+		return '';
+	}
+
+	function compareValues(left: unknown, right: unknown): number {
+		if (typeof left === 'number' && typeof right === 'number') return left - right;
+		return displayForValue(left).localeCompare(displayForValue(right), undefined, {
+			numeric: true,
+			sensitivity: 'base',
+		});
+	}
+
+	function displayForValue(value: unknown): string {
+		if (value == null) return '';
+		if (typeof value === 'string') return value;
+		if (typeof value === 'number' || typeof value === 'boolean' || typeof value === 'bigint') {
+			return String(value);
+		}
+		return '';
 	}
 </script>
 
@@ -244,32 +272,31 @@
 	onkeydown={handleTableKeydown}
 	style:--vm-node-table-columns={columnTemplate}
 >
-	{#each table.getHeaderGroups() as headerGroup (headerGroup.id)}
-		<div class="vm-node-table-header" role="row">
-			{#each headerGroup.headers as header (header.id)}
-				<button
-					type="button"
-					class="vm-node-table-header-cell"
-					data-vm-table-header={header.column.id}
-					role="columnheader"
-					aria-sort={header.column.getIsSorted() === 'asc'
-						? 'ascending'
-						: header.column.getIsSorted() === 'desc'
-							? 'descending'
-							: 'none'}
-					disabled={!header.column.getCanSort()}
-					onclick={() => handleHeaderClick(header.column)}
-				>
-					<span>{header.column.columnDef.header}</span>
-					{#if header.column.getIsSorted()}
-						<span class="vm-node-table-sort" data-vm-table-sort={header.column.id}>
-							{header.column.getIsSorted()}
-						</span>
-					{/if}
-				</button>
-			{/each}
-		</div>
-	{/each}
+	<div class="vm-node-table-header" role="row">
+		{#each columns as column (column.id)}
+			{@const sortState = headerSortState(column.id)}
+			<button
+				type="button"
+				class="vm-node-table-header-cell"
+				data-vm-table-header={column.id}
+				role="columnheader"
+				aria-sort={sortState === 'asc'
+					? 'ascending'
+					: sortState === 'desc'
+						? 'descending'
+						: 'none'}
+				disabled={column.sortable !== true}
+				onclick={() => handleHeaderClick(column)}
+			>
+				<span>{column.label}</span>
+				{#if sortState}
+					<span class="vm-node-table-sort" data-vm-table-sort={column.id}>
+						{sortState}
+					</span>
+				{/if}
+			</button>
+		{/each}
+	</div>
 	<div
 		class="vm-node-table-inner"
 		style:--vm-node-table-total-h={`${totalHeight}px`}
@@ -282,7 +309,7 @@
 				{@const isFocused = focusedId === id}
 				{@const isActive = activeId === id}
 				<div
-					class="vm-node-table-row {row.original.cls ?? ''}"
+					class="vm-node-table-row {row.cls ?? ''}"
 					class:is-selected={isSelected}
 					class:is-focused={isFocused}
 					class:is-active-node={isActive}
@@ -296,21 +323,17 @@
 					onkeydown={(e) => onRowKeydown?.(id, e)}
 					style:--vm-node-table-y={`${virtualRow.start}px`}
 				>
-					{#each row.getVisibleCells() as tableCell (tableCell.id)}
-						{@const dataCellId = cellDataId(row.original, tableCell.column.id)}
-						{@const display = cellDisplay(
-							row.original,
-							tableCell.column.id,
-							tableCell.getValue(),
-						)}
+					{#each columns as column (column.id)}
+						{@const dataCellId = cellDataId(row, column.id)}
+						{@const display = cellDisplay(row, column)}
 						<div
 							class="vm-node-table-cell"
 							role="gridcell"
 							data-vm-table-cell={dataCellId}
 						>
-							{#if tableCell.column.id === 'label'}
-								{#if row.original.icon}
-									<span class="vm-node-table-icon" use:icon={row.original.icon}></span>
+							{#if column.id === 'label'}
+								{#if row.icon}
+									<span class="vm-node-table-icon" use:icon={row.icon}></span>
 								{/if}
 								<span class="vm-node-table-primary" data-vm-table-primary>
 									{display}

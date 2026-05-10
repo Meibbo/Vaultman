@@ -6,7 +6,7 @@ parent: "[[docs/work/hardening/specs/2026-05-06-node-selection-service/index|nod
 archive_source: "docs/archive/hardening/active-docs/2026-05-06T050935-current-status.md"
 compacted: true
 created: 2026-05-04T01:36:20
-updated: 2026-05-10T02:37:32
+updated: 2026-05-10T04:38:24
 tags:
   - agent/current
 created_by: dec
@@ -88,13 +88,18 @@ Archived completed/superseded status:
 
 ## Current Verification
 
-- 2026-05-10 Pretext/cards Tasks 5-6 DONE:
+- 2026-05-10 Table open freeze regression fixed:
+  [[docs/work/polish/research/2026-05-10-table-open-freeze|Table open freeze diagnosis]].
+  `ViewNodeTable` now avoids unbounded first-frame row rendering and
+  TanStack row wrappers in the virtualized render path. Focused stress,
+  table/panel/virtualizer suites, `check`, `lint`, `build`, and live
+  Obsidian table smoke passed with clean `dev:errors` and console.
+- 2026-05-10 Pretext/cards Tasks 5-6 plus CSS font snapshot follow-up DONE:
   [[docs/work/polish/plans/2026-05-10-pretext-grid-cards/05-card-view|Cards view component and panel route]]
-  and
-  [[docs/work/polish/plans/2026-05-10-pretext-grid-cards/06-verification|Verification and documentation]].
-  Cards mode now routes through `panelExplorer`, renders `ViewNodeCards`, and
-  the Pretext slice verification passed; full evidence is in the spec/plan
-  source records.
+  / [[docs/work/polish/plans/2026-05-10-pretext-grid-cards/06-verification|Verification and documentation]]
+  / [[docs/work/polish/plans/2026-05-10-pretext-grid-cards/07-css-font-snapshot|CSS font snapshot follow-up result]].
+  Cards route through `panelExplorer`; `ViewNodeCards` now resolves rendered
+  title/meta CSS through `serviceNodeCardStyle` before measuring rows.
 - 2026-05-10 Pretext/cards Task 4 DONE:
   [[docs/work/polish/plans/2026-05-10-pretext-grid-cards/04-view-menu-routing|View-menu and settings wiring]].
   `overlayViewMenu` now receives provider/view field definitions and visible

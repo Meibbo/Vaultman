@@ -35,7 +35,7 @@ from ending as "pre-existing" prose in chat, status, or handoff.
 
 ## Steps
 
-- [ ] **Step 1: Create the residual classification record**
+- [x] **Step 1: Create the residual classification record**
 
 Write `.agents/docs/work/pkm-ai/research/2026-05-10-residual-classification.md`
 with frontmatter:
@@ -57,7 +57,7 @@ tags:
 ---
 ```
 
-- [ ] **Step 2: Add the classifier table**
+- [x] **Step 2: Add the classifier table**
 
 Add this table exactly, then append evidence rows below it:
 
@@ -71,7 +71,7 @@ Add this table exactly, then append evidence rows below it:
 | not-reproducible-yet | Reported but unproven | Repro steps attempted and next probe |
 ```
 
-- [ ] **Step 3: Seed current residuals**
+- [x] **Step 3: Seed current residuals**
 
 Add rows for these exact residuals:
 
@@ -83,7 +83,7 @@ Add rows for these exact residuals:
 - CodeQL/Java worker cleanup requirement;
 - accidental package-manager drift.
 
-- [ ] **Step 4: Link the record from PKM-AI index**
+- [x] **Step 4: Link the record from PKM-AI index**
 
 Add one bullet under `Current Work` in `.agents/docs/work/pkm-ai/index.md`:
 
@@ -91,7 +91,7 @@ Add one bullet under `Current Work` in `.agents/docs/work/pkm-ai/index.md`:
 - Research: [[docs/work/pkm-ai/research/2026-05-10-residual-classification|residual-classification]]
 ```
 
-- [ ] **Step 5: Verify the slice**
+- [x] **Step 5: Verify the slice**
 
 Run:
 

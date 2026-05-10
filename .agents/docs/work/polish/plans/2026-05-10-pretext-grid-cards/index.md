@@ -4,7 +4,7 @@ type: implementation-plan-index
 status: done
 parent: "[[docs/work/polish/specs/2026-05-10-pretext-grid-cards/index|pretext-grid-cards]]"
 created: 2026-05-10T00:00:00
-updated: 2026-05-10T02:37:32
+updated: 2026-05-10T04:17:31
 tags:
   - agent/plan
   - initiative/polish
@@ -46,6 +46,7 @@ existing `NodeSelectionService`, existing Vaultman settings persistence.
 - [[docs/work/polish/specs/2026-05-07-tanstack-node-table/index|TanStack node table]]
 - [[docs/work/performance/research/2026-05-09-durable-virtualizer-keys|Durable TanStack virtualizer keys]]
 - [[docs/current/engineering-context|Engineering context]]
+- [[docs/work/polish/plans/2026-05-10-pretext-grid-cards/07-css-font-snapshot|CSS font snapshot follow-up result]]
 - PretextJS: https://github.com/chenglou/pretext
 
 ## Execution Rules
@@ -105,12 +106,18 @@ existing `NodeSelectionService`, existing Vaultman settings persistence.
 5. [[docs/work/polish/plans/2026-05-10-pretext-grid-cards/05-card-view|Cards view component and panel route]] - done
 6. [[docs/work/polish/plans/2026-05-10-pretext-grid-cards/06-verification|Verification and documentation]] - done
 
+## Post-Plan Follow-Up
+
+- [[docs/work/polish/plans/2026-05-10-pretext-grid-cards/07-css-font-snapshot|CSS font snapshot follow-up result]] -
+  done. This supersedes the first-slice fixed local card style snapshot with a
+  rendered CSS snapshot service and keeps the fixed values only as fallback.
+
 ## Completion
 
-Completed on 2026-05-10T02:37:32. The implementation status and verification
-evidence live in
+Completed on 2026-05-10T02:37:32; CSS font snapshot follow-up completed on
+2026-05-10T04:17:31. The implementation status and verification evidence live in
 [[docs/work/polish/specs/2026-05-10-pretext-grid-cards/index|Pretext grid cards hybrid layout]]
-and the Task 5/6 result records.
+and the Task 5/6/7 result records.
 
 ## Stop Conditions
 

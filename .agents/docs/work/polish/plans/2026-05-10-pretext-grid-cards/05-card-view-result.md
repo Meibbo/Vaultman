@@ -4,7 +4,7 @@ type: implementation-result
 status: done
 parent: "[[docs/work/polish/plans/2026-05-10-pretext-grid-cards/05-card-view|cards-view-task]]"
 created: 2026-05-10T00:59:55
-updated: 2026-05-10T00:59:55
+updated: 2026-05-10T04:17:31
 tags:
   - agent/result
   - initiative/polish
@@ -50,3 +50,10 @@ Verification on 2026-05-10T00:59:55:
 - `pnpm run build` passed and synced build artifacts.
 - Scoped `git diff --check` passed for the Task 5 touched files; Git emitted
   existing LF-to-CRLF working-copy normalization warnings only.
+
+## Follow-Up
+
+Superseded on 2026-05-10T04:17:31: the first Task 5 local style snapshot is now
+only the fallback in `serviceNodeCardStyle.ts`. The current cards component
+resolves rendered title/meta CSS before measuring rows; see
+[[docs/work/polish/plans/2026-05-10-pretext-grid-cards/07-css-font-snapshot|CSS font snapshot follow-up result]].

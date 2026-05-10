@@ -4,7 +4,7 @@ type: initiative-index
 status: active
 parent: "[[docs/work/pkm-ai/specs/2026-05-04-orchestration-refresh/index|pkm-ai]]"
 created: 2026-05-04T01:44:46
-updated: 2026-05-10T03:29:53
+updated: 2026-05-10T04:08:07
 tags:
   - agent/work
   - initiative/pkm-ai
@@ -21,6 +21,7 @@ backlog structure, and branch hygiene for AI workflow files.
 - Spec: [[docs/work/pkm-ai/specs/2026-05-10-agent-control-plane/index|agent-control-plane-spec]]
 - Plan: [[docs/work/pkm-ai/plans/2026-05-04-orchestration-refresh/index|orchestration-refresh-plan]]
 - Plan: [[docs/work/pkm-ai/plans/2026-05-10-agent-control-plane/index|agent-control-plane-plan]]
+- Research: [[docs/work/pkm-ai/research/2026-05-10-residual-classification|residual-classification]]
 - Item: [[docs/work/pkm-ai/items/vm-0002-current-docs-as-route-indexes|current docs as route indexes]]
 - Migration archive: [[docs/archive/pkm-ai/migration-2026-05-04/index|migration-2026-05-04]]
 

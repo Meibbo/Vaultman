@@ -103,7 +103,7 @@ describe('ViewNodeTable', () => {
 		expect(handlers.onSecondaryAction).not.toHaveBeenCalled();
 	});
 
-	it('uses TanStack sorting when a sortable header is clicked', () => {
+	it('uses table sorting when a sortable header is clicked', () => {
 		renderTable();
 
 		(target.querySelector('[data-vm-table-header="label"]') as HTMLElement).click();

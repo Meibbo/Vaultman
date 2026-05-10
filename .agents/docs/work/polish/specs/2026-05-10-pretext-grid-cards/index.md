@@ -4,7 +4,7 @@ type: spec
 status: done
 parent: "[[docs/work/polish/index|polish]]"
 created: 2026-05-10T00:00:00
-updated: 2026-05-10T02:37:32
+updated: 2026-05-10T04:17:31
 tags:
   - agent/spec
   - initiative/polish
@@ -253,6 +253,14 @@ The first slice should define a style snapshot for node cards:
 If the style snapshot cannot be resolved reliably, fallback to the existing
 fixed preset height rather than showing unstable scroll geometry.
 
+Implementation status: `src/services/serviceNodeCardStyle.ts` now owns the
+resolved style snapshot. `ViewNodeCards.svelte` starts with
+`DEFAULT_NODE_CARD_MEASURE_STYLE`, then updates card measurement from rendered
+`.vm-node-card-field.is-title` and `.vm-node-card-field.is-meta` CSS through
+`activeWindow.getComputedStyle`. The style key includes font, line height,
+letter spacing, whitespace, and word-break so card rows remeasure only when the
+rendered measurement contract changes.
+
 ## SVAR Reference Use
 
 Use the SVAR filemanager as a comparison source, not a dependency target:
@@ -316,38 +324,43 @@ Files changed:
 - settings and services: `src/types/typeSettings.ts`,
   `src/services/serviceNodeFieldVisibility.ts`,
   `src/services/serviceTextMeasure.ts`,
-  `src/services/serviceNodeCardLayout.ts`;
+  `src/services/serviceNodeCardLayout.ts`,
+  `src/services/serviceNodeCardStyle.ts`;
 - Svelte UI route: `overlayViewMenu.svelte`, `navbarExplorer.svelte`,
   `pageFilters.svelte`, tab wrappers, `panelExplorer.svelte`,
   `ViewNodeCards.svelte`;
 - styles: `src/styles/data/_cards.scss`, `src/main.scss`, generated
   `styles.css`;
 - tests: focused unit tests for field visibility, text measurement, card layout,
-  plus component tests for view menu, cards, panel routing, selection, and
-  virtualizer keys;
+  card style snapshots, plus component tests for view menu, cards, panel
+  routing, selection, rendered CSS measurement, and virtualizer keys;
 - package files: `package.json`, `pnpm-lock.yaml` for `@chenglou/pretext`.
 
 Verification:
 
 - Focused unit tests passed: 3 files / 16 tests.
 - Focused component tests passed: 5 files / 54 tests.
+- CSS font snapshot follow-up focused unit tests passed: 4 files / 18 tests.
+- CSS font snapshot follow-up focused component tests passed: 5 files /
+  55 tests.
 - `pnpm run check` passed with 0 errors / 0 warnings.
 - `pnpm run lint` passed with 0 warnings / 0 errors.
 - `pnpm run build` passed and regenerated/synced build artifacts.
 - Scoped `git diff --check` exited 0 with only LF-to-CRLF working-copy
   normalization warnings.
 
-Deviations:
+Superseded deviations:
 
-- `ViewNodeCards.svelte` uses a local style snapshot for this slice and falls
-  back to the deterministic text-measure engine in jsdom to avoid canvas
-  runtime noise during component tests.
+- The first-slice `ViewNodeCards.svelte` local style snapshot note is
+  superseded by
+  [[docs/work/polish/plans/2026-05-10-pretext-grid-cards/07-css-font-snapshot|CSS font snapshot follow-up result]].
+  Cards now use the deterministic fallback only until a rendered CSS snapshot
+  is available, and jsdom tests stub `activeWindow.getComputedStyle`.
 - The cards SCSS partial is imported as `data-cards` because an existing
   explorer cards partial already owns the default Sass `cards` namespace.
 
 Deferred follow-up:
 
-- resolve exact Obsidian/Vaultman font snapshots for card measurement;
 - `dnd-kit` drag/drop;
 - node/card resize handles and persisted card sizing preferences;
 - multiline table rows and measured table cells;
