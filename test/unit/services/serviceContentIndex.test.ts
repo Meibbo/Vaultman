@@ -1,4 +1,4 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import { mockApp, mockTFile } from '../../helpers/obsidian-mocks';
 import { createContentIndex } from '../../../src/index/indexContent';
 
@@ -162,5 +162,44 @@ describe('serviceContentIndex', () => {
 		idx.setQuery('foobar');
 		await idx.refresh();
 		expect(idx.revision).toBeGreaterThan(0);
+	});
+
+	it('reuses same-query cached matches while the vault fingerprint is unchanged', async () => {
+		const f = mockTFile('a.md');
+		f.stat.mtime = 100;
+		f.stat.size = 12;
+		const app = mockApp({ files: [f], adapterFiles: new Map([['a.md', 'needle one']]) });
+		const cachedRead = vi.fn(app.vault.cachedRead);
+		app.vault.cachedRead = cachedRead;
+		const idx = createContentIndex(app);
+
+		idx.setQuery('needle');
+		await idx.refresh();
+		const firstReadCount = cachedRead.mock.calls.length;
+		expect(firstReadCount).toBeGreaterThan(0);
+
+		await idx.refresh();
+
+		expect(cachedRead.mock.calls.length).toBe(firstReadCount);
+		expect(idx.nodes).toHaveLength(1);
+	});
+
+	it('invalidates same-query cached matches when a file fingerprint changes', async () => {
+		const f = mockTFile('a.md');
+		f.stat.mtime = 100;
+		f.stat.size = 12;
+		const app = mockApp({ files: [f], adapterFiles: new Map([['a.md', 'needle one']]) });
+		const cachedRead = vi.fn(app.vault.cachedRead);
+		app.vault.cachedRead = cachedRead;
+		const idx = createContentIndex(app);
+
+		idx.setQuery('needle');
+		await idx.refresh();
+		const firstReadCount = cachedRead.mock.calls.length;
+		f.stat.mtime = 101;
+
+		await idx.refresh();
+
+		expect(cachedRead.mock.calls.length).toBeGreaterThan(firstReadCount);
 	});
 });

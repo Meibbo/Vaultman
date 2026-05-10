@@ -21,6 +21,7 @@ backlog structure, and branch hygiene for AI workflow files.
 - Spec: [[docs/work/pkm-ai/specs/2026-05-10-agent-control-plane/index|agent-control-plane-spec]]
 - Plan: [[docs/work/pkm-ai/plans/2026-05-04-orchestration-refresh/index|orchestration-refresh-plan]]
 - Plan: [[docs/work/pkm-ai/plans/2026-05-10-agent-control-plane/index|agent-control-plane-plan]]
+- Plan: [[docs/work/pkm-ai/plans/2026-05-10-queue-contract-repair/index|queue-contract-repair-plan]]
 - Research: [[docs/work/pkm-ai/research/2026-05-10-residual-classification|residual-classification]]
 - Item: [[docs/work/pkm-ai/items/vm-0002-current-docs-as-route-indexes|current docs as route indexes]]
 - Migration archive: [[docs/archive/pkm-ai/migration-2026-05-04/index|migration-2026-05-04]]
@@ -35,6 +36,8 @@ backlog structure, and branch hygiene for AI workflow files.
   [[docs/work/pkm-ai/specs/2026-05-10-agent-control-plane/05-route-retrieval-profiles|route-retrieval-profiles]]
 - Tool contracts:
   [[docs/work/pkm-ai/specs/2026-05-10-agent-control-plane/06-tool-contracts|tool-contracts]]
+- Queue contract repair:
+  [[docs/work/pkm-ai/plans/2026-05-10-queue-contract-repair/index|queue-contract-repair-plan]]
 
 ## Related Routes
 

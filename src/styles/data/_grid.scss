@@ -244,6 +244,12 @@ body.vm-resizing {
 	min-height: 0;
 	overflow: auto;
 	box-sizing: border-box;
+
+	&.is-manual-dnd {
+		.vm-node-grid-tile {
+			cursor: grab;
+		}
+	}
 }
 
 .vm-grid-nav-toolbar {
@@ -424,6 +430,28 @@ body.vm-resizing {
 			inset 3px 0 0 color-mix(in srgb, $vm-color-accent 78%, transparent),
 			inset 0 0 0 1px color-mix(in srgb, $vm-color-accent 60%, transparent);
 	}
+
+	&.is-manual-dnd {
+		transition:
+			transform 90ms cubic-bezier(0.2, 0.8, 0.2, 1),
+			border-color 90ms ease,
+			background 90ms ease,
+			box-shadow 90ms ease,
+			opacity 90ms ease;
+	}
+
+	&.is-dnd-dragging {
+		opacity: 0.55;
+		transform: scale(0.985);
+	}
+
+	&.is-dnd-drop-target {
+		border-color: color-mix(in srgb, $vm-color-accent 70%, $vm-border-color);
+		background: color-mix(in srgb, $vm-color-accent 16%, $vm-bg-primary);
+		box-shadow:
+			0 0 0 1px color-mix(in srgb, $vm-color-accent 34%, transparent),
+			0 8px 24px color-mix(in srgb, $vm-color-accent 12%, transparent);
+	}
 }
 
 .vm-node-grid-toggle,
@@ -499,9 +527,14 @@ body.vm-resizing {
 	}
 }
 
+.vm-node-grid-label-prefix {
+	color: $vm-text-faint;
+}
+
 @media (prefers-reduced-motion: reduce) {
 	.vm-node-grid-tile,
 	.vm-selection-box {
 		transition: none;
+		transform: none;
 	}
 }

@@ -21,6 +21,7 @@
 		active = true,
 		showSelectedOnly = false,
 		showHiddenFiles = false,
+		manualDndEnabled = false,
 		selectedFilePaths = $bindable(new Set<string>()),
 		onSelectionChange,
 		nodeExpansionCommand = null,
@@ -38,6 +39,7 @@
 		active?: boolean;
 		showSelectedOnly?: boolean;
 		showHiddenFiles?: boolean;
+		manualDndEnabled?: boolean;
 		selectedFilePaths: Set<string>;
 		onSelectionChange?: (count: number) => void;
 		nodeExpansionCommand?: ExplorerExpansionCommand | null;
@@ -77,6 +79,7 @@
 			{active}
 			{showSelectedOnly}
 			{showHiddenFiles}
+			{manualDndEnabled}
 			{nodeExpansionCommand}
 			{onNodeExpansionSummaryChange}
 			{visibleFields}

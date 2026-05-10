@@ -23,6 +23,8 @@ describe('SortPopup node expansion toggle', () => {
 		props: Partial<{
 			nodeExpansionSummary: { canToggle: boolean; hasExpandedParents: boolean };
 			onToggleNodeExpansion: () => void;
+			manualDndEnabled: boolean;
+			onManualDndChange: (active: boolean) => void;
 		}> = {},
 	) {
 		const defaults = {
@@ -82,5 +84,29 @@ describe('SortPopup node expansion toggle', () => {
 		});
 
 		expect(target.querySelector('[data-vm-sort-node-expansion]')).toBeNull();
+	});
+
+	it('does not expose an all-vault operation scope option', () => {
+		renderSortPopup();
+
+		const optionValues = [...target.querySelectorAll('option')].map((option) =>
+			option.getAttribute('value'),
+		);
+		expect(optionValues).toEqual(['auto', 'filtered', 'selected']);
+	});
+
+	it('toggles manual drag mode from the sort controls', () => {
+		const onManualDndChange = vi.fn();
+		renderSortPopup({ manualDndEnabled: false, onManualDndChange });
+
+		const toggle = target.querySelector<HTMLButtonElement>('[data-vm-sort-manual-dnd]');
+		expect(toggle).toBeTruthy();
+		expect(toggle?.getAttribute('aria-pressed')).toBe('false');
+
+		toggle?.click();
+		flushSync();
+
+		expect(onManualDndChange).toHaveBeenCalledWith(true);
+		expect(toggle?.getAttribute('aria-pressed')).toBe('true');
 	});
 });

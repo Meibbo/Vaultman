@@ -78,7 +78,7 @@ describe('phase 7 — `set` cmenu entry exists in every explorer', () => {
 		expect(change.tag).toBe('urgent');
 	});
 
-	it('tag.set falls back to all markdown files when filtered scope is empty', () => {
+	it('tag.set does not queue when filtered scope is empty', () => {
 		const files = [
 			mockTFile('a.md', { frontmatter: { tags: ['other'] } }),
 			mockTFile('b.md', { frontmatter: { tags: ['other'] } }),
@@ -93,9 +93,7 @@ describe('phase 7 — `set` cmenu entry exists in every explorer', () => {
 			surface: 'panel',
 		});
 
-		expect(plugin.queueService.add).toHaveBeenCalledTimes(1);
-		const change = (plugin.queueService.add as ReturnType<typeof vi.fn>).mock.calls[0][0];
-		expect(change.files).toEqual(files);
+		expect(plugin.queueService.add).not.toHaveBeenCalled();
 	});
 
 	it('prop explorer registers `prop.set` and forwards to FnR island prefiller', () => {
@@ -142,7 +140,7 @@ describe('phase 7 — `set` cmenu entry exists in every explorer', () => {
 		});
 	});
 
-	it('value.set falls back to all markdown files when filtered scope is empty', () => {
+	it('value.set does not queue when filtered scope is empty', () => {
 		const files = [mockTFile('a.md'), mockTFile('b.md')];
 		const plugin = basePlugin({ files, filteredFiles: [] });
 		new explorerProps(plugin);
@@ -159,9 +157,7 @@ describe('phase 7 — `set` cmenu entry exists in every explorer', () => {
 			surface: 'panel',
 		});
 
-		expect(plugin.queueService.add).toHaveBeenCalledTimes(1);
-		const change = (plugin.queueService.add as ReturnType<typeof vi.fn>).mock.calls[0][0];
-		expect(change.files).toEqual(files);
+		expect(plugin.queueService.add).not.toHaveBeenCalled();
 	});
 
 	it('file explorer registers `file.set` and queues NATIVE_APPEND_LINK over filtered files', () => {
@@ -187,7 +183,7 @@ describe('phase 7 — `set` cmenu entry exists in every explorer', () => {
 		expect(links).toEqual(['[[a]]']);
 	});
 
-	it('file.set falls back to all markdown files when filtered scope is empty', () => {
+	it('file.set does not queue when filtered scope is empty', () => {
 		const a = mockTFile('a.md');
 		const b = mockTFile('b.md');
 		const plugin = basePlugin({ files: [a, b], filteredFiles: [] });
@@ -201,8 +197,27 @@ describe('phase 7 — `set` cmenu entry exists in every explorer', () => {
 			file: a,
 		});
 
-		expect(plugin.queueService.add).toHaveBeenCalledTimes(1);
-		const change = (plugin.queueService.add as ReturnType<typeof vi.fn>).mock.calls[0][0];
-		expect(change.files).toEqual([a, b]);
+		expect(plugin.queueService.add).not.toHaveBeenCalled();
+	});
+
+	it('legacy all scope is normalized away and does not queue over every file', () => {
+		const a = mockTFile('a.md');
+		const b = mockTFile('b.md');
+		const plugin = basePlugin({
+			files: [a, b],
+			filteredFiles: [],
+			selectedFiles: [],
+			explorerOperationScope: 'all',
+		});
+		new explorerTags(plugin);
+		const action = findRegisteredAction(plugin, 'tag.set');
+
+		action.run({
+			nodeType: 'tag',
+			node: { id: 't', label: 'urgent', depth: 0, meta: { tagPath: 'urgent' } },
+			surface: 'panel',
+		});
+
+		expect(plugin.queueService.add).not.toHaveBeenCalled();
 	});
 });

@@ -6,7 +6,7 @@ parent: "[[docs/work/hardening/specs/2026-05-06-node-selection-service/index|nod
 archive_source: "docs/archive/hardening/active-docs/2026-05-06T050935-current-status.md"
 compacted: true
 created: 2026-05-04T01:36:20
-updated: 2026-05-10T05:26:24
+updated: 2026-05-10T06:58:00
 tags:
   - agent/current
 created_by: dec
@@ -94,6 +94,11 @@ Archived completed/superseded status:
   target, drop operation, reject reason, view-state projection, and drop
   result, plus an `@thisux/sveltednd` callback adapter. Version metadata is now
   `1.0.0-rc.2`.
+- 2026-05-10 manual grid DnD continuation DONE:
+  [[docs/work/polish/plans/2026-05-10-service-dnd-foundation/03-manual-grid-dnd|manual grid DnD continuation]].
+  `pnpm run check` is unblocked; the sort menu now exposes an opt-in manual
+  DnD toggle for the grid, with native tile dragging, local sibling reorder,
+  snappy state styling, and Markdown/JSON workspace drag payloads.
 - 2026-05-10 Table open freeze regression fixed:
   [[docs/work/polish/research/2026-05-10-table-open-freeze|Table open freeze diagnosis]].
   `ViewNodeTable` now avoids unbounded first-frame row rendering and

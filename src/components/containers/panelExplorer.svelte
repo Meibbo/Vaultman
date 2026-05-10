@@ -36,6 +36,8 @@
 		type BadgeKind,
 	} from '../../badges/serviceBadge';
 	import { serviceMessage } from '../../services/serviceMessage';
+	import { applyManualNodeReorder } from '../../services/serviceManualDnd';
+	import type { DndDropResult } from '../../services/serviceDnd';
 
 	type ScrollTarget = { id: string; serial: number };
 
@@ -51,6 +53,7 @@
 		active = true,
 		showSelectedOnly = false,
 		showHiddenFiles = false,
+		manualDndEnabled = false,
 		selectedFiles = $bindable(new Set<string>()),
 		nodeExpansionCommand = null,
 		onNodeExpansionSummaryChange,
@@ -69,6 +72,7 @@
 		active?: boolean;
 		showSelectedOnly?: boolean;
 		showHiddenFiles?: boolean;
+		manualDndEnabled?: boolean;
 		selectedFiles?: Set<string>;
 		nodeExpansionCommand?: ExplorerExpansionCommand | null;
 		onNodeExpansionSummaryChange?: (summary: ExplorerExpansionSummary) => void;
@@ -565,6 +569,11 @@
 		commitSelection(selectionService.selectBox(provider.id, visibleNodeIds(), ids, { additive }));
 	}
 
+	function handleManualNodeDrop(result: DndDropResult): void {
+		if (result.operation !== 'reorder') return;
+		nodes = applyManualTreeReorder(nodes, result.sourceIds, result.targetId, result.position);
+	}
+
 	function commitSelection(snapshot: NodeSelectionSnapshot) {
 		const key = selectionKey(snapshot);
 		if (key === lastCommittedSelectionKey) return;
@@ -738,6 +747,23 @@
 	function selectedNodesForAction(node: TreeNode<TMeta>): TreeNode<TMeta>[] {
 		if (!selectedNodeIds.has(node.id)) return [node];
 		return selectedNodesForContext(node);
+	}
+
+	function applyManualTreeReorder(
+		items: TreeNode<TMeta>[],
+		sourceIds: readonly string[],
+		targetId: string,
+		position: DndDropResult['position'],
+	): TreeNode<TMeta>[] {
+		const ids = new Set(items.map((node) => node.id));
+		if (sourceIds.some((id) => ids.has(id)) && ids.has(targetId)) {
+			return applyManualNodeReorder(items, sourceIds, targetId, position);
+		}
+		return items.map((node) =>
+			node.children
+				? { ...node, children: applyManualTreeReorder(node.children, sourceIds, targetId, position) }
+				: node,
+		);
 	}
 
 	function warnBadgeContradictions(kind: BadgeKind, targetNodes: TreeNode<TMeta>[]): void {
@@ -937,6 +963,9 @@
 					activeId={selectionSnapshot.activeId}
 					hierarchyMode={gridHierarchyMode}
 					expandedIds={gridHierarchyMode === 'inline' ? gridExpandedIds : undefined}
+					providerId={provider.id}
+					{manualDndEnabled}
+					onManualDrop={handleManualNodeDrop}
 					onTileClick={handleNodeClick}
 					onSecondaryAction={handleSecondaryAction}
 					onTertiaryAction={handleTertiaryAction}

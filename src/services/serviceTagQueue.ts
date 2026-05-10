@@ -3,7 +3,7 @@ import type { PendingChange } from '../types/typeOps';
 
 export function buildTagAddChange(tagPath: string, files: TFile[]): PendingChange | null {
 	const tag = normalizeTag(tagPath);
-	if (!tag) return null;
+	if (!tag || files.length === 0) return null;
 	return {
 		type: 'tag',
 		tag,
@@ -21,7 +21,7 @@ export function buildTagAddChange(tagPath: string, files: TFile[]): PendingChang
 
 export function buildTagDeleteChange(tagPath: string, files: TFile[]): PendingChange | null {
 	const tag = normalizeTag(tagPath);
-	if (!tag) return null;
+	if (!tag || files.length === 0) return null;
 	return {
 		type: 'tag',
 		tag,
@@ -43,7 +43,7 @@ export function buildTagRenameChange(
 ): PendingChange | null {
 	const oldTag = normalizeTag(oldTagPath);
 	const newTag = normalizeTag(newTagPath);
-	if (!oldTag || !newTag || oldTag === newTag) return null;
+	if (!oldTag || !newTag || oldTag === newTag || files.length === 0) return null;
 	return {
 		type: 'tag',
 		tag: oldTag,

@@ -18,6 +18,7 @@
 		sortDirection = $bindable('asc'),
 		viewMode = $bindable('tree'),
 		active = true,
+		manualDndEnabled = false,
 		explorer = $bindable(),
 		nodeExpansionCommand = null,
 		onNodeExpansionSummaryChange,
@@ -31,6 +32,7 @@
 		sortDirection?: 'asc' | 'desc';
 		viewMode?: any;
 		active?: boolean;
+		manualDndEnabled?: boolean;
 		explorer: explorerTags | undefined;
 		nodeExpansionCommand?: ExplorerExpansionCommand | null;
 		onNodeExpansionSummaryChange?: (summary: ExplorerExpansionSummary) => void;
@@ -67,6 +69,7 @@
 			bind:sortBy
 			bind:sortDirection
 			{active}
+			{manualDndEnabled}
 			{nodeExpansionCommand}
 			{onNodeExpansionSummaryChange}
 			{visibleFields}

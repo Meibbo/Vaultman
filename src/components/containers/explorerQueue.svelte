@@ -106,12 +106,6 @@
 			aria-label={translate('queue.execute')}
 			use:icon={'lucide-check'}
 		></button>
-		<button
-			class="vm-squircle"
-			onclick={onClose}
-			aria-label={translate('common.close')}
-			use:icon={'lucide-x'}
-		></button>
 	</div>
 
 	<div class="vm-explorer-popup">

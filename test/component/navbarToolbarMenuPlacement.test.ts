@@ -78,4 +78,23 @@ describe('NavbarExplorer toolbar menu placement', () => {
 		expect(minimalist).toBeTruthy();
 		expect(minimalist!.contains(viewBtn!) || minimalist!.contains(sortBtn!)).toBe(true);
 	});
+
+	it('keeps search syntax help inside the searchbox instead of beside the toolbar FABs', () => {
+		const service = new FnRIslandService();
+		app = mount(NavbarExplorer as unknown as Component<Record<string, unknown>>, {
+			target,
+			props: baseProps(service),
+		});
+		flushSync();
+
+		const searchWrap = target.querySelector('.vm-filters-header-search-wrap');
+		const toolbar = target.querySelector('.vm-toolbar-menu-min');
+		const help = target.querySelector('.vm-filters-search-help');
+
+		expect(searchWrap).toBeTruthy();
+		expect(toolbar).toBeTruthy();
+		expect(help).toBeTruthy();
+		expect(searchWrap!.contains(help!)).toBe(true);
+		expect(toolbar!.contains(help!)).toBe(false);
+	});
 });

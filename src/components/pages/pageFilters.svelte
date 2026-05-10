@@ -53,6 +53,10 @@
 		setVisibleFieldsForSettings,
 		visibleFieldsFromSettings,
 	} from '../../services/serviceNodeFieldVisibility';
+	import {
+		resolveOperationScopeFiles,
+		type OperationScope,
+	} from '../../services/serviceOperationScope';
 	// TODO: por quÃ© setIcon?
 	import { setIcon, type TFile } from 'obsidian';
 
@@ -76,6 +80,7 @@
 		addMode = $bindable(false),
 		filesShowSelectedOnly = $bindable(false),
 		filesShowHidden = $bindable(plugin.settings.explorerFilesShowHidden === true),
+		manualDndEnabled = $bindable(plugin.settings.manualDndEnabled === true),
 		tagsExplorer = $bindable(),
 		propExplorer = $bindable(),
 		fileList = $bindable(),
@@ -88,8 +93,8 @@
 		filtersSearchByTab: FiltersSearchState;
 		filtersSearchCategory: Record<FilTab, number>;
 		filtersFnRState: FnRState;
-		filtersOperationScope?: 'auto' | 'selected' | 'filtered' | 'all';
-		onOperationScopeChange?: (value: 'auto' | 'selected' | 'filtered' | 'all') => void;
+		filtersOperationScope?: OperationScope;
+		onOperationScopeChange?: (value: OperationScope) => void;
 		filtersSortBy?: string;
 		filtersSortDir?: 'asc' | 'desc';
 		filtersViewMode?: any;
@@ -97,6 +102,7 @@
 		addMode?: boolean;
 		filesShowSelectedOnly?: boolean;
 		filesShowHidden?: boolean;
+		manualDndEnabled?: boolean;
 		tagsExplorer?: explorerTags | undefined;
 		propExplorer?: explorerProps | undefined;
 		fileList?: explorerFiles | undefined;
@@ -238,16 +244,10 @@
 	}
 
 	function operationScopeFiles(): TFile[] {
-		const allFiles = plugin.app.vault.getMarkdownFiles();
 		const filteredFiles = [...(plugin.filterService.filteredFiles ?? [])] as TFile[];
 		const selectedFiles = selectedOperationFiles();
 		const scope = filtersOperationScope ?? plugin.settings.explorerOperationScope ?? 'auto';
-		if (scope === 'all') return allFiles;
-		if (scope === 'selected') return selectedFiles;
-		if (scope === 'filtered') return filteredFiles.length > 0 ? filteredFiles : allFiles;
-		if (selectedFiles.length > 0) return selectedFiles;
-		if (filteredFiles.length > 0) return filteredFiles;
-		return allFiles;
+		return resolveOperationScopeFiles({ scope, selectedFiles, filteredFiles });
 	}
 
 	function selectedOperationFiles(): TFile[] {
@@ -292,6 +292,12 @@
 	function setFilesShowHidden(active: boolean): void {
 		filesShowHidden = active;
 		plugin.settings.explorerFilesShowHidden = active;
+		void plugin.saveSettings?.();
+	}
+
+	function setManualDndEnabled(active: boolean): void {
+		manualDndEnabled = active;
+		plugin.settings.manualDndEnabled = active;
 		void plugin.saveSettings?.();
 	}
 
@@ -434,8 +440,10 @@
 	bind:operationScope={filtersOperationScope}
 	bind:filesShowSelectedOnly
 	bind:filesShowHidden
+	bind:manualDndEnabled
 	{onOperationScopeChange}
 	onFilesShowHiddenChange={setFilesShowHidden}
+	onManualDndChange={setManualDndEnabled}
 	{tagsExplorer}
 	{propExplorer}
 	{fileList}
@@ -475,6 +483,7 @@
 					nodeExpansionCommand={nodeExpansionCommands.files}
 					onNodeExpansionSummaryChange={(summary) => setNodeExpansionSummary('files', summary)}
 					visibleFields={visibleFieldsFor('files', filtersViewMode as ExplorerViewMode)}
+					{manualDndEnabled}
 					{icon}
 				/>
 			{/key}
@@ -493,6 +502,7 @@
 				nodeExpansionCommand={nodeExpansionCommands.props}
 				onNodeExpansionSummaryChange={(summary) => setNodeExpansionSummary('props', summary)}
 				visibleFields={visibleFieldsFor('props', filtersViewMode as ExplorerViewMode)}
+				{manualDndEnabled}
 				{startRenameHandoff}
 				{openPropSetIsland}
 			/>
@@ -514,6 +524,7 @@
 				nodeExpansionCommand={nodeExpansionCommands.files}
 				onNodeExpansionSummaryChange={(summary) => setNodeExpansionSummary('files', summary)}
 				visibleFields={visibleFieldsFor('files', filtersViewMode as ExplorerViewMode)}
+				{manualDndEnabled}
 				{startRenameHandoff}
 			/>
 		</div>
@@ -530,6 +541,7 @@
 				nodeExpansionCommand={nodeExpansionCommands.tags}
 				onNodeExpansionSummaryChange={(summary) => setNodeExpansionSummary('tags', summary)}
 				visibleFields={visibleFieldsFor('tags', filtersViewMode as ExplorerViewMode)}
+				{manualDndEnabled}
 				{startRenameHandoff}
 			/>
 		</div>
@@ -547,6 +559,7 @@
 				nodeExpansionCommand={nodeExpansionCommands.content}
 				onNodeExpansionSummaryChange={(summary) => setNodeExpansionSummary('content', summary)}
 				visibleFields={visibleFieldsFor('content', filtersViewMode as ExplorerViewMode)}
+				{manualDndEnabled}
 				{icon}
 			/>
 		</div>

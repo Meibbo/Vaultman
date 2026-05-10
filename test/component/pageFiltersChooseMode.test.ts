@@ -318,4 +318,37 @@ describe('PageFilters Bases choose mode', () => {
 		expect(target.textContent).toContain('.obsidian');
 		expect(hiddenToggle?.getAttribute('aria-pressed')).toBe('true');
 	});
+
+	it('toggles manual DnD from the sort menu and persists the setting', () => {
+		const vm = plugin();
+
+		app = mount(PageFilters as unknown as Component<Record<string, unknown>>, {
+			target,
+			props: {
+				plugin: vm,
+				filtersActiveTab: 'files',
+				filtersViewMode: 'grid',
+			},
+		});
+		flushSync();
+
+		(
+			vm as VaultmanPlugin & {
+				openSortMenuHook?: (() => void) | null;
+			}
+		).openSortMenuHook?.();
+		flushSync();
+
+		const manualToggle = target.querySelector<HTMLButtonElement>('[data-vm-sort-manual-dnd]');
+		expect(manualToggle).toBeTruthy();
+		expect(manualToggle?.getAttribute('aria-pressed')).toBe('false');
+
+		manualToggle?.click();
+		flushSync();
+
+		expect(vm.settings.manualDndEnabled).toBe(true);
+		expect(vm.saveSettings).toHaveBeenCalledOnce();
+		expect(manualToggle?.getAttribute('aria-pressed')).toBe('true');
+		expect(target.querySelector('.vm-node-grid')?.classList.contains('is-manual-dnd')).toBe(true);
+	});
 });

@@ -52,6 +52,10 @@
 	import { createFnRState } from '../../services/serviceFnR';
 	import type { FnRState } from '../../types/typeFnR';
 	import { openVaultmanFileSuggestModal } from '../../utils/fileSuggestModal';
+	import {
+		normalizeOperationScope,
+		type OperationScope,
+	} from '../../services/serviceOperationScope';
 
 	// â”€â”€â”€ Props â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€------------------...........
 
@@ -213,10 +217,10 @@
 	let filtersSortDir = $state<'asc' | 'desc'>('asc');
 	let filtersViewMode = $state<any>('tree');
 	let addMode = $state(false);
-	const initialOperationScope = untrack(() => plugin.settings.explorerOperationScope);
-	let filtersOperationScope = $state<'auto' | 'selected' | 'filtered' | 'all'>(
-		initialOperationScope,
+	const initialOperationScope = untrack(() =>
+		normalizeOperationScope(plugin.settings.explorerOperationScope),
 	);
+	let filtersOperationScope = $state<OperationScope>(initialOperationScope);
 
 	$effect(() => {
 		const tab = filtersActiveTab;
@@ -287,11 +291,6 @@
 			icon: 'lucide-sparkles',
 		},
 		{
-			value: 'all',
-			label: translate('scope.all'),
-			icon: 'lucide-database',
-		},
-		{
 			value: 'filtered',
 			label: translate('scope.filtered'),
 			icon: 'lucide-filter',
@@ -304,15 +303,15 @@
 	];
 
 	function setScope(value: string) {
-		filtersOperationScope = value as 'auto' | 'selected' | 'filtered' | 'all';
+		filtersOperationScope = normalizeOperationScope(value as OperationScope);
 		plugin.settings.explorerOperationScope = filtersOperationScope;
 		void plugin.saveSettings();
 		overlays.closePopup();
 	}
 
-	function setFiltersOperationScope(value: 'auto' | 'selected' | 'filtered' | 'all') {
-		filtersOperationScope = value;
-		plugin.settings.explorerOperationScope = value;
+	function setFiltersOperationScope(value: OperationScope) {
+		filtersOperationScope = normalizeOperationScope(value);
+		plugin.settings.explorerOperationScope = filtersOperationScope;
 		void plugin.saveSettings();
 	}
 

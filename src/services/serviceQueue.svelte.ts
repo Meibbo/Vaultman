@@ -174,9 +174,15 @@ export class OperationQueueService extends Component implements IOperationQueue 
 	private changeCounter = 0;
 
 	/**
-	 * Reactive list of pending changes (rune-backed).
+	 * Logical pending changes derived from staged file transactions.
+	 *
+	 * `transactions` is the queue source of truth. This getter preserves the
+	 * public `IOperationQueue.pending` contract without maintaining a second
+	 * mutable list that can drift from individual staged op removals.
 	 */
-	pending = $state<PendingChange[]>([]);
+	get pending(): PendingChange[] {
+		return this.pendingSnapshot();
+	}
 
 	/**
 	 * Registry binding UI node ids to queued op descriptors. Populated by
@@ -221,9 +227,9 @@ export class OperationQueueService extends Component implements IOperationQueue 
 		for (const callback of this.listeners.get('changed') ?? []) callback();
 	}
 
-	/** Back-compat shim — some UI code iterates the array. Returns empty for now. */
+	/** Back-compat shim: some UI code still iterates `queue` directly. */
 	get queue(): PendingChange[] {
-		return [];
+		return this.pendingSnapshot();
 	}
 
 	onUpdate(callback: () => void): () => void {
@@ -232,6 +238,48 @@ export class OperationQueueService extends Component implements IOperationQueue 
 
 	subscribe(cb: () => void): () => void {
 		return this.on('changed', cb);
+	}
+
+	private pendingSnapshot(): PendingChange[] {
+		const groups = new Map<string, { op: StagedOp; files: TFile[] }>();
+		for (const vfs of this.transactions.values()) {
+			for (const op of vfs.ops) {
+				const id = op.changeId ?? op.id;
+				const group = groups.get(id);
+				if (group) {
+					group.files.push(vfs.file);
+				} else {
+					groups.set(id, { op, files: [vfs.file] });
+				}
+			}
+		}
+		return [...groups.entries()].map(([id, group]) =>
+			this.pendingChangeFromStagedOp(id, group.op, group.files),
+		);
+	}
+
+	private pendingChangeFromStagedOp(id: string, op: StagedOp, files: TFile[]): PendingChange {
+		return {
+			id,
+			type: this.pendingTypeForOp(op),
+			action: op.action,
+			details: op.details,
+			files,
+			...(op.property ? { property: op.property } : {}),
+			...(op.tag ? { tag: op.tag } : {}),
+			customLogic: true,
+			logicFunc: () => null,
+		} as PendingChange;
+	}
+
+	private pendingTypeForOp(op: StagedOp): PendingChange['type'] {
+		if (op.kind === 'find_replace_content') return 'content_replace';
+		if (op.kind === 'rename_file') return 'file_rename';
+		if (op.kind === 'move_file') return 'file_move';
+		if (op.kind === 'delete_file') return 'file_delete';
+		if (op.kind === 'set_tag' || op.kind === 'delete_tag' || op.kind === 'add_tag') return 'tag';
+		if (op.kind === 'apply_template') return 'template';
+		return 'property';
 	}
 
 	/** Remove a staged op by its op ID across all file transactions. */
@@ -598,8 +646,7 @@ export class OperationQueueService extends Component implements IOperationQueue 
 		newName: string,
 		changeId: string,
 	): Promise<void> {
-		const allFiles = this.app.vault.getMarkdownFiles();
-		for (const file of allFiles) {
+		for (const file of change.files) {
 			const cache = this.app.metadataCache.getFileCache(file);
 			const fm = cache?.frontmatter;
 			if (!fm || !(oldName in fm)) continue;

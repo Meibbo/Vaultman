@@ -138,6 +138,10 @@
 		color: inherit;
 	}
 
+	&-label-prefix {
+		color: $vm-text-faint;
+	}
+
 	&-count {
 		flex-shrink: 0;
 		font-size: var(--font-ui-smaller);

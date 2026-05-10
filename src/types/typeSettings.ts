@@ -2,6 +2,7 @@ import type { Plugin } from 'obsidian';
 import type { FilterTemplate } from './typeFilter';
 import type { MenuHideRule } from './typeCtxMenu';
 import type { MouseGestureConfig } from '../services/serviceMouse';
+import type { OperationScope } from '../services/serviceOperationScope';
 
 export type Language = 'auto' | 'en' | 'es';
 export type LayoutTheme = 'native' | 'polish' | 'glass';
@@ -29,10 +30,12 @@ export interface VaultmanSettings {
 	explorerShowQueuePreview: boolean;
 	/** Enable content search in file tree */
 	explorerContentSearch: boolean;
-	/** Default scope for explorer operations: auto = selected > filtered > all */
-	explorerOperationScope: 'auto' | 'selected' | 'filtered' | 'all';
+	/** Default scope for explorer operations: auto = selected > filtered */
+	explorerOperationScope: OperationScope;
 	/** Show dot-prefixed files and folders in the Files explorer. */
 	explorerFilesShowHidden: boolean;
+	/** Enable manual native drag/drop for node surfaces from the sort menu. */
+	manualDndEnabled?: boolean;
 	/** Configurable mouse gesture grammar per interactive surface. */
 	mouseGestures?: Partial<Record<MouseGestureSurface, MouseGestureConfig>>;
 	/** Persisted visible node fields keyed by `${providerId}:${viewMode}`. */
@@ -131,6 +134,7 @@ export const DEFAULT_SETTINGS: VaultmanSettings = {
 	explorerContentSearch: true,
 	explorerOperationScope: 'auto',
 	explorerFilesShowHidden: false,
+	manualDndEnabled: false,
 	mouseGestures: {
 		node: { primaryTiming: 'immediate', tertiary: ['alt-click', 'middle-click'] },
 		fab: { primaryTiming: 'defer', tertiary: ['alt-click', 'middle-click'] },

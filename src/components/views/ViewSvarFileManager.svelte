@@ -79,7 +79,7 @@
 
 		// Sync with index updates if provider present
 		let unsubscribe: (() => void) | undefined;
-		if (provider) {
+		if (provider?.subscribe) {
 			unsubscribe = provider.subscribe(() => refreshData());
 		} else {
 			// Sync with vault changes (fallback mode)

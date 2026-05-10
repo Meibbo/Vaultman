@@ -10,6 +10,10 @@ import {
 } from '../services/serviceFnR';
 import type { FnRRenameHandoff, FnRScope } from '../types/typeFnR';
 import {
+	operationScopeToFnRScope,
+	resolveOperationScopeFiles,
+} from '../services/serviceOperationScope';
+import {
 	highlightsFromViewLayers,
 	nodeBadgesFromViewLayers,
 	withViewStateClasses,
@@ -441,13 +445,15 @@ export class explorerProps implements ExplorerProvider<PropMeta> {
 	}
 
 	private _deleteProp(propName: string): void {
+		const files = this.scopedFilesWithProperty(propName);
+		if (files.length === 0) return;
 		const canonicalName = this.canonicalPropName(propName);
 		this.plugin.queueService.add({
 			type: 'property',
 			property: canonicalName,
 			action: 'delete',
 			details: `Bulk delete property "${propName}"`,
-			files: this.scopedFilesWithProperty(propName),
+			files,
 			customLogic: true,
 			logicFunc: (_file, fm) => {
 				const actualKey = frontmatterKey(fm, propName);
@@ -458,12 +464,14 @@ export class explorerProps implements ExplorerProvider<PropMeta> {
 	}
 
 	private _addProp(propName: string): void {
+		const files = this.operationScopeFiles();
+		if (files.length === 0) return;
 		void this.plugin.queueService.add({
 			type: 'property',
 			property: propName,
 			action: 'add',
 			details: `Add property "${propName}"`,
-			files: this.operationScopeFiles(),
+			files,
 			customLogic: true,
 			logicFunc: (_file, fm) => {
 				if (propName in fm) return null;
@@ -531,13 +539,15 @@ export class explorerProps implements ExplorerProvider<PropMeta> {
 	}
 
 	private _changePropType(propName: string, newType: string): void {
+		const files = this.scopedFilesWithProperty(propName);
+		if (files.length === 0) return;
 		const canonicalName = this.canonicalPropName(propName);
 		this.plugin.queueService.add({
 			type: 'property',
 			property: canonicalName,
 			action: 'change_type',
 			details: `Change type of "${propName}" to ${newType}`,
-			files: this.scopedFilesWithProperty(propName),
+			files,
 			customLogic: true,
 			logicFunc: (_file, fm) => {
 				const actualKey = frontmatterKey(fm, propName);
@@ -580,12 +590,14 @@ export class explorerProps implements ExplorerProvider<PropMeta> {
 	}
 
 	private _deleteValue(propName: string, oldValue: string): void {
+		const files = this.scopedFilesWithValue(propName, oldValue);
+		if (files.length === 0) return;
 		this.plugin.queueService.add({
 			type: 'property',
 			property: propName,
 			action: 'delete',
 			details: `Delete value "${oldValue}" from "${propName}"`,
-			files: this.scopedFilesWithValue(propName, oldValue),
+			files,
 			customLogic: true,
 			logicFunc: (_file, fm) => {
 				const actualKey = frontmatterKey(fm, propName);
@@ -619,26 +631,21 @@ export class explorerProps implements ExplorerProvider<PropMeta> {
 	}
 
 	private operationScopeFiles(): TFile[] {
-		const allFiles = this.plugin.app.vault.getMarkdownFiles();
 		const filteredFiles = [...(this.plugin.filterService.filteredFiles ?? [])] as TFile[];
 		const selectedFiles = [...(this.plugin.filterService.selectedFiles ?? [])] as TFile[];
-		const scope = this.plugin.settings?.explorerOperationScope ?? 'filtered';
-		if (scope === 'all') return allFiles;
-		if (scope === 'selected') return selectedFiles;
-		if (scope === 'filtered') return filteredFiles.length > 0 ? filteredFiles : allFiles;
-		if (selectedFiles.length > 0) return selectedFiles;
-		if (filteredFiles.length > 0) return filteredFiles;
-		return allFiles;
+		return resolveOperationScopeFiles({
+			scope: this.plugin.settings?.explorerOperationScope,
+			selectedFiles,
+			filteredFiles,
+		});
 	}
 
 	private fnrScope(): FnRScope {
-		const scope = this.plugin.settings?.explorerOperationScope;
-		if (scope === 'selected' || scope === 'all') return scope;
-		return 'filtered';
+		return operationScopeToFnRScope(this.plugin.settings?.explorerOperationScope);
 	}
 
 	private canonicalPropName(propName: string): string {
-		for (const file of this.plugin.app.vault.getMarkdownFiles()) {
+		for (const file of this.operationScopeFiles()) {
 			const fm = this.plugin.app.metadataCache.getFileCache(file)?.frontmatter ?? {};
 			const key = frontmatterKey(fm, propName);
 			if (key) return key;

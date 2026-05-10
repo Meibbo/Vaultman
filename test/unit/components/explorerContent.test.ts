@@ -92,8 +92,9 @@ describe('explorerContent', () => {
 		expect(tree[0].label).toBe('Notes/Alpha.md');
 		expect(tree[0].count).toBe(2);
 		expect(tree[0].children).toHaveLength(2);
-		expect(tree[0].children?.[0].label).toBe('1: alpha needle one');
-		expect(tree[0].children?.[0].highlights).toEqual([{ start: 9, end: 15 }]);
+		expect(tree[0].children?.[0].labelPrefix).toBe('1: ');
+		expect(tree[0].children?.[0].label).toBe('alpha needle one');
+		expect(tree[0].children?.[0].highlights).toEqual([{ start: 6, end: 12 }]);
 		expect(tree[1].label).toBe('Beta.md');
 		expect(tree[1].count).toBe(1);
 	});

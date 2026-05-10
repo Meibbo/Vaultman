@@ -358,6 +358,9 @@ export const es: Record<string, string> = {
 	'sort.expand_all_nodes': 'Expandir todo',
 	'sort.collapse_all_nodes': 'Colapsar todo',
 	'sort.toggle_node_expansion': 'Alternar expansión de nodos',
+	'sort.manual_dnd': 'Arrastre manual',
+	'sort.manual_dnd.desc':
+		'Arrastra nodos para reordenarlos o soltar su payload markdown en una nota',
 
 	// Grid settings
 	'settings.grid_render_mode': 'Modo de renderizado de la tabla',

@@ -250,6 +250,39 @@ describe('OperationQueueService.addBatch', () => {
 		expect(svc.logicalOpCount).toBe(1);
 		expect(svc.size).toBe(1);
 	});
+
+	it('derives pending and legacy queue entries from staged transactions', async () => {
+		const fileA = mockTFile('a.md', { frontmatter: { status: 'draft' } });
+		const fileB = mockTFile('b.md', { frontmatter: { status: 'done' } });
+		const meta = new Map<string, CachedMetadata>([
+			[fileA.path, { frontmatter: { status: 'draft' } }],
+			[fileB.path, { frontmatter: { status: 'done' } }],
+		]);
+		const app = mockApp({ files: [fileA, fileB], metadata: meta });
+		const svc = new OperationQueueService(app);
+
+		await svc.addAsync({
+			id: 'delete-status',
+			type: 'property',
+			files: [fileA, fileB],
+			action: 'delete',
+			details: 'delete status',
+			logicFunc: () => ({ [DELETE_PROP]: 'status' }),
+			customLogic: false,
+			property: 'status',
+		});
+
+		expect(svc.pending).toHaveLength(1);
+		expect(svc.pending[0]).toMatchObject({
+			id: 'delete-status',
+			type: 'property',
+			action: 'delete',
+			details: 'delete status',
+			property: 'status',
+		});
+		expect(svc.pending[0].files).toEqual([fileA, fileB]);
+		expect(svc.queue.map((change) => change.id)).toEqual(['delete-status']);
+	});
 });
 
 describe('OperationQueueService op kinds', () => {
@@ -309,7 +342,7 @@ describe('OperationQueueService op kinds', () => {
 		expect(tx?.fm.tags).toEqual(['archive']);
 	});
 
-	it('NATIVE_RENAME_PROP expands across vault for matching files', async () => {
+	it('NATIVE_RENAME_PROP expands only across scoped matching files', async () => {
 		const fileA = mockTFile('a.md', { frontmatter: { status: 'draft' } });
 		const fileB = mockTFile('b.md', { frontmatter: { status: 'done' } });
 		const fileC = mockTFile('c.md', { frontmatter: { other: 'x' } });
@@ -333,8 +366,7 @@ describe('OperationQueueService op kinds', () => {
 		const cTx = svc.getTransaction(fileC.path);
 		expect(aTx?.fm.state).toBe('draft');
 		expect(aTx?.fm.status).toBeUndefined();
-		expect(bTx?.fm.state).toBe('done');
-		expect(bTx?.fm.status).toBeUndefined();
+		expect(bTx).toBeUndefined();
 		expect(cTx).toBeUndefined();
 	});
 

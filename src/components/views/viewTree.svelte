@@ -311,7 +311,10 @@
 	}
 
 	function shouldIgnoreBoxStart(target: EventTarget | null): boolean {
-		return isIgnoredMouseTarget(target, NODE_MOUSE_IGNORE_SELECTOR);
+		return (
+			isIgnoredMouseTarget(target, NODE_MOUSE_IGNORE_SELECTOR) ||
+			isIgnoredMouseTarget(target, '.vm-tree-virtual-row, .vm-tree-row-surface')
+		);
 	}
 
 	function makeSelectionBox(startX: number, startY: number, endX: number, endY: number) {
@@ -561,7 +564,8 @@
 						/>
 					{:else}
 						<span class="vm-tree-label">
-							<HighlightText text={node.label} ranges={node.highlights ?? []} />
+							{#if node.labelPrefix}<span class="vm-tree-label-prefix">{node.labelPrefix}</span
+								>{/if}<HighlightText text={node.label} ranges={node.highlights ?? []} />
 						</span>
 					{/if}
 

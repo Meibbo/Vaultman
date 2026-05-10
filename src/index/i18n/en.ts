@@ -554,6 +554,8 @@ export const en: Record<string, string> = {
 	'sort.expand_all_nodes': 'Expand all',
 	'sort.collapse_all_nodes': 'Collapse all',
 	'sort.toggle_node_expansion': 'Toggle node expansion',
+	'sort.manual_dnd': 'Manual drag',
+	'sort.manual_dnd.desc': 'Drag nodes to reorder them or drop their markdown payload into a note',
 	'sort.vertcol.props_values': 'Toggle Props / Values',
 	'sort.vertcol.node_level': 'Toggle node level',
 	'sort.vertcol.direct_toggle': 'Toggle direct',

@@ -12,6 +12,10 @@ import {
 } from '../services/serviceTagQueue';
 import { createFnRState, startTagRenameHandoff } from '../services/serviceFnR';
 import type { FnRRenameHandoff, FnRScope } from '../types/typeFnR';
+import {
+	operationScopeToFnRScope,
+	resolveOperationScopeFiles,
+} from '../services/serviceOperationScope';
 import { showInputModal } from '../utils/inputModal';
 import {
 	highlightsFromViewLayers,
@@ -357,22 +361,17 @@ export class explorerTags implements ExplorerProvider<TagMeta> {
 	}
 
 	private operationScopeFiles(): TFile[] {
-		const allFiles = this.plugin.app.vault.getMarkdownFiles();
 		const filteredFiles = [...(this.plugin.filterService.filteredFiles ?? [])] as TFile[];
 		const selectedFiles = [...(this.plugin.filterService.selectedFiles ?? [])] as TFile[];
-		const scope = this.plugin.settings?.explorerOperationScope ?? 'filtered';
-		if (scope === 'all') return allFiles;
-		if (scope === 'selected') return selectedFiles;
-		if (scope === 'filtered') return filteredFiles.length > 0 ? filteredFiles : allFiles;
-		if (selectedFiles.length > 0) return selectedFiles;
-		if (filteredFiles.length > 0) return filteredFiles;
-		return allFiles;
+		return resolveOperationScopeFiles({
+			scope: this.plugin.settings?.explorerOperationScope,
+			selectedFiles,
+			filteredFiles,
+		});
 	}
 
 	private fnrScope(): FnRScope {
-		const scope = this.plugin.settings?.explorerOperationScope;
-		if (scope === 'selected' || scope === 'all') return scope;
-		return 'filtered';
+		return operationScopeToFnRScope(this.plugin.settings?.explorerOperationScope);
 	}
 
 	private filesWithTag(tagPath: string): TFile[] {

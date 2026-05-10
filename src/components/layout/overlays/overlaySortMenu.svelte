@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { translate } from '../../../index/i18n/lang';
 	import type { ExplorerExpansionSummary } from '../../../types/typeExplorer';
+	import type { OperationScope } from '../../../services/serviceOperationScope';
 
 	type FiltersTab = 'props' | 'files' | 'tags' | 'content';
 
@@ -94,9 +95,11 @@
 		operationScope = $bindable('auto'),
 		filesShowSelectedOnly = $bindable(false),
 		filesShowHidden = $bindable(false),
+		manualDndEnabled = $bindable(false),
 		nodeExpansionSummary = { canToggle: false, hasExpandedParents: false },
 		onOperationScopeChange,
 		onFilesShowHiddenChange,
+		onManualDndChange,
 		onToggleNodeExpansion,
 		icon,
 	}: {
@@ -104,12 +107,14 @@
 		onClose: () => void;
 		sortBy: string;
 		sortDir: 'asc' | 'desc';
-		operationScope: 'auto' | 'selected' | 'filtered' | 'all';
+		operationScope: OperationScope;
 		filesShowSelectedOnly?: boolean;
 		filesShowHidden?: boolean;
+		manualDndEnabled?: boolean;
 		nodeExpansionSummary?: ExplorerExpansionSummary;
-		onOperationScopeChange?: (value: 'auto' | 'selected' | 'filtered' | 'all') => void;
+		onOperationScopeChange?: (value: OperationScope) => void;
 		onFilesShowHiddenChange?: (active: boolean) => void;
+		onManualDndChange?: (active: boolean) => void;
 		onToggleNodeExpansion?: () => void;
 		icon: (node: HTMLElement, name: string) => { update(n: string): void };
 	} = $props();
@@ -147,10 +152,10 @@
 				? 'lucide-eye'
 				: 'lucide-eye-off'
 			: activeTab === 'props'
-			? 'lucide-list-tree'
-			: activeTab === 'tags'
-				? 'lucide-network'
-				: 'lucide-circle',
+				? 'lucide-list-tree'
+				: activeTab === 'tags'
+					? 'lucide-network'
+					: 'lucide-circle',
 	);
 
 	const vertBotIcon = $derived(
@@ -180,6 +185,11 @@
 	function toggleFilesHidden() {
 		filesShowHidden = !filesShowHidden;
 		onFilesShowHiddenChange?.(filesShowHidden);
+	}
+
+	function toggleManualDnd() {
+		manualDndEnabled = !manualDndEnabled;
+		onManualDndChange?.(manualDndEnabled);
 	}
 </script>
 
@@ -251,7 +261,6 @@
 				aria-label={translate('sort.scope.label')}
 			>
 				<option value="auto">{translate('settings.scope.auto')}</option>
-				<option value="all">{translate('sort.scope.all')}</option>
 				<option value="filtered">{translate('sort.scope.filtered')}</option>
 				<option value="selected">{translate('sort.scope.selected')}</option>
 			</select>
@@ -286,6 +295,17 @@
 					use:icon={nodeExpansionIcon}
 				></div>
 			{/if}
+			<button
+				type="button"
+				class="vm-sort-circle-btn"
+				class:is-active={manualDndEnabled}
+				data-vm-sort-manual-dnd
+				aria-label={translate('sort.manual_dnd')}
+				aria-pressed={manualDndEnabled}
+				title={translate('sort.manual_dnd.desc')}
+				onclick={toggleManualDnd}
+				use:icon={'lucide-grip'}
+			></button>
 			<div
 				class="vm-sort-close-btn clickable-icon"
 				aria-label={translate('sort.close')}

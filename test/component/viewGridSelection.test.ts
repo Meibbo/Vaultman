@@ -88,6 +88,7 @@ describe('ViewNodeGrid selection gestures', () => {
 			hierarchyMode: 'folder' | 'inline';
 			expandedIds: Set<string>;
 			onToggleExpand: (id: string, e: MouseEvent | KeyboardEvent) => void;
+			manualDndEnabled: boolean;
 		}> = {},
 	) {
 		const defaults = {
@@ -101,6 +102,7 @@ describe('ViewNodeGrid selection gestures', () => {
 			hierarchyMode: 'folder',
 			expandedIds: new Set<string>(),
 			onToggleExpand: vi.fn(),
+			manualDndEnabled: false,
 			icon: vi.fn(() => ({ update: vi.fn() })),
 		};
 		app = mount(ViewNodeGrid as unknown as Component<Record<string, unknown>>, {
@@ -173,6 +175,22 @@ describe('ViewNodeGrid selection gestures', () => {
 		expect(handlers.onTileClick).toHaveBeenCalledWith('beta', expect.any(MouseEvent));
 		expect(handlers.onPrimaryAction).not.toHaveBeenCalled();
 		expect(handlers.onSecondaryAction).not.toHaveBeenCalled();
+	});
+
+	it('does not start box selection when pointerdown begins on a tile surface', () => {
+		renderGrid();
+		const grid = target.querySelector('.vm-node-grid') as HTMLElement;
+		const tile = target.querySelector('[data-id="alpha"]') as HTMLElement;
+		const setPointerCapture = vi.fn();
+		Object.assign(grid, {
+			setPointerCapture,
+			releasePointerCapture: vi.fn(),
+			hasPointerCapture: vi.fn(() => true),
+		});
+
+		tile.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true, button: 0, pointerId: 9 }));
+
+		expect(setPointerCapture).not.toHaveBeenCalled();
 	});
 
 	it('double clicking the tile label reports secondary action intent', () => {
@@ -250,6 +268,19 @@ describe('ViewNodeGrid selection gestures', () => {
 		expect(beta.getAttribute('aria-selected')).toBe('false');
 		expect(beta.classList.contains('is-active-node')).toBe(true);
 		expect(beta.classList.contains('is-selected')).toBe(false);
+	});
+
+	it('marks grid tiles as native draggables only when manual DnD is enabled', () => {
+		renderGrid({ manualDndEnabled: true, selectedIds: new Set(['alpha']) });
+
+		const grid = target.querySelector('.vm-node-grid') as HTMLElement;
+		const alpha = target.querySelector('[data-id="alpha"]') as HTMLElement;
+		const beta = target.querySelector('[data-id="beta"]') as HTMLElement;
+
+		expect(grid.classList.contains('is-manual-dnd')).toBe(true);
+		expect(alpha.getAttribute('draggable')).toBe('true');
+		expect(alpha.dataset.vmManualDnd).toBe('true');
+		expect(beta.getAttribute('draggable')).toBe('true');
 	});
 
 	it('forwards context menu intent from the target tile', () => {

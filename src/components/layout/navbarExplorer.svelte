@@ -18,10 +18,10 @@
 		type MouseGestureConfig,
 	} from '../../services/serviceMouse';
 	import type { NodeFieldDefinition } from '../../services/serviceNodeFieldVisibility';
+	import type { OperationScope } from '../../services/serviceOperationScope';
 
 	type FiltersTab = 'props' | 'files' | 'tags' | 'content';
 	type HeaderMode = 'header' | 'sort' | 'viewmode';
-	type OperationScope = 'auto' | 'selected' | 'filtered' | 'all';
 
 	// Map an explorer tab id to the kind expected by `getAddOpBuilder`.
 	function tabToExplorerKind(tab: FiltersTab): string {
@@ -32,7 +32,7 @@
 	}
 
 	const MODES: FnRIslandMode[] = ['search', 'rename', 'replace', 'add'];
-	const OPERATION_SCOPE_ORDER: OperationScope[] = ['auto', 'selected', 'filtered', 'all'];
+	const OPERATION_SCOPE_ORDER: OperationScope[] = ['auto', 'selected', 'filtered'];
 	const MODE_LABELS: Record<FnRIslandMode, string> = {
 		search: 'search',
 		rename: 'rename',
@@ -55,8 +55,10 @@
 		operationScope = $bindable('auto'),
 		filesShowSelectedOnly = $bindable(false),
 		filesShowHidden = $bindable(false),
+		manualDndEnabled = $bindable(false),
 		onOperationScopeChange,
 		onFilesShowHiddenChange,
+		onManualDndChange,
 		fnrState,
 		onRenameReplacementChange,
 		onRenameConfirm,
@@ -85,8 +87,10 @@
 		operationScope: OperationScope;
 		filesShowSelectedOnly?: boolean;
 		filesShowHidden?: boolean;
+		manualDndEnabled?: boolean;
 		onOperationScopeChange?: (value: OperationScope) => void;
 		onFilesShowHiddenChange?: (active: boolean) => void;
+		onManualDndChange?: (active: boolean) => void;
 		tagsExplorer: explorerTags | null | undefined;
 		propExplorer: explorerProps | undefined;
 		fileList: explorerFiles | undefined;
@@ -504,6 +508,35 @@
 								>
 							</div>
 						{/if}
+						<div class="vm-filters-help-wrap">
+							<button
+								class="vm-filters-search-help"
+								aria-label={translate('filter.search_help')}
+								title={translate('filter.search_help')}
+								use:icon={'lucide-circle-help'}
+								onclick={() => {
+									helpOpen = !helpOpen;
+									searchFocused = false;
+								}}
+							></button>
+							{#if helpOpen}
+								<div
+									class="vm-filters-help-popover"
+									aria-label={translate('filter.search_read_more')}
+								>
+									{#each SEARCH_SEMANTICS_SOURCES as source (source.id)}
+										<a
+											class="vm-filters-help-link"
+											href={source.href}
+											target="_blank"
+											rel="noreferrer"
+										>
+											{source.label}
+										</a>
+									{/each}
+								</div>
+							{/if}
+						</div>
 					</div>
 					{#if activeRename}
 						<div
@@ -582,27 +615,6 @@
 						<span class="vm-filters-crear-label">crear</span>
 					</button>
 				{/if}
-				<div class="vm-filters-help-wrap">
-					<button
-						class="vm-filters-search-help"
-						aria-label={translate('filter.search_help')}
-						title={translate('filter.search_help')}
-						use:icon={'lucide-circle-help'}
-						onclick={() => {
-							helpOpen = !helpOpen;
-							searchFocused = false;
-						}}
-					></button>
-					{#if helpOpen}
-						<div class="vm-filters-help-popover" aria-label={translate('filter.search_read_more')}>
-							{#each SEARCH_SEMANTICS_SOURCES as source (source.id)}
-								<a class="vm-filters-help-link" href={source.href} target="_blank" rel="noreferrer">
-									{source.label}
-								</a>
-							{/each}
-						</div>
-					{/if}
-				</div>
 				<div class="vm-toolbar-menu-min" role="group" aria-label={translate('filter.search_mode')}>
 					<div
 						class="vm-nav-icon vm-nav-icon-min is-active"
@@ -644,10 +656,12 @@
 					bind:operationScope
 					bind:filesShowSelectedOnly
 					bind:filesShowHidden
+					bind:manualDndEnabled
 					{nodeExpansionSummary}
 					{onToggleNodeExpansion}
 					{onOperationScopeChange}
 					{onFilesShowHiddenChange}
+					{onManualDndChange}
 					{icon}
 				/>
 			</div>

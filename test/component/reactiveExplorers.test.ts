@@ -174,6 +174,62 @@ describe('reactive explorer components', () => {
 		expect(target.textContent).toContain('note.md');
 	});
 
+	it('keeps the Content tab explorer mounted while incremental results arrive', () => {
+		const file = mockTFile('note.md') as TFile;
+		const contentIndex = new MutableIndex<ContentMatch>();
+		const plugin = {
+			app: mockApp({ files: [file] }),
+			contentIndex: Object.assign(contentIndex, { setQuery: vi.fn() }),
+			filterService: {
+				filteredFiles: [file],
+				selectedFiles: [],
+			},
+			queueService: {
+				add: vi.fn(),
+				remove: vi.fn(),
+			},
+			operationsIndex: new MutableIndex<QueueChange>(),
+			activeFiltersIndex: new MutableIndex<ActiveFilterEntry>(),
+			viewService: new ViewService(),
+			propertyIndex: { fileCount: 1 },
+			contextMenuService: { openPanelMenu: vi.fn() },
+		} as unknown as VaultmanPlugin;
+
+		app = mount(ContentTab as unknown as Component<{ plugin: VaultmanPlugin }>, {
+			target,
+			props: { plugin, query: 'needle' },
+		});
+		contentIndex.emit([
+			{
+				id: 'note.md:2:4',
+				filePath: 'note.md',
+				line: 2,
+				before: 'before ',
+				match: 'needle',
+				after: ' after',
+			},
+		]);
+		flushSync();
+		const firstExplorer = target.querySelector('.vm-panel-explorer');
+		expect(firstExplorer).toBeTruthy();
+
+		contentIndex.emit([
+			...(contentIndex.nodes as ContentMatch[]),
+			{
+				id: 'note.md:5:0',
+				filePath: 'note.md',
+				line: 5,
+				before: '',
+				match: 'needle',
+				after: ' again',
+			},
+		]);
+		flushSync();
+
+		expect(target.querySelector('.vm-panel-explorer')).toBe(firstExplorer);
+		expect(target.textContent).toContain('6: needle again');
+	});
+
 	it('queues a content find and replace operation from the Content tab inputs', () => {
 		const file = mockTFile('note.md') as TFile;
 		const contentIndex = new MutableIndex<ContentMatch>();
@@ -270,6 +326,28 @@ describe('reactive explorer components', () => {
 		expect(target.textContent).toContain('Set status');
 	});
 
+	it('renders the Queue island toolbar without a redundant close squircle', () => {
+		const operationsIndex = new MutableIndex<QueueChange>();
+		const plugin = {
+			operationsIndex,
+			queueService: {
+				remove: vi.fn(),
+				clear: vi.fn(),
+				execute: vi.fn(async () => undefined),
+			},
+		} as unknown as VaultmanPlugin;
+
+		app = mount(ExplorerQueue as unknown as Component<{ plugin: VaultmanPlugin }>, {
+			target,
+			props: { plugin, onClose: vi.fn() },
+		});
+		flushSync();
+
+		const buttons = target.querySelectorAll('.vm-popup-squircles .vm-squircle');
+		expect(buttons).toHaveLength(4);
+		expect(target.querySelector('[aria-label="Close"]')).toBeNull();
+	});
+
 	it('updates Active Filters island when activeFiltersIndex refreshes', () => {
 		const activeFiltersIndex = new MutableIndex<ActiveFilterEntry>();
 		const plugin = {
@@ -352,5 +430,12 @@ describe('reactive explorer components', () => {
 
 		expect(source).not.toContain('<div class="vm-tab-content">');
 		expect(source).toContain('<div class="vm-content-tab">');
+	});
+
+	it('does not animate tab pane activation with opacity transitions', () => {
+		const source = readFileSync('src/styles/nav/_tab-bar.scss', 'utf8');
+		const tabContentBlock = source.match(/&-content\s*\{[\s\S]*?\n\t\}/)?.[0] ?? '';
+
+		expect(tabContentBlock).not.toMatch(/transition:\s*opacity/);
 	});
 });

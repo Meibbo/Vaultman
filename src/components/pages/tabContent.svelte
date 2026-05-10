@@ -10,6 +10,7 @@
 	} from '../../types/typeExplorer';
 	import type { FnRScope, FnRState } from '../../types/typeFnR';
 	import { buildContentReplaceChange, createFnRState } from '../../services/serviceFnR';
+	import { resolveOperationScopeFiles } from '../../services/serviceOperationScope';
 	import { translate } from '../../index/i18n/lang';
 	import { SEARCH_SEMANTICS_SOURCES } from '../frame/frameSearchSources';
 	import PanelExplorer from '../containers/panelExplorer.svelte';
@@ -25,6 +26,7 @@
 		sortDirection = $bindable('asc'),
 		viewMode = $bindable('tree'),
 		active = true,
+		manualDndEnabled = false,
 		nodeExpansionCommand = null,
 		onNodeExpansionSummaryChange,
 		icon = defaultIcon,
@@ -39,6 +41,7 @@
 		sortDirection?: 'asc' | 'desc';
 		viewMode?: ExplorerViewMode;
 		active?: boolean;
+		manualDndEnabled?: boolean;
 		nodeExpansionCommand?: ExplorerExpansionCommand | null;
 		onNodeExpansionSummaryChange?: (summary: ExplorerExpansionSummary) => void;
 		icon?: (node: HTMLElement, name: string) => { update(n: string): void };
@@ -126,15 +129,19 @@
 	}
 
 	function resolveFnRScopeFiles(scope: FnRScope): TFile[] {
-		if (scope === 'all') return plugin.app?.vault.getMarkdownFiles() ?? [];
+		const selectedFiles = [...selectedFilePaths]
+			.map((path) => plugin.app?.vault.getFileByPath(path) ?? null)
+			.filter((file): file is TFile => Boolean(file));
+		const selectedFallback =
+			selectedFiles.length > 0 ? selectedFiles : [...(plugin.filterService?.selectedFiles ?? [])];
 		if (scope === 'selected') {
-			const fromPaths = [...selectedFilePaths]
-				.map((path) => plugin.app?.vault.getFileByPath(path) ?? null)
-				.filter((file): file is TFile => Boolean(file));
-			if (fromPaths.length > 0) return fromPaths;
-			return [...(plugin.filterService?.selectedFiles ?? [])];
+			return selectedFallback;
 		}
-		return [...(plugin.filterService?.filteredFiles ?? [])];
+		return resolveOperationScopeFiles({
+			scope,
+			selectedFiles: selectedFallback,
+			filteredFiles: [...(plugin.filterService?.filteredFiles ?? [])],
+		});
 	}
 </script>
 
@@ -227,7 +234,7 @@
 
 		<div class="vm-content-fnr-row vm-content-fnr-footer">
 			<div class="vm-content-fnr-scope" aria-label={translate('fnr.scope')}>
-				{#each ['filtered', 'selected', 'all'] as scope (scope)}
+				{#each ['filtered', 'selected'] as scope (scope)}
 					<button
 						class="vm-content-fnr-scope-pill"
 						class:is-active={fnrState.scope === scope}
@@ -256,22 +263,21 @@
 				{contentStatusText}
 			</div>
 		{/if}
-		{#key `${query}:${contentVersion}`}
-			<PanelExplorer
-				{plugin}
-				provider={contentExplorer}
-				searchTerm={query}
-				searchMode={0}
-				bind:sortBy
-				bind:sortDirection
-				bind:viewMode
-				{active}
-				{nodeExpansionCommand}
-				{onNodeExpansionSummaryChange}
-				{visibleFields}
-				{icon}
-			/>
-		{/key}
+		<PanelExplorer
+			{plugin}
+			provider={contentExplorer}
+			searchTerm={query}
+			searchMode={0}
+			bind:sortBy
+			bind:sortDirection
+			bind:viewMode
+			{active}
+			{manualDndEnabled}
+			{nodeExpansionCommand}
+			{onNodeExpansionSummaryChange}
+			{visibleFields}
+			{icon}
+		/>
 	{:else}
 		<div class="vm-content-empty">{translate('content.search.hint')}</div>
 	{/if}

@@ -8,6 +8,7 @@
 	import TextInput from '../primitives/TextInput.svelte';
 	import SettingsLeafToggle from './settingsLeafToggle.svelte';
 	import type { LeafDetachService } from '../../services/serviceLeafDetach';
+	import { normalizeOperationScope } from '../../services/serviceOperationScope';
 
 	let { plugin }: { plugin: iVaultmanPlugin } = $props();
 
@@ -24,7 +25,7 @@
 			explorerCtrlClickSearch: src.explorerCtrlClickSearch,
 			explorerShowQueuePreview: src.explorerShowQueuePreview,
 			explorerContentSearch: src.explorerContentSearch,
-			explorerOperationScope: src.explorerOperationScope,
+			explorerOperationScope: normalizeOperationScope(src.explorerOperationScope),
 			explorerFilesShowHidden: src.explorerFilesShowHidden,
 			operationsPanelPosition: src.operationsPanelPosition,
 			basesLastUsedPath: src.basesLastUsedPath,
@@ -172,7 +173,6 @@
 			{ value: 'auto', label: translate('settings.scope.auto') },
 			{ value: 'selected', label: translate('settings.scope.selected') },
 			{ value: 'filtered', label: translate('settings.scope.filtered') },
-			{ value: 'all', label: translate('settings.scope.all') },
 		]}
 	/>
 

@@ -4,7 +4,7 @@ type: implementation-result
 status: done
 parent: "[[docs/work/polish/index|polish]]"
 created: 2026-05-10T04:55:20
-updated: 2026-05-10T05:26:24
+updated: 2026-05-10T06:58:00
 tags:
   - agent/result
   - initiative/polish
@@ -55,6 +55,10 @@ The goal is a stable service boundary that future view adapters can consume:
 - Follow-up adapter:
   [[docs/work/polish/plans/2026-05-10-service-dnd-foundation/02-svelte-adapter|serviceDnd Svelte adapter result]]
   maps `@thisux/sveltednd` callbacks into this semantic service.
+- Manual grid continuation:
+  [[docs/work/polish/plans/2026-05-10-service-dnd-foundation/03-manual-grid-dnd|manual grid DnD continuation]]
+  adds the opt-in sort-menu toggle, native grid tile dragging, local sibling
+  reorder, and workspace Markdown/JSON drag payloads.
 
 ## Verification
 
@@ -102,3 +106,5 @@ The branch now contains `1.0.0-rc.2` in:
 - Add provider/domain drop handlers for reorder, move, template application,
   logical filter groups, and workspace/tab targets.
 - Add Obsidian smoke coverage once a real interactive surface exists.
+- Persist manual grid reorder beyond the local panel state once the domain
+  storage contract is selected.

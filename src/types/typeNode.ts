@@ -29,6 +29,7 @@ export interface NodeBadge {
 export interface TreeNode<TMeta = unknown> {
 	id: string;
 	label: string;
+	labelPrefix?: string;
 	icon?: string;
 	count?: number;
 	countLabel?: string;

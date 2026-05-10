@@ -94,6 +94,10 @@ export class explorerContent implements ExplorerProvider<ContentMeta> {
 		return [...files.values()];
 	}
 
+	subscribe(cb: () => void): () => void {
+		return this.plugin.contentIndex.subscribe(cb);
+	}
+
 	handleNodeClick(node: TreeNode<ContentMeta>): void {
 		const file = node.meta.file ?? this.resolveFile(node.meta.filePath);
 		if (!file) return;
@@ -144,12 +148,13 @@ export class explorerContent implements ExplorerProvider<ContentMeta> {
 	}
 
 	private matchNode(match: ContentMatch, file: TFile | null): TreeNode<ContentMeta> {
-		const lineLabel = `${match.line + 1}: `;
-		const label = `${lineLabel}${match.before}${match.match}${match.after}`;
-		const highlightStart = lineLabel.length + match.before.length;
+		const labelPrefix = `${match.line + 1}: `;
+		const label = `${match.before}${match.match}${match.after}`;
+		const highlightStart = match.before.length;
 		return {
 			id: `content:match:${match.id}`,
 			label,
+			labelPrefix,
 			icon: 'lucide-search',
 			depth: 1,
 			meta: {

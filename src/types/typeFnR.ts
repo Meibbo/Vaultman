@@ -8,7 +8,7 @@ export type FnRSyntax =
 	| 'dataview-dql'
 	| 'ant-renamer';
 
-export type FnRScope = 'filtered' | 'selected' | 'all';
+export type FnRScope = 'filtered' | 'selected';
 
 export type FnRRenameSourceKind = 'prop' | 'value' | 'tag' | 'file';
 export type FnRRenameStatus = 'inactive' | 'editing' | 'ready' | 'queued' | 'cancelled';

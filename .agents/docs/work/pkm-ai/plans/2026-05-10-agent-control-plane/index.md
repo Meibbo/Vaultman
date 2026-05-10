@@ -92,8 +92,9 @@ It does not implement:
 
 ## Next Plans
 
-- Queue contract repair: retire or reconnect stale queue `pending` drift before
-  agent-facing operation APIs.
+- Queue contract repair:
+  [[docs/work/pkm-ai/plans/2026-05-10-queue-contract-repair/index|queue-contract-repair-plan]]
+  reconnects stale queue `pending` drift before agent-facing operation APIs.
 - Selected/visible scope verification: prove visible explorer scope, selected
   node scope, and queued operation scope agree before automation expands.
 - `serviceAPI` read/plan/enqueue design: expose supervised read/plan/enqueue

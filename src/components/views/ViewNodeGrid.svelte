@@ -23,6 +23,12 @@
 		viewSizeCssVars,
 		type ViewSizePresetId,
 	} from '../../services/serviceViewSize';
+	import {
+		createManualDndService,
+		manualWorkspacePayloadForNode,
+		writeManualDndTransfer,
+	} from '../../services/serviceManualDnd';
+	import type { DndDropPosition, DndDropResult } from '../../services/serviceDnd';
 
 	const GRID_FALLBACK_WIDTH = 480;
 	const GRID_FALLBACK_HEIGHT = 360;
@@ -58,6 +64,9 @@
 		scrollTarget?: ScrollTarget | null;
 		mouseGestureConfig?: MouseGestureConfig;
 		sizePresetId?: ViewSizePresetId;
+		providerId?: string;
+		manualDndEnabled?: boolean;
+		onManualDrop?: (result: DndDropResult) => void;
 		icon: (node: HTMLElement, name: string) => { update(n: string): void };
 	}
 
@@ -81,6 +90,9 @@
 		scrollTarget = null,
 		mouseGestureConfig,
 		sizePresetId = DEFAULT_VIEW_SIZE_PRESET,
+		providerId = 'nodes',
+		manualDndEnabled = false,
+		onManualDrop,
 		icon,
 	}: Props = $props();
 
@@ -114,6 +126,8 @@
 	let suppressNextClick = false;
 	let gridMetricsFrame: number | null = null;
 	const mouse = createMouseGestureService();
+	const manualDnd = createManualDndService();
+	let manualDndVersion = $state(0);
 	const viewSize = $derived(getViewSizePreset(sizePresetId));
 	const viewSizeStyle = $derived(viewSizeCssVars(viewSize));
 	const gridRowBaseHeight = $derived(viewSize.tileHeight + viewSize.gap);
@@ -122,6 +136,10 @@
 	);
 
 	$effect(() => () => mouse.cancelAll());
+	$effect(() => manualDnd.subscribe(() => (manualDndVersion += 1)));
+	$effect(() => {
+		manualDnd.setEnabled(manualDndEnabled);
+	});
 
 	const gridRows = $derived(buildGridRows(nodes, columnCount, hierarchyMode, expandedIds));
 	const rowVirtualizer = createVirtualizer<HTMLDivElement, HTMLDivElement>({
@@ -233,7 +251,7 @@
 	}
 
 	function handlePointerDown(e: PointerEvent) {
-		if (e.button !== 0 || !outerEl || shouldIgnoreBoxStart(e.target)) return;
+		if (e.button !== 0 || !outerEl || manualDndEnabled || shouldIgnoreBoxStart(e.target)) return;
 		dragStart = { x: e.clientX, y: e.clientY, pointerId: e.pointerId };
 		selectionBox = null;
 		capturePointer(e.pointerId);
@@ -266,6 +284,47 @@
 		selectionBox = null;
 	}
 
+	function handleManualDragStart(node: TreeNode, e: DragEvent): void {
+		if (!manualDndEnabled || !e.dataTransfer) return;
+		const source = manualDnd.sourceForNode(providerId, node, selectedIds ?? []);
+		const payload = manualWorkspacePayloadForNode(providerId, node);
+		manualDnd.beginDrag(source);
+		writeManualDndTransfer(e.dataTransfer, payload);
+	}
+
+	function handleManualDragOver(node: TreeNode, e: DragEvent): void {
+		if (!manualDndEnabled || manualDnd.snapshot().drag.phase !== 'dragging') return;
+		e.preventDefault();
+		if (e.dataTransfer) e.dataTransfer.dropEffect = 'move';
+		manualDnd.updateTarget(manualDnd.targetForNode(providerId, node), dropPositionFromTileEvent(e));
+	}
+
+	function handleManualDrop(node: TreeNode, e: DragEvent): void {
+		if (!manualDndEnabled) return;
+		e.preventDefault();
+		handleManualDragOver(node, e);
+		const result = manualDnd.endDrag();
+		if (result) onManualDrop?.(result);
+		suppressNextClick = true;
+	}
+
+	function handleManualDragEnd(): void {
+		if (manualDnd.snapshot().drag.phase === 'dragging') manualDnd.cancel();
+	}
+
+	function manualDndStateFor(id: string): { dragging?: true; dropTarget?: true } {
+		void manualDndVersion;
+		return manualDnd.stateFor(id);
+	}
+
+	function dropPositionFromTileEvent(e: DragEvent): DndDropPosition {
+		const target = e.currentTarget instanceof HTMLElement ? e.currentTarget : null;
+		if (!target) return 'after';
+		const rect = target.getBoundingClientRect();
+		const midpoint = rect.left + rect.width / 2;
+		return e.clientX < midpoint ? 'before' : 'after';
+	}
+
 	function releasePointer(pointerId: number) {
 		if (!outerEl?.hasPointerCapture(pointerId)) return;
 		outerEl.releasePointerCapture(pointerId);
@@ -281,7 +340,10 @@
 	}
 
 	function shouldIgnoreBoxStart(target: EventTarget | null): boolean {
-		return isIgnoredMouseTarget(target, NODE_MOUSE_IGNORE_SELECTOR);
+		return (
+			isIgnoredMouseTarget(target, NODE_MOUSE_IGNORE_SELECTOR) ||
+			isIgnoredMouseTarget(target, '.vm-node-grid-tile')
+		);
 	}
 
 	function makeSelectionBox(startX: number, startY: number, endX: number, endY: number) {
@@ -460,15 +522,25 @@
 	{@const isFocused = focusedId === node.id}
 	{@const isActive = activeId === node.id}
 	{@const hoverBadges = hoverBadgesFor(node)}
+	{@const dndState = manualDndStateFor(node.id)}
 	<div
 		class="vm-node-grid-tile {node.cls ?? ''}"
 		class:is-selected={isSelected}
 		class:is-focused={isFocused}
 		class:is-active={isActive}
 		class:is-active-node={isActive}
+		class:is-manual-dnd={manualDndEnabled}
+		class:is-dnd-dragging={dndState.dragging}
+		class:is-dnd-drop-target={dndState.dropTarget}
 		class:is-expanded={nodeExpanded}
 		class:is-inline-hierarchy={hierarchyMode === 'inline'}
 		data-id={node.id}
+		data-vm-manual-dnd={manualDndEnabled ? 'true' : undefined}
+		draggable={manualDndEnabled}
+		ondragstart={(e) => handleManualDragStart(node, e)}
+		ondragover={(e) => handleManualDragOver(node, e)}
+		ondrop={(e) => handleManualDrop(node, e)}
+		ondragend={handleManualDragEnd}
 		onclick={(e) => handleTileClick(node.id, e)}
 		onauxclick={(e) => handleTileAuxClick(node.id, e)}
 		oncontextmenu={(e) => onContextMenu(node.id, e)}
@@ -500,7 +572,8 @@
 			<span class="vm-node-grid-icon-placeholder" aria-hidden="true"></span>
 		{/if}
 		<span class="vm-node-grid-label">
-			{node.label}
+			{#if node.labelPrefix}<span class="vm-node-grid-label-prefix">{node.labelPrefix}</span
+				>{/if}{node.label}
 		</span>
 		{#if hoverBadges.length > 0}
 			<div class="vm-node-grid-hover-badge-zone">
@@ -555,6 +628,7 @@
 <div
 	bind:this={outerEl}
 	class="vm-node-grid"
+	class:is-manual-dnd={manualDndEnabled}
 	role="grid"
 	aria-multiselectable="true"
 	tabindex="-1"

@@ -247,6 +247,22 @@ describe('ViewTree selection gestures', () => {
 		expect(handlers.onPrimaryAction).not.toHaveBeenCalled();
 	});
 
+	it('does not start box selection when pointerdown begins on a row surface', () => {
+		renderTree([{ id: 'alpha', label: 'Alpha', depth: 0, meta: {} }]);
+		const tree = target.querySelector('.vm-tree-virtual-outer') as HTMLElement;
+		const row = target.querySelector('[data-id="alpha"]') as HTMLElement;
+		const setPointerCapture = vi.fn();
+		Object.assign(tree, {
+			setPointerCapture,
+			releasePointerCapture: vi.fn(),
+			hasPointerCapture: vi.fn(() => true),
+		});
+
+		row.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true, button: 0, pointerId: 9 }));
+
+		expect(setPointerCapture).not.toHaveBeenCalled();
+	});
+
 	it('keeps inherited badge actions and chevron expansion isolated on collapsed parents', () => {
 		const handlers = renderTree([
 			{

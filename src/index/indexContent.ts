@@ -1,6 +1,7 @@
-import type { App } from 'obsidian';
+import type { App, TFile } from 'obsidian';
 import type { ContentMatch, ContentSearchStatus, IContentIndex } from '../types/typeContracts';
 import { getActivePerfProbe } from '../dev/perfProbe';
+import { ServiceCache } from '../services/serviceCache';
 
 const IDLE_STATUS: ContentSearchStatus = {
 	query: '',
@@ -18,6 +19,7 @@ export function createContentIndex(app: App): IContentIndex {
 	let refreshVersion = 0;
 	let publishedRevision = 0;
 	const subs = new Set<() => void>();
+	const searchCache = new ServiceCache<string, ContentMatch[]>({ maxEntries: 20 });
 
 	const fire = (): void => {
 		for (const cb of subs) cb();
@@ -56,6 +58,20 @@ export function createContentIndex(app: App): IContentIndex {
 			}
 
 			const files = app.vault.getMarkdownFiles();
+			const vaultFingerprint = contentSearchFingerprint(files);
+			const cacheKey = currentQuery.toLowerCase();
+			const cached = searchCache.get(cacheKey, vaultFingerprint);
+			if (cached) {
+				publish([...cached], {
+					query: currentQuery,
+					phase: 'done',
+					scanned: files.length,
+					total: files.length,
+					resultCount: cached.length,
+				});
+				return;
+			}
+
 			const out: ContentMatch[] = [];
 			publish([], {
 				query: currentQuery,
@@ -134,6 +150,7 @@ export function createContentIndex(app: App): IContentIndex {
 			}
 
 			if (refreshVersion !== currentVersion) return;
+			searchCache.set(cacheKey, [...out], vaultFingerprint);
 			publish([...out], {
 				query: currentQuery,
 				phase: 'done',
@@ -157,4 +174,11 @@ export function createContentIndex(app: App): IContentIndex {
 	};
 
 	return index;
+}
+
+function contentSearchFingerprint(files: readonly TFile[]): string {
+	return [...files]
+		.map((file) => `${file.path}\u0000${file.stat.mtime}\u0000${file.stat.size}`)
+		.sort()
+		.join('\u0001');
 }

@@ -9,7 +9,7 @@
 	"main": "main.js",
 	"scripts": {
 		"dev": "vp build --watch",
-		"build": "tsc -noEmit -skipLibCheck && vp build && node scripts/sync-test-build.mjs",
+		"build": "tsc -noEmit -skipLibCheck && vp build && node scripts/sync-test-build.mjs && obsidian 'vault=plugin-dev' 'plugin:reload' 'id=vaultman'",
 		"build:plugin": "tsc -noEmit -skipLibCheck && vp build",
 		"version": "node version-bump.mjs && git add manifest.json versions.json",
 		"lint": "vp lint && eslint .",
