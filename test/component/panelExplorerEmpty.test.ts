@@ -116,7 +116,7 @@ describe('PanelExplorer empty landing', () => {
 		},
 	);
 
-	it.each(['cards', 'list'] as const)(
+	it.each(['list'] as const)(
 		'renders unavailable copy for unsupported %s mode when files exist',
 		(viewMode) => {
 			app = render(target, {
@@ -132,6 +132,20 @@ describe('PanelExplorer empty landing', () => {
 			expect(target.textContent).not.toContain('No items');
 		},
 	);
+
+	it('renders cards mode instead of fallback copy when nodes exist', () => {
+		app = render(target, {
+			viewMode: 'cards',
+			provider: provider({
+				getTree: vi.fn(() => [{ id: 'alpha', label: 'Alpha', depth: 0, meta: {}, count: 2 }]),
+			}),
+		});
+		flushSync();
+
+		expect(target.querySelector('.vm-node-cards')).not.toBeNull();
+		expect(target.querySelector('[data-id="alpha"]')).not.toBeNull();
+		expect(target.textContent).not.toContain('Cards view not available');
+	});
 
 	it('uses provider empty state copy for import and loading states', () => {
 		const getEmptyState = vi.fn(

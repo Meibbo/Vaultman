@@ -1,10 +1,10 @@
 ---
 title: Pretext grid cards implementation plan
 type: implementation-plan-index
-status: active
+status: done
 parent: "[[docs/work/polish/specs/2026-05-10-pretext-grid-cards/index|pretext-grid-cards]]"
 created: 2026-05-10T00:00:00
-updated: 2026-05-10T00:00:00
+updated: 2026-05-10T02:37:32
 tags:
   - agent/plan
   - initiative/polish
@@ -102,8 +102,15 @@ existing `NodeSelectionService`, existing Vaultman settings persistence.
 2. [[docs/work/polish/plans/2026-05-10-pretext-grid-cards/02-pretext-measurement|Pretext measurement service]]
 3. [[docs/work/polish/plans/2026-05-10-pretext-grid-cards/03-card-layout|Node card layout service]]
 4. [[docs/work/polish/plans/2026-05-10-pretext-grid-cards/04-view-menu-routing|View-menu and settings wiring]]
-5. [[docs/work/polish/plans/2026-05-10-pretext-grid-cards/05-card-view|Cards view component and panel route]]
-6. [[docs/work/polish/plans/2026-05-10-pretext-grid-cards/06-verification|Verification and documentation]]
+5. [[docs/work/polish/plans/2026-05-10-pretext-grid-cards/05-card-view|Cards view component and panel route]] - done
+6. [[docs/work/polish/plans/2026-05-10-pretext-grid-cards/06-verification|Verification and documentation]] - done
+
+## Completion
+
+Completed on 2026-05-10T02:37:32. The implementation status and verification
+evidence live in
+[[docs/work/polish/specs/2026-05-10-pretext-grid-cards/index|Pretext grid cards hybrid layout]]
+and the Task 5/6 result records.
 
 ## Stop Conditions
 

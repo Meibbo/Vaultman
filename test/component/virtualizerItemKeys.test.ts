@@ -3,6 +3,7 @@ import { flushSync, mount, unmount, type Component } from 'svelte';
 import ViewTree from '../../src/components/views/viewTree.svelte';
 import ViewNodeGrid from '../../src/components/views/ViewNodeGrid.svelte';
 import ViewNodeTable from '../../src/components/views/ViewNodeTable.svelte';
+import ViewNodeCards from '../../src/components/views/ViewNodeCards.svelte';
 import {
 	DEFAULT_NODE_TABLE_COLUMNS,
 	nodeRowsFromTree,
@@ -155,6 +156,30 @@ describe('view virtualizer item keys', () => {
 		expect(getItemKey(0)).toBe('parent');
 		expect(getItemKey(1)).toBe('child');
 		expect(getItemKey(2)).toBe('sibling');
+		expect(getItemKey(99)).toBe(99);
+	});
+
+	it('keys ViewNodeCards virtual rows by composed card row node ids', () => {
+		app = mount(ViewNodeCards as unknown as Component<Record<string, unknown>>, {
+			target,
+			props: {
+				providerId: 'tags',
+				nodes: flatNodes,
+				visibleFields: ['text', 'count'],
+				measure: {
+					measure: vi.fn(() => ({ height: 18, lineCount: 1 })),
+					clear: vi.fn(),
+				},
+				onCardClick: vi.fn(),
+				onContextMenu: vi.fn(),
+				icon: vi.fn(() => ({ update: vi.fn() })),
+			},
+		});
+		flushSync();
+
+		const { getItemKey } = latestOptions();
+
+		expect(getItemKey(0)).toBe('parent\u0000sibling');
 		expect(getItemKey(99)).toBe(99);
 	});
 });

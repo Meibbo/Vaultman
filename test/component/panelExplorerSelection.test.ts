@@ -315,6 +315,22 @@ describe('PanelExplorer tree selection adapter', () => {
 		expect(pluginStub.viewService.select).toHaveBeenCalledWith(EXPLORER_ID, 'beta', 'add');
 	});
 
+	it('cards mode renders provider nodes and selects cards through the shared node selection service', () => {
+		const { pluginStub, selectionService } = renderPanel({
+			viewMode: 'cards',
+			provider: provider({
+				getTree: vi.fn(() => nodes()),
+			}),
+		});
+
+		(target.querySelector('[data-id="beta"]') as HTMLElement).click();
+		flushSync();
+
+		expect(target.querySelector('.vm-node-cards')).not.toBeNull();
+		expect([...selectionService.snapshot(EXPLORER_ID).ids]).toEqual(['beta']);
+		expect(pluginStub.viewService.select).toHaveBeenCalledWith(EXPLORER_ID, 'beta', 'add');
+	});
+
 	it('table mode uses provider-specific property columns', () => {
 		const propTree: TreeNode<PropMeta>[] = [
 			{
@@ -370,6 +386,26 @@ describe('PanelExplorer tree selection adapter', () => {
 			getNodeType: vi.fn((node) => (node.id === 'alpha' || node.id === 'beta' ? 'file' : 'tag')),
 		});
 		const { selectionService } = renderPanel({ viewMode: 'table', provider: providerStub });
+		selectionService.selectPointer(EXPLORER_ID, ['alpha', 'beta'], 'alpha');
+		selectionService.selectPointer(EXPLORER_ID, ['alpha', 'beta'], 'beta', { additive: true });
+		flushSync();
+
+		(target.querySelector('[data-id="beta"]') as HTMLElement).dispatchEvent(
+			new MouseEvent('contextmenu', { bubbles: true }),
+		);
+
+		expect(providerStub.handleContextMenu).toHaveBeenCalledWith(
+			expect.objectContaining({ id: 'beta' }),
+			expect.any(MouseEvent),
+			[expect.objectContaining({ id: 'alpha' }), expect.objectContaining({ id: 'beta' })],
+		);
+	});
+
+	it('cards context menu receives same-type selected nodes', () => {
+		const providerStub = provider({
+			getNodeType: vi.fn((node) => (node.id === 'alpha' || node.id === 'beta' ? 'file' : 'tag')),
+		});
+		const { selectionService } = renderPanel({ viewMode: 'cards', provider: providerStub });
 		selectionService.selectPointer(EXPLORER_ID, ['alpha', 'beta'], 'alpha');
 		selectionService.selectPointer(EXPLORER_ID, ['alpha', 'beta'], 'beta', { additive: true });
 		flushSync();

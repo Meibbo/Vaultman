@@ -1,10 +1,10 @@
 ---
 title: Pretext grid cards hybrid layout
 type: spec
-status: active
+status: done
 parent: "[[docs/work/polish/index|polish]]"
 created: 2026-05-10T00:00:00
-updated: 2026-05-10T00:00:00
+updated: 2026-05-10T02:37:32
 tags:
   - agent/spec
   - initiative/polish
@@ -306,6 +306,52 @@ These are important but not part of the first Pretext slice:
    plus overscan.
 5. What SVAR behaviors are reference-only, and which are candidates for
    eventual Vaultman-native behavior?
+
+## Implementation Status
+
+Status: done on 2026-05-10T02:37:32.
+
+Files changed:
+
+- settings and services: `src/types/typeSettings.ts`,
+  `src/services/serviceNodeFieldVisibility.ts`,
+  `src/services/serviceTextMeasure.ts`,
+  `src/services/serviceNodeCardLayout.ts`;
+- Svelte UI route: `overlayViewMenu.svelte`, `navbarExplorer.svelte`,
+  `pageFilters.svelte`, tab wrappers, `panelExplorer.svelte`,
+  `ViewNodeCards.svelte`;
+- styles: `src/styles/data/_cards.scss`, `src/main.scss`, generated
+  `styles.css`;
+- tests: focused unit tests for field visibility, text measurement, card layout,
+  plus component tests for view menu, cards, panel routing, selection, and
+  virtualizer keys;
+- package files: `package.json`, `pnpm-lock.yaml` for `@chenglou/pretext`.
+
+Verification:
+
+- Focused unit tests passed: 3 files / 16 tests.
+- Focused component tests passed: 5 files / 54 tests.
+- `pnpm run check` passed with 0 errors / 0 warnings.
+- `pnpm run lint` passed with 0 warnings / 0 errors.
+- `pnpm run build` passed and regenerated/synced build artifacts.
+- Scoped `git diff --check` exited 0 with only LF-to-CRLF working-copy
+  normalization warnings.
+
+Deviations:
+
+- `ViewNodeCards.svelte` uses a local style snapshot for this slice and falls
+  back to the deterministic text-measure engine in jsdom to avoid canvas
+  runtime noise during component tests.
+- The cards SCSS partial is imported as `data-cards` because an existing
+  explorer cards partial already owns the default Sass `cards` namespace.
+
+Deferred follow-up:
+
+- resolve exact Obsidian/Vaultman font snapshots for card measurement;
+- `dnd-kit` drag/drop;
+- node/card resize handles and persisted card sizing preferences;
+- multiline table rows and measured table cells;
+- SVAR filemanager absorption/deletion decision.
 
 ## Sources
 

@@ -1,10 +1,10 @@
 ---
 title: Verification and documentation
 type: implementation-plan
-status: active
+status: done
 parent: "[[docs/work/polish/plans/2026-05-10-pretext-grid-cards/index|pretext-grid-cards-plan]]"
 created: 2026-05-10T00:00:00
-updated: 2026-05-10T00:00:00
+updated: 2026-05-10T02:37:32
 tags:
   - agent/plan
   - initiative/polish
@@ -22,7 +22,7 @@ tags:
 
 ## Steps
 
-- [ ] **Step 1: Run focused unit tests**
+- [x] **Step 1: Run focused unit tests**
 
 Run:
 
@@ -32,7 +32,7 @@ pnpm exec vp test run --project unit --config vitest.config.ts test/unit/service
 
 Expected: all focused unit tests pass.
 
-- [ ] **Step 2: Run focused component tests**
+- [x] **Step 2: Run focused component tests**
 
 Run:
 
@@ -42,7 +42,7 @@ pnpm exec vp test run --project component --config vitest.config.ts test/compone
 
 Expected: all focused component tests pass.
 
-- [ ] **Step 3: Run type and Svelte checks**
+- [x] **Step 3: Run type and Svelte checks**
 
 Run:
 
@@ -52,7 +52,7 @@ pnpm run check
 
 Expected: command exits 0.
 
-- [ ] **Step 4: Run lint**
+- [x] **Step 4: Run lint**
 
 Run:
 
@@ -62,7 +62,7 @@ pnpm run lint
 
 Expected: command exits 0.
 
-- [ ] **Step 5: Run build**
+- [x] **Step 5: Run build**
 
 Run:
 
@@ -72,7 +72,7 @@ pnpm run build
 
 Expected: command exits 0 and `styles.css` is regenerated if SCSS changed.
 
-- [ ] **Step 6: Run scoped whitespace check**
+- [x] **Step 6: Run scoped whitespace check**
 
 Run:
 
@@ -82,7 +82,7 @@ git diff --check -- src/types/typeSettings.ts src/services/serviceNodeFieldVisib
 
 Expected: command exits 0.
 
-- [ ] **Step 7: Update PKM-AI completion notes after implementation**
+- [x] **Step 7: Update PKM-AI completion notes after implementation**
 
 If implementation is completed, append a compact implementation status to
 `.agents/docs/work/polish/specs/2026-05-10-pretext-grid-cards/index.md` with:
@@ -93,8 +93,24 @@ If implementation is completed, append a compact implementation status to
 - deferred follow-up for exact CSS font snapshotting, `dnd-kit`, resize, and
   multiline table rows.
 
-- [ ] **Step 8: Keep current docs compact**
+- [x] **Step 8: Keep current docs compact**
 
 If updating `.agents/docs/current/status.md`, add only a compact link to the
 source record and next action. Keep implementation detail inside the polish
 spec or a dedicated result note.
+
+## Result
+
+Task 6 is complete. Verification record and implementation status were added to
+the Pretext spec. Current docs were not expanded; source detail remains in the
+polish plan/spec records.
+
+Verification on 2026-05-10T02:37:32:
+
+- Focused unit tests passed: 3 files / 16 tests.
+- Focused component tests passed: 5 files / 54 tests.
+- `pnpm run check` passed with 0 errors / 0 warnings.
+- `pnpm run lint` passed with 0 warnings / 0 errors.
+- `pnpm run build` passed and synced build artifacts.
+- Scoped `git diff --check` exited 0 with only LF-to-CRLF working-copy
+  normalization warnings.

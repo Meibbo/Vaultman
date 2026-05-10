@@ -14,6 +14,7 @@
 	import type { ViewEmptyState } from '../../types/typeViews';
 	import GridNavigationToolbar from '../layout/GridNavigationToolbar.svelte';
 	import ViewTree from '../views/viewTree.svelte';
+	import ViewNodeCards from '../views/ViewNodeCards.svelte';
 	import ViewNodeGrid from '../views/ViewNodeGrid.svelte';
 	import ViewNodeTable from '../views/ViewNodeTable.svelte';
 	import ViewEmptyLanding from '../views/viewEmptyLanding.svelte';
@@ -132,6 +133,7 @@
 	const gridNodes = $derived(
 		viewMode === 'grid' ? (gridHierarchyMode === 'folder' ? currentGridNodes : nodes) : [],
 	);
+	const cardNodes = $derived(viewMode === 'cards' ? nodes : []);
 	const tableRows = $derived(viewMode === 'table' ? nodeRowsFromTree(nodes) : []);
 	const tableColumns = $derived(nodeTableColumnsForProvider<TMeta>(provider.id));
 	const visibleFieldsKey = $derived(visibleFields.join('\u0001'));
@@ -142,6 +144,7 @@
 	);
 	const isTreeEmpty = $derived(viewMode === 'tree' && nodes.length === 0);
 	const isGridEmpty = $derived(viewMode === 'grid' && gridNodes.length === 0);
+	const isCardsEmpty = $derived(viewMode === 'cards' && cardNodes.length === 0);
 	const isTableEmpty = $derived(viewMode === 'table' && tableRows.length === 0);
 	let lastCommittedSelectionKey = '';
 	let lastExpansionSummaryKey = '';
@@ -258,6 +261,9 @@
 			nodes = readProviderTree();
 			flatFiles = [];
 		} else if (viewMode === 'grid') {
+			nodes = readProviderTree();
+			flatFiles = [];
+		} else if (viewMode === 'cards') {
 			nodes = readProviderTree();
 			flatFiles = [];
 		} else if (viewMode === 'table') {
@@ -598,6 +604,7 @@
 			if (gridHierarchyMode === 'inline') return collectVisibleHierarchyIds(nodes, gridExpandedIds);
 			return gridNodes.map((node) => node.id);
 		}
+		if (viewMode === 'cards') return cardNodes.map((node) => node.id);
 		if (viewMode === 'table') return tableRows.map((row) => row.id);
 		const ids: string[] = [];
 		const walk = (items: TreeNode<TMeta>[]) => {
@@ -943,6 +950,29 @@
 				/>
 			{/if}
 		</div>
+	{:else if viewMode === 'cards'}
+		<div class="vm-cards-container">
+			{#if isCardsEmpty}
+				<ViewEmptyLanding state={emptyState} {icon} />
+			{:else}
+				<ViewNodeCards
+					providerId={provider.id}
+					nodes={cardNodes}
+					{visibleFields}
+					selectedIds={selectedNodeIds}
+					focusedId={focusedNodeId}
+					activeId={selectionSnapshot.activeId}
+					onCardClick={handleNodeClick}
+					onSecondaryAction={handleSecondaryAction}
+					onTertiaryAction={handleTertiaryAction}
+					onContextMenu={handleContextMenu}
+					onCardKeydown={handleRowKeydown}
+					{scrollTarget}
+					mouseGestureConfig={plugin.settings?.mouseGestures?.node}
+					{icon}
+				/>
+			{/if}
+		</div>
 	{:else if viewMode === 'table'}
 		<div class="vm-table-container">
 			{#if isTableEmpty}
@@ -983,6 +1013,12 @@
 		overflow: hidden;
 	}
 	.vm-grid-container {
+		flex: 1;
+		overflow: hidden;
+		min-height: 0;
+		height: 100%;
+	}
+	.vm-cards-container {
 		flex: 1;
 		overflow: hidden;
 		min-height: 0;

@@ -4,7 +4,7 @@ type: initiative-index
 status: active
 parent: "[[docs/work/pkm-ai/index|pkm-ai]]"
 created: 2026-05-04T01:44:46
-updated: 2026-05-10T00:00:00
+updated: 2026-05-10T02:37:32
 tags:
   - agent/work
   - initiative/polish
@@ -33,6 +33,9 @@ and non-blocking UX improvements.
 ## Active Plans
 
 - [[docs/work/polish/plans/2026-05-07-tanstack-node-table/index|TanStack node table implementation plan]]
+
+## Completed Plans
+
 - [[docs/work/polish/plans/2026-05-10-pretext-grid-cards/index|Pretext grid cards implementation plan]]
 
 ## Related Routes

@@ -57,6 +57,7 @@
 // Data Components
 @use './styles/data/grid';
 @use './styles/data/table';
+@use './styles/data/cards' as data-cards;
 @use 'styles/data/filters';
 @use './styles/data/filters-page';
 @use './styles/data/file-list';

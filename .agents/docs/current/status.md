@@ -6,7 +6,7 @@ parent: "[[docs/work/hardening/specs/2026-05-06-node-selection-service/index|nod
 archive_source: "docs/archive/hardening/active-docs/2026-05-06T050935-current-status.md"
 compacted: true
 created: 2026-05-04T01:36:20
-updated: 2026-05-10T01:05:00
+updated: 2026-05-10T02:37:32
 tags:
   - agent/current
 created_by: dec
@@ -55,9 +55,9 @@ Archived completed/superseded status:
   [[docs/work/polish/specs/2026-05-07-tanstack-node-table/index|TanStack node table]].
 - Current user-approved polish plan:
   [[docs/work/polish/plans/2026-05-07-tanstack-node-table/index|TanStack node table implementation plan]].
-- Current user-approved Pretext/cards spec:
+- Completed Pretext/cards spec:
   [[docs/work/polish/specs/2026-05-10-pretext-grid-cards/index|Pretext grid cards hybrid layout]].
-- Current Pretext/cards implementation plan:
+- Completed Pretext/cards implementation plan:
   [[docs/work/polish/plans/2026-05-10-pretext-grid-cards/index|Pretext grid cards implementation plan]].
 - New multi-platform layout strategy:
   [[docs/work/polish/research/2026-05-09-multi-platform-layout-strategy|Multi-platform layout strategy]].
@@ -88,6 +88,13 @@ Archived completed/superseded status:
 
 ## Current Verification
 
+- 2026-05-10 Pretext/cards Tasks 5-6 DONE:
+  [[docs/work/polish/plans/2026-05-10-pretext-grid-cards/05-card-view|Cards view component and panel route]]
+  and
+  [[docs/work/polish/plans/2026-05-10-pretext-grid-cards/06-verification|Verification and documentation]].
+  Cards mode now routes through `panelExplorer`, renders `ViewNodeCards`, and
+  the Pretext slice verification passed; full evidence is in the spec/plan
+  source records.
 - 2026-05-10 Pretext/cards Task 4 DONE:
   [[docs/work/polish/plans/2026-05-10-pretext-grid-cards/04-view-menu-routing|View-menu and settings wiring]].
   `overlayViewMenu` now receives provider/view field definitions and visible

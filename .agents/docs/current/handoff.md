@@ -6,7 +6,7 @@ parent: "[[docs/work/hardening/specs/2026-05-06-node-selection-service/index|nod
 archive_source: "docs/archive/hardening/active-docs/2026-05-06T050935-current-handoff.md"
 compacted: true
 created: 2026-05-04T01:36:20
-updated: 2026-05-10T01:05:00
+updated: 2026-05-10T02:37:32
 tags:
   - agent/current
 created_by: dec
@@ -58,14 +58,14 @@ Archived completed/superseded handoff:
 - Current polish continuation:
   [[docs/work/polish/specs/2026-05-07-tanstack-node-table/index|TanStack node table spec]] and
   [[docs/work/polish/plans/2026-05-07-tanstack-node-table/index|TanStack node table plan]].
-- Current Pretext/cards continuation:
+- Completed Pretext/cards continuation:
   [[docs/work/polish/specs/2026-05-10-pretext-grid-cards/index|Pretext grid cards hybrid layout]]
   and
   [[docs/work/polish/plans/2026-05-10-pretext-grid-cards/index|Pretext grid cards implementation plan]].
-  Task 1 field visibility settings contract, Task 2 Pretext measurement
-  service, Task 3 node card layout service, and Task 4 view-menu/settings
-  wiring are done. Next action: execute Task 5, cards view component and panel
-  route.
+  Tasks 1-6 are done, including cards view routing and final verification.
+  Next action: choose the next hardening or polish cut; Pretext deferred work
+  remains exact CSS font snapshotting, `dnd-kit`, resize handles, and multiline
+  table rows.
 - Read [[docs/current/engineering-context|engineering context]] with this file
   and status; `start.md` now links it explicitly.
 - User explicitly said to ignore the no-commit rule and active-doc compactness
