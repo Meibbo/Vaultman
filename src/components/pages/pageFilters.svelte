@@ -27,6 +27,7 @@
 	import type {
 		ExplorerExpansionCommand,
 		ExplorerExpansionSummary,
+		ExplorerSortTarget,
 	} from '../../types/typeExplorer';
 	import type { ExplorerViewMode } from '../../types/typeViews';
 	import type { FilterGroup } from '../../types/typeFilter';
@@ -75,12 +76,14 @@
 		onOperationScopeChange,
 		filtersSortBy = $bindable('name'),
 		filtersSortDir = $bindable('asc'),
+		filtersSortTarget = $bindable('top'),
 		filtersViewMode = $bindable('tree'),
 		filtersBaseChooseMode = $bindable(false),
 		addMode = $bindable(false),
 		filesShowSelectedOnly = $bindable(false),
 		filesShowHidden = $bindable(plugin.settings.explorerFilesShowHidden === true),
 		manualDndEnabled = $bindable(plugin.settings.manualDndEnabled === true),
+		showTabs = true,
 		tagsExplorer = $bindable(),
 		propExplorer = $bindable(),
 		fileList = $bindable(),
@@ -97,12 +100,14 @@
 		onOperationScopeChange?: (value: OperationScope) => void;
 		filtersSortBy?: string;
 		filtersSortDir?: 'asc' | 'desc';
+		filtersSortTarget?: ExplorerSortTarget;
 		filtersViewMode?: any;
 		filtersBaseChooseMode?: boolean;
 		addMode?: boolean;
 		filesShowSelectedOnly?: boolean;
 		filesShowHidden?: boolean;
 		manualDndEnabled?: boolean;
+		showTabs?: boolean;
 		tagsExplorer?: explorerTags | undefined;
 		propExplorer?: explorerProps | undefined;
 		fileList?: explorerFiles | undefined;
@@ -417,13 +422,15 @@
 	}
 </script>
 
-<NavbarTabs
-	tabs={FTabs}
-	bind:active={filtersActiveTab as string}
-	showLabels={plugin.settings.filtersShowTabLabels}
-	disabledTabIds={disabledChooseTabs}
-	faintTabIds={disabledChooseTabs}
-/>
+{#if showTabs}
+	<NavbarTabs
+		tabs={FTabs}
+		bind:active={filtersActiveTab as string}
+		showLabels={plugin.settings.filtersShowTabLabels}
+		disabledTabIds={disabledChooseTabs}
+		faintTabIds={disabledChooseTabs}
+	/>
+{/if}
 
 <NavbarExplorer
 	bind:this={navbarExplorerApi}
@@ -435,6 +442,7 @@
 	bind:filtersSearchCategory
 	bind:sortBy={filtersSortBy}
 	bind:sortDirection={filtersSortDir}
+	bind:sortTarget={filtersSortTarget}
 	bind:viewMode={filtersViewMode}
 	bind:addMode
 	bind:operationScope={filtersOperationScope}
@@ -480,6 +488,7 @@
 					searchMode={filtersSearchCategory.files}
 					bind:sortBy={filtersSortBy}
 					bind:sortDirection={filtersSortDir}
+					sortTarget={filtersSortTarget}
 					nodeExpansionCommand={nodeExpansionCommands.files}
 					onNodeExpansionSummaryChange={(summary) => setNodeExpansionSummary('files', summary)}
 					visibleFields={visibleFieldsFor('files', filtersViewMode as ExplorerViewMode)}
@@ -496,6 +505,7 @@
 				searchMode={filtersSearchCategory.props}
 				bind:sortBy={filtersSortBy}
 				bind:sortDirection={filtersSortDir}
+				sortTarget={filtersSortTarget}
 				bind:viewMode={filtersViewMode}
 				bind:explorer={propExplorer}
 				active={filtersActiveTab === 'props'}
@@ -514,6 +524,7 @@
 				searchMode={filtersSearchCategory.files}
 				bind:sortBy={filtersSortBy}
 				bind:sortDirection={filtersSortDir}
+				sortTarget={filtersSortTarget}
 				bind:viewMode={filtersViewMode}
 				bind:fileList
 				bind:selectedFilePaths
@@ -535,6 +546,7 @@
 				searchMode={filtersSearchCategory.tags}
 				bind:sortBy={filtersSortBy}
 				bind:sortDirection={filtersSortDir}
+				sortTarget={filtersSortTarget}
 				bind:viewMode={filtersViewMode}
 				bind:explorer={tagsExplorer}
 				active={filtersActiveTab === 'tags'}
@@ -554,6 +566,7 @@
 				{selectedFilePaths}
 				bind:sortBy={filtersSortBy}
 				bind:sortDirection={filtersSortDir}
+				sortTarget={filtersSortTarget}
 				bind:viewMode={filtersViewMode}
 				active={filtersActiveTab === 'content'}
 				nodeExpansionCommand={nodeExpansionCommands.content}

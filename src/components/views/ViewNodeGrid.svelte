@@ -60,6 +60,7 @@
 		onTileKeydown?: (id: string, e: KeyboardEvent) => void;
 		onHoverBadgeAction?: (id: string, kind: BadgeKind, e: MouseEvent | KeyboardEvent) => void;
 		activeOpsByNode?: ActiveOpsByNode;
+		primaryHoverBadgeKind?: BadgeKind | null;
 		onToggleExpand?: (id: string, e: MouseEvent | KeyboardEvent) => void;
 		scrollTarget?: ScrollTarget | null;
 		mouseGestureConfig?: MouseGestureConfig;
@@ -86,6 +87,7 @@
 		onTileKeydown,
 		onHoverBadgeAction,
 		activeOpsByNode,
+		primaryHoverBadgeKind = null,
 		onToggleExpand,
 		scrollTarget = null,
 		mouseGestureConfig,
@@ -340,10 +342,7 @@
 	}
 
 	function shouldIgnoreBoxStart(target: EventTarget | null): boolean {
-		return (
-			isIgnoredMouseTarget(target, NODE_MOUSE_IGNORE_SELECTOR) ||
-			isIgnoredMouseTarget(target, '.vm-node-grid-tile')
-		);
+		return isIgnoredMouseTarget(target, NODE_MOUSE_IGNORE_SELECTOR);
 	}
 
 	function makeSelectionBox(startX: number, startY: number, endX: number, endY: number) {
@@ -580,6 +579,7 @@
 				{#each hoverBadges as badge (badge.kind)}
 					<div
 						class="vm-badge is-hover-badge is-actionable"
+						class:is-primary-action={badge.kind === primaryHoverBadgeKind}
 						data-hover-kind={badge.kind}
 						role="button"
 						tabindex="0"

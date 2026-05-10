@@ -5,6 +5,7 @@ import type { ExplorerViewMode, ViewEmptyState } from './typeViews';
 export type { ExplorerViewMode } from './typeViews';
 
 export type ExplorerExpansionAction = 'expand-all' | 'collapse-all';
+export type ExplorerSortTarget = 'top' | 'children';
 
 export interface ExplorerExpansionCommand {
 	serial: number;
@@ -56,6 +57,7 @@ export interface ExplorerProvider<TMeta = unknown> {
 	setSearchTerm?(term: string, mode?: 'all' | 'leaf'): void;
 	setViewMode?(mode: ExplorerViewMode): void;
 	setSortBy?(sortBy: string, direction: 'asc' | 'desc'): void;
+	setSortTarget?(target: ExplorerSortTarget): void;
 	setAddMode?(active: boolean): void;
 	setShowSelectedOnly?(active: boolean): void;
 	setShowHiddenFiles?(active: boolean): void;

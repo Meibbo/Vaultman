@@ -16,6 +16,7 @@
 		searchMode = 0,
 		sortBy = $bindable('name'),
 		sortDirection = $bindable('asc'),
+		sortTarget = 'top',
 		viewMode = $bindable('tree'),
 		active = true,
 		manualDndEnabled = false,
@@ -30,6 +31,7 @@
 		searchMode?: number;
 		sortBy?: string;
 		sortDirection?: 'asc' | 'desc';
+		sortTarget?: 'top' | 'children';
 		viewMode?: any;
 		active?: boolean;
 		manualDndEnabled?: boolean;
@@ -68,6 +70,7 @@
 			{searchMode}
 			bind:sortBy
 			bind:sortDirection
+			{sortTarget}
 			{active}
 			{manualDndEnabled}
 			{nodeExpansionCommand}

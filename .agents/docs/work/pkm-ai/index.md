@@ -4,7 +4,7 @@ type: initiative-index
 status: active
 parent: "[[docs/work/pkm-ai/specs/2026-05-04-orchestration-refresh/index|pkm-ai]]"
 created: 2026-05-04T01:44:46
-updated: 2026-05-10T05:30:51
+updated: 2026-05-10T09:13:55
 tags:
   - agent/work
   - initiative/pkm-ai
@@ -22,6 +22,10 @@ backlog structure, and branch hygiene for AI workflow files.
 - Plan: [[docs/work/pkm-ai/plans/2026-05-04-orchestration-refresh/index|orchestration-refresh-plan]]
 - Plan: [[docs/work/pkm-ai/plans/2026-05-10-agent-control-plane/index|agent-control-plane-plan]]
 - Plan: [[docs/work/pkm-ai/plans/2026-05-10-queue-contract-repair/index|queue-contract-repair-plan]]
+- Plan: [[docs/work/pkm-ai/plans/2026-05-10-selected-visible-scope-verification/index|selected-visible-scope-verification-plan]]
+- Plan: [[docs/work/pkm-ai/plans/2026-05-10-service-api-read-plan-enqueue/index|service-api-read-plan-enqueue-plan]]
+- Plan: [[docs/work/pkm-ai/plans/2026-05-10-typescript-ast-code-index/index|typescript-ast-code-index-plan]]
+- Plan: [[docs/work/pkm-ai/plans/2026-05-10-svelte-code-index-extraction/index|svelte-code-index-extraction-plan]]
 - Research: [[docs/work/pkm-ai/research/2026-05-10-residual-classification|residual-classification]]
 - Item: [[docs/work/pkm-ai/items/vm-0002-current-docs-as-route-indexes|current docs as route indexes]]
 - Migration archive: [[docs/archive/pkm-ai/migration-2026-05-04/index|migration-2026-05-04]]
@@ -38,6 +42,14 @@ backlog structure, and branch hygiene for AI workflow files.
   [[docs/work/pkm-ai/specs/2026-05-10-agent-control-plane/06-tool-contracts|tool-contracts]]
 - Queue contract repair:
   [[docs/work/pkm-ai/plans/2026-05-10-queue-contract-repair/index|queue-contract-repair-plan]]
+- Selected/visible scope verification:
+  [[docs/work/pkm-ai/plans/2026-05-10-selected-visible-scope-verification/index|selected-visible-scope-verification-plan]]
+- Service API read/plan/enqueue:
+  [[docs/work/pkm-ai/plans/2026-05-10-service-api-read-plan-enqueue/index|service-api-read-plan-enqueue-plan]]
+- TypeScript AST code index:
+  [[docs/work/pkm-ai/plans/2026-05-10-typescript-ast-code-index/index|typescript-ast-code-index-plan]]
+- Svelte code index extraction:
+  [[docs/work/pkm-ai/plans/2026-05-10-svelte-code-index-extraction/index|svelte-code-index-extraction-plan]]
 
 ## Related Routes
 

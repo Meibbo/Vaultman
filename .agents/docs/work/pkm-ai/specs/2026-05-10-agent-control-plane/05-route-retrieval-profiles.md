@@ -4,7 +4,7 @@ type: spec-shard
 status: draft
 parent: "[[docs/work/pkm-ai/specs/2026-05-10-agent-control-plane/index|Agent Control Plane]]"
 created: 2026-05-10T05:13:29
-updated: 2026-05-10T05:13:29
+updated: 2026-05-10T09:06:09
 created_by: codex
 updated_by: codex
 tags:
@@ -39,7 +39,7 @@ profile decides which tools and source strictness apply.
 
 | Profile | Use when | Tools | Source strictness | Failure mode |
 | --- | --- | --- | --- | --- |
-| `local-code` | Need implementation details, call sites, tests, or ownership boundaries. | `rg`, `rg --files`, focused file reads, code/test commands, future AST index. | Local source is authoritative; regex/code tools are orientation unless backed by file reads. | If code search is ambiguous, record the unresolved path gap before changing shared behavior. |
+| `local-code` | Need implementation details, call sites, tests, or ownership boundaries. | `rg`, `rg --files`, `code-index.mjs`, focused file reads, code/test commands. | Local source is authoritative; AST index output is evidence-bearing for parsed imports/exports/dependents and parsed Svelte script props/events; regex tools are orientation unless backed by file reads. | If code search is ambiguous, record the unresolved path gap before changing shared behavior. |
 | `local-docs` | Need route, status, plan, policy, glossary, or source-record context. | `query-docs.mjs`, `index-docs.mjs`, direct Markdown reads, glossary gate. | Current route docs point to truth; initiative source records preserve detail. | If query misses a known record, fall back to `rg` and note index staleness. |
 | `archive-audit` | Need superseded history, deleted context, or regression provenance. | `rg` under `.agents/docs/archive`, archive links, git history when needed. | Archives are historical evidence, not current routing truth. | If archive contradicts active docs, preserve both and record the conflict in the active source record. |
 | `online-primary` | Need current official API, framework, library, legal, financial, or standards facts. | Official docs, primary repos, release notes, standards bodies, restricted web search. | Primary/current sources required; secondary summaries are supporting only. | If primary sources disagree or are absent, state the uncertainty and do not hard-code behavior from memory. |
@@ -60,7 +60,9 @@ profile decides which tools and source strictness apply.
   the goal is to read content rather than inspect visual layout.
 - Use web search for current external facts only when local sources cannot
   answer, freshness matters, or the user explicitly asks to look it up.
-- Treat regex-only PKM-AI code tools as heuristic orientation unless their
-  output is confirmed by direct source reads or deeper structured analysis.
+- Use `code-index.mjs` when import/export/dependent evidence or Svelte
+  component script props/events matter; treat regex-only PKM-AI code tools as
+  heuristic orientation unless their output is confirmed by direct source reads
+  or deeper structured analysis.
 - Record source gaps, stale indexes, unavailable connectors, and unverified
   current facts in the relevant source record, not only in chat.

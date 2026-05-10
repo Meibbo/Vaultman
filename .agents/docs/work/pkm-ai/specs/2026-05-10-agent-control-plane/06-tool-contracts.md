@@ -4,7 +4,7 @@ type: spec-shard
 status: draft
 parent: "[[docs/work/pkm-ai/specs/2026-05-10-agent-control-plane/index|Agent Control Plane]]"
 created: 2026-05-10T05:26:33
-updated: 2026-05-10T05:26:33
+updated: 2026-05-10T09:06:09
 created_by: codex
 updated_by: codex
 tags:
@@ -40,6 +40,7 @@ architecture or completion claim by itself.
 | `archive-active-doc.mjs` | authoritative | Authoritative for archive creation when the command succeeds and the replacement source links the archive. |
 | `update-frontmatter.mjs` | evidence-bearing | Proves timestamp/frontmatter edits for the targeted files; content semantics still need review. |
 | `shard-index.mjs` | evidence-bearing | Proves sharding/index support for the files it processes; it does not judge whether the shard model is the right design. |
+| `code-index.mjs` | evidence-bearing | Uses TypeScript AST plus `svelte/compiler` script parsing to prove parsed static imports, exports, relative dependency edges, dependents, legacy `export let` props, Svelte 5 `$props()` destructured props, and `createEventDispatcher` string-literal events for targeted local code files. It does not prove type-checker symbol resolution, alias resolution, runtime call graph, full Svelte template semantics, DOM events, or inferred callback-event meaning. |
 | `traverse-graph.mjs` | heuristic | Regex import traversal is orientation only and cannot support architecture claims without source reads or stronger parsing. |
 | `analyze-code.mjs` | heuristic | Regex export/function summaries are orientation only and cannot support completion or dependency claims by themselves. |
 

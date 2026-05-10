@@ -37,7 +37,7 @@ describe('ViewTree hover badges', () => {
 		};
 	}
 
-	it('renders four hover badges (set/rename/delete/filter) when no ops are active', () => {
+	it('renders five hover badges (set/rename/delete/filter/node-note) when no ops are active', () => {
 		app = mount(ViewTree as unknown as Component<Record<string, unknown>>, {
 			target,
 			props: {
@@ -53,10 +53,10 @@ describe('ViewTree hover badges', () => {
 		flushSync();
 
 		const hoverBadges = target.querySelectorAll('.vm-badge.is-hover-badge');
-		expect(hoverBadges).toHaveLength(4);
+		expect(hoverBadges).toHaveLength(5);
 
 		const kinds = Array.from(hoverBadges).map((el) => el.getAttribute('data-hover-kind'));
-		expect(kinds).toEqual(['set', 'rename', 'delete', 'filter']);
+		expect(kinds).toEqual(['set', 'rename', 'delete', 'filter', 'node-note']);
 	});
 
 	it('omits convert from hover render', () => {
@@ -127,5 +127,27 @@ describe('ViewTree hover badges', () => {
 		) as HTMLElement;
 		renameBadge.click();
 		expect(onHoverBadgeAction).toHaveBeenCalledWith('n', 'rename', expect.any(Object));
+	});
+
+	it('marks the hover badge matching the configured primary node action', () => {
+		app = mount(ViewTree as unknown as Component<Record<string, unknown>>, {
+			target,
+			props: {
+				nodes: [nodeFor('n')],
+				expandedIds: new Set<string>(),
+				onToggle: vi.fn(),
+				onRowClick: vi.fn(),
+				onContextMenu: vi.fn(),
+				icon: vi.fn(() => ({ update: vi.fn() })),
+				activeOpsByNode: new Map(),
+				primaryHoverBadgeKind: 'filter',
+			},
+		});
+		flushSync();
+
+		const filterBadge = target.querySelector(
+			'.vm-badge.is-hover-badge[data-hover-kind="filter"]',
+		) as HTMLElement;
+		expect(filterBadge.classList.contains('is-primary-action')).toBe(true);
 	});
 });

@@ -103,7 +103,9 @@ describe('pageTools snippets tab', () => {
 		snippetsTab!.click();
 		flushSync();
 
-		expect(target.querySelector('.vm-snippets-tab-content')).toBeTruthy();
+		const panel = target.querySelector('.vm-snippets-tab-content');
+		expect(panel).toBeTruthy();
+		expect(panel?.classList.contains('vm-tab-panel-fill')).toBe(true);
 		expect(target.textContent).toContain('cards');
 	});
 

@@ -52,6 +52,7 @@ import { LeafDetachService } from './services/serviceLeafDetach';
 import { leadingDebounce } from './utils/utilDebounce';
 import { NodeBindingService } from './services/serviceNodeBinding';
 import { NativeSurfaceBindingService } from './services/serviceNativeSurfaceBinding';
+import { resolveLayoutSettings } from './services/serviceLayout';
 import { ALL_TAB_IDS, viewTypeFor, type TabId } from './registry/tabRegistry';
 import { VaultmanTabLeafView } from './types/typeTabLeaf';
 import { SvarFileManagerView, TYPE_SVAR_FILEMANAGER } from './types/typeSvarLeaf';
@@ -352,6 +353,7 @@ export class VaultmanPlugin extends Plugin {
 			...(JSON.parse(JSON.stringify(DEFAULT_SETTINGS)) as VaultmanSettings),
 			...saved,
 		};
+		this.settings.layout = resolveLayoutSettings(saved.layout);
 
 		if (needsTabLabelMigration) {
 			if (hasSavedTabLabelPref && saved.filtersShowTabLabels === false) {

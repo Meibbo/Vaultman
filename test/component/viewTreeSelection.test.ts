@@ -51,6 +51,7 @@ describe('ViewTree selection gestures', () => {
 			onPrimaryAction: (id: string, e: MouseEvent) => void;
 			onSecondaryAction: (id: string, e: MouseEvent) => void;
 			onTertiaryAction: (id: string, e: MouseEvent) => void;
+			onBoxSelect: (ids: string[], e: PointerEvent) => void;
 			onContextMenu: (id: string, e: MouseEvent) => void;
 			onBadgeDoubleClick: (queueIndex: number) => void;
 			icon: (node: HTMLElement, name: string) => { update(n: string): void };
@@ -63,6 +64,7 @@ describe('ViewTree selection gestures', () => {
 			onPrimaryAction: vi.fn(),
 			onSecondaryAction: vi.fn(),
 			onTertiaryAction: vi.fn(),
+			onBoxSelect: vi.fn(),
 			onContextMenu: vi.fn(),
 			icon: vi.fn(() => ({ update: vi.fn() })),
 		};
@@ -81,6 +83,7 @@ describe('ViewTree selection gestures', () => {
 			onPrimaryAction: props.onPrimaryAction ?? defaults.onPrimaryAction,
 			onSecondaryAction: props.onSecondaryAction ?? defaults.onSecondaryAction,
 			onTertiaryAction: props.onTertiaryAction ?? defaults.onTertiaryAction,
+			onBoxSelect: props.onBoxSelect ?? defaults.onBoxSelect,
 		};
 	}
 
@@ -247,8 +250,8 @@ describe('ViewTree selection gestures', () => {
 		expect(handlers.onPrimaryAction).not.toHaveBeenCalled();
 	});
 
-	it('does not start box selection when pointerdown begins on a row surface', () => {
-		renderTree([{ id: 'alpha', label: 'Alpha', depth: 0, meta: {} }]);
+	it('keeps row pointerdown as a click until movement crosses the selection threshold', () => {
+		const handlers = renderTree([{ id: 'alpha', label: 'Alpha', depth: 0, meta: {} }]);
 		const tree = target.querySelector('.vm-tree-virtual-outer') as HTMLElement;
 		const row = target.querySelector('[data-id="alpha"]') as HTMLElement;
 		const setPointerCapture = vi.fn();
@@ -258,9 +261,34 @@ describe('ViewTree selection gestures', () => {
 			hasPointerCapture: vi.fn(() => true),
 		});
 
-		row.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true, button: 0, pointerId: 9 }));
+		row.dispatchEvent(
+			new PointerEvent('pointerdown', {
+				bubbles: true,
+				button: 0,
+				pointerId: 9,
+				clientX: 10,
+				clientY: 10,
+			}),
+		);
+		tree.dispatchEvent(
+			new PointerEvent('pointermove', {
+				bubbles: true,
+				pointerId: 9,
+				clientX: 11,
+				clientY: 11,
+			}),
+		);
+		tree.dispatchEvent(
+			new PointerEvent('pointerup', {
+				bubbles: true,
+				pointerId: 9,
+				clientX: 11,
+				clientY: 11,
+			}),
+		);
 
-		expect(setPointerCapture).not.toHaveBeenCalled();
+		expect(setPointerCapture).toHaveBeenCalledWith(9);
+		expect(handlers.onBoxSelect).not.toHaveBeenCalled();
 	});
 
 	it('keeps inherited badge actions and chevron expansion isolated on collapsed parents', () => {

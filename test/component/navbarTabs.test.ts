@@ -49,4 +49,31 @@ describe('NavbarTabs', () => {
 		expect(filesTab?.classList.contains('is-active')).toBe(true);
 		expect(propsTab?.classList.contains('is-active')).toBe(false);
 	});
+
+	it('renders direct labels with configurable label placement', () => {
+		const onSelect = vi.fn();
+
+		app = mount(NavbarTabs as unknown as Component<Record<string, unknown>>, {
+			target,
+			props: {
+				tabs: [{ id: 'filters', icon: 'lucide-filter', label: 'Filters' }],
+				active: 'ops',
+				showLabels: true,
+				labelPosition: 'bottom',
+				onSelect,
+			},
+		});
+		flushSync();
+
+		const bar = target.querySelector('.vm-tab-bar');
+		const tab = target.querySelector<HTMLElement>('[aria-label="Filters"]');
+
+		expect(bar?.classList.contains('label-bottom')).toBe(true);
+		expect(tab?.textContent).toContain('Filters');
+		tab!.click();
+		flushSync();
+
+		expect(onSelect).toHaveBeenCalledWith('filters');
+		expect(tab?.classList.contains('is-active')).toBe(true);
+	});
 });

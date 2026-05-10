@@ -1,4 +1,4 @@
-export type BadgeKind = 'set' | 'rename' | 'convert' | 'delete' | 'filter';
+export type BadgeKind = 'set' | 'rename' | 'convert' | 'delete' | 'filter' | 'node-note';
 export type FabBadgeKind = 'queue' | 'filters';
 export type BadgeSeverity = 'info' | 'success' | 'warning' | 'error';
 
@@ -40,6 +40,7 @@ export const BADGE_KIND_ORDER: readonly BadgeKind[] = [
 	'convert',
 	'delete',
 	'filter',
+	'node-note',
 ];
 
 export const ORDER = BADGE_KIND_ORDER;
@@ -68,6 +69,11 @@ const BADGE_DEFINITIONS: Record<BadgeKind, Omit<BadgeDescriptor, 'kind' | 'order
 	filter: {
 		label: 'Filter',
 		icon: 'lucide-filter',
+		hover: true,
+	},
+	'node-note': {
+		label: 'Node note',
+		icon: 'lucide-notebook-tabs',
 		hover: true,
 	},
 };

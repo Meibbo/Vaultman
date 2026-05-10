@@ -546,4 +546,18 @@ describe('explorerProps search', () => {
 			}),
 		);
 	});
+
+	it('can sort child value rows without reordering top-level properties', () => {
+		const explorer = new explorerProps(makePlugin());
+
+		explorer.setSortBy('name', 'asc');
+		explorer.setSortTarget('children');
+		const tree = explorer.getTree();
+
+		expect(tree.map((node) => node.id)).toEqual(['status', 'owner']);
+		expect(tree.find((node) => node.id === 'status')?.children?.map((node) => node.label)).toEqual([
+			'done',
+			'draft',
+		]);
+	});
 });

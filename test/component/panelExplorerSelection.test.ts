@@ -10,6 +10,7 @@ import type { IViewService } from '../../src/types/typeViews';
 import { mockTFile } from '../helpers/obsidian-mocks';
 
 const EXPLORER_ID = 'selection-test';
+type TestNodeMouseAction = 'select' | 'filter' | 'open' | 'node-note' | 'delete';
 
 function nodes(): TreeNode[] {
 	return [
@@ -117,13 +118,22 @@ describe('PanelExplorer tree selection adapter', () => {
 			provider?: ExplorerProvider;
 			viewMode?: ExplorerViewMode;
 			gridHierarchyMode?: 'folder' | 'inline';
+			nodeMouseActions?: {
+				primary: TestNodeMouseAction;
+				secondary: TestNodeMouseAction;
+				tertiary: TestNodeMouseAction;
+			};
 			nodeExpansionCommand?: unknown;
 			onNodeExpansionSummaryChange?: (summary: unknown) => void;
 		} = {},
 	) {
 		const selectionService = options.selectionService ?? new NodeSelectionService();
 		const pluginStub = plugin(selectionService);
-		pluginStub.settings = { ...pluginStub.settings, gridHierarchyMode: options.gridHierarchyMode };
+		pluginStub.settings = {
+			...pluginStub.settings,
+			gridHierarchyMode: options.gridHierarchyMode,
+			nodeMouseActions: options.nodeMouseActions,
+		};
 		const providerStub = options.provider ?? provider();
 		app = mount(PanelExplorer as unknown as Component<Record<string, unknown>>, {
 			target,
@@ -151,6 +161,21 @@ describe('PanelExplorer tree selection adapter', () => {
 		expect(pluginStub.viewService.select).toHaveBeenCalledWith(EXPLORER_ID, 'alpha', 'add');
 		expect(pluginStub.viewService.setFocused).toHaveBeenCalledWith(EXPLORER_ID, 'alpha');
 		expect(providerStub.handleNodeClick).not.toHaveBeenCalled();
+	});
+
+	it('can map primary node click to add-to-filter/provider activation from settings', () => {
+		const { providerStub, selectionService } = renderPanel({
+			nodeMouseActions: { primary: 'filter', secondary: 'open', tertiary: 'delete' },
+		});
+
+		(target.querySelector('[data-id="alpha"]') as HTMLElement).click();
+		flushSync();
+
+		expect([...selectionService.snapshot(EXPLORER_ID).ids]).toEqual(['alpha']);
+		expect(providerStub.handleNodeClick).toHaveBeenCalledOnce();
+		expect(providerStub.handleNodeClick).toHaveBeenCalledWith(
+			expect.objectContaining({ id: 'alpha' }),
+		);
 	});
 
 	it('label click selects without running the provider secondary action', () => {

@@ -102,7 +102,9 @@ describe('pageTools plugins tab', () => {
 		pluginsTab!.click();
 		flushSync();
 
-		expect(target.querySelector('.vm-plugins-tab-content')).toBeTruthy();
+		const panel = target.querySelector('.vm-plugins-tab-content');
+		expect(panel).toBeTruthy();
+		expect(panel?.classList.contains('vm-tab-panel-fill')).toBe(true);
 		expect(target.textContent).toContain('Calendar');
 	});
 

@@ -177,8 +177,8 @@ describe('ViewNodeGrid selection gestures', () => {
 		expect(handlers.onSecondaryAction).not.toHaveBeenCalled();
 	});
 
-	it('does not start box selection when pointerdown begins on a tile surface', () => {
-		renderGrid();
+	it('keeps a tile pointerdown as a click until movement crosses the selection threshold', () => {
+		const handlers = renderGrid();
 		const grid = target.querySelector('.vm-node-grid') as HTMLElement;
 		const tile = target.querySelector('[data-id="alpha"]') as HTMLElement;
 		const setPointerCapture = vi.fn();
@@ -188,9 +188,67 @@ describe('ViewNodeGrid selection gestures', () => {
 			hasPointerCapture: vi.fn(() => true),
 		});
 
-		tile.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true, button: 0, pointerId: 9 }));
+		tile.dispatchEvent(
+			new PointerEvent('pointerdown', {
+				bubbles: true,
+				button: 0,
+				pointerId: 9,
+				clientX: 10,
+				clientY: 10,
+			}),
+		);
+		grid.dispatchEvent(
+			new PointerEvent('pointermove', {
+				bubbles: true,
+				pointerId: 9,
+				clientX: 12,
+				clientY: 12,
+			}),
+		);
+		grid.dispatchEvent(
+			new PointerEvent('pointerup', {
+				bubbles: true,
+				pointerId: 9,
+				clientX: 12,
+				clientY: 12,
+			}),
+		);
 
-		expect(setPointerCapture).not.toHaveBeenCalled();
+		expect(setPointerCapture).toHaveBeenCalledWith(9);
+		expect(handlers.onBoxSelect).not.toHaveBeenCalled();
+	});
+
+	it('starts box selection from a tile surface after drag movement', () => {
+		const handlers = renderGrid();
+		const grid = target.querySelector('.vm-node-grid') as HTMLElement;
+		const alpha = target.querySelector('[data-id="alpha"]') as HTMLElement;
+		const beta = target.querySelector('[data-id="beta"]') as HTMLElement;
+		Object.assign(grid, {
+			setPointerCapture: vi.fn(),
+			releasePointerCapture: vi.fn(),
+			hasPointerCapture: vi.fn(() => true),
+		});
+		vi.spyOn(grid, 'getBoundingClientRect').mockReturnValue(rect(0, 0, 240, 120));
+		vi.spyOn(alpha, 'getBoundingClientRect').mockReturnValue(rect(0, 0, 100, 80));
+		vi.spyOn(beta, 'getBoundingClientRect').mockReturnValue(rect(120, 0, 220, 80));
+
+		alpha.dispatchEvent(
+			new PointerEvent('pointerdown', {
+				bubbles: true,
+				button: 0,
+				pointerId: 11,
+				clientX: 0,
+				clientY: 0,
+			}),
+		);
+		grid.dispatchEvent(
+			new PointerEvent('pointermove', { bubbles: true, pointerId: 11, clientX: 230, clientY: 90 }),
+		);
+		grid.dispatchEvent(
+			new PointerEvent('pointerup', { bubbles: true, pointerId: 11, clientX: 230, clientY: 90 }),
+		);
+
+		expect(handlers.onBoxSelect).toHaveBeenCalledWith(['alpha', 'beta'], expect.any(PointerEvent));
 	});
 
 	it('double clicking the tile label reports secondary action intent', () => {

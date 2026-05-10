@@ -3,19 +3,18 @@
 	import { translate } from '../../index/i18n/lang';
 	import { TTabs } from '../../types/typeTab'; //, type OpsTab
 	import { MenuCuratorPanel } from '../containers/panelCurator';
+	import NavbarTabs from '../layout/navbarTabs.svelte';
 	import PageToolsOpsLog from './pageToolsOpsLog.svelte';
 	import TabPlugins from './tabPlugins.svelte';
 	import TabSnippets from './tabSnippets.svelte';
 	import type { OpsLogService } from '../../services/serviceOpsLog.svelte';
-	// import { NavbarTabs } from "../layout/navbarTabs.svelte";
 	// import TabLinter from "./tabLinter.svelte";
 	// ─── Props ───────────────────────────────────────────────────────────────
 	let {
 		plugin,
-		icon,
 	}: {
 		plugin: VaultmanPlugin;
-		icon: (el: HTMLElement, name: string) => any;
+		icon?: (el: HTMLElement, name: string) => any;
 	} = $props();
 
 	// ─── State ───────────────────────────────────────────────────────────────
@@ -41,30 +40,7 @@
 	};
 </script>
 
-<div class="vm-tab-bar">
-	{#each TTabs as tab (tab.id)}
-		<div
-			class="vm-tab nav-action-button"
-			class:is-active={opsTab === tab.id}
-			data-tab={tab.id}
-			onclick={() => {
-				opsTab = tab.id;
-			}}
-			role="tab"
-			tabindex="0"
-			aria-label={tab.labelKey}
-			onkeydown={(e) => {
-				if (e.key === 'Enter' || e.key === ' ') {
-					e.preventDefault();
-					opsTab = tab.id;
-				}
-			}}
-		>
-			<span class="vm-tab-icon" use:icon={tab.icon}></span>
-			<span class="vm-tab-label">{tab.labelKey}</span>
-		</div>
-	{/each}
-</div>
+<NavbarTabs tabs={TTabs} bind:active={opsTab} showLabels={true} labelPosition="side" />
 
 <div class="vm-tab-area">
 	<!-- File Ops tab (always in DOM so QueueListComponent persists) -->

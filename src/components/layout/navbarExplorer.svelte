@@ -7,7 +7,7 @@
 	import { explorerTags } from '../../providers/explorerTags';
 	import { SEARCH_SEMANTICS_SOURCES } from '../frame/frameSearchSources';
 	import type { ActiveFnRRenameHandoff, FnRState } from '../../types/typeFnR';
-	import type { ExplorerExpansionSummary } from '../../types/typeExplorer';
+	import type { ExplorerExpansionSummary, ExplorerSortTarget } from '../../types/typeExplorer';
 	import { FnRIslandService, type FnRIslandMode } from '../../services/serviceFnRIsland.svelte';
 	import { getAddOpBuilder } from '../../registry/explorerAddOps';
 	import type { PendingChange } from '../../types/typeOps';
@@ -50,6 +50,7 @@
 		onSearchHistoryCommit,
 		sortBy = $bindable('name'),
 		sortDirection = $bindable('asc'),
+		sortTarget = $bindable('top'),
 		viewMode = $bindable('tree'),
 		addMode = $bindable(false),
 		operationScope = $bindable('auto'),
@@ -82,6 +83,7 @@
 		onSearchHistoryCommit?: (term: string) => void;
 		sortBy: string;
 		sortDirection: 'asc' | 'desc';
+		sortTarget?: ExplorerSortTarget;
 		viewMode: any;
 		addMode: boolean;
 		operationScope: OperationScope;
@@ -653,6 +655,7 @@
 					onClose={closeHeaderPopup}
 					bind:sortBy
 					bind:sortDir={sortDirection}
+					bind:sortTarget
 					bind:operationScope
 					bind:filesShowSelectedOnly
 					bind:filesShowHidden

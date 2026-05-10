@@ -4,7 +4,7 @@ type: plan-index
 status: draft
 parent: "[[docs/work/pkm-ai/specs/2026-05-10-agent-control-plane/index|Agent Control Plane]]"
 created: 2026-05-10T03:29:53
-updated: 2026-05-10T05:30:51
+updated: 2026-05-10T09:13:55
 created_by: codex
 updated_by: codex
 tags:
@@ -95,12 +95,19 @@ It does not implement:
 - Queue contract repair:
   [[docs/work/pkm-ai/plans/2026-05-10-queue-contract-repair/index|queue-contract-repair-plan]]
   reconnects stale queue `pending` drift before agent-facing operation APIs.
-- Selected/visible scope verification: prove visible explorer scope, selected
-  node scope, and queued operation scope agree before automation expands.
+- Selected/visible scope verification:
+  [[docs/work/pkm-ai/plans/2026-05-10-selected-visible-scope-verification/index|selected-visible-scope-verification-plan]]
+  proves visible explorer scope, selected node scope, and queued operation
+  scope agree before automation expands.
 - `serviceAPI` read/plan/enqueue design: expose supervised read/plan/enqueue
-  only after queue and scope preconditions are verified.
+  only after queue and scope preconditions are verified:
+  [[docs/work/pkm-ai/plans/2026-05-10-service-api-read-plan-enqueue/index|service-api-read-plan-enqueue-plan]].
 - TypeScript AST code-index implementation: replace regex-only architecture
-  orientation where dependency, export, and call-site confidence matters.
+  orientation where dependency, export, and call-site confidence matters:
+  [[docs/work/pkm-ai/plans/2026-05-10-typescript-ast-code-index/index|typescript-ast-code-index-plan]].
+- Svelte code-index extraction: add component prop/event interface evidence
+  on top of the TypeScript AST code index:
+  [[docs/work/pkm-ai/plans/2026-05-10-svelte-code-index-extraction/index|svelte-code-index-extraction-plan]].
 
 ## Stop Conditions
 

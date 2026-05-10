@@ -39,16 +39,17 @@
 			pointer-events: none;
 		}
 
-		&.is-bar-collapsed {
-			height: 8px;
-			overflow: hidden;
-			cursor: pointer;
+			&.is-bar-collapsed {
+				height: 8px;
+				overflow: hidden;
+				cursor: pointer;
 
-			.vm-nav-pill,
-			.vm-nav-fab,
-			.vm-nav-fab-placeholder {
-				opacity: 0;
-				pointer-events: none;
+				.vm-nav-pill,
+				.vm-nav-dock,
+				.vm-nav-fab,
+				.vm-nav-fab-placeholder {
+					opacity: 0;
+					pointer-events: none;
 				transform: translateY(15px) scale(0.9);
 			}
 		}
@@ -147,7 +148,46 @@
 			}
 		}
 
+		&-dock {
+			max-width: min(72vw, 520px);
+			overflow-x: auto;
+			scrollbar-width: none;
+
+			&::-webkit-scrollbar {
+				display: none;
+			}
+
+			&.has-labels {
+				border-radius: 18px;
+				padding: 0.25em 0.5em;
+			}
+
+			&.label-bottom {
+				align-items: stretch;
+
+				.vm-nav-dock-item.has-label {
+					flex-direction: column;
+					gap: 2px;
+					width: auto;
+					min-width: 3.4em;
+					height: 3em;
+					border-radius: 14px;
+				}
+			}
+
+			&.label-side {
+				.vm-nav-dock-item.has-label {
+					gap: 5px;
+					width: auto;
+					min-width: 3.8em;
+					padding-inline: 0.55em;
+					border-radius: 999px;
+				}
+			}
+		}
+
 		&-icon {
+			position: relative;
 			overflow: visible;
 			width: 2em;
 			height: 2em;
@@ -178,10 +218,36 @@
 				opacity: 1;
 			}
 
+			&.is-disabled {
+				opacity: 0.35;
+				cursor: default;
+			}
+
+			&.is-faint:not(.is-active) {
+				opacity: 0.55;
+			}
+
 			svg {
 				width: 1em;
 				height: 1em;
 			}
+		}
+
+		&-dock-icon {
+			@include flex-center;
+			width: 1em;
+			height: 1em;
+			flex: 0 0 auto;
+		}
+
+		&-dock-label {
+			max-width: 7.5em;
+			overflow: hidden;
+			color: inherit;
+			font-size: 10px;
+			line-height: 1.1;
+			text-overflow: ellipsis;
+			white-space: nowrap;
 		}
 
 		&-dot-badge {

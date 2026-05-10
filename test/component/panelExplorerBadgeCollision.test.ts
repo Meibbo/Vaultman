@@ -66,10 +66,10 @@ describe('panelExplorer badge collision (registry contract)', () => {
 		);
 	}
 
-	it('node with rename queued shows only set/delete/filter on hover', () => {
+	it('node with rename queued shows set/delete/filter/node-note on hover', () => {
 		const ops = new Map<string, Set<BadgeKind>>([['a', new Set<BadgeKind>(['rename'])]]);
 		mountWithOps(ops);
-		expect(hoverKindsFor('a')).toEqual(['set', 'delete', 'filter']);
+		expect(hoverKindsFor('a')).toEqual(['set', 'delete', 'filter', 'node-note']);
 	});
 
 	it('node with delete queued shows only filter on hover', () => {
@@ -86,10 +86,10 @@ describe('panelExplorer badge collision (registry contract)', () => {
 		expect(hoverKindsFor('a')).toEqual(['filter']);
 	});
 
-	it('peer nodes without active ops keep the full hover quartet', () => {
+	it('peer nodes without active ops keep the full hover set', () => {
 		const ops = new Map<string, Set<BadgeKind>>([['a', new Set<BadgeKind>(['delete'])]]);
 		mountWithOps(ops);
 		expect(hoverKindsFor('a')).toEqual(['filter']);
-		expect(hoverKindsFor('b')).toEqual(['set', 'rename', 'delete', 'filter']);
+		expect(hoverKindsFor('b')).toEqual(['set', 'rename', 'delete', 'filter', 'node-note']);
 	});
 });

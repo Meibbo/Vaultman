@@ -37,7 +37,7 @@ describe('ViewNodeGrid hover badges', () => {
 		};
 	}
 
-	it('renders four hover badges (set/rename/delete/filter) when no ops are active', () => {
+	it('renders five hover badges (set/rename/delete/filter/node-note) when no ops are active', () => {
 		app = mount(ViewNodeGrid as unknown as Component<Record<string, unknown>>, {
 			target,
 			props: {
@@ -51,9 +51,9 @@ describe('ViewNodeGrid hover badges', () => {
 		flushSync();
 
 		const hoverBadges = target.querySelectorAll('.vm-badge.is-hover-badge');
-		expect(hoverBadges).toHaveLength(4);
+		expect(hoverBadges).toHaveLength(5);
 		const kinds = Array.from(hoverBadges).map((el) => el.getAttribute('data-hover-kind'));
-		expect(kinds).toEqual(['set', 'rename', 'delete', 'filter']);
+		expect(kinds).toEqual(['set', 'rename', 'delete', 'filter', 'node-note']);
 	});
 
 	it('omits convert from hover render', () => {
@@ -91,6 +91,6 @@ describe('ViewNodeGrid hover badges', () => {
 		const kinds = Array.from(target.querySelectorAll('.vm-badge.is-hover-badge')).map((el) =>
 			el.getAttribute('data-hover-kind'),
 		);
-		expect(kinds).toEqual(['set', 'delete', 'filter']);
+		expect(kinds).toEqual(['set', 'delete', 'filter', 'node-note']);
 	});
 });

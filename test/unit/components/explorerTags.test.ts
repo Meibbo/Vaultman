@@ -270,4 +270,18 @@ describe('explorerTags', () => {
 
 		expect(explorer.getTree().map((node) => node.meta.tagPath)).toEqual([]);
 	});
+
+	it('can sort nested tags without reordering root tags', () => {
+		const plugin = makePlugin([], ['z/b', 'z/a', 'a/root']);
+		const baseline = new explorerTags(plugin).getTree().map((node) => node.label);
+		const explorer = new explorerTags(plugin);
+
+		explorer.setSortBy('name', 'asc');
+		explorer.setSortTarget('children');
+		const tree = explorer.getTree();
+		const z = tree.find((node) => node.label === 'z');
+
+		expect(tree.map((node) => node.label)).toEqual(baseline);
+		expect(z?.children?.map((node) => node.label)).toEqual(['a', 'b']);
+	});
 });

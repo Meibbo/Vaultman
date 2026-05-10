@@ -1,6 +1,7 @@
 export type MouseGestureIntent = 'primary' | 'secondary' | 'tertiary' | 'ignored' | 'pending';
 export type MousePrimaryTiming = 'defer' | 'immediate';
 export type MouseGestureBinding = 'single-click' | 'double-click' | 'alt-click' | 'middle-click';
+export type NodeMouseAction = 'select' | 'filter' | 'open' | 'node-note' | 'delete';
 
 export interface MouseGestureConfig {
 	primary?: MouseGestureBinding | readonly MouseGestureBinding[];
@@ -8,6 +9,12 @@ export interface MouseGestureConfig {
 	tertiary?: MouseGestureBinding | readonly MouseGestureBinding[];
 	doubleClickMs?: number;
 	primaryTiming?: MousePrimaryTiming;
+}
+
+export interface NodeMouseActionConfig {
+	primary: NodeMouseAction;
+	secondary: NodeMouseAction;
+	tertiary: NodeMouseAction;
 }
 
 export interface MouseGestureTarget {
@@ -52,6 +59,26 @@ export const NODE_MOUSE_GESTURE_CONFIG: MouseGestureConfig = {
 export const COMMAND_MOUSE_GESTURE_CONFIG: MouseGestureConfig = {
 	primaryTiming: 'defer',
 };
+
+export const DEFAULT_NODE_MOUSE_ACTIONS: NodeMouseActionConfig = {
+	primary: 'filter',
+	secondary: 'open',
+	tertiary: 'delete',
+};
+
+export const LEGACY_NODE_MOUSE_ACTIONS: NodeMouseActionConfig = {
+	primary: 'select',
+	secondary: 'open',
+	tertiary: 'delete',
+};
+
+const VALID_NODE_MOUSE_ACTIONS: ReadonlySet<NodeMouseAction> = new Set([
+	'select',
+	'filter',
+	'open',
+	'node-note',
+	'delete',
+]);
 
 export class MouseGestureService {
 	private pending = new Map<string, PendingPrimary>();
@@ -161,6 +188,17 @@ export function mergeMouseGestureConfig(
 	return merged;
 }
 
+export function resolveNodeMouseActions(
+	raw: Partial<NodeMouseActionConfig> | null | undefined,
+	fallback: NodeMouseActionConfig = DEFAULT_NODE_MOUSE_ACTIONS,
+): NodeMouseActionConfig {
+	return {
+		primary: normalizeNodeMouseAction(raw?.primary, fallback.primary),
+		secondary: normalizeNodeMouseAction(raw?.secondary, fallback.secondary),
+		tertiary: normalizeNodeMouseAction(raw?.tertiary, fallback.tertiary),
+	};
+}
+
 export function isIgnoredMouseTarget(
 	target: EventTarget | null | undefined,
 	selector = NODE_MOUSE_IGNORE_SELECTOR,
@@ -198,6 +236,15 @@ function asBindingList(
 	const source = value ?? fallback;
 	if (Array.isArray(source)) return source as readonly MouseGestureBinding[];
 	return [source as MouseGestureBinding];
+}
+
+function normalizeNodeMouseAction(
+	value: unknown,
+	fallback: NodeMouseAction,
+): NodeMouseAction {
+	return typeof value === 'string' && VALID_NODE_MOUSE_ACTIONS.has(value as NodeMouseAction)
+		? (value as NodeMouseAction)
+		: fallback;
 }
 
 function timerWindow(): Window {

@@ -9,6 +9,12 @@
 	import SettingsLeafToggle from './settingsLeafToggle.svelte';
 	import type { LeafDetachService } from '../../services/serviceLeafDetach';
 	import { normalizeOperationScope } from '../../services/serviceOperationScope';
+	import {
+		resolveLayoutSettings,
+		type LayoutLabelPosition,
+		type LayoutSurfaceContent,
+	} from '../../services/serviceLayout';
+	import { resolveNodeMouseActions, type NodeMouseAction } from '../../services/serviceMouse';
 
 	let { plugin }: { plugin: iVaultmanPlugin } = $props();
 
@@ -27,6 +33,7 @@
 			explorerContentSearch: src.explorerContentSearch,
 			explorerOperationScope: normalizeOperationScope(src.explorerOperationScope),
 			explorerFilesShowHidden: src.explorerFilesShowHidden,
+			nodeMouseActions: resolveNodeMouseActions(src.nodeMouseActions),
 			operationsPanelPosition: src.operationsPanelPosition,
 			basesLastUsedPath: src.basesLastUsedPath,
 			basesOpenMode: src.basesOpenMode,
@@ -39,6 +46,7 @@
 			pageOrder: [...src.pageOrder],
 			separatePanes: src.separatePanes,
 			viewMode: src.viewMode,
+			layout: resolveLayoutSettings(src.layout),
 			filtersShowTabLabels: src.filtersShowTabLabels,
 			filtersTabLabelsMigrated: src.filtersTabLabelsMigrated,
 			gridRenderMode: (src.gridRenderMode ?? 'plain') as 'plain' | 'chunk' | 'all',
@@ -111,6 +119,53 @@
 		s.opsLogRetention = clamped;
 		persistSettings();
 	}
+
+	function setLayoutContent(surface: 'dock' | 'tabs', content: LayoutSurfaceContent): void {
+		s.layout = {
+			...s.layout,
+			[surface]: {
+				...s.layout[surface],
+				content,
+			},
+		};
+		persistSettings();
+	}
+
+	function setLayoutLabelVisible(surface: 'dock' | 'tabs', visible: boolean): void {
+		s.layout = {
+			...s.layout,
+			[surface]: {
+				...s.layout[surface],
+				labels: {
+					...s.layout[surface].labels,
+					visible,
+				},
+			},
+		};
+		persistSettings();
+	}
+
+	function setLayoutLabelPosition(surface: 'dock' | 'tabs', position: LayoutLabelPosition): void {
+		s.layout = {
+			...s.layout,
+			[surface]: {
+				...s.layout[surface],
+				labels: {
+					...s.layout[surface].labels,
+					position,
+				},
+			},
+		};
+		persistSettings();
+	}
+
+	function setNodeMouseAction(slot: 'primary' | 'secondary' | 'tertiary', action: NodeMouseAction): void {
+		s.nodeMouseActions = {
+			...s.nodeMouseActions,
+			[slot]: action,
+		};
+		persistSettings();
+	}
 </script>
 
 <div class="vm-settings">
@@ -173,6 +228,43 @@
 			{ value: 'auto', label: translate('settings.scope.auto') },
 			{ value: 'selected', label: translate('settings.scope.selected') },
 			{ value: 'filtered', label: translate('settings.scope.filtered') },
+		]}
+	/>
+
+	<Dropdown
+		label="Primary node action"
+		value={s.nodeMouseActions.primary}
+		onChange={(value) => setNodeMouseAction('primary', value as NodeMouseAction)}
+		options={[
+			{ value: 'filter', label: 'Add to filters' },
+			{ value: 'select', label: 'Select only' },
+			{ value: 'open', label: 'Open / activate' },
+			{ value: 'node-note', label: 'Create / open node-note' },
+			{ value: 'delete', label: 'Delete' },
+		]}
+	/>
+	<Dropdown
+		label="Secondary node action"
+		value={s.nodeMouseActions.secondary}
+		onChange={(value) => setNodeMouseAction('secondary', value as NodeMouseAction)}
+		options={[
+			{ value: 'open', label: 'Open / activate' },
+			{ value: 'filter', label: 'Add to filters' },
+			{ value: 'select', label: 'Select only' },
+			{ value: 'node-note', label: 'Create / open node-note' },
+			{ value: 'delete', label: 'Delete' },
+		]}
+	/>
+	<Dropdown
+		label="Tertiary node action"
+		value={s.nodeMouseActions.tertiary}
+		onChange={(value) => setNodeMouseAction('tertiary', value as NodeMouseAction)}
+		options={[
+			{ value: 'delete', label: 'Delete' },
+			{ value: 'node-note', label: 'Create / open node-note' },
+			{ value: 'open', label: 'Open / activate' },
+			{ value: 'filter', label: 'Add to filters' },
+			{ value: 'select', label: 'Select only' },
 		]}
 	/>
 
@@ -278,6 +370,58 @@
 
 	<!-- ── Layout ────────────────────────────────────────────────────── -->
 	<h3 class="vm-settings-heading">{translate('settings.layout.title')}</h3>
+
+	<Dropdown
+		label="Dock content"
+		value={s.layout.dock.content}
+		onChange={(value) => setLayoutContent('dock', value as LayoutSurfaceContent)}
+		options={[
+			{ value: 'none', label: 'None' },
+			{ value: 'filter-tabs', label: 'Filter tabs' },
+			{ value: 'frame-pages', label: 'Pages' },
+			{ value: 'tool-tabs', label: 'Tool tabs' },
+		]}
+	/>
+	<Toggle
+		checked={s.layout.dock.labels.visible}
+		label="Show dock labels"
+		onChange={(checked) => setLayoutLabelVisible('dock', checked)}
+	/>
+	<Dropdown
+		label="Dock label position"
+		value={s.layout.dock.labels.position}
+		onChange={(value) => setLayoutLabelPosition('dock', value as LayoutLabelPosition)}
+		options={[
+			{ value: 'bottom', label: 'Below icon' },
+			{ value: 'side', label: 'Beside icon' },
+		]}
+	/>
+
+	<Dropdown
+		label="Top tabs content"
+		value={s.layout.tabs.content}
+		onChange={(value) => setLayoutContent('tabs', value as LayoutSurfaceContent)}
+		options={[
+			{ value: 'none', label: 'None' },
+			{ value: 'frame-pages', label: 'Pages' },
+			{ value: 'filter-tabs', label: 'Filter tabs' },
+			{ value: 'tool-tabs', label: 'Tool tabs' },
+		]}
+	/>
+	<Toggle
+		checked={s.layout.tabs.labels.visible}
+		label="Show top tab labels"
+		onChange={(checked) => setLayoutLabelVisible('tabs', checked)}
+	/>
+	<Dropdown
+		label="Top tab label position"
+		value={s.layout.tabs.labels.position}
+		onChange={(value) => setLayoutLabelPosition('tabs', value as LayoutLabelPosition)}
+		options={[
+			{ value: 'bottom', label: 'Below icon' },
+			{ value: 'side', label: 'Beside icon' },
+		]}
+	/>
 
 	<!-- ── Find & Replace / Binding notes / Ops log (multifacet wave 2) — -->
 	<TextInput

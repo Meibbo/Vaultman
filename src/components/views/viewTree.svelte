@@ -56,6 +56,7 @@
 		onBadgeDoubleClick?: (queueIndex: number) => void;
 		onHoverBadgeAction?: (id: string, kind: BadgeKind, e: MouseEvent | KeyboardEvent) => void;
 		activeOpsByNode?: ActiveOpsByNode;
+		primaryHoverBadgeKind?: BadgeKind | null;
 		scrollTarget?: ScrollTarget | null;
 		mouseGestureConfig?: MouseGestureConfig;
 		sizePresetId?: ViewSizePresetId;
@@ -84,6 +85,7 @@
 		onBadgeDoubleClick,
 		onHoverBadgeAction,
 		activeOpsByNode,
+		primaryHoverBadgeKind = null,
 		scrollTarget = null,
 		mouseGestureConfig,
 		sizePresetId = DEFAULT_VIEW_SIZE_PRESET,
@@ -311,10 +313,7 @@
 	}
 
 	function shouldIgnoreBoxStart(target: EventTarget | null): boolean {
-		return (
-			isIgnoredMouseTarget(target, NODE_MOUSE_IGNORE_SELECTOR) ||
-			isIgnoredMouseTarget(target, '.vm-tree-virtual-row, .vm-tree-row-surface')
-		);
+		return isIgnoredMouseTarget(target, NODE_MOUSE_IGNORE_SELECTOR);
 	}
 
 	function makeSelectionBox(startX: number, startY: number, endX: number, endY: number) {
@@ -577,6 +576,7 @@
 									{#each hoverBadges as badge (badge.kind)}
 										<div
 											class="vm-badge is-hover-badge is-actionable"
+											class:is-primary-action={badge.kind === primaryHoverBadgeKind}
 											data-hover-kind={badge.kind}
 											role="button"
 											tabindex="0"

@@ -2,7 +2,7 @@ import { TagsLogic } from '../logic/logicTags';
 import type { TFile } from 'obsidian';
 import type { TreeNode, TagMeta, NodeBadge } from '../types/typeNode';
 import type { VaultmanPlugin } from '../main';
-import type { ExplorerProvider, ExplorerViewMode } from '../types/typeExplorer';
+import type { ExplorerProvider, ExplorerSortTarget, ExplorerViewMode } from '../types/typeExplorer';
 import type { MenuCtx } from '../types/typeCtxMenu';
 import {
 	buildTagAddChange,
@@ -37,6 +37,7 @@ export class explorerTags implements ExplorerProvider<TagMeta> {
 	private searchMode: 'all' | 'leaf' = 'all';
 	private sortBy: string = 'name';
 	private sortDir: 'asc' | 'desc' = 'asc';
+	private sortTarget: ExplorerSortTarget = 'top';
 	private addMode = false;
 	private unsubscribeTagsIndex: () => void;
 
@@ -276,6 +277,9 @@ export class explorerTags implements ExplorerProvider<TagMeta> {
 		this.sortBy = sortBy;
 		this.sortDir = direction;
 	}
+	setSortTarget(target: ExplorerSortTarget): void {
+		this.sortTarget = target;
+	}
 
 	setViewMode(_mode: ExplorerViewMode): void {}
 	setAddMode(active: boolean): void {
@@ -283,11 +287,23 @@ export class explorerTags implements ExplorerProvider<TagMeta> {
 	}
 
 	private _applySort(nodes: TreeNode<TagMeta>[]): TreeNode<TagMeta>[] {
+		if (this.sortTarget === 'children') return this._sortDescendants(nodes);
+		return this._sortNodeList(nodes);
+	}
+
+	private _sortNodeList(nodes: TreeNode<TagMeta>[]): TreeNode<TagMeta>[] {
 		const dir = this.sortDir === 'asc' ? 1 : -1;
 		return [...nodes].sort((a, b) => {
 			if (this.sortBy === 'count') return dir * ((a.count ?? 0) - (b.count ?? 0));
 			return dir * a.label.localeCompare(b.label);
 		});
+	}
+
+	private _sortDescendants(nodes: TreeNode<TagMeta>[]): TreeNode<TagMeta>[] {
+		return nodes.map((node) => ({
+			...node,
+			children: node.children ? this._sortDescendants(this._sortNodeList(node.children)) : [],
+		}));
 	}
 
 	private _collectLeaves(nodes: TreeNode<TagMeta>[]): TreeNode<TagMeta>[] {

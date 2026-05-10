@@ -25,6 +25,8 @@ describe('SortPopup node expansion toggle', () => {
 			onToggleNodeExpansion: () => void;
 			manualDndEnabled: boolean;
 			onManualDndChange: (active: boolean) => void;
+			sortTarget: 'top' | 'children';
+			onSortTargetChange: (target: 'top' | 'children') => void;
 		}> = {},
 	) {
 		const defaults = {
@@ -107,6 +109,22 @@ describe('SortPopup node expansion toggle', () => {
 		flushSync();
 
 		expect(onManualDndChange).toHaveBeenCalledWith(true);
+		expect(toggle?.getAttribute('aria-pressed')).toBe('true');
+		expect(toggle?.textContent).toContain('DnD');
+	});
+
+	it('toggles sort target between top-level categories and children', () => {
+		const onSortTargetChange = vi.fn();
+		renderSortPopup({ sortTarget: 'top', onSortTargetChange });
+
+		const toggle = target.querySelector<HTMLElement>('[data-vm-sort-target]');
+		expect(toggle).toBeTruthy();
+		expect(toggle?.getAttribute('aria-pressed')).toBe('false');
+
+		toggle?.click();
+		flushSync();
+
+		expect(onSortTargetChange).toHaveBeenCalledWith('children');
 		expect(toggle?.getAttribute('aria-pressed')).toBe('true');
 	});
 });

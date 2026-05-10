@@ -19,7 +19,8 @@
 	import StatisticsPage from '../pages/pageStats.svelte';
 	import FiltersPage from '../pages/pageFilters.svelte';
 	import OperationsPage from '../pages/pageTools.svelte';
-	import BottomNav from '../layout/navbarPillFab.svelte';
+	import NavbarDock from '../layout/navbarDock.svelte';
+	import NavbarTabs from '../layout/navbarTabs.svelte';
 	import PopupOverlay from '../layout/overlays/layoutOverlay.svelte';
 	import PopupIsland from '../layout/overlays/overlayIsland.svelte';
 	import ExplorerQueueComp from '../containers/explorerQueue.svelte';
@@ -56,8 +57,17 @@
 		normalizeOperationScope,
 		type OperationScope,
 	} from '../../services/serviceOperationScope';
+	import { resolveLayoutSettings, type LayoutSurfaceContent } from '../../services/serviceLayout';
+	import { FTabs, type TabConfig } from '../../types/typeTab';
+	import type { ExplorerSortTarget } from '../../types/typeExplorer';
 
 	// â”€â”€â”€ Props â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€------------------...........
+	type SurfaceNavItem = TabConfig & {
+		label: string;
+		disabled?: boolean;
+		faint?: boolean;
+		dot?: boolean;
+	};
 
 	let { plugin }: { plugin: VaultmanPlugin } = $props();
 
@@ -83,6 +93,20 @@
 	const pageLabels: Record<string, string> = createFramePageLabels();
 	const pageIcons: Record<string, string> = createFramePageIcons();
 	const overlays = initialFrameState.overlays;
+	const layoutSettings = $derived(resolveLayoutSettings(plugin.settings.layout));
+	const framePageTabs = $derived.by<SurfaceNavItem[]>(() =>
+		pageOrder.map((pageId) => ({
+			id: pageId,
+			icon: pageIcons[pageId] ?? 'lucide-circle',
+			label: pageLabels[pageId] ?? pageId,
+		})),
+	);
+	const filterTabItems = $derived.by<SurfaceNavItem[]>(() =>
+		FTabs.map((tab) => ({
+			...tab,
+			label: tab.label ?? (tab.labelKey ? translate(tab.labelKey) : tab.id),
+		})),
+	);
 
 	$effect(() => installFrameOverlayCommandHooks(plugin, overlays));
 
@@ -215,12 +239,56 @@
 	});
 	let filtersSortBy = $state('name');
 	let filtersSortDir = $state<'asc' | 'desc'>('asc');
+	let filtersSortTarget = $state<ExplorerSortTarget>('top');
 	let filtersViewMode = $state<any>('tree');
 	let addMode = $state(false);
 	const initialOperationScope = untrack(() =>
 		normalizeOperationScope(plugin.settings.explorerOperationScope),
 	);
 	let filtersOperationScope = $state<OperationScope>(initialOperationScope);
+	const filterTabsExternallyMounted = $derived(
+		layoutSettings.dock.content === 'filter-tabs' || layoutSettings.tabs.content === 'filter-tabs',
+	);
+	const topTabItems = $derived.by(() => itemsForSurface(layoutSettings.tabs.content));
+	const topTabActive = $derived(activeForSurface(layoutSettings.tabs.content));
+	const dockItems = $derived.by(() => itemsForSurface(layoutSettings.dock.content));
+	const dockActive = $derived(activeForSurface(layoutSettings.dock.content));
+	const dockUsesFramePages = $derived(layoutSettings.dock.content === 'frame-pages');
+
+	function itemsForSurface(
+		content: LayoutSurfaceContent,
+	): SurfaceNavItem[] {
+		if (content === 'frame-pages') {
+			return framePageTabs.map((tab) => ({
+				...tab,
+				dot: tab.id === 'statistics' && selectedCount > 0,
+			}));
+		}
+		if (content === 'filter-tabs') {
+			return filterTabItems.map((tab) => {
+				const disabled = filtersBaseChooseMode && tab.id !== 'files';
+				return { ...tab, disabled, faint: disabled };
+			});
+		}
+		return [];
+	}
+
+	function activeForSurface(content: LayoutSurfaceContent): string {
+		if (content === 'filter-tabs') return filtersActiveTab;
+		if (content === 'frame-pages') return activePage;
+		return '';
+	}
+
+	function selectSurfaceItem(content: LayoutSurfaceContent, id: string): void {
+		if (content === 'filter-tabs') {
+			filtersActiveTab = id as FiltersTab;
+			if (activePage !== 'filters') navigateTo('filters');
+			return;
+		}
+		if (content === 'frame-pages') {
+			navigateTo(id);
+		}
+	}
 
 	$effect(() => {
 		const tab = filtersActiveTab;
@@ -434,6 +502,16 @@
 <!-- â”€â”€â”€ Page container (horizontal slide strip) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ -->
 <!-- vm-pages-viewport clips via overflow:hidden; the container slides inside it -->
 <div class="vm-view" use:navReorder.bindViewRoot>
+	{#if topTabItems.length > 0}
+		<NavbarTabs
+			tabs={topTabItems}
+			active={topTabActive}
+			showLabels={layoutSettings.tabs.labels.visible}
+			labelPosition={layoutSettings.tabs.labels.position}
+			onSelect={(id) => selectSurfaceItem(layoutSettings.tabs.content, id)}
+		/>
+	{/if}
+
 	<div class="vm-pages-viewport" use:viewport.bindViewport>
 		<div
 			class="vm-page-container"
@@ -463,9 +541,11 @@
 								bind:selectedFilePaths
 								bind:filtersSortBy
 								bind:filtersSortDir
+								bind:filtersSortTarget
 								bind:filtersViewMode
 								bind:filtersBaseChooseMode
 								bind:addMode
+								showTabs={!filterTabsExternallyMounted}
 								{addOpCount}
 							/>
 						{/if}
@@ -502,29 +582,27 @@
 
 		<PopupIsland overlayState={plugin.overlayState} />
 
-		<BottomNav
-			{pageOrder}
-			{activePage}
-			{pageLabels}
-			{pageIcons}
+		<NavbarDock
+			items={dockItems}
+			active={dockActive}
+			showLabels={layoutSettings.dock.labels.visible}
+			labelPosition={layoutSettings.dock.labels.position}
 			{leftFab}
 			{rightFab}
 			navCollapsed={navReorder.navCollapsed}
 			isIslandOpen={overlays.isIslandOpen}
-			bind:isReordering={navReorder.isReordering}
-			reorderTargetIdx={navReorder.reorderTargetIdx}
-			bind:pillEl={navReorder.pillEl}
-			{selectedCount}
+			isReordering={dockUsesFramePages ? navReorder.isReordering : false}
+			reorderTargetIdx={dockUsesFramePages ? navReorder.reorderTargetIdx : -1}
+			bind:dockEl={navReorder.pillEl}
 			{filterRuleCount}
 			{queuedCount}
 			bindNav={navReorder.bindNav}
 			onCollapsedNavClick={navReorder.onCollapsedNavClick}
-			onNavIconPointerDown={navReorder.onNavIconPointerDown}
-			onPillPointerMove={navReorder.onPillPointerMove}
-			onPillPointerUp={navReorder.onPillPointerUp}
+			onItemPointerDown={dockUsesFramePages ? navReorder.onNavIconPointerDown : undefined}
+			onDockPointerMove={dockUsesFramePages ? navReorder.onPillPointerMove : undefined}
+			onDockPointerUp={dockUsesFramePages ? navReorder.onPillPointerUp : undefined}
 			exitReorder={navReorder.exitReorder}
-			{navigateTo}
-			{icon}
+			onSelect={(id) => selectSurfaceItem(layoutSettings.dock.content, id)}
 			mouseGestureConfig={plugin.settings?.mouseGestures?.fab}
 		/>
 	</div>

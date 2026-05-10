@@ -20,7 +20,7 @@ import {
 } from '../utils/utilViewLayers';
 import { getActivePerfProbe } from '../dev/perfProbe';
 import type { VaultmanPlugin } from '../main';
-import type { ExplorerProvider, ExplorerViewMode } from '../types/typeExplorer';
+import type { ExplorerProvider, ExplorerSortTarget, ExplorerViewMode } from '../types/typeExplorer';
 import type { MenuCtx } from '../types/typeCtxMenu';
 import { serviceMessage } from '../services/serviceMessage';
 
@@ -53,6 +53,7 @@ export class explorerProps implements ExplorerProvider<PropMeta> {
 	private searchMode: 'all' | 'leaf' = 'all';
 	private sortBy: string = 'name';
 	private sortDir: 'asc' | 'desc' = 'asc';
+	private sortTarget: ExplorerSortTarget = 'top';
 	private addMode = false;
 	private unsubscribePropsIndex: () => void;
 
@@ -396,17 +397,32 @@ export class explorerProps implements ExplorerProvider<PropMeta> {
 		this.sortBy = sortBy;
 		this.sortDir = direction;
 	}
+	setSortTarget(target: ExplorerSortTarget): void {
+		this.sortTarget = target;
+	}
 	setViewMode(_mode: ExplorerViewMode): void {}
 	setAddMode(active: boolean): void {
 		this.addMode = active;
 	}
 
 	private _applySort(nodes: TreeNode<PropMeta>[]): TreeNode<PropMeta>[] {
+		if (this.sortTarget === 'children') return this._sortDescendants(nodes);
+		return this._sortNodeList(nodes);
+	}
+
+	private _sortNodeList(nodes: TreeNode<PropMeta>[]): TreeNode<PropMeta>[] {
 		const dir = this.sortDir === 'asc' ? 1 : -1;
 		return [...nodes].sort((a, b) => {
 			if (this.sortBy === 'count') return dir * ((a.count ?? 0) - (b.count ?? 0));
 			return dir * a.label.localeCompare(b.label);
 		});
+	}
+
+	private _sortDescendants(nodes: TreeNode<PropMeta>[]): TreeNode<PropMeta>[] {
+		return nodes.map((node) => ({
+			...node,
+			children: node.children ? this._sortDescendants(this._sortNodeList(node.children)) : undefined,
+		}));
 	}
 
 	private async _renameProp(propName: string): Promise<void> {

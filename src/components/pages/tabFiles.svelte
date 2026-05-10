@@ -17,6 +17,7 @@
 		searchMode = 0,
 		sortBy = $bindable('name'),
 		sortDirection = $bindable('asc'),
+		sortTarget = 'top',
 		viewMode = $bindable('grid'),
 		active = true,
 		showSelectedOnly = false,
@@ -35,6 +36,7 @@
 		searchMode?: number;
 		sortBy?: string;
 		sortDirection?: 'asc' | 'desc';
+		sortTarget?: 'top' | 'children';
 		viewMode?: any;
 		active?: boolean;
 		showSelectedOnly?: boolean;
@@ -76,6 +78,7 @@
 			{searchMode}
 			bind:sortBy
 			bind:sortDirection
+			{sortTarget}
 			{active}
 			{showSelectedOnly}
 			{showHiddenFiles}

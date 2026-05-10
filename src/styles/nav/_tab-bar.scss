@@ -17,6 +17,31 @@
 		&.has-labels {
 			gap: var(--size-4-2, 8px);
 		}
+
+		&.label-bottom {
+			align-items: stretch;
+
+			.vm-tab {
+				flex-direction: column;
+				justify-content: center;
+				gap: 2px;
+				min-width: 48px;
+				padding: 5px 8px;
+			}
+
+			.vm-tab-label {
+				max-width: 7.5em;
+				overflow: hidden;
+				text-overflow: ellipsis;
+				white-space: nowrap;
+			}
+		}
+
+		&.label-side {
+			.vm-tab {
+				flex-direction: row;
+			}
+		}
 	}
 
 	// Individual tab item

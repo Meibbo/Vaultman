@@ -131,6 +131,35 @@
 		@include circle-btn;
 	}
 
+	&-toggle-btn {
+		width: auto;
+		min-width: 42px;
+		gap: 4px;
+		padding-inline: 7px;
+		border-radius: 999px;
+
+		&.is-active {
+			background: $vm-color-accent;
+			color: $vm-text-on-accent;
+			border-color: $vm-color-accent;
+		}
+	}
+
+	&-toggle-icon {
+		@include flex-center;
+
+		svg {
+			width: 13px;
+			height: 13px;
+		}
+	}
+
+	&-toggle-label {
+		font-size: 10px;
+		font-weight: 600;
+		line-height: 1;
+	}
+
 	&-dir {
 		display: flex;
 		align-items: center;

@@ -126,4 +126,29 @@ describe('SettingsUI mount (regression: effect_update_depth_exceeded)', () => {
 		expect(plugin.settings.gridHierarchyMode).toBe('inline');
 		expect(plugin.saveSettings).toHaveBeenCalledOnce();
 	});
+
+	it('persists layout dock and tab label placement settings', () => {
+		const plugin = makeFakePlugin();
+
+		app = mount(SettingsUI as unknown as Component<{ plugin: iVaultmanPlugin }>, {
+			target,
+			props: { plugin: plugin as unknown as iVaultmanPlugin },
+		});
+		flushSync();
+
+		expect(target.textContent).toContain('Dock content');
+		expect(target.textContent).toContain('Top tabs content');
+		expect(target.textContent).toContain('Primary node action');
+
+		const showDockLabels = [...target.querySelectorAll<HTMLInputElement>('input[type="checkbox"]')]
+			.find((candidate) => candidate.closest('label')?.textContent?.includes('Show dock labels'));
+		expect(showDockLabels).toBeTruthy();
+
+		showDockLabels!.checked = true;
+		showDockLabels!.dispatchEvent(new Event('change', { bubbles: true }));
+		flushSync();
+
+		expect(plugin.settings.layout?.dock.labels.visible).toBe(true);
+		expect(plugin.saveSettings).toHaveBeenCalledOnce();
+	});
 });

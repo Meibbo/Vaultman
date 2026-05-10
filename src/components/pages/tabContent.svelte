@@ -24,6 +24,7 @@
 		selectedFilePaths = new Set<string>(),
 		sortBy = $bindable('name'),
 		sortDirection = $bindable('asc'),
+		sortTarget = 'top',
 		viewMode = $bindable('tree'),
 		active = true,
 		manualDndEnabled = false,
@@ -39,6 +40,7 @@
 		selectedFilePaths?: Set<string>;
 		sortBy?: string;
 		sortDirection?: 'asc' | 'desc';
+		sortTarget?: 'top' | 'children';
 		viewMode?: ExplorerViewMode;
 		active?: boolean;
 		manualDndEnabled?: boolean;
@@ -270,6 +272,7 @@
 			searchMode={0}
 			bind:sortBy
 			bind:sortDirection
+			{sortTarget}
 			bind:viewMode
 			{active}
 			{manualDndEnabled}

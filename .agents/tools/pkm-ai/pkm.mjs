@@ -13,6 +13,7 @@ const commands = {
   archive: 'archive-active-doc.mjs',
   update: 'update-indexes.mjs',
   shard: 'shard-index.mjs',
+  'code-index': 'code-index.mjs',
   'traverse-graph': 'traverse-graph.mjs',
 };
 

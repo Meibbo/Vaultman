@@ -16,6 +16,7 @@
 		searchMode = 0,
 		sortBy = $bindable('name'),
 		sortDirection = $bindable('asc'),
+		sortTarget = 'top',
 		viewMode = $bindable('tree'),
 		active = true,
 		explorer = $bindable(),
@@ -27,6 +28,7 @@
 		searchMode?: number;
 		sortBy?: string;
 		sortDirection?: 'asc' | 'desc';
+		sortTarget?: 'top' | 'children';
 		viewMode?: ExplorerViewMode;
 		active?: boolean;
 		explorer?: explorerPlugins;
@@ -52,7 +54,7 @@
 	}
 </script>
 
-<div class="vm-plugins-tab-content">
+<div class="vm-plugins-tab-content vm-tab-panel-fill">
 	{#if explorer}
 		<PanelExplorer
 			{plugin}
@@ -62,6 +64,7 @@
 			{searchMode}
 			bind:sortBy
 			bind:sortDirection
+			{sortTarget}
 			{active}
 			{nodeExpansionCommand}
 			{onNodeExpansionSummaryChange}

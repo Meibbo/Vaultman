@@ -4,10 +4,14 @@
 .vm-files-tab-content,
 .vm-props-tab-content,
 .vm-tags-tab-content,
-.vm-content-tab {
+.vm-content-tab,
+.vm-snippets-tab-content,
+.vm-plugins-tab-content,
+.vm-tab-panel-fill {
 	display: flex;
 	flex-direction: column;
 	flex: 1;
+	height: 100%;
 	min-height: 0;
 }
 

@@ -38,6 +38,12 @@
 	import { serviceMessage } from '../../services/serviceMessage';
 	import { applyManualNodeReorder } from '../../services/serviceManualDnd';
 	import type { DndDropResult } from '../../services/serviceDnd';
+	import {
+		LEGACY_NODE_MOUSE_ACTIONS,
+		resolveNodeMouseActions,
+		type NodeMouseAction,
+	} from '../../services/serviceMouse';
+	import { nodeToBindingInput, type BindingNodeKind } from '../../services/serviceNodeBinding';
 
 	type ScrollTarget = { id: string; serial: number };
 
@@ -49,6 +55,7 @@
 		searchMode = 0,
 		sortBy = $bindable('name'),
 		sortDirection = $bindable('asc'),
+		sortTarget = 'top',
 		addMode = false,
 		active = true,
 		showSelectedOnly = false,
@@ -68,6 +75,7 @@
 		searchMode?: number;
 		sortBy?: string;
 		sortDirection?: 'asc' | 'desc';
+		sortTarget?: 'top' | 'children';
 		addMode?: boolean;
 		active?: boolean;
 		showSelectedOnly?: boolean;
@@ -177,6 +185,10 @@
 		walk(nodes);
 		return map;
 	});
+	const nodeMouseActions = $derived.by(() =>
+		resolveNodeMouseActions(plugin.settings?.nodeMouseActions, LEGACY_NODE_MOUSE_ACTIONS),
+	);
+	const primaryHoverBadgeKind = $derived(badgeKindForNodeAction(nodeMouseActions.primary));
 
 	$effect(() => {
 		const queue = (
@@ -196,6 +208,7 @@
 		const mode: 'leaf' | 'all' = searchMode === 1 ? 'leaf' : 'all';
 		provider.setSearchTerm?.(searchTerm, mode);
 		provider.setSortBy?.(sortBy, sortDirection);
+		provider.setSortTarget?.(sortTarget);
 		provider.setViewMode?.(viewMode);
 		provider.setAddMode?.(addMode);
 		provider.setShowSelectedOnly?.(showSelectedOnly);
@@ -304,23 +317,54 @@
 	}
 
 	function handleNodeClick(id: string, e: MouseEvent) {
+		runNodeMouseAction(nodeMouseActions.primary, id, e);
+	}
+
+	function selectNode(id: string, e: MouseEvent | KeyboardEvent): TreeNode<TMeta> | undefined {
 		const node = findNodeById(nodes, id);
-		if (!node) return;
+		if (!node) return undefined;
 		const additive = e.ctrlKey || e.metaKey;
 		const range = e.shiftKey;
 		commitSelection(
 			selectionService.selectPointer(provider.id, visibleNodeIds(), id, { additive, range }),
 		);
+		return node;
 	}
 
 	function handleSecondaryAction(id: string, e: MouseEvent) {
+		runNodeMouseAction(nodeMouseActions.secondary, id, e);
+	}
+
+	function handleTertiaryAction(id: string, e: MouseEvent | KeyboardEvent) {
+		e.preventDefault();
+		e.stopPropagation();
+		runNodeMouseAction(nodeMouseActions.tertiary, id, e);
+	}
+
+	function runNodeMouseAction(action: NodeMouseAction, id: string, e: MouseEvent | KeyboardEvent) {
 		const node = findNodeById(nodes, id);
 		if (!node) return;
-		const additive = e.ctrlKey || e.metaKey;
-		const range = e.shiftKey;
-		commitSelection(
-			selectionService.selectPointer(provider.id, visibleNodeIds(), id, { additive, range }),
-		);
+		if (action === 'select') {
+			selectNode(id, e);
+			return;
+		}
+		if (action !== 'delete') selectNode(id, e);
+		if (action === 'filter') {
+			provider.handleNodeClick(node);
+			return;
+		}
+		if (action === 'open') {
+			openNode(node);
+			return;
+		}
+		if (action === 'node-note') {
+			void openNodeNote(node);
+			return;
+		}
+		deleteNode(node, id);
+	}
+
+	function openNode(node: TreeNode<TMeta>) {
 		if (viewMode === 'grid' && gridHierarchyMode === 'folder' && node.children?.length) {
 			navigateGridTo(node.id);
 			return;
@@ -328,11 +372,7 @@
 		activateNode(node);
 	}
 
-	function handleTertiaryAction(id: string, e: MouseEvent | KeyboardEvent) {
-		e.preventDefault();
-		e.stopPropagation();
-		const node = findNodeById(nodes, id);
-		if (!node) return;
+	function deleteNode(node: TreeNode<TMeta>, id: string) {
 		const selectedNodes = selectedNodesForContext(node);
 		if (provider.handleNodeTertiaryAction) {
 			provider.handleNodeTertiaryAction(node, selectedNodes);
@@ -344,6 +384,17 @@
 			enqueueDelete: () =>
 				provider.handleHoverBadge?.(node, 'delete', selectedNodesForAction(node)),
 		});
+	}
+
+	async function openNodeNote(node: TreeNode<TMeta>): Promise<void> {
+		const kind = provider.getNodeType?.(node);
+		if (!kind || kind === 'file') {
+			activateNode(node);
+			return;
+		}
+		const input = nodeToBindingInput(kind as BindingNodeKind, node as TreeNode<unknown>);
+		if (!input) return;
+		await plugin.nodeBindingService?.bindOrCreate(input);
 	}
 
 	function handleContextMenu(id: string, e: MouseEvent) {
@@ -500,6 +551,10 @@
 		const node = findNodeById(nodes, id);
 		if (!node) return;
 		const targetNodes = selectedNodesForAction(node);
+		if (kind === 'node-note') {
+			for (const candidate of targetNodes) void openNodeNote(candidate);
+			return;
+		}
 		warnBadgeContradictions(kind, targetNodes);
 		if (kind !== 'delete') {
 			// Non-delete hover badges are forwarded to the provider so each
@@ -904,6 +959,14 @@
 			icon: 'lucide-layout-list',
 		};
 	}
+
+	function badgeKindForNodeAction(action: NodeMouseAction): BadgeKind | null {
+		if (action === 'filter') return 'filter';
+		if (action === 'node-note') return 'node-note';
+		if (action === 'delete') return 'delete';
+		if (action === 'open') return 'set';
+		return null;
+	}
 </script>
 
 <svelte:document onclick={handleDocumentClick} />
@@ -930,6 +993,7 @@
 					onBadgeDoubleClick={handleBadgeClick}
 					onHoverBadgeAction={handleHoverBadgeAction}
 					{activeOpsByNode}
+					{primaryHoverBadgeKind}
 					{scrollTarget}
 					mouseGestureConfig={plugin.settings?.mouseGestures?.node}
 					{icon}
@@ -975,6 +1039,7 @@
 					onToggleExpand={toggleExpand}
 					onHoverBadgeAction={handleHoverBadgeAction}
 					{activeOpsByNode}
+					{primaryHoverBadgeKind}
 					{scrollTarget}
 					mouseGestureConfig={plugin.settings?.mouseGestures?.node}
 					{icon}

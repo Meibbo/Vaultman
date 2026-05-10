@@ -9,14 +9,14 @@ import {
 describe('badgeRegistry', () => {
 	describe('ORDER', () => {
 		it('is the canonical fixed order', () => {
-			expect(ORDER).toEqual(['set', 'rename', 'convert', 'delete', 'filter']);
+			expect(ORDER).toEqual(['set', 'rename', 'convert', 'delete', 'filter', 'node-note']);
 		});
 	});
 
 	describe('visibleHoverBadges', () => {
-		it('returns the four hover kinds in canonical order when no ops are active', () => {
+		it('returns the five hover kinds in canonical order when no ops are active', () => {
 			const result = visibleHoverBadges({ id: 'n' }, new Map());
-			expect(result).toEqual(['set', 'rename', 'delete', 'filter']);
+			expect(result).toEqual(['set', 'rename', 'delete', 'filter', 'node-note']);
 		});
 
 		it('omits convert from hover render even when no ops are active', () => {
@@ -25,14 +25,23 @@ describe('badgeRegistry', () => {
 
 		it('hides a hover badge whose kind is already queued', () => {
 			const active = new Map<string, Set<BadgeKind>>([['n', new Set(['rename'])]]);
-			expect(visibleHoverBadges({ id: 'n' }, active)).toEqual(['set', 'delete', 'filter']);
+			expect(visibleHoverBadges({ id: 'n' }, active)).toEqual([
+				'set',
+				'delete',
+				'filter',
+				'node-note',
+			]);
 		});
 
 		it('hides multiple already-queued kinds', () => {
 			const active = new Map<string, Set<BadgeKind>>([
 				['n', new Set<BadgeKind>(['set', 'rename'])],
 			]);
-			expect(visibleHoverBadges({ id: 'n' }, active)).toEqual(['delete', 'filter']);
+			expect(visibleHoverBadges({ id: 'n' }, active)).toEqual([
+				'delete',
+				'filter',
+				'node-note',
+			]);
 		});
 
 		it('returns only [filter] when delete is queued for the node', () => {
@@ -53,12 +62,18 @@ describe('badgeRegistry', () => {
 				'rename',
 				'delete',
 				'filter',
+				'node-note',
 			]);
 		});
 
 		it('accepts a plain object map shape', () => {
 			const active = { n: ['rename'] as BadgeKind[] };
-			expect(visibleHoverBadges({ id: 'n' }, active)).toEqual(['set', 'delete', 'filter']);
+			expect(visibleHoverBadges({ id: 'n' }, active)).toEqual([
+				'set',
+				'delete',
+				'filter',
+				'node-note',
+			]);
 		});
 	});
 

@@ -5,7 +5,8 @@
 export interface TabConfig {
 	id: string;
 	icon: string;
-	labelKey: string;
+	labelKey?: string;
+	label?: string;
 }
 
 export const FTabs: TabConfig[] = [

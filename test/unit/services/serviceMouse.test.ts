@@ -2,8 +2,11 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
 	NODE_MOUSE_IGNORE_SELECTOR,
+	DEFAULT_NODE_MOUSE_ACTIONS,
+	LEGACY_NODE_MOUSE_ACTIONS,
 	createMouseGestureService,
 	isIgnoredMouseTarget,
+	resolveNodeMouseActions,
 	type MouseGestureConfig,
 } from '../../../src/services/serviceMouse';
 
@@ -127,6 +130,24 @@ describe('serviceMouse gesture resolution', () => {
 		toggle.appendChild(svg);
 
 		expect(isIgnoredMouseTarget(svg, NODE_MOUSE_IGNORE_SELECTOR)).toBe(true);
+	});
+
+	it('normalizes node mouse action settings with explicit defaults', () => {
+		expect(resolveNodeMouseActions(undefined)).toEqual(DEFAULT_NODE_MOUSE_ACTIONS);
+		expect(resolveNodeMouseActions(undefined, LEGACY_NODE_MOUSE_ACTIONS)).toEqual(
+			LEGACY_NODE_MOUSE_ACTIONS,
+		);
+		expect(
+			resolveNodeMouseActions({
+				primary: 'node-note',
+				secondary: 'bogus' as never,
+				tertiary: 'filter',
+			}),
+		).toEqual({
+			primary: 'node-note',
+			secondary: DEFAULT_NODE_MOUSE_ACTIONS.secondary,
+			tertiary: 'filter',
+		});
 	});
 });
 

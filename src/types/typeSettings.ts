@@ -1,7 +1,9 @@
 import type { Plugin } from 'obsidian';
 import type { FilterTemplate } from './typeFilter';
 import type { MenuHideRule } from './typeCtxMenu';
-import type { MouseGestureConfig } from '../services/serviceMouse';
+import { DEFAULT_LAYOUT_SETTINGS, type LayoutSettings } from '../services/serviceLayout';
+import type { MouseGestureConfig, NodeMouseActionConfig } from '../services/serviceMouse';
+import { DEFAULT_NODE_MOUSE_ACTIONS } from '../services/serviceMouse';
 import type { OperationScope } from '../services/serviceOperationScope';
 
 export type Language = 'auto' | 'en' | 'es';
@@ -38,6 +40,10 @@ export interface VaultmanSettings {
 	manualDndEnabled?: boolean;
 	/** Configurable mouse gesture grammar per interactive surface. */
 	mouseGestures?: Partial<Record<MouseGestureSurface, MouseGestureConfig>>;
+	/** Configurable command semantics for primary/secondary/tertiary node gestures. */
+	nodeMouseActions?: NodeMouseActionConfig;
+	/** Generic placement contract for pages, tabs, dock labels, and tab labels. */
+	layout?: LayoutSettings;
 	/** Persisted visible node fields keyed by `${providerId}:${viewMode}`. */
 	viewFieldVisibility?: Record<string, string[]>;
 	/** Position of the operations panel */
@@ -140,6 +146,8 @@ export const DEFAULT_SETTINGS: VaultmanSettings = {
 		fab: { primaryTiming: 'defer', tertiary: ['alt-click', 'middle-click'] },
 		toolbar: { primaryTiming: 'defer', tertiary: ['alt-click', 'middle-click'] },
 	},
+	nodeMouseActions: DEFAULT_NODE_MOUSE_ACTIONS,
+	layout: DEFAULT_LAYOUT_SETTINGS,
 	viewFieldVisibility: {},
 	operationsPanelPosition: 'right',
 	basesLastUsedPath: '',

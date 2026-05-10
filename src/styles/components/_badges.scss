@@ -73,6 +73,11 @@
 			opacity: 0.85;
 		}
 
+		&.is-primary-action {
+			color: $vm-color-accent;
+			opacity: 0.9;
+		}
+
 		&.is-active {
 			opacity: 1;
 			font-size: var(--font-ui-smaller);
