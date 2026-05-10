@@ -26,6 +26,7 @@
 		nodeExpansionCommand = null,
 		onNodeExpansionSummaryChange,
 		startRenameHandoff,
+		visibleFields = [],
 	}: {
 		plugin: VaultmanPlugin;
 		fileList: explorerFiles | undefined;
@@ -42,6 +43,7 @@
 		nodeExpansionCommand?: ExplorerExpansionCommand | null;
 		onNodeExpansionSummaryChange?: (summary: ExplorerExpansionSummary) => void;
 		startRenameHandoff?: (handoff: FnRRenameHandoff) => void;
+		visibleFields?: readonly string[];
 	} = $props();
 
 	$effect(() => {
@@ -77,6 +79,7 @@
 			{showHiddenFiles}
 			{nodeExpansionCommand}
 			{onNodeExpansionSummaryChange}
+			{visibleFields}
 			{icon}
 			bind:selectedFiles={selectedFilePaths}
 		/>

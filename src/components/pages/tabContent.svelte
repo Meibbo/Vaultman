@@ -28,6 +28,7 @@
 		nodeExpansionCommand = null,
 		onNodeExpansionSummaryChange,
 		icon = defaultIcon,
+		visibleFields = [],
 	}: {
 		plugin: VaultmanPlugin;
 		query?: string;
@@ -41,6 +42,7 @@
 		nodeExpansionCommand?: ExplorerExpansionCommand | null;
 		onNodeExpansionSummaryChange?: (summary: ExplorerExpansionSummary) => void;
 		icon?: (node: HTMLElement, name: string) => { update(n: string): void };
+		visibleFields?: readonly string[];
 	} = $props();
 
 	const contentExplorer = $derived(new explorerContent(plugin));
@@ -266,6 +268,7 @@
 				{active}
 				{nodeExpansionCommand}
 				{onNodeExpansionSummaryChange}
+				{visibleFields}
 				{icon}
 			/>
 		{/key}

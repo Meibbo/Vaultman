@@ -17,6 +17,7 @@
 		mergeMouseGestureConfig,
 		type MouseGestureConfig,
 	} from '../../services/serviceMouse';
+	import type { NodeFieldDefinition } from '../../services/serviceNodeFieldVisibility';
 
 	type FiltersTab = 'props' | 'files' | 'tags' | 'content';
 	type HeaderMode = 'header' | 'sort' | 'viewmode';
@@ -67,6 +68,9 @@
 		fnrIslandService,
 		onCrear,
 		mouseGestureConfig,
+		fieldDefinitions = [],
+		visibleFields = [],
+		onVisibleFieldsChange,
 	}: {
 		activeTab: FiltersTab;
 		filtersSearch: string;
@@ -97,6 +101,9 @@
 		fnrIslandService?: FnRIslandService;
 		onCrear?: (change: PendingChange) => void;
 		mouseGestureConfig?: MouseGestureConfig;
+		fieldDefinitions?: readonly NodeFieldDefinition[];
+		visibleFields?: readonly string[];
+		onVisibleFieldsChange?: (fields: string[]) => void;
 	} = $props();
 
 	const CATEGORY_LABELS: Record<FiltersTab, [string, string]> = {
@@ -655,8 +662,10 @@
 					onClose={closeHeaderPopup}
 					bind:viewMode
 					bind:addMode
-					initialViewMode={viewMode}
 					{addOpCount}
+					{fieldDefinitions}
+					{visibleFields}
+					{onVisibleFieldsChange}
 					{icon}
 				/>
 			</div>

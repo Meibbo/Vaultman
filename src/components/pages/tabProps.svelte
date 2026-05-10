@@ -23,6 +23,7 @@
 		onNodeExpansionSummaryChange,
 		startRenameHandoff,
 		openPropSetIsland,
+		visibleFields = [],
 	}: {
 		plugin: VaultmanPlugin;
 		searchTerm?: string;
@@ -36,6 +37,7 @@
 		onNodeExpansionSummaryChange?: (summary: ExplorerExpansionSummary) => void;
 		startRenameHandoff?: (handoff: FnRRenameHandoff) => void;
 		openPropSetIsland?: (propName: string) => void;
+		visibleFields?: readonly string[];
 	} = $props();
 
 	onMount(() => {
@@ -69,6 +71,7 @@
 			{active}
 			{nodeExpansionCommand}
 			{onNodeExpansionSummaryChange}
+			{visibleFields}
 			{icon}
 		/>
 	{/if}

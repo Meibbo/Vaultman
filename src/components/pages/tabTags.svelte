@@ -22,6 +22,7 @@
 		nodeExpansionCommand = null,
 		onNodeExpansionSummaryChange,
 		startRenameHandoff,
+		visibleFields = [],
 	}: {
 		plugin: VaultmanPlugin;
 		searchTerm?: string;
@@ -34,6 +35,7 @@
 		nodeExpansionCommand?: ExplorerExpansionCommand | null;
 		onNodeExpansionSummaryChange?: (summary: ExplorerExpansionSummary) => void;
 		startRenameHandoff?: (handoff: FnRRenameHandoff) => void;
+		visibleFields?: readonly string[];
 	} = $props();
 
 	onMount(() => {
@@ -67,6 +69,7 @@
 			{active}
 			{nodeExpansionCommand}
 			{onNodeExpansionSummaryChange}
+			{visibleFields}
 			{icon}
 		/>
 	{/if}

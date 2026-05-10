@@ -1,28 +1,21 @@
 <script lang="ts">
 	import { translate } from '../../../index/i18n/lang';
-	import { untrack } from 'svelte';
 	import BtnSelection from '../../btnSelection.svelte';
 	import type { BtnSelectionItem } from '../../../types/typePrimitives';
+	import {
+		toggleVisibleField,
+		type NodeFieldDefinition,
+	} from '../../../services/serviceNodeFieldVisibility';
+	import type { ExplorerViewMode } from '../../../types/typeViews';
 
 	type FiltersTab = 'props' | 'files' | 'tags' | 'content';
-	type ViewMode = 'tree' | 'dnd' | 'table' | 'grid' | 'cards';
-
-	type PillDef = {
-		id: string;
-		labelKey: string;
-		defaultOn: boolean;
-	};
+	type ViewMode = ExplorerViewMode;
 
 	const VIEW_MODES: { id: ViewMode; iconName: string; labelKey: string }[] = [
 		{
 			id: 'tree',
 			iconName: 'lucide-list-tree',
 			labelKey: 'viewmode.mode.tree',
-		},
-		{
-			id: 'dnd',
-			iconName: 'lucide-grip-vertical',
-			labelKey: 'viewmode.mode.dnd',
 		},
 		{
 			id: 'table',
@@ -41,104 +34,37 @@
 		},
 	];
 
-	// Pills for each combination of tab × view (files splits by view mode).
-	const PILLS: Record<string, PillDef[]> = {
-		tags: [
-			{ id: 'icon', labelKey: 'viewmode.pill.icon', defaultOn: true },
-			{ id: 'text', labelKey: 'viewmode.pill.text', defaultOn: true },
-			{ id: 'count', labelKey: 'viewmode.pill.count', defaultOn: true },
-			{ id: 'files', labelKey: 'viewmode.pill.files', defaultOn: false },
-			{ id: 'nested', labelKey: 'viewmode.pill.nested', defaultOn: false },
-			{ id: 'date', labelKey: 'viewmode.pill.date', defaultOn: false },
-		],
-		props: [
-			{ id: 'icon', labelKey: 'viewmode.pill.icon', defaultOn: true },
-			{ id: 'text', labelKey: 'viewmode.pill.text', defaultOn: true },
-			{ id: 'count', labelKey: 'viewmode.pill.count', defaultOn: true },
-			{ id: 'type', labelKey: 'viewmode.pill.type', defaultOn: false },
-			{ id: 'values', labelKey: 'viewmode.pill.values', defaultOn: false },
-			{ id: 'date', labelKey: 'viewmode.pill.date', defaultOn: false },
-		],
-		'files-grid': [
-			{ id: 'name', labelKey: 'viewmode.pill.name', defaultOn: true },
-			{ id: 'date', labelKey: 'viewmode.pill.date', defaultOn: true },
-			{ id: 'tags', labelKey: 'viewmode.pill.tags', defaultOn: false },
-			{ id: 'path', labelKey: 'viewmode.pill.path', defaultOn: false },
-			{ id: 'size', labelKey: 'viewmode.pill.size', defaultOn: false },
-		],
-		'files-tree': [
-			{ id: 'name', labelKey: 'viewmode.pill.name', defaultOn: true },
-			{ id: 'ext', labelKey: 'viewmode.pill.ext', defaultOn: true },
-			{ id: 'date', labelKey: 'viewmode.pill.date', defaultOn: false },
-			{ id: 'tags', labelKey: 'viewmode.pill.tags', defaultOn: false },
-			{ id: 'path', labelKey: 'viewmode.pill.path', defaultOn: false },
-		],
-		content: [
-			{ id: 'path', labelKey: 'viewmode.pill.path', defaultOn: true },
-			{ id: 'text', labelKey: 'viewmode.pill.text', defaultOn: true },
-			{ id: 'date', labelKey: 'viewmode.pill.date', defaultOn: false },
-		],
-	};
-
-	function defaultPills(key: string): Set<string> {
-		const defs = PILLS[key] ?? [];
-		return new Set(defs.filter((p) => p.defaultOn).map((p) => p.id));
-	}
-
-	function pillsKey(tab: FiltersTab, view: ViewMode): string {
-		if (tab === 'files') return view === 'grid' ? 'files-grid' : 'files-tree';
-		return tab;
-	}
-
 	let {
 		activeTab,
 		onClose,
 		viewMode = $bindable('tree'),
 		addMode = $bindable(false),
 		icon,
-		initialViewMode = 'tree' as ViewMode,
 		addOpCount = 0,
+		fieldDefinitions = [],
+		visibleFields = [],
+		onVisibleFieldsChange,
 	}: {
 		activeTab: FiltersTab;
 		onClose: () => void;
 		viewMode: ViewMode;
 		addMode: boolean;
 		icon: (node: HTMLElement, name: string) => { update(n: string): void };
-		initialViewMode?: ViewMode;
 		addOpCount?: number;
+		fieldDefinitions?: readonly NodeFieldDefinition[];
+		visibleFields?: readonly string[];
+		onVisibleFieldsChange?: (fields: string[]) => void;
 	} = $props();
 
-	let activePills = $state<Set<string>>(
-		untrack(() => defaultPills(pillsKey(activeTab, initialViewMode))),
-	);
-
-	// Reset per-tab UI state (pills), but NOT the view mode (shared)
-	let _prevTab = $state<FiltersTab>(untrack(() => activeTab));
-	$effect(() => {
-		if (activeTab !== _prevTab) {
-			_prevTab = activeTab;
-			activePills = defaultPills(pillsKey(activeTab, viewMode));
-		}
-	});
-
-	const currentPillKey = $derived(pillsKey(activeTab, viewMode));
-	const currentPillDefs = $derived(PILLS[currentPillKey] ?? []);
 	const showSearch = $derived(activeTab === 'files' && viewMode === 'grid');
 
 	function selectView(v: ViewMode) {
 		if (viewMode === v) return;
 		viewMode = v;
-		activePills = defaultPills(pillsKey(activeTab, v));
 	}
 
 	function togglePill(id: string) {
-		const next = new Set(activePills);
-		if (next.has(id)) {
-			next.delete(id);
-		} else {
-			next.add(id);
-		}
-		activePills = next;
+		onVisibleFieldsChange?.(toggleVisibleField(activeTab, viewMode, visibleFields, id));
 	}
 
 	function toggleAddMode() {
@@ -220,10 +146,12 @@
 		</div>
 		<!-- Pills (horizontal scroll, no scrollbar) -->
 		<div class="vm-viewmode-pills">
-			{#each currentPillDefs as pill (pill.id)}
+			{#each fieldDefinitions as pill (pill.id)}
 				<button
+					type="button"
 					class="vm-viewmode-pill"
-					class:is-active={activePills.has(pill.id)}
+					class:is-active={visibleFields.includes(pill.id)}
+					aria-pressed={visibleFields.includes(pill.id)}
 					onclick={() => togglePill(pill.id)}
 				>
 					{translate(pill.labelKey)}

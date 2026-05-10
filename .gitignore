@@ -18,6 +18,10 @@ settings.local.json
 *.mjs
 # Temporal ignore of the docs folder.
 docs/*
+# CodeQL
+# codeql/tests/
+codeql-db/
+*.sarif
 # Agent Knowledge Management
 docs/superpowers/*
 docs/superpowers/audits/*
@@ -45,6 +49,3 @@ docs/superpowers/audits/*
 !.agents/tools/
 !.agents/tools/pkm-ai/
 !.agents/tools/pkm-ai/**/*.mjs
-# CodeQL
-codeql-db/
-*.sarif

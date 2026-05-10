@@ -35,6 +35,8 @@ export interface VaultmanSettings {
 	explorerFilesShowHidden: boolean;
 	/** Configurable mouse gesture grammar per interactive surface. */
 	mouseGestures?: Partial<Record<MouseGestureSurface, MouseGestureConfig>>;
+	/** Persisted visible node fields keyed by `${providerId}:${viewMode}`. */
+	viewFieldVisibility?: Record<string, string[]>;
 	/** Position of the operations panel */
 	operationsPanelPosition: 'right' | 'bottom' | 'replace';
 	/** Path to last .base file used with Vaultman */
@@ -134,6 +136,7 @@ export const DEFAULT_SETTINGS: VaultmanSettings = {
 		fab: { primaryTiming: 'defer', tertiary: ['alt-click', 'middle-click'] },
 		toolbar: { primaryTiming: 'defer', tertiary: ['alt-click', 'middle-click'] },
 	},
+	viewFieldVisibility: {},
 	operationsPanelPosition: 'right',
 	basesLastUsedPath: '',
 	basesOpenMode: 'last-used',

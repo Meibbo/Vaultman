@@ -4,7 +4,7 @@ type: initiative-index
 status: active
 parent: "[[docs/work/pkm-ai/index|pkm-ai]]"
 created: 2026-05-04T01:44:46
-updated: 2026-05-07T08:13:22
+updated: 2026-05-10T00:00:00
 tags:
   - agent/work
   - initiative/polish
@@ -24,10 +24,16 @@ and non-blocking UX improvements.
 ## Active Specs
 
 - [[docs/work/polish/specs/2026-05-07-tanstack-node-table/index|TanStack node table]]
+- [[docs/work/polish/specs/2026-05-10-pretext-grid-cards/index|Pretext grid cards hybrid layout]]
+
+## Research
+
+- [[docs/work/polish/research/2026-05-09-multi-platform-layout-strategy|Multi-platform layout strategy]]
 
 ## Active Plans
 
 - [[docs/work/polish/plans/2026-05-07-tanstack-node-table/index|TanStack node table implementation plan]]
+- [[docs/work/polish/plans/2026-05-10-pretext-grid-cards/index|Pretext grid cards implementation plan]]
 
 ## Related Routes
 

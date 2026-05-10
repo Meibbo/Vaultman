@@ -28,6 +28,7 @@
 		ExplorerExpansionCommand,
 		ExplorerExpansionSummary,
 	} from '../../types/typeExplorer';
+	import type { ExplorerViewMode } from '../../types/typeViews';
 	import type { FilterGroup } from '../../types/typeFilter';
 	import type { BasesImportTarget } from '../../types/typeBasesInterop';
 	import {
@@ -47,6 +48,11 @@
 		prefillPropSetIsland,
 	} from '../../services/serviceFnRPropSet';
 	import type { PendingChange } from '../../types/typeOps';
+	import {
+		fieldDefinitionsFor,
+		setVisibleFieldsForSettings,
+		visibleFieldsFromSettings,
+	} from '../../services/serviceNodeFieldVisibility';
 	// TODO: por quÃ© setIcon?
 	import { setIcon, type TFile } from 'obsidian';
 
@@ -117,9 +123,16 @@
 	let nodeExpansionCommands = $state<Record<FiltersSearchTab, ExplorerExpansionCommand | null>>(
 		createExpansionCommandState(),
 	);
+	let fieldVisibilityVersion = $state(0);
 
 	const activeNodeExpansionSummary = $derived(
 		nodeExpansionSummaries[filtersActiveTab] ?? emptyExpansionSummary(),
+	);
+	const activeFieldDefinitions = $derived(
+		fieldDefinitionsFor(providerIdForTab(filtersActiveTab), filtersViewMode as ExplorerViewMode),
+	);
+	const activeVisibleFields = $derived(
+		visibleFieldsFor(filtersActiveTab, filtersViewMode as ExplorerViewMode),
 	);
 
 	function icon(el: HTMLElement, name: string) {
@@ -282,6 +295,25 @@
 		void plugin.saveSettings?.();
 	}
 
+	function providerIdForTab(tab: FiltersSearchTab): string {
+		return tab;
+	}
+
+	function visibleFieldsFor(tab: FiltersSearchTab, mode: ExplorerViewMode): string[] {
+		void fieldVisibilityVersion;
+		return visibleFieldsFromSettings(plugin.settings, providerIdForTab(tab), mode);
+	}
+
+	async function setActiveVisibleFields(fields: string[]): Promise<void> {
+		await setVisibleFieldsForSettings(
+			plugin,
+			providerIdForTab(filtersActiveTab),
+			filtersViewMode as ExplorerViewMode,
+			fields,
+		);
+		fieldVisibilityVersion += 1;
+	}
+
 	function setContentSearch(term: string): void {
 		filtersSearchByTab = setFiltersSearch(filtersSearchByTab, 'content', term);
 	}
@@ -418,6 +450,9 @@
 	{fnrIslandService}
 	mouseGestureConfig={plugin.settings?.mouseGestures?.toolbar}
 	onCrear={handleCrear}
+	fieldDefinitions={activeFieldDefinitions}
+	visibleFields={activeVisibleFields}
+	onVisibleFieldsChange={(fields) => void setActiveVisibleFields(fields)}
 />
 
 <div
@@ -439,6 +474,7 @@
 					bind:sortDirection={filtersSortDir}
 					nodeExpansionCommand={nodeExpansionCommands.files}
 					onNodeExpansionSummaryChange={(summary) => setNodeExpansionSummary('files', summary)}
+					visibleFields={visibleFieldsFor('files', filtersViewMode as ExplorerViewMode)}
 					{icon}
 				/>
 			{/key}
@@ -456,6 +492,7 @@
 				active={filtersActiveTab === 'props'}
 				nodeExpansionCommand={nodeExpansionCommands.props}
 				onNodeExpansionSummaryChange={(summary) => setNodeExpansionSummary('props', summary)}
+				visibleFields={visibleFieldsFor('props', filtersViewMode as ExplorerViewMode)}
 				{startRenameHandoff}
 				{openPropSetIsland}
 			/>
@@ -476,6 +513,7 @@
 				active={filtersActiveTab === 'files'}
 				nodeExpansionCommand={nodeExpansionCommands.files}
 				onNodeExpansionSummaryChange={(summary) => setNodeExpansionSummary('files', summary)}
+				visibleFields={visibleFieldsFor('files', filtersViewMode as ExplorerViewMode)}
 				{startRenameHandoff}
 			/>
 		</div>
@@ -491,6 +529,7 @@
 				active={filtersActiveTab === 'tags'}
 				nodeExpansionCommand={nodeExpansionCommands.tags}
 				onNodeExpansionSummaryChange={(summary) => setNodeExpansionSummary('tags', summary)}
+				visibleFields={visibleFieldsFor('tags', filtersViewMode as ExplorerViewMode)}
 				{startRenameHandoff}
 			/>
 		</div>
@@ -507,6 +546,7 @@
 				active={filtersActiveTab === 'content'}
 				nodeExpansionCommand={nodeExpansionCommands.content}
 				onNodeExpansionSummaryChange={(summary) => setNodeExpansionSummary('content', summary)}
+				visibleFields={visibleFieldsFor('content', filtersViewMode as ExplorerViewMode)}
 				{icon}
 			/>
 		</div>

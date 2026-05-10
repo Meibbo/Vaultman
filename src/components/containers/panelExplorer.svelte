@@ -53,6 +53,7 @@
 		nodeExpansionCommand = null,
 		onNodeExpansionSummaryChange,
 		onImperativeApiReady,
+		visibleFields = [],
 		icon,
 	}: {
 		plugin: VaultmanPlugin;
@@ -75,6 +76,7 @@
 		 * first virtual row immediately after revealing the leaf.
 		 */
 		onImperativeApiReady?: (api: PanelExplorerImperativeApi) => void;
+		visibleFields?: readonly string[];
 		icon: (node: HTMLElement, name: string) => { update(n: string): void };
 	} = $props();
 
@@ -132,6 +134,7 @@
 	);
 	const tableRows = $derived(viewMode === 'table' ? nodeRowsFromTree(nodes) : []);
 	const tableColumns = $derived(nodeTableColumnsForProvider<TMeta>(provider.id));
+	const visibleFieldsKey = $derived(visibleFields.join('\u0001'));
 	const emptyState = $derived.by(() => resolveEmptyState(viewMode, searchTerm, provider));
 	const fallbackItemCount = $derived(flatFiles.length + nodes.length);
 	const fallbackState = $derived.by(() =>
@@ -871,7 +874,7 @@
 <svelte:document onclick={handleDocumentClick} />
 <svelte:window onkeydown={handleWindowKeydown} />
 
-<div class="vm-panel-explorer" bind:this={rootEl}>
+<div class="vm-panel-explorer" data-visible-fields={visibleFieldsKey} bind:this={rootEl}>
 	{#if viewMode === 'tree'}
 		<div class="vm-tree-container">
 			{#if isTreeEmpty}

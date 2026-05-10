@@ -6,7 +6,7 @@ parent: "[[docs/work/hardening/specs/2026-05-06-node-selection-service/index|nod
 archive_source: "docs/archive/hardening/active-docs/2026-05-06T050935-current-status.md"
 compacted: true
 created: 2026-05-04T01:36:20
-updated: 2026-05-09T21:54:00
+updated: 2026-05-10T01:05:00
 tags:
   - agent/current
 created_by: dec
@@ -55,6 +55,12 @@ Archived completed/superseded status:
   [[docs/work/polish/specs/2026-05-07-tanstack-node-table/index|TanStack node table]].
 - Current user-approved polish plan:
   [[docs/work/polish/plans/2026-05-07-tanstack-node-table/index|TanStack node table implementation plan]].
+- Current user-approved Pretext/cards spec:
+  [[docs/work/polish/specs/2026-05-10-pretext-grid-cards/index|Pretext grid cards hybrid layout]].
+- Current Pretext/cards implementation plan:
+  [[docs/work/polish/plans/2026-05-10-pretext-grid-cards/index|Pretext grid cards implementation plan]].
+- New multi-platform layout strategy:
+  [[docs/work/polish/research/2026-05-09-multi-platform-layout-strategy|Multi-platform layout strategy]].
 - Current selection debug and TanStack assimilation record:
   [[docs/work/hardening/research/2026-05-06-selection-tanstack-virtualizer-debug/index|Selection hang and TanStack virtualizer assimilation]].
 - Standing engineering context:
@@ -82,6 +88,38 @@ Archived completed/superseded status:
 
 ## Current Verification
 
+- 2026-05-10 Pretext/cards Task 4 DONE:
+  [[docs/work/polish/plans/2026-05-10-pretext-grid-cards/04-view-menu-routing|View-menu and settings wiring]].
+  `overlayViewMenu` now receives provider/view field definitions and visible
+  fields from `pageFilters`, emits normalized explicit field changes, exposes
+  Cards, and hides DnD. `pageFilters` persists field changes through
+  `serviceNodeFieldVisibility` and forwards provider-specific visible fields
+  through tabs into `PanelExplorer`. Verification passed: RED overlay callback
+  failure, focused overlay 1 file/3 tests, Svelte autofixer on 8 components,
+  `check`, `lint`, `build`, focused component 5 files/55 tests, full
+  `test:unit` 80 files/546 tests, and full `test:component` 41 files/205
+  tests after clearing CodeQL/Java language-server workers before broad runs.
+- 2026-05-10 Pretext/cards Task 3 DONE:
+  [[docs/work/polish/plans/2026-05-10-pretext-grid-cards/03-card-layout|Node card layout service]].
+  Added `serviceNodeCardLayout` with provider-specific field extraction,
+  injected text measurement, stable height buckets, and row-height aggregation.
+  Verification passed: RED import failure, focused unit 1 file/5 tests,
+  `check`, `lint`, `build`, and full `test:unit` 80 files/546 tests after
+  clearing CodeQL/Java language-server workers before the broad run.
+- 2026-05-10 Pretext/cards Task 2 DONE:
+  [[docs/work/polish/plans/2026-05-10-pretext-grid-cards/02-pretext-measurement|Pretext measurement service]].
+  Added `@chenglou/pretext@^0.0.6` and `serviceTextMeasure` with Pretext and
+  fallback engines, prepared/layout caches, style-keyed options, and explicit
+  cache clearing. Verification passed: focused unit 1 file/4 tests, `check`,
+  `lint`, `build`, and full `test:unit` 79 files/541 tests after clearing
+  leftover CodeQL/Java workers from the prior CodeQL run.
+- 2026-05-10 Pretext/cards Task 1 DONE:
+  [[docs/work/polish/plans/2026-05-10-pretext-grid-cards/01-field-visibility|Field visibility settings contract]].
+  `viewFieldVisibility` is now a persisted settings field, and
+  `serviceNodeFieldVisibility` owns provider/view field definitions,
+  defaulting, unknown-field pruning, identity repair, toggling, and explicit
+  save-only persistence. Verification passed: focused unit 1 file/7 tests,
+  `check`, `lint`, and full `test:unit` 78 files/537 tests.
 - 2026-05-09 revision-gated explorer model caches DONE:
   [[docs/work/performance/plans/2026-05-09-revision-gated-explorer-model-caches|Revision-gated explorer model caches]].
   Indexes now publish revisions; files/props/tags/content providers pass
@@ -99,9 +137,11 @@ Archived completed/superseded status:
   that should use `leadingDebounce` or an approved scheduler; and
   `vaultman/unbounded-vault-read-promise-all` now flags full-vault
   `Promise.all(files.map(...vault.read/cachedRead...))` shapes outside bounded
-  chunk/pool patterns. The custom query pack is wired into CodeQL analysis and
-  a query-test workflow job. Local `codeql test run --additional-packs
-  codeql\queries\javascript codeql\tests --threads=0` passed with 3 tests.
+  chunk/pool patterns; and `vaultman/unsafe-dynamic-code-path-html` now flags
+  direct dynamic code execution, raw dynamic HTML writes, and unguarded dynamic
+  vault path calls. The custom query pack is wired into CodeQL analysis and a
+  query-test workflow job. Local `codeql test run --additional-packs
+  codeql\queries\javascript codeql\tests --threads=0` passed with 4 tests.
 - 2026-05-09 durable virtualizer keys DONE:
   [[docs/work/performance/research/2026-05-09-durable-virtualizer-keys|Durable TanStack virtualizer keys]].
   `viewTree`, `ViewNodeGrid`, and `ViewNodeTable` now pass durable

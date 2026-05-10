@@ -1,0 +1,13 @@
+| UnsafeDynamicCodePathHtml.ts:37:2:37:13 | eval(source) | Avoid eval; route dynamic expressions through an explicit parser or allowlisted interpreter. |
+| UnsafeDynamicCodePathHtml.ts:38:2:38:21 | new Function(source) | Avoid the Function constructor; route dynamic expressions through an explicit parser or allowlisted interpreter. |
+| UnsafeDynamicCodePathHtml.ts:39:2:39:17 | Function(source) | Avoid the Function constructor; route dynamic expressions through an explicit parser or allowlisted interpreter. |
+| UnsafeDynamicCodePathHtml.ts:40:9:40:26 | import(moduleName) | Dynamic import paths should be literal or handled through an approved module resolver. |
+| UnsafeDynamicCodePathHtml.ts:48:2:48:34 | element ... rHtml() | Raw dynamic HTML should not be assigned to innerHTML or outerHTML; use textContent or an approved sanitizer. |
+| UnsafeDynamicCodePathHtml.ts:49:2:49:34 | element ... rHtml() | Raw dynamic HTML should not be assigned to innerHTML or outerHTML; use textContent or an approved sanitizer. |
+| UnsafeDynamicCodePathHtml.ts:50:2:50:55 | element ... Html()) | Raw dynamic HTML should not flow into insertAdjacentHTML; use textContent or an approved sanitizer. |
+| UnsafeDynamicCodePathHtml.ts:61:8:61:34 | adapter ... Path()) | Dynamic vault paths should pass through an approved path guard before vault or adapter filesystem calls. |
+| UnsafeDynamicCodePathHtml.ts:62:8:62:53 | app.vau ... "data") | Dynamic vault paths should pass through an approved path guard before vault or adapter filesystem calls. |
+| UnsafeDynamicCodePathHtml.ts:63:8:63:56 | app.vau ... Path()) | Dynamic vault paths should pass through an approved path guard before vault or adapter filesystem calls. |
+| UnsafeDynamicCodePathHtml.ts:64:2:64:47 | app.vau ... Path()) | Dynamic vault paths should pass through an approved path guard before vault or adapter filesystem calls. |
+| UnsafeDynamicCodePathHtml.ts:65:8:65:46 | app.vau ... "body") | Dynamic vault paths should pass through an approved path guard before vault or adapter filesystem calls. |
+| UnsafeDynamicCodePathHtml.ts:66:8:66:44 | app.vau ... Path()) | Dynamic vault paths should pass through an approved path guard before vault or adapter filesystem calls. |

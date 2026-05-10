@@ -53,3 +53,9 @@
 {"ts":"2026-05-06T10:15:09","event":"health_failed","path":".agents/docs","detail":"3 failures"}
 {"ts":"2026-05-06T10:16:18","event":"health_passed","path":".agents/docs","detail":"12 warnings"}
 {"ts":"2026-05-06T11:18:32","event":"health_passed","path":".agents/docs","detail":"12 warnings"}
+{"ts":"2026-05-10T04:50:26","event":"health_failed","path":".agents/docs","detail":"54 failures"}
+{"ts":"2026-05-10T04:51:54","event":"health_failed","path":".agents/docs","detail":"46 failures"}
+{"ts":"2026-05-10T05:14:29","event":"health_failed","path":".agents/docs","detail":"47 failures"}
+{"ts":"2026-05-10T05:18:43","event":"health_failed","path":".agents/docs","detail":"46 failures"}
+{"ts":"2026-05-10T05:18:49","event":"health_failed","path":".agents/docs","detail":"46 failures"}
+{"ts":"2026-05-10T05:20:20","event":"health_failed","path":".agents/docs","detail":"46 failures"}
