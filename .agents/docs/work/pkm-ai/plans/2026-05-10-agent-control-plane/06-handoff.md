@@ -4,7 +4,7 @@ type: handoff
 status: active
 parent: "[[docs/work/pkm-ai/plans/2026-05-10-agent-control-plane/index|Agent Control Plane Implementation Plan]]"
 created: 2026-05-10T04:43:22
-updated: 2026-05-10T04:43:22
+updated: 2026-05-10T05:30:51
 created_by: codex
 updated_by: codex
 tags:
@@ -50,37 +50,101 @@ Verification evidence from worker:
 - filtered doc health showed global `doc health: FAIL (46)` and no
   `residual-classification` path failure.
 
-## In Progress
-
 ### Task 2 - Verification Matrix
 
-Worker created:
+Implemented:
 [[docs/work/pkm-ai/specs/2026-05-10-agent-control-plane/04-verification-matrix|Verification matrix]].
 
-Spec compliance first failed because the table lacked `Evidence record path`.
-The implementer fixed that column, and re-review approved spec compliance.
+Also updated:
 
-Quality review still has open changes:
+- [[docs/work/pkm-ai/specs/2026-05-10-agent-control-plane/index|Agent Control Plane spec index]]
+- [[docs/work/pkm-ai/plans/2026-05-10-agent-control-plane/02-verification-matrix|Task 2 plan slice]]
 
-1. Link the new verification matrix shard from the parent spec index:
-   [[docs/work/pkm-ai/specs/2026-05-10-agent-control-plane/index|Agent Control Plane]].
-2. Broaden the `Evidence record path` wording. Current entries over-route to
-   `docs/work/<initiative>/items/<...>/verification.md`; docs policy allows
-   evidence in initiative source records under `items/`, `specs/`, `plans/`,
-   `research`, or `backlog`. Prefer wording like "active initiative source
-   record verification section or shard" with examples.
+Quality findings resolved:
 
-After fixing those, rerun Task 2 quality review or perform an equivalent
-manual review, then mark Task 2 plan steps complete.
+- The new matrix shard is linked from the parent spec index.
+- `Evidence record path` cells route to the active initiative source record
+  verification section or shard instead of only
+  `items/<item>/verification.md`.
 
-## Not Started
+Verification:
 
-- Task 3:
-  [[docs/work/pkm-ai/plans/2026-05-10-agent-control-plane/03-route-retrieval-profiles|Route and retrieval profiles]]
-- Task 4:
-  [[docs/work/pkm-ai/plans/2026-05-10-agent-control-plane/04-tool-contracts|Tool contracts]]
-- Task 5:
-  [[docs/work/pkm-ai/plans/2026-05-10-agent-control-plane/05-verification-close|Verification and close]]
+- line counts: spec index 68, matrix shard 36, plan slice 124;
+- trailing whitespace scan on touched Task 2 files returned no matches;
+- filtered doc health still shows global `doc health: FAIL (50)`, with no
+  `agent-control-plane` or `verification-matrix` path failure.
+
+### Task 3 - Route And Retrieval Profiles
+
+Implemented:
+[[docs/work/pkm-ai/specs/2026-05-10-agent-control-plane/05-route-retrieval-profiles|Route and retrieval profiles]].
+
+Also updated:
+
+- [[docs/work/pkm-ai/specs/2026-05-10-agent-control-plane/index|Agent Control Plane spec index]]
+- [[docs/work/pkm-ai/plans/2026-05-10-agent-control-plane/03-route-retrieval-profiles|Task 3 plan slice]]
+- `.agents/tools/pkm-ai/lib/frontmatter.mjs`
+- `.agents/tools/pkm-ai/test/frontmatter.test.mjs`
+
+Notes:
+
+- The shard defines route profiles, retrieval profiles, and tool choice rules.
+- `index-docs.mjs` was blocked by three pre-existing YAML title parse errors
+  in vertical-analysis research notes; the repair only quoted titles with `:`
+  and removed trailing whitespace from those touched files.
+- `query-docs` now tokenizes search words across punctuation/connectors so
+  `"route retrieval profiles"` finds `route and retrieval profiles`.
+
+Verification:
+
+- RED focused frontmatter test failed on the new tokenized search expectation.
+- GREEN focused frontmatter test passed; full PKM-AI tool tests passed 14/14.
+- `index-docs.mjs` indexed 331 docs.
+- `query-docs.mjs "route retrieval profiles"` finds the plan slice and spec
+  shard.
+- filtered doc health still shows global `doc health: FAIL (47)`, with no
+  `route-retrieval` or `frontmatter-parse` path failure.
+
+### Task 4 - Tool Contracts
+
+Implemented:
+[[docs/work/pkm-ai/specs/2026-05-10-agent-control-plane/06-tool-contracts|Tool contracts]].
+
+Also updated:
+
+- [[docs/architecture/policies/tools|Tools policy]]
+- [[docs/work/pkm-ai/specs/2026-05-10-agent-control-plane/index|Agent Control Plane spec index]]
+- [[docs/work/pkm-ai/plans/2026-05-10-agent-control-plane/04-tool-contracts|Task 4 plan slice]]
+
+Verification:
+
+- filtered doc health still shows global `doc health: FAIL (47)`, with no
+  `tool-contracts` or `tools.md` path-specific failure;
+- trailing whitespace scan on `tools.md` and `06-tool-contracts.md` returned no
+  matches;
+- scoped `git diff --check` returned no path errors, only CRLF warnings.
+
+### Task 5 - Verification And Close
+
+Implemented:
+[[docs/work/pkm-ai/plans/2026-05-10-agent-control-plane/05-verification-close|Verification and close]].
+
+Also updated:
+
+- [[docs/work/pkm-ai/plans/2026-05-10-agent-control-plane/index|Agent Control Plane implementation plan]]
+- [[docs/work/pkm-ai/index|PKM-AI index]]
+
+Verification:
+
+- all control-plane spec/plan Markdown files are under 200 lines;
+- banned-token and trailing-whitespace checks returned no output;
+- filtered doc health still shows global `doc health: FAIL (47)`, with no new
+  control-plane, residual-classification, route-retrieval, or tool-contracts
+  path failure.
+
+## In Progress
+
+None.
 
 ## Open Subagent Status
 
@@ -89,41 +153,17 @@ should be assumed active.
 
 ## Current Git Scope
 
-Known relevant changed/untracked paths at handoff time:
-
-- modified: `.agents/docs/work/pkm-ai/index.md`
-- modified:
-  `.agents/docs/work/pkm-ai/plans/2026-05-10-agent-control-plane/01-residual-classification.md`
-- untracked:
-  `.agents/docs/work/pkm-ai/plans/2026-05-10-agent-control-plane/`
-- untracked:
-  `.agents/docs/work/pkm-ai/specs/2026-05-10-agent-control-plane/`
+Relevant changed/untracked paths are the control-plane plan/spec records,
+[[docs/work/pkm-ai/index|PKM-AI index]],
+[[docs/architecture/policies/tools|Tools policy]], the tokenized
+`query-docs` matcher/test, and three vertical-analysis research notes repaired
+only for YAML title parsing and trailing whitespace.
 
 There are other unrelated dirty files in the wider worktree. Do not revert
 changes you did not make.
 
 ## Next Exact Step
 
-Fix Task 2 quality findings:
-
-1. Add the `04-verification-matrix` wikilink to the spec index shard list.
-2. Edit `04-verification-matrix.md` evidence path cells so they route to the
-   active initiative source record, not only `items/<...>/verification.md`.
-3. Mark Task 2 plan steps complete only after verification.
-
-Recommended verification after the fix:
-
-```powershell
-$files = @(
-  '.agents/docs/work/pkm-ai/specs/2026-05-10-agent-control-plane/index.md',
-  '.agents/docs/work/pkm-ai/specs/2026-05-10-agent-control-plane/04-verification-matrix.md',
-  '.agents/docs/work/pkm-ai/plans/2026-05-10-agent-control-plane/02-verification-matrix.md'
-)
-foreach ($f in $files) { "$f`t$((Get-Content -LiteralPath $f).Count)" }
-Select-String -Path $files -Pattern '[ \t]+$'
-node .agents\tools\pkm-ai\check-doc-health.mjs | Select-String -Pattern 'agent-control-plane|verification-matrix|doc health'
-```
-
-Expected: all touched files under 200 lines, no trailing whitespace, global doc
-health may still fail with existing `FAIL (46)`, and no new control-plane path
-should appear as a failure.
+This Agent Control Plane slice is closed. Next plans are listed in the plan
+index: queue contract repair, selected/visible scope verification,
+`serviceAPI` read/plan/enqueue design, and TypeScript AST code-index work.

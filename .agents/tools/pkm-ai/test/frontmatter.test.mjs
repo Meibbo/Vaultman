@@ -3,6 +3,7 @@ import assert from "node:assert/strict";
 
 import {
   buildDocEntry,
+  filterEntries,
   formatRows,
   parseArgs,
   parseMarkdown,
@@ -81,4 +82,23 @@ test("formatRows returns compact table text", () => {
   assert.match(table, /VM-0001/);
   assert.match(table, /PKM-AI orchestration refresh/);
   assert.match(table, /backlog-item/);
+});
+
+test("filterEntries matches search words across punctuation and connector words", () => {
+  const rows = filterEntries(
+    [
+      {
+        id: "",
+        title: "Agent control plane - route and retrieval profiles",
+        type: "spec-shard",
+        status: "draft",
+        initiative: "",
+        path: ".agents/docs/work/pkm-ai/specs/2026-05-10-agent-control-plane/05-route-retrieval-profiles.md",
+      },
+    ],
+    {},
+    "route retrieval profiles",
+  );
+
+  assert.equal(rows.length, 1);
 });

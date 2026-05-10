@@ -1,5 +1,5 @@
 ---
-title: Análisis Vertical - Batch 3: Vistas y Virtualización
+title: "Análisis Vertical - Batch 3: Vistas y Virtualización"
 type: vertical-analysis-batch
 status: active
 created: 2026-05-10
@@ -72,7 +72,7 @@ Actúa como la capa de traducción entre los modelos de dominio (`TreeNode`) y e
 ### Código clave
 ```typescript
 export function nodeTableColumnsForProvider<TMeta>(providerId: string): ViewColumn<TreeNode<TMeta>>[] {
-	const columns = 
+	const columns =
 		providerId === 'props' ? PROP_NODE_TABLE_COLUMNS :
 		providerId === 'tags' ? TAG_NODE_TABLE_COLUMNS :
 		providerId === 'files' ? FILE_NODE_TABLE_COLUMNS :

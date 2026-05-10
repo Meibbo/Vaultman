@@ -4,7 +4,7 @@ type: plan-index
 status: draft
 parent: "[[docs/work/pkm-ai/specs/2026-05-10-agent-control-plane/index|Agent Control Plane]]"
 created: 2026-05-10T03:29:53
-updated: 2026-05-10T04:43:22
+updated: 2026-05-10T05:30:51
 created_by: codex
 updated_by: codex
 tags:
@@ -89,6 +89,17 @@ It does not implement:
 ## Current Handoff
 
 - [[docs/work/pkm-ai/plans/2026-05-10-agent-control-plane/06-handoff|Agent control plane subagent handoff]]
+
+## Next Plans
+
+- Queue contract repair: retire or reconnect stale queue `pending` drift before
+  agent-facing operation APIs.
+- Selected/visible scope verification: prove visible explorer scope, selected
+  node scope, and queued operation scope agree before automation expands.
+- `serviceAPI` read/plan/enqueue design: expose supervised read/plan/enqueue
+  only after queue and scope preconditions are verified.
+- TypeScript AST code-index implementation: replace regex-only architecture
+  orientation where dependency, export, and call-site confidence matters.
 
 ## Stop Conditions
 

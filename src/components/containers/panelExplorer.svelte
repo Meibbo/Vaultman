@@ -17,6 +17,7 @@
 	import ViewNodeCards from '../views/ViewNodeCards.svelte';
 	import ViewNodeGrid from '../views/ViewNodeGrid.svelte';
 	import ViewNodeTable from '../views/ViewNodeTable.svelte';
+	import ViewSvarFileManager from '../views/ViewSvarFileManager.svelte'; //temp
 	import ViewEmptyLanding from '../views/viewEmptyLanding.svelte';
 	import { getActivePerfProbe } from '../../dev/perfProbe';
 	import {
@@ -146,6 +147,7 @@
 	const isGridEmpty = $derived(viewMode === 'grid' && gridNodes.length === 0);
 	const isCardsEmpty = $derived(viewMode === 'cards' && cardNodes.length === 0);
 	const isTableEmpty = $derived(viewMode === 'table' && tableRows.length === 0);
+	const isSvarEmpty = $derived(viewMode === 'svar' && nodes.length === 0); //temp
 	let lastCommittedSelectionKey = '';
 	let lastExpansionSummaryKey = '';
 	let lastExpansionCommandSerial = -1;
@@ -996,6 +998,15 @@
 				/>
 			{/if}
 		</div>
+		<!-- temp until i add the new svars provider -->
+	{:else if viewMode === 'svar'}
+		<div class="vm-svar-container-inner">
+			{#if isSvarEmpty}
+				<ViewEmptyLanding state={emptyState} {icon} />
+			{:else}
+				<ViewSvarFileManager {plugin} {provider} />
+			{/if}
+		</div>
 	{:else}
 		<div class="vm-fallback-container">
 			<ViewEmptyLanding state={fallbackState} {icon} />
@@ -1029,6 +1040,15 @@
 		overflow: hidden;
 		min-height: 0;
 		height: 100%;
+	}
+	/* temp until i add the new svars provider */
+	.vm-svar-container-inner {
+		flex: 1;
+		overflow: hidden;
+		min-height: 0;
+		height: 100%;
+		display: flex;
+		flex-direction: column;
 	}
 	.vm-fallback-container {
 		flex: 1;

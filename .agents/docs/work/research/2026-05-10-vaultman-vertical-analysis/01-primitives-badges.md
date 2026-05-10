@@ -1,5 +1,5 @@
 ---
-title: Análisis Vertical - Batch 1: Primitivas y Badges
+title: "Análisis Vertical - Batch 1: Primitivas y Badges"
 type: vertical-analysis-batch
 status: active
 created: 2026-05-10
@@ -66,7 +66,7 @@ sequenceDiagram
     participant UI as ViewGrid/ViewTree
     participant Queue as OperationQueueService
     participant BadgeSrv as serviceBadge.ts
-    
+
     UI->>Queue: Deriva activeOpsByNode (estado actual de operaciones)
     UI->>BadgeSrv: visibleHoverBadges(node, activeOpsByNode)
     Note over BadgeSrv: Aplica BADGE_KIND_ORDER<br/>Filtra operaciones ocultas/inválidas
@@ -89,10 +89,10 @@ sequenceDiagram
 export function detectBadgeContradictions(kinds: Iterable<BadgeKind>): BadgeContradiction[] {
 	const ordered = sortByOrder(kinds);
 	if (!ordered.includes('delete')) return [];
-	
+
     const conflicts = ordered.filter((kind) => MUTATING_KINDS.includes(kind));
 	if (conflicts.length === 0) return [];
-	
+
     return [{
         code: 'delete-with-mutation',
         severity: 'warning',

@@ -1,6 +1,6 @@
 {
 	"name": "vaultman",
-	"version": "1.0.0-beta.26",
+	"version": "1.0.0-rc.2",
 	"description": "Bulk data & metadata editor for vault management in Obsidian",
 	"keywords": [],
 	"license": "MIT",

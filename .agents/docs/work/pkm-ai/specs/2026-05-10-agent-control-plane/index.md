@@ -4,7 +4,7 @@ type: spec-index
 status: draft
 parent: "[[docs/work/pkm-ai/index|PKM-AI]]"
 created: 2026-05-10T03:11:56
-updated: 2026-05-10T03:11:56
+updated: 2026-05-10T05:26:33
 created_by: codex
 updated_by: codex
 tags:
@@ -44,6 +44,9 @@ the next session.
 - [[docs/work/pkm-ai/specs/2026-05-10-agent-control-plane/01-context-and-forces|01 Context And Forces]]
 - [[docs/work/pkm-ai/specs/2026-05-10-agent-control-plane/02-modules-and-interfaces|02 Modules And Interfaces]]
 - [[docs/work/pkm-ai/specs/2026-05-10-agent-control-plane/03-roadmap-and-verification|03 Roadmap And Verification]]
+- [[docs/work/pkm-ai/specs/2026-05-10-agent-control-plane/04-verification-matrix|04 Verification Matrix]]
+- [[docs/work/pkm-ai/specs/2026-05-10-agent-control-plane/05-route-retrieval-profiles|05 Route Retrieval Profiles]]
+- [[docs/work/pkm-ai/specs/2026-05-10-agent-control-plane/06-tool-contracts|06 Tool Contracts]]
 
 ## Design Thesis
 

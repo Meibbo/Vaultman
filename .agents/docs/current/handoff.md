@@ -6,7 +6,7 @@ parent: "[[docs/work/hardening/specs/2026-05-06-node-selection-service/index|nod
 archive_source: "docs/archive/hardening/active-docs/2026-05-06T050935-current-handoff.md"
 compacted: true
 created: 2026-05-04T01:36:20
-updated: 2026-05-10T04:38:24
+updated: 2026-05-10T05:26:24
 tags:
   - agent/current
 created_by: dec
@@ -20,6 +20,12 @@ Archived completed/superseded handoff:
 
 ## Where To Resume
 
+- Latest polish slice:
+  [[docs/work/polish/plans/2026-05-10-service-dnd-foundation/index|serviceDnd semantic foundation]].
+  `serviceDnd` now owns semantic drag/drop state and view projection tokens;
+  the Svelte adapter maps `@thisux/sveltednd` callbacks into that service. Next
+  DnD step is wiring one concrete view surface plus provider drop handlers
+  before exposing a visible `dnd` mode again.
 - Latest completed performance slice:
   [[docs/work/performance/plans/2026-05-09-revision-gated-explorer-model-caches|Revision-gated explorer model caches]].
   `INodeIndex` and `contentIndex` now publish revisions; explorer providers

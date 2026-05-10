@@ -32,6 +32,12 @@
 			iconName: 'lucide-layout-panel-top',
 			labelKey: 'viewmode.mode.cards',
 		},
+		//temp until i add the new svars provider
+		{
+			id: 'svar',
+			iconName: 'lucide-files',
+			labelKey: 'viewmode.mode.svar',
+		},
 	];
 
 	let {

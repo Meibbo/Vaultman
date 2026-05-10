@@ -4,7 +4,7 @@ type: policy
 status: active
 parent: "[[docs/work/pkm-ai/specs/2026-05-04-orchestration-refresh/index|pkm-ai]]"
 created: 2026-05-04T01:36:20
-updated: 2026-05-04T16:35:00
+updated: 2026-05-10T05:26:33
 tags:
   - agent/policy
 ---
@@ -37,6 +37,14 @@ tags:
 - In Codex App on Windows, bundled `rg.exe` can fail with `Access is denied`.
   Prefer `rg` when available; if it fails, fall back to PowerShell
   `Get-ChildItem` and `Select-String`.
+
+## Tool Confidence
+
+- Treat regex-only code tools as heuristic orientation.
+- Do not cite heuristic tools as sole proof for architecture or completion
+  claims.
+- When a heuristic result affects a decision, confirm with source reads, tests,
+  or a stronger parser.
 
 ## Read When
 

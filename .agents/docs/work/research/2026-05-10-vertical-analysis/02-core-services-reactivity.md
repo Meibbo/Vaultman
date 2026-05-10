@@ -1,5 +1,5 @@
 ---
-title: Análisis Vertical - Batch 2: Servicios Core y Reactividad
+title: "Análisis Vertical - Batch 2: Servicios Core y Reactividad"
 type: vertical-analysis-batch
 status: active
 created: 2026-05-10
@@ -26,7 +26,7 @@ sequenceDiagram
     participant Srv as Cualquier Servicio
     participant PM as PerfMeter (Static)
     participant UI as OpsLog UI / Handler
-    
+
     Srv->>PM: time("eval-filter", () => { ... })
     Note over PM: Captura start = now()
     PM->>Srv: Ejecuta fn()

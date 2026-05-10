@@ -4,7 +4,7 @@ type: plan-slice
 status: draft
 parent: "[[docs/work/pkm-ai/plans/2026-05-10-agent-control-plane/index|Agent Control Plane Implementation Plan]]"
 created: 2026-05-10T03:29:53
-updated: 2026-05-10T03:29:53
+updated: 2026-05-10T04:55:05
 created_by: codex
 updated_by: codex
 tags:
@@ -31,7 +31,7 @@ inventing commands and residual rules per slice.
 
 ## Steps
 
-- [ ] **Step 1: Create the matrix shard**
+- [x] **Step 1: Create the matrix shard**
 
 Create the file with frontmatter matching the existing spec shards, using:
 
@@ -42,7 +42,7 @@ status: draft
 parent: "[[docs/work/pkm-ai/specs/2026-05-10-agent-control-plane/index|Agent Control Plane]]"
 ```
 
-- [ ] **Step 2: Add matrix rows**
+- [x] **Step 2: Add matrix rows**
 
 Add a Markdown table with these columns:
 
@@ -65,7 +65,7 @@ Rows to include:
 - Obsidian runtime behavior;
 - dependency/package change.
 
-- [ ] **Step 3: Fill required commands**
+- [x] **Step 3: Fill required commands**
 
 Use these command contracts:
 
@@ -89,7 +89,7 @@ Use these command contracts:
 - Obsidian runtime behavior: Obsidian CLI or WDIO smoke;
 - dependency/package change: install/build/check plus lockfile scope review.
 
-- [ ] **Step 4: Link the new shard**
+- [x] **Step 4: Link the new shard**
 
 Add this bullet to the `Shards` list in the spec index:
 
@@ -97,7 +97,7 @@ Add this bullet to the `Shards` list in the spec index:
 - [[docs/work/pkm-ai/specs/2026-05-10-agent-control-plane/04-verification-matrix|04 Verification Matrix]]
 ```
 
-- [ ] **Step 5: Verify the slice**
+- [x] **Step 5: Verify the slice**
 
 Run:
 
@@ -106,3 +106,19 @@ node .agents\tools\pkm-ai\check-doc-health.mjs | Select-String -Pattern 'agent-c
 ```
 
 Expected: no new failure under `agent-control-plane`.
+
+## Result
+
+Completed 2026-05-10T04:55:05. The verification matrix shard now includes the
+required change-type rows, command contracts, sequencing, residual rules, and
+an `Evidence record path` column that routes evidence to the active initiative
+source record verification section or shard instead of only
+`items/<item>/verification.md`.
+
+Verification:
+
+- Line counts: spec index 68 lines, matrix shard 36 lines, plan slice 124 lines.
+- Trailing whitespace scan on the three touched files returned no matches.
+- `node .agents\tools\pkm-ai\check-doc-health.mjs` still reports global
+  pre-existing failures, but no `agent-control-plane` or `verification-matrix`
+  path failure appears in the filtered output or full health output.

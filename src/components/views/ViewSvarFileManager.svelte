@@ -1,16 +1,30 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import { Filemanager, Willow, WillowDark } from '@svar-ui/svelte-filemanager';
-	import type { VaultmanPlugin } from '../../main';
-	import type { TreeNode, FileMeta } from '../../types/typeNode';
 	import { FilesLogic } from '../../logic/logicsFiles';
+	import type { VaultmanPlugin } from '../../main';
+	import type { TreeNode } from '../../types/typeNode';
+	import type { ExplorerProvider } from '../../types/typeExplorer';
 
-	let { plugin }: { plugin: VaultmanPlugin } = $props();
+	let {
+		plugin,
+		provider,
+	}: {
+		plugin: VaultmanPlugin;
+		provider?: ExplorerProvider<any>;
+	} = $props();
 
 	let data = $state<any[]>([]);
 	let isDark = $state(false);
 
 	function refreshData() {
+		if (provider) {
+			const tree = provider.getTree();
+			data = mapTreeToSvar(tree);
+			return;
+		}
+
+		// Fallback to old whole-vault logic if no provider passed
 		const allFiles = plugin.app.vault.getFiles();
 		const logic = new FilesLogic(plugin.app);
 		const tree = logic.buildFileTree(allFiles);
@@ -21,18 +35,31 @@
 		isDark = document.body.classList.contains('theme-dark');
 	}
 
-	function mapTreeToSvar(nodes: TreeNode<FileMeta>[]): any[] {
+	function mapTreeToSvar(nodes: TreeNode<any>[]): any[] {
 		return nodes.map((node) => {
+			const meta = node.meta;
+			const isFolder =
+				meta && typeof meta === 'object' && 'isFolder' in meta ? meta.isFolder : !!node.children;
+
 			const item: any = {
 				id: node.id,
 				name: node.label,
-				type: node.meta.isFolder ? 'folder' : 'file',
+				type: isFolder ? 'folder' : 'file',
 			};
 
-			if (node.meta.file) {
-				item.size = node.meta.file.stat.size;
-				item.date = new Date(node.meta.file.stat.mtime);
-				item.extension = node.meta.file.extension;
+			// Metadata extraction based on meta type
+			if (meta && typeof meta === 'object') {
+				if ('file' in meta && meta.file) {
+					item.size = meta.file.stat.size;
+					item.date = new Date(meta.file.stat.mtime);
+					item.extension = meta.file.extension;
+				}
+				if ('propType' in meta) {
+					item.propType = meta.propType;
+				}
+				if ('count' in node) {
+					item.count = node.count;
+				}
 			}
 
 			if (node.children && node.children.length > 0) {
@@ -50,18 +77,27 @@
 		const observer = new MutationObserver(() => updateTheme());
 		observer.observe(document.body, { attributes: true, attributeFilter: ['class'] });
 
-		// Sync with vault changes
-		const sync = () => refreshData();
-		const eventRefs = [
-			plugin.app.vault.on('create', sync),
-			plugin.app.vault.on('delete', sync),
-			plugin.app.vault.on('rename', sync),
-			plugin.app.vault.on('modify', sync),
-		];
+		// Sync with index updates if provider present
+		let unsubscribe: (() => void) | undefined;
+		if (provider) {
+			unsubscribe = provider.subscribe(() => refreshData());
+		} else {
+			// Sync with vault changes (fallback mode)
+			const sync = () => refreshData();
+			const eventRefs = [
+				plugin.app.vault.on('create', sync),
+				plugin.app.vault.on('delete', sync),
+				plugin.app.vault.on('rename', sync),
+				plugin.app.vault.on('modify', sync),
+			];
+			unsubscribe = () => {
+				for (const eventRef of eventRefs) plugin.app.vault.offref(eventRef);
+			};
+		}
 
 		return () => {
 			observer.disconnect();
-			for (const eventRef of eventRefs) plugin.app.vault.offref(eventRef);
+			unsubscribe?.();
 		};
 	});
 

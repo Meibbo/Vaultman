@@ -136,6 +136,7 @@ export function parseArgs(argv) {
 
 export function filterEntries(entries, filters = {}, search = "") {
   const lowered = search.toLowerCase();
+  const searchTokens = tokenizeSearch(search);
   return entries.filter((entry) => {
     for (const [key, value] of Object.entries(filters)) {
       if (key === "tag") {
@@ -145,11 +146,20 @@ export function filterEntries(entries, filters = {}, search = "") {
       }
     }
     if (!lowered) return true;
-    return [entry.id, entry.title, entry.type, entry.status, entry.initiative, entry.path]
+    const haystack = [entry.id, entry.title, entry.type, entry.status, entry.initiative, entry.path]
       .join(" ")
-      .toLowerCase()
-      .includes(lowered);
+      .toLowerCase();
+    if (haystack.includes(lowered)) return true;
+    const haystackTokens = tokenizeSearch(haystack);
+    return searchTokens.every((token) => haystackTokens.includes(token));
   });
+}
+
+function tokenizeSearch(value) {
+  return value
+    .toLowerCase()
+    .split(/[^a-z0-9]+/u)
+    .filter(Boolean);
 }
 
 export function formatRows(rows) {

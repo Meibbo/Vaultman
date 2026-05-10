@@ -4,7 +4,7 @@ type: initiative-index
 status: active
 parent: "[[docs/work/pkm-ai/index|pkm-ai]]"
 created: 2026-05-04T01:44:46
-updated: 2026-05-10T04:38:24
+updated: 2026-05-10T04:55:20
 tags:
   - agent/work
   - initiative/polish
@@ -37,6 +37,7 @@ and non-blocking UX improvements.
 
 ## Completed Plans
 
+- [[docs/work/polish/plans/2026-05-10-service-dnd-foundation/index|serviceDnd semantic foundation]]
 - [[docs/work/polish/plans/2026-05-10-pretext-grid-cards/index|Pretext grid cards implementation plan]]
 
 ## Related Routes
