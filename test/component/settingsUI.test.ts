@@ -206,6 +206,72 @@ describe('SettingsUI mount (regression: effect_update_depth_exceeded)', () => {
 		expect(plugin.saveSettings).toHaveBeenCalledOnce();
 	});
 
+	it('renders layout themes including disabled custom placeholder without autosaving', () => {
+		const plugin = makeFakePlugin();
+
+		app = mount(SettingsUI as unknown as Component<{ plugin: iVaultmanPlugin }>, {
+			target,
+			props: { plugin: plugin as unknown as iVaultmanPlugin },
+		});
+		flushSync();
+
+		const themeSelect = [...target.querySelectorAll('select')].find((candidate) =>
+			[...candidate.options].some((option) => option.textContent === 'Create your own'),
+		) as HTMLSelectElement;
+
+		expect(themeSelect).toBeTruthy();
+		expect([...themeSelect.options].map((option) => option.textContent)).toEqual([
+			'Default',
+			'Polish',
+			'Glass',
+			'Create your own',
+		]);
+		expect([...themeSelect.options].find((option) => option.value === 'custom')?.disabled).toBe(
+			true,
+		);
+		expect(plugin.saveSettings).not.toHaveBeenCalled();
+	});
+
+	it('persists node surface and matched-filter decoration toggles', () => {
+		const plugin = makeFakePlugin();
+
+		app = mount(SettingsUI as unknown as Component<{ plugin: iVaultmanPlugin }>, {
+			target,
+			props: { plugin: plugin as unknown as iVaultmanPlugin },
+		});
+		flushSync();
+
+		const checkboxByLabel = (label: string): HTMLInputElement => {
+			const found = [...target.querySelectorAll<HTMLInputElement>('input[type="checkbox"]')].find(
+				(candidate) => candidate.closest('label')?.textContent?.includes(label),
+			);
+			expect(found, label).toBeTruthy();
+			return found!;
+		};
+
+		const matchedFilters = checkboxByLabel('Matched filter node decorations');
+		const backgrounds = checkboxByLabel('Node backgrounds');
+		const borders = checkboxByLabel('Node borders');
+
+		expect(matchedFilters.checked).toBe(false);
+		expect(backgrounds.checked).toBe(true);
+		expect(borders.checked).toBe(true);
+		expect(plugin.saveSettings).not.toHaveBeenCalled();
+
+		matchedFilters.checked = true;
+		matchedFilters.dispatchEvent(new Event('change', { bubbles: true }));
+		backgrounds.checked = false;
+		backgrounds.dispatchEvent(new Event('change', { bubbles: true }));
+		borders.checked = false;
+		borders.dispatchEvent(new Event('change', { bubbles: true }));
+		flushSync();
+
+		expect(plugin.settings.explorerShowMatchedFilterDecorations).toBe(true);
+		expect(plugin.settings.explorerNodeBackgrounds).toBe(false);
+		expect(plugin.settings.explorerNodeBorders).toBe(false);
+		expect(plugin.saveSettings).toHaveBeenCalledTimes(3);
+	});
+
 	it('does not render the detachable leaf toggle because it belongs in PageTools Layout', async () => {
 		const plugin = await makeFakePluginWithLeafDetach();
 

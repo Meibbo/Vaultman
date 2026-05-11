@@ -62,6 +62,13 @@ export type LayoutDropAction =
 			reason: LayoutDropRejectReason;
 	  };
 
+export interface LayoutDropActionDeps {
+	detach(tabId: TabId): Promise<void> | void;
+	attach(tabId: TabId): Promise<void> | void;
+	moveSurface?(action: Extract<LayoutDropAction, { ok: true }>): Promise<void> | void;
+	reorder?(action: Extract<LayoutDropAction, { ok: true }>): Promise<void> | void;
+}
+
 const VALID_CONTENT: ReadonlySet<LayoutSurfaceContent> = new Set([
 	'frame-pages',
 	'filter-tabs',
@@ -221,5 +228,26 @@ function surfaceFromTarget(kind: LayoutDropTarget['kind']): LayoutTabSurface | n
 			return 'workspace';
 		default:
 			return null;
+	}
+}
+
+export async function applyLayoutDropAction(
+	action: LayoutDropAction,
+	deps: LayoutDropActionDeps,
+): Promise<void> {
+	if (!action.ok) return;
+	switch (action.operation) {
+		case 'detach-tab':
+			await deps.detach(action.tabId);
+			break;
+		case 'attach-tab':
+			await deps.attach(action.tabId);
+			break;
+		case 'move-tab-surface':
+			await deps.moveSurface?.(action);
+			break;
+		case 'reorder':
+			await deps.reorder?.(action);
+			break;
 	}
 }

@@ -12,13 +12,19 @@
 import { ItemView, type WorkspaceLeaf } from 'obsidian';
 import type { TabId } from '../registry/tabRegistry';
 import { viewTypeFor } from '../registry/tabRegistry';
+import type { VaultmanPlugin } from '../main';
+import { mount, unmount, type Component } from 'svelte';
+import DetachedTabHost from '../components/frame/DetachedTabHost.svelte';
 
 export class VaultmanTabLeafView extends ItemView {
 	private readonly tabId: TabId;
+	private readonly plugin: VaultmanPlugin;
+	private svelteApp: ReturnType<typeof mount> | null = null;
 
-	constructor(leaf: WorkspaceLeaf, tabId: TabId) {
+	constructor(leaf: WorkspaceLeaf, tabId: TabId, plugin: VaultmanPlugin) {
 		super(leaf);
 		this.tabId = tabId;
+		this.plugin = plugin;
 	}
 
 	getViewType(): string {
@@ -38,11 +44,20 @@ export class VaultmanTabLeafView extends ItemView {
 		contentEl.empty();
 		contentEl.addClass('vm-tab-leaf');
 		contentEl.setAttribute('data-vm-tab-id', this.tabId);
-		const slot = contentEl.createDiv({ cls: 'vm-tab-leaf-slot' });
-		slot.setText(`Vaultman ${this.tabId} (independent leaf)`);
+		this.svelteApp = mount(
+			DetachedTabHost as unknown as Component<{ plugin: VaultmanPlugin; tabId: TabId }>,
+			{
+				target: contentEl,
+				props: { plugin: this.plugin, tabId: this.tabId },
+			},
+		);
 	}
 
 	async onClose(): Promise<void> {
+		if (this.svelteApp) {
+			await unmount(this.svelteApp);
+			this.svelteApp = null;
+		}
 		this.contentEl.empty();
 	}
 }

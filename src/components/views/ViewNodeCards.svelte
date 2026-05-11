@@ -25,6 +25,14 @@
 		mergeMouseGestureConfig,
 		type MouseGestureConfig,
 	} from '../../services/serviceMouse';
+	import {
+		handleNodeBadgePress,
+		nodeBadgeAriaLabel,
+		nodeBadgeIsActionable,
+		nodeBadgeKey,
+		nodeBadgeTitle,
+		ownNodeBadges,
+	} from './nodeBadgeHelpers';
 
 	const CARD_FALLBACK_WIDTH = 560;
 	const CARD_FALLBACK_HEIGHT = 360;
@@ -59,6 +67,7 @@
 		onTertiaryAction?: (id: string, e: MouseEvent) => void;
 		onContextMenu: (id: string, e: MouseEvent) => void;
 		onCardKeydown?: (id: string, e: KeyboardEvent) => void;
+		onBadgeDoubleClick?: (queueIndex: number) => void;
 		scrollTarget?: ScrollTarget | null;
 		mouseGestureConfig?: MouseGestureConfig;
 		measure?: TextMeasureService;
@@ -77,6 +86,7 @@
 		onTertiaryAction,
 		onContextMenu,
 		onCardKeydown,
+		onBadgeDoubleClick,
 		scrollTarget = null,
 		mouseGestureConfig,
 		measure = createCardsTextMeasureService(),
@@ -190,6 +200,15 @@
 			{ tertiary: (event) => onTertiaryAction?.(id, event) },
 			nodeMouseConfig,
 		);
+	}
+
+	function handleBadgeKeydown(
+		e: KeyboardEvent,
+		badge: Parameters<typeof handleNodeBadgePress>[1],
+	) {
+		if (e.key === 'Enter' || e.key === ' ' || e.key === 'Spacebar') {
+			handleNodeBadgePress(e, badge, onBadgeDoubleClick);
+		}
 	}
 
 	function scrollCardRowIntoView(rowIndex: number): void {
@@ -348,6 +367,7 @@
 						{@const isSelected = selectedIds.has(node.id)}
 						{@const isFocused = focusedId === node.id}
 						{@const isActive = activeId === node.id}
+						{@const directBadges = ownNodeBadges(node)}
 						<div
 							class="vm-node-card {node.cls ?? ''}"
 							class:is-selected={isSelected}
@@ -381,6 +401,34 @@
 									</span>
 								{/each}
 							</div>
+							{#if directBadges.length > 0}
+								<div class="vm-node-card-badge-zone">
+									{#each directBadges as badge, badgeIndex (nodeBadgeKey(badge, badgeIndex))}
+										<div
+											class="vm-badge"
+											role="button"
+											class:is-solid={badge.solid}
+											class:is-undoable={badge.queueIndex !== undefined}
+											class:is-actionable={nodeBadgeIsActionable(badge)}
+											class:is-quick-action={badge.quickAction}
+											class:vm-badge--red={badge.solid && badge.color === 'red'}
+											class:vm-badge--blue={badge.solid && badge.color === 'blue'}
+											class:vm-badge--purple={badge.solid && badge.color === 'purple'}
+											class:vm-badge--orange={badge.solid && badge.color === 'orange'}
+											class:vm-badge--green={badge.solid && badge.color === 'green'}
+											title={nodeBadgeTitle(badge)}
+											aria-label={nodeBadgeAriaLabel(badge)}
+											tabindex={nodeBadgeIsActionable(badge) ? 0 : -1}
+											onclick={(e) => handleNodeBadgePress(e, badge, onBadgeDoubleClick)}
+											onkeydown={(e) => handleBadgeKeydown(e, badge)}
+										>
+											{#if badge.icon}
+												<span class="vm-badge-icon" use:icon={badge.icon}></span>
+											{/if}
+										</div>
+									{/each}
+								</div>
+							{/if}
 						</div>
 					{/each}
 				</div>

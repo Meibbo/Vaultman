@@ -76,4 +76,30 @@ describe('NavbarTabs', () => {
 		expect(onSelect).toHaveBeenCalledWith('filters');
 		expect(tab?.classList.contains('is-active')).toBe(true);
 	});
+
+	it('marks externally mounted tabs without making them locally active', () => {
+		const onSelect = vi.fn();
+
+		app = mount(NavbarTabs as unknown as Component<Record<string, unknown>>, {
+			target,
+			props: {
+				tabs: [{ id: 'files', icon: 'lucide-files', label: 'Files' }],
+				active: '',
+				externalTabIds: ['files'],
+				onSelect,
+			},
+		});
+		flushSync();
+
+		const tab = target.querySelector<HTMLElement>('[aria-label="Files"]');
+		expect(tab?.classList.contains('is-external-mounted')).toBe(true);
+		expect(tab?.getAttribute('data-external-mounted')).toBe('true');
+		expect(tab?.classList.contains('is-active')).toBe(false);
+
+		tab!.click();
+		flushSync();
+
+		expect(onSelect).toHaveBeenCalledWith('files');
+		expect(tab?.classList.contains('is-active')).toBe(false);
+	});
 });

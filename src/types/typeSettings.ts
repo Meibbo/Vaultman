@@ -5,9 +5,9 @@ import { DEFAULT_LAYOUT_SETTINGS, type LayoutSettings } from '../services/servic
 import type { MouseGestureConfig, NodeMouseActionConfig } from '../services/serviceMouse';
 import { DEFAULT_NODE_MOUSE_ACTIONS } from '../services/serviceMouse';
 import type { OperationScope } from '../services/serviceOperationScope';
+import type { LayoutTheme } from '../services/serviceTheme';
 
 export type Language = 'auto' | 'en' | 'es';
-export type LayoutTheme = 'native' | 'polish' | 'glass';
 export type MouseGestureSurface = 'node' | 'fab' | 'toolbar';
 
 export interface VaultmanSettings {
@@ -34,6 +34,10 @@ export interface VaultmanSettings {
 	explorerShowQueuePreview: boolean;
 	/** Show badges, highlights, and active row styling on ordinary nodes matched by active filters. */
 	explorerShowMatchedFilterDecorations: boolean;
+	/** Show base backgrounds on node surfaces such as tree rows, grid tiles, cards, and table rows. */
+	explorerNodeBackgrounds: boolean;
+	/** Show base borders/shadows on node surfaces such as grid tiles, cards, and table rows. */
+	explorerNodeBorders: boolean;
 	/** Enable content search in file tree */
 	explorerContentSearch: boolean;
 	/** Default scope for explorer operations: auto = selected > filtered */
@@ -129,7 +133,7 @@ export interface iVaultmanPlugin extends Plugin {
 }
 
 export const DEFAULT_SETTINGS: VaultmanSettings = {
-	layoutTheme: 'native',
+	layoutTheme: 'default',
 	islandDismissOnOutsideClick: false,
 	islandBackdropBlur: false,
 	glassBlurIntensity: 15,
@@ -143,6 +147,8 @@ export const DEFAULT_SETTINGS: VaultmanSettings = {
 	explorerCtrlClickSearch: true,
 	explorerShowQueuePreview: true,
 	explorerShowMatchedFilterDecorations: false,
+	explorerNodeBackgrounds: true,
+	explorerNodeBorders: true,
 	explorerContentSearch: true,
 	explorerOperationScope: 'auto',
 	explorerFilesShowHidden: false,

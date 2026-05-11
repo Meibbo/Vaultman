@@ -1028,6 +1028,7 @@
 					onContextMenu={handleContextMenu}
 					onTileKeydown={handleRowKeydown}
 					onToggleExpand={toggleExpand}
+					onBadgeDoubleClick={handleBadgeClick}
 					onHoverBadgeAction={handleHoverBadgeAction}
 					{activeOpsByNode}
 					{scrollTarget}
@@ -1053,6 +1054,7 @@
 					onTertiaryAction={handleTertiaryAction}
 					onContextMenu={handleContextMenu}
 					onCardKeydown={handleRowKeydown}
+					onBadgeDoubleClick={handleBadgeClick}
 					{scrollTarget}
 					mouseGestureConfig={plugin.settings?.mouseGestures?.node}
 					{icon}
@@ -1076,6 +1078,7 @@
 					onContextMenu={handleContextMenu}
 					onRowKeydown={handleRowKeydown}
 					onSelectAll={(ids, e) => handleTableSelectAll(ids, e)}
+					onBadgeDoubleClick={handleBadgeClick}
 					{scrollTarget}
 					mouseGestureConfig={plugin.settings?.mouseGestures?.node}
 					{icon}

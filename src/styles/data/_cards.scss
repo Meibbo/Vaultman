@@ -87,6 +87,22 @@
 	box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--text-faint) 60%, transparent);
 }
 
+body.vm-node-backgrounds-off {
+	.vm-node-cards,
+	.vm-node-card:not(:hover):not(.is-active-node):not(.is-selected):not(.is-active-filter):not(
+			.is-focused
+		):not(:focus-visible) {
+		background: transparent;
+	}
+}
+
+body.vm-node-borders-off {
+	.vm-node-card:not(.is-active-filter):not(.is-focused):not(:focus-visible) {
+		border-color: transparent;
+		box-shadow: none;
+	}
+}
+
 .vm-node-card-icon {
 	@include flex-center;
 	width: 24px;
@@ -103,6 +119,16 @@
 	display: flex;
 	min-width: 0;
 	flex-direction: column;
+	gap: 3px;
+}
+
+.vm-node-card-badge-zone {
+	position: absolute;
+	top: 8px;
+	right: 8px;
+	z-index: 1;
+	display: inline-flex;
+	align-items: center;
 	gap: 3px;
 }
 

@@ -16,6 +16,17 @@ const nodes: TreeNode[] = [
 	{ id: 'beta', label: 'Beta', depth: 0, meta: {}, icon: 'lucide-tag', count: 1 },
 ];
 
+const queuedNodes: TreeNode[] = [
+	{
+		id: 'queued',
+		label: 'Queued card',
+		depth: 0,
+		meta: {},
+		icon: 'lucide-file',
+		badges: [{ icon: 'lucide-trash-2', queueIndex: 0, title: 'queued' }],
+	},
+];
+
 const measure: TextMeasureService = {
 	measure: vi.fn((text: string, style) => ({
 		lineCount: Math.max(1, Math.ceil(text.length / 24)),
@@ -86,6 +97,19 @@ describe('ViewNodeCards', () => {
 		expect(onCardClick).toHaveBeenCalledWith('alpha', expect.any(MouseEvent));
 		expect(onContextMenu).toHaveBeenCalledWith('alpha', expect.any(MouseEvent));
 		expect(onCardKeydown).toHaveBeenCalledWith('alpha', expect.any(KeyboardEvent));
+	});
+
+	it('removes queued operations from direct node badges without selecting the card', () => {
+		const onBadgeDoubleClick = vi.fn();
+		const onCardClick = vi.fn();
+		render({ nodes: queuedNodes, onBadgeDoubleClick, onCardClick });
+
+		const badge = target.querySelector<HTMLElement>('[data-id="queued"] [aria-label="queued"]');
+		expect(badge).toBeTruthy();
+		badge!.click();
+
+		expect(onBadgeDoubleClick).toHaveBeenCalledWith(0);
+		expect(onCardClick).not.toHaveBeenCalled();
 	});
 
 	it('remeasures cards from the rendered CSS font snapshot', () => {

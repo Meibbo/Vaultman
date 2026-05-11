@@ -4,7 +4,7 @@ type: agent-plan-shard
 status: planned
 parent: "[[docs/work/polish/plans/2026-05-10-dock-toolbar-groups-virtualizer/cut-1-5-node-surface-theme-scroll/index|Cut 1.5 Node Surface Theme And Scroll Plan]]"
 created: 2026-05-10T19:53:58
-updated: 2026-05-10T20:26:00
+updated: 2026-05-10T21:09:57
 tags:
   - agent/plan
   - polish
@@ -30,24 +30,24 @@ updated_by: codex
 
 ## Facet 2: Generic Queue Badges And Props Labels
 
-- [ ] Add direct queue-badge tests for `ViewNodeGrid`, `ViewNodeCards`, and `ViewNodeTable`.
+- [x] Add direct queue-badge tests for `ViewNodeGrid`, `ViewNodeCards`, and `ViewNodeTable`.
   - Mount with a node/row containing `badges: [{ icon: 'lucide-trash-2', queueIndex: 0, title: 'queued' }]`.
   - Click the rendered badge.
   - Expect `onBadgeDoubleClick(0)`.
   - Assert the click does not trigger the row/card/tile primary click callback.
-- [ ] Add/adjust a toolbar category-label test.
+- [x] Add/adjust a toolbar category-label test.
   - Props category toggle labels must be `Props` and `Values`, not `Property names` or `Property values`.
   - Props initial search category must remain index `0`/`all`.
 
 ## Facet 3: Theme And Node Surface Settings
 
-- [ ] Create `test/unit/services/serviceTheme.test.ts`.
+- [x] Create `test/unit/services/serviceTheme.test.ts`.
   - `normalizeLayoutTheme('native')` returns `default`.
   - `normalizeLayoutTheme('default')`, `polish`, `glass`, and `custom` return themselves.
   - Unknown values return `default`.
   - `applyVaultmanTheme(body, settings)` toggles only the expected body classes.
   - Node backgrounds/borders settings toggle `vm-node-backgrounds-off` and `vm-node-borders-off`.
-- [ ] Update `test/component/settingsUI.test.ts`.
+- [x] Update `test/component/settingsUI.test.ts`.
   - Theme dropdown renders Default, Polish, Glass, and disabled Create your own.
   - Toggles persist:
     - matched active-filter node decorations

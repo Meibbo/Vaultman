@@ -11,6 +11,7 @@
 		labelPosition = 'side',
 		disabledTabIds = [],
 		faintTabIds = [],
+		externalTabIds = [],
 		onSelect,
 	}: {
 		tabs: TabConfig[];
@@ -19,11 +20,13 @@
 		labelPosition?: LayoutLabelPosition;
 		disabledTabIds?: string[];
 		faintTabIds?: string[];
+		externalTabIds?: string[];
 		onSelect?: (tabId: string) => void;
 	} = $props();
 
 	const disabledTabs = $derived(new Set(disabledTabIds));
 	const faintTabs = $derived(new Set(faintTabIds));
+	const externalTabs = $derived(new Set(externalTabIds));
 
 	function attachIcon(node: HTMLElement, iconName: string): { update: (n: string) => void } {
 		setIcon(node, iconName);
@@ -32,7 +35,7 @@
 
 	function selectTab(tabId: string): void {
 		if (disabledTabs.has(tabId)) return;
-		active = tabId;
+		if (!externalTabs.has(tabId)) active = tabId;
 		onSelect?.(tabId);
 	}
 
@@ -44,13 +47,16 @@
 <div class={`vm-tab-bar label-${labelPosition}`} class:has-labels={showLabels}>
 	{#each tabs as tab (tab.id)}
 		{@const disabled = disabledTabs.has(tab.id)}
+		{@const external = externalTabs.has(tab.id)}
 		{@const label = tabLabel(tab)}
 		<div
 			class="vm-tab nav-action-button"
-			class:is-active={active === tab.id}
+			class:is-active={active === tab.id && !external}
 			class:is-disabled={disabled}
 			class:is-faint={faintTabs.has(tab.id)}
+			class:is-external-mounted={external}
 			data-tab={tab.id}
+			data-external-mounted={external ? 'true' : undefined}
 			onclick={() => selectTab(tab.id)}
 			onkeydown={(e: KeyboardEvent) => {
 				if (e.key === 'Enter' || e.key === ' ') {

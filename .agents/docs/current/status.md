@@ -5,7 +5,7 @@ status: active
 parent: "[[docs/work/pkm-ai/index|pkm-ai]]"
 archive_source: "docs/archive/pkm-ai/active-docs/2026-05-10T093000-current-status.md"
 created: 2026-05-04T01:36:20
-updated: 2026-05-10T19:53:58
+updated: 2026-05-11T21:09:57
 tags:
   - agent/current
 created_by: dec
@@ -29,13 +29,28 @@ Compact route index after archiving the oversized current status:
 
 ## Current Route
 
-- Latest user request: capture a multifacet product plan for a small cut before
-  Cut 2 of the dock toolbar plan.
+- Latest user request: continue the next Cut 1.5 product task.
 - Active initiative: [[docs/work/polish/index|Polish]].
+- Latest implemented product slice:
+  Cut 1.5 Task 3, `serviceTheme`, node-surface settings, and ViewCards
+  background controls in
+  [[docs/work/polish/plans/2026-05-10-dock-toolbar-groups-virtualizer/cut-1-5-node-surface-theme-scroll/index|Cut 1.5 Node Surface Theme And Scroll Plan]].
+- Recent detachable product slice:
+  [[docs/work/polish/specs/2026-05-11-detachable-layout-workspace-tabs/index|Detachable layout workspace tabs]]
+  and
+  [[docs/work/polish/plans/2026-05-11-detachable-layout-workspace-tabs/index|Detachable layout workspace tabs implementation]].
+- Next product action: Cut 1.5 Task 4, `serviceScroll` for ViewTree scroll
+  stabilization and the PretextJS audit answer. Live Obsidian smoke for the
+  detachable slice remains pending before building more workspace-tab features.
 - Active product plan:
   [[docs/work/polish/plans/2026-05-10-dock-toolbar-groups-virtualizer/index|Dock, Toolbar, Groups, Virtualizer Implementation Plan]].
 - Pre-Cut-2 subplan:
   [[docs/work/polish/plans/2026-05-10-dock-toolbar-groups-virtualizer/cut-1-5-node-surface-theme-scroll/index|Cut 1.5 Node Surface Theme And Scroll Plan]].
+- Cut 1.5 Task 2 is complete: generic queue badges now remove queued ops in
+  tree/grid/cards/table and Props category labels are `Props` / `Values`.
+- Cut 1.5 Task 3 is complete: `serviceTheme` normalizes legacy `native` to
+  `default`, Settings exposes the disabled custom placeholder plus node-surface
+  toggles, and body classes control node backgrounds/borders.
 - Elastic UI orchestration plan:
   [[docs/work/polish/plans/2026-05-11-elastic-ui-chameleon/index|Elastic UI Chameleon Implementation Plan]].
 - Recent PKM-AI route remains available below for source context.
@@ -86,7 +101,23 @@ Compact route index after archiving the oversized current status:
 
 ## Verification Snapshot
 
-- `node .agents/tools/pkm-ai/check-doc-health.mjs`: pass, no warnings.
+- Cut 1.5 Task 3 unit verification:
+  `pnpm exec vp test run --project unit --config vitest.config.ts test/unit/services/serviceTheme.test.ts --fileParallelism=false`:
+  pass, 4/4.
+- Cut 1.5 Task 3 component verification:
+  `pnpm exec vp test run --project component --config vitest.config.ts test/component/settingsUI.test.ts --fileParallelism=false`:
+  pass, 10/10.
+- Cut 1.5 Task 3 Svelte check:
+  `pnpm run check`: pass, `svelte-check found 0 errors and 0 warnings`.
+- Svelte autofixer for `SettingsUI.svelte`: no issues; one existing `$effect`
+  suggestion reviewed and left unchanged because it only toggles a global body
+  class.
+- Detachable slice focused unit tests: pass, 4 files, 30 tests.
+- Detachable slice focused component tests: pass, 7 files, 25 tests.
+- `pnpm run check`: pass, `svelte-check found 0 errors and 0 warnings`.
+- Latest doc health run after Cut 1.5 Task 3:
+  `node .agents/tools/pkm-ai/check-doc-health.mjs`: fail with unrelated
+  residuals in the detachable workspace tabs spec and `.agents/docs/superpowers`.
 - `node --test .agents/tools/pkm-ai/test/manage-tasks.test.mjs`: pass, 6/6.
 - `npm --prefix .agents/tools/pkm-ai test`: pass, 25/25.
 - `node .agents/tools/pkm-ai/manage-tasks.mjs --get-objective tasks-retrieval-implementation --initiative pkm-ai --json`:
@@ -101,7 +132,10 @@ Compact route index after archiving the oversized current status:
 
 ## Known Residuals
 
-- Global doc health passes with no glossary warnings in the latest run.
+- Live Obsidian runtime smoke for detachable tabs is still pending.
+- Global doc health currently fails on unrelated residuals:
+  glossary terms and line-limit in the detachable workspace tabs spec, plus one
+  `.agents/docs/superpowers` parent-shape residual.
 - Task-state automation updates for the same file should run sequentially, not
   in parallel.
 - Combined Vite/Svelte verification can hit the known transient Svelte resolver
@@ -113,6 +147,8 @@ Compact route index after archiving the oversized current status:
 
 - [[docs/current/handoff|current handoff]]
 - [[docs/current/engineering-context|engineering context]]
+- [[docs/work/polish/specs/2026-05-11-detachable-layout-workspace-tabs/index|Detachable layout workspace tabs spec]]
+- [[docs/work/polish/plans/2026-05-11-detachable-layout-workspace-tabs/index|Detachable layout workspace tabs plan]]
 - [[docs/work/polish/plans/2026-05-10-dock-toolbar-groups-virtualizer/cut-1-5-node-surface-theme-scroll/index|Cut 1.5 Node Surface Theme And Scroll Plan]]
 - [[docs/work/polish/plans/2026-05-10-dock-toolbar-groups-virtualizer/index|Dock Toolbar Groups Virtualizer Plan]]
 - [[docs/work/polish/plans/2026-05-11-elastic-ui-chameleon/index|Elastic UI Chameleon Plan]]

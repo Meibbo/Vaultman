@@ -53,6 +53,7 @@ import { leadingDebounce } from './utils/utilDebounce';
 import { NodeBindingService } from './services/serviceNodeBinding';
 import { NativeSurfaceBindingService } from './services/serviceNativeSurfaceBinding';
 import { resolveLayoutSettings } from './services/serviceLayout';
+import { applyVaultmanTheme, normalizeLayoutTheme } from './services/serviceTheme';
 import { ALL_TAB_IDS, viewTypeFor, type TabId } from './registry/tabRegistry';
 import { VaultmanTabLeafView } from './types/typeTabLeaf';
 import { SvarFileManagerView, TYPE_SVAR_FILEMANAGER } from './types/typeSvarLeaf';
@@ -249,7 +250,7 @@ export class VaultmanPlugin extends Plugin {
 		// Independent leaf view-types — registered up-front so saved
 		// workspace state can re-instantiate them (phase 6).
 		for (const tabId of ALL_TAB_IDS) {
-			this.registerView(viewTypeFor(tabId), (leaf) => new VaultmanTabLeafView(leaf, tabId));
+			this.registerView(viewTypeFor(tabId), (leaf) => new VaultmanTabLeafView(leaf, tabId, this));
 		}
 
 		// LeafDetachService — owns persisted detach flags (independent of
@@ -357,6 +358,7 @@ export class VaultmanPlugin extends Plugin {
 			...(JSON.parse(JSON.stringify(DEFAULT_SETTINGS)) as VaultmanSettings),
 			...saved,
 		};
+		this.settings.layoutTheme = normalizeLayoutTheme(saved.layoutTheme);
 		this.settings.layout = resolveLayoutSettings(saved.layout);
 
 		if (needsTabLabelMigration) {
@@ -377,15 +379,7 @@ export class VaultmanPlugin extends Plugin {
 		const px = (intensity / 100) * 20;
 		const body = activeDocument.body;
 		body.style.setProperty('--vm-glass-blur', `${px}px`);
-		const theme = this.settings.layoutTheme ?? 'native';
-		body.toggleClass('vm-theme-native', theme === 'native');
-		body.toggleClass('vm-theme-polish', theme === 'polish');
-		body.toggleClass('vm-theme-glass', theme === 'glass');
-		body.toggleClass('vm-island-backdrop-enabled', this.settings.islandBackdropBlur === true);
-		body.toggleClass(
-			'vm-faint-accents-workspace-focus',
-			this.settings.faintAccentsWhenWorkspaceFocused === true,
-		);
+		applyVaultmanTheme(body, this.settings);
 	}
 
 	async activateView(): Promise<void> {

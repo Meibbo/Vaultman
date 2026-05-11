@@ -367,6 +367,16 @@ body.vm-resizing {
 	transition: opacity 0.12s ease;
 }
 
+.vm-node-grid-badge-zone {
+	position: absolute;
+	top: calc(var(--vm-node-grid-gap, 8px) * 0.5);
+	right: calc(var(--vm-node-grid-gap, 8px) * 0.75);
+	z-index: 1;
+	display: inline-flex;
+	align-items: center;
+	gap: 3px;
+}
+
 .vm-node-grid-tile {
 	position: relative;
 	display: grid;
@@ -455,6 +465,23 @@ body.vm-resizing {
 		box-shadow:
 			0 0 0 1px color-mix(in srgb, $vm-color-accent 34%, transparent),
 			0 8px 24px color-mix(in srgb, $vm-color-accent 12%, transparent);
+	}
+}
+
+body.vm-node-backgrounds-off {
+	.vm-node-grid-tile:not(:hover):not(.is-active):not(.is-active-node):not(.is-selected):not(
+			.is-active-filter
+		):not(.is-focused):not(:focus-visible),
+	.vm-node-grid-inline-panel {
+		background: transparent;
+	}
+}
+
+body.vm-node-borders-off {
+	.vm-node-grid-tile:not(.is-active-filter):not(.is-focused):not(:focus-visible),
+	.vm-node-grid-inline-panel {
+		border-color: transparent;
+		box-shadow: none;
 	}
 }
 

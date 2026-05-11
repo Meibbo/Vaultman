@@ -60,6 +60,8 @@
 	import { resolveLayoutSettings, type LayoutSurfaceContent } from '../../services/serviceLayout';
 	import { FTabs, type TabConfig } from '../../types/typeTab';
 	import type { ExplorerSortTarget } from '../../types/typeExplorer';
+	import { tabIdFromInner, type TabId } from '../../registry/tabRegistry';
+	import type { LeafDetachState } from '../../services/serviceLeafDetach';
 
 	// â”€â”€â”€ Props â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€------------------...........
 	type SurfaceNavItem = TabConfig & {
@@ -243,6 +245,7 @@
 	let filtersViewMode = $state<any>('tree');
 	let addMode = $state(false);
 	let dockDrawerOpen = $state(false);
+	let detachedTabs = $state<LeafDetachState>({});
 	const initialOperationScope = untrack(() =>
 		normalizeOperationScope(plugin.settings.explorerOperationScope),
 	);
@@ -252,8 +255,10 @@
 	);
 	const topTabItems = $derived.by(() => itemsForSurface(layoutSettings.tabs.content));
 	const topTabActive = $derived(activeForSurface(layoutSettings.tabs.content));
+	const topExternalTabIds = $derived.by(() => externalIdsForSurface(layoutSettings.tabs.content));
 	const dockItems = $derived.by(() => itemsForSurface(layoutSettings.dock.content));
 	const dockActive = $derived(activeForSurface(layoutSettings.dock.content));
+	const dockExternalTabIds = $derived.by(() => externalIdsForSurface(layoutSettings.dock.content));
 	const dockUsesFramePages = $derived(layoutSettings.dock.content === 'frame-pages');
 
 	function itemsForSurface(
@@ -281,6 +286,11 @@
 	}
 
 	function selectSurfaceItem(content: LayoutSurfaceContent, id: string): void {
+		const detachedTabId = detachedTabIdForSurfaceItem(content, id);
+		if (detachedTabId) {
+			void plugin.spawnTabLeaf(detachedTabId);
+			return;
+		}
 		if (content === 'filter-tabs') {
 			filtersActiveTab = id as FiltersTab;
 			if (activePage !== 'filters') navigateTo('filters');
@@ -289,6 +299,26 @@
 		if (content === 'frame-pages') {
 			navigateTo(id);
 		}
+	}
+
+	function externalIdsForSurface(content: LayoutSurfaceContent): string[] {
+		return itemsForSurface(content)
+			.map((item) => (detachedTabIdForSurfaceItem(content, item.id) ? item.id : null))
+			.filter((id): id is string => Boolean(id));
+	}
+
+	function detachedTabIdForSurfaceItem(
+		content: LayoutSurfaceContent,
+		id: string,
+	): TabId | null {
+		const tabId = tabIdForSurfaceItem(content, id);
+		return tabId && detachedTabs[tabId] === true ? tabId : null;
+	}
+
+	function tabIdForSurfaceItem(content: LayoutSurfaceContent, id: string): TabId | null {
+		if (content === 'filter-tabs') return tabIdFromInner(id);
+		if (content === 'frame-pages' && id === 'ops') return 'page-tools';
+		return null;
 	}
 
 	$effect(() => {
@@ -484,6 +514,10 @@
 		};
 
 		const unsubFilter = plugin.filterService.subscribe(onFilterChanged);
+		const unsubLeafDetach = plugin.leafDetachService?.subscribe((state) => {
+			detachedTabs = state;
+		});
+		detachedTabs = plugin.leafDetachService?.getState() ?? {};
 		plugin.queueService.on('changed', onQueueChanged);
 
 		refreshFiles();
@@ -494,6 +528,7 @@
 
 		return () => {
 			unsubFilter();
+			unsubLeafDetach?.();
 			plugin.queueService.off('changed', onQueueChanged);
 			plugin.app.metadataCache.off('resolved', onVaultResolved);
 		};
@@ -507,6 +542,7 @@
 		<NavbarTabs
 			tabs={topTabItems}
 			active={topTabActive}
+			externalTabIds={topExternalTabIds}
 			showLabels={layoutSettings.tabs.labels.visible}
 			labelPosition={layoutSettings.tabs.labels.position}
 			onSelect={(id) => selectSurfaceItem(layoutSettings.tabs.content, id)}
@@ -523,7 +559,13 @@
 				<div class="vm-page" data-page={pageId}>
 					{#key pageRenderKey}
 						{#if pageId === 'ops'}
-							<OperationsPage {plugin} {icon} />
+							{#if detachedTabs['page-tools'] === true}
+								<div class="vm-page-external" data-vm-tab-id="page-tools">
+									Detached to workspace
+								</div>
+							{:else}
+								<OperationsPage {plugin} {icon} />
+							{/if}
 						{:else if pageId === 'statistics'}
 							<StatisticsPage {plugin} previewFile={statsPreviewFile} onShowStats={showStatsPage} />
 						{:else if pageId === 'filters'}
@@ -586,6 +628,7 @@
 		<NavbarDock
 			items={dockItems}
 			active={dockActive}
+			externalTabIds={dockExternalTabIds}
 			showLabels={layoutSettings.dock.labels.visible}
 			labelPosition={layoutSettings.dock.labels.position}
 			presentationMode={layoutSettings.dock.presentation.mode}

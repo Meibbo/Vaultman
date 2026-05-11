@@ -11,6 +11,15 @@
 		mergeMouseGestureConfig,
 		type MouseGestureConfig,
 	} from '../../services/serviceMouse';
+	import type { NodeBadge } from '../../types/typeNode';
+	import {
+		handleNodeBadgePress,
+		nodeBadgeAriaLabel,
+		nodeBadgeIsActionable,
+		nodeBadgeKey,
+		nodeBadgeTitle,
+		ownNodeBadges,
+	} from './nodeBadgeHelpers';
 
 	const TABLE_ROW_HEIGHT = 32;
 	const TABLE_OVERSCAN = 14;
@@ -32,6 +41,7 @@
 		onContextMenu: (id: string, e: MouseEvent) => void;
 		onRowKeydown?: (id: string, e: KeyboardEvent) => void;
 		onSelectAll?: (ids: string[], e: Event) => void;
+		onBadgeDoubleClick?: (queueIndex: number) => void;
 		scrollTarget?: ScrollTarget | null;
 		mouseGestureConfig?: MouseGestureConfig;
 		icon: (node: HTMLElement, name: string) => { update(n: string): void };
@@ -50,6 +60,7 @@
 		onContextMenu,
 		onRowKeydown,
 		onSelectAll,
+		onBadgeDoubleClick,
 		scrollTarget = null,
 		mouseGestureConfig,
 		icon,
@@ -173,6 +184,16 @@
 			{ tertiary: (event) => onTertiaryAction?.(id, event) },
 			nodeMouseConfig,
 		);
+	}
+
+	function rowBadges(row: ViewRow<TNode>): NodeBadge[] {
+		return ownNodeBadges(row.node as TNode & { badges?: readonly NodeBadge[] });
+	}
+
+	function handleBadgeKeydown(e: KeyboardEvent, badge: NodeBadge) {
+		if (e.key === 'Enter' || e.key === ' ' || e.key === 'Spacebar') {
+			handleNodeBadgePress(e, badge, onBadgeDoubleClick);
+		}
 	}
 
 	function handleTableKeydown(e: KeyboardEvent) {
@@ -308,6 +329,7 @@
 				{@const isSelected = selectedIds.has(id)}
 				{@const isFocused = focusedId === id}
 				{@const isActive = activeId === id}
+				{@const directBadges = rowBadges(row)}
 				<div
 					class="vm-node-table-row {row.cls ?? ''}"
 					class:is-selected={isSelected}
@@ -338,6 +360,34 @@
 								<span class="vm-node-table-primary" data-vm-table-primary>
 									{display}
 								</span>
+								{#if directBadges.length > 0}
+									<span class="vm-node-table-badge-zone">
+										{#each directBadges as badge, badgeIndex (nodeBadgeKey(badge, badgeIndex))}
+											<span
+												class="vm-badge"
+												role="button"
+												class:is-solid={badge.solid}
+												class:is-undoable={badge.queueIndex !== undefined}
+												class:is-actionable={nodeBadgeIsActionable(badge)}
+												class:is-quick-action={badge.quickAction}
+												class:vm-badge--red={badge.solid && badge.color === 'red'}
+												class:vm-badge--blue={badge.solid && badge.color === 'blue'}
+												class:vm-badge--purple={badge.solid && badge.color === 'purple'}
+												class:vm-badge--orange={badge.solid && badge.color === 'orange'}
+												class:vm-badge--green={badge.solid && badge.color === 'green'}
+												title={nodeBadgeTitle(badge)}
+												aria-label={nodeBadgeAriaLabel(badge)}
+												tabindex={nodeBadgeIsActionable(badge) ? 0 : -1}
+												onclick={(e) => handleNodeBadgePress(e, badge, onBadgeDoubleClick)}
+												onkeydown={(e) => handleBadgeKeydown(e, badge)}
+											>
+												{#if badge.icon}
+													<span class="vm-badge-icon" use:icon={badge.icon}></span>
+												{/if}
+											</span>
+										{/each}
+									</span>
+								{/if}
 							{:else}
 								{display}
 							{/if}

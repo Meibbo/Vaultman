@@ -26,6 +26,15 @@
 		viewSizeCssVars,
 		type ViewSizePresetId,
 	} from '../../services/serviceViewSize';
+	import {
+		handleNodeBadgePress,
+		inheritedNodeBadges,
+		nodeBadgeAriaLabel,
+		nodeBadgeIsActionable,
+		nodeBadgeKey,
+		nodeBadgeTitle,
+		ownNodeBadges,
+	} from './nodeBadgeHelpers';
 
 	const DEFAULT_VIEW_SIZE = getViewSizePreset(DEFAULT_VIEW_SIZE_PRESET);
 	const TREE_ROW_HEIGHT = DEFAULT_VIEW_SIZE.treeRowHeight;
@@ -361,47 +370,12 @@
 		return a.left <= b.right && a.right >= b.left && a.top <= b.bottom && a.bottom >= b.top;
 	}
 
-	function ownBadges(node: TreeNode): NodeBadge[] {
-		return (node.badges ?? []).filter((badge) => !badge.isInherited);
-	}
-
-	function inheritedBadges(node: TreeNode): NodeBadge[] {
-		return (node.badges ?? []).filter((badge) => badge.isInherited);
-	}
-
-	function badgeKey(badge: NodeBadge, index: number): string {
-		return `${badge.queueIndex ?? 'badge'}:${index}:${badge.text ?? ''}:${badge.icon ?? ''}:${badge.color ?? ''}:${badge.isInherited ?? false}`;
-	}
-
-	function badgeTitle(badge: NodeBadge, inherited = false): string {
-		if (badge.title) return badge.title;
-		const label = badge.text ?? '';
-		const prefix = inherited ? 'Hidden child ' : '';
-		if (badge.queueIndex === undefined) return `${prefix}${label}`.trim();
-		return `${prefix}${label} - click to remove from queue`.trim();
-	}
-
-	function badgeAriaLabel(badge: NodeBadge, inherited = false): string {
-		return badge.ariaLabel ?? badgeTitle(badge, inherited);
-	}
-
-	function badgeIsActionable(badge: NodeBadge): boolean {
-		return badge.queueIndex !== undefined || typeof badge.onClick === 'function';
-	}
-
 	function inheritedBadgeTitle(badges: NodeBadge[]): string {
 		return `${badges.length} hidden descendant badge${badges.length === 1 ? '' : 's'}`;
 	}
 
 	function handleBadgePress(e: MouseEvent | KeyboardEvent, badge: NodeBadge) {
-		if (!badgeIsActionable(badge)) return;
-		e.stopPropagation();
-		e.preventDefault();
-		if (badge.queueIndex !== undefined) {
-			onBadgeDoubleClick?.(badge.queueIndex);
-			return;
-		}
-		badge.onClick?.();
+		handleNodeBadgePress(e, badge, onBadgeDoubleClick);
 	}
 
 	function handleBadgeKeydown(e: KeyboardEvent, badge: NodeBadge) {
@@ -523,8 +497,8 @@
 			{@const isHighlighted = searchHighlightIds?.has(node.id) ?? false}
 			{@const isSelected = selectedIds?.has(node.id) ?? false}
 			{@const isFocused = focusedId === node.id}
-			{@const directBadges = ownBadges(node)}
-			{@const childBadges = inheritedBadges(node)}
+			{@const directBadges = ownNodeBadges(node)}
+			{@const childBadges = inheritedNodeBadges(node)}
 			{@const hoverBadges = hoverBadgesFor(node)}
 			{@const rowIcon = iconForNode(node, flat)}
 
@@ -622,22 +596,22 @@
 								</div>
 							{/if}
 							{#if directBadges.length > 0}
-								{#each directBadges as badge, badgeIndex (badgeKey(badge, badgeIndex))}
+								{#each directBadges as badge, badgeIndex (nodeBadgeKey(badge, badgeIndex))}
 									<div
 										class="vm-badge"
 										role="button"
 										class:is-solid={badge.solid}
 										class:is-undoable={badge.queueIndex !== undefined}
-										class:is-actionable={badgeIsActionable(badge)}
+										class:is-actionable={nodeBadgeIsActionable(badge)}
 										class:is-quick-action={badge.quickAction}
 										class:vm-badge--red={badge.solid && badge.color === 'red'}
 										class:vm-badge--blue={badge.solid && badge.color === 'blue'}
 										class:vm-badge--purple={badge.solid && badge.color === 'purple'}
 										class:vm-badge--orange={badge.solid && badge.color === 'orange'}
 										class:vm-badge--green={badge.solid && badge.color === 'green'}
-										title={badgeTitle(badge)}
-										aria-label={badgeAriaLabel(badge)}
-										tabindex={badgeIsActionable(badge) ? 0 : -1}
+										title={nodeBadgeTitle(badge)}
+										aria-label={nodeBadgeAriaLabel(badge)}
+										tabindex={nodeBadgeIsActionable(badge) ? 0 : -1}
 										onclick={(e) => handleBadgePress(e, badge)}
 										onkeydown={(e) => handleBadgeKeydown(e, badge)}
 									>
@@ -652,23 +626,23 @@
 								<div class="vm-tree-child-badge-indicator" title={inheritedBadgeTitle(childBadges)}>
 									<span class="vm-tree-child-badge-dot"></span>
 									<div class="vm-tree-child-badge-pill">
-										{#each childBadges as badge, badgeIndex (badgeKey(badge, badgeIndex))}
+										{#each childBadges as badge, badgeIndex (nodeBadgeKey(badge, badgeIndex))}
 											<div
 												class="vm-badge"
 												role="button"
 												class:is-solid={badge.solid}
 												class:is-inherited={badge.isInherited}
 												class:is-undoable={badge.queueIndex !== undefined}
-												class:is-actionable={badgeIsActionable(badge)}
+												class:is-actionable={nodeBadgeIsActionable(badge)}
 												class:is-quick-action={badge.quickAction}
 												class:vm-badge--red={badge.solid && badge.color === 'red'}
 												class:vm-badge--blue={badge.solid && badge.color === 'blue'}
 												class:vm-badge--purple={badge.solid && badge.color === 'purple'}
 												class:vm-badge--orange={badge.solid && badge.color === 'orange'}
 												class:vm-badge--green={badge.solid && badge.color === 'green'}
-												title={badgeTitle(badge, true)}
-												aria-label={badgeAriaLabel(badge, true)}
-												tabindex={badgeIsActionable(badge) ? 0 : -1}
+												title={nodeBadgeTitle(badge, true)}
+												aria-label={nodeBadgeAriaLabel(badge, true)}
+												tabindex={nodeBadgeIsActionable(badge) ? 0 : -1}
 												onclick={(e) => handleBadgePress(e, badge)}
 												onkeydown={(e) => handleBadgeKeydown(e, badge)}
 											>

@@ -85,6 +85,7 @@ describe('ViewNodeGrid selection gestures', () => {
 			onTertiaryAction: (id: string, e: MouseEvent) => void;
 			onContextMenu: (id: string, e: MouseEvent) => void;
 			onBoxSelect: (ids: string[], e: PointerEvent) => void;
+			onBadgeDoubleClick: (queueIndex: number) => void;
 			hierarchyMode: 'folder' | 'inline';
 			expandedIds: Set<string>;
 			onToggleExpand: (id: string, e: MouseEvent | KeyboardEvent) => void;
@@ -99,6 +100,7 @@ describe('ViewNodeGrid selection gestures', () => {
 			onTertiaryAction: vi.fn(),
 			onContextMenu: vi.fn(),
 			onBoxSelect: vi.fn(),
+			onBadgeDoubleClick: vi.fn(),
 			hierarchyMode: 'folder',
 			expandedIds: new Set<string>(),
 			onToggleExpand: vi.fn(),
@@ -121,6 +123,7 @@ describe('ViewNodeGrid selection gestures', () => {
 			onTertiaryAction: props.onTertiaryAction ?? defaults.onTertiaryAction,
 			onContextMenu: props.onContextMenu ?? defaults.onContextMenu,
 			onBoxSelect: props.onBoxSelect ?? defaults.onBoxSelect,
+			onBadgeDoubleClick: props.onBadgeDoubleClick ?? defaults.onBadgeDoubleClick,
 			onToggleExpand: props.onToggleExpand ?? defaults.onToggleExpand,
 		};
 	}
@@ -164,6 +167,28 @@ describe('ViewNodeGrid selection gestures', () => {
 		expect(handlers.onTileClick).toHaveBeenCalledOnce();
 		expect(handlers.onTileClick).toHaveBeenCalledWith('alpha', expect.any(MouseEvent));
 		expect(handlers.onPrimaryAction).not.toHaveBeenCalled();
+	});
+
+	it('removes queued operations from direct node badges without selecting the tile', () => {
+		const handlers = renderGrid({
+			nodes: [
+				{
+					id: 'queued',
+					label: 'Queued',
+					depth: 0,
+					meta: {},
+					icon: 'lucide-file',
+					badges: [{ icon: 'lucide-trash-2', queueIndex: 0, title: 'queued' }],
+				},
+			],
+		});
+
+		const badge = target.querySelector<HTMLElement>('[data-id="queued"] [aria-label="queued"]');
+		expect(badge).toBeTruthy();
+		badge!.click();
+
+		expect(handlers.onBadgeDoubleClick).toHaveBeenCalledWith(0);
+		expect(handlers.onTileClick).not.toHaveBeenCalled();
 	});
 
 	it('clicking the tile label reports primary selection intent', () => {

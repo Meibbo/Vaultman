@@ -15,13 +15,14 @@
 		type LayoutSurfaceContent,
 	} from '../../services/serviceLayout';
 	import { resolveNodeMouseActions, type NodeMouseAction } from '../../services/serviceMouse';
+	import { LAYOUT_THEME_OPTIONS, normalizeLayoutTheme } from '../../services/serviceTheme';
 
 	let { plugin }: { plugin: iVaultmanPlugin } = $props();
 
 	function initState() {
 		const src = plugin.settings;
 		return {
-			layoutTheme: src.layoutTheme,
+			layoutTheme: normalizeLayoutTheme(src.layoutTheme),
 			islandDismissOnOutsideClick: src.islandDismissOnOutsideClick,
 			islandBackdropBlur: src.islandBackdropBlur,
 			glassBlurIntensity: src.glassBlurIntensity,
@@ -31,6 +32,9 @@
 			sessionFilePath: src.sessionFilePath,
 			explorerCtrlClickSearch: src.explorerCtrlClickSearch,
 			explorerShowQueuePreview: src.explorerShowQueuePreview,
+			explorerShowMatchedFilterDecorations: src.explorerShowMatchedFilterDecorations === true,
+			explorerNodeBackgrounds: src.explorerNodeBackgrounds !== false,
+			explorerNodeBorders: src.explorerNodeBorders !== false,
 			explorerContentSearch: src.explorerContentSearch,
 			explorerOperationScope: normalizeOperationScope(src.explorerOperationScope),
 			explorerFilesShowHidden: src.explorerFilesShowHidden,
@@ -238,6 +242,21 @@
 		onChange={persistSettings}
 	/>
 	<Toggle
+		bind:checked={s.explorerShowMatchedFilterDecorations}
+		label={translate('settings.explorer_matched_filter_decorations')}
+		onChange={persistSettings}
+	/>
+	<Toggle
+		bind:checked={s.explorerNodeBackgrounds}
+		label={translate('settings.explorer_node_backgrounds')}
+		onChange={persistSettings}
+	/>
+	<Toggle
+		bind:checked={s.explorerNodeBorders}
+		label={translate('settings.explorer_node_borders')}
+		onChange={persistSettings}
+	/>
+	<Toggle
 		bind:checked={s.explorerContentSearch}
 		label={translate('settings.content_search')}
 		onChange={persistSettings}
@@ -366,11 +385,11 @@
 		label={translate('settings.layout_theme')}
 		bind:value={s.layoutTheme}
 		onChange={persistSettings}
-		options={[
-			{ value: 'native', label: translate('settings.layout_theme.native') },
-			{ value: 'polish', label: translate('settings.layout_theme.polish') },
-			{ value: 'glass', label: translate('settings.layout_theme.glass') },
-		]}
+		options={LAYOUT_THEME_OPTIONS.map((option) => ({
+			value: option.value,
+			label: translate(option.labelKey),
+			disabled: option.disabled,
+		}))}
 	/>
 
 	<Toggle

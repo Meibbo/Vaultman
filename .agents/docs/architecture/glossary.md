@@ -4,7 +4,7 @@ type: architecture
 status: active
 parent: "[[docs/work/pkm-ai/specs/2026-05-04-orchestration-refresh/index|pkm-ai]]"
 created: 2026-05-04T01:36:20
-updated: 2026-05-10T11:08:45
+updated: 2026-05-10T20:20:23
 tags:
   - agent/architecture
 ---
@@ -28,6 +28,9 @@ tags:
   between Obsidian Bases and Vaultman.
 - CMenu queue repair: hardening slice that restores context-menu actions so
   tag and file operations stage queue-visible work through Vaultman's queue.
+- Chameleon architecture: Elastic UI architecture where Vaultman can render the
+  same service-backed surface through native-like Thin mode, balanced utility
+  mode, or richer Thick mode while preserving stable node semantics.
 - Continuation shard: a follow-on shard that preserves the rest of the same
   topic when the topic itself exceeds the active page size.
 - Controlled row selection: table selection mode where Vaultman owns the row
@@ -36,9 +39,15 @@ tags:
 - Current status: concise state snapshot under `current/`.
 - Durable norm: repeated or approved behavior recorded in a policy, router, or
   skill so future agents can rely on it.
+- Elastic UI: Vaultman's planned Thin/Balanced/Thick UI spectrum for adapting
+  density, DOM shape, and styling identity to Obsidian Core, Bases, Outline, or
+  richer management surfaces.
 - External/test term: a term intentionally not promoted into the project
   glossary, usually because it belongs to another chat, source, or validation
   probe.
+- Faint Mode: root-scoped visual state where Vaultman remaps accent CSS
+  variables to Obsidian faint or muted tokens when the owning window or
+  workspace focus context is inactive.
 - File delete queue operation: queue representation for deleting a file that
   keeps destructive file work inside Vaultman's staged operation flow.
 - FnR rename state: find-and-replace or navbar state that carries a pending

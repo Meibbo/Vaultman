@@ -126,4 +126,32 @@ describe('Toolbar toolbar menu placement', () => {
 		expect(searchWrap!.contains(help!)).toBe(true);
 		expect(toolbar!.contains(help!)).toBe(false);
 	});
+
+	it('uses concise props search category labels while starting in all mode', () => {
+		const service = new FnRIslandService();
+		const filtersSearchCategory = { tags: 0, props: 0, files: 0, content: 0 };
+		app = mount(Toolbar as unknown as Component<Record<string, unknown>>, {
+			target,
+			props: baseProps(service, {
+				activeTab: 'props',
+				filtersSearchCategory,
+			}),
+		});
+		flushSync();
+
+		const search = target.querySelector<HTMLElement>('[aria-label="Search"]');
+		expect(search).toBeTruthy();
+		search!.click();
+		flushSync();
+
+		const category = target.querySelector<HTMLButtonElement>('.vm-filters-search-mode.has-label');
+		expect(category).toBeTruthy();
+		expect(category!.textContent?.trim()).toBe('Props');
+		expect(filtersSearchCategory.props).toBe(0);
+
+		category!.click();
+		flushSync();
+
+		expect(category!.textContent?.trim()).toBe('Values');
+	});
 });

@@ -282,6 +282,23 @@
 	}
 }
 
+body.vm-node-backgrounds-off {
+	.vm-tree-row:not(:hover):not(.is-active-filter):not(.is-selected):not(.is-focused):not(
+			.vm-search-highlight
+		):not(.vm-badge-warning),
+	.vm-tree-row-surface:not(.is-active-filter):not(.is-selected):not(.is-focused):not(
+			.vm-search-highlight
+		):not(.vm-badge-warning):not(.is-editing) {
+		background: transparent;
+	}
+}
+
+body.vm-node-borders-off {
+	.vm-tree-row-surface:not(.is-active-filter):not(.is-focused):not(.is-editing) {
+		box-shadow: none;
+	}
+}
+
 // Modifying native tree elements
 .tree-item-icon.collapse-icon svg {
 	width: 12px;

@@ -4,7 +4,7 @@ type: agent-plan-shard
 status: planned
 parent: "[[docs/work/polish/plans/2026-05-10-dock-toolbar-groups-virtualizer/cut-1-5-node-surface-theme-scroll/index|Cut 1.5 Node Surface Theme And Scroll Plan]]"
 created: 2026-05-10T19:53:58
-updated: 2026-05-10T20:26:00
+updated: 2026-05-10T21:09:57
 tags:
   - agent/plan
   - polish
@@ -37,40 +37,40 @@ this.viewService = new ViewService({
 
 ## Facet 2: Generic Queue Badge Removal And Props Labels
 
-- [ ] Create `src/components/views/nodeBadgeHelpers.ts` with shared pure helpers:
+- [x] Create `src/components/views/nodeBadgeHelpers.ts` with shared pure helpers:
   - `ownNodeBadges(node)`
   - `nodeBadgeKey(badge, index)`
   - `nodeBadgeTitle(badge, inherited?)`
   - `nodeBadgeAriaLabel(badge, inherited?)`
   - `nodeBadgeIsActionable(badge)`
   - `handleNodeBadgePress(event, badge, onQueueIndex)`
-- [ ] Replace duplicated tree badge helper logic with the shared helpers where practical.
-- [ ] Add `onBadgeDoubleClick?: (queueIndex: number) => void` to `ViewNodeGrid.svelte`, `ViewNodeCards.svelte`, and `ViewNodeTable.svelte`.
-- [ ] Render direct non-inherited `node.badges` in those views.
+- [x] Replace duplicated tree badge helper logic with the shared helpers where practical.
+- [x] Add `onBadgeDoubleClick?: (queueIndex: number) => void` to `ViewNodeGrid.svelte`, `ViewNodeCards.svelte`, and `ViewNodeTable.svelte`.
+- [x] Render direct non-inherited `node.badges` in those views.
   - Grid: small absolute badge zone in the tile.
   - Cards: small absolute badge zone in the card.
   - Table: badge zone in the `label` column after the primary label.
-- [ ] Ensure badge clicks stop propagation and prevent row selection/open actions.
-- [ ] Pass `onBadgeDoubleClick={handleBadgeClick}` from `panelExplorer.svelte` to tree, grid, cards, and table.
-- [ ] In `src/components/layout/Toolbar.svelte`, set Props category labels to short labels:
+- [x] Ensure badge clicks stop propagation and prevent row selection/open actions.
+- [x] Pass `onBadgeDoubleClick={handleBadgeClick}` from `panelExplorer.svelte` to tree, grid, cards, and table.
+- [x] In `src/components/layout/Toolbar.svelte`, set Props category labels to short labels:
 
 ```ts
 props: [translate('filter.category.props'), translate('filter.category.values')]
 ```
 
 with translations changed to `Props` / `Values` in English and `Props` / `Valores` or `Propiedades` / `Valores` in Spanish. Do not include `names` or redundant `props` in the value label.
-- [ ] Verify `tabProps.svelte` still starts with `searchMode = 0` and `explorerProps` still defaults to `all`. Do not change this unless a test proves otherwise.
+- [x] Verify `tabProps.svelte` still starts with `searchMode = 0` and `explorerProps` still defaults to `all`. Do not change this unless a test proves otherwise.
 
 ## Facet 3: serviceTheme And Node Surface Settings
 
-- [ ] Create `src/services/serviceTheme.ts`.
-- [ ] Export:
+- [x] Create `src/services/serviceTheme.ts`.
+- [x] Export:
   - `type LayoutTheme = 'default' | 'polish' | 'glass' | 'custom'`
   - `normalizeLayoutTheme(value: unknown): LayoutTheme`
   - `applyVaultmanTheme(body: HTMLElement, settings: ThemeSettingsLike): void`
   - `LAYOUT_THEME_OPTIONS` for Settings UI labels/disabled state if useful.
-- [ ] Treat saved legacy `native` as `default`.
-- [ ] Add settings in `src/types/typeSettings.ts`:
+- [x] Treat saved legacy `native` as `default`.
+- [x] Add settings in `src/types/typeSettings.ts`:
 
 ```ts
 layoutTheme: LayoutTheme;
@@ -88,16 +88,16 @@ explorerNodeBackgrounds: true;
 explorerNodeBorders: true;
 ```
 
-- [ ] In `main.ts`, replace direct theme body toggling with `applyVaultmanTheme(activeDocument.body, this.settings)`.
-- [ ] In `SettingsUI.svelte`, add toggles in Appearance or Explorer:
+- [x] In `main.ts`, replace direct theme body toggling with `applyVaultmanTheme(activeDocument.body, this.settings)`.
+- [x] In `SettingsUI.svelte`, add toggles in Appearance or Explorer:
   - Show matched filter node decorations
   - Show node backgrounds
   - Show node borders
-- [ ] Add theme dropdown option `custom` / `Create your own` as disabled placeholder.
-- [ ] Add body-class SCSS:
+- [x] Add theme dropdown option `custom` / `Create your own` as disabled placeholder.
+- [x] Add body-class SCSS:
   - `body.vm-node-backgrounds-off ... { background: transparent; }`
   - `body.vm-node-borders-off ... { border-color: transparent; box-shadow: none; }`
-- [ ] Keep state backgrounds visible when needed for hover/selection/focus unless the setting explicitly removes the base node surface only.
+- [x] Keep state backgrounds visible when needed for hover/selection/focus unless the setting explicitly removes the base node surface only.
 
 ## Facet 4: serviceScroll And ViewTree Lag
 

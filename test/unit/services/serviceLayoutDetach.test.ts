@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { resolveLayoutDropAction } from '../../../src/services/serviceLayout';
+import { vi } from 'vitest';
+import { applyLayoutDropAction, resolveLayoutDropAction } from '../../../src/services/serviceLayout';
 
 describe('serviceLayout detachable drop actions', () => {
 	it('resolves a Vaultman tab dropped from the dock to the workspace as detach-tab', () => {
@@ -57,5 +58,44 @@ describe('serviceLayout detachable drop actions', () => {
 			ok: false,
 			reason: 'unsupported-source',
 		});
+	});
+
+	it('applies detach and attach actions through injected leaf callbacks', async () => {
+		const detach = vi.fn(async () => undefined);
+		const attach = vi.fn(async () => undefined);
+
+		await applyLayoutDropAction(
+			{
+				ok: true,
+				operation: 'detach-tab',
+				tabId: 'explorer-files',
+				from: 'dock',
+				to: 'workspace',
+			},
+			{ detach, attach },
+		);
+		await applyLayoutDropAction(
+			{
+				ok: true,
+				operation: 'attach-tab',
+				tabId: 'explorer-files',
+				from: 'workspace',
+				to: 'dock',
+			},
+			{ detach, attach },
+		);
+
+		expect(detach).toHaveBeenCalledWith('explorer-files');
+		expect(attach).toHaveBeenCalledWith('explorer-files');
+	});
+
+	it('does not call callbacks for rejected layout actions', async () => {
+		const detach = vi.fn(async () => undefined);
+		const attach = vi.fn(async () => undefined);
+
+		await applyLayoutDropAction({ ok: false, reason: 'unsupported-source' }, { detach, attach });
+
+		expect(detach).not.toHaveBeenCalled();
+		expect(attach).not.toHaveBeenCalled();
 	});
 });

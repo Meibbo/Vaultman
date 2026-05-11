@@ -33,6 +33,7 @@
 		navCollapsed,
 		isReordering = $bindable(false),
 		reorderTargetIdx = -1,
+		externalTabIds = [],
 		dockEl = $bindable(),
 		filterRuleCount,
 		queuedCount,
@@ -58,6 +59,7 @@
 		navCollapsed: boolean;
 		isReordering?: boolean;
 		reorderTargetIdx?: number;
+		externalTabIds?: string[];
 		dockEl?: HTMLElement | null;
 		filterRuleCount: number;
 		queuedCount: number;
@@ -71,6 +73,8 @@
 		mouseGestureConfig?: MouseGestureConfig;
 	} = $props();
 
+	const externalTabs = $derived(new Set(externalTabIds));
+
 	function attachIcon(node: HTMLElement, iconName: string): { update: (n: string) => void } {
 		setIcon(node, iconName);
 		return { update: (n: string) => setIcon(node, n) };
@@ -78,7 +82,7 @@
 
 	function selectItem(item: DockItem): void {
 		if (item.disabled || isReordering) return;
-		active = item.id;
+		if (!externalTabs.has(item.id)) active = item.id;
 		onSelect?.(item.id);
 	}
 
@@ -123,13 +127,16 @@
 					tabindex="-1"
 				>
 					{#each items as item, i (item.id)}
+						{@const external = externalTabs.has(item.id)}
 						<div
 							class="vm-nav-icon vm-nav-dock-item"
-							class:is-active={active === item.id && !isReordering}
+							class:is-active={active === item.id && !isReordering && !external}
 							class:is-disabled={item.disabled}
 							class:is-faint={item.faint}
 							class:has-label={showLabels}
 							class:is-reorder-target={isReordering && reorderTargetIdx === i}
+							class:is-external-mounted={external}
+							data-external-mounted={external ? 'true' : undefined}
 							aria-label={item.label}
 							aria-disabled={item.disabled ? 'true' : undefined}
 							onpointerdown={(e: PointerEvent) => onItemPointerDown?.(e, i)}
@@ -207,13 +214,16 @@
 		tabindex="-1"
 	>
 		{#each items as item, i (item.id)}
+			{@const external = externalTabs.has(item.id)}
 			<div
 				class="vm-nav-icon vm-nav-dock-item"
-				class:is-active={active === item.id && !isReordering}
+				class:is-active={active === item.id && !isReordering && !external}
 				class:is-disabled={item.disabled}
 				class:is-faint={item.faint}
 				class:has-label={showLabels}
 				class:is-reorder-target={isReordering && reorderTargetIdx === i}
+				class:is-external-mounted={external}
+				data-external-mounted={external ? 'true' : undefined}
 				aria-label={item.label}
 				aria-disabled={item.disabled ? 'true' : undefined}
 				onpointerdown={(e: PointerEvent) => onItemPointerDown?.(e, i)}

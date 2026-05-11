@@ -130,4 +130,29 @@ describe('NavbarDock', () => {
 			true,
 		);
 	});
+
+	it('marks externally mounted dock items without making them locally active', () => {
+		const onSelect = vi.fn();
+
+		app = mount(NavbarDock as unknown as Component<Record<string, unknown>>, {
+			target,
+			props: baseProps({
+				active: '',
+				externalTabIds: ['files'],
+				onSelect,
+			}),
+		});
+		flushSync();
+
+		const files = target.querySelector<HTMLElement>('[aria-label="Files"]');
+		expect(files?.classList.contains('is-external-mounted')).toBe(true);
+		expect(files?.getAttribute('data-external-mounted')).toBe('true');
+		expect(files?.classList.contains('is-active')).toBe(false);
+
+		files!.click();
+		flushSync();
+
+		expect(onSelect).toHaveBeenCalledWith('files');
+		expect(files?.classList.contains('is-active')).toBe(false);
+	});
 });

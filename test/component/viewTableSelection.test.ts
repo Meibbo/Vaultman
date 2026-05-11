@@ -12,6 +12,17 @@ const nodes: TreeNode[] = [
 	{ id: 'beta', label: 'Beta', depth: 0, meta: {}, icon: 'lucide-tag' },
 ];
 
+const queuedNodes: TreeNode[] = [
+	{
+		id: 'queued',
+		label: 'Queued row',
+		depth: 0,
+		meta: {},
+		icon: 'lucide-file',
+		badges: [{ icon: 'lucide-trash-2', queueIndex: 0, title: 'queued' }],
+	},
+];
+
 describe('ViewNodeTable', () => {
 	let target: HTMLDivElement;
 	let app: ReturnType<typeof mount> | null = null;
@@ -42,6 +53,7 @@ describe('ViewNodeTable', () => {
 			onContextMenu: vi.fn(),
 			onRowKeydown: vi.fn(),
 			onSelectAll: vi.fn(),
+			onBadgeDoubleClick: vi.fn(),
 			icon: vi.fn(() => ({ update: vi.fn() })),
 		};
 		app = mount(ViewNodeTable as unknown as Component<Record<string, unknown>>, {
@@ -90,6 +102,17 @@ describe('ViewNodeTable', () => {
 		expect(handlers.onPrimaryAction).not.toHaveBeenCalled();
 		expect(handlers.onRowKeydown).toHaveBeenCalledWith('beta', expect.any(KeyboardEvent));
 		expect(handlers.onContextMenu).toHaveBeenCalledWith('beta', expect.any(MouseEvent));
+	});
+
+	it('removes queued operations from direct node badges without selecting the row', () => {
+		const handlers = renderTable({ rows: nodeRowsFromTree(queuedNodes) });
+
+		const badge = target.querySelector<HTMLElement>('[data-id="queued"] [aria-label="queued"]');
+		expect(badge).toBeTruthy();
+		badge!.click();
+
+		expect(handlers.onBadgeDoubleClick).toHaveBeenCalledWith(0);
+		expect(handlers.onRowClick).not.toHaveBeenCalled();
 	});
 
 	it('reports tertiary action from middle-clicked table rows', () => {

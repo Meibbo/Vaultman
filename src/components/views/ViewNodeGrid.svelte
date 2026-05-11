@@ -24,6 +24,14 @@
 		type ViewSizePresetId,
 	} from '../../services/serviceViewSize';
 	import {
+		handleNodeBadgePress,
+		nodeBadgeAriaLabel,
+		nodeBadgeIsActionable,
+		nodeBadgeKey,
+		nodeBadgeTitle,
+		ownNodeBadges,
+	} from './nodeBadgeHelpers';
+	import {
 		createManualDndService,
 		manualWorkspacePayloadForNode,
 		writeManualDndTransfer,
@@ -58,6 +66,7 @@
 		onBoxSelect?: (ids: string[], e: PointerEvent) => void;
 		onContextMenu: (id: string, e: MouseEvent) => void;
 		onTileKeydown?: (id: string, e: KeyboardEvent) => void;
+		onBadgeDoubleClick?: (queueIndex: number) => void;
 		onHoverBadgeAction?: (id: string, kind: BadgeKind, e: MouseEvent | KeyboardEvent) => void;
 		activeOpsByNode?: ActiveOpsByNode;
 		onToggleExpand?: (id: string, e: MouseEvent | KeyboardEvent) => void;
@@ -84,6 +93,7 @@
 		onBoxSelect,
 		onContextMenu,
 		onTileKeydown,
+		onBadgeDoubleClick,
 		onHoverBadgeAction,
 		activeOpsByNode,
 		onToggleExpand,
@@ -110,6 +120,15 @@
 	function handleHoverBadgeKeydown(e: KeyboardEvent, id: string, kind: BadgeKind) {
 		if (e.key === 'Enter' || e.key === ' ' || e.key === 'Spacebar') {
 			handleHoverBadgePress(e, id, kind);
+		}
+	}
+
+	function handleBadgeKeydown(
+		e: KeyboardEvent,
+		badge: Parameters<typeof handleNodeBadgePress>[1],
+	) {
+		if (e.key === 'Enter' || e.key === ' ' || e.key === 'Spacebar') {
+			handleNodeBadgePress(e, badge, onBadgeDoubleClick);
 		}
 	}
 
@@ -546,6 +565,7 @@
 	{@const isSelected = selectedIds?.has(node.id) ?? false}
 	{@const isFocused = focusedId === node.id}
 	{@const isActive = activeId === node.id}
+	{@const directBadges = ownNodeBadges(node)}
 	{@const hoverBadges = hoverBadgesFor(node)}
 	{@const dndState = manualDndStateFor(node.id)}
 	<div
@@ -600,6 +620,34 @@
 			{#if node.labelPrefix}<span class="vm-node-grid-label-prefix">{node.labelPrefix}</span
 				>{/if}{node.label}
 		</span>
+		{#if directBadges.length > 0}
+			<div class="vm-node-grid-badge-zone">
+				{#each directBadges as badge, badgeIndex (nodeBadgeKey(badge, badgeIndex))}
+					<div
+						class="vm-badge"
+						role="button"
+						class:is-solid={badge.solid}
+						class:is-undoable={badge.queueIndex !== undefined}
+						class:is-actionable={nodeBadgeIsActionable(badge)}
+						class:is-quick-action={badge.quickAction}
+						class:vm-badge--red={badge.solid && badge.color === 'red'}
+						class:vm-badge--blue={badge.solid && badge.color === 'blue'}
+						class:vm-badge--purple={badge.solid && badge.color === 'purple'}
+						class:vm-badge--orange={badge.solid && badge.color === 'orange'}
+						class:vm-badge--green={badge.solid && badge.color === 'green'}
+						title={nodeBadgeTitle(badge)}
+						aria-label={nodeBadgeAriaLabel(badge)}
+						tabindex={nodeBadgeIsActionable(badge) ? 0 : -1}
+						onclick={(e) => handleNodeBadgePress(e, badge, onBadgeDoubleClick)}
+						onkeydown={(e) => handleBadgeKeydown(e, badge)}
+					>
+						{#if badge.icon}
+							<span class="vm-badge-icon" use:icon={badge.icon}></span>
+						{/if}
+					</div>
+				{/each}
+			</div>
+		{/if}
 		{#if hoverBadges.length > 0}
 			<div class="vm-node-grid-hover-badge-zone">
 				{#each hoverBadges as badge (badge.kind)}

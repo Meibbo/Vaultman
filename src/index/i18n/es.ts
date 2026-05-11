@@ -189,8 +189,10 @@ export const es: Record<string, string> = {
 	'settings.templates.desc': 'Gestionar plantillas de filtros guardadas',
 	'settings.layout_theme': 'Tema del layout',
 	'settings.layout_theme.native': 'Nativo',
+	'settings.layout_theme.default': 'Predeterminado',
 	'settings.layout_theme.polish': 'Polish',
 	'settings.layout_theme.glass': 'Glass',
+	'settings.layout_theme.custom': 'Crear uno propio',
 	'settings.island_dismiss_outside': 'Cerrar islas al hacer clic fuera',
 	'settings.island_backdrop_blur': 'Desenfocar contenido detrás de islas',
 
@@ -312,6 +314,10 @@ export const es: Record<string, string> = {
 	'settings.queue_preview': 'Vista previa de cola en explorador',
 	'settings.queue_preview.desc':
 		'Muestra cambios pendientes de la cola en el explorador de propiedades',
+	'settings.explorer_matched_filter_decorations':
+		'Decoración de nodos que coinciden con filtros',
+	'settings.explorer_node_backgrounds': 'Fondos de nodos',
+	'settings.explorer_node_borders': 'Bordes de nodos',
 	'settings.content_search': 'Búsqueda de contenido',
 	'settings.content_search.desc': 'Habilita búsqueda en contenido de archivos en el file tree',
 	'settings.files_show_hidden': 'Mostrar archivos y carpetas ocultas',
@@ -390,6 +396,8 @@ export const es: Record<string, string> = {
 	'filter.search_help': 'Ayuda de semántica de búsqueda',
 	'filter.search_read_more': 'Leer más',
 	'filter.search_history': 'Búsquedas recientes',
+	'filter.category.props': 'Props',
+	'filter.category.values': 'Valores',
 	'fnr.more_options': 'Búsqueda y reemplazo avanzado',
 	'fnr.advanced': 'Búsqueda y reemplazo avanzado',
 	'fnr.syntax': 'Sintaxis',

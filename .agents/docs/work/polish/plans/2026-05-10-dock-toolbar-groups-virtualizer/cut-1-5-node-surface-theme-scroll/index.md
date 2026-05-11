@@ -4,7 +4,7 @@ type: agent-plan
 status: in_progress
 parent: "[[docs/work/polish/plans/2026-05-10-dock-toolbar-groups-virtualizer/index|Dock Toolbar Groups Virtualizer]]"
 created: 2026-05-10T19:53:58
-updated: 2026-05-10T20:26:00
+updated: 2026-05-10T21:09:57
 tags:
   - agent/plan
   - polish
@@ -39,8 +39,8 @@ This request touches seven surfaces that would make Cut 2 too broad if handled i
 ## Facet Order
 
 1. Filter decoration and hover-primary visibility.
-2. Generic queue badges and Props search category labels.
-3. `serviceTheme`, node-surface settings, and ViewCards background controls.
+2. Generic queue badges and Props search category labels. Done 2026-05-10.
+3. `serviceTheme`, node-surface settings, and ViewCards background controls. Done 2026-05-10.
 4. `serviceScroll` for ViewTree scroll stabilization and PretextJS audit answer.
 5. Scrollable compact controls.
 6. Queue explorer grouped parent/child presentation.
@@ -53,6 +53,34 @@ This request touches seven surfaces that would make Cut 2 too broad if handled i
 - Do not force PretextJS/service text measurement onto fixed-height views just to say it is global.
 - Do not remove active-filter decoration from the Active Filters explorer itself; the default-off change applies to ordinary explorer nodes that match active filters.
 - Do not commit.
+
+## Continuation Log
+
+### 2026-05-10 Task 2: Generic Queue Badges And Props Labels
+
+- Added shared node badge helpers and reused them in tree, grid, cards, and table rendering.
+- Added direct queue badge rendering/removal in grid, cards, and table; `panelExplorer` now wires queue removal into all node views.
+- Shortened Props category labels to `Props` / `Values` in English and `Props` / `Valores` in Spanish, while preserving `searchMode = 0` / `all` defaults.
+- Fresh verification:
+  - `pnpm exec vp test run --project component --config vitest.config.ts test/component/viewGridSelection.test.ts test/component/viewNodeCards.test.ts test/component/viewTableSelection.test.ts test/component/toolbarMenuPlacement.test.ts --fileParallelism=false`: pass, 35/35.
+  - `pnpm run check`: pass, 0 errors / 0 warnings.
+- Next task was Facet 3, `serviceTheme`, node-surface settings, and ViewCards background controls.
+
+### 2026-05-10 Task 3: serviceTheme And Node Surface Settings
+
+- Added `src/services/serviceTheme.ts` with layout-theme normalization, legacy `native` to `default` migration, body class application, and shared Settings UI theme options.
+- Added node-surface settings for matched-filter node decorations, node backgrounds, and node borders; defaults keep matched-filter decorations off and node backgrounds/borders on.
+- Replaced direct theme body class toggling in `main.ts` with `applyVaultmanTheme(activeDocument.body, this.settings)`.
+- Added disabled `Create your own` theme placeholder plus node-surface toggles in Settings UI.
+- Added body-class SCSS controls for node backgrounds and borders across tree, grid, cards, and table surfaces while preserving state-specific visual feedback.
+- Fresh verification:
+  - `pnpm exec vp test run --project unit --config vitest.config.ts test/unit/services/serviceTheme.test.ts --fileParallelism=false`: pass, 4/4.
+  - `pnpm exec vp test run --project component --config vitest.config.ts test/component/settingsUI.test.ts --fileParallelism=false`: pass, 10/10.
+  - Svelte autofixer for `SettingsUI.svelte`: no issues; one existing `$effect` suggestion reviewed and left unchanged because it only toggles a global body class.
+  - `pnpm run check`: pass, 0 errors / 0 warnings.
+- Doc health verification:
+  - `node .agents/tools/pkm-ai/check-doc-health.mjs`: fail with unrelated residuals in the detachable workspace tabs spec and `.agents/docs/superpowers`.
+- Next task: Facet 4, `serviceScroll` for ViewTree scroll stabilization and PretextJS audit answer.
 
 ## Expected Final Answer From Executing Agent
 
