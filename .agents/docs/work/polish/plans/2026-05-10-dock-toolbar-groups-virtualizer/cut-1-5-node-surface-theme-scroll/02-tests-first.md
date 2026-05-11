@@ -4,7 +4,7 @@ type: agent-plan-shard
 status: planned
 parent: "[[docs/work/polish/plans/2026-05-10-dock-toolbar-groups-virtualizer/cut-1-5-node-surface-theme-scroll/index|Cut 1.5 Node Surface Theme And Scroll Plan]]"
 created: 2026-05-10T19:53:58
-updated: 2026-05-10T21:09:57
+updated: 2026-05-10T21:29:48
 tags:
   - agent/plan
   - polish
@@ -57,11 +57,11 @@ updated_by: codex
 
 ## Facet 4: ViewTree Scroll Service
 
-- [ ] Create `test/unit/services/serviceScroll.test.ts`.
+- [x] Create `test/unit/services/serviceScroll.test.ts`.
   - Fixed fallback rows compute start/end from `scrollTop`, row height, viewport height, item count, and overscan.
   - Scroll target helper returns unchanged scroll top when row is already visible.
   - Scroll target helper returns start-aligned or end-aligned top when row is outside viewport.
-- [ ] Update or add `test/component/viewTreeSelection.test.ts` coverage.
+- [x] Update or add `test/component/viewTreeSelection.test.ts` coverage.
   - When TanStack virtual rows are temporarily empty, fallback rows include the visible window around the current scroll position.
   - Overscan should be large enough to avoid a blank gap for a normal wheel-sized jump.
 

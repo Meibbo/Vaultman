@@ -4,7 +4,7 @@ type: agent-plan-shard
 status: planned
 parent: "[[docs/work/polish/plans/2026-05-10-dock-toolbar-groups-virtualizer/cut-1-5-node-surface-theme-scroll/index|Cut 1.5 Node Surface Theme And Scroll Plan]]"
 created: 2026-05-10T19:53:58
-updated: 2026-05-10T21:09:57
+updated: 2026-05-10T21:29:48
 tags:
   - agent/plan
   - polish
@@ -101,14 +101,14 @@ explorerNodeBorders: true;
 
 ## Facet 4: serviceScroll And ViewTree Lag
 
-- [ ] Create `src/services/serviceScroll.ts` with fixed-row helpers:
+- [x] Create `src/services/serviceScroll.ts` with fixed-row helpers:
   - `fallbackFixedVirtualRows({ count, rowHeight, viewportHeight, scrollTop, overscan, getKey })`
   - `scrollFixedIndexIntoView({ index, rowHeight, viewportHeight, scrollTop })`
   - `createRafElementRectObserver({ getElement, fallbackWidth, fallbackHeight })`
-- [ ] Replace `viewTree.svelte` local fallback row and rect observer logic with the service helpers.
-- [ ] Increase `TREE_OVERSCAN` conservatively for ViewTree only, for example from 12 to 24, if the fallback test/manual pass confirms blank gaps.
-- [ ] Keep grid/cards/table scroll helpers local unless this cut needs them; the service can be generic with ViewTree as first consumer.
-- [ ] Add a PretextJS audit note to final handoff:
+- [x] Replace `viewTree.svelte` local fallback row and rect observer logic with the service helpers.
+- [x] Increase `TREE_OVERSCAN` conservatively for ViewTree only, for example from 12 to 24, if the fallback test/manual pass confirms blank gaps.
+- [x] Keep grid/cards/table scroll helpers local unless this cut needs them; the service can be generic with ViewTree as first consumer.
+- [x] Add a PretextJS audit note to final handoff:
   - `ViewNodeCards` uses service text measurement for dynamic card heights.
   - Tree/grid/table/list are fixed-height views and should not get PretextJS unless their row height becomes dynamic.
   - If any non-card view has dynamic content hidden by fixed height, capture it as a follow-up rather than widening this cut.

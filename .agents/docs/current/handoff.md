@@ -5,7 +5,7 @@ status: active
 parent: "[[docs/work/pkm-ai/index|pkm-ai]]"
 archive_source: "docs/archive/pkm-ai/active-docs/2026-05-10T093000-current-handoff.md"
 created: 2026-05-04T01:36:20
-updated: 2026-05-11T21:09:57
+updated: 2026-05-11T21:29:48
 tags:
   - agent/current
 created_by: dec
@@ -20,9 +20,9 @@ Compact handoff after archiving the oversized current handoff:
 ## Resume Point
 
 - Latest user request implemented in this session:
-  Cut 1.5 Task 3, `serviceTheme`, node-surface settings, and ViewCards
-  background controls. Source log:
-  [[docs/work/polish/plans/2026-05-10-dock-toolbar-groups-virtualizer/cut-1-5-node-surface-theme-scroll/index#2026-05-10-task-3-servicetheme-and-node-surface-settings|Task 3 continuation log]].
+  Cut 1.5 Task 4, `serviceScroll`, ViewTree fallback scroll stabilization, and
+  the PretextJS audit. Source log:
+  [[docs/work/polish/plans/2026-05-10-dock-toolbar-groups-virtualizer/cut-1-5-node-surface-theme-scroll/index#2026-05-10-task-4-servicescroll-and-viewtree-lag|Task 4 continuation log]].
 - Recent prior user request implemented:
   detachable Vaultman tabs are now routed through the layout service surface.
   The approved design and implementation plan live at
@@ -45,6 +45,10 @@ Compact handoff after archiving the oversized current handoff:
   [[docs/work/polish/plans/2026-05-11-elastic-ui-chameleon/index|Elastic UI Chameleon Implementation Plan]].
 - Latest product request captured as a sharded multifacet pre-Cut-2 plan:
   [[docs/work/polish/plans/2026-05-10-dock-toolbar-groups-virtualizer/cut-1-5-node-surface-theme-scroll/index|Cut 1.5 Node Surface Theme And Scroll Plan]].
+- Latest product execution before Task 4 completed Cut 1.5 Task 3:
+  `serviceTheme`, node-surface settings, and ViewCards background controls.
+  Source log:
+  [[docs/work/polish/plans/2026-05-10-dock-toolbar-groups-virtualizer/cut-1-5-node-surface-theme-scroll/index#2026-05-10-task-3-servicetheme-and-node-surface-settings|Task 3 continuation log]].
 - Latest product execution before Task 3 completed Cut 1.5 Task 2:
   generic queue badges and Props search labels. Source log:
   [[docs/work/polish/plans/2026-05-10-dock-toolbar-groups-virtualizer/cut-1-5-node-surface-theme-scroll/index#2026-05-10-task-2-generic-queue-badges-and-props-labels|Task 2 continuation log]].
@@ -59,24 +63,14 @@ Compact handoff after archiving the oversized current handoff:
   `ViewTree` restored reserved toggle slots for leaf rows, added
   non-interactive indent guides, restored hover styling, and now captures
   selection-box pointer only after drag threshold.
-- Latest user request implemented:
-  [[docs/work/pkm-ai/plans/2026-05-10-task-state-retrieval/index|Task state retrieval]].
-- Previous user request implemented:
-  [[docs/work/pkm-ai/plans/2026-05-10-task-state-automation/index|Task state automation]].
-- Earlier user request implemented:
-  [[docs/work/pkm-ai/plans/2026-05-10-glossary-candidate-triage/index|Glossary candidate triage]].
-- Previous health request implemented:
-  [[docs/work/pkm-ai/plans/2026-05-10-health-residual-auto-repair/index|Health residual auto repair]].
-- Previous health cut:
-  [[docs/work/pkm-ai/plans/2026-05-10-health-line-limit-auto-sharding/index|Health line-limit auto sharding]].
-- Previous completed cut:
-  [[docs/work/pkm-ai/plans/2026-05-10-svelte-code-index-extraction/index|Svelte code index extraction]].
-- The worktree had no pending product/tool diffs when this continuation began.
-- The implementation already existed locally; this continuation freshly
-  verified it and repaired current docs into compact route indexes.
+- Previous PKM-AI implementation records remain linked from
+  [[docs/current/status|current status]].
 
 ## What To Preserve
 
+- Cut 1.5 PretextJS audit: `ViewNodeCards` uses service text measurement for
+  dynamic card heights. Tree, grid, table, and list surfaces remain fixed-height
+  and should not use PretextJS unless their row model becomes dynamic.
 - `.agents/tools/pkm-ai/lib/code-index.mjs` imports `svelte/compiler` and treats
   `.svelte` as an indexed code target.
 - `.agents/tools/pkm-ai/test/code-index.test.mjs` covers `.svelte` discovery,
@@ -104,39 +98,27 @@ Compact handoff after archiving the oversized current handoff:
 
 ## Fresh Verification
 
-- Cut 1.5 Task 3 unit verification:
-  `pnpm exec vp test run --project unit --config vitest.config.ts test/unit/services/serviceTheme.test.ts --fileParallelism=false`:
-  pass, 4/4.
-- Cut 1.5 Task 3 component verification:
-  `pnpm exec vp test run --project component --config vitest.config.ts test/component/settingsUI.test.ts --fileParallelism=false`:
-  pass, 10/10.
-- Cut 1.5 Task 3 final Svelte check:
+- Cut 1.5 Task 4 unit verification:
+  `pnpm exec vp test run --project unit --config vitest.config.ts test/unit/services/serviceScroll.test.ts --fileParallelism=false`:
+  pass, 5/5.
+- Cut 1.5 Task 4 fallback component verification:
+  `pnpm exec vp test run --project component --config vitest.config.ts test/component/viewTreeScrollFallback.test.ts --fileParallelism=false`:
+  pass, 1/1.
+- Cut 1.5 Task 4 ViewTree regression verification:
+  `pnpm exec vp test run --project component --config vitest.config.ts test/component/viewTreeSelection.test.ts test/component/viewTreeDecorations.test.ts test/component/virtualizerItemKeys.test.ts test/component/viewTreeHoverBadges.test.ts --fileParallelism=false`:
+  pass, 34/34.
+- Cut 1.5 Task 4 panel integration verification:
+  `pnpm exec vp test run --project component --config vitest.config.ts test/component/panelExplorerSelection.test.ts --fileParallelism=false`:
+  pass, 35/35.
+- Cut 1.5 Task 4 final Svelte check:
   `pnpm run check`: pass, `svelte-check found 0 errors and 0 warnings`.
-- Svelte autofixer for `SettingsUI.svelte`: no issues; one existing `$effect`
-  suggestion reviewed and left unchanged because it only toggles a global body
-  class.
-- Detachable slice focused verification:
-  `pnpm exec vp test run --project unit --config vitest.config.ts test/unit/services/serviceLayoutDetach.test.ts test/unit/services/serviceLeafDetach.test.ts test/unit/services/serviceDnd.test.ts test/unit/services/serviceDndSvelteAdapter.test.ts --fileParallelism=false`:
-  pass, 4 files, 30 tests.
-- Detachable slice component verification:
-  `pnpm exec vp test run --project component --config vitest.config.ts test/component/pageToolsLayout.test.ts test/component/settingsUI.test.ts test/component/navbarDock.test.ts test/component/navbarTabs.test.ts test/component/detachedTabHost.test.ts test/component/pageToolsSnippets.test.ts test/component/pageToolsPlugins.test.ts --fileParallelism=false`:
-  pass, 7 files, 25 tests.
-- Final Svelte check after the detachable edits:
-  `pnpm run check`: pass, `svelte-check found 0 errors and 0 warnings`.
-- Latest doc health run after Cut 1.5 Task 3:
+- Svelte autofixer for `viewTree.svelte`: no issues; existing effect/bind
+  suggestions reviewed and left unchanged.
+- Latest doc health run after Cut 1.5 Task 4:
   `node .agents/tools/pkm-ai/check-doc-health.mjs`: fail with unrelated
   residuals in the detachable workspace tabs spec and `.agents/docs/superpowers`.
-- `node --test .agents/tools/pkm-ai/test/manage-tasks.test.mjs`: pass, 6/6.
-- `npm --prefix .agents/tools/pkm-ai test`: pass, 25/25.
-- `node .agents/tools/pkm-ai/manage-tasks.mjs --get-objective tasks-retrieval-implementation --initiative pkm-ai --json`:
-  pass.
-- `node .agents/tools/pkm-ai/query-docs.mjs --glossary "active node"`: pass.
-- `node .agents/tools/pkm-ai/query-docs.mjs --glossary "node selection service"`:
-  pass.
-- `node .agents/tools/pkm-ai/query-docs.mjs --glossary "SVAR filemanager"`:
-  pass.
-- Prior health repair and Svelte retrieval verification remain in the linked
-  source records.
+- Earlier verification remains in the linked source records and
+  [[docs/current/status|current status]].
 
 ## Next Action
 
@@ -151,27 +133,17 @@ Compact handoff after archiving the oversized current handoff:
   into detached explorer leaves.
 - For Elastic UI execution, start with the contracts and gates shard:
   [[docs/work/polish/plans/2026-05-11-elastic-ui-chameleon/00-contracts-and-gates|Elastic UI Contracts And Gates]].
-- For product work, continue Cut 1.5 Task 4:
-  `serviceScroll` for ViewTree scroll stabilization and the PretextJS audit in
+- For product work, continue Cut 1.5 Task 5:
+  scrollable compact controls in
   [[docs/work/polish/plans/2026-05-10-dock-toolbar-groups-virtualizer/cut-1-5-node-surface-theme-scroll/index|Cut 1.5 Node Surface Theme And Scroll Plan]].
 - After Cut 1.5, continue with Cut 2 from
   [[docs/work/polish/plans/2026-05-10-dock-toolbar-groups-virtualizer/index|Dock, Toolbar, Groups, Virtualizer Implementation Plan]]:
   Settings and row layout completion, then Cut 3 virtualizer/pretext/tab
   latency, Cut 4 real `@dnd-kit/svelte` DnD/groups/queue operations, and Cut 5
   node notes plus mouse action polish.
-- No PKM-AI health, glossary, or housekeeping residual is currently visible.
-  Route the next slice from the user's intent, the PKM-AI index, or active
-  product work.
-
 ## Known Residuals
 
 - Live Obsidian runtime smoke for the detachable slice is still pending.
-- The broader worktree is very dirty with unrelated Elastic UI/node surface
-  changes, docs, styles, i18n, and table/card/grid work. Do not revert unrelated
-  files. Current visible product diffs include `ViewNodeTable.svelte`,
-  `ViewNodeCards.svelte`, `ViewNodeGrid.svelte`, `panelExplorer.svelte`,
-  `_cards.scss`, `_grid.scss`, `_table.scss`, i18n files, and several Elastic
-  UI plan shards.
 - Product worktree remains dirty with active Vaultman UI/DnD changes. Do not
   revert unrelated user/agent files.
 - One combined component command timed out once due startup/runtime length, but

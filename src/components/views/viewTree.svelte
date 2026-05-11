@@ -1,7 +1,6 @@
 <script lang="ts">
 	import { untrack } from 'svelte';
 	import { createVirtualizer } from '@tanstack/svelte-virtual';
-	import type { Rect, Virtualizer } from '@tanstack/svelte-virtual';
 	import type { NodeBadge, TreeNode } from '../../types/typeNode';
 	import { getActivePerfProbe } from '../../dev/perfProbe';
 	import type { FlatNode } from '../../services/serviceVirtualizer.svelte';
@@ -27,6 +26,11 @@
 		type ViewSizePresetId,
 	} from '../../services/serviceViewSize';
 	import {
+		createRafElementRectObserver,
+		fallbackFixedVirtualRows,
+		scrollFixedIndexIntoView,
+	} from '../../services/serviceScroll';
+	import {
 		handleNodeBadgePress,
 		inheritedNodeBadges,
 		nodeBadgeAriaLabel,
@@ -40,7 +44,7 @@
 	const TREE_ROW_HEIGHT = DEFAULT_VIEW_SIZE.treeRowHeight;
 	const TREE_FALLBACK_WIDTH = 320;
 	const TREE_FALLBACK_HEIGHT = 400;
-	const TREE_OVERSCAN = 12;
+	const TREE_OVERSCAN = 24;
 	type ScrollTarget = { id: string; serial: number };
 
 	interface Props {
@@ -129,6 +133,8 @@
 
 	let outerEl: HTMLDivElement | undefined = $state();
 	let rowHeight = $state(TREE_ROW_HEIGHT);
+	let fallbackScrollTop = $state(0);
+	let fallbackViewportHeight = $state(TREE_FALLBACK_HEIGHT);
 	let dragStart = $state<{ x: number; y: number; pointerId: number } | null>(null);
 	let capturedSelectionPointerId: number | null = null;
 	let selectionBox = $state<{
@@ -145,8 +151,17 @@
 	const nodeMouseConfig = $derived(
 		mergeMouseGestureConfig(NODE_MOUSE_GESTURE_CONFIG, mouseGestureConfig),
 	);
+	const observeTreeRect = createRafElementRectObserver<HTMLDivElement, HTMLDivElement>({
+		getElement: () => outerEl ?? null,
+		fallbackWidth: TREE_FALLBACK_WIDTH,
+		fallbackHeight: TREE_FALLBACK_HEIGHT,
+	});
 
 	$effect(() => () => mouse.cancelAll());
+	$effect(() => {
+		if (!outerEl) return;
+		syncFallbackScrollState();
+	});
 
 	const flatArray = $derived(flattenMeasured(nodes, expandedIds));
 	const rowVirtualizer = createVirtualizer<HTMLDivElement, HTMLDivElement>({
@@ -162,7 +177,14 @@
 	const renderedVirtualRows = $derived.by(() => {
 		const rows = virtualRows.filter((virtualRow) => virtualRow.index < flatArray.length);
 		if (rows.length > 0 || flatArray.length === 0) return rows;
-		return fallbackTreeRows(flatArray, rowHeight);
+		return fallbackFixedVirtualRows({
+			count: flatArray.length,
+			rowHeight,
+			viewportHeight: fallbackViewportHeight,
+			scrollTop: fallbackScrollTop,
+			overscan: TREE_OVERSCAN,
+			getKey: (index) => treeVirtualItemKey(flatArray, index),
+		});
 	});
 	const totalH = $derived($rowVirtualizer.getTotalSize());
 
@@ -192,6 +214,7 @@
 	});
 
 	function onScroll() {
+		syncFallbackScrollState();
 		getActivePerfProbe()?.count('viewTree.scroll', {
 			rows: flatArray.length,
 			visibleRows: virtualRows.length,
@@ -203,14 +226,24 @@
 		const viewportHeight = outerEl.clientHeight || TREE_FALLBACK_HEIGHT;
 		const currentTop = outerEl.scrollTop;
 		const rowTop = index * rowHeight;
-		const rowBottom = rowTop + rowHeight;
-		const currentBottom = currentTop + viewportHeight;
-		if (rowTop >= currentTop && rowBottom <= currentBottom) return;
+		const nextTop = scrollFixedIndexIntoView({
+			index,
+			rowHeight,
+			viewportHeight,
+			scrollTop: currentTop,
+		});
+		if (nextTop === currentTop) return;
 
-		const nextTop = rowTop < currentTop ? rowTop : Math.max(0, rowBottom - viewportHeight);
 		$rowVirtualizer.scrollToIndex(index, { align: rowTop < currentTop ? 'start' : 'end' });
 		outerEl.scrollTop = nextTop;
+		syncFallbackScrollState();
 		outerEl.dispatchEvent(new Event('scroll'));
+	}
+
+	function syncFallbackScrollState(): void {
+		if (!outerEl) return;
+		fallbackScrollTop = outerEl.scrollTop;
+		fallbackViewportHeight = outerEl.clientHeight || TREE_FALLBACK_HEIGHT;
 	}
 
 	function flattenMeasured(items: TreeNode[], expanded: ReadonlySet<string>): FlatNode[] {
@@ -407,38 +440,6 @@
 		});
 	}
 
-	function observeTreeRect(
-		_: Virtualizer<HTMLDivElement, HTMLDivElement>,
-		cb: (rect: Rect) => void,
-	): () => void {
-		let rectFrame: number | null = null;
-		const emit = () => {
-			cb({
-				width: outerEl?.clientWidth || TREE_FALLBACK_WIDTH,
-				height: outerEl?.clientHeight || TREE_FALLBACK_HEIGHT,
-			});
-		};
-		const schedule = () => {
-			if (typeof requestAnimationFrame === 'undefined') {
-				emit();
-				return;
-			}
-			if (rectFrame !== null) return;
-			rectFrame = requestAnimationFrame(() => {
-				rectFrame = null;
-				emit();
-			});
-		};
-		schedule();
-		if (!outerEl || typeof ResizeObserver === 'undefined') return () => {};
-		const ro = new ResizeObserver(schedule);
-		ro.observe(outerEl);
-		return () => {
-			if (rectFrame !== null) cancelAnimationFrame(rectFrame);
-			ro.disconnect();
-		};
-	}
-
 	function flattenTreeNodes(items: readonly TreeNode[], expanded: ReadonlySet<string>): FlatNode[] {
 		const out: FlatNode[] = [];
 		const walk = (list: readonly TreeNode[], depth: number): void => {
@@ -457,21 +458,6 @@
 		return items[index]?.node.id ?? index;
 	}
 
-	function fallbackTreeRows(items: readonly FlatNode[], height: number) {
-		const viewportHeight = outerEl?.clientHeight || TREE_FALLBACK_HEIGHT;
-		const scrollTop = outerEl?.scrollTop ?? 0;
-		const rawStart = Math.max(0, Math.floor(scrollTop / height) - TREE_OVERSCAN);
-		const visible = Math.ceil(viewportHeight / height);
-		const end = Math.min(items.length, rawStart + visible + TREE_OVERSCAN * 2);
-		return Array.from({ length: Math.max(0, end - rawStart) }, (_, offset) => {
-			const index = rawStart + offset;
-			return {
-				index,
-				key: treeVirtualItemKey(items, index),
-				start: index * height,
-			};
-		});
-	}
 </script>
 
 <div

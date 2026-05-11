@@ -4,7 +4,7 @@ type: agent-plan
 status: in_progress
 parent: "[[docs/work/polish/plans/2026-05-10-dock-toolbar-groups-virtualizer/index|Dock Toolbar Groups Virtualizer]]"
 created: 2026-05-10T19:53:58
-updated: 2026-05-10T21:09:57
+updated: 2026-05-10T21:29:48
 tags:
   - agent/plan
   - polish
@@ -41,7 +41,7 @@ This request touches seven surfaces that would make Cut 2 too broad if handled i
 1. Filter decoration and hover-primary visibility.
 2. Generic queue badges and Props search category labels. Done 2026-05-10.
 3. `serviceTheme`, node-surface settings, and ViewCards background controls. Done 2026-05-10.
-4. `serviceScroll` for ViewTree scroll stabilization and PretextJS audit answer.
+4. `serviceScroll` for ViewTree scroll stabilization and PretextJS audit answer. Done 2026-05-10.
 5. Scrollable compact controls.
 6. Queue explorer grouped parent/child presentation.
 7. Final Svelte autofix, focused tests, and `pnpm run check`.
@@ -81,6 +81,22 @@ This request touches seven surfaces that would make Cut 2 too broad if handled i
 - Doc health verification:
   - `node .agents/tools/pkm-ai/check-doc-health.mjs`: fail with unrelated residuals in the detachable workspace tabs spec and `.agents/docs/superpowers`.
 - Next task: Facet 4, `serviceScroll` for ViewTree scroll stabilization and PretextJS audit answer.
+
+### 2026-05-10 Task 4: serviceScroll And ViewTree Lag
+
+- Added `src/services/serviceScroll.ts` with fixed-row fallback windowing, fixed-index scroll targeting, and a RAF-throttled element rect observer.
+- Replaced `viewTree.svelte` local fallback row/rect observer logic with `serviceScroll` helpers.
+- Added reactive fallback scroll state so the tree can re-render the fallback window around the current `scrollTop` when TanStack virtual rows are temporarily empty.
+- Increased `TREE_OVERSCAN` from 12 to 24 for `ViewTree` only; focused fallback coverage now expects a normal wheel-sized jump around row 30 to keep row 55 rendered.
+- PretextJS audit: `ViewNodeCards` uses service text measurement for dynamic card heights; tree/grid/table/list remain fixed-height surfaces and should not use PretextJS unless their row model becomes dynamic.
+- Fresh verification:
+  - `pnpm exec vp test run --project unit --config vitest.config.ts test/unit/services/serviceScroll.test.ts --fileParallelism=false`: pass, 5/5.
+  - `pnpm exec vp test run --project component --config vitest.config.ts test/component/viewTreeScrollFallback.test.ts --fileParallelism=false`: pass, 1/1.
+  - `pnpm exec vp test run --project component --config vitest.config.ts test/component/viewTreeSelection.test.ts test/component/viewTreeDecorations.test.ts test/component/virtualizerItemKeys.test.ts test/component/viewTreeHoverBadges.test.ts --fileParallelism=false`: pass, 34/34.
+  - `pnpm exec vp test run --project component --config vitest.config.ts test/component/panelExplorerSelection.test.ts --fileParallelism=false`: pass, 35/35.
+  - `npx @sveltejs/mcp svelte-autofixer ./src/components/views/viewTree.svelte --svelte-version 5`: no issues; reviewed existing effect/bind suggestions.
+  - `pnpm run check`: pass, 0 errors / 0 warnings.
+- Next task: Facet 5, scrollable compact controls.
 
 ## Expected Final Answer From Executing Agent
 

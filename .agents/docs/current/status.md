@@ -5,7 +5,7 @@ status: active
 parent: "[[docs/work/pkm-ai/index|pkm-ai]]"
 archive_source: "docs/archive/pkm-ai/active-docs/2026-05-10T093000-current-status.md"
 created: 2026-05-04T01:36:20
-updated: 2026-05-11T21:09:57
+updated: 2026-05-11T21:29:48
 tags:
   - agent/current
 created_by: dec
@@ -32,16 +32,16 @@ Compact route index after archiving the oversized current status:
 - Latest user request: continue the next Cut 1.5 product task.
 - Active initiative: [[docs/work/polish/index|Polish]].
 - Latest implemented product slice:
-  Cut 1.5 Task 3, `serviceTheme`, node-surface settings, and ViewCards
-  background controls in
+  Cut 1.5 Task 4, `serviceScroll`, ViewTree fallback scroll stabilization, and
+  PretextJS audit in
   [[docs/work/polish/plans/2026-05-10-dock-toolbar-groups-virtualizer/cut-1-5-node-surface-theme-scroll/index|Cut 1.5 Node Surface Theme And Scroll Plan]].
 - Recent detachable product slice:
   [[docs/work/polish/specs/2026-05-11-detachable-layout-workspace-tabs/index|Detachable layout workspace tabs]]
   and
   [[docs/work/polish/plans/2026-05-11-detachable-layout-workspace-tabs/index|Detachable layout workspace tabs implementation]].
-- Next product action: Cut 1.5 Task 4, `serviceScroll` for ViewTree scroll
-  stabilization and the PretextJS audit answer. Live Obsidian smoke for the
-  detachable slice remains pending before building more workspace-tab features.
+- Next product action: Cut 1.5 Task 5, scrollable compact controls. Live
+  Obsidian smoke for the detachable slice remains pending before building more
+  workspace-tab features.
 - Active product plan:
   [[docs/work/polish/plans/2026-05-10-dock-toolbar-groups-virtualizer/index|Dock, Toolbar, Groups, Virtualizer Implementation Plan]].
 - Pre-Cut-2 subplan:
@@ -51,6 +51,8 @@ Compact route index after archiving the oversized current status:
 - Cut 1.5 Task 3 is complete: `serviceTheme` normalizes legacy `native` to
   `default`, Settings exposes the disabled custom placeholder plus node-surface
   toggles, and body classes control node backgrounds/borders.
+- Cut 1.5 Task 4 is complete: `serviceScroll` owns fixed-row fallback windows,
+  ViewTree fallback rows react to `scrollTop`, and ViewTree overscan is 24.
 - Elastic UI orchestration plan:
   [[docs/work/polish/plans/2026-05-11-elastic-ui-chameleon/index|Elastic UI Chameleon Implementation Plan]].
 - Recent PKM-AI route remains available below for source context.
@@ -101,6 +103,20 @@ Compact route index after archiving the oversized current status:
 
 ## Verification Snapshot
 
+- Cut 1.5 Task 4 unit verification:
+  `pnpm exec vp test run --project unit --config vitest.config.ts test/unit/services/serviceScroll.test.ts --fileParallelism=false`:
+  pass, 5/5.
+- Cut 1.5 Task 4 fallback component verification:
+  `pnpm exec vp test run --project component --config vitest.config.ts test/component/viewTreeScrollFallback.test.ts --fileParallelism=false`:
+  pass, 1/1.
+- Cut 1.5 Task 4 ViewTree regression verification:
+  `pnpm exec vp test run --project component --config vitest.config.ts test/component/viewTreeSelection.test.ts test/component/viewTreeDecorations.test.ts test/component/virtualizerItemKeys.test.ts test/component/viewTreeHoverBadges.test.ts --fileParallelism=false`:
+  pass, 34/34.
+- Cut 1.5 Task 4 panel integration verification:
+  `pnpm exec vp test run --project component --config vitest.config.ts test/component/panelExplorerSelection.test.ts --fileParallelism=false`:
+  pass, 35/35.
+- Cut 1.5 Task 4 Svelte check:
+  `pnpm run check`: pass, `svelte-check found 0 errors and 0 warnings`.
 - Cut 1.5 Task 3 unit verification:
   `pnpm exec vp test run --project unit --config vitest.config.ts test/unit/services/serviceTheme.test.ts --fileParallelism=false`:
   pass, 4/4.
@@ -115,7 +131,7 @@ Compact route index after archiving the oversized current status:
 - Detachable slice focused unit tests: pass, 4 files, 30 tests.
 - Detachable slice focused component tests: pass, 7 files, 25 tests.
 - `pnpm run check`: pass, `svelte-check found 0 errors and 0 warnings`.
-- Latest doc health run after Cut 1.5 Task 3:
+- Latest doc health run after Cut 1.5 Task 4:
   `node .agents/tools/pkm-ai/check-doc-health.mjs`: fail with unrelated
   residuals in the detachable workspace tabs spec and `.agents/docs/superpowers`.
 - `node --test .agents/tools/pkm-ai/test/manage-tasks.test.mjs`: pass, 6/6.
