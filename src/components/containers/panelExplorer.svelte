@@ -113,6 +113,7 @@
 	);
 	const selectionSnapshot = $derived(selectionService.snapshot(provider.id));
 	const selectedNodeIds = $derived(new Set(selectionSnapshot.ids));
+	const selectedNodeMap = $derived(selectionSnapshot.selected);
 	const focusedNodeId = $derived(selectionSnapshot.focusedId);
 	let previousSearchTerm = '';
 	const autoExpandedIds = $derived(
@@ -1014,6 +1015,7 @@
 				<ViewNodeGrid
 					nodes={gridNodes}
 					selectedIds={selectedNodeIds}
+					selectedMap={selectedNodeMap}
 					focusedId={focusedNodeId}
 					activeId={selectionSnapshot.activeId}
 					hierarchyMode={gridHierarchyMode}
@@ -1070,6 +1072,7 @@
 					rows={tableRows}
 					columns={tableColumns}
 					selectedIds={selectedNodeIds}
+					selectedMap={selectedNodeMap}
 					focusedId={focusedNodeId}
 					activeId={selectionSnapshot.activeId}
 					onRowClick={handleNodeClick}

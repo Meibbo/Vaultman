@@ -9,11 +9,21 @@ function makeIdx(files: ReturnType<typeof mockTFile>[]): IFilesIndex {
 		get nodes() {
 			return files.map((f) => ({ id: f.path, path: f.path, basename: f.basename, file: f }));
 		},
+		get flatIds() {
+			return files.map((f) => f.path);
+		},
+		get revision() {
+			return 1;
+		},
 		refresh: async () => {},
 		subscribe: () => () => {},
 		byId: (id) => {
 			const f = files.find((x) => x.path === id);
 			return f ? { id: f.path, path: f.path, basename: f.basename, file: f } : undefined;
+		},
+		getSearchBuffer: (id) => {
+			const f = files.find((x) => x.path === id);
+			return f ? `${f.basename}\n${f.path}\n${f.extension ?? ''}`.toLowerCase() : '';
 		},
 	};
 }

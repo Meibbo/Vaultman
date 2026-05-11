@@ -79,6 +79,29 @@ describe('NavbarDock', () => {
 		expect(files?.classList.contains('is-active')).toBe(true);
 	});
 
+	it('stays visually neutral when the active id is outside the visible dock items', () => {
+		const onSelect = vi.fn();
+
+		app = mount(NavbarDock as unknown as Component<Record<string, unknown>>, {
+			target,
+			props: baseProps({
+				active: 'ops',
+				onSelect,
+			}),
+		});
+		flushSync();
+
+		expect(target.querySelector('.vm-nav-dock-item.is-active')).toBeNull();
+
+		target.querySelector<HTMLElement>('[aria-label="Files"]')!.click();
+		flushSync();
+
+		expect(onSelect).toHaveBeenCalledWith('files');
+		expect(target.querySelector('[aria-label="Files"]')?.classList.contains('is-active')).toBe(
+			true,
+		);
+	});
+
 	it('keeps queue and filter count badges attached to matching FABs', () => {
 		const leftFab: FabDef = {
 			icon: 'lucide-list-checks',

@@ -14,7 +14,7 @@ import {
 import { createFnRState, startFileRenameHandoff } from '../services/serviceFnR';
 import type { FnRRenameHandoff } from '../types/typeFnR';
 import { resolveOperationScopeFiles } from '../services/serviceOperationScope';
-import { getActivePerfProbe } from '../dev/perfProbe';
+import { PerfMeter } from '../services/perfMeter';
 import { highlightsFromViewLayers, withViewStateClasses } from '../utils/utilViewLayers';
 
 export interface ExplorerFilesOptions {
@@ -99,25 +99,34 @@ export class explorerFiles implements ExplorerProvider<FileMeta> {
 	}
 
 	getTree(): TreeNode<FileMeta>[] {
-		const probe = getActivePerfProbe();
 		const source = this.sourceFiles();
-		const filterFlat = () => this.logic.filterFlat(source, this.searchName, this.searchFolder);
-		const filtered =
-			probe?.measure('explorerFiles.filterFlat', { files: source.length }, filterFlat) ??
-			filterFlat();
-		const sortFiles = () => this._sortFiles(filtered);
-		const sorted =
-			probe?.measure('explorerFiles.sort', { files: filtered.length }, sortFiles) ?? sortFiles();
-		const buildTree = () => this.logic.buildFileTree(sorted);
-		const tree =
-			probe?.measure('explorerFiles.buildTree', { files: sorted.length }, buildTree) ?? buildTree();
-		if (probe) {
-			probe.measure('explorerFiles.decorateTree', { nodes: countTreeNodes(tree) }, () =>
-				this._decorateTree(tree),
-			);
-		} else {
-			this._decorateTree(tree);
-		}
+		const getSearchBuffer = this.plugin.filesIndex
+			? (path: string) => this.fileSearchBuffer(path)
+			: undefined;
+		const filtered = PerfMeter.time(
+			'explorer.files.filterFlat',
+			() => this.logic.filterFlat(source, this.searchName, this.searchFolder, getSearchBuffer),
+			'service',
+			{ files: source.length },
+		);
+		const sorted = PerfMeter.time(
+			'explorer.files.sort',
+			() => this._sortFiles(filtered),
+			'service',
+			{ files: filtered.length },
+		);
+		const tree = PerfMeter.time(
+			'explorer.files.buildTree',
+			() => this.logic.buildFileTree(sorted),
+			'service',
+			{ files: sorted.length },
+		);
+		PerfMeter.time(
+			'explorer.files.decorateTree',
+			() => this._decorateTree(tree),
+			'service',
+			{ nodes: countTreeNodes(tree) },
+		);
 		return tree;
 	}
 
@@ -159,12 +168,15 @@ export class explorerFiles implements ExplorerProvider<FileMeta> {
 	}
 
 	getFiles(): TFile[] {
-		const probe = getActivePerfProbe();
 		const source = this.sourceFiles();
-		const filterFlat = () => this.logic.filterFlat(source, this.searchName, this.searchFolder);
-		return (
-			probe?.measure('explorerFiles.getFiles.filterFlat', { files: source.length }, filterFlat) ??
-			filterFlat()
+		const getSearchBuffer = this.plugin.filesIndex
+			? (path: string) => this.fileSearchBuffer(path)
+			: undefined;
+		return PerfMeter.time(
+			'explorer.files.filterFlat',
+			() => this.logic.filterFlat(source, this.searchName, this.searchFolder, getSearchBuffer),
+			'service',
+			{ files: source.length },
 		);
 	}
 
@@ -275,10 +287,15 @@ export class explorerFiles implements ExplorerProvider<FileMeta> {
 	}
 
 	private vaultFiles(): TFile[] {
+		if (this.plugin.filesIndex) return this.plugin.filesIndex.nodes.map((node) => node.file);
 		const vault = this.plugin.app.vault as typeof this.plugin.app.vault & {
 			getFiles?: () => TFile[];
 		};
 		return vault.getFiles?.() ?? vault.getMarkdownFiles();
+	}
+
+	private fileSearchBuffer(path: string): string {
+		return this.plugin.filesIndex?.getSearchBuffer(path) ?? '';
 	}
 
 	private visibleFiles(files: TFile[]): TFile[] {

@@ -55,6 +55,10 @@
 				box-shadow 0.12s ease;
 		}
 
+		.vm-tree-row-surface.has-count {
+			padding-right: calc(var(--vm-tree-counter-reserve, 44px) + 8px);
+		}
+
 		.vm-tree-row-surface::before,
 		.vm-tree-row-surface.is-expanded-parent::after {
 			content: '';
@@ -137,16 +141,52 @@
 			z-index: 2;
 			display: flex;
 			align-items: center;
+			gap: 4px;
 			max-width: calc(100% - 48px);
 			pointer-events: none;
 			transform: translateY(-50%);
 			overflow: visible;
+			transition:
+				opacity 0.12s ease,
+				transform 0.12s ease;
 
+			.vm-tree-overlay-badge-zone,
 			.vm-badge,
 			.vm-tree-hover-badge-zone,
 			.vm-tree-child-badge-indicator {
 				pointer-events: auto;
 			}
+		}
+
+		.vm-tree-badge-zone.has-count {
+			min-width: var(--vm-tree-counter-reserve, 44px);
+			justify-content: flex-end;
+		}
+
+		.vm-tree-count {
+			min-width: calc(var(--vm-tree-counter-reserve, 44px) - 8px);
+			text-align: right;
+		}
+
+		.vm-tree-overlay-badge-zone {
+			display: inline-flex;
+			align-items: center;
+			gap: 4px;
+			transform: translateX(0);
+			transition:
+				opacity 0.12s ease,
+				transform 0.12s ease;
+		}
+
+		.vm-tree-overlay-badge-zone:not(.has-active-badges) {
+			opacity: 0;
+			pointer-events: none;
+			transform: translateX(4px);
+		}
+
+		.vm-tree-overlay-badge-zone.has-active-badges {
+			opacity: 1;
+			pointer-events: auto;
 		}
 
 		.vm-badge.is-quick-action {
@@ -173,6 +213,12 @@
 
 		&:hover .vm-tree-row-surface,
 		&:focus-within .vm-tree-row-surface {
+			.vm-tree-overlay-badge-zone {
+				opacity: 1;
+				pointer-events: auto;
+				transform: translateX(0);
+			}
+
 			.vm-badge.is-quick-action {
 				opacity: 1;
 				pointer-events: auto;

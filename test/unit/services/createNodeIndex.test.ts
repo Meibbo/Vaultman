@@ -47,4 +47,21 @@ describe('createNodeIndex', () => {
 		await idx.refresh();
 		expect(idx.byId('nope')).toBeUndefined();
 	});
+
+	it('publishes flat ids and normalized search buffers with custom search text', async () => {
+		const build = vi.fn<() => TestNode[]>().mockReturnValue([
+			{ id: 'a', label: 'Alpha Heading' },
+			{ id: 'b', label: 'Beta Folder' },
+		]);
+		const idx = createNodeIndex<TestNode>({
+			build,
+			searchText: (node) => `${node.label}\n${node.id.toUpperCase()}`,
+		});
+
+		await idx.refresh();
+
+		expect(idx.flatIds).toEqual(['a', 'b']);
+		expect(idx.getSearchBuffer('a')).toBe('alpha heading\na');
+		expect(idx.getSearchBuffer('missing')).toBe('');
+	});
 });

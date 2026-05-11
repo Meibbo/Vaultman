@@ -340,7 +340,7 @@ body.vm-resizing {
 	left: var(--vm-node-grid-gap, 8px);
 	right: var(--vm-node-grid-gap, 8px);
 	height: var(--vm-node-grid-row-h, 54px);
-	transform: translateY(var(--vm-node-grid-y, 0));
+	transform: translate3d(0, var(--vm-node-grid-y, 0), 0);
 	box-sizing: border-box;
 	will-change: transform;
 }
@@ -383,7 +383,7 @@ body.vm-resizing {
 	grid-template-columns: var(--vm-node-grid-icon-size, 22px) minmax(0, 1fr);
 	align-items: center;
 	gap: var(--vm-node-grid-gap, 8px);
-	height: var(--vm-node-grid-tile-h, 54px);
+	height: auto;
 	min-height: var(--vm-node-grid-tile-h, 54px);
 
 	&:hover .vm-node-grid-hover-badge-zone,
@@ -544,11 +544,10 @@ body.vm-node-borders-off {
 	font: inherit;
 	text-align: left;
 	cursor: pointer;
-	display: -webkit-box;
-	-webkit-box-orient: vertical;
-	-webkit-line-clamp: var(--vm-node-grid-label-lines, 1);
-	overflow: hidden;
+	display: block;
+	overflow: visible;
 	line-height: 1.2;
+	white-space: normal;
 	overflow-wrap: anywhere;
 
 	&:hover,

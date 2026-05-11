@@ -106,6 +106,8 @@ export interface BasesImportTargetNode extends NodeBase {
 export interface INodeIndex<TNode extends NodeBase> {
 	/** Reactive list of nodes (rune-backed in svelte.ts impls; readonly array elsewhere). */
 	readonly nodes: readonly TNode[];
+	/** Stable flattened node ids matching the current `nodes` snapshot. */
+	readonly flatIds: readonly string[];
 	/** Monotonic publish revision; changes only when this index publishes a new snapshot. */
 	readonly revision: number;
 	/** Re-scan source of truth and rebuild `nodes`. */
@@ -114,6 +116,8 @@ export interface INodeIndex<TNode extends NodeBase> {
 	subscribe(cb: () => void): () => void;
 	/** Look up by id — O(1). */
 	byId(id: string): TNode | undefined;
+	/** Look up the pre-normalized search buffer for an id. Missing ids return ''. */
+	getSearchBuffer(id: string): string;
 }
 
 export type IFilesIndex = INodeIndex<FileNode>;
@@ -221,6 +225,7 @@ export interface IExplorer<TNode extends NodeBase> {
 	readonly selectedIds: ReadonlySet<string>;
 	readonly expandedIds: ReadonlySet<string>;
 	readonly search: string;
+	readonly filteredIds: readonly string[];
 	readonly filteredNodes: readonly TNode[];
 	toggleSelect(id: string): void;
 	toggleExpand(id: string): void;

@@ -152,3 +152,5 @@
 {"ts":"2026-05-11T03:40:18","event":"health_failed","path":".agents/docs","detail":"2 failures"}
 {"ts":"2026-05-11T04:24:25","event":"health_failed","path":".agents/docs","detail":"2 failures"}
 {"ts":"2026-05-11T04:27:11","event":"health_failed","path":".agents/docs","detail":"2 failures"}
+{"ts":"2026-05-11T04:58:08","event":"health_failed","path":".agents/docs","detail":"3 failures"}
+{"ts":"2026-05-11T05:00:52","event":"health_failed","path":".agents/docs","detail":"3 failures"}

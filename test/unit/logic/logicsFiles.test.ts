@@ -57,4 +57,14 @@ describe('FilesLogic', () => {
 		expect(logic.filterFlat(files, '', 'Sub')).toEqual([b]);
 		expect(logic.filterFlat(files, '', '').length).toBe(3);
 	});
+
+	it('filterFlat can consume precomputed lowercase search buffers by path', () => {
+		const { app, files, b } = setup();
+		const logic = new FilesLogic(app);
+		const buffers = new Map(files.map((file) => [file.path, `${file.basename}\n${file.path}`.toLowerCase()]));
+
+		expect(logic.filterFlat(files, 'B', 'NOTES/SUB', (path) => buffers.get(path) ?? '')).toEqual([
+			b,
+		]);
+	});
 });

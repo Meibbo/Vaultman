@@ -14,7 +14,9 @@ const IDLE_STATUS: ContentSearchStatus = {
 export function createContentIndex(app: App): IContentIndex {
 	let query = '';
 	let nodes: ContentMatch[] = [];
+	let flatIds: string[] = [];
 	let byId = new Map<string, ContentMatch>();
+	let searchById = new Map<string, string>();
 	let status: ContentSearchStatus = { ...IDLE_STATUS };
 	let refreshVersion = 0;
 	let publishedRevision = 0;
@@ -27,7 +29,14 @@ export function createContentIndex(app: App): IContentIndex {
 
 	const publish = (nextNodes: ContentMatch[], nextStatus: ContentSearchStatus): void => {
 		nodes = nextNodes;
+		flatIds = nextNodes.map((node) => node.id);
 		byId = new Map(nextNodes.map((node) => [node.id, node]));
+		searchById = new Map(
+			nextNodes.map((node) => [
+				node.id,
+				`${node.filePath}\n${node.before}\n${node.match}\n${node.after}`.toLowerCase(),
+			]),
+		);
 		status = nextStatus;
 		publishedRevision += 1;
 		const probe = getActivePerfProbe();
@@ -41,6 +50,9 @@ export function createContentIndex(app: App): IContentIndex {
 	const index: IContentIndex = {
 		get nodes(): readonly ContentMatch[] {
 			return nodes;
+		},
+		get flatIds(): readonly string[] {
+			return flatIds;
 		},
 		get status(): ContentSearchStatus {
 			return status;
@@ -165,6 +177,9 @@ export function createContentIndex(app: App): IContentIndex {
 		},
 		byId(id: string): ContentMatch | undefined {
 			return byId.get(id);
+		},
+		getSearchBuffer(id: string): string {
+			return searchById.get(id) ?? '';
 		},
 		setQuery(q: string): void {
 			if (query === q) return;

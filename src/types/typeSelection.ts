@@ -9,6 +9,7 @@ export type SelectionMoveDirection = -1 | 1;
 
 export interface NodeSelectionSnapshot {
 	ids: ReadonlySet<string>;
+	selected: ReadonlyMap<string, boolean>;
 	anchorId: string | null;
 	focusedId: string | null;
 	hoveredId: string | null;

@@ -68,10 +68,28 @@ export class FilesLogic {
 	}
 
 	/** Filter flat file list by name/folder substring */
-	filterFlat(files: TFile[], name: string, folder: string): TFile[] {
-		let result = files;
-		if (name) result = result.filter((f) => f.basename.toLowerCase().includes(name.toLowerCase()));
-		if (folder) result = result.filter((f) => f.path.toLowerCase().includes(folder.toLowerCase()));
-		return result;
+	filterFlat(
+		files: TFile[],
+		name: string,
+		folder: string,
+		getSearchBuffer?: (path: string) => string,
+	): TFile[] {
+		const nameQuery = name.trim().toLowerCase();
+		const folderQuery = folder.trim().toLowerCase();
+		if (!nameQuery && !folderQuery) return files;
+
+		return files.filter((file) => {
+			if (getSearchBuffer) {
+				const buffer = getSearchBuffer(file.path);
+				return (
+					(!nameQuery || buffer.includes(nameQuery)) &&
+					(!folderQuery || buffer.includes(folderQuery))
+				);
+			}
+			return (
+				(!nameQuery || file.basename.toLowerCase().includes(nameQuery)) &&
+				(!folderQuery || file.path.toLowerCase().includes(folderQuery))
+			);
+		});
 	}
 }

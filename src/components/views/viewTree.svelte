@@ -131,6 +131,14 @@
 		return node.icon;
 	}
 
+	function hasVisibleCount(node: TreeNode): boolean {
+		return Boolean(node.countLabel || (node.count != null && node.count > 0));
+	}
+
+	function hasActiveRowBadge(badges: readonly NodeBadge[]): boolean {
+		return badges.some((badge) => badge.queueIndex !== undefined || (badge.solid && !badge.quickAction));
+	}
+
 	let outerEl: HTMLDivElement | undefined = $state();
 	let rowHeight = $state(TREE_ROW_HEIGHT);
 	let fallbackScrollTop = $state(0);
@@ -487,6 +495,10 @@
 			{@const childBadges = inheritedNodeBadges(node)}
 			{@const hoverBadges = hoverBadgesFor(node)}
 			{@const rowIcon = iconForNode(node, flat)}
+			{@const hasCount = hasVisibleCount(node)}
+			{@const hasOverlayBadges =
+				directBadges.length > 0 || childBadges.length > 0 || hoverBadges.length > 0}
+			{@const hasActiveBadges = hasActiveRowBadge(directBadges) || hasActiveRowBadge(childBadges)}
 
 			<div
 				class="vm-tree-virtual-row {node.cls ?? ''}"
@@ -517,6 +529,8 @@
 					class:is-editing={isEditing}
 					class:has-toggle={flat.hasChildren}
 					class:has-icon={!!rowIcon}
+					class:has-count={hasCount}
+					class:has-overlay-badges={hasOverlayBadges}
 					class:is-expanded-parent={flat.hasChildren && flat.isExpanded}
 				>
 					<!-- Chevron / Spacer -->
@@ -561,63 +575,41 @@
 					{/if}
 
 					<!-- Badges / Counts -->
-					{#if node.countLabel || (node.count != null && node.count > 0) || directBadges.length > 0 || childBadges.length > 0 || hoverBadges.length > 0}
-						<div class="vm-tree-badge-zone">
-							{#if hoverBadges.length > 0}
-								<div class="vm-tree-hover-badge-zone">
-									{#each hoverBadges as badge (badge.kind)}
-										<div
-											class="vm-badge is-hover-badge is-actionable"
-											data-hover-kind={badge.kind}
-											role="button"
-											tabindex="0"
-											title={badge.label}
-											aria-label={badge.label}
-											onclick={(e) => handleHoverBadgePress(e, node.id, badge.kind)}
-											onkeydown={(e) => handleHoverBadgeKeydown(e, node.id, badge.kind)}
-										>
-											<span class="vm-badge-icon" use:icon={badge.icon}></span>
+					{#if hasCount || hasOverlayBadges}
+						<div
+							class="vm-tree-badge-zone"
+							class:has-count={hasCount}
+							class:has-overlay-badges={hasOverlayBadges}
+						>
+							{#if hasOverlayBadges}
+								<div
+									class="vm-tree-overlay-badge-zone"
+									class:has-active-badges={hasActiveBadges}
+								>
+									{#if hoverBadges.length > 0}
+										<div class="vm-tree-hover-badge-zone">
+											{#each hoverBadges as badge (badge.kind)}
+												<div
+													class="vm-badge is-hover-badge is-actionable"
+													data-hover-kind={badge.kind}
+													role="button"
+													tabindex="0"
+													title={badge.label}
+													aria-label={badge.label}
+													onclick={(e) => handleHoverBadgePress(e, node.id, badge.kind)}
+													onkeydown={(e) => handleHoverBadgeKeydown(e, node.id, badge.kind)}
+												>
+													<span class="vm-badge-icon" use:icon={badge.icon}></span>
+												</div>
+											{/each}
 										</div>
-									{/each}
-								</div>
-							{/if}
-							{#if directBadges.length > 0}
-								{#each directBadges as badge, badgeIndex (nodeBadgeKey(badge, badgeIndex))}
-									<div
-										class="vm-badge"
-										role="button"
-										class:is-solid={badge.solid}
-										class:is-undoable={badge.queueIndex !== undefined}
-										class:is-actionable={nodeBadgeIsActionable(badge)}
-										class:is-quick-action={badge.quickAction}
-										class:vm-badge--red={badge.solid && badge.color === 'red'}
-										class:vm-badge--blue={badge.solid && badge.color === 'blue'}
-										class:vm-badge--purple={badge.solid && badge.color === 'purple'}
-										class:vm-badge--orange={badge.solid && badge.color === 'orange'}
-										class:vm-badge--green={badge.solid && badge.color === 'green'}
-										title={nodeBadgeTitle(badge)}
-										aria-label={nodeBadgeAriaLabel(badge)}
-										tabindex={nodeBadgeIsActionable(badge) ? 0 : -1}
-										onclick={(e) => handleBadgePress(e, badge)}
-										onkeydown={(e) => handleBadgeKeydown(e, badge)}
-									>
-										{#if badge.icon}
-											<span class="vm-badge-icon" use:icon={badge.icon}></span>
-										{/if}
-									</div>
-								{/each}
-							{/if}
-
-							{#if childBadges.length > 0}
-								<div class="vm-tree-child-badge-indicator" title={inheritedBadgeTitle(childBadges)}>
-									<span class="vm-tree-child-badge-dot"></span>
-									<div class="vm-tree-child-badge-pill">
-										{#each childBadges as badge, badgeIndex (nodeBadgeKey(badge, badgeIndex))}
+									{/if}
+									{#if directBadges.length > 0}
+										{#each directBadges as badge, badgeIndex (nodeBadgeKey(badge, badgeIndex))}
 											<div
 												class="vm-badge"
 												role="button"
 												class:is-solid={badge.solid}
-												class:is-inherited={badge.isInherited}
 												class:is-undoable={badge.queueIndex !== undefined}
 												class:is-actionable={nodeBadgeIsActionable(badge)}
 												class:is-quick-action={badge.quickAction}
@@ -626,8 +618,8 @@
 												class:vm-badge--purple={badge.solid && badge.color === 'purple'}
 												class:vm-badge--orange={badge.solid && badge.color === 'orange'}
 												class:vm-badge--green={badge.solid && badge.color === 'green'}
-												title={nodeBadgeTitle(badge, true)}
-												aria-label={nodeBadgeAriaLabel(badge, true)}
+												title={nodeBadgeTitle(badge)}
+												aria-label={nodeBadgeAriaLabel(badge)}
 												tabindex={nodeBadgeIsActionable(badge) ? 0 : -1}
 												onclick={(e) => handleBadgePress(e, badge)}
 												onkeydown={(e) => handleBadgeKeydown(e, badge)}
@@ -637,7 +629,43 @@
 												{/if}
 											</div>
 										{/each}
-									</div>
+									{/if}
+
+									{#if childBadges.length > 0}
+										<div
+											class="vm-tree-child-badge-indicator"
+											title={inheritedBadgeTitle(childBadges)}
+										>
+											<span class="vm-tree-child-badge-dot"></span>
+											<div class="vm-tree-child-badge-pill">
+												{#each childBadges as badge, badgeIndex (nodeBadgeKey(badge, badgeIndex))}
+													<div
+														class="vm-badge"
+														role="button"
+														class:is-solid={badge.solid}
+														class:is-inherited={badge.isInherited}
+														class:is-undoable={badge.queueIndex !== undefined}
+														class:is-actionable={nodeBadgeIsActionable(badge)}
+														class:is-quick-action={badge.quickAction}
+														class:vm-badge--red={badge.solid && badge.color === 'red'}
+														class:vm-badge--blue={badge.solid && badge.color === 'blue'}
+														class:vm-badge--purple={badge.solid && badge.color === 'purple'}
+														class:vm-badge--orange={badge.solid && badge.color === 'orange'}
+														class:vm-badge--green={badge.solid && badge.color === 'green'}
+														title={nodeBadgeTitle(badge, true)}
+														aria-label={nodeBadgeAriaLabel(badge, true)}
+														tabindex={nodeBadgeIsActionable(badge) ? 0 : -1}
+														onclick={(e) => handleBadgePress(e, badge)}
+														onkeydown={(e) => handleBadgeKeydown(e, badge)}
+													>
+														{#if badge.icon}
+															<span class="vm-badge-icon" use:icon={badge.icon}></span>
+														{/if}
+													</div>
+												{/each}
+											</div>
+										</div>
+									{/if}
 								</div>
 							{/if}
 

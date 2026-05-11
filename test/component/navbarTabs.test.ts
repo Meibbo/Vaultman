@@ -77,6 +77,30 @@ describe('NavbarTabs', () => {
 		expect(tab?.classList.contains('is-active')).toBe(true);
 	});
 
+	it('stays visually neutral when the active id is outside the visible tabs', () => {
+		const onSelect = vi.fn();
+
+		app = mount(NavbarTabs as unknown as Component<Record<string, unknown>>, {
+			target,
+			props: {
+				tabs: [{ id: 'files', icon: 'lucide-files', label: 'Files' }],
+				active: 'filters',
+				onSelect,
+			},
+		});
+		flushSync();
+
+		expect(target.querySelector('.vm-tab.is-active')).toBeNull();
+
+		target.querySelector<HTMLElement>('[aria-label="Files"]')!.click();
+		flushSync();
+
+		expect(onSelect).toHaveBeenCalledWith('files');
+		expect(target.querySelector('[aria-label="Files"]')?.classList.contains('is-active')).toBe(
+			true,
+		);
+	});
+
 	it('marks externally mounted tabs without making them locally active', () => {
 		const onSelect = vi.fn();
 

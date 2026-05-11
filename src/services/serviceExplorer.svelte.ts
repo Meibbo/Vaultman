@@ -1,6 +1,7 @@
 /* global $state, $derived */
 import type { INodeIndex, IDecorationManager, NodeBase, IExplorer } from '../types/typeContracts';
 import { ExplorerLogic } from '../logic/logicExplorer';
+import { PerfMeter } from './perfMeter';
 
 export interface ExplorerOptions<TNode extends NodeBase> {
 	index: INodeIndex<TNode>;
@@ -18,21 +19,30 @@ export class ExplorerService<
 	selectedIds = $state(new Set<string>());
 	expandedIds = $state(new Set<string>());
 	search = $state('');
-	filteredNodes: readonly TNode[] = $derived.by(() => this.applyFilter());
+	normalizedSearch = $derived(this.search.trim().toLowerCase());
+	filteredIds: readonly string[] = $derived.by(() =>
+		PerfMeter.time(
+			'explorer.service.filteredIds',
+			() => {
+				const q = this.normalizedSearch;
+				if (!q) return this.idx.flatIds;
+				return this.idx.flatIds.filter((id) => this.idx.getSearchBuffer(id).includes(q));
+			},
+			'service',
+			{ nodes: this.idx.flatIds.length, queryLength: this.normalizedSearch.length },
+		),
+	);
+	filteredNodes: readonly TNode[] = $derived.by(() =>
+		PerfMeter.time('explorer.service.filteredNodes', () =>
+			this.filteredIds.map((id) => this.idx.byId(id)).filter((node): node is TNode => Boolean(node)),
+		),
+	);
 
 	constructor(opts: ExplorerOptions<TNode>) {
 		this.idx = opts.index;
 		this.dec = opts.decorate;
 		this.idx.subscribe(() => this.fire());
 		this.dec.subscribe(() => this.fire());
-	}
-
-	private applyFilter(): readonly TNode[] {
-		if (!this.search) return this.idx.nodes;
-		const q = this.search.toLowerCase();
-		return this.idx.nodes.filter((n) =>
-			((n as { label?: string }).label ?? '').toLowerCase().includes(q),
-		);
 	}
 
 	private fire(): void {

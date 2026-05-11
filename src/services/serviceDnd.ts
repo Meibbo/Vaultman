@@ -204,7 +204,7 @@ function preferredAcceptedOperation(
 	if (position !== 'inside' && accepted.includes('reorder')) return 'reorder';
 	if (accepted.includes('move')) return 'move';
 	if (accepted.includes('apply-template')) return 'apply-template';
-	return accepted[0] ?? null;
+	return null;
 }
 
 function cloneTarget(target: DndDropTarget): DndDropTarget {

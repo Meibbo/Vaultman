@@ -21,10 +21,15 @@ function makePropsIndex(app: App, subscribe = vi.fn(() => vi.fn())): IPropsIndex
 	const nodes = propsNodesFromApp(app);
 	return {
 		nodes,
+		flatIds: nodes.map((node) => node.id),
 		revision: 1,
 		refresh: vi.fn(),
 		subscribe,
 		byId: (id: string) => nodes.find((node) => node.id === id),
+		getSearchBuffer: (id: string) => {
+			const node = nodes.find((item) => item.id === id);
+			return node ? `${node.property}\n${node.values.join('\n')}`.toLowerCase() : '';
+		},
 	};
 }
 

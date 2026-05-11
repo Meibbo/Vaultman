@@ -89,6 +89,27 @@ describe('serviceDndSvelteAdapter', () => {
 		});
 	});
 
+	it('does not emit ambiguous reorder drops without an edge position', () => {
+		const dnd = createDndService();
+		const onDropResult = vi.fn();
+		const handlers = createDndKitProviderHandlers(dnd, { onDropResult });
+		const reorderOnlyTarget = {
+			...TARGET,
+			accepts: ['reorder'],
+		} as const;
+
+		handlers.onDragStart(kitEvent({ source: kitEntity(SOURCE, 'source') }));
+		handlers.onDragEnd(
+			kitEvent({
+				source: kitEntity(SOURCE, 'source'),
+				target: kitEntity(reorderOnlyTarget, 'target'),
+			}),
+		);
+
+		expect(onDropResult).not.toHaveBeenCalled();
+		expect(dnd.snapshot().phase).toBe('idle');
+	});
+
 	it('emits the semantic drop result on drop and clears drag state', () => {
 		const dnd = createDndService();
 		const onDropResult = vi.fn();

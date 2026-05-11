@@ -146,7 +146,7 @@ describe('SettingsUI mount (regression: effect_update_depth_exceeded)', () => {
 		expect(plugin.saveSettings).toHaveBeenCalledOnce();
 	});
 
-	it('persists layout dock and tab label placement settings', () => {
+	it('persists layout dock, drawer, and tab label placement settings', () => {
 		const plugin = makeFakePlugin();
 
 		app = mount(SettingsUI as unknown as Component<{ plugin: iVaultmanPlugin }>, {
@@ -163,6 +163,13 @@ describe('SettingsUI mount (regression: effect_update_depth_exceeded)', () => {
 		const showDockLabels = [...target.querySelectorAll<HTMLInputElement>('input[type="checkbox"]')]
 			.find((candidate) => candidate.closest('label')?.textContent?.includes('Show dock labels'));
 		expect(showDockLabels).toBeTruthy();
+		const selectByLabel = (label: string): HTMLSelectElement => {
+			const found = [...target.querySelectorAll<HTMLSelectElement>('select')].find((candidate) =>
+				candidate.closest('label')?.textContent?.includes(label),
+			);
+			expect(found, label).toBeTruthy();
+			return found!;
+		};
 
 		showDockLabels!.checked = true;
 		showDockLabels!.dispatchEvent(new Event('change', { bubbles: true }));
@@ -171,14 +178,27 @@ describe('SettingsUI mount (regression: effect_update_depth_exceeded)', () => {
 		expect(plugin.settings.layout?.dock.labels.visible).toBe(true);
 		expect(plugin.saveSettings).toHaveBeenCalledOnce();
 
-		const presentation = [...target.querySelectorAll('select')].find((candidate) =>
-			[...candidate.options].some((option) => option.textContent === 'FAB drawer'),
-		) as HTMLSelectElement;
+		const presentation = selectByLabel('Dock presentation');
 		presentation.value = 'drawer';
 		presentation.dispatchEvent(new Event('change', { bubbles: true }));
 		flushSync();
 
 		expect(plugin.settings.layout?.dock.presentation.mode).toBe('drawer');
+
+		const direction = selectByLabel('Dock drawer direction');
+		direction.value = 'left';
+		direction.dispatchEvent(new Event('change', { bubbles: true }));
+		flushSync();
+
+		expect(plugin.settings.layout?.dock.presentation.drawerDirection).toBe('left');
+
+		const topTabsContent = selectByLabel('Top tabs content');
+		topTabsContent.value = 'tool-tabs';
+		topTabsContent.dispatchEvent(new Event('change', { bubbles: true }));
+		flushSync();
+
+		expect(plugin.settings.layout?.tabs.content).toBe('tool-tabs');
+		expect(plugin.saveSettings).toHaveBeenCalledTimes(4);
 	});
 
 	it('persists faint accent focus mode without autosaving on mount', () => {

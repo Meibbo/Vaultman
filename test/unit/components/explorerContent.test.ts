@@ -15,20 +15,24 @@ import { mockApp, mockTFile, type TFile } from '../../helpers/obsidian-mocks';
 function makeIndex<TNode extends NodeBase>(nodes: TNode[]): INodeIndex<TNode> {
 	return {
 		nodes,
+		flatIds: nodes.map((node) => node.id),
 		revision: 0,
 		refresh: vi.fn(),
 		subscribe: vi.fn(() => () => {}),
 		byId: (id: string) => nodes.find((node) => node.id === id),
+		getSearchBuffer: (id: string) => nodes.find((node) => node.id === id)?.id.toLowerCase() ?? '',
 	};
 }
 
 function makeContentIndex(nodes: ContentMatch[]): IContentIndex {
 	return {
 		nodes,
+		flatIds: nodes.map((node) => node.id),
 		revision: 0,
 		refresh: vi.fn(),
 		subscribe: vi.fn(() => () => {}),
 		byId: (id: string) => nodes.find((node) => node.id === id),
+		getSearchBuffer: (id: string) => nodes.find((node) => node.id === id)?.id.toLowerCase() ?? '',
 		setQuery: vi.fn(),
 	};
 }

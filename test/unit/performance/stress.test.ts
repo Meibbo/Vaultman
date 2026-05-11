@@ -4,10 +4,12 @@ import { createPerfProbe, clearActivePerfProbe, setActivePerfProbe } from '../..
 import { createFilesIndex } from '../../../src/index/indexFiles';
 import { createPropsIndex } from '../../../src/index/indexProps';
 import { createTagsIndex } from '../../../src/index/indexTags';
+import { ExplorerService } from '../../../src/services/serviceExplorer.svelte';
 import { FilterService } from '../../../src/services/serviceFilter.svelte';
+import { PerfMeter, type OpsLogRecord } from '../../../src/services/perfMeter';
 import { ViewService } from '../../../src/services/serviceViews.svelte';
 import { mockApp, mockTFile, type CachedMetadata } from '../../helpers/obsidian-mocks';
-import type { ActiveFilterEntry, QueueChange } from '../../../src/types/typeContracts';
+import type { ActiveFilterEntry, IDecorationManager, INodeIndex, NodeBase, QueueChange } from '../../../src/types/typeContracts';
 
 function makeLargeVault(size = 10_000) {
 	const metadata = new Map<string, CachedMetadata>();
@@ -42,6 +44,7 @@ function makeLargeVault(size = 10_000) {
 describe('large vault performance seams', () => {
 	afterEach(() => {
 		clearActivePerfProbe();
+		PerfMeter.__resetForTests();
 	});
 
 	it('builds core explorer indexes for 10k files without the integration vault harness', async () => {
@@ -128,5 +131,51 @@ describe('large vault performance seams', () => {
 		expect(model.rows).toHaveLength(10_000);
 		expect(modelElapsed).toBeLessThan(1_000);
 		filterService.destroy();
+	});
+
+	it('filters 10k ExplorerService nodes through normalized search buffers on the timed id path', () => {
+		type TestNode = NodeBase & { label: string; path: string };
+		const nodes: TestNode[] = Array.from({ length: 10_000 }, (_, index) => ({
+			id: `node-${index}`,
+			label: `Node ${index}`,
+			path: `Folder-${index % 50}/node-${index}.md`,
+		}));
+		const idx: INodeIndex<TestNode> = {
+			get nodes() {
+				return nodes;
+			},
+			get flatIds() {
+				return nodes.map((node) => node.id);
+			},
+			get revision() {
+				return 1;
+			},
+			refresh: () => {},
+			subscribe: () => () => {},
+			byId: (id) => nodes.find((node) => node.id === id),
+			getSearchBuffer: (id) => {
+				const node = nodes[Number(id.slice('node-'.length))];
+				return node ? `${node.label}\n${node.path}`.toLowerCase() : '';
+			},
+		};
+		const decorate: IDecorationManager = {
+			decorate: () => ({ icons: [], badges: [], highlights: [] }),
+			subscribe: () => () => {},
+		};
+		const records: OpsLogRecord[] = [];
+		PerfMeter.subscribe((record) => records.push(record));
+		const service = new ExplorerService({ index: idx, decorate });
+
+		const started = performance.now();
+		service.setSearch('node-9999');
+		const filtered = service.filteredNodes;
+		const elapsed = performance.now() - started;
+		const filteredIdsRecord = records.find(
+			(record) => record.label === 'explorer.service.filteredIds',
+		);
+
+		expect(filtered.map((node) => node.id)).toEqual(['node-9999']);
+		expect(filteredIdsRecord?.durationMs).toBeLessThan(200);
+		expect(elapsed).toBeLessThan(200);
 	});
 });

@@ -11,5 +11,6 @@ export function createFilesIndex(app: App): IFilesIndex {
 				basename: file.basename,
 				file,
 			})),
+		searchText: (node) => `${node.basename}\n${node.path}\n${node.file.extension ?? ''}`,
 	});
 }

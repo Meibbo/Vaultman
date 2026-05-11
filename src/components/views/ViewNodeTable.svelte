@@ -20,11 +20,24 @@
 		nodeBadgeTitle,
 		ownNodeBadges,
 	} from './nodeBadgeHelpers';
+	import { PerfMeter } from '../../services/perfMeter';
+	import { NodeRowMeasureService } from '../../services/serviceNodeRowMeasure';
+	import {
+		DEFAULT_NODE_ROW_MEASURE_STYLE,
+		nodeRowMeasureStyleKey,
+		resolveNodeRowMeasureStyle,
+	} from '../../services/serviceNodeRowStyle';
+	import {
+		createTextMeasureService,
+		fallbackTextMeasureEngine,
+	} from '../../services/serviceTextMeasure';
 
 	const TABLE_ROW_HEIGHT = 32;
 	const TABLE_OVERSCAN = 14;
 	const TABLE_FALLBACK_WIDTH = 640;
 	const TABLE_FALLBACK_HEIGHT = 360;
+	const TABLE_ROW_PADDING_BLOCK = 10;
+	const TABLE_LABEL_SELECTOR = '.vm-node-table-primary';
 	const EMPTY_SELECTED_IDS: ReadonlySet<string> = new Set();
 	type ScrollTarget = { id: string; serial: number };
 
@@ -32,6 +45,7 @@
 		rows: ViewRow<TNode>[];
 		columns: ViewColumn<TNode>[];
 		selectedIds?: ReadonlySet<string>;
+		selectedMap?: ReadonlyMap<string, boolean>;
 		focusedId?: string | null;
 		activeId?: string | null;
 		onRowClick: (id: string, e: MouseEvent) => void;
@@ -44,6 +58,7 @@
 		onBadgeDoubleClick?: (queueIndex: number) => void;
 		scrollTarget?: ScrollTarget | null;
 		mouseGestureConfig?: MouseGestureConfig;
+		measure?: NodeRowMeasureService;
 		icon: (node: HTMLElement, name: string) => { update(n: string): void };
 	}
 
@@ -51,6 +66,7 @@
 		rows,
 		columns,
 		selectedIds = EMPTY_SELECTED_IDS,
+		selectedMap,
 		focusedId = null,
 		activeId = null,
 		onRowClick,
@@ -63,11 +79,17 @@
 		onBadgeDoubleClick,
 		scrollTarget = null,
 		mouseGestureConfig,
+		measure = createNodeRowMeasureService(),
 		icon,
 	}: Props<TNode> = $props();
 
 	let outerEl: HTMLDivElement | undefined = $state();
 	let sorting: SortingState = $state([]);
+	let gpuReadyMarked = false;
+	let tableLabelWidth = $state(TABLE_FALLBACK_WIDTH);
+	let tableMeasureStyle = $state(DEFAULT_NODE_ROW_MEASURE_STYLE);
+	let tableMetricsFrame: number | null = null;
+	let tableRemeasureFrame: number | null = null;
 	const mouse = createMouseGestureService();
 	const nodeMouseConfig = $derived(
 		mergeMouseGestureConfig(NODE_MOUSE_GESTURE_CONFIG, mouseGestureConfig),
@@ -76,6 +98,41 @@
 	$effect(() => () => mouse.cancelAll());
 
 	const tableRows = $derived(sortRows(rows, columns, sorting));
+	const tableMeasureRevision = $derived(
+		`${nodeRowMeasureStyleKey(tableMeasureStyle)}:${columns.length}:${tableRows.length}`,
+	);
+	const measuredTableRows = $derived.by(() =>
+		PerfMeter.time(
+			'explorer.table.measureRows',
+			() => {
+				const labelColumn = columns.find((column) => column.id === 'label') ?? columns[0];
+				const out = new Map<string, number>();
+				for (const row of tableRows) {
+					out.set(
+						row.id,
+						measure.measure({
+							id: row.id,
+							text: labelColumn ? cellDisplay(row, labelColumn) : row.label,
+							width: tableLabelWidth,
+							minHeight: TABLE_ROW_HEIGHT,
+							paddingBlock: TABLE_ROW_PADDING_BLOCK,
+							style: tableMeasureStyle,
+							revision: tableMeasureRevision,
+						}),
+					);
+				}
+				return out;
+			},
+			'service',
+			{ rows: tableRows.length },
+		),
+	);
+	const measuredTableTotalHeight = $derived(
+		tableRows.reduce(
+			(height, row) => height + (measuredTableRows.get(row.id) ?? TABLE_ROW_HEIGHT),
+			0,
+		),
+	);
 	const columnTemplate = $derived(
 		columns
 			.map((column) => `minmax(${column.minWidth ?? 120}px, ${column.width ?? 1}fr)`)
@@ -85,7 +142,7 @@
 		count: 0,
 		getScrollElement: () => outerEl ?? null,
 		getItemKey: (index) => tableVirtualRowKey(tableRows, index),
-		estimateSize: () => TABLE_ROW_HEIGHT,
+		estimateSize: (index) => tableEstimateSize(index),
 		observeElementRect: observeTableRect,
 		overscan: TABLE_OVERSCAN,
 		initialRect: { width: TABLE_FALLBACK_WIDTH, height: TABLE_FALLBACK_HEIGHT },
@@ -96,22 +153,24 @@
 			.filter((row) => row.index < tableRows.length)
 			.map((row) => ({ key: row.key, index: row.index, start: row.start }));
 		if (visibleRows.length > 0 || tableRows.length === 0) return visibleRows;
-		return fallbackRenderedRows(tableRows);
+		return fallbackRenderedRows(tableRows, measuredTableRows);
 	});
 	const totalHeight = $derived(
-		Math.max($rowVirtualizer.getTotalSize(), tableRows.length * TABLE_ROW_HEIGHT),
+		Math.max($rowVirtualizer.getTotalSize(), measuredTableTotalHeight),
 	);
 
 	$effect(() => {
 		const count = tableRows.length;
 		const rows = tableRows;
+		const measuredRows = measuredTableRows;
 		const scrollElement = outerEl;
 		untrack(() =>
 			$rowVirtualizer.setOptions({
 				count,
 				getScrollElement: () => scrollElement ?? null,
 				getItemKey: (index) => tableVirtualRowKey(rows, index),
-				estimateSize: () => TABLE_ROW_HEIGHT,
+				estimateSize: (index) =>
+					rows[index] ? measuredRows.get(rows[index].id) ?? TABLE_ROW_HEIGHT : TABLE_ROW_HEIGHT,
 				observeElementRect: observeTableRect,
 				overscan: TABLE_OVERSCAN,
 				initialRect: { width: TABLE_FALLBACK_WIDTH, height: TABLE_FALLBACK_HEIGHT },
@@ -120,10 +179,34 @@
 	});
 
 	$effect(() => {
+		if (!outerEl) return;
+		updateTableMeasureInputs();
+		if (typeof ResizeObserver === 'undefined') return;
+		const ro = new ResizeObserver(() => {
+			scheduleTableMetricsUpdate();
+			scheduleVirtualizerRemeasure('table');
+		});
+		ro.observe(outerEl);
+		return () => {
+			if (tableMetricsFrame !== null) cancelAnimationFrame(tableMetricsFrame);
+			if (tableRemeasureFrame !== null) cancelAnimationFrame(tableRemeasureFrame);
+			tableMetricsFrame = null;
+			tableRemeasureFrame = null;
+			ro.disconnect();
+		};
+	});
+
+	$effect(() => {
 		const target = scrollTarget;
 		if (!target || !outerEl) return;
 		const rowIndex = tableRows.findIndex((row) => row.id === target.id);
 		if (rowIndex >= 0) scrollTableRowIntoView(rowIndex);
+	});
+
+	$effect(() => {
+		if (!outerEl || gpuReadyMarked) return;
+		gpuReadyMarked = true;
+		PerfMeter.mark('perf.phase04.gpu-positioning.ready', 'mark', { surface: 'table' });
 	});
 
 	function handleHeaderClick(column: ViewColumn<TNode>) {
@@ -134,17 +217,62 @@
 
 	function scrollTableRowIntoView(rowIndex: number): void {
 		if (!outerEl) return;
-		const viewportHeight = outerEl.clientHeight || TABLE_FALLBACK_HEIGHT;
-		const currentTop = outerEl.scrollTop;
-		const rowTop = rowIndex * TABLE_ROW_HEIGHT;
-		const rowBottom = rowTop + TABLE_ROW_HEIGHT;
-		const currentBottom = currentTop + viewportHeight;
-		if (rowTop >= currentTop && rowBottom <= currentBottom) return;
+		PerfMeter.time('explorer.table.scrollIntoView', () => {
+			const viewportHeight = outerEl!.clientHeight || TABLE_FALLBACK_HEIGHT;
+			const currentTop = outerEl!.scrollTop;
+			const rowTop = tableRowTop(rowIndex);
+			const rowBottom = rowTop + tableEstimateSize(rowIndex);
+			const currentBottom = currentTop + viewportHeight;
+			if (rowTop >= currentTop && rowBottom <= currentBottom) return;
 
-		const nextTop = rowTop < currentTop ? rowTop : Math.max(0, rowBottom - viewportHeight);
-		$rowVirtualizer.scrollToIndex(rowIndex, { align: rowTop < currentTop ? 'start' : 'end' });
-		outerEl.scrollTop = nextTop;
-		outerEl.dispatchEvent(new Event('scroll'));
+			const nextTop = rowTop < currentTop ? rowTop : Math.max(0, rowBottom - viewportHeight);
+			$rowVirtualizer.scrollToIndex(rowIndex, { align: rowTop < currentTop ? 'start' : 'end' });
+			outerEl!.scrollTop = nextTop;
+			outerEl!.dispatchEvent(new Event('scroll'));
+		});
+	}
+
+	function updateTableMeasureInputs(): void {
+		tableLabelWidth = tableLabelContentWidth();
+		const nextStyle = resolveNodeRowMeasureStyle(
+			outerEl,
+			TABLE_LABEL_SELECTOR,
+			tableMeasureStyle,
+		);
+		if (nodeRowMeasureStyleKey(nextStyle) !== nodeRowMeasureStyleKey(tableMeasureStyle)) {
+			tableMeasureStyle = nextStyle;
+		}
+	}
+
+	function tableLabelContentWidth(): number {
+		const label = outerEl?.querySelector<HTMLElement>(TABLE_LABEL_SELECTOR);
+		const cell = label?.closest<HTMLElement>('.vm-node-table-cell');
+		const width = cell?.clientWidth || outerEl?.clientWidth || TABLE_FALLBACK_WIDTH;
+		return Math.max(1, width - 16);
+	}
+
+	function scheduleTableMetricsUpdate(): void {
+		if (typeof requestAnimationFrame === 'undefined') {
+			updateTableMeasureInputs();
+			return;
+		}
+		if (tableMetricsFrame !== null) return;
+		tableMetricsFrame = requestAnimationFrame(() => {
+			tableMetricsFrame = null;
+			updateTableMeasureInputs();
+		});
+	}
+
+	function scheduleVirtualizerRemeasure(_surface: 'table'): void {
+		if (typeof requestAnimationFrame === 'undefined') {
+			PerfMeter.time('explorer.table.resizeRemeasure', () => $rowVirtualizer.measure?.());
+			return;
+		}
+		if (tableRemeasureFrame !== null) return;
+		tableRemeasureFrame = requestAnimationFrame(() => {
+			tableRemeasureFrame = null;
+			PerfMeter.time('explorer.table.resizeRemeasure', () => $rowVirtualizer.measure?.());
+		});
 	}
 
 	function observeTableRect(
@@ -186,6 +314,30 @@
 		);
 	}
 
+	function nodeIdFromEventTarget(target: EventTarget | null): string | null {
+		const el = target instanceof HTMLElement ? target.closest<HTMLElement>('[data-id]') : null;
+		if (!el || !outerEl?.contains(el)) return null;
+		return el.dataset.id ?? null;
+	}
+
+	function handleDelegatedTableClick(e: MouseEvent): void {
+		const id = nodeIdFromEventTarget(e.target);
+		if (!id) return;
+		PerfMeter.time('explorer.table.delegate.click', () => handleRowClick(id, e));
+	}
+
+	function handleDelegatedTableAuxClick(e: MouseEvent): void {
+		const id = nodeIdFromEventTarget(e.target);
+		if (!id) return;
+		PerfMeter.time('explorer.table.delegate.auxclick', () => handleRowAuxClick(id, e));
+	}
+
+	function handleDelegatedTableContextMenu(e: MouseEvent): void {
+		const id = nodeIdFromEventTarget(e.target);
+		if (!id) return;
+		PerfMeter.time('explorer.table.delegate.contextmenu', () => onContextMenu(id, e));
+	}
+
 	function rowBadges(row: ViewRow<TNode>): NodeBadge[] {
 		return ownNodeBadges(row.node as TNode & { badges?: readonly NodeBadge[] });
 	}
@@ -203,7 +355,10 @@
 				tableRows.map((row) => row.id),
 				e,
 			);
+			return;
 		}
+		const id = nodeIdFromEventTarget(e.target);
+		if (id) PerfMeter.time('explorer.table.delegate.keydown', () => onRowKeydown?.(id, e));
 	}
 
 	function headerSortState(columnId: string): false | 'asc' | 'desc' {
@@ -226,7 +381,23 @@
 		return rows[index]?.id ?? index;
 	}
 
-	function fallbackRenderedRows(rows: readonly { id: string }[]): {
+	function tableEstimateSize(index: number): number {
+		const row = tableRows[index];
+		return row ? measuredTableRows.get(row.id) ?? TABLE_ROW_HEIGHT : TABLE_ROW_HEIGHT;
+	}
+
+	function tableRowTop(rowIndex: number): number {
+		let top = 0;
+		for (let index = 0; index < rowIndex; index += 1) {
+			top += tableEstimateSize(index);
+		}
+		return top;
+	}
+
+	function fallbackRenderedRows(
+		rows: readonly { id: string }[],
+		measuredRows: ReadonlyMap<string, number>,
+	): {
 		key: string;
 		index: number;
 		start: number;
@@ -235,11 +406,12 @@
 			rows.length,
 			Math.ceil(TABLE_FALLBACK_HEIGHT / TABLE_ROW_HEIGHT) + TABLE_OVERSCAN * 2,
 		);
-		return rows.slice(0, visibleCount).map((row, index) => ({
-			key: row.id,
-			index,
-			start: index * TABLE_ROW_HEIGHT,
-		}));
+		let start = 0;
+		return rows.slice(0, visibleCount).map((row, index) => {
+			const out = { key: row.id, index, start };
+			start += measuredRows.get(row.id) ?? TABLE_ROW_HEIGHT;
+			return out;
+		});
 	}
 
 	function sortRows(
@@ -282,6 +454,20 @@
 		}
 		return '';
 	}
+
+	function createNodeRowMeasureService(): NodeRowMeasureService {
+		if (typeof document === 'undefined') {
+			return new NodeRowMeasureService(
+				createTextMeasureService({ engine: fallbackTextMeasureEngine }),
+			);
+		}
+		if (typeof navigator !== 'undefined' && navigator.userAgent.includes('jsdom')) {
+			return new NodeRowMeasureService(
+				createTextMeasureService({ engine: fallbackTextMeasureEngine }),
+			);
+		}
+		return new NodeRowMeasureService(createTextMeasureService());
+	}
 </script>
 
 <div
@@ -290,6 +476,9 @@
 	role="grid"
 	aria-multiselectable="true"
 	tabindex="0"
+	onclick={handleDelegatedTableClick}
+	onauxclick={handleDelegatedTableAuxClick}
+	oncontextmenu={handleDelegatedTableContextMenu}
 	onkeydown={handleTableKeydown}
 	style:--vm-node-table-columns={columnTemplate}
 >
@@ -323,10 +512,10 @@
 		style:--vm-node-table-total-h={`${totalHeight}px`}
 	>
 		{#each renderedRows as virtualRow (virtualRow.key)}
-			{@const row = tableRows[virtualRow.index]}
+				{@const row = tableRows[virtualRow.index]}
 			{#if row}
 				{@const id = row.id}
-				{@const isSelected = selectedIds.has(id)}
+				{@const isSelected = selectedMap?.get(id) ?? selectedIds.has(id)}
 				{@const isFocused = focusedId === id}
 				{@const isActive = activeId === id}
 				{@const directBadges = rowBadges(row)}
@@ -339,10 +528,6 @@
 					role="row"
 					tabindex="0"
 					aria-selected={isSelected}
-					onclick={(e) => handleRowClick(id, e)}
-					onauxclick={(e) => handleRowAuxClick(id, e)}
-					oncontextmenu={(e) => onContextMenu(id, e)}
-					onkeydown={(e) => onRowKeydown?.(id, e)}
 					style:--vm-node-table-y={`${virtualRow.start}px`}
 				>
 					{#each columns as column (column.id)}

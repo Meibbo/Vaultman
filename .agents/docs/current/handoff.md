@@ -5,7 +5,7 @@ status: active
 parent: "[[docs/work/pkm-ai/index|pkm-ai]]"
 archive_source: "docs/archive/pkm-ai/active-docs/2026-05-10T093000-current-handoff.md"
 created: 2026-05-04T01:36:20
-updated: 2026-05-11T23:28:00
+updated: 2026-05-11T23:59:00
 tags:
   - agent/current
 created_by: dec
@@ -20,9 +20,18 @@ Compact handoff after archiving the oversized current handoff:
 ## Resume Point
 
 - Latest user request implemented in this session:
+  Wave 1 Agent B, Cut 2 tree row layout and badge/counter overlay. Source log:
+  [[docs/work/polish/plans/2026-05-10-dock-toolbar-groups-virtualizer/wave-1-agent-b-tree-row-layout|Wave 1 Agent B tree row layout log]].
+- Previous user request implemented:
+  Wave 1 Agent C, Cut 4 service-only DnD contract hardening. Source:
+  [[docs/work/polish/plans/2026-05-10-dock-toolbar-groups-virtualizer/wave-1-agent-c-service-dnd|Wave 1 Agent C Service DnD Contract]].
+- Earlier user request implemented:
+  Wave 1 Agent A, Cut 2 Settings and dock neutral state test coverage. Source:
+  [[docs/work/polish/plans/2026-05-10-dock-toolbar-groups-virtualizer/dispatch-shortcuts#agent-a-cut-2-settings-and-dock-neutral-state|Parallel dispatch shortcuts]].
+- Earlier user request implemented:
   Cut 1.5 Task 7 final Svelte autofix and verification sweep. Source log:
   [[docs/work/polish/plans/2026-05-10-dock-toolbar-groups-virtualizer/cut-1-5-node-surface-theme-scroll/04-verification-and-handoff#2026-05-11-task-7-final-sweep|Task 7 final sweep]].
-- Previous user request implemented:
+- Earlier user request implemented:
   proceeded with the detachable tabs live Obsidian smoke, fixed the detached
   tab leaf DOM `data-type` mismatch, and restored `page-tools` to attached
   state after verification. Source log:
@@ -96,6 +105,13 @@ Compact handoff after archiving the oversized current handoff:
   refreshed by `pnpm run build`.
 - Cut 1.5 Task 7 final sweep: all nine Svelte gate files had `issues: []`;
   focused and broader test gates, `pnpm run check`, build, and diff check passed.
+- Wave 1 Agent A changed only settings/nav component tests. It did not touch
+  production Svelte files, tree layout, DnD UI, or Queue presentation files.
+- Wave 1 Agent C changed only `serviceDnd` and its DnD adapter tests. Preserve
+  the contract that `reorder` requires a before/after edge; `inside` is only
+  valid when a compatible operation such as `move` is available.
+- Wave 1 Agent B changed only `ViewTree`, virtual-list SCSS, and Agent B tests:
+  preserve the split between explicit counter reserve and badge overlay reveal.
 - `.agents/tools/pkm-ai/lib/code-index.mjs` imports `svelte/compiler` and treats
   `.svelte` as an indexed code target.
 - `.agents/tools/pkm-ai/test/code-index.test.mjs` covers `.svelte` discovery,
@@ -130,6 +146,14 @@ Compact handoff after archiving the oversized current handoff:
 - Detachable focused verification passed: regression 3/3 red-then-green,
   detachable unit 30/30, detachable component 28/28, `pnpm run check`, and
   `pnpm run build`. Full commands are in the detachable source log.
+- Wave 1 Agent B verification passed: red tests failed as expected; Svelte
+  autofixer `issues: []`; style test 3/3, ViewTree component gate 31/31, and
+  `pnpm run check` passed.
+- Wave 1 Agent A verification passed: settings/nav component tests 20/20 and
+  `pnpm run check` with 0 errors / 0 warnings.
+- Wave 1 Agent C verification passed: red run failed on ambiguous inside
+  reorder as expected; DnD adapter focused tests 17/17, full Agent C service
+  gate 21/21, `pnpm run check`, and `git diff --check` passed.
 - Cut 1.5 Task 7 final sweep passed: Svelte autofixer `issues: []` on all
   nine listed files; focused unit 43/43, focused component 40/40, broader
   safety component 68/68, `pnpm run check`, `pnpm run build`, and
@@ -137,13 +161,9 @@ Compact handoff after archiving the oversized current handoff:
 - Cut 1.5 Task 5 focused style verification:
   `pnpm exec vp test run --project unit --config vitest.config.ts test/unit/styles/compactControlScroll.test.ts --fileParallelism=false`:
   pass, 4/4.
-- Earlier Cut 1.5 Task 5 verification remains in the linked source plan.
-- Earlier Cut 1.5 Task 4 verification remains in the linked source plan.
-- Latest doc health run after Cut 1.5 Task 6:
+- Latest doc health run after Wave 1 Agent A:
   `node .agents/tools/pkm-ai/check-doc-health.mjs`: fail with unrelated
   residuals in the detachable workspace tabs spec and `.agents/docs/superpowers`.
-- Earlier verification remains in the linked source records and
-  [[docs/current/status|current status]].
 
 ## Next Action
 
@@ -154,11 +174,11 @@ Compact handoff after archiving the oversized current handoff:
   into detached explorer leaves.
 - For Elastic UI execution, start with the contracts and gates shard:
   [[docs/work/polish/plans/2026-05-11-elastic-ui-chameleon/00-contracts-and-gates|Elastic UI Contracts And Gates]].
-- Continue with Cut 2 from
-  [[docs/work/polish/plans/2026-05-10-dock-toolbar-groups-virtualizer/index|Dock, Toolbar, Groups, Virtualizer Implementation Plan]]:
-  Settings and row layout completion, then Cut 3 virtualizer/pretext/tab
-  latency, Cut 4 real `@dnd-kit/svelte` DnD/groups/queue operations, and Cut 5
-  node notes plus mouse action polish.
+- Wave 1 Agent B is complete. Remaining Dock Toolbar shortcuts: Agent D
+  read-only live/manual QA when Obsidian is available, then Wave 2 Agent E/F
+  for virtualizer/pretext latency and real DnD UI wiring. Later Agent F should
+  preserve Agent C's service contract.
+
 ## Known Residuals
 
 - No detachable `page-tools` smoke residual remains; final live runtime was
@@ -167,13 +187,9 @@ Compact handoff after archiving the oversized current handoff:
 - Live Obsidian smoke for Queue island Task 6 and final Task 7 was not run.
 - Product worktree remains dirty with active Vaultman UI/DnD changes. Do not
   revert unrelated user/agent files.
-- One combined component command timed out once due startup/runtime length, but
-  the same component coverage passed when split:
-  `viewTreeSelection`, `viewTreeHoverBadges`, `viewTreeDecorations`, and
-  `toolbarMenuPlacement`.
 - Global `check-doc-health.mjs` currently fails on unrelated residuals:
-  glossary terms and line-limit in the detachable workspace tabs spec, plus one
-  `.agents/docs/superpowers` parent-shape residual.
+  glossary terms and line-limit in the detachable workspace tabs spec, plus
+  `.agents/docs/superpowers` parent-shape residuals.
 - Do not move AI files to `main`.
 - Do not base table work on old `viewTable.svelte`; use the TanStack table
   source records if table work resumes.

@@ -37,3 +37,4 @@ Esta especificación detalla la transformación de Vaultman en un **Plugin Camal
 - [[09-expansion-services-dnd|Spec 09: Advanced Services (DnD @thisux, Groups)]]
 - [[10-expansion-visual-logic|Spec 10: Faint Mode & FAB Animations]]
 - [[11-bitsui-mainview-spec|Spec 11: Main View (3-Column Dashboard)]]
+- [[12-interactive-diff-review|Spec 12: Interactive Diff Review & Robust VFS]]

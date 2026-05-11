@@ -19,6 +19,10 @@ class MutableIndex<TNode extends { id: string }> implements INodeIndex<TNode> {
 		return this.current;
 	}
 
+	get flatIds(): readonly string[] {
+		return this.current.map((node) => node.id);
+	}
+
 	get revision(): number {
 		return this.currentRevision;
 	}
@@ -34,6 +38,10 @@ class MutableIndex<TNode extends { id: string }> implements INodeIndex<TNode> {
 
 	byId(id: string): TNode | undefined {
 		return this.current.find((node) => node.id === id);
+	}
+
+	getSearchBuffer(id: string): string {
+		return this.byId(id)?.id.toLowerCase() ?? '';
 	}
 
 	emit(nodes: TNode[]): void {

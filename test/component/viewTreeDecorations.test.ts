@@ -125,6 +125,43 @@ describe('ViewTree decorations', () => {
 		).toHaveLength(1);
 	});
 
+	it('marks counters and overlay badges separately for narrow tree-row layout', () => {
+		const nodes: TreeNode[] = [
+			{
+				id: 'status',
+				label: 'status',
+				depth: 0,
+				meta: {},
+				count: 42,
+				badges: [{ text: 'delete', icon: 'lucide-trash-2', color: 'red', queueIndex: 3 }],
+			},
+		];
+
+		app = mount(ViewTree as unknown as Component<Record<string, unknown>>, {
+			target,
+			props: {
+				nodes,
+				expandedIds: new Set<string>(),
+				onToggle: vi.fn(),
+				onRowClick: vi.fn(),
+				onContextMenu: vi.fn(),
+				icon: vi.fn(() => ({ update: vi.fn() })),
+			},
+		});
+		flushSync();
+
+		const surface = target.querySelector('.vm-tree-row-surface') as HTMLElement;
+		const badgeZone = target.querySelector('.vm-tree-badge-zone') as HTMLElement;
+		const overlayZone = target.querySelector('.vm-tree-overlay-badge-zone') as HTMLElement;
+
+		expect(surface.classList.contains('has-count')).toBe(true);
+		expect(surface.classList.contains('has-overlay-badges')).toBe(true);
+		expect(badgeZone.classList.contains('has-count')).toBe(true);
+		expect(badgeZone.classList.contains('has-overlay-badges')).toBe(true);
+		expect(overlayZone.classList.contains('has-active-badges')).toBe(true);
+		expect(badgeZone.querySelector('.vm-tree-count')?.textContent).toBe('42');
+	});
+
 	it('removes a queued badge with a single click without triggering row activation', () => {
 		const onBadgeClick = vi.fn();
 		const onRowClick = vi.fn();

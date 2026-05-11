@@ -62,6 +62,8 @@
 
 Use this as the next resume plan. The intermediate `@dnd-kit/svelte` migration and the ViewTree hover/click regression correction are already applied locally. Do not redo them. Before each cut, inspect the current diff because parts of Cut 4 and Cut 5 were already implemented in the continuation log below; preserve those implementations and complete only the missing behavior.
 
+For shorthand dispatch such as `ejecuta ola 1 agente b`, use [[dispatch-shortcuts|Dock Toolbar Parallel Dispatch Shortcuts]].
+
 ### Intermediate Cut 1.5: Node Surface Theme, Queue Badges, And Scroll
 
 Before resuming Cut 2, execute the sharded plan:

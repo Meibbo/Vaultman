@@ -22,4 +22,17 @@ describe('serviceFilesIndex', () => {
 		await idx.refresh();
 		expect(idx.byId('x.md')?.basename).toBe('x');
 	});
+
+	it('precomputes exact file search buffers from basename, path, and extension', async () => {
+		const f = mockTFile('Projects/Deep/Adopted Header.md');
+		const app = mockApp({ files: [f] });
+		const idx = createFilesIndex(app);
+
+		await idx.refresh();
+
+		expect(idx.flatIds).toEqual(['Projects/Deep/Adopted Header.md']);
+		expect(idx.getSearchBuffer(f.path)).toContain('adopted header');
+		expect(idx.getSearchBuffer(f.path)).toContain('projects/deep/adopted header.md');
+		expect(idx.getSearchBuffer(f.path)).toContain('md');
+	});
 });

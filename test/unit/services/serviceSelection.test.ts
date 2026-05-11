@@ -1,4 +1,5 @@
-import { describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it } from 'vitest';
+import { PerfMeter, type OpsLogRecord } from '../../../src/services/perfMeter';
 import { NodeSelectionService } from '../../../src/services/serviceSelection.svelte';
 import type { NodeSelectionSnapshot } from '../../../src/types/typeSelection';
 
@@ -10,6 +11,10 @@ function selectedIds(snapshot: NodeSelectionSnapshot): string[] {
 }
 
 describe('NodeSelectionService', () => {
+	afterEach(() => {
+		PerfMeter.__resetForTests();
+	});
+
 	it('replaces selection on plain pointer select and sets anchor, focus, and active node', () => {
 		const service = new NodeSelectionService();
 
@@ -210,5 +215,22 @@ describe('NodeSelectionService', () => {
 		(snapshot.ids as Set<string>).add('external');
 
 		expect(selectedIds(service.snapshot(EXPLORER_ID))).toEqual(['b']);
+	});
+
+	it('exposes a live selected map and times single-id pointer selection', () => {
+		const service = new NodeSelectionService();
+		const records: OpsLogRecord[] = [];
+		PerfMeter.subscribe((record) => records.push(record));
+		const orderedIds = Array.from({ length: 10_000 }, (_, index) => `node-${index}`);
+
+		const snapshot = service.selectPointer(EXPLORER_ID, orderedIds, 'node-9999');
+
+		expect(snapshot.selected.get('node-9999')).toBe(true);
+		expect(snapshot.selected.get('node-1')).toBeUndefined();
+		const record = records.find((entry) => entry.label === 'explorer.selection.selectPointer');
+		expect(record?.durationMs).toBeLessThan(2);
+
+		const cleared = service.clear(EXPLORER_ID);
+		expect(cleared.selected.get('node-9999')).toBeUndefined();
 	});
 });

@@ -5,7 +5,7 @@ status: active
 parent: "[[docs/work/pkm-ai/index|pkm-ai]]"
 archive_source: "docs/archive/pkm-ai/active-docs/2026-05-10T093000-current-status.md"
 created: 2026-05-04T01:36:20
-updated: 2026-05-11T23:28:00
+updated: 2026-05-11T23:59:00
 tags:
   - agent/current
 created_by: dec
@@ -29,9 +29,18 @@ Compact route index after archiving the oversized current status:
 
 ## Current Route
 
-- Latest user request: proceed with Cut 1.5 Task 7 final sweep.
+- Latest user request: execute Wave 1 Agent B.
 - Active initiative: [[docs/work/polish/index|Polish]].
 - Latest implemented product slice:
+  Wave 1 Agent B, Cut 2 tree row layout and badge/counter overlay in
+  [[docs/work/polish/plans/2026-05-10-dock-toolbar-groups-virtualizer/wave-1-agent-b-tree-row-layout|Wave 1 Agent B tree row layout log]].
+- Previous implemented product slice:
+  Wave 1 Agent C, Cut 4 service-only DnD contract hardening in
+  [[docs/work/polish/plans/2026-05-10-dock-toolbar-groups-virtualizer/wave-1-agent-c-service-dnd|Wave 1 Agent C Service DnD Contract]].
+- Earlier implemented product slice:
+  Wave 1 Agent A, Cut 2 Settings and dock neutral state test coverage in
+  [[docs/work/polish/plans/2026-05-10-dock-toolbar-groups-virtualizer/dispatch-shortcuts#agent-a-cut-2-settings-and-dock-neutral-state|Parallel dispatch shortcuts]].
+- Earlier implemented product slice:
   Cut 1.5 Task 7 final Svelte autofix, focused tests, check, and build in
   [[docs/work/polish/plans/2026-05-10-dock-toolbar-groups-virtualizer/cut-1-5-node-surface-theme-scroll/04-verification-and-handoff|Cut 1.5 verification and handoff]].
 - Previous detachable product slice:
@@ -44,8 +53,9 @@ Compact route index after archiving the oversized current status:
 - Next product action for the detachable/workspace route: start `tabOutline`,
   Markmap explorer view, node-notes service, and adopted-node file explorer
   behavior.
-- Active product plan:
-  [[docs/work/polish/plans/2026-05-10-dock-toolbar-groups-virtualizer/index|Dock, Toolbar, Groups, Virtualizer Implementation Plan]].
+- Active Dock Toolbar plan and dispatch shortcuts:
+  [[docs/work/polish/plans/2026-05-10-dock-toolbar-groups-virtualizer/index|Dock Toolbar Groups Virtualizer Plan]];
+  [[docs/work/polish/plans/2026-05-10-dock-toolbar-groups-virtualizer/dispatch-shortcuts|Parallel dispatch shortcuts]].
 - Pre-Cut-2 subplan:
   [[docs/work/polish/plans/2026-05-10-dock-toolbar-groups-virtualizer/cut-1-5-node-surface-theme-scroll/index|Cut 1.5 Node Surface Theme And Scroll Plan]].
 - Cut 1.5 Task 2 is complete: generic queue badges now remove queued ops in
@@ -63,6 +73,12 @@ Compact route index after archiving the oversized current status:
   cancel in the action slot.
 - Cut 1.5 Task 7 is complete: the final automated Svelte autofix and
   verification sweep passed; live UI smoke was not rerun.
+- Wave 1 Agent B is complete: `ViewTree` now separates explicit counter reserve
+  from hover/active badge overlays at narrow row widths.
+- Wave 1 Agent A is complete: settings/nav tests now cover drawer direction,
+  top-tab content persistence, and neutral dock/tab active state.
+- Wave 1 Agent C is complete: reorder-only targets reject ambiguous `inside`
+  drops in `serviceDnd` and the `@dnd-kit/svelte` adapter.
 - Elastic UI orchestration plan:
   [[docs/work/polish/plans/2026-05-11-elastic-ui-chameleon/index|Elastic UI Chameleon Implementation Plan]].
 - Recent PKM-AI route remains available below for source context.
@@ -121,6 +137,13 @@ Compact route index after archiving the oversized current status:
 - Detachable focused verification passed: regression 3/3 red-then-green,
   detachable unit 30/30, detachable component 28/28, `pnpm run check`, and
   `pnpm run build`.
+- Wave 1 Agent B verification: red tests failed as expected; Svelte autofixer
+  returned `issues: []`; tree style test passed 3/3; ViewTree component gate
+  passed 31/31; `pnpm run check` reports 0 errors / 0 warnings.
+- Wave 1 Agent A verification: settings/nav component tests pass 20/20 and
+  `pnpm run check` reports 0 errors / 0 warnings.
+- Wave 1 Agent C verification is in the source record; red, focused unit,
+  Agent C service, `pnpm run check`, and diff-check gates were run.
 - Cut 1.5 Task 7 final sweep: Svelte autofixer returned `issues: []` on all
   nine gate files; focused unit 43/43, focused component 40/40, broader safety
   component 68/68, `pnpm run check`, `pnpm run build`, and `git diff --check`
@@ -129,7 +152,7 @@ Compact route index after archiving the oversized current status:
   `pnpm exec vp test run --project unit --config vitest.config.ts test/unit/styles/compactControlScroll.test.ts --fileParallelism=false`:
   pass, 4/4.
 - Earlier Cut 1.5 Task 3-5 verification remains in the linked source plan.
-- Latest doc health run after Cut 1.5 Task 7:
+- Latest doc health run after Wave 1 Agent A:
   `node .agents/tools/pkm-ai/check-doc-health.mjs`: fail with unrelated
   residuals in the detachable workspace tabs spec and `.agents/docs/superpowers`.
 - `node --test .agents/tools/pkm-ai/test/manage-tasks.test.mjs`: pass, 6/6.
@@ -154,8 +177,8 @@ Compact route index after archiving the oversized current status:
 - Live Obsidian smoke for Queue island Task 6 and final Task 7 was not run;
   both are covered by focused automated tests, `svelte-check`, and build.
 - Global doc health currently fails on unrelated residuals:
-  glossary terms and line-limit in the detachable workspace tabs spec, plus one
-  `.agents/docs/superpowers` parent-shape residual.
+  glossary terms and line-limit in the detachable workspace tabs spec, plus
+  `.agents/docs/superpowers` parent-shape residuals.
 - Task-state automation updates for the same file should run sequentially, not
   in parallel.
 - Combined Vite/Svelte verification can hit the known transient Svelte resolver
@@ -172,13 +195,3 @@ Compact route index after archiving the oversized current status:
 - [[docs/work/polish/plans/2026-05-10-dock-toolbar-groups-virtualizer/cut-1-5-node-surface-theme-scroll/index|Cut 1.5 Node Surface Theme And Scroll Plan]]
 - [[docs/work/polish/plans/2026-05-10-dock-toolbar-groups-virtualizer/index|Dock Toolbar Groups Virtualizer Plan]]
 - [[docs/work/polish/plans/2026-05-11-elastic-ui-chameleon/index|Elastic UI Chameleon Plan]]
-- [[docs/work/pkm-ai/plans/2026-05-10-typescript-ast-code-index/index|TypeScript AST code index]]
-- [[docs/work/pkm-ai/plans/2026-05-10-svelte-code-index-extraction/index|Svelte code index extraction]]
-- [[docs/work/pkm-ai/plans/2026-05-10-health-line-limit-auto-sharding/index|Health line-limit auto sharding]]
-- [[docs/work/pkm-ai/plans/2026-05-10-health-residual-auto-repair/index|Health residual auto repair]]
-- [[docs/work/pkm-ai/plans/2026-05-10-glossary-candidate-triage/index|Glossary candidate triage]]
-- [[docs/work/pkm-ai/plans/2026-05-10-task-state-automation/index|Task state automation]]
-- [[docs/work/pkm-ai/plans/2026-05-10-task-state-retrieval/index|Task state retrieval]]
-- [[docs/work/pkm-ai/research/2026-05-10-obsidian-tasks-state-automation|Obsidian Tasks state automation research]]
-- [[docs/work/pkm-ai/research/2026-05-10-residual-classification|Residual classification]]
-- [[docs/work/pkm-ai/items/vm-0002-current-docs-as-route-indexes|Current docs as route indexes]]

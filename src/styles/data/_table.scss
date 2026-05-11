@@ -50,15 +50,17 @@
 
 .vm-node-table-row {
 	position: absolute;
+	top: 0;
 	left: 0;
 	right: 0;
 	display: grid;
 	grid-template-columns: var(--vm-node-table-columns, minmax(180px, 1fr));
 	min-height: 30px;
-	transform: translateY(var(--vm-node-table-y, 0));
+	transform: translate3d(0, var(--vm-node-table-y, 0), 0);
 	border-bottom: $vm-border-width solid color-mix(in srgb, $vm-border-color 70%, transparent);
 	box-sizing: border-box;
 	color: $vm-text-normal;
+	will-change: transform;
 }
 
 .vm-node-table-row:hover,
@@ -102,7 +104,7 @@ body.vm-node-borders-off {
 
 .vm-node-table-cell {
 	display: flex;
-	align-items: center;
+	align-items: flex-start;
 	gap: 6px;
 	min-width: 0;
 	padding: 5px 8px;
@@ -121,12 +123,16 @@ body.vm-node-borders-off {
 	min-width: 0;
 	padding: 0;
 	border: 0;
+	overflow: visible;
 	background: transparent;
 	color: inherit;
 	font: inherit;
+	line-height: inherit;
 	text-align: left;
+	text-overflow: clip;
+	white-space: normal;
+	overflow-wrap: anywhere;
 	cursor: pointer;
-	@include text-ellipsis;
 }
 
 .vm-node-table-badge-zone {

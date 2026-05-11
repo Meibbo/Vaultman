@@ -89,6 +89,27 @@ describe('serviceDnd', () => {
 		});
 	});
 
+	it('rejects inside drops when a target only supports reordering', () => {
+		const dnd = createDndService();
+
+		dnd.beginDrag(SOURCE);
+		const snapshot = dnd.updateTarget(
+			{
+				...TARGET,
+				accepts: ['reorder'],
+			},
+			'inside',
+		);
+
+		expect(snapshot.candidate).toMatchObject({
+			allowed: false,
+			operation: null,
+			reason: 'no-compatible-operation',
+			position: 'inside',
+		});
+		expect(dnd.endDrag()).toBeNull();
+	});
+
 	it('uses explicit target support to detach a tab into the workspace', () => {
 		const dnd = createDndService();
 

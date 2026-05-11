@@ -33,10 +33,15 @@ function makePropsIndex(app: App): IPropsIndex {
 	}));
 	return {
 		nodes,
+		flatIds: nodes.map((node) => node.id),
 		revision: 1,
 		refresh: () => {},
 		subscribe: () => () => {},
 		byId: (id: string) => nodes.find((node) => node.id === id),
+		getSearchBuffer: (id: string) => {
+			const node = nodes.find((item) => item.id === id);
+			return node ? `${node.property}\n${node.values.join('\n')}`.toLowerCase() : '';
+		},
 	};
 }
 

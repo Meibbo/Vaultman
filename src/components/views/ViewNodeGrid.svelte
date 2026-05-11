@@ -21,6 +21,7 @@
 		DEFAULT_VIEW_SIZE_PRESET,
 		getViewSizePreset,
 		viewSizeCssVars,
+		type ViewSizePreset,
 		type ViewSizePresetId,
 	} from '../../services/serviceViewSize';
 	import {
@@ -37,10 +38,23 @@
 		writeManualDndTransfer,
 	} from '../../services/serviceManualDnd';
 	import type { DndDropPosition, DndDropResult } from '../../services/serviceDnd';
+	import { PerfMeter } from '../../services/perfMeter';
+	import { NodeRowMeasureService } from '../../services/serviceNodeRowMeasure';
+	import {
+		DEFAULT_NODE_ROW_MEASURE_STYLE,
+		nodeRowMeasureStyleKey,
+		resolveNodeRowMeasureStyle,
+	} from '../../services/serviceNodeRowStyle';
+	import {
+		createTextMeasureService,
+		fallbackTextMeasureEngine,
+	} from '../../services/serviceTextMeasure';
 
 	const GRID_FALLBACK_WIDTH = 480;
 	const GRID_FALLBACK_HEIGHT = 360;
 	const GRID_OVERSCAN = 6;
+	const GRID_BADGE_ALLOWANCE = 28;
+	const GRID_LABEL_SELECTOR = '.vm-node-grid-label';
 	const EMPTY_EXPANDED_IDS: ReadonlySet<string> = new Set();
 	type ScrollTarget = { id: string; serial: number };
 
@@ -54,7 +68,8 @@
 
 	interface Props {
 		nodes: TreeNode[];
-		selectedIds?: Set<string>;
+		selectedIds?: ReadonlySet<string>;
+		selectedMap?: ReadonlyMap<string, boolean>;
 		focusedId?: string | null;
 		activeId?: string | null;
 		hierarchyMode?: HierarchyMode;
@@ -76,12 +91,14 @@
 		providerId?: string;
 		manualDndEnabled?: boolean;
 		onManualDrop?: (result: DndDropResult) => void;
+		measure?: NodeRowMeasureService;
 		icon: (node: HTMLElement, name: string) => { update(n: string): void };
 	}
 
 	let {
 		nodes,
 		selectedIds,
+		selectedMap,
 		focusedId,
 		activeId,
 		hierarchyMode = 'folder',
@@ -103,6 +120,7 @@
 		providerId = 'nodes',
 		manualDndEnabled = false,
 		onManualDrop,
+		measure = createNodeRowMeasureService(),
 		icon,
 	}: Props = $props();
 
@@ -144,12 +162,26 @@
 	} | null>(null);
 	let suppressNextClick = false;
 	let gridMetricsFrame: number | null = null;
+	let gridRemeasureFrame: number | null = null;
+	let gpuReadyMarked = false;
+	let gridMeasureStyle = $state(DEFAULT_NODE_ROW_MEASURE_STYLE);
 	const mouse = createMouseGestureService();
 	const manualDnd = createManualDndService();
 	let manualDndVersion = $state(0);
 	const viewSize = $derived(getViewSizePreset(sizePresetId));
 	const viewSizeStyle = $derived(viewSizeCssVars(viewSize));
 	const gridRowBaseHeight = $derived(viewSize.tileHeight + viewSize.gap);
+	const gridTileOuterWidth = $derived(tileOuterWidthFor(gridWidth, columnCount, viewSize));
+	const gridLabelWidth = $derived(
+		Math.max(
+			1,
+			gridTileOuterWidth -
+				viewSize.iconSize -
+				viewSize.gap * 3 -
+				GRID_BADGE_ALLOWANCE -
+				(hierarchyMode === 'inline' ? viewSize.treeToggleSize + viewSize.gap : 0),
+		),
+	);
 	const nodeMouseConfig = $derived(
 		mergeMouseGestureConfig(NODE_MOUSE_GESTURE_CONFIG, mouseGestureConfig),
 	);
@@ -161,11 +193,57 @@
 	});
 
 	const gridRows = $derived(buildGridRows(nodes, columnCount, hierarchyMode, expandedIds));
+	const gridMeasureRevision = $derived(
+		`${nodeRowMeasureStyleKey(gridMeasureStyle)}:${gridRows.length}:${gridLabelWidth}`,
+	);
+	const gridMeasuredRowHeights = $derived.by(() =>
+		PerfMeter.time(
+			'explorer.grid.measureRows',
+			() => {
+				const out = new Map<string, number>();
+				for (const row of gridRows) {
+					const baseHeight = row.nodes.reduce(
+						(height, node) =>
+							Math.max(
+								height,
+								measure.measure({
+									id: node.id,
+									text: node.label,
+									width: gridLabelWidth,
+									minHeight: viewSize.tileHeight,
+									paddingBlock: viewSize.gap * 2,
+									style: gridMeasureStyle,
+									revision: gridMeasureRevision,
+								}),
+							),
+						viewSize.tileHeight,
+					);
+					const inlineExtra =
+						hierarchyMode === 'inline'
+							? row.nodes.reduce(
+									(height, node) => height + expandedPanelHeight(node, columnCount, expandedIds),
+									0,
+								)
+							: 0;
+					out.set(row.key, baseHeight + inlineExtra);
+				}
+				return out;
+			},
+			'service',
+			{ rows: gridRows.length },
+		),
+	);
+	const measuredGridTotalHeight = $derived(
+		gridRows.reduce(
+			(height, row) => height + (gridMeasuredRowHeights.get(row.key) ?? row.height) + viewSize.gap,
+			viewSize.gap,
+		),
+	);
 	const rowVirtualizer = createVirtualizer<HTMLDivElement, HTMLDivElement>({
 		count: 0,
 		getScrollElement: () => outerEl ?? null,
 		getItemKey: (index) => gridVirtualRowKey(gridRows, index),
-		estimateSize: () => gridRowBaseHeight,
+		estimateSize: (index) => gridEstimateSize(index),
 		observeElementRect: observeGridRect,
 		overscan: GRID_OVERSCAN,
 		initialRect: { width: GRID_FALLBACK_WIDTH, height: GRID_FALLBACK_HEIGHT },
@@ -177,18 +255,23 @@
 		return fallbackGridRows(gridRows);
 	});
 	const totalHeight = $derived($rowVirtualizer.getTotalSize() + viewSize.gap * 2);
+	const resolvedTotalHeight = $derived(
+		Math.max(totalHeight, measuredGridTotalHeight),
+	);
 
 	$effect(() => {
 		const rows = gridRows;
 		const count = rows.length;
 		const scrollElement = outerEl;
 		const width = gridWidth;
+		const measuredRows = gridMeasuredRowHeights;
 		untrack(() =>
 			$rowVirtualizer.setOptions({
 				count,
 				getScrollElement: () => scrollElement ?? null,
 				getItemKey: (index) => gridVirtualRowKey(rows, index),
-				estimateSize: (index) => rows[index]?.height ?? gridRowBaseHeight,
+				estimateSize: (index) =>
+					rows[index] ? measuredRows.get(rows[index].key) ?? rows[index].height : gridRowBaseHeight,
 				observeElementRect: observeGridRect,
 				overscan: GRID_OVERSCAN,
 				initialRect: { width, height: GRID_FALLBACK_HEIGHT },
@@ -208,14 +291,27 @@
 	$effect(() => {
 		if (!outerEl) return;
 		updateGridMetrics();
+		updateGridMeasureStyle();
 		if (typeof ResizeObserver === 'undefined') return;
-		const ro = new ResizeObserver(scheduleGridMetricsUpdate);
+		const ro = new ResizeObserver(() => {
+			scheduleGridMetricsUpdate();
+			updateGridMeasureStyle();
+			scheduleVirtualizerRemeasure('grid');
+		});
 		ro.observe(outerEl);
 		return () => {
 			if (gridMetricsFrame !== null) cancelAnimationFrame(gridMetricsFrame);
+			if (gridRemeasureFrame !== null) cancelAnimationFrame(gridRemeasureFrame);
 			gridMetricsFrame = null;
+			gridRemeasureFrame = null;
 			ro.disconnect();
 		};
+	});
+
+	$effect(() => {
+		if (!outerEl || gpuReadyMarked) return;
+		gpuReadyMarked = true;
+		PerfMeter.mark('perf.phase04.gpu-positioning.ready', 'mark', { surface: 'grid' });
 	});
 
 	function handleTileClick(id: string, e: MouseEvent) {
@@ -246,21 +342,56 @@
 		);
 	}
 
+	function tileIdFromEventTarget(target: EventTarget | null): string | null {
+		const el =
+			target instanceof HTMLElement
+				? target.closest<HTMLElement>('.vm-node-grid-tile[data-id]')
+				: null;
+		if (!el || !outerEl?.contains(el)) return null;
+		return el.dataset.id ?? null;
+	}
+
+	function handleDelegatedGridClick(e: MouseEvent): void {
+		const id = tileIdFromEventTarget(e.target);
+		if (!id) return;
+		PerfMeter.time('explorer.grid.delegate.click', () => handleTileClick(id, e));
+	}
+
+	function handleDelegatedGridAuxClick(e: MouseEvent): void {
+		const id = tileIdFromEventTarget(e.target);
+		if (!id) return;
+		PerfMeter.time('explorer.grid.delegate.auxclick', () => handleTileAuxClick(id, e));
+	}
+
+	function handleDelegatedGridContextMenu(e: MouseEvent): void {
+		const id = tileIdFromEventTarget(e.target);
+		if (!id) return;
+		PerfMeter.time('explorer.grid.delegate.contextmenu', () => onContextMenu(id, e));
+	}
+
+	function handleDelegatedGridKeydown(e: KeyboardEvent): void {
+		const id = tileIdFromEventTarget(e.target);
+		if (!id) return;
+		PerfMeter.time('explorer.grid.delegate.keydown', () => handleTileKeydown(id, e));
+	}
+
 	function scrollGridRowIntoView(rowIndex: number): void {
 		if (!outerEl) return;
-		const row = gridRows[rowIndex];
-		const rowHeight = row?.height ?? gridRowBaseHeight;
-		const viewportHeight = outerEl.clientHeight || GRID_FALLBACK_HEIGHT;
-		const rowTop = rowIndex * gridRowBaseHeight + viewSize.gap;
-		const rowBottom = rowTop + rowHeight;
-		const currentTop = outerEl.scrollTop;
-		const currentBottom = currentTop + viewportHeight;
-		if (rowTop >= currentTop && rowBottom <= currentBottom) return;
+		PerfMeter.time('explorer.grid.scrollIntoView', () => {
+			const row = gridRows[rowIndex];
+			const rowHeight = row ? gridMeasuredRowHeights.get(row.key) ?? row.height : gridRowBaseHeight;
+			const viewportHeight = outerEl!.clientHeight || GRID_FALLBACK_HEIGHT;
+			const rowTop = gridRowTop(rowIndex);
+			const rowBottom = rowTop + rowHeight;
+			const currentTop = outerEl!.scrollTop;
+			const currentBottom = currentTop + viewportHeight;
+			if (rowTop >= currentTop && rowBottom <= currentBottom) return;
 
-		const nextTop = rowTop < currentTop ? rowTop : Math.max(0, rowBottom - viewportHeight);
-		$rowVirtualizer.scrollToIndex(rowIndex, { align: rowTop < currentTop ? 'start' : 'end' });
-		outerEl.scrollTop = nextTop;
-		outerEl.dispatchEvent(new Event('scroll'));
+			const nextTop = rowTop < currentTop ? rowTop : Math.max(0, rowBottom - viewportHeight);
+			$rowVirtualizer.scrollToIndex(rowIndex, { align: rowTop < currentTop ? 'start' : 'end' });
+			outerEl!.scrollTop = nextTop;
+			outerEl!.dispatchEvent(new Event('scroll'));
+		});
 	}
 
 	function handleTileKeydown(id: string, e: KeyboardEvent) {
@@ -407,6 +538,17 @@
 		columnCount = columnsForWidth(width);
 	}
 
+	function updateGridMeasureStyle(): void {
+		const nextStyle = resolveNodeRowMeasureStyle(
+			outerEl,
+			GRID_LABEL_SELECTOR,
+			gridMeasureStyle,
+		);
+		if (nodeRowMeasureStyleKey(nextStyle) !== nodeRowMeasureStyleKey(gridMeasureStyle)) {
+			gridMeasureStyle = nextStyle;
+		}
+	}
+
 	function scheduleGridMetricsUpdate() {
 		if (typeof requestAnimationFrame === 'undefined') {
 			updateGridMetrics();
@@ -416,6 +558,18 @@
 		gridMetricsFrame = requestAnimationFrame(() => {
 			gridMetricsFrame = null;
 			updateGridMetrics();
+		});
+	}
+
+	function scheduleVirtualizerRemeasure(_surface: 'grid'): void {
+		if (typeof requestAnimationFrame === 'undefined') {
+			PerfMeter.time('explorer.grid.resizeRemeasure', () => $rowVirtualizer.measure?.());
+			return;
+		}
+		if (gridRemeasureFrame !== null) return;
+		gridRemeasureFrame = requestAnimationFrame(() => {
+			gridRemeasureFrame = null;
+			PerfMeter.time('explorer.grid.resizeRemeasure', () => $rowVirtualizer.measure?.());
 		});
 	}
 
@@ -456,6 +610,19 @@
 		const gap = viewSize.gap;
 		const contentWidth = Math.max(tileWidth, width - gap * 2);
 		return Math.max(1, Math.floor((contentWidth + gap) / (tileWidth + gap)));
+	}
+
+	function tileOuterWidthFor(
+		width: number,
+		columns: number,
+		preset: ViewSizePreset,
+	): number {
+		const safeColumns = Math.max(1, columns);
+		const available = Math.max(preset.tileWidth, width - preset.gap * 2);
+		return Math.max(
+			preset.tileWidth,
+			(available - preset.gap * (safeColumns - 1)) / safeColumns,
+		);
 	}
 
 	function rectsIntersect(a: DOMRect, b: DOMRect): boolean {
@@ -534,13 +701,26 @@
 		return rows[index]?.key ?? index;
 	}
 
+	function gridEstimateSize(index: number): number {
+		const row = gridRows[index];
+		return row ? gridMeasuredRowHeights.get(row.key) ?? row.height : gridRowBaseHeight;
+	}
+
+	function gridRowTop(rowIndex: number): number {
+		let top = viewSize.gap;
+		for (let index = 0; index < rowIndex; index += 1) {
+			top += gridEstimateSize(index) + viewSize.gap;
+		}
+		return top;
+	}
+
 	function fallbackGridRows(rows: readonly GridRow[]) {
 		const viewportHeight = outerEl?.clientHeight || GRID_FALLBACK_HEIGHT;
 		const scrollTop = outerEl?.scrollTop ?? 0;
 		let top = viewSize.gap;
 		let startIndex = 0;
 		for (let index = 0; index < rows.length; index += 1) {
-			const bottom = top + rows[index].height;
+			const bottom = top + (gridMeasuredRowHeights.get(rows[index].key) ?? rows[index].height);
 			if (bottom >= scrollTop) {
 				startIndex = Math.max(0, index - GRID_OVERSCAN);
 				break;
@@ -553,16 +733,30 @@
 			if (index >= startIndex && start <= scrollTop + viewportHeight + GRID_OVERSCAN * gridRowBaseHeight) {
 				out.push({ index, key: gridVirtualRowKey(rows, index), start });
 			}
-			start += rows[index].height + viewSize.gap;
+			start += (gridMeasuredRowHeights.get(rows[index].key) ?? rows[index].height) + viewSize.gap;
 		}
 		return out;
+	}
+
+	function createNodeRowMeasureService(): NodeRowMeasureService {
+		if (typeof document === 'undefined') {
+			return new NodeRowMeasureService(
+				createTextMeasureService({ engine: fallbackTextMeasureEngine }),
+			);
+		}
+		if (typeof navigator !== 'undefined' && navigator.userAgent.includes('jsdom')) {
+			return new NodeRowMeasureService(
+				createTextMeasureService({ engine: fallbackTextMeasureEngine }),
+			);
+		}
+		return new NodeRowMeasureService(createTextMeasureService());
 	}
 </script>
 
 {#snippet nodeTile(node: TreeNode)}
 	{@const nodeHasChildren = hasChildren(node)}
 	{@const nodeExpanded = nodeHasChildren && expandedIds.has(node.id)}
-	{@const isSelected = selectedIds?.has(node.id) ?? false}
+	{@const isSelected = selectedMap?.get(node.id) ?? selectedIds?.has(node.id) ?? false}
 	{@const isFocused = focusedId === node.id}
 	{@const isActive = activeId === node.id}
 	{@const directBadges = ownNodeBadges(node)}
@@ -586,10 +780,6 @@
 		ondragover={(e) => handleManualDragOver(node, e)}
 		ondrop={(e) => handleManualDrop(node, e)}
 		ondragend={handleManualDragEnd}
-		onclick={(e) => handleTileClick(node.id, e)}
-		onauxclick={(e) => handleTileAuxClick(node.id, e)}
-		oncontextmenu={(e) => onContextMenu(node.id, e)}
-		onkeydown={(e) => handleTileKeydown(node.id, e)}
 		role="gridcell"
 		tabindex="0"
 		aria-selected={isSelected}
@@ -706,6 +896,10 @@
 	aria-multiselectable="true"
 	tabindex="-1"
 	style={viewSizeStyle}
+	onclick={handleDelegatedGridClick}
+	onauxclick={handleDelegatedGridAuxClick}
+	oncontextmenu={handleDelegatedGridContextMenu}
+	onkeydown={handleDelegatedGridKeydown}
 	onpointerdown={handlePointerDown}
 	onpointermove={handlePointerMove}
 	onpointerup={handlePointerUp}
@@ -713,7 +907,7 @@
 >
 	<div
 		class="vm-node-grid-inner"
-		style="--vm-node-grid-total-h: {totalHeight}px; --vm-node-grid-columns: {columnCount}"
+		style="--vm-node-grid-total-h: {resolvedTotalHeight}px; --vm-node-grid-columns: {columnCount}"
 	>
 		{#each renderedRows as virtualRow (virtualRow.key)}
 			{@const row = gridRows[virtualRow.index]}
@@ -721,7 +915,8 @@
 				<div
 					class="vm-node-grid-row"
 					style="--vm-node-grid-y: {virtualRow.start +
-						viewSize.gap}px; --vm-node-grid-row-h: {row.height}px"
+						viewSize.gap}px; --vm-node-grid-row-h: {gridMeasuredRowHeights.get(row.key) ??
+						row.height}px"
 				>
 					<div class="vm-node-grid-row-tiles">
 						{#each row.nodes as node (node.id)}

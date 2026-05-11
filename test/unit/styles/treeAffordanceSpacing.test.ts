@@ -21,4 +21,15 @@ describe('tree affordance spacing styles', () => {
 		expect(source).toContain('.vm-tree-row-surface.is-expanded-parent::after');
 		expect(source).toContain('pointer-events: none');
 	});
+
+	it('reserves counter width while keeping row badges as a hover overlay', () => {
+		const source = readFileSync('src/styles/explorer/_virtual-list.scss', 'utf8');
+
+		expect(source).toContain('.vm-tree-row-surface.has-count');
+		expect(source).toContain('padding-right: calc(var(--vm-tree-counter-reserve, 44px) + 8px)');
+		expect(source).toContain('.vm-tree-badge-zone.has-count');
+		expect(source).toContain('min-width: var(--vm-tree-counter-reserve, 44px)');
+		expect(source).toContain('.vm-tree-overlay-badge-zone:not(.has-active-badges)');
+		expect(source).toContain('opacity: 0');
+	});
 });

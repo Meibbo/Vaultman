@@ -173,6 +173,10 @@ describe('serviceViewTableAdapter', () => {
 	it('converts node selection snapshots to row selection state', () => {
 		const snapshot: NodeSelectionSnapshot = {
 			ids: new Set(['parent', 'child']),
+			selected: new Map([
+				['parent', true],
+				['child', true],
+			]),
 			anchorId: 'parent',
 			focusedId: 'child',
 			hoveredId: null,
