@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 import { explorerFiles } from '../../../src/providers/explorerFiles';
+import { AdoptionService } from '../../../src/services/serviceAdoption.svelte';
 import { DecorationManager } from '../../../src/services/serviceDecorate';
 import { ViewService } from '../../../src/services/serviceViews.svelte';
 import type { VaultmanPlugin } from '../../../src/main';
@@ -353,5 +354,72 @@ describe('explorerFiles interactions', () => {
 				([change]) => change.files[0],
 			),
 		).toEqual(files);
+	});
+
+	it('adds cached adopted header and task children to file nodes when adoption is enabled', async () => {
+		const { plugin, files } = makePlugin();
+		const adoptionService = new AdoptionService();
+		adoptionService.enabled = true;
+		adoptionService.adoptTasks = true;
+		const explorer = new explorerFiles(plugin, {
+			adoptionService,
+			readFileContent: async () => `# Project
+- [ ] Follow up
+`,
+		});
+
+		await explorer.preloadAdoptedChildren([files[0]]);
+
+		const noteFolder = explorer.getTree()[0];
+		const fileNode = noteFolder.children?.find((node) => node.meta.file === files[0]);
+
+		expect(fileNode?.children?.map((node) => node.label)).toEqual(['Project']);
+		expect(fileNode?.children?.[0].children?.map((node) => node.label)).toEqual(['Follow up']);
+	});
+
+	it('keeps file node children unchanged when adoption is disabled', async () => {
+		const { plugin, files } = makePlugin();
+		const adoptionService = new AdoptionService();
+		const readFileContent = vi.fn(async () => `# Project
+- [ ] Follow up
+`);
+		const notify = vi.fn();
+		const explorer = new explorerFiles(plugin, {
+			adoptionService,
+			readFileContent,
+		});
+		explorer.subscribe(notify);
+
+		await explorer.preloadAdoptedChildren([files[0]]);
+
+		const fileNode = explorer.getTree()[0].children?.find((node) => node.meta.file === files[0]);
+
+		expect(readFileContent).not.toHaveBeenCalled();
+		expect(notify).not.toHaveBeenCalled();
+		expect(fileNode?.children).toEqual([]);
+	});
+
+	it('preloads adopted children asynchronously and notifies subscribers without async getTree reads', async () => {
+		const { plugin, files } = makePlugin();
+		const adoptionService = new AdoptionService();
+		adoptionService.enabled = true;
+		const readFileContent = vi.fn(async () => '# Cached');
+		const explorer = new explorerFiles(plugin, { adoptionService, readFileContent });
+		const notify = vi.fn();
+
+		explorer.subscribe(notify);
+		const before = explorer.getTree();
+
+		expect(before[0].children?.find((node) => node.meta.file === files[0])?.children).toEqual([]);
+		expect(readFileContent).not.toHaveBeenCalled();
+
+		await explorer.preloadAdoptedChildren([files[0]]);
+		const after = explorer.getTree();
+
+		expect(readFileContent).toHaveBeenCalledOnce();
+		expect(notify).toHaveBeenCalledOnce();
+		expect(after[0].children?.find((node) => node.meta.file === files[0])?.children?.[0].label).toBe(
+			'Cached',
+		);
 	});
 });

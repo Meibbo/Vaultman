@@ -16,9 +16,14 @@ import type { FnRRenameHandoff } from '../types/typeFnR';
 import { resolveOperationScopeFiles } from '../services/serviceOperationScope';
 import { getActivePerfProbe } from '../dev/perfProbe';
 import { highlightsFromViewLayers, withViewStateClasses } from '../utils/utilViewLayers';
+import { buildOutlineForFile } from './explorerOutline';
+import type { AdoptionService } from '../services/serviceAdoption.svelte';
+import type { AdoptedNode } from '../types/typeAdoptedNode';
 
 export interface ExplorerFilesOptions {
 	startRenameHandoff?: (handoff: FnRRenameHandoff) => void;
+	adoptionService?: AdoptionService;
+	readFileContent?: (file: TFile) => Promise<string>;
 }
 
 export class explorerFiles implements ExplorerProvider<FileMeta> {
@@ -33,6 +38,8 @@ export class explorerFiles implements ExplorerProvider<FileMeta> {
 	private showHiddenFiles = false;
 	private searchName = '';
 	private searchFolder = '';
+	private adoptedOutlineCache = new Map<string, AdoptedNode[]>();
+	private subscribers = new Set<() => void>();
 
 	constructor(plugin: VaultmanPlugin, options: ExplorerFilesOptions = {}) {
 		this.plugin = plugin;
@@ -137,7 +144,29 @@ export class explorerFiles implements ExplorerProvider<FileMeta> {
 		} else {
 			this._decorateTree(tree);
 		}
+		this.attachAdoptedChildren(tree);
 		return tree;
+	}
+
+	subscribe(cb: () => void): () => void {
+		this.subscribers.add(cb);
+		return () => this.subscribers.delete(cb);
+	}
+
+	async preloadAdoptedChildren(files: TFile[] = this.getFiles()): Promise<void> {
+		if (!this.options.adoptionService?.enabled) return;
+		const reader = this.options.readFileContent ?? this.defaultReadFileContent;
+		let changed = false;
+		for (const file of files) {
+			if (file.extension?.toLowerCase() !== 'md') continue;
+			const content = await reader(file);
+			this.adoptedOutlineCache.set(
+				file.path,
+				buildOutlineForFile({ path: file.path, content, file }),
+			);
+			changed = true;
+		}
+		if (changed) this.fire();
 	}
 
 	private _decorateTree(nodes: TreeNode<FileMeta>[]): void {
@@ -387,6 +416,58 @@ export class explorerFiles implements ExplorerProvider<FileMeta> {
 			.filter((meta) => !meta.isFolder && Boolean(meta.file))
 			.map((meta) => meta.file!);
 	}
+
+	private defaultReadFileContent = async (file: TFile): Promise<string> => {
+		const vault = this.plugin.app.vault as typeof this.plugin.app.vault & {
+			cachedRead?: (file: TFile) => Promise<string>;
+			read?: (file: TFile) => Promise<string>;
+		};
+		if (vault.cachedRead) return vault.cachedRead(file);
+		return vault.read(file);
+	};
+
+	private attachAdoptedChildren(nodes: TreeNode<FileMeta>[]): void {
+		const adoptionService = this.options.adoptionService;
+		if (!adoptionService?.enabled) return;
+		for (const node of nodes) {
+			if (node.meta.isFolder) {
+				if (node.children?.length) this.attachAdoptedChildren(node.children);
+				continue;
+			}
+			const file = node.meta.file;
+			if (!file) continue;
+			const cached = this.adoptedOutlineCache.get(file.path);
+			if (!cached) continue;
+			node.children = this.toAdoptedTreeNodes(
+				adoptionService.filterChildren(cached),
+				node.depth + 1,
+				node.meta.folderPath,
+			);
+		}
+	}
+
+	private toAdoptedTreeNodes(
+		nodes: AdoptedNode[],
+		depth: number,
+		folderPath: string,
+	): TreeNode<FileMeta>[] {
+		return nodes.map((node) => ({
+			id: node.id,
+			label: node.label,
+			icon: adoptedNodeIcon(node.kind),
+			depth,
+			children: this.toAdoptedTreeNodes(node.children, depth + 1, folderPath),
+			meta: {
+				file: node.file,
+				isFolder: false,
+				folderPath,
+			},
+		}));
+	}
+
+	private fire(): void {
+		for (const cb of this.subscribers) cb();
+	}
 }
 
 function hasHiddenPathSegment(path: string): boolean {
@@ -405,4 +486,10 @@ function countTreeNodes(nodes: TreeNode<FileMeta>[]): number {
 		if (node.children) stack.push(...node.children);
 	}
 	return count;
+}
+
+function adoptedNodeIcon(kind: AdoptedNode['kind']): string {
+	if (kind === 'header') return 'lucide-heading';
+	if (kind === 'task') return 'lucide-square-check';
+	return 'lucide-box';
 }

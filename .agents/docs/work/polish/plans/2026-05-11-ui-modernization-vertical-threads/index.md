@@ -4,7 +4,7 @@ type: implementation-plan
 status: active
 parent: "[[docs/work/polish/index|polish]]"
 created: 2026-05-11T23:55:00
-updated: 2026-05-11T05:01:54
+updated: 2026-05-11T06:04:23
 tags:
   - agent/plan
   - initiative/polish
@@ -38,22 +38,33 @@ glossary_candidates:
 - Baseline gates before new edits:
   `pnpm run check` passed with 0 errors / 0 warnings; focused vertical-thread
   unit gate passed 17 files / 86 tests; `pnpm run build:plugin` passed.
-- Latest completed slice:
+- Latest completed slices:
+  [[docs/work/polish/plans/2026-05-11-ui-modernization-vertical-threads/02-thread-engine-views#task-27--taboutlines-workspace-tab|T2.7 tabOutlines workspace tab]]
+  and
+  [[docs/work/polish/plans/2026-05-11-ui-modernization-vertical-threads/02-thread-engine-views#task-25--cross-pollination-explorerfiles-can-adopt-outline-headers|T2.5 explorerFiles adopted-node cache integration]].
+  `tabOutlines` is registered through the real `typeTab`/`tabRegistry` route
+  and mounts active-file outlines; `explorerFiles` now attaches cached adopted
+  children without making `getTree()` async.
+- Previous completed slice:
   [[docs/work/polish/plans/2026-05-11-ui-modernization-vertical-threads/02-thread-engine-views#task-26--folder-context-menu--is-in-folder-filter-badge|T2.6 folder context menu and is-in-folder filter badge]].
 - Previous completed slice:
   [[docs/work/polish/plans/2026-05-11-ui-modernization-vertical-threads/01-thread-styling-identity#task-18--faint-mode-auto-bind-on-the-active-window|T1.8 Faint Mode active-window binding]]
   plus
   [[docs/work/polish/plans/2026-05-11-ui-modernization-vertical-threads/02-thread-engine-views#task-24--exploreroutline-provider-adopted-nodes|T2.4 explorerOutline adopted-node provider]].
-- Partial slice advanced:
-  [[docs/work/polish/plans/2026-05-11-ui-modernization-vertical-threads/02-thread-engine-views#task-25--cross-pollination-explorerfiles-can-adopt-outline-headers|T2.5 adoption service foundation]];
-  `explorerFiles` integration remains open because the provider tree is
-  synchronous and needs an async/cache-backed content stage.
+- Previous partial slice now closed:
+  [[docs/work/polish/plans/2026-05-11-ui-modernization-vertical-threads/02-thread-engine-views#task-25--cross-pollination-explorerfiles-can-adopt-outline-headers|T2.5 adoption service foundation and explorerFiles integration]].
 - Previous completed slice:
   [[docs/work/polish/plans/2026-05-11-ui-modernization-vertical-threads/01-thread-styling-identity#task-17--snippet-mimicry-smoke-close-the-test-loop-from-12|T1.7 snippet mimicry smoke]]
   and panel-level mirror class integration.
 - Earlier completed slice:
   [[docs/work/polish/plans/2026-05-11-ui-modernization-vertical-threads/02-thread-engine-views#task-23--mirror-class-arbitration-across-grid-cards-tree|T2.3 mirror class arbitration across grid, cards, tree]].
 - Latest verification:
+  T2.7 tab registration RED/GREEN completed: `tabOutlinesRegistration` failed
+  3/3 on missing tab registration/host rendering, then focused component gate
+  passed 5 files / 13 tests. T2.5 cache-backed adoption passed focused unit
+  gate 4 files / 31 tests after a red guard caught disabled adoption still
+  reading content.
+- Previous verification:
   T2.6 RED/GREEN completed: `explorerFiles` failed 1/15 on missing folder
   panel context menu, `serviceFilter` failed 1/21 on missing
   `addIsInFolderFilter`, then the focused regression gate passed 4 files /
@@ -74,8 +85,8 @@ glossary_candidates:
   on missing mirror classes; focused affected component gate passed 7 files /
   61 tests; Svelte autofixer returned `issues: []` for the three changed
   components.
-- T1.7, T1.8, T2.3, T2.4, and T2.6 are now closed. T2.5 remains partially
-  open at the `explorerFiles` adopted-node integration step.
+- T1.7, T1.8, T2.3, T2.4, T2.5, T2.6, and T2.7 are now closed for the scoped
+  vertical-thread requirements implemented in this worktree.
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use
 > `superpowers:subagent-driven-development` (recommended) or

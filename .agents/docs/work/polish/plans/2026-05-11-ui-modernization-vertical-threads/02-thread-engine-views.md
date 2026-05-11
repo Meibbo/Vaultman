@@ -4,7 +4,7 @@ type: implementation-plan-shard
 status: draft
 parent: "[[docs/work/polish/plans/2026-05-11-ui-modernization-vertical-threads/index|ui-modernization-vertical-threads]]"
 created: 2026-05-11T23:55:00
-updated: 2026-05-11T05:01:54
+updated: 2026-05-11T06:04:23
 tags:
   - agent/plan
   - thread/engine-views
@@ -824,7 +824,7 @@ describe('AdoptionService', () => {
 });
 ```
 
-- [ ] **Step 3 — Implement adoption in `explorerFiles`**
+- [x] **Step 3 — Implement adoption in `explorerFiles`**
 
 In `src/providers/explorerFiles.ts`, find the function that produces
 children for a file node (likely `getChildrenForFile` or equivalent).
@@ -884,10 +884,36 @@ Execution note, 2026-05-11T04:31:26:
   passed 3 files / 14 tests.
 - Svelte autofixer CLI returned `issues: []` for
   `src/services/serviceAdoption.svelte.ts`.
-- T2.5 Step 3 remains open: `explorerFiles.getTree()` is synchronous around
+- Earlier partial note, superseded by the 2026-05-11T06:04:23 continuation:
+  T2.5 Step 3 remained open because `explorerFiles.getTree()` was synchronous
+  around
   `src/providers/explorerFiles.ts:101-120`, so adopted-node content requires an
   async or cache-backed content stage before it can be safely concatenated into
   file-node children.
+
+Continuation note, 2026-05-11T06:04:23:
+
+- Completed T2.5 Step 3 with explicit cache-backed adoption in
+  `src/providers/explorerFiles.ts`. `getTree()` remains synchronous and only
+  attaches adopted children already cached by `preloadAdoptedChildren()`.
+- Added optional `adoptionService`, `readFileContent`, `subscribe()`, and
+  `preloadAdoptedChildren()` support to `explorerFiles`. The preload path
+  reads markdown content asynchronously, builds outlines with
+  `buildOutlineForFile`, stores raw adopted trees by file path, and notifies
+  subscribers after cache changes.
+- Integration guard added after review: when `AdoptionService.enabled` is
+  false, preload returns before file-content I/O and before subscriber
+  notification.
+- RED:
+  `pnpm exec vp test run --project unit --config vitest.config.ts test/unit/components/explorerFiles.test.ts --fileParallelism=false`
+  failed 3/18 before implementation on missing `preloadAdoptedChildren` and
+  `subscribe` APIs; after the integration guard assertion was added it failed
+  1/18 because disabled adoption still read file content.
+- GREEN:
+  `test/unit/components/explorerFiles.test.ts` passed 18/18.
+- Focused adopted-node unit gate:
+  `pnpm exec vp test run --project unit --config vitest.config.ts test/unit/components/explorerFiles.test.ts test/unit/providers/explorerOutline.test.ts test/unit/services/serviceAdoption.test.ts test/unit/frame/frameFiltersSearch.test.ts --fileParallelism=false`
+  passed 4 files / 31 tests.
 
 ---
 
@@ -988,7 +1014,7 @@ Execution note, 2026-05-11T05:01:54:
 - Create: `src/components/views/viewOutlineExplorer.svelte`
 - Create: `test/component/viewTreeAdoptedNodes.test.ts`
 
-- [ ] **Step 1 — Failing test**
+- [x] **Step 1 — Failing test**
 
 `test/component/viewTreeAdoptedNodes.test.ts`:
 
@@ -1029,7 +1055,7 @@ describe('viewOutlineExplorer', () => {
 });
 ```
 
-- [ ] **Step 2 — Implement `viewOutlineExplorer.svelte`**
+- [x] **Step 2 — Implement `viewOutlineExplorer.svelte`**
 
 ```svelte
 <script lang="ts">
@@ -1080,13 +1106,13 @@ describe('viewOutlineExplorer', () => {
 </div>
 ```
 
-- [ ] **Step 3 — Register the tab**
+- [x] **Step 3 — Register the tab**
 
 In `serviceViews.svelte.ts`, append an outline-tab descriptor matching
 the existing tab registry shape. Read the file to confirm shape — do
 not invent fields. Add the i18n key `tabs.outline.title` to locales.
 
-- [ ] **Step 4 — Run tests + check + build**
+- [x] **Step 4 — Run tests + check + build**
 
 ```bash
 pnpm exec vp test run --project component --config vitest.config.ts test/component/viewTreeAdoptedNodes.test.ts --fileParallelism=false
@@ -1095,6 +1121,63 @@ pnpm run build:plugin
 ```
 
 Expected: PASS, build exits 0.
+
+Execution note, 2026-05-11T05:24:59:
+
+- Created `test/component/viewTreeAdoptedNodes.test.ts` and confirmed RED:
+  `pnpm exec vp test run --project component --config vitest.config.ts test/component/viewTreeAdoptedNodes.test.ts --fileParallelism=false`
+  failed because `src/components/views/viewOutlineExplorer.svelte` did not
+  exist.
+- Implemented `src/components/views/viewOutlineExplorer.svelte` as the
+  adopted-node outline tree surface. It renders header/task/block rows with
+  `tree-item`, `tree-item-self`, `tree-item-inner`, and
+  `tree-item-children` mirror classes when native DOM mode is active, plus
+  Vaultman-owned `vm-outline-*` classes in all modes.
+- GREEN:
+  `pnpm exec vp test run --project component --config vitest.config.ts test/component/viewTreeAdoptedNodes.test.ts --fileParallelism=false`
+  passed 1/1 before the final sweep.
+- Final focused component gate:
+  `pnpm exec vp test run --project component --config vitest.config.ts test/component/viewTreeAdoptedNodes.test.ts test/component/viewNodeMirrorClasses.test.ts --fileParallelism=false`
+  passed 2 files / 4 tests.
+- Adopted-node unit gate:
+  `pnpm exec vp test run --project unit --config vitest.config.ts test/unit/providers/explorerOutline.test.ts test/unit/services/serviceAdoption.test.ts --fileParallelism=false`
+  passed 2 files / 10 tests.
+- Svelte autofixer returned `issues: []` and `suggestions: []` for
+  `viewOutlineExplorer.svelte`.
+- `pnpm run check` passed with 0 errors / 0 warnings and
+  `pnpm run build:plugin` exited 0.
+- Earlier partial note, superseded by the 2026-05-11T06:04:23 continuation:
+  Step 3 remained open because `serviceViews.svelte.ts` is a row/view-model service,
+  not a tab registry. The actual tab surfaces currently route through
+  `src/types/typeTab.ts` (`FTabs`) and `src/registry/tabRegistry.ts`; a real
+  `tabOutlines` registration still needs an active-file/async content route
+  rather than a descriptor invented in the wrong service.
+
+Continuation note, 2026-05-11T06:04:23:
+
+- Completed T2.7 Step 3 through the real tab route rather than
+  `serviceViews.svelte.ts`: `FTabs` now includes `outline`,
+  `tabRegistry` maps `outline` to canonical `explorer-outline`, and
+  `DetachedTabHost` can mount the outline tab.
+- Added `src/components/pages/tabOutlines.svelte` as the active-file wrapper:
+  it listens for active-file changes, reads the current file content
+  asynchronously, builds adopted outline nodes with `buildOutlineForFile`,
+  and renders `viewOutlineExplorer.svelte`.
+- Added i18n labels for `filter.tab.outline` in English and Spanish and
+  extended frame filter-search state for the outline tab.
+- RED:
+  `pnpm exec vp test run --project component --config vitest.config.ts test/component/tabOutlinesRegistration.test.ts --fileParallelism=false`
+  failed 3/3 before implementation because `FTabs` lacked `outline`,
+  `tabIdFromInner('outline')` returned `null`, and `DetachedTabHost` did not
+  render `.vm-outline-explorer`.
+- GREEN/focused component gate:
+  `pnpm exec vp test run --project component --config vitest.config.ts test/component/tabOutlinesRegistration.test.ts test/component/navbarTabs.test.ts test/component/detachedTabHost.test.ts test/component/viewTreeAdoptedNodes.test.ts test/component/viewNodeMirrorClasses.test.ts --fileParallelism=false`
+  passed 5 files / 13 tests.
+- Svelte autofixer returned `issues: []` for `tabOutlines.svelte`,
+  `DetachedTabHost.svelte`, `pageFilters.svelte`, and
+  `viewOutlineExplorer.svelte`. `frameVaultman.svelte` still returns the
+  pre-existing parser diagnostic `',' expected. at line undefined, column
+  undefined`; `svelte-check` is the authoritative gate for that legacy file.
 
 ---
 

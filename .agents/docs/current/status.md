@@ -5,7 +5,7 @@ status: active
 parent: "[[docs/work/pkm-ai/index|pkm-ai]]"
 archive_source: "docs/archive/pkm-ai/active-docs/2026-05-10T093000-current-status.md"
 created: 2026-05-04T01:36:20
-updated: 2026-05-11T05:01:54
+updated: 2026-05-11T06:04:23
 tags:
   - agent/current
 created_by: dec
@@ -32,7 +32,12 @@ Compact route index after archiving the oversized current status:
 - Latest user request: continue the Claude worktree vertical-thread plan with
   parallel subagents where safe.
 - Active initiative: [[docs/work/polish/index|Polish]].
-- Latest implemented product slice:
+- Latest implemented product slices:
+  UI Modernization Vertical Threads T2.7 `tabOutlines` workspace tab in
+  [[docs/work/polish/plans/2026-05-11-ui-modernization-vertical-threads/02-thread-engine-views#task-27--taboutlines-workspace-tab|T2.7 tabOutlines workspace tab]].
+  and T2.5 cache-backed adopted-node integration in
+  [[docs/work/polish/plans/2026-05-11-ui-modernization-vertical-threads/02-thread-engine-views#task-25--cross-pollination-explorerfiles-can-adopt-outline-headers|T2.5 explorerFiles adopted-node integration]].
+- Previous implemented product slice:
   UI Modernization Vertical Threads T2.6 folder context menu plus
   "is in folder" filter badge in
   [[docs/work/polish/plans/2026-05-11-ui-modernization-vertical-threads/02-thread-engine-views#task-26--folder-context-menu--is-in-folder-filter-badge|T2.6 folder context menu and filter badge]].
@@ -40,10 +45,9 @@ Compact route index after archiving the oversized current status:
   UI Modernization Vertical Threads T1.8 Faint Mode active-window binding plus
   T2.4 adopted-node outline parsing in
   [[docs/work/polish/plans/2026-05-11-ui-modernization-vertical-threads/index|UI Modernization Vertical Threads Implementation Plan]].
-- Partial product slice:
-  T2.5 adoption service foundation is present and verified; the
-  `explorerFiles` integration step remains open because the file provider is
-  currently synchronous and needs an async/cache-backed content stage.
+- Previous partial product slice now closed:
+  T2.5 adoption service foundation plus synchronous `explorerFiles`
+  cache-backed adopted-node attachment.
 - Previous implemented product slice:
   UI Modernization Vertical Threads T1.7 snippet mimicry smoke plus
   panel-level mirror class routing in
@@ -62,9 +66,9 @@ Compact route index after archiving the oversized current status:
   [[docs/work/polish/specs/2026-05-11-detachable-layout-workspace-tabs/index|Detachable layout workspace tabs]]
   and
   [[docs/work/polish/plans/2026-05-11-detachable-layout-workspace-tabs/index|Detachable layout workspace tabs implementation]].
-- Next product action for the detachable/workspace route: start `tabOutline`,
-  Markmap explorer view, node-notes service, and adopted-node file explorer
-  behavior.
+- Next product action for the detachable/workspace route: continue with
+  Markmap explorer view, node-notes service, and deeper adopted-node file
+  explorer behavior.
 - Active product plan:
   [[docs/work/polish/plans/2026-05-10-dock-toolbar-groups-virtualizer/index|Dock, Toolbar, Groups, Virtualizer Implementation Plan]].
 - Pre-Cut-2 subplan:
@@ -100,6 +104,12 @@ Compact route index after archiving the oversized current status:
 - T2.6 is complete: `explorerFiles` opens panel context menus for folders and
   registers `folder.filter`; `FilterService.addIsInFolderFilter` creates
   deduplicated `folder:<path>` rules surfaced as `is in folder <path>`.
+- T2.5 is complete for the scoped integration: `explorerFiles` exposes
+  `preloadAdoptedChildren()`, caches outlines by file path, keeps `getTree()`
+  synchronous, and attaches adopted children only when adoption is enabled.
+- T2.7 is complete for the scoped workspace route: `FTabs` includes `outline`,
+  `tabRegistry` maps `outline` to `explorer-outline`, `DetachedTabHost` mounts
+  `tabOutlines.svelte`, and the tab renders the active file outline.
 - Elastic UI orchestration plan:
   [[docs/work/polish/plans/2026-05-11-elastic-ui-chameleon/index|Elastic UI Chameleon Implementation Plan]].
 - Recent PKM-AI route remains available below for source context.
@@ -169,6 +179,14 @@ Compact route index after archiving the oversized current status:
   `issues: []` for `serviceAdoption.svelte.ts` and for the changed
   `frameVaultman` script snippet; the full legacy `frameVaultman.svelte` CLI
   autofixer still reports an unrelated parser diagnostic with no line/column.
+- T2.7 verification: `tabOutlinesRegistration` failed 3/3 red on missing
+  registration/host rendering; final focused component gate passed 5 files /
+  13 tests. Svelte autofixer returned `issues: []` for `tabOutlines`,
+  `DetachedTabHost`, `pageFilters`, and `viewOutlineExplorer`; `frameVaultman`
+  still reports the pre-existing CLI parser diagnostic with no line/column.
+- T2.5 verification: `explorerFiles` failed 3/18 red before the async cache API
+  existed and then failed 1/18 on the disabled-adoption I/O guard; focused unit
+  gate passed 4 files / 31 tests.
 - T2.6 verification: `explorerFiles` failed 1/15 red on folder context menus
   not opening; `serviceFilter` failed 1/21 red on missing
   `addIsInFolderFilter`; focused regression gate passed 4 files / 48 tests;

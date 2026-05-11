@@ -242,6 +242,7 @@
 		props: 0,
 		files: 0,
 		content: 0,
+		outline: 0,
 	});
 	let filtersSortBy = $state('name');
 	let filtersSortDir = $state<'asc' | 'desc'>('asc');
@@ -349,6 +350,8 @@
 				break;
 			case 'content':
 				plugin.contentIndex.setQuery(term);
+				break;
+			case 'outline':
 				break;
 		}
 	});

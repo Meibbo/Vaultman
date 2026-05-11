@@ -5,7 +5,7 @@ status: active
 parent: "[[docs/work/pkm-ai/index|pkm-ai]]"
 archive_source: "docs/archive/pkm-ai/active-docs/2026-05-10T093000-current-handoff.md"
 created: 2026-05-04T01:36:20
-updated: 2026-05-11T05:01:54
+updated: 2026-05-11T06:04:23
 tags:
   - agent/current
 created_by: dec
@@ -20,6 +20,16 @@ Compact handoff after archiving the oversized current handoff:
 ## Resume Point
 
 - Latest user request implemented in this session:
+  continued without subagents after integrating worker output and completed
+  T2.7 plus T2.5 integration in
+  [[docs/work/polish/plans/2026-05-11-ui-modernization-vertical-threads/02-thread-engine-views#task-27--taboutlines-workspace-tab|T2.7 tabOutlines workspace tab]].
+  and
+  [[docs/work/polish/plans/2026-05-11-ui-modernization-vertical-threads/02-thread-engine-views#task-25--cross-pollination-explorerfiles-can-adopt-outline-headers|T2.5 explorerFiles adopted-node integration]].
+  `tabOutlines` is registered through `typeTab`/`tabRegistry` and detached
+  hosts can mount `explorer-outline`; `explorerFiles` now preloads adopted
+  markdown children asynchronously into a cache while keeping `getTree()`
+  synchronous.
+- Latest user request implemented in this session:
   continued the vertical-thread plan and completed
   [[docs/work/polish/plans/2026-05-11-ui-modernization-vertical-threads/02-thread-engine-views#task-26--folder-context-menu--is-in-folder-filter-badge|T2.6 folder context menu and "is in folder" filter badge]].
   `explorerFiles` now opens panel context menus for folder nodes and registers
@@ -30,9 +40,8 @@ Compact handoff after archiving the oversized current handoff:
   [[docs/work/polish/plans/2026-05-11-ui-modernization-vertical-threads/01-thread-styling-identity#task-18--faint-mode-auto-bind-on-the-active-window|T1.8 Faint Mode active-window binding]]
   and
   [[docs/work/polish/plans/2026-05-11-ui-modernization-vertical-threads/02-thread-engine-views#task-24--exploreroutline-provider-adopted-nodes|T2.4 explorerOutline adopted-node provider]].
-  T2.5 adoption service foundation is verified, but
-  `explorerFiles` integration remains open because `getTree()` is synchronous
-  and needs an async/cache-backed content stage.
+  T2.5 adoption service foundation was verified there; the later continuation
+  completed the `explorerFiles` cache-backed integration.
 - Latest user request implemented in this session:
   continued the vertical-thread plan after T2.3 and closed
   [[docs/work/polish/plans/2026-05-11-ui-modernization-vertical-threads/01-thread-styling-identity#task-17--snippet-mimicry-smoke-close-the-test-loop-from-12|T1.7 snippet mimicry smoke]].
@@ -148,6 +157,19 @@ Compact handoff after archiving the oversized current handoff:
 
 ## Fresh Verification
 
+- T2.7 tab registration verification passed:
+  `tabOutlinesRegistration` failed 3/3 red on missing tab registration,
+  missing `tabRegistry` mapping, and missing detached-host rendering. Final
+  focused component gate passed 5 files / 13 tests.
+- T2.5 cache-backed adoption verification passed:
+  `explorerFiles` failed 3/18 red before `preloadAdoptedChildren()` and
+  `subscribe()` existed, then failed 1/18 on the disabled-adoption I/O guard.
+  Focused unit gate passed 4 files / 31 tests.
+- Svelte autofixer returned `issues: []` for `tabOutlines.svelte`,
+  `DetachedTabHost.svelte`, `pageFilters.svelte`, and
+  `viewOutlineExplorer.svelte`. `frameVaultman.svelte` still returns the
+  pre-existing no-line parser diagnostic from the CLI autofixer; `svelte-check`
+  is the authoritative gate for that file.
 - T2.6 verification passed: `explorerFiles` failed 1/15 red on missing folder
   panel context menu, `serviceFilter` failed 1/21 red on missing
   `addIsInFolderFilter`, then the focused regression gate passed 4 files /
@@ -195,15 +217,14 @@ Compact handoff after archiving the oversized current handoff:
 
 ## Next Action
 
-- For UI Modernization Vertical Threads, continue with T2.7 `tabOutlines`
-  workspace tab, or return to T2.5 `explorerFiles` adopted-node integration
-  using an async/cache-backed content stage from
+- For UI Modernization Vertical Threads, continue with the next unstarted T2
+  tasks or move to the next thread from
   [[docs/work/polish/plans/2026-05-11-ui-modernization-vertical-threads/index|UI Modernization Vertical Threads Implementation Plan]].
 - First next action for the detachable/workspace route:
-  `tabOutline` for the current note, Markmap as an explorer view, node-notes as
-  a service, and adopted-node visibility in the file explorer. Keep the
-  detachable/workspace behavior stable first because these features may mount
-  into detached explorer leaves.
+  continue with Markmap as an explorer view, node-notes as a service, and
+  deeper adopted-node behavior in the file explorer. Keep the
+  detachable/workspace behavior stable because these features may mount into
+  detached explorer leaves.
 - For Elastic UI execution, start with the contracts and gates shard:
   [[docs/work/polish/plans/2026-05-11-elastic-ui-chameleon/00-contracts-and-gates|Elastic UI Contracts And Gates]].
 - Continue with Cut 2 from
@@ -217,9 +238,6 @@ Compact handoff after archiving the oversized current handoff:
   restored to attached state after the smoke.
 - Live narrow-frame Obsidian smoke for scrollable compact controls was not run.
 - Live Obsidian smoke for Queue island Task 6 and final Task 7 was not run.
-- T2.5 `explorerFiles` integration is not complete; adopted-node parsing and
-  filtering are verified, but file content adoption needs an async/cache-backed
-  content stage because `explorerFiles.getTree()` is synchronous.
 - Product worktree remains dirty with active Vaultman UI/DnD changes. Do not
   revert unrelated user/agent files.
 - One combined component command timed out once due startup/runtime length, but

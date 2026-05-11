@@ -396,6 +396,7 @@ export const es: Record<string, string> = {
 	'filter.search_help': 'Ayuda de semántica de búsqueda',
 	'filter.search_read_more': 'Leer más',
 	'filter.search_history': 'Búsquedas recientes',
+	'filter.tab.outline': 'Esquema',
 	'filter.category.props': 'Props',
 	'filter.category.values': 'Valores',
 	'fnr.more_options': 'Búsqueda y reemplazo avanzado',
