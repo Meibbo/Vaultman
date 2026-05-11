@@ -31,6 +31,20 @@ export interface BoxSelectionInput {
 	additive?: boolean;
 }
 
+export type DiffKeyboardAction =
+	| 'diff.prev-change'
+	| 'diff.next-change'
+	| 'diff.prev-file'
+	| 'diff.next-file';
+
+export interface DiffKeyboardShortcutInput {
+	key: string;
+	altKey?: boolean;
+	ctrlKey?: boolean;
+	metaKey?: boolean;
+	shiftKey?: boolean;
+}
+
 export function applyPointerSelection(input: SelectionGestureInput): SelectionGestureResult {
 	const anchorId = resolveKnownId(input.orderedIds, input.anchorId) ?? input.targetId;
 	const additiveRangeAnchorId =
@@ -122,6 +136,16 @@ export function applyBoxSelection(input: BoxSelectionInput): SelectionGestureRes
 		anchorId: focusedId,
 		focusedId,
 	};
+}
+
+export function resolveDiffKeyboardAction(
+	input: DiffKeyboardShortcutInput,
+): DiffKeyboardAction | null {
+	if (!input.altKey || input.shiftKey) return null;
+	if (input.key !== '[' && input.key !== ']') return null;
+	const fileScope = input.ctrlKey === true || input.metaKey === true;
+	if (input.key === '[') return fileScope ? 'diff.prev-file' : 'diff.prev-change';
+	return fileScope ? 'diff.next-file' : 'diff.next-change';
 }
 
 function idsInRange(orderedIds: readonly string[], a: string, b: string): Set<string> {

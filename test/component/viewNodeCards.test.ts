@@ -28,10 +28,14 @@ const queuedNodes: TreeNode[] = [
 ];
 
 const measure: TextMeasureService = {
+	cacheMisses: 0,
 	measure: vi.fn((text: string, style) => ({
 		lineCount: Math.max(1, Math.ceil(text.length / 24)),
 		height: Math.max(1, Math.ceil(text.length / 24)) * style.lineHeight,
 	})),
+	measureRowHeight: vi.fn(() => 32),
+	invalidate: vi.fn(),
+	invalidateAll: vi.fn(),
 	clear: vi.fn(),
 };
 
@@ -114,10 +118,14 @@ describe('ViewNodeCards', () => {
 
 	it('remeasures cards from the rendered CSS font snapshot', () => {
 		const measure = {
+			cacheMisses: 0,
 			measure: vi.fn((text: string, style) => ({
 				lineCount: Math.max(1, Math.ceil(text.length / 24)),
 				height: Math.max(1, Math.ceil(text.length / 24)) * style.lineHeight,
 			})),
+			measureRowHeight: vi.fn(() => 32),
+			invalidate: vi.fn(),
+			invalidateAll: vi.fn(),
 			clear: vi.fn(),
 		} satisfies TextMeasureService;
 		const getComputedStyle = vi.fn((element: Element) => {

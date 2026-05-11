@@ -13,10 +13,14 @@ const nodes: TreeNode[] = [
 ];
 
 const measure: TextMeasureService = {
+	cacheMisses: 0,
 	measure: vi.fn((text: string, style) => ({
 		lineCount: Math.max(1, Math.ceil(text.length / 24)),
 		height: Math.max(1, Math.ceil(text.length / 24)) * style.lineHeight,
 	})),
+	measureRowHeight: vi.fn(() => 32),
+	invalidate: vi.fn(),
+	invalidateAll: vi.fn(),
 	clear: vi.fn(),
 };
 

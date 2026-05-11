@@ -1,6 +1,7 @@
 <script lang="ts">
 	import type { VfsChain } from '../../services/serviceVfsChain';
 	import type { ThemeService } from '../../services/serviceTheme.svelte';
+	import { resolveDiffKeyboardAction } from '../../logic/logicKeyboard';
 
 	interface Props {
 		chains: Map<string, VfsChain>;
@@ -54,9 +55,26 @@
 		const prev = paths[(i - 1 + paths.length) % paths.length];
 		navigate(prev, 1);
 	}
+
+	function handleKeydown(event: KeyboardEvent): void {
+		const action = resolveDiffKeyboardAction(event);
+		if (!action) return;
+		event.preventDefault();
+		if (action === 'diff.prev-change') prevChange();
+		else if (action === 'diff.next-change') nextChange();
+		else if (action === 'diff.prev-file') prevFile();
+		else nextFile();
+	}
 </script>
 
-<div class="vm-diff-navbar" class:vm-faint={themeService.faintActive}>
+<div
+	class="vm-diff-navbar"
+	class:vm-faint={themeService.faintActive}
+	role="toolbar"
+	aria-label="Diff navigation"
+	tabindex="0"
+	onkeydown={handleKeydown}
+>
 	<div class="vm-diff-navbar-pills">
 		{#each paths as p (p)}
 			<button
@@ -76,7 +94,7 @@
 			title="Prev file (Ctrl+Alt+[)"
 			aria-label="Previous file"
 		>
-			«
+			<span class="i-lucide-chevrons-left" aria-hidden="true"></span>
 		</button>
 		<button
 			type="button"
@@ -85,7 +103,7 @@
 			title="Prev change (Alt+[)"
 			aria-label="Previous change"
 		>
-			‹
+			<span class="i-lucide-chevron-left" aria-hidden="true"></span>
 		</button>
 		<span class="vm-diff-navbar-meta">
 			{activePath ?? '—'} · {activeIndex ?? 0} / {activeChainLength}
@@ -97,7 +115,7 @@
 			title="Next change (Alt+])"
 			aria-label="Next change"
 		>
-			›
+			<span class="i-lucide-chevron-right" aria-hidden="true"></span>
 		</button>
 		<button
 			type="button"
@@ -106,7 +124,7 @@
 			title="Next file (Ctrl+Alt+])"
 			aria-label="Next file"
 		>
-			»
+			<span class="i-lucide-chevrons-right" aria-hidden="true"></span>
 		</button>
 	</div>
 </div>

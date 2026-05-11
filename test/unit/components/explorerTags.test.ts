@@ -48,7 +48,10 @@ function makePlugin(
 			addNode: vi.fn(),
 		},
 		decorationManager,
-		viewService: new ViewService({ decorationManager }),
+		viewService: new ViewService({
+			decorationManager,
+			showMatchedFilterDecorations: () => activeFilters.length > 0,
+		}),
 		iconicService: { getTagIcon: vi.fn(() => null) },
 	} as unknown as VaultmanPlugin;
 }

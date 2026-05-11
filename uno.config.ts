@@ -1,8 +1,8 @@
-import { defineConfig, presetAttributify, presetIcons, presetUno } from 'unocss';
+import { defineConfig, presetAttributify, presetIcons, presetWind3 } from 'unocss';
 
 export default defineConfig({
 	presets: [
-		presetUno({ preflight: false }),
+		presetWind3({ preflight: false }),
 		presetAttributify(),
 		presetIcons({ scale: 1.0, warn: false }),
 	],

@@ -16,10 +16,14 @@ const style: NodeCardMeasureStyle = {
 };
 
 const measure: TextMeasureService = {
+	cacheMisses: 0,
 	measure: vi.fn((text: string, textStyle, width: number) => {
 		const lineCount = Math.max(1, Math.ceil(text.length / Math.max(1, Math.floor(width / 24))));
 		return { lineCount, height: lineCount * textStyle.lineHeight };
 	}),
+	measureRowHeight: vi.fn(() => 32),
+	invalidate: vi.fn(),
+	invalidateAll: vi.fn(),
 	clear: vi.fn(),
 };
 

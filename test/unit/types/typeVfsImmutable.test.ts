@@ -44,4 +44,23 @@ describe('typeVfsImmutable', () => {
 			(frozen.ops as unknown as { push: (op: unknown) => void }).push({});
 		}).toThrow(TypeError);
 	});
+
+	it('freezeVfs deeply freezes nested frontmatter values', () => {
+		const frozen = freezeVfs({
+			...mkVfs(),
+			fm: { nested: { a: 1 } },
+			fmInitial: { nested: { a: 1 } },
+		});
+
+		expect(() => {
+			(
+				(frozen.fm as Record<string, unknown>).nested as Record<string, unknown>
+			).a = 2;
+		}).toThrow(TypeError);
+		expect(() => {
+			(
+				(frozen.fmInitial as Record<string, unknown>).nested as Record<string, unknown>
+			).a = 2;
+		}).toThrow(TypeError);
+	});
 });

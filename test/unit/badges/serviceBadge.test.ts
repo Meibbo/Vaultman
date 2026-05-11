@@ -17,7 +17,14 @@ const t = (key: string): string =>
 
 describe('serviceBadge', () => {
 	it('owns the canonical badge vocabulary, labels, icons, and order', () => {
-		expect(BADGE_KIND_ORDER).toEqual(['set', 'rename', 'convert', 'delete', 'filter']);
+		expect(BADGE_KIND_ORDER).toEqual([
+			'set',
+			'rename',
+			'convert',
+			'delete',
+			'filter',
+			'node-note',
+		]);
 		expect(describeBadge('rename')).toMatchObject({
 			kind: 'rename',
 			label: 'Rename',
@@ -29,6 +36,12 @@ describe('serviceBadge', () => {
 			label: 'Delete',
 			icon: 'lucide-trash-2',
 			order: 3,
+		});
+		expect(describeBadge('node-note')).toMatchObject({
+			kind: 'node-note',
+			label: 'Node note',
+			icon: 'lucide-notebook-tabs',
+			order: 5,
 		});
 	});
 
@@ -48,6 +61,7 @@ describe('serviceBadge', () => {
 			'set',
 			'delete',
 			'filter',
+			'node-note',
 		]);
 	});
 

@@ -27,9 +27,9 @@ export interface ImmutableVirtualFileState {
 const FROZEN_TAG = Symbol.for('vaultman.vfs.frozen');
 
 export function freezeVfs(state: ImmutableVirtualFileState): ImmutableVirtualFileState {
-	const fm = Object.freeze({ ...state.fm });
-	const fmInitial = Object.freeze({ ...state.fmInitial });
-	const ops = Object.freeze([...state.ops]);
+	const fm = deepFreeze({ ...state.fm });
+	const fmInitial = deepFreeze({ ...state.fmInitial });
+	const ops = deepFreeze([...state.ops]);
 	const tagged = { ...state, fm, fmInitial, ops, [FROZEN_TAG]: true } as unknown as ImmutableVirtualFileState;
 	return Object.freeze(tagged);
 }
@@ -40,4 +40,12 @@ export function isFrozenVfs(value: unknown): boolean {
 		value !== null &&
 		(value as Record<symbol, unknown>)[FROZEN_TAG] === true
 	);
+}
+
+function deepFreeze<T>(value: T): T {
+	if (typeof value !== 'object' || value === null || Object.isFrozen(value)) return value;
+	for (const nested of Object.values(value as Record<string, unknown>)) {
+		deepFreeze(nested);
+	}
+	return Object.freeze(value);
 }

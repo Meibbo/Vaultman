@@ -13,6 +13,12 @@
 	} from '../../services/serviceMouse';
 	import type { NodeBadge } from '../../types/typeNode';
 	import {
+		createTextMeasureService,
+		fallbackTextMeasureEngine,
+		type TextMeasureService,
+		type TextMeasureStyle,
+	} from '../../services/serviceTextMeasure';
+	import {
 		handleNodeBadgePress,
 		nodeBadgeAriaLabel,
 		nodeBadgeIsActionable,
@@ -26,6 +32,14 @@
 	const TABLE_OVERSCAN = 14;
 	const TABLE_FALLBACK_WIDTH = 640;
 	const TABLE_FALLBACK_HEIGHT = 360;
+	const TABLE_ROW_MEASURE_PADDING = 10;
+	const TABLE_ROW_MEASURE_STYLE: TextMeasureStyle = {
+		font: '12px var(--font-interface)',
+		lineHeight: 18,
+		letterSpacing: 0,
+		whiteSpace: 'normal',
+		wordBreak: 'normal',
+	};
 	const EMPTY_SELECTED_IDS: ReadonlySet<string> = new Set();
 	type ScrollTarget = { id: string; serial: number };
 
@@ -46,6 +60,8 @@
 		scrollTarget?: ScrollTarget | null;
 		mouseGestureConfig?: MouseGestureConfig;
 		themeService?: ThemeService;
+		measure?: TextMeasureService;
+		columnWidth?: number;
 		icon: (node: HTMLElement, name: string) => { update(n: string): void };
 	}
 
@@ -66,10 +82,13 @@
 		scrollTarget = null,
 		mouseGestureConfig,
 		themeService = undefined,
+		measure = createTableTextMeasureService(),
+		columnWidth = undefined,
 		icon,
 	}: Props<TNode> = $props();
 
 	let outerEl: HTMLDivElement | undefined = $state();
+	let tableWidth = $state(TABLE_FALLBACK_WIDTH);
 	let sorting: SortingState = $state([]);
 	const mouse = createMouseGestureService();
 	const nodeMouseConfig = $derived(
@@ -85,11 +104,22 @@
 			.map((column) => `minmax(${column.minWidth ?? 120}px, ${column.width ?? 1}fr)`)
 			.join(' '),
 	);
+	const tableLabelWidth = $derived(columnWidth ?? labelColumnWidthFor(tableWidth, columns));
+	const rowHeights = $derived(
+		tableRows.map((row) =>
+			measure.measureRowHeight(row.label, {
+				width: tableLabelWidth,
+				style: TABLE_ROW_MEASURE_STYLE,
+				padding: TABLE_ROW_MEASURE_PADDING,
+				minHeight: TABLE_ROW_HEIGHT,
+			}),
+		),
+	);
 	const rowVirtualizer = createVirtualizer<HTMLDivElement, HTMLDivElement>({
 		count: 0,
 		getScrollElement: () => outerEl ?? null,
 		getItemKey: (index) => tableVirtualRowKey(tableRows, index),
-		estimateSize: () => TABLE_ROW_HEIGHT,
+		estimateSize: (index) => rowHeights[index] ?? TABLE_ROW_HEIGHT,
 		observeElementRect: observeTableRect,
 		overscan: TABLE_OVERSCAN,
 		initialRect: { width: TABLE_FALLBACK_WIDTH, height: TABLE_FALLBACK_HEIGHT },
@@ -98,27 +128,37 @@
 	const renderedRows = $derived.by(() => {
 		const visibleRows = virtualRows
 			.filter((row) => row.index < tableRows.length)
-			.map((row) => ({ key: row.key, index: row.index, start: row.start }));
+			.map((row) => ({
+				key: row.key,
+				index: row.index,
+				start: row.start,
+				size: row.size,
+			}));
 		if (visibleRows.length > 0 || tableRows.length === 0) return visibleRows;
-		return fallbackRenderedRows(tableRows);
+		return fallbackRenderedRows(tableRows, rowHeights);
 	});
 	const totalHeight = $derived(
-		Math.max($rowVirtualizer.getTotalSize(), tableRows.length * TABLE_ROW_HEIGHT),
+		Math.max(
+			$rowVirtualizer.getTotalSize(),
+			rowHeights.reduce((height, rowHeight) => height + rowHeight, 0),
+		),
 	);
 
 	$effect(() => {
 		const count = tableRows.length;
 		const rows = tableRows;
+		const heights = rowHeights;
 		const scrollElement = outerEl;
+		const width = tableWidth;
 		untrack(() =>
 			$rowVirtualizer.setOptions({
 				count,
 				getScrollElement: () => scrollElement ?? null,
 				getItemKey: (index) => tableVirtualRowKey(rows, index),
-				estimateSize: () => TABLE_ROW_HEIGHT,
+				estimateSize: (index) => heights[index] ?? TABLE_ROW_HEIGHT,
 				observeElementRect: observeTableRect,
 				overscan: TABLE_OVERSCAN,
-				initialRect: { width: TABLE_FALLBACK_WIDTH, height: TABLE_FALLBACK_HEIGHT },
+				initialRect: { width, height: TABLE_FALLBACK_HEIGHT },
 			}),
 		);
 	});
@@ -140,8 +180,9 @@
 		if (!outerEl) return;
 		const viewportHeight = outerEl.clientHeight || TABLE_FALLBACK_HEIGHT;
 		const currentTop = outerEl.scrollTop;
-		const rowTop = rowIndex * TABLE_ROW_HEIGHT;
-		const rowBottom = rowTop + TABLE_ROW_HEIGHT;
+		const rowTop = tableRowTop(rowHeights, rowIndex);
+		const rowHeight = rowHeights[rowIndex] ?? TABLE_ROW_HEIGHT;
+		const rowBottom = rowTop + rowHeight;
 		const currentBottom = currentTop + viewportHeight;
 		if (rowTop >= currentTop && rowBottom <= currentBottom) return;
 
@@ -156,8 +197,10 @@
 		cb: (rect: Rect) => void,
 	): () => void {
 		const emit = () => {
+			const width = outerEl?.clientWidth || tableWidth || TABLE_FALLBACK_WIDTH;
+			if (width !== tableWidth) tableWidth = width;
 			cb({
-				width: outerEl?.clientWidth || TABLE_FALLBACK_WIDTH,
+				width,
 				height: outerEl?.clientHeight || TABLE_FALLBACK_HEIGHT,
 			});
 		};
@@ -230,20 +273,45 @@
 		return rows[index]?.id ?? index;
 	}
 
-	function fallbackRenderedRows(rows: readonly { id: string }[]): {
+	function fallbackRenderedRows(
+		rows: readonly { id: string }[],
+		heights: readonly number[],
+	): {
 		key: string;
 		index: number;
 		start: number;
+		size: number;
 	}[] {
 		const visibleCount = Math.min(
 			rows.length,
 			Math.ceil(TABLE_FALLBACK_HEIGHT / TABLE_ROW_HEIGHT) + TABLE_OVERSCAN * 2,
 		);
-		return rows.slice(0, visibleCount).map((row, index) => ({
-			key: row.id,
-			index,
-			start: index * TABLE_ROW_HEIGHT,
-		}));
+		let start = 0;
+		return rows.slice(0, visibleCount).map((row, index) => {
+			const size = heights[index] ?? TABLE_ROW_HEIGHT;
+			const out = {
+				key: row.id,
+				index,
+				start,
+				size,
+			};
+			start += size;
+			return out;
+		});
+	}
+
+	function tableRowTop(heights: readonly number[], rowIndex: number): number {
+		let top = 0;
+		for (let index = 0; index < rowIndex; index += 1) {
+			top += heights[index] ?? TABLE_ROW_HEIGHT;
+		}
+		return top;
+	}
+
+	function labelColumnWidthFor(width: number, sourceColumns: readonly ViewColumn<TNode>[]): number {
+		const labelColumn = sourceColumns.find((column) => column.id === 'label');
+		const minWidth = labelColumn?.minWidth ?? 180;
+		return Math.max(minWidth, Math.floor((width || TABLE_FALLBACK_WIDTH) * 0.45));
 	}
 
 	function sortRows(
@@ -285,6 +353,16 @@
 			return String(value);
 		}
 		return '';
+	}
+
+	function createTableTextMeasureService(): TextMeasureService {
+		if (typeof document === 'undefined') {
+			return createTextMeasureService({ engine: fallbackTextMeasureEngine });
+		}
+		if (typeof navigator !== 'undefined' && navigator.userAgent.includes('jsdom')) {
+			return createTextMeasureService({ engine: fallbackTextMeasureEngine });
+		}
+		return createTextMeasureService();
 	}
 </script>
 
@@ -349,12 +427,14 @@
 					oncontextmenu={(e) => onContextMenu(id, e)}
 					onkeydown={(e) => onRowKeydown?.(id, e)}
 					style:--vm-node-table-y={`${virtualRow.start}px`}
+					style:--vm-node-table-row-h={`${virtualRow.size}px`}
 				>
 					{#each columns as column (column.id)}
 						{@const dataCellId = cellDataId(row, column.id)}
 						{@const display = cellDisplay(row, column)}
 						<div
 							class="vm-node-table-cell"
+							class:is-label-cell={column.id === 'label'}
 							class:metadata-property={useNativeDom}
 							class:metadata-property-key={useNativeDom && column.id === 'label'}
 							role="gridcell"

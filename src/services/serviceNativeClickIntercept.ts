@@ -23,19 +23,19 @@ export function attachNativeClickInterceptor(input: InterceptInput): () => void 
 		const target = event.target as HTMLElement | null;
 		if (!target) return;
 
-		const tag = target.closest('.cm-hashtag') as HTMLElement | null;
+		const tag = target.closest<HTMLElement>('.cm-hashtag');
 		if (tag) {
 			const alias = aliasForTagElement(tag);
 			if (alias) dispatchOpen(input.activeDocument, alias);
 			return;
 		}
-		const snippet = target.closest('[data-snippet-name]') as HTMLElement | null;
+		const snippet = target.closest<HTMLElement>('[data-snippet-name]');
 		if (snippet) {
 			const alias = aliasForSnippetFile(snippet.dataset.snippetName ?? '');
 			if (alias) dispatchOpen(input.activeDocument, alias);
 			return;
 		}
-		const plugin = target.closest('[data-plugin-id]') as HTMLElement | null;
+		const plugin = target.closest<HTMLElement>('[data-plugin-id]');
 		if (plugin) {
 			const alias = aliasForPluginId(plugin.dataset.pluginId ?? '');
 			if (alias) dispatchOpen(input.activeDocument, alias);

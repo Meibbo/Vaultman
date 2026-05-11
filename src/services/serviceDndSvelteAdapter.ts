@@ -113,7 +113,7 @@ export function createDndKitProviderHandlers(
 function sourceFromEvent(event: DndKitDragEvent): DndDragSource | null {
 	const data = entityData(event.operation.source);
 	if (!data || data.role !== 'source') return null;
-	return data.subject as DndDragSource;
+	return data.subject;
 }
 
 function targetFromEvent(
@@ -122,7 +122,7 @@ function targetFromEvent(
 	const data = entityData(event.operation.target);
 	if (!data || data.role !== 'target') return null;
 	return {
-		subject: data.subject as DndDropTarget,
+		subject: data.subject,
 		position: data.position,
 	};
 }

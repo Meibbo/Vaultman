@@ -54,6 +54,7 @@
 	right: 0;
 	display: grid;
 	grid-template-columns: var(--vm-node-table-columns, minmax(180px, 1fr));
+	height: var(--vm-node-table-row-h, auto);
 	min-height: 30px;
 	transform: translateY(var(--vm-node-table-y, 0));
 	border-bottom: $vm-border-width solid color-mix(in srgb, $vm-border-color 70%, transparent);
@@ -111,10 +112,18 @@ body.vm-node-borders-off {
 	@include text-ellipsis;
 }
 
+.vm-node-table-cell.is-label-cell {
+	align-items: flex-start;
+	overflow: hidden;
+	white-space: normal;
+	text-overflow: clip;
+}
+
 .vm-node-table-icon {
 	@include flex-center;
 	flex: 0 0 auto;
 	color: $vm-text-muted;
+	margin-top: 1px;
 }
 
 .vm-node-table-primary {
@@ -127,6 +136,12 @@ body.vm-node-borders-off {
 	text-align: left;
 	cursor: pointer;
 	@include text-ellipsis;
+}
+
+.vm-node-table-cell.is-label-cell .vm-node-table-primary {
+	overflow: hidden;
+	white-space: normal;
+	text-overflow: clip;
 }
 
 .vm-node-table-badge-zone {

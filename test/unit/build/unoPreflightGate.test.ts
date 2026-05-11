@@ -16,14 +16,14 @@ describe('uno.config.ts preflight gate', () => {
 		expect(text).toMatch(/obsidian-mimic-/);
 	});
 
-	it('uses presetUno + presetIcons + presetAttributify', () => {
-		expect(text).toMatch(/presetUno\(/);
+	it('uses presetWind3 + presetIcons + presetAttributify', () => {
+		expect(text).toMatch(/presetWind3\(/);
 		expect(text).toMatch(/presetIcons\(/);
 		expect(text).toMatch(/presetAttributify\(/);
 	});
 
-	it('disables preset preflight explicitly on presetUno', () => {
-		expect(text).toMatch(/presetUno\(\s*\{\s*preflight\s*:\s*false/);
+	it('disables preset preflight explicitly on presetWind3', () => {
+		expect(text).toMatch(/presetWind3\(\s*\{\s*preflight\s*:\s*false/);
 	});
 
 	it('declares all four identity classes in safelist', () => {

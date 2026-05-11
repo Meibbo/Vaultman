@@ -24,12 +24,12 @@ export class FoulDetectionService {
 		expectedProperty: string;
 	}): void {
 		if (!this.enabled) return;
-		const el = input.root.querySelector(`.${input.mirrorClass}`);
+		const el = input.root.querySelector<HTMLElement>(`.${input.mirrorClass}`);
 		if (!el) return;
-		const value = getComputedStyle(el as HTMLElement).getPropertyValue(input.expectedProperty);
+		const value = getComputedStyle(el).getPropertyValue(input.expectedProperty);
 		const looksUnstyled = value === '' || value === 'rgba(0, 0, 0, 0)' || value === 'transparent';
 		if (looksUnstyled) {
-			(el as HTMLElement).dataset.vmFoul = 'snippet-drift';
+			el.dataset.vmFoul = 'snippet-drift';
 			this.fouls = [
 				...this.fouls,
 				{

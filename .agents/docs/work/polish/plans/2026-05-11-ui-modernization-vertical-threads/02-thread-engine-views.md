@@ -4,7 +4,7 @@ type: implementation-plan-shard
 status: draft
 parent: "[[docs/work/polish/plans/2026-05-11-ui-modernization-vertical-threads/index|ui-modernization-vertical-threads]]"
 created: 2026-05-11T23:55:00
-updated: 2026-05-11T06:04:23
+updated: 2026-05-11T06:36:36
 tags:
   - agent/plan
   - thread/engine-views
@@ -86,7 +86,7 @@ DnD services, settings UI, theme service.
 
 ## Task 2.0 — Gate: confirm T1 contracts available
 
-- [ ] **Step 1 — Confirm `serviceTheme.svelte.ts` exports**
+- [x] **Step 1 — Confirm `serviceTheme.svelte.ts` exports**
 
 ```bash
 node -e "const m=require('./src/services/serviceTheme.svelte.ts'.replace(/.ts$/,''));console.log(typeof require)" 2>&1 | head -n 1
@@ -96,7 +96,7 @@ The actual probe is to read `src/services/serviceTheme.svelte.ts` and
 confirm the `ThemeService` class plus `useNativeDom` / `useUtilities`
 getters. If missing, halt T2 and notify T1.
 
-- [ ] **Step 2 — Confirm `@chenglou/pretext` is installed**
+- [x] **Step 2 — Confirm `@chenglou/pretext` is installed**
 
 ```bash
 node -e "const p=require('./package.json'); console.log(p.dependencies['@chenglou/pretext'])"
@@ -115,7 +115,7 @@ to `dependencies` and re-run `pnpm install`.
 - Modify: `src/services/serviceVirtualizer.svelte.ts`
 - Create: `test/unit/services/serviceTextMeasurePretext.test.ts`
 
-- [ ] **Step 1 — Failing test for height measurement**
+- [x] **Step 1 — Failing test for height measurement**
 
 `test/unit/services/serviceTextMeasurePretext.test.ts`:
 
@@ -163,7 +163,7 @@ describe('TextMeasureService — Pretext heightmap', () => {
 });
 ```
 
-- [ ] **Step 2 — Run to verify failure**
+- [x] **Step 2 — Run to verify failure**
 
 ```bash
 pnpm exec vp test run --project unit --config vitest.config.ts test/unit/services/serviceTextMeasurePretext.test.ts --fileParallelism=false
@@ -171,7 +171,7 @@ pnpm exec vp test run --project unit --config vitest.config.ts test/unit/service
 
 Expected: FAIL — class shape mismatch or missing cache.
 
-- [ ] **Step 3 — Extend `serviceTextMeasure.ts`**
+- [x] **Step 3 — Extend `serviceTextMeasure.ts`**
 
 ```ts
 import { Pretext } from '@chenglou/pretext';
@@ -218,7 +218,7 @@ the legacy methods to** `legacyMeasureRowHeight` etc. **and route them to
 the new pretext-backed implementations.** Do not introduce a parallel
 service.
 
-- [ ] **Step 4 — Wire `serviceVirtualizer.svelte.ts` to consult the heightmap**
+- [x] **Step 4 — Wire the active table virtualizer to consult the heightmap**
 
 Find the `estimateSize` function in the virtualizer (currently returns
 `TABLE_ROW_HEIGHT` constant). Replace with:
@@ -236,13 +236,22 @@ Inject `textMeasure` and `columnWidth` via constructor. The virtualizer
 already accepts `count` and `getScrollElement`; add the two new
 dependencies.
 
-- [ ] **Step 5 — Re-run unit tests**
+- [x] **Step 5 — Re-run unit tests**
 
 ```bash
 pnpm exec vp test run --project unit --config vitest.config.ts test/unit/services/serviceTextMeasurePretext.test.ts --fileParallelism=false
 ```
 
 Expected: PASS, 4/4.
+
+2026-05-11 implementation note: the existing codebase already owns table
+virtualization directly inside `ViewNodeTable.svelte` through
+`@tanstack/svelte-virtual`; `serviceVirtualizer.svelte.ts` remains the
+fixed-row helper for list/grid-style fallbacks. Step 4 was therefore applied
+to the active table virtualizer in T2.2 instead of introducing an unused
+parallel wrapper. `serviceTextMeasure.ts` keeps the existing `measure()`
+contract and adds `measureRowHeight()`, `cacheMisses`, `invalidate()`, and
+`invalidateAll()` on the same service.
 
 ---
 
@@ -253,7 +262,7 @@ Expected: PASS, 4/4.
 - Modify: `src/components/views/ViewNodeTable.svelte`
 - Create: `test/component/viewNodeTableHeightmap.test.ts`
 
-- [ ] **Step 1 — Failing component test**
+- [x] **Step 1 — Failing component test**
 
 `test/component/viewNodeTableHeightmap.test.ts`:
 
@@ -312,7 +321,7 @@ describe('ViewNodeTable PretextJS heightmap', () => {
 });
 ```
 
-- [ ] **Step 2 — Run to verify failure**
+- [x] **Step 2 — Run to verify failure**
 
 ```bash
 pnpm exec vp test run --project component --config vitest.config.ts test/component/viewNodeTableHeightmap.test.ts --fileParallelism=false
@@ -320,7 +329,7 @@ pnpm exec vp test run --project component --config vitest.config.ts test/compone
 
 Expected: FAIL.
 
-- [ ] **Step 3 — Migrate `ViewNodeTable.svelte`**
+- [x] **Step 3 — Migrate `ViewNodeTable.svelte`**
 
 The current implementation uses `TABLE_ROW_HEIGHT = 32`. Replace the
 estimation with the virtualizer-resolved heights, and add mode-aware
@@ -380,7 +389,7 @@ If the project's `serviceVirtualizer.svelte.ts` does not yet expose
 `totalSize` / `items` / `key` like this, extend it. Keep TanStack
 Virtual under the hood; the wrapper class adapts to Vaultman naming.
 
-- [ ] **Step 4 — Run + iterate**
+- [x] **Step 4 — Run + iterate**
 
 ```bash
 pnpm exec vp test run --project component --config vitest.config.ts test/component/viewNodeTableHeightmap.test.ts --fileParallelism=false
@@ -389,6 +398,44 @@ pnpm exec vp test run --project component --config vitest.config.ts test/compone
 Expected: PASS, 2/2. If the wrap test fails because labels produced
 identical heights, increase the wrap label length or narrow
 `columnWidth` further.
+
+### 2026-05-11 T2.0-T2.2 Continuation Log
+
+- T2.0 gate passed: `serviceTheme.svelte.ts` exposes `ThemeService` with
+  `useNativeDom` / `useUtilities`, and `package.json` reports
+  `@chenglou/pretext` as `^0.0.6`.
+- RED: `test/unit/services/serviceTextMeasurePretext.test.ts` failed 4/4
+  because `createTextMeasureService()` did not expose `measureRowHeight()`.
+- RED: `test/component/viewNodeTableHeightmap.test.ts` failed 1/2 because
+  `ViewNodeTable` still positioned table rows at fixed `0px`, `32px`,
+  `64px` offsets.
+- GREEN: `serviceTextMeasure.ts` now exposes a cached row-height heightmap on
+  the existing service, keyed by label, width, and style, while preserving
+  `measure()` for card layout.
+- GREEN: `ViewNodeTable.svelte` accepts optional `measure` and `columnWidth`,
+  estimates TanStack virtual rows through `measure.measureRowHeight()`, tracks
+  cumulative row offsets for scroll targeting and fallback rendering, and sets
+  `--vm-node-table-row-h` for measured row height.
+- GREEN: `_table.scss` applies the measured row height and lets the label cell
+  wrap without overlapping the next absolute row.
+- Verification passed:
+  `test/unit/services/serviceTextMeasurePretext.test.ts`,
+  `test/unit/services/serviceTextMeasure.test.ts`, and
+  `test/unit/services/serviceNodeCardLayout.test.ts` passed 3 files / 13
+  tests.
+- Verification passed:
+  `test/component/viewNodeTableHeightmap.test.ts`,
+  `test/component/viewTableSelection.test.ts`,
+  `test/component/virtualizerItemKeys.test.ts`,
+  `test/component/viewNodeCards.test.ts`, and
+  `test/component/viewNodeMirrorClasses.test.ts` passed 5 files / 20 tests.
+- Svelte verification passed: `npx @sveltejs/mcp svelte-autofixer
+  ./src/components/views/ViewNodeTable.svelte --svelte-version 5` returned
+  `issues: []`; remaining suggestions are the existing TanStack `$effect` /
+  `bind:this` pattern.
+- Final gates passed: `pnpm run check`, `pnpm run build:plugin`, and
+  `git diff --check` exited 0. `git diff --check` emitted only CRLF working
+  copy warnings.
 
 ---
 

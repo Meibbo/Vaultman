@@ -152,3 +152,7 @@
 {"ts":"2026-05-11T03:40:18","event":"health_failed","path":".agents/docs","detail":"2 failures"}
 {"ts":"2026-05-11T04:24:25","event":"health_failed","path":".agents/docs","detail":"2 failures"}
 {"ts":"2026-05-11T04:27:11","event":"health_failed","path":".agents/docs","detail":"2 failures"}
+{"ts":"2026-05-11T13:07:00","event":"health_failed","path":".agents/docs","detail":"9 failures"}
+{"ts":"2026-05-11T08:03:21","event":"archive_created","path":".agents/docs/archive/pkm-ai/active-docs/2026-05-11T080321-current-status.md","detail":"compact current status after T3.8 source record update"}
+{"ts":"2026-05-11T08:03:21","event":"archive_created","path":".agents/docs/archive/pkm-ai/active-docs/2026-05-11T080321-current-handoff.md","detail":"compact current handoff after T3.8 source record update"}
+{"ts":"2026-05-11T13:10:11","event":"health_failed","path":".agents/docs","detail":"7 failures"}

@@ -39,7 +39,8 @@ export class VfsChain {
 	}
 
 	appendOp(op: ImmutableStagedOp): ImmutableVirtualFileState {
-		const next = freezeVfs(op.apply(this.head));
+		const input = freezeVfs({ ...this.head, ops: [...this.head.ops, op] });
+		const next = freezeVfs(op.apply(input));
 		this._snapshots.push(next);
 		this._ops.push(op);
 		return next;

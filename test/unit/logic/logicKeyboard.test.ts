@@ -4,6 +4,7 @@ import {
 	applyKeyboardMove,
 	applyPointerSelection,
 } from '../../../src/logic/logicKeyboard';
+import * as logicKeyboard from '../../../src/logic/logicKeyboard';
 
 describe('logicKeyboard', () => {
 	it('replaces selection on a plain row click', () => {
@@ -89,5 +90,25 @@ describe('logicKeyboard', () => {
 		expect([...next.ids]).toEqual(['a', 'b', 'c']);
 		expect(next.anchorId).toBe('c');
 		expect(next.focusedId).toBe('c');
+	});
+
+	it('resolves Cursor-style diff navbar shortcuts', () => {
+		const resolve = (
+			logicKeyboard as unknown as {
+				resolveDiffKeyboardAction?: (input: {
+					key: string;
+					altKey?: boolean;
+					ctrlKey?: boolean;
+					metaKey?: boolean;
+					shiftKey?: boolean;
+				}) => string | null;
+			}
+		).resolveDiffKeyboardAction;
+
+		expect(resolve?.({ key: ']', altKey: true })).toBe('diff.next-change');
+		expect(resolve?.({ key: '[', altKey: true })).toBe('diff.prev-change');
+		expect(resolve?.({ key: ']', altKey: true, ctrlKey: true })).toBe('diff.next-file');
+		expect(resolve?.({ key: '[', altKey: true, ctrlKey: true })).toBe('diff.prev-file');
+		expect(resolve?.({ key: ']', ctrlKey: true })).toBeNull();
 	});
 });

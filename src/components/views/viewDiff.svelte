@@ -1,7 +1,10 @@
 <script lang="ts">
 	import { stringifyYaml } from 'obsidian';
 	import { translate } from '../../index/i18n/lang';
+	import { buildSnapshotDiff } from '../../services/serviceDiffSnapshot';
 	import type { OperationQueueService } from '../../services/serviceQueue.svelte';
+	import type { VfsChain } from '../../services/serviceVfsChain';
+	import { ThemeService } from '../../services/serviceTheme.svelte';
 	import {
 		buildDiff,
 		buildOperationDiff,
@@ -9,23 +12,57 @@
 		type FileDiff,
 		type OperationDiffContext,
 	} from '../../services/serviceDiff';
+	import ViewDiffNavbar from './viewDiffNavbar.svelte';
 
-	type ViewDiffMode = 'file-focused' | 'operation-focused';
+	type ViewDiffMode = 'file-focused' | 'operation-focused' | 'snapshot-focused';
 
 	interface Props {
 		queueService: OperationQueueService;
+		chains?: Map<string, VfsChain>;
+		activePath?: string;
+		activeIndex?: number;
 		expandedOpContext?: OperationDiffContext | null;
 		mode?: ViewDiffMode;
+		themeService?: ThemeService;
 	}
 
-	let { queueService, expandedOpContext = null, mode = 'file-focused' }: Props = $props();
+	let {
+		queueService,
+		chains = undefined,
+		activePath = $bindable<string | undefined>(),
+		activeIndex = $bindable<number | undefined>(),
+		expandedOpContext = null,
+		mode = 'file-focused',
+		themeService = new ThemeService(),
+	}: Props = $props();
 
 	let onlyChanges = $state(true);
 	let fullDocument = $state(false);
 
 	const allDiffs = $derived(buildDiff(queueService.transactions));
+	const chainPaths = $derived(
+		chains ? [...chains.keys()].filter((path) => (chains.get(path)?.length ?? 0) > 1) : [],
+	);
+	const resolvedActivePath = $derived(activePath ?? chainPaths[0]);
+	const resolvedActiveIndex = $derived(activeIndex ?? (resolvedActivePath ? 1 : undefined));
 
 	const activeDiff = $derived.by<FileDiff | null>(() => {
+		if (
+			mode === 'snapshot-focused' &&
+			chains &&
+			resolvedActivePath &&
+			resolvedActiveIndex !== undefined
+		) {
+			const chain = chains.get(resolvedActivePath);
+			if (chain && resolvedActiveIndex >= 1 && resolvedActiveIndex < chain.length) {
+				return buildSnapshotDiff({
+					path: resolvedActivePath,
+					chain,
+					fromIndex: resolvedActiveIndex - 1,
+					toIndex: resolvedActiveIndex,
+				});
+			}
+		}
 		if (mode === 'operation-focused' && expandedOpContext) {
 			return buildOperationDiff(queueService.transactions, expandedOpContext);
 		}
@@ -75,6 +112,11 @@
 		}
 	}
 
+	function handleSnapshotNavigate(event: { path: string; index: number }): void {
+		activePath = event.path;
+		activeIndex = event.index;
+	}
+
 	function formatValue(value: unknown): string {
 		if (value === undefined) return '';
 		if (typeof value === 'string') return value;
@@ -83,6 +125,16 @@
 </script>
 
 <div class="vm-viewdiff">
+	{#if chains}
+		<ViewDiffNavbar
+			{chains}
+			{themeService}
+			activePath={resolvedActivePath}
+			activeIndex={resolvedActiveIndex}
+			onNavigate={handleSnapshotNavigate}
+		/>
+	{/if}
+
 	<div class="vm-viewdiff-toolbar">
 		<div class="vm-viewdiff-title">{headerText}</div>
 		<div class="vm-viewdiff-actions">

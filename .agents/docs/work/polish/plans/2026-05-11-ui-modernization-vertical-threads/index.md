@@ -4,7 +4,7 @@ type: implementation-plan
 status: active
 parent: "[[docs/work/polish/index|polish]]"
 created: 2026-05-11T23:55:00
-updated: 2026-05-11T06:04:23
+updated: 2026-05-11T08:03:21
 tags:
   - agent/plan
   - initiative/polish
@@ -38,7 +38,19 @@ glossary_candidates:
 - Baseline gates before new edits:
   `pnpm run check` passed with 0 errors / 0 warnings; focused vertical-thread
   unit gate passed 17 files / 86 tests; `pnpm run build:plugin` passed.
-- Latest completed slices:
+- Latest completed slice:
+  [[docs/work/polish/plans/2026-05-11-ui-modernization-vertical-threads/03-thread-vfs-review#task-38--cutover-gate-remove-the-mutable-path|T3.8 immutable VFS cutover]].
+  `StagedOp.apply` now returns replacement VFS state, queue replay no longer
+  mutates staged VFS objects, and `lint:full` reports zero
+  `vaultman-local/no-mutable-vfs` violations.
+- Previous completed slices:
+  [[docs/work/polish/plans/2026-05-11-ui-modernization-vertical-threads/02-thread-engine-views#task-20--gate-confirm-t1-contracts-available|T2.0 contract gate]],
+  [[docs/work/polish/plans/2026-05-11-ui-modernization-vertical-threads/02-thread-engine-views#task-21--pretextjs-heightmap-in-servicetextmeasure|T2.1 PretextJS heightmap]],
+  and
+  [[docs/work/polish/plans/2026-05-11-ui-modernization-vertical-threads/02-thread-engine-views#task-22--viewnodetable-migration-to-pretextjs-heights--mode-aware-dom|T2.2 ViewNodeTable measured heights]].
+  `serviceTextMeasure` now owns cached row-height measurement, and
+  `ViewNodeTable` feeds those heights into the active TanStack virtualizer.
+- Previous completed slices:
   [[docs/work/polish/plans/2026-05-11-ui-modernization-vertical-threads/02-thread-engine-views#task-27--taboutlines-workspace-tab|T2.7 tabOutlines workspace tab]]
   and
   [[docs/work/polish/plans/2026-05-11-ui-modernization-vertical-threads/02-thread-engine-views#task-25--cross-pollination-explorerfiles-can-adopt-outline-headers|T2.5 explorerFiles adopted-node cache integration]].
@@ -59,6 +71,20 @@ glossary_candidates:
 - Earlier completed slice:
   [[docs/work/polish/plans/2026-05-11-ui-modernization-vertical-threads/02-thread-engine-views#task-23--mirror-class-arbitration-across-grid-cards-tree|T2.3 mirror class arbitration across grid, cards, tree]].
 - Latest verification:
+  T3.8 RED/GREEN completed: pure `serviceDiff` and immutable `serviceQueue`
+  snapshot tests failed 3/38 red, then passed. Full unit passed 116 files /
+  722 tests; full component passed 56 files / 281 tests; `pnpm run check`,
+  `pnpm run build:plugin`, and `git diff --check` passed. `lint:full` has no
+  `no-mutable-vfs` failures but still exits 1 on unrelated T4/config lint
+  residuals listed in the T3 source log.
+- Previous verification:
+  T2.1/T2.2 RED/GREEN completed: `serviceTextMeasurePretext` failed 4/4 on
+  missing `measureRowHeight()`, `viewNodeTableHeightmap` failed 1/2 on fixed
+  32px offsets, then focused unit gate passed 3 files / 13 tests and focused
+  component gate passed 5 files / 20 tests. Svelte autofixer returned
+  `issues: []` for `ViewNodeTable.svelte`; `pnpm run check`,
+  `pnpm run build:plugin`, and `git diff --check` passed.
+- Previous verification:
   T2.7 tab registration RED/GREEN completed: `tabOutlinesRegistration` failed
   3/3 on missing tab registration/host rendering, then focused component gate
   passed 5 files / 13 tests. T2.5 cache-backed adoption passed focused unit
@@ -85,7 +111,7 @@ glossary_candidates:
   on missing mirror classes; focused affected component gate passed 7 files /
   61 tests; Svelte autofixer returned `issues: []` for the three changed
   components.
-- T1.7, T1.8, T2.3, T2.4, T2.5, T2.6, and T2.7 are now closed for the scoped
+- T1.7, T1.8, and T2.0 through T2.7 are now closed for the scoped
   vertical-thread requirements implemented in this worktree.
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use
