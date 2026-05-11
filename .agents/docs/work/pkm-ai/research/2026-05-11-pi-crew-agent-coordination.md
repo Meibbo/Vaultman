@@ -4,7 +4,7 @@ type: research
 status: active
 parent: "[[docs/work/pkm-ai/index|pkm-ai]]"
 created: 2026-05-11T01:08:42
-updated: 2026-05-11T01:08:42
+updated: 2026-05-11T02:34:55
 tags:
   - agent/research
   - initiative/pkm-ai
@@ -60,6 +60,21 @@ What is missing:
 Detailed option comparisons and the two integration directions live in
 [[docs/work/pkm-ai/research/2026-05-11-pi-crew-agent-coordination-shard-1|Pi-crew coordination comparison shard]].
 
+## Source Inspection Shard
+
+The first validation step was completed against the published `pi-crew@0.2.0`
+npm package and bundled source/docs. Findings live in
+[[docs/work/pkm-ai/research/2026-05-11-pi-crew-agent-coordination-shard-2|Pi-crew source inspection shard]].
+
+## Runtime Spike
+
+The isolated Pi-crew spike was completed outside product code and recorded in
+[[docs/work/pkm-ai/research/2026-05-11-pi-crew-runtime-spike|Pi-crew isolated runtime spike]].
+
+It confirmed project-local installation with Pi `0.73.0` and a durable-state
+smoke for manifest, task claims, task status, mailbox ack, event log, and agent
+status files.
+
 ## Recommended Decision
 
 Do not migrate PKM-AI wholesale into Pi-crew yet.
@@ -82,21 +97,22 @@ is proven unless the user explicitly prioritizes visual control.
 
 ## Open Validation Work
 
-The next agent should not implement directly from this research. First:
+The next agent should not implement directly from this research. Current state:
 
-1. Inspect the actual Pi-crew package docs/source, not only package-page
-   summaries.
-2. Confirm current package names, install commands, local state paths, and
-   Windows support.
-3. Run a small isolated Pi-crew spike outside product code if the user approves.
-4. Compare Pi-crew's persisted files against the proposed `.agents/state`
+1. Completed: inspected the actual `pi-crew@0.2.0` package docs/source.
+2. Completed from package metadata/docs: current package name, repository,
+   default state paths, and source-level Windows atomic-write handling.
+3. Completed: isolated Pi-crew installation and durable-state spike.
+4. Completed: compare Pi-crew's persisted files against the proposed `.agents/state`
    layout.
-5. Decide whether to write a PKM-AI spec for `agent-room.mjs` or adopt Pi-crew
-   as an external runtime.
+5. Completed: write a PKM-AI spec for `agent-room.mjs` and keep Pi-crew as a
+   reference, not a required runtime.
 
 ## Source Links
 
 - Pi-crew package page: https://pi.dev/packages/pi-crew
+- Pi-crew npm package: https://www.npmjs.com/package/pi-crew
+- Pi-crew source repository: https://github.com/baphuongna/pi-crew
 - Pi-multiagent package page: https://pi.dev/packages/pi-multiagent
 - Pi subagents package page: https://pi.dev/packages/%40tintinweb/pi-subagents
 - Multipi package page: https://pi.dev/packages/%40chewey182/multipi
@@ -126,13 +142,11 @@ after the user approves a concrete spec/plan.
 
 Suggested next prompt response:
 
-1. Read this record.
-2. Ask whether the user wants a Pi-crew spike, a PKM-AI `agent-room` spec, or
-   both in sequence.
-3. If doing a spike, isolate it from product code and do not modify existing
-   PKM-AI tools until the contract is understood.
-4. If writing a spec, make the recommendation explicit: port the Pi-crew
-   contract into PKM-AI first, keep Pi adoption optional.
+1. Read this record and the source inspection shard.
+2. Continue from [[docs/work/pkm-ai/specs/2026-05-11-agent-room/index|Agent room]]
+   if implementation is approved.
+3. Use the implementation plan shard and keep writes scoped to
+   `.agents/tools/pkm-ai`, `.agents/state`, and compact docs updates.
 
-Do not claim Pi-crew has been tested locally. This session only performed web
-and local-doc research.
+Do not claim Pi-crew was run with real LLM workers. This session tested
+project-local installation and durable-state primitives only.

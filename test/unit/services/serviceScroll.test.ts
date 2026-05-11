@@ -1,5 +1,6 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import {
+	boundedElementViewportRect,
 	createRafElementRectObserver,
 	fallbackFixedVirtualRows,
 	scrollFixedIndexIntoView,
@@ -107,4 +108,41 @@ describe('serviceScroll', () => {
 
 		cleanup();
 	});
+
+	it('bounds an auto-expanded virtual scroller to the smallest visible ancestor', () => {
+		const body = {} as HTMLElement;
+		const frame = fakeElement({ width: 280, height: 420, classes: ['vm-frame'], body });
+		const tab = fakeElement({ width: 260, height: 380, parent: frame, body });
+		const container = fakeElement({ width: 260, height: 380, parent: tab, body });
+		const scroller = fakeElement({ width: 260, height: 360000, parent: container, body });
+
+		expect(boundedElementViewportRect(scroller, 640, 360)).toEqual({
+			width: 260,
+			height: 380,
+		});
+	});
 });
+
+function fakeElement({
+	width,
+	height,
+	parent = null,
+	classes = [],
+	body,
+}: {
+	width: number;
+	height: number;
+	parent?: HTMLElement | null;
+	classes?: string[];
+	body: HTMLElement;
+}): HTMLElement {
+	return {
+		clientWidth: width,
+		clientHeight: height,
+		parentElement: parent,
+		ownerDocument: { body },
+		classList: {
+			contains: (name: string) => classes.includes(name),
+		},
+	} as unknown as HTMLElement;
+}

@@ -11,6 +11,7 @@
     "update": "node update-indexes.mjs",
     "shard": "node shard-index.mjs",
     "code-index": "node code-index.mjs",
+    "room": "node agent-room.mjs",
     "tasks": "node manage-tasks.mjs",
     "test": "node --test \"test/*.test.mjs\""
   },
@@ -24,6 +25,7 @@
     "pkm-ai-update": "./update-indexes.mjs",
     "pkm-ai-shard": "./shard-index.mjs",
     "pkm-ai-code-index": "./code-index.mjs",
+    "pkm-ai-room": "./agent-room.mjs",
     "pkm-ai-tasks": "./manage-tasks.mjs"
   }
 }

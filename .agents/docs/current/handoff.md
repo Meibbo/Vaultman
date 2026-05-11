@@ -5,7 +5,7 @@ status: active
 parent: "[[docs/work/pkm-ai/index|pkm-ai]]"
 archive_source: "docs/archive/pkm-ai/active-docs/2026-05-10T093000-current-handoff.md"
 created: 2026-05-04T01:36:20
-updated: 2026-05-11T01:08:42
+updated: 2026-05-11T03:29:20
 tags:
   - agent/current
 created_by: dec
@@ -19,6 +19,10 @@ Compact handoff after archiving the oversized current handoff:
 
 ## Resume Point
 
+- Latest product smoke completed: Vaultman Explorer Performance Overhaul live
+  smoke follow-up fixed the Table/Grid virtualizer auto-expanded viewport
+  stall and verified it in `plugin-dev` with 11,130 files. Source:
+  [[docs/superpowers/plans/2026-05-11-performance-overhaul/06-implementation-log#live-smoke-follow-up|Performance Overhaul live smoke follow-up]].
 - Latest user request captured: PKM-AI parallel-agent coordination research
   comparing Pi-crew adoption versus porting its contract into PKM-AI:
   [[docs/work/pkm-ai/research/2026-05-11-pi-crew-agent-coordination|Pi-crew and PKM-AI coordination]].
@@ -142,6 +146,13 @@ Compact handoff after archiving the oversized current handoff:
 
 ## Fresh Verification
 
+- Performance overhaul smoke follow-up passed after the scrollport fix:
+  serviceScroll unit 6/6, dynamic geometry/table stress component 4/4,
+  Svelte autofixer `issues: []` for Table/Grid, `pnpm run check`, `pnpm run build`,
+  and live Obsidian `plugin-dev` smoke. Live Table opened in 2.371s with 31
+  rendered rows over a `430004.4px` virtual height; deep scroll stayed bounded;
+  Grid opened in 1.261s with 13 rendered rows; no captured Obsidian or console
+  errors.
 - Detachable live smoke after rebuilding and copying artifacts to the active
   vault plugin folder: pass. Runtime after reload had one `vm-frame`, one
   `vaultman-tab-page-tools`, one detached host, one frame external placeholder,
@@ -170,30 +181,17 @@ Compact handoff after archiving the oversized current handoff:
 
 ## Next Action
 
-- For PKM-AI coordination: read [[docs/work/pkm-ai/research/2026-05-11-pi-crew-agent-coordination|Pi-crew and PKM-AI coordination]] and ask whether to run a Pi-crew spike, write a PKM-AI `agent-room` spec, or do both.
-- First next action for the detachable/workspace route:
-  `tabOutline` for the current note, Markmap as an explorer view, node-notes as
-  a service, and adopted-node visibility in the file explorer. Keep the
-  detachable/workspace behavior stable first because these features may mount
-  into detached explorer leaves.
-- For Elastic UI execution, start with the contracts and gates shard:
+- For PKM-AI coordination: `agent-room` v1 plus comfort layer are implemented and logged in [[docs/work/pkm-ai/specs/2026-05-11-agent-room/index|Agent room]]; next action is live dogfood on the next multi-agent task.
+- Detachable/workspace next: `tabOutline`, Markmap explorer, node-notes
+  service, and adopted-node explorer visibility.
+- Elastic UI next: start with
   [[docs/work/polish/plans/2026-05-11-elastic-ui-chameleon/00-contracts-and-gates|Elastic UI Contracts And Gates]].
-- Wave 1 Agent B is complete. Remaining Dock Toolbar shortcuts: Agent D
-  read-only live/manual QA when Obsidian is available, then Wave 2 Agent E/F
-  for virtualizer/pretext latency and real DnD UI wiring. Later Agent F should
-  preserve Agent C's service contract.
+- Dock Toolbar next: Agent D QA, then Wave 2 Agent E/F.
 
 ## Known Residuals
 
-- No detachable `page-tools` smoke residual remains; final live runtime was
-  restored to attached state after the smoke.
-- Live narrow-frame Obsidian smoke for scrollable compact controls was not run.
-- Live Obsidian smoke for Queue island Task 6 and final Task 7 was not run.
-- Product worktree remains dirty with active Vaultman UI/DnD changes. Do not
-  revert unrelated user/agent files.
-- Global `check-doc-health.mjs` currently fails on unrelated residuals:
-  glossary terms and line-limit in the detachable workspace tabs spec, plus
-  `.agents/docs/superpowers` parent-shape residuals.
-- Do not move AI files to `main`.
-- Do not use old `viewTable.svelte` for table work; the wider worktree has
-  unrelated dirty changes, so do not revert anything unless explicitly asked.
+- No detachable `page-tools` smoke residual remains.
+- Some live Obsidian smokes remain unrun for prior compact-control/queue work.
+- Worktree remains dirty with unrelated UI/DnD/docs changes; do not revert.
+- `check-doc-health.mjs` has unrelated residuals in polish/superpowers/hardening.
+- Do not move AI files to `main` or use old `viewTable.svelte` for table work.

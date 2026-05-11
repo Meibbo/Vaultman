@@ -30,6 +30,39 @@ export interface RafElementRectObserverOptions<TElement extends HTMLElement> {
 	fallbackHeight: number;
 }
 
+export interface ElementViewportRect {
+	width: number;
+	height: number;
+}
+
+export function boundedElementViewportRect(
+	element: HTMLElement | null | undefined,
+	fallbackWidth: number,
+	fallbackHeight: number,
+): ElementViewportRect {
+	let width = element?.clientWidth || fallbackWidth;
+	let height = element?.clientHeight || fallbackHeight;
+	let current = element?.parentElement ?? null;
+	const body = element?.ownerDocument?.body ?? null;
+
+	while (current && current !== body) {
+		if (current.clientWidth > 0) width = Math.min(width, current.clientWidth);
+		if (current.clientHeight > 0) height = Math.min(height, current.clientHeight);
+		if (
+			current.classList.contains('vm-frame') ||
+			current.classList.contains('workspace-leaf-content')
+		) {
+			break;
+		}
+		current = current.parentElement;
+	}
+
+	return {
+		width: Math.max(1, width),
+		height: Math.max(1, height),
+	};
+}
+
 export function fallbackFixedVirtualRows({
 	count,
 	rowHeight,

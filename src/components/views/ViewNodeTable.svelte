@@ -32,6 +32,7 @@
 		fallbackTextMeasureEngine,
 		type TextMeasureStyle,
 	} from '../../services/serviceTextMeasure';
+	import { boundedElementViewportRect } from '../../services/serviceScroll';
 
 	const TABLE_ROW_HEIGHT = 32;
 	const TABLE_OVERSCAN = 14;
@@ -232,7 +233,7 @@
 	function scrollTableRowIntoView(rowIndex: number): void {
 		if (!outerEl) return;
 		PerfMeter.time('explorer.table.scrollIntoView', () => {
-			const viewportHeight = outerEl!.clientHeight || TABLE_FALLBACK_HEIGHT;
+			const viewportHeight = tableViewportRect().height;
 			const currentTop = outerEl!.scrollTop;
 			const rowTop = tableRowTop(rowIndex);
 			const rowBottom = rowTop + tableEstimateSize(rowIndex);
@@ -294,16 +295,17 @@
 		cb: (rect: Rect) => void,
 	): () => void {
 		const emit = () => {
-			cb({
-				width: outerEl?.clientWidth || TABLE_FALLBACK_WIDTH,
-				height: outerEl?.clientHeight || TABLE_FALLBACK_HEIGHT,
-			});
+			cb(tableViewportRect());
 		};
 		emit();
 		if (!outerEl || typeof ResizeObserver === 'undefined') return () => {};
 		const ro = new ResizeObserver(emit);
 		ro.observe(outerEl);
 		return () => ro.disconnect();
+	}
+
+	function tableViewportRect(): Rect {
+		return boundedElementViewportRect(outerEl, TABLE_FALLBACK_WIDTH, TABLE_FALLBACK_HEIGHT);
 	}
 
 	function handleRowClick(id: string, e: MouseEvent) {

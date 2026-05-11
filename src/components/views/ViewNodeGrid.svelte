@@ -50,6 +50,7 @@
 		fallbackTextMeasureEngine,
 		type TextMeasureStyle,
 	} from '../../services/serviceTextMeasure';
+	import { boundedElementViewportRect } from '../../services/serviceScroll';
 
 	const GRID_FALLBACK_WIDTH = 480;
 	const GRID_FALLBACK_HEIGHT = 360;
@@ -404,7 +405,7 @@
 		PerfMeter.time('explorer.grid.scrollIntoView', () => {
 			const row = gridRows[rowIndex];
 			const rowHeight = row ? gridMeasuredRowHeights.get(row.key) ?? row.height : gridRowBaseHeight;
-			const viewportHeight = outerEl!.clientHeight || GRID_FALLBACK_HEIGHT;
+			const viewportHeight = gridViewportRect().height;
 			const rowTop = gridRowTop(rowIndex);
 			const rowBottom = rowTop + rowHeight;
 			const currentTop = outerEl!.scrollTop;
@@ -557,7 +558,7 @@
 	}
 
 	function updateGridMetrics() {
-		const width = outerEl?.clientWidth || GRID_FALLBACK_WIDTH;
+		const width = gridViewportRect().width;
 		gridWidth = width;
 		columnCount = columnsForWidth(width);
 	}
@@ -603,10 +604,7 @@
 	): () => void {
 		let rectFrame: number | null = null;
 		const emit = () => {
-			cb({
-				width: outerEl?.clientWidth || gridWidth || GRID_FALLBACK_WIDTH,
-				height: outerEl?.clientHeight || GRID_FALLBACK_HEIGHT,
-			});
+			cb(gridViewportRect());
 		};
 		const schedule = () => {
 			if (typeof requestAnimationFrame === 'undefined') {
@@ -627,6 +625,10 @@
 			if (rectFrame !== null) cancelAnimationFrame(rectFrame);
 			ro.disconnect();
 		};
+	}
+
+	function gridViewportRect(): Rect {
+		return boundedElementViewportRect(outerEl, gridWidth || GRID_FALLBACK_WIDTH, GRID_FALLBACK_HEIGHT);
 	}
 
 	function columnsForWidth(width: number): number {
@@ -739,7 +741,7 @@
 	}
 
 	function fallbackGridRows(rows: readonly GridRow[]) {
-		const viewportHeight = outerEl?.clientHeight || GRID_FALLBACK_HEIGHT;
+		const viewportHeight = gridViewportRect().height;
 		const scrollTop = outerEl?.scrollTop ?? 0;
 		let top = 0;
 		let startIndex = 0;

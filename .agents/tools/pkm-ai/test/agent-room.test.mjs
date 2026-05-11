@@ -1,0 +1,501 @@
+import test from "node:test";
+import assert from "node:assert/strict";
+import fs from "node:fs";
+import os from "node:os";
+import path from "node:path";
+import { spawnSync } from "node:child_process";
+import { fileURLToPath } from "node:url";
+
+const toolPath = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..", "agent-room.mjs");
+const pkmPath = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..", "pkm.mjs");
+
+test("agent-room creates runs, records agents, and reports stale heartbeats", () => {
+  const root = makeTempRoot();
+  const start = run(root, [
+    "run",
+    "start",
+    "--agent",
+    "codex-main",
+    "--title",
+    "Agent room smoke",
+    "--goal",
+    "Coordinate parallel agents",
+    "--now",
+    "2026-05-11T02:00:00",
+    "--json",
+  ]);
+
+  assert.equal(start.status, 0, start.stderr);
+  const created = JSON.parse(start.stdout);
+  assert.equal(created.ok, true);
+  assert.match(created.runId, /^room_20260511_020000_/);
+  assert.equal(created.status, "running");
+
+  const manifestPath = path.join(root, ".agents", "state", "runs", created.runId, "manifest.json");
+  assert.equal(fs.existsSync(manifestPath), true);
+  const manifest = readJson(manifestPath);
+  assert.equal(manifest.title, "Agent room smoke");
+  assert.equal(manifest.goal, "Coordinate parallel agents");
+  assert.deepEqual(manifest.activeAgents, ["codex-main"]);
+
+  const joined = run(root, [
+    "agent",
+    "join",
+    "--run",
+    created.runId,
+    "--agent",
+    "codex-worker-a",
+    "--role",
+    "worker",
+    "--now",
+    "2026-05-11T02:01:00",
+    "--json",
+  ]);
+  assert.equal(joined.status, 0, joined.stderr);
+
+  const heartbeat = run(root, [
+    "agent",
+    "heartbeat",
+    "--run",
+    created.runId,
+    "--agent",
+    "codex-worker-a",
+    "--task",
+    "task_001",
+    "--message",
+    "Writing tests",
+    "--stale-after-ms",
+    "60000",
+    "--now",
+    "2026-05-11T02:02:00",
+    "--json",
+  ]);
+  assert.equal(heartbeat.status, 0, heartbeat.stderr);
+
+  const status = run(root, [
+    "status",
+    "--run",
+    created.runId,
+    "--now",
+    "2026-05-11T02:04:01",
+    "--json",
+  ]);
+  assert.equal(status.status, 0, status.stderr);
+  const snapshot = JSON.parse(status.stdout);
+  assert.equal(snapshot.runId, created.runId);
+  assert.equal(snapshot.runStatus, "running");
+  assert.deepEqual(snapshot.staleAgents.map((agent) => agent.agentId), ["codex-worker-a"]);
+  assert.equal(snapshot.agents.some((agent) => agent.agentId === "codex-main"), true);
+
+  const events = readJsonl(path.join(root, ".agents", "state", "runs", created.runId, "events.jsonl"));
+  assert.deepEqual(
+    events.map((event) => event.type),
+    ["run.created", "agent.joined", "agent.heartbeat"],
+  );
+});
+
+test("agent-room claims tasks, guards transitions by token, and detects scope conflicts", () => {
+  const root = makeTempRoot();
+  const runId = createRun(root);
+
+  const add = run(root, [
+    "task",
+    "add",
+    "--run",
+    runId,
+    "--agent",
+    "codex-main",
+    "--title",
+    "Implement lock helper",
+    "--scope",
+    "src/components/views/ViewNodeGrid.svelte",
+    "--now",
+    "2026-05-11T02:05:00",
+    "--json",
+  ]);
+  assert.equal(add.status, 0, add.stderr);
+  const task = JSON.parse(add.stdout).task;
+  assert.equal(task.taskId, "task_001");
+  assert.equal(task.status, "todo");
+
+  const claim = run(root, [
+    "task",
+    "claim",
+    "--run",
+    runId,
+    "--agent",
+    "codex-worker-a",
+    "--task",
+    "task_001",
+    "--lease-ms",
+    "900000",
+    "--now",
+    "2026-05-11T02:06:00",
+    "--json",
+  ]);
+  assert.equal(claim.status, 0, claim.stderr);
+  const claimed = JSON.parse(claim.stdout).task;
+  assert.equal(claimed.status, "in-progress");
+  assert.equal(claimed.claim.owner, "codex-worker-a");
+  assert.equal(typeof claimed.claim.token, "string");
+
+  const duplicate = run(root, [
+    "task",
+    "claim",
+    "--run",
+    runId,
+    "--agent",
+    "codex-worker-b",
+    "--task",
+    "task_001",
+    "--now",
+    "2026-05-11T02:07:00",
+    "--json",
+  ]);
+  assert.notEqual(duplicate.status, 0);
+  assert.match(duplicate.stderr, /already claimed/);
+
+  const wrongToken = run(root, [
+    "task",
+    "status",
+    "--run",
+    runId,
+    "--agent",
+    "codex-worker-a",
+    "--task",
+    "task_001",
+    "--status",
+    "done",
+    "--token",
+    "wrong",
+    "--now",
+    "2026-05-11T02:08:00",
+    "--json",
+  ]);
+  assert.notEqual(wrongToken.status, 0);
+  assert.match(wrongToken.stderr, /claim token/);
+
+  const scopeConflict = run(root, [
+    "scope",
+    "conflicts",
+    "--run",
+    runId,
+    "--scope",
+    "src/components/views",
+    "--now",
+    "2026-05-11T02:09:00",
+    "--json",
+  ]);
+  assert.equal(scopeConflict.status, 1);
+  const conflict = JSON.parse(scopeConflict.stdout);
+  assert.equal(conflict.ok, false);
+  assert.equal(conflict.conflicts[0].owner, "codex-worker-a");
+
+  const release = run(root, [
+    "task",
+    "release",
+    "--run",
+    runId,
+    "--agent",
+    "codex-worker-a",
+    "--task",
+    "task_001",
+    "--token",
+    claimed.claim.token,
+    "--now",
+    "2026-05-11T02:10:00",
+    "--json",
+  ]);
+  assert.equal(release.status, 0, release.stderr);
+  assert.equal(JSON.parse(release.stdout).task.claim, undefined);
+});
+
+test("agent-room supports mailbox send, read, and ack for run and task messages", () => {
+  const root = makeTempRoot();
+  const runId = createRun(root);
+  addTask(root, runId, "Coordinate mailbox", "docs/work/pkm-ai/index.md");
+
+  const runMessage = run(root, [
+    "mailbox",
+    "send",
+    "--run",
+    runId,
+    "--agent",
+    "codex-main",
+    "--to",
+    "codex-worker-a",
+    "--body",
+    "Pause before touching docs",
+    "--now",
+    "2026-05-11T02:11:00",
+    "--json",
+  ]);
+  assert.equal(runMessage.status, 0, runMessage.stderr);
+
+  const taskMessage = run(root, [
+    "mailbox",
+    "send",
+    "--run",
+    runId,
+    "--agent",
+    "codex-main",
+    "--task",
+    "task_001",
+    "--to",
+    "codex-worker-a",
+    "--body",
+    "Task scoped note",
+    "--now",
+    "2026-05-11T02:12:00",
+    "--json",
+  ]);
+  assert.equal(taskMessage.status, 0, taskMessage.stderr);
+
+  const read = run(root, ["mailbox", "read", "--run", runId, "--agent", "codex-worker-a", "--json"]);
+  assert.equal(read.status, 0, read.stderr);
+  const messages = JSON.parse(read.stdout).messages;
+  assert.equal(messages.length, 2);
+  assert.deepEqual(messages.map((message) => message.body), ["Pause before touching docs", "Task scoped note"]);
+
+  const ack = run(root, [
+    "mailbox",
+    "ack",
+    "--run",
+    runId,
+    "--agent",
+    "codex-worker-a",
+    "--message",
+    messages[0].messageId,
+    "--now",
+    "2026-05-11T02:13:00",
+    "--json",
+  ]);
+  assert.equal(ack.status, 0, ack.stderr);
+  assert.equal(JSON.parse(ack.stdout).delivery.messages[messages[0].messageId], "acknowledged");
+});
+
+test("agent-room imports objectives and syncs claimed task state through manage-tasks", () => {
+  const root = makeTempRoot();
+  const runId = createRun(root);
+  writeFile(
+    path.join(root, ".agents", "docs", "work", "pkm-ai", "plans", "example", "index.md"),
+    `---
+title: Example plan
+type: implementation-plan-index
+status: active
+parent: "[[docs/work/pkm-ai/index|pkm-ai]]"
+created: 2026-05-10T10:00:00
+updated: 2026-05-10T10:00:00
+tags:
+  - agent/plan
+---
+
+# Example Plan
+
+- [ ] Bridge objective #pkm-ai/objective/bridge-objective
+`,
+  );
+
+  const imported = run(root, [
+    "objectives",
+    "import",
+    "--run",
+    runId,
+    "--agent",
+    "codex-main",
+    "--initiative",
+    "pkm-ai",
+    "--status",
+    "todo",
+    "--now",
+    "2026-05-11T02:14:00",
+    "--json",
+  ]);
+  assert.equal(imported.status, 0, imported.stderr);
+  const importedTasks = JSON.parse(imported.stdout).tasks;
+  assert.equal(importedTasks.length, 1);
+  assert.equal(importedTasks[0].objectiveId, "bridge-objective");
+
+  const claim = run(root, [
+    "task",
+    "claim",
+    "--run",
+    runId,
+    "--agent",
+    "codex-main",
+    "--task",
+    importedTasks[0].taskId,
+    "--now",
+    "2026-05-11T02:15:00",
+    "--json",
+  ]);
+  assert.equal(claim.status, 0, claim.stderr);
+  const token = JSON.parse(claim.stdout).task.claim.token;
+
+  const taskStatus = run(root, [
+    "task",
+    "status",
+    "--run",
+    runId,
+    "--agent",
+    "codex-main",
+    "--task",
+    importedTasks[0].taskId,
+    "--status",
+    "blocked",
+    "--token",
+    token,
+    "--now",
+    "2026-05-11T02:16:00",
+    "--json",
+  ]);
+  assert.equal(taskStatus.status, 0, taskStatus.stderr);
+
+  const synced = run(root, [
+    "objectives",
+    "sync",
+    "--run",
+    runId,
+    "--agent",
+    "codex-main",
+    "--task",
+    importedTasks[0].taskId,
+    "--token",
+    token,
+    "--now",
+    "2026-05-11T02:17:00",
+    "--json",
+  ]);
+  assert.equal(synced.status, 0, synced.stderr);
+  const updated = fs.readFileSync(
+    path.join(root, ".agents", "docs", "work", "pkm-ai", "plans", "example", "index.md"),
+    "utf8",
+  );
+  assert.match(updated, /- \[!\] Bridge objective #pkm-ai\/objective\/bridge-objective/);
+});
+
+test("agent-room rejects scopes that escape the workspace", () => {
+  const root = makeTempRoot();
+  const runId = createRun(root);
+  addTask(root, runId, "Unsafe scope", "docs/work/pkm-ai/index.md");
+
+  const result = run(root, [
+    "scope",
+    "claim",
+    "--run",
+    runId,
+    "--agent",
+    "codex-main",
+    "--task",
+    "task_001",
+    "--scope",
+    "..\\outside.md",
+    "--json",
+  ]);
+
+  assert.notEqual(result.status, 0);
+  assert.match(result.stderr, /outside workspace/);
+});
+
+test("agent-room comfort layer resolves latest run, dashboard, handoff, and pkm room wrapper", () => {
+  const root = makeTempRoot();
+  const runId = createRun(root);
+  const task = addTask(root, runId, "Comfort layer task", ".agents/tools/pkm-ai/agent-room.mjs");
+  const claim = run(root, [
+    "task",
+    "claim",
+    "--run",
+    runId,
+    "--agent",
+    "codex-main",
+    "--task",
+    task.taskId,
+    "--now",
+    "2026-05-11T02:20:00",
+    "--json",
+  ]);
+  assert.equal(claim.status, 0, claim.stderr);
+
+  const statusWithoutRun = run(root, ["status", "--json"]);
+  assert.equal(statusWithoutRun.status, 0, statusWithoutRun.stderr);
+  assert.equal(JSON.parse(statusWithoutRun.stdout).runId, runId);
+
+  const dashboard = run(root, ["dashboard"]);
+  assert.equal(dashboard.status, 0, dashboard.stderr);
+  assert.match(dashboard.stdout, new RegExp(`Run ${runId} \\[running\\]`));
+  assert.match(dashboard.stdout, /Comfort layer task/);
+
+  const handoff = run(root, ["handoff"]);
+  assert.equal(handoff.status, 0, handoff.stderr);
+  assert.match(handoff.stdout, /## Agent Room Handoff/);
+  assert.match(handoff.stdout, new RegExp(`- Run: ${runId}`));
+  assert.match(handoff.stdout, /task_001 \[in-progress\] owner=codex-main/);
+
+  const wrapped = spawnSync(process.execPath, [pkmPath, "room", "status", "--json"], { cwd: root, encoding: "utf8" });
+  assert.equal(wrapped.status, 0, wrapped.stderr);
+  assert.equal(JSON.parse(wrapped.stdout).runId, runId);
+});
+
+function createRun(root) {
+  const result = run(root, [
+    "run",
+    "start",
+    "--agent",
+    "codex-main",
+    "--title",
+    "Test run",
+    "--goal",
+    "Test coordination",
+    "--now",
+    "2026-05-11T02:00:00",
+    "--json",
+  ]);
+  assert.equal(result.status, 0, result.stderr);
+  return JSON.parse(result.stdout).runId;
+}
+
+function addTask(root, runId, title, scope) {
+  const result = run(root, [
+    "task",
+    "add",
+    "--run",
+    runId,
+    "--agent",
+    "codex-main",
+    "--title",
+    title,
+    "--scope",
+    scope,
+    "--now",
+    "2026-05-11T02:05:00",
+    "--json",
+  ]);
+  assert.equal(result.status, 0, result.stderr);
+  return JSON.parse(result.stdout).task;
+}
+
+function run(root, args) {
+  return spawnSync(process.execPath, [toolPath, ...args], { cwd: root, encoding: "utf8" });
+}
+
+function makeTempRoot() {
+  return fs.mkdtempSync(path.join(os.tmpdir(), "pkm-ai-agent-room-"));
+}
+
+function writeFile(filePath, content) {
+  fs.mkdirSync(path.dirname(filePath), { recursive: true });
+  fs.writeFileSync(filePath, content);
+}
+
+function readJson(filePath) {
+  return JSON.parse(fs.readFileSync(filePath, "utf8"));
+}
+
+function readJsonl(filePath) {
+  return fs
+    .readFileSync(filePath, "utf8")
+    .trim()
+    .split(/\r?\n/)
+    .filter(Boolean)
+    .map((line) => JSON.parse(line));
+}

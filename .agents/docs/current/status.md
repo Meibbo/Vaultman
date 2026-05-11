@@ -5,7 +5,7 @@ status: active
 parent: "[[docs/work/pkm-ai/index|pkm-ai]]"
 archive_source: "docs/archive/pkm-ai/active-docs/2026-05-10T093000-current-status.md"
 created: 2026-05-04T01:36:20
-updated: 2026-05-11T01:08:42
+updated: 2026-05-11T03:29:20
 tags:
   - agent/current
 created_by: dec
@@ -20,17 +20,14 @@ Compact route index after archiving the oversized current status:
 ## Active Rules
 
 - `main` must contain zero AI workflow files.
-- Active work detail belongs in initiative source records, not in this index.
-- Preserve source detail first; line limits trigger sharding or archiving, not
-  lossy deletion.
-- Timestamps use `YYYY-MM-DDTHH:mm:ss` without timezone offsets.
-- Parent metadata uses one Obsidian wikilink in `parent`.
-- Do not revert or overwrite user/agent changes that are unrelated to the task.
+- Active detail belongs in initiative source records; this file stays compact.
+- Timestamps use `YYYY-MM-DDTHH:mm:ss`; `parent` uses one wikilink.
+- Do not revert unrelated user/agent changes.
 
 ## Current Route
 
-- Latest user request: PKM-AI Pi-crew coordination research handoff in
-  [[docs/work/pkm-ai/research/2026-05-11-pi-crew-agent-coordination|Pi-crew and PKM-AI coordination]].
+- Latest user request: PKM-AI `agent-room` comfort layer in
+  [[docs/work/pkm-ai/specs/2026-05-11-agent-room/index|Agent room]].
 - Active initiative: [[docs/work/pkm-ai/index|PKM-AI]].
 - Latest implemented product slice:
   Wave 1 Agent B, Cut 2 tree row layout and badge/counter overlay in
@@ -93,6 +90,12 @@ Compact route index after archiving the oversized current status:
 
 ## Latest Verified Work
 
+- Vaultman Explorer Performance Overhaul live smoke follow-up is implemented
+  and freshly verified:
+  [[docs/superpowers/plans/2026-05-11-performance-overhaul/06-implementation-log#live-smoke-follow-up|Performance Overhaul live smoke follow-up]].
+  The fix bounds table/grid virtualizer rects to the visible ancestor
+  scrollport so auto-expanded virtual spacers cannot make TanStack render
+  thousands of rows.
 - Task state automation is implemented and freshly verified:
   [[docs/work/pkm-ai/plans/2026-05-10-task-state-automation/index|Task state automation]].
 - Task state retrieval is implemented and freshly verified:
@@ -130,6 +133,13 @@ Compact route index after archiving the oversized current status:
 
 ## Verification Snapshot
 
+- Performance overhaul smoke: `plugin-dev` loaded 11,130 files; Properties
+  Table opened in 2.371s with 31 rendered rows over a `430004.4px` virtual
+  height; deep scroll samples stayed bounded to 31-46 rows; synthetic width
+  resize retained the first visible id; Properties Grid opened in 1.261s with
+  13 rendered virtual rows; `obsidian dev:errors` and console errors were
+  empty. Focused service/component gates, Svelte autofixer, `pnpm run check`,
+  and `pnpm run build` passed.
 - Detachable live Obsidian smoke: pass after rebuilding, copying artifacts to
   `.obsidian/plugins/vaultman`, and reloading Vaultman `1.0.0-rc.2`.
   Covered `page-tools` detach, reveal from the frame `Operations` tab, attach,
@@ -186,13 +196,3 @@ Compact route index after archiving the oversized current status:
   issue; run Vite/Svelte commands sequentially.
 - The wider worktree contains unrelated dirty product/docs changes; do not
   revert them unless the user explicitly asks.
-
-## Source Links
-
-- [[docs/current/handoff|current handoff]]
-- [[docs/current/engineering-context|engineering context]]
-- [[docs/work/polish/specs/2026-05-11-detachable-layout-workspace-tabs/index|Detachable layout workspace tabs spec]]
-- [[docs/work/polish/plans/2026-05-11-detachable-layout-workspace-tabs/index|Detachable layout workspace tabs plan]]
-- [[docs/work/polish/plans/2026-05-10-dock-toolbar-groups-virtualizer/cut-1-5-node-surface-theme-scroll/index|Cut 1.5 Node Surface Theme And Scroll Plan]]
-- [[docs/work/polish/plans/2026-05-10-dock-toolbar-groups-virtualizer/index|Dock Toolbar Groups Virtualizer Plan]]
-- [[docs/work/polish/plans/2026-05-11-elastic-ui-chameleon/index|Elastic UI Chameleon Plan]]
