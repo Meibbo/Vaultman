@@ -5,7 +5,7 @@ status: active
 parent: "[[docs/work/pkm-ai/index|pkm-ai]]"
 archive_source: "docs/archive/pkm-ai/active-docs/2026-05-10T093000-current-status.md"
 created: 2026-05-04T01:36:20
-updated: 2026-05-11T23:28:00
+updated: 2026-05-11T03:53:32
 tags:
   - agent/current
 created_by: dec
@@ -29,9 +29,17 @@ Compact route index after archiving the oversized current status:
 
 ## Current Route
 
-- Latest user request: proceed with Cut 1.5 Task 7 final sweep.
+- Latest user request: continue the Claude worktree vertical-thread plan.
 - Active initiative: [[docs/work/polish/index|Polish]].
 - Latest implemented product slice:
+  UI Modernization Vertical Threads T1.7 snippet mimicry smoke plus
+  panel-level mirror class routing in
+  [[docs/work/polish/plans/2026-05-11-ui-modernization-vertical-threads/01-thread-styling-identity#task-17--snippet-mimicry-smoke-close-the-test-loop-from-12|T1.7 snippet mimicry smoke]].
+- Previous implemented product slice:
+  UI Modernization Vertical Threads T2.3 mirror class arbitration across grid,
+  cards, and tree in
+  [[docs/work/polish/plans/2026-05-11-ui-modernization-vertical-threads/02-thread-engine-views#task-23--mirror-class-arbitration-across-grid-cards-tree|T2.3 mirror class arbitration]].
+- Previous implemented product slice:
   Cut 1.5 Task 7 final Svelte autofix, focused tests, check, and build in
   [[docs/work/polish/plans/2026-05-10-dock-toolbar-groups-virtualizer/cut-1-5-node-surface-theme-scroll/04-verification-and-handoff|Cut 1.5 verification and handoff]].
 - Previous detachable product slice:
@@ -63,6 +71,14 @@ Compact route index after archiving the oversized current status:
   cancel in the action slot.
 - Cut 1.5 Task 7 is complete: the final automated Svelte autofix and
   verification sweep passed; live UI smoke was not rerun.
+- UI Modernization Vertical Threads plan is active:
+  [[docs/work/polish/plans/2026-05-11-ui-modernization-vertical-threads/index|UI Modernization Vertical Threads Implementation Plan]].
+- T2.3 is complete: `ViewNodeGrid`, `ViewNodeCards`, and `viewTree` accept an
+  optional `themeService` and emit Obsidian mirror classes only in native DOM
+  mode. `PanelExplorer` now routes `plugin.themeService` to tree/grid/cards/table.
+- T1.7 is complete: `snippetMimicry` covers `nav-file-title`,
+  `tree-item-self`, and `metadata-property`; `ViewNodeTable` now emits
+  metadata mirror classes in native DOM mode.
 - Elastic UI orchestration plan:
   [[docs/work/polish/plans/2026-05-11-elastic-ui-chameleon/index|Elastic UI Chameleon Implementation Plan]].
 - Recent PKM-AI route remains available below for source context.
@@ -125,6 +141,14 @@ Compact route index after archiving the oversized current status:
   nine gate files; focused unit 43/43, focused component 40/40, broader safety
   component 68/68, `pnpm run check`, `pnpm run build`, and `git diff --check`
   passed. Full commands are in the linked Cut 1.5 verification shard.
+- T2.3 mirror class verification: red run failed 3/3 as expected; green
+  `viewNodeMirrorClasses` passed 3/3; affected component gate passed 7 files /
+  61 tests; Svelte autofixer returned `issues: []` for the three edited
+  Svelte files.
+- T1.7 snippet mimicry verification: red run failed 3/3 on missing panel-level
+  routing; green `snippetMimicry` passed 3/3; focused panel/table regression
+  gate passed 5 files / 50 tests; Svelte autofixer returned `issues: []` for
+  `panelExplorer.svelte` and `ViewNodeTable.svelte`.
 - Cut 1.5 Task 5 focused style verification:
   `pnpm exec vp test run --project unit --config vitest.config.ts test/unit/styles/compactControlScroll.test.ts --fileParallelism=false`:
   pass, 4/4.

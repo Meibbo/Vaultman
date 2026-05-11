@@ -1,0 +1,45 @@
+// Elastic UI / Chameleon root variables.
+// Owned by serviceTheme.svelte.ts arbitration on .vm-root.
+
+.vm-root {
+	--vm-accent: var(--text-accent);
+	--vm-fg: var(--text-normal);
+	--vm-bg: var(--background-primary);
+	--vm-bg-alt: var(--background-secondary);
+	--vm-border: var(--background-modifier-border);
+	--vm-transition: 160ms;
+
+	transition:
+		filter var(--vm-transition) ease,
+		opacity var(--vm-transition) ease;
+}
+
+.vm-root.vm-faint {
+	--vm-accent: var(--text-faint);
+	--vm-fg: var(--text-muted);
+	filter: grayscale(0.4);
+	opacity: 0.85;
+}
+
+.vm-root.vm-reduced-motion {
+	--vm-transition: 0ms;
+}
+
+.vm-root.vm-id-native {
+	--vm-explorer-density: 0;
+}
+.vm-root.vm-id-bases {
+	--vm-explorer-density: 2;
+	--vm-bases-row-height: 28px;
+}
+.vm-root.vm-id-outline {
+	--vm-explorer-density: 1;
+	--vm-outline-guide: var(--background-modifier-border);
+}
+.vm-root.vm-id-bookmarks {
+	--vm-explorer-density: 1;
+}
+
+.vm-root.vm-foul-detect [data-vm-foul] {
+	outline: 2px dashed rgb(255, 80, 80);
+}

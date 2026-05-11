@@ -1,0 +1,15 @@
+/* Vaultman snippet mimicry smoke fixture.
+   Targets community-snippet selectors that Vaultman MUST mirror in
+   Thin + native mode. */
+
+.nav-file-title {
+	background-color: rgb(255, 0, 128);
+}
+
+.tree-item-self {
+	outline: 2px solid rgb(0, 200, 255);
+}
+
+.metadata-property {
+	border-left: 4px solid rgb(120, 200, 0);
+}

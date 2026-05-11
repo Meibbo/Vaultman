@@ -19,6 +19,7 @@
 // 1. Settings & Tools (ITCSS: Settings -> Tools)
 @use './styles/tokens' as *;
 @use './styles/mixins' as *;
+@use './styles/elastic';
 
 // 2. Generic (ITCSS: Generic)
 @use './styles/global';

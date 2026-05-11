@@ -20,6 +20,7 @@
 		nodeBadgeTitle,
 		ownNodeBadges,
 	} from './nodeBadgeHelpers';
+	import type { ThemeService } from '../../services/serviceTheme.svelte';
 
 	const TABLE_ROW_HEIGHT = 32;
 	const TABLE_OVERSCAN = 14;
@@ -44,6 +45,7 @@
 		onBadgeDoubleClick?: (queueIndex: number) => void;
 		scrollTarget?: ScrollTarget | null;
 		mouseGestureConfig?: MouseGestureConfig;
+		themeService?: ThemeService;
 		icon: (node: HTMLElement, name: string) => { update(n: string): void };
 	}
 
@@ -63,6 +65,7 @@
 		onBadgeDoubleClick,
 		scrollTarget = null,
 		mouseGestureConfig,
+		themeService = undefined,
 		icon,
 	}: Props<TNode> = $props();
 
@@ -72,6 +75,7 @@
 	const nodeMouseConfig = $derived(
 		mergeMouseGestureConfig(NODE_MOUSE_GESTURE_CONFIG, mouseGestureConfig),
 	);
+	const useNativeDom = $derived(themeService?.useNativeDom ?? false);
 
 	$effect(() => () => mouse.cancelAll());
 
@@ -332,6 +336,7 @@
 				{@const directBadges = rowBadges(row)}
 				<div
 					class="vm-node-table-row {row.cls ?? ''}"
+					class:nav-file={useNativeDom}
 					class:is-selected={isSelected}
 					class:is-focused={isFocused}
 					class:is-active-node={isActive}
@@ -350,6 +355,8 @@
 						{@const display = cellDisplay(row, column)}
 						<div
 							class="vm-node-table-cell"
+							class:metadata-property={useNativeDom}
+							class:metadata-property-key={useNativeDom && column.id === 'label'}
 							role="gridcell"
 							data-vm-table-cell={dataCellId}
 						>
@@ -357,7 +364,11 @@
 								{#if row.icon}
 									<span class="vm-node-table-icon" use:icon={row.icon}></span>
 								{/if}
-								<span class="vm-node-table-primary" data-vm-table-primary>
+								<span
+									class="vm-node-table-primary"
+									class:nav-file-title={useNativeDom}
+									data-vm-table-primary
+								>
 									{display}
 								</span>
 								{#if directBadges.length > 0}

@@ -33,6 +33,7 @@
 		nodeBadgeTitle,
 		ownNodeBadges,
 	} from './nodeBadgeHelpers';
+	import type { ThemeService } from '../../services/serviceTheme.svelte';
 
 	const CARD_FALLBACK_WIDTH = 560;
 	const CARD_FALLBACK_HEIGHT = 360;
@@ -71,6 +72,7 @@
 		scrollTarget?: ScrollTarget | null;
 		mouseGestureConfig?: MouseGestureConfig;
 		measure?: TextMeasureService;
+		themeService?: ThemeService;
 		icon: (node: HTMLElement, name: string) => { update(n: string): void };
 	}
 
@@ -90,6 +92,7 @@
 		scrollTarget = null,
 		mouseGestureConfig,
 		measure = createCardsTextMeasureService(),
+		themeService = undefined,
 		icon,
 	}: Props = $props();
 
@@ -102,6 +105,7 @@
 	const nodeMouseConfig = $derived(
 		mergeMouseGestureConfig(NODE_MOUSE_GESTURE_CONFIG, mouseGestureConfig),
 	);
+	const useNativeDom = $derived(themeService?.useNativeDom ?? false);
 
 	$effect(() => () => mouse.cancelAll());
 
@@ -370,6 +374,7 @@
 						{@const directBadges = ownNodeBadges(node)}
 						<div
 							class="vm-node-card {node.cls ?? ''}"
+							class:nav-file={useNativeDom}
 							class:is-selected={isSelected}
 							class:is-focused={isFocused}
 							class:is-active-node={isActive}
@@ -395,6 +400,7 @@
 										class="vm-node-card-field"
 										class:is-title={field.kind === 'title'}
 										class:is-meta={field.kind === 'meta'}
+										class:nav-file-title={useNativeDom && field.kind === 'title'}
 										data-card-field={field.id}
 									>
 										{field.text}

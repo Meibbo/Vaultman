@@ -4,6 +4,7 @@ import { fileURLToPath } from 'node:url';
 import { svelte } from '@sveltejs/vite-plugin-svelte';
 import { defineConfig } from 'vite-plus';
 import { sveltePreprocess } from 'svelte-preprocess';
+import UnoCSS from '@unocss/vite';
 
 const external = [
 	'obsidian',
@@ -36,6 +37,7 @@ export default defineConfig({
 		semi: true,
 	},
 	plugins: [
+		UnoCSS({ configFile: './uno.config.ts' }),
 		svelte({
 			compilerOptions: {
 				css: 'external',

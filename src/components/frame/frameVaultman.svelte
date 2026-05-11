@@ -533,11 +533,33 @@
 			plugin.app.metadataCache.off('resolved', onVaultResolved);
 		};
 	});
+
+	// Elastic UI: derive root classes from themeService and bind window focus
+	// so Faint Mode reflects the current window in pop-out scenarios.
+	const elasticRootClasses = $derived(plugin.themeService.rootClasses.join(' '));
+
+	function onWindowFocus(): void {
+		plugin.themeService.windowFocused = true;
+	}
+	function onWindowBlur(): void {
+		plugin.themeService.windowFocused = false;
+	}
+
+	onMount(() => {
+		const win = activeWindow;
+		win.addEventListener('focus', onWindowFocus);
+		win.addEventListener('blur', onWindowBlur);
+		plugin.themeService.windowFocused = win.document.hasFocus();
+		return () => {
+			win.removeEventListener('focus', onWindowFocus);
+			win.removeEventListener('blur', onWindowBlur);
+		};
+	});
 </script>
 
 <!-- â”€â”€â”€ Page container (horizontal slide strip) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ -->
 <!-- vm-pages-viewport clips via overflow:hidden; the container slides inside it -->
-<div class="vm-view" use:navReorder.bindViewRoot>
+<div class="vm-view {elasticRootClasses}" use:navReorder.bindViewRoot>
 	{#if topTabItems.length > 0}
 		<NavbarTabs
 			tabs={topTabItems}

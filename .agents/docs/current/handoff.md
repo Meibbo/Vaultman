@@ -5,7 +5,7 @@ status: active
 parent: "[[docs/work/pkm-ai/index|pkm-ai]]"
 archive_source: "docs/archive/pkm-ai/active-docs/2026-05-10T093000-current-handoff.md"
 created: 2026-05-04T01:36:20
-updated: 2026-05-11T23:28:00
+updated: 2026-05-11T03:53:32
 tags:
   - agent/current
 created_by: dec
@@ -19,6 +19,17 @@ Compact handoff after archiving the oversized current handoff:
 
 ## Resume Point
 
+- Latest user request implemented in this session:
+  continued the vertical-thread plan after T2.3 and closed
+  [[docs/work/polish/plans/2026-05-11-ui-modernization-vertical-threads/01-thread-styling-identity#task-17--snippet-mimicry-smoke-close-the-test-loop-from-12|T1.7 snippet mimicry smoke]].
+  `PanelExplorer` now passes `plugin.themeService` into tree/grid/cards/table;
+  `ViewNodeTable` emits metadata mirror classes in native DOM mode.
+- Latest user request implemented in this session:
+  continued the Claude worktree vertical-thread plan and completed
+  [[docs/work/polish/plans/2026-05-11-ui-modernization-vertical-threads/02-thread-engine-views#task-23--mirror-class-arbitration-across-grid-cards-tree|T2.3 mirror class arbitration]].
+  `ViewNodeGrid`, `ViewNodeCards`, and `viewTree` now take optional
+  `themeService` and emit `nav-file`, `nav-file-title`, `tree-item`,
+  `tree-item-self`, and `tree-item-inner` only when native DOM mode is active.
 - Latest user request implemented in this session:
   Cut 1.5 Task 7 final Svelte autofix and verification sweep. Source log:
   [[docs/work/polish/plans/2026-05-10-dock-toolbar-groups-virtualizer/cut-1-5-node-surface-theme-scroll/04-verification-and-handoff#2026-05-11-task-7-final-sweep|Task 7 final sweep]].
@@ -123,6 +134,15 @@ Compact handoff after archiving the oversized current handoff:
 
 ## Fresh Verification
 
+- T1.7 verification passed: red `snippetMimicry` failed 3/3 before
+  panel-level routing; green `snippetMimicry` passed 3/3; focused regression
+  gate passed 5 files / 50 tests; Svelte autofixer returned `issues: []` for
+  `panelExplorer.svelte` and `ViewNodeTable.svelte`.
+- T2.3 verification passed: red `viewNodeMirrorClasses` failed 3/3 on missing
+  mirror classes before implementation; green `viewNodeMirrorClasses` passed
+  3/3; affected component gate passed 7 files / 61 tests; Svelte autofixer
+  returned `issues: []` for `ViewNodeGrid.svelte`, `ViewNodeCards.svelte`,
+  and `viewTree.svelte`.
 - Detachable live smoke after rebuilding and copying artifacts to the active
   vault plugin folder: pass. Runtime after reload had one `vm-frame`, one
   `vaultman-tab-page-tools`, one detached host, one frame external placeholder,
@@ -147,6 +167,9 @@ Compact handoff after archiving the oversized current handoff:
 
 ## Next Action
 
+- For UI Modernization Vertical Threads, continue with T1.8 multi-window
+  Faint Mode verification or T2.4/T2.5 adopted-node integration from
+  [[docs/work/polish/plans/2026-05-11-ui-modernization-vertical-threads/index|UI Modernization Vertical Threads Implementation Plan]].
 - First next action for the detachable/workspace route:
   `tabOutline` for the current note, Markmap as an explorer view, node-notes as
   a service, and adopted-node visibility in the file explorer. Keep the

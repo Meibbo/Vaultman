@@ -54,6 +54,8 @@ import { NodeBindingService } from './services/serviceNodeBinding';
 import { NativeSurfaceBindingService } from './services/serviceNativeSurfaceBinding';
 import { resolveLayoutSettings } from './services/serviceLayout';
 import { applyVaultmanTheme, normalizeLayoutTheme } from './services/serviceTheme';
+import { ThemeService } from './services/serviceTheme.svelte';
+import { DEFAULT_ELASTIC_UI_SETTINGS, normalizeElasticUiSettings } from './types/typeElasticUi';
 import { ALL_TAB_IDS, viewTypeFor, type TabId } from './registry/tabRegistry';
 import { VaultmanTabLeafView } from './types/typeTabLeaf';
 import { SvarFileManagerView, TYPE_SVAR_FILEMANAGER } from './types/typeSvarLeaf';
@@ -81,6 +83,7 @@ export class VaultmanPlugin extends Plugin {
 	propertyIndex!: PropertyIndexService;
 	filterService!: FilterService;
 	queueService!: OperationQueueService;
+	themeService!: ThemeService;
 	iconicService!: IconicService;
 	propertyTypeService!: PropertyTypeService;
 	contextMenuService!: ContextMenuService;
@@ -135,6 +138,10 @@ export class VaultmanPlugin extends Plugin {
 		await this.loadSettings();
 		this.opsLogService.setRetention(this.settings.opsLogRetention ?? DEFAULT_OPS_LOG_RETENTION);
 		PerfMeter.mark('vaultman:boot:settings-loaded');
+
+		this.themeService = new ThemeService();
+		this.themeService.hydrate(this.settings.elasticUi ?? DEFAULT_ELASTIC_UI_SETTINGS);
+
 		this.updateGlassBlur();
 
 		const pluginsBefore = snapshotInstalledPlugins(this.app);
@@ -360,6 +367,7 @@ export class VaultmanPlugin extends Plugin {
 		};
 		this.settings.layoutTheme = normalizeLayoutTheme(saved.layoutTheme);
 		this.settings.layout = resolveLayoutSettings(saved.layout);
+		this.settings.elasticUi = normalizeElasticUiSettings(saved.elasticUi);
 
 		if (needsTabLabelMigration) {
 			if (hasSavedTabLabelPref && saved.filtersShowTabLabels === false) {

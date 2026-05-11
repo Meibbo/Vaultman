@@ -23,6 +23,11 @@ import { translate } from '../index/i18n/lang';
 import { getActivePerfProbe } from '../dev/perfProbe';
 import type { BadgeKind } from '../badges/serviceBadge';
 import { serviceMessage } from './serviceMessage';
+import { VfsChain } from './serviceVfsChain';
+import type {
+	ImmutableStagedOp,
+	ImmutableVirtualFileState,
+} from '../types/typeVfsImmutable';
 
 /**
  * Descriptor for an op linked to a UI node, surfaced in the
@@ -165,6 +170,14 @@ export class OperationQueueService extends Component implements IOperationQueue 
 
 	// SvelteMap provides fine-grained reactivity out of the box.
 	readonly transactions = new SvelteMap<string, VirtualFileState>();
+
+	/**
+	 * Parallel chain map for the immutable VFS path (Thread 3 of the UI
+	 * modernization plan). Existing `transactions` stays canonical until
+	 * the strangler cutover completes. New consumers (Diff Navbar, snapshot
+	 * timeline) read from `chains`.
+	 */
+	readonly chains = new SvelteMap<string, VfsChain>();
 
 	// Lock mechanism to prevent race conditions when multiple operations hydrate the same file concurrently.
 	private loadingLocks = new Map<string, Promise<VirtualFileState>>();
@@ -772,6 +785,46 @@ export class OperationQueueService extends Component implements IOperationQueue 
 
 	listTransactions(): VirtualFileState[] {
 		return [...this.transactions.values()];
+	}
+
+	/**
+	 * Open an immutable VFS chain for `path`. Idempotent: returns the
+	 * existing chain if already open.
+	 *
+	 * Coexists with the mutable `transactions` map. The Diff Navbar +
+	 * snapshot timeline consume `chains`; the rest of the queue still
+	 * uses `transactions` until the strangler cutover completes.
+	 */
+	openChain(path: string, initial: ImmutableVirtualFileState): VfsChain {
+		const existing = this.chains.get(path);
+		if (existing) return existing;
+		const chain = new VfsChain(initial);
+		this.chains.set(path, chain);
+		return chain;
+	}
+
+	getChain(path: string): VfsChain | undefined {
+		return this.chains.get(path);
+	}
+
+	/**
+	 * Append an immutable op to the chain for `path`. Throws if no chain
+	 * is open. Returns the new head snapshot.
+	 */
+	stageImmutableOp(path: string, op: ImmutableStagedOp): ImmutableVirtualFileState {
+		const chain = this.chains.get(path);
+		if (!chain) {
+			throw new Error(`No chain for ${path}; call openChain(path, initial) first`);
+		}
+		return chain.appendOp(op);
+	}
+
+	clearChain(path: string): void {
+		this.chains.delete(path);
+	}
+
+	clearAllChains(): void {
+		this.chains.clear();
 	}
 
 	async execute(): Promise<OperationResult> {

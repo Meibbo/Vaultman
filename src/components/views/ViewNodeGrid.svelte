@@ -37,6 +37,7 @@
 		writeManualDndTransfer,
 	} from '../../services/serviceManualDnd';
 	import type { DndDropPosition, DndDropResult } from '../../services/serviceDnd';
+	import type { ThemeService } from '../../services/serviceTheme.svelte';
 
 	const GRID_FALLBACK_WIDTH = 480;
 	const GRID_FALLBACK_HEIGHT = 360;
@@ -76,6 +77,7 @@
 		providerId?: string;
 		manualDndEnabled?: boolean;
 		onManualDrop?: (result: DndDropResult) => void;
+		themeService?: ThemeService;
 		icon: (node: HTMLElement, name: string) => { update(n: string): void };
 	}
 
@@ -103,8 +105,11 @@
 		providerId = 'nodes',
 		manualDndEnabled = false,
 		onManualDrop,
+		themeService = undefined,
 		icon,
 	}: Props = $props();
+
+	const useNativeDom = $derived(themeService?.useNativeDom ?? false);
 
 	function hoverBadgesFor(node: TreeNode): BadgeDescriptor[] {
 		if (!activeOpsByNode) return [];
@@ -570,6 +575,7 @@
 	{@const dndState = manualDndStateFor(node.id)}
 	<div
 		class="vm-node-grid-tile {node.cls ?? ''}"
+		class:nav-file={useNativeDom}
 		class:is-selected={isSelected}
 		class:is-focused={isFocused}
 		class:is-active={isActive}
@@ -616,7 +622,7 @@
 		{:else}
 			<span class="vm-node-grid-icon-placeholder" aria-hidden="true"></span>
 		{/if}
-		<span class="vm-node-grid-label">
+		<span class="vm-node-grid-label" class:nav-file-title={useNativeDom}>
 			{#if node.labelPrefix}<span class="vm-node-grid-label-prefix">{node.labelPrefix}</span
 				>{/if}{node.label}
 		</span>
