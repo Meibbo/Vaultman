@@ -6,6 +6,7 @@ import type { MouseGestureConfig, NodeMouseActionConfig } from '../services/serv
 import { DEFAULT_NODE_MOUSE_ACTIONS } from '../services/serviceMouse';
 import type { OperationScope } from '../services/serviceOperationScope';
 import type { LayoutTheme } from '../services/serviceTheme';
+import { DEFAULT_ELASTIC_UI_SETTINGS, type ElasticUiSettings } from './typeElasticUi';
 
 export type Language = 'auto' | 'en' | 'es';
 export type MouseGestureSurface = 'node' | 'fab' | 'toolbar';
@@ -21,6 +22,8 @@ export interface VaultmanSettings {
 	glassBlurIntensity: number;
 	/** Desaturate accent tokens when the Obsidian workspace, not Vaultman chrome, has focus. */
 	faintAccentsWhenWorkspaceFocused: boolean;
+	/** Elastic UI / Chameleon mode + identity contracts. */
+	elasticUi?: ElasticUiSettings;
 	// after this line these settings are not used
 	//
 	// -----------------------------------------------------------------
@@ -138,6 +141,7 @@ export const DEFAULT_SETTINGS: VaultmanSettings = {
 	islandBackdropBlur: false,
 	glassBlurIntensity: 15,
 	faintAccentsWhenWorkspaceFocused: false,
+	elasticUi: { ...DEFAULT_ELASTIC_UI_SETTINGS },
 	// after this line these settings are not used
 	//
 	// -----------------------------------------------------------------

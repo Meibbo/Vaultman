@@ -39,6 +39,7 @@
 		nodeBadgeTitle,
 		ownNodeBadges,
 	} from './nodeBadgeHelpers';
+	import type { ThemeService } from '../../services/serviceTheme.svelte';
 
 	const DEFAULT_VIEW_SIZE = getViewSizePreset(DEFAULT_VIEW_SIZE_PRESET);
 	const TREE_ROW_HEIGHT = DEFAULT_VIEW_SIZE.treeRowHeight;
@@ -72,6 +73,7 @@
 		scrollTarget?: ScrollTarget | null;
 		mouseGestureConfig?: MouseGestureConfig;
 		sizePresetId?: ViewSizePresetId;
+		themeService?: ThemeService;
 		icon: (node: HTMLElement, name: string) => { update(n: string): void };
 	}
 
@@ -100,8 +102,11 @@
 		scrollTarget = null,
 		mouseGestureConfig,
 		sizePresetId = DEFAULT_VIEW_SIZE_PRESET,
+		themeService = undefined,
 		icon,
 	}: Props = $props();
+
+	const useNativeDom = $derived(themeService?.useNativeDom ?? false);
 
 	function hoverBadgesFor(node: TreeNode): BadgeDescriptor[] {
 		// Hover badges are an opt-in feature. Adapters that have not wired
@@ -502,6 +507,7 @@
 
 			<div
 				class="vm-tree-virtual-row {node.cls ?? ''}"
+				class:tree-item={useNativeDom}
 				class:is-active-filter={isActive}
 				class:is-selected={isSelected}
 				class:is-focused={isFocused}
@@ -521,6 +527,7 @@
 			>
 				<div
 					class="vm-tree-row-surface"
+					class:tree-item-self={useNativeDom}
 					class:is-active-filter={isActive}
 					class:is-selected={isSelected}
 					class:is-focused={isFocused}
@@ -568,7 +575,7 @@
 							use:focus
 						/>
 					{:else}
-						<span class="vm-tree-label">
+						<span class="vm-tree-label" class:tree-item-inner={useNativeDom}>
 							{#if node.labelPrefix}<span class="vm-tree-label-prefix">{node.labelPrefix}</span
 								>{/if}<HighlightText text={node.label} ranges={node.highlights ?? []} />
 						</span>

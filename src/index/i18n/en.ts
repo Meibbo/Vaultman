@@ -388,6 +388,7 @@ export const en: Record<string, string> = {
 	'filter.tab.props': 'Props',
 	'filter.tab.files': 'Files',
 	'filter.tab.content': 'Content',
+	'filter.tab.outline': 'Outline',
 	'content.search.placeholder': 'Search file content…',
 	'content.search.hint': 'Type to search across all files.',
 	'nav.view_mode': 'View mode',

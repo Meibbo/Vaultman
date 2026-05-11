@@ -24,7 +24,7 @@ function vfs(partial: Partial<VirtualFileState>): VirtualFileState {
 	return { ...base, ...partial };
 }
 
-function op(id: string, apply: (v: VirtualFileState) => void): StagedOp {
+function op(id: string, apply: (v: VirtualFileState) => VirtualFileState): StagedOp {
 	return { id, kind: 'set_prop', action: 'set', details: '', apply };
 }
 
@@ -75,12 +75,16 @@ describe('buildOperationDiff', () => {
 			fm: { x: 1, y: 2 },
 			fmInitial: { x: 1 },
 			ops: [
-				op('o1', (s) => {
-					s.fm.helper = 1;
-				}),
+				op('o1', (s) => ({
+					...s,
+					fm: { ...s.fm, helper: 1 },
+				})),
 				op('o2', (s) => {
-					s.fm.y = 2;
-					delete s.fm.helper;
+					const { helper: _helper, ...fm } = s.fm;
+					return {
+						...s,
+						fm: { ...fm, y: 2 },
+					};
 				}),
 			],
 		});

@@ -17,6 +17,26 @@
 	}
 }
 
+// FAB orbiting-ink animation (Task 4.9 step 5).
+// Toggled by adding .vm-fab-processing while the queue is executing.
+// Respects reduced motion through .vm-root.vm-reduced-motion override.
+@keyframes vm-orbiting-ink {
+	from {
+		transform: rotate(0deg);
+	}
+	to {
+		transform: rotate(360deg);
+	}
+}
+
+.vm-fab-processing {
+	animation: vm-orbiting-ink 1.6s linear infinite;
+}
+
+.vm-root.vm-reduced-motion .vm-fab-processing {
+	animation: none;
+}
+
 .vm-search-highlight {
 	animation: vm-search-pulse 0.8s ease-out;
 }

@@ -38,3 +38,4 @@ Esta especificación detalla la transformación de Vaultman en un **Plugin Camal
 - [[10-expansion-visual-logic|Spec 10: Faint Mode & FAB Animations]]
 - [[11-bitsui-mainview-spec|Spec 11: Main View (3-Column Dashboard)]]
 - [[12-interactive-diff-review|Spec 12: Interactive Diff Review & Robust VFS]]
+- [[12-data-layer-vfs-immutability|Spec 12: Data Layer - Interactive Diff Review & Robust VFS]]

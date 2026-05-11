@@ -32,6 +32,7 @@
 		props: 0,
 		files: 0,
 		content: 0,
+		outline: 0,
 	});
 	let filtersFnRState = $state<FnRState>(createFnRState());
 	let filtersOperationScope = $state<OperationScope>(
@@ -61,6 +62,8 @@
 				return 'tags';
 			case 'content':
 				return 'content';
+			case 'explorer-outline':
+				return 'outline';
 			case 'explorer-props':
 			case 'explorer-values':
 			default:
@@ -73,6 +76,7 @@
 			tabId === 'explorer-tags' ||
 			tabId === 'explorer-props' ||
 			tabId === 'explorer-values' ||
+			tabId === 'explorer-outline' ||
 			tabId === 'content',
 	);
 </script>

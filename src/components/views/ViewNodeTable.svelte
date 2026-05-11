@@ -13,6 +13,12 @@
 	} from '../../services/serviceMouse';
 	import type { NodeBadge } from '../../types/typeNode';
 	import {
+		createTextMeasureService,
+		fallbackTextMeasureEngine,
+		type TextMeasureService,
+		type TextMeasureStyle,
+	} from '../../services/serviceTextMeasure';
+	import {
 		handleNodeBadgePress,
 		nodeBadgeAriaLabel,
 		nodeBadgeIsActionable,
@@ -27,12 +33,8 @@
 		nodeRowMeasureStyleKey,
 		resolveNodeRowMeasureStyle,
 	} from '../../services/serviceNodeRowStyle';
-	import {
-		createTextMeasureService,
-		fallbackTextMeasureEngine,
-		type TextMeasureStyle,
-	} from '../../services/serviceTextMeasure';
 	import { boundedElementViewportRect } from '../../services/serviceScroll';
+	import type { ThemeService } from '../../services/serviceTheme.svelte';
 
 	const TABLE_ROW_HEIGHT = 32;
 	const TABLE_OVERSCAN = 14;
@@ -42,6 +44,7 @@
 	const TABLE_LABEL_SELECTOR = '.vm-node-table-primary';
 	const EMPTY_SELECTED_IDS: ReadonlySet<string> = new Set();
 	type ScrollTarget = { id: string; serial: number };
+	type TableMeasureService = NodeRowMeasureService | TextMeasureService;
 
 	interface Props<TNode extends NodeBase = NodeBase> {
 		rows: ViewRow<TNode>[];
@@ -60,7 +63,9 @@
 		onBadgeDoubleClick?: (queueIndex: number) => void;
 		scrollTarget?: ScrollTarget | null;
 		mouseGestureConfig?: MouseGestureConfig;
-		measure?: NodeRowMeasureService;
+		measure?: TableMeasureService;
+		themeService?: ThemeService;
+		columnWidth?: number;
 		icon: (node: HTMLElement, name: string) => { update(n: string): void };
 	}
 
@@ -82,10 +87,13 @@
 		scrollTarget = null,
 		mouseGestureConfig,
 		measure = createNodeRowMeasureService(),
+		themeService = undefined,
+		columnWidth = undefined,
 		icon,
 	}: Props<TNode> = $props();
 
 	let outerEl: HTMLDivElement | undefined = $state();
+	let tableWidth = $state(TABLE_FALLBACK_WIDTH);
 	let sorting: SortingState = $state([]);
 	let gpuReadyMarked = false;
 	let tableLabelWidth = $state(TABLE_FALLBACK_WIDTH);
@@ -98,12 +106,14 @@
 	const nodeMouseConfig = $derived(
 		mergeMouseGestureConfig(NODE_MOUSE_GESTURE_CONFIG, mouseGestureConfig),
 	);
+	const useNativeDom = $derived(themeService?.useNativeDom ?? false);
 
 	$effect(() => () => mouse.cancelAll());
 
 	const tableRows = $derived(sortRows(rows, columns, sorting));
+	const effectiveTableLabelWidth = $derived(columnWidth ?? tableLabelWidth);
 	const tableMeasureRevision = $derived(
-		`${nodeRowMeasureStyleKey(tableMeasureStyle)}:${columns.length}:${tableRows.length}:${tableLabelWidth}`,
+		`${nodeRowMeasureStyleKey(tableMeasureStyle)}:${columns.length}:${tableRows.length}:${effectiveTableLabelWidth}`,
 	);
 	const columnTemplate = $derived(
 		columns
@@ -121,19 +131,34 @@
 	});
 	const virtualRows = $derived($rowVirtualizer.getVirtualItems());
 	const renderedRows = $derived.by(() => {
+		const measuredRows = measuredTableRows;
 		const visibleRows = virtualRows
 			.filter((row) => row.index < tableRows.length)
-			.map((row) => ({ key: row.key, index: row.index, start: row.start }));
+			.map((row) => ({
+				key: row.key,
+				index: row.index,
+				start: tableRowTopFromMap(measuredRows, row.index),
+				size: tableEstimateSizeFromMap(measuredRows, row.index),
+			}));
 		if (visibleRows.length > 0 || tableRows.length === 0) return visibleRows;
 		return fallbackRenderedRows(tableRows, measuredTableRows);
 	});
-	const totalHeight = $derived($rowVirtualizer.getTotalSize());
+	const totalHeight = $derived(
+		Math.max(
+			$rowVirtualizer.getTotalSize(),
+			tableRows.reduce(
+				(height, row) => height + (measuredTableRows.get(row.id) ?? TABLE_ROW_HEIGHT),
+				0,
+			),
+		),
+	);
 
 	$effect(() => {
 		const count = tableRows.length;
 		const rows = tableRows;
 		const measuredRows = measuredTableRows;
 		const scrollElement = outerEl;
+		const width = tableWidth;
 		untrack(() =>
 			$rowVirtualizer.setOptions({
 				count,
@@ -143,7 +168,7 @@
 					rows[index] ? measuredRows.get(rows[index].id) ?? TABLE_ROW_HEIGHT : TABLE_ROW_HEIGHT,
 				observeElementRect: observeTableRect,
 				overscan: TABLE_OVERSCAN,
-				initialRect: { width: TABLE_FALLBACK_WIDTH, height: TABLE_FALLBACK_HEIGHT },
+				initialRect: { width, height: TABLE_FALLBACK_HEIGHT },
 			}),
 		);
 	});
@@ -153,7 +178,7 @@
 		const visibleRows = virtualRows.filter((row) => row.index < rows.length);
 		const labelColumn = columns.find((column) => column.id === 'label') ?? columns[0];
 		const revision = tableMeasureRevision;
-		const width = tableLabelWidth;
+		const width = effectiveTableLabelWidth;
 		const style = tableMeasureStyle;
 
 		untrack(() => {
@@ -168,15 +193,7 @@
 					for (const virtualRow of visibleRows) {
 						const row = rows[virtualRow.index];
 						if (!row) continue;
-						const height = measure.measure({
-							id: row.id,
-							text: labelColumn ? cellDisplay(row, labelColumn) : row.label,
-							width,
-							minHeight: TABLE_ROW_HEIGHT,
-							paddingBlock: TABLE_ROW_PADDING_BLOCK,
-							style,
-							revision,
-						});
+						const height = measureTableRowHeight(row, labelColumn, width, style, revision);
 						if (next.get(row.id) !== height) {
 							next.set(row.id, height);
 							changed = true;
@@ -295,7 +312,9 @@
 		cb: (rect: Rect) => void,
 	): () => void {
 		const emit = () => {
-			cb(tableViewportRect());
+			const rect = tableViewportRect();
+			if (rect.width !== tableWidth) tableWidth = rect.width;
+			cb(rect);
 		};
 		emit();
 		if (!outerEl || typeof ResizeObserver === 'undefined') return () => {};
@@ -398,34 +417,58 @@
 	}
 
 	function tableEstimateSize(index: number): number {
+		return tableEstimateSizeFromMap(measuredTableRows, index);
+	}
+
+	function tableEstimateSizeFromMap(
+		measuredRows: ReadonlyMap<string, number>,
+		index: number,
+	): number {
 		const row = tableRows[index];
-		return row ? measuredTableRows.get(row.id) ?? TABLE_ROW_HEIGHT : TABLE_ROW_HEIGHT;
+		return row ? measuredRows.get(row.id) ?? TABLE_ROW_HEIGHT : TABLE_ROW_HEIGHT;
 	}
 
 	function tableRowTop(rowIndex: number): number {
+		return tableRowTopFromMap(measuredTableRows, rowIndex);
+	}
+
+	function tableRowTopFromMap(measuredRows: ReadonlyMap<string, number>, rowIndex: number): number {
 		let top = 0;
 		for (let index = 0; index < rowIndex; index += 1) {
-			top += tableEstimateSize(index);
+			top += tableEstimateSizeFromMap(measuredRows, index);
 		}
 		return top;
 	}
 
 	function fallbackRenderedRows(
-		rows: readonly { id: string }[],
+		rows: readonly ViewRow<TNode>[],
 		measuredRows: ReadonlyMap<string, number>,
 	): {
 		key: string;
 		index: number;
 		start: number;
+		size: number;
 	}[] {
 		const visibleCount = Math.min(
 			rows.length,
 			Math.ceil(TABLE_FALLBACK_HEIGHT / TABLE_ROW_HEIGHT) + TABLE_OVERSCAN * 2,
 		);
+		const labelColumn = columns.find((column) => column.id === 'label') ?? columns[0];
+		const width = effectiveTableLabelWidth;
+		const style = tableMeasureStyle;
+		const revision = tableMeasureRevision;
 		let start = 0;
 		return rows.slice(0, visibleCount).map((row, index) => {
-			const out = { key: row.id, index, start };
-			start += measuredRows.get(row.id) ?? TABLE_ROW_HEIGHT;
+			const size =
+				measuredRows.get(row.id) ??
+				measureTableRowHeight(row, labelColumn, width, style, revision);
+			const out = {
+				key: row.id,
+				index,
+				start,
+				size,
+			};
+			start += size;
 			return out;
 		});
 	}
@@ -469,6 +512,37 @@
 			return String(value);
 		}
 		return '';
+	}
+
+	function measureTableRowHeight(
+		row: ViewRow<TNode>,
+		labelColumn: ViewColumn<TNode> | undefined,
+		width: number,
+		style: TextMeasureStyle,
+		revision: string,
+	): number {
+		const text = labelColumn ? cellDisplay(row, labelColumn) : row.label;
+		if (isTextMeasureService(measure)) {
+			return measure.measureRowHeight(text, {
+				width,
+				style,
+				padding: TABLE_ROW_PADDING_BLOCK,
+				minHeight: TABLE_ROW_HEIGHT,
+			});
+		}
+		return measure.measure({
+			id: row.id,
+			text,
+			width,
+			minHeight: TABLE_ROW_HEIGHT,
+			paddingBlock: TABLE_ROW_PADDING_BLOCK,
+			style,
+			revision,
+		});
+	}
+
+	function isTextMeasureService(service: TableMeasureService): service is TextMeasureService {
+		return 'measureRowHeight' in service;
 	}
 
 	function createNodeRowMeasureService(): NodeRowMeasureService {
@@ -537,6 +611,7 @@
 				{@const directBadges = rowBadges(row)}
 				<div
 					class="vm-node-table-row {row.cls ?? ''}"
+					class:nav-file={useNativeDom}
 					class:is-selected={isSelected}
 					class:is-focused={isFocused}
 					class:is-active-node={isActive}
@@ -545,12 +620,16 @@
 					tabindex="0"
 					aria-selected={isSelected}
 					style:--vm-node-table-y={`${virtualRow.start}px`}
+					style:--vm-node-table-row-h={`${virtualRow.size}px`}
 				>
 					{#each columns as column (column.id)}
 						{@const dataCellId = cellDataId(row, column.id)}
 						{@const display = cellDisplay(row, column)}
 						<div
 							class="vm-node-table-cell"
+							class:is-label-cell={column.id === 'label'}
+							class:metadata-property={useNativeDom}
+							class:metadata-property-key={useNativeDom && column.id === 'label'}
 							role="gridcell"
 							data-vm-table-cell={dataCellId}
 						>
@@ -558,7 +637,11 @@
 								{#if row.icon}
 									<span class="vm-node-table-icon" use:icon={row.icon}></span>
 								{/if}
-								<span class="vm-node-table-primary" data-vm-table-primary>
+								<span
+									class="vm-node-table-primary"
+									class:nav-file-title={useNativeDom}
+									data-vm-table-primary
+								>
 									{display}
 								</span>
 								{#if directBadges.length > 0}

@@ -30,6 +30,11 @@ export const FTabs: TabConfig[] = [
 		icon: 'lucide-text-cursor-input',
 		labelKey: 'filter.tab.content',
 	},
+	{
+		id: 'outline',
+		icon: 'lucide-list-tree',
+		labelKey: 'filter.tab.outline',
+	},
 ] as const;
 
 export type FilTab = (typeof FTabs)[number]['id'];

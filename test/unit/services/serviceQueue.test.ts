@@ -202,6 +202,21 @@ describe('OperationQueueService.add (property set)', () => {
 		expect(svc.getTransaction(file.path)?.bodyLoaded).toBe(false);
 		expect(svc.getTransaction(file.path)?.fm.author).toBe('Alice');
 	});
+
+	it('replaces transaction snapshots instead of mutating previous staged state', async () => {
+		const { svc, file } = setupAppWithFile();
+		await svc.addAsync(buildPropChange(file, 'author', 'Alice'));
+		const first = svc.getTransaction(file.path)!;
+		const firstFm = first.fm;
+
+		await svc.addAsync(buildPropChange(file, 'version', '1.0'));
+		const second = svc.getTransaction(file.path)!;
+
+		expect(second).not.toBe(first);
+		expect(firstFm).toMatchObject({ status: 'draft', author: 'Alice' });
+		expect(firstFm.version).toBeUndefined();
+		expect(second.fm).toMatchObject({ status: 'draft', author: 'Alice', version: '1.0' });
+	});
 });
 
 describe('OperationQueueService.addBatch', () => {
@@ -413,6 +428,23 @@ describe('OperationQueueService.removeOp', () => {
 		expect('x' in after.fm).toBe(false);
 		expect('y' in after.fm).toBe(true);
 		expect(svc.opCount).toBe(1);
+	});
+
+	it('removeOp leaves the previous staged transaction snapshot unchanged', async () => {
+		const { svc, file } = setupAppWithFile();
+		await svc.addAsync(buildPropChange(file, 'x', '1'));
+		await svc.addAsync(buildPropChange(file, 'y', '2'));
+		const before = svc.getTransaction(file.path)!;
+		const beforeFm = before.fm;
+		const firstOpId = before.ops[0].id;
+
+		svc.removeOp(file.path, firstOpId);
+		const after = svc.getTransaction(file.path)!;
+
+		expect(after).not.toBe(before);
+		expect(beforeFm).toMatchObject({ status: 'draft', x: '1', y: '2' });
+		expect(after.fm).toMatchObject({ status: 'draft', y: '2' });
+		expect(after.fm.x).toBeUndefined();
 	});
 
 	it('drops the entire VFS when the last op is removed', async () => {

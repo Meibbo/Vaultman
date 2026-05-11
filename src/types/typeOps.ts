@@ -1,4 +1,8 @@
 import { TFile } from 'obsidian';
+import type {
+	ImmutableStagedOp,
+	ImmutableVirtualFileState,
+} from './typeVfsImmutable';
 
 /** Special return keys for logicFunc — signal non-standard operations */
 export const DELETE_PROP = '_DELETE_PROP';
@@ -36,28 +40,13 @@ export type OpKind =
 	| 'add_tag'
 	| 'append_links';
 
-export interface VirtualFileState {
-	file: TFile;
-	originalPath: string;
-	newPath?: string;
-	deleted?: boolean;
-	fm: Record<string, unknown>;
-	body: string;
-	ops: StagedOp[];
-	readonly fmInitial: Record<string, unknown>;
-	readonly bodyInitial: string;
-	bodyLoaded: boolean;
+export interface VirtualFileState extends Omit<ImmutableVirtualFileState, 'ops'> {
+	readonly ops: readonly StagedOp[];
 }
 
-export interface StagedOp {
-	id: string;
-	changeId?: string;
-	property?: string;
-	tag?: string;
-	kind: OpKind;
-	action: string;
-	details: string;
-	apply: (vfs: VirtualFileState) => void;
+export interface StagedOp extends Omit<ImmutableStagedOp, 'apply' | 'kind'> {
+	readonly kind: OpKind;
+	readonly apply: (vfs: VirtualFileState) => VirtualFileState;
 }
 
 /** Common fields for all queued operations */

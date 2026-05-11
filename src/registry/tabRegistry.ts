@@ -18,6 +18,7 @@ export type TabId =
 	| 'explorer-props'
 	| 'explorer-values'
 	| 'content'
+	| 'explorer-outline'
 	| 'page-tools'
 	| 'queue';
 
@@ -27,6 +28,7 @@ export const DETACHABLE: ReadonlySet<TabId> = new Set<TabId>([
 	'explorer-props',
 	'explorer-values',
 	'content',
+	'explorer-outline',
 	'page-tools',
 	'queue',
 ]);
@@ -37,6 +39,7 @@ export const ALL_TAB_IDS: ReadonlyArray<TabId> = [
 	'explorer-props',
 	'explorer-values',
 	'content',
+	'explorer-outline',
 	'page-tools',
 	'queue',
 ];
@@ -68,6 +71,8 @@ export function tabIdFromInner(inner: string): TabId | null {
 			return 'explorer-values';
 		case 'content':
 			return 'content';
+		case 'outline':
+			return 'explorer-outline';
 		case 'tools':
 		case 'page-tools':
 			return 'page-tools';
@@ -91,6 +96,8 @@ export function innerFromTabId(tabId: TabId): string {
 			return 'values';
 		case 'content':
 			return 'content';
+		case 'explorer-outline':
+			return 'outline';
 		case 'page-tools':
 			return 'page-tools';
 		case 'queue':

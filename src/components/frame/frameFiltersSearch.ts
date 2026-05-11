@@ -1,4 +1,4 @@
-export type FiltersSearchTab = 'props' | 'files' | 'tags' | 'content';
+export type FiltersSearchTab = 'props' | 'files' | 'tags' | 'content' | 'outline';
 
 export type FiltersSearchHistoryState = Record<FiltersSearchTab, string[]>;
 
@@ -12,11 +12,13 @@ export function createFiltersSearchState(): FiltersSearchState {
 		files: '',
 		tags: '',
 		content: '',
+		outline: '',
 		history: {
 			props: [],
 			files: [],
 			tags: [],
 			content: [],
+			outline: [],
 		},
 	};
 }

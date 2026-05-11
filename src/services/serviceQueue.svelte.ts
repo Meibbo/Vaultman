@@ -23,6 +23,11 @@ import { translate } from '../index/i18n/lang';
 import { getActivePerfProbe } from '../dev/perfProbe';
 import type { BadgeKind } from '../badges/serviceBadge';
 import { serviceMessage } from './serviceMessage';
+import { VfsChain } from './serviceVfsChain';
+import type {
+	ImmutableStagedOp,
+	ImmutableVirtualFileState,
+} from '../types/typeVfsImmutable';
 
 /**
  * Descriptor for an op linked to a UI node, surfaced in the
@@ -165,6 +170,14 @@ export class OperationQueueService extends Component implements IOperationQueue 
 
 	// SvelteMap provides fine-grained reactivity out of the box.
 	readonly transactions = new SvelteMap<string, VirtualFileState>();
+
+	/**
+	 * Parallel chain map for the immutable VFS path (Thread 3 of the UI
+	 * modernization plan). Existing `transactions` stays canonical until
+	 * the strangler cutover completes. New consumers (Diff Navbar, snapshot
+	 * timeline) read from `chains`.
+	 */
+	readonly chains = new SvelteMap<string, VfsChain>();
 
 	// Lock mechanism to prevent race conditions when multiple operations hydrate the same file concurrently.
 	private loadingLocks = new Map<string, Promise<VirtualFileState>>();
@@ -364,8 +377,7 @@ export class OperationQueueService extends Component implements IOperationQueue 
 
 		const promise = Promise.resolve().then(async () => {
 			try {
-				await this.hydrateBody(vfs);
-				return vfs;
+				return await this.hydrateBody(vfs);
 			} finally {
 				this.loadingLocks.delete(key);
 			}
@@ -375,12 +387,17 @@ export class OperationQueueService extends Component implements IOperationQueue 
 		return promise;
 	}
 
-	private async hydrateBody(vfs: VirtualFileState): Promise<void> {
+	private async hydrateBody(vfs: VirtualFileState): Promise<VirtualFileState> {
 		const content = await this.app.vault.read(vfs.file);
 		const { body } = splitYamlBody(content);
-		(vfs as { bodyInitial: string }).bodyInitial = body;
-		vfs.body = body;
-		vfs.bodyLoaded = true;
+		const hydrated: VirtualFileState = {
+			...vfs,
+			body,
+			bodyInitial: body,
+			bodyLoaded: true,
+		};
+		this.transactions.set(vfs.originalPath, hydrated);
+		return hydrated;
 	}
 
 	add(change: PendingChange): void {
@@ -473,12 +490,18 @@ export class OperationQueueService extends Component implements IOperationQueue 
 		updates: Record<string, unknown>,
 		changeId: string,
 	): void {
+		let current = this.transactions.get(vfs.originalPath) ?? vfs;
 		for (const [key, value] of Object.entries(updates)) {
-			const op = this.translateUpdate(vfs, change, key, value, changeId);
+			const op = this.translateUpdate(current, change, key, value, changeId);
 			if (!op) continue;
-			vfs.ops.push(op);
-			op.apply(vfs);
+			current = this.applyTransactionOp(current, op);
 		}
+	}
+
+	private applyTransactionOp(vfs: VirtualFileState, op: StagedOp): VirtualFileState {
+		const next = op.apply({ ...vfs, ops: [...vfs.ops, op] });
+		this.transactions.set(vfs.originalPath, next);
+		return next;
 	}
 
 	private translateUpdate(
@@ -502,7 +525,9 @@ export class OperationQueueService extends Component implements IOperationQueue 
 				action,
 				details,
 				apply: (v) => {
-					delete v.fm[propName];
+					const fm = { ...v.fm };
+					delete fm[propName];
+					return { ...v, fm };
 				},
 			};
 		}
@@ -516,9 +541,10 @@ export class OperationQueueService extends Component implements IOperationQueue 
 				details,
 				apply: (v) => {
 					const copy = { ...v.fm };
-					for (const k of Object.keys(v.fm)) delete v.fm[k];
-					for (const k of ordered) if (k in copy) v.fm[k] = copy[k];
-					for (const k of Object.keys(copy)) if (!(k in v.fm)) v.fm[k] = copy[k];
+					const fm: Record<string, unknown> = {};
+					for (const k of ordered) if (k in copy) fm[k] = copy[k];
+					for (const k of Object.keys(copy)) if (!(k in fm)) fm[k] = copy[k];
+					return { ...v, fm };
 				},
 			};
 		}
@@ -531,7 +557,7 @@ export class OperationQueueService extends Component implements IOperationQueue 
 				action,
 				details,
 				apply: (v) => {
-					v.newPath = v.originalPath.replace(v.file.name, newName);
+					return { ...v, newPath: v.originalPath.replace(v.file.name, newName) };
 				},
 			};
 		}
@@ -544,7 +570,7 @@ export class OperationQueueService extends Component implements IOperationQueue 
 				action,
 				details,
 				apply: (v) => {
-					v.newPath = targetFolder ? `${targetFolder}/${v.file.name}` : v.file.name;
+					return { ...v, newPath: targetFolder ? `${targetFolder}/${v.file.name}` : v.file.name };
 				},
 			};
 		}
@@ -556,7 +582,7 @@ export class OperationQueueService extends Component implements IOperationQueue 
 				action,
 				details,
 				apply: (v) => {
-					v.deleted = true;
+					return { ...v, deleted: true };
 				},
 			};
 		}
@@ -577,7 +603,7 @@ export class OperationQueueService extends Component implements IOperationQueue 
 				action,
 				details,
 				apply: (v) => {
-					v.body = v.body.replace(rx, replacement);
+					return { ...v, body: v.body.replace(rx, replacement) };
 				},
 			};
 		}
@@ -592,9 +618,9 @@ export class OperationQueueService extends Component implements IOperationQueue 
 				apply: (v) => {
 					const existing = v.body;
 					const missing = links.filter((link) => !existing.includes(link));
-					if (missing.length === 0) return;
+					if (missing.length === 0) return v;
 					const sep = existing.length === 0 || existing.endsWith('\n') ? '' : '\n';
-					v.body = `${existing}${sep}${missing.join('\n')}\n`;
+					return { ...v, body: `${existing}${sep}${missing.join('\n')}\n` };
 				},
 			};
 		}
@@ -607,7 +633,7 @@ export class OperationQueueService extends Component implements IOperationQueue 
 				action,
 				details,
 				apply: (v) => {
-					v.body = v.body + '\n\n' + templateContent;
+					return { ...v, body: v.body + '\n\n' + templateContent };
 				},
 			};
 		}
@@ -623,7 +649,7 @@ export class OperationQueueService extends Component implements IOperationQueue 
 				action,
 				details,
 				apply: (v) => {
-					v.fm.tags = value;
+					return { ...v, fm: { ...v.fm, tags: value } };
 				},
 			};
 		}
@@ -635,7 +661,7 @@ export class OperationQueueService extends Component implements IOperationQueue 
 			action,
 			details,
 			apply: (v) => {
-				v.fm[key] = value;
+				return { ...v, fm: { ...v.fm, [key]: value } };
 			},
 		};
 	}
@@ -682,13 +708,14 @@ export class OperationQueueService extends Component implements IOperationQueue 
 				details: `${oldName} → ${newName}`,
 				apply: (v) => {
 					if (oldName in v.fm) {
-						v.fm[newName] = v.fm[oldName];
-						delete v.fm[oldName];
+						const fm = { ...v.fm, [newName]: v.fm[oldName] };
+						delete fm[oldName];
+						return { ...v, fm };
 					}
+					return v;
 				},
 			};
-			vfs.ops.push(op);
-			op.apply(vfs);
+			vfs = this.applyTransactionOp(vfs, op);
 		}
 	}
 
@@ -731,15 +758,27 @@ export class OperationQueueService extends Component implements IOperationQueue 
 		if (filtered.length === 0) {
 			this.transactions.delete(path);
 		} else {
-			vfs.fm = { ...vfs.fmInitial };
-			vfs.body = vfs.bodyInitial;
-			vfs.newPath = undefined;
-			vfs.deleted = false;
-			vfs.ops = filtered;
-			for (const op of vfs.ops) op.apply(vfs);
-			this.transactions.set(path, vfs);
+			this.transactions.set(path, this.replayTransactionOps(vfs, filtered));
 		}
 		if (!_silent) this.emitChanged();
+	}
+
+	private replayTransactionOps(
+		vfs: VirtualFileState,
+		ops: readonly StagedOp[],
+	): VirtualFileState {
+		let next: VirtualFileState = {
+			...vfs,
+			newPath: undefined,
+			deleted: false,
+			fm: { ...vfs.fmInitial },
+			body: vfs.bodyInitial,
+			ops: [],
+		};
+		for (const op of ops) {
+			next = op.apply({ ...next, ops: [...next.ops, op] });
+		}
+		return next;
 	}
 
 	get fileCount(): number {
@@ -772,6 +811,46 @@ export class OperationQueueService extends Component implements IOperationQueue 
 
 	listTransactions(): VirtualFileState[] {
 		return [...this.transactions.values()];
+	}
+
+	/**
+	 * Open an immutable VFS chain for `path`. Idempotent: returns the
+	 * existing chain if already open.
+	 *
+	 * Coexists with the mutable `transactions` map. The Diff Navbar +
+	 * snapshot timeline consume `chains`; the rest of the queue still
+	 * uses `transactions` until the strangler cutover completes.
+	 */
+	openChain(path: string, initial: ImmutableVirtualFileState): VfsChain {
+		const existing = this.chains.get(path);
+		if (existing) return existing;
+		const chain = new VfsChain(initial);
+		this.chains.set(path, chain);
+		return chain;
+	}
+
+	getChain(path: string): VfsChain | undefined {
+		return this.chains.get(path);
+	}
+
+	/**
+	 * Append an immutable op to the chain for `path`. Throws if no chain
+	 * is open. Returns the new head snapshot.
+	 */
+	stageImmutableOp(path: string, op: ImmutableStagedOp): ImmutableVirtualFileState {
+		const chain = this.chains.get(path);
+		if (!chain) {
+			throw new Error(`No chain for ${path}; call openChain(path, initial) first`);
+		}
+		return chain.appendOp(op);
+	}
+
+	clearChain(path: string): void {
+		this.chains.delete(path);
+	}
+
+	clearAllChains(): void {
+		this.chains.clear();
 	}
 
 	async execute(): Promise<OperationResult> {
@@ -841,7 +920,7 @@ export class OperationQueueService extends Component implements IOperationQueue 
 
 	private applyOpsToRawContent(currentContent: string, vfs: VirtualFileState): string {
 		const { fm, body } = splitYamlBody(currentContent);
-		const scratch: VirtualFileState = {
+		let scratch: VirtualFileState = {
 			...vfs,
 			fm: { ...fm },
 			body,
@@ -850,7 +929,9 @@ export class OperationQueueService extends Component implements IOperationQueue 
 			bodyLoaded: true,
 			ops: [],
 		};
-		for (const op of vfs.ops) op.apply(scratch);
+		for (const op of vfs.ops) {
+			scratch = op.apply({ ...scratch, ops: [...scratch.ops, op] });
+		}
 		return serializeFile(scratch.fm, scratch.body);
 	}
 

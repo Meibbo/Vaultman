@@ -90,7 +90,7 @@ export function buildDiff(txs: Map<string, VirtualFileState>): FileDiff[] {
 	return [...txs.values()].map(buildFileDiff);
 }
 
-function cloneState(vfs: VirtualFileState) {
+function cloneState(vfs: VirtualFileState): VirtualFileState {
 	return {
 		file: vfs.file,
 		originalPath: vfs.originalPath,
@@ -104,6 +104,10 @@ function cloneState(vfs: VirtualFileState) {
 	};
 }
 
+function applyOpSnapshot(vfs: VirtualFileState, op: VirtualFileState['ops'][number]): VirtualFileState {
+	return op.apply({ ...vfs, ops: [...vfs.ops, op] });
+}
+
 export function buildOperationDiff(
 	txs: Map<string, VirtualFileState>,
 	context: OperationDiffContext,
@@ -115,18 +119,13 @@ export function buildOperationDiff(
 	if (opIndex < 0) return null;
 
 	const selectedOp = vfs.ops[opIndex];
-	const before = cloneState(vfs);
+	let before = cloneState(vfs);
 
 	for (let i = 0; i < opIndex; i++) {
-		vfs.ops[i].apply(before);
+		before = applyOpSnapshot(before, vfs.ops[i]);
 	}
 
-	const after = {
-		...before,
-		fm: { ...before.fm },
-		body: before.body,
-	};
-	selectedOp.apply(after);
+	const after = applyOpSnapshot(before, selectedOp);
 
 	const fmBefore = cloneFm(before.fm);
 	const fmAfter = cloneFm(after.fm);

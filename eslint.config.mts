@@ -2,6 +2,7 @@ import tseslint from 'typescript-eslint';
 import obsidianmd from 'eslint-plugin-obsidianmd';
 import globals from 'globals';
 import oxlint from 'eslint-plugin-oxlint';
+import noMutableVfs from './eslint-rules/no-mutable-vfs.mjs';
 
 export default tseslint.config(
 	{
@@ -41,7 +42,7 @@ export default tseslint.config(
 			},
 			parserOptions: {
 				projectService: {
-					allowDefaultProject: ['eslint.config.mts', 'manifest.json'],
+					allowDefaultProject: ['eslint.config.mts', 'manifest.json', 'uno.config.ts'],
 				},
 				tsconfigRootDir: import.meta.dirname,
 				extraFileExtensions: ['.json'],
@@ -80,6 +81,19 @@ export default tseslint.config(
 		files: ['package.json'],
 		rules: {
 			'depend/ban-dependencies': 'off',
+		},
+	},
+	{
+		files: ['src/**/*.ts'],
+		plugins: {
+			'vaultman-local': {
+				rules: {
+					'no-mutable-vfs': noMutableVfs,
+				},
+			},
+		},
+		rules: {
+			'vaultman-local/no-mutable-vfs': 'error',
 		},
 	},
 	// Disable ESLint rules already covered by Oxlint (avoids duplicate warnings)

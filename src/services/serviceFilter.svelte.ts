@@ -240,6 +240,24 @@ export class FilterService implements IFilterService {
 		return rules;
 	}
 
+	addIsInFolderFilter(folder: { path: string; name: string }): void {
+		const path = folder.path.trim().replace(/^\/+|\/+$/g, '');
+		if (!path) return;
+		const id = `folder:${path}`;
+		const existing = this.activeFilter.children.find(
+			(node) => node.type === 'rule' && node.id === id,
+		);
+		if (existing) return;
+		this.addNode({
+			type: 'rule',
+			filterType: 'folder',
+			property: 'file.folder',
+			values: [path],
+			id,
+			enabled: true,
+		});
+	}
+
 	clearSearchFilter(kind: 'name' | 'folder' | 'all' = 'all'): void {
 		const nextName = kind === 'folder' ? this._searchName : '';
 		const nextFolder = kind === 'name' ? this._searchFolder : '';
@@ -288,7 +306,9 @@ export class FilterService implements IFilterService {
 						desc = `File: ${node.values[0]}`;
 						break;
 					case 'folder':
-						desc = `In folder: ${node.values[0]}`;
+						desc = node.id?.startsWith('folder:')
+							? `is in folder ${node.values[0]}`
+							: `In folder: ${node.values[0]}`;
 						break;
 					case 'file_folder':
 						desc = `Folder contains: ${node.values[0]}`;

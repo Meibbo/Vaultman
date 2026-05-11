@@ -51,6 +51,7 @@
 		type TextMeasureStyle,
 	} from '../../services/serviceTextMeasure';
 	import { boundedElementViewportRect } from '../../services/serviceScroll';
+	import type { ThemeService } from '../../services/serviceTheme.svelte';
 
 	const GRID_FALLBACK_WIDTH = 480;
 	const GRID_FALLBACK_HEIGHT = 360;
@@ -94,6 +95,7 @@
 		manualDndEnabled?: boolean;
 		onManualDrop?: (result: DndDropResult) => void;
 		measure?: NodeRowMeasureService;
+		themeService?: ThemeService;
 		icon: (node: HTMLElement, name: string) => { update(n: string): void };
 	}
 
@@ -123,8 +125,11 @@
 		manualDndEnabled = false,
 		onManualDrop,
 		measure = createNodeRowMeasureService(),
+		themeService = undefined,
 		icon,
 	}: Props = $props();
+
+	const useNativeDom = $derived(themeService?.useNativeDom ?? false);
 
 	function hoverBadgesFor(node: TreeNode): BadgeDescriptor[] {
 		if (!activeOpsByNode) return [];
@@ -211,7 +216,12 @@
 	});
 	const virtualRows = $derived($rowVirtualizer.getVirtualItems());
 	const renderedRows = $derived.by(() => {
-		const rows = virtualRows.filter((row) => row.index < gridRows.length);
+		const rows = virtualRows
+			.filter((row) => row.index < gridRows.length)
+			.map((row) => ({
+				...row,
+				renderKey: gridRenderRowKey(gridRows, row.index),
+			}));
 		if (rows.length > 0 || gridRows.length === 0) return rows;
 		return fallbackGridRows(gridRows);
 	});
@@ -666,7 +676,7 @@
 		for (let index = 0; index < items.length; index += safeColumns) {
 			const rowNodes = items.slice(index, index + safeColumns);
 			rows.push({
-				key: rowNodes[0]?.id ?? `row-${index}`,
+				key: rowNodes.map((node) => node.id).join('\u0000') || `row-${index}`,
 				nodes: rowNodes,
 				height: gridRowHeight(rowNodes, safeColumns, mode, expanded),
 			});
@@ -720,11 +730,15 @@
 	}
 
 	function inlineRowKey(rowNodes: TreeNode[], rowIndex: number): string {
-		return rowNodes[0]?.id ?? `row-${rowIndex}`;
+		return `${rowIndex}:${rowNodes.map((node) => node.id).join('\u0000')}`;
 	}
 
 	function gridVirtualRowKey(rows: readonly GridRow[], index: number): string | number {
 		return rows[index]?.key ?? index;
+	}
+
+	function gridRenderRowKey(rows: readonly GridRow[], index: number): string | number {
+		return rows[index]?.nodes[0]?.id ?? gridVirtualRowKey(rows, index);
 	}
 
 	function gridEstimateSize(index: number): number {
@@ -753,11 +767,16 @@
 			}
 			top = bottom + viewSize.gap;
 		}
-		const out: Array<{ index: number; key: string | number; start: number }> = [];
+		const out: Array<{ index: number; key: string | number; renderKey: string | number; start: number }> = [];
 		let start = 0;
 		for (let index = 0; index < rows.length; index += 1) {
 			if (index >= startIndex && start <= scrollTop + viewportHeight + GRID_OVERSCAN * gridRowBaseHeight) {
-				out.push({ index, key: gridVirtualRowKey(rows, index), start });
+				out.push({
+					index,
+					key: gridVirtualRowKey(rows, index),
+					renderKey: gridRenderRowKey(rows, index),
+					start,
+				});
 			}
 			start += (gridMeasuredRowHeights.get(rows[index].key) ?? rows[index].height) + viewSize.gap;
 		}
@@ -790,6 +809,7 @@
 	{@const dndState = manualDndStateFor(node.id)}
 	<div
 		class="vm-node-grid-tile {node.cls ?? ''}"
+		class:nav-file={useNativeDom}
 		class:is-selected={isSelected}
 		class:is-focused={isFocused}
 		class:is-active={isActive}
@@ -832,7 +852,7 @@
 		{:else}
 			<span class="vm-node-grid-icon-placeholder" aria-hidden="true"></span>
 		{/if}
-		<span class="vm-node-grid-label">
+		<span class="vm-node-grid-label" class:nav-file-title={useNativeDom}>
 			{#if node.labelPrefix}<span class="vm-node-grid-label-prefix">{node.labelPrefix}</span
 				>{/if}{node.label}
 		</span>
@@ -935,7 +955,7 @@
 		class="vm-node-grid-inner"
 		style="--vm-node-grid-total-h: {resolvedTotalHeight}px; --vm-node-grid-columns: {columnCount}"
 	>
-		{#each renderedRows as virtualRow (virtualRow.key)}
+		{#each renderedRows as virtualRow (virtualRow.renderKey)}
 			{@const row = gridRows[virtualRow.index]}
 			{#if row}
 				<div

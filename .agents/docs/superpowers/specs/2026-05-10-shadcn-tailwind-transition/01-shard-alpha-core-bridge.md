@@ -14,7 +14,8 @@ Sustituir el plan de Tailwind por **UnoCSS + DaisyUI**. Establecer el sistema de
 
 ### 2.1. Configuración de UnoCSS
 Instalar `@unocss/vite` con los siguientes presets:
-- `presetUno()`: Para utilidades compatibles con Tailwind.
+- `presetWind3()`: Para utilidades compatibles con Tailwind 3 sin usar el
+  alias deprecado `presetUno()`.
 - `presetIcons()`: Para usar `i-lucide-*` como clases.
 - `presetDaisy()`: Para componentes semánticos.
 - `presetAttributify()`: Para mantener el HTML limpio.

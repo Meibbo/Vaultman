@@ -223,6 +223,33 @@ describe('FilterService node mutation helpers', () => {
 		svc.clearSearchFilter();
 		expect(svc.getSearchFilters()).toEqual({ name: '', folder: '' });
 	});
+
+	it('adds a deduplicated is-in-folder filter badge', () => {
+		const { svc, a, b, c } = setup();
+
+		svc.addIsInFolderFilter({ path: 'Notes', name: 'Notes' });
+		svc.addIsInFolderFilter({ path: 'Notes', name: 'Notes' });
+
+		expect(svc.activeFilter.children).toHaveLength(1);
+		expect(svc.activeFilter.children[0]).toEqual(
+			expect.objectContaining({
+				type: 'rule',
+				filterType: 'folder',
+				id: 'folder:Notes',
+				property: 'file.folder',
+				values: ['Notes'],
+			}),
+		);
+		expect(svc.getFlatRules()).toEqual([
+			expect.objectContaining({
+				id: 'folder:Notes',
+				description: 'is in folder Notes',
+				enabled: true,
+			}),
+		]);
+		expect(svc.filteredFiles.map((file) => file.path).sort()).toEqual([a.path, b.path].sort());
+		expect(svc.filteredFiles).not.toContain(c);
+	});
 });
 
 describe('FilterService introspection', () => {

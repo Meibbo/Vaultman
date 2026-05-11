@@ -1,4 +1,17 @@
 import type { TabId } from '../registry/tabRegistry';
+import type { VaultmanUiMode } from '../types/typeElasticUi';
+
+export type LayoutViewportKind = 'sidebar' | 'main-leaf';
+
+export function resolveDashboardEnabled(input: {
+	width: number;
+	kind: LayoutViewportKind;
+	mode: VaultmanUiMode;
+}): boolean {
+	if (input.kind !== 'main-leaf') return false;
+	if (input.mode === 'thin') return false;
+	return input.width >= 800;
+}
 
 export type LayoutSurfaceContent = 'frame-pages' | 'filter-tabs' | 'tool-tabs' | 'none';
 export type LayoutLabelPosition = 'bottom' | 'side';

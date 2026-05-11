@@ -5,6 +5,7 @@
 	import FiltersFilesTab from './tabFiles.svelte';
 	import FiltersTagsTab from './tabTags.svelte';
 	import ContentTab from './tabContent.svelte';
+	import OutlinesTab from './tabOutlines.svelte';
 	// TODO: por quÃ© importa navbartabs??
 	import NavbarTabs from '../layout/navbarTabs.svelte';
 	import Toolbar from '../layout/Toolbar.svelte';
@@ -65,12 +66,13 @@
 		openViewMenu: () => void;
 		openSortMenu: () => void;
 	};
+	type ToolbarFiltersTab = Exclude<FiltersSearchTab, 'outline'>;
 
 	let {
 		plugin,
 		filtersActiveTab = $bindable('props'),
 		filtersSearchByTab = $bindable(createFiltersSearchState()),
-		filtersSearchCategory = $bindable({ tags: 0, props: 0, files: 0, content: 0 }),
+		filtersSearchCategory = $bindable({ tags: 0, props: 0, files: 0, content: 0, outline: 0 }),
 		filtersFnRState = $bindable(createFnRState()),
 		filtersOperationScope = $bindable('auto'),
 		onOperationScopeChange,
@@ -162,6 +164,9 @@
 	const activeFiltersSearch = $derived(getFiltersSearch(filtersSearchByTab, filtersActiveTab));
 	const activeFiltersSearchHistory = $derived(
 		getFiltersSearchHistory(filtersSearchByTab, filtersActiveTab),
+	);
+	const toolbarActiveTab = $derived<ToolbarFiltersTab>(
+		filtersActiveTab === 'outline' ? 'content' : filtersActiveTab,
 	);
 	const disabledChooseTabs = $derived(
 		filtersBaseChooseMode ? FTabs.filter((tab) => tab.id !== 'files').map((tab) => tab.id) : [],
@@ -406,6 +411,7 @@
 			files: emptyExpansionSummary(),
 			tags: emptyExpansionSummary(),
 			content: emptyExpansionSummary(),
+			outline: emptyExpansionSummary(),
 		};
 	}
 
@@ -418,6 +424,7 @@
 			files: null,
 			tags: null,
 			content: null,
+			outline: null,
 		};
 	}
 </script>
@@ -434,7 +441,7 @@
 
 <Toolbar
 	bind:this={toolbarApi}
-	activeTab={filtersActiveTab}
+	activeTab={toolbarActiveTab}
 	filtersSearch={activeFiltersSearch}
 	onSearchChange={setActiveFiltersSearch}
 	searchHistory={activeFiltersSearchHistory}
@@ -575,6 +582,9 @@
 				{manualDndEnabled}
 				{icon}
 			/>
+		</div>
+		<div class="vm-tab-content" class:is-active={filtersActiveTab === 'outline'}>
+			<OutlinesTab {plugin} active={filtersActiveTab === 'outline'} />
 		</div>
 	{/if}
 </div>

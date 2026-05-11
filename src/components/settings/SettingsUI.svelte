@@ -16,6 +16,24 @@
 	} from '../../services/serviceLayout';
 	import { resolveNodeMouseActions, type NodeMouseAction } from '../../services/serviceMouse';
 	import { LAYOUT_THEME_OPTIONS, normalizeLayoutTheme } from '../../services/serviceTheme';
+	import {
+		DEFAULT_ELASTIC_UI_SETTINGS,
+		normalizeElasticUiSettings,
+		type VaultmanUiIdentity,
+		type VaultmanUiMode,
+	} from '../../types/typeElasticUi';
+
+	const ELASTIC_MODE_OPTIONS: Array<{ value: VaultmanUiMode; label: string }> = [
+		{ value: 'thin', label: 'Thin (native mimic)' },
+		{ value: 'balanced', label: 'Balanced' },
+		{ value: 'thick', label: 'Thick (powerhouse)' },
+	];
+	const ELASTIC_IDENTITY_OPTIONS: Array<{ value: VaultmanUiIdentity; label: string }> = [
+		{ value: 'native', label: 'Native (Core mimic)' },
+		{ value: 'bases', label: 'Bases (DB tables)' },
+		{ value: 'outline', label: 'Outline' },
+		{ value: 'bookmarks', label: 'Bookmarks' },
+	];
 
 	let { plugin }: { plugin: iVaultmanPlugin } = $props();
 
@@ -67,6 +85,7 @@
 			bindingNoteFolder: src.bindingNoteFolder ?? '',
 			opsLogRetention: src.opsLogRetention ?? 1000,
 			fnrRegexDefault: src.fnrRegexDefault === true,
+			elasticUi: normalizeElasticUiSettings(src.elasticUi ?? DEFAULT_ELASTIC_UI_SETTINGS),
 		};
 	}
 	let s = $state(initState());
@@ -420,6 +439,51 @@
 		/>
 		<span class="vm-settings-slider-value">{s.glassBlurIntensity}</span>
 	</label>
+
+	<!-- ── Elastic UI / Chameleon ──────────────────────────────────────── -->
+	<h3 class="vm-settings-heading">Elastic UI</h3>
+
+	<div data-vm-setting="mode">
+		<Dropdown
+			label="Mode"
+			bind:value={s.elasticUi.mode}
+			onChange={persistSettings}
+			options={ELASTIC_MODE_OPTIONS}
+		/>
+	</div>
+
+	<div data-vm-setting="identity">
+		<Dropdown
+			label="Identity"
+			bind:value={s.elasticUi.identity}
+			onChange={persistSettings}
+			options={ELASTIC_IDENTITY_OPTIONS}
+		/>
+	</div>
+
+	<div data-vm-setting="faint">
+		<Toggle
+			bind:checked={s.elasticUi.faintModeEnabled}
+			label="Faint Mode when window loses focus"
+			onChange={persistSettings}
+		/>
+	</div>
+
+	<div data-vm-setting="reduced-motion">
+		<Toggle
+			bind:checked={s.elasticUi.reducedMotion}
+			label="Reduced motion (disables transitions and animations)"
+			onChange={persistSettings}
+		/>
+	</div>
+
+	<div data-vm-setting="foul-detection">
+		<Toggle
+			bind:checked={s.elasticUi.foulDetection}
+			label="Foul detection (developer: snippet drift, portal misplacement, DOM mimicry)"
+			onChange={persistSettings}
+		/>
+	</div>
 
 	<!-- ── Layout ────────────────────────────────────────────────────── -->
 	<h3 class="vm-settings-heading">{translate('settings.layout.title')}</h3>

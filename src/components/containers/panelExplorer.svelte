@@ -988,6 +988,7 @@
 					{activeOpsByNode}
 					{scrollTarget}
 					mouseGestureConfig={plugin.settings?.mouseGestures?.node}
+					themeService={plugin.themeService}
 					{icon}
 				/>
 			{/if}
@@ -1035,6 +1036,7 @@
 					{activeOpsByNode}
 					{scrollTarget}
 					mouseGestureConfig={plugin.settings?.mouseGestures?.node}
+					themeService={plugin.themeService}
 					{icon}
 				/>
 			{/if}
@@ -1059,6 +1061,7 @@
 					onBadgeDoubleClick={handleBadgeClick}
 					{scrollTarget}
 					mouseGestureConfig={plugin.settings?.mouseGestures?.node}
+					themeService={plugin.themeService}
 					{icon}
 				/>
 			{/if}
@@ -1084,6 +1087,7 @@
 					onBadgeDoubleClick={handleBadgeClick}
 					{scrollTarget}
 					mouseGestureConfig={plugin.settings?.mouseGestures?.node}
+					themeService={plugin.themeService}
 					{icon}
 				/>
 			{/if}
