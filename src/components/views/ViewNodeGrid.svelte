@@ -48,6 +48,7 @@
 	import {
 		createTextMeasureService,
 		fallbackTextMeasureEngine,
+		type TextMeasureStyle,
 	} from '../../services/serviceTextMeasure';
 
 	const GRID_FALLBACK_WIDTH = 480;
@@ -164,7 +165,9 @@
 	let gridMetricsFrame: number | null = null;
 	let gridRemeasureFrame: number | null = null;
 	let gpuReadyMarked = false;
-	let gridMeasureStyle = $state(DEFAULT_NODE_ROW_MEASURE_STYLE);
+	let gridMeasureStyle: TextMeasureStyle = $state(DEFAULT_NODE_ROW_MEASURE_STYLE);
+	let gridMeasuredRowHeights = $state(new Map<string, number>());
+	let gridMeasuredRevision = $state('');
 	const mouse = createMouseGestureService();
 	const manualDnd = createManualDndService();
 	let manualDndVersion = $state(0);
@@ -196,49 +199,6 @@
 	const gridMeasureRevision = $derived(
 		`${nodeRowMeasureStyleKey(gridMeasureStyle)}:${gridRows.length}:${gridLabelWidth}`,
 	);
-	const gridMeasuredRowHeights = $derived.by(() =>
-		PerfMeter.time(
-			'explorer.grid.measureRows',
-			() => {
-				const out = new Map<string, number>();
-				for (const row of gridRows) {
-					const baseHeight = row.nodes.reduce(
-						(height, node) =>
-							Math.max(
-								height,
-								measure.measure({
-									id: node.id,
-									text: node.label,
-									width: gridLabelWidth,
-									minHeight: viewSize.tileHeight,
-									paddingBlock: viewSize.gap * 2,
-									style: gridMeasureStyle,
-									revision: gridMeasureRevision,
-								}),
-							),
-						viewSize.tileHeight,
-					);
-					const inlineExtra =
-						hierarchyMode === 'inline'
-							? row.nodes.reduce(
-									(height, node) => height + expandedPanelHeight(node, columnCount, expandedIds),
-									0,
-								)
-							: 0;
-					out.set(row.key, baseHeight + inlineExtra);
-				}
-				return out;
-			},
-			'service',
-			{ rows: gridRows.length },
-		),
-	);
-	const measuredGridTotalHeight = $derived(
-		gridRows.reduce(
-			(height, row) => height + (gridMeasuredRowHeights.get(row.key) ?? row.height) + viewSize.gap,
-			viewSize.gap,
-		),
-	);
 	const rowVirtualizer = createVirtualizer<HTMLDivElement, HTMLDivElement>({
 		count: 0,
 		getScrollElement: () => outerEl ?? null,
@@ -254,10 +214,8 @@
 		if (rows.length > 0 || gridRows.length === 0) return rows;
 		return fallbackGridRows(gridRows);
 	});
-	const totalHeight = $derived($rowVirtualizer.getTotalSize() + viewSize.gap * 2);
-	const resolvedTotalHeight = $derived(
-		Math.max(totalHeight, measuredGridTotalHeight),
-	);
+	const totalHeight = $derived($rowVirtualizer.getTotalSize());
+	const resolvedTotalHeight = $derived(totalHeight);
 
 	$effect(() => {
 		const rows = gridRows;
@@ -271,12 +229,78 @@
 				getScrollElement: () => scrollElement ?? null,
 				getItemKey: (index) => gridVirtualRowKey(rows, index),
 				estimateSize: (index) =>
-					rows[index] ? measuredRows.get(rows[index].key) ?? rows[index].height : gridRowBaseHeight,
+					rows[index]
+						? (measuredRows.get(rows[index].key) ?? rows[index].height) + viewSize.gap
+						: gridRowBaseHeight,
 				observeElementRect: observeGridRect,
 				overscan: GRID_OVERSCAN,
 				initialRect: { width, height: GRID_FALLBACK_HEIGHT },
 			}),
 		);
+		scheduleVirtualizerRemeasure('grid');
+	});
+
+	$effect(() => {
+		const rows = gridRows;
+		const visibleRows = virtualRows.filter((row) => row.index < rows.length);
+		const revision = gridMeasureRevision;
+		const width = gridLabelWidth;
+		const style = gridMeasureStyle;
+		const preset = viewSize;
+		const mode = hierarchyMode;
+		const columns = columnCount;
+		const expanded = expandedIds;
+
+		untrack(() => {
+			const next =
+				gridMeasuredRevision === revision
+					? new Map(gridMeasuredRowHeights)
+					: new Map<string, number>();
+			let changed = gridMeasuredRevision !== revision;
+			PerfMeter.time(
+				'explorer.grid.measureRows',
+				() => {
+					for (const virtualRow of visibleRows) {
+						const row = rows[virtualRow.index];
+						if (!row) continue;
+						const baseHeight = row.nodes.reduce(
+							(height, node) =>
+								Math.max(
+									height,
+									measure.measure({
+										id: node.id,
+										text: node.label,
+										width,
+										minHeight: preset.tileHeight,
+										paddingBlock: preset.gap * 2,
+										style,
+										revision,
+									}),
+								),
+							preset.tileHeight,
+						);
+						const inlineExtra =
+							mode === 'inline'
+								? row.nodes.reduce(
+										(height, node) => height + expandedPanelHeight(node, columns, expanded),
+										0,
+									)
+								: 0;
+						const height = baseHeight + inlineExtra;
+						if (next.get(row.key) !== height) {
+							next.set(row.key, height);
+							changed = true;
+						}
+					}
+				},
+				'service',
+				{ rows: visibleRows.length },
+			);
+			if (!changed) return;
+			gridMeasuredRevision = revision;
+			gridMeasuredRowHeights = next;
+			scheduleVirtualizerRemeasure('grid');
+		});
 	});
 
 	$effect(() => {
@@ -640,7 +664,7 @@
 		for (let index = 0; index < items.length; index += safeColumns) {
 			const rowNodes = items.slice(index, index + safeColumns);
 			rows.push({
-				key: rowNodes.map((node) => node.id).join('\u0000'),
+				key: rowNodes[0]?.id ?? `row-${index}`,
 				nodes: rowNodes,
 				height: gridRowHeight(rowNodes, safeColumns, mode, expanded),
 			});
@@ -694,7 +718,7 @@
 	}
 
 	function inlineRowKey(rowNodes: TreeNode[], rowIndex: number): string {
-		return `${rowIndex}:${rowNodes.map((node) => node.id).join('\u0000')}`;
+		return rowNodes[0]?.id ?? `row-${rowIndex}`;
 	}
 
 	function gridVirtualRowKey(rows: readonly GridRow[], index: number): string | number {
@@ -703,13 +727,13 @@
 
 	function gridEstimateSize(index: number): number {
 		const row = gridRows[index];
-		return row ? gridMeasuredRowHeights.get(row.key) ?? row.height : gridRowBaseHeight;
+		return row ? (gridMeasuredRowHeights.get(row.key) ?? row.height) + viewSize.gap : gridRowBaseHeight;
 	}
 
 	function gridRowTop(rowIndex: number): number {
-		let top = viewSize.gap;
+		let top = 0;
 		for (let index = 0; index < rowIndex; index += 1) {
-			top += gridEstimateSize(index) + viewSize.gap;
+			top += gridEstimateSize(index);
 		}
 		return top;
 	}
@@ -717,7 +741,7 @@
 	function fallbackGridRows(rows: readonly GridRow[]) {
 		const viewportHeight = outerEl?.clientHeight || GRID_FALLBACK_HEIGHT;
 		const scrollTop = outerEl?.scrollTop ?? 0;
-		let top = viewSize.gap;
+		let top = 0;
 		let startIndex = 0;
 		for (let index = 0; index < rows.length; index += 1) {
 			const bottom = top + (gridMeasuredRowHeights.get(rows[index].key) ?? rows[index].height);
@@ -728,7 +752,7 @@
 			top = bottom + viewSize.gap;
 		}
 		const out: Array<{ index: number; key: string | number; start: number }> = [];
-		let start = viewSize.gap;
+		let start = 0;
 		for (let index = 0; index < rows.length; index += 1) {
 			if (index >= startIndex && start <= scrollTop + viewportHeight + GRID_OVERSCAN * gridRowBaseHeight) {
 				out.push({ index, key: gridVirtualRowKey(rows, index), start });
@@ -914,8 +938,7 @@
 			{#if row}
 				<div
 					class="vm-node-grid-row"
-					style="--vm-node-grid-y: {virtualRow.start +
-						viewSize.gap}px; --vm-node-grid-row-h: {gridMeasuredRowHeights.get(row.key) ??
+					style="--vm-node-grid-y: {virtualRow.start}px; --vm-node-grid-row-h: {gridMeasuredRowHeights.get(row.key) ??
 						row.height}px"
 				>
 					<div class="vm-node-grid-row-tiles">

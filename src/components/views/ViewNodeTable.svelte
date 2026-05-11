@@ -30,6 +30,7 @@
 	import {
 		createTextMeasureService,
 		fallbackTextMeasureEngine,
+		type TextMeasureStyle,
 	} from '../../services/serviceTextMeasure';
 
 	const TABLE_ROW_HEIGHT = 32;
@@ -87,9 +88,11 @@
 	let sorting: SortingState = $state([]);
 	let gpuReadyMarked = false;
 	let tableLabelWidth = $state(TABLE_FALLBACK_WIDTH);
-	let tableMeasureStyle = $state(DEFAULT_NODE_ROW_MEASURE_STYLE);
+	let tableMeasureStyle: TextMeasureStyle = $state(DEFAULT_NODE_ROW_MEASURE_STYLE);
 	let tableMetricsFrame: number | null = null;
 	let tableRemeasureFrame: number | null = null;
+	let measuredTableRows = $state(new Map<string, number>());
+	let measuredTableRowsRevision = $state('');
 	const mouse = createMouseGestureService();
 	const nodeMouseConfig = $derived(
 		mergeMouseGestureConfig(NODE_MOUSE_GESTURE_CONFIG, mouseGestureConfig),
@@ -99,39 +102,7 @@
 
 	const tableRows = $derived(sortRows(rows, columns, sorting));
 	const tableMeasureRevision = $derived(
-		`${nodeRowMeasureStyleKey(tableMeasureStyle)}:${columns.length}:${tableRows.length}`,
-	);
-	const measuredTableRows = $derived.by(() =>
-		PerfMeter.time(
-			'explorer.table.measureRows',
-			() => {
-				const labelColumn = columns.find((column) => column.id === 'label') ?? columns[0];
-				const out = new Map<string, number>();
-				for (const row of tableRows) {
-					out.set(
-						row.id,
-						measure.measure({
-							id: row.id,
-							text: labelColumn ? cellDisplay(row, labelColumn) : row.label,
-							width: tableLabelWidth,
-							minHeight: TABLE_ROW_HEIGHT,
-							paddingBlock: TABLE_ROW_PADDING_BLOCK,
-							style: tableMeasureStyle,
-							revision: tableMeasureRevision,
-						}),
-					);
-				}
-				return out;
-			},
-			'service',
-			{ rows: tableRows.length },
-		),
-	);
-	const measuredTableTotalHeight = $derived(
-		tableRows.reduce(
-			(height, row) => height + (measuredTableRows.get(row.id) ?? TABLE_ROW_HEIGHT),
-			0,
-		),
+		`${nodeRowMeasureStyleKey(tableMeasureStyle)}:${columns.length}:${tableRows.length}:${tableLabelWidth}`,
 	);
 	const columnTemplate = $derived(
 		columns
@@ -155,9 +126,7 @@
 		if (visibleRows.length > 0 || tableRows.length === 0) return visibleRows;
 		return fallbackRenderedRows(tableRows, measuredTableRows);
 	});
-	const totalHeight = $derived(
-		Math.max($rowVirtualizer.getTotalSize(), measuredTableTotalHeight),
-	);
+	const totalHeight = $derived($rowVirtualizer.getTotalSize());
 
 	$effect(() => {
 		const count = tableRows.length;
@@ -176,6 +145,51 @@
 				initialRect: { width: TABLE_FALLBACK_WIDTH, height: TABLE_FALLBACK_HEIGHT },
 			}),
 		);
+	});
+
+	$effect(() => {
+		const rows = tableRows;
+		const visibleRows = virtualRows.filter((row) => row.index < rows.length);
+		const labelColumn = columns.find((column) => column.id === 'label') ?? columns[0];
+		const revision = tableMeasureRevision;
+		const width = tableLabelWidth;
+		const style = tableMeasureStyle;
+
+		untrack(() => {
+			const next =
+				measuredTableRowsRevision === revision
+					? new Map(measuredTableRows)
+					: new Map<string, number>();
+			let changed = measuredTableRowsRevision !== revision;
+			PerfMeter.time(
+				'explorer.table.measureRows',
+				() => {
+					for (const virtualRow of visibleRows) {
+						const row = rows[virtualRow.index];
+						if (!row) continue;
+						const height = measure.measure({
+							id: row.id,
+							text: labelColumn ? cellDisplay(row, labelColumn) : row.label,
+							width,
+							minHeight: TABLE_ROW_HEIGHT,
+							paddingBlock: TABLE_ROW_PADDING_BLOCK,
+							style,
+							revision,
+						});
+						if (next.get(row.id) !== height) {
+							next.set(row.id, height);
+							changed = true;
+						}
+					}
+				},
+				'service',
+				{ rows: visibleRows.length },
+			);
+			if (!changed) return;
+			measuredTableRowsRevision = revision;
+			measuredTableRows = next;
+			scheduleVirtualizerRemeasure('table');
+		});
 	});
 
 	$effect(() => {

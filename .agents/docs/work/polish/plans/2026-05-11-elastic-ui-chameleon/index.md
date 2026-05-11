@@ -64,6 +64,7 @@ Required brain docs consumed:
 - `.agents/docs/superpowers/specs/2026-05-10-shadcn-tailwind-transition/09-expansion-services-dnd.md`
 - `.agents/docs/superpowers/specs/2026-05-10-shadcn-tailwind-transition/10-expansion-visual-logic.md`
 - `.agents/docs/superpowers/specs/2026-05-10-shadcn-tailwind-transition/11-bitsui-mainview-spec.md`
+- `.agents/docs/superpowers/specs/2026-05-10-shadcn-tailwind-transition/12-interactive-diff-review.md`
 
 Current code anchors inspected:
 
@@ -132,6 +133,7 @@ External references verified from official documentation during planning:
 - [[docs/work/polish/plans/2026-05-11-elastic-ui-chameleon/00-contracts-and-gates|00 Contracts And Gates]]
 - [[docs/work/polish/plans/2026-05-11-elastic-ui-chameleon/01-alpha-foundation|ALPHA Foundation]]
 - [[docs/work/polish/plans/2026-05-11-elastic-ui-chameleon/02-beta-engine|BETA Engine]]
+- [[docs/work/polish/plans/2026-05-11-elastic-ui-chameleon/03-thread-vfs-review|Thread 3: VFS & Review UX]]
 - [[docs/work/polish/plans/2026-05-11-elastic-ui-chameleon/03-gamma-overlays|GAMMA Overlays]]
 - [[docs/work/polish/plans/2026-05-11-elastic-ui-chameleon/04-delta-interaction|DELTA Interaction]]
 - [[docs/work/polish/plans/2026-05-11-elastic-ui-chameleon/05-validation-and-handoff|Validation And Handoff]]
@@ -140,8 +142,7 @@ External references verified from official documentation during planning:
 
 ALPHA writes configuration, style, theme service, settings schema, and root
 classes. BETA writes virtualized view code and text measurement adapters. GAMMA
-writes overlay wrappers and Bits UI portal integration. DELTA writes mouse/DnD,
-native-surface interception, alias expansion, and i18n helpers. No shard may
+writes overlay wrappers and Bits UI portal integration. DELTA writes mouse/DnD, native-surface interception, alias expansion, and i18n helpers. THREAD 3 owns VFS immutability and the interactive diff review UI. No shard may
 edit another shard's files without adding a merge note in its shard file.
 
 ## Execution Order
@@ -149,10 +150,10 @@ edit another shard's files without adding a merge note in its shard file.
 1. Run `00-contracts-and-gates` first. It creates the shared types and resolves
    the DnD dependency gate.
 2. Run ALPHA and GAMMA in parallel after gate types exist.
-3. Run BETA in parallel after ALPHA exposes mode-aware classes and theme tokens.
-4. Run DELTA in parallel after the DnD gate is resolved.
-5. Run the cross-shard verification file after all four implementation shards
-   report their focused tests and Obsidian smoke checks.
+3. Run Thread 3 (VFS-Review) in parallel once Shard ALPHA defines theme tokens.
+4. Run BETA in parallel after ALPHA exposes mode-aware classes and theme tokens.
+5. Run DELTA in parallel after the DnD gate is resolved.
+6. Run the cross-shard verification file after all shards report their focused tests and Obsidian smoke checks.
 
 ## Global Verification Envelope
 

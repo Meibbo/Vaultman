@@ -14,7 +14,7 @@ class FakeRowMeasure {
 	measure(input: { id: string; text: string; width: number; minHeight: number; paddingBlock: number }): number {
 		this.calls.push(input);
 		const lineCount = Math.max(1, Math.ceil(input.text.length / Math.max(8, input.width / 8)));
-		return Math.max(input.minHeight, lineCount * 11.25 + input.paddingBlock);
+		return Math.max(input.minHeight, lineCount * 11.25 + input.paddingBlock + 0.5);
 	}
 
 	clear(): void {}

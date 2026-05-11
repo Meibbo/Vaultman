@@ -5,7 +5,7 @@ status: active
 parent: "[[docs/work/pkm-ai/index|pkm-ai]]"
 archive_source: "docs/archive/pkm-ai/active-docs/2026-05-10T093000-current-handoff.md"
 created: 2026-05-04T01:36:20
-updated: 2026-05-11T23:59:00
+updated: 2026-05-11T01:08:42
 tags:
   - agent/current
 created_by: dec
@@ -19,7 +19,10 @@ Compact handoff after archiving the oversized current handoff:
 
 ## Resume Point
 
-- Latest user request implemented in this session:
+- Latest user request captured: PKM-AI parallel-agent coordination research
+  comparing Pi-crew adoption versus porting its contract into PKM-AI:
+  [[docs/work/pkm-ai/research/2026-05-11-pi-crew-agent-coordination|Pi-crew and PKM-AI coordination]].
+- Previous product request implemented:
   Wave 1 Agent B, Cut 2 tree row layout and badge/counter overlay. Source log:
   [[docs/work/polish/plans/2026-05-10-dock-toolbar-groups-virtualizer/wave-1-agent-b-tree-row-layout|Wave 1 Agent B tree row layout log]].
 - Previous user request implemented:
@@ -167,6 +170,7 @@ Compact handoff after archiving the oversized current handoff:
 
 ## Next Action
 
+- For PKM-AI coordination: read [[docs/work/pkm-ai/research/2026-05-11-pi-crew-agent-coordination|Pi-crew and PKM-AI coordination]] and ask whether to run a Pi-crew spike, write a PKM-AI `agent-room` spec, or do both.
 - First next action for the detachable/workspace route:
   `tabOutline` for the current note, Markmap as an explorer view, node-notes as
   a service, and adopted-node visibility in the file explorer. Keep the
@@ -191,7 +195,5 @@ Compact handoff after archiving the oversized current handoff:
   glossary terms and line-limit in the detachable workspace tabs spec, plus
   `.agents/docs/superpowers` parent-shape residuals.
 - Do not move AI files to `main`.
-- Do not base table work on old `viewTable.svelte`; use the TanStack table
-  source records if table work resumes.
-- The wider worktree has unrelated dirty product/docs changes; do not revert
-  them unless the user explicitly asks.
+- Do not use old `viewTable.svelte` for table work; the wider worktree has
+  unrelated dirty changes, so do not revert anything unless explicitly asked.

@@ -5,7 +5,7 @@ status: active
 parent: "[[docs/work/pkm-ai/index|pkm-ai]]"
 archive_source: "docs/archive/pkm-ai/active-docs/2026-05-10T093000-current-status.md"
 created: 2026-05-04T01:36:20
-updated: 2026-05-11T23:59:00
+updated: 2026-05-11T01:08:42
 tags:
   - agent/current
 created_by: dec
@@ -29,8 +29,9 @@ Compact route index after archiving the oversized current status:
 
 ## Current Route
 
-- Latest user request: execute Wave 1 Agent B.
-- Active initiative: [[docs/work/polish/index|Polish]].
+- Latest user request: PKM-AI Pi-crew coordination research handoff in
+  [[docs/work/pkm-ai/research/2026-05-11-pi-crew-agent-coordination|Pi-crew and PKM-AI coordination]].
+- Active initiative: [[docs/work/pkm-ai/index|PKM-AI]].
 - Latest implemented product slice:
   Wave 1 Agent B, Cut 2 tree row layout and badge/counter overlay in
   [[docs/work/polish/plans/2026-05-10-dock-toolbar-groups-virtualizer/wave-1-agent-b-tree-row-layout|Wave 1 Agent B tree row layout log]].

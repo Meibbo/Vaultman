@@ -19,11 +19,11 @@ Parent: [[index|Vaultman Explorer Performance Overhaul Implementation Plan]]
 
 ## Tasks
 
-- [ ] **Step 1: Add SCSS source tests.**
+- [x] **Step 1: Add SCSS source tests.**
 
 Assert `.vm-node-table-row` and `.vm-node-grid-row` contain `position: absolute`, `top: 0`, `transform: translate3d(0, var(--vm-node-*-y, 0), 0)`, and `will-change: transform`. Assert they do not use `top: var(--vm-node-*-y`.
 
-- [ ] **Step 2: Apply table compositor positioning.**
+- [x] **Step 2: Apply table compositor positioning.**
 
 In `_table.scss`, change the row block to:
 
@@ -40,7 +40,7 @@ In `_table.scss`, change the row block to:
 
 Keep `style:--vm-node-table-y={`${virtualRow.start}px`}` in `ViewNodeTable.svelte`; do not set `top` from JS.
 
-- [ ] **Step 3: Apply grid compositor positioning.**
+- [x] **Step 3: Apply grid compositor positioning.**
 
 In `_grid.scss`, change only the transform:
 
@@ -50,11 +50,11 @@ transform: translate3d(0, var(--vm-node-grid-y, 0), 0);
 
 Keep `.vm-node-grid-inner` height as `--vm-node-grid-total-h`, keep each `.vm-node-grid-row` absolute with `top: 0`, and keep row height from `--vm-node-grid-row-h`.
 
-- [ ] **Step 4: Instrument scroll-to-index paths.**
+- [x] **Step 4: Instrument scroll-to-index paths.**
 
 In `scrollTableRowIntoView()` and `scrollGridRowIntoView()`, wrap only the imperative scroll block with `PerfMeter.time('explorer.table.scrollIntoView', ...)` and `PerfMeter.time('explorer.grid.scrollIntoView', ...)`. Add `PerfMeter.mark('perf.phase04.gpu-positioning.ready', 'mark', { surface: 'table' | 'grid' })` once when the component first has `outerEl`.
 
-- [ ] **Step 5: Verify Phase 4.**
+- [x] **Step 5: Verify Phase 4.**
 
 Run:
 `pnpm exec vp test run --project unit --config vitest.config.ts test/unit/styles/nodeVirtualPositioning.test.ts --fileParallelism=false`
@@ -64,4 +64,3 @@ Run Svelte checks:
 Run final gates:
 `pnpm run check`
 `pnpm run build`
-
