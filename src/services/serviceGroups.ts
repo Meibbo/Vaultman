@@ -1,5 +1,6 @@
 import { normalizeGroupLogic, type AnyGroupLogic, type FilterGroup } from '../types/typeFilter';
 import type { QueueChange } from '../types/typeContracts';
+import { queueActionLabel } from './serviceQueuePresentation';
 
 export type GroupDropPosition = 'before' | 'after';
 
@@ -75,7 +76,7 @@ export function groupQueueChangesByAction(
 			id: `queue-action:${action}`,
 			kind: 'group',
 			groupKey: action,
-			label: action,
+			label: queueActionLabel(action),
 			count: bucket.length,
 			depth: 0,
 		});

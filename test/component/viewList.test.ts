@@ -93,6 +93,34 @@ describe('ViewList', () => {
 		expect(onAction).toHaveBeenCalledWith(remove, expect.objectContaining({ id: 'op-1' }));
 	});
 
+	it('renders queue child remove actions as inline cancel controls without changing semantics', () => {
+		const onAction = vi.fn();
+		const remove: ViewAction<ListNode> = {
+			id: 'remove',
+			label: 'Remove queued change',
+			icon: 'lucide-x',
+			tone: 'danger',
+		};
+		app = mount(ViewList as unknown as Component<Record<string, unknown>>, {
+			target,
+			props: {
+				model: model([{ ...row('op-1', 'value', 'Delete status value', [remove]), cls: 'is-queue-child' }]),
+				onAction,
+				icon: vi.fn(() => ({ update: vi.fn() })),
+			},
+		});
+		flushSync();
+
+		const actionSlot = target.querySelector<HTMLElement>('.vm-view-list-actions');
+		const button = target.querySelector<HTMLButtonElement>('button[aria-label="Remove queued change"]');
+		expect(actionSlot?.classList.contains('is-counter-slot')).toBe(true);
+		expect(button?.classList.contains('is-inline-cancel')).toBe(true);
+
+		button!.click();
+
+		expect(onAction).toHaveBeenCalledWith(remove, expect.objectContaining({ id: 'op-1' }));
+	});
+
 	it('emits row reorder requests when drag and drop is enabled', () => {
 		const onReorder = vi.fn();
 		app = mount(ViewList as unknown as Component<Record<string, unknown>>, {

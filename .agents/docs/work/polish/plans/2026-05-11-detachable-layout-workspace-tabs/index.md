@@ -4,7 +4,7 @@ type: implementation-plan
 status: draft
 parent: "[[docs/work/polish/specs/2026-05-11-detachable-layout-workspace-tabs/index|detachable layout workspace tabs]]"
 created: 2026-05-11T00:00:00
-updated: 2026-05-11T00:00:00
+updated: 2026-05-11T22:36:00
 tags:
   - agent/plan
   - initiative/polish
@@ -54,3 +54,33 @@ updated_by: codex
 - Prefer public Obsidian workspace APIs. DOM interception is out of first-slice scope.
 - Run Svelte autofixer for edited `.svelte` files before final verification.
 
+## 2026-05-11 Live Smoke And Data-Type Fix
+
+- Live Obsidian smoke ran against vault `C:\Users\vic_A\Desktop\vaultman` with
+  Vaultman reloaded as `1.0.0-rc.2`.
+- The active vault plugin folder `.obsidian/plugins/vaultman` did not receive
+  artifacts from `scripts/sync-test-build.mjs`, so the smoke copied
+  `main.js`, `manifest.json`, and `styles.css` there after `pnpm run build`.
+- Smoke covered `page-tools` detach from `pageTools > Layout`, reveal from the
+  frame `Operations` tab, attach back, Obsidian reload, and persisted restore.
+- Runtime result after reload: one `vm-frame` leaf, one
+  `vaultman-tab-page-tools` leaf, one detached host, one frame external
+  placeholder, no duplicate in-frame content, and no captured Obsidian errors or
+  console errors.
+- The smoke exposed a DOM metadata regression: detached tab leaf containers
+  rendered as `data-type="vaultman-tab-undefined"` even though the workspace
+  leaf type was `vaultman-tab-page-tools`.
+- Fix: `VaultmanTabLeafView.onOpen()` now resets `containerEl[data-type]` to
+  `this.getViewType()` once `tabId` is available.
+- Regression test:
+  `test/component/detachedTabHost.test.ts` now covers the Obsidian
+  constructor-time `getViewType()` pattern via the `ItemView` mock.
+- Verification:
+  - `pnpm exec vp test run --project component --config vitest.config.ts test/component/detachedTabHost.test.ts --fileParallelism=false`:
+    red first on `vaultman-tab-undefined`, then pass 3/3 after the fix.
+  - Detachable unit suite: 4 files, 30 tests pass.
+  - Detachable component suite: 7 files, 28 tests pass.
+  - `pnpm run check`: pass, `svelte-check found 0 errors and 0 warnings`.
+  - `pnpm run build`: pass.
+- Cleanup: the final live runtime was restored to attached state for
+  `page-tools`; no detached `page-tools` leaves remained open.

@@ -76,6 +76,53 @@ export class Component {
 	onunload?(): void;
 }
 
+export interface WorkspaceLeaf {
+	app?: App;
+	getViewState?(): { type?: string };
+}
+
+export abstract class View extends Component {
+	app: App | undefined;
+	leaf: WorkspaceLeaf;
+	containerEl: HTMLElement;
+
+	constructor(leaf: WorkspaceLeaf) {
+		super();
+		this.leaf = leaf;
+		this.app = leaf.app;
+		this.containerEl = makeEl();
+		this.containerEl.addClass?.('workspace-leaf-content');
+		const type = this.getViewType();
+		if (type) this.containerEl.setAttribute?.('data-type', type);
+	}
+
+	protected onOpen(): Promise<void> {
+		return Promise.resolve();
+	}
+
+	protected onClose(): Promise<void> {
+		return Promise.resolve();
+	}
+
+	abstract getViewType(): string;
+	abstract getDisplayText(): string;
+}
+
+export abstract class ItemView extends View {
+	contentEl: HTMLElement;
+
+	constructor(leaf: WorkspaceLeaf) {
+		super(leaf);
+		this.contentEl = makeEl();
+		this.contentEl.addClass?.('view-content');
+		this.containerEl.appendChild?.(this.contentEl);
+	}
+
+	addAction(): HTMLElement {
+		return makeEl();
+	}
+}
+
 export class Events {
 	private listeners = new Map<string, Set<(...data: unknown[]) => unknown>>();
 	on(name: string, cb: (...data: unknown[]) => unknown): { off: () => void } {
@@ -493,7 +540,12 @@ function makeEl(): HTMLElement {
 			return child;
 		},
 		addEventListener() {},
+		appendChild() {},
 		focus() {},
+		getAttribute() {
+			return null;
+		},
+		setAttribute() {},
 		setText() {},
 		remove() {},
 	};

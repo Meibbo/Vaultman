@@ -114,6 +114,49 @@
 	&.is-group {
 		font-weight: 600;
 	}
+
+	&.is-queue-parent {
+		.vm-view-list-badges .vm-badge {
+			min-width: 18px;
+			height: 18px;
+			border-radius: 999px;
+			font-size: var(--font-ui-smaller);
+		}
+	}
+
+	&.is-queue-child {
+		background-color: transparent !important;
+		box-shadow: none !important;
+		font-weight: 400;
+
+		.vm-view-list-main {
+			min-width: 0;
+		}
+
+		.vm-view-list-actions.is-counter-slot {
+			flex: 0 0 auto;
+			margin-left: auto;
+		}
+
+		.vm-btn-icon.is-inline-cancel {
+			width: 20px;
+			height: 20px;
+			margin-right: 0;
+			padding: 0;
+			border: 0;
+			border-radius: 999px;
+			background: transparent;
+			color: $vm-text-muted;
+			box-shadow: none;
+			@include flex-center;
+
+			&:hover,
+			&:focus-visible {
+				background: $vm-bg-modifier-hover;
+				color: $vm-text-normal;
+			}
+		}
+	}
 }
 
 .vm-explorer-popup-empty {

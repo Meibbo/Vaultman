@@ -1,10 +1,10 @@
 ---
 title: Cut 1.5 Tests First
 type: agent-plan-shard
-status: planned
+status: done
 parent: "[[docs/work/polish/plans/2026-05-10-dock-toolbar-groups-virtualizer/cut-1-5-node-surface-theme-scroll/index|Cut 1.5 Node Surface Theme And Scroll Plan]]"
 created: 2026-05-10T19:53:58
-updated: 2026-05-11T21:55:04
+updated: 2026-05-11T23:28:00
 tags:
   - agent/plan
   - polish
@@ -72,12 +72,12 @@ updated_by: codex
 
 ## Facet 6: Queue Explorer Parent/Child Presentation
 
-- [ ] Update `test/component/reactiveExplorers.test.ts` or add a focused `explorerQueue` component test.
+- [x] Update `test/component/reactiveExplorers.test.ts` or add a focused `explorerQueue` component test.
   - Queue group parent row shows the action label/count and the action icon.
   - Queue child row label is only the item kind, for example `value`, not `property delete value`.
   - Queue child row has no operation badge and no operation icon.
   - Individual remove action is rendered as an inline cancel in the counter/action slot, without a visible duplicate label box.
-- [ ] Update `test/component/viewList.test.ts`.
+- [x] Update `test/component/viewList.test.ts`.
   - `ViewList` keeps generic action behavior.
   - Queue child classes only alter placement/presentation; `onAction` still receives the semantic action and row.
 

@@ -1,10 +1,10 @@
 ---
 title: Dock Toolbar Cut 1.5 Node Surface Theme And Scroll Plan
 type: agent-plan
-status: in_progress
+status: done
 parent: "[[docs/work/polish/plans/2026-05-10-dock-toolbar-groups-virtualizer/index|Dock Toolbar Groups Virtualizer]]"
 created: 2026-05-10T19:53:58
-updated: 2026-05-11T21:55:04
+updated: 2026-05-11T23:28:00
 tags:
   - agent/plan
   - polish
@@ -43,8 +43,8 @@ This request touches seven surfaces that would make Cut 2 too broad if handled i
 3. `serviceTheme`, node-surface settings, and ViewCards background controls. Done 2026-05-10.
 4. `serviceScroll` for ViewTree scroll stabilization and PretextJS audit answer. Done 2026-05-10.
 5. Scrollable compact controls. Done 2026-05-11.
-6. Queue explorer grouped parent/child presentation.
-7. Final Svelte autofix, focused tests, and `pnpm run check`.
+6. Queue explorer grouped parent/child presentation. Done 2026-05-11.
+7. Final Svelte autofix, focused tests, and `pnpm run check`. Done 2026-05-11.
 
 ## Non-Goals
 
@@ -130,9 +130,7 @@ Fresh verification:
   `scripts/sync-test-build.mjs` synced build artifacts.
 - `pnpm exec vp test run --project unit --config vitest.config.ts test/unit/styles/compactControlScroll.test.ts test/unit/styles/nodeDecorationStyles.test.ts --fileParallelism=false`:
   pass, 6/6.
-- `node .agents/tools/pkm-ai/check-doc-health.mjs`: fail with unrelated
-  residuals in the detachable workspace tabs spec and
-  `.agents/docs/superpowers`.
+- `node .agents/tools/pkm-ai/check-doc-health.mjs`: fail on unrelated detachable/superpowers residuals.
 
 Manual UI note:
 
@@ -140,7 +138,52 @@ Manual UI note:
   is covered by style assertions, nav component tests, `svelte-check`, and the
   production build.
 
-- Next task: Facet 6, Queue explorer grouped parent/child presentation.
+- Next task was Facet 6, Queue explorer grouped parent/child presentation.
+
+### 2026-05-11 Task 6: Queue Explorer Parent/Child Presentation
+
+- Added `src/services/serviceQueuePresentation.ts` with pure helpers for
+  action parent labels/icons and child object-kind labels.
+- `groupQueueChangesByAction` now uses the queue action label helper for parent
+  group labels while preserving stable `queue-action:<action>` ids.
+- `explorerQueue.svelte` normalizes rows after `ViewService.getModel`:
+  - queue parent rows get `is-queue-parent`, the action icon, and a count badge;
+  - queue child rows get `is-queue-child`, the simplified object-kind label,
+    no operation icon, no operation badge, and no pending/deleted state;
+  - child rows keep the semantic remove action, and group rows remain
+    non-removable.
+- `viewList.svelte` adds `is-counter-slot` on queue-child action wrappers and
+  `is-inline-cancel` on the child remove button without changing generic
+  `onAction` dispatch.
+- Popup SCSS removes child row decoration and styles inline cancel in the action slot.
+- `styles.css` was refreshed by the production build.
+
+Fresh verification:
+
+- Required red pass:
+  - `pnpm exec vp test run --project unit --config vitest.config.ts test/unit/services/serviceQueuePresentation.test.ts --fileParallelism=false`:
+    failed before `serviceQueuePresentation` existed.
+  - `pnpm exec vp test run --project component --config vitest.config.ts test/component/viewList.test.ts --fileParallelism=false`:
+    failed because queue-child action classes were missing.
+  - `pnpm exec vp test run --project component --config vitest.config.ts test/component/reactiveExplorers.test.ts --fileParallelism=false`:
+    failed because queue rows were not parent/child-normalized.
+- `pnpm exec vp test run --project unit --config vitest.config.ts test/unit/services/serviceQueuePresentation.test.ts --fileParallelism=false`:
+  pass, 2/2.
+- `pnpm exec vp test run --project component --config vitest.config.ts test/component/viewList.test.ts test/component/reactiveExplorers.test.ts --fileParallelism=false`:
+  pass, 17/17.
+- Svelte autofixer for `explorerQueue.svelte` and `viewList.svelte`: no issues;
+  existing effect/action suggestions reviewed and left unchanged.
+- `pnpm run check`: pass, `svelte-check found 0 errors and 0 warnings`.
+- `pnpm exec vp test run --project unit --config vitest.config.ts test/unit/services/serviceGroups.test.ts test/unit/services/serviceQueuePresentation.test.ts --fileParallelism=false`:
+  pass, 6/6.
+- `pnpm run build`: pass; Vite built `styles.css` and `main.js`, then
+  `scripts/sync-test-build.mjs` synced build artifacts.
+- `node .agents/tools/pkm-ai/check-doc-health.mjs`: fail with unrelated
+  residuals in the detachable workspace tabs spec and
+  `.agents/docs/superpowers`.
+- Manual UI note: no live Obsidian smoke was run for the Queue island; the
+  slice is covered by focused unit/component tests, Svelte check, and build.
+- Facet 7 final sweep is recorded in [[04-verification-and-handoff|Verification and handoff]].
 
 ## Expected Final Answer From Executing Agent
 

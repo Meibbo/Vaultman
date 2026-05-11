@@ -5,7 +5,7 @@ status: active
 parent: "[[docs/work/pkm-ai/index|pkm-ai]]"
 archive_source: "docs/archive/pkm-ai/active-docs/2026-05-10T093000-current-handoff.md"
 created: 2026-05-04T01:36:20
-updated: 2026-05-11T21:55:04
+updated: 2026-05-11T23:28:00
 tags:
   - agent/current
 created_by: dec
@@ -20,6 +20,17 @@ Compact handoff after archiving the oversized current handoff:
 ## Resume Point
 
 - Latest user request implemented in this session:
+  Cut 1.5 Task 7 final Svelte autofix and verification sweep. Source log:
+  [[docs/work/polish/plans/2026-05-10-dock-toolbar-groups-virtualizer/cut-1-5-node-surface-theme-scroll/04-verification-and-handoff#2026-05-11-task-7-final-sweep|Task 7 final sweep]].
+- Previous user request implemented:
+  proceeded with the detachable tabs live Obsidian smoke, fixed the detached
+  tab leaf DOM `data-type` mismatch, and restored `page-tools` to attached
+  state after verification. Source log:
+  [[docs/work/polish/plans/2026-05-11-detachable-layout-workspace-tabs/index#2026-05-11-live-smoke-and-data-type-fix|Detachable live smoke and data-type fix]].
+- Previous product request implemented:
+  Cut 1.5 Task 6, Queue explorer grouped parent/child presentation. Source log:
+  [[docs/work/polish/plans/2026-05-10-dock-toolbar-groups-virtualizer/cut-1-5-node-surface-theme-scroll/index#2026-05-11-task-6-queue-explorer-parentchild-presentation|Task 6 continuation log]].
+- Recent prior Cut 1.5 request implemented:
   Cut 1.5 Task 5, scrollable compact controls, plus the Sass token build fix.
   Source log:
   [[docs/work/polish/plans/2026-05-10-dock-toolbar-groups-virtualizer/cut-1-5-node-surface-theme-scroll/index#2026-05-11-task-5-scrollable-compact-controls|Task 5 continuation log]].
@@ -42,9 +53,9 @@ Compact handoff after archiving the oversized current handoff:
 - The detachable controls belong in `pageTools > layout`, not in Settings.
   `PageToolsLayout` and `DetachedTabHost` are present in the workspace and
   should stay as the host surfaces for this feature.
-- Runtime caveat: no live Obsidian smoke was run after this session. The next
-  agent should test detach, reveal, attach, reload/restore, and dock/workspace
-  interaction in Obsidian before building tabOutline/Markmap on top.
+- Detachable runtime smoke is complete for `page-tools`: detach, reveal from
+  the frame `Operations` tab, attach, Obsidian reload/restore, and duplicate
+  checks were run in the live `vaultman` vault with no captured Obsidian errors.
 - Latest orchestration request captured as a sharded Elastic UI Chameleon plan:
   [[docs/work/polish/plans/2026-05-11-elastic-ui-chameleon/index|Elastic UI Chameleon Implementation Plan]].
 - Latest product request captured as a sharded multifacet pre-Cut-2 plan:
@@ -79,6 +90,12 @@ Compact handoff after archiving the oversized current handoff:
   `horizontal-control-scroll` across popup squircles, squircle rows,
   viewmode pills, sort rows, statistics scope pills, tab bars, and nav docks.
   `styles.css` was refreshed by `pnpm run build`.
+- Cut 1.5 Task 6 Queue presentation: parent rows keep action icon/count; child
+  rows show object-kind labels, no operation icon/badge, no pending/deleted
+  state, and inline cancel in the counter/action slot. `styles.css` was
+  refreshed by `pnpm run build`.
+- Cut 1.5 Task 7 final sweep: all nine Svelte gate files had `issues: []`;
+  focused and broader test gates, `pnpm run check`, build, and diff check passed.
 - `.agents/tools/pkm-ai/lib/code-index.mjs` imports `svelte/compiler` and treats
   `.svelte` as an indexed code target.
 - `.agents/tools/pkm-ai/test/code-index.test.mjs` covers `.svelte` discovery,
@@ -106,36 +123,23 @@ Compact handoff after archiving the oversized current handoff:
 
 ## Fresh Verification
 
+- Detachable live smoke after rebuilding and copying artifacts to the active
+  vault plugin folder: pass. Runtime after reload had one `vm-frame`, one
+  `vaultman-tab-page-tools`, one detached host, one frame external placeholder,
+  and corrected `data-type="vaultman-tab-page-tools"` on detached leaf DOM.
+- Detachable focused verification passed: regression 3/3 red-then-green,
+  detachable unit 30/30, detachable component 28/28, `pnpm run check`, and
+  `pnpm run build`. Full commands are in the detachable source log.
+- Cut 1.5 Task 7 final sweep passed: Svelte autofixer `issues: []` on all
+  nine listed files; focused unit 43/43, focused component 40/40, broader
+  safety component 68/68, `pnpm run check`, `pnpm run build`, and
+  `git diff --check` passed.
 - Cut 1.5 Task 5 focused style verification:
   `pnpm exec vp test run --project unit --config vitest.config.ts test/unit/styles/compactControlScroll.test.ts --fileParallelism=false`:
   pass, 4/4.
-- Cut 1.5 Task 5 nav component verification:
-  `pnpm exec vp test run --project component --config vitest.config.ts test/component/navbarDock.test.ts test/component/navbarTabs.test.ts --fileParallelism=false`:
-  pass, 8/8.
-- Cut 1.5 Task 5 final Svelte check:
-  `pnpm run check`: pass, `svelte-check found 0 errors and 0 warnings`.
-- Cut 1.5 Task 5 production build:
-  `pnpm run build`: pass after adding missing `$vm-radius-xs` token.
-- Cut 1.5 Task 5 final style regression verification:
-  `pnpm exec vp test run --project unit --config vitest.config.ts test/unit/styles/compactControlScroll.test.ts test/unit/styles/nodeDecorationStyles.test.ts --fileParallelism=false`:
-  pass, 6/6.
-- Cut 1.5 Task 4 unit verification:
-  `pnpm exec vp test run --project unit --config vitest.config.ts test/unit/services/serviceScroll.test.ts --fileParallelism=false`:
-  pass, 5/5.
-- Cut 1.5 Task 4 fallback component verification:
-  `pnpm exec vp test run --project component --config vitest.config.ts test/component/viewTreeScrollFallback.test.ts --fileParallelism=false`:
-  pass, 1/1.
-- Cut 1.5 Task 4 ViewTree regression verification:
-  `pnpm exec vp test run --project component --config vitest.config.ts test/component/viewTreeSelection.test.ts test/component/viewTreeDecorations.test.ts test/component/virtualizerItemKeys.test.ts test/component/viewTreeHoverBadges.test.ts --fileParallelism=false`:
-  pass, 34/34.
-- Cut 1.5 Task 4 panel integration verification:
-  `pnpm exec vp test run --project component --config vitest.config.ts test/component/panelExplorerSelection.test.ts --fileParallelism=false`:
-  pass, 35/35.
-- Cut 1.5 Task 4 final Svelte check:
-  `pnpm run check`: pass, `svelte-check found 0 errors and 0 warnings`.
-- Svelte autofixer for `viewTree.svelte`: no issues; existing effect/bind
-  suggestions reviewed and left unchanged.
-- Latest doc health run after Cut 1.5 Task 5:
+- Earlier Cut 1.5 Task 5 verification remains in the linked source plan.
+- Earlier Cut 1.5 Task 4 verification remains in the linked source plan.
+- Latest doc health run after Cut 1.5 Task 6:
   `node .agents/tools/pkm-ai/check-doc-health.mjs`: fail with unrelated
   residuals in the detachable workspace tabs spec and `.agents/docs/superpowers`.
 - Earlier verification remains in the linked source records and
@@ -143,29 +147,24 @@ Compact handoff after archiving the oversized current handoff:
 
 ## Next Action
 
-- First next action: run a live Obsidian smoke for detachable tabs:
-  detach `page-tools`, reveal it from dock/top tabs, attach it back, reload
-  Obsidian, and confirm persisted detached leaves restore without duplicate
-  in-frame content.
-- After the smoke, continue the user's earlier feature direction:
+- First next action for the detachable/workspace route:
   `tabOutline` for the current note, Markmap as an explorer view, node-notes as
   a service, and adopted-node visibility in the file explorer. Keep the
   detachable/workspace behavior stable first because these features may mount
   into detached explorer leaves.
 - For Elastic UI execution, start with the contracts and gates shard:
   [[docs/work/polish/plans/2026-05-11-elastic-ui-chameleon/00-contracts-and-gates|Elastic UI Contracts And Gates]].
-- For product work, continue Cut 1.5 Task 6:
-  Queue explorer grouped parent/child presentation in
-  [[docs/work/polish/plans/2026-05-10-dock-toolbar-groups-virtualizer/cut-1-5-node-surface-theme-scroll/index|Cut 1.5 Node Surface Theme And Scroll Plan]].
-- After Cut 1.5, continue with Cut 2 from
+- Continue with Cut 2 from
   [[docs/work/polish/plans/2026-05-10-dock-toolbar-groups-virtualizer/index|Dock, Toolbar, Groups, Virtualizer Implementation Plan]]:
   Settings and row layout completion, then Cut 3 virtualizer/pretext/tab
   latency, Cut 4 real `@dnd-kit/svelte` DnD/groups/queue operations, and Cut 5
   node notes plus mouse action polish.
 ## Known Residuals
 
-- Live Obsidian runtime smoke for the detachable slice is still pending.
+- No detachable `page-tools` smoke residual remains; final live runtime was
+  restored to attached state after the smoke.
 - Live narrow-frame Obsidian smoke for scrollable compact controls was not run.
+- Live Obsidian smoke for Queue island Task 6 and final Task 7 was not run.
 - Product worktree remains dirty with active Vaultman UI/DnD changes. Do not
   revert unrelated user/agent files.
 - One combined component command timed out once due startup/runtime length, but

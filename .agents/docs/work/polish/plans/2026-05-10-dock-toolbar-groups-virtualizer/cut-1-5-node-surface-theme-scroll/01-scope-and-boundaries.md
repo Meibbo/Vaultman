@@ -1,10 +1,10 @@
 ---
 title: Cut 1.5 Scope And Boundaries
 type: agent-plan-shard
-status: planned
+status: done
 parent: "[[docs/work/polish/plans/2026-05-10-dock-toolbar-groups-virtualizer/cut-1-5-node-surface-theme-scroll/index|Cut 1.5 Node Surface Theme And Scroll Plan]]"
 created: 2026-05-10T19:53:58
-updated: 2026-05-10T19:53:58
+updated: 2026-05-11T23:28:00
 tags:
   - agent/plan
   - polish

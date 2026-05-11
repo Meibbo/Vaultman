@@ -69,8 +69,36 @@
 		onAction?.(action, row);
 	}
 
+	function actionRegionClass(row: ViewRow<NodeBase>): string {
+		return isQueueChildRow(row)
+			? 'vm-view-list-actions is-counter-slot'
+			: 'vm-view-list-actions';
+	}
+
+	function actionButtonClass(action: ViewAction<NodeBase>, row: ViewRow<NodeBase>): string {
+		return [
+			'vm-btn-icon',
+			action.tone === 'danger' ? 'vm-btn-danger' : '',
+			isInlineCancelAction(action, row) ? 'is-inline-cancel' : '',
+		]
+			.filter(Boolean)
+			.join(' ');
+	}
+
 	function isGroupRow(row: ViewRow<NodeBase>): boolean {
 		return (row.node as { kind?: string }).kind === 'group';
+	}
+
+	function isQueueChildRow(row: ViewRow<NodeBase>): boolean {
+		return hasRowClass(row, 'is-queue-child');
+	}
+
+	function isInlineCancelAction(action: ViewAction<NodeBase>, row: ViewRow<NodeBase>): boolean {
+		return isQueueChildRow(row) && action.id === 'remove';
+	}
+
+	function hasRowClass(row: ViewRow<NodeBase>, className: string): boolean {
+		return (row.cls ?? '').split(/\s+/).includes(className);
 	}
 
 	function dragEnabled(): boolean {
@@ -164,11 +192,10 @@
 				{/if}
 
 				{#if row.actions.length > 0}
-					<span class="vm-view-list-actions">
+					<span class={actionRegionClass(row)}>
 						{#each row.actions as action (action.id)}
 							<button
-								class="vm-btn-icon"
-								class:vm-btn-danger={action.tone === 'danger'}
+								class={actionButtonClass(action, row)}
 								disabled={action.disabled}
 								onclick={() => handleAction(action, row)}
 								aria-label={action.label}

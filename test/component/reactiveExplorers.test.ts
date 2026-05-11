@@ -328,6 +328,65 @@ describe('reactive explorer components', () => {
 		expect(target.querySelector('[data-id="queue-action:set"]')).toBeTruthy();
 	});
 
+	it('presents queue groups as parent rows and queued changes as plain child rows', () => {
+		const operationsIndex = new MutableIndex<QueueChange>();
+		const remove = vi.fn();
+		const plugin = {
+			operationsIndex,
+			queueService: {
+				remove,
+				clear: vi.fn(),
+				execute: vi.fn(async () => undefined),
+			},
+		} as unknown as VaultmanPlugin;
+
+		app = mount(ExplorerQueue as unknown as Component<{ plugin: VaultmanPlugin }>, {
+			target,
+			props: { plugin },
+		});
+		flushSync();
+
+		operationsIndex.emit([
+			{
+				id: 'op-1',
+				group: 'property',
+				change: {
+					id: 'op-1',
+					type: 'property',
+					action: 'delete',
+					property: 'status',
+					oldValue: 'draft',
+					details: 'Delete status value',
+					files: [],
+					customLogic: true,
+					logicFunc: () => null,
+				},
+			},
+		]);
+		flushSync();
+
+		const parent = target.querySelector<HTMLElement>('[data-id="queue-action:delete"]');
+		const child = target.querySelector<HTMLElement>('[data-id="op-1"]');
+		expect(parent).toBeTruthy();
+		expect(child).toBeTruthy();
+		expect(parent!.classList.contains('is-queue-parent')).toBe(true);
+		expect(child!.classList.contains('is-queue-child')).toBe(true);
+		expect(parent!.querySelector('.vm-view-list-icon')).toBeTruthy();
+		expect(parent!.querySelector('.vm-view-list-badges')?.textContent).toContain('1');
+		expect(child!.querySelector('.vm-view-list-label')?.textContent).toBe('value');
+		expect(child!.querySelector('.vm-view-list-icon')).toBeNull();
+		expect(child!.querySelector('.vm-view-list-badges')).toBeNull();
+
+		const cancel = child!.querySelector<HTMLButtonElement>('button[aria-label="Remove queued change"]');
+		expect(cancel).toBeTruthy();
+		expect(cancel!.classList.contains('is-inline-cancel')).toBe(true);
+		expect(child!.querySelector('.vm-view-list-actions')?.classList.contains('is-counter-slot')).toBe(
+			true,
+		);
+		cancel!.click();
+		expect(remove).toHaveBeenCalledWith('op-1');
+	});
+
 	it('renders the Queue island toolbar without a redundant close squircle', () => {
 		const operationsIndex = new MutableIndex<QueueChange>();
 		const plugin = {

@@ -1,10 +1,10 @@
 ---
 title: Cut 1.5 Implementation Facets
 type: agent-plan-shard
-status: planned
+status: done
 parent: "[[docs/work/polish/plans/2026-05-10-dock-toolbar-groups-virtualizer/cut-1-5-node-surface-theme-scroll/index|Cut 1.5 Node Surface Theme And Scroll Plan]]"
 created: 2026-05-10T19:53:58
-updated: 2026-05-11T21:55:04
+updated: 2026-05-11T23:28:00
 tags:
   - agent/plan
   - polish
@@ -128,22 +128,22 @@ explorerNodeBorders: true;
 
 ## Facet 6: Queue Explorer Child Rows
 
-- [ ] Add queue presentation helpers in `src/services/serviceQueuePresentation.ts` or `serviceGroups.ts`:
+- [x] Add queue presentation helpers in `src/services/serviceQueuePresentation.ts` or `serviceGroups.ts`:
   - `queueActionLabel(actionKey)`
   - `queueActionIcon(actionKey)`
   - `queueChildLabel(change)`
-- [ ] `queueChildLabel(change)` must return only the object kind:
+- [x] `queueChildLabel(change)` must return only the object kind:
   - property value deletion/set with `value` or `oldValue`: `value`
   - property operation without value: `property`
   - tag operation: `tag`
   - file operation: `file`
   - content replace: `content`
   - template: `template`
-- [ ] In `explorerQueue.svelte`, after `getModel`, normalize rows:
+- [x] In `explorerQueue.svelte`, after `getModel`, normalize rows:
   - Parent group rows: `cls` includes `is-queue-parent`, `icon` is the action icon, count badge/counter remains visible.
   - Child rows: `cls` includes `is-queue-child`, `icon` is undefined, operation badges are removed, pending/deleted row state is removed, remove action remains.
-- [ ] In `viewList.svelte`, add action wrapper/button classes based on row/action:
+- [x] In `viewList.svelte`, add action wrapper/button classes based on row/action:
   - `.is-inline-cancel`
   - `.is-counter-slot`
-- [ ] In popup/list SCSS, style child remove action as a small inline `x` in the counter area with transparent background and no extra label/icon box.
-- [ ] Keep parent group row non-removable.
+- [x] In popup/list SCSS, style child remove action as a small inline `x` in the counter area with transparent background and no extra label/icon box.
+- [x] Keep parent group row non-removable.

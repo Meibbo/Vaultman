@@ -41,6 +41,7 @@ export class VaultmanTabLeafView extends ItemView {
 
 	async onOpen(): Promise<void> {
 		const { contentEl } = this;
+		this.containerEl.setAttribute('data-type', this.getViewType());
 		contentEl.empty();
 		contentEl.addClass('vm-tab-leaf');
 		contentEl.setAttribute('data-vm-tab-id', this.tabId);

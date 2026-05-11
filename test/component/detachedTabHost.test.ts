@@ -2,8 +2,10 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { flushSync, mount, unmount, type Component } from 'svelte';
 import DetachedTabHost from '../../src/components/frame/DetachedTabHost.svelte';
 import type { VaultmanPlugin } from '../../src/main';
-import { mockApp, mockTFile } from '../helpers/obsidian-mocks';
+import { mockApp, mockTFile, type WorkspaceLeaf } from '../helpers/obsidian-mocks';
 import { LeafDetachService } from '../../src/services/serviceLeafDetach';
+import { VaultmanTabLeafView } from '../../src/types/typeTabLeaf';
+import { installObsidianDomPolyfill } from '../helpers/dom-obsidian-polyfill';
 
 function noopIndex() {
 	return {
@@ -108,6 +110,7 @@ describe('DetachedTabHost', () => {
 	let app: ReturnType<typeof mount> | null = null;
 
 	beforeEach(() => {
+		installObsidianDomPolyfill();
 		target = document.createElement('div');
 		document.body.appendChild(target);
 		vi.stubGlobal(
@@ -151,5 +154,18 @@ describe('DetachedTabHost', () => {
 		expect(target.querySelector('.vm-detached-tab-host')).toBeTruthy();
 		expect(target.querySelector('.vm-files-tab-content')).toBeTruthy();
 		expect(target.querySelector('.vm-bottom-nav')).toBeFalsy();
+	});
+
+	it('keeps the Obsidian leaf container data-type aligned with the detached tab view type', async () => {
+		const leaf: WorkspaceLeaf = {
+			getViewState: () => ({ type: 'vaultman-tab-page-tools' }),
+		};
+		const view = new VaultmanTabLeafView(leaf, 'page-tools', await makePlugin());
+
+		await view.onOpen();
+		flushSync();
+
+		expect(view.containerEl.getAttribute('data-type')).toBe('vaultman-tab-page-tools');
+		expect(view.contentEl.getAttribute('data-vm-tab-id')).toBe('page-tools');
 	});
 });
