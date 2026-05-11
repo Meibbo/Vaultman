@@ -55,6 +55,34 @@
 				box-shadow 0.12s ease;
 		}
 
+		.vm-tree-row-surface::before,
+		.vm-tree-row-surface.is-expanded-parent::after {
+			content: '';
+			position: absolute;
+			z-index: 0;
+			width: 1px;
+			background: $vm-border-color;
+			opacity: 0;
+			pointer-events: none;
+		}
+
+		.vm-tree-row-surface::before {
+			left: calc(var(--depth, 0) * 16px - 6px);
+			top: 0;
+			bottom: 0;
+		}
+
+		.vm-tree-row-surface.is-expanded-parent::after {
+			left: calc(var(--depth, 0) * 16px + 14px);
+			top: 50%;
+			bottom: 0;
+			opacity: 0.55;
+		}
+
+		&:not([style*='--depth: 0']) .vm-tree-row-surface::before {
+			opacity: 0.45;
+		}
+
 		.vm-tree-row-surface.is-selected {
 			background: color-mix(in srgb, var(--interactive-accent) 14%, $vm-bg-primary);
 			color: var(--text-normal);
@@ -87,19 +115,15 @@
 
 		.vm-tree-toggle,
 		.vm-tree-icon {
-			position: absolute;
-			top: 50%;
-			transform: translateY(-50%);
-			z-index: 1;
 			pointer-events: auto;
+			flex: 0 0 auto;
+			position: relative;
+			z-index: 1;
 		}
 
-		.vm-tree-toggle {
-			left: calc(var(--depth, 0) * 16px + 2px);
-		}
-
-		.vm-tree-icon {
-			left: calc(var(--depth, 0) * 16px + 18px);
+		.vm-tree-toggle.is-placeholder {
+			pointer-events: none;
+			visibility: hidden;
 		}
 
 		.vm-tree-badge-zone {
@@ -134,6 +158,13 @@
 			opacity: 0;
 			pointer-events: none;
 			transition: opacity 0.12s ease;
+		}
+
+		&:hover .vm-tree-row-surface:not(.is-selected):not(.is-active-filter),
+		&:focus-within .vm-tree-row-surface:not(.is-selected):not(.is-active-filter),
+		.vm-tree-row-surface:hover:not(.is-selected):not(.is-active-filter) {
+			background: $vm-bg-modifier-hover;
+			color: $vm-text-normal;
 		}
 
 		&:hover .vm-tree-row-surface,

@@ -1,67 +1,51 @@
 ---
-title: Shard ALPHA - Core & SCSS Bridge
+title: Shard ALPHA - Estilos & Camaleón Bridge
 type: implementation-shard
-parent: "[[docs/superpowers/specs/2026-05-10-shadcn-tailwind-transition/index|index]]"
+parent: "[[index]]"
 created: 2026-05-10
 ---
 
-# Shard ALPHA: Core & SCSS Bridge
+# Shard ALPHA: Estilos & Camaleón Bridge
 
 ## 1. Objetivo Técnico
-Establecer los cimientos de Tailwind v4 integrados con el pipeline de SCSS actual. El objetivo es que las variables de SCSS y las clases de Tailwind "hablen" el mismo idioma.
+Sustituir el plan de Tailwind por **UnoCSS + DaisyUI**. Establecer el sistema de **Shortcuts** para mimetizar clases nativas de Obsidian sin ensuciar el DOM.
 
 ## 2. Acciones de Implementación
 
-### 2.1. Configuración de Tailwind v4 (Sin Preflight)
-Para evitar romper Obsidian, el archivo `src/main.scss` debe integrar Tailwind de forma quirúrgica:
+### 2.1. Configuración de UnoCSS
+Instalar `@unocss/vite` con los siguientes presets:
+- `presetUno()`: Para utilidades compatibles con Tailwind.
+- `presetIcons()`: Para usar `i-lucide-*` como clases.
+- `presetDaisy()`: Para componentes semánticos.
+- `presetAttributify()`: Para mantener el HTML limpio.
 
-```scss
-// src/main.scss
-@import "tailwindcss" preflight(none);
-@import "tailwindcss" prefix(tw);
-
-// Ingesta de Tokens en el Tema
-@theme {
-  --color-accent: var(--text-accent);
-  --color-bg-primary: var(--background-primary);
-  --radius-m: 8px;
+### 2.2. Shortcuts de Mimetismo (The Chameleon Key)
+Definir en `uno.config.ts` los mapeos para el modo **Thin**:
+```typescript
+shortcuts: {
+  'obsidian-mimic-file': 'nav-file tw-flex tw-items-center tw-px-2',
+  'obsidian-mimic-btn': 'clickable-icon tw-p-1 tw-rounded-md',
 }
 ```
 
-### 2.2. El Patrón "Semantic @apply"
-Para evitar contenedores vacíos, migraremos las primitivas usando este patrón:
+### 2.3. Ingesta de Tokens SCSS
+Sincronizar las variables de `src/styles/_tokens.scss` con el tema de UnoCSS para que `tw-text-accent` use `var(--text-accent)` nativo.
 
-```scss
-// src/styles/components/_badges.scss
-.vm-badge {
-  @apply tw-inline-flex tw-items-center tw-rounded-full tw-px-2 tw-py-1 tw-text-xs tw-font-medium;
-  
-  // Mantenemos los mixins o lógica SCSS que Tailwind no cubre
-  @include vaultman-glass-effect;
-}
-```
+## 3. El Componente Polimórfico (Contrato)
+Las nuevas primitivas deben seguir este patrón de Svelte 5:
 
-### 2.3. Porting de Primitivas shadcn-svelte
-Se deben portar los siguientes componentes de shadcn al directorio `src/components/ui/`, asegurando que usen el prefijo `tw-`:
-- **Button:** Reemplazará a `BtnSquircle` (manteniendo la interfaz de props).
-- **Input:** Para los buscadores y renombrado inline.
-- **Badge:** Para las insignias de estado y etiquetas.
-- **Toggle:** Reemplazará al actual `Toggle.svelte`.
-
-## 3. Contratos de Código (Ejemplo Badge)
 ```svelte
-<!-- src/components/ui/badge/badge.svelte -->
 <script lang="ts">
-  let { class: className, variant, ...props } = $props();
+  import { themeService } from '$services/serviceTheme.svelte';
+  let { children, ...props } = $props();
 </script>
 
-<!-- Se mantiene la clase semántica base .vm-badge -->
-<div class="vm-badge tw-badge {className}" {...props}>
-  {@render props.children?.()}
+<div class="{themeService.isMinimal ? 'obsidian-mimic-file' : 'tw-card tw-bg-base-200'}">
+  {@render children()}
 </div>
 ```
 
 ## 4. Definición de Hecho (DoD)
-- Tailwind v4 instalado y configurado con prefijo `tw-`.
-- Las variables de Obsidian son accesibles vía clases `tw-text-accent`.
-- Al menos 3 primitivas migradas sin pérdida de estilos SCSS originales.
+- UnoCSS funcionando en el build de Vite+.
+- Iconos Lucide renderizando mediante clases CSS (Zero SVG overhead).
+- El plugin conserva el 100% de la compatibilidad con los snippets de la comunidad.

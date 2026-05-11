@@ -1,10 +1,11 @@
 import { describe, expect, it, vi } from 'vitest';
-import { createDndService } from '../../../src/services/serviceDnd';
+import { createDndService, type DndSubject } from '../../../src/services/serviceDnd';
 import {
-	createSvelteDndDraggableOptions,
-	createSvelteDndDroppableOptions,
-	dndContainerId,
-	type SvelteDndState,
+	createDndKitDraggableInput,
+	createDndKitDroppableInput,
+	createDndKitProviderHandlers,
+	dndKitId,
+	type DndKitEntityData,
 } from '../../../src/services/serviceDndSvelteAdapter';
 
 const SOURCE = {
@@ -23,19 +24,16 @@ const TARGET = {
 } as const;
 
 describe('serviceDndSvelteAdapter', () => {
-	it('builds stable sveltednd draggable options and starts semantic drag state', () => {
+	it('builds stable @dnd-kit/svelte draggable input and starts semantic drag state', () => {
 		const dnd = createDndService();
-		const options = createSvelteDndDraggableOptions(dnd, SOURCE, {
-			handle: '.vm-dnd-handle',
-			interactive: ['.vm-badge'],
-		});
+		const input = createDndKitDraggableInput(dnd, SOURCE, { disabled: true });
+		const handlers = createDndKitProviderHandlers(dnd);
 
-		options.callbacks?.onDragStart?.(state({ draggedItem: SOURCE }));
+		handlers.onDragStart(kitEvent({ source: kitEntity(SOURCE, 'source') }));
 
-		expect(options.container).toBe('files:node:file:a');
-		expect(options.dragData).toEqual(SOURCE);
-		expect(options.handle).toBe('.vm-dnd-handle');
-		expect(options.interactive).toEqual(['.vm-badge']);
+		expect(input.id).toBe('files:node:file:a');
+		expect(input.data).toEqual({ role: 'source', subject: SOURCE });
+		expect(input.disabled).toBe(true);
 		expect(dnd.snapshot()).toMatchObject({
 			phase: 'dragging',
 			source: { id: 'file:a' },
@@ -43,18 +41,16 @@ describe('serviceDndSvelteAdapter', () => {
 		});
 	});
 
-	it('updates candidate state from sveltednd drag-over callbacks', () => {
+	it('updates candidate state from @dnd-kit/svelte drag-over events', () => {
 		const dnd = createDndService();
-		createSvelteDndDraggableOptions(dnd, SOURCE).callbacks?.onDragStart?.(
-			state({ draggedItem: SOURCE }),
-		);
-		const options = createSvelteDndDroppableOptions(dnd, TARGET);
+		const handlers = createDndKitProviderHandlers(dnd);
+		const targetInput = createDndKitDroppableInput(dnd, TARGET, { position: 'after' });
 
-		options.callbacks?.onDragOver?.(
-			state({
-				draggedItem: SOURCE,
-				targetContainer: dndContainerId(TARGET),
-				dropPosition: 'after',
+		handlers.onDragStart(kitEvent({ source: kitEntity(SOURCE, 'source') }));
+		handlers.onDragOver(
+			kitEvent({
+				source: kitEntity(SOURCE, 'source'),
+				target: kitEntity(TARGET, 'target', targetInput.data),
 			}),
 		);
 
@@ -66,8 +62,9 @@ describe('serviceDndSvelteAdapter', () => {
 		});
 	});
 
-	it('maps null library drop position to inside for container targets', () => {
+	it('maps missing @dnd-kit/svelte drop position to inside for container targets', () => {
 		const dnd = createDndService();
+		const handlers = createDndKitProviderHandlers(dnd);
 		const folder = {
 			explorerId: 'files',
 			kind: 'group',
@@ -76,14 +73,11 @@ describe('serviceDndSvelteAdapter', () => {
 			accepts: ['move'],
 		} as const;
 
-		createSvelteDndDraggableOptions(dnd, SOURCE).callbacks?.onDragStart?.(
-			state({ draggedItem: SOURCE }),
-		);
-		createSvelteDndDroppableOptions(dnd, folder).callbacks?.onDragOver?.(
-			state({
-				draggedItem: SOURCE,
-				targetContainer: dndContainerId(folder),
-				dropPosition: null,
+		handlers.onDragStart(kitEvent({ source: kitEntity(SOURCE, 'source') }));
+		handlers.onDragOver(
+			kitEvent({
+				source: kitEntity(SOURCE, 'source'),
+				target: kitEntity(folder, 'target'),
 			}),
 		);
 
@@ -98,15 +92,27 @@ describe('serviceDndSvelteAdapter', () => {
 	it('emits the semantic drop result on drop and clears drag state', () => {
 		const dnd = createDndService();
 		const onDropResult = vi.fn();
+		const handlers = createDndKitProviderHandlers(dnd, { onDropResult });
 
-		createSvelteDndDraggableOptions(dnd, SOURCE).callbacks?.onDragStart?.(
-			state({ draggedItem: SOURCE }),
+		handlers.onDragStart(kitEvent({ source: kitEntity(SOURCE, 'source') }));
+		handlers.onDragOver(
+			kitEvent({
+				source: kitEntity(SOURCE, 'source'),
+				target: kitEntity(TARGET, 'target', {
+					role: 'target',
+					subject: TARGET,
+					position: 'before',
+				}),
+			}),
 		);
-		createSvelteDndDroppableOptions(dnd, TARGET, { onDropResult }).callbacks?.onDrop?.(
-			state({
-				draggedItem: SOURCE,
-				targetContainer: dndContainerId(TARGET),
-				dropPosition: 'before',
+		handlers.onDragEnd(
+			kitEvent({
+				source: kitEntity(SOURCE, 'source'),
+				target: kitEntity(TARGET, 'target', {
+					role: 'target',
+					subject: TARGET,
+					position: 'before',
+				}),
 			}),
 		);
 
@@ -121,35 +127,54 @@ describe('serviceDndSvelteAdapter', () => {
 		expect(dnd.snapshot().phase).toBe('idle');
 	});
 
-	it('clears stale candidate on drag leave and cancels unfinished drags on drag end', () => {
+	it('clears stale candidate on empty drag-over and cancels unfinished drags on drag end', () => {
 		const dnd = createDndService();
-		const draggable = createSvelteDndDraggableOptions(dnd, SOURCE);
-		const droppable = createSvelteDndDroppableOptions(dnd, TARGET);
+		const handlers = createDndKitProviderHandlers(dnd);
 
-		draggable.callbacks?.onDragStart?.(state({ draggedItem: SOURCE }));
-		droppable.callbacks?.onDragOver?.(
-			state({
-				draggedItem: SOURCE,
-				targetContainer: dndContainerId(TARGET),
-				dropPosition: 'after',
+		handlers.onDragStart(kitEvent({ source: kitEntity(SOURCE, 'source') }));
+		handlers.onDragOver(
+			kitEvent({
+				source: kitEntity(SOURCE, 'source'),
+				target: kitEntity(TARGET, 'target', {
+					role: 'target',
+					subject: TARGET,
+					position: 'after',
+				}),
 			}),
 		);
-		droppable.callbacks?.onDragLeave?.(state({ draggedItem: SOURCE }));
+		handlers.onDragOver(kitEvent({ source: kitEntity(SOURCE, 'source'), target: null }));
 		expect(dnd.snapshot().candidate).toBeNull();
 
-		draggable.callbacks?.onDragEnd?.(state({ draggedItem: SOURCE }));
+		handlers.onDragEnd(kitEvent({ source: kitEntity(SOURCE, 'source'), target: null }));
 		expect(dnd.snapshot().phase).toBe('idle');
 	});
 });
 
-function state<T>(partial: Partial<SvelteDndState<T>> & { draggedItem: T }): SvelteDndState<T> {
+function kitEntity(
+	subject: DndSubject,
+	role: DndKitEntityData['role'],
+	data: DndKitEntityData = { role, subject },
+) {
 	return {
-		isDragging: true,
-		draggedItem: partial.draggedItem,
-		sourceContainer: partial.sourceContainer ?? 'source',
-		targetContainer: partial.targetContainer ?? null,
-		targetElement: partial.targetElement ?? null,
-		dropPosition: partial.dropPosition ?? null,
-		invalidDrop: partial.invalidDrop,
+		id: dndKitId(subject),
+		data,
 	};
+}
+
+function kitEvent({
+	source,
+	target = null,
+	canceled = false,
+}: {
+	source: ReturnType<typeof kitEntity> | null;
+	target?: ReturnType<typeof kitEntity> | null;
+	canceled?: boolean;
+}) {
+	return {
+		canceled,
+		operation: {
+			source,
+			target,
+		},
+	} as never;
 }

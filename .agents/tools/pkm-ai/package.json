@@ -11,6 +11,7 @@
     "update": "node update-indexes.mjs",
     "shard": "node shard-index.mjs",
     "code-index": "node code-index.mjs",
+    "tasks": "node manage-tasks.mjs",
     "test": "node --test \"test/*.test.mjs\""
   },
   "bin": {
@@ -22,6 +23,7 @@
     "pkm-ai-archive": "./archive-active-doc.mjs",
     "pkm-ai-update": "./update-indexes.mjs",
     "pkm-ai-shard": "./shard-index.mjs",
-    "pkm-ai-code-index": "./code-index.mjs"
+    "pkm-ai-code-index": "./code-index.mjs",
+    "pkm-ai-tasks": "./manage-tasks.mjs"
   }
 }

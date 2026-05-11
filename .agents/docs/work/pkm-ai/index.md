@@ -4,7 +4,7 @@ type: initiative-index
 status: active
 parent: "[[docs/work/pkm-ai/specs/2026-05-04-orchestration-refresh/index|pkm-ai]]"
 created: 2026-05-04T01:44:46
-updated: 2026-05-10T11:08:45
+updated: 2026-05-10T18:31:27
 tags:
   - agent/work
   - initiative/pkm-ai
@@ -29,6 +29,9 @@ backlog structure, and branch hygiene for AI workflow files.
 - Plan: [[docs/work/pkm-ai/plans/2026-05-10-health-line-limit-auto-sharding/index|health-line-limit-auto-sharding-plan]]
 - Plan: [[docs/work/pkm-ai/plans/2026-05-10-health-residual-auto-repair/index|health-residual-auto-repair-plan]]
 - Plan: [[docs/work/pkm-ai/plans/2026-05-10-glossary-candidate-triage/index|glossary-candidate-triage-plan]]
+- Plan: [[docs/work/pkm-ai/plans/2026-05-10-task-state-automation/index|task-state-automation-plan]]
+- Plan: [[docs/work/pkm-ai/plans/2026-05-10-task-state-retrieval/index|task-state-retrieval-plan]]
+- Research: [[docs/work/pkm-ai/research/2026-05-10-obsidian-tasks-state-automation|obsidian-tasks-state-automation]]
 - Research: [[docs/work/pkm-ai/research/2026-05-10-residual-classification|residual-classification]]
 - Item: [[docs/work/pkm-ai/items/vm-0002-current-docs-as-route-indexes|current docs as route indexes]]
 - Migration archive: [[docs/archive/pkm-ai/migration-2026-05-04/index|migration-2026-05-04]]
@@ -59,6 +62,10 @@ backlog structure, and branch hygiene for AI workflow files.
   [[docs/work/pkm-ai/plans/2026-05-10-health-residual-auto-repair/index|health-residual-auto-repair-plan]]
 - Glossary candidate triage:
   [[docs/work/pkm-ai/plans/2026-05-10-glossary-candidate-triage/index|glossary-candidate-triage-plan]]
+- Task state automation:
+  [[docs/work/pkm-ai/plans/2026-05-10-task-state-automation/index|task-state-automation-plan]]
+- Task state retrieval:
+  [[docs/work/pkm-ai/plans/2026-05-10-task-state-retrieval/index|task-state-retrieval-plan]]
 
 ## Related Routes
 

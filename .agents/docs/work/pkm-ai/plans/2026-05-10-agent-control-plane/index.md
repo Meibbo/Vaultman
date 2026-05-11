@@ -1,10 +1,10 @@
 ---
 title: Agent control plane implementation plan
 type: plan-index
-status: draft
+status: done
 parent: "[[docs/work/pkm-ai/specs/2026-05-10-agent-control-plane/index|Agent Control Plane]]"
 created: 2026-05-10T03:29:53
-updated: 2026-05-10T09:13:55
+updated: 2026-05-10T18:31:27
 created_by: codex
 updated_by: codex
 tags:

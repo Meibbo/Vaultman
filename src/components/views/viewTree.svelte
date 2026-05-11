@@ -123,6 +123,7 @@
 	let outerEl: HTMLDivElement | undefined = $state();
 	let rowHeight = $state(TREE_ROW_HEIGHT);
 	let dragStart = $state<{ x: number; y: number; pointerId: number } | null>(null);
+	let capturedSelectionPointerId: number | null = null;
 	let selectionBox = $state<{
 		left: number;
 		top: number;
@@ -275,10 +276,9 @@
 	}
 
 	function handlePointerDown(e: PointerEvent) {
-		if (e.button !== 0 || !outerEl || shouldIgnoreBoxStart(e.target)) return;
+		if (e.button !== 0 || !outerEl || !onBoxSelect || shouldIgnoreBoxStart(e.target)) return;
 		dragStart = { x: e.clientX, y: e.clientY, pointerId: e.pointerId };
 		selectionBox = null;
-		capturePointer(e.pointerId);
 	}
 
 	function handlePointerMove(e: PointerEvent) {
@@ -287,6 +287,7 @@
 		const dy = e.clientY - dragStart.y;
 		if (!selectionBox && Math.hypot(dx, dy) < 4) return;
 		e.preventDefault();
+		if (!selectionBox) capturePointer(e.pointerId);
 		selectionBox = makeSelectionBox(dragStart.x, dragStart.y, e.clientX, e.clientY);
 	}
 
@@ -309,6 +310,8 @@
 	}
 
 	function releasePointer(pointerId: number) {
+		if (capturedSelectionPointerId !== pointerId) return;
+		capturedSelectionPointerId = null;
 		if (!outerEl?.hasPointerCapture(pointerId)) return;
 		outerEl.releasePointerCapture(pointerId);
 	}
@@ -317,6 +320,7 @@
 		if (!outerEl) return;
 		try {
 			outerEl.setPointerCapture(pointerId);
+			capturedSelectionPointerId = pointerId;
 		} catch {
 			// Synthetic CLI/test pointer events do not always create a capturable pointer.
 		}
@@ -553,6 +557,9 @@
 					class:vm-badge-warning={isWarning}
 					class:vm-search-highlight={isHighlighted}
 					class:is-editing={isEditing}
+					class:has-toggle={flat.hasChildren}
+					class:has-icon={!!rowIcon}
+					class:is-expanded-parent={flat.hasChildren && flat.isExpanded}
 				>
 					<!-- Chevron / Spacer -->
 					{#if flat.hasChildren}
@@ -569,6 +576,8 @@
 							<span use:icon={flat.isExpanded ? 'lucide-chevron-down' : 'lucide-chevron-right'}
 							></span>
 						</div>
+					{:else}
+						<div class="vm-tree-toggle is-placeholder" aria-hidden="true"></div>
 					{/if}
 
 					<!-- Icon -->

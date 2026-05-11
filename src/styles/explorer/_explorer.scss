@@ -265,12 +265,22 @@
 	margin-left: auto;
 
 	.vm-nav-icon-min {
+		display: inline-flex;
+		align-items: center;
+		justify-content: center;
 		width: 22px;
 		height: 22px;
 		padding: 2px;
+		line-height: 1;
 		border-radius: $vm-radius-s;
+		box-sizing: border-box;
 		opacity: 0.75;
 		transition: opacity 0.12s ease;
+
+		svg {
+			display: block;
+			margin: auto;
+		}
 
 		&:hover {
 			opacity: 1;

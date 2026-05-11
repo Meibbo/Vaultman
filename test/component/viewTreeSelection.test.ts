@@ -122,8 +122,45 @@ describe('ViewTree selection gestures', () => {
 		expect(withIcon.querySelector('.vm-tree-icon')).not.toBeNull();
 		expect(withoutIcon.querySelector('.vm-tree-icon-placeholder')).toBeNull();
 		expect(withoutIcon.querySelector('.vm-tree-icon')).toBeNull();
+		expect(withIcon.querySelector('.vm-tree-row-surface')?.classList.contains('has-icon')).toBe(
+			true,
+		);
+		expect(
+			withoutIcon.querySelector('.vm-tree-row-surface')?.classList.contains('has-icon'),
+		).toBe(false);
+		expect(
+			withoutIcon.querySelector('.vm-tree-row-surface')?.classList.contains('has-toggle'),
+		).toBe(false);
+		expect(withoutIcon.querySelector('.vm-tree-toggle.is-placeholder')).not.toBeNull();
 		expect(tree.getAttribute('style')).toContain('--vm-tree-row-h: 28px');
 		expect(tree.getAttribute('style')).toContain('--vm-tree-icon-size: 16px');
+	});
+
+	it('reserves the leading toggle slot for leaf rows without making it interactive', () => {
+		renderTree([
+			{
+				id: 'parent',
+				label: 'Parent',
+				depth: 0,
+				meta: {},
+				children: [{ id: 'child', label: 'Child', depth: 1, meta: {} }],
+			},
+			{ id: 'plain-leaf', label: 'Plain leaf', depth: 0, meta: {} },
+		]);
+
+		const parentSurface = target.querySelector(
+			'[data-id="parent"] .vm-tree-row-surface',
+		) as HTMLElement;
+		const leafSurface = target.querySelector(
+			'[data-id="plain-leaf"] .vm-tree-row-surface',
+		) as HTMLElement;
+
+		expect(parentSurface.classList.contains('has-toggle')).toBe(true);
+		expect(parentSurface.querySelector('.vm-tree-toggle')).not.toBeNull();
+		expect(leafSurface.classList.contains('has-toggle')).toBe(false);
+		expect(leafSurface.classList.contains('has-icon')).toBe(false);
+		expect(leafSurface.querySelector('.vm-tree-toggle.is-placeholder')).not.toBeNull();
+		expect(leafSurface.querySelector('.vm-tree-icon')).toBeNull();
 	});
 
 	it('uses an open folder icon for expanded folder rows', () => {
@@ -270,7 +307,7 @@ describe('ViewTree selection gestures', () => {
 		expect(handlers.onPrimaryAction).not.toHaveBeenCalled();
 	});
 
-	it('keeps row pointerdown as a click until movement crosses the selection threshold', () => {
+	it('does not capture the pointer for click-size movement inside a row', () => {
 		const handlers = renderTree([{ id: 'alpha', label: 'Alpha', depth: 0, meta: {} }]);
 		const tree = target.querySelector('.vm-tree-virtual-outer') as HTMLElement;
 		const row = target.querySelector('[data-id="alpha"]') as HTMLElement;
@@ -307,8 +344,50 @@ describe('ViewTree selection gestures', () => {
 			}),
 		);
 
-		expect(setPointerCapture).toHaveBeenCalledWith(9);
+		expect(setPointerCapture).not.toHaveBeenCalled();
 		expect(handlers.onBoxSelect).not.toHaveBeenCalled();
+	});
+
+	it('captures the pointer only after movement crosses the selection threshold', () => {
+		const handlers = renderTree([{ id: 'alpha', label: 'Alpha', depth: 0, meta: {} }]);
+		const tree = target.querySelector('.vm-tree-virtual-outer') as HTMLElement;
+		const row = target.querySelector('[data-id="alpha"]') as HTMLElement;
+		const setPointerCapture = vi.fn();
+		Object.assign(tree, {
+			setPointerCapture,
+			releasePointerCapture: vi.fn(),
+			hasPointerCapture: vi.fn(() => true),
+		});
+		vi.spyOn(tree, 'getBoundingClientRect').mockReturnValue(rect(0, 0, 240, 120));
+
+		row.dispatchEvent(
+			new PointerEvent('pointerdown', {
+				bubbles: true,
+				button: 0,
+				pointerId: 10,
+				clientX: 10,
+				clientY: 10,
+			}),
+		);
+		tree.dispatchEvent(
+			new PointerEvent('pointermove', {
+				bubbles: true,
+				pointerId: 10,
+				clientX: 30,
+				clientY: 30,
+			}),
+		);
+		tree.dispatchEvent(
+			new PointerEvent('pointerup', {
+				bubbles: true,
+				pointerId: 10,
+				clientX: 30,
+				clientY: 30,
+			}),
+		);
+
+		expect(setPointerCapture).toHaveBeenCalledWith(10);
+		expect(handlers.onBoxSelect).toHaveBeenCalledWith(['alpha'], expect.any(PointerEvent));
 	});
 
 	it('keeps inherited badge actions and chevron expansion isolated on collapsed parents', () => {

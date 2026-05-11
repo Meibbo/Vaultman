@@ -5,7 +5,7 @@ status: active
 parent: "[[docs/work/pkm-ai/index|pkm-ai]]"
 archive_source: "docs/archive/pkm-ai/active-docs/2026-05-10T093000-current-status.md"
 created: 2026-05-04T01:36:20
-updated: 2026-05-10T11:13:27
+updated: 2026-05-10T18:49:52
 tags:
   - agent/current
 created_by: dec
@@ -29,7 +29,8 @@ Compact route index after archiving the oversized current status:
 
 ## Current Route
 
-- Latest user request: continue remaining PKM-AI tasks from the previous agent.
+- Latest user request: add PKM-AI task-state retrieval so agents can fetch
+  objective states without manually reading plan Markdown.
 - Active initiative: [[docs/work/pkm-ai/index|PKM-AI]].
 - Control-plane source:
   [[docs/work/pkm-ai/specs/2026-05-10-agent-control-plane/index|Agent Control Plane]].
@@ -38,6 +39,15 @@ Compact route index after archiving the oversized current status:
 
 ## Latest Verified Work
 
+- Task state automation is implemented and freshly verified:
+  [[docs/work/pkm-ai/plans/2026-05-10-task-state-automation/index|Task state automation]].
+- Task state retrieval is implemented and freshly verified:
+  [[docs/work/pkm-ai/plans/2026-05-10-task-state-retrieval/index|Task state retrieval]].
+- `manage-tasks.mjs` now supports objective completion tags, named/custom
+  Tasks status symbols, optional Tasks emoji metadata, `--list-objectives`,
+  `--get-objective`, initiative/status filters, and JSON output.
+- [[docs/work/pkm-ai/plans/2026-05-10-agent-control-plane/index|Agent Control Plane Implementation Plan]]
+  is mechanically marked `status: done`.
 - Glossary candidate triage is implemented and freshly verified:
   [[docs/work/pkm-ai/plans/2026-05-10-glossary-candidate-triage/index|Glossary candidate triage]].
 - The previous 23 `glossary-unknown` warnings are resolved by accepting 21
@@ -67,6 +77,10 @@ Compact route index after archiving the oversized current status:
 ## Verification Snapshot
 
 - `node .agents/tools/pkm-ai/check-doc-health.mjs`: pass, no warnings.
+- `node --test .agents/tools/pkm-ai/test/manage-tasks.test.mjs`: pass, 6/6.
+- `npm --prefix .agents/tools/pkm-ai test`: pass, 25/25.
+- `node .agents/tools/pkm-ai/manage-tasks.mjs --get-objective tasks-retrieval-implementation --initiative pkm-ai --json`:
+  pass.
 - `node .agents/tools/pkm-ai/query-docs.mjs --glossary "active node"`: pass.
 - `node .agents/tools/pkm-ai/query-docs.mjs --glossary "node selection service"`:
   pass.
@@ -78,6 +92,8 @@ Compact route index after archiving the oversized current status:
 ## Known Residuals
 
 - Global doc health passes with no glossary warnings in the latest run.
+- Task-state automation updates for the same file should run sequentially, not
+  in parallel.
 - Combined Vite/Svelte verification can hit the known transient Svelte resolver
   issue; run Vite/Svelte commands sequentially.
 - The wider worktree contains unrelated dirty product/docs changes; do not
@@ -92,5 +108,8 @@ Compact route index after archiving the oversized current status:
 - [[docs/work/pkm-ai/plans/2026-05-10-health-line-limit-auto-sharding/index|Health line-limit auto sharding]]
 - [[docs/work/pkm-ai/plans/2026-05-10-health-residual-auto-repair/index|Health residual auto repair]]
 - [[docs/work/pkm-ai/plans/2026-05-10-glossary-candidate-triage/index|Glossary candidate triage]]
+- [[docs/work/pkm-ai/plans/2026-05-10-task-state-automation/index|Task state automation]]
+- [[docs/work/pkm-ai/plans/2026-05-10-task-state-retrieval/index|Task state retrieval]]
+- [[docs/work/pkm-ai/research/2026-05-10-obsidian-tasks-state-automation|Obsidian Tasks state automation research]]
 - [[docs/work/pkm-ai/research/2026-05-10-residual-classification|Residual classification]]
 - [[docs/work/pkm-ai/items/vm-0002-current-docs-as-route-indexes|Current docs as route indexes]]

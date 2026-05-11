@@ -4,7 +4,7 @@ type: policy
 status: active
 parent: "[[docs/work/pkm-ai/specs/2026-05-04-orchestration-refresh/index|pkm-ai]]"
 created: 2026-05-04T01:36:20
-updated: 2026-05-10T05:26:33
+updated: 2026-05-10T18:31:27
 tags:
   - agent/policy
 ---
@@ -31,6 +31,12 @@ tags:
   about applied process, health, archives, glossary checks, or sharding.
 - Use `tools/pkm-ai/query-docs.mjs --glossary <term>` as the fast
   glossary gate before explaining unfamiliar project/domain terms.
+- Use `tools/pkm-ai/manage-tasks.mjs --complete-objective <slug>` to mark
+  objective-level plan tasks mechanically before the final manual status or
+  handoff edit.
+- Use `tools/pkm-ai/manage-tasks.mjs --list-objectives --json` or
+  `--get-objective <slug> --json` to retrieve objective task states without
+  manually reading the whole plan.
 
 ## Current Hypotheses
 

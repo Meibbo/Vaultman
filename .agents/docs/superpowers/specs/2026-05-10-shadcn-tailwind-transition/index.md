@@ -1,38 +1,39 @@
 ---
-title: Implementation Spec - Index (Sharded Transition)
+title: Implementation Spec - Index (Elastic UI Transition)
 type: implementation-index
-status: draft
+status: active
 created: 2026-05-10
 tags:
   - implementation/sharding
   - architecture/transition
+  - unocss
+  - bits-ui
 ---
 
-# Implementation Spec: Vaultman UI Modernization
+# Implementation Spec: Vaultman Elastic UI Transition
 
-Esta especificación detalla la transición de Vaultman a **shadcn-svelte v1.0** y **Tailwind v4**, manteniendo la compatibilidad con el sistema actual de **SCSS (ITCSS)**.
+Esta especificación detalla la transformación de Vaultman en un **Plugin Camaleónico** capaz de mimetizar el Core de Obsidian y otros plugins (Bases, Outlines), utilizando un stack de alto rendimiento y bajo acoplamiento.
 
-## Arquitectura de Transición: "Hybrid Semantic"
-
-Para evitar contenedores sin clases ("naked divs") y asegurar que el sistema de **SCSS (mixins, tokens, extends)** siga siendo el motor de diseño, adoptamos la siguiente regla:
-
-> **Regla de Oro:** Todo componente UI debe mantener su clase semántica `.vm-*`. Las utilidades de Tailwind se inyectarán mediante `@apply` en los archivos SCSS o como clases complementarias con el prefijo `tw-`.
+## Stack Tecnológico Definitivo
+- **UnoCSS:** Motor de estilo atómico para mimetismo (Shortcuts) e iconos (`i-lucide-*`).
+- **Bits UI v1.0:** Motor de comportamiento headless (Svelte 5) para accesibilidad y lógica.
+- **DaisyUI:** Capa semántica de componentes para el modo "Thick" (`.btn`, `.card`).
+- **Svelte 5:** Runes (`$state`, `$derived`) y Snippets para polimorfismo del DOM.
 
 ## Plan de Sharding (Paralelizable)
 
-1.  [[01-shard-alpha-core-bridge|Shard ALPHA: Core & SCSS Bridge]]
-    - Configuración de Tailwind v4 con prefijo `tw-`.
-    - Ingesta de tokens SCSS en el tema de Tailwind.
-    - Porting de Primitivas Base (Button, Input, Badge).
+1.  [[01-shard-alpha-core-bridge|Shard ALPHA: Estilos & Camaleón Bridge]]
+    - Instalación de UnoCSS + DaisyUI. Configuración de mimetismo nativo.
 2.  [[02-shard-beta-data-virtualization|Shard BETA: Data & Virtualization Engine]]
-    - Migración de `ViewNodeTable` y `ViewNodeGrid`.
-    - Integración de **PretextJS** para alturas dinámicas.
-3.  [[03-shard-gamma-overlays-portals|Shard GAMMA: Overlays & Floating Layer]]
-    - Migración de Modales, Popovers e Islas (FnR) a Bits UI.
-    - Gestión de Portales anclados a `.vm-root`.
-4.  [[04-shard-delta-interaction-a11y|Shard DELTA: Interaction & A11y Bridge]]
-    - Vinculación de `serviceMouse` y gestos semánticos.
-    - Inyección de `i18n` y auditoría de accesibilidad.
+    - Medición con PretextJS e integración de tablas virtualizadas con Bits UI.
+3.  [[03-shard-gamma-overlays-portals|Shard GAMMA: Overlays & Multi-window Portals]]
+    - Gestión de modales y popovers seguros para Obsidian Pop-outs.
+4.  [[04-shard-delta-interaction-a11y|Shard DELTA: Interaction & Event Hijacking]]
+    - Mapeo de `serviceMouse` y `serviceSelection` a los nuevos componentes.
 
-## Verificación Cruzada
-Ningún Shard se considera completado hasta que `pnpm run build` sea exitoso y no existan colisiones de CSS en el entorno de Obsidian.
+## Expansión de Capacidades (Roadmap v1.1)
+- [[07-expansion-dom-interception|Spec 07: Intercepción Profunda del DOM]]
+- [[08-expansion-new-explorers|Spec 08: Snippets, Plugins & Adopted Outlines]]
+- [[09-expansion-services-dnd|Spec 09: Advanced Services (DnD @thisux, Groups)]]
+- [[10-expansion-visual-logic|Spec 10: Faint Mode & FAB Animations]]
+- [[11-bitsui-mainview-spec|Spec 11: Main View (3-Column Dashboard)]]
