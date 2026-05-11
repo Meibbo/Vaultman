@@ -107,7 +107,7 @@
 
 	&-row {
 		@include flex-center;
-		justify-content: flex-start;
+		@include horizontal-control-scroll(flex-start);
 		gap: 6px;
 
 		&-controls .vm-sort-close-btn {

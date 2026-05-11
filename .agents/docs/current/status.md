@@ -5,7 +5,7 @@ status: active
 parent: "[[docs/work/pkm-ai/index|pkm-ai]]"
 archive_source: "docs/archive/pkm-ai/active-docs/2026-05-10T093000-current-status.md"
 created: 2026-05-04T01:36:20
-updated: 2026-05-11T21:29:48
+updated: 2026-05-11T21:55:04
 tags:
   - agent/current
 created_by: dec
@@ -32,14 +32,14 @@ Compact route index after archiving the oversized current status:
 - Latest user request: continue the next Cut 1.5 product task.
 - Active initiative: [[docs/work/polish/index|Polish]].
 - Latest implemented product slice:
-  Cut 1.5 Task 4, `serviceScroll`, ViewTree fallback scroll stabilization, and
-  PretextJS audit in
+  Cut 1.5 Task 5, scrollable compact controls and the Sass token build fix in
   [[docs/work/polish/plans/2026-05-10-dock-toolbar-groups-virtualizer/cut-1-5-node-surface-theme-scroll/index|Cut 1.5 Node Surface Theme And Scroll Plan]].
 - Recent detachable product slice:
   [[docs/work/polish/specs/2026-05-11-detachable-layout-workspace-tabs/index|Detachable layout workspace tabs]]
   and
   [[docs/work/polish/plans/2026-05-11-detachable-layout-workspace-tabs/index|Detachable layout workspace tabs implementation]].
-- Next product action: Cut 1.5 Task 5, scrollable compact controls. Live
+- Next product action: Cut 1.5 Task 6, Queue explorer grouped parent/child
+  presentation. Live
   Obsidian smoke for the detachable slice remains pending before building more
   workspace-tab features.
 - Active product plan:
@@ -53,6 +53,9 @@ Compact route index after archiving the oversized current status:
   toggles, and body classes control node backgrounds/borders.
 - Cut 1.5 Task 4 is complete: `serviceScroll` owns fixed-row fallback windows,
   ViewTree fallback rows react to `scrollTop`, and ViewTree overscan is 24.
+- Cut 1.5 Task 5 is complete: compact horizontal control containers use a
+  shared hidden-scroll mixin across popup squircles, squircle rows, viewmode
+  pills, sort rows, statistics scope pills, tab bars, and nav docks.
 - Elastic UI orchestration plan:
   [[docs/work/polish/plans/2026-05-11-elastic-ui-chameleon/index|Elastic UI Chameleon Implementation Plan]].
 - Recent PKM-AI route remains available below for source context.
@@ -103,6 +106,19 @@ Compact route index after archiving the oversized current status:
 
 ## Verification Snapshot
 
+- Cut 1.5 Task 5 focused style verification:
+  `pnpm exec vp test run --project unit --config vitest.config.ts test/unit/styles/compactControlScroll.test.ts --fileParallelism=false`:
+  pass, 4/4.
+- Cut 1.5 Task 5 nav component verification:
+  `pnpm exec vp test run --project component --config vitest.config.ts test/component/navbarDock.test.ts test/component/navbarTabs.test.ts --fileParallelism=false`:
+  pass, 8/8.
+- Cut 1.5 Task 5 final Svelte check:
+  `pnpm run check`: pass, `svelte-check found 0 errors and 0 warnings`.
+- Cut 1.5 Task 5 production build:
+  `pnpm run build`: pass after adding missing `$vm-radius-xs` token.
+- Cut 1.5 Task 5 final style regression verification:
+  `pnpm exec vp test run --project unit --config vitest.config.ts test/unit/styles/compactControlScroll.test.ts test/unit/styles/nodeDecorationStyles.test.ts --fileParallelism=false`:
+  pass, 6/6.
 - Cut 1.5 Task 4 unit verification:
   `pnpm exec vp test run --project unit --config vitest.config.ts test/unit/services/serviceScroll.test.ts --fileParallelism=false`:
   pass, 5/5.
@@ -131,7 +147,7 @@ Compact route index after archiving the oversized current status:
 - Detachable slice focused unit tests: pass, 4 files, 30 tests.
 - Detachable slice focused component tests: pass, 7 files, 25 tests.
 - `pnpm run check`: pass, `svelte-check found 0 errors and 0 warnings`.
-- Latest doc health run after Cut 1.5 Task 4:
+- Latest doc health run after Cut 1.5 Task 5:
   `node .agents/tools/pkm-ai/check-doc-health.mjs`: fail with unrelated
   residuals in the detachable workspace tabs spec and `.agents/docs/superpowers`.
 - `node --test .agents/tools/pkm-ai/test/manage-tasks.test.mjs`: pass, 6/6.
@@ -149,6 +165,9 @@ Compact route index after archiving the oversized current status:
 ## Known Residuals
 
 - Live Obsidian runtime smoke for detachable tabs is still pending.
+- Live narrow-frame Obsidian smoke for scrollable compact controls was not run;
+  Task 5 is covered by style assertions, component tests, `svelte-check`, and
+  production build.
 - Global doc health currently fails on unrelated residuals:
   glossary terms and line-limit in the detachable workspace tabs spec, plus one
   `.agents/docs/superpowers` parent-shape residual.

@@ -4,7 +4,7 @@ type: agent-plan
 status: in_progress
 parent: "[[docs/work/polish/plans/2026-05-10-dock-toolbar-groups-virtualizer/index|Dock Toolbar Groups Virtualizer]]"
 created: 2026-05-10T19:53:58
-updated: 2026-05-10T21:29:48
+updated: 2026-05-11T21:55:04
 tags:
   - agent/plan
   - polish
@@ -42,7 +42,7 @@ This request touches seven surfaces that would make Cut 2 too broad if handled i
 2. Generic queue badges and Props search category labels. Done 2026-05-10.
 3. `serviceTheme`, node-surface settings, and ViewCards background controls. Done 2026-05-10.
 4. `serviceScroll` for ViewTree scroll stabilization and PretextJS audit answer. Done 2026-05-10.
-5. Scrollable compact controls.
+5. Scrollable compact controls. Done 2026-05-11.
 6. Queue explorer grouped parent/child presentation.
 7. Final Svelte autofix, focused tests, and `pnpm run check`.
 
@@ -96,7 +96,51 @@ This request touches seven surfaces that would make Cut 2 too broad if handled i
   - `pnpm exec vp test run --project component --config vitest.config.ts test/component/panelExplorerSelection.test.ts --fileParallelism=false`: pass, 35/35.
   - `npx @sveltejs/mcp svelte-autofixer ./src/components/views/viewTree.svelte --svelte-version 5`: no issues; reviewed existing effect/bind suggestions.
   - `pnpm run check`: pass, 0 errors / 0 warnings.
-- Next task: Facet 5, scrollable compact controls.
+- Next task was Facet 5, scrollable compact controls.
+
+### 2026-05-11 Task 5: Scrollable Compact Controls
+
+- Added `test/unit/styles/compactControlScroll.test.ts` for the SCSS style
+  harness. The test first failed on missing `vm-sort-row` scroll coverage, then
+  passed after the style fix.
+- Added a shared `horizontal-control-scroll` mixin with `max-width`,
+  `min-width: 0`, horizontal overflow, hidden scrollbars, and configurable
+  alignment.
+- Applied the mixin to compact horizontal control surfaces:
+  `.vm-popup-squircles`, queue/filter island squircle rows,
+  `.vm-squircle-row`, `.vm-viewmode-pills`, `.vm-sort-row`,
+  `.vm-stat-scope-pills`, `.vm-tab-bar`, and `.vm-nav-dock`.
+- Added fixed flex sizing to tab/squircle/stat pill children so options do not
+  shrink away instead of overflowing.
+- `pnpm run build` initially exposed a pre-existing Sass compile blocker:
+  `_badges.scss` referenced `$vm-radius-xs` without exporting that token.
+  Added `$vm-radius-xs` in `src/styles/_tokens.scss` and rebuilt.
+- Refreshed tracked `styles.css` from the passing build.
+- No `.svelte` files were touched, so no Svelte autofixer run was required for
+  this slice.
+
+Fresh verification:
+
+- `pnpm exec vp test run --project unit --config vitest.config.ts test/unit/styles/compactControlScroll.test.ts --fileParallelism=false`:
+  pass, 4/4.
+- `pnpm exec vp test run --project component --config vitest.config.ts test/component/navbarDock.test.ts test/component/navbarTabs.test.ts --fileParallelism=false`:
+  pass, 8/8.
+- `pnpm run check`: pass, `svelte-check found 0 errors and 0 warnings`.
+- `pnpm run build`: pass; Vite built `styles.css` and `main.js`, then
+  `scripts/sync-test-build.mjs` synced build artifacts.
+- `pnpm exec vp test run --project unit --config vitest.config.ts test/unit/styles/compactControlScroll.test.ts test/unit/styles/nodeDecorationStyles.test.ts --fileParallelism=false`:
+  pass, 6/6.
+- `node .agents/tools/pkm-ai/check-doc-health.mjs`: fail with unrelated
+  residuals in the detachable workspace tabs spec and
+  `.agents/docs/superpowers`.
+
+Manual UI note:
+
+- No live Obsidian narrow-frame smoke was run in this continuation. The slice
+  is covered by style assertions, nav component tests, `svelte-check`, and the
+  production build.
+
+- Next task: Facet 6, Queue explorer grouped parent/child presentation.
 
 ## Expected Final Answer From Executing Agent
 

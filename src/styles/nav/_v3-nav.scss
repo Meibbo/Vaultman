@@ -149,13 +149,7 @@
 		}
 
 		&-dock {
-			max-width: min(72vw, 520px);
-			overflow-x: auto;
-			scrollbar-width: none;
-
-			&::-webkit-scrollbar {
-				display: none;
-			}
+			@include horizontal-control-scroll(safe center, min(100%, 72vw, 520px));
 
 			&.has-labels {
 				border-radius: 18px;
@@ -358,7 +352,7 @@
 	}
 
 	.vm-nav-dock {
-		max-width: min(72vw, 520px);
+		max-width: min(100%, 72vw, 520px);
 	}
 }
 

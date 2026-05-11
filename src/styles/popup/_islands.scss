@@ -48,9 +48,9 @@
 	right: 0;
 	z-index: 2;
 	display: flex;
-	justify-content: center;
 	gap: 10px;
 	pointer-events: none;
+	@include horizontal-control-scroll(safe center);
 
 	.vm-squircle {
 		pointer-events: auto;
@@ -267,10 +267,10 @@
 		left: 0;
 		right: 0;
 		display: flex;
-		justify-content: center;
 		gap: 12px;
 		z-index: 110;
 		pointer-events: none;
+		@include horizontal-control-scroll(safe center);
 	}
 }
 
@@ -301,10 +301,10 @@
 		left: 0;
 		right: 0;
 		display: flex;
-		justify-content: center;
 		gap: 12px;
 		z-index: 110;
 		pointer-events: none;
+		@include horizontal-control-scroll(safe center);
 	}
 }
 
@@ -341,6 +341,7 @@
 	pointer-events: auto;
 	width: 44px;
 	height: 44px;
+	flex: 0 0 auto;
 	border-radius: 12px;
 	background: $vm-bg-secondary;
 	border: $vm-border-width solid $vm-border-color;
@@ -385,6 +386,7 @@
 		display: flex;
 		gap: 8px;
 		margin-bottom: 10px;
+		@include horizontal-control-scroll(safe center);
 	}
 
 	&-icon {

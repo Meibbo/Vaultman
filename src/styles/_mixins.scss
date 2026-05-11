@@ -20,6 +20,18 @@
 	justify-content: center;
 }
 
+@mixin horizontal-control-scroll($justify: flex-start, $max-width: 100%) {
+	max-width: $max-width;
+	min-width: 0;
+	overflow-x: auto;
+	scrollbar-width: none;
+	justify-content: $justify;
+
+	&::-webkit-scrollbar {
+		display: none;
+	}
+}
+
 // Hover Glass effect for interactive items
 @mixin hover-bg-accent {
 	background: $vm-bg-modifier-hover;
@@ -57,7 +69,6 @@
 		box-shadow: inset 2px 0 0 0 $vm-color-accent !important;
 	}
 }
-
 
 
 

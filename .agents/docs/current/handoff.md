@@ -5,7 +5,7 @@ status: active
 parent: "[[docs/work/pkm-ai/index|pkm-ai]]"
 archive_source: "docs/archive/pkm-ai/active-docs/2026-05-10T093000-current-handoff.md"
 created: 2026-05-04T01:36:20
-updated: 2026-05-11T21:29:48
+updated: 2026-05-11T21:55:04
 tags:
   - agent/current
 created_by: dec
@@ -20,6 +20,10 @@ Compact handoff after archiving the oversized current handoff:
 ## Resume Point
 
 - Latest user request implemented in this session:
+  Cut 1.5 Task 5, scrollable compact controls, plus the Sass token build fix.
+  Source log:
+  [[docs/work/polish/plans/2026-05-10-dock-toolbar-groups-virtualizer/cut-1-5-node-surface-theme-scroll/index#2026-05-11-task-5-scrollable-compact-controls|Task 5 continuation log]].
+- Recent prior Cut 1.5 request implemented:
   Cut 1.5 Task 4, `serviceScroll`, ViewTree fallback scroll stabilization, and
   the PretextJS audit. Source log:
   [[docs/work/polish/plans/2026-05-10-dock-toolbar-groups-virtualizer/cut-1-5-node-surface-theme-scroll/index#2026-05-10-task-4-servicescroll-and-viewtree-lag|Task 4 continuation log]].
@@ -71,6 +75,10 @@ Compact handoff after archiving the oversized current handoff:
 - Cut 1.5 PretextJS audit: `ViewNodeCards` uses service text measurement for
   dynamic card heights. Tree, grid, table, and list surfaces remain fixed-height
   and should not use PretextJS unless their row model becomes dynamic.
+- Cut 1.5 Task 5 scrollability: compact horizontal controls now use
+  `horizontal-control-scroll` across popup squircles, squircle rows,
+  viewmode pills, sort rows, statistics scope pills, tab bars, and nav docks.
+  `styles.css` was refreshed by `pnpm run build`.
 - `.agents/tools/pkm-ai/lib/code-index.mjs` imports `svelte/compiler` and treats
   `.svelte` as an indexed code target.
 - `.agents/tools/pkm-ai/test/code-index.test.mjs` covers `.svelte` discovery,
@@ -98,6 +106,19 @@ Compact handoff after archiving the oversized current handoff:
 
 ## Fresh Verification
 
+- Cut 1.5 Task 5 focused style verification:
+  `pnpm exec vp test run --project unit --config vitest.config.ts test/unit/styles/compactControlScroll.test.ts --fileParallelism=false`:
+  pass, 4/4.
+- Cut 1.5 Task 5 nav component verification:
+  `pnpm exec vp test run --project component --config vitest.config.ts test/component/navbarDock.test.ts test/component/navbarTabs.test.ts --fileParallelism=false`:
+  pass, 8/8.
+- Cut 1.5 Task 5 final Svelte check:
+  `pnpm run check`: pass, `svelte-check found 0 errors and 0 warnings`.
+- Cut 1.5 Task 5 production build:
+  `pnpm run build`: pass after adding missing `$vm-radius-xs` token.
+- Cut 1.5 Task 5 final style regression verification:
+  `pnpm exec vp test run --project unit --config vitest.config.ts test/unit/styles/compactControlScroll.test.ts test/unit/styles/nodeDecorationStyles.test.ts --fileParallelism=false`:
+  pass, 6/6.
 - Cut 1.5 Task 4 unit verification:
   `pnpm exec vp test run --project unit --config vitest.config.ts test/unit/services/serviceScroll.test.ts --fileParallelism=false`:
   pass, 5/5.
@@ -114,7 +135,7 @@ Compact handoff after archiving the oversized current handoff:
   `pnpm run check`: pass, `svelte-check found 0 errors and 0 warnings`.
 - Svelte autofixer for `viewTree.svelte`: no issues; existing effect/bind
   suggestions reviewed and left unchanged.
-- Latest doc health run after Cut 1.5 Task 4:
+- Latest doc health run after Cut 1.5 Task 5:
   `node .agents/tools/pkm-ai/check-doc-health.mjs`: fail with unrelated
   residuals in the detachable workspace tabs spec and `.agents/docs/superpowers`.
 - Earlier verification remains in the linked source records and
@@ -133,8 +154,8 @@ Compact handoff after archiving the oversized current handoff:
   into detached explorer leaves.
 - For Elastic UI execution, start with the contracts and gates shard:
   [[docs/work/polish/plans/2026-05-11-elastic-ui-chameleon/00-contracts-and-gates|Elastic UI Contracts And Gates]].
-- For product work, continue Cut 1.5 Task 5:
-  scrollable compact controls in
+- For product work, continue Cut 1.5 Task 6:
+  Queue explorer grouped parent/child presentation in
   [[docs/work/polish/plans/2026-05-10-dock-toolbar-groups-virtualizer/cut-1-5-node-surface-theme-scroll/index|Cut 1.5 Node Surface Theme And Scroll Plan]].
 - After Cut 1.5, continue with Cut 2 from
   [[docs/work/polish/plans/2026-05-10-dock-toolbar-groups-virtualizer/index|Dock, Toolbar, Groups, Virtualizer Implementation Plan]]:
@@ -144,6 +165,7 @@ Compact handoff after archiving the oversized current handoff:
 ## Known Residuals
 
 - Live Obsidian runtime smoke for the detachable slice is still pending.
+- Live narrow-frame Obsidian smoke for scrollable compact controls was not run.
 - Product worktree remains dirty with active Vaultman UI/DnD changes. Do not
   revert unrelated user/agent files.
 - One combined component command timed out once due startup/runtime length, but

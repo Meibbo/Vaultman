@@ -4,7 +4,7 @@ type: agent-plan-shard
 status: planned
 parent: "[[docs/work/polish/plans/2026-05-10-dock-toolbar-groups-virtualizer/cut-1-5-node-surface-theme-scroll/index|Cut 1.5 Node Surface Theme And Scroll Plan]]"
 created: 2026-05-10T19:53:58
-updated: 2026-05-10T21:29:48
+updated: 2026-05-11T21:55:04
 tags:
   - agent/plan
   - polish
@@ -67,7 +67,7 @@ updated_by: codex
 
 ## Facet 5: Scrollable Compact Controls
 
-- [ ] Add style tests if the repo has style assertions for the target file; otherwise include these in manual verification.
+- [x] Add style tests if the repo has style assertions for the target file; otherwise include these in manual verification.
   - `.vm-popup-squircles`, `.vm-squircle-row`, nav docks/tab bars, and menu pills expose horizontal overflow without hiding options.
 
 ## Facet 6: Queue Explorer Parent/Child Presentation

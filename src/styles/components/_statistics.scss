@@ -31,7 +31,7 @@
 
 	&-scope-pills {
 		@include flex-center;
-		justify-content: center;
+		@include horizontal-control-scroll(safe center);
 		gap: 4px;
 		background: var(--background-modifier-hover);
 		padding: 4px;
@@ -48,6 +48,7 @@
 		background: transparent;
 		color: var(--text-muted);
 		font-size: var(--font-ui-smaller);
+		flex: 0 0 auto;
 		cursor: pointer;
 		transition: all 0.2s ease;
 

@@ -4,7 +4,7 @@ type: agent-plan-shard
 status: planned
 parent: "[[docs/work/polish/plans/2026-05-10-dock-toolbar-groups-virtualizer/cut-1-5-node-surface-theme-scroll/index|Cut 1.5 Node Surface Theme And Scroll Plan]]"
 created: 2026-05-10T19:53:58
-updated: 2026-05-10T21:29:48
+updated: 2026-05-11T21:55:04
 tags:
   - agent/plan
   - polish
@@ -115,15 +115,16 @@ explorerNodeBorders: true;
 
 ## Facet 5: Scrollable Compact Controls
 
-- [ ] In SCSS, make compact horizontal control containers scrollable when the frame is too narrow:
+- [x] In SCSS, make compact horizontal control containers scrollable when the frame is too narrow:
   - `.vm-popup-squircles`
   - `.vm-squircle-row`
   - `.vm-viewmode-pills`
+  - `.vm-sort-row`
   - `.vm-tab-bar`
   - `.vm-nav-dock`
   - any existing menu pill/multi-selection row class discovered by `rg "pill|squircle|selection" src/styles src/components`.
-- [ ] Use `overflow-x: auto`, `max-width: 100%`, `min-width: 0`, `scrollbar-width: none`, and `justify-content: safe center` or `flex-start` where centered overflow hides the first item.
-- [ ] Do not alter button sizes or labels in this facet.
+- [x] Use `overflow-x: auto`, `max-width: 100%`, `min-width: 0`, `scrollbar-width: none`, and `justify-content: safe center` or `flex-start` where centered overflow hides the first item.
+- [x] Do not alter button sizes or labels in this facet.
 
 ## Facet 6: Queue Explorer Child Rows
 
