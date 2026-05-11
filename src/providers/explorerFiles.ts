@@ -96,6 +96,25 @@ export class explorerFiles implements ExplorerProvider<FileMeta> {
 				).open();
 			},
 		});
+
+		svc.registerAction({
+			id: 'folder.filter',
+			nodeTypes: ['folder'],
+			surfaces: ['panel'],
+			label: (ctx) => `Filter: is in folder ${ctx.node.label}`,
+			icon: 'lucide-filter',
+			run: (ctx: MenuCtx) => {
+				const meta = ctx.node.meta as FileMeta;
+				if (!meta.isFolder || !meta.folderPath) return;
+				const filterService = this.plugin.filterService as typeof this.plugin.filterService & {
+					addIsInFolderFilter?: (folder: { path: string; name: string }) => void;
+				};
+				filterService.addIsInFolderFilter?.({
+					path: meta.folderPath,
+					name: ctx.node.label,
+				});
+			},
+		});
 	}
 
 	getTree(): TreeNode<FileMeta>[] {
@@ -205,7 +224,14 @@ export class explorerFiles implements ExplorerProvider<FileMeta> {
 		selectedNodes: TreeNode<FileMeta>[] = [],
 	): void {
 		const meta = node.meta;
-		if (meta.isFolder || !meta.file) return;
+		if (meta.isFolder) {
+			this.plugin.contextMenuService.openPanelMenu(
+				{ nodeType: 'folder', node, selectedNodes, surface: 'panel' },
+				e,
+			);
+			return;
+		}
+		if (!meta.file) return;
 		this.plugin.contextMenuService.openPanelMenu(
 			{ nodeType: 'file', node: node, selectedNodes, surface: 'panel', file: meta.file },
 			e,

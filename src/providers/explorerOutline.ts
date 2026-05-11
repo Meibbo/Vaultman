@@ -67,8 +67,16 @@ export function buildOutlineForFile(input: BuildInput): AdoptedNode[] {
 		}
 		const task = line.match(TASK_RE);
 		if (task) {
+			const taskText = task[2].trim();
+			const taskBlock = taskText.match(BLOCK_RE);
+			const taskLabel = taskBlock
+				? taskText.slice(0, taskText.length - taskBlock[0].length).trim()
+				: taskText;
 			const state = task[1].toLowerCase() as ' ' | 'x' | '/' | '-';
-			attachLeaf('task', task[2].trim(), i, { taskState: state });
+			attachLeaf('task', taskLabel, i, { taskState: state });
+			if (taskBlock) {
+				attachLeaf('block', `^${taskBlock[1]}`, i, { blockId: taskBlock[1] });
+			}
 			continue;
 		}
 		const block = line.match(BLOCK_RE);

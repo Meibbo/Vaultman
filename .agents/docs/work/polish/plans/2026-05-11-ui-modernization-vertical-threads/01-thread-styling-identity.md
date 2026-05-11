@@ -4,7 +4,7 @@ type: implementation-plan-shard
 status: draft
 parent: "[[docs/work/polish/plans/2026-05-11-ui-modernization-vertical-threads/index|ui-modernization-vertical-threads]]"
 created: 2026-05-11T23:55:00
-updated: 2026-05-11T23:55:00
+updated: 2026-05-11T04:31:26
 tags:
   - agent/plan
   - thread/styling-identity
@@ -13,7 +13,7 @@ tags:
   - faint-mode
   - serviceTheme
 created_by: opus
-updated_by: opus
+updated_by: codex
 ---
 
 # T1 Styling & Identity
@@ -985,7 +985,7 @@ Execution note, 2026-05-11T03:53:32:
   `ThemeService` instance and registers its own focus listeners on its
   own `activeWindow`
 
-- [ ] **Step 1 — Write a multi-window failing test**
+- [x] **Step 1 — Write a multi-window failing test**
 
 `test/component/frameFaintMultiWindow.test.ts`:
 
@@ -1025,7 +1025,7 @@ describe('Faint Mode in pop-out windows', () => {
 });
 ```
 
-- [ ] **Step 2 — Run + implement**
+- [x] **Step 2 — Run + implement**
 
 If the test fails because the frame defaults `activeWindow` to the global
 `window`, route the prop through to the focus listeners and initial
@@ -1034,6 +1034,32 @@ If the test fails because the frame defaults `activeWindow` to the global
 merged — see status snapshot — but verify).
 
 Expected on rerun: PASS.
+
+Execution note, 2026-05-11T04:31:26:
+
+- Subagent attempted T1.8 but stopped with an invalid RED caused by first
+  writing the test outside the requested worktree. Controller completed the
+  test loop in the Claude worktree.
+- Created `test/component/frameFaintMultiWindow.test.ts`.
+- Initial run exposed a fixture issue (`overlayState.stack` missing); after
+  fixing the test mock, RED was valid:
+  `pnpm exec vp test run --project component --config vitest.config.ts test/component/frameFaintMultiWindow.test.ts --fileParallelism=false`
+  failed 1/1 because `.vm-faint` stayed false when the supplied
+  frame-local `activeWindow.document.hasFocus()` returned false.
+- GREEN: the same command passed 1/1 after `frameVaultman.svelte` accepted an
+  optional `activeWindow` prop and used it for focus/blur listeners plus the
+  initial `hasFocus()` read.
+- Focused component gate:
+  `pnpm exec vp test run --project component --config vitest.config.ts test/component/frameFaintMultiWindow.test.ts test/component/snippetMimicry.test.ts test/component/viewNodeMirrorClasses.test.ts --fileParallelism=false`
+  passed 3 files / 7 tests.
+- Svelte validation: the targeted changed `frameVaultman` script snippet
+  returned `issues: []` from the Svelte autofixer tool. The full-file CLI
+  autofixer still reports an unrelated parser diagnostic on this legacy
+  component (`',' expected` with no line/column), so `pnpm run check` remains
+  the authoritative full-file compiler gate.
+- `DetachedTabHost.svelte` currently does not route an `activeWindow` prop into
+  a nested frame; it mounts detached tab contents directly. No production edit
+  was made there.
 
 ---
 

@@ -4,7 +4,7 @@ type: implementation-plan-shard
 status: draft
 parent: "[[docs/work/polish/plans/2026-05-11-ui-modernization-vertical-threads/index|ui-modernization-vertical-threads]]"
 created: 2026-05-11T23:55:00
-updated: 2026-05-11T23:55:00
+updated: 2026-05-11T05:01:54
 tags:
   - agent/plan
   - thread/engine-views
@@ -14,7 +14,7 @@ tags:
   - tanstack
   - svelte5
 created_by: opus
-updated_by: opus
+updated_by: codex
 ---
 
 # T2 Engine & High-Performance Views
@@ -550,7 +550,7 @@ Integration note, 2026-05-11T03:53:32:
 - Create: `src/providers/explorerOutline.ts`
 - Create: `test/unit/providers/explorerOutline.test.ts`
 
-- [ ] **Step 1 — Author the adopted-node type**
+- [x] **Step 1 — Author the adopted-node type**
 
 `src/types/typeAdoptedNode.ts`:
 
@@ -573,7 +573,7 @@ export interface AdoptedNode {
 }
 ```
 
-- [ ] **Step 2 — Failing provider test**
+- [x] **Step 2 — Failing provider test**
 
 `test/unit/providers/explorerOutline.test.ts`:
 
@@ -635,7 +635,7 @@ describe('explorerOutline buildOutlineForFile', () => {
 });
 ```
 
-- [ ] **Step 3 — Run to confirm failure**
+- [x] **Step 3 — Run to confirm failure**
 
 ```bash
 pnpm exec vp test run --project unit --config vitest.config.ts test/unit/providers/explorerOutline.test.ts --fileParallelism=false
@@ -643,7 +643,7 @@ pnpm exec vp test run --project unit --config vitest.config.ts test/unit/provide
 
 Expected: FAIL.
 
-- [ ] **Step 4 — Implement `explorerOutline.ts`**
+- [x] **Step 4 — Implement `explorerOutline.ts`**
 
 ```ts
 import type { TFile } from 'obsidian';
@@ -725,7 +725,7 @@ export function buildOutlineForFile(input: BuildInput): AdoptedNode[] {
 }
 ```
 
-- [ ] **Step 5 — Re-run + assert green**
+- [x] **Step 5 — Re-run + assert green**
 
 ```bash
 pnpm exec vp test run --project unit --config vitest.config.ts test/unit/providers/explorerOutline.test.ts --fileParallelism=false
@@ -743,7 +743,7 @@ Expected: PASS, 3/3.
 - Create: `src/services/serviceAdoption.svelte.ts`
 - Create: `test/unit/services/serviceAdoption.test.ts`
 
-- [ ] **Step 1 — Author the adoption service**
+- [x] **Step 1 — Author the adoption service**
 
 `src/services/serviceAdoption.svelte.ts`:
 
@@ -770,7 +770,7 @@ export class AdoptionService {
 }
 ```
 
-- [ ] **Step 2 — Failing service test**
+- [x] **Step 2 — Failing service test**
 
 `test/unit/services/serviceAdoption.test.ts`:
 
@@ -855,13 +855,39 @@ If the existing provider exposes a `children()` async API, wire
 adoption into it. If it does not, leave a TODO with the exact line and
 flag the integration in the handoff.
 
-- [ ] **Step 4 — Run tests**
+- [x] **Step 4 — Run tests**
 
 ```bash
 pnpm exec vp test run --project unit --config vitest.config.ts test/unit/services/serviceAdoption.test.ts test/unit/providers/explorerOutline.test.ts --fileParallelism=false
 ```
 
 Expected: PASS, 7/7.
+
+Execution note, 2026-05-11T04:31:26:
+
+- Subagent completed the T2.4/T2.5 foundation without touching
+  `explorerFiles.ts`.
+- `src/types/typeAdoptedNode.ts`, `src/services/serviceAdoption.svelte.ts`,
+  and the base adoption service tests already existed and matched the plan
+  foundation.
+- Extended `src/providers/explorerOutline.ts` and
+  `test/unit/providers/explorerOutline.test.ts` to normalize uppercase task
+  state (`[X] -> x`), preserve `/` and `-`, strip a trailing block reference
+  from task labels, and add a sibling adopted `block` node for task-line block
+  references.
+- RED:
+  `pnpm exec vp test run --project unit --config vitest.config.ts test/unit/providers/explorerOutline.test.ts test/unit/services/serviceAdoption.test.ts --fileParallelism=false`
+  failed 1/10 because task-line block refs did not include `task-block`.
+- GREEN: the same command passed 2 files / 10 tests.
+- Focused unit gate with `serviceTheme`:
+  `pnpm exec vp test run --project unit --config vitest.config.ts test/unit/services/serviceTheme.test.ts test/unit/providers/explorerOutline.test.ts test/unit/services/serviceAdoption.test.ts --fileParallelism=false`
+  passed 3 files / 14 tests.
+- Svelte autofixer CLI returned `issues: []` for
+  `src/services/serviceAdoption.svelte.ts`.
+- T2.5 Step 3 remains open: `explorerFiles.getTree()` is synchronous around
+  `src/providers/explorerFiles.ts:101-120`, so adopted-node content requires an
+  async or cache-backed content stage before it can be safely concatenated into
+  file-node children.
 
 ---
 
@@ -873,7 +899,7 @@ Expected: PASS, 7/7.
 - Modify: `src/services/serviceCMenu.ts`
 - Modify: `src/services/serviceFilter.svelte.ts`
 
-- [ ] **Step 1 — Failing test for folder context menu**
+- [x] **Step 1 — Failing test for folder context menu**
 
 `test/unit/providers/explorerFilesFolderMenu.test.ts`:
 
@@ -889,7 +915,7 @@ describe('explorerFiles folder context menu', () => {
 });
 ```
 
-- [ ] **Step 2 — Implement**
+- [x] **Step 2 — Implement**
 
 In `explorerFiles.ts`, ensure that `handleContextMenu` accepts both
 `file` and `folder` kinds. Per spec 08: folders **must** support
@@ -914,13 +940,43 @@ addIsInFolderFilter(folder: { path: string; name: string }): void {
 }
 ```
 
-- [ ] **Step 3 — Run unit suite**
+- [x] **Step 3 — Run unit suite**
 
 ```bash
 pnpm exec vp test run --project unit --config vitest.config.ts test/unit/providers/explorerFilesFolderMenu.test.ts --fileParallelism=false
 ```
 
 Expected: PASS.
+
+Execution note, 2026-05-11T05:01:54:
+
+- Implemented T2.6 using existing test files rather than creating
+  `test/unit/providers/explorerFilesFolderMenu.test.ts`, because this repo's
+  explorer provider tests live under `test/unit/components/explorerFiles.test.ts`.
+- RED, folder context:
+  `pnpm exec vp test run --project unit --config vitest.config.ts test/unit/components/explorerFiles.test.ts --fileParallelism=false`
+  failed 1/15 after fixture correction because `handleContextMenu` made zero
+  calls for folder nodes.
+- RED, folder filter badge:
+  `pnpm exec vp test run --project unit --config vitest.config.ts test/unit/services/serviceFilter.test.ts --fileParallelism=false`
+  failed 1/21 because `FilterService.addIsInFolderFilter` did not exist.
+- GREEN:
+  `test/unit/components/explorerFiles.test.ts` passed 15/15 and
+  `test/unit/services/serviceFilter.test.ts` passed 21/21.
+- Focused regression gate:
+  `pnpm exec vp test run --project unit --config vitest.config.ts test/unit/components/explorerFiles.test.ts test/unit/services/serviceFilter.test.ts test/unit/services/serviceCMenu.test.ts test/unit/services/serviceActiveFiltersIndex.test.ts --fileParallelism=false`
+  passed 4 files / 48 tests.
+- Implementation:
+  `explorerFiles.handleContextMenu` now opens panel context menus for folder
+  nodes; `explorerFiles` registers `folder.filter`, whose label is
+  `Filter: is in folder <name>` and whose action calls
+  `FilterService.addIsInFolderFilter`; `FilterService` deduplicates
+  `folder:<path>` rules and exposes `is in folder <path>` through
+  `getFlatRules()`.
+- Svelte autofixer on `serviceFilter.svelte.ts`: `issues: []`; it suggested
+  replacing existing internal `Set` instances with `SvelteSet`, but those sets
+  are non-rendering subscriber/deduplication internals and were left unchanged
+  for scope control.
 
 ---
 

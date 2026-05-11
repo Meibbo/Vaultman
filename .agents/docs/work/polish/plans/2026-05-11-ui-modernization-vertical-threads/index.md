@@ -4,7 +4,7 @@ type: implementation-plan
 status: active
 parent: "[[docs/work/polish/index|polish]]"
 created: 2026-05-11T23:55:00
-updated: 2026-05-11T03:53:32
+updated: 2026-05-11T05:01:54
 tags:
   - agent/plan
   - initiative/polish
@@ -39,11 +39,32 @@ glossary_candidates:
   `pnpm run check` passed with 0 errors / 0 warnings; focused vertical-thread
   unit gate passed 17 files / 86 tests; `pnpm run build:plugin` passed.
 - Latest completed slice:
+  [[docs/work/polish/plans/2026-05-11-ui-modernization-vertical-threads/02-thread-engine-views#task-26--folder-context-menu--is-in-folder-filter-badge|T2.6 folder context menu and is-in-folder filter badge]].
+- Previous completed slice:
+  [[docs/work/polish/plans/2026-05-11-ui-modernization-vertical-threads/01-thread-styling-identity#task-18--faint-mode-auto-bind-on-the-active-window|T1.8 Faint Mode active-window binding]]
+  plus
+  [[docs/work/polish/plans/2026-05-11-ui-modernization-vertical-threads/02-thread-engine-views#task-24--exploreroutline-provider-adopted-nodes|T2.4 explorerOutline adopted-node provider]].
+- Partial slice advanced:
+  [[docs/work/polish/plans/2026-05-11-ui-modernization-vertical-threads/02-thread-engine-views#task-25--cross-pollination-explorerfiles-can-adopt-outline-headers|T2.5 adoption service foundation]];
+  `explorerFiles` integration remains open because the provider tree is
+  synchronous and needs an async/cache-backed content stage.
+- Previous completed slice:
   [[docs/work/polish/plans/2026-05-11-ui-modernization-vertical-threads/01-thread-styling-identity#task-17--snippet-mimicry-smoke-close-the-test-loop-from-12|T1.7 snippet mimicry smoke]]
   and panel-level mirror class integration.
-- Previous completed slice:
+- Earlier completed slice:
   [[docs/work/polish/plans/2026-05-11-ui-modernization-vertical-threads/02-thread-engine-views#task-23--mirror-class-arbitration-across-grid-cards-tree|T2.3 mirror class arbitration across grid, cards, tree]].
 - Latest verification:
+  T2.6 RED/GREEN completed: `explorerFiles` failed 1/15 on missing folder
+  panel context menu, `serviceFilter` failed 1/21 on missing
+  `addIsInFolderFilter`, then the focused regression gate passed 4 files /
+  48 tests.
+- Verification after T1.8/T2.4:
+  `test/component/frameFaintMultiWindow.test.ts` failed 1/1 red on
+  frame-local focus being ignored, then passed 1/1 after `frameVaultman`
+  accepted an optional `activeWindow` prop for focus/blur binding. The
+  adopted-node focused unit gate passed 3 files / 14 tests and the combined
+  component smoke passed 3 files / 7 tests.
+- Verification after T1.7:
   `test/component/snippetMimicry.test.ts` failed 3/3 red on missing
   panel-level mirror class routing, then passed 3/3 after `PanelExplorer`
   routed `plugin.themeService` to the views and `ViewNodeTable` emitted
@@ -53,8 +74,8 @@ glossary_candidates:
   on missing mirror classes; focused affected component gate passed 7 files /
   61 tests; Svelte autofixer returned `issues: []` for the three changed
   components.
-- T1.7 is now closed. Remaining T1 task after this point is T1.8 multi-window
-  Faint Mode verification.
+- T1.7, T1.8, T2.3, T2.4, and T2.6 are now closed. T2.5 remains partially
+  open at the `explorerFiles` adopted-node integration step.
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use
 > `superpowers:subagent-driven-development` (recommended) or

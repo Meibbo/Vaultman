@@ -221,6 +221,31 @@ describe('explorerFiles interactions', () => {
 		expect(tree.some((node) => node.id === 'folder:Root/Child')).toBe(false);
 	});
 
+	it('opens the panel context menu for folder nodes', () => {
+		const { plugin } = makePlugin();
+		const nested = mockTFile('Root/Child/file.md');
+		(plugin.app.vault as unknown as { getFiles: () => TFile[] }).getFiles = () => [nested];
+		(plugin.filterService as unknown as { activeFilter: { children: unknown[] } }).activeFilter = {
+			children: [],
+		};
+		const explorer = new explorerFiles(plugin);
+		const root = explorer.getTree().find((node) => node.id === 'folder:Root');
+		const event = {} as MouseEvent;
+
+		expect(root).toBeTruthy();
+
+		explorer.handleContextMenu(root!, event);
+
+		expect(plugin.contextMenuService.openPanelMenu).toHaveBeenCalledWith(
+			expect.objectContaining({
+				nodeType: 'folder',
+				node: root,
+				surface: 'panel',
+			}),
+			event,
+		);
+	});
+
 	it('uses the file extension as the non-markdown count label', () => {
 		const { plugin, files } = makePlugin();
 		const pdf = mockTFile('Assets/manual.pdf', { frontmatter: { ignored: true } });

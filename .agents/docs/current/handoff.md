@@ -5,7 +5,7 @@ status: active
 parent: "[[docs/work/pkm-ai/index|pkm-ai]]"
 archive_source: "docs/archive/pkm-ai/active-docs/2026-05-10T093000-current-handoff.md"
 created: 2026-05-04T01:36:20
-updated: 2026-05-11T03:53:32
+updated: 2026-05-11T05:01:54
 tags:
   - agent/current
 created_by: dec
@@ -19,6 +19,20 @@ Compact handoff after archiving the oversized current handoff:
 
 ## Resume Point
 
+- Latest user request implemented in this session:
+  continued the vertical-thread plan and completed
+  [[docs/work/polish/plans/2026-05-11-ui-modernization-vertical-threads/02-thread-engine-views#task-26--folder-context-menu--is-in-folder-filter-badge|T2.6 folder context menu and "is in folder" filter badge]].
+  `explorerFiles` now opens panel context menus for folder nodes and registers
+  `folder.filter`; `FilterService.addIsInFolderFilter` creates deduplicated
+  `folder:<path>` rules surfaced as `is in folder <path>`.
+- Latest user request implemented in this session:
+  continued the vertical-thread plan with parallel subagents. Completed
+  [[docs/work/polish/plans/2026-05-11-ui-modernization-vertical-threads/01-thread-styling-identity#task-18--faint-mode-auto-bind-on-the-active-window|T1.8 Faint Mode active-window binding]]
+  and
+  [[docs/work/polish/plans/2026-05-11-ui-modernization-vertical-threads/02-thread-engine-views#task-24--exploreroutline-provider-adopted-nodes|T2.4 explorerOutline adopted-node provider]].
+  T2.5 adoption service foundation is verified, but
+  `explorerFiles` integration remains open because `getTree()` is synchronous
+  and needs an async/cache-backed content stage.
 - Latest user request implemented in this session:
   continued the vertical-thread plan after T2.3 and closed
   [[docs/work/polish/plans/2026-05-11-ui-modernization-vertical-threads/01-thread-styling-identity#task-17--snippet-mimicry-smoke-close-the-test-loop-from-12|T1.7 snippet mimicry smoke]].
@@ -134,6 +148,20 @@ Compact handoff after archiving the oversized current handoff:
 
 ## Fresh Verification
 
+- T2.6 verification passed: `explorerFiles` failed 1/15 red on missing folder
+  panel context menu, `serviceFilter` failed 1/21 red on missing
+  `addIsInFolderFilter`, then the focused regression gate passed 4 files /
+  48 tests. Svelte autofixer returned `issues: []` for
+  `serviceFilter.svelte.ts`; non-rendering internal `Set` suggestions were
+  intentionally left unchanged.
+- T1.8 / T2.4 / T2.5 foundation verification passed:
+  `frameFaintMultiWindow` failed 1/1 red on frame-local focus being ignored,
+  then passed 1/1 after `frameVaultman` accepted optional `activeWindow`;
+  adopted-node unit gate passed 3 files / 14 tests; combined component smoke
+  passed 3 files / 7 tests. Svelte autofixer returned `issues: []` for
+  `serviceAdoption.svelte.ts` and the changed `frameVaultman` script snippet;
+  the full legacy `frameVaultman.svelte` CLI autofixer still reports an
+  unrelated parser diagnostic with no line/column.
 - T1.7 verification passed: red `snippetMimicry` failed 3/3 before
   panel-level routing; green `snippetMimicry` passed 3/3; focused regression
   gate passed 5 files / 50 tests; Svelte autofixer returned `issues: []` for
@@ -167,8 +195,9 @@ Compact handoff after archiving the oversized current handoff:
 
 ## Next Action
 
-- For UI Modernization Vertical Threads, continue with T1.8 multi-window
-  Faint Mode verification or T2.4/T2.5 adopted-node integration from
+- For UI Modernization Vertical Threads, continue with T2.7 `tabOutlines`
+  workspace tab, or return to T2.5 `explorerFiles` adopted-node integration
+  using an async/cache-backed content stage from
   [[docs/work/polish/plans/2026-05-11-ui-modernization-vertical-threads/index|UI Modernization Vertical Threads Implementation Plan]].
 - First next action for the detachable/workspace route:
   `tabOutline` for the current note, Markmap as an explorer view, node-notes as
@@ -188,6 +217,9 @@ Compact handoff after archiving the oversized current handoff:
   restored to attached state after the smoke.
 - Live narrow-frame Obsidian smoke for scrollable compact controls was not run.
 - Live Obsidian smoke for Queue island Task 6 and final Task 7 was not run.
+- T2.5 `explorerFiles` integration is not complete; adopted-node parsing and
+  filtering are verified, but file content adoption needs an async/cache-backed
+  content stage because `explorerFiles.getTree()` is synchronous.
 - Product worktree remains dirty with active Vaultman UI/DnD changes. Do not
   revert unrelated user/agent files.
 - One combined component command timed out once due startup/runtime length, but

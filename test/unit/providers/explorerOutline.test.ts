@@ -44,6 +44,31 @@ describe('explorerOutline buildOutlineForFile', () => {
 		expect(block?.blockId).toBe('block-id-here');
 	});
 
+	it('normalizes task states and captures block references on task lines', () => {
+		const tree = buildOutlineForFile({
+			path: 'states.md',
+			content: `# States
+- [X] Done
+- [/] In progress
+- [-] Cancelled
+- [ ] Has block ^task-block
+Paragraph ^paragraph-block
+`,
+			file: FAKE_FILE,
+		});
+		const top = tree[0];
+		expect(top.children.filter((c) => c.kind === 'task').map((c) => c.taskState)).toEqual([
+			'x',
+			'/',
+			'-',
+			' ',
+		]);
+		expect(top.children.filter((c) => c.kind === 'block').map((c) => c.blockId)).toEqual([
+			'task-block',
+			'paragraph-block',
+		]);
+	});
+
 	it('handles empty content', () => {
 		expect(
 			buildOutlineForFile({ path: 'empty.md', content: '', file: FAKE_FILE }),

@@ -71,7 +71,11 @@
 		dot?: boolean;
 	};
 
-	let { plugin }: { plugin: VaultmanPlugin } = $props();
+	let {
+		plugin,
+		activeWindow: frameActiveWindow,
+	}: { plugin: VaultmanPlugin; activeWindow?: Window } = $props();
+	const boundActiveWindow = $derived(frameActiveWindow ?? activeWindow);
 
 	// â”€â”€â”€ Page navigation â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
@@ -546,7 +550,7 @@
 	}
 
 	onMount(() => {
-		const win = activeWindow;
+		const win = boundActiveWindow;
 		win.addEventListener('focus', onWindowFocus);
 		win.addEventListener('blur', onWindowBlur);
 		plugin.themeService.windowFocused = win.document.hasFocus();

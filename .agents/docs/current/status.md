@@ -5,7 +5,7 @@ status: active
 parent: "[[docs/work/pkm-ai/index|pkm-ai]]"
 archive_source: "docs/archive/pkm-ai/active-docs/2026-05-10T093000-current-status.md"
 created: 2026-05-04T01:36:20
-updated: 2026-05-11T03:53:32
+updated: 2026-05-11T05:01:54
 tags:
   - agent/current
 created_by: dec
@@ -29,9 +29,22 @@ Compact route index after archiving the oversized current status:
 
 ## Current Route
 
-- Latest user request: continue the Claude worktree vertical-thread plan.
+- Latest user request: continue the Claude worktree vertical-thread plan with
+  parallel subagents where safe.
 - Active initiative: [[docs/work/polish/index|Polish]].
 - Latest implemented product slice:
+  UI Modernization Vertical Threads T2.6 folder context menu plus
+  "is in folder" filter badge in
+  [[docs/work/polish/plans/2026-05-11-ui-modernization-vertical-threads/02-thread-engine-views#task-26--folder-context-menu--is-in-folder-filter-badge|T2.6 folder context menu and filter badge]].
+- Previous implemented product slice:
+  UI Modernization Vertical Threads T1.8 Faint Mode active-window binding plus
+  T2.4 adopted-node outline parsing in
+  [[docs/work/polish/plans/2026-05-11-ui-modernization-vertical-threads/index|UI Modernization Vertical Threads Implementation Plan]].
+- Partial product slice:
+  T2.5 adoption service foundation is present and verified; the
+  `explorerFiles` integration step remains open because the file provider is
+  currently synchronous and needs an async/cache-backed content stage.
+- Previous implemented product slice:
   UI Modernization Vertical Threads T1.7 snippet mimicry smoke plus
   panel-level mirror class routing in
   [[docs/work/polish/plans/2026-05-11-ui-modernization-vertical-threads/01-thread-styling-identity#task-17--snippet-mimicry-smoke-close-the-test-loop-from-12|T1.7 snippet mimicry smoke]].
@@ -79,6 +92,14 @@ Compact route index after archiving the oversized current status:
 - T1.7 is complete: `snippetMimicry` covers `nav-file-title`,
   `tree-item-self`, and `metadata-property`; `ViewNodeTable` now emits
   metadata mirror classes in native DOM mode.
+- T1.8 is complete: `frameVaultman` accepts optional `activeWindow` and binds
+  Faint Mode focus state to the frame-local window.
+- T2.4 is complete: `explorerOutline` builds adopted header/task/block nodes
+  and captures task-line block references; `serviceAdoption` foundation is
+  verified for T2.5.
+- T2.6 is complete: `explorerFiles` opens panel context menus for folders and
+  registers `folder.filter`; `FilterService.addIsInFolderFilter` creates
+  deduplicated `folder:<path>` rules surfaced as `is in folder <path>`.
 - Elastic UI orchestration plan:
   [[docs/work/polish/plans/2026-05-11-elastic-ui-chameleon/index|Elastic UI Chameleon Implementation Plan]].
 - Recent PKM-AI route remains available below for source context.
@@ -141,6 +162,17 @@ Compact route index after archiving the oversized current status:
   nine gate files; focused unit 43/43, focused component 40/40, broader safety
   component 68/68, `pnpm run check`, `pnpm run build`, and `git diff --check`
   passed. Full commands are in the linked Cut 1.5 verification shard.
+- T1.8 / T2.4 / T2.5 foundation verification:
+  `frameFaintMultiWindow` failed 1/1 red on frame-local focus being ignored,
+  then passed 1/1; adopted-node unit gate passed 3 files / 14 tests; combined
+  component smoke passed 3 files / 7 tests. Svelte autofixer returned
+  `issues: []` for `serviceAdoption.svelte.ts` and for the changed
+  `frameVaultman` script snippet; the full legacy `frameVaultman.svelte` CLI
+  autofixer still reports an unrelated parser diagnostic with no line/column.
+- T2.6 verification: `explorerFiles` failed 1/15 red on folder context menus
+  not opening; `serviceFilter` failed 1/21 red on missing
+  `addIsInFolderFilter`; focused regression gate passed 4 files / 48 tests;
+  Svelte autofixer returned `issues: []` for `serviceFilter.svelte.ts`.
 - T2.3 mirror class verification: red run failed 3/3 as expected; green
   `viewNodeMirrorClasses` passed 3/3; affected component gate passed 7 files /
   61 tests; Svelte autofixer returned `issues: []` for the three edited
