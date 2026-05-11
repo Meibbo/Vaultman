@@ -89,6 +89,91 @@ describe('serviceDnd', () => {
 		});
 	});
 
+	it('uses explicit target support to detach a tab into the workspace', () => {
+		const dnd = createDndService();
+
+		dnd.beginDrag({
+			explorerId: 'layout',
+			kind: 'tab',
+			id: 'explorer-files',
+			label: 'Files',
+			data: { surface: 'dock' },
+		});
+		dnd.updateTarget(
+			{
+				explorerId: 'layout',
+				kind: 'group',
+				id: 'workspace',
+				label: 'Workspace',
+				accepts: ['detach-tab'],
+			},
+			'inside',
+		);
+		const result = dnd.endDrag();
+
+		expect(result).toMatchObject({
+			operation: 'detach-tab',
+			targetId: 'workspace',
+			source: { id: 'explorer-files' },
+		});
+	});
+
+	it('prefers explicit layout operations over generic move support', () => {
+		const dnd = createDndService();
+
+		dnd.beginDrag({
+			explorerId: 'layout',
+			kind: 'tab',
+			id: 'page-tools',
+			label: 'Tools',
+			data: { surface: 'dock' },
+		});
+		dnd.updateTarget(
+			{
+				explorerId: 'layout',
+				kind: 'group',
+				id: 'workspace',
+				label: 'Workspace',
+				accepts: ['move', 'detach-tab'],
+			},
+			'inside',
+		);
+
+		expect(dnd.endDrag()).toMatchObject({
+			operation: 'detach-tab',
+			source: { id: 'page-tools' },
+		});
+	});
+
+	it('uses explicit target support to attach a workspace tab back to the dock', () => {
+		const dnd = createDndService();
+
+		dnd.beginDrag({
+			explorerId: 'layout',
+			kind: 'tab',
+			id: 'explorer-files',
+			label: 'Files',
+			data: { surface: 'workspace' },
+		});
+		dnd.updateTarget(
+			{
+				explorerId: 'layout',
+				kind: 'group',
+				id: 'dock',
+				label: 'Dock',
+				accepts: ['attach-tab'],
+			},
+			'inside',
+		);
+		const result = dnd.endDrag();
+
+		expect(result).toMatchObject({
+			operation: 'attach-tab',
+			targetId: 'dock',
+			source: { id: 'explorer-files' },
+		});
+	});
+
 	it('can be cancelled without emitting a drop result', () => {
 		const dnd = createDndService();
 

@@ -444,8 +444,42 @@ describe('ViewService', () => {
 		});
 	});
 
-	it('projects active value filters onto matching property value rows', () => {
+	it('does not project active value filters onto matching property value rows by default', () => {
 		const service = new ViewService();
+		const nodes: TestNode[] = [{ id: 'prop:status::todo', label: 'todo' }];
+		const activeFilters: ActiveFilterEntry[] = [
+			{
+				id: 'filter-status-todo',
+				kind: 'rule',
+				rule: {
+					id: 'filter-status-todo',
+					type: 'rule',
+					filterType: 'specific_value',
+					property: 'status',
+					values: ['todo'],
+				},
+			},
+		];
+		const model = service.getModel({
+			explorerId: 'props',
+			mode: 'tree',
+			nodes,
+			activeFilters,
+			getDecorationContext: () => ({
+				kind: 'prop',
+				propName: 'status',
+				isValueNode: true,
+				rawValue: 'todo',
+			}),
+		});
+
+		expect(model.rows[0].layers.state?.activeFilter).toBeUndefined();
+		expect(model.rows[0].layers.badges?.filters).toBeUndefined();
+		expect(model.rows[0].layers.highlights?.filter).toBeUndefined();
+	});
+
+	it('projects active value filters when matched filter decorations are enabled', () => {
+		const service = new ViewService({ showMatchedFilterDecorations: () => true });
 		const nodes: TestNode[] = [{ id: 'prop:status::todo', label: 'todo' }];
 		const activeFilters: ActiveFilterEntry[] = [
 			{
@@ -485,7 +519,7 @@ describe('ViewService', () => {
 	});
 
 	it('projects queued tag operations and active tag filters onto matching tag rows', () => {
-		const service = new ViewService();
+		const service = new ViewService({ showMatchedFilterDecorations: () => true });
 		const nodes: TestNode[] = [{ id: 'tag:project', label: 'project' }];
 		const operations: QueueChange[] = [
 			{
@@ -541,7 +575,7 @@ describe('ViewService', () => {
 	});
 
 	it('projects queued file operations and file-name filters onto matching file rows', () => {
-		const service = new ViewService();
+		const service = new ViewService({ showMatchedFilterDecorations: () => true });
 		const nodes: TestNode[] = [{ id: 'file:notes/task.md', label: 'Task' }];
 		const operations: QueueChange[] = [
 			{

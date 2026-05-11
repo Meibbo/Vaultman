@@ -62,6 +62,13 @@
 
 Use this as the next resume plan. The intermediate `@dnd-kit/svelte` migration and the ViewTree hover/click regression correction are already applied locally. Do not redo them. Before each cut, inspect the current diff because parts of Cut 4 and Cut 5 were already implemented in the continuation log below; preserve those implementations and complete only the missing behavior.
 
+### Intermediate Cut 1.5: Node Surface Theme, Queue Badges, And Scroll
+
+Before resuming Cut 2, execute the sharded plan:
+[[docs/work/polish/plans/2026-05-10-dock-toolbar-groups-virtualizer/cut-1-5-node-surface-theme-scroll/index|Cut 1.5 Node Surface Theme And Scroll Plan]].
+
+This captures the latest product request as separate facets: matched active-filter node decoration default-off with a Settings opt-in, hover-primary visual removal, generic queue-badge removal across explorer views, Props search labels/default, `serviceScroll` for ViewTree lag, `serviceTheme` and node background/border settings, scrollable compact controls, and Queue explorer parent/child presentation cleanup.
+
 ### Cut 2: Settings And Row Layout Completion
 
 Goal: stabilize visible UI interaction regressions before touching heavier virtualization work.

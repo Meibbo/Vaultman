@@ -6,8 +6,6 @@
 	import Toggle from '../primitives/Toggle.svelte';
 	import Dropdown from '../primitives/Dropdown.svelte';
 	import TextInput from '../primitives/TextInput.svelte';
-	import SettingsLeafToggle from './settingsLeafToggle.svelte';
-	import type { LeafDetachService } from '../../services/serviceLeafDetach';
 	import { normalizeOperationScope } from '../../services/serviceOperationScope';
 	import {
 		resolveLayoutSettings,
@@ -507,13 +505,6 @@
 		onChange={persistSettings}
 	/>
 	<p class="vm-settings-desc">{translate('settings.fnr_regex_default.desc')}</p>
-
-	{#if (plugin as iVaultmanPlugin & { leafDetachService?: LeafDetachService }).leafDetachService}
-		<SettingsLeafToggle
-			leafDetach={(plugin as iVaultmanPlugin & { leafDetachService: LeafDetachService })
-				.leafDetachService}
-		/>
-	{/if}
 
 	<!-- ── Bases ─────────────────────────────────────────────────────── -->
 	<h3 class="vm-settings-heading">Bases</h3>

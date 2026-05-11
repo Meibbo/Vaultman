@@ -7,6 +7,7 @@ import {
 	type VaultmanSettings,
 } from '../../src/types/typeSettings';
 import { installObsidianDomPolyfill } from '../helpers/dom-obsidian-polyfill';
+import { LeafDetachService } from '../../src/services/serviceLeafDetach';
 
 beforeAll(() => {
 	installObsidianDomPolyfill();
@@ -23,6 +24,24 @@ function makeFakePlugin(): FakePlugin {
 		settings: structuredClone(DEFAULT_SETTINGS),
 		saveSettings: vi.fn(async () => {}),
 		updateGlassBlur: vi.fn(),
+	};
+}
+
+async function makeFakePluginWithLeafDetach(): Promise<FakePlugin & { leafDetachService: LeafDetachService }> {
+	const leafDetachService = new LeafDetachService({
+		store: {
+			loadData: async () => ({}),
+			saveData: async () => undefined,
+		},
+		host: {
+			spawnLeaf: async () => undefined,
+			closeLeaf: async () => undefined,
+		},
+	});
+	await leafDetachService.load();
+	return {
+		...makeFakePlugin(),
+		leafDetachService,
 	};
 }
 
@@ -185,5 +204,17 @@ describe('SettingsUI mount (regression: effect_update_depth_exceeded)', () => {
 		expect(plugin.settings.faintAccentsWhenWorkspaceFocused).toBe(true);
 		expect(plugin.updateGlassBlur).toHaveBeenCalledOnce();
 		expect(plugin.saveSettings).toHaveBeenCalledOnce();
+	});
+
+	it('does not render the detachable leaf toggle because it belongs in PageTools Layout', async () => {
+		const plugin = await makeFakePluginWithLeafDetach();
+
+		app = mount(SettingsUI as unknown as Component<{ plugin: iVaultmanPlugin }>, {
+			target,
+			props: { plugin: plugin as unknown as iVaultmanPlugin },
+		});
+		flushSync();
+
+		expect(target.textContent).not.toContain('All tabs as independent leaves');
 	});
 });

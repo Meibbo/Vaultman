@@ -92,6 +92,27 @@ describe('LeafDetachService', () => {
 		expect(b.getState()).toEqual({ content: true, 'page-tools': true });
 	});
 
+	it('notifies subscribers with cloned state snapshots after load, detach, and attach', async () => {
+		const store = makeStore({ independentLeaves: { content: true } });
+		const host = makeHost();
+		const svc = new LeafDetachService({ store, host });
+		const snapshots: Array<Record<string, boolean | undefined>> = [];
+		const off = svc.subscribe((state) => snapshots.push(state));
+
+		await svc.load();
+		await svc.detach('page-tools');
+		await svc.attach('content');
+		off();
+		await svc.detach('queue');
+
+		expect(snapshots).toEqual([
+			{ content: true },
+			{ content: true, 'page-tools': true },
+			{ content: false, 'page-tools': true },
+		]);
+		expect(snapshots[1]).not.toBe(svc.getState());
+	});
+
 	it('restore() spawns one leaf per detached tab and is idempotent', async () => {
 		const store = makeStore({
 			independentLeaves: { 'explorer-files': true, queue: true, content: false },

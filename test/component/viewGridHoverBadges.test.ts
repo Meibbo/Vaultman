@@ -93,4 +93,24 @@ describe('ViewNodeGrid hover badges', () => {
 		);
 		expect(kinds).toEqual(['set', 'delete', 'filter', 'node-note']);
 	});
+
+	it('does not visually mark the hover badge matching the configured primary node action', () => {
+		app = mount(ViewNodeGrid as unknown as Component<Record<string, unknown>>, {
+			target,
+			props: {
+				nodes: [nodeFor('n')],
+				onTileClick: vi.fn(),
+				onContextMenu: vi.fn(),
+				icon: vi.fn(() => ({ update: vi.fn() })),
+				activeOpsByNode: new Map(),
+				primaryHoverBadgeKind: 'filter',
+			},
+		});
+		flushSync();
+
+		const filterBadge = target.querySelector(
+			'.vm-badge.is-hover-badge[data-hover-kind="filter"]',
+		) as HTMLElement;
+		expect(filterBadge.classList.contains('is-primary-action')).toBe(false);
+	});
 });

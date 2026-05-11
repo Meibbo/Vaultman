@@ -29,6 +29,7 @@ import { withViewStateClasses } from '../utils/utilViewLayers';
 interface ViewServiceOptions {
 	decorationManager?: IDecorationManager;
 	defaultMode?: ExplorerViewMode;
+	showMatchedFilterDecorations?: () => boolean;
 }
 
 const EXPLORER_REVISION_FIELDS = [
@@ -78,6 +79,7 @@ interface SemanticTarget {
 export class ViewService implements IViewService {
 	private readonly decorationManager?: IDecorationManager;
 	private readonly defaultMode: ExplorerViewMode;
+	private readonly showMatchedFilterDecorations: () => boolean;
 	private decorationRevision = 0;
 
 	// Svelte 5 Native Reactivity
@@ -97,6 +99,7 @@ export class ViewService implements IViewService {
 	constructor(options: ViewServiceOptions = {}) {
 		this.decorationManager = options.decorationManager;
 		this.defaultMode = options.defaultMode ?? 'tree';
+		this.showMatchedFilterDecorations = options.showMatchedFilterDecorations ?? (() => false);
 		this.decorationManager?.subscribe(() => {
 			this.decorationRevision += 1;
 			this.semanticLayerCache.clear();
@@ -118,8 +121,11 @@ export class ViewService implements IViewService {
 		const selected = this.selectionFor(input.explorerId);
 		const opIndex = this.getOpIndex(input.operations);
 		const filterIndex = this.getFilterIndex(input.activeFilters);
+		const showMatchedFilterDecorations = this.showMatchedFilterDecorations();
 
-		const rows = input.nodes.map((node) => this.toRow(input, node, selected, opIndex, filterIndex));
+		const rows = input.nodes.map((node) =>
+			this.toRow(input, node, selected, opIndex, filterIndex, showMatchedFilterDecorations),
+		);
 
 		return {
 			explorerId: input.explorerId,
@@ -281,9 +287,17 @@ export class ViewService implements IViewService {
 		selected: ReadonlySet<string>,
 		opIndex: ReturnType<ViewService['indexOperations']>,
 		filterIndex: ReturnType<ViewService['indexActiveFilters']>,
+		showMatchedFilterDecorations: boolean,
 	): ViewRow<TNode> {
 		const label = input.getLabel?.(node) ?? labelFromNode(node);
-		const layers = this.layersFor(input, node, label, opIndex, filterIndex);
+		const layers = this.layersFor(
+			input,
+			node,
+			label,
+			opIndex,
+			filterIndex,
+			showMatchedFilterDecorations,
+		);
 		const isSelected = selected.has(node.id);
 		const rowLayers: ViewLayers = {
 			...layers,
@@ -310,11 +324,19 @@ export class ViewService implements IViewService {
 		label: string,
 		opIndex: ReturnType<ViewService['indexOperations']>,
 		filterIndex: ReturnType<ViewService['indexActiveFilters']>,
+		showMatchedFilterDecorations: boolean,
 	): ViewLayers {
 		const context = input.getDecorationContext?.(node);
 		const revisionKey = revisionCacheKey(input.revisions);
 		if (revisionKey) {
-			const cacheKey = this.semanticLayerCacheKey(input, node, label, context, revisionKey);
+			const cacheKey = this.semanticLayerCacheKey(
+				input,
+				node,
+				label,
+				context,
+				revisionKey,
+				showMatchedFilterDecorations,
+			);
 			const cached = this.semanticLayerCache.get(cacheKey);
 			if (cached) {
 				getActivePerfProbe()?.count('viewService.semanticCache.hit', { nodes: 1 });
@@ -322,12 +344,26 @@ export class ViewService implements IViewService {
 			}
 
 			getActivePerfProbe()?.count('viewService.semanticCache.miss', { nodes: 1 });
-			const layers = this.computeLayers(node, context, label, opIndex, filterIndex);
+			const layers = this.computeLayers(
+				node,
+				context,
+				label,
+				opIndex,
+				filterIndex,
+				showMatchedFilterDecorations,
+			);
 			this.rememberSemanticLayers(cacheKey, layers);
 			return layers;
 		}
 
-		return this.computeLayers(node, context, label, opIndex, filterIndex);
+		return this.computeLayers(
+			node,
+			context,
+			label,
+			opIndex,
+			filterIndex,
+			showMatchedFilterDecorations,
+		);
 	}
 
 	private computeLayers<TNode extends NodeBase>(
@@ -336,9 +372,17 @@ export class ViewService implements IViewService {
 		label: string,
 		opIndex: ReturnType<ViewService['indexOperations']>,
 		filterIndex: ReturnType<ViewService['indexActiveFilters']>,
+		showMatchedFilterDecorations: boolean,
 	): ViewLayers {
 		const decoration = this.decorationManager?.decorate(node, context);
-		const semanticLayers = semanticLayersFor(node, context, label, opIndex, filterIndex);
+		const semanticLayers = semanticLayersFor(
+			node,
+			context,
+			label,
+			opIndex,
+			filterIndex,
+			showMatchedFilterDecorations,
+		);
 		if (!decoration) return semanticLayers;
 
 		const source = iconSourceFromContext(context);
@@ -362,12 +406,14 @@ export class ViewService implements IViewService {
 		label: string,
 		context: unknown,
 		revisionKey: string,
+		showMatchedFilterDecorations: boolean,
 	): string {
 		return [
 			input.explorerId,
 			input.mode,
 			revisionKey,
 			`decor:${this.decorationRevision}`,
+			`matched-filter:${showMatchedFilterDecorations ? 1 : 0}`,
 			node.id,
 			label,
 			stableValueKey(context),
@@ -448,14 +494,14 @@ function semanticLayersFor<TNode extends NodeBase>(
 	label: string,
 	opIndex: ReturnType<ViewService['indexOperations']>,
 	filterIndex: ReturnType<ViewService['indexActiveFilters']>,
+	showMatchedFilterDecorations: boolean,
 ): ViewLayers {
 	const kind = (context as { kind?: string } | undefined)?.kind;
 	if (kind === 'operation' || isQueueChange(node)) return operationLayersFor(node);
 	if (kind === 'filter' || isActiveFilterEntry(node)) return filterLayersFor(node, label);
-	return mergeLayers(
-		matchedOperationLayersFor(node, context, opIndex),
-		matchedActiveFilterLayersFor(node, context, label, filterIndex),
-	);
+	const operationLayers = matchedOperationLayersFor(node, context, opIndex);
+	if (!showMatchedFilterDecorations) return operationLayers;
+	return mergeLayers(operationLayers, matchedActiveFilterLayersFor(node, context, label, filterIndex));
 }
 
 function operationLayersFor(node: NodeBase): ViewLayers {

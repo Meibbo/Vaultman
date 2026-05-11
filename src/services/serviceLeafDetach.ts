@@ -54,6 +54,7 @@ export class LeafDetachService {
 	private readonly host: LeafDetachHost;
 	private state: LeafDetachState = {};
 	private restored = false;
+	private readonly listeners = new Set<(state: LeafDetachState) => void>();
 
 	constructor(opts: LeafDetachOptions) {
 		this.store = opts.store;
@@ -65,6 +66,7 @@ export class LeafDetachService {
 		const raw = await this.store.loadData();
 		const block = isRecord(raw) ? raw[DATA_KEY] : null;
 		this.state = sanitize(block);
+		this.notify();
 	}
 
 	/** Persist current state to plugin data, preserving any sibling fields. */
@@ -77,6 +79,13 @@ export class LeafDetachService {
 	/** Snapshot of the current detached map. */
 	getState(): LeafDetachState {
 		return { ...this.state };
+	}
+
+	subscribe(listener: (state: LeafDetachState) => void): () => void {
+		this.listeners.add(listener);
+		return () => {
+			this.listeners.delete(listener);
+		};
 	}
 
 	isDetached(tabId: TabId): boolean {
@@ -93,6 +102,7 @@ export class LeafDetachService {
 				await this.host.spawnLeaf(tabId);
 				this.state[tabId] = true;
 				await this.save();
+				this.notify();
 			},
 			'service',
 			{ tabId },
@@ -109,6 +119,7 @@ export class LeafDetachService {
 				await this.host.closeLeaf(tabId);
 				this.state[tabId] = false;
 				await this.save();
+				this.notify();
 			},
 			'service',
 			{ tabId },
@@ -132,6 +143,11 @@ export class LeafDetachService {
 	/** Test-only escape hatch; lets a fresh restore run. */
 	__resetRestoredForTests(): void {
 		this.restored = false;
+	}
+
+	private notify(): void {
+		const snapshot = this.getState();
+		for (const listener of this.listeners) listener({ ...snapshot });
 	}
 }
 

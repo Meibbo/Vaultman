@@ -55,14 +55,18 @@
 		opacity: 0.5;
 	}
 
-	// Hover-only quick-action badges. No box, faint icon-only. Active state
-	// (when wired by view) uses normal weight with text + icon.
+	// Hover-only quick-action badges. Neutral icon-only by default; hover/focus
+	// gets a small surface so the icon remains legible over row labels.
 	&.is-hover-badge {
+		width: 16px;
+		height: 16px;
+		border-radius: $vm-radius-xs;
 		background: transparent;
 		border: none;
 		box-shadow: none;
 		opacity: 0.45;
 		font-size: 0;
+		color: $vm-text-muted;
 
 		.vm-badge-icon {
 			display: flex !important;
@@ -70,12 +74,9 @@
 
 		&:hover,
 		&:focus-visible {
-			opacity: 0.85;
-		}
-
-		&.is-primary-action {
-			color: $vm-color-accent;
 			opacity: 0.9;
+			color: $vm-text-normal;
+			background: color-mix(in srgb, $vm-bg-modifier-hover 86%, transparent);
 		}
 
 		&.is-active {

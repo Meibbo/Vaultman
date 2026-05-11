@@ -188,7 +188,6 @@
 	const nodeMouseActions = $derived.by(() =>
 		resolveNodeMouseActions(plugin.settings?.nodeMouseActions, LEGACY_NODE_MOUSE_ACTIONS),
 	);
-	const primaryHoverBadgeKind = $derived(badgeKindForNodeAction(nodeMouseActions.primary));
 
 	$effect(() => {
 		const queue = (
@@ -960,13 +959,6 @@
 		};
 	}
 
-	function badgeKindForNodeAction(action: NodeMouseAction): BadgeKind | null {
-		if (action === 'filter') return 'filter';
-		if (action === 'node-note') return 'node-note';
-		if (action === 'delete') return 'delete';
-		if (action === 'open') return 'set';
-		return null;
-	}
 </script>
 
 <svelte:document onclick={handleDocumentClick} />
@@ -993,7 +985,6 @@
 					onBadgeDoubleClick={handleBadgeClick}
 					onHoverBadgeAction={handleHoverBadgeAction}
 					{activeOpsByNode}
-					{primaryHoverBadgeKind}
 					{scrollTarget}
 					mouseGestureConfig={plugin.settings?.mouseGestures?.node}
 					{icon}
@@ -1039,7 +1030,6 @@
 					onToggleExpand={toggleExpand}
 					onHoverBadgeAction={handleHoverBadgeAction}
 					{activeOpsByNode}
-					{primaryHoverBadgeKind}
 					{scrollTarget}
 					mouseGestureConfig={plugin.settings?.mouseGestures?.node}
 					{icon}

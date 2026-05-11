@@ -84,6 +84,12 @@
 		}
 
 		.vm-tree-row-surface.is-selected {
+			background: color-mix(in srgb, var(--text-faint) 11%, $vm-bg-primary);
+			color: var(--text-normal);
+			box-shadow: none;
+		}
+
+		.vm-tree-row-surface.is-active-filter {
 			background: color-mix(in srgb, var(--interactive-accent) 14%, $vm-bg-primary);
 			color: var(--text-normal);
 			box-shadow: inset 3px 0 0 color-mix(in srgb, var(--interactive-accent) 78%, transparent);
@@ -101,9 +107,7 @@
 		}
 
 		.vm-tree-row-surface.is-selected.is-focused {
-			box-shadow:
-				inset 3px 0 0 color-mix(in srgb, var(--interactive-accent) 78%, transparent),
-				inset 0 0 0 1px color-mix(in srgb, var(--interactive-accent) 55%, transparent);
+			box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--text-faint) 55%, transparent);
 		}
 
 		.vm-tree-label {

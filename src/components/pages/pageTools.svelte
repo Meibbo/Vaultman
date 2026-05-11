@@ -2,9 +2,9 @@
 	import type { VaultmanPlugin } from '../../main';
 	import { translate } from '../../index/i18n/lang';
 	import { TTabs } from '../../types/typeTab'; //, type OpsTab
-	import { MenuCuratorPanel } from '../containers/panelCurator';
 	import NavbarTabs from '../layout/navbarTabs.svelte';
 	import PageToolsOpsLog from './pageToolsOpsLog.svelte';
+	import PageToolsLayout from './pageToolsLayout.svelte';
 	import TabPlugins from './tabPlugins.svelte';
 	import TabSnippets from './tabSnippets.svelte';
 	import type { OpsLogService } from '../../services/serviceOpsLog.svelte';
@@ -29,15 +29,6 @@
 	// 	new LinterModal(plugin.app, plugin.propertyIndex, targets).open();
 	// }
 
-	const mountCurator = (node: HTMLElement) => {
-		const panel = new MenuCuratorPanel(node, plugin);
-		plugin.addChild(panel);
-		return {
-			destroy() {
-				plugin.removeChild(panel);
-			},
-		};
-	};
 </script>
 
 <NavbarTabs tabs={TTabs} bind:active={opsTab} showLabels={true} labelPosition="side" />
@@ -59,7 +50,7 @@
 
 	<!-- Layout tab -->
 	<div class="vm-tab-content" class:is-active={opsTab === 'layout'}>
-		<div class="vm-layout-curator" use:mountCurator></div>
+		<PageToolsLayout {plugin} />
 	</div>
 
 	<!-- Snippets tab -->

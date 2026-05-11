@@ -32,6 +32,8 @@ export interface VaultmanSettings {
 	explorerCtrlClickSearch: boolean;
 	/** Show pending queue changes in the explorer tree */
 	explorerShowQueuePreview: boolean;
+	/** Show badges, highlights, and active row styling on ordinary nodes matched by active filters. */
+	explorerShowMatchedFilterDecorations: boolean;
 	/** Enable content search in file tree */
 	explorerContentSearch: boolean;
 	/** Default scope for explorer operations: auto = selected > filtered */
@@ -140,6 +142,7 @@ export const DEFAULT_SETTINGS: VaultmanSettings = {
 	sessionFilePath: '',
 	explorerCtrlClickSearch: true,
 	explorerShowQueuePreview: true,
+	explorerShowMatchedFilterDecorations: false,
 	explorerContentSearch: true,
 	explorerOperationScope: 'auto',
 	explorerFilesShowHidden: false,

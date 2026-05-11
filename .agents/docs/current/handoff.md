@@ -5,7 +5,7 @@ status: active
 parent: "[[docs/work/pkm-ai/index|pkm-ai]]"
 archive_source: "docs/archive/pkm-ai/active-docs/2026-05-10T093000-current-handoff.md"
 created: 2026-05-04T01:36:20
-updated: 2026-05-10T18:55:00
+updated: 2026-05-10T19:53:58
 tags:
   - agent/current
 created_by: dec
@@ -19,7 +19,11 @@ Compact handoff after archiving the oversized current handoff:
 
 ## Resume Point
 
-- Latest product request captured for next agent:
+- Latest orchestration request captured as a sharded Elastic UI Chameleon plan:
+  [[docs/work/polish/plans/2026-05-11-elastic-ui-chameleon/index|Elastic UI Chameleon Implementation Plan]].
+- Latest product request captured as a sharded multifacet pre-Cut-2 plan:
+  [[docs/work/polish/plans/2026-05-10-dock-toolbar-groups-virtualizer/cut-1-5-node-surface-theme-scroll/index|Cut 1.5 Node Surface Theme And Scroll Plan]].
+- Parent product plan:
   [[docs/work/polish/plans/2026-05-10-dock-toolbar-groups-virtualizer/index|Dock, Toolbar, Groups, Virtualizer Implementation Plan]]
   now contains `Next Agent Plan: Remaining Four Cuts`.
 - Product branch state to preserve:
@@ -90,7 +94,11 @@ Compact handoff after archiving the oversized current handoff:
 
 ## Next Action
 
-- For product work, continue with Cut 2 from
+- For Elastic UI execution, start with the contracts and gates shard:
+  [[docs/work/polish/plans/2026-05-11-elastic-ui-chameleon/00-contracts-and-gates|Elastic UI Contracts And Gates]].
+- For product work, execute Cut 1.5 before Cut 2:
+  [[docs/work/polish/plans/2026-05-10-dock-toolbar-groups-virtualizer/cut-1-5-node-surface-theme-scroll/index|Cut 1.5 Node Surface Theme And Scroll Plan]].
+- After Cut 1.5, continue with Cut 2 from
   [[docs/work/polish/plans/2026-05-10-dock-toolbar-groups-virtualizer/index|Dock, Toolbar, Groups, Virtualizer Implementation Plan]]:
   Settings and row layout completion, then Cut 3 virtualizer/pretext/tab
   latency, Cut 4 real `@dnd-kit/svelte` DnD/groups/queue operations, and Cut 5

@@ -56,7 +56,6 @@
 		onBadgeDoubleClick?: (queueIndex: number) => void;
 		onHoverBadgeAction?: (id: string, kind: BadgeKind, e: MouseEvent | KeyboardEvent) => void;
 		activeOpsByNode?: ActiveOpsByNode;
-		primaryHoverBadgeKind?: BadgeKind | null;
 		scrollTarget?: ScrollTarget | null;
 		mouseGestureConfig?: MouseGestureConfig;
 		sizePresetId?: ViewSizePresetId;
@@ -85,7 +84,6 @@
 		onBadgeDoubleClick,
 		onHoverBadgeAction,
 		activeOpsByNode,
-		primaryHoverBadgeKind = null,
 		scrollTarget = null,
 		mouseGestureConfig,
 		sizePresetId = DEFAULT_VIEW_SIZE_PRESET,
@@ -610,7 +608,6 @@
 									{#each hoverBadges as badge (badge.kind)}
 										<div
 											class="vm-badge is-hover-badge is-actionable"
-											class:is-primary-action={badge.kind === primaryHoverBadgeKind}
 											data-hover-kind={badge.kind}
 											role="button"
 											tabindex="0"

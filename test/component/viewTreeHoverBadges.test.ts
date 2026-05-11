@@ -129,7 +129,7 @@ describe('ViewTree hover badges', () => {
 		expect(onHoverBadgeAction).toHaveBeenCalledWith('n', 'rename', expect.any(Object));
 	});
 
-	it('marks the hover badge matching the configured primary node action', () => {
+	it('does not visually mark the hover badge matching the configured primary node action', () => {
 		app = mount(ViewTree as unknown as Component<Record<string, unknown>>, {
 			target,
 			props: {
@@ -148,6 +148,6 @@ describe('ViewTree hover badges', () => {
 		const filterBadge = target.querySelector(
 			'.vm-badge.is-hover-badge[data-hover-kind="filter"]',
 		) as HTMLElement;
-		expect(filterBadge.classList.contains('is-primary-action')).toBe(true);
+		expect(filterBadge.classList.contains('is-primary-action')).toBe(false);
 	});
 });

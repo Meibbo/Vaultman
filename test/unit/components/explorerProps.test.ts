@@ -179,7 +179,7 @@ describe('explorerProps search', () => {
 		expect(tree[0].children?.map((node) => node.label)).toEqual(['draft']);
 	});
 
-	it('projects active filter layers from ViewService onto matching value nodes', () => {
+	it('does not project active filter layers onto matching value nodes by default', () => {
 		const activeFilters: ActiveFilterEntry[] = [
 			{
 				id: 'filter-status-draft',
@@ -206,6 +206,56 @@ describe('explorerProps search', () => {
 				subscribe: vi.fn(),
 				byId: vi.fn(),
 			},
+		});
+		const explorer = new explorerProps(plugin);
+
+		const tree = explorer.getTree();
+		const valueNode = tree
+			.find((node) => node.id === 'status')
+			?.children?.find((node) => node.label === 'draft');
+
+		expect(valueNode?.cls).not.toContain('is-active-filter');
+		expect(valueNode?.badges ?? []).not.toContainEqual(
+			expect.objectContaining({
+				text: 'specific value',
+				icon: 'lucide-filter',
+				color: 'blue',
+			}),
+		);
+		expect(valueNode?.highlights).toBeUndefined();
+	});
+
+	it('projects active filter layers onto matching value nodes when enabled', () => {
+		const activeFilters: ActiveFilterEntry[] = [
+			{
+				id: 'filter-status-draft',
+				kind: 'rule',
+				rule: {
+					id: 'filter-status-draft',
+					type: 'rule',
+					filterType: 'specific_value',
+					property: 'status',
+					values: ['draft'],
+				},
+			},
+		];
+		const plugin = makePlugin({
+			activeFiltersIndex: {
+				nodes: activeFilters,
+				refresh: vi.fn(),
+				subscribe: vi.fn(),
+				byId: vi.fn(),
+			},
+			operationsIndex: {
+				nodes: [] as QueueChange[],
+				refresh: vi.fn(),
+				subscribe: vi.fn(),
+				byId: vi.fn(),
+			},
+		});
+		plugin.viewService = new ViewService({
+			decorationManager: plugin.decorationManager,
+			showMatchedFilterDecorations: () => true,
 		});
 		const explorer = new explorerProps(plugin);
 

@@ -5,7 +5,7 @@ status: active
 parent: "[[docs/work/pkm-ai/index|pkm-ai]]"
 archive_source: "docs/archive/pkm-ai/active-docs/2026-05-10T093000-current-status.md"
 created: 2026-05-04T01:36:20
-updated: 2026-05-10T18:49:52
+updated: 2026-05-10T19:53:58
 tags:
   - agent/current
 created_by: dec
@@ -29,9 +29,19 @@ Compact route index after archiving the oversized current status:
 
 ## Current Route
 
-- Latest user request: add PKM-AI task-state retrieval so agents can fetch
+- Latest user request: capture a multifacet product plan for a small cut before
+  Cut 2 of the dock toolbar plan.
+- Active initiative: [[docs/work/polish/index|Polish]].
+- Active product plan:
+  [[docs/work/polish/plans/2026-05-10-dock-toolbar-groups-virtualizer/index|Dock, Toolbar, Groups, Virtualizer Implementation Plan]].
+- Pre-Cut-2 subplan:
+  [[docs/work/polish/plans/2026-05-10-dock-toolbar-groups-virtualizer/cut-1-5-node-surface-theme-scroll/index|Cut 1.5 Node Surface Theme And Scroll Plan]].
+- Elastic UI orchestration plan:
+  [[docs/work/polish/plans/2026-05-11-elastic-ui-chameleon/index|Elastic UI Chameleon Implementation Plan]].
+- Recent PKM-AI route remains available below for source context.
+- Previous PKM-AI request: add task-state retrieval so agents can fetch
   objective states without manually reading plan Markdown.
-- Active initiative: [[docs/work/pkm-ai/index|PKM-AI]].
+- Previous active initiative: [[docs/work/pkm-ai/index|PKM-AI]].
 - Control-plane source:
   [[docs/work/pkm-ai/specs/2026-05-10-agent-control-plane/index|Agent Control Plane]].
 - Control-plane plan:
@@ -103,6 +113,9 @@ Compact route index after archiving the oversized current status:
 
 - [[docs/current/handoff|current handoff]]
 - [[docs/current/engineering-context|engineering context]]
+- [[docs/work/polish/plans/2026-05-10-dock-toolbar-groups-virtualizer/cut-1-5-node-surface-theme-scroll/index|Cut 1.5 Node Surface Theme And Scroll Plan]]
+- [[docs/work/polish/plans/2026-05-10-dock-toolbar-groups-virtualizer/index|Dock Toolbar Groups Virtualizer Plan]]
+- [[docs/work/polish/plans/2026-05-11-elastic-ui-chameleon/index|Elastic UI Chameleon Plan]]
 - [[docs/work/pkm-ai/plans/2026-05-10-typescript-ast-code-index/index|TypeScript AST code index]]
 - [[docs/work/pkm-ai/plans/2026-05-10-svelte-code-index-extraction/index|Svelte code index extraction]]
 - [[docs/work/pkm-ai/plans/2026-05-10-health-line-limit-auto-sharding/index|Health line-limit auto sharding]]

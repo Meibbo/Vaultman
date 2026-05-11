@@ -1,6 +1,12 @@
 export type DndPhase = 'idle' | 'dragging';
 export type DndDropPosition = 'before' | 'inside' | 'after';
-export type DndOperation = 'reorder' | 'move' | 'apply-template';
+export type DndOperation =
+	| 'reorder'
+	| 'move'
+	| 'apply-template'
+	| 'detach-tab'
+	| 'attach-tab'
+	| 'move-tab-surface';
 export type DndSubjectKind = 'node' | 'row' | 'group' | 'column' | 'tab' | 'filter' | 'card';
 export type DndRejectReason =
 	| 'no-drag-source'
@@ -191,6 +197,9 @@ function preferredAcceptedOperation(
 	accepted: readonly DndOperation[],
 	position: DndDropPosition,
 ): DndOperation | null {
+	if (accepted.includes('detach-tab')) return 'detach-tab';
+	if (accepted.includes('attach-tab')) return 'attach-tab';
+	if (accepted.includes('move-tab-surface')) return 'move-tab-surface';
 	if (position === 'inside' && accepted.includes('move')) return 'move';
 	if (position !== 'inside' && accepted.includes('reorder')) return 'reorder';
 	if (accepted.includes('move')) return 'move';

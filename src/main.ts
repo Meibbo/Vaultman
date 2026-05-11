@@ -190,7 +190,11 @@ export class VaultmanPlugin extends Plugin {
 		]);
 		this.overlayState = new OverlayStateService();
 		this.decorationManager = new DecorationManager(this.app);
-		this.viewService = new ViewService({ decorationManager: this.decorationManager });
+		this.viewService = new ViewService({
+			decorationManager: this.decorationManager,
+			showMatchedFilterDecorations: () =>
+				this.settings.explorerShowMatchedFilterDecorations === true,
+		});
 		const perfProbe = createPerfProbe({
 			now: () => activeWindow.performance.now(),
 			doc: activeDocument,

@@ -34,6 +34,7 @@ and non-blocking UX improvements.
 ## Active Plans
 
 - [[docs/work/polish/plans/2026-05-07-tanstack-node-table/index|TanStack node table implementation plan]]
+- [[docs/work/polish/plans/2026-05-11-elastic-ui-chameleon/index|Elastic UI Chameleon implementation plan]]
 
 ## Completed Plans
 

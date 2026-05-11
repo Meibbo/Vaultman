@@ -61,14 +61,20 @@
 }
 
 .vm-node-card.is-selected {
+	background: color-mix(in srgb, var(--text-faint) 11%, $vm-bg-primary);
+	border-color: color-mix(in srgb, var(--text-faint) 28%, $vm-border-color);
+	box-shadow: none;
+}
+
+.vm-node-card.is-active-filter {
 	background: color-mix(in srgb, $vm-color-accent 14%, $vm-bg-primary);
 	border-color: color-mix(in srgb, $vm-color-accent 45%, $vm-border-color);
 	box-shadow: inset 3px 0 0 color-mix(in srgb, $vm-color-accent 78%, transparent);
 }
 
 .vm-node-card.is-selected.is-active-node {
-	background: color-mix(in srgb, $vm-color-accent 18%, $vm-bg-primary);
-	border-color: color-mix(in srgb, $vm-color-accent 52%, $vm-border-color);
+	background: color-mix(in srgb, var(--text-faint) 14%, $vm-bg-primary);
+	border-color: color-mix(in srgb, var(--text-faint) 34%, $vm-border-color);
 }
 
 .vm-node-card.is-focused,
@@ -78,9 +84,7 @@
 }
 
 .vm-node-card.is-selected.is-focused {
-	box-shadow:
-		inset 3px 0 0 color-mix(in srgb, $vm-color-accent 78%, transparent),
-		inset 0 0 0 1px color-mix(in srgb, $vm-color-accent 60%, transparent);
+	box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--text-faint) 60%, transparent);
 }
 
 .vm-node-card-icon {

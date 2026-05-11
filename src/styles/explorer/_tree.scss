@@ -253,9 +253,9 @@
 
 .vm-tree-row-surface {
 	&.is-active-filter {
-		background-color: color-mix(in srgb, $vm-color-accent 8%, transparent);
+		background: color-mix(in srgb, $vm-color-accent 14%, $vm-bg-primary);
 		color: $vm-text-normal;
-		box-shadow: inset 2px 0 0 0 $vm-color-accent;
+		box-shadow: inset 3px 0 0 color-mix(in srgb, $vm-color-accent 78%, transparent);
 
 		:is(
 			.vm-tree-toggle,
