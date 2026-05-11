@@ -4,7 +4,7 @@ type: implementation-plan-shard
 status: draft
 parent: "[[docs/work/polish/plans/2026-05-11-ui-modernization-vertical-threads/index|ui-modernization-vertical-threads]]"
 created: 2026-05-11T23:55:00
-updated: 2026-05-11T08:03:21
+updated: 2026-05-11T08:40:05
 tags:
   - agent/plan
   - thread/vfs-review
@@ -14,7 +14,7 @@ tags:
   - serviceQueue
   - serviceDiff
 created_by: opus
-updated_by: opus
+updated_by: codex
 ---
 
 # T3 VFS & Review UX
@@ -1153,13 +1153,15 @@ session can finish the strangler.
 - Svelte verification passed via `mcp__svelte__.svelte_autofixer` for
   `viewDiff.svelte` and `viewDiffNavbar.svelte`, both returning
   `issues: []` and `suggestions: []`.
-- `pnpm run lint:full` still exits 1, but there are zero
-  `vaultman-local/no-mutable-vfs` failures. Remaining lint residuals are
-  outside T3 ownership: six
-  `@typescript-eslint/no-unnecessary-type-assertion` errors in
-  `serviceDndSvelteAdapter.ts`, `serviceFoulDetection.svelte.ts`, and
-  `serviceNativeClickIntercept.ts`, plus the pre-existing `uno.config.ts`
-  project-service parse error.
+- Post-T3.8 continuation cleared the remaining `lint:full` residuals:
+  unnecessary assertions were removed from `serviceDndSvelteAdapter.ts`,
+  `serviceFoulDetection.svelte.ts`, and `serviceNativeClickIntercept.ts`;
+  `uno.config.ts` was added to ESLint `allowDefaultProject`; and UnoCSS was
+  migrated from deprecated `presetUno` to `presetWind3` with preflight still
+  disabled. The updated preflight gate passed 1 file / 5 tests; the focused
+  DnD/foul/click/config gate passed 4 files / 20 tests; `pnpm run lint:full`,
+  `pnpm run check`, `pnpm run build:plugin`, full unit, full component, and
+  `git diff --check` all passed.
 - Live Obsidian smoke partially passed: `obsidian vault=plugin-dev
   plugin:reload id=vaultman` and `obsidian vault=plugin-dev command
   id=vaultman:open` succeeded; `obsidian vault=plugin-dev dev:errors` reported

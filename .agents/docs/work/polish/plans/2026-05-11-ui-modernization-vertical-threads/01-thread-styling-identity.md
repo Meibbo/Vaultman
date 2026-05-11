@@ -4,7 +4,7 @@ type: implementation-plan-shard
 status: draft
 parent: "[[docs/work/polish/plans/2026-05-11-ui-modernization-vertical-threads/index|ui-modernization-vertical-threads]]"
 created: 2026-05-11T23:55:00
-updated: 2026-05-11T04:31:26
+updated: 2026-05-11T08:40:05
 tags:
   - agent/plan
   - thread/styling-identity
@@ -141,8 +141,8 @@ describe('uno.config.ts preflight gate', () => {
         expect(text).toMatch(/obsidian-mimic-/);
     });
 
-    it('uses presetUno + presetIcons + presetAttributify', () => {
-        expect(text).toMatch(/presetUno\(/);
+    it('uses presetWind3 + presetIcons + presetAttributify', () => {
+        expect(text).toMatch(/presetWind3\(/);
         expect(text).toMatch(/presetIcons\(/);
         expect(text).toMatch(/presetAttributify\(/);
     });
@@ -173,11 +173,11 @@ isolates installs.
 - [ ] **Step 4 — Create `uno.config.ts`**
 
 ```ts
-import { defineConfig, presetAttributify, presetIcons, presetUno } from 'unocss';
+import { defineConfig, presetAttributify, presetIcons, presetWind3 } from 'unocss';
 
 export default defineConfig({
     presets: [
-        presetUno({ preflight: false }),
+        presetWind3({ preflight: false }),
         presetAttributify(),
         presetIcons({ scale: 1.0, warn: false }),
     ],

@@ -4,7 +4,7 @@ type: implementation-plan
 status: active
 parent: "[[docs/work/polish/index|polish]]"
 created: 2026-05-11T23:55:00
-updated: 2026-05-11T08:03:21
+updated: 2026-05-11T09:28:16
 tags:
   - agent/plan
   - initiative/polish
@@ -71,12 +71,20 @@ glossary_candidates:
 - Earlier completed slice:
   [[docs/work/polish/plans/2026-05-11-ui-modernization-vertical-threads/02-thread-engine-views#task-23--mirror-class-arbitration-across-grid-cards-tree|T2.3 mirror class arbitration across grid, cards, tree]].
 - Latest verification:
+  T4 continuation added missing component gates and the immutable
+  `buildMoveBlockOps()` helper. Focused T4 unit passed 8 files / 52 tests;
+  focused T4 component passed 5 files / 9 tests; full unit passed 117 files /
+  723 tests; full component passed 61 files / 290 tests; `pnpm run
+  lint:full`, `pnpm run check`, `pnpm run build:plugin`, and `git diff
+  --check` passed.
+- Previous verification:
   T3.8 RED/GREEN completed: pure `serviceDiff` and immutable `serviceQueue`
   snapshot tests failed 3/38 red, then passed. Full unit passed 116 files /
   722 tests; full component passed 56 files / 281 tests; `pnpm run check`,
-  `pnpm run build:plugin`, and `git diff --check` passed. `lint:full` has no
-  `no-mutable-vfs` failures but still exits 1 on unrelated T4/config lint
-  residuals listed in the T3 source log.
+  `pnpm run build:plugin`, and `git diff --check` passed. Follow-up lint
+  stabilization cleared the unrelated T4/config residuals: `lint:full` now
+  passes, `uno.config.ts` is included in the ESLint project service, and
+  UnoCSS uses non-deprecated `presetWind3` with preflight disabled.
 - Previous verification:
   T2.1/T2.2 RED/GREEN completed: `serviceTextMeasurePretext` failed 4/4 on
   missing `measureRowHeight()`, `viewNodeTableHeightmap` failed 1/2 on fixed

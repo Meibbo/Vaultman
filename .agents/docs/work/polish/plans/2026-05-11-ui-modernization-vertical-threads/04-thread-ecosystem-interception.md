@@ -4,7 +4,7 @@ type: implementation-plan-shard
 status: draft
 parent: "[[docs/work/polish/plans/2026-05-11-ui-modernization-vertical-threads/index|ui-modernization-vertical-threads]]"
 created: 2026-05-11T23:55:00
-updated: 2026-05-11T23:55:00
+updated: 2026-05-11T09:28:16
 tags:
   - agent/plan
   - thread/ecosystem-interception
@@ -15,7 +15,7 @@ tags:
   - dnd-kit
   - dashboard
 created_by: opus
-updated_by: opus
+updated_by: codex
 ---
 
 # T4 Ecosystem & Interception
@@ -93,6 +93,48 @@ theme service core file (T1).
   VFS chain.
 - **T4 task 4.8 (3-Column Dashboard)** consumes `serviceLayout.resolveDashboardEnabled`
   which already exists per the chameleon plan.
+
+---
+
+## 2026-05-11 T4 Continuation Log
+
+- Continued in Claude worktree
+  `C:\Users\vic_A\Desktop\vaultman\.claude\worktrees\sleepy-engelbart-9e6dc6`
+  on branch `claude/sleepy-engelbart-9e6dc6`.
+- Baseline audit found several T4 assets already present in the current code:
+  `bits-ui@^2.18.1`, `servicePortalResolver.ts`,
+  `serviceFoulDetection.svelte.ts`, `serviceNativeClickIntercept.ts`,
+  `serviceDndAliasAware.ts`, `serviceAddonsIsland.svelte.ts`,
+  `vmDialog.svelte`, `vmPopover.svelte`, `Dashboard3Column.svelte`, and
+  `AddonsMarkdownPane.svelte`.
+- Added the missing component gate files requested by this thread:
+  `test/component/vmDialogPortal.test.ts`,
+  `test/component/vmPopoverIsland.test.ts`,
+  `test/component/nativeClickInterceptor.test.ts`,
+  `test/component/dashboard3Column.test.ts`, and
+  `test/component/addonsMarkdownPane.test.ts`.
+- The first component RED exposed an incorrect test assumption, not a product
+  defect: Bits UI keeps the dialog node mounted and moves it to
+  `data-state="closed"` after close. The test now asserts that state.
+- Added `test/unit/services/serviceDndMoveBlock.test.ts` and implemented
+  `buildMoveBlockOps()` in `serviceDnd.ts`. The helper returns two immutable
+  ops: source extraction removes the block line, and target insertion appends
+  the extracted line. This closes the helper contract in task 4.6, but queue
+  integration for staging a real two-file block move remains a follow-up.
+- Focused T4 unit gate passed: 8 files / 52 tests.
+- Focused T4 component gate passed: 5 files / 9 tests.
+- Full unit passed: 117 files / 723 tests.
+- Full component passed: 61 files / 290 tests.
+- `pnpm run lint:full`, `pnpm run check`, `pnpm run build:plugin`, and
+  `git diff --check` passed. `git diff --check` emitted CRLF warnings only.
+- Live Obsidian smoke passed for plugin reload, `vaultman:open`, and
+  `dev:errors`. Dialog and dashboard DOM evals returned `false` because no
+  dialog was open and the dashboard surface was not active in the live view.
+- Still open for future T4 work: wire native click interception through the
+  frame/settings surface if that setting is still desired, migrate the actual
+  Find/Replace island to `vmPopover`, integrate dashboard/add-ons into
+  `frameVaultman.svelte`, stage real adopted-block moves into queue chains,
+  and implement Quick Switcher plus FAB orbiting-ink polish.
 
 ---
 

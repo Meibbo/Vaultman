@@ -5,7 +5,7 @@ status: active
 parent: "[[docs/work/pkm-ai/index|pkm-ai]]"
 archive_source: "docs/archive/pkm-ai/active-docs/2026-05-11T080321-current-status.md"
 created: 2026-05-04T01:36:20
-updated: 2026-05-11T08:03:21
+updated: 2026-05-11T09:28:16
 tags:
   - agent/current
 created_by: dec
@@ -28,7 +28,7 @@ Older route history remains in
 
 ## Current Route
 
-- Latest user request: continue Claude worktree thread 03.
+- Latest user request: continue Claude worktree thread 04.
 - Worktree:
   `C:\Users\vic_A\Desktop\vaultman\.claude\worktrees\sleepy-engelbart-9e6dc6`
   on branch `claude/sleepy-engelbart-9e6dc6`.
@@ -36,6 +36,8 @@ Older route history remains in
 - Active plan:
   [[docs/work/polish/plans/2026-05-11-ui-modernization-vertical-threads/index|UI Modernization Vertical Threads]].
 - Latest implemented slice:
+  [[docs/work/polish/plans/2026-05-11-ui-modernization-vertical-threads/04-thread-ecosystem-interception#2026-05-11-t4-continuation-log|T4 component gates and move-block helper]].
+- Previous implemented slice:
   [[docs/work/polish/plans/2026-05-11-ui-modernization-vertical-threads/03-thread-vfs-review#task-38--cutover-gate-remove-the-mutable-path|T3.8 immutable VFS cutover]].
 - T3.8 source record says `StagedOp.apply` is pure, `serviceQueue`
   replaces/replays VFS snapshots instead of mutating them, `serviceDiff`
@@ -54,27 +56,40 @@ Older route history remains in
 
 - T3.8 RED tests failed 3/38 as expected, then passed after the immutable
   queue/diff implementation.
+- T4 continuation added missing component gate files for dialog, popover,
+  native click interception, dashboard, and add-ons markdown pane.
+- T4 continuation added `buildMoveBlockOps()` and its RED/GREEN unit test.
+- Focused T4 unit gate passed: 8 files / 52 tests.
+- Focused T4 component gate passed: 5 files / 9 tests.
+- Post-T3 lint continuation cleared all remaining `lint:full` failures:
+  removed unnecessary assertions in DnD/foul/click services, added
+  `uno.config.ts` to the ESLint project-service default set, and migrated
+  UnoCSS from deprecated `presetUno` to `presetWind3`.
+- UnoCSS preflight gate RED/GREEN passed: 1 file / 5 tests.
+- Focused T4/config unit gate passed: 4 files / 20 tests.
 - Focused queue/diff/lint unit gate passed: 10 files / 67 tests.
 - Diff Navbar component gate passed: 2 files / 7 tests.
-- Full unit passed: 116 files / 722 tests.
-- Full component passed: 56 files / 281 tests after rerunning with a longer
-  timeout; the first component run timed out at 244s.
+- Full unit passed: 117 files / 723 tests.
+- Full component passed: 61 files / 290 tests.
 - `mcp__svelte__.svelte_autofixer` returned `issues: []` and
   `suggestions: []` for `viewDiff.svelte` and `viewDiffNavbar.svelte`.
+- `mcp__svelte__.svelte_autofixer` returned `issues: []` and
+  `suggestions: []` for `serviceFoulDetection.svelte.ts`.
+- `pnpm run lint:full`: pass.
 - `pnpm run check`: pass, 0 errors / 0 warnings.
 - `pnpm run build:plugin`: pass.
-- `git diff --check`: pass with CRLF warnings only.
+- `git diff --check`: pass.
 - Live Obsidian smoke: plugin reload and `vaultman:open` passed; dev errors
-  were empty. `vaultman:open-diff` is not registered, so the Diff Navbar DOM
-  probe could not be exercised by command.
+  were empty. T4 dialog/dashboard evals returned `false` because no dialog was
+  open and the dashboard surface was not active in the live view.
 
 ## Known Residuals
 
-- `pnpm run lint:full` still exits 1 on unrelated T4/config residuals:
-  two assertions in `serviceDndSvelteAdapter.ts`, one in
-  `serviceFoulDetection.svelte.ts`, three in `serviceNativeClickIntercept.ts`,
-  and the `uno.config.ts` project-service parse error.
 - `vaultman:open-diff` is absent from the live `plugin-dev` command list.
+- T4 still has integration follow-ups: frame-level native-click wiring,
+  Find/Replace island migration to `vmPopover`, dashboard/add-ons wiring in
+  `frameVaultman.svelte`, real queue staging for adopted-block moves, Quick
+  Switcher, and FAB orbiting-ink polish.
 - `OperationQueueService.transactions` remains by design as the compatibility
   read surface until queue/diff/details readers migrate to `chains`.
 - `node .agents/tools/pkm-ai/check-doc-health.mjs` still fails on existing
@@ -83,8 +98,8 @@ Older route history remains in
 
 ## Next Action
 
-- Continue with T4-owned lint/config residuals or the next vertical-thread
-  slice from the active plan.
+- Continue with the remaining T4 integration follow-ups or the next
+  vertical-thread slice from the active plan.
 - For T3 follow-up, register or expose a real diff-open path, then rerun the
   Diff Navbar live smoke.
 - Only remove `OperationQueueService.transactions` after all current readers

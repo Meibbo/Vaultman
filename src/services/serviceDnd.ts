@@ -1,3 +1,8 @@
+import type {
+	ImmutableStagedOp,
+	ImmutableVirtualFileState,
+} from '../types/typeVfsImmutable';
+
 export type DndPhase = 'idle' | 'dragging';
 export type DndDropPosition = 'before' | 'inside' | 'after';
 export type DndOperation =
@@ -220,4 +225,50 @@ function cloneCandidate(candidate: DndCandidate): DndCandidate {
 		target: cloneTarget(candidate.target),
 		preview: { ...candidate.preview },
 	};
+}
+
+export function buildMoveBlockOps(input: {
+	fromVfs: ImmutableVirtualFileState;
+	toVfs: ImmutableVirtualFileState;
+	blockId: string;
+	blockLine: number;
+}): { fromOp: ImmutableStagedOp; toOp: ImmutableStagedOp } {
+	const extractedLine = input.fromVfs.body.split('\n')[input.blockLine];
+	if (extractedLine === undefined) {
+		throw new RangeError(`Block line ${input.blockLine} is outside ${input.fromVfs.originalPath}`);
+	}
+
+	const safeBlockId = input.blockId.replace(/\s+/g, '-');
+	return {
+		fromOp: {
+			id: `move-block-from-${safeBlockId}`,
+			kind: 'block-extract',
+			action: 'extract-block',
+			details: `-> ${input.toVfs.originalPath}`,
+			apply: (vfs) => ({
+				...vfs,
+				body: removeLine(vfs.body, input.blockLine),
+			}),
+		},
+		toOp: {
+			id: `move-block-to-${safeBlockId}`,
+			kind: 'block-insert',
+			action: 'insert-block',
+			details: `<- ${input.fromVfs.originalPath}`,
+			apply: (vfs) => ({
+				...vfs,
+				body: appendLine(vfs.body, extractedLine),
+			}),
+		},
+	};
+}
+
+function removeLine(body: string, index: number): string {
+	const lines = body.split('\n');
+	lines.splice(index, 1);
+	return lines.join('\n');
+}
+
+function appendLine(body: string, line: string): string {
+	return body.length > 0 ? `${body}\n${line}` : line;
 }

@@ -5,7 +5,7 @@ status: active
 parent: "[[docs/work/pkm-ai/index|pkm-ai]]"
 archive_source: "docs/archive/pkm-ai/active-docs/2026-05-11T080321-current-handoff.md"
 created: 2026-05-04T01:36:20
-updated: 2026-05-11T08:03:21
+updated: 2026-05-11T09:28:16
 tags:
   - agent/current
 created_by: dec
@@ -21,11 +21,13 @@ Older route history remains in
 
 ## Resume Point
 
-- Latest request handled: continue Claude worktree thread 03.
+- Latest request handled: continue Claude worktree thread 04.
 - Worktree:
   `C:\Users\vic_A\Desktop\vaultman\.claude\worktrees\sleepy-engelbart-9e6dc6`
   on branch `claude/sleepy-engelbart-9e6dc6`.
-- Source record:
+- Latest source record:
+  [[docs/work/polish/plans/2026-05-11-ui-modernization-vertical-threads/04-thread-ecosystem-interception#2026-05-11-t4-continuation-log|T4 continuation log]].
+- Previous source record:
   [[docs/work/polish/plans/2026-05-11-ui-modernization-vertical-threads/03-thread-vfs-review#task-38--cutover-gate-remove-the-mutable-path|T3.8 immutable VFS cutover]].
 - T3.8 completed the mutable VFS cutover scope:
   `typeOps` now exposes readonly pure op contracts, `serviceQueue` stages,
@@ -52,35 +54,54 @@ Older route history remains in
   filter decorations in the test fixture that asserts active-filter state.
 - Previous vertical-thread completions and verification details live in the
   archived handoff plus the active vertical thread source records.
+- T4 `buildMoveBlockOps()` is currently a pure helper contract only. Do not
+  treat real adopted-block DnD as fully wired until queue staging across the
+  source and target VFS chains is implemented and tested.
 
 ## Fresh Verification
 
 - RED gate: `serviceDiff` and `serviceQueue` pure/immutable tests failed 3/38,
   then passed.
+- T4 RED/GREEN: `serviceDndMoveBlock.test.ts` failed because
+  `buildMoveBlockOps` was missing, then passed after adding the immutable
+  helper.
+- T4 component gate: 5 files / 9 tests passed for `vmDialog`, `vmPopover`,
+  native click interception, `Dashboard3Column`, and `AddonsMarkdownPane`.
+- Focused T4 unit: 8 files / 52 tests passed.
+- Post-T3 lint continuation: removed unnecessary assertions in
+  `serviceDndSvelteAdapter.ts`, `serviceFoulDetection.svelte.ts`, and
+  `serviceNativeClickIntercept.ts`; added `uno.config.ts` to the ESLint
+  project-service default set; migrated UnoCSS config and preflight tests from
+  deprecated `presetUno` to `presetWind3`.
+- UnoCSS preflight RED/GREEN: 1 file / 5 tests passed.
+- Focused T4/config unit: 4 files / 20 tests passed.
 - Focused unit: 10 files / 67 tests passed.
 - Focused component: 2 files / 7 tests passed.
-- Full unit: 116 files / 722 tests passed.
-- Full component: first run timed out at 244s; rerun passed 56 files / 281
-  tests.
+- Full unit: 117 files / 723 tests passed.
+- Full component: 61 files / 290 tests passed.
 - Svelte autofixer: `viewDiff.svelte` and `viewDiffNavbar.svelte` both
   returned `issues: []`, `suggestions: []`.
+- Svelte autofixer: `serviceFoulDetection.svelte.ts` returned `issues: []`,
+  `suggestions: []`.
+- `pnpm run lint:full`: passed.
 - `pnpm run check`: passed with 0 errors / 0 warnings.
 - `pnpm run build:plugin`: passed.
-- `git diff --check`: passed with CRLF warnings only.
+- `git diff --check`: passed.
 - Live smoke: `obsidian vault=plugin-dev plugin:reload id=vaultman` passed,
   `obsidian vault=plugin-dev command id=vaultman:open` passed, and
-  `obsidian vault=plugin-dev dev:errors` reported no captured errors.
+  `obsidian vault=plugin-dev dev:errors` reported no captured errors. T4
+  dialog/dashboard evals returned `false` because no dialog was open and the
+  dashboard surface was not active in the live view.
 
 ## Residuals
 
-- `pnpm run lint:full` still exits 1 on unrelated T4/config lint residuals:
-  two assertions in `serviceDndSvelteAdapter.ts`, one in
-  `serviceFoulDetection.svelte.ts`, three in `serviceNativeClickIntercept.ts`,
-  and the `uno.config.ts` project-service parse error. There are zero
-  `vaultman-local/no-mutable-vfs` failures.
 - `vaultman:open-diff` is not registered in the live `plugin-dev` command list;
   the Diff Navbar DOM probe returned `false` because no command opened the diff
   view.
+- T4 integration follow-ups remain: frame-level native-click wiring,
+  Find/Replace island migration to `vmPopover`, dashboard/add-ons wiring in
+  `frameVaultman.svelte`, real adopted-block move staging into queue chains,
+  Quick Switcher, and FAB orbiting-ink polish.
 - `node .agents/tools/pkm-ai/check-doc-health.mjs` still fails on glossary,
   parent-shape, and large plan/spec line-limit residuals. Current
   status/handoff were archived and compacted here.
@@ -90,7 +111,7 @@ Older route history remains in
 
 ## Next Action
 
-- Continue with T4-owned lint/config residuals or the next vertical-thread
+- Continue with remaining T4 integration follow-ups or the next vertical-thread
   slice from
   [[docs/work/polish/plans/2026-05-11-ui-modernization-vertical-threads/index|UI Modernization Vertical Threads]].
 - For T3, register or expose a real diff-open path before rerunning the live
