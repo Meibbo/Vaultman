@@ -322,6 +322,9 @@ export const en: Record<string, string> = {
 	'settings.files_show_hidden': 'Show hidden files and folders',
 	'settings.files_show_hidden.desc':
 		'Include dot-prefixed paths such as .folder and .config in the Files explorer.',
+	'settings.files_folders_first': 'Folders first in Files explorer',
+	'settings.files_folders_first.desc':
+		'Place folder nodes before file nodes at each level in the Files explorer.',
 	'settings.operation_scope': 'Operation scope',
 	'settings.operation_scope.desc': 'Default scope for explorer operations',
 	'settings.scope.auto': 'Auto (selected > filtered > all)',

@@ -56,6 +56,7 @@
 			explorerContentSearch: src.explorerContentSearch,
 			explorerOperationScope: normalizeOperationScope(src.explorerOperationScope),
 			explorerFilesShowHidden: src.explorerFilesShowHidden,
+			explorerFilesFoldersFirst: src.explorerFilesFoldersFirst !== false,
 			nodeMouseActions: resolveNodeMouseActions(src.nodeMouseActions),
 			operationsPanelPosition: src.operationsPanelPosition,
 			basesLastUsedPath: src.basesLastUsedPath,
@@ -286,6 +287,12 @@
 		onChange={persistSettings}
 	/>
 	<p class="vm-settings-desc">{translate('settings.files_show_hidden.desc')}</p>
+	<Toggle
+		bind:checked={s.explorerFilesFoldersFirst}
+		label={translate('settings.files_folders_first')}
+		onChange={persistSettings}
+	/>
+	<p class="vm-settings-desc">{translate('settings.files_folders_first.desc')}</p>
 
 	<Dropdown
 		label={translate('settings.operation_scope')}

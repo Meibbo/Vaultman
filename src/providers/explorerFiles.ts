@@ -143,7 +143,7 @@ export class explorerFiles implements ExplorerProvider<FileMeta> {
 		);
 		const tree = PerfMeter.time(
 			'explorer.files.buildTree',
-			() => this.logic.buildFileTree(sorted),
+			() => this.logic.buildFileTree(sorted, { foldersFirst: this.foldersFirstEnabled() }),
 			'service',
 			{ files: sorted.length },
 		);
@@ -357,6 +357,10 @@ export class explorerFiles implements ExplorerProvider<FileMeta> {
 	private visibleFiles(files: TFile[]): TFile[] {
 		if (this.showHiddenFiles) return files;
 		return files.filter((file) => !hasHiddenPathSegment(file.path));
+	}
+
+	private foldersFirstEnabled(): boolean {
+		return this.plugin.settings?.explorerFilesFoldersFirst !== false;
 	}
 
 	private appendLinksToScope(sourceFiles: TFile[]): void {

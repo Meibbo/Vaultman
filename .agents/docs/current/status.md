@@ -5,7 +5,7 @@ status: active
 parent: "[[docs/work/pkm-ai/index|pkm-ai]]"
 archive_source: "docs/archive/pkm-ai/active-docs/2026-05-11T080321-current-status.md"
 created: 2026-05-04T01:36:20
-updated: 2026-05-11T09:28:16
+updated: 2026-05-11T19:56:34
 tags:
   - agent/current
 created_by: dec
@@ -25,16 +25,36 @@ Older route history remains in
 - Active detail belongs in source records, not this index.
 - Do not revert or overwrite unrelated user/agent changes.
 - Timestamps use `YYYY-MM-DDTHH:mm:ss`; `parent` uses one wikilink.
+- Obsidian CLI runtime tests and live smokes target `plugin-dev` explicitly;
+  do not let the CLI default to the focused repository vault `vaultman`.
 
 ## Current Route
 
-- Latest user request: continue Claude worktree thread 04.
-- Worktree:
+- Latest user request: proceed with Wave 5.
+- Active initiative: [[docs/work/hardening/index|Hardening]].
+- Active spec:
+  [[docs/work/hardening/specs/2026-05-11-explorer-data-plane-structural-taxonomy/index|Explorer Data Plane Structural Taxonomy]].
+- Latest source records:
+  [[docs/work/hardening/specs/2026-05-11-explorer-data-plane-structural-taxonomy/18-wave-5-plan-comparison-reconciliation|Wave 5 plan comparison and reconciliation]]
+  through
+  [[docs/work/hardening/specs/2026-05-11-explorer-data-plane-structural-taxonomy/19-wave-5-issue-prd-candidates|Wave 5 issue and PRD candidates]].
+- Wave 2 status: vertical specs captured in shards 06 through 12.
+- Wave 3 status: Notebook Navigator research was revalidated against Wave 2.
+- Wave 4 status: implementation specs drafted in shards 13 through 17. No code
+  or tracker issues were created.
+- Wave 5 status: plan/PRD comparison and issue candidates drafted in shards 18
+  and 19. Publication is blocked on user approval and tracker target.
+- Previous route before this request: Claude worktree thread 04.
+- Previous worktree:
   `C:\Users\vic_A\Desktop\vaultman\.claude\worktrees\sleepy-engelbart-9e6dc6`
   on branch `claude/sleepy-engelbart-9e6dc6`.
-- Active initiative: [[docs/work/polish/index|Polish]].
-- Active plan:
+- Previous active initiative: [[docs/work/polish/index|Polish]].
+- Previous active plan:
   [[docs/work/polish/plans/2026-05-11-ui-modernization-vertical-threads/index|UI Modernization Vertical Threads]].
+- Parallel T4 dispatch router:
+  [[docs/work/polish/plans/2026-05-11-ui-modernization-vertical-threads/05-t4-parallel-agent-dispatch|T4 Parallel Agent Dispatch]].
+  If the user says `ola 1 agente N` or `ola 2 agente 1`, route by that
+  document.
 - Latest implemented slice:
   [[docs/work/polish/plans/2026-05-11-ui-modernization-vertical-threads/04-thread-ecosystem-interception#2026-05-11-t4-continuation-log|T4 component gates and move-block helper]].
 - Previous implemented slice:
@@ -54,6 +74,13 @@ Older route history remains in
 
 ## Verification Snapshot
 
+- Explorer Wave 5 docs: all taxonomy shards are under 200 lines, current
+  `status` is 135 lines, current `handoff` is 144 lines, red-flag scan
+  found no matches, trailing space/tab scan found no matches, and targeted
+  `git diff --check` exited 0 with only current-doc CRLF conversion warnings.
+- `node .agents/tools/pkm-ai/check-doc-health.mjs` still fails 11 existing
+  residuals: glossary warnings, parent-shape issues, and large plan/spec line
+  limits outside the new Wave 2 shards.
 - T3.8 RED tests failed 3/38 as expected, then passed after the immutable
   queue/diff implementation.
 - T4 continuation added missing component gate files for dialog, popover,
@@ -98,6 +125,8 @@ Older route history remains in
 
 ## Next Action
 
+- Current hardening route: ask the user to approve or edit the Wave 5 issue
+  candidates, then confirm tracker target before publication.
 - Continue with the remaining T4 integration follow-ups or the next
   vertical-thread slice from the active plan.
 - For T3 follow-up, register or expose a real diff-open path, then rerun the

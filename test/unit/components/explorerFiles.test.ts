@@ -198,6 +198,61 @@ describe('explorerFiles interactions', () => {
 		expect(explorer.getTree().some((node) => node.id === 'folder:.vaultman')).toBe(true);
 	});
 
+	it('places folders before root files by default when building the Files tree', () => {
+		const { plugin } = makePlugin();
+		const rootA = mockTFile('alpha.md');
+		const rootB = mockTFile('beta.md');
+		const nested = mockTFile('Projects/project.md');
+		const nestedChild = mockTFile('Projects/zz/deep.md');
+		(plugin.app.vault as unknown as { getFiles: () => TFile[] }).getFiles = () => [
+			rootA,
+			rootB,
+			nested,
+			nestedChild,
+		];
+		(plugin.filterService as unknown as { activeFilter: { children: unknown[] } }).activeFilter = {
+			children: [],
+		};
+		const explorer = new explorerFiles(plugin);
+
+		expect(explorer.getTree().map((node) => node.id)).toEqual([
+			'folder:Projects',
+			rootA.path,
+			rootB.path,
+		]);
+		expect(
+			explorer
+				.getTree()
+				.find((node) => node.id === 'folder:Projects')
+				?.children?.map((node) => node.id),
+		).toEqual(['folder:Projects/zz', nested.path]);
+	});
+
+	it('keeps root files before later folders when folders-first is disabled', () => {
+		const { plugin } = makePlugin();
+		(
+			plugin.settings as unknown as { explorerFilesFoldersFirst: boolean }
+		).explorerFilesFoldersFirst = false;
+		const rootA = mockTFile('alpha.md');
+		const rootB = mockTFile('beta.md');
+		const nested = mockTFile('Projects/project.md');
+		(plugin.app.vault as unknown as { getFiles: () => TFile[] }).getFiles = () => [
+			rootA,
+			rootB,
+			nested,
+		];
+		(plugin.filterService as unknown as { activeFilter: { children: unknown[] } }).activeFilter = {
+			children: [],
+		};
+		const explorer = new explorerFiles(plugin);
+
+		expect(explorer.getTree().map((node) => node.id)).toEqual([
+			rootA.path,
+			rootB.path,
+			'folder:Projects',
+		]);
+	});
+
 	it('creates missing ancestor folders so nested folder nodes follow the file path', () => {
 		const { plugin } = makePlugin();
 		const nested = mockTFile('Root/Child/file.md');

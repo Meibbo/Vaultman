@@ -15,7 +15,10 @@ export class FilesLogic {
 	}
 
 	/** Returns folder-hierarchy tree from filteredFiles */
-	buildFileTree(filteredFiles: TFile[]): TreeNode<FileMeta>[] {
+	buildFileTree(
+		filteredFiles: TFile[],
+		options: { foldersFirst?: boolean } = {},
+	): TreeNode<FileMeta>[] {
 		const root: TreeNode<FileMeta>[] = [];
 		const folderMap = new Map<string, TreeNode<FileMeta>>();
 
@@ -64,6 +67,7 @@ export class FilesLogic {
 
 			(parentFolder?.children ?? root).push(fileNode);
 		}
+		if (options.foldersFirst) orderFoldersFirst(root);
 		return root;
 	}
 
@@ -91,5 +95,12 @@ export class FilesLogic {
 				(!folderQuery || file.path.toLowerCase().includes(folderQuery))
 			);
 		});
+	}
+}
+
+function orderFoldersFirst(nodes: TreeNode<FileMeta>[]): void {
+	nodes.sort((a, b) => Number(b.meta.isFolder) - Number(a.meta.isFolder));
+	for (const node of nodes) {
+		if (node.children?.length) orderFoldersFirst(node.children);
 	}
 }

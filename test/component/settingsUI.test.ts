@@ -292,6 +292,31 @@ describe('SettingsUI mount (regression: effect_update_depth_exceeded)', () => {
 		expect(plugin.saveSettings).toHaveBeenCalledTimes(3);
 	});
 
+	it('persists the Files explorer folders-first toggle', () => {
+		const plugin = makeFakePlugin();
+
+		app = mount(SettingsUI as unknown as Component<{ plugin: iVaultmanPlugin }>, {
+			target,
+			props: { plugin: plugin as unknown as iVaultmanPlugin },
+		});
+		flushSync();
+
+		const foldersFirst = [...target.querySelectorAll<HTMLInputElement>('input[type="checkbox"]')].find(
+			(candidate) => candidate.closest('label')?.textContent?.includes('Folders first in Files'),
+		);
+
+		expect(foldersFirst).toBeTruthy();
+		expect(foldersFirst!.checked).toBe(true);
+		expect(plugin.saveSettings).not.toHaveBeenCalled();
+
+		foldersFirst!.checked = false;
+		foldersFirst!.dispatchEvent(new Event('change', { bubbles: true }));
+		flushSync();
+
+		expect(plugin.settings.explorerFilesFoldersFirst).toBe(false);
+		expect(plugin.saveSettings).toHaveBeenCalledOnce();
+	});
+
 	it('does not render the detachable leaf toggle because it belongs in PageTools Layout', async () => {
 		const plugin = await makeFakePluginWithLeafDetach();
 

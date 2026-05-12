@@ -4,7 +4,7 @@ type: implementation-plan
 status: draft
 parent: "[[docs/work/polish/specs/2026-05-11-detachable-layout-workspace-tabs/index|detachable layout workspace tabs]]"
 created: 2026-05-11T00:00:00
-updated: 2026-05-11T22:36:00
+updated: 2026-05-11T11:11:26
 tags:
   - agent/plan
   - initiative/polish
@@ -55,6 +55,13 @@ updated_by: codex
 - Run Svelte autofixer for edited `.svelte` files before final verification.
 
 ## 2026-05-11 Live Smoke And Data-Type Fix
+
+> [!important] Current test-vault correction
+> Future Obsidian CLI runtime tests and live smokes must target
+> `plugin-dev` explicitly with `obsidian vault=plugin-dev ...`. This historical
+> smoke used the repository vault because the CLI defaulted to the most recently
+> focused vault; do not repeat that pattern unless the user explicitly asks to
+> test against `vaultman`.
 
 - Live Obsidian smoke ran against vault `C:\Users\vic_A\Desktop\vaultman` with
   Vaultman reloaded as `1.0.0-rc.2`.

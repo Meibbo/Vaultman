@@ -31,6 +31,7 @@ quality work before it reaches `main`.
 
 - [[docs/work/hardening/specs/2026-05-04-explorer-view-service/index|Explorer view service]]
 - [[docs/work/hardening/specs/2026-05-11-explorer-data-plane-transition/index|Explorer data plane transition]]
+- [[docs/work/hardening/specs/2026-05-11-explorer-data-plane-structural-taxonomy/index|Explorer data plane structural taxonomy]]
 - [[docs/work/hardening/specs/2026-05-05-bases-import-choose-mode/index|Bases import choose mode]]
 - [[docs/work/hardening/specs/2026-05-05-performance-diagnosis-loop/index|Performance diagnosis loop]]
 - [[docs/work/hardening/specs/2026-05-06-user-facing-recovery-wave-a/index|User-facing recovery wave A]]

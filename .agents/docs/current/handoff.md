@@ -5,7 +5,7 @@ status: active
 parent: "[[docs/work/pkm-ai/index|pkm-ai]]"
 archive_source: "docs/archive/pkm-ai/active-docs/2026-05-11T080321-current-handoff.md"
 created: 2026-05-04T01:36:20
-updated: 2026-05-11T09:28:16
+updated: 2026-05-11T19:56:34
 tags:
   - agent/current
 created_by: dec
@@ -21,12 +21,24 @@ Older route history remains in
 
 ## Resume Point
 
-- Latest request handled: continue Claude worktree thread 04.
-- Worktree:
+- Latest request handled: proceed with Wave 5.
+- Latest source records:
+  [[docs/work/hardening/specs/2026-05-11-explorer-data-plane-structural-taxonomy/18-wave-5-plan-comparison-reconciliation|Wave 5 plan comparison and reconciliation]]
+  through
+  [[docs/work/hardening/specs/2026-05-11-explorer-data-plane-structural-taxonomy/19-wave-5-issue-prd-candidates|Wave 5 issue and PRD candidates]].
+- Current hardening status: Wave 2 vertical specs are captured, Wave 3 was
+  revalidated against Wave 2, Wave 4 implementation specs are drafted, and
+  Wave 5 comparison/issue candidates are drafted. No code or tracker issues
+  were created.
+- Previous worktree route:
   `C:\Users\vic_A\Desktop\vaultman\.claude\worktrees\sleepy-engelbart-9e6dc6`
   on branch `claude/sleepy-engelbart-9e6dc6`.
-- Latest source record:
+- Previous polish source record:
   [[docs/work/polish/plans/2026-05-11-ui-modernization-vertical-threads/04-thread-ecosystem-interception#2026-05-11-t4-continuation-log|T4 continuation log]].
+- Parallel dispatch router:
+  [[docs/work/polish/plans/2026-05-11-ui-modernization-vertical-threads/05-t4-parallel-agent-dispatch|T4 Parallel Agent Dispatch]].
+  Fresh agents should map `ola 1 agente N` and `ola 2 agente 1` through
+  that document.
 - Previous source record:
   [[docs/work/polish/plans/2026-05-11-ui-modernization-vertical-threads/03-thread-vfs-review#task-38--cutover-gate-remove-the-mutable-path|T3.8 immutable VFS cutover]].
 - T3.8 completed the mutable VFS cutover scope:
@@ -57,9 +69,19 @@ Older route history remains in
 - T4 `buildMoveBlockOps()` is currently a pure helper contract only. Do not
   treat real adopted-block DnD as fully wired until queue staging across the
   source and target VFS chains is implemented and tested.
+- Obsidian CLI runtime tests and live smokes must pass `vault=plugin-dev`.
+  Never rely on the most recently focused vault for tests; the repository vault
+  `vaultman` is not the smoke target unless the user explicitly asks.
 
 ## Fresh Verification
 
+- Explorer Wave 5 docs: all taxonomy shards are under 200 lines, current
+  `status` is 135 lines, current `handoff` is 144 lines, red-flag scan
+  found no matches, trailing space/tab scan found no matches, and targeted
+  `git diff --check` exited 0 with only current-doc CRLF conversion warnings.
+- `node .agents/tools/pkm-ai/check-doc-health.mjs` still fails 11 existing
+  residuals: glossary warnings, parent-shape issues, and large plan/spec line
+  limits outside the new Wave 2 shards.
 - RED gate: `serviceDiff` and `serviceQueue` pure/immutable tests failed 3/38,
   then passed.
 - T4 RED/GREEN: `serviceDndMoveBlock.test.ts` failed because
@@ -111,6 +133,8 @@ Older route history remains in
 
 ## Next Action
 
+- Current hardening route: ask the user to approve or edit the Wave 5 issue
+  candidates, then confirm tracker target before publication.
 - Continue with remaining T4 integration follow-ups or the next vertical-thread
   slice from
   [[docs/work/polish/plans/2026-05-11-ui-modernization-vertical-threads/index|UI Modernization Vertical Threads]].

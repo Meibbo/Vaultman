@@ -323,6 +323,9 @@ export const es: Record<string, string> = {
 	'settings.files_show_hidden': 'Mostrar archivos y carpetas ocultas',
 	'settings.files_show_hidden.desc':
 		'Incluye rutas que empiezan por punto, como .folder y .config, en el explorer Files.',
+	'settings.files_folders_first': 'Carpetas primero en Explorer Files',
+	'settings.files_folders_first.desc':
+		'Muestra las carpetas antes que los archivos en cada nivel del explorer Files.',
 	'settings.operation_scope': 'Alcance de operaciones',
 	'settings.operation_scope.desc': 'Alcance por defecto para operaciones del explorador',
 	'settings.scope.auto': 'Auto (seleccionados > filtrados > todos)',

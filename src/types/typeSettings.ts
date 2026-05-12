@@ -47,6 +47,8 @@ export interface VaultmanSettings {
 	explorerOperationScope: OperationScope;
 	/** Show dot-prefixed files and folders in the Files explorer. */
 	explorerFilesShowHidden: boolean;
+	/** Place folder nodes before file nodes in the Files explorer. */
+	explorerFilesFoldersFirst: boolean;
 	/** Enable manual native drag/drop for node surfaces from the sort menu. */
 	manualDndEnabled?: boolean;
 	/** Configurable mouse gesture grammar per interactive surface. */
@@ -156,6 +158,7 @@ export const DEFAULT_SETTINGS: VaultmanSettings = {
 	explorerContentSearch: true,
 	explorerOperationScope: 'auto',
 	explorerFilesShowHidden: false,
+	explorerFilesFoldersFirst: true,
 	manualDndEnabled: false,
 	mouseGestures: {
 		node: { primaryTiming: 'immediate', tertiary: ['alt-click', 'middle-click'] },

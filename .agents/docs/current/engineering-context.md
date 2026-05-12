@@ -4,7 +4,7 @@ type: agent-context
 status: active
 parent: "[[docs/current/status|current-status]]"
 created: 2026-05-06T07:05:00
-updated: 2026-05-07T06:39:54
+updated: 2026-05-11T11:11:26
 tags:
   - agent/current
   - agent/context
@@ -38,6 +38,12 @@ implementing Vaultman work.
   `already-fixed`.
 - Use TDD for behavior changes. Tests should cover public behavior, not private
   helper shapes.
+- Obsidian CLI runtime tests and live smokes must target `plugin-dev`
+  explicitly. Use commands such as `obsidian vault=plugin-dev plugin:reload
+  id=vaultman`, `obsidian vault=plugin-dev command id=vaultman:open`, and
+  `obsidian vault=plugin-dev dev:errors`; do not rely on the most recently
+  focused vault and do not use the repository vault `vaultman` for test smoke
+  work unless the user explicitly asks for that vault.
 - Use subagents when work can be split into independent write scopes or
   read-only explorations.
 
