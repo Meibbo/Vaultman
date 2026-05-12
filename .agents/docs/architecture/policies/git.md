@@ -4,7 +4,7 @@ type: policy
 status: active
 parent: "[[docs/work/pkm-ai/specs/2026-05-04-orchestration-refresh/index|pkm-ai]]"
 created: 2026-05-04T01:36:20
-updated: 2026-05-04T01:36:20
+updated: 2026-05-12T00:00:00
 tags:
   - agent/policy
 ---
@@ -15,7 +15,10 @@ tags:
 
 - `main` must contain zero AI files.
 - AI files may be tracked on agent branches such as `hardening` or `dev`.
-- Do not commit, tag, push, merge, or force-push unless explicitly asked.
+- Agents may create local commits for completed, verified work when a commit is
+  the natural handoff unit.
+- Do not tag, push, merge, force-push, rewrite history, or commit unrelated
+  user changes unless explicitly asked.
 - Do not revert or overwrite changes you did not make.
 - Before release or merge work, confirm how AI files will be excluded from `main`.
 

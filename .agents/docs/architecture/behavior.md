@@ -4,7 +4,7 @@ type: architecture
 status: active
 parent: "[[docs/work/pkm-ai/specs/2026-05-04-orchestration-refresh/index|pkm-ai]]"
 created: 2026-05-04T01:36:20
-updated: 2026-05-06T19:25:53
+updated: 2026-05-12T00:00:00
 tags:
   - agent/architecture
 ---
@@ -34,7 +34,10 @@ Operational defaults:
   operation faster, safer, or easier to verify.
 - Use metrics as evidence for maintenance claims instead of saying process rules
   were applied without a recorded trace.
-- Do not commit unless the user asks.
+- Agents may create local commits for completed, verified work when a commit is
+  the natural handoff unit.
+- Do not push, tag, merge, force-push, rewrite history, or commit unrelated
+  user changes unless explicitly asked.
 - Do not revert other agents' or user changes.
 - Do not put AI files on `main`.
 - Do not invent current APIs; verify unstable facts first.

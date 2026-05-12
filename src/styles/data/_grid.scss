@@ -535,6 +535,14 @@ body.vm-node-borders-off {
 	margin-top: var(--vm-node-grid-gap, 8px);
 }
 
+.vm-node-grid-fields {
+	min-width: 0;
+	display: flex;
+	flex-direction: column;
+	gap: 2px;
+	overflow: hidden;
+}
+
 .vm-node-grid-label {
 	min-width: 0;
 	padding: 0;
@@ -559,6 +567,16 @@ body.vm-node-borders-off {
 
 .vm-node-grid-label-prefix {
 	color: $vm-text-faint;
+}
+
+.vm-node-grid-field {
+	min-width: 0;
+	color: $vm-text-muted;
+	font-size: var(--font-ui-smaller);
+	line-height: 1.15;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
 }
 
 @media (prefers-reduced-motion: reduce) {

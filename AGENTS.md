@@ -70,7 +70,10 @@ If your remaining context appears below 20%, warn the user and suggest switching
 - Do not put AI files on `main`.
 - AI docs live on branches such as `hardening` or `dev`.
 - Do not revert or overwrite changes you did not make.
-- Do not commit unless the user explicitly asks.
+- Agents may create local commits for completed, verified work when a commit is
+  the natural handoff unit.
+- Do not push, tag, merge, force-push, rewrite history, or commit unrelated
+  user changes unless explicitly asked.
 - Before merge/release work, confirm how AI files will be excluded from `main`.
 
 ## Project Rules

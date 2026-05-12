@@ -5,7 +5,7 @@ status: active
 parent: "[[docs/work/pkm-ai/index|pkm-ai]]"
 archive_source: "docs/archive/pkm-ai/active-docs/2026-05-11T080321-current-status.md"
 created: 2026-05-04T01:36:20
-updated: 2026-05-11T20:55:00
+updated: 2026-05-11T22:10:13
 tags:
   - agent/current
 created_by: dec
@@ -30,7 +30,8 @@ Older route history remains in
 
 ## Current Route
 
-- Latest user request: publish the Explorer data-plane issues locally.
+- Latest user request: create a handoff for Claude to run Wave A/B planning
+  with subagents before Codex handles Wave C implementation.
 - Active initiative: [[docs/work/hardening/index|Hardening]].
 - Active spec:
   [[docs/work/hardening/specs/2026-05-11-explorer-data-plane-structural-taxonomy/index|Explorer Data Plane Structural Taxonomy]].
@@ -48,6 +49,8 @@ Older route history remains in
   and 19. Candidate issue 7 now covers the Explorer media cache database.
   Local Markdown issues are published at
   [[docs/work/hardening/issues/explorer-data-plane/index|Explorer data plane local issues]].
+- Next planning handoff:
+  [[docs/work/hardening/plans/2026-05-11-explorer-data-plane-transition/01-wave-a-b-claude-handoff|Wave A/B Claude handoff]].
 - Previous route before this request: Claude worktree thread 04.
 - Previous worktree:
   `C:\Users\vic_A\Desktop\vaultman\.claude\worktrees\sleepy-engelbart-9e6dc6`
@@ -78,10 +81,10 @@ Older route history remains in
 
 ## Verification Snapshot
 
-- Explorer local issue publication: 11 Markdown files created under
-  `docs/work/hardening/issues/explorer-data-plane/`, issue files are 50-76
-  lines, trailing whitespace scan found no matches, and targeted
-  `git diff --check` exited 0 with only CRLF conversion warnings.
+- Explorer Wave A/B handoff: plan index and Claude handoff were created under
+  `docs/work/hardening/plans/2026-05-11-explorer-data-plane-transition/`;
+  the handoff is 199 lines, trailing whitespace scan found no matches, and
+  targeted `git diff --check` exited 0 with only CRLF conversion warnings.
 - `node .agents/tools/pkm-ai/check-doc-health.mjs` still fails 11 existing
   residuals: glossary warnings, parent-shape issues, and large plan/spec line
   limits outside the new Wave 2 shards.
@@ -131,7 +134,8 @@ Older route history remains in
 
 - Current hardening route: triage or execute
   [[docs/work/hardening/issues/explorer-data-plane/001-approve-issue-set-and-supersession-notes|EDP-001]],
-  then move eligible AFK issues from `needs-triage` to `ready-for-agent`.
+  then hand off Wave A/B to Claude using
+  [[docs/work/hardening/plans/2026-05-11-explorer-data-plane-transition/01-wave-a-b-claude-handoff|Wave A/B Claude handoff]].
 - Continue with the remaining T4 integration follow-ups or the next
   vertical-thread slice from the active plan.
 - For T3 follow-up, register or expose a real diff-open path, then rerun the

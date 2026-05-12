@@ -65,6 +65,7 @@
 		mouseGestureConfig?: MouseGestureConfig;
 		measure?: TableMeasureService;
 		themeService?: ThemeService;
+		visibleFields?: readonly string[];
 		columnWidth?: number;
 		icon: (node: HTMLElement, name: string) => { update(n: string): void };
 	}
@@ -88,6 +89,7 @@
 		mouseGestureConfig,
 		measure = createNodeRowMeasureService(),
 		themeService = undefined,
+		visibleFields = undefined,
 		columnWidth = undefined,
 		icon,
 	}: Props<TNode> = $props();
@@ -107,6 +109,7 @@
 		mergeMouseGestureConfig(NODE_MOUSE_GESTURE_CONFIG, mouseGestureConfig),
 	);
 	const useNativeDom = $derived(themeService?.useNativeDom ?? false);
+	const showRowIcon = $derived(!visibleFields || visibleFields.includes('icon'));
 
 	$effect(() => () => mouse.cancelAll());
 
@@ -634,7 +637,7 @@
 							data-vm-table-cell={dataCellId}
 						>
 							{#if column.id === 'label'}
-								{#if row.icon}
+								{#if showRowIcon && row.icon}
 									<span class="vm-node-table-icon" use:icon={row.icon}></span>
 								{/if}
 								<span

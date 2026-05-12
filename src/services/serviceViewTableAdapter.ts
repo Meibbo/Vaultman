@@ -9,6 +9,11 @@ import type { NodeBase } from '../types/typeContracts';
 import type { TreeNode } from '../types/typeNode';
 import type { NodeSelectionSnapshot } from '../types/typeSelection';
 import type { ViewCell, ViewColumn, ViewLayers, ViewRow } from '../types/typeViews';
+import {
+	fieldDefinitionsFor,
+	nodeFieldText,
+	type NodeFieldDefinition,
+} from './serviceNodeFieldVisibility';
 
 export const DEFAULT_NODE_TABLE_COLUMNS: readonly ViewColumn<TreeNode>[] = [
 	{ id: 'label', label: 'Name', icon: 'lucide-text', sortable: true, minWidth: 180 },
@@ -104,7 +109,11 @@ export type NodeTableRow<TNode extends NodeBase = NodeBase> = ViewRow<TNode>;
 
 export function nodeTableColumnsForProvider<TMeta>(
 	providerId: string,
+	visibleFields?: readonly string[],
 ): ViewColumn<TreeNode<TMeta>>[] {
+	if (visibleFields) {
+		return nodeFieldColumnsForProvider<TMeta>(providerId, visibleFields);
+	}
 	const columns =
 		providerId === 'props'
 			? PROP_NODE_TABLE_COLUMNS
@@ -116,6 +125,93 @@ export function nodeTableColumnsForProvider<TMeta>(
 						? CONTENT_NODE_TABLE_COLUMNS
 						: DEFAULT_NODE_TABLE_COLUMNS;
 	return [...columns] as ViewColumn<TreeNode<TMeta>>[];
+}
+
+function nodeFieldColumnsForProvider<TMeta>(
+	providerId: string,
+	visibleFields: readonly string[],
+): ViewColumn<TreeNode<TMeta>>[] {
+	const definitions = new Map(fieldDefinitionsFor(providerId, 'table').map((field) => [field.id, field]));
+	const columns: ViewColumn<TreeNode<TMeta>>[] = [];
+	for (const fieldId of visibleFields) {
+		const definition = definitions.get(fieldId as NodeFieldDefinition['id']);
+		if (!definition || definition.id === 'icon') continue;
+		columns.push(nodeFieldColumnForProvider(providerId, definition));
+	}
+	return columns.length > 0 ? columns : nodeTableColumnsForProvider(providerId);
+}
+
+function nodeFieldColumnForProvider<TMeta>(
+	providerId: string,
+	field: NodeFieldDefinition,
+): ViewColumn<TreeNode<TMeta>> {
+	const id = tableColumnIdForField(providerId, field.id);
+	return {
+		id,
+		label: tableColumnLabelForField(providerId, field.id),
+		icon: tableColumnIconForField(field.id),
+		sortable: true,
+		minWidth: tableColumnMinWidthForField(field.id),
+		getValue: (node) => nodeFieldValueForTable(providerId, node, field.id),
+	};
+}
+
+function tableColumnIdForField(providerId: string, fieldId: string): string {
+	if (fieldId === 'text' || fieldId === 'name') return 'label';
+	if (providerId === 'tags' && fieldId === 'nested') return 'tagPath';
+	if (providerId === 'content' && fieldId === 'path') return 'filePath';
+	if (fieldId === 'files') return 'count';
+	return fieldId;
+}
+
+function tableColumnLabelForField(providerId: string, fieldId: string): string {
+	if (fieldId === 'text') {
+		if (providerId === 'content') return 'Match';
+		if (providerId === 'tags') return 'Tag';
+		return 'Name';
+	}
+	if (fieldId === 'name') return providerId === 'tags' ? 'Tag' : 'Name';
+	if (fieldId === 'files') return 'Files';
+	if (fieldId === 'nested') return 'Path';
+	if (fieldId === 'ext') return 'Ext';
+	if (fieldId === 'date') return 'Date';
+	if (fieldId === 'tags') return 'Tags';
+	if (fieldId === 'path') return providerId === 'content' ? 'File' : 'Path';
+	if (fieldId === 'size') return 'Size';
+	if (fieldId === 'type') return 'Type';
+	if (fieldId === 'values') return 'Values';
+	if (fieldId === 'count') return 'Count';
+	return fieldId;
+}
+
+function tableColumnIconForField(fieldId: string): string {
+	if (fieldId === 'text' || fieldId === 'name') return 'lucide-text';
+	if (fieldId === 'files' || fieldId === 'count') return 'lucide-hash';
+	if (fieldId === 'nested' || fieldId === 'path') return 'lucide-route';
+	if (fieldId === 'date') return 'lucide-calendar';
+	if (fieldId === 'tags') return 'lucide-tags';
+	if (fieldId === 'size') return 'lucide-hard-drive';
+	if (fieldId === 'type') return 'lucide-braces';
+	if (fieldId === 'values') return 'lucide-list';
+	if (fieldId === 'ext') return 'lucide-file-type';
+	return 'lucide-info';
+}
+
+function tableColumnMinWidthForField(fieldId: string): number {
+	if (fieldId === 'text' || fieldId === 'name') return 180;
+	if (fieldId === 'path' || fieldId === 'nested') return 220;
+	if (fieldId === 'date' || fieldId === 'tags') return 128;
+	if (fieldId === 'values') return 160;
+	return 88;
+}
+
+function nodeFieldValueForTable<TMeta>(
+	providerId: string,
+	node: TreeNode<TMeta>,
+	fieldId: string,
+): unknown {
+	if (fieldId === 'count' || fieldId === 'files') return node.countLabel ?? node.count ?? '';
+	return nodeFieldText(providerId, node, fieldId);
 }
 
 export function nodeRowsFromTree<TMeta>(

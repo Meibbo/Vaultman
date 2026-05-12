@@ -151,7 +151,7 @@
 	const cardNodes = $derived(viewMode === 'cards' ? nodes : []);
 	const markmapNodes = $derived(viewMode === 'markmap' ? nodes : []);
 	const tableRows = $derived(viewMode === 'table' ? nodeRowsFromTree(nodes) : []);
-	const tableColumns = $derived(nodeTableColumnsForProvider<TMeta>(provider.id));
+	const tableColumns = $derived(nodeTableColumnsForProvider<TMeta>(provider.id, visibleFields));
 	const visibleFieldsKey = $derived(visibleFields.join('\u0001'));
 	const emptyState = $derived.by(() => resolveEmptyState(viewMode, searchTerm, provider));
 	const fallbackItemCount = $derived(flatFiles.length + nodes.length);
@@ -1008,6 +1008,8 @@
 					{scrollTarget}
 					mouseGestureConfig={plugin.settings?.mouseGestures?.node}
 					themeService={plugin.themeService}
+					providerId={provider.id}
+					{visibleFields}
 					{icon}
 				/>
 			{/if}
@@ -1041,6 +1043,7 @@
 					hierarchyMode={gridHierarchyMode}
 					expandedIds={gridHierarchyMode === 'inline' ? gridExpandedIds : undefined}
 					providerId={provider.id}
+					{visibleFields}
 					{manualDndEnabled}
 					onManualDrop={handleManualNodeDrop}
 					onTileClick={handleNodeClick}
@@ -1125,6 +1128,7 @@
 					{scrollTarget}
 					mouseGestureConfig={plugin.settings?.mouseGestures?.node}
 					themeService={plugin.themeService}
+					{visibleFields}
 					{icon}
 				/>
 			{/if}

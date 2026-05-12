@@ -44,6 +44,7 @@ quality work before it reaches `main`.
 - [[docs/work/hardening/plans/2026-05-05-badge-bubbling-optimization/index|Badge bubbling optimization]]
 - [[docs/work/hardening/plans/2026-05-06-cmenu-queue-repair/index|CMenu queue repair implementation]]
 - [[docs/work/hardening/plans/2026-05-06-prop-value-rename-handoff/index|Prop value rename handoff implementation]]
+- [[docs/work/hardening/plans/2026-05-11-explorer-data-plane-transition/index|Explorer data plane transition plans]]
 
 ## Active Issue Sets
 

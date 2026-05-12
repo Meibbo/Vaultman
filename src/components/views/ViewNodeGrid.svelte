@@ -25,6 +25,13 @@
 		type ViewSizePresetId,
 	} from '../../services/serviceViewSize';
 	import {
+		defaultVisibleFields,
+		isNodeCountVisible,
+		isNodeIconVisible,
+		isNodeTextVisible,
+		visibleNodeFieldValues,
+	} from '../../services/serviceNodeFieldVisibility';
+	import {
 		handleNodeBadgePress,
 		nodeBadgeAriaLabel,
 		nodeBadgeIsActionable,
@@ -92,6 +99,7 @@
 		mouseGestureConfig?: MouseGestureConfig;
 		sizePresetId?: ViewSizePresetId;
 		providerId?: string;
+		visibleFields?: readonly string[];
 		manualDndEnabled?: boolean;
 		onManualDrop?: (result: DndDropResult) => void;
 		measure?: NodeRowMeasureService;
@@ -122,6 +130,7 @@
 		mouseGestureConfig,
 		sizePresetId = DEFAULT_VIEW_SIZE_PRESET,
 		providerId = 'nodes',
+		visibleFields = [],
 		manualDndEnabled = false,
 		onManualDrop,
 		measure = createNodeRowMeasureService(),
@@ -130,6 +139,12 @@
 	}: Props = $props();
 
 	const useNativeDom = $derived(themeService?.useNativeDom ?? false);
+	const effectiveVisibleFields = $derived(
+		visibleFields.length > 0 ? visibleFields : defaultVisibleFields(providerId, 'grid'),
+	);
+	const showNodeIcon = $derived(isNodeIconVisible(effectiveVisibleFields));
+	const showNodeText = $derived(isNodeTextVisible(providerId, 'grid', effectiveVisibleFields));
+	const showNodeCount = $derived(isNodeCountVisible(effectiveVisibleFields));
 
 	function hoverBadgesFor(node: TreeNode): BadgeDescriptor[] {
 		if (!activeOpsByNode) return [];
@@ -807,6 +822,8 @@
 	{@const directBadges = ownNodeBadges(node)}
 	{@const hoverBadges = hoverBadgesFor(node)}
 	{@const dndState = manualDndStateFor(node.id)}
+	{@const fieldValues = visibleNodeFieldValues(providerId, 'grid', node, effectiveVisibleFields)}
+	{@const countText = showNodeCount ? (node.countLabel ?? (node.count == null ? '' : String(node.count))) : ''}
 	<div
 		class="vm-node-grid-tile {node.cls ?? ''}"
 		class:nav-file={useNativeDom}
@@ -847,15 +864,25 @@
 				<span class="vm-node-grid-toggle-placeholder" aria-hidden="true"></span>
 			{/if}
 		{/if}
-		{#if node.icon}
+		{#if showNodeIcon && node.icon}
 			<span class="vm-node-grid-icon" use:icon={node.icon}></span>
 		{:else}
 			<span class="vm-node-grid-icon-placeholder" aria-hidden="true"></span>
 		{/if}
-		<span class="vm-node-grid-label" class:nav-file-title={useNativeDom}>
-			{#if node.labelPrefix}<span class="vm-node-grid-label-prefix">{node.labelPrefix}</span
-				>{/if}{node.label}
-		</span>
+		<div class="vm-node-grid-fields">
+			{#if showNodeText}
+				<span class="vm-node-grid-label" class:nav-file-title={useNativeDom}>
+					{#if node.labelPrefix}<span class="vm-node-grid-label-prefix">{node.labelPrefix}</span
+						>{/if}{node.label}
+				</span>
+			{/if}
+			{#if countText}
+				<span class="vm-node-grid-field" data-node-field="count">{countText}</span>
+			{/if}
+			{#each fieldValues as field (field.id)}
+				<span class="vm-node-grid-field" data-node-field={field.id}>{field.text}</span>
+			{/each}
+		</div>
 		{#if directBadges.length > 0}
 			<div class="vm-node-grid-badge-zone">
 				{#each directBadges as badge, badgeIndex (nodeBadgeKey(badge, badgeIndex))}

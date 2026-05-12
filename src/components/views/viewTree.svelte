@@ -26,6 +26,13 @@
 		type ViewSizePresetId,
 	} from '../../services/serviceViewSize';
 	import {
+		defaultVisibleFields,
+		isNodeCountVisible,
+		isNodeIconVisible,
+		isNodeTextVisible,
+		visibleNodeFieldValues,
+	} from '../../services/serviceNodeFieldVisibility';
+	import {
 		createRafElementRectObserver,
 		fallbackFixedVirtualRows,
 		scrollFixedIndexIntoView,
@@ -73,6 +80,8 @@
 		scrollTarget?: ScrollTarget | null;
 		mouseGestureConfig?: MouseGestureConfig;
 		sizePresetId?: ViewSizePresetId;
+		providerId?: string;
+		visibleFields?: readonly string[];
 		themeService?: ThemeService;
 		icon: (node: HTMLElement, name: string) => { update(n: string): void };
 	}
@@ -102,11 +111,19 @@
 		scrollTarget = null,
 		mouseGestureConfig,
 		sizePresetId = DEFAULT_VIEW_SIZE_PRESET,
+		providerId = 'nodes',
+		visibleFields = [],
 		themeService = undefined,
 		icon,
 	}: Props = $props();
 
 	const useNativeDom = $derived(themeService?.useNativeDom ?? false);
+	const effectiveVisibleFields = $derived(
+		visibleFields.length > 0 ? visibleFields : defaultVisibleFields(providerId, 'tree'),
+	);
+	const showNodeIcon = $derived(isNodeIconVisible(effectiveVisibleFields));
+	const showNodeText = $derived(isNodeTextVisible(providerId, 'tree', effectiveVisibleFields));
+	const showNodeCount = $derived(isNodeCountVisible(effectiveVisibleFields));
 
 	function hoverBadgesFor(node: TreeNode): BadgeDescriptor[] {
 		// Hover badges are an opt-in feature. Adapters that have not wired
@@ -503,8 +520,9 @@
 			{@const directBadges = ownNodeBadges(node)}
 			{@const childBadges = inheritedNodeBadges(node)}
 			{@const hoverBadges = hoverBadgesFor(node)}
-			{@const rowIcon = iconForNode(node, flat)}
-			{@const hasCount = hasVisibleCount(node)}
+			{@const rowIcon = showNodeIcon ? iconForNode(node, flat) : undefined}
+			{@const hasCount = showNodeCount && hasVisibleCount(node)}
+			{@const fieldValues = visibleNodeFieldValues(providerId, 'tree', node, effectiveVisibleFields)}
 			{@const hasOverlayBadges =
 				directBadges.length > 0 || childBadges.length > 0 || hoverBadges.length > 0}
 			{@const hasActiveBadges = hasActiveRowBadge(directBadges) || hasActiveRowBadge(childBadges)}
@@ -586,11 +604,19 @@
 							onblur={() => onCancelRename?.()}
 							use:focus
 						/>
-					{:else}
+					{:else if showNodeText}
 						<span class="vm-tree-label" class:tree-item-inner={useNativeDom}>
 							{#if node.labelPrefix}<span class="vm-tree-label-prefix">{node.labelPrefix}</span
 								>{/if}<HighlightText text={node.label} ranges={node.highlights ?? []} />
 						</span>
+					{/if}
+
+					{#if fieldValues.length > 0}
+						<div class="vm-tree-field-zone">
+							{#each fieldValues as field (field.id)}
+								<span class="vm-tree-field" data-node-field={field.id}>{field.text}</span>
+							{/each}
+						</div>
 					{/if}
 
 					<!-- Badges / Counts -->

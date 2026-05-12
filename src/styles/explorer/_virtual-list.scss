@@ -130,6 +130,26 @@
 			text-overflow: ellipsis;
 		}
 
+		.vm-tree-field-zone {
+			position: relative;
+			z-index: 1;
+			display: inline-flex;
+			flex: 1 1 auto;
+			min-width: 0;
+			align-items: center;
+			gap: 6px;
+			overflow: hidden;
+			color: var(--text-muted);
+			font-size: var(--font-ui-smaller);
+		}
+
+		.vm-tree-field {
+			min-width: 0;
+			overflow: hidden;
+			text-overflow: ellipsis;
+			white-space: nowrap;
+		}
+
 		.vm-tree-toggle,
 		.vm-tree-icon {
 			pointer-events: auto;
