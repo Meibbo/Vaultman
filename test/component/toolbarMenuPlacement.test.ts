@@ -31,11 +31,15 @@ function baseProps(service: FnRIslandService, overrides: Record<string, unknown>
 
 describe('Toolbar toolbar menu placement', () => {
 	let target: HTMLDivElement;
+	let root: HTMLDivElement;
 	let app: ReturnType<typeof mount> | null = null;
 
 	beforeEach(() => {
 		target = document.createElement('div');
 		document.body.appendChild(target);
+		root = document.createElement('div');
+		root.classList.add('vm-root');
+		target.appendChild(root);
 	});
 
 	afterEach(() => {
@@ -49,7 +53,7 @@ describe('Toolbar toolbar menu placement', () => {
 	it('renders view + sort menus on the right side of the crear button with minimalist class', () => {
 		const service = new FnRIslandService();
 		app = mount(Toolbar as unknown as Component<Record<string, unknown>>, {
-			target,
+			target: root,
 			props: baseProps(service),
 		});
 		flushSync();
@@ -84,7 +88,7 @@ describe('Toolbar toolbar menu placement', () => {
 		const service = new FnRIslandService();
 		const onToggleNodeExpansion = vi.fn();
 		app = mount(Toolbar as unknown as Component<Record<string, unknown>>, {
-			target,
+			target: root,
 			props: baseProps(service, {
 				nodeExpansionSummary: { canToggle: true, hasExpandedParents: false },
 				onToggleNodeExpansion,
@@ -108,7 +112,7 @@ describe('Toolbar toolbar menu placement', () => {
 	it('keeps search syntax help inside the searchbox instead of beside the toolbar FABs', () => {
 		const service = new FnRIslandService();
 		app = mount(Toolbar as unknown as Component<Record<string, unknown>>, {
-			target,
+			target: root,
 			props: baseProps(service),
 		});
 		flushSync();
@@ -131,7 +135,7 @@ describe('Toolbar toolbar menu placement', () => {
 		const service = new FnRIslandService();
 		const filtersSearchCategory = { tags: 0, props: 0, files: 0, content: 0 };
 		app = mount(Toolbar as unknown as Component<Record<string, unknown>>, {
-			target,
+			target: root,
 			props: baseProps(service, {
 				activeTab: 'props',
 				filtersSearchCategory,

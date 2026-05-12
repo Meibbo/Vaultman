@@ -30,11 +30,15 @@ function baseProps(service: FnRIslandService) {
 
 describe('Toolbar searchbox-mounted island', () => {
 	let target: HTMLDivElement;
+	let root: HTMLDivElement;
 	let app: ReturnType<typeof mount> | null = null;
 
 	beforeEach(() => {
 		target = document.createElement('div');
 		document.body.appendChild(target);
+		root = document.createElement('div');
+		root.classList.add('vm-root');
+		target.appendChild(root);
 	});
 
 	function openSearchIsland(target: HTMLElement): void {
@@ -55,7 +59,7 @@ describe('Toolbar searchbox-mounted island', () => {
 	it('renders the mode pill bound to FnRIslandService.mode', () => {
 		const service = new FnRIslandService();
 		app = mount(Toolbar as unknown as Component<Record<string, unknown>>, {
-			target,
+			target: root,
 			props: baseProps(service),
 		});
 		flushSync();
@@ -78,25 +82,25 @@ describe('Toolbar searchbox-mounted island', () => {
 	it('applies vm-toolbar-takeover when the island expands', () => {
 		const service = new FnRIslandService();
 		app = mount(Toolbar as unknown as Component<Record<string, unknown>>, {
-			target,
+			target: root,
 			props: baseProps(service),
 		});
 		flushSync();
 
-		const root = target.querySelector('.vm-navbar-filters');
-		expect(root).toBeTruthy();
-		expect(root!.classList.contains('vm-toolbar-takeover')).toBe(false);
+		const toolbarRoot = target.querySelector('.vm-navbar-filters');
+		expect(toolbarRoot).toBeTruthy();
+		expect(toolbarRoot!.classList.contains('vm-toolbar-takeover')).toBe(false);
 
 		service.expand();
 		flushSync();
 
-		expect(root!.classList.contains('vm-toolbar-takeover')).toBe(true);
+		expect(toolbarRoot!.classList.contains('vm-toolbar-takeover')).toBe(true);
 	});
 
 	it('collapses the island on Escape inside the searchbox', () => {
 		const service = new FnRIslandService();
 		app = mount(Toolbar as unknown as Component<Record<string, unknown>>, {
-			target,
+			target: root,
 			props: baseProps(service),
 		});
 		flushSync();

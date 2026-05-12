@@ -31,11 +31,15 @@ function baseProps(service: FnRIslandService, overrides: Record<string, unknown>
 
 describe('searchbox island modifier toggles', () => {
 	let target: HTMLDivElement;
+	let root: HTMLDivElement;
 	let app: ReturnType<typeof mount> | null = null;
 
 	beforeEach(() => {
 		target = document.createElement('div');
 		document.body.appendChild(target);
+		root = document.createElement('div');
+		root.classList.add('vm-root');
+		target.appendChild(root);
 	});
 
 	afterEach(() => {
@@ -64,7 +68,7 @@ describe('searchbox island modifier toggles', () => {
 	it('renders three flag buttons inside the searchbox island', () => {
 		const service = new FnRIslandService();
 		app = mount(Toolbar as unknown as Component<Record<string, unknown>>, {
-			target,
+			target: root,
 			props: baseProps(service),
 		});
 		flushSync();
@@ -80,7 +84,7 @@ describe('searchbox island modifier toggles', () => {
 	it('toggles matchCase / wholeWord / regex through the service', () => {
 		const service = new FnRIslandService();
 		app = mount(Toolbar as unknown as Component<Record<string, unknown>>, {
-			target,
+			target: root,
 			props: baseProps(service),
 		});
 		flushSync();
@@ -100,7 +104,7 @@ describe('searchbox island modifier toggles', () => {
 		const service = new FnRIslandService();
 		service.setFlag('wholeWord', true);
 		app = mount(Toolbar as unknown as Component<Record<string, unknown>>, {
-			target,
+			target: root,
 			props: baseProps(service),
 		});
 		flushSync();
@@ -122,7 +126,7 @@ describe('searchbox island modifier toggles', () => {
 		const service = new FnRIslandService();
 		service.setQuery('hello {{bogus}}');
 		app = mount(Toolbar as unknown as Component<Record<string, unknown>>, {
-			target,
+			target: root,
 			props: baseProps(service, { filtersSearch: 'hello {{bogus}}' }),
 		});
 		flushSync();
@@ -143,7 +147,7 @@ describe('searchbox island modifier toggles', () => {
 		service.setQuery('([)');
 		service.setFlag('regex', true);
 		app = mount(Toolbar as unknown as Component<Record<string, unknown>>, {
-			target,
+			target: root,
 			props: baseProps(service, { filtersSearch: '([)' }),
 		});
 		flushSync();

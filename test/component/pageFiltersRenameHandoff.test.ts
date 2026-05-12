@@ -87,11 +87,15 @@ function plugin(): VaultmanPlugin {
 
 describe('PageFilters rename handoff', () => {
 	let target: HTMLDivElement;
+	let root: HTMLDivElement;
 	let app: ReturnType<typeof mount> | null = null;
 
 	beforeEach(() => {
 		target = document.createElement('div');
 		document.body.appendChild(target);
+		root = document.createElement('div');
+		root.classList.add('vm-root');
+		target.appendChild(root);
 		vi.stubGlobal(
 			'ResizeObserver',
 			class {
@@ -114,7 +118,7 @@ describe('PageFilters rename handoff', () => {
 	it('queues a prop rename from the navbar handoff instead of opening the input modal', async () => {
 		const vm = plugin();
 		app = mount(PageFilters as unknown as Component<Record<string, unknown>>, {
-			target,
+			target: root,
 			props: {
 				plugin: vm,
 				filtersActiveTab: 'props',
@@ -168,7 +172,7 @@ describe('PageFilters rename handoff', () => {
 	it('queues a tag rename from the navbar handoff instead of opening the input modal', async () => {
 		const vm = plugin();
 		app = mount(PageFilters as unknown as Component<Record<string, unknown>>, {
-			target,
+			target: root,
 			props: {
 				plugin: vm,
 				filtersActiveTab: 'tags',
@@ -221,7 +225,7 @@ describe('PageFilters rename handoff', () => {
 	it('queues a selected file rename from the navbar handoff with RENAME_FILE semantics', async () => {
 		const vm = plugin();
 		app = mount(PageFilters as unknown as Component<Record<string, unknown>>, {
-			target,
+			target: root,
 			props: {
 				plugin: vm,
 				filtersActiveTab: 'files',
