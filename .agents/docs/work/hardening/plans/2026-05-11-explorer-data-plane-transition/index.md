@@ -4,7 +4,7 @@ type: plan-index
 status: active
 parent: "[[docs/work/hardening/specs/2026-05-11-explorer-data-plane-transition/index|explorer-data-plane-transition]]"
 created: 2026-05-11T22:10:13
-updated: 2026-05-11T22:10:13
+updated: 2026-05-12T07:55:00
 tags:
   - agent/plan
   - initiative/hardening
@@ -22,6 +22,7 @@ into executable implementation work.
 
 1. [[01-wave-a-b-claude-handoff|Wave A/B Claude handoff]]
 2. [[02-edp-002-files-snapshot-data-plane-implementation-plan|EDP-002 Files snapshot data-plane implementation plan]]
+3. [[03-edp-002-wave-c-codex-continuation|EDP-002 Wave C Codex continuation]]
 
 Wave A scout reports live under `reports/`:
 
@@ -37,3 +38,6 @@ Wave A scout reports live under `reports/`:
 - Codex owns Wave C: execute the approved plan task-by-task starting with
   `pnpm run test:unit -- test/unit/logic/logicExplorerSnapshot.test.ts` after
   Task 2 RED. Read shard `02` for the worker split and entry sequence.
+- Wave C continuation is partially implemented in branch `claude/explorer`;
+  focused EDP gates pass, but full unit/component gates are blocked by
+  performance-threshold residuals captured in shard `03`.

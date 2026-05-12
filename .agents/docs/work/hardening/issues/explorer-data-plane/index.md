@@ -4,7 +4,7 @@ type: issue-index
 status: active
 parent: "[[docs/work/hardening/specs/2026-05-11-explorer-data-plane-transition/index|explorer-data-plane-transition]]"
 created: 2026-05-11T20:55:00
-updated: 2026-05-11T20:55:00
+updated: 2026-05-12T09:00:34
 tags:
   - agent/issue
   - initiative/hardening
@@ -29,11 +29,12 @@ Local Markdown tracker for the Explorer data-plane transition. Source specs:
 - `needs-info`: waiting on reporter or missing decision.
 - `ready-for-agent`: fully specified AFK issue.
 - `ready-for-human`: human implementation or review needed.
+- `completed`: resolved local issue with no further action required.
 - `wontfix`: will not be actioned.
 
 ## Issues
 
-1. [[001-approve-issue-set-and-supersession-notes|EDP-001 Approve issue set and supersession notes]]
+1. [[001-approve-issue-set-and-supersession-notes|EDP-001 Approve issue set and supersession notes]] - completed
 2. [[002-files-snapshot-data-plane-foundation|EDP-002 Files snapshot data-plane foundation]]
 3. [[003-files-panel-snapshot-compatibility-revisioned-reveal|EDP-003 Files panel snapshot compatibility and revisioned reveal]]
 4. [[004-batched-files-overlay-layers-viewservice|EDP-004 Batched Files overlay layers through ViewService]]

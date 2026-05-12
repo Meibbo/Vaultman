@@ -5,7 +5,7 @@ status: active
 parent: "[[docs/work/pkm-ai/index|pkm-ai]]"
 archive_source: "docs/archive/pkm-ai/active-docs/2026-05-11T080321-current-status.md"
 created: 2026-05-04T01:36:20
-updated: 2026-05-11T22:10:13
+updated: 2026-05-12T09:00:34
 tags:
   - agent/current
 created_by: dec
@@ -30,8 +30,8 @@ Older route history remains in
 
 ## Current Route
 
-- Latest user request: create a handoff for Claude to run Wave A/B planning
-  with subagents before Codex handles Wave C implementation.
+- Latest user request: continue the Explorer data-plane plan in the Claude
+  branch after the previous agent was interrupted.
 - Active initiative: [[docs/work/hardening/index|Hardening]].
 - Active spec:
   [[docs/work/hardening/specs/2026-05-11-explorer-data-plane-structural-taxonomy/index|Explorer Data Plane Structural Taxonomy]].
@@ -51,6 +51,11 @@ Older route history remains in
   [[docs/work/hardening/issues/explorer-data-plane/index|Explorer data plane local issues]].
 - Next planning handoff:
   [[docs/work/hardening/plans/2026-05-11-explorer-data-plane-transition/01-wave-a-b-claude-handoff|Wave A/B Claude handoff]].
+- Wave C continuation record:
+  [[docs/work/hardening/plans/2026-05-11-explorer-data-plane-transition/03-edp-002-wave-c-codex-continuation|EDP-002 Wave C Codex continuation]].
+- EDP-001 tracker approval/supersession gate is completed; the old
+  [[docs/work/hardening/plans/2026-05-04-serviceviews-implementation/index|serviceViews implementation plan]]
+  is historical and not executable as the current data-plane plan.
 - Previous route before this request: Claude worktree thread 04.
 - Previous worktree:
   `C:\Users\vic_A\Desktop\vaultman\.claude\worktrees\sleepy-engelbart-9e6dc6`
@@ -81,6 +86,14 @@ Older route history remains in
 
 ## Verification Snapshot
 
+- EDP-002 Wave C focused gates passed in `claude/explorer`: 3 unit files / 39
+  tests and 2 component files / 46 tests. `pnpm run check`,
+  `pnpm run lint`, `pnpm run build:plugin`, and `git diff --check` passed.
+  Full details and blockers are in
+  [[docs/work/hardening/plans/2026-05-11-explorer-data-plane-transition/03-edp-002-wave-c-codex-continuation|EDP-002 Wave C Codex continuation]].
+- EDP-001 documentation gate is closed: the local issue tracker is approved,
+  `completed` label vocabulary is recorded, and stale `serviceViews` selection
+  ownership wording is superseded by `NodeSelectionService`.
 - Explorer Wave A/B handoff: plan index and Claude handoff were created under
   `docs/work/hardening/plans/2026-05-11-explorer-data-plane-transition/`;
   the handoff is 199 lines, trailing whitespace scan found no matches, and
@@ -119,6 +132,11 @@ Older route history remains in
 
 ## Known Residuals
 
+- Full EDP-002 completion is blocked by existing performance-threshold gates:
+  `test/unit/performance/stress.test.ts` measured ~242ms against a 200ms
+  threshold, and `test/component/viewTableStress.test.ts` measured ~3.37s
+  against a 3.0s threshold in isolated rerun. Do not relax thresholds inside
+  EDP-002 without a separate performance-test decision.
 - `vaultman:open-diff` is absent from the live `plugin-dev` command list.
 - T4 still has integration follow-ups: frame-level native-click wiring,
   Find/Replace island migration to `vmPopover`, dashboard/add-ons wiring in
@@ -132,10 +150,9 @@ Older route history remains in
 
 ## Next Action
 
-- Current hardening route: triage or execute
-  [[docs/work/hardening/issues/explorer-data-plane/001-approve-issue-set-and-supersession-notes|EDP-001]],
-  then hand off Wave A/B to Claude using
-  [[docs/work/hardening/plans/2026-05-11-explorer-data-plane-transition/01-wave-a-b-claude-handoff|Wave A/B Claude handoff]].
+- Current hardening route: review EDP-002 Wave C changes and decide whether
+  the performance-threshold residuals should be rerun on a quieter machine,
+  treated as known machine noise, or split into a separate stabilization item.
 - Continue with the remaining T4 integration follow-ups or the next
   vertical-thread slice from the active plan.
 - For T3 follow-up, register or expose a real diff-open path, then rerun the

@@ -44,6 +44,7 @@ import { createTemplatesIndex } from './services/serviceTemplatesIndex';
 import { OverlayStateService } from './services/serviceOverlayState.svelte';
 import { DecorationManager } from './services/serviceDecorate';
 import { ViewService } from './services/serviceViews.svelte';
+import { ExplorerDataPlaneService } from './services/serviceExplorerDataPlane.svelte';
 import { createPerfProbe } from './dev/perfProbe';
 import { registerVaultmanCommands } from './services/serviceCommands';
 import { PerfMeter } from './services/perfMeter';
@@ -101,6 +102,7 @@ export class VaultmanPlugin extends Plugin {
 	overlayState!: IOverlayState;
 	decorationManager!: IDecorationManager;
 	viewService!: IViewService;
+	explorerDataPlaneService!: ExplorerDataPlaneService;
 
 	// Native status bar element
 	private statusBarEl!: HTMLElement;
@@ -181,6 +183,7 @@ export class VaultmanPlugin extends Plugin {
 		this.propertyIndex = new PropertyIndexService(this.app);
 		this.filterService = new FilterService(this.app, this.filesIndex);
 		this.queueService = new OperationQueueService(this.app);
+		this.explorerDataPlaneService = new ExplorerDataPlaneService();
 
 		this.contentIndex = createContentIndex(this.app);
 		this.operationsIndex = createOperationsIndex(this.queueService);

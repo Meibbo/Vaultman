@@ -5,6 +5,7 @@ import { DecorationManager } from '../../../src/services/serviceDecorate';
 import { ViewService } from '../../../src/services/serviceViews.svelte';
 import type { VaultmanPlugin } from '../../../src/main';
 import type { FnRRenameHandoff } from '../../../src/types/typeFnR';
+import type { FileMeta, TreeNode } from '../../../src/types/typeNode';
 import { mockApp, mockTFile, type CachedMetadata, type TFile } from '../../helpers/obsidian-mocks';
 
 function makePlugin(): {
@@ -38,6 +39,14 @@ function makePlugin(): {
 			},
 			contextMenuService: { registerAction: vi.fn(), openPanelMenu: vi.fn() },
 			queueService: { add: vi.fn() },
+			filesIndex: {
+				nodes: [],
+				revision: 42,
+				getSearchBuffer: vi.fn(() => ''),
+			},
+			propsIndex: {
+				revision: 7,
+			},
 			operationsIndex: { nodes: [], refresh: vi.fn(), subscribe: vi.fn(), byId: vi.fn() },
 			activeFiltersIndex: { nodes: [], refresh: vi.fn(), subscribe: vi.fn(), byId: vi.fn() },
 			filterService: {
@@ -478,3 +487,64 @@ describe('explorerFiles interactions', () => {
 		);
 	});
 });
+
+describe('explorerFiles structural source', () => {
+	it('getStructuralTree returns the same node ids and shape as getTree()', () => {
+		const { plugin } = makePlugin();
+		const explorer = new explorerFiles(plugin);
+		const decorated = explorer.getTree();
+		const structural = explorer.getStructuralTree();
+
+		expect(idShape(structural)).toEqual(idShape(decorated));
+	});
+
+	it('getStructuralTree does not invoke viewService.getModel', () => {
+		const { plugin } = makePlugin();
+		const explorer = new explorerFiles(plugin);
+		const spy = vi.spyOn(plugin.viewService, 'getModel');
+
+		explorer.getStructuralTree();
+
+		expect(spy).not.toHaveBeenCalled();
+	});
+
+	it('action hooks operate on nodes returned by getStructuralTree', () => {
+		const { plugin, openLinkText } = makePlugin();
+		const explorer = new explorerFiles(plugin);
+		const structural = explorer.getStructuralTree();
+		const firstFile = findFirstFileNode(structural);
+
+		expect(firstFile).toBeDefined();
+
+		explorer.handleNodeSecondaryAction(firstFile!);
+
+		expect(openLinkText).toHaveBeenCalledWith(firstFile!.meta.file!.path, '', false);
+	});
+
+	it('getStructuralRevisions returns files and props revisions from indexes', () => {
+		const { plugin } = makePlugin();
+		const explorer = new explorerFiles(plugin);
+
+		expect(explorer.getStructuralRevisions()).toEqual({
+			filesRevision: plugin.filesIndex.revision,
+			propsRevision: plugin.propsIndex.revision,
+		});
+	});
+});
+
+function idShape(nodes: TreeNode<FileMeta>[]): unknown {
+	return nodes.map((node) => ({
+		id: node.id,
+		label: node.label,
+		children: node.children ? idShape(node.children) : undefined,
+	}));
+}
+
+function findFirstFileNode(nodes: TreeNode<FileMeta>[]): TreeNode<FileMeta> | undefined {
+	for (const node of nodes) {
+		if (node.meta?.file) return node;
+		const childMatch = node.children ? findFirstFileNode(node.children) : undefined;
+		if (childMatch) return childMatch;
+	}
+	return undefined;
+}

@@ -5,7 +5,7 @@ status: active
 parent: "[[docs/work/pkm-ai/index|pkm-ai]]"
 archive_source: "docs/archive/pkm-ai/active-docs/2026-05-11T080321-current-handoff.md"
 created: 2026-05-04T01:36:20
-updated: 2026-05-11T22:10:13
+updated: 2026-05-12T09:00:34
 tags:
   - agent/current
 created_by: dec
@@ -21,8 +21,8 @@ Older route history remains in
 
 ## Resume Point
 
-- Latest request handled: created a handoff for Claude to run Wave A/B planning
-  with subagents before Codex handles Wave C implementation.
+- Latest request handled: continued the Explorer data-plane plan in the
+  `claude/explorer` branch after an interrupted prior agent.
 - Latest source records:
   [[docs/work/hardening/specs/2026-05-11-explorer-data-plane-structural-taxonomy/18-wave-5-plan-comparison-reconciliation|Wave 5 plan comparison and reconciliation]]
   through
@@ -35,6 +35,11 @@ Older route history remains in
   [[docs/work/hardening/issues/explorer-data-plane/index|Explorer data plane local issues]].
 - Claude Wave A/B handoff:
   [[docs/work/hardening/plans/2026-05-11-explorer-data-plane-transition/01-wave-a-b-claude-handoff|Wave A/B Claude handoff]].
+- Codex Wave C continuation:
+  [[docs/work/hardening/plans/2026-05-11-explorer-data-plane-transition/03-edp-002-wave-c-codex-continuation|EDP-002 Wave C Codex continuation]].
+- EDP-001 tracker approval/supersession gate is completed; the
+  [[docs/work/hardening/plans/2026-05-04-serviceviews-implementation/index|serviceViews implementation plan]]
+  is historical and not executable as the current data-plane plan.
 - Previous worktree route:
   `C:\Users\vic_A\Desktop\vaultman\.claude\worktrees\sleepy-engelbart-9e6dc6`
   on branch `claude/sleepy-engelbart-9e6dc6`.
@@ -80,6 +85,21 @@ Older route history remains in
 
 ## Fresh Verification
 
+- EDP-002 focused gates pass in `claude/explorer`: `logicExplorerSnapshot`,
+  `serviceExplorerDataPlane`, and `explorerFiles` unit tests passed 3 files /
+  39 tests; `panelExplorerSelection` and `pageFiltersChooseMode` component
+  tests passed 2 files / 46 tests.
+- Static/build gates pass: `pnpm run check`, `pnpm run lint`,
+  `pnpm run build:plugin`, and `git diff --check`.
+- EDP-001 is closed: local tracker approval is recorded, `completed` label
+  vocabulary exists, and stale `serviceViews` selection ownership wording is
+  superseded by `NodeSelectionService`.
+- Full `pnpm run test:unit` is blocked by
+  `test/unit/performance/stress.test.ts` timing at ~242ms against a 200ms
+  threshold.
+- Full `pnpm run test:component` is blocked by
+  `test/component/viewTableStress.test.ts` timing at ~3.37s against a 3.0s
+  threshold in isolated rerun.
 - Explorer Wave A/B handoff: plan index and Claude handoff were created under
   `docs/work/hardening/plans/2026-05-11-explorer-data-plane-transition/`;
   the handoff is 199 lines, trailing whitespace scan found no matches, and
@@ -122,6 +142,8 @@ Older route history remains in
 
 ## Residuals
 
+- EDP-002 code is not committed. Decide how to handle the two performance
+  threshold residuals before claiming full plan completion or creating commits.
 - `vaultman:open-diff` is not registered in the live `plugin-dev` command list;
   the Diff Navbar DOM probe returned `false` because no command opened the diff
   view.
@@ -138,10 +160,9 @@ Older route history remains in
 
 ## Next Action
 
-- Current hardening route: triage or execute
-  [[docs/work/hardening/issues/explorer-data-plane/001-approve-issue-set-and-supersession-notes|EDP-001]],
-  then hand off Wave A/B to Claude using
-  [[docs/work/hardening/plans/2026-05-11-explorer-data-plane-transition/01-wave-a-b-claude-handoff|Wave A/B Claude handoff]].
+- Current hardening route: review the EDP-002 Wave C diff and decide whether
+  to rerun or separately stabilize the performance-threshold tests before
+  committing.
 - Continue with remaining T4 integration follow-ups or the next vertical-thread
   slice from
   [[docs/work/polish/plans/2026-05-11-ui-modernization-vertical-threads/index|UI Modernization Vertical Threads]].

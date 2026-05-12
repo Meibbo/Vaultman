@@ -1,7 +1,7 @@
 <script lang="ts" generics="TMeta = unknown">
 	import type { TFile } from 'obsidian';
 	import { untrack } from 'svelte';
-	import { SvelteSet } from 'svelte/reactivity';
+	import { SvelteSet, createSubscriber } from 'svelte/reactivity';
 	import type { VaultmanPlugin } from '../../main';
 	import type {
 		ExplorerExpansionCommand,
@@ -168,6 +168,11 @@
 	let lastExpansionSummaryKey = '';
 	let lastExpansionCommandSerial = -1;
 	let queueVersion = $state(0);
+	const subscribeFilesSnapshot = createSubscriber((update) => {
+		const service = plugin.explorerDataPlaneService;
+		if (!service) return;
+		return service.subscribe('files', update);
+	});
 	const activeOpsByNode: ActiveOpsByNode = $derived.by(() => {
 		// Touch the queue version counter so this derivation re-runs whenever
 		// the queue mutates. Memoizing on the version avoids render loops:
@@ -192,6 +197,11 @@
 	const nodeMouseActions = $derived.by(() =>
 		resolveNodeMouseActions(plugin.settings?.nodeMouseActions, LEGACY_NODE_MOUSE_ACTIONS),
 	);
+	const filesSnapshot = $derived.by(() => {
+		if (provider.id !== 'files') return null;
+		subscribeFilesSnapshot();
+		return plugin.explorerDataPlaneService?.snapshot('files') ?? null;
+	});
 
 	$effect(() => {
 		const queue = (
@@ -679,6 +689,7 @@
 		if (viewMode === 'cards') return cardNodes.map((node) => node.id);
 		if (viewMode === 'markmap') return collectAllHierarchyIds(markmapNodes);
 		if (viewMode === 'table') return tableRows.map((row) => row.id);
+		if (filesSnapshot) return [...filesSnapshot.visibleIds];
 		const ids: string[] = [];
 		const walk = (items: TreeNode<TMeta>[]) => {
 			for (const node of items) {

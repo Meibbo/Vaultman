@@ -1,16 +1,22 @@
 ---
 title: Slice 2 viewList migration
 type: plan-shard
-status: active
+status: historical
 parent: "[[docs/work/hardening/plans/2026-05-04-serviceviews-implementation/index|serviceviews-plan]]"
 created: 2026-05-04T16:40:00
-updated: 2026-05-04T16:40:00
+updated: 2026-05-12T09:00:34
 tags:
   - agent/plan
   - explorer/views
+updated_by: codex
 ---
 
 # Slice 2 viewList Migration
+
+> [!warning] Historical Slice
+> This shard belongs to the historical
+> [[docs/work/hardening/plans/2026-05-04-serviceviews-implementation/index|serviceViews implementation plan]].
+> Do not execute it as current Explorer data-plane work.
 
 ## Files
 

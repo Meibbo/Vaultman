@@ -17,6 +17,8 @@ settings.local.json
 .env
 .log
 *.mjs
+!eslint-rules/
+!eslint-rules/no-mutable-vfs.mjs
 # Temporal ignore of the docs folder.
 docs/*
 # CodeQL

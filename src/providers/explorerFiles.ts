@@ -19,6 +19,7 @@ import { highlightsFromViewLayers, withViewStateClasses } from '../utils/utilVie
 import { buildOutlineForFile } from './explorerOutline';
 import type { AdoptionService } from '../services/serviceAdoption.svelte';
 import type { AdoptedNode } from '../types/typeAdoptedNode';
+import type { ExplorerDataPlaneRevisions } from '../types/typeExplorerDataPlane';
 
 export interface ExplorerFilesOptions {
 	startRenameHandoff?: (handoff: FnRRenameHandoff) => void;
@@ -124,7 +125,7 @@ export class explorerFiles implements ExplorerProvider<FileMeta> {
 		});
 	}
 
-	getTree(): TreeNode<FileMeta>[] {
+	private buildBaseTree(): TreeNode<FileMeta>[] {
 		const source = this.sourceFiles();
 		const getSearchBuffer = this.plugin.filesIndex
 			? (path: string) => this.fileSearchBuffer(path)
@@ -147,6 +148,28 @@ export class explorerFiles implements ExplorerProvider<FileMeta> {
 			'service',
 			{ files: sorted.length },
 		);
+		return tree;
+	}
+
+	private buildStructuralTree(): TreeNode<FileMeta>[] {
+		const tree = this.buildBaseTree();
+		this.attachAdoptedChildren(tree);
+		return tree;
+	}
+
+	getStructuralTree(): TreeNode<FileMeta>[] {
+		return this.buildStructuralTree();
+	}
+
+	getStructuralRevisions(): ExplorerDataPlaneRevisions {
+		return {
+			filesRevision: this.plugin.filesIndex?.revision ?? 0,
+			propsRevision: this.plugin.propsIndex?.revision,
+		};
+	}
+
+	getTree(): TreeNode<FileMeta>[] {
+		const tree = this.buildBaseTree();
 		PerfMeter.time(
 			'explorer.files.decorateTree',
 			() => this._decorateTree(tree),

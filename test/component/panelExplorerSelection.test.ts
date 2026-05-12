@@ -5,12 +5,17 @@ import { NodeSelectionService } from '../../src/services/serviceSelection.svelte
 import { ViewService } from '../../src/services/serviceViews.svelte';
 import type { VaultmanPlugin } from '../../src/main';
 import type { ExplorerProvider, ExplorerViewMode } from '../../src/types/typeExplorer';
+import type { ExplorerSnapshot } from '../../src/types/typeExplorerDataPlane';
 import type { FileMeta, PropMeta, TreeNode } from '../../src/types/typeNode';
 import type { IViewService } from '../../src/types/typeViews';
 import { mockTFile } from '../helpers/obsidian-mocks';
 
 const EXPLORER_ID = 'selection-test';
 type TestNodeMouseAction = 'select' | 'filter' | 'open' | 'node-note' | 'delete';
+type ExplorerDataPlaneServiceLike = {
+	snapshot(explorerId: string): ExplorerSnapshot | undefined;
+	subscribe(explorerId: string, cb: () => void): () => void;
+};
 
 function nodes(): TreeNode[] {
 	return [
@@ -87,6 +92,66 @@ function provider(overrides: Partial<ExplorerProvider> = {}): ExplorerProvider {
 	};
 }
 
+function makeFilesSnapshot(visibleIds: string[]): ExplorerSnapshot {
+	const rows = visibleIds.map((id, index) => {
+		const node: TreeNode = {
+			id,
+			label: id,
+			depth: 0,
+			meta: {},
+			icon: 'lucide-file',
+		};
+		return {
+			id,
+			label: id,
+			depth: 0,
+			parentId: null,
+			childrenIds: [],
+			node,
+			kind: 'file' as const,
+			path: id,
+			index,
+		};
+	});
+	return {
+		explorerId: 'files',
+		providerKey: 'files',
+		revision: 1,
+		structureRevision: 1,
+		rows,
+		tree: rows.map((row) => row.node),
+		visibleIds,
+		byId: new Map(rows.map((row) => [row.id, row])),
+		idToIndex: new Map(visibleIds.map((id, index) => [id, index])),
+		pathToId: new Map(visibleIds.map((id) => [id, id])),
+		folderPathToId: new Map(),
+		sourceRevisions: { filesRevision: 1 },
+	};
+}
+
+function snapshotHarness(initial?: ExplorerSnapshot): {
+	service: ExplorerDataPlaneServiceLike;
+	publish(snapshot: ExplorerSnapshot): void;
+} {
+	let current = initial;
+	const subscribers = new Set<() => void>();
+	return {
+		service: {
+			snapshot: vi.fn((explorerId: string) => (explorerId === 'files' ? current : undefined)),
+			subscribe: vi.fn((explorerId: string, cb: () => void) => {
+				if (explorerId === 'files') subscribers.add(cb);
+				return () => {
+					subscribers.delete(cb);
+				};
+			}),
+		},
+		publish(snapshot: ExplorerSnapshot) {
+			current = snapshot;
+			for (const cb of subscribers) cb();
+		},
+	};
+}
+
 describe('PanelExplorer tree selection adapter', () => {
 	let target: HTMLDivElement;
 	let app: ReturnType<typeof mount> | null = null;
@@ -125,6 +190,7 @@ describe('PanelExplorer tree selection adapter', () => {
 			};
 			nodeExpansionCommand?: unknown;
 			onNodeExpansionSummaryChange?: (summary: unknown) => void;
+			explorerDataPlaneService?: ExplorerDataPlaneServiceLike;
 		} = {},
 	) {
 		const selectionService = options.selectionService ?? new NodeSelectionService();
@@ -134,6 +200,13 @@ describe('PanelExplorer tree selection adapter', () => {
 			gridHierarchyMode: options.gridHierarchyMode,
 			nodeMouseActions: options.nodeMouseActions,
 		};
+		if (options.explorerDataPlaneService) {
+			(
+				pluginStub as VaultmanPlugin & {
+					explorerDataPlaneService: ExplorerDataPlaneServiceLike;
+				}
+			).explorerDataPlaneService = options.explorerDataPlaneService;
+		}
 		const providerStub = options.provider ?? provider();
 		app = mount(PanelExplorer as unknown as Component<Record<string, unknown>>, {
 			target,
@@ -310,6 +383,66 @@ describe('PanelExplorer tree selection adapter', () => {
 		expect([...selectionService.snapshot('files').ids]).toEqual(['Notes/Alpha.md']);
 		expect(pluginStub.viewService.select).toHaveBeenCalledWith('files', 'Notes/Alpha.md', 'add');
 		expect(pluginStub.filterService.setSelectedFiles).toHaveBeenCalledWith([file]);
+	});
+
+	it('files tree prune uses snapshot.visibleIds when a data-plane snapshot is present', () => {
+		const selectionService = new NodeSelectionService();
+		const pruneSpy = vi.spyOn(selectionService, 'prune');
+		const { service } = snapshotHarness(makeFilesSnapshot(['snapshot-a.md', 'snapshot-b.md']));
+
+		renderPanel({
+			selectionService,
+			explorerDataPlaneService: service,
+			provider: provider({ id: 'files', getTree: vi.fn(() => nodes()) }),
+		});
+
+		expect(pruneSpy).toHaveBeenCalledWith('files', ['snapshot-a.md', 'snapshot-b.md']);
+	});
+
+	it('files tree prune reacts when the data-plane service publishes a snapshot', () => {
+		const selectionService = new NodeSelectionService();
+		const pruneSpy = vi.spyOn(selectionService, 'prune');
+		const harness = snapshotHarness();
+
+		renderPanel({
+			selectionService,
+			explorerDataPlaneService: harness.service,
+			provider: provider({ id: 'files', getTree: vi.fn(() => nodes()) }),
+		});
+
+		expect(pruneSpy).toHaveBeenCalledWith('files', ['alpha', 'beta']);
+
+		harness.publish(makeFilesSnapshot(['published-a.md']));
+		flushSync();
+
+		expect(pruneSpy).toHaveBeenCalledWith('files', ['published-a.md']);
+	});
+
+	it('files tree prune falls back to recursive visible ids when the service is absent', () => {
+		const selectionService = new NodeSelectionService();
+		const pruneSpy = vi.spyOn(selectionService, 'prune');
+
+		renderPanel({
+			selectionService,
+			provider: provider({ id: 'files', getTree: vi.fn(() => nodes()) }),
+		});
+
+		expect(pruneSpy).toHaveBeenCalledWith('files', ['alpha', 'beta']);
+	});
+
+	it('non-files tree prune ignores files snapshots and keeps recursive visible ids', () => {
+		const selectionService = new NodeSelectionService();
+		const pruneSpy = vi.spyOn(selectionService, 'prune');
+		const { service } = snapshotHarness(makeFilesSnapshot(['snapshot-a.md']));
+
+		renderPanel({
+			selectionService,
+			explorerDataPlaneService: service,
+			provider: provider({ id: 'tags', getTree: vi.fn(() => nodes()) }),
+		});
+
+		expect(pruneSpy).toHaveBeenCalledWith('tags', ['alpha', 'beta']);
+		expect(pruneSpy).not.toHaveBeenCalledWith('tags', ['snapshot-a.md']);
 	});
 
 	it('grid mode reflects node ids already selected in the shared selection service', () => {
