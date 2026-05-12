@@ -53,7 +53,22 @@
 	const TREE_FALLBACK_WIDTH = 320;
 	const TREE_FALLBACK_HEIGHT = 400;
 	const TREE_OVERSCAN = 24;
+	const TREE_STICKY_MAX_ROWS = 7;
+	const TREE_STICKY_MAX_VIEWPORT_RATIO = 0.4;
 	type ScrollTarget = { id: string; serial: number };
+
+	interface TreeFlatNode extends FlatNode {
+		index: number;
+		parentIndex: number | null;
+		ancestorIndices: number[];
+		subtreeEndIndex: number;
+	}
+
+	interface StickyTreeRow {
+		flat: TreeFlatNode;
+		key: string;
+		top: number;
+	}
 
 	interface Props {
 		nodes: TreeNode[];
@@ -221,6 +236,9 @@
 		});
 	});
 	const totalH = $derived($rowVirtualizer.getTotalSize());
+	const stickyRows = $derived(
+		computeStickyRows(flatArray, fallbackScrollTop, fallbackViewportHeight, rowHeight),
+	);
 
 	$effect(() => {
 		const count = flatArray.length;
@@ -280,7 +298,7 @@
 		fallbackViewportHeight = outerEl.clientHeight || TREE_FALLBACK_HEIGHT;
 	}
 
-	function flattenMeasured(items: TreeNode[], expanded: ReadonlySet<string>): FlatNode[] {
+	function flattenMeasured(items: TreeNode[], expanded: ReadonlySet<string>): TreeFlatNode[] {
 		return (
 			getActivePerfProbe()?.measure('viewTree.flatten', { nodes: items.length }, () =>
 				flattenTreeNodes(items, expanded),
@@ -474,25 +492,289 @@
 		});
 	}
 
-	function flattenTreeNodes(items: readonly TreeNode[], expanded: ReadonlySet<string>): FlatNode[] {
-		const out: FlatNode[] = [];
-		const walk = (list: readonly TreeNode[], depth: number): void => {
+	function flattenTreeNodes(items: readonly TreeNode[], expanded: ReadonlySet<string>): TreeFlatNode[] {
+		const out: TreeFlatNode[] = [];
+		const walk = (
+			list: readonly TreeNode[],
+			depth: number,
+			parentIndex: number | null,
+			ancestorIndices: number[],
+		): void => {
 			for (const node of list) {
 				const hasChildren = !!node.children && node.children.length > 0;
 				const isExpanded = hasChildren && expanded.has(node.id);
-				out.push({ node, depth, isExpanded, hasChildren });
-				if (isExpanded) walk(node.children!, depth + 1);
+				const index = out.length;
+				const flat: TreeFlatNode = {
+					node,
+					depth,
+					isExpanded,
+					hasChildren,
+					index,
+					parentIndex,
+					ancestorIndices,
+					subtreeEndIndex: index,
+				};
+				out.push(flat);
+				if (isExpanded) walk(node.children!, depth + 1, index, [...ancestorIndices, index]);
+				flat.subtreeEndIndex = out.length - 1;
 			}
 		};
-		walk(items, 0);
+		walk(items, 0, null, []);
 		return out;
 	}
 
-	function treeVirtualItemKey(items: readonly FlatNode[], index: number): string | number {
+	function computeStickyRows(
+		items: readonly TreeFlatNode[],
+		scrollTop: number,
+		viewportHeight: number,
+		height: number,
+	): StickyTreeRow[] {
+		if (items.length === 0 || scrollTop <= 0 || height <= 0 || viewportHeight <= 0) return [];
+		const firstVisibleIndex = Math.min(items.length - 1, Math.max(0, Math.floor(scrollTop / height)));
+		const firstVisible = items[firstVisibleIndex];
+		if (!firstVisible) return [];
+
+		const maxRowsByViewport = Math.floor((viewportHeight * TREE_STICKY_MAX_VIEWPORT_RATIO) / height);
+		const maxRows = Math.max(1, Math.min(TREE_STICKY_MAX_ROWS, maxRowsByViewport));
+		const candidateIndices =
+			firstVisible.hasChildren && firstVisible.isExpanded
+				? [...firstVisible.ancestorIndices, firstVisible.index]
+				: firstVisible.ancestorIndices;
+		return candidateIndices
+			.map((ancestorIndex) => items[ancestorIndex])
+			.filter((flat): flat is TreeFlatNode => {
+				if (!flat?.hasChildren || !flat.isExpanded) return false;
+				const originalTop = flat.index * height;
+				const subtreeBottom = (flat.subtreeEndIndex + 1) * height;
+				return originalTop < scrollTop && subtreeBottom > scrollTop;
+			})
+			.slice(0, maxRows)
+			.map((flat, stickyIndex) => {
+				const preferredTop = stickyIndex * height;
+				const subtreeBottom = (flat.subtreeEndIndex + 1) * height;
+				const top = Math.min(preferredTop, subtreeBottom - scrollTop - height);
+				return {
+					flat,
+					key: `sticky:${flat.node.id}`,
+					top,
+				};
+			})
+			.filter((row) => row.top + height > 0);
+	}
+
+	function treeVirtualItemKey(items: readonly TreeFlatNode[], index: number): string | number {
 		return items[index]?.node.id ?? index;
 	}
 
 </script>
+
+{#snippet treeRow(flat: TreeFlatNode, y: number, sticky: boolean)}
+	{@const node = flat.node}
+	{@const isActive = activeFilterIds?.has(node.id) ?? false}
+	{@const isWarning = warningIds?.has(node.id) ?? false}
+	{@const isEditing = editingId === node.id}
+	{@const isHighlighted = searchHighlightIds?.has(node.id) ?? false}
+	{@const isSelected = selectedIds?.has(node.id) ?? false}
+	{@const isFocused = focusedId === node.id}
+	{@const directBadges = ownNodeBadges(node)}
+	{@const childBadges = inheritedNodeBadges(node)}
+	{@const hoverBadges = hoverBadgesFor(node)}
+	{@const rowIcon = showNodeIcon ? iconForNode(node, flat) : undefined}
+	{@const hasCount = showNodeCount && hasVisibleCount(node)}
+	{@const fieldValues = visibleNodeFieldValues(providerId, 'tree', node, effectiveVisibleFields)}
+	{@const hasOverlayBadges =
+		directBadges.length > 0 || childBadges.length > 0 || hoverBadges.length > 0}
+	{@const hasActiveBadges = hasActiveRowBadge(directBadges) || hasActiveRowBadge(childBadges)}
+
+	<div
+		class="vm-tree-virtual-row {sticky ? 'vm-tree-sticky-row' : ''} {node.cls ?? ''}"
+		class:tree-item={useNativeDom}
+		class:is-active-filter={isActive}
+		class:is-selected={isSelected}
+		class:is-focused={isFocused}
+		class:vm-badge-warning={isWarning}
+		class:vm-search-highlight={isHighlighted}
+		class:is-editing={isEditing}
+		style="--vm-tree-y: {y}px; --depth: {flat.depth}"
+		data-id={node.id}
+		data-sticky={sticky ? 'true' : undefined}
+		onclick={(e) => handleRowClick(e, node.id)}
+		onauxclick={(e) => handleRowAuxClick(e, node.id)}
+		oncontextmenu={(e) => onContextMenu(node.id, e)}
+		onkeydown={(e) => handleKeydown(e, node.id)}
+		role="treeitem"
+		aria-selected={isSelected}
+		tabindex="0"
+		aria-expanded={flat.hasChildren ? flat.isExpanded : undefined}
+	>
+		<div
+			class="vm-tree-row-surface"
+			class:tree-item-self={useNativeDom}
+			class:is-active-filter={isActive}
+			class:is-selected={isSelected}
+			class:is-focused={isFocused}
+			class:vm-badge-warning={isWarning}
+			class:vm-search-highlight={isHighlighted}
+			class:is-editing={isEditing}
+			class:has-toggle={flat.hasChildren}
+			class:has-icon={!!rowIcon}
+			class:has-count={hasCount}
+			class:has-overlay-badges={hasOverlayBadges}
+			class:is-expanded-parent={flat.hasChildren && flat.isExpanded}
+		>
+			{#if flat.depth > 0}
+				<div class="vm-tree-indent-guides" aria-hidden="true">
+					{#each indentGuideDepths(flat.depth) as guideDepth (guideDepth)}
+						<span class="vm-tree-indent-guide" style="--guide-depth: {guideDepth}"></span>
+					{/each}
+				</div>
+			{/if}
+
+			{#if flat.hasChildren}
+				<div
+					class="vm-tree-toggle"
+					onclick={(e) => {
+						e.stopPropagation();
+						onToggle(node.id);
+					}}
+					onkeydown={() => {}}
+					role="button"
+					tabindex="-1"
+				>
+					<span use:icon={flat.isExpanded ? 'lucide-chevron-down' : 'lucide-chevron-right'}></span>
+				</div>
+			{:else}
+				<div class="vm-tree-toggle is-placeholder" aria-hidden="true"></div>
+			{/if}
+
+			{#if rowIcon}
+				<span class="vm-tree-icon" use:icon={rowIcon}></span>
+			{/if}
+
+			{#if isEditing}
+				<input
+					class="vm-tree-input"
+					value={node.label}
+					onclick={(e) => e.stopPropagation()}
+					onkeydown={(e) => handleInputKeydown(e, node.id, e.currentTarget)}
+					onblur={() => onCancelRename?.()}
+					use:focus
+				/>
+			{:else if showNodeText}
+				<span class="vm-tree-label" class:tree-item-inner={useNativeDom}>
+					{#if node.labelPrefix}<span class="vm-tree-label-prefix">{node.labelPrefix}</span>{/if}<HighlightText
+						text={node.label}
+						ranges={node.highlights ?? []}
+					/>
+				</span>
+			{/if}
+
+			{#if fieldValues.length > 0}
+				<div class="vm-tree-field-zone">
+					{#each fieldValues as field (field.id)}
+						<span class="vm-tree-field" data-node-field={field.id}>{field.text}</span>
+					{/each}
+				</div>
+			{/if}
+
+			{#if hasCount || hasOverlayBadges}
+				<div
+					class="vm-tree-badge-zone"
+					class:has-count={hasCount}
+					class:has-overlay-badges={hasOverlayBadges}
+				>
+					{#if hasOverlayBadges}
+						<div class="vm-tree-overlay-badge-zone" class:has-active-badges={hasActiveBadges}>
+							{#if hoverBadges.length > 0}
+								<div class="vm-tree-hover-badge-zone">
+									{#each hoverBadges as badge (badge.kind)}
+										<div
+											class="vm-badge is-hover-badge is-actionable"
+											data-hover-kind={badge.kind}
+											role="button"
+											tabindex="0"
+											title={badge.label}
+											aria-label={badge.label}
+											onclick={(e) => handleHoverBadgePress(e, node.id, badge.kind)}
+											onkeydown={(e) => handleHoverBadgeKeydown(e, node.id, badge.kind)}
+										>
+											<span class="vm-badge-icon" use:icon={badge.icon}></span>
+										</div>
+									{/each}
+								</div>
+							{/if}
+							{#if directBadges.length > 0}
+								{#each directBadges as badge, badgeIndex (nodeBadgeKey(badge, badgeIndex))}
+									<div
+										class="vm-badge"
+										role="button"
+										class:is-solid={badge.solid}
+										class:is-undoable={badge.queueIndex !== undefined}
+										class:is-actionable={nodeBadgeIsActionable(badge)}
+										class:is-quick-action={badge.quickAction}
+										class:vm-badge--red={badge.solid && badge.color === 'red'}
+										class:vm-badge--blue={badge.solid && badge.color === 'blue'}
+										class:vm-badge--purple={badge.solid && badge.color === 'purple'}
+										class:vm-badge--orange={badge.solid && badge.color === 'orange'}
+										class:vm-badge--green={badge.solid && badge.color === 'green'}
+										title={nodeBadgeTitle(badge)}
+										aria-label={nodeBadgeAriaLabel(badge)}
+										tabindex={nodeBadgeIsActionable(badge) ? 0 : -1}
+										onclick={(e) => handleBadgePress(e, badge)}
+										onkeydown={(e) => handleBadgeKeydown(e, badge)}
+									>
+										{#if badge.icon}
+											<span class="vm-badge-icon" use:icon={badge.icon}></span>
+										{/if}
+									</div>
+								{/each}
+							{/if}
+
+							{#if childBadges.length > 0}
+								<div class="vm-tree-child-badge-indicator" title={inheritedBadgeTitle(childBadges)}>
+									<span class="vm-tree-child-badge-dot"></span>
+									<div class="vm-tree-child-badge-pill">
+										{#each childBadges as badge, badgeIndex (nodeBadgeKey(badge, badgeIndex))}
+											<div
+												class="vm-badge"
+												role="button"
+												class:is-solid={badge.solid}
+												class:is-inherited={badge.isInherited}
+												class:is-undoable={badge.queueIndex !== undefined}
+												class:is-actionable={nodeBadgeIsActionable(badge)}
+												class:is-quick-action={badge.quickAction}
+												class:vm-badge--red={badge.solid && badge.color === 'red'}
+												class:vm-badge--blue={badge.solid && badge.color === 'blue'}
+												class:vm-badge--purple={badge.solid && badge.color === 'purple'}
+												class:vm-badge--orange={badge.solid && badge.color === 'orange'}
+												class:vm-badge--green={badge.solid && badge.color === 'green'}
+												title={nodeBadgeTitle(badge, true)}
+												aria-label={nodeBadgeAriaLabel(badge, true)}
+												tabindex={nodeBadgeIsActionable(badge) ? 0 : -1}
+												onclick={(e) => handleBadgePress(e, badge)}
+												onkeydown={(e) => handleBadgeKeydown(e, badge)}
+											>
+												{#if badge.icon}
+													<span class="vm-badge-icon" use:icon={badge.icon}></span>
+												{/if}
+											</div>
+										{/each}
+									</div>
+								</div>
+							{/if}
+						</div>
+					{/if}
+
+					{#if node.countLabel}
+						<span class="vm-tree-count">{node.countLabel}</span>
+					{:else if node.count != null && node.count > 0}
+						<span class="vm-tree-count">{node.count}</span>
+					{/if}
+				</div>
+			{/if}
+		</div>
+	</div>
+{/snippet}
 
 <div
 	bind:this={outerEl}
@@ -507,222 +789,19 @@
 	tabindex="-1"
 	style={viewSizeStyle}
 >
+	{#if stickyRows.length > 0}
+		<div
+			class="vm-tree-sticky-layer"
+			style="--vm-tree-sticky-scroll-y: {fallbackScrollTop}px"
+		>
+			{#each stickyRows as stickyRow (stickyRow.key)}
+				{@render treeRow(stickyRow.flat, stickyRow.top, true)}
+			{/each}
+		</div>
+	{/if}
 	<div class="vm-tree-virtual-inner" style="--vm-tree-total-h: {totalH}px">
 		{#each renderedVirtualRows as virtualRow (virtualRow.key)}
-			{@const flat = flatArray[virtualRow.index]}
-			{@const node = flat.node}
-			{@const isActive = activeFilterIds?.has(node.id) ?? false}
-			{@const isWarning = warningIds?.has(node.id) ?? false}
-			{@const isEditing = editingId === node.id}
-			{@const isHighlighted = searchHighlightIds?.has(node.id) ?? false}
-			{@const isSelected = selectedIds?.has(node.id) ?? false}
-			{@const isFocused = focusedId === node.id}
-			{@const directBadges = ownNodeBadges(node)}
-			{@const childBadges = inheritedNodeBadges(node)}
-			{@const hoverBadges = hoverBadgesFor(node)}
-			{@const rowIcon = showNodeIcon ? iconForNode(node, flat) : undefined}
-			{@const hasCount = showNodeCount && hasVisibleCount(node)}
-			{@const fieldValues = visibleNodeFieldValues(providerId, 'tree', node, effectiveVisibleFields)}
-			{@const hasOverlayBadges =
-				directBadges.length > 0 || childBadges.length > 0 || hoverBadges.length > 0}
-			{@const hasActiveBadges = hasActiveRowBadge(directBadges) || hasActiveRowBadge(childBadges)}
-
-			<div
-				class="vm-tree-virtual-row {node.cls ?? ''}"
-				class:tree-item={useNativeDom}
-				class:is-active-filter={isActive}
-				class:is-selected={isSelected}
-				class:is-focused={isFocused}
-				class:vm-badge-warning={isWarning}
-				class:vm-search-highlight={isHighlighted}
-				class:is-editing={isEditing}
-				style="--vm-tree-y: {virtualRow.start}px; --depth: {flat.depth}"
-				data-id={node.id}
-				onclick={(e) => handleRowClick(e, node.id)}
-				onauxclick={(e) => handleRowAuxClick(e, node.id)}
-				oncontextmenu={(e) => onContextMenu(node.id, e)}
-				onkeydown={(e) => handleKeydown(e, node.id)}
-				role="treeitem"
-				aria-selected={isSelected}
-				tabindex="0"
-				aria-expanded={flat.hasChildren ? flat.isExpanded : undefined}
-			>
-				<div
-					class="vm-tree-row-surface"
-					class:tree-item-self={useNativeDom}
-					class:is-active-filter={isActive}
-					class:is-selected={isSelected}
-					class:is-focused={isFocused}
-					class:vm-badge-warning={isWarning}
-					class:vm-search-highlight={isHighlighted}
-					class:is-editing={isEditing}
-					class:has-toggle={flat.hasChildren}
-					class:has-icon={!!rowIcon}
-					class:has-count={hasCount}
-					class:has-overlay-badges={hasOverlayBadges}
-					class:is-expanded-parent={flat.hasChildren && flat.isExpanded}
-				>
-					{#if flat.depth > 0}
-						<div class="vm-tree-indent-guides" aria-hidden="true">
-							{#each indentGuideDepths(flat.depth) as guideDepth (guideDepth)}
-								<span class="vm-tree-indent-guide" style="--guide-depth: {guideDepth}"></span>
-							{/each}
-						</div>
-					{/if}
-
-					<!-- Chevron / Spacer -->
-					{#if flat.hasChildren}
-						<div
-							class="vm-tree-toggle"
-							onclick={(e) => {
-								e.stopPropagation();
-								onToggle(node.id);
-							}}
-							onkeydown={() => {}}
-							role="button"
-							tabindex="-1"
-						>
-							<span use:icon={flat.isExpanded ? 'lucide-chevron-down' : 'lucide-chevron-right'}
-							></span>
-						</div>
-					{:else}
-						<div class="vm-tree-toggle is-placeholder" aria-hidden="true"></div>
-					{/if}
-
-					<!-- Icon -->
-					{#if rowIcon}
-						<span class="vm-tree-icon" use:icon={rowIcon}></span>
-					{/if}
-
-					<!-- Label / Input -->
-					{#if isEditing}
-						<input
-							class="vm-tree-input"
-							value={node.label}
-							onclick={(e) => e.stopPropagation()}
-							onkeydown={(e) => handleInputKeydown(e, node.id, e.currentTarget)}
-							onblur={() => onCancelRename?.()}
-							use:focus
-						/>
-					{:else if showNodeText}
-						<span class="vm-tree-label" class:tree-item-inner={useNativeDom}>
-							{#if node.labelPrefix}<span class="vm-tree-label-prefix">{node.labelPrefix}</span
-								>{/if}<HighlightText text={node.label} ranges={node.highlights ?? []} />
-						</span>
-					{/if}
-
-					{#if fieldValues.length > 0}
-						<div class="vm-tree-field-zone">
-							{#each fieldValues as field (field.id)}
-								<span class="vm-tree-field" data-node-field={field.id}>{field.text}</span>
-							{/each}
-						</div>
-					{/if}
-
-					<!-- Badges / Counts -->
-					{#if hasCount || hasOverlayBadges}
-						<div
-							class="vm-tree-badge-zone"
-							class:has-count={hasCount}
-							class:has-overlay-badges={hasOverlayBadges}
-						>
-							{#if hasOverlayBadges}
-								<div
-									class="vm-tree-overlay-badge-zone"
-									class:has-active-badges={hasActiveBadges}
-								>
-									{#if hoverBadges.length > 0}
-										<div class="vm-tree-hover-badge-zone">
-											{#each hoverBadges as badge (badge.kind)}
-												<div
-													class="vm-badge is-hover-badge is-actionable"
-													data-hover-kind={badge.kind}
-													role="button"
-													tabindex="0"
-													title={badge.label}
-													aria-label={badge.label}
-													onclick={(e) => handleHoverBadgePress(e, node.id, badge.kind)}
-													onkeydown={(e) => handleHoverBadgeKeydown(e, node.id, badge.kind)}
-												>
-													<span class="vm-badge-icon" use:icon={badge.icon}></span>
-												</div>
-											{/each}
-										</div>
-									{/if}
-									{#if directBadges.length > 0}
-										{#each directBadges as badge, badgeIndex (nodeBadgeKey(badge, badgeIndex))}
-											<div
-												class="vm-badge"
-												role="button"
-												class:is-solid={badge.solid}
-												class:is-undoable={badge.queueIndex !== undefined}
-												class:is-actionable={nodeBadgeIsActionable(badge)}
-												class:is-quick-action={badge.quickAction}
-												class:vm-badge--red={badge.solid && badge.color === 'red'}
-												class:vm-badge--blue={badge.solid && badge.color === 'blue'}
-												class:vm-badge--purple={badge.solid && badge.color === 'purple'}
-												class:vm-badge--orange={badge.solid && badge.color === 'orange'}
-												class:vm-badge--green={badge.solid && badge.color === 'green'}
-												title={nodeBadgeTitle(badge)}
-												aria-label={nodeBadgeAriaLabel(badge)}
-												tabindex={nodeBadgeIsActionable(badge) ? 0 : -1}
-												onclick={(e) => handleBadgePress(e, badge)}
-												onkeydown={(e) => handleBadgeKeydown(e, badge)}
-											>
-												{#if badge.icon}
-													<span class="vm-badge-icon" use:icon={badge.icon}></span>
-												{/if}
-											</div>
-										{/each}
-									{/if}
-
-									{#if childBadges.length > 0}
-										<div
-											class="vm-tree-child-badge-indicator"
-											title={inheritedBadgeTitle(childBadges)}
-										>
-											<span class="vm-tree-child-badge-dot"></span>
-											<div class="vm-tree-child-badge-pill">
-												{#each childBadges as badge, badgeIndex (nodeBadgeKey(badge, badgeIndex))}
-													<div
-														class="vm-badge"
-														role="button"
-														class:is-solid={badge.solid}
-														class:is-inherited={badge.isInherited}
-														class:is-undoable={badge.queueIndex !== undefined}
-														class:is-actionable={nodeBadgeIsActionable(badge)}
-														class:is-quick-action={badge.quickAction}
-														class:vm-badge--red={badge.solid && badge.color === 'red'}
-														class:vm-badge--blue={badge.solid && badge.color === 'blue'}
-														class:vm-badge--purple={badge.solid && badge.color === 'purple'}
-														class:vm-badge--orange={badge.solid && badge.color === 'orange'}
-														class:vm-badge--green={badge.solid && badge.color === 'green'}
-														title={nodeBadgeTitle(badge, true)}
-														aria-label={nodeBadgeAriaLabel(badge, true)}
-														tabindex={nodeBadgeIsActionable(badge) ? 0 : -1}
-														onclick={(e) => handleBadgePress(e, badge)}
-														onkeydown={(e) => handleBadgeKeydown(e, badge)}
-													>
-														{#if badge.icon}
-															<span class="vm-badge-icon" use:icon={badge.icon}></span>
-														{/if}
-													</div>
-												{/each}
-											</div>
-										</div>
-									{/if}
-								</div>
-							{/if}
-
-							{#if node.countLabel}
-								<span class="vm-tree-count">{node.countLabel}</span>
-							{:else if node.count != null && node.count > 0}
-								<span class="vm-tree-count">{node.count}</span>
-							{/if}
-						</div>
-					{/if}
-				</div>
-			</div>
+			{@render treeRow(flatArray[virtualRow.index], virtualRow.start, false)}
 		{/each}
 	</div>
 	{#if selectionBox}

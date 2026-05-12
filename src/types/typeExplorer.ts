@@ -2,6 +2,7 @@ import type { TFile } from 'obsidian';
 import type { TreeNode } from './typeNode';
 import type { MenuCtx } from './typeCtxMenu';
 import type { ExplorerViewMode, ViewEmptyState } from './typeViews';
+import type { ExplorerDataPlaneRevisions } from './typeExplorerDataPlane';
 export type { ExplorerViewMode } from './typeViews';
 
 export type ExplorerExpansionAction = 'expand-all' | 'collapse-all';
@@ -31,6 +32,13 @@ export interface ExplorerProvider<TMeta = unknown> {
 	empty?: ViewEmptyState;
 	getTree(): TreeNode<TMeta>[];
 	getFiles?(): TFile[];
+	/**
+	 * Optional structural source for providers that opt in to the Explorer
+	 * data-plane. Providers that do not implement this stay on panelExplorer's
+	 * recursive fallback path.
+	 */
+	getStructuralTree?(): TreeNode<TMeta>[];
+	getStructuralRevisions?(): ExplorerDataPlaneRevisions;
 	getEmptyState?(context: {
 		mode: ExplorerViewMode;
 		searchTerm: string;

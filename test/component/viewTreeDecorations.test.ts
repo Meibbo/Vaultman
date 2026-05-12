@@ -30,6 +30,60 @@ describe('ViewTree decorations', () => {
 		vi.unstubAllGlobals();
 	});
 
+	function nestedStickyNodes(): TreeNode[] {
+		return [
+			{
+				id: 'root',
+				label: 'Root',
+				depth: 0,
+				meta: {},
+				children: [
+					{
+						id: 'child',
+						label: 'Child',
+						depth: 1,
+						meta: {},
+						children: Array.from({ length: 12 }, (_, index) => ({
+							id: `leaf-${index}`,
+							label: `Leaf ${index}`,
+							depth: 2,
+							meta: {},
+						})),
+					},
+				],
+			},
+			{
+				id: 'sibling',
+				label: 'Sibling',
+				depth: 0,
+				meta: {},
+			},
+		];
+	}
+
+	function mountTree(props: Partial<Record<string, unknown>> = {}) {
+		app = mount(ViewTree as unknown as Component<Record<string, unknown>>, {
+			target,
+			props: {
+				nodes: nestedStickyNodes(),
+				expandedIds: new Set<string>(['root', 'child']),
+				onToggle: vi.fn(),
+				onRowClick: vi.fn(),
+				onContextMenu: vi.fn(),
+				icon: vi.fn(() => ({ update: vi.fn() })),
+				...props,
+			},
+		});
+		flushSync();
+		return target.querySelector<HTMLDivElement>('.vm-tree-virtual-outer')!;
+	}
+
+	function scrollTree(outer: HTMLElement, scrollTop: number) {
+		outer.scrollTop = scrollTop;
+		outer.dispatchEvent(new Event('scroll'));
+		flushSync();
+	}
+
 	it('renders DecorationManager highlight ranges in node labels', () => {
 		const nodes: TreeNode[] = [
 			{
@@ -218,6 +272,43 @@ describe('ViewTree decorations', () => {
 			'1',
 			'2',
 		]);
+	});
+
+	it('keeps expanded parent rows sticky while scrolling through their subtree', () => {
+		const outer = mountTree();
+
+		scrollTree(outer, 96);
+
+		const stickyRows = target.querySelectorAll('.vm-tree-sticky-row');
+		expect([...stickyRows].map((row) => row.getAttribute('data-id'))).toEqual(['root', 'child']);
+		expect(stickyRows[0]?.textContent).toContain('Root');
+		expect(stickyRows[1]?.textContent).toContain('Child');
+	});
+
+	it('removes sticky parent rows after the subtree scrolls out of frame', () => {
+		const outer = mountTree();
+
+		scrollTree(outer, 10_000);
+
+		expect(target.querySelectorAll('.vm-tree-sticky-row')).toHaveLength(0);
+	});
+
+	it('does not render collapsed parent rows as sticky rows', () => {
+		const outer = mountTree({ expandedIds: new Set<string>() });
+
+		scrollTree(outer, 96);
+
+		expect(target.querySelectorAll('.vm-tree-sticky-row')).toHaveLength(0);
+	});
+
+	it('routes sticky parent toggle clicks through the normal tree toggle handler', () => {
+		const onToggle = vi.fn();
+		const outer = mountTree({ onToggle });
+		scrollTree(outer, 96);
+
+		(target.querySelector('.vm-tree-sticky-row[data-id="root"] .vm-tree-toggle') as HTMLElement).click();
+
+		expect(onToggle).toHaveBeenCalledWith('root');
 	});
 
 	it('removes a queued badge with a single click without triggering row activation', () => {
