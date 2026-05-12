@@ -4,7 +4,7 @@ type: reconciliation
 status: draft
 parent: "[[docs/work/hardening/specs/2026-05-11-explorer-data-plane-structural-taxonomy/index|explorer-data-plane-structural-taxonomy]]"
 created: 2026-05-11T19:56:34
-updated: 2026-05-11T19:56:34
+updated: 2026-05-11T20:37:12
 tags:
   - agent/spec
   - initiative/hardening
@@ -29,12 +29,17 @@ The first implementation issue should be Files-first snapshot/data-plane
 foundation. Existing table, cards, selection, badge, performance, and scroll
 work are inputs or compatibility constraints, not work to redo.
 
+The cached-image decision changes only the persistence boundary: structural
+snapshots remain memory-first, while a separate media/derived-content cache DB
+is now issue-ready as a follow-up once row identity is stable.
+
 ## Evidence Ledger
 
 | Source | Status | Reconciliation |
 | --- | --- | --- |
 | [[docs/work/hardening/specs/2026-05-11-explorer-data-plane-transition/index|Explorer data plane transition PRD]] | Source of truth | Keep as parent direction and user-story source. |
 | [[docs/work/hardening/specs/2026-05-11-explorer-data-plane-structural-taxonomy/13-wave-4-implementation-spec-set|Wave 4 implementation specs]] | New draft source | Use as implementation-spec source for issues. |
+| [[docs/work/hardening/specs/2026-05-11-explorer-data-plane-structural-taxonomy/05-notebook-navigator-react-to-svelte-research|Notebook Navigator research]] | Updated prior art | Copy the media cache boundary: key/status metadata, separate blobs, memory LRU, file-level subscriptions. Do not copy IndexedDB into structural snapshots. |
 | [[docs/work/hardening/specs/2026-05-04-explorer-view-service/index|Explorer view service spec]] | Compatible extension | Keep `ViewLayers`, render rows, and service-owned layers; supersede old selection ownership wording. |
 | [[docs/work/hardening/plans/2026-05-04-serviceviews-implementation/index|serviceViews implementation plan]] | Partially completed, stale status | Do not execute old slices again; reuse as historical source for contracts/list migration. |
 | [[docs/work/hardening/plans/2026-05-06-node-selection-service/index|Node selection service implementation plan]] | Completed authority | `NodeSelectionService` owns selection/focus/hover/active; data plane consumes projections only. |
@@ -61,6 +66,10 @@ work are inputs or compatibility constraints, not work to redo.
   the first data-plane issue. Do not combine relocation with snapshot work.
 - Table/cards/grid enhancements stay in Polish. Data-plane adapter work may
   feed those views, but must not add new table/cards features.
+- The old blanket deferral of IndexedDB is narrowed. Persistent structural
+  snapshot storage remains deferred; media/derived-content cache storage is a
+  valid follow-up because cached explorer images are rebuildable blobs, not row
+  structure.
 
 ## Source Of Truth Updates Needed
 
@@ -84,15 +93,17 @@ Before publishing tracker issues:
 - Revision-aware reveal-by-id.
 - `NodeSelectionService` remains selection source of truth.
 - Adapter-local virtualizers remain adapter-local.
-- Persistent storage and row-level subscriptions remain deferred.
+- Persistent structural storage and generic row-level subscriptions remain
+  deferred.
+- Media/derived-content cache DB and file/node-level media subscriptions are
+  accepted as a separate follow-up slice.
 
 ## Not Issue-Ready
 
-- Persistent storage/IndexedDB.
-- Row-level subscriptions.
+- Persistent storage/IndexedDB for structural snapshots.
+- Generic row-level subscriptions.
 - Global virtualizer service.
 - New table/card/grid features.
 - SVAR cleanup.
 - DnD redesign.
 - Provider relocation as part of the first data-plane cut.
-

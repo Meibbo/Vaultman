@@ -4,7 +4,7 @@ type: implementation-spec
 status: draft
 parent: "[[docs/work/hardening/specs/2026-05-11-explorer-data-plane-structural-taxonomy/index|explorer-data-plane-structural-taxonomy]]"
 created: 2026-05-11T19:46:21
-updated: 2026-05-11T19:46:21
+updated: 2026-05-11T20:37:12
 tags:
   - agent/spec
   - initiative/hardening
@@ -123,14 +123,45 @@ Acceptance:
   document why they cannot yet.
 - Issue candidates trace back to Wave 4 specs and Wave 2 evidence.
 
+## Slice F - Media Cache DB And File/Node Subscriptions
+
+Source shards:
+
+- [[docs/work/hardening/specs/2026-05-11-explorer-data-plane-structural-taxonomy/05-notebook-navigator-react-to-svelte-research|Wave 3 Notebook Navigator research]]
+- [[docs/work/hardening/specs/2026-05-11-explorer-data-plane-structural-taxonomy/13-wave-4-implementation-spec-set|Wave 4 implementation spec set]]
+
+Scope:
+
+- Add a media/derived-content cache database for cached explorer images,
+  previews, and future visual assets after the structural row identity contract
+  is proven.
+- Keep structural snapshots memory-resident and source-rebuildable.
+- Store media status/key metadata separately from blobs. Main records should
+  carry `mediaStatus`, `mediaKey`, source mtime/hash, dimensions, generated
+  time, and error state; blobs should live in a separate store validated by
+  expected `mediaKey`.
+- Maintain a bounded in-memory LRU for blobs and avoid embedding blob data in
+  `ExplorerSnapshot` rows.
+- Expose file/node-level media subscriptions so visible rows can update
+  thumbnails without rebuilding structural rows or `ViewService` layers.
+
+Acceptance:
+
+- Media cache docs and tests prove stale blobs are not returned when
+  `mediaKey` changes.
+- Visible row update tests cover status transitions:
+  `unprocessed -> ready`, `ready -> stale`, `ready -> error`, and row removal.
+- A perf or memory check confirms blob cache limits and lazy loading behavior.
+- The media subscription API is explicitly narrower than a generic row-level
+  subscription system.
+
 ## Defer Rules
 
 Defer any slice that requires:
 
-- persistent storage;
-- row-level subscription channels;
+- persistent structural snapshot storage;
+- generic row-level subscription channels;
 - global virtualizer ownership;
 - table/cards/grid behavior redesign;
 - provider action signature rewrites;
 - removal of `TreeNode` compatibility before all adapters have a replacement.
-

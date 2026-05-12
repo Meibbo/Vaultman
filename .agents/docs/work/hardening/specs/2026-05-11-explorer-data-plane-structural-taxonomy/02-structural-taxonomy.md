@@ -4,7 +4,7 @@ type: spec-shard
 status: draft
 parent: "[[docs/work/hardening/specs/2026-05-11-explorer-data-plane-structural-taxonomy/index|explorer-data-plane-structural-taxonomy]]"
 created: 2026-05-11T00:00:00
-updated: 2026-05-11T00:00:00
+updated: 2026-05-11T20:37:12
 tags:
   - agent/spec
   - explorer/views
@@ -25,6 +25,7 @@ not UI labels.
 | Explorer data plane | new module | Build versioned snapshots from indexes, provider facts, filters, and settings. |
 | Structural snapshot | new contract | Stable ids, hierarchy, rows, lookup maps, revisions, and projection metadata. |
 | Overlay pipeline | extracted from `ViewService` | Build queue/filter/decoration layers without rebuilding source structure. |
+| Media cache data plane | new follow-up module | Persist rebuildable image/preview blobs and media status outside structural snapshots. |
 | View service batcher | `ViewService` evolved | Create render rows/layers in batch from snapshots or visible rows. |
 | View adapter | tree/grid/table/cards/list/SVAR | Render projected rows and forward semantic events. |
 | Selection projection | `NodeSelectionService` adapter | Map selection snapshot into adapter-friendly ids, maps, focus, active node. |
@@ -63,6 +64,13 @@ Control invalidation changes interaction state:
 - scroll target;
 - box selection in progress;
 - drag/drop state.
+
+Media cache invalidation changes derived visual content without changing
+structural rows:
+
+- cached explorer thumbnails or previews become ready/stale/error;
+- media source mtime, hash, selected reference, or dimensions change;
+- a visible row needs a new `mediaKey` while its structural id remains stable.
 
 ## Provider Adapter Boundary
 
@@ -107,5 +115,6 @@ Every structural snapshot should be able to answer:
 - Keep `NodeSelectionService` as selection authority.
 - Keep current view adapters working while data-plane snapshots are introduced.
 - Do not reopen table/cards/grid feature scope in the first data-plane slice.
-- Do not introduce IndexedDB before the Notebook Navigator Svelte comparison
-  proves it is needed.
+- Do not introduce IndexedDB for structural snapshots. A media/derived-content
+  cache database is allowed only as a separate slice with key/status records,
+  blob storage, and file/node-level subscriptions.

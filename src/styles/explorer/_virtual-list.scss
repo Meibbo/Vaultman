@@ -59,32 +59,41 @@
 			padding-right: calc(var(--vm-tree-counter-reserve, 44px) + 8px);
 		}
 
-		.vm-tree-row-surface::before,
+		.vm-tree-indent-guide,
 		.vm-tree-row-surface.is-expanded-parent::after {
-			content: '';
 			position: absolute;
 			z-index: 0;
 			width: 1px;
 			background: $vm-border-color;
-			opacity: 0;
 			pointer-events: none;
 		}
 
-		.vm-tree-row-surface::before {
-			left: calc(var(--depth, 0) * 16px - 6px);
+		.vm-tree-indent-guides {
+			position: absolute;
+			inset: 0;
+			z-index: 0;
+			pointer-events: none;
+		}
+
+		.vm-tree-indent-guide {
+			left: calc(var(--guide-depth, 0) * 16px + 10px);
 			top: 0;
 			bottom: 0;
+			opacity: 0.45;
 		}
 
 		.vm-tree-row-surface.is-expanded-parent::after {
+			content: '';
 			left: calc(var(--depth, 0) * 16px + 14px);
 			top: 50%;
 			bottom: 0;
 			opacity: 0.55;
 		}
 
-		&:not([style*='--depth: 0']) .vm-tree-row-surface::before {
-			opacity: 0.45;
+		.vm-tree-label,
+		.vm-tree-input {
+			position: relative;
+			z-index: 1;
 		}
 
 		.vm-tree-row-surface.is-selected {

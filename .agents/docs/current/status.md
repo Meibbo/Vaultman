@@ -5,7 +5,7 @@ status: active
 parent: "[[docs/work/pkm-ai/index|pkm-ai]]"
 archive_source: "docs/archive/pkm-ai/active-docs/2026-05-11T080321-current-status.md"
 created: 2026-05-04T01:36:20
-updated: 2026-05-11T19:56:34
+updated: 2026-05-11T20:37:12
 tags:
   - agent/current
 created_by: dec
@@ -30,7 +30,8 @@ Older route history remains in
 
 ## Current Route
 
-- Latest user request: proceed with Wave 5.
+- Latest user request: update Explorer data-plane specs with the Notebook
+  Navigator media cache DB decision.
 - Active initiative: [[docs/work/hardening/index|Hardening]].
 - Active spec:
   [[docs/work/hardening/specs/2026-05-11-explorer-data-plane-structural-taxonomy/index|Explorer Data Plane Structural Taxonomy]].
@@ -39,11 +40,14 @@ Older route history remains in
   through
   [[docs/work/hardening/specs/2026-05-11-explorer-data-plane-structural-taxonomy/19-wave-5-issue-prd-candidates|Wave 5 issue and PRD candidates]].
 - Wave 2 status: vertical specs captured in shards 06 through 12.
-- Wave 3 status: Notebook Navigator research was revalidated against Wave 2.
+- Wave 3 status: Notebook Navigator research was revalidated against Wave 2;
+  media cache DB addendum accepted for cached explorer images.
 - Wave 4 status: implementation specs drafted in shards 13 through 17. No code
-  or tracker issues were created.
+  or tracker issues were created. Slice F now covers media cache DB and
+  file/node-level media subscriptions.
 - Wave 5 status: plan/PRD comparison and issue candidates drafted in shards 18
-  and 19. Publication is blocked on user approval and tracker target.
+  and 19. Candidate issue 7 now covers the Explorer media cache database.
+  Publication is blocked on user approval and tracker target.
 - Previous route before this request: Claude worktree thread 04.
 - Previous worktree:
   `C:\Users\vic_A\Desktop\vaultman\.claude\worktrees\sleepy-engelbart-9e6dc6`
@@ -74,10 +78,10 @@ Older route history remains in
 
 ## Verification Snapshot
 
-- Explorer Wave 5 docs: all taxonomy shards are under 200 lines, current
-  `status` is 135 lines, current `handoff` is 144 lines, red-flag scan
-  found no matches, trailing space/tab scan found no matches, and targeted
-  `git diff --check` exited 0 with only current-doc CRLF conversion warnings.
+- Explorer media-cache spec update: touched taxonomy shards are at or below
+  200 lines, current `status` is 139 lines, current `handoff` is 146 lines,
+  contradiction scan found only intentional narrowed deferrals, and targeted
+  `git diff --check` exited 0 with only CRLF conversion warnings.
 - `node .agents/tools/pkm-ai/check-doc-health.mjs` still fails 11 existing
   residuals: glossary warnings, parent-shape issues, and large plan/spec line
   limits outside the new Wave 2 shards.

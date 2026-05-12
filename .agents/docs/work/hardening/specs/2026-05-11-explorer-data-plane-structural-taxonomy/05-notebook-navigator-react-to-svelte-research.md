@@ -4,7 +4,7 @@ type: research
 status: draft
 parent: "[[docs/work/hardening/specs/2026-05-11-explorer-data-plane-structural-taxonomy/index|explorer-data-plane-structural-taxonomy]]"
 created: 2026-05-11T19:21:17
-updated: 2026-05-11T19:31:39
+updated: 2026-05-11T20:37:12
 tags:
   - agent/research
   - initiative/hardening
@@ -54,7 +54,7 @@ Evaluation criteria:
 
 | Area | Notebook Navigator evidence | Vaultman/Svelte evidence | Research use |
 | --- | --- | --- | --- |
-| Storage tiers | `docs/storage-architecture.md`, `docs/metadata-pipeline.md`, `src/storage/IndexedDBStorage.ts`, `src/storage/MemoryFileCache.ts` | Current taxonomy rule: do not introduce IndexedDB before comparison proves it | Decide persistence vs memory-first data plane |
+| Storage tiers | `docs/storage-architecture.md`, `docs/metadata-pipeline.md`, `src/storage/IndexedDBStorage.ts`, `src/storage/MemoryFileCache.ts` | Structural snapshots remain memory-first; cached explorer images make a separate media cache DB natural | Decide structural persistence vs media/derived-content persistence |
 | Provider registry | `docs/service-architecture.md`, `src/services/content/ContentProviderRegistry.ts`, `src/services/content/BaseContentProvider.ts` | `src/providers/explorerFiles.ts`, `explorerTags.ts`, `explorerProps.ts`, `explorerContent.ts` | Separate source/domain adapters from derived-content workers |
 | Render snapshots | `docs/rendering-architecture.md`, `src/hooks/useListPaneData.ts`, `src/hooks/listPaneData/listItems.ts` | `src/index/indexNodeCreate.ts`, `src/types/typeContracts.ts`, `src/services/serviceViews.svelte.ts` | Define versioned rows/lookups without replacing `TreeNode` immediately |
 | Scroll orchestration | `docs/scroll-orchestration.md`, `src/hooks/useNavigationPaneScroll.ts`, `src/hooks/useListPaneScroll.ts` | `src/services/serviceScroll.ts`, `src/components/views/viewTree.svelte`, grid/table/cards/list adapters | Adopt path/id-based pending scroll plus index-version gates |
@@ -86,20 +86,19 @@ reveal after structural changes.
 
 | Notebook Navigator pattern | Decision | Vaultman/Svelte translation | Reason |
 | --- | --- | --- | --- |
-| IndexedDB as rebuildable file-derived cache | Reject for first slice | Start with versioned in-memory explorer snapshots built from existing indexes/providers. Revisit persistence only for expensive derived content. | The current Vaultman problem is structural ownership and invalidation, not cold-cache storage volume. IndexedDB would widen blast radius before the data-plane boundary is proven. |
+| IndexedDB as rebuildable file-derived cache | Reject for the first structural slice; adopt as media-cache follow-up | Start with versioned in-memory explorer snapshots built from existing indexes/providers. Add a separate cache DB for cached images/previews once the row identity contract is proven. | The current Vaultman problem is structural ownership and invalidation. Cached explorer images are different: blobs are rebuildable, expensive, and should not live in structural snapshots. |
 | Memory cache mirrored from storage | Adopt concept, adapt backing | Create an `ExplorerDataPlane` service that exposes immutable structural snapshots, lookup maps, revisions, and subscriptions. Use `$state.raw` or immutable assignments for large snapshot objects in `.svelte.ts`. | Svelte can expose synchronous reads without a React provider stack. Immutable snapshot replacement makes revision changes explicit. |
 | Content provider registry | Adapt | Keep Files/Tags/Props providers as domain/source adapters. If later derived-content jobs are needed, add a registry-like queue behind the data plane, not inside `panelExplorer`. | Vaultman providers currently mix facts, actions, search/sort, overlays, and view service calls. A registry is useful only after source facts are separated. |
 | React context readiness gates | Adapt | Use a small Svelte context or service singleton for data-plane readiness and snapshot access. Keep component state local for pane chrome and virtualizer inputs. | Svelte context is enough for dependency injection; React-style context nesting is not the target architecture. |
 | Derived row lists and stable maps | Adopt | Data plane owns structural rows/lookups/revisions. `ViewService` owns semantic/decorative layers. View adapters receive row inputs and maps, not provider-specific overlay props. | This matches the taxonomy split: structural, decorative, and control invalidation should not force the same rebuild path. |
-| Per-row subscriptions | Defer/adapt | Start with source index subscriptions plus snapshot revision subscriptions. Add row-level subscriptions only if profiling shows large decorative churn. | Vaultman already has `createNodeIndex.subscribe` and `ViewService.subscribe`; adding row subscriptions early risks fragmented invalidation. |
+| Per-row subscriptions | Defer generic row subscriptions; adopt file/node-level media subscriptions | Start with source index subscriptions plus snapshot revision subscriptions. Add narrow subscriptions for media status/key changes when cached images are introduced. | Vaultman already has `createNodeIndex.subscribe` and `ViewService.subscribe`; a narrow media channel avoids fragmented invalidation while still letting visible rows update thumbnails independently. |
 | Scroll index versioning | Adopt | Represent reveal requests as `{ id, align, reason, minSnapshotRevision }`; resolve the id to index only after the target adapter confirms the relevant row map revision. | This directly addresses virtualizer index drift when structural rows change. |
 | Pane-local TanStack virtualizers | Adopt | Keep `@tanstack/svelte-virtual` inside tree/grid/table/cards/list adapters. Feed stable item keys, row counts, size estimates, and id-to-index maps from snapshots. | Virtual scroll behavior is visual and adapter-specific; centralizing the virtualizer would couple panes unnecessarily. |
 | React memo hooks | Translate | Use `$derived` for pure derived values, `$state.raw` for large immutable snapshots, `SvelteMap`/`SvelteSet` where keyed collections must be reactive, and stores/`createSubscriber` for external event streams. | Svelte 5 runes give cleaner extracted reactive services than literal `useMemo`/`useCallback` ports. |
 
 ## Storage Decision
 
-Vaultman should start with versioned in-memory snapshots, not persistent
-storage.
+Vaultman should start with versioned in-memory structural snapshots, not persistent structural storage.
 
 Adopt now:
 
@@ -112,18 +111,29 @@ Adopt now:
 
 Defer:
 
-- IndexedDB or other persistent derived-data stores.
+- IndexedDB or other persistent stores for structural snapshots.
 - Background content-provider job queues beyond current source indexes.
-- Row-level subscription channels.
-- Cache schema/version migration code.
+- Generic row-level subscription channels.
 
-Revisit persistence only if a later vertical spec proves one of these:
+Accept as a separate follow-up:
 
-- derived content is too expensive to rebuild from Obsidian/cache state;
-- startup or filter changes require large recomputation that user-facing
-  profiling confirms;
-- previews, thumbnails, or file-derived metadata become data-plane-owned;
-- cache invalidation needs version markers across plugin reloads.
+- a media/derived-content cache database for cached explorer images, previews, and future visual assets;
+- metadata records by file path or stable node id with `mediaStatus`,
+  `mediaKey`, source mtime/hash, dimensions, generation time, and error state;
+- separate blob storage validated by expected `mediaKey`, plus a bounded blob
+  LRU and file/node-level media subscriptions for visible rows.
+
+Notebook Navigator separates feature-image status/key from blob storage; rows
+subscribe to file-level content changes and lazily load blobs by key. Vaultman
+should copy that boundary, not copy IndexedDB into structural snapshots.
+
+Revisit structural persistence only if a later vertical spec proves one of
+these:
+
+- structural derived content is too expensive to rebuild;
+- startup or filter changes require profiled large recomputation;
+- non-media metadata or structural invalidation needs version markers across
+  plugin reloads.
 
 ## Data Plane Shape For Wave 4
 

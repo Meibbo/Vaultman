@@ -5,7 +5,7 @@ status: active
 parent: "[[docs/work/pkm-ai/index|pkm-ai]]"
 archive_source: "docs/archive/pkm-ai/active-docs/2026-05-11T080321-current-handoff.md"
 created: 2026-05-04T01:36:20
-updated: 2026-05-11T19:56:34
+updated: 2026-05-11T20:37:12
 tags:
   - agent/current
 created_by: dec
@@ -21,15 +21,17 @@ Older route history remains in
 
 ## Resume Point
 
-- Latest request handled: proceed with Wave 5.
+- Latest request handled: updated Explorer data-plane specs with the Notebook
+  Navigator media cache DB decision.
 - Latest source records:
   [[docs/work/hardening/specs/2026-05-11-explorer-data-plane-structural-taxonomy/18-wave-5-plan-comparison-reconciliation|Wave 5 plan comparison and reconciliation]]
   through
   [[docs/work/hardening/specs/2026-05-11-explorer-data-plane-structural-taxonomy/19-wave-5-issue-prd-candidates|Wave 5 issue and PRD candidates]].
 - Current hardening status: Wave 2 vertical specs are captured, Wave 3 was
   revalidated against Wave 2, Wave 4 implementation specs are drafted, and
-  Wave 5 comparison/issue candidates are drafted. No code or tracker issues
-  were created.
+  Wave 5 comparison/issue candidates are drafted. Cached explorer images now
+  have a separate media/derived-content cache DB follow-up; structural
+  snapshots remain memory-first. No code or tracker issues were created.
 - Previous worktree route:
   `C:\Users\vic_A\Desktop\vaultman\.claude\worktrees\sleepy-engelbart-9e6dc6`
   on branch `claude/sleepy-engelbart-9e6dc6`.

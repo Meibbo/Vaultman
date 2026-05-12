@@ -4,7 +4,7 @@ type: spec-index
 status: draft
 parent: "[[docs/work/hardening/specs/2026-05-11-explorer-data-plane-transition/index|explorer-data-plane-transition]]"
 created: 2026-05-11T00:00:00
-updated: 2026-05-11T19:56:34
+updated: 2026-05-11T20:37:12
 tags:
   - agent/spec
   - initiative/hardening
@@ -36,6 +36,8 @@ Included:
 - Tree, grid, table, cards, SVAR, and list view adapters.
 - Existing tests, performance probes, hardening specs, polish plans, and stale
   plan conflicts that affect this transition.
+- Explorer media/derived-content cache requirements for cached images, previews,
+  and future per-node visual assets.
 
 Excluded for now:
 
@@ -75,6 +77,8 @@ Use a cleaner incremental architecture, not a shallow patch sequence:
 - then write implementation specs with enough certainty to integrate structural
   changes;
 - then compare against existing plans and PRDs before publishing issues.
+- keep structural snapshots memory-first while specifying a separate
+  media/derived-content cache database for cached explorer images.
 
 ## Completion State
 
@@ -85,4 +89,5 @@ Use a cleaner incremental architecture, not a shallow patch sequence:
   05; conclusions must be revalidated against Wave 2 before Wave 4 specs.
 - Implementation specs: Wave 4 draft complete in shards 13 through 17.
 - Final issues/PRDs: Wave 5 draft candidates complete; publication pending
-  user approval and tracker target.
+  user approval and tracker target. The candidates now include the
+  Notebook-Navigator-inspired media cache DB follow-up.

@@ -162,6 +162,64 @@ describe('ViewTree decorations', () => {
 		expect(badgeZone.querySelector('.vm-tree-count')?.textContent).toBe('42');
 	});
 
+	it('renders an indentation guide for every visible parent depth', () => {
+		const nodes: TreeNode[] = [
+			{
+				id: 'root',
+				label: 'Root',
+				depth: 0,
+				meta: {},
+				children: [
+					{
+						id: 'child',
+						label: 'Child',
+						depth: 1,
+						meta: {},
+						children: [
+							{
+								id: 'grandchild',
+								label: 'Grandchild',
+								depth: 2,
+								meta: {},
+								children: [
+									{
+										id: 'leaf',
+										label: 'Leaf',
+										depth: 3,
+										meta: {},
+									},
+								],
+							},
+						],
+					},
+				],
+			},
+		];
+
+		app = mount(ViewTree as unknown as Component<Record<string, unknown>>, {
+			target,
+			props: {
+				nodes,
+				expandedIds: new Set<string>(['root', 'child', 'grandchild']),
+				onToggle: vi.fn(),
+				onRowClick: vi.fn(),
+				onContextMenu: vi.fn(),
+				icon: vi.fn(() => ({ update: vi.fn() })),
+			},
+		});
+		flushSync();
+
+		const leaf = target.querySelector('[data-id="leaf"]') as HTMLElement;
+		const guides = leaf.querySelectorAll('.vm-tree-indent-guide');
+
+		expect(guides).toHaveLength(3);
+		expect([...guides].map((guide) => (guide as HTMLElement).style.getPropertyValue('--guide-depth'))).toEqual([
+			'0',
+			'1',
+			'2',
+		]);
+	});
+
 	it('removes a queued badge with a single click without triggering row activation', () => {
 		const onBadgeClick = vi.fn();
 		const onRowClick = vi.fn();

@@ -144,6 +144,10 @@
 		return badges.some((badge) => badge.queueIndex !== undefined || (badge.solid && !badge.quickAction));
 	}
 
+	function indentGuideDepths(depth: number): number[] {
+		return Array.from({ length: Math.max(0, depth) }, (_, index) => index);
+	}
+
 	let outerEl: HTMLDivElement | undefined = $state();
 	let rowHeight = $state(TREE_ROW_HEIGHT);
 	let fallbackScrollTop = $state(0);
@@ -540,6 +544,14 @@
 					class:has-overlay-badges={hasOverlayBadges}
 					class:is-expanded-parent={flat.hasChildren && flat.isExpanded}
 				>
+					{#if flat.depth > 0}
+						<div class="vm-tree-indent-guides" aria-hidden="true">
+							{#each indentGuideDepths(flat.depth) as guideDepth (guideDepth)}
+								<span class="vm-tree-indent-guide" style="--guide-depth: {guideDepth}"></span>
+							{/each}
+						</div>
+					{/if}
+
 					<!-- Chevron / Spacer -->
 					{#if flat.hasChildren}
 						<div

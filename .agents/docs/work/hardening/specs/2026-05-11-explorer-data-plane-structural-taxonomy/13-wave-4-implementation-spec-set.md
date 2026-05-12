@@ -4,7 +4,7 @@ type: spec-shard
 status: draft
 parent: "[[docs/work/hardening/specs/2026-05-11-explorer-data-plane-structural-taxonomy/index|explorer-data-plane-structural-taxonomy]]"
 created: 2026-05-11T19:46:21
-updated: 2026-05-11T19:46:21
+updated: 2026-05-11T20:37:12
 tags:
   - agent/spec
   - initiative/hardening
@@ -28,8 +28,11 @@ Wave 3 remains valid after Wave 2:
 - Adopt reveal-by-id with revision/index readiness gates.
 - Adopt pane-local virtualizers and feed them better row/map contracts.
 - Adapt provider-registry ideas into Vaultman provider/data-plane seams.
-- Reject IndexedDB, row-level subscriptions, and durable cache migrations for
-  the first data-plane slice.
+- Reject IndexedDB, generic row-level subscriptions, and durable cache
+  migrations for the first structural data-plane slice.
+- Accept a separate media/derived-content cache DB follow-up for cached images,
+  using file/node-level media subscriptions rather than structural row
+  subscriptions.
 
 Wave 2 strengthens the Files-first order. Files has enough existing tests and
 contract surface to prove the snapshot boundary without reopening table, cards,
@@ -62,7 +65,8 @@ The boundary does not own:
 - `NodeSelectionService` state;
 - `ViewService` decorative layer vocabulary;
 - view adapter virtualizers and measurement;
-- persistent cache storage.
+- persistent structural cache storage;
+- media blob storage, except through a separate follow-up module.
 
 ## Proposed Files
 
@@ -93,8 +97,9 @@ Modify in early slices:
 
 ## Non-Goals
 
-- No IndexedDB or persistent storage.
-- No row-level subscription system.
+- No IndexedDB or persistent storage for structural snapshots.
+- No generic row-level subscription system.
+- No media cache DB inside the first Files snapshot issue.
 - No `NodeSelectionService` replacement.
 - No table/cards/grid redesign.
 - No SVAR behavior cleanup beyond compatibility constraints.
@@ -130,4 +135,4 @@ Modify in early slices:
 | Batched layers | Shard 15 | Wave 2 overlay spec, Wave 2 view adapter spec, `ViewService` tests |
 | Panel/reveal compatibility | Shard 16 | Wave 2 selection spec, Wave 2 adapter spec, Notebook Navigator scroll research |
 | Tags/Props/adapter follow-ups | Shard 17 | Wave 2 Tags/Props, overlay, adapter, test/perf, reconciliation specs |
-
+| Media cache DB follow-up | Shard 17 | Notebook Navigator storage research, cached-image user decision |

@@ -17,8 +17,10 @@ describe('tree affordance spacing styles', () => {
 	it('draws depth and parent-node indentation guides without intercepting input', () => {
 		const source = readFileSync('src/styles/explorer/_virtual-list.scss', 'utf8');
 
-		expect(source).toContain('.vm-tree-row-surface::before');
+		expect(source).toContain('.vm-tree-indent-guides');
+		expect(source).toContain('.vm-tree-indent-guide');
 		expect(source).toContain('.vm-tree-row-surface.is-expanded-parent::after');
+		expect(source).toContain('left: calc(var(--guide-depth, 0) * 16px + 10px)');
 		expect(source).toContain('pointer-events: none');
 	});
 

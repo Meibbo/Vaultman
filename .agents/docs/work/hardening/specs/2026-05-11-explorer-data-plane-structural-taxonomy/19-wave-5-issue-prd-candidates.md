@@ -4,7 +4,7 @@ type: issue-draft
 status: draft
 parent: "[[docs/work/hardening/specs/2026-05-11-explorer-data-plane-structural-taxonomy/index|explorer-data-plane-structural-taxonomy]]"
 created: 2026-05-11T19:56:34
-updated: 2026-05-11T19:56:34
+updated: 2026-05-11T20:37:12
 tags:
   - agent/spec
   - initiative/hardening
@@ -103,7 +103,23 @@ own the whole transition.
      - `indexProps` versus `PropertyIndexService` ownership is documented or
        resolved.
 
-7. **Overlay projection extraction**
+7. **Explorer media cache database**
+   - Type: AFK
+   - Blocked by: issues 1 and 2.
+   - Source: [[docs/work/hardening/specs/2026-05-11-explorer-data-plane-structural-taxonomy/17-wave-4-follow-up-slices#slice-f---media-cache-db-and-filenode-subscriptions|Wave 4 Slice F]].
+   - Covers user decision: explorers may show cached images; media blobs should
+     be persisted separately from structural snapshots.
+   - Acceptance:
+     - Media cache records store status/key metadata separately from blobs.
+     - Blob reads validate the expected `mediaKey` before returning cached
+       content.
+     - A bounded in-memory blob LRU and lazy visible-row loading are tested.
+     - File/node-level media subscriptions update thumbnails without rebuilding
+       structural snapshots or `ViewService` layers.
+     - The implementation does not introduce persistent structural snapshot
+       storage or a generic row-level subscription system.
+
+8. **Overlay projection extraction**
    - Type: AFK
    - Blocked by: issues 4 and 6.
    - Source: [[docs/work/hardening/specs/2026-05-11-explorer-data-plane-structural-taxonomy/17-wave-4-follow-up-slices#slice-b---overlay-projection-module|Wave 4 Slice B]].
@@ -115,9 +131,9 @@ own the whole transition.
        tests outside Svelte components.
      - Existing `serviceBadge` and `badgeRegistry` vocabulary is reused.
 
-8. **Adapter row contract follow-up**
+9. **Adapter row contract follow-up**
    - Type: AFK
-   - Blocked by: issues 3, 4, and 7.
+   - Blocked by: issues 3, 4, and 8.
    - Source: [[docs/work/hardening/specs/2026-05-11-explorer-data-plane-structural-taxonomy/17-wave-4-follow-up-slices#slice-c---adapter-row-contract|Wave 4 Slice C]].
    - Covers user stories: PRD 2, 7, 10, 17.
    - Acceptance:
@@ -127,9 +143,9 @@ own the whole transition.
      - Table and cards behavior from existing Polish work is preserved.
      - SVAR remains a side-effecting compatibility adapter.
 
-9. **Selection mirror cleanup**
+10. **Selection mirror cleanup**
    - Type: AFK
-   - Blocked by: issue 8.
+   - Blocked by: issue 9.
    - Source: [[docs/work/hardening/specs/2026-05-11-explorer-data-plane-structural-taxonomy/17-wave-4-follow-up-slices#slice-d---selection-mirror-cleanup|Wave 4 Slice D]].
    - Covers user stories: PRD 2, 8, 18.
    - Acceptance:
@@ -147,4 +163,3 @@ Before creating tracker issues:
   approve a one-off publication target.
 - Confirm whether issue 1 should be a real tracker issue or just this Wave 5
   source record.
-
