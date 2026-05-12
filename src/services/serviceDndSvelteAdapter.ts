@@ -3,14 +3,17 @@ import type {
 	CreateDroppableInput,
 	DragDropEventHandlers,
 } from '@dnd-kit/svelte';
-import type {
-	DndDragSource,
-	DndDropPosition,
-	DndDropResult,
-	DndDropTarget,
-	DndService,
-	DndSubject,
+import {
+	stageMoveBlockIntoChains,
+	type MoveBlockQueue,
+	type DndDragSource,
+	type DndDropPosition,
+	type DndDropResult,
+	type DndDropTarget,
+	type DndService,
+	type DndSubject,
 } from './serviceDnd';
+import type { ImmutableVirtualFileState } from '../types/typeVfsImmutable';
 
 export interface DndKitEntityData extends Record<string, unknown> {
 	role: 'source' | 'target';
@@ -29,6 +32,22 @@ export interface DndKitDroppableOptions {
 
 export interface DndKitProviderOptions {
 	onDropResult?: (result: DndDropResult) => void;
+	moveBlockQueue?: MoveBlockQueue;
+	onMoveBlockStaged?: (result: DndMoveBlockStageResult) => void;
+}
+
+export type DndMoveBlockStageResult = ReturnType<typeof stageMoveBlockIntoChains>;
+
+export interface DndMoveBlockSourcePayload {
+	kind: 'adopted-block';
+	fromVfs: ImmutableVirtualFileState;
+	blockId: string;
+	blockLine?: number;
+}
+
+export interface DndMoveBlockTargetPayload {
+	kind: 'note';
+	toVfs: ImmutableVirtualFileState;
 }
 
 type DndKitHandlers = DragDropEventHandlers<DndKitEntityData>;
@@ -105,9 +124,30 @@ export function createDndKitProviderHandlers(
 
 			dnd.updateTarget(target.subject, target.position ?? 'inside');
 			const result = dnd.endDrag();
-			if (result) options.onDropResult?.(result);
+			if (result) {
+				const staged = stageMoveBlockPayload(result, options);
+				if (staged) options.onMoveBlockStaged?.(staged);
+				options.onDropResult?.(result);
+			}
 		},
 	};
+}
+
+function stageMoveBlockPayload(
+	result: DndDropResult,
+	options: DndKitProviderOptions,
+): DndMoveBlockStageResult | null {
+	if (result.operation !== 'move' || !options.moveBlockQueue) return null;
+	const source = moveBlockSourcePayload(result.source.data);
+	const target = moveBlockTargetPayload(result.target.data);
+	if (!source || !target) return null;
+	return stageMoveBlockIntoChains({
+		queue: options.moveBlockQueue,
+		fromVfs: source.fromVfs,
+		toVfs: target.toVfs,
+		blockId: source.blockId,
+		blockLine: source.blockLine,
+	});
 }
 
 function sourceFromEvent(event: DndKitDragEvent): DndDragSource | null {
@@ -133,4 +173,35 @@ function entityData(entity: { data?: unknown } | null | undefined): DndKitEntity
 	if (data.role !== 'source' && data.role !== 'target') return null;
 	if (!data.subject || typeof data.subject !== 'object') return null;
 	return data as DndKitEntityData;
+}
+
+function moveBlockSourcePayload(value: unknown): DndMoveBlockSourcePayload | null {
+	if (!isRecord(value) || value.kind !== 'adopted-block') return null;
+	if (!isImmutableVfs(value.fromVfs) || typeof value.blockId !== 'string') return null;
+	if (value.blockLine !== undefined && typeof value.blockLine !== 'number') return null;
+	return {
+		kind: 'adopted-block',
+		fromVfs: value.fromVfs,
+		blockId: value.blockId,
+		blockLine: value.blockLine,
+	};
+}
+
+function moveBlockTargetPayload(value: unknown): DndMoveBlockTargetPayload | null {
+	if (!isRecord(value) || value.kind !== 'note') return null;
+	if (!isImmutableVfs(value.toVfs)) return null;
+	return { kind: 'note', toVfs: value.toVfs };
+}
+
+function isImmutableVfs(value: unknown): value is ImmutableVirtualFileState {
+	return (
+		isRecord(value) &&
+		typeof value.originalPath === 'string' &&
+		typeof value.body === 'string' &&
+		Array.isArray(value.ops)
+	);
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+	return typeof value === 'object' && value !== null;
 }

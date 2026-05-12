@@ -263,6 +263,54 @@ export function buildMoveBlockOps(input: {
 	};
 }
 
+interface MoveBlockChain {
+	readonly head: ImmutableVirtualFileState;
+}
+
+export interface MoveBlockQueue {
+	openChain(path: string, initial: ImmutableVirtualFileState): MoveBlockChain;
+	stageImmutableOp(path: string, op: ImmutableStagedOp): ImmutableVirtualFileState;
+}
+
+export function stageMoveBlockIntoChains(input: {
+	queue: MoveBlockQueue;
+	fromVfs: ImmutableVirtualFileState;
+	toVfs: ImmutableVirtualFileState;
+	blockId: string;
+	blockLine?: number;
+}): {
+	fromOp: ImmutableStagedOp;
+	toOp: ImmutableStagedOp;
+	fromHead: ImmutableVirtualFileState;
+	toHead: ImmutableVirtualFileState;
+} {
+	const fromPath = input.fromVfs.originalPath;
+	const toPath = input.toVfs.originalPath;
+	const fromChain = input.queue.openChain(fromPath, input.fromVfs);
+	const toChain = input.queue.openChain(toPath, input.toVfs);
+	const blockLine = input.blockLine ?? findBlockLine(fromChain.head.body, input.blockId, fromPath);
+	const { fromOp, toOp } = buildMoveBlockOps({
+		fromVfs: fromChain.head,
+		toVfs: toChain.head,
+		blockId: input.blockId,
+		blockLine,
+	});
+	const fromHead = input.queue.stageImmutableOp(fromPath, fromOp);
+	const toHead = input.queue.stageImmutableOp(toPath, toOp);
+	return { fromOp, toOp, fromHead, toHead };
+}
+
+function findBlockLine(body: string, blockId: string, path: string): number {
+	const blockRef = new RegExp(`(?:^|\\s)\\^${escapeRegExp(blockId)}\\s*$`);
+	const line = body.split('\n').findIndex((candidate) => blockRef.test(candidate));
+	if (line >= 0) return line;
+	throw new RangeError(`Block ^${blockId} was not found in ${path}`);
+}
+
+function escapeRegExp(value: string): string {
+	return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
 function removeLine(body: string, index: number): string {
 	const lines = body.split('\n');
 	lines.splice(index, 1);
