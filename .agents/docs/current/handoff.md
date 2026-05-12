@@ -5,7 +5,7 @@ status: active
 parent: "[[docs/work/pkm-ai/index|pkm-ai]]"
 archive_source: "docs/archive/pkm-ai/active-docs/2026-05-11T080321-current-handoff.md"
 created: 2026-05-04T01:36:20
-updated: 2026-05-11T20:37:12
+updated: 2026-05-11T20:55:00
 tags:
   - agent/current
 created_by: dec
@@ -21,8 +21,7 @@ Older route history remains in
 
 ## Resume Point
 
-- Latest request handled: updated Explorer data-plane specs with the Notebook
-  Navigator media cache DB decision.
+- Latest request handled: published the Explorer data-plane issues locally.
 - Latest source records:
   [[docs/work/hardening/specs/2026-05-11-explorer-data-plane-structural-taxonomy/18-wave-5-plan-comparison-reconciliation|Wave 5 plan comparison and reconciliation]]
   through
@@ -31,7 +30,8 @@ Older route history remains in
   revalidated against Wave 2, Wave 4 implementation specs are drafted, and
   Wave 5 comparison/issue candidates are drafted. Cached explorer images now
   have a separate media/derived-content cache DB follow-up; structural
-  snapshots remain memory-first. No code or tracker issues were created.
+  snapshots remain memory-first. Local issues now live at
+  [[docs/work/hardening/issues/explorer-data-plane/index|Explorer data plane local issues]].
 - Previous worktree route:
   `C:\Users\vic_A\Desktop\vaultman\.claude\worktrees\sleepy-engelbart-9e6dc6`
   on branch `claude/sleepy-engelbart-9e6dc6`.
@@ -77,10 +77,10 @@ Older route history remains in
 
 ## Fresh Verification
 
-- Explorer Wave 5 docs: all taxonomy shards are under 200 lines, current
-  `status` is 135 lines, current `handoff` is 144 lines, red-flag scan
-  found no matches, trailing space/tab scan found no matches, and targeted
-  `git diff --check` exited 0 with only current-doc CRLF conversion warnings.
+- Explorer local issue publication: 11 Markdown files created under
+  `docs/work/hardening/issues/explorer-data-plane/`, issue files are 50-76
+  lines, trailing whitespace scan found no matches, and targeted
+  `git diff --check` exited 0 with only CRLF conversion warnings.
 - `node .agents/tools/pkm-ai/check-doc-health.mjs` still fails 11 existing
   residuals: glossary warnings, parent-shape issues, and large plan/spec line
   limits outside the new Wave 2 shards.
@@ -135,8 +135,9 @@ Older route history remains in
 
 ## Next Action
 
-- Current hardening route: ask the user to approve or edit the Wave 5 issue
-  candidates, then confirm tracker target before publication.
+- Current hardening route: triage or execute
+  [[docs/work/hardening/issues/explorer-data-plane/001-approve-issue-set-and-supersession-notes|EDP-001]],
+  then move eligible AFK issues from `needs-triage` to `ready-for-agent`.
 - Continue with remaining T4 integration follow-ups or the next vertical-thread
   slice from
   [[docs/work/polish/plans/2026-05-11-ui-modernization-vertical-threads/index|UI Modernization Vertical Threads]].

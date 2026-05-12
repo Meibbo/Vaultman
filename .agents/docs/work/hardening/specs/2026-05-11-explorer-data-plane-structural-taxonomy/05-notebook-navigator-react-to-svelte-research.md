@@ -116,7 +116,6 @@ Defer:
 - Generic row-level subscription channels.
 
 Accept as a separate follow-up:
-
 - a media/derived-content cache database for cached explorer images, previews, and future visual assets;
 - metadata records by file path or stable node id with `mediaStatus`,
   `mediaKey`, source mtime/hash, dimensions, generation time, and error state;
@@ -129,7 +128,6 @@ should copy that boundary, not copy IndexedDB into structural snapshots.
 
 Revisit structural persistence only if a later vertical spec proves one of
 these:
-
 - structural derived content is too expensive to rebuild;
 - startup or filter changes require profiled large recomputation;
 - non-media metadata or structural invalidation needs version markers across

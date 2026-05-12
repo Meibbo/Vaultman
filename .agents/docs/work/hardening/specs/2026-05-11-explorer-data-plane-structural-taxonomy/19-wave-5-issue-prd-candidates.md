@@ -4,7 +4,7 @@ type: issue-draft
 status: draft
 parent: "[[docs/work/hardening/specs/2026-05-11-explorer-data-plane-structural-taxonomy/index|explorer-data-plane-structural-taxonomy]]"
 created: 2026-05-11T19:56:34
-updated: 2026-05-11T20:37:12
+updated: 2026-05-11T20:55:00
 tags:
   - agent/spec
   - initiative/hardening
@@ -18,6 +18,11 @@ updated_by: codex
 
 These are draft tracker candidates. They are not published issues. Publish only
 after the user approves granularity and tracker target.
+
+Publication update: the local Markdown issue set has been created at
+[[docs/work/hardening/issues/explorer-data-plane/index|Explorer data plane local issues]].
+The published issues start with `needs-triage` and preserve AFK/HITL as
+separate metadata.
 
 ## PRD Candidate
 

@@ -4,7 +4,7 @@ type: spec-index
 status: draft
 parent: "[[docs/work/hardening/specs/2026-05-11-explorer-data-plane-transition/index|explorer-data-plane-transition]]"
 created: 2026-05-11T00:00:00
-updated: 2026-05-11T20:37:12
+updated: 2026-05-11T20:55:00
 tags:
   - agent/spec
   - initiative/hardening
@@ -89,5 +89,5 @@ Use a cleaner incremental architecture, not a shallow patch sequence:
   05; conclusions must be revalidated against Wave 2 before Wave 4 specs.
 - Implementation specs: Wave 4 draft complete in shards 13 through 17.
 - Final issues/PRDs: Wave 5 draft candidates complete; publication pending
-  user approval and tracker target. The candidates now include the
-  Notebook-Navigator-inspired media cache DB follow-up.
+  user approval and tracker target. Local Markdown issues are published at
+  [[docs/work/hardening/issues/explorer-data-plane/index|Explorer data plane local issues]].
