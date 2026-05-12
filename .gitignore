@@ -1,5 +1,6 @@
 # Dev Compiled
 node_modules/
+node_modules.partial/
 coverage/
 img/
 dist/
