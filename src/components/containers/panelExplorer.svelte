@@ -12,6 +12,7 @@
 	} from '../../types/typeExplorer';
 	import type { INodeSelectionService, NodeSelectionSnapshot } from '../../types/typeSelection';
 	import type { ViewEmptyState } from '../../types/typeViews';
+	import type { ExplorerRevealTarget } from '../../types/typeExplorerDataPlane';
 	import GridNavigationToolbar from '../layout/GridNavigationToolbar.svelte';
 	import ViewTree from '../views/viewTree.svelte';
 	import ViewNodeCards from '../views/ViewNodeCards.svelte';
@@ -46,7 +47,7 @@
 	} from '../../services/serviceMouse';
 	import { nodeToBindingInput, type BindingNodeKind } from '../../services/serviceNodeBinding';
 
-	type ScrollTarget = { id: string; serial: number };
+	type ScrollTarget = ExplorerRevealTarget;
 
 	let {
 		plugin,
@@ -589,6 +590,8 @@
 	}
 
 	function findNodeById(nodes: TreeNode<TMeta>[], id: string): TreeNode<TMeta> | undefined {
+		const snapshotNode = filesSnapshot?.byId.get(id)?.node as TreeNode<TMeta> | undefined;
+		if (snapshotNode) return snapshotNode;
 		for (const n of nodes) {
 			if (n.id === id) return n;
 			if (n.children) {
@@ -787,6 +790,8 @@
 	}
 
 	function parentIdFor(items: TreeNode<TMeta>[], childId: string): string | null {
+		const snapshotRow = filesSnapshot?.byId.get(childId);
+		if (snapshotRow) return snapshotRow.parentId;
 		for (const node of items) {
 			if (node.children?.some((child) => child.id === childId)) return node.id;
 			if (node.children) {
@@ -867,7 +872,19 @@
 	}
 
 	function revealNode(id: string): void {
-		scrollTarget = { id, serial: ++scrollTargetSerial };
+		const snapshot = filesSnapshot;
+		const serial = ++scrollTargetSerial;
+		scrollTarget = snapshot
+			? {
+					id,
+					serial,
+					minSnapshotRevision: snapshot.structureRevision,
+					reason: 'keyboard',
+					providerKey: snapshot.providerKey,
+					explorerId: snapshot.explorerId,
+					structureRevision: snapshot.structureRevision,
+				}
+			: { id, serial };
 	}
 
 	/**
@@ -1017,6 +1034,8 @@
 					onHoverBadgeAction={handleHoverBadgeAction}
 					{activeOpsByNode}
 					{scrollTarget}
+					snapshotRevision={filesSnapshot?.structureRevision ?? null}
+					idToIndex={filesSnapshot?.idToIndex ?? null}
 					mouseGestureConfig={plugin.settings?.mouseGestures?.node}
 					themeService={plugin.themeService}
 					providerId={provider.id}

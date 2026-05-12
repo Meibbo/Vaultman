@@ -5,7 +5,7 @@ status: active
 parent: "[[docs/work/pkm-ai/index|pkm-ai]]"
 archive_source: "docs/archive/pkm-ai/active-docs/2026-05-11T080321-current-handoff.md"
 created: 2026-05-04T01:36:20
-updated: 2026-05-12T09:00:34
+updated: 2026-05-12T12:10:00
 tags:
   - agent/current
 created_by: dec
@@ -21,8 +21,8 @@ Older route history remains in
 
 ## Resume Point
 
-- Latest request handled: continued the Explorer data-plane plan in the
-  `claude/explorer` branch after an interrupted prior agent.
+- Latest request handled: reconciled Wave 3 agents A/B/C from `sandbox`
+  against the Wave 2 baseline on `claude/explorer`.
 - Latest source records:
   [[docs/work/hardening/specs/2026-05-11-explorer-data-plane-structural-taxonomy/18-wave-5-plan-comparison-reconciliation|Wave 5 plan comparison and reconciliation]]
   through
@@ -37,6 +37,12 @@ Older route history remains in
   [[docs/work/hardening/plans/2026-05-11-explorer-data-plane-transition/01-wave-a-b-claude-handoff|Wave A/B Claude handoff]].
 - Codex Wave C continuation:
   [[docs/work/hardening/plans/2026-05-11-explorer-data-plane-transition/03-edp-002-wave-c-codex-continuation|EDP-002 Wave C Codex continuation]].
+- Wave 3 reconciliation worktree:
+  `C:\Users\vic_A\Desktop\vaultman\.claude\worktrees\edp-wave3-reconcile`
+  on branch `codex/edp-wave3-reconcile`, based on `claude/explorer`.
+- Reconciled and marked completed: [[docs/work/hardening/issues/explorer-data-plane/003-files-panel-snapshot-compatibility-revisioned-reveal|EDP-003]],
+  [[docs/work/hardening/issues/explorer-data-plane/004-batched-files-overlay-layers-viewservice|EDP-004]],
+  and [[docs/work/hardening/issues/explorer-data-plane/007-explorer-media-cache-database|EDP-007]].
 - EDP-001 tracker approval/supersession gate is completed; the
   [[docs/work/hardening/plans/2026-05-04-serviceviews-implementation/index|serviceViews implementation plan]]
   is historical and not executable as the current data-plane plan.
@@ -91,6 +97,11 @@ Older route history remains in
   tests passed 2 files / 46 tests.
 - Static/build gates pass: `pnpm run check`, `pnpm run lint`,
   `pnpm run build:plugin`, and `git diff --check`.
+- EDP-003/004/007 reconciliation focused gates pass in
+  `codex/edp-wave3-reconcile`: 3 unit files / 48 tests and 2 component files
+  / 42 tests.
+- Reconciliation static/build gates pass: `pnpm run lint:full`,
+  `pnpm run check`, `pnpm run build:plugin`, and `git diff --check`.
 - EDP-001 is closed: local tracker approval is recorded, `completed` label
   vocabulary exists, and stale `serviceViews` selection ownership wording is
   superseded by `NodeSelectionService`.
@@ -160,9 +171,8 @@ Older route history remains in
 
 ## Next Action
 
-- Current hardening route: review the EDP-002 Wave C diff and decide whether
-  to rerun or separately stabilize the performance-threshold tests before
-  committing.
+- Current hardening route: review and integrate `codex/edp-wave3-reconcile`;
+  do not reuse the stale `sandbox` Wave 3 edits directly.
 - Continue with remaining T4 integration follow-ups or the next vertical-thread
   slice from
   [[docs/work/polish/plans/2026-05-11-ui-modernization-vertical-threads/index|UI Modernization Vertical Threads]].

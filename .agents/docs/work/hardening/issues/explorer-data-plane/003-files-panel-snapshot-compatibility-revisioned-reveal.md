@@ -2,13 +2,13 @@
 title: EDP-003 Files panel snapshot compatibility and revisioned reveal
 type: issue
 issue_id: EDP-003
-status: needs-triage
+status: completed
 issue_kind: AFK
 parent: "[[docs/work/hardening/issues/explorer-data-plane/index|Explorer data plane local issues]]"
 created: 2026-05-11T20:55:00
-updated: 2026-05-11T20:55:00
+updated: 2026-05-12T12:00:00
 labels:
-  - needs-triage
+  - completed
 tags:
   - agent/issue
   - initiative/hardening
@@ -37,11 +37,24 @@ fallbacks for non-snapshot providers.
 
 ## Acceptance Criteria
 
-- [ ] Files path uses snapshot visible order for prune/range/box selection.
-- [ ] Tree reveal target includes snapshot revision and late id-to-index
+- [x] Files path uses snapshot visible order for prune/range/box selection.
+- [x] Tree reveal target includes snapshot revision and late id-to-index
       lookup.
-- [ ] Legacy recursive helpers remain fallback for non-snapshot providers.
-- [ ] Existing panel/tree selection and scroll tests remain green.
+- [x] Legacy recursive helpers remain fallback for non-snapshot providers.
+- [x] Existing panel/tree selection and scroll tests remain green.
+
+## 2026-05-12 Reconciliation Note
+
+Wave 3 Agent A originally edited `sandbox` and rebuilt explorer snapshots
+locally. That was not compatible with Wave 2 on `claude/explorer`, where
+`ExplorerDataPlaneService` is the canonical snapshot store. The reconciled
+implementation consumes `filesSnapshot` from `ExplorerDataPlaneService`,
+uses snapshot rows for `findNodeById` and `parentIdFor`, and sends
+revision-aware `ExplorerRevealTarget` values to `ViewTree`.
+
+`ViewTree` now accepts `snapshotRevision` and `idToIndex`, ignores reveal
+targets that require a newer snapshot than the current row map, and falls back
+to recursive visible rows for non-snapshot providers.
 
 ## Blocked By
 
@@ -49,4 +62,6 @@ fallbacks for non-snapshot providers.
 
 ## Verification
 
-- Run focused panel, tree, selection, and scroll tests that cover Files reveal.
+- `pnpm run test:component -- test/component/viewTreeScrollFallback.test.ts`
+- `pnpm run test:component -- test/component/panelExplorerSelection.test.ts test/component/viewTreeScrollFallback.test.ts`
+- `pnpm run check`

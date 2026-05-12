@@ -4,7 +4,7 @@ type: issue-index
 status: active
 parent: "[[docs/work/hardening/specs/2026-05-11-explorer-data-plane-transition/index|explorer-data-plane-transition]]"
 created: 2026-05-11T20:55:00
-updated: 2026-05-12T09:00:34
+updated: 2026-05-12T12:00:00
 tags:
   - agent/issue
   - initiative/hardening
@@ -36,11 +36,11 @@ Local Markdown tracker for the Explorer data-plane transition. Source specs:
 
 1. [[001-approve-issue-set-and-supersession-notes|EDP-001 Approve issue set and supersession notes]] - completed
 2. [[002-files-snapshot-data-plane-foundation|EDP-002 Files snapshot data-plane foundation]]
-3. [[003-files-panel-snapshot-compatibility-revisioned-reveal|EDP-003 Files panel snapshot compatibility and revisioned reveal]]
-4. [[004-batched-files-overlay-layers-viewservice|EDP-004 Batched Files overlay layers through ViewService]]
+3. [[003-files-panel-snapshot-compatibility-revisioned-reveal|EDP-003 Files panel snapshot compatibility and revisioned reveal]] - completed
+4. [[004-batched-files-overlay-layers-viewservice|EDP-004 Batched Files overlay layers through ViewService]] - completed
 5. [[005-files-data-plane-performance-gate|EDP-005 Files data-plane performance gate]]
 6. [[006-tags-props-snapshot-adapters|EDP-006 Tags and Props snapshot adapters]]
-7. [[007-explorer-media-cache-database|EDP-007 Explorer media cache database]]
+7. [[007-explorer-media-cache-database|EDP-007 Explorer media cache database]] - completed
 8. [[008-overlay-projection-extraction|EDP-008 Overlay projection extraction]]
 9. [[009-adapter-row-contract-follow-up|EDP-009 Adapter row contract follow-up]]
 10. [[010-selection-mirror-cleanup|EDP-010 Selection mirror cleanup]]

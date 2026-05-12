@@ -102,4 +102,56 @@ describe('ViewTree scroll fallback', () => {
 		expect(target.querySelector('[data-id="node-55"]')).not.toBeNull();
 		expect(target.querySelector('[data-id="node-5"]')).toBeNull();
 	});
+
+	it('ignores a reveal target whose required snapshot revision is newer than the row map', () => {
+		app = mount(ViewTree as unknown as Component<Record<string, unknown>>, {
+			target,
+			props: {
+				nodes: nodes(100),
+				expandedIds: new Set<string>(),
+				onToggle: vi.fn(),
+				onRowClick: vi.fn(),
+				onContextMenu: vi.fn(),
+				scrollTarget: {
+					id: 'node-40',
+					serial: 1,
+					minSnapshotRevision: 3,
+					reason: 'keyboard',
+				},
+				snapshotRevision: 2,
+				idToIndex: new Map([['node-40', 40]]),
+				icon: vi.fn(() => ({ update: vi.fn() })),
+			},
+		});
+		flushSync();
+
+		const outer = target.querySelector<HTMLDivElement>('.vm-tree-virtual-outer');
+		expect(outer?.scrollTop).toBe(0);
+	});
+
+	it('uses the supplied id-to-index map when the reveal target revision is current', () => {
+		app = mount(ViewTree as unknown as Component<Record<string, unknown>>, {
+			target,
+			props: {
+				nodes: nodes(100),
+				expandedIds: new Set<string>(),
+				onToggle: vi.fn(),
+				onRowClick: vi.fn(),
+				onContextMenu: vi.fn(),
+				scrollTarget: {
+					id: 'node-40',
+					serial: 1,
+					minSnapshotRevision: 3,
+					reason: 'keyboard',
+				},
+				snapshotRevision: 3,
+				idToIndex: new Map([['node-40', 40]]),
+				icon: vi.fn(() => ({ update: vi.fn() })),
+			},
+		});
+		flushSync();
+
+		const outer = target.querySelector<HTMLDivElement>('.vm-tree-virtual-outer');
+		expect(outer?.scrollTop).toBeGreaterThan(0);
+	});
 });

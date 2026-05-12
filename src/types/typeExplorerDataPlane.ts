@@ -56,16 +56,24 @@ export interface ExplorerSnapshot<TMeta = unknown> {
 	sourceRevisions: ExplorerDataPlaneRevisions;
 }
 
+export type ExplorerRevealReason = 'keyboard' | 'selection' | 'expansion' | 'command' | 'restore';
+export type ExplorerRevealAlign = 'auto' | 'start' | 'center' | 'end';
+
 /**
- * Reveal target reserved for later slices. Defined here so the type is stable
- * across the data-plane transition, but no view consumes it in EDP-002.
+ * Revision-aware reveal request shared by explorer containers and virtualized
+ * views. The Wave 2 identifiers stay optional so non-files views can keep using
+ * the lightweight `{ id, serial }` shape while files explorer reveals can bind
+ * themselves to the current ExplorerDataPlane snapshot.
  */
 export interface ExplorerRevealTarget {
-	providerKey: string;
-	explorerId: string;
-	structureRevision: number;
-	id?: string;
+	id: string;
+	serial: number;
+	minSnapshotRevision?: number;
+	reason?: ExplorerRevealReason;
+	align?: ExplorerRevealAlign;
+	providerKey?: string;
+	explorerId?: string;
+	structureRevision?: number;
 	path?: string;
 	folderPath?: string;
-	serial: number;
 }

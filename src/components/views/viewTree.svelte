@@ -2,6 +2,7 @@
 	import { untrack } from 'svelte';
 	import { createVirtualizer } from '@tanstack/svelte-virtual';
 	import type { NodeBadge, TreeNode } from '../../types/typeNode';
+	import type { ExplorerRevealAlign, ExplorerRevealTarget } from '../../types/typeExplorerDataPlane';
 	import { getActivePerfProbe } from '../../dev/perfProbe';
 	import type { FlatNode } from '../../services/serviceVirtualizer.svelte';
 	import HighlightText from '../primitives/HighlightText.svelte';
@@ -53,7 +54,7 @@
 	const TREE_FALLBACK_WIDTH = 320;
 	const TREE_FALLBACK_HEIGHT = 400;
 	const TREE_OVERSCAN = 24;
-	type ScrollTarget = { id: string; serial: number };
+	type ScrollTarget = ExplorerRevealTarget;
 
 	interface Props {
 		nodes: TreeNode[];
@@ -78,6 +79,9 @@
 		onHoverBadgeAction?: (id: string, kind: BadgeKind, e: MouseEvent | KeyboardEvent) => void;
 		activeOpsByNode?: ActiveOpsByNode;
 		scrollTarget?: ScrollTarget | null;
+		snapshotRevision?: number | null;
+		idToIndex?: ReadonlyMap<string, number> | null;
+		resolveIndexById?: (id: string) => number | null | undefined;
 		mouseGestureConfig?: MouseGestureConfig;
 		sizePresetId?: ViewSizePresetId;
 		providerId?: string;
@@ -109,6 +113,9 @@
 		onHoverBadgeAction,
 		activeOpsByNode,
 		scrollTarget = null,
+		snapshotRevision = null,
+		idToIndex = null,
+		resolveIndexById,
 		mouseGestureConfig,
 		sizePresetId = DEFAULT_VIEW_SIZE_PRESET,
 		providerId = 'nodes',
@@ -243,8 +250,8 @@
 	$effect(() => {
 		const target = scrollTarget;
 		if (!target || !outerEl) return;
-		const index = flatArray.findIndex((item) => item.node.id === target.id);
-		if (index >= 0) scrollRowIntoView(index);
+		const index = resolveRevealIndex(target);
+		if (index >= 0) scrollRowIntoView(index, target.align);
 	});
 
 	function onScroll() {
@@ -255,23 +262,63 @@
 		});
 	}
 
-	function scrollRowIntoView(index: number): void {
+	function resolveRevealIndex(target: ScrollTarget): number {
+		if (!revealSnapshotIsCurrent(target)) return -1;
+		const mappedIndex = resolveIndexById?.(target.id) ?? idToIndex?.get(target.id);
+		if (
+			typeof mappedIndex === 'number' &&
+			mappedIndex >= 0 &&
+			mappedIndex < flatArray.length &&
+			flatArray[mappedIndex]?.node.id === target.id
+		) {
+			return mappedIndex;
+		}
+		return flatArray.findIndex((item) => item.node.id === target.id);
+	}
+
+	function revealSnapshotIsCurrent(target: ScrollTarget): boolean {
+		if (target.minSnapshotRevision === undefined) return true;
+		return typeof snapshotRevision === 'number' && snapshotRevision >= target.minSnapshotRevision;
+	}
+
+	function scrollRowIntoView(index: number, preferredAlign: ExplorerRevealAlign = 'auto'): void {
 		if (!outerEl) return;
 		const viewportHeight = outerEl.clientHeight || TREE_FALLBACK_HEIGHT;
 		const currentTop = outerEl.scrollTop;
 		const rowTop = index * rowHeight;
-		const nextTop = scrollFixedIndexIntoView({
+		let virtualAlign: 'start' | 'center' | 'end' = rowTop < currentTop ? 'start' : 'end';
+		let nextTop = scrollFixedIndexIntoView({
 			index,
 			rowHeight,
 			viewportHeight,
 			scrollTop: currentTop,
 		});
+		if (preferredAlign !== 'auto') {
+			virtualAlign = preferredAlign;
+			nextTop = scrollTopForAlign(index, preferredAlign, viewportHeight);
+		}
 		if (nextTop === currentTop) return;
 
-		$rowVirtualizer.scrollToIndex(index, { align: rowTop < currentTop ? 'start' : 'end' });
+		$rowVirtualizer.scrollToIndex(index, { align: virtualAlign });
 		outerEl.scrollTop = nextTop;
 		syncFallbackScrollState();
 		outerEl.dispatchEvent(new Event('scroll'));
+	}
+
+	function scrollTopForAlign(
+		index: number,
+		align: Exclude<ExplorerRevealAlign, 'auto'>,
+		viewportHeight: number,
+	): number {
+		const rowTop = index * rowHeight;
+		const rawTop =
+			align === 'start'
+				? rowTop
+				: align === 'center'
+					? rowTop - Math.max(0, viewportHeight - rowHeight) / 2
+					: rowTop - Math.max(0, viewportHeight - rowHeight);
+		const maxTop = Math.max(0, flatArray.length * rowHeight - viewportHeight);
+		return Math.max(0, Math.min(rawTop, maxTop));
 	}
 
 	function syncFallbackScrollState(): void {

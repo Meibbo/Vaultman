@@ -2,13 +2,13 @@
 title: EDP-004 Batched Files overlay layers through ViewService
 type: issue
 issue_id: EDP-004
-status: needs-triage
+status: completed
 issue_kind: AFK
 parent: "[[docs/work/hardening/issues/explorer-data-plane/index|Explorer data plane local issues]]"
 created: 2026-05-11T20:55:00
-updated: 2026-05-11T20:55:00
+updated: 2026-05-12T12:00:00
 labels:
-  - needs-triage
+  - completed
 tags:
   - agent/issue
   - initiative/hardening
@@ -37,12 +37,24 @@ decoration as a compatibility bridge.
 
 ## Acceptance Criteria
 
-- [ ] Files data-plane path builds layer map from one batched `ViewService`
+- [x] Files data-plane path builds layer map from one batched `ViewService`
       call.
-- [ ] Queue/filter-only changes update layers without rebuilding structural
+- [x] Queue/filter-only changes update layers without rebuilding structural
       snapshot rows.
-- [ ] Batch parity tests match current per-node decoration behavior.
-- [ ] `ViewLayers` remains canonical and `TreeNode` decoration stays a bridge.
+- [x] Batch parity tests match current per-node decoration behavior.
+- [x] `ViewLayers` remains canonical and `TreeNode` decoration stays a bridge.
+
+## 2026-05-12 Reconciliation Note
+
+Wave 3 Agent B targeted the older `sandbox` `FilesExplorerProvider` shape. The
+reconciled implementation keeps Wave 2's structural data-plane contract intact:
+structural trees are cached by source/filter/sort/index revisions, and queue or
+filter-only changes are applied through a batched layer bridge instead of
+rebuilding the Files structure.
+
+`serviceExplorerLayers.ts` centralizes the compatibility bridge from
+`ViewLayers` to decorated `TreeNode` fields. `ViewService.getModel()` is called
+once per decorated tree build with the flattened node batch.
 
 ## Blocked By
 
@@ -50,5 +62,6 @@ decoration as a compatibility bridge.
 
 ## Verification
 
-- Run focused `ViewService`, Files provider, queue/filter decoration, and layer
-  parity tests.
+- `pnpm run test:unit -- test/unit/components/explorerFiles.test.ts`
+- `pnpm run test:unit -- test/unit/services/serviceViews.test.ts test/unit/components/explorerFiles.test.ts`
+- `pnpm run check`

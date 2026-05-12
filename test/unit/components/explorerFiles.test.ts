@@ -5,6 +5,7 @@ import { DecorationManager } from '../../../src/services/serviceDecorate';
 import { ViewService } from '../../../src/services/serviceViews.svelte';
 import type { VaultmanPlugin } from '../../../src/main';
 import type { FnRRenameHandoff } from '../../../src/types/typeFnR';
+import type { QueueChange } from '../../../src/types/typeContracts';
 import type { FileMeta, TreeNode } from '../../../src/types/typeNode';
 import { mockApp, mockTFile, type CachedMetadata, type TFile } from '../../helpers/obsidian-mocks';
 
@@ -62,6 +63,60 @@ function makePlugin(): {
 }
 
 describe('explorerFiles interactions', () => {
+	it('builds Files overlay layers with one batched ViewService model call', () => {
+		const { plugin } = makePlugin();
+		const getModel = vi.spyOn(plugin.viewService, 'getModel');
+		const explorer = new explorerFiles(plugin);
+
+		const tree = explorer.getTree();
+		const ids = flattenNodeIds(tree);
+
+		expect(getModel).toHaveBeenCalledTimes(1);
+		expect(getModel.mock.calls[0][0]).toMatchObject({
+			explorerId: 'files',
+			mode: 'tree',
+		});
+		expect(getModel.mock.calls[0][0].nodes.map((node) => node.id)).toEqual(ids);
+	});
+
+	it('updates queue-only overlay layers without rebuilding the Files structure', () => {
+		const { plugin, files } = makePlugin();
+		const getFileCache = vi.spyOn(plugin.app.metadataCache, 'getFileCache');
+		const getModel = vi.spyOn(plugin.viewService, 'getModel');
+		const explorer = new explorerFiles(plugin);
+
+		explorer.getTree();
+		getFileCache.mockClear();
+		getModel.mockClear();
+		(plugin.operationsIndex as unknown as { nodes: QueueChange[]; revision: number }).nodes = [
+			{
+				id: 'op-delete-a',
+				group: 'delete_file',
+				change: {
+					id: 'op-delete-a',
+					type: 'file_delete',
+					action: 'delete',
+					details: 'Delete a.md',
+					files: [files[0]],
+				} as never,
+			},
+		];
+		(plugin.operationsIndex as unknown as { revision: number }).revision = 2;
+
+		const tree = explorer.getTree();
+		const fileNode = flattenNodes(tree).find((node) => node.id === files[0].path);
+		const layers = (fileNode?.meta as FileMeta & { layers?: { state?: { pending?: boolean } } })
+			.layers;
+
+		expect(getFileCache).not.toHaveBeenCalled();
+		expect(getModel).toHaveBeenCalledTimes(1);
+		expect(layers?.state?.pending).toBe(true);
+		expect(fileNode?.badges?.[0]).toMatchObject({
+			text: 'delete',
+			queueIndex: 0,
+		});
+	});
+
 	it('turns a file node click into selected files instead of filtering or opening the note', () => {
 		const { plugin, files, openLinkText, setSelectedFiles } = makePlugin();
 		const explorer = new explorerFiles(plugin);
@@ -547,4 +602,20 @@ function findFirstFileNode(nodes: TreeNode<FileMeta>[]): TreeNode<FileMeta> | un
 		if (childMatch) return childMatch;
 	}
 	return undefined;
+}
+
+function flattenNodeIds(nodes: TreeNode<FileMeta>[]): string[] {
+	return flattenNodes(nodes).map((node) => node.id);
+}
+
+function flattenNodes(nodes: TreeNode<FileMeta>[]): TreeNode<FileMeta>[] {
+	const out: TreeNode<FileMeta>[] = [];
+	const visit = (list: TreeNode<FileMeta>[]) => {
+		for (const node of list) {
+			out.push(node);
+			if (node.children?.length) visit(node.children);
+		}
+	};
+	visit(nodes);
+	return out;
 }
