@@ -21,10 +21,19 @@ into executable implementation work.
 ## Shards
 
 1. [[01-wave-a-b-claude-handoff|Wave A/B Claude handoff]]
+2. [[02-edp-002-files-snapshot-data-plane-implementation-plan|EDP-002 Files snapshot data-plane implementation plan]]
+
+Wave A scout reports live under `reports/`:
+
+- [[reports/a1-files-source-tree-contracts|Scout A1 Files source and tree contracts]]
+- [[reports/a2-panel-selection-reveal|Scout A2 Panel selection and reveal]]
+- [[reports/a3-tests-verification|Scout A3 Tests and verification gates]]
+- [[reports/a4-viewservice-overlay-boundary|Scout A4 ViewService and overlay boundary]]
 
 ## Current Route
 
-- Claude owns Wave A/B: read-only reconnaissance with subagents, then write the
-  `EDP-002` implementation plan.
-- Codex owns Wave C later: execute the approved plan and orders produced by
-  Claude.
+- Wave A/B (Claude) completed on 2026-05-12: four scout reports landed and
+  EDP-002 implementation plan written as shard `02`.
+- Codex owns Wave C: execute the approved plan task-by-task starting with
+  `pnpm run test:unit -- test/unit/logic/logicExplorerSnapshot.test.ts` after
+  Task 2 RED. Read shard `02` for the worker split and entry sequence.
