@@ -2,6 +2,7 @@
 	import { translate } from '../../index/i18n/lang';
 	import SortPopup from './overlays/overlaySortMenu.svelte';
 	import ViewModePopup from './overlays/overlayViewMenu.svelte';
+	import VmPopover from '../overlays/vmPopover.svelte';
 	import { explorerFiles } from '../../providers/explorerFiles';
 	import { explorerProps } from '../../providers/explorerProps';
 	import { explorerTags } from '../../providers/explorerTags';
@@ -179,6 +180,9 @@
 		if (rename?.status === 'editing' || rename?.status === 'ready') return rename;
 		return null;
 	});
+	const fnrPopoverOpen = $derived(
+		Boolean(fnrIslandService) && (searchIslandOpen || islandExpanded || hasIslandErrors || activeRename !== null),
+	);
 	const renameFocusKey = $derived(
 		activeRename ? `${activeRename.sourceKind}:${activeRename.original}` : '',
 	);
@@ -227,11 +231,32 @@
 		openViewModePopup();
 	}
 	function toggleSearchIsland() {
+		if (fnrIslandService) {
+			setFnRPopoverOpen(!fnrPopoverOpen);
+			return;
+		}
 		searchIslandOpen = !searchIslandOpen;
 		if (searchIslandOpen) {
 			headerMode = 'header';
 			queueMicrotask(() => searchboxRoot?.querySelector('input')?.focus());
 		}
+	}
+
+	function getFnRPopoverOpen(): boolean {
+		return fnrPopoverOpen;
+	}
+
+	function setFnRPopoverOpen(open: boolean): void {
+		if (open) {
+			headerMode = 'header';
+			searchIslandOpen = true;
+			helpOpen = false;
+			queueMicrotask(() => searchboxRoot?.querySelector('input')?.focus());
+			return;
+		}
+		searchIslandOpen = false;
+		helpOpen = false;
+		fnrIslandService?.collapse();
 	}
 	function cycleOperationScope() {
 		const currentIndex = OPERATION_SCOPE_ORDER.indexOf(operationScope);
@@ -386,6 +411,7 @@
 		if ((!fnrIslandService || !islandExpanded) && !searchIslandOpen) return;
 		const target = event.target instanceof Node ? event.target : null;
 		if (target && searchboxRoot?.contains(target)) return;
+		if (target instanceof Element && target.closest('.vm-popover-content')) return;
 		fnrIslandService?.collapse();
 		searchIslandOpen = false;
 	}
@@ -412,216 +438,225 @@
 
 <svelte:document onpointerdown={handleDocumentPointerDown} />
 
+{#snippet searchPopoverTrigger()}
+	<span class="vm-filters-search-trigger-icon" use:icon={'lucide-search'}></span>
+{/snippet}
+
+{#snippet fnrSearchIslandBody()}
+	<div
+		class="vm-filters-header-search-wrap vm-toolbar-search-island"
+		bind:this={searchboxRoot}
+		onkeydown={handleSearchboxKeydown}
+		role="presentation"
+		data-vm-fnr-island-body
+	>
+		{#if fnrIslandService && hasIslandErrors}
+			<div
+				class="vm-filters-search-error"
+				role="alert"
+				aria-live="polite"
+				data-error-kind={islandRegexError ? 'regex' : 'token'}
+			>
+				{islandErrorMessage}
+			</div>
+		{/if}
+		<div class="vm-filters-header-search-pill">
+			{#if fnrIslandService}
+				<button
+					type="button"
+					class="vm-filters-search-modepill"
+					aria-label={translate('filter.search_mode')}
+					title={translate('filter.search_mode')}
+					data-mode={islandMode}
+					onclick={cycleIslandMode}
+				>
+					<span>{MODE_LABELS[islandMode]}</span>
+				</button>
+			{/if}
+			<input
+				class="vm-filters-search-input"
+				type="text"
+				autocomplete="off"
+				autocorrect="off"
+				autocapitalize="off"
+				spellcheck="false"
+				placeholder={translate('filter.search_placeholder')}
+				value={filtersSearch}
+				onfocus={() => {
+					searchFocused = true;
+					helpOpen = false;
+				}}
+				onblur={() => {
+					commitSearchHistory();
+					window.setTimeout(() => {
+						searchFocused = false;
+					}, 120);
+				}}
+				onkeydown={(e: KeyboardEvent) => {
+					if (e.key === 'Enter') {
+						commitSearchHistory();
+						(e.currentTarget as HTMLInputElement).blur();
+					}
+				}}
+				oninput={(e) => {
+					updateFiltersSearch((e.currentTarget as HTMLInputElement).value);
+				}}
+			/>
+			{#if filtersSearch}
+				<button
+					class="vm-filters-search-clear"
+					aria-label={translate('filter.search_clear')}
+					use:icon={'lucide-x'}
+					onclick={() => {
+						updateFiltersSearch('');
+					}}
+				></button>
+			{/if}
+			<button
+				class="vm-filters-search-mode has-label"
+				aria-label={currentCategoryLabel}
+				title={currentCategoryLabel}
+				onclick={cycleSearchCategory}
+			>
+				<span>{currentCategoryLabel}</span>
+			</button>
+			{#if fnrIslandService}
+				<div class="vm-filters-search-flags" role="group" aria-label="search modifiers">
+					<button
+						type="button"
+						class="vm-filters-search-flag"
+						class:is-active={islandFlags.matchCase}
+						aria-label="match case"
+						aria-pressed={islandFlags.matchCase}
+						title="match case"
+						data-flag="matchCase"
+						onclick={() => toggleIslandFlag('matchCase')}>Aa</button
+					>
+					<button
+						type="button"
+						class="vm-filters-search-flag"
+						class:is-active={islandFlags.wholeWord}
+						class:is-disabled={islandFlags.regex}
+						aria-label="whole word"
+						aria-pressed={islandFlags.wholeWord}
+						title="whole word"
+						data-flag="wholeWord"
+						disabled={islandFlags.regex}
+						onclick={() => toggleIslandFlag('wholeWord')}>W</button
+					>
+					<button
+						type="button"
+						class="vm-filters-search-flag"
+						class:is-active={islandFlags.regex}
+						aria-label="regex (JS)"
+						aria-pressed={islandFlags.regex}
+						title="regex (JS)"
+						data-flag="regex"
+						onclick={() => toggleIslandFlag('regex')}>.*</button
+					>
+				</div>
+			{/if}
+			<div class="vm-filters-help-wrap">
+				<button
+					class="vm-filters-search-help"
+					aria-label={translate('filter.search_help')}
+					title={translate('filter.search_help')}
+					use:icon={'lucide-circle-help'}
+					onclick={() => {
+						helpOpen = !helpOpen;
+						searchFocused = false;
+					}}
+				></button>
+				{#if helpOpen}
+					<div
+						class="vm-filters-help-popover"
+						aria-label={translate('filter.search_read_more')}
+					>
+						{#each SEARCH_SEMANTICS_SOURCES as source (source.id)}
+							<a
+								class="vm-filters-help-link"
+								href={source.href}
+								target="_blank"
+								rel="noreferrer"
+							>
+								{source.label}
+							</a>
+						{/each}
+					</div>
+				{/if}
+			</div>
+		</div>
+		{#if activeRename}
+			<div
+				class="vm-fnr-island vm-fnr-rename"
+				aria-label={translate('fnr.rename.title')}
+				title={renameContext(activeRename)}
+			>
+				<div class="vm-fnr-row">
+					<input
+						bind:this={renameInput}
+						class="vm-fnr-input"
+						type="text"
+						autocomplete="off"
+						autocorrect="off"
+						autocapitalize="off"
+						spellcheck="false"
+						aria-label={translate('fnr.rename.replacement')}
+						title={renameContext(activeRename)}
+						placeholder={translate('prop.new_name')}
+						value={activeRename.replacement}
+						onkeydown={handleRenameKeydown}
+						oninput={(event) =>
+							onRenameReplacementChange?.((event.currentTarget as HTMLInputElement).value)}
+					/>
+					<button
+						class="vm-fnr-action"
+						type="button"
+						disabled={activeRename.status !== 'ready'}
+						aria-label={translate('fnr.rename.queue')}
+						title={translate('fnr.rename.queue')}
+						use:icon={'lucide-check'}
+						onclick={onRenameConfirm}
+					></button>
+					<button
+						class="vm-fnr-action"
+						type="button"
+						aria-label={translate('fnr.rename.cancel')}
+						title={translate('fnr.rename.cancel')}
+						use:icon={'lucide-x'}
+						onclick={onRenameCancel}
+					></button>
+				</div>
+			</div>
+		{/if}
+		{#if searchFocused && historyItems.length > 0}
+			<div
+				class="vm-filters-search-history"
+				role="listbox"
+				aria-label={translate('filter.search_history')}
+			>
+				{#each historyItems as term (term)}
+					<button
+						class="vm-filters-search-history-item"
+						type="button"
+						onmousedown={(e) => e.preventDefault()}
+						onclick={() => chooseHistory(term)}
+					>
+						<span class="vm-filters-search-history-icon" use:icon={'lucide-clock'}></span>
+						<span class="vm-filters-search-history-label">{term}</span>
+					</button>
+				{/each}
+			</div>
+		{/if}
+	</div>
+{/snippet}
+
 <div class="vm-navbar-filters vm-glass vm-glass--top" class:vm-toolbar-takeover={islandExpanded}>
 	<div class="vm-filters-header-wrap">
 		{#if headerMode === 'header'}
 			<div class="vm-filters-header">
-				{#if searchIslandOpen || activeRename || islandExpanded || hasIslandErrors}
-					<div
-						class="vm-filters-header-search-wrap vm-toolbar-search-island"
-						bind:this={searchboxRoot}
-						onkeydown={handleSearchboxKeydown}
-						role="presentation"
-					>
-					{#if fnrIslandService && hasIslandErrors}
-						<div
-							class="vm-filters-search-error"
-							role="alert"
-							aria-live="polite"
-							data-error-kind={islandRegexError ? 'regex' : 'token'}
-						>
-							{islandErrorMessage}
-						</div>
-					{/if}
-					<div class="vm-filters-header-search-pill">
-						{#if fnrIslandService}
-							<button
-								type="button"
-								class="vm-filters-search-modepill"
-								aria-label={translate('filter.search_mode')}
-								title={translate('filter.search_mode')}
-								data-mode={islandMode}
-								onclick={cycleIslandMode}
-							>
-								<span>{MODE_LABELS[islandMode]}</span>
-							</button>
-						{/if}
-						<input
-							class="vm-filters-search-input"
-							type="text"
-							autocomplete="off"
-							autocorrect="off"
-							autocapitalize="off"
-							spellcheck="false"
-							placeholder={translate('filter.search_placeholder')}
-							value={filtersSearch}
-							onfocus={() => {
-								searchFocused = true;
-								helpOpen = false;
-							}}
-							onblur={() => {
-								commitSearchHistory();
-								window.setTimeout(() => {
-									searchFocused = false;
-								}, 120);
-							}}
-							onkeydown={(e: KeyboardEvent) => {
-								if (e.key === 'Enter') {
-									commitSearchHistory();
-									(e.currentTarget as HTMLInputElement).blur();
-								}
-							}}
-							oninput={(e) => {
-								updateFiltersSearch((e.currentTarget as HTMLInputElement).value);
-							}}
-						/>
-						{#if filtersSearch}
-							<button
-								class="vm-filters-search-clear"
-								aria-label={translate('filter.search_clear')}
-								use:icon={'lucide-x'}
-								onclick={() => {
-									updateFiltersSearch('');
-								}}
-							></button>
-						{/if}
-						<button
-							class="vm-filters-search-mode has-label"
-							aria-label={currentCategoryLabel}
-							title={currentCategoryLabel}
-							onclick={cycleSearchCategory}
-						>
-							<span>{currentCategoryLabel}</span>
-						</button>
-						{#if fnrIslandService}
-							<div class="vm-filters-search-flags" role="group" aria-label="search modifiers">
-								<button
-									type="button"
-									class="vm-filters-search-flag"
-									class:is-active={islandFlags.matchCase}
-									aria-label="match case"
-									aria-pressed={islandFlags.matchCase}
-									title="match case"
-									data-flag="matchCase"
-									onclick={() => toggleIslandFlag('matchCase')}>Aa</button
-								>
-								<button
-									type="button"
-									class="vm-filters-search-flag"
-									class:is-active={islandFlags.wholeWord}
-									class:is-disabled={islandFlags.regex}
-									aria-label="whole word"
-									aria-pressed={islandFlags.wholeWord}
-									title="whole word"
-									data-flag="wholeWord"
-									disabled={islandFlags.regex}
-									onclick={() => toggleIslandFlag('wholeWord')}>W</button
-								>
-								<button
-									type="button"
-									class="vm-filters-search-flag"
-									class:is-active={islandFlags.regex}
-									aria-label="regex (JS)"
-									aria-pressed={islandFlags.regex}
-									title="regex (JS)"
-									data-flag="regex"
-									onclick={() => toggleIslandFlag('regex')}>.*</button
-								>
-							</div>
-						{/if}
-						<div class="vm-filters-help-wrap">
-							<button
-								class="vm-filters-search-help"
-								aria-label={translate('filter.search_help')}
-								title={translate('filter.search_help')}
-								use:icon={'lucide-circle-help'}
-								onclick={() => {
-									helpOpen = !helpOpen;
-									searchFocused = false;
-								}}
-							></button>
-							{#if helpOpen}
-								<div
-									class="vm-filters-help-popover"
-									aria-label={translate('filter.search_read_more')}
-								>
-									{#each SEARCH_SEMANTICS_SOURCES as source (source.id)}
-										<a
-											class="vm-filters-help-link"
-											href={source.href}
-											target="_blank"
-											rel="noreferrer"
-										>
-											{source.label}
-										</a>
-									{/each}
-								</div>
-							{/if}
-						</div>
-					</div>
-					{#if activeRename}
-						<div
-							class="vm-fnr-island vm-fnr-rename"
-							aria-label={translate('fnr.rename.title')}
-							title={renameContext(activeRename)}
-						>
-							<div class="vm-fnr-row">
-								<input
-									bind:this={renameInput}
-									class="vm-fnr-input"
-									type="text"
-									autocomplete="off"
-									autocorrect="off"
-									autocapitalize="off"
-									spellcheck="false"
-									aria-label={translate('fnr.rename.replacement')}
-									title={renameContext(activeRename)}
-									placeholder={translate('prop.new_name')}
-									value={activeRename.replacement}
-									onkeydown={handleRenameKeydown}
-									oninput={(event) =>
-										onRenameReplacementChange?.((event.currentTarget as HTMLInputElement).value)}
-								/>
-								<button
-									class="vm-fnr-action"
-									type="button"
-									disabled={activeRename.status !== 'ready'}
-									aria-label={translate('fnr.rename.queue')}
-									title={translate('fnr.rename.queue')}
-									use:icon={'lucide-check'}
-									onclick={onRenameConfirm}
-								></button>
-								<button
-									class="vm-fnr-action"
-									type="button"
-									aria-label={translate('fnr.rename.cancel')}
-									title={translate('fnr.rename.cancel')}
-									use:icon={'lucide-x'}
-									onclick={onRenameCancel}
-								></button>
-							</div>
-						</div>
-					{/if}
-					{#if searchFocused && historyItems.length > 0}
-						<div
-							class="vm-filters-search-history"
-							role="listbox"
-							aria-label={translate('filter.search_history')}
-						>
-							{#each historyItems as term (term)}
-								<button
-									class="vm-filters-search-history-item"
-									type="button"
-									onmousedown={(e) => e.preventDefault()}
-									onclick={() => chooseHistory(term)}
-								>
-									<span class="vm-filters-search-history-icon" use:icon={'lucide-clock'}></span>
-									<span class="vm-filters-search-history-label">{term}</span>
-								</button>
-							{/each}
-						</div>
-					{/if}
-					</div>
+				{#if !fnrIslandService && (searchIslandOpen || activeRename || islandExpanded || hasIslandErrors)}
+					{@render fnrSearchIslandBody()}
 				{/if}
 				{#if fnrIslandService}
 					<button
@@ -662,19 +697,33 @@
 						}}
 						use:icon={'lucide-arrow-up-down'}
 					></div>
-					<div
-						class="vm-nav-icon vm-nav-icon-min"
-						class:is-active={searchIslandOpen}
-						role="button"
-						tabindex="0"
-						aria-label={translate('explorer.btn.search')}
-						aria-pressed={searchIslandOpen}
-						onclick={toggleSearchIsland}
-						onkeydown={(e: KeyboardEvent) => {
-							if (e.key === 'Enter' || e.key === ' ') toggleSearchIsland();
-						}}
-						use:icon={'lucide-search'}
-					></div>
+					{#if fnrIslandService}
+						<VmPopover
+							bind:open={getFnRPopoverOpen, setFnRPopoverOpen}
+							triggerLabel={translate('explorer.btn.search')}
+							triggerClass={fnrPopoverOpen
+								? 'vm-nav-icon vm-nav-icon-min is-active'
+								: 'vm-nav-icon vm-nav-icon-min'}
+							triggerPressed={fnrPopoverOpen}
+							triggerSnippet={searchPopoverTrigger}
+						>
+							{@render fnrSearchIslandBody()}
+						</VmPopover>
+					{:else}
+						<div
+							class="vm-nav-icon vm-nav-icon-min"
+							class:is-active={searchIslandOpen}
+							role="button"
+							tabindex="0"
+							aria-label={translate('explorer.btn.search')}
+							aria-pressed={searchIslandOpen}
+							onclick={toggleSearchIsland}
+							onkeydown={(e: KeyboardEvent) => {
+								if (e.key === 'Enter' || e.key === ' ') toggleSearchIsland();
+							}}
+							use:icon={'lucide-search'}
+						></div>
+					{/if}
 					{#if nodeExpansionSummary.canToggle}
 						<div
 							class="vm-nav-icon vm-nav-icon-min"

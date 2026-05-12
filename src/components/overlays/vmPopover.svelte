@@ -6,6 +6,8 @@
 	interface Props {
 		open: boolean;
 		triggerLabel?: string;
+		triggerClass?: string;
+		triggerPressed?: boolean;
 		triggerSnippet?: Snippet;
 		activeDocument?: Document;
 		children?: Snippet;
@@ -14,6 +16,8 @@
 	let {
 		open = $bindable(),
 		triggerLabel = '',
+		triggerClass = 'vm-btn-find',
+		triggerPressed,
 		triggerSnippet,
 		activeDocument,
 		children,
@@ -25,7 +29,12 @@
 </script>
 
 <Popover.Root bind:open>
-	<Popover.Trigger class="vm-btn-find">
+	<Popover.Trigger
+		class={triggerClass}
+		aria-label={triggerLabel || undefined}
+		title={triggerLabel || undefined}
+		aria-pressed={triggerPressed}
+	>
 		{#if triggerSnippet}{@render triggerSnippet()}{:else}{triggerLabel}{/if}
 	</Popover.Trigger>
 	<Popover.Portal to={portalTarget}>
