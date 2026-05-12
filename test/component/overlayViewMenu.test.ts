@@ -56,6 +56,7 @@ describe('ViewModePopup', () => {
 		renderViewModePopup({ fieldDefinitions, visibleFields: ['icon', 'name'] });
 
 		expect(target.querySelector<HTMLElement>('.vm-squircle[aria-label="Cards"]')).not.toBeNull();
+		expect(target.querySelector<HTMLElement>('.vm-squircle[aria-label="Markmap"]')).not.toBeNull();
 		expect(target.querySelector<HTMLElement>('.vm-squircle[aria-label="Drag & Drop list"]')).toBeNull();
 	});
 

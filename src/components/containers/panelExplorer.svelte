@@ -17,6 +17,7 @@
 	import ViewNodeCards from '../views/ViewNodeCards.svelte';
 	import ViewNodeGrid from '../views/ViewNodeGrid.svelte';
 	import ViewNodeTable from '../views/ViewNodeTable.svelte';
+	import ViewMarkmap from '../views/ViewMarkmap.svelte';
 	import ViewSvarFileManager from '../views/ViewSvarFileManager.svelte'; //temp
 	import ViewEmptyLanding from '../views/viewEmptyLanding.svelte';
 	import { getActivePerfProbe } from '../../dev/perfProbe';
@@ -147,6 +148,7 @@
 		viewMode === 'grid' ? (gridHierarchyMode === 'folder' ? currentGridNodes : nodes) : [],
 	);
 	const cardNodes = $derived(viewMode === 'cards' ? nodes : []);
+	const markmapNodes = $derived(viewMode === 'markmap' ? nodes : []);
 	const tableRows = $derived(viewMode === 'table' ? nodeRowsFromTree(nodes) : []);
 	const tableColumns = $derived(nodeTableColumnsForProvider<TMeta>(provider.id));
 	const visibleFieldsKey = $derived(visibleFields.join('\u0001'));
@@ -158,6 +160,7 @@
 	const isTreeEmpty = $derived(viewMode === 'tree' && nodes.length === 0);
 	const isGridEmpty = $derived(viewMode === 'grid' && gridNodes.length === 0);
 	const isCardsEmpty = $derived(viewMode === 'cards' && cardNodes.length === 0);
+	const isMarkmapEmpty = $derived(viewMode === 'markmap' && markmapNodes.length === 0);
 	const isTableEmpty = $derived(viewMode === 'table' && tableRows.length === 0);
 	const isSvarEmpty = $derived(viewMode === 'svar' && nodes.length === 0); //temp
 	let lastCommittedSelectionKey = '';
@@ -282,6 +285,9 @@
 			nodes = readProviderTree();
 			flatFiles = [];
 		} else if (viewMode === 'cards') {
+			nodes = readProviderTree();
+			flatFiles = [];
+		} else if (viewMode === 'markmap') {
 			nodes = readProviderTree();
 			flatFiles = [];
 		} else if (viewMode === 'table') {
@@ -670,6 +676,7 @@
 			return gridNodes.map((node) => node.id);
 		}
 		if (viewMode === 'cards') return cardNodes.map((node) => node.id);
+		if (viewMode === 'markmap') return collectAllHierarchyIds(markmapNodes);
 		if (viewMode === 'table') return tableRows.map((row) => row.id);
 		const ids: string[] = [];
 		const walk = (items: TreeNode<TMeta>[]) => {
@@ -749,6 +756,18 @@
 			for (const node of list) {
 				ids.push(node.id);
 				if (node.children && expanded.has(node.id)) walk(node.children);
+			}
+		};
+		walk(items);
+		return ids;
+	}
+
+	function collectAllHierarchyIds(items: TreeNode<TMeta>[]): string[] {
+		const ids: string[] = [];
+		const walk = (list: TreeNode<TMeta>[]) => {
+			for (const node of list) {
+				ids.push(node.id);
+				if (node.children) walk(node.children);
 			}
 		};
 		walk(items);
@@ -1064,6 +1083,24 @@
 				/>
 			{/if}
 		</div>
+	{:else if viewMode === 'markmap'}
+		<div class="vm-markmap-container">
+			{#if isMarkmapEmpty}
+				<ViewEmptyLanding state={emptyState} {icon} />
+			{:else}
+				<ViewMarkmap
+					nodes={markmapNodes}
+					selectedIds={selectedNodeIds}
+					focusedId={focusedNodeId}
+					onNodeClick={handleNodeClick}
+					onSecondaryAction={handleSecondaryAction}
+					onTertiaryAction={handleTertiaryAction}
+					onContextMenu={handleContextMenu}
+					onNodeKeydown={handleRowKeydown}
+					{icon}
+				/>
+			{/if}
+		</div>
 	{:else if viewMode === 'table'}
 		<div class="vm-table-container">
 			{#if isTableEmpty}
@@ -1121,6 +1158,12 @@
 		height: 100%;
 	}
 	.vm-cards-container {
+		flex: 1;
+		overflow: hidden;
+		min-height: 0;
+		height: 100%;
+	}
+	.vm-markmap-container {
 		flex: 1;
 		overflow: hidden;
 		min-height: 0;

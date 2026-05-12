@@ -32,6 +32,11 @@
 			iconName: 'lucide-layout-panel-top',
 			labelKey: 'viewmode.mode.cards',
 		},
+		{
+			id: 'markmap',
+			iconName: 'lucide-git-branch',
+			labelKey: 'viewmode.mode.markmap',
+		},
 		//temp until i add the new svars provider
 		{
 			id: 'svar',
