@@ -1,6 +1,8 @@
-import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { createRawSnippet, flushSync, mount, unmount, type Component } from 'svelte';
 import vmPopover from '../../src/components/overlays/vmPopover.svelte';
+import Toolbar from '../../src/components/layout/Toolbar.svelte';
+import { FnRIslandService } from '../../src/services/serviceFnRIsland.svelte';
 
 const popoverBody = createRawSnippet(() => ({
 	render: () => '<span data-vm-popover-body>Find body</span>',
@@ -45,5 +47,67 @@ describe('vmPopover', () => {
 		flushSync();
 
 		expect(host.querySelector('[data-vm-popover-body]')).toBeTruthy();
+	});
+});
+
+function toolbarProps(service: FnRIslandService) {
+	return {
+		activeTab: 'tags',
+		filtersSearch: '',
+		filtersSearchCategory: { tags: 0, props: 0, files: 0, content: 0 },
+		onSearchChange: vi.fn(),
+		searchHistory: [],
+		onSearchHistoryCommit: vi.fn(),
+		sortBy: 'name',
+		sortDirection: 'asc' as const,
+		viewMode: 'tree',
+		addMode: false,
+		operationScope: 'auto' as const,
+		filesShowSelectedOnly: false,
+		tagsExplorer: undefined,
+		propExplorer: undefined,
+		fileList: undefined,
+		nodeExpansionSummary: { canToggle: false, hasExpandedParents: false },
+		icon: vi.fn(() => ({ update: vi.fn() })),
+		addOpCount: 0,
+		fnrIslandService: service,
+		onCrear: vi.fn(),
+	};
+}
+
+describe('Toolbar Find/Replace vmPopover migration', () => {
+	let host: HTMLDivElement;
+	let app: ReturnType<typeof mount> | null = null;
+
+	beforeEach(() => {
+		host = document.createElement('div');
+		document.body.appendChild(host);
+		const root = document.createElement('div');
+		root.classList.add('vm-root');
+		host.appendChild(root);
+	});
+
+	afterEach(() => {
+		if (app) void unmount(app);
+		host.remove();
+	});
+
+	it('renders the expanded FnR island inside the local vmPopover portal', () => {
+		const service = new FnRIslandService();
+		app = mount(Toolbar as unknown as Component<Record<string, unknown>>, {
+			target: host,
+			props: toolbarProps(service),
+		});
+		flushSync();
+
+		service.expand();
+		flushSync();
+
+		const portal = host.querySelector('.vm-root .vm-popover-content');
+		expect(portal).toBeTruthy();
+		expect(portal?.querySelector('.vm-filters-header-search-wrap')).toBeTruthy();
+		expect(portal?.querySelector<HTMLButtonElement>('.vm-filters-search-modepill')?.dataset.mode).toBe(
+			'search',
+		);
 	});
 });
