@@ -147,6 +147,29 @@ describe('PanelExplorer empty landing', () => {
 		expect(target.textContent).not.toContain('Cards view not available');
 	});
 
+	it('renders markmap mode as an explorer view when nodes exist', () => {
+		app = render(target, {
+			viewMode: 'markmap',
+			provider: provider({
+				getTree: vi.fn(() => [
+					{
+						id: 'alpha',
+						label: 'Alpha',
+						depth: 0,
+						meta: {},
+						children: [{ id: 'beta', label: 'Beta', depth: 1, meta: {} }],
+					},
+				]),
+			}),
+		});
+		flushSync();
+
+		expect(target.querySelector('.vm-markmap-view')).not.toBeNull();
+		expect(target.querySelector('[data-vm-markmap-node="alpha"]')).not.toBeNull();
+		expect(target.textContent).toContain('Beta');
+		expect(target.textContent).not.toContain('Markmap view not available');
+	});
+
 	it('uses provider empty state copy for import and loading states', () => {
 		const getEmptyState = vi.fn(
 			(context: { mode: ExplorerViewMode; searchTerm: string }): ViewEmptyState | undefined => ({

@@ -29,6 +29,8 @@ describe('view service contracts', () => {
 		const providerMode: ProviderViewMode = 'table';
 
 		expect(modes).toContain(providerMode);
+		expect(modes).toContain('markmap');
+		expect(isExplorerViewMode('markmap')).toBe(true);
 		expect(isExplorerViewMode('masonry')).toBe(false);
 	});
 

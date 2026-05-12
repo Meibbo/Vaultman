@@ -1,6 +1,14 @@
 import type { ActiveFilterEntry, NodeBase, QueueChange } from './typeContracts';
 
-export const EXPLORER_VIEW_MODES = ['tree', 'table', 'grid', 'cards', 'list', 'svar'] as const;
+export const EXPLORER_VIEW_MODES = [
+	'tree',
+	'table',
+	'grid',
+	'cards',
+	'markmap',
+	'list',
+	'svar',
+] as const;
 
 export type ExplorerViewMode = (typeof EXPLORER_VIEW_MODES)[number];
 

@@ -579,6 +579,7 @@ export const en: Record<string, string> = {
 	'viewmode.mode.table': 'Table',
 	'viewmode.mode.grid': 'Grid',
 	'viewmode.mode.cards': 'Cards',
+	'viewmode.mode.markmap': 'Markmap',
 	'viewmode.mode.svar': 'SVAR (Exp)',
 
 	'viewmode.pill.icon': 'Icon',
