@@ -95,12 +95,13 @@ function waitForQuickSwitcherSelection(
 	if (!workspace) return Promise.resolve(null);
 	return new Promise((resolve) => {
 		let resolved = false;
-		let timeoutId: ReturnType<typeof setTimeout> | undefined;
+		let timeoutId: ReturnType<Window['setTimeout']> | undefined;
+		const timers = timerWindow();
 		let off: (() => void) | undefined;
 		const finish = (file?: AddonsQuickSwitcherFile | null) => {
 			if (resolved) return;
 			resolved = true;
-			if (timeoutId) clearTimeout(timeoutId);
+			if (timeoutId) timers.clearTimeout(timeoutId);
 			off?.();
 			const active = file ?? workspace.getActiveFile?.() ?? null;
 			resolve(active);
@@ -111,6 +112,10 @@ function waitForQuickSwitcherSelection(
 			queueMicrotask(() => finish());
 			return;
 		}
-		timeoutId = setTimeout(() => finish(), selectionTimeoutMs);
+		timeoutId = timers.setTimeout(() => finish(), selectionTimeoutMs);
 	});
+}
+
+function timerWindow(): Window {
+	return typeof activeWindow === 'undefined' ? window : activeWindow;
 }
