@@ -19,6 +19,14 @@ function emptySnapshot(explorerId = 'files'): ExplorerSnapshot {
 		idToIndex: new Map(),
 		pathToId: new Map(),
 		folderPathToId: new Map(),
+		domainKeyToId: new Map(),
+		projection: {
+			searchTerm: '',
+			searchMode: 'all',
+			sortBy: 'name',
+			sortDirection: 'asc',
+			sortTarget: 'top',
+		},
 		sourceRevisions: revisions,
 	};
 }

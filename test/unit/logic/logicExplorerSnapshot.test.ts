@@ -14,6 +14,10 @@ type FileMetaLite = {
 	folderPath: string;
 };
 
+type TagMetaLite = {
+	tagPath: string;
+};
+
 function leaf(
 	id: string,
 	label: string,
@@ -29,6 +33,16 @@ function leaf(
 			isFolder,
 			folderPath,
 		},
+	};
+}
+
+function tagNode(id: string, label: string, children: TreeNode<TagMetaLite>[] = []): TreeNode<TagMetaLite> {
+	return {
+		id,
+		label,
+		depth: id.includes('/') ? 1 : 0,
+		children,
+		meta: { tagPath: id },
 	};
 }
 
@@ -158,6 +172,36 @@ describe('buildExplorerSnapshot', () => {
 			kindFor: () => 'file',
 		});
 		expect(snap.sourceRevisions).toEqual({ filesRevision: 7, propsRevision: 3 });
+	});
+
+	it('carries provider projection state and domain-key lookup for Tags and Props adapters', () => {
+		const snap = buildExplorerSnapshot({
+			explorerId: 'tags',
+			providerKey: 'tags',
+			tree: [tagNode('project', 'project', [tagNode('project/active', 'active')])],
+			expandedIds: new Set(['project']),
+			revisions: { tagsRevision: 4 },
+			projection: {
+				searchTerm: 'active',
+				searchMode: 'leaf',
+				sortBy: 'name',
+				sortDirection: 'asc',
+				sortTarget: 'children',
+			},
+			kindFor: () => 'tag',
+			domainKeyFor: (row) => `#${row.node.meta.tagPath}`,
+		});
+
+		expect(snap.sourceRevisions).toEqual({ tagsRevision: 4 });
+		expect(snap.projection).toEqual({
+			searchTerm: 'active',
+			searchMode: 'leaf',
+			sortBy: 'name',
+			sortDirection: 'asc',
+			sortTarget: 'children',
+		});
+		expect(snap.domainKeyToId.get('#project')).toBe('project');
+		expect(snap.domainKeyToId.get('#project/active')).toBe('project/active');
 	});
 
 	it('returns structureRevision=0 from the pure builder because service owns the counter', () => {

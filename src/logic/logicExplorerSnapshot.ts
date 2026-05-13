@@ -4,8 +4,10 @@ import type {
 	ExplorerDataPlaneRevisions,
 	ExplorerSnapshot,
 	ExplorerSnapshotKind,
+	ExplorerSnapshotProjection,
 	ExplorerSnapshotRow,
 } from '../types/typeExplorerDataPlane';
+import { DEFAULT_EXPLORER_SNAPSHOT_PROJECTION } from '../types/typeExplorerDataPlane';
 
 export interface BuildExplorerSnapshotInput<TMeta = unknown> {
 	explorerId: string;
@@ -13,6 +15,7 @@ export interface BuildExplorerSnapshotInput<TMeta = unknown> {
 	tree: readonly TreeNode<TMeta>[];
 	expandedIds: ReadonlySet<string>;
 	revisions: ExplorerDataPlaneRevisions;
+	projection?: Partial<ExplorerSnapshotProjection>;
 	kindFor: (row: { node: TreeNode<TMeta>; parentId: string | null }) => ExplorerSnapshotKind;
 	pathFor?: (row: { node: TreeNode<TMeta>; parentId: string | null }) => string | undefined;
 	folderPathFor?: (row: { node: TreeNode<TMeta>; parentId: string | null }) => string | undefined;
@@ -41,6 +44,11 @@ function buildExplorerSnapshotNow<TMeta = unknown>(
 	const idToIndex = new Map<string, number>();
 	const pathToId = new Map<string, string>();
 	const folderPathToId = new Map<string, string>();
+	const domainKeyToId = new Map<string, string>();
+	const projection: ExplorerSnapshotProjection = {
+		...DEFAULT_EXPLORER_SNAPSHOT_PROJECTION,
+		...input.projection,
+	};
 
 	function walk(
 		node: TreeNode<TMeta>,
@@ -68,6 +76,7 @@ function buildExplorerSnapshotNow<TMeta = unknown>(
 
 		const folderPath = input.folderPathFor?.(rowInput);
 		if (folderPath !== undefined) folderPathToId.set(folderPath, node.id);
+		if (row.domainKey !== undefined) domainKeyToId.set(row.domainKey, node.id);
 
 		if (visibleAncestors) {
 			idToIndex.set(node.id, visibleIds.length);
@@ -102,6 +111,8 @@ function buildExplorerSnapshotNow<TMeta = unknown>(
 		idToIndex,
 		pathToId,
 		folderPathToId,
+		domainKeyToId,
+		projection,
 		sourceRevisions: input.revisions,
 	};
 }

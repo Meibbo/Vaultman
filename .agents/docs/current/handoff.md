@@ -5,7 +5,7 @@ status: active
 parent: "[[docs/work/pkm-ai/index|pkm-ai]]"
 archive_source: "docs/archive/pkm-ai/active-docs/2026-05-11T080321-current-handoff.md"
 created: 2026-05-04T01:36:20
-updated: 2026-05-12T22:30:00
+updated: 2026-05-13T02:11:50
 tags:
   - agent/current
 created_by: dec
@@ -21,8 +21,8 @@ Older route history remains in
 
 ## Resume Point
 
-- Latest request handled: reconciled Wave 3 agents A/B/C from `sandbox`
-  against the Wave 2 baseline on `claude/explorer`.
+- Latest request handled: started EDP-006 Agent E0 shared Tags/Props snapshot
+  contract coordinator after sticky tree rows were integrated.
 - Latest source records:
   [[docs/work/hardening/specs/2026-05-11-explorer-data-plane-structural-taxonomy/18-wave-5-plan-comparison-reconciliation|Wave 5 plan comparison and reconciliation]]
   through
@@ -55,8 +55,11 @@ Older route history remains in
   [[docs/work/hardening/plans/2026-05-11-explorer-data-plane-transition/05-worker-operating-contract|EDP worker operating contract]]
   defines exact worktree/branch setup, ownership, verification, and handoff for
   remaining EDP agents.
-- Active sticky-row polish branch: `codex/sticky-rows-nav-offset`; detailed
-  next-agent prompt:
+- Current EDP-006 worktree is
+  `C:\Users\vic_A\Desktop\vaultman\.claude\worktrees\edp-006-contract` on
+  branch `codex/edp-006-contract`, based on `claude/explorer`.
+- Sticky tree rows are integrated in the `claude/explorer` base; detailed
+  preservation prompt:
   [[docs/work/polish/plans/2026-05-12-sticky-tree-rows-nav-offset|Sticky tree rows nav offset handoff]].
 - Previous worktree route:
   `C:\Users\vic_A\Desktop\vaultman\.claude\worktrees\sleepy-engelbart-9e6dc6`
@@ -118,6 +121,10 @@ Older route history remains in
   3 unit files / 36 tests and 2 component files / 16 tests.
 - EDP-005 static/build gates pass: `pnpm run lint:full`, `pnpm run check`,
   and `pnpm run build:plugin`.
+- EDP-006 E0 gates passed: RED snapshot test failed on missing projection
+  metadata; focused unit passed 2 files / 17 tests, sticky component gate
+  passed 4 files / 39 tests, and `lint:full`, `check`, `build:plugin`, and
+  `git diff --check` passed.
 - EDP-001 is closed: local tracker approval is recorded, `completed` label
   vocabulary exists, and stale `serviceViews` selection ownership wording is
   superseded by `NodeSelectionService`.
@@ -188,8 +195,8 @@ Older route history remains in
 
 ## Next Action
 
-- Current route: finish/merge sticky tree rows, then use the worker contract
-  for EDP-006 shared-contract coordinator; do not reuse stale `sandbox` edits.
+- Current route: commit EDP-006 E0 shared contract, then dispatch E1/E2
+  Tags/Props adapters from the E0 base.
 - Continue with remaining T4 integration follow-ups or the next vertical-thread
   slice from
   [[docs/work/polish/plans/2026-05-11-ui-modernization-vertical-threads/index|UI Modernization Vertical Threads]].

@@ -125,6 +125,14 @@ function makeFilesSnapshot(visibleIds: string[]): ExplorerSnapshot {
 		idToIndex: new Map(visibleIds.map((id, index) => [id, index])),
 		pathToId: new Map(visibleIds.map((id) => [id, id])),
 		folderPathToId: new Map(),
+		domainKeyToId: new Map(),
+		projection: {
+			searchTerm: '',
+			searchMode: 'all',
+			sortBy: 'name',
+			sortDirection: 'asc',
+			sortTarget: 'top',
+		},
 		sourceRevisions: { filesRevision: 1 },
 	};
 }
