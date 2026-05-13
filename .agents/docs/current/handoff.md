@@ -21,7 +21,7 @@ Older route history remains in
 
 ## Resume Point
 
-- Latest request handled: integrated EDP-009 SVAR cleanup into `claude/explorer`.
+- Latest request handled: T4 FnR `vmPopover` follow-up completed locally in `codex/t4-fnr-vmpopover`.
 - Latest source record:
   [[docs/work/hardening/issues/explorer-data-plane/009-adapter-row-contract-follow-up|EDP-009 adapter row contract follow-up]].
 - Current hardening status: Wave 2 vertical specs are captured, Wave 3 was
@@ -176,16 +176,15 @@ Older route history remains in
 - `node .agents/tools/pkm-ai/check-doc-health.mjs` still fails 11 existing
   residuals: glossary warnings, parent-shape issues, and large plan/spec line
   limits outside the new Wave 2 shards.
-- Earlier T3/T4/full-suite verification remains preserved in the archived
-  current handoff and linked source records.
+- T4 FnR `vmPopover` follow-up gates passed in `codex/t4-fnr-vmpopover`: RED failed on stale trigger-open collapse; focused component 8/39, unit 8/86, `lint:full`, `check`, `build:plugin`, and `git diff --check` passed.
 
 ## Residuals
 
 - Known performance-threshold residuals are deferred to final stabilization;
   do not relax thresholds in EDP slices.
 - `vaultman:open-diff` is not registered in live `plugin-dev`.
-- T4 follow-ups remain: native-click wiring, FnR `vmPopover`, dashboard/add-ons,
-  real adopted-block move staging, Quick Switcher, and FAB polish.
+- T4 follow-ups remain: native-click wiring, dashboard/add-ons, real adopted-block
+  move staging, Quick Switcher, and FAB polish.
 - `node .agents/tools/pkm-ai/check-doc-health.mjs` still fails on existing
   glossary, parent-shape, and large plan/spec line-limit residuals.
 - Do not move AI files to `main`.
