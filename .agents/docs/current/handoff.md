@@ -5,7 +5,7 @@ status: active
 parent: "[[docs/work/pkm-ai/index|pkm-ai]]"
 archive_source: "docs/archive/pkm-ai/active-docs/2026-05-11T080321-current-handoff.md"
 created: 2026-05-04T01:36:20
-updated: 2026-05-13T08:08:29
+updated: 2026-05-13T10:58:39
 tags:
   - agent/current
 created_by: dec
@@ -21,8 +21,8 @@ Older route history remains in
 
 ## Resume Point
 
-- Latest request handled: implemented EDP-009 G1 tree/grid row contract on
-  `codex/edp-009-tree-grid`.
+- Latest request handled: integrating EDP-009 G1 tree/grid and G2 table/cards
+  row contracts into `claude/explorer`.
 - Latest source record:
   [[docs/work/hardening/issues/explorer-data-plane/009-adapter-row-contract-follow-up|EDP-009 adapter row contract follow-up]].
 - Current hardening status: Wave 2 vertical specs are captured, Wave 3 was
@@ -66,6 +66,9 @@ Older route history remains in
 - EDP-009 G1 tree/grid is implemented in `.claude/worktrees/edp-009-tree-grid`:
   tree/grid accept optional `ExplorerRowInput` rows through adapter-local
   bridges. Table/cards/SVAR were not touched.
+- EDP-009 G2 table/cards row-contract work is implemented in
+  `codex/edp-009-table-cards`; full notes live in
+  [[docs/work/hardening/issues/explorer-data-plane/009-adapter-row-contract-follow-up|EDP-009]].
 - Sticky tree rows are integrated in the `claude/explorer` base; detailed
   preservation prompt:
   [[docs/work/polish/plans/2026-05-12-sticky-tree-rows-nav-offset|Sticky tree rows nav offset handoff]].
@@ -154,6 +157,11 @@ Older route history remains in
 - EDP-009 G1 gates passed in `codex/edp-009-tree-grid`; RED/GREEN detail,
   final static/build gates, and the unrelated table dynamic-geometry timeout note are in
   [[docs/work/hardening/issues/explorer-data-plane/009-adapter-row-contract-follow-up#verification|EDP-009 verification]].
+- EDP-009 G2 verification in `codex/edp-009-table-cards`: RED adapter/component
+  tests covered row-input callback gaps; focused unit 2 files / 15 tests,
+  table/cards component 2 files / 13 tests, non-threshold component 8 files /
+  32 tests, sticky component 4 files / 39 tests, and static/build gates passed.
+  Timing gates still fail on clean `claude/explorer` at `6a4362f`.
 - EDP-001 is closed: local tracker approval is recorded, `completed` label
   vocabulary exists, and stale `serviceViews` selection ownership wording is
   superseded by `NodeSelectionService`.
@@ -173,26 +181,19 @@ Older route history remains in
 
 ## Residuals
 
-- Known performance-threshold residuals are deferred to final stabilization
-  unless a focused slice regresses them. Do not relax thresholds in EDP slices.
-- `vaultman:open-diff` is not registered in the live `plugin-dev` command list;
-  the Diff Navbar DOM probe returned `false` because no command opened the diff
-  view.
-- T4 integration follow-ups remain: frame-level native-click wiring,
-  Find/Replace island migration to `vmPopover`, dashboard/add-ons wiring in
-  `frameVaultman.svelte`, real adopted-block move staging into queue chains,
-  Quick Switcher, and FAB orbiting-ink polish.
-- `node .agents/tools/pkm-ai/check-doc-health.mjs` still fails on glossary,
-  parent-shape, and large plan/spec line-limit residuals. Current
-  status/handoff were archived and compacted here.
+- Known performance-threshold residuals are deferred to final stabilization;
+  do not relax thresholds in EDP slices.
+- `vaultman:open-diff` is not registered in live `plugin-dev`.
+- T4 follow-ups remain: native-click wiring, FnR `vmPopover`, dashboard/add-ons,
+  real adopted-block move staging, Quick Switcher, and FAB polish.
+- `node .agents/tools/pkm-ai/check-doc-health.mjs` still fails on existing
+  glossary, parent-shape, and large plan/spec line-limit residuals.
 - Do not move AI files to `main`.
-- Do not base table work on old `viewTable.svelte`; use the TanStack table
-  source records if table work resumes.
+- Do not base table work on old `viewTable.svelte`; use TanStack source records.
 
 ## Next Action
 
-- Next EDP route: continue EDP-009 G2 table/cards from the G0 row contract; SVAR deletion waits until row-contract finalization.
-- Continue T4 follow-ups or the next vertical-thread slice from
-  [[docs/work/polish/plans/2026-05-11-ui-modernization-vertical-threads/index|UI Modernization Vertical Threads]].
+- Next EDP route: finish G1/G2 merge verification on `claude/explorer`, then remove SVAR after row-contract finalization.
+- Continue T4 follow-ups or next vertical-thread slice.
 - For T3, register or expose a real diff-open path before the live Diff Navbar smoke.
 - Remove `OperationQueueService.transactions` only after all readers migrate to immutable `chains`.
