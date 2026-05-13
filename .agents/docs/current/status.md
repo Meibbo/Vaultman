@@ -5,7 +5,7 @@ status: active
 parent: "[[docs/work/pkm-ai/index|pkm-ai]]"
 archive_source: "docs/archive/pkm-ai/active-docs/2026-05-11T080321-current-status.md"
 created: 2026-05-04T01:36:20
-updated: 2026-05-13T03:38:18
+updated: 2026-05-13T04:20:51
 tags:
   - agent/current
 created_by: dec
@@ -30,8 +30,8 @@ Older route history remains in
 
 ## Current Route
 
-- Latest user request: continue EDP-006 as Agent E1 and implement the Tags
-  snapshot adapter from E0 commit `d78120e`.
+- Latest user request handled: integrated completed EDP-006 Tags and Props
+  adapter branches into `claude/explorer` and ran the combined gate.
 - Active initiative: [[docs/work/hardening/index|Hardening]].
 - Active spec:
   [[docs/work/hardening/specs/2026-05-11-explorer-data-plane-structural-taxonomy/index|Explorer Data Plane Structural Taxonomy]].
@@ -74,9 +74,7 @@ Older route history remains in
   [[docs/work/hardening/plans/2026-05-11-explorer-data-plane-transition/05-worker-operating-contract|EDP worker operating contract]]
   defines base branch, worktree naming, ownership boundaries, verification,
   and handoff for all remaining EDP workers.
-- Current EDP-006 E1 worktree:
-  `C:\Users\vic_A\Desktop\vaultman\.claude\worktrees\edp-006-tags`
-  on branch `codex/edp-006-tags`, based on `claude/explorer`.
+- EDP-006 Tags and Props adapters are integrated in `claude/explorer`.
 - Sticky tree rows are integrated in the `claude/explorer` base; source
   record and preservation prompt:
   [[docs/work/polish/plans/2026-05-12-sticky-tree-rows-nav-offset|Sticky tree rows nav offset handoff]].
@@ -107,6 +105,13 @@ Older route history remains in
   Tags adapter methods; focused Tags unit passed 2 files / 14 tests; sticky
   component gate passed 4 files / 39 tests after one isolated timeout rerun;
   `lint:full`, `check`, `build:plugin`, and `git diff --check` passed.
+- EDP-006 E2 Props gates passed: RED failed on missing Props
+  snapshot/structural methods; focused Props unit passed 1 file / 20 tests,
+  sticky component gate passed 4 files / 39 tests, and `lint:full`, `check`,
+  `build:plugin`, and `git diff --check` passed.
+- EDP-006 combined integration gates passed in `claude/explorer`: focused unit
+  5 files / 51 tests, sticky component 4 files / 39 tests, `lint:full`,
+  `check`, `build:plugin`, and `git diff --check`.
 - EDP-001 documentation gate is closed: the local issue tracker is approved,
   `completed` label vocabulary is recorded, and stale `serviceViews` selection
   ownership wording is superseded by `NodeSelectionService`.
@@ -117,34 +122,8 @@ Older route history remains in
 - `node .agents/tools/pkm-ai/check-doc-health.mjs` still fails 11 existing
   residuals: glossary warnings, parent-shape issues, and large plan/spec line
   limits outside the new Wave 2 shards.
-- T3.8 RED tests failed 3/38 as expected, then passed after the immutable
-  queue/diff implementation.
-- T4 continuation added missing component gate files for dialog, popover,
-  native click interception, dashboard, and add-ons markdown pane.
-- T4 continuation added `buildMoveBlockOps()` and its RED/GREEN unit test.
-- Focused T4 unit gate passed: 8 files / 52 tests.
-- Focused T4 component gate passed: 5 files / 9 tests.
-- Post-T3 lint continuation cleared all remaining `lint:full` failures:
-  removed unnecessary assertions in DnD/foul/click services, added
-  `uno.config.ts` to the ESLint project-service default set, and migrated
-  UnoCSS from deprecated `presetUno` to `presetWind3`.
-- UnoCSS preflight gate RED/GREEN passed: 1 file / 5 tests.
-- Focused T4/config unit gate passed: 4 files / 20 tests.
-- Focused queue/diff/lint unit gate passed: 10 files / 67 tests.
-- Diff Navbar component gate passed: 2 files / 7 tests.
-- Full unit passed: 117 files / 723 tests.
-- Full component passed: 61 files / 290 tests.
-- `mcp__svelte__.svelte_autofixer` returned `issues: []` and
-  `suggestions: []` for `viewDiff.svelte` and `viewDiffNavbar.svelte`.
-- `mcp__svelte__.svelte_autofixer` returned `issues: []` and
-  `suggestions: []` for `serviceFoulDetection.svelte.ts`.
-- `pnpm run lint:full`: pass.
-- `pnpm run check`: pass, 0 errors / 0 warnings.
-- `pnpm run build:plugin`: pass.
-- `git diff --check`: pass.
-- Live Obsidian smoke: plugin reload and `vaultman:open` passed; dev errors
-  were empty. T4 dialog/dashboard evals returned `false` because no dialog was
-  open and the dashboard surface was not active in the live view.
+- Earlier T3/T4/full-suite verification remains preserved in the archived
+  current docs and linked source records.
 
 ## Known Residuals
 
@@ -166,9 +145,7 @@ Older route history remains in
 
 ## Next Action
 
-- Current route: EDP-006 E1 Tags adapter is ready for local commit on
-  `codex/edp-006-tags`; continue Props adapter E2 or integrate both Wave 3
-  branches after E2 passes.
+- Current route: start EDP-008 overlay projection from `claude/explorer`.
 - Continue with the remaining T4 integration follow-ups or the next
   vertical-thread slice from the active plan.
 - For T3 follow-up, register or expose a real diff-open path, then rerun the
