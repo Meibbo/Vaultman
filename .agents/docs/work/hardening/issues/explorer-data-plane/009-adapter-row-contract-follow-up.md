@@ -6,7 +6,7 @@ status: active
 issue_kind: AFK
 parent: "[[docs/work/hardening/issues/explorer-data-plane/index|Explorer data plane local issues]]"
 created: 2026-05-11T20:55:00
-updated: 2026-05-13T10:58:39
+updated: 2026-05-13T11:22:53
 labels:
   - ready-for-agent
 tags:
@@ -100,6 +100,10 @@ preserving existing Polish table/card behavior.
   wording that kept SVAR as a compatibility bridge is superseded for EDP-009.
   The next agent should leave SVAR deletion until after row-contract
   finalization within this wave, then remove SVAR code and package imports.
+- 2026-05-13 integration update: G1 and G2 are merged into `claude/explorer`
+  as `8eb5742` and `895090a`. The tree/grid/table/cards row contract is now
+  finalized for the follow-up SVAR deletion slice; do not preserve a SVAR
+  compatibility bridge.
 
 ## Blocked By
 
@@ -158,3 +162,14 @@ preserving existing Polish table/card behavior.
 - G2 PASS: sticky tree focused gate passed 4 files / 39 tests.
 - G2 PASS: `pnpm run lint:full`, `pnpm run check`, and
   `pnpm run build:plugin`.
+- MERGED PASS on `claude/explorer` after G1/G2 merge commits `8eb5742` and
+  `895090a`: focused unit gate passed 7 files / 54 tests.
+- MERGED PASS: combined tree/grid/table/cards and reveal/selection component
+  gate passed 14 files / 121 tests; the first 180s run timed out before
+  summary, and the longer rerun passed.
+- MERGED PASS: required sticky tree focused gate passed 4 files / 39 tests.
+- MERGED PASS: `pnpm run lint:full`, `pnpm run check` with 0 Svelte errors
+  and 0 warnings, `pnpm run build:plugin`, and `git diff --check`.
+- Svelte autofixer was run against the changed Svelte components; it reported
+  no issues before the CLI timed out while fetching follow-up documentation
+  after printing suggestions.

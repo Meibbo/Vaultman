@@ -5,7 +5,7 @@ status: active
 parent: "[[docs/work/pkm-ai/index|pkm-ai]]"
 archive_source: "docs/archive/pkm-ai/active-docs/2026-05-11T080321-current-status.md"
 created: 2026-05-04T01:36:20
-updated: 2026-05-13T10:58:39
+updated: 2026-05-13T11:22:53
 tags:
   - agent/current
 created_by: dec
@@ -30,7 +30,7 @@ Older route history remains in
 
 ## Current Route
 
-- Latest user request handled: integrating EDP-009 G1 tree/grid and G2
+- Latest user request handled: integrated EDP-009 G1 tree/grid and G2
   table/cards row contracts into `claude/explorer`.
 - Active initiative: [[docs/work/hardening/index|Hardening]].
 - Active spec:
@@ -85,8 +85,9 @@ Older route history remains in
   [[docs/work/hardening/issues/explorer-data-plane/009-row-input-vocabulary-decision|EDP-009 row-input vocabulary decision]].
   It adds `serviceExplorerRowInput`, is integrated in `claude/explorer`, and
   leaves component migrations to G1/G2.
-- EDP-009 G1 tree/grid and G2 table/cards row-contract branches are merged
-  into the current integration worktree; detailed notes live in
+- EDP-009 G1 tree/grid and G2 table/cards row-contract branches are
+  integrated in `claude/explorer` with merge commits `8eb5742` and
+  `895090a`; detailed notes live in
   [[docs/work/hardening/issues/explorer-data-plane/009-adapter-row-contract-follow-up|EDP-009]].
 - Sticky tree rows are integrated in the `claude/explorer` base; source
   record and preservation prompt:
@@ -142,13 +143,17 @@ Older route history remains in
   `071e490`: focused contract 1 file / 6 tests, relevant unit 6 files / 47
   tests, sticky component 4 files / 39 tests, `lint:full`, `check`,
   `build:plugin`, and `git diff --check`.
-- EDP-009 G1 gates passed: focused row-input component 2 files / 8 tests,
-  focused unit 9 files / 58 tests, relevant tree/grid component 18 files / 145
-  tests, sticky component 4 files / 40 tests, and static/build gates.
-- EDP-009 G2 gates passed: focused unit 2 files / 15 tests, focused
-  table/cards component 2 files / 13 tests, non-threshold table/cards
-  component 8 files / 32 tests, sticky component 4 files / 39 tests, and
-  static/build gates. Known timing residuals remain deferred.
+- EDP-009 G1/G2 branch gates passed; RED/GREEN detail lives in the EDP-009
+  issue. G1 covered 2 row-input component files / 8 tests, 9 unit files / 58
+  tests, 18 tree/grid component files / 145 tests, sticky 4 files / 40 tests,
+  and static/build gates. G2 covered 2 unit files / 15 tests, 2 table/cards
+  component files / 13 tests, 8 non-threshold table/cards files / 32 tests,
+  sticky 4 files / 39 tests, and static/build gates.
+- EDP-009 G1/G2 integration gates passed on `claude/explorer` after merge
+  commits `8eb5742` and `895090a`: focused unit 7 files / 54 tests, combined
+  component 14 files / 121 tests after one timeout-only rerun, sticky
+  component 4 files / 39 tests, `lint:full`, `check`, `build:plugin`, and
+  `git diff --check`.
 - EDP-001 documentation gate is closed: the local issue tracker is approved,
   `completed` label vocabulary is recorded, and stale `serviceViews` selection
   ownership wording is superseded by `NodeSelectionService`.
@@ -182,8 +187,8 @@ Older route history remains in
 
 ## Next Action
 
-- Next EDP route: finish G1/G2 merge verification on `claude/explorer`, then
-  remove SVAR after row-contract finalization without preserving a bridge.
+- Next EDP route: remove SVAR code paths and package imports now that the
+  tree/grid/table/cards row contract is finalized; do not preserve a bridge.
 - Continue with the remaining T4 integration follow-ups or the next
   vertical-thread slice from the active plan.
 - For T3 follow-up, register or expose a real diff-open path, then rerun the

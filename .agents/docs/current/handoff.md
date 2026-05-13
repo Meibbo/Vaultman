@@ -5,7 +5,7 @@ status: active
 parent: "[[docs/work/pkm-ai/index|pkm-ai]]"
 archive_source: "docs/archive/pkm-ai/active-docs/2026-05-11T080321-current-handoff.md"
 created: 2026-05-04T01:36:20
-updated: 2026-05-13T10:58:39
+updated: 2026-05-13T11:22:53
 tags:
   - agent/current
 created_by: dec
@@ -21,7 +21,7 @@ Older route history remains in
 
 ## Resume Point
 
-- Latest request handled: integrating EDP-009 G1 tree/grid and G2 table/cards
+- Latest request handled: integrated EDP-009 G1 tree/grid and G2 table/cards
   row contracts into `claude/explorer`.
 - Latest source record:
   [[docs/work/hardening/issues/explorer-data-plane/009-adapter-row-contract-follow-up|EDP-009 adapter row contract follow-up]].
@@ -63,11 +63,9 @@ Older route history remains in
 - EDP-009 G0 is integrated in `claude/explorer`:
   `serviceExplorerRowInput`, focused contract tests, and the row-input
   vocabulary decision record. No view components were migrated.
-- EDP-009 G1 tree/grid is implemented in `.claude/worktrees/edp-009-tree-grid`:
-  tree/grid accept optional `ExplorerRowInput` rows through adapter-local
-  bridges. Table/cards/SVAR were not touched.
-- EDP-009 G2 table/cards row-contract work is implemented in
-  `codex/edp-009-table-cards`; full notes live in
+- EDP-009 G1/G2 are integrated in `claude/explorer` with merge commits
+  `8eb5742` and `895090a`: tree/grid/table/cards consume row-input contracts
+  through adapter-local bridges. Full notes live in
   [[docs/work/hardening/issues/explorer-data-plane/009-adapter-row-contract-follow-up|EDP-009]].
 - Sticky tree rows are integrated in the `claude/explorer` base; detailed
   preservation prompt:
@@ -154,14 +152,14 @@ Older route history remains in
   `check`, and `build:plugin`.
 - EDP-009 G0 and merged `claude/explorer` gates passed; details remain in the
   EDP-009 issue and row-input decision records.
-- EDP-009 G1 gates passed in `codex/edp-009-tree-grid`; RED/GREEN detail,
-  final static/build gates, and the unrelated table dynamic-geometry timeout note are in
+- EDP-009 G1/G2 branch gates passed; RED/GREEN detail and clean-base timing
+  residuals are in
   [[docs/work/hardening/issues/explorer-data-plane/009-adapter-row-contract-follow-up#verification|EDP-009 verification]].
-- EDP-009 G2 verification in `codex/edp-009-table-cards`: RED adapter/component
-  tests covered row-input callback gaps; focused unit 2 files / 15 tests,
-  table/cards component 2 files / 13 tests, non-threshold component 8 files /
-  32 tests, sticky component 4 files / 39 tests, and static/build gates passed.
-  Timing gates still fail on clean `claude/explorer` at `6a4362f`.
+- EDP-009 G1/G2 integration gates passed on `claude/explorer` after merge
+  commits `8eb5742` and `895090a`: focused unit 7 files / 54 tests, combined
+  component 14 files / 121 tests after one timeout-only rerun, sticky
+  component 4 files / 39 tests, `lint:full`, `check`, `build:plugin`, and
+  `git diff --check`.
 - EDP-001 is closed: local tracker approval is recorded, `completed` label
   vocabulary exists, and stale `serviceViews` selection ownership wording is
   superseded by `NodeSelectionService`.
@@ -193,7 +191,8 @@ Older route history remains in
 
 ## Next Action
 
-- Next EDP route: finish G1/G2 merge verification on `claude/explorer`, then remove SVAR after row-contract finalization.
+- Next EDP route: remove SVAR code paths and package imports now that the row
+  contract is finalized; do not preserve a bridge.
 - Continue T4 follow-ups or next vertical-thread slice.
 - For T3, register or expose a real diff-open path before the live Diff Navbar smoke.
 - Remove `OperationQueueService.transactions` only after all readers migrate to immutable `chains`.
