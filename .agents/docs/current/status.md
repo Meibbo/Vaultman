@@ -5,7 +5,7 @@ status: active
 parent: "[[docs/work/pkm-ai/index|pkm-ai]]"
 archive_source: "docs/archive/pkm-ai/active-docs/2026-05-11T080321-current-status.md"
 created: 2026-05-04T01:36:20
-updated: 2026-05-12T12:10:00
+updated: 2026-05-12T12:20:00
 tags:
   - agent/current
 created_by: dec
@@ -63,6 +63,9 @@ Older route history remains in
 - EDP-001 tracker approval/supersession gate is completed; the old
   [[docs/work/hardening/plans/2026-05-04-serviceviews-implementation/index|serviceViews implementation plan]]
   is historical and not executable as the current data-plane plan.
+- Parallel dispatch router:
+  [[docs/work/hardening/plans/2026-05-11-explorer-data-plane-transition/04-parallel-agent-dispatch-index|EDP parallel agent dispatch index]].
+  Wave 1 was EDP-003, EDP-004, and EDP-007; all three are now integrated.
 - Previous route before this request: Claude worktree thread 04.
 - Previous worktree:
   `C:\Users\vic_A\Desktop\vaultman\.claude\worktrees\sleepy-engelbart-9e6dc6`
@@ -143,11 +146,11 @@ Older route history remains in
 
 ## Known Residuals
 
-- Full EDP-002 completion is blocked by existing performance-threshold gates:
+- Full-suite stabilization still has existing performance-threshold gates:
   `test/unit/performance/stress.test.ts` measured ~242ms against a 200ms
   threshold, and `test/component/viewTableStress.test.ts` measured ~3.37s
-  against a 3.0s threshold in isolated rerun. Do not relax thresholds inside
-  EDP-002 without a separate performance-test decision.
+  against a 3.0s threshold in isolated rerun. Defer these to the final
+  stabilization gate unless a focused slice introduces a new regression.
 - `vaultman:open-diff` is absent from the live `plugin-dev` command list.
 - T4 still has integration follow-ups: frame-level native-click wiring,
   Find/Replace island migration to `vmPopover`, dashboard/add-ons wiring in
@@ -161,9 +164,9 @@ Older route history remains in
 
 ## Next Action
 
-- Current hardening route: review and integrate `codex/edp-wave3-reconcile`
-  after deciding whether to fold it into `claude/explorer` directly or keep it
-  as a separate reconciliation branch.
+- Current hardening route: EDP-003, EDP-004, and EDP-007 are integrated in
+  `claude/explorer`; use the dispatch index for the next unlocked slice,
+  EDP-005 Data-Plane Perf Gate.
 - Continue with the remaining T4 integration follow-ups or the next
   vertical-thread slice from the active plan.
 - For T3 follow-up, register or expose a real diff-open path, then rerun the
