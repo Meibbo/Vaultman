@@ -5,7 +5,7 @@ status: active
 parent: "[[docs/work/pkm-ai/index|pkm-ai]]"
 archive_source: "docs/archive/pkm-ai/active-docs/2026-05-11T080321-current-status.md"
 created: 2026-05-04T01:36:20
-updated: 2026-05-13T12:33:39
+updated: 2026-05-13T15:53:15
 tags:
   - agent/current
 created_by: dec
@@ -30,7 +30,7 @@ Older route history remains in
 
 ## Current Route
 
-- Latest user request handled: integrated EDP-009 SVAR cleanup into `claude/explorer`.
+- Latest user request handled: T4 dashboard/add-ons frame wiring.
 - Active initiative: [[docs/work/hardening/index|Hardening]].
 - Active spec:
   [[docs/work/hardening/specs/2026-05-11-explorer-data-plane-structural-taxonomy/index|Explorer Data Plane Structural Taxonomy]].
@@ -91,8 +91,8 @@ Older route history remains in
 - Sticky tree rows are integrated in the `claude/explorer` base; source
   record and preservation prompt:
   [[docs/work/polish/plans/2026-05-12-sticky-tree-rows-nav-offset|Sticky tree rows nav offset handoff]].
-- Previous Polish/T3/T4 route details remain in the archived current docs and
-  linked vertical-thread source records.
+- T4 dashboard/add-ons frame wiring is complete in `codex/t4-addons-dashboard`;
+  source record: [[docs/work/polish/plans/2026-05-11-ui-modernization-vertical-threads/04-thread-ecosystem-interception#2026-05-13-t4-dashboardadd-ons-frame-wiring-follow-up|T4 dashboard/add-ons follow-up]].
 - Earlier detachable, Cut 1.5, Dock Toolbar, and PKM-AI history is preserved
   in the archived current docs linked above.
 
@@ -178,10 +178,9 @@ Older route history remains in
   against a 3.0s threshold in isolated rerun. Defer these to the final
   stabilization gate unless a focused slice introduces a new regression.
 - `vaultman:open-diff` is absent from the live `plugin-dev` command list.
-- T4 still has integration follow-ups: frame-level native-click wiring,
-  Find/Replace island migration to `vmPopover`, dashboard/add-ons wiring in
-  `frameVaultman.svelte`, real queue staging for adopted-block moves, Quick
-  Switcher, and FAB orbiting-ink polish.
+- T4 remaining follow-ups: frame-level native-click wiring, Find/Replace
+  `vmPopover`, real adopted-block queue staging, Quick Switcher, and FAB
+  orbiting-ink polish.
 - `OperationQueueService.transactions` remains by design as the compatibility
   read surface until queue/diff/details readers migrate to `chains`.
 - `node .agents/tools/pkm-ai/check-doc-health.mjs` still fails on existing

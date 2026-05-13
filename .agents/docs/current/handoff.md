@@ -5,7 +5,7 @@ status: active
 parent: "[[docs/work/pkm-ai/index|pkm-ai]]"
 archive_source: "docs/archive/pkm-ai/active-docs/2026-05-11T080321-current-handoff.md"
 created: 2026-05-04T01:36:20
-updated: 2026-05-13T12:33:39
+updated: 2026-05-13T15:53:15
 tags:
   - agent/current
 created_by: dec
@@ -21,9 +21,9 @@ Older route history remains in
 
 ## Resume Point
 
-- Latest request handled: integrated EDP-009 SVAR cleanup into `claude/explorer`.
+- Latest request handled: T4 dashboard/add-ons frame wiring.
 - Latest source record:
-  [[docs/work/hardening/issues/explorer-data-plane/009-adapter-row-contract-follow-up|EDP-009 adapter row contract follow-up]].
+  [[docs/work/polish/plans/2026-05-11-ui-modernization-vertical-threads/04-thread-ecosystem-interception#2026-05-13-t4-dashboardadd-ons-frame-wiring-follow-up|T4 dashboard/add-ons follow-up]].
 - Current hardening status: Wave 2 vertical specs are captured, Wave 3 was
   revalidated against Wave 2, Wave 4 implementation specs are drafted, and
   Wave 5 comparison/issue candidates are drafted. Cached explorer images now
@@ -68,8 +68,8 @@ Older route history remains in
 - Sticky tree rows are integrated in the `claude/explorer` base; detailed
   preservation prompt:
   [[docs/work/polish/plans/2026-05-12-sticky-tree-rows-nav-offset|Sticky tree rows nav offset handoff]].
-- Older Polish/T3/T4 route details remain in the archived current docs and
-  linked vertical-thread source records.
+- T4 dashboard/add-ons frame wiring is complete in `codex/t4-addons-dashboard`;
+  detailed verification is in the linked vertical-thread source record.
 - `OperationQueueService.transactions` was intentionally kept. It is still read
   by `viewDiff.svelte`, queue badges, queue details, execution, and list
   surfaces. Future removal is gated on migrating those readers to `chains`.
@@ -184,8 +184,8 @@ Older route history remains in
 - Known performance-threshold residuals are deferred to final stabilization;
   do not relax thresholds in EDP slices.
 - `vaultman:open-diff` is not registered in live `plugin-dev`.
-- T4 follow-ups remain: native-click wiring, FnR `vmPopover`, dashboard/add-ons,
-  real adopted-block move staging, Quick Switcher, and FAB polish.
+- T4 follow-ups remain: native-click wiring, FnR `vmPopover`, real adopted-block
+  move staging, Quick Switcher, and FAB polish.
 - `node .agents/tools/pkm-ai/check-doc-health.mjs` still fails on existing
   glossary, parent-shape, and large plan/spec line-limit residuals.
 - Do not move AI files to `main`.
