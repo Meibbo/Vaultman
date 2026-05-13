@@ -5,7 +5,7 @@ status: active
 parent: "[[docs/work/pkm-ai/index|pkm-ai]]"
 archive_source: "docs/archive/pkm-ai/active-docs/2026-05-11T080321-current-handoff.md"
 created: 2026-05-04T01:36:20
-updated: 2026-05-13T05:41:51
+updated: 2026-05-13T06:30:15
 tags:
   - agent/current
 created_by: dec
@@ -21,12 +21,10 @@ Older route history remains in
 
 ## Resume Point
 
-- Latest request handled: integrated EDP-008 Overlay Projection extraction into
-  `claude/explorer` with merge commit `10855e5`.
-- Latest source records:
-  [[docs/work/hardening/specs/2026-05-11-explorer-data-plane-structural-taxonomy/18-wave-5-plan-comparison-reconciliation|Wave 5 plan comparison and reconciliation]]
-  through
-  [[docs/work/hardening/specs/2026-05-11-explorer-data-plane-structural-taxonomy/19-wave-5-issue-prd-candidates|Wave 5 issue and PRD candidates]].
+- Latest request handled: completed EDP-009 G0 row-input contract coordinator
+  in `codex/edp-009-row-contract`.
+- Latest source record:
+  [[docs/work/hardening/issues/explorer-data-plane/009-row-input-vocabulary-decision|EDP-009 row-input vocabulary decision]].
 - Current hardening status: Wave 2 vertical specs are captured, Wave 3 was
   revalidated against Wave 2, Wave 4 implementation specs are drafted, and
   Wave 5 comparison/issue candidates are drafted. Cached explorer images now
@@ -62,6 +60,9 @@ Older route history remains in
   `src/services/serviceQueuePresentation.ts`, and
   `src/services/serviceActiveFilterPresentation.ts`. Tags/Props snapshot
   adapter internals were not changed.
+- EDP-009 G0 is implemented in branch `codex/edp-009-row-contract`:
+  `src/services/serviceExplorerRowInput.ts`, focused contract tests, and the
+  row-input vocabulary decision record. No view components were migrated.
 - Sticky tree rows are integrated in the `claude/explorer` base; detailed
   preservation prompt:
   [[docs/work/polish/plans/2026-05-12-sticky-tree-rows-nav-offset|Sticky tree rows nav offset handoff]].
@@ -145,6 +146,10 @@ Older route history remains in
   `10855e5`: focused overlay unit 4 files / 27 tests, EDP-006 regression unit
   5 files / 51 tests, sticky component 4 files / 39 tests, `lint:full`,
   `check`, and `build:plugin`.
+- EDP-009 G0 gates passed: focused contract 1 file / 6 tests, relevant unit 6
+  files / 47 tests, component row/reveal/selection 14 files / 117 tests,
+  sticky component 4 files / 39 tests, `lint:full`, `check`, `build:plugin`,
+  and `git diff --check`.
 - EDP-001 is closed: local tracker approval is recorded, `completed` label
   vocabulary exists, and stale `serviceViews` selection ownership wording is
   superseded by `NodeSelectionService`.
@@ -182,11 +187,9 @@ Older route history remains in
 
 ## Next Action
 
-- Current route: verify merged EDP-008 on `claude/explorer`, then hand off
-  EDP-009 adapter row contract follow-up.
-- EDP-009 supersession note: SVAR is no longer required. The next agent should
-  remove SVAR code/package imports after row-contract finalization instead of
-  preserving a compatibility bridge.
+- Next EDP route: split EDP-009 G1 tree/grid and G2 table/cards from the G0 row
+  contract. SVAR deletion waits until row-contract finalization; do not
+  preserve a SVAR compatibility bridge.
 - Continue T4 follow-ups or the next vertical-thread slice from
   [[docs/work/polish/plans/2026-05-11-ui-modernization-vertical-threads/index|UI Modernization Vertical Threads]].
 - For T3, register or expose a real diff-open path before the live Diff Navbar smoke.

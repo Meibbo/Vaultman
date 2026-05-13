@@ -5,7 +5,7 @@ status: active
 parent: "[[docs/work/pkm-ai/index|pkm-ai]]"
 archive_source: "docs/archive/pkm-ai/active-docs/2026-05-11T080321-current-status.md"
 created: 2026-05-04T01:36:20
-updated: 2026-05-13T05:41:51
+updated: 2026-05-13T06:30:15
 tags:
   - agent/current
 created_by: dec
@@ -30,8 +30,8 @@ Older route history remains in
 
 ## Current Route
 
-- Latest user request handled: integrated EDP-008 Overlay Projection extraction
-  into `claude/explorer` with merge commit `10855e5`.
+- Latest user request handled: completed EDP-009 G0 row-input contract
+  coordinator in `codex/edp-009-row-contract`.
 - Active initiative: [[docs/work/hardening/index|Hardening]].
 - Active spec:
   [[docs/work/hardening/specs/2026-05-11-explorer-data-plane-structural-taxonomy/index|Explorer Data Plane Structural Taxonomy]].
@@ -81,6 +81,9 @@ Older route history remains in
   queue popup presentation to `serviceQueuePresentation`, and moves
   active-filter labels/details/reorder boundaries to
   `serviceActiveFilterPresentation`.
+- EDP-009 G0 row-input vocabulary is recorded at
+  [[docs/work/hardening/issues/explorer-data-plane/009-row-input-vocabulary-decision|EDP-009 row-input vocabulary decision]].
+  It adds `serviceExplorerRowInput` and leaves component migrations to G1/G2.
 - Sticky tree rows are integrated in the `claude/explorer` base; source
   record and preservation prompt:
   [[docs/work/polish/plans/2026-05-12-sticky-tree-rows-nav-offset|Sticky tree rows nav offset handoff]].
@@ -127,6 +130,10 @@ Older route history remains in
   `10855e5`: focused overlay unit 4 files / 27 tests, EDP-006 regression unit
   5 files / 51 tests, sticky component 4 files / 39 tests, `lint:full`,
   `check`, and `build:plugin`.
+- EDP-009 G0 gates passed in `codex/edp-009-row-contract`: focused contract 1
+  file / 6 tests, relevant unit 6 files / 47 tests, component 14 files / 117
+  tests, sticky component 4 files / 39 tests, `lint:full`, `check`,
+  `build:plugin`, and `git diff --check`.
 - EDP-001 documentation gate is closed: the local issue tracker is approved,
   `completed` label vocabulary is recorded, and stale `serviceViews` selection
   ownership wording is superseded by `NodeSelectionService`.
@@ -160,11 +167,9 @@ Older route history remains in
 
 ## Next Action
 
-- Current route: verify merged EDP-008 on `claude/explorer`, then hand off
-  EDP-009 adapter row contract follow-up.
-- EDP-009 supersession note: SVAR is no longer required. The next agent should
-  remove SVAR code/package imports after row-contract finalization instead of
-  preserving a compatibility bridge.
+- Next EDP route: split EDP-009 G1 tree/grid and G2 table/cards from the G0 row
+  contract. SVAR deletion waits until row-contract finalization; do not
+  preserve a SVAR compatibility bridge.
 - Continue with the remaining T4 integration follow-ups or the next
   vertical-thread slice from the active plan.
 - For T3 follow-up, register or expose a real diff-open path, then rerun the
