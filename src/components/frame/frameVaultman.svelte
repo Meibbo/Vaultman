@@ -138,6 +138,7 @@
 	const rightFab = $derived.by<FabDef | null>(() => pageFabs[activePage]?.right ?? null);
 
 	let activePage = $state<string>(initialFrameState.pageOrder[0] ?? 'ops');
+	let toolsActiveTab = $state('layout');
 
 	// Use DOM insertion order (pageOrder at mount time) â€” avoids stale settings mismatch
 	let pageIndex = $derived(pageOrder.indexOf(activePage));
@@ -188,6 +189,22 @@
 	function showStatsPage() {
 		statsPreviewFile = null;
 	}
+
+	function openDiffView(): void {
+		overlays.closeQueueIsland();
+		overlays.closeFiltersIsland();
+		if (overlays.popupOpen) overlays.closePopup();
+		activePage = 'ops';
+		toolsActiveTab = 'file_diff';
+		viewport.applyPageTransform(true);
+	}
+
+	$effect(() => {
+		plugin.openDiffViewHook = openDiffView;
+		return () => {
+			if (plugin.openDiffViewHook === openDiffView) plugin.openDiffViewHook = null;
+		};
+	});
 
 	$effect(() => {
 		void pageIndex; // declare dependency
@@ -593,7 +610,7 @@
 									Detached to workspace
 								</div>
 							{:else}
-								<OperationsPage {plugin} {icon} />
+								<OperationsPage {plugin} {icon} bind:activeTab={toolsActiveTab} />
 							{/if}
 						{:else if pageId === 'statistics'}
 							<StatisticsPage {plugin} previewFile={statsPreviewFile} onShowStats={showStatsPage} />

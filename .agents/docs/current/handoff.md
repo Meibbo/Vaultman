@@ -5,7 +5,7 @@ status: active
 parent: "[[docs/work/pkm-ai/index|pkm-ai]]"
 archive_source: "docs/archive/pkm-ai/active-docs/2026-05-11T080321-current-handoff.md"
 created: 2026-05-04T01:36:20
-updated: 2026-05-13T12:33:39
+updated: 2026-05-13T16:23:33
 tags:
   - agent/current
 created_by: dec
@@ -21,9 +21,8 @@ Older route history remains in
 
 ## Resume Point
 
-- Latest request handled: integrated EDP-009 SVAR cleanup into `claude/explorer`.
-- Latest source record:
-  [[docs/work/hardening/issues/explorer-data-plane/009-adapter-row-contract-follow-up|EDP-009 adapter row contract follow-up]].
+- Latest request: T3 `vaultman:open-diff` residual fixed on
+  `codex/t3-open-diff-command`; see [[docs/work/polish/plans/2026-05-11-ui-modernization-vertical-threads/06-t3-open-diff-command-residual|T3 open diff command residual]].
 - Current hardening status: Wave 2 vertical specs are captured, Wave 3 was
   revalidated against Wave 2, Wave 4 implementation specs are drafted, and
   Wave 5 comparison/issue candidates are drafted. Cached explorer images now
@@ -162,6 +161,8 @@ Older route history remains in
   merge `ec20ec8`: RED guard failed before fix; frozen install, unit 9/64,
   adjacent component 3/55, EDP component 14/121, sticky 4/39, static/build,
   and `git diff --check` passed.
+- T3 open-diff branch gates passed; RED/GREEN details and live-smoke blocker
+  are in the source record. `plugin-dev` artifacts were synced.
 - EDP-001 is closed: local tracker approval is recorded, `completed` label
   vocabulary exists, and stale `serviceViews` selection ownership wording is
   superseded by `NodeSelectionService`.
@@ -183,7 +184,7 @@ Older route history remains in
 
 - Known performance-threshold residuals are deferred to final stabilization;
   do not relax thresholds in EDP slices.
-- `vaultman:open-diff` is not registered in live `plugin-dev`.
+- T3 live smoke is blocked: `plugin-dev` has Vaultman disabled and lacks `plugin:reload`.
 - T4 follow-ups remain: native-click wiring, FnR `vmPopover`, dashboard/add-ons,
   real adopted-block move staging, Quick Switcher, and FAB polish.
 - `node .agents/tools/pkm-ai/check-doc-health.mjs` still fails on existing
@@ -195,5 +196,5 @@ Older route history remains in
 
 - Next EDP route: continue EDP-010 selection mirror cleanup.
 - Continue T4 follow-ups or next vertical-thread slice.
-- For T3, register or expose a real diff-open path before the live Diff Navbar smoke.
+- T3 follow-up: enable/reload Vaultman in `plugin-dev`, then rerun `vaultman:open-diff` smoke.
 - Remove `OperationQueueService.transactions` only after all readers migrate to immutable `chains`.
