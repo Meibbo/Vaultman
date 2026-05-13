@@ -46,3 +46,7 @@ export interface INodeSelectionService {
 	clear(explorerId: string): NodeSelectionSnapshot;
 	prune(explorerId: string, orderedIds: readonly string[]): NodeSelectionSnapshot;
 }
+
+export interface NodeSelectionAuthorityProvider {
+	readonly selectionService: INodeSelectionService;
+}

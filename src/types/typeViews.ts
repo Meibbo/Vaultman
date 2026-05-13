@@ -254,9 +254,12 @@ export interface IViewService {
 	getModel<TNode extends NodeBase>(input: ExplorerViewInput<TNode>): ExplorerRenderModel<TNode>;
 	setViewMode(explorerId: string, mode: ExplorerViewMode): void;
 	getViewMode(explorerId: string): ExplorerViewMode;
+	/** @deprecated Selection is owned by NodeSelectionService; this legacy method delegates only. */
 	select(explorerId: string, id: string, mode?: 'replace' | 'toggle' | 'add'): void;
+	/** @deprecated Selection is owned by NodeSelectionService; this legacy method delegates only. */
 	clearSelection(explorerId: string): void;
 	toggleExpanded(explorerId: string, id: string): void;
+	/** @deprecated Focus is owned by NodeSelectionService; this legacy method delegates only. */
 	setFocused(explorerId: string, id: string | null): void;
 	subscribe(explorerId: string, cb: () => void): () => void;
 }

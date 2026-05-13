@@ -10,7 +10,11 @@
 		ExplorerViewMode,
 		PanelExplorerImperativeApi,
 	} from '../../types/typeExplorer';
-	import type { INodeSelectionService, NodeSelectionSnapshot } from '../../types/typeSelection';
+	import type {
+		INodeSelectionService,
+		NodeSelectionAuthorityProvider,
+		NodeSelectionSnapshot,
+	} from '../../types/typeSelection';
 	import type { ViewEmptyState } from '../../types/typeViews';
 	import type { ExplorerRevealTarget } from '../../types/typeExplorerDataPlane';
 	import GridNavigationToolbar from '../layout/GridNavigationToolbar.svelte';
@@ -110,6 +114,7 @@
 	const fallbackSelectionService = new NodeSelectionService();
 	const selectionService = $derived(
 		((plugin as VaultmanPlugin & { selectionService?: INodeSelectionService }).selectionService ??
+			(plugin.viewService as Partial<NodeSelectionAuthorityProvider>).selectionService ??
 			fallbackSelectionService) as INodeSelectionService,
 	);
 	const selectionSnapshot = $derived(selectionService.snapshot(provider.id));
@@ -659,9 +664,6 @@
 		const key = selectionKey(snapshot);
 		if (key === lastCommittedSelectionKey) return;
 		lastCommittedSelectionKey = key;
-		plugin.viewService.clearSelection(provider.id);
-		for (const id of snapshot.ids) plugin.viewService.select(provider.id, id, 'add');
-		plugin.viewService.setFocused(provider.id, snapshot.focusedId);
 		syncFileSelectionFromNodes(snapshot.ids);
 	}
 
