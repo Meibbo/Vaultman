@@ -2,13 +2,13 @@
 title: EDP-009 Adapter row contract follow-up
 type: issue
 issue_id: EDP-009
-status: needs-triage
+status: active
 issue_kind: AFK
 parent: "[[docs/work/hardening/issues/explorer-data-plane/index|Explorer data plane local issues]]"
 created: 2026-05-11T20:55:00
-updated: 2026-05-13T05:41:51
+updated: 2026-05-13T06:30:15
 labels:
-  - needs-triage
+  - ready-for-agent
 tags:
   - agent/issue
   - initiative/hardening
@@ -39,12 +39,25 @@ preserving existing Polish table/card behavior.
 
 ## Acceptance Criteria
 
-- [ ] Tree/grid/table/cards consume snapshot-backed row inputs or a documented
+- [x] Tree/grid/table/cards consume snapshot-backed row inputs or a documented
       compatibility adapter.
-- [ ] Virtualizers remain adapter-local.
-- [ ] Table and cards behavior from existing Polish work is preserved.
+- [x] Virtualizers remain adapter-local.
+- [x] Table and cards behavior from existing Polish work is preserved.
 - [ ] SVAR is removed after row-contract finalization, including code paths and
       package imports; do not preserve a SVAR compatibility bridge.
+
+## G0 Coordinator Notes
+
+- Decision record:
+  [[009-row-input-vocabulary-decision|EDP-009 row-input vocabulary decision]].
+- Added `src/services/serviceExplorerRowInput.ts` as the shared row-input
+  contract/helper module for G1 tree/grid and G2 table/cards work.
+- The contract documents snapshot, TreeNode, and ViewRow compatibility rows,
+  semantic callback ids, `ViewLayers` bridging, reveal lookup inputs, and
+  row/group key helpers.
+- No tree/grid/table/cards component migration was performed in G0.
+- SVAR bridge work remains superseded. Deletion is intentionally deferred until
+  after row-contract finalization.
 
 ## Supersession Notes
 
@@ -61,5 +74,20 @@ preserving existing Polish table/card behavior.
 
 ## Verification
 
-- Run focused adapter tests for tree, grid, table, cards, and any SVAR bridge
-  touched by the migration.
+- RED: `pnpm exec vitest run --project unit --config vitest.config.ts test/unit/services/serviceExplorerRowInput.test.ts`
+  failed because `src/services/serviceExplorerRowInput` did not exist.
+- PASS: same focused EDP-009 contract test passed 1 file / 6 tests after the
+  shared helper module was added.
+- PASS: relevant unit gate passed 6 files / 47 tests:
+  `serviceViewTableAdapter`, `serviceExplorerLayers`, `serviceViews`,
+  `serviceExplorerDataPlane`, `logicExplorerSnapshot`, and
+  `serviceOverlayProjection`.
+- PASS: relevant component row/reveal/selection gate passed 14 files / 117
+  tests across virtualizer keys, panel reveal/selection, tree, grid, table, and
+  cards focused suites.
+- PASS: sticky tree focused gate passed 4 files / 39 tests.
+- PASS: `pnpm run lint:full`.
+- PASS: `pnpm run check`.
+- PASS: `pnpm run build:plugin`.
+- PASS: `git diff --check`; it emitted only an LF-to-CRLF warning for this
+  edited issue doc.
