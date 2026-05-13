@@ -4,7 +4,7 @@ type: decision-record
 status: active
 parent: "[[docs/work/hardening/issues/explorer-data-plane/009-adapter-row-contract-follow-up|EDP-009]]"
 created: 2026-05-13T06:19:06
-updated: 2026-05-13T06:30:15
+updated: 2026-05-13T06:59:35
 tags:
   - agent/decision
   - initiative/hardening
@@ -69,3 +69,7 @@ share any virtualizer.
   failed because `src/services/serviceExplorerRowInput` did not exist.
 - GREEN: same command passed 1 file / 6 tests after adding the shared
   contract helpers.
+- Integrated into `claude/explorer` with merge commit `071e490`; integration
+  gates passed focused contract 1 file / 6 tests, relevant unit 6 files / 47
+  tests, sticky component 4 files / 39 tests, `lint:full`, `check`,
+  `build:plugin`, and `git diff --check`.

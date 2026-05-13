@@ -5,7 +5,7 @@ status: active
 parent: "[[docs/work/pkm-ai/index|pkm-ai]]"
 archive_source: "docs/archive/pkm-ai/active-docs/2026-05-11T080321-current-status.md"
 created: 2026-05-04T01:36:20
-updated: 2026-05-13T06:30:15
+updated: 2026-05-13T06:59:35
 tags:
   - agent/current
 created_by: dec
@@ -30,8 +30,8 @@ Older route history remains in
 
 ## Current Route
 
-- Latest user request handled: completed EDP-009 G0 row-input contract
-  coordinator in `codex/edp-009-row-contract`.
+- Latest user request handled: integrated EDP-009 G0 row-input contract into
+  `claude/explorer` with merge commit `071e490`.
 - Active initiative: [[docs/work/hardening/index|Hardening]].
 - Active spec:
   [[docs/work/hardening/specs/2026-05-11-explorer-data-plane-structural-taxonomy/index|Explorer Data Plane Structural Taxonomy]].
@@ -83,7 +83,8 @@ Older route history remains in
   `serviceActiveFilterPresentation`.
 - EDP-009 G0 row-input vocabulary is recorded at
   [[docs/work/hardening/issues/explorer-data-plane/009-row-input-vocabulary-decision|EDP-009 row-input vocabulary decision]].
-  It adds `serviceExplorerRowInput` and leaves component migrations to G1/G2.
+  It adds `serviceExplorerRowInput`, is integrated in `claude/explorer`, and
+  leaves component migrations to G1/G2.
 - Sticky tree rows are integrated in the `claude/explorer` base; source
   record and preservation prompt:
   [[docs/work/polish/plans/2026-05-12-sticky-tree-rows-nav-offset|Sticky tree rows nav offset handoff]].
@@ -132,6 +133,10 @@ Older route history remains in
   `check`, and `build:plugin`.
 - EDP-009 G0 gates passed in `codex/edp-009-row-contract`: focused contract 1
   file / 6 tests, relevant unit 6 files / 47 tests, component 14 files / 117
+  tests, sticky component 4 files / 39 tests, `lint:full`, `check`,
+  `build:plugin`, and `git diff --check`.
+- EDP-009 G0 integration gates passed on `claude/explorer` after merge commit
+  `071e490`: focused contract 1 file / 6 tests, relevant unit 6 files / 47
   tests, sticky component 4 files / 39 tests, `lint:full`, `check`,
   `build:plugin`, and `git diff --check`.
 - EDP-001 documentation gate is closed: the local issue tracker is approved,

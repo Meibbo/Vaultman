@@ -6,7 +6,7 @@ status: active
 issue_kind: AFK
 parent: "[[docs/work/hardening/issues/explorer-data-plane/index|Explorer data plane local issues]]"
 created: 2026-05-11T20:55:00
-updated: 2026-05-13T06:30:15
+updated: 2026-05-13T06:59:35
 labels:
   - ready-for-agent
 tags:
@@ -52,6 +52,7 @@ preserving existing Polish table/card behavior.
   [[009-row-input-vocabulary-decision|EDP-009 row-input vocabulary decision]].
 - Added `src/services/serviceExplorerRowInput.ts` as the shared row-input
   contract/helper module for G1 tree/grid and G2 table/cards work.
+- Integrated G0 into `claude/explorer` with merge commit `071e490`.
 - The contract documents snapshot, TreeNode, and ViewRow compatibility rows,
   semantic callback ids, `ViewLayers` bridging, reveal lookup inputs, and
   row/group key helpers.
@@ -91,3 +92,6 @@ preserving existing Polish table/card behavior.
 - PASS: `pnpm run build:plugin`.
 - PASS: `git diff --check`; it emitted only an LF-to-CRLF warning for this
   edited issue doc.
+- PASS on merged `claude/explorer`: focused contract 1 file / 6 tests,
+  relevant unit 6 files / 47 tests, sticky component 4 files / 39 tests,
+  `lint:full`, `check`, `build:plugin`, and `git diff --check`.
