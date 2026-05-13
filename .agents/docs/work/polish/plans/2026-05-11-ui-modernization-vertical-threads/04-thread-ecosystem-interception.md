@@ -4,7 +4,7 @@ type: implementation-plan-shard
 status: draft
 parent: "[[docs/work/polish/plans/2026-05-11-ui-modernization-vertical-threads/index|ui-modernization-vertical-threads]]"
 created: 2026-05-11T23:55:00
-updated: 2026-05-11T09:28:16
+updated: 2026-05-13T17:43:16
 tags:
   - agent/plan
   - thread/ecosystem-interception
@@ -178,6 +178,21 @@ theme service core file (T1).
   MCP autofixer accepted a focused equivalent of the changed snippets and
   reported only pre-existing/action-style suggestions, while repo
   `svelte-check` and Prettier parse the actual file with zero diagnostics.
+
+## 2026-05-13 Parallel Integration Note
+
+- T4 FnR `vmPopover` follow-up integrated into `claude/explorer` with merge
+  commit `bc5a151b909483287a250a73a09923592319ad5b`.
+- T4 dashboard/add-ons frame wiring integrated into `claude/explorer` with
+  merge commit `d4c4225f7ce5d2e2e2b393e01e3eb63dc355b71a`.
+- The dashboard/add-ons merge conflicted with T3 in `frameVaultman.svelte`.
+  Resolution preserved dashboard mode and the T3 open-diff hook by binding
+  `OperationsPage.activeTab` in both the standard page strip and the dashboard
+  explorer snippet.
+- Final integrated T3/T4 unit gate passed 8 files / 87 tests.
+- Final integrated T3/T4 component gate passed 11 files / 38 tests.
+- Static/build gates passed: `lint:full`, `check`, `build:plugin`, and
+  `git diff --check`.
 
 ---
 

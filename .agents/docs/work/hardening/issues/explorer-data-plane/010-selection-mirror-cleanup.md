@@ -6,7 +6,7 @@ status: completed
 issue_kind: AFK
 parent: "[[docs/work/hardening/issues/explorer-data-plane/index|Explorer data plane local issues]]"
 created: 2026-05-11T20:55:00
-updated: 2026-05-13T15:58:56
+updated: 2026-05-13T17:43:16
 labels:
   - completed
 tags:
@@ -100,3 +100,16 @@ snapshot-backed adapters consume `NodeSelectionService` projections.
 - `pnpm run check` passed with 0 errors / 0 warnings.
 - `pnpm run build:plugin` passed.
 - `git diff --check` passed with CRLF conversion warnings only.
+
+## Integration Verification
+
+- Integrated into `claude/explorer` with merge commit
+  `ca20fbe00ac7858fa1535103232363cb1c92288c`.
+- Revalidated after T3/T4 integration on final head
+  `d4c4225f7ce5d2e2e2b393e01e3eb63dc355b71a`:
+  - EDP-010 focused unit: 2 files / 34 tests passed.
+  - EDP-010 focused component: 1 file / 39 tests passed.
+  - EDP regression unit gate: 7 files / 39 tests passed.
+  - Component row/reveal/selection gate: 14 files / 121 tests passed.
+  - Sticky tree gate: 4 files / 39 tests passed.
+  - `lint:full`, `check`, `build:plugin`, and `git diff --check` passed.

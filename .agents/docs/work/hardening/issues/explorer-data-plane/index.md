@@ -4,7 +4,7 @@ type: issue-index
 status: active
 parent: "[[docs/work/hardening/specs/2026-05-11-explorer-data-plane-transition/index|explorer-data-plane-transition]]"
 created: 2026-05-11T20:55:00
-updated: 2026-05-13T15:58:56
+updated: 2026-05-13T17:43:16
 tags:
   - agent/issue
   - initiative/hardening

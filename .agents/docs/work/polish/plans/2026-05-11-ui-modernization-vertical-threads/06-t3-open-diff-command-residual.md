@@ -4,7 +4,7 @@ type: implementation-record
 status: active
 parent: "[[docs/work/polish/plans/2026-05-11-ui-modernization-vertical-threads/index|UI modernization vertical threads]]"
 created: 2026-05-13T16:23:33
-updated: 2026-05-13T16:23:33
+updated: 2026-05-13T17:43:16
 tags:
   - polish/t3
   - diff-navbar
@@ -133,3 +133,16 @@ obsidian vault=plugin-dev command id=vaultman:open-diff
 obsidian vault=plugin-dev eval code="(() => !!activeDocument.querySelector('[data-vm-nav=\"next-change\"]'))()"
 obsidian vault=plugin-dev dev:errors
 ```
+
+## Integration Note
+
+- Integrated into `claude/explorer` with merge commit
+  `2b0f5f786a4b59e84b786388188495ac6444fd9b`.
+- During the later T4 dashboard/add-ons merge, `frameVaultman.svelte` was
+  resolved so the T3 `openDiffViewHook` survives in both frame modes:
+  `OperationsPage` receives `bind:activeTab={toolsActiveTab}` in the standard
+  page strip and in the dashboard `dashboardExplorer` snippet.
+- Final integrated T3/T4 unit gate passed 8 files / 87 tests, including
+  `serviceCommandsRegistration`.
+- Final integrated T3/T4 component gate passed 11 files / 38 tests, including
+  `pageToolsDiff`, `viewDiffNavbar`, and `viewDiffChains`.
