@@ -33,7 +33,8 @@ Older route history remains in
 - Latest integration progress: EDP-010 selection mirror cleanup is integrated
   locally, T3 `vaultman:open-diff` residual is integrated from
   `codex/t3-open-diff-command`, and T4 FnR `vmPopover` is being integrated
-  from `codex/t4-fnr-vmpopover`; see
+  from `codex/t4-fnr-vmpopover`. T4 dashboard/add-ons frame wiring is being
+  integrated from `codex/t4-addons-dashboard`; see
   [[docs/work/polish/plans/2026-05-11-ui-modernization-vertical-threads/06-t3-open-diff-command-residual|T3 open diff command residual]].
 - Active initiative: [[docs/work/hardening/index|Hardening]].
 - Active spec:
@@ -100,8 +101,8 @@ Older route history remains in
 - Sticky tree rows are integrated in the `claude/explorer` base; source
   record and preservation prompt:
   [[docs/work/polish/plans/2026-05-12-sticky-tree-rows-nav-offset|Sticky tree rows nav offset handoff]].
-- Previous Polish/T3/T4 route details remain in the archived current docs and
-  linked vertical-thread source records.
+- T4 dashboard/add-ons frame wiring is complete in `codex/t4-addons-dashboard`;
+  source record: [[docs/work/polish/plans/2026-05-11-ui-modernization-vertical-threads/04-thread-ecosystem-interception#2026-05-13-t4-dashboardadd-ons-frame-wiring-follow-up|T4 dashboard/add-ons follow-up]].
 - Earlier detachable, Cut 1.5, Dock Toolbar, and PKM-AI history is preserved
   in the archived current docs linked above.
 
@@ -193,9 +194,8 @@ Older route history remains in
   stabilization gate unless a focused slice introduces a new regression.
 - `vaultman:open-diff` is absent from the live `plugin-dev` command list.
 - T4 FnR `vmPopover` follow-up is integrated locally; remaining T4 follow-ups:
-  frame-level native-click wiring, dashboard/add-ons wiring in
-  `frameVaultman.svelte`, real queue staging for adopted-block moves, Quick
-  Switcher, and FAB orbiting-ink polish.
+  frame-level native-click wiring, real queue staging for adopted-block moves,
+  Quick Switcher, and FAB orbiting-ink polish.
 - `OperationQueueService.transactions` remains by design as the compatibility
   read surface until queue/diff/details readers migrate to `chains`.
 - `node .agents/tools/pkm-ai/check-doc-health.mjs` still fails on existing

@@ -27,6 +27,9 @@ Older route history remains in
   locally from `codex/edp-010-selection-cleanup`.
 - Latest T4 integration: FnR `vmPopover` follow-up is being integrated from
   `codex/t4-fnr-vmpopover`.
+- Latest T4 dashboard/add-ons integration is being integrated from
+  `codex/t4-addons-dashboard`; source record:
+  [[docs/work/polish/plans/2026-05-11-ui-modernization-vertical-threads/04-thread-ecosystem-interception#2026-05-13-t4-dashboardadd-ons-frame-wiring-follow-up|T4 dashboard/add-ons follow-up]].
 - Current hardening status: Wave 2 vertical specs are captured, Wave 3 was
   revalidated against Wave 2, Wave 4 implementation specs are drafted, and
   Wave 5 comparison/issue candidates are drafted. Cached explorer images now
@@ -76,8 +79,8 @@ Older route history remains in
 - Sticky tree rows are integrated in the `claude/explorer` base; detailed
   preservation prompt:
   [[docs/work/polish/plans/2026-05-12-sticky-tree-rows-nav-offset|Sticky tree rows nav offset handoff]].
-- Older Polish/T3/T4 route details remain in the archived current docs and
-  linked vertical-thread source records.
+- T4 dashboard/add-ons frame wiring is complete in `codex/t4-addons-dashboard`;
+  detailed verification is in the linked vertical-thread source record.
 - `OperationQueueService.transactions` was intentionally kept. It is still read
   by `viewDiff.svelte`, queue badges, queue details, execution, and list
   surfaces. Future removal is gated on migrating those readers to `chains`.
@@ -198,8 +201,8 @@ Older route history remains in
   do not relax thresholds in EDP slices.
 - `vaultman:open-diff` is not registered in live `plugin-dev`.
 - T4 FnR `vmPopover` is integrated locally; remaining T4 follow-ups are
-  native-click wiring, dashboard/add-ons, real adopted-block move staging,
-  Quick Switcher, and FAB polish.
+  native-click wiring, real adopted-block move staging, Quick Switcher, and FAB
+  polish.
 - `node .agents/tools/pkm-ai/check-doc-health.mjs` still fails on existing
   glossary, parent-shape, and large plan/spec line-limit residuals.
 - Do not move AI files to `main`.
