@@ -4,6 +4,7 @@ import type {
 	IDecorationManager,
 	NodeBase,
 } from '../types/typeContracts';
+import type { INodeSelectionService, NodeSelectionSnapshot } from '../types/typeSelection';
 import type {
 	ExplorerRenderModel,
 	ExplorerViewInput,
@@ -20,6 +21,7 @@ import type {
 } from '../types/typeViews';
 import { getActivePerfProbe } from '../dev/perfProbe';
 import { withViewStateClasses } from '../utils/utilViewLayers';
+import { NodeSelectionService } from './serviceSelection.svelte';
 import {
 	createActiveFilterOverlayIndex,
 	createOperationOverlayIndex,
@@ -32,6 +34,7 @@ import {
 interface ViewServiceOptions {
 	decorationManager?: IDecorationManager;
 	defaultMode?: ExplorerViewMode;
+	selectionService?: INodeSelectionService;
 	showMatchedFilterDecorations?: () => boolean;
 }
 
@@ -50,13 +53,12 @@ export class ViewService implements IViewService {
 	private readonly decorationManager?: IDecorationManager;
 	private readonly defaultMode: ExplorerViewMode;
 	private readonly showMatchedFilterDecorations: () => boolean;
+	readonly selectionService: INodeSelectionService;
 	private decorationRevision = 0;
 
 	// Svelte 5 Native Reactivity
 	private readonly modes = new SvelteMap<string, ExplorerViewMode>();
-	private readonly selections = new SvelteMap<string, SvelteSet<string>>();
 	private readonly expanded = new SvelteMap<string, SvelteSet<string>>();
-	private readonly focused = new SvelteMap<string, string | null>();
 	private readonly subscribers = new Map<string, Set<() => void>>();
 
 	// Cached indices to avoid O(N * (M+K)) during tree decoration
@@ -69,6 +71,7 @@ export class ViewService implements IViewService {
 	constructor(options: ViewServiceOptions = {}) {
 		this.decorationManager = options.decorationManager;
 		this.defaultMode = options.defaultMode ?? 'tree';
+		this.selectionService = options.selectionService ?? new NodeSelectionService();
 		this.showMatchedFilterDecorations = options.showMatchedFilterDecorations ?? (() => false);
 		this.decorationManager?.subscribe(() => {
 			this.decorationRevision += 1;
@@ -88,13 +91,14 @@ export class ViewService implements IViewService {
 	private buildModel<TNode extends NodeBase>(
 		input: ExplorerViewInput<TNode>,
 	): ExplorerRenderModel<TNode> {
-		const selected = this.selectionFor(input.explorerId);
+		const selection = this.selectionService.snapshot(input.explorerId);
+		const selected = selection.ids;
 		const opIndex = this.getOpIndex(input.operations);
 		const filterIndex = this.getFilterIndex(input.activeFilters);
 		const showMatchedFilterDecorations = this.showMatchedFilterDecorations();
 
 		const rows = input.nodes.map((node) =>
-			this.toRow(input, node, selected, opIndex, filterIndex, showMatchedFilterDecorations),
+			this.toRow(input, node, selection, opIndex, filterIndex, showMatchedFilterDecorations),
 		);
 
 		return {
@@ -103,8 +107,8 @@ export class ViewService implements IViewService {
 			rows,
 			columns: input.columns ?? [],
 			groups: input.groups ?? [],
-			selection: { ids: new Set(selected) },
-			focus: { id: this.focused.get(input.explorerId) ?? null },
+			selection: { ids: new Set(selected), anchorId: selection.anchorId },
+			focus: { id: selection.focusedId },
 			sort: input.sort ?? { id: 'manual', direction: 'asc' },
 			search: input.search ?? { query: '' },
 			virtualization: { rowHeight: 32, overscan: 5 },
@@ -139,26 +143,30 @@ export class ViewService implements IViewService {
 
 	select(explorerId: string, id: string, mode: 'replace' | 'toggle' | 'add' = 'replace'): void {
 		getActivePerfProbe()?.count('viewService.select');
-		const selected = this.selectionFor(explorerId);
+		const snapshot = this.selectionService.snapshot(explorerId);
 		if (mode === 'replace') {
-			if (selected.size === 1 && selected.has(id)) return;
-			selected.clear();
-			selected.add(id);
+			if (snapshot.ids.size === 1 && snapshot.ids.has(id) && snapshot.focusedId === id) return;
+			this.selectionService.selectPointer(explorerId, [id], id);
 		} else if (mode === 'toggle') {
-			if (selected.has(id)) selected.delete(id);
-			else selected.add(id);
+			this.selectionService.selectPointer(explorerId, orderedSelectionIds(snapshot, id), id, {
+				additive: true,
+			});
 		} else {
-			if (selected.has(id)) return;
-			selected.add(id);
+			if (snapshot.ids.has(id)) return;
+			this.selectionService.selectPointer(explorerId, orderedSelectionIds(snapshot, id), id, {
+				additive: true,
+			});
 		}
 		this.notify(explorerId);
 	}
 
 	clearSelection(explorerId: string): void {
-		const selected = this.selections.get(explorerId);
-		if (!selected || selected.size === 0) return;
+		const snapshot = this.selectionService.snapshot(explorerId);
+		if (snapshot.ids.size === 0 && !snapshot.anchorId && !snapshot.focusedId && !snapshot.hoveredId) {
+			return;
+		}
 		getActivePerfProbe()?.count('viewService.clearSelection');
-		selected.clear();
+		this.selectionService.clear(explorerId);
 		this.notify(explorerId);
 	}
 
@@ -170,9 +178,9 @@ export class ViewService implements IViewService {
 	}
 
 	setFocused(explorerId: string, id: string | null): void {
-		if (this.focused.get(explorerId) === id) return;
+		if (this.selectionService.snapshot(explorerId).focusedId === id) return;
 		getActivePerfProbe()?.count('viewService.setFocused');
-		this.focused.set(explorerId, id);
+		this.selectionService.setFocused(explorerId, id);
 		this.notify(explorerId);
 	}
 
@@ -192,7 +200,7 @@ export class ViewService implements IViewService {
 	private toRow<TNode extends NodeBase>(
 		input: ExplorerViewInput<TNode>,
 		node: TNode,
-		selected: ReadonlySet<string>,
+		selection: NodeSelectionSnapshot,
 		opIndex: OperationOverlayIndex,
 		filterIndex: ActiveFilterOverlayIndex,
 		showMatchedFilterDecorations: boolean,
@@ -206,10 +214,15 @@ export class ViewService implements IViewService {
 			filterIndex,
 			showMatchedFilterDecorations,
 		);
-		const isSelected = selected.has(node.id);
+		const isSelected = selection.ids.has(node.id);
+		const isFocused = selection.focusedId === node.id;
 		const rowLayers: ViewLayers = {
 			...layers,
-			state: { ...layers.state, selected: isSelected || undefined },
+			state: {
+				...layers.state,
+				selected: isSelected || undefined,
+				focused: isFocused || undefined,
+			},
 		};
 
 		return {
@@ -338,15 +351,6 @@ export class ViewService implements IViewService {
 		this.semanticLayerCache.set(key, layers);
 	}
 
-	private selectionFor(explorerId: string): SvelteSet<string> {
-		let selected = this.selections.get(explorerId);
-		if (!selected) {
-			selected = new SvelteSet<string>();
-			this.selections.set(explorerId, selected);
-		}
-		return selected;
-	}
-
 	private expandedFor(explorerId: string): SvelteSet<string> {
 		let expanded = this.expanded.get(explorerId);
 		if (!expanded) {
@@ -408,6 +412,12 @@ function revisionCacheKey(revisions: ExplorerViewRevisions | undefined): string 
 		return `${field}:-`;
 	}).join('|');
 	return hasRevision ? key : null;
+}
+
+function orderedSelectionIds(snapshot: NodeSelectionSnapshot, targetId: string): string[] {
+	const ids = [...snapshot.ids];
+	if (!ids.includes(targetId)) ids.push(targetId);
+	return ids.length > 0 ? ids : [targetId];
 }
 
 function stableValueKey(value: unknown): string {

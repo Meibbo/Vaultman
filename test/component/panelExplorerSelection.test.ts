@@ -238,9 +238,9 @@ describe('PanelExplorer tree selection adapter', () => {
 		flushSync();
 
 		expect([...selectionService.snapshot(EXPLORER_ID).ids]).toEqual(['alpha']);
-		expect(pluginStub.viewService.clearSelection).toHaveBeenCalled();
-		expect(pluginStub.viewService.select).toHaveBeenCalledWith(EXPLORER_ID, 'alpha', 'add');
-		expect(pluginStub.viewService.setFocused).toHaveBeenCalledWith(EXPLORER_ID, 'alpha');
+		expect(pluginStub.viewService.clearSelection).not.toHaveBeenCalled();
+		expect(pluginStub.viewService.select).not.toHaveBeenCalled();
+		expect(pluginStub.viewService.setFocused).not.toHaveBeenCalled();
 		expect(providerStub.handleNodeClick).not.toHaveBeenCalled();
 	});
 
@@ -389,7 +389,7 @@ describe('PanelExplorer tree selection adapter', () => {
 		flushSync();
 
 		expect([...selectionService.snapshot('files').ids]).toEqual(['Notes/Alpha.md']);
-		expect(pluginStub.viewService.select).toHaveBeenCalledWith('files', 'Notes/Alpha.md', 'add');
+		expect(pluginStub.viewService.select).not.toHaveBeenCalled();
 		expect(pluginStub.filterService.setSelectedFiles).toHaveBeenCalledWith([file]);
 	});
 
@@ -478,7 +478,7 @@ describe('PanelExplorer tree selection adapter', () => {
 		flushSync();
 
 		expect([...selectionService.snapshot(EXPLORER_ID).ids]).toEqual(['beta']);
-		expect(pluginStub.viewService.select).toHaveBeenCalledWith(EXPLORER_ID, 'beta', 'add');
+		expect(pluginStub.viewService.select).not.toHaveBeenCalled();
 	});
 
 	it('cards mode renders provider nodes and selects cards through the shared node selection service', () => {
@@ -494,7 +494,7 @@ describe('PanelExplorer tree selection adapter', () => {
 
 		expect(target.querySelector('.vm-node-cards')).not.toBeNull();
 		expect([...selectionService.snapshot(EXPLORER_ID).ids]).toEqual(['beta']);
-		expect(pluginStub.viewService.select).toHaveBeenCalledWith(EXPLORER_ID, 'beta', 'add');
+		expect(pluginStub.viewService.select).not.toHaveBeenCalled();
 	});
 
 	it('table mode uses provider-specific property columns', () => {
@@ -768,7 +768,7 @@ describe('PanelExplorer tree selection adapter', () => {
 
 	it('does not refresh provider trees from reactive ViewService decoration when selecting a row', () => {
 		const selectionService = new NodeSelectionService();
-		const viewService = new ViewService();
+		const viewService = new ViewService({ selectionService });
 		const sourceNodes = nodes();
 		let forbidSelectionRefresh = false;
 		const providerStub = provider({
@@ -813,6 +813,10 @@ describe('PanelExplorer tree selection adapter', () => {
 			...viewService.getModel({ explorerId: EXPLORER_ID, mode: 'tree', nodes: sourceNodes })
 				.selection.ids,
 		]).toEqual(['alpha']);
+		expect(
+			viewService.getModel({ explorerId: EXPLORER_ID, mode: 'tree', nodes: sourceNodes }).rows[0]
+				.layers.state?.selected,
+		).toBe(true);
 		expect(providerStub.getTree).toHaveBeenCalledTimes(1);
 	});
 

@@ -5,7 +5,7 @@ status: active
 parent: "[[docs/work/pkm-ai/index|pkm-ai]]"
 archive_source: "docs/archive/pkm-ai/active-docs/2026-05-11T080321-current-status.md"
 created: 2026-05-04T01:36:20
-updated: 2026-05-13T12:33:39
+updated: 2026-05-13T15:58:56
 tags:
   - agent/current
 created_by: dec
@@ -30,7 +30,8 @@ Older route history remains in
 
 ## Current Route
 
-- Latest user request handled: integrated EDP-009 SVAR cleanup into `claude/explorer`.
+- Latest user request handled: completed EDP-010 selection mirror cleanup locally
+  on `codex/edp-010-selection-cleanup`.
 - Active initiative: [[docs/work/hardening/index|Hardening]].
 - Active spec:
   [[docs/work/hardening/specs/2026-05-11-explorer-data-plane-structural-taxonomy/index|Explorer Data Plane Structural Taxonomy]].
@@ -88,6 +89,11 @@ Older route history remains in
   integrated, and G3 merge commit `ec20ec8` removes SVAR code paths plus
   `@svar-ui` package imports. Detailed notes live in
   [[docs/work/hardening/issues/explorer-data-plane/009-adapter-row-contract-follow-up|EDP-009]].
+- EDP-010 is complete on worker branch `codex/edp-010-selection-cleanup`:
+  [[docs/work/hardening/issues/explorer-data-plane/010-selection-mirror-cleanup|EDP-010]]
+  removes the independent `ViewService` selection/focus mirror, keeps deprecated
+  mutators as `NodeSelectionService` delegates, and stops the panel bridge from
+  replaying selection into `ViewService`.
 - Sticky tree rows are integrated in the `claude/explorer` base; source
   record and preservation prompt:
   [[docs/work/polish/plans/2026-05-12-sticky-tree-rows-nav-offset|Sticky tree rows nav offset handoff]].
@@ -157,6 +163,10 @@ Older route history remains in
   merge `ec20ec8`: RED guard failed before fix; frozen install, unit 9/64,
   adjacent component 3/55, EDP component 14/121, sticky 4/39, static/build,
   and `git diff --check` passed.
+- EDP-010 worker gates passed: RED service and panel bridge tests failed for
+  the intended mirror-divergence reasons; GREEN unit 5/51, panel bridge 1/39,
+  adjacent selection component 6/56, sticky 4/39, `lint:full`, `check`,
+  `build:plugin`, and `git diff --check`.
 - EDP-001 documentation gate is closed: the local issue tracker is approved,
   `completed` label vocabulary is recorded, and stale `serviceViews` selection
   ownership wording is superseded by `NodeSelectionService`.
@@ -190,7 +200,7 @@ Older route history remains in
 
 ## Next Action
 
-- Next EDP route: continue EDP-010 selection mirror cleanup.
+- Next EDP route: integrate EDP-010 or proceed to the final stabilization gate.
 - Continue with the remaining T4 integration follow-ups or the next
   vertical-thread slice from the active plan.
 - For T3 follow-up, register or expose a real diff-open path, then rerun the
