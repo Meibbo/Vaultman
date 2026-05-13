@@ -6,7 +6,7 @@ status: completed
 issue_kind: AFK
 parent: "[[docs/work/hardening/issues/explorer-data-plane/index|Explorer data plane local issues]]"
 created: 2026-05-11T20:55:00
-updated: 2026-05-13T12:04:14
+updated: 2026-05-13T12:33:39
 labels:
   - completed
 tags:
@@ -120,6 +120,8 @@ preserving existing Polish table/card behavior.
   as `8eb5742` and `895090a`. The tree/grid/table/cards row contract is now
   finalized for the follow-up SVAR deletion slice; do not preserve a SVAR
   compatibility bridge.
+- 2026-05-13 cleanup integration update: G3 is merged into `claude/explorer`
+  as `ec20ec8`; EDP-009 is complete and the next EDP route is EDP-010.
 
 ## Blocked By
 
@@ -210,3 +212,8 @@ preserving existing Polish table/card behavior.
 - G3 PASS: `pnpm run lint:full`, `pnpm run check` with 0 Svelte errors and 0
   warnings, and `pnpm run build:plugin`.
 - G3 PASS: `git diff --check`; it emitted only LF-to-CRLF warnings.
+- MERGED PASS on `claude/explorer` after merge commit `ec20ec8`:
+  `pnpm install --frozen-lockfile`, focused unit 9 files / 64 tests, adjacent
+  component 3 files / 55 tests, EDP component 14 files / 121 tests, sticky
+  component 4 files / 39 tests, `lint:full`, `check`, `build:plugin`, and
+  `git diff --check`.
