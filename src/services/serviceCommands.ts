@@ -78,7 +78,6 @@ export const VAULTMAN_COMMAND_IDS = [
 	'open-sort-menu',
 	'open',
 	'open-find-replace-active-explorer',
-	'open-svar-filemanager',
 ] as const;
 
 export type VaultmanCommandId = (typeof VAULTMAN_COMMAND_IDS)[number];
@@ -254,23 +253,6 @@ export function registerVaultmanCommands(
 				})();
 			}
 			return true;
-		},
-	});
-
-	add({
-		id: 'open-svar-filemanager',
-		name: 'Open SVAR FileManager',
-		callback: () => {
-			void (async () => {
-				const { workspace } = host.app;
-				const viewType = 'vaultman-svar-filemanager';
-				let leaf = workspace.getLeavesOfType(viewType)[0];
-				if (!leaf) {
-					leaf = workspace.getLeaf('tab');
-					await leaf.setViewState({ type: viewType, active: true });
-				}
-				await workspace.revealLeaf(leaf);
-			})();
 		},
 	});
 

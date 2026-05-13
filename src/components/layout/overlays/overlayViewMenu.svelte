@@ -37,12 +37,6 @@
 			iconName: 'lucide-git-branch',
 			labelKey: 'viewmode.mode.markmap',
 		},
-		//temp until i add the new svars provider
-		{
-			id: 'svar',
-			iconName: 'lucide-files',
-			labelKey: 'viewmode.mode.svar',
-		},
 	];
 
 	let {

@@ -59,7 +59,6 @@ import { ThemeService } from './services/serviceTheme.svelte';
 import { DEFAULT_ELASTIC_UI_SETTINGS, normalizeElasticUiSettings } from './types/typeElasticUi';
 import { ALL_TAB_IDS, viewTypeFor, type TabId } from './registry/tabRegistry';
 import { VaultmanTabLeafView } from './types/typeTabLeaf';
-import { SvarFileManagerView, TYPE_SVAR_FILEMANAGER } from './types/typeSvarLeaf';
 import type { FnRIslandService } from './services/serviceFnRIsland.svelte';
 import type { PanelExplorerImperativeApi } from './types/typeExplorer';
 import type {
@@ -255,7 +254,6 @@ export class VaultmanPlugin extends Plugin {
 		});
 
 		this.registerView(TYPE_FRAME_VM, (leaf) => new VaultmanFrame(leaf, this));
-		this.registerView(TYPE_SVAR_FILEMANAGER, (leaf) => new SvarFileManagerView(leaf, this));
 
 		// Independent leaf view-types — registered up-front so saved
 		// workspace state can re-instantiate them (phase 6).

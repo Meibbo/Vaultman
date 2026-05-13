@@ -238,31 +238,4 @@ describe('registerVaultmanCommands', () => {
 		expect(calls.expand).not.toHaveBeenCalled();
 	});
 
-	it('open-svar-filemanager creates a tab leaf and sets the view state', async () => {
-		const { plugin } = createFakePlugin();
-		const { host } = createFakeHost({
-			hasLeaf: true,
-			queueEmpty: false,
-			hasFnRService: true,
-			hasPanelApi: true,
-		});
-		const setViewState = vi.fn();
-		const getLeavesOfType = vi.fn(() => []);
-		const getLeaf = vi.fn(() => ({ setViewState }));
-		host.app.workspace.getLeavesOfType = getLeavesOfType;
-		host.app.workspace.getLeaf = getLeaf as any;
-
-		const commands = registerVaultmanCommands(plugin as never, host);
-		const cmd = findCommand(commands, 'open-svar-filemanager');
-
-		cmd.callback?.();
-		await Promise.resolve();
-		await Promise.resolve();
-
-		expect(getLeaf).toHaveBeenCalledWith('tab');
-		expect(setViewState).toHaveBeenCalledWith({
-			type: 'vaultman-svar-filemanager',
-			active: true,
-		});
-	});
 });

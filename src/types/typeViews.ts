@@ -7,7 +7,6 @@ export const EXPLORER_VIEW_MODES = [
 	'cards',
 	'markmap',
 	'list',
-	'svar',
 ] as const;
 
 export type ExplorerViewMode = (typeof EXPLORER_VIEW_MODES)[number];

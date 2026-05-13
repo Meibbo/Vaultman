@@ -2,13 +2,13 @@
 title: EDP-009 Adapter row contract follow-up
 type: issue
 issue_id: EDP-009
-status: active
+status: completed
 issue_kind: AFK
 parent: "[[docs/work/hardening/issues/explorer-data-plane/index|Explorer data plane local issues]]"
 created: 2026-05-11T20:55:00
-updated: 2026-05-13T11:22:53
+updated: 2026-05-13T12:04:14
 labels:
-  - ready-for-agent
+  - completed
 tags:
   - agent/issue
   - initiative/hardening
@@ -43,7 +43,7 @@ preserving existing Polish table/card behavior.
       compatibility adapter.
 - [x] Virtualizers remain adapter-local.
 - [x] Table and cards behavior from existing Polish work is preserved.
-- [ ] SVAR is removed after row-contract finalization, including code paths and
+- [x] SVAR is removed after row-contract finalization, including code paths and
       package imports; do not preserve a SVAR compatibility bridge.
 
 ## G0 Coordinator Notes
@@ -94,12 +94,28 @@ preserving existing Polish table/card behavior.
 - Tree/grid/SVAR, selection mirror cleanup, sticky tree behavior, performance
   thresholds, and Tags/Props snapshot internals were not touched.
 
+## G3 SVAR Cleanup Notes
+
+- Branch/worktree: `codex/edp-009-svar-cleanup` at
+  `C:\Users\vic_A\Desktop\vaultman\.claude\worktrees\edp-009-svar-cleanup`.
+- Removed the Obsidian SVAR leaf view registration, command palette entry,
+  Explorer view-mode option, i18n label, panel render branch, Svelte wrapper,
+  component tests, and SVAR test fixtures.
+- Removed `@svar-ui/svelte-filemanager` from `package.json` and all `@svar-ui`
+  lockfile entries from `pnpm-lock.yaml`.
+- Added `test/unit/services/svarRemovalContract.test.ts` as a guard against
+  reintroducing the package, active view files, command id, view type, or view
+  mode.
+- Tree/grid/table/cards row-contract behavior, selection mirror cleanup, sticky
+  tree behavior, performance thresholds, and Tags/Props snapshot internals were
+  not changed.
+
 ## Supersession Notes
 
 - 2026-05-13 user decision: SVAR is no longer required. The previous Wave 2
   wording that kept SVAR as a compatibility bridge is superseded for EDP-009.
-  The next agent should leave SVAR deletion until after row-contract
-  finalization within this wave, then remove SVAR code and package imports.
+  SVAR code and package imports are removed after G1/G2 row-contract
+  finalization; no SVAR compatibility bridge is preserved.
 - 2026-05-13 integration update: G1 and G2 are merged into `claude/explorer`
   as `8eb5742` and `895090a`. The tree/grid/table/cards row contract is now
   finalized for the follow-up SVAR deletion slice; do not preserve a SVAR
@@ -173,3 +189,24 @@ preserving existing Polish table/card behavior.
 - Svelte autofixer was run against the changed Svelte components; it reported
   no issues before the CLI timed out while fetching follow-up documentation
   after printing suggestions.
+- G3 RED: `pnpm exec vitest run --project unit --config vitest.config.ts test/unit/services/svarRemovalContract.test.ts`
+  failed on the existing `@svar-ui/svelte-filemanager` dependency and active
+  `ViewSvarFileManager.svelte` / `typeSvarLeaf.ts` files.
+- G3 PASS: same SVAR removal contract passed 1 file / 2 tests after package,
+  view, command, and mode removal.
+- G3 PASS: focused unit gate passed 9 files / 64 tests across the removal
+  contract, command registration, view modes, row inputs, table adapter,
+  Explorer layers/data-plane, snapshot logic, and overlay projection.
+- G3 PASS: adjacent component gate passed 3 files / 55 tests for view menu and
+  panel explorer modes.
+- G3 PASS: EDP row/reveal/table/cards/tree/grid component gate passed 14 files
+  / 121 tests.
+- G3 PASS: sticky tree focused gate passed 4 files / 39 tests.
+- G3 PASS: Svelte autofixer reported no issues for `panelExplorer.svelte` and
+  `overlayViewMenu.svelte`; broad pre-existing suggestions in
+  `panelExplorer.svelte` were not part of this cleanup.
+- G3 PASS: `pnpm install --frozen-lockfile` succeeded after one Windows EBUSY
+  retry on `puppeteer-core`.
+- G3 PASS: `pnpm run lint:full`, `pnpm run check` with 0 Svelte errors and 0
+  warnings, and `pnpm run build:plugin`.
+- G3 PASS: `git diff --check`; it emitted only LF-to-CRLF warnings.
