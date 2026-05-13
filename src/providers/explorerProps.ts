@@ -1,5 +1,6 @@
 import type { TFile } from 'obsidian';
 import { PropsLogic } from '../logic/logicProps';
+import { buildExplorerSnapshot } from '../logic/logicExplorerSnapshot';
 import type { TreeNode, PropMeta, NodeBadge } from '../types/typeNode';
 import { DELETE_PROP, NATIVE_RENAME_PROP } from '../types/typeOps';
 import { showInputModal } from '../utils/inputModal';
@@ -21,6 +22,10 @@ import {
 import { getActivePerfProbe } from '../dev/perfProbe';
 import type { VaultmanPlugin } from '../main';
 import type { ExplorerProvider, ExplorerSortTarget, ExplorerViewMode } from '../types/typeExplorer';
+import type {
+	ExplorerDataPlaneRevisions,
+	ExplorerSnapshot,
+} from '../types/typeExplorerDataPlane';
 import type { MenuCtx } from '../types/typeCtxMenu';
 import { serviceMessage } from '../services/serviceMessage';
 
@@ -56,6 +61,7 @@ export class explorerProps implements ExplorerProvider<PropMeta> {
 	private sortTarget: ExplorerSortTarget = 'top';
 	private addMode = false;
 	private unsubscribePropsIndex: () => void;
+	private structuralCache: { key: string; tree: TreeNode<PropMeta>[] } | null = null;
 
 	constructor(plugin: VaultmanPlugin, options: ExplorerPropsOptions = {}) {
 		this.plugin = plugin;
@@ -64,6 +70,7 @@ export class explorerProps implements ExplorerProvider<PropMeta> {
 		this.unsubscribePropsIndex = this.plugin.propsIndex.subscribe(() => {
 			getActivePerfProbe()?.count('explorerProps.invalidate');
 			this.logic.invalidate();
+			this.structuralCache = null;
 		});
 		this.registerActions();
 	}
@@ -207,7 +214,39 @@ export class explorerProps implements ExplorerProvider<PropMeta> {
 		});
 	}
 
-	getTree(): TreeNode<PropMeta>[] {
+	getStructuralTree(): TreeNode<PropMeta>[] {
+		return this.readStructuralTree();
+	}
+
+	getStructuralRevisions(): ExplorerDataPlaneRevisions {
+		return {
+			propsRevision: this.plugin.propsIndex?.revision ?? 0,
+		};
+	}
+
+	getSnapshot(expandedIds: ReadonlySet<string> = new Set()): ExplorerSnapshot<PropMeta> {
+		return buildExplorerSnapshot({
+			explorerId: this.id,
+			providerKey: this.id,
+			tree: this.readStructuralTree(),
+			expandedIds,
+			revisions: this.getStructuralRevisions(),
+			projection: {
+				searchTerm: this.searchTerm,
+				searchMode: this.searchMode,
+				sortBy: this.sortBy,
+				sortDirection: this.sortDir,
+				sortTarget: this.sortTarget,
+			},
+			kindFor: ({ node }) => (node.meta.isValueNode ? 'value' : 'prop'),
+			domainKeyFor: ({ node }) => this.domainKeyForNode(node),
+		});
+	}
+
+	private readStructuralTree(): TreeNode<PropMeta>[] {
+		const cacheKey = this.structuralCacheKey();
+		if (this.structuralCache?.key === cacheKey) return this.structuralCache.tree;
+
 		const probe = getActivePerfProbe();
 		let tree =
 			probe?.measure('explorerProps.logicTree', undefined, () => this.logic.getTree()) ??
@@ -222,11 +261,18 @@ export class explorerProps implements ExplorerProvider<PropMeta> {
 		const sortTree = () => this._applySort(tree);
 		const sorted =
 			probe?.measure('explorerProps.sort', { nodes: tree.length }, sortTree) ?? sortTree();
-		const decorateTree = () => this._decorateTree(sorted);
+		this.structuralCache = { key: cacheKey, tree: sorted };
+		return sorted;
+	}
+
+	getTree(): TreeNode<PropMeta>[] {
+		const probe = getActivePerfProbe();
+		const structuralTree = this.readStructuralTree();
+		const decorateTree = () => this._decorateTree(structuralTree);
 		return (
 			probe?.measure(
 				'explorerProps.decorateTree',
-				{ nodes: probe ? countTreeNodes(sorted) : 0 },
+				{ nodes: probe ? countTreeNodes(structuralTree) : 0 },
 				decorateTree,
 			) ?? decorateTree()
 		);
@@ -423,6 +469,22 @@ export class explorerProps implements ExplorerProvider<PropMeta> {
 			...node,
 			children: node.children ? this._sortDescendants(this._sortNodeList(node.children)) : undefined,
 		}));
+	}
+
+	private structuralCacheKey(): string {
+		return [
+			this.plugin.propsIndex?.revision ?? '-',
+			this.searchTerm,
+			this.searchMode,
+			this.sortBy,
+			this.sortDir,
+			this.sortTarget,
+		].join('\u0000');
+	}
+
+	private domainKeyForNode(node: TreeNode<PropMeta>): string {
+		if (!node.meta.isValueNode) return node.meta.propName;
+		return `${node.meta.propName}::${node.meta.rawValue ?? node.label}`;
 	}
 
 	private async _renameProp(propName: string): Promise<void> {

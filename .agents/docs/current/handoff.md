@@ -5,7 +5,7 @@ status: active
 parent: "[[docs/work/pkm-ai/index|pkm-ai]]"
 archive_source: "docs/archive/pkm-ai/active-docs/2026-05-11T080321-current-handoff.md"
 created: 2026-05-04T01:36:20
-updated: 2026-05-13T02:11:50
+updated: 2026-05-13T03:38:46
 tags:
   - agent/current
 created_by: dec
@@ -21,8 +21,8 @@ Older route history remains in
 
 ## Resume Point
 
-- Latest request handled: started EDP-006 Agent E0 shared Tags/Props snapshot
-  contract coordinator after sticky tree rows were integrated.
+- Latest request handled: continued EDP-006 as Agent E2 Props snapshot adapter
+  after E0 commit `d78120e` was integrated into `claude/explorer`.
 - Latest source records:
   [[docs/work/hardening/specs/2026-05-11-explorer-data-plane-structural-taxonomy/18-wave-5-plan-comparison-reconciliation|Wave 5 plan comparison and reconciliation]]
   through
@@ -55,9 +55,9 @@ Older route history remains in
   [[docs/work/hardening/plans/2026-05-11-explorer-data-plane-transition/05-worker-operating-contract|EDP worker operating contract]]
   defines exact worktree/branch setup, ownership, verification, and handoff for
   remaining EDP agents.
-- Current EDP-006 worktree is
-  `C:\Users\vic_A\Desktop\vaultman\.claude\worktrees\edp-006-contract` on
-  branch `codex/edp-006-contract`, based on `claude/explorer`.
+- Current EDP-006 Props worktree is
+  `C:\Users\vic_A\Desktop\vaultman\.claude\worktrees\edp-006-props` on
+  branch `codex/edp-006-props`, based on `claude/explorer`.
 - Sticky tree rows are integrated in the `claude/explorer` base; detailed
   preservation prompt:
   [[docs/work/polish/plans/2026-05-12-sticky-tree-rows-nav-offset|Sticky tree rows nav offset handoff]].
@@ -121,19 +121,17 @@ Older route history remains in
   3 unit files / 36 tests and 2 component files / 16 tests.
 - EDP-005 static/build gates pass: `pnpm run lint:full`, `pnpm run check`,
   and `pnpm run build:plugin`.
-- EDP-006 E0 gates passed: RED snapshot test failed on missing projection
-  metadata; focused unit passed 2 files / 17 tests, sticky component gate
-  passed 4 files / 39 tests, and `lint:full`, `check`, `build:plugin`, and
-  `git diff --check` passed.
+- EDP-006 E0 gates passed, and E2 Props gates passed: RED failed on missing
+  Props snapshot/structural methods; focused Props unit passed 1 file / 20
+  tests, sticky component gate passed 4 files / 39 tests, and `lint:full`,
+  `check`, `build:plugin`, and `git diff --check` passed.
 - EDP-001 is closed: local tracker approval is recorded, `completed` label
   vocabulary exists, and stale `serviceViews` selection ownership wording is
   superseded by `NodeSelectionService`.
-- Full `pnpm run test:unit` is blocked by
-  `test/unit/performance/stress.test.ts` timing at ~242ms against a 200ms
-  threshold.
-- Full `pnpm run test:component` is blocked by
-  `test/component/viewTableStress.test.ts` timing at ~3.37s against a 3.0s
-  threshold in isolated rerun.
+- Full `pnpm run test:unit` is blocked by `test/unit/performance/stress.test.ts`
+  timing at ~242ms against a 200ms threshold.
+- Full `pnpm run test:component` is blocked by `test/component/viewTableStress.test.ts`
+  timing at ~3.37s against a 3.0s threshold in isolated rerun.
 - Explorer Wave A/B handoff: plan index and Claude handoff were created under
   `docs/work/hardening/plans/2026-05-11-explorer-data-plane-transition/`;
   the handoff is 199 lines, trailing whitespace scan found no matches, and
@@ -160,10 +158,8 @@ Older route history remains in
 - Focused component: 2 files / 7 tests passed.
 - Full unit: 117 files / 723 tests passed.
 - Full component: 61 files / 290 tests passed.
-- Svelte autofixer: `viewDiff.svelte` and `viewDiffNavbar.svelte` both
-  returned `issues: []`, `suggestions: []`.
-- Svelte autofixer: `serviceFoulDetection.svelte.ts` returned `issues: []`,
-  `suggestions: []`.
+- Svelte autofixer: `viewDiff.svelte`, `viewDiffNavbar.svelte`, and
+  `serviceFoulDetection.svelte.ts` returned `issues: []`, `suggestions: []`.
 - `pnpm run lint:full`: passed.
 - `pnpm run check`: passed with 0 errors / 0 warnings.
 - `pnpm run build:plugin`: passed.
@@ -176,9 +172,8 @@ Older route history remains in
 
 ## Residuals
 
-- Known performance-threshold residuals are deferred to the final stabilization
-  gate unless a focused slice introduces a new regression. Do not relax
-  thresholds inside functional EDP slices.
+- Known performance-threshold residuals are deferred to final stabilization
+  unless a focused slice regresses them. Do not relax thresholds in EDP slices.
 - `vaultman:open-diff` is not registered in the live `plugin-dev` command list;
   the Diff Navbar DOM probe returned `false` because no command opened the diff
   view.
@@ -195,12 +190,9 @@ Older route history remains in
 
 ## Next Action
 
-- Current route: commit EDP-006 E0 shared contract, then dispatch E1/E2
-  Tags/Props adapters from the E0 base.
-- Continue with remaining T4 integration follow-ups or the next vertical-thread
-  slice from
+- Current route: commit EDP-006 E2 Props adapter locally, then integrate E1/E2
+  only after both adapters pass against the same E0 base.
+- Continue T4 follow-ups or the next vertical-thread slice from
   [[docs/work/polish/plans/2026-05-11-ui-modernization-vertical-threads/index|UI Modernization Vertical Threads]].
-- For T3, register or expose a real diff-open path before rerunning the live
-  Diff Navbar smoke.
-- Remove `OperationQueueService.transactions` only after all readers migrate to
-  immutable `chains`.
+- For T3, register or expose a real diff-open path before the live Diff Navbar smoke.
+- Remove `OperationQueueService.transactions` only after all readers migrate to immutable `chains`.

@@ -5,7 +5,7 @@ status: active
 parent: "[[docs/work/pkm-ai/index|pkm-ai]]"
 archive_source: "docs/archive/pkm-ai/active-docs/2026-05-11T080321-current-status.md"
 created: 2026-05-04T01:36:20
-updated: 2026-05-13T02:11:50
+updated: 2026-05-13T03:38:46
 tags:
   - agent/current
 created_by: dec
@@ -30,8 +30,8 @@ Older route history remains in
 
 ## Current Route
 
-- Latest user request: start EDP-006 Agent E0 shared Tags/Props snapshot
-  contract coordinator after sticky tree rows were integrated.
+- Latest user request: continue EDP-006 as Agent E2 Props snapshot adapter
+  after E0 commit `d78120e` was integrated into `claude/explorer`.
 - Active initiative: [[docs/work/hardening/index|Hardening]].
 - Active spec:
   [[docs/work/hardening/specs/2026-05-11-explorer-data-plane-structural-taxonomy/index|Explorer Data Plane Structural Taxonomy]].
@@ -74,9 +74,9 @@ Older route history remains in
   [[docs/work/hardening/plans/2026-05-11-explorer-data-plane-transition/05-worker-operating-contract|EDP worker operating contract]]
   defines base branch, worktree naming, ownership boundaries, verification,
   and handoff for all remaining EDP workers.
-- Current EDP-006 worktree:
-  `C:\Users\vic_A\Desktop\vaultman\.claude\worktrees\edp-006-contract`
-  on branch `codex/edp-006-contract`, based on `claude/explorer`.
+- Current EDP-006 Props worktree:
+  `C:\Users\vic_A\Desktop\vaultman\.claude\worktrees\edp-006-props`
+  on branch `codex/edp-006-props`, based on `claude/explorer`.
 - Sticky tree rows are integrated in the `claude/explorer` base; source
   record and preservation prompt:
   [[docs/work/polish/plans/2026-05-12-sticky-tree-rows-nav-offset|Sticky tree rows nav offset handoff]].
@@ -122,10 +122,10 @@ Older route history remains in
 - EDP-005 reconciliation focused gates passed in `claude/explorer`:
   3 unit files / 36 tests and 2 component files / 16 tests.
   `pnpm run lint:full`, `pnpm run check`, and `pnpm run build:plugin` passed.
-- EDP-006 E0 gates passed: RED snapshot test failed on missing projection
-  metadata; focused unit passed 2 files / 17 tests, sticky component gate
-  passed 4 files / 39 tests, and `lint:full`, `check`, `build:plugin`, and
-  `git diff --check` passed.
+- EDP-006 E0 gates passed, and E2 Props gates passed: RED failed on missing
+  Props snapshot/structural methods; focused Props unit passed 1 file / 20
+  tests, sticky component gate passed 4 files / 39 tests, and `lint:full`,
+  `check`, `build:plugin`, and `git diff --check` passed.
 - EDP-001 documentation gate is closed: the local issue tracker is approved,
   `completed` label vocabulary is recorded, and stale `serviceViews` selection
   ownership wording is superseded by `NodeSelectionService`.
@@ -185,8 +185,8 @@ Older route history remains in
 
 ## Next Action
 
-- Current route: commit EDP-006 E0 shared contract, then dispatch E1/E2
-  Tags/Props adapters from the E0 base.
+- Current route: commit EDP-006 E2 Props adapter locally, then integrate E1/E2
+  only after both adapters pass against the same E0 base.
 - Continue with the remaining T4 integration follow-ups or the next
   vertical-thread slice from the active plan.
 - For T3 follow-up, register or expose a real diff-open path, then rerun the
