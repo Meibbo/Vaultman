@@ -6,7 +6,7 @@ status: needs-triage
 issue_kind: AFK
 parent: "[[docs/work/hardening/issues/explorer-data-plane/index|Explorer data plane local issues]]"
 created: 2026-05-11T20:55:00
-updated: 2026-05-11T20:55:00
+updated: 2026-05-13T05:41:51
 labels:
   - needs-triage
 tags:
@@ -43,7 +43,15 @@ preserving existing Polish table/card behavior.
       compatibility adapter.
 - [ ] Virtualizers remain adapter-local.
 - [ ] Table and cards behavior from existing Polish work is preserved.
-- [ ] SVAR remains a side-effecting compatibility adapter.
+- [ ] SVAR is removed after row-contract finalization, including code paths and
+      package imports; do not preserve a SVAR compatibility bridge.
+
+## Supersession Notes
+
+- 2026-05-13 user decision: SVAR is no longer required. The previous Wave 2
+  wording that kept SVAR as a compatibility bridge is superseded for EDP-009.
+  The next agent should leave SVAR deletion until after row-contract
+  finalization within this wave, then remove SVAR code and package imports.
 
 ## Blocked By
 

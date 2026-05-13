@@ -4,7 +4,7 @@ type: dispatch-contract
 status: active
 parent: "[[docs/work/hardening/plans/2026-05-11-explorer-data-plane-transition/index|explorer-data-plane-transition-plans]]"
 created: 2026-05-12T12:35:00
-updated: 2026-05-12T12:35:00
+updated: 2026-05-13T05:41:51
 tags:
   - agent/plan
   - agent/dispatch
@@ -22,9 +22,10 @@ parallel work.
 ## Current Base
 
 - Canonical branch: `claude/explorer`.
-- Current integrated head: current `claude/explorer` head,
-  `feat: add explorer data-plane perf probes`.
-- Completed on this branch: EDP-001, EDP-002, EDP-003, EDP-004, EDP-005, EDP-007.
+- Current integrated head: current `claude/explorer` head after
+  `merge: integrate edp-008 overlay projection`.
+- Completed on this branch: EDP-001, EDP-002, EDP-003, EDP-004, EDP-005,
+  EDP-006, EDP-007, EDP-008.
 - Do not work from the root `sandbox` worktree. Its Wave 3 edits are stale and
   were superseded by `d110fe6`.
 
@@ -305,9 +306,11 @@ Owns:
 
 Must preserve existing Polish table/card behavior.
 
-### Agent G3 - SVAR Compatibility Bridge
+### Agent G3 - SVAR Removal
 
-Only dispatch if G0 decides SVAR needs separate work.
+SVAR compatibility bridge work is superseded. SVAR is no longer needed and
+should be removed after row-contract finalization, including package imports.
+Do not preserve SVAR as a compatibility adapter.
 
 Worktree and branch:
 
@@ -315,12 +318,9 @@ Worktree and branch:
 git worktree add .claude\worktrees\edp-009-svar -b codex/edp-009-svar claude/explorer
 ```
 
-Owns:
-
-- `src/components/views/ViewSvarFileManager.svelte`
-- SVAR compatibility tests
-
-Must keep SVAR as a compatibility adapter, not a new data-plane authority.
+Owns removal of `src/components/views/ViewSvarFileManager.svelte`, references
+to SVAR view mode/routes, and related package imports if G0/G1/G2 leave that
+cleanup to a separate worker.
 
 ## Wave 6 - Agent H - EDP-010 Selection Mirror Cleanup
 

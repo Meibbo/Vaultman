@@ -5,7 +5,7 @@ status: active
 parent: "[[docs/work/pkm-ai/index|pkm-ai]]"
 archive_source: "docs/archive/pkm-ai/active-docs/2026-05-11T080321-current-status.md"
 created: 2026-05-04T01:36:20
-updated: 2026-05-13T05:25:49
+updated: 2026-05-13T05:41:51
 tags:
   - agent/current
 created_by: dec
@@ -30,8 +30,8 @@ Older route history remains in
 
 ## Current Route
 
-- Latest user request handled: implemented EDP-008 Overlay Projection extraction
-  on `codex/edp-008-overlay` from `claude/explorer`.
+- Latest user request handled: integrated EDP-008 Overlay Projection extraction
+  into `claude/explorer` with merge commit `10855e5`.
 - Active initiative: [[docs/work/hardening/index|Hardening]].
 - Active spec:
   [[docs/work/hardening/specs/2026-05-11-explorer-data-plane-structural-taxonomy/index|Explorer Data Plane Structural Taxonomy]].
@@ -75,7 +75,7 @@ Older route history remains in
   defines base branch, worktree naming, ownership boundaries, verification,
   and handoff for all remaining EDP workers.
 - EDP-006 Tags and Props adapters are integrated in `claude/explorer`.
-- EDP-008 is complete locally:
+- EDP-008 is integrated in `claude/explorer`:
   [[docs/work/hardening/issues/explorer-data-plane/008-overlay-projection-extraction|EDP-008 Overlay projection extraction]].
   It extracts queue/filter overlay layers to `serviceOverlayProjection`, moves
   queue popup presentation to `serviceQueuePresentation`, and moves
@@ -123,6 +123,10 @@ Older route history remains in
   9 files / 105 tests, queue popup component 1 file / 4 tests, EDP-006
   regression unit 5 files / 51 tests, sticky component 4 files / 39 tests,
   `lint:full`, `check`, `build:plugin`, and `git diff --check`.
+- EDP-008 integration gates passed on `claude/explorer` after merge commit
+  `10855e5`: focused overlay unit 4 files / 27 tests, EDP-006 regression unit
+  5 files / 51 tests, sticky component 4 files / 39 tests, `lint:full`,
+  `check`, and `build:plugin`.
 - EDP-001 documentation gate is closed: the local issue tracker is approved,
   `completed` label vocabulary is recorded, and stale `serviceViews` selection
   ownership wording is superseded by `NodeSelectionService`.
@@ -156,8 +160,11 @@ Older route history remains in
 
 ## Next Action
 
-- Current route: commit completed EDP-008 overlay projection locally, then
-  continue to EDP-009 adapter row contract follow-up.
+- Current route: verify merged EDP-008 on `claude/explorer`, then hand off
+  EDP-009 adapter row contract follow-up.
+- EDP-009 supersession note: SVAR is no longer required. The next agent should
+  remove SVAR code/package imports after row-contract finalization instead of
+  preserving a compatibility bridge.
 - Continue with the remaining T4 integration follow-ups or the next
   vertical-thread slice from the active plan.
 - For T3 follow-up, register or expose a real diff-open path, then rerun the

@@ -4,7 +4,7 @@ type: dispatch-index
 status: active
 parent: "[[docs/work/hardening/plans/2026-05-11-explorer-data-plane-transition/index|explorer-data-plane-transition-plans]]"
 created: 2026-05-12T09:14:20
-updated: 2026-05-12T22:30:00
+updated: 2026-05-13T05:41:51
 tags:
   - agent/plan
   - agent/dispatch
@@ -261,7 +261,8 @@ scopes stay clean:
 
 - Agent G1: tree/grid adapter row contract.
 - Agent G2: table/cards adapter row contract.
-- Agent G3: SVAR/compat bridge only if needed.
+- Agent G3: skipped. SVAR is no longer needed and should be removed by the
+  EDP-009 agent after row-contract finalization, including package imports.
 
 - [[docs/work/hardening/issues/explorer-data-plane/009-adapter-row-contract-follow-up|EDP-009]]
 - [[docs/work/hardening/specs/2026-05-11-explorer-data-plane-structural-taxonomy/17-wave-4-follow-up-slices#slice-c---adapter-row-contract|Wave 4 Slice C]]

@@ -80,3 +80,7 @@ semantics.
 - PASS: `pnpm run check`.
 - PASS: `pnpm run build:plugin`.
 - PASS: `git diff --check`.
+- Integrated into `claude/explorer` with merge commit `10855e5`.
+- PASS on merged `claude/explorer`: focused overlay unit 4 files / 27 tests,
+  EDP-006 regression unit 5 files / 51 tests, sticky component 4 files / 39
+  tests, `lint:full`, `check`, and `build:plugin`.
