@@ -128,6 +128,7 @@ export class VaultmanPlugin extends Plugin {
 	openQueuePopupHook: (() => void) | null = null;
 	openViewMenuHook: (() => void) | null = null;
 	openSortMenuHook: (() => void) | null = null;
+	openDiffViewHook: (() => void) | null = null;
 	openContentSearchHook: ((term: string) => void) | null = null;
 
 	async onload(): Promise<void> {
@@ -305,6 +306,7 @@ export class VaultmanPlugin extends Plugin {
 			openQueuePopup: () => this.openQueuePopupHook?.(),
 			openViewMenu: () => this.openViewMenuHook?.(),
 			openSortMenu: () => this.openSortMenuHook?.(),
+			openDiffView: () => this.openDiffViewHook?.(),
 		});
 
 		this.addSettingTab(new VaultmanSettingsTab(this.app, this));

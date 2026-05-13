@@ -63,6 +63,8 @@ export interface VaultmanCommandHost {
 	openViewMenu?(): void;
 	/** Open the sort menu of the active tab. */
 	openSortMenu?(): void;
+	/** Open the diff review surface in the active Vaultman frame. */
+	openDiffView?(): void;
 }
 
 /**
@@ -77,6 +79,7 @@ export const VAULTMAN_COMMAND_IDS = [
 	'open-view-menu',
 	'open-sort-menu',
 	'open',
+	'open-diff',
 	'open-find-replace-active-explorer',
 ] as const;
 
@@ -99,6 +102,13 @@ export function registerVaultmanCommands(
 
 	function activeFnRService(): FnRIslandService | null {
 		return host.getActiveFnRIslandService?.() ?? null;
+	}
+
+	function revealVaultmanLeaf(): void {
+		const leaf = host.getVaultmanLeaf?.();
+		if (leaf) {
+			void host.app.workspace.revealLeaf(leaf);
+		}
 	}
 
 	/**
@@ -207,12 +217,21 @@ export function registerVaultmanCommands(
 				if (host.toggleView) await host.toggleView();
 				else await host.activateView();
 				if (host.toggleView && wasOpen) return;
-				const leaf = host.getVaultmanLeaf?.();
-				if (leaf) {
-					void host.app.workspace.revealLeaf(leaf);
-				}
+				revealVaultmanLeaf();
 				const api = host.getActivePanelExplorerApi?.();
 				api?.focusFirstNode();
+			})();
+		},
+	});
+
+	add({
+		id: 'open-diff',
+		name: 'Open diff review',
+		callback: () => {
+			void (async () => {
+				await host.activateView();
+				revealVaultmanLeaf();
+				host.openDiffView?.();
 			})();
 		},
 	});

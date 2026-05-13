@@ -5,7 +5,7 @@ status: active
 parent: "[[docs/work/pkm-ai/index|pkm-ai]]"
 archive_source: "docs/archive/pkm-ai/active-docs/2026-05-11T080321-current-status.md"
 created: 2026-05-04T01:36:20
-updated: 2026-05-13T15:58:56
+updated: 2026-05-13T16:23:33
 tags:
   - agent/current
 created_by: dec
@@ -30,8 +30,10 @@ Older route history remains in
 
 ## Current Route
 
-- Latest user request handled: completed EDP-010 selection mirror cleanup locally
-  on `codex/edp-010-selection-cleanup`.
+- Latest integration progress: EDP-010 selection mirror cleanup is integrated
+  locally, and T3 `vaultman:open-diff` residual is being integrated from
+  `codex/t3-open-diff-command`; see
+  [[docs/work/polish/plans/2026-05-11-ui-modernization-vertical-threads/06-t3-open-diff-command-residual|T3 open diff command residual]].
 - Active initiative: [[docs/work/hardening/index|Hardening]].
 - Active spec:
   [[docs/work/hardening/specs/2026-05-11-explorer-data-plane-structural-taxonomy/index|Explorer Data Plane Structural Taxonomy]].
@@ -167,6 +169,8 @@ Older route history remains in
   the intended mirror-divergence reasons; GREEN unit 5/51, panel bridge 1/39,
   adjacent selection component 6/56, sticky 4/39, `lint:full`, `check`,
   `build:plugin`, and `git diff --check`.
+- T3 open-diff branch gates passed; RED/GREEN details and live-smoke blocker
+  are in [[docs/work/polish/plans/2026-05-11-ui-modernization-vertical-threads/06-t3-open-diff-command-residual|T3 open diff command residual]].
 - EDP-001 documentation gate is closed: the local issue tracker is approved,
   `completed` label vocabulary is recorded, and stale `serviceViews` selection
   ownership wording is superseded by `NodeSelectionService`.
@@ -187,7 +191,7 @@ Older route history remains in
   threshold, and `test/component/viewTableStress.test.ts` measured ~3.37s
   against a 3.0s threshold in isolated rerun. Defer these to the final
   stabilization gate unless a focused slice introduces a new regression.
-- `vaultman:open-diff` is absent from the live `plugin-dev` command list.
+- T3 live smoke is blocked: `plugin-dev` has Vaultman disabled and lacks `plugin:reload`.
 - T4 still has integration follow-ups: frame-level native-click wiring,
   Find/Replace island migration to `vmPopover`, dashboard/add-ons wiring in
   `frameVaultman.svelte`, real queue staging for adopted-block moves, Quick
@@ -203,7 +207,6 @@ Older route history remains in
 - Next EDP route: integrate EDP-010 or proceed to the final stabilization gate.
 - Continue with the remaining T4 integration follow-ups or the next
   vertical-thread slice from the active plan.
-- For T3 follow-up, register or expose a real diff-open path, then rerun the
-  Diff Navbar live smoke.
+- T3 follow-up: enable/reload Vaultman in `plugin-dev`, then rerun `vaultman:open-diff` smoke.
 - Only remove `OperationQueueService.transactions` after all current readers
   use immutable `chains`.
