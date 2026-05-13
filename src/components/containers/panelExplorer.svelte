@@ -290,6 +290,15 @@
 	});
 
 	function refreshData() {
+		const probe = getActivePerfProbe();
+		if (probe) {
+			probe.measure('panelExplorer.refresh.total', undefined, refreshDataNow);
+			return;
+		}
+		refreshDataNow();
+	}
+
+	function refreshDataNow() {
 		if (viewMode === 'tree') {
 			nodes = readProviderTree();
 			flatFiles = [];

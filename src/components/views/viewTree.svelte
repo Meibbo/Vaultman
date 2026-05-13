@@ -263,6 +263,16 @@
 	}
 
 	function resolveRevealIndex(target: ScrollTarget): number {
+		return (
+			getActivePerfProbe()?.measure(
+				'explorerDataPlane.reveal.lookup',
+				{ rows: flatArray.length },
+				() => resolveRevealIndexNow(target),
+			) ?? resolveRevealIndexNow(target)
+		);
+	}
+
+	function resolveRevealIndexNow(target: ScrollTarget): number {
 		if (!revealSnapshotIsCurrent(target)) return -1;
 		const mappedIndex = resolveIndexById?.(target.id) ?? idToIndex?.get(target.id);
 		if (

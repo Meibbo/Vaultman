@@ -1,5 +1,10 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { flushSync, mount, unmount, type Component } from 'svelte';
+import {
+	clearActivePerfProbe,
+	createPerfProbe,
+	setActivePerfProbe,
+} from '../../src/dev/perfProbe';
 import type { TreeNode } from '../../src/types/typeNode';
 
 type VirtualizerOptions = {
@@ -66,6 +71,7 @@ describe('ViewTree scroll fallback', () => {
 		} else {
 			delete (HTMLElement.prototype as unknown as Record<string, unknown>).clientHeight;
 		}
+		clearActivePerfProbe();
 		vi.unstubAllGlobals();
 	});
 
@@ -130,6 +136,9 @@ describe('ViewTree scroll fallback', () => {
 	});
 
 	it('uses the supplied id-to-index map when the reveal target revision is current', () => {
+		const probe = createPerfProbe({ now: () => 0 });
+		setActivePerfProbe(probe.api);
+
 		app = mount(ViewTree as unknown as Component<Record<string, unknown>>, {
 			target,
 			props: {
@@ -153,5 +162,7 @@ describe('ViewTree scroll fallback', () => {
 
 		const outer = target.querySelector<HTMLDivElement>('.vm-tree-virtual-outer');
 		expect(outer?.scrollTop).toBeGreaterThan(0);
+		expect(probe.snapshot().timings['explorerDataPlane.reveal.lookup'].count).toBeGreaterThan(0);
+		expect(probe.snapshot().timings['explorerDataPlane.reveal.lookup'].totalRows).toBeGreaterThan(0);
 	});
 });

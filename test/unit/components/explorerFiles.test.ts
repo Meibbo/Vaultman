@@ -1,4 +1,9 @@
-import { describe, expect, it, vi } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
+import {
+	clearActivePerfProbe,
+	createPerfProbe,
+	setActivePerfProbe,
+} from '../../../src/dev/perfProbe';
 import { explorerFiles } from '../../../src/providers/explorerFiles';
 import { AdoptionService } from '../../../src/services/serviceAdoption.svelte';
 import { DecorationManager } from '../../../src/services/serviceDecorate';
@@ -63,6 +68,10 @@ function makePlugin(): {
 }
 
 describe('explorerFiles interactions', () => {
+	afterEach(() => {
+		clearActivePerfProbe();
+	});
+
 	it('builds Files overlay layers with one batched ViewService model call', () => {
 		const { plugin } = makePlugin();
 		const getModel = vi.spyOn(plugin.viewService, 'getModel');
@@ -81,9 +90,11 @@ describe('explorerFiles interactions', () => {
 
 	it('updates queue-only overlay layers without rebuilding the Files structure', () => {
 		const { plugin, files } = makePlugin();
+		const probe = createPerfProbe({ now: () => 0 });
 		const getFileCache = vi.spyOn(plugin.app.metadataCache, 'getFileCache');
 		const getModel = vi.spyOn(plugin.viewService, 'getModel');
 		const explorer = new explorerFiles(plugin);
+		setActivePerfProbe(probe.api);
 
 		explorer.getTree();
 		getFileCache.mockClear();
@@ -114,6 +125,14 @@ describe('explorerFiles interactions', () => {
 		expect(fileNode?.badges?.[0]).toMatchObject({
 			text: 'delete',
 			queueIndex: 0,
+		});
+		expect(probe.snapshot().counters['explorerDataPlane.files.structure.rebuild']).toMatchObject({
+			count: 1,
+			totalFiles: files.length,
+		});
+		expect(probe.snapshot().counters['explorerDataPlane.files.structure.cacheHit']).toMatchObject({
+			count: 1,
+			totalFiles: files.length,
 		});
 	});
 

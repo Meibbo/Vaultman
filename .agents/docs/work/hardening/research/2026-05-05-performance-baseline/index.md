@@ -4,7 +4,7 @@ type: research
 status: active
 parent: "[[docs/work/hardening/specs/2026-05-05-performance-diagnosis-loop/index|performance-diagnosis-loop]]"
 created: 2026-05-05T20:58:26
-updated: 2026-05-05T22:34:47
+updated: 2026-05-12T22:30:00
 tags:
   - agent/research
   - performance
@@ -90,3 +90,42 @@ Change:
 3. `filter-select` `panelExplorer.bubbleHiddenTreeBadges.totalMs` improved from `24.200000002980232` ms to `1.5` ms, about a `93.8%` reduction.
 4. `operation-badges` `panelExplorer.bubbleHiddenTreeBadges.totalMs` improved from `113.30000001192093` ms to `19.99999998509884` ms, about an `82.3%` reduction.
 5. Next candidate remains `panelExplorer.getTree` or upstream provider rebuild frequency. After the badge optimization, `panelExplorer.getTree` is now comparable to or larger than badge bubbling in the measured scenarios.
+
+## EDP-005 Files Data-Plane Gate
+
+Source issue:
+[[docs/work/hardening/issues/explorer-data-plane/005-files-data-plane-performance-gate|EDP-005 Files data-plane performance gate]].
+
+Change:
+
+- Added probe timings for `explorerDataPlane.snapshot.create`,
+  `explorerDataPlane.snapshot.lookupMaps`, `explorerDataPlane.layers.batch`,
+  `explorerDataPlane.reveal.lookup`, and `panelExplorer.refresh.total`.
+- Added Files structural counters:
+  `explorerDataPlane.files.structure.rebuild` and
+  `explorerDataPlane.files.structure.cacheHit`.
+- Kept `panelExplorer.getTree`, `panelExplorer.bubbleHiddenTreeBadges`,
+  `viewTree.flatten`, and `viewService.getModel` labels intact for comparison
+  with the 2026-05-05 baseline above.
+
+Automated probe evidence:
+
+- `logicExplorerSnapshot.test.ts` verifies snapshot creation and lookup-map
+  timing labels on Files-like trees.
+- `serviceExplorerLayers.test.ts` verifies one batched layer timing with queue
+  and filter totals.
+- `explorerFiles.test.ts` verifies a queue-only operation refresh records one
+  structural rebuild before the queue change and one structural cache hit after
+  the queue change.
+- `panelExplorerEmpty.test.ts` verifies total panel refresh timing through the
+  mounted Files panel path without rebuilding snapshots locally.
+- `viewTreeScrollFallback.test.ts` verifies reveal lookup timing when the
+  snapshot row map resolves the target id.
+
+Architectural note:
+
+- The earlier `sandbox` attempt expected `panelExplorer.svelte` to rebuild
+  snapshots locally. That was rejected during reconciliation because EDP-003
+  made `ExplorerDataPlaneService` the canonical snapshot store. Snapshot create
+  and lookup-map probes belong to `logicExplorerSnapshot`; panel refresh timing
+  stays separate.

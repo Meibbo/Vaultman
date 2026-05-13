@@ -1,4 +1,9 @@
-import { describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it } from 'vitest';
+import {
+	clearActivePerfProbe,
+	createPerfProbe,
+	setActivePerfProbe,
+} from '../../../src/dev/perfProbe';
 import type { TreeNode } from '../../../src/types/typeNode';
 import { buildExplorerSnapshot } from '../../../src/logic/logicExplorerSnapshot';
 import type { ExplorerDataPlaneRevisions } from '../../../src/types/typeExplorerDataPlane';
@@ -45,6 +50,10 @@ function buildTree(): TreeNode<FileMetaLite>[] {
 const revisions: ExplorerDataPlaneRevisions = { filesRevision: 1 };
 
 describe('buildExplorerSnapshot', () => {
+	afterEach(() => {
+		clearActivePerfProbe();
+	});
+
 	it('produces rows in DFS visible order with depth and parent links', () => {
 		const snap = buildExplorerSnapshot({
 			explorerId: 'files',
@@ -162,5 +171,30 @@ describe('buildExplorerSnapshot', () => {
 		});
 		expect(snap.revision).toBe(0);
 		expect(snap.structureRevision).toBe(0);
+	});
+
+	it('records snapshot creation and lookup-map creation probe timings', () => {
+		const probe = createPerfProbe({ now: () => 0 });
+		setActivePerfProbe(probe.api);
+
+		const snap = buildExplorerSnapshot({
+			explorerId: 'files',
+			providerKey: 'files',
+			tree: buildTree(),
+			expandedIds: new Set(['a', 'a/b']),
+			revisions,
+			kindFor: () => 'file',
+		});
+
+		expect(snap.rows).toHaveLength(5);
+		expect(probe.snapshot().timings['explorerDataPlane.snapshot.create']).toMatchObject({
+			count: 1,
+			totalNodes: 5,
+		});
+		expect(probe.snapshot().timings['explorerDataPlane.snapshot.lookupMaps']).toMatchObject({
+			count: 1,
+			totalRows: 5,
+			totalVisibleRows: 5,
+		});
 	});
 });

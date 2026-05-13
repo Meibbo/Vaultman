@@ -1,4 +1,5 @@
 import type { ActiveFilterEntry, NodeBase, QueueChange } from '../types/typeContracts';
+import { getActivePerfProbe } from '../dev/perfProbe';
 import type { TreeNode } from '../types/typeNode';
 import type {
 	ExplorerViewMode,
@@ -36,7 +37,23 @@ export function buildExplorerLayerMap<TNode extends NodeBase>(
 	input: ExplorerLayerBatchInput<TNode>,
 ): ReadonlyMap<string, ViewLayers> {
 	if (input.nodes.length === 0) return new Map();
-	const model = input.viewService.getModel({
+	const model =
+		getActivePerfProbe()?.measure(
+			'explorerDataPlane.layers.batch',
+			{
+				nodes: input.nodes.length,
+				operations: input.operations?.length ?? 0,
+				filters: input.activeFilters?.length ?? 0,
+			},
+			() => getLayerModel(input),
+		) ?? getLayerModel(input);
+	const layers = new Map<string, ViewLayers>();
+	for (const row of model.rows) layers.set(row.id, row.layers);
+	return layers;
+}
+
+function getLayerModel<TNode extends NodeBase>(input: ExplorerLayerBatchInput<TNode>) {
+	return input.viewService.getModel({
 		explorerId: input.explorerId,
 		mode: input.mode,
 		nodes: input.nodes,
@@ -47,9 +64,6 @@ export function buildExplorerLayerMap<TNode extends NodeBase>(
 		getDetail: input.getDetail,
 		getDecorationContext: input.getDecorationContext,
 	});
-	const layers = new Map<string, ViewLayers>();
-	for (const row of model.rows) layers.set(row.id, row.layers);
-	return layers;
 }
 
 export function decorateTreeWithExplorerLayers<TMeta>(

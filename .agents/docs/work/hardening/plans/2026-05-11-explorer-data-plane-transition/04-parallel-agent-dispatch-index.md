@@ -4,7 +4,7 @@ type: dispatch-index
 status: active
 parent: "[[docs/work/hardening/plans/2026-05-11-explorer-data-plane-transition/index|explorer-data-plane-transition-plans]]"
 created: 2026-05-12T09:14:20
-updated: 2026-05-12T12:35:00
+updated: 2026-05-12T22:30:00
 tags:
   - agent/plan
   - agent/dispatch
@@ -22,10 +22,11 @@ Router for invoking parallel agents after EDP-002 landed on `claude/explorer`.
 
 - Branch/worktree: `C:\Users\vic_A\Desktop\vaultman\.claude\worktrees\jovial-wilson-f81c67`
   on `claude/explorer`.
-- Latest integrated commit: `5e2e7bc docs: update edp dispatch after wave 3 reconciliation`.
+- Latest integrated commit: current `claude/explorer` head,
+  `feat: add explorer data-plane perf probes`.
 - EDP-001 is completed.
 - EDP-002 is implemented and committed.
-- EDP-003, EDP-004, and EDP-007 are implemented and integrated.
+- EDP-003, EDP-004, EDP-005, and EDP-007 are implemented and integrated.
 - Focused EDP-002 gates passed before this dispatch index: unit EDP tests,
   component EDP tests, `pnpm run check`, `pnpm run build:plugin`, and
   `git diff --check`.
@@ -51,11 +52,11 @@ Stop and report if a task crosses ownership boundaries.
 
 ## Current Parallelism Rule
 
-- Immediate next slice: Agent D / EDP-005. This is single-worker and must land
-  before more parallel implementation starts.
-- Next parallel split: Wave 3, Agents E1 and E2, after Agent D and the short
-  E0 shared-contract coordinator land.
-- Do not dispatch E1/E2 from `sandbox` or from pre-`5e2e7bc` branches.
+- Immediate next slice: Agent E0 / EDP-006 shared snapshot contract
+  coordinator.
+- Next parallel split: Wave 3, Agents E1 and E2, after E0 lands.
+- Do not dispatch E1/E2 from `sandbox` or branches that predate the EDP-005
+  perf-probe commit.
 
 ## Dependency Map
 
@@ -187,7 +188,7 @@ Unlocks: final stabilization gate. It does not block EDP-003 or EDP-004.
 
 ### Agent D - EDP-005 Data-Plane Perf Gate
 
-Status: next unlocked slice.
+Status: completed in the current `claude/explorer` head.
 
 Worker setup: see [[05-worker-operating-contract#Wave 2 - Agent D - EDP-005 Data-Plane Perf Gate|Agent D operating contract]].
 

@@ -5,7 +5,7 @@ status: active
 parent: "[[docs/work/pkm-ai/index|pkm-ai]]"
 archive_source: "docs/archive/pkm-ai/active-docs/2026-05-11T080321-current-handoff.md"
 created: 2026-05-04T01:36:20
-updated: 2026-05-12T12:35:00
+updated: 2026-05-12T22:30:00
 tags:
   - agent/current
 created_by: dec
@@ -43,6 +43,8 @@ Older route history remains in
 - Reconciled and marked completed: [[docs/work/hardening/issues/explorer-data-plane/003-files-panel-snapshot-compatibility-revisioned-reveal|EDP-003]],
   [[docs/work/hardening/issues/explorer-data-plane/004-batched-files-overlay-layers-viewservice|EDP-004]],
   and [[docs/work/hardening/issues/explorer-data-plane/007-explorer-media-cache-database|EDP-007]].
+- EDP-005 reconciliation is integrated in the current `claude/explorer` head;
+  it ports valid perf probes from `sandbox` while preserving `ExplorerDataPlaneService`.
 - EDP-001 tracker approval/supersession gate is completed; the
   [[docs/work/hardening/plans/2026-05-04-serviceviews-implementation/index|serviceViews implementation plan]]
   is historical and not executable as the current data-plane plan.
@@ -109,6 +111,10 @@ Older route history remains in
   / 42 tests.
 - Reconciliation static/build gates pass: `pnpm run lint:full`,
   `pnpm run check`, `pnpm run build:plugin`, and `git diff --check`.
+- EDP-005 reconciliation focused gates pass in `claude/explorer`:
+  3 unit files / 36 tests and 2 component files / 16 tests.
+- EDP-005 static/build gates pass: `pnpm run lint:full`, `pnpm run check`,
+  and `pnpm run build:plugin`.
 - EDP-001 is closed: local tracker approval is recorded, `completed` label
   vocabulary exists, and stale `serviceViews` selection ownership wording is
   superseded by `NodeSelectionService`.
@@ -179,11 +185,8 @@ Older route history remains in
 
 ## Next Action
 
-- Current hardening route: EDP-003, EDP-004, and EDP-007 are integrated in
-  `claude/explorer`; do not reuse the stale `sandbox` Wave 3 edits directly.
-  Use the dispatch index and worker contract for EDP-005 next. Do not start
-  parallel EDP-006 Tags/Props until EDP-005 and the EDP-006 shared-contract
-  coordinator land.
+- Current hardening route: use the worker contract for EDP-006 shared-contract
+  coordinator, then parallel Tags/Props; do not reuse stale `sandbox` edits.
 - Continue with remaining T4 integration follow-ups or the next vertical-thread
   slice from
   [[docs/work/polish/plans/2026-05-11-ui-modernization-vertical-threads/index|UI Modernization Vertical Threads]].

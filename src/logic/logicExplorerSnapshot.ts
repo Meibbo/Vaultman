@@ -1,4 +1,5 @@
 import type { TreeNode } from '../types/typeNode';
+import { getActivePerfProbe } from '../dev/perfProbe';
 import type {
 	ExplorerDataPlaneRevisions,
 	ExplorerSnapshot,
@@ -19,6 +20,19 @@ export interface BuildExplorerSnapshotInput<TMeta = unknown> {
 }
 
 export function buildExplorerSnapshot<TMeta = unknown>(
+	input: BuildExplorerSnapshotInput<TMeta>,
+): ExplorerSnapshot<TMeta> {
+	const nodeCount = countTreeNodes(input.tree);
+	return (
+		getActivePerfProbe()?.measure(
+			'explorerDataPlane.snapshot.create',
+			{ nodes: nodeCount },
+			() => buildExplorerSnapshotNow(input),
+		) ?? buildExplorerSnapshotNow(input)
+	);
+}
+
+function buildExplorerSnapshotNow<TMeta = unknown>(
 	input: BuildExplorerSnapshotInput<TMeta>,
 ): ExplorerSnapshot<TMeta> {
 	const rows: ExplorerSnapshotRow<TMeta>[] = [];
@@ -70,6 +84,12 @@ export function buildExplorerSnapshot<TMeta = unknown>(
 		walk(root, 0, null, true);
 	}
 
+	getActivePerfProbe()?.measure(
+		'explorerDataPlane.snapshot.lookupMaps',
+		{ rows: rows.length, visibleRows: visibleIds.length },
+		() => undefined,
+	);
+
 	return {
 		explorerId: input.explorerId,
 		providerKey: input.providerKey,
@@ -84,4 +104,16 @@ export function buildExplorerSnapshot<TMeta = unknown>(
 		folderPathToId,
 		sourceRevisions: input.revisions,
 	};
+}
+
+function countTreeNodes<TMeta>(tree: readonly TreeNode<TMeta>[]): number {
+	let count = 0;
+	const visit = (nodes: readonly TreeNode<TMeta>[]) => {
+		for (const node of nodes) {
+			count += 1;
+			if (node.children?.length) visit(node.children);
+		}
+	};
+	visit(tree);
+	return count;
 }

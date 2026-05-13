@@ -22,8 +22,9 @@ parallel work.
 ## Current Base
 
 - Canonical branch: `claude/explorer`.
-- Current integrated head: `5e2e7bc docs: update edp dispatch after wave 3 reconciliation`.
-- Completed on this branch: EDP-001, EDP-002, EDP-003, EDP-004, EDP-007.
+- Current integrated head: current `claude/explorer` head,
+  `feat: add explorer data-plane perf probes`.
+- Completed on this branch: EDP-001, EDP-002, EDP-003, EDP-004, EDP-005, EDP-007.
 - Do not work from the root `sandbox` worktree. Its Wave 3 edits are stale and
   were superseded by `d110fe6`.
 
@@ -94,8 +95,7 @@ Each worker updates:
 
 ## Wave 2 - Agent D - EDP-005 Data-Plane Perf Gate
 
-Status: next unlocked slice. This wave is intentionally single-worker; do not
-parallelize EDP-006 before D lands.
+Status: completed in the current `claude/explorer` head.
 
 Worktree and branch:
 

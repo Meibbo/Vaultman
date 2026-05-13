@@ -1,4 +1,5 @@
 import type { TFile } from 'obsidian';
+import { getActivePerfProbe } from '../dev/perfProbe';
 import type { VaultmanPlugin } from '../main';
 import { FilesLogic } from '../logic/logicsFiles';
 import type { TreeNode, FileMeta } from '../types/typeNode';
@@ -133,7 +134,12 @@ export class explorerFiles implements ExplorerProvider<FileMeta> {
 	private readStructuralTree(): TreeNode<FileMeta>[] {
 		const source = this.sourceFiles();
 		const cacheKey = this.structuralCacheKey(source);
-		if (this.structuralCache?.key === cacheKey) return this.structuralCache.tree;
+		const probe = getActivePerfProbe();
+		if (this.structuralCache?.key === cacheKey) {
+			probe?.count('explorerDataPlane.files.structure.cacheHit', { files: source.length });
+			return this.structuralCache.tree;
+		}
+		probe?.count('explorerDataPlane.files.structure.rebuild', { files: source.length });
 
 		const getSearchBuffer = this.plugin.filesIndex
 			? (path: string) => this.fileSearchBuffer(path)

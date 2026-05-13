@@ -14,6 +14,7 @@ function plugin(): VaultmanPlugin {
 		propertyIndex: { fileCount: 0 },
 		operationsIndex: { nodes: [], subscribe: vi.fn(() => vi.fn()) },
 		activeFiltersIndex: { subscribe: vi.fn(() => vi.fn()) },
+		filterService: { setSelectedFiles: vi.fn() },
 		queueService: { remove: vi.fn() },
 		viewService: {
 			clearSelection: vi.fn(),
@@ -226,6 +227,34 @@ describe('PanelExplorer empty landing', () => {
 		expect(snapshot.timings['panelExplorer.getTree'].count).toBeGreaterThan(0);
 		expect(snapshot.timings['panelExplorer.bubbleHiddenTreeBadges'].count).toBeGreaterThan(0);
 		expect(snapshot.timings['panelExplorer.bubbleHiddenTreeBadges'].totalNodes).toBeGreaterThan(0);
+	});
+
+	it('records total panel refresh probe timing for the Files tree path', () => {
+		const probe = createPerfProbe({ now: () => 0 });
+		const file = mockTFile('Notes/A.md');
+		const nodes: TreeNode[] = [
+			{
+				id: file.path,
+				label: file.basename,
+				depth: 0,
+				meta: { file, isFolder: false, folderPath: 'Notes' },
+			},
+		];
+		setActivePerfProbe(probe.api);
+
+		app = render(target, {
+			viewMode: 'tree',
+			provider: provider({
+				id: 'files',
+				getTree: vi.fn(() => nodes),
+				getStructuralTree: vi.fn(() => nodes),
+				getStructuralRevisions: vi.fn(() => ({ filesRevision: 12 })),
+			}),
+		});
+		flushSync();
+
+		const snapshot = probe.snapshot();
+		expect(snapshot.timings['panelExplorer.refresh.total'].count).toBeGreaterThan(0);
 	});
 
 	it('records active probe metrics for file refreshes', () => {

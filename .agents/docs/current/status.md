@@ -5,7 +5,7 @@ status: active
 parent: "[[docs/work/pkm-ai/index|pkm-ai]]"
 archive_source: "docs/archive/pkm-ai/active-docs/2026-05-11T080321-current-status.md"
 created: 2026-05-04T01:36:20
-updated: 2026-05-12T12:35:00
+updated: 2026-05-12T22:30:00
 tags:
   - agent/current
 created_by: dec
@@ -60,6 +60,10 @@ Older route history remains in
   [[docs/work/hardening/issues/explorer-data-plane/004-batched-files-overlay-layers-viewservice|EDP-004]],
   and [[docs/work/hardening/issues/explorer-data-plane/007-explorer-media-cache-database|EDP-007]]
   are marked completed in the local tracker.
+- EDP-005 reconciliation is integrated in the current `claude/explorer` head.
+  It ports the valid perf probe intent
+  from the accidental `sandbox` implementation while rejecting stale panel
+  snapshot rebuilding and sticky-row changes.
 - EDP-001 tracker approval/supersession gate is completed; the old
   [[docs/work/hardening/plans/2026-05-04-serviceviews-implementation/index|serviceViews implementation plan]]
   is historical and not executable as the current data-plane plan.
@@ -109,6 +113,9 @@ Older route history remains in
   `codex/edp-wave3-reconcile`: 3 unit files / 48 tests and 2 component files
   / 42 tests. `pnpm run lint:full`, `pnpm run check`,
   `pnpm run build:plugin`, and `git diff --check` passed.
+- EDP-005 reconciliation focused gates passed in `claude/explorer`:
+  3 unit files / 36 tests and 2 component files / 16 tests.
+  `pnpm run lint:full`, `pnpm run check`, and `pnpm run build:plugin` passed.
 - EDP-001 documentation gate is closed: the local issue tracker is approved,
   `completed` label vocabulary is recorded, and stale `serviceViews` selection
   ownership wording is superseded by `NodeSelectionService`.
@@ -168,10 +175,8 @@ Older route history remains in
 
 ## Next Action
 
-- Current hardening route: EDP-003, EDP-004, and EDP-007 are integrated in
-  `claude/explorer`; use the dispatch index for the next unlocked slice,
-  EDP-005 Data-Plane Perf Gate. Do not start parallel EDP-006 Tags/Props until
-  EDP-005 and the EDP-006 shared-contract coordinator land.
+- Current hardening route: start EDP-006 shared-contract coordinator
+  before parallel Tags/Props workers.
 - Continue with the remaining T4 integration follow-ups or the next
   vertical-thread slice from the active plan.
 - For T3 follow-up, register or expose a real diff-open path, then rerun the
