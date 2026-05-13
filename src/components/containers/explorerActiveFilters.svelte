@@ -8,6 +8,11 @@
 		moveFilterNodeWithinParent,
 		type GroupDropPosition,
 	} from '../../services/serviceGroups';
+	import {
+		activeFilterDetail,
+		activeFilterLabel,
+		canReorderActiveFilterEntries,
+	} from '../../services/serviceActiveFilterPresentation';
 	import type { ActiveFilterEntry, NodeBase } from '../../types/typeContracts';
 	import type { ExplorerRenderModel, ViewAction, ViewRow } from '../../types/typeViews';
 	import { translate } from '../../index/i18n/lang';
@@ -36,53 +41,6 @@
 	function icon(el: HTMLElement, name: string) {
 		setIcon(el, name);
 		return { update: (n: string) => setIcon(el, n) };
-	}
-
-	function describeRule(entry: ActiveFilterEntry): string {
-		if (entry.kind === 'group') {
-			return entry.group.label ?? `${entry.group.logic}: ${entry.group.children.length}`;
-		}
-		const rule = entry.rule;
-		const prop = rule.property ?? '';
-		const vals = rule.values ?? [];
-		switch (rule.filterType) {
-			case 'has_property':
-				return `has: ${prop}`;
-			case 'missing_property':
-				return `missing: ${prop}`;
-			case 'specific_value':
-				return `${prop}: ${vals[0] ?? ''}`;
-			case 'multiple_values':
-				return `${prop}: ${vals.join(', ')}`;
-			case 'has_tag':
-				return `tag: ${vals[0] ?? ''}`;
-			case 'folder':
-				return `folder: ${vals[0] ?? ''}`;
-			case 'folder_exclude':
-				return `excl. folder: ${vals[0] ?? ''}`;
-			case 'file_name':
-				return `name: ${vals[0] ?? ''}`;
-			case 'file_name_exclude':
-				return `excl. name: ${vals[0] ?? ''}`;
-			case 'file_path':
-				return `file: ${vals[0] ?? ''}`;
-			case 'file_folder':
-				return `folder: ${vals[0] ?? ''}`;
-			default:
-				return prop || 'filter';
-		}
-	}
-
-	function describeDetail(entry: ActiveFilterEntry): string | undefined {
-		if (entry.kind === 'group') {
-			return entry.group.kind === 'selected_files'
-				? `${entry.group.children.length} files`
-				: `${entry.group.logic} group`;
-		}
-		if (entry.parent?.id === 'selected-files' && entry.rule.filterType === 'file_path') {
-			return 'selected file';
-		}
-		return undefined;
 	}
 
 	function removeFilter(entry: ActiveFilterEntry) {
@@ -149,8 +107,8 @@
 			explorerId: 'active-filters',
 			mode: 'list',
 			nodes: [...plugin.activeFiltersIndex.nodes],
-			getLabel: (node) => describeRule(node as ActiveFilterEntry),
-			getDetail: (node) => describeDetail(node as ActiveFilterEntry),
+			getLabel: (node) => activeFilterLabel(node as ActiveFilterEntry),
+			getDetail: (node) => activeFilterDetail(node as ActiveFilterEntry),
 			getActions: () => [
 				{ id: 'remove', label: translate('filters.remove'), icon: 'lucide-x', tone: 'danger' },
 			],
@@ -171,12 +129,16 @@
 		const source = plugin.activeFiltersIndex.byId(request.sourceId);
 		const target = plugin.activeFiltersIndex.byId(request.targetId);
 		if (!source || !target) return;
-		if (source.source === 'search' || target.source === 'search') return;
+		if (
+			!canReorderActiveFilterEntries({
+				source,
+				target,
+				root: plugin.filterService.activeFilter,
+			})
+		)
+			return;
 
 		const sourceParent = source.parent ?? plugin.filterService.activeFilter;
-		const targetParent = target.parent ?? plugin.filterService.activeFilter;
-		if (sourceParent !== targetParent) return;
-
 		if (
 			moveFilterNodeWithinParent(
 				sourceParent,

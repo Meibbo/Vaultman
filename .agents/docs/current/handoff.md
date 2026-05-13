@@ -5,7 +5,7 @@ status: active
 parent: "[[docs/work/pkm-ai/index|pkm-ai]]"
 archive_source: "docs/archive/pkm-ai/active-docs/2026-05-11T080321-current-handoff.md"
 created: 2026-05-04T01:36:20
-updated: 2026-05-13T04:20:51
+updated: 2026-05-13T05:25:49
 tags:
   - agent/current
 created_by: dec
@@ -21,8 +21,8 @@ Older route history remains in
 
 ## Resume Point
 
-- Latest request handled: integrated completed EDP-006 Tags and Props adapter
-  branches into `claude/explorer` and ran the combined gate.
+- Latest request handled: implemented EDP-008 Overlay Projection extraction on
+  `codex/edp-008-overlay` from `claude/explorer`.
 - Latest source records:
   [[docs/work/hardening/specs/2026-05-11-explorer-data-plane-structural-taxonomy/18-wave-5-plan-comparison-reconciliation|Wave 5 plan comparison and reconciliation]]
   through
@@ -56,6 +56,12 @@ Older route history remains in
   defines exact worktree/branch setup, ownership, verification, and handoff for
   remaining EDP agents.
 - EDP-006 Tags and Props adapters are integrated in `claude/explorer`.
+- EDP-008 is complete locally:
+  [[docs/work/hardening/issues/explorer-data-plane/008-overlay-projection-extraction|EDP-008 Overlay projection extraction]].
+  New pure seams: `src/services/serviceOverlayProjection.ts`,
+  `src/services/serviceQueuePresentation.ts`, and
+  `src/services/serviceActiveFilterPresentation.ts`. Tags/Props snapshot
+  adapter internals were not changed.
 - Sticky tree rows are integrated in the `claude/explorer` base; detailed
   preservation prompt:
   [[docs/work/polish/plans/2026-05-12-sticky-tree-rows-nav-offset|Sticky tree rows nav offset handoff]].
@@ -130,6 +136,11 @@ Older route history remains in
 - EDP-006 combined integration gates passed in `claude/explorer`: focused unit
   5 files / 51 tests, sticky component 4 files / 39 tests, `lint:full`,
   `check`, `build:plugin`, and `git diff --check`.
+- EDP-008 gates passed in `codex/edp-008-overlay`: focused EDP-008 unit
+  3 files / 10 tests, existing overlay/badge/queue/filter/provider unit
+  9 files / 105 tests, queue popup component 1 file / 4 tests, EDP-006
+  regression unit 5 files / 51 tests, sticky component 4 files / 39 tests,
+  `lint:full`, `check`, `build:plugin`, and `git diff --check`.
 - EDP-001 is closed: local tracker approval is recorded, `completed` label
   vocabulary exists, and stale `serviceViews` selection ownership wording is
   superseded by `NodeSelectionService`.
@@ -167,7 +178,8 @@ Older route history remains in
 
 ## Next Action
 
-- Current route: start EDP-008 overlay projection from `claude/explorer`.
+- Current route: finish the EDP-008 local commit, then continue with EDP-009
+  adapter row contract follow-up.
 - Continue T4 follow-ups or the next vertical-thread slice from
   [[docs/work/polish/plans/2026-05-11-ui-modernization-vertical-threads/index|UI Modernization Vertical Threads]].
 - For T3, register or expose a real diff-open path before the live Diff Navbar smoke.
