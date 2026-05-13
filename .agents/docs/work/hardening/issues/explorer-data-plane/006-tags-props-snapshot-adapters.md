@@ -6,7 +6,7 @@ status: active
 issue_kind: AFK
 parent: "[[docs/work/hardening/issues/explorer-data-plane/index|Explorer data plane local issues]]"
 created: 2026-05-11T20:55:00
-updated: 2026-05-13T02:11:50
+updated: 2026-05-13T03:38:18
 labels:
   - ready-for-agent
 tags:
@@ -42,10 +42,14 @@ context menus, and property/value scope.
 
 - [x] Shared contract supports Tags/Props provider projection state and domain
       key lookup without requiring Files-only revisions.
-- [ ] Tags/Props snapshots cover ids, parent links, visible order, search mode,
-      sort target, casing, object values, and value removal.
-- [ ] Provider actions for filters, queue ops, FnR, binding notes, and context
-      menus remain compatible.
+- [x] Tags snapshots cover ids, parent links, visible order, search mode, sort
+      target, casing, and tag domain-key lookup.
+- [ ] Props snapshots cover ids, parent links, visible order, property/value
+      scope, object values, and value removal.
+- [x] Tags provider actions for filters, queue ops, FnR, binding notes, and
+      context menus remain compatible.
+- [ ] Props provider actions for filters, queue ops, FnR, binding notes, and
+      context menus remain compatible.
 - [x] `indexProps` versus `PropertyIndexService` ownership is documented or
       resolved.
 
@@ -77,6 +81,28 @@ Ownership decision:
 - E1 and E2 should consume this shared contract without editing shared
   data-plane types unless a new blocker is discovered and documented first.
 
+## E1 Tags Snapshot Adapter
+
+Branch/worktree:
+`codex/edp-006-tags` at
+`C:\Users\vic_A\Desktop\vaultman\.claude\worktrees\edp-006-tags`.
+
+Tags scope:
+
+- `explorerTags` now exposes `getStructuralTree()`,
+  `getStructuralRevisions()`, and `getSnapshot(expandedIds)`.
+- `getSnapshot()` uses `buildExplorerSnapshot()` with provider projection state
+  from the current Tags search/sort settings.
+- Tags domain keys are canonical panel-action keys in the form `#tag/path`;
+  snapshot `domainKeyToId` maps those keys back to row ids.
+- Structural revisions include only `tagsRevision`. Queue and active-filter
+  revisions remain decorative and do not invalidate the cached Tags logic tree.
+- `getTree()` still decorates through the existing `ViewService` path, so
+  active-filter badges, queue badges, search highlights, Iconic tag icons, and
+  quick-action badges keep their existing behavior.
+- Shared data-plane contracts, Props provider/container/tests, and panel/view
+  behavior were not changed.
+
 ## Blocked By
 
 - [[002-files-snapshot-data-plane-foundation|EDP-002]]
@@ -99,3 +125,18 @@ Ownership decision:
 - `pnpm run build:plugin` passed.
 - `git diff --check` passed with Windows CRLF conversion warnings only.
 - No runtime UI behavior changed; live Obsidian smoke was not required for E0.
+- E1 RED: `pnpm run test:unit -- test/unit/components/explorerTagsSnapshot.test.ts`
+  failed 4/4 because `explorerTags` did not expose `getSnapshot()` or
+  `getStructuralTree()`.
+- E1 GREEN: `pnpm run test:unit -- test/unit/components/explorerTagsSnapshot.test.ts`
+  passed 1 file / 4 tests.
+- E1 focused Tags gate:
+  `pnpm run test:unit -- test/unit/components/explorerTagsSnapshot.test.ts test/unit/components/explorerTags.test.ts`
+  passed 2 files / 14 tests.
+- E1 sticky tree focused gate initially timed out once in
+  `viewTreeScrollFallback.test.ts`; the isolated rerun passed 1 file / 3 tests,
+  then the required combined sticky gate passed 4 files / 39 tests.
+- E1 `pnpm run lint:full` passed.
+- E1 `pnpm run check` passed with 0 errors / 0 warnings.
+- E1 `pnpm run build:plugin` passed.
+- E1 `git diff --check` passed with Windows CRLF conversion warnings only.

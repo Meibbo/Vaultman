@@ -5,7 +5,7 @@ status: active
 parent: "[[docs/work/pkm-ai/index|pkm-ai]]"
 archive_source: "docs/archive/pkm-ai/active-docs/2026-05-11T080321-current-handoff.md"
 created: 2026-05-04T01:36:20
-updated: 2026-05-13T02:11:50
+updated: 2026-05-13T03:38:18
 tags:
   - agent/current
 created_by: dec
@@ -21,8 +21,8 @@ Older route history remains in
 
 ## Resume Point
 
-- Latest request handled: started EDP-006 Agent E0 shared Tags/Props snapshot
-  contract coordinator after sticky tree rows were integrated.
+- Latest request handled: continued EDP-006 as Agent E1 and implemented the
+  Tags snapshot adapter from E0 commit `d78120e`.
 - Latest source records:
   [[docs/work/hardening/specs/2026-05-11-explorer-data-plane-structural-taxonomy/18-wave-5-plan-comparison-reconciliation|Wave 5 plan comparison and reconciliation]]
   through
@@ -55,28 +55,14 @@ Older route history remains in
   [[docs/work/hardening/plans/2026-05-11-explorer-data-plane-transition/05-worker-operating-contract|EDP worker operating contract]]
   defines exact worktree/branch setup, ownership, verification, and handoff for
   remaining EDP agents.
-- Current EDP-006 worktree is
-  `C:\Users\vic_A\Desktop\vaultman\.claude\worktrees\edp-006-contract` on
-  branch `codex/edp-006-contract`, based on `claude/explorer`.
+- Current EDP-006 E1 worktree is
+  `C:\Users\vic_A\Desktop\vaultman\.claude\worktrees\edp-006-tags` on branch
+  `codex/edp-006-tags`, based on `claude/explorer`.
 - Sticky tree rows are integrated in the `claude/explorer` base; detailed
   preservation prompt:
   [[docs/work/polish/plans/2026-05-12-sticky-tree-rows-nav-offset|Sticky tree rows nav offset handoff]].
-- Previous worktree route:
-  `C:\Users\vic_A\Desktop\vaultman\.claude\worktrees\sleepy-engelbart-9e6dc6`
-  on branch `claude/sleepy-engelbart-9e6dc6`.
-- Previous polish source record:
-  [[docs/work/polish/plans/2026-05-11-ui-modernization-vertical-threads/04-thread-ecosystem-interception#2026-05-11-t4-continuation-log|T4 continuation log]].
-- Parallel dispatch router:
-  [[docs/work/polish/plans/2026-05-11-ui-modernization-vertical-threads/05-t4-parallel-agent-dispatch|T4 Parallel Agent Dispatch]].
-  Fresh agents should map `ola 1 agente N` and `ola 2 agente 1` through
-  that document.
-- Previous source record:
-  [[docs/work/polish/plans/2026-05-11-ui-modernization-vertical-threads/03-thread-vfs-review#task-38--cutover-gate-remove-the-mutable-path|T3.8 immutable VFS cutover]].
-- T3.8 completed the mutable VFS cutover scope:
-  `typeOps` now exposes readonly pure op contracts, `serviceQueue` stages,
-  hydrates, removes, commits, and replays by replacement state, `serviceDiff`
-  consumes returned op states, and `serviceVfsChain` snapshots include the
-  appended op history.
+- Older Polish/T3/T4 route details remain in the archived current docs and
+  linked vertical-thread source records.
 - `OperationQueueService.transactions` was intentionally kept. It is still read
   by `viewDiff.svelte`, queue badges, queue details, execution, and list
   surfaces. Future removal is gated on migrating those readers to `chains`.
@@ -103,6 +89,11 @@ Older route history remains in
 - Obsidian CLI runtime tests and live smokes must pass `vault=plugin-dev`.
   Never rely on the most recently focused vault for tests; the repository vault
   `vaultman` is not the smoke target unless the user explicitly asks.
+- EDP-006 E1 preserve point: Tags structural snapshots use
+  `buildExplorerSnapshot()` with `#tag/path` domain keys and only
+  `tagsRevision` as a structural revision. Queue/filter revisions stay
+  decorative; shared data-plane contracts, Props files, and panel/view behavior
+  were not changed.
 
 ## Fresh Verification
 
@@ -125,6 +116,11 @@ Older route history remains in
   metadata; focused unit passed 2 files / 17 tests, sticky component gate
   passed 4 files / 39 tests, and `lint:full`, `check`, `build:plugin`, and
   `git diff --check` passed.
+- EDP-006 E1 Tags gates passed: RED snapshot tests failed 4/4 on missing
+  `getSnapshot()`/`getStructuralTree()`; focused Tags unit passed 2 files / 14
+  tests; sticky component gate passed 4 files / 39 tests after an isolated
+  timeout rerun; `lint:full`, `check`, `build:plugin`, and
+  `git diff --check` passed.
 - EDP-001 is closed: local tracker approval is recorded, `completed` label
   vocabulary exists, and stale `serviceViews` selection ownership wording is
   superseded by `NodeSelectionService`.
@@ -141,38 +137,8 @@ Older route history remains in
 - `node .agents/tools/pkm-ai/check-doc-health.mjs` still fails 11 existing
   residuals: glossary warnings, parent-shape issues, and large plan/spec line
   limits outside the new Wave 2 shards.
-- RED gate: `serviceDiff` and `serviceQueue` pure/immutable tests failed 3/38,
-  then passed.
-- T4 RED/GREEN: `serviceDndMoveBlock.test.ts` failed because
-  `buildMoveBlockOps` was missing, then passed after adding the immutable
-  helper.
-- T4 component gate: 5 files / 9 tests passed for `vmDialog`, `vmPopover`,
-  native click interception, `Dashboard3Column`, and `AddonsMarkdownPane`.
-- Focused T4 unit: 8 files / 52 tests passed.
-- Post-T3 lint continuation: removed unnecessary assertions in
-  `serviceDndSvelteAdapter.ts`, `serviceFoulDetection.svelte.ts`, and
-  `serviceNativeClickIntercept.ts`; added `uno.config.ts` to the ESLint
-  project-service default set; migrated UnoCSS config and preflight tests from
-  deprecated `presetUno` to `presetWind3`.
-- UnoCSS preflight RED/GREEN: 1 file / 5 tests passed.
-- Focused T4/config unit: 4 files / 20 tests passed.
-- Focused unit: 10 files / 67 tests passed.
-- Focused component: 2 files / 7 tests passed.
-- Full unit: 117 files / 723 tests passed.
-- Full component: 61 files / 290 tests passed.
-- Svelte autofixer: `viewDiff.svelte` and `viewDiffNavbar.svelte` both
-  returned `issues: []`, `suggestions: []`.
-- Svelte autofixer: `serviceFoulDetection.svelte.ts` returned `issues: []`,
-  `suggestions: []`.
-- `pnpm run lint:full`: passed.
-- `pnpm run check`: passed with 0 errors / 0 warnings.
-- `pnpm run build:plugin`: passed.
-- `git diff --check`: passed.
-- Live smoke: `obsidian vault=plugin-dev plugin:reload id=vaultman` passed,
-  `obsidian vault=plugin-dev command id=vaultman:open` passed, and
-  `obsidian vault=plugin-dev dev:errors` reported no captured errors. T4
-  dialog/dashboard evals returned `false` because no dialog was open and the
-  dashboard surface was not active in the live view.
+- Earlier T3/T4/full-suite verification remains preserved in the archived
+  current handoff and linked source records.
 
 ## Residuals
 
@@ -195,8 +161,8 @@ Older route history remains in
 
 ## Next Action
 
-- Current route: commit EDP-006 E0 shared contract, then dispatch E1/E2
-  Tags/Props adapters from the E0 base.
+- Current route: EDP-006 E1 Tags adapter is ready for local commit on
+  `codex/edp-006-tags`; continue E2 Props or integrate Wave 3 after E2 passes.
 - Continue with remaining T4 integration follow-ups or the next vertical-thread
   slice from
   [[docs/work/polish/plans/2026-05-11-ui-modernization-vertical-threads/index|UI Modernization Vertical Threads]].

@@ -5,7 +5,7 @@ status: active
 parent: "[[docs/work/pkm-ai/index|pkm-ai]]"
 archive_source: "docs/archive/pkm-ai/active-docs/2026-05-11T080321-current-status.md"
 created: 2026-05-04T01:36:20
-updated: 2026-05-13T02:11:50
+updated: 2026-05-13T03:38:18
 tags:
   - agent/current
 created_by: dec
@@ -30,8 +30,8 @@ Older route history remains in
 
 ## Current Route
 
-- Latest user request: start EDP-006 Agent E0 shared Tags/Props snapshot
-  contract coordinator after sticky tree rows were integrated.
+- Latest user request: continue EDP-006 as Agent E1 and implement the Tags
+  snapshot adapter from E0 commit `d78120e`.
 - Active initiative: [[docs/work/hardening/index|Hardening]].
 - Active spec:
   [[docs/work/hardening/specs/2026-05-11-explorer-data-plane-structural-taxonomy/index|Explorer Data Plane Structural Taxonomy]].
@@ -74,37 +74,14 @@ Older route history remains in
   [[docs/work/hardening/plans/2026-05-11-explorer-data-plane-transition/05-worker-operating-contract|EDP worker operating contract]]
   defines base branch, worktree naming, ownership boundaries, verification,
   and handoff for all remaining EDP workers.
-- Current EDP-006 worktree:
-  `C:\Users\vic_A\Desktop\vaultman\.claude\worktrees\edp-006-contract`
-  on branch `codex/edp-006-contract`, based on `claude/explorer`.
+- Current EDP-006 E1 worktree:
+  `C:\Users\vic_A\Desktop\vaultman\.claude\worktrees\edp-006-tags`
+  on branch `codex/edp-006-tags`, based on `claude/explorer`.
 - Sticky tree rows are integrated in the `claude/explorer` base; source
   record and preservation prompt:
   [[docs/work/polish/plans/2026-05-12-sticky-tree-rows-nav-offset|Sticky tree rows nav offset handoff]].
-- Previous route before this request: Claude worktree thread 04.
-- Previous worktree:
-  `C:\Users\vic_A\Desktop\vaultman\.claude\worktrees\sleepy-engelbart-9e6dc6`
-  on branch `claude/sleepy-engelbart-9e6dc6`.
-- Previous active initiative: [[docs/work/polish/index|Polish]].
-- Previous active plan:
-  [[docs/work/polish/plans/2026-05-11-ui-modernization-vertical-threads/index|UI Modernization Vertical Threads]].
-- Parallel T4 dispatch router:
-  [[docs/work/polish/plans/2026-05-11-ui-modernization-vertical-threads/05-t4-parallel-agent-dispatch|T4 Parallel Agent Dispatch]].
-  If the user says `ola 1 agente N` or `ola 2 agente 1`, route by that
-  document.
-- Latest implemented slice:
-  [[docs/work/polish/plans/2026-05-11-ui-modernization-vertical-threads/04-thread-ecosystem-interception#2026-05-11-t4-continuation-log|T4 component gates and move-block helper]].
-- Previous implemented slice:
-  [[docs/work/polish/plans/2026-05-11-ui-modernization-vertical-threads/03-thread-vfs-review#task-38--cutover-gate-remove-the-mutable-path|T3.8 immutable VFS cutover]].
-- T3.8 source record says `StagedOp.apply` is pure, `serviceQueue`
-  replaces/replays VFS snapshots instead of mutating them, `serviceDiff`
-  consumes returned op states, and there are no
-  `vaultman-local/no-mutable-vfs` lint failures.
-- Previous vertical-thread slices completed in this worktree:
-  T2.0-T2.2 PretextJS table heightmap, T2.7 `tabOutlines`, T2.5
-  cache-backed adopted nodes, T2.6 folder context/filter badge, T1.8 Faint
-  Mode active-window binding, T2.4 adopted-node outline parsing, T1.7 snippet
-  mimicry, and T2.3 mirror class arbitration. Full detail is in the vertical
-  thread source records.
+- Previous Polish/T3/T4 route details remain in the archived current docs and
+  linked vertical-thread source records.
 - Earlier detachable, Cut 1.5, Dock Toolbar, and PKM-AI history is preserved
   in the archived current docs linked above.
 
@@ -126,6 +103,10 @@ Older route history remains in
   metadata; focused unit passed 2 files / 17 tests, sticky component gate
   passed 4 files / 39 tests, and `lint:full`, `check`, `build:plugin`, and
   `git diff --check` passed.
+- EDP-006 E1 Tags gates passed: RED snapshot tests failed 4/4 on missing
+  Tags adapter methods; focused Tags unit passed 2 files / 14 tests; sticky
+  component gate passed 4 files / 39 tests after one isolated timeout rerun;
+  `lint:full`, `check`, `build:plugin`, and `git diff --check` passed.
 - EDP-001 documentation gate is closed: the local issue tracker is approved,
   `completed` label vocabulary is recorded, and stale `serviceViews` selection
   ownership wording is superseded by `NodeSelectionService`.
@@ -185,8 +166,9 @@ Older route history remains in
 
 ## Next Action
 
-- Current route: commit EDP-006 E0 shared contract, then dispatch E1/E2
-  Tags/Props adapters from the E0 base.
+- Current route: EDP-006 E1 Tags adapter is ready for local commit on
+  `codex/edp-006-tags`; continue Props adapter E2 or integrate both Wave 3
+  branches after E2 passes.
 - Continue with the remaining T4 integration follow-ups or the next
   vertical-thread slice from the active plan.
 - For T3 follow-up, register or expose a real diff-open path, then rerun the
