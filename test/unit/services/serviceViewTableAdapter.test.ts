@@ -3,12 +3,14 @@ import type { RowSelectionState } from '@tanstack/table-core';
 import {
 	DEFAULT_NODE_TABLE_COLUMNS,
 	buildNodeTableColumnDefs,
+	nodeRowsFromRowInputs,
 	nodeRowsFromTree,
 	nodeTableColumnsForProvider,
 	rowSelectionFromSnapshot,
 	rowSelectionIds,
 	resolveRowSelectionUpdate,
 } from '../../../src/services/serviceViewTableAdapter';
+import { rowInputFromTreeNode } from '../../../src/services/serviceExplorerRowInput';
 import type { NodeSelectionSnapshot } from '../../../src/types/typeSelection';
 import type { ContentMeta, FileMeta, PropMeta, TagMeta, TreeNode } from '../../../src/types/typeNode';
 
@@ -35,6 +37,51 @@ describe('serviceViewTableAdapter', () => {
 		]);
 		expect(rows[1].depth).toBe(1);
 		expect(rows[1].icon).toBe('lucide-file');
+	});
+
+	it('adapts ExplorerRowInput rows while preserving row id, callback id, cells, and layers', () => {
+		const [input] = [rowInputFromTreeNode(tree[0])];
+		const rows = nodeRowsFromRowInputs([
+			{
+				...input,
+				callbackId: 'callback:parent',
+				label: 'Parent from row input',
+				cells: [
+					{
+						id: 'parent:label:custom',
+						columnId: 'label',
+						value: 'Parent cell',
+						display: 'Parent cell',
+						type: 'text',
+					},
+				],
+				layers: {
+					state: { selected: true, warning: true },
+					badges: {
+						warnings: [{ id: 'warning', icon: 'lucide-alert-triangle', tone: 'warning' }],
+					},
+				},
+			},
+		]);
+
+		expect(rows).toHaveLength(1);
+		expect(rows[0]).toMatchObject({
+			id: 'parent',
+			callbackId: 'callback:parent',
+			label: 'Parent from row input',
+			cells: [
+				{
+					id: 'parent:label:custom',
+					columnId: 'label',
+					display: 'Parent cell',
+				},
+			],
+			layers: {
+				state: { selected: true, warning: true },
+			},
+		});
+		expect(rows[0].node.cls).toContain('is-selected');
+		expect(rows[0].node.badges?.map((badge) => badge.icon)).toEqual(['lucide-alert-triangle']);
 	});
 
 	it('builds TanStack column definitions from Vaultman columns', () => {

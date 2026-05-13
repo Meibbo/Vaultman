@@ -5,6 +5,7 @@ import {
 	DEFAULT_NODE_TABLE_COLUMNS,
 	nodeRowsFromTree,
 } from '../../src/services/serviceViewTableAdapter';
+import { rowInputFromTreeNode } from '../../src/services/serviceExplorerRowInput';
 import type { TreeNode } from '../../src/types/typeNode';
 
 const nodes: TreeNode[] = [
@@ -102,6 +103,32 @@ describe('ViewNodeTable', () => {
 		expect(handlers.onPrimaryAction).not.toHaveBeenCalled();
 		expect(handlers.onRowKeydown).toHaveBeenCalledWith('beta', expect.any(KeyboardEvent));
 		expect(handlers.onContextMenu).toHaveBeenCalledWith('beta', expect.any(MouseEvent));
+	});
+
+	it('keeps stable DOM row ids while routing callbacks through row-input callback ids', () => {
+		const [alpha] = nodes;
+		const rowInput = { ...rowInputFromTreeNode(alpha), callbackId: 'callback:alpha' };
+		const [row] = nodeRowsFromTree([alpha]);
+		const handlers = renderTable({
+			rows: [{ ...row, callbackId: rowInput.callbackId, rowInput }],
+		});
+
+		const alphaRow = target.querySelector('[data-id="alpha"]') as HTMLElement;
+		alphaRow.click();
+		alphaRow.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }));
+		alphaRow.dispatchEvent(new MouseEvent('contextmenu', { bubbles: true }));
+
+		expect(alphaRow.dataset.id).toBe('alpha');
+		expect(alphaRow.dataset.callbackId).toBe('callback:alpha');
+		expect(handlers.onRowClick).toHaveBeenCalledWith('callback:alpha', expect.any(MouseEvent));
+		expect(handlers.onRowKeydown).toHaveBeenCalledWith(
+			'callback:alpha',
+			expect.any(KeyboardEvent),
+		);
+		expect(handlers.onContextMenu).toHaveBeenCalledWith(
+			'callback:alpha',
+			expect.any(MouseEvent),
+		);
 	});
 
 	it('removes queued operations from direct node badges without selecting the row', () => {

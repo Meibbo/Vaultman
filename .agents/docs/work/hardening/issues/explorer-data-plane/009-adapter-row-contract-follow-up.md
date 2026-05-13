@@ -6,7 +6,7 @@ status: active
 issue_kind: AFK
 parent: "[[docs/work/hardening/issues/explorer-data-plane/index|Explorer data plane local issues]]"
 created: 2026-05-11T20:55:00
-updated: 2026-05-13T06:59:35
+updated: 2026-05-13T08:10:08
 labels:
   - ready-for-agent
 tags:
@@ -60,6 +60,23 @@ preserving existing Polish table/card behavior.
 - SVAR bridge work remains superseded. Deletion is intentionally deferred until
   after row-contract finalization.
 
+## G2 Table/Cards Notes
+
+- Branch/worktree: `codex/edp-009-table-cards` at
+  `C:\Users\vic_A\Desktop\vaultman\.claude\worktrees\edp-009-table-cards`.
+- `serviceViewTableAdapter` now exposes `nodeRowsFromRowInputs()` and routes
+  existing `nodeRowsFromTree()` through `ExplorerRowInput` compatibility rows.
+- Table rows preserve stable DOM row ids while carrying explicit callback ids
+  and source row-input metadata for component callbacks.
+- Cards accept optional `rowInputs`, derive legacy `TreeNode[]` through
+  `rowInputFromTreeNode()` when absent, keep row grouping/measurement
+  adapter-local, and use `rowInputGroupKey()` for durable card-row keys.
+- `ViewNodeTable.svelte` and `ViewNodeCards.svelte` keep TanStack
+  virtualizers, sorting, delegated events, and card measurement/layout local to
+  their adapters.
+- Tree/grid/SVAR, selection mirror cleanup, sticky tree behavior, performance
+  thresholds, and Tags/Props snapshot internals were not touched.
+
 ## Supersession Notes
 
 - 2026-05-13 user decision: SVAR is no longer required. The previous Wave 2
@@ -95,3 +112,16 @@ preserving existing Polish table/card behavior.
 - PASS on merged `claude/explorer`: focused contract 1 file / 6 tests,
   relevant unit 6 files / 47 tests, sticky component 4 files / 39 tests,
   `lint:full`, `check`, `build:plugin`, and `git diff --check`.
+- G2 RED: `pnpm exec vitest run --project unit --config vitest.config.ts test/unit/services/serviceViewTableAdapter.test.ts`
+  failed on missing `nodeRowsFromRowInputs`; table/cards component RED failed
+  because `data-callback-id` and row-input callback routing were absent.
+- G2 PASS: `pnpm exec vitest run --project unit --config vitest.config.ts test/unit/services/serviceExplorerRowInput.test.ts test/unit/services/serviceViewTableAdapter.test.ts`
+  passed 2 files / 15 tests.
+- G2 PASS: focused table/cards component RED suite passed 2 files / 13 tests.
+- G2 PASS: relevant non-threshold table/cards component gate passed 8 files /
+  32 tests; `viewTableStress.test.ts` and `viewNodeDynamicGeometry.test.ts`
+  still fail their timing gates on both this branch and clean
+  `claude/explorer` at `6a4362f`.
+- G2 PASS: sticky tree focused gate passed 4 files / 39 tests.
+- G2 PASS: `pnpm run lint:full`, `pnpm run check`, and
+  `pnpm run build:plugin`.

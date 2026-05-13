@@ -3,6 +3,13 @@
 	import { createVirtualizer, type Rect, type Virtualizer } from '@tanstack/svelte-virtual';
 	import type { TreeNode } from '../../types/typeNode';
 	import {
+		rowInputCallbackId,
+		rowInputFromTreeNode,
+		rowInputGroupKey,
+		rowInputToTreeNode,
+		type ExplorerRowInput,
+	} from '../../services/serviceExplorerRowInput';
+	import {
 		CARD_HEIGHT_BUCKETS,
 		measureNodeCard,
 		rowHeightForCards,
@@ -46,19 +53,21 @@
 	type ScrollTarget = { id: string; serial: number };
 
 	interface CardItem {
+		input: ExplorerRowInput;
 		node: TreeNode;
 		layout: NodeCardLayout;
 	}
 
 	interface CardRow {
-		key: string;
+		key: string | number;
 		cards: CardItem[];
 		height: number;
 	}
 
 	interface Props {
 		providerId: string;
-		nodes: TreeNode[];
+		nodes?: TreeNode[];
+		rowInputs?: ExplorerRowInput[];
 		visibleFields: readonly string[];
 		selectedIds?: ReadonlySet<string>;
 		focusedId?: string | null;
@@ -78,7 +87,8 @@
 
 	let {
 		providerId,
-		nodes,
+		nodes = [],
+		rowInputs = undefined,
 		visibleFields,
 		selectedIds = EMPTY_SELECTED_IDS,
 		focusedId = null,
@@ -110,7 +120,8 @@
 	$effect(() => () => mouse.cancelAll());
 
 	const contentWidth = $derived(contentWidthFor(cardsWidth, columnCount));
-	const cardRows = $derived(buildCardRows(nodes, columnCount, contentWidth, cardMeasureStyle));
+	const cardInputs = $derived(rowInputs ?? nodes.map((node) => rowInputFromTreeNode(node)));
+	const cardRows = $derived(buildCardRows(cardInputs, columnCount, contentWidth, cardMeasureStyle));
 	const rowVirtualizer = createVirtualizer<HTMLDivElement, HTMLDivElement>({
 		count: 0,
 		getScrollElement: () => outerEl ?? null,
@@ -162,7 +173,9 @@
 		const target = scrollTarget;
 		if (!target || !outerEl) return;
 		const rowIndex = cardRows.findIndex((row) =>
-			row.cards.some((card) => card.node.id === target.id),
+			row.cards.some(
+				(card) => card.input.id === target.id || rowInputCallbackId(card.input) === target.id,
+			),
 		);
 		if (rowIndex >= 0) scrollCardRowIntoView(rowIndex);
 	});
@@ -184,24 +197,34 @@
 		};
 	});
 
-	function handleCardClick(id: string, e: MouseEvent) {
+	function handleCardClick(input: ExplorerRowInput, e: MouseEvent) {
+		const callbackId = rowInputCallbackId(input);
 		mouse.handleClick(
-			{ key: `cards:${id}`, eventTarget: e.target, ignoreSelector: NODE_MOUSE_IGNORE_SELECTOR },
+			{
+				key: `cards:${input.id}`,
+				eventTarget: e.target,
+				ignoreSelector: NODE_MOUSE_IGNORE_SELECTOR,
+			},
 			e,
 			{
-				primary: (event) => onCardClick(id, event),
-				secondary: (event) => onSecondaryAction?.(id, event),
-				tertiary: (event) => onTertiaryAction?.(id, event),
+				primary: (event) => onCardClick(callbackId, event),
+				secondary: (event) => onSecondaryAction?.(callbackId, event),
+				tertiary: (event) => onTertiaryAction?.(callbackId, event),
 			},
 			nodeMouseConfig,
 		);
 	}
 
-	function handleCardAuxClick(id: string, e: MouseEvent) {
+	function handleCardAuxClick(input: ExplorerRowInput, e: MouseEvent) {
+		const callbackId = rowInputCallbackId(input);
 		mouse.handleAuxClick(
-			{ key: `cards:${id}`, eventTarget: e.target, ignoreSelector: NODE_MOUSE_IGNORE_SELECTOR },
+			{
+				key: `cards:${input.id}`,
+				eventTarget: e.target,
+				ignoreSelector: NODE_MOUSE_IGNORE_SELECTOR,
+			},
 			e,
-			{ tertiary: (event) => onTertiaryAction?.(id, event) },
+			{ tertiary: (event) => onTertiaryAction?.(callbackId, event) },
 			nodeMouseConfig,
 		);
 	}
@@ -301,7 +324,7 @@
 	}
 
 	function buildCardRows(
-		items: TreeNode[],
+		items: readonly ExplorerRowInput[],
 		columns: number,
 		width: number,
 		style: typeof cardMeasureStyle,
@@ -309,20 +332,24 @@
 		const safeColumns = Math.max(1, columns);
 		const rows: CardRow[] = [];
 		for (let index = 0; index < items.length; index += safeColumns) {
-			const rowNodes = items.slice(index, index + safeColumns);
-			const cards = rowNodes.map((node) => ({
-				node,
-				layout: measureNodeCard({
-					providerId,
+			const rowInputs = items.slice(index, index + safeColumns);
+			const cards = rowInputs.map((input) => {
+				const node = rowInputToTreeNode(input);
+				return {
+					input,
 					node,
-					visibleFields,
-					contentWidth: width,
-					style,
-					measure,
-				}),
-			}));
+					layout: measureNodeCard({
+						providerId,
+						node,
+						visibleFields,
+						contentWidth: width,
+						style,
+						measure,
+					}),
+				};
+			});
 			rows.push({
-				key: rowNodes.map((node) => node.id).join('\u0000'),
+				key: rowInputGroupKey(rowInputs, index),
 				cards,
 				height: rowHeightForCards(cards.map((card) => card.layout)),
 			});
@@ -365,12 +392,14 @@
 					style:--vm-node-card-y={`${virtualRow.start}px`}
 					style:--vm-node-card-row-h={`${row.height}px`}
 				>
-					{#each row.cards as card (card.node.id)}
+					{#each row.cards as card (card.input.id)}
+						{@const input = card.input}
 						{@const node = card.node}
 						{@const layout = card.layout}
-						{@const isSelected = selectedIds.has(node.id)}
-						{@const isFocused = focusedId === node.id}
-						{@const isActive = activeId === node.id}
+						{@const callbackId = rowInputCallbackId(input)}
+						{@const isSelected = selectedIds.has(input.id) || selectedIds.has(callbackId)}
+						{@const isFocused = focusedId === input.id || focusedId === callbackId}
+						{@const isActive = activeId === input.id || activeId === callbackId}
 						{@const directBadges = ownNodeBadges(node)}
 						<div
 							class="vm-node-card {node.cls ?? ''}"
@@ -378,16 +407,17 @@
 							class:is-selected={isSelected}
 							class:is-focused={isFocused}
 							class:is-active-node={isActive}
-							data-id={node.id}
-							data-node-id={node.id}
+							data-id={input.id}
+							data-node-id={input.id}
+							data-callback-id={callbackId}
 							data-card-bucket={layout.bucket}
 							role="gridcell"
 							tabindex="0"
 							aria-selected={isSelected}
-							onclick={(e) => handleCardClick(node.id, e)}
-							onauxclick={(e) => handleCardAuxClick(node.id, e)}
-							oncontextmenu={(e) => onContextMenu(node.id, e)}
-							onkeydown={(e) => onCardKeydown?.(node.id, e)}
+							onclick={(e) => handleCardClick(input, e)}
+							onauxclick={(e) => handleCardAuxClick(input, e)}
+							oncontextmenu={(e) => onContextMenu(callbackId, e)}
+							onkeydown={(e) => onCardKeydown?.(callbackId, e)}
 						>
 							{#if visibleFields.includes('icon') && node.icon}
 								<span class="vm-node-card-icon" use:icon={node.icon}></span>

@@ -8,7 +8,12 @@ import { functionalUpdate } from '@tanstack/table-core';
 import type { NodeBase } from '../types/typeContracts';
 import type { TreeNode } from '../types/typeNode';
 import type { NodeSelectionSnapshot } from '../types/typeSelection';
-import type { ViewCell, ViewColumn, ViewLayers, ViewRow } from '../types/typeViews';
+import type { ViewCell, ViewColumn, ViewRow } from '../types/typeViews';
+import {
+	rowInputFromTreeNode,
+	rowInputToTreeNode,
+	type ExplorerRowInput,
+} from './serviceExplorerRowInput';
 import {
 	fieldDefinitionsFor,
 	nodeFieldText,
@@ -105,7 +110,10 @@ const CONTENT_NODE_TABLE_COLUMNS: readonly ViewColumn<TreeNode>[] = [
 	{ id: 'count', label: 'Matches', icon: 'lucide-hash', sortable: true, minWidth: 88 },
 ];
 
-export type NodeTableRow<TNode extends NodeBase = NodeBase> = ViewRow<TNode>;
+export interface NodeTableRow<TMeta = unknown> extends ViewRow<TreeNode<TMeta>> {
+	callbackId: string;
+	rowInput: ExplorerRowInput<TMeta>;
+}
 
 export function nodeTableColumnsForProvider<TMeta>(
 	providerId: string,
@@ -216,37 +224,49 @@ function nodeFieldValueForTable<TMeta>(
 
 export function nodeRowsFromTree<TMeta>(
 	nodes: readonly TreeNode<TMeta>[],
-): ViewRow<TreeNode<TMeta>>[] {
-	const rows: ViewRow<TreeNode<TMeta>>[] = [];
+): NodeTableRow<TMeta>[] {
+	const rowInputs: ExplorerRowInput<TMeta>[] = [];
 	const visit = (items: readonly TreeNode<TMeta>[]) => {
 		for (const node of items) {
-			rows.push(rowFromTreeNode(node));
+			rowInputs.push(rowInputFromTreeNode(node));
 			if (node.children?.length) visit(node.children);
 		}
 	};
 	visit(nodes);
-	return rows;
+	return nodeRowsFromRowInputs(rowInputs);
 }
 
-function rowFromTreeNode<TMeta>(node: TreeNode<TMeta>): ViewRow<TreeNode<TMeta>> {
+export function nodeRowsFromRowInputs<TMeta>(
+	rowInputs: readonly ExplorerRowInput<TMeta>[],
+): NodeTableRow<TMeta>[] {
+	return rowInputs.map((rowInput) => rowFromRowInput(rowInput));
+}
+
+function rowFromRowInput<TMeta>(rowInput: ExplorerRowInput<TMeta>): NodeTableRow<TMeta> {
+	const node = rowInputToTreeNode(rowInput);
 	const count = node.countLabel ?? node.count ?? node.children?.length ?? '';
-	const detail = detailForNode(node);
-	const cells: ViewCell[] = [
-		cell(node.id, 'label', node.label, 'text'),
-		cell(node.id, 'detail', detail, 'text'),
-		cell(node.id, 'count', count, typeof count === 'number' ? 'number' : 'text'),
-	];
+	const detail = rowInput.detail ?? detailForNode(node);
+	const cells =
+		rowInput.cells ??
+		([
+			cell(rowInput.id, 'label', rowInput.label, 'text'),
+			cell(rowInput.id, 'detail', detail, 'text'),
+			cell(rowInput.id, 'count', count, typeof count === 'number' ? 'number' : 'text'),
+		] satisfies readonly ViewCell[]);
 	return {
-		id: node.id,
+		id: rowInput.id,
+		callbackId: rowInput.callbackId,
+		rowInput,
 		node,
-		label: node.label,
+		label: rowInput.label,
 		detail,
-		icon: node.icon,
-		depth: node.depth,
+		icon: rowInput.icon ?? node.icon,
+		depth: rowInput.depth,
 		cells,
 		cls: node.cls,
-		layers: layersFromNode(node),
-		actions: [],
+		layers: rowInput.layers,
+		actions: rowInput.actions ?? [],
+		disabled: rowInput.disabled,
 	};
 }
 
@@ -269,11 +289,6 @@ function detailForNode<TMeta>(node: TreeNode<TMeta>): string {
 		| { file?: { path?: string }; folderPath?: string; propType?: string }
 		| undefined;
 	return meta?.file?.path ?? meta?.folderPath ?? meta?.propType ?? '';
-}
-
-function layersFromNode<TMeta>(node: TreeNode<TMeta>): ViewLayers {
-	const meta = node.meta as { layers?: ViewLayers } | undefined;
-	return meta?.layers ?? {};
 }
 
 function propNodeKind<TMeta>(node: TreeNode<TMeta>): string {

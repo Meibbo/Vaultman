@@ -5,7 +5,7 @@ status: active
 parent: "[[docs/work/pkm-ai/index|pkm-ai]]"
 archive_source: "docs/archive/pkm-ai/active-docs/2026-05-11T080321-current-status.md"
 created: 2026-05-04T01:36:20
-updated: 2026-05-13T06:59:35
+updated: 2026-05-13T08:10:08
 tags:
   - agent/current
 created_by: dec
@@ -85,6 +85,10 @@ Older route history remains in
   [[docs/work/hardening/issues/explorer-data-plane/009-row-input-vocabulary-decision|EDP-009 row-input vocabulary decision]].
   It adds `serviceExplorerRowInput`, is integrated in `claude/explorer`, and
   leaves component migrations to G1/G2.
+- EDP-009 G2 table/cards row-contract work is implemented in
+  `codex/edp-009-table-cards`: table rows now adapt `ExplorerRowInput`, cards
+  accept row inputs through a compatibility adapter, and table/card
+  virtualizers plus measurement remain adapter-local.
 - Sticky tree rows are integrated in the `claude/explorer` base; source
   record and preservation prompt:
   [[docs/work/polish/plans/2026-05-12-sticky-tree-rows-nav-offset|Sticky tree rows nav offset handoff]].
@@ -139,6 +143,13 @@ Older route history remains in
   `071e490`: focused contract 1 file / 6 tests, relevant unit 6 files / 47
   tests, sticky component 4 files / 39 tests, `lint:full`, `check`,
   `build:plugin`, and `git diff --check`.
+- EDP-009 G2 gates in `codex/edp-009-table-cards`: RED covered missing
+  table row-input adapter and table/card callback metadata; focused unit passed
+  2 files / 15 tests, focused table/cards component passed 2 files / 13 tests,
+  relevant non-threshold table/cards component passed 8 files / 32 tests, and
+  sticky component passed 4 files / 39 tests. `viewTableStress` and
+  `viewNodeDynamicGeometry` timing gates still fail on clean `claude/explorer`
+  at `6a4362f`, matching known residuals.
 - EDP-001 documentation gate is closed: the local issue tracker is approved,
   `completed` label vocabulary is recorded, and stale `serviceViews` selection
   ownership wording is superseded by `NodeSelectionService`.
@@ -172,9 +183,9 @@ Older route history remains in
 
 ## Next Action
 
-- Next EDP route: split EDP-009 G1 tree/grid and G2 table/cards from the G0 row
-  contract. SVAR deletion waits until row-contract finalization; do not
-  preserve a SVAR compatibility bridge.
+- Next EDP route: integrate/reconcile EDP-009 G1 tree/grid and G2 table/cards
+  against `claude/explorer`; SVAR deletion waits until row-contract
+  finalization and must not preserve a SVAR compatibility bridge.
 - Continue with the remaining T4 integration follow-ups or the next
   vertical-thread slice from the active plan.
 - For T3 follow-up, register or expose a real diff-open path, then rerun the

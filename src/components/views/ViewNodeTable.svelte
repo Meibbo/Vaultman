@@ -12,6 +12,7 @@
 		type MouseGestureConfig,
 	} from '../../services/serviceMouse';
 	import type { NodeBadge } from '../../types/typeNode';
+	import type { ExplorerRowInput } from '../../services/serviceExplorerRowInput';
 	import {
 		createTextMeasureService,
 		fallbackTextMeasureEngine,
@@ -45,9 +46,14 @@
 	const EMPTY_SELECTED_IDS: ReadonlySet<string> = new Set();
 	type ScrollTarget = { id: string; serial: number };
 	type TableMeasureService = NodeRowMeasureService | TextMeasureService;
+	type RowInputIdentity = Pick<ExplorerRowInput, 'id' | 'callbackId'>;
+	type RowInputCompatibleRow<TNode extends NodeBase> = ViewRow<TNode> & {
+		callbackId?: string;
+		rowInput?: RowInputIdentity;
+	};
 
 	interface Props<TNode extends NodeBase = NodeBase> {
-		rows: ViewRow<TNode>[];
+		rows: RowInputCompatibleRow<TNode>[];
 		columns: ViewColumn<TNode>[];
 		selectedIds?: ReadonlySet<string>;
 		selectedMap?: ReadonlyMap<string, boolean>;
@@ -234,7 +240,9 @@
 	$effect(() => {
 		const target = scrollTarget;
 		if (!target || !outerEl) return;
-		const rowIndex = tableRows.findIndex((row) => row.id === target.id);
+		const rowIndex = tableRows.findIndex(
+			(row) => row.id === target.id || tableCallbackId(row) === target.id,
+		);
 		if (rowIndex >= 0) scrollTableRowIntoView(rowIndex);
 	});
 
@@ -331,23 +339,25 @@
 	}
 
 	function handleRowClick(id: string, e: MouseEvent) {
+		const callbackId = callbackIdForRowId(id);
 		mouse.handleClick(
 			{ key: `table:${id}`, eventTarget: e.target, ignoreSelector: NODE_MOUSE_IGNORE_SELECTOR },
 			e,
 			{
-				primary: (event) => onRowClick(id, event),
-				secondary: (event) => onSecondaryAction?.(id, event),
-				tertiary: (event) => onTertiaryAction?.(id, event),
+				primary: (event) => onRowClick(callbackId, event),
+				secondary: (event) => onSecondaryAction?.(callbackId, event),
+				tertiary: (event) => onTertiaryAction?.(callbackId, event),
 			},
 			nodeMouseConfig,
 		);
 	}
 
 	function handleRowAuxClick(id: string, e: MouseEvent) {
+		const callbackId = callbackIdForRowId(id);
 		mouse.handleAuxClick(
 			{ key: `table:${id}`, eventTarget: e.target, ignoreSelector: NODE_MOUSE_IGNORE_SELECTOR },
 			e,
-			{ tertiary: (event) => onTertiaryAction?.(id, event) },
+			{ tertiary: (event) => onTertiaryAction?.(callbackId, event) },
 			nodeMouseConfig,
 		);
 	}
@@ -373,10 +383,12 @@
 	function handleDelegatedTableContextMenu(e: MouseEvent): void {
 		const id = nodeIdFromEventTarget(e.target);
 		if (!id) return;
-		PerfMeter.time('explorer.table.delegate.contextmenu', () => onContextMenu(id, e));
+		PerfMeter.time('explorer.table.delegate.contextmenu', () =>
+			onContextMenu(callbackIdForRowId(id), e),
+		);
 	}
 
-	function rowBadges(row: ViewRow<TNode>): NodeBadge[] {
+	function rowBadges(row: RowInputCompatibleRow<TNode>): NodeBadge[] {
 		return ownNodeBadges(row.node as TNode & { badges?: readonly NodeBadge[] });
 	}
 
@@ -390,13 +402,27 @@
 		if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'a') {
 			e.preventDefault();
 			onSelectAll?.(
-				tableRows.map((row) => row.id),
+				tableRows.map((row) => tableCallbackId(row)),
 				e,
 			);
 			return;
 		}
 		const id = nodeIdFromEventTarget(e.target);
-		if (id) PerfMeter.time('explorer.table.delegate.keydown', () => onRowKeydown?.(id, e));
+		if (id) {
+			PerfMeter.time('explorer.table.delegate.keydown', () =>
+				onRowKeydown?.(callbackIdForRowId(id), e),
+			);
+		}
+	}
+
+	function callbackIdForRowId(id: string): string {
+		const row = tableRows.find((item) => item.id === id);
+		return row ? tableCallbackId(row) : id;
+	}
+
+	function tableCallbackId(row: RowInputCompatibleRow<TNode>): string {
+		if (row.rowInput) return row.rowInput.callbackId;
+		return row.callbackId ?? row.id;
 	}
 
 	function headerSortState(columnId: string): false | 'asc' | 'desc' {
@@ -444,7 +470,7 @@
 	}
 
 	function fallbackRenderedRows(
-		rows: readonly ViewRow<TNode>[],
+		rows: readonly RowInputCompatibleRow<TNode>[],
 		measuredRows: ReadonlyMap<string, number>,
 	): {
 		key: string;
@@ -477,14 +503,14 @@
 	}
 
 	function sortRows(
-		sourceRows: readonly ViewRow<TNode>[],
+		sourceRows: readonly RowInputCompatibleRow<TNode>[],
 		sourceColumns: readonly ViewColumn<TNode>[],
 		state: SortingState,
-	): ViewRow<TNode>[] {
+	): RowInputCompatibleRow<TNode>[] {
 		const current = state[0];
-		if (!current) return sourceRows as ViewRow<TNode>[];
+		if (!current) return sourceRows as RowInputCompatibleRow<TNode>[];
 		const column = sourceColumns.find((item) => item.id === current.id);
-		if (!column || column.sortable !== true) return sourceRows as ViewRow<TNode>[];
+		if (!column || column.sortable !== true) return sourceRows as RowInputCompatibleRow<TNode>[];
 		const dir = current.desc ? -1 : 1;
 		return [...sourceRows].sort(
 			(a, b) => dir * compareValues(valueForColumn(a, column), valueForColumn(b, column)),
@@ -518,7 +544,7 @@
 	}
 
 	function measureTableRowHeight(
-		row: ViewRow<TNode>,
+		row: RowInputCompatibleRow<TNode>,
 		labelColumn: ViewColumn<TNode> | undefined,
 		width: number,
 		style: TextMeasureStyle,
@@ -619,6 +645,7 @@
 					class:is-focused={isFocused}
 					class:is-active-node={isActive}
 					data-id={id}
+					data-callback-id={tableCallbackId(row)}
 					role="row"
 					tabindex="0"
 					aria-selected={isSelected}
