@@ -31,8 +31,9 @@ Older route history remains in
 ## Current Route
 
 - Latest integration progress: EDP-010 selection mirror cleanup is integrated
-  locally, and T3 `vaultman:open-diff` residual is being integrated from
-  `codex/t3-open-diff-command`; see
+  locally, T3 `vaultman:open-diff` residual is integrated from
+  `codex/t3-open-diff-command`, and T4 FnR `vmPopover` is being integrated
+  from `codex/t4-fnr-vmpopover`; see
   [[docs/work/polish/plans/2026-05-11-ui-modernization-vertical-threads/06-t3-open-diff-command-residual|T3 open diff command residual]].
 - Active initiative: [[docs/work/hardening/index|Hardening]].
 - Active spec:
@@ -181,8 +182,7 @@ Older route history remains in
 - `node .agents/tools/pkm-ai/check-doc-health.mjs` still fails 11 existing
   residuals: glossary warnings, parent-shape issues, and large plan/spec line
   limits outside the new Wave 2 shards.
-- Earlier T3/T4/full-suite verification remains preserved in the archived
-  current docs and linked source records.
+- T4 FnR `vmPopover` follow-up gates passed in `codex/t4-fnr-vmpopover`: RED failed on stale trigger-open collapse; focused component 8/39, unit 8/86, `lint:full`, `check`, `build:plugin`, and `git diff --check` passed.
 
 ## Known Residuals
 
@@ -191,9 +191,9 @@ Older route history remains in
   threshold, and `test/component/viewTableStress.test.ts` measured ~3.37s
   against a 3.0s threshold in isolated rerun. Defer these to the final
   stabilization gate unless a focused slice introduces a new regression.
-- T3 live smoke is blocked: `plugin-dev` has Vaultman disabled and lacks `plugin:reload`.
-- T4 still has integration follow-ups: frame-level native-click wiring,
-  Find/Replace island migration to `vmPopover`, dashboard/add-ons wiring in
+- `vaultman:open-diff` is absent from the live `plugin-dev` command list.
+- T4 FnR `vmPopover` follow-up is integrated locally; remaining T4 follow-ups:
+  frame-level native-click wiring, dashboard/add-ons wiring in
   `frameVaultman.svelte`, real queue staging for adopted-block moves, Quick
   Switcher, and FAB orbiting-ink polish.
 - `OperationQueueService.transactions` remains by design as the compatibility

@@ -25,6 +25,8 @@ Older route history remains in
   `codex/t3-open-diff-command`; see [[docs/work/polish/plans/2026-05-11-ui-modernization-vertical-threads/06-t3-open-diff-command-residual|T3 open diff command residual]].
 - Latest EDP integration: EDP-010 selection mirror cleanup is integrated
   locally from `codex/edp-010-selection-cleanup`.
+- Latest T4 integration: FnR `vmPopover` follow-up is being integrated from
+  `codex/t4-fnr-vmpopover`.
 - Current hardening status: Wave 2 vertical specs are captured, Wave 3 was
   revalidated against Wave 2, Wave 4 implementation specs are drafted, and
   Wave 5 comparison/issue candidates are drafted. Cached explorer images now
@@ -188,16 +190,16 @@ Older route history remains in
 - `node .agents/tools/pkm-ai/check-doc-health.mjs` still fails 11 existing
   residuals: glossary warnings, parent-shape issues, and large plan/spec line
   limits outside the new Wave 2 shards.
-- Earlier T3/T4/full-suite verification remains preserved in the archived
-  current handoff and linked source records.
+- T4 FnR `vmPopover` follow-up gates passed in `codex/t4-fnr-vmpopover`: RED failed on stale trigger-open collapse; focused component 8/39, unit 8/86, `lint:full`, `check`, `build:plugin`, and `git diff --check` passed.
 
 ## Residuals
 
 - Known performance-threshold residuals are deferred to final stabilization;
   do not relax thresholds in EDP slices.
-- T3 live smoke is blocked: `plugin-dev` has Vaultman disabled and lacks `plugin:reload`.
-- T4 follow-ups remain: native-click wiring, FnR `vmPopover`, dashboard/add-ons,
-  real adopted-block move staging, Quick Switcher, and FAB polish.
+- `vaultman:open-diff` is not registered in live `plugin-dev`.
+- T4 FnR `vmPopover` is integrated locally; remaining T4 follow-ups are
+  native-click wiring, dashboard/add-ons, real adopted-block move staging,
+  Quick Switcher, and FAB polish.
 - `node .agents/tools/pkm-ai/check-doc-health.mjs` still fails on existing
   glossary, parent-shape, and large plan/spec line-limit residuals.
 - Do not move AI files to `main`.

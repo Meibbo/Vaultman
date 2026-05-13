@@ -140,6 +140,8 @@
 	let helpOpen = $state(false);
 	let renameInput = $state<HTMLInputElement | undefined>();
 	let searchboxRoot = $state<HTMLDivElement | undefined>();
+	let previousIslandExpanded = false;
+	let previousIslandMode: FnRIslandMode = 'search';
 	const mouse = createMouseGestureService();
 	const toolbarMouseConfig = $derived(
 		mergeMouseGestureConfig(COMMAND_MOUSE_GESTURE_CONFIG, mouseGestureConfig),
@@ -433,6 +435,21 @@
 			fnrIslandService.setMode('rename');
 			fnrIslandService.expand();
 		}
+	});
+
+	$effect(() => {
+		if (!fnrIslandService) return;
+		const collapsedTakeover =
+			previousIslandExpanded &&
+			!islandExpanded &&
+			previousIslandMode === islandMode &&
+			(islandMode === 'rename' || islandMode === 'replace');
+		if (collapsedTakeover) {
+			searchIslandOpen = false;
+			helpOpen = false;
+		}
+		previousIslandExpanded = islandExpanded;
+		previousIslandMode = islandMode;
 	});
 </script>
 
