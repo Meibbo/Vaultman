@@ -5,7 +5,7 @@ status: active
 parent: "[[docs/work/pkm-ai/index|pkm-ai]]"
 archive_source: "docs/archive/pkm-ai/active-docs/2026-05-11T080321-current-handoff.md"
 created: 2026-05-04T01:36:20
-updated: 2026-05-13T06:59:35
+updated: 2026-05-13T08:08:29
 tags:
   - agent/current
 created_by: dec
@@ -21,10 +21,10 @@ Older route history remains in
 
 ## Resume Point
 
-- Latest request handled: integrated EDP-009 G0 row-input contract into
-  `claude/explorer` with merge commit `071e490`.
+- Latest request handled: implemented EDP-009 G1 tree/grid row contract on
+  `codex/edp-009-tree-grid`.
 - Latest source record:
-  [[docs/work/hardening/issues/explorer-data-plane/009-row-input-vocabulary-decision|EDP-009 row-input vocabulary decision]].
+  [[docs/work/hardening/issues/explorer-data-plane/009-adapter-row-contract-follow-up|EDP-009 adapter row contract follow-up]].
 - Current hardening status: Wave 2 vertical specs are captured, Wave 3 was
   revalidated against Wave 2, Wave 4 implementation specs are drafted, and
   Wave 5 comparison/issue candidates are drafted. Cached explorer images now
@@ -63,6 +63,9 @@ Older route history remains in
 - EDP-009 G0 is integrated in `claude/explorer`:
   `serviceExplorerRowInput`, focused contract tests, and the row-input
   vocabulary decision record. No view components were migrated.
+- EDP-009 G1 tree/grid is implemented in `.claude/worktrees/edp-009-tree-grid`:
+  tree/grid accept optional `ExplorerRowInput` rows through adapter-local
+  bridges. Table/cards/SVAR were not touched.
 - Sticky tree rows are integrated in the `claude/explorer` base; detailed
   preservation prompt:
   [[docs/work/polish/plans/2026-05-12-sticky-tree-rows-nav-offset|Sticky tree rows nav offset handoff]].
@@ -146,14 +149,11 @@ Older route history remains in
   `10855e5`: focused overlay unit 4 files / 27 tests, EDP-006 regression unit
   5 files / 51 tests, sticky component 4 files / 39 tests, `lint:full`,
   `check`, and `build:plugin`.
-- EDP-009 G0 gates passed: focused contract 1 file / 6 tests, relevant unit 6
-  files / 47 tests, component row/reveal/selection 14 files / 117 tests,
-  sticky component 4 files / 39 tests, `lint:full`, `check`, `build:plugin`,
-  and `git diff --check`.
-- EDP-009 G0 integration gates passed on `claude/explorer` (`071e490`):
-  focused contract 1 file / 6 tests, relevant unit 6 files / 47 tests, sticky
-  component 4 files / 39 tests, `lint:full`, `check`, `build:plugin`, and
-  `git diff --check`.
+- EDP-009 G0 and merged `claude/explorer` gates passed; details remain in the
+  EDP-009 issue and row-input decision records.
+- EDP-009 G1 gates passed in `codex/edp-009-tree-grid`; RED/GREEN detail,
+  final static/build gates, and the unrelated table dynamic-geometry timeout note are in
+  [[docs/work/hardening/issues/explorer-data-plane/009-adapter-row-contract-follow-up#verification|EDP-009 verification]].
 - EDP-001 is closed: local tracker approval is recorded, `completed` label
   vocabulary exists, and stale `serviceViews` selection ownership wording is
   superseded by `NodeSelectionService`.
@@ -191,7 +191,7 @@ Older route history remains in
 
 ## Next Action
 
-- Next EDP route: split EDP-009 G1 tree/grid and G2 table/cards from the G0 row contract; SVAR deletion waits until row-contract finalization.
+- Next EDP route: continue EDP-009 G2 table/cards from the G0 row contract; SVAR deletion waits until row-contract finalization.
 - Continue T4 follow-ups or the next vertical-thread slice from
   [[docs/work/polish/plans/2026-05-11-ui-modernization-vertical-threads/index|UI Modernization Vertical Threads]].
 - For T3, register or expose a real diff-open path before the live Diff Navbar smoke.
