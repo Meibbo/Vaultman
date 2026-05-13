@@ -8,6 +8,7 @@ import {
 	DEFAULT_NODE_TABLE_COLUMNS,
 	nodeRowsFromTree,
 } from '../../src/services/serviceViewTableAdapter';
+import { rowInputFromTreeNode } from '../../src/services/serviceExplorerRowInput';
 import type { TreeNode } from '../../src/types/typeNode';
 
 type VirtualizerOptions = {
@@ -120,11 +121,52 @@ describe('view virtualizer item keys', () => {
 		expect(getItemKey(99)).toBe(99);
 	});
 
+	it('keys ViewTree row-input rows by semantic row id', () => {
+		app = mount(ViewTree as unknown as Component<Record<string, unknown>>, {
+			target,
+			props: {
+				nodes: [],
+				rowInputs: flatNodes.map((node) => rowInputFromTreeNode(node)),
+				expandedIds: new Set(['parent']),
+				onToggle: vi.fn(),
+				onRowClick: vi.fn(),
+				onContextMenu: vi.fn(),
+				icon: vi.fn(() => ({ update: vi.fn() })),
+			},
+		});
+		flushSync();
+
+		const { getItemKey } = latestOptions();
+
+		expect(getItemKey(0)).toBe('parent');
+		expect(getItemKey(1)).toBe('child');
+		expect(getItemKey(99)).toBe(99);
+	});
+
 	it('keys ViewNodeGrid virtual rows by composed row node ids', () => {
 		app = mount(ViewNodeGrid as unknown as Component<Record<string, unknown>>, {
 			target,
 			props: {
 				nodes: flatNodes,
+				onTileClick: vi.fn(),
+				onContextMenu: vi.fn(),
+				icon: vi.fn(() => ({ update: vi.fn() })),
+			},
+		});
+		flushSync();
+
+		const { getItemKey } = latestOptions();
+
+		expect(getItemKey(0)).toBe('parent\u0000sibling');
+		expect(getItemKey(99)).toBe(99);
+	});
+
+	it('keys ViewNodeGrid row-input rows by composed semantic row ids', () => {
+		app = mount(ViewNodeGrid as unknown as Component<Record<string, unknown>>, {
+			target,
+			props: {
+				nodes: [],
+				rowInputs: flatNodes.map((node) => rowInputFromTreeNode(node)),
 				onTileClick: vi.fn(),
 				onContextMenu: vi.fn(),
 				icon: vi.fn(() => ({ update: vi.fn() })),

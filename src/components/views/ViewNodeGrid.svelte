@@ -44,6 +44,12 @@
 		manualWorkspacePayloadForNode,
 		writeManualDndTransfer,
 	} from '../../services/serviceManualDnd';
+	import {
+		rowInputFromTreeNode,
+		rowInputGroupKey,
+		rowInputToTreeNode,
+		type ExplorerRowInput,
+	} from '../../services/serviceExplorerRowInput';
 	import type { DndDropPosition, DndDropResult } from '../../services/serviceDnd';
 	import { PerfMeter } from '../../services/perfMeter';
 	import { NodeRowMeasureService } from '../../services/serviceNodeRowMeasure';
@@ -73,11 +79,18 @@
 	interface GridRow {
 		key: string;
 		nodes: TreeNode[];
+		rowInputs: ExplorerRowInput[];
 		height: number;
+	}
+
+	interface GridInputModel {
+		nodes: TreeNode[];
+		rowInputs: ExplorerRowInput[];
 	}
 
 	interface Props {
 		nodes: TreeNode[];
+		rowInputs?: readonly ExplorerRowInput[];
 		selectedIds?: ReadonlySet<string>;
 		selectedMap?: ReadonlyMap<string, boolean>;
 		focusedId?: string | null;
@@ -109,6 +122,7 @@
 
 	let {
 		nodes,
+		rowInputs,
 		selectedIds,
 		selectedMap,
 		focusedId,
@@ -216,7 +230,16 @@
 		manualDnd.setEnabled(manualDndEnabled);
 	});
 
-	const gridRows = $derived(buildGridRows(nodes, columnCount, hierarchyMode, expandedIds));
+	const gridInputModel = $derived(gridInputModelFromInputs(nodes, rowInputs));
+	const gridRows = $derived(
+		buildGridRows(
+			gridInputModel.nodes,
+			gridInputModel.rowInputs,
+			columnCount,
+			hierarchyMode,
+			expandedIds,
+		),
+	);
 	const gridMeasureRevision = $derived(
 		`${nodeRowMeasureStyleKey(gridMeasureStyle)}:${gridRows.length}:${gridLabelWidth}`,
 	);
@@ -682,6 +705,7 @@
 
 	function buildGridRows(
 		items: TreeNode[],
+		inputs: readonly ExplorerRowInput[],
 		columns: number,
 		mode: HierarchyMode,
 		expanded: ReadonlySet<string>,
@@ -690,13 +714,81 @@
 		const rows: GridRow[] = [];
 		for (let index = 0; index < items.length; index += safeColumns) {
 			const rowNodes = items.slice(index, index + safeColumns);
+			const rowInputs = inputs.slice(index, index + safeColumns);
 			rows.push({
-				key: rowNodes.map((node) => node.id).join('\u0000') || `row-${index}`,
+				key: String(rowInputGroupKey(rowInputs, index)),
 				nodes: rowNodes,
+				rowInputs,
 				height: gridRowHeight(rowNodes, safeColumns, mode, expanded),
 			});
 		}
 		return rows;
+	}
+
+	function gridInputModelFromInputs(
+		items: readonly TreeNode[],
+		inputs: readonly ExplorerRowInput[] | undefined,
+	): GridInputModel {
+		if (inputs === undefined) {
+			const rowInputs = items.map((node) => rowInputFromTreeNode(node));
+			return { nodes: [...items], rowInputs };
+		}
+		return gridModelFromRowInputs(inputs);
+	}
+
+	function gridModelFromRowInputs(inputs: readonly ExplorerRowInput[]): GridInputModel {
+		const byId = new Map(inputs.map((row) => [row.id, row]));
+		const childrenByParent = new Map<string, ExplorerRowInput[]>();
+		const referencedChildIds = new Set<string>();
+		for (const row of inputs) {
+			if (row.parentId && byId.has(row.parentId)) {
+				const children = childrenByParent.get(row.parentId) ?? [];
+				children.push(row);
+				childrenByParent.set(row.parentId, children);
+				referencedChildIds.add(row.id);
+			}
+			for (const childId of row.childrenIds ?? []) {
+				if (byId.has(childId)) referencedChildIds.add(childId);
+			}
+		}
+
+		const built = new Map<string, TreeNode>();
+		const building = new Set<string>();
+		const build = (row: ExplorerRowInput): TreeNode => {
+			const existing = built.get(row.id);
+			if (existing) return existing;
+			if (building.has(row.id)) return rowInputToTreeNode(row);
+			building.add(row.id);
+			const explicitChildren =
+				row.childrenIds
+					?.map((childId) => byId.get(childId))
+					.filter((child): child is ExplorerRowInput => Boolean(child)) ?? [];
+			const childRows =
+				explicitChildren.length > 0 ? explicitChildren : (childrenByParent.get(row.id) ?? []);
+			const children =
+				childRows.length > 0
+					? childRows.map(build)
+					: gridNodesFromNodeRows((row.node.children ?? []).map((child) => rowInputFromTreeNode(child)));
+			const node = rowInputToTreeNode(row);
+			node.children = children.length > 0 ? children : undefined;
+			building.delete(row.id);
+			built.set(row.id, node);
+			return node;
+		};
+
+		const roots = inputs.filter((row) => !referencedChildIds.has(row.id));
+		return { nodes: roots.map(build), rowInputs: roots };
+	}
+
+	function gridNodesFromNodeRows(inputs: readonly ExplorerRowInput[]): TreeNode[] {
+		return inputs.map((row) => {
+			const node = rowInputToTreeNode(row);
+			const children = gridNodesFromNodeRows(
+				(row.node.children ?? []).map((child) => rowInputFromTreeNode(child)),
+			);
+			node.children = children.length > 0 ? children : undefined;
+			return node;
+		});
 	}
 
 	function gridRowHeight(

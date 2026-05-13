@@ -5,7 +5,7 @@ status: active
 parent: "[[docs/work/pkm-ai/index|pkm-ai]]"
 archive_source: "docs/archive/pkm-ai/active-docs/2026-05-11T080321-current-status.md"
 created: 2026-05-04T01:36:20
-updated: 2026-05-13T06:59:35
+updated: 2026-05-13T08:08:29
 tags:
   - agent/current
 created_by: dec
@@ -30,8 +30,8 @@ Older route history remains in
 
 ## Current Route
 
-- Latest user request handled: integrated EDP-009 G0 row-input contract into
-  `claude/explorer` with merge commit `071e490`.
+- Latest user request handled: implemented EDP-009 G1 tree/grid row contract
+  on `codex/edp-009-tree-grid`.
 - Active initiative: [[docs/work/hardening/index|Hardening]].
 - Active spec:
   [[docs/work/hardening/specs/2026-05-11-explorer-data-plane-structural-taxonomy/index|Explorer Data Plane Structural Taxonomy]].
@@ -85,6 +85,11 @@ Older route history remains in
   [[docs/work/hardening/issues/explorer-data-plane/009-row-input-vocabulary-decision|EDP-009 row-input vocabulary decision]].
   It adds `serviceExplorerRowInput`, is integrated in `claude/explorer`, and
   leaves component migrations to G1/G2.
+- EDP-009 G1 tree/grid row contract is implemented on branch
+  `codex/edp-009-tree-grid`: tree/grid accept optional `ExplorerRowInput`
+  rows through adapter-local compatibility bridges, preserve virtualizer
+  locality, semantic callback ids, sticky/reveal behavior, grid selection,
+  hover badges, and manual DnD. Table/cards/SVAR were not touched.
 - Sticky tree rows are integrated in the `claude/explorer` base; source
   record and preservation prompt:
   [[docs/work/polish/plans/2026-05-12-sticky-tree-rows-nav-offset|Sticky tree rows nav offset handoff]].
@@ -139,6 +144,14 @@ Older route history remains in
   `071e490`: focused contract 1 file / 6 tests, relevant unit 6 files / 47
   tests, sticky component 4 files / 39 tests, `lint:full`, `check`,
   `build:plugin`, and `git diff --check`.
+- EDP-009 G1 gates passed in `codex/edp-009-tree-grid`: RED row-input
+  component gate failed for missing `rowInputs` support; focused row-input
+  component gate passed 2 files / 8 tests; focused unit gate passed 9 files /
+  58 tests; relevant tree/grid component gate passed 18 files / 145 tests;
+  grid-only dynamic geometry rerun passed 1 test; sticky component gate passed
+  4 files / 40 tests; final `lint:full`, `check`, `build:plugin`, and
+  `git diff --check` passed. One unrelated table dynamic-geometry test timed
+  out once in a mixed file rerun and was not changed.
 - EDP-001 documentation gate is closed: the local issue tracker is approved,
   `completed` label vocabulary is recorded, and stale `serviceViews` selection
   ownership wording is superseded by `NodeSelectionService`.
@@ -172,8 +185,8 @@ Older route history remains in
 
 ## Next Action
 
-- Next EDP route: split EDP-009 G1 tree/grid and G2 table/cards from the G0 row
-  contract. SVAR deletion waits until row-contract finalization; do not
+- Next EDP route: continue EDP-009 G2 table/cards from the G0 row contract.
+  SVAR deletion waits until row-contract finalization; do not
   preserve a SVAR compatibility bridge.
 - Continue with the remaining T4 integration follow-ups or the next
   vertical-thread slice from the active plan.

@@ -6,7 +6,7 @@ status: active
 issue_kind: AFK
 parent: "[[docs/work/hardening/issues/explorer-data-plane/index|Explorer data plane local issues]]"
 created: 2026-05-11T20:55:00
-updated: 2026-05-13T06:59:35
+updated: 2026-05-13T08:08:29
 labels:
   - ready-for-agent
 tags:
@@ -60,6 +60,23 @@ preserving existing Polish table/card behavior.
 - SVAR bridge work remains superseded. Deletion is intentionally deferred until
   after row-contract finalization.
 
+## G1 Tree/Grid Notes
+
+- Implemented on branch `codex/edp-009-tree-grid` in worktree
+  `.claude/worktrees/edp-009-tree-grid`.
+- `viewTree.svelte` and `ViewNodeGrid.svelte` now accept optional
+  `ExplorerRowInput` rows while preserving the existing `TreeNode[]` caller
+  path as an adapter-local compatibility adapter.
+- Tree keeps virtualizer ownership local, uses `rowInputVirtualKey()` and
+  `resolveRowInputRevealIndex()`, rebuilds supplied row-input hierarchy from
+  `parentId`/`childrenIds`, and routes row, toggle, context, hover-badge, and
+  box-selection callbacks through semantic row ids.
+- Grid keeps virtualizer ownership local, bridges supplied root row inputs back
+  to render `TreeNode`s with semantic ids, uses `rowInputGroupKey()` for row
+  grouping, and preserves selection, hover badge, and manual DnD behavior.
+- Table/cards/SVAR, selection mirror cleanup, performance thresholds, and
+  Tags/Props snapshot internals were not touched.
+
 ## Supersession Notes
 
 - 2026-05-13 user decision: SVAR is no longer required. The previous Wave 2
@@ -95,3 +112,19 @@ preserving existing Polish table/card behavior.
 - PASS on merged `claude/explorer`: focused contract 1 file / 6 tests,
   relevant unit 6 files / 47 tests, sticky component 4 files / 39 tests,
   `lint:full`, `check`, `build:plugin`, and `git diff --check`.
+- G1 RED: `pnpm run test:component -- test/component/viewTreeGridRowInputContract.test.ts test/component/virtualizerItemKeys.test.ts`
+  failed because tree/grid ignored `rowInputs`; virtualizer keys fell back to
+  indexes and semantic row-input rows were not rendered.
+- G1 PASS: same focused row-input gate passed 2 files / 8 tests.
+- G1 PASS: focused unit gate passed 9 files / 58 tests:
+  `serviceExplorerRowInput`, `serviceVirtualizer`, `serviceSelection`,
+  `serviceManualDnd`, `serviceBadge`, `badgeRegistry`, and related virtual
+  positioning/decoration styles.
+- G1 PASS: relevant tree/grid component gate passed 18 files / 145 tests.
+- G1 PASS: `viewNodeDynamicGeometry` grid-only rerun passed 1 test; the
+  unrelated table half timed out once in the broader mixed file and remains
+  outside G1 ownership.
+- G1 PASS: sticky tree focused gate passed 4 files / 40 tests.
+- G1 PASS: final `pnpm run lint:full`, `pnpm run check`,
+  `pnpm run build:plugin`, and `git diff --check`; diff check emitted only
+  LF-to-CRLF warnings.
