@@ -5,7 +5,7 @@ status: active
 parent: "[[docs/work/pkm-ai/index|pkm-ai]]"
 archive_source: "docs/archive/pkm-ai/active-docs/2026-05-11T080321-current-handoff.md"
 created: 2026-05-04T01:36:20
-updated: 2026-05-12T12:20:00
+updated: 2026-05-12T12:35:00
 tags:
   - agent/current
 created_by: dec
@@ -49,6 +49,10 @@ Older route history remains in
 - Parallel dispatch router:
   [[docs/work/hardening/plans/2026-05-11-explorer-data-plane-transition/04-parallel-agent-dispatch-index|EDP parallel agent dispatch index]].
   Wave 1 was EDP-003, EDP-004, and EDP-007; all three are now integrated.
+- Worker contract:
+  [[docs/work/hardening/plans/2026-05-11-explorer-data-plane-transition/05-worker-operating-contract|EDP worker operating contract]]
+  defines exact worktree/branch setup, ownership, verification, and handoff for
+  remaining EDP agents.
 - Previous worktree route:
   `C:\Users\vic_A\Desktop\vaultman\.claude\worktrees\sleepy-engelbart-9e6dc6`
   on branch `claude/sleepy-engelbart-9e6dc6`.
@@ -177,7 +181,9 @@ Older route history remains in
 
 - Current hardening route: EDP-003, EDP-004, and EDP-007 are integrated in
   `claude/explorer`; do not reuse the stale `sandbox` Wave 3 edits directly.
-  Use the dispatch index for EDP-005 next.
+  Use the dispatch index and worker contract for EDP-005 next. Do not start
+  parallel EDP-006 Tags/Props until EDP-005 and the EDP-006 shared-contract
+  coordinator land.
 - Continue with remaining T4 integration follow-ups or the next vertical-thread
   slice from
   [[docs/work/polish/plans/2026-05-11-ui-modernization-vertical-threads/index|UI Modernization Vertical Threads]].

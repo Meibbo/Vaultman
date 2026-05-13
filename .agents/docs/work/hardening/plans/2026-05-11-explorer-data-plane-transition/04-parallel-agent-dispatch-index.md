@@ -4,7 +4,7 @@ type: dispatch-index
 status: active
 parent: "[[docs/work/hardening/plans/2026-05-11-explorer-data-plane-transition/index|explorer-data-plane-transition-plans]]"
 created: 2026-05-12T09:14:20
-updated: 2026-05-12T12:20:00
+updated: 2026-05-12T12:35:00
 tags:
   - agent/plan
   - agent/dispatch
@@ -22,7 +22,7 @@ Router for invoking parallel agents after EDP-002 landed on `claude/explorer`.
 
 - Branch/worktree: `C:\Users\vic_A\Desktop\vaultman\.claude\worktrees\jovial-wilson-f81c67`
   on `claude/explorer`.
-- Latest integrated commit: `d110fe6 feat: reconcile explorer data-plane wave 3`.
+- Latest integrated commit: `5e2e7bc docs: update edp dispatch after wave 3 reconciliation`.
 - EDP-001 is completed.
 - EDP-002 is implemented and committed.
 - EDP-003, EDP-004, and EDP-007 are implemented and integrated.
@@ -42,8 +42,20 @@ Router for invoking parallel agents after EDP-002 landed on `claude/explorer`.
 5. [[docs/work/hardening/issues/explorer-data-plane/index|Explorer data plane local issues]]
 6. [[docs/work/hardening/plans/2026-05-11-explorer-data-plane-transition/03-edp-002-wave-c-codex-continuation|EDP-002 Wave C Codex continuation]]
 7. This dispatch index.
+8. [[05-worker-operating-contract|EDP worker operating contract]]
 
-Use one worktree per implementation agent; stop and report if scope crosses.
+Use one worktree per implementation agent. The exact worktree names, branch
+names, start commands, ownership rules, verification expectations, and handoff
+format live in [[05-worker-operating-contract|EDP worker operating contract]].
+Stop and report if a task crosses ownership boundaries.
+
+## Current Parallelism Rule
+
+- Immediate next slice: Agent D / EDP-005. This is single-worker and must land
+  before more parallel implementation starts.
+- Next parallel split: Wave 3, Agents E1 and E2, after Agent D and the short
+  E0 shared-contract coordinator land.
+- Do not dispatch E1/E2 from `sandbox` or from pre-`5e2e7bc` branches.
 
 ## Dependency Map
 
@@ -177,6 +189,8 @@ Unlocks: final stabilization gate. It does not block EDP-003 or EDP-004.
 
 Status: next unlocked slice.
 
+Worker setup: see [[05-worker-operating-contract#Wave 2 - Agent D - EDP-005 Data-Plane Perf Gate|Agent D operating contract]].
+
 Starts after: EDP-003 and EDP-004 are merged together.
 
 - [[docs/work/hardening/issues/explorer-data-plane/005-files-data-plane-performance-gate|EDP-005]]
@@ -200,9 +214,10 @@ Unlocks: EDP-006.
 
 Starts after: EDP-005 lands.
 
-Dispatch a short coordinator first if the shared adapter contract is still
-ambiguous. After that, split:
+Dispatch the short E0 coordinator first if shared adapter contract ownership is
+still ambiguous. After E0 lands, split:
 
+- Agent E0: Shared snapshot contract coordinator.
 - Agent E1: Tags snapshot adapter.
 - Agent E2: Props snapshot adapter.
 
@@ -210,8 +225,12 @@ ambiguous. After that, split:
 - [[docs/work/hardening/specs/2026-05-11-explorer-data-plane-structural-taxonomy/17-wave-4-follow-up-slices#slice-a---tags-and-props-snapshots|Wave 4 Slice A]]
 - [[docs/work/hardening/specs/2026-05-11-explorer-data-plane-structural-taxonomy/07-wave-2-tags-props-vertical-spec|Wave 2 Tags/Props vertical spec]]
 
-Agent E1 owns Tags provider/container/tests. Agent E2 owns Props
-provider/container/tests. Only one agent may modify shared data-plane contracts.
+Agent E0 owns shared contracts. Agent E1 owns Tags provider/container/tests.
+Agent E2 owns Props provider/container/tests. Only E0 may modify shared
+data-plane contracts unless the coordinator explicitly hands off a type-only
+compatibility patch.
+
+Worker setup: see [[05-worker-operating-contract#Wave 3 - TagsProps Snapshot Adapters|Wave 3 operating contract]].
 
 Unlocks: EDP-008 after both Tags and Props adapters land.
 
@@ -220,6 +239,8 @@ Unlocks: EDP-008 after both Tags and Props adapters land.
 ### Agent F - EDP-008 Overlay Projection
 
 Starts after: EDP-004 and EDP-006 land.
+
+Worker setup: see [[05-worker-operating-contract#Wave 4 - Agent F - EDP-008 Overlay Projection|Agent F operating contract]].
 
 - [[docs/work/hardening/issues/explorer-data-plane/008-overlay-projection-extraction|EDP-008]]
 - [[docs/work/hardening/specs/2026-05-11-explorer-data-plane-structural-taxonomy/17-wave-4-follow-up-slices#slice-b---overlay-projection-module|Wave 4 Slice B]]
@@ -247,11 +268,15 @@ scopes stay clean:
 
 Unlocks: EDP-010 after all adapter slices land.
 
+Worker setup: see [[05-worker-operating-contract#Wave 5 - Adapter Row Contract|Wave 5 operating contract]].
+
 ## Wave 6 - Selection Mirror Cleanup
 
 ### Agent H - EDP-010 Selection Mirror Cleanup
 
 Starts after: EDP-009 lands.
+
+Worker setup: see [[05-worker-operating-contract#Wave 6 - Agent H - EDP-010 Selection Mirror Cleanup|Agent H operating contract]].
 
 - [[docs/work/hardening/issues/explorer-data-plane/010-selection-mirror-cleanup|EDP-010]]
 - [[docs/work/hardening/specs/2026-05-11-explorer-data-plane-structural-taxonomy/10-wave-2-selection-control-spec|Wave 2 selection control spec]]
@@ -273,3 +298,5 @@ Obsidian smoke against `plugin-dev` if runtime behavior changed.
 
 This is where the known performance-threshold residuals are diagnosed or
 handled. Do not let earlier agents solve them by weakening thresholds.
+
+Worker setup: see [[05-worker-operating-contract#Final Stabilization Agent|Final stabilization operating contract]].

@@ -5,7 +5,7 @@ status: active
 parent: "[[docs/work/pkm-ai/index|pkm-ai]]"
 archive_source: "docs/archive/pkm-ai/active-docs/2026-05-11T080321-current-status.md"
 created: 2026-05-04T01:36:20
-updated: 2026-05-12T12:20:00
+updated: 2026-05-12T12:35:00
 tags:
   - agent/current
 created_by: dec
@@ -66,6 +66,10 @@ Older route history remains in
 - Parallel dispatch router:
   [[docs/work/hardening/plans/2026-05-11-explorer-data-plane-transition/04-parallel-agent-dispatch-index|EDP parallel agent dispatch index]].
   Wave 1 was EDP-003, EDP-004, and EDP-007; all three are now integrated.
+- Worker contract:
+  [[docs/work/hardening/plans/2026-05-11-explorer-data-plane-transition/05-worker-operating-contract|EDP worker operating contract]]
+  defines base branch, worktree naming, ownership boundaries, verification,
+  and handoff for all remaining EDP workers.
 - Previous route before this request: Claude worktree thread 04.
 - Previous worktree:
   `C:\Users\vic_A\Desktop\vaultman\.claude\worktrees\sleepy-engelbart-9e6dc6`
@@ -166,7 +170,8 @@ Older route history remains in
 
 - Current hardening route: EDP-003, EDP-004, and EDP-007 are integrated in
   `claude/explorer`; use the dispatch index for the next unlocked slice,
-  EDP-005 Data-Plane Perf Gate.
+  EDP-005 Data-Plane Perf Gate. Do not start parallel EDP-006 Tags/Props until
+  EDP-005 and the EDP-006 shared-contract coordinator land.
 - Continue with the remaining T4 integration follow-ups or the next
   vertical-thread slice from the active plan.
 - For T3 follow-up, register or expose a real diff-open path, then rerun the

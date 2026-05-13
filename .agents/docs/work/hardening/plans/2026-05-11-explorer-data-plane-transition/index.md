@@ -4,7 +4,7 @@ type: plan-index
 status: active
 parent: "[[docs/work/hardening/specs/2026-05-11-explorer-data-plane-transition/index|explorer-data-plane-transition]]"
 created: 2026-05-11T22:10:13
-updated: 2026-05-12T12:20:00
+updated: 2026-05-12T12:35:00
 tags:
   - agent/plan
   - initiative/hardening
@@ -24,6 +24,7 @@ into executable implementation work.
 2. [[02-edp-002-files-snapshot-data-plane-implementation-plan|EDP-002 Files snapshot data-plane implementation plan]]
 3. [[03-edp-002-wave-c-codex-continuation|EDP-002 Wave C Codex continuation]]
 4. [[04-parallel-agent-dispatch-index|EDP parallel agent dispatch index]]
+5. [[05-worker-operating-contract|EDP worker operating contract]]
 
 Wave A scout reports live under `reports/`:
 
@@ -42,3 +43,6 @@ Wave A scout reports live under `reports/`:
   for the next unlocked slice, EDP-005 Data-Plane Perf Gate. Full-suite
   performance-threshold residuals are deferred to the final stabilization gate
   unless a focused slice introduces a new regression.
+- Every worker must follow [[05-worker-operating-contract|EDP worker operating contract]]
+  for base branch, worktree naming, ownership boundaries, verification, and
+  handoff.
