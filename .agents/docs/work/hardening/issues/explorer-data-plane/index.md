@@ -4,7 +4,7 @@ type: issue-index
 status: active
 parent: "[[docs/work/hardening/specs/2026-05-11-explorer-data-plane-transition/index|explorer-data-plane-transition]]"
 created: 2026-05-11T20:55:00
-updated: 2026-05-13T05:25:49
+updated: 2026-05-13T12:04:14
 tags:
   - agent/issue
   - initiative/hardening
@@ -42,7 +42,7 @@ Local Markdown tracker for the Explorer data-plane transition. Source specs:
 6. [[006-tags-props-snapshot-adapters|EDP-006 Tags and Props snapshot adapters]]
 7. [[007-explorer-media-cache-database|EDP-007 Explorer media cache database]] - completed
 8. [[008-overlay-projection-extraction|EDP-008 Overlay projection extraction]] - completed
-9. [[009-adapter-row-contract-follow-up|EDP-009 Adapter row contract follow-up]]
+9. [[009-adapter-row-contract-follow-up|EDP-009 Adapter row contract follow-up]] - completed
 10. [[010-selection-mirror-cleanup|EDP-010 Selection mirror cleanup]]
 
 ## Dependency Order

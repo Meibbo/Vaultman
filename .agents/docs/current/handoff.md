@@ -5,7 +5,7 @@ status: active
 parent: "[[docs/work/pkm-ai/index|pkm-ai]]"
 archive_source: "docs/archive/pkm-ai/active-docs/2026-05-11T080321-current-handoff.md"
 created: 2026-05-04T01:36:20
-updated: 2026-05-13T11:22:53
+updated: 2026-05-13T12:04:14
 tags:
   - agent/current
 created_by: dec
@@ -21,8 +21,7 @@ Older route history remains in
 
 ## Resume Point
 
-- Latest request handled: integrated EDP-009 G1 tree/grid and G2 table/cards
-  row contracts into `claude/explorer`.
+- Latest request handled: completed EDP-009 SVAR cleanup on `codex/edp-009-svar-cleanup`.
 - Latest source record:
   [[docs/work/hardening/issues/explorer-data-plane/009-adapter-row-contract-follow-up|EDP-009 adapter row contract follow-up]].
 - Current hardening status: Wave 2 vertical specs are captured, Wave 3 was
@@ -63,9 +62,9 @@ Older route history remains in
 - EDP-009 G0 is integrated in `claude/explorer`:
   `serviceExplorerRowInput`, focused contract tests, and the row-input
   vocabulary decision record. No view components were migrated.
-- EDP-009 G1/G2 are integrated in `claude/explorer` with merge commits
-  `8eb5742` and `895090a`: tree/grid/table/cards consume row-input contracts
-  through adapter-local bridges. Full notes live in
+- EDP-009 is complete on branch `codex/edp-009-svar-cleanup`: G0/G1/G2 row
+  contracts are integrated in `claude/explorer`, and G3 removes SVAR code
+  paths plus `@svar-ui` package imports. Full notes live in
   [[docs/work/hardening/issues/explorer-data-plane/009-adapter-row-contract-follow-up|EDP-009]].
 - Sticky tree rows are integrated in the `claude/explorer` base; detailed
   preservation prompt:
@@ -160,6 +159,9 @@ Older route history remains in
   component 14 files / 121 tests after one timeout-only rerun, sticky
   component 4 files / 39 tests, `lint:full`, `check`, `build:plugin`, and
   `git diff --check`.
+- EDP-009 G3 SVAR cleanup gates passed in `codex/edp-009-svar-cleanup`: RED
+  guard failed first; focused unit 9/64, adjacent component 3/55, EDP
+  component 14/121, sticky 4/39, and `lint:full`/`check`/`build:plugin`.
 - EDP-001 is closed: local tracker approval is recorded, `completed` label
   vocabulary exists, and stale `serviceViews` selection ownership wording is
   superseded by `NodeSelectionService`.
@@ -191,8 +193,7 @@ Older route history remains in
 
 ## Next Action
 
-- Next EDP route: remove SVAR code paths and package imports now that the row
-  contract is finalized; do not preserve a bridge.
+- Next EDP route: integrate `codex/edp-009-svar-cleanup`, then continue EDP-010.
 - Continue T4 follow-ups or next vertical-thread slice.
 - For T3, register or expose a real diff-open path before the live Diff Navbar smoke.
 - Remove `OperationQueueService.transactions` only after all readers migrate to immutable `chains`.

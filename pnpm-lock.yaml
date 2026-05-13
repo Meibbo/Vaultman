@@ -17,9 +17,6 @@ importers:
       '@git-diff-view/svelte':
         specifier: ^0.1.3
         version: 0.1.3(svelte@5.55.5(@typescript-eslint/types@8.59.1))
-      '@svar-ui/svelte-filemanager':
-        specifier: ^2.5.0
-        version: 2.5.0
       '@unocss/vite':
         specifier: ^66.6.8
         version: 66.6.8(vite@8.0.10(@types/node@22.19.17)(esbuild@0.28.0)(jiti@2.6.1)(sass-embedded@1.99.0)(sass@1.99.0)(tsx@4.21.0)(yaml@2.8.4))
@@ -1830,60 +1827,6 @@ packages:
   '@supercharge/promise-pool@3.2.0':
     resolution: {integrity: sha512-pj0cAALblTZBPtMltWOlZTQSLT07jIaFNeM8TWoJD1cQMgDB9mcMlVMoetiB35OzNJpqQ2b+QEtwiR9f20mADg==}
     engines: {node: '>=8'}
-
-  '@svar-ui/core-locales@2.5.0':
-    resolution: {integrity: sha512-vL8y8B1/YeHd89cd6x5jzSWLxYxNICXZY2Gx4+Op26L8N8IhCR26r8fpuptugodKLIQkyua3fh27ZB+5sJSXHg==}
-
-  '@svar-ui/filemanager-data-provider@2.5.0':
-    resolution: {integrity: sha512-+YPoldkDuSFnpyum7gxAn1kOzIqVMe3W+XvOhoSA09vGtTXUiN3cwulgL/FPKO2ixxXz/aNlTZOdpDxPuhfTOw==}
-
-  '@svar-ui/filemanager-locales@2.5.0':
-    resolution: {integrity: sha512-3GP7unV0tnfGftjFVakhzMiX7DLIHAYvh5qL6N70r7mc3Ate3VBIgyCpanaALoebpdrTgeQpz1SKWl/b/ZLL1A==}
-
-  '@svar-ui/filemanager-store@2.5.0':
-    resolution: {integrity: sha512-wlpaFDbQKD5ERXIfLMqz6JqXMsUoAUz/A+/6dRWlE9g7f0ukCre6rSUBZNwi6+5YUTsN1GmaemWlXRwcsGbLyw==}
-
-  '@svar-ui/grid-data-provider@2.6.0':
-    resolution: {integrity: sha512-l4PiB1rVprLN9bms00d2S5WEehDKu6PoMyWR45Z5dffFIAW+Rr2jIW2AtzBFqDWuj+dM7N+BLF54Y3P33M6/lw==}
-
-  '@svar-ui/grid-locales@2.6.0':
-    resolution: {integrity: sha512-v3DDvYICZlKz7pReXYRlX84YWdSh9FRY6WZTpjjUjchj29OlaROjTeyabAzaBp4GXs3yTNUaB6n8UdCaKO+zqw==}
-
-  '@svar-ui/grid-store@2.6.0':
-    resolution: {integrity: sha512-KFgKeRCBJh1/V+cnaIjlksN8zuWjFASWff3H42tQF5gIBIn81JV4bbuEjD3RzW7zYySfqGZzSBhyuXfUNZ8ieA==}
-
-  '@svar-ui/lib-data-provider@1.7.1':
-    resolution: {integrity: sha512-5Bi9ywngcMTKpGtan0s7q8ivd84Bp0ZnRP+5bLZg6oiRB7YMyN5D5X+apc3CWDAnG4zZn3en4YwS2qc/aHIIuQ==}
-
-  '@svar-ui/lib-dom@0.12.1':
-    resolution: {integrity: sha512-srvDleQqR6stBBDijCgzDHMFTTffI6sv3XCpNPKmurrnE83L1MDNqezqg6j3+0dUVPd4AAEGOez2DvK6byblTQ==}
-
-  '@svar-ui/lib-state@1.9.6':
-    resolution: {integrity: sha512-twoHa8wZvzdxtES68s6Wnp4Xi1WivScNaFFK6sJ6WDgqVYOzJw0ZhVVrdwHQgieLITTKl/DYh/U3nuqtMetKYw==}
-
-  '@svar-ui/lib-svelte@0.5.2':
-    resolution: {integrity: sha512-i+hHMT3zctaGbRpyMDREt9im7YfLpvGwFYvH1ntEp/kYAwUrR/sxMJlEEKIid+Yg2EeMUstGxmYQbkWoMpPG7A==}
-
-  '@svar-ui/svelte-core@2.5.0':
-    resolution: {integrity: sha512-POqG2dL6SeGcrFTYSxWWbbAdHoW9I6sdA7T9pld8/GnRn0X2sYnQBBvIPCMo5wC/zvEHVOpKGRiLZn6evTNQJw==}
-
-  '@svar-ui/svelte-filemanager@2.5.0':
-    resolution: {integrity: sha512-/guThywBtXV4X6yd8cRfrTc6NMX4X5xqvRBwH7uNGPvYeD2MJ3wWsvqjdzGg0ZFuoyVz78a8d5/xFYaBatxwiA==}
-
-  '@svar-ui/svelte-grid@2.6.0':
-    resolution: {integrity: sha512-BjBTCqcqTmCaB9r1mg1D6MVCJh1w6vnSrbLSWWSajQRTI98NdgUeOLosORZtctG2Kek0tmJAXycgdjr9pREmsw==}
-
-  '@svar-ui/svelte-menu@2.5.0':
-    resolution: {integrity: sha512-oQf/ZDbqDUiR8EUmSgFPOu69q9tQuKxxZfc3lDaZ3RmfVRh3CCpjS/7EMbNWKDe5tCN1lFVrwSDYx2+hCKucGA==}
-
-  '@svar-ui/svelte-toolbar@2.5.0':
-    resolution: {integrity: sha512-2TZ67eQrrOSJu9yJuna8tUz/XUexqt553Nd4gLWXnSDCvLXpIV2+z/c+/7hVV5/yQzTfOsVbboQkEj/c0qByaQ==}
-
-  '@svar-ui/svelte-uploader@2.5.0':
-    resolution: {integrity: sha512-V89WTVDT7DFdeYCqNQpRxLnK9nqtp549y2GPNB1vP3imWprJFsn8VWuh0oWvdruVmIXn8W6t8VKRU3aVHcHz2g==}
-
-  '@svar-ui/uploader-locales@2.5.0':
-    resolution: {integrity: sha512-Q2azDcpY5qGadsDVKwbB+hQeKmBb+VN5mr+5ySqj/FFIx10Y75+QsUNVBX5r0B40W8SEf4Mr0q5eBMjg9djfow==}
 
   '@sveltejs/acorn-typescript@1.0.9':
     resolution: {integrity: sha512-lVJX6qEgs/4DOcRTpo56tmKzVPtoWAaVbL4hfO7t7NVwl9AAXzQR6cihesW1BmNMPl+bK6dreu2sOKBP2Q9CIA==}
@@ -7145,90 +7088,6 @@ snapshots:
   '@standard-schema/spec@1.1.0': {}
 
   '@supercharge/promise-pool@3.2.0': {}
-
-  '@svar-ui/core-locales@2.5.0': {}
-
-  '@svar-ui/filemanager-data-provider@2.5.0':
-    dependencies:
-      '@svar-ui/lib-data-provider': 1.7.1
-
-  '@svar-ui/filemanager-locales@2.5.0': {}
-
-  '@svar-ui/filemanager-store@2.5.0':
-    dependencies:
-      '@svar-ui/lib-state': 1.9.6
-
-  '@svar-ui/grid-data-provider@2.6.0':
-    dependencies:
-      '@svar-ui/lib-data-provider': 1.7.1
-
-  '@svar-ui/grid-locales@2.6.0': {}
-
-  '@svar-ui/grid-store@2.6.0':
-    dependencies:
-      '@svar-ui/lib-dom': 0.12.1
-      '@svar-ui/lib-state': 1.9.6
-
-  '@svar-ui/lib-data-provider@1.7.1':
-    dependencies:
-      '@svar-ui/lib-state': 1.9.6
-
-  '@svar-ui/lib-dom@0.12.1': {}
-
-  '@svar-ui/lib-state@1.9.6': {}
-
-  '@svar-ui/lib-svelte@0.5.2':
-    dependencies:
-      '@svar-ui/lib-state': 1.9.6
-
-  '@svar-ui/svelte-core@2.5.0':
-    dependencies:
-      '@svar-ui/core-locales': 2.5.0
-      '@svar-ui/lib-dom': 0.12.1
-      '@svar-ui/lib-svelte': 0.5.2
-
-  '@svar-ui/svelte-filemanager@2.5.0':
-    dependencies:
-      '@svar-ui/filemanager-data-provider': 2.5.0
-      '@svar-ui/filemanager-locales': 2.5.0
-      '@svar-ui/filemanager-store': 2.5.0
-      '@svar-ui/lib-dom': 0.12.1
-      '@svar-ui/lib-state': 1.9.6
-      '@svar-ui/lib-svelte': 0.5.2
-      '@svar-ui/svelte-core': 2.5.0
-      '@svar-ui/svelte-grid': 2.6.0
-      '@svar-ui/svelte-menu': 2.5.0
-      '@svar-ui/svelte-uploader': 2.5.0
-
-  '@svar-ui/svelte-grid@2.6.0':
-    dependencies:
-      '@svar-ui/grid-data-provider': 2.6.0
-      '@svar-ui/grid-locales': 2.6.0
-      '@svar-ui/grid-store': 2.6.0
-      '@svar-ui/lib-dom': 0.12.1
-      '@svar-ui/lib-state': 1.9.6
-      '@svar-ui/lib-svelte': 0.5.2
-      '@svar-ui/svelte-core': 2.5.0
-      '@svar-ui/svelte-menu': 2.5.0
-      '@svar-ui/svelte-toolbar': 2.5.0
-
-  '@svar-ui/svelte-menu@2.5.0':
-    dependencies:
-      '@svar-ui/lib-dom': 0.12.1
-      '@svar-ui/svelte-core': 2.5.0
-
-  '@svar-ui/svelte-toolbar@2.5.0':
-    dependencies:
-      '@svar-ui/lib-dom': 0.12.1
-      '@svar-ui/svelte-core': 2.5.0
-
-  '@svar-ui/svelte-uploader@2.5.0':
-    dependencies:
-      '@svar-ui/lib-dom': 0.12.1
-      '@svar-ui/svelte-core': 2.5.0
-      '@svar-ui/uploader-locales': 2.5.0
-
-  '@svar-ui/uploader-locales@2.5.0': {}
 
   '@sveltejs/acorn-typescript@1.0.9(acorn@8.16.0)':
     dependencies:
