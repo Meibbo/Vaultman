@@ -23,6 +23,20 @@
 		height: var(--vm-tree-total-h, 0);
 	}
 
+	&-sticky-layer {
+		position: absolute;
+		top: 0;
+		left: 0;
+		right: 0;
+		z-index: 12;
+		height: 0;
+		pointer-events: none;
+		transform: translateY(
+			calc(var(--vm-tree-sticky-scroll-y, 0px) + var(--vm-tree-sticky-top-offset, 0px))
+		);
+		will-change: transform;
+	}
+
 	&-row {
 		position: absolute;
 		top: 0;
@@ -33,6 +47,16 @@
 		box-sizing: border-box;
 		will-change: transform;
 		cursor: pointer;
+
+		&.vm-tree-sticky-row {
+			z-index: 1;
+			pointer-events: auto;
+
+			.vm-tree-row-surface {
+				background: $vm-bg-primary;
+				box-shadow: 0 1px 0 color-mix(in srgb, $vm-border-color 70%, transparent);
+			}
+		}
 
 		.vm-tree-row-surface {
 			@include flex-center;

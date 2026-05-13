@@ -74,6 +74,9 @@ Older route history remains in
   [[docs/work/hardening/plans/2026-05-11-explorer-data-plane-transition/05-worker-operating-contract|EDP worker operating contract]]
   defines base branch, worktree naming, ownership boundaries, verification,
   and handoff for all remaining EDP workers.
+- Active sticky-row polish branch: `codex/sticky-rows-nav-offset`; source
+  record and next-agent prompt:
+  [[docs/work/polish/plans/2026-05-12-sticky-tree-rows-nav-offset|Sticky tree rows nav offset handoff]].
 - Previous route before this request: Claude worktree thread 04.
 - Previous worktree:
   `C:\Users\vic_A\Desktop\vaultman\.claude\worktrees\sleepy-engelbart-9e6dc6`
@@ -175,8 +178,8 @@ Older route history remains in
 
 ## Next Action
 
-- Current hardening route: start EDP-006 shared-contract coordinator
-  before parallel Tags/Props workers.
+- Current route: finish/merge sticky tree rows, then start EDP-006
+  shared-contract coordinator before parallel Tags/Props workers.
 - Continue with the remaining T4 integration follow-ups or the next
   vertical-thread slice from the active plan.
 - For T3 follow-up, register or expose a real diff-open path, then rerun the
