@@ -1,6 +1,7 @@
 import type { TFile } from 'obsidian';
 import { getActivePerfProbe } from '../dev/perfProbe';
 import type { VaultmanPlugin } from '../main';
+import { buildExplorerSnapshot } from '../logic/logicExplorerSnapshot';
 import { FilesLogic } from '../logic/logicsFiles';
 import type { TreeNode, FileMeta } from '../types/typeNode';
 import type { MenuCtx } from '../types/typeCtxMenu';
@@ -24,7 +25,10 @@ import {
 import { buildOutlineForFile } from './explorerOutline';
 import type { AdoptionService } from '../services/serviceAdoption.svelte';
 import type { AdoptedNode } from '../types/typeAdoptedNode';
-import type { ExplorerDataPlaneRevisions } from '../types/typeExplorerDataPlane';
+import type {
+	ExplorerDataPlaneRevisions,
+	ExplorerSnapshot,
+} from '../types/typeExplorerDataPlane';
 
 export interface ExplorerFilesOptions {
 	startRenameHandoff?: (handoff: FnRRenameHandoff) => void;
@@ -181,6 +185,27 @@ export class explorerFiles implements ExplorerProvider<FileMeta> {
 			filesRevision: this.plugin.filesIndex?.revision ?? 0,
 			propsRevision: this.plugin.propsIndex?.revision,
 		};
+	}
+
+	getSnapshot(expandedIds: ReadonlySet<string> = new Set()): ExplorerSnapshot<FileMeta> {
+		return buildExplorerSnapshot({
+			explorerId: this.id,
+			providerKey: this.id,
+			tree: this.getStructuralTree(),
+			expandedIds,
+			revisions: this.getStructuralRevisions(),
+			projection: {
+				searchTerm: this.searchName,
+				searchMode: 'all',
+				sortBy: this.sortBy,
+				sortDirection: this.sortDir,
+				sortTarget: 'top',
+			},
+			kindFor: ({ node }) => (node.meta.isFolder ? 'folder' : 'file'),
+			pathFor: ({ node }) => (node.meta.isFolder ? undefined : node.meta.file?.path),
+			folderPathFor: ({ node }) => node.meta.folderPath,
+			domainKeyFor: ({ node }) => node.meta.file?.path ?? node.meta.folderPath,
+		});
 	}
 
 	getTree(): TreeNode<FileMeta>[] {

@@ -5,7 +5,7 @@ status: active
 parent: "[[docs/work/pkm-ai/index|pkm-ai]]"
 archive_source: "docs/archive/pkm-ai/active-docs/2026-05-11T080321-current-status.md"
 created: 2026-05-04T01:36:20
-updated: 2026-05-13T19:55:00
+updated: 2026-05-14T23:59:00
 tags:
   - agent/current
 created_by: dec
@@ -28,7 +28,14 @@ Older route history remains in
 
 ## Current Route
 
-- Latest request handled: ran the EDP final stabilization gate in isolated
+- Latest request handled: implemented runtime data-plane follow-ups for Files:
+  provider snapshots publish through `panelExplorer`, expansion republishes,
+  and `ViewTree` can render from snapshot-backed `rowInputs`.
+- Latest local changes are uncommitted and unpushed on
+  `codex/edp-final-stabilization`.
+- Research source:
+  [[docs/work/hardening/research/2026-05-14-explorer-data-plane-scroll-research|Explorer data-plane and jump-scroll research]].
+- Previous request handled: ran the EDP final stabilization gate in isolated
   branch `codex/edp-final-stabilization` without using `sandbox` or pushing.
 - Integration source record:
   [[docs/work/hardening/plans/2026-05-11-explorer-data-plane-transition/06-parallel-branch-integration|Parallel branch integration handoff]].
@@ -68,9 +75,15 @@ Older route history remains in
   `vaultman:open-diff`, FnR command, DOM evals, and `dev:errors`.
 - Detailed verification commands are in
   [[docs/work/hardening/plans/2026-05-11-explorer-data-plane-transition/07-final-stabilization#Verification|EDP final stabilization verification]].
+- Latest data-plane follow-up verification passed: component focused 5 files /
+  72 tests, unit focused 4 files / 49 tests, `check`, `lint:full`,
+  `build:plugin`, and `git diff --check`.
 
 ## Known Residuals
 
+- Explorer data-plane residual: Files tree now has snapshot-backed rows, but
+  far jump-scroll still needs a live benchmark plus variable-height row
+  geometry for table/grid/cards.
 - The known performance-threshold residuals are resolved by final
   stabilization: `test/unit/performance/stress.test.ts` and
   `test/component/viewTableStress.test.ts` passed under full suites.
@@ -81,5 +94,5 @@ Older route history remains in
 
 ## Next Action
 
-- Review and merge local branch `codex/edp-final-stabilization` into
-  `claude/explorer` if accepted. No push has been performed.
+- Add the deep jump-scroll benchmark/gate, then add variable-height row
+  geometry for table/grid/cards before considering persistent storage.

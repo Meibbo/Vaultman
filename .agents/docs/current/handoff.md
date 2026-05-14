@@ -5,7 +5,7 @@ status: active
 parent: "[[docs/work/pkm-ai/index|pkm-ai]]"
 archive_source: "docs/archive/pkm-ai/active-docs/2026-05-11T080321-current-handoff.md"
 created: 2026-05-04T01:36:20
-updated: 2026-05-13T19:55:00
+updated: 2026-05-14T23:59:00
 tags:
   - agent/current
 created_by: dec
@@ -21,11 +21,24 @@ Older route history remains in
 
 ## Resume Point
 
-- Latest request handled: ran EDP final stabilization after integrating
+- Latest request handled: implemented runtime data-plane follow-ups for Files:
+  provider snapshots publish through `panelExplorer`, expansion republishes,
+  and `ViewTree` can render from snapshot-backed `rowInputs`.
+- Research source:
+  [[docs/work/hardening/research/2026-05-14-explorer-data-plane-scroll-research|Explorer data-plane and jump-scroll research]].
+- Previous request handled: ran EDP final stabilization after integrating
   EDP-010, T3 open-diff, T4 FnR `vmPopover`, and T4 dashboard/add-ons.
 - Final stabilization worktree:
   `C:\Users\vic_A\Desktop\vaultman\.claude\worktrees\edp-final-stabilization`.
 - Final stabilization branch: `codex/edp-final-stabilization`.
+- Current working tree has local uncommitted changes; no push performed.
+- Product/test files changed in latest cuts:
+  `src/components/containers/panelExplorer.svelte`,
+  `src/providers/explorerFiles.ts`, `src/types/typeExplorer.ts`, and
+  `test/component/panelExplorerSelection.test.ts`.
+- Docs changed:
+  `.agents/docs/current/status.md`, `.agents/docs/current/handoff.md`, and
+  `.agents/docs/work/hardening/research/2026-05-14-explorer-data-plane-scroll-research.md`.
 - Canonical integration head: `5508168` on `claude/explorer`.
 - Full integration source record:
   [[docs/work/hardening/plans/2026-05-11-explorer-data-plane-transition/06-parallel-branch-integration|Parallel branch integration handoff]].
@@ -54,6 +67,14 @@ Older route history remains in
 
 ## Fresh Verification
 
+- Latest data-plane follow-up gates passed:
+  - `pnpm exec vitest run --project component --config vitest.config.ts test/component/panelExplorerSelection.test.ts test/component/viewTreeScrollFallback.test.ts test/component/viewTreeGridRowInputContract.test.ts test/component/virtualizerItemKeys.test.ts test/component/viewTreeSelection.test.ts --fileParallelism=false`: 5 files / 72 tests.
+  - `pnpm exec vitest run --project unit --config vitest.config.ts test/unit/components/explorerFiles.test.ts test/unit/services/serviceExplorerDataPlane.test.ts test/unit/logic/logicExplorerSnapshot.test.ts test/unit/services/serviceExplorerRowInput.test.ts --fileParallelism=false`: 4 files / 49 tests.
+  - `pnpm run check`: 0 errors / 0 warnings.
+  - `pnpm run lint:full`: pass.
+  - `pnpm run build:plugin`: pass.
+  - `git diff --check`: pass.
+- Svelte autofixer on `panelExplorer.svelte`: `issues: []`.
 - Parallel integration base guard passed:
   `git merge-base --is-ancestor 03326b8 claude/explorer`.
 - Parallel integration merge commits:
@@ -72,6 +93,9 @@ Older route history remains in
 
 ## Residuals
 
+- Explorer data-plane residual: Files tree now has snapshot-backed rows, but
+  far jump-scroll still has O(n) lookup/offset hotspots in variable-height
+  table/grid/cards views.
 - Known performance-threshold residuals are resolved:
   `test/unit/performance/stress.test.ts` and
   `test/component/viewTableStress.test.ts` passed under full suites.
@@ -82,5 +106,10 @@ Older route history remains in
 
 ## Next Action
 
-- Review and merge local branch `codex/edp-final-stabilization` into
-  `claude/explorer` if accepted. No push has been performed.
+- Start with a failing measured deep jump-scroll gate for table/grid/cards.
+- Then implement a row geometry service: `idToIndex`, `indexToId`,
+  cached/estimated heights, and prefix-sum/Fenwick-style index-to-offset and
+  offset-to-index lookup. TanStack Table should supply stable row/column models;
+  TanStack Virtual remains the scroll/window authority.
+- Treat persistent storage as a later PRD unless benchmarks prove startup or
+  projection rebuild remains dominant.
