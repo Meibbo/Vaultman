@@ -14,6 +14,10 @@ export type MouseGestureSurface = 'node' | 'fab' | 'toolbar';
 export interface VaultmanSettings {
 	/** Visual treatment for Vaultman chrome. Native follows Obsidian core classes/tokens. */
 	layoutTheme: LayoutTheme;
+	/** Render the search affordance inline in the toolbar primitives row,
+	 *  or as the lifted overlay island. Inline mode keeps a permanent search
+	 *  input between the toolbar buttons; clicking expand promotes to overlay. */
+	toolbarSearchMode: 'island' | 'inline';
 	/** Whether popup islands close when clicking the transparent outside area/backdrop. */
 	islandDismissOnOutsideClick: boolean;
 	/** Whether opening popup islands blurs/dims the content behind them. */
@@ -139,6 +143,7 @@ export interface iVaultmanPlugin extends Plugin {
 
 export const DEFAULT_SETTINGS: VaultmanSettings = {
 	layoutTheme: 'default',
+	toolbarSearchMode: 'island',
 	islandDismissOnOutsideClick: false,
 	islandBackdropBlur: false,
 	glassBlurIntensity: 15,
