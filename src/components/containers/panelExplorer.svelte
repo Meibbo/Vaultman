@@ -16,7 +16,10 @@
 		NodeSelectionSnapshot,
 	} from '../../types/typeSelection';
 	import type { ViewEmptyState } from '../../types/typeViews';
-	import type { ExplorerRevealTarget } from '../../types/typeExplorerDataPlane';
+	import type {
+		ExplorerRevealTarget,
+		ExplorerSnapshot,
+	} from '../../types/typeExplorerDataPlane';
 	import GridNavigationToolbar from '../layout/GridNavigationToolbar.svelte';
 	import ViewTree from '../views/viewTree.svelte';
 	import ViewNodeCards from '../views/ViewNodeCards.svelte';
@@ -29,6 +32,10 @@
 		nodeRowsFromTree,
 		nodeTableColumnsForProvider,
 	} from '../../services/serviceViewTableAdapter';
+	import {
+		rowInputFromSnapshotRow,
+		type ExplorerRowInput,
+	} from '../../services/serviceExplorerRowInput';
 	import { NodeSelectionService } from '../../services/serviceSelection.svelte';
 	import type { TreeNode } from '../../types/typeNode';
 	import { bubbleHiddenTreeBadges } from '../../utils/utilBadgeBubbling';
@@ -106,6 +113,7 @@
 	let rootEl: HTMLDivElement | undefined = $state();
 	let scrollTarget = $state<ScrollTarget | null>(null);
 	let scrollTargetSerial = 0;
+	let lastPublishedSnapshotKey = '';
 	let currentGridParentId = $state<string | null>(null);
 	let gridBackStack = $state<(string | null)[]>([]);
 	let gridForwardStack = $state<(string | null)[]>([]);
@@ -122,8 +130,11 @@
 	const selectedNodeMap = $derived(selectionSnapshot.selected);
 	const focusedNodeId = $derived(selectionSnapshot.focusedId);
 	let previousSearchTerm = '';
+	const hasExpansionSurface = $derived(viewMode === 'tree' || viewMode === 'grid');
 	const autoExpandedIds = $derived(
-		collectAutoExpandedIds(nodes, { searchTerm, smallTreeThreshold: 8 }),
+		hasExpansionSurface
+			? collectAutoExpandedIds(nodes, { searchTerm, smallTreeThreshold: 8 })
+			: new Set<string>(),
 	);
 	const expandedIds = $derived(
 		resolveExpandedIds({
@@ -132,9 +143,28 @@
 			autoExpandedIds,
 		}),
 	);
-	const expandableNodeIds = $derived(collectExpandableNodeIds(nodes));
-	const hasExpandedParents = $derived(expandableNodeIds.some((id) => expandedIds.has(id)));
-	const displayNodes = $derived(resolveDisplayNodes(nodes, expandedIds));
+	const expandableNodeIds = $derived(
+		hasExpansionSurface ? collectExpandableNodeIds(nodes) : [],
+	);
+	const hasExpandedParents = $derived(
+		hasExpansionSurface && expandableNodeIds.some((id) => expandedIds.has(id)),
+	);
+	const decoratedNodeById = $derived.by(() => buildNodeLookup(nodes));
+	const treeRowInputs = $derived.by((): ExplorerRowInput[] | undefined => {
+		const snapshot = filesSnapshot;
+		if (!snapshot || viewMode !== 'tree') return undefined;
+		return snapshot.rows.map((row) => {
+			const decorated = decoratedNodeById.get(row.id);
+			return rowInputFromSnapshotRow({
+				...row,
+				label: decorated?.label ?? row.label,
+				node: decorated ?? row.node,
+			});
+		});
+	});
+	const displayNodes = $derived(
+		viewMode === 'tree' ? resolveDisplayNodes(nodes, expandedIds) : [],
+	);
 	const gridHierarchyMode = $derived.by((): 'folder' | 'inline' => {
 		const configured = (
 			plugin as VaultmanPlugin & {
@@ -163,7 +193,9 @@
 	const fallbackState = $derived.by(() =>
 		resolveFallbackState(viewMode, fallbackItemCount, emptyState),
 	);
-	const isTreeEmpty = $derived(viewMode === 'tree' && nodes.length === 0);
+	const isTreeEmpty = $derived(
+		viewMode === 'tree' && (treeRowInputs?.length ?? nodes.length) === 0,
+	);
 	const isGridEmpty = $derived(viewMode === 'grid' && gridNodes.length === 0);
 	const isCardsEmpty = $derived(viewMode === 'cards' && cardNodes.length === 0);
 	const isMarkmapEmpty = $derived(viewMode === 'markmap' && markmapNodes.length === 0);
@@ -178,6 +210,7 @@
 		return service.subscribe('files', update);
 	});
 	const activeOpsByNode: ActiveOpsByNode = $derived.by(() => {
+		if (viewMode !== 'tree' && viewMode !== 'grid') return new Map<string, Set<BadgeKind>>();
 		// Touch the queue version counter so this derivation re-runs whenever
 		// the queue mutates. Memoizing on the version avoids render loops:
 		// the map only rebuilds when the queue actually changed.
@@ -231,6 +264,18 @@
 		provider.setShowSelectedOnly?.(showSelectedOnly);
 		provider.setShowHiddenFiles?.(showHiddenFiles);
 		if (active) untrack(refreshData);
+	});
+
+	$effect(() => {
+		if (!active) return;
+		void searchTerm;
+		void searchMode;
+		void sortBy;
+		void sortDirection;
+		void sortTarget;
+		void showSelectedOnly;
+		void showHiddenFiles;
+		publishProviderSnapshot();
 	});
 
 	$effect(() => {
@@ -323,6 +368,47 @@
 			flatFiles = files;
 			nodes = files.length === 0 ? readProviderTree() : [];
 		}
+		publishProviderSnapshot();
+	}
+
+	function publishProviderSnapshot(): void {
+		const service = plugin.explorerDataPlaneService;
+		if (provider.id !== 'files' || !service || !provider.getSnapshot) return;
+		const snapshot = provider.getSnapshot(expandedIds);
+		const key = snapshotPublishKey(snapshot);
+		if (key === lastPublishedSnapshotKey) return;
+		lastPublishedSnapshotKey = key;
+		service.publish('files', snapshot);
+	}
+
+	function snapshotPublishKey(snapshot: ExplorerSnapshot<TMeta>): string {
+		const rowsKey = snapshot.rows
+			.map((row) =>
+				[
+					row.id,
+					row.parentId ?? '',
+					row.childrenIds.join('\u0002'),
+					row.path ?? '',
+					row.domainKey ?? '',
+				].join('\u0003'),
+			)
+			.join('\u0004');
+		const revisions = snapshot.sourceRevisions;
+		return [
+			snapshot.explorerId,
+			snapshot.providerKey,
+			snapshot.projection.searchTerm,
+			snapshot.projection.searchMode,
+			snapshot.projection.sortBy,
+			snapshot.projection.sortDirection,
+			snapshot.projection.sortTarget,
+			revisions.filesRevision ?? '',
+			revisions.propsRevision ?? '',
+			revisions.tagsRevision ?? '',
+			revisions.contentRevision ?? '',
+			snapshot.visibleIds.join('\u0001'),
+			rowsKey,
+		].join('\u0000');
 	}
 
 	function readProviderTree(): TreeNode<TMeta>[] {
@@ -330,6 +416,18 @@
 			getActivePerfProbe()?.measure('panelExplorer.getTree', undefined, () => provider.getTree()) ??
 			provider.getTree()
 		);
+	}
+
+	function buildNodeLookup(items: TreeNode<TMeta>[]): Map<string, TreeNode<TMeta>> {
+		const lookup = new Map<string, TreeNode<TMeta>>();
+		const walk = (list: TreeNode<TMeta>[]) => {
+			for (const node of list) {
+				lookup.set(node.id, node);
+				if (node.children) walk(node.children);
+			}
+		};
+		walk(items);
+		return lookup;
 	}
 
 	function resolveDisplayNodes(
@@ -1029,6 +1127,7 @@
 			{:else}
 				<ViewTree
 					nodes={displayNodes}
+					rowInputs={treeRowInputs}
 					{expandedIds}
 					selectedIds={selectedNodeIds}
 					focusedId={focusedNodeId}

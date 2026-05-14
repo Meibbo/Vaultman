@@ -4,6 +4,7 @@ import type { MenuCtx } from './typeCtxMenu';
 import type { ExplorerViewMode, ViewEmptyState } from './typeViews';
 import type {
 	ExplorerDataPlaneRevisions,
+	ExplorerSnapshot,
 	ExplorerSnapshotSortTarget,
 } from './typeExplorerDataPlane';
 export type { ExplorerViewMode } from './typeViews';
@@ -42,6 +43,7 @@ export interface ExplorerProvider<TMeta = unknown> {
 	 */
 	getStructuralTree?(): TreeNode<TMeta>[];
 	getStructuralRevisions?(): ExplorerDataPlaneRevisions;
+	getSnapshot?(expandedIds?: ReadonlySet<string>): ExplorerSnapshot<TMeta>;
 	getEmptyState?(context: {
 		mode: ExplorerViewMode;
 		searchTerm: string;
