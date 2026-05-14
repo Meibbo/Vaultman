@@ -5,7 +5,7 @@ export class FrameOverlayController {
 	private readonly plugin!: VaultmanPlugin;
 	private readonly queueComponent!: unknown;
 	private readonly activeFiltersComponent!: unknown;
-	private readonly searchIslandComponent: unknown | null;
+	private readonly searchIslandComponent: unknown;
 	private readonly onImportBases?: () => void;
 
 	activePopup = $state<PopupType | null>(null);
