@@ -5,7 +5,7 @@ status: active
 parent: "[[docs/work/pkm-ai/index|pkm-ai]]"
 archive_source: "docs/archive/pkm-ai/active-docs/2026-05-11T080321-current-handoff.md"
 created: 2026-05-04T01:36:20
-updated: 2026-05-13T17:43:16
+updated: 2026-05-13T19:55:00
 tags:
   - agent/current
 created_by: dec
@@ -21,13 +21,16 @@ Older route history remains in
 
 ## Resume Point
 
-- Latest request handled: integrated EDP-010, T3 open-diff, T4 FnR
-  `vmPopover`, and T4 dashboard/add-ons into canonical `claude/explorer`.
-- Canonical worktree:
-  `C:\Users\vic_A\Desktop\vaultman\.claude\worktrees\jovial-wilson-f81c67`.
-- Current head: `d4c4225` on `claude/explorer`.
+- Latest request handled: ran EDP final stabilization after integrating
+  EDP-010, T3 open-diff, T4 FnR `vmPopover`, and T4 dashboard/add-ons.
+- Final stabilization worktree:
+  `C:\Users\vic_A\Desktop\vaultman\.claude\worktrees\edp-final-stabilization`.
+- Final stabilization branch: `codex/edp-final-stabilization`.
+- Canonical integration head: `5508168` on `claude/explorer`.
 - Full integration source record:
   [[docs/work/hardening/plans/2026-05-11-explorer-data-plane-transition/06-parallel-branch-integration|Parallel branch integration handoff]].
+- Final stabilization source record:
+  [[docs/work/hardening/plans/2026-05-11-explorer-data-plane-transition/07-final-stabilization|EDP final stabilization]].
 - Completed issue/source records:
   [[docs/work/hardening/issues/explorer-data-plane/010-selection-mirror-cleanup|EDP-010]],
   [[docs/work/polish/plans/2026-05-11-ui-modernization-vertical-threads/06-t3-open-diff-command-residual|T3 open diff command residual]],
@@ -46,34 +49,32 @@ Older route history remains in
   `openDiffViewHook` selects Tools tab `file_diff`, and `OperationsPage` is
   bound to `toolsActiveTab` in both the page strip and dashboard explorer.
 - Obsidian CLI runtime tests and live smokes must pass `vault=plugin-dev`.
+- Obsidian CLI calls should be run sequentially; a parallel eval/command smoke
+  can leave `Obsidian.com` helper processes stuck.
 
 ## Fresh Verification
 
-- Base guard passed:
+- Parallel integration base guard passed:
   `git merge-base --is-ancestor 03326b8 claude/explorer`.
-- Merge commits:
+- Parallel integration merge commits:
   `ca20fbe` EDP-010, `2b0f5f7` T3 open-diff, `bc5a151` T4 FnR, and
   `d4c4225` T4 dashboard/add-ons.
-- EDP-010 focused gates passed: 2 unit files / 34 tests and 1 component file /
-  39 tests.
-- T3/T4 focused gates passed: 8 unit files / 87 tests and 11 component files /
-  38 tests.
-- EDP regression gate passed: 7 unit files / 39 tests.
-- Component row/reveal/selection gate passed: 14 files / 121 tests.
-- Sticky tree gate passed: 4 files / 39 tests.
-- `svelte-check`, `lint:full`, `check`, `build:plugin`, and
-  `git diff --check` passed.
+- Final stabilization focused gates passed: EDP unit 15 files / 140 tests,
+  EDP component 16 files / 138 tests, T3/T4 unit 8 files / 87 tests, and
+  T3/T4 component 11 files / 38 tests.
+- Full suites passed: `pnpm run test:unit` 129 files / 802 tests and
+  `pnpm run test:component` 68 files / 330 tests.
+- `lint:full`, `check`, `build:plugin`, and `git diff --check` passed.
+- Live `plugin-dev` smoke passed: reload, `vaultman:open`,
+  `vaultman:open-diff`, FnR command, DOM evals, and `dev:errors`.
 - Detailed command list and counts:
-  [[docs/work/hardening/plans/2026-05-11-explorer-data-plane-transition/06-parallel-branch-integration#Verification|parallel integration verification]].
+  [[docs/work/hardening/plans/2026-05-11-explorer-data-plane-transition/07-final-stabilization#Verification|EDP final stabilization verification]].
 
 ## Residuals
 
-- Final stabilization full-suite was not run by request.
-- Known performance-threshold residuals remain:
+- Known performance-threshold residuals are resolved:
   `test/unit/performance/stress.test.ts` and
-  `test/component/viewTableStress.test.ts`.
-- Live `plugin-dev` smoke remains for final stabilization; prior T3 record says
-  Vaultman was disabled / reload command unavailable in `plugin-dev`.
+  `test/component/viewTableStress.test.ts` passed under full suites.
 - Remaining T4 follow-ups: frame-level native-click wiring, real
   adopted-block queue staging, Quick Switcher, and FAB polish.
 - Existing doc-health residuals remain outside this integration:
@@ -81,6 +82,5 @@ Older route history remains in
 
 ## Next Action
 
-- Run the final stabilization gate from the EDP worker contract.
-- Diagnose the known performance residuals there; do not relax thresholds
-  without a documented decision.
+- Review and merge local branch `codex/edp-final-stabilization` into
+  `claude/explorer` if accepted. No push has been performed.

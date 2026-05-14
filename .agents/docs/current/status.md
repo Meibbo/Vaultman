@@ -5,7 +5,7 @@ status: active
 parent: "[[docs/work/pkm-ai/index|pkm-ai]]"
 archive_source: "docs/archive/pkm-ai/active-docs/2026-05-11T080321-current-status.md"
 created: 2026-05-04T01:36:20
-updated: 2026-05-13T17:43:16
+updated: 2026-05-13T19:55:00
 tags:
   - agent/current
 created_by: dec
@@ -28,14 +28,17 @@ Older route history remains in
 
 ## Current Route
 
-- Latest request handled: integrated four completed parallel branches into
-  canonical `claude/explorer` without using `sandbox` or pushing.
+- Latest request handled: ran the EDP final stabilization gate in isolated
+  branch `codex/edp-final-stabilization` without using `sandbox` or pushing.
 - Integration source record:
   [[docs/work/hardening/plans/2026-05-11-explorer-data-plane-transition/06-parallel-branch-integration|Parallel branch integration handoff]].
+- Final stabilization source record:
+  [[docs/work/hardening/plans/2026-05-11-explorer-data-plane-transition/07-final-stabilization|EDP final stabilization]].
 - Active initiative: [[docs/work/hardening/index|Hardening]].
 - Active spec:
   [[docs/work/hardening/specs/2026-05-11-explorer-data-plane-structural-taxonomy/index|Explorer Data Plane Structural Taxonomy]].
-- Current head: `d4c4225` on `claude/explorer`.
+- Canonical integration head: `5508168` on `claude/explorer`.
+- Final stabilization branch: `codex/edp-final-stabilization`.
 - Merged branches:
   `codex/edp-010-selection-cleanup`, `codex/t3-open-diff-command`,
   `codex/t4-fnr-vmpopover`, and `codex/t4-addons-dashboard`.
@@ -49,31 +52,28 @@ Older route history remains in
 
 ## Verification Snapshot
 
-- Base guard passed:
+- Parallel integration base guard passed:
   `git merge-base --is-ancestor 03326b8 claude/explorer`.
-- Merge commits:
+- Parallel integration merge commits:
   `ca20fbe` EDP-010, `2b0f5f7` T3 open-diff, `bc5a151` T4 FnR, and
   `d4c4225` T4 dashboard/add-ons.
-- EDP-010 focused gates passed: unit 2 files / 34 tests; component 1 file /
-  39 tests.
-- T3/T4 focused gates passed: unit 8 files / 87 tests; component 11 files /
-  38 tests.
-- EDP regression unit gate passed: 7 files / 39 tests.
-- Component row/reveal/selection gate passed: 14 files / 121 tests.
-- Sticky tree gate passed: 4 files / 39 tests.
+- Final stabilization focused gates passed: EDP unit 15 files / 140 tests,
+  EDP component 16 files / 138 tests, T3/T4 unit 8 files / 87 tests, and
+  T3/T4 component 11 files / 38 tests.
+- Full suites passed: `pnpm run test:unit` 129 files / 802 tests and
+  `pnpm run test:component` 68 files / 330 tests.
 - `pnpm run lint:full`, `pnpm run check`, `pnpm run build:plugin`, and
   `git diff --check` passed.
-- Detailed verification commands and conflict notes are in
-  [[docs/work/hardening/plans/2026-05-11-explorer-data-plane-transition/06-parallel-branch-integration#Verification|Parallel branch integration verification]].
+- Live `plugin-dev` smoke passed: reload, `vaultman:open`,
+  `vaultman:open-diff`, FnR command, DOM evals, and `dev:errors`.
+- Detailed verification commands are in
+  [[docs/work/hardening/plans/2026-05-11-explorer-data-plane-transition/07-final-stabilization#Verification|EDP final stabilization verification]].
 
 ## Known Residuals
 
-- Final stabilization full-suite was intentionally not run in this phase.
-- Existing performance-threshold residuals remain deferred:
-  `test/unit/performance/stress.test.ts` and
-  `test/component/viewTableStress.test.ts`.
-- Live `plugin-dev` smoke was not rerun here; previous T3 record says
-  Vaultman was disabled / reload command unavailable in that vault.
+- The known performance-threshold residuals are resolved by final
+  stabilization: `test/unit/performance/stress.test.ts` and
+  `test/component/viewTableStress.test.ts` passed under full suites.
 - Remaining T4 follow-ups: frame-level native-click wiring, real
   adopted-block queue staging, Quick Switcher, and FAB polish.
 - `node .agents/tools/pkm-ai/check-doc-health.mjs` still has existing
@@ -81,7 +81,5 @@ Older route history remains in
 
 ## Next Action
 
-- Run the final stabilization gate from
-  [[docs/work/hardening/plans/2026-05-11-explorer-data-plane-transition/05-worker-operating-contract#Final Stabilization Agent|EDP final stabilization contract]].
-- That phase should diagnose the known performance residuals and rerun live
-  `plugin-dev` smoke.
+- Review and merge local branch `codex/edp-final-stabilization` into
+  `claude/explorer` if accepted. No push has been performed.

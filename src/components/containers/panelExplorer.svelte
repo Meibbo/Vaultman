@@ -122,8 +122,11 @@
 	const selectedNodeMap = $derived(selectionSnapshot.selected);
 	const focusedNodeId = $derived(selectionSnapshot.focusedId);
 	let previousSearchTerm = '';
+	const hasExpansionSurface = $derived(viewMode === 'tree' || viewMode === 'grid');
 	const autoExpandedIds = $derived(
-		collectAutoExpandedIds(nodes, { searchTerm, smallTreeThreshold: 8 }),
+		hasExpansionSurface
+			? collectAutoExpandedIds(nodes, { searchTerm, smallTreeThreshold: 8 })
+			: new Set<string>(),
 	);
 	const expandedIds = $derived(
 		resolveExpandedIds({
@@ -132,9 +135,15 @@
 			autoExpandedIds,
 		}),
 	);
-	const expandableNodeIds = $derived(collectExpandableNodeIds(nodes));
-	const hasExpandedParents = $derived(expandableNodeIds.some((id) => expandedIds.has(id)));
-	const displayNodes = $derived(resolveDisplayNodes(nodes, expandedIds));
+	const expandableNodeIds = $derived(
+		hasExpansionSurface ? collectExpandableNodeIds(nodes) : [],
+	);
+	const hasExpandedParents = $derived(
+		hasExpansionSurface && expandableNodeIds.some((id) => expandedIds.has(id)),
+	);
+	const displayNodes = $derived(
+		viewMode === 'tree' ? resolveDisplayNodes(nodes, expandedIds) : [],
+	);
 	const gridHierarchyMode = $derived.by((): 'folder' | 'inline' => {
 		const configured = (
 			plugin as VaultmanPlugin & {
@@ -178,6 +187,7 @@
 		return service.subscribe('files', update);
 	});
 	const activeOpsByNode: ActiveOpsByNode = $derived.by(() => {
+		if (viewMode !== 'tree' && viewMode !== 'grid') return new Map<string, Set<BadgeKind>>();
 		// Touch the queue version counter so this derivation re-runs whenever
 		// the queue mutates. Memoizing on the version avoids render loops:
 		// the map only rebuilds when the queue actually changed.
