@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { describe, expect, it } from 'vitest';
 import { FrameOverlayController } from '../../../src/components/frame/frameOverlays.svelte';
 import { OverlayStateService } from '../../../src/services/serviceOverlayState.svelte';
 
@@ -40,10 +40,10 @@ describe('FrameOverlayController search island', () => {
 		const plugin = makePlugin();
 		const c = new FrameOverlayController(plugin, {}, {});
 		c.openFiltersIsland();
-		c.toggleSearchIsland({} as never);
+		c.toggleSearchIsland({});
 		expect(plugin.overlayState.isOpen('search-island')).toBe(true);
 		expect(plugin.overlayState.isOpen('active-filters')).toBe(true);
-		c.toggleSearchIsland({} as never);
+		c.toggleSearchIsland({});
 		expect(plugin.overlayState.isOpen('search-island')).toBe(false);
 		expect(plugin.overlayState.isOpen('active-filters')).toBe(true);
 	});
