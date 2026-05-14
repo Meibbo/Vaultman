@@ -102,7 +102,7 @@
 				plugin,
 				ExplorerQueueComp,
 				ExplorerActiveFiltersComp,
-				enterBasesImportMode,
+				{ onImportBases: enterBasesImportMode },
 			),
 		};
 	}
