@@ -278,13 +278,7 @@
 	// â”€â”€â”€ Filters page state â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 	type FiltersTab = FiltersSearchTab;
 	let filtersActiveTab = $state<FiltersTab>('props');
-	$effect(() => {
-		void filtersActiveTab;
-		untrack(() => {
-			overlays.closeQueueIsland();
-			overlays.closeFiltersIsland();
-		});
-	});
+	// filtersActiveTab changes no longer close stack islands — search and stack coexist.
 	let filtersSearchByTab = $state<FiltersSearchState>(createFiltersSearchState());
 	let filtersFnRState = $state<FnRState>(createFnRState());
 	let filtersSearchCategory = $state<Record<FiltersTab, number>>({
