@@ -452,6 +452,42 @@ describe('reactive explorer components', () => {
 		expect(target.textContent).toContain('has: status');
 	});
 
+	it('removes active filter rows through the list action', () => {
+		const activeFiltersIndex = new MutableIndex<ActiveFilterEntry>();
+		const removeNode = vi.fn();
+		const rule = {
+			id: 'rule-1',
+			type: 'rule' as const,
+			filterType: 'has_property' as const,
+			property: 'status',
+			values: [],
+			enabled: true,
+		};
+		const plugin = {
+			activeFiltersIndex,
+			filterService: {
+				filteredFiles: [],
+				selectedFiles: [],
+				removeNode,
+				clearFilters: vi.fn(),
+			},
+		} as unknown as VaultmanPlugin;
+
+		app = mount(ExplorerActiveFilters as unknown as Component<{ plugin: VaultmanPlugin }>, {
+			target,
+			props: { plugin },
+		});
+		flushSync();
+
+		activeFiltersIndex.emit([{ id: 'rule-1', kind: 'rule', rule } as ActiveFilterEntry]);
+		flushSync();
+
+		target.querySelector<HTMLButtonElement>('button[aria-label="Remove filter"]')?.click();
+		flushSync();
+
+		expect(removeNode).toHaveBeenCalledWith(rule);
+	});
+
 	it('adds visible logic groups through serviceGroups from the Active Filters island', () => {
 		const activeFiltersIndex = new MutableIndex<ActiveFilterEntry>();
 		const addNode = vi.fn();
