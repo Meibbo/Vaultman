@@ -5,12 +5,21 @@
 		createRafElementRectObserver,
 		fallbackFixedVirtualRows,
 	} from '../../services/serviceScroll';
+	import {
+		rowInputFromViewRow,
+		type ExplorerRowInput,
+	} from '../../services/serviceExplorerRowInput';
 	import type { NodeBase } from '../../types/typeContracts';
 	import type { ExplorerRenderModel, ViewAction, ViewBadge, ViewRow } from '../../types/typeViews';
 
+	type ListRowInput = ExplorerRowInput<NodeBase>;
+	type ListAction = ViewAction<NodeBase>;
+
 	interface Props {
-		model: ExplorerRenderModel<NodeBase>;
-		onAction?: (action: ViewAction<NodeBase>, row: ViewRow<NodeBase>) => void;
+		rowInputs?: readonly ListRowInput[];
+		canReorder?: boolean;
+		model?: ExplorerRenderModel<NodeBase>;
+		onAction?: (action: ListAction, row: ListRowInput) => void;
 		onReorder?: (request: ListReorderRequest) => void;
 		icon?: (node: HTMLElement, name: string) => { update(n: string): void };
 	}
@@ -21,7 +30,7 @@
 		position: 'before' | 'after';
 	}
 
-	let { model, onAction, onReorder, icon }: Props = $props();
+	let { rowInputs, canReorder, model, onAction, onReorder, icon }: Props = $props();
 
 	const LIST_OVERSCAN = 5;
 	const LIST_FALLBACK_HEIGHT = 400;
@@ -32,8 +41,15 @@
 	let fallbackScrollTop = $state(0);
 	let fallbackViewportHeight = $state(LIST_FALLBACK_HEIGHT);
 
-	const rowHeight = $derived(model.virtualization.rowHeight);
-	const rowCount = $derived(model.rows.length);
+	const effectiveRows = $derived<readonly ListRowInput[]>(
+		rowInputs ?? model?.rows.map(viewRowToRowInput) ?? [],
+	);
+	const effectiveCanReorder = $derived(
+		canReorder ?? Boolean(model?.capabilities.canDrag && model?.capabilities.canDrop),
+	);
+	const effectiveRowHeight = $derived(model?.virtualization.rowHeight ?? 32);
+	const rowHeight = $derived(effectiveRowHeight);
+	const rowCount = $derived(effectiveRows.length);
 	const observeListRect = createRafElementRectObserver<HTMLDivElement, HTMLDivElement>({
 		getElement: () => outerEl ?? null,
 		fallbackWidth: LIST_FALLBACK_WIDTH,
@@ -42,7 +58,7 @@
 	const rowVirtualizer = createVirtualizer<HTMLDivElement, HTMLDivElement>({
 		count: 0,
 		getScrollElement: () => outerEl ?? null,
-		getItemKey: (index) => model.rows[index]?.id ?? index,
+		getItemKey: (index) => effectiveRows[index]?.id ?? index,
 		estimateSize: () => rowHeight,
 		observeElementRect: observeListRect,
 		overscan: LIST_OVERSCAN,
@@ -58,17 +74,17 @@
 			viewportHeight: fallbackViewportHeight,
 			scrollTop: fallbackScrollTop,
 			overscan: LIST_OVERSCAN,
-			getKey: (index) => model.rows[index]?.id ?? index,
+			getKey: (index) => effectiveRows[index]?.id ?? index,
 		});
 	});
 	const totalH = $derived($rowVirtualizer.getTotalSize());
 
 	$effect(() => {
 		const count = rowCount;
-		const rows = model.rows;
+		const rows = effectiveRows;
 		const scrollElement = outerEl;
 		const height = rowHeight;
-		const overscan = model.virtualization.overscan;
+		const overscan = model?.virtualization.overscan ?? LIST_OVERSCAN;
 		untrack(() =>
 			$rowVirtualizer.setOptions({
 				count,
@@ -100,11 +116,11 @@
 		return icon?.(el, name) ?? { update: () => {} };
 	}
 
-	function rowIcon(row: ViewRow<NodeBase>): string | undefined {
+	function rowIcon(row: ListRowInput): string | undefined {
 		return row.icon ?? row.layers.icons?.[0]?.icon;
 	}
 
-	function allBadges(row: ViewRow<NodeBase>): ViewBadge[] {
+	function allBadges(row: ListRowInput): ViewBadge[] {
 		const badges = row.layers.badges;
 		return [
 			...(badges?.ops ?? []),
@@ -115,19 +131,19 @@
 		];
 	}
 
-	function handleAction(action: ViewAction<NodeBase>, row: ViewRow<NodeBase>) {
+	function handleAction(action: ListAction, row: ListRowInput) {
 		if (action.disabled) return;
-		action.run?.(row);
+		action.run?.(rowInputToViewRow(row));
 		onAction?.(action, row);
 	}
 
-	function actionRegionClass(row: ViewRow<NodeBase>): string {
+	function actionRegionClass(row: ListRowInput): string {
 		return isQueueChildRow(row)
 			? 'vm-view-list-actions is-counter-slot'
 			: 'vm-view-list-actions';
 	}
 
-	function actionButtonClass(action: ViewAction<NodeBase>, row: ViewRow<NodeBase>): string {
+	function actionButtonClass(action: ListAction, row: ListRowInput): string {
 		return [
 			'vm-btn-icon',
 			action.tone === 'danger' ? 'vm-btn-danger' : '',
@@ -137,40 +153,40 @@
 			.join(' ');
 	}
 
-	function isGroupRow(row: ViewRow<NodeBase>): boolean {
+	function isGroupRow(row: ListRowInput): boolean {
 		return (row.node as { kind?: string }).kind === 'group';
 	}
 
-	function isQueueChildRow(row: ViewRow<NodeBase>): boolean {
+	function isQueueChildRow(row: ListRowInput): boolean {
 		return hasRowClass(row, 'is-queue-child');
 	}
 
-	function isInlineCancelAction(action: ViewAction<NodeBase>, row: ViewRow<NodeBase>): boolean {
+	function isInlineCancelAction(action: ListAction, row: ListRowInput): boolean {
 		return isQueueChildRow(row) && action.id === 'remove';
 	}
 
-	function hasRowClass(row: ViewRow<NodeBase>, className: string): boolean {
+	function hasRowClass(row: ListRowInput, className: string): boolean {
 		return (row.cls ?? '').split(/\s+/).includes(className);
 	}
 
 	function dragEnabled(): boolean {
-		return Boolean(model.capabilities.canDrag && model.capabilities.canDrop && onReorder);
+		return Boolean(effectiveCanReorder && onReorder);
 	}
 
-	function handleDragStart(event: DragEvent, row: ViewRow<NodeBase>) {
+	function handleDragStart(event: DragEvent, row: ListRowInput) {
 		if (!dragEnabled()) return;
 		draggingRowId = row.id;
 		event.dataTransfer?.setData('text/plain', row.id);
 		if (event.dataTransfer) event.dataTransfer.effectAllowed = 'move';
 	}
 
-	function handleDragOver(event: DragEvent, row: ViewRow<NodeBase>) {
+	function handleDragOver(event: DragEvent, row: ListRowInput) {
 		if (!dragEnabled() || !draggingRowId || draggingRowId === row.id) return;
 		event.preventDefault();
 		if (event.dataTransfer) event.dataTransfer.dropEffect = 'move';
 	}
 
-	function handleDrop(event: DragEvent, row: ViewRow<NodeBase>) {
+	function handleDrop(event: DragEvent, row: ListRowInput) {
 		if (!dragEnabled() || !draggingRowId || draggingRowId === row.id) {
 			draggingRowId = null;
 			return;
@@ -193,15 +209,40 @@
 		const clientY = Number.isFinite(event.clientY) ? event.clientY : rect.top;
 		return clientY <= rect.top + rect.height / 2 ? 'before' : 'after';
 	}
+
+	function viewRowToRowInput(row: ViewRow<NodeBase>): ListRowInput {
+		return rowInputFromViewRow(row as never) as ListRowInput;
+	}
+
+	function rowActions(row: ListRowInput): readonly ListAction[] {
+		return (row.actions ?? []) as unknown as readonly ListAction[];
+	}
+
+	function rowInputToViewRow(row: ListRowInput): ViewRow<NodeBase> {
+		return {
+			id: row.id,
+			node: row.node as unknown as NodeBase,
+			label: row.label,
+			detail: row.detail,
+			icon: row.icon,
+			cls: row.cls,
+			depth: row.depth,
+			cells: row.cells ?? [],
+			layers: row.layers,
+			actions: rowActions(row),
+			disabled: row.disabled,
+		};
+	}
 </script>
 
 <div bind:this={outerEl} class="vm-view-list vm-explorer-popup-list" role="list" onscroll={onScroll}>
 	<div class="vm-view-list-inner vm-explorer-popup-inner" style="height: {totalH}px">
 		{#each renderedVirtualRows as virtualRow (virtualRow.key)}
-			{@const row = model.rows[virtualRow.index]}
+			{@const row = effectiveRows[virtualRow.index]}
 			{#if row}
 				{@const iconName = rowIcon(row)}
 				{@const badges = allBadges(row)}
+				{@const actions = rowActions(row)}
 				<div
 					class="vm-view-list-row vm-explorer-popup-row {row.cls ?? ''}"
 					class:is-selected={row.layers.state?.selected}
@@ -244,9 +285,9 @@
 						</span>
 					{/if}
 
-					{#if row.actions.length > 0}
+					{#if actions.length > 0}
 						<span class={actionRegionClass(row)}>
-							{#each row.actions as action (action.id)}
+							{#each actions as action (action.id)}
 								<button
 									class={actionButtonClass(action, row)}
 									disabled={action.disabled}

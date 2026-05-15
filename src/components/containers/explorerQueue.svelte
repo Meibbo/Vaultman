@@ -2,6 +2,10 @@
 	import { setIcon } from 'obsidian';
 	import type { VaultmanPlugin } from '../../main';
 	import ViewNodeList from '../views/ViewNodeList.svelte';
+	import {
+		rowInputFromViewRow,
+		type ExplorerRowInput,
+	} from '../../services/serviceExplorerRowInput';
 	import { ViewService } from '../../services/serviceViews.svelte';
 	import {
 		groupQueueChangesByAction,
@@ -29,6 +33,7 @@
 	let model: ExplorerRenderModel<NodeBase> = $state(emptyModel());
 
 	const hasItems = $derived(model.rows.length > 0);
+	const rowInputs = $derived(model.rows.map(viewRowToRowInput));
 
 	$effect(() => {
 		syncItems();
@@ -80,8 +85,12 @@
 		model = presentQueueModel(queueModel) as unknown as ExplorerRenderModel<NodeBase>;
 	}
 
-	function handleAction(action: ViewAction<NodeBase>, row: ViewRow<NodeBase>) {
-		if (action.id === 'remove' && !isQueueActionGroupNode(row.node)) removeItem(row.id);
+	function handleAction(action: ViewAction<NodeBase>, row: ExplorerRowInput<NodeBase>) {
+		if (action.id === 'remove' && !isQueueActionGroupNode(row.node as never)) removeItem(row.id);
+	}
+
+	function viewRowToRowInput(row: ViewRow<NodeBase>): ExplorerRowInput<NodeBase> {
+		return rowInputFromViewRow(row as never) as ExplorerRowInput<NodeBase>;
 	}
 
 	function emptyModel(): ExplorerRenderModel<NodeBase> {
@@ -139,7 +148,7 @@
 		{#if !hasItems}
 			<div class="vm-explorer-popup-empty">{translate('queue.island.empty')}</div>
 		{:else}
-			<ViewNodeList {model} {icon} onAction={handleAction} />
+			<ViewNodeList {rowInputs} canReorder={false} {icon} onAction={handleAction} />
 		{/if}
 	</div>
 </div>

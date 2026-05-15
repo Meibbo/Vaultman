@@ -1,6 +1,10 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { flushSync, mount, unmount, type Component } from 'svelte';
 import ViewNodeList from '../../src/components/views/ViewNodeList.svelte';
+import {
+	rowInputFromViewRow,
+	type ExplorerRowInput,
+} from '../../src/services/serviceExplorerRowInput';
 import type { ExplorerRenderModel, ViewAction, ViewRow } from '../../src/types/typeViews';
 import type { NodeBase } from '../../src/types/typeContracts';
 
@@ -40,6 +44,7 @@ function row(
 		cells: [],
 		layers: { badges: { ops: [{ id: `${id}:badge`, label: 'Queued', tone: 'accent' }] } },
 		actions,
+		depth: 0,
 	};
 }
 
@@ -153,5 +158,21 @@ describe('ViewNodeList', () => {
 			targetId: 'op-1',
 			position: 'before',
 		});
+	});
+
+	it('accepts rowInputs prop directly without model', () => {
+		const rowInputs: ExplorerRowInput<NodeBase>[] = [
+			rowInputFromViewRow(row('a', 'Row A', '', []) as ViewRow<NodeBase>),
+			rowInputFromViewRow(row('b', 'Row B', '', []) as ViewRow<NodeBase>),
+		];
+		app = mount(ViewNodeList as unknown as Component<Record<string, unknown>>, {
+			target,
+			props: { rowInputs, canReorder: false, icon: vi.fn(() => ({ update: vi.fn() })) },
+		});
+		flushSync();
+
+		expect(target.querySelectorAll('[role="listitem"]').length).toBe(2);
+		expect(target.textContent).toContain('Row A');
+		expect(target.textContent).toContain('Row B');
 	});
 });

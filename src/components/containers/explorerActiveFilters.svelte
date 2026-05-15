@@ -2,6 +2,10 @@
 	import { setIcon } from 'obsidian';
 	import type { VaultmanPlugin } from '../../main';
 	import ViewNodeList from '../views/ViewNodeList.svelte';
+	import {
+		rowInputFromViewRow,
+		type ExplorerRowInput,
+	} from '../../services/serviceExplorerRowInput';
 	import { ViewService } from '../../services/serviceViews.svelte';
 	import {
 		createLogicGroup,
@@ -32,6 +36,7 @@
 
 	const fileCount = $derived(plugin.filterService.filteredFiles.length);
 	const hasItems = $derived(model.rows.length > 0);
+	const rowInputs = $derived(model.rows.map(viewRowToRowInput));
 
 	$effect(() => {
 		syncItems();
@@ -117,8 +122,8 @@
 		}) as unknown as ExplorerRenderModel<NodeBase>;
 	}
 
-	function handleAction(action: ViewAction<NodeBase>, row: ViewRow<NodeBase>) {
-		if (action.id === 'remove') removeFilter(row.node as ActiveFilterEntry);
+	function handleAction(action: ViewAction<NodeBase>, row: ExplorerRowInput<NodeBase>) {
+		if (action.id === 'remove') removeFilter(row.node as unknown as ActiveFilterEntry);
 	}
 
 	function handleReorder(request: {
@@ -169,6 +174,10 @@
 
 	function normalizePath(path: string): string {
 		return path.replaceAll('\\', '/').replace(/^\/+/, '').replace(/\/+$/, '').toLowerCase();
+	}
+
+	function viewRowToRowInput(row: ViewRow<NodeBase>): ExplorerRowInput<NodeBase> {
+		return rowInputFromViewRow(row as never) as ExplorerRowInput<NodeBase>;
 	}
 </script>
 
@@ -240,7 +249,13 @@
 		{#if !hasItems}
 			<div class="vm-explorer-popup-empty">{translate('filters.active.empty')}</div>
 		{:else}
-			<ViewNodeList {model} {icon} onAction={handleAction} onReorder={handleReorder} />
+			<ViewNodeList
+				{rowInputs}
+				canReorder={Boolean(model.capabilities.canDrag && model.capabilities.canDrop)}
+				{icon}
+				onAction={handleAction}
+				onReorder={handleReorder}
+			/>
 		{/if}
 	</div>
 </div>
