@@ -5,7 +5,7 @@ status: active
 parent: "[[docs/work/pkm-ai/index|pkm-ai]]"
 archive_source: "docs/archive/pkm-ai/active-docs/2026-05-11T080321-current-status.md"
 created: 2026-05-04T01:36:20
-updated: 2026-05-14T23:59:00
+updated: 2026-05-15T06:05:15.3529322-05:00
 tags:
   - agent/current
 created_by: dec
@@ -28,24 +28,24 @@ Older route history remains in
 
 ## Current Route
 
-- Latest request handled: implemented runtime data-plane follow-ups for Files:
-  provider snapshots publish through `panelExplorer`, expansion republishes,
-  and `ViewTree` can render from snapshot-backed `rowInputs`.
-- Latest local changes are uncommitted and unpushed on
-  `codex/edp-final-stabilization`.
-- Research source:
-  [[docs/work/hardening/research/2026-05-14-explorer-data-plane-scroll-research|Explorer data-plane and jump-scroll research]].
-- Previous request handled: ran the EDP final stabilization gate in isolated
-  branch `codex/edp-final-stabilization` without using `sandbox` or pushing.
-- Integration source record:
-  [[docs/work/hardening/plans/2026-05-11-explorer-data-plane-transition/06-parallel-branch-integration|Parallel branch integration handoff]].
-- Final stabilization source record:
-  [[docs/work/hardening/plans/2026-05-11-explorer-data-plane-transition/07-final-stabilization|EDP final stabilization]].
+- Latest request handled: implemented Explorer 0-H virtualizer + list mode on
+  canonical branch `claude/explorer` without subagents after the user
+  redirected the session.
+- 0-H commits: `481820c` baseline coverage, `65e963f` TanStack list
+  virtualizer, `b90098b` `ViewNodeList` rename, `b1dc7c8` widget row-input
+  consumers, `e2bf5e5` panel list mode, `3a2603e` dead virtualizer cleanup,
+  and `d057b8c` stress/perf verification.
+- Source plan:
+  [[docs/work/hardening/plans/2026-05-15-explorer-0-h-virtualizer-list-mode/index|Explorer 0-H virtualizer + list mode plan]].
+- Verification record:
+  [[docs/work/hardening/plans/2026-05-15-explorer-0-h-virtualizer-list-mode/perf-baseline|0-H perf baseline and post-migration measurement]].
 - Active initiative: [[docs/work/hardening/index|Hardening]].
 - Active spec:
-  [[docs/work/hardening/specs/2026-05-11-explorer-data-plane-structural-taxonomy/index|Explorer Data Plane Structural Taxonomy]].
-- Canonical integration head: `5508168` on `claude/explorer`.
-- Final stabilization branch: `codex/edp-final-stabilization`.
+  [[docs/work/hardening/specs/2026-05-15-explorer-0-h-virtualizer-list-mode/index|Explorer 0-H virtualizer + list mode spec]].
+- Canonical product/test verification head: `d057b8c` on `claude/explorer`;
+  the current-doc refresh commit sits on top.
+- Unrelated working-tree residue remains from before this implementation:
+  `.vscode/settings.json` and untracked `docs/superpowers/`.
 - Merged branches:
   `codex/edp-010-selection-cleanup`, `codex/t3-open-diff-command`,
   `codex/t4-fnr-vmpopover`, and `codex/t4-addons-dashboard`.
@@ -59,31 +59,27 @@ Older route history remains in
 
 ## Verification Snapshot
 
-- Parallel integration base guard passed:
-  `git merge-base --is-ancestor 03326b8 claude/explorer`.
-- Parallel integration merge commits:
-  `ca20fbe` EDP-010, `2b0f5f7` T3 open-diff, `bc5a151` T4 FnR, and
-  `d4c4225` T4 dashboard/add-ons.
-- Final stabilization focused gates passed: EDP unit 15 files / 140 tests,
-  EDP component 16 files / 138 tests, T3/T4 unit 8 files / 87 tests, and
-  T3/T4 component 11 files / 38 tests.
-- Full suites passed: `pnpm run test:unit` 129 files / 802 tests and
-  `pnpm run test:component` 68 files / 330 tests.
-- `pnpm run lint:full`, `pnpm run check`, `pnpm run build:plugin`, and
-  `git diff --check` passed.
-- Live `plugin-dev` smoke passed: reload, `vaultman:open`,
-  `vaultman:open-diff`, FnR command, DOM evals, and `dev:errors`.
-- Detailed verification commands are in
+- Task 5 full gate passed before cleanup commit:
+  `pnpm verify` = lint/check/build/unit/component, 129 unit files / 797 tests
+  and 68 component files / 344 tests.
+- Task 6 full gate passed before verification commit:
+  `pnpm verify` = lint/check/build/unit/component, 129 unit files / 797 tests
+  and 68 component files / 354 tests.
+- Additional focused gates passed: `ViewNodeList` 18 tests,
+  `reactiveExplorers` 17 tests, panel list-mode focused 3 files / 73 tests,
+  `pnpm check`, and `perfProbeDom` 1 file / 4 tests.
+- Lint still reports 8 existing warnings and 0 errors; none were introduced
+  by the 0-H files.
+- Historical EDP final stabilization details remain in
   [[docs/work/hardening/plans/2026-05-11-explorer-data-plane-transition/07-final-stabilization#Verification|EDP final stabilization verification]].
-- Latest data-plane follow-up verification passed: component focused 5 files /
-  72 tests, unit focused 4 files / 49 tests, `check`, `lint:full`,
-  `build:plugin`, and `git diff --check`.
 
 ## Known Residuals
 
-- Explorer data-plane residual: Files tree now has snapshot-backed rows, but
-  far jump-scroll still needs a live benchmark plus variable-height row
-  geometry for table/grid/cards.
+- Explorer 0-H is complete locally, but no live Obsidian/browser perfProbe
+  run emitted per-scenario wall-clock, jank-frame, or heap metrics. The local
+  jsdom harness is documented in the 0-H perf record.
+- Broader explorer data-plane residual remains: far jump-scroll still needs a
+  live benchmark plus variable-height row geometry for table/grid/cards.
 - The known performance-threshold residuals are resolved by final
   stabilization: `test/unit/performance/stress.test.ts` and
   `test/component/viewTableStress.test.ts` passed under full suites.
@@ -94,5 +90,6 @@ Older route history remains in
 
 ## Next Action
 
-- Add the deep jump-scroll benchmark/gate, then add variable-height row
-  geometry for table/grid/cards before considering persistent storage.
+- Decide whether to push/open a PR for current `claude/explorer` HEAD or run a
+  live Obsidian perfProbe first; then continue with the deep jump-scroll
+  benchmark and variable-height row geometry work.
