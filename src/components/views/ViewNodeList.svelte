@@ -5,13 +5,9 @@
 		createRafElementRectObserver,
 		fallbackFixedVirtualRows,
 	} from '../../services/serviceScroll';
-	import {
-		rowInputVirtualKey,
-		rowInputFromViewRow,
-		type ExplorerRowInput,
-	} from '../../services/serviceExplorerRowInput';
+	import { rowInputVirtualKey, type ExplorerRowInput } from '../../services/serviceExplorerRowInput';
 	import type { NodeBase } from '../../types/typeContracts';
-	import type { ExplorerRenderModel, ViewAction, ViewBadge, ViewRow } from '../../types/typeViews';
+	import type { ViewAction, ViewBadge, ViewRow } from '../../types/typeViews';
 
 	type ListRowInput = ExplorerRowInput<NodeBase>;
 	type ListAction = ViewAction<NodeBase>;
@@ -25,7 +21,6 @@
 	interface Props {
 		rowInputs?: readonly ListRowInput[];
 		canReorder?: boolean;
-		model?: ExplorerRenderModel<NodeBase>;
 		onAction?: (action: ListAction, row: ListRowInput) => void;
 		onReorder?: (request: ListReorderRequest) => void;
 		onSelect?: (row: ListRowInput, modifiers: SelectModifiers) => void;
@@ -44,9 +39,8 @@
 	}
 
 	let {
-		rowInputs,
-		canReorder,
-		model,
+		rowInputs = [],
+		canReorder = false,
 		onAction,
 		onReorder,
 		onSelect,
@@ -61,6 +55,7 @@
 	const LIST_OVERSCAN = 5;
 	const LIST_FALLBACK_HEIGHT = 400;
 	const LIST_FALLBACK_WIDTH = 320;
+	const ROW_HEIGHT = 32;
 
 	let outerEl: HTMLDivElement | undefined = $state();
 	let draggingRowId: string | null = $state(null);
@@ -68,15 +63,8 @@
 	let fallbackScrollTop = $state(0);
 	let fallbackViewportHeight = $state(LIST_FALLBACK_HEIGHT);
 
-	const effectiveRows = $derived<readonly ListRowInput[]>(
-		rowInputs ?? model?.rows.map(viewRowToRowInput) ?? [],
-	);
-	const effectiveCanReorder = $derived(
-		canReorder ?? Boolean(model?.capabilities.canDrag && model?.capabilities.canDrop),
-	);
-	const effectiveRowHeight = $derived(model?.virtualization.rowHeight ?? 32);
-	const rowHeight = $derived(effectiveRowHeight);
-	const rowCount = $derived(effectiveRows.length);
+	const rowHeight = $derived(ROW_HEIGHT);
+	const rowCount = $derived(rowInputs.length);
 	const isListboxMode = $derived(Boolean(onSelect || onFocus));
 	const keyboardEnabled = $derived(Boolean(onSelect || onFocus || onActivate));
 	const activeFocusedId = $derived(localFocusedId ?? focusedId ?? null);
@@ -88,7 +76,7 @@
 	const rowVirtualizer = createVirtualizer<HTMLDivElement, HTMLDivElement>({
 		count: 0,
 		getScrollElement: () => outerEl ?? null,
-		getItemKey: (index) => rowInputVirtualKey(effectiveRows, index),
+		getItemKey: (index) => rowInputVirtualKey(rowInputs, index),
 		estimateSize: () => rowHeight,
 		observeElementRect: observeListRect,
 		overscan: LIST_OVERSCAN,
@@ -104,17 +92,17 @@
 			viewportHeight: fallbackViewportHeight,
 			scrollTop: fallbackScrollTop,
 			overscan: LIST_OVERSCAN,
-			getKey: (index) => rowInputVirtualKey(effectiveRows, index),
+			getKey: (index) => rowInputVirtualKey(rowInputs, index),
 		});
 	});
 	const totalH = $derived($rowVirtualizer.getTotalSize());
 
 	$effect(() => {
 		const count = rowCount;
-		const rows = effectiveRows;
+		const rows = rowInputs;
 		const scrollElement = outerEl;
 		const height = rowHeight;
-		const overscan = model?.virtualization.overscan ?? LIST_OVERSCAN;
+		const overscan = LIST_OVERSCAN;
 		untrack(() =>
 			$rowVirtualizer.setOptions({
 				count,
@@ -142,7 +130,7 @@
 		const id = focusedId;
 		if (!id) return;
 		localFocusedId = id;
-		const idx = effectiveRows.findIndex((row) => row.id === id);
+		const idx = rowInputs.findIndex((row) => row.id === id);
 		if (idx < 0) return;
 		untrack(() => $rowVirtualizer.scrollToIndex(idx, { align: 'auto' }));
 	});
@@ -186,18 +174,18 @@
 	}
 
 	function handleKeydown(event: KeyboardEvent) {
-		if (!effectiveRows.length) return;
+		if (!rowInputs.length) return;
 		const idx = currentFocusedIndex();
 		let nextIdx: number | null = null;
-		if (event.key === 'ArrowDown') nextIdx = Math.min(idx + 1, effectiveRows.length - 1);
+		if (event.key === 'ArrowDown') nextIdx = Math.min(idx + 1, rowInputs.length - 1);
 		else if (event.key === 'ArrowUp') nextIdx = Math.max(idx - 1, 0);
 		else if (event.key === 'Home') nextIdx = 0;
-		else if (event.key === 'End') nextIdx = effectiveRows.length - 1;
-		else if (event.key === 'PageDown') nextIdx = Math.min(idx + 10, effectiveRows.length - 1);
+		else if (event.key === 'End') nextIdx = rowInputs.length - 1;
+		else if (event.key === 'PageDown') nextIdx = Math.min(idx + 10, rowInputs.length - 1);
 		else if (event.key === 'PageUp') nextIdx = Math.max(idx - 10, 0);
 
 		if (nextIdx !== null && nextIdx !== idx) {
-			const row = effectiveRows[nextIdx];
+			const row = rowInputs[nextIdx];
 			setFocusedRow(row.id);
 			if (event.shiftKey && onSelect) {
 				onSelect(row, { ctrl: false, shift: true, alt: false });
@@ -206,18 +194,18 @@
 			return;
 		}
 		if (event.key === 'Enter' && idx >= 0 && onActivate) {
-			onActivate(effectiveRows[idx]);
+			onActivate(rowInputs[idx]);
 			event.preventDefault();
 			return;
 		}
 		if ((event.key === ' ' || event.key === 'Spacebar') && idx >= 0 && onSelect) {
-			onSelect(effectiveRows[idx], { ctrl: false, shift: false, alt: false });
+			onSelect(rowInputs[idx], { ctrl: false, shift: false, alt: false });
 			event.preventDefault();
 		}
 	}
 
 	function currentFocusedIndex(): number {
-		const idx = activeFocusedId ? effectiveRows.findIndex((row) => row.id === activeFocusedId) : -1;
+		const idx = activeFocusedId ? rowInputs.findIndex((row) => row.id === activeFocusedId) : -1;
 		return idx >= 0 ? idx : 0;
 	}
 
@@ -263,7 +251,7 @@
 	}
 
 	function dragEnabled(): boolean {
-		return Boolean(effectiveCanReorder && onReorder);
+		return Boolean(canReorder && onReorder);
 	}
 
 	function handleDragStart(event: DragEvent, row: ListRowInput) {
@@ -303,10 +291,6 @@
 		return clientY <= rect.top + rect.height / 2 ? 'before' : 'after';
 	}
 
-	function viewRowToRowInput(row: ViewRow<NodeBase>): ListRowInput {
-		return rowInputFromViewRow(row as never) as ListRowInput;
-	}
-
 	function rowActions(row: ListRowInput): readonly ListAction[] {
 		return (row.actions ?? []) as unknown as readonly ListAction[];
 	}
@@ -342,7 +326,7 @@
 >
 	<div class="vm-view-list-inner vm-explorer-popup-inner" style="height: {totalH}px">
 		{#each renderedVirtualRows as virtualRow (virtualRow.key)}
-			{@const row = effectiveRows[virtualRow.index]}
+			{@const row = rowInputs[virtualRow.index]}
 			{#if row}
 				{@const iconName = rowIcon(row)}
 				{@const badges = allBadges(row)}

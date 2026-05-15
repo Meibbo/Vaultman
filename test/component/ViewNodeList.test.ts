@@ -5,28 +5,12 @@ import {
 	rowInputFromViewRow,
 	type ExplorerRowInput,
 } from '../../src/services/serviceExplorerRowInput';
-import type { ExplorerRenderModel, ViewAction, ViewRow } from '../../src/types/typeViews';
+import type { ViewAction, ViewRow } from '../../src/types/typeViews';
 import type { NodeBase } from '../../src/types/typeContracts';
 
 interface ListNode extends NodeBase {
 	label: string;
 	detail?: string;
-}
-
-function model(rows: ViewRow<ListNode>[]): ExplorerRenderModel<ListNode> {
-	return {
-		explorerId: 'queue',
-		mode: 'list',
-		rows,
-		columns: [],
-		groups: [],
-		selection: { ids: new Set() },
-		focus: { id: null },
-		sort: { id: 'manual', direction: 'asc' },
-		search: { query: '' },
-		virtualization: { rowHeight: 32, overscan: 5 },
-		capabilities: {},
-	};
 }
 
 function row(
@@ -46,6 +30,10 @@ function row(
 		actions,
 		depth: 0,
 	};
+}
+
+function listRowInput(input: ViewRow<ListNode>): ExplorerRowInput<NodeBase> {
+	return rowInputFromViewRow(input as ViewRow<NodeBase>);
 }
 
 describe('ViewNodeList', () => {
@@ -79,10 +67,10 @@ describe('ViewNodeList', () => {
 		app = mount(ViewNodeList as unknown as Component<Record<string, unknown>>, {
 			target,
 			props: {
-				model: model([
-					row('op-1', 'property', 'Set status', [remove]),
-					row('op-2', 'tag', 'Add #project', []),
-				]),
+				rowInputs: [
+					listRowInput(row('op-1', 'property', 'Set status', [remove])),
+					listRowInput(row('op-2', 'tag', 'Add #project', [])),
+				],
 				onAction,
 				icon: vi.fn(() => ({ update: vi.fn() })),
 			},
@@ -109,7 +97,12 @@ describe('ViewNodeList', () => {
 		app = mount(ViewNodeList as unknown as Component<Record<string, unknown>>, {
 			target,
 			props: {
-				model: model([{ ...row('op-1', 'value', 'Delete status value', [remove]), cls: 'is-queue-child' }]),
+				rowInputs: [
+					listRowInput({
+						...row('op-1', 'value', 'Delete status value', [remove]),
+						cls: 'is-queue-child',
+					}),
+				],
 				onAction,
 				icon: vi.fn(() => ({ update: vi.fn() })),
 			},
@@ -131,13 +124,11 @@ describe('ViewNodeList', () => {
 		app = mount(ViewNodeList as unknown as Component<Record<string, unknown>>, {
 			target,
 			props: {
-				model: {
-					...model([
-						row('op-1', 'property', 'Set status', []),
-						row('op-2', 'tag', 'Add #project', []),
-					]),
-					capabilities: { canDrag: true, canDrop: true },
-				},
+				rowInputs: [
+					listRowInput(row('op-1', 'property', 'Set status', [])),
+					listRowInput(row('op-2', 'tag', 'Add #project', [])),
+				],
+				canReorder: true,
 				onReorder,
 				icon: vi.fn(() => ({ update: vi.fn() })),
 			},
@@ -160,7 +151,7 @@ describe('ViewNodeList', () => {
 		});
 	});
 
-	it('accepts rowInputs prop directly without model', () => {
+	it('renders rowInputs directly', () => {
 		const rowInputs: ExplorerRowInput<NodeBase>[] = [
 			rowInputFromViewRow(row('a', 'Row A', '', []) as ViewRow<NodeBase>),
 			rowInputFromViewRow(row('b', 'Row B', '', []) as ViewRow<NodeBase>),

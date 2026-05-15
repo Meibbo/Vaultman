@@ -4,7 +4,6 @@
 	import type { NodeBadge, TreeNode } from '../../types/typeNode';
 	import type { ExplorerRevealAlign, ExplorerRevealTarget } from '../../types/typeExplorerDataPlane';
 	import { getActivePerfProbe } from '../../dev/perfProbe';
-	import type { FlatNode } from '../../services/serviceVirtualizer.svelte';
 	import HighlightText from '../primitives/HighlightText.svelte';
 	import {
 		visibleHoverBadgeDescriptors,
@@ -65,6 +64,13 @@
 	const TREE_STICKY_MAX_ROWS = 7;
 	const TREE_STICKY_MAX_VIEWPORT_RATIO = 0.4;
 	type ScrollTarget = ExplorerRevealTarget;
+
+	interface FlatNode<TMeta = unknown> {
+		node: TreeNode<TMeta>;
+		depth: number;
+		isExpanded: boolean;
+		hasChildren: boolean;
+	}
 
 	interface TreeFlatNode extends FlatNode {
 		row: ExplorerRowInput;
