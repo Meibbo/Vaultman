@@ -5,7 +5,7 @@ status: active
 parent: "[[docs/work/pkm-ai/index|pkm-ai]]"
 archive_source: "docs/archive/pkm-ai/active-docs/2026-05-11T080321-current-handoff.md"
 created: 2026-05-04T01:36:20
-updated: 2026-05-15T06:05:15.3529322-05:00
+updated: 2026-05-15T07:38:00.7971319-05:00
 tags:
   - agent/current
 created_by: dec
@@ -21,8 +21,9 @@ Older route history remains in
 
 ## Resume Point
 
-- Latest request handled: implemented Explorer 0-H virtualizer + list mode on
-  `claude/explorer` in
+- Latest request handled: audited the completed Explorer 0-H plan/spec after
+  the user asked whether anything else had been missed, then fixed the real
+  missed UX/activation gaps on `claude/explorer` in
   `C:\Users\vic_A\Desktop\vaultman\.claude\worktrees\jovial-wilson-f81c67`.
 - User redirected to continue without subagents after originally requesting
   `superpowers:subagent-driven-development`; all remaining work was completed
@@ -31,15 +32,15 @@ Older route history remains in
   [[docs/work/hardening/plans/2026-05-15-explorer-0-h-virtualizer-list-mode/index|Explorer 0-H virtualizer + list mode plan]].
 - 0-H verification record:
   [[docs/work/hardening/plans/2026-05-15-explorer-0-h-virtualizer-list-mode/perf-baseline|0-H perf baseline and post-migration measurement]].
+- 0-H audit addendum:
+  [[docs/work/hardening/plans/2026-05-15-explorer-0-h-virtualizer-list-mode/audit-2026-05-15|Explorer 0-H audit addendum]].
 - Local commits on `claude/explorer`: `481820c`, `65e963f`, `b90098b`,
-  `b1dc7c8`, `e2bf5e5`, `3a2603e`, and `d057b8c`.
-- Canonical product/test verification head: `d057b8c`; the current-doc refresh
-  commit sits on top.
+  `b1dc7c8`, `e2bf5e5`, `3a2603e`, `d057b8c`, `dad8198`, and `bc199c7`.
+- Canonical product/test verification head: `bc199c7`.
 - Product/test files changed across 0-H include `ViewNodeList.svelte`,
   `panelExplorer.svelte`, queue/active-filter consumers, list/panel tests,
   and deletion of the old custom virtualizer service plus dead `viewGrid`.
-- Current working tree only has unrelated pre-existing residue:
-  `.vscode/settings.json` and untracked `docs/superpowers/`.
+- Current working tree is clean.
 - Full integration source record:
   [[docs/work/hardening/plans/2026-05-11-explorer-data-plane-transition/06-parallel-branch-integration|Parallel branch integration handoff]].
 - Final stabilization source record:
@@ -75,6 +76,11 @@ Older route history remains in
   - `pnpm check`: 0 errors / 0 warnings.
   - `pnpm verify`: pass; final run covered 129 unit files / 797 tests and
     68 component files / 354 tests.
+- Audit gates after the view-menu and provider-activation fixes:
+  - `pnpm exec vitest run --project unit --config vitest.config.ts test/unit/components/explorerPlugins.test.ts test/unit/components/explorerSnippets.test.ts --fileParallelism=false`: 2 files / 9 tests.
+  - `pnpm exec vitest run --project component --config vitest.config.ts test/component/overlayViewMenu.test.ts test/component/panelExplorerSelection.test.ts --fileParallelism=false`: 2 files / 49 tests.
+  - `pnpm check`: 0 errors / 0 warnings.
+  - `pnpm run build`: passed and synced to `plugin-dev`.
 - Svelte autofixer on final Task 5 `ViewNodeList.svelte`: `issues: []`.
 - Parallel integration base guard passed:
   `git merge-base --is-ancestor 03326b8 claude/explorer`.
@@ -94,7 +100,11 @@ Older route history remains in
 
 ## Residuals
 
-- 0-H local implementation is complete and committed; no push/PR was performed.
+- 0-H local implementation plus audit fixes are complete and committed; no
+  push/PR was performed.
+- Audit found and fixed two real gaps: list was missing from the view-mode menu
+  (`dad8198`), and plugin/snippet rows did not activate in panel list mode
+  (`bc199c7`).
 - The local perfProbe harness does not emit per-scenario wall-clock,
   jank-frame, or heap metrics. The post-migration record documents that
   limitation and the aggregate jsdom smoke results.

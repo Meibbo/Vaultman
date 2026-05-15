@@ -5,7 +5,7 @@ status: active
 parent: "[[docs/work/pkm-ai/index|pkm-ai]]"
 archive_source: "docs/archive/pkm-ai/active-docs/2026-05-11T080321-current-status.md"
 created: 2026-05-04T01:36:20
-updated: 2026-05-15T06:05:15.3529322-05:00
+updated: 2026-05-15T07:38:00.7971319-05:00
 tags:
   - agent/current
 created_by: dec
@@ -28,24 +28,26 @@ Older route history remains in
 
 ## Current Route
 
-- Latest request handled: implemented Explorer 0-H virtualizer + list mode on
-  canonical branch `claude/explorer` without subagents after the user
-  redirected the session.
+- Latest request handled: audited the completed Explorer 0-H plan/spec after
+  the user asked whether anything else had been missed; fixed the view-menu
+  exposure gap and provider activation gap on canonical branch `claude/explorer`
+  without subagents.
 - 0-H commits: `481820c` baseline coverage, `65e963f` TanStack list
   virtualizer, `b90098b` `ViewNodeList` rename, `b1dc7c8` widget row-input
   consumers, `e2bf5e5` panel list mode, `3a2603e` dead virtualizer cleanup,
-  and `d057b8c` stress/perf verification.
+  `d057b8c` stress/perf verification, `dad8198` view-menu list exposure, and
+  `bc199c7` plugin/snippet list activation.
 - Source plan:
   [[docs/work/hardening/plans/2026-05-15-explorer-0-h-virtualizer-list-mode/index|Explorer 0-H virtualizer + list mode plan]].
 - Verification record:
   [[docs/work/hardening/plans/2026-05-15-explorer-0-h-virtualizer-list-mode/perf-baseline|0-H perf baseline and post-migration measurement]].
+- Audit addendum:
+  [[docs/work/hardening/plans/2026-05-15-explorer-0-h-virtualizer-list-mode/audit-2026-05-15|Explorer 0-H audit addendum]].
 - Active initiative: [[docs/work/hardening/index|Hardening]].
 - Active spec:
   [[docs/work/hardening/specs/2026-05-15-explorer-0-h-virtualizer-list-mode/index|Explorer 0-H virtualizer + list mode spec]].
-- Canonical product/test verification head: `d057b8c` on `claude/explorer`;
-  the current-doc refresh commit sits on top.
-- Unrelated working-tree residue remains from before this implementation:
-  `.vscode/settings.json` and untracked `docs/superpowers/`.
+- Canonical product/test verification head: `bc199c7` on `claude/explorer`.
+- Working tree is clean after the audit fix commits.
 - Merged branches:
   `codex/edp-010-selection-cleanup`, `codex/t3-open-diff-command`,
   `codex/t4-fnr-vmpopover`, and `codex/t4-addons-dashboard`.
@@ -65,6 +67,11 @@ Older route history remains in
 - Task 6 full gate passed before verification commit:
   `pnpm verify` = lint/check/build/unit/component, 129 unit files / 797 tests
   and 68 component files / 354 tests.
+- Audit focused gates passed after `dad8198`/`bc199c7`: provider unit tests
+  2 files / 9 tests, menu/panel component tests 2 files / 49 tests,
+  `pnpm check` with 0 errors / 0 warnings, and `pnpm run build`.
+- Latest build synced artifacts to
+  `C:/Users/vic_A/Desktop/plugin-dev/.obsidian/plugins/vaultman`.
 - Additional focused gates passed: `ViewNodeList` 18 tests,
   `reactiveExplorers` 17 tests, panel list-mode focused 3 files / 73 tests,
   `pnpm check`, and `perfProbeDom` 1 file / 4 tests.
@@ -78,6 +85,9 @@ Older route history remains in
 - Explorer 0-H is complete locally, but no live Obsidian/browser perfProbe
   run emitted per-scenario wall-clock, jank-frame, or heap metrics. The local
   jsdom harness is documented in the 0-H perf record.
+- Audit residuals are documented in the 0-H audit addendum: spec/plan drift
+  around `measureElement`, absent provider `capabilities.canReorder`, literal
+  DOM snapshots not being committed, and future action-button propagation risk.
 - Broader explorer data-plane residual remains: far jump-scroll still needs a
   live benchmark plus variable-height row geometry for table/grid/cards.
 - The known performance-threshold residuals are resolved by final
