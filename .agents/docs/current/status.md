@@ -5,7 +5,7 @@ status: active
 parent: "[[docs/work/pkm-ai/index|pkm-ai]]"
 archive_source: "docs/archive/pkm-ai/active-docs/2026-05-11T080321-current-status.md"
 created: 2026-05-04T01:36:20
-updated: 2026-05-11T22:10:13
+updated: 2026-05-14T00:39:54
 tags:
   - agent/current
 created_by: dec
@@ -30,8 +30,8 @@ Older route history remains in
 
 ## Current Route
 
-- Latest user request: create a handoff for Claude to run Wave A/B planning
-  with subagents before Codex handles Wave C implementation.
+- Latest user request: convert the Notebook Navigator vs Vaultman index/explorer
+  comparison into a source doc and leave the handoff.
 - Active initiative: [[docs/work/hardening/index|Hardening]].
 - Active spec:
   [[docs/work/hardening/specs/2026-05-11-explorer-data-plane-structural-taxonomy/index|Explorer Data Plane Structural Taxonomy]].
@@ -49,6 +49,10 @@ Older route history remains in
   and 19. Candidate issue 7 now covers the Explorer media cache database.
   Local Markdown issues are published at
   [[docs/work/hardening/issues/explorer-data-plane/index|Explorer data plane local issues]].
+- Current addendum:
+  [[docs/work/hardening/specs/2026-05-11-explorer-data-plane-structural-taxonomy/20-notebook-navigator-index-explorer-comparison|Notebook Navigator index and explorer comparison]]
+  captures the current-branch comparison and recommends proving Files snapshot
+  publication as the next tracer bullet.
 - Next planning handoff:
   [[docs/work/hardening/plans/2026-05-11-explorer-data-plane-transition/01-wave-a-b-claude-handoff|Wave A/B Claude handoff]].
 - Previous route before this request: Claude worktree thread 04.
@@ -85,9 +89,11 @@ Older route history remains in
   `docs/work/hardening/plans/2026-05-11-explorer-data-plane-transition/`;
   the handoff is 199 lines, trailing whitespace scan found no matches, and
   targeted `git diff --check` exited 0 with only CRLF conversion warnings.
-- `node .agents/tools/pkm-ai/check-doc-health.mjs` still fails 11 existing
-  residuals: glossary warnings, parent-shape issues, and large plan/spec line
-  limits outside the new Wave 2 shards.
+- Notebook Navigator comparison doc was added as shard 20 under the Explorer
+  data-plane structural taxonomy. No product code was changed.
+- `node .agents/tools/pkm-ai/check-doc-health.mjs` still fails 12 residuals:
+  one summary-source warning, glossary warnings, parent-shape issues, and large
+  plan/spec line limits outside this new shard.
 - T3.8 RED tests failed 3/38 as expected, then passed after the immutable
   queue/diff implementation.
 - T4 continuation added missing component gate files for dialog, popover,
@@ -127,12 +133,15 @@ Older route history remains in
 - `OperationQueueService.transactions` remains by design as the compatibility
   read surface until queue/diff/details readers migrate to `chains`.
 - `node .agents/tools/pkm-ai/check-doc-health.mjs` still fails on existing
-  glossary, parent-shape, and large plan/spec line-limit residuals. Current
+  summary-source, glossary, parent-shape, and large plan/spec line-limit
+  residuals. Current
   status/handoff were archived and compacted in this session.
 
 ## Next Action
 
-- Current hardening route: triage or execute
+- Current hardening route: use shard 20 to verify the Files data-plane publish
+  path on `claude/explorer`, then continue EDP issue triage or execution.
+- Existing hardening route after that: triage or execute
   [[docs/work/hardening/issues/explorer-data-plane/001-approve-issue-set-and-supersession-notes|EDP-001]],
   then hand off Wave A/B to Claude using
   [[docs/work/hardening/plans/2026-05-11-explorer-data-plane-transition/01-wave-a-b-claude-handoff|Wave A/B Claude handoff]].

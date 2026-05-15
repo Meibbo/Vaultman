@@ -4,7 +4,7 @@ type: spec-index
 status: draft
 parent: "[[docs/work/hardening/specs/2026-05-11-explorer-data-plane-transition/index|explorer-data-plane-transition]]"
 created: 2026-05-11T00:00:00
-updated: 2026-05-11T20:55:00
+updated: 2026-05-14T00:39:54
 tags:
   - agent/spec
   - initiative/hardening
@@ -66,6 +66,7 @@ Excluded for now:
 17. [[docs/work/hardening/specs/2026-05-11-explorer-data-plane-structural-taxonomy/17-wave-4-follow-up-slices|Wave 4 follow-up slices]]
 18. [[docs/work/hardening/specs/2026-05-11-explorer-data-plane-structural-taxonomy/18-wave-5-plan-comparison-reconciliation|Wave 5 plan comparison and reconciliation]]
 19. [[docs/work/hardening/specs/2026-05-11-explorer-data-plane-structural-taxonomy/19-wave-5-issue-prd-candidates|Wave 5 issue and PRD candidates]]
+20. [[docs/work/hardening/specs/2026-05-11-explorer-data-plane-structural-taxonomy/20-notebook-navigator-index-explorer-comparison|Notebook Navigator index and explorer comparison]]
 
 ## Current Decision
 
@@ -91,3 +92,5 @@ Use a cleaner incremental architecture, not a shallow patch sequence:
 - Final issues/PRDs: Wave 5 draft candidates complete; publication pending
   user approval and tracker target. Local Markdown issues are published at
   [[docs/work/hardening/issues/explorer-data-plane/index|Explorer data plane local issues]].
+- Notebook Navigator current-branch comparison: captured in shard 20 with a
+  recommendation to prove Files snapshot publication as the next tracer bullet.

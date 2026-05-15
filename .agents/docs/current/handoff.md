@@ -5,7 +5,7 @@ status: active
 parent: "[[docs/work/pkm-ai/index|pkm-ai]]"
 archive_source: "docs/archive/pkm-ai/active-docs/2026-05-11T080321-current-handoff.md"
 created: 2026-05-04T01:36:20
-updated: 2026-05-11T22:10:13
+updated: 2026-05-14T00:39:54
 tags:
   - agent/current
 created_by: dec
@@ -21,8 +21,9 @@ Older route history remains in
 
 ## Resume Point
 
-- Latest request handled: created a handoff for Claude to run Wave A/B planning
-  with subagents before Codex handles Wave C implementation.
+- Latest request handled: converted the Notebook Navigator vs Vaultman
+  index/explorer comparison into
+  [[docs/work/hardening/specs/2026-05-11-explorer-data-plane-structural-taxonomy/20-notebook-navigator-index-explorer-comparison|Notebook Navigator index and explorer comparison]].
 - Latest source records:
   [[docs/work/hardening/specs/2026-05-11-explorer-data-plane-structural-taxonomy/18-wave-5-plan-comparison-reconciliation|Wave 5 plan comparison and reconciliation]]
   through
@@ -33,6 +34,10 @@ Older route history remains in
   have a separate media/derived-content cache DB follow-up; structural
   snapshots remain memory-first. Local issues now live at
   [[docs/work/hardening/issues/explorer-data-plane/index|Explorer data plane local issues]].
+- Current research addendum: Notebook Navigator's main lesson is a staged
+  source-state -> structural snapshot -> lookup-map -> overlay -> adapter
+  pipeline. Vaultman should translate this into Svelte services and immutable
+  snapshots, not React hooks or persisted structural rows.
 - Claude Wave A/B handoff:
   [[docs/work/hardening/plans/2026-05-11-explorer-data-plane-transition/01-wave-a-b-claude-handoff|Wave A/B Claude handoff]].
 - Previous worktree route:
@@ -84,9 +89,11 @@ Older route history remains in
   `docs/work/hardening/plans/2026-05-11-explorer-data-plane-transition/`;
   the handoff is 199 lines, trailing whitespace scan found no matches, and
   targeted `git diff --check` exited 0 with only CRLF conversion warnings.
-- `node .agents/tools/pkm-ai/check-doc-health.mjs` still fails 11 existing
-  residuals: glossary warnings, parent-shape issues, and large plan/spec line
-  limits outside the new Wave 2 shards.
+- Notebook Navigator comparison doc: source record added as shard 20 under the
+  Explorer data-plane structural taxonomy. No product code was changed.
+- `node .agents/tools/pkm-ai/check-doc-health.mjs` still fails 12 residuals:
+  one summary-source warning, glossary warnings, parent-shape issues, and large
+  plan/spec line limits outside this new shard.
 - RED gate: `serviceDiff` and `serviceQueue` pure/immutable tests failed 3/38,
   then passed.
 - T4 RED/GREEN: `serviceDndMoveBlock.test.ts` failed because
@@ -129,8 +136,9 @@ Older route history remains in
   Find/Replace island migration to `vmPopover`, dashboard/add-ons wiring in
   `frameVaultman.svelte`, real adopted-block move staging into queue chains,
   Quick Switcher, and FAB orbiting-ink polish.
-- `node .agents/tools/pkm-ai/check-doc-health.mjs` still fails on glossary,
-  parent-shape, and large plan/spec line-limit residuals. Current
+- `node .agents/tools/pkm-ai/check-doc-health.mjs` still fails on
+  summary-source, glossary, parent-shape, and large plan/spec line-limit
+  residuals. Current
   status/handoff were archived and compacted here.
 - Do not move AI files to `main`.
 - Do not base table work on old `viewTable.svelte`; use the TanStack table
@@ -138,7 +146,10 @@ Older route history remains in
 
 ## Next Action
 
-- Current hardening route: triage or execute
+- Current hardening route: use shard 20 to guide the next Files tracer bullet:
+  verify whether `claude/explorer` has a Files data-plane publish path, then add
+  `explorerFiles.getSnapshot(...)` or an equivalent adapter if missing.
+- Existing hardening route after that: triage or execute
   [[docs/work/hardening/issues/explorer-data-plane/001-approve-issue-set-and-supersession-notes|EDP-001]],
   then hand off Wave A/B to Claude using
   [[docs/work/hardening/plans/2026-05-11-explorer-data-plane-transition/01-wave-a-b-claude-handoff|Wave A/B Claude handoff]].
