@@ -37,6 +37,11 @@
 			iconName: 'lucide-git-branch',
 			labelKey: 'viewmode.mode.markmap',
 		},
+		{
+			id: 'list',
+			iconName: 'lucide-list',
+			labelKey: 'viewmode.mode.list',
+		},
 	];
 
 	let {

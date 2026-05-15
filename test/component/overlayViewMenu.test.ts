@@ -60,6 +60,12 @@ describe('ViewModePopup', () => {
 		expect(target.querySelector<HTMLElement>('.vm-squircle[aria-label="Drag & Drop list"]')).toBeNull();
 	});
 
+	it('offers list mode after the 0-H list view is wired', () => {
+		renderViewModePopup();
+
+		expect(target.querySelector<HTMLElement>('.vm-squircle[aria-label="List"]')).not.toBeNull();
+	});
+
 	it('emits normalized field changes instead of storing pills locally', () => {
 		const onVisibleFieldsChange = vi.fn();
 		renderViewModePopup({
