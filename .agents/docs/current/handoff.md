@@ -5,7 +5,7 @@ status: active
 parent: "[[docs/work/pkm-ai/index|pkm-ai]]"
 archive_source: "docs/archive/pkm-ai/active-docs/2026-05-11T080321-current-handoff.md"
 created: 2026-05-04T01:36:20
-updated: 2026-05-15T07:38:00.7971319-05:00
+updated: 2026-05-15T07:56:18.5576161-05:00
 tags:
   - agent/current
 created_by: dec
@@ -81,6 +81,11 @@ Older route history remains in
   - `pnpm exec vitest run --project component --config vitest.config.ts test/component/overlayViewMenu.test.ts test/component/panelExplorerSelection.test.ts --fileParallelism=false`: 2 files / 49 tests.
   - `pnpm check`: 0 errors / 0 warnings.
   - `pnpm run build`: passed and synced to `plugin-dev`.
+- Post-audit live Obsidian CLI perfProbe in `plugin-dev`: enabled/reloaded
+  `vaultman`, opened Vaultman, ran all four scenarios through
+  `window.__vaultmanPerfProbe`, then cleared filter/search state. Wall-clock:
+  `tree-scroll` 16.00 ms, `operation-badges` 85.50 ms, `filter-select`
+  2521.20 ms, `filters-search` 657.50 ms. `dev:errors` ended clean.
 - Svelte autofixer on final Task 5 `ViewNodeList.svelte`: `issues: []`.
 - Parallel integration base guard passed:
   `git merge-base --is-ancestor 03326b8 claude/explorer`.
@@ -105,9 +110,9 @@ Older route history remains in
 - Audit found and fixed two real gaps: list was missing from the view-mode menu
   (`dad8198`), and plugin/snippet rows did not activate in panel list mode
   (`bc199c7`).
-- The local perfProbe harness does not emit per-scenario wall-clock,
-  jank-frame, or heap metrics. The post-migration record documents that
-  limitation and the aggregate jsdom smoke results.
+- 0-H has a post-audit live Obsidian CLI perfProbe wall-clock snapshot, but no
+  pre-migration live baseline. Jank-frame and heap metrics remain unavailable
+  because the current `PerfProbeSnapshot` API does not emit them.
 - Broader explorer data-plane residual remains: far jump-scroll still has
   O(n) lookup/offset hotspots in variable-height table/grid/cards views.
 - Known performance-threshold residuals are resolved:
@@ -120,8 +125,8 @@ Older route history remains in
 
 ## Next Action
 
-- Choose handoff path for current `claude/explorer` HEAD: push/open PR, or run
-  a live Obsidian perfProbe first.
+- Choose handoff path for current `claude/explorer` HEAD: push/open PR, or add
+  jank/heap fields to the perfProbe API and rerun the live Obsidian probe.
 - After 0-H handoff, start with a failing measured deep jump-scroll gate for
   table/grid/cards, then implement row geometry (`idToIndex`, `indexToId`,
   cached/estimated heights, prefix-sum/Fenwick offset lookup).

@@ -1,17 +1,17 @@
 ---
-title: 0-H pre-migration perfProbe baseline
+title: 0-H perfProbe baseline and live snapshot
 type: verification-record
 status: active
 parent: "[[docs/work/hardening/plans/2026-05-15-explorer-0-h-virtualizer-list-mode/index|0-H virtualizer + list mode plan]]"
 created: 2026-05-15T04:26:25.6569760-05:00
-updated: 2026-05-15T05:54:46.3976156-05:00
+updated: 2026-05-15T07:56:18.5576161-05:00
 tags:
   - agent/verification
   - explorer/performance
   - explorer/views
 ---
 
-# 0-H Pre-Migration PerfProbe Baseline
+# 0-H PerfProbe Baseline And Live Snapshot
 
 Captured: 2026-05-15T04:26:25.6569760-05:00
 Branch: `claude/explorer`
@@ -116,3 +116,72 @@ Additional Task 6 verification added:
 - `test/component/ViewNodeList.test.ts`: cross-theme smoke covers `vm-theme-default`, `vm-theme-native`, `vm-theme-polish`, `vm-theme-glass`, and `vm-theme-custom` with a jsdom `getBoundingClientRect` shim.
 - `test/component/reactiveExplorers.test.ts`: queue stress covers 1000 queued operations and confirms rendered list rows remain below 50.
 - `test/component/reactiveExplorers.test.ts`: `FoulDetectionService.checkDomMimicry` leaves queue rendering clean under `vm-mode-thin` + `vm-id-native`.
+
+## Post-Audit Live Obsidian PerfProbe Snapshot
+
+Captured: 2026-05-15T07:56:18.5576161-05:00
+Branch: `claude/explorer`
+Head: `e24d773` before this documentation update
+Vault: `plugin-dev`
+Workspace: `C:\Users\vic_A\Desktop\vaultman\.claude\worktrees\jovial-wilson-f81c67`
+
+The earlier 0-H pass incorrectly stopped at the jsdom smoke harness. The
+Obsidian CLI can run the plugin's global perf probe inside `plugin-dev` after
+the plugin is enabled and reloaded.
+
+Preparation commands:
+
+```powershell
+obsidian vault=plugin-dev plugin:enable id=vaultman filter=community
+obsidian vault=plugin-dev plugin:reload id=vaultman
+obsidian vault=plugin-dev dev:errors clear
+obsidian vault=plugin-dev dev:errors
+obsidian vault=plugin-dev eval code="typeof window.__vaultmanPerfProbe"
+obsidian vault=plugin-dev command id=vaultman:open
+```
+
+Preparation results:
+
+- `plugin:enable`: `Enabled: vaultman`
+- `plugin:reload`: `Reloaded: vaultman`
+- `dev:errors` after clear: `No errors captured.`
+- `typeof window.__vaultmanPerfProbe`: `object`
+- `vaultman:open`: `Executed: vaultman:open`
+
+Scenario command:
+
+```powershell
+obsidian vault=plugin-dev eval code="(async () => { const p = window.__vaultmanPerfProbe; const scenarios = [['tree-scroll',{steps:8}], ['operation-badges',{}], ['filter-select',{}], ['filters-search',{query:'status'}]]; const out = []; for (const [name, options] of scenarios) { const r = await p.run(name, options); out.push({ scenario: name, durationMs: +(r.endedAt - r.startedAt).toFixed(2), counters: r.counters, timings: r.timings }); } return out; })()"
+```
+
+Live results:
+
+| Scenario | Wall clock (ms) | Jank frames | Max heap | Key counters/timings |
+|---|---:|---:|---:|---|
+| `tree-scroll` | 16.00 | unavailable | unavailable | `viewTree.scroll`: 9 counts, 2313 total rows, 567 total visible rows. |
+| `operation-badges` | 85.50 | unavailable | unavailable | Scenario counter emitted; no badge timing emitted in this run. |
+| `filter-select` | 2521.20 | unavailable | unavailable | `filterService.computeFiltered`: 25.10 ms for 11143 files; `panelExplorer.refresh.total`: 851.30 ms; `explorerProps.decorateTree`: 847.30 ms; `viewService.getModel`: 24385 calls / 732.00 ms total; `panelExplorer.bubbleHiddenTreeBadges`: 222.60 ms. |
+| `filters-search` | 657.50 | unavailable | unavailable | `panelExplorer.refresh.total`: 30.30 ms; `explorerProps.filterTree`: 26.70 ms; `panelExplorer.bubbleHiddenTreeBadges`: 192.30 ms total across 2 calls; `viewTree.scroll`: 1 count / 22 rows. |
+
+Cleanup after the scenario run:
+
+```powershell
+obsidian vault=plugin-dev eval code="app.plugins.plugins.vaultman.filterService.clearFilters(); app.plugins.plugins.vaultman.filterService.clearSearchFilter?.('all'); 'cleared'"
+obsidian vault=plugin-dev dev:errors
+```
+
+Cleanup results:
+
+- Filter/search cleanup: `cleared`
+- `dev:errors`: `No errors captured.`
+
+Remaining limitation:
+
+- This live CLI run provides real Obsidian wall-clock deltas from
+  `startedAt`/`endedAt`.
+- It still does not provide jank-frame counts or heap usage because the current
+  `PerfProbeSnapshot` shape has no fields for those metrics.
+- There is no pre-migration live Obsidian snapshot for `e8795a1`, so this
+  post-audit live run cannot prove a numeric before/after threshold. It does,
+  however, replace the earlier incorrect assumption that Obsidian CLI could not
+  run the probe.

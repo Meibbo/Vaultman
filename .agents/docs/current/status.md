@@ -5,7 +5,7 @@ status: active
 parent: "[[docs/work/pkm-ai/index|pkm-ai]]"
 archive_source: "docs/archive/pkm-ai/active-docs/2026-05-11T080321-current-status.md"
 created: 2026-05-04T01:36:20
-updated: 2026-05-15T07:38:00.7971319-05:00
+updated: 2026-05-15T07:56:18.5576161-05:00
 tags:
   - agent/current
 created_by: dec
@@ -70,6 +70,10 @@ Older route history remains in
 - Audit focused gates passed after `dad8198`/`bc199c7`: provider unit tests
   2 files / 9 tests, menu/panel component tests 2 files / 49 tests,
   `pnpm check` with 0 errors / 0 warnings, and `pnpm run build`.
+- Post-audit live Obsidian CLI perfProbe ran in `plugin-dev`: `tree-scroll`
+  16.00 ms, `operation-badges` 85.50 ms, `filter-select` 2521.20 ms,
+  `filters-search` 657.50 ms. `dev:errors` reported no captured errors after
+  cleanup.
 - Latest build synced artifacts to
   `C:/Users/vic_A/Desktop/plugin-dev/.obsidian/plugins/vaultman`.
 - Additional focused gates passed: `ViewNodeList` 18 tests,
@@ -82,9 +86,9 @@ Older route history remains in
 
 ## Known Residuals
 
-- Explorer 0-H is complete locally, but no live Obsidian/browser perfProbe
-  run emitted per-scenario wall-clock, jank-frame, or heap metrics. The local
-  jsdom harness is documented in the 0-H perf record.
+- Explorer 0-H now has a post-audit live Obsidian CLI perfProbe wall-clock
+  snapshot, but still has no pre-migration live baseline, jank-frame counts, or
+  heap metrics. The API does not currently emit jank/heap fields.
 - Audit residuals are documented in the 0-H audit addendum: spec/plan drift
   around `measureElement`, absent provider `capabilities.canReorder`, literal
   DOM snapshots not being committed, and future action-button propagation risk.
