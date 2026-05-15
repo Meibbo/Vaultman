@@ -647,6 +647,42 @@ describe('PanelExplorer tree selection adapter', () => {
 		expect(pluginStub.viewService.select).not.toHaveBeenCalled();
 	});
 
+	it('list mode renders provider nodes through ViewNodeList', () => {
+		renderPanel({ viewMode: 'list' });
+
+		const listbox = target.querySelector('.vm-list-container [role="listbox"]');
+		expect(listbox).toBeTruthy();
+		expect(target.querySelectorAll('.vm-list-container [data-id]').length).toBe(2);
+		expect(target.textContent).toContain('Alpha');
+		expect(target.textContent).toContain('Beta');
+	});
+
+	it('list mode empty provider renders the empty landing', () => {
+		renderPanel({
+			viewMode: 'list',
+			provider: provider({
+				getTree: vi.fn(() => []),
+				getFiles: vi.fn(() => []),
+			}),
+		});
+
+		expect(target.querySelector('.vm-list-container .vm-empty-landing')).toBeTruthy();
+	});
+
+	it('list mode row click dispatches selection through the selection service', () => {
+		const { selectionService } = renderPanel({ viewMode: 'list' });
+
+		(target.querySelector('.vm-list-container [data-id="alpha"]') as HTMLElement).click();
+		flushSync();
+
+		expect([...selectionService.snapshot(EXPLORER_ID).ids]).toEqual(['alpha']);
+		expect(
+			target
+				.querySelector('.vm-list-container [data-id="alpha"]')
+				?.getAttribute('aria-selected'),
+		).toBe('true');
+	});
+
 	it('cards mode renders provider nodes and selects cards through the shared node selection service', () => {
 		const { pluginStub, selectionService } = renderPanel({
 			viewMode: 'cards',

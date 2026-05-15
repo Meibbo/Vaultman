@@ -107,7 +107,7 @@ describe('PanelExplorer empty landing', () => {
 	});
 
 	it.each(['cards', 'list'] as const)(
-		'renders a fallback empty landing for unsupported %s mode',
+		'renders an empty landing for empty %s mode',
 		(viewMode) => {
 			app = render(target, { viewMode });
 			flushSync();
@@ -117,22 +117,21 @@ describe('PanelExplorer empty landing', () => {
 		},
 	);
 
-	it.each(['list'] as const)(
-		'renders unavailable copy for unsupported %s mode when files exist',
-		(viewMode) => {
-			app = render(target, {
-				viewMode,
-				provider: provider({ getFiles: vi.fn(() => [mockTFile('Notes/A.md')]) }),
-			});
-			flushSync();
+	it('renders list mode instead of fallback copy when nodes exist', () => {
+		app = render(target, {
+			viewMode: 'list',
+			provider: provider({
+				getTree: vi.fn(() => [{ id: 'alpha', label: 'Alpha', depth: 0, meta: {} }]),
+				getFiles: vi.fn(() => [mockTFile('Notes/A.md')]),
+			}),
+		});
+		flushSync();
 
-			expect(target.textContent).toContain(
-				`${viewMode[0].toUpperCase()}${viewMode.slice(1)} view not available`,
-			);
-			expect(target.textContent).toContain('Switch to tree or grid');
-			expect(target.textContent).not.toContain('No items');
-		},
-	);
+		expect(target.querySelector('.vm-list-container')).not.toBeNull();
+		expect(target.querySelector('[data-id="alpha"]')).not.toBeNull();
+		expect(target.textContent).toContain('Alpha');
+		expect(target.textContent).not.toContain('List view not available');
+	});
 
 	it('renders cards mode instead of fallback copy when nodes exist', () => {
 		app = render(target, {
@@ -257,20 +256,17 @@ describe('PanelExplorer empty landing', () => {
 		expect(snapshot.timings['panelExplorer.refresh.total'].count).toBeGreaterThan(0);
 	});
 
-	it('records active probe metrics for file refreshes', () => {
+	it('records active probe metrics for list tree refreshes', () => {
 		const probe = createPerfProbe({ now: () => 0 });
+		const nodes: TreeNode[] = [{ id: 'alpha', label: 'Alpha', depth: 0, meta: {} }];
 		setActivePerfProbe(probe.api);
 
 		app = render(target, {
 			viewMode: 'list',
-			provider: provider({ getFiles: vi.fn(() => [mockTFile('Notes/A.md')]) }),
+			provider: provider({ getTree: vi.fn(() => nodes) }),
 		});
 		flushSync();
 
-		expect(probe.snapshot().counters['panelExplorer.getFiles']).toMatchObject({
-			count: expect.any(Number),
-			totalRows: expect.any(Number),
-		});
-		expect(probe.snapshot().counters['panelExplorer.getFiles'].totalRows).toBeGreaterThan(0);
+		expect(probe.snapshot().timings['panelExplorer.getTree'].count).toBeGreaterThan(0);
 	});
 });

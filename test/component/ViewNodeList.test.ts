@@ -175,4 +175,146 @@ describe('ViewNodeList', () => {
 		expect(target.textContent).toContain('Row A');
 		expect(target.textContent).toContain('Row B');
 	});
+
+	it('onSelect fires with SelectModifiers on click', () => {
+		const onSelect = vi.fn();
+		const rowInputs: ExplorerRowInput<NodeBase>[] = [
+			rowInputFromViewRow(row('a', 'Row A', '', []) as ViewRow<NodeBase>),
+		];
+		app = mount(ViewNodeList as unknown as Component<Record<string, unknown>>, {
+			target,
+			props: { rowInputs, onSelect, icon: vi.fn(() => ({ update: vi.fn() })) },
+		});
+		flushSync();
+
+		const rowEl = target.querySelector('[role="option"]') as HTMLElement;
+		expect(rowEl).toBeTruthy();
+		rowEl.click();
+		expect(onSelect).toHaveBeenCalledWith(rowInputs[0], {
+			ctrl: false,
+			shift: false,
+			alt: false,
+		});
+
+		rowEl.dispatchEvent(new MouseEvent('click', { bubbles: true, ctrlKey: true, shiftKey: true }));
+		expect(onSelect).toHaveBeenLastCalledWith(rowInputs[0], {
+			ctrl: true,
+			shift: true,
+			alt: false,
+		});
+	});
+
+	it('onContextMenu fires on right-click with event and row', () => {
+		const onContextMenu = vi.fn();
+		const rowInputs: ExplorerRowInput<NodeBase>[] = [
+			rowInputFromViewRow(row('a', 'Row A', '', []) as ViewRow<NodeBase>),
+		];
+		app = mount(ViewNodeList as unknown as Component<Record<string, unknown>>, {
+			target,
+			props: { rowInputs, onContextMenu, icon: vi.fn(() => ({ update: vi.fn() })) },
+		});
+		flushSync();
+
+		const rowEl = target.querySelector('[data-id="a"]') as HTMLElement;
+		rowEl.dispatchEvent(new MouseEvent('contextmenu', { bubbles: true }));
+
+		expect(onContextMenu).toHaveBeenCalledTimes(1);
+		expect(onContextMenu.mock.calls[0][0]).toBeInstanceOf(MouseEvent);
+		expect(onContextMenu.mock.calls[0][1]).toBe(rowInputs[0]);
+	});
+
+	it('onActivate fires on double-click and Enter', () => {
+		const onActivate = vi.fn();
+		const rowInputs: ExplorerRowInput<NodeBase>[] = [
+			rowInputFromViewRow(row('a', 'Row A', '', []) as ViewRow<NodeBase>),
+		];
+		app = mount(ViewNodeList as unknown as Component<Record<string, unknown>>, {
+			target,
+			props: {
+				rowInputs,
+				onActivate,
+				onFocus: vi.fn(),
+				focusedId: 'a',
+				icon: vi.fn(() => ({ update: vi.fn() })),
+			},
+		});
+		flushSync();
+
+		const rowEl = target.querySelector('[data-id="a"]') as HTMLElement;
+		rowEl.dispatchEvent(new MouseEvent('dblclick', { bubbles: true }));
+		expect(onActivate).toHaveBeenCalledWith(rowInputs[0]);
+
+		onActivate.mockClear();
+		target
+			.querySelector('[role="listbox"]')!
+			.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }));
+		expect(onActivate).toHaveBeenCalledWith(rowInputs[0]);
+	});
+
+	it('Arrow keys move focus and fire onFocus', () => {
+		const onFocus = vi.fn();
+		const rowInputs: ExplorerRowInput<NodeBase>[] = [
+			rowInputFromViewRow(row('a', 'A', '', []) as ViewRow<NodeBase>),
+			rowInputFromViewRow(row('b', 'B', '', []) as ViewRow<NodeBase>),
+			rowInputFromViewRow(row('c', 'C', '', []) as ViewRow<NodeBase>),
+		];
+		app = mount(ViewNodeList as unknown as Component<Record<string, unknown>>, {
+			target,
+			props: { rowInputs, onFocus, focusedId: 'a', icon: vi.fn(() => ({ update: vi.fn() })) },
+		});
+		flushSync();
+
+		const container = target.querySelector('[role="listbox"]')!;
+		container.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowDown', bubbles: true }));
+		expect(onFocus).toHaveBeenLastCalledWith('b');
+		container.dispatchEvent(new KeyboardEvent('keydown', { key: 'End', bubbles: true }));
+		expect(onFocus).toHaveBeenLastCalledWith('c');
+		container.dispatchEvent(new KeyboardEvent('keydown', { key: 'Home', bubbles: true }));
+		expect(onFocus).toHaveBeenLastCalledWith('a');
+	});
+
+	it('Space fires onSelect with empty modifiers', () => {
+		const onSelect = vi.fn();
+		const rowInputs: ExplorerRowInput<NodeBase>[] = [
+			rowInputFromViewRow(row('a', 'A', '', []) as ViewRow<NodeBase>),
+		];
+		app = mount(ViewNodeList as unknown as Component<Record<string, unknown>>, {
+			target,
+			props: { rowInputs, onSelect, focusedId: 'a', icon: vi.fn(() => ({ update: vi.fn() })) },
+		});
+		flushSync();
+
+		const container = target.querySelector('[role="listbox"]')!;
+		container.dispatchEvent(new KeyboardEvent('keydown', { key: ' ', bubbles: true }));
+		expect(onSelect).toHaveBeenCalledWith(rowInputs[0], {
+			ctrl: false,
+			shift: false,
+			alt: false,
+		});
+	});
+
+	it('aria-selected and aria-activedescendant reflect selectedIds and focusedId', () => {
+		const rowInputs: ExplorerRowInput<NodeBase>[] = [
+			rowInputFromViewRow(row('a', 'A', '', []) as ViewRow<NodeBase>),
+			rowInputFromViewRow(row('b', 'B', '', []) as ViewRow<NodeBase>),
+		];
+		app = mount(ViewNodeList as unknown as Component<Record<string, unknown>>, {
+			target,
+			props: {
+				rowInputs,
+				selectedIds: new Set(['a']),
+				focusedId: 'b',
+				onSelect: vi.fn(),
+				onFocus: vi.fn(),
+				icon: vi.fn(() => ({ update: vi.fn() })),
+			},
+		});
+		flushSync();
+
+		const listbox = target.querySelector('[role="listbox"]')!;
+		expect(listbox.getAttribute('aria-activedescendant')).toBe('vm-listrow-b');
+		const rowA = target.querySelector('[data-id="a"]')!;
+		expect(rowA.getAttribute('aria-selected')).toBe('true');
+		expect(rowA.id).toBe('vm-listrow-a');
+	});
 });

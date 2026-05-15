@@ -6,6 +6,7 @@
 		fallbackFixedVirtualRows,
 	} from '../../services/serviceScroll';
 	import {
+		rowInputVirtualKey,
 		rowInputFromViewRow,
 		type ExplorerRowInput,
 	} from '../../services/serviceExplorerRowInput';
@@ -15,12 +16,24 @@
 	type ListRowInput = ExplorerRowInput<NodeBase>;
 	type ListAction = ViewAction<NodeBase>;
 
+	interface SelectModifiers {
+		ctrl: boolean;
+		shift: boolean;
+		alt: boolean;
+	}
+
 	interface Props {
 		rowInputs?: readonly ListRowInput[];
 		canReorder?: boolean;
 		model?: ExplorerRenderModel<NodeBase>;
 		onAction?: (action: ListAction, row: ListRowInput) => void;
 		onReorder?: (request: ListReorderRequest) => void;
+		onSelect?: (row: ListRowInput, modifiers: SelectModifiers) => void;
+		onActivate?: (row: ListRowInput) => void;
+		onFocus?: (rowId: string | null) => void;
+		onContextMenu?: (event: MouseEvent, row: ListRowInput) => void;
+		selectedIds?: ReadonlySet<string>;
+		focusedId?: string | null;
 		icon?: (node: HTMLElement, name: string) => { update(n: string): void };
 	}
 
@@ -30,7 +43,20 @@
 		position: 'before' | 'after';
 	}
 
-	let { rowInputs, canReorder, model, onAction, onReorder, icon }: Props = $props();
+	let {
+		rowInputs,
+		canReorder,
+		model,
+		onAction,
+		onReorder,
+		onSelect,
+		onActivate,
+		onFocus,
+		onContextMenu,
+		selectedIds,
+		focusedId,
+		icon,
+	}: Props = $props();
 
 	const LIST_OVERSCAN = 5;
 	const LIST_FALLBACK_HEIGHT = 400;
@@ -38,6 +64,7 @@
 
 	let outerEl: HTMLDivElement | undefined = $state();
 	let draggingRowId: string | null = $state(null);
+	let localFocusedId: string | null = $state(null);
 	let fallbackScrollTop = $state(0);
 	let fallbackViewportHeight = $state(LIST_FALLBACK_HEIGHT);
 
@@ -50,6 +77,9 @@
 	const effectiveRowHeight = $derived(model?.virtualization.rowHeight ?? 32);
 	const rowHeight = $derived(effectiveRowHeight);
 	const rowCount = $derived(effectiveRows.length);
+	const isListboxMode = $derived(Boolean(onSelect || onFocus));
+	const keyboardEnabled = $derived(Boolean(onSelect || onFocus || onActivate));
+	const activeFocusedId = $derived(localFocusedId ?? focusedId ?? null);
 	const observeListRect = createRafElementRectObserver<HTMLDivElement, HTMLDivElement>({
 		getElement: () => outerEl ?? null,
 		fallbackWidth: LIST_FALLBACK_WIDTH,
@@ -58,7 +88,7 @@
 	const rowVirtualizer = createVirtualizer<HTMLDivElement, HTMLDivElement>({
 		count: 0,
 		getScrollElement: () => outerEl ?? null,
-		getItemKey: (index) => effectiveRows[index]?.id ?? index,
+		getItemKey: (index) => rowInputVirtualKey(effectiveRows, index),
 		estimateSize: () => rowHeight,
 		observeElementRect: observeListRect,
 		overscan: LIST_OVERSCAN,
@@ -74,7 +104,7 @@
 			viewportHeight: fallbackViewportHeight,
 			scrollTop: fallbackScrollTop,
 			overscan: LIST_OVERSCAN,
-			getKey: (index) => effectiveRows[index]?.id ?? index,
+			getKey: (index) => rowInputVirtualKey(effectiveRows, index),
 		});
 	});
 	const totalH = $derived($rowVirtualizer.getTotalSize());
@@ -89,7 +119,7 @@
 			$rowVirtualizer.setOptions({
 				count,
 				getScrollElement: () => scrollElement ?? null,
-				getItemKey: (index) => rows[index]?.id ?? index,
+				getItemKey: (index) => rowInputVirtualKey(rows, index),
 				estimateSize: () => height,
 				observeElementRect: observeListRect,
 				overscan,
@@ -106,6 +136,15 @@
 		});
 		ro.observe(outerEl);
 		return () => ro.disconnect();
+	});
+
+	$effect(() => {
+		const id = focusedId;
+		if (!id) return;
+		localFocusedId = id;
+		const idx = effectiveRows.findIndex((row) => row.id === id);
+		if (idx < 0) return;
+		untrack(() => $rowVirtualizer.scrollToIndex(idx, { align: 'auto' }));
 	});
 
 	function onScroll(e: Event) {
@@ -137,6 +176,56 @@
 		onAction?.(action, row);
 	}
 
+	function handleSelect(event: MouseEvent, row: ListRowInput) {
+		if (!onSelect) return;
+		onSelect(row, {
+			ctrl: event.ctrlKey || event.metaKey,
+			shift: event.shiftKey,
+			alt: event.altKey,
+		});
+	}
+
+	function handleKeydown(event: KeyboardEvent) {
+		if (!effectiveRows.length) return;
+		const idx = currentFocusedIndex();
+		let nextIdx: number | null = null;
+		if (event.key === 'ArrowDown') nextIdx = Math.min(idx + 1, effectiveRows.length - 1);
+		else if (event.key === 'ArrowUp') nextIdx = Math.max(idx - 1, 0);
+		else if (event.key === 'Home') nextIdx = 0;
+		else if (event.key === 'End') nextIdx = effectiveRows.length - 1;
+		else if (event.key === 'PageDown') nextIdx = Math.min(idx + 10, effectiveRows.length - 1);
+		else if (event.key === 'PageUp') nextIdx = Math.max(idx - 10, 0);
+
+		if (nextIdx !== null && nextIdx !== idx) {
+			const row = effectiveRows[nextIdx];
+			setFocusedRow(row.id);
+			if (event.shiftKey && onSelect) {
+				onSelect(row, { ctrl: false, shift: true, alt: false });
+			}
+			event.preventDefault();
+			return;
+		}
+		if (event.key === 'Enter' && idx >= 0 && onActivate) {
+			onActivate(effectiveRows[idx]);
+			event.preventDefault();
+			return;
+		}
+		if ((event.key === ' ' || event.key === 'Spacebar') && idx >= 0 && onSelect) {
+			onSelect(effectiveRows[idx], { ctrl: false, shift: false, alt: false });
+			event.preventDefault();
+		}
+	}
+
+	function currentFocusedIndex(): number {
+		const idx = activeFocusedId ? effectiveRows.findIndex((row) => row.id === activeFocusedId) : -1;
+		return idx >= 0 ? idx : 0;
+	}
+
+	function setFocusedRow(id: string) {
+		localFocusedId = id;
+		onFocus?.(id);
+	}
+
 	function actionRegionClass(row: ListRowInput): string {
 		return isQueueChildRow(row)
 			? 'vm-view-list-actions is-counter-slot'
@@ -163,6 +252,10 @@
 
 	function isInlineCancelAction(action: ListAction, row: ListRowInput): boolean {
 		return isQueueChildRow(row) && action.id === 'remove';
+	}
+
+	function isRowSelected(row: ListRowInput): boolean {
+		return Boolean(selectedIds?.has(row.id) || row.layers.state?.selected);
 	}
 
 	function hasRowClass(row: ListRowInput, className: string): boolean {
@@ -235,7 +328,18 @@
 	}
 </script>
 
-<div bind:this={outerEl} class="vm-view-list vm-explorer-popup-list" role="list" onscroll={onScroll}>
+<!-- svelte-ignore a11y_no_noninteractive_tabindex -->
+<div
+	bind:this={outerEl}
+	class="vm-view-list vm-explorer-popup-list"
+	role={isListboxMode ? 'listbox' : 'list'}
+	aria-activedescendant={isListboxMode && activeFocusedId
+		? `vm-listrow-${activeFocusedId}`
+		: undefined}
+	tabindex={isListboxMode ? 0 : undefined}
+	onscroll={onScroll}
+	onkeydown={keyboardEnabled ? handleKeydown : undefined}
+>
 	<div class="vm-view-list-inner vm-explorer-popup-inner" style="height: {totalH}px">
 		{#each renderedVirtualRows as virtualRow (virtualRow.key)}
 			{@const row = effectiveRows[virtualRow.index]}
@@ -244,16 +348,21 @@
 				{@const badges = allBadges(row)}
 				{@const actions = rowActions(row)}
 				<div
+					id="vm-listrow-{row.id}"
 					class="vm-view-list-row vm-explorer-popup-row {row.cls ?? ''}"
-					class:is-selected={row.layers.state?.selected}
+					class:is-selected={isRowSelected(row)}
 					class:is-disabled={row.disabled || row.layers.state?.disabled}
 					class:is-group={isGroupRow(row)}
 					class:is-dragging={draggingRowId === row.id}
 					style="position: absolute; top: 0; left: 0; right: 0; height: {virtualRow.size}px; transform: translateY({virtualRow.start}px); --vm-list-depth-indent: {(row.depth ?? 0) * 14}px"
 					data-id={row.id}
 					data-index={virtualRow.index}
-					role="listitem"
+					role={isListboxMode ? 'option' : 'listitem'}
+					aria-selected={isListboxMode ? isRowSelected(row) : undefined}
 					draggable={dragEnabled()}
+					onclick={onSelect ? (event) => handleSelect(event, row) : undefined}
+					ondblclick={onActivate ? () => onActivate(row) : undefined}
+					oncontextmenu={onContextMenu ? (event) => onContextMenu(event, row) : undefined}
 					ondragstart={(event) => handleDragStart(event, row)}
 					ondragover={(event) => handleDragOver(event, row)}
 					ondrop={(event) => handleDrop(event, row)}

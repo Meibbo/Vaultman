@@ -20,10 +20,12 @@
 		ExplorerRevealTarget,
 		ExplorerSnapshot,
 	} from '../../types/typeExplorerDataPlane';
+	import type { NodeBase } from '../../types/typeContracts';
 	import GridNavigationToolbar from '../layout/GridNavigationToolbar.svelte';
 	import ViewTree from '../views/viewTree.svelte';
 	import ViewNodeCards from '../views/ViewNodeCards.svelte';
 	import ViewNodeGrid from '../views/ViewNodeGrid.svelte';
+	import ViewNodeList from '../views/ViewNodeList.svelte';
 	import ViewNodeTable from '../views/ViewNodeTable.svelte';
 	import ViewMarkmap from '../views/ViewMarkmap.svelte';
 	import ViewEmptyLanding from '../views/viewEmptyLanding.svelte';
@@ -34,6 +36,7 @@
 	} from '../../services/serviceViewTableAdapter';
 	import {
 		rowInputFromSnapshotRow,
+		rowInputFromTreeNode,
 		type ExplorerRowInput,
 	} from '../../services/serviceExplorerRowInput';
 	import { NodeSelectionService } from '../../services/serviceSelection.svelte';
@@ -185,6 +188,23 @@
 	);
 	const cardNodes = $derived(viewMode === 'cards' ? nodes : []);
 	const markmapNodes = $derived(viewMode === 'markmap' ? nodes : []);
+	const listRowInputs = $derived.by((): readonly ExplorerRowInput<NodeBase>[] => {
+		if (viewMode !== 'list') return [];
+		const snapshot = filesSnapshot;
+		if (snapshot) {
+			return snapshot.rows.map((row) => {
+				const decorated = decoratedNodeById.get(row.id);
+				return rowInputFromSnapshotRow({
+					...row,
+					label: decorated?.label ?? row.label,
+					node: decorated ?? row.node,
+				}) as ExplorerRowInput<NodeBase>;
+			});
+		}
+		return nodes.map(
+			(node) => rowInputFromTreeNode(node) as unknown as ExplorerRowInput<NodeBase>,
+		);
+	});
 	const tableRows = $derived(viewMode === 'table' ? nodeRowsFromTree(nodes) : []);
 	const tableColumns = $derived(nodeTableColumnsForProvider<TMeta>(provider.id, visibleFields));
 	const visibleFieldsKey = $derived(visibleFields.join('\u0001'));
@@ -199,6 +219,7 @@
 	const isGridEmpty = $derived(viewMode === 'grid' && gridNodes.length === 0);
 	const isCardsEmpty = $derived(viewMode === 'cards' && cardNodes.length === 0);
 	const isMarkmapEmpty = $derived(viewMode === 'markmap' && markmapNodes.length === 0);
+	const isListEmpty = $derived(viewMode === 'list' && listRowInputs.length === 0);
 	const isTableEmpty = $derived(viewMode === 'table' && tableRows.length === 0);
 	let lastCommittedSelectionKey = '';
 	let lastExpansionSummaryKey = '';
@@ -359,7 +380,7 @@
 		} else if (viewMode === 'markmap') {
 			nodes = readProviderTree();
 			flatFiles = [];
-		} else if (viewMode === 'table') {
+		} else if (viewMode === 'table' || viewMode === 'list') {
 			nodes = readProviderTree();
 			flatFiles = [];
 		} else {
@@ -532,6 +553,40 @@
 			commitSelection(selectionService.selectPointer(provider.id, visibleNodeIds(), id));
 		}
 		provider.handleContextMenu(node, e, selectedNodesForContext(node));
+	}
+
+	function handleListSelect(
+		row: ExplorerRowInput<NodeBase>,
+		modifiers: { ctrl: boolean; shift: boolean; alt: boolean },
+	): void {
+		handleNodeClick(row.id, mouseEventFromListModifiers(modifiers));
+	}
+
+	function handleListActivate(row: ExplorerRowInput<NodeBase>): void {
+		activateNode(row.node as unknown as TreeNode<TMeta>);
+	}
+
+	function handleListFocus(id: string | null): void {
+		commitSelection(selectionService.setFocused(provider.id, id));
+		if (id) revealNode(id);
+	}
+
+	function handleListContextMenu(event: MouseEvent, row: ExplorerRowInput<NodeBase>): void {
+		handleContextMenu(row.id, event);
+	}
+
+	function mouseEventFromListModifiers(modifiers: {
+		ctrl: boolean;
+		shift: boolean;
+		alt: boolean;
+	}): MouseEvent {
+		return new MouseEvent('click', {
+			bubbles: true,
+			ctrlKey: modifiers.ctrl,
+			metaKey: modifiers.ctrl,
+			shiftKey: modifiers.shift,
+			altKey: modifiers.alt,
+		});
 	}
 
 	function handleRowKeydown(id: string, e: KeyboardEvent) {
@@ -1244,6 +1299,24 @@
 				/>
 			{/if}
 		</div>
+	{:else if viewMode === 'list'}
+		<div class="vm-list-container">
+			{#if isListEmpty}
+				<ViewEmptyLanding state={emptyState} {icon} />
+			{:else}
+				<ViewNodeList
+					rowInputs={listRowInputs}
+					canReorder={false}
+					selectedIds={selectedNodeIds}
+					focusedId={focusedNodeId}
+					onSelect={handleListSelect}
+					onActivate={handleListActivate}
+					onFocus={handleListFocus}
+					onContextMenu={handleListContextMenu}
+					{icon}
+				/>
+			{/if}
+		</div>
 	{:else if viewMode === 'table'}
 		<div class="vm-table-container">
 			{#if isTableEmpty}
@@ -1304,6 +1377,14 @@
 		overflow: hidden;
 		min-height: 0;
 		height: 100%;
+	}
+	.vm-list-container {
+		flex: 1;
+		display: flex;
+		flex-direction: column;
+		min-height: 0;
+		height: 100%;
+		overflow: hidden;
 	}
 	.vm-table-container {
 		flex: 1;
