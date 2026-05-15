@@ -37,6 +37,10 @@ export class explorerSnippets implements ExplorerProvider<SnippetMeta> {
 
 	handleNodeClick(_node: TreeNode<SnippetMeta>): void {}
 
+	handleNodeSecondaryAction(node: TreeNode<SnippetMeta>): void {
+		void this.toggleSnippet(node.meta);
+	}
+
 	handleContextMenu(
 		node: TreeNode<SnippetMeta>,
 		e: MouseEvent,

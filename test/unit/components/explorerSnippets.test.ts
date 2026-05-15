@@ -78,6 +78,21 @@ describe('explorerSnippets', () => {
 		expect(plugin.cssSnippetsIndex.refresh).toHaveBeenCalledOnce();
 	});
 
+	it('secondary activation toggles snippet enabled state for list mode', async () => {
+		const { setCssSnippetEnabled } = await import('../../../src/types/typeObsidian');
+		vi.mocked(setCssSnippetEnabled).mockClear();
+		const plugin = makePlugin([{ id: 'cards', name: 'cards', enabled: false }]);
+		const explorer = new explorerSnippets(plugin);
+		const node = explorer.getTree()[0];
+
+		explorer.handleNodeSecondaryAction?.(node);
+
+		await vi.waitFor(async () => {
+			expect(setCssSnippetEnabled).toHaveBeenCalledWith(plugin.app, 'cards', true);
+		});
+		expect(plugin.cssSnippetsIndex.refresh).toHaveBeenCalledOnce();
+	});
+
 	it('registers a binding-note context action for snippet nodes', async () => {
 		const plugin = makePlugin([{ id: 'cards', name: 'cards', enabled: false }]);
 		const explorer = new explorerSnippets(plugin);

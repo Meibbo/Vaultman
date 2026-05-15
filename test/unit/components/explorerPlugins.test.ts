@@ -93,6 +93,23 @@ describe('explorerPlugins', () => {
 		expect(plugin.pluginsIndex.refresh).toHaveBeenCalledOnce();
 	});
 
+	it('secondary activation toggles plugin enabled state for list mode', async () => {
+		const { setCommunityPluginEnabled } = await import('../../../src/types/typeObsidian');
+		vi.mocked(setCommunityPluginEnabled).mockClear();
+		const plugin = makePlugin([
+			{ id: 'calendar', pluginId: 'calendar', name: 'Calendar', enabled: false, loaded: false },
+		]);
+		const explorer = new explorerPlugins(plugin);
+		const node = explorer.getTree()[0];
+
+		explorer.handleNodeSecondaryAction?.(node);
+
+		await vi.waitFor(async () => {
+			expect(setCommunityPluginEnabled).toHaveBeenCalledWith(plugin.app, 'calendar', true);
+		});
+		expect(plugin.pluginsIndex.refresh).toHaveBeenCalledOnce();
+	});
+
 	it('does not disable the running Vaultman plugin', async () => {
 		const plugin = makePlugin(
 			[{ id: 'vaultman', pluginId: 'vaultman', name: 'Vaultman', enabled: true, loaded: true }],
