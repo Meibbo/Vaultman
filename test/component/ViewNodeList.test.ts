@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { flushSync, mount, unmount, type Component } from 'svelte';
-import ViewList from '../../src/components/views/viewList.svelte';
+import ViewNodeList from '../../src/components/views/ViewNodeList.svelte';
 import type { ExplorerRenderModel, ViewAction, ViewRow } from '../../src/types/typeViews';
 import type { NodeBase } from '../../src/types/typeContracts';
 
@@ -43,7 +43,7 @@ function row(
 	};
 }
 
-describe('ViewList', () => {
+describe('ViewNodeList', () => {
 	let target: HTMLDivElement;
 	let app: ReturnType<typeof mount> | null = null;
 
@@ -71,7 +71,7 @@ describe('ViewList', () => {
 	it('renders list row labels, details, badges, and dispatches semantic actions', () => {
 		const onAction = vi.fn();
 		const remove: ViewAction<ListNode> = { id: 'remove', label: 'Remove', icon: 'lucide-x' };
-		app = mount(ViewList as unknown as Component<Record<string, unknown>>, {
+		app = mount(ViewNodeList as unknown as Component<Record<string, unknown>>, {
 			target,
 			props: {
 				model: model([
@@ -101,7 +101,7 @@ describe('ViewList', () => {
 			icon: 'lucide-x',
 			tone: 'danger',
 		};
-		app = mount(ViewList as unknown as Component<Record<string, unknown>>, {
+		app = mount(ViewNodeList as unknown as Component<Record<string, unknown>>, {
 			target,
 			props: {
 				model: model([{ ...row('op-1', 'value', 'Delete status value', [remove]), cls: 'is-queue-child' }]),
@@ -123,7 +123,7 @@ describe('ViewList', () => {
 
 	it('emits row reorder requests when drag and drop is enabled', () => {
 		const onReorder = vi.fn();
-		app = mount(ViewList as unknown as Component<Record<string, unknown>>, {
+		app = mount(ViewNodeList as unknown as Component<Record<string, unknown>>, {
 			target,
 			props: {
 				model: {

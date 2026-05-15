@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { setIcon } from 'obsidian';
 	import type { VaultmanPlugin } from '../../main';
-	import ViewList from '../views/viewList.svelte';
+	import ViewNodeList from '../views/ViewNodeList.svelte';
 	import { ViewService } from '../../services/serviceViews.svelte';
 	import {
 		groupQueueChangesByAction,
@@ -139,7 +139,7 @@
 		{#if !hasItems}
 			<div class="vm-explorer-popup-empty">{translate('queue.island.empty')}</div>
 		{:else}
-			<ViewList {model} {icon} onAction={handleAction} />
+			<ViewNodeList {model} {icon} onAction={handleAction} />
 		{/if}
 	</div>
 </div>

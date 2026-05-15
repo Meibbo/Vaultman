@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { setIcon } from 'obsidian';
 	import type { VaultmanPlugin } from '../../main';
-	import ViewList from '../views/viewList.svelte';
+	import ViewNodeList from '../views/ViewNodeList.svelte';
 	import { ViewService } from '../../services/serviceViews.svelte';
 	import {
 		createLogicGroup,
@@ -240,7 +240,7 @@
 		{#if !hasItems}
 			<div class="vm-explorer-popup-empty">{translate('filters.active.empty')}</div>
 		{:else}
-			<ViewList {model} {icon} onAction={handleAction} onReorder={handleReorder} />
+			<ViewNodeList {model} {icon} onAction={handleAction} onReorder={handleReorder} />
 		{/if}
 	</div>
 </div>
