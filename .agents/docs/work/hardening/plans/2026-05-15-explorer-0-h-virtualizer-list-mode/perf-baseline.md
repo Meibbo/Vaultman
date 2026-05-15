@@ -4,7 +4,7 @@ type: verification-record
 status: active
 parent: "[[docs/work/hardening/plans/2026-05-15-explorer-0-h-virtualizer-list-mode/index|0-H virtualizer + list mode plan]]"
 created: 2026-05-15T04:26:25.6569760-05:00
-updated: 2026-05-15T04:26:25.6569760-05:00
+updated: 2026-05-15T05:54:46.3976156-05:00
 tags:
   - agent/verification
   - explorer/performance
@@ -81,3 +81,38 @@ Aggregate local smoke numbers from the rerun:
 - No full Obsidian/browser perfProbe runtime was run in this environment. Task 0 found the plugin installs a global perf probe in `src/main.ts`, but there is no local command that launches a representative Obsidian vault and prints the four scenario metrics.
 - The current `PerfProbeSnapshot` shape in `src/dev/perfProbe.ts` contains counters and instrumented timings; it does not contain jank-frame counts or heap usage.
 - The jsdom scenario tests do not print per-scenario `endedAt - startedAt` values. Numeric per-scenario wall-clock baselines require either extending the harness to report those values or running an external browser/Obsidian perf driver that already records them.
+
+## Post-Migration Measurement
+
+Captured: 2026-05-15T05:54:46.3976156-05:00
+Branch: `claude/explorer`
+Head: `3a2603e` after Task 5
+Workspace: `C:\Users\vic_A\Desktop\vaultman\.claude\worktrees\jovial-wilson-f81c67`
+
+Command:
+
+```powershell
+Measure-Command { pnpm exec vitest run --project component --config vitest.config.ts test/component/perfProbeDom.test.ts --fileParallelism=false | Out-Host }
+```
+
+Result: 1 component test file / 4 tests passed. The same limitation from the pre-migration baseline still applies: the local jsdom harness verifies all four scenario runners and counters, but it does not emit per-scenario wall-clock, jank-frame, or heap metrics.
+
+| Scenario | Wall clock (ms) | Delta vs baseline | Jank frames | Delta vs baseline | Status |
+|---|---:|---:|---:|---:|---|
+| `tree-scroll` | unavailable | unavailable | unavailable | unavailable | Smoke PASS via `perfProbeDom.test.ts`; per-scenario metric unavailable. |
+| `operation-badges` | unavailable | unavailable | unavailable | unavailable | Smoke PASS via `perfProbeDom.test.ts`; per-scenario metric unavailable. |
+| `filter-select` | unavailable | unavailable | unavailable | unavailable | Smoke PASS via `perfProbeDom.test.ts`; per-scenario metric unavailable. |
+| `filters-search` | unavailable | unavailable | unavailable | unavailable | Smoke PASS via `perfProbeDom.test.ts`; per-scenario metric unavailable. |
+
+Aggregate local smoke rerun:
+
+| Harness | Vitest Duration | Test Body Duration | Shell Wall Clock | Delta vs Baseline | Notes |
+|---|---:|---:|---:|---|---|
+| `test/component/perfProbeDom.test.ts` | 12.79s | 1.07s | 18.758s | Vitest: -5.7%; shell: -18.2%; test body: +39.1% | These are aggregate jsdom harness timings with transform/import/environment overhead, not per-scenario runtime benchmarks. The +39.1% test-body delta is not used as the 0-H threshold because Task 0 did not produce per-scenario baseline numbers and this harness does not isolate scenario runtime. |
+
+Additional Task 6 verification added:
+
+- `test/component/ViewNodeList.test.ts`: large-list stress at 1k, 10k, and 50k rows confirms rendered DOM rows remain below 50.
+- `test/component/ViewNodeList.test.ts`: cross-theme smoke covers `vm-theme-default`, `vm-theme-native`, `vm-theme-polish`, `vm-theme-glass`, and `vm-theme-custom` with a jsdom `getBoundingClientRect` shim.
+- `test/component/reactiveExplorers.test.ts`: queue stress covers 1000 queued operations and confirms rendered list rows remain below 50.
+- `test/component/reactiveExplorers.test.ts`: `FoulDetectionService.checkDomMimicry` leaves queue rendering clean under `vm-mode-thin` + `vm-id-native`.

@@ -4,6 +4,7 @@ import { flushSync, mount, unmount, type Component } from 'svelte';
 import ContentTab from '../../src/components/pages/tabContent.svelte';
 import ExplorerQueue from '../../src/components/containers/explorerQueue.svelte';
 import ExplorerActiveFilters from '../../src/components/containers/explorerActiveFilters.svelte';
+import { FoulDetectionService } from '../../src/services/serviceFoulDetection.svelte';
 import { ViewService } from '../../src/services/serviceViews.svelte';
 import type {
 	ActiveFilterEntry,
@@ -53,6 +54,24 @@ class MutableIndex<TNode extends { id: string }> implements INodeIndex<TNode> {
 		this.currentRevision += 1;
 		for (const cb of this.subs) cb();
 	}
+}
+
+function queueChange(id: string): QueueChange {
+	return {
+		id,
+		group: 'property',
+		change: {
+			id,
+			type: 'property',
+			action: 'set',
+			property: 'status',
+			value: 'draft',
+			details: `Set status ${id}`,
+			files: [],
+			customLogic: true,
+			logicFunc: () => null,
+		},
+	};
 }
 
 describe('reactive explorer components', () => {
@@ -393,6 +412,64 @@ describe('reactive explorer components', () => {
 		);
 		cancel!.click();
 		expect(remove).toHaveBeenCalledWith('op-1');
+	});
+
+	it('renders 1000 queue ops without devirtualizing the list', () => {
+		const operationsIndex = new MutableIndex<QueueChange>();
+		const plugin = {
+			operationsIndex,
+			queueService: {
+				remove: vi.fn(),
+				clear: vi.fn(),
+				execute: vi.fn(async () => undefined),
+			},
+		} as unknown as VaultmanPlugin;
+
+		app = mount(ExplorerQueue as unknown as Component<{ plugin: VaultmanPlugin }>, {
+			target,
+			props: { plugin },
+		});
+		flushSync();
+
+		operationsIndex.emit(Array.from({ length: 1000 }, (_, index) => queueChange(`op-${index}`)));
+		flushSync();
+
+		const renderedRows = target.querySelectorAll('.vm-view-list-row[data-id]');
+		expect(renderedRows.length).toBeGreaterThan(0);
+		expect(renderedRows.length).toBeLessThan(50);
+		expect(target.textContent).toContain('Set status op-0');
+	});
+
+	it('foul-detection leaves queue rendering clean under thin native mode', () => {
+		target.remove();
+		const root = document.createElement('div');
+		root.classList.add('vm-root', 'vm-mode-thin', 'vm-id-native');
+		root.appendChild(target);
+		document.body.appendChild(root);
+		const operationsIndex = new MutableIndex<QueueChange>();
+		const plugin = {
+			operationsIndex,
+			queueService: {
+				remove: vi.fn(),
+				clear: vi.fn(),
+				execute: vi.fn(async () => undefined),
+			},
+		} as unknown as VaultmanPlugin;
+		const foulDetection = new FoulDetectionService();
+		foulDetection.enabled = true;
+
+		app = mount(ExplorerQueue as unknown as Component<{ plugin: VaultmanPlugin }>, {
+			target,
+			props: { plugin },
+		});
+		flushSync();
+		operationsIndex.emit([queueChange('op-1')]);
+		flushSync();
+
+		foulDetection.checkDomMimicry(root);
+
+		expect(foulDetection.fouls.filter((foul) => foul.kind === 'dom-mimicry')).toHaveLength(0);
+		root.remove();
 	});
 
 	it('renders the Queue island toolbar without a redundant close squircle', () => {

@@ -308,4 +308,50 @@ describe('ViewNodeList', () => {
 		expect(rowA.getAttribute('aria-selected')).toBe('true');
 		expect(rowA.id).toBe('vm-listrow-a');
 	});
+
+	it.each([1_000, 10_000, 50_000])('renders %d rows without devirtualizing', (n) => {
+		const rowInputs = Array.from({ length: n }, (_, index) =>
+			rowInputFromViewRow(row(`r${index}`, `Row ${index}`, '', []) as ViewRow<NodeBase>),
+		);
+		app = mount(ViewNodeList as unknown as Component<Record<string, unknown>>, {
+			target,
+			props: { rowInputs, icon: vi.fn(() => ({ update: vi.fn() })) },
+		});
+		flushSync();
+
+		const rendered = target.querySelectorAll('[role="listitem"], [role="option"]');
+		expect(rendered.length).toBeGreaterThan(0);
+		expect(rendered.length).toBeLessThan(50);
+		expect(target.textContent).toContain('Row 0');
+	});
+
+	it.each([
+		'vm-theme-default',
+		'vm-theme-native',
+		'vm-theme-polish',
+		'vm-theme-glass',
+		'vm-theme-custom',
+	])('renders without hidden rows under %s', (themeClass) => {
+		const rectSpy = vi
+			.spyOn(HTMLElement.prototype, 'getBoundingClientRect')
+			.mockImplementation(() => new DOMRect(0, 0, 320, 32));
+		document.body.classList.add(themeClass);
+		try {
+			const rowInputs: ExplorerRowInput<NodeBase>[] = [
+				rowInputFromViewRow(row('a', 'A', '', []) as ViewRow<NodeBase>),
+			];
+			app = mount(ViewNodeList as unknown as Component<Record<string, unknown>>, {
+				target,
+				props: { rowInputs, icon: vi.fn(() => ({ update: vi.fn() })) },
+			});
+			flushSync();
+
+			const rowEl = target.querySelector<HTMLElement>('[data-id="a"]');
+			expect(rowEl).toBeTruthy();
+			expect(rowEl!.getBoundingClientRect().width).toBeGreaterThan(0);
+		} finally {
+			document.body.classList.remove(themeClass);
+			rectSpy.mockRestore();
+		}
+	});
 });
