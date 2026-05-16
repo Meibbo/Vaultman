@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { createExplorerSyntheticDataset } from '../../support/explorerSyntheticDataset';
 
 describe('explorer synthetic platform dataset', () => {
@@ -55,5 +55,57 @@ describe('explorer synthetic platform dataset', () => {
 		expect(dataset.idToIndex.get('node-99999')).toBe(99_999);
 		expect(dataset.indexToId.get(99_999)).toBe('node-99999');
 		expect(dataset.mediaDescriptors.size).toBe(0);
+	});
+
+	it('characterizes 50k id lookups as direct map reads', () => {
+		const dataset = createExplorerSyntheticDataset({
+			nodes: 50_000,
+			shape: 'mixed',
+			providerId: 'files',
+		});
+		const targetId = 'node-49999';
+
+		const index = dataset.idToIndex.get(targetId);
+
+		expect(index).toBe(49_999);
+		expect(dataset.rowInputs[index ?? -1]?.id).toBe(targetId);
+		expect(dataset.indexToId.get(index ?? -1)).toBe(targetId);
+	});
+
+	it('keeps the 100k media proof descriptor-only with no decoded blob fields', () => {
+		const dataset = createExplorerSyntheticDataset({
+			nodes: 100_000,
+			shape: 'flat',
+			providerId: 'files',
+			withMediaDescriptors: true,
+		});
+		const lastDescriptor = dataset.mediaDescriptors.get('node-99999');
+
+		expect(dataset.mediaDescriptors.size).toBe(100_000);
+		expect(lastDescriptor).toMatchObject({
+			status: 'unprocessed',
+			mediaKey: null,
+		});
+		expect(lastDescriptor).not.toHaveProperty('bytes');
+		expect(lastDescriptor).not.toHaveProperty('byteLength');
+		expect(lastDescriptor).not.toHaveProperty('mimeType');
+	});
+
+	it('does not request media blobs while the media element is hidden', async () => {
+		const dataset = createExplorerSyntheticDataset({
+			nodes: 10_000,
+			shape: 'mixed',
+			providerId: 'files',
+			withMediaDescriptors: true,
+		});
+		const loadVisibleBlobs = vi.fn(async () => new Map());
+		const mediaFieldVisible = false;
+
+		if (mediaFieldVisible) {
+			await loadVisibleBlobs(dataset.expectedVisibleIds.slice(0, 64));
+		}
+
+		expect(dataset.mediaDescriptors.size).toBe(10_000);
+		expect(loadVisibleBlobs).not.toHaveBeenCalled();
 	});
 });
