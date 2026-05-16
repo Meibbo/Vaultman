@@ -197,7 +197,39 @@ describe('ViewTree scroll fallback', () => {
 		flushSync();
 
 		const outer = target.querySelector<HTMLDivElement>('.vm-tree-virtual-outer');
-		expect(outer?.scrollTop).toBeGreaterThan(0);
+		expect(outer?.scrollTop).toBe(1036);
 		expect(target.querySelector('[data-id="node-40"]')).not.toBeNull();
+	});
+
+	it('does not reveal projection rows when the target requires a newer revision', () => {
+		const projection = createExplorerProjection({
+			providerId: 'files',
+			viewMode: 'tree',
+			rowInputs: nodes(100).map((node) => rowInputFromTreeNode(node)),
+			sourceRevision: 4,
+		});
+
+		app = mount(ViewTree as unknown as Component<Record<string, unknown>>, {
+			target,
+			props: {
+				nodes: [],
+				projection,
+				expandedIds: new Set<string>(),
+				onToggle: vi.fn(),
+				onRowClick: vi.fn(),
+				onContextMenu: vi.fn(),
+				scrollTarget: {
+					id: 'node-40',
+					serial: 3,
+					minSnapshotRevision: 5,
+					reason: 'keyboard',
+				},
+				icon: vi.fn(() => ({ update: vi.fn() })),
+			},
+		});
+		flushSync();
+
+		const outer = target.querySelector<HTMLDivElement>('.vm-tree-virtual-outer');
+		expect(outer?.scrollTop).toBe(0);
 	});
 });
