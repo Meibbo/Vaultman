@@ -53,6 +53,7 @@
 		addOpCount = 0,
 		fieldDefinitions = [],
 		visibleFields = [],
+		nativePresetActive = false,
 		onVisibleFieldsChange,
 	}: {
 		activeTab: FiltersTab;
@@ -63,6 +64,7 @@
 		addOpCount?: number;
 		fieldDefinitions?: readonly NodeFieldDefinition[];
 		visibleFields?: readonly string[];
+		nativePresetActive?: boolean;
 		onVisibleFieldsChange?: (fields: string[]) => void;
 	} = $props();
 
@@ -154,20 +156,23 @@
 				<span class="vm-fab-badge">{addOpCount}</span>
 			{/if}
 		</div>
-		<!-- Pills (horizontal scroll, no scrollbar) -->
-		<div class="vm-viewmode-pills">
-			{#each fieldDefinitions as pill (pill.id)}
-				<button
-					type="button"
-					class="vm-viewmode-pill"
-					class:is-active={visibleFields.includes(pill.id)}
-					aria-pressed={visibleFields.includes(pill.id)}
-					onclick={() => togglePill(pill.id)}
-				>
-					{translate(pill.labelKey)}
-				</button>
-			{/each}
-		</div>
+		{#if !nativePresetActive}
+			<!-- Pills (horizontal scroll, no scrollbar) -->
+			<div class="vm-viewmode-pills">
+				{#each fieldDefinitions as pill (pill.id)}
+					<button
+						type="button"
+						class="vm-viewmode-pill"
+						class:is-active={visibleFields.includes(pill.id)}
+						aria-pressed={visibleFields.includes(pill.id)}
+						data-node-field={pill.id}
+						onclick={() => togglePill(pill.id)}
+					>
+						{translate(pill.labelKey)}
+					</button>
+				{/each}
+			</div>
+		{/if}
 	</div>
 
 	<!-- Row 2: view-mode squircles (via btnSelection shared primitive) -->

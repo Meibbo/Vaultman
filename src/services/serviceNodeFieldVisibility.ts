@@ -15,7 +15,8 @@ export type NodeFieldId =
 	| 'ext'
 	| 'tags'
 	| 'path'
-	| 'size';
+	| 'size'
+	| 'media';
 
 export interface NodeFieldDefinition {
 	id: NodeFieldId;
@@ -42,6 +43,7 @@ const COMMON_TAG_FIELDS: readonly NodeFieldDefinition[] = [
 	{ id: 'files', labelKey: 'viewmode.pill.files', defaultOn: false },
 	{ id: 'nested', labelKey: 'viewmode.pill.nested', defaultOn: false },
 	{ id: 'date', labelKey: 'viewmode.pill.date', defaultOn: false },
+	{ id: 'media', labelKey: 'viewmode.pill.media', defaultOn: false },
 ];
 
 const COMMON_PROP_FIELDS: readonly NodeFieldDefinition[] = [
@@ -51,6 +53,7 @@ const COMMON_PROP_FIELDS: readonly NodeFieldDefinition[] = [
 	{ id: 'type', labelKey: 'viewmode.pill.type', defaultOn: false },
 	{ id: 'values', labelKey: 'viewmode.pill.values', defaultOn: false },
 	{ id: 'date', labelKey: 'viewmode.pill.date', defaultOn: false },
+	{ id: 'media', labelKey: 'viewmode.pill.media', defaultOn: false },
 ];
 
 const FILE_CARD_FIELDS: readonly NodeFieldDefinition[] = [
@@ -60,6 +63,7 @@ const FILE_CARD_FIELDS: readonly NodeFieldDefinition[] = [
 	{ id: 'tags', labelKey: 'viewmode.pill.tags', defaultOn: false },
 	{ id: 'path', labelKey: 'viewmode.pill.path', defaultOn: false },
 	{ id: 'size', labelKey: 'viewmode.pill.size', defaultOn: false },
+	{ id: 'media', labelKey: 'viewmode.pill.media', defaultOn: false },
 ];
 
 const FILE_TREE_FIELDS: readonly NodeFieldDefinition[] = [
@@ -69,6 +73,7 @@ const FILE_TREE_FIELDS: readonly NodeFieldDefinition[] = [
 	{ id: 'date', labelKey: 'viewmode.pill.date', defaultOn: false },
 	{ id: 'tags', labelKey: 'viewmode.pill.tags', defaultOn: false },
 	{ id: 'path', labelKey: 'viewmode.pill.path', defaultOn: false },
+	{ id: 'media', labelKey: 'viewmode.pill.media', defaultOn: false },
 ];
 
 const CONTENT_FIELDS: readonly NodeFieldDefinition[] = [
@@ -76,6 +81,7 @@ const CONTENT_FIELDS: readonly NodeFieldDefinition[] = [
 	{ id: 'path', labelKey: 'viewmode.pill.path', defaultOn: true, identity: true },
 	{ id: 'text', labelKey: 'viewmode.pill.text', defaultOn: true, identity: true },
 	{ id: 'date', labelKey: 'viewmode.pill.date', defaultOn: false },
+	{ id: 'media', labelKey: 'viewmode.pill.media', defaultOn: false },
 ];
 
 export function fieldVisibilityKey(providerId: string, viewMode: ExplorerViewMode): string {

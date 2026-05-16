@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 import {
+	defaultVisibleFields,
 	fieldDefinitionsFor,
 	fieldVisibilityKey,
 	normalizeVisibleFields,
@@ -27,6 +28,7 @@ describe('serviceNodeFieldVisibility', () => {
 			'tags',
 			'path',
 			'size',
+			'media',
 		]);
 		expect(fieldDefinitionsFor('props', 'cards').map((field) => field.id)).toEqual([
 			'icon',
@@ -35,7 +37,26 @@ describe('serviceNodeFieldVisibility', () => {
 			'type',
 			'values',
 			'date',
+			'media',
 		]);
+	});
+
+	it('registers media as a legal node field that defaults off for every view', () => {
+		for (const providerId of ['files', 'props', 'tags', 'content']) {
+			for (const viewMode of ['tree', 'list', 'table', 'grid', 'cards'] as const) {
+				const media = fieldDefinitionsFor(providerId, viewMode).find(
+					(field) => field.id === 'media',
+				);
+
+				expect(media).toMatchObject({
+					id: 'media',
+					labelKey: 'viewmode.pill.media',
+					defaultOn: false,
+				});
+				expect(media?.identity).toBeUndefined();
+				expect(defaultVisibleFields(providerId, viewMode)).not.toContain('media');
+			}
+		}
 	});
 
 	it('falls back to defaults when settings are missing', () => {
@@ -47,11 +68,9 @@ describe('serviceNodeFieldVisibility', () => {
 	});
 
 	it('drops unknown fields and keeps stable ordering', () => {
-		expect(normalizeVisibleFields('files', 'cards', ['size', 'bogus', 'name', 'icon'])).toEqual([
-			'icon',
-			'name',
-			'size',
-		]);
+		expect(normalizeVisibleFields('files', 'cards', ['size', 'bogus', 'name', 'icon'])).toEqual(
+			['icon', 'name', 'size'],
+		);
 	});
 
 	it('repairs invalid identity state by restoring the first default identity field', () => {

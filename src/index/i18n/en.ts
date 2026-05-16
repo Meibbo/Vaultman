@@ -595,6 +595,7 @@ export const en: Record<string, string> = {
 	'viewmode.pill.tags': 'Tags',
 	'viewmode.pill.path': 'Path',
 	'viewmode.pill.size': 'Size',
+	'viewmode.pill.media': 'Media',
 	'viewmode.add_mode': 'ADD mode',
 
 	// Statistics
