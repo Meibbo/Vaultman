@@ -5,7 +5,7 @@ status: active
 parent: "[[docs/work/pkm-ai/index|pkm-ai]]"
 archive_source: "docs/archive/pkm-ai/active-docs/2026-05-11T080321-current-handoff.md"
 created: 2026-05-04T01:36:20
-updated: 2026-05-16T02:53:10
+updated: 2026-05-16T02:56:18
 tags:
   - agent/current
 created_by: dec
@@ -45,8 +45,8 @@ Older route history remains in
 - `9df9e50` (`plans: theme wiring for future theme builder`) is also in the
   branch history and was not part of this Explorer platform slice.
 - Current dirty files not owned by this Explorer platform work:
-  `README.md`, `manifest.json`, and `package.json`. Preserve them unless the
-  user explicitly asks otherwise.
+  deleted `CONTRIBUTING.md`, plus modified `README.md`, `manifest.json`, and
+  `package.json`. Preserve them unless the user explicitly asks otherwise.
 
 ## What Changed In This Slice
 
@@ -151,7 +151,7 @@ Contexto:
 - Siguiente task: Task 9, Media Descriptor Hidden-Cost Path.
 - No uses subagentes salvo que yo lo pida explicitamente.
 - No reviertas cambios ajenos. El working tree tiene cambios no propios en
-  README.md, manifest.json y package.json.
+  CONTRIBUTING.md, README.md, manifest.json y package.json.
 - Usa TDD: test fallando, implementacion minima, verificacion.
 - Primero feedback loops/harness/probes; no empieces por remake visual.
 - Antes de tocar Svelte, revisa patrones existentes y usa Svelte autofixer.

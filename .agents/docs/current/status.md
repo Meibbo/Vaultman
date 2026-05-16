@@ -5,7 +5,7 @@ status: active
 parent: "[[docs/work/pkm-ai/index|pkm-ai]]"
 archive_source: "docs/archive/pkm-ai/active-docs/2026-05-11T080321-current-status.md"
 created: 2026-05-04T01:36:20
-updated: 2026-05-16T02:53:10
+updated: 2026-05-16T02:56:18
 tags:
   - agent/current
 created_by: dec
@@ -54,8 +54,8 @@ Older route history remains in
   in the branch history between this session's commits and was not part of the
   Explorer platform task slice.
 - Current working tree still has unrelated/user changes in `README.md`,
-  `manifest.json`, and `package.json`. Do not include or revert them unless the
-  user explicitly asks.
+  `manifest.json`, and `package.json`, plus a deleted `CONTRIBUTING.md`. Do not
+  include or revert them unless the user explicitly asks.
 - Previous Explorer 0-H implementation/audit remains completed; key records:
   [[docs/work/hardening/plans/2026-05-15-explorer-0-h-virtualizer-list-mode/index|Explorer 0-H plan]],
   [[docs/work/hardening/plans/2026-05-15-explorer-0-h-virtualizer-list-mode/perf-baseline|0-H perf baseline]],
