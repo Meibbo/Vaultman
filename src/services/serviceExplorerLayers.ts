@@ -5,6 +5,7 @@ import type {
 	ExplorerViewMode,
 	ExplorerViewRevisions,
 	IViewService,
+	ViewAction,
 	ViewLayers,
 } from '../types/typeViews';
 import {
@@ -12,6 +13,7 @@ import {
 	nodeBadgesFromViewLayers,
 	withViewStateClasses,
 } from '../utils/utilViewLayers';
+import type { ExplorerProjection, ExplorerProjectionRow } from './serviceExplorerProjection';
 
 export interface ExplorerLayerBatchInput<TNode extends NodeBase> {
 	viewService: Pick<IViewService, 'getModel'>;
@@ -33,6 +35,29 @@ export interface ExplorerLayerBridgeOptions {
 	deletedClass?: string;
 }
 
+export interface ExplorerProjectionLayerBuildInput<TMeta = unknown> {
+	viewService: Pick<IViewService, 'getModel'>;
+	projection: ExplorerProjection<TMeta>;
+	operations?: readonly QueueChange[];
+	activeFilters?: readonly ActiveFilterEntry[];
+	revisions?: ExplorerViewRevisions;
+	getActions?: (row: ExplorerProjectionRow<TMeta>) => readonly ViewAction<TreeNode<TMeta>>[];
+	getDecorationContext?: (row: ExplorerProjectionRow<TMeta>) => unknown;
+}
+
+export interface ExplorerProjectionLayerBatch<TMeta = unknown> {
+	revisionKey: string;
+	layersById: ReadonlyMap<string, ViewLayers>;
+	actionsById: ReadonlyMap<string, readonly ViewAction<TreeNode<TMeta>>[]>;
+}
+
+export interface ExplorerLayerBuilder {
+	build<TMeta = unknown>(
+		input: ExplorerProjectionLayerBuildInput<TMeta>,
+	): ExplorerProjectionLayerBatch<TMeta>;
+	clear(): void;
+}
+
 export function buildExplorerLayerMap<TNode extends NodeBase>(
 	input: ExplorerLayerBatchInput<TNode>,
 ): ReadonlyMap<string, ViewLayers> {
@@ -52,6 +77,48 @@ export function buildExplorerLayerMap<TNode extends NodeBase>(
 	return layers;
 }
 
+export function createExplorerLayerBuilder(): ExplorerLayerBuilder {
+	const cache = new Map<string, ExplorerProjectionLayerBatch<unknown>>();
+
+	return {
+		build<TMeta = unknown>(
+			input: ExplorerProjectionLayerBuildInput<TMeta>,
+		): ExplorerProjectionLayerBatch<TMeta> {
+			const revisionKey = explorerProjectionLayerRevisionKey(input);
+			const cached = cache.get(revisionKey);
+			if (cached) return cached as ExplorerProjectionLayerBatch<TMeta>;
+
+			const rowsById = new Map(input.projection.rows.map((row) => [row.id, row]));
+			const nodes = input.projection.rows.map((row) => row.node);
+			const model =
+				getActivePerfProbe()?.measure(
+					'explorer.layers.build',
+					{ nodes: nodes.length },
+					() => buildProjectionLayerModel(input, rowsById, nodes),
+				) ?? buildProjectionLayerModel(input, rowsById, nodes);
+			const layersById = new Map<string, ViewLayers>();
+			const actionsById = new Map<string, readonly ViewAction<TreeNode<TMeta>>[]>();
+
+			for (const row of model.rows) {
+				layersById.set(row.id, row.layers);
+				actionsById.set(row.id, row.actions);
+			}
+
+			const batch: ExplorerProjectionLayerBatch<TMeta> = {
+				revisionKey,
+				layersById,
+				actionsById,
+			};
+			cache.set(revisionKey, batch as ExplorerProjectionLayerBatch<unknown>);
+			return batch;
+		},
+
+		clear(): void {
+			cache.clear();
+		},
+	};
+}
+
 function getLayerModel<TNode extends NodeBase>(input: ExplorerLayerBatchInput<TNode>) {
 	return input.viewService.getModel({
 		explorerId: input.explorerId,
@@ -64,6 +131,60 @@ function getLayerModel<TNode extends NodeBase>(input: ExplorerLayerBatchInput<TN
 		getDetail: input.getDetail,
 		getDecorationContext: input.getDecorationContext,
 	});
+}
+
+function buildProjectionLayerModel<TMeta>(
+	input: ExplorerProjectionLayerBuildInput<TMeta>,
+	rowsById: ReadonlyMap<string, ExplorerProjectionRow<TMeta>>,
+	nodes: readonly TreeNode<TMeta>[],
+) {
+	return input.viewService.getModel({
+		explorerId: input.projection.providerId,
+		mode: input.projection.viewMode,
+		nodes,
+		operations: input.operations,
+		activeFilters: input.activeFilters,
+		revisions: input.revisions,
+		getLabel: (node) => rowsById.get(node.id)?.rowInput.label ?? node.label,
+		getDetail: (node) => rowsById.get(node.id)?.rowInput.detail,
+		getActions: (node) => {
+			const row = rowsById.get(node.id);
+			if (!row) return [];
+			return input.getActions?.(row) ?? row.rowInput.actions ?? [];
+		},
+		getDecorationContext: input.getDecorationContext
+			? (node) => {
+					const row = rowsById.get(node.id);
+					return row ? input.getDecorationContext?.(row) : undefined;
+				}
+			: undefined,
+	});
+}
+
+function explorerProjectionLayerRevisionKey<TMeta>(
+	input: ExplorerProjectionLayerBuildInput<TMeta>,
+): string {
+	const revisions = input.revisions;
+	return [
+		`provider:${input.projection.providerId}`,
+		`mode:${input.projection.viewMode}`,
+		`source:${input.projection.sourceRevision}`,
+		`rows:${input.projection.rowsRevision}`,
+		`layout:${input.projection.layoutRevision}`,
+		`files:${revisions?.filesRevision ?? '-'}`,
+		`props:${revisions?.propsRevision ?? '-'}`,
+		`tags:${revisions?.tagsRevision ?? '-'}`,
+		`content:${revisions?.contentRevision ?? '-'}`,
+		`queue:${revisions?.queueRevision ?? '-'}`,
+		`filter:${revisions?.filterRevision ?? '-'}`,
+		`ops:${collectionIdKey(input.operations)}`,
+		`filters:${collectionIdKey(input.activeFilters)}`,
+	].join('|');
+}
+
+function collectionIdKey(items: readonly NodeBase[] | undefined): string {
+	if (!items || items.length === 0) return '-';
+	return items.map((item) => item.id).join('\u0001');
 }
 
 export function decorateTreeWithExplorerLayers<TMeta>(
