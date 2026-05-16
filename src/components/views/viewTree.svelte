@@ -531,6 +531,30 @@
 	}
 
 	function intersectingRowIds(box: NonNullable<typeof selectionBox>): string[] {
+		const renderedRows = Array.from(
+			outerEl?.querySelectorAll<HTMLElement>(
+				'.vm-tree-virtual-row:not(.vm-tree-sticky-row)',
+			) ?? [],
+		);
+		if (renderedRows.length > 0) {
+			const boxRect = viewportRectFromBox(box);
+			const ids: string[] = [];
+			let hasMeasuredRows = false;
+			for (const row of renderedRows) {
+				const id = row.dataset.id;
+				if (!id) continue;
+				const rowRect = row.getBoundingClientRect();
+				if (!rectHasArea(rowRect)) continue;
+				hasMeasuredRows = true;
+				if (rectsIntersect(boxRect, rowRect)) ids.push(id);
+			}
+			if (hasMeasuredRows) return ids;
+		}
+
+		return intersectingRowIdsByFixedGeometry(box);
+	}
+
+	function intersectingRowIdsByFixedGeometry(box: NonNullable<typeof selectionBox>): string[] {
 		const ids: string[] = [];
 		const boxRect = rectFromBox(box);
 		const width = outerEl?.scrollWidth || outerEl?.clientWidth || TREE_FALLBACK_WIDTH;
@@ -541,8 +565,22 @@
 		return ids;
 	}
 
+	function viewportRectFromBox(box: NonNullable<typeof selectionBox>): DOMRect {
+		const outerRect = outerEl!.getBoundingClientRect();
+		return new DOMRect(
+			outerRect.left + box.left - outerEl!.scrollLeft,
+			outerRect.top + box.top - outerEl!.scrollTop,
+			box.width,
+			box.height,
+		);
+	}
+
 	function rectFromBox(box: NonNullable<typeof selectionBox>): DOMRect {
 		return new DOMRect(box.left, box.top, box.width, box.height);
+	}
+
+	function rectHasArea(rect: DOMRect): boolean {
+		return rect.width > 0 || rect.height > 0;
 	}
 
 	function rectsIntersect(a: DOMRect, b: DOMRect): boolean {

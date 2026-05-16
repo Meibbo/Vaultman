@@ -233,7 +233,10 @@ function fileFieldText(node: TreeNode, id: string): string {
 		| null
 		| undefined;
 	if (id === 'path') return file?.path ?? meta?.folderPath ?? '';
-	if (id === 'ext') return file?.extension ?? '';
+	if (id === 'ext') {
+		const extension = file?.extension ?? '';
+		return extension.toLowerCase() === 'md' ? '' : extension;
+	}
 	if (id === 'size') return typeof file?.stat?.size === 'number' ? `${file.stat.size} B` : '';
 	if (id === 'date') {
 		return typeof file?.stat?.mtime === 'number' ? new Date(file.stat.mtime).toLocaleDateString() : '';

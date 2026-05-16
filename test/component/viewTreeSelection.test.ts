@@ -390,6 +390,54 @@ describe('ViewTree selection gestures', () => {
 		expect(handlers.onBoxSelect).toHaveBeenCalledWith(['alpha'], expect.any(PointerEvent));
 	});
 
+	it('shows a drag-box and resolves selected ids from rendered row geometry', () => {
+		const handlers = renderTree([
+			{ id: 'alpha', label: 'Alpha', depth: 0, meta: {} },
+			{ id: 'beta', label: 'Beta', depth: 0, meta: {} },
+		]);
+		const tree = target.querySelector('.vm-tree-virtual-outer') as HTMLElement;
+		const alpha = target.querySelector('[data-id="alpha"]') as HTMLElement;
+		const beta = target.querySelector('[data-id="beta"]') as HTMLElement;
+		Object.assign(tree, {
+			setPointerCapture: vi.fn(),
+			releasePointerCapture: vi.fn(),
+			hasPointerCapture: vi.fn(() => true),
+		});
+		vi.spyOn(tree, 'getBoundingClientRect').mockReturnValue(rect(0, 0, 240, 120));
+		vi.spyOn(alpha, 'getBoundingClientRect').mockReturnValue(rect(0, 64, 220, 92));
+		vi.spyOn(beta, 'getBoundingClientRect').mockReturnValue(rect(0, 4, 220, 32));
+
+		tree.dispatchEvent(
+			new PointerEvent('pointerdown', {
+				bubbles: true,
+				button: 0,
+				pointerId: 11,
+				clientX: 0,
+				clientY: 4,
+			}),
+		);
+		tree.dispatchEvent(
+			new PointerEvent('pointermove', {
+				bubbles: true,
+				pointerId: 11,
+				clientX: 230,
+				clientY: 26,
+			}),
+		);
+		flushSync();
+		expect(target.querySelector('.vm-selection-box')).not.toBeNull();
+		tree.dispatchEvent(
+			new PointerEvent('pointerup', {
+				bubbles: true,
+				pointerId: 11,
+				clientX: 230,
+				clientY: 26,
+			}),
+		);
+
+		expect(handlers.onBoxSelect).toHaveBeenCalledWith(['beta'], expect.any(PointerEvent));
+	});
+
 	it('keeps inherited badge actions and chevron expansion isolated on collapsed parents', () => {
 		const handlers = renderTree([
 			{
@@ -572,6 +620,16 @@ describe('ViewTree selection gestures', () => {
 		expect(
 			target.querySelector('[data-id="active-filter"]')?.getAttribute('aria-selected'),
 		).toBe('false');
+
+		const selected = target.querySelector('[data-id="selected"]') as HTMLElement;
+		const selectedSurface = selected.querySelector('.vm-tree-row-surface') as HTMLElement;
+		const activeFilter = target.querySelector('[data-id="active-filter"]') as HTMLElement;
+		const activeFilterSurface = activeFilter.querySelector('.vm-tree-row-surface') as HTMLElement;
+
+		expect(selected.classList.contains('is-selected')).toBe(true);
+		expect(selectedSurface.classList.contains('is-selected')).toBe(true);
+		expect(activeFilter.classList.contains('is-active-filter')).toBe(true);
+		expect(activeFilterSurface.classList.contains('is-active-filter')).toBe(true);
 	});
 
 	it('keeps selected, focused, and active-filter tree states distinct but coexisting', () => {
