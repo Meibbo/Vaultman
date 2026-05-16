@@ -35,8 +35,14 @@ export interface ExplorerProjection<TMeta = unknown> {
 	rows: readonly ExplorerProjectionRow<TMeta>[];
 	visibleIds: readonly string[];
 	idToIndex: ReadonlyMap<string, number>;
-	indexToId: ReadonlyMap<number, string>;
+	indexToId: ExplorerIndexToIdLookup;
 	mediaById: ReadonlyMap<string, ExplorerMediaRecord>;
+}
+
+export interface ExplorerIndexToIdLookup {
+	readonly size: number;
+	get(index: number): string | undefined;
+	has(index: number): boolean;
 }
 
 export function rowInputsFromProjection<TMeta = unknown>(
@@ -104,7 +110,7 @@ export function createExplorerProjection<TMeta = unknown>({
 
 const EMPTY_MEDIA_BY_ID: ReadonlyMap<string, ExplorerMediaRecord> = new Map();
 
-class IndexToIdMap implements ReadonlyMap<number, string> {
+class IndexToIdMap implements ExplorerIndexToIdLookup {
 	readonly [Symbol.toStringTag] = 'IndexToIdMap';
 
 	constructor(private readonly ids: readonly string[]) {}
@@ -121,35 +127,6 @@ class IndexToIdMap implements ReadonlyMap<number, string> {
 
 	has(index: number): boolean {
 		return Number.isInteger(index) && index >= 0 && index < this.ids.length;
-	}
-
-	forEach(
-		callbackfn: (value: string, key: number, map: ReadonlyMap<number, string>) => void,
-		thisArg?: unknown,
-	): void {
-		for (let index = 0; index < this.ids.length; index += 1) {
-			callbackfn.call(thisArg, this.ids[index], index, this);
-		}
-	}
-
-	*entries(): IterableIterator<[number, string]> {
-		for (let index = 0; index < this.ids.length; index += 1) {
-			yield [index, this.ids[index]];
-		}
-	}
-
-	*keys(): IterableIterator<number> {
-		for (let index = 0; index < this.ids.length; index += 1) {
-			yield index;
-		}
-	}
-
-	*values(): IterableIterator<string> {
-		yield* this.ids;
-	}
-
-	[Symbol.iterator](): IterableIterator<[number, string]> {
-		return this.entries();
 	}
 }
 
