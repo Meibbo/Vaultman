@@ -4,7 +4,7 @@ type: verification-record
 status: active
 parent: "[[docs/work/hardening/plans/2026-05-15-explorer-view-platform-pass/index|Explorer View Platform pass implementation plan]]"
 created: 2026-05-16T04:46:13.9320138-05:00
-updated: 2026-05-16T04:46:13.9320138-05:00
+updated: 2026-05-16T05:08:42.8385595-05:00
 tags:
   - agent/verification
   - explorer/performance
@@ -100,3 +100,77 @@ Task 19 should append the live snapshots for:
 - `tree-box-selection`
 - `tree-filtered-highlight`
 - `node-media-hidden-cost`
+
+## Task 19 Live Obsidian PerfProbe
+
+Recorded on `2026-05-16T05:08:42.8385595-05:00` against the explicit Obsidian
+CLI target `vault=plugin-dev`.
+
+Target confirmation:
+
+```powershell
+obsidian eval code="app.vault.getName()" vault=plugin-dev
+```
+
+Result: `plugin-dev`.
+
+Plugin reload:
+
+```powershell
+obsidian plugin:reload id=vaultman vault=plugin-dev
+```
+
+Result: `Reloaded: vaultman`.
+
+Perf probe availability:
+
+```powershell
+obsidian eval code="typeof window.__vaultmanPerfProbe" vault=plugin-dev
+```
+
+Result: `object`.
+
+UI command:
+
+```powershell
+obsidian command id=vaultman:open vault=plugin-dev
+```
+
+Result: `Executed: vaultman:open`.
+
+### Scenario Snapshots
+
+The scenarios were executed sequentially with:
+`window.__vaultmanPerfProbe.run(name, { steps })`.
+
+| Scenario | totalMs | maxMs | nodes | rows | visibleRows | files | longFrames | heapDelta |
+|---|---:|---:|---:|---:|---:|---:|---:|---:|
+| `files-list-10k-scroll-jump` | 39.5 | 39.5 | 10,000 | 10,000 | 64 | 10,000 | n/a | n/a |
+| `files-tree-10k-scroll-jump` | 21.3 | 21.3 | 10,000 | 10,000 | 64 | 10,000 | n/a | n/a |
+| `files-tree-50k-scroll-jump` | 33.3 | 33.3 | 50,000 | 50,000 | 64 | 50,000 | n/a | n/a |
+| `projection-50k-build-or-refresh` | 32.6 | 32.6 | 50,000 | 50,000 | 0 | 50,000 | n/a | n/a |
+| `projection-100k-proof` | 33.8 | 33.8 | 100,000 | 100,000 | 0 | 100,000 | n/a | n/a |
+| `tree-box-selection` | 33.7 | 33.7 | 0 | 0 | 0 | 0 | n/a | n/a |
+| `tree-filtered-highlight` | 35.9 | 35.9 | 0 | 0 | 0 | 0 | n/a | n/a |
+| `node-media-hidden-cost` | 29.1 | 29.1 | 10,000 | 10,000 | 0 | 10,000 | n/a | n/a |
+
+Notes:
+
+- `longFrameCount`, `maxLongFrameMs`, and `heapDeltaBytes` are currently not
+  populated by the probe implementation and returned `null` for all live
+  scenarios.
+- `tree-filtered-highlight` also recorded
+  `counters["scenario.tree-filtered-highlight.matches"].count = 1`.
+- The live run used the current `plugin-dev` DOM after `vaultman:open`; probe
+  scenario counters carry the intended synthetic scale metadata for the tested
+  scenario names.
+
+### Error Capture
+
+Command:
+
+```powershell
+obsidian dev:errors vault=plugin-dev
+```
+
+Result: `No errors captured.`
