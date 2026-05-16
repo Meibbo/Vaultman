@@ -20,7 +20,8 @@ if (options.scope === 'prod') {
 }
 
 const command = process.platform === 'win32' ? 'cmd.exe' : 'pnpm';
-const commandArgs = process.platform === 'win32' ? ['/d', '/s', '/c', 'pnpm', ...auditArgs] : auditArgs;
+const commandArgs =
+	process.platform === 'win32' ? ['/d', '/s', '/c', 'pnpm', ...auditArgs] : auditArgs;
 const result = spawnSync(command, commandArgs, {
 	encoding: 'utf8',
 });
@@ -42,7 +43,11 @@ const reportThreshold = rank(options.reportLevel);
 const failThreshold = rank(options.failLevel);
 const visibleAdvisories = advisories
 	.filter((advisory) => rank(advisory.severity) >= reportThreshold)
-	.sort((left, right) => rank(right.severity) - rank(left.severity) || left.module_name.localeCompare(right.module_name));
+	.sort(
+		(left, right) =>
+			rank(right.severity) - rank(left.severity) ||
+			left.module_name.localeCompare(right.module_name),
+	);
 const failingAdvisories = advisories.filter((advisory) => rank(advisory.severity) >= failThreshold);
 
 printSummary(report, options.scope);
@@ -51,13 +56,17 @@ if (visibleAdvisories.length > 0) {
 	console.log(`\n${options.scope} advisories at ${options.reportLevel}+ threshold:`);
 	for (const advisory of visibleAdvisories) {
 		const patched = advisory.patched_versions ? ` patched: ${advisory.patched_versions}` : '';
-		console.log(`- ${advisory.severity}: ${advisory.module_name} ${advisory.github_advisory_id}${patched}`);
+		console.log(
+			`- ${advisory.severity}: ${advisory.module_name} ${advisory.github_advisory_id}${patched}`,
+		);
 		console.log(`  ${advisory.title}`);
 	}
 }
 
 if (failingAdvisories.length > 0) {
-	console.error(`\n${options.scope} audit failed: ${failingAdvisories.length} advisories at ${options.failLevel}+ threshold.`);
+	console.error(
+		`\n${options.scope} audit failed: ${failingAdvisories.length} advisories at ${options.failLevel}+ threshold.`,
+	);
 	process.exit(1);
 }
 
