@@ -4,7 +4,7 @@ type: initiative-index
 status: active
 parent: "[[docs/work/pkm-ai/index|pkm-ai]]"
 created: 2026-05-04T01:44:46
-updated: 2026-05-11T20:55:00
+updated: 2026-05-16T08:27:52-05:00
 tags:
   - agent/work
   - initiative/hardening
@@ -35,10 +35,12 @@ quality work before it reaches `main`.
 - [[docs/work/hardening/specs/2026-05-05-bases-import-choose-mode/index|Bases import choose mode]]
 - [[docs/work/hardening/specs/2026-05-05-performance-diagnosis-loop/index|Performance diagnosis loop]]
 - [[docs/work/hardening/specs/2026-05-06-user-facing-recovery-wave-a/index|User-facing recovery wave A]]
+- [[docs/work/hardening/specs/2026-05-16-notebook-navigator-scroll-forensics/index|Notebook Navigator scroll forensics]]
 
 ## Active Research
 
 - [[docs/work/hardening/research/2026-05-16-openssf-osps-baseline/index|OpenSSF OSPS baseline research]]
+- [[docs/work/hardening/research/2026-05-16-multiview-virtualization-research/index|Multiview virtualization research]]
 
 ## Active Plans
 

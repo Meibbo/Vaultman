@@ -32,12 +32,15 @@
 		"test:e2e": "wdio run ./wdio.conf.mts",
 		"test:all": "vp run test:integrity && vp run test:e2e",
 		"verify": "vp run lint && vp run check && vp run build && vp run test:unit && vp run test:component",
+		"security:audit": "node scripts/security-audit.mjs --scope=prod --report-level=moderate --fail-level=high && node scripts/security-audit.mjs --scope=dev --report-level=moderate --fail-level=high",
+		"sbom:release": "node scripts/generate-release-sbom.mjs",
 		"audit:dead-exports": "ts-prune",
 		"audit:knip": "knip --reporter compact",
 		"audit:depcheck": "depcheck --ignores=\"@types/*,obsidian-integration-testing,wdio-obsidian-service\"",
 		"audit:all": "pnpm run audit:dead-exports ; pnpm run audit:knip ; pnpm run audit:depcheck"
 	},
 	"devDependencies": {
+		"@cyclonedx/cdxgen": "12.4.0",
 		"@eslint/js": "^9.39.4",
 		"@sveltejs/vite-plugin-svelte": "^7.1.2",
 		"@tanstack/svelte-virtual": "3.13.24",

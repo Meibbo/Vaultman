@@ -70,7 +70,7 @@ runtime declarations (`engines.node`, `.node-version`, `.nvmrc`), changed CI
 kept `cssMinify: 'esbuild'` because removing it caused Lightning CSS warnings
 for generated `:global(svg)` selectors during `pnpm run build:plugin`.
 
-- [ ] **Step 3: Add an audit gate with a documented threshold**
+- [x] **Step 3: Add an audit gate with a documented threshold**
 
 Recommended initial policy:
 
@@ -83,9 +83,16 @@ fixed version exists and the fix does not require an unrelated major migration.
 Expected: known advisories are not hidden, and the release gate is strict enough
 for runtime risk without blocking unrelated dev-only migration work.
 
+Execution note, 2026-05-16: CI now runs `vp run security:audit` after
+dependency install and before lint/build. The gate uses
+`scripts/security-audit.mjs`, which parses `pnpm audit --json` separately for
+production and development scopes. The documented threshold is: report
+`moderate` and above, fail on `high` or `critical`. Fresh local execution under
+Node 24.15.0 reported zero advisories for both scopes.
+
 ## Task 6: Release Provenance And Assets
 
-- [ ] **Step 1: Create a release workflow from tags**
+- [x] **Step 1: Create a release workflow from tags**
 
 Required sequence:
 
@@ -103,6 +110,14 @@ Required sequence:
 Expected: release assets are produced by CI from the tag, not manually from a
 developer workstation.
 
+Execution note, 2026-05-16: `.github/workflows/release.yml` now builds from
+tag pushes matching `v*` and supports `workflow_dispatch` dry runs. It installs
+with Vite+ on Node 24, runs `vp run verify`, runs the dependency audit gate,
+builds `main.js`, `manifest.json`, and `styles.css`, generates
+`SHA256SUMS`, generates `sbom.cdx.json` through `cdxgen`, attests the release
+assets plus SBOM with GitHub Artifact Attestations, uploads the bundle as a
+workflow artifact, and publishes the GitHub Release only from a tag ref.
+
 - [ ] **Step 2: Verify release dry run**
 
 Run the workflow on a test tag or `workflow_dispatch` dry run that does not
@@ -110,3 +125,10 @@ publish a public release.
 
 Expected: generated artifacts, checksums, SBOM, and attestation metadata are
 downloadable and match the built assets.
+
+Local execution note, 2026-05-16: the non-GitHub portions of the release flow
+were exercised locally under Node 24.15.0: `pnpm run build:plugin`, copying
+release assets to `dist/release`, `pnpm run sbom:release`, and generating
+SHA-256 checksums all completed. A true attestation/release dry run still needs
+the workflow to run in GitHub Actions after the branch is pushed; no push or
+test tag was created in this local slice.

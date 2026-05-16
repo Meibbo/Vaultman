@@ -16,12 +16,16 @@ jobs:
   verify:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: voidzero-dev/setup-vp@v1
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
+        with:
+          persist-credentials: false
+      - uses: voidzero-dev/setup-vp@9446e853b27985e00fb1b21193be026fc09198db
         with:
           node-version: '24'
           cache: true
       - run: vp install
+      - name: Run dependency security audit
+        run: vp run security:audit
       - run: vp run lint
       - run: vp run check
       - run: vp run build
@@ -29,7 +33,7 @@ jobs:
         run: vp run test:cover
       - name: Upload coverage report
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:
           name: coverage
           path: coverage/

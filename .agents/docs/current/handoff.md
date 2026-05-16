@@ -5,7 +5,7 @@ status: active
 parent: "[[docs/work/pkm-ai/index|pkm-ai]]"
 archive_source: "docs/archive/pkm-ai/active-docs/2026-05-11T080321-current-handoff.md"
 created: 2026-05-04T01:36:20
-updated: 2026-05-16T06:20:10-05:00
+updated: 2026-05-16T08:27:52-05:00
 tags:
   - agent/current
 created_by: dec
@@ -31,6 +31,8 @@ Compact handoff after archiving the oversized current handoff:
   - [[docs/work/hardening/plans/2026-05-15-explorer-view-platform-pass/index|Explorer View Platform pass implementation plan]]
   - [[docs/work/hardening/plans/2026-05-15-explorer-view-platform-pass/perf-baseline|Explorer View Platform perf baseline]]
   - [[docs/work/hardening/plans/2026-05-15-explorer-view-platform-pass/07-performance-comparison-repair|Explorer platform performance comparison repair]]
+  - [[docs/work/hardening/specs/2026-05-16-notebook-navigator-scroll-forensics/index|Notebook Navigator scroll forensics]]
+  - [[docs/work/hardening/research/2026-05-16-multiview-virtualization-research/index|Multiview virtualization research]]
 - Preserve existing dirty unrelated files. Do not stage or revert them unless
   the user explicitly asks.
 
@@ -110,7 +112,12 @@ Compact handoff after archiving the oversized current handoff:
 
 ## Next Action
 
-- If continuing Explorer work, prepare review/PR or branch cleanup from
-  `claude/explorer`; commit the post-review repair first if accepted.
+- If continuing Explorer scroll work, start from the scroll-forensics spec:
+  implement the plugin-dev burst-scroll blank detector first, capture the
+  failing baseline, then fix bounded fallbacks and variable-height offset
+  indexing. Use the multiview virtualization research for architecture
+  direction: keep TanStack as default, add a shared layout/index service, and
+  evaluate `virtua` only after the harness exists. Do not accept CPU-only
+  bridge timing as final scroll parity.
 - If resuming OpenSSF hardening, start from:
   `.agents/docs/work/hardening/plans/2026-05-16-openssf-osps-baseline/01-scope-docs-workflow-permissions.md`.
