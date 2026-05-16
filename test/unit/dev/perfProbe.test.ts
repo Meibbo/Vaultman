@@ -3,8 +3,25 @@ import {
 	clearActivePerfProbe,
 	createPerfProbe,
 	getActivePerfProbe,
+	PERF_SCENARIO_NAMES,
+	type PerfScenarioName,
 	setActivePerfProbe,
 } from '../../../src/dev/perfProbe';
+
+const explorerPlatformScenarioNames = [
+	'files-list-10k-scroll-jump',
+	'files-tree-10k-scroll-jump',
+	'files-tree-50k-scroll-jump',
+	'projection-50k-build-or-refresh',
+	'projection-100k-proof',
+	'view-menu-element-toggle',
+	'view-mode-native-preset-restore',
+	'tree-box-selection',
+	'tree-filtered-highlight',
+	'node-media-descriptor-build',
+	'node-media-hidden-cost',
+	'node-media-visible-subscribe',
+] as const satisfies readonly PerfScenarioName[];
 
 describe('perf probe contract', () => {
 	it('counts events with payload totals', () => {
@@ -99,5 +116,29 @@ describe('perf probe contract', () => {
 
 		expect(requestAnimationFrame).toHaveBeenCalled();
 		expect(result.scenario).toBe('tree-scroll');
+	});
+
+	it('registers explorer platform scenarios as runnable snapshot contracts', async () => {
+		expect(PERF_SCENARIO_NAMES).toEqual(expect.arrayContaining(explorerPlatformScenarioNames));
+
+		for (const name of explorerPlatformScenarioNames) {
+			const probe = createPerfProbe({ now: () => 0 });
+			const result = await probe.api.run(name);
+
+			expect(result.scenario).toBe(name);
+			expect(result.counters[`scenario.${name}`].count).toBe(1);
+		}
+	});
+
+	it('includes jank-ready snapshot fields for future live probes', () => {
+		const probe = createPerfProbe({ now: () => 0 });
+		const snapshot = probe.snapshot();
+
+		expect(Object.hasOwn(snapshot, 'longFrameCount')).toBe(true);
+		expect(Object.hasOwn(snapshot, 'maxLongFrameMs')).toBe(true);
+		expect(Object.hasOwn(snapshot, 'heapDeltaBytes')).toBe(true);
+		expect(snapshot.longFrameCount).toBeUndefined();
+		expect(snapshot.maxLongFrameMs).toBeUndefined();
+		expect(snapshot.heapDeltaBytes).toBeUndefined();
 	});
 });

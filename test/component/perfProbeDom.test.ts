@@ -86,4 +86,62 @@ describe('perf probe DOM scenarios', () => {
 		expect(result.counters['scenario.operation-badges'].count).toBe(1);
 		expect(clicks).toBe(1);
 	});
+
+	it('runs files list scroll jump against a guarded list scroller', async () => {
+		let scrolls = 0;
+		document.body.innerHTML = '<div class="vm-view-list"></div>';
+		const list = document.querySelector<HTMLElement>('.vm-view-list');
+		expect(list).toBeTruthy();
+		Object.defineProperty(list, 'clientHeight', { value: 100, configurable: true });
+		Object.defineProperty(list, 'scrollHeight', { value: 1_000, configurable: true });
+		list?.addEventListener('scroll', () => {
+			scrolls += 1;
+		});
+		const probe = createPerfProbe({ now: () => performance.now(), doc: document });
+
+		const result = await probe.api.run('files-list-10k-scroll-jump', { steps: 5 });
+
+		expect(result.scenario).toBe('files-list-10k-scroll-jump');
+		expect(result.counters['scenario.files-list-10k-scroll-jump']).toMatchObject({
+			count: 1,
+			totalNodes: 10_000,
+			totalRows: 10_000,
+			totalFiles: 10_000,
+		});
+		expect(scrolls).toBe(5);
+	});
+
+	it('runs platform menu and tree visual scenarios when matching DOM exists', async () => {
+		let menuClicks = 0;
+		let presetClicks = 0;
+		let boxEvents = 0;
+		document.body.innerHTML = `
+			<button data-node-field="media"></button>
+			<button data-vm-view-preset="native"></button>
+			<div class="vm-tree-virtual-outer">
+				<div class="vm-tree-row-surface is-active-filter"></div>
+				<div class="is-active-filter"><div class="vm-tree-row-surface"></div></div>
+			</div>
+		`;
+		document.querySelector('[data-node-field="media"]')?.addEventListener('click', () => {
+			menuClicks += 1;
+		});
+		document.querySelector('[data-vm-view-preset="native"]')?.addEventListener('click', () => {
+			presetClicks += 1;
+		});
+		document.querySelector('.vm-tree-virtual-outer')?.addEventListener('pointermove', () => {
+			boxEvents += 1;
+		});
+		const probe = createPerfProbe({ now: () => performance.now(), doc: document });
+
+		await probe.api.run('view-menu-element-toggle');
+		await probe.api.run('view-mode-native-preset-restore');
+		await probe.api.run('tree-box-selection');
+		const result = await probe.api.run('tree-filtered-highlight');
+
+		expect(menuClicks).toBe(1);
+		expect(presetClicks).toBe(1);
+		expect(boxEvents).toBe(1);
+		expect(result.counters['scenario.tree-filtered-highlight.matches'].totalRows).toBe(2);
+	});
 });

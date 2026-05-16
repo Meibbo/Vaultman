@@ -22,11 +22,26 @@ export interface PerfProbeTiming extends PerfProbeCounter {
 	maxMs: number;
 }
 
-export type PerfScenarioName =
-	| 'filters-search'
-	| 'tree-scroll'
-	| 'filter-select'
-	| 'operation-badges';
+export const PERF_SCENARIO_NAMES = [
+	'filters-search',
+	'tree-scroll',
+	'filter-select',
+	'operation-badges',
+	'files-list-10k-scroll-jump',
+	'files-tree-10k-scroll-jump',
+	'files-tree-50k-scroll-jump',
+	'projection-50k-build-or-refresh',
+	'projection-100k-proof',
+	'view-menu-element-toggle',
+	'view-mode-native-preset-restore',
+	'tree-box-selection',
+	'tree-filtered-highlight',
+	'node-media-descriptor-build',
+	'node-media-hidden-cost',
+	'node-media-visible-subscribe',
+] as const;
+
+export type PerfScenarioName = (typeof PERF_SCENARIO_NAMES)[number];
 
 export interface PerfScenarioOptions {
 	query?: string;
@@ -39,6 +54,9 @@ export interface PerfProbeSnapshot {
 	endedAt: number;
 	counters: Record<string, PerfProbeCounter>;
 	timings: Record<string, PerfProbeTiming>;
+	longFrameCount?: number;
+	maxLongFrameMs?: number;
+	heapDeltaBytes?: number;
 }
 
 export interface PerfProbeApi {
@@ -151,6 +169,66 @@ function scrollElement(element: HTMLElement, steps: number): void {
 	}
 }
 
+function dragBoxSelection(element: HTMLElement): void {
+	const win = element.ownerDocument.defaultView;
+	const EventConstructor = win?.PointerEvent ?? win?.MouseEvent ?? MouseEvent;
+	const rect = element.getBoundingClientRect();
+	const startX = rect.left + 8;
+	const startY = rect.top + 8;
+	const endX = rect.left + Math.max(48, Math.min(rect.width || 160, 160));
+	const endY = rect.top + Math.max(48, Math.min(rect.height || 160, 160));
+
+	element.dispatchEvent(
+		new EventConstructor('pointerdown', {
+			bubbles: true,
+			cancelable: true,
+			clientX: startX,
+			clientY: startY,
+		}),
+	);
+	element.dispatchEvent(
+		new EventConstructor('pointermove', {
+			bubbles: true,
+			cancelable: true,
+			clientX: endX,
+			clientY: endY,
+		}),
+	);
+	element.dispatchEvent(
+		new EventConstructor('pointerup', {
+			bubbles: true,
+			cancelable: true,
+			clientX: endX,
+			clientY: endY,
+		}),
+	);
+}
+
+function scenarioMetricInput(name: PerfScenarioName): PerfProbeMetricInput | undefined {
+	if (name === 'files-list-10k-scroll-jump') {
+		return { nodes: 10_000, rows: 10_000, visibleRows: 64, files: 10_000 };
+	}
+	if (name === 'files-tree-10k-scroll-jump') {
+		return { nodes: 10_000, rows: 10_000, visibleRows: 64, files: 10_000 };
+	}
+	if (name === 'files-tree-50k-scroll-jump') {
+		return { nodes: 50_000, rows: 50_000, visibleRows: 64, files: 50_000 };
+	}
+	if (name === 'projection-50k-build-or-refresh') {
+		return { nodes: 50_000, rows: 50_000, files: 50_000 };
+	}
+	if (name === 'projection-100k-proof') {
+		return { nodes: 100_000, rows: 100_000, files: 100_000 };
+	}
+	if (name === 'node-media-descriptor-build' || name === 'node-media-hidden-cost') {
+		return { nodes: 10_000, rows: 10_000, files: 10_000 };
+	}
+	if (name === 'node-media-visible-subscribe') {
+		return { nodes: 10_000, rows: 10_000, visibleRows: 64, files: 10_000 };
+	}
+	return undefined;
+}
+
 export function createPerfProbe({ now, doc }: PerfProbeOptions): PerfProbe {
 	let startedAt = now();
 	let counters: Record<string, PerfProbeCounter> = {};
@@ -209,6 +287,9 @@ export function createPerfProbe({ now, doc }: PerfProbeOptions): PerfProbe {
 			endedAt: now(),
 			counters,
 			timings,
+			longFrameCount: undefined,
+			maxLongFrameMs: undefined,
+			heapDeltaBytes: undefined,
 		};
 	}
 
@@ -217,23 +298,50 @@ export function createPerfProbe({ now, doc }: PerfProbeOptions): PerfProbe {
 		options: PerfScenarioOptions = {},
 	): Promise<PerfProbeSnapshot> {
 		reset();
-		count(`scenario.${name}`);
+		const scenarioInput = scenarioMetricInput(name);
+		count(`scenario.${name}`, scenarioInput);
 
-		if (name === 'filters-search') {
-			const input = doc?.querySelector<HTMLInputElement>('.vm-filters-search-input');
-			if (input) inputText(input, options.query ?? 'status');
-		} else if (name === 'tree-scroll') {
-			const outer = doc?.querySelector<HTMLElement>('.vm-tree-virtual-outer');
-			if (outer) scrollElement(outer, options.steps ?? 8);
-		} else if (name === 'filter-select') {
-			const row = doc?.querySelector<HTMLElement>('.vm-tree-virtual-row');
-			if (row) clickElement(row);
-		} else if (name === 'operation-badges') {
-			const badge = doc?.querySelector<HTMLElement>('.vm-badge.is-undoable, .vm-badge');
-			if (badge) clickElement(badge);
-		}
+		await measureAsync(`scenario.${name}.duration`, scenarioInput, async () => {
+			if (name === 'filters-search') {
+				const input = doc?.querySelector<HTMLInputElement>('.vm-filters-search-input');
+				if (input) inputText(input, options.query ?? 'status');
+			} else if (name === 'tree-scroll' || name === 'files-tree-10k-scroll-jump') {
+				const outer = doc?.querySelector<HTMLElement>('.vm-tree-virtual-outer');
+				if (outer) scrollElement(outer, options.steps ?? 8);
+			} else if (name === 'files-tree-50k-scroll-jump') {
+				const outer = doc?.querySelector<HTMLElement>('.vm-tree-virtual-outer');
+				if (outer) scrollElement(outer, options.steps ?? 16);
+			} else if (name === 'files-list-10k-scroll-jump') {
+				const outer = doc?.querySelector<HTMLElement>('.vm-view-list');
+				if (outer) scrollElement(outer, options.steps ?? 8);
+			} else if (name === 'filter-select') {
+				const row = doc?.querySelector<HTMLElement>('.vm-tree-virtual-row');
+				if (row) clickElement(row);
+			} else if (name === 'operation-badges') {
+				const badge = doc?.querySelector<HTMLElement>('.vm-badge.is-undoable, .vm-badge');
+				if (badge) clickElement(badge);
+			} else if (name === 'view-menu-element-toggle') {
+				const toggle = doc?.querySelector<HTMLElement>(
+					'[data-node-field], [data-testid="view-menu-element-toggle"], .vm-view-menu [role="checkbox"]',
+				);
+				if (toggle) clickElement(toggle);
+			} else if (name === 'view-mode-native-preset-restore') {
+				const preset = doc?.querySelector<HTMLElement>(
+					'[data-vm-view-preset="native"], [data-testid="view-mode-native-preset"], .vm-view-mode-native-preset',
+				);
+				if (preset) clickElement(preset);
+			} else if (name === 'tree-box-selection') {
+				const outer = doc?.querySelector<HTMLElement>('.vm-tree-virtual-outer');
+				if (outer) dragBoxSelection(outer);
+			} else if (name === 'tree-filtered-highlight') {
+				const highlighted = doc?.querySelectorAll(
+					'.vm-tree-row-surface.is-active-filter, .is-active-filter .vm-tree-row-surface',
+				);
+				count('scenario.tree-filtered-highlight.matches', { rows: highlighted?.length ?? 0 });
+			}
 
-		await waitFrames(doc, 2);
+			await waitFrames(doc, 2);
+		});
 		return { ...snapshot(), scenario: name };
 	}
 
