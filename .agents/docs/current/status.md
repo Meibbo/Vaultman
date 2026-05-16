@@ -5,7 +5,7 @@ status: active
 parent: "[[docs/work/pkm-ai/index|pkm-ai]]"
 archive_source: "docs/archive/pkm-ai/active-docs/2026-05-11T080321-current-status.md"
 created: 2026-05-04T01:36:20
-updated: 2026-05-16T03:07:25
+updated: 2026-05-16T03:52:00
 tags:
   - agent/current
 created_by: dec
@@ -37,10 +37,11 @@ Older route history remains in
   [[docs/work/hardening/specs/2026-05-15-explorer-view-platform-pass/index|Explorer View Platform pass spec]].
 - Active Explorer platform plan:
   [[docs/work/hardening/plans/2026-05-15-explorer-view-platform-pass/index|Explorer View Platform pass implementation plan]].
-- Latest implementation slice: executed Tasks 1-9 of the Explorer View
+- Latest implementation slice: executed Tasks 1-12 of the Explorer View
   Platform pass on `claude/explorer`, starting with feedback loops/probes and
   then adding projection, feature/menu, media field, scroll geometry, and
-  batched decoration/media lifecycle contracts.
+  batched decoration/media lifecycle contracts, followed by tree visual
+  contract recovery.
 - Latest Explorer platform commits:
   - `883cb0a` `test: add explorer synthetic dataset harness`
   - `c813daf` `test: add explorer platform perf scenarios`
@@ -51,12 +52,14 @@ Older route history remains in
   - `abe6766` `feat: add explorer scroll geometry coordinator`
   - `89861aa` `feat: batch explorer decoration layers`
   - `40505ac` `feat: wire explorer media descriptors without hidden render cost`
+  - `a79f905` `fix: restore tree visual contract`
 - Note: `9df9e50` (`plans: theme wiring for future theme builder`) is present
   in the branch history between this session's commits and was not part of the
   Explorer platform task slice.
-- Current working tree still has unrelated/user changes in `README.md`,
-  `manifest.json`, and `package.json`, plus a deleted `CONTRIBUTING.md`. Do not
-  include or revert them unless the user explicitly asks.
+- Current working tree still has unrelated/user changes, including `.gitignore`,
+  `README.md`, `manifest.json`, `package.json`, eslint rule/script paths, and
+  many deleted docs. Do not include or revert them unless the user explicitly
+  asks.
 - Previous Explorer 0-H implementation/audit remains completed; key records:
   [[docs/work/hardening/plans/2026-05-15-explorer-0-h-virtualizer-list-mode/index|Explorer 0-H plan]],
   [[docs/work/hardening/plans/2026-05-15-explorer-0-h-virtualizer-list-mode/perf-baseline|0-H perf baseline]],
@@ -104,19 +107,27 @@ Older route history remains in
   `pnpm exec vitest run --project unit --config vitest.config.ts test/unit/services/serviceExplorerMediaDescriptor.test.ts test/unit/services/serviceExplorerMediaCache.test.ts test/unit/services/serviceExplorerProjection.test.ts test/unit/performance/explorerPlatformSynthetic.test.ts --fileParallelism=false`
   = 4 files / 15 tests; `pnpm exec tsc -noEmit -skipLibCheck` passed;
   `git diff --check` passed.
+- Task 10 RED baseline:
+  `pnpm exec vitest run --project component --config vitest.config.ts test/component/viewTreeVisualContract.test.ts test/component/viewTreeSelection.test.ts --fileParallelism=false`
+  failed as expected: 1 failed / 1 passed files, 3 failed / 20 passed tests.
+  Failures are markdown extension visibility, extension-zone trailing layout,
+  and selected+filtered visual composition.
+- Task 11 RED/GREEN:
+  `pnpm exec vitest run --project component --config vitest.config.ts test/component/viewTreeSelection.test.ts --fileParallelism=false`
+  first failed with `alpha` selected instead of rendered-geometry `beta`, then
+  passed: 1 file / 20 tests. `pnpm check` passed with 0 errors / 0 warnings.
+- Task 12 GREEN:
+  component Task 10+11 command passed: 2 files / 24 tests; field/style unit
+  command passed: 2 files / 10 tests; `pnpm check` passed; `pnpm exec tsc
+  -noEmit -skipLibCheck` passed. Full `git diff --check` is currently blocked
+  by unrelated `.gitignore:69`; slice-limited `git diff --check -- <owned
+  paths>` passed.
 
 ## Known Residuals
 
-- Task 10 is next: tree visual baseline tests in
-  `test/component/viewTreeVisualContract.test.ts` plus
-  `test/component/viewTreeSelection.test.ts`.
 - Real `viewTree` platform migration is not complete. Current tree/list changes
   only introduced the scroll geometry coordinator path; visual remake is still
-  out of scope except the accepted tree fixes later in the plan.
-- Tree visual recovery is still pending: selection box, selected grey,
-  filtered accent-left-border plus translucent accent background,
-  selected+filtered composition, right-aligned file extensions, and hidden
-  `.md`.
+  out of scope beyond the accepted tree fixes now committed.
 - Map/ViewNodeMap remains deferred and must not be exposed as a selectable
   next-release view.
 - Live `plugin-dev` 10K/50K/100K perfProbe runs are still pending for later
@@ -126,7 +137,5 @@ Older route history remains in
 
 ## Next Action
 
-- Continue from Task 10 in
-  [[docs/work/hardening/plans/2026-05-15-explorer-view-platform-pass/04-tree-visual-contract-recovery|Tree visual contract recovery]].
-- Use TDD: add failing selected/filtered state, style, and extension placement
-  component assertions before fixing tree visuals.
+- Continue from Task 13 in
+  [[docs/work/hardening/plans/2026-05-15-explorer-view-platform-pass/05-viewtree-platform-migration|ViewTree platform migration]].

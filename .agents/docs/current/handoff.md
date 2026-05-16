@@ -5,7 +5,7 @@ status: active
 parent: "[[docs/work/pkm-ai/index|pkm-ai]]"
 archive_source: "docs/archive/pkm-ai/active-docs/2026-05-11T080321-current-handoff.md"
 created: 2026-05-04T01:36:20
-updated: 2026-05-16T03:07:25
+updated: 2026-05-16T03:52:00
 tags:
   - agent/current
 created_by: dec
@@ -33,7 +33,7 @@ Older route history remains in
   - `.agents/docs/work/hardening/specs/2026-05-15-explorer-view-platform-pass/index.md`
   - `.agents/docs/work/hardening/plans/2026-05-15-explorer-view-platform-pass/index.md`
   - `.agents/docs/work/hardening/plans/2026-05-15-explorer-view-platform-pass/04-tree-visual-contract-recovery.md`
-- Tasks 1-9 are implemented and committed:
+- Tasks 1-12 are implemented and committed:
   - `883cb0a` synthetic dataset harness.
   - `c813daf` perfProbe scenario contract.
   - `1372853` synthetic scale characterization.
@@ -43,11 +43,13 @@ Older route history remains in
   - `abe6766` scroll geometry coordinator.
   - `89861aa` batched decoration layer builder.
   - `40505ac` media descriptor hidden-cost path.
+  - `a79f905` tree visual contract recovery.
 - `9df9e50` (`plans: theme wiring for future theme builder`) is also in the
   branch history and was not part of this Explorer platform slice.
-- Current dirty files not owned by this Explorer platform work:
-  deleted `CONTRIBUTING.md`, plus modified `README.md`, `manifest.json`, and
-  `package.json`. Preserve them unless the user explicitly asks otherwise.
+- Current dirty files not owned by this Explorer platform work include
+  `.gitignore`, `README.md`, `manifest.json`, `package.json`, eslint
+  rule/script paths, and many deleted docs. Preserve them unless explicitly
+  asked. Current owned dirty files are only current docs/plan updates.
 
 ## What Changed In This Slice
 
@@ -88,6 +90,10 @@ Older route history remains in
 - `viewTree.svelte` and `ViewNodeList.svelte` now route low-risk id-to-index
   reveal/focus scrolling through the new coordinator. This is not the full
   `viewTree` platform migration.
+- `a79f905` adds tree visual contract tests, restores box selection against
+  rendered row geometry, hides markdown file extensions, right-aligns non-md
+  extensions, and composes selected+filtered styling with selected grey plus an
+  accent marker.
 
 ## Verification
 
@@ -104,6 +110,22 @@ Older route history remains in
 - Task 9 GREEN/focused gate:
   `pnpm exec vitest run --project unit --config vitest.config.ts test/unit/services/serviceExplorerMediaDescriptor.test.ts test/unit/services/serviceExplorerMediaCache.test.ts test/unit/services/serviceExplorerProjection.test.ts test/unit/performance/explorerPlatformSynthetic.test.ts --fileParallelism=false`
   passed: 4 files / 15 tests.
+- Task 10 RED baseline:
+  `pnpm exec vitest run --project component --config vitest.config.ts test/component/viewTreeVisualContract.test.ts test/component/viewTreeSelection.test.ts --fileParallelism=false`
+  failed as expected: 1 failed / 1 passed files, 3 failed / 20 passed tests.
+  Failing contracts: hide markdown `ext`, right-align the extension field zone,
+  and keep selected+filtered rows on the selected grey base with the accent
+  filter marker.
+- Task 11 RED/GREEN:
+  `pnpm exec vitest run --project component --config vitest.config.ts test/component/viewTreeSelection.test.ts --fileParallelism=false`
+  failed first on fixed-index box geometry selecting `alpha`, then passed with
+  rendered-row geometry: 1 file / 20 tests. `pnpm check` passed with 0 errors /
+  0 warnings. Svelte autofixer on `viewTree.svelte`: `issues: []`.
+- Task 12 GREEN:
+  component Task 10+11 command passed: 2 files / 24 tests; field/style unit
+  command passed: 2 files / 10 tests; `pnpm check` passed; `pnpm exec tsc
+  -noEmit -skipLibCheck` passed. Full `git diff --check` is blocked by
+  unrelated `.gitignore:69`; slice-limited diff check passed.
 - Latest type/hygiene verification:
   `pnpm exec tsc -noEmit -skipLibCheck` passed; `git diff --check` passed.
 - Earlier Tasks 1-7 focused gates passed, including latest Task 7
@@ -131,16 +153,13 @@ Older route history remains in
 
 ## Next Action
 
-- Continue with Task 10: Tree Visual Baseline Tests in
-  `.agents/docs/work/hardening/plans/2026-05-15-explorer-view-platform-pass/04-tree-visual-contract-recovery.md`.
-- Files for Task 10:
-  - Create: `test/component/viewTreeVisualContract.test.ts`
-  - Modify: `test/component/viewTreeSelection.test.ts`
+- Continue with Task 13: Tree Projection Adapter in
+  `.agents/docs/work/hardening/plans/2026-05-15-explorer-view-platform-pass/05-viewtree-platform-migration.md`.
 - TDD order:
-  1. Add selected/filtered state tests.
-  2. Add style contract assertions.
-  3. Add extension placement assertions.
-  4. Run focused component tests and expect RED until visual fixes land.
+  1. Add adapter contract tests.
+  2. Implement the minimal tree projection adapter path.
+  3. Run focused tree/platform tests.
+  4. Commit only owned files.
 
 ## Prompt For Next Agent
 
@@ -164,7 +183,8 @@ Primero lee:
 Contexto:
 - Tasks 1-9 del Explorer View Platform pass ya estan implementadas y
   commiteadas hasta `40505ac`.
-- Siguiente task: Task 10, Tree Visual Baseline Tests.
+- Tasks 1-12 estan commiteadas hasta `a79f905`.
+- Siguiente task: Task 13, Tree Projection Adapter.
 - No uses subagentes salvo que yo lo pida explicitamente.
 - No reviertas cambios ajenos. El working tree tiene cambios no propios en
   CONTRIBUTING.md, README.md, manifest.json y package.json.
@@ -174,9 +194,6 @@ Contexto:
 - Si algo del plan contradice el codigo real, deten, explica el conflicto y
   propone ajuste conservador.
 
-Empieza ejecutando Task 10:
-- Crear test/component/viewTreeVisualContract.test.ts con tests rojos.
-- Modificar test/component/viewTreeSelection.test.ts.
-- Cubrir selected/filtered state composition, style contract y extension
-  placement antes de tocar viewTree.svelte.
+Empieza ejecutando Task 13 desde:
+.agents/docs/work/hardening/plans/2026-05-15-explorer-view-platform-pass/05-viewtree-platform-migration.md
 ```
