@@ -10,6 +10,10 @@
 		rowInputVirtualKey,
 		type ExplorerRowInput,
 	} from '../../services/serviceExplorerRowInput';
+	import {
+		rowInputsFromProjection,
+		type ExplorerProjection,
+	} from '../../services/serviceExplorerProjection';
 	import { createExplorerScrollGeometry } from '../../services/serviceExplorerScrollGeometry';
 	import type { NodeBase } from '../../types/typeContracts';
 	import type { ViewAction, ViewBadge, ViewRow } from '../../types/typeViews';
@@ -25,6 +29,7 @@
 
 	interface Props {
 		rowInputs?: readonly ListRowInput[];
+		projection?: ExplorerProjection<NodeBase>;
 		canReorder?: boolean;
 		onAction?: (action: ListAction, row: ListRowInput) => void;
 		onReorder?: (request: ListReorderRequest) => void;
@@ -45,6 +50,7 @@
 
 	let {
 		rowInputs = [],
+		projection,
 		canReorder = false,
 		onAction,
 		onReorder,
@@ -69,8 +75,9 @@
 	let fallbackViewportHeight = $state(LIST_FALLBACK_HEIGHT);
 
 	const rowHeight = $derived(ROW_HEIGHT);
-	const rowCount = $derived(rowInputs.length);
-	const rowIdToIndex = $derived(buildRowInputIdIndex(rowInputs));
+	const effectiveRowInputs = $derived(projection ? rowInputsFromProjection(projection) : rowInputs);
+	const rowCount = $derived(effectiveRowInputs.length);
+	const rowIdToIndex = $derived(buildRowInputIdIndex(effectiveRowInputs));
 	const isListboxMode = $derived(Boolean(onSelect || onFocus));
 	const keyboardEnabled = $derived(Boolean(onSelect || onFocus || onActivate));
 	const activeFocusedId = $derived(localFocusedId ?? focusedId ?? null);
@@ -82,7 +89,7 @@
 	const rowVirtualizer = createVirtualizer<HTMLDivElement, HTMLDivElement>({
 		count: 0,
 		getScrollElement: () => outerEl ?? null,
-		getItemKey: (index) => rowInputVirtualKey(rowInputs, index),
+		getItemKey: (index) => rowInputVirtualKey(effectiveRowInputs, index),
 		estimateSize: () => rowHeight,
 		observeElementRect: observeListRect,
 		overscan: LIST_OVERSCAN,
@@ -98,14 +105,14 @@
 			viewportHeight: fallbackViewportHeight,
 			scrollTop: fallbackScrollTop,
 			overscan: LIST_OVERSCAN,
-			getKey: (index) => rowInputVirtualKey(rowInputs, index),
+			getKey: (index) => rowInputVirtualKey(effectiveRowInputs, index),
 		});
 	});
 	const totalH = $derived($rowVirtualizer.getTotalSize());
 
 	$effect(() => {
 		const count = rowCount;
-		const rows = rowInputs;
+		const rows = effectiveRowInputs;
 		const scrollElement = outerEl;
 		const height = rowHeight;
 		const overscan = LIST_OVERSCAN;
@@ -185,18 +192,19 @@
 	}
 
 	function handleKeydown(event: KeyboardEvent) {
-		if (!rowInputs.length) return;
+		if (!effectiveRowInputs.length) return;
 		const idx = currentFocusedIndex();
 		let nextIdx: number | null = null;
-		if (event.key === 'ArrowDown') nextIdx = Math.min(idx + 1, rowInputs.length - 1);
+		if (event.key === 'ArrowDown') nextIdx = Math.min(idx + 1, effectiveRowInputs.length - 1);
 		else if (event.key === 'ArrowUp') nextIdx = Math.max(idx - 1, 0);
 		else if (event.key === 'Home') nextIdx = 0;
-		else if (event.key === 'End') nextIdx = rowInputs.length - 1;
-		else if (event.key === 'PageDown') nextIdx = Math.min(idx + 10, rowInputs.length - 1);
+		else if (event.key === 'End') nextIdx = effectiveRowInputs.length - 1;
+		else if (event.key === 'PageDown')
+			nextIdx = Math.min(idx + 10, effectiveRowInputs.length - 1);
 		else if (event.key === 'PageUp') nextIdx = Math.max(idx - 10, 0);
 
 		if (nextIdx !== null && nextIdx !== idx) {
-			const row = rowInputs[nextIdx];
+			const row = effectiveRowInputs[nextIdx];
 			setFocusedRow(row.id);
 			if (event.shiftKey && onSelect) {
 				onSelect(row, { ctrl: false, shift: true, alt: false });
@@ -205,18 +213,20 @@
 			return;
 		}
 		if (event.key === 'Enter' && idx >= 0 && onActivate) {
-			onActivate(rowInputs[idx]);
+			onActivate(effectiveRowInputs[idx]);
 			event.preventDefault();
 			return;
 		}
 		if ((event.key === ' ' || event.key === 'Spacebar') && idx >= 0 && onSelect) {
-			onSelect(rowInputs[idx], { ctrl: false, shift: false, alt: false });
+			onSelect(effectiveRowInputs[idx], { ctrl: false, shift: false, alt: false });
 			event.preventDefault();
 		}
 	}
 
 	function currentFocusedIndex(): number {
-		const idx = activeFocusedId ? rowInputs.findIndex((row) => row.id === activeFocusedId) : -1;
+		const idx = activeFocusedId
+			? effectiveRowInputs.findIndex((row) => row.id === activeFocusedId)
+			: -1;
 		return idx >= 0 ? idx : 0;
 	}
 
@@ -337,7 +347,7 @@
 >
 	<div class="vm-view-list-inner vm-explorer-popup-inner" style="height: {totalH}px">
 		{#each renderedVirtualRows as virtualRow (virtualRow.key)}
-			{@const row = rowInputs[virtualRow.index]}
+			{@const row = effectiveRowInputs[virtualRow.index]}
 			{#if row}
 				{@const iconName = rowIcon(row)}
 				{@const badges = allBadges(row)}

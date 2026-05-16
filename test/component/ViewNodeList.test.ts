@@ -1,6 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { flushSync, mount, unmount, type Component } from 'svelte';
 import ViewNodeList from '../../src/components/views/ViewNodeList.svelte';
+import { createExplorerProjection } from '../../src/services/serviceExplorerProjection';
 import {
 	rowInputFromViewRow,
 	type ExplorerRowInput,
@@ -165,6 +166,34 @@ describe('ViewNodeList', () => {
 		expect(target.querySelectorAll('[role="listitem"]').length).toBe(2);
 		expect(target.textContent).toContain('Row A');
 		expect(target.textContent).toContain('Row B');
+	});
+
+	it('renders projection rows without direct rowInputs', () => {
+		const rowInputs: ExplorerRowInput<NodeBase>[] = [
+			rowInputFromViewRow(row('a', 'Projected A', '', []) as ViewRow<NodeBase>),
+			rowInputFromViewRow(row('b', 'Projected B', '', []) as ViewRow<NodeBase>),
+		];
+		const projection = createExplorerProjection({
+			providerId: 'files',
+			viewMode: 'list',
+			rowInputs,
+			sourceRevision: 9,
+		});
+		app = mount(ViewNodeList as unknown as Component<Record<string, unknown>>, {
+			target,
+			props: {
+				projection,
+				selectedIds: new Set(['b']),
+				onSelect: vi.fn(),
+				icon: vi.fn(() => ({ update: vi.fn() })),
+			},
+		});
+		flushSync();
+
+		expect(target.querySelectorAll('[role="listitem"], [role="option"]').length).toBe(2);
+		expect(target.textContent).toContain('Projected A');
+		expect(target.textContent).toContain('Projected B');
+		expect(target.querySelector('[data-id="b"]')?.getAttribute('aria-selected')).toBe('true');
 	});
 
 	it('onSelect fires with SelectModifiers on click', () => {

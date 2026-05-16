@@ -39,6 +39,10 @@
 		rowInputFromTreeNode,
 		type ExplorerRowInput,
 	} from '../../services/serviceExplorerRowInput';
+	import {
+		createExplorerProjection,
+		type ExplorerProjection,
+	} from '../../services/serviceExplorerProjection';
 	import { NodeSelectionService } from '../../services/serviceSelection.svelte';
 	import type { TreeNode } from '../../types/typeNode';
 	import { bubbleHiddenTreeBadges } from '../../utils/utilBadgeBubbling';
@@ -153,7 +157,7 @@
 		hasExpansionSurface && expandableNodeIds.some((id) => expandedIds.has(id)),
 	);
 	const decoratedNodeById = $derived.by(() => buildNodeLookup(nodes));
-	const treeRowInputs = $derived.by((): ExplorerRowInput[] | undefined => {
+	const treeRowInputs = $derived.by((): ExplorerRowInput<TMeta>[] | undefined => {
 		const snapshot = filesSnapshot;
 		if (!snapshot || viewMode !== 'tree') return undefined;
 		return snapshot.rows.map((row) => {
@@ -163,6 +167,18 @@
 				label: decorated?.label ?? row.label,
 				node: decorated ?? row.node,
 			});
+		});
+	});
+	const treeProjection = $derived.by((): ExplorerProjection<TMeta> | undefined => {
+		const snapshot = filesSnapshot;
+		const inputs = treeRowInputs;
+		if (!snapshot || viewMode !== 'tree' || !inputs) return undefined;
+		return createExplorerProjection<TMeta>({
+			providerId: provider.id,
+			viewMode: 'tree',
+			rowInputs: inputs,
+			sourceRevision: snapshot.structureRevision,
+			layoutRevision: snapshot.revision,
 		});
 	});
 	const displayNodes = $derived(
@@ -198,12 +214,23 @@
 					...row,
 					label: decorated?.label ?? row.label,
 					node: decorated ?? row.node,
-				}) as ExplorerRowInput<NodeBase>;
+				}) as unknown as ExplorerRowInput<NodeBase>;
 			});
 		}
 		return nodes.map(
 			(node) => rowInputFromTreeNode(node) as unknown as ExplorerRowInput<NodeBase>,
 		);
+	});
+	const listProjection = $derived.by((): ExplorerProjection<NodeBase> | undefined => {
+		const snapshot = filesSnapshot;
+		if (!snapshot || viewMode !== 'list') return undefined;
+		return createExplorerProjection<NodeBase>({
+			providerId: provider.id,
+			viewMode: 'list',
+			rowInputs: listRowInputs,
+			sourceRevision: snapshot.structureRevision,
+			layoutRevision: snapshot.revision,
+		});
 	});
 	const tableRows = $derived(viewMode === 'table' ? nodeRowsFromTree(nodes) : []);
 	const tableColumns = $derived(nodeTableColumnsForProvider<TMeta>(provider.id, visibleFields));
@@ -258,7 +285,7 @@
 	const filesSnapshot = $derived.by(() => {
 		if (provider.id !== 'files') return null;
 		subscribeFilesSnapshot();
-		return plugin.explorerDataPlaneService?.snapshot('files') ?? null;
+		return plugin.explorerDataPlaneService?.snapshot<TMeta>('files') ?? null;
 	});
 
 	$effect(() => {
@@ -1183,6 +1210,7 @@
 				<ViewTree
 					nodes={displayNodes}
 					rowInputs={treeRowInputs}
+					projection={treeProjection}
 					{expandedIds}
 					selectedIds={selectedNodeIds}
 					focusedId={focusedNodeId}
@@ -1306,6 +1334,7 @@
 			{:else}
 				<ViewNodeList
 					rowInputs={listRowInputs}
+					projection={listProjection}
 					canReorder={false}
 					selectedIds={selectedNodeIds}
 					focusedId={focusedNodeId}

@@ -714,4 +714,12 @@ describe('reactive explorer components', () => {
 
 		expect(tabContentBlock).not.toMatch(/transition:\s*opacity/);
 	});
+
+	it('wires panel tree and list views through shared explorer projections', () => {
+		const source = readFileSync('src/components/containers/panelExplorer.svelte', 'utf8');
+
+		expect(source).toContain('createExplorerProjection');
+		expect(source).toMatch(/<ViewTree[\s\S]*projection={treeProjection}/);
+		expect(source).toMatch(/<ViewNodeList[\s\S]*projection={listProjection}/);
+	});
 });

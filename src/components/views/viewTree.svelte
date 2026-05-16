@@ -1,4 +1,4 @@
-<script lang="ts">
+<script lang="ts" generics="TMeta = unknown">
 	import { untrack } from 'svelte';
 	import { createVirtualizer } from '@tanstack/svelte-virtual';
 	import type { NodeBadge, TreeNode } from '../../types/typeNode';
@@ -77,8 +77,8 @@
 		hasChildren: boolean;
 	}
 
-	interface TreeFlatNode extends FlatNode {
-		row: ExplorerRowInput;
+	interface TreeFlatNode extends FlatNode<TMeta> {
+		row: ExplorerRowInput<TMeta>;
 		index: number;
 		parentIndex: number | null;
 		ancestorIndices: number[];
@@ -86,8 +86,8 @@
 	}
 
 	interface TreeRowNode {
-		row: ExplorerRowInput;
-		node: TreeNode;
+		row: ExplorerRowInput<TMeta>;
+		node: TreeNode<TMeta>;
 		children: TreeRowNode[];
 	}
 
@@ -98,9 +98,9 @@
 	}
 
 	interface Props {
-		nodes: TreeNode[];
-		rowInputs?: readonly ExplorerRowInput[];
-		projection?: ExplorerProjection;
+		nodes: TreeNode<TMeta>[];
+		rowInputs?: readonly ExplorerRowInput<TMeta>[];
+		projection?: ExplorerProjection<TMeta>;
 		expandedIds: Set<string>;
 		selectedIds?: Set<string>;
 		focusedId?: string | null;
@@ -593,7 +593,7 @@
 	}
 
 	function flatProjectionRows(
-		inputs: readonly ExplorerRowInput[],
+		inputs: readonly ExplorerRowInput<TMeta>[],
 		expanded: ReadonlySet<string>,
 	): TreeFlatNode[] {
 		const indexById = new Map(inputs.map((row, index) => [row.id, index]));
@@ -690,13 +690,13 @@
 	}
 
 	function treeRowsFromInputs(
-		items: readonly TreeNode[],
-		inputs: readonly ExplorerRowInput[] | undefined,
+		items: readonly TreeNode<TMeta>[],
+		inputs: readonly ExplorerRowInput<TMeta>[] | undefined,
 	): TreeRowNode[] {
 		return inputs === undefined ? treeRowsFromNodes(items) : treeRowsFromRowInputs(inputs);
 	}
 
-	function treeRowsFromNodes(items: readonly TreeNode[]): TreeRowNode[] {
+	function treeRowsFromNodes(items: readonly TreeNode<TMeta>[]): TreeRowNode[] {
 		return items.map((node) => {
 			const children = treeRowsFromNodes(node.children ?? []);
 			const row = rowInputFromTreeNode(node);
@@ -704,9 +704,9 @@
 		});
 	}
 
-	function treeRowsFromRowInputs(inputs: readonly ExplorerRowInput[]): TreeRowNode[] {
+	function treeRowsFromRowInputs(inputs: readonly ExplorerRowInput<TMeta>[]): TreeRowNode[] {
 		const byId = new Map(inputs.map((row) => [row.id, row]));
-		const childrenByParent = new Map<string, ExplorerRowInput[]>();
+		const childrenByParent = new Map<string, ExplorerRowInput<TMeta>[]>();
 		const referencedChildIds = new Set<string>();
 		for (const row of inputs) {
 			if (row.parentId && byId.has(row.parentId)) {
@@ -722,7 +722,7 @@
 
 		const built = new Map<string, TreeRowNode>();
 		const building = new Set<string>();
-		const build = (row: ExplorerRowInput): TreeRowNode => {
+		const build = (row: ExplorerRowInput<TMeta>): TreeRowNode => {
 			const existing = built.get(row.id);
 			if (existing) return existing;
 			if (building.has(row.id)) return treeRowNode(row, []);
@@ -730,7 +730,7 @@
 			const explicitChildren =
 				row.childrenIds
 					?.map((childId) => byId.get(childId))
-					.filter((child): child is ExplorerRowInput => Boolean(child)) ?? [];
+					.filter((child): child is ExplorerRowInput<TMeta> => Boolean(child)) ?? [];
 			const childRows =
 				explicitChildren.length > 0 ? explicitChildren : (childrenByParent.get(row.id) ?? []);
 			const children =
@@ -746,7 +746,7 @@
 		return inputs.filter((row) => !referencedChildIds.has(row.id)).map(build);
 	}
 
-	function treeRowNode(row: ExplorerRowInput, children: TreeRowNode[]): TreeRowNode {
+	function treeRowNode(row: ExplorerRowInput<TMeta>, children: TreeRowNode[]): TreeRowNode {
 		const node = rowInputToTreeNode(row);
 		node.children = children.length > 0 ? children.map((child) => child.node) : undefined;
 		return { row, node, children };
@@ -825,7 +825,10 @@
 			.filter((row) => row.top + height > 0);
 	}
 
-	function treeVirtualItemKey(items: readonly ExplorerRowInput[], index: number): string | number {
+	function treeVirtualItemKey(
+		items: readonly ExplorerRowInput<TMeta>[],
+		index: number,
+	): string | number {
 		return rowInputVirtualKey(items, index);
 	}
 
