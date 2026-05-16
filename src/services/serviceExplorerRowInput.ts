@@ -2,6 +2,7 @@ import type { QueueChange } from '../types/typeContracts';
 import type { ExplorerRevealTarget, ExplorerSnapshotRow } from '../types/typeExplorerDataPlane';
 import type { TreeNode } from '../types/typeNode';
 import type { ViewAction, ViewCell, ViewLayers, ViewRow } from '../types/typeViews';
+import type { ExplorerMediaRecord } from './serviceExplorerMediaCache';
 import {
 	highlightsFromViewLayers,
 	nodeBadgesFromViewLayers,
@@ -35,12 +36,14 @@ export interface ExplorerRowInput<TMeta = unknown> {
 	childrenIds?: readonly string[];
 	domainKey?: string;
 	path?: string;
+	mediaDescriptor?: ExplorerMediaRecord;
 }
 
 export interface RowInputOptions {
 	layers?: ViewLayers;
 	detail?: string;
 	disabled?: boolean;
+	mediaDescriptor?: ExplorerMediaRecord;
 }
 
 export interface RowInputTreeBridgeOptions {
@@ -78,6 +81,7 @@ export function rowInputFromSnapshotRow<TMeta>(
 		childrenIds: row.childrenIds,
 		domainKey: row.domainKey,
 		path: row.path,
+		mediaDescriptor: options.mediaDescriptor,
 	};
 }
 
@@ -98,6 +102,7 @@ export function rowInputFromTreeNode<TMeta>(
 		layers: options.layers ?? layersFromTreeNode(node),
 		disabled: options.disabled,
 		childrenIds: node.children?.map((child) => child.id),
+		mediaDescriptor: options.mediaDescriptor,
 	};
 }
 

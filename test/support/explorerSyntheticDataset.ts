@@ -78,6 +78,10 @@ export function createExplorerSyntheticDataset(
 		const parentId = parentIds[index];
 		const path = node.meta.file?.path;
 		const layers = syntheticLayers(index, options);
+		const mediaDescriptor =
+			options.withMediaDescriptors && path
+				? createSyntheticMediaDescriptor(id, path, index)
+				: undefined;
 
 		idToIndex.set(id, index);
 		indexToId.set(index, id);
@@ -86,16 +90,17 @@ export function createExplorerSyntheticDataset(
 		if (node.children?.length) expandedIds.add(id);
 		if (isNth(index, options.selectedEvery)) selectedIds.add(id);
 		if (isNth(index, options.filteredEvery)) activeFilterIds.add(id);
-		if (options.withMediaDescriptors && path) {
-			mediaDescriptors.set(id, createSyntheticMediaDescriptor(id, path, index));
+		if (mediaDescriptor) {
+			mediaDescriptors.set(id, mediaDescriptor);
 		}
 
 		return {
-			...rowInputFromTreeNode(node, { layers }),
+			...rowInputFromTreeNode(node, { layers, mediaDescriptor }),
 			parentId,
 			childrenIds: node.children?.map((child) => child.id) ?? [],
 			domainKey: `${options.providerId}:${id}`,
 			path,
+			mediaDescriptor,
 		};
 	});
 
