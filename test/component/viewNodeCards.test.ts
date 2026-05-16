@@ -1,6 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { flushSync, mount, unmount, type Component } from 'svelte';
 import ViewNodeCards from '../../src/components/views/ViewNodeCards.svelte';
+import { createExplorerProjection } from '../../src/services/serviceExplorerProjection';
 import { rowInputFromTreeNode } from '../../src/services/serviceExplorerRowInput';
 import type { TextMeasureService } from '../../src/services/serviceTextMeasure';
 import type { TreeNode } from '../../src/types/typeNode';
@@ -129,6 +130,48 @@ describe('ViewNodeCards', () => {
 		expect(onCardClick).toHaveBeenCalledWith('callback:alpha', expect.any(MouseEvent));
 		expect(onContextMenu).toHaveBeenCalledWith('callback:alpha', expect.any(MouseEvent));
 		expect(onCardKeydown).toHaveBeenCalledWith('callback:alpha', expect.any(KeyboardEvent));
+	});
+
+	it('renders projection card payloads without making media descriptors visible by default', () => {
+		const onCardClick = vi.fn();
+		const [alpha] = nodes;
+		const rowInput = {
+			...rowInputFromTreeNode(alpha, {
+				mediaDescriptor: {
+					targetKey: 'alpha',
+					target: { kind: 'file', path: 'alpha.png' },
+					status: 'ready' as const,
+					mediaKey: 'media:alpha',
+				},
+			}),
+			callbackId: 'callback:projection-alpha',
+			label: 'Projection card alpha',
+		};
+		const projection = createExplorerProjection({
+			providerId: 'files',
+			viewMode: 'cards',
+			rowInputs: [rowInput],
+			sourceRevision: 16,
+		});
+
+		render({
+			nodes: [],
+			projection,
+			providerId: 'files',
+			visibleFields: ['icon', 'name'],
+			onCardClick,
+		});
+
+		const card = target.querySelector<HTMLElement>('[data-id="alpha"]');
+		expect(card).not.toBeNull();
+		expect(card?.dataset.callbackId).toBe('callback:projection-alpha');
+		expect(card?.textContent).toContain('Projection card alpha');
+		expect(card?.querySelector('[data-card-field="media"]')).toBeFalsy();
+		expect(card?.textContent).not.toContain('media:alpha');
+
+		card!.click();
+
+		expect(onCardClick).toHaveBeenCalledWith('callback:projection-alpha', expect.any(MouseEvent));
 	});
 
 	it('removes queued operations from direct node badges without selecting the card', () => {

@@ -10,6 +10,10 @@
 		type ExplorerRowInput,
 	} from '../../services/serviceExplorerRowInput';
 	import {
+		rowInputsFromProjection,
+		type ExplorerProjection,
+	} from '../../services/serviceExplorerProjection';
+	import {
 		CARD_HEIGHT_BUCKETS,
 		measureNodeCard,
 		rowHeightForCards,
@@ -68,6 +72,7 @@
 		providerId: string;
 		nodes?: TreeNode[];
 		rowInputs?: ExplorerRowInput[];
+		projection?: ExplorerProjection;
 		visibleFields: readonly string[];
 		selectedIds?: ReadonlySet<string>;
 		focusedId?: string | null;
@@ -89,6 +94,7 @@
 		providerId,
 		nodes = [],
 		rowInputs = undefined,
+		projection = undefined,
 		visibleFields,
 		selectedIds = EMPTY_SELECTED_IDS,
 		focusedId = null,
@@ -120,7 +126,11 @@
 	$effect(() => () => mouse.cancelAll());
 
 	const contentWidth = $derived(contentWidthFor(cardsWidth, columnCount));
-	const cardInputs = $derived(rowInputs ?? nodes.map((node) => rowInputFromTreeNode(node)));
+	const cardInputs = $derived(
+		projection
+			? rowInputsFromProjection(projection)
+			: (rowInputs ?? nodes.map((node) => rowInputFromTreeNode(node))),
+	);
 	const cardRows = $derived(buildCardRows(cardInputs, columnCount, contentWidth, cardMeasureStyle));
 	const rowVirtualizer = createVirtualizer<HTMLDivElement, HTMLDivElement>({
 		count: 0,

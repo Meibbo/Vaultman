@@ -14,6 +14,11 @@
 	import type { NodeBadge } from '../../types/typeNode';
 	import type { ExplorerRowInput } from '../../services/serviceExplorerRowInput';
 	import {
+		rowInputsFromProjection,
+		type ExplorerProjection,
+	} from '../../services/serviceExplorerProjection';
+	import { nodeRowsFromRowInputs } from '../../services/serviceViewTableAdapter';
+	import {
 		createTextMeasureService,
 		fallbackTextMeasureEngine,
 		type TextMeasureService,
@@ -55,6 +60,7 @@
 	interface Props<TNode extends NodeBase = NodeBase> {
 		rows: RowInputCompatibleRow<TNode>[];
 		columns: ViewColumn<TNode>[];
+		projection?: ExplorerProjection;
 		selectedIds?: ReadonlySet<string>;
 		selectedMap?: ReadonlyMap<string, boolean>;
 		focusedId?: string | null;
@@ -79,6 +85,7 @@
 	let {
 		rows,
 		columns,
+		projection = undefined,
 		selectedIds = EMPTY_SELECTED_IDS,
 		selectedMap,
 		focusedId = null,
@@ -119,7 +126,11 @@
 
 	$effect(() => () => mouse.cancelAll());
 
-	const tableRows = $derived(sortRows(rows, columns, sorting));
+	const projectionRows = $derived(
+		projection ? nodeRowsFromRowInputs(rowInputsFromProjection(projection)) : undefined,
+	);
+	const sourceTableRows = $derived((projectionRows ?? rows) as RowInputCompatibleRow<TNode>[]);
+	const tableRows = $derived(sortRows(sourceTableRows, columns, sorting));
 	const effectiveTableLabelWidth = $derived(columnWidth ?? tableLabelWidth);
 	const tableMeasureRevision = $derived(
 		`${nodeRowMeasureStyleKey(tableMeasureStyle)}:${columns.length}:${tableRows.length}:${effectiveTableLabelWidth}`,
@@ -631,7 +642,7 @@
 		style:--vm-node-table-total-h={`${totalHeight}px`}
 	>
 		{#each renderedRows as virtualRow (virtualRow.key)}
-				{@const row = tableRows[virtualRow.index]}
+			{@const row = tableRows[virtualRow.index]}
 			{#if row}
 				{@const id = row.id}
 				{@const isSelected = selectedMap?.get(id) ?? selectedIds.has(id)}

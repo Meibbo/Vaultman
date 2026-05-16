@@ -2,6 +2,8 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { flushSync, mount, unmount, type Component } from 'svelte';
 import ViewNodeTable from '../../src/components/views/ViewNodeTable.svelte';
 import { ThemeService } from '../../src/services/serviceTheme.svelte';
+import { createExplorerProjection } from '../../src/services/serviceExplorerProjection';
+import { rowInputFromTreeNode } from '../../src/services/serviceExplorerRowInput';
 import type { TextMeasureService } from '../../src/services/serviceTextMeasure';
 import {
 	DEFAULT_NODE_TABLE_COLUMNS,
@@ -142,5 +144,39 @@ describe('ViewNodeTable Pretext heightmap', () => {
 
 		expect(target.querySelector('.vm-node-table-row.nav-file')).toBeTruthy();
 		expect(target.querySelector('.vm-node-table-primary.nav-file-title')).toBeTruthy();
+	});
+
+	it('renders table rows from an explorer projection without direct rows', () => {
+		const onRowClick = vi.fn();
+		const [alpha] = nodes;
+		const rowInput = {
+			...rowInputFromTreeNode(alpha),
+			callbackId: 'callback:table-alpha',
+			label: 'Projection table alpha',
+		};
+		const projection = createExplorerProjection({
+			providerId: 'files',
+			viewMode: 'table',
+			rowInputs: [rowInput],
+			sourceRevision: 16,
+		});
+
+		render({
+			rows: [],
+			projection,
+			selectedIds: new Set(['short-1']),
+			onRowClick,
+			measure: measureStub(),
+		});
+
+		const row = target.querySelector<HTMLElement>('[data-id="short-1"]');
+		expect(row).not.toBeNull();
+		expect(row?.dataset.callbackId).toBe('callback:table-alpha');
+		expect(row?.textContent).toContain('Projection table alpha');
+		expect(row?.getAttribute('aria-selected')).toBe('true');
+
+		row!.click();
+
+		expect(onRowClick).toHaveBeenCalledWith('callback:table-alpha', expect.any(MouseEvent));
 	});
 });

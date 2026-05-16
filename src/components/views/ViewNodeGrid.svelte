@@ -50,6 +50,10 @@
 		rowInputToTreeNode,
 		type ExplorerRowInput,
 	} from '../../services/serviceExplorerRowInput';
+	import {
+		rowInputsFromProjection,
+		type ExplorerProjection,
+	} from '../../services/serviceExplorerProjection';
 	import type { DndDropPosition, DndDropResult } from '../../services/serviceDnd';
 	import { PerfMeter } from '../../services/perfMeter';
 	import { NodeRowMeasureService } from '../../services/serviceNodeRowMeasure';
@@ -91,6 +95,7 @@
 	interface Props {
 		nodes: TreeNode[];
 		rowInputs?: readonly ExplorerRowInput[];
+		projection?: ExplorerProjection;
 		selectedIds?: ReadonlySet<string>;
 		selectedMap?: ReadonlyMap<string, boolean>;
 		focusedId?: string | null;
@@ -123,6 +128,7 @@
 	let {
 		nodes,
 		rowInputs,
+		projection = undefined,
 		selectedIds,
 		selectedMap,
 		focusedId,
@@ -230,7 +236,8 @@
 		manualDnd.setEnabled(manualDndEnabled);
 	});
 
-	const gridInputModel = $derived(gridInputModelFromInputs(nodes, rowInputs));
+	const effectiveRowInputs = $derived(projection ? rowInputsFromProjection(projection) : rowInputs);
+	const gridInputModel = $derived(gridInputModelFromInputs(nodes, effectiveRowInputs));
 	const gridRows = $derived(
 		buildGridRows(
 			gridInputModel.nodes,
