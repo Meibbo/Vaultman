@@ -1,10 +1,10 @@
 ---
 title: Explorer View Platform pass implementation plan
 type: plan-index
-status: draft
+status: completed
 parent: "[[docs/work/hardening/specs/2026-05-15-explorer-view-platform-pass/index|Explorer View Platform pass spec]]"
 created: 2026-05-15T18:00:10.0199112-05:00
-updated: 2026-05-15T18:00:10.0199112-05:00
+updated: 2026-05-16T05:10:35.7274498-05:00
 tags:
   - agent/plan
   - initiative/hardening
@@ -88,3 +88,33 @@ updated_by: codex
 - Tree visual contract fixes are covered by tests.
 - Map is absent from selectable views.
 - Hidden media cost is measured and near zero.
+
+## Completion Snapshot
+
+Completed on branch `claude/explorer` through Task 20.
+
+Key verification record:
+[[perf-baseline|Explorer View Platform perf baseline]].
+
+Final task commits:
+
+- `6aa23aa` `refactor: migrate tree rows to explorer projection`
+- `f1ba4ac` `refactor: route tree reveal through scroll coordinator`
+- `25c9d6b` `refactor: align panel tree list projection adapters`
+- `8056ef5` `refactor: add platform contracts to table grid cards`
+- `4f609af` `test: verify explorer platform focused gates`
+- `c457d01` `test: record live explorer platform perf probe`
+
+Final local gates:
+
+- `pnpm check`: passed, 0 Svelte errors / 0 warnings.
+- `pnpm run build`: passed and synced plugin build artifacts to
+  `plugin-dev`.
+- `pnpm verify`: passed with unit `135` files / `821` tests and component
+  `69` files / `372` tests. Lint emitted 8 warnings in pre-existing unrelated
+  files, with 0 errors.
+- `git diff --check`: passed.
+- Live Obsidian CLI target confirmed with
+  `obsidian eval code="app.vault.getName()" vault=plugin-dev` returning
+  `plugin-dev`.
+- `obsidian dev:errors vault=plugin-dev`: `No errors captured.`

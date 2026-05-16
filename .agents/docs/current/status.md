@@ -5,7 +5,7 @@ status: active
 parent: "[[docs/work/pkm-ai/index|pkm-ai]]"
 archive_source: "docs/archive/pkm-ai/active-docs/2026-05-11T080321-current-status.md"
 created: 2026-05-04T01:36:20
-updated: 2026-05-16T03:52:00
+updated: 2026-05-16T05:10:35.7274498-05:00
 tags:
   - agent/current
 created_by: dec
@@ -16,126 +16,74 @@ updated_by: codex
 
 Compact route index after archiving the oversized current status:
 [[docs/archive/pkm-ai/active-docs/2026-05-11T080321-current-status|2026-05-11 status archive]].
-Older route history remains in
-[[docs/archive/pkm-ai/active-docs/2026-05-10T093000-current-status|2026-05-10 status archive]].
 
 ## Active Rules
 
 - `main` must contain zero AI workflow files.
 - Active detail belongs in source records, not this index.
 - Do not revert or overwrite unrelated user/agent changes.
-- Obsidian CLI runtime tests and live smokes target `plugin-dev` explicitly.
-- Current user instruction for Explorer platform execution: no subagents unless
-  explicitly requested; use TDD; start feedback loops/harness/probes first.
+- Obsidian CLI runtime tests and live smokes must target `plugin-dev`
+  explicitly, using command-specific syntax such as
+  `obsidian eval code="..." vault=plugin-dev`.
 
 ## Current Route
 
 - Active initiative: [[docs/work/hardening/index|Hardening]].
-- Active Explorer platform research:
-  [[docs/work/hardening/research/2026-05-15-explorer-view-platform-infinite-canvas/index|Explorer view platform and infinite canvas research]].
-- Active Explorer platform spec:
+- Completed Explorer platform spec:
   [[docs/work/hardening/specs/2026-05-15-explorer-view-platform-pass/index|Explorer View Platform pass spec]].
-- Active Explorer platform plan:
+- Completed Explorer platform plan:
   [[docs/work/hardening/plans/2026-05-15-explorer-view-platform-pass/index|Explorer View Platform pass implementation plan]].
-- Latest implementation slice: executed Tasks 1-12 of the Explorer View
-  Platform pass on `claude/explorer`, starting with feedback loops/probes and
-  then adding projection, feature/menu, media field, scroll geometry, and
-  batched decoration/media lifecycle contracts, followed by tree visual
-  contract recovery.
-- Latest Explorer platform commits:
-  - `883cb0a` `test: add explorer synthetic dataset harness`
-  - `c813daf` `test: add explorer platform perf scenarios`
-  - `1372853` `test: characterize explorer platform scale gates`
-  - `75d0af8` `feat: add explorer projection contract`
-  - `7f6dcb8` `feat: add explorer view feature contract`
-  - `b83c47c` `feat: add explorer node media field toggle`
-  - `abe6766` `feat: add explorer scroll geometry coordinator`
-  - `89861aa` `feat: batch explorer decoration layers`
-  - `40505ac` `feat: wire explorer media descriptors without hidden render cost`
-  - `a79f905` `fix: restore tree visual contract`
-- Note: `9df9e50` (`plans: theme wiring for future theme builder`) is present
-  in the branch history between this session's commits and was not part of the
-  Explorer platform task slice.
-- Current working tree still has unrelated/user changes, including `.gitignore`,
-  `README.md`, `manifest.json`, `package.json`, eslint rule/script paths, and
-  many deleted docs. Do not include or revert them unless the user explicitly
-  asks.
-- Previous Explorer 0-H implementation/audit remains completed; key records:
-  [[docs/work/hardening/plans/2026-05-15-explorer-0-h-virtualizer-list-mode/index|Explorer 0-H plan]],
-  [[docs/work/hardening/plans/2026-05-15-explorer-0-h-virtualizer-list-mode/perf-baseline|0-H perf baseline]],
+- Verification and live probe record:
+  [[docs/work/hardening/plans/2026-05-15-explorer-view-platform-pass/perf-baseline|Explorer View Platform perf baseline]].
+- OpenSSF hardening route captured from 2026-05-16 external research:
+  [[docs/work/hardening/research/2026-05-16-openssf-osps-baseline/index|OpenSSF OSPS baseline research]]
   and
-  [[docs/work/hardening/plans/2026-05-15-explorer-0-h-virtualizer-list-mode/audit-2026-05-15|0-H audit addendum]].
+  [[docs/work/hardening/plans/2026-05-16-openssf-osps-baseline/index|OpenSSF OSPS baseline implementation plan]].
+
+## Explorer Platform Outcome
+
+- Tasks 1-20 of the Explorer View Platform pass are implemented, verified, and
+  committed on `claude/explorer`.
+- Latest Explorer platform commits:
+  - `6aa23aa` `refactor: migrate tree rows to explorer projection`
+  - `f1ba4ac` `refactor: route tree reveal through scroll coordinator`
+  - `25c9d6b` `refactor: align panel tree list projection adapters`
+  - `8056ef5` `refactor: add platform contracts to table grid cards`
+  - `4f609af` `test: verify explorer platform focused gates`
+  - `c457d01` `test: record live explorer platform perf probe`
+- Earlier task commits remain in branch history from `883cb0a` through
+  `a79f905`; `9df9e50` is an unrelated theme-plan commit in between.
 
 ## Verification Snapshot
 
-- Task 1 red/green:
-  `pnpm exec vitest run --project unit --config vitest.config.ts test/unit/performance/explorerPlatformSynthetic.test.ts --fileParallelism=false`
-  failed first because `test/support/explorerSyntheticDataset.ts` did not
-  exist, then passed with 10K/50K/100K cases.
-- Task 2 focused gate passed:
-  `pnpm exec vitest run --project unit --project component --config vitest.config.ts test/unit/dev/perfProbe.test.ts test/component/perfProbeDom.test.ts --fileParallelism=false`
-  = 2 files / 14 tests.
-- Task 4 focused gate passed:
-  `test/unit/services/serviceExplorerProjection.test.ts`,
-  `test/unit/services/serviceExplorerRowInput.test.ts`, and
-  `test/unit/performance/explorerPlatformSynthetic.test.ts` = 3 files / 14
-  tests; `pnpm exec tsc -noEmit -skipLibCheck` passed.
-- Task 5 focused gate passed:
-  `test/unit/services/serviceExplorerViewContract.test.ts` = 1 file / 2 tests;
-  `pnpm exec tsc -noEmit -skipLibCheck` passed.
-- Task 6 focused gate passed:
-  `test/unit/services/serviceNodeFieldVisibility.test.ts` and
-  `test/component/overlayViewMenu.test.ts` = 2 files / 14 tests; `pnpm check`
-  found 0 errors / 0 warnings. Svelte autofixer on
-  `overlayViewMenu.svelte`: `issues: []`.
-- Task 7 focused gate passed:
-  `pnpm exec vitest run --project unit --project component --config vitest.config.ts test/unit/services/serviceExplorerScrollGeometry.test.ts test/component/viewTreeScrollFallback.test.ts test/component/ViewNodeList.test.ts --fileParallelism=false`
-  = 3 files / 26 tests; `pnpm check` found 0 errors / 0 warnings.
-- Task 8 red/green:
-  `pnpm exec vitest run --project unit --config vitest.config.ts test/unit/services/serviceExplorerLayersBatch.test.ts --fileParallelism=false`
-  failed first because `createExplorerLayerBuilder` did not exist, then passed
-  with 1 file / 2 tests.
-- Task 8 focused gate passed:
-  `pnpm exec vitest run --project unit --config vitest.config.ts test/unit/services/serviceExplorerLayers.test.ts test/unit/services/serviceExplorerLayersBatch.test.ts test/unit/dev/perfProbe.test.ts --fileParallelism=false`
-  = 3 files / 11 tests; `pnpm exec tsc -noEmit -skipLibCheck` passed;
-  `git diff --check` passed.
-- Task 9 red/green:
-  `pnpm exec vitest run --project unit --config vitest.config.ts test/unit/services/serviceExplorerMediaDescriptor.test.ts --fileParallelism=false`
-  failed first on missing descriptor revision and missing
-  `loadVisibleDescriptorBlobs`, then passed with 1 file / 2 tests.
-- Task 9 focused gate passed:
-  `pnpm exec vitest run --project unit --config vitest.config.ts test/unit/services/serviceExplorerMediaDescriptor.test.ts test/unit/services/serviceExplorerMediaCache.test.ts test/unit/services/serviceExplorerProjection.test.ts test/unit/performance/explorerPlatformSynthetic.test.ts --fileParallelism=false`
-  = 4 files / 15 tests; `pnpm exec tsc -noEmit -skipLibCheck` passed;
-  `git diff --check` passed.
-- Task 10 RED baseline:
-  `pnpm exec vitest run --project component --config vitest.config.ts test/component/viewTreeVisualContract.test.ts test/component/viewTreeSelection.test.ts --fileParallelism=false`
-  failed as expected: 1 failed / 1 passed files, 3 failed / 20 passed tests.
-  Failures are markdown extension visibility, extension-zone trailing layout,
-  and selected+filtered visual composition.
-- Task 11 RED/GREEN:
-  `pnpm exec vitest run --project component --config vitest.config.ts test/component/viewTreeSelection.test.ts --fileParallelism=false`
-  first failed with `alpha` selected instead of rendered-geometry `beta`, then
-  passed: 1 file / 20 tests. `pnpm check` passed with 0 errors / 0 warnings.
-- Task 12 GREEN:
-  component Task 10+11 command passed: 2 files / 24 tests; field/style unit
-  command passed: 2 files / 10 tests; `pnpm check` passed; `pnpm exec tsc
-  -noEmit -skipLibCheck` passed. Full `git diff --check` is currently blocked
-  by unrelated `.gitignore:69`; slice-limited `git diff --check -- <owned
-  paths>` passed.
+- Task 17 focused unit gate passed: 5 files / 17 tests.
+- Task 17 focused component gate passed: 5 files / 54 tests.
+- Task 18 `pnpm check` passed: 0 errors / 0 warnings.
+- Task 18 `pnpm run build` passed and synced build artifacts to `plugin-dev`.
+- Task 18 `pnpm verify` passed:
+  - Unit: 135 files / 821 tests.
+  - Component: 69 files / 372 tests.
+  - Lint: 8 warnings in pre-existing unrelated files, 0 errors.
+- Task 18 `git diff --check` passed.
+- Task 19 live Obsidian CLI target confirmed as `plugin-dev`.
+- Task 19 live scenarios ran through `window.__vaultmanPerfProbe`; details are
+  in the perf baseline.
+- Task 19 `obsidian dev:errors vault=plugin-dev`: `No errors captured.`
 
 ## Known Residuals
 
-- Real `viewTree` platform migration is not complete. Current tree/list changes
-  only introduced the scroll geometry coordinator path; visual remake is still
-  out of scope beyond the accepted tree fixes now committed.
 - Map/ViewNodeMap remains deferred and must not be exposed as a selectable
   next-release view.
-- Live `plugin-dev` 10K/50K/100K perfProbe runs are still pending for later
-  integration tasks.
-- Existing doc-health residuals remain outside this integration: glossary
-  warnings, parent-shape issues, and large plan/spec line limits.
+- `styles.css` is dirty after the required build artifact sync and is not
+  staged in the Explorer handoff commit.
+- Current working tree still contains unrelated/user changes including
+  `.gitignore`, `README.md`, `manifest.json`, `package.json`, eslint
+  rule/script paths, OpenSSF docs, and many deleted docs. Preserve them unless
+  explicitly asked.
 
 ## Next Action
 
-- Continue from Task 13 in
-  [[docs/work/hardening/plans/2026-05-15-explorer-view-platform-pass/05-viewtree-platform-migration|ViewTree platform migration]].
+- Explorer platform pass is complete; next agent should either prepare review/PR
+  for `claude/explorer` or follow the user's next explicit route.
+- If resuming OpenSSF hardening, begin with
+  [[docs/work/hardening/plans/2026-05-16-openssf-osps-baseline/01-scope-docs-workflow-permissions|Scope, public docs, and workflow permissions]].
