@@ -1,7 +1,7 @@
 ---
 title: OpenSSF dependency audit release provenance
 type: plan-shard
-status: draft
+status: active
 parent: "[[docs/work/hardening/plans/2026-05-16-openssf-osps-baseline/index|OpenSSF OSPS baseline implementation plan]]"
 created: 2026-05-16T04:42:00
 updated: 2026-05-16T04:42:00
@@ -18,7 +18,7 @@ updated_by: codex
 
 ## Task 5: Dependency Audit Response
 
-- [ ] **Step 1: Re-run audits**
+- [x] **Step 1: Re-run audits**
 
 Run:
 
@@ -30,7 +30,16 @@ pnpm audit --dev
 Expected: capture current advisories and distinguish runtime impact from dev
 tooling impact.
 
-- [ ] **Step 2: Replace `obsidian: latest`**
+Execution note, 2026-05-16: `pnpm audit --prod` found no known
+vulnerabilities after the Svelte/devalue patch update. `pnpm audit --dev`
+still reports 8 dev-tooling advisories: `serialize-javascript` through
+`mocha`, `lodash` through `obsidian-launcher`, `fast-uri` through
+`eslint-plugin-obsidianmd -> eslint-plugin-json-schema-validator -> ajv`, and
+`fast-xml-builder` through `@wdio/cli -> @wdio/utils -> edgedriver`. Treat
+these as a follow-up dev-tooling audit slice; do not add broad overrides until
+the owning tools are checked for compatible patched releases.
+
+- [x] **Step 2: Replace `obsidian: latest`**
 
 Change `package.json` from:
 
@@ -43,6 +52,13 @@ compatibility target.
 
 Expected: dependency resolution is reproducible and the selected version is
 documented in the commit body or hardening record.
+
+Execution note, 2026-05-16: `obsidian` was pinned to `1.12.3`, the current npm
+release returned by `npm view obsidian version`. The same pass added Node 24
+runtime declarations (`engines.node`, `.node-version`, `.nvmrc`), changed CI
+`setup-vp` to Node 24, updated Vite+/Svelte/Vitest patch dependencies, and
+kept `cssMinify: 'esbuild'` because removing it caused Lightning CSS warnings
+for generated `:global(svg)` selectors during `pnpm run build:plugin`.
 
 - [ ] **Step 3: Add an audit gate with a documented threshold**
 

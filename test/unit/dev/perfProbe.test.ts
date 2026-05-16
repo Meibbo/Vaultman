@@ -120,9 +120,12 @@ describe('perf probe contract', () => {
 
 	it('records event-loop delay after scroll scenarios as long-frame data', async () => {
 		let now = 0;
-		const scroller = document.createElement('div');
-		Object.defineProperty(scroller, 'clientHeight', { value: 100, configurable: true });
-		Object.defineProperty(scroller, 'scrollHeight', { value: 1_000, configurable: true });
+		const scroller = {
+			clientHeight: 100,
+			scrollHeight: 1_000,
+			scrollTop: 0,
+			dispatchEvent: vi.fn(),
+		} as unknown as HTMLElement;
 		const doc = {
 			defaultView: {
 				setTimeout: (cb: () => void) => {

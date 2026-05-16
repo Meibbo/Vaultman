@@ -67,12 +67,15 @@
 	const LIST_FALLBACK_HEIGHT = 400;
 	const LIST_FALLBACK_WIDTH = 320;
 	const ROW_HEIGHT = 32;
+	const LIST_SCROLL_IDLE_MS = 96;
 
 	let outerEl: HTMLDivElement | undefined = $state();
 	let draggingRowId: string | null = $state(null);
 	let localFocusedId: string | null = $state(null);
 	let fallbackScrollTop = $state(0);
 	let fallbackViewportHeight = $state(LIST_FALLBACK_HEIGHT);
+	let isScrolling = $state(false);
+	let scrollIdleTimer: ReturnType<typeof setTimeout> | null = null;
 	let consumedFocusedRevealKey: string | null = null;
 
 	const rowHeight = $derived(ROW_HEIGHT);
@@ -141,6 +144,13 @@
 	});
 
 	$effect(() => {
+		return () => {
+			if (scrollIdleTimer !== null) clearTimeout(scrollIdleTimer);
+			scrollIdleTimer = null;
+		};
+	});
+
+	$effect(() => {
 		const id = focusedId;
 		if (!id) {
 			consumedFocusedRevealKey = null;
@@ -164,7 +174,17 @@
 	});
 
 	function onScroll(e: Event) {
+		markScrolling();
 		fallbackScrollTop = (e.currentTarget as HTMLDivElement).scrollTop;
+	}
+
+	function markScrolling(): void {
+		isScrolling = true;
+		if (scrollIdleTimer !== null) clearTimeout(scrollIdleTimer);
+		scrollIdleTimer = setTimeout(() => {
+			scrollIdleTimer = null;
+			isScrolling = false;
+		}, LIST_SCROLL_IDLE_MS);
 	}
 
 	function iconAction(el: HTMLElement, name: string) {
@@ -359,9 +379,9 @@
 		{#each renderedVirtualRows as virtualRow (virtualRow.key)}
 			{@const row = effectiveRowInputs[virtualRow.index]}
 			{#if row}
-				{@const iconName = rowIcon(row)}
-				{@const badges = allBadges(row)}
-				{@const actions = rowActions(row)}
+				{@const iconName = isScrolling ? undefined : rowIcon(row)}
+				{@const badges = isScrolling ? [] : allBadges(row)}
+				{@const actions = isScrolling ? [] : rowActions(row)}
 				<div
 					id="vm-listrow-{row.id}"
 					class="vm-view-list-row vm-explorer-popup-row {row.cls ?? ''}"

@@ -6,7 +6,15 @@ import {
 	buildListItems,
 } from '../../../../../../../notebook-navigator/src/hooks/listPaneData/listItems.ts';
 import { flattenFolderTree } from '../../../../../../../notebook-navigator/src/utils/treeFlattener.ts';
-import { createExplorerProjection } from '../../../src/services/serviceExplorerProjection';
+import {
+	createExplorerProjection,
+	type ExplorerProjection,
+} from '../../../src/services/serviceExplorerProjection';
+import { createExplorerScrollGeometry } from '../../../src/services/serviceExplorerScrollGeometry';
+import {
+	fallbackFixedVirtualRows,
+	scrollFixedIndexIntoView,
+} from '../../../src/services/serviceScroll';
 import type { ExplorerRowInput } from '../../../src/services/serviceExplorerRowInput';
 import { mockApp } from '../../helpers/obsidian-mocks';
 import {
@@ -27,6 +35,10 @@ vi.mock('obsidian', async () => {
 const NODE_COUNT = 50_000;
 const SAMPLE_RUNS = 7;
 const REVEAL_LOOKUPS = 1_000;
+const SCROLL_JUMPS = 1_000;
+const SCROLL_ROW_HEIGHT = 32;
+const SCROLL_VIEWPORT_HEIGHT = 640;
+const SCROLL_OVERSCAN = 10;
 
 interface TimedSample<T> {
 	value: T;
@@ -187,6 +199,76 @@ function measureRevealLookup(map: ReadonlyMap<string, number>, ids: readonly str
 	});
 }
 
+function measureNotebookNavigatorDirectScrollBridge(
+	listItems: readonly { key?: string }[],
+	filePathToIndex: ReadonlyMap<string, number>,
+	paths: readonly string[],
+): TimedSample<number> {
+	return timed(() => {
+		let renderedTotal = 0;
+		for (let jump = 0; jump < SCROLL_JUMPS; jump += 1) {
+			const path = paths[jump % paths.length];
+			const index = filePathToIndex.get(path);
+			if (index === undefined) continue;
+			const scrollTop = scrollFixedIndexIntoView({
+				index,
+				rowHeight: SCROLL_ROW_HEIGHT,
+				viewportHeight: SCROLL_VIEWPORT_HEIGHT,
+				scrollTop: 0,
+			});
+			renderedTotal += fallbackFixedVirtualRows({
+				count: listItems.length,
+				rowHeight: SCROLL_ROW_HEIGHT,
+				viewportHeight: SCROLL_VIEWPORT_HEIGHT,
+				scrollTop,
+				overscan: SCROLL_OVERSCAN,
+				getKey: (rowIndex) => listItems[rowIndex]?.key ?? rowIndex,
+			}).length;
+		}
+		return renderedTotal;
+	});
+}
+
+function measureVaultmanDirectScrollBridge(
+	projection: ExplorerProjection<ExplorerSyntheticFileMeta>,
+	ids: readonly string[],
+): TimedSample<number> {
+	const coordinator = createExplorerScrollGeometry({
+		idToIndex: projection.idToIndex,
+		rowHeight: SCROLL_ROW_HEIGHT,
+		rowCount: projection.rows.length,
+		revision: projection.rowsRevision,
+	});
+	return timed(() => {
+		let renderedTotal = 0;
+		for (let jump = 0; jump < SCROLL_JUMPS; jump += 1) {
+			const id = ids[jump % ids.length];
+			const target = coordinator.resolve({
+				kind: 'id',
+				id,
+				reason: 'manual-scroll',
+				minRevision: projection.rowsRevision,
+			});
+			if (!target) continue;
+			const scrollTop = scrollFixedIndexIntoView({
+				index: target.index,
+				rowHeight: SCROLL_ROW_HEIGHT,
+				viewportHeight: SCROLL_VIEWPORT_HEIGHT,
+				scrollTop: 0,
+			});
+			renderedTotal += fallbackFixedVirtualRows({
+				count: projection.rows.length,
+				rowHeight: SCROLL_ROW_HEIGHT,
+				viewportHeight: SCROLL_VIEWPORT_HEIGHT,
+				scrollTop,
+				overscan: SCROLL_OVERSCAN,
+				getKey: (rowIndex) => projection.visibleIds[rowIndex] ?? rowIndex,
+			}).length;
+		}
+		return renderedTotal;
+	});
+}
+
 describe('Notebook Navigator comparison bridge', () => {
 	it('runs Notebook Navigator original tree/list builders against 50k sources', () => {
 		const sources = makeNotebookNavigatorSources(NODE_COUNT);
@@ -267,5 +349,63 @@ describe('Notebook Navigator comparison bridge', () => {
 		expect(notebookLookup.value).toBeGreaterThan(0);
 		expect(vaultmanLookup.value).toBeGreaterThan(0);
 		expect(vaultmanLookup.durationMs).toBeLessThanOrEqual(notebookLookup.durationMs * 1.25);
+	}, 30_000);
+
+	it('compares direct 50k scroll-jump hot paths without stepped intermediate rows', () => {
+		const sources = makeNotebookNavigatorSources(NODE_COUNT);
+		const listItems = buildListItems({
+			app: sources.app,
+			dayKey: '2026-05-16',
+			fileVisibility: 'documents',
+			files: sources.files,
+			getDB: () => ({}) as never,
+			getFileTimestamps: () => ({ created: 0, modified: 0 }),
+			hiddenFileState: new Map(),
+			hiddenTags: [],
+			listConfig: {
+				filterPinnedByFolder: false,
+				folderGroupSortOrder: 'alpha-asc',
+				groupBy: 'none',
+				pinnedGroupExpanded: true,
+				pinnedNotes: {},
+				showFileTags: false,
+				showTags: false,
+			},
+			searchMetaMap: new Map(),
+			selectedFolder: null,
+			selectionType: null,
+			showHiddenItems: false,
+			sortOption: 'filename-asc',
+		});
+		const notebookMap = buildFilePathToIndexMap(listItems);
+		const vaultmanRows = makeVaultmanRowInputs();
+		const projection = createExplorerProjection({
+			providerId: 'files',
+			viewMode: 'list',
+			rowInputs: vaultmanRows,
+			sourceRevision: 1,
+		});
+		const notebookPaths = sources.files
+			.slice(NODE_COUNT - SCROLL_JUMPS)
+			.map((file) => file.path);
+		const vaultmanIds = vaultmanRows.slice(NODE_COUNT - SCROLL_JUMPS).map((row) => row.id);
+
+		const notebookScroll = sampleMedian(() =>
+			measureNotebookNavigatorDirectScrollBridge(listItems, notebookMap, notebookPaths),
+		);
+		const vaultmanScroll = sampleMedian(() =>
+			measureVaultmanDirectScrollBridge(projection, vaultmanIds),
+		);
+		logBridge('direct-scroll-jumps', {
+			notebookMs: notebookScroll.durationMs,
+			vaultmanMs: vaultmanScroll.durationMs,
+			notebookRenderedRows: notebookScroll.value,
+			vaultmanRenderedRows: vaultmanScroll.value,
+		});
+
+		expect(notebookScroll.value).toBeGreaterThan(0);
+		expect(vaultmanScroll.value).toBeGreaterThan(0);
+		expect(vaultmanScroll.value).toBeLessThanOrEqual(notebookScroll.value);
+		expect(vaultmanScroll.durationMs).toBeLessThanOrEqual(notebookScroll.durationMs * 1.5);
 	}, 30_000);
 });

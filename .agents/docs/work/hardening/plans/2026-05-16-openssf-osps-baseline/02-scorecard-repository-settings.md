@@ -100,7 +100,7 @@ score until the workflow has run on GitHub.
 
 ## Task 4: Repository Settings Checklist
 
-- [ ] **Step 1: Enable or repair main protection**
+- [x] **Step 1: Enable or repair main protection**
 
 Required state:
 
@@ -113,7 +113,15 @@ Required state:
 
 Expected: settings are verified by GitHub UI/API and recorded in the plan log.
 
-- [ ] **Step 2: Enable vulnerability and Dependabot alerts**
+Execution note, 2026-05-16: GitHub ruleset `15778949` (`Main branch
+protection`) was changed from `disabled` to `active` for `~DEFAULT_BRANCH`.
+Rules now block deletion and non-fast-forward updates, require pull requests
+with one approval and stale-review dismissal, require review-thread
+resolution, and require status checks `verify` and
+`Analyze (javascript-typescript)` with strict branch currency. Existing admin
+bypass actor `RepositoryRole` id `5` was preserved for maintainer continuity.
+
+- [x] **Step 2: Enable vulnerability and Dependabot alerts**
 
 Required state:
 
@@ -124,3 +132,9 @@ Required state:
 
 Expected: OSPS and Scorecard no longer flag missing dependency/security alert
 basics.
+
+Execution note, 2026-05-16: `gh api -X PUT
+repos/Meibbo/Vaultman/vulnerability-alerts` returned HTTP 204, and
+`gh api -X PUT repos/Meibbo/Vaultman/automated-security-fixes` returned HTTP
+204 after vulnerability alerts propagated. Follow-up local config:
+`.github/dependabot.yml` was added for npm and GitHub Actions weekly updates.

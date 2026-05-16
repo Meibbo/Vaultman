@@ -54,6 +54,7 @@ export default defineConfig({
 			cssFileName: 'styles',
 		},
 		minify: true,
+		cssMinify: 'esbuild',
 		cssTarget: ['chrome120'],
 		outDir: 'dist/vite',
 		sourcemap: false,

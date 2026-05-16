@@ -106,7 +106,7 @@ importers:
         specifier: ^10.8.2
         version: 10.8.2
       obsidian:
-        specifier: latest
+        specifier: 1.12.3
         version: 1.12.3(@codemirror/state@6.5.0)(@codemirror/view@6.38.6)
       obsidian-integration-testing:
         specifier: ^2.3.5
@@ -8897,7 +8897,7 @@ snapshots:
   eslint-compat-utils@0.5.1(eslint@9.39.4(jiti@2.6.1)):
     dependencies:
       eslint: 9.39.4(jiti@2.6.1)
-      semver: 7.7.4
+      semver: 7.8.0
 
   eslint-import-resolver-node@0.3.10:
     dependencies:
@@ -8986,7 +8986,7 @@ snapshots:
       globals: 15.15.0
       ignore: 5.3.2
       minimatch: 9.0.9
-      semver: 7.7.4
+      semver: 7.8.0
 
   eslint-plugin-no-unsanitized@4.1.5(eslint@9.39.4(jiti@2.6.1)):
     dependencies:
@@ -9431,7 +9431,7 @@ snapshots:
       es6-error: 4.1.1
       matcher: 3.0.0
       roarr: 2.15.4
-      semver: 7.7.4
+      semver: 7.8.0
       serialize-error: 7.0.1
     optional: true
 
@@ -9915,7 +9915,7 @@ snapshots:
       acorn: 8.16.0
       eslint-visitor-keys: 3.4.3
       espree: 9.6.1
-      semver: 7.7.4
+      semver: 7.8.0
 
   jsonc-parser@3.3.1: {}
 
@@ -10260,7 +10260,7 @@ snapshots:
   normalize-package-data@7.0.1:
     dependencies:
       hosted-git-info: 8.1.0
-      semver: 7.7.4
+      semver: 7.8.0
       validate-npm-package-license: 3.0.4
 
   normalize-path@3.0.0: {}

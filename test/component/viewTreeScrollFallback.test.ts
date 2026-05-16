@@ -138,6 +138,32 @@ describe('ViewTree scroll fallback', () => {
 		expect(target.querySelector('[data-id="node-0"]')).toBeNull();
 	});
 
+	it('defers row icon hydration while fallback scroll is active', () => {
+		const icon = vi.fn(() => ({ update: vi.fn() }));
+		app = mount(ViewTree as unknown as Component<Record<string, unknown>>, {
+			target,
+			props: {
+				nodes: nodes(100).map((node) => ({ ...node, icon: 'lucide-file' })),
+				expandedIds: new Set<string>(),
+				onToggle: vi.fn(),
+				onRowClick: vi.fn(),
+				onContextMenu: vi.fn(),
+				icon,
+			},
+		});
+		flushSync();
+		icon.mockClear();
+
+		const outer = target.querySelector<HTMLDivElement>('.vm-tree-virtual-outer');
+		expect(outer).not.toBeNull();
+		outer!.scrollTop = 50 * 28;
+		outer!.dispatchEvent(new Event('scroll'));
+		flushSync();
+
+		expect(target.querySelector('[data-id="node-50"]')).not.toBeNull();
+		expect(icon).not.toHaveBeenCalled();
+	});
+
 	it('ignores a reveal target whose required snapshot revision is newer than the row map', () => {
 		app = mount(ViewTree as unknown as Component<Record<string, unknown>>, {
 			target,
