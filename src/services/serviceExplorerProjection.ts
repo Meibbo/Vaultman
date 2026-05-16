@@ -39,6 +39,16 @@ export interface ExplorerProjection<TMeta = unknown> {
 	mediaById: ReadonlyMap<string, ExplorerMediaRecord>;
 }
 
+export function rowInputsFromProjection<TMeta = unknown>(
+	projection: ExplorerProjection<TMeta>,
+): ExplorerRowInput<TMeta>[] {
+	const rowsById = new Map(projection.rows.map((row) => [row.id, row]));
+	return projection.visibleIds.flatMap((id) => {
+		const row = rowsById.get(id);
+		return row ? [row.rowInput] : [];
+	});
+}
+
 export function createExplorerProjection<TMeta = unknown>({
 	providerId,
 	viewMode,

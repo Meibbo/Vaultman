@@ -34,6 +34,8 @@ vi.mock('@tanstack/svelte-virtual', () => ({
 }));
 
 import ViewTree from '../../src/components/views/viewTree.svelte';
+import { createExplorerProjection } from '../../src/services/serviceExplorerProjection';
+import { rowInputFromTreeNode } from '../../src/services/serviceExplorerRowInput';
 
 describe('ViewTree scroll fallback', () => {
 	let target: HTMLDivElement;
@@ -164,5 +166,38 @@ describe('ViewTree scroll fallback', () => {
 		expect(outer?.scrollTop).toBeGreaterThan(0);
 		expect(probe.snapshot().timings['explorerDataPlane.reveal.lookup'].count).toBeGreaterThan(0);
 		expect(probe.snapshot().timings['explorerDataPlane.reveal.lookup'].totalRows).toBeGreaterThan(0);
+	});
+
+	it('uses projection rows and revision for reveal without explicit rowInputs or idToIndex props', () => {
+		const projection = createExplorerProjection({
+			providerId: 'files',
+			viewMode: 'tree',
+			rowInputs: nodes(100).map((node) => rowInputFromTreeNode(node)),
+			sourceRevision: 4,
+		});
+
+		app = mount(ViewTree as unknown as Component<Record<string, unknown>>, {
+			target,
+			props: {
+				nodes: [],
+				projection,
+				expandedIds: new Set<string>(),
+				onToggle: vi.fn(),
+				onRowClick: vi.fn(),
+				onContextMenu: vi.fn(),
+				scrollTarget: {
+					id: 'node-40',
+					serial: 2,
+					minSnapshotRevision: 4,
+					reason: 'keyboard',
+				},
+				icon: vi.fn(() => ({ update: vi.fn() })),
+			},
+		});
+		flushSync();
+
+		const outer = target.querySelector<HTMLDivElement>('.vm-tree-virtual-outer');
+		expect(outer?.scrollTop).toBeGreaterThan(0);
+		expect(target.querySelector('[data-id="node-40"]')).not.toBeNull();
 	});
 });

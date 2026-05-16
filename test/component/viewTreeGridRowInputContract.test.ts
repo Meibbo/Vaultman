@@ -2,6 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { flushSync, mount, unmount, type Component } from 'svelte';
 import ViewTree from '../../src/components/views/viewTree.svelte';
 import ViewNodeGrid from '../../src/components/views/ViewNodeGrid.svelte';
+import { createExplorerProjection } from '../../src/services/serviceExplorerProjection';
 import type { ExplorerRowInput } from '../../src/services/serviceExplorerRowInput';
 
 function rowInput(id: string, label: string, depth = 0): ExplorerRowInput {
@@ -82,6 +83,45 @@ describe('tree/grid row input contract', () => {
 
 		expect(onRowClick).toHaveBeenCalledWith('semantic-child', expect.any(MouseEvent));
 		expect(onToggle).toHaveBeenCalledWith('semantic-parent');
+	});
+
+	it('renders tree projection rows from visible ids without re-expanding legacy nodes', () => {
+		const parent = rowInput('projection-parent', 'Projection Parent');
+		const child = rowInput('projection-child', 'Projection Child', 1);
+		parent.childrenIds = ['projection-child'];
+		const projection = createExplorerProjection({
+			providerId: 'files',
+			viewMode: 'tree',
+			rowInputs: [parent, child],
+			sourceRevision: 12,
+		});
+
+		app = mount(ViewTree as unknown as Component<Record<string, unknown>>, {
+			target,
+			props: {
+				nodes: [],
+				projection,
+				expandedIds: new Set<string>(),
+				selectedIds: new Set(['projection-child']),
+				onToggle: vi.fn(),
+				onRowClick: vi.fn(),
+				onContextMenu: vi.fn(),
+				icon: vi.fn(() => ({ update: vi.fn() })),
+			},
+		});
+		flushSync();
+
+		const parentRow = target.querySelector<HTMLElement>('[data-id="projection-parent"]');
+		const childRow = target.querySelector<HTMLElement>('[data-id="projection-child"]');
+		const childSurface = childRow?.querySelector<HTMLElement>('.vm-tree-row-surface');
+
+		expect(parentRow).not.toBeNull();
+		expect(childRow).not.toBeNull();
+		expect(parentRow?.textContent).toContain('Projection Parent');
+		expect(childRow?.textContent).toContain('Projection Child');
+		expect(childRow?.getAttribute('aria-selected')).toBe('true');
+		expect(childSurface?.classList.contains('is-selected')).toBe(true);
+		expect(childRow?.getAttribute('style')).toContain('--depth: 1');
 	});
 
 	it('renders grid row inputs through semantic ids for selection, hover badges, and manual DnD', () => {

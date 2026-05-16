@@ -45,6 +45,10 @@
 		rowInputVirtualKey,
 		type ExplorerRowInput,
 	} from '../../services/serviceExplorerRowInput';
+	import {
+		rowInputsFromProjection,
+		type ExplorerProjection,
+	} from '../../services/serviceExplorerProjection';
 	import { createExplorerScrollGeometry } from '../../services/serviceExplorerScrollGeometry';
 	import {
 		handleNodeBadgePress,
@@ -96,6 +100,7 @@
 	interface Props {
 		nodes: TreeNode[];
 		rowInputs?: readonly ExplorerRowInput[];
+		projection?: ExplorerProjection;
 		expandedIds: Set<string>;
 		selectedIds?: Set<string>;
 		focusedId?: string | null;
@@ -132,6 +137,7 @@
 	let {
 		nodes,
 		rowInputs,
+		projection,
 		expandedIds,
 		selectedIds,
 		focusedId,
@@ -166,11 +172,16 @@
 	}: Props = $props();
 
 	const useNativeDom = $derived(themeService?.useNativeDom ?? false);
+	const effectiveProviderId = $derived(projection?.providerId ?? providerId);
+	const projectionRowInputs = $derived(projection ? rowInputsFromProjection(projection) : undefined);
+	const effectiveRowInputs = $derived(projectionRowInputs ?? rowInputs);
+	const effectiveSnapshotRevision = $derived(snapshotRevision ?? projection?.rowsRevision ?? null);
+	const effectiveIdToIndex = $derived(idToIndex ?? projection?.idToIndex ?? null);
 	const effectiveVisibleFields = $derived(
-		visibleFields.length > 0 ? visibleFields : defaultVisibleFields(providerId, 'tree'),
+		visibleFields.length > 0 ? visibleFields : defaultVisibleFields(effectiveProviderId, 'tree'),
 	);
 	const showNodeIcon = $derived(isNodeIconVisible(effectiveVisibleFields));
-	const showNodeText = $derived(isNodeTextVisible(providerId, 'tree', effectiveVisibleFields));
+	const showNodeText = $derived(isNodeTextVisible(effectiveProviderId, 'tree', effectiveVisibleFields));
 	const showNodeCount = $derived(isNodeCountVisible(effectiveVisibleFields));
 
 	function hoverBadgesFor(id: string): BadgeDescriptor[] {
@@ -245,8 +256,14 @@
 		syncFallbackScrollState();
 	});
 
-	const treeRows = $derived(treeRowsFromInputs(nodes, rowInputs));
-	const flatArray = $derived(flattenMeasured(treeRows, expandedIds));
+	const treeRows = $derived(
+		projectionRowInputs ? [] : treeRowsFromInputs(nodes, effectiveRowInputs),
+	);
+	const flatArray = $derived(
+		projectionRowInputs
+			? flatProjectionRows(projectionRowInputs, expandedIds)
+			: flattenMeasured(treeRows, expandedIds),
+	);
 	const flatRowInputs = $derived(flatArray.map((flat) => flat.row));
 	const flatIdToIndex = $derived(buildRowInputIdIndex(flatRowInputs));
 	const rowVirtualizer = createVirtualizer<HTMLDivElement, HTMLDivElement>({
@@ -320,19 +337,19 @@
 	}
 
 	function resolveRevealIndexNow(target: ScrollTarget): number {
-		const externalIdToIndex = idToIndex;
+		const externalIdToIndex = effectiveIdToIndex;
 		const mappedIndex = externalIdToIndex?.get(target.id);
-		const effectiveIdToIndex =
+		const resolvedIdToIndex =
 			externalIdToIndex &&
 			typeof mappedIndex === 'number' &&
 			flatRowInputs[mappedIndex]?.id === target.id
 				? externalIdToIndex
 				: flatIdToIndex;
 		const coordinator = createExplorerScrollGeometry({
-			idToIndex: effectiveIdToIndex,
+			idToIndex: resolvedIdToIndex,
 			rowHeight,
 			rowCount: flatRowInputs.length,
-			revision: snapshotRevision ?? undefined,
+			revision: effectiveSnapshotRevision ?? undefined,
 			resolveIndexById,
 		});
 		const resolved = coordinator.resolve({
@@ -575,6 +592,54 @@
 		);
 	}
 
+	function flatProjectionRows(
+		inputs: readonly ExplorerRowInput[],
+		expanded: ReadonlySet<string>,
+	): TreeFlatNode[] {
+		const indexById = new Map(inputs.map((row, index) => [row.id, index]));
+		const visibleChildParentIds = new Set(
+			inputs.map((row) => row.parentId).filter((id): id is string => Boolean(id)),
+		);
+		const flats: TreeFlatNode[] = inputs.map((row, index) => {
+			const node = rowInputToTreeNode(row);
+			const hasChildren =
+				(row.childrenIds?.length ?? 0) > 0 ||
+				(node.children?.length ?? 0) > 0 ||
+				visibleChildParentIds.has(row.id);
+			return {
+				row,
+				node,
+				depth: row.depth,
+				isExpanded: hasChildren && (expanded.has(rowInputCallbackId(row)) || visibleChildParentIds.has(row.id)),
+				hasChildren,
+				index,
+				parentIndex: null,
+				ancestorIndices: [],
+				subtreeEndIndex: index,
+			};
+		});
+
+		for (const flat of flats) {
+			const parentIndex =
+				flat.row.parentId === null || flat.row.parentId === undefined
+					? null
+					: (indexById.get(flat.row.parentId) ?? null);
+			flat.parentIndex = parentIndex;
+			if (parentIndex !== null) {
+				const parent = flats[parentIndex];
+				flat.ancestorIndices = [...parent.ancestorIndices, parent.index];
+			}
+			let subtreeEndIndex = flat.index;
+			for (let index = flat.index + 1; index < flats.length; index += 1) {
+				if (flats[index].depth <= flat.depth) break;
+				subtreeEndIndex = index;
+			}
+			flat.subtreeEndIndex = subtreeEndIndex;
+		}
+
+		return flats;
+	}
+
 	function rectFromBox(box: NonNullable<typeof selectionBox>): DOMRect {
 		return new DOMRect(box.left, box.top, box.width, box.height);
 	}
@@ -781,7 +846,7 @@
 	{@const hoverBadges = hoverBadgesFor(id)}
 	{@const rowIcon = showNodeIcon ? iconForNode(node, flat) : undefined}
 	{@const hasCount = showNodeCount && hasVisibleCount(node)}
-	{@const fieldValues = visibleNodeFieldValues(providerId, 'tree', node, effectiveVisibleFields)}
+	{@const fieldValues = visibleNodeFieldValues(effectiveProviderId, 'tree', node, effectiveVisibleFields)}
 	{@const hasOverlayBadges =
 		directBadges.length > 0 || childBadges.length > 0 || hoverBadges.length > 0}
 	{@const hasActiveBadges = hasActiveRowBadge(directBadges) || hasActiveRowBadge(childBadges)}
