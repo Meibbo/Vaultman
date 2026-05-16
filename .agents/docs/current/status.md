@@ -5,7 +5,7 @@ status: active
 parent: "[[docs/work/pkm-ai/index|pkm-ai]]"
 archive_source: "docs/archive/pkm-ai/active-docs/2026-05-11T080321-current-status.md"
 created: 2026-05-04T01:36:20
-updated: 2026-05-16T08:27:52-05:00
+updated: 2026-05-16T11:14:17-05:00
 tags:
   - agent/current
 created_by: dec
@@ -45,6 +45,8 @@ Compact route index after archiving the oversized current status:
   [[docs/work/hardening/specs/2026-05-16-notebook-navigator-scroll-forensics/index|Notebook Navigator scroll forensics]].
 - Active multiview virtualization research:
   [[docs/work/hardening/research/2026-05-16-multiview-virtualization-research/index|Multiview virtualization research]].
+- Completed Explorer scroll smoke harness plan:
+  [[docs/work/hardening/plans/2026-05-16-explorer-scroll-smoke-harness/index|Explorer scroll smoke harness implementation plan]].
 
 ## Explorer Platform Outcome
 
@@ -100,6 +102,14 @@ Compact route index after archiving the oversized current status:
 - 2026-05-16 research found no safe wholesale virtualizer replacement. Keep
   TanStack as the default, add a shared layout/index service, and prototype
   `virtua` only behind the same live blank-frame harness.
+- Scroll smoke harness is implemented in `src/dev/perfProbe.ts` and
+  `scripts/run-explorer-scroll-smoke.mjs`. Live runs use
+  `pnpm smoke:scroll -- --view=<mode>` or direct script invocation, both
+  targeting `vault=plugin-dev`.
+- Live tree smoke passed after full build/sync/reload:
+  `pnpm smoke:scroll -- --view=tree --jumps=100`, with `blankFrames=0`,
+  `blank>100ms=0`, `blank>250ms=0`, `maxDelay=143ms`, and no Obsidian dev
+  errors.
 - Map/ViewNodeMap remains deferred and is not exposed as a selectable
   next-release view after the post-review repair.
 - `styles.css` is dirty after the required build artifact sync and is not
@@ -111,9 +121,8 @@ Compact route index after archiving the oversized current status:
 
 ## Next Action
 
-- For Explorer scroll work, implement the burst-scroll blank detector first,
-  using explicit `vault=plugin-dev`, then fix bounded fallbacks and variable
-  height offsets per the scroll-forensics spec and multiview virtualization
-  research.
+- For Explorer scroll work, use the live burst-scroll blank detector as the
+  acceptance gate, then fix bounded fallbacks and variable-height offsets per
+  the scroll-forensics spec and multiview virtualization research.
 - If resuming OpenSSF hardening, begin with
   [[docs/work/hardening/plans/2026-05-16-openssf-osps-baseline/01-scope-docs-workflow-permissions|Scope, public docs, and workflow permissions]].

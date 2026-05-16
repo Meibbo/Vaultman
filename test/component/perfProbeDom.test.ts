@@ -158,6 +158,121 @@ describe('perf probe DOM scenarios', () => {
 		expect(scrolls).toBe(5);
 	});
 
+	it('waits for explorer scroll burst target after opening the live view', async () => {
+		document.body.innerHTML = '';
+		setTimeout(() => {
+			document.body.innerHTML = `
+				<div class="vm-view-list">
+					<div class="vm-view-list-row" data-id="node-late">
+						<span class="vm-view-list-label">Late node</span>
+					</div>
+				</div>
+			`;
+			const list = document.querySelector<HTMLElement>('.vm-view-list');
+			Object.defineProperty(list, 'clientHeight', { value: 100, configurable: true });
+			Object.defineProperty(list, 'scrollHeight', { value: 1_100, configurable: true });
+		}, 0);
+		const probe = createPerfProbe({ now: () => performance.now(), doc: document });
+
+		const result = await probe.api.run('explorer-scroll-burst-live', {
+			view: 'list',
+			jumps: 1,
+			visualDelayMs: 0,
+			overlay: false,
+		});
+
+		expect(result.scrollBurst).toMatchObject({
+			view: 'list',
+			jumpCount: 1,
+			blankFrameCount: 0,
+			passed: true,
+		});
+		expect(result.scrollBurst?.samples[0]?.firstRowId).toBe('node-late');
+	});
+
+	it('falls back when requestAnimationFrame does not resolve during burst sampling', async () => {
+		document.body.innerHTML = `
+			<div class="vm-view-list">
+				<div class="vm-view-list-row" data-id="node-0">
+					<span class="vm-view-list-label">Node 0</span>
+				</div>
+			</div>
+		`;
+		const list = document.querySelector<HTMLElement>('.vm-view-list');
+		expect(list).toBeTruthy();
+		Object.defineProperty(list, 'clientHeight', { value: 100, configurable: true });
+		Object.defineProperty(list, 'scrollHeight', { value: 1_100, configurable: true });
+		const originalRequestAnimationFrame = window.requestAnimationFrame;
+		window.requestAnimationFrame = (() => 1) as typeof window.requestAnimationFrame;
+		const probe = createPerfProbe({ now: () => performance.now(), doc: document });
+
+		try {
+			const result = await Promise.race([
+				probe.api.run('explorer-scroll-burst-live', {
+					view: 'list',
+					jumps: 1,
+					visualDelayMs: 0,
+					overlay: false,
+				}),
+				new Promise<'timeout'>((resolve) => setTimeout(() => resolve('timeout'), 250)),
+			]);
+
+			expect(result).not.toBe('timeout');
+			expect(typeof result === 'string' ? undefined : result.scrollBurst?.passed).toBe(true);
+		} finally {
+			window.requestAnimationFrame = originalRequestAnimationFrame;
+		}
+	});
+
+	it('uses microtask sampling when the document is hidden during burst sampling', async () => {
+		document.body.innerHTML = `
+			<div class="vm-view-list">
+				<div class="vm-view-list-row" data-id="node-0">
+					<span class="vm-view-list-label">Node 0</span>
+				</div>
+			</div>
+		`;
+		const list = document.querySelector<HTMLElement>('.vm-view-list');
+		expect(list).toBeTruthy();
+		Object.defineProperty(list, 'clientHeight', { value: 100, configurable: true });
+		Object.defineProperty(list, 'scrollHeight', { value: 1_100, configurable: true });
+		const originalRequestAnimationFrame = window.requestAnimationFrame;
+		const originalHidden = Object.getOwnPropertyDescriptor(document, 'hidden');
+		const originalVisibilityState = Object.getOwnPropertyDescriptor(document, 'visibilityState');
+		Object.defineProperty(document, 'hidden', { value: true, configurable: true });
+		Object.defineProperty(document, 'visibilityState', { value: 'hidden', configurable: true });
+		expect(document.hidden).toBe(true);
+		expect(document.visibilityState).toBe('hidden');
+		window.requestAnimationFrame = (() => 1) as typeof window.requestAnimationFrame;
+		const probe = createPerfProbe({ now: () => performance.now(), doc: document });
+
+		try {
+			const result = await Promise.race([
+				probe.api.run('explorer-scroll-burst-live', {
+					view: 'list',
+					jumps: 1,
+					visualDelayMs: 100,
+					overlay: false,
+				}),
+				new Promise<'timeout'>((resolve) => setTimeout(() => resolve('timeout'), 250)),
+			]);
+
+			expect(result).not.toBe('timeout');
+			if (typeof result === 'string') throw new Error('unexpected timeout result');
+			expect(result.scrollBurst?.passed).toBe(true);
+			expect(result.scrollBurst?.maxEventLoopDelayMs).toBeLessThan(45);
+			expect(result.timings['scenario.explorer-scroll-burst-live.duration'].totalMs).toBeLessThan(
+				100,
+			);
+		} finally {
+			window.requestAnimationFrame = originalRequestAnimationFrame;
+			if (originalHidden) Object.defineProperty(document, 'hidden', originalHidden);
+			if (originalVisibilityState) {
+				Object.defineProperty(document, 'visibilityState', originalVisibilityState);
+			}
+		}
+	});
+
 	it('marks explorer scroll burst blank when no row text paints after jumps', async () => {
 		document.body.innerHTML = '<div class="vm-view-list"></div>';
 		const list = document.querySelector<HTMLElement>('.vm-view-list');
