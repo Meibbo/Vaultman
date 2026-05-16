@@ -39,6 +39,16 @@ still reports 8 dev-tooling advisories: `serialize-javascript` through
 these as a follow-up dev-tooling audit slice; do not add broad overrides until
 the owning tools are checked for compatible patched releases.
 
+Follow-up execution note, 2026-05-16: the 8 dev-tooling advisories were
+resolved under local Vite+ Node 24.15.0 by updating `obsidian-launcher` and
+`wdio-obsidian-service` to `3.0.3`, then adding targeted `pnpm.overrides` for
+`fast-uri@3.1.2`, `fast-xml-builder@1.2.0`, and
+`serialize-javascript@7.0.5`. Fresh `pnpm audit --dev` and
+`pnpm audit --prod` both returned no known vulnerabilities. `pnpm run
+build:plugin` also passed under Node 24.15.0. This clears the current advisory
+backlog but does not replace Step 3; the audit threshold still needs to become
+an explicit CI gate.
+
 - [x] **Step 2: Replace `obsidian: latest`**
 
 Change `package.json` from:
