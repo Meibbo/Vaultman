@@ -4,7 +4,7 @@ type: plan-shard
 status: draft
 parent: "[[docs/work/hardening/plans/2026-05-15-explorer-view-platform-pass/index|Explorer View Platform pass implementation plan]]"
 created: 2026-05-15T18:00:10.0199112-05:00
-updated: 2026-05-16T02:53:10
+updated: 2026-05-16T03:07:25
 tags:
   - agent/plan
   - explorer/performance
@@ -91,7 +91,7 @@ Commit message: `feat: batch explorer decoration layers`.
 - Modify: `src/services/serviceExplorerProjection.ts`
 - Create: `test/unit/services/serviceExplorerMediaDescriptor.test.ts`
 
-- [ ] **Step 1: Write failing hidden media tests**
+- [x] **Step 1: Write failing hidden media tests**
 
 Assert every synthetic node can carry a descriptor and that hidden media does
 not request blobs:
@@ -101,16 +101,16 @@ expect(projection.mediaById.size).toBe(rowInputs.length);
 expect(mediaCache.loadVisibleBlobs).not.toHaveBeenCalled();
 ```
 
-- [ ] **Step 2: Add descriptor-only projection path**
+- [x] **Step 2: Add descriptor-only projection path**
 
 Projection stores descriptor status, media key, dimensions, and revision. Blob
 data remains inside media cache.
 
-- [ ] **Step 3: Add visible-only blob test**
+- [x] **Step 3: Add visible-only blob test**
 
 When `media` field is enabled and visible ids are passed, assert only visible
 blob keys are requested.
 
-- [ ] **Step 4: Commit**
+- [x] **Step 4: Commit**
 
 Commit message: `feat: wire explorer media descriptors without hidden render cost`.
