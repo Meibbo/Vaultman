@@ -5,7 +5,7 @@ status: active
 parent: "[[docs/work/pkm-ai/index|pkm-ai]]"
 archive_source: "docs/archive/pkm-ai/active-docs/2026-05-11T080321-current-handoff.md"
 created: 2026-05-04T01:36:20
-updated: 2026-05-15T07:56:18.5576161-05:00
+updated: 2026-05-15T18:00:10.0199112-05:00
 tags:
   - agent/current
 created_by: dec
@@ -21,10 +21,26 @@ Older route history remains in
 
 ## Resume Point
 
-- Latest request handled: audited the completed Explorer 0-H plan/spec after
-  the user asked whether anything else had been missed, then fixed the real
-  missed UX/activation gaps on `claude/explorer` in
-  `C:\Users\vic_A\Desktop\vaultman\.claude\worktrees\jovial-wilson-f81c67`.
+- Latest request handled: wrote a full source record for the post-0-H Explorer
+  view platform and infinite-canvas research after the user warned context was
+  near compaction, then added the Pretext/TanStack/render-tag and node media
+  contract follow-up. Latest correction: media visibility is a view menu
+  `btnMultiSelection` node-element toggle outside the native Obsidian preset, and
+  Map/ViewNodeMap is deferred out of the next selectable view release. Latest
+  decision: image/media defaults off in every view because nodes already have
+  icons. Latest action: converted the accepted brainstorm into the Explorer
+  View Platform pass spec with 10K/50K/100K gates and real `viewTree` migration,
+  then wrote the implementation plan.
+- New source record:
+  [[docs/work/hardening/research/2026-05-15-explorer-view-platform-infinite-canvas/index|Explorer view platform and infinite canvas research]].
+- Active Explorer platform spec:
+  [[docs/work/hardening/specs/2026-05-15-explorer-view-platform-pass/index|Explorer View Platform pass spec]].
+- Active Explorer platform plan:
+  [[docs/work/hardening/plans/2026-05-15-explorer-view-platform-pass/index|Explorer View Platform pass implementation plan]].
+- Before that, the session second-pass audited the completed Explorer 0-H
+  implementation against its spec/plan on `claude/explorer`, diagnosed live
+  `plugin-dev` perfProbe results, compared Notebook Navigator's list/scroll
+  architecture, and researched online infinite-canvas strategies.
 - User redirected to continue without subagents after originally requesting
   `superpowers:subagent-driven-development`; all remaining work was completed
   inline.
@@ -40,7 +56,8 @@ Older route history remains in
 - Product/test files changed across 0-H include `ViewNodeList.svelte`,
   `panelExplorer.svelte`, queue/active-filter consumers, list/panel tests,
   and deletion of the old custom virtualizer service plus dead `viewGrid`.
-- Current working tree is clean.
+- Current working tree has active documentation changes for Explorer platform
+  research/status/handoff; product/test verification head remains `bc199c7`.
 - Full integration source record:
   [[docs/work/hardening/plans/2026-05-11-explorer-data-plane-transition/06-parallel-branch-integration|Parallel branch integration handoff]].
 - Final stabilization source record:
@@ -105,11 +122,35 @@ Older route history remains in
 
 ## Residuals
 
+- New Explorer platform residual: provider/view behavior is not harmonized.
+  The next work should introduce shared projection, feature contract,
+  scroll/geometry coordination, batched decoration, and lifecycle gates for
+  heavy views.
+- New media contract residual: every Explorer node must be able to expose at
+  least one representative image/media descriptor. First platform pass should
+  reserve the media slot in projection, feature contract, render anatomy,
+  geometry, lifecycle, and view menu `btnMultiSelection` controls. Exact native
+  Obsidian Bases media parity is deferred to a named follow-up plan. The media
+  slot defaults off in every view.
+- Map/ViewNodeMap is deferred: current `ViewMarkmap.svelte` recursively mounts
+  all nodes into DOM/flex layout and can freeze Obsidian on large trees. Do not
+  patch it locally first and do not expose Map as a selectable next-release
+  option. Future Map work needs its own source record/spec/plan.
+- Tree visual recovery is now required in the `viewTree` migration: restore box
+  selection, selected grey highlight, filtered accent-left-border with existing
+  translucent accent background, selected+filtered composition, right-aligned
+  file extensions, and hidden `.md` extension.
+- Notebook Navigator A/B in `plugin-dev` is desired for comparable scenarios:
+  files list/tree 10K scroll, view switching, tab switching, and long-frame
+  metrics.
 - 0-H local implementation plus audit fixes are complete and committed; no
   push/PR was performed.
-- Audit found and fixed two real gaps: list was missing from the view-mode menu
-  (`dad8198`), and plugin/snippet rows did not activate in panel list mode
-  (`bc199c7`).
+- First audit found and fixed two real gaps: list was missing from the
+  view-mode menu (`dad8198`), and plugin/snippet rows did not activate in
+  panel list mode (`bc199c7`).
+- Second-pass audit recorded two remaining actionable risks in the 0-H audit
+  addendum: ARIA row ids are derived directly from semantic row ids, and
+  initial listbox ArrowDown can skip the first row when no row is focused.
 - 0-H has a post-audit live Obsidian CLI perfProbe wall-clock snapshot, but no
   pre-migration live baseline. Jank-frame and heap metrics remain unavailable
   because the current `PerfProbeSnapshot` API does not emit them.
@@ -125,8 +166,13 @@ Older route history remains in
 
 ## Next Action
 
-- Choose handoff path for current `claude/explorer` HEAD: push/open PR, or add
-  jank/heap fields to the perfProbe API and rerun the live Obsidian probe.
-- After 0-H handoff, start with a failing measured deep jump-scroll gate for
-  table/grid/cards, then implement row geometry (`idToIndex`, `indexToId`,
-  cached/estimated heights, prefix-sum/Fenwick offset lookup).
+- Resume by reading the active Explorer View Platform pass implementation plan.
+- First code slice should be feedback loops, not product rewrites:
+  synthetic 10K/50K/100K datasets, scenario-specific `perfProbe` metrics, view
+  feature parity tests, tree visual contract tests, 10K/50K files tree/list
+  scroll tests, media descriptor/geometry/lifecycle tests, and view menu
+  element-toggle/preset tests.
+- Then implement shared projection/feature contracts, scroll/geometry
+  coordinator, decoration batching, render-tag/snippet node anatomy, node media
+  slots, view menu/preset contract, and real `viewTree` migration. Leave
+  Map/ViewNodeMap for a future iteration.

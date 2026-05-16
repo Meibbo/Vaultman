@@ -190,6 +190,279 @@ is what the row contains.
 **Build-order suggestion.** Part of sub-system I's eventual spec.
 Independent of Phase 0 timing.
 
+## 5. Settings UI refresh
+
+**The idea.** Replace the deleted legacy theme controls in `SettingsUI.svelte`
+(`layoutTheme` dropdown, glass blur slider, island backdrop toggle — removed in
+0-B) with a new preset selector listing `themeService.availablePresets`.
+Built-in presets render with read-only badges. Custom presets get edit and
+delete affordances (basic — full editor lives in item 10).
+
+**Why it surfaced.** During the 0-B brainstorm. 0-B is a clean break that
+removes the three legacy controls without shipping a replacement. Users
+switch presets by editing `data.json` until this lands.
+
+**Why a separate spec.** UI is decoupled from the service. The service
+contract is stable in 0-B; the selector is a thin Settings consumer.
+
+**Prior art and pointers.**
+
+- `themeService.availablePresets` and `themeService.setPreset(id)` are the
+  consumer-facing API (see 0-B spec shard 03).
+- `src/components/settings/SettingsUI.svelte` is where the UI lives today.
+- Bits-ui `Select.Root` / `Tabs.Root` primitives may be relevant.
+
+**Build-order suggestion.** Soon after 0-B. Restores user-facing preset
+switching without requiring data.json editing.
+
+## 6. Layout extension — modal-as-tab + status-bar-island
+
+**The idea.** Extend `serviceLayout.ts` to wire `preset.dock.*` and
+`preset.tabs.*` against `frameVaultman.svelte`, hiding/showing surfaces per
+preset. Add two new tab surfaces: `'modal'` (floating modal that hosts a
+tab's content) and `'status-bar-island'` (a tab that lives in the Obsidian
+status bar as an island).
+
+**Why it surfaced.** 0-B declares `preset.dock.visible`, `preset.dock.presentation`,
+`preset.tabs.visible`, `preset.tabs.presentation`, `preset.tabs.kind` but
+does not wire consumers. The native preset needs dock/tabs hidden for true
+chameleon disguise. The user also envisions tabs losing their explicit
+semantic and becoming generic component groupings with multiple display modes.
+
+**Why a separate spec.** Cross-cutting layout work. Best done after
+Sub-system O (frameVaultman decomposition) so consumption hooks into focused
+shell components rather than the god component.
+
+**Prior art and pointers.**
+
+- `src/services/serviceLayout.ts` already defines `LayoutTabSurface =
+  'dock' | 'top-tabs' | 'workspace'`. Extend the union with `'modal'` and
+  `'status-bar-island'`.
+- `NavbarDock.svelte`, `NavbarTabs.svelte` consume layout settings today.
+- `LayoutDropAction` already routes drops between surfaces — extend.
+
+**Build-order suggestion.** After Sub-system O + 0-A. Cleanest if the
+frame is decomposed first so the new visibility logic lives in focused
+shell components.
+
+## 7. Toolbar contract
+
+**The idea.** Define what `preset.toolbar.buttons: 'core' | 'full' | string[]`
+means concretely. Build a toolbar-button registry mapping button ids to
+icon, label, command, surface (which tabs/contexts show it). The preset
+filters via its `toolbar.buttons` value.
+
+**Why it surfaced.** 0-B declares the field but leaves "what is core?" /
+"what is full?" undefined.
+
+**Why a separate spec.** Touches several toolbar consumer components and
+needs an explicit registry source-of-truth.
+
+**Prior art and pointers.**
+
+- `frameVaultman.svelte` and `pageTools.svelte` render toolbar buttons
+  today, mostly inline.
+- Existing button shortcuts: `vm-btn-primary`, `vm-btn-squircle` (UnoCSS).
+
+**Build-order suggestion.** After Sub-system O. Independent of 0-A.
+
+## 8. Color governance — zebra rows, rainbow nodes, accent overrides
+
+**The idea.** A registry of opt-in color knobs (`zebraRows`,
+`rainbowNodes`, `accentOverride`, plus free-form custom var overrides).
+UI provides toggles + HSV/RGB color picker. Output is a generated
+snippet `.css` file written to `.obsidian/snippets/`. The user can also
+export the snippet to share with the community.
+
+**Why it surfaced.** 0-B explicitly excludes color from the theme preset
+shape — colors stay Obsidian-delegated. But the user wants knobs for
+specific color effects that the theme system itself cannot govern.
+
+**Why a separate spec.** The knob set, UI flow, snippet generation, and
+storage model are all parallel to the theme preset machinery.
+
+**Prior art and pointers.**
+
+- 0-B's `preset.colors?` field on `ThemePreset` is the declare-only seam.
+- `bits-ui` has no native color picker; needs external lib
+  (`svelte-awesome-color-picker` or roll own with HSV canvas + sliders).
+- Obsidian's `.obsidian/snippets/` directory is the output target.
+
+**Build-order suggestion.** Independent of Phase 0. Can run in parallel.
+
+## 9. Snippet provider UX
+
+**The idea.** Enrich the `explorerSnippets` provider so each snippet
+row becomes an expandable node. Child nodes represent the CSS classes
+the snippet touches, with per-class on/off toggle and a per-CSS-var
+color picker widget. The result exports as a derived snippet.
+
+**Why it surfaced.** 0-B brainstorm noted that `viewTree` over the
+snippets provider currently shows flat nodes. The provider can do more.
+
+**Why a separate spec.** Provider-side enrichment (parse CSS, extract
+classes/vars, expose hierarchy) is independent of the theme system.
+
+**Prior art and pointers.**
+
+- `src/services/serviceExplorerSnippets.svelte.ts` (existing).
+- `viewTree.svelte` already renders this provider.
+
+**Build-order suggestion.** Independent of Phase 0.
+
+## 10. Theme Builder UI (editor for custom presets)
+
+**The idea.** Full visual editor for creating and editing custom
+presets:
+
+- duplicate from a built-in template;
+- field-by-field edit (toggle each `nodeElements`, pick `dock.presentation`
+  variant, etc.);
+- DnD layout placement (`preset.layout?` with modes `'fixed' | 'squared-grid'
+  | 'free-drag'`);
+- optional binding to a workspace via `preset.workspaceId?`;
+- preview pane;
+- export/import.
+
+**Why it surfaced.** 0-B brainstorm.
+
+**Why a separate spec.** Large UI work. Touches many primitives.
+
+**Prior art and pointers.**
+
+- 0-B's `preset.layout?` field on `ThemePreset` is the declare-only seam.
+- Sub-system 5 (Settings UI refresh) provides the entry point.
+- DnD library is `@dnd-kit/svelte`.
+
+**Build-order suggestion.** After Sub-system 5 + Sub-system 6 (Layout
+extension) so the editor edits values that the runtime actually consumes.
+
+## 11. Workspaces provider — `explorerWorkspaces`
+
+**The idea.** Build `explorerWorkspaces` as a Vaultman `ExplorerProvider`
+exposing Obsidian's core Workspaces internal plugin. Nodes are saved
+workspace layouts; user can rename, tag, attach node-notes + media, search,
+bulk-edit. 2:1 ambition over core Workspaces, which is read/load-only.
+
+**Why it surfaced.** 0-B brainstorm — user asked if Obsidian Workspaces
+could be a provider.
+
+**Why a separate spec.** Provider build follows the standard pattern
+(`explorerTags`, `explorerSnippets`, etc.).
+
+**Prior art and pointers.**
+
+- `internalPlugins.plugins['workspaces']` exposes
+  `instance.saveLayout(name)` / `loadLayout(name)` / `layouts`.
+- `typeObsidian.ts` `getInternalPlugin<T>()` wrapper is in place.
+- 0-B's `preset.workspaceId?` is the declare-only seam for
+  preset-triggers-workspace-load behavior (lives in this sub-system or
+  the Theme Builder).
+
+**Build-order suggestion.** Independent of Phase 0. Aligns naturally
+with Sub-system 10 (Theme Builder).
+
+## 12. Bits-ui adoption preset
+
+**The idea.** Ship a built-in custom preset (or a separate preset
+registry track) that swaps VM-internal components for bits-ui
+equivalents — `Popover.Root`, `Dialog.Root`, `Combobox.Root`,
+`Tooltip.Root`, etc. Coexists with the existing `vaultman` preset.
+
+**Why it surfaced.** 0-B brainstorm — user wants to use more bits-ui
+components without deleting current implementations.
+
+**Why a separate spec.** Component-by-component adoption with parity
+testing.
+
+**Prior art and pointers.**
+
+- `bits-ui` v2.18.1 already in deps; `vmPopover` and `vmDialog` are
+  partial adoptions.
+- `frontend-design` skill principles apply for visual parity.
+
+**Build-order suggestion.** Independent. Can run in parallel.
+
+## M — SCSS hygiene pass
+
+**The idea.** Audit the 40 SCSS files (~7934 LOC under `src/styles/`) and
+extract repeated patterns:
+
+- new mixins (`@mixin row-base`, `@mixin card-surface`, `@mixin hover-bg`);
+- new vars (radius scale, spacing scale, density steps);
+- deeper nesting where selectors allow without specificity creep.
+
+**Why it surfaced.** User observed during 0-B brainstorm that SCSS has
+visible duplication that abstractions would clean up.
+
+**Why a separate spec.** Cross-cutting audit + extract work. Risk-free
+if visual equivalence verified. Out of any feature spec scope.
+
+**Prior art and pointers.**
+
+- `_mixins.scss` exists but is likely under-used.
+- ITCSS-style structure already in `main.scss`.
+
+**Build-order suggestion.** Independent. Ideally before further large
+SCSS additions (Theme Builder visual editor, etc.).
+
+## N — UnoCSS removal
+
+**The idea.** Remove UnoCSS entirely from the build. Migrate the 6
+utility-heavy components to SCSS classes; replace icon utility spans
+(`i-lucide-*`) with `setIcon()` Obsidian API or inline SVG; collapse
+the four utility shortcuts (`vm-btn-primary`, `vm-btn-squircle`,
+`vm-card`, `obsidian-mimic-*`) to SCSS classes; remove `uno.config.ts`
+and `@unocss/vite` from build.
+
+**Why it surfaced.** During 0-B brainstorm — user asked what would
+happen if UnoCSS were removed. Survey showed bounded effort (1-2 days
+dedicated).
+
+**Why a separate spec.** Clean self-contained refactor.
+
+**Prior art and pointers.**
+
+- Utility-heavy files: `panelExplorer.svelte`, `GridNavigationToolbar.svelte`,
+  `popupMove.svelte`, `pageStats.svelte`, `TextInput.svelte`,
+  `ViewNodeGrid.svelte`.
+- Icon usage: 1 file with `i-lucide-*`; 37 files already use `setIcon()`.
+- `uno.config.ts`: presets + shortcuts + safelist (safelist becomes
+  unnecessary post-removal).
+
+**Build-order suggestion.** After 0-B, independent of 0-A. Recommended
+before Sub-system 12 (Bits-ui adoption) so the new preset uses one
+styling source (SCSS).
+
+## O — frameVaultman decomposition
+
+**The idea.** Split `src/components/frame/frameVaultman.svelte` (867
+LOC, ~13 mixed responsibilities — theme focus tracking, page
+navigation, dashboard viewport, FAB resolution, stats counters, action
+handlers, bases import mode, filter state, FnR state, render
+orchestration for 8+ components) into focused modules:
+
+- `serviceFrameNavigation.svelte.ts` — page order, active page, reorder.
+- `serviceFrameStats.svelte.ts` — selected/queued/filter counts.
+- `frame/FrameNavbarShell.svelte` — wraps `NavbarDock` + `NavbarTabs` and
+  reads `preset.dock` / `preset.tabs` (Sub-system 6).
+- `frame/FrameDashboardShell.svelte` — `Dashboard3Column` wrap + viewport
+  measurement.
+- `frame/FrameActionsBar.svelte` — FAB + stats actions.
+- `frameVaultman.svelte` reduced to top-level orchestration + slot wiring.
+
+**Why it surfaced.** User asked during 0-B brainstorm whether frameVaultman
+should be the consumer of `preset.dock` / `preset.tabs`. Audit showed
+the file is already a god component; adding more preset consumption
+would worsen the problem.
+
+**Why a separate spec.** Substantial refactor. Visual-equivalent
+verification required.
+
+**Build-order suggestion.** **After 0-B, before Sub-system 6 + 7.** Order
+matters: decompose first, then have the layout extension and toolbar
+contract consume from focused shells instead of from the god component.
+
 ## Related touchpoints
 
 These directions intersect existing in-flight work:
