@@ -21,6 +21,7 @@ export interface ExplorerMediaRecord {
 	target: ExplorerMediaTarget;
 	status: ExplorerMediaStatus;
 	mediaKey: string | null;
+	revision?: number;
 	sourceMtime?: number;
 	sourceHash?: string;
 	dimensions?: ExplorerMediaDimensions;
@@ -69,6 +70,12 @@ export interface ExplorerMediaCacheServiceOptions {
 export interface ExplorerMediaBlobRead {
 	targetKey: string;
 	expectedMediaKey: string;
+}
+
+export interface ExplorerVisibleDescriptorBlobInput {
+	mediaById: ReadonlyMap<string, ExplorerMediaRecord>;
+	visibleIds: readonly string[];
+	mediaVisible: boolean;
 }
 
 export interface ExplorerMediaLruSnapshot {
@@ -181,6 +188,26 @@ export class ExplorerMediaCacheService {
 
 			const blob = await this.readBlob({ targetKey, expectedMediaKey: record.mediaKey });
 			if (blob) blobs.set(targetKey, blob);
+		}
+
+		return blobs;
+	}
+
+	async loadVisibleDescriptorBlobs(
+		input: ExplorerVisibleDescriptorBlobInput,
+	): Promise<Map<string, ExplorerMediaBlob>> {
+		const blobs = new Map<string, ExplorerMediaBlob>();
+		if (!input.mediaVisible) return blobs;
+
+		for (const id of input.visibleIds) {
+			const descriptor = input.mediaById.get(id);
+			if (!descriptor || descriptor.status !== 'ready' || !descriptor.mediaKey) continue;
+
+			const blob = await this.readBlob({
+				targetKey: descriptor.targetKey,
+				expectedMediaKey: descriptor.mediaKey,
+			});
+			if (blob) blobs.set(id, blob);
 		}
 
 		return blobs;

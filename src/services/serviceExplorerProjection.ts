@@ -55,7 +55,9 @@ export function createExplorerProjection<TMeta = unknown>({
 	for (let index = 0; index < rowInputs.length; index += 1) {
 		const rowInput = rowInputs[index];
 		const id = rowInput.id;
-		const mediaDescriptor = rowInput.mediaDescriptor;
+		const mediaDescriptor = rowInput.mediaDescriptor
+			? descriptorOnlyMediaRecord(rowInput.mediaDescriptor)
+			: undefined;
 
 		visibleIds.push(id);
 		idToIndex.set(id, index);
@@ -88,4 +90,20 @@ export function createExplorerProjection<TMeta = unknown>({
 		indexToId,
 		mediaById,
 	};
+}
+
+function descriptorOnlyMediaRecord(record: ExplorerMediaRecord): ExplorerMediaRecord {
+	const descriptor: ExplorerMediaRecord = {
+		targetKey: record.targetKey,
+		target: { ...record.target },
+		status: record.status,
+		mediaKey: record.mediaKey,
+	};
+	if (record.revision !== undefined) descriptor.revision = record.revision;
+	if (record.sourceMtime !== undefined) descriptor.sourceMtime = record.sourceMtime;
+	if (record.sourceHash !== undefined) descriptor.sourceHash = record.sourceHash;
+	if (record.dimensions) descriptor.dimensions = { ...record.dimensions };
+	if (record.generatedAt !== undefined) descriptor.generatedAt = record.generatedAt;
+	if (record.error !== undefined) descriptor.error = record.error;
+	return descriptor;
 }

@@ -188,6 +188,7 @@ function createSyntheticMediaDescriptor(
 		target,
 		status: 'unprocessed',
 		mediaKey: null,
+		revision: index,
 		sourceMtime: index,
 		dimensions: {
 			width: 320 + (index % 5) * 32,
