@@ -1,6 +1,6 @@
 //********************************************************************\\
 //*      ___|^___^|___      .-~*´¨¯¨¯¯¨¯¨`*~-.     ___|^___^|___     *\\
-//*     |   Meibbo   |     |  Vaultman v1.0  |    |  May 2026  |     *\\
+//*     |   Meibbo   |     |  Vaultman v1.1  |    |  May 2026  |     *\\
 //*     \___/`*´\___/      `-~*´¨¯¨¯¯¨¯¨`*~-´     \___/`*´\___/      *\\
 //*                                                                  *\\
 //*           Made with love for tools that last and help.           *\\
@@ -34,6 +34,25 @@ codeql-db/
 *.sarif
 
 # ...----------—————————————(   Agents   )————————————------------... #
+# Agent Startup
+# CLAUDE.md
+# AGENTS.md
+
+# Agent Tools
+# .codex/
+# .agents/
+.claude/
+.agents/cache/
+.agents/cache/**
+.agents/tmp/
+.agents/tmp/**
+.agents/skills/*
+!.agents/skills/vm-*/
+!.agents/skills/vm-*/**
+!.agents/tools/
+!.agents/tools/pkm-ai/
+!.agents/tools/pkm-ai/**/*.mjs
+
 # PKMAI
 docs/superpowers/*
 docs/superpowers/audits/*
@@ -49,16 +68,3 @@ docs/superpowers/audits/*
 !docs/archive/superpowers
 !docs/archive/superpowers/specs
 !docs/archive/superpowers/specs/*.md
-
-# Agent Tools
-.agents/cache/
-.agents/cache/**
-.agents/tmp/
-.agents/tmp/**
-.agents/skills/*
-!.agents/skills/vm-*/
-!.agents/skills/vm-*/**
-.claude/*
-!.agents/tools/
-!.agents/tools/pkm-ai/
-!.agents/tools/pkm-ai/**/*.mjs

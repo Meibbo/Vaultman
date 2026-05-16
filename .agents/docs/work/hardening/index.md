@@ -36,6 +36,10 @@ quality work before it reaches `main`.
 - [[docs/work/hardening/specs/2026-05-05-performance-diagnosis-loop/index|Performance diagnosis loop]]
 - [[docs/work/hardening/specs/2026-05-06-user-facing-recovery-wave-a/index|User-facing recovery wave A]]
 
+## Active Research
+
+- [[docs/work/hardening/research/2026-05-16-openssf-osps-baseline/index|OpenSSF OSPS baseline research]]
+
 ## Active Plans
 
 - [[docs/work/hardening/plans/2026-05-04-serviceviews-implementation/index|serviceViews implementation]]
@@ -45,6 +49,7 @@ quality work before it reaches `main`.
 - [[docs/work/hardening/plans/2026-05-06-cmenu-queue-repair/index|CMenu queue repair implementation]]
 - [[docs/work/hardening/plans/2026-05-06-prop-value-rename-handoff/index|Prop value rename handoff implementation]]
 - [[docs/work/hardening/plans/2026-05-11-explorer-data-plane-transition/index|Explorer data plane transition plans]]
+- [[docs/work/hardening/plans/2026-05-16-openssf-osps-baseline/index|OpenSSF OSPS baseline implementation plan]]
 
 ## Active Issue Sets
 

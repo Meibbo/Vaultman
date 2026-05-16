@@ -4,6 +4,8 @@
 ![Obsidian](https://img.shields.io/badge/Obsidian-%E2%89%A51.12.0-purple)
 ![](https://img.shields.io/github/license/Meibbo/vaultman)
 ![](https://img.shields.io/github/downloads/Meibbo/vaultman/total)
+[![Quality checks](https://github.com/Meibbo/vaultman/actions/workflows/ci.yml/badge.svg)](https://github.com/Meibbo/vaultman/actions/workflows/ci.yml) [![Security scan](https://github.com/Meibbo/vaultman/actions/workflows/codeql.yml/badge.svg)](https://github.com/Meibbo/vaultman/actions/workflows/codeql.yml)
+
 ![|240](./img/Vaultman_screenshot.png)
 
 ---
@@ -40,7 +42,7 @@ Main workflow is already usable and will help you to decrease some repetitive pr
 
 ### Obsidian Community Plugins
 
-You can browse this plugin from the Community Plugins as: "**Vaultman**" to start using it! Or you can go and take a look into the community webpage _to see its overall score_, ranking and stats at: [Obsidian Community Page]()
+You can browse this plugin from the Community Plugins as: "**Vaultman**" to start using it! Or you can go and take a look into the community webpage _to see its overall score_, ranking and stats at the [Obsidian Community Page](https://community.obsidian.md/plugins/vaultman)
 
 Only stable version releases will be shown in the official Obsidian Community Plugins.
 
@@ -109,9 +111,9 @@ This is where the explorers live, from here **you can filter out** the exact opt
 
 ### Node-Notes
 
-Every concept, every non-MD file, even plugins and snippets can have their own note for quick access and usage. Use them as your own personal library, or to put images to recognize them in cards!
+Every concept, every non-MD file, even plugins and snippets can have their own note for quick access and usage. Use them as your own personal library, or to put images to preview them in cards!
 
-## Useful for conceptualizing what tags or properties are for in your Vault, or to quickly toggle ON/OFF groups of snippets or plugins from the comfort of your sidebar!
+Useful for conceptualizing what tags or properties are for in your Vault, or to quickly toggle ON/OFF groups of snippets or plugins from the comfort of your sidebar!
 
 ### Filters & Operations
 
@@ -139,7 +141,7 @@ Pages are meant to be used as tab groups inside the sidebar, a functionality som
 
 For now, there's a simple **dashboard placeholder** that will gradually become into widgets that fetch general vault statistics.
 
-Also (in beta version), it has an option that let's you choose any file as your sidebar homepage (_useful in mobile, because there's not an easy way YET to put notes or bases in your sidebars_)
+Also, the left FAB let's you choose any file as your sidebar homepage (_useful in mobile, because there's not an easy way YET to put notes or bases in your sidebars_) and the right one is a quick acces to settings.
 
 Here is placed the snippets and plugins explorers. They benefit of the grouping capability for **manual bulk on and off**
 
@@ -183,11 +185,15 @@ This project uses the following open-source libraries:
 
 - TypeScript
 - Svelte
-- TanStack
-- DnD-Kit
-- SASS
+- PNPM
+- Vitest
+- Vite
+- UnoCSS
 - Bits UI
+- SASS
+- DnD-Kit
 - PretextJS (experimental)
+- TanStack Virtualizer & Table
 
 All third-party libraries retain their respective licenses.
 

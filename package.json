@@ -1,7 +1,7 @@
 {
 	"name": "vaultman",
-	"version": "1.0.0-rc.2",
-	"description": "Bulk data & metadata editor for vault management in Obsidian",
+	"version": "1.1.0",
+	"description": "Files, content and frontmatter explorer like Bases with scoped queued changes list.",
 	"keywords": [],
 	"license": "MIT",
 	"author": "Meibbo",
