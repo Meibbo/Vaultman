@@ -5,7 +5,7 @@ status: active
 parent: "[[docs/work/pkm-ai/index|pkm-ai]]"
 archive_source: "docs/archive/pkm-ai/active-docs/2026-05-11T080321-current-status.md"
 created: 2026-05-04T01:36:20
-updated: 2026-05-16T02:39:59.6920129-05:00
+updated: 2026-05-16T02:53:10
 tags:
   - agent/current
 created_by: dec
@@ -37,10 +37,10 @@ Older route history remains in
   [[docs/work/hardening/specs/2026-05-15-explorer-view-platform-pass/index|Explorer View Platform pass spec]].
 - Active Explorer platform plan:
   [[docs/work/hardening/plans/2026-05-15-explorer-view-platform-pass/index|Explorer View Platform pass implementation plan]].
-- Latest implementation slice: executed Tasks 1-7 of the Explorer View
+- Latest implementation slice: executed Tasks 1-8 of the Explorer View
   Platform pass on `claude/explorer`, starting with feedback loops/probes and
-  then adding projection, feature/menu, media field, and scroll geometry
-  contracts.
+  then adding projection, feature/menu, media field, scroll geometry, and
+  batched decoration layer contracts.
 - Latest Explorer platform commits:
   - `883cb0a` `test: add explorer synthetic dataset harness`
   - `c813daf` `test: add explorer platform perf scenarios`
@@ -49,6 +49,7 @@ Older route history remains in
   - `7f6dcb8` `feat: add explorer view feature contract`
   - `b83c47c` `feat: add explorer node media field toggle`
   - `abe6766` `feat: add explorer scroll geometry coordinator`
+  - `89861aa` `feat: batch explorer decoration layers`
 - Note: `9df9e50` (`plans: theme wiring for future theme builder`) is present
   in the branch history between this session's commits and was not part of the
   Explorer platform task slice.
@@ -86,16 +87,18 @@ Older route history remains in
 - Task 7 focused gate passed:
   `pnpm exec vitest run --project unit --project component --config vitest.config.ts test/unit/services/serviceExplorerScrollGeometry.test.ts test/component/viewTreeScrollFallback.test.ts test/component/ViewNodeList.test.ts --fileParallelism=false`
   = 3 files / 26 tests; `pnpm check` found 0 errors / 0 warnings.
-- Fresh combined checkpoint before the Task 7 handoff:
-  8 touched test files / 44 tests passed after Tasks 1-6, and Task 7 focused
-  tests passed after the final `viewTree` type fix.
+- Task 8 red/green:
+  `pnpm exec vitest run --project unit --config vitest.config.ts test/unit/services/serviceExplorerLayersBatch.test.ts --fileParallelism=false`
+  failed first because `createExplorerLayerBuilder` did not exist, then passed
+  with 1 file / 2 tests.
+- Task 8 focused gate passed:
+  `pnpm exec vitest run --project unit --config vitest.config.ts test/unit/services/serviceExplorerLayers.test.ts test/unit/services/serviceExplorerLayersBatch.test.ts test/unit/dev/perfProbe.test.ts --fileParallelism=false`
+  = 3 files / 11 tests; `pnpm exec tsc -noEmit -skipLibCheck` passed;
+  `git diff --check` passed.
 
 ## Known Residuals
 
-- Task 8 is next: batched decoration layer in
-  `src/services/serviceExplorerLayers.ts` plus
-  `test/unit/services/serviceExplorerLayersBatch.test.ts`.
-- Task 9 remains: media descriptor hidden-cost path in
+- Task 9 is next: media descriptor hidden-cost path in
   `serviceExplorerMediaCache`, `serviceExplorerProjection`, and a new media
   descriptor unit test.
 - Real `viewTree` platform migration is not complete. Current tree/list changes
@@ -114,8 +117,7 @@ Older route history remains in
 
 ## Next Action
 
-- Continue from Task 8 in
+- Continue from Task 9 in
   [[docs/work/hardening/plans/2026-05-15-explorer-view-platform-pass/03-scroll-geometry-decoration-media|Scroll, geometry, decoration, and media layers]].
-- Use TDD: write the failing batched layer tests first, then implement the
-  revision-keyed layer builder and `perfProbe` timing
-  `explorer.layers.build`.
+- Use TDD: write failing media descriptor hidden-cost tests first, then add the
+  descriptor-only projection/cache path and visible-only blob request test.

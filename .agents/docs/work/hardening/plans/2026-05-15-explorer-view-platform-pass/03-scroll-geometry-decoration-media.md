@@ -4,7 +4,7 @@ type: plan-shard
 status: draft
 parent: "[[docs/work/hardening/plans/2026-05-15-explorer-view-platform-pass/index|Explorer View Platform pass implementation plan]]"
 created: 2026-05-15T18:00:10.0199112-05:00
-updated: 2026-05-15T18:00:10.0199112-05:00
+updated: 2026-05-16T02:53:10
 tags:
   - agent/plan
   - explorer/performance
@@ -65,22 +65,22 @@ Commit message: `feat: add explorer scroll geometry coordinator`.
 - Modify: `src/services/serviceExplorerLayers.ts`
 - Create: `test/unit/services/serviceExplorerLayersBatch.test.ts`
 
-- [ ] **Step 1: Write failing batched layer tests**
+- [x] **Step 1: Write failing batched layer tests**
 
 Assert one layer build accepts a projection and returns badge/filter/action
 state keyed by node id. Assert repeated calls with same revision reuse cached
 layers.
 
-- [ ] **Step 2: Implement revision-keyed layer builder**
+- [x] **Step 2: Implement revision-keyed layer builder**
 
 Build layers from projection rows and existing badge/provider state inputs.
 Avoid per-row calls to broad services from render paths.
 
-- [ ] **Step 3: Instrument layer build**
+- [x] **Step 3: Instrument layer build**
 
 Add `perfProbe` timing name `explorer.layers.build` with payload `{ nodes }`.
 
-- [ ] **Step 4: Commit**
+- [x] **Step 4: Commit**
 
 Commit message: `feat: batch explorer decoration layers`.
 
