@@ -38,13 +38,14 @@
 		scrollFixedIndexIntoView,
 	} from '../../services/serviceScroll';
 	import {
-		resolveRowInputRevealIndex,
+		buildRowInputIdIndex,
 		rowInputCallbackId,
 		rowInputFromTreeNode,
 		rowInputToTreeNode,
 		rowInputVirtualKey,
 		type ExplorerRowInput,
 	} from '../../services/serviceExplorerRowInput';
+	import { createExplorerScrollGeometry } from '../../services/serviceExplorerScrollGeometry';
 	import {
 		handleNodeBadgePress,
 		inheritedNodeBadges,
@@ -247,6 +248,7 @@
 	const treeRows = $derived(treeRowsFromInputs(nodes, rowInputs));
 	const flatArray = $derived(flattenMeasured(treeRows, expandedIds));
 	const flatRowInputs = $derived(flatArray.map((flat) => flat.row));
+	const flatIdToIndex = $derived(buildRowInputIdIndex(flatRowInputs));
 	const rowVirtualizer = createVirtualizer<HTMLDivElement, HTMLDivElement>({
 		count: 0,
 		getScrollElement: () => outerEl ?? null,
@@ -318,13 +320,30 @@
 	}
 
 	function resolveRevealIndexNow(target: ScrollTarget): number {
-		return resolveRowInputRevealIndex({
-			rows: flatRowInputs,
-			target,
-			snapshotRevision,
-			idToIndex,
+		const externalIdToIndex = idToIndex;
+		const mappedIndex = externalIdToIndex?.get(target.id);
+		const effectiveIdToIndex =
+			externalIdToIndex &&
+			typeof mappedIndex === 'number' &&
+			flatRowInputs[mappedIndex]?.id === target.id
+				? externalIdToIndex
+				: flatIdToIndex;
+		const coordinator = createExplorerScrollGeometry({
+			idToIndex: effectiveIdToIndex,
+			rowHeight,
+			rowCount: flatRowInputs.length,
+			revision: snapshotRevision ?? undefined,
 			resolveIndexById,
 		});
+		const resolved = coordinator.resolve({
+			kind: 'id',
+			id: target.id,
+			reason: target.reason ?? 'selection',
+			align: target.align,
+			minRevision: target.minSnapshotRevision,
+		});
+		if (!resolved) return -1;
+		return flatRowInputs[resolved.index]?.id === target.id ? resolved.index : -1;
 	}
 
 	function scrollRowIntoView(index: number, preferredAlign: ExplorerRevealAlign = 'auto'): void {

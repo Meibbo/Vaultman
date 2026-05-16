@@ -5,7 +5,12 @@
 		createRafElementRectObserver,
 		fallbackFixedVirtualRows,
 	} from '../../services/serviceScroll';
-	import { rowInputVirtualKey, type ExplorerRowInput } from '../../services/serviceExplorerRowInput';
+	import {
+		buildRowInputIdIndex,
+		rowInputVirtualKey,
+		type ExplorerRowInput,
+	} from '../../services/serviceExplorerRowInput';
+	import { createExplorerScrollGeometry } from '../../services/serviceExplorerScrollGeometry';
 	import type { NodeBase } from '../../types/typeContracts';
 	import type { ViewAction, ViewBadge, ViewRow } from '../../types/typeViews';
 
@@ -65,6 +70,7 @@
 
 	const rowHeight = $derived(ROW_HEIGHT);
 	const rowCount = $derived(rowInputs.length);
+	const rowIdToIndex = $derived(buildRowInputIdIndex(rowInputs));
 	const isListboxMode = $derived(Boolean(onSelect || onFocus));
 	const keyboardEnabled = $derived(Boolean(onSelect || onFocus || onActivate));
 	const activeFocusedId = $derived(localFocusedId ?? focusedId ?? null);
@@ -130,9 +136,14 @@
 		const id = focusedId;
 		if (!id) return;
 		localFocusedId = id;
-		const idx = rowInputs.findIndex((row) => row.id === id);
-		if (idx < 0) return;
-		untrack(() => $rowVirtualizer.scrollToIndex(idx, { align: 'auto' }));
+		const coordinator = createExplorerScrollGeometry({
+			idToIndex: rowIdToIndex,
+			rowHeight,
+			rowCount,
+		});
+		const target = coordinator.resolve({ kind: 'id', id, reason: 'keyboard' });
+		if (!target) return;
+		untrack(() => $rowVirtualizer.scrollToIndex(target.index, { align: target.align }));
 	});
 
 	function onScroll(e: Event) {
