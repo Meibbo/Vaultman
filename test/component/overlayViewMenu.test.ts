@@ -53,11 +53,11 @@ describe('ViewModePopup', () => {
 		expect(tableButton!.classList.contains('is-accent')).toBe(true);
 	});
 
-	it('offers cards mode but not dnd mode in the first measured-cards slice', () => {
+	it('offers cards mode but not deferred map modes in the platform view menu', () => {
 		renderViewModePopup({ fieldDefinitions, visibleFields: ['icon', 'name'] });
 
 		expect(target.querySelector<HTMLElement>('.vm-squircle[aria-label="Cards"]')).not.toBeNull();
-		expect(target.querySelector<HTMLElement>('.vm-squircle[aria-label="Markmap"]')).not.toBeNull();
+		expect(target.querySelector<HTMLElement>('.vm-squircle[aria-label="Markmap"]')).toBeNull();
 		expect(target.querySelector<HTMLElement>('.vm-squircle[aria-label="Drag & Drop list"]')).toBeNull();
 	});
 

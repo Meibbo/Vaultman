@@ -18,110 +18,201 @@ Three tasks: create the built-in token blocks file, migrate
 the new density token. SCSS changes have no unit-test gate — verify via
 build and visual smoke.
 
-## Task 10 — Create `_theme-presets.scss` and wire into `main.scss`
+## Task 10 — Install `@unocss/preset-theme` and configure built-in tokens
 
 **Files:**
-- Create: `src/styles/_theme-presets.scss`
-- Modify: `src/main.scss`
+- Modify: `package.json`
+- Modify: `pnpm-lock.yaml` (generated)
+- Modify: `uno.config.ts`
 
-- [ ] **Step 1: Create `_theme-presets.scss`**
+- [ ] **Step 1: Install `@unocss/preset-theme`**
 
-Create `src/styles/_theme-presets.scss` with the exact contents from
-[[docs/work/hardening/specs/2026-05-15-explorer-0-b-servicetheme-token-layer/05-scss-and-dom-binding|spec shard 05 §"File 1"]]:
+Run: `pnpm add -D @unocss/preset-theme@latest`
+Expected: `package.json` `devDependencies` gains `@unocss/preset-theme`
+at a version matching the installed `unocss` (currently ^66.6.8).
+`pnpm-lock.yaml` is updated.
 
-```scss
-// _theme-presets.scss
-// Built-in theme preset tokens. Custom presets are runtime-injected by
-// ThemeService — see src/services/serviceTheme.svelte.ts.
-//
-// Each block scopes its tokens under .vm-theme-{id}. The .vm-root carries
-// exactly one such class at a time; cascade resolves vars from there.
-
-@use 'tokens' as *;
-
-/* ------------------------------------------------------------------ */
-/*   Native preset — chameleon disguise                              */
-/* ------------------------------------------------------------------ */
-
-.vm-theme-native {
-  --vm-popup-bg-opacity: 1;
-  --vm-popup-backdrop-blur: 0px;
-  --vm-popup-bg-tint: 0;
-
-  --vm-row-height: 26px;
-  --vm-row-padding-y: 2px;
-  --vm-icon-size: 14px;
-}
-
-/* ------------------------------------------------------------------ */
-/*   Vaultman preset — full plugin                                    */
-/* ------------------------------------------------------------------ */
-
-.vm-theme-vaultman {
-  --vm-popup-bg-opacity: 0.92;
-  --vm-popup-backdrop-blur: 4px;
-  --vm-popup-bg-tint: 0;
-
-  --vm-row-height: 32px;
-  --vm-row-padding-y: 4px;
-  --vm-icon-size: 16px;
-}
-```
-
-- [ ] **Step 2: Wire into `main.scss`**
-
-Open `src/main.scss`. Find this block at the top:
-
-```scss
-// 1. Settings & Tools (ITCSS: Settings -> Tools)
-@use './styles/tokens' as *;
-@use './styles/mixins' as *;
-@use './styles/elastic';
-```
-
-Replace with:
-
-```scss
-// 1. Settings & Tools (ITCSS: Settings -> Tools)
-@use './styles/tokens' as *;
-@use './styles/mixins' as *;
-@use './styles/elastic';
-@use './styles/theme-presets';
-```
-
-- [ ] **Step 3: Run build**
-
-Run: `pnpm run build:plugin`
-Expected: build passes; emits updated `styles.css`.
-
-If build fails with a Sass error about the new file, check the
-`@use 'tokens' as *` line — `tokens` must resolve relative to
-`_theme-presets.scss` location. If `tokens.scss` is in the same
-directory (`src/styles/`), the path is correct. Otherwise adjust to
-`@use '../tokens' as *` etc.
-
-- [ ] **Step 4: Verify CSS output contains the blocks**
-
-Run: `grep -A 2 "vm-theme-native\|vm-theme-vaultman" dist/build/styles.css | head -20`
-Expected: two CSS blocks present with the six `--vm-*` custom
-properties each. If the build emitted to a different path, adjust.
-
-- [ ] **Step 5: Commit**
+If the latest version differs from the installed `unocss` major
+version, pin to the matching version explicitly:
 
 ```bash
-git add src/styles/_theme-presets.scss src/main.scss
+pnpm add -D @unocss/preset-theme@^66.6.8
+```
+
+- [ ] **Step 2: Read the installed preset-theme API surface**
+
+Run: `cat node_modules/@unocss/preset-theme/package.json | head -20`
+Note the entry point and version. Read the README at
+`node_modules/@unocss/preset-theme/README.md` (or browse the
+[GitHub repo](https://github.com/unocss/unocss/tree/main/packages/preset-theme))
+to confirm exact configuration shape.
+
+The spec mandates this OUTPUT contract; the configuration shape may
+differ across plugin versions and the engineer must adapt:
+
+1. Build emits exactly:
+   ```css
+   .vm-theme-native {
+     --vm-popup-bg-opacity: 1;
+     --vm-popup-backdrop-blur: 0px;
+     --vm-popup-bg-tint: 0;
+     --vm-row-height: 26px;
+     --vm-row-padding-y: 2px;
+     --vm-icon-size: 14px;
+   }
+   .vm-theme-vaultman {
+     --vm-popup-bg-opacity: 0.92;
+     --vm-popup-backdrop-blur: 4px;
+     --vm-popup-bg-tint: 0;
+     --vm-row-height: 32px;
+     --vm-row-padding-y: 4px;
+     --vm-icon-size: 16px;
+   }
+   ```
+2. Variable names use the `--vm-` prefix exactly.
+3. Class selectors are `.vm-theme-native` and `.vm-theme-vaultman`
+   exactly.
+
+If `@unocss/preset-theme`'s declarative API doesn't reach this shape
+(e.g., it generates `.theme-{name}` selectors with no override), the
+engineer writes a custom UnoCSS rule via `rules:` array that emits
+the equivalent CSS — preserving the OUTPUT contract above. Do NOT
+fight the plugin.
+
+- [ ] **Step 3: Modify `uno.config.ts`**
+
+Replace the file contents with the spec-mandated configuration. The
+exact API in the code below uses `presetTheme` with `prefix`,
+`theme`, and `selectors` fields — adjust if the installed version
+uses different field names while preserving the output contract.
+
+```typescript
+import {
+  defineConfig,
+  presetAttributify,
+  presetIcons,
+  presetWind3,
+} from 'unocss';
+import presetTheme from '@unocss/preset-theme';
+
+const VM_THEME_NATIVE = {
+  'popup-bg-opacity': '1',
+  'popup-backdrop-blur': '0px',
+  'popup-bg-tint': '0',
+  'row-height': '26px',
+  'row-padding-y': '2px',
+  'icon-size': '14px',
+};
+
+const VM_THEME_VAULTMAN = {
+  'popup-bg-opacity': '0.92',
+  'popup-backdrop-blur': '4px',
+  'popup-bg-tint': '0',
+  'row-height': '32px',
+  'row-padding-y': '4px',
+  'icon-size': '16px',
+};
+
+export default defineConfig({
+  presets: [
+    presetWind3({ preflight: false }),
+    presetAttributify(),
+    presetIcons({ scale: 1.0, warn: false }),
+    presetTheme({
+      prefix: '--vm',
+      theme: {
+        native: VM_THEME_NATIVE,
+        vaultman: VM_THEME_VAULTMAN,
+      },
+      selectors: {
+        native: '.vm-theme-native',
+        vaultman: '.vm-theme-vaultman',
+      },
+    }),
+  ],
+  safelist: [
+    'vm-root',
+    'vm-mode-thin',
+    'vm-mode-balanced',
+    'vm-mode-thick',
+    'vm-id-native',
+    'vm-id-bases',
+    'vm-id-outline',
+    'vm-id-bookmarks',
+    'vm-faint',
+    'vm-reduced-motion',
+    'vm-foul-detect',
+    'obsidian-mimic-file',
+    'obsidian-mimic-folder',
+    'obsidian-mimic-tree-item',
+    'obsidian-mimic-property',
+    'vm-theme-native',
+    'vm-theme-vaultman',
+  ],
+  shortcuts: [
+    ['obsidian-mimic-file-layout', 'flex items-center px-2'],
+    ['obsidian-mimic-folder-layout', 'flex items-center'],
+    [
+      'vm-btn-squircle',
+      'inline-flex items-center justify-center rounded-md p-1 hover:bg-[var(--background-modifier-hover)]',
+    ],
+    [
+      'vm-card',
+      'rounded-md border border-[var(--background-modifier-border)] bg-[var(--background-secondary)] p-2',
+    ],
+    [
+      'vm-btn-primary',
+      'inline-flex items-center justify-center rounded-md px-3 py-1 bg-[var(--interactive-accent)] text-[var(--text-on-accent)] hover:bg-[var(--interactive-accent-hover)]',
+    ],
+  ],
+  rules: [],
+});
+```
+
+- [ ] **Step 4: Run build**
+
+Run: `pnpm run build:plugin`
+Expected: build passes.
+
+If the preset-theme config shape is incorrect for the installed
+version, the build fails. Inspect the error; consult preset-theme
+README; adjust the config; re-run.
+
+- [ ] **Step 5: Verify build output**
+
+Run: `grep -A 8 "vm-theme-native" dist/build/styles.css | head -10`
+Expected: six `--vm-*` custom properties listed within the
+`.vm-theme-native { ... }` block.
+
+Run: `grep -A 8 "vm-theme-vaultman" dist/build/styles.css | head -10`
+Expected: six `--vm-*` custom properties listed within the
+`.vm-theme-vaultman { ... }` block.
+
+If either selector is absent or the variables are missing, the
+preset-theme configuration did not produce the spec-mandated output.
+Fix before continuing.
+
+- [ ] **Step 6: Commit**
+
+```bash
+git add package.json pnpm-lock.yaml uno.config.ts
 git commit -m "$(cat <<'EOF'
-feat(0-b): add SCSS token blocks for built-in theme presets
+feat(0-b): adopt @unocss/preset-theme for built-in token blocks
 
-New file src/styles/_theme-presets.scss defines .vm-theme-native and
-.vm-theme-vaultman var blocks with six --vm-* custom properties each
-(popup bg opacity/blur/tint, row height/padding/icon size).
+Installs @unocss/preset-theme matching the installed UnoCSS version.
+uno.config.ts declares two themes (native, vaultman) with six
+CSS vars each (popup-bg-opacity, popup-backdrop-blur, popup-bg-tint,
+row-height, row-padding-y, icon-size). UnoCSS emits the matching
+.vm-theme-native and .vm-theme-vaultman blocks in the build output
+with --vm-* prefixed variables.
 
-main.scss includes the new file after _elastic. Cascade resolves
-tokens from whichever vm-theme-{id} class is active on .vm-root.
+Anticipates the upcoming Sub-system N (SCSS-to-UnoCSS migration,
+target ~90% UnoCSS). Custom theme presets continue to be
+runtime-injected by ThemeService since preset-theme is build-time
+only.
 
-Custom presets continue to inject their own block via ThemeService at
-runtime (T9).
+Adds 'vm-theme-native' and 'vm-theme-vaultman' to safelist so theme
+selectors are kept even when not referenced statically.
 EOF
 )"
 ```

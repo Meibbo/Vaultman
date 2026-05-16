@@ -65,7 +65,7 @@
 	const TREE_ROW_HEIGHT = DEFAULT_VIEW_SIZE.treeRowHeight;
 	const TREE_FALLBACK_WIDTH = 320;
 	const TREE_FALLBACK_HEIGHT = 400;
-	const TREE_OVERSCAN = 24;
+	const TREE_OVERSCAN = 10;
 	const TREE_STICKY_MAX_ROWS = 7;
 	const TREE_STICKY_MAX_VIEWPORT_RATIO = 0.4;
 	type ScrollTarget = ExplorerRevealTarget;
@@ -238,6 +238,7 @@
 	} | null>(null);
 	let suppressNextClick = false;
 	let rowHeightFrame: number | null = null;
+	let consumedScrollTargetSerial: number | null = null;
 	const mouse = createMouseGestureService();
 	const viewSize = $derived(getViewSizePreset(sizePresetId));
 	const viewSizeStyle = $derived(viewSizeCssVars(viewSize));
@@ -314,8 +315,11 @@
 	$effect(() => {
 		const target = scrollTarget;
 		if (!target || !outerEl) return;
+		if (target.serial === consumedScrollTargetSerial) return;
 		const index = resolveRevealIndex(target);
-		if (index >= 0) scrollRowIntoView(index, target.align);
+		if (index < 0) return;
+		consumedScrollTargetSerial = target.serial;
+		scrollRowIntoView(index, target.align);
 	});
 
 	function onScroll() {
@@ -381,7 +385,7 @@
 		}
 		if (nextTop === currentTop) return;
 
-		$rowVirtualizer.scrollToIndex(index, { align: virtualAlign });
+		untrack(() => $rowVirtualizer.scrollToIndex(index, { align: virtualAlign, behavior: 'auto' }));
 		outerEl.scrollTop = nextTop;
 		syncFallbackScrollState();
 		outerEl.dispatchEvent(new Event('scroll'));

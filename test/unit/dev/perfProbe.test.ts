@@ -99,14 +99,14 @@ describe('perf probe contract', () => {
 	});
 
 	it('finishes scenarios when animation frames are not delivered', async () => {
-		const requestAnimationFrame = vi.fn();
+		const setTimeout = vi.fn((cb: () => void) => {
+			cb();
+			return 0;
+		});
 		const doc = {
 			defaultView: {
-				requestAnimationFrame,
-				setTimeout: (cb: () => void) => {
-					cb();
-					return 0;
-				},
+				requestAnimationFrame: vi.fn(),
+				setTimeout,
 			},
 			querySelector: () => null,
 		} as unknown as Document;
@@ -114,8 +114,33 @@ describe('perf probe contract', () => {
 
 		const result = await probe.api.run('tree-scroll');
 
-		expect(requestAnimationFrame).toHaveBeenCalled();
+		expect(setTimeout).toHaveBeenCalled();
 		expect(result.scenario).toBe('tree-scroll');
+	});
+
+	it('records event-loop delay after scroll scenarios as long-frame data', async () => {
+		let now = 0;
+		const scroller = document.createElement('div');
+		Object.defineProperty(scroller, 'clientHeight', { value: 100, configurable: true });
+		Object.defineProperty(scroller, 'scrollHeight', { value: 1_000, configurable: true });
+		const doc = {
+			defaultView: {
+				setTimeout: (cb: () => void) => {
+					now += 75;
+					cb();
+					return 0;
+				},
+			},
+			querySelector: (selector: string) =>
+				selector === '.vm-tree-virtual-outer' ? scroller : null,
+		} as unknown as Document;
+		const probe = createPerfProbe({ now: () => now, doc });
+
+		const result = await probe.api.run('files-tree-50k-scroll-jump');
+
+		expect(scroller.scrollTop).toBe(900);
+		expect(result.longFrameCount).toBeGreaterThan(0);
+		expect(result.maxLongFrameMs).toBeGreaterThanOrEqual(75);
 	});
 
 	it('registers explorer platform scenarios as runnable snapshot contracts', async () => {

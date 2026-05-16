@@ -5,6 +5,7 @@
 ![](https://img.shields.io/github/license/Meibbo/vaultman)
 ![](https://img.shields.io/github/downloads/Meibbo/vaultman/total)
 [![Quality checks](https://github.com/Meibbo/vaultman/actions/workflows/ci.yml/badge.svg)](https://github.com/Meibbo/vaultman/actions/workflows/ci.yml) [![Security scan](https://github.com/Meibbo/vaultman/actions/workflows/codeql.yml/badge.svg)](https://github.com/Meibbo/vaultman/actions/workflows/codeql.yml)
+[![OpenSSF Scorecard](https://api.scorecard.dev/projects/github.com/Meibbo/vaultman/badge)](https://scorecard.dev/viewer/?uri=github.com/Meibbo/vaultman)
 
 ![|240](./img/Vaultman_screenshot.png)
 
@@ -16,6 +17,8 @@
 - [Installation](#installation)
 - [Features](#features#main-hub)
 - [Development](#development)
+- [Contributing](#contributing)
+- [Security](#security)
 - [License](#license)
 
 ---
@@ -197,9 +200,30 @@ This project uses the following open-source libraries:
 
 All third-party libraries retain their respective licenses.
 
+## Contributing
+
+Vaultman is currently maintained primarily by one maintainer. Issues, bug
+reports, small fixes, and focused pull requests are welcome.
+
+Before opening a pull request, please:
+
+- open an issue first for large changes;
+- keep changes focused;
+- run `pnpm verify` when possible;
+- avoid including generated build artifacts;
+- report security issues privately through [SECURITY.md](SECURITY.md).
+
+Contributions are expected to be compatible with the project license.
+
+## Security
+
+For vulnerability reporting and supported-version expectations, see
+[SECURITY.md](SECURITY.md). Please do not open a public issue for a suspected
+vulnerability.
+
 ## License
 
-[MIT](LICENSE) — [Meibbo](https://github.com/Meibbo). This product is published _as it is_ without any explicit warranty due to its early development state.
+[Apache License 2.0](LICENSE) — [Meibbo](https://github.com/Meibbo). This product is published _as it is_ without any explicit warranty due to its early development state.
 
 > **Disclaimer**: _This is a student project. AI agentic tools were used in the making of this plugin, is manually tested and debugged in mock vaults to ensure main workflow functionality._
 

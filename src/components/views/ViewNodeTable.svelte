@@ -115,6 +115,7 @@
 	let tableMeasureStyle: TextMeasureStyle = $state(DEFAULT_NODE_ROW_MEASURE_STYLE);
 	let tableMetricsFrame: number | null = null;
 	let tableRemeasureFrame: number | null = null;
+	let consumedScrollTargetSerial: number | null = null;
 	let measuredTableRows = $state(new Map<string, number>());
 	let measuredTableRowsRevision = $state('');
 	const mouse = createMouseGestureService();
@@ -251,10 +252,13 @@
 	$effect(() => {
 		const target = scrollTarget;
 		if (!target || !outerEl) return;
+		if (target.serial === consumedScrollTargetSerial) return;
 		const rowIndex = tableRows.findIndex(
 			(row) => row.id === target.id || tableCallbackId(row) === target.id,
 		);
-		if (rowIndex >= 0) scrollTableRowIntoView(rowIndex);
+		if (rowIndex < 0) return;
+		consumedScrollTargetSerial = target.serial;
+		scrollTableRowIntoView(rowIndex);
 	});
 
 	$effect(() => {
@@ -280,7 +284,12 @@
 			if (rowTop >= currentTop && rowBottom <= currentBottom) return;
 
 			const nextTop = rowTop < currentTop ? rowTop : Math.max(0, rowBottom - viewportHeight);
-			$rowVirtualizer.scrollToIndex(rowIndex, { align: rowTop < currentTop ? 'start' : 'end' });
+			untrack(() =>
+				$rowVirtualizer.scrollToIndex(rowIndex, {
+					align: rowTop < currentTop ? 'start' : 'end',
+					behavior: 'auto',
+				}),
+			);
 			outerEl!.scrollTop = nextTop;
 			outerEl!.dispatchEvent(new Event('scroll'));
 		});

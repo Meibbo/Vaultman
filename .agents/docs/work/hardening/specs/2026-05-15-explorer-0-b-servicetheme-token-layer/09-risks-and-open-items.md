@@ -224,17 +224,43 @@ the same color-knob mental model.
 over core Obsidian Workspaces (adds node-notes/media/tags/search/bulk).
 Wires `preset.workspaceId?`.
 
-### O10 — Sub-system M — SCSS hygiene pass
+### O10 — ~~Sub-system M — SCSS hygiene pass~~ (DROPPED)
 
-Audit 40 SCSS files (~7934 LOC), extract repeated patterns to
-mixins/vars, deepen nesting where selectors allow. Independent
-initiative.
+Dropped during mid-brainstorm pivot. With Sub-system N migrating ~90%
+of SCSS to UnoCSS, the hygiene goal is achieved naturally: what
+migrates leaves SCSS; what stays gets cleaned as part of N's residual
+audit at completion. No standalone spec.
 
-### O11 — Sub-system N — UnoCSS removal
+### O11 — Sub-system N — SCSS-to-UnoCSS migration (HIGH PRIORITY)
 
-Migrate 6 utility-heavy components to SCSS classes, replace icon
-utility spans with `setIcon()`, delete UnoCSS plugin chain. 1-2 days
-dedicated post-0-B.
+Invert the styling source. Migrate the ~7934 LOC across 40 SCSS files
+to UnoCSS shortcuts and utility classes. Target ~90% UnoCSS, ~10% SCSS
+reserved for complex functions (color-mix patterns, deep cascades,
+mixins that don't translate cleanly to utilities).
+
+**Priority:** HIGH. Recommended order:
+- After 0-B lands (which already adopts `unocss-preset-theme` for the
+  small token surface).
+- Recommended before Sub-system 12 (Bits-ui adoption preset) so the
+  new components use UnoCSS-first composition.
+- May run in parallel with Sub-system O (frameVaultman decomposition)
+  if engineer capacity allows, but coordination required because the
+  same files (`frameVaultman.svelte`, child shells) are touched in
+  both.
+
+**Scope:**
+- Audit all 40 SCSS files. Categorize each rule as
+  (a) translatable to existing UnoCSS utilities, (b) translatable to
+  new shortcuts, (c) must stay SCSS (complex function).
+- For (a) + (b): rewrite consumers in `.svelte` files to apply
+  UnoCSS classes; delete corresponding SCSS rules.
+- For (c): keep in SCSS, document why translation is not viable.
+- Output: `src/styles/` shrinks to ~10% original size. New shortcuts
+  emerge in `uno.config.ts`. Consumers apply utilities + shortcuts
+  inline.
+
+**Esfuerzo:** large initiative — multi-day. Brainstorm + spec + plan
+recommended; do not execute ad-hoc.
 
 ### O12 — Sub-system O — frameVaultman decomposition
 

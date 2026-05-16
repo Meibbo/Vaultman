@@ -73,6 +73,7 @@
 	let localFocusedId: string | null = $state(null);
 	let fallbackScrollTop = $state(0);
 	let fallbackViewportHeight = $state(LIST_FALLBACK_HEIGHT);
+	let consumedFocusedRevealKey: string | null = null;
 
 	const rowHeight = $derived(ROW_HEIGHT);
 	const effectiveRowInputs = $derived(projection ? rowInputsFromProjection(projection) : rowInputs);
@@ -141,8 +142,14 @@
 
 	$effect(() => {
 		const id = focusedId;
-		if (!id) return;
+		if (!id) {
+			consumedFocusedRevealKey = null;
+			return;
+		}
 		localFocusedId = id;
+		const currentIndex = rowIdToIndex.get(id);
+		const revealKey = `${id}:${currentIndex ?? -1}:${rowCount}`;
+		if (revealKey === consumedFocusedRevealKey) return;
 		const coordinator = createExplorerScrollGeometry({
 			idToIndex: rowIdToIndex,
 			rowHeight,
@@ -150,7 +157,10 @@
 		});
 		const target = coordinator.resolve({ kind: 'id', id, reason: 'keyboard' });
 		if (!target) return;
-		untrack(() => $rowVirtualizer.scrollToIndex(target.index, { align: target.align }));
+		consumedFocusedRevealKey = revealKey;
+		untrack(() =>
+			$rowVirtualizer.scrollToIndex(target.index, { align: target.align, behavior: 'auto' }),
+		);
 	});
 
 	function onScroll(e: Event) {

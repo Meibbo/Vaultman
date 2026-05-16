@@ -1,7 +1,7 @@
 ---
 title: OpenSSF scorecard repository settings
 type: plan-shard
-status: draft
+status: active
 parent: "[[docs/work/hardening/plans/2026-05-16-openssf-osps-baseline/index|OpenSSF OSPS baseline implementation plan]]"
 created: 2026-05-16T04:42:00
 updated: 2026-05-16T04:42:00
@@ -18,7 +18,7 @@ updated_by: codex
 
 ## Task 3: OpenSSF Scorecard Measurement
 
-- [ ] **Step 1: Verify pinned action SHAs**
+- [x] **Step 1: Verify pinned action SHAs**
 
 Run:
 
@@ -38,7 +38,12 @@ If the implementation date is not 2026-05-16, re-check the official
 `ossf/scorecard-action` repository before deciding whether to use these pins or
 a newer verified release.
 
-- [ ] **Step 2: Create `.github/workflows/scorecard.yml`**
+Execution note, 2026-05-16: refs were re-verified before creating the workflow:
+`actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5`,
+`ossf/scorecard-action@4eaacf0543bb3f2c246792bd56e8cdeffafb205a`, and
+`github/codeql-action/upload-sarif@7c1e4cf0b20d7c1872b26569c00ba908797a59bf`.
+
+- [x] **Step 2: Create `.github/workflows/scorecard.yml`**
 
 Use this structure:
 
@@ -81,12 +86,17 @@ jobs:
 Expected: Scorecard publishes results and uploads SARIF with minimal
 permissions.
 
-- [ ] **Step 3: Add README badge only after first successful run**
+- [x] **Step 3: Add README badge only after first successful run**
 
 Use the official badge URL from the repository's Scorecard result page after
 the workflow has completed successfully.
 
 Expected: README does not advertise a stale or failing score.
+
+Execution note, 2026-05-16: the user explicitly requested adding the badge now,
+before the first GitHub run. The README uses the official Scorecard badge URL
+shape with `publish_results: true`; the badge may not display a fresh project
+score until the workflow has run on GitHub.
 
 ## Task 4: Repository Settings Checklist
 

@@ -206,6 +206,7 @@
 	let gridMetricsFrame: number | null = null;
 	let gridRemeasureFrame: number | null = null;
 	let gpuReadyMarked = false;
+	let consumedScrollTargetSerial: number | null = null;
 	let gridMeasureStyle: TextMeasureStyle = $state(DEFAULT_NODE_ROW_MEASURE_STYLE);
 	let gridMeasuredRowHeights = $state(new Map<string, number>());
 	let gridMeasuredRevision = $state('');
@@ -362,10 +363,13 @@
 	$effect(() => {
 		const target = scrollTarget;
 		if (!target || !outerEl) return;
+		if (target.serial === consumedScrollTargetSerial) return;
 		const rowIndex = gridRows.findIndex((row) =>
 			row.nodes.some((node) => containsNodeId(node, target.id)),
 		);
-		if (rowIndex >= 0) scrollGridRowIntoView(rowIndex);
+		if (rowIndex < 0) return;
+		consumedScrollTargetSerial = target.serial;
+		scrollGridRowIntoView(rowIndex);
 	});
 
 	$effect(() => {
@@ -468,7 +472,12 @@
 			if (rowTop >= currentTop && rowBottom <= currentBottom) return;
 
 			const nextTop = rowTop < currentTop ? rowTop : Math.max(0, rowBottom - viewportHeight);
-			$rowVirtualizer.scrollToIndex(rowIndex, { align: rowTop < currentTop ? 'start' : 'end' });
+			untrack(() =>
+				$rowVirtualizer.scrollToIndex(rowIndex, {
+					align: rowTop < currentTop ? 'start' : 'end',
+					behavior: 'auto',
+				}),
+			);
 			outerEl!.scrollTop = nextTop;
 			outerEl!.dispatchEvent(new Event('scroll'));
 		});

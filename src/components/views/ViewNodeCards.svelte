@@ -117,6 +117,7 @@
 	let columnCount = $state(1);
 	let cardMeasureStyle = $state(DEFAULT_NODE_CARD_MEASURE_STYLE);
 	let metricsFrame: number | null = null;
+	let consumedScrollTargetSerial: number | null = null;
 	const mouse = createMouseGestureService();
 	const nodeMouseConfig = $derived(
 		mergeMouseGestureConfig(NODE_MOUSE_GESTURE_CONFIG, mouseGestureConfig),
@@ -182,12 +183,15 @@
 	$effect(() => {
 		const target = scrollTarget;
 		if (!target || !outerEl) return;
+		if (target.serial === consumedScrollTargetSerial) return;
 		const rowIndex = cardRows.findIndex((row) =>
 			row.cards.some(
 				(card) => card.input.id === target.id || rowInputCallbackId(card.input) === target.id,
 			),
 		);
-		if (rowIndex >= 0) scrollCardRowIntoView(rowIndex);
+		if (rowIndex < 0) return;
+		consumedScrollTargetSerial = target.serial;
+		scrollCardRowIntoView(rowIndex);
 	});
 
 	$effect(() => {
@@ -260,7 +264,12 @@
 		if (rowTop >= currentTop && rowBottom <= currentBottom) return;
 
 		const nextTop = rowTop < currentTop ? rowTop : Math.max(0, rowBottom - viewportHeight);
-		$rowVirtualizer.scrollToIndex(rowIndex, { align: rowTop < currentTop ? 'start' : 'end' });
+		untrack(() =>
+			$rowVirtualizer.scrollToIndex(rowIndex, {
+				align: rowTop < currentTop ? 'start' : 'end',
+				behavior: 'auto',
+			}),
+		);
 		outerEl.scrollTop = nextTop;
 		outerEl.dispatchEvent(new Event('scroll'));
 	}

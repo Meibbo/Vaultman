@@ -42,11 +42,7 @@ export interface ExplorerProjection<TMeta = unknown> {
 export function rowInputsFromProjection<TMeta = unknown>(
 	projection: ExplorerProjection<TMeta>,
 ): ExplorerRowInput<TMeta>[] {
-	const rowsById = new Map(projection.rows.map((row) => [row.id, row]));
-	return projection.visibleIds.flatMap((id) => {
-		const row = rowsById.get(id);
-		return row ? [row.rowInput] : [];
-	});
+	return projection.rows.map((row) => row.rowInput);
 }
 
 export function createExplorerProjection<TMeta = unknown>({
@@ -56,11 +52,13 @@ export function createExplorerProjection<TMeta = unknown>({
 	sourceRevision,
 	layoutRevision = sourceRevision,
 }: ExplorerProjectionInput<TMeta>): ExplorerProjection<TMeta> {
+	const rowCount = rowInputs.length;
 	const rows: ExplorerProjectionRow<TMeta>[] = [];
 	const visibleIds: string[] = [];
+	rows.length = rowCount;
+	visibleIds.length = rowCount;
 	const idToIndex = new Map<string, number>();
-	const indexToId = new Map<number, string>();
-	const mediaById = new Map<string, ExplorerMediaRecord>();
+	let mediaById: Map<string, ExplorerMediaRecord> | undefined;
 
 	for (let index = 0; index < rowInputs.length; index += 1) {
 		const rowInput = rowInputs[index];
@@ -69,14 +67,16 @@ export function createExplorerProjection<TMeta = unknown>({
 			? descriptorOnlyMediaRecord(rowInput.mediaDescriptor)
 			: undefined;
 
-		visibleIds.push(id);
+		visibleIds[index] = id;
 		idToIndex.set(id, index);
-		indexToId.set(index, id);
-		if (mediaDescriptor) mediaById.set(id, mediaDescriptor);
+		if (mediaDescriptor) {
+			mediaById ??= new Map<string, ExplorerMediaRecord>();
+			mediaById.set(id, mediaDescriptor);
+		}
 
-		rows.push({
+		rows[index] = {
 			id,
-			key: `${providerId}:${viewMode}:${id}`,
+			key: id,
 			index,
 			providerId,
 			viewMode,
@@ -85,7 +85,7 @@ export function createExplorerProjection<TMeta = unknown>({
 			node: rowInput.node,
 			rowInput,
 			mediaDescriptor,
-		});
+		};
 	}
 
 	return {
@@ -97,9 +97,60 @@ export function createExplorerProjection<TMeta = unknown>({
 		rows,
 		visibleIds,
 		idToIndex,
-		indexToId,
-		mediaById,
+		indexToId: new IndexToIdMap(visibleIds),
+		mediaById: mediaById ?? EMPTY_MEDIA_BY_ID,
 	};
+}
+
+const EMPTY_MEDIA_BY_ID: ReadonlyMap<string, ExplorerMediaRecord> = new Map();
+
+class IndexToIdMap implements ReadonlyMap<number, string> {
+	readonly [Symbol.toStringTag] = 'IndexToIdMap';
+
+	constructor(private readonly ids: readonly string[]) {}
+
+	get size(): number {
+		return this.ids.length;
+	}
+
+	get(index: number): string | undefined {
+		return Number.isInteger(index) && index >= 0 && index < this.ids.length
+			? this.ids[index]
+			: undefined;
+	}
+
+	has(index: number): boolean {
+		return Number.isInteger(index) && index >= 0 && index < this.ids.length;
+	}
+
+	forEach(
+		callbackfn: (value: string, key: number, map: ReadonlyMap<number, string>) => void,
+		thisArg?: unknown,
+	): void {
+		for (let index = 0; index < this.ids.length; index += 1) {
+			callbackfn.call(thisArg, this.ids[index], index, this);
+		}
+	}
+
+	*entries(): IterableIterator<[number, string]> {
+		for (let index = 0; index < this.ids.length; index += 1) {
+			yield [index, this.ids[index]];
+		}
+	}
+
+	*keys(): IterableIterator<number> {
+		for (let index = 0; index < this.ids.length; index += 1) {
+			yield index;
+		}
+	}
+
+	*values(): IterableIterator<string> {
+		yield* this.ids;
+	}
+
+	[Symbol.iterator](): IterableIterator<[number, string]> {
+		return this.entries();
+	}
 }
 
 function descriptorOnlyMediaRecord(record: ExplorerMediaRecord): ExplorerMediaRecord {

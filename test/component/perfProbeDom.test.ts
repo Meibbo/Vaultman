@@ -87,7 +87,7 @@ describe('perf probe DOM scenarios', () => {
 		expect(clicks).toBe(1);
 	});
 
-	it('runs files list scroll jump against a guarded list scroller', async () => {
+	it('runs files list scroll jump as a direct jump against a guarded list scroller', async () => {
 		let scrolls = 0;
 		document.body.innerHTML = '<div class="vm-view-list"></div>';
 		const list = document.querySelector<HTMLElement>('.vm-view-list');
@@ -108,7 +108,8 @@ describe('perf probe DOM scenarios', () => {
 			totalRows: 10_000,
 			totalFiles: 10_000,
 		});
-		expect(scrolls).toBe(5);
+		expect(list?.scrollTop).toBe(900);
+		expect(scrolls).toBe(1);
 	});
 
 	it('runs platform menu and tree visual scenarios when matching DOM exists', async () => {

@@ -383,56 +383,77 @@ testing.
 
 **Build-order suggestion.** Independent. Can run in parallel.
 
-## M — SCSS hygiene pass
+## ~~M — SCSS hygiene pass~~ (DROPPED)
 
-**The idea.** Audit the 40 SCSS files (~7934 LOC under `src/styles/`) and
-extract repeated patterns:
+Dropped mid-brainstorm during the UnoCSS pivot. With Sub-system N
+migrating ~90% of SCSS to UnoCSS, the hygiene work is achieved
+naturally — what migrates leaves SCSS, what stays gets cleaned as
+part of N's residual audit at completion. No standalone spec.
 
-- new mixins (`@mixin row-base`, `@mixin card-surface`, `@mixin hover-bg`);
-- new vars (radius scale, spacing scale, density steps);
-- deeper nesting where selectors allow without specificity creep.
+## N — SCSS-to-UnoCSS migration (HIGH PRIORITY)
 
-**Why it surfaced.** User observed during 0-B brainstorm that SCSS has
-visible duplication that abstractions would clean up.
+**The idea.** Invert the styling-source center of mass. Migrate the
+~7934 LOC across 40 SCSS files to UnoCSS shortcuts and utility
+classes. Target ~90% UnoCSS, ~10% SCSS reserved for complex functions
+(color-mix patterns, deep cascades with multiple selectors, mixins
+that don't translate cleanly to utilities).
 
-**Why a separate spec.** Cross-cutting audit + extract work. Risk-free
-if visual equivalence verified. Out of any feature spec scope.
+**Why it surfaced.** User decided mid-brainstorm during the 0-B spec
+authoring that UnoCSS should expand, not contract. Original "Sub-system N
+— UnoCSS removal" entry inverted to "SCSS-to-UnoCSS migration."
+
+**Why a separate spec.** Cross-cutting, large initiative. Audit +
+categorize + translate + delete patterns must be staged carefully to
+keep visual equivalence and avoid breaking community theme/snippet
+expectations.
+
+**Scope.**
+
+- Audit all 40 SCSS files. Categorize each rule:
+  - (a) translatable to existing UnoCSS utilities (preset-wind3
+    coverage),
+  - (b) translatable to a new UnoCSS shortcut,
+  - (c) must stay SCSS (complex function),
+  - (d) dead — delete.
+- For (a) + (b): rewrite consumers in `.svelte` files to apply
+  UnoCSS classes inline; delete corresponding SCSS rules.
+- For (c): keep in SCSS, document in code comments why translation
+  is not viable.
+- For (d): delete; verify no consumer remains.
+- Output: `src/styles/` shrinks to ~10% of original size. New
+  shortcuts emerge in `uno.config.ts`. Consumers apply utilities +
+  shortcuts via `class="..."` in `.svelte` files.
+
+**Why high priority.**
+
+- 0-B already adopts `unocss-preset-theme` for theme tokens. N
+  completes the alignment for the rest of the styling surface.
+- Bits-ui adoption preset (item 12) benefits from UnoCSS-first
+  composition. N is the recommended prerequisite for item 12.
+- Sub-system O (frameVaultman decomposition) is recommended before
+  N because N will touch many of the same files; sequencing avoids
+  double-touch churn. Recommended order:
+  `0-B → O → 0-A → N → 12`.
 
 **Prior art and pointers.**
 
-- `_mixins.scss` exists but is likely under-used.
-- ITCSS-style structure already in `main.scss`.
+- 0-B's `uno.config.ts` already gains a `presetTheme()` config — N
+  preserves that, adds many more shortcuts.
+- Existing UnoCSS shortcuts (`vm-btn-primary`, `vm-btn-squircle`,
+  `vm-card`, `obsidian-mimic-*`) are the seed pattern; N expands
+  this set substantially.
+- Icon utility spans (`i-lucide-*`) already work via UnoCSS
+  `presetIcons` — N may convert remaining inline `setIcon()` calls
+  to declarative `class="i-..."` where appropriate (or keep
+  `setIcon()` for cases where dynamic icon-name binding is needed).
+- `_tokens.scss` SCSS variables that map to Obsidian CSS vars
+  (`$vm-bg-primary: var(--background-primary)` etc.) should likely
+  be removed; consumers reference `var(--background-primary)`
+  directly via UnoCSS bracket syntax (`bg-[var(--background-primary)]`).
 
-**Build-order suggestion.** Independent. Ideally before further large
-SCSS additions (Theme Builder visual editor, etc.).
-
-## N — UnoCSS removal
-
-**The idea.** Remove UnoCSS entirely from the build. Migrate the 6
-utility-heavy components to SCSS classes; replace icon utility spans
-(`i-lucide-*`) with `setIcon()` Obsidian API or inline SVG; collapse
-the four utility shortcuts (`vm-btn-primary`, `vm-btn-squircle`,
-`vm-card`, `obsidian-mimic-*`) to SCSS classes; remove `uno.config.ts`
-and `@unocss/vite` from build.
-
-**Why it surfaced.** During 0-B brainstorm — user asked what would
-happen if UnoCSS were removed. Survey showed bounded effort (1-2 days
-dedicated).
-
-**Why a separate spec.** Clean self-contained refactor.
-
-**Prior art and pointers.**
-
-- Utility-heavy files: `panelExplorer.svelte`, `GridNavigationToolbar.svelte`,
-  `popupMove.svelte`, `pageStats.svelte`, `TextInput.svelte`,
-  `ViewNodeGrid.svelte`.
-- Icon usage: 1 file with `i-lucide-*`; 37 files already use `setIcon()`.
-- `uno.config.ts`: presets + shortcuts + safelist (safelist becomes
-  unnecessary post-removal).
-
-**Build-order suggestion.** After 0-B, independent of 0-A. Recommended
-before Sub-system 12 (Bits-ui adoption) so the new preset uses one
-styling source (SCSS).
+**Build-order suggestion.** HIGH PRIORITY after `0-B → O → 0-A`. Run
+before Sub-system 12 (Bits-ui adoption). Multi-day initiative — do
+not execute ad-hoc; brainstorm + spec + plan in its own cycle.
 
 ## O — frameVaultman decomposition
 

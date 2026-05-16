@@ -130,14 +130,26 @@ import one module, read 1-2 fields, and never reach for internals.
                           │ DOM gains .vm-theme-{id} class
                           ▼
 ┌──────────────────────────────────────────────────────────────────────┐
-│  Layer 6 — SCSS cascade                                              │
+│  Layer 6 — UnoCSS preset-theme + SCSS cascade                        │
 │                                                                      │
-│    _theme-presets.scss (NEW)                                         │
+│    uno.config.ts (MODIFIED)                                          │
+│      presetTheme({                                                   │
+│        prefix: '--vm',                                               │
+│        theme: {                                                      │
+│          native:   { 'popup-bg-opacity': '1',  'row-height': '26px', ... },│
+│          vaultman: { 'popup-bg-opacity': '0.92','row-height': '32px', ... },│
+│        },                                                            │
+│        selectors: {                                                  │
+│          native:   '.vm-theme-native',                               │
+│          vaultman: '.vm-theme-vaultman',                             │
+│        },                                                            │
+│      })                                                              │
+│    Build output (UnoCSS-emitted CSS):                                │
 │      .vm-theme-native   { --vm-popup-bg-opacity: 1; ... }            │
 │      .vm-theme-vaultman { --vm-popup-bg-opacity: 0.92; ... }         │
 │                                                                      │
 │    _islands.scss (modified)                                          │
-│      .vm-explorer-popup {                                            │
+│      .vm-root .vm-explorer-popup {                                   │
 │        background: color-mix(... var(--vm-popup-bg-opacity) ...);    │
 │        backdrop-filter: blur(var(--vm-popup-backdrop-blur, 0px));    │
 │      }                                                               │
@@ -201,8 +213,8 @@ Pre-splitting is premature.
 | `src/config/themePresetsBuiltin.ts` | NEW. `PRESET_NATIVE`, `PRESET_VAULTMAN`, `BUILT_IN_PRESETS`. ~90 LOC. |
 | `src/services/serviceTheme.svelte.ts` | MODIFIED. ~80 LOC growth (preset registry + #syncCustomStyles). Total ~120 LOC. |
 | `src/services/serviceTheme.ts` | DELETED. (49 LOC removed.) |
-| `src/styles/_theme-presets.scss` | NEW. ~40 LOC. |
-| `src/main.scss` | MODIFIED. One `@use` line added. |
+| `uno.config.ts` | MODIFIED. Adds `unocss-preset-theme` plugin import + config block (~30 LOC added). |
+| `package.json` | MODIFIED. Adds `@unocss/preset-theme` dependency. |
 | `src/styles/popup/_islands.scss` | MODIFIED. `--vm-glass-blur` → `--vm-popup-backdrop-blur`; chrome opacity via `--vm-popup-bg-opacity`; legacy `.vm-theme-{default,polish,glass}` blocks deleted. |
 | `src/styles/explorer/_virtual-list.scss` | MODIFIED. Row-height reads `var(--vm-row-height, 32px)`. |
 | `src/styles/explorer/_tree.scss` | MODIFIED. Same. |

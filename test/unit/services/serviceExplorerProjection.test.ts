@@ -28,7 +28,7 @@ describe('serviceExplorerProjection', () => {
 		expect(projection.mediaById.get('node-0')?.status).toBe('unprocessed');
 		expect(projection.rows[9999]).toMatchObject({
 			id: 'node-9999',
-			key: 'files:tree:node-9999',
+			key: 'node-9999',
 			index: 9999,
 			providerId: 'files',
 			viewMode: 'tree',

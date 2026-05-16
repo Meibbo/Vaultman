@@ -4,7 +4,7 @@ type: plan-index
 status: completed
 parent: "[[docs/work/hardening/specs/2026-05-15-explorer-view-platform-pass/index|Explorer View Platform pass spec]]"
 created: 2026-05-15T18:00:10.0199112-05:00
-updated: 2026-05-16T05:10:35.7274498-05:00
+updated: 2026-05-16T06:20:10-05:00
 tags:
   - agent/plan
   - initiative/hardening
@@ -46,6 +46,7 @@ updated_by: codex
 - [[04-tree-visual-contract-recovery|Tree visual contract recovery]]
 - [[05-viewtree-platform-migration|viewTree platform migration]]
 - [[06-integration-verification-handoff|Integration, verification, and handoff]]
+- [[07-performance-comparison-repair|Performance comparison repair]]
 
 ## Execution Rules
 
@@ -91,10 +92,15 @@ updated_by: codex
 
 ## Completion Snapshot
 
-Completed on branch `claude/explorer` through Task 20.
+Completed on branch `claude/explorer` through Task 20, then repaired after
+review found the missing Notebook Navigator comparison gate and lingering
+Markmap menu exposure.
 
 Key verification record:
 [[perf-baseline|Explorer View Platform perf baseline]].
+
+Repair record:
+[[07-performance-comparison-repair|Explorer platform performance comparison repair]].
 
 Final task commits:
 
@@ -118,3 +124,18 @@ Final local gates:
   `obsidian eval code="app.vault.getName()" vault=plugin-dev` returning
   `plugin-dev`.
 - `obsidian dev:errors vault=plugin-dev`: `No errors captured.`
+
+Post-review repair gates:
+
+- Notebook Navigator original focused tests passed: 4 files / 19 tests with
+  Node 24.15.0.
+- New Notebook Navigator comparison bridge passed and enforces Vaultman 50K
+  projection faster than the comparable Notebook Navigator list bridge.
+- Logged bridge medians: Notebook Navigator list `61.1534 ms`; Vaultman
+  projection `26.9575 ms`; Notebook Navigator lookups `0.7050 ms`; Vaultman
+  lookups `0.1517 ms`.
+- View menu live smoke in `plugin-dev` exposes only `Tree`, `List`, `Table`,
+  `Grid`, and `Cards`; `Markmap` is absent.
+- `pnpm verify`: passed with unit `136` files / `824` tests and component
+  `69` files / `372` tests. Lint emitted 8 pre-existing warnings, with 0
+  errors.

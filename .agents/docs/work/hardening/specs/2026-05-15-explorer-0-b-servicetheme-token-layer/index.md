@@ -56,14 +56,22 @@ session on 2026-05-14:
   Builder sub-system lands.
 - Theme is **layout/structure preset, not paint palette**. Colors continue
   to delegate to Obsidian core CSS variables via the existing `_tokens.scss`
-  indirection. The `unocss-preset-theme` plugin is **not** adopted; the token
-  surface is small (~5-7 CSS vars) and SCSS handles it directly.
+  indirection.
+- `unocss-preset-theme` IS adopted in 0-B. Built-in preset tokens are
+  declared in `uno.config.ts` and UnoCSS emits the `.vm-theme-{id}`
+  CSS-var blocks at build time. This anticipates the upcoming
+  SCSS-to-UnoCSS migration (Sub-system N) where UnoCSS becomes the
+  primary styling source (~90% target). Custom presets continue to be
+  runtime-injected by `ThemeService` via a `<style>` element because
+  preset-theme is build-time only.
 - DOM binding: `vm-theme-{id}` class lives on `.vm-root` via the existing
   `themeService.rootClasses` getter (which `frameVaultman.svelte:619` already
   consumes). The legacy `<body>` class binding via `applyVaultmanTheme` is
   deleted.
-- Built-in preset tokens live in a new `src/styles/_theme-presets.scss`
-  file. Custom preset tokens are injected at runtime by `ThemeService` via a
+- Built-in preset tokens are declared in `uno.config.ts` via
+  `unocss-preset-theme`; UnoCSS emits the `.vm-theme-native` and
+  `.vm-theme-vaultman` CSS-var blocks into the build output. Custom
+  preset tokens are injected at runtime by `ThemeService` via a
   `<style data-vm-theme-presets="custom">` element appended to `<head>`.
 - Settings shape: clean break, no legacy migration code, no downgrade
   safety. `layoutTheme`, `glassBlurIntensity`, `islandBackdropBlur` settings
@@ -90,9 +98,12 @@ session on 2026-05-14:
   `--text-accent`, `--text-normal`, `--background-primary`, etc. to whatever
   Obsidian theme + community snippets are active. The theme preset governs
   layout/structure and a small set of chrome+density tokens — not colors.
-- Do not adopt `unocss-preset-theme`. UnoCSS itself remains as-is (utility
-  helper + icon preset). The future `Sub-system N — UnoCSS removal` is a
-  separate initiative.
+- Do not migrate existing SCSS files (other than `_islands.scss`,
+  `_virtual-list.scss`, `_tree.scss` chrome/density consumers) to
+  UnoCSS in 0-B. The wholesale SCSS→UnoCSS migration is **Sub-system N**
+  — a separate initiative with high priority post-0-B. 0-B only
+  introduces `unocss-preset-theme` for the small token surface and
+  leaves the rest of SCSS as-is.
 - Do not modify the four view components (`viewTree.svelte`,
   `ViewNodeTable.svelte`, `ViewNodeCards.svelte`, `ViewNodeGrid.svelte`) or
   `viewOutlineExplorer.svelte` for native-class emission. They already read
@@ -139,11 +150,16 @@ to this spec rather than open questions:
   eliminated, contrary to earlier brainstorm misread).
 - **Service shape (Approach):** single deep-module runes class. One
   `ThemeService`, public API ~5 reads + 4 writes; rich internals hidden.
-- **SCSS coexistence:** Option A — SCSS-only theme tokens via new
-  `_theme-presets.scss`. Custom preset tokens runtime-injected. No
-  `unocss-preset-theme` plugin.
-- **UnoCSS fate:** keep in 0-B. Sub-system N (removal) registered for
-  post-0-B execution.
+- **Token transport:** Option B — `unocss-preset-theme` plugin
+  configured in `uno.config.ts` emits the built-in `.vm-theme-{id}`
+  CSS-var blocks at build time. Custom preset tokens are runtime-injected
+  by `ThemeService` via `<style>` element since preset-theme is
+  build-time only. **Decision reversed mid-brainstorm**: the project
+  pivots to UnoCSS-dominant styling (Sub-system N flips from removal to
+  migration), so 0-B anticipates the target state.
+- **UnoCSS fate:** expanded, NOT removed. Sub-system N (SCSS→UnoCSS
+  migration, target ~90% UnoCSS) registered for post-0-B execution with
+  high priority — recommended before bits-ui adoption.
 - **Settings migration:** clean break, no legacy compat.
 - **`glassBlurIntensity`, `islandBackdropBlur`:** both deleted from
   settings.

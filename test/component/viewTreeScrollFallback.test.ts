@@ -107,8 +107,35 @@ describe('ViewTree scroll fallback', () => {
 		flushSync();
 
 		expect(target.querySelector('[data-id="node-30"]')).not.toBeNull();
-		expect(target.querySelector('[data-id="node-55"]')).not.toBeNull();
+		expect(target.querySelector('[data-id="node-43"]')).not.toBeNull();
 		expect(target.querySelector('[data-id="node-5"]')).toBeNull();
+	});
+
+	it('keeps a direct 50k fallback scroll jump bounded to visible rows', () => {
+		app = mount(ViewTree as unknown as Component<Record<string, unknown>>, {
+			target,
+			props: {
+				nodes: nodes(50_000),
+				expandedIds: new Set<string>(),
+				onToggle: vi.fn(),
+				onRowClick: vi.fn(),
+				onContextMenu: vi.fn(),
+				icon: vi.fn(() => ({ update: vi.fn() })),
+			},
+		});
+		flushSync();
+
+		const outer = target.querySelector<HTMLDivElement>('.vm-tree-virtual-outer');
+		expect(outer).not.toBeNull();
+		outer!.scrollTop = 49_000 * 28;
+		outer!.dispatchEvent(new Event('scroll'));
+		flushSync();
+
+		const renderedRows = target.querySelectorAll('.vm-tree-virtual-row:not(.vm-tree-sticky-row)');
+		expect(renderedRows.length).toBeGreaterThan(0);
+		expect(renderedRows.length).toBeLessThanOrEqual(32);
+		expect(target.querySelector('[data-id="node-49000"]')).not.toBeNull();
+		expect(target.querySelector('[data-id="node-0"]')).toBeNull();
 	});
 
 	it('ignores a reveal target whose required snapshot revision is newer than the row map', () => {

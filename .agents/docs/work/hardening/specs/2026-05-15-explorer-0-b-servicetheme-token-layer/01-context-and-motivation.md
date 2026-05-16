@@ -127,12 +127,17 @@ but worth preserving as separate spec candidates. Each is appended to
 [[docs/work/hardening/backlog/2026-05-15-explorer-ui-vision/index|explorer-ui-vision]]
 during 0-B spec authorship:
 
-- **Sub-system M — SCSS hygiene pass.** Audit 40 SCSS files (~7934 LOC),
-  extract repeated patterns to mixins/vars, deepen nesting where
-  selectors allow.
-- **Sub-system N — UnoCSS removal.** Migrate the 6 utility-heavy
-  components to SCSS classes, replace 4 icon utility spans with
-  `setIcon()`, delete UnoCSS config and dependencies. 1-2 days dedicated.
+- **Sub-system N — SCSS-to-UnoCSS migration (HIGH PRIORITY).** Invert
+  the styling source: migrate the ~7934 LOC across 40 SCSS files to
+  UnoCSS shortcuts and utility classes. Target ~90% UnoCSS, ~10% SCSS
+  reserved for complex functions (color-mix patterns, geometry
+  calculations, mixins that don't translate to utilities). Recommended
+  to run before Bits-ui adoption (item 12) so the new components use
+  UnoCSS-first composition.
+- ~~Sub-system M — SCSS hygiene pass.~~ DROPPED. With ~90% of SCSS
+  migrating to UnoCSS, the hygiene work is performed naturally during
+  Sub-system N — what gets migrated leaves SCSS, what stays gets
+  cleaned during the residual audit at N's tail.
 - **Sub-system O — frameVaultman decomposition.** Split the 867-LOC god
   component (~13 mixed responsibilities) into focused
   services/components before Layout extension / Toolbar contract /

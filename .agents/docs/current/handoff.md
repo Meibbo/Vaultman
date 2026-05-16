@@ -5,7 +5,7 @@ status: active
 parent: "[[docs/work/pkm-ai/index|pkm-ai]]"
 archive_source: "docs/archive/pkm-ai/active-docs/2026-05-11T080321-current-handoff.md"
 created: 2026-05-04T01:36:20
-updated: 2026-05-16T05:10:35.7274498-05:00
+updated: 2026-05-16T06:20:10-05:00
 tags:
   - agent/current
 created_by: dec
@@ -23,10 +23,14 @@ Compact handoff after archiving the oversized current handoff:
   `C:\Users\vic_A\Desktop\vaultman\.claude\worktrees\jovial-wilson-f81c67`
 - Branch: `claude/explorer`.
 - Explorer platform pass Tasks 1-20 are complete.
+- Post-review repair is implemented but not yet committed: Notebook Navigator
+  comparison bridge, 50K projection optimization, and Markmap hidden from the
+  selectable view menu.
 - Primary records:
   - [[docs/work/hardening/specs/2026-05-15-explorer-view-platform-pass/index|Explorer View Platform pass spec]]
   - [[docs/work/hardening/plans/2026-05-15-explorer-view-platform-pass/index|Explorer View Platform pass implementation plan]]
   - [[docs/work/hardening/plans/2026-05-15-explorer-view-platform-pass/perf-baseline|Explorer View Platform perf baseline]]
+  - [[docs/work/hardening/plans/2026-05-15-explorer-view-platform-pass/07-performance-comparison-repair|Explorer platform performance comparison repair]]
 - Preserve existing dirty unrelated files. Do not stage or revert them unless
   the user explicitly asks.
 
@@ -64,6 +68,30 @@ Compact handoff after archiving the oversized current handoff:
 - `window.__vaultmanPerfProbe.run(...)`: all 8 Task 19 scenarios executed.
 - `obsidian dev:errors vault=plugin-dev`: `No errors captured.`
 
+## Post-Review Repair Verification
+
+- Notebook Navigator original focused tests passed with Node 24.15.0:
+  4 files / 19 tests.
+- New bridge `test/unit/performance/explorerNotebookNavigatorComparison.test.ts`
+  passed and enforces Vaultman 50K projection faster than the comparable
+  Notebook Navigator list builder.
+- Logged bridge medians:
+  - Notebook Navigator list: `61.1534 ms`.
+  - Vaultman projection: `26.9575 ms`.
+  - Notebook Navigator lookups: `0.7050 ms`.
+  - Vaultman lookups: `0.1517 ms`.
+- Markmap menu regression reproduced red in `overlayViewMenu.test.ts`, then
+  fixed by deriving selectable modes from `EXPLORER_PLATFORM_VIEW_MODES`.
+- `pnpm verify`: passed.
+  - Unit: 136 files / 824 tests.
+  - Component: 69 files / 372 tests.
+  - Lint: 8 pre-existing warnings, 0 errors.
+- Live `plugin-dev` smoke after reload:
+  - `obsidian command id=vaultman:open-view-menu vault=plugin-dev`: executed.
+  - DOM labels: `["Tree","List","Table","Grid","Cards"]`.
+  - `hasMarkmap=false`.
+  - `obsidian dev:errors vault=plugin-dev`: `No errors captured.`
+
 ## Preserve
 
 - Obsidian CLI calls must use explicit `vault=plugin-dev` command options.
@@ -83,6 +111,6 @@ Compact handoff after archiving the oversized current handoff:
 ## Next Action
 
 - If continuing Explorer work, prepare review/PR or branch cleanup from
-  `claude/explorer`.
+  `claude/explorer`; commit the post-review repair first if accepted.
 - If resuming OpenSSF hardening, start from:
   `.agents/docs/work/hardening/plans/2026-05-16-openssf-osps-baseline/01-scope-docs-workflow-permissions.md`.

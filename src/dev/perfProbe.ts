@@ -87,6 +87,7 @@ export interface PerfProbe {
 }
 
 let activePerfProbe: PerfProbeApi | undefined;
+const LONG_FRAME_THRESHOLD_MS = 50;
 
 export function setActivePerfProbe(probe: PerfProbeApi): void {
 	activePerfProbe = probe;
@@ -122,26 +123,27 @@ function addMetricInput(target: PerfProbeCounter, input?: PerfProbeMetricInput):
 	target.totalFilters += input?.filters ?? 0;
 }
 
-async function waitFrames(doc: Document | undefined, count = 2): Promise<void> {
+async function waitForEventLoopSettled(
+	doc: Document | undefined,
+	clock: () => number,
+	minTicks = 2,
+): Promise<{ longFrameCount: number; maxLongFrameMs: number | undefined }> {
 	const win = doc?.defaultView;
-	for (let i = 0; i < count; i += 1) {
-		if (!win) {
-			await Promise.resolve();
-			continue;
+	let longFrameCount = 0;
+	let maxLongFrameMs: number | undefined;
+	let previous = clock();
+	for (let i = 0; i < minTicks; i += 1) {
+		if (!win?.setTimeout) await Promise.resolve();
+		else await new Promise<void>((resolve) => win.setTimeout(resolve, 0));
+		const now = clock();
+		const elapsed = now - previous;
+		if (elapsed > LONG_FRAME_THRESHOLD_MS) {
+			longFrameCount += 1;
+			maxLongFrameMs = Math.max(maxLongFrameMs ?? 0, elapsed);
 		}
-		await new Promise<void>((resolve) => {
-			let finished = false;
-			const finish = () => {
-				if (finished) return;
-				finished = true;
-				resolve();
-			};
-			if (win.requestAnimationFrame) {
-				win.requestAnimationFrame(finish);
-			}
-			win.setTimeout(finish, 50);
-		});
+		previous = now;
 	}
+	return { longFrameCount, maxLongFrameMs };
 }
 
 function inputText(input: HTMLInputElement, value: string): void {
@@ -167,6 +169,14 @@ function scrollElement(element: HTMLElement, steps: number): void {
 		element.scrollTop = Math.round(increment * i);
 		element.dispatchEvent(new Event('scroll', { bubbles: true }));
 	}
+}
+
+function jumpScrollElement(element: HTMLElement, targetRatio = 1): void {
+	const maxScroll = Math.max(0, element.scrollHeight - element.clientHeight);
+	const ratio = Number.isFinite(targetRatio) ? Math.max(0, Math.min(1, targetRatio)) : 1;
+	const target = maxScroll > 0 ? Math.round(maxScroll * ratio) : element.clientHeight || 32;
+	element.scrollTop = target;
+	element.dispatchEvent(new Event('scroll', { bubbles: true }));
 }
 
 function dragBoxSelection(element: HTMLElement): void {
@@ -233,6 +243,8 @@ export function createPerfProbe({ now, doc }: PerfProbeOptions): PerfProbe {
 	let startedAt = now();
 	let counters: Record<string, PerfProbeCounter> = {};
 	let timings: Record<string, PerfProbeTiming> = {};
+	let longFrameCount: number | undefined;
+	let maxLongFrameMs: number | undefined;
 
 	function count(name: string, input?: PerfProbeMetricInput): void {
 		counters[name] ??= createCounter();
@@ -279,6 +291,8 @@ export function createPerfProbe({ now, doc }: PerfProbeOptions): PerfProbe {
 		startedAt = now();
 		counters = {};
 		timings = {};
+		longFrameCount = undefined;
+		maxLongFrameMs = undefined;
 	}
 
 	function snapshot(): PerfProbeSnapshot {
@@ -287,8 +301,8 @@ export function createPerfProbe({ now, doc }: PerfProbeOptions): PerfProbe {
 			endedAt: now(),
 			counters,
 			timings,
-			longFrameCount: undefined,
-			maxLongFrameMs: undefined,
+			longFrameCount,
+			maxLongFrameMs,
 			heapDeltaBytes: undefined,
 		};
 	}
@@ -305,15 +319,18 @@ export function createPerfProbe({ now, doc }: PerfProbeOptions): PerfProbe {
 			if (name === 'filters-search') {
 				const input = doc?.querySelector<HTMLInputElement>('.vm-filters-search-input');
 				if (input) inputText(input, options.query ?? 'status');
-			} else if (name === 'tree-scroll' || name === 'files-tree-10k-scroll-jump') {
+			} else if (name === 'tree-scroll') {
 				const outer = doc?.querySelector<HTMLElement>('.vm-tree-virtual-outer');
 				if (outer) scrollElement(outer, options.steps ?? 8);
+			} else if (name === 'files-tree-10k-scroll-jump') {
+				const outer = doc?.querySelector<HTMLElement>('.vm-tree-virtual-outer');
+				if (outer) jumpScrollElement(outer);
 			} else if (name === 'files-tree-50k-scroll-jump') {
 				const outer = doc?.querySelector<HTMLElement>('.vm-tree-virtual-outer');
-				if (outer) scrollElement(outer, options.steps ?? 16);
+				if (outer) jumpScrollElement(outer);
 			} else if (name === 'files-list-10k-scroll-jump') {
 				const outer = doc?.querySelector<HTMLElement>('.vm-view-list');
-				if (outer) scrollElement(outer, options.steps ?? 8);
+				if (outer) jumpScrollElement(outer);
 			} else if (name === 'filter-select') {
 				const row = doc?.querySelector<HTMLElement>('.vm-tree-virtual-row');
 				if (row) clickElement(row);
@@ -340,7 +357,11 @@ export function createPerfProbe({ now, doc }: PerfProbeOptions): PerfProbe {
 				count('scenario.tree-filtered-highlight.matches', { rows: highlighted?.length ?? 0 });
 			}
 
-			await waitFrames(doc, 2);
+			const loop = await waitForEventLoopSettled(doc, now, 2);
+			if (loop.longFrameCount > 0) {
+				longFrameCount = (longFrameCount ?? 0) + loop.longFrameCount;
+				maxLongFrameMs = Math.max(maxLongFrameMs ?? 0, loop.maxLongFrameMs ?? 0);
+			}
 		});
 		return { ...snapshot(), scenario: name };
 	}
