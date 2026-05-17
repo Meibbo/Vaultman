@@ -3,14 +3,34 @@ import type {
 	VaultmanUiIdentity,
 	VaultmanUiMode,
 } from '../types/typeElasticUi';
+import type { ThemePreset, ThemePresetId } from '../types/typeThemePreset';
+import {
+	BUILT_IN_PRESETS,
+	PRESET_NATIVE,
+	PRESET_VAULTMAN,
+} from '../config/themePresetsBuiltin';
 
 export class ThemeService {
+	activePresetId = $state<ThemePresetId>('vaultman');
+	customPresets = $state<readonly ThemePreset[]>([]);
+
 	mode = $state<VaultmanUiMode>('thin');
 	identity = $state<VaultmanUiIdentity>('native');
 	faintModeEnabled = $state(false);
 	reducedMotion = $state(false);
 	windowFocused = $state(true);
 	foulDetection = $state(false);
+
+	get activePreset(): ThemePreset {
+		if (this.activePresetId === 'native') return PRESET_NATIVE;
+		if (this.activePresetId === 'vaultman') return PRESET_VAULTMAN;
+		const custom = this.customPresets.find((preset) => preset.id === this.activePresetId);
+		return custom ?? PRESET_VAULTMAN;
+	}
+
+	get availablePresets(): readonly ThemePreset[] {
+		return [...BUILT_IN_PRESETS, ...this.customPresets];
+	}
 
 	get faintActive(): boolean {
 		return this.faintModeEnabled && !this.windowFocused;

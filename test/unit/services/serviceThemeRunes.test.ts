@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { PRESET_NATIVE, PRESET_VAULTMAN } from '../../../src/config/themePresetsBuiltin';
 import { ThemeService } from '../../../src/services/serviceTheme.svelte';
 
 describe('ThemeService (runes-backed elastic theme)', () => {
@@ -73,5 +74,39 @@ describe('ThemeService (runes-backed elastic theme)', () => {
 		expect(svc.faintModeEnabled).toBe(true);
 		expect(svc.reducedMotion).toBe(true);
 		expect(svc.foulDetection).toBe(true);
+	});
+});
+
+describe('ThemeService preset registry - state + activePreset', () => {
+	it('defaults activePresetId to "vaultman"', () => {
+		const svc = new ThemeService();
+		expect(svc.activePresetId).toBe('vaultman');
+	});
+
+	it('activePreset returns PRESET_VAULTMAN by default', () => {
+		const svc = new ThemeService();
+		expect(svc.activePreset).toBe(PRESET_VAULTMAN);
+	});
+
+	it('activePreset returns PRESET_NATIVE when activePresetId is "native"', () => {
+		const svc = new ThemeService();
+		svc.activePresetId = 'native';
+		expect(svc.activePreset).toBe(PRESET_NATIVE);
+	});
+
+	it('activePreset falls back to PRESET_VAULTMAN for unknown id', () => {
+		const svc = new ThemeService();
+		svc.activePresetId = 'nonexistent';
+		expect(svc.activePreset).toBe(PRESET_VAULTMAN);
+	});
+
+	it('availablePresets starts with just the two built-ins', () => {
+		const svc = new ThemeService();
+		expect(svc.availablePresets.map((preset) => preset.id)).toEqual(['native', 'vaultman']);
+	});
+
+	it('customPresets defaults to empty', () => {
+		const svc = new ThemeService();
+		expect(svc.customPresets).toEqual([]);
 	});
 });
