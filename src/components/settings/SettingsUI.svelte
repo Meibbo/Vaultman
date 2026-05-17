@@ -15,7 +15,6 @@
 		type LayoutSurfaceContent,
 	} from '../../services/serviceLayout';
 	import { resolveNodeMouseActions, type NodeMouseAction } from '../../services/serviceMouse';
-	import { LAYOUT_THEME_OPTIONS, normalizeLayoutTheme } from '../../services/serviceTheme';
 	import {
 		DEFAULT_ELASTIC_UI_SETTINGS,
 		normalizeElasticUiSettings,
@@ -40,10 +39,7 @@
 	function initState() {
 		const src = plugin.settings;
 		return {
-			layoutTheme: normalizeLayoutTheme(src.layoutTheme),
 			islandDismissOnOutsideClick: src.islandDismissOnOutsideClick,
-			islandBackdropBlur: src.islandBackdropBlur,
-			glassBlurIntensity: src.glassBlurIntensity,
 			faintAccentsWhenWorkspaceFocused: src.faintAccentsWhenWorkspaceFocused === true,
 			defaultPropertyType: src.defaultPropertyType,
 			filterTemplates: src.filterTemplates,
@@ -94,7 +90,6 @@
 	function persistSettings(): void {
 		Object.assign(plugin.settings, $state.snapshot(s));
 		void plugin.saveSettings();
-		plugin.updateGlassBlur();
 	}
 
 	$effect(() => {
@@ -407,25 +402,9 @@
 	<!-- ── Appearance ────────────────────────────────────────────────── -->
 	<h3 class="vm-settings-heading">Appearance</h3>
 
-	<Dropdown
-		label={translate('settings.layout_theme')}
-		bind:value={s.layoutTheme}
-		onChange={persistSettings}
-		options={LAYOUT_THEME_OPTIONS.map((option) => ({
-			value: option.value,
-			label: translate(option.labelKey),
-			disabled: option.disabled,
-		}))}
-	/>
-
 	<Toggle
 		bind:checked={s.islandDismissOnOutsideClick}
 		label={translate('settings.island_dismiss_outside')}
-		onChange={persistSettings}
-	/>
-	<Toggle
-		bind:checked={s.islandBackdropBlur}
-		label={translate('settings.island_backdrop_blur')}
 		onChange={persistSettings}
 	/>
 	<Toggle
@@ -433,19 +412,6 @@
 		label="Faint accents during workspace focus"
 		onChange={persistSettings}
 	/>
-
-	<label class="vm-settings-slider">
-		<span class="vm-settings-label">Background blur intensity</span>
-		<input
-			type="range"
-			min="0"
-			max="100"
-			step="1"
-			bind:value={s.glassBlurIntensity}
-			oninput={persistSettings}
-		/>
-		<span class="vm-settings-slider-value">{s.glassBlurIntensity}</span>
-	</label>
 
 	<!-- ── Elastic UI / Chameleon ──────────────────────────────────────── -->
 	<h3 class="vm-settings-heading">Elastic UI</h3>

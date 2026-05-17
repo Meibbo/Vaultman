@@ -707,7 +707,6 @@
 	<div
 		class="vm-island-backdrop vm-glass"
 		class:is-open={overlays.isIslandOpen}
-		class:has-blur={plugin.settings.islandBackdropBlur}
 		class:is-dismissable={plugin.settings.islandDismissOnOutsideClick}
 		onclick={() => {
 			if (plugin.settings.islandDismissOnOutsideClick) {

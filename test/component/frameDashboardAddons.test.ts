@@ -63,7 +63,6 @@ function makePlugin(): VaultmanPlugin {
 			explorerFilesShowHidden: false,
 			filtersShowTabLabels: true,
 			fnrRegexDefault: false,
-			islandBackdropBlur: false,
 			islandDismissOnOutsideClick: true,
 			manualDndEnabled: false,
 			mouseGestures: {},
