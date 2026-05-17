@@ -7,7 +7,7 @@
 //...----------—————————————(    TREE    )————————————------------...\\
 
 // Shared tree-item icon sizing
-@mixin tree-icon-size($w: 16px) {
+@mixin tree-icon-size($w: var(--vm-icon-size, 16px)) {
 	min-width: $w;
 	width: $w;
 	height: $w;
@@ -26,8 +26,8 @@
 		@include flex-center;
 		justify-content: flex-start;
 		gap: 4px;
-		padding: 0 8px;
-		height: calc(var(--vm-tree-row-h) - 1px);
+		padding: var(--vm-row-padding-y, 4px) 8px;
+		height: calc(var(--vm-tree-row-h, var(--vm-row-height, 32px)) - 1px);
 		margin-bottom: 1px;
 		padding-left: calc(8px + var(--depth, 0) * var(--tree-indent));
 		cursor: pointer;
@@ -118,7 +118,7 @@
 
 	&-icon,
 	&-icon-placeholder {
-		@include tree-icon-size(var(--vm-tree-icon-size, 16px));
+		@include tree-icon-size(var(--vm-tree-icon-size, var(--vm-icon-size, 16px)));
 
 		& + .vm-tree-label {
 			margin-left: 2px;
@@ -126,8 +126,8 @@
 	}
 
 	&-icon svg {
-		width: var(--vm-tree-icon-size, 16px);
-		height: var(--vm-tree-icon-size, 16px);
+		width: var(--vm-tree-icon-size, var(--vm-icon-size, 16px));
+		height: var(--vm-tree-icon-size, var(--vm-icon-size, 16px));
 	}
 
 	&-label {
