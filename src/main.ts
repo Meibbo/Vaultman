@@ -54,7 +54,6 @@ import { leadingDebounce } from './utils/utilDebounce';
 import { NodeBindingService } from './services/serviceNodeBinding';
 import { NativeSurfaceBindingService } from './services/serviceNativeSurfaceBinding';
 import { resolveLayoutSettings } from './services/serviceLayout';
-import { applyVaultmanTheme, normalizeLayoutTheme } from './services/serviceTheme';
 import { ThemeService } from './services/serviceTheme.svelte';
 import { DEFAULT_ELASTIC_UI_SETTINGS, normalizeElasticUiSettings } from './types/typeElasticUi';
 import { ALL_TAB_IDS, viewTypeFor, type TabId } from './registry/tabRegistry';
@@ -143,8 +142,6 @@ export class VaultmanPlugin extends Plugin {
 
 		this.themeService = new ThemeService();
 		this.themeService.hydrate(this.settings.elasticUi ?? DEFAULT_ELASTIC_UI_SETTINGS);
-
-		this.updateGlassBlur();
 
 		const pluginsBefore = snapshotInstalledPlugins(this.app);
 
@@ -368,7 +365,6 @@ export class VaultmanPlugin extends Plugin {
 			...(JSON.parse(JSON.stringify(DEFAULT_SETTINGS)) as VaultmanSettings),
 			...saved,
 		};
-		this.settings.layoutTheme = normalizeLayoutTheme(saved.layoutTheme);
 		this.settings.layout = resolveLayoutSettings(saved.layout);
 		this.settings.elasticUi = normalizeElasticUiSettings(saved.elasticUi);
 
@@ -383,14 +379,6 @@ export class VaultmanPlugin extends Plugin {
 
 	async saveSettings(): Promise<void> {
 		await this.saveData(this.settings);
-	}
-
-	updateGlassBlur(): void {
-		const intensity: number = this.settings.glassBlurIntensity ?? 60;
-		const px = (intensity / 100) * 20;
-		const body = activeDocument.body;
-		body.style.setProperty('--vm-glass-blur', `${px}px`);
-		applyVaultmanTheme(body, this.settings);
 	}
 
 	async activateView(): Promise<void> {
