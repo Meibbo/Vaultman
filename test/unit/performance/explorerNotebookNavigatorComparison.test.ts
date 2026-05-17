@@ -51,24 +51,17 @@ interface NotebookNavigatorSources {
 	rootFolder: TFolder;
 }
 
-function median(values: readonly number[]): number {
-	const sorted = [...values].sort((a, b) => a - b);
-	return sorted[Math.floor(sorted.length / 2)] ?? 0;
-}
-
 function timed<T>(run: () => T): TimedSample<T> {
 	const started = performance.now();
 	const value = run();
 	return { value, durationMs: performance.now() - started };
 }
 
-function sampleMedian<T>(run: () => TimedSample<T>): TimedSample<T> {
+function sampleFastest<T>(run: () => TimedSample<T>): TimedSample<T> {
 	const samples = Array.from({ length: SAMPLE_RUNS }, run);
-	const medianDuration = median(samples.map((sample) => sample.durationMs));
-	const winner =
-		samples.find((sample) => sample.durationMs === medianDuration) ??
-		samples[Math.floor(samples.length / 2)]!;
-	return { value: winner.value, durationMs: medianDuration };
+	return samples.reduce((best, sample) =>
+		sample.durationMs < best.durationMs ? sample : best,
+	);
 }
 
 function logBridge(label: string, values: Record<string, number>): void {
@@ -272,8 +265,8 @@ function measureVaultmanDirectScrollBridge(
 describe('Notebook Navigator comparison bridge', () => {
 	it('runs Notebook Navigator original tree/list builders against 50k sources', () => {
 		const sources = makeNotebookNavigatorSources(NODE_COUNT);
-		const listSample = sampleMedian(() => measureNotebookNavigatorListPane(sources));
-		const treeSample = sampleMedian(() => measureNotebookNavigatorFolderTree(sources));
+		const listSample = sampleFastest(() => measureNotebookNavigatorListPane(sources));
+		const treeSample = sampleFastest(() => measureNotebookNavigatorFolderTree(sources));
 		logBridge('notebook-navigator-original-builders', {
 			listMs: listSample.durationMs,
 			treeMs: treeSample.durationMs,
@@ -290,8 +283,8 @@ describe('Notebook Navigator comparison bridge', () => {
 	it('requires Vaultman 50k projection to beat the Notebook Navigator list bridge', () => {
 		const sources = makeNotebookNavigatorSources(NODE_COUNT);
 		const vaultmanRows = makeVaultmanRowInputs();
-		const notebookSample = sampleMedian(() => measureNotebookNavigatorListPane(sources));
-		const vaultmanSample = sampleMedian(() => measureVaultmanProjection(vaultmanRows));
+		const notebookSample = sampleFastest(() => measureNotebookNavigatorListPane(sources));
+		const vaultmanSample = sampleFastest(() => measureVaultmanProjection(vaultmanRows));
 		logBridge('vaultman-vs-notebook-list', {
 			notebookMs: notebookSample.durationMs,
 			vaultmanMs: vaultmanSample.durationMs,
@@ -339,8 +332,10 @@ describe('Notebook Navigator comparison bridge', () => {
 
 		const notebookIds = sources.files.slice(0, REVEAL_LOOKUPS).map((file) => file.path);
 		const vaultmanIds = vaultmanRows.slice(0, REVEAL_LOOKUPS).map((row) => row.id);
-		const notebookLookup = sampleMedian(() => measureRevealLookup(notebookMap, notebookIds));
-		const vaultmanLookup = sampleMedian(() => measureRevealLookup(projection.idToIndex, vaultmanIds));
+		const notebookLookup = sampleFastest(() => measureRevealLookup(notebookMap, notebookIds));
+		const vaultmanLookup = sampleFastest(() =>
+			measureRevealLookup(projection.idToIndex, vaultmanIds),
+		);
 		logBridge('reveal-lookups', {
 			notebookMs: notebookLookup.durationMs,
 			vaultmanMs: vaultmanLookup.durationMs,
@@ -390,10 +385,10 @@ describe('Notebook Navigator comparison bridge', () => {
 			.map((file) => file.path);
 		const vaultmanIds = vaultmanRows.slice(NODE_COUNT - SCROLL_JUMPS).map((row) => row.id);
 
-		const notebookScroll = sampleMedian(() =>
+		const notebookScroll = sampleFastest(() =>
 			measureNotebookNavigatorDirectScrollBridge(listItems, notebookMap, notebookPaths),
 		);
-		const vaultmanScroll = sampleMedian(() =>
+		const vaultmanScroll = sampleFastest(() =>
 			measureVaultmanDirectScrollBridge(projection, vaultmanIds),
 		);
 		logBridge('direct-scroll-jumps', {

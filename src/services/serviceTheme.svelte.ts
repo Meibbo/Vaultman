@@ -117,7 +117,9 @@ export class ThemeService {
 	#styleEl: HTMLStyleElement | null = null;
 
 	#syncCustomStyles(): void {
-		if (typeof document === 'undefined') return;
+		if (typeof activeDocument === 'undefined') return;
+		const doc = activeDocument;
+		if (!doc?.head) return;
 
 		if (this.customPresets.length === 0) {
 			this.#styleEl?.remove();
@@ -127,12 +129,14 @@ export class ThemeService {
 
 		const css = this.customPresets.map((preset) => this.#renderCustomBlock(preset)).join('\n');
 
-		if (!this.#styleEl) {
-			this.#styleEl = document.createElement('style');
+		if (!this.#styleEl || this.#styleEl.ownerDocument !== doc) {
+			this.#styleEl?.remove();
+			// Custom preset tokens are user data, so they cannot be emitted in styles.css.
+			this.#styleEl = doc.createElement('style');
 			this.#styleEl.dataset.vmThemePresets = 'custom';
-			document.head.appendChild(this.#styleEl);
+			doc.head.appendChild(this.#styleEl);
 		}
-		this.#styleEl.textContent = css;
+		if (this.#styleEl) this.#styleEl.textContent = css;
 	}
 
 	#renderCustomBlock(preset: ThemePreset): string {

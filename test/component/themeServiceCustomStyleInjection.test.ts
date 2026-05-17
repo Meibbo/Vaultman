@@ -1,12 +1,17 @@
-import { afterEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { ThemeService } from '../../src/services/serviceTheme.svelte';
 import { makeCustomPreset } from './fixtures/themePresetFixtures';
 
 const SELECTOR = 'style[data-vm-theme-presets="custom"]';
 
 describe('ThemeService runtime <style> injection', () => {
+	beforeEach(() => {
+		vi.stubGlobal('activeDocument', document);
+	});
+
 	afterEach(() => {
 		document.querySelectorAll(SELECTOR).forEach((element) => element.remove());
+		vi.unstubAllGlobals();
 	});
 
 	it('does not inject when customPresets is empty', () => {
