@@ -90,8 +90,8 @@
 			right: 0;
 			height: var(--vm-nav-height, 64px);
 			background: color-mix(in srgb, $vm-bg-secondary 40%, transparent);
-			backdrop-filter: blur(var(--vm-glass-blur, 12px));
-			-webkit-backdrop-filter: blur(var(--vm-glass-blur, 12px));
+			backdrop-filter: blur(var(--vm-popup-backdrop-blur, 12px));
+			-webkit-backdrop-filter: blur(var(--vm-popup-backdrop-blur, 12px));
 			transition: height 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
 			-webkit-mask-image: linear-gradient(to top, black 50%, transparent 100%);
 			mask-image: linear-gradient(to top, black 50%, transparent 100%);
@@ -112,8 +112,8 @@
 
 		.vm-nav-icon {
 			background: color-mix(in srgb, $vm-bg-secondary 45%, transparent);
-			backdrop-filter: blur(var(--vm-glass-blur, 12px));
-			-webkit-backdrop-filter: blur(var(--vm-glass-blur, 12px));
+			backdrop-filter: blur(var(--vm-popup-backdrop-blur, 12px));
+			-webkit-backdrop-filter: blur(var(--vm-popup-backdrop-blur, 12px));
 
 			&.is-active {
 				background: color-mix(in srgb, $vm-color-accent 16%, transparent);
@@ -326,8 +326,8 @@
 	border-radius: 999px;
 	background: color-mix(in srgb, $vm-bg-primary 88%, transparent);
 	box-shadow: $vm-shadow-l;
-	backdrop-filter: blur(var(--vm-glass-blur, 12px));
-	-webkit-backdrop-filter: blur(var(--vm-glass-blur, 12px));
+	backdrop-filter: blur(var(--vm-popup-backdrop-blur, 12px));
+	-webkit-backdrop-filter: blur(var(--vm-popup-backdrop-blur, 12px));
 	transform-origin: center;
 	animation: vm-dock-drawer-in 120ms ease-out;
 

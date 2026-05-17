@@ -299,5 +299,5 @@
 	border-radius: 12px;
 	background: color-mix(in srgb, var(--background-primary) 94%, transparent);
 	box-shadow: var(--shadow-l);
-	backdrop-filter: blur(var(--vm-glass-blur, 12px));
+	backdrop-filter: blur(var(--vm-popup-backdrop-blur, 12px));
 }

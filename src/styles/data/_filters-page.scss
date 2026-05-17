@@ -27,8 +27,8 @@
 			flex-shrink: 0;
 			border: none;
 			background: color-mix(in srgb, var(--background-secondary) 45%, transparent);
-			backdrop-filter: blur(var(--vm-glass-blur, 12px));
-			-webkit-backdrop-filter: blur(var(--vm-glass-blur, 12px));
+			backdrop-filter: blur(var(--vm-popup-backdrop-blur, 12px));
+			-webkit-backdrop-filter: blur(var(--vm-popup-backdrop-blur, 12px));
 			border-radius: var(--radius-s);
 			color: var(--text-muted);
 			cursor: pointer;
@@ -53,8 +53,8 @@
 			min-width: 0;
 			@include flex-center;
 			background: color-mix(in srgb, var(--background-modifier-form-field) 72%, transparent);
-			backdrop-filter: blur(var(--vm-glass-blur, 12px));
-			-webkit-backdrop-filter: blur(var(--vm-glass-blur, 12px));
+			backdrop-filter: blur(var(--vm-popup-backdrop-blur, 12px));
+			-webkit-backdrop-filter: blur(var(--vm-popup-backdrop-blur, 12px));
 			border: 1px solid var(--background-modifier-border);
 			border-radius: 999px;
 			padding: 0 6px 0 10px;
@@ -268,8 +268,8 @@
 		border-radius: 8px;
 		background: color-mix(in srgb, var(--background-secondary) 94%, transparent);
 		box-shadow: 0 10px 26px rgba(0, 0, 0, 0.26);
-		backdrop-filter: blur(var(--vm-glass-blur, 12px));
-		-webkit-backdrop-filter: blur(var(--vm-glass-blur, 12px));
+		backdrop-filter: blur(var(--vm-popup-backdrop-blur, 12px));
+		-webkit-backdrop-filter: blur(var(--vm-popup-backdrop-blur, 12px));
 	}
 
 	&-row {
