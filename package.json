@@ -82,6 +82,7 @@
 		"type-fest": "^4.41.0",
 		"typescript": "~5.8.0",
 		"typescript-eslint": "^8.59.1",
+		"unocss-preset-theme": "^0.14.1",
 		"vite-plus": "^0.1.21",
 		"vitest": "^4.1.6",
 		"wdio-obsidian-reporter": "^3.0.2",
