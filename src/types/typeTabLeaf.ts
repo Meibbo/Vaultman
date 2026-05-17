@@ -36,7 +36,7 @@ export class VaultmanTabLeafView extends ItemView {
 	}
 
 	getIcon(): string {
-		return 'lucide-dessert';
+		return 'lucide-vault';
 	}
 
 	async onOpen(): Promise<void> {

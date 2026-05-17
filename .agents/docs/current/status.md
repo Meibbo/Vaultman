@@ -53,6 +53,8 @@ Compact route index after archiving the oversized current status:
   [[docs/work/hardening/plans/2026-05-16-explorer-scroll-smoke-harness/index|Explorer scroll smoke harness implementation plan]].
 - Active Explorer variable scroll repair:
   [[docs/work/hardening/plans/2026-05-16-explorer-variable-scroll-repair/index|Explorer variable scroll repair]].
+- Toolbar architecture map captured for Polish:
+  [[docs/work/polish/research/2026-05-17-toolbar-architecture/index|Toolbar architecture and primitive ordering map]].
 
 ## Explorer Platform Outcome
 

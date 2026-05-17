@@ -1,0 +1,189 @@
+{
+  "nodes": [
+    {
+      "id": "a000000000000001",
+      "type": "group",
+      "x": -40,
+      "y": -40,
+      "width": 420,
+      "height": 620,
+      "label": "Central hub",
+      "color": "5"
+    },
+    {
+      "id": "a000000000000002",
+      "type": "group",
+      "x": 420,
+      "y": -40,
+      "width": 420,
+      "height": 620,
+      "label": "Layer canvases",
+      "color": "3"
+    },
+    {
+      "id": "a000000000000003",
+      "type": "group",
+      "x": 880,
+      "y": -40,
+      "width": 420,
+      "height": 620,
+      "label": "Future phases",
+      "color": "2"
+    },
+    {
+      "id": "a000000000000004",
+      "type": "file",
+      "x": 0,
+      "y": 20,
+      "width": 320,
+      "height": 100,
+      "file": ".agents/docs/work/research/2026-05-17-codebase-architecture-cluster/index.md",
+      "color": "5"
+    },
+    {
+      "id": "a000000000000005",
+      "type": "file",
+      "x": 0,
+      "y": 150,
+      "width": 320,
+      "height": 100,
+      "file": ".agents/docs/work/research/2026-05-17-codebase-architecture-cluster/01-root-surface-layer.md",
+      "color": "5"
+    },
+    {
+      "id": "a000000000000006",
+      "type": "file",
+      "x": 460,
+      "y": 20,
+      "width": 320,
+      "height": 100,
+      "file": ".agents/docs/work/research/2026-05-17-codebase-architecture-cluster/visuals/phase-01-root-surface.canvas",
+      "color": "3"
+    },
+    {
+      "id": "a000000000000007",
+      "type": "text",
+      "x": 460,
+      "y": 150,
+      "width": 320,
+      "height": 140,
+      "text": "# Phase 01\n\nRoot files and root directories connect to the first surface of `src/`, `test/`, and `scripts/`.",
+      "color": "4"
+    },
+    {
+      "id": "a000000000000008",
+      "type": "file",
+      "x": 920,
+      "y": 20,
+      "width": 320,
+      "height": 120,
+      "file": ".agents/docs/work/research/2026-05-17-codebase-architecture-cluster/02-src-runtime-spine.md",
+      "color": "3"
+    },
+    {
+      "id": "a000000000000009",
+      "type": "text",
+      "x": 920,
+      "y": 170,
+      "width": 320,
+      "height": 120,
+      "text": "# Phase 03 pending\n\nMap `src/components/` UI surface and component ownership.",
+      "color": "2"
+    },
+    {
+      "id": "a00000000000000a",
+      "type": "text",
+      "x": 920,
+      "y": 320,
+      "width": 320,
+      "height": 140,
+      "text": "# Phase 04 pending\n\nMap services, providers, registry, logic, utils, types, config, and dev hooks.",
+      "color": "2"
+    },
+    {
+      "id": "a00000000000000b",
+      "type": "text",
+      "x": 0,
+      "y": 300,
+      "width": 320,
+      "height": 180,
+      "text": "# Rule\n\nThis canvas stays central. Each phase adds a Markdown record and may add a child Canvas linked here.",
+      "color": "5"
+    },
+    {
+      "id": "a00000000000000c",
+      "type": "file",
+      "x": 460,
+      "y": 320,
+      "width": 320,
+      "height": 100,
+      "file": ".agents/docs/work/research/2026-05-17-codebase-architecture-cluster/visuals/phase-02-src-runtime-spine.canvas",
+      "color": "3"
+    }
+  ],
+  "edges": [
+    {
+      "id": "b000000000000001",
+      "fromNode": "a000000000000004",
+      "fromSide": "right",
+      "toNode": "a000000000000005",
+      "toSide": "left",
+      "toEnd": "arrow",
+      "label": "indexes"
+    },
+    {
+      "id": "b000000000000002",
+      "fromNode": "a000000000000005",
+      "fromSide": "right",
+      "toNode": "a000000000000006",
+      "toSide": "left",
+      "toEnd": "arrow",
+      "label": "visualizes"
+    },
+    {
+      "id": "b000000000000003",
+      "fromNode": "a000000000000006",
+      "fromSide": "right",
+      "toNode": "a000000000000007",
+      "toSide": "left",
+      "toEnd": "arrow",
+      "label": "phase 01"
+    },
+    {
+      "id": "b000000000000004",
+      "fromNode": "a000000000000007",
+      "fromSide": "right",
+      "toNode": "a000000000000008",
+      "toSide": "left",
+      "toEnd": "arrow",
+      "label": "next"
+    },
+    {
+      "id": "b000000000000005",
+      "fromNode": "a000000000000008",
+      "fromSide": "bottom",
+      "toNode": "a000000000000009",
+      "toSide": "top",
+      "toEnd": "arrow",
+      "label": "then"
+    },
+    {
+      "id": "b000000000000006",
+      "fromNode": "a000000000000009",
+      "fromSide": "bottom",
+      "toNode": "a00000000000000a",
+      "toSide": "top",
+      "toEnd": "arrow",
+      "label": "then"
+    },
+    {
+      "id": "b000000000000007",
+      "fromNode": "a000000000000008",
+      "fromSide": "left",
+      "toNode": "a00000000000000c",
+      "toSide": "right",
+      "toEnd": "arrow",
+      "label": "visualizes"
+    }
+  ]
+}

@@ -1,0 +1,4 @@
+interface:
+  display_name: "Vaultman Work Visualizer"
+  short_description: "Map Vaultman work into Mermaid and Canvas"
+  default_prompt: "Use $vm-work-visualizer to create Mermaid and JSON Canvas visuals for the current work record."

@@ -44,6 +44,10 @@ Compact handoff after archiving the oversized current handoff:
 - Preserve any unrelated dirty files if they appear later. At the time of this
   handoff, `git status --short --branch` showed only the active variable scroll
   repair files and docs.
+- Toolbar architecture research captured at
+  [[docs/work/polish/research/2026-05-17-toolbar-architecture/index|Toolbar architecture and primitive ordering map]];
+  it explains why the current toolbar is Filters-page-specific and how to move
+  toward tab-agnostic primitive ordering through a model resolver plus adapters.
 
 ## Completed Explorer Commits
 
