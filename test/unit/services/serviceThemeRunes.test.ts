@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { PRESET_NATIVE, PRESET_VAULTMAN } from '../../../src/config/themePresetsBuiltin';
 import { ThemeService } from '../../../src/services/serviceTheme.svelte';
+import { DEFAULT_ELASTIC_UI_SETTINGS } from '../../../src/types/typeElasticUi';
 import type { ThemePreset } from '../../../src/types/typeThemePreset';
 
 describe('ThemeService (runes-backed elastic theme)', () => {
@@ -252,5 +253,47 @@ describe('ThemeService writes', () => {
 		expect(svc.customPresets[0].displayName).toBe('New');
 		expect(svc.customPresets[0].id).toBe('mine');
 		expect(svc.customPresets[0].source).toBe('custom');
+	});
+});
+
+describe('ThemeService.hydrate preset state', () => {
+	it('reads themePresetId from settings', () => {
+		const svc = new ThemeService();
+		svc.hydrate({ ...DEFAULT_ELASTIC_UI_SETTINGS, themePresetId: 'native' });
+		expect(svc.activePresetId).toBe('native');
+	});
+
+	it('reads customPresets from settings', () => {
+		const svc = new ThemeService();
+		svc.hydrate({
+			...DEFAULT_ELASTIC_UI_SETTINGS,
+			themePresetId: 'vaultman',
+			customPresets: [makeCustom('c1')],
+		});
+		expect(svc.customPresets).toHaveLength(1);
+		expect(svc.customPresets[0].id).toBe('c1');
+	});
+
+	it('hydrate falls back to "vaultman" when themePresetId missing', () => {
+		const svc = new ThemeService();
+		const settings = { ...DEFAULT_ELASTIC_UI_SETTINGS };
+		delete (settings as Partial<typeof settings>).themePresetId;
+		svc.hydrate(settings as typeof DEFAULT_ELASTIC_UI_SETTINGS);
+		expect(svc.activePresetId).toBe('vaultman');
+	});
+
+	it('hydrate filters invalid customPresets', () => {
+		const svc = new ThemeService();
+		svc.hydrate({
+			...DEFAULT_ELASTIC_UI_SETTINGS,
+			themePresetId: 'vaultman',
+			customPresets: [
+				makeCustom('good'),
+				{ source: 'built-in', id: 'fake' } as unknown as ThemePreset,
+				null as unknown as ThemePreset,
+			],
+		});
+		expect(svc.customPresets).toHaveLength(1);
+		expect(svc.customPresets[0].id).toBe('good');
 	});
 });

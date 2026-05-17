@@ -3,7 +3,11 @@ import type {
 	VaultmanUiIdentity,
 	VaultmanUiMode,
 } from '../types/typeElasticUi';
-import type { ThemePreset, ThemePresetId } from '../types/typeThemePreset';
+import {
+	normalizeCustomPreset,
+	type ThemePreset,
+	type ThemePresetId,
+} from '../types/typeThemePreset';
 import {
 	BUILT_IN_PRESETS,
 	PRESET_NATIVE,
@@ -91,6 +95,10 @@ export class ThemeService {
 		this.faintModeEnabled = settings.faintModeEnabled;
 		this.reducedMotion = settings.reducedMotion;
 		this.foulDetection = settings.foulDetection;
+		this.activePresetId = settings.themePresetId ?? 'vaultman';
+		this.customPresets = (settings.customPresets ?? [])
+			.map((preset) => normalizeCustomPreset(preset))
+			.filter((preset): preset is ThemePreset => preset !== null);
 	}
 
 	#cssEscape(id: string): string {
