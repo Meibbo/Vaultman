@@ -41,11 +41,16 @@ export class ThemeService {
 	}
 
 	get useNativeDom(): boolean {
-		return this.mode === 'thin' || this.identity === 'native';
+		return this.activePreset.useNativeDom;
 	}
 
 	get rootClasses(): string[] {
-		const out = ['vm-root', `vm-mode-${this.mode}`, `vm-id-${this.identity}`];
+		const out = [
+			'vm-root',
+			`vm-mode-${this.mode}`,
+			`vm-id-${this.identity}`,
+			`vm-theme-${this.#cssEscape(this.activePresetId)}`,
+		];
 		if (this.faintActive) out.push('vm-faint');
 		if (this.reducedMotion) out.push('vm-reduced-motion');
 		if (this.foulDetection) out.push('vm-foul-detect');
@@ -58,5 +63,9 @@ export class ThemeService {
 		this.faintModeEnabled = settings.faintModeEnabled;
 		this.reducedMotion = settings.reducedMotion;
 		this.foulDetection = settings.foulDetection;
+	}
+
+	#cssEscape(id: string): string {
+		return id.replace(/[^a-zA-Z0-9_-]/g, '-');
 	}
 }
