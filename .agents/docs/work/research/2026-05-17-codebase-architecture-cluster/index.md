@@ -4,7 +4,7 @@ type: research-index
 status: draft
 parent: "[[docs/work/pkm-ai/index|pkm-ai]]"
 created: 2026-05-17T13:10:00
-updated: 2026-05-17T13:10:00
+updated: 2026-05-17T18:55:00-05:00
 tags:
   - agent/research
   - architecture
@@ -21,14 +21,26 @@ updated_by: codex
 Build a layered visual map of the Vaultman codebase. Each phase adds a Markdown
 record and, when useful, a child Canvas linked from the central Canvas.
 
-This first phase covers only the root layer: root files, root directories, and
-how those root controls reach the first surface of `src/`, `test/`, and
-`scripts/`.
+Completed phases now cover the root layer, the source runtime spine, the
+`src/components/frame/` shell layer, the layout/pages layer, the explorer
+containers/providers/views layer, the shared services/types/logic layer, the
+test architecture layer, the scripts/CI/release automation layer, and the
+residual `src/` support layer. Later phases should keep adding one Markdown
+record plus one child Canvas when the layer has enough branching structure to
+justify a visual map.
 
 ## Visual Hub
 
 - [[visuals/codebase-architecture-central.canvas|Central codebase architecture canvas]]
 - [[visuals/phase-01-root-surface.canvas|Phase 01 root surface canvas]]
+- [[visuals/phase-02-src-runtime-spine.canvas|Phase 02 source runtime spine canvas]]
+- [[visuals/phase-03-components-frame.canvas|Phase 03 components frame canvas]]
+- [[visuals/phase-04-layout-pages.canvas|Phase 04 layout and pages canvas]]
+- [[visuals/phase-05-containers-providers-views.canvas|Phase 05 containers providers views canvas]]
+- [[visuals/phase-06-services-types-logic.canvas|Phase 06 services types logic canvas]]
+- [[visuals/phase-07-tests-architecture.canvas|Phase 07 tests architecture canvas]]
+- [[visuals/phase-08-scripts-ci-release.canvas|Phase 08 scripts CI release canvas]]
+- [[visuals/phase-09-residual-src-support.canvas|Phase 09 residual src support canvas]]
 
 ## Phases
 
@@ -36,10 +48,14 @@ how those root controls reach the first surface of `src/`, `test/`, and
 | --- | --- | --- | --- |
 | 01 | done | [[01-root-surface-layer|Root surface layer]] | Root configs, package scripts, release metadata, CI/security, top-level `src/`, `test/`, `scripts/`. |
 | 02 | done | [[02-src-runtime-spine|Source runtime spine]] | `src/` entrypoints and first-level runtime modules. |
-| 03 | pending | TBD | `src/components/` vertical UI surface, starting with `components/frame/`. |
-| 04 | pending | TBD | `src/services/`, `providers/`, `registry/`, `logic/`, `utils/`. |
-| 05 | pending | TBD | `test/` architecture and how tests bind to runtime layers. |
-| 06 | pending | TBD | `scripts/`, CI, release, security, generated artifacts. |
+| 03 | done | [[03-components-frame-layer|Components frame layer]] | `src/components/frame/` shell, controllers, detached host, overlay/search/viewport/nav primitives. |
+| 04 | done | [[04-components-layout-pages-layer|Components layout and pages layer]] | `src/components/layout/`, `src/components/pages/`, dashboard edge, toolbar/navbar recovery path. |
+| 05 | done | [[05-containers-providers-views-layer|Containers providers views layer]] | `src/components/containers/`, `src/providers/`, and `src/components/views/`. |
+| 06 | done | [[06-services-types-logic-layer|Services types logic layer]] | `src/services/`, `src/logic/`, `src/registry/`, `src/utils/`, `src/types/`. |
+| 07 | done | [[07-tests-architecture-layer|Tests architecture layer]] | `test/` architecture and how tests bind to runtime layers. |
+| 08 | done | [[08-scripts-ci-release-layer|Scripts CI release layer]] | `scripts/`, CI, release, security, generated artifacts. |
+| 09 | done | [[09-residual-src-support-layer|Residual src support layer]] | Residual source support surfaces: `src/index/`, `src/config/`, badges, primitives, settings, modals, addons, dashboard support, styles, i18n. |
+| 10 | recommended | TBD | Coverage reconciliation across all tracked source/config/test/doc paths and generated-artifact exclusions. |
 
 ## Root Layer Summary
 
@@ -59,6 +75,7 @@ flowchart LR
 
 ## Decision Point
 
-Recommended next phase: map `src/components/frame/` before broader component
-work. The frame shell is the runtime bridge between `VaultmanPlugin`, page
-surfaces, layout/nav state, overlays, hooks, dock, and detachable tab routing.
+Recommended next phase: run a coverage reconciliation pass before claiming the
+whole codebase cluster is complete. Phase 10 should compare all tracked
+source/config/test/doc paths against phases 01-09, mark generated artifacts that
+are intentionally excluded, and produce a final coverage matrix.

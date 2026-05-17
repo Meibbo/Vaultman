@@ -87,8 +87,8 @@
       "y": 170,
       "width": 320,
       "height": 120,
-      "text": "# Phase 03 pending\n\nMap `src/components/` UI surface and component ownership.",
-      "color": "2"
+      "text": "# Phase 03 done\n\nMapped `src/components/frame/`: frame shell, controllers, detached tabs, overlays, page FABs, search, viewport, and toolbar edge.",
+      "color": "4"
     },
     {
       "id": "a00000000000000a",
@@ -97,8 +97,8 @@
       "y": 320,
       "width": 320,
       "height": 140,
-      "text": "# Phase 04 pending\n\nMap services, providers, registry, logic, utils, types, config, and dev hooks.",
-      "color": "2"
+      "text": "# Phase 04 done\n\nMapped layout/pages: navbar dock, top tabs, filters toolbar, popups, page surfaces, dashboard edge, and toolbar/navbar recovery path.",
+      "color": "4"
     },
     {
       "id": "a00000000000000b",
@@ -119,6 +119,197 @@
       "height": 100,
       "file": ".agents/docs/work/research/2026-05-17-codebase-architecture-cluster/visuals/phase-02-src-runtime-spine.canvas",
       "color": "3"
+    }
+    ,
+    {
+      "id": "a00000000000000d",
+      "type": "file",
+      "file": ".agents/docs/work/research/2026-05-17-codebase-architecture-cluster/03-components-frame-layer.md",
+      "x": 920,
+      "y": -40,
+      "width": 430,
+      "height": 90,
+      "color": "4"
+    },
+    {
+      "id": "a00000000000000e",
+      "type": "file",
+      "file": ".agents/docs/work/research/2026-05-17-codebase-architecture-cluster/visuals/phase-03-components-frame.canvas",
+      "x": 920,
+      "y": 90,
+      "width": 430,
+      "height": 90,
+      "color": "4"
+    },
+    {
+      "id": "a00000000000000f",
+      "type": "file",
+      "file": ".agents/docs/work/research/2026-05-17-codebase-architecture-cluster/04-components-layout-pages-layer.md",
+      "x": 920,
+      "y": 500,
+      "width": 430,
+      "height": 90,
+      "color": "4"
+    },
+    {
+      "id": "a000000000000010",
+      "type": "file",
+      "file": ".agents/docs/work/research/2026-05-17-codebase-architecture-cluster/visuals/phase-04-layout-pages.canvas",
+      "x": 920,
+      "y": 630,
+      "width": 430,
+      "height": 90,
+      "color": "4"
+    },
+    {
+      "id": "a000000000000011",
+      "type": "file",
+      "file": ".agents/docs/work/research/2026-05-17-codebase-architecture-cluster/05-containers-providers-views-layer.md",
+      "x": 920,
+      "y": 760,
+      "width": 430,
+      "height": 90,
+      "color": "4"
+    },
+    {
+      "id": "a000000000000012",
+      "type": "file",
+      "file": ".agents/docs/work/research/2026-05-17-codebase-architecture-cluster/visuals/phase-05-containers-providers-views.canvas",
+      "x": 920,
+      "y": 890,
+      "width": 430,
+      "height": 90,
+      "color": "4"
+    },
+    {
+      "id": "a000000000000013",
+      "type": "text",
+      "text": "# Phase 05 done\n\nMapped containers/providers/views: PanelExplorer narrow waist, provider data/actions, view adapters, row/projection/table/scroll contracts.",
+      "x": 920,
+      "y": 1020,
+      "width": 430,
+      "height": 130,
+      "color": "4"
+    },
+    {
+      "id": "a000000000000014",
+      "type": "file",
+      "file": ".agents/docs/work/research/2026-05-17-codebase-architecture-cluster/06-services-types-logic-layer.md",
+      "x": 1420,
+      "y": 760,
+      "width": 430,
+      "height": 90,
+      "color": "4"
+    },
+    {
+      "id": "a000000000000015",
+      "type": "file",
+      "file": ".agents/docs/work/research/2026-05-17-codebase-architecture-cluster/visuals/phase-06-services-types-logic.canvas",
+      "x": 1420,
+      "y": 890,
+      "width": 430,
+      "height": 90,
+      "color": "4"
+    },
+    {
+      "id": "a000000000000016",
+      "type": "text",
+      "text": "# Phase 06 done\n\nMapped services/types/logic/registry/utils: composition root, contracts, queues, filters, views, projections, DnD, FnR, layout/theme, and complete inventory.",
+      "x": 1420,
+      "y": 1020,
+      "width": 430,
+      "height": 150,
+      "color": "4"
+    },
+    {
+      "id": "a000000000000017",
+      "type": "file",
+      "file": ".agents/docs/work/research/2026-05-17-codebase-architecture-cluster/07-tests-architecture-layer.md",
+      "x": 1920,
+      "y": 760,
+      "width": 430,
+      "height": 90,
+      "color": "4"
+    },
+    {
+      "id": "a000000000000018",
+      "type": "file",
+      "file": ".agents/docs/work/research/2026-05-17-codebase-architecture-cluster/visuals/phase-07-tests-architecture.canvas",
+      "x": 1920,
+      "y": 890,
+      "width": 430,
+      "height": 90,
+      "color": "4"
+    },
+    {
+      "id": "a000000000000019",
+      "type": "text",
+      "text": "# Phase 07 done\n\nMapped test architecture: Vitest projects, package scripts, Obsidian mocks, component/unit/integration suites, performance datasets, and coverage risks.",
+      "x": 1920,
+      "y": 1020,
+      "width": 430,
+      "height": 150,
+      "color": "4"
+    },
+    {
+      "id": "a00000000000001a",
+      "type": "file",
+      "file": ".agents/docs/work/research/2026-05-17-codebase-architecture-cluster/08-scripts-ci-release-layer.md",
+      "x": 2420,
+      "y": 760,
+      "width": 430,
+      "height": 90,
+      "color": "4"
+    },
+    {
+      "id": "a00000000000001b",
+      "type": "file",
+      "file": ".agents/docs/work/research/2026-05-17-codebase-architecture-cluster/visuals/phase-08-scripts-ci-release.canvas",
+      "x": 2420,
+      "y": 890,
+      "width": 430,
+      "height": 90,
+      "color": "4"
+    },
+    {
+      "id": "a00000000000001c",
+      "type": "text",
+      "text": "# Phase 08 done\n\nMapped scripts/CI/release: package gates, build sync, live scroll smoke, audits, SBOM, CodeQL, Scorecard, Dependabot, root artifacts, and release outputs.",
+      "x": 2420,
+      "y": 1020,
+      "width": 430,
+      "height": 150,
+      "color": "4"
+    },
+    {
+      "id": "a00000000000001d",
+      "type": "file",
+      "file": ".agents/docs/work/research/2026-05-17-codebase-architecture-cluster/09-residual-src-support-layer.md",
+      "x": 2920,
+      "y": 760,
+      "width": 430,
+      "height": 90,
+      "color": "4"
+    },
+    {
+      "id": "a00000000000001e",
+      "type": "file",
+      "file": ".agents/docs/work/research/2026-05-17-codebase-architecture-cluster/visuals/phase-09-residual-src-support.canvas",
+      "x": 2920,
+      "y": 890,
+      "width": 430,
+      "height": 90,
+      "color": "4"
+    },
+    {
+      "id": "a00000000000001f",
+      "type": "text",
+      "text": "# Phase 09 done\n\nMapped residual src support: indexes, i18n, built-in presets, badges, primitives, settings, addons, dashboard, modals, and SCSS import topology.",
+      "x": 2920,
+      "y": 1020,
+      "width": 430,
+      "height": 150,
+      "color": "4"
     }
   ],
   "edges": [
@@ -184,6 +375,121 @@
       "toSide": "right",
       "toEnd": "arrow",
       "label": "visualizes"
+    }
+    ,
+    {
+      "id": "a0e0000000000008",
+      "fromNode": "a00000000000000d",
+      "toNode": "a00000000000000e",
+      "label": "phase 03 canvas"
+    },
+    {
+      "id": "a0e0000000000009",
+      "fromNode": "a000000000000008",
+      "toNode": "a00000000000000d",
+      "label": "components/frame"
+    },
+    {
+      "id": "a0e000000000000a",
+      "fromNode": "a00000000000000d",
+      "toNode": "a00000000000000f",
+      "label": "layout/pages"
+    },
+    {
+      "id": "a0e000000000000b",
+      "fromNode": "a00000000000000f",
+      "toNode": "a000000000000010",
+      "label": "phase 04 canvas"
+    },
+    {
+      "id": "a0e000000000000c",
+      "fromNode": "a00000000000000f",
+      "toNode": "a000000000000011",
+      "label": "containers/providers/views"
+    },
+    {
+      "id": "a0e000000000000d",
+      "fromNode": "a000000000000011",
+      "toNode": "a000000000000012",
+      "label": "phase 05 canvas"
+    },
+    {
+      "id": "a0e000000000000e",
+      "fromNode": "a000000000000011",
+      "toNode": "a000000000000013",
+      "label": "summary"
+    },
+    {
+      "id": "a0e000000000000f",
+      "fromNode": "a000000000000011",
+      "toNode": "a000000000000014",
+      "label": "services/types/logic"
+    },
+    {
+      "id": "a0e0000000000010",
+      "fromNode": "a000000000000014",
+      "toNode": "a000000000000015",
+      "label": "phase 06 canvas"
+    },
+    {
+      "id": "a0e0000000000011",
+      "fromNode": "a000000000000014",
+      "toNode": "a000000000000016",
+      "label": "summary"
+    },
+    {
+      "id": "a0e0000000000012",
+      "fromNode": "a000000000000014",
+      "toNode": "a000000000000017",
+      "label": "tests"
+    },
+    {
+      "id": "a0e0000000000013",
+      "fromNode": "a000000000000017",
+      "toNode": "a000000000000018",
+      "label": "phase 07 canvas"
+    },
+    {
+      "id": "a0e0000000000014",
+      "fromNode": "a000000000000017",
+      "toNode": "a000000000000019",
+      "label": "summary"
+    },
+    {
+      "id": "a0e0000000000015",
+      "fromNode": "a000000000000017",
+      "toNode": "a00000000000001a",
+      "label": "scripts/ci/release"
+    },
+    {
+      "id": "a0e0000000000016",
+      "fromNode": "a00000000000001a",
+      "toNode": "a00000000000001b",
+      "label": "phase 08 canvas"
+    },
+    {
+      "id": "a0e0000000000017",
+      "fromNode": "a00000000000001a",
+      "toNode": "a00000000000001c",
+      "label": "summary"
+    },
+    {
+      "id": "a0e0000000000018",
+      "fromNode": "a00000000000001a",
+      "toNode": "a00000000000001d",
+      "label": "residual src support"
+    },
+    {
+      "id": "a0e0000000000019",
+      "fromNode": "a00000000000001d",
+      "toNode": "a00000000000001e",
+      "label": "phase 09 canvas"
+    },
+    {
+      "id": "a0e000000000001a",
+      "fromNode": "a00000000000001d",
+      "toNode": "a00000000000001f",
+      "label": "summary"
     }
   ]
 }

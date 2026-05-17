@@ -1,0 +1,330 @@
+{
+  "nodes": [
+    {
+      "id": "9000000000000001",
+      "type": "group",
+      "x": -40,
+      "y": -40,
+      "width": 420,
+      "height": 680,
+      "label": "Phase docs",
+      "color": "5"
+    },
+    {
+      "id": "9000000000000002",
+      "type": "group",
+      "x": 420,
+      "y": -40,
+      "width": 460,
+      "height": 680,
+      "label": "Indexes i18n config",
+      "color": "4"
+    },
+    {
+      "id": "9000000000000003",
+      "type": "group",
+      "x": 940,
+      "y": -40,
+      "width": 460,
+      "height": 680,
+      "label": "Primitives badges settings",
+      "color": "3"
+    },
+    {
+      "id": "9000000000000004",
+      "type": "group",
+      "x": 1460,
+      "y": -40,
+      "width": 460,
+      "height": 680,
+      "label": "Styles dashboard addons modals",
+      "color": "2"
+    },
+    {
+      "id": "9000000000000005",
+      "type": "file",
+      "x": 0,
+      "y": 20,
+      "width": 320,
+      "height": 80,
+      "file": ".agents/docs/work/research/2026-05-17-codebase-architecture-cluster/09-residual-src-support-layer.md",
+      "color": "5"
+    },
+    {
+      "id": "9000000000000006",
+      "type": "file",
+      "x": 0,
+      "y": 120,
+      "width": 320,
+      "height": 80,
+      "file": ".agents/docs/work/research/2026-05-17-codebase-architecture-cluster/09d-phase-09-inventory.md",
+      "color": "5"
+    },
+    {
+      "id": "9000000000000007",
+      "type": "file",
+      "x": 460,
+      "y": 20,
+      "width": 360,
+      "height": 80,
+      "file": "src/index/indexNodeCreate.ts",
+      "color": "4"
+    },
+    {
+      "id": "9000000000000008",
+      "type": "file",
+      "x": 460,
+      "y": 120,
+      "width": 360,
+      "height": 80,
+      "file": "src/index/indexContent.ts",
+      "color": "4"
+    },
+    {
+      "id": "9000000000000009",
+      "type": "file",
+      "x": 460,
+      "y": 220,
+      "width": 360,
+      "height": 80,
+      "file": "src/index/utilPropIndex.ts",
+      "color": "4"
+    },
+    {
+      "id": "900000000000000a",
+      "type": "file",
+      "x": 460,
+      "y": 320,
+      "width": 360,
+      "height": 80,
+      "file": "src/index/i18n/lang.ts",
+      "color": "4"
+    },
+    {
+      "id": "900000000000000b",
+      "type": "file",
+      "x": 460,
+      "y": 420,
+      "width": 360,
+      "height": 80,
+      "file": "src/config/themePresetsBuiltin.ts",
+      "color": "4"
+    },
+    {
+      "id": "900000000000000c",
+      "type": "text",
+      "x": 460,
+      "y": 520,
+      "width": 360,
+      "height": 90,
+      "text": "# Read-model layer\n\nMain plugin instantiates indexes; tests bind each index contract.",
+      "color": "4"
+    },
+    {
+      "id": "900000000000000d",
+      "type": "file",
+      "x": 980,
+      "y": 20,
+      "width": 360,
+      "height": 80,
+      "file": "src/badges/serviceBadge.ts",
+      "color": "3"
+    },
+    {
+      "id": "900000000000000e",
+      "type": "file",
+      "x": 980,
+      "y": 120,
+      "width": 360,
+      "height": 80,
+      "file": "src/components/primitives/PrimitiveFab.svelte",
+      "color": "3"
+    },
+    {
+      "id": "900000000000000f",
+      "type": "file",
+      "x": 980,
+      "y": 220,
+      "width": 360,
+      "height": 80,
+      "file": "src/components/primitives/Toggle.svelte",
+      "color": "3"
+    },
+    {
+      "id": "9000000000000010",
+      "type": "file",
+      "x": 980,
+      "y": 320,
+      "width": 360,
+      "height": 80,
+      "file": "src/components/settings/SettingsUI.svelte",
+      "color": "3"
+    },
+    {
+      "id": "9000000000000011",
+      "type": "file",
+      "x": 980,
+      "y": 420,
+      "width": 360,
+      "height": 80,
+      "file": "src/components/settings/settingsLeafToggle.svelte",
+      "color": "3"
+    },
+    {
+      "id": "9000000000000012",
+      "type": "text",
+      "x": 980,
+      "y": 520,
+      "width": 360,
+      "height": 90,
+      "text": "# UI support\n\nPrimitives are split between generic controls and app-specific nav/popup chrome.",
+      "color": "3"
+    },
+    {
+      "id": "9000000000000013",
+      "type": "file",
+      "x": 1500,
+      "y": 20,
+      "width": 360,
+      "height": 80,
+      "file": "src/main.scss",
+      "color": "2"
+    },
+    {
+      "id": "9000000000000014",
+      "type": "file",
+      "x": 1500,
+      "y": 120,
+      "width": 360,
+      "height": 80,
+      "file": "src/styles/_tokens.scss",
+      "color": "2"
+    },
+    {
+      "id": "9000000000000015",
+      "type": "file",
+      "x": 1500,
+      "y": 220,
+      "width": 360,
+      "height": 80,
+      "file": "src/components/dashboard/Dashboard3Column.svelte",
+      "color": "2"
+    },
+    {
+      "id": "9000000000000016",
+      "type": "file",
+      "x": 1500,
+      "y": 320,
+      "width": 360,
+      "height": 80,
+      "file": "src/components/addons/AddonsMarkdownPane.svelte",
+      "color": "2"
+    },
+    {
+      "id": "9000000000000017",
+      "type": "file",
+      "x": 1500,
+      "y": 420,
+      "width": 360,
+      "height": 80,
+      "file": "src/components/modals/modalDeleteConflict.svelte",
+      "color": "2"
+    },
+    {
+      "id": "9000000000000018",
+      "type": "text",
+      "x": 1500,
+      "y": 520,
+      "width": 360,
+      "height": 90,
+      "text": "# Visual support\n\nStyles are mapped by main.scss import topology; selector-level CSS audit remains separate.",
+      "color": "2"
+    }
+  ],
+  "edges": [
+    {
+      "id": "9900000000000001",
+      "fromNode": "9000000000000005",
+      "toNode": "9000000000000006",
+      "toEnd": "arrow",
+      "label": "inventories"
+    },
+    {
+      "id": "9900000000000002",
+      "fromNode": "9000000000000005",
+      "toNode": "9000000000000007",
+      "toEnd": "arrow",
+      "label": "indexes"
+    },
+    {
+      "id": "9900000000000003",
+      "fromNode": "9000000000000007",
+      "toNode": "9000000000000008",
+      "toEnd": "arrow",
+      "label": "specialized sibling"
+    },
+    {
+      "id": "9900000000000004",
+      "fromNode": "9000000000000007",
+      "toNode": "9000000000000009",
+      "toEnd": "arrow",
+      "label": "separate prop index"
+    },
+    {
+      "id": "9900000000000005",
+      "fromNode": "900000000000000a",
+      "toNode": "900000000000000e",
+      "toEnd": "arrow",
+      "label": "labels"
+    },
+    {
+      "id": "9900000000000006",
+      "fromNode": "900000000000000b",
+      "toNode": "9000000000000010",
+      "toEnd": "arrow",
+      "label": "settings surface"
+    },
+    {
+      "id": "9900000000000007",
+      "fromNode": "900000000000000d",
+      "toNode": "900000000000000e",
+      "toEnd": "arrow",
+      "label": "fab badges"
+    },
+    {
+      "id": "9900000000000008",
+      "fromNode": "900000000000000f",
+      "toNode": "9000000000000010",
+      "toEnd": "arrow",
+      "label": "settings controls"
+    },
+    {
+      "id": "9900000000000009",
+      "fromNode": "9000000000000013",
+      "toNode": "9000000000000014",
+      "toEnd": "arrow",
+      "label": "tokens"
+    },
+    {
+      "id": "990000000000000a",
+      "fromNode": "9000000000000013",
+      "toNode": "9000000000000015",
+      "toEnd": "arrow",
+      "label": "styles"
+    },
+    {
+      "id": "990000000000000b",
+      "fromNode": "9000000000000015",
+      "toNode": "9000000000000016",
+      "toEnd": "arrow",
+      "label": "addons slot"
+    },
+    {
+      "id": "990000000000000c",
+      "fromNode": "9000000000000017",
+      "toNode": "900000000000000d",
+      "toEnd": "arrow",
+      "label": "conflict ops"
+    }
+  ]
+}

@@ -5,7 +5,7 @@ status: active
 parent: "[[docs/work/pkm-ai/index|pkm-ai]]"
 archive_source: "docs/archive/pkm-ai/active-docs/2026-05-11T080321-current-handoff.md"
 created: 2026-05-04T01:36:20
-updated: 2026-05-17T14:13:46-05:00
+updated: 2026-05-17T18:55:00-05:00
 tags:
   - agent/current
 created_by: dec
@@ -48,6 +48,10 @@ Compact handoff after archiving the oversized current handoff:
   [[docs/work/polish/research/2026-05-17-toolbar-architecture/index|Toolbar architecture and primitive ordering map]];
   it explains why the current toolbar is Filters-page-specific and how to move
   toward tab-agnostic primitive ordering through a model resolver plus adapters.
+- Codebase architecture cluster phases 01-09 are captured at
+  [[docs/work/research/2026-05-17-codebase-architecture-cluster/index|Codebase architecture cluster]].
+  Latest completed layer:
+  [[docs/work/research/2026-05-17-codebase-architecture-cluster/09-residual-src-support-layer|Residual src support layer]].
 
 ## Completed Explorer Commits
 
@@ -185,3 +189,7 @@ Compact handoff after archiving the oversized current handoff:
   errors.
 - If resuming OpenSSF hardening, start from:
   `.agents/docs/work/hardening/plans/2026-05-16-openssf-osps-baseline/01-scope-docs-workflow-permissions.md`.
+- If continuing the codebase architecture cluster, proceed with coverage
+  reconciliation: compare tracked source/config/test/doc paths against phases
+  01-09, mark generated-artifact exclusions, and produce a final coverage
+  matrix.
