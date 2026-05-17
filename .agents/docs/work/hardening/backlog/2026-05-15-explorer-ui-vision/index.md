@@ -457,6 +457,14 @@ not execute ad-hoc; brainstorm + spec + plan in its own cycle.
 
 ## O — frameVaultman decomposition
 
+> **Superseded by**
+> [[docs/work/hardening/specs/2026-05-17-explorer-sub-system-o-framevaultman-decomposition/index|Sub-System O — frameVaultman decomposition spec]]
+> (2026-05-17). The spec narrows the original 6-candidate list to
+> **4 honest ≥30 LOC extractions** (FrameNavigationService +
+> FramePopupsState + FrameNavbarShell + FrameDashboardShell) and
+> locks the state-crossing principle as Context API with
+> Symbol-keyed runes services.
+
 **The idea.** Split `src/components/frame/frameVaultman.svelte` (867
 LOC, ~13 mixed responsibilities — theme focus tracking, page
 navigation, dashboard viewport, FAB resolution, stats counters, action
@@ -483,6 +491,22 @@ verification required.
 **Build-order suggestion.** **After 0-B, before Sub-system 6 + 7.** Order
 matters: decompose first, then have the layout extension and toolbar
 contract consume from focused shells instead of from the god component.
+
+**Refined by 2026-05-17 spec** (see superseded-by link above):
+
+- `serviceFrameStats.svelte.ts` (~25 LOC) and a hypothetical
+  `frameFocusBinding.svelte.ts` (~20 LOC) are **below the
+  ≥30 LOC extraction threshold** and stay inline in the frame.
+  Future sub-systems can extract them when concrete pressure
+  (e.g., another consumer of stats counters) materializes.
+- `FrameActionsBar.svelte` is a **bogus split** — FAB resolution
+  is already in `framePages.ts` and FAB rendering is inside
+  `NavbarDock`. The inline residue is two `$derived` lines. Not
+  extracted.
+- A new module, `framePopups.svelte.ts` (not in the original
+  backlog list), surfaces from the audit as a real ≥30 LOC
+  cluster (scope/active-filters/search/move popup state, ~80 LOC
+  total inline). Extracted in the spec.
 
 ## Related touchpoints
 
