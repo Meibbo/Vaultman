@@ -24,18 +24,14 @@ const measure: TextMeasureService = {
 	clear: vi.fn(),
 };
 
-function thinNativeTheme(): ThemeService {
+function nativePresetTheme(): ThemeService {
 	const theme = new ThemeService();
-	theme.mode = 'thin';
-	theme.identity = 'native';
+	theme.setPreset('native');
 	return theme;
 }
 
-function thickBasesTheme(): ThemeService {
-	const theme = new ThemeService();
-	theme.mode = 'thick';
-	theme.identity = 'bases';
-	return theme;
+function vaultmanPresetTheme(): ThemeService {
+	return new ThemeService();
 }
 
 describe('view mirror class arbitration', () => {
@@ -110,39 +106,39 @@ describe('view mirror class arbitration', () => {
 		flushSync();
 	}
 
-	it('grid emits Obsidian file mirror classes only in Thin + native mode', () => {
-		renderGrid(thinNativeTheme());
+	it('grid emits Obsidian file mirror classes only in native preset mode', () => {
+		renderGrid(nativePresetTheme());
 		expect(target.querySelector('.nav-file')).toBeTruthy();
 		expect(target.querySelector('.nav-file-title')).toBeTruthy();
 
 		void unmount(app!);
 		target.replaceChildren();
-		renderGrid(thickBasesTheme());
+		renderGrid(vaultmanPresetTheme());
 		expect(target.querySelector('.nav-file')).toBeFalsy();
 		expect(target.querySelector('.nav-file-title')).toBeFalsy();
 	});
 
-	it('cards emit Obsidian file mirror classes only in Thin + native mode', () => {
-		renderCards(thinNativeTheme());
+	it('cards emit Obsidian file mirror classes only in native preset mode', () => {
+		renderCards(nativePresetTheme());
 		expect(target.querySelector('.nav-file')).toBeTruthy();
 		expect(target.querySelector('.nav-file-title')).toBeTruthy();
 
 		void unmount(app!);
 		target.replaceChildren();
-		renderCards(thickBasesTheme());
+		renderCards(vaultmanPresetTheme());
 		expect(target.querySelector('.nav-file')).toBeFalsy();
 		expect(target.querySelector('.nav-file-title')).toBeFalsy();
 	});
 
-	it('tree emits Obsidian tree mirror classes only in Thin + native mode', () => {
-		renderTree(thinNativeTheme());
+	it('tree emits Obsidian tree mirror classes only in native preset mode', () => {
+		renderTree(nativePresetTheme());
 		expect(target.querySelector('.tree-item')).toBeTruthy();
 		expect(target.querySelector('.tree-item-self')).toBeTruthy();
 		expect(target.querySelector('.tree-item-inner')).toBeTruthy();
 
 		void unmount(app!);
 		target.replaceChildren();
-		renderTree(thickBasesTheme());
+		renderTree(vaultmanPresetTheme());
 		expect(target.querySelector('.tree-item')).toBeFalsy();
 		expect(target.querySelector('.tree-item-self')).toBeFalsy();
 		expect(target.querySelector('.tree-item-inner')).toBeFalsy();

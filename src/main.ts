@@ -55,7 +55,7 @@ import { NodeBindingService } from './services/serviceNodeBinding';
 import { NativeSurfaceBindingService } from './services/serviceNativeSurfaceBinding';
 import { resolveLayoutSettings } from './services/serviceLayout';
 import { ThemeService } from './services/serviceTheme.svelte';
-import { DEFAULT_ELASTIC_UI_SETTINGS, normalizeElasticUiSettings } from './types/typeElasticUi';
+import { normalizeElasticUiSettings } from './types/typeElasticUi';
 import { ALL_TAB_IDS, viewTypeFor, type TabId } from './registry/tabRegistry';
 import { VaultmanTabLeafView } from './types/typeTabLeaf';
 import type { FnRIslandService } from './services/serviceFnRIsland.svelte';
@@ -141,7 +141,7 @@ export class VaultmanPlugin extends Plugin {
 		PerfMeter.mark('vaultman:boot:settings-loaded');
 
 		this.themeService = new ThemeService();
-		this.themeService.hydrate(this.settings.elasticUi ?? DEFAULT_ELASTIC_UI_SETTINGS);
+		this.themeService.hydrate(this.settings.elasticUi);
 
 		const pluginsBefore = snapshotInstalledPlugins(this.app);
 
@@ -347,6 +347,7 @@ export class VaultmanPlugin extends Plugin {
 	}
 
 	onunload(): void {
+		this.themeService?.dispose();
 		this.uninstallPerfProbe?.();
 		this.uninstallPerfProbe = undefined;
 		this.opsLogService?.dispose();
@@ -378,6 +379,10 @@ export class VaultmanPlugin extends Plugin {
 	}
 
 	async saveSettings(): Promise<void> {
+		if (this.themeService) {
+			this.settings.elasticUi.themePresetId = this.themeService.activePresetId;
+			this.settings.elasticUi.customPresets = [...this.themeService.customPresets];
+		}
 		await this.saveData(this.settings);
 	}
 

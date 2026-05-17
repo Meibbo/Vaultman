@@ -76,6 +76,55 @@ export class Component {
 	onunload?(): void;
 }
 
+export class Plugin extends Component {
+	app: App;
+	manifest: unknown;
+
+	constructor(app: App = {} as App, manifest: unknown = {}) {
+		super();
+		this.app = app;
+		this.manifest = manifest;
+	}
+
+	addCommand(): void {
+		// no-op for tests
+	}
+
+	addSettingTab(): void {
+		// no-op for tests
+	}
+
+	registerView(): void {
+		// no-op for tests
+	}
+
+	async loadData(): Promise<unknown> {
+		return null;
+	}
+
+	async saveData(_data: unknown): Promise<void> {
+		// no-op for tests
+	}
+}
+
+export class PluginSettingTab {
+	app: App;
+	containerEl: HTMLElement;
+
+	constructor(app: App, _plugin: Plugin) {
+		this.app = app;
+		this.containerEl = makeEl();
+	}
+
+	display(): void {
+		// no-op for tests
+	}
+
+	hide(): void {
+		// no-op for tests
+	}
+}
+
 export interface WorkspaceLeaf {
 	app?: App;
 	getViewState?(): { type?: string };

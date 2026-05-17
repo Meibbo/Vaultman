@@ -137,8 +137,7 @@ describe('ViewNodeTable Pretext heightmap', () => {
 
 	it('emits native table row classes when native DOM mode is active', () => {
 		const theme = new ThemeService();
-		theme.mode = 'thin';
-		theme.identity = 'native';
+		theme.setPreset('native');
 
 		render({ themeService: theme, measure: measureStub() });
 
