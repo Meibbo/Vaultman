@@ -4,7 +4,7 @@ type: spec-shard
 status: active
 parent: "[[docs/work/hardening/specs/2026-05-16-notebook-navigator-scroll-forensics/03-repro-and-acceptance|Repro And Acceptance Criteria]]"
 created: 2026-05-16T00:00:00
-updated: 2026-05-16T00:00:00
+updated: 2026-05-16T12:52:54-05:00
 tags:
   - agent/spec
   - explorer/performance
@@ -91,11 +91,22 @@ Vaultman can be considered NN-level for this issue only when:
 
 ## Immediate Next Plan
 
-1. Implement the burst-scroll blank detector first.
-2. Run it against the current code to capture the failing baseline.
-3. Fix cards all-row fallback.
-4. Add shared offset index for variable-height grid/cards/table.
-5. Add scroll intent/revision queue where direct local effects still exist.
-6. Re-run the live plugin-dev burst probe.
-7. Only then consider the scroll issue fixed.
+1. [x] Implement the burst-scroll blank detector first.
+2. [x] Run it against the current code to capture the failing baseline.
+3. [x] Fix cards all-row fallback.
+4. [x] Add shared offset index for variable-height grid/cards/table.
+5. [ ] Add scroll intent/revision queue where direct local effects still exist.
+6. [x] Re-run the live plugin-dev burst probe.
+7. [ ] Consider the scroll issue fixed only after the latency residuals and
+   confirmed 50k/100k matrix are closed.
 
+## 2026-05-16 Implementation Progress
+
+Implementation record:
+[[docs/work/hardening/plans/2026-05-16-explorer-variable-scroll-repair/index|Explorer variable scroll repair]].
+
+Live `plugin-dev` burst smoke now passes with zero blank frames and no dev
+errors for Tree, List, Table, Grid, and Cards. This verifies the bounded
+visible-row invariant for the current selectable modes. Residual event-loop
+delay spikes remain, especially Table and Grid, so the next pass should target
+remeasure/projection latency rather than the blank fallback path.

@@ -5,7 +5,7 @@ status: active
 parent: "[[docs/work/pkm-ai/index|pkm-ai]]"
 archive_source: "docs/archive/pkm-ai/active-docs/2026-05-11T080321-current-status.md"
 created: 2026-05-04T01:36:20
-updated: 2026-05-16T11:14:17-05:00
+updated: 2026-05-16T14:27:20-05:00
 tags:
   - agent/current
 created_by: dec
@@ -47,6 +47,8 @@ Compact route index after archiving the oversized current status:
   [[docs/work/hardening/research/2026-05-16-multiview-virtualization-research/index|Multiview virtualization research]].
 - Completed Explorer scroll smoke harness plan:
   [[docs/work/hardening/plans/2026-05-16-explorer-scroll-smoke-harness/index|Explorer scroll smoke harness implementation plan]].
+- Active Explorer variable scroll repair:
+  [[docs/work/hardening/plans/2026-05-16-explorer-variable-scroll-repair/index|Explorer variable scroll repair]].
 
 ## Explorer Platform Outcome
 
@@ -95,10 +97,10 @@ Compact route index after archiving the oversized current status:
 
 ## Known Residuals
 
-- User-reported Explorer scroll regression remains open: repeated large jumps
-  can leave the list blank for roughly 2+ seconds. Treat the previous scroll
-  repair as insufficient until the plugin-dev burst-scroll repro in the
-  scroll-forensics spec passes.
+- User-reported Explorer blanking regression has a current code repair:
+  variable-height fallbacks are bounded by scroll position, and live
+  `plugin-dev` smoke passed with zero blank frames in Tree/List/Table/Grid/Cards.
+  Treat event-loop delay spikes as the remaining performance issue.
 - 2026-05-16 research found no safe wholesale virtualizer replacement. Keep
   TanStack as the default, add a shared layout/index service, and prototype
   `virtua` only behind the same live blank-frame harness.
@@ -106,23 +108,26 @@ Compact route index after archiving the oversized current status:
   `scripts/run-explorer-scroll-smoke.mjs`. Live runs use
   `pnpm smoke:scroll -- --view=<mode>` or direct script invocation, both
   targeting `vault=plugin-dev`.
-- Live tree smoke passed after full build/sync/reload:
-  `pnpm smoke:scroll -- --view=tree --jumps=100`, with `blankFrames=0`,
-  `blank>100ms=0`, `blank>250ms=0`, `maxDelay=143ms`, and no Obsidian dev
-  errors.
+- Live multiview smoke after variable scroll repair passed with
+  `blankFrames=0`, `blank>100ms=0`, `blank>250ms=0`, `maxBlank=0ms`, and no
+  Obsidian dev errors for Tree/List/Table/Grid/Cards. Max event-loop delay
+  remained uneven: Tree 108 ms, List 258 ms, Table 1312 ms, Grid 600 ms,
+  Cards 24 ms.
+- Follow-up scroll-idle jank pass in Table/Grid defers variable row measurement
+  and virtualizer resizing until 96 ms after active scroll. Fresh zero-delay
+  live smokes passed with no blanks and no dev errors: Table maxDelay 29 ms,
+  Grid 58 ms, List 37 ms.
 - Map/ViewNodeMap remains deferred and is not exposed as a selectable
   next-release view after the post-review repair.
-- `styles.css` is dirty after the required build artifact sync and is not
-  staged in the Explorer handoff commit.
-- Current working tree still contains unrelated/user changes including
-  `.gitignore`, `README.md`, `manifest.json`, `package.json`, eslint
-  rule/script paths, OpenSSF docs, and many deleted docs. Preserve them unless
-  explicitly asked.
+- Current worktree dirt is the active variable scroll repair plus its docs/tests;
+  no unrelated dirty files were visible in `git status --short --branch` at
+  2026-05-16T12:52-05:00.
 
 ## Next Action
 
-- For Explorer scroll work, use the live burst-scroll blank detector as the
-  acceptance gate, then fix bounded fallbacks and variable-height offsets per
-  the scroll-forensics spec and multiview virtualization research.
+- For Explorer scroll work, continue from the variable scroll repair record:
+  add runner-level view switching, add percentile/histogram reporting for scroll
+  burst delay, investigate Grid's remaining 58 ms peak if it persists, and
+  confirm the matrix against explicit 50k/100k datasets.
 - If resuming OpenSSF hardening, begin with
   [[docs/work/hardening/plans/2026-05-16-openssf-osps-baseline/01-scope-docs-workflow-permissions|Scope, public docs, and workflow permissions]].

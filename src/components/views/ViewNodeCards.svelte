@@ -29,6 +29,7 @@
 		fallbackTextMeasureEngine,
 		type TextMeasureService,
 	} from '../../services/serviceTextMeasure';
+	import { createExplorerVariableGeometry } from '../../services/serviceExplorerScrollGeometry';
 	import {
 		NODE_MOUSE_GESTURE_CONFIG,
 		NODE_MOUSE_IGNORE_SELECTOR,
@@ -114,10 +115,14 @@
 
 	let outerEl: HTMLDivElement | undefined = $state();
 	let cardsWidth = $state(CARD_FALLBACK_WIDTH);
-	let columnCount = $state(1);
+	let columnCount = $state(columnsForWidth(CARD_FALLBACK_WIDTH));
 	let cardMeasureStyle = $state(DEFAULT_NODE_CARD_MEASURE_STYLE);
 	let metricsFrame: number | null = null;
 	let consumedScrollTargetSerial: number | null = null;
+	let fallbackScrollTop = $state(0);
+	let fallbackViewportHeight = $state(CARD_FALLBACK_HEIGHT);
+	let cardRowIndexCacheRows: readonly CardRow[] | null = null;
+	let cardRowIndexCache = new Map<string, number>();
 	const mouse = createMouseGestureService();
 	const nodeMouseConfig = $derived(
 		mergeMouseGestureConfig(NODE_MOUSE_GESTURE_CONFIG, mouseGestureConfig),
@@ -143,24 +148,38 @@
 		initialRect: { width: CARD_FALLBACK_WIDTH, height: CARD_FALLBACK_HEIGHT },
 	});
 	const virtualRows = $derived($rowVirtualizer.getVirtualItems());
+	const cardGeometry = $derived(
+		createExplorerVariableGeometry({
+			rowCount: cardRows.length,
+			estimateSize: (index) => (cardRows[index]?.height ?? CARD_HEIGHT_BUCKETS.standard) + CARD_GAP,
+		}),
+	);
 	const renderedRows = $derived.by(() => {
 		const visibleRows = virtualRows
 			.filter((row) => row.index < cardRows.length)
 			.map((row) => ({ key: row.key, index: row.index, start: row.start }));
 		if (visibleRows.length > 0 || cardRows.length === 0) return visibleRows;
-		let start = CARD_GAP;
-		return cardRows.map((row, index) => {
-			const out = { key: row.key, index, start };
-			start += row.height + CARD_GAP;
-			return out;
+		const range = cardGeometry.visibleRange({
+			scrollTop: fallbackScrollTop,
+			viewportHeight: fallbackViewportHeight,
+			overscan: CARD_OVERSCAN,
 		});
+		const out: Array<{ key: string | number; index: number; start: number }> = [];
+		for (let index = range.startIndex; index < range.endIndex; index += 1) {
+			const row = cardRows[index];
+			if (!row) continue;
+			out.push({
+				key: row.key,
+				index,
+				start: CARD_GAP + cardGeometry.topForIndex(index),
+			});
+		}
+		return out;
 	});
-	const totalHeight = $derived(
-		Math.max(
-			$rowVirtualizer.getTotalSize(),
-			cardRows.reduce((height, row) => height + row.height + CARD_GAP, CARD_GAP),
-		),
-	);
+	const totalHeight = $derived.by(() => {
+		const virtualTotal = $rowVirtualizer.getTotalSize();
+		return virtualTotal > 0 || cardRows.length === 0 ? virtualTotal : CARD_GAP + cardGeometry.totalSize();
+	});
 
 	$effect(() => {
 		const rows = cardRows;
@@ -184,11 +203,7 @@
 		const target = scrollTarget;
 		if (!target || !outerEl) return;
 		if (target.serial === consumedScrollTargetSerial) return;
-		const rowIndex = cardRows.findIndex((row) =>
-			row.cards.some(
-				(card) => card.input.id === target.id || rowInputCallbackId(card.input) === target.id,
-			),
-		);
+		const rowIndex = cardRowIndexForId(target.id);
 		if (rowIndex < 0) return;
 		consumedScrollTargetSerial = target.serial;
 		scrollCardRowIntoView(rowIndex);
@@ -198,10 +213,12 @@
 		if (!outerEl) return;
 		updateCardMetrics();
 		updateCardMeasureStyle();
+		updateCardFallbackViewport();
 		if (typeof ResizeObserver === 'undefined') return;
 		const ro = new ResizeObserver(() => {
 			scheduleCardMetricsUpdate();
 			updateCardMeasureStyle();
+			updateCardFallbackViewport();
 		});
 		ro.observe(outerEl);
 		return () => {
@@ -257,7 +274,7 @@
 		const row = cardRows[rowIndex];
 		const rowHeight = row?.height ?? CARD_HEIGHT_BUCKETS.standard;
 		const viewportHeight = outerEl.clientHeight || CARD_FALLBACK_HEIGHT;
-		const rowTop = cardRows.slice(0, rowIndex).reduce((top, item) => top + item.height + CARD_GAP, CARD_GAP);
+		const rowTop = CARD_GAP + cardGeometry.topForIndex(rowIndex);
 		const rowBottom = rowTop + rowHeight;
 		const currentTop = outerEl.scrollTop;
 		const currentBottom = currentTop + viewportHeight;
@@ -271,7 +288,14 @@
 			}),
 		);
 		outerEl.scrollTop = nextTop;
+		updateCardFallbackViewport();
 		outerEl.dispatchEvent(new Event('scroll'));
+	}
+
+	function handleCardsScroll(e: Event): void {
+		const element = e.currentTarget as HTMLDivElement;
+		fallbackScrollTop = element.scrollTop;
+		fallbackViewportHeight = element.clientHeight || CARD_FALLBACK_HEIGHT;
 	}
 
 	function observeCardsRect(
@@ -310,6 +334,11 @@
 		const width = outerEl?.clientWidth || CARD_FALLBACK_WIDTH;
 		cardsWidth = width;
 		columnCount = columnsForWidth(width);
+	}
+
+	function updateCardFallbackViewport() {
+		fallbackScrollTop = outerEl?.scrollTop ?? 0;
+		fallbackViewportHeight = outerEl?.clientHeight || CARD_FALLBACK_HEIGHT;
 	}
 
 	function updateCardMeasureStyle() {
@@ -380,6 +409,20 @@
 		return rows[index]?.key ?? index;
 	}
 
+	function cardRowIndexForId(id: string): number {
+		if (cardRowIndexCacheRows !== cardRows) {
+			cardRowIndexCacheRows = cardRows;
+			cardRowIndexCache = new Map<string, number>();
+			cardRows.forEach((row, index) => {
+				for (const card of row.cards) {
+					cardRowIndexCache.set(card.input.id, index);
+					cardRowIndexCache.set(rowInputCallbackId(card.input), index);
+				}
+			});
+		}
+		return cardRowIndexCache.get(id) ?? -1;
+	}
+
 	function createCardsTextMeasureService(): TextMeasureService {
 		if (typeof document === 'undefined') {
 			return createTextMeasureService({ engine: fallbackTextMeasureEngine });
@@ -397,6 +440,7 @@
 	role="grid"
 	aria-multiselectable="true"
 	tabindex="-1"
+	onscroll={handleCardsScroll}
 >
 	<div
 		class="vm-node-cards-inner"

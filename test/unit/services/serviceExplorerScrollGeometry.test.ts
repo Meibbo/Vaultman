@@ -100,4 +100,49 @@ describe('serviceExplorerScrollGeometry', () => {
 		expect(geometry.sizeForIndex(1)).toBe(50);
 		expect(geometry.topForIndex(3)).toBe(110);
 	});
+
+	it('finds deep variable-height visible ranges without rescanning estimates', () => {
+		const estimateSize = vi.fn(() => 24);
+		const geometry = createExplorerVariableGeometry({
+			rowCount: 100_000,
+			estimateSize,
+		});
+		expect(estimateSize).toHaveBeenCalledTimes(100_000);
+
+		estimateSize.mockClear();
+
+		const range = geometry.visibleRange({
+			scrollTop: 99_500 * 24,
+			viewportHeight: 240,
+			overscan: 4,
+		});
+
+		expect(range.startIndex).toBeGreaterThanOrEqual(99_496);
+		expect(range.endIndex).toBeLessThanOrEqual(99_515);
+		expect(range.top).toBe(range.startIndex * 24);
+		expect(estimateSize).not.toHaveBeenCalled();
+	});
+
+	it('updates variable-height visible ranges from measured row corrections', () => {
+		const geometry = createExplorerVariableGeometry({
+			rowCount: 6,
+			estimateSize: () => 20,
+		});
+
+		geometry.measure(2, 80);
+
+		expect(geometry.topForIndex(4)).toBe(140);
+		expect(geometry.indexForOffset(100)).toBe(2);
+		expect(
+			geometry.visibleRange({
+				scrollTop: 100,
+				viewportHeight: 40,
+				overscan: 1,
+			}),
+		).toMatchObject({
+			startIndex: 1,
+			endIndex: 5,
+			top: 20,
+		});
+	});
 });

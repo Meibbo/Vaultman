@@ -4,7 +4,7 @@ type: initiative-index
 status: active
 parent: "[[docs/work/pkm-ai/index|pkm-ai]]"
 created: 2026-05-04T01:44:46
-updated: 2026-05-16T11:14:17-05:00
+updated: 2026-05-16T12:52:54-05:00
 tags:
   - agent/work
   - initiative/hardening
@@ -53,6 +53,7 @@ quality work before it reaches `main`.
 - [[docs/work/hardening/plans/2026-05-11-explorer-data-plane-transition/index|Explorer data plane transition plans]]
 - [[docs/work/hardening/plans/2026-05-16-openssf-osps-baseline/index|OpenSSF OSPS baseline implementation plan]]
 - [[docs/work/hardening/plans/2026-05-16-explorer-scroll-smoke-harness/index|Explorer scroll smoke harness implementation plan]]
+- [[docs/work/hardening/plans/2026-05-16-explorer-variable-scroll-repair/index|Explorer variable scroll repair]]
 
 ## Active Issue Sets
 

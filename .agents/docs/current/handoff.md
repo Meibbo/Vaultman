@@ -5,7 +5,7 @@ status: active
 parent: "[[docs/work/pkm-ai/index|pkm-ai]]"
 archive_source: "docs/archive/pkm-ai/active-docs/2026-05-11T080321-current-handoff.md"
 created: 2026-05-04T01:36:20
-updated: 2026-05-16T11:14:17-05:00
+updated: 2026-05-16T14:27:20-05:00
 tags:
   - agent/current
 created_by: dec
@@ -34,8 +34,10 @@ Compact handoff after archiving the oversized current handoff:
   - [[docs/work/hardening/specs/2026-05-16-notebook-navigator-scroll-forensics/index|Notebook Navigator scroll forensics]]
   - [[docs/work/hardening/research/2026-05-16-multiview-virtualization-research/index|Multiview virtualization research]]
   - [[docs/work/hardening/plans/2026-05-16-explorer-scroll-smoke-harness/index|Explorer scroll smoke harness implementation plan]]
-- Preserve existing dirty unrelated files. Do not stage or revert them unless
-  the user explicitly asks.
+  - [[docs/work/hardening/plans/2026-05-16-explorer-variable-scroll-repair/index|Explorer variable scroll repair]]
+- Preserve any unrelated dirty files if they appear later. At the time of this
+  handoff, `git status --short --branch` showed only the active variable scroll
+  repair files and docs.
 
 ## Completed Explorer Commits
 
@@ -95,6 +97,33 @@ Compact handoff after archiving the oversized current handoff:
   - `hasMarkmap=false`.
   - `obsidian dev:errors vault=plugin-dev`: `No errors captured.`
 
+## Variable Scroll Repair Verification
+
+- Shared variable geometry now uses prefix/Fenwick indexing.
+- Table, Grid, and Cards no longer use all-row or row-0 fallback scans when
+  TanStack returns no virtual rows.
+- Focused tests passed:
+  - `serviceExplorerScrollGeometry.test.ts`: 1 file / 7 tests.
+  - `viewNodeVariableScrollFallback.test.ts`: 1 file / 2 tests.
+  - `viewNodeDynamicGeometry.test.ts`: 1 file / 3 tests.
+  - `viewNodeTableHeightmap.test.ts`: 1 file / 3 tests.
+  - `viewNodeCards.test.ts`: 1 file / 6 tests.
+  - `pnpm check`: 0 errors / 0 warnings.
+  - `git diff --check`: passed with LF-to-CRLF warnings only.
+- Live `plugin-dev` burst smoke passed for Tree/List/Table/Grid/Cards with
+  zero blank frames, zero windows over 100 ms / 250 ms, `maxBlank=0ms`, and
+  `No errors captured.`
+- Residual latency spikes remain: Tree 108 ms, List 258 ms, Table 1312 ms,
+  Grid 600 ms, Cards 24 ms.
+- Follow-up scroll-idle jank pass added Table/Grid guardrails and defers
+  variable row measurement plus virtualizer resizing until 96 ms after active
+  scroll.
+- Fresh zero-delay live smokes after the idle pass passed with no blanks and no
+  dev errors:
+  - Table: 100 jumps, maxDelay 29 ms.
+  - Grid: 100 jumps, maxDelay 58 ms.
+  - List: 100 jumps, maxDelay 37 ms.
+
 ## Preserve
 
 - Obsidian CLI calls must use explicit `vault=plugin-dev` command options.
@@ -105,28 +134,25 @@ Compact handoff after archiving the oversized current handoff:
 
 ## Dirty Worktree Notes
 
-- `styles.css` is dirty from the required build artifact sync and is not staged
-  for the Explorer docs handoff.
-- Other unrelated dirty files remain, including `.gitignore`, `README.md`,
-  `manifest.json`, `package.json`, eslint rule/script paths, OpenSSF docs,
-  `.claude/`, and many deleted docs.
+- Current dirt is scoped to the active variable scroll repair:
+  `serviceExplorerScrollGeometry`, Table/Grid/Cards adapters, scroll-idle
+  jank guardrails, focused tests, and the linked hardening docs. No unrelated
+  dirty files were visible in the final status check.
 
 ## Next Action
 
-- If continuing Explorer scroll work, use the implemented plugin-dev
-  burst-scroll blank detector as the acceptance gate, then fix bounded
-  fallbacks and variable-height offset indexing. Use the multiview
-  virtualization research for architecture direction: keep TanStack as
-  default, add a shared layout/index service, and evaluate `virtua` only after
-  the harness exists. Do not accept CPU-only bridge timing as final scroll
-  parity.
+- If continuing Explorer scroll work, start from the variable scroll repair
+  record. The blank fallback bug is repaired for the live selectable modes and
+  Table/Grid active-scroll measurement is now deferred. Next target:
+  runner-level view switching, percentile/histogram delay reporting, Grid peak
+  follow-up if the 58 ms max persists, and an explicit 50k/100k matrix.
 - Live scroll smoke harness implemented and verified:
   `pnpm smoke:scroll -- --view=tree --jumps=100`.
   Stress command: `pnpm smoke:scroll:stress -- --view=tree`.
   Both route through `scripts/run-explorer-scroll-smoke.mjs` and hard-code
   `vault=plugin-dev`.
 - Latest live tree result: `blankFrames=0`, `blank>100ms=0`,
-  `blank>250ms=0`, `maxBlank=0ms`, `maxDelay=143ms`, and no Obsidian dev
+  `blank>250ms=0`, `maxBlank=0ms`, `maxDelay=108ms`, and no Obsidian dev
   errors.
 - If resuming OpenSSF hardening, start from:
   `.agents/docs/work/hardening/plans/2026-05-16-openssf-osps-baseline/01-scope-docs-workflow-permissions.md`.
