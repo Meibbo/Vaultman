@@ -161,3 +161,96 @@ describe('ThemeService useNativeDom + rootClasses derive from preset', () => {
 		expect(svc.rootClasses).not.toContain('vm-theme-Native + dock');
 	});
 });
+
+function makeCustom(id: string, overrides: Partial<ThemePreset> = {}): ThemePreset {
+	return {
+		source: 'custom',
+		id,
+		displayName: id,
+		useNativeDom: false,
+		chrome: { popupBgOpacity: 0.5, popupBackdropBlur: '2px', popupBgTint: 0 },
+		density: { rowHeight: '30px', rowPaddingY: '3px', iconSize: '15px' },
+		dock: { visible: true, presentation: 'bar' },
+		tabs: { visible: true, presentation: 'top-tabs', kind: 'embedded' },
+		toolbar: { buttons: 'full' },
+		viewModes: ['tree', 'list'],
+		nodeElements: {
+			icon: true,
+			label: true,
+			detail: true,
+			media: false,
+			badges: { ops: true, filters: false, warnings: true, inherited: false, counts: false },
+			actions: true,
+		},
+		lockNodeElementVisibility: false,
+		...overrides,
+	};
+}
+
+describe('ThemeService writes', () => {
+	it('setPreset(unknownId) falls back to "native"', () => {
+		const svc = new ThemeService();
+		svc.setPreset('nonexistent-id');
+		expect(svc.activePresetId).toBe('native');
+	});
+
+	it('setPreset("native") and setPreset("vaultman") accept built-in ids', () => {
+		const svc = new ThemeService();
+		svc.setPreset('native');
+		expect(svc.activePresetId).toBe('native');
+		svc.setPreset('vaultman');
+		expect(svc.activePresetId).toBe('vaultman');
+	});
+
+	it('setPreset accepts a registered custom id', () => {
+		const svc = new ThemeService();
+		svc.registerCustomPreset(makeCustom('mine'));
+		svc.setPreset('mine');
+		expect(svc.activePresetId).toBe('mine');
+	});
+
+	it('registerCustomPreset rejects source="built-in"', () => {
+		const svc = new ThemeService();
+		svc.registerCustomPreset({ ...PRESET_NATIVE });
+		expect(svc.customPresets).toHaveLength(0);
+	});
+
+	it('registerCustomPreset rejects built-in id collisions', () => {
+		const svc = new ThemeService();
+		svc.registerCustomPreset(makeCustom('native'));
+		svc.registerCustomPreset(makeCustom('vaultman'));
+		expect(svc.customPresets).toHaveLength(0);
+	});
+
+	it('registerCustomPreset replaces existing on id collision', () => {
+		const svc = new ThemeService();
+		svc.registerCustomPreset(makeCustom('mine', { displayName: 'First' }));
+		svc.registerCustomPreset(makeCustom('mine', { displayName: 'Second' }));
+		expect(svc.customPresets).toHaveLength(1);
+		expect(svc.customPresets[0].displayName).toBe('Second');
+	});
+
+	it('unregisterCustomPreset removes by id', () => {
+		const svc = new ThemeService();
+		svc.registerCustomPreset(makeCustom('mine'));
+		svc.unregisterCustomPreset('mine');
+		expect(svc.customPresets).toHaveLength(0);
+	});
+
+	it('unregisterCustomPreset falls back to native when removing active', () => {
+		const svc = new ThemeService();
+		svc.registerCustomPreset(makeCustom('mine'));
+		svc.setPreset('mine');
+		svc.unregisterCustomPreset('mine');
+		expect(svc.activePresetId).toBe('native');
+	});
+
+	it('updateCustomPreset patches displayName preserving id and source', () => {
+		const svc = new ThemeService();
+		svc.registerCustomPreset(makeCustom('mine', { displayName: 'Old' }));
+		svc.updateCustomPreset('mine', { displayName: 'New' });
+		expect(svc.customPresets[0].displayName).toBe('New');
+		expect(svc.customPresets[0].id).toBe('mine');
+		expect(svc.customPresets[0].source).toBe('custom');
+	});
+});

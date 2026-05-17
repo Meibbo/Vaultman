@@ -57,6 +57,34 @@ export class ThemeService {
 		return out;
 	}
 
+	setPreset(id: ThemePresetId): void {
+		if (!this.availablePresets.some((preset) => preset.id === id)) {
+			this.activePresetId = 'native';
+			return;
+		}
+		this.activePresetId = id;
+	}
+
+	registerCustomPreset(preset: ThemePreset): void {
+		if (preset.source !== 'custom') return;
+		if (preset.id === 'native' || preset.id === 'vaultman') return;
+		const next = this.customPresets.filter((candidate) => candidate.id !== preset.id);
+		this.customPresets = [...next, preset];
+	}
+
+	unregisterCustomPreset(id: ThemePresetId): void {
+		const before = this.customPresets.length;
+		this.customPresets = this.customPresets.filter((preset) => preset.id !== id);
+		if (this.customPresets.length === before) return;
+		if (this.activePresetId === id) this.activePresetId = 'native';
+	}
+
+	updateCustomPreset(id: ThemePresetId, partial: Partial<ThemePreset>): void {
+		this.customPresets = this.customPresets.map((preset) =>
+			preset.id === id ? { ...preset, ...partial, source: 'custom' as const, id } : preset,
+		);
+	}
+
 	hydrate(settings: ElasticUiSettings): void {
 		this.mode = settings.mode;
 		this.identity = settings.identity;
