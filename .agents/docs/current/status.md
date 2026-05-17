@@ -5,7 +5,7 @@ status: active
 parent: "[[docs/work/pkm-ai/index|pkm-ai]]"
 archive_source: "docs/archive/pkm-ai/active-docs/2026-05-11T080321-current-status.md"
 created: 2026-05-04T01:36:20
-updated: 2026-05-16T14:27:20-05:00
+updated: 2026-05-17T14:13:46-05:00
 tags:
   - agent/current
 created_by: dec
@@ -29,6 +29,10 @@ Compact route index after archiving the oversized current status:
 ## Current Route
 
 - Active initiative: [[docs/work/hardening/index|Hardening]].
+- Completed Explorer Phase 0 sub-system B:
+  [[docs/work/hardening/specs/2026-05-15-explorer-0-b-servicetheme-token-layer/index|serviceTheme token-layer spec]]
+  and
+  [[docs/work/hardening/plans/2026-05-15-explorer-0-b-servicetheme-token-layer/index|executed 0-B implementation plan]].
 - Completed Explorer platform spec:
   [[docs/work/hardening/specs/2026-05-15-explorer-view-platform-pass/index|Explorer View Platform pass spec]].
 - Completed Explorer platform plan:
@@ -69,6 +73,20 @@ Compact route index after archiving the oversized current status:
 
 ## Verification Snapshot
 
+- Explorer 0-B final gate on 2026-05-17:
+  - `pnpm verify` passed: unit 140 files / 882 tests; component 73 files /
+    398 tests; lint 11 pre-existing warnings, 0 errors.
+  - Required legacy-symbol queries returned zero matches for
+    `applyVaultmanTheme`, `vm-glass-blur`, body-scoped `vm-theme`,
+    `normalizeLayoutTheme` / `LAYOUT_THEME_OPTIONS` / `LayoutTheme`, and
+    `updateGlassBlur`.
+  - Targeted theme gates passed: unit 4 files / 61 tests; component 3 files /
+    23 tests.
+  - `dist/build/styles.css` contains `.vm-theme-native` and
+    `.vm-theme-vaultman`; each block has six `--vm-*` properties.
+  - Live `plugin-dev` smoke was partial: reload/open succeeded and
+    `dev:errors` initially returned `No errors captured`; later DOM/eval
+    inspection commands timed out.
 - Task 17 focused unit gate passed: 5 files / 17 tests.
 - Task 17 focused component gate passed: 5 files / 54 tests.
 - Task 18 `pnpm check` passed: 0 errors / 0 warnings.
@@ -125,6 +143,9 @@ Compact route index after archiving the oversized current status:
 
 ## Next Action
 
+- Explorer 0-B is complete. Next 0-B consumer is 0-A View Feature Contract /
+  native DOM contract; Sub-system O frame decomposition remains the recommended
+  sequencing step before 0-A where applicable.
 - For Explorer scroll work, continue from the variable scroll repair record:
   add runner-level view switching, add percentile/histogram reporting for scroll
   burst delay, investigate Grid's remaining 58 ms peak if it persists, and

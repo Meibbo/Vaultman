@@ -5,7 +5,7 @@ status: active
 parent: "[[docs/work/pkm-ai/index|pkm-ai]]"
 archive_source: "docs/archive/pkm-ai/active-docs/2026-05-11T080321-current-handoff.md"
 created: 2026-05-04T01:36:20
-updated: 2026-05-16T14:27:20-05:00
+updated: 2026-05-17T14:13:46-05:00
 tags:
   - agent/current
 created_by: dec
@@ -22,6 +22,10 @@ Compact handoff after archiving the oversized current handoff:
 - Worktree:
   `C:\Users\vic_A\Desktop\vaultman\.claude\worktrees\jovial-wilson-f81c67`
 - Branch: `claude/explorer`.
+- Latest request handled: Explorer Phase 0 sub-system B implemented across
+  T1-T17 per the serviceTheme token-layer spec and plan. Built-in theme token
+  blocks come from UnoCSS build output; custom presets remain runtime style
+  injection through `ThemeService`.
 - Explorer platform pass Tasks 1-20 are complete.
 - Post-review repair is implemented but not yet committed: Notebook Navigator
   comparison bridge, 50K projection optimization, and Markmap hidden from the
@@ -35,6 +39,8 @@ Compact handoff after archiving the oversized current handoff:
   - [[docs/work/hardening/research/2026-05-16-multiview-virtualization-research/index|Multiview virtualization research]]
   - [[docs/work/hardening/plans/2026-05-16-explorer-scroll-smoke-harness/index|Explorer scroll smoke harness implementation plan]]
   - [[docs/work/hardening/plans/2026-05-16-explorer-variable-scroll-repair/index|Explorer variable scroll repair]]
+  - [[docs/work/hardening/specs/2026-05-15-explorer-0-b-servicetheme-token-layer/index|Explorer 0-B serviceTheme token-layer spec]]
+  - [[docs/work/hardening/plans/2026-05-15-explorer-0-b-servicetheme-token-layer/index|Explorer 0-B executed implementation plan]]
 - Preserve any unrelated dirty files if they appear later. At the time of this
   handoff, `git status --short --branch` showed only the active variable scroll
   repair files and docs.
@@ -61,6 +67,22 @@ Compact handoff after archiving the oversized current handoff:
 
 ## Final Verification
 
+- Explorer 0-B final verification:
+  - `pnpm verify`: passed on 2026-05-17.
+    Unit: 140 files / 882 tests. Component: 73 files / 398 tests. Lint:
+    11 pre-existing warnings, 0 errors.
+  - Required legacy-symbol searches returned zero matches:
+    `applyVaultmanTheme`, `vm-glass-blur`, body-scoped `vm-theme`,
+    `normalizeLayoutTheme` / `LAYOUT_THEME_OPTIONS` / `LayoutTheme`, and
+    `updateGlassBlur`.
+  - Targeted theme tests passed: unit 4 files / 61 tests; component 3 files /
+    23 tests.
+  - Build CSS contains `.vm-theme-native` and `.vm-theme-vaultman`, each with
+    six `--vm-*` token properties.
+  - Live `plugin-dev` smoke was partial: `plugin:reload` and `vaultman:open`
+    succeeded, default DOM query did not find `.vm-root` in `activeDocument`,
+    preset-switch evals returned empty objects, initial `dev:errors` returned
+    `No errors captured`, and later DOM/eval inspection commands timed out.
 - `pnpm check`: passed, 0 errors / 0 warnings.
 - `pnpm run build`: passed, synced build artifacts to `plugin-dev`.
 - `pnpm verify`: passed.
@@ -134,6 +156,9 @@ Compact handoff after archiving the oversized current handoff:
 
 ## Dirty Worktree Notes
 
+- After the 0-B commits, unrelated dirty files still existed and were preserved:
+  toolbar/polish agent docs and metrics, `src/main.ts` ribbon icon work,
+  `src/types/typeFrame.ts`, and `src/types/typeTabLeaf.ts`.
 - Current dirt is scoped to the active variable scroll repair:
   `serviceExplorerScrollGeometry`, Table/Grid/Cards adapters, scroll-idle
   jank guardrails, focused tests, and the linked hardening docs. No unrelated
