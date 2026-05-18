@@ -5,7 +5,7 @@ status: active
 parent: "[[docs/work/pkm-ai/index|pkm-ai]]"
 archive_source: "docs/archive/pkm-ai/active-docs/2026-05-11T080321-current-status.md"
 created: 2026-05-04T01:36:20
-updated: 2026-05-17T18:55:00-05:00
+updated: 2026-05-18T10:50:00-05:00
 tags:
   - agent/current
 created_by: dec
@@ -33,6 +33,10 @@ Compact route index after archiving the oversized current status:
   [[docs/work/hardening/specs/2026-05-15-explorer-0-b-servicetheme-token-layer/index|serviceTheme token-layer spec]]
   and
   [[docs/work/hardening/plans/2026-05-15-explorer-0-b-servicetheme-token-layer/index|executed 0-B implementation plan]].
+- Completed Explorer Phase 0 sub-system O:
+  [[docs/work/hardening/specs/2026-05-17-explorer-sub-system-o-framevaultman-decomposition/index|frameVaultman decomposition spec]]
+  and
+  [[docs/work/hardening/plans/2026-05-17-explorer-sub-system-o-framevaultman-decomposition/index|executed O implementation plan]].
 - Completed Explorer platform spec:
   [[docs/work/hardening/specs/2026-05-15-explorer-view-platform-pass/index|Explorer View Platform pass spec]].
 - Completed Explorer platform plan:
@@ -118,6 +122,17 @@ Compact route index after archiving the oversized current status:
 - Live `plugin-dev` view menu smoke after reload:
   `["Tree","List","Table","Grid","Cards"]`, `hasMarkmap=false`, and
   `obsidian dev:errors vault=plugin-dev` returned `No errors captured.`
+- Explorer Sub-system O final gate on 2026-05-18:
+  - `frameVaultman.svelte` reduced from 866 LOC pre-O to 335 LOC.
+  - Targeted O component matrix passed: 10 files / 60 tests.
+  - `pnpm check` passed: 0 errors / 0 warnings.
+  - `pnpm verify` was invoked once as required. It passed lint, check, build,
+    unit tests (140 files / 882 tests), then failed in component full-suite
+    load on three pre-existing timing-sensitive files. User explicitly
+    accepted the exception after targeted reruns passed:
+    `viewTableStress.test.ts`, `pageFiltersRenameHandoff.test.ts`, and
+    `vmDialogPortal.test.ts`.
+  - Final live `plugin-dev` smoke returned `No errors captured.`
 
 ## Known Residuals
 
@@ -149,9 +164,8 @@ Compact route index after archiving the oversized current status:
 
 ## Next Action
 
-- Explorer 0-B is complete. Next 0-B consumer is 0-A View Feature Contract /
-  native DOM contract; Sub-system O frame decomposition remains the recommended
-  sequencing step before 0-A where applicable.
+- Explorer 0-B and O are complete. Next Phase 0 consumer is 0-A View Feature
+  Contract / native DOM contract.
 - For Explorer scroll work, continue from the variable scroll repair record:
   add runner-level view switching, add percentile/histogram reporting for scroll
   burst delay, investigate Grid's remaining 58 ms peak if it persists, and

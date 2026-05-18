@@ -4,7 +4,7 @@ type: roadmap-index
 status: active
 parent: "[[docs/work/pkm-ai/index|pkm-ai]]"
 created: 2026-05-17T00:00:00
-updated: 2026-05-17T00:00:00
+updated: 2026-05-18T10:50:00-05:00
 tags:
   - agent/roadmap
   - initiative/overview
@@ -37,7 +37,7 @@ for the next.
 |---|---|---|---|
 | **0-H** | Virtualizer + `list` view mode | ✅ Done | [[docs/work/hardening/specs/2026-05-15-explorer-0-h-virtualizer-list-mode/index\|0-H spec]] |
 | **0-B** | `serviceTheme` unification + token layer | 🟢 Mid-flight impl (commits `86d4060…da886c4`) | [[docs/work/hardening/specs/2026-05-15-explorer-0-b-servicetheme-token-layer/index\|0-B spec]] · [[docs/work/hardening/plans/2026-05-15-explorer-0-b-servicetheme-token-layer/index\|0-B plan]] |
-| **O** | `frameVaultman.svelte` decomposition | 🟡 Spec'd 2026-05-17 (`5f06cd2`) | [[docs/work/hardening/specs/2026-05-17-explorer-sub-system-o-framevaultman-decomposition/index\|O spec]] |
+| **O** | `frameVaultman.svelte` decomposition | ✅ Done | [[docs/work/hardening/specs/2026-05-17-explorer-sub-system-o-framevaultman-decomposition/index\|O spec]] · [[docs/work/hardening/plans/2026-05-17-explorer-sub-system-o-framevaultman-decomposition/index\|O plan]] |
 | **0-A** | Native-DOM parity + View Feature Contract | 🟠 Esqueleto en 0-B + 0-H, sin spec propio | Referenced in 0-B index; uses [[reference_obsidian_web_lab\|obsidian-web-lab]] as native DOM reference |
 | **N** | SCSS → UnoCSS migration (~90% target) | 🟠 Esqueleto detallado en backlog | [[docs/work/hardening/backlog/2026-05-15-explorer-ui-vision/index\|backlog §N]] |
 

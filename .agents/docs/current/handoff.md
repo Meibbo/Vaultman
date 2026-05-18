@@ -5,7 +5,7 @@ status: active
 parent: "[[docs/work/pkm-ai/index|pkm-ai]]"
 archive_source: "docs/archive/pkm-ai/active-docs/2026-05-11T080321-current-handoff.md"
 created: 2026-05-04T01:36:20
-updated: 2026-05-17T18:55:00-05:00
+updated: 2026-05-18T10:50:00-05:00
 tags:
   - agent/current
 created_by: dec
@@ -19,13 +19,11 @@ Compact handoff after archiving the oversized current handoff:
 
 ## Resume Point
 
-- Worktree:
-  `C:\Users\vic_A\Desktop\vaultman\.claude\worktrees\jovial-wilson-f81c67`
-- Branch: `claude/explorer`.
-- Latest request handled: Explorer Phase 0 sub-system B implemented across
-  T1-T17 per the serviceTheme token-layer spec and plan. Built-in theme token
-  blocks come from UnoCSS build output; custom presets remain runtime style
-  injection through `ThemeService`.
+- Worktree: `C:\Users\vic_A\Desktop\vaultman`
+- Branch: `sandbox`.
+- Latest request handled: Explorer Phase 0 sub-system O
+  (`frameVaultman.svelte` decomposition) implemented inline across six serial
+  commits on `sandbox`.
 - Explorer platform pass Tasks 1-20 are complete.
 - Post-review repair is implemented but not yet committed: Notebook Navigator
   comparison bridge, 50K projection optimization, and Markmap hidden from the
@@ -41,6 +39,8 @@ Compact handoff after archiving the oversized current handoff:
   - [[docs/work/hardening/plans/2026-05-16-explorer-variable-scroll-repair/index|Explorer variable scroll repair]]
   - [[docs/work/hardening/specs/2026-05-15-explorer-0-b-servicetheme-token-layer/index|Explorer 0-B serviceTheme token-layer spec]]
   - [[docs/work/hardening/plans/2026-05-15-explorer-0-b-servicetheme-token-layer/index|Explorer 0-B executed implementation plan]]
+  - [[docs/work/hardening/specs/2026-05-17-explorer-sub-system-o-framevaultman-decomposition/index|Explorer Sub-system O spec]]
+  - [[docs/work/hardening/plans/2026-05-17-explorer-sub-system-o-framevaultman-decomposition/index|Explorer Sub-system O executed implementation plan]]
 - Preserve any unrelated dirty files if they appear later. At the time of this
   handoff, `git status --short --branch` showed only the active variable scroll
   repair files and docs.
@@ -55,6 +55,12 @@ Compact handoff after archiving the oversized current handoff:
 
 ## Completed Explorer Commits
 
+- `1c3f821` `test(O): baseline DOM snapshots for frameVaultman`
+- `5ec5f66` `feat(O): extract FrameNavigationService`
+- `6f52570` `feat(O): extract FramePopupsState`
+- `e904d8f` `feat(O): extract FrameNavbarShell`
+- `7d06fe2` `feat(O): extract FrameDashboardShell`
+- C5 local commit records the final cleanup + T3/T4 integration test.
 - `883cb0a` `test: add explorer synthetic dataset harness`
 - `c813daf` `test: add explorer platform perf scenarios`
 - `1372853` `test: characterize explorer platform scale gates`
@@ -75,6 +81,20 @@ Compact handoff after archiving the oversized current handoff:
 
 ## Final Verification
 
+- Explorer Sub-system O final verification:
+  - `frameVaultman.svelte`: 335 LOC.
+  - `pnpm check`: 0 errors / 0 warnings.
+  - O component matrix: 10 files / 60 tests passed.
+  - `test/component/frameVaultmanIntents.test.ts`: 7 tests passed.
+  - Stale-symbol grep for moved frame intents returned zero matches.
+  - `pnpm verify` was invoked once. It passed lint, check, build, and unit
+    tests, then failed in the component full-suite on timing-sensitive
+    non-O files. Targeted reruns of all three failed files passed, and the user
+    explicitly authorized accepting that evidence as the final-gate exception:
+    `viewTableStress.test.ts`, `pageFiltersRenameHandoff.test.ts`,
+    `vmDialogPortal.test.ts`.
+  - Live `plugin-dev` final smoke ended with
+    `obsidian dev:errors vault=plugin-dev`: `No errors captured.`
 - Explorer 0-B final verification:
   - `pnpm verify`: passed on 2026-05-17.
     Unit: 140 files / 882 tests. Component: 73 files / 398 tests. Lint:
@@ -164,6 +184,9 @@ Compact handoff after archiving the oversized current handoff:
 
 ## Dirty Worktree Notes
 
+- Before Sub-system O started in this session, unrelated untracked files were
+  already present and preserved: `.agents/brain/`, `eslint-rules/`,
+  `img/vaultman-screenshot.png`, and `scripts/esbuild.config.mjs`.
 - After the 0-B commits, unrelated dirty files still existed and were preserved:
   toolbar/polish agent docs and metrics, `src/main.ts` ribbon icon work,
   `src/types/typeFrame.ts`, and `src/types/typeTabLeaf.ts`.
@@ -174,6 +197,9 @@ Compact handoff after archiving the oversized current handoff:
 
 ## Next Action
 
+- Phase 0 next action after O: begin 0-A View Feature Contract / native DOM
+  contract, using O's `FrameNavigationService`, `FrameNavbarShell`, and
+  `FrameDashboardShell` as the frame-level integration points.
 - If continuing Explorer scroll work, start from the variable scroll repair
   record. The blank fallback bug is repaired for the live selectable modes and
   Table/Grid active-scroll measurement is now deferred. Next target:

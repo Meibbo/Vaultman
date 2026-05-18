@@ -1,21 +1,10 @@
-﻿<!--******************************************************************\\
-//*      ___|^___^|___        .-~*Â´Â¨Â¯Â¨`*~-.        ___|^___^|___     *\\
-//*     |  Vaultman  |       |   Meibbo   |       | April 2026 |     *\\
-//*     \___/`*Â´\___/        `-~*Â´Â¨Â¯Â¨`*~-Â´        \___/`*Â´\___/      *\\
-//*                                                                  *\\
-//*           Made with love for tools that last and help.           *\\
-//*                                                                  *\\
-//*    	                                                             *\\
-//*******************************************************************-->
-
-<!--...-----------------------(   IMPORTS   )---------------------...-->
 <script lang="ts">
 	import { onMount, setContext, untrack } from 'svelte';
 	import { setIcon } from 'obsidian';
 	import type { VaultmanPlugin } from '../../main';
-	import { explorerFiles } from '../../providers/explorerFiles';
-	import { explorerProps } from '../../providers/explorerProps';
-	import { explorerTags } from '../../providers/explorerTags';
+	import type { explorerFiles } from '../../providers/explorerFiles';
+	import type { explorerProps } from '../../providers/explorerProps';
+	import type { explorerTags } from '../../providers/explorerTags';
 	import StatisticsPage from '../pages/pageStats.svelte';
 	import FiltersPage from '../pages/pageFilters.svelte';
 	import OperationsPage from '../pages/pageTools.svelte';
@@ -28,42 +17,19 @@
 	import { FrameViewportController } from './frameViewport';
 	import { FrameNavReorderController } from './frameNavReorder.svelte';
 	import { FrameOverlayController, installFrameOverlayCommandHooks } from './frameOverlays.svelte';
-	import {
-		createFiltersSearchState,
-		getFiltersSearch,
-		type FiltersSearchTab,
-		type FiltersSearchState,
-	} from './frameFiltersSearch';
+	import { createFiltersSearchState, getFiltersSearch, type FiltersSearchState, type FiltersSearchTab } from './frameFiltersSearch';
 	import { createFnRState } from '../../services/serviceFnR';
 	import type { FnRState } from '../../types/typeFnR';
-	import {
-		normalizeOperationScope,
-		type OperationScope,
-	} from '../../services/serviceOperationScope';
-	import {
-		resolveDashboardEnabled,
-		type LayoutViewportKind,
-	} from '../../services/serviceLayout';
+	import { normalizeOperationScope, type OperationScope } from '../../services/serviceOperationScope';
+	import { resolveDashboardEnabled, type LayoutViewportKind } from '../../services/serviceLayout';
 	import type { ExplorerSortTarget } from '../../types/typeExplorer';
-	import {
-		AddonsIslandService,
-		type AddonsQuickSwitcherApp,
-	} from '../../services/serviceAddonsIsland.svelte';
+	import { AddonsIslandService, type AddonsQuickSwitcherApp } from '../../services/serviceAddonsIsland.svelte';
 	import { FRAME_NAVIGATION_KEY, FrameNavigationService } from './frameNavigation.svelte';
 	import { FRAME_POPUPS_KEY, FramePopupsState } from './framePopups.svelte';
 	import FrameNavbarShell from './FrameNavbarShell.svelte';
 	import FrameDashboardShell from './FrameDashboardShell.svelte';
 
-	// â”€â”€â”€ Props â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€------------------...........
-	let {
-		plugin,
-		activeWindow: frameActiveWindow,
-		viewportKind: forcedViewportKind,
-	}: {
-		plugin: VaultmanPlugin;
-		activeWindow?: Window;
-		viewportKind?: LayoutViewportKind;
-	} = $props();
+	let { plugin, activeWindow: frameActiveWindow, viewportKind: forcedViewportKind }: { plugin: VaultmanPlugin; activeWindow?: Window; viewportKind?: LayoutViewportKind } = $props();
 	const boundActiveWindow = $derived(frameActiveWindow ?? activeWindow);
 
 	// â”€â”€â”€ Page navigation â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
@@ -80,13 +46,7 @@
 	let frameViewportWidth = $state(0);
 	let measuredViewportKind = $state<LayoutViewportKind>('main-leaf');
 	const dashboardViewportKind = $derived(forcedViewportKind ?? measuredViewportKind);
-	const dashboardEnabled = $derived(
-		resolveDashboardEnabled({
-			width: frameViewportWidth,
-			kind: dashboardViewportKind,
-			mode: plugin.themeService.mode,
-		}),
-	);
+	const dashboardEnabled = $derived(resolveDashboardEnabled({ width: frameViewportWidth, kind: dashboardViewportKind, mode: plugin.themeService.mode }));
 
 	// svelte-ignore state_referenced_locally
 	const nav = new FrameNavigationService(plugin, overlays, () => selectedCount);
@@ -96,9 +56,7 @@
 	const navReorder = new FrameNavReorderController({
 		getPageOrder: () => [...nav.pageOrder],
 		setPageOrder: (order) => nav.setPageOrder(order),
-		incrementRenderKey: () => {
-			nav.bumpRenderKey();
-		},
+		incrementRenderKey: () => nav.bumpRenderKey(),
 		saveOrder: (order) => {
 			plugin.settings.pageOrder = order;
 			void plugin.saveSettings();
@@ -155,21 +113,13 @@
 	type FiltersTab = FiltersSearchTab;
 	let filtersSearchByTab = $state<FiltersSearchState>(createFiltersSearchState());
 	let filtersFnRState = $state<FnRState>(createFnRState());
-	let filtersSearchCategory = $state<Record<FiltersTab, number>>({
-		tags: 0,
-		props: 0,
-		files: 0,
-		content: 0,
-		outline: 0,
-	});
+	let filtersSearchCategory = $state<Record<FiltersTab, number>>({ tags: 0, props: 0, files: 0, content: 0, outline: 0 });
 	let filtersSortBy = $state('name');
 	let filtersSortDir = $state<'asc' | 'desc'>('asc');
 	let filtersSortTarget = $state<ExplorerSortTarget>('top');
 	let filtersViewMode = $state<any>('tree');
 	let addMode = $state(false);
-	const initialOperationScope = untrack(() =>
-		normalizeOperationScope(plugin.settings.explorerOperationScope),
-	);
+	const initialOperationScope = untrack(() => normalizeOperationScope(plugin.settings.explorerOperationScope));
 	let filtersOperationScope = $state<OperationScope>(initialOperationScope);
 
 	$effect(() => {
@@ -204,36 +154,6 @@
 
 	// â”€â”€â”€ Refresh â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
-	function refreshFiles() {
-		updateStats();
-	}
-
-	function refreshActiveFilterHighlights(): void {
-		const props = new Set<string>();
-		const vals = new Map<string, Set<string>>();
-		function walk(node: import('../../types/typeFilter').FilterNode): void {
-			if (node.type === 'rule') {
-				if (node.property) {
-					props.add(node.property);
-					if (node.values && node.values.length > 0) {
-						if (!vals.has(node.property)) vals.set(node.property, new Set());
-						node.values.forEach((v) => vals.get(node.property!)!.add(v));
-					}
-				}
-			} else if (node.type === 'group') {
-				node.children.forEach(walk);
-			}
-		}
-		walk(plugin.filterService.activeFilter);
-		// PropsExplorerPanel computes active filter highlights internally on render
-		void props;
-		void vals;
-	}
-
-	function refreshQueue() {
-		updateStats();
-	}
-
 	// â”€â”€â”€ Scope popup â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 	// â”€â”€â”€ Search popup â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
@@ -256,11 +176,7 @@
 
 	function icon(el: HTMLElement, name: string) {
 		setIcon(el, name);
-		return {
-			update(newName: string) {
-				setIcon(el, newName);
-			},
-		};
+		return { update: (newName: string) => setIcon(el, newName) };
 	}
 
 	function bindDashboardMeasurement(el: HTMLElement): { destroy(): void } {
@@ -270,19 +186,11 @@
 		};
 		update();
 
-		if (typeof ResizeObserver === 'undefined') {
-			return { destroy: () => {} };
-		}
+		if (typeof ResizeObserver === 'undefined') return { destroy: () => {} };
 
-		const observer = new ResizeObserver((entries) => {
-			update(entries[0]);
-		});
+		const observer = new ResizeObserver((entries) => update(entries[0]));
 		observer.observe(el);
-		return {
-			destroy() {
-				observer.disconnect();
-			},
-		};
+		return { destroy: () => observer.disconnect() };
 	}
 
 	function measureFrameWidth(el: HTMLElement, entry?: ResizeObserverEntry): number {
@@ -309,15 +217,11 @@
 
 	onMount(() => {
 		const onFilterChanged = () => {
-			refreshFiles();
-			refreshActiveFilterHighlights();
 			updateStats();
 		};
-		const onVaultResolved = () => {
-			refreshFiles();
-		};
+		const onVaultResolved = () => updateStats();
 		const onQueueChanged = () => {
-			refreshQueue();
+			updateStats();
 			if (plugin.queueService.isEmpty && plugin.overlayState.isOpen('queue')) {
 				overlays.closeQueueIsland();
 			}
@@ -329,8 +233,7 @@
 		});
 		plugin.queueService.on('changed', onQueueChanged);
 
-		refreshFiles();
-		refreshQueue();
+		updateStats();
 
 		// Re-render file list + prop browser when vault finishes indexing
 		plugin.app.metadataCache.on('resolved', onVaultResolved);
@@ -347,15 +250,10 @@
 	// so Faint Mode reflects the current window in pop-out scenarios.
 	const elasticRootClasses = $derived(plugin.themeService.rootClasses.join(' '));
 
-	function onWindowFocus(): void {
-		plugin.themeService.windowFocused = true;
-	}
-	function onWindowBlur(): void {
-		plugin.themeService.windowFocused = false;
-	}
-
 	onMount(() => {
 		const win = boundActiveWindow;
+		const onWindowFocus = () => (plugin.themeService.windowFocused = true);
+		const onWindowBlur = () => (plugin.themeService.windowFocused = false);
 		win.addEventListener('focus', onWindowFocus);
 		win.addEventListener('blur', onWindowBlur);
 		plugin.themeService.windowFocused = win.document.hasFocus();
@@ -366,33 +264,15 @@
 	});
 </script>
 
-<!-- â”€â”€â”€ Page container (horizontal slide strip) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ -->
-<!-- vm-pages-viewport clips via overflow:hidden; the container slides inside it -->
 <div class="vm-view {elasticRootClasses}" use:navReorder.bindViewRoot use:bindDashboardMeasurement>
 	{#if dashboardEnabled}
 		<FrameDashboardShell
-			{plugin}
-			{icon}
-			bind:filtersActiveTab={nav.filtersActiveTab}
-			bind:filtersSearchByTab
-			bind:filtersSearchCategory
-			bind:filtersFnRState
-			bind:filtersOperationScope
-			bind:tagsExplorer
-			bind:propExplorer
-			bind:fileList
-			bind:selectedCount
-			bind:selectedFilePaths
-			bind:filtersSortBy
-			bind:filtersSortDir
-			bind:filtersSortTarget
-			bind:filtersViewMode
-			bind:addMode
-			{addOpCount}
-			detachedTabs={nav.detachedTabs}
-			{addonsIslandService}
-			{addonsQuickSwitcherApp}
-			{renderAddonsStats}
+			{plugin} {icon} bind:filtersActiveTab={nav.filtersActiveTab} bind:filtersSearchByTab
+			bind:filtersSearchCategory bind:filtersFnRState bind:filtersOperationScope
+			bind:tagsExplorer bind:propExplorer bind:fileList bind:selectedCount
+			bind:selectedFilePaths bind:filtersSortBy bind:filtersSortDir bind:filtersSortTarget
+			bind:filtersViewMode bind:addMode {addOpCount} detachedTabs={nav.detachedTabs}
+			{addonsIslandService} {addonsQuickSwitcherApp} {renderAddonsStats}
 			onShowStats={() => nav.showStatsPage()}
 			onOperationScopeChange={(value) => popups.setFiltersOperationScope(value)}
 			{dashboardEnabled}
@@ -423,26 +303,13 @@
 								/>
 							{:else if pageId === 'filters'}
 								<FiltersPage
-									{plugin}
-									bind:filtersActiveTab={nav.filtersActiveTab}
-									bind:filtersSearchByTab
-									bind:filtersSearchCategory
-									bind:filtersFnRState
-									bind:filtersOperationScope
+									{plugin} bind:filtersActiveTab={nav.filtersActiveTab} bind:filtersSearchByTab
+									bind:filtersSearchCategory bind:filtersFnRState bind:filtersOperationScope
 									onOperationScopeChange={(value) => popups.setFiltersOperationScope(value)}
-									bind:tagsExplorer
-									bind:propExplorer
-									bind:fileList
-									bind:selectedCount
-									bind:selectedFilePaths
-									bind:filtersSortBy
-									bind:filtersSortDir
-									bind:filtersSortTarget
-									bind:filtersViewMode
-									bind:filtersBaseChooseMode={nav.filtersBaseChooseMode}
-									bind:addMode
-									showTabs={!nav.filterTabsExternallyMounted}
-									{addOpCount}
+									bind:tagsExplorer bind:propExplorer bind:fileList bind:selectedCount
+									bind:selectedFilePaths bind:filtersSortBy bind:filtersSortDir bind:filtersSortTarget
+									bind:filtersViewMode bind:filtersBaseChooseMode={nav.filtersBaseChooseMode}
+									bind:addMode showTabs={!nav.filterTabsExternallyMounted} {addOpCount}
 								/>
 							{/if}
 						{/key}
@@ -452,35 +319,17 @@
 		</div>
 	{/if}
 
-	<FrameNavbarShell
-		{plugin}
-		{filterRuleCount}
-		{queuedCount}
-		layoutSettings={nav.layoutSettings}
-		leftFab={nav.leftFab}
-		rightFab={nav.rightFab}
-		{overlays}
-	/>
+	<FrameNavbarShell {plugin} {filterRuleCount} {queuedCount} layoutSettings={nav.layoutSettings} leftFab={nav.leftFab} rightFab={nav.rightFab} {overlays} />
 </div>
 
 <PopupOverlay
-	{plugin}
-	activePopup={overlays.activePopup}
-	popupOpen={overlays.popupOpen}
-	closePopup={() => overlays.closePopup()}
-	activeFilterRules={popups.activeFilterRules}
-	refreshActiveFiltersPopup={() => popups.refreshActiveFiltersPopup()}
-	{updateStats}
-	toggleFilterRule={(rule) => popups.toggleFilterRule(rule)}
-	deleteFilterRule={(rule) => popups.deleteFilterRule(rule)}
-	scopeOptions={[...popups.scopeOptions]}
-	setScope={(value) => popups.setScope(value)}
-	bind:searchName={popups.searchName}
-	bind:searchFolder={popups.searchFolder}
-	moveTargetFiles={popups.moveTargetFiles}
-	bind:moveTargetFolder={popups.moveTargetFolder}
-	movePreviews={popups.movePreviews}
-	attachFolderSuggest={(el) => popups.attachFolderSuggest(el)}
-	queueMoves={() => popups.queueMoves()}
-	{icon}
+	{plugin} activePopup={overlays.activePopup} popupOpen={overlays.popupOpen}
+	closePopup={() => overlays.closePopup()} activeFilterRules={popups.activeFilterRules}
+	refreshActiveFiltersPopup={() => popups.refreshActiveFiltersPopup()} {updateStats}
+	toggleFilterRule={(rule) => popups.toggleFilterRule(rule)} deleteFilterRule={(rule) => popups.deleteFilterRule(rule)}
+	scopeOptions={[...popups.scopeOptions]} setScope={(value) => popups.setScope(value)}
+	bind:searchName={popups.searchName} bind:searchFolder={popups.searchFolder}
+	moveTargetFiles={popups.moveTargetFiles} bind:moveTargetFolder={popups.moveTargetFolder}
+	movePreviews={popups.movePreviews} attachFolderSuggest={(el) => popups.attachFolderSuggest(el)}
+	queueMoves={() => popups.queueMoves()} {icon}
 />
