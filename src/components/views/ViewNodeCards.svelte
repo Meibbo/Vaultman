@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { untrack } from 'svelte';
+	import { getContext, untrack } from 'svelte';
 	import { createVirtualizer, type Rect, type Virtualizer } from '@tanstack/svelte-virtual';
 	import type { TreeNode } from '../../types/typeNode';
 	import {
@@ -45,6 +45,14 @@
 		nodeBadgeTitle,
 		ownNodeBadges,
 	} from './nodeBadgeHelpers';
+	import {
+		DEFAULT_NODE_ELEMENT_MASK,
+		visibleNodeBadgesForMask,
+	} from './nodeElementMask';
+	import {
+		NODE_ELEMENT_MASK_KEY,
+		type NodeElementMaskContextValue,
+	} from '../explorer/viewHostContext';
 	import type { ThemeService } from '../../services/serviceTheme.svelte';
 
 	const CARD_FALLBACK_WIDTH = 560;
@@ -128,6 +136,8 @@
 		mergeMouseGestureConfig(NODE_MOUSE_GESTURE_CONFIG, mouseGestureConfig),
 	);
 	const useNativeDom = $derived(themeService?.useNativeDom ?? false);
+	const maskCtx = getContext<NodeElementMaskContextValue | undefined>(NODE_ELEMENT_MASK_KEY);
+	const nodeElementMask = $derived(maskCtx?.value() ?? DEFAULT_NODE_ELEMENT_MASK);
 
 	$effect(() => () => mouse.cancelAll());
 
@@ -405,6 +415,14 @@
 		return rows;
 	}
 
+	function visibleCardFields(fields: readonly NodeCardLayout['fields'][number][]) {
+		return fields.filter((field) => {
+			if (field.kind === 'title') return nodeElementMask.label;
+			if (field.id === 'count' || field.id === 'files') return nodeElementMask.badges.counts;
+			return nodeElementMask.detail;
+		});
+	}
+
 	function cardVirtualRowKey(rows: readonly CardRow[], index: number): string | number {
 		return rows[index]?.key ?? index;
 	}
@@ -463,7 +481,10 @@
 						{@const isSelected = selectedIds.has(input.id) || selectedIds.has(callbackId)}
 						{@const isFocused = focusedId === input.id || focusedId === callbackId}
 						{@const isActive = activeId === input.id || activeId === callbackId}
-						{@const directBadges = ownNodeBadges(node)}
+						{@const directBadges = visibleNodeBadgesForMask(
+							ownNodeBadges(node),
+							nodeElementMask,
+						)}
 						<div
 							class="vm-node-card {node.cls ?? ''}"
 							class:nav-file={useNativeDom}
@@ -482,13 +503,20 @@
 							oncontextmenu={(e) => onContextMenu(callbackId, e)}
 							onkeydown={(e) => onCardKeydown?.(callbackId, e)}
 						>
-							{#if visibleFields.includes('icon') && node.icon}
+							{#if nodeElementMask.media && input.mediaDescriptor}
+								<div
+									class="vm-node-card-cover"
+									data-media-status={input.mediaDescriptor.status}
+									data-media-key={input.mediaDescriptor.mediaKey ?? undefined}
+								></div>
+							{/if}
+							{#if nodeElementMask.icon && visibleFields.includes('icon') && node.icon}
 								<span class="vm-node-card-icon" use:icon={node.icon}></span>
-							{:else}
+							{:else if nodeElementMask.icon}
 								<span class="vm-node-card-icon" aria-hidden="true"></span>
 							{/if}
 							<div class="vm-node-card-fields">
-								{#each layout.fields as field (field.id)}
+								{#each visibleCardFields(layout.fields) as field (field.id)}
 									<span
 										class="vm-node-card-field"
 										class:is-title={field.kind === 'title'}

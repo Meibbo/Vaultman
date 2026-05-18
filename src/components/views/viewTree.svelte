@@ -1,5 +1,5 @@
 <script lang="ts" generics="TMeta = unknown">
-	import { untrack } from 'svelte';
+	import { getContext, untrack } from 'svelte';
 	import { createVirtualizer } from '@tanstack/svelte-virtual';
 	import type { NodeBadge, TreeNode } from '../../types/typeNode';
 	import type { ExplorerRevealAlign, ExplorerRevealTarget } from '../../types/typeExplorerDataPlane';
@@ -59,6 +59,14 @@
 		nodeBadgeTitle,
 		ownNodeBadges,
 	} from './nodeBadgeHelpers';
+	import {
+		DEFAULT_NODE_ELEMENT_MASK,
+		visibleNodeBadgesForMask,
+	} from './nodeElementMask';
+	import {
+		NODE_ELEMENT_MASK_KEY,
+		type NodeElementMaskContextValue,
+	} from '../explorer/viewHostContext';
 	import type { ThemeService } from '../../services/serviceTheme.svelte';
 
 	const DEFAULT_VIEW_SIZE = getViewSizePreset(DEFAULT_VIEW_SIZE_PRESET);
@@ -178,18 +186,24 @@
 	const effectiveRowInputs = $derived(projectionRowInputs ?? rowInputs);
 	const effectiveSnapshotRevision = $derived(snapshotRevision ?? projection?.rowsRevision ?? null);
 	const effectiveIdToIndex = $derived(idToIndex ?? projection?.idToIndex ?? null);
+	const maskCtx = getContext<NodeElementMaskContextValue | undefined>(NODE_ELEMENT_MASK_KEY);
+	const nodeElementMask = $derived(maskCtx?.value() ?? DEFAULT_NODE_ELEMENT_MASK);
 	const effectiveVisibleFields = $derived(
 		visibleFields.length > 0 ? visibleFields : defaultVisibleFields(effectiveProviderId, 'tree'),
 	);
-	const showNodeIcon = $derived(isNodeIconVisible(effectiveVisibleFields));
-	const showNodeText = $derived(isNodeTextVisible(effectiveProviderId, 'tree', effectiveVisibleFields));
-	const showNodeCount = $derived(isNodeCountVisible(effectiveVisibleFields));
+	const showNodeIcon = $derived(nodeElementMask.icon && isNodeIconVisible(effectiveVisibleFields));
+	const showNodeText = $derived(
+		nodeElementMask.label && isNodeTextVisible(effectiveProviderId, 'tree', effectiveVisibleFields),
+	);
+	const showNodeCount = $derived(
+		nodeElementMask.badges.counts && isNodeCountVisible(effectiveVisibleFields),
+	);
 
 	function hoverBadgesFor(id: string): BadgeDescriptor[] {
 		// Hover badges are an opt-in feature. Adapters that have not wired
 		// the registry yet (or unit tests that mount the view in isolation)
 		// pass no `activeOpsByNode` and we render no hover badges.
-		if (!activeOpsByNode) return [];
+		if (!activeOpsByNode || !nodeElementMask.actions) return [];
 		return visibleHoverBadgeDescriptors({ id }, activeOpsByNode);
 	}
 
@@ -867,12 +881,18 @@
 	{@const isHighlighted = searchHighlightIds?.has(id) ?? false}
 	{@const isSelected = selectedIds?.has(id) ?? false}
 	{@const isFocused = focusedId === id}
-	{@const directBadges = isScrolling ? [] : ownNodeBadges(node)}
-	{@const childBadges = isScrolling ? [] : inheritedNodeBadges(node)}
+	{@const directBadges = isScrolling
+		? []
+		: visibleNodeBadgesForMask(ownNodeBadges(node), nodeElementMask)}
+	{@const childBadges = isScrolling
+		? []
+		: visibleNodeBadgesForMask(inheritedNodeBadges(node), nodeElementMask)}
 	{@const hoverBadges = isScrolling ? [] : hoverBadgesFor(id)}
 	{@const rowIcon = !isScrolling && showNodeIcon ? iconForNode(node, flat) : undefined}
 	{@const hasCount = showNodeCount && hasVisibleCount(node)}
-	{@const fieldValues = visibleNodeFieldValues(effectiveProviderId, 'tree', node, effectiveVisibleFields)}
+	{@const fieldValues = nodeElementMask.detail
+		? visibleNodeFieldValues(effectiveProviderId, 'tree', node, effectiveVisibleFields)
+		: []}
 	{@const hasOverlayBadges =
 		directBadges.length > 0 || childBadges.length > 0 || hoverBadges.length > 0}
 	{@const hasActiveBadges = hasActiveRowBadge(directBadges) || hasActiveRowBadge(childBadges)}

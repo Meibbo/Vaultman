@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { untrack } from 'svelte';
+	import { getContext, untrack } from 'svelte';
 	import { createVirtualizer } from '@tanstack/svelte-virtual';
 	import type { Rect, Virtualizer } from '@tanstack/svelte-virtual';
 	import type { TreeNode } from '../../types/typeNode';
@@ -39,6 +39,14 @@
 		nodeBadgeTitle,
 		ownNodeBadges,
 	} from './nodeBadgeHelpers';
+	import {
+		DEFAULT_NODE_ELEMENT_MASK,
+		visibleNodeBadgesForMask,
+	} from './nodeElementMask';
+	import {
+		NODE_ELEMENT_MASK_KEY,
+		type NodeElementMaskContextValue,
+	} from '../explorer/viewHostContext';
 	import {
 		createManualDndService,
 		manualWorkspacePayloadForNode,
@@ -161,15 +169,21 @@
 	}: Props = $props();
 
 	const useNativeDom = $derived(themeService?.useNativeDom ?? false);
+	const maskCtx = getContext<NodeElementMaskContextValue | undefined>(NODE_ELEMENT_MASK_KEY);
+	const nodeElementMask = $derived(maskCtx?.value() ?? DEFAULT_NODE_ELEMENT_MASK);
 	const effectiveVisibleFields = $derived(
 		visibleFields.length > 0 ? visibleFields : defaultVisibleFields(providerId, 'grid'),
 	);
-	const showNodeIcon = $derived(isNodeIconVisible(effectiveVisibleFields));
-	const showNodeText = $derived(isNodeTextVisible(providerId, 'grid', effectiveVisibleFields));
-	const showNodeCount = $derived(isNodeCountVisible(effectiveVisibleFields));
+	const showNodeIcon = $derived(nodeElementMask.icon && isNodeIconVisible(effectiveVisibleFields));
+	const showNodeText = $derived(
+		nodeElementMask.label && isNodeTextVisible(providerId, 'grid', effectiveVisibleFields),
+	);
+	const showNodeCount = $derived(
+		nodeElementMask.badges.counts && isNodeCountVisible(effectiveVisibleFields),
+	);
 
 	function hoverBadgesFor(node: TreeNode): BadgeDescriptor[] {
-		if (!activeOpsByNode) return [];
+		if (!activeOpsByNode || !nodeElementMask.actions) return [];
 		return visibleHoverBadgeDescriptors({ id: node.id }, activeOpsByNode);
 	}
 
@@ -991,10 +1005,12 @@
 	{@const isSelected = selectedMap?.get(node.id) ?? selectedIds?.has(node.id) ?? false}
 	{@const isFocused = focusedId === node.id}
 	{@const isActive = activeId === node.id}
-	{@const directBadges = ownNodeBadges(node)}
+	{@const directBadges = visibleNodeBadgesForMask(ownNodeBadges(node), nodeElementMask)}
 	{@const hoverBadges = hoverBadgesFor(node)}
 	{@const dndState = manualDndStateFor(node.id)}
-	{@const fieldValues = visibleNodeFieldValues(providerId, 'grid', node, effectiveVisibleFields)}
+	{@const fieldValues = nodeElementMask.detail
+		? visibleNodeFieldValues(providerId, 'grid', node, effectiveVisibleFields)
+		: []}
 	{@const countText = showNodeCount ? (node.countLabel ?? (node.count == null ? '' : String(node.count))) : ''}
 	<div
 		class="vm-node-grid-tile {node.cls ?? ''}"
@@ -1038,7 +1054,7 @@
 		{/if}
 		{#if showNodeIcon && node.icon}
 			<span class="vm-node-grid-icon" use:icon={node.icon}></span>
-		{:else}
+		{:else if nodeElementMask.icon}
 			<span class="vm-node-grid-icon-placeholder" aria-hidden="true"></span>
 		{/if}
 		<div class="vm-node-grid-fields">

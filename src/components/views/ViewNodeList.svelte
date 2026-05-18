@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { createVirtualizer } from '@tanstack/svelte-virtual';
-	import { untrack } from 'svelte';
+	import { getContext, untrack } from 'svelte';
 	import {
 		createRafElementRectObserver,
 		fallbackFixedVirtualRows,
@@ -15,6 +15,14 @@
 		type ExplorerProjection,
 	} from '../../services/serviceExplorerProjection';
 	import { createExplorerScrollGeometry } from '../../services/serviceExplorerScrollGeometry';
+	import {
+		NODE_ELEMENT_MASK_KEY,
+		type NodeElementMaskContextValue,
+	} from '../explorer/viewHostContext';
+	import {
+		DEFAULT_NODE_ELEMENT_MASK,
+		visibleViewBadgesForMask,
+	} from './nodeElementMask';
 	import type { NodeBase } from '../../types/typeContracts';
 	import type { ViewAction, ViewBadge, ViewRow } from '../../types/typeViews';
 
@@ -85,6 +93,8 @@
 	const isListboxMode = $derived(Boolean(onSelect || onFocus));
 	const keyboardEnabled = $derived(Boolean(onSelect || onFocus || onActivate));
 	const activeFocusedId = $derived(localFocusedId ?? focusedId ?? null);
+	const maskCtx = getContext<NodeElementMaskContextValue | undefined>(NODE_ELEMENT_MASK_KEY);
+	const nodeElementMask = $derived(maskCtx?.value() ?? DEFAULT_NODE_ELEMENT_MASK);
 	const observeListRect = createRafElementRectObserver<HTMLDivElement, HTMLDivElement>({
 		getElement: () => outerEl ?? null,
 		fallbackWidth: LIST_FALLBACK_WIDTH,
@@ -196,14 +206,7 @@
 	}
 
 	function allBadges(row: ListRowInput): ViewBadge[] {
-		const badges = row.layers.badges;
-		return [
-			...(badges?.ops ?? []),
-			...(badges?.filters ?? []),
-			...(badges?.warnings ?? []),
-			...(badges?.inherited ?? []),
-			...(badges?.counts ?? []),
-		];
+		return visibleViewBadgesForMask(row.layers.badges, nodeElementMask);
 	}
 
 	function handleAction(action: ListAction, row: ListRowInput) {
@@ -379,9 +382,9 @@
 		{#each renderedVirtualRows as virtualRow (virtualRow.key)}
 			{@const row = effectiveRowInputs[virtualRow.index]}
 			{#if row}
-				{@const iconName = isScrolling ? undefined : rowIcon(row)}
+				{@const iconName = isScrolling || !nodeElementMask.icon ? undefined : rowIcon(row)}
 				{@const badges = isScrolling ? [] : allBadges(row)}
-				{@const actions = isScrolling ? [] : rowActions(row)}
+				{@const actions = isScrolling || !nodeElementMask.actions ? [] : rowActions(row)}
 				<div
 					id="vm-listrow-{row.id}"
 					class="vm-view-list-row vm-explorer-popup-row {row.cls ?? ''}"
@@ -408,8 +411,10 @@
 					{/if}
 
 					<span class="vm-view-list-main">
-						<span class="vm-view-list-label">{row.label}</span>
-						{#if row.detail}
+						{#if nodeElementMask.label}
+							<span class="vm-view-list-label">{row.label}</span>
+						{/if}
+						{#if nodeElementMask.detail && row.detail}
 							<span class="vm-view-list-detail">{row.detail}</span>
 						{/if}
 					</span>

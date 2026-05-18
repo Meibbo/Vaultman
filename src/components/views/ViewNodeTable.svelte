@@ -1,5 +1,5 @@
 <script lang="ts" generics="TNode extends NodeBase = NodeBase">
-	import { untrack } from 'svelte';
+	import { getContext, untrack } from 'svelte';
 	import type { SortingState } from '@tanstack/table-core';
 	import { createVirtualizer, type Rect, type Virtualizer } from '@tanstack/svelte-virtual';
 	import type { NodeBase } from '../../types/typeContracts';
@@ -32,6 +32,14 @@
 		nodeBadgeTitle,
 		ownNodeBadges,
 	} from './nodeBadgeHelpers';
+	import {
+		DEFAULT_NODE_ELEMENT_MASK,
+		visibleNodeBadgesForMask,
+	} from './nodeElementMask';
+	import {
+		NODE_ELEMENT_MASK_KEY,
+		type NodeElementMaskContextValue,
+	} from '../explorer/viewHostContext';
 	import { PerfMeter } from '../../services/perfMeter';
 	import { NodeRowMeasureService } from '../../services/serviceNodeRowMeasure';
 	import { createExplorerVariableGeometry } from '../../services/serviceExplorerScrollGeometry';
@@ -131,7 +139,11 @@
 		mergeMouseGestureConfig(NODE_MOUSE_GESTURE_CONFIG, mouseGestureConfig),
 	);
 	const useNativeDom = $derived(themeService?.useNativeDom ?? false);
-	const showRowIcon = $derived(!visibleFields || visibleFields.includes('icon'));
+	const maskCtx = getContext<NodeElementMaskContextValue | undefined>(NODE_ELEMENT_MASK_KEY);
+	const nodeElementMask = $derived(maskCtx?.value() ?? DEFAULT_NODE_ELEMENT_MASK);
+	const showRowIcon = $derived(
+		nodeElementMask.icon && (!visibleFields || visibleFields.includes('icon')),
+	);
 
 	$effect(
 		() => () => {
@@ -463,6 +475,16 @@
 		return ownNodeBadges(row.node as TNode & { badges?: readonly NodeBadge[] });
 	}
 
+	function visibleTableBadges(row: RowInputCompatibleRow<TNode>): NodeBadge[] {
+		return visibleNodeBadgesForMask(rowBadges(row), nodeElementMask);
+	}
+
+	function tableCellContentVisible(columnId: string): boolean {
+		if (columnId === 'label') return nodeElementMask.label;
+		if (columnId === 'count' || columnId === 'files') return nodeElementMask.badges.counts;
+		return nodeElementMask.detail;
+	}
+
 	function handleBadgeKeydown(e: KeyboardEvent, badge: NodeBadge) {
 		if (e.key === 'Enter' || e.key === ' ' || e.key === 'Spacebar') {
 			handleNodeBadgePress(e, badge, onBadgeDoubleClick);
@@ -724,7 +746,7 @@
 				{@const isSelected = selectedMap?.get(id) ?? selectedIds.has(id)}
 				{@const isFocused = focusedId === id}
 				{@const isActive = activeId === id}
-				{@const directBadges = rowBadges(row)}
+				{@const directBadges = visibleTableBadges(row)}
 				<div
 					class="vm-node-table-row {row.cls ?? ''}"
 					class:nav-file={useNativeDom}
@@ -754,13 +776,15 @@
 								{#if showRowIcon && row.icon}
 									<span class="vm-node-table-icon" use:icon={row.icon}></span>
 								{/if}
-								<span
-									class="vm-node-table-primary"
-									class:nav-file-title={useNativeDom}
-									data-vm-table-primary
-								>
-									{display}
-								</span>
+								{#if tableCellContentVisible(column.id)}
+									<span
+										class="vm-node-table-primary"
+										class:nav-file-title={useNativeDom}
+										data-vm-table-primary
+									>
+										{display}
+									</span>
+								{/if}
 								{#if directBadges.length > 0}
 									<span class="vm-node-table-badge-zone">
 										{#each directBadges as badge, badgeIndex (nodeBadgeKey(badge, badgeIndex))}
@@ -789,7 +813,7 @@
 										{/each}
 									</span>
 								{/if}
-							{:else}
+							{:else if tableCellContentVisible(column.id)}
 								{display}
 							{/if}
 						</div>
