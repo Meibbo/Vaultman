@@ -1,0 +1,392 @@
+{
+  "nodes": [
+    {
+      "id": "a100000000000001",
+      "type": "group",
+      "x": -40,
+      "y": -40,
+      "width": 360,
+      "height": 900,
+      "label": "Sources",
+      "color": "5"
+    },
+    {
+      "id": "a100000000000002",
+      "type": "group",
+      "x": 360,
+      "y": -40,
+      "width": 360,
+      "height": 900,
+      "label": "1.0.0 navbarFilters",
+      "color": "6"
+    },
+    {
+      "id": "a100000000000003",
+      "type": "group",
+      "x": 760,
+      "y": -40,
+      "width": 380,
+      "height": 900,
+      "label": "HEAD Toolbar",
+      "color": "2"
+    },
+    {
+      "id": "a100000000000004",
+      "type": "group",
+      "x": 1180,
+      "y": -40,
+      "width": 400,
+      "height": 900,
+      "label": "Adaptation target",
+      "color": "3"
+    },
+    {
+      "id": "a100000000000005",
+      "type": "group",
+      "x": 1620,
+      "y": -40,
+      "width": 360,
+      "height": 900,
+      "label": "Verification",
+      "color": "4"
+    },
+    {
+      "id": "a100000000000006",
+      "type": "file",
+      "x": 0,
+      "y": 20,
+      "width": 280,
+      "height": 90,
+      "file": ".agents/docs/work/polish/research/2026-05-17-toolbar-navbarfilters-regression/index.md",
+      "color": "5"
+    },
+    {
+      "id": "a100000000000007",
+      "type": "file",
+      "x": 0,
+      "y": 140,
+      "width": 280,
+      "height": 90,
+      "file": "src/components/layout/Toolbar.svelte",
+      "color": "5"
+    },
+    {
+      "id": "a100000000000008",
+      "type": "file",
+      "x": 0,
+      "y": 260,
+      "width": 280,
+      "height": 90,
+      "file": "src/styles/explorer/_explorer.scss",
+      "color": "5"
+    },
+    {
+      "id": "a100000000000009",
+      "type": "file",
+      "x": 0,
+      "y": 380,
+      "width": 280,
+      "height": 90,
+      "file": "src/styles/data/_filters.scss",
+      "color": "5"
+    },
+    {
+      "id": "a10000000000000a",
+      "type": "file",
+      "x": 0,
+      "y": 500,
+      "width": 280,
+      "height": 90,
+      "file": "test/component/toolbarMenuPlacement.test.ts",
+      "color": "5"
+    },
+    {
+      "id": "a10000000000000b",
+      "type": "file",
+      "x": 0,
+      "y": 620,
+      "width": 280,
+      "height": 90,
+      "file": "test/component/searchboxIsland.test.ts",
+      "color": "5"
+    },
+    {
+      "id": "a10000000000000c",
+      "type": "file",
+      "x": 0,
+      "y": 740,
+      "width": 280,
+      "height": 90,
+      "file": ".agents/docs/work/polish/research/2026-05-17-toolbar-architecture/index.md",
+      "color": "5"
+    },
+    {
+      "id": "b100000000000001",
+      "type": "text",
+      "x": 400,
+      "y": 20,
+      "width": 280,
+      "height": 120,
+      "text": "# Tag 1.0.0\n\n`git show 1.0.0:src/components/layout/navbarFilters.svelte`\n\nGood visual reference, not a file in HEAD.",
+      "color": "6"
+    },
+    {
+      "id": "b100000000000002",
+      "type": "text",
+      "x": 400,
+      "y": 170,
+      "width": 280,
+      "height": 150,
+      "text": "# Primitive order\n\n`FAB view -> search pill -> FAB sort`\n\nThe searchbox is inline and central.",
+      "color": "6"
+    },
+    {
+      "id": "b100000000000003",
+      "type": "text",
+      "x": 400,
+      "y": 350,
+      "width": 280,
+      "height": 170,
+      "text": "# Style intent\n\nCircular accent FABs, 2.25em, soft shadow.\n\nSearch pill is flexible, 26px high, 999px radius, transparent input.",
+      "color": "6"
+    },
+    {
+      "id": "c100000000000001",
+      "type": "text",
+      "x": 800,
+      "y": 20,
+      "width": 300,
+      "height": 160,
+      "text": "# Current order\n\n`crear -> right-side cluster`\n\nCluster contains view, sort, search trigger, and conditional node expansion.",
+      "color": "2"
+    },
+    {
+      "id": "c100000000000002",
+      "type": "text",
+      "x": 800,
+      "y": 210,
+      "width": 300,
+      "height": 170,
+      "text": "# Search became island\n\nThe input is inside `.vm-toolbar-search-island`, an absolute card opened from a search trigger.",
+      "color": "2"
+    },
+    {
+      "id": "c100000000000003",
+      "type": "text",
+      "x": 800,
+      "y": 410,
+      "width": 300,
+      "height": 190,
+      "text": "# More buttons exist now\n\nFnR mode, flags, help, history, crear, operation scope, node expansion, field visibility, and mouse gesture behavior must be preserved.",
+      "color": "2"
+    },
+    {
+      "id": "c100000000000004",
+      "type": "text",
+      "x": 800,
+      "y": 630,
+      "width": 300,
+      "height": 150,
+      "text": "# Existing tests\n\nTests currently protect the right-side cluster and searchbox island. They need migration, not deletion.",
+      "color": "2"
+    },
+    {
+      "id": "d100000000000001",
+      "type": "text",
+      "x": 1220,
+      "y": 20,
+      "width": 320,
+      "height": 150,
+      "text": "# Target silhouette\n\n`[view FAB] [inline search pill] [sort FAB]`\n\nRecover the navbarFilters visual read.",
+      "color": "3"
+    },
+    {
+      "id": "d100000000000002",
+      "type": "text",
+      "x": 1220,
+      "y": 200,
+      "width": 320,
+      "height": 210,
+      "text": "# Preserve capabilities\n\nMove new primitives into slots:\n\n- center leading: FnR mode\n- center trailing: clear/category/flags/help\n- center action: crear\n- overflow: node expansion/extras",
+      "color": "3"
+    },
+    {
+      "id": "d100000000000003",
+      "type": "text",
+      "x": 1220,
+      "y": 440,
+      "width": 320,
+      "height": 180,
+      "text": "# Architecture move\n\nUse `ToolbarPrimitive`, `filtersToolbarAdapter`, `resolveToolbarModel`, and a dumb renderer. Do not add more branches directly to `Toolbar.svelte`.",
+      "color": "3"
+    },
+    {
+      "id": "d100000000000004",
+      "type": "text",
+      "x": 1220,
+      "y": 650,
+      "width": 320,
+      "height": 150,
+      "text": "# Regression stance\n\nThis is conceptual restoration: keep the 1.0.0 visual intent, adapt to HEAD structure.",
+      "color": "3"
+    },
+    {
+      "id": "e100000000000001",
+      "type": "text",
+      "x": 1660,
+      "y": 20,
+      "width": 280,
+      "height": 160,
+      "text": "# Tests to update\n\nReplace cluster-order assertions with `view -> search -> sort` contract. Keep coverage for crear, expansion, FnR, search flags, and hooks.",
+      "color": "4"
+    },
+    {
+      "id": "e100000000000002",
+      "type": "text",
+      "x": 1660,
+      "y": 210,
+      "width": 280,
+      "height": 150,
+      "text": "# Verification commands\n\nTargeted component tests, `pnpm check`, and `git diff --check` before claiming the implementation is done.",
+      "color": "4"
+    },
+    {
+      "id": "e100000000000003",
+      "type": "text",
+      "x": 1660,
+      "y": 390,
+      "width": 280,
+      "height": 170,
+      "text": "# Risk\n\nA literal checkout from `1.0.0` would remove modern toolbar behavior. A pure style patch may leave layout semantics broken.",
+      "color": "2"
+    }
+  ],
+  "edges": [
+    {
+      "id": "f100000000000001",
+      "fromNode": "a100000000000006",
+      "fromSide": "right",
+      "toNode": "d100000000000004",
+      "toSide": "left",
+      "toEnd": "arrow",
+      "label": "summarizes"
+    },
+    {
+      "id": "f100000000000002",
+      "fromNode": "b100000000000001",
+      "fromSide": "right",
+      "toNode": "b100000000000002",
+      "toSide": "left",
+      "toEnd": "arrow",
+      "label": "shows"
+    },
+    {
+      "id": "f100000000000003",
+      "fromNode": "b100000000000002",
+      "fromSide": "right",
+      "toNode": "d100000000000001",
+      "toSide": "left",
+      "toEnd": "arrow",
+      "label": "restores intent"
+    },
+    {
+      "id": "f100000000000004",
+      "fromNode": "b100000000000003",
+      "fromSide": "right",
+      "toNode": "d100000000000001",
+      "toSide": "left",
+      "toEnd": "arrow",
+      "label": "style source"
+    },
+    {
+      "id": "f100000000000005",
+      "fromNode": "a100000000000007",
+      "fromSide": "right",
+      "toNode": "c100000000000001",
+      "toSide": "left",
+      "toEnd": "arrow",
+      "label": "evidences"
+    },
+    {
+      "id": "f100000000000006",
+      "fromNode": "a100000000000008",
+      "fromSide": "right",
+      "toNode": "c100000000000002",
+      "toSide": "left",
+      "toEnd": "arrow",
+      "label": "styles"
+    },
+    {
+      "id": "f100000000000007",
+      "fromNode": "c100000000000001",
+      "fromSide": "right",
+      "toNode": "d100000000000001",
+      "toSide": "left",
+      "toEnd": "arrow",
+      "label": "reorders"
+    },
+    {
+      "id": "f100000000000008",
+      "fromNode": "c100000000000002",
+      "fromSide": "right",
+      "toNode": "d100000000000002",
+      "toSide": "left",
+      "toEnd": "arrow",
+      "label": "adapts"
+    },
+    {
+      "id": "f100000000000009",
+      "fromNode": "c100000000000003",
+      "fromSide": "right",
+      "toNode": "d100000000000002",
+      "toSide": "left",
+      "toEnd": "arrow",
+      "label": "preserve"
+    },
+    {
+      "id": "f10000000000000a",
+      "fromNode": "a10000000000000c",
+      "fromSide": "right",
+      "toNode": "d100000000000003",
+      "toSide": "left",
+      "toEnd": "arrow",
+      "label": "architecture"
+    },
+    {
+      "id": "f10000000000000b",
+      "fromNode": "c100000000000004",
+      "fromSide": "right",
+      "toNode": "e100000000000001",
+      "toSide": "left",
+      "toEnd": "arrow",
+      "label": "migrate"
+    },
+    {
+      "id": "f10000000000000c",
+      "fromNode": "d100000000000001",
+      "fromSide": "right",
+      "toNode": "e100000000000001",
+      "toSide": "left",
+      "toEnd": "arrow",
+      "label": "verify"
+    },
+    {
+      "id": "f10000000000000d",
+      "fromNode": "d100000000000002",
+      "fromSide": "right",
+      "toNode": "e100000000000002",
+      "toSide": "left",
+      "toEnd": "arrow",
+      "label": "check"
+    },
+    {
+      "id": "f10000000000000e",
+      "fromNode": "e100000000000003",
+      "fromSide": "left",
+      "toNode": "d100000000000004",
+      "toSide": "right",
+      "toEnd": "arrow",
+      "label": "constrains"
+    }
+  ]
+}

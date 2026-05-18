@@ -1,0 +1,88 @@
+{
+  "nodes": [
+    {
+      "id": "node-current-state",
+      "type": "group",
+      "label": "CURRENT ARCHITECTURE (SCSS Monolith)",
+      "x": -100,
+      "y": 0,
+      "width": 400,
+      "height": 500,
+      "color": "1"
+    },
+    {
+      "id": "node-scss-files",
+      "type": "text",
+      "text": "**41 SCSS Files**\n~6.9K Lines of Code\n- Layout\n- Components\n- Modals\n- Mixins",
+      "x": -50,
+      "y": 50,
+      "width": 300,
+      "height": 150
+    },
+    {
+      "id": "node-compiled-css",
+      "type": "text",
+      "text": "**styles.css (178KB)**\n- Contains Dead CSS\n- High specificity\n- Build-time calculated",
+      "x": -50,
+      "y": 250,
+      "width": 300,
+      "height": 100
+    },
+    {
+      "id": "node-future-state",
+      "type": "group",
+      "label": "FUTURE ARCHITECTURE (Utility-First + Semantic Escapes)",
+      "x": 500,
+      "y": 0,
+      "width": 600,
+      "height": 500,
+      "color": "4"
+    },
+    {
+      "id": "node-unocss",
+      "type": "text",
+      "text": "**UnoCSS (90%)**\nAtomic Utilities inline in `.svelte`\n`class=\"flex p-4 bg-[var(--vm-bg)]\"`\n- Zero Dead CSS\n- Fast rendering",
+      "x": 550,
+      "y": 50,
+      "width": 250,
+      "height": 150,
+      "color": "5"
+    },
+    {
+      "id": "node-scss-escapes",
+      "type": "text",
+      "text": "**SCSS Escapes (10%)**\nScoped `<style lang=\"scss\">`\n- Complex Keyframes\n- Obsidian `:global` overrides\n- Math-heavy mixins",
+      "x": 820,
+      "y": 50,
+      "width": 250,
+      "height": 150,
+      "color": "2"
+    },
+    {
+      "id": "node-theme-builder",
+      "type": "text",
+      "text": "**Theme Builder (Runtime)**\nMutates native `--css-variables`\nBoth UnoCSS and SCSS react instantly without recompilation.",
+      "x": 650,
+      "y": 250,
+      "width": 300,
+      "height": 100,
+      "color": "6"
+    },
+    {
+      "id": "node-new-css",
+      "type": "text",
+      "text": "**Optimized styles.css**\nEstimated: ~12KB (Vaultman core)\nAtomic, flat, collision-free.",
+      "x": 650,
+      "y": 380,
+      "width": 300,
+      "height": 80
+    }
+  ],
+  "edges": [
+    {"id": "e1", "fromNode": "node-scss-files", "toNode": "node-compiled-css", "label": "compiles to"},
+    {"id": "e2", "fromNode": "node-current-state", "toNode": "node-future-state", "label": "MIGRATION PLAN", "fromSide": "right", "toSide": "left", "color": "3"},
+    {"id": "e3", "fromNode": "node-unocss", "toNode": "node-theme-builder", "label": "reads variables"},
+    {"id": "e4", "fromNode": "node-scss-escapes", "toNode": "node-theme-builder", "label": "reads variables"},
+    {"id": "e5", "fromNode": "node-theme-builder", "toNode": "node-new-css", "label": "outputs to"}
+  ]
+}

@@ -1,10 +1,44 @@
 import { defineConfig } from 'vitest/config';
+import { existsSync } from 'node:fs';
+import { dirname, join, parse, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { svelte } from '@sveltejs/vite-plugin-svelte';
 
 const obsidianMockPath = fileURLToPath(
 	new URL('./test/helpers/obsidian-mocks.ts', import.meta.url),
 );
+const notebookNavigatorRoot = findNotebookNavigatorRoot();
+
+function findNotebookNavigatorRoot(): string {
+	const envRoot = process.env.VM_NOTEBOOK_NAVIGATOR_ROOT;
+	const candidates = [
+		...(envRoot ? [envRoot] : []),
+		...notebookNavigatorSiblingCandidates(process.cwd()),
+		...notebookNavigatorSiblingCandidates(fileURLToPath(new URL('.', import.meta.url))),
+	];
+
+	for (const candidate of new Set(candidates)) {
+		if (existsSync(join(candidate, 'src/hooks/listPaneData/listItems.ts'))) {
+			return candidate;
+		}
+	}
+
+	return resolve(process.cwd(), '..', 'notebook-navigator');
+}
+
+function notebookNavigatorSiblingCandidates(start: string): string[] {
+	const candidates: string[] = [];
+	let current = resolve(start);
+	const root = parse(current).root;
+
+	while (true) {
+		candidates.push(resolve(current, '..', 'notebook-navigator'));
+		if (current === root) break;
+		current = dirname(current);
+	}
+
+	return candidates;
+}
 
 export default defineConfig({
 	test: {
@@ -45,6 +79,7 @@ export default defineConfig({
 					environment: 'node',
 					include: ['test/unit/**/*.test.ts'],
 					alias: {
+						'@notebook-navigator': notebookNavigatorRoot,
 						obsidian: obsidianMockPath,
 					},
 				},

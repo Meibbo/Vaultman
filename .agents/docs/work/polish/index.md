@@ -4,7 +4,7 @@ type: initiative-index
 status: active
 parent: "[[docs/work/pkm-ai/index|pkm-ai]]"
 created: 2026-05-04T01:44:46
-updated: 2026-05-10T04:55:20
+updated: 2026-05-17T11:49:10
 tags:
   - agent/work
   - initiative/polish
@@ -28,6 +28,7 @@ and non-blocking UX improvements.
 
 ## Research
 
+- [[docs/work/polish/research/2026-05-17-toolbar-architecture/index|Toolbar architecture and primitive ordering map]]
 - [[docs/work/polish/research/2026-05-10-table-open-freeze|Table open freeze diagnosis]]
 - [[docs/work/polish/research/2026-05-09-multi-platform-layout-strategy|Multi-platform layout strategy]]
 

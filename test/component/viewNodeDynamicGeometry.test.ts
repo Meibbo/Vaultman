@@ -2,6 +2,8 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { flushSync, mount, unmount, type Component } from 'svelte';
 import ViewNodeGrid from '../../src/components/views/ViewNodeGrid.svelte';
 import ViewNodeTable from '../../src/components/views/ViewNodeTable.svelte';
+import { createExplorerProjection } from '../../src/services/serviceExplorerProjection';
+import { rowInputFromTreeNode } from '../../src/services/serviceExplorerRowInput';
 import {
 	DEFAULT_NODE_TABLE_COLUMNS,
 	nodeRowsFromTree,
@@ -144,5 +146,47 @@ describe('ViewNode dynamic geometry', () => {
 		grid.dispatchEvent(new Event('scroll'));
 		flushSync();
 		expect(target.querySelectorAll('.vm-node-grid-row').length).toBeGreaterThan(0);
+	});
+
+	it('accepts explorer projection rows as the grid input contract without rendering hidden media fields', () => {
+		const measure = new FakeRowMeasure();
+		const rowInputs = longNodes(10_000).map((node) => ({
+			...rowInputFromTreeNode(node),
+			mediaDescriptor: {
+				targetKey: node.id,
+				target: { kind: 'file', path: `${node.id}.png` },
+				status: 'ready' as const,
+				mediaKey: `media:${node.id}`,
+			},
+		}));
+		const projection = createExplorerProjection({
+			providerId: 'files',
+			viewMode: 'grid',
+			rowInputs,
+			sourceRevision: 16,
+		});
+
+		app = mount(ViewNodeGrid as unknown as Component<Record<string, unknown>>, {
+			target,
+			props: {
+				nodes: [],
+				projection,
+				selectedIds: new Set<string>(),
+				measure,
+				onTileClick: vi.fn(),
+				onContextMenu: vi.fn(),
+				icon: vi.fn(() => ({ update: vi.fn() })),
+			},
+		});
+		flushSync();
+
+		const firstTile = target.querySelector<HTMLElement>('[data-id="node-0"]');
+		expect(firstTile).not.toBeNull();
+		expect(firstTile?.textContent).toContain('Adopted Header 0');
+		expect(target.querySelectorAll('.vm-node-grid-row').length).toBeGreaterThan(0);
+		expect(target.querySelectorAll('.vm-node-grid-row').length).toBeLessThan(250);
+		expect(measure.calls.some((call) => call.id === 'node-0')).toBe(true);
+		expect(target.querySelector('[data-node-field="media"]')).toBeFalsy();
+		expect(target.textContent).not.toContain('media:node-0');
 	});
 });

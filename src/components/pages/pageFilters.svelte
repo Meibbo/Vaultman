@@ -315,9 +315,9 @@
 		return tab;
 	}
 
-	function visibleFieldsFor(tab: FiltersSearchTab, mode: ExplorerViewMode): string[] {
+	function visibleFieldsFor(providerId: string, mode: ExplorerViewMode): string[] {
 		void fieldVisibilityVersion;
-		return visibleFieldsFromSettings(plugin.settings, providerIdForTab(tab), mode);
+		return visibleFieldsFromSettings(plugin.settings, providerId, mode);
 	}
 
 	async function setActiveVisibleFields(fields: string[]): Promise<void> {
@@ -498,7 +498,7 @@
 					sortTarget={filtersSortTarget}
 					nodeExpansionCommand={nodeExpansionCommands.files}
 					onNodeExpansionSummaryChange={(summary) => setNodeExpansionSummary('files', summary)}
-					visibleFields={visibleFieldsFor('files', filtersViewMode as ExplorerViewMode)}
+					visibleFields={visibleFieldsFor('bases-import', filtersViewMode as ExplorerViewMode)}
 					{manualDndEnabled}
 					{icon}
 				/>

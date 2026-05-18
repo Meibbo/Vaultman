@@ -7,8 +7,8 @@
 //...----------—————————————( GLASS SYSTEM )————————————------------...\\
 
 .vm-glass {
-	backdrop-filter: blur(var(--vm-glass-blur, 12px));
-	-webkit-backdrop-filter: blur(var(--vm-glass-blur, 12px));
+	backdrop-filter: blur(var(--vm-popup-backdrop-blur, 12px));
+	-webkit-backdrop-filter: blur(var(--vm-popup-backdrop-blur, 12px));
 
 	// Bottom bar fixed strip
 	&--bottom {
@@ -29,8 +29,8 @@
 			inset: 0;
 			z-index: -1;
 			pointer-events: none;
-			backdrop-filter: blur(var(--vm-glass-blur, 12px));
-			-webkit-backdrop-filter: blur(var(--vm-glass-blur, 12px));
+			backdrop-filter: blur(var(--vm-popup-backdrop-blur, 12px));
+			-webkit-backdrop-filter: blur(var(--vm-popup-backdrop-blur, 12px));
 			-webkit-mask-image: linear-gradient(to bottom, transparent 0%, black 70%);
 			mask-image: linear-gradient(to bottom, transparent 0%, black 70%);
 		}
@@ -51,8 +51,8 @@
 			z-index: -1;
 			pointer-events: none;
 			background: color-mix(in srgb, var(--background-primary) 18%, transparent);
-			backdrop-filter: blur(var(--vm-glass-blur, 12px));
-			-webkit-backdrop-filter: blur(var(--vm-glass-blur, 12px));
+			backdrop-filter: blur(var(--vm-popup-backdrop-blur, 12px));
+			-webkit-backdrop-filter: blur(var(--vm-popup-backdrop-blur, 12px));
 			-webkit-mask-image: linear-gradient(to bottom, black 0%, black 70%, transparent 100%);
 			mask-image: linear-gradient(to bottom, black 0%, black 70%, transparent 100%);
 		}

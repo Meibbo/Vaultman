@@ -25,6 +25,8 @@
 	import PopupIsland from '../layout/overlays/overlayIsland.svelte';
 	import ExplorerQueueComp from '../containers/explorerQueue.svelte';
 	import ExplorerActiveFiltersComp from '../containers/explorerActiveFilters.svelte';
+	import Dashboard3Column from '../dashboard/Dashboard3Column.svelte';
+	import AddonsMarkdownPane from '../addons/AddonsMarkdownPane.svelte';
 
 	import { FolderSuggest } from '../../utils/autocomplete';
 	import { translate } from '../../index/i18n/lang';
@@ -57,11 +59,20 @@
 		normalizeOperationScope,
 		type OperationScope,
 	} from '../../services/serviceOperationScope';
-	import { resolveLayoutSettings, type LayoutSurfaceContent } from '../../services/serviceLayout';
+	import {
+		resolveDashboardEnabled,
+		resolveLayoutSettings,
+		type LayoutSurfaceContent,
+		type LayoutViewportKind,
+	} from '../../services/serviceLayout';
 	import { FTabs, type TabConfig } from '../../types/typeTab';
 	import type { ExplorerSortTarget } from '../../types/typeExplorer';
 	import { tabIdFromInner, type TabId } from '../../registry/tabRegistry';
 	import type { LeafDetachState } from '../../services/serviceLeafDetach';
+	import {
+		AddonsIslandService,
+		type AddonsQuickSwitcherApp,
+	} from '../../services/serviceAddonsIsland.svelte';
 
 	// â”€â”€â”€ Props â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€------------------...........
 	type SurfaceNavItem = TabConfig & {
@@ -74,7 +85,12 @@
 	let {
 		plugin,
 		activeWindow: frameActiveWindow,
-	}: { plugin: VaultmanPlugin; activeWindow?: Window } = $props();
+		viewportKind: forcedViewportKind,
+	}: {
+		plugin: VaultmanPlugin;
+		activeWindow?: Window;
+		viewportKind?: LayoutViewportKind;
+	} = $props();
 	const boundActiveWindow = $derived(frameActiveWindow ?? activeWindow);
 
 	// â”€â”€â”€ Page navigation â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
@@ -86,7 +102,7 @@
 				plugin,
 				ExplorerQueueComp,
 				ExplorerActiveFiltersComp,
-				enterBasesImportMode,
+				{ onImportBases: enterBasesImportMode },
 			),
 		};
 	}
@@ -100,6 +116,18 @@
 	const pageIcons: Record<string, string> = createFramePageIcons();
 	const overlays = initialFrameState.overlays;
 	const layoutSettings = $derived(resolveLayoutSettings(plugin.settings.layout));
+	const addonsIslandService = new AddonsIslandService();
+	const addonsQuickSwitcherApp = $derived(plugin.app as unknown as AddonsQuickSwitcherApp);
+	let frameViewportWidth = $state(0);
+	let measuredViewportKind = $state<LayoutViewportKind>('main-leaf');
+	const dashboardViewportKind = $derived(forcedViewportKind ?? measuredViewportKind);
+	const dashboardEnabled = $derived(
+		resolveDashboardEnabled({
+			width: frameViewportWidth,
+			kind: dashboardViewportKind,
+			mode: plugin.themeService.mode,
+		}),
+	);
 	const framePageTabs = $derived.by<SurfaceNavItem[]>(() =>
 		pageOrder.map((pageId) => ({
 			id: pageId,
@@ -138,6 +166,7 @@
 	const rightFab = $derived.by<FabDef | null>(() => pageFabs[activePage]?.right ?? null);
 
 	let activePage = $state<string>(initialFrameState.pageOrder[0] ?? 'ops');
+	let toolsActiveTab = $state('layout');
 
 	// Use DOM insertion order (pageOrder at mount time) â€” avoids stale settings mismatch
 	let pageIndex = $derived(pageOrder.indexOf(activePage));
@@ -189,6 +218,22 @@
 		statsPreviewFile = null;
 	}
 
+	function openDiffView(): void {
+		overlays.closeQueueIsland();
+		overlays.closeFiltersIsland();
+		if (overlays.popupOpen) overlays.closePopup();
+		activePage = 'ops';
+		toolsActiveTab = 'file_diff';
+		viewport.applyPageTransform(true);
+	}
+
+	$effect(() => {
+		plugin.openDiffViewHook = openDiffView;
+		return () => {
+			if (plugin.openDiffViewHook === openDiffView) plugin.openDiffViewHook = null;
+		};
+	});
+
 	$effect(() => {
 		void pageIndex; // declare dependency
 		viewport.applyPageTransform(true);
@@ -220,6 +265,11 @@
 		filterRuleCount = countActiveFilterEntries(plugin.filterService);
 	}
 
+	function renderAddonsStats(): string {
+		const files = plugin.app.vault.getMarkdownFiles().length;
+		return `${translate('stats.files')}: ${files} | ${translate('scope.selected')}: ${selectedCount} | ${translate('filters.active')}: ${filterRuleCount} | Queue: ${queuedCount}`;
+	}
+
 	let fileList = $state<explorerFiles | undefined>(undefined);
 	let propExplorer = $state<explorerProps | undefined>(undefined);
 	let tagsExplorer = $state<explorerTags>();
@@ -228,13 +278,7 @@
 	// â”€â”€â”€ Filters page state â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 	type FiltersTab = FiltersSearchTab;
 	let filtersActiveTab = $state<FiltersTab>('props');
-	$effect(() => {
-		void filtersActiveTab;
-		untrack(() => {
-			overlays.closeQueueIsland();
-			overlays.closeFiltersIsland();
-		});
-	});
+	// filtersActiveTab changes no longer close stack islands — search and stack coexist.
 	let filtersSearchByTab = $state<FiltersSearchState>(createFiltersSearchState());
 	let filtersFnRState = $state<FnRState>(createFnRState());
 	let filtersSearchCategory = $state<Record<FiltersTab, number>>({
@@ -266,9 +310,7 @@
 	const dockExternalTabIds = $derived.by(() => externalIdsForSurface(layoutSettings.dock.content));
 	const dockUsesFramePages = $derived(layoutSettings.dock.content === 'frame-pages');
 
-	function itemsForSurface(
-		content: LayoutSurfaceContent,
-	): SurfaceNavItem[] {
+	function itemsForSurface(content: LayoutSurfaceContent): SurfaceNavItem[] {
 		if (content === 'frame-pages') {
 			return framePageTabs.map((tab) => ({
 				...tab,
@@ -312,10 +354,7 @@
 			.filter((id): id is string => Boolean(id));
 	}
 
-	function detachedTabIdForSurfaceItem(
-		content: LayoutSurfaceContent,
-		id: string,
-	): TabId | null {
+	function detachedTabIdForSurfaceItem(content: LayoutSurfaceContent, id: string): TabId | null {
 		const tabId = tabIdForSurfaceItem(content, id);
 		return tabId && detachedTabs[tabId] === true ? tabId : null;
 	}
@@ -494,6 +533,40 @@
 		};
 	}
 
+	function bindDashboardMeasurement(el: HTMLElement): { destroy(): void } {
+		const update = (entry?: ResizeObserverEntry) => {
+			frameViewportWidth = measureFrameWidth(el, entry);
+			measuredViewportKind = inferFrameViewportKind(el);
+		};
+		update();
+
+		if (typeof ResizeObserver === 'undefined') {
+			return { destroy: () => {} };
+		}
+
+		const observer = new ResizeObserver((entries) => {
+			update(entries[0]);
+		});
+		observer.observe(el);
+		return {
+			destroy() {
+				observer.disconnect();
+			},
+		};
+	}
+
+	function measureFrameWidth(el: HTMLElement, entry?: ResizeObserverEntry): number {
+		const observed = entry?.contentRect.width;
+		if (typeof observed === 'number' && observed > 0) return Math.round(observed);
+		const rectWidth = el.getBoundingClientRect().width;
+		if (rectWidth > 0) return Math.round(rectWidth);
+		return Math.round(el.clientWidth);
+	}
+
+	function inferFrameViewportKind(el: HTMLElement): LayoutViewportKind {
+		return el.closest('.mod-left-split, .mod-right-split') ? 'sidebar' : 'main-leaf';
+	}
+
 	// â”€â”€â”€ Refresh active filters popup when it becomes visible â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 	$effect(() => {
@@ -564,9 +637,131 @@
 	});
 </script>
 
+{#snippet dashboardFilters()}
+	<nav class="vm-dashboard-filter-list" aria-label={translate('nav.filters')}>
+		{#each filterTabItems as tab (tab.id)}
+			<button
+				type="button"
+				class="vm-dashboard-filter-button"
+				class:is-active={filtersActiveTab === tab.id}
+				class:is-faint={tab.faint}
+				disabled={tab.disabled}
+				onclick={() => selectSurfaceItem('filter-tabs', tab.id)}
+			>
+				<span class="vm-dashboard-filter-icon" use:icon={tab.icon}></span>
+				<span>{tab.label}</span>
+			</button>
+		{/each}
+	</nav>
+{/snippet}
+
+{#snippet dashboardExplorer()}
+	<div class="vm-page vm-dashboard-active-page" data-page={activePage}>
+		{#key pageRenderKey}
+			{#if activePage === 'ops'}
+				{#if detachedTabs['page-tools'] === true}
+					<div class="vm-page-external" data-vm-tab-id="page-tools">Detached to workspace</div>
+				{:else}
+					<OperationsPage {plugin} {icon} bind:activeTab={toolsActiveTab} />
+				{/if}
+			{:else if activePage === 'statistics'}
+				<StatisticsPage {plugin} previewFile={statsPreviewFile} onShowStats={showStatsPage} />
+			{:else if activePage === 'filters'}
+				<FiltersPage
+					{plugin}
+					bind:filtersActiveTab
+					bind:filtersSearchByTab
+					bind:filtersSearchCategory
+					bind:filtersFnRState
+					bind:filtersOperationScope
+					onOperationScopeChange={setFiltersOperationScope}
+					bind:tagsExplorer
+					bind:propExplorer
+					bind:fileList
+					bind:selectedCount
+					bind:selectedFilePaths
+					bind:filtersSortBy
+					bind:filtersSortDir
+					bind:filtersSortTarget
+					bind:filtersViewMode
+					bind:filtersBaseChooseMode
+					bind:addMode
+					showTabs={false}
+					{addOpCount}
+				/>
+			{/if}
+		{/key}
+	</div>
+{/snippet}
+
+{#snippet dashboardAddons()}
+	<AddonsMarkdownPane
+		service={addonsIslandService}
+		statsRenderer={renderAddonsStats}
+		app={addonsQuickSwitcherApp}
+	/>
+{/snippet}
+
+{#snippet frameIslandAndDock()}
+	<!-- â”€â”€â”€ Island Backdrop (Rising Glass) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ -->
+	<div
+		class="vm-island-backdrop vm-glass"
+		class:is-open={overlays.isIslandOpen}
+		class:is-dismissable={plugin.settings.islandDismissOnOutsideClick}
+		onclick={() => {
+			if (plugin.settings.islandDismissOnOutsideClick) {
+				overlays.closeQueueIsland();
+				overlays.closeFiltersIsland();
+			}
+		}}
+		onkeydown={(e) => {
+			if (
+				plugin.settings.islandDismissOnOutsideClick &&
+				(e.key === 'Escape' || e.key === 'Enter')
+			) {
+				overlays.closeQueueIsland();
+				overlays.closeFiltersIsland();
+			}
+		}}
+		role="button"
+		tabindex="-1"
+		aria-label="Close island"
+	></div>
+
+	<PopupIsland overlayState={plugin.overlayState} />
+
+	<NavbarDock
+		items={dockItems}
+		active={dockActive}
+		externalTabIds={dockExternalTabIds}
+		showLabels={layoutSettings.dock.labels.visible}
+		labelPosition={layoutSettings.dock.labels.position}
+		presentationMode={layoutSettings.dock.presentation.mode}
+		drawerDirection={layoutSettings.dock.presentation.drawerDirection}
+		bind:drawerOpen={dockDrawerOpen}
+		{leftFab}
+		{rightFab}
+		navCollapsed={navReorder.navCollapsed}
+		isIslandOpen={overlays.isIslandOpen}
+		isReordering={dockUsesFramePages ? navReorder.isReordering : false}
+		reorderTargetIdx={dockUsesFramePages ? navReorder.reorderTargetIdx : -1}
+		bind:dockEl={navReorder.pillEl}
+		{filterRuleCount}
+		{queuedCount}
+		bindNav={navReorder.bindNav}
+		onCollapsedNavClick={navReorder.onCollapsedNavClick}
+		onItemPointerDown={dockUsesFramePages ? navReorder.onNavIconPointerDown : undefined}
+		onDockPointerMove={dockUsesFramePages ? navReorder.onPillPointerMove : undefined}
+		onDockPointerUp={dockUsesFramePages ? navReorder.onPillPointerUp : undefined}
+		exitReorder={navReorder.exitReorder}
+		onSelect={(id) => selectSurfaceItem(layoutSettings.dock.content, id)}
+		mouseGestureConfig={plugin.settings?.mouseGestures?.fab}
+	/>
+{/snippet}
+
 <!-- â”€â”€â”€ Page container (horizontal slide strip) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ -->
 <!-- vm-pages-viewport clips via overflow:hidden; the container slides inside it -->
-<div class="vm-view {elasticRootClasses}" use:navReorder.bindViewRoot>
+<div class="vm-view {elasticRootClasses}" use:navReorder.bindViewRoot use:bindDashboardMeasurement>
 	{#if topTabItems.length > 0}
 		<NavbarTabs
 			tabs={topTabItems}
@@ -578,110 +773,74 @@
 		/>
 	{/if}
 
-	<div class="vm-pages-viewport" use:viewport.bindViewport>
-		<div
-			class="vm-page-container"
-			use:viewport.bindContainer
-			ontransitionend={viewport.onContainerTransitionEnd}
-		>
-			{#each pageOrder as pageId (pageId)}
-				<div class="vm-page" data-page={pageId}>
-					{#key pageRenderKey}
-						{#if pageId === 'ops'}
-							{#if detachedTabs['page-tools'] === true}
-								<div class="vm-page-external" data-vm-tab-id="page-tools">
-									Detached to workspace
-								</div>
-							{:else}
-								<OperationsPage {plugin} {icon} />
-							{/if}
-						{:else if pageId === 'statistics'}
-							<StatisticsPage {plugin} previewFile={statsPreviewFile} onShowStats={showStatsPage} />
-						{:else if pageId === 'filters'}
-							<FiltersPage
-								{plugin}
-								bind:filtersActiveTab
-								bind:filtersSearchByTab
-								bind:filtersSearchCategory
-								bind:filtersFnRState
-								bind:filtersOperationScope
-								onOperationScopeChange={setFiltersOperationScope}
-								bind:tagsExplorer
-								bind:propExplorer
-								bind:fileList
-								bind:selectedCount
-								bind:selectedFilePaths
-								bind:filtersSortBy
-								bind:filtersSortDir
-								bind:filtersSortTarget
-								bind:filtersViewMode
-								bind:filtersBaseChooseMode
-								bind:addMode
-								showTabs={!filterTabsExternallyMounted}
-								{addOpCount}
-							/>
-						{/if}
-					{/key}
-				</div>
-			{/each}
+	{#if dashboardEnabled}
+		<div class="vm-pages-viewport vm-dashboard-viewport">
+			<Dashboard3Column
+				themeService={plugin.themeService}
+				enabled={dashboardEnabled}
+				filters={dashboardFilters}
+				explorer={dashboardExplorer}
+				addons={dashboardAddons}
+			/>
+
+			{@render frameIslandAndDock()}
 		</div>
+	{:else}
+		<div class="vm-pages-viewport" use:viewport.bindViewport>
+			<div
+				class="vm-page-container"
+				use:viewport.bindContainer
+				ontransitionend={viewport.onContainerTransitionEnd}
+			>
+				{#each pageOrder as pageId (pageId)}
+					<div class="vm-page" data-page={pageId}>
+						{#key pageRenderKey}
+							{#if pageId === 'ops'}
+								{#if detachedTabs['page-tools'] === true}
+									<div class="vm-page-external" data-vm-tab-id="page-tools">
+										Detached to workspace
+									</div>
+								{:else}
+									<OperationsPage {plugin} {icon} bind:activeTab={toolsActiveTab} />
+								{/if}
+							{:else if pageId === 'statistics'}
+								<StatisticsPage
+									{plugin}
+									previewFile={statsPreviewFile}
+									onShowStats={showStatsPage}
+								/>
+							{:else if pageId === 'filters'}
+								<FiltersPage
+									{plugin}
+									bind:filtersActiveTab
+									bind:filtersSearchByTab
+									bind:filtersSearchCategory
+									bind:filtersFnRState
+									bind:filtersOperationScope
+									onOperationScopeChange={setFiltersOperationScope}
+									bind:tagsExplorer
+									bind:propExplorer
+									bind:fileList
+									bind:selectedCount
+									bind:selectedFilePaths
+									bind:filtersSortBy
+									bind:filtersSortDir
+									bind:filtersSortTarget
+									bind:filtersViewMode
+									bind:filtersBaseChooseMode
+									bind:addMode
+									showTabs={!filterTabsExternallyMounted}
+									{addOpCount}
+								/>
+							{/if}
+						{/key}
+					</div>
+				{/each}
+			</div>
 
-		<!-- â”€â”€â”€ Island Backdrop (Rising Glass) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ -->
-		<div
-			class="vm-island-backdrop vm-glass"
-			class:is-open={overlays.isIslandOpen}
-			class:has-blur={plugin.settings.islandBackdropBlur}
-			class:is-dismissable={plugin.settings.islandDismissOnOutsideClick}
-			onclick={() => {
-				if (plugin.settings.islandDismissOnOutsideClick) {
-					overlays.closeQueueIsland();
-					overlays.closeFiltersIsland();
-				}
-			}}
-			onkeydown={(e) => {
-				if (
-					plugin.settings.islandDismissOnOutsideClick &&
-					(e.key === 'Escape' || e.key === 'Enter')
-				) {
-					overlays.closeQueueIsland();
-					overlays.closeFiltersIsland();
-				}
-			}}
-			role="button"
-			tabindex="-1"
-			aria-label="Close island"
-		></div>
-
-		<PopupIsland overlayState={plugin.overlayState} />
-
-		<NavbarDock
-			items={dockItems}
-			active={dockActive}
-			externalTabIds={dockExternalTabIds}
-			showLabels={layoutSettings.dock.labels.visible}
-			labelPosition={layoutSettings.dock.labels.position}
-			presentationMode={layoutSettings.dock.presentation.mode}
-			drawerDirection={layoutSettings.dock.presentation.drawerDirection}
-			bind:drawerOpen={dockDrawerOpen}
-			{leftFab}
-			{rightFab}
-			navCollapsed={navReorder.navCollapsed}
-			isIslandOpen={overlays.isIslandOpen}
-			isReordering={dockUsesFramePages ? navReorder.isReordering : false}
-			reorderTargetIdx={dockUsesFramePages ? navReorder.reorderTargetIdx : -1}
-			bind:dockEl={navReorder.pillEl}
-			{filterRuleCount}
-			{queuedCount}
-			bindNav={navReorder.bindNav}
-			onCollapsedNavClick={navReorder.onCollapsedNavClick}
-			onItemPointerDown={dockUsesFramePages ? navReorder.onNavIconPointerDown : undefined}
-			onDockPointerMove={dockUsesFramePages ? navReorder.onPillPointerMove : undefined}
-			onDockPointerUp={dockUsesFramePages ? navReorder.onPillPointerUp : undefined}
-			exitReorder={navReorder.exitReorder}
-			onSelect={(id) => selectSurfaceItem(layoutSettings.dock.content, id)}
-			mouseGestureConfig={plugin.settings?.mouseGestures?.fab}
-		/>
-	</div>
+			{@render frameIslandAndDock()}
+		</div>
+	{/if}
 </div>
 
 <PopupOverlay

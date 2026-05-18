@@ -36,6 +36,7 @@ function createFakeHost(state: FakeHostState): {
 		openQueuePopup: ReturnType<typeof vi.fn>;
 		openViewMenu: ReturnType<typeof vi.fn>;
 		openSortMenu: ReturnType<typeof vi.fn>;
+		openDiffView: ReturnType<typeof vi.fn>;
 		setMode: ReturnType<typeof vi.fn>;
 		expand: ReturnType<typeof vi.fn>;
 		collapse: ReturnType<typeof vi.fn>;
@@ -51,6 +52,7 @@ function createFakeHost(state: FakeHostState): {
 		openQueuePopup: vi.fn(),
 		openViewMenu: vi.fn(),
 		openSortMenu: vi.fn(),
+		openDiffView: vi.fn(),
 		setMode: vi.fn(),
 		expand: vi.fn(),
 		collapse: vi.fn(),
@@ -91,6 +93,7 @@ function createFakeHost(state: FakeHostState): {
 		openQueuePopup: calls.openQueuePopup,
 		openViewMenu: calls.openViewMenu,
 		openSortMenu: calls.openSortMenu,
+		openDiffView: calls.openDiffView,
 	};
 	return { host, calls };
 }
@@ -238,31 +241,24 @@ describe('registerVaultmanCommands', () => {
 		expect(calls.expand).not.toHaveBeenCalled();
 	});
 
-	it('open-svar-filemanager creates a tab leaf and sets the view state', async () => {
+	it('open-diff reveals Vaultman and opens the diff surface', async () => {
 		const { plugin } = createFakePlugin();
-		const { host } = createFakeHost({
+		const { host, calls } = createFakeHost({
 			hasLeaf: true,
 			queueEmpty: false,
 			hasFnRService: true,
 			hasPanelApi: true,
 		});
-		const setViewState = vi.fn();
-		const getLeavesOfType = vi.fn(() => []);
-		const getLeaf = vi.fn(() => ({ setViewState }));
-		host.app.workspace.getLeavesOfType = getLeavesOfType;
-		host.app.workspace.getLeaf = getLeaf as any;
-
 		const commands = registerVaultmanCommands(plugin as never, host);
-		const cmd = findCommand(commands, 'open-svar-filemanager');
+		const cmd = findCommand(commands, 'open-diff');
 
 		cmd.callback?.();
 		await Promise.resolve();
 		await Promise.resolve();
 
-		expect(getLeaf).toHaveBeenCalledWith('tab');
-		expect(setViewState).toHaveBeenCalledWith({
-			type: 'vaultman-svar-filemanager',
-			active: true,
-		});
+		expect(calls.activateView).toHaveBeenCalledTimes(1);
+		expect(host.app.workspace.revealLeaf).toHaveBeenCalledTimes(1);
+		expect(calls.openDiffView).toHaveBeenCalledTimes(1);
 	});
+
 });

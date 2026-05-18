@@ -197,3 +197,71 @@ with:
 Do not mark `EDP-002` as complete. If the plan is ready for implementation,
 update the issue label/status to `ready-for-agent` only if the local tracker
 convention is clear and `EDP-001` has been satisfied.
+
+## Wave A/B Completion (2026-05-12)
+
+Wave A scout reports:
+
+- [[reports/a1-files-source-tree-contracts|A1 Files source and tree contracts]]
+- [[reports/a2-panel-selection-reveal|A2 Panel selection and reveal]]
+- [[reports/a3-tests-verification|A3 Tests and verification gates]]
+- [[reports/a4-viewservice-overlay-boundary|A4 ViewService and overlay boundary]]
+
+Wave B output:
+
+- [[02-edp-002-files-snapshot-data-plane-implementation-plan|EDP-002 Files snapshot data-plane implementation plan]]
+
+Locked decisions resolved during synthesis:
+
+- Provider method names: `getStructuralTree()` (mirrors `getTree()`) and
+  `getStructuralRevisions()`. Scout A3's alternate `getStructuralSource()`
+  name was rejected for symmetry.
+- `ExplorerDataPlaneRevisions` field set: `filesRevision` required;
+  `propsRevision`/`tagsRevision`/`contentRevision` optional carry-throughs.
+  `queueRevision`, `filterRevision`, `decorationRevision` explicitly
+  excluded (reserved for `EDP-004`).
+- `subscribe(explorerId, cb)` API is per-explorer, matching spec shard 14.
+- `viewTree.svelte` reveal resolution stays unchanged; only the type
+  `ExplorerRevealTarget` lands in this slice. View adoption is deferred to
+  `EDP-009`.
+- `panelExplorer.svelte` `visibleNodeIds()` is the only helper rewired for
+  Files in EDP-002. The other 11 recursive scans listed by Scout A2 are
+  reserved for `EDP-003`.
+
+Unresolved questions deferred to Codex:
+
+- Auto-publish wiring inside `panelExplorer.refreshData()`. The plan
+  installs `ExplorerDataPlaneService` and the consumer branch, but the
+  publish trigger (subscribe to `filesIndex.subscribe` + republish on
+  structural revision change) is intentionally minimal in EDP-002. The
+  test stubs install the snapshot directly. Document the chosen wiring in
+  the Task 5 commit message.
+- Whether `getStructuralRevisions()` should include `propsRevision` only
+  when `sortBy === 'count'`. The plan unconditionally includes it.
+
+Proposed Wave C worker split:
+
+- Worker 1: Tasks 1–3 — types, pure builder, service. Writes only in
+  `src/types/`, `src/logic/`, `src/services/`, `test/unit/`.
+- Worker 2: Tasks 4–5 — Files provider + main wiring + Files provider
+  test extensions. Writes only in `src/providers/explorerFiles.ts`,
+  `src/main.ts`, `test/unit/components/explorerFiles.test.ts`.
+- Worker 3: Task 6 — panel wiring + panel test extensions. Writes only in
+  `src/components/containers/panelExplorer.svelte` and
+  `test/component/panelExplorerSelection.test.ts`.
+- Worker 4: Task 7 — final verification. Read-only on code.
+
+Workers 1 and 2 may run in parallel; Worker 3 starts after both merge;
+Worker 4 runs last.
+
+Exact first command Codex should run before implementation:
+
+```sh
+pnpm run test:unit -- test/unit/logic/logicExplorerSnapshot.test.ts
+```
+
+Expected: FAIL with module-resolution error. This is the RED gate for
+Task 2.1 in the plan.
+
+`EDP-002` issue status: keep at `needs-triage` until `EDP-001` is
+satisfied and the user explicitly approves promotion to `ready-for-agent`.

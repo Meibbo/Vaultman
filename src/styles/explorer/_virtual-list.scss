@@ -31,7 +31,9 @@
 		z-index: 12;
 		height: 0;
 		pointer-events: none;
-		transform: translateY(var(--vm-tree-sticky-scroll-y, 0));
+		transform: translateY(
+			calc(var(--vm-tree-sticky-scroll-y, 0px) + var(--vm-tree-sticky-top-offset, 0px))
+		);
 		will-change: transform;
 	}
 
@@ -40,7 +42,7 @@
 		top: 0;
 		left: 0;
 		right: 0;
-		height: var(--vm-tree-row-h);
+		height: var(--vm-tree-row-h, var(--vm-row-height, 32px));
 		transform: translateY(var(--vm-tree-y, 0));
 		box-sizing: border-box;
 		will-change: transform;
@@ -61,7 +63,7 @@
 			position: relative;
 			justify-content: flex-start;
 			gap: 4px;
-			height: calc(var(--vm-tree-row-h) - 1px);
+			height: calc(var(--vm-tree-row-h, var(--vm-row-height, 32px)) - 1px);
 			width: 100%;
 			margin-bottom: 1px;
 			padding-left: calc(var(--depth, 0) * 16px + 4px);
@@ -135,7 +137,7 @@
 		}
 
 		.vm-tree-row-surface.is-active-filter.is-selected {
-			background: color-mix(in srgb, var(--interactive-accent) 18%, $vm-bg-primary);
+			background: color-mix(in srgb, var(--text-faint) 11%, $vm-bg-primary);
 			box-shadow:
 				inset 3px 0 0 color-mix(in srgb, var(--interactive-accent) 88%, transparent),
 				inset 0 0 0 1px color-mix(in srgb, var(--interactive-accent) 28%, transparent);
@@ -156,9 +158,12 @@
 			position: relative;
 			z-index: 1;
 			display: inline-flex;
-			flex: 1 1 auto;
+			flex: 0 0 auto;
+			margin-left: auto;
 			min-width: 0;
+			max-width: 40%;
 			align-items: center;
+			justify-content: flex-end;
 			gap: 6px;
 			overflow: hidden;
 			color: var(--text-muted);

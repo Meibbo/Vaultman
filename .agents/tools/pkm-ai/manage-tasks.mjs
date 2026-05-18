@@ -375,20 +375,6 @@ function updateLine(lines, key, value) {
   }
 }
 
-function toggleTask(body, search, status) {
-  const lines = body.split("\n");
-  const regex = new RegExp(search, "i");
-  let found = false;
-  const newLines = lines.map((line) => {
-    if (!found && regex.test(line) && line.includes("- [")) {
-      found = true;
-      return line.replace(/- \[[ x/]?\]/, `- [${status}]`);
-    }
-    return line;
-  });
-  return newLines.join("\n");
-}
-
 function taskSelector(args) {
   if (args.completeObjective) {
     return { type: "text", value: `#pkm-ai/objective/${args.completeObjective}` };

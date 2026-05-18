@@ -10,6 +10,7 @@ describe('ViewModePopup', () => {
 		{ id: 'icon', labelKey: 'viewmode.pill.icon', defaultOn: true, identity: true },
 		{ id: 'name', labelKey: 'viewmode.pill.name', defaultOn: true, identity: true },
 		{ id: 'path', labelKey: 'viewmode.pill.path', defaultOn: false },
+		{ id: 'media', labelKey: 'viewmode.pill.media', defaultOn: false },
 	];
 
 	beforeEach(() => {
@@ -52,12 +53,18 @@ describe('ViewModePopup', () => {
 		expect(tableButton!.classList.contains('is-accent')).toBe(true);
 	});
 
-	it('offers cards mode but not dnd mode in the first measured-cards slice', () => {
+	it('offers cards mode but not deferred map modes in the platform view menu', () => {
 		renderViewModePopup({ fieldDefinitions, visibleFields: ['icon', 'name'] });
 
 		expect(target.querySelector<HTMLElement>('.vm-squircle[aria-label="Cards"]')).not.toBeNull();
-		expect(target.querySelector<HTMLElement>('.vm-squircle[aria-label="Markmap"]')).not.toBeNull();
+		expect(target.querySelector<HTMLElement>('.vm-squircle[aria-label="Markmap"]')).toBeNull();
 		expect(target.querySelector<HTMLElement>('.vm-squircle[aria-label="Drag & Drop list"]')).toBeNull();
+	});
+
+	it('offers list mode after the 0-H list view is wired', () => {
+		renderViewModePopup();
+
+		expect(target.querySelector<HTMLElement>('.vm-squircle[aria-label="List"]')).not.toBeNull();
 	});
 
 	it('emits normalized field changes instead of storing pills locally', () => {
@@ -75,5 +82,38 @@ describe('ViewModePopup', () => {
 		flushSync();
 
 		expect(onVisibleFieldsChange).toHaveBeenCalledWith(['icon', 'name', 'path']);
+	});
+
+	it('shows the media element toggle in the custom element pill control', () => {
+		const onVisibleFieldsChange = vi.fn();
+		renderViewModePopup({
+			activeTab: 'files',
+			viewMode: 'cards',
+			fieldDefinitions,
+			visibleFields: ['icon', 'name'],
+			onVisibleFieldsChange,
+		});
+
+		const media = target.querySelector<HTMLButtonElement>('[data-node-field="media"]');
+		expect(media).not.toBeNull();
+		expect(media?.textContent).toBe('Media');
+
+		media!.click();
+		flushSync();
+
+		expect(onVisibleFieldsChange).toHaveBeenCalledWith(['icon', 'name', 'media']);
+	});
+
+	it('hides granular element toggles while the native preset is active', () => {
+		renderViewModePopup({
+			activeTab: 'files',
+			viewMode: 'cards',
+			fieldDefinitions,
+			visibleFields: ['icon', 'name'],
+			nativePresetActive: true,
+		});
+
+		expect(target.querySelector<HTMLButtonElement>('[data-node-field="media"]')).toBeNull();
+		expect(target.querySelector<HTMLButtonElement>('.vm-viewmode-pill')).toBeNull();
 	});
 });

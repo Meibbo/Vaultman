@@ -4,7 +4,7 @@ type: implementation-plan-shard
 status: draft
 parent: "[[docs/work/polish/plans/2026-05-11-ui-modernization-vertical-threads/index|ui-modernization-vertical-threads]]"
 created: 2026-05-11T23:55:00
-updated: 2026-05-11T09:28:16
+updated: 2026-05-13T17:43:16
 tags:
   - agent/plan
   - thread/ecosystem-interception
@@ -135,6 +135,64 @@ theme service core file (T1).
   Find/Replace island to `vmPopover`, integrate dashboard/add-ons into
   `frameVaultman.svelte`, stage real adopted-block moves into queue chains,
   and implement Quick Switcher plus FAB orbiting-ink polish.
+
+## 2026-05-13 T4 Dashboard/Add-ons Frame Wiring Follow-up
+
+- Continued in Codex worktree
+  `C:\Users\vic_A\Desktop\vaultman\.claude\worktrees\t4-addons-dashboard`
+  on branch `codex/t4-addons-dashboard`, based on `claude/explorer`.
+- Base verification: `03326b8d3fde809e7d94a3d3926f382e60cb493e` is the
+  `claude/explorer` head and contains required ancestor `03326b8`.
+- RED gate:
+  `pnpm exec vp test run --project component --config vitest.config.ts test/component/frameDashboardAddons.test.ts --fileParallelism=false`
+  failed 1/1 because `[data-vm-dashboard]` was absent from the live frame.
+- Implementation:
+  - `frameVaultman.svelte` now measures the frame root with `ResizeObserver`
+    and gates dashboard mode through `resolveDashboardEnabled`.
+  - Wide non-thin main frames render `Dashboard3Column` with a filter-tab rail,
+    the active frame page in the explorer column, and `AddonsMarkdownPane` in
+    the add-ons column.
+  - The add-ons pane owns a frame-local `AddonsIslandService` and receives the
+    plugin app through the service's Quick Switcher adapter type.
+  - Thin/sidebar behavior keeps the existing single-column sliding page strip,
+    `FrameViewportController`, island backdrop, and dock path.
+- Explicit non-scope: no EDP-010 selection mirror cleanup, no
+  ViewService/NodeSelectionService ownership changes, no FnR `vmPopover`
+  migration, no EDP row-contract work, and no performance-threshold edits.
+- Focused verification passed:
+  - RED rerun after implementation:
+    `pnpm exec vp test run --project component --config vitest.config.ts test/component/frameDashboardAddons.test.ts --fileParallelism=false`
+    passed 1 file / 2 tests.
+  - Dashboard/add-ons/frame component gate:
+    `pnpm exec vp test run --project component --config vitest.config.ts test/component/frameDashboardAddons.test.ts test/component/frameFaintMultiWindow.test.ts test/component/dashboard3Column.test.ts test/component/addonsMarkdownPane.test.ts --fileParallelism=false`
+    passed 4 files / 9 tests.
+  - Service/layout unit gate:
+    `pnpm exec vp test run --project unit --config vitest.config.ts test/unit/services/serviceAddonsIsland.test.ts test/unit/services/serviceLayoutElastic.test.ts --fileParallelism=false`
+    passed 2 files / 14 tests.
+- Static/build verification passed:
+  `pnpm run lint:full`, `pnpm run check`, `pnpm run build:plugin`, and final
+  `git diff --check` after doc updates. `git diff --check` emitted only the
+  existing CRLF conversion warnings.
+- Svelte validation note: `npx @sveltejs/mcp svelte-autofixer` still reports an
+  unlocated parse issue on the full legacy `frameVaultman.svelte` path. The
+  MCP autofixer accepted a focused equivalent of the changed snippets and
+  reported only pre-existing/action-style suggestions, while repo
+  `svelte-check` and Prettier parse the actual file with zero diagnostics.
+
+## 2026-05-13 Parallel Integration Note
+
+- T4 FnR `vmPopover` follow-up integrated into `claude/explorer` with merge
+  commit `bc5a151b909483287a250a73a09923592319ad5b`.
+- T4 dashboard/add-ons frame wiring integrated into `claude/explorer` with
+  merge commit `d4c4225f7ce5d2e2e2b393e01e3eb63dc355b71a`.
+- The dashboard/add-ons merge conflicted with T3 in `frameVaultman.svelte`.
+  Resolution preserved dashboard mode and the T3 open-diff hook by binding
+  `OperationsPage.activeTab` in both the standard page strip and the dashboard
+  explorer snippet.
+- Final integrated T3/T4 unit gate passed 8 files / 87 tests.
+- Final integrated T3/T4 component gate passed 11 files / 38 tests.
+- Static/build gates passed: `lint:full`, `check`, `build:plugin`, and
+  `git diff --check`.
 
 ---
 

@@ -25,8 +25,9 @@ export class ExplorerService<
 			'explorer.service.filteredIds',
 			() => {
 				const q = this.normalizedSearch;
-				if (!q) return this.idx.flatIds;
-				return this.idx.flatIds.filter((id) => this.idx.getSearchBuffer(id).includes(q));
+				const flatIds = this.idx.flatIds;
+				if (!q) return flatIds;
+				return flatIds.filter((id) => this.idx.getSearchBuffer(id).includes(q));
 			},
 			'service',
 			{ nodes: this.idx.flatIds.length, queryLength: this.normalizedSearch.length },

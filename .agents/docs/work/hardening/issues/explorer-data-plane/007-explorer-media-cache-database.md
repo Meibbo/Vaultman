@@ -2,13 +2,13 @@
 title: EDP-007 Explorer media cache database
 type: issue
 issue_id: EDP-007
-status: needs-triage
+status: completed
 issue_kind: AFK
 parent: "[[docs/work/hardening/issues/explorer-data-plane/index|Explorer data plane local issues]]"
 created: 2026-05-11T20:55:00
-updated: 2026-05-11T20:55:00
+updated: 2026-05-12T12:00:00
 labels:
-  - needs-triage
+  - completed
 tags:
   - agent/issue
   - initiative/hardening
@@ -38,14 +38,25 @@ narrow file/node-level media subscriptions for visible thumbnail updates.
 
 ## Acceptance Criteria
 
-- [ ] Media cache records store status/key metadata separately from blobs.
-- [ ] Blob reads validate the expected `mediaKey` before returning cached
+- [x] Media cache records store status/key metadata separately from blobs.
+- [x] Blob reads validate the expected `mediaKey` before returning cached
       content.
-- [ ] A bounded in-memory blob LRU and lazy visible-row loading are tested.
-- [ ] File/node-level media subscriptions update thumbnails without rebuilding
+- [x] A bounded in-memory blob LRU and lazy visible-row loading are tested.
+- [x] File/node-level media subscriptions update thumbnails without rebuilding
       structural snapshots or `ViewService` layers.
-- [ ] Implementation does not introduce persistent structural snapshot storage
+- [x] Implementation does not introduce persistent structural snapshot storage
       or a generic row-level subscription system.
+
+## 2026-05-12 Reconciliation Note
+
+Wave 3 Agent C was mostly independent of the Wave 2 Files data-plane work, so
+it was ported as a service-level slice on top of `claude/explorer`. The
+reconciled implementation keeps media records and blobs outside structural
+snapshots, validates reads against the expected `mediaKey`, and limits
+subscriptions to file/node media targets.
+
+The in-memory store supports bounded read-through LRU behavior and lazy
+visible-row blob loading without adding row-level snapshot subscriptions.
 
 ## Blocked By
 
@@ -54,5 +65,5 @@ narrow file/node-level media subscriptions for visible thumbnail updates.
 
 ## Verification
 
-- Run media cache unit tests for stale-key rejection, LRU behavior, lazy load,
-  and media status transition subscriptions.
+- `pnpm exec vitest run --project unit --config vitest.config.ts test/unit/services/serviceExplorerMediaCache.test.ts --reporter verbose`
+- `pnpm run check`

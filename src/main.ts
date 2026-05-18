@@ -44,6 +44,7 @@ import { createTemplatesIndex } from './services/serviceTemplatesIndex';
 import { OverlayStateService } from './services/serviceOverlayState.svelte';
 import { DecorationManager } from './services/serviceDecorate';
 import { ViewService } from './services/serviceViews.svelte';
+import { ExplorerDataPlaneService } from './services/serviceExplorerDataPlane.svelte';
 import { createPerfProbe } from './dev/perfProbe';
 import { registerVaultmanCommands } from './services/serviceCommands';
 import { PerfMeter } from './services/perfMeter';
@@ -53,12 +54,10 @@ import { leadingDebounce } from './utils/utilDebounce';
 import { NodeBindingService } from './services/serviceNodeBinding';
 import { NativeSurfaceBindingService } from './services/serviceNativeSurfaceBinding';
 import { resolveLayoutSettings } from './services/serviceLayout';
-import { applyVaultmanTheme, normalizeLayoutTheme } from './services/serviceTheme';
 import { ThemeService } from './services/serviceTheme.svelte';
-import { DEFAULT_ELASTIC_UI_SETTINGS, normalizeElasticUiSettings } from './types/typeElasticUi';
+import { normalizeElasticUiSettings } from './types/typeElasticUi';
 import { ALL_TAB_IDS, viewTypeFor, type TabId } from './registry/tabRegistry';
 import { VaultmanTabLeafView } from './types/typeTabLeaf';
-import { SvarFileManagerView, TYPE_SVAR_FILEMANAGER } from './types/typeSvarLeaf';
 import type { FnRIslandService } from './services/serviceFnRIsland.svelte';
 import type { PanelExplorerImperativeApi } from './types/typeExplorer';
 import type {
@@ -101,6 +100,7 @@ export class VaultmanPlugin extends Plugin {
 	overlayState!: IOverlayState;
 	decorationManager!: IDecorationManager;
 	viewService!: IViewService;
+	explorerDataPlaneService!: ExplorerDataPlaneService;
 
 	// Native status bar element
 	private statusBarEl!: HTMLElement;
@@ -127,6 +127,7 @@ export class VaultmanPlugin extends Plugin {
 	openQueuePopupHook: (() => void) | null = null;
 	openViewMenuHook: (() => void) | null = null;
 	openSortMenuHook: (() => void) | null = null;
+	openDiffViewHook: (() => void) | null = null;
 	openContentSearchHook: ((term: string) => void) | null = null;
 
 	async onload(): Promise<void> {
@@ -140,9 +141,7 @@ export class VaultmanPlugin extends Plugin {
 		PerfMeter.mark('vaultman:boot:settings-loaded');
 
 		this.themeService = new ThemeService();
-		this.themeService.hydrate(this.settings.elasticUi ?? DEFAULT_ELASTIC_UI_SETTINGS);
-
-		this.updateGlassBlur();
+		this.themeService.hydrate(this.settings.elasticUi);
 
 		const pluginsBefore = snapshotInstalledPlugins(this.app);
 
@@ -181,6 +180,7 @@ export class VaultmanPlugin extends Plugin {
 		this.propertyIndex = new PropertyIndexService(this.app);
 		this.filterService = new FilterService(this.app, this.filesIndex);
 		this.queueService = new OperationQueueService(this.app);
+		this.explorerDataPlaneService = new ExplorerDataPlaneService();
 
 		this.contentIndex = createContentIndex(this.app);
 		this.operationsIndex = createOperationsIndex(this.queueService);
@@ -247,12 +247,11 @@ export class VaultmanPlugin extends Plugin {
 		this.statusBarEl = this.addStatusBarItem();
 		this.statusBarEl.addClass('vm-native-statusbar');
 
-		this.addRibbonIcon('lucide-dessert', translate('plugin.open'), () => {
+		this.addRibbonIcon('lucide-vault', translate('plugin.open'), () => {
 			void this.toggleView();
 		});
 
 		this.registerView(TYPE_FRAME_VM, (leaf) => new VaultmanFrame(leaf, this));
-		this.registerView(TYPE_SVAR_FILEMANAGER, (leaf) => new SvarFileManagerView(leaf, this));
 
 		// Independent leaf view-types — registered up-front so saved
 		// workspace state can re-instantiate them (phase 6).
@@ -304,6 +303,7 @@ export class VaultmanPlugin extends Plugin {
 			openQueuePopup: () => this.openQueuePopupHook?.(),
 			openViewMenu: () => this.openViewMenuHook?.(),
 			openSortMenu: () => this.openSortMenuHook?.(),
+			openDiffView: () => this.openDiffViewHook?.(),
 		});
 
 		this.addSettingTab(new VaultmanSettingsTab(this.app, this));
@@ -347,6 +347,7 @@ export class VaultmanPlugin extends Plugin {
 	}
 
 	onunload(): void {
+		this.themeService?.dispose();
 		this.uninstallPerfProbe?.();
 		this.uninstallPerfProbe = undefined;
 		this.opsLogService?.dispose();
@@ -365,7 +366,6 @@ export class VaultmanPlugin extends Plugin {
 			...(JSON.parse(JSON.stringify(DEFAULT_SETTINGS)) as VaultmanSettings),
 			...saved,
 		};
-		this.settings.layoutTheme = normalizeLayoutTheme(saved.layoutTheme);
 		this.settings.layout = resolveLayoutSettings(saved.layout);
 		this.settings.elasticUi = normalizeElasticUiSettings(saved.elasticUi);
 
@@ -379,15 +379,11 @@ export class VaultmanPlugin extends Plugin {
 	}
 
 	async saveSettings(): Promise<void> {
+		if (this.themeService) {
+			this.settings.elasticUi.themePresetId = this.themeService.activePresetId;
+			this.settings.elasticUi.customPresets = [...this.themeService.customPresets];
+		}
 		await this.saveData(this.settings);
-	}
-
-	updateGlassBlur(): void {
-		const intensity: number = this.settings.glassBlurIntensity ?? 60;
-		const px = (intensity / 100) * 20;
-		const body = activeDocument.body;
-		body.style.setProperty('--vm-glass-blur', `${px}px`);
-		applyVaultmanTheme(body, this.settings);
 	}
 
 	async activateView(): Promise<void> {

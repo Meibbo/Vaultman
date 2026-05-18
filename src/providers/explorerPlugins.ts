@@ -36,6 +36,10 @@ export class explorerPlugins implements ExplorerProvider<PluginMeta> {
 
 	handleNodeClick(_node: TreeNode<PluginMeta>): void {}
 
+	handleNodeSecondaryAction(node: TreeNode<PluginMeta>): void {
+		void this.togglePlugin(node.meta);
+	}
+
 	handleContextMenu(
 		node: TreeNode<PluginMeta>,
 		e: MouseEvent,

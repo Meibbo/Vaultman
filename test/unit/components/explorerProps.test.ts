@@ -6,6 +6,11 @@ import { DecorationManager } from '../../../src/services/serviceDecorate';
 import { ViewService } from '../../../src/services/serviceViews.svelte';
 import { showInputModal } from '../../../src/utils/inputModal';
 import type { VaultmanPlugin } from '../../../src/main';
+import type { PropMeta, TreeNode } from '../../../src/types/typeNode';
+import type {
+	ExplorerDataPlaneRevisions,
+	ExplorerSnapshot,
+} from '../../../src/types/typeExplorerDataPlane';
 import type {
 	ActiveFilterEntry,
 	IPropsIndex,
@@ -16,6 +21,12 @@ import type {
 vi.mock('../../../src/utils/inputModal', () => ({
 	showInputModal: vi.fn(),
 }));
+
+type PropsSnapshotAdapter = explorerProps & {
+	getStructuralTree(): TreeNode<PropMeta>[];
+	getStructuralRevisions(): ExplorerDataPlaneRevisions;
+	getSnapshot(expandedIds?: ReadonlySet<string>): ExplorerSnapshot<PropMeta>;
+};
 
 function makePropsIndex(app: App, subscribe = vi.fn(() => vi.fn())): IPropsIndex {
 	const nodes = propsNodesFromApp(app);
@@ -614,5 +625,159 @@ describe('explorerProps search', () => {
 			'done',
 			'draft',
 		]);
+	});
+
+	it('builds a Props snapshot with projection, parent links, visible order, and domain keys', () => {
+		const plugin = makePlugin();
+		const explorer = new explorerProps(plugin) as PropsSnapshotAdapter;
+
+		explorer.setSearchTerm('draft', 'leaf');
+		explorer.setSortBy('name', 'desc');
+		explorer.setSortTarget('children');
+		const snapshot = explorer.getSnapshot(new Set(['status']));
+
+		expect(snapshot).toMatchObject({
+			explorerId: 'props',
+			providerKey: 'props',
+			sourceRevisions: { propsRevision: plugin.propsIndex.revision },
+			projection: {
+				searchTerm: 'draft',
+				searchMode: 'leaf',
+				sortBy: 'name',
+				sortDirection: 'desc',
+				sortTarget: 'children',
+			},
+		});
+		expect(snapshot.rows.map((row) => [row.id, row.parentId, row.kind, row.domainKey])).toEqual([
+			['status', null, 'prop', 'status'],
+			['status::draft', 'status', 'value', 'status::draft'],
+		]);
+		expect(snapshot.visibleIds).toEqual(['status', 'status::draft']);
+		expect(snapshot.byId.get('status::draft')?.node.meta.rawValue).toBe('draft');
+		expect(snapshot.domainKeyToId.get('status')).toBe('status');
+		expect(snapshot.domainKeyToId.get('status::draft')).toBe('status::draft');
+	});
+
+	it('uses IPropsIndex, not PropertyIndexService, for object value structure and removals', () => {
+		const file = mockTFile('object.md', {
+			frontmatter: { Config: { mode: 'fast' } },
+		});
+		const files = [file] as TFile[];
+		const meta = new Map<string, CachedMetadata>([
+			[file.path, { frontmatter: { Config: { mode: 'fast' } } }],
+		]);
+		const app = mockApp({ files, metadata: meta });
+		(
+			app.metadataCache as unknown as {
+				getAllPropertyInfos: () => Record<string, { type: string }>;
+			}
+		).getAllPropertyInfos = () => ({ Config: { type: 'text' } });
+
+		let propsNodes: PropNode[] = [
+			{
+				id: 'Config',
+				property: 'Config',
+				values: ['{"mode":"fast"}'],
+				valueFrequencies: { '{"mode":"fast"}': 1 },
+				fileCount: 1,
+			},
+		];
+		let revision = 3;
+		let notifyPropsChanged: (() => void) | undefined;
+		const stalePropertyIndex = {
+			getPropertyNames: vi.fn(() => ['Config']),
+			getPropertyValues: vi.fn(() => ['{"mode":"fast"}', 'stale']),
+			index: new Map([['Config', new Set(['{"mode":"fast"}', 'stale'])]]),
+		};
+		const plugin = makePlugin({
+			app,
+			propertyIndex: stalePropertyIndex,
+			propsIndex: {
+				get nodes() {
+					return propsNodes;
+				},
+				get flatIds() {
+					return propsNodes.map((node) => node.id);
+				},
+				get revision() {
+					return revision;
+				},
+				refresh: vi.fn(),
+				subscribe: vi.fn((callback: () => void) => {
+					notifyPropsChanged = callback;
+					return vi.fn();
+				}),
+				byId: (id: string) => propsNodes.find((node) => node.id === id),
+				getSearchBuffer: (id: string) => {
+					const node = propsNodes.find((item) => item.id === id);
+					return node ? `${node.property}\n${node.values.join('\n')}`.toLowerCase() : '';
+				},
+			},
+			filterService: { filteredFiles: files, addNode: vi.fn() },
+		});
+		const explorer = new explorerProps(plugin) as PropsSnapshotAdapter;
+
+		const before = explorer.getSnapshot(new Set(['Config']));
+
+		expect(before.rows.map((row) => row.id)).toEqual(['Config', 'Config::{"mode":"fast"}']);
+		expect(before.domainKeyToId.get('Config::{"mode":"fast"}')).toBe('Config::{"mode":"fast"}');
+		expect(stalePropertyIndex.getPropertyValues).not.toHaveBeenCalled();
+
+		propsNodes = [
+			{
+				id: 'Config',
+				property: 'Config',
+				values: [],
+				valueFrequencies: {},
+				fileCount: 1,
+			},
+		];
+		revision += 1;
+		notifyPropsChanged?.();
+
+		const after = explorer.getSnapshot(new Set(['Config']));
+
+		expect(after.rows.map((row) => row.id)).toEqual(['Config']);
+		expect(after.domainKeyToId.has('Config::{"mode":"fast"}')).toBe(false);
+		expect(stalePropertyIndex.getPropertyValues).not.toHaveBeenCalled();
+	});
+
+	it('keeps queue and filter revisions decorative for Props structural reads', () => {
+		const plugin = makePlugin({
+			operationsIndex: {
+				nodes: [] as QueueChange[],
+				revision: 10,
+				refresh: vi.fn(),
+				subscribe: vi.fn(),
+				byId: vi.fn(),
+			},
+			activeFiltersIndex: {
+				nodes: [] as ActiveFilterEntry[],
+				revision: 20,
+				refresh: vi.fn(),
+				subscribe: vi.fn(),
+				byId: vi.fn(),
+			},
+		});
+		const explorer = new explorerProps(plugin) as PropsSnapshotAdapter;
+
+		explorer.getStructuralTree();
+		const viewSpy = vi.spyOn(plugin.viewService, 'getModel');
+		const logicSpy = vi.spyOn(
+			(explorer as unknown as { logic: { getTree(): TreeNode<PropMeta>[] } }).logic,
+			'getTree',
+		);
+		(plugin.operationsIndex as { revision: number }).revision += 1;
+		(plugin.activeFiltersIndex as { revision: number }).revision += 1;
+
+		const tree = explorer.getStructuralTree();
+		const revisions = explorer.getStructuralRevisions();
+		const snapshot = explorer.getSnapshot();
+
+		expect(tree.map((node) => node.id)).toEqual(['owner', 'status']);
+		expect(logicSpy).not.toHaveBeenCalled();
+		expect(viewSpy).not.toHaveBeenCalled();
+		expect(revisions).toEqual({ propsRevision: plugin.propsIndex.revision });
+		expect(snapshot.sourceRevisions).toEqual({ propsRevision: plugin.propsIndex.revision });
 	});
 });

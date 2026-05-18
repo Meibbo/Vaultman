@@ -5,25 +5,22 @@ import { DEFAULT_LAYOUT_SETTINGS, type LayoutSettings } from '../services/servic
 import type { MouseGestureConfig, NodeMouseActionConfig } from '../services/serviceMouse';
 import { DEFAULT_NODE_MOUSE_ACTIONS } from '../services/serviceMouse';
 import type { OperationScope } from '../services/serviceOperationScope';
-import type { LayoutTheme } from '../services/serviceTheme';
 import { DEFAULT_ELASTIC_UI_SETTINGS, type ElasticUiSettings } from './typeElasticUi';
 
 export type Language = 'auto' | 'en' | 'es';
 export type MouseGestureSurface = 'node' | 'fab' | 'toolbar';
 
 export interface VaultmanSettings {
-	/** Visual treatment for Vaultman chrome. Native follows Obsidian core classes/tokens. */
-	layoutTheme: LayoutTheme;
+	/** Render the search affordance inline in the toolbar primitives row,
+	 *  or as the lifted overlay island. Inline mode keeps a permanent search
+	 *  input between the toolbar buttons; clicking expand promotes to overlay. */
+	toolbarSearchMode: 'island' | 'inline';
 	/** Whether popup islands close when clicking the transparent outside area/backdrop. */
 	islandDismissOnOutsideClick: boolean;
-	/** Whether opening popup islands blurs/dims the content behind them. */
-	islandBackdropBlur: boolean;
-	/** Glassmorphism blur intensity for bottom bar and popups (0–100, maps to 0–20px) */
-	glassBlurIntensity: number;
 	/** Desaturate accent tokens when the Obsidian workspace, not Vaultman chrome, has focus. */
 	faintAccentsWhenWorkspaceFocused: boolean;
 	/** Elastic UI / Chameleon mode + identity contracts. */
-	elasticUi?: ElasticUiSettings;
+	elasticUi: ElasticUiSettings;
 	// after this line these settings are not used
 	//
 	// -----------------------------------------------------------------
@@ -134,14 +131,11 @@ export interface VaultmanSettings {
 export interface iVaultmanPlugin extends Plugin {
 	settings: VaultmanSettings;
 	saveSettings(): Promise<void>;
-	updateGlassBlur(): void;
 }
 
 export const DEFAULT_SETTINGS: VaultmanSettings = {
-	layoutTheme: 'default',
+	toolbarSearchMode: 'island',
 	islandDismissOnOutsideClick: false,
-	islandBackdropBlur: false,
-	glassBlurIntensity: 15,
 	faintAccentsWhenWorkspaceFocused: false,
 	elasticUi: { ...DEFAULT_ELASTIC_UI_SETTINGS },
 	// after this line these settings are not used

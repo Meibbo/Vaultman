@@ -12,8 +12,7 @@ const fixture = readFileSync(resolve('test/fixtures/snippets/vm-snippet-smoke.cs
 
 function themeService(): ThemeService {
 	const theme = new ThemeService();
-	theme.mode = 'thin';
-	theme.identity = 'native';
+	theme.setPreset('native');
 	return theme;
 }
 

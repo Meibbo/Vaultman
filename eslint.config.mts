@@ -2,7 +2,7 @@ import tseslint from 'typescript-eslint';
 import obsidianmd from 'eslint-plugin-obsidianmd';
 import globals from 'globals';
 import oxlint from 'eslint-plugin-oxlint';
-import noMutableVfs from './eslint-rules/no-mutable-vfs.mjs';
+import noMutableVfs from './scripts/no-mutable-vfs.mjs'
 
 export default tseslint.config(
 	{

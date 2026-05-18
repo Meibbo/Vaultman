@@ -443,35 +443,19 @@
 	}
 }
 
-.vm-theme-default,
-.vm-theme-native {
-	.vm-explorer-popup {
-		background: $vm-bg-primary;
-		border-radius: $vm-radius-m;
-		box-shadow: none;
-	}
-
-	.vm-squircle {
-		background: $vm-bg-primary;
-		border-radius: $vm-radius-m;
-		box-shadow: none;
-	}
-}
-
-.vm-theme-polish {
-	.vm-explorer-popup,
-	.vm-squircle {
-		background: color-mix(in srgb, $vm-bg-secondary 92%, transparent);
-	}
-}
-
-.vm-theme-glass {
-	.vm-explorer-popup,
-	.vm-squircle {
-		background: color-mix(in srgb, $vm-bg-secondary 62%, transparent);
-		backdrop-filter: blur(var(--vm-glass-blur, 12px));
-		-webkit-backdrop-filter: blur(var(--vm-glass-blur, 12px));
-	}
+// Token-driven chrome. The active .vm-theme-{id} class supplies these
+// variables through UnoCSS build output or ThemeService runtime injection.
+.vm-root .vm-explorer-popup,
+.vm-root .vm-squircle {
+	background: color-mix(
+		in srgb,
+		$vm-bg-secondary calc(var(--vm-popup-bg-opacity, 1) * 100%),
+		transparent
+	);
+	border-radius: $vm-radius-m;
+	box-shadow: none;
+	backdrop-filter: blur(var(--vm-popup-backdrop-blur, 0px));
+	-webkit-backdrop-filter: blur(var(--vm-popup-backdrop-blur, 0px));
 }
 
 // FAB badge (glass style)

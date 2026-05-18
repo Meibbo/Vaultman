@@ -8,7 +8,7 @@ interface BuildInput {
 }
 
 const HEADER_RE = /^(#{1,6})\s+(.*)$/;
-const TASK_RE = /^[\t ]*-\s+\[([ xX/\-])\]\s+(.*)$/;
+const TASK_RE = /^[\t ]*-\s+\[([ xX/-])\]\s+(.*)$/;
 const BLOCK_RE = /\^([A-Za-z0-9_-]+)\s*$/;
 
 export function buildOutlineForFile(input: BuildInput): AdoptedNode[] {

@@ -388,6 +388,8 @@ export const es: Record<string, string> = {
 		'Ruta a un archivo .base para sincronización bidireccional con Obsidian Bases',
 	'viewmode.mode.table': 'Tabla',
 	'viewmode.mode.markmap': 'Markmap',
+	'viewmode.mode.list': 'Lista',
+	'viewmode.pill.media': 'Medios',
 	'viewmode.add_mode': 'Modo AGREGAR',
 	'stats.folders': 'Carpetas',
 	'stats.files': 'Archivos',

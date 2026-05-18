@@ -2,11 +2,15 @@ import type { TFile } from 'obsidian';
 import type { TreeNode } from './typeNode';
 import type { MenuCtx } from './typeCtxMenu';
 import type { ExplorerViewMode, ViewEmptyState } from './typeViews';
-import type { ExplorerDataPlaneRevisions } from './typeExplorerDataPlane';
+import type {
+	ExplorerDataPlaneRevisions,
+	ExplorerSnapshot,
+	ExplorerSnapshotSortTarget,
+} from './typeExplorerDataPlane';
 export type { ExplorerViewMode } from './typeViews';
 
 export type ExplorerExpansionAction = 'expand-all' | 'collapse-all';
-export type ExplorerSortTarget = 'top' | 'children';
+export type ExplorerSortTarget = ExplorerSnapshotSortTarget;
 
 export interface ExplorerExpansionCommand {
 	serial: number;
@@ -39,6 +43,7 @@ export interface ExplorerProvider<TMeta = unknown> {
 	 */
 	getStructuralTree?(): TreeNode<TMeta>[];
 	getStructuralRevisions?(): ExplorerDataPlaneRevisions;
+	getSnapshot?(expandedIds?: ReadonlySet<string>): ExplorerSnapshot<TMeta>;
 	getEmptyState?(context: {
 		mode: ExplorerViewMode;
 		searchTerm: string;

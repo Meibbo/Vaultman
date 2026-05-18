@@ -22,15 +22,66 @@ export interface PerfProbeTiming extends PerfProbeCounter {
 	maxMs: number;
 }
 
-export type PerfScenarioName =
-	| 'filters-search'
-	| 'tree-scroll'
-	| 'filter-select'
-	| 'operation-badges';
+export const PERF_SCENARIO_NAMES = [
+	'filters-search',
+	'tree-scroll',
+	'filter-select',
+	'operation-badges',
+	'files-list-10k-scroll-jump',
+	'files-tree-10k-scroll-jump',
+	'files-tree-50k-scroll-jump',
+	'explorer-scroll-burst-live',
+	'projection-50k-build-or-refresh',
+	'projection-100k-proof',
+	'view-menu-element-toggle',
+	'view-mode-native-preset-restore',
+	'tree-box-selection',
+	'tree-filtered-highlight',
+	'node-media-descriptor-build',
+	'node-media-hidden-cost',
+	'node-media-visible-subscribe',
+] as const;
+
+export type PerfScenarioName = (typeof PERF_SCENARIO_NAMES)[number];
+export type PerfScrollBurstView = 'auto' | 'tree' | 'list' | 'table' | 'grid' | 'cards';
 
 export interface PerfScenarioOptions {
 	query?: string;
 	steps?: number;
+	view?: PerfScrollBurstView;
+	jumps?: number;
+	visualDelayMs?: number;
+	overlay?: boolean;
+}
+
+export interface PerfScrollBurstSample {
+	jumpIndex: number;
+	targetRatio: number;
+	scrollTop: number;
+	scrollHeight: number;
+	clientHeight: number;
+	renderedRowCount: number;
+	visibleRowCount: number;
+	textPresent: boolean;
+	blank: boolean;
+	blankDurationMs: number;
+	eventLoopDelayMs: number;
+	firstRowId?: string;
+	lastRowId?: string;
+}
+
+export interface PerfScrollBurstReport {
+	requestedView: PerfScrollBurstView;
+	view: Exclude<PerfScrollBurstView, 'auto'>;
+	jumpCount: number;
+	samples: PerfScrollBurstSample[];
+	blankFrameCount: number;
+	blankWindowOver100ms: number;
+	blankWindowOver250ms: number;
+	maxBlankDurationMs: number;
+	maxEventLoopDelayMs: number;
+	passed: boolean;
+	reason?: string;
 }
 
 export interface PerfProbeSnapshot {
@@ -39,6 +90,10 @@ export interface PerfProbeSnapshot {
 	endedAt: number;
 	counters: Record<string, PerfProbeCounter>;
 	timings: Record<string, PerfProbeTiming>;
+	longFrameCount?: number;
+	maxLongFrameMs?: number;
+	heapDeltaBytes?: number;
+	scrollBurst?: PerfScrollBurstReport;
 }
 
 export interface PerfProbeApi {
@@ -69,6 +124,22 @@ export interface PerfProbe {
 }
 
 let activePerfProbe: PerfProbeApi | undefined;
+const LONG_FRAME_THRESHOLD_MS = 50;
+const SCROLL_BURST_RATIOS = [0, 0.5, 1, 0.25, 0.75] as const;
+const SCROLL_BURST_DEFAULT_JUMPS = 100;
+const SCROLL_BURST_DEFAULT_VISUAL_DELAY_MS = 16;
+const SCROLL_BURST_BLANK_FAIL_MS = 100;
+const SCROLL_BURST_HARD_BLANK_FAIL_MS = 250;
+const SCROLL_BURST_TARGET_WAIT_MS = 2_000;
+const SCROLL_BURST_TARGET_POLL_MS = 16;
+const SCROLL_BURST_FRAME_FALLBACK_MS = 50;
+
+interface ScrollBurstTarget {
+	view: Exclude<PerfScrollBurstView, 'auto'>;
+	element: HTMLElement;
+	rowSelector: string;
+	textSelector: string;
+}
 
 export function setActivePerfProbe(probe: PerfProbeApi): void {
 	activePerfProbe = probe;
@@ -104,26 +175,27 @@ function addMetricInput(target: PerfProbeCounter, input?: PerfProbeMetricInput):
 	target.totalFilters += input?.filters ?? 0;
 }
 
-async function waitFrames(doc: Document | undefined, count = 2): Promise<void> {
+async function waitForEventLoopSettled(
+	doc: Document | undefined,
+	clock: () => number,
+	minTicks = 2,
+): Promise<{ longFrameCount: number; maxLongFrameMs: number | undefined }> {
 	const win = doc?.defaultView;
-	for (let i = 0; i < count; i += 1) {
-		if (!win) {
-			await Promise.resolve();
-			continue;
+	let longFrameCount = 0;
+	let maxLongFrameMs: number | undefined;
+	let previous = clock();
+	for (let i = 0; i < minTicks; i += 1) {
+		if (!win?.setTimeout) await Promise.resolve();
+		else await new Promise<void>((resolve) => win.setTimeout(resolve, 0));
+		const now = clock();
+		const elapsed = now - previous;
+		if (elapsed > LONG_FRAME_THRESHOLD_MS) {
+			longFrameCount += 1;
+			maxLongFrameMs = Math.max(maxLongFrameMs ?? 0, elapsed);
 		}
-		await new Promise<void>((resolve) => {
-			let finished = false;
-			const finish = () => {
-				if (finished) return;
-				finished = true;
-				resolve();
-			};
-			if (win.requestAnimationFrame) {
-				win.requestAnimationFrame(finish);
-			}
-			win.setTimeout(finish, 50);
-		});
+		previous = now;
 	}
+	return { longFrameCount, maxLongFrameMs };
 }
 
 function inputText(input: HTMLInputElement, value: string): void {
@@ -151,10 +223,343 @@ function scrollElement(element: HTMLElement, steps: number): void {
 	}
 }
 
+function jumpScrollElement(element: HTMLElement, targetRatio = 1): void {
+	const maxScroll = Math.max(0, element.scrollHeight - element.clientHeight);
+	const ratio = Number.isFinite(targetRatio) ? Math.max(0, Math.min(1, targetRatio)) : 1;
+	const target = maxScroll > 0 ? Math.round(maxScroll * ratio) : element.clientHeight || 32;
+	element.scrollTop = target;
+	element.dispatchEvent(new Event('scroll', { bubbles: true }));
+}
+
+function delay(doc: Document | undefined, ms: number): Promise<void> {
+	if (ms <= 0) return Promise.resolve();
+	const win = doc?.defaultView;
+	if (!win?.setTimeout) {
+		return Promise.resolve();
+	}
+	return new Promise((resolve) => win.setTimeout(resolve, ms));
+}
+
+function documentIsHidden(doc: Document | undefined): boolean {
+	const visibilityState = doc?.visibilityState as string | undefined;
+	return doc?.hidden === true || visibilityState === 'hidden' || visibilityState === 'prerender';
+}
+
+function visualDelay(doc: Document | undefined, ms: number): Promise<void> {
+	if (documentIsHidden(doc)) return Promise.resolve();
+	return delay(doc, ms);
+}
+
+async function nextPaintAndTick(doc: Document | undefined): Promise<void> {
+	if (documentIsHidden(doc)) {
+		await Promise.resolve();
+		await Promise.resolve();
+		return;
+	}
+	const win = doc?.defaultView;
+	if (win?.requestAnimationFrame) {
+		await new Promise<void>((resolve) => {
+			let settled = false;
+			let timeoutId: number | undefined;
+			const finish = () => {
+				if (settled) return;
+				settled = true;
+				if (timeoutId !== undefined) win.clearTimeout(timeoutId);
+				resolve();
+			};
+			timeoutId = win.setTimeout(finish, SCROLL_BURST_FRAME_FALLBACK_MS);
+			win.requestAnimationFrame(() => finish());
+		});
+	} else if (win?.setTimeout) {
+		await new Promise<void>((resolve) => win.setTimeout(resolve, 0));
+	} else {
+		await Promise.resolve();
+	}
+
+	if (win?.setTimeout) {
+		await new Promise<void>((resolve) => win.setTimeout(resolve, 0));
+	} else {
+		await Promise.resolve();
+	}
+}
+
+function scrollBurstTargets(doc: Document): ScrollBurstTarget[] {
+	const target = (
+		view: Exclude<PerfScrollBurstView, 'auto'>,
+		selector: string,
+		rowSelector: string,
+		textSelector: string,
+	): ScrollBurstTarget | null => {
+		const element = doc.querySelector<HTMLElement>(selector);
+		return element ? { view, element, rowSelector, textSelector } : null;
+	};
+
+	return [
+		target(
+			'tree',
+			'.vm-tree-virtual-outer',
+			'.vm-tree-virtual-row:not([data-sticky="true"])',
+			'.vm-tree-label, .vm-tree-field, .vm-tree-count, .vm-tree-virtual-row',
+		),
+		target(
+			'list',
+			'.vm-view-list',
+			'.vm-view-list-row[data-id], .vm-view-list-row',
+			'.vm-view-list-label, .vm-view-list-detail, .vm-view-list-row',
+		),
+		target(
+			'table',
+			'.vm-node-table',
+			'.vm-node-table-row[data-id], .vm-node-table-row',
+			'.vm-node-table-primary, .vm-node-table-cell, .vm-node-table-row',
+		),
+		target(
+			'grid',
+			'.vm-node-grid',
+			'.vm-node-grid-tile[data-id], .vm-node-grid-row',
+			'.vm-node-grid-label, .vm-node-grid-field, .vm-node-grid-tile',
+		),
+		target(
+			'cards',
+			'.vm-node-cards',
+			'.vm-node-card[data-id], .vm-node-card-row',
+			'.vm-node-card-field, .vm-node-card',
+		),
+	].filter((item): item is ScrollBurstTarget => item !== null);
+}
+
+function resolveScrollBurstTarget(
+	doc: Document | undefined,
+	requestedView: PerfScrollBurstView,
+): ScrollBurstTarget | null {
+	if (!doc) return null;
+	const targets = scrollBurstTargets(doc);
+	if (requestedView !== 'auto') {
+		return targets.find((target) => target.view === requestedView) ?? null;
+	}
+	return (
+		targets.find((target) => target.element.clientHeight > 0) ??
+		targets.find((target) => target.element.scrollHeight > 0) ??
+		targets[0] ??
+		null
+	);
+}
+
+async function waitForScrollBurstTarget(
+	doc: Document | undefined,
+	requestedView: PerfScrollBurstView,
+	clock: () => number,
+): Promise<ScrollBurstTarget | null> {
+	if (!doc) return null;
+	let target = resolveScrollBurstTarget(doc, requestedView);
+	const deadline = clock() + SCROLL_BURST_TARGET_WAIT_MS;
+	while (!target && clock() < deadline) {
+		await delay(doc, SCROLL_BURST_TARGET_POLL_MS);
+		target = resolveScrollBurstTarget(doc, requestedView);
+	}
+	return target;
+}
+
+function rowTextPresent(rows: readonly HTMLElement[], textSelector: string): boolean {
+	return rows.some((row) => {
+		const textTarget = row.matches(textSelector)
+			? row
+			: row.querySelector<HTMLElement>(textSelector);
+		return Boolean(textTarget?.textContent?.trim());
+	});
+}
+
+function rowId(row: HTMLElement | undefined): string | undefined {
+	return row?.dataset.id ?? row?.dataset.nodeId ?? row?.dataset.callbackId;
+}
+
+function upsertScrollSmokeOverlay(doc: Document, report: PerfScrollBurstReport): void {
+	const overlay =
+		doc.querySelector<HTMLElement>('.vm-scroll-smoke-overlay') ?? doc.createElement('div');
+	if (!overlay.isConnected) {
+		overlay.className = 'vm-scroll-smoke-overlay';
+		overlay.setAttribute('role', 'status');
+		doc.body.appendChild(overlay);
+	}
+	overlay.textContent = `Vaultman scroll smoke ${report.view}: ${
+		report.passed ? 'PASS' : 'FAIL'
+	} jumps=${report.jumpCount} blanks=${report.blankFrameCount} maxBlank=${Math.round(
+		report.maxBlankDurationMs,
+	)}ms maxDelay=${Math.round(report.maxEventLoopDelayMs)}ms`;
+}
+
+async function runExplorerScrollBurst(
+	doc: Document | undefined,
+	clock: () => number,
+	options: PerfScenarioOptions,
+): Promise<PerfScrollBurstReport> {
+	const requestedView = options.view ?? 'auto';
+	const target = await waitForScrollBurstTarget(doc, requestedView, clock);
+	if (!doc || !target) {
+		const view = requestedView === 'auto' ? 'tree' : requestedView;
+		return {
+			requestedView,
+			view,
+			jumpCount: 0,
+			samples: [],
+			blankFrameCount: 1,
+			blankWindowOver100ms: 1,
+			blankWindowOver250ms: 1,
+			maxBlankDurationMs: SCROLL_BURST_HARD_BLANK_FAIL_MS,
+			maxEventLoopDelayMs: 0,
+			passed: false,
+			reason: 'scroll target not found',
+		};
+	}
+
+	const jumpCount = Math.max(1, Math.floor(options.jumps ?? SCROLL_BURST_DEFAULT_JUMPS));
+	const visualDelayMs = Math.max(
+		0,
+		Math.floor(options.visualDelayMs ?? SCROLL_BURST_DEFAULT_VISUAL_DELAY_MS),
+	);
+	const samples: PerfScrollBurstSample[] = [];
+	let blankStart: number | null = null;
+	let maxEventLoopDelayMs = 0;
+
+	for (let jumpIndex = 0; jumpIndex < jumpCount; jumpIndex += 1) {
+		const ratio = SCROLL_BURST_RATIOS[jumpIndex % SCROLL_BURST_RATIOS.length];
+		const before = clock();
+		jumpScrollElement(target.element, ratio);
+		await nextPaintAndTick(doc);
+		const after = clock();
+		maxEventLoopDelayMs = Math.max(maxEventLoopDelayMs, after - before);
+
+		const rows = [...target.element.querySelectorAll<HTMLElement>(target.rowSelector)];
+		const visibleRowCount = rows.length;
+		const textPresent = rowTextPresent(rows, target.textSelector);
+		const blank = visibleRowCount === 0 || !textPresent;
+		if (blank && blankStart === null) blankStart = before;
+		if (!blank) blankStart = null;
+		const blankDurationMs = blank ? Math.max(0, after - (blankStart ?? before)) : 0;
+
+		samples.push({
+			jumpIndex,
+			targetRatio: ratio,
+			scrollTop: target.element.scrollTop,
+			scrollHeight: target.element.scrollHeight,
+			clientHeight: target.element.clientHeight,
+			renderedRowCount: rows.length,
+			visibleRowCount,
+			textPresent,
+			blank,
+			blankDurationMs,
+			eventLoopDelayMs: after - before,
+			firstRowId: rowId(rows[0]),
+			lastRowId: rowId(rows.at(-1)),
+		});
+
+		const partialReport = buildScrollBurstReport(requestedView, target.view, jumpCount, samples);
+		if (options.overlay !== false) upsertScrollSmokeOverlay(doc, partialReport);
+		await visualDelay(doc, visualDelayMs);
+	}
+
+	const report = buildScrollBurstReport(requestedView, target.view, jumpCount, samples);
+	report.maxEventLoopDelayMs = Math.max(report.maxEventLoopDelayMs, maxEventLoopDelayMs);
+	if (options.overlay !== false) upsertScrollSmokeOverlay(doc, report);
+	return report;
+}
+
+function buildScrollBurstReport(
+	requestedView: PerfScrollBurstView,
+	view: Exclude<PerfScrollBurstView, 'auto'>,
+	jumpCount: number,
+	samples: readonly PerfScrollBurstSample[],
+): PerfScrollBurstReport {
+	const blankFrameCount = samples.filter((sample) => sample.blank).length;
+	const blankWindowOver100ms = samples.filter(
+		(sample) => sample.blankDurationMs > SCROLL_BURST_BLANK_FAIL_MS,
+	).length;
+	const blankWindowOver250ms = samples.filter(
+		(sample) => sample.blankDurationMs > SCROLL_BURST_HARD_BLANK_FAIL_MS,
+	).length;
+	const maxBlankDurationMs = Math.max(0, ...samples.map((sample) => sample.blankDurationMs));
+	const maxEventLoopDelayMs = Math.max(0, ...samples.map((sample) => sample.eventLoopDelayMs));
+	return {
+		requestedView,
+		view,
+		jumpCount,
+		samples: [...samples],
+		blankFrameCount,
+		blankWindowOver100ms,
+		blankWindowOver250ms,
+		maxBlankDurationMs,
+		maxEventLoopDelayMs,
+		passed: blankFrameCount === 0 && blankWindowOver100ms === 0 && blankWindowOver250ms === 0,
+	};
+}
+
+function dragBoxSelection(element: HTMLElement): void {
+	const win = element.ownerDocument.defaultView;
+	const EventConstructor = win?.PointerEvent ?? win?.MouseEvent ?? MouseEvent;
+	const rect = element.getBoundingClientRect();
+	const startX = rect.left + 8;
+	const startY = rect.top + 8;
+	const endX = rect.left + Math.max(48, Math.min(rect.width || 160, 160));
+	const endY = rect.top + Math.max(48, Math.min(rect.height || 160, 160));
+
+	element.dispatchEvent(
+		new EventConstructor('pointerdown', {
+			bubbles: true,
+			cancelable: true,
+			clientX: startX,
+			clientY: startY,
+		}),
+	);
+	element.dispatchEvent(
+		new EventConstructor('pointermove', {
+			bubbles: true,
+			cancelable: true,
+			clientX: endX,
+			clientY: endY,
+		}),
+	);
+	element.dispatchEvent(
+		new EventConstructor('pointerup', {
+			bubbles: true,
+			cancelable: true,
+			clientX: endX,
+			clientY: endY,
+		}),
+	);
+}
+
+function scenarioMetricInput(name: PerfScenarioName): PerfProbeMetricInput | undefined {
+	if (name === 'files-list-10k-scroll-jump') {
+		return { nodes: 10_000, rows: 10_000, visibleRows: 64, files: 10_000 };
+	}
+	if (name === 'files-tree-10k-scroll-jump') {
+		return { nodes: 10_000, rows: 10_000, visibleRows: 64, files: 10_000 };
+	}
+	if (name === 'files-tree-50k-scroll-jump') {
+		return { nodes: 50_000, rows: 50_000, visibleRows: 64, files: 50_000 };
+	}
+	if (name === 'projection-50k-build-or-refresh') {
+		return { nodes: 50_000, rows: 50_000, files: 50_000 };
+	}
+	if (name === 'projection-100k-proof') {
+		return { nodes: 100_000, rows: 100_000, files: 100_000 };
+	}
+	if (name === 'node-media-descriptor-build' || name === 'node-media-hidden-cost') {
+		return { nodes: 10_000, rows: 10_000, files: 10_000 };
+	}
+	if (name === 'node-media-visible-subscribe') {
+		return { nodes: 10_000, rows: 10_000, visibleRows: 64, files: 10_000 };
+	}
+	return undefined;
+}
+
 export function createPerfProbe({ now, doc }: PerfProbeOptions): PerfProbe {
 	let startedAt = now();
 	let counters: Record<string, PerfProbeCounter> = {};
 	let timings: Record<string, PerfProbeTiming> = {};
+	let longFrameCount: number | undefined;
+	let maxLongFrameMs: number | undefined;
+	let scrollBurst: PerfScrollBurstReport | undefined;
 
 	function count(name: string, input?: PerfProbeMetricInput): void {
 		counters[name] ??= createCounter();
@@ -201,6 +606,9 @@ export function createPerfProbe({ now, doc }: PerfProbeOptions): PerfProbe {
 		startedAt = now();
 		counters = {};
 		timings = {};
+		longFrameCount = undefined;
+		maxLongFrameMs = undefined;
+		scrollBurst = undefined;
 	}
 
 	function snapshot(): PerfProbeSnapshot {
@@ -209,6 +617,10 @@ export function createPerfProbe({ now, doc }: PerfProbeOptions): PerfProbe {
 			endedAt: now(),
 			counters,
 			timings,
+			longFrameCount,
+			maxLongFrameMs,
+			heapDeltaBytes: undefined,
+			scrollBurst,
 		};
 	}
 
@@ -217,23 +629,59 @@ export function createPerfProbe({ now, doc }: PerfProbeOptions): PerfProbe {
 		options: PerfScenarioOptions = {},
 	): Promise<PerfProbeSnapshot> {
 		reset();
-		count(`scenario.${name}`);
+		const scenarioInput = scenarioMetricInput(name);
+		count(`scenario.${name}`, scenarioInput);
 
-		if (name === 'filters-search') {
-			const input = doc?.querySelector<HTMLInputElement>('.vm-filters-search-input');
-			if (input) inputText(input, options.query ?? 'status');
-		} else if (name === 'tree-scroll') {
-			const outer = doc?.querySelector<HTMLElement>('.vm-tree-virtual-outer');
-			if (outer) scrollElement(outer, options.steps ?? 8);
-		} else if (name === 'filter-select') {
-			const row = doc?.querySelector<HTMLElement>('.vm-tree-virtual-row');
-			if (row) clickElement(row);
-		} else if (name === 'operation-badges') {
-			const badge = doc?.querySelector<HTMLElement>('.vm-badge.is-undoable, .vm-badge');
-			if (badge) clickElement(badge);
-		}
+		await measureAsync(`scenario.${name}.duration`, scenarioInput, async () => {
+			if (name === 'filters-search') {
+				const input = doc?.querySelector<HTMLInputElement>('.vm-filters-search-input');
+				if (input) inputText(input, options.query ?? 'status');
+			} else if (name === 'tree-scroll') {
+				const outer = doc?.querySelector<HTMLElement>('.vm-tree-virtual-outer');
+				if (outer) scrollElement(outer, options.steps ?? 8);
+			} else if (name === 'files-tree-10k-scroll-jump') {
+				const outer = doc?.querySelector<HTMLElement>('.vm-tree-virtual-outer');
+				if (outer) jumpScrollElement(outer);
+			} else if (name === 'files-tree-50k-scroll-jump') {
+				const outer = doc?.querySelector<HTMLElement>('.vm-tree-virtual-outer');
+				if (outer) jumpScrollElement(outer);
+			} else if (name === 'files-list-10k-scroll-jump') {
+				const outer = doc?.querySelector<HTMLElement>('.vm-view-list');
+				if (outer) jumpScrollElement(outer);
+			} else if (name === 'explorer-scroll-burst-live') {
+				scrollBurst = await runExplorerScrollBurst(doc, now, options);
+			} else if (name === 'filter-select') {
+				const row = doc?.querySelector<HTMLElement>('.vm-tree-virtual-row');
+				if (row) clickElement(row);
+			} else if (name === 'operation-badges') {
+				const badge = doc?.querySelector<HTMLElement>('.vm-badge.is-undoable, .vm-badge');
+				if (badge) clickElement(badge);
+			} else if (name === 'view-menu-element-toggle') {
+				const toggle = doc?.querySelector<HTMLElement>(
+					'[data-node-field], [data-testid="view-menu-element-toggle"], .vm-view-menu [role="checkbox"]',
+				);
+				if (toggle) clickElement(toggle);
+			} else if (name === 'view-mode-native-preset-restore') {
+				const preset = doc?.querySelector<HTMLElement>(
+					'[data-vm-view-preset="native"], [data-testid="view-mode-native-preset"], .vm-view-mode-native-preset',
+				);
+				if (preset) clickElement(preset);
+			} else if (name === 'tree-box-selection') {
+				const outer = doc?.querySelector<HTMLElement>('.vm-tree-virtual-outer');
+				if (outer) dragBoxSelection(outer);
+			} else if (name === 'tree-filtered-highlight') {
+				const highlighted = doc?.querySelectorAll(
+					'.vm-tree-row-surface.is-active-filter, .is-active-filter .vm-tree-row-surface',
+				);
+				count('scenario.tree-filtered-highlight.matches', { rows: highlighted?.length ?? 0 });
+			}
 
-		await waitFrames(doc, 2);
+			const loop = await waitForEventLoopSettled(doc, now, 2);
+			if (loop.longFrameCount > 0) {
+				longFrameCount = (longFrameCount ?? 0) + loop.longFrameCount;
+				maxLongFrameMs = Math.max(maxLongFrameMs ?? 0, loop.maxLongFrameMs ?? 0);
+			}
+		});
 		return { ...snapshot(), scenario: name };
 	}
 

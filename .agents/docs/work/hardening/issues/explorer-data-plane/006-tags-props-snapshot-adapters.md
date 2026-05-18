@@ -2,13 +2,13 @@
 title: EDP-006 Tags and Props snapshot adapters
 type: issue
 issue_id: EDP-006
-status: needs-triage
+status: completed
 issue_kind: AFK
 parent: "[[docs/work/hardening/issues/explorer-data-plane/index|Explorer data plane local issues]]"
 created: 2026-05-11T20:55:00
-updated: 2026-05-11T20:55:00
+updated: 2026-05-13T04:20:51
 labels:
-  - needs-triage
+  - completed
 tags:
   - agent/issue
   - initiative/hardening
@@ -40,12 +40,97 @@ context menus, and property/value scope.
 
 ## Acceptance Criteria
 
-- [ ] Tags/Props snapshots cover ids, parent links, visible order, search mode,
-      sort target, casing, object values, and value removal.
-- [ ] Provider actions for filters, queue ops, FnR, binding notes, and context
-      menus remain compatible.
-- [ ] `indexProps` versus `PropertyIndexService` ownership is documented or
+- [x] Shared contract supports Tags/Props provider projection state and domain
+      key lookup without requiring Files-only revisions.
+- [x] Tags snapshots cover ids, parent links, visible order, search mode, sort
+      target, casing, and tag domain-key lookup.
+- [x] Props snapshots cover ids, parent links, visible order, property/value
+      scope, object values, and value removal.
+- [x] Tags provider actions for filters, queue ops, FnR, binding notes, and
+      context menus remain compatible.
+- [x] Props provider actions for filters, queue ops, FnR, binding notes, and
+      context menus remain compatible.
+- [x] `indexProps` versus `PropertyIndexService` ownership is documented or
       resolved.
+
+## E0 Shared Contract Coordinator
+
+Branch/worktree:
+`codex/edp-006-contract` at
+`C:\Users\vic_A\Desktop\vaultman\.claude\worktrees\edp-006-contract`.
+
+Coordinator scope:
+
+- `ExplorerDataPlaneRevisions` now allows provider-specific structural
+  revisions, so Tags and Props snapshots do not need to invent a Files revision.
+- `ExplorerSnapshotProjection` records shared provider projection state:
+  `searchTerm`, `searchMode`, `sortBy`, `sortDirection`, and `sortTarget`.
+- `ExplorerSnapshot.domainKeyToId` maps provider domain keys to row ids for tag,
+  property, and value lookups where paths/folder paths are not the domain key.
+- `buildExplorerSnapshot()` accepts optional projection state, supplies stable
+  defaults, and populates `domainKeyToId` from `domainKeyFor`.
+
+Ownership decision:
+
+- `indexProps` / `IPropsIndex` is the authoritative structural source for Props
+  data-plane snapshots because it owns file-backed property/value frequency
+  semantics and publishes a revision.
+- `PropertyIndexService` remains a live autocomplete and modal helper. It is not
+  the Explorer structural snapshot authority in EDP-006 because it intentionally
+  keeps a monotonic value cache between rebuilds.
+- E1 and E2 should consume this shared contract without editing shared
+  data-plane types unless a new blocker is discovered and documented first.
+
+## E1 Tags Snapshot Adapter
+
+Branch/worktree:
+`codex/edp-006-tags` at
+`C:\Users\vic_A\Desktop\vaultman\.claude\worktrees\edp-006-tags`.
+
+Tags scope:
+
+- `explorerTags` now exposes `getStructuralTree()`,
+  `getStructuralRevisions()`, and `getSnapshot(expandedIds)`.
+- `getSnapshot()` uses `buildExplorerSnapshot()` with provider projection state
+  from the current Tags search/sort settings.
+- Tags domain keys are canonical panel-action keys in the form `#tag/path`;
+  snapshot `domainKeyToId` maps those keys back to row ids.
+- Structural revisions include only `tagsRevision`. Queue and active-filter
+  revisions remain decorative and do not invalidate the cached Tags logic tree.
+- `getTree()` still decorates through the existing `ViewService` path, so
+  active-filter badges, queue badges, search highlights, Iconic tag icons, and
+  quick-action badges keep their existing behavior.
+- Shared data-plane contracts, Props provider/container/tests, and panel/view
+  behavior were not changed.
+
+## E2 Props Snapshot Adapter
+
+Branch/worktree:
+`codex/edp-006-props` at
+`C:\Users\vic_A\Desktop\vaultman\.claude\worktrees\edp-006-props`.
+
+Props acceptance:
+
+- [x] `explorerProps` now exposes `getStructuralTree()`,
+      `getStructuralRevisions()`, and `getSnapshot()` without editing shared
+      data-plane contracts.
+- [x] `getSnapshot()` consumes E0 `buildExplorerSnapshot()` and carries
+      Props projection state: `searchTerm`, `searchMode`, `sortBy`,
+      `sortDirection`, and `sortTarget`.
+- [x] Props snapshot rows cover property/value ids, parent links, visible order
+      from `expandedIds`, `kind` (`prop`/`value`), and `domainKeyToId` lookup
+      keys for both property and value nodes.
+- [x] `indexProps` / `IPropsIndex` remains the structural authority:
+      object-value strings and value removals follow the current props index
+      nodes, while stale `PropertyIndexService` autocomplete values are not
+      consulted for structure.
+- [x] Property casing and value identity remain provider-owned through
+      `PropMeta.propName` and `PropMeta.rawValue`; existing FnR, queue,
+      context-menu, binding-note, filter toggle, search, and sort tests still
+      pass.
+- [x] Queue/filter revisions stay decorative: Props structural revisions and
+      source snapshots include only `propsRevision`, and the structural cache
+      key excludes operations and active-filter revisions.
 
 ## Blocked By
 
@@ -56,4 +141,47 @@ context menus, and property/value scope.
 
 ## Verification
 
-- Run focused Tags/Props provider tests and new snapshot adapter tests.
+- RED: `pnpm run test:unit -- test/unit/logic/logicExplorerSnapshot.test.ts`
+  failed 1/10 on missing projection metadata.
+- GREEN: `pnpm run test:unit -- test/unit/logic/logicExplorerSnapshot.test.ts test/unit/services/serviceExplorerDataPlane.test.ts`
+  passed 2 files / 17 tests.
+- `pnpm run check` passed with 0 errors / 0 warnings after dependency setup was
+  repaired in the new worktree.
+- Sticky tree focused gate passed 4 files / 39 tests:
+  `pnpm exec vitest run --project component --config vitest.config.ts test/component/viewTreeDecorations.test.ts test/component/viewTreeScrollFallback.test.ts test/component/viewTreeSelection.test.ts test/component/viewTreeHoverBadges.test.ts --fileParallelism=false`.
+- `pnpm run lint:full` passed.
+- `pnpm run check` passed with 0 errors / 0 warnings.
+- `pnpm run build:plugin` passed.
+- `git diff --check` passed with Windows CRLF conversion warnings only.
+- No runtime UI behavior changed; live Obsidian smoke was not required for E0.
+- E1 RED: `pnpm run test:unit -- test/unit/components/explorerTagsSnapshot.test.ts`
+  failed 4/4 because `explorerTags` did not expose `getSnapshot()` or
+  `getStructuralTree()`.
+- E1 GREEN: `pnpm run test:unit -- test/unit/components/explorerTagsSnapshot.test.ts`
+  passed 1 file / 4 tests.
+- E1 focused Tags gate:
+  `pnpm run test:unit -- test/unit/components/explorerTagsSnapshot.test.ts test/unit/components/explorerTags.test.ts`
+  passed 2 files / 14 tests.
+- E1 sticky tree focused gate initially timed out once in
+  `viewTreeScrollFallback.test.ts`; the isolated rerun passed 1 file / 3 tests,
+  then the required combined sticky gate passed 4 files / 39 tests.
+- E1 `pnpm run lint:full` passed.
+- E1 `pnpm run check` passed with 0 errors / 0 warnings.
+- E1 `pnpm run build:plugin` passed.
+- E1 `git diff --check` passed with Windows CRLF conversion warnings only.
+- E2 RED: `pnpm run test:unit -- test/unit/components/explorerProps.test.ts`
+  failed 3/20 on missing `getSnapshot()` and `getStructuralTree()`.
+- E2 GREEN: `pnpm run test:unit -- test/unit/components/explorerProps.test.ts`
+  passed 1 file / 20 tests.
+- E2 sticky tree focused gate passed 4 files / 39 tests:
+  `pnpm exec vitest run --project component --config vitest.config.ts test/component/viewTreeDecorations.test.ts test/component/viewTreeScrollFallback.test.ts test/component/viewTreeSelection.test.ts test/component/viewTreeHoverBadges.test.ts --fileParallelism=false`.
+- E2 `pnpm run lint:full` passed.
+- E2 `pnpm run check` passed with 0 errors / 0 warnings.
+- E2 `pnpm run build:plugin` passed.
+- E2 `git diff --check` passed with Windows CRLF conversion warnings only.
+- Combined EDP-006 integration unit gate on `claude/explorer` passed 5 files /
+  51 tests: `explorerTags`, `explorerTagsSnapshot`, `explorerProps`,
+  `logicExplorerSnapshot`, and `serviceExplorerDataPlane`.
+- Combined sticky tree gate passed 4 files / 39 tests.
+- Combined `pnpm run lint:full`, `pnpm run check`, `pnpm run build:plugin`,
+  and `git diff --check` passed.

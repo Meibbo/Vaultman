@@ -3,8 +3,25 @@ import {
 	clearActivePerfProbe,
 	createPerfProbe,
 	getActivePerfProbe,
+	PERF_SCENARIO_NAMES,
+	type PerfScenarioName,
 	setActivePerfProbe,
 } from '../../../src/dev/perfProbe';
+
+const explorerPlatformScenarioNames = [
+	'files-list-10k-scroll-jump',
+	'files-tree-10k-scroll-jump',
+	'files-tree-50k-scroll-jump',
+	'projection-50k-build-or-refresh',
+	'projection-100k-proof',
+	'view-menu-element-toggle',
+	'view-mode-native-preset-restore',
+	'tree-box-selection',
+	'tree-filtered-highlight',
+	'node-media-descriptor-build',
+	'node-media-hidden-cost',
+	'node-media-visible-subscribe',
+] as const satisfies readonly PerfScenarioName[];
 
 describe('perf probe contract', () => {
 	it('counts events with payload totals', () => {
@@ -82,14 +99,14 @@ describe('perf probe contract', () => {
 	});
 
 	it('finishes scenarios when animation frames are not delivered', async () => {
-		const requestAnimationFrame = vi.fn();
+		const setTimeout = vi.fn((cb: () => void) => {
+			cb();
+			return 0;
+		});
 		const doc = {
 			defaultView: {
-				requestAnimationFrame,
-				setTimeout: (cb: () => void) => {
-					cb();
-					return 0;
-				},
+				requestAnimationFrame: vi.fn(),
+				setTimeout,
 			},
 			querySelector: () => null,
 		} as unknown as Document;
@@ -97,7 +114,59 @@ describe('perf probe contract', () => {
 
 		const result = await probe.api.run('tree-scroll');
 
-		expect(requestAnimationFrame).toHaveBeenCalled();
+		expect(setTimeout).toHaveBeenCalled();
 		expect(result.scenario).toBe('tree-scroll');
+	});
+
+	it('records event-loop delay after scroll scenarios as long-frame data', async () => {
+		let now = 0;
+		const scroller = {
+			clientHeight: 100,
+			scrollHeight: 1_000,
+			scrollTop: 0,
+			dispatchEvent: vi.fn(),
+		} as unknown as HTMLElement;
+		const doc = {
+			defaultView: {
+				setTimeout: (cb: () => void) => {
+					now += 75;
+					cb();
+					return 0;
+				},
+			},
+			querySelector: (selector: string) =>
+				selector === '.vm-tree-virtual-outer' ? scroller : null,
+		} as unknown as Document;
+		const probe = createPerfProbe({ now: () => now, doc });
+
+		const result = await probe.api.run('files-tree-50k-scroll-jump');
+
+		expect(scroller.scrollTop).toBe(900);
+		expect(result.longFrameCount).toBeGreaterThan(0);
+		expect(result.maxLongFrameMs).toBeGreaterThanOrEqual(75);
+	});
+
+	it('registers explorer platform scenarios as runnable snapshot contracts', async () => {
+		expect(PERF_SCENARIO_NAMES).toEqual(expect.arrayContaining(explorerPlatformScenarioNames));
+
+		for (const name of explorerPlatformScenarioNames) {
+			const probe = createPerfProbe({ now: () => 0 });
+			const result = await probe.api.run(name);
+
+			expect(result.scenario).toBe(name);
+			expect(result.counters[`scenario.${name}`].count).toBe(1);
+		}
+	});
+
+	it('includes jank-ready snapshot fields for future live probes', () => {
+		const probe = createPerfProbe({ now: () => 0 });
+		const snapshot = probe.snapshot();
+
+		expect(Object.hasOwn(snapshot, 'longFrameCount')).toBe(true);
+		expect(Object.hasOwn(snapshot, 'maxLongFrameMs')).toBe(true);
+		expect(Object.hasOwn(snapshot, 'heapDeltaBytes')).toBe(true);
+		expect(snapshot.longFrameCount).toBeUndefined();
+		expect(snapshot.maxLongFrameMs).toBeUndefined();
+		expect(snapshot.heapDeltaBytes).toBeUndefined();
 	});
 });

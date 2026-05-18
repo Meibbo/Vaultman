@@ -6,44 +6,44 @@
 		toggleVisibleField,
 		type NodeFieldDefinition,
 	} from '../../../services/serviceNodeFieldVisibility';
+	import {
+		EXPLORER_PLATFORM_VIEW_MODES,
+		type ExplorerPlatformViewMode,
+	} from '../../../services/serviceExplorerViewContract';
 	import type { ExplorerViewMode } from '../../../types/typeViews';
 
 	type FiltersTab = 'props' | 'files' | 'tags' | 'content';
 	type ViewMode = ExplorerViewMode;
+	type SelectableViewMode = ExplorerPlatformViewMode;
 
-	const VIEW_MODES: { id: ViewMode; iconName: string; labelKey: string }[] = [
-		{
-			id: 'tree',
+	const VIEW_MODE_CONFIG: Record<SelectableViewMode, { iconName: string; labelKey: string }> = {
+		tree: {
 			iconName: 'lucide-list-tree',
 			labelKey: 'viewmode.mode.tree',
 		},
-		{
-			id: 'table',
+		list: {
+			iconName: 'lucide-list',
+			labelKey: 'viewmode.mode.list',
+		},
+		table: {
 			iconName: 'lucide-table',
 			labelKey: 'viewmode.mode.table',
 		},
-		{
-			id: 'grid',
+		grid: {
 			iconName: 'lucide-layout-grid',
 			labelKey: 'viewmode.mode.grid',
 		},
-		{
-			id: 'cards',
+		cards: {
 			iconName: 'lucide-layout-panel-top',
 			labelKey: 'viewmode.mode.cards',
 		},
-		{
-			id: 'markmap',
-			iconName: 'lucide-git-branch',
-			labelKey: 'viewmode.mode.markmap',
-		},
-		//temp until i add the new svars provider
-		{
-			id: 'svar',
-			iconName: 'lucide-files',
-			labelKey: 'viewmode.mode.svar',
-		},
-	];
+	};
+
+	const VIEW_MODES: { id: SelectableViewMode; iconName: string; labelKey: string }[] =
+		EXPLORER_PLATFORM_VIEW_MODES.map((id) => ({
+			id,
+			...VIEW_MODE_CONFIG[id],
+		}));
 
 	let {
 		activeTab,
@@ -54,6 +54,7 @@
 		addOpCount = 0,
 		fieldDefinitions = [],
 		visibleFields = [],
+		nativePresetActive = false,
 		onVisibleFieldsChange,
 	}: {
 		activeTab: FiltersTab;
@@ -64,12 +65,13 @@
 		addOpCount?: number;
 		fieldDefinitions?: readonly NodeFieldDefinition[];
 		visibleFields?: readonly string[];
+		nativePresetActive?: boolean;
 		onVisibleFieldsChange?: (fields: string[]) => void;
 	} = $props();
 
 	const showSearch = $derived(activeTab === 'files' && viewMode === 'grid');
 
-	function selectView(v: ViewMode) {
+	function selectView(v: SelectableViewMode) {
 		if (viewMode === v) return;
 		viewMode = v;
 	}
@@ -155,20 +157,23 @@
 				<span class="vm-fab-badge">{addOpCount}</span>
 			{/if}
 		</div>
-		<!-- Pills (horizontal scroll, no scrollbar) -->
-		<div class="vm-viewmode-pills">
-			{#each fieldDefinitions as pill (pill.id)}
-				<button
-					type="button"
-					class="vm-viewmode-pill"
-					class:is-active={visibleFields.includes(pill.id)}
-					aria-pressed={visibleFields.includes(pill.id)}
-					onclick={() => togglePill(pill.id)}
-				>
-					{translate(pill.labelKey)}
-				</button>
-			{/each}
-		</div>
+		{#if !nativePresetActive}
+			<!-- Pills (horizontal scroll, no scrollbar) -->
+			<div class="vm-viewmode-pills">
+				{#each fieldDefinitions as pill (pill.id)}
+					<button
+						type="button"
+						class="vm-viewmode-pill"
+						class:is-active={visibleFields.includes(pill.id)}
+						aria-pressed={visibleFields.includes(pill.id)}
+						data-node-field={pill.id}
+						onclick={() => togglePill(pill.id)}
+					>
+						{translate(pill.labelKey)}
+					</button>
+				{/each}
+			</div>
+		{/if}
 	</div>
 
 	<!-- Row 2: view-mode squircles (via btnSelection shared primitive) -->

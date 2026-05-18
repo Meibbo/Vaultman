@@ -41,8 +41,7 @@ describe('viewOutlineExplorer', () => {
 		const host = document.createElement('div');
 		document.body.appendChild(host);
 		const theme = new ThemeService();
-		theme.mode = 'thin';
-		theme.identity = 'outline';
+		theme.setPreset('native');
 		const adoption = new AdoptionService();
 		adoption.enabled = true;
 

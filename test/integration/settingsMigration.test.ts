@@ -56,7 +56,6 @@ describe('settings migration', () => {
 				if (!plugin?.settings) return { ok: false, missing: ['plugin not loaded'] };
 
 				const required: (keyof VaultmanSettings)[] = [
-					'glassBlurIntensity',
 					'defaultPropertyType',
 					'filterTemplates',
 					'sessionFilePath',

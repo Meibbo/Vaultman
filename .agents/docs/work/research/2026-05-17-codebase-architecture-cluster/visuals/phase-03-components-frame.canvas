@@ -1,0 +1,172 @@
+{
+  "nodes": [
+    {
+      "id": "c300000000000001",
+      "type": "text",
+      "text": "Phase 03 - src/components/frame/\nFrame shell, local controllers, detached tab host, overlays, page FABs, search state, viewport, nav reorder, move helpers.",
+      "x": 0,
+      "y": 0,
+      "width": 460,
+      "height": 170,
+      "color": "6"
+    },
+    {
+      "id": "c300000000000002",
+      "type": "file",
+      "file": ".agents/docs/work/research/2026-05-17-codebase-architecture-cluster/03-components-frame-layer.md",
+      "x": 0,
+      "y": -250,
+      "width": 420,
+      "height": 90,
+      "color": "4"
+    },
+    {
+      "id": "c300000000000003",
+      "type": "file",
+      "file": ".agents/docs/work/research/2026-05-17-codebase-architecture-cluster/03a-frame-shell.md",
+      "x": -520,
+      "y": -160,
+      "width": 420,
+      "height": 90,
+      "color": "5"
+    },
+    {
+      "id": "c300000000000004",
+      "type": "file",
+      "file": ".agents/docs/work/research/2026-05-17-codebase-architecture-cluster/03b-frame-controllers.md",
+      "x": -520,
+      "y": 10,
+      "width": 420,
+      "height": 90,
+      "color": "5"
+    },
+    {
+      "id": "c300000000000005",
+      "type": "file",
+      "file": ".agents/docs/work/research/2026-05-17-codebase-architecture-cluster/03c-detached-and-surfaces.md",
+      "x": -520,
+      "y": 180,
+      "width": 420,
+      "height": 90,
+      "color": "5"
+    },
+    {
+      "id": "c300000000000006",
+      "type": "file",
+      "file": "src/components/frame/frameVaultman.svelte",
+      "x": 560,
+      "y": -170,
+      "width": 420,
+      "height": 100,
+      "color": "5"
+    },
+    {
+      "id": "c300000000000007",
+      "type": "file",
+      "file": "src/components/frame/DetachedTabHost.svelte",
+      "x": 560,
+      "y": -10,
+      "width": 420,
+      "height": 90,
+      "color": "5"
+    },
+    {
+      "id": "c300000000000008",
+      "type": "text",
+      "text": "Frame-local controllers\nframePages.ts\nframeOverlays.svelte.ts\nframeNavReorder.svelte.ts\nframeViewport.ts\nframeFiltersSearch.ts\nframeActiveFilters.ts\nframeMoves.ts\nframeSearchSources.ts",
+      "x": 560,
+      "y": 140,
+      "width": 420,
+      "height": 210,
+      "color": "5"
+    },
+    {
+      "id": "c300000000000009",
+      "type": "text",
+      "text": "Outgoing component families\nlayout: navbar/dock/overlay\npages: ops/statistics/filters/tools\ncontainers: queue/active filters\ndashboard: 3-column + addons\nproviders/services: explorers, layout, FnR, queue, filters",
+      "x": 40,
+      "y": 330,
+      "width": 520,
+      "height": 190,
+      "color": "6"
+    },
+    {
+      "id": "c30000000000000a",
+      "type": "text",
+      "text": "Toolbar/navbar implication\nThe frame owns which primitives exist and when they are active. Layout components should own how those primitives are arranged and styled, so navbar restoration should happen without deleting current buttons/search/FAB behavior.",
+      "x": 40,
+      "y": 600,
+      "width": 560,
+      "height": 170,
+      "color": "3"
+    },
+    {
+      "id": "c30000000000000b",
+      "type": "text",
+      "text": "Recommended Phase 04\nInspect src/components/layout/ + src/components/pages/ together, with containers only where embedded by those surfaces.",
+      "x": 650,
+      "y": 500,
+      "width": 430,
+      "height": 130,
+      "color": "3"
+    }
+  ],
+  "edges": [
+    {
+      "id": "c3e0000000000001",
+      "fromNode": "c300000000000002",
+      "toNode": "c300000000000001"
+    },
+    {
+      "id": "c3e0000000000002",
+      "fromNode": "c300000000000003",
+      "toNode": "c300000000000001"
+    },
+    {
+      "id": "c3e0000000000003",
+      "fromNode": "c300000000000004",
+      "toNode": "c300000000000001"
+    },
+    {
+      "id": "c3e0000000000004",
+      "fromNode": "c300000000000005",
+      "toNode": "c300000000000001"
+    },
+    {
+      "id": "c3e0000000000005",
+      "fromNode": "c300000000000001",
+      "toNode": "c300000000000006",
+      "label": "shell source"
+    },
+    {
+      "id": "c3e0000000000006",
+      "fromNode": "c300000000000001",
+      "toNode": "c300000000000007",
+      "label": "detached leaves"
+    },
+    {
+      "id": "c3e0000000000007",
+      "fromNode": "c300000000000001",
+      "toNode": "c300000000000008",
+      "label": "helpers"
+    },
+    {
+      "id": "c3e0000000000008",
+      "fromNode": "c300000000000006",
+      "toNode": "c300000000000009",
+      "label": "renders/routes"
+    },
+    {
+      "id": "c3e0000000000009",
+      "fromNode": "c300000000000009",
+      "toNode": "c30000000000000a",
+      "label": "toolbar edge"
+    },
+    {
+      "id": "c3e000000000000a",
+      "fromNode": "c300000000000009",
+      "toNode": "c30000000000000b",
+      "label": "next layer"
+    }
+  ]
+}

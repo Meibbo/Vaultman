@@ -12,6 +12,12 @@
 		type MouseGestureConfig,
 	} from '../../services/serviceMouse';
 	import type { NodeBadge } from '../../types/typeNode';
+	import type { ExplorerRowInput } from '../../services/serviceExplorerRowInput';
+	import {
+		rowInputsFromProjection,
+		type ExplorerProjection,
+	} from '../../services/serviceExplorerProjection';
+	import { nodeRowsFromRowInputs } from '../../services/serviceViewTableAdapter';
 	import {
 		createTextMeasureService,
 		fallbackTextMeasureEngine,
@@ -28,6 +34,7 @@
 	} from './nodeBadgeHelpers';
 	import { PerfMeter } from '../../services/perfMeter';
 	import { NodeRowMeasureService } from '../../services/serviceNodeRowMeasure';
+	import { createExplorerVariableGeometry } from '../../services/serviceExplorerScrollGeometry';
 	import {
 		DEFAULT_NODE_ROW_MEASURE_STYLE,
 		nodeRowMeasureStyleKey,
@@ -41,14 +48,21 @@
 	const TABLE_FALLBACK_WIDTH = 640;
 	const TABLE_FALLBACK_HEIGHT = 360;
 	const TABLE_ROW_PADDING_BLOCK = 10;
+	const TABLE_SCROLL_MEASURE_IDLE_MS = 96;
 	const TABLE_LABEL_SELECTOR = '.vm-node-table-primary';
 	const EMPTY_SELECTED_IDS: ReadonlySet<string> = new Set();
 	type ScrollTarget = { id: string; serial: number };
 	type TableMeasureService = NodeRowMeasureService | TextMeasureService;
+	type RowInputIdentity = Pick<ExplorerRowInput, 'id' | 'callbackId'>;
+	type RowInputCompatibleRow<TNode extends NodeBase> = ViewRow<TNode> & {
+		callbackId?: string;
+		rowInput?: RowInputIdentity;
+	};
 
 	interface Props<TNode extends NodeBase = NodeBase> {
-		rows: ViewRow<TNode>[];
+		rows: RowInputCompatibleRow<TNode>[];
 		columns: ViewColumn<TNode>[];
+		projection?: ExplorerProjection;
 		selectedIds?: ReadonlySet<string>;
 		selectedMap?: ReadonlyMap<string, boolean>;
 		focusedId?: string | null;
@@ -73,6 +87,7 @@
 	let {
 		rows,
 		columns,
+		projection = undefined,
 		selectedIds = EMPTY_SELECTED_IDS,
 		selectedMap,
 		focusedId = null,
@@ -102,8 +117,15 @@
 	let tableMeasureStyle: TextMeasureStyle = $state(DEFAULT_NODE_ROW_MEASURE_STYLE);
 	let tableMetricsFrame: number | null = null;
 	let tableRemeasureFrame: number | null = null;
+	let consumedScrollTargetSerial: number | null = null;
+	let fallbackScrollTop = $state(0);
+	let fallbackViewportHeight = $state(TABLE_FALLBACK_HEIGHT);
+	let tableMeasureScrollActive = $state(false);
+	let tableMeasureIdleTimer: ReturnType<typeof setTimeout> | null = null;
 	let measuredTableRows = $state(new Map<string, number>());
 	let measuredTableRowsRevision = $state('');
+	let tableRowIndexCacheRows: readonly RowInputCompatibleRow<TNode>[] | null = null;
+	let tableRowIndexCache = new Map<string, number>();
 	const mouse = createMouseGestureService();
 	const nodeMouseConfig = $derived(
 		mergeMouseGestureConfig(NODE_MOUSE_GESTURE_CONFIG, mouseGestureConfig),
@@ -111,9 +133,18 @@
 	const useNativeDom = $derived(themeService?.useNativeDom ?? false);
 	const showRowIcon = $derived(!visibleFields || visibleFields.includes('icon'));
 
-	$effect(() => () => mouse.cancelAll());
+	$effect(
+		() => () => {
+			mouse.cancelAll();
+			clearTableMeasureIdleTimer();
+		},
+	);
 
-	const tableRows = $derived(sortRows(rows, columns, sorting));
+	const projectionRows = $derived(
+		projection ? nodeRowsFromRowInputs(rowInputsFromProjection(projection)) : undefined,
+	);
+	const sourceTableRows = $derived((projectionRows ?? rows) as RowInputCompatibleRow<TNode>[]);
+	const tableRows = $derived(sortRows(sourceTableRows, columns, sorting));
 	const effectiveTableLabelWidth = $derived(columnWidth ?? tableLabelWidth);
 	const tableMeasureRevision = $derived(
 		`${nodeRowMeasureStyleKey(tableMeasureStyle)}:${columns.length}:${tableRows.length}:${effectiveTableLabelWidth}`,
@@ -133,33 +164,33 @@
 		initialRect: { width: TABLE_FALLBACK_WIDTH, height: TABLE_FALLBACK_HEIGHT },
 	});
 	const virtualRows = $derived($rowVirtualizer.getVirtualItems());
+	const tableGeometry = $derived.by(() => {
+		const rowsForGeometry = tableRows;
+		return createExplorerVariableGeometry({
+			rowCount: rowsForGeometry.length,
+			estimateSize: () => TABLE_ROW_HEIGHT,
+		});
+	});
 	const renderedRows = $derived.by(() => {
-		const measuredRows = measuredTableRows;
 		const visibleRows = virtualRows
 			.filter((row) => row.index < tableRows.length)
 			.map((row) => ({
 				key: row.key,
 				index: row.index,
-				start: tableRowTopFromMap(measuredRows, row.index),
-				size: tableEstimateSizeFromMap(measuredRows, row.index),
+				start: row.start,
+				size: row.size,
 			}));
 		if (visibleRows.length > 0 || tableRows.length === 0) return visibleRows;
-		return fallbackRenderedRows(tableRows, measuredTableRows);
+		return fallbackRenderedRows(tableRows, tableGeometry);
 	});
-	const totalHeight = $derived(
-		Math.max(
-			$rowVirtualizer.getTotalSize(),
-			tableRows.reduce(
-				(height, row) => height + (measuredTableRows.get(row.id) ?? TABLE_ROW_HEIGHT),
-				0,
-			),
-		),
-	);
+	const totalHeight = $derived.by(() => {
+		const virtualTotal = $rowVirtualizer.getTotalSize();
+		return virtualTotal > 0 || tableRows.length === 0 ? virtualTotal : tableGeometry.totalSize();
+	});
 
 	$effect(() => {
 		const count = tableRows.length;
 		const rows = tableRows;
-		const measuredRows = measuredTableRows;
 		const scrollElement = outerEl;
 		const width = tableWidth;
 		untrack(() =>
@@ -167,8 +198,7 @@
 				count,
 				getScrollElement: () => scrollElement ?? null,
 				getItemKey: (index) => tableVirtualRowKey(rows, index),
-				estimateSize: (index) =>
-					rows[index] ? measuredRows.get(rows[index].id) ?? TABLE_ROW_HEIGHT : TABLE_ROW_HEIGHT,
+				estimateSize: (index) => tableEstimateSize(index),
 				observeElementRect: observeTableRect,
 				overscan: TABLE_OVERSCAN,
 				initialRect: { width, height: TABLE_FALLBACK_HEIGHT },
@@ -183,6 +213,8 @@
 		const revision = tableMeasureRevision;
 		const width = effectiveTableLabelWidth;
 		const style = tableMeasureStyle;
+		const scrollActive = tableMeasureScrollActive;
+		if (scrollActive) return;
 
 		untrack(() => {
 			const next =
@@ -199,6 +231,8 @@
 						const height = measureTableRowHeight(row, labelColumn, width, style, revision);
 						if (next.get(row.id) !== height) {
 							next.set(row.id, height);
+							tableGeometry.measure(virtualRow.index, height);
+							resizeVirtualTableRow(virtualRow.index, height);
 							changed = true;
 						}
 					}
@@ -209,16 +243,17 @@
 			if (!changed) return;
 			measuredTableRowsRevision = revision;
 			measuredTableRows = next;
-			scheduleVirtualizerRemeasure('table');
 		});
 	});
 
 	$effect(() => {
 		if (!outerEl) return;
 		updateTableMeasureInputs();
+		updateTableFallbackViewport();
 		if (typeof ResizeObserver === 'undefined') return;
 		const ro = new ResizeObserver(() => {
 			scheduleTableMetricsUpdate();
+			updateTableFallbackViewport();
 			scheduleVirtualizerRemeasure('table');
 		});
 		ro.observe(outerEl);
@@ -234,8 +269,11 @@
 	$effect(() => {
 		const target = scrollTarget;
 		if (!target || !outerEl) return;
-		const rowIndex = tableRows.findIndex((row) => row.id === target.id);
-		if (rowIndex >= 0) scrollTableRowIntoView(rowIndex);
+		if (target.serial === consumedScrollTargetSerial) return;
+		const rowIndex = tableRowIndexForId(target.id);
+		if (rowIndex < 0) return;
+		consumedScrollTargetSerial = target.serial;
+		scrollTableRowIntoView(rowIndex);
 	});
 
 	$effect(() => {
@@ -256,15 +294,28 @@
 			const viewportHeight = tableViewportRect().height;
 			const currentTop = outerEl!.scrollTop;
 			const rowTop = tableRowTop(rowIndex);
-			const rowBottom = rowTop + tableEstimateSize(rowIndex);
+			const rowBottom = rowTop + tableGeometry.sizeForIndex(rowIndex);
 			const currentBottom = currentTop + viewportHeight;
 			if (rowTop >= currentTop && rowBottom <= currentBottom) return;
 
 			const nextTop = rowTop < currentTop ? rowTop : Math.max(0, rowBottom - viewportHeight);
-			$rowVirtualizer.scrollToIndex(rowIndex, { align: rowTop < currentTop ? 'start' : 'end' });
+			untrack(() =>
+				$rowVirtualizer.scrollToIndex(rowIndex, {
+					align: rowTop < currentTop ? 'start' : 'end',
+					behavior: 'auto',
+				}),
+			);
 			outerEl!.scrollTop = nextTop;
+			updateTableFallbackViewport();
 			outerEl!.dispatchEvent(new Event('scroll'));
 		});
+	}
+
+	function handleTableScroll(e: Event): void {
+		const element = e.currentTarget as HTMLDivElement;
+		fallbackScrollTop = element.scrollTop;
+		fallbackViewportHeight = element.clientHeight || TABLE_FALLBACK_HEIGHT;
+		markTableMeasureScrollActive();
 	}
 
 	function updateTableMeasureInputs(): void {
@@ -277,6 +328,11 @@
 		if (nodeRowMeasureStyleKey(nextStyle) !== nodeRowMeasureStyleKey(tableMeasureStyle)) {
 			tableMeasureStyle = nextStyle;
 		}
+	}
+
+	function updateTableFallbackViewport(): void {
+		fallbackScrollTop = outerEl?.scrollTop ?? 0;
+		fallbackViewportHeight = tableViewportRect().height;
 	}
 
 	function tableLabelContentWidth(): number {
@@ -310,6 +366,29 @@
 		});
 	}
 
+	function markTableMeasureScrollActive(): void {
+		tableMeasureScrollActive = true;
+		clearTableMeasureIdleTimer();
+		tableMeasureIdleTimer = setTimeout(() => {
+			tableMeasureIdleTimer = null;
+			tableMeasureScrollActive = false;
+		}, TABLE_SCROLL_MEASURE_IDLE_MS);
+	}
+
+	function clearTableMeasureIdleTimer(): void {
+		if (tableMeasureIdleTimer !== null) clearTimeout(tableMeasureIdleTimer);
+		tableMeasureIdleTimer = null;
+	}
+
+	function resizeVirtualTableRow(index: number, height: number): void {
+		const virtualizer = $rowVirtualizer;
+		if (typeof virtualizer.resizeItem === 'function') {
+			virtualizer.resizeItem(index, height);
+			return;
+		}
+		scheduleVirtualizerRemeasure('table');
+	}
+
 	function observeTableRect(
 		_: Virtualizer<HTMLDivElement, HTMLDivElement>,
 		cb: (rect: Rect) => void,
@@ -331,23 +410,25 @@
 	}
 
 	function handleRowClick(id: string, e: MouseEvent) {
+		const callbackId = callbackIdForRowId(id);
 		mouse.handleClick(
 			{ key: `table:${id}`, eventTarget: e.target, ignoreSelector: NODE_MOUSE_IGNORE_SELECTOR },
 			e,
 			{
-				primary: (event) => onRowClick(id, event),
-				secondary: (event) => onSecondaryAction?.(id, event),
-				tertiary: (event) => onTertiaryAction?.(id, event),
+				primary: (event) => onRowClick(callbackId, event),
+				secondary: (event) => onSecondaryAction?.(callbackId, event),
+				tertiary: (event) => onTertiaryAction?.(callbackId, event),
 			},
 			nodeMouseConfig,
 		);
 	}
 
 	function handleRowAuxClick(id: string, e: MouseEvent) {
+		const callbackId = callbackIdForRowId(id);
 		mouse.handleAuxClick(
 			{ key: `table:${id}`, eventTarget: e.target, ignoreSelector: NODE_MOUSE_IGNORE_SELECTOR },
 			e,
-			{ tertiary: (event) => onTertiaryAction?.(id, event) },
+			{ tertiary: (event) => onTertiaryAction?.(callbackId, event) },
 			nodeMouseConfig,
 		);
 	}
@@ -373,10 +454,12 @@
 	function handleDelegatedTableContextMenu(e: MouseEvent): void {
 		const id = nodeIdFromEventTarget(e.target);
 		if (!id) return;
-		PerfMeter.time('explorer.table.delegate.contextmenu', () => onContextMenu(id, e));
+		PerfMeter.time('explorer.table.delegate.contextmenu', () =>
+			onContextMenu(callbackIdForRowId(id), e),
+		);
 	}
 
-	function rowBadges(row: ViewRow<TNode>): NodeBadge[] {
+	function rowBadges(row: RowInputCompatibleRow<TNode>): NodeBadge[] {
 		return ownNodeBadges(row.node as TNode & { badges?: readonly NodeBadge[] });
 	}
 
@@ -390,13 +473,39 @@
 		if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'a') {
 			e.preventDefault();
 			onSelectAll?.(
-				tableRows.map((row) => row.id),
+				tableRows.map((row) => tableCallbackId(row)),
 				e,
 			);
 			return;
 		}
 		const id = nodeIdFromEventTarget(e.target);
-		if (id) PerfMeter.time('explorer.table.delegate.keydown', () => onRowKeydown?.(id, e));
+		if (id) {
+			PerfMeter.time('explorer.table.delegate.keydown', () =>
+				onRowKeydown?.(callbackIdForRowId(id), e),
+			);
+		}
+	}
+
+	function callbackIdForRowId(id: string): string {
+		const row = tableRows.find((item) => item.id === id);
+		return row ? tableCallbackId(row) : id;
+	}
+
+	function tableCallbackId(row: RowInputCompatibleRow<TNode>): string {
+		if (row.rowInput) return row.rowInput.callbackId;
+		return row.callbackId ?? row.id;
+	}
+
+	function tableRowIndexForId(id: string): number {
+		if (tableRowIndexCacheRows !== tableRows) {
+			tableRowIndexCacheRows = tableRows;
+			tableRowIndexCache = new Map<string, number>();
+			tableRows.forEach((row, index) => {
+				tableRowIndexCache.set(row.id, index);
+				tableRowIndexCache.set(tableCallbackId(row), index);
+			});
+		}
+		return tableRowIndexCache.get(id) ?? -1;
 	}
 
 	function headerSortState(columnId: string): false | 'asc' | 'desc' {
@@ -432,59 +541,62 @@
 	}
 
 	function tableRowTop(rowIndex: number): number {
-		return tableRowTopFromMap(measuredTableRows, rowIndex);
-	}
-
-	function tableRowTopFromMap(measuredRows: ReadonlyMap<string, number>, rowIndex: number): number {
-		let top = 0;
-		for (let index = 0; index < rowIndex; index += 1) {
-			top += tableEstimateSizeFromMap(measuredRows, index);
-		}
-		return top;
+		return tableGeometry.topForIndex(rowIndex);
 	}
 
 	function fallbackRenderedRows(
-		rows: readonly ViewRow<TNode>[],
-		measuredRows: ReadonlyMap<string, number>,
+		rows: readonly RowInputCompatibleRow<TNode>[],
+		geometry: typeof tableGeometry,
 	): {
 		key: string;
 		index: number;
 		start: number;
 		size: number;
 	}[] {
-		const visibleCount = Math.min(
-			rows.length,
-			Math.ceil(TABLE_FALLBACK_HEIGHT / TABLE_ROW_HEIGHT) + TABLE_OVERSCAN * 2,
-		);
+		const range = geometry.visibleRange({
+			scrollTop: fallbackScrollTop,
+			viewportHeight: fallbackViewportHeight,
+			overscan: TABLE_OVERSCAN,
+		});
 		const labelColumn = columns.find((column) => column.id === 'label') ?? columns[0];
 		const width = effectiveTableLabelWidth;
 		const style = tableMeasureStyle;
 		const revision = tableMeasureRevision;
-		let start = 0;
-		return rows.slice(0, visibleCount).map((row, index) => {
+		const out: {
+			key: string;
+			index: number;
+			start: number;
+			size: number;
+		}[] = [];
+		let start = geometry.topForIndex(range.startIndex);
+		for (let index = range.startIndex; index < range.endIndex; index += 1) {
+			const row = rows[index];
+			if (!row) continue;
 			const size =
-				measuredRows.get(row.id) ??
-				measureTableRowHeight(row, labelColumn, width, style, revision);
-			const out = {
+				measuredTableRows.get(row.id) ??
+				(tableMeasureScrollActive
+					? TABLE_ROW_HEIGHT
+					: measureTableRowHeight(row, labelColumn, width, style, revision));
+			out.push({
 				key: row.id,
 				index,
 				start,
 				size,
-			};
+			});
 			start += size;
-			return out;
-		});
+		}
+		return out;
 	}
 
 	function sortRows(
-		sourceRows: readonly ViewRow<TNode>[],
+		sourceRows: readonly RowInputCompatibleRow<TNode>[],
 		sourceColumns: readonly ViewColumn<TNode>[],
 		state: SortingState,
-	): ViewRow<TNode>[] {
+	): RowInputCompatibleRow<TNode>[] {
 		const current = state[0];
-		if (!current) return sourceRows as ViewRow<TNode>[];
+		if (!current) return sourceRows as RowInputCompatibleRow<TNode>[];
 		const column = sourceColumns.find((item) => item.id === current.id);
-		if (!column || column.sortable !== true) return sourceRows as ViewRow<TNode>[];
+		if (!column || column.sortable !== true) return sourceRows as RowInputCompatibleRow<TNode>[];
 		const dir = current.desc ? -1 : 1;
 		return [...sourceRows].sort(
 			(a, b) => dir * compareValues(valueForColumn(a, column), valueForColumn(b, column)),
@@ -518,7 +630,7 @@
 	}
 
 	function measureTableRowHeight(
-		row: ViewRow<TNode>,
+		row: RowInputCompatibleRow<TNode>,
 		labelColumn: ViewColumn<TNode> | undefined,
 		width: number,
 		style: TextMeasureStyle,
@@ -573,6 +685,7 @@
 	onauxclick={handleDelegatedTableAuxClick}
 	oncontextmenu={handleDelegatedTableContextMenu}
 	onkeydown={handleTableKeydown}
+	onscroll={handleTableScroll}
 	style:--vm-node-table-columns={columnTemplate}
 >
 	<div class="vm-node-table-header" role="row">
@@ -605,7 +718,7 @@
 		style:--vm-node-table-total-h={`${totalHeight}px`}
 	>
 		{#each renderedRows as virtualRow (virtualRow.key)}
-				{@const row = tableRows[virtualRow.index]}
+			{@const row = tableRows[virtualRow.index]}
 			{#if row}
 				{@const id = row.id}
 				{@const isSelected = selectedMap?.get(id) ?? selectedIds.has(id)}
@@ -619,6 +732,7 @@
 					class:is-focused={isFocused}
 					class:is-active-node={isActive}
 					data-id={id}
+					data-callback-id={tableCallbackId(row)}
 					role="row"
 					tabindex="0"
 					aria-selected={isSelected}

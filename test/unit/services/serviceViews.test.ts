@@ -4,6 +4,7 @@ import {
 	createPerfProbe,
 	setActivePerfProbe,
 } from '../../../src/dev/perfProbe';
+import { NodeSelectionService } from '../../../src/services/serviceSelection.svelte';
 import { ViewService } from '../../../src/services/serviceViews.svelte';
 import { EXPLORER_VIEW_MODES, isExplorerViewMode } from '../../../src/types/typeViews';
 import type { ActiveFilterEntry, NodeBase, QueueChange } from '../../../src/types/typeContracts';
@@ -107,6 +108,43 @@ describe('view service contracts', () => {
 describe('ViewService', () => {
 	afterEach(() => {
 		clearActivePerfProbe();
+	});
+
+	it('reads selection and focus from the node selection authority', () => {
+		const selectionService = new NodeSelectionService();
+		const service = new ViewService({ selectionService });
+		const nodes: TestNode[] = [
+			{ id: 'a', label: 'Alpha' },
+			{ id: 'b', label: 'Beta' },
+		];
+
+		selectionService.selectPointer('files', ['a', 'b'], 'b');
+		const model = service.getModel({ explorerId: 'files', mode: 'tree', nodes });
+
+		expect([...model.selection.ids]).toEqual(['b']);
+		expect(model.selection.anchorId).toBe('b');
+		expect(model.focus.id).toBe('b');
+		expect(model.rows.map((row) => row.layers.state?.selected ?? false)).toEqual([false, true]);
+		expect(model.rows.map((row) => row.layers.state?.focused ?? false)).toEqual([false, true]);
+	});
+
+	it('delegates deprecated selection mutators to the node selection authority', () => {
+		const selectionService = new NodeSelectionService();
+		const service = new ViewService({ selectionService });
+
+		service.select('files', 'a');
+		expect([...selectionService.snapshot('files').ids]).toEqual(['a']);
+		expect(selectionService.snapshot('files').focusedId).toBe('a');
+
+		service.select('files', 'b', 'add');
+		expect([...selectionService.snapshot('files').ids]).toEqual(['a', 'b']);
+
+		service.setFocused('files', 'b');
+		expect(selectionService.snapshot('files').focusedId).toBe('b');
+
+		service.clearSelection('files');
+		expect([...selectionService.snapshot('files').ids]).toEqual([]);
+		expect(selectionService.snapshot('files').focusedId).toBeNull();
 	});
 
 	it('stores view mode per explorer and notifies subscribers', () => {

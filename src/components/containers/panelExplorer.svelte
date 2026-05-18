@@ -1,7 +1,7 @@
 <script lang="ts" generics="TMeta = unknown">
 	import type { TFile } from 'obsidian';
 	import { untrack } from 'svelte';
-	import { SvelteSet } from 'svelte/reactivity';
+	import { SvelteSet, createSubscriber } from 'svelte/reactivity';
 	import type { VaultmanPlugin } from '../../main';
 	import type {
 		ExplorerExpansionCommand,
@@ -10,21 +10,39 @@
 		ExplorerViewMode,
 		PanelExplorerImperativeApi,
 	} from '../../types/typeExplorer';
-	import type { INodeSelectionService, NodeSelectionSnapshot } from '../../types/typeSelection';
+	import type {
+		INodeSelectionService,
+		NodeSelectionAuthorityProvider,
+		NodeSelectionSnapshot,
+	} from '../../types/typeSelection';
 	import type { ViewEmptyState } from '../../types/typeViews';
+	import type {
+		ExplorerRevealTarget,
+		ExplorerSnapshot,
+	} from '../../types/typeExplorerDataPlane';
+	import type { NodeBase } from '../../types/typeContracts';
 	import GridNavigationToolbar from '../layout/GridNavigationToolbar.svelte';
 	import ViewTree from '../views/viewTree.svelte';
 	import ViewNodeCards from '../views/ViewNodeCards.svelte';
 	import ViewNodeGrid from '../views/ViewNodeGrid.svelte';
+	import ViewNodeList from '../views/ViewNodeList.svelte';
 	import ViewNodeTable from '../views/ViewNodeTable.svelte';
 	import ViewMarkmap from '../views/ViewMarkmap.svelte';
-	import ViewSvarFileManager from '../views/ViewSvarFileManager.svelte'; //temp
 	import ViewEmptyLanding from '../views/viewEmptyLanding.svelte';
 	import { getActivePerfProbe } from '../../dev/perfProbe';
 	import {
 		nodeRowsFromTree,
 		nodeTableColumnsForProvider,
 	} from '../../services/serviceViewTableAdapter';
+	import {
+		rowInputFromSnapshotRow,
+		rowInputFromTreeNode,
+		type ExplorerRowInput,
+	} from '../../services/serviceExplorerRowInput';
+	import {
+		createExplorerProjection,
+		type ExplorerProjection,
+	} from '../../services/serviceExplorerProjection';
 	import { NodeSelectionService } from '../../services/serviceSelection.svelte';
 	import type { TreeNode } from '../../types/typeNode';
 	import { bubbleHiddenTreeBadges } from '../../utils/utilBadgeBubbling';
@@ -46,7 +64,7 @@
 	} from '../../services/serviceMouse';
 	import { nodeToBindingInput, type BindingNodeKind } from '../../services/serviceNodeBinding';
 
-	type ScrollTarget = { id: string; serial: number };
+	type ScrollTarget = ExplorerRevealTarget;
 
 	let {
 		plugin,
@@ -102,6 +120,7 @@
 	let rootEl: HTMLDivElement | undefined = $state();
 	let scrollTarget = $state<ScrollTarget | null>(null);
 	let scrollTargetSerial = 0;
+	let lastPublishedSnapshotKey = '';
 	let currentGridParentId = $state<string | null>(null);
 	let gridBackStack = $state<(string | null)[]>([]);
 	let gridForwardStack = $state<(string | null)[]>([]);
@@ -110,6 +129,7 @@
 	const fallbackSelectionService = new NodeSelectionService();
 	const selectionService = $derived(
 		((plugin as VaultmanPlugin & { selectionService?: INodeSelectionService }).selectionService ??
+			(plugin.viewService as Partial<NodeSelectionAuthorityProvider>).selectionService ??
 			fallbackSelectionService) as INodeSelectionService,
 	);
 	const selectionSnapshot = $derived(selectionService.snapshot(provider.id));
@@ -117,8 +137,11 @@
 	const selectedNodeMap = $derived(selectionSnapshot.selected);
 	const focusedNodeId = $derived(selectionSnapshot.focusedId);
 	let previousSearchTerm = '';
+	const hasExpansionSurface = $derived(viewMode === 'tree' || viewMode === 'grid');
 	const autoExpandedIds = $derived(
-		collectAutoExpandedIds(nodes, { searchTerm, smallTreeThreshold: 8 }),
+		hasExpansionSurface
+			? collectAutoExpandedIds(nodes, { searchTerm, smallTreeThreshold: 8 })
+			: new Set<string>(),
 	);
 	const expandedIds = $derived(
 		resolveExpandedIds({
@@ -127,9 +150,40 @@
 			autoExpandedIds,
 		}),
 	);
-	const expandableNodeIds = $derived(collectExpandableNodeIds(nodes));
-	const hasExpandedParents = $derived(expandableNodeIds.some((id) => expandedIds.has(id)));
-	const displayNodes = $derived(resolveDisplayNodes(nodes, expandedIds));
+	const expandableNodeIds = $derived(
+		hasExpansionSurface ? collectExpandableNodeIds(nodes) : [],
+	);
+	const hasExpandedParents = $derived(
+		hasExpansionSurface && expandableNodeIds.some((id) => expandedIds.has(id)),
+	);
+	const decoratedNodeById = $derived.by(() => buildNodeLookup(nodes));
+	const treeRowInputs = $derived.by((): ExplorerRowInput<TMeta>[] | undefined => {
+		const snapshot = filesSnapshot;
+		if (!snapshot || viewMode !== 'tree') return undefined;
+		return snapshot.rows.map((row) => {
+			const decorated = decoratedNodeById.get(row.id);
+			return rowInputFromSnapshotRow({
+				...row,
+				label: decorated?.label ?? row.label,
+				node: decorated ?? row.node,
+			});
+		});
+	});
+	const treeProjection = $derived.by((): ExplorerProjection<TMeta> | undefined => {
+		const snapshot = filesSnapshot;
+		const inputs = treeRowInputs;
+		if (!snapshot || viewMode !== 'tree' || !inputs) return undefined;
+		return createExplorerProjection<TMeta>({
+			providerId: provider.id,
+			viewMode: 'tree',
+			rowInputs: inputs,
+			sourceRevision: snapshot.structureRevision,
+			layoutRevision: snapshot.revision,
+		});
+	});
+	const displayNodes = $derived(
+		viewMode === 'tree' ? resolveDisplayNodes(nodes, expandedIds) : [],
+	);
 	const gridHierarchyMode = $derived.by((): 'folder' | 'inline' => {
 		const configured = (
 			plugin as VaultmanPlugin & {
@@ -150,6 +204,34 @@
 	);
 	const cardNodes = $derived(viewMode === 'cards' ? nodes : []);
 	const markmapNodes = $derived(viewMode === 'markmap' ? nodes : []);
+	const listRowInputs = $derived.by((): readonly ExplorerRowInput<NodeBase>[] => {
+		if (viewMode !== 'list') return [];
+		const snapshot = filesSnapshot;
+		if (snapshot) {
+			return snapshot.rows.map((row) => {
+				const decorated = decoratedNodeById.get(row.id);
+				return rowInputFromSnapshotRow({
+					...row,
+					label: decorated?.label ?? row.label,
+					node: decorated ?? row.node,
+				}) as unknown as ExplorerRowInput<NodeBase>;
+			});
+		}
+		return nodes.map(
+			(node) => rowInputFromTreeNode(node) as unknown as ExplorerRowInput<NodeBase>,
+		);
+	});
+	const listProjection = $derived.by((): ExplorerProjection<NodeBase> | undefined => {
+		const snapshot = filesSnapshot;
+		if (!snapshot || viewMode !== 'list') return undefined;
+		return createExplorerProjection<NodeBase>({
+			providerId: provider.id,
+			viewMode: 'list',
+			rowInputs: listRowInputs,
+			sourceRevision: snapshot.structureRevision,
+			layoutRevision: snapshot.revision,
+		});
+	});
 	const tableRows = $derived(viewMode === 'table' ? nodeRowsFromTree(nodes) : []);
 	const tableColumns = $derived(nodeTableColumnsForProvider<TMeta>(provider.id, visibleFields));
 	const visibleFieldsKey = $derived(visibleFields.join('\u0001'));
@@ -158,17 +240,25 @@
 	const fallbackState = $derived.by(() =>
 		resolveFallbackState(viewMode, fallbackItemCount, emptyState),
 	);
-	const isTreeEmpty = $derived(viewMode === 'tree' && nodes.length === 0);
+	const isTreeEmpty = $derived(
+		viewMode === 'tree' && (treeRowInputs?.length ?? nodes.length) === 0,
+	);
 	const isGridEmpty = $derived(viewMode === 'grid' && gridNodes.length === 0);
 	const isCardsEmpty = $derived(viewMode === 'cards' && cardNodes.length === 0);
 	const isMarkmapEmpty = $derived(viewMode === 'markmap' && markmapNodes.length === 0);
+	const isListEmpty = $derived(viewMode === 'list' && listRowInputs.length === 0);
 	const isTableEmpty = $derived(viewMode === 'table' && tableRows.length === 0);
-	const isSvarEmpty = $derived(viewMode === 'svar' && nodes.length === 0); //temp
 	let lastCommittedSelectionKey = '';
 	let lastExpansionSummaryKey = '';
 	let lastExpansionCommandSerial = -1;
 	let queueVersion = $state(0);
+	const subscribeFilesSnapshot = createSubscriber((update) => {
+		const service = plugin.explorerDataPlaneService;
+		if (!service) return;
+		return service.subscribe('files', update);
+	});
 	const activeOpsByNode: ActiveOpsByNode = $derived.by(() => {
+		if (viewMode !== 'tree' && viewMode !== 'grid') return new Map<string, Set<BadgeKind>>();
 		// Touch the queue version counter so this derivation re-runs whenever
 		// the queue mutates. Memoizing on the version avoids render loops:
 		// the map only rebuilds when the queue actually changed.
@@ -192,6 +282,11 @@
 	const nodeMouseActions = $derived.by(() =>
 		resolveNodeMouseActions(plugin.settings?.nodeMouseActions, LEGACY_NODE_MOUSE_ACTIONS),
 	);
+	const filesSnapshot = $derived.by(() => {
+		if (provider.id !== 'files') return null;
+		subscribeFilesSnapshot();
+		return plugin.explorerDataPlaneService?.snapshot<TMeta>('files') ?? null;
+	});
 
 	$effect(() => {
 		const queue = (
@@ -217,6 +312,18 @@
 		provider.setShowSelectedOnly?.(showSelectedOnly);
 		provider.setShowHiddenFiles?.(showHiddenFiles);
 		if (active) untrack(refreshData);
+	});
+
+	$effect(() => {
+		if (!active) return;
+		void searchTerm;
+		void searchMode;
+		void sortBy;
+		void sortDirection;
+		void sortTarget;
+		void showSelectedOnly;
+		void showHiddenFiles;
+		publishProviderSnapshot();
 	});
 
 	$effect(() => {
@@ -279,6 +386,15 @@
 	});
 
 	function refreshData() {
+		const probe = getActivePerfProbe();
+		if (probe) {
+			probe.measure('panelExplorer.refresh.total', undefined, refreshDataNow);
+			return;
+		}
+		refreshDataNow();
+	}
+
+	function refreshDataNow() {
 		if (viewMode === 'tree') {
 			nodes = readProviderTree();
 			flatFiles = [];
@@ -291,7 +407,7 @@
 		} else if (viewMode === 'markmap') {
 			nodes = readProviderTree();
 			flatFiles = [];
-		} else if (viewMode === 'table') {
+		} else if (viewMode === 'table' || viewMode === 'list') {
 			nodes = readProviderTree();
 			flatFiles = [];
 		} else {
@@ -300,6 +416,47 @@
 			flatFiles = files;
 			nodes = files.length === 0 ? readProviderTree() : [];
 		}
+		publishProviderSnapshot();
+	}
+
+	function publishProviderSnapshot(): void {
+		const service = plugin.explorerDataPlaneService;
+		if (provider.id !== 'files' || !service || !provider.getSnapshot) return;
+		const snapshot = provider.getSnapshot(expandedIds);
+		const key = snapshotPublishKey(snapshot);
+		if (key === lastPublishedSnapshotKey) return;
+		lastPublishedSnapshotKey = key;
+		service.publish('files', snapshot);
+	}
+
+	function snapshotPublishKey(snapshot: ExplorerSnapshot<TMeta>): string {
+		const rowsKey = snapshot.rows
+			.map((row) =>
+				[
+					row.id,
+					row.parentId ?? '',
+					row.childrenIds.join('\u0002'),
+					row.path ?? '',
+					row.domainKey ?? '',
+				].join('\u0003'),
+			)
+			.join('\u0004');
+		const revisions = snapshot.sourceRevisions;
+		return [
+			snapshot.explorerId,
+			snapshot.providerKey,
+			snapshot.projection.searchTerm,
+			snapshot.projection.searchMode,
+			snapshot.projection.sortBy,
+			snapshot.projection.sortDirection,
+			snapshot.projection.sortTarget,
+			revisions.filesRevision ?? '',
+			revisions.propsRevision ?? '',
+			revisions.tagsRevision ?? '',
+			revisions.contentRevision ?? '',
+			snapshot.visibleIds.join('\u0001'),
+			rowsKey,
+		].join('\u0000');
 	}
 
 	function readProviderTree(): TreeNode<TMeta>[] {
@@ -307,6 +464,18 @@
 			getActivePerfProbe()?.measure('panelExplorer.getTree', undefined, () => provider.getTree()) ??
 			provider.getTree()
 		);
+	}
+
+	function buildNodeLookup(items: TreeNode<TMeta>[]): Map<string, TreeNode<TMeta>> {
+		const lookup = new Map<string, TreeNode<TMeta>>();
+		const walk = (list: TreeNode<TMeta>[]) => {
+			for (const node of list) {
+				lookup.set(node.id, node);
+				if (node.children) walk(node.children);
+			}
+		};
+		walk(items);
+		return lookup;
 	}
 
 	function resolveDisplayNodes(
@@ -411,6 +580,40 @@
 			commitSelection(selectionService.selectPointer(provider.id, visibleNodeIds(), id));
 		}
 		provider.handleContextMenu(node, e, selectedNodesForContext(node));
+	}
+
+	function handleListSelect(
+		row: ExplorerRowInput<NodeBase>,
+		modifiers: { ctrl: boolean; shift: boolean; alt: boolean },
+	): void {
+		handleNodeClick(row.id, mouseEventFromListModifiers(modifiers));
+	}
+
+	function handleListActivate(row: ExplorerRowInput<NodeBase>): void {
+		activateNode(row.node as unknown as TreeNode<TMeta>);
+	}
+
+	function handleListFocus(id: string | null): void {
+		commitSelection(selectionService.setFocused(provider.id, id));
+		if (id) revealNode(id);
+	}
+
+	function handleListContextMenu(event: MouseEvent, row: ExplorerRowInput<NodeBase>): void {
+		handleContextMenu(row.id, event);
+	}
+
+	function mouseEventFromListModifiers(modifiers: {
+		ctrl: boolean;
+		shift: boolean;
+		alt: boolean;
+	}): MouseEvent {
+		return new MouseEvent('click', {
+			bubbles: true,
+			ctrlKey: modifiers.ctrl,
+			metaKey: modifiers.ctrl,
+			shiftKey: modifiers.shift,
+			altKey: modifiers.alt,
+		});
 	}
 
 	function handleRowKeydown(id: string, e: KeyboardEvent) {
@@ -579,6 +782,8 @@
 	}
 
 	function findNodeById(nodes: TreeNode<TMeta>[], id: string): TreeNode<TMeta> | undefined {
+		const snapshotNode = filesSnapshot?.byId.get(id)?.node as TreeNode<TMeta> | undefined;
+		if (snapshotNode) return snapshotNode;
 		for (const n of nodes) {
 			if (n.id === id) return n;
 			if (n.children) {
@@ -639,9 +844,6 @@
 		const key = selectionKey(snapshot);
 		if (key === lastCommittedSelectionKey) return;
 		lastCommittedSelectionKey = key;
-		plugin.viewService.clearSelection(provider.id);
-		for (const id of snapshot.ids) plugin.viewService.select(provider.id, id, 'add');
-		plugin.viewService.setFocused(provider.id, snapshot.focusedId);
 		syncFileSelectionFromNodes(snapshot.ids);
 	}
 
@@ -679,6 +881,7 @@
 		if (viewMode === 'cards') return cardNodes.map((node) => node.id);
 		if (viewMode === 'markmap') return collectAllHierarchyIds(markmapNodes);
 		if (viewMode === 'table') return tableRows.map((row) => row.id);
+		if (filesSnapshot) return [...filesSnapshot.visibleIds];
 		const ids: string[] = [];
 		const walk = (items: TreeNode<TMeta>[]) => {
 			for (const node of items) {
@@ -776,6 +979,8 @@
 	}
 
 	function parentIdFor(items: TreeNode<TMeta>[], childId: string): string | null {
+		const snapshotRow = filesSnapshot?.byId.get(childId);
+		if (snapshotRow) return snapshotRow.parentId;
 		for (const node of items) {
 			if (node.children?.some((child) => child.id === childId)) return node.id;
 			if (node.children) {
@@ -856,7 +1061,19 @@
 	}
 
 	function revealNode(id: string): void {
-		scrollTarget = { id, serial: ++scrollTargetSerial };
+		const snapshot = filesSnapshot;
+		const serial = ++scrollTargetSerial;
+		scrollTarget = snapshot
+			? {
+					id,
+					serial,
+					minSnapshotRevision: snapshot.structureRevision,
+					reason: 'keyboard',
+					providerKey: snapshot.providerKey,
+					explorerId: snapshot.explorerId,
+					structureRevision: snapshot.structureRevision,
+				}
+			: { id, serial };
 	}
 
 	/**
@@ -992,6 +1209,8 @@
 			{:else}
 				<ViewTree
 					nodes={displayNodes}
+					rowInputs={treeRowInputs}
+					projection={treeProjection}
 					{expandedIds}
 					selectedIds={selectedNodeIds}
 					focusedId={focusedNodeId}
@@ -1006,6 +1225,8 @@
 					onHoverBadgeAction={handleHoverBadgeAction}
 					{activeOpsByNode}
 					{scrollTarget}
+					snapshotRevision={filesSnapshot?.structureRevision ?? null}
+					idToIndex={filesSnapshot?.idToIndex ?? null}
 					mouseGestureConfig={plugin.settings?.mouseGestures?.node}
 					themeService={plugin.themeService}
 					providerId={provider.id}
@@ -1106,6 +1327,25 @@
 				/>
 			{/if}
 		</div>
+	{:else if viewMode === 'list'}
+		<div class="vm-list-container">
+			{#if isListEmpty}
+				<ViewEmptyLanding state={emptyState} {icon} />
+			{:else}
+				<ViewNodeList
+					rowInputs={listRowInputs}
+					projection={listProjection}
+					canReorder={false}
+					selectedIds={selectedNodeIds}
+					focusedId={focusedNodeId}
+					onSelect={handleListSelect}
+					onActivate={handleListActivate}
+					onFocus={handleListFocus}
+					onContextMenu={handleListContextMenu}
+					{icon}
+				/>
+			{/if}
+		</div>
 	{:else if viewMode === 'table'}
 		<div class="vm-table-container">
 			{#if isTableEmpty}
@@ -1131,15 +1371,6 @@
 					{visibleFields}
 					{icon}
 				/>
-			{/if}
-		</div>
-		<!-- temp until i add the new svars provider -->
-	{:else if viewMode === 'svar'}
-		<div class="vm-svar-container-inner">
-			{#if isSvarEmpty}
-				<ViewEmptyLanding state={emptyState} {icon} />
-			{:else}
-				<ViewSvarFileManager {plugin} {provider} />
 			{/if}
 		</div>
 	{:else}
@@ -1176,20 +1407,19 @@
 		min-height: 0;
 		height: 100%;
 	}
+	.vm-list-container {
+		flex: 1;
+		display: flex;
+		flex-direction: column;
+		min-height: 0;
+		height: 100%;
+		overflow: hidden;
+	}
 	.vm-table-container {
 		flex: 1;
 		overflow: hidden;
 		min-height: 0;
 		height: 100%;
-	}
-	/* temp until i add the new svars provider */
-	.vm-svar-container-inner {
-		flex: 1;
-		overflow: hidden;
-		min-height: 0;
-		height: 100%;
-		display: flex;
-		flex-direction: column;
 	}
 	.vm-fallback-container {
 		flex: 1;

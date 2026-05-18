@@ -5,7 +5,7 @@ status: active
 parent: "[[docs/work/pkm-ai/index|pkm-ai]]"
 archive_source: "docs/archive/pkm-ai/active-docs/2026-05-11T080321-current-handoff.md"
 created: 2026-05-04T01:36:20
-updated: 2026-05-14T00:39:54
+updated: 2026-05-17T18:55:00-05:00
 tags:
   - agent/current
 created_by: dec
@@ -16,147 +16,180 @@ updated_by: codex
 
 Compact handoff after archiving the oversized current handoff:
 [[docs/archive/pkm-ai/active-docs/2026-05-11T080321-current-handoff|2026-05-11 handoff archive]].
-Older route history remains in
-[[docs/archive/pkm-ai/active-docs/2026-05-10T093000-current-handoff|2026-05-10 handoff archive]].
 
 ## Resume Point
 
-- Latest request handled: converted the Notebook Navigator vs Vaultman
-  index/explorer comparison into
-  [[docs/work/hardening/specs/2026-05-11-explorer-data-plane-structural-taxonomy/20-notebook-navigator-index-explorer-comparison|Notebook Navigator index and explorer comparison]].
-- Latest source records:
-  [[docs/work/hardening/specs/2026-05-11-explorer-data-plane-structural-taxonomy/18-wave-5-plan-comparison-reconciliation|Wave 5 plan comparison and reconciliation]]
-  through
-  [[docs/work/hardening/specs/2026-05-11-explorer-data-plane-structural-taxonomy/19-wave-5-issue-prd-candidates|Wave 5 issue and PRD candidates]].
-- Current hardening status: Wave 2 vertical specs are captured, Wave 3 was
-  revalidated against Wave 2, Wave 4 implementation specs are drafted, and
-  Wave 5 comparison/issue candidates are drafted. Cached explorer images now
-  have a separate media/derived-content cache DB follow-up; structural
-  snapshots remain memory-first. Local issues now live at
-  [[docs/work/hardening/issues/explorer-data-plane/index|Explorer data plane local issues]].
-- Current research addendum: Notebook Navigator's main lesson is a staged
-  source-state -> structural snapshot -> lookup-map -> overlay -> adapter
-  pipeline. Vaultman should translate this into Svelte services and immutable
-  snapshots, not React hooks or persisted structural rows.
-- Claude Wave A/B handoff:
-  [[docs/work/hardening/plans/2026-05-11-explorer-data-plane-transition/01-wave-a-b-claude-handoff|Wave A/B Claude handoff]].
-- Previous worktree route:
-  `C:\Users\vic_A\Desktop\vaultman\.claude\worktrees\sleepy-engelbart-9e6dc6`
-  on branch `claude/sleepy-engelbart-9e6dc6`.
-- Previous polish source record:
-  [[docs/work/polish/plans/2026-05-11-ui-modernization-vertical-threads/04-thread-ecosystem-interception#2026-05-11-t4-continuation-log|T4 continuation log]].
-- Parallel dispatch router:
-  [[docs/work/polish/plans/2026-05-11-ui-modernization-vertical-threads/05-t4-parallel-agent-dispatch|T4 Parallel Agent Dispatch]].
-  Fresh agents should map `ola 1 agente N` and `ola 2 agente 1` through
-  that document.
-- Previous source record:
-  [[docs/work/polish/plans/2026-05-11-ui-modernization-vertical-threads/03-thread-vfs-review#task-38--cutover-gate-remove-the-mutable-path|T3.8 immutable VFS cutover]].
-- T3.8 completed the mutable VFS cutover scope:
-  `typeOps` now exposes readonly pure op contracts, `serviceQueue` stages,
-  hydrates, removes, commits, and replays by replacement state, `serviceDiff`
-  consumes returned op states, and `serviceVfsChain` snapshots include the
-  appended op history.
-- `OperationQueueService.transactions` was intentionally kept. It is still read
-  by `viewDiff.svelte`, queue badges, queue details, execution, and list
-  surfaces. Future removal is gated on migrating those readers to `chains`.
+- Worktree:
+  `C:\Users\vic_A\Desktop\vaultman\.claude\worktrees\jovial-wilson-f81c67`
+- Branch: `claude/explorer`.
+- Latest request handled: Explorer Phase 0 sub-system B implemented across
+  T1-T17 per the serviceTheme token-layer spec and plan. Built-in theme token
+  blocks come from UnoCSS build output; custom presets remain runtime style
+  injection through `ThemeService`.
+- Explorer platform pass Tasks 1-20 are complete.
+- Post-review repair is implemented but not yet committed: Notebook Navigator
+  comparison bridge, 50K projection optimization, and Markmap hidden from the
+  selectable view menu.
+- Primary records:
+  - [[docs/work/hardening/specs/2026-05-15-explorer-view-platform-pass/index|Explorer View Platform pass spec]]
+  - [[docs/work/hardening/plans/2026-05-15-explorer-view-platform-pass/index|Explorer View Platform pass implementation plan]]
+  - [[docs/work/hardening/plans/2026-05-15-explorer-view-platform-pass/perf-baseline|Explorer View Platform perf baseline]]
+  - [[docs/work/hardening/plans/2026-05-15-explorer-view-platform-pass/07-performance-comparison-repair|Explorer platform performance comparison repair]]
+  - [[docs/work/hardening/specs/2026-05-16-notebook-navigator-scroll-forensics/index|Notebook Navigator scroll forensics]]
+  - [[docs/work/hardening/research/2026-05-16-multiview-virtualization-research/index|Multiview virtualization research]]
+  - [[docs/work/hardening/plans/2026-05-16-explorer-scroll-smoke-harness/index|Explorer scroll smoke harness implementation plan]]
+  - [[docs/work/hardening/plans/2026-05-16-explorer-variable-scroll-repair/index|Explorer variable scroll repair]]
+  - [[docs/work/hardening/specs/2026-05-15-explorer-0-b-servicetheme-token-layer/index|Explorer 0-B serviceTheme token-layer spec]]
+  - [[docs/work/hardening/plans/2026-05-15-explorer-0-b-servicetheme-token-layer/index|Explorer 0-B executed implementation plan]]
+- Preserve any unrelated dirty files if they appear later. At the time of this
+  handoff, `git status --short --branch` showed only the active variable scroll
+  repair files and docs.
+- Toolbar architecture research captured at
+  [[docs/work/polish/research/2026-05-17-toolbar-architecture/index|Toolbar architecture and primitive ordering map]];
+  it explains why the current toolbar is Filters-page-specific and how to move
+  toward tab-agnostic primitive ordering through a model resolver plus adapters.
+- Codebase architecture cluster phases 01-09 are captured at
+  [[docs/work/research/2026-05-17-codebase-architecture-cluster/index|Codebase architecture cluster]].
+  Latest completed layer:
+  [[docs/work/research/2026-05-17-codebase-architecture-cluster/09-residual-src-support-layer|Residual src support layer]].
+
+## Completed Explorer Commits
+
+- `883cb0a` `test: add explorer synthetic dataset harness`
+- `c813daf` `test: add explorer platform perf scenarios`
+- `1372853` `test: characterize explorer platform scale gates`
+- `75d0af8` `feat: add explorer projection contract`
+- `7f6dcb8` `feat: add explorer view feature contract`
+- `b83c47c` `feat: add explorer node media field toggle`
+- `abe6766` `feat: add explorer scroll geometry coordinator`
+- `89861aa` `feat: batch explorer decoration layers`
+- `40505ac` `feat: wire explorer media descriptors without hidden render cost`
+- `a79f905` `fix: restore tree visual contract`
+- `6aa23aa` `refactor: migrate tree rows to explorer projection`
+- `f1ba4ac` `refactor: route tree reveal through scroll coordinator`
+- `25c9d6b` `refactor: align panel tree list projection adapters`
+- `8056ef5` `refactor: add platform contracts to table grid cards`
+- `4f609af` `test: verify explorer platform focused gates`
+- `c457d01` `test: record live explorer platform perf probe`
+- `9df9e50` is present in branch history but is unrelated theme-plan work.
+
+## Final Verification
+
+- Explorer 0-B final verification:
+  - `pnpm verify`: passed on 2026-05-17.
+    Unit: 140 files / 882 tests. Component: 73 files / 398 tests. Lint:
+    11 pre-existing warnings, 0 errors.
+  - Required legacy-symbol searches returned zero matches:
+    `applyVaultmanTheme`, `vm-glass-blur`, body-scoped `vm-theme`,
+    `normalizeLayoutTheme` / `LAYOUT_THEME_OPTIONS` / `LayoutTheme`, and
+    `updateGlassBlur`.
+  - Targeted theme tests passed: unit 4 files / 61 tests; component 3 files /
+    23 tests.
+  - Build CSS contains `.vm-theme-native` and `.vm-theme-vaultman`, each with
+    six `--vm-*` token properties.
+  - Live `plugin-dev` smoke was partial: `plugin:reload` and `vaultman:open`
+    succeeded, default DOM query did not find `.vm-root` in `activeDocument`,
+    preset-switch evals returned empty objects, initial `dev:errors` returned
+    `No errors captured`, and later DOM/eval inspection commands timed out.
+- `pnpm check`: passed, 0 errors / 0 warnings.
+- `pnpm run build`: passed, synced build artifacts to `plugin-dev`.
+- `pnpm verify`: passed.
+  - Unit: 135 files / 821 tests.
+  - Component: 69 files / 372 tests.
+  - Lint: 8 warnings in pre-existing unrelated files, 0 errors.
+- `git diff --check`: passed.
+- `obsidian eval code="app.vault.getName()" vault=plugin-dev`: `plugin-dev`.
+- `obsidian plugin:reload id=vaultman vault=plugin-dev`: reloaded.
+- `window.__vaultmanPerfProbe.run(...)`: all 8 Task 19 scenarios executed.
+- `obsidian dev:errors vault=plugin-dev`: `No errors captured.`
+
+## Post-Review Repair Verification
+
+- Notebook Navigator original focused tests passed with Node 24.15.0:
+  4 files / 19 tests.
+- New bridge `test/unit/performance/explorerNotebookNavigatorComparison.test.ts`
+  passed and enforces Vaultman 50K projection faster than the comparable
+  Notebook Navigator list builder.
+- Logged bridge medians:
+  - Notebook Navigator list: `61.1534 ms`.
+  - Vaultman projection: `26.9575 ms`.
+  - Notebook Navigator lookups: `0.7050 ms`.
+  - Vaultman lookups: `0.1517 ms`.
+- Markmap menu regression reproduced red in `overlayViewMenu.test.ts`, then
+  fixed by deriving selectable modes from `EXPLORER_PLATFORM_VIEW_MODES`.
+- `pnpm verify`: passed.
+  - Unit: 136 files / 824 tests.
+  - Component: 69 files / 372 tests.
+  - Lint: 8 pre-existing warnings, 0 errors.
+- Live `plugin-dev` smoke after reload:
+  - `obsidian command id=vaultman:open-view-menu vault=plugin-dev`: executed.
+  - DOM labels: `["Tree","List","Table","Grid","Cards"]`.
+  - `hasMarkmap=false`.
+  - `obsidian dev:errors vault=plugin-dev`: `No errors captured.`
+
+## Variable Scroll Repair Verification
+
+- Shared variable geometry now uses prefix/Fenwick indexing.
+- Table, Grid, and Cards no longer use all-row or row-0 fallback scans when
+  TanStack returns no virtual rows.
+- Focused tests passed:
+  - `serviceExplorerScrollGeometry.test.ts`: 1 file / 7 tests.
+  - `viewNodeVariableScrollFallback.test.ts`: 1 file / 2 tests.
+  - `viewNodeDynamicGeometry.test.ts`: 1 file / 3 tests.
+  - `viewNodeTableHeightmap.test.ts`: 1 file / 3 tests.
+  - `viewNodeCards.test.ts`: 1 file / 6 tests.
+  - `pnpm check`: 0 errors / 0 warnings.
+  - `git diff --check`: passed with LF-to-CRLF warnings only.
+- Live `plugin-dev` burst smoke passed for Tree/List/Table/Grid/Cards with
+  zero blank frames, zero windows over 100 ms / 250 ms, `maxBlank=0ms`, and
+  `No errors captured.`
+- Residual latency spikes remain: Tree 108 ms, List 258 ms, Table 1312 ms,
+  Grid 600 ms, Cards 24 ms.
+- Follow-up scroll-idle jank pass added Table/Grid guardrails and defers
+  variable row measurement plus virtualizer resizing until 96 ms after active
+  scroll.
+- Fresh zero-delay live smokes after the idle pass passed with no blanks and no
+  dev errors:
+  - Table: 100 jumps, maxDelay 29 ms.
+  - Grid: 100 jumps, maxDelay 58 ms.
+  - List: 100 jumps, maxDelay 37 ms.
 
 ## Preserve
 
-- Do not reintroduce direct VFS mutation: no `vfs.fm =`, `vfs.body =`,
-  `vfs.ops.push`, or direct `op.apply(vfs)` mutation paths.
-- `applyUpdates` must re-read the current transaction head before staging ops;
-  this preserves concurrent body-loading `add()` calls that share the same
-  lock.
-- `removeOp` must replay filtered ops from initial state through pure
-  `apply()` calls.
-- `applyOpsToRawContent` must replay pure ops into replacement snapshots for
-  frontmatter-only transactions committed against fresh file content.
-- Stale broad-unit expectations were fixed in tests only:
-  `serviceBadge` now expects `node-note`, and `explorerTags` enables matched
-  filter decorations in the test fixture that asserts active-filter state.
-- Previous vertical-thread completions and verification details live in the
-  archived handoff plus the active vertical thread source records.
-- T4 `buildMoveBlockOps()` is currently a pure helper contract only. Do not
-  treat real adopted-block DnD as fully wired until queue staging across the
-  source and target VFS chains is implemented and tested.
-- Obsidian CLI runtime tests and live smokes must pass `vault=plugin-dev`.
-  Never rely on the most recently focused vault for tests; the repository vault
-  `vaultman` is not the smoke target unless the user explicitly asks.
+- Obsidian CLI calls must use explicit `vault=plugin-dev` command options.
+- Do not use generic Obsidian commands that fall back to the active vault.
+- Keep Map/ViewNodeMap deferred and not selectable.
+- Keep media/image disabled by default in every view.
+- Keep `main` free of AI workflow files.
 
-## Fresh Verification
+## Dirty Worktree Notes
 
-- Explorer Wave A/B handoff: plan index and Claude handoff were created under
-  `docs/work/hardening/plans/2026-05-11-explorer-data-plane-transition/`;
-  the handoff is 199 lines, trailing whitespace scan found no matches, and
-  targeted `git diff --check` exited 0 with only CRLF conversion warnings.
-- Notebook Navigator comparison doc: source record added as shard 20 under the
-  Explorer data-plane structural taxonomy. No product code was changed.
-- `node .agents/tools/pkm-ai/check-doc-health.mjs` still fails 12 residuals:
-  one summary-source warning, glossary warnings, parent-shape issues, and large
-  plan/spec line limits outside this new shard.
-- RED gate: `serviceDiff` and `serviceQueue` pure/immutable tests failed 3/38,
-  then passed.
-- T4 RED/GREEN: `serviceDndMoveBlock.test.ts` failed because
-  `buildMoveBlockOps` was missing, then passed after adding the immutable
-  helper.
-- T4 component gate: 5 files / 9 tests passed for `vmDialog`, `vmPopover`,
-  native click interception, `Dashboard3Column`, and `AddonsMarkdownPane`.
-- Focused T4 unit: 8 files / 52 tests passed.
-- Post-T3 lint continuation: removed unnecessary assertions in
-  `serviceDndSvelteAdapter.ts`, `serviceFoulDetection.svelte.ts`, and
-  `serviceNativeClickIntercept.ts`; added `uno.config.ts` to the ESLint
-  project-service default set; migrated UnoCSS config and preflight tests from
-  deprecated `presetUno` to `presetWind3`.
-- UnoCSS preflight RED/GREEN: 1 file / 5 tests passed.
-- Focused T4/config unit: 4 files / 20 tests passed.
-- Focused unit: 10 files / 67 tests passed.
-- Focused component: 2 files / 7 tests passed.
-- Full unit: 117 files / 723 tests passed.
-- Full component: 61 files / 290 tests passed.
-- Svelte autofixer: `viewDiff.svelte` and `viewDiffNavbar.svelte` both
-  returned `issues: []`, `suggestions: []`.
-- Svelte autofixer: `serviceFoulDetection.svelte.ts` returned `issues: []`,
-  `suggestions: []`.
-- `pnpm run lint:full`: passed.
-- `pnpm run check`: passed with 0 errors / 0 warnings.
-- `pnpm run build:plugin`: passed.
-- `git diff --check`: passed.
-- Live smoke: `obsidian vault=plugin-dev plugin:reload id=vaultman` passed,
-  `obsidian vault=plugin-dev command id=vaultman:open` passed, and
-  `obsidian vault=plugin-dev dev:errors` reported no captured errors. T4
-  dialog/dashboard evals returned `false` because no dialog was open and the
-  dashboard surface was not active in the live view.
-
-## Residuals
-
-- `vaultman:open-diff` is not registered in the live `plugin-dev` command list;
-  the Diff Navbar DOM probe returned `false` because no command opened the diff
-  view.
-- T4 integration follow-ups remain: frame-level native-click wiring,
-  Find/Replace island migration to `vmPopover`, dashboard/add-ons wiring in
-  `frameVaultman.svelte`, real adopted-block move staging into queue chains,
-  Quick Switcher, and FAB orbiting-ink polish.
-- `node .agents/tools/pkm-ai/check-doc-health.mjs` still fails on
-  summary-source, glossary, parent-shape, and large plan/spec line-limit
-  residuals. Current
-  status/handoff were archived and compacted here.
-- Do not move AI files to `main`.
-- Do not base table work on old `viewTable.svelte`; use the TanStack table
-  source records if table work resumes.
+- After the 0-B commits, unrelated dirty files still existed and were preserved:
+  toolbar/polish agent docs and metrics, `src/main.ts` ribbon icon work,
+  `src/types/typeFrame.ts`, and `src/types/typeTabLeaf.ts`.
+- Current dirt is scoped to the active variable scroll repair:
+  `serviceExplorerScrollGeometry`, Table/Grid/Cards adapters, scroll-idle
+  jank guardrails, focused tests, and the linked hardening docs. No unrelated
+  dirty files were visible in the final status check.
 
 ## Next Action
 
-- Current hardening route: use shard 20 to guide the next Files tracer bullet:
-  verify whether `claude/explorer` has a Files data-plane publish path, then add
-  `explorerFiles.getSnapshot(...)` or an equivalent adapter if missing.
-- Existing hardening route after that: triage or execute
-  [[docs/work/hardening/issues/explorer-data-plane/001-approve-issue-set-and-supersession-notes|EDP-001]],
-  then hand off Wave A/B to Claude using
-  [[docs/work/hardening/plans/2026-05-11-explorer-data-plane-transition/01-wave-a-b-claude-handoff|Wave A/B Claude handoff]].
-- Continue with remaining T4 integration follow-ups or the next vertical-thread
-  slice from
-  [[docs/work/polish/plans/2026-05-11-ui-modernization-vertical-threads/index|UI Modernization Vertical Threads]].
-- For T3, register or expose a real diff-open path before rerunning the live
-  Diff Navbar smoke.
-- Remove `OperationQueueService.transactions` only after all readers migrate to
-  immutable `chains`.
+- If continuing Explorer scroll work, start from the variable scroll repair
+  record. The blank fallback bug is repaired for the live selectable modes and
+  Table/Grid active-scroll measurement is now deferred. Next target:
+  runner-level view switching, percentile/histogram delay reporting, Grid peak
+  follow-up if the 58 ms max persists, and an explicit 50k/100k matrix.
+- Live scroll smoke harness implemented and verified:
+  `pnpm smoke:scroll -- --view=tree --jumps=100`.
+  Stress command: `pnpm smoke:scroll:stress -- --view=tree`.
+  Both route through `scripts/run-explorer-scroll-smoke.mjs` and hard-code
+  `vault=plugin-dev`.
+- Latest live tree result: `blankFrames=0`, `blank>100ms=0`,
+  `blank>250ms=0`, `maxBlank=0ms`, `maxDelay=108ms`, and no Obsidian dev
+  errors.
+- If resuming OpenSSF hardening, start from:
+  `.agents/docs/work/hardening/plans/2026-05-16-openssf-osps-baseline/01-scope-docs-workflow-permissions.md`.
+- If continuing the codebase architecture cluster, proceed with coverage
+  reconciliation: compare tracked source/config/test/doc paths against phases
+  01-09, mark generated-artifact exclusions, and produce a final coverage
+  matrix.

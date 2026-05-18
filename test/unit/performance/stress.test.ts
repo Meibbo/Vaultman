@@ -140,19 +140,21 @@ describe('large vault performance seams', () => {
 			label: `Node ${index}`,
 			path: `Folder-${index % 50}/node-${index}.md`,
 		}));
+		const flatIds = nodes.map((node) => node.id);
+		const nodesById = new Map(nodes.map((node) => [node.id, node]));
 		const idx: INodeIndex<TestNode> = {
 			get nodes() {
 				return nodes;
 			},
 			get flatIds() {
-				return nodes.map((node) => node.id);
+				return flatIds;
 			},
 			get revision() {
 				return 1;
 			},
 			refresh: () => {},
 			subscribe: () => () => {},
-			byId: (id) => nodes.find((node) => node.id === id),
+			byId: (id) => nodesById.get(id),
 			getSearchBuffer: (id) => {
 				const node = nodes[Number(id.slice('node-'.length))];
 				return node ? `${node.label}\n${node.path}`.toLowerCase() : '';

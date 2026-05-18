@@ -1,5 +1,7 @@
 import type { TFile } from 'obsidian';
+import { getActivePerfProbe } from '../dev/perfProbe';
 import type { VaultmanPlugin } from '../main';
+import { buildExplorerSnapshot } from '../logic/logicExplorerSnapshot';
 import { FilesLogic } from '../logic/logicsFiles';
 import type { TreeNode, FileMeta } from '../types/typeNode';
 import type { MenuCtx } from '../types/typeCtxMenu';
@@ -15,10 +17,18 @@ import { createFnRState, startFileRenameHandoff } from '../services/serviceFnR';
 import type { FnRRenameHandoff } from '../types/typeFnR';
 import { resolveOperationScopeFiles } from '../services/serviceOperationScope';
 import { PerfMeter } from '../services/perfMeter';
-import { highlightsFromViewLayers, withViewStateClasses } from '../utils/utilViewLayers';
+import {
+	buildExplorerLayerMap,
+	decorateTreeWithExplorerLayers,
+	flattenTreeNodes,
+} from '../services/serviceExplorerLayers';
 import { buildOutlineForFile } from './explorerOutline';
 import type { AdoptionService } from '../services/serviceAdoption.svelte';
 import type { AdoptedNode } from '../types/typeAdoptedNode';
+import type {
+	ExplorerDataPlaneRevisions,
+	ExplorerSnapshot,
+} from '../types/typeExplorerDataPlane';
 
 export interface ExplorerFilesOptions {
 	startRenameHandoff?: (handoff: FnRRenameHandoff) => void;
@@ -40,6 +50,7 @@ export class explorerFiles implements ExplorerProvider<FileMeta> {
 	private searchFolder = '';
 	private adoptedOutlineCache = new Map<string, AdoptedNode[]>();
 	private subscribers = new Set<() => void>();
+	private structuralCache: { key: string; tree: TreeNode<FileMeta>[] } | null = null;
 
 	constructor(plugin: VaultmanPlugin, options: ExplorerFilesOptions = {}) {
 		this.plugin = plugin;
@@ -124,8 +135,16 @@ export class explorerFiles implements ExplorerProvider<FileMeta> {
 		});
 	}
 
-	getTree(): TreeNode<FileMeta>[] {
+	private readStructuralTree(): TreeNode<FileMeta>[] {
 		const source = this.sourceFiles();
+		const cacheKey = this.structuralCacheKey(source);
+		const probe = getActivePerfProbe();
+		if (this.structuralCache?.key === cacheKey) {
+			probe?.count('explorerDataPlane.files.structure.cacheHit', { files: source.length });
+			return this.structuralCache.tree;
+		}
+		probe?.count('explorerDataPlane.files.structure.rebuild', { files: source.length });
+
 		const getSearchBuffer = this.plugin.filesIndex
 			? (path: string) => this.fileSearchBuffer(path)
 			: undefined;
@@ -147,11 +166,55 @@ export class explorerFiles implements ExplorerProvider<FileMeta> {
 			'service',
 			{ files: sorted.length },
 		);
-		PerfMeter.time(
+		this.structuralCache = { key: cacheKey, tree };
+		return tree;
+	}
+
+	private buildStructuralTree(): TreeNode<FileMeta>[] {
+		const tree = cloneTreeNodes(this.readStructuralTree());
+		this.attachAdoptedChildren(tree);
+		return tree;
+	}
+
+	getStructuralTree(): TreeNode<FileMeta>[] {
+		return this.buildStructuralTree();
+	}
+
+	getStructuralRevisions(): ExplorerDataPlaneRevisions {
+		return {
+			filesRevision: this.plugin.filesIndex?.revision ?? 0,
+			propsRevision: this.plugin.propsIndex?.revision,
+		};
+	}
+
+	getSnapshot(expandedIds: ReadonlySet<string> = new Set()): ExplorerSnapshot<FileMeta> {
+		return buildExplorerSnapshot({
+			explorerId: this.id,
+			providerKey: this.id,
+			tree: this.getStructuralTree(),
+			expandedIds,
+			revisions: this.getStructuralRevisions(),
+			projection: {
+				searchTerm: this.searchName,
+				searchMode: 'all',
+				sortBy: this.sortBy,
+				sortDirection: this.sortDir,
+				sortTarget: 'top',
+			},
+			kindFor: ({ node }) => (node.meta.isFolder ? 'folder' : 'file'),
+			pathFor: ({ node }) => (node.meta.isFolder ? undefined : node.meta.file?.path),
+			folderPathFor: ({ node }) => node.meta.folderPath,
+			domainKeyFor: ({ node }) => node.meta.file?.path ?? node.meta.folderPath,
+		});
+	}
+
+	getTree(): TreeNode<FileMeta>[] {
+		const structuralTree = this.readStructuralTree();
+		const tree = PerfMeter.time(
 			'explorer.files.decorateTree',
-			() => this._decorateTree(tree),
+			() => this.decorateTree(structuralTree),
 			'service',
-			{ nodes: countTreeNodes(tree) },
+			{ nodes: countTreeNodes(structuralTree) },
 		);
 		this.attachAdoptedChildren(tree);
 		return tree;
@@ -178,7 +241,7 @@ export class explorerFiles implements ExplorerProvider<FileMeta> {
 		if (changed) this.fire();
 	}
 
-	private _decorateTree(nodes: TreeNode<FileMeta>[]): void {
+	private decorateTree(nodes: readonly TreeNode<FileMeta>[]): TreeNode<FileMeta>[] {
 		const operations = this.plugin.operationsIndex.nodes;
 		const activeFilters = this.plugin.activeFiltersIndex.nodes;
 		const revisions = {
@@ -186,33 +249,27 @@ export class explorerFiles implements ExplorerProvider<FileMeta> {
 			queueRevision: this.plugin.operationsIndex?.revision,
 			filterRevision: this.plugin.activeFiltersIndex?.revision,
 		};
-
-		for (const n of nodes) {
-			const viewRow = this.plugin.viewService.getModel({
-				explorerId: 'files',
-				mode: 'tree',
-				nodes: [n],
-				operations,
-				activeFilters,
-				revisions,
-				getLabel: (item) => item.label,
-				getDecorationContext: () => ({
-					kind: 'file',
-					highlightQuery: n.meta.isFolder ? this.searchFolder : this.searchName,
-					isFolder: n.meta.isFolder,
-					filePath: n.meta.file?.path,
-					basename: n.meta.file?.basename ?? n.label,
-					folderPath: n.meta.folderPath,
-					extension: n.meta.file?.extension,
-				}),
-			}).rows[0];
-
-			n.icon = viewRow.icon;
-			n.highlights = highlightsFromViewLayers(viewRow.layers);
-			n.cls = withViewStateClasses(n.cls, viewRow.layers);
-
-			if (n.children?.length) this._decorateTree(n.children);
-		}
+		const flatNodes = flattenTreeNodes(nodes);
+		const layers = buildExplorerLayerMap({
+			viewService: this.plugin.viewService,
+			explorerId: 'files',
+			mode: 'tree',
+			nodes: flatNodes,
+			operations,
+			activeFilters,
+			revisions,
+			getLabel: (item) => item.label,
+			getDecorationContext: (node) => ({
+				kind: 'file',
+				highlightQuery: node.meta.isFolder ? this.searchFolder : this.searchName,
+				isFolder: node.meta.isFolder,
+				filePath: node.meta.file?.path,
+				basename: node.meta.file?.basename ?? node.label,
+				folderPath: node.meta.folderPath,
+				extension: node.meta.file?.extension,
+			}),
+		});
+		return decorateTreeWithExplorerLayers(nodes, layers, { operations });
 	}
 
 	getFiles(): TFile[] {
@@ -342,7 +399,7 @@ export class explorerFiles implements ExplorerProvider<FileMeta> {
 	}
 
 	private vaultFiles(): TFile[] {
-		const indexedFiles = this.plugin.filesIndex?.nodes.map((node) => node.file) ?? [];
+		const indexedFiles = this.plugin.filesIndex?.nodes?.map((node) => node.file) ?? [];
 		if (indexedFiles.length > 0) return indexedFiles;
 		const vault = this.plugin.app.vault as typeof this.plugin.app.vault & {
 			getFiles?: () => TFile[];
@@ -361,6 +418,21 @@ export class explorerFiles implements ExplorerProvider<FileMeta> {
 
 	private foldersFirstEnabled(): boolean {
 		return this.plugin.settings?.explorerFilesFoldersFirst !== false;
+	}
+
+	private structuralCacheKey(source: readonly TFile[]): string {
+		return [
+			this.searchName,
+			this.searchFolder,
+			this.sortBy,
+			this.sortDir,
+			this.showSelectedOnly ? 'selected' : 'all',
+			this.showHiddenFiles ? 'hidden' : 'visible',
+			this.foldersFirstEnabled() ? 'folders-first' : 'natural',
+			this.plugin.filesIndex?.revision ?? '-',
+			this.plugin.propsIndex?.revision ?? '-',
+			source.map((file) => `${file.path}:${file.stat.mtime}:${file.stat.size}`).join('\u0001'),
+		].join('\u0000');
 	}
 
 	private appendLinksToScope(sourceFiles: TFile[]): void {
@@ -508,6 +580,13 @@ function countTreeNodes(nodes: TreeNode<FileMeta>[]): number {
 		if (node.children) stack.push(...node.children);
 	}
 	return count;
+}
+
+function cloneTreeNodes<TMeta>(nodes: readonly TreeNode<TMeta>[]): TreeNode<TMeta>[] {
+	return nodes.map((node) => ({
+		...node,
+		children: node.children ? cloneTreeNodes(node.children) : undefined,
+	}));
 }
 
 function adoptedNodeIcon(kind: AdoptedNode['kind']): string {

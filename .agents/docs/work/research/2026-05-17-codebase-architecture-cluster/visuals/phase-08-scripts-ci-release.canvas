@@ -1,0 +1,378 @@
+{
+  "nodes": [
+    {
+      "id": "8000000000000001",
+      "type": "group",
+      "x": -40,
+      "y": -40,
+      "width": 420,
+      "height": 520,
+      "label": "Package gates",
+      "color": "5"
+    },
+    {
+      "id": "8000000000000002",
+      "type": "group",
+      "x": 420,
+      "y": -40,
+      "width": 500,
+      "height": 760,
+      "label": "Scripts",
+      "color": "4"
+    },
+    {
+      "id": "8000000000000003",
+      "type": "group",
+      "x": 980,
+      "y": -40,
+      "width": 500,
+      "height": 760,
+      "label": "Workflows and security",
+      "color": "3"
+    },
+    {
+      "id": "8000000000000004",
+      "type": "group",
+      "x": 1540,
+      "y": -40,
+      "width": 500,
+      "height": 760,
+      "label": "Artifacts and outputs",
+      "color": "2"
+    },
+    {
+      "id": "8000000000000005",
+      "type": "file",
+      "x": 0,
+      "y": 20,
+      "width": 320,
+      "height": 90,
+      "file": ".agents/docs/work/research/2026-05-17-codebase-architecture-cluster/08-scripts-ci-release-layer.md",
+      "color": "5"
+    },
+    {
+      "id": "8000000000000006",
+      "type": "file",
+      "x": 0,
+      "y": 140,
+      "width": 320,
+      "height": 90,
+      "file": "package.json",
+      "color": "5"
+    },
+    {
+      "id": "8000000000000007",
+      "type": "file",
+      "x": 460,
+      "y": 20,
+      "width": 380,
+      "height": 80,
+      "file": "scripts/sync-test-build.mjs",
+      "color": "4"
+    },
+    {
+      "id": "8000000000000008",
+      "type": "file",
+      "x": 460,
+      "y": 120,
+      "width": 380,
+      "height": 80,
+      "file": "scripts/run-explorer-scroll-smoke.mjs",
+      "color": "4"
+    },
+    {
+      "id": "8000000000000009",
+      "type": "file",
+      "x": 460,
+      "y": 220,
+      "width": 380,
+      "height": 80,
+      "file": "scripts/security-audit.mjs",
+      "color": "4"
+    },
+    {
+      "id": "800000000000000a",
+      "type": "file",
+      "x": 460,
+      "y": 320,
+      "width": 380,
+      "height": 80,
+      "file": "scripts/generate-release-sbom.mjs",
+      "color": "4"
+    },
+    {
+      "id": "800000000000000b",
+      "type": "file",
+      "x": 460,
+      "y": 420,
+      "width": 380,
+      "height": 80,
+      "file": "scripts/no-mutable-vfs.mjs",
+      "color": "4"
+    },
+    {
+      "id": "800000000000000c",
+      "type": "text",
+      "x": 460,
+      "y": 540,
+      "width": 380,
+      "height": 120,
+      "text": "# Script meaning\n\nBuild sync writes root/dist/plugin-dev/stress-vault outputs. Smoke executes the live Explorer perf probe in `plugin-dev`.",
+      "color": "4"
+    },
+    {
+      "id": "800000000000000d",
+      "type": "file",
+      "x": 1020,
+      "y": 20,
+      "width": 380,
+      "height": 80,
+      "file": ".github/workflows/ci.yml",
+      "color": "3"
+    },
+    {
+      "id": "800000000000000e",
+      "type": "file",
+      "x": 1020,
+      "y": 120,
+      "width": 380,
+      "height": 80,
+      "file": ".github/workflows/release.yml",
+      "color": "3"
+    },
+    {
+      "id": "800000000000000f",
+      "type": "file",
+      "x": 1020,
+      "y": 220,
+      "width": 380,
+      "height": 80,
+      "file": ".github/workflows/codeql.yml",
+      "color": "3"
+    },
+    {
+      "id": "8000000000000010",
+      "type": "file",
+      "x": 1020,
+      "y": 320,
+      "width": 380,
+      "height": 80,
+      "file": ".github/workflows/scorecard.yml",
+      "color": "3"
+    },
+    {
+      "id": "8000000000000011",
+      "type": "file",
+      "x": 1020,
+      "y": 420,
+      "width": 380,
+      "height": 80,
+      "file": ".github/dependabot.yml",
+      "color": "3"
+    },
+    {
+      "id": "8000000000000012",
+      "type": "file",
+      "x": 1020,
+      "y": 520,
+      "width": 380,
+      "height": 80,
+      "file": ".github/codeql/codeql-config.yml",
+      "color": "3"
+    },
+    {
+      "id": "8000000000000013",
+      "type": "file",
+      "x": 1020,
+      "y": 620,
+      "width": 380,
+      "height": 80,
+      "file": "codeql/queries/javascript/vaultman/qlpack.yml",
+      "color": "3"
+    },
+    {
+      "id": "8000000000000014",
+      "type": "file",
+      "x": 1580,
+      "y": 20,
+      "width": 380,
+      "height": 80,
+      "file": "main.js",
+      "color": "2"
+    },
+    {
+      "id": "8000000000000015",
+      "type": "file",
+      "x": 1580,
+      "y": 120,
+      "width": 380,
+      "height": 80,
+      "file": "styles.css",
+      "color": "2"
+    },
+    {
+      "id": "8000000000000016",
+      "type": "file",
+      "x": 1580,
+      "y": 220,
+      "width": 380,
+      "height": 80,
+      "file": "manifest.json",
+      "color": "2"
+    },
+    {
+      "id": "8000000000000017",
+      "type": "file",
+      "x": 1580,
+      "y": 320,
+      "width": 380,
+      "height": 80,
+      "file": "versions.json",
+      "color": "2"
+    },
+    {
+      "id": "8000000000000018",
+      "type": "file",
+      "x": 1580,
+      "y": 420,
+      "width": 380,
+      "height": 80,
+      "file": "dist/release/sbom.cdx.json",
+      "color": "2"
+    },
+    {
+      "id": "8000000000000019",
+      "type": "file",
+      "x": 1580,
+      "y": 520,
+      "width": 380,
+      "height": 80,
+      "file": "dist/release/SHA256SUMS",
+      "color": "2"
+    },
+    {
+      "id": "800000000000001a",
+      "type": "text",
+      "x": 0,
+      "y": 270,
+      "width": 320,
+      "height": 160,
+      "text": "# Phase 08\n\nAutomation layer: package scripts route local builds, live smokes, audit, SBOM, CI, CodeQL, Scorecard, Dependabot, and release staging.",
+      "color": "5"
+    }
+  ],
+  "edges": [
+    {
+      "id": "8800000000000001",
+      "fromNode": "8000000000000005",
+      "toNode": "8000000000000006",
+      "toEnd": "arrow",
+      "label": "summarizes"
+    },
+    {
+      "id": "8800000000000002",
+      "fromNode": "8000000000000006",
+      "toNode": "8000000000000007",
+      "toEnd": "arrow",
+      "label": "build sync"
+    },
+    {
+      "id": "8800000000000003",
+      "fromNode": "8000000000000006",
+      "toNode": "8000000000000008",
+      "toEnd": "arrow",
+      "label": "smoke"
+    },
+    {
+      "id": "8800000000000004",
+      "fromNode": "8000000000000006",
+      "toNode": "8000000000000009",
+      "toEnd": "arrow",
+      "label": "audit"
+    },
+    {
+      "id": "8800000000000005",
+      "fromNode": "8000000000000006",
+      "toNode": "800000000000000a",
+      "toEnd": "arrow",
+      "label": "sbom"
+    },
+    {
+      "id": "8800000000000006",
+      "fromNode": "8000000000000006",
+      "toNode": "800000000000000b",
+      "toEnd": "arrow",
+      "label": "lint rule"
+    },
+    {
+      "id": "8800000000000007",
+      "fromNode": "8000000000000006",
+      "toNode": "800000000000000d",
+      "toEnd": "arrow",
+      "label": "CI gates"
+    },
+    {
+      "id": "8800000000000008",
+      "fromNode": "8000000000000006",
+      "toNode": "800000000000000e",
+      "toEnd": "arrow",
+      "label": "release gates"
+    },
+    {
+      "id": "8800000000000009",
+      "fromNode": "800000000000000f",
+      "toNode": "8000000000000012",
+      "toEnd": "arrow",
+      "label": "config"
+    },
+    {
+      "id": "880000000000000a",
+      "fromNode": "8000000000000012",
+      "toNode": "8000000000000013",
+      "toEnd": "arrow",
+      "label": "query pack"
+    },
+    {
+      "id": "880000000000000b",
+      "fromNode": "8000000000000007",
+      "toNode": "8000000000000014",
+      "toEnd": "arrow",
+      "label": "writes"
+    },
+    {
+      "id": "880000000000000c",
+      "fromNode": "8000000000000007",
+      "toNode": "8000000000000015",
+      "toEnd": "arrow",
+      "label": "writes"
+    },
+    {
+      "id": "880000000000000d",
+      "fromNode": "8000000000000007",
+      "toNode": "8000000000000016",
+      "toEnd": "arrow",
+      "label": "copies"
+    },
+    {
+      "id": "880000000000000e",
+      "fromNode": "800000000000000e",
+      "toNode": "8000000000000018",
+      "toEnd": "arrow",
+      "label": "generates"
+    },
+    {
+      "id": "880000000000000f",
+      "fromNode": "800000000000000e",
+      "toNode": "8000000000000019",
+      "toEnd": "arrow",
+      "label": "checksums"
+    },
+    {
+      "id": "8800000000000010",
+      "fromNode": "8000000000000005",
+      "toNode": "800000000000001a",
+      "toEnd": "arrow",
+      "label": "summary"
+    }
+  ]
+}

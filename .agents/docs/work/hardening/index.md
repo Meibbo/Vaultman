@@ -4,7 +4,7 @@ type: initiative-index
 status: active
 parent: "[[docs/work/pkm-ai/index|pkm-ai]]"
 created: 2026-05-04T01:44:46
-updated: 2026-05-11T20:55:00
+updated: 2026-05-16T12:52:54-05:00
 tags:
   - agent/work
   - initiative/hardening
@@ -35,6 +35,12 @@ quality work before it reaches `main`.
 - [[docs/work/hardening/specs/2026-05-05-bases-import-choose-mode/index|Bases import choose mode]]
 - [[docs/work/hardening/specs/2026-05-05-performance-diagnosis-loop/index|Performance diagnosis loop]]
 - [[docs/work/hardening/specs/2026-05-06-user-facing-recovery-wave-a/index|User-facing recovery wave A]]
+- [[docs/work/hardening/specs/2026-05-16-notebook-navigator-scroll-forensics/index|Notebook Navigator scroll forensics]]
+
+## Active Research
+
+- [[docs/work/hardening/research/2026-05-16-openssf-osps-baseline/index|OpenSSF OSPS baseline research]]
+- [[docs/work/hardening/research/2026-05-16-multiview-virtualization-research/index|Multiview virtualization research]]
 
 ## Active Plans
 
@@ -45,6 +51,9 @@ quality work before it reaches `main`.
 - [[docs/work/hardening/plans/2026-05-06-cmenu-queue-repair/index|CMenu queue repair implementation]]
 - [[docs/work/hardening/plans/2026-05-06-prop-value-rename-handoff/index|Prop value rename handoff implementation]]
 - [[docs/work/hardening/plans/2026-05-11-explorer-data-plane-transition/index|Explorer data plane transition plans]]
+- [[docs/work/hardening/plans/2026-05-16-openssf-osps-baseline/index|OpenSSF OSPS baseline implementation plan]]
+- [[docs/work/hardening/plans/2026-05-16-explorer-scroll-smoke-harness/index|Explorer scroll smoke harness implementation plan]]
+- [[docs/work/hardening/plans/2026-05-16-explorer-variable-scroll-repair/index|Explorer variable scroll repair]]
 
 ## Active Issue Sets
 

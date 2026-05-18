@@ -2,15 +2,22 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { flushSync, mount, unmount, type Component } from 'svelte';
 import PanelExplorer from '../../src/components/containers/panelExplorer.svelte';
 import { NodeSelectionService } from '../../src/services/serviceSelection.svelte';
+import { ExplorerDataPlaneService } from '../../src/services/serviceExplorerDataPlane.svelte';
 import { ViewService } from '../../src/services/serviceViews.svelte';
 import type { VaultmanPlugin } from '../../src/main';
 import type { ExplorerProvider, ExplorerViewMode } from '../../src/types/typeExplorer';
+import type { ExplorerSnapshot } from '../../src/types/typeExplorerDataPlane';
 import type { FileMeta, PropMeta, TreeNode } from '../../src/types/typeNode';
 import type { IViewService } from '../../src/types/typeViews';
 import { mockTFile } from '../helpers/obsidian-mocks';
 
 const EXPLORER_ID = 'selection-test';
 type TestNodeMouseAction = 'select' | 'filter' | 'open' | 'node-note' | 'delete';
+type ExplorerDataPlaneServiceLike = {
+	snapshot(explorerId: string): ExplorerSnapshot | undefined;
+	publish?(explorerId: string, snapshot: ExplorerSnapshot): void;
+	subscribe(explorerId: string, cb: () => void): () => void;
+};
 
 function nodes(): TreeNode[] {
 	return [
@@ -87,6 +94,167 @@ function provider(overrides: Partial<ExplorerProvider> = {}): ExplorerProvider {
 	};
 }
 
+function makeFilesSnapshot(visibleIds: string[]): ExplorerSnapshot {
+	const rows = visibleIds.map((id, index) => {
+		const node: TreeNode = {
+			id,
+			label: id,
+			depth: 0,
+			meta: {},
+			icon: 'lucide-file',
+		};
+		return {
+			id,
+			label: id,
+			depth: 0,
+			parentId: null,
+			childrenIds: [],
+			node,
+			kind: 'file' as const,
+			path: id,
+			index,
+		};
+	});
+	return {
+		explorerId: 'files',
+		providerKey: 'files',
+		revision: 1,
+		structureRevision: 1,
+		rows,
+		tree: rows.map((row) => row.node),
+		visibleIds,
+		byId: new Map(rows.map((row) => [row.id, row])),
+		idToIndex: new Map(visibleIds.map((id, index) => [id, index])),
+		pathToId: new Map(visibleIds.map((id) => [id, id])),
+		folderPathToId: new Map(),
+		domainKeyToId: new Map(),
+		projection: {
+			searchTerm: '',
+			searchMode: 'all',
+			sortBy: 'name',
+			sortDirection: 'asc',
+			sortTarget: 'top',
+		},
+		sourceRevisions: { filesRevision: 1 },
+	};
+}
+
+function makeNestedFilesSnapshot(expandedIds: ReadonlySet<string>): ExplorerSnapshot {
+	const parent: TreeNode = {
+		id: 'parent',
+		label: 'Parent',
+		depth: 0,
+		meta: {},
+		icon: 'lucide-folder',
+	};
+	const child: TreeNode = { id: 'child', label: 'Child', depth: 1, meta: {}, icon: 'lucide-file' };
+	const sibling: TreeNode = {
+		id: 'sibling',
+		label: 'Sibling',
+		depth: 0,
+		meta: {},
+		icon: 'lucide-file',
+	};
+	parent.children = [child];
+	const leaves = Array.from({ length: 8 }, (_, index) => ({
+		id: `leaf-${index}`,
+		label: `Leaf ${index}`,
+		depth: 0,
+		meta: {},
+		icon: 'lucide-file',
+	}));
+	const nodes = [parent, sibling, ...leaves];
+	const allRows = [
+		{
+			id: 'parent',
+			label: 'Parent',
+			depth: 0,
+			parentId: null,
+			childrenIds: ['child'],
+			node: parent,
+			kind: 'folder' as const,
+		},
+		{
+			id: 'child',
+			label: 'Child',
+			depth: 1,
+			parentId: 'parent',
+			childrenIds: [],
+			node: child,
+			kind: 'file' as const,
+			path: 'child',
+		},
+		{
+			id: 'sibling',
+			label: 'Sibling',
+			depth: 0,
+			parentId: null,
+			childrenIds: [],
+			node: sibling,
+			kind: 'file' as const,
+			path: 'sibling',
+		},
+		...leaves.map((node) => ({
+			id: node.id,
+			label: node.label,
+			depth: 0,
+			parentId: null,
+			childrenIds: [],
+			node,
+			kind: 'file' as const,
+			path: node.id,
+		})),
+	];
+	const visibleIds = expandedIds.has('parent')
+		? ['parent', 'child', 'sibling', ...leaves.map((node) => node.id)]
+		: ['parent', 'sibling', ...leaves.map((node) => node.id)];
+	return {
+		explorerId: 'files',
+		providerKey: 'files',
+		revision: 1,
+		structureRevision: 1,
+		rows: allRows,
+		tree: nodes,
+		visibleIds,
+		byId: new Map(allRows.map((row) => [row.id, row])),
+		idToIndex: new Map(visibleIds.map((id, index) => [id, index])),
+		pathToId: new Map(allRows.filter((row) => row.path).map((row) => [row.path!, row.id])),
+		folderPathToId: new Map(),
+		domainKeyToId: new Map(),
+		projection: {
+			searchTerm: '',
+			searchMode: 'all',
+			sortBy: 'name',
+			sortDirection: 'asc',
+			sortTarget: 'top',
+		},
+		sourceRevisions: { filesRevision: 1 },
+	};
+}
+
+function snapshotHarness(initial?: ExplorerSnapshot): {
+	service: ExplorerDataPlaneServiceLike;
+	publish(snapshot: ExplorerSnapshot): void;
+} {
+	let current = initial;
+	const subscribers = new Set<() => void>();
+	return {
+		service: {
+			snapshot: vi.fn((explorerId: string) => (explorerId === 'files' ? current : undefined)),
+			subscribe: vi.fn((explorerId: string, cb: () => void) => {
+				if (explorerId === 'files') subscribers.add(cb);
+				return () => {
+					subscribers.delete(cb);
+				};
+			}),
+		},
+		publish(snapshot: ExplorerSnapshot) {
+			current = snapshot;
+			for (const cb of subscribers) cb();
+		},
+	};
+}
+
 describe('PanelExplorer tree selection adapter', () => {
 	let target: HTMLDivElement;
 	let app: ReturnType<typeof mount> | null = null;
@@ -125,6 +293,7 @@ describe('PanelExplorer tree selection adapter', () => {
 			};
 			nodeExpansionCommand?: unknown;
 			onNodeExpansionSummaryChange?: (summary: unknown) => void;
+			explorerDataPlaneService?: ExplorerDataPlaneServiceLike;
 		} = {},
 	) {
 		const selectionService = options.selectionService ?? new NodeSelectionService();
@@ -134,6 +303,13 @@ describe('PanelExplorer tree selection adapter', () => {
 			gridHierarchyMode: options.gridHierarchyMode,
 			nodeMouseActions: options.nodeMouseActions,
 		};
+		if (options.explorerDataPlaneService) {
+			(
+				pluginStub as VaultmanPlugin & {
+					explorerDataPlaneService: ExplorerDataPlaneServiceLike;
+				}
+			).explorerDataPlaneService = options.explorerDataPlaneService;
+		}
 		const providerStub = options.provider ?? provider();
 		app = mount(PanelExplorer as unknown as Component<Record<string, unknown>>, {
 			target,
@@ -157,9 +333,9 @@ describe('PanelExplorer tree selection adapter', () => {
 		flushSync();
 
 		expect([...selectionService.snapshot(EXPLORER_ID).ids]).toEqual(['alpha']);
-		expect(pluginStub.viewService.clearSelection).toHaveBeenCalled();
-		expect(pluginStub.viewService.select).toHaveBeenCalledWith(EXPLORER_ID, 'alpha', 'add');
-		expect(pluginStub.viewService.setFocused).toHaveBeenCalledWith(EXPLORER_ID, 'alpha');
+		expect(pluginStub.viewService.clearSelection).not.toHaveBeenCalled();
+		expect(pluginStub.viewService.select).not.toHaveBeenCalled();
+		expect(pluginStub.viewService.setFocused).not.toHaveBeenCalled();
 		expect(providerStub.handleNodeClick).not.toHaveBeenCalled();
 	});
 
@@ -308,8 +484,139 @@ describe('PanelExplorer tree selection adapter', () => {
 		flushSync();
 
 		expect([...selectionService.snapshot('files').ids]).toEqual(['Notes/Alpha.md']);
-		expect(pluginStub.viewService.select).toHaveBeenCalledWith('files', 'Notes/Alpha.md', 'add');
+		expect(pluginStub.viewService.select).not.toHaveBeenCalled();
 		expect(pluginStub.filterService.setSelectedFiles).toHaveBeenCalledWith([file]);
+	});
+
+	it('files tree prune uses snapshot.visibleIds when a data-plane snapshot is present', () => {
+		const selectionService = new NodeSelectionService();
+		const pruneSpy = vi.spyOn(selectionService, 'prune');
+		const { service } = snapshotHarness(makeFilesSnapshot(['snapshot-a.md', 'snapshot-b.md']));
+
+		renderPanel({
+			selectionService,
+			explorerDataPlaneService: service,
+			provider: provider({ id: 'files', getTree: vi.fn(() => nodes()) }),
+		});
+
+		expect(pruneSpy).toHaveBeenCalledWith('files', ['snapshot-a.md', 'snapshot-b.md']);
+	});
+
+	it('files tree prune reacts when the data-plane service publishes a snapshot', () => {
+		const selectionService = new NodeSelectionService();
+		const pruneSpy = vi.spyOn(selectionService, 'prune');
+		const harness = snapshotHarness();
+
+		renderPanel({
+			selectionService,
+			explorerDataPlaneService: harness.service,
+			provider: provider({ id: 'files', getTree: vi.fn(() => nodes()) }),
+		});
+
+		expect(pruneSpy).toHaveBeenCalledWith('files', ['alpha', 'beta']);
+
+		harness.publish(makeFilesSnapshot(['published-a.md']));
+		flushSync();
+
+		expect(pruneSpy).toHaveBeenCalledWith('files', ['published-a.md']);
+	});
+
+	it('files panel publishes provider snapshots into the data-plane service', () => {
+		const selectionService = new NodeSelectionService();
+		const pruneSpy = vi.spyOn(selectionService, 'prune');
+		const service = new ExplorerDataPlaneService();
+		const snapshot = makeFilesSnapshot(['published-a.md', 'published-b.md']);
+		const getSnapshot = vi.fn(() => snapshot);
+
+		renderPanel({
+			selectionService,
+			explorerDataPlaneService: service,
+			provider: provider({
+				id: 'files',
+				getTree: vi.fn(() => nodes()),
+				getSnapshot,
+			} as Partial<ExplorerProvider>),
+		});
+
+		expect(getSnapshot).toHaveBeenCalled();
+		expect(service.snapshot('files')?.visibleIds).toEqual(['published-a.md', 'published-b.md']);
+		expect(pruneSpy).toHaveBeenCalledWith('files', ['published-a.md', 'published-b.md']);
+	});
+
+	it('files panel republishes provider snapshots when expansion changes visible ids', () => {
+		const service = new ExplorerDataPlaneService();
+		const getSnapshot = vi.fn((expandedIds: ReadonlySet<string>) =>
+			makeNestedFilesSnapshot(expandedIds),
+		);
+
+		renderPanel({
+			explorerDataPlaneService: service,
+			provider: provider({
+				id: 'files',
+				getTree: vi.fn(() => largeNestedNodes()),
+				getSnapshot,
+			} as Partial<ExplorerProvider>),
+		});
+
+		expect(service.snapshot('files')?.visibleIds).toEqual([
+			'parent',
+			'sibling',
+			...Array.from({ length: 8 }, (_, index) => `leaf-${index}`),
+		]);
+
+		(target.querySelector('[data-id="parent"] .vm-tree-toggle') as HTMLElement).click();
+		flushSync();
+
+		expect(service.snapshot('files')?.visibleIds).toEqual([
+			'parent',
+			'child',
+			'sibling',
+			...Array.from({ length: 8 }, (_, index) => `leaf-${index}`),
+		]);
+	});
+
+	it('files tree renders rows from the published snapshot input model', () => {
+		const service = new ExplorerDataPlaneService();
+		const snapshot = makeFilesSnapshot(['snapshot-only.md']);
+
+		renderPanel({
+			explorerDataPlaneService: service,
+			provider: provider({
+				id: 'files',
+				getTree: vi.fn(() => []),
+				getSnapshot: vi.fn(() => snapshot),
+			} as Partial<ExplorerProvider>),
+		});
+
+		expect(target.querySelector('[data-id="snapshot-only.md"]')).not.toBeNull();
+		expect(target.textContent).toContain('snapshot-only.md');
+	});
+
+	it('files tree prune falls back to recursive visible ids when the service is absent', () => {
+		const selectionService = new NodeSelectionService();
+		const pruneSpy = vi.spyOn(selectionService, 'prune');
+
+		renderPanel({
+			selectionService,
+			provider: provider({ id: 'files', getTree: vi.fn(() => nodes()) }),
+		});
+
+		expect(pruneSpy).toHaveBeenCalledWith('files', ['alpha', 'beta']);
+	});
+
+	it('non-files tree prune ignores files snapshots and keeps recursive visible ids', () => {
+		const selectionService = new NodeSelectionService();
+		const pruneSpy = vi.spyOn(selectionService, 'prune');
+		const { service } = snapshotHarness(makeFilesSnapshot(['snapshot-a.md']));
+
+		renderPanel({
+			selectionService,
+			explorerDataPlaneService: service,
+			provider: provider({ id: 'tags', getTree: vi.fn(() => nodes()) }),
+		});
+
+		expect(pruneSpy).toHaveBeenCalledWith('tags', ['alpha', 'beta']);
+		expect(pruneSpy).not.toHaveBeenCalledWith('tags', ['snapshot-a.md']);
 	});
 
 	it('grid mode reflects node ids already selected in the shared selection service', () => {
@@ -337,7 +644,43 @@ describe('PanelExplorer tree selection adapter', () => {
 		flushSync();
 
 		expect([...selectionService.snapshot(EXPLORER_ID).ids]).toEqual(['beta']);
-		expect(pluginStub.viewService.select).toHaveBeenCalledWith(EXPLORER_ID, 'beta', 'add');
+		expect(pluginStub.viewService.select).not.toHaveBeenCalled();
+	});
+
+	it('list mode renders provider nodes through ViewNodeList', () => {
+		renderPanel({ viewMode: 'list' });
+
+		const listbox = target.querySelector('.vm-list-container [role="listbox"]');
+		expect(listbox).toBeTruthy();
+		expect(target.querySelectorAll('.vm-list-container [data-id]').length).toBe(2);
+		expect(target.textContent).toContain('Alpha');
+		expect(target.textContent).toContain('Beta');
+	});
+
+	it('list mode empty provider renders the empty landing', () => {
+		renderPanel({
+			viewMode: 'list',
+			provider: provider({
+				getTree: vi.fn(() => []),
+				getFiles: vi.fn(() => []),
+			}),
+		});
+
+		expect(target.querySelector('.vm-list-container .vm-empty-landing')).toBeTruthy();
+	});
+
+	it('list mode row click dispatches selection through the selection service', () => {
+		const { selectionService } = renderPanel({ viewMode: 'list' });
+
+		(target.querySelector('.vm-list-container [data-id="alpha"]') as HTMLElement).click();
+		flushSync();
+
+		expect([...selectionService.snapshot(EXPLORER_ID).ids]).toEqual(['alpha']);
+		expect(
+			target
+				.querySelector('.vm-list-container [data-id="alpha"]')
+				?.getAttribute('aria-selected'),
+		).toBe('true');
 	});
 
 	it('cards mode renders provider nodes and selects cards through the shared node selection service', () => {
@@ -353,7 +696,7 @@ describe('PanelExplorer tree selection adapter', () => {
 
 		expect(target.querySelector('.vm-node-cards')).not.toBeNull();
 		expect([...selectionService.snapshot(EXPLORER_ID).ids]).toEqual(['beta']);
-		expect(pluginStub.viewService.select).toHaveBeenCalledWith(EXPLORER_ID, 'beta', 'add');
+		expect(pluginStub.viewService.select).not.toHaveBeenCalled();
 	});
 
 	it('table mode uses provider-specific property columns', () => {
@@ -627,7 +970,7 @@ describe('PanelExplorer tree selection adapter', () => {
 
 	it('does not refresh provider trees from reactive ViewService decoration when selecting a row', () => {
 		const selectionService = new NodeSelectionService();
-		const viewService = new ViewService();
+		const viewService = new ViewService({ selectionService });
 		const sourceNodes = nodes();
 		let forbidSelectionRefresh = false;
 		const providerStub = provider({
@@ -672,6 +1015,10 @@ describe('PanelExplorer tree selection adapter', () => {
 			...viewService.getModel({ explorerId: EXPLORER_ID, mode: 'tree', nodes: sourceNodes })
 				.selection.ids,
 		]).toEqual(['alpha']);
+		expect(
+			viewService.getModel({ explorerId: EXPLORER_ID, mode: 'tree', nodes: sourceNodes }).rows[0]
+				.layers.state?.selected,
+		).toBe(true);
 		expect(providerStub.getTree).toHaveBeenCalledTimes(1);
 	});
 

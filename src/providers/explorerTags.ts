@@ -23,6 +23,11 @@ import {
 	withViewStateClasses,
 } from '../utils/utilViewLayers';
 import { getActivePerfProbe } from '../dev/perfProbe';
+import { buildExplorerSnapshot } from '../logic/logicExplorerSnapshot';
+import type {
+	ExplorerDataPlaneRevisions,
+	ExplorerSnapshot,
+} from '../types/typeExplorerDataPlane';
 
 export interface ExplorerTagsOptions {
 	startRenameHandoff?: (handoff: FnRRenameHandoff) => void;
@@ -115,6 +120,48 @@ export class explorerTags implements ExplorerProvider<TagMeta> {
 	}
 
 	getTree(): TreeNode<TagMeta>[] {
+		const tree = this.readStructuralTree();
+		const probe = getActivePerfProbe();
+		const decorateTree = () => this._decorateTree(tree);
+		return (
+			probe?.measure(
+				'explorerTags.decorateTree',
+				{ nodes: probe ? countTreeNodes(tree) : 0 },
+				decorateTree,
+			) ?? decorateTree()
+		);
+	}
+
+	getStructuralTree(): TreeNode<TagMeta>[] {
+		return this.readStructuralTree();
+	}
+
+	getStructuralRevisions(): ExplorerDataPlaneRevisions {
+		return {
+			tagsRevision: this.plugin.tagsIndex?.revision ?? 0,
+		};
+	}
+
+	getSnapshot(expandedIds: ReadonlySet<string> = new Set()): ExplorerSnapshot<TagMeta> {
+		return buildExplorerSnapshot({
+			explorerId: this.id,
+			providerKey: this.id,
+			tree: this.getStructuralTree(),
+			expandedIds,
+			revisions: this.getStructuralRevisions(),
+			projection: {
+				searchTerm: this.searchTerm,
+				searchMode: this.searchMode,
+				sortBy: this.sortBy,
+				sortDirection: this.sortDir,
+				sortTarget: this.sortTarget,
+			},
+			kindFor: () => 'tag',
+			domainKeyFor: (row) => `#${row.node.meta.tagPath}`,
+		});
+	}
+
+	private readStructuralTree(): TreeNode<TagMeta>[] {
 		const probe = getActivePerfProbe();
 		let tree =
 			probe?.measure('explorerTags.logicTree', undefined, () => this.logic.getTree()) ??
@@ -132,16 +179,7 @@ export class explorerTags implements ExplorerProvider<TagMeta> {
 				filterTree();
 		}
 		const sortTree = () => this._applySort(tree);
-		tree = probe?.measure('explorerTags.sort', { nodes: tree.length }, sortTree) ?? sortTree();
-
-		const decorateTree = () => this._decorateTree(tree);
-		return (
-			probe?.measure(
-				'explorerTags.decorateTree',
-				{ nodes: probe ? countTreeNodes(tree) : 0 },
-				decorateTree,
-			) ?? decorateTree()
-		);
+		return probe?.measure('explorerTags.sort', { nodes: tree.length }, sortTree) ?? sortTree();
 	}
 
 	private _decorateTree(nodes: TreeNode<TagMeta>[], parentDeleted = false): TreeNode<TagMeta>[] {

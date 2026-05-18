@@ -66,3 +66,17 @@ body.vm-faint-accents-workspace-focus:has(.workspace:focus-within) {
 	--interactive-accent-hover: color-mix(in srgb, var(--text-muted) 84%, var(--background-primary));
 	--text-accent: var(--text-muted);
 }
+
+.vm-scroll-smoke-overlay {
+	position: fixed;
+	z-index: 999999;
+	right: 12px;
+	bottom: 12px;
+	padding: 8px 10px;
+	border: 1px solid var(--background-modifier-border, #555);
+	border-radius: 6px;
+	background: var(--background-primary, #111);
+	color: var(--text-normal, #fff);
+	font: 12px/1.4 monospace;
+	pointer-events: none;
+}

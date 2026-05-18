@@ -1,9 +1,9 @@
-<script lang="ts">
+<script lang="ts" generics="TMeta = unknown">
 	import { untrack } from 'svelte';
 	import { createVirtualizer } from '@tanstack/svelte-virtual';
 	import type { NodeBadge, TreeNode } from '../../types/typeNode';
+	import type { ExplorerRevealAlign, ExplorerRevealTarget } from '../../types/typeExplorerDataPlane';
 	import { getActivePerfProbe } from '../../dev/perfProbe';
-	import type { FlatNode } from '../../services/serviceVirtualizer.svelte';
 	import HighlightText from '../primitives/HighlightText.svelte';
 	import {
 		visibleHoverBadgeDescriptors,
@@ -38,6 +38,19 @@
 		scrollFixedIndexIntoView,
 	} from '../../services/serviceScroll';
 	import {
+		buildRowInputIdIndex,
+		rowInputCallbackId,
+		rowInputFromTreeNode,
+		rowInputToTreeNode,
+		rowInputVirtualKey,
+		type ExplorerRowInput,
+	} from '../../services/serviceExplorerRowInput';
+	import {
+		rowInputsFromProjection,
+		type ExplorerProjection,
+	} from '../../services/serviceExplorerProjection';
+	import { createExplorerScrollGeometry } from '../../services/serviceExplorerScrollGeometry';
+	import {
 		handleNodeBadgePress,
 		inheritedNodeBadges,
 		nodeBadgeAriaLabel,
@@ -52,16 +65,31 @@
 	const TREE_ROW_HEIGHT = DEFAULT_VIEW_SIZE.treeRowHeight;
 	const TREE_FALLBACK_WIDTH = 320;
 	const TREE_FALLBACK_HEIGHT = 400;
-	const TREE_OVERSCAN = 24;
+	const TREE_OVERSCAN = 10;
 	const TREE_STICKY_MAX_ROWS = 7;
 	const TREE_STICKY_MAX_VIEWPORT_RATIO = 0.4;
-	type ScrollTarget = { id: string; serial: number };
+	const TREE_SCROLL_IDLE_MS = 96;
+	type ScrollTarget = ExplorerRevealTarget;
 
-	interface TreeFlatNode extends FlatNode {
+	interface FlatNode<TMeta = unknown> {
+		node: TreeNode<TMeta>;
+		depth: number;
+		isExpanded: boolean;
+		hasChildren: boolean;
+	}
+
+	interface TreeFlatNode extends FlatNode<TMeta> {
+		row: ExplorerRowInput<TMeta>;
 		index: number;
 		parentIndex: number | null;
 		ancestorIndices: number[];
 		subtreeEndIndex: number;
+	}
+
+	interface TreeRowNode {
+		row: ExplorerRowInput<TMeta>;
+		node: TreeNode<TMeta>;
+		children: TreeRowNode[];
 	}
 
 	interface StickyTreeRow {
@@ -71,7 +99,9 @@
 	}
 
 	interface Props {
-		nodes: TreeNode[];
+		nodes: TreeNode<TMeta>[];
+		rowInputs?: readonly ExplorerRowInput<TMeta>[];
+		projection?: ExplorerProjection<TMeta>;
 		expandedIds: Set<string>;
 		selectedIds?: Set<string>;
 		focusedId?: string | null;
@@ -93,16 +123,22 @@
 		onHoverBadgeAction?: (id: string, kind: BadgeKind, e: MouseEvent | KeyboardEvent) => void;
 		activeOpsByNode?: ActiveOpsByNode;
 		scrollTarget?: ScrollTarget | null;
+		snapshotRevision?: number | null;
+		idToIndex?: ReadonlyMap<string, number> | null;
+		resolveIndexById?: (id: string) => number | null | undefined;
 		mouseGestureConfig?: MouseGestureConfig;
 		sizePresetId?: ViewSizePresetId;
 		providerId?: string;
 		visibleFields?: readonly string[];
+		stickyTopOffset?: number;
 		themeService?: ThemeService;
 		icon: (node: HTMLElement, name: string) => { update(n: string): void };
 	}
 
 	let {
 		nodes,
+		rowInputs,
+		projection,
 		expandedIds,
 		selectedIds,
 		focusedId,
@@ -124,28 +160,37 @@
 		onHoverBadgeAction,
 		activeOpsByNode,
 		scrollTarget = null,
+		snapshotRevision = null,
+		idToIndex = null,
+		resolveIndexById,
 		mouseGestureConfig,
 		sizePresetId = DEFAULT_VIEW_SIZE_PRESET,
 		providerId = 'nodes',
 		visibleFields = [],
+		stickyTopOffset = 0,
 		themeService = undefined,
 		icon,
 	}: Props = $props();
 
 	const useNativeDom = $derived(themeService?.useNativeDom ?? false);
+	const effectiveProviderId = $derived(projection?.providerId ?? providerId);
+	const projectionRowInputs = $derived(projection ? rowInputsFromProjection(projection) : undefined);
+	const effectiveRowInputs = $derived(projectionRowInputs ?? rowInputs);
+	const effectiveSnapshotRevision = $derived(snapshotRevision ?? projection?.rowsRevision ?? null);
+	const effectiveIdToIndex = $derived(idToIndex ?? projection?.idToIndex ?? null);
 	const effectiveVisibleFields = $derived(
-		visibleFields.length > 0 ? visibleFields : defaultVisibleFields(providerId, 'tree'),
+		visibleFields.length > 0 ? visibleFields : defaultVisibleFields(effectiveProviderId, 'tree'),
 	);
 	const showNodeIcon = $derived(isNodeIconVisible(effectiveVisibleFields));
-	const showNodeText = $derived(isNodeTextVisible(providerId, 'tree', effectiveVisibleFields));
+	const showNodeText = $derived(isNodeTextVisible(effectiveProviderId, 'tree', effectiveVisibleFields));
 	const showNodeCount = $derived(isNodeCountVisible(effectiveVisibleFields));
 
-	function hoverBadgesFor(node: TreeNode): BadgeDescriptor[] {
+	function hoverBadgesFor(id: string): BadgeDescriptor[] {
 		// Hover badges are an opt-in feature. Adapters that have not wired
 		// the registry yet (or unit tests that mount the view in isolation)
 		// pass no `activeOpsByNode` and we render no hover badges.
 		if (!activeOpsByNode) return [];
-		return visibleHoverBadgeDescriptors({ id: node.id }, activeOpsByNode);
+		return visibleHoverBadgeDescriptors({ id }, activeOpsByNode);
 	}
 
 	function handleHoverBadgePress(e: MouseEvent | KeyboardEvent, id: string, kind: BadgeKind) {
@@ -184,6 +229,7 @@
 	let rowHeight = $state(TREE_ROW_HEIGHT);
 	let fallbackScrollTop = $state(0);
 	let fallbackViewportHeight = $state(TREE_FALLBACK_HEIGHT);
+	let isScrolling = $state(false);
 	let dragStart = $state<{ x: number; y: number; pointerId: number } | null>(null);
 	let capturedSelectionPointerId: number | null = null;
 	let selectionBox = $state<{
@@ -194,6 +240,8 @@
 	} | null>(null);
 	let suppressNextClick = false;
 	let rowHeightFrame: number | null = null;
+	let scrollIdleTimer: ReturnType<typeof setTimeout> | null = null;
+	let consumedScrollTargetSerial: number | null = null;
 	const mouse = createMouseGestureService();
 	const viewSize = $derived(getViewSizePreset(sizePresetId));
 	const viewSizeStyle = $derived(viewSizeCssVars(viewSize));
@@ -208,15 +256,30 @@
 
 	$effect(() => () => mouse.cancelAll());
 	$effect(() => {
+		return () => {
+			if (scrollIdleTimer !== null) clearTimeout(scrollIdleTimer);
+			scrollIdleTimer = null;
+		};
+	});
+	$effect(() => {
 		if (!outerEl) return;
 		syncFallbackScrollState();
 	});
 
-	const flatArray = $derived(flattenMeasured(nodes, expandedIds));
+	const treeRows = $derived(
+		projectionRowInputs ? [] : treeRowsFromInputs(nodes, effectiveRowInputs),
+	);
+	const flatArray = $derived(
+		projectionRowInputs
+			? flatProjectionRows(projectionRowInputs, expandedIds)
+			: flattenMeasured(treeRows, expandedIds),
+	);
+	const flatRowInputs = $derived(flatArray.map((flat) => flat.row));
+	const flatIdToIndex = $derived(buildRowInputIdIndex(flatRowInputs));
 	const rowVirtualizer = createVirtualizer<HTMLDivElement, HTMLDivElement>({
 		count: 0,
 		getScrollElement: () => outerEl ?? null,
-		getItemKey: (index) => treeVirtualItemKey(flatArray, index),
+		getItemKey: (index) => treeVirtualItemKey(flatRowInputs, index),
 		estimateSize: () => rowHeight,
 		observeElementRect: observeTreeRect,
 		overscan: TREE_OVERSCAN,
@@ -232,7 +295,7 @@
 			viewportHeight: fallbackViewportHeight,
 			scrollTop: fallbackScrollTop,
 			overscan: TREE_OVERSCAN,
-			getKey: (index) => treeVirtualItemKey(flatArray, index),
+			getKey: (index) => treeVirtualItemKey(flatRowInputs, index),
 		});
 	});
 	const totalH = $derived($rowVirtualizer.getTotalSize());
@@ -242,7 +305,7 @@
 
 	$effect(() => {
 		const count = flatArray.length;
-		const rows = flatArray;
+		const rows = flatRowInputs;
 		const scrollElement = outerEl;
 		const height = rowHeight;
 		untrack(() =>
@@ -261,11 +324,15 @@
 	$effect(() => {
 		const target = scrollTarget;
 		if (!target || !outerEl) return;
-		const index = flatArray.findIndex((item) => item.node.id === target.id);
-		if (index >= 0) scrollRowIntoView(index);
+		if (target.serial === consumedScrollTargetSerial) return;
+		const index = resolveRevealIndex(target);
+		if (index < 0) return;
+		consumedScrollTargetSerial = target.serial;
+		scrollRowIntoView(index, target.align);
 	});
 
 	function onScroll() {
+		markScrolling();
 		syncFallbackScrollState();
 		getActivePerfProbe()?.count('viewTree.scroll', {
 			rows: flatArray.length,
@@ -273,23 +340,90 @@
 		});
 	}
 
-	function scrollRowIntoView(index: number): void {
+	function markScrolling(): void {
+		isScrolling = true;
+		if (scrollIdleTimer !== null) clearTimeout(scrollIdleTimer);
+		scrollIdleTimer = setTimeout(() => {
+			scrollIdleTimer = null;
+			isScrolling = false;
+		}, TREE_SCROLL_IDLE_MS);
+	}
+
+	function resolveRevealIndex(target: ScrollTarget): number {
+		return (
+			getActivePerfProbe()?.measure(
+				'explorerDataPlane.reveal.lookup',
+				{ rows: flatArray.length },
+				() => resolveRevealIndexNow(target),
+			) ?? resolveRevealIndexNow(target)
+		);
+	}
+
+	function resolveRevealIndexNow(target: ScrollTarget): number {
+		const externalIdToIndex = effectiveIdToIndex;
+		const mappedIndex = externalIdToIndex?.get(target.id);
+		const resolvedIdToIndex =
+			externalIdToIndex &&
+			typeof mappedIndex === 'number' &&
+			flatRowInputs[mappedIndex]?.id === target.id
+				? externalIdToIndex
+				: flatIdToIndex;
+		const coordinator = createExplorerScrollGeometry({
+			idToIndex: resolvedIdToIndex,
+			rowHeight,
+			rowCount: flatRowInputs.length,
+			revision: effectiveSnapshotRevision ?? undefined,
+			resolveIndexById,
+		});
+		const resolved = coordinator.resolve({
+			kind: 'id',
+			id: target.id,
+			reason: target.reason ?? 'selection',
+			align: target.align,
+			minRevision: target.minSnapshotRevision,
+		});
+		if (!resolved) return -1;
+		return flatRowInputs[resolved.index]?.id === target.id ? resolved.index : -1;
+	}
+
+	function scrollRowIntoView(index: number, preferredAlign: ExplorerRevealAlign = 'auto'): void {
 		if (!outerEl) return;
 		const viewportHeight = outerEl.clientHeight || TREE_FALLBACK_HEIGHT;
 		const currentTop = outerEl.scrollTop;
 		const rowTop = index * rowHeight;
-		const nextTop = scrollFixedIndexIntoView({
+		let virtualAlign: 'start' | 'center' | 'end' = rowTop < currentTop ? 'start' : 'end';
+		let nextTop = scrollFixedIndexIntoView({
 			index,
 			rowHeight,
 			viewportHeight,
 			scrollTop: currentTop,
 		});
+		if (preferredAlign !== 'auto') {
+			virtualAlign = preferredAlign;
+			nextTop = scrollTopForAlign(index, preferredAlign, viewportHeight);
+		}
 		if (nextTop === currentTop) return;
 
-		$rowVirtualizer.scrollToIndex(index, { align: rowTop < currentTop ? 'start' : 'end' });
+		untrack(() => $rowVirtualizer.scrollToIndex(index, { align: virtualAlign, behavior: 'auto' }));
 		outerEl.scrollTop = nextTop;
 		syncFallbackScrollState();
 		outerEl.dispatchEvent(new Event('scroll'));
+	}
+
+	function scrollTopForAlign(
+		index: number,
+		align: Exclude<ExplorerRevealAlign, 'auto'>,
+		viewportHeight: number,
+	): number {
+		const rowTop = index * rowHeight;
+		const rawTop =
+			align === 'start'
+				? rowTop
+				: align === 'center'
+					? rowTop - Math.max(0, viewportHeight - rowHeight) / 2
+					: rowTop - Math.max(0, viewportHeight - rowHeight);
+		const maxTop = Math.max(0, flatArray.length * rowHeight - viewportHeight);
+		return Math.max(0, Math.min(rawTop, maxTop));
 	}
 
 	function syncFallbackScrollState(): void {
@@ -298,11 +432,11 @@
 		fallbackViewportHeight = outerEl.clientHeight || TREE_FALLBACK_HEIGHT;
 	}
 
-	function flattenMeasured(items: TreeNode[], expanded: ReadonlySet<string>): TreeFlatNode[] {
+	function flattenMeasured(items: readonly TreeRowNode[], expanded: ReadonlySet<string>): TreeFlatNode[] {
 		return (
 			getActivePerfProbe()?.measure('viewTree.flatten', { nodes: items.length }, () =>
-				flattenTreeNodes(items, expanded),
-			) ?? flattenTreeNodes(items, expanded)
+				flattenTreeRows(items, expanded),
+			) ?? flattenTreeRows(items, expanded)
 		);
 	}
 
@@ -437,18 +571,104 @@
 	}
 
 	function intersectingRowIds(box: NonNullable<typeof selectionBox>): string[] {
+		const renderedRows = Array.from(
+			outerEl?.querySelectorAll<HTMLElement>(
+				'.vm-tree-virtual-row:not(.vm-tree-sticky-row)',
+			) ?? [],
+		);
+		if (renderedRows.length > 0) {
+			const boxRect = viewportRectFromBox(box);
+			const ids: string[] = [];
+			let hasMeasuredRows = false;
+			for (const row of renderedRows) {
+				const id = row.dataset.id;
+				if (!id) continue;
+				const rowRect = row.getBoundingClientRect();
+				if (!rectHasArea(rowRect)) continue;
+				hasMeasuredRows = true;
+				if (rectsIntersect(boxRect, rowRect)) ids.push(id);
+			}
+			if (hasMeasuredRows) return ids;
+		}
+
+		return intersectingRowIdsByFixedGeometry(box);
+	}
+
+	function intersectingRowIdsByFixedGeometry(box: NonNullable<typeof selectionBox>): string[] {
 		const ids: string[] = [];
 		const boxRect = rectFromBox(box);
 		const width = outerEl?.scrollWidth || outerEl?.clientWidth || TREE_FALLBACK_WIDTH;
 		for (let index = 0; index < flatArray.length; index += 1) {
 			const rowRect = new DOMRect(0, index * rowHeight, width, rowHeight);
-			if (rectsIntersect(boxRect, rowRect)) ids.push(flatArray[index].node.id);
+			if (rectsIntersect(boxRect, rowRect)) ids.push(rowInputCallbackId(flatArray[index].row));
 		}
 		return ids;
 	}
 
+	function viewportRectFromBox(box: NonNullable<typeof selectionBox>): DOMRect {
+		const outerRect = outerEl!.getBoundingClientRect();
+		return new DOMRect(
+			outerRect.left + box.left - outerEl!.scrollLeft,
+			outerRect.top + box.top - outerEl!.scrollTop,
+			box.width,
+			box.height,
+		);
+	}
+
+	function flatProjectionRows(
+		inputs: readonly ExplorerRowInput<TMeta>[],
+		expanded: ReadonlySet<string>,
+	): TreeFlatNode[] {
+		const indexById = new Map(inputs.map((row, index) => [row.id, index]));
+		const visibleChildParentIds = new Set(
+			inputs.map((row) => row.parentId).filter((id): id is string => Boolean(id)),
+		);
+		const flats: TreeFlatNode[] = inputs.map((row, index) => {
+			const node = rowInputToTreeNode(row);
+			const hasChildren =
+				(row.childrenIds?.length ?? 0) > 0 ||
+				(node.children?.length ?? 0) > 0 ||
+				visibleChildParentIds.has(row.id);
+			return {
+				row,
+				node,
+				depth: row.depth,
+				isExpanded: hasChildren && (expanded.has(rowInputCallbackId(row)) || visibleChildParentIds.has(row.id)),
+				hasChildren,
+				index,
+				parentIndex: null,
+				ancestorIndices: [],
+				subtreeEndIndex: index,
+			};
+		});
+
+		for (const flat of flats) {
+			const parentIndex =
+				flat.row.parentId === null || flat.row.parentId === undefined
+					? null
+					: (indexById.get(flat.row.parentId) ?? null);
+			flat.parentIndex = parentIndex;
+			if (parentIndex !== null) {
+				const parent = flats[parentIndex];
+				flat.ancestorIndices = [...parent.ancestorIndices, parent.index];
+			}
+			let subtreeEndIndex = flat.index;
+			for (let index = flat.index + 1; index < flats.length; index += 1) {
+				if (flats[index].depth <= flat.depth) break;
+				subtreeEndIndex = index;
+			}
+			flat.subtreeEndIndex = subtreeEndIndex;
+		}
+
+		return flats;
+	}
+
 	function rectFromBox(box: NonNullable<typeof selectionBox>): DOMRect {
 		return new DOMRect(box.left, box.top, box.width, box.height);
+	}
+
+	function rectHasArea(rect: DOMRect): boolean {
+		return rect.width > 0 || rect.height > 0;
 	}
 
 	function rectsIntersect(a: DOMRect, b: DOMRect): boolean {
@@ -492,20 +712,85 @@
 		});
 	}
 
-	function flattenTreeNodes(items: readonly TreeNode[], expanded: ReadonlySet<string>): TreeFlatNode[] {
+	function treeRowsFromInputs(
+		items: readonly TreeNode<TMeta>[],
+		inputs: readonly ExplorerRowInput<TMeta>[] | undefined,
+	): TreeRowNode[] {
+		return inputs === undefined ? treeRowsFromNodes(items) : treeRowsFromRowInputs(inputs);
+	}
+
+	function treeRowsFromNodes(items: readonly TreeNode<TMeta>[]): TreeRowNode[] {
+		return items.map((node) => {
+			const children = treeRowsFromNodes(node.children ?? []);
+			const row = rowInputFromTreeNode(node);
+			return { row, node, children };
+		});
+	}
+
+	function treeRowsFromRowInputs(inputs: readonly ExplorerRowInput<TMeta>[]): TreeRowNode[] {
+		const byId = new Map(inputs.map((row) => [row.id, row]));
+		const childrenByParent = new Map<string, ExplorerRowInput<TMeta>[]>();
+		const referencedChildIds = new Set<string>();
+		for (const row of inputs) {
+			if (row.parentId && byId.has(row.parentId)) {
+				const children = childrenByParent.get(row.parentId) ?? [];
+				children.push(row);
+				childrenByParent.set(row.parentId, children);
+				referencedChildIds.add(row.id);
+			}
+			for (const childId of row.childrenIds ?? []) {
+				if (byId.has(childId)) referencedChildIds.add(childId);
+			}
+		}
+
+		const built = new Map<string, TreeRowNode>();
+		const building = new Set<string>();
+		const build = (row: ExplorerRowInput<TMeta>): TreeRowNode => {
+			const existing = built.get(row.id);
+			if (existing) return existing;
+			if (building.has(row.id)) return treeRowNode(row, []);
+			building.add(row.id);
+			const explicitChildren =
+				row.childrenIds
+					?.map((childId) => byId.get(childId))
+					.filter((child): child is ExplorerRowInput<TMeta> => Boolean(child)) ?? [];
+			const childRows =
+				explicitChildren.length > 0 ? explicitChildren : (childrenByParent.get(row.id) ?? []);
+			const children =
+				childRows.length > 0
+					? childRows.map(build)
+					: treeRowsFromNodes(row.node.children ?? []);
+			const node = treeRowNode(row, children);
+			building.delete(row.id);
+			built.set(row.id, node);
+			return node;
+		};
+
+		return inputs.filter((row) => !referencedChildIds.has(row.id)).map(build);
+	}
+
+	function treeRowNode(row: ExplorerRowInput<TMeta>, children: TreeRowNode[]): TreeRowNode {
+		const node = rowInputToTreeNode(row);
+		node.children = children.length > 0 ? children.map((child) => child.node) : undefined;
+		return { row, node, children };
+	}
+
+	function flattenTreeRows(items: readonly TreeRowNode[], expanded: ReadonlySet<string>): TreeFlatNode[] {
 		const out: TreeFlatNode[] = [];
 		const walk = (
-			list: readonly TreeNode[],
+			list: readonly TreeRowNode[],
 			depth: number,
 			parentIndex: number | null,
 			ancestorIndices: number[],
 		): void => {
-			for (const node of list) {
-				const hasChildren = !!node.children && node.children.length > 0;
-				const isExpanded = hasChildren && expanded.has(node.id);
+			for (const rowNode of list) {
+				const hasChildren = rowNode.children.length > 0;
+				const id = rowInputCallbackId(rowNode.row);
+				const isExpanded = hasChildren && expanded.has(id);
 				const index = out.length;
 				const flat: TreeFlatNode = {
-					node,
+					row: rowNode.row,
+					node: rowNode.node,
 					depth,
 					isExpanded,
 					hasChildren,
@@ -515,7 +800,7 @@
 					subtreeEndIndex: index,
 				};
 				out.push(flat);
-				if (isExpanded) walk(node.children!, depth + 1, index, [...ancestorIndices, index]);
+				if (isExpanded) walk(rowNode.children, depth + 1, index, [...ancestorIndices, index]);
 				flat.subtreeEndIndex = out.length - 1;
 			}
 		};
@@ -540,6 +825,7 @@
 			firstVisible.hasChildren && firstVisible.isExpanded
 				? [...firstVisible.ancestorIndices, firstVisible.index]
 				: firstVisible.ancestorIndices;
+
 		return candidateIndices
 			.map((ancestorIndex) => items[ancestorIndex])
 			.filter((flat): flat is TreeFlatNode => {
@@ -555,33 +841,38 @@
 				const top = Math.min(preferredTop, subtreeBottom - scrollTop - height);
 				return {
 					flat,
-					key: `sticky:${flat.node.id}`,
+					key: `sticky:${rowInputCallbackId(flat.row)}`,
 					top,
 				};
 			})
 			.filter((row) => row.top + height > 0);
 	}
 
-	function treeVirtualItemKey(items: readonly TreeFlatNode[], index: number): string | number {
-		return items[index]?.node.id ?? index;
+	function treeVirtualItemKey(
+		items: readonly ExplorerRowInput<TMeta>[],
+		index: number,
+	): string | number {
+		return rowInputVirtualKey(items, index);
 	}
 
 </script>
 
 {#snippet treeRow(flat: TreeFlatNode, y: number, sticky: boolean)}
+	{@const row = flat.row}
 	{@const node = flat.node}
-	{@const isActive = activeFilterIds?.has(node.id) ?? false}
-	{@const isWarning = warningIds?.has(node.id) ?? false}
-	{@const isEditing = editingId === node.id}
-	{@const isHighlighted = searchHighlightIds?.has(node.id) ?? false}
-	{@const isSelected = selectedIds?.has(node.id) ?? false}
-	{@const isFocused = focusedId === node.id}
-	{@const directBadges = ownNodeBadges(node)}
-	{@const childBadges = inheritedNodeBadges(node)}
-	{@const hoverBadges = hoverBadgesFor(node)}
-	{@const rowIcon = showNodeIcon ? iconForNode(node, flat) : undefined}
+	{@const id = rowInputCallbackId(row)}
+	{@const isActive = activeFilterIds?.has(id) ?? false}
+	{@const isWarning = warningIds?.has(id) ?? false}
+	{@const isEditing = editingId === id}
+	{@const isHighlighted = searchHighlightIds?.has(id) ?? false}
+	{@const isSelected = selectedIds?.has(id) ?? false}
+	{@const isFocused = focusedId === id}
+	{@const directBadges = isScrolling ? [] : ownNodeBadges(node)}
+	{@const childBadges = isScrolling ? [] : inheritedNodeBadges(node)}
+	{@const hoverBadges = isScrolling ? [] : hoverBadgesFor(id)}
+	{@const rowIcon = !isScrolling && showNodeIcon ? iconForNode(node, flat) : undefined}
 	{@const hasCount = showNodeCount && hasVisibleCount(node)}
-	{@const fieldValues = visibleNodeFieldValues(providerId, 'tree', node, effectiveVisibleFields)}
+	{@const fieldValues = visibleNodeFieldValues(effectiveProviderId, 'tree', node, effectiveVisibleFields)}
 	{@const hasOverlayBadges =
 		directBadges.length > 0 || childBadges.length > 0 || hoverBadges.length > 0}
 	{@const hasActiveBadges = hasActiveRowBadge(directBadges) || hasActiveRowBadge(childBadges)}
@@ -596,12 +887,12 @@
 		class:vm-search-highlight={isHighlighted}
 		class:is-editing={isEditing}
 		style="--vm-tree-y: {y}px; --depth: {flat.depth}"
-		data-id={node.id}
+		data-id={id}
 		data-sticky={sticky ? 'true' : undefined}
-		onclick={(e) => handleRowClick(e, node.id)}
-		onauxclick={(e) => handleRowAuxClick(e, node.id)}
-		oncontextmenu={(e) => onContextMenu(node.id, e)}
-		onkeydown={(e) => handleKeydown(e, node.id)}
+		onclick={(e) => handleRowClick(e, id)}
+		onauxclick={(e) => handleRowAuxClick(e, id)}
+		oncontextmenu={(e) => onContextMenu(id, e)}
+		onkeydown={(e) => handleKeydown(e, id)}
 		role="treeitem"
 		aria-selected={isSelected}
 		tabindex="0"
@@ -635,7 +926,7 @@
 					class="vm-tree-toggle"
 					onclick={(e) => {
 						e.stopPropagation();
-						onToggle(node.id);
+						onToggle(id);
 					}}
 					onkeydown={() => {}}
 					role="button"
@@ -656,16 +947,14 @@
 					class="vm-tree-input"
 					value={node.label}
 					onclick={(e) => e.stopPropagation()}
-					onkeydown={(e) => handleInputKeydown(e, node.id, e.currentTarget)}
+					onkeydown={(e) => handleInputKeydown(e, id, e.currentTarget)}
 					onblur={() => onCancelRename?.()}
 					use:focus
 				/>
 			{:else if showNodeText}
 				<span class="vm-tree-label" class:tree-item-inner={useNativeDom}>
-					{#if node.labelPrefix}<span class="vm-tree-label-prefix">{node.labelPrefix}</span>{/if}<HighlightText
-						text={node.label}
-						ranges={node.highlights ?? []}
-					/>
+					{#if node.labelPrefix}<span class="vm-tree-label-prefix">{node.labelPrefix}</span
+						>{/if}<HighlightText text={node.label} ranges={node.highlights ?? []} />
 				</span>
 			{/if}
 
@@ -695,8 +984,8 @@
 											tabindex="0"
 											title={badge.label}
 											aria-label={badge.label}
-											onclick={(e) => handleHoverBadgePress(e, node.id, badge.kind)}
-											onkeydown={(e) => handleHoverBadgeKeydown(e, node.id, badge.kind)}
+											onclick={(e) => handleHoverBadgePress(e, id, badge.kind)}
+											onkeydown={(e) => handleHoverBadgeKeydown(e, id, badge.kind)}
 										>
 											<span class="vm-badge-icon" use:icon={badge.icon}></span>
 										</div>
@@ -792,7 +1081,7 @@
 	{#if stickyRows.length > 0}
 		<div
 			class="vm-tree-sticky-layer"
-			style="--vm-tree-sticky-scroll-y: {fallbackScrollTop}px"
+			style="--vm-tree-sticky-scroll-y: {fallbackScrollTop}px; --vm-tree-sticky-top-offset: {stickyTopOffset}px"
 		>
 			{#each stickyRows as stickyRow (stickyRow.key)}
 				{@render treeRow(stickyRow.flat, stickyRow.top, true)}

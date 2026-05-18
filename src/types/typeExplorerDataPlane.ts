@@ -6,11 +6,36 @@ import type { TreeNode } from './typeNode';
  * EDP-004 and must not be added in this slice.
  */
 export interface ExplorerDataPlaneRevisions {
-	filesRevision: number;
+	filesRevision?: number;
 	propsRevision?: number;
 	tagsRevision?: number;
 	contentRevision?: number;
 }
+
+export type ExplorerSnapshotSearchMode = 'all' | 'leaf';
+export type ExplorerSnapshotSortDirection = 'asc' | 'desc';
+export type ExplorerSnapshotSortTarget = 'top' | 'children';
+
+/**
+ * Provider projection state that can change visible rows without changing the
+ * underlying source index. Tags and Props use the same search/sort vocabulary,
+ * so the shared data-plane contract records it once for downstream adapters.
+ */
+export interface ExplorerSnapshotProjection {
+	searchTerm: string;
+	searchMode: ExplorerSnapshotSearchMode;
+	sortBy: string;
+	sortDirection: ExplorerSnapshotSortDirection;
+	sortTarget: ExplorerSnapshotSortTarget;
+}
+
+export const DEFAULT_EXPLORER_SNAPSHOT_PROJECTION: ExplorerSnapshotProjection = {
+	searchTerm: '',
+	searchMode: 'all',
+	sortBy: 'name',
+	sortDirection: 'asc',
+	sortTarget: 'top',
+};
 
 export type ExplorerSnapshotKind =
 	| 'file'
@@ -53,19 +78,29 @@ export interface ExplorerSnapshot<TMeta = unknown> {
 	idToIndex: ReadonlyMap<string, number>;
 	pathToId: ReadonlyMap<string, string>;
 	folderPathToId: ReadonlyMap<string, string>;
+	domainKeyToId: ReadonlyMap<string, string>;
+	projection: ExplorerSnapshotProjection;
 	sourceRevisions: ExplorerDataPlaneRevisions;
 }
 
+export type ExplorerRevealReason = 'keyboard' | 'selection' | 'expansion' | 'command' | 'restore';
+export type ExplorerRevealAlign = 'auto' | 'start' | 'center' | 'end';
+
 /**
- * Reveal target reserved for later slices. Defined here so the type is stable
- * across the data-plane transition, but no view consumes it in EDP-002.
+ * Revision-aware reveal request shared by explorer containers and virtualized
+ * views. The Wave 2 identifiers stay optional so non-files views can keep using
+ * the lightweight `{ id, serial }` shape while files explorer reveals can bind
+ * themselves to the current ExplorerDataPlane snapshot.
  */
 export interface ExplorerRevealTarget {
-	providerKey: string;
-	explorerId: string;
-	structureRevision: number;
-	id?: string;
+	id: string;
+	serial: number;
+	minSnapshotRevision?: number;
+	reason?: ExplorerRevealReason;
+	align?: ExplorerRevealAlign;
+	providerKey?: string;
+	explorerId?: string;
+	structureRevision?: number;
 	path?: string;
 	folderPath?: string;
-	serial: number;
 }

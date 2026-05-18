@@ -1,10 +1,17 @@
-import { describe, expect, it, vi } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
+import {
+	clearActivePerfProbe,
+	createPerfProbe,
+	setActivePerfProbe,
+} from '../../../src/dev/perfProbe';
 import { explorerFiles } from '../../../src/providers/explorerFiles';
 import { AdoptionService } from '../../../src/services/serviceAdoption.svelte';
 import { DecorationManager } from '../../../src/services/serviceDecorate';
 import { ViewService } from '../../../src/services/serviceViews.svelte';
 import type { VaultmanPlugin } from '../../../src/main';
 import type { FnRRenameHandoff } from '../../../src/types/typeFnR';
+import type { QueueChange } from '../../../src/types/typeContracts';
+import type { FileMeta, TreeNode } from '../../../src/types/typeNode';
 import { mockApp, mockTFile, type CachedMetadata, type TFile } from '../../helpers/obsidian-mocks';
 
 function makePlugin(): {
@@ -38,6 +45,14 @@ function makePlugin(): {
 			},
 			contextMenuService: { registerAction: vi.fn(), openPanelMenu: vi.fn() },
 			queueService: { add: vi.fn() },
+			filesIndex: {
+				nodes: [],
+				revision: 42,
+				getSearchBuffer: vi.fn(() => ''),
+			},
+			propsIndex: {
+				revision: 7,
+			},
 			operationsIndex: { nodes: [], refresh: vi.fn(), subscribe: vi.fn(), byId: vi.fn() },
 			activeFiltersIndex: { nodes: [], refresh: vi.fn(), subscribe: vi.fn(), byId: vi.fn() },
 			filterService: {
@@ -53,6 +68,75 @@ function makePlugin(): {
 }
 
 describe('explorerFiles interactions', () => {
+	afterEach(() => {
+		clearActivePerfProbe();
+	});
+
+	it('builds Files overlay layers with one batched ViewService model call', () => {
+		const { plugin } = makePlugin();
+		const getModel = vi.spyOn(plugin.viewService, 'getModel');
+		const explorer = new explorerFiles(plugin);
+
+		const tree = explorer.getTree();
+		const ids = flattenNodeIds(tree);
+
+		expect(getModel).toHaveBeenCalledTimes(1);
+		expect(getModel.mock.calls[0][0]).toMatchObject({
+			explorerId: 'files',
+			mode: 'tree',
+		});
+		expect(getModel.mock.calls[0][0].nodes.map((node) => node.id)).toEqual(ids);
+	});
+
+	it('updates queue-only overlay layers without rebuilding the Files structure', () => {
+		const { plugin, files } = makePlugin();
+		const probe = createPerfProbe({ now: () => 0 });
+		const getFileCache = vi.spyOn(plugin.app.metadataCache, 'getFileCache');
+		const getModel = vi.spyOn(plugin.viewService, 'getModel');
+		const explorer = new explorerFiles(plugin);
+		setActivePerfProbe(probe.api);
+
+		explorer.getTree();
+		getFileCache.mockClear();
+		getModel.mockClear();
+		(plugin.operationsIndex as unknown as { nodes: QueueChange[]; revision: number }).nodes = [
+			{
+				id: 'op-delete-a',
+				group: 'delete_file',
+				change: {
+					id: 'op-delete-a',
+					type: 'file_delete',
+					action: 'delete',
+					details: 'Delete a.md',
+					files: [files[0]],
+				} as never,
+			},
+		];
+		(plugin.operationsIndex as unknown as { revision: number }).revision = 2;
+
+		const tree = explorer.getTree();
+		const fileNode = flattenNodes(tree).find((node) => node.id === files[0].path);
+		if (!fileNode) throw new Error('Expected test file node to be present');
+		const layers = (fileNode.meta as FileMeta & { layers?: { state?: { pending?: boolean } } })
+			.layers;
+
+		expect(getFileCache).not.toHaveBeenCalled();
+		expect(getModel).toHaveBeenCalledTimes(1);
+		expect(layers?.state?.pending).toBe(true);
+		expect(fileNode?.badges?.[0]).toMatchObject({
+			text: 'delete',
+			queueIndex: 0,
+		});
+		expect(probe.snapshot().counters['explorerDataPlane.files.structure.rebuild']).toMatchObject({
+			count: 1,
+			totalFiles: files.length,
+		});
+		expect(probe.snapshot().counters['explorerDataPlane.files.structure.cacheHit']).toMatchObject({
+			count: 1,
+			totalFiles: files.length,
+		});
+	});
+
 	it('turns a file node click into selected files instead of filtering or opening the note', () => {
 		const { plugin, files, openLinkText, setSelectedFiles } = makePlugin();
 		const explorer = new explorerFiles(plugin);
@@ -478,3 +562,80 @@ describe('explorerFiles interactions', () => {
 		);
 	});
 });
+
+describe('explorerFiles structural source', () => {
+	it('getStructuralTree returns the same node ids and shape as getTree()', () => {
+		const { plugin } = makePlugin();
+		const explorer = new explorerFiles(plugin);
+		const decorated = explorer.getTree();
+		const structural = explorer.getStructuralTree();
+
+		expect(idShape(structural)).toEqual(idShape(decorated));
+	});
+
+	it('getStructuralTree does not invoke viewService.getModel', () => {
+		const { plugin } = makePlugin();
+		const explorer = new explorerFiles(plugin);
+		const spy = vi.spyOn(plugin.viewService, 'getModel');
+
+		explorer.getStructuralTree();
+
+		expect(spy).not.toHaveBeenCalled();
+	});
+
+	it('action hooks operate on nodes returned by getStructuralTree', () => {
+		const { plugin, openLinkText } = makePlugin();
+		const explorer = new explorerFiles(plugin);
+		const structural = explorer.getStructuralTree();
+		const firstFile = findFirstFileNode(structural);
+
+		expect(firstFile).toBeDefined();
+
+		explorer.handleNodeSecondaryAction(firstFile!);
+
+		expect(openLinkText).toHaveBeenCalledWith(firstFile!.meta.file!.path, '', false);
+	});
+
+	it('getStructuralRevisions returns files and props revisions from indexes', () => {
+		const { plugin } = makePlugin();
+		const explorer = new explorerFiles(plugin);
+
+		expect(explorer.getStructuralRevisions()).toEqual({
+			filesRevision: plugin.filesIndex.revision,
+			propsRevision: plugin.propsIndex.revision,
+		});
+	});
+});
+
+function idShape(nodes: TreeNode<FileMeta>[]): unknown {
+	return nodes.map((node) => ({
+		id: node.id,
+		label: node.label,
+		children: node.children ? idShape(node.children) : undefined,
+	}));
+}
+
+function findFirstFileNode(nodes: TreeNode<FileMeta>[]): TreeNode<FileMeta> | undefined {
+	for (const node of nodes) {
+		if (node.meta?.file) return node;
+		const childMatch = node.children ? findFirstFileNode(node.children) : undefined;
+		if (childMatch) return childMatch;
+	}
+	return undefined;
+}
+
+function flattenNodeIds(nodes: TreeNode<FileMeta>[]): string[] {
+	return flattenNodes(nodes).map((node) => node.id);
+}
+
+function flattenNodes(nodes: TreeNode<FileMeta>[]): TreeNode<FileMeta>[] {
+	const out: TreeNode<FileMeta>[] = [];
+	const visit = (list: TreeNode<FileMeta>[]) => {
+		for (const node of list) {
+			out.push(node);
+			if (node.children?.length) visit(node.children);
+		}
+	};
+	visit(nodes);
+	return out;
+}

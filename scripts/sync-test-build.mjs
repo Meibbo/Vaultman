@@ -17,7 +17,7 @@ const syncTargets = [driveVaultTarget, stressVaultTarget];
 for (const target of syncTargets) {
 	try {
 		await mkdir(target, { recursive: true });
-	} catch (e) {
+	} catch {
 		console.warn(`Warning: Could not create/access target: ${target}`);
 	}
 }
@@ -36,7 +36,7 @@ for (const artifactName of artifactNames) {
 	for (const target of syncTargets) {
 		try {
 			await cp(rootArtifactPath, path.join(target, artifactName), { force: true });
-		} catch (e) {
+		} catch {
 			console.warn(`Warning: Could not copy ${artifactName} to target: ${target}`);
 		}
 	}

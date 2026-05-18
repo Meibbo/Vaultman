@@ -1,16 +1,25 @@
 ---
 title: serviceViews implementation plan
 type: plan-index
-status: active
+status: historical
 parent: "[[docs/work/hardening/specs/2026-05-04-explorer-view-service/index|explorer-view-service]]"
 created: 2026-05-04T16:40:00
-updated: 2026-05-04T16:40:00
+updated: 2026-05-12T09:00:34
 tags:
   - agent/plan
   - explorer/views
+updated_by: codex
 ---
 
 # serviceViews Implementation Plan
+
+> [!warning] Historical Plan
+> This plan is partially completed and is no longer executable as the current
+> Explorer data-plane plan. Keep it as contract/list-migration history only.
+> Current Explorer data-plane work starts from
+> [[docs/work/hardening/plans/2026-05-11-explorer-data-plane-transition/02-edp-002-files-snapshot-data-plane-implementation-plan|EDP-002 Files snapshot data-plane implementation plan]].
+> `NodeSelectionService` owns selection/focus/hover/active state; `serviceViews`
+> remains the render-layer/decorative model boundary.
 
 > For agentic workers: execute task-by-task with tests first. Do not migrate all
 > explorer views in one slice.

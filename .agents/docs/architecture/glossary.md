@@ -4,7 +4,7 @@ type: architecture
 status: active
 parent: "[[docs/work/pkm-ai/specs/2026-05-04-orchestration-refresh/index|pkm-ai]]"
 created: 2026-05-04T01:36:20
-updated: 2026-05-10T20:20:23
+updated: 2026-05-17T11:49:10
 tags:
   - agent/architecture
 ---
@@ -76,6 +76,9 @@ tags:
 - Policy: prescriptive architecture rule file.
 - PretextJS: `@chenglou/pretext`, the text layout engine evaluated for
   measuring Vaultman card content.
+- Primitive placement policy: declarative toolbar or layout settings that
+  control primitive visibility, slot, and order without embedding DOM edits or
+  runtime command handlers.
 - Primary node action: default activation command for a node when the user uses
   the main click or keyboard activation path.
 - Queue builder: pure helper that converts a UI or domain intent into the
@@ -98,6 +101,13 @@ tags:
   command-opened filemanager surface tracked separately from core explorer work.
 - TanStack Table Core: `@tanstack/table-core`, the framework-agnostic table
   engine wrapped by Vaultman's local table adapter.
+- Toolbar adapter: module that maps one concrete Vaultman surface's state,
+  capabilities, and command handlers into the common toolbar context.
+- Toolbar model resolver: module that combines toolbar context, primitive
+  registry, preset aliases, and placement policy into an ordered toolbar model
+  without executing commands.
+- Toolbar primitive registry: source of stable toolbar primitive ids, labels,
+  icons, default order, slot metadata, and availability rules.
 - User-facing recovery wave: hardening wave that restores visible broken
   workflows before deeper architecture, interop, or polish work.
 - View adapter: component or module that translates a service model into a

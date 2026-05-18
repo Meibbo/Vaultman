@@ -102,10 +102,10 @@ export function createTextMeasureService({
 
 	function invalidatePreparedAndLayout(text: string): void {
 		const prefix = `${text}\u0000`;
-		for (const key of [...preparedCache.keys()]) {
+		for (const key of preparedCache.keys()) {
 			if (key.startsWith(prefix)) preparedCache.delete(key);
 		}
-		for (const key of [...layoutCache.keys()]) {
+		for (const key of layoutCache.keys()) {
 			if (key.startsWith(prefix)) layoutCache.delete(key);
 		}
 	}
@@ -146,7 +146,7 @@ export function createTextMeasureService({
 			return height;
 		},
 		invalidate(text) {
-			for (const [key, entry] of [...rowHeightCache.entries()]) {
+			for (const [key, entry] of rowHeightCache.entries()) {
 				if (entry.text === text) rowHeightCache.delete(key);
 			}
 			invalidatePreparedAndLayout(text);

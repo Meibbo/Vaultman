@@ -1,20 +1,24 @@
 <script lang="ts">
 	import { setIcon } from 'obsidian';
 	import type { VaultmanPlugin } from '../../main';
-	import ViewList from '../views/viewList.svelte';
+	import ViewNodeList from '../views/ViewNodeList.svelte';
+	import {
+		rowInputFromViewRow,
+		type ExplorerRowInput,
+	} from '../../services/serviceExplorerRowInput';
 	import { ViewService } from '../../services/serviceViews.svelte';
 	import {
 		groupQueueChangesByAction,
 		type GroupedQueueRowNode,
-		type QueueActionGroupNode,
 	} from '../../services/serviceGroups';
 	import {
-		queueActionIcon,
 		queueActionLabel,
 		queueChildLabel,
+		isQueueActionGroupNode,
+		presentQueueModel,
 	} from '../../services/serviceQueuePresentation';
 	import type { NodeBase, QueueChange } from '../../types/typeContracts';
-	import type { ExplorerRenderModel, ViewAction, ViewLayers, ViewRow } from '../../types/typeViews';
+	import type { ExplorerRenderModel, ViewAction, ViewRow } from '../../types/typeViews';
 	import { translate } from '../../index/i18n/lang';
 
 	let {
@@ -29,6 +33,7 @@
 	let model: ExplorerRenderModel<NodeBase> = $state(emptyModel());
 
 	const hasItems = $derived(model.rows.length > 0);
+	const rowInputs = $derived(model.rows.map(viewRowToRowInput));
 
 	$effect(() => {
 		syncItems();
@@ -80,81 +85,12 @@
 		model = presentQueueModel(queueModel) as unknown as ExplorerRenderModel<NodeBase>;
 	}
 
-	function handleAction(action: ViewAction<NodeBase>, row: ViewRow<NodeBase>) {
-		if (action.id === 'remove' && !isQueueActionGroupNode(row.node)) removeItem(row.id);
+	function handleAction(action: ViewAction<NodeBase>, row: ExplorerRowInput<NodeBase>) {
+		if (action.id === 'remove' && !isQueueActionGroupNode(row.node as never)) removeItem(row.id);
 	}
 
-	function isQueueActionGroupNode(node: NodeBase): node is QueueActionGroupNode {
-		const candidate = node as { kind?: string; groupKey?: unknown };
-		return candidate.kind === 'group' && typeof candidate.groupKey === 'string';
-	}
-
-	function presentQueueModel(
-		nextModel: ExplorerRenderModel<GroupedQueueRowNode>,
-	): ExplorerRenderModel<GroupedQueueRowNode> {
-		return {
-			...nextModel,
-			rows: nextModel.rows.map((row) => presentQueueRow(row)),
-		};
-	}
-
-	function presentQueueRow(row: ViewRow<GroupedQueueRowNode>): ViewRow<GroupedQueueRowNode> {
-		if (isQueueActionGroupNode(row.node)) {
-			return {
-				...row,
-				label: queueActionLabel(row.node.groupKey),
-				icon: queueActionIcon(row.node.groupKey),
-				cls: addClass(row.cls, 'is-queue-parent'),
-				layers: addQueueParentCount(row.layers, row.id, row.node.count),
-			};
-		}
-		return {
-			...row,
-			label: queueChildLabel(row.node),
-			icon: undefined,
-			cls: addClass(row.cls, 'is-queue-child'),
-			layers: stripQueueChildOperationLayers(row.layers),
-		};
-	}
-
-	function addQueueParentCount(layers: ViewLayers, rowId: string, count: number): ViewLayers {
-		const existingCounts = layers.badges?.counts?.filter((badge) => badge.id !== `${rowId}:count`);
-		return {
-			...layers,
-			badges: {
-				...layers.badges,
-				counts: [
-					...(existingCounts ?? []),
-					{
-						id: `${rowId}:count`,
-						label: String(count),
-						tone: 'neutral',
-					},
-				],
-			},
-		};
-	}
-
-	function stripQueueChildOperationLayers(layers: ViewLayers): ViewLayers {
-		return {
-			...layers,
-			icons: undefined,
-			badges: {
-				...layers.badges,
-				ops: undefined,
-			},
-			state: {
-				...layers.state,
-				pending: undefined,
-				deleted: undefined,
-			},
-		};
-	}
-
-	function addClass(current: string | undefined, name: string): string {
-		const classes = new Set((current ?? '').split(/\s+/).filter(Boolean));
-		classes.add(name);
-		return [...classes].join(' ');
+	function viewRowToRowInput(row: ViewRow<NodeBase>): ExplorerRowInput<NodeBase> {
+		return rowInputFromViewRow(row as never) as ExplorerRowInput<NodeBase>;
 	}
 
 	function emptyModel(): ExplorerRenderModel<NodeBase> {
@@ -212,7 +148,7 @@
 		{#if !hasItems}
 			<div class="vm-explorer-popup-empty">{translate('queue.island.empty')}</div>
 		{:else}
-			<ViewList {model} {icon} onAction={handleAction} />
+			<ViewNodeList {rowInputs} canReorder={false} {icon} onAction={handleAction} />
 		{/if}
 	</div>
 </div>
