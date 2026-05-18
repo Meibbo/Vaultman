@@ -2,7 +2,7 @@ import { RuleTester } from 'eslint';
 import { describe, it } from 'vitest';
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
 // @ts-ignore - .mjs default export
-import rule from '../../../eslint-rules/no-mutable-vfs.mjs';
+import rule from '../../../scripts/no-mutable-vfs.mjs';
 
 const tester = new RuleTester({
 	languageOptions: { parserOptions: { ecmaVersion: 2022, sourceType: 'module' } },
