@@ -12,6 +12,7 @@ export class FrameNavReorderController {
 	reorderTargetIdx = $state(-1);
 	pillEl = $state<HTMLElement | null>(null);
 	navCollapsed = $state(false);
+	drawerOpen = $state(false);
 
 	private longPressTimer: number | null = null;
 	private reorderSourceIdx = -1;

@@ -19,10 +19,7 @@
 	import StatisticsPage from '../pages/pageStats.svelte';
 	import FiltersPage from '../pages/pageFilters.svelte';
 	import OperationsPage from '../pages/pageTools.svelte';
-	import NavbarDock from '../layout/navbarDock.svelte';
-	import NavbarTabs from '../layout/navbarTabs.svelte';
 	import PopupOverlay from '../layout/overlays/layoutOverlay.svelte';
-	import PopupIsland from '../layout/overlays/overlayIsland.svelte';
 	import ExplorerQueueComp from '../containers/explorerQueue.svelte';
 	import ExplorerActiveFiltersComp from '../containers/explorerActiveFilters.svelte';
 	import Dashboard3Column from '../dashboard/Dashboard3Column.svelte';
@@ -56,6 +53,7 @@
 	} from '../../services/serviceAddonsIsland.svelte';
 	import { FRAME_NAVIGATION_KEY, FrameNavigationService } from './frameNavigation.svelte';
 	import { FRAME_POPUPS_KEY, FramePopupsState } from './framePopups.svelte';
+	import FrameNavbarShell from './FrameNavbarShell.svelte';
 
 	// â”€â”€â”€ Props â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€------------------...........
 	let {
@@ -170,7 +168,6 @@
 	let filtersSortTarget = $state<ExplorerSortTarget>('top');
 	let filtersViewMode = $state<any>('tree');
 	let addMode = $state(false);
-	let dockDrawerOpen = $state(false);
 	const initialOperationScope = untrack(() =>
 		normalizeOperationScope(plugin.settings.explorerOperationScope),
 	);
@@ -439,77 +436,9 @@
 	/>
 {/snippet}
 
-{#snippet frameIslandAndDock()}
-	<!-- â”€â”€â”€ Island Backdrop (Rising Glass) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ -->
-	<div
-		class="vm-island-backdrop vm-glass"
-		class:is-open={overlays.isIslandOpen}
-		class:is-dismissable={plugin.settings.islandDismissOnOutsideClick}
-		onclick={() => {
-			if (plugin.settings.islandDismissOnOutsideClick) {
-				overlays.closeQueueIsland();
-				overlays.closeFiltersIsland();
-			}
-		}}
-		onkeydown={(e) => {
-			if (
-				plugin.settings.islandDismissOnOutsideClick &&
-				(e.key === 'Escape' || e.key === 'Enter')
-			) {
-				overlays.closeQueueIsland();
-				overlays.closeFiltersIsland();
-			}
-		}}
-		role="button"
-		tabindex="-1"
-		aria-label="Close island"
-	></div>
-
-	<PopupIsland overlayState={plugin.overlayState} />
-
-	<NavbarDock
-		items={nav.dockItems}
-		active={nav.dockActive}
-		externalTabIds={nav.dockExternalTabIds}
-		showLabels={nav.layoutSettings.dock.labels.visible}
-		labelPosition={nav.layoutSettings.dock.labels.position}
-		presentationMode={nav.layoutSettings.dock.presentation.mode}
-		drawerDirection={nav.layoutSettings.dock.presentation.drawerDirection}
-		bind:drawerOpen={dockDrawerOpen}
-		leftFab={nav.leftFab}
-		rightFab={nav.rightFab}
-		navCollapsed={navReorder.navCollapsed}
-		isIslandOpen={overlays.isIslandOpen}
-		isReordering={nav.dockUsesFramePages ? navReorder.isReordering : false}
-		reorderTargetIdx={nav.dockUsesFramePages ? navReorder.reorderTargetIdx : -1}
-		bind:dockEl={navReorder.pillEl}
-		{filterRuleCount}
-		{queuedCount}
-		bindNav={navReorder.bindNav}
-		onCollapsedNavClick={navReorder.onCollapsedNavClick}
-		onItemPointerDown={nav.dockUsesFramePages ? navReorder.onNavIconPointerDown : undefined}
-		onDockPointerMove={nav.dockUsesFramePages ? navReorder.onPillPointerMove : undefined}
-		onDockPointerUp={nav.dockUsesFramePages ? navReorder.onPillPointerUp : undefined}
-		exitReorder={navReorder.exitReorder}
-		onSelect={(id) => nav.selectSurfaceItem(nav.layoutSettings.dock.content, id)}
-		mouseGestureConfig={plugin.settings?.mouseGestures?.fab}
-	/>
-{/snippet}
-
 <!-- â”€â”€â”€ Page container (horizontal slide strip) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ -->
 <!-- vm-pages-viewport clips via overflow:hidden; the container slides inside it -->
 <div class="vm-view {elasticRootClasses}" use:navReorder.bindViewRoot use:bindDashboardMeasurement>
-	{#if nav.topTabItems.length > 0}
-		<NavbarTabs
-			tabs={nav.topTabItems}
-			active={nav.topTabActive}
-			externalTabIds={nav.topExternalTabIds}
-			showLabels={nav.layoutSettings.tabs.labels.visible}
-			labelPosition={nav.layoutSettings.tabs.labels.position}
-			onSelect={(id) => nav.selectSurfaceItem(nav.layoutSettings.tabs.content, id)}
-		/>
-	{/if}
-
 	{#if dashboardEnabled}
 		<div class="vm-pages-viewport vm-dashboard-viewport">
 			<Dashboard3Column
@@ -519,8 +448,6 @@
 				explorer={dashboardExplorer}
 				addons={dashboardAddons}
 			/>
-
-			{@render frameIslandAndDock()}
 		</div>
 	{:else}
 		<div class="vm-pages-viewport" use:viewport.bindViewport>
@@ -574,10 +501,18 @@
 					</div>
 				{/each}
 			</div>
-
-			{@render frameIslandAndDock()}
 		</div>
 	{/if}
+
+	<FrameNavbarShell
+		{plugin}
+		{filterRuleCount}
+		{queuedCount}
+		layoutSettings={nav.layoutSettings}
+		leftFab={nav.leftFab}
+		rightFab={nav.rightFab}
+		{overlays}
+	/>
 </div>
 
 <PopupOverlay
