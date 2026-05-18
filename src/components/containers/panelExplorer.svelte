@@ -21,12 +21,8 @@
 		ExplorerSnapshot,
 	} from '../../types/typeExplorerDataPlane';
 	import type { NodeBase } from '../../types/typeContracts';
-	import GridNavigationToolbar from '../layout/GridNavigationToolbar.svelte';
-	import ViewTree from '../views/viewTree.svelte';
-	import ViewNodeCards from '../views/ViewNodeCards.svelte';
-	import ViewNodeGrid from '../views/ViewNodeGrid.svelte';
-	import ViewNodeList from '../views/ViewNodeList.svelte';
-	import ViewNodeTable from '../views/ViewNodeTable.svelte';
+	import { PRESET_VAULTMAN } from '../../config/themePresetsBuiltin';
+	import ViewHost from '../explorer/ViewHost.svelte';
 	import ViewMarkmap from '../views/ViewMarkmap.svelte';
 	import ViewEmptyLanding from '../views/viewEmptyLanding.svelte';
 	import { getActivePerfProbe } from '../../dev/perfProbe';
@@ -47,6 +43,7 @@
 	import type { TreeNode } from '../../types/typeNode';
 	import { bubbleHiddenTreeBadges } from '../../utils/utilBadgeBubbling';
 	import { collectAutoExpandedIds, resolveExpandedIds } from '../../utils/utilExplorerExpansion';
+	import { isExplorerPlatformViewMode } from '../../services/serviceExplorerViewContract';
 	import {
 		activeBadges,
 		badgeKindFromNodeBadge,
@@ -248,6 +245,22 @@
 	const isMarkmapEmpty = $derived(viewMode === 'markmap' && markmapNodes.length === 0);
 	const isListEmpty = $derived(viewMode === 'list' && listRowInputs.length === 0);
 	const isTableEmpty = $derived(viewMode === 'table' && tableRows.length === 0);
+	const isCurrentViewEmpty = $derived(
+		viewMode === 'tree'
+			? isTreeEmpty
+			: viewMode === 'list'
+				? isListEmpty
+				: viewMode === 'table'
+					? isTableEmpty
+					: viewMode === 'grid'
+						? isGridEmpty
+						: viewMode === 'cards'
+							? isCardsEmpty
+							: viewMode === 'markmap'
+								? isMarkmapEmpty
+								: false,
+	);
+	const activeThemePreset = $derived(plugin.themeService?.activePreset ?? PRESET_VAULTMAN);
 	let lastCommittedSelectionKey = '';
 	let lastExpansionSummaryKey = '';
 	let lastExpansionCommandSerial = -1;
@@ -1202,114 +1215,7 @@
 <svelte:window onkeydown={handleWindowKeydown} />
 
 <div class="vm-panel-explorer" data-visible-fields={visibleFieldsKey} bind:this={rootEl}>
-	{#if viewMode === 'tree'}
-		<div class="vm-tree-container">
-			{#if isTreeEmpty}
-				<ViewEmptyLanding state={emptyState} {icon} />
-			{:else}
-				<ViewTree
-					nodes={displayNodes}
-					rowInputs={treeRowInputs}
-					projection={treeProjection}
-					{expandedIds}
-					selectedIds={selectedNodeIds}
-					focusedId={focusedNodeId}
-					onToggle={toggleExpand}
-					onRowClick={handleNodeClick}
-					onSecondaryAction={handleSecondaryAction}
-					onTertiaryAction={handleTertiaryAction}
-					onBoxSelect={handleBoxSelect}
-					onContextMenu={handleContextMenu}
-					onRowKeydown={handleRowKeydown}
-					onBadgeDoubleClick={handleBadgeClick}
-					onHoverBadgeAction={handleHoverBadgeAction}
-					{activeOpsByNode}
-					{scrollTarget}
-					snapshotRevision={filesSnapshot?.structureRevision ?? null}
-					idToIndex={filesSnapshot?.idToIndex ?? null}
-					mouseGestureConfig={plugin.settings?.mouseGestures?.node}
-					themeService={plugin.themeService}
-					providerId={provider.id}
-					{visibleFields}
-					{icon}
-				/>
-			{/if}
-		</div>
-	{:else if viewMode === 'grid'}
-		<div class="vm-grid-container">
-			{#if gridHierarchyMode === 'folder'}
-				<GridNavigationToolbar
-					path={currentGridPath}
-					canBack={gridBackStack.length > 0}
-					canForward={gridForwardStack.length > 0}
-					canUp={currentGridParentId !== null}
-					onBack={navigateGridBack}
-					onForward={navigateGridForward}
-					onUp={navigateGridUp}
-					onRefresh={refreshGridLocation}
-					onNavigateRoot={() => navigateGridTo(null)}
-					onNavigateCrumb={(id) => navigateGridTo(id)}
-					{icon}
-				/>
-			{/if}
-			{#if isGridEmpty}
-				<ViewEmptyLanding state={emptyState} {icon} />
-			{:else}
-				<ViewNodeGrid
-					nodes={gridNodes}
-					selectedIds={selectedNodeIds}
-					selectedMap={selectedNodeMap}
-					focusedId={focusedNodeId}
-					activeId={selectionSnapshot.activeId}
-					hierarchyMode={gridHierarchyMode}
-					expandedIds={gridHierarchyMode === 'inline' ? gridExpandedIds : undefined}
-					providerId={provider.id}
-					{visibleFields}
-					{manualDndEnabled}
-					onManualDrop={handleManualNodeDrop}
-					onTileClick={handleNodeClick}
-					onSecondaryAction={handleSecondaryAction}
-					onTertiaryAction={handleTertiaryAction}
-					onBoxSelect={handleBoxSelect}
-					onContextMenu={handleContextMenu}
-					onTileKeydown={handleRowKeydown}
-					onToggleExpand={toggleExpand}
-					onBadgeDoubleClick={handleBadgeClick}
-					onHoverBadgeAction={handleHoverBadgeAction}
-					{activeOpsByNode}
-					{scrollTarget}
-					mouseGestureConfig={plugin.settings?.mouseGestures?.node}
-					themeService={plugin.themeService}
-					{icon}
-				/>
-			{/if}
-		</div>
-	{:else if viewMode === 'cards'}
-		<div class="vm-cards-container">
-			{#if isCardsEmpty}
-				<ViewEmptyLanding state={emptyState} {icon} />
-			{:else}
-				<ViewNodeCards
-					providerId={provider.id}
-					nodes={cardNodes}
-					{visibleFields}
-					selectedIds={selectedNodeIds}
-					focusedId={focusedNodeId}
-					activeId={selectionSnapshot.activeId}
-					onCardClick={handleNodeClick}
-					onSecondaryAction={handleSecondaryAction}
-					onTertiaryAction={handleTertiaryAction}
-					onContextMenu={handleContextMenu}
-					onCardKeydown={handleRowKeydown}
-					onBadgeDoubleClick={handleBadgeClick}
-					{scrollTarget}
-					mouseGestureConfig={plugin.settings?.mouseGestures?.node}
-					themeService={plugin.themeService}
-					{icon}
-				/>
-			{/if}
-		</div>
-	{:else if viewMode === 'markmap'}
+	{#if viewMode === 'markmap'}
 		<div class="vm-markmap-container">
 			{#if isMarkmapEmpty}
 				<ViewEmptyLanding state={emptyState} {icon} />
@@ -1327,52 +1233,69 @@
 				/>
 			{/if}
 		</div>
-	{:else if viewMode === 'list'}
-		<div class="vm-list-container">
-			{#if isListEmpty}
-				<ViewEmptyLanding state={emptyState} {icon} />
-			{:else}
-				<ViewNodeList
-					rowInputs={listRowInputs}
-					projection={listProjection}
-					canReorder={false}
-					selectedIds={selectedNodeIds}
-					focusedId={focusedNodeId}
-					onSelect={handleListSelect}
-					onActivate={handleListActivate}
-					onFocus={handleListFocus}
-					onContextMenu={handleListContextMenu}
-					{icon}
-				/>
-			{/if}
-		</div>
-	{:else if viewMode === 'table'}
-		<div class="vm-table-container">
-			{#if isTableEmpty}
-				<ViewEmptyLanding state={emptyState} {icon} />
-			{:else}
-				<ViewNodeTable
-					rows={tableRows}
-					columns={tableColumns}
+	{:else if isExplorerPlatformViewMode(viewMode)}
+		{#if isCurrentViewEmpty}
+			<ViewEmptyLanding state={emptyState} {icon} />
+		{:else}
+			<div class="vm-view-host-container">
+				<ViewHost
+					preset={activeThemePreset}
+					mountContext="panel"
+					bind:viewMode
+					nodes={displayNodes}
+					rowInputs={treeRowInputs}
+					listRowInputs={listRowInputs}
+					projection={treeProjection}
+					listProjection={listProjection}
+					gridNodes={gridNodes}
+					cardNodes={cardNodes}
+					tableRows={tableRows}
+					tableColumns={tableColumns}
+					expandedIds={expandedIds}
+					gridExpandedIds={gridHierarchyMode === 'inline' ? gridExpandedIds : undefined}
 					selectedIds={selectedNodeIds}
 					selectedMap={selectedNodeMap}
 					focusedId={focusedNodeId}
 					activeId={selectionSnapshot.activeId}
+					activeOpsByNode={activeOpsByNode}
+					scrollTarget={scrollTarget}
+					snapshotRevision={filesSnapshot?.structureRevision ?? null}
+					idToIndex={filesSnapshot?.idToIndex ?? null}
+					providerId={provider.id}
+					visibleFields={visibleFields}
+					mouseGestureConfig={plugin.settings?.mouseGestures?.node}
+					themeService={plugin.themeService}
+					manualDndEnabled={manualDndEnabled}
+					gridHierarchyMode={gridHierarchyMode}
+					currentGridPath={currentGridPath}
+					gridCanBack={gridBackStack.length > 0}
+					gridCanForward={gridForwardStack.length > 0}
+					gridCanUp={currentGridParentId !== null}
+					onBack={navigateGridBack}
+					onForward={navigateGridForward}
+					onUp={navigateGridUp}
+					onRefresh={refreshGridLocation}
+					onNavigateRoot={() => navigateGridTo(null)}
+					onNavigateCrumb={(id) => navigateGridTo(id)}
+					icon={icon}
+					onToggle={toggleExpand}
 					onRowClick={handleNodeClick}
 					onSecondaryAction={handleSecondaryAction}
 					onTertiaryAction={handleTertiaryAction}
+					onBoxSelect={handleBoxSelect}
 					onContextMenu={handleContextMenu}
 					onRowKeydown={handleRowKeydown}
 					onSelectAll={(ids, e) => handleTableSelectAll(ids, e)}
 					onBadgeDoubleClick={handleBadgeClick}
-					{scrollTarget}
-					mouseGestureConfig={plugin.settings?.mouseGestures?.node}
-					themeService={plugin.themeService}
-					{visibleFields}
-					{icon}
+					onHoverBadgeAction={handleHoverBadgeAction}
+					onManualDrop={handleManualNodeDrop}
+					onSelect={handleListSelect}
+					onActivate={handleListActivate}
+					onFocus={handleListFocus}
+					onListContextMenu={handleListContextMenu}
 				/>
-			{/if}
-		</div>
+			</div>
+		{/if}
 	{:else}
 		<div class="vm-fallback-container">
 			<ViewEmptyLanding state={fallbackState} {icon} />
@@ -1381,45 +1304,19 @@
 </div>
 
 <style>
-	.vm-tree-container {
-		flex: 1;
-		display: flex;
-		flex-direction: column;
-		min-height: 0;
-		height: 100%;
-		overflow: hidden;
-	}
-	.vm-grid-container {
-		flex: 1;
-		overflow: hidden;
-		min-height: 0;
-		height: 100%;
-	}
-	.vm-cards-container {
-		flex: 1;
-		overflow: hidden;
-		min-height: 0;
-		height: 100%;
-	}
 	.vm-markmap-container {
 		flex: 1;
 		overflow: hidden;
 		min-height: 0;
 		height: 100%;
 	}
-	.vm-list-container {
+	.vm-view-host-container {
 		flex: 1;
 		display: flex;
 		flex-direction: column;
 		min-height: 0;
 		height: 100%;
 		overflow: hidden;
-	}
-	.vm-table-container {
-		flex: 1;
-		overflow: hidden;
-		min-height: 0;
-		height: 100%;
 	}
 	.vm-fallback-container {
 		flex: 1;

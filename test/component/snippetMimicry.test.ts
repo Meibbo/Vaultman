@@ -3,6 +3,7 @@ import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { flushSync, mount, unmount, type Component } from 'svelte';
 import PanelExplorer from '../../src/components/containers/panelExplorer.svelte';
+import { PRESET_VAULTMAN } from '../../src/config/themePresetsBuiltin';
 import { ThemeService } from '../../src/services/serviceTheme.svelte';
 import type { VaultmanPlugin } from '../../src/main';
 import type { ExplorerProvider, ExplorerViewMode } from '../../src/types/typeExplorer';
@@ -12,7 +13,14 @@ const fixture = readFileSync(resolve('test/fixtures/snippets/vm-snippet-smoke.cs
 
 function themeService(): ThemeService {
 	const theme = new ThemeService();
-	theme.setPreset('native');
+	theme.registerCustomPreset({
+		...PRESET_VAULTMAN,
+		source: 'custom',
+		id: 'snippet-native',
+		displayName: 'Snippet native',
+		useNativeDom: true,
+	});
+	theme.setPreset('snippet-native');
 	return theme;
 }
 

@@ -650,9 +650,9 @@ describe('PanelExplorer tree selection adapter', () => {
 	it('list mode renders provider nodes through ViewNodeList', () => {
 		renderPanel({ viewMode: 'list' });
 
-		const listbox = target.querySelector('.vm-list-container [role="listbox"]');
+		const listbox = target.querySelector('.vm-view-host-container [role="listbox"]');
 		expect(listbox).toBeTruthy();
-		expect(target.querySelectorAll('.vm-list-container [data-id]').length).toBe(2);
+		expect(target.querySelectorAll('.vm-view-host-container [data-id]').length).toBe(2);
 		expect(target.textContent).toContain('Alpha');
 		expect(target.textContent).toContain('Beta');
 	});
@@ -666,19 +666,20 @@ describe('PanelExplorer tree selection adapter', () => {
 			}),
 		});
 
-		expect(target.querySelector('.vm-list-container .vm-empty-landing')).toBeTruthy();
+		expect(target.querySelector('.vm-view-host-container')).toBeNull();
+		expect(target.querySelector('.vm-panel-explorer .vm-empty-landing')).toBeTruthy();
 	});
 
 	it('list mode row click dispatches selection through the selection service', () => {
 		const { selectionService } = renderPanel({ viewMode: 'list' });
 
-		(target.querySelector('.vm-list-container [data-id="alpha"]') as HTMLElement).click();
+		(target.querySelector('.vm-view-host-container [data-id="alpha"]') as HTMLElement).click();
 		flushSync();
 
 		expect([...selectionService.snapshot(EXPLORER_ID).ids]).toEqual(['alpha']);
 		expect(
 			target
-				.querySelector('.vm-list-container [data-id="alpha"]')
+				.querySelector('.vm-view-host-container [data-id="alpha"]')
 				?.getAttribute('aria-selected'),
 		).toBe('true');
 	});

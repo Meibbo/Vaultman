@@ -2,6 +2,7 @@
 	import { setContext } from 'svelte';
 	import type { ActiveOpsByNode, BadgeKind } from '../../badges/serviceBadge';
 	import type { MouseGestureConfig } from '../../services/serviceMouse';
+	import type { DndDropResult } from '../../services/serviceDnd';
 	import type { ThemeService } from '../../services/serviceTheme.svelte';
 	import type { ViewSizePresetId } from '../../services/serviceViewSize';
 	import { ViewHostService } from '../../services/serviceViewHost.svelte';
@@ -11,7 +12,7 @@
 	import type { ExplorerRevealTarget } from '../../types/typeExplorerDataPlane';
 	import type { TreeNode } from '../../types/typeNode';
 	import type { ThemePreset } from '../../types/typeThemePreset';
-	import type { ExplorerViewMode, ViewColumn, ViewRow } from '../../types/typeViews';
+	import type { ExplorerViewMode } from '../../types/typeViews';
 	import type { ViewHostMountContext } from '../../types/typeViewHost';
 	import GridNavigationToolbar from '../layout/GridNavigationToolbar.svelte';
 	import ViewNodeCards from '../views/ViewNodeCards.svelte';
@@ -45,10 +46,11 @@
 		listProjection?: ExplorerProjection<NodeBase>;
 		gridNodes?: TreeNode<TMeta>[];
 		cardNodes?: TreeNode<TMeta>[];
-		tableRows?: ViewRow<NodeBase>[];
-		tableColumns?: ViewColumn<NodeBase>[];
+		tableRows?: unknown[];
+		tableColumns?: unknown[];
 
 		expandedIds?: ReadonlySet<string>;
+		gridExpandedIds?: ReadonlySet<string>;
 		selectedIds?: ReadonlySet<string>;
 		selectedMap?: ReadonlyMap<string, boolean>;
 		focusedId?: string | null;
@@ -87,9 +89,10 @@
 		onBoxSelect?: (ids: string[], e: PointerEvent) => void;
 		onContextMenu: (id: string, e: MouseEvent) => void;
 		onRowKeydown?: (id: string, e: KeyboardEvent) => void;
+		onSelectAll?: (ids: string[], e: Event) => void;
 		onBadgeDoubleClick?: (queueIndex: number) => void;
 		onHoverBadgeAction?: (id: string, kind: BadgeKind, e: MouseEvent | KeyboardEvent) => void;
-		onManualDrop?: (result: unknown) => void;
+		onManualDrop?: (result: DndDropResult) => void;
 		onSelect?: (row: ListRowInput, modifiers: { ctrl: boolean; shift: boolean; alt: boolean }) => void;
 		onActivate?: (row: ListRowInput) => void;
 		onFocus?: (id: string | null) => void;
@@ -194,6 +197,7 @@
 		onTertiaryAction={rest.onTertiaryAction as never}
 		onContextMenu={rest.onContextMenu}
 		onRowKeydown={rest.onRowKeydown}
+		onSelectAll={rest.onSelectAll}
 		onBadgeDoubleClick={rest.onBadgeDoubleClick}
 		scrollTarget={rest.scrollTarget as never}
 		mouseGestureConfig={rest.mouseGestureConfig}
@@ -226,7 +230,7 @@
 		focusedId={rest.focusedId}
 		activeId={rest.activeId}
 		hierarchyMode={rest.gridHierarchyMode}
-		expandedIds={rest.expandedIds}
+		expandedIds={rest.gridExpandedIds}
 		onTileClick={rest.onRowClick}
 		onPrimaryAction={rest.onPrimaryAction}
 		onSecondaryAction={rest.onSecondaryAction}

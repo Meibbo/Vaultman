@@ -224,3 +224,53 @@ No errors captured.
   mounted; manual view selection was used for List/Table/Grid/Cards.
 - Known environment caveat: stale unrelated `plugin-dev` Calendar/Settings
   Search error was cleared before live smoke capture.
+
+## C5 pre-extraction panel baseline
+
+The shard named `test/component/containers/`, but this repo's existing
+panelExplorer component tests live directly under `test/component/`. The
+equivalent pre-extraction baseline was captured with PowerShell-expanded
+`test/component/panelExplorer*.test.ts` paths and `--project component`.
+
+Result: PASS, 5 files / 66 tests. No panelExplorer snapshot files were present
+under `test/component/__snapshots__/`.
+
+## C5 live plugin-dev smoke
+
+Important CLI correction discovered during C5: `vault=<name>` must be the
+first parameter after `obsidian`, before the subcommand. The safe smoke command
+shape is:
+
+```powershell
+obsidian vault=plugin-dev eval code="app.vault.getName()"
+obsidian vault=plugin-dev plugin:reload id=vaultman
+obsidian vault=plugin-dev command id=vaultman:open
+obsidian vault=plugin-dev dev:errors
+```
+
+Verification:
+
+- `obsidian vault=plugin-dev eval code="app.vault.getName()"` returned
+  `plugin-dev`.
+- `plugin:reload id=vaultman` returned `Reloaded: vaultman`.
+- `vaultman:open` behaves as a toggle when the frame is already open; the
+  second execution opened one `vm-frame`.
+- Live DOM after open: `vmFrame: 1`, `legacy: 0`, `panels: 3`,
+  `viewHost: 1`, `markmap: 0`, `empty: 2`.
+- View menu traversal rendered each platform mode under
+  `.vm-view-host-container`:
+
+| Mode | Active menu label | ViewHost count | Primary rendered selector |
+|---|---:|---:|---:|
+| Tree | Tree | 1 | `.vm-tree-virtual-row`: 25 |
+| List | List | 1 | `.vm-view-list-row`: 18 |
+| Table | Table | 1 | `.vm-node-table-row`: 30 |
+| Grid | Grid | 1 | `.vm-node-grid-tile`: 33 |
+| Cards | Cards | 1 | `.vm-node-card`: 16 |
+
+`Markmap` is not exposed by the current view-mode popup, so live C5 smoke did
+not force it through private Svelte state. The new component test covers the
+markmap branch and confirms it stays outside `.vm-view-host-container`.
+
+Final live error check: `obsidian vault=plugin-dev dev:errors` returned
+`No errors captured.`

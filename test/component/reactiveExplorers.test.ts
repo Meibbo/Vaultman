@@ -719,7 +719,7 @@ describe('reactive explorer components', () => {
 		const source = readFileSync('src/components/containers/panelExplorer.svelte', 'utf8');
 
 		expect(source).toContain('createExplorerProjection');
-		expect(source).toMatch(/<ViewTree[\s\S]*projection={treeProjection}/);
-		expect(source).toMatch(/<ViewNodeList[\s\S]*projection={listProjection}/);
+		expect(source).toMatch(/<ViewHost[\s\S]*projection={treeProjection}/);
+		expect(source).toMatch(/<ViewHost[\s\S]*listProjection={listProjection}/);
 	});
 });

@@ -127,7 +127,7 @@ describe('PanelExplorer empty landing', () => {
 		});
 		flushSync();
 
-		expect(target.querySelector('.vm-list-container')).not.toBeNull();
+		expect(target.querySelector('.vm-view-host-container')).not.toBeNull();
 		expect(target.querySelector('[data-id="alpha"]')).not.toBeNull();
 		expect(target.textContent).toContain('Alpha');
 		expect(target.textContent).not.toContain('List view not available');
