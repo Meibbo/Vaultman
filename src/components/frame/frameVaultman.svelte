@@ -28,17 +28,11 @@
 	import Dashboard3Column from '../dashboard/Dashboard3Column.svelte';
 	import AddonsMarkdownPane from '../addons/AddonsMarkdownPane.svelte';
 
-	import { FolderSuggest } from '../../utils/autocomplete';
 	import { translate } from '../../index/i18n/lang';
-	import {
-		collectActiveFilterRules,
-		countActiveFilterEntries,
-		type ActiveFilterRule,
-	} from './frameActiveFilters';
+	import { countActiveFilterEntries } from './frameActiveFilters';
 	import { FrameViewportController } from './frameViewport';
 	import { FrameNavReorderController } from './frameNavReorder.svelte';
 	import { FrameOverlayController, installFrameOverlayCommandHooks } from './frameOverlays.svelte';
-	import { createMoveChanges, createMovePreviews } from './frameMoves';
 	import {
 		createFiltersSearchState,
 		getFiltersSearch,
@@ -61,6 +55,7 @@
 		type AddonsQuickSwitcherApp,
 	} from '../../services/serviceAddonsIsland.svelte';
 	import { FRAME_NAVIGATION_KEY, FrameNavigationService } from './frameNavigation.svelte';
+	import { FRAME_POPUPS_KEY, FramePopupsState } from './framePopups.svelte';
 
 	// â”€â”€â”€ Props â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€------------------...........
 	let {
@@ -114,6 +109,10 @@
 	});
 	nav.attachNavReorder(navReorder);
 	setContext(FRAME_NAVIGATION_KEY, nav);
+
+	// svelte-ignore state_referenced_locally
+	const popups = new FramePopupsState(plugin, overlays, () => updateStats());
+	setContext(FRAME_POPUPS_KEY, popups);
 
 	$effect(() => installFrameOverlayCommandHooks(plugin, overlays));
 
@@ -240,99 +239,22 @@
 	}
 
 	// â”€â”€â”€ Scope popup â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-	// TODO: where this icons are showed?
-	const scopeOptions = [
-		{
-			value: 'auto',
-			label: translate('settings.scope.auto'),
-			icon: 'lucide-sparkles',
-		},
-		{
-			value: 'filtered',
-			label: translate('scope.filtered'),
-			icon: 'lucide-filter',
-		},
-		{
-			value: 'selected',
-			label: translate('scope.selected'),
-			icon: 'lucide-check-square',
-		},
-	];
-
-	function setScope(value: string) {
-		filtersOperationScope = normalizeOperationScope(value as OperationScope);
-		plugin.settings.explorerOperationScope = filtersOperationScope;
-		void plugin.saveSettings();
-		overlays.closePopup();
-	}
-
-	function setFiltersOperationScope(value: OperationScope) {
-		filtersOperationScope = normalizeOperationScope(value);
-		plugin.settings.explorerOperationScope = filtersOperationScope;
-		void plugin.saveSettings();
-	}
-
 	// â”€â”€â”€ Search popup â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-
-	let searchName = $state('');
-	let searchFolder = $state('');
 
 	$effect(() => {
 		const filesSearchTerm = getFiltersSearch(filtersSearchByTab, 'files');
-		if (!searchName && !searchFolder && filesSearchTerm) return;
-		fileList?.setSearchFilter(searchName, searchFolder);
-		plugin.filterService.setSearchFilter(searchName, searchFolder);
+		if (!popups.searchName && !popups.searchFolder && filesSearchTerm) return;
+		fileList?.setSearchFilter(popups.searchName, popups.searchFolder);
+		plugin.filterService.setSearchFilter(popups.searchName, popups.searchFolder);
 	});
 
 	// â”€â”€â”€ Filters page state (bound to FiltersPage component) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 	// â”€â”€â”€ Active Filters popup state â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
-	let activeFilterRules = $state<ActiveFilterRule[]>([]);
-
-	function refreshActiveFiltersPopup(): void {
-		activeFilterRules = collectActiveFilterRules(plugin.filterService.activeFilter);
-	}
-
-	function toggleFilterRule(rule: ActiveFilterRule): void {
-		if (rule.node.id) {
-			plugin.filterService.toggleFilterRule(rule.node.id);
-		}
-		refreshActiveFiltersPopup();
-	}
-
-	function deleteFilterRule(rule: ActiveFilterRule): void {
-		plugin.filterService.removeNode(rule.node, rule.parent);
-		refreshActiveFiltersPopup();
-		updateStats();
-	}
-
 	// â”€â”€â”€ Scope popup â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 	// â”€â”€â”€ Move popup â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-
-	let moveTargetFiles = $state<import('obsidian').TFile[]>([]);
-	let moveTargetFolder = $state('');
-
-	const movePreviews = $derived.by(() => createMovePreviews(moveTargetFiles, moveTargetFolder));
-
-	function queueMoves() {
-		const changes = createMoveChanges(moveTargetFiles, moveTargetFolder);
-		void plugin.queueService.addBatch(changes);
-		overlays.closePopup();
-	}
-
-	function attachFolderSuggest(el: HTMLElement) {
-		const suggest = new FolderSuggest(plugin.app, el as HTMLInputElement, (path: string) => {
-			moveTargetFolder = path;
-			(el as HTMLInputElement).value = path;
-		});
-		return {
-			destroy() {
-				suggest.close();
-			},
-		};
-	}
 
 	// â”€â”€â”€ Icon action (Svelte action wrapping Obsidian setIcon) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
@@ -383,7 +305,7 @@
 
 	$effect(() => {
 		if (overlays.activePopup === 'active-filters' && overlays.popupOpen) {
-			refreshActiveFiltersPopup();
+			popups.refreshActiveFiltersPopup();
 		}
 	});
 
@@ -489,7 +411,7 @@
 					bind:filtersSearchCategory
 					bind:filtersFnRState
 					bind:filtersOperationScope
-					onOperationScopeChange={setFiltersOperationScope}
+					onOperationScopeChange={(value) => popups.setFiltersOperationScope(value)}
 					bind:tagsExplorer
 					bind:propExplorer
 					bind:fileList
@@ -632,7 +554,7 @@
 									bind:filtersSearchCategory
 									bind:filtersFnRState
 									bind:filtersOperationScope
-									onOperationScopeChange={setFiltersOperationScope}
+									onOperationScopeChange={(value) => popups.setFiltersOperationScope(value)}
 									bind:tagsExplorer
 									bind:propExplorer
 									bind:fileList
@@ -663,19 +585,19 @@
 	activePopup={overlays.activePopup}
 	popupOpen={overlays.popupOpen}
 	closePopup={() => overlays.closePopup()}
-	{activeFilterRules}
-	{refreshActiveFiltersPopup}
+	activeFilterRules={popups.activeFilterRules}
+	refreshActiveFiltersPopup={() => popups.refreshActiveFiltersPopup()}
 	{updateStats}
-	{toggleFilterRule}
-	{deleteFilterRule}
-	{scopeOptions}
-	{setScope}
-	bind:searchName
-	bind:searchFolder
-	{moveTargetFiles}
-	bind:moveTargetFolder
-	{movePreviews}
-	{attachFolderSuggest}
-	{queueMoves}
+	toggleFilterRule={(rule) => popups.toggleFilterRule(rule)}
+	deleteFilterRule={(rule) => popups.deleteFilterRule(rule)}
+	scopeOptions={[...popups.scopeOptions]}
+	setScope={(value) => popups.setScope(value)}
+	bind:searchName={popups.searchName}
+	bind:searchFolder={popups.searchFolder}
+	moveTargetFiles={popups.moveTargetFiles}
+	bind:moveTargetFolder={popups.moveTargetFolder}
+	movePreviews={popups.movePreviews}
+	attachFolderSuggest={(el) => popups.attachFolderSuggest(el)}
+	queueMoves={() => popups.queueMoves()}
 	{icon}
 />
