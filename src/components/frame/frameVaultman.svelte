@@ -22,8 +22,6 @@
 	import PopupOverlay from '../layout/overlays/layoutOverlay.svelte';
 	import ExplorerQueueComp from '../containers/explorerQueue.svelte';
 	import ExplorerActiveFiltersComp from '../containers/explorerActiveFilters.svelte';
-	import Dashboard3Column from '../dashboard/Dashboard3Column.svelte';
-	import AddonsMarkdownPane from '../addons/AddonsMarkdownPane.svelte';
 
 	import { translate } from '../../index/i18n/lang';
 	import { countActiveFilterEntries } from './frameActiveFilters';
@@ -54,6 +52,7 @@
 	import { FRAME_NAVIGATION_KEY, FrameNavigationService } from './frameNavigation.svelte';
 	import { FRAME_POPUPS_KEY, FramePopupsState } from './framePopups.svelte';
 	import FrameNavbarShell from './FrameNavbarShell.svelte';
+	import FrameDashboardShell from './FrameDashboardShell.svelte';
 
 	// â”€â”€â”€ Props â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€------------------...........
 	let {
@@ -367,88 +366,37 @@
 	});
 </script>
 
-{#snippet dashboardFilters()}
-	<nav class="vm-dashboard-filter-list" aria-label={translate('nav.filters')}>
-		{#each nav.filterTabItems as tab (tab.id)}
-			<button
-				type="button"
-				class="vm-dashboard-filter-button"
-				class:is-active={nav.filtersActiveTab === tab.id}
-				class:is-faint={tab.faint}
-				disabled={tab.disabled}
-				onclick={() => nav.selectSurfaceItem('filter-tabs', tab.id)}
-			>
-				<span class="vm-dashboard-filter-icon" use:icon={tab.icon}></span>
-				<span>{tab.label}</span>
-			</button>
-		{/each}
-	</nav>
-{/snippet}
-
-{#snippet dashboardExplorer()}
-	<div class="vm-page vm-dashboard-active-page" data-page={nav.activePage}>
-		{#key nav.pageRenderKey}
-			{#if nav.activePage === 'ops'}
-				{#if nav.detachedTabs['page-tools'] === true}
-					<div class="vm-page-external" data-vm-tab-id="page-tools">Detached to workspace</div>
-				{:else}
-					<OperationsPage {plugin} {icon} bind:activeTab={nav.toolsActiveTab} />
-				{/if}
-			{:else if nav.activePage === 'statistics'}
-				<StatisticsPage
-					{plugin}
-					previewFile={nav.statsPreviewFile}
-					onShowStats={() => nav.showStatsPage()}
-				/>
-			{:else if nav.activePage === 'filters'}
-				<FiltersPage
-					{plugin}
-					bind:filtersActiveTab={nav.filtersActiveTab}
-					bind:filtersSearchByTab
-					bind:filtersSearchCategory
-					bind:filtersFnRState
-					bind:filtersOperationScope
-					onOperationScopeChange={(value) => popups.setFiltersOperationScope(value)}
-					bind:tagsExplorer
-					bind:propExplorer
-					bind:fileList
-					bind:selectedCount
-					bind:selectedFilePaths
-					bind:filtersSortBy
-					bind:filtersSortDir
-					bind:filtersSortTarget
-					bind:filtersViewMode
-					bind:filtersBaseChooseMode={nav.filtersBaseChooseMode}
-					bind:addMode
-					showTabs={false}
-					{addOpCount}
-				/>
-			{/if}
-		{/key}
-	</div>
-{/snippet}
-
-{#snippet dashboardAddons()}
-	<AddonsMarkdownPane
-		service={addonsIslandService}
-		statsRenderer={renderAddonsStats}
-		app={addonsQuickSwitcherApp}
-	/>
-{/snippet}
-
 <!-- â”€â”€â”€ Page container (horizontal slide strip) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ -->
 <!-- vm-pages-viewport clips via overflow:hidden; the container slides inside it -->
 <div class="vm-view {elasticRootClasses}" use:navReorder.bindViewRoot use:bindDashboardMeasurement>
 	{#if dashboardEnabled}
-		<div class="vm-pages-viewport vm-dashboard-viewport">
-			<Dashboard3Column
-				themeService={plugin.themeService}
-				enabled={dashboardEnabled}
-				filters={dashboardFilters}
-				explorer={dashboardExplorer}
-				addons={dashboardAddons}
-			/>
-		</div>
+		<FrameDashboardShell
+			{plugin}
+			{icon}
+			bind:filtersActiveTab={nav.filtersActiveTab}
+			bind:filtersSearchByTab
+			bind:filtersSearchCategory
+			bind:filtersFnRState
+			bind:filtersOperationScope
+			bind:tagsExplorer
+			bind:propExplorer
+			bind:fileList
+			bind:selectedCount
+			bind:selectedFilePaths
+			bind:filtersSortBy
+			bind:filtersSortDir
+			bind:filtersSortTarget
+			bind:filtersViewMode
+			bind:addMode
+			{addOpCount}
+			detachedTabs={nav.detachedTabs}
+			{addonsIslandService}
+			{addonsQuickSwitcherApp}
+			{renderAddonsStats}
+			onShowStats={() => nav.showStatsPage()}
+			onOperationScopeChange={(value) => popups.setFiltersOperationScope(value)}
+			{dashboardEnabled}
+		/>
 	{:else}
 		<div class="vm-pages-viewport" use:viewport.bindViewport>
 			<div
