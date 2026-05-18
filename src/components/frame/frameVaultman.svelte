@@ -10,8 +10,8 @@
 
 <!--...-----------------------(   IMPORTS   )---------------------...-->
 <script lang="ts">
-	import { onMount, untrack } from 'svelte';
-	import { setIcon, type TFile } from 'obsidian';
+	import { onMount, setContext, untrack } from 'svelte';
+	import { setIcon } from 'obsidian';
 	import type { VaultmanPlugin } from '../../main';
 	import { explorerFiles } from '../../providers/explorerFiles';
 	import { explorerProps } from '../../providers/explorerProps';
@@ -30,18 +30,11 @@
 
 	import { FolderSuggest } from '../../utils/autocomplete';
 	import { translate } from '../../index/i18n/lang';
-	import type { FabDef } from '../../types/typePrimitives';
 	import {
 		collectActiveFilterRules,
 		countActiveFilterEntries,
 		type ActiveFilterRule,
 	} from './frameActiveFilters';
-	import {
-		createFramePageFabs,
-		createFramePageIcons,
-		createFramePageLabels,
-		resolveFramePageOrder,
-	} from './framePages';
 	import { FrameViewportController } from './frameViewport';
 	import { FrameNavReorderController } from './frameNavReorder.svelte';
 	import { FrameOverlayController, installFrameOverlayCommandHooks } from './frameOverlays.svelte';
@@ -54,34 +47,22 @@
 	} from './frameFiltersSearch';
 	import { createFnRState } from '../../services/serviceFnR';
 	import type { FnRState } from '../../types/typeFnR';
-	import { openVaultmanFileSuggestModal } from '../../utils/fileSuggestModal';
 	import {
 		normalizeOperationScope,
 		type OperationScope,
 	} from '../../services/serviceOperationScope';
 	import {
 		resolveDashboardEnabled,
-		resolveLayoutSettings,
-		type LayoutSurfaceContent,
 		type LayoutViewportKind,
 	} from '../../services/serviceLayout';
-	import { FTabs, type TabConfig } from '../../types/typeTab';
 	import type { ExplorerSortTarget } from '../../types/typeExplorer';
-	import { tabIdFromInner, type TabId } from '../../registry/tabRegistry';
-	import type { LeafDetachState } from '../../services/serviceLeafDetach';
 	import {
 		AddonsIslandService,
 		type AddonsQuickSwitcherApp,
 	} from '../../services/serviceAddonsIsland.svelte';
+	import { FRAME_NAVIGATION_KEY, FrameNavigationService } from './frameNavigation.svelte';
 
 	// â”€â”€â”€ Props â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€------------------...........
-	type SurfaceNavItem = TabConfig & {
-		label: string;
-		disabled?: boolean;
-		faint?: boolean;
-		dot?: boolean;
-	};
-
 	let {
 		plugin,
 		activeWindow: frameActiveWindow,
@@ -95,27 +76,13 @@
 
 	// â”€â”€â”€ Page navigation â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
-	function initFrameState() {
-		return {
-			pageOrder: resolveFramePageOrder(plugin.settings.pageOrder),
-			overlays: new FrameOverlayController(
-				plugin,
-				ExplorerQueueComp,
-				ExplorerActiveFiltersComp,
-				{ onImportBases: enterBasesImportMode },
-			),
-		};
-	}
-
-	const initialFrameState = initFrameState();
-	let pageOrder = $state<string[]>(initialFrameState.pageOrder);
-	let pageRenderKey = $state(0); // incremented on each reorder to force page content remount
-	let filtersBaseChooseMode = $state(false);
-	let statsPreviewFile = $state<TFile | null>(null);
-	const pageLabels: Record<string, string> = createFramePageLabels();
-	const pageIcons: Record<string, string> = createFramePageIcons();
-	const overlays = initialFrameState.overlays;
-	const layoutSettings = $derived(resolveLayoutSettings(plugin.settings.layout));
+	// svelte-ignore state_referenced_locally
+	const overlays = new FrameOverlayController(
+		plugin,
+		ExplorerQueueComp,
+		ExplorerActiveFiltersComp,
+		{ onImportBases: () => nav.enterBasesImport() },
+	);
 	const addonsIslandService = new AddonsIslandService();
 	const addonsQuickSwitcherApp = $derived(plugin.app as unknown as AddonsQuickSwitcherApp);
 	let frameViewportWidth = $state(0);
@@ -128,121 +95,34 @@
 			mode: plugin.themeService.mode,
 		}),
 	);
-	const framePageTabs = $derived.by<SurfaceNavItem[]>(() =>
-		pageOrder.map((pageId) => ({
-			id: pageId,
-			icon: pageIcons[pageId] ?? 'lucide-circle',
-			label: pageLabels[pageId] ?? pageId,
-		})),
-	);
-	const filterTabItems = $derived.by<SurfaceNavItem[]>(() =>
-		FTabs.map((tab) => ({
-			...tab,
-			label: tab.label ?? (tab.labelKey ? translate(tab.labelKey) : tab.id),
-		})),
-	);
 
-	$effect(() => installFrameOverlayCommandHooks(plugin, overlays));
+	// svelte-ignore state_referenced_locally
+	const nav = new FrameNavigationService(plugin, overlays, () => selectedCount);
+	const viewport = new FrameViewportController(() => nav.pageIndex);
+	nav.attachViewport(viewport);
 
-	// â”€â”€â”€ Per-page FAB definitions â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-
-	const pageFabs = $derived.by<Record<string, { left: FabDef | null; right: FabDef | null }>>(() =>
-		createFramePageFabs(
-			plugin,
-			() => overlays.toggleQueueIsland(),
-			() => overlays.toggleFiltersIsland(),
-			{
-				filtersBaseChooseMode,
-				enterBasesImportMode,
-				exitBasesImportMode,
-				statsPreviewActive: statsPreviewFile !== null,
-				openStatsNote,
-				showStatsPage,
-			},
-		),
-	);
-
-	const leftFab = $derived.by<FabDef | null>(() => pageFabs[activePage]?.left ?? null);
-	const rightFab = $derived.by<FabDef | null>(() => pageFabs[activePage]?.right ?? null);
-
-	let activePage = $state<string>(initialFrameState.pageOrder[0] ?? 'ops');
-	let toolsActiveTab = $state('layout');
-
-	// Use DOM insertion order (pageOrder at mount time) â€” avoids stale settings mismatch
-	let pageIndex = $derived(pageOrder.indexOf(activePage));
-	const viewport = new FrameViewportController(() => pageIndex);
 	const navReorder = new FrameNavReorderController({
-		getPageOrder: () => pageOrder,
-		setPageOrder: (order) => {
-			pageOrder = order;
-		},
+		getPageOrder: () => [...nav.pageOrder],
+		setPageOrder: (order) => nav.setPageOrder(order),
 		incrementRenderKey: () => {
-			pageRenderKey++;
+			nav.bumpRenderKey();
 		},
 		saveOrder: (order) => {
 			plugin.settings.pageOrder = order;
 			void plugin.saveSettings();
 		},
 	});
-	function navigateTo(page: string) {
-		if (activePage !== page) {
-			overlays.closeQueueIsland();
-			overlays.closeFiltersIsland();
-			if (overlays.activePopup === 'active-filters') overlays.closePopup();
-		}
-		if (page !== 'filters') filtersBaseChooseMode = false;
-		activePage = page;
-		viewport.applyPageTransform(true);
-	}
+	nav.attachNavReorder(navReorder);
+	setContext(FRAME_NAVIGATION_KEY, nav);
 
-	function enterBasesImportMode() {
-		filtersBaseChooseMode = true;
-		filtersActiveTab = 'files';
-		if (activePage !== 'filters') activePage = 'filters';
-		viewport.applyPageTransform(true);
-	}
-
-	function exitBasesImportMode() {
-		filtersBaseChooseMode = false;
-	}
-
-	function openStatsNote() {
-		openVaultmanFileSuggestModal(plugin.app, (file) => {
-			statsPreviewFile = file;
-			activePage = 'statistics';
-			viewport.applyPageTransform(true);
-		});
-	}
-
-	function showStatsPage() {
-		statsPreviewFile = null;
-	}
-
-	function openDiffView(): void {
-		overlays.closeQueueIsland();
-		overlays.closeFiltersIsland();
-		if (overlays.popupOpen) overlays.closePopup();
-		activePage = 'ops';
-		toolsActiveTab = 'file_diff';
-		viewport.applyPageTransform(true);
-	}
+	$effect(() => installFrameOverlayCommandHooks(plugin, overlays));
 
 	$effect(() => {
-		plugin.openDiffViewHook = openDiffView;
+		const hook = () => nav.openDiffIntent();
+		plugin.openDiffViewHook = hook;
 		return () => {
-			if (plugin.openDiffViewHook === openDiffView) plugin.openDiffViewHook = null;
+			if (plugin.openDiffViewHook === hook) plugin.openDiffViewHook = null;
 		};
-	});
-
-	$effect(() => {
-		void pageIndex; // declare dependency
-		viewport.applyPageTransform(true);
-	});
-
-	$effect(() => {
-		if (!pageOrder.includes(activePage)) {
-			activePage = pageOrder[0] ?? 'ops';
-		}
 	});
 
 	// â”€â”€â”€ Stats â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
@@ -277,8 +157,6 @@
 
 	// â”€â”€â”€ Filters page state â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 	type FiltersTab = FiltersSearchTab;
-	let filtersActiveTab = $state<FiltersTab>('props');
-	// filtersActiveTab changes no longer close stack islands — search and stack coexist.
 	let filtersSearchByTab = $state<FiltersSearchState>(createFiltersSearchState());
 	let filtersFnRState = $state<FnRState>(createFnRState());
 	let filtersSearchCategory = $state<Record<FiltersTab, number>>({
@@ -294,79 +172,13 @@
 	let filtersViewMode = $state<any>('tree');
 	let addMode = $state(false);
 	let dockDrawerOpen = $state(false);
-	let detachedTabs = $state<LeafDetachState>({});
 	const initialOperationScope = untrack(() =>
 		normalizeOperationScope(plugin.settings.explorerOperationScope),
 	);
 	let filtersOperationScope = $state<OperationScope>(initialOperationScope);
-	const filterTabsExternallyMounted = $derived(
-		layoutSettings.dock.content === 'filter-tabs' || layoutSettings.tabs.content === 'filter-tabs',
-	);
-	const topTabItems = $derived.by(() => itemsForSurface(layoutSettings.tabs.content));
-	const topTabActive = $derived(activeForSurface(layoutSettings.tabs.content));
-	const topExternalTabIds = $derived.by(() => externalIdsForSurface(layoutSettings.tabs.content));
-	const dockItems = $derived.by(() => itemsForSurface(layoutSettings.dock.content));
-	const dockActive = $derived(activeForSurface(layoutSettings.dock.content));
-	const dockExternalTabIds = $derived.by(() => externalIdsForSurface(layoutSettings.dock.content));
-	const dockUsesFramePages = $derived(layoutSettings.dock.content === 'frame-pages');
-
-	function itemsForSurface(content: LayoutSurfaceContent): SurfaceNavItem[] {
-		if (content === 'frame-pages') {
-			return framePageTabs.map((tab) => ({
-				...tab,
-				dot: tab.id === 'statistics' && selectedCount > 0,
-			}));
-		}
-		if (content === 'filter-tabs') {
-			return filterTabItems.map((tab) => {
-				const disabled = filtersBaseChooseMode && tab.id !== 'files';
-				return { ...tab, disabled, faint: disabled };
-			});
-		}
-		return [];
-	}
-
-	function activeForSurface(content: LayoutSurfaceContent): string {
-		if (content === 'filter-tabs') return activePage === 'filters' ? filtersActiveTab : '';
-		if (content === 'frame-pages') return activePage;
-		return '';
-	}
-
-	function selectSurfaceItem(content: LayoutSurfaceContent, id: string): void {
-		const detachedTabId = detachedTabIdForSurfaceItem(content, id);
-		if (detachedTabId) {
-			void plugin.spawnTabLeaf(detachedTabId);
-			return;
-		}
-		if (content === 'filter-tabs') {
-			filtersActiveTab = id as FiltersTab;
-			if (activePage !== 'filters') navigateTo('filters');
-			return;
-		}
-		if (content === 'frame-pages') {
-			navigateTo(id);
-		}
-	}
-
-	function externalIdsForSurface(content: LayoutSurfaceContent): string[] {
-		return itemsForSurface(content)
-			.map((item) => (detachedTabIdForSurfaceItem(content, item.id) ? item.id : null))
-			.filter((id): id is string => Boolean(id));
-	}
-
-	function detachedTabIdForSurfaceItem(content: LayoutSurfaceContent, id: string): TabId | null {
-		const tabId = tabIdForSurfaceItem(content, id);
-		return tabId && detachedTabs[tabId] === true ? tabId : null;
-	}
-
-	function tabIdForSurfaceItem(content: LayoutSurfaceContent, id: string): TabId | null {
-		if (content === 'filter-tabs') return tabIdFromInner(id);
-		if (content === 'frame-pages' && id === 'ops') return 'page-tools';
-		return null;
-	}
 
 	$effect(() => {
-		const tab = filtersActiveTab;
+		const tab = nav.filtersActiveTab;
 		const term = getFiltersSearch(filtersSearchByTab, tab);
 		const catMode = filtersSearchCategory[tab] ?? 0;
 
@@ -594,10 +406,9 @@
 		};
 
 		const unsubFilter = plugin.filterService.subscribe(onFilterChanged);
-		const unsubLeafDetach = plugin.leafDetachService?.subscribe((state) => {
-			detachedTabs = state;
+		const unsubLeafDetach = plugin.leafDetachService?.subscribe(() => {
+			updateStats();
 		});
-		detachedTabs = plugin.leafDetachService?.getState() ?? {};
 		plugin.queueService.on('changed', onQueueChanged);
 
 		refreshFiles();
@@ -639,14 +450,14 @@
 
 {#snippet dashboardFilters()}
 	<nav class="vm-dashboard-filter-list" aria-label={translate('nav.filters')}>
-		{#each filterTabItems as tab (tab.id)}
+		{#each nav.filterTabItems as tab (tab.id)}
 			<button
 				type="button"
 				class="vm-dashboard-filter-button"
-				class:is-active={filtersActiveTab === tab.id}
+				class:is-active={nav.filtersActiveTab === tab.id}
 				class:is-faint={tab.faint}
 				disabled={tab.disabled}
-				onclick={() => selectSurfaceItem('filter-tabs', tab.id)}
+				onclick={() => nav.selectSurfaceItem('filter-tabs', tab.id)}
 			>
 				<span class="vm-dashboard-filter-icon" use:icon={tab.icon}></span>
 				<span>{tab.label}</span>
@@ -656,20 +467,24 @@
 {/snippet}
 
 {#snippet dashboardExplorer()}
-	<div class="vm-page vm-dashboard-active-page" data-page={activePage}>
-		{#key pageRenderKey}
-			{#if activePage === 'ops'}
-				{#if detachedTabs['page-tools'] === true}
+	<div class="vm-page vm-dashboard-active-page" data-page={nav.activePage}>
+		{#key nav.pageRenderKey}
+			{#if nav.activePage === 'ops'}
+				{#if nav.detachedTabs['page-tools'] === true}
 					<div class="vm-page-external" data-vm-tab-id="page-tools">Detached to workspace</div>
 				{:else}
-					<OperationsPage {plugin} {icon} bind:activeTab={toolsActiveTab} />
+					<OperationsPage {plugin} {icon} bind:activeTab={nav.toolsActiveTab} />
 				{/if}
-			{:else if activePage === 'statistics'}
-				<StatisticsPage {plugin} previewFile={statsPreviewFile} onShowStats={showStatsPage} />
-			{:else if activePage === 'filters'}
+			{:else if nav.activePage === 'statistics'}
+				<StatisticsPage
+					{plugin}
+					previewFile={nav.statsPreviewFile}
+					onShowStats={() => nav.showStatsPage()}
+				/>
+			{:else if nav.activePage === 'filters'}
 				<FiltersPage
 					{plugin}
-					bind:filtersActiveTab
+					bind:filtersActiveTab={nav.filtersActiveTab}
 					bind:filtersSearchByTab
 					bind:filtersSearchCategory
 					bind:filtersFnRState
@@ -684,7 +499,7 @@
 					bind:filtersSortDir
 					bind:filtersSortTarget
 					bind:filtersViewMode
-					bind:filtersBaseChooseMode
+					bind:filtersBaseChooseMode={nav.filtersBaseChooseMode}
 					bind:addMode
 					showTabs={false}
 					{addOpCount}
@@ -731,30 +546,30 @@
 	<PopupIsland overlayState={plugin.overlayState} />
 
 	<NavbarDock
-		items={dockItems}
-		active={dockActive}
-		externalTabIds={dockExternalTabIds}
-		showLabels={layoutSettings.dock.labels.visible}
-		labelPosition={layoutSettings.dock.labels.position}
-		presentationMode={layoutSettings.dock.presentation.mode}
-		drawerDirection={layoutSettings.dock.presentation.drawerDirection}
+		items={nav.dockItems}
+		active={nav.dockActive}
+		externalTabIds={nav.dockExternalTabIds}
+		showLabels={nav.layoutSettings.dock.labels.visible}
+		labelPosition={nav.layoutSettings.dock.labels.position}
+		presentationMode={nav.layoutSettings.dock.presentation.mode}
+		drawerDirection={nav.layoutSettings.dock.presentation.drawerDirection}
 		bind:drawerOpen={dockDrawerOpen}
-		{leftFab}
-		{rightFab}
+		leftFab={nav.leftFab}
+		rightFab={nav.rightFab}
 		navCollapsed={navReorder.navCollapsed}
 		isIslandOpen={overlays.isIslandOpen}
-		isReordering={dockUsesFramePages ? navReorder.isReordering : false}
-		reorderTargetIdx={dockUsesFramePages ? navReorder.reorderTargetIdx : -1}
+		isReordering={nav.dockUsesFramePages ? navReorder.isReordering : false}
+		reorderTargetIdx={nav.dockUsesFramePages ? navReorder.reorderTargetIdx : -1}
 		bind:dockEl={navReorder.pillEl}
 		{filterRuleCount}
 		{queuedCount}
 		bindNav={navReorder.bindNav}
 		onCollapsedNavClick={navReorder.onCollapsedNavClick}
-		onItemPointerDown={dockUsesFramePages ? navReorder.onNavIconPointerDown : undefined}
-		onDockPointerMove={dockUsesFramePages ? navReorder.onPillPointerMove : undefined}
-		onDockPointerUp={dockUsesFramePages ? navReorder.onPillPointerUp : undefined}
+		onItemPointerDown={nav.dockUsesFramePages ? navReorder.onNavIconPointerDown : undefined}
+		onDockPointerMove={nav.dockUsesFramePages ? navReorder.onPillPointerMove : undefined}
+		onDockPointerUp={nav.dockUsesFramePages ? navReorder.onPillPointerUp : undefined}
 		exitReorder={navReorder.exitReorder}
-		onSelect={(id) => selectSurfaceItem(layoutSettings.dock.content, id)}
+		onSelect={(id) => nav.selectSurfaceItem(nav.layoutSettings.dock.content, id)}
 		mouseGestureConfig={plugin.settings?.mouseGestures?.fab}
 	/>
 {/snippet}
@@ -762,14 +577,14 @@
 <!-- â”€â”€â”€ Page container (horizontal slide strip) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ -->
 <!-- vm-pages-viewport clips via overflow:hidden; the container slides inside it -->
 <div class="vm-view {elasticRootClasses}" use:navReorder.bindViewRoot use:bindDashboardMeasurement>
-	{#if topTabItems.length > 0}
+	{#if nav.topTabItems.length > 0}
 		<NavbarTabs
-			tabs={topTabItems}
-			active={topTabActive}
-			externalTabIds={topExternalTabIds}
-			showLabels={layoutSettings.tabs.labels.visible}
-			labelPosition={layoutSettings.tabs.labels.position}
-			onSelect={(id) => selectSurfaceItem(layoutSettings.tabs.content, id)}
+			tabs={nav.topTabItems}
+			active={nav.topTabActive}
+			externalTabIds={nav.topExternalTabIds}
+			showLabels={nav.layoutSettings.tabs.labels.visible}
+			labelPosition={nav.layoutSettings.tabs.labels.position}
+			onSelect={(id) => nav.selectSurfaceItem(nav.layoutSettings.tabs.content, id)}
 		/>
 	{/if}
 
@@ -792,27 +607,27 @@
 				use:viewport.bindContainer
 				ontransitionend={viewport.onContainerTransitionEnd}
 			>
-				{#each pageOrder as pageId (pageId)}
+				{#each nav.pageOrder as pageId (pageId)}
 					<div class="vm-page" data-page={pageId}>
-						{#key pageRenderKey}
+						{#key nav.pageRenderKey}
 							{#if pageId === 'ops'}
-								{#if detachedTabs['page-tools'] === true}
+								{#if nav.detachedTabs['page-tools'] === true}
 									<div class="vm-page-external" data-vm-tab-id="page-tools">
 										Detached to workspace
 									</div>
 								{:else}
-									<OperationsPage {plugin} {icon} bind:activeTab={toolsActiveTab} />
+									<OperationsPage {plugin} {icon} bind:activeTab={nav.toolsActiveTab} />
 								{/if}
 							{:else if pageId === 'statistics'}
 								<StatisticsPage
 									{plugin}
-									previewFile={statsPreviewFile}
-									onShowStats={showStatsPage}
+									previewFile={nav.statsPreviewFile}
+									onShowStats={() => nav.showStatsPage()}
 								/>
 							{:else if pageId === 'filters'}
 								<FiltersPage
 									{plugin}
-									bind:filtersActiveTab
+									bind:filtersActiveTab={nav.filtersActiveTab}
 									bind:filtersSearchByTab
 									bind:filtersSearchCategory
 									bind:filtersFnRState
@@ -827,9 +642,9 @@
 									bind:filtersSortDir
 									bind:filtersSortTarget
 									bind:filtersViewMode
-									bind:filtersBaseChooseMode
+									bind:filtersBaseChooseMode={nav.filtersBaseChooseMode}
 									bind:addMode
-									showTabs={!filterTabsExternallyMounted}
+									showTabs={!nav.filterTabsExternallyMounted}
 									{addOpCount}
 								/>
 							{/if}

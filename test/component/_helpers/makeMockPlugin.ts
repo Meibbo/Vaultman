@@ -165,6 +165,7 @@ export function makeMockPlugin(overrides: MockPluginOverrides = {}): VaultmanPlu
 		openViewMenuHook: null,
 		openSortMenuHook: null,
 		openContentSearchHook: null,
+		spawnTabLeaf: vi.fn(async () => undefined),
 		isFilesIndexed: overrides.isFilesIndexed ?? true,
 	} as unknown as VaultmanPlugin;
 }

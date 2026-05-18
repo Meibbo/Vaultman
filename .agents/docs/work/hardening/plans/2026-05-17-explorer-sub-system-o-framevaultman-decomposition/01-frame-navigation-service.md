@@ -125,9 +125,9 @@ pnpm exec vitest run --project component test/component/_helpers/bindablePoc.tes
 Edit this shard to fill in the **POC RESULT** below before opening C1's commit. This makes the POC outcome part of the canonical record.
 
 > **POC RESULT (filled in by executor at impl time):**
-> Outcome: [ ] GREEN — use `bind:`. [ ] RED — use explicit prop + callback.
-> Date: <ISO>
-> Sample test output (one line): _________________________________________________
+> Outcome: [x] GREEN — use `bind:`. [ ] RED — use explicit prop + callback.
+> Date: 2026-05-18T05:36:12-05:00
+> Sample test output (one line): `test/component/_helpers/bindablePoc.test.ts` PASS — 1 test.
 
 - [ ] **Step 5: Decide POC retention**
 
