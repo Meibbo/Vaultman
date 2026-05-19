@@ -29,6 +29,9 @@ Compact route index after archiving the oversized current status:
 ## Current Route
 
 - Active initiative: [[docs/work/hardening/index|Hardening]].
+- **NEXT (brainstorm 2026-05-19)**: [[docs/work/hardening/specs/2026-05-19-explorer-merge-umbrella/index|Explorer Merge Umbrella]]
+  — proto-v5 ↔ production merge + release pipeline v1.1.0→v2.0.0 aprobado por user. First detail
+  spec target = A.R (Action Routing). Ver shard 06-next-actions para required doc updates + parallel agent dispatch.
 - Completed Explorer Phase 0 sub-system B:
   [[docs/work/hardening/specs/2026-05-15-explorer-0-b-servicetheme-token-layer/index|serviceTheme token-layer spec]]
   and
@@ -164,6 +167,10 @@ Compact route index after archiving the oversized current status:
 
 ## Next Action
 
+- **PRIMARY (post brainstorm 2026-05-19)**: write A.R (Action Routing) detail spec — first child of
+  [[docs/work/hardening/specs/2026-05-19-explorer-merge-umbrella/index|Explorer Merge Umbrella]].
+  Then writing-plans → impl. v1.1.0 = A.R + 0-A close + 0-A.S + T.G basis + viewTree sticky fix.
+- Close remaining 0-A commits (C12 flicker fix + C13 verification gates) before A.R starts.
 - Explorer 0-B and O are complete. Next Phase 0 consumer is 0-A View Feature
   Contract / native DOM contract.
 - For Explorer scroll work, continue from the variable scroll repair record:

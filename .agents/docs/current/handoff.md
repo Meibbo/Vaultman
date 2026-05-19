@@ -21,6 +21,9 @@ Compact handoff after archiving the oversized current handoff:
 
 - Worktree: `C:\Users\vic_A\Desktop\vaultman`
 - Branch: `sandbox`.
+- **Latest (2026-05-19)**: Explorer Merge brainstorm — approved umbrella spec at
+  [[docs/work/hardening/specs/2026-05-19-explorer-merge-umbrella/index|Explorer Merge Umbrella]]
+  (index + 6 shards). Pipeline v1.1.0→v2.0.0 approved. Next: write A.R (Action Routing) detail spec.
 - Latest request handled: Explorer Phase 0 sub-system O
   (`frameVaultman.svelte` decomposition) implemented inline across six serial
   commits on `sandbox`.
@@ -197,6 +200,10 @@ Compact handoff after archiving the oversized current handoff:
 
 ## Next Action
 
+- **PRIMARY (post brainstorm 2026-05-19)**: write A.R (Action Routing) detail spec — first child
+  of [[docs/work/hardening/specs/2026-05-19-explorer-merge-umbrella/index|Explorer Merge Umbrella]].
+  v1.1.0 bundle = A.R + 0-A close (C12+C13) + 0-A.S + T.G basis + viewTree sticky fix. Pipeline is
+  a HUMAN checklist — no agent auto-progression.
 - Phase 0 next action after O: begin 0-A View Feature Contract / native DOM
   contract, using O's `FrameNavigationService`, `FrameNavbarShell`, and
   `FrameDashboardShell` as the frame-level integration points.

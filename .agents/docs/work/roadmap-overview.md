@@ -88,6 +88,39 @@ puede tomar cualquiera sin tocar Phase 0.
 - **M — SCSS hygiene pass.** Sustituido por N (SCSS-to-UnoCSS); la
   hygiene emerge como subproducto de la migración. Sin spec.
 
+## Explorer Merge (brainstorm 2026-05-19)
+
+Umbrella spec que ordena el merge proto-v5 ↔ producción + refactor SOLID de god-objects
+(panelExplorer 1329 LoC + 5 views 4377 LoC) + release pipeline. Detalle completo:
+[[docs/work/hardening/specs/2026-05-19-explorer-merge-umbrella/index|Explorer Merge Umbrella]].
+
+11 sub-systems NUEVOS. **IDs ad-hoc, NO canónicos** — reconciliar con numbering (1-12 / N / O / 0-X)
+al spec'ear cada uno.
+
+| ID ad-hoc | Nombre | First release | Status |
+|---|---|---|---|
+| A.R | Action Routing (caret + kbd + selection + expand-all + cmenu) | v1.1.0 | 🔴 first detail spec target |
+| 0-A.S | Adversarial Scroll + tree triple-write fix | v1.1.0 | 🟡 sibling (scroll-repair plan existe) |
+| T.G | Test Invariant Gates (spec-anchored + AgentAssay/CUSUM anti-drift) | v1.1.0 | 🔴 not spec'd |
+| N.R | NodeRow Primitive (cell = node-element) | v1.2.0 | 🔴 not spec'd |
+| V.D | View Decomposition (5 god views → shells) | v1.2.0 | 🔴 not spec'd |
+| P.D | Panel Decomposition (panelExplorer → orchestrators) | v1.2.0 | 🔴 not spec'd |
+| K.B | Keyboard + Hotkeys/Macros provider | v1.3.0 | 🔴 not spec'd (subset de §1) |
+| API | Vaultman public API `vaultman.v1` | v1.3.0 | 🔴 not spec'd |
+| I.E | NN engine swap (dirección B) | v1.7.0 | 🔴 not spec'd |
+| B.P | Bases Parity (extiende §4-I, BREAKING) | v2.0.0 | 🔴 not spec'd |
+| C.D | Cross-provider Cell Data | v2.0.0 | 🔴 not spec'd |
+| R.D | Release Discipline (release-please + paths-filter + conventional commits) | x-cutting v1.1.0+ | 🔴 not spec'd |
+
+Release pipeline: `v1.1.0 Explorer Hardening → v1.2.0 Arch cleanup → v1.3.0 Keyboard+API →
+v1.4.0 Nautilus rewrites → v1.5.0 Theme Builder+Layout → v1.6.0 UnoCSS+bits-ui →
+v1.7.0 NN Interop → v2.0.0 Bases Parity BREAKING`.
+
+View mode merge: viewTree KEEP+sticky-fix · viewList=proto tiles · viewGrid=proto icons (Nautilus) ·
+viewTable=Bases parity · viewCards=Bases parity. **proto-v5 NO canónico** (merge, no replace).
+Sub-systems pre-existentes con merge layer: §5 (recent themes + dashboard3 redef) · §6 (layout) ·
+§8 (color) · §10 (Theme Builder + Adwata icons) · §12 (bits-ui + StackIsland) · §4-I (filter) · §2 (queue).
+
 ## Agent dispatch reference
 
 Cuál agente puede arrancar cada item con qué pre-reads. Útil para
