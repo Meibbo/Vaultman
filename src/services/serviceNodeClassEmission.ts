@@ -1,0 +1,41 @@
+import type { NativeClassVocabulary } from './serviceExplorerViewContract';
+
+export interface RowStateBooleans {
+	isSelected: boolean;
+	isFocused: boolean;
+	isActive: boolean;
+	isDragSource: boolean;
+	isDropTarget: boolean;
+	hasActiveMenu: boolean;
+}
+
+export function stateModEmissions(
+	vocab: NativeClassVocabulary | null,
+	state: RowStateBooleans,
+): string[] {
+	const out: string[] = [];
+
+	if (state.isSelected) out.push('vm-is-selected');
+	if (state.isFocused) out.push('vm-is-focused');
+	if (state.isActive) out.push('vm-is-active');
+	if (state.isDragSource) out.push('vm-drag-source');
+	if (state.isDropTarget) out.push('vm-drop-target');
+	if (state.hasActiveMenu) out.push('vm-has-active-menu');
+
+	if (vocab) {
+		if (state.isSelected && vocab.rowStateMods.includes('is-selected')) out.push('is-selected');
+		if (state.isFocused && vocab.rowStateMods.includes('is-focused')) out.push('is-focused');
+		if (state.isActive && vocab.rowStateMods.includes('is-active')) out.push('is-active');
+		if (state.isDragSource && vocab.rowStateMods.includes('is-being-dragged')) {
+			out.push('is-being-dragged');
+		}
+		if (state.isDropTarget && vocab.rowStateMods.includes('is-being-dragged-over')) {
+			out.push('is-being-dragged-over');
+		}
+		if (state.hasActiveMenu && vocab.rowStateMods.includes('has-active-menu')) {
+			out.push('has-active-menu');
+		}
+	}
+
+	return out;
+}

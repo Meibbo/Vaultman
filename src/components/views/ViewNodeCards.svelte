@@ -52,7 +52,14 @@
 	import {
 		NODE_ELEMENT_MASK_KEY,
 		type NodeElementMaskContextValue,
+		PRESET_KEY,
+		type PresetContextValue,
 	} from '../explorer/viewHostContext';
+	import {
+		explorerViewContract,
+		type NativeClassVocabulary,
+	} from '../../services/serviceExplorerViewContract';
+	import { stateModEmissions } from '../../services/serviceNodeClassEmission';
 	import type { ThemeService } from '../../services/serviceTheme.svelte';
 
 	const CARD_FALLBACK_WIDTH = 560;
@@ -135,7 +142,12 @@
 	const nodeMouseConfig = $derived(
 		mergeMouseGestureConfig(NODE_MOUSE_GESTURE_CONFIG, mouseGestureConfig),
 	);
-	const useNativeDom = $derived(themeService?.useNativeDom ?? false);
+	const presetCtx = getContext<PresetContextValue | undefined>(PRESET_KEY);
+	const presetUseNativeDom = $derived(presetCtx?.value().useNativeDom);
+	const useNativeDom = $derived(presetUseNativeDom ?? themeService?.useNativeDom ?? false);
+	const nativeVocab = $derived<NativeClassVocabulary | null>(
+		useNativeDom ? explorerViewContract('cards').nativeDomEmission.panel : null,
+	);
 	const maskCtx = getContext<NodeElementMaskContextValue | undefined>(NODE_ELEMENT_MASK_KEY);
 	const nodeElementMask = $derived(maskCtx?.value() ?? DEFAULT_NODE_ELEMENT_MASK);
 
@@ -423,6 +435,25 @@
 		});
 	}
 
+	function rowStateClassString(state: {
+		isSelected: boolean;
+		isFocused: boolean;
+		isActive: boolean;
+	}): string {
+		return stateModEmissions(nativeVocab, {
+			...state,
+			isDragSource: false,
+			isDropTarget: false,
+			hasActiveMenu: false,
+		}).join(' ');
+	}
+
+	function cardFieldNativeClass(kind: NodeCardLayout['fields'][number]['kind']): string {
+		if (!nativeVocab) return '';
+		if (kind === 'title') return nativeVocab.primaryLabel ?? nativeVocab.cellWrapper ?? '';
+		return nativeVocab.cellWrapper ?? '';
+	}
+
 	function cardVirtualRowKey(rows: readonly CardRow[], index: number): string | number {
 		return rows[index]?.key ?? index;
 	}
@@ -486,8 +517,9 @@
 							nodeElementMask,
 						)}
 						<div
-							class="vm-node-card {node.cls ?? ''}"
-							class:nav-file={useNativeDom}
+							class="vm-node-card {node.cls ?? ''} {nativeVocab?.rowRoot ?? ''} {rowStateClassString(
+								{ isSelected, isFocused, isActive },
+							)}"
 							class:is-selected={isSelected}
 							class:is-focused={isFocused}
 							class:is-active-node={isActive}
@@ -505,7 +537,7 @@
 						>
 							{#if nodeElementMask.media && input.mediaDescriptor}
 								<div
-									class="vm-node-card-cover"
+									class="vm-node-card-cover {nativeVocab?.coverImage ?? ''}"
 									data-media-status={input.mediaDescriptor.status}
 									data-media-key={input.mediaDescriptor.mediaKey ?? undefined}
 								></div>
@@ -518,10 +550,9 @@
 							<div class="vm-node-card-fields">
 								{#each visibleCardFields(layout.fields) as field (field.id)}
 									<span
-										class="vm-node-card-field"
+										class="vm-node-card-field {cardFieldNativeClass(field.kind)}"
 										class:is-title={field.kind === 'title'}
 										class:is-meta={field.kind === 'meta'}
-										class:nav-file-title={useNativeDom && field.kind === 'title'}
 										data-card-field={field.id}
 									>
 										{field.text}

@@ -46,7 +46,14 @@
 	import {
 		NODE_ELEMENT_MASK_KEY,
 		type NodeElementMaskContextValue,
+		PRESET_KEY,
+		type PresetContextValue,
 	} from '../explorer/viewHostContext';
+	import {
+		explorerViewContract,
+		type NativeClassVocabulary,
+	} from '../../services/serviceExplorerViewContract';
+	import { stateModEmissions } from '../../services/serviceNodeClassEmission';
 	import {
 		createManualDndService,
 		manualWorkspacePayloadForNode,
@@ -168,7 +175,12 @@
 		icon,
 	}: Props = $props();
 
-	const useNativeDom = $derived(themeService?.useNativeDom ?? false);
+	const presetCtx = getContext<PresetContextValue | undefined>(PRESET_KEY);
+	const presetUseNativeDom = $derived(presetCtx?.value().useNativeDom);
+	const useNativeDom = $derived(presetUseNativeDom ?? themeService?.useNativeDom ?? false);
+	const nativeVocab = $derived<NativeClassVocabulary | null>(
+		useNativeDom ? explorerViewContract('grid').nativeDomEmission.panel : null,
+	);
 	const maskCtx = getContext<NodeElementMaskContextValue | undefined>(NODE_ELEMENT_MASK_KEY);
 	const nodeElementMask = $derived(maskCtx?.value() ?? DEFAULT_NODE_ELEMENT_MASK);
 	const effectiveVisibleFields = $derived(
@@ -608,6 +620,19 @@
 		return manualDnd.stateFor(id);
 	}
 
+	function rowStateClassString(state: {
+		isSelected: boolean;
+		isFocused: boolean;
+		isActive: boolean;
+		isDragSource: boolean;
+		isDropTarget: boolean;
+	}): string {
+		return stateModEmissions(nativeVocab, {
+			...state,
+			hasActiveMenu: false,
+		}).join(' ');
+	}
+
 	function dropPositionFromTileEvent(e: DragEvent): DndDropPosition {
 		const target = e.currentTarget instanceof HTMLElement ? e.currentTarget : null;
 		if (!target) return 'after';
@@ -1013,8 +1038,15 @@
 		: []}
 	{@const countText = showNodeCount ? (node.countLabel ?? (node.count == null ? '' : String(node.count))) : ''}
 	<div
-		class="vm-node-grid-tile {node.cls ?? ''}"
-		class:nav-file={useNativeDom}
+		class="vm-node-grid-tile {node.cls ?? ''} {nativeVocab?.rowRoot ?? ''} {rowStateClassString(
+			{
+				isSelected,
+				isFocused,
+				isActive,
+				isDragSource: dndState.dragging === true,
+				isDropTarget: dndState.dropTarget === true,
+			},
+		)}"
 		class:is-selected={isSelected}
 		class:is-focused={isFocused}
 		class:is-active={isActive}
@@ -1059,7 +1091,7 @@
 		{/if}
 		<div class="vm-node-grid-fields">
 			{#if showNodeText}
-				<span class="vm-node-grid-label" class:nav-file-title={useNativeDom}>
+				<span class="vm-node-grid-label {nativeVocab?.primaryLabel ?? ''}">
 					{#if node.labelPrefix}<span class="vm-node-grid-label-prefix">{node.labelPrefix}</span
 						>{/if}{node.label}
 				</span>

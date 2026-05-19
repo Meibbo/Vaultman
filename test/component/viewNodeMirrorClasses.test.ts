@@ -106,10 +106,11 @@ describe('view mirror class arbitration', () => {
 		flushSync();
 	}
 
-	it('grid emits Obsidian file mirror classes only in native preset mode', () => {
+	it('grid stays vm-only even in native preset mode', () => {
 		renderGrid(nativePresetTheme());
-		expect(target.querySelector('.nav-file')).toBeTruthy();
-		expect(target.querySelector('.nav-file-title')).toBeTruthy();
+		expect(target.querySelector('.vm-node-grid-tile')).toBeTruthy();
+		expect(target.querySelector('.nav-file')).toBeFalsy();
+		expect(target.querySelector('.nav-file-title')).toBeFalsy();
 
 		void unmount(app!);
 		target.replaceChildren();
@@ -118,14 +119,18 @@ describe('view mirror class arbitration', () => {
 		expect(target.querySelector('.nav-file-title')).toBeFalsy();
 	});
 
-	it('cards emit Obsidian file mirror classes only in native preset mode', () => {
+	it('cards emit Bases card classes only in native preset mode', () => {
 		renderCards(nativePresetTheme());
-		expect(target.querySelector('.nav-file')).toBeTruthy();
-		expect(target.querySelector('.nav-file-title')).toBeTruthy();
+		expect(target.querySelector('.bases-cards-item')).toBeTruthy();
+		expect(target.querySelector('.bases-cards-property.mod-title')).toBeTruthy();
+		expect(target.querySelector('.nav-file')).toBeFalsy();
+		expect(target.querySelector('.nav-file-title')).toBeFalsy();
 
 		void unmount(app!);
 		target.replaceChildren();
 		renderCards(vaultmanPresetTheme());
+		expect(target.querySelector('.bases-cards-item')).toBeFalsy();
+		expect(target.querySelector('.bases-cards-property')).toBeFalsy();
 		expect(target.querySelector('.nav-file')).toBeFalsy();
 		expect(target.querySelector('.nav-file-title')).toBeFalsy();
 	});

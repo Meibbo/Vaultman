@@ -135,14 +135,16 @@ describe('ViewNodeTable Pretext heightmap', () => {
 		);
 	});
 
-	it('emits native table row classes when native DOM mode is active', () => {
+	it('emits Bases table classes when native DOM mode is active', () => {
 		const theme = new ThemeService();
 		theme.setPreset('native');
 
 		render({ themeService: theme, measure: measureStub() });
 
-		expect(target.querySelector('.vm-node-table-row.nav-file')).toBeTruthy();
-		expect(target.querySelector('.vm-node-table-primary.nav-file-title')).toBeTruthy();
+		expect(target.querySelector('.vm-node-table-row.bases-tr')).toBeTruthy();
+		expect(target.querySelector('.vm-node-table-primary.bases-table-cell')).toBeTruthy();
+		expect(target.querySelector('.vm-node-table-cell.bases-td')).toBeTruthy();
+		expect(target.querySelector('.vm-node-table-row.nav-file')).toBeFalsy();
 	});
 
 	it('renders table rows from an explorer projection without direct rows', () => {

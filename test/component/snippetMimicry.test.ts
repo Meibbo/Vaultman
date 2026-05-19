@@ -118,12 +118,12 @@ describe('snippet mimicry smoke', () => {
 		}
 	}
 
-	it('emits nav-file-title where grid labels render', () => {
+	it('keeps grid labels vm-only under native DOM mode', () => {
 		render('grid');
 
-		const title = target.querySelector<HTMLElement>('.nav-file-title');
+		const title = target.querySelector<HTMLElement>('.vm-node-grid-label');
 		expect(title).toBeTruthy();
-		expect(getComputedStyle(title!).backgroundColor).toBe('rgb(255, 0, 128)');
+		expect(target.querySelector('.nav-file-title')).toBeFalsy();
 	});
 
 	it('emits tree-item-self where tree rows render', () => {
@@ -134,10 +134,10 @@ describe('snippet mimicry smoke', () => {
 		expect(fixture).toContain('.tree-item-self');
 	});
 
-	it('emits metadata-property where property table cells render', () => {
+	it('emits Bases table cells where property table cells render', () => {
 		render('table', provider('props', propNodes()));
 
-		const property = target.querySelector<HTMLElement>('.metadata-property');
+		const property = target.querySelector<HTMLElement>('.bases-table-cell');
 		expect(property).toBeTruthy();
 		expect(getComputedStyle(property!).borderLeftStyle).toBe('solid');
 	});

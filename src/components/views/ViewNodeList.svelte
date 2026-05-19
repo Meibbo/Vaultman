@@ -17,8 +17,15 @@
 	import { createExplorerScrollGeometry } from '../../services/serviceExplorerScrollGeometry';
 	import {
 		NODE_ELEMENT_MASK_KEY,
+		PRESET_KEY,
 		type NodeElementMaskContextValue,
+		type PresetContextValue,
 	} from '../explorer/viewHostContext';
+	import {
+		explorerViewContract,
+		type NativeClassVocabulary,
+	} from '../../services/serviceExplorerViewContract';
+	import { stateModEmissions } from '../../services/serviceNodeClassEmission';
 	import {
 		DEFAULT_NODE_ELEMENT_MASK,
 		visibleViewBadgesForMask,
@@ -95,6 +102,11 @@
 	const activeFocusedId = $derived(localFocusedId ?? focusedId ?? null);
 	const maskCtx = getContext<NodeElementMaskContextValue | undefined>(NODE_ELEMENT_MASK_KEY);
 	const nodeElementMask = $derived(maskCtx?.value() ?? DEFAULT_NODE_ELEMENT_MASK);
+	const presetCtx = getContext<PresetContextValue | undefined>(PRESET_KEY);
+	const useNativeDom = $derived(presetCtx?.value().useNativeDom ?? false);
+	const nativeVocab = $derived<NativeClassVocabulary | null>(
+		useNativeDom ? explorerViewContract('list').nativeDomEmission.panel : null,
+	);
 	const observeListRect = createRafElementRectObserver<HTMLDivElement, HTMLDivElement>({
 		getElement: () => outerEl ?? null,
 		fallbackWidth: LIST_FALLBACK_WIDTH,
@@ -364,6 +376,17 @@
 			disabled: row.disabled,
 		};
 	}
+
+	function rowStateClassString(row: ListRowInput): string {
+		return stateModEmissions(nativeVocab, {
+			isSelected: isRowSelected(row),
+			isFocused: activeFocusedId === row.id,
+			isActive: false,
+			isDragSource: draggingRowId === row.id,
+			isDropTarget: false,
+			hasActiveMenu: false,
+		}).join(' ');
+	}
 </script>
 
 <!-- svelte-ignore a11y_no_noninteractive_tabindex -->
@@ -387,7 +410,9 @@
 				{@const actions = isScrolling || !nodeElementMask.actions ? [] : rowActions(row)}
 				<div
 					id="vm-listrow-{row.id}"
-					class="vm-view-list-row vm-explorer-popup-row {row.cls ?? ''}"
+					class="vm-view-list-row vm-explorer-popup-row {row.cls ?? ''} {nativeVocab?.rowRoot ?? ''} {rowStateClassString(
+						row,
+					)}"
 					class:is-selected={isRowSelected(row)}
 					class:is-disabled={row.disabled || row.layers.state?.disabled}
 					class:is-group={isGroupRow(row)}

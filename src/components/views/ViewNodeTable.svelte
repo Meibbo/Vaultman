@@ -39,7 +39,14 @@
 	import {
 		NODE_ELEMENT_MASK_KEY,
 		type NodeElementMaskContextValue,
+		PRESET_KEY,
+		type PresetContextValue,
 	} from '../explorer/viewHostContext';
+	import {
+		explorerViewContract,
+		type NativeClassVocabulary,
+	} from '../../services/serviceExplorerViewContract';
+	import { stateModEmissions } from '../../services/serviceNodeClassEmission';
 	import { PerfMeter } from '../../services/perfMeter';
 	import { NodeRowMeasureService } from '../../services/serviceNodeRowMeasure';
 	import { createExplorerVariableGeometry } from '../../services/serviceExplorerScrollGeometry';
@@ -138,7 +145,12 @@
 	const nodeMouseConfig = $derived(
 		mergeMouseGestureConfig(NODE_MOUSE_GESTURE_CONFIG, mouseGestureConfig),
 	);
-	const useNativeDom = $derived(themeService?.useNativeDom ?? false);
+	const presetCtx = getContext<PresetContextValue | undefined>(PRESET_KEY);
+	const presetUseNativeDom = $derived(presetCtx?.value().useNativeDom);
+	const useNativeDom = $derived(presetUseNativeDom ?? themeService?.useNativeDom ?? false);
+	const nativeVocab = $derived<NativeClassVocabulary | null>(
+		useNativeDom ? explorerViewContract('table').nativeDomEmission.panel : null,
+	);
 	const maskCtx = getContext<NodeElementMaskContextValue | undefined>(NODE_ELEMENT_MASK_KEY);
 	const nodeElementMask = $derived(maskCtx?.value() ?? DEFAULT_NODE_ELEMENT_MASK);
 	const showRowIcon = $derived(
@@ -518,6 +530,19 @@
 		return row.callbackId ?? row.id;
 	}
 
+	function rowStateClassString(state: {
+		isSelected: boolean;
+		isFocused: boolean;
+		isActive: boolean;
+	}): string {
+		return stateModEmissions(nativeVocab, {
+			...state,
+			isDragSource: false,
+			isDropTarget: false,
+			hasActiveMenu: false,
+		}).join(' ');
+	}
+
 	function tableRowIndexForId(id: string): number {
 		if (tableRowIndexCacheRows !== tableRows) {
 			tableRowIndexCacheRows = tableRows;
@@ -715,7 +740,7 @@
 			{@const sortState = headerSortState(column.id)}
 			<button
 				type="button"
-				class="vm-node-table-header-cell"
+				class="vm-node-table-header-cell {nativeVocab?.headerCell ?? ''}"
 				data-vm-table-header={column.id}
 				role="columnheader"
 				aria-sort={sortState === 'asc'
@@ -748,8 +773,9 @@
 				{@const isActive = activeId === id}
 				{@const directBadges = visibleTableBadges(row)}
 				<div
-					class="vm-node-table-row {row.cls ?? ''}"
-					class:nav-file={useNativeDom}
+					class="vm-node-table-row {row.cls ?? ''} {nativeVocab?.rowRoot ?? ''} {rowStateClassString(
+						{ isSelected, isFocused, isActive },
+					)}"
 					class:is-selected={isSelected}
 					class:is-focused={isFocused}
 					class:is-active-node={isActive}
@@ -765,10 +791,8 @@
 						{@const dataCellId = cellDataId(row, column.id)}
 						{@const display = cellDisplay(row, column)}
 						<div
-							class="vm-node-table-cell"
+							class="vm-node-table-cell {nativeVocab?.cellWrapper ?? ''}"
 							class:is-label-cell={column.id === 'label'}
-							class:metadata-property={useNativeDom}
-							class:metadata-property-key={useNativeDom && column.id === 'label'}
 							role="gridcell"
 							data-vm-table-cell={dataCellId}
 						>
@@ -778,8 +802,7 @@
 								{/if}
 								{#if tableCellContentVisible(column.id)}
 									<span
-										class="vm-node-table-primary"
-										class:nav-file-title={useNativeDom}
+										class="vm-node-table-primary {nativeVocab?.primaryLabel ?? ''}"
 										data-vm-table-primary
 									>
 										{display}

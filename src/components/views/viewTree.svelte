@@ -65,8 +65,15 @@
 	} from './nodeElementMask';
 	import {
 		NODE_ELEMENT_MASK_KEY,
+		PRESET_KEY,
 		type NodeElementMaskContextValue,
+		type PresetContextValue,
 	} from '../explorer/viewHostContext';
+	import {
+		explorerViewContract,
+		type NativeClassVocabulary,
+	} from '../../services/serviceExplorerViewContract';
+	import { stateModEmissions } from '../../services/serviceNodeClassEmission';
 	import type { ThemeService } from '../../services/serviceTheme.svelte';
 
 	const DEFAULT_VIEW_SIZE = getViewSizePreset(DEFAULT_VIEW_SIZE_PRESET);
@@ -180,7 +187,12 @@
 		icon,
 	}: Props = $props();
 
-	const useNativeDom = $derived(themeService?.useNativeDom ?? false);
+	const presetCtx = getContext<PresetContextValue | undefined>(PRESET_KEY);
+	const presetUseNativeDom = $derived(presetCtx?.value().useNativeDom);
+	const useNativeDom = $derived(presetUseNativeDom ?? themeService?.useNativeDom ?? false);
+	const nativeVocab = $derived<NativeClassVocabulary | null>(
+		useNativeDom ? explorerViewContract('tree').nativeDomEmission.panel : null,
+	);
 	const effectiveProviderId = $derived(projection?.providerId ?? providerId);
 	const projectionRowInputs = $derived(projection ? rowInputsFromProjection(projection) : undefined);
 	const effectiveRowInputs = $derived(projectionRowInputs ?? rowInputs);
@@ -233,6 +245,19 @@
 
 	function hasActiveRowBadge(badges: readonly NodeBadge[]): boolean {
 		return badges.some((badge) => badge.queueIndex !== undefined || (badge.solid && !badge.quickAction));
+	}
+
+	function rowStateClassString(state: {
+		isSelected: boolean;
+		isFocused: boolean;
+		isActive: boolean;
+	}): string {
+		return stateModEmissions(nativeVocab, {
+			...state,
+			isDragSource: false,
+			isDropTarget: false,
+			hasActiveMenu: false,
+		}).join(' ');
 	}
 
 	function indentGuideDepths(depth: number): number[] {
@@ -898,8 +923,8 @@
 	{@const hasActiveBadges = hasActiveRowBadge(directBadges) || hasActiveRowBadge(childBadges)}
 
 	<div
-		class="vm-tree-virtual-row {sticky ? 'vm-tree-sticky-row' : ''} {node.cls ?? ''}"
-		class:tree-item={useNativeDom}
+		class="vm-tree-virtual-row {sticky ? 'vm-tree-sticky-row' : ''} {node.cls ?? ''} {nativeVocab?.rowRoot ??
+			''} {rowStateClassString({ isSelected, isFocused, isActive })}"
 		class:is-active-filter={isActive}
 		class:is-selected={isSelected}
 		class:is-focused={isFocused}
@@ -919,8 +944,11 @@
 		aria-expanded={flat.hasChildren ? flat.isExpanded : undefined}
 	>
 		<div
-			class="vm-tree-row-surface"
-			class:tree-item-self={useNativeDom}
+			class="vm-tree-row-surface {nativeVocab?.innerWrapper ?? ''} {rowStateClassString({
+				isSelected,
+				isFocused,
+				isActive,
+			})}"
 			class:is-active-filter={isActive}
 			class:is-selected={isSelected}
 			class:is-focused={isFocused}
@@ -943,7 +971,7 @@
 
 			{#if flat.hasChildren}
 				<div
-					class="vm-tree-toggle"
+					class="vm-tree-toggle {nativeVocab?.collapseIcon ?? ''}"
 					onclick={(e) => {
 						e.stopPropagation();
 						onToggle(id);
@@ -955,7 +983,10 @@
 					<span use:icon={flat.isExpanded ? 'lucide-chevron-down' : 'lucide-chevron-right'}></span>
 				</div>
 			{:else}
-				<div class="vm-tree-toggle is-placeholder" aria-hidden="true"></div>
+				<div
+					class="vm-tree-toggle is-placeholder {nativeVocab?.collapseIcon ?? ''}"
+					aria-hidden="true"
+				></div>
 			{/if}
 
 			{#if rowIcon}
@@ -972,7 +1003,7 @@
 					use:focus
 				/>
 			{:else if showNodeText}
-				<span class="vm-tree-label" class:tree-item-inner={useNativeDom}>
+				<span class="vm-tree-label {nativeVocab?.primaryLabel ?? ''}">
 					{#if node.labelPrefix}<span class="vm-tree-label-prefix">{node.labelPrefix}</span
 						>{/if}<HighlightText text={node.label} ranges={node.highlights ?? []} />
 				</span>

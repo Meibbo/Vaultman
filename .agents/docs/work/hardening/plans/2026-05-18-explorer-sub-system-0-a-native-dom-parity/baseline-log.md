@@ -323,3 +323,43 @@ Result:
   `.vm-node-elements-toggle` hidden and field pills hidden.
 - Preset restored to `vaultman`.
 - Final `obsidian vault=plugin-dev dev:errors`: `No errors captured.`
+
+## C8 native-class emission verification
+
+Focused C8 tests:
+
+```powershell
+pnpm vitest run test/unit/services/serviceNodeClassEmission.test.ts test/component/views/ViewNodeTable.NativeClassEmission.test.ts test/component/views/ViewNodeCards.NativeClassEmission.test.ts test/component/views/ViewNodeGrid.NativeClassEmission.test.ts test/component/views/ViewNodeList.NativeClassEmission.test.ts test/component/views/viewTree.NativeClassEmission.test.ts test/component/viewNodeMirrorClasses.test.ts test/component/viewNodeTableHeightmap.test.ts test/component/snippetMimicry.test.ts --config vitest.config.ts --fileParallelism=false
+```
+
+Result: PASS, 9 files / 24 tests.
+
+Aggregate verification:
+
+```powershell
+pnpm check
+pnpm lint
+pnpm run build
+pnpm verify
+```
+
+Result: PASS. `pnpm verify` reported 143 unit files / 918 unit tests and 93
+component files / 484 component tests.
+
+Live plugin-dev smoke used a temporary in-memory custom preset
+`c8-native-all` (`useNativeDom=true`, `viewModes=['tree','list','table','grid','cards']`)
+so native vocabulary could be inspected for table/cards despite the built-in
+Native preset intentionally exposing only Tree through the C7 view-mode filter.
+The preset was restored to `vaultman` and unregistered before the final error
+check.
+
+Smoke result:
+
+- Tree: `.tree-item` and `.tree-item-self` present.
+- Table: `.bases-tr`, `.bases-td`, and `.bases-table-cell` present;
+  `.vm-node-table-row.nav-file` absent.
+- Cards: `.bases-cards-item`, `.bases-cards-property`, and
+  `.bases-cards-property.mod-title` present; `.vm-node-card.nav-file` absent.
+- Grid: `.vm-node-grid-tile` present; `.nav-file`, `.nav-file-title`, and
+  `bases-*` classes absent.
+- Final `obsidian vault=plugin-dev dev:errors`: `No errors captured.`
