@@ -20,7 +20,7 @@ if (options.help) {
 
 if (!options.noBuild) runChecked('pnpm', ['run', 'build'], { shellOnWindows: true });
 if (!options.noReload) {
-	runChecked('obsidian', ['plugin:reload', 'id=vaultman', `vault=${VAULT}`]);
+	runChecked('obsidian', [`vault=${VAULT}`, 'plugin:reload', 'id=vaultman']);
 }
 if (!options.noOpen) {
 	if (scrollTargetAlreadyOpen(options.view)) {
@@ -30,19 +30,19 @@ if (!options.noOpen) {
 	} else if (vaultmanFrameAlreadyOpen()) {
 		console.log('Vaultman frame already open; waiting for requested scroll target.');
 	} else {
-		runChecked('obsidian', ['command', 'id=vaultman:open', `vault=${VAULT}`]);
+		runChecked('obsidian', [`vault=${VAULT}`, 'command', 'id=vaultman:open']);
 	}
 }
 
 const evalResult = runChecked('obsidian', [
+	`vault=${VAULT}`,
 	'eval',
 	`code=${buildEvalCode(options)}`,
-	`vault=${VAULT}`,
 ]);
 const snapshot = parseJsonFromOutput(evalResult.stdout);
 printBurstSummary(snapshot);
 
-const errors = runChecked('obsidian', ['dev:errors', `vault=${VAULT}`]);
+const errors = runChecked('obsidian', [`vault=${VAULT}`, 'dev:errors']);
 const hasDevErrors = !(errors.stdout ?? '').includes('No errors captured.');
 const burstPassed = snapshot.scrollBurst?.passed === true;
 
@@ -122,7 +122,7 @@ function buildEvalCode({ view, jumps, visualDelayMs, overlay }) {
 function scrollTargetAlreadyOpen(view) {
 	const result = runChecked(
 		'obsidian',
-		['eval', `code=${buildTargetPresenceCode(view)}`, `vault=${VAULT}`],
+		[`vault=${VAULT}`, 'eval', `code=${buildTargetPresenceCode(view)}`],
 		{ printOutput: false },
 	);
 	return parseJsonFromOutput(result.stdout).present === true;
@@ -131,7 +131,7 @@ function scrollTargetAlreadyOpen(view) {
 function vaultmanFrameAlreadyOpen() {
 	const result = runChecked(
 		'obsidian',
-		['eval', `code=${buildFramePresenceCode()}`, `vault=${VAULT}`],
+		[`vault=${VAULT}`, 'eval', `code=${buildFramePresenceCode()}`],
 		{ printOutput: false },
 	);
 	return parseJsonFromOutput(result.stdout).present === true;

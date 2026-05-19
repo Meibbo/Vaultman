@@ -426,3 +426,75 @@ Smoke result:
   vm-only (`rowStateMods=[]`).
 - View mode was restored to Tree.
 - Final `obsidian vault=plugin-dev dev:errors`: `No errors captured.`
+
+## C11 diagonal verification matrix
+
+Focused C11 tests:
+
+```powershell
+pnpm vitest run test/component/views/viewTree.panel.vaultman.snapshot.test.ts test/component/views/ViewNodeList.panel.vaultman.snapshot.test.ts test/component/views/ViewNodeTable.panel.vaultman.snapshot.test.ts test/component/views/ViewNodeGrid.panel.vaultman.snapshot.test.ts test/component/views/ViewNodeCards.panel.vaultman.snapshot.test.ts test/component/views/viewTree.panel.native.crosscheck.test.ts test/unit/integration/zero-a-invariants.test.ts --config vitest.config.ts --fileParallelism=false
+```
+
+Result: PASS, 7 files / 13 tests.
+
+Implementation note: the native cross-check initially failed because Tree did
+not emit `tree-item-children` on the virtualized children container. The fix
+adds the native `childrenContainer` class to the existing virtual inner element
+without changing TanStack virtualizer setup or scroll geometry APIs.
+
+Aggregate verification:
+
+```powershell
+pnpm verify
+```
+
+Result: PASS. `pnpm verify` reported 145 unit files / 932 unit tests and 104
+component files / 500 component tests.
+
+Live plugin-dev smoke used only vault-first commands. `vaultman:open` was not
+run because `.vm-root` already existed and that command behaves as a toggle
+when the frame is already open.
+
+```powershell
+obsidian vault=plugin-dev eval code="app.vault.getName()"
+obsidian vault=plugin-dev plugin:reload id=vaultman
+obsidian vault=plugin-dev dev:errors clear
+obsidian vault=plugin-dev eval code="..."
+pnpm smoke:scroll -- --view=tree --jumps=100 --no-build --no-reload --no-open --no-overlay
+pnpm smoke:scroll -- --view=list --jumps=100 --no-build --no-reload --no-open --no-overlay
+pnpm smoke:scroll -- --view=table --jumps=100 --no-build --no-reload --no-open --no-overlay
+pnpm smoke:scroll -- --view=grid --jumps=100 --no-build --no-reload --no-open --no-overlay
+pnpm smoke:scroll -- --view=cards --jumps=100 --no-build --no-reload --no-open --no-overlay
+obsidian vault=plugin-dev dev:errors
+```
+
+Smoke result:
+
+- Vault identity: `plugin-dev`.
+- `pnpm run build`: PASS; synced plugin build to `plugin-dev`.
+- Preset cycle:
+  - Native: `modes=1`, `submenu=false`.
+  - Vaultman: `modes=5`, `submenu=true`.
+  - Native again: `modes=1`, `submenu=false`.
+- Scroll smoke Tree: PASS, `blankFrames=0`, `blank>100ms=0`,
+  `blank>250ms=0`, `maxBlank=0ms`, `maxDelay=1126ms`.
+- Scroll smoke List: PASS, `blankFrames=0`, `blank>100ms=0`,
+  `blank>250ms=0`, `maxBlank=0ms`, `maxDelay=772ms`.
+- Scroll smoke Table: PASS, `blankFrames=0`, `blank>100ms=0`,
+  `blank>250ms=0`, `maxBlank=0ms`, `maxDelay=637ms`.
+- Scroll smoke Grid: PASS, `blankFrames=0`, `blank>100ms=0`,
+  `blank>250ms=0`, `maxBlank=0ms`, `maxDelay=401ms`.
+- Scroll smoke Cards: PASS, `blankFrames=0`, `blank>100ms=0`,
+  `blank>250ms=0`, `maxBlank=0ms`, `maxDelay=274ms`.
+- Final `obsidian vault=plugin-dev dev:errors`: `No errors captured.`
+
+Deviation note: one eval that clicked the Table mode waited for 120 seconds
+and timed out at the CLI boundary, but a follow-up vault-first eval confirmed
+the view had switched to Table and the app remained responsive with no dev
+errors. Subsequent live view switches used a shorter click-only eval followed
+by a separate active-view check.
+
+Safety fix: `scripts/run-explorer-scroll-smoke.mjs` now constructs every
+Obsidian subprocess call as `obsidian vault=plugin-dev <command> ...`; this
+keeps the scroll smoke runner aligned with the active `obsidian-cli` vault
+targeting contract.

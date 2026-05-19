@@ -12,12 +12,13 @@ describe('explorer scroll smoke runner script', () => {
 		const targetCheckIndex = source.indexOf('scrollTargetAlreadyOpen');
 		const frameCheckIndex = source.indexOf('vaultmanFrameAlreadyOpen');
 		const openCommandIndex = source.indexOf(
-			"runChecked('obsidian', ['command', 'id=vaultman:open'",
+			"runChecked('obsidian', [`vault=${VAULT}`, 'command', 'id=vaultman:open'",
 		);
 
 		expect(targetCheckIndex).toBeGreaterThan(0);
 		expect(frameCheckIndex).toBeGreaterThan(targetCheckIndex);
 		expect(openCommandIndex).toBeGreaterThan(frameCheckIndex);
 		expect(source).toContain('Vaultman Explorer scroll target already open');
+		expect(source).not.toContain("['command', 'id=vaultman:open', `vault=${VAULT}`]");
 	});
 });

@@ -196,6 +196,9 @@
 	const nativeVocab = $derived<NativeClassVocabulary | null>(
 		useNativeDom ? explorerViewContract('tree').nativeDomEmission.panel : null,
 	);
+	const treeInnerClass = $derived(
+		['vm-tree-virtual-inner', nativeVocab?.childrenContainer].filter(Boolean).join(' '),
+	);
 	const effectiveProviderId = $derived(projection?.providerId ?? providerId);
 	const projectionRowInputs = $derived(projection ? rowInputsFromProjection(projection) : undefined);
 	const effectiveRowInputs = $derived(projectionRowInputs ?? rowInputs);
@@ -1148,7 +1151,7 @@
 			{/each}
 		</div>
 	{/if}
-	<div class="vm-tree-virtual-inner" style="--vm-tree-total-h: {totalH}px">
+	<div class={treeInnerClass} style="--vm-tree-total-h: {totalH}px">
 		{#each renderedVirtualRows as virtualRow (virtualRow.key)}
 			{@render treeRow(flatArray[virtualRow.index], virtualRow.start, false)}
 		{/each}
