@@ -24,7 +24,7 @@ Compact route index after archiving the oversized current status:
 - Do not revert or overwrite unrelated user/agent changes.
 - Obsidian CLI runtime tests and live smokes must target `plugin-dev`
   explicitly, using command-specific syntax such as
-  `obsidian eval code="..." vault=plugin-dev`.
+  `obsidian vault=plugin-dev eval code="..."`.
 
 ## Current Route
 
@@ -109,7 +109,7 @@ Compact route index after archiving the oversized current status:
 - Task 19 live Obsidian CLI target confirmed as `plugin-dev`.
 - Task 19 live scenarios ran through `window.__vaultmanPerfProbe`; details are
   in the perf baseline.
-- Task 19 `obsidian dev:errors vault=plugin-dev`: `No errors captured.`
+- Task 19 `obsidian vault=plugin-dev dev:errors`: `No errors captured.`
 - Post-review repair `pnpm verify` passed:
   - Unit: 136 files / 824 tests.
   - Component: 69 files / 372 tests.
@@ -121,7 +121,7 @@ Compact route index after archiving the oversized current status:
   Notebook Navigator lookups `0.7050 ms`; Vaultman lookups `0.1517 ms`.
 - Live `plugin-dev` view menu smoke after reload:
   `["Tree","List","Table","Grid","Cards"]`, `hasMarkmap=false`, and
-  `obsidian dev:errors vault=plugin-dev` returned `No errors captured.`
+  `obsidian vault=plugin-dev dev:errors` returned `No errors captured.`
 - Explorer Sub-system O final gate on 2026-05-18:
   - `frameVaultman.svelte` reduced from 866 LOC pre-O to 335 LOC.
   - Targeted O component matrix passed: 10 files / 60 tests.

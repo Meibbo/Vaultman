@@ -41,7 +41,7 @@ Svelte render tags/snippets in the platform. It also adds a new platform
 invariant: every Explorer node must be able to expose at least one
 representative image/media descriptor, with exact native Obsidian Bases parity
 deferred to a named follow-up plan. Showing/hiding that image belongs in the
-view menu `btnMultiSelection` controls for granular node elements when the
+view menu `btnNodeElementsVisibility` controls for granular node elements when the
 active view is not using the native Obsidian preset. The image/media element is
 disabled by default in every view because nodes already have icons.
 
@@ -62,7 +62,7 @@ rewrites:
 
 - scenario-specific `perfProbe` metrics;
 - view feature parity tests;
-- view menu `btnMultiSelection` tests for node element visibility outside the
+- view menu `btnNodeElementsVisibility` tests for node element visibility outside the
   native Obsidian preset;
 - media descriptor, geometry, and visible-blob lifecycle tests;
 - 10K files tree/list scroll tests.

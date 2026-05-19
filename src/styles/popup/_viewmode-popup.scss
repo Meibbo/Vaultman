@@ -85,4 +85,69 @@
 			color: $vm-text-normal;
 		}
 	}
+
+	&-node-elements {
+		padding-top: 2px;
+		border-top: $vm-border-width solid $vm-border-color;
+	}
+}
+
+.vm-node-elements-toggle {
+	display: grid;
+	grid-template-columns: repeat(2, minmax(0, 1fr));
+	gap: 3px 10px;
+	padding: 4px 0 2px;
+	font-size: 11px;
+	color: $vm-text-muted;
+
+	&-row {
+		display: inline-flex;
+		align-items: center;
+		min-width: 0;
+		gap: 5px;
+		line-height: 16px;
+		cursor: pointer;
+
+		input {
+			width: 12px;
+			height: 12px;
+			margin: 0;
+			flex: 0 0 auto;
+		}
+
+		span {
+			overflow: hidden;
+			text-overflow: ellipsis;
+			white-space: nowrap;
+		}
+	}
+
+	&-badges-group {
+		display: contents;
+	}
+
+	.vm-indent-1 {
+		padding-left: 14px;
+		color: $vm-text-faint;
+	}
+
+	&-reset {
+		grid-column: 1 / -1;
+		justify-self: flex-start;
+		margin-top: 2px;
+		padding: 2px 8px;
+		border-radius: 999px;
+		border: $vm-border-width solid $vm-border-color;
+		background: $vm-bg-secondary;
+		color: $vm-text-muted;
+		font-size: 11px;
+		line-height: 16px;
+		cursor: pointer;
+
+		&:hover,
+		&:focus-visible {
+			background: $vm-bg-modifier-hover;
+			color: $vm-text-normal;
+		}
+	}
 }

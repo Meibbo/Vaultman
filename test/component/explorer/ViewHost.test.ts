@@ -1,14 +1,17 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { flushSync, mount, unmount, type Component } from 'svelte';
 import ViewHost from '../../../src/components/explorer/ViewHost.svelte';
+import { VIEW_HOST_KEY } from '../../../src/components/explorer/viewHostContext';
 import {
 	DEFAULT_NODE_TABLE_COLUMNS,
 	nodeRowsFromTree,
 } from '../../../src/services/serviceViewTableAdapter';
 import { rowInputFromTreeNode } from '../../../src/services/serviceExplorerRowInput';
+import { ViewHostService } from '../../../src/services/serviceViewHost.svelte';
 import type { TreeNode } from '../../../src/types/typeNode';
 import type { ThemePreset } from '../../../src/types/typeThemePreset';
 import type { ExplorerViewMode } from '../../../src/types/typeViews';
+import { withContext } from '../_helpers/withContext';
 
 const nodes: TreeNode[] = [
 	{ id: 'alpha', label: 'Alpha', depth: 0, meta: {}, icon: 'lucide-file' },
@@ -73,7 +76,7 @@ function makeProps(overrides: Record<string, unknown> = {}): Record<string, unkn
 
 describe('ViewHost.svelte - shell behavior', () => {
 	let target: HTMLDivElement;
-	let app: ReturnType<typeof mount> | null = null;
+	let app: { destroy(): void } | null = null;
 
 	beforeEach(() => {
 		target = document.createElement('div');
@@ -89,7 +92,7 @@ describe('ViewHost.svelte - shell behavior', () => {
 
 	afterEach(() => {
 		if (app) {
-			void unmount(app);
+			app.destroy();
 			app = null;
 		}
 		target.remove();
@@ -97,10 +100,24 @@ describe('ViewHost.svelte - shell behavior', () => {
 	});
 
 	function renderHost(overrides: Record<string, unknown> = {}): void {
-		app = mount(ViewHost as unknown as Component<Record<string, unknown>>, {
+		const instance = mount(ViewHost as unknown as Component<Record<string, unknown>>, {
 			target,
 			props: makeProps(overrides),
 		});
+		app = { destroy: () => void unmount(instance) };
+		flushSync();
+	}
+
+	function renderHostWithViewHostContext(
+		service: ViewHostService,
+		overrides: Record<string, unknown> = {},
+	): void {
+		app = withContext(
+			target,
+			ViewHost as unknown as Component<Record<string, unknown>>,
+			makeProps(overrides),
+			[[VIEW_HOST_KEY, service]],
+		);
 		flushSync();
 	}
 
@@ -125,5 +142,16 @@ describe('ViewHost.svelte - shell behavior', () => {
 
 		expect(target.querySelector('.vm-node-card')).toBeNull();
 		expect(target.querySelector('.vm-tree-virtual-row[data-id="alpha"]')).not.toBeNull();
+	});
+
+	it('reuses a parent ViewHostService context so overlay mask changes reach rendered views', () => {
+		const preset = makePreset();
+		const svc = new ViewHostService({ preset, mountContext: 'panel', initialViewMode: 'tree' });
+		svc.toggleElement('icon');
+
+		renderHostWithViewHostContext(svc, { preset, viewMode: 'tree' });
+
+		expect(target.querySelector('.vm-tree-virtual-row[data-id="alpha"]')).not.toBeNull();
+		expect(target.querySelector('.vm-tree-icon')).toBeNull();
 	});
 });

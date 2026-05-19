@@ -44,7 +44,7 @@ The view menu also needs a preset/element contract:
 
 - when using the native Obsidian preset, node element visibility follows the
   preset;
-- when not using the native preset, the view menu `btnMultiSelection` control
+- when not using the native preset, the view menu `btnNodeElementsVisibility` control
   can show/hide granular node elements;
 - the primary image/media slot is one of those granular node elements;
 - the primary image/media slot is disabled by default in every view because
@@ -162,7 +162,7 @@ scenarios, or until an explicit feature-cost tolerance is documented.
 1. Create feedback loops first:
    - failing/characterizing tests for `viewTree` 10K jump behavior;
    - view feature parity tests;
-   - view menu `btnMultiSelection` element visibility tests;
+   - view menu `btnNodeElementsVisibility` element visibility tests;
    - native Obsidian preset restoration tests;
    - media descriptor/geometry/lifecycle tests;
    - perfProbe scenario extensions.
@@ -186,10 +186,10 @@ scenarios, or until an explicit feature-cost tolerance is documented.
 - Grid/cards/table can be stress-tested from the UI or CLI.
 - Badges, selection, context menu, keyboard focus, and box selection have
   declared parity expectations per view.
-- The view menu `btnMultiSelection` control can show/hide granular node elements
+- The view menu `btnNodeElementsVisibility` control can show/hide granular node elements
   outside the native Obsidian preset, including the primary image/media slot.
 - The primary image/media slot defaults off in every view and only becomes
-  visible through explicit `btnMultiSelection` opt-in.
+  visible through explicit `btnNodeElementsVisibility` opt-in.
 - `perfProbe` reports scenario-specific jank and readiness metrics.
 
 ## Next Handoff

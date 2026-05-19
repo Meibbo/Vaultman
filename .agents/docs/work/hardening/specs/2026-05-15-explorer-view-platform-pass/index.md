@@ -30,7 +30,7 @@ recovery for known tree regressions.
 
 - Shared Explorer projection core for all providers and views.
 - View feature/menu contract, including native Obsidian preset behavior and
-  granular `btnMultiSelection` node element toggles.
+  granular `btnNodeElementsVisibility` node element toggles.
 - Scroll and geometry coordinator.
 - Decoration batching.
 - Node render anatomy contract.

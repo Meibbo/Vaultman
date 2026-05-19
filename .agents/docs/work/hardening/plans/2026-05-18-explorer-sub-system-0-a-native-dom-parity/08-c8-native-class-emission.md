@@ -354,20 +354,20 @@ Expected: PASS.
 
 ```powershell
 pnpm run build
-obsidian plugin:reload id=vaultman vault=plugin-dev
-obsidian command id=vaultman:open vault=plugin-dev
+obsidian vault=plugin-dev plugin:reload id=vaultman
+obsidian vault=plugin-dev command id=vaultman:open
 # Switch to native preset
-obsidian eval code="plugin.themeService.setPreset('native')" vault=plugin-dev
+obsidian vault=plugin-dev eval code="plugin.themeService.setPreset('native')"
 # Inspect: tree rows have tree-item-self
-obsidian eval code="document.querySelector('.tree-item-self') !== null" vault=plugin-dev
+obsidian vault=plugin-dev eval code="document.querySelector('.tree-item-self') !== null"
 # Switch to vaultman preset + table view
-obsidian eval code="plugin.themeService.setPreset('vaultman')" vault=plugin-dev
-obsidian eval code="/* set viewMode=table */" vault=plugin-dev
-obsidian eval code="document.querySelector('.bases-tr') !== null" vault=plugin-dev
+obsidian vault=plugin-dev eval code="plugin.themeService.setPreset('vaultman')"
+obsidian vault=plugin-dev eval code="/* set viewMode=table */"
+obsidian vault=plugin-dev eval code="document.querySelector('.bases-tr') !== null"
 # Cards view + native preset
-obsidian eval code="/* set viewMode=cards, then setPreset('native') */" vault=plugin-dev
-obsidian eval code="document.querySelector('.bases-cards-item') !== null" vault=plugin-dev
-obsidian dev:errors vault=plugin-dev
+obsidian vault=plugin-dev eval code="/* set viewMode=cards, then setPreset('native') */"
+obsidian vault=plugin-dev eval code="document.querySelector('.bases-cards-item') !== null"
+obsidian vault=plugin-dev dev:errors
 ```
 
 Expected: `bases-tr`, `bases-cards-item`, `tree-item-self` all present

@@ -1,5 +1,5 @@
 <script lang="ts" generics="TMeta = unknown">
-	import { setContext } from 'svelte';
+	import { getContext, setContext, untrack } from 'svelte';
 	import type { ActiveOpsByNode, BadgeKind } from '../../badges/serviceBadge';
 	import type { MouseGestureConfig } from '../../services/serviceMouse';
 	import type { DndDropResult } from '../../services/serviceDnd';
@@ -106,8 +106,10 @@
 		...rest
 	}: Props = $props();
 
+	const inheritedService = getContext<ViewHostContextValue | undefined>(VIEW_HOST_KEY);
 	// svelte-ignore state_referenced_locally
-	const service = new ViewHostService({ preset, mountContext, initialViewMode: viewMode });
+	const service =
+		inheritedService ?? new ViewHostService({ preset, mountContext, initialViewMode: viewMode });
 	const renderedViewMode = $derived(service.viewMode);
 	const gridPath = $derived(rest.gridPath ?? rest.currentGridPath ?? []);
 
@@ -115,7 +117,7 @@
 	setContext<NodeElementMaskContextValue>(NODE_ELEMENT_MASK_KEY, {
 		value: () => service.nodeElementMask,
 	});
-	setContext<PresetContextValue>(PRESET_KEY, { value: () => preset });
+	setContext<PresetContextValue>(PRESET_KEY, { value: () => service.preset });
 
 	$effect(() => {
 		service.preset = preset;
@@ -123,7 +125,7 @@
 	});
 
 	$effect(() => {
-		if (service.viewMode !== viewMode) service.setViewMode(viewMode);
+		if (untrack(() => service.viewMode) !== viewMode) service.setViewMode(viewMode);
 	});
 
 	$effect(() => {

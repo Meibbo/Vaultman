@@ -182,7 +182,7 @@ with `--no-build --no-reload --no-open` so it measured the selected view.
 
 Before rerun, stale `plugin-dev` error buffer contained one unrelated
 Calendar/Settings Search error (`Cannot read properties of undefined (reading
-'dow')`). It was cleared with `obsidian dev:errors clear vault=plugin-dev`;
+'dow')`). It was cleared with `obsidian vault=plugin-dev dev:errors clear`;
 subsequent smoke runs ended with `No errors captured.`
 
 Results:
@@ -200,10 +200,10 @@ Results:
 Commands:
 
 ```powershell
-obsidian plugin:reload id=vaultman vault=plugin-dev
-obsidian command id=vaultman:open vault=plugin-dev
-obsidian eval code="document.querySelectorAll('.vm-tree-virtual-row').length" vault=plugin-dev
-obsidian dev:errors vault=plugin-dev
+obsidian vault=plugin-dev plugin:reload id=vaultman
+obsidian vault=plugin-dev command id=vaultman:open
+obsidian vault=plugin-dev eval code="document.querySelectorAll('.vm-tree-virtual-row').length"
+obsidian vault=plugin-dev dev:errors
 ```
 
 Result:
@@ -274,3 +274,52 @@ markmap branch and confirms it stays outside `.vm-view-host-container`.
 
 Final live error check: `obsidian vault=plugin-dev dev:errors` returned
 `No errors captured.`
+
+## C7 overlay view menu verification
+
+C7 corrected active 0-A Obsidian CLI examples to keep `vault=plugin-dev` as
+the first parameter after `obsidian`. Do not use the historical
+`obsidian <command> ... vault=plugin-dev` form; it can target the most recently
+focused vault before the vault selector is applied.
+
+Focused tests:
+
+```powershell
+pnpm vitest run test/component/overlayViewMenu.test.ts test/component/explorer/ViewHost.test.ts --project component --config vitest.config.ts --fileParallelism=false
+```
+
+Result: PASS, 2 files / 17 tests.
+
+Aggregate verification:
+
+```powershell
+pnpm check
+pnpm lint
+pnpm run build
+pnpm verify
+```
+
+Result: PASS. `pnpm verify` reported 142 unit files / 914 unit tests and 88
+component files / 473 component tests.
+
+Live plugin-dev smoke used only vault-first commands:
+
+```powershell
+obsidian vault=plugin-dev eval code="app.vault.getName()"
+obsidian vault=plugin-dev plugin:reload id=vaultman
+obsidian vault=plugin-dev dev:errors clear
+obsidian vault=plugin-dev command id=vaultman:open-view-menu
+obsidian vault=plugin-dev dev:errors
+```
+
+Result:
+
+- Vault identity: `plugin-dev`.
+- Existing frame count before smoke: `vmFrame: 1`; `vaultman:open` was not run
+  because that command behaves as a toggle when a frame is already open.
+- Vaultman preset menu: `Tree`, `List`, `Table`, `Grid`, `Cards`;
+  `.vm-node-elements-toggle` visible with 11 checkboxes.
+- Native preset menu after `themeService.setPreset('native')`: `Tree` only;
+  `.vm-node-elements-toggle` hidden and field pills hidden.
+- Preset restored to `vaultman`.
+- Final `obsidian vault=plugin-dev dev:errors`: `No errors captured.`

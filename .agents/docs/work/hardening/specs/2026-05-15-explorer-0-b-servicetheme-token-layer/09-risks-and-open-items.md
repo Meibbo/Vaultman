@@ -188,7 +188,7 @@ layout placement, variant pickers, color governance hooks.
 Wires `preset.nodeElements`, `preset.lockNodeElementVisibility`,
 `preset.viewModes` from 0-B's shape against `panelExplorer.svelte`,
 `overlayViewMenu.svelte`, and view components. Also delivers the
-`btnMultiSelection` granular element-toggle control.
+`btnNodeElementsVisibility` granular element-toggle control.
 
 ### O4 — Sub-system "Layout extension"
 

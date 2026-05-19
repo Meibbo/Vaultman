@@ -25,7 +25,7 @@ Required feedback loops:
 - synthetic Explorer dataset generator for 10K, 50K, and 100K nodes;
 - provider projection tests;
 - view feature contract tests;
-- view menu `btnMultiSelection` element visibility tests;
+- view menu `btnNodeElementsVisibility` element visibility tests;
 - native Obsidian preset restoration tests;
 - tree visual contract snapshots or equivalent component assertions;
 - tree box selection tests;

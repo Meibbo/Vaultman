@@ -12,10 +12,10 @@ parent: "[[2026-05-18-explorer-sub-system-0-a-native-dom-parity/index]]"
 `btnMultiSelection` → `btnNodeElementsVisibility`.
 
 **Files:**
-- Modify: `src/components/overlays/overlayViewMenu.svelte`
-- Create: `src/components/overlays/ViewMenuNodeElementsToggle.svelte`
+- Modify: `src/components/layout/overlays/overlayViewMenu.svelte`
+- Create: `src/components/layout/overlays/ViewMenuNodeElementsToggle.svelte`
 - Modify: any docs / source / tests referring to `btnMultiSelection`
-- Test: `test/component/overlays/overlayViewMenu.test.ts` (extend existing)
+- Test: `test/component/overlayViewMenu.test.ts` (extend existing)
 
 ## Steps
 
@@ -334,13 +334,13 @@ Expected: PASS. Lint clean.
 
 ```powershell
 pnpm run build
-obsidian plugin:reload id=vaultman vault=plugin-dev
-obsidian command id=vaultman:open vault=plugin-dev
-obsidian command id=vaultman:open-view-menu vault=plugin-dev
+obsidian vault=plugin-dev plugin:reload id=vaultman
+obsidian vault=plugin-dev command id=vaultman:open
+obsidian vault=plugin-dev command id=vaultman:open-view-menu
 # Visually confirm:
 # - Under vaultman preset: 5 view buttons + submenu visible
 # - Under native preset (via plugin.themeService.setPreset): only Tree button + no submenu
-obsidian dev:errors vault=plugin-dev
+obsidian vault=plugin-dev dev:errors
 ```
 
 Expected: `No errors captured.`

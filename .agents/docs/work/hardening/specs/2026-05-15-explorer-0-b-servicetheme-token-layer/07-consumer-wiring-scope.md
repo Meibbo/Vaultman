@@ -103,7 +103,7 @@ sub-system that will wire the consumer.
 | `toolbar.buttons` | `frameVaultman.svelte`, `pageTools.svelte` | "Toolbar contract" |
 | `viewModes` | `panelExplorer.svelte` view-mode switch + `overlayViewMenu.svelte` | 0-A View Feature Contract |
 | `nodeElements.icon/label/detail/media/badges/actions` | View component row anatomy + Explorer Decoration Module | 0-A + Explorer Platform Pass |
-| `lockNodeElementVisibility` | `overlayViewMenu.svelte` btnMultiSelection visibility | 0-A |
+| `lockNodeElementVisibility` | `overlayViewMenu.svelte` btnNodeElementsVisibility visibility | 0-A |
 | `unload` | `serviceUnload` instance + `main.ts` onload sequencing | J (Phase 3) |
 | `colors` | Color governance render layer | "Color governance" |
 | `layout` | Theme Builder placement engine | "Theme Builder" |
@@ -141,7 +141,7 @@ see?
 | Toolbar | STILL full vm buttons (declare-only `'core'`). |
 | View modes available | STILL 5 in view menu (not filtered by `preset.viewModes: ['tree']`). |
 | Node element visibility | STILL shows actions/details/badges (declare-only `nodeElements: {…}`). |
-| btnMultiSelection | STILL visible (declare-only `lockNodeElementVisibility: true`). |
+| btnNodeElementsVisibility | STILL visible (declare-only `lockNodeElementVisibility: true`). |
 
 The disguise is **partial** in 0-B. The most user-facing parts (DOM, chrome,
 density) work; the structural cuts (dock/tabs/toolbar/viewMode/element

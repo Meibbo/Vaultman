@@ -101,19 +101,19 @@ the NN list builder median (current: ~27ms vs ~61ms per status doc).
 - [ ] **Step 8: Live `plugin-dev` flow per spec shard 10**
 
 ```powershell
-obsidian plugin:reload id=vaultman vault=plugin-dev
-obsidian command id=vaultman:open vault=plugin-dev
+obsidian vault=plugin-dev plugin:reload id=vaultman
+obsidian vault=plugin-dev command id=vaultman:open
 
 # Preset toggle
-obsidian eval code="plugin.themeService.setPreset('native')" vault=plugin-dev
-obsidian eval code="document.querySelectorAll('.vm-view-menu-mode').length" vault=plugin-dev
+obsidian vault=plugin-dev eval code="plugin.themeService.setPreset('native')"
+obsidian vault=plugin-dev eval code="document.querySelectorAll('.vm-view-menu-mode').length"
 # Expected: 1
 
-obsidian eval code="plugin.themeService.setPreset('vaultman')" vault=plugin-dev
-obsidian eval code="document.querySelectorAll('.vm-view-menu-mode').length" vault=plugin-dev
+obsidian vault=plugin-dev eval code="plugin.themeService.setPreset('vaultman')"
+obsidian vault=plugin-dev eval code="document.querySelectorAll('.vm-view-menu-mode').length"
 # Expected: 5
 
-obsidian eval code="document.querySelector('.vm-node-elements-toggle') !== null" vault=plugin-dev
+obsidian vault=plugin-dev eval code="document.querySelector('.vm-node-elements-toggle') !== null"
 # Expected: true
 
 # View-mode cycle
@@ -123,7 +123,7 @@ obsidian eval code="document.querySelector('.vm-node-elements-toggle') !== null"
 # btnNodeElementsVisibility toggle
 # Click media checkbox in submenu, switch to cards view, observe .bases-cards-cover.
 
-obsidian dev:errors vault=plugin-dev
+obsidian vault=plugin-dev dev:errors
 ```
 
 Expected: `No errors captured.`

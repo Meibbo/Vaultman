@@ -320,7 +320,7 @@ This custom preset:
 - Same DOM emission (`useNativeDom: true`) and chrome/density as native.
 - BUT enables the dock (`dock.visible: true`, presentation `'drawer'`).
 - Unlocks node-element visibility so user can toggle via
-  `btnMultiSelection` (once Sub-system 0-A wires it).
+  `btnNodeElementsVisibility` (once Sub-system 0-A wires it).
 
 The user activates by setting `themePresetId: "native-with-dock"` at top
 of `elasticUi`.

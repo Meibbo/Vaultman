@@ -30,7 +30,7 @@ import type { ThemePreset } from '../types/typeThemePreset';
  * - Single tree view only
  * - No dock, no top-tabs, no extra vm buttons
  * - Compact density matching core
- * - Element visibility locked (user btnMultiSelection hidden)
+ * - Element visibility locked (user btnNodeElementsVisibility hidden)
  *
  * Not the fresh-install default. Users opt in for core-equivalent
  * disguise.
@@ -99,7 +99,7 @@ export const PRESET_NATIVE: ThemePreset = {
  * - All 5 view modes (markmap deferred)
  * - Dock + top-tabs + full toolbar
  * - Comfortable density
- * - User btnMultiSelection unlocked (granular element toggles enabled)
+ * - User btnNodeElementsVisibility unlocked (granular element toggles enabled)
  * - Slight chrome polish (semi-transparent + small blur)
  *
  * Fresh-install default. Install plugin → see plugin.
@@ -192,7 +192,7 @@ export const BUILT_IN_PRESETS = [PRESET_NATIVE, PRESET_VAULTMAN] as const;
 | `nodeElements.badges.inherited` | `false` | Core has no inherited-property concept. |
 | `nodeElements.badges.counts` | `false` | Core does not show counts. |
 | `nodeElements.actions` | `false` | Core has no inline action buttons. |
-| `lockNodeElementVisibility` | `true` | User's `btnMultiSelection` is hidden — the disguise cannot be broken from the view menu. |
+| `lockNodeElementVisibility` | `true` | User's `btnNodeElementsVisibility` is hidden — the disguise cannot be broken from the view menu. |
 
 ## Field-by-field justification — `PRESET_VAULTMAN`
 
@@ -216,10 +216,10 @@ export const BUILT_IN_PRESETS = [PRESET_NATIVE, PRESET_VAULTMAN] as const;
 | `toolbar.buttons` | `'full'` | All vm toolbar buttons. |
 | `viewModes` | `['tree', 'table', 'grid', 'cards', 'list']` | All 5 modes. `'markmap'` deliberately excluded (Map deferred). |
 | `nodeElements.icon`/`label`/`detail` | all `true` | Full vm row anatomy. |
-| `nodeElements.media` | `false` | Defaults-off invariant; user opt-in via btnMultiSelection. |
+| `nodeElements.media` | `false` | Defaults-off invariant; user opt-in via btnNodeElementsVisibility. |
 | `nodeElements.badges.*` | all `true` | Full vm badge set visible. |
 | `nodeElements.actions` | `true` | Inline action buttons visible. |
-| `lockNodeElementVisibility` | `false` | `btnMultiSelection` exposes granular element toggles to user. |
+| `lockNodeElementVisibility` | `false` | `btnNodeElementsVisibility` exposes granular element toggles to user. |
 
 ## Notes on values
 

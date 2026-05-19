@@ -215,11 +215,11 @@ Expected: PASS.
 
 ```powershell
 pnpm run build
-obsidian plugin:reload id=vaultman vault=plugin-dev
-obsidian command id=vaultman:open vault=plugin-dev
+obsidian vault=plugin-dev plugin:reload id=vaultman
+obsidian vault=plugin-dev command id=vaultman:open
 # Manual: drag a tree row in vaultman preset, verify .vm-drag-source applied
 # Manual: switch to native preset, drag again, verify .is-being-dragged + .vm-drag-source both applied
-obsidian dev:errors vault=plugin-dev
+obsidian vault=plugin-dev dev:errors
 ```
 
 Expected: `No errors captured.` Drag visuals consistent with preset.

@@ -101,7 +101,7 @@ Commit message: `feat: add explorer view feature contract`.
 - [ ] **Step 1: Add failing media field tests**
 
 Assert `media` is a legal node field, defaults off for all views, and appears
-in `btnMultiSelection` when not using the native Obsidian preset.
+in `btnNodeElementsVisibility` when not using the native Obsidian preset.
 
 Run:
 `pnpm exec vitest run --project component --config vitest.config.ts test/component/overlayViewMenu.test.ts --fileParallelism=false`
@@ -116,7 +116,7 @@ identity. Ensure default visible fields remain unchanged for existing views.
 - [ ] **Step 3: Respect native preset**
 
 When native preset is active, element visibility follows the preset. When
-custom preset is active, `btnMultiSelection` controls granular elements.
+custom preset is active, `btnNodeElementsVisibility` controls granular elements.
 
 - [ ] **Step 4: Commit**
 

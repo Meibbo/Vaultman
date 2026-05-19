@@ -230,19 +230,19 @@ Capture output into the commit message body.
 
 ```powershell
 pnpm run build
-obsidian plugin:reload id=vaultman vault=plugin-dev
-obsidian command id=vaultman:open vault=plugin-dev
+obsidian vault=plugin-dev plugin:reload id=vaultman
+obsidian vault=plugin-dev command id=vaultman:open
 
 # 1. Preset toggle cycle (native → vaultman → native)
-obsidian eval code="plugin.themeService.setPreset('native'); document.querySelectorAll('.vm-view-menu-mode').length" vault=plugin-dev
+obsidian vault=plugin-dev eval code="plugin.themeService.setPreset('native'); document.querySelectorAll('.vm-view-menu-mode').length"
 # Expected: 1
-obsidian eval code="plugin.themeService.setPreset('vaultman'); document.querySelectorAll('.vm-view-menu-mode').length" vault=plugin-dev
+obsidian vault=plugin-dev eval code="plugin.themeService.setPreset('vaultman'); document.querySelectorAll('.vm-view-menu-mode').length"
 # Expected: 5
 
 # 2. btnNodeElementsVisibility toggle
-obsidian eval code="document.querySelector('.vm-node-elements-toggle') !== null" vault=plugin-dev
+obsidian vault=plugin-dev eval code="document.querySelector('.vm-node-elements-toggle') !== null"
 # Expected: true (vaultman)
-obsidian eval code="plugin.themeService.setPreset('native'); document.querySelector('.vm-node-elements-toggle') !== null" vault=plugin-dev
+obsidian vault=plugin-dev eval code="plugin.themeService.setPreset('native'); document.querySelector('.vm-node-elements-toggle') !== null"
 # Expected: false
 
 # 3. Scroll smoke per view
@@ -253,7 +253,7 @@ pnpm smoke:scroll -- --view=grid --jumps=100
 pnpm smoke:scroll -- --view=cards --jumps=100
 # Expected per view: blankFrames=0, maxBlank=0ms, no dev errors
 
-obsidian dev:errors vault=plugin-dev
+obsidian vault=plugin-dev dev:errors
 # Expected: "No errors captured."
 ```
 

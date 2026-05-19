@@ -24,7 +24,7 @@ presentation service, extracts a context-agnostic `ViewHost.svelte`
 shell from `panelExplorer.svelte`, wires the
 `preset.viewModes` / `preset.nodeElements` / `preset.lockNodeElementVisibility`
 fields that 0-B left declare-only, renames the user-visible
-`btnMultiSelection` control to `btnNodeElementsVisibility`, and declares
+`btnNodeElementsVisibility` control to `btnNodeElementsVisibility`, and declares
 (without implementing) the in-editor mount seam so that the future
 in-editor renderer fast-follow has a complete contract to build against.
 

@@ -94,7 +94,7 @@ Compact handoff after archiving the oversized current handoff:
     `viewTableStress.test.ts`, `pageFiltersRenameHandoff.test.ts`,
     `vmDialogPortal.test.ts`.
   - Live `plugin-dev` final smoke ended with
-    `obsidian dev:errors vault=plugin-dev`: `No errors captured.`
+    `obsidian vault=plugin-dev dev:errors`: `No errors captured.`
 - Explorer 0-B final verification:
   - `pnpm verify`: passed on 2026-05-17.
     Unit: 140 files / 882 tests. Component: 73 files / 398 tests. Lint:
@@ -118,10 +118,10 @@ Compact handoff after archiving the oversized current handoff:
   - Component: 69 files / 372 tests.
   - Lint: 8 warnings in pre-existing unrelated files, 0 errors.
 - `git diff --check`: passed.
-- `obsidian eval code="app.vault.getName()" vault=plugin-dev`: `plugin-dev`.
-- `obsidian plugin:reload id=vaultman vault=plugin-dev`: reloaded.
+- `obsidian vault=plugin-dev eval code="app.vault.getName()"`: `plugin-dev`.
+- `obsidian vault=plugin-dev plugin:reload id=vaultman`: reloaded.
 - `window.__vaultmanPerfProbe.run(...)`: all 8 Task 19 scenarios executed.
-- `obsidian dev:errors vault=plugin-dev`: `No errors captured.`
+- `obsidian vault=plugin-dev dev:errors`: `No errors captured.`
 
 ## Post-Review Repair Verification
 
@@ -142,10 +142,10 @@ Compact handoff after archiving the oversized current handoff:
   - Component: 69 files / 372 tests.
   - Lint: 8 pre-existing warnings, 0 errors.
 - Live `plugin-dev` smoke after reload:
-  - `obsidian command id=vaultman:open-view-menu vault=plugin-dev`: executed.
+  - `obsidian vault=plugin-dev command id=vaultman:open-view-menu`: executed.
   - DOM labels: `["Tree","List","Table","Grid","Cards"]`.
   - `hasMarkmap=false`.
-  - `obsidian dev:errors vault=plugin-dev`: `No errors captured.`
+  - `obsidian vault=plugin-dev dev:errors`: `No errors captured.`
 
 ## Variable Scroll Repair Verification
 

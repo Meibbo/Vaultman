@@ -31,7 +31,7 @@ session on 2026-05-14:
    SCSS-only token layer.
 3. **0-A** (next session) — native-DOM parity contract, View Feature Contract,
    view-host extraction, in-editor class vocabulary, node-element
-   `btnMultiSelection` wiring.
+   `btnNodeElementsVisibility` wiring.
 
 ## Decision summary
 
@@ -198,7 +198,7 @@ to this spec rather than open questions:
   [[docs/work/hardening/research/2026-05-15-explorer-view-platform-infinite-canvas/02-architecture-execution-handoff|post-0-H architecture handoff]]
   added a critical input: the view menu / preset / element contract,
   including the rule that node `media` slot defaults off in every preset
-  and is exposed only via `btnMultiSelection` when the preset is not the
+  and is exposed only via `btnNodeElementsVisibility` when the preset is not the
   native Obsidian preset. This shapes the `nodeElements` field and the
   `lockNodeElementVisibility` flag.
 - The same handoff prescribes "deep modules with small interfaces" over

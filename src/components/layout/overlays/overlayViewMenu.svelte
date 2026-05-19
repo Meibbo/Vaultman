@@ -1,7 +1,6 @@
 <script lang="ts">
+	import { getContext } from 'svelte';
 	import { translate } from '../../../index/i18n/lang';
-	import BtnSelection from '../../btnSelection.svelte';
-	import type { BtnSelectionItem } from '../../../types/typePrimitives';
 	import {
 		toggleVisibleField,
 		type NodeFieldDefinition,
@@ -11,6 +10,11 @@
 		type ExplorerPlatformViewMode,
 	} from '../../../services/serviceExplorerViewContract';
 	import type { ExplorerViewMode } from '../../../types/typeViews';
+	import {
+		VIEW_HOST_KEY,
+		type ViewHostContextValue,
+	} from '../../explorer/viewHostContext';
+	import ViewMenuNodeElementsToggle from './ViewMenuNodeElementsToggle.svelte';
 
 	type FiltersTab = 'props' | 'files' | 'tags' | 'content';
 	type ViewMode = ExplorerViewMode;
@@ -39,12 +43,6 @@
 		},
 	};
 
-	const VIEW_MODES: { id: SelectableViewMode; iconName: string; labelKey: string }[] =
-		EXPLORER_PLATFORM_VIEW_MODES.map((id) => ({
-			id,
-			...VIEW_MODE_CONFIG[id],
-		}));
-
 	let {
 		activeTab,
 		onClose,
@@ -69,11 +67,22 @@
 		onVisibleFieldsChange?: (fields: string[]) => void;
 	} = $props();
 
-	const showSearch = $derived(activeTab === 'files' && viewMode === 'grid');
+	const viewHost = getContext<ViewHostContextValue | undefined>(VIEW_HOST_KEY);
+	const activeViewMode = $derived(viewHost?.viewMode ?? viewMode);
+	const showSearch = $derived(activeTab === 'files' && activeViewMode === 'grid');
+	const nodeElementControlsAvailable = $derived(
+		viewHost?.multiSelectionAvailable ?? !nativePresetActive,
+	);
+	const viewModes = $derived.by(() =>
+		(viewHost?.selectableModes ?? EXPLORER_PLATFORM_VIEW_MODES).map((id) => ({
+			id,
+			...VIEW_MODE_CONFIG[id],
+		})),
+	);
 
 	function selectView(v: SelectableViewMode) {
-		if (viewMode === v) return;
-		viewMode = v;
+		viewHost?.setViewMode(v);
+		if (viewMode !== v) viewMode = v;
 	}
 
 	function togglePill(id: string) {
@@ -84,14 +93,6 @@
 		addMode = !addMode;
 	}
 
-	const viewModeButtons = $derived<BtnSelectionItem[]>(
-		VIEW_MODES.map((vm) => ({
-			icon: vm.iconName,
-			label: translate(vm.labelKey),
-			isActive: viewMode === vm.id,
-			onClick: () => selectView(vm.id),
-		})),
-	);
 </script>
 
 <div class="vm-viewmode-popup">
@@ -157,7 +158,7 @@
 				<span class="vm-fab-badge">{addOpCount}</span>
 			{/if}
 		</div>
-		{#if !nativePresetActive}
+		{#if nodeElementControlsAvailable}
 			<!-- Pills (horizontal scroll, no scrollbar) -->
 			<div class="vm-viewmode-pills">
 				{#each fieldDefinitions as pill (pill.id)}
@@ -176,8 +177,27 @@
 		{/if}
 	</div>
 
-	<!-- Row 2: view-mode squircles (via btnSelection shared primitive) -->
+	<!-- Row 2: view-mode squircles -->
 	<div class="vm-viewmode-row">
-		<BtnSelection buttons={viewModeButtons} />
+		<div class="vm-squircle-row vm-btn-selection-row" aria-label="View modes">
+			{#each viewModes as vm (vm.id)}
+				<button
+					type="button"
+					class="vm-squircle vm-view-menu-mode"
+					class:is-active={activeViewMode === vm.id}
+					class:is-accent={activeViewMode === vm.id}
+					aria-label={translate(vm.labelKey)}
+					aria-pressed={activeViewMode === vm.id}
+					use:icon={vm.iconName}
+					onclick={() => selectView(vm.id)}
+				></button>
+			{/each}
+		</div>
 	</div>
+
+	{#if viewHost?.multiSelectionAvailable}
+		<div class="vm-viewmode-node-elements">
+			<ViewMenuNodeElementsToggle service={viewHost} />
+		</div>
+	{/if}
 </div>

@@ -23,7 +23,7 @@ The Explorer View Platform pass must treat node media as a platform capability,
 not as a local Cards-only improvement.
 
 Every Explorer node should be able to expose at least one representative image.
-Showing or hiding that image is part of the view menu `btnMultiSelection`
+Showing or hiding that image is part of the view menu `btnNodeElementsVisibility`
 control for granular node elements when the active view is not using the native
 Obsidian preset. The exact parity plan with native Obsidian Bases behavior is
 deferred, but the platform contracts must reserve this capability now. A later
@@ -34,7 +34,7 @@ node media slot.
 The image/media element defaults off in every view because nodes already have
 icons. This keeps the initial geometry and visual density conservative. The
 descriptor still exists so the element can be enabled explicitly through
-`btnMultiSelection` without rebuilding the data model.
+`btnNodeElementsVisibility` without rebuilding the data model.
 
 This changes the design target:
 
@@ -194,7 +194,7 @@ thumbnail at all times.
 Each view should declare media behavior:
 
 - Tree: supports a compact thumbnail slot only when explicitly enabled through
-  `btnMultiSelection`; default dense mode shows no image while still accepting
+  `btnNodeElementsVisibility`; default dense mode shows no image while still accepting
   the descriptor.
 - List: same as Tree, with a fixed compact thumbnail policy before enabling
   variable row heights.
@@ -262,7 +262,7 @@ starts:
    events.
 5. Render-tag/snippet contract defines node chrome anatomy for all Svelte views.
 6. Media lifecycle uses `ExplorerMediaCache` boundaries and visible blob loading.
-7. View menu `btnMultiSelection` can show/hide the primary media slot outside the
+7. View menu `btnNodeElementsVisibility` can show/hide the primary media slot outside the
    native Obsidian preset without corrupting projection or geometry caches; the
    slot defaults off in every view.
 8. Map/ViewNodeMap media-aware LOD, culling, cancellation, and placeholder

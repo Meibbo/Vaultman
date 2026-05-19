@@ -108,9 +108,9 @@ Tree 108ms, List 258ms, Table 1312ms, Grid 600ms, Cards 24ms.)
 Run via Obsidian CLI:
 
 ```powershell
-obsidian plugin:reload id=vaultman vault=plugin-dev
-obsidian command id=vaultman:open vault=plugin-dev
-obsidian eval code="document.querySelectorAll('.vm-tree-virtual-row').length" vault=plugin-dev
+obsidian vault=plugin-dev plugin:reload id=vaultman
+obsidian vault=plugin-dev command id=vaultman:open
+obsidian vault=plugin-dev eval code="document.querySelectorAll('.vm-tree-virtual-row').length"
 ```
 
 Record row count + `dev:errors` output in `baseline-log.md`.
@@ -123,7 +123,7 @@ Run:
 git add .agents/docs/work/hardening/plans/2026-05-18-explorer-sub-system-0-a-native-dom-parity/baseline-log.md
 git commit -m "docs(0-A): record pre-0-A baseline log
 
-Captures pnpm verify counts, view-component class emission, btnMultiSelection
+Captures pnpm verify counts, view-component class emission, btnNodeElementsVisibility
 callsite inventory, EXPLORER_PLATFORM_VIEW_MODES consumers, per-view scroll
 smoke maxDelay, and live plugin-dev row count baseline for downstream
 0-A commit verification."

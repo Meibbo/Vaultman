@@ -33,17 +33,17 @@ Run:
 
 ```powershell
 pnpm run build
-obsidian plugin:reload id=vaultman vault=plugin-dev
-obsidian command id=vaultman:open vault=plugin-dev
+obsidian vault=plugin-dev plugin:reload id=vaultman
+obsidian vault=plugin-dev command id=vaultman:open
 # Set up a vault with many nodes (≥1000). If plugin-dev does not have one,
 # generate a synthetic dataset using:
-obsidian eval code="plugin.testHooks?.seedSyntheticNodes?.(2000)" vault=plugin-dev
+obsidian vault=plugin-dev eval code="plugin.testHooks?.seedSyntheticNodes?.(2000)"
 # Switch to a view with badges + media (e.g., cards under vaultman with media toggled on)
-obsidian eval code="plugin.themeService.setPreset('vaultman')" vault=plugin-dev
+obsidian vault=plugin-dev eval code="plugin.themeService.setPreset('vaultman')"
 # Toggle media on via the submenu
-obsidian eval code="/* viewHost.toggleElement('media') via DOM click on the media checkbox */" vault=plugin-dev
+obsidian vault=plugin-dev eval code="/* viewHost.toggleElement('media') via DOM click on the media checkbox */"
 # Scroll rapidly with wheel events:
-obsidian eval code="(function(){const c=document.querySelector('.vm-view-host-container .vm-cards-virtual-scroll, .vm-node-card-scroll'); if(!c) return; let i=0; const id=setInterval(()=>{c.scrollTop+=200; if(++i>50) clearInterval(id);}, 16);})()" vault=plugin-dev
+obsidian vault=plugin-dev eval code="(function(){const c=document.querySelector('.vm-view-host-container .vm-cards-virtual-scroll, .vm-node-card-scroll'); if(!c) return; let i=0; const id=setInterval(()=>{c.scrollTop+=200; if(++i>50) clearInterval(id);}, 16);})()"
 # Visually observe: do icons/labels/badges briefly disappear during scroll?
 ```
 

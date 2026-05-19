@@ -248,10 +248,10 @@ change, update the test to match the new wrapper element.
 
 ```powershell
 pnpm run build
-obsidian plugin:reload id=vaultman vault=plugin-dev
-obsidian command id=vaultman:open vault=plugin-dev
-obsidian eval code="['tree','list','table','grid','cards','markmap'].forEach(m => { /* swap viewMode somehow */ })" vault=plugin-dev
-obsidian dev:errors vault=plugin-dev
+obsidian vault=plugin-dev plugin:reload id=vaultman
+obsidian vault=plugin-dev command id=vaultman:open
+obsidian vault=plugin-dev eval code="['tree','list','table','grid','cards','markmap'].forEach(m => { /* swap viewMode somehow */ })"
+obsidian vault=plugin-dev dev:errors
 ```
 
 Expected: `No errors captured.` after cycling through each viewMode.

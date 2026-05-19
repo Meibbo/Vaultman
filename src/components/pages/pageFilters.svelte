@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { setContext, untrack } from 'svelte';
 	import type { VaultmanPlugin } from '../../main';
 	// TODO: por quÃ© importo los tabs y los explorer?
 	import FiltersPropsTab from './tabProps.svelte';
@@ -30,9 +31,12 @@
 		ExplorerExpansionSummary,
 		ExplorerSortTarget,
 	} from '../../types/typeExplorer';
-	import type { ExplorerViewMode } from '../../types/typeViews';
+	import { isExplorerViewMode, type ExplorerViewMode } from '../../types/typeViews';
 	import type { FilterGroup } from '../../types/typeFilter';
 	import type { BasesImportTarget } from '../../types/typeBasesInterop';
+	import { PRESET_VAULTMAN } from '../../config/themePresetsBuiltin';
+	import { ViewHostService } from '../../services/serviceViewHost.svelte';
+	import { VIEW_HOST_KEY } from '../explorer/viewHostContext';
 	import {
 		addFiltersSearchHistory,
 		createFiltersSearchState,
@@ -147,6 +151,15 @@
 	const activeVisibleFields = $derived(
 		visibleFieldsFor(filtersActiveTab, filtersViewMode as ExplorerViewMode),
 	);
+	const activeThemePreset = $derived(plugin.themeService?.activePreset ?? PRESET_VAULTMAN);
+	// svelte-ignore state_referenced_locally
+	const viewHostService = new ViewHostService({
+		preset: activeThemePreset,
+		mountContext: 'panel',
+		initialViewMode: normalizeExplorerViewMode(filtersViewMode),
+	});
+
+	setContext(VIEW_HOST_KEY, viewHostService);
 
 	function icon(el: HTMLElement, name: string) {
 		setIcon(el, name);
@@ -177,6 +190,21 @@
 		filtersActiveTab = 'files';
 		filtersViewMode = 'tree';
 		void refreshBasesImportTargets();
+	});
+
+	$effect(() => {
+		viewHostService.preset = activeThemePreset;
+		viewHostService.mountContext = 'panel';
+	});
+
+	$effect(() => {
+		const next = normalizeExplorerViewMode(filtersViewMode);
+		if (untrack(() => viewHostService.viewMode) !== next) viewHostService.setViewMode(next);
+	});
+
+	$effect(() => {
+		const next = viewHostService.viewMode;
+		if (untrack(() => filtersViewMode) !== next) filtersViewMode = next;
 	});
 
 	// Panel-scoped FnR island service. Single instance per page so the
@@ -318,6 +346,10 @@
 	function visibleFieldsFor(providerId: string, mode: ExplorerViewMode): string[] {
 		void fieldVisibilityVersion;
 		return visibleFieldsFromSettings(plugin.settings, providerId, mode);
+	}
+
+	function normalizeExplorerViewMode(value: unknown): ExplorerViewMode {
+		return typeof value === 'string' && isExplorerViewMode(value) ? value : 'tree';
 	}
 
 	async function setActiveVisibleFields(fields: string[]): Promise<void> {

@@ -177,7 +177,7 @@ export interface ThemePreset {
   /** Per-element visibility defaults. Sub-system 0-A wires. */
   nodeElements: NodeElementVisibility;
 
-  /** If true, user's btnMultiSelection control cannot override
+  /** If true, user's btnNodeElementsVisibility control cannot override
    *  nodeElements (native preset = true; vaultman = false).
    *  Sub-system 0-A wires. */
   lockNodeElementVisibility: boolean;

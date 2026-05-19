@@ -251,10 +251,10 @@ Expected: 5 test files PASS; full verify PASS.
 
 ```powershell
 pnpm run build
-obsidian plugin:reload id=vaultman vault=plugin-dev
-obsidian command id=vaultman:open vault=plugin-dev
+obsidian vault=plugin-dev plugin:reload id=vaultman
+obsidian vault=plugin-dev command id=vaultman:open
 # Visually verify each viewMode renders rows with full element set (vaultman preset default).
-obsidian dev:errors vault=plugin-dev
+obsidian vault=plugin-dev dev:errors
 ```
 
 Expected: `No errors captured.`

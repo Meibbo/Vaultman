@@ -70,21 +70,21 @@ add Bases live cross-check if needed.
 Executed in C11 commit message; re-run in C12. Sequence:
 
 ```text
-obsidian plugin:reload id=vaultman vault=plugin-dev
-obsidian command id=vaultman:open vault=plugin-dev
+obsidian vault=plugin-dev plugin:reload id=vaultman
+obsidian vault=plugin-dev command id=vaultman:open
 
 # 1. Preset toggle cycle
-obsidian eval code="plugin.themeService.setPreset('native')" vault=plugin-dev
+obsidian vault=plugin-dev eval code="plugin.themeService.setPreset('native')"
    assert: overlayViewMenu shows only Tree button
    assert: btnNodeElementsVisibility submenu DOM absent
-obsidian eval code="plugin.themeService.setPreset('vaultman')" vault=plugin-dev
+obsidian vault=plugin-dev eval code="plugin.themeService.setPreset('vaultman')"
    assert: overlayViewMenu shows 5 mode buttons
    assert: btnNodeElementsVisibility submenu visible
-obsidian eval code="plugin.themeService.setPreset('native')" vault=plugin-dev
+obsidian vault=plugin-dev eval code="plugin.themeService.setPreset('native')"
    assert: viewMode pruned to tree if was non-tree
 
 # 2. View-mode cycle (vaultman preset)
-obsidian eval code="plugin.themeService.setPreset('vaultman')" vault=plugin-dev
+obsidian vault=plugin-dev eval code="plugin.themeService.setPreset('vaultman')"
 for mode in [tree, list, table, grid, cards]:
    obsidian eval code="...service.setViewMode('${mode}')..."
    wait 200ms
@@ -119,7 +119,7 @@ pnpm smoke:scroll -- --view=cards --jumps=100
    assert: existing perf gates still pass (blankFrames=0, maxBlank=0ms)
 
 # 6. Dev errors check
-obsidian dev:errors vault=plugin-dev
+obsidian vault=plugin-dev dev:errors
    assert: "No errors captured."
 ```
 

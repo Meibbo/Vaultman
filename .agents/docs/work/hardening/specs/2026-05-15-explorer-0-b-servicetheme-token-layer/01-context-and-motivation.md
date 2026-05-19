@@ -70,9 +70,9 @@ introduced two cross-cutting requirements that touch theme contract:
 - **Node-element visibility contract.** When the native Obsidian preset is
   active, node-element visibility (icon, label, detail, media slot, badges,
   actions) follows the preset rigidly. When NOT native, the view menu
-  `btnMultiSelection` control exposes granular per-element toggles. The
+  `btnNodeElementsVisibility` control exposes granular per-element toggles. The
   preset must encode both the per-element visibility map and a flag that
-  determines whether `btnMultiSelection` is offered. This shapes
+  determines whether `btnNodeElementsVisibility` is offered. This shapes
   `ThemePreset.nodeElements` and `ThemePreset.lockNodeElementVisibility`
   fields.
 - **Map (markmap view) deferred.** The current `ViewMarkmap.svelte`
@@ -106,7 +106,7 @@ gains `themePresetId` + `customPresets`.
 0-H ✅ (virtualizer + list mode, completed and audited)
 0-B ← THIS SPEC. serviceTheme unification + theme preset registry.
 0-A    Native-DOM parity contract + View Feature Contract + in-editor
-       vocabulary + node-element btnMultiSelection wiring. Reads
+       vocabulary + node-element btnNodeElementsVisibility wiring. Reads
        preset.nodeElements, preset.lockNodeElementVisibility,
        preset.viewModes from 0-B's ThemePreset shape.
 Phase 1+: Provider parity, capability depth, layout extension, theme

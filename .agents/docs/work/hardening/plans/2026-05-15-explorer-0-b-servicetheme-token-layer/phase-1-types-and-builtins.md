@@ -566,7 +566,7 @@ import type { ThemePreset } from '../types/typeThemePreset';
  * - Single tree view only
  * - No dock, no top-tabs, no extra vm buttons
  * - Compact density matching core
- * - Element visibility locked (user btnMultiSelection hidden)
+ * - Element visibility locked (user btnNodeElementsVisibility hidden)
  *
  * Not the fresh-install default. Users opt in for core-equivalent
  * disguise.
@@ -632,7 +632,7 @@ export const PRESET_NATIVE: ThemePreset = {
  * - All 5 view modes (markmap deferred)
  * - Dock + top-tabs + full toolbar
  * - Comfortable density
- * - User btnMultiSelection unlocked
+ * - User btnNodeElementsVisibility unlocked
  * - Slight chrome polish (semi-transparent + small blur)
  *
  * Fresh-install default. Install plugin → see plugin.

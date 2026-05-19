@@ -65,7 +65,7 @@ Each view declares support for:
 The view menu contract has two modes:
 
 - native Obsidian preset: node element visibility follows the preset;
-- custom/non-native preset: `btnMultiSelection` can show/hide granular node
+- custom/non-native preset: `btnNodeElementsVisibility` can show/hide granular node
   elements.
 
 The primary image/media slot is one granular node element. It defaults off in
