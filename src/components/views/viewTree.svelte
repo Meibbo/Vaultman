@@ -73,6 +73,7 @@
 		explorerViewContract,
 		type NativeClassVocabulary,
 	} from '../../services/serviceExplorerViewContract';
+	import type { DndViewState } from '../../services/serviceDnd';
 	import { stateModEmissions } from '../../services/serviceNodeClassEmission';
 	import type { ThemeService } from '../../services/serviceTheme.svelte';
 
@@ -146,6 +147,7 @@
 		providerId?: string;
 		visibleFields?: readonly string[];
 		stickyTopOffset?: number;
+		dndStateForId?: (id: string) => DndViewState | undefined;
 		themeService?: ThemeService;
 		icon: (node: HTMLElement, name: string) => { update(n: string): void };
 	}
@@ -183,6 +185,7 @@
 		providerId = 'nodes',
 		visibleFields = [],
 		stickyTopOffset = 0,
+		dndStateForId,
 		themeService = undefined,
 		icon,
 	}: Props = $props();
@@ -247,15 +250,20 @@
 		return badges.some((badge) => badge.queueIndex !== undefined || (badge.solid && !badge.quickAction));
 	}
 
-	function rowStateClassString(state: {
-		isSelected: boolean;
-		isFocused: boolean;
-		isActive: boolean;
-	}): string {
+	function rowStateClassString(
+		state: {
+			isSelected: boolean;
+			isFocused: boolean;
+			isActive: boolean;
+		},
+		dndState?: DndViewState,
+	): string {
 		return stateModEmissions(nativeVocab, {
-			...state,
-			isDragSource: false,
-			isDropTarget: false,
+			isSelected: state.isSelected,
+			isFocused: state.isFocused,
+			isActive: state.isActive,
+			isDragSource: dndState?.dragging === true,
+			isDropTarget: dndState?.dropTarget === true,
 			hasActiveMenu: false,
 		}).join(' ');
 	}
@@ -921,10 +929,11 @@
 	{@const hasOverlayBadges =
 		directBadges.length > 0 || childBadges.length > 0 || hoverBadges.length > 0}
 	{@const hasActiveBadges = hasActiveRowBadge(directBadges) || hasActiveRowBadge(childBadges)}
+	{@const dndState = dndStateForId?.(id)}
 
 	<div
 		class="vm-tree-virtual-row {sticky ? 'vm-tree-sticky-row' : ''} {node.cls ?? ''} {nativeVocab?.rowRoot ??
-			''} {rowStateClassString({ isSelected, isFocused, isActive })}"
+			''} {rowStateClassString({ isSelected, isFocused, isActive }, dndState)}"
 		class:is-active-filter={isActive}
 		class:is-selected={isSelected}
 		class:is-focused={isFocused}
@@ -948,7 +957,7 @@
 				isSelected,
 				isFocused,
 				isActive,
-			})}"
+			}, dndState)}"
 			class:is-active-filter={isActive}
 			class:is-selected={isSelected}
 			class:is-focused={isFocused}

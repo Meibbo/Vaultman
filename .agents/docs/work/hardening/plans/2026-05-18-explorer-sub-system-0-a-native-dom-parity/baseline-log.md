@@ -363,3 +363,66 @@ Smoke result:
 - Grid: `.vm-node-grid-tile` present; `.nav-file`, `.nav-file-title`, and
   `bases-*` classes absent.
 - Final `obsidian vault=plugin-dev dev:errors`: `No errors captured.`
+
+## C9 DnD vocab verification
+
+Focused C9 tests:
+
+```powershell
+pnpm exec vp test run --project component --config vitest.config.ts --fileParallelism=false test/component/views/ViewNodeGrid.DndStateMods.test.ts test/component/views/viewTree.DndStateMods.test.ts test/component/views/ViewNodeTable.DndStateMods.test.ts test/component/views/ViewNodeCards.DndStateMods.test.ts test/component/views/ViewNodeList.DndStateMods.test.ts
+```
+
+Result: PASS, 5 files / 10 tests. Additional guard:
+`test/unit/services/serviceNodeClassEmission.test.ts` remained green during
+focused verification.
+
+Aggregate verification:
+
+```powershell
+pnpm verify
+```
+
+Result: PASS. `pnpm verify` reported 143 unit files / 918 unit tests and 98
+component files / 494 component tests.
+
+Notes from systematic debugging during verification:
+
+- Initial `pnpm verify` attempts timed out because the component suite takes
+  about 8-10 minutes in this environment and timed-out runners left Node
+  children alive. Those orphaned runners were terminated.
+- One full verify run exposed the existing `viewTableStress` timing gate under
+  heavy local load. C9 was adjusted to avoid per-row empty DnD-state object
+  allocation when no `dndStateForId` provider is present; focused C9 tests and
+  `viewTableStress.test.ts` passed afterward, followed by a green aggregate
+  `pnpm verify`.
+- `serviceDnd`, `serviceManualDnd`, `serviceDndSvelteAdapter`, dnd-kit, and
+  lock files were not modified.
+- No `dropIndicatorY` / `.vm-drop-indicator` render exists in the current view
+  code, so C9 did not invent a new drop-indicator element. The class contract
+  remains covered by `UNIVERSAL_DND_VOCAB`; a future render site can consume it.
+
+Live plugin-dev smoke used only vault-first commands:
+
+```powershell
+obsidian vault=plugin-dev eval code="app.vault.getName()"
+obsidian vault=plugin-dev plugin:reload id=vaultman
+obsidian vault=plugin-dev dev:errors clear
+obsidian vault=plugin-dev eval code="..."
+obsidian vault=plugin-dev dev:errors
+```
+
+Smoke result:
+
+- Vault identity: `plugin-dev`.
+- Existing frame count: `.vm-root` count was `1`; `vaultman:open` was not run
+  because that command behaves as a toggle when a frame is already open.
+- Grid view smoke: 33 `.vm-node-grid-tile` elements rendered.
+- Manual DnD was enabled through the sort menu button
+  `[data-vm-sort-manual-dnd]`, then restored to `false` after the smoke.
+- Synthetic grid `dragstart` + `dragover` emitted `.vm-drag-source` on the
+  source tile and `.vm-drop-target` on the target tile.
+- Legacy `.is-dnd-dragging` / `.is-dnd-drop-target` classes were absent.
+- Native DnD classes were absent on grid, as expected because grid remains
+  vm-only (`rowStateMods=[]`).
+- View mode was restored to Tree.
+- Final `obsidian vault=plugin-dev dev:errors`: `No errors captured.`

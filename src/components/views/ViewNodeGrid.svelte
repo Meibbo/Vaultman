@@ -1052,8 +1052,6 @@
 		class:is-active={isActive}
 		class:is-active-node={isActive}
 		class:is-manual-dnd={manualDndEnabled}
-		class:is-dnd-dragging={dndState.dragging}
-		class:is-dnd-drop-target={dndState.dropTarget}
 		class:is-expanded={nodeExpanded}
 		class:is-inline-hierarchy={hierarchyMode === 'inline'}
 		data-id={node.id}

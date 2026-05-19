@@ -1,4 +1,5 @@
 import type { NativeClassVocabulary } from './serviceExplorerViewContract';
+import { UNIVERSAL_DND_VOCAB } from '../types/typeViewHost';
 
 export interface RowStateBooleans {
 	isSelected: boolean;
@@ -26,11 +27,11 @@ export function stateModEmissions(
 		if (state.isSelected && vocab.rowStateMods.includes('is-selected')) out.push('is-selected');
 		if (state.isFocused && vocab.rowStateMods.includes('is-focused')) out.push('is-focused');
 		if (state.isActive && vocab.rowStateMods.includes('is-active')) out.push('is-active');
-		if (state.isDragSource && vocab.rowStateMods.includes('is-being-dragged')) {
-			out.push('is-being-dragged');
+		if (state.isDragSource && vocab.rowStateMods.includes(UNIVERSAL_DND_VOCAB.dragSource)) {
+			out.push(UNIVERSAL_DND_VOCAB.dragSource);
 		}
-		if (state.isDropTarget && vocab.rowStateMods.includes('is-being-dragged-over')) {
-			out.push('is-being-dragged-over');
+		if (state.isDropTarget && vocab.rowStateMods.includes(UNIVERSAL_DND_VOCAB.dragTarget)) {
+			out.push(UNIVERSAL_DND_VOCAB.dragTarget);
 		}
 		if (state.hasActiveMenu && vocab.rowStateMods.includes('has-active-menu')) {
 			out.push('has-active-menu');

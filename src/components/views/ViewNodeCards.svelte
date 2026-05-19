@@ -59,6 +59,7 @@
 		explorerViewContract,
 		type NativeClassVocabulary,
 	} from '../../services/serviceExplorerViewContract';
+	import type { DndViewState } from '../../services/serviceDnd';
 	import { stateModEmissions } from '../../services/serviceNodeClassEmission';
 	import type { ThemeService } from '../../services/serviceTheme.svelte';
 
@@ -103,6 +104,7 @@
 		mouseGestureConfig?: MouseGestureConfig;
 		measure?: TextMeasureService;
 		themeService?: ThemeService;
+		dndStateForId?: (id: string) => DndViewState | undefined;
 		icon: (node: HTMLElement, name: string) => { update(n: string): void };
 	}
 
@@ -125,6 +127,7 @@
 		mouseGestureConfig,
 		measure = createCardsTextMeasureService(),
 		themeService = undefined,
+		dndStateForId,
 		icon,
 	}: Props = $props();
 
@@ -435,15 +438,20 @@
 		});
 	}
 
-	function rowStateClassString(state: {
-		isSelected: boolean;
-		isFocused: boolean;
-		isActive: boolean;
-	}): string {
+	function rowStateClassString(
+		state: {
+			isSelected: boolean;
+			isFocused: boolean;
+			isActive: boolean;
+		},
+		dndState?: DndViewState,
+	): string {
 		return stateModEmissions(nativeVocab, {
-			...state,
-			isDragSource: false,
-			isDropTarget: false,
+			isSelected: state.isSelected,
+			isFocused: state.isFocused,
+			isActive: state.isActive,
+			isDragSource: dndState?.dragging === true,
+			isDropTarget: dndState?.dropTarget === true,
 			hasActiveMenu: false,
 		}).join(' ');
 	}
@@ -516,9 +524,11 @@
 							ownNodeBadges(node),
 							nodeElementMask,
 						)}
+						{@const dndState = dndStateForId?.(input.id)}
 						<div
 							class="vm-node-card {node.cls ?? ''} {nativeVocab?.rowRoot ?? ''} {rowStateClassString(
 								{ isSelected, isFocused, isActive },
+								dndState,
 							)}"
 							class:is-selected={isSelected}
 							class:is-focused={isFocused}

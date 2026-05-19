@@ -46,6 +46,7 @@
 		explorerViewContract,
 		type NativeClassVocabulary,
 	} from '../../services/serviceExplorerViewContract';
+	import type { DndViewState } from '../../services/serviceDnd';
 	import { stateModEmissions } from '../../services/serviceNodeClassEmission';
 	import { PerfMeter } from '../../services/perfMeter';
 	import { NodeRowMeasureService } from '../../services/serviceNodeRowMeasure';
@@ -96,6 +97,7 @@
 		themeService?: ThemeService;
 		visibleFields?: readonly string[];
 		columnWidth?: number;
+		dndStateForId?: (id: string) => DndViewState | undefined;
 		icon: (node: HTMLElement, name: string) => { update(n: string): void };
 	}
 
@@ -121,6 +123,7 @@
 		themeService = undefined,
 		visibleFields = undefined,
 		columnWidth = undefined,
+		dndStateForId,
 		icon,
 	}: Props<TNode> = $props();
 
@@ -530,15 +533,20 @@
 		return row.callbackId ?? row.id;
 	}
 
-	function rowStateClassString(state: {
-		isSelected: boolean;
-		isFocused: boolean;
-		isActive: boolean;
-	}): string {
+	function rowStateClassString(
+		state: {
+			isSelected: boolean;
+			isFocused: boolean;
+			isActive: boolean;
+		},
+		dndState?: DndViewState,
+	): string {
 		return stateModEmissions(nativeVocab, {
-			...state,
-			isDragSource: false,
-			isDropTarget: false,
+			isSelected: state.isSelected,
+			isFocused: state.isFocused,
+			isActive: state.isActive,
+			isDragSource: dndState?.dragging === true,
+			isDropTarget: dndState?.dropTarget === true,
 			hasActiveMenu: false,
 		}).join(' ');
 	}
@@ -772,9 +780,11 @@
 				{@const isFocused = focusedId === id}
 				{@const isActive = activeId === id}
 				{@const directBadges = visibleTableBadges(row)}
+				{@const dndState = dndStateForId?.(id)}
 				<div
 					class="vm-node-table-row {row.cls ?? ''} {nativeVocab?.rowRoot ?? ''} {rowStateClassString(
 						{ isSelected, isFocused, isActive },
+						dndState,
 					)}"
 					class:is-selected={isSelected}
 					class:is-focused={isFocused}
