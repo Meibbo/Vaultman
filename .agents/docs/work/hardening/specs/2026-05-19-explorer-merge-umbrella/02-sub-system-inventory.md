@@ -87,21 +87,50 @@ los 9 sub-systems pre-existentes (5, 6, 8, 10, 11, 12, 4-I, 2, N) que reciben me
 
 ## NEW: T.G — Test Invariant Gates anti-IA
 
-- **Goal**: prevent regressions cuando agentes IA tocan views/services. Cross-view invariant
-  suite que TODOS los views deben pasar.
-- **Scope**:
-  - Adopt `wdio-obsidian-service` (E2E tier real Obsidian) + setup CI
-  - Vitest browser mode (`@vitest/browser-playwright`) tier para component tests contra
-    web-lab DOM
-  - WAI-ARIA Tree View pattern compliance suite (mandatory keyboard behaviors)
-  - Caret hit-target snapshot (WCAG 2.5.8 ≥ 24×24)
-  - Selection contract parity suite (mismo contract en todos los views)
-  - Keyboard nav parity suite (Arrows/Home/End/PageUp/Down/Enter/Space/typeahead)
-  - Native-DOM emission snapshot vs Bases / Obsidian real (via web-lab serving real `app.js`)
+- **Goal**: prevenir regresiones cuando agentes IA tocan views/services. La causa raíz que el
+  usuario reporta ("ni los tests han evitado que se rompan estos componentes") es **intent drift**:
+  el comportamiento diverge del spec SIN que falle un test unitario. T.G ataca eso con
+  spec-anchored invariants + statistical gates, NO con más unit tests.
+
+- **Tres tiers de test (pirámide)**:
+  1. **Vitest jsdom** — pure service logic (selection state machine, expand-collapse, type-ahead
+     buffer). Corre contra los `.svelte.ts` reales. Rápido. (Ya existe parcialmente: `test:cover`.)
+  2. **Vitest browser mode** (`@vitest/browser-playwright`) — component contracts contra el DOM
+     real que sirve obsidian-web-lab (mismo `app.js` + `app.css` que Electron). Cubre DOM emission,
+     CSS class presence, event wiring, layout math, virt counters. NO cubre plugin lifecycle /
+     settings persistence / workspace state (Electron-only — gate con `describe.skipIf(!process.versions.electron)`).
+  3. **wdio-obsidian-service** — E2E en Obsidian real (versioned download, sandboxed config,
+     Windows + CI). Para los casos que solo fallan con `app.js` real.
+
+- **Invariant suites (spec-anchored, cross-view — TODOS los views deben pasar)**:
+  - WAI-ARIA Tree View pattern compliance (Right opens / Left closes / Up-Down nav / Home-End /
+    Enter activates / type-ahead) — keyboard behaviors mandatorios
+  - Caret hit-target snapshot (WCAG 2.5.8 ≥ 24×24 CSS px)
+  - Selection contract parity (mismo `(id, MouseEvent)` en los 5 views × mount-contexts)
+  - Keyboard nav parity (Arrows/Home/End/PageUp/Down/Enter/Space/typeahead idénticos)
+  - Native-DOM emission snapshot vs Bases / Obsidian real (diff byte-for-byte contra DOM del web-lab)
+  - **Assert structural attrs** (`aria-expanded`, `aria-selected`, `aria-activedescendant`,
+    `data-row-key`) NO CSS classes — eso es lo que frena el drift de agentes
+
+- **Anti-drift statistical gates (research 2026-05-19)**:
+  - **AgentAssay-style**: cada invariant suite corre N=5 veces, aplica Wilson confidence intervals +
+    Fisher's exact test → gate pasa solo si el pass-rate es estadísticamente estable (maneja
+    non-determinismo de outputs de agentes)
+  - **CUSUM drift detection** entre iteraciones del pipeline: trackea pass-rate acumulado a través de
+    los sub-systems v1.1.0→v2.0.0; detecta intent-drift / loops / hallucinated tool calls antes de v2.0.0
+  - Mismo evaluator gatea CI y merge (no drift dev-time vs merge-time)
+
+- **Integración con CI existente** (`.github/workflows/ci.yml`):
+  - ci.yml actual NO incluye `sandbox` en trigger branches (`[main, hardening, hardening-*]`) →
+    los 180 commits de sandbox NUNCA pasaron CI. **T.G debe AGREGAR `sandbox` al trigger.**
+  - Agregar tiers como jobs: jsdom (existente `test:cover`), browser-mode (nuevo), wdio (nuevo)
+  - `claude-code-action@v1` como neutral reviewer feeding severity al auto-merge matrix
+
 - **Out-of-scope**: feature work
-- **Depends on**: A.R (contract a testear)
-- **~Commits**: 4-8
-- **First release**: v1.1.0 (basis); extends en v1.2.0 con V.D coverage
+- **Depends on**: A.R (contract a testear). Tier 1 jsdom puede arrancar antes (service logic ya existe).
+- **~Commits**: 6-10 (subió de 4-8 al agregar statistical gates + CI integration)
+- **First release**: v1.1.0 (basis: jsdom + browser-mode + WAI-ARIA suite + sandbox-en-CI);
+  extends v1.2.0 (wdio tier + CUSUM cross-sub-system) + V.D coverage
 
 ## EXISTING SIBLING: 0-A.S — Adversarial Scroll Harness + tree scroll fix
 
