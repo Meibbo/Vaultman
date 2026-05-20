@@ -38,8 +38,13 @@ Compact handoff after archiving the oversized current handoff:
 - ⚠️ LEARNING: NO reconciliar vía `git checkout sandbox -- .` desde base origin/main — es UNIÓN +
   arrastra ~36 dead stragglers main-only (sidebarOps_old, VaultmanSettings, i18n viejo…). Esos
   causaron 14 lint errors fantasma. Correcto = branch DESDE sandbox, strip AI. Sandbox es lint-clean.
-- Verify del clean candidate: lanzado (logs `/tmp/mc-verify.log` + `/tmp/mc-audit.log`; security:audit
-  prod limpio, dev 1 moderate brace-expansion bajo threshold). **Confirmar verify VERDE antes de seguir.**
+- Verify del clean candidate (`69723fe`): **lint PASS** (los 14 errors eran 100% stragglers main-only,
+  CONFIRMADO — submission blocker resuelto), check PASS, build PASS, security PASS,
+  **928/928 tests pass**. ÚNICO fallo: 1 test FILE no importa —
+  `test/unit/performance/explorerNotebookNavigatorComparison.test.ts` (error module-runner
+  import/transform, NO assertion). Misma clase flaky/timing que el equipo ya aceptó antes
+  (viewTableStress, pageFiltersRenameHandoff, vmDialogPortal). **Re-correr ese file aislado para
+  confirmar flake** → candidate green-enough para el paso de main.
 
 **P1 (release infra) status**:
 - (g) ✅ T.G shard expandido (anti-drift: 3-tier + AgentAssay/CUSUM + flag de ci.yml sin sandbox).
