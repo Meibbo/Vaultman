@@ -30,8 +30,8 @@ Compact route index after archiving the oversized current status:
 
 - Active initiative: [[docs/work/hardening/index|Hardening]].
 - **NEXT (post-0-A closeout 2026-05-20)**: [[docs/work/hardening/plans/2026-05-20-explorer-AR-action-routing/index|A.R implementation plan]]
-  — Gate-0, Tasks 1-5, and Tasks 6a-6c are complete; continue with
-  [[docs/work/hardening/plans/2026-05-20-explorer-AR-action-routing/03-view-adoption-task-6d-cards|Task 6d cards adoption]] for `v1.2.0`.
+  — Gate-0, Tasks 1-5, and Tasks 6a-6d are complete; continue with
+  [[docs/work/hardening/plans/2026-05-20-explorer-AR-action-routing/04-expand-and-cmenu|Tasks 7-8 expand/cmenu]] for `v1.2.0`.
 - [[docs/work/hardening/specs/2026-05-19-explorer-merge-umbrella/index|Explorer Merge Umbrella]]
   — proto-v5 ↔ production merge + release pipeline renumerado `v1.2.0→v2.0.0` después del
   catch-up `1.1.0`. A.R spec + plan existen para `v1.2.0`; implementation queda gateada por
@@ -174,6 +174,12 @@ Compact route index after archiving the oversized current status:
   - Focused grid/delegation gate passed: 4 files / 33 tests.
   - Expanded grid/panel gate passed: 9 files / 84 tests.
   - `pnpm run check` and `pnpm run lint` passed with 0 errors / 0 warnings.
+- A.R Task 6d on 2026-05-20:
+  - Source record:
+    [[docs/work/hardening/plans/2026-05-20-explorer-AR-action-routing/03-view-adoption-task-6d-cards|Task 6d ViewNodeCards adoption]].
+  - Action-adoption gate passed: 1 file / 4 tests.
+  - Expanded cards/panel gate passed: 9 files / 70 tests.
+  - `pnpm run check` and `pnpm run lint` passed with 0 errors / 0 warnings.
 
 ## Known Residuals
 
@@ -204,8 +210,8 @@ Compact route index after archiving the oversized current status:
 
 ## Next Action
 
-- **PRIMARY (post A.R Task 6c 2026-05-20)**: continue A.R Task 6d cards adoption from
-  [[docs/work/hardening/plans/2026-05-20-explorer-AR-action-routing/03-view-adoption-task-6d-cards|A.R Task 6d cards adoption]].
+- **PRIMARY (post A.R Task 6d 2026-05-20)**: continue A.R Tasks 7-8 from
+  [[docs/work/hardening/plans/2026-05-20-explorer-AR-action-routing/04-expand-and-cmenu|A.R expand/cmenu plan]].
 - Explorer 0-B, O, and 0-A are complete. A.R Gate-0 is closed/unblocked.
 - For Explorer scroll work, continue from the variable scroll repair record:
   add runner-level view switching, add percentile/histogram reporting for scroll

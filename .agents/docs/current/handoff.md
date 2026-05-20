@@ -55,9 +55,9 @@ Compact handoff after archiving the oversized current handoff:
 
 **Next action**:
 1. A.R spec + implementation plan are imported to `sandbox`.
-2. Gate-0, Tasks 1-5, and Tasks 6a-6c are complete, through `refactor(A.R): ViewNodeGrid adopts row-action builder`.
+2. Gate-0, Tasks 1-5, and Tasks 6a-6d are complete, through `refactor(A.R): ViewNodeCards adopts row-action builder`.
 3. Continue A.R for `v1.2.0` from
-   [[docs/work/hardening/plans/2026-05-20-explorer-AR-action-routing/03-view-adoption-task-6d-cards|Task 6d cards adoption]].
+   [[docs/work/hardening/plans/2026-05-20-explorer-AR-action-routing/04-expand-and-cmenu|Tasks 7-8 expand/cmenu]].
 
 **Optional cleanup**:
 - Remote branches `main-clean-1.1.0` and `release/1.1.0-infra` are merged/stale branches created
@@ -67,7 +67,13 @@ Compact handoff after archiving the oversized current handoff:
 
 - Worktree: `C:\Users\vic_A\Desktop\vaultman`
 - Branch: `sandbox`.
-- **Latest (2026-05-20)**: A.R Task 6c complete and verified locally; next is Task 6d cards adoption.
+- **Latest (2026-05-20)**: A.R Task 6d complete and verified locally; next is Tasks 7-8 expand/cmenu.
+  Task 6d source record:
+  [[docs/work/hardening/plans/2026-05-20-explorer-AR-action-routing/03-view-adoption-task-6d-cards|Task 6d ViewNodeCards adoption]].
+  Action-adoption gate: 1 file / 4 tests; expanded cards/panel gate:
+  9 files / 70 tests; `pnpm run check` and `pnpm run lint` passed with
+  0 errors / 0 warnings.
+- Previous (2026-05-20): A.R Task 6c complete and verified locally.
   Task 6c source record:
   [[docs/work/hardening/plans/2026-05-20-explorer-AR-action-routing/03-view-adoption-task-6c-grid|Task 6c ViewNodeGrid adoption]].
   Focused grid/delegation gate: 4 files / 33 tests; expanded grid/panel gate:
@@ -160,8 +166,8 @@ repair. Current handoff keeps only the active route and the latest release facts
 
 ## Next Action
 
-- **PRIMARY (post A.R Task 6c 2026-05-20)**: continue A.R Task 6d cards adoption from
-  [[docs/work/hardening/plans/2026-05-20-explorer-AR-action-routing/03-view-adoption-task-6d-cards|A.R Task 6d cards adoption]].
+- **PRIMARY (post A.R Task 6d 2026-05-20)**: continue A.R Tasks 7-8 from
+  [[docs/work/hardening/plans/2026-05-20-explorer-AR-action-routing/04-expand-and-cmenu|A.R expand/cmenu plan]].
 - Phase 0 spine `0-H → 0-B → O → 0-A` is closed; A.R can consume the
   View Feature Contract / native DOM contract.
 - If continuing Explorer scroll work, start from the variable scroll repair

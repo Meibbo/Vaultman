@@ -59,6 +59,7 @@
 		explorerViewContract,
 		type NativeClassVocabulary,
 	} from '../../services/serviceExplorerViewContract';
+	import { createRowAction, type RowProps, type RowState } from '../../services/serviceRowAction';
 	import type { DndViewState } from '../../services/serviceDnd';
 	import { stateModEmissions } from '../../services/serviceNodeClassEmission';
 	import type { ThemeService } from '../../services/serviceTheme.svelte';
@@ -150,6 +151,19 @@
 	const useNativeDom = $derived(presetUseNativeDom ?? themeService?.useNativeDom ?? false);
 	const nativeVocab = $derived<NativeClassVocabulary | null>(
 		useNativeDom ? explorerViewContract('cards').nativeDomEmission.panel : null,
+	);
+	const cardsFeatures = explorerViewContract('cards').features;
+	const rowAction = $derived(
+		createRowAction({
+			explorerId: providerId,
+			role: 'gridcell',
+			features: cardsFeatures,
+			contract: {
+				onToggle: noopCardToggle,
+				onContextMenu,
+				onRowKeydown: onCardKeydown,
+			},
+		}),
 	);
 	const maskCtx = getContext<NodeElementMaskContextValue | undefined>(NODE_ELEMENT_MASK_KEY);
 	const nodeElementMask = $derived(maskCtx?.value() ?? DEFAULT_NODE_ELEMENT_MASK);
@@ -396,6 +410,12 @@
 		return Math.max(1, Math.floor((available - CARD_GAP * (safeColumns - 1)) / safeColumns) - CARD_HORIZONTAL_PADDING);
 	}
 
+	function cardRowProps(id: string, state: RowState): RowProps {
+		return rowAction.getRowProps(id, state);
+	}
+
+	function noopCardToggle(): void {}
+
 	function buildCardRows(
 		items: readonly ExplorerRowInput[],
 		columns: number,
@@ -537,13 +557,14 @@
 							data-node-id={input.id}
 							data-callback-id={callbackId}
 							data-card-bucket={layout.bucket}
-							role="gridcell"
-							tabindex="0"
-							aria-selected={isSelected}
 							onclick={(e) => handleCardClick(input, e)}
 							onauxclick={(e) => handleCardAuxClick(input, e)}
-							oncontextmenu={(e) => onContextMenu(callbackId, e)}
-							onkeydown={(e) => onCardKeydown?.(callbackId, e)}
+							{...cardRowProps(callbackId, {
+								selected: isSelected,
+								focused: isFocused,
+								expandable: false,
+								expanded: false,
+							})}
 						>
 							{#if nodeElementMask.media && input.mediaDescriptor}
 								<div
