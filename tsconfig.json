@@ -31,6 +31,8 @@
 	"include": [
 		"src/**/*.ts",
 		"src/**/*.svelte",
+		"test/**/*.ts",
+		"test/**/*.svelte",
 		"scripts/esbuild.config.mjs",
 		"svelte.config.js",
 		"vite.config.ts",

@@ -84,7 +84,6 @@
 	const TREE_OVERSCAN = 10;
 	const TREE_STICKY_MAX_ROWS = 7;
 	const TREE_STICKY_MAX_VIEWPORT_RATIO = 0.4;
-	const TREE_SCROLL_IDLE_MS = 96;
 	type ScrollTarget = ExplorerRevealTarget;
 
 	interface FlatNode<TMeta = unknown> {
@@ -279,7 +278,6 @@
 	let rowHeight = $state(TREE_ROW_HEIGHT);
 	let fallbackScrollTop = $state(0);
 	let fallbackViewportHeight = $state(TREE_FALLBACK_HEIGHT);
-	let isScrolling = $state(false);
 	let dragStart = $state<{ x: number; y: number; pointerId: number } | null>(null);
 	let capturedSelectionPointerId: number | null = null;
 	let selectionBox = $state<{
@@ -290,7 +288,6 @@
 	} | null>(null);
 	let suppressNextClick = false;
 	let rowHeightFrame: number | null = null;
-	let scrollIdleTimer: ReturnType<typeof setTimeout> | null = null;
 	let consumedScrollTargetSerial: number | null = null;
 	const mouse = createMouseGestureService();
 	const viewSize = $derived(getViewSizePreset(sizePresetId));
@@ -305,12 +302,6 @@
 	});
 
 	$effect(() => () => mouse.cancelAll());
-	$effect(() => {
-		return () => {
-			if (scrollIdleTimer !== null) clearTimeout(scrollIdleTimer);
-			scrollIdleTimer = null;
-		};
-	});
 	$effect(() => {
 		if (!outerEl) return;
 		syncFallbackScrollState();
@@ -382,21 +373,11 @@
 	});
 
 	function onScroll() {
-		markScrolling();
 		syncFallbackScrollState();
 		getActivePerfProbe()?.count('viewTree.scroll', {
 			rows: flatArray.length,
 			visibleRows: virtualRows.length,
 		});
-	}
-
-	function markScrolling(): void {
-		isScrolling = true;
-		if (scrollIdleTimer !== null) clearTimeout(scrollIdleTimer);
-		scrollIdleTimer = setTimeout(() => {
-			scrollIdleTimer = null;
-			isScrolling = false;
-		}, TREE_SCROLL_IDLE_MS);
 	}
 
 	function resolveRevealIndex(target: ScrollTarget): number {
@@ -917,14 +898,10 @@
 	{@const isHighlighted = searchHighlightIds?.has(id) ?? false}
 	{@const isSelected = selectedIds?.has(id) ?? false}
 	{@const isFocused = focusedId === id}
-	{@const directBadges = isScrolling
-		? []
-		: visibleNodeBadgesForMask(ownNodeBadges(node), nodeElementMask)}
-	{@const childBadges = isScrolling
-		? []
-		: visibleNodeBadgesForMask(inheritedNodeBadges(node), nodeElementMask)}
-	{@const hoverBadges = isScrolling ? [] : hoverBadgesFor(id)}
-	{@const rowIcon = !isScrolling && showNodeIcon ? iconForNode(node, flat) : undefined}
+	{@const directBadges = visibleNodeBadgesForMask(ownNodeBadges(node), nodeElementMask)}
+	{@const childBadges = visibleNodeBadgesForMask(inheritedNodeBadges(node), nodeElementMask)}
+	{@const hoverBadges = hoverBadgesFor(id)}
+	{@const rowIcon = showNodeIcon ? iconForNode(node, flat) : undefined}
 	{@const hasCount = showNodeCount && hasVisibleCount(node)}
 	{@const fieldValues = nodeElementMask.detail
 		? visibleNodeFieldValues(effectiveProviderId, 'tree', node, effectiveVisibleFields)

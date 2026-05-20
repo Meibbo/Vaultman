@@ -158,6 +158,100 @@ describe('perf probe DOM scenarios', () => {
 		expect(scrolls).toBe(5);
 	});
 
+	it('strict explorer scroll burst detects node-element flicker during active scroll', async () => {
+		document.body.innerHTML = `
+			<div class="vm-view-list">
+				<div class="vm-view-list-row" data-id="node-0">
+					<span class="vm-view-list-icon"></span>
+					<span class="vm-view-list-main">
+						<span class="vm-view-list-label">Node 0</span>
+						<span class="vm-view-list-detail">node.md</span>
+					</span>
+					<span class="vm-view-list-badges"><span class="vm-badge">Queued</span></span>
+					<span class="vm-view-list-actions"><button aria-label="Open"></button></span>
+				</div>
+			</div>
+		`;
+		const list = document.querySelector<HTMLElement>('.vm-view-list');
+		const row = document.querySelector<HTMLElement>('.vm-view-list-row');
+		expect(list).toBeTruthy();
+		expect(row).toBeTruthy();
+		Object.defineProperty(list, 'clientHeight', { value: 100, configurable: true });
+		Object.defineProperty(list, 'scrollHeight', { value: 1_100, configurable: true });
+		const renderFull = () => {
+			row!.innerHTML = `
+				<span class="vm-view-list-icon"></span>
+				<span class="vm-view-list-main">
+					<span class="vm-view-list-label">Node 0</span>
+					<span class="vm-view-list-detail">node.md</span>
+				</span>
+				<span class="vm-view-list-badges"><span class="vm-badge">Queued</span></span>
+				<span class="vm-view-list-actions"><button aria-label="Open"></button></span>
+			`;
+		};
+		list?.addEventListener('scroll', () => {
+			row!.innerHTML = `
+				<span class="vm-view-list-main">
+					<span class="vm-view-list-label">Node 0</span>
+					<span class="vm-view-list-detail">node.md</span>
+				</span>
+			`;
+			setTimeout(renderFull, 96);
+		});
+		const probe = createPerfProbe({ now: () => performance.now(), doc: document });
+
+		const result = await probe.api.run('explorer-scroll-burst-live', {
+			view: 'list',
+			jumps: 1,
+			visualDelayMs: 0,
+			overlay: false,
+			strictFlicker: true,
+		});
+
+		expect(result.scrollBurst).toMatchObject({
+			strictFlicker: true,
+			flickerFrameCount: 1,
+			passed: false,
+		});
+		expect(result.scrollBurst?.samples[0]?.flickerRowCount).toBeGreaterThan(0);
+	});
+
+	it('strict explorer scroll burst passes when node-element children stay mounted', async () => {
+		document.body.innerHTML = `
+			<div class="vm-view-list">
+				<div class="vm-view-list-row" data-id="node-0">
+					<span class="vm-view-list-icon"></span>
+					<span class="vm-view-list-main">
+						<span class="vm-view-list-label">Node 0</span>
+						<span class="vm-view-list-detail">node.md</span>
+					</span>
+					<span class="vm-view-list-badges"><span class="vm-badge">Queued</span></span>
+					<span class="vm-view-list-actions"><button aria-label="Open"></button></span>
+				</div>
+			</div>
+		`;
+		const list = document.querySelector<HTMLElement>('.vm-view-list');
+		expect(list).toBeTruthy();
+		Object.defineProperty(list, 'clientHeight', { value: 100, configurable: true });
+		Object.defineProperty(list, 'scrollHeight', { value: 1_100, configurable: true });
+		const probe = createPerfProbe({ now: () => performance.now(), doc: document });
+
+		const result = await probe.api.run('explorer-scroll-burst-live', {
+			view: 'list',
+			jumps: 1,
+			visualDelayMs: 0,
+			overlay: false,
+			strictFlicker: true,
+		});
+
+		expect(result.scrollBurst).toMatchObject({
+			strictFlicker: true,
+			flickerFrameCount: 0,
+			maxFlickerRowCount: 0,
+			passed: true,
+		});
+	});
+
 	it('waits for explorer scroll burst target after opening the live view', async () => {
 		document.body.innerHTML = '';
 		setTimeout(() => {

@@ -52,6 +52,7 @@ export interface PerfScenarioOptions {
 	jumps?: number;
 	visualDelayMs?: number;
 	overlay?: boolean;
+	strictFlicker?: boolean;
 }
 
 export interface PerfScrollBurstSample {
@@ -66,6 +67,8 @@ export interface PerfScrollBurstSample {
 	blank: boolean;
 	blankDurationMs: number;
 	eventLoopDelayMs: number;
+	flickerRowCount: number;
+	flickerRows?: string[];
 	firstRowId?: string;
 	lastRowId?: string;
 }
@@ -80,6 +83,9 @@ export interface PerfScrollBurstReport {
 	blankWindowOver250ms: number;
 	maxBlankDurationMs: number;
 	maxEventLoopDelayMs: number;
+	strictFlicker: boolean;
+	flickerFrameCount: number;
+	maxFlickerRowCount: number;
 	passed: boolean;
 	reason?: string;
 }
@@ -133,12 +139,19 @@ const SCROLL_BURST_HARD_BLANK_FAIL_MS = 250;
 const SCROLL_BURST_TARGET_WAIT_MS = 2_000;
 const SCROLL_BURST_TARGET_POLL_MS = 16;
 const SCROLL_BURST_FRAME_FALLBACK_MS = 50;
+const SCROLL_BURST_STRICT_IDLE_MS = 128;
 
 interface ScrollBurstTarget {
 	view: Exclude<PerfScrollBurstView, 'auto'>;
 	element: HTMLElement;
 	rowSelector: string;
 	textSelector: string;
+	flickerSelectors: Record<string, string>;
+}
+
+interface RowChildSignature {
+	total: number;
+	counts: Record<string, number>;
 }
 
 export function setActivePerfProbe(probe: PerfProbeApi): void {
@@ -289,9 +302,10 @@ function scrollBurstTargets(doc: Document): ScrollBurstTarget[] {
 		selector: string,
 		rowSelector: string,
 		textSelector: string,
+		flickerSelectors: Record<string, string>,
 	): ScrollBurstTarget | null => {
 		const element = doc.querySelector<HTMLElement>(selector);
-		return element ? { view, element, rowSelector, textSelector } : null;
+		return element ? { view, element, rowSelector, textSelector, flickerSelectors } : null;
 	};
 
 	return [
@@ -300,30 +314,63 @@ function scrollBurstTargets(doc: Document): ScrollBurstTarget[] {
 			'.vm-tree-virtual-outer',
 			'.vm-tree-virtual-row:not([data-sticky="true"])',
 			'.vm-tree-label, .vm-tree-field, .vm-tree-count, .vm-tree-virtual-row',
+			{
+				icon: '.vm-tree-icon',
+				label: '.vm-tree-label',
+				field: '.vm-tree-field',
+				count: '.vm-tree-count',
+				badge: '.vm-tree-badge-zone .vm-badge, .vm-tree-overlay-badge-zone .vm-badge',
+			},
 		),
 		target(
 			'list',
 			'.vm-view-list',
 			'.vm-view-list-row[data-id], .vm-view-list-row',
 			'.vm-view-list-label, .vm-view-list-detail, .vm-view-list-row',
+			{
+				icon: '.vm-view-list-icon',
+				label: '.vm-view-list-label',
+				detail: '.vm-view-list-detail',
+				badge: '.vm-view-list-badges .vm-badge',
+				action: '.vm-view-list-actions button',
+			},
 		),
 		target(
 			'table',
 			'.vm-node-table',
 			'.vm-node-table-row[data-id], .vm-node-table-row',
 			'.vm-node-table-primary, .vm-node-table-cell, .vm-node-table-row',
+			{
+				icon: '.vm-node-table-icon',
+				label: '.vm-node-table-primary',
+				cell: '.vm-node-table-cell',
+				badge: '.vm-node-table-badge-zone .vm-badge',
+			},
 		),
 		target(
 			'grid',
 			'.vm-node-grid',
 			'.vm-node-grid-tile[data-id], .vm-node-grid-row',
 			'.vm-node-grid-label, .vm-node-grid-field, .vm-node-grid-tile',
+			{
+				icon: '.vm-node-grid-icon',
+				label: '.vm-node-grid-label',
+				field: '.vm-node-grid-field',
+				badge: '.vm-node-grid-badge-zone .vm-badge, .vm-node-grid-hover-badge-zone .vm-badge',
+				toggle: '.vm-node-grid-toggle',
+			},
 		),
 		target(
 			'cards',
 			'.vm-node-cards',
 			'.vm-node-card[data-id], .vm-node-card-row',
 			'.vm-node-card-field, .vm-node-card',
+			{
+				cover: '.vm-node-card-cover',
+				icon: '.vm-node-card-icon',
+				field: '.vm-node-card-field',
+				badge: '.vm-node-card-badge-zone .vm-badge',
+			},
 		),
 	].filter((item): item is ScrollBurstTarget => item !== null);
 }
@@ -373,6 +420,42 @@ function rowId(row: HTMLElement | undefined): string | undefined {
 	return row?.dataset.id ?? row?.dataset.nodeId ?? row?.dataset.callbackId;
 }
 
+function rowChildSignatures(
+	rows: readonly HTMLElement[],
+	target: ScrollBurstTarget,
+): Map<string, RowChildSignature> {
+	const signatures = new Map<string, RowChildSignature>();
+	rows.forEach((row, index) => {
+		const id = rowId(row) ?? `row:${index}`;
+		const counts: Record<string, number> = {};
+		for (const [key, selector] of Object.entries(target.flickerSelectors)) {
+			counts[key] = row.querySelectorAll(selector).length;
+		}
+		signatures.set(id, {
+			total: Object.values(counts).reduce((sum, count) => sum + count, 0),
+			counts,
+		});
+	});
+	return signatures;
+}
+
+function flickeringRows(
+	stable: ReadonlyMap<string, RowChildSignature>,
+	active: ReadonlyMap<string, RowChildSignature>,
+): string[] {
+	const rows: string[] = [];
+	for (const [id, expected] of stable) {
+		if (expected.total === 0) continue;
+		const actual = active.get(id);
+		if (!actual) continue;
+		const missing = Object.entries(expected.counts).find(
+			([key, count]) => count > (actual.counts[key] ?? 0),
+		);
+		if (missing) rows.push(`${id}:${missing[0]}:${missing[1]}>${actual.counts[missing[0]] ?? 0}`);
+	}
+	return rows;
+}
+
 function upsertScrollSmokeOverlay(doc: Document, report: PerfScrollBurstReport): void {
 	const overlay =
 		doc.querySelector<HTMLElement>('.vm-scroll-smoke-overlay') ?? doc.createElement('div');
@@ -385,7 +468,9 @@ function upsertScrollSmokeOverlay(doc: Document, report: PerfScrollBurstReport):
 		report.passed ? 'PASS' : 'FAIL'
 	} jumps=${report.jumpCount} blanks=${report.blankFrameCount} maxBlank=${Math.round(
 		report.maxBlankDurationMs,
-	)}ms maxDelay=${Math.round(report.maxEventLoopDelayMs)}ms`;
+	)}ms maxDelay=${Math.round(report.maxEventLoopDelayMs)}ms flicker=${
+		report.flickerFrameCount
+	}`;
 }
 
 async function runExplorerScrollBurst(
@@ -407,6 +492,9 @@ async function runExplorerScrollBurst(
 			blankWindowOver250ms: 1,
 			maxBlankDurationMs: SCROLL_BURST_HARD_BLANK_FAIL_MS,
 			maxEventLoopDelayMs: 0,
+			strictFlicker: options.strictFlicker === true,
+			flickerFrameCount: 0,
+			maxFlickerRowCount: 0,
 			passed: false,
 			reason: 'scroll target not found',
 		};
@@ -420,11 +508,26 @@ async function runExplorerScrollBurst(
 	const samples: PerfScrollBurstSample[] = [];
 	let blankStart: number | null = null;
 	let maxEventLoopDelayMs = 0;
+	const strictFlicker = options.strictFlicker === true;
 
 	for (let jumpIndex = 0; jumpIndex < jumpCount; jumpIndex += 1) {
 		const ratio = SCROLL_BURST_RATIOS[jumpIndex % SCROLL_BURST_RATIOS.length];
-		const before = clock();
-		jumpScrollElement(target.element, ratio);
+		let stableSignatures: Map<string, RowChildSignature> | null = null;
+		let before = clock();
+		if (strictFlicker) {
+			jumpScrollElement(target.element, ratio);
+			await nextPaintAndTick(doc);
+			await delay(doc, SCROLL_BURST_STRICT_IDLE_MS);
+			await nextPaintAndTick(doc);
+			stableSignatures = rowChildSignatures(
+				[...target.element.querySelectorAll<HTMLElement>(target.rowSelector)],
+				target,
+			);
+			before = clock();
+			target.element.dispatchEvent(new Event('scroll', { bubbles: true }));
+		} else {
+			jumpScrollElement(target.element, ratio);
+		}
 		await nextPaintAndTick(doc);
 		const after = clock();
 		maxEventLoopDelayMs = Math.max(maxEventLoopDelayMs, after - before);
@@ -433,6 +536,9 @@ async function runExplorerScrollBurst(
 		const visibleRowCount = rows.length;
 		const textPresent = rowTextPresent(rows, target.textSelector);
 		const blank = visibleRowCount === 0 || !textPresent;
+		const flickerRows = stableSignatures
+			? flickeringRows(stableSignatures, rowChildSignatures(rows, target))
+			: [];
 		if (blank && blankStart === null) blankStart = before;
 		if (!blank) blankStart = null;
 		const blankDurationMs = blank ? Math.max(0, after - (blankStart ?? before)) : 0;
@@ -449,16 +555,30 @@ async function runExplorerScrollBurst(
 			blank,
 			blankDurationMs,
 			eventLoopDelayMs: after - before,
+			flickerRowCount: flickerRows.length,
+			flickerRows: flickerRows.length > 0 ? flickerRows.slice(0, 12) : undefined,
 			firstRowId: rowId(rows[0]),
 			lastRowId: rowId(rows.at(-1)),
 		});
 
-		const partialReport = buildScrollBurstReport(requestedView, target.view, jumpCount, samples);
+		const partialReport = buildScrollBurstReport(
+			requestedView,
+			target.view,
+			jumpCount,
+			samples,
+			strictFlicker,
+		);
 		if (options.overlay !== false) upsertScrollSmokeOverlay(doc, partialReport);
 		await visualDelay(doc, visualDelayMs);
 	}
 
-	const report = buildScrollBurstReport(requestedView, target.view, jumpCount, samples);
+	const report = buildScrollBurstReport(
+		requestedView,
+		target.view,
+		jumpCount,
+		samples,
+		strictFlicker,
+	);
 	report.maxEventLoopDelayMs = Math.max(report.maxEventLoopDelayMs, maxEventLoopDelayMs);
 	if (options.overlay !== false) upsertScrollSmokeOverlay(doc, report);
 	return report;
@@ -469,6 +589,7 @@ function buildScrollBurstReport(
 	view: Exclude<PerfScrollBurstView, 'auto'>,
 	jumpCount: number,
 	samples: readonly PerfScrollBurstSample[],
+	strictFlicker = false,
 ): PerfScrollBurstReport {
 	const blankFrameCount = samples.filter((sample) => sample.blank).length;
 	const blankWindowOver100ms = samples.filter(
@@ -479,6 +600,8 @@ function buildScrollBurstReport(
 	).length;
 	const maxBlankDurationMs = Math.max(0, ...samples.map((sample) => sample.blankDurationMs));
 	const maxEventLoopDelayMs = Math.max(0, ...samples.map((sample) => sample.eventLoopDelayMs));
+	const flickerFrameCount = samples.filter((sample) => sample.flickerRowCount > 0).length;
+	const maxFlickerRowCount = Math.max(0, ...samples.map((sample) => sample.flickerRowCount));
 	return {
 		requestedView,
 		view,
@@ -489,7 +612,14 @@ function buildScrollBurstReport(
 		blankWindowOver250ms,
 		maxBlankDurationMs,
 		maxEventLoopDelayMs,
-		passed: blankFrameCount === 0 && blankWindowOver100ms === 0 && blankWindowOver250ms === 0,
+		strictFlicker,
+		flickerFrameCount,
+		maxFlickerRowCount,
+		passed:
+			blankFrameCount === 0 &&
+			blankWindowOver100ms === 0 &&
+			blankWindowOver250ms === 0 &&
+			(!strictFlicker || flickerFrameCount === 0),
 	};
 }
 

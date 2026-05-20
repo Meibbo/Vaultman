@@ -2,10 +2,7 @@
 
 ![](https://img.shields.io/github/v/release/Meibbo/vaultman)
 ![Obsidian](https://img.shields.io/badge/Obsidian-%E2%89%A51.12.0-purple)
-![](https://img.shields.io/github/license/Meibbo/vaultman)
-![](https://img.shields.io/github/downloads/Meibbo/vaultman/total)
-[![Quality checks](https://github.com/Meibbo/vaultman/actions/workflows/ci.yml/badge.svg)](https://github.com/Meibbo/vaultman/actions/workflows/ci.yml) [![Security scan](https://github.com/Meibbo/vaultman/actions/workflows/codeql.yml/badge.svg)](https://github.com/Meibbo/vaultman/actions/workflows/codeql.yml)
-[![OpenSSF Scorecard](https://api.scorecard.dev/projects/github.com/Meibbo/vaultman/badge)](https://scorecard.dev/viewer/?uri=github.com/Meibbo/vaultman)
+[![Quality checks](https://github.com/Meibbo/vaultman/actions/workflows/ci.yml/badge.svg)](https://github.com/Meibbo/vaultman/actions/workflows/ci.yml) [![Security scan](https://github.com/Meibbo/vaultman/actions/workflows/codeql.yml/badge.svg)](https://github.com/Meibbo/vaultman/actions/workflows/codeql.yml)[![OpenSSF Scorecard](https://api.scorecard.dev/projects/github.com/Meibbo/vaultman/badge)](https://scorecard.dev/viewer/?uri=github.com/Meibbo/vaultman)![](https://img.shields.io/github/license/Meibbo/vaultman)![Last commit](https://img.shields.io/github/last-commit/meibbo/vaultman?color=green)![](https://img.shields.io/github/downloads/Meibbo/vaultman/total)![GitHub stars](https://img.shields.io/github/stars/meibbo/vaultman?style=flat&color=yellow)
 
 ![|240](./img/Vaultman_screenshot.png)
 

@@ -138,7 +138,7 @@ describe('ViewTree scroll fallback', () => {
 		expect(target.querySelector('[data-id="node-0"]')).toBeNull();
 	});
 
-	it('defers row icon hydration while fallback scroll is active', () => {
+	it('keeps row icon hydration mounted while fallback scroll is active', () => {
 		const icon = vi.fn(() => ({ update: vi.fn() }));
 		app = mount(ViewTree as unknown as Component<Record<string, unknown>>, {
 			target,
@@ -161,7 +161,7 @@ describe('ViewTree scroll fallback', () => {
 		flushSync();
 
 		expect(target.querySelector('[data-id="node-50"]')).not.toBeNull();
-		expect(icon).not.toHaveBeenCalled();
+		expect(icon).toHaveBeenCalled();
 	});
 
 	it('ignores a reveal target whose required snapshot revision is newer than the row map', () => {

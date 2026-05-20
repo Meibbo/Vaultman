@@ -61,6 +61,7 @@ function parseOptions(args) {
 		jumps: undefined,
 		visualDelayMs: undefined,
 		overlay: true,
+		strictFlicker: false,
 		noBuild: false,
 		noReload: false,
 		noOpen: false,
@@ -72,6 +73,7 @@ function parseOptions(args) {
 		else if (arg === '--no-reload') parsed.noReload = true;
 		else if (arg === '--no-open') parsed.noOpen = true;
 		else if (arg === '--no-overlay') parsed.overlay = false;
+		else if (arg === '--strict-flicker') parsed.strictFlicker = true;
 		else if (arg.startsWith('--mode=')) parsed.mode = valueFor(arg);
 		else if (arg.startsWith('--view=')) parsed.view = valueFor(arg);
 		else if (arg.startsWith('--jumps=')) parsed.jumps = integerValue(arg, 'jumps');
@@ -102,12 +104,13 @@ function integerValue(arg, name) {
 	return value;
 }
 
-function buildEvalCode({ view, jumps, visualDelayMs, overlay }) {
+function buildEvalCode({ view, jumps, visualDelayMs, overlay, strictFlicker }) {
 	const scenarioOptions = JSON.stringify({
 		view,
 		jumps,
 		visualDelayMs,
 		overlay,
+		strictFlicker: strictFlicker === true,
 	});
 	return [
 		'Promise.resolve()',
@@ -196,6 +199,12 @@ function printBurstSummary(snapshot) {
 			`blank>250ms=${burst.blankWindowOver250ms}`,
 			`maxBlank=${Math.round(burst.maxBlankDurationMs)}ms`,
 			`maxDelay=${Math.round(burst.maxEventLoopDelayMs)}ms`,
+			...(burst.strictFlicker
+				? [
+						`flickerFrames=${burst.flickerFrameCount}`,
+						`maxFlickerRows=${burst.maxFlickerRowCount}`,
+					]
+				: []),
 		].join(' '),
 	);
 }
@@ -210,6 +219,7 @@ Options:
   --view=auto|tree|list|table|grid|cards
   --jumps=N                    override jump count
   --visual-delay-ms=N          delay between jumps so the movement is visible
+  --strict-flicker             fail if node-element children disappear during active scroll
   --no-build                   skip pnpm run build
   --no-reload                  skip obsidian plugin:reload id=vaultman
   --no-open                    skip obsidian command id=vaultman:open
