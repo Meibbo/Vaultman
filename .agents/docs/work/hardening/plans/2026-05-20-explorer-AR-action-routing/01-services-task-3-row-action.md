@@ -15,7 +15,7 @@ builder por tanto **NO** provee `onclick`/`onauxclick` — el view conserva sus 
 builder estandariza solo: attrs estructurales (`role`/`tabindex`/`aria-*`/`data-row-key`) + `onkeydown`
 (delegación de teclado) + `oncontextmenu` + el caret (`getCaretProps`).
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 ```ts
 // test/unit/services/rowAction.test.ts
@@ -79,12 +79,12 @@ describe('createRowAction.getCaretProps', () => {
 });
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 Run: `pnpm vitest run test/unit/services/rowAction.test.ts`
 Expected: FAIL — `Cannot find module '../../../src/services/serviceRowAction'`.
 
-- [ ] **Step 3: Write minimal implementation**
+- [x] **Step 3: Write minimal implementation**
 
 ```ts
 // src/services/serviceRowAction.ts
@@ -160,12 +160,12 @@ export function createRowAction(ctx: RowActionContext): RowActionBuilder {
 }
 ```
 
-- [ ] **Step 4: Run test to verify it passes**
+- [x] **Step 4: Run test to verify it passes**
 
 Run: `pnpm vitest run test/unit/services/rowAction.test.ts`
 Expected: PASS.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add src/services/serviceRowAction.ts test/unit/services/rowAction.test.ts
