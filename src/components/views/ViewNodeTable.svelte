@@ -46,6 +46,7 @@
 		explorerViewContract,
 		type NativeClassVocabulary,
 	} from '../../services/serviceExplorerViewContract';
+	import { createRowAction, type RowProps, type RowState } from '../../services/serviceRowAction';
 	import type { DndViewState } from '../../services/serviceDnd';
 	import { stateModEmissions } from '../../services/serviceNodeClassEmission';
 	import { PerfMeter } from '../../services/perfMeter';
@@ -115,7 +116,6 @@
 		onTertiaryAction,
 		onContextMenu,
 		onRowKeydown,
-		onSelectAll,
 		onBadgeDoubleClick,
 		scrollTarget = null,
 		mouseGestureConfig,
@@ -153,6 +153,19 @@
 	const useNativeDom = $derived(presetUseNativeDom ?? themeService?.useNativeDom ?? false);
 	const nativeVocab = $derived<NativeClassVocabulary | null>(
 		useNativeDom ? explorerViewContract('table').nativeDomEmission.panel : null,
+	);
+	const tableFeatures = explorerViewContract('table').features;
+	const rowAction = $derived(
+		createRowAction({
+			explorerId: projection?.providerId ?? 'table',
+			role: 'row',
+			features: tableFeatures,
+			contract: {
+				onToggle: noopRowToggle,
+				onContextMenu,
+				onRowKeydown,
+			},
+		}),
 	);
 	const maskCtx = getContext<NodeElementMaskContextValue | undefined>(NODE_ELEMENT_MASK_KEY);
 	const nodeElementMask = $derived(maskCtx?.value() ?? DEFAULT_NODE_ELEMENT_MASK);
@@ -486,6 +499,14 @@
 		);
 	}
 
+	function handleDelegatedTableKeydown(e: KeyboardEvent): void {
+		const id = nodeIdFromEventTarget(e.target);
+		if (!id) return;
+		PerfMeter.time('explorer.table.delegate.keydown', () =>
+			onRowKeydown?.(callbackIdForRowId(id), e),
+		);
+	}
+
 	function rowBadges(row: RowInputCompatibleRow<TNode>): NodeBadge[] {
 		return ownNodeBadges(row.node as TNode & { badges?: readonly NodeBadge[] });
 	}
@@ -506,23 +527,6 @@
 		}
 	}
 
-	function handleTableKeydown(e: KeyboardEvent) {
-		if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'a') {
-			e.preventDefault();
-			onSelectAll?.(
-				tableRows.map((row) => tableCallbackId(row)),
-				e,
-			);
-			return;
-		}
-		const id = nodeIdFromEventTarget(e.target);
-		if (id) {
-			PerfMeter.time('explorer.table.delegate.keydown', () =>
-				onRowKeydown?.(callbackIdForRowId(id), e),
-			);
-		}
-	}
-
 	function callbackIdForRowId(id: string): string {
 		const row = tableRows.find((item) => item.id === id);
 		return row ? tableCallbackId(row) : id;
@@ -532,6 +536,13 @@
 		if (row.rowInput) return row.rowInput.callbackId;
 		return row.callbackId ?? row.id;
 	}
+
+	function tableRowProps(id: string, state: RowState): RowProps {
+		const props = rowAction.getRowProps(id, state);
+		return { ...props, oncontextmenu: undefined, onkeydown: undefined };
+	}
+
+	function noopRowToggle(): void {}
 
 	function rowStateClassString(
 		state: {
@@ -739,7 +750,7 @@
 	onclick={handleDelegatedTableClick}
 	onauxclick={handleDelegatedTableAuxClick}
 	oncontextmenu={handleDelegatedTableContextMenu}
-	onkeydown={handleTableKeydown}
+	onkeydown={handleDelegatedTableKeydown}
 	onscroll={handleTableScroll}
 	style:--vm-node-table-columns={columnTemplate}
 >
@@ -773,9 +784,10 @@
 		style:--vm-node-table-total-h={`${totalHeight}px`}
 	>
 		{#each renderedRows as virtualRow (virtualRow.key)}
-			{@const row = tableRows[virtualRow.index]}
+				{@const row = tableRows[virtualRow.index]}
 			{#if row}
 				{@const id = row.id}
+				{@const callbackId = tableCallbackId(row)}
 				{@const isSelected = selectedMap?.get(id) ?? selectedIds.has(id)}
 				{@const isFocused = focusedId === id}
 				{@const isActive = activeId === id}
@@ -790,12 +802,15 @@
 					class:is-focused={isFocused}
 					class:is-active-node={isActive}
 					data-id={id}
-					data-callback-id={tableCallbackId(row)}
-					role="row"
-					tabindex="0"
-					aria-selected={isSelected}
+					data-callback-id={callbackId}
 					style:--vm-node-table-y={`${virtualRow.start}px`}
 					style:--vm-node-table-row-h={`${virtualRow.size}px`}
+					{...tableRowProps(callbackId, {
+						selected: isSelected,
+						focused: isFocused,
+						expandable: false,
+						expanded: false,
+					})}
 				>
 					{#each columns as column (column.id)}
 						{@const dataCellId = cellDataId(row, column.id)}

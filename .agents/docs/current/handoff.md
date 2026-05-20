@@ -5,7 +5,7 @@ status: active
 parent: "[[docs/work/pkm-ai/index|pkm-ai]]"
 archive_source: "docs/archive/pkm-ai/active-docs/2026-05-11T080321-current-handoff.md"
 created: 2026-05-04T01:36:20
-updated: 2026-05-20T16:28:00-05:00
+updated: 2026-05-20T16:47:00-05:00
 tags:
   - agent/current
 created_by: dec
@@ -55,9 +55,9 @@ Compact handoff after archiving the oversized current handoff:
 
 **Next action**:
 1. A.R spec + implementation plan are imported to `sandbox`.
-2. Gate-0, Tasks 1-5, and Task 6a are complete, through `refactor(A.R): viewTree adopts row-action builder`.
+2. Gate-0, Tasks 1-5, and Tasks 6a-6b are complete, through `refactor(A.R): ViewNodeTable adopts row-action builder`.
 3. Continue A.R for `v1.2.0` from
-   [[docs/work/hardening/plans/2026-05-20-explorer-AR-action-routing/03-view-adoption-task-6b-table|Task 6b table adoption]].
+   [[docs/work/hardening/plans/2026-05-20-explorer-AR-action-routing/03-view-adoption-task-6c-grid|Task 6c grid adoption]].
 
 **Optional cleanup**:
 - Remote branches `main-clean-1.1.0` and `release/1.1.0-infra` are merged/stale branches created
@@ -67,7 +67,12 @@ Compact handoff after archiving the oversized current handoff:
 
 - Worktree: `C:\Users\vic_A\Desktop\vaultman`
 - Branch: `sandbox`.
-- **Latest (2026-05-20)**: A.R Task 6a complete and verified locally; next is Task 6b table adoption.
+- **Latest (2026-05-20)**: A.R Task 6b complete and verified locally; next is Task 6c grid adoption.
+  Task 6b source record:
+  [[docs/work/hardening/plans/2026-05-20-explorer-AR-action-routing/03-view-adoption-task-6b-table|Task 6b ViewNodeTable adoption]].
+  Focused table gate: 8 files / 25 tests; panel/delegation gate: 2 files / 50 tests;
+  `pnpm run check` and `pnpm run lint` passed with 0 errors / 0 warnings.
+- Previous (2026-05-20): A.R Task 6a complete and verified locally.
   Task 6a source record:
   [[docs/work/hardening/plans/2026-05-20-explorer-AR-action-routing/03-view-adoption-task-6a-tree|Task 6a viewTree adoption]].
   Focused gate: 3 files / 24 tests; `pnpm run check` and `pnpm run lint` passed with 0 errors / 0 warnings.
@@ -149,8 +154,8 @@ repair. Current handoff keeps only the active route and the latest release facts
 
 ## Next Action
 
-- **PRIMARY (post A.R Task 6a 2026-05-20)**: continue A.R Task 6b table adoption from
-  [[docs/work/hardening/plans/2026-05-20-explorer-AR-action-routing/03-view-adoption-task-6b-table|A.R Task 6b table adoption]].
+- **PRIMARY (post A.R Task 6b 2026-05-20)**: continue A.R Task 6c grid adoption from
+  [[docs/work/hardening/plans/2026-05-20-explorer-AR-action-routing/03-view-adoption-task-6c-grid|A.R Task 6c grid adoption]].
 - Phase 0 spine `0-H → 0-B → O → 0-A` is closed; A.R can consume the
   View Feature Contract / native DOM contract.
 - If continuing Explorer scroll work, start from the variable scroll repair

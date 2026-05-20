@@ -5,7 +5,7 @@ status: active
 parent: "[[docs/work/pkm-ai/index|pkm-ai]]"
 archive_source: "docs/archive/pkm-ai/active-docs/2026-05-11T080321-current-status.md"
 created: 2026-05-04T01:36:20
-updated: 2026-05-20T16:28:00-05:00
+updated: 2026-05-20T16:47:00-05:00
 tags:
   - agent/current
 created_by: dec
@@ -30,8 +30,8 @@ Compact route index after archiving the oversized current status:
 
 - Active initiative: [[docs/work/hardening/index|Hardening]].
 - **NEXT (post-0-A closeout 2026-05-20)**: [[docs/work/hardening/plans/2026-05-20-explorer-AR-action-routing/index|A.R implementation plan]]
-  — Gate-0, Tasks 1-5, and Task 6a are complete; continue with
-  [[docs/work/hardening/plans/2026-05-20-explorer-AR-action-routing/03-view-adoption-task-6b-table|Task 6b table adoption]] for `v1.2.0`.
+  — Gate-0, Tasks 1-5, and Tasks 6a-6b are complete; continue with
+  [[docs/work/hardening/plans/2026-05-20-explorer-AR-action-routing/03-view-adoption-task-6c-grid|Task 6c grid adoption]] for `v1.2.0`.
 - [[docs/work/hardening/specs/2026-05-19-explorer-merge-umbrella/index|Explorer Merge Umbrella]]
   — proto-v5 ↔ production merge + release pipeline renumerado `v1.2.0→v2.0.0` después del
   catch-up `1.1.0`. A.R spec + plan existen para `v1.2.0`; implementation queda gateada por
@@ -162,6 +162,12 @@ Compact route index after archiving the oversized current status:
     [[docs/work/hardening/plans/2026-05-20-explorer-AR-action-routing/03-view-adoption-task-6a-tree|Task 6a viewTree adoption]].
   - Focused gate passed: 3 files / 24 tests.
   - `pnpm run check` and `pnpm run lint` passed with 0 errors / 0 warnings.
+- A.R Task 6b on 2026-05-20:
+  - Source record:
+    [[docs/work/hardening/plans/2026-05-20-explorer-AR-action-routing/03-view-adoption-task-6b-table|Task 6b ViewNodeTable adoption]].
+  - Focused table gate passed: 8 files / 25 tests.
+  - Panel/delegation gate passed: 2 files / 50 tests.
+  - `pnpm run check` and `pnpm run lint` passed with 0 errors / 0 warnings.
 
 ## Known Residuals
 
@@ -192,8 +198,8 @@ Compact route index after archiving the oversized current status:
 
 ## Next Action
 
-- **PRIMARY (post A.R Task 6a 2026-05-20)**: continue A.R Task 6b table adoption from
-  [[docs/work/hardening/plans/2026-05-20-explorer-AR-action-routing/03-view-adoption-task-6b-table|A.R Task 6b table adoption]].
+- **PRIMARY (post A.R Task 6b 2026-05-20)**: continue A.R Task 6c grid adoption from
+  [[docs/work/hardening/plans/2026-05-20-explorer-AR-action-routing/03-view-adoption-task-6c-grid|A.R Task 6c grid adoption]].
 - Explorer 0-B, O, and 0-A are complete. A.R Gate-0 is closed/unblocked.
 - For Explorer scroll work, continue from the variable scroll repair record:
   add runner-level view switching, add percentile/histogram reporting for scroll
