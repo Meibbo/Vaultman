@@ -1,4 +1,4 @@
-- [ ] **Step 3: Write minimal implementation**
+- [x] **Step 3: Write minimal implementation**
 
 ```ts
 // src/services/serviceKeyboardNav.ts
@@ -136,12 +136,12 @@ export function createKeyboardNav(ctx: KeyboardNavContext): KeyboardNavControlle
 }
 ```
 
-- [ ] **Step 4: Run test to verify it passes**
+- [x] **Step 4: Run test to verify it passes**
 
 Run: `pnpm vitest run test/unit/services/keyboardNav.test.ts`
 Expected: PASS (all describes).
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add src/services/serviceKeyboardNav.ts test/unit/services/keyboardNav.test.ts
