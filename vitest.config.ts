@@ -8,8 +8,10 @@ const obsidianMockPath = fileURLToPath(
 	new URL('./test/helpers/obsidian-mocks.ts', import.meta.url),
 );
 const notebookNavigatorRoot = findNotebookNavigatorRoot();
+const notebookNavigatorComparisonTest =
+	'test/unit/performance/explorerNotebookNavigatorComparison.test.ts';
 
-function findNotebookNavigatorRoot(): string {
+function findNotebookNavigatorRoot(): string | undefined {
 	const envRoot = process.env.VM_NOTEBOOK_NAVIGATOR_ROOT;
 	const candidates = [
 		...(envRoot ? [envRoot] : []),
@@ -22,8 +24,6 @@ function findNotebookNavigatorRoot(): string {
 			return candidate;
 		}
 	}
-
-	return resolve(process.cwd(), '..', 'notebook-navigator');
 }
 
 function notebookNavigatorSiblingCandidates(start: string): string[] {
@@ -78,8 +78,9 @@ export default defineConfig({
 					name: 'unit',
 					environment: 'node',
 					include: ['test/unit/**/*.test.ts'],
+					exclude: notebookNavigatorRoot ? [] : [notebookNavigatorComparisonTest],
 					alias: {
-						'@notebook-navigator': notebookNavigatorRoot,
+						...(notebookNavigatorRoot ? { '@notebook-navigator': notebookNavigatorRoot } : {}),
 						obsidian: obsidianMockPath,
 					},
 				},
