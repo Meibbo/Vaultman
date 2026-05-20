@@ -55,7 +55,7 @@ describe('ViewNodeList - panel x vaultman snapshot', () => {
 				rowInputs: [rowInput],
 				selectedIds: new Set<string>(['list-alpha']),
 				focusedId: 'list-alpha',
-				onSelect: vi.fn(),
+				onRowClick: vi.fn(),
 				onContextMenu: vi.fn(),
 				icon: iconStub(),
 			},

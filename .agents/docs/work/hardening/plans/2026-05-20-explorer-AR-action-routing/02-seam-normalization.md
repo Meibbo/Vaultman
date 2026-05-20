@@ -1,10 +1,10 @@
 ---
 title: A.R Plan — Task 5 seam normalization manifest
 type: plan-shard-index
-status: draft
+status: completed
 parent: "[[02-caret-and-seam|Task 4 + Task 5]]"
 created: 2026-05-20T00:00:00
-updated: 2026-05-20T00:00:00
+updated: 2026-05-20T16:18:00
 ---
 
 # Task 5 — Seam normalization

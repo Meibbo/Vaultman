@@ -66,10 +66,6 @@ function makeProps(overrides: Record<string, unknown> = {}): Record<string, unkn
 		onToggle: vi.fn(),
 		onRowClick: vi.fn(),
 		onContextMenu: vi.fn(),
-		onSelect: vi.fn(),
-		onActivate: vi.fn(),
-		onFocus: vi.fn(),
-		onListContextMenu: vi.fn(),
 		...overrides,
 	};
 }

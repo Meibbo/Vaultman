@@ -184,7 +184,7 @@ describe('ViewNodeList', () => {
 			props: {
 				projection,
 				selectedIds: new Set(['b']),
-				onSelect: vi.fn(),
+				onRowClick: vi.fn(),
 				icon: vi.fn(() => ({ update: vi.fn() })),
 			},
 		});
@@ -196,35 +196,29 @@ describe('ViewNodeList', () => {
 		expect(target.querySelector('[data-id="b"]')?.getAttribute('aria-selected')).toBe('true');
 	});
 
-	it('onSelect fires with SelectModifiers on click', () => {
-		const onSelect = vi.fn();
+	it('onRowClick fires with id and MouseEvent on click', () => {
+		const onRowClick = vi.fn();
 		const rowInputs: ExplorerRowInput<NodeBase>[] = [
 			rowInputFromViewRow(row('a', 'Row A', '', []) as ViewRow<NodeBase>),
 		];
 		app = mount(ViewNodeList as unknown as Component<Record<string, unknown>>, {
 			target,
-			props: { rowInputs, onSelect, icon: vi.fn(() => ({ update: vi.fn() })) },
+			props: { rowInputs, onRowClick, icon: vi.fn(() => ({ update: vi.fn() })) },
 		});
 		flushSync();
 
 		const rowEl = target.querySelector('[role="option"]') as HTMLElement;
 		expect(rowEl).toBeTruthy();
 		rowEl.click();
-		expect(onSelect).toHaveBeenCalledWith(rowInputs[0], {
-			ctrl: false,
-			shift: false,
-			alt: false,
-		});
+		expect(onRowClick).toHaveBeenCalledWith('a', expect.any(MouseEvent));
 
 		rowEl.dispatchEvent(new MouseEvent('click', { bubbles: true, ctrlKey: true, shiftKey: true }));
-		expect(onSelect).toHaveBeenLastCalledWith(rowInputs[0], {
-			ctrl: true,
-			shift: true,
-			alt: false,
-		});
+		const modifiedEvent = onRowClick.mock.lastCall?.[1] as MouseEvent;
+		expect(modifiedEvent.ctrlKey).toBe(true);
+		expect(modifiedEvent.shiftKey).toBe(true);
 	});
 
-	it('onContextMenu fires on right-click with event and row', () => {
+	it('onContextMenu fires on right-click with id and event', () => {
 		const onContextMenu = vi.fn();
 		const rowInputs: ExplorerRowInput<NodeBase>[] = [
 			rowInputFromViewRow(row('a', 'Row A', '', []) as ViewRow<NodeBase>),
@@ -239,12 +233,12 @@ describe('ViewNodeList', () => {
 		rowEl.dispatchEvent(new MouseEvent('contextmenu', { bubbles: true }));
 
 		expect(onContextMenu).toHaveBeenCalledTimes(1);
-		expect(onContextMenu.mock.calls[0][0]).toBeInstanceOf(MouseEvent);
-		expect(onContextMenu.mock.calls[0][1]).toBe(rowInputs[0]);
+		expect(onContextMenu).toHaveBeenCalledWith('a', expect.any(MouseEvent));
 	});
 
-	it('onActivate fires on double-click and Enter', () => {
-		const onActivate = vi.fn();
+	it('onSecondaryAction fires on double-click and keydown delegates row id', () => {
+		const onSecondaryAction = vi.fn();
+		const onRowKeydown = vi.fn();
 		const rowInputs: ExplorerRowInput<NodeBase>[] = [
 			rowInputFromViewRow(row('a', 'Row A', '', []) as ViewRow<NodeBase>),
 		];
@@ -252,8 +246,8 @@ describe('ViewNodeList', () => {
 			target,
 			props: {
 				rowInputs,
-				onActivate,
-				onFocus: vi.fn(),
+				onSecondaryAction,
+				onRowKeydown,
 				focusedId: 'a',
 				icon: vi.fn(() => ({ update: vi.fn() })),
 			},
@@ -262,17 +256,14 @@ describe('ViewNodeList', () => {
 
 		const rowEl = target.querySelector('[data-id="a"]') as HTMLElement;
 		rowEl.dispatchEvent(new MouseEvent('dblclick', { bubbles: true }));
-		expect(onActivate).toHaveBeenCalledWith(rowInputs[0]);
+		expect(onSecondaryAction).toHaveBeenCalledWith('a', expect.any(MouseEvent));
 
-		onActivate.mockClear();
-		target
-			.querySelector('[role="listbox"]')!
-			.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }));
-		expect(onActivate).toHaveBeenCalledWith(rowInputs[0]);
+		rowEl.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }));
+		expect(onRowKeydown).toHaveBeenCalledWith('a', expect.any(KeyboardEvent));
 	});
 
-	it('Arrow keys move focus and fire onFocus', () => {
-		const onFocus = vi.fn();
+	it('Arrow keys delegate row id and KeyboardEvent', () => {
+		const onRowKeydown = vi.fn();
 		const rowInputs: ExplorerRowInput<NodeBase>[] = [
 			rowInputFromViewRow(row('a', 'A', '', []) as ViewRow<NodeBase>),
 			rowInputFromViewRow(row('b', 'B', '', []) as ViewRow<NodeBase>),
@@ -280,37 +271,34 @@ describe('ViewNodeList', () => {
 		];
 		app = mount(ViewNodeList as unknown as Component<Record<string, unknown>>, {
 			target,
-			props: { rowInputs, onFocus, focusedId: 'a', icon: vi.fn(() => ({ update: vi.fn() })) },
+			props: {
+				rowInputs,
+				onRowKeydown,
+				focusedId: 'a',
+				icon: vi.fn(() => ({ update: vi.fn() })),
+			},
 		});
 		flushSync();
 
-		const container = target.querySelector('[role="listbox"]')!;
-		container.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowDown', bubbles: true }));
-		expect(onFocus).toHaveBeenLastCalledWith('b');
-		container.dispatchEvent(new KeyboardEvent('keydown', { key: 'End', bubbles: true }));
-		expect(onFocus).toHaveBeenLastCalledWith('c');
-		container.dispatchEvent(new KeyboardEvent('keydown', { key: 'Home', bubbles: true }));
-		expect(onFocus).toHaveBeenLastCalledWith('a');
+		const rowEl = target.querySelector('[data-id="a"]') as HTMLElement;
+		rowEl.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowDown', bubbles: true }));
+		expect(onRowKeydown).toHaveBeenCalledWith('a', expect.any(KeyboardEvent));
 	});
 
-	it('Space fires onSelect with empty modifiers', () => {
-		const onSelect = vi.fn();
+	it('Space delegates to row keydown', () => {
+		const onRowKeydown = vi.fn();
 		const rowInputs: ExplorerRowInput<NodeBase>[] = [
 			rowInputFromViewRow(row('a', 'A', '', []) as ViewRow<NodeBase>),
 		];
 		app = mount(ViewNodeList as unknown as Component<Record<string, unknown>>, {
 			target,
-			props: { rowInputs, onSelect, focusedId: 'a', icon: vi.fn(() => ({ update: vi.fn() })) },
+			props: { rowInputs, onRowKeydown, focusedId: 'a', icon: vi.fn(() => ({ update: vi.fn() })) },
 		});
 		flushSync();
 
-		const container = target.querySelector('[role="listbox"]')!;
-		container.dispatchEvent(new KeyboardEvent('keydown', { key: ' ', bubbles: true }));
-		expect(onSelect).toHaveBeenCalledWith(rowInputs[0], {
-			ctrl: false,
-			shift: false,
-			alt: false,
-		});
+		const rowEl = target.querySelector('[data-id="a"]') as HTMLElement;
+		rowEl.dispatchEvent(new KeyboardEvent('keydown', { key: ' ', bubbles: true }));
+		expect(onRowKeydown).toHaveBeenCalledWith('a', expect.any(KeyboardEvent));
 	});
 
 	it('aria-selected and aria-activedescendant reflect selectedIds and focusedId', () => {
@@ -324,8 +312,7 @@ describe('ViewNodeList', () => {
 				rowInputs,
 				selectedIds: new Set(['a']),
 				focusedId: 'b',
-				onSelect: vi.fn(),
-				onFocus: vi.fn(),
+				onRowClick: vi.fn(),
 				icon: vi.fn(() => ({ update: vi.fn() })),
 			},
 		});

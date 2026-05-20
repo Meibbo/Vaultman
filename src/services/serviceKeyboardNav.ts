@@ -26,7 +26,9 @@ export interface KeyboardNavContext {
 	activate: (id: string, e: KeyboardEvent) => void;
 	drill?: {
 		descend: (id: string) => boolean;
-		ascend: () => boolean;
+		ascend: (e: KeyboardEvent) => boolean;
+		back?: () => boolean;
+		forward?: () => boolean;
 	};
 }
 
@@ -90,6 +92,21 @@ export function createKeyboardNav(ctx: KeyboardNavContext): KeyboardNavControlle
 		const range = e.shiftKey;
 		const modifiers = { additive, range };
 
+		if (ctx.topology === 'planar-drill' && e.altKey) {
+			if (e.key === 'ArrowLeft' && ctx.drill?.back?.()) {
+				e.preventDefault();
+				return { handled: true };
+			}
+			if (e.key === 'ArrowRight' && ctx.drill?.forward?.()) {
+				e.preventDefault();
+				return { handled: true };
+			}
+			if (e.key === 'ArrowUp' && ctx.drill?.ascend(e)) {
+				e.preventDefault();
+				return { handled: true };
+			}
+		}
+
 		if (additive && (e.key === 'a' || e.key === 'A')) {
 			e.preventDefault();
 			ctx.selectAll();
@@ -130,7 +147,7 @@ export function createKeyboardNav(ctx: KeyboardNavContext): KeyboardNavControlle
 			case 'ArrowLeft':
 				e.preventDefault();
 				if (isPlanar()) {
-					if (ctx.topology === 'planar-drill' && ctx.drill?.ascend()) return { handled: true };
+					if (ctx.topology === 'planar-drill' && ctx.drill?.ascend(e)) return { handled: true };
 					ctx.moveFocus(-1, modifiers);
 					return { handled: true };
 				}
@@ -160,7 +177,7 @@ export function createKeyboardNav(ctx: KeyboardNavContext): KeyboardNavControlle
 				ctx.movePage(-1, { range });
 				return { handled: true };
 			case 'Backspace':
-				if (ctx.topology === 'planar-drill' && ctx.drill?.ascend()) {
+				if (ctx.topology === 'planar-drill' && ctx.drill?.ascend(e)) {
 					e.preventDefault();
 					return { handled: true };
 				}

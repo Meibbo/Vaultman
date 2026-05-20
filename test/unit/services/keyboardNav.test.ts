@@ -150,4 +150,29 @@ describe('serviceKeyboardNav planar-drill topology', () => {
 		nav.handleKeydown('x', key('Backspace'));
 		expect(ascend).toHaveBeenCalled();
 	});
+
+	it('routes folder-history chords through the drill contract', () => {
+		const back = vi.fn(() => true);
+		const forward = vi.fn(() => true);
+		const ascend = vi.fn(() => true);
+		const ctx = makeCtx({
+			topology: 'planar-drill',
+			drill: {
+				descend: vi.fn(() => false),
+				ascend,
+				back,
+				forward,
+			},
+		});
+		const nav = createKeyboardNav(ctx);
+
+		nav.handleKeydown('folder', key('ArrowLeft', { altKey: true }));
+		expect(back).toHaveBeenCalled();
+
+		nav.handleKeydown('folder', key('ArrowRight', { altKey: true }));
+		expect(forward).toHaveBeenCalled();
+
+		nav.handleKeydown('folder', key('ArrowUp', { altKey: true }));
+		expect(ascend).toHaveBeenCalled();
+	});
 });

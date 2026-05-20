@@ -5,7 +5,7 @@ status: active
 parent: "[[docs/work/pkm-ai/index|pkm-ai]]"
 archive_source: "docs/archive/pkm-ai/active-docs/2026-05-11T080321-current-status.md"
 created: 2026-05-04T01:36:20
-updated: 2026-05-20T00:00:00-05:00
+updated: 2026-05-20T16:22:00-05:00
 tags:
   - agent/current
 created_by: dec
@@ -30,7 +30,8 @@ Compact route index after archiving the oversized current status:
 
 - Active initiative: [[docs/work/hardening/index|Hardening]].
 - **NEXT (post-0-A closeout 2026-05-20)**: [[docs/work/hardening/plans/2026-05-20-explorer-AR-action-routing/index|A.R implementation plan]]
-  — Gate-0 is closed/unblocked after 0-A C12/C13 closeout; execute A.R for `v1.2.0`.
+  — Gate-0 and Tasks 1-5 are complete; continue with
+  [[docs/work/hardening/plans/2026-05-20-explorer-AR-action-routing/03-view-adoption|Task 6 view adoption]] for `v1.2.0`.
 - [[docs/work/hardening/specs/2026-05-19-explorer-merge-umbrella/index|Explorer Merge Umbrella]]
   — proto-v5 ↔ production merge + release pipeline renumerado `v1.2.0→v2.0.0` después del
   catch-up `1.1.0`. A.R spec + plan existen para `v1.2.0`; implementation queda gateada por
@@ -150,6 +151,12 @@ Compact route index after archiving the oversized current status:
   - Live preset/menu gate: native `menuCount=1`, vaultman `menuCount=5`,
     node-elements submenu visible only under vaultman, and final
     `obsidian vault=plugin-dev dev:errors` returned `No errors captured.`
+- A.R Tasks 1-5 on 2026-05-20:
+  - Latest source record:
+    [[docs/work/hardening/plans/2026-05-20-explorer-AR-action-routing/02-seam-normalization|Task 5 seam normalization]].
+  - Commits through `refactor(A.R): normalize explorer row seams`.
+  - Focused gate passed: 9 files / 112 tests.
+  - `pnpm run check` and `pnpm run lint` passed with 0 errors / 0 warnings.
 
 ## Known Residuals
 
@@ -180,8 +187,8 @@ Compact route index after archiving the oversized current status:
 
 ## Next Action
 
-- **PRIMARY (post 0-A closeout 2026-05-20)**: execute A.R implementation for `v1.2.0` from
-  [[docs/work/hardening/plans/2026-05-20-explorer-AR-action-routing/index|A.R implementation plan]].
+- **PRIMARY (post A.R Task 5 2026-05-20)**: continue A.R Task 6 view adoption from
+  [[docs/work/hardening/plans/2026-05-20-explorer-AR-action-routing/03-view-adoption|A.R Task 6 view adoption]].
 - Explorer 0-B, O, and 0-A are complete. A.R Gate-0 is closed/unblocked.
 - For Explorer scroll work, continue from the variable scroll repair record:
   add runner-level view switching, add percentile/histogram reporting for scroll

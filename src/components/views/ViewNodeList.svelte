@@ -36,22 +36,17 @@
 	type ListRowInput = ExplorerRowInput<NodeBase>;
 	type ListAction = ViewAction<NodeBase>;
 
-	interface SelectModifiers {
-		ctrl: boolean;
-		shift: boolean;
-		alt: boolean;
-	}
-
 	interface Props {
 		rowInputs?: readonly ListRowInput[];
 		projection?: ExplorerProjection<NodeBase>;
 		canReorder?: boolean;
 		onAction?: (action: ListAction, row: ListRowInput) => void;
 		onReorder?: (request: ListReorderRequest) => void;
-		onSelect?: (row: ListRowInput, modifiers: SelectModifiers) => void;
-		onActivate?: (row: ListRowInput) => void;
-		onFocus?: (rowId: string | null) => void;
-		onContextMenu?: (event: MouseEvent, row: ListRowInput) => void;
+		onRowClick?: (id: string, e: MouseEvent) => void;
+		onRowKeydown?: (id: string, e: KeyboardEvent) => void;
+		onSecondaryAction?: (id: string, e: MouseEvent) => void;
+		onTertiaryAction?: (id: string, e: MouseEvent) => void;
+		onContextMenu?: (id: string, e: MouseEvent) => void;
 		selectedIds?: ReadonlySet<string>;
 		focusedId?: string | null;
 		icon?: (node: HTMLElement, name: string) => { update(n: string): void };
@@ -69,9 +64,10 @@
 		canReorder = false,
 		onAction,
 		onReorder,
-		onSelect,
-		onActivate,
-		onFocus,
+		onRowClick,
+		onRowKeydown,
+		onSecondaryAction,
+		onTertiaryAction,
 		onContextMenu,
 		selectedIds,
 		focusedId,
@@ -94,8 +90,8 @@
 	const effectiveRowInputs = $derived(projection ? rowInputsFromProjection(projection) : rowInputs);
 	const rowCount = $derived(effectiveRowInputs.length);
 	const rowIdToIndex = $derived(buildRowInputIdIndex(effectiveRowInputs));
-	const isListboxMode = $derived(Boolean(onSelect || onFocus));
-	const keyboardEnabled = $derived(Boolean(onSelect || onFocus || onActivate));
+	const isListboxMode = $derived(Boolean(onRowClick || onRowKeydown));
+	const keyboardEnabled = $derived(Boolean(onRowKeydown));
 	const activeFocusedId = $derived(localFocusedId ?? focusedId ?? null);
 	const maskCtx = getContext<NodeElementMaskContextValue | undefined>(NODE_ELEMENT_MASK_KEY);
 	const nodeElementMask = $derived(maskCtx?.value() ?? DEFAULT_NODE_ELEMENT_MASK);
@@ -207,59 +203,6 @@
 		onAction?.(action, row);
 	}
 
-	function handleSelect(event: MouseEvent, row: ListRowInput) {
-		if (!onSelect) return;
-		onSelect(row, {
-			ctrl: event.ctrlKey || event.metaKey,
-			shift: event.shiftKey,
-			alt: event.altKey,
-		});
-	}
-
-	function handleKeydown(event: KeyboardEvent) {
-		if (!effectiveRowInputs.length) return;
-		const idx = currentFocusedIndex();
-		let nextIdx: number | null = null;
-		if (event.key === 'ArrowDown') nextIdx = Math.min(idx + 1, effectiveRowInputs.length - 1);
-		else if (event.key === 'ArrowUp') nextIdx = Math.max(idx - 1, 0);
-		else if (event.key === 'Home') nextIdx = 0;
-		else if (event.key === 'End') nextIdx = effectiveRowInputs.length - 1;
-		else if (event.key === 'PageDown')
-			nextIdx = Math.min(idx + 10, effectiveRowInputs.length - 1);
-		else if (event.key === 'PageUp') nextIdx = Math.max(idx - 10, 0);
-
-		if (nextIdx !== null && nextIdx !== idx) {
-			const row = effectiveRowInputs[nextIdx];
-			setFocusedRow(row.id);
-			if (event.shiftKey && onSelect) {
-				onSelect(row, { ctrl: false, shift: true, alt: false });
-			}
-			event.preventDefault();
-			return;
-		}
-		if (event.key === 'Enter' && idx >= 0 && onActivate) {
-			onActivate(effectiveRowInputs[idx]);
-			event.preventDefault();
-			return;
-		}
-		if ((event.key === ' ' || event.key === 'Spacebar') && idx >= 0 && onSelect) {
-			onSelect(effectiveRowInputs[idx], { ctrl: false, shift: false, alt: false });
-			event.preventDefault();
-		}
-	}
-
-	function currentFocusedIndex(): number {
-		const idx = activeFocusedId
-			? effectiveRowInputs.findIndex((row) => row.id === activeFocusedId)
-			: -1;
-		return idx >= 0 ? idx : 0;
-	}
-
-	function setFocusedRow(id: string) {
-		localFocusedId = id;
-		onFocus?.(id);
-	}
-
 	function actionRegionClass(row: ListRowInput): string {
 		return isQueueChildRow(row)
 			? 'vm-view-list-actions is-counter-slot'
@@ -298,6 +241,12 @@
 
 	function dragEnabled(): boolean {
 		return Boolean(canReorder && onReorder);
+	}
+
+	function handleContextMenu(event: MouseEvent, row: ListRowInput): void {
+		if (!onContextMenu) return;
+		event.preventDefault();
+		onContextMenu(row.id, event);
 	}
 
 	function handleDragStart(event: DragEvent, row: ListRowInput) {
@@ -379,7 +328,6 @@
 		: undefined}
 	tabindex={isListboxMode ? 0 : undefined}
 	onscroll={onScroll}
-	onkeydown={keyboardEnabled ? handleKeydown : undefined}
 >
 	<div class="vm-view-list-inner vm-explorer-popup-inner" style="height: {totalH}px">
 		{#each renderedVirtualRows as virtualRow (virtualRow.key)}
@@ -402,10 +350,13 @@
 					data-index={virtualRow.index}
 					role={isListboxMode ? 'option' : 'listitem'}
 					aria-selected={isListboxMode ? isRowSelected(row) : undefined}
+					tabindex={keyboardEnabled ? 0 : undefined}
 					draggable={dragEnabled()}
-					onclick={onSelect ? (event) => handleSelect(event, row) : undefined}
-					ondblclick={onActivate ? () => onActivate(row) : undefined}
-					oncontextmenu={onContextMenu ? (event) => onContextMenu(event, row) : undefined}
+					onclick={onRowClick ? (event) => onRowClick(row.id, event) : undefined}
+					ondblclick={onSecondaryAction ? (event) => onSecondaryAction(row.id, event) : undefined}
+					onauxclick={onTertiaryAction ? (event) => onTertiaryAction(row.id, event) : undefined}
+					oncontextmenu={(event) => handleContextMenu(event, row)}
+					onkeydown={onRowKeydown ? (event) => onRowKeydown(row.id, event) : undefined}
 					ondragstart={(event) => handleDragStart(event, row)}
 					ondragover={(event) => handleDragOver(event, row)}
 					ondrop={(event) => handleDrop(event, row)}

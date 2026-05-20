@@ -40,7 +40,13 @@
 		type ExplorerProjection,
 	} from '../../services/serviceExplorerProjection';
 	import { NodeSelectionService } from '../../services/serviceSelection.svelte';
+	import {
+		createKeyboardNav,
+		type KeyboardNavController,
+		type NavTopology,
+	} from '../../services/serviceKeyboardNav';
 	import type { TreeNode } from '../../types/typeNode';
+	import { selectionModifiersFromEvent } from '../../types/typeActionRouting';
 	import { bubbleHiddenTreeBadges } from '../../utils/utilBadgeBubbling';
 	import { collectAutoExpandedIds, resolveExpandedIds } from '../../utils/utilExplorerExpansion';
 	import { isExplorerPlatformViewMode } from '../../services/serviceExplorerViewContract';
@@ -300,6 +306,35 @@
 		subscribeFilesSnapshot();
 		return plugin.explorerDataPlaneService?.snapshot<TMeta>('files') ?? null;
 	});
+	let keyboardOriginId: string | null = null;
+	const keyboardNav: KeyboardNavController = createKeyboardNav({
+		get topology(): NavTopology {
+			return keyboardTopology();
+		},
+		orderedIds: visibleNodeIds,
+		columnsAt: () => 1,
+		pageStep: PAGE_NAVIGATION_STEP,
+		isExpandable: isExpandableId,
+		isExpanded: (id) => expansionSet().has(id),
+		parentOf: (id) => parentIdFor(nodes, id),
+		firstChildOf: firstChildId,
+		labelOf: labelOf,
+		moveFocus: moveKeyboardFocus,
+		focusEdge: focusKeyboardEdge,
+		focusId: focusKeyboardId,
+		movePage: moveKeyboardPage,
+		toggleSelect: toggleKeyboardSelection,
+		selectAll: selectAllVisible,
+		expand: expandNode,
+		collapse: collapseNode,
+		activate: activateKeyboardNode,
+		drill: {
+			descend: drillKeyboardDown,
+			ascend: drillKeyboardUp,
+			back: drillKeyboardBack,
+			forward: drillKeyboardForward,
+		},
+	});
 
 	$effect(() => {
 		const queue = (
@@ -511,10 +546,8 @@
 	function selectNode(id: string, e: MouseEvent | KeyboardEvent): TreeNode<TMeta> | undefined {
 		const node = findNodeById(nodes, id);
 		if (!node) return undefined;
-		const additive = e.ctrlKey || e.metaKey;
-		const range = e.shiftKey;
 		commitSelection(
-			selectionService.selectPointer(provider.id, visibleNodeIds(), id, { additive, range }),
+			selectionService.selectPointer(provider.id, visibleNodeIds(), id, selectionModifiersFromEvent(e)),
 		);
 		return node;
 	}
@@ -595,164 +628,173 @@
 		provider.handleContextMenu(node, e, selectedNodesForContext(node));
 	}
 
-	function handleListSelect(
-		row: ExplorerRowInput<NodeBase>,
-		modifiers: { ctrl: boolean; shift: boolean; alt: boolean },
-	): void {
-		handleNodeClick(row.id, mouseEventFromListModifiers(modifiers));
-	}
-
-	function handleListActivate(row: ExplorerRowInput<NodeBase>): void {
-		activateNode(row.node as unknown as TreeNode<TMeta>);
-	}
-
-	function handleListFocus(id: string | null): void {
-		commitSelection(selectionService.setFocused(provider.id, id));
-		if (id) revealNode(id);
-	}
-
-	function handleListContextMenu(event: MouseEvent, row: ExplorerRowInput<NodeBase>): void {
-		handleContextMenu(row.id, event);
-	}
-
-	function mouseEventFromListModifiers(modifiers: {
-		ctrl: boolean;
-		shift: boolean;
-		alt: boolean;
-	}): MouseEvent {
-		return new MouseEvent('click', {
-			bubbles: true,
-			ctrlKey: modifiers.ctrl,
-			metaKey: modifiers.ctrl,
-			shiftKey: modifiers.shift,
-			altKey: modifiers.alt,
-		});
-	}
-
 	function handleRowKeydown(id: string, e: KeyboardEvent) {
 		const orderedIds = visibleNodeIds();
 		const logicalId = keyboardTargetId(id, orderedIds);
-		if (viewMode === 'grid' && gridHierarchyMode === 'folder' && handleGridNavigationKeydown(e)) {
-			return;
-		}
-		if (
-			viewMode === 'grid' &&
-			gridHierarchyMode === 'inline' &&
-			handleInlineGridExpansionKeydown(logicalId, e)
-		) {
-			return;
-		}
-		if (viewMode === 'tree' && e.key === 'ArrowLeft') {
-			handleTreeArrowLeft(logicalId, e);
-		} else if (viewMode === 'tree' && e.key === 'ArrowRight') {
-			handleTreeArrowRight(logicalId, e);
-		} else if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
-			e.preventDefault();
-			if (!focusedNodeId) selectionService.setFocused(provider.id, logicalId);
-			commitSelection(
-				selectionService.moveFocus(provider.id, orderedIds, e.key === 'ArrowDown' ? 1 : -1, {
-					additive: e.ctrlKey || e.metaKey,
-					range: e.shiftKey,
-				}),
-			);
-		} else if (e.key === 'PageDown' || e.key === 'PageUp') {
-			handlePageNavigation(logicalId, orderedIds, e);
-		} else if (e.key === ' ' || e.key === 'Spacebar') {
-			e.preventDefault();
-			if (!focusedNodeId) selectionService.setFocused(provider.id, logicalId);
-			commitSelection(
-				selectionService.toggleFocused(provider.id, orderedIds, {
-					additive: e.ctrlKey || e.metaKey,
-					range: e.shiftKey,
-				}),
-			);
-		} else if (e.key === 'Enter') {
-			const node = findNodeById(nodes, logicalId);
-			if (node) handleSecondaryAction(logicalId, e as unknown as MouseEvent);
-		}
+		if (shouldKeepNativePageNavigation(e)) return;
+		keyboardOriginId = logicalId;
+		keyboardNav.handleKeydown(logicalId, e);
+		keyboardOriginId = null;
 	}
 
 	function keyboardTargetId(fallbackId: string, orderedIds: readonly string[]): string {
 		return focusedNodeId && orderedIds.includes(focusedNodeId) ? focusedNodeId : fallbackId;
 	}
 
-	function handlePageNavigation(
-		currentId: string,
-		orderedIds: readonly string[],
-		e: KeyboardEvent,
+	function shouldKeepNativePageNavigation(e: KeyboardEvent): boolean {
+		return (
+			(e.key === 'PageDown' || e.key === 'PageUp') &&
+			!focusedNodeId &&
+			selectedNodeIds.size === 0
+		);
+	}
+
+	function keyboardTopology(): NavTopology {
+		if (viewMode === 'grid') return 'planar-drill';
+		if (viewMode === 'cards') return 'planar';
+		return 'linear';
+	}
+
+	function expansionSet(): ReadonlySet<string> {
+		return viewMode === 'grid' && gridHierarchyMode === 'inline' ? gridExpandedIds : expandedIds;
+	}
+
+	function isExpandableId(id: string): boolean {
+		const node = findNodeById(nodes, id);
+		return Boolean(node?.children?.length);
+	}
+
+	function firstChildId(id: string): string | null {
+		return findNodeById(nodes, id)?.children?.[0]?.id ?? null;
+	}
+
+	function labelOf(id: string): string {
+		return findNodeById(nodes, id)?.label ?? id;
+	}
+
+	function ensureKeyboardFocus(orderedIds: readonly string[]): void {
+		if (focusedNodeId && orderedIds.includes(focusedNodeId)) return;
+		const originId =
+			keyboardOriginId && orderedIds.includes(keyboardOriginId)
+				? keyboardOriginId
+				: (orderedIds[0] ?? null);
+		if (originId) selectionService.setFocused(provider.id, originId);
+	}
+
+	function moveKeyboardFocus(
+		direction: 1 | -1,
+		modifiers: { additive: boolean; range: boolean },
 	): void {
-		if (!focusedNodeId && selectedNodeIds.size === 0) return;
+		const orderedIds = visibleNodeIds();
+		if (orderedIds.length === 0) return;
+		ensureKeyboardFocus(orderedIds);
+		const snapshot = selectionService.moveFocus(provider.id, orderedIds, direction, modifiers);
+		commitSelection(snapshot);
+		if (snapshot.focusedId) revealNode(snapshot.focusedId);
+	}
+
+	function focusKeyboardEdge(edge: 'home' | 'end', modifiers: { range: boolean }): void {
+		const orderedIds = visibleNodeIds();
+		const targetId = edge === 'home' ? orderedIds[0] : orderedIds.at(-1);
+		if (!targetId) return;
+		const snapshot = modifiers.range
+			? selectionService.selectPointer(provider.id, orderedIds, targetId, { range: true })
+			: selectionService.setFocused(provider.id, targetId);
+		commitSelection(snapshot);
+		revealNode(targetId);
+	}
+
+	function focusKeyboardId(id: string): void {
+		const orderedIds = visibleNodeIds();
+		if (!orderedIds.includes(id)) return;
+		const snapshot =
+			viewMode === 'tree'
+				? selectionService.selectPointer(provider.id, orderedIds, id)
+				: selectionService.setFocused(provider.id, id);
+		commitSelection(snapshot);
+		revealNode(id);
+	}
+
+	function moveKeyboardPage(direction: 1 | -1, modifiers: { range: boolean }): void {
+		const orderedIds = visibleNodeIds();
+		if (orderedIds.length === 0) return;
+		const currentId = keyboardTargetId(keyboardOriginId ?? orderedIds[0], orderedIds);
 		const currentIndex = orderedIds.indexOf(currentId);
 		if (currentIndex < 0) return;
-		e.preventDefault();
-		const direction = e.key === 'PageDown' ? 1 : -1;
 		const targetIndex = Math.max(
 			0,
 			Math.min(orderedIds.length - 1, currentIndex + direction * PAGE_NAVIGATION_STEP),
 		);
 		const targetId = orderedIds[targetIndex];
 		if (!targetId) return;
-		commitSelection(selectionService.selectPointer(provider.id, orderedIds, targetId));
+		commitSelection(
+			selectionService.selectPointer(provider.id, orderedIds, targetId, {
+				range: modifiers.range,
+			}),
+		);
 		revealNode(targetId);
 	}
 
-	function handleInlineGridExpansionKeydown(id: string, e: KeyboardEvent): boolean {
-		if (e.key !== 'ArrowLeft' && e.key !== 'ArrowRight') return false;
-		const node = findNodeById(nodes, id);
-		const hasChildren = !!node?.children && node.children.length > 0;
-		if (!hasChildren) return false;
-		if (e.key === 'ArrowRight' && !gridExpandedIds.has(id)) {
-			e.preventDefault();
-			expandNode(id);
+	function toggleKeyboardSelection(modifiers: { additive: boolean; range: boolean }): void {
+		const orderedIds = visibleNodeIds();
+		if (orderedIds.length === 0) return;
+		ensureKeyboardFocus(orderedIds);
+		commitSelection(selectionService.toggleFocused(provider.id, orderedIds, modifiers));
+	}
+
+	function selectAllVisible(): void {
+		const orderedIds = visibleNodeIds();
+		if (orderedIds.length === 0) return;
+		commitSelection(selectionService.selectBox(provider.id, orderedIds, orderedIds));
+	}
+
+	function activateKeyboardNode(id: string, e: KeyboardEvent): void {
+		if (!findNodeById(nodes, id)) return;
+		handleSecondaryAction(id, e as unknown as MouseEvent);
+	}
+
+	function drillKeyboardDown(id: string): boolean {
+		if (!isExpandableId(id)) return false;
+		if (viewMode === 'grid' && gridHierarchyMode === 'folder') {
+			navigateGridTo(id);
 			return true;
 		}
-		if (e.key === 'ArrowLeft' && gridExpandedIds.has(id)) {
-			e.preventDefault();
-			collapseNode(id);
+		if (viewMode === 'grid' && gridHierarchyMode === 'inline' && !gridExpandedIds.has(id)) {
+			expandNode(id);
 			return true;
 		}
 		return false;
 	}
 
-	function handleGridNavigationKeydown(e: KeyboardEvent): boolean {
-		if (e.altKey && e.key === 'ArrowLeft') {
-			e.preventDefault();
-			navigateGridBack();
+	function drillKeyboardUp(e: KeyboardEvent): boolean {
+		if (viewMode !== 'grid') return false;
+		const originId = keyboardOriginId;
+		if (
+			gridHierarchyMode === 'inline' &&
+			e.key === 'ArrowLeft' &&
+			originId &&
+			gridExpandedIds.has(originId)
+		) {
+			collapseNode(originId);
 			return true;
 		}
-		if (e.altKey && e.key === 'ArrowRight') {
-			e.preventDefault();
-			navigateGridForward();
-			return true;
-		}
-		if (e.key === 'Backspace' || (e.altKey && e.key === 'ArrowUp')) {
-			e.preventDefault();
+		if (gridHierarchyMode === 'folder' && (e.key === 'Backspace' || e.altKey)) {
 			navigateGridUp();
 			return true;
 		}
 		return false;
 	}
 
-	function handleTreeArrowLeft(id: string, e: KeyboardEvent) {
-		const node = findNodeById(nodes, id);
-		if (!node) return;
-		const hasChildren = !!node.children && node.children.length > 0;
-		if (hasChildren && expandedIds.has(id)) {
-			e.preventDefault();
-			collapseNode(id);
-			return;
-		}
-		const parentId = parentIdFor(nodes, id);
-		if (!parentId) return;
-		e.preventDefault();
-		commitSelection(selectionService.selectPointer(provider.id, visibleNodeIds(), parentId));
+	function drillKeyboardBack(): boolean {
+		if (viewMode !== 'grid' || gridHierarchyMode !== 'folder') return false;
+		navigateGridBack();
+		return true;
 	}
 
-	function handleTreeArrowRight(id: string, e: KeyboardEvent) {
-		const node = findNodeById(nodes, id);
-		if (!node?.children || node.children.length === 0 || expandedIds.has(id)) return;
-		e.preventDefault();
-		expandNode(id);
+	function drillKeyboardForward(): boolean {
+		if (viewMode !== 'grid' || gridHierarchyMode !== 'folder') return false;
+		navigateGridForward();
+		return true;
 	}
 
 	function activateNode(node: TreeNode<TMeta>) {
@@ -1289,10 +1331,6 @@
 					onBadgeDoubleClick={handleBadgeClick}
 					onHoverBadgeAction={handleHoverBadgeAction}
 					onManualDrop={handleManualNodeDrop}
-					onSelect={handleListSelect}
-					onActivate={handleListActivate}
-					onFocus={handleListFocus}
-					onListContextMenu={handleListContextMenu}
 				/>
 			</div>
 		{/if}

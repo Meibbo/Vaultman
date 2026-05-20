@@ -11,7 +11,7 @@ props en Task 6, así los component tests standalone (que montan el view directo
 En esta task el panel solo crea el `KeyboardNavController` (lo consume vía
 `onRowKeydown={handleRowKeydown}`, ya presente en el mount, 1287) y ViewNodeList pasa a Contract A.
 
-- [ ] **Step 1: Write the failing test (list emits the same contract as tree)**
+- [x] **Step 1: Write the failing test (list emits the same contract as tree)**
 
 ```ts
 // test/component/selectionContractParity.test.ts
@@ -51,12 +51,12 @@ describe('ViewNodeList emits (id, MouseEvent) Contract A', () => {
 (Confirm `rowInputFromTreeNode` signature against `serviceExplorerRowInput.ts`; adjust the second arg
 if it takes options rather than depth.)
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 Run: `pnpm vitest run test/component/selectionContractParity.test.ts`
 Expected: FAIL — ViewNodeList has no `onRowClick` prop yet (still `onSelect`).
 
-- [ ] **Step 3a: ViewHost — delete Contract B**
+- [x] **Step 3a: ViewHost — delete Contract B**
 
 ```diff
 // src/components/explorer/ViewHost.svelte
@@ -86,7 +86,7 @@ Delete `handleListContextMenu` (139-141). In the list block (174-186) replace th
   />
 ```
 
-- [ ] **Step 3b: ViewNodeList — emit Contract A**
+- [x] **Step 3b: ViewNodeList — emit Contract A**
 
 Delete `SelectModifiers` (39-43), `onSelect`/`onActivate`/`onFocus` props (51-53), `handleSelect`
 (230-237), inline `handleKeydown` (239-269). Add to `Props`:

@@ -1,4 +1,4 @@
-- [ ] **Step 3c: panelExplorer — build controller, delete bridges**
+- [x] **Step 3c: panelExplorer — build controller, delete bridges**
 
 Add near the other service wiring (imports + setup). Reuses existing panel fns confirmed at the cited
 lines: `visibleNodeIds()` (889), `selectionService`, `commitSelection` (856), `revealNode` (1076),
@@ -95,14 +95,17 @@ now lives in `keyboardNav` + `drill`). Delete the list bridges: `handleListSelec
 `mouseEventFromListModifiers` (618-630). Delete the mount props `onSelect`/`onActivate`/`onFocus`/
 `onListContextMenu` (1292-1295).
 
-- [ ] **Step 4: Run tests to verify pass**
+- [x] **Step 4: Run tests to verify pass**
 
-Run: `pnpm vitest run test/component/selectionContractParity.test.ts test/component/viewTreeSelection.test.ts`
-Then: `pnpm check` (0 errors). Then existing keyboard/selection tests:
-`pnpm vitest run test/component/panelExplorerSelection.test.ts test/component/ViewNodeList.test.ts`
-Expected: PASS (parity preserved; list now Contract A).
+Actual verification:
+- `pnpm vitest run test/unit/services/keyboardNav.test.ts test/component/selectionContractParity.test.ts test/component/ViewNodeList.test.ts test/component/views/ViewNodeList.panel.vaultman.snapshot.test.ts test/component/explorer/ViewHost.test.ts test/component/panelExplorerSelection.test.ts test/component/viewNodeDelegation.test.ts test/component/viewTreeSelection.test.ts test/component/viewTreeScrollFallback.test.ts` — PASS, 9 files / 112 tests.
+- `pnpm run check` — PASS, 0 errors / 0 warnings.
+- `pnpm run lint` — PASS, 0 errors / 0 warnings.
+- `git diff --check` — PASS, CRLF working-copy warnings only.
 
-- [ ] **Step 5: Commit**
+Svelte autofixer was run on `ViewNodeList.svelte`, `ViewHost.svelte`, and `panelExplorer.svelte`; it reported no issues, only pre-existing suggestions.
+
+- [x] **Step 5: Commit**
 
 ```bash
 git add src/components/explorer/ViewHost.svelte \
@@ -110,3 +113,5 @@ git add src/components/explorer/ViewHost.svelte \
   test/component/selectionContractParity.test.ts
 git commit -m "refactor(A.R): unify seam to (id, MouseEvent); drop list Contract B + synthetic event; route keyboard via serviceKeyboardNav"
 ```
+
+Actual commit: `refactor(A.R): normalize explorer row seams`.

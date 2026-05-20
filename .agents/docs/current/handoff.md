@@ -5,7 +5,7 @@ status: active
 parent: "[[docs/work/pkm-ai/index|pkm-ai]]"
 archive_source: "docs/archive/pkm-ai/active-docs/2026-05-11T080321-current-handoff.md"
 created: 2026-05-04T01:36:20
-updated: 2026-05-20T00:00:00-05:00
+updated: 2026-05-20T16:22:00-05:00
 tags:
   - agent/current
 created_by: dec
@@ -17,7 +17,7 @@ updated_by: codex
 Compact handoff after archiving the oversized current handoff:
 [[docs/archive/pkm-ai/active-docs/2026-05-11T080321-current-handoff|2026-05-11 handoff archive]].
 
-## ⏩ NEXT AGENT START HERE — A.R v1.2.0 Start (2026-05-20)
+## ⏩ NEXT AGENT START HERE — A.R v1.2.0 Continue (2026-05-20)
 
 **Release/main reconciliation is complete.** Full source record:
 [[docs/work/hardening/plans/2026-05-20-release-1-1-0-catch-up|Release 1.1.0 catch-up]].
@@ -54,11 +54,10 @@ Compact handoff after archiving the oversized current handoff:
 - Bases Parity remains `v2.0.0`.
 
 **Next action**:
-1. A.R spec + implementation plan are already written on `claude/pensive-khorana-ed62bd` and imported
-   to `sandbox`.
-2. Gate-0 is closed: 0-A C12 flicker fix + C13 verification gates passed on 2026-05-20.
-3. Execute A.R for `v1.2.0` from
-   [[docs/work/hardening/plans/2026-05-20-explorer-AR-action-routing/index|A.R implementation plan]].
+1. A.R spec + implementation plan are imported to `sandbox`.
+2. Gate-0 and Tasks 1-5 are complete, through `refactor(A.R): normalize explorer row seams`.
+3. Continue A.R for `v1.2.0` from
+   [[docs/work/hardening/plans/2026-05-20-explorer-AR-action-routing/03-view-adoption|Task 6 view adoption]].
 
 **Optional cleanup**:
 - Remote branches `main-clean-1.1.0` and `release/1.1.0-infra` are merged/stale branches created
@@ -68,7 +67,11 @@ Compact handoff after archiving the oversized current handoff:
 
 - Worktree: `C:\Users\vic_A\Desktop\vaultman`
 - Branch: `sandbox`.
-- **Latest (2026-05-20)**: 0-A C12/C13 closeout complete and verified locally; A.R Gate-0 is closed/unblocked.
+- **Latest (2026-05-20)**: A.R Tasks 1-5 complete and verified locally; next is Task 6 view adoption.
+  Task 5 source record:
+  [[docs/work/hardening/plans/2026-05-20-explorer-AR-action-routing/02-seam-normalization|Task 5 seam normalization]].
+  Focused gate: 9 files / 112 tests; `pnpm run check` and `pnpm run lint` passed with 0 errors / 0 warnings.
+- Previous (2026-05-20): 0-A C12/C13 closeout complete and verified locally; A.R Gate-0 is closed/unblocked.
   Evidence:
   [[docs/work/hardening/plans/2026-05-18-explorer-sub-system-0-a-native-dom-parity/baseline-log|0-A baseline log]].
   Release 1.1.0 catch-up complete, umbrella pipeline renumerado, and
@@ -142,8 +145,8 @@ repair. Current handoff keeps only the active route and the latest release facts
 
 ## Next Action
 
-- **PRIMARY (post 0-A closeout 2026-05-20)**: execute A.R for `v1.2.0` from
-  [[docs/work/hardening/plans/2026-05-20-explorer-AR-action-routing/index|A.R implementation plan]].
+- **PRIMARY (post A.R Task 5 2026-05-20)**: continue A.R Task 6 view adoption from
+  [[docs/work/hardening/plans/2026-05-20-explorer-AR-action-routing/03-view-adoption|A.R Task 6 view adoption]].
 - Phase 0 spine `0-H → 0-B → O → 0-A` is closed; A.R can consume the
   View Feature Contract / native DOM contract.
 - If continuing Explorer scroll work, start from the variable scroll repair

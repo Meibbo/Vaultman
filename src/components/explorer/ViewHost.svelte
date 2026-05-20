@@ -93,10 +93,6 @@
 		onBadgeDoubleClick?: (queueIndex: number) => void;
 		onHoverBadgeAction?: (id: string, kind: BadgeKind, e: MouseEvent | KeyboardEvent) => void;
 		onManualDrop?: (result: DndDropResult) => void;
-		onSelect?: (row: ListRowInput, modifiers: { ctrl: boolean; shift: boolean; alt: boolean }) => void;
-		onActivate?: (row: ListRowInput) => void;
-		onFocus?: (id: string | null) => void;
-		onListContextMenu?: (event: MouseEvent, row: ListRowInput) => void;
 	}
 
 	let {
@@ -135,10 +131,6 @@
 		if (service.viewMode !== fallback) service.setViewMode(fallback);
 		if (viewMode !== fallback) viewMode = fallback;
 	});
-
-	function handleListContextMenu(event: MouseEvent, row: ListRowInput): void {
-		rest.onContextMenu(row.id, event);
-	}
 </script>
 
 {#if renderedViewMode === 'tree'}
@@ -178,10 +170,11 @@
 		canReorder={false}
 		selectedIds={rest.selectedIds}
 		focusedId={rest.focusedId}
-		onSelect={rest.onSelect}
-		onActivate={rest.onActivate}
-		onFocus={rest.onFocus}
-		onContextMenu={rest.onListContextMenu ?? handleListContextMenu}
+		onRowClick={rest.onRowClick}
+		onRowKeydown={rest.onRowKeydown}
+		onSecondaryAction={rest.onSecondaryAction}
+		onTertiaryAction={rest.onTertiaryAction as never}
+		onContextMenu={rest.onContextMenu}
 		icon={rest.icon}
 	/>
 {:else if renderedViewMode === 'table'}
