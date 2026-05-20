@@ -8,7 +8,7 @@ Depende de `serviceMouse` exports: `NodeMouseAction` (`'select'|'filter'|'open'|
 `NodeMouseActionConfig` (`{primary,secondary,tertiary}`), `DEFAULT_NODE_MOUSE_ACTIONS`
 (primary `'filter'`, secondary `'open'`, tertiary `'delete'`) — verificados en serviceMouse.ts.
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 ```ts
 // test/unit/services/actionRouting.intent.test.ts
@@ -65,12 +65,12 @@ describe('resolveActionIntent', () => {
 });
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 Run: `pnpm vitest run test/unit/services/actionRouting.intent.test.ts`
 Expected: FAIL — `Cannot find module '../../../src/types/typeActionRouting'`.
 
-- [ ] **Step 3: Write minimal implementation**
+- [x] **Step 3: Write minimal implementation**
 
 ```ts
 // src/types/typeActionRouting.ts
@@ -141,12 +141,12 @@ export function resolveActionIntent(
 }
 ```
 
-- [ ] **Step 4: Run test to verify it passes**
+- [x] **Step 4: Run test to verify it passes**
 
 Run: `pnpm vitest run test/unit/services/actionRouting.intent.test.ts`
 Expected: PASS (7 assertions).
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add src/types/typeActionRouting.ts test/unit/services/actionRouting.intent.test.ts
