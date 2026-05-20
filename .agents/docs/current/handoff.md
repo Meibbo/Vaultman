@@ -54,9 +54,11 @@ Compact handoff after archiving the oversized current handoff:
 - Bases Parity remains `v2.0.0`.
 
 **Next action**:
-1. Write the A.R (Action Routing) detail spec.
-2. Use `superpowers:writing-plans` for the A.R implementation plan.
-3. Execute `v1.2.0`: A.R + 0-A close + 0-A.S + T.G basis + viewTree sticky fix.
+1. A.R spec + implementation plan are already written on `claude/pensive-khorana-ed62bd` and imported
+   to `sandbox`.
+2. Close Gate-0: 0-A C12 flicker fix + C13 verification gates.
+3. Execute A.R for `v1.2.0` from
+   [[docs/work/hardening/plans/2026-05-20-explorer-AR-action-routing/index|A.R implementation plan]].
 
 **Optional cleanup**:
 - Remote branches `main-clean-1.1.0` and `release/1.1.0-infra` are merged/stale branches created
@@ -66,9 +68,10 @@ Compact handoff after archiving the oversized current handoff:
 
 - Worktree: `C:\Users\vic_A\Desktop\vaultman`
 - Branch: `sandbox`.
-- **Latest (2026-05-20)**: Release 1.1.0 catch-up complete and umbrella pipeline renumerado at
+- **Latest (2026-05-20)**: Release 1.1.0 catch-up complete, umbrella pipeline renumerado, and
+  A.R spec/plan imported from `claude/pensive-khorana-ed62bd`.
   [[docs/work/hardening/specs/2026-05-19-explorer-merge-umbrella/index|Explorer Merge Umbrella]]
-  (index + 6 shards). Pipeline `v1.2.0→v2.0.0`; next: write A.R (Action Routing) detail spec.
+  (index + 6 shards). Pipeline `v1.2.0→v2.0.0`; next: close 0-A Gate-0 before A.R implementation.
 - Latest request handled: Explorer Phase 0 sub-system O
   (`frameVaultman.svelte` decomposition) implemented inline across six serial
   commits on `sandbox`.
@@ -79,6 +82,8 @@ Compact handoff after archiving the oversized current handoff:
 - Primary records:
   - [[docs/work/hardening/plans/2026-05-20-release-1-1-0-catch-up|Release 1.1.0 catch-up]]
   - [[docs/work/hardening/specs/2026-05-19-explorer-merge-umbrella/index|Explorer Merge Umbrella]]
+  - [[docs/work/hardening/specs/2026-05-20-explorer-AR-action-routing/index|A.R Action Routing spec]]
+  - [[docs/work/hardening/plans/2026-05-20-explorer-AR-action-routing/index|A.R implementation plan]]
   - [[docs/work/hardening/specs/2026-05-15-explorer-view-platform-pass/index|Explorer View Platform pass spec]]
   - [[docs/work/hardening/plans/2026-05-15-explorer-view-platform-pass/index|Explorer View Platform pass implementation plan]]
   - [[docs/work/hardening/plans/2026-05-15-explorer-view-platform-pass/perf-baseline|Explorer View Platform perf baseline]]
@@ -132,10 +137,8 @@ repair. Current handoff keeps only the active route and the latest release facts
 
 ## Next Action
 
-- **PRIMARY (post release 2026-05-20)**: write A.R (Action Routing) detail spec — first child
-  of [[docs/work/hardening/specs/2026-05-19-explorer-merge-umbrella/index|Explorer Merge Umbrella]].
-  v1.2.0 bundle = A.R + 0-A close (C12+C13) + 0-A.S + T.G basis + viewTree sticky fix. Pipeline is
-  a HUMAN checklist — no agent auto-progression.
+- **PRIMARY (post A.R spec/plan import 2026-05-20)**: close 0-A C12+C13. A.R plan is written but
+  explicitly gated on 0-A closure. Do not implement A.R before Gate-0 passes.
 - Phase 0 next action after O: begin 0-A View Feature Contract / native DOM
   contract, using O's `FrameNavigationService`, `FrameNavbarShell`, and
   `FrameDashboardShell` as the frame-level integration points.

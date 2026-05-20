@@ -31,7 +31,12 @@ Compact route index after archiving the oversized current status:
 - Active initiative: [[docs/work/hardening/index|Hardening]].
 - **NEXT (post-release 2026-05-20)**: [[docs/work/hardening/specs/2026-05-19-explorer-merge-umbrella/index|Explorer Merge Umbrella]]
   — proto-v5 ↔ production merge + release pipeline renumerado `v1.2.0→v2.0.0` después del
-  catch-up `1.1.0`. First detail spec target = A.R (Action Routing) para `v1.2.0`.
+  catch-up `1.1.0`. A.R spec + plan existen para `v1.2.0`; implementation queda gateada por
+  0-A C12/C13.
+- A.R records imported from `claude/pensive-khorana-ed62bd`:
+  [[docs/work/hardening/specs/2026-05-20-explorer-AR-action-routing/index|A.R Action Routing spec]]
+  and
+  [[docs/work/hardening/plans/2026-05-20-explorer-AR-action-routing/index|A.R implementation plan]].
 - Release catch-up complete:
   [[docs/work/hardening/plans/2026-05-20-release-1-1-0-catch-up|Release 1.1.0 catch-up]].
 - Completed Explorer Phase 0 sub-system B:
@@ -175,10 +180,11 @@ Compact route index after archiving the oversized current status:
 
 ## Next Action
 
-- **PRIMARY (post release 2026-05-20)**: write A.R (Action Routing) detail spec — first child of
-  [[docs/work/hardening/specs/2026-05-19-explorer-merge-umbrella/index|Explorer Merge Umbrella]].
-  Then writing-plans → impl. v1.2.0 = A.R + 0-A close + 0-A.S + T.G basis + viewTree sticky fix.
-- Close remaining 0-A commits (C12 flicker fix + C13 verification gates) before A.R starts.
+- **PRIMARY (post A.R spec/plan import 2026-05-20)**: close remaining 0-A commits
+  (C12 flicker fix + C13 verification gates). A.R implementation plan has Gate-0 and must not start
+  until 0-A is closed.
+- Then execute A.R implementation for `v1.2.0` from
+  [[docs/work/hardening/plans/2026-05-20-explorer-AR-action-routing/index|A.R implementation plan]].
 - Explorer 0-B and O are complete. Next Phase 0 consumer is 0-A View Feature
   Contract / native DOM contract.
 - For Explorer scroll work, continue from the variable scroll repair record:
