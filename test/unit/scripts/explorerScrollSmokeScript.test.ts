@@ -19,6 +19,7 @@ describe('explorer scroll smoke runner script', () => {
 		expect(frameCheckIndex).toBeGreaterThan(targetCheckIndex);
 		expect(openCommandIndex).toBeGreaterThan(frameCheckIndex);
 		expect(source).toContain('Vaultman Explorer scroll target already open');
+		expect(source).toContain('{ printOutput: false }');
 		expect(source).not.toContain("['command', 'id=vaultman:open', `vault=${VAULT}`]");
 	});
 });

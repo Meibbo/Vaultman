@@ -3,6 +3,7 @@ import { spawnSync } from 'node:child_process';
 const VAULT = 'plugin-dev';
 const VIEWS = new Set(['auto', 'tree', 'list', 'table', 'grid', 'cards']);
 const MODES = new Set(['smoke', 'stress']);
+const PATTERNS = new Set(['jump', 'smooth', 'monitor']);
 const SCROLL_TARGET_SELECTORS = {
 	tree: '.vm-tree-virtual-outer',
 	list: '.vm-view-list',
@@ -38,7 +39,7 @@ const evalResult = runChecked('obsidian', [
 	`vault=${VAULT}`,
 	'eval',
 	`code=${buildEvalCode(options)}`,
-]);
+], { printOutput: false });
 const snapshot = parseJsonFromOutput(evalResult.stdout);
 printBurstSummary(snapshot);
 
@@ -58,7 +59,9 @@ function parseOptions(args) {
 		help: false,
 		mode: 'smoke',
 		view: 'auto',
+		pattern: 'jump',
 		jumps: undefined,
+		scrollStepPx: undefined,
 		visualDelayMs: undefined,
 		overlay: true,
 		strictFlicker: false,
@@ -76,7 +79,11 @@ function parseOptions(args) {
 		else if (arg === '--strict-flicker') parsed.strictFlicker = true;
 		else if (arg.startsWith('--mode=')) parsed.mode = valueFor(arg);
 		else if (arg.startsWith('--view=')) parsed.view = valueFor(arg);
+		else if (arg.startsWith('--pattern=')) parsed.pattern = valueFor(arg);
 		else if (arg.startsWith('--jumps=')) parsed.jumps = integerValue(arg, 'jumps');
+		else if (arg.startsWith('--scroll-step-px=')) {
+			parsed.scrollStepPx = integerValue(arg, 'scroll-step-px');
+		}
 		else if (arg.startsWith('--visual-delay-ms=')) {
 			parsed.visualDelayMs = integerValue(arg, 'visual-delay-ms');
 		} else {
@@ -88,8 +95,12 @@ function parseOptions(args) {
 	if (!VIEWS.has(parsed.view)) {
 		fail(`Unknown view "${parsed.view}". Use auto, tree, list, table, grid, or cards.`);
 	}
+	if (!PATTERNS.has(parsed.pattern)) {
+		fail(`Unknown pattern "${parsed.pattern}". Use jump, smooth, or monitor.`);
+	}
 
 	parsed.jumps ??= parsed.mode === 'stress' ? 1000 : 100;
+	parsed.scrollStepPx ??= 18;
 	parsed.visualDelayMs ??= parsed.mode === 'stress' ? 8 : 24;
 	return parsed;
 }
@@ -104,10 +115,12 @@ function integerValue(arg, name) {
 	return value;
 }
 
-function buildEvalCode({ view, jumps, visualDelayMs, overlay, strictFlicker }) {
+function buildEvalCode({ view, pattern, jumps, scrollStepPx, visualDelayMs, overlay, strictFlicker }) {
 	const scenarioOptions = JSON.stringify({
 		view,
+		pattern,
 		jumps,
+		scrollStepPx,
 		visualDelayMs,
 		overlay,
 		strictFlicker: strictFlicker === true,
@@ -118,7 +131,33 @@ function buildEvalCode({ view, jumps, visualDelayMs, overlay, strictFlicker }) {
 		"  if (!window.__vaultmanPerfProbe) throw new Error('window.__vaultmanPerfProbe missing');",
 		`  return window.__vaultmanPerfProbe.run('explorer-scroll-burst-live', ${scenarioOptions});`,
 		'})',
-		'.then((result) => JSON.stringify(result))',
+		'.then((result) => {',
+		'  const b = result.scrollBurst;',
+		'  return JSON.stringify({',
+		'    scenario: result.scenario,',
+		'    scrollBurst: b ? {',
+		'      requestedView: b.requestedView,',
+		'      view: b.view,',
+		'      pattern: b.pattern,',
+		'      jumpCount: b.jumpCount,',
+		'      blankFrameCount: b.blankFrameCount,',
+		'      blankWindowOver100ms: b.blankWindowOver100ms,',
+		'      blankWindowOver250ms: b.blankWindowOver250ms,',
+		'      maxBlankDurationMs: b.maxBlankDurationMs,',
+		'      maxViewportGapPx: b.maxViewportGapPx,',
+		'      maxEventLoopDelayMs: b.maxEventLoopDelayMs,',
+		'      longAnimationFrameCount: b.longAnimationFrameCount,',
+		'      maxLongAnimationFrameMs: b.maxLongAnimationFrameMs,',
+		'      longTaskCount: b.longTaskCount,',
+		'      maxLongTaskMs: b.maxLongTaskMs,',
+		'      strictFlicker: b.strictFlicker,',
+		'      flickerFrameCount: b.flickerFrameCount,',
+		'      maxFlickerRowCount: b.maxFlickerRowCount,',
+		'      passed: b.passed,',
+		'      reason: b.reason,',
+		'    } : undefined,',
+		'  });',
+		'})',
 	].join('\n');
 }
 
@@ -193,12 +232,18 @@ function printBurstSummary(snapshot) {
 			`Explorer scroll smoke ${status}`,
 			`vault=${VAULT}`,
 			`view=${burst.view}`,
+			`pattern=${burst.pattern ?? 'jump'}`,
 			`jumps=${burst.jumpCount}`,
 			`blankFrames=${burst.blankFrameCount}`,
 			`blank>100ms=${burst.blankWindowOver100ms}`,
 			`blank>250ms=${burst.blankWindowOver250ms}`,
 			`maxBlank=${Math.round(burst.maxBlankDurationMs)}ms`,
+			`maxViewportGap=${Math.round(burst.maxViewportGapPx ?? 0)}px`,
 			`maxDelay=${Math.round(burst.maxEventLoopDelayMs)}ms`,
+			`LoAF=${burst.longAnimationFrameCount ?? 0}/${Math.round(
+				burst.maxLongAnimationFrameMs ?? 0,
+			)}ms`,
+			`longtask=${burst.longTaskCount ?? 0}/${Math.round(burst.maxLongTaskMs ?? 0)}ms`,
 			...(burst.strictFlicker
 				? [
 						`flickerFrames=${burst.flickerFrameCount}`,
@@ -217,7 +262,10 @@ Runs the live Vaultman Explorer scroll burst smoke against vault=${VAULT}.
 Options:
   --mode=smoke|stress          smoke defaults to 100 jumps, stress to 1000
   --view=auto|tree|list|table|grid|cards
+  --pattern=jump|smooth|monitor
+                               jump uses ratios, smooth uses scrollTop steps, monitor samples manual scroll
   --jumps=N                    override jump count
+  --scroll-step-px=N           smooth-mode scroll distance per sample
   --visual-delay-ms=N          delay between jumps so the movement is visible
   --strict-flicker             fail if node-element children disappear during active scroll
   --no-build                   skip pnpm run build
@@ -229,6 +277,8 @@ Options:
 Examples:
   pnpm smoke:scroll
   pnpm smoke:scroll -- --view=tree --jumps=200
+  pnpm smoke:scroll -- --view=tree --pattern=smooth --jumps=400 --visual-delay-ms=0
+  pnpm smoke:scroll -- --view=tree --pattern=monitor --jumps=600 --visual-delay-ms=16
   pnpm smoke:scroll:stress -- --view=list
 `);
 }

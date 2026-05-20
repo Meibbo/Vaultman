@@ -44,12 +44,15 @@ export const PERF_SCENARIO_NAMES = [
 
 export type PerfScenarioName = (typeof PERF_SCENARIO_NAMES)[number];
 export type PerfScrollBurstView = 'auto' | 'tree' | 'list' | 'table' | 'grid' | 'cards';
+export type PerfScrollBurstPattern = 'jump' | 'smooth' | 'monitor';
 
 export interface PerfScenarioOptions {
 	query?: string;
 	steps?: number;
 	view?: PerfScrollBurstView;
+	pattern?: PerfScrollBurstPattern;
 	jumps?: number;
+	scrollStepPx?: number;
 	visualDelayMs?: number;
 	overlay?: boolean;
 	strictFlicker?: boolean;
@@ -64,6 +67,7 @@ export interface PerfScrollBurstSample {
 	renderedRowCount: number;
 	visibleRowCount: number;
 	textPresent: boolean;
+	viewportGapPx: number;
 	blank: boolean;
 	blankDurationMs: number;
 	eventLoopDelayMs: number;
@@ -76,13 +80,19 @@ export interface PerfScrollBurstSample {
 export interface PerfScrollBurstReport {
 	requestedView: PerfScrollBurstView;
 	view: Exclude<PerfScrollBurstView, 'auto'>;
+	pattern: PerfScrollBurstPattern;
 	jumpCount: number;
 	samples: PerfScrollBurstSample[];
 	blankFrameCount: number;
 	blankWindowOver100ms: number;
 	blankWindowOver250ms: number;
 	maxBlankDurationMs: number;
+	maxViewportGapPx: number;
 	maxEventLoopDelayMs: number;
+	longAnimationFrameCount: number;
+	maxLongAnimationFrameMs: number;
+	longTaskCount: number;
+	maxLongTaskMs: number;
 	strictFlicker: boolean;
 	flickerFrameCount: number;
 	maxFlickerRowCount: number;
@@ -140,6 +150,7 @@ const SCROLL_BURST_TARGET_WAIT_MS = 2_000;
 const SCROLL_BURST_TARGET_POLL_MS = 16;
 const SCROLL_BURST_FRAME_FALLBACK_MS = 50;
 const SCROLL_BURST_STRICT_IDLE_MS = 128;
+const SCROLL_BURST_DEFAULT_STEP_PX = 18;
 
 interface ScrollBurstTarget {
 	view: Exclude<PerfScrollBurstView, 'auto'>;
@@ -152,6 +163,18 @@ interface ScrollBurstTarget {
 interface RowChildSignature {
 	total: number;
 	counts: Record<string, number>;
+}
+
+interface ScrollPerformanceObserverStats {
+	longAnimationFrameCount: number;
+	maxLongAnimationFrameMs: number;
+	longTaskCount: number;
+	maxLongTaskMs: number;
+}
+
+interface ScrollPerformanceObserverHandle {
+	read(): ScrollPerformanceObserverStats;
+	disconnect(): void;
 }
 
 export function setActivePerfProbe(probe: PerfProbeApi): void {
@@ -244,6 +267,23 @@ function jumpScrollElement(element: HTMLElement, targetRatio = 1): void {
 	element.dispatchEvent(new Event('scroll', { bubbles: true }));
 }
 
+function smoothScrollElement(
+	element: HTMLElement,
+	stepPx: number,
+	direction: 1 | -1,
+): 1 | -1 {
+	const maxScroll = Math.max(0, element.scrollHeight - element.clientHeight);
+	const boundedStep = Math.max(1, Math.round(Math.abs(stepPx)));
+	let nextDirection = direction;
+	if (element.scrollTop >= maxScroll) nextDirection = -1;
+	if (element.scrollTop <= 0) nextDirection = 1;
+	element.scrollTop = Math.max(0, Math.min(maxScroll, element.scrollTop + nextDirection * boundedStep));
+	element.dispatchEvent(new Event('scroll', { bubbles: true }));
+	if (element.scrollTop >= maxScroll) return -1;
+	if (element.scrollTop <= 0) return 1;
+	return nextDirection;
+}
+
 function delay(doc: Document | undefined, ms: number): Promise<void> {
 	if (ms <= 0) return Promise.resolve();
 	const win = doc?.defaultView;
@@ -261,6 +301,11 @@ function documentIsHidden(doc: Document | undefined): boolean {
 function visualDelay(doc: Document | undefined, ms: number): Promise<void> {
 	if (documentIsHidden(doc)) return Promise.resolve();
 	return delay(doc, ms);
+}
+
+function normalizeScrollPattern(pattern: unknown): PerfScrollBurstPattern {
+	if (pattern === 'smooth' || pattern === 'monitor') return pattern;
+	return 'jump';
 }
 
 async function nextPaintAndTick(doc: Document | undefined): Promise<void> {
@@ -416,6 +461,94 @@ function rowTextPresent(rows: readonly HTMLElement[], textSelector: string): boo
 	});
 }
 
+function hasMeasurableRect(rect: DOMRect): boolean {
+	return (
+		rect.width !== 0 ||
+		rect.height !== 0 ||
+		rect.top !== 0 ||
+		rect.bottom !== 0 ||
+		rect.left !== 0 ||
+		rect.right !== 0
+	);
+}
+
+function rowIntersectsViewport(row: HTMLElement, viewport: DOMRect): boolean {
+	const rect = row.getBoundingClientRect();
+	return rect.bottom > viewport.top + 1 && rect.top < viewport.bottom - 1;
+}
+
+function rowsInViewport(
+	target: ScrollBurstTarget,
+	rows: readonly HTMLElement[],
+): readonly HTMLElement[] {
+	if (rows.length === 0) return [];
+	const viewport = target.element.getBoundingClientRect();
+	const hasViewportGeometry =
+		target.element.clientHeight > 0 || target.element.clientWidth > 0 || hasMeasurableRect(viewport);
+	const hasRowGeometry = rows.some((row) => hasMeasurableRect(row.getBoundingClientRect()));
+	if (!hasViewportGeometry || !hasRowGeometry) return rows;
+	return rows.filter((row) => rowIntersectsViewport(row, viewport));
+}
+
+function viewportGapPx(target: ScrollBurstTarget, rows: readonly HTMLElement[]): number {
+	const viewport = target.element.getBoundingClientRect();
+	const hasViewportGeometry =
+		target.element.clientHeight > 0 || target.element.clientWidth > 0 || hasMeasurableRect(viewport);
+	const hasRowGeometry = rows.some((row) => hasMeasurableRect(row.getBoundingClientRect()));
+	if (!hasViewportGeometry || !hasRowGeometry) return 0;
+	const visibleRows = rowsInViewport(target, rows);
+	if (visibleRows.length === 0) {
+		return Math.max(0, target.element.clientHeight || viewport.height || 0);
+	}
+	const first = visibleRows[0].getBoundingClientRect();
+	const last = visibleRows.at(-1)?.getBoundingClientRect() ?? first;
+	return Math.max(0, first.top - viewport.top, viewport.bottom - last.bottom);
+}
+
+function createScrollPerformanceObserver(
+	doc: Document | undefined,
+): ScrollPerformanceObserverHandle {
+	const win = doc?.defaultView;
+	const PerformanceObserverCtor = win?.PerformanceObserver;
+	const observers: PerformanceObserver[] = [];
+	const stats: ScrollPerformanceObserverStats = {
+		longAnimationFrameCount: 0,
+		maxLongAnimationFrameMs: 0,
+		longTaskCount: 0,
+		maxLongTaskMs: 0,
+	};
+	const observe = (
+		entryType: string,
+		onEntry: (entry: PerformanceEntry) => void,
+	): void => {
+		if (!PerformanceObserverCtor) return;
+		if (!PerformanceObserverCtor.supportedEntryTypes.includes(entryType)) return;
+		try {
+			const observer = new PerformanceObserverCtor((list) => {
+				for (const entry of list.getEntries()) onEntry(entry);
+			});
+			observer.observe({ type: entryType, buffered: false });
+			observers.push(observer);
+		} catch {
+			// Older Electron builds may advertise an entry type but reject it at observe time.
+		}
+	};
+
+	observe('long-animation-frame', (entry) => {
+		stats.longAnimationFrameCount += 1;
+		stats.maxLongAnimationFrameMs = Math.max(stats.maxLongAnimationFrameMs, entry.duration);
+	});
+	observe('longtask', (entry) => {
+		stats.longTaskCount += 1;
+		stats.maxLongTaskMs = Math.max(stats.maxLongTaskMs, entry.duration);
+	});
+
+	return {
+		read: () => ({ ...stats }),
+		disconnect: () => observers.forEach((observer) => observer.disconnect()),
+	};
+}
+
 function rowId(row: HTMLElement | undefined): string | undefined {
 	return row?.dataset.id ?? row?.dataset.nodeId ?? row?.dataset.callbackId;
 }
@@ -464,13 +597,17 @@ function upsertScrollSmokeOverlay(doc: Document, report: PerfScrollBurstReport):
 		overlay.setAttribute('role', 'status');
 		doc.body.appendChild(overlay);
 	}
-	overlay.textContent = `Vaultman scroll smoke ${report.view}: ${
+	overlay.textContent = `Vaultman scroll smoke ${report.view}/${report.pattern}: ${
 		report.passed ? 'PASS' : 'FAIL'
-	} jumps=${report.jumpCount} blanks=${report.blankFrameCount} maxBlank=${Math.round(
-		report.maxBlankDurationMs,
-	)}ms maxDelay=${Math.round(report.maxEventLoopDelayMs)}ms flicker=${
-		report.flickerFrameCount
-	}`;
+	} samples=${report.samples.length}/${report.jumpCount} blanks=${
+		report.blankFrameCount
+	} maxBlank=${Math.round(report.maxBlankDurationMs)}ms maxViewportGap=${Math.round(
+		report.maxViewportGapPx,
+	)}px maxDelay=${Math.round(report.maxEventLoopDelayMs)}ms LoAF=${
+		report.longAnimationFrameCount
+	}/${Math.round(report.maxLongAnimationFrameMs)}ms longtask=${report.longTaskCount}/${Math.round(
+		report.maxLongTaskMs,
+	)}ms flicker=${report.flickerFrameCount}`;
 }
 
 async function runExplorerScrollBurst(
@@ -485,13 +622,19 @@ async function runExplorerScrollBurst(
 		return {
 			requestedView,
 			view,
+			pattern: normalizeScrollPattern(options.pattern),
 			jumpCount: 0,
 			samples: [],
 			blankFrameCount: 1,
 			blankWindowOver100ms: 1,
 			blankWindowOver250ms: 1,
 			maxBlankDurationMs: SCROLL_BURST_HARD_BLANK_FAIL_MS,
+			maxViewportGapPx: 0,
 			maxEventLoopDelayMs: 0,
+			longAnimationFrameCount: 0,
+			maxLongAnimationFrameMs: 0,
+			longTaskCount: 0,
+			maxLongTaskMs: 0,
 			strictFlicker: options.strictFlicker === true,
 			flickerFrameCount: 0,
 			maxFlickerRowCount: 0,
@@ -501,6 +644,11 @@ async function runExplorerScrollBurst(
 	}
 
 	const jumpCount = Math.max(1, Math.floor(options.jumps ?? SCROLL_BURST_DEFAULT_JUMPS));
+	const pattern = normalizeScrollPattern(options.pattern);
+	const scrollStepPx = Math.max(
+		1,
+		Math.floor(Math.abs(options.scrollStepPx ?? SCROLL_BURST_DEFAULT_STEP_PX)),
+	);
 	const visualDelayMs = Math.max(
 		0,
 		Math.floor(options.visualDelayMs ?? SCROLL_BURST_DEFAULT_VISUAL_DELAY_MS),
@@ -508,14 +656,22 @@ async function runExplorerScrollBurst(
 	const samples: PerfScrollBurstSample[] = [];
 	let blankStart: number | null = null;
 	let maxEventLoopDelayMs = 0;
+	let smoothDirection: 1 | -1 = 1;
 	const strictFlicker = options.strictFlicker === true;
+	const performanceObserver = strictFlicker ? null : createScrollPerformanceObserver(doc);
 
 	for (let jumpIndex = 0; jumpIndex < jumpCount; jumpIndex += 1) {
 		const ratio = SCROLL_BURST_RATIOS[jumpIndex % SCROLL_BURST_RATIOS.length];
 		let stableSignatures: Map<string, RowChildSignature> | null = null;
 		let before = clock();
 		if (strictFlicker) {
-			jumpScrollElement(target.element, ratio);
+			if (pattern === 'monitor') {
+				// Monitor mode intentionally samples the viewport without synthetic scrolling.
+			} else if (pattern === 'smooth') {
+				smoothDirection = smoothScrollElement(target.element, scrollStepPx, smoothDirection);
+			} else {
+				jumpScrollElement(target.element, ratio);
+			}
 			await nextPaintAndTick(doc);
 			await delay(doc, SCROLL_BURST_STRICT_IDLE_MS);
 			await nextPaintAndTick(doc);
@@ -526,15 +682,23 @@ async function runExplorerScrollBurst(
 			before = clock();
 			target.element.dispatchEvent(new Event('scroll', { bubbles: true }));
 		} else {
-			jumpScrollElement(target.element, ratio);
+			if (pattern === 'monitor') {
+				// Monitor mode intentionally samples the viewport without synthetic scrolling.
+			} else if (pattern === 'smooth') {
+				smoothDirection = smoothScrollElement(target.element, scrollStepPx, smoothDirection);
+			} else {
+				jumpScrollElement(target.element, ratio);
+			}
 		}
 		await nextPaintAndTick(doc);
 		const after = clock();
 		maxEventLoopDelayMs = Math.max(maxEventLoopDelayMs, after - before);
 
 		const rows = [...target.element.querySelectorAll<HTMLElement>(target.rowSelector)];
-		const visibleRowCount = rows.length;
-		const textPresent = rowTextPresent(rows, target.textSelector);
+		const visibleRows = rowsInViewport(target, rows);
+		const visibleRowCount = visibleRows.length;
+		const textPresent = rowTextPresent(visibleRows, target.textSelector);
+		const visibleGapPx = viewportGapPx(target, rows);
 		const blank = visibleRowCount === 0 || !textPresent;
 		const flickerRows = stableSignatures
 			? flickeringRows(stableSignatures, rowChildSignatures(rows, target))
@@ -552,21 +716,24 @@ async function runExplorerScrollBurst(
 			renderedRowCount: rows.length,
 			visibleRowCount,
 			textPresent,
+			viewportGapPx: visibleGapPx,
 			blank,
 			blankDurationMs,
 			eventLoopDelayMs: after - before,
 			flickerRowCount: flickerRows.length,
 			flickerRows: flickerRows.length > 0 ? flickerRows.slice(0, 12) : undefined,
-			firstRowId: rowId(rows[0]),
-			lastRowId: rowId(rows.at(-1)),
+			firstRowId: rowId(visibleRows[0]),
+			lastRowId: rowId(visibleRows.at(-1)),
 		});
 
 		const partialReport = buildScrollBurstReport(
 			requestedView,
 			target.view,
+			pattern,
 			jumpCount,
 			samples,
 			strictFlicker,
+			performanceObserver?.read(),
 		);
 		if (options.overlay !== false) upsertScrollSmokeOverlay(doc, partialReport);
 		await visualDelay(doc, visualDelayMs);
@@ -575,10 +742,13 @@ async function runExplorerScrollBurst(
 	const report = buildScrollBurstReport(
 		requestedView,
 		target.view,
+		pattern,
 		jumpCount,
 		samples,
 		strictFlicker,
+		performanceObserver?.read(),
 	);
+	performanceObserver?.disconnect();
 	report.maxEventLoopDelayMs = Math.max(report.maxEventLoopDelayMs, maxEventLoopDelayMs);
 	if (options.overlay !== false) upsertScrollSmokeOverlay(doc, report);
 	return report;
@@ -587,9 +757,16 @@ async function runExplorerScrollBurst(
 function buildScrollBurstReport(
 	requestedView: PerfScrollBurstView,
 	view: Exclude<PerfScrollBurstView, 'auto'>,
+	pattern: PerfScrollBurstPattern,
 	jumpCount: number,
 	samples: readonly PerfScrollBurstSample[],
 	strictFlicker = false,
+	observerStats: ScrollPerformanceObserverStats = {
+		longAnimationFrameCount: 0,
+		maxLongAnimationFrameMs: 0,
+		longTaskCount: 0,
+		maxLongTaskMs: 0,
+	},
 ): PerfScrollBurstReport {
 	const blankFrameCount = samples.filter((sample) => sample.blank).length;
 	const blankWindowOver100ms = samples.filter(
@@ -599,19 +776,26 @@ function buildScrollBurstReport(
 		(sample) => sample.blankDurationMs > SCROLL_BURST_HARD_BLANK_FAIL_MS,
 	).length;
 	const maxBlankDurationMs = Math.max(0, ...samples.map((sample) => sample.blankDurationMs));
+	const maxViewportGapPx = Math.max(0, ...samples.map((sample) => sample.viewportGapPx));
 	const maxEventLoopDelayMs = Math.max(0, ...samples.map((sample) => sample.eventLoopDelayMs));
 	const flickerFrameCount = samples.filter((sample) => sample.flickerRowCount > 0).length;
 	const maxFlickerRowCount = Math.max(0, ...samples.map((sample) => sample.flickerRowCount));
 	return {
 		requestedView,
 		view,
+		pattern,
 		jumpCount,
 		samples: [...samples],
 		blankFrameCount,
 		blankWindowOver100ms,
 		blankWindowOver250ms,
 		maxBlankDurationMs,
+		maxViewportGapPx,
 		maxEventLoopDelayMs,
+		longAnimationFrameCount: observerStats.longAnimationFrameCount,
+		maxLongAnimationFrameMs: observerStats.maxLongAnimationFrameMs,
+		longTaskCount: observerStats.longTaskCount,
+		maxLongTaskMs: observerStats.maxLongTaskMs,
 		strictFlicker,
 		flickerFrameCount,
 		maxFlickerRowCount,
@@ -806,10 +990,12 @@ export function createPerfProbe({ now, doc }: PerfProbeOptions): PerfProbe {
 				count('scenario.tree-filtered-highlight.matches', { rows: highlighted?.length ?? 0 });
 			}
 
-			const loop = await waitForEventLoopSettled(doc, now, 2);
-			if (loop.longFrameCount > 0) {
-				longFrameCount = (longFrameCount ?? 0) + loop.longFrameCount;
-				maxLongFrameMs = Math.max(maxLongFrameMs ?? 0, loop.maxLongFrameMs ?? 0);
+			if (name !== 'explorer-scroll-burst-live') {
+				const loop = await waitForEventLoopSettled(doc, now, 2);
+				if (loop.longFrameCount > 0) {
+					longFrameCount = (longFrameCount ?? 0) + loop.longFrameCount;
+					maxLongFrameMs = Math.max(maxLongFrameMs ?? 0, loop.maxLongFrameMs ?? 0);
+				}
 			}
 		});
 		return { ...snapshot(), scenario: name };

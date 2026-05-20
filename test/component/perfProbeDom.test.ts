@@ -158,6 +158,88 @@ describe('perf probe DOM scenarios', () => {
 		expect(scrolls).toBe(5);
 	});
 
+	it('runs explorer scroll burst live as smooth incremental scroll samples', async () => {
+		let scrolls = 0;
+		const scrollTops: number[] = [];
+		document.body.innerHTML = `
+			<div class="vm-view-list">
+				<div class="vm-view-list-row" data-id="node-0">
+					<span class="vm-view-list-label">Node 0</span>
+				</div>
+			</div>
+		`;
+		const list = document.querySelector<HTMLElement>('.vm-view-list');
+		const row = document.querySelector<HTMLElement>('.vm-view-list-row');
+		expect(list).toBeTruthy();
+		expect(row).toBeTruthy();
+		Object.defineProperty(list, 'clientHeight', { value: 100, configurable: true });
+		Object.defineProperty(list, 'scrollHeight', { value: 1_100, configurable: true });
+		list?.addEventListener('scroll', () => {
+			scrolls += 1;
+			scrollTops.push(list.scrollTop);
+			row!.dataset.id = `node-${list.scrollTop}`;
+			row!.textContent = `Node ${list.scrollTop}`;
+		});
+		const probe = createPerfProbe({ now: () => performance.now(), doc: document });
+
+		const result = await probe.api.run('explorer-scroll-burst-live', {
+			view: 'list',
+			pattern: 'smooth',
+			jumps: 3,
+			scrollStepPx: 20,
+			visualDelayMs: 0,
+			overlay: false,
+		});
+
+		expect(result.scrollBurst).toMatchObject({
+			view: 'list',
+			pattern: 'smooth',
+			jumpCount: 3,
+			blankFrameCount: 0,
+			passed: true,
+		});
+		expect(scrolls).toBe(3);
+		expect(scrollTops).toEqual([20, 40, 60]);
+		expect(result.scrollBurst?.samples.map((sample) => sample.scrollTop)).toEqual([20, 40, 60]);
+	});
+
+	it('runs explorer scroll burst live as monitor samples without synthetic scrolling', async () => {
+		let scrolls = 0;
+		document.body.innerHTML = `
+			<div class="vm-view-list">
+				<div class="vm-view-list-row" data-id="node-0">
+					<span class="vm-view-list-label">Node 0</span>
+				</div>
+			</div>
+		`;
+		const list = document.querySelector<HTMLElement>('.vm-view-list');
+		expect(list).toBeTruthy();
+		Object.defineProperty(list, 'clientHeight', { value: 100, configurable: true });
+		Object.defineProperty(list, 'scrollHeight', { value: 1_100, configurable: true });
+		list?.addEventListener('scroll', () => {
+			scrolls += 1;
+		});
+		const probe = createPerfProbe({ now: () => performance.now(), doc: document });
+
+		const result = await probe.api.run('explorer-scroll-burst-live', {
+			view: 'list',
+			pattern: 'monitor',
+			jumps: 3,
+			visualDelayMs: 0,
+			overlay: false,
+		});
+
+		expect(result.scrollBurst).toMatchObject({
+			view: 'list',
+			pattern: 'monitor',
+			jumpCount: 3,
+			blankFrameCount: 0,
+			passed: true,
+		});
+		expect(scrolls).toBe(0);
+		expect(result.scrollBurst?.samples.map((sample) => sample.scrollTop)).toEqual([0, 0, 0]);
+	});
+
 	it('strict explorer scroll burst detects node-element flicker during active scroll', async () => {
 		document.body.innerHTML = `
 			<div class="vm-view-list">
@@ -389,6 +471,67 @@ describe('perf probe DOM scenarios', () => {
 			passed: false,
 		});
 		expect(result.scrollBurst?.samples.every((sample) => sample.blank)).toBe(true);
+	});
+
+	it('marks explorer scroll burst blank when rendered rows are outside the viewport', async () => {
+		document.body.innerHTML = `
+			<div class="vm-tree-virtual-outer">
+				<div class="vm-tree-virtual-inner">
+					<div class="vm-tree-virtual-row" data-id="node-stale">Stale node</div>
+				</div>
+			</div>
+		`;
+		const tree = document.querySelector<HTMLElement>('.vm-tree-virtual-outer');
+		const row = document.querySelector<HTMLElement>('.vm-tree-virtual-row');
+		expect(tree).toBeTruthy();
+		expect(row).toBeTruthy();
+		Object.defineProperty(tree, 'clientHeight', { value: 100, configurable: true });
+		Object.defineProperty(tree, 'scrollHeight', { value: 1_100, configurable: true });
+		tree!.getBoundingClientRect = () =>
+			({
+				x: 0,
+				y: 0,
+				top: 0,
+				right: 320,
+				bottom: 100,
+				left: 0,
+				width: 320,
+				height: 100,
+				toJSON: () => ({}),
+			}) as DOMRect;
+		row!.getBoundingClientRect = () =>
+			({
+				x: 0,
+				y: 300,
+				top: 300,
+				right: 320,
+				bottom: 328,
+				left: 0,
+				width: 320,
+				height: 28,
+				toJSON: () => ({}),
+			}) as DOMRect;
+		const probe = createPerfProbe({ now: () => performance.now(), doc: document });
+
+		const result = await probe.api.run('explorer-scroll-burst-live', {
+			view: 'tree',
+			jumps: 1,
+			visualDelayMs: 0,
+			overlay: false,
+		});
+
+		expect(result.scrollBurst).toMatchObject({
+			view: 'tree',
+			jumpCount: 1,
+			blankFrameCount: 1,
+			passed: false,
+		});
+		expect(result.scrollBurst?.samples[0]).toMatchObject({
+			renderedRowCount: 1,
+			visibleRowCount: 0,
+			textPresent: false,
+			blank: true,
+		});
 	});
 
 	it('shows a live explorer scroll smoke overlay with final status', async () => {
