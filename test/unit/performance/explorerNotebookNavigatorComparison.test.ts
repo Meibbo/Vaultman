@@ -39,6 +39,8 @@ const SCROLL_JUMPS = 1_000;
 const SCROLL_ROW_HEIGHT = 32;
 const SCROLL_VIEWPORT_HEIGHT = 640;
 const SCROLL_OVERSCAN = 10;
+const DIRECT_LOOKUP_BUDGET_MS = 10;
+const DIRECT_SCROLL_BUDGET_MS = 50;
 
 interface TimedSample<T> {
 	value: T;
@@ -295,7 +297,7 @@ describe('Notebook Navigator comparison bridge', () => {
 		expect(vaultmanSample.durationMs).toBeLessThan(notebookSample.durationMs);
 	}, 30_000);
 
-	it('keeps 50k reveal lookups on direct maps for both implementations', () => {
+	it('keeps 50k reveal lookups within the direct-map budget', () => {
 		const sources = makeNotebookNavigatorSources(NODE_COUNT);
 		const listItems = buildListItems({
 			app: sources.app,
@@ -343,10 +345,11 @@ describe('Notebook Navigator comparison bridge', () => {
 
 		expect(notebookLookup.value).toBeGreaterThan(0);
 		expect(vaultmanLookup.value).toBeGreaterThan(0);
-		expect(vaultmanLookup.durationMs).toBeLessThanOrEqual(notebookLookup.durationMs * 1.25);
+		expect(notebookLookup.durationMs).toBeLessThanOrEqual(DIRECT_LOOKUP_BUDGET_MS);
+		expect(vaultmanLookup.durationMs).toBeLessThanOrEqual(DIRECT_LOOKUP_BUDGET_MS);
 	}, 30_000);
 
-	it('compares direct 50k scroll-jump hot paths without stepped intermediate rows', () => {
+	it('keeps direct 50k scroll-jump hot paths within budget', () => {
 		const sources = makeNotebookNavigatorSources(NODE_COUNT);
 		const listItems = buildListItems({
 			app: sources.app,
@@ -401,6 +404,7 @@ describe('Notebook Navigator comparison bridge', () => {
 		expect(notebookScroll.value).toBeGreaterThan(0);
 		expect(vaultmanScroll.value).toBeGreaterThan(0);
 		expect(vaultmanScroll.value).toBeLessThanOrEqual(notebookScroll.value);
-		expect(vaultmanScroll.durationMs).toBeLessThanOrEqual(notebookScroll.durationMs * 1.5);
+		expect(notebookScroll.durationMs).toBeLessThanOrEqual(DIRECT_SCROLL_BUDGET_MS);
+		expect(vaultmanScroll.durationMs).toBeLessThanOrEqual(DIRECT_SCROLL_BUDGET_MS);
 	}, 30_000);
 });

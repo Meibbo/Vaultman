@@ -65,6 +65,7 @@ function parseOptions(args) {
 		visualDelayMs: undefined,
 		overlay: true,
 		strictFlicker: false,
+		strictIdleMs: undefined,
 		noBuild: false,
 		noReload: false,
 		noOpen: false,
@@ -83,8 +84,9 @@ function parseOptions(args) {
 		else if (arg.startsWith('--jumps=')) parsed.jumps = integerValue(arg, 'jumps');
 		else if (arg.startsWith('--scroll-step-px=')) {
 			parsed.scrollStepPx = integerValue(arg, 'scroll-step-px');
-		}
-		else if (arg.startsWith('--visual-delay-ms=')) {
+		} else if (arg.startsWith('--strict-idle-ms=')) {
+			parsed.strictIdleMs = integerValue(arg, 'strict-idle-ms');
+		} else if (arg.startsWith('--visual-delay-ms=')) {
 			parsed.visualDelayMs = integerValue(arg, 'visual-delay-ms');
 		} else {
 			fail(`Unknown argument: ${arg}`);
@@ -102,6 +104,7 @@ function parseOptions(args) {
 	parsed.jumps ??= parsed.mode === 'stress' ? 1000 : 100;
 	parsed.scrollStepPx ??= 18;
 	parsed.visualDelayMs ??= parsed.mode === 'stress' ? 8 : 24;
+	parsed.strictIdleMs ??= parsed.strictFlicker ? 0 : undefined;
 	return parsed;
 }
 
@@ -115,7 +118,16 @@ function integerValue(arg, name) {
 	return value;
 }
 
-function buildEvalCode({ view, pattern, jumps, scrollStepPx, visualDelayMs, overlay, strictFlicker }) {
+function buildEvalCode({
+	view,
+	pattern,
+	jumps,
+	scrollStepPx,
+	visualDelayMs,
+	overlay,
+	strictFlicker,
+	strictIdleMs,
+}) {
 	const scenarioOptions = JSON.stringify({
 		view,
 		pattern,
@@ -124,6 +136,7 @@ function buildEvalCode({ view, pattern, jumps, scrollStepPx, visualDelayMs, over
 		visualDelayMs,
 		overlay,
 		strictFlicker: strictFlicker === true,
+		strictIdleMs,
 	});
 	return [
 		'Promise.resolve()',
@@ -151,8 +164,16 @@ function buildEvalCode({ view, pattern, jumps, scrollStepPx, visualDelayMs, over
 		'      longTaskCount: b.longTaskCount,',
 		'      maxLongTaskMs: b.maxLongTaskMs,',
 		'      strictFlicker: b.strictFlicker,',
+		'      strictIdleMs: b.strictIdleMs,',
 		'      flickerFrameCount: b.flickerFrameCount,',
 		'      maxFlickerRowCount: b.maxFlickerRowCount,',
+		'      samples: b.samples ? b.samples.slice(-1).map((sample) => ({',
+		'        firstRowId: sample.firstRowId,',
+		'        lastRowId: sample.lastRowId,',
+		'        firstVisibleIndex: sample.firstVisibleIndex,',
+		'        lastVisibleIndex: sample.lastVisibleIndex,',
+		'        totalEstimatedRows: sample.totalEstimatedRows,',
+		'      })) : [],',
 		'      passed: b.passed,',
 		'      reason: b.reason,',
 		'    } : undefined,',
@@ -223,10 +244,24 @@ function parseJsonFromOutput(output) {
 	}
 }
 
+function formatSampleIndexRange(sample) {
+	if (!sample || sample.firstVisibleIndex === undefined) return null;
+	const first = sample.firstVisibleIndex + 1;
+	const last = (sample.lastVisibleIndex ?? sample.firstVisibleIndex) + 1;
+	const range = first === last ? `${first}` : `${first}-${last}`;
+	const total =
+		sample.totalEstimatedRows !== undefined && sample.totalEstimatedRows > 0
+			? `/${Math.max(sample.totalEstimatedRows, last)}`
+			: '';
+	return `idx=${range}${total}`;
+}
+
 function printBurstSummary(snapshot) {
 	const burst = snapshot.scrollBurst;
 	if (!burst) fail('Obsidian eval returned no scrollBurst report.');
 	const status = burst.passed ? 'PASS' : 'FAIL';
+	const latestSample = burst.samples?.at(-1);
+	const indexRange = formatSampleIndexRange(latestSample);
 	console.log(
 		[
 			`Explorer scroll smoke ${status}`,
@@ -234,6 +269,9 @@ function printBurstSummary(snapshot) {
 			`view=${burst.view}`,
 			`pattern=${burst.pattern ?? 'jump'}`,
 			`jumps=${burst.jumpCount}`,
+			...(indexRange ? [indexRange] : []),
+			...(latestSample?.firstRowId ? [`first=${latestSample.firstRowId}`] : []),
+			...(latestSample?.lastRowId ? [`last=${latestSample.lastRowId}`] : []),
 			`blankFrames=${burst.blankFrameCount}`,
 			`blank>100ms=${burst.blankWindowOver100ms}`,
 			`blank>250ms=${burst.blankWindowOver250ms}`,
@@ -246,6 +284,7 @@ function printBurstSummary(snapshot) {
 			`longtask=${burst.longTaskCount ?? 0}/${Math.round(burst.maxLongTaskMs ?? 0)}ms`,
 			...(burst.strictFlicker
 				? [
+						`strictIdle=${burst.strictIdleMs ?? 0}ms`,
 						`flickerFrames=${burst.flickerFrameCount}`,
 						`maxFlickerRows=${burst.maxFlickerRowCount}`,
 					]
@@ -268,6 +307,7 @@ Options:
   --scroll-step-px=N           smooth-mode scroll distance per sample
   --visual-delay-ms=N          delay between jumps so the movement is visible
   --strict-flicker             fail if node-element children disappear during active scroll
+  --strict-idle-ms=N           stable wait before strict-flicker sampling; runner defaults to 0
   --no-build                   skip pnpm run build
   --no-reload                  skip obsidian plugin:reload id=vaultman
   --no-open                    skip obsidian command id=vaultman:open

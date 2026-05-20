@@ -16,7 +16,7 @@ meets the spec's verification matrix (shard 10).
 
 ## Steps
 
-- [ ] **Step 1: Run full `pnpm verify`**
+- [x] **Step 1: Run full `pnpm verify`**
 
 ```powershell
 pnpm verify
@@ -27,7 +27,7 @@ Expected: PASS.
 - Component: ≥ baseline + new files
 - Lint: 0 errors, warnings only on pre-existing unrelated files
 
-- [ ] **Step 2: Run `pnpm run build` to confirm clean build**
+- [x] **Step 2: Run `pnpm run build` to confirm clean build**
 
 ```powershell
 pnpm run build
@@ -36,7 +36,7 @@ pnpm run build
 Expected: PASS. `dist/build/` output generated. Synced to `plugin-dev`
 per existing post-build hook.
 
-- [ ] **Step 3: Run `git diff --check`**
+- [x] **Step 3: Run `git diff --check`**
 
 ```powershell
 git diff --check
@@ -44,7 +44,7 @@ git diff --check
 
 Expected: PASS (only LF-to-CRLF warnings allowed on Windows).
 
-- [ ] **Step 4: Confirm `serviceDnd`, `serviceManualDnd`, dnd-kit untouched**
+- [x] **Step 4: Confirm `serviceDnd`, `serviceManualDnd`, dnd-kit untouched**
 
 ```powershell
 git log --oneline -- src/services/serviceDnd.ts src/services/serviceManualDnd.ts
@@ -55,7 +55,7 @@ Expected: no commits from 0-A author in this range touched these paths.
 (0-A commits are scoped to the 12-commit set; verify none of them
 modified these.)
 
-- [ ] **Step 5: Confirm `btnMultiSelection` is fully renamed**
+- [x] **Step 5: Confirm `btnMultiSelection` is fully renamed**
 
 ```powershell
 Select-String -Path src,test -Pattern "btnMultiSelection" -SimpleMatch -Recurse
@@ -70,7 +70,7 @@ Select-String -Path .agents/docs -Pattern "btnMultiSelection" -SimpleMatch -Recu
 Expected: only archeological annotation hits (lines containing
 "renamed from btnMultiSelection in 0-A" or equivalent).
 
-- [ ] **Step 6: Run per-view scroll smoke baseline comparison**
+- [x] **Step 6: Run per-view scroll smoke baseline comparison**
 
 ```powershell
 pnpm smoke:scroll -- --view=tree --jumps=100
@@ -89,7 +89,7 @@ Comparison to pre-0-A baseline (captured in step 00):
 - `maxDelay` per view may differ; record actuals. C12 flicker fix should
   not regress this; if it does, investigate.
 
-- [ ] **Step 7: Run Notebook Navigator comparison bridge**
+- [x] **Step 7: Run Notebook Navigator comparison bridge**
 
 ```powershell
 pnpm vitest run test/unit/performance/explorerNotebookNavigatorComparison.test.ts
@@ -98,7 +98,7 @@ pnpm vitest run test/unit/performance/explorerNotebookNavigatorComparison.test.t
 Expected: PASS. Vaultman 50K projection median must remain faster than
 the NN list builder median (current: ~27ms vs ~61ms per status doc).
 
-- [ ] **Step 8: Live `plugin-dev` flow per spec shard 10**
+- [x] **Step 8: Live `plugin-dev` flow per spec shard 10**
 
 ```powershell
 obsidian vault=plugin-dev plugin:reload id=vaultman
@@ -128,7 +128,7 @@ obsidian vault=plugin-dev dev:errors
 
 Expected: `No errors captured.`
 
-- [ ] **Step 9: Update `baseline-log.md` with post-0-A snapshot**
+- [x] **Step 9: Update `baseline-log.md` with post-0-A snapshot**
 
 Append a section to `baseline-log.md`:
 
@@ -142,7 +142,7 @@ Append a section to `baseline-log.md`:
 - Live `plugin-dev`: view-mode menu = 5 under vaultman, 1 under native; submenu visible iff vaultman; no dev errors after full flow.
 ```
 
-- [ ] **Step 10: Commit the baseline update**
+- [x] **Step 10: Commit the baseline update**
 
 ```powershell
 git add .agents/docs/work/hardening/plans/2026-05-18-explorer-sub-system-0-a-native-dom-parity/baseline-log.md
@@ -153,7 +153,7 @@ medians, btnMultiSelection callsite count (0), and live plugin-dev menu
 visibility per preset. Closes 0-A verification matrix per spec shard 10."
 ```
 
-- [ ] **Step 11: Update `.agents/docs/work/roadmap-overview.md` 0-A row**
+- [x] **Step 11: Update `.agents/docs/work/roadmap-overview.md` 0-A row**
 
 Change line 41 from:
 
@@ -177,7 +177,7 @@ Updates Phase 0 spine row 0-A from 🟡 drafted to ✅ done with link to
 the executed implementation plan."
 ```
 
-- [ ] **Step 12: Update `.agents/docs/current/status.md` next action**
+- [x] **Step 12: Update `.agents/docs/current/status.md` next action**
 
 Change "Next Action" to reflect 0-A completion and queue Sub-system N
 (SCSS → UnoCSS migration) per the locked build order
@@ -191,6 +191,14 @@ Commit alongside the roadmap update.
 - All 8 pre-merge gates green.
 - `baseline-log.md` shows pre and post 0-A snapshots side by side.
 - Roadmap and status docs reflect 0-A completion.
+
+## Closeout note
+
+Closed on 2026-05-20. `baseline-log.md` records the final `pnpm verify` pass, focused test gates,
+strict and non-strict live scroll smokes for all five selectable views, Notebook Navigator comparison
+bridge evidence, `btnMultiSelection`/DnD audit checks, and the `plugin-dev` preset/menu/dev-error gate.
+The natural handoff commit for this closeout includes the baseline, roadmap, current status/handoff,
+and C12/C13 checklist updates.
 
 ## After this step
 

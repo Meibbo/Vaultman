@@ -498,3 +498,126 @@ Safety fix: `scripts/run-explorer-scroll-smoke.mjs` now constructs every
 Obsidian subprocess call as `obsidian vault=plugin-dev <command> ...`; this
 keeps the scroll smoke runner aligned with the active `obsidian-cli` vault
 targeting contract.
+
+## C12/C13 closeout baseline (2026-05-20)
+
+Scope:
+
+- C12 strict flicker assertion was kept as the regression gate for
+  node-element hide/show flicker.
+- The live runner now reports the visible index/node range and defaults
+  strict-flicker live runs to `strictIdle=0ms`; this preserves the flicker
+  assertion while avoiding Electron timer throttling from making 100-jump
+  CLI smokes unusable.
+- `PopupIslandChild.svelte` test fixture was restored after the component
+  suite exposed that it was still imported by `popupIsland.test.ts`.
+
+Focused tests:
+
+```powershell
+pnpm vitest run test/component/perfProbeDom.test.ts
+pnpm vitest run test/unit/scripts/explorerScrollSmokeScript.test.ts
+pnpm vitest run test/component/popupIsland.test.ts
+pnpm vitest run test/unit/performance/explorerNotebookNavigatorComparison.test.ts --reporter=verbose --silent=false
+```
+
+Results:
+
+- `perfProbeDom.test.ts`: PASS, 1 file / 20 tests.
+- `explorerScrollSmokeScript.test.ts`: PASS, 1 file / 1 test.
+- `popupIsland.test.ts`: PASS, 1 file / 1 test.
+- Notebook Navigator comparison bridge: PASS, 1 file / 4 tests.
+  Logged fastest samples:
+  - Notebook Navigator original builders: list `34.4650 ms`, tree `50.8081 ms`.
+  - Vaultman projection vs Notebook Navigator list: Notebook `28.4061 ms`,
+    Vaultman `8.8222 ms`.
+  - Reveal lookups: Notebook `0.0733 ms`, Vaultman `0.0626 ms`.
+  - Direct scroll jumps: Notebook `3.6890 ms`, Vaultman `4.1149 ms`;
+    rendered rows `39955` vs `39945`.
+
+Aggregate verification:
+
+```powershell
+pnpm verify
+```
+
+Result: PASS.
+
+- Lint: 0 warnings / 0 errors.
+- `svelte-check`: 0 warnings / 0 errors.
+- Build: PASS; synced build artifacts to `plugin-dev`.
+- Unit: 145 files / 932 tests.
+- Component: 104 files / 508 tests.
+
+Verification notes:
+
+- The first C13 `pnpm verify` attempt failed before tests because the sibling
+  `C:/Users/vic_A/Desktop/notebook-navigator` install was missing
+  `emoji-regex-xs`, although the dependency was declared in its
+  `package.json` and `package-lock.json`. `npm install --ignore-scripts`
+  repaired that sibling `node_modules` without dirtying its git worktree.
+- Later aggregate runs exposed timing-only Notebook Navigator comparison misses
+  in direct-map lookup and direct scroll-jump assertions under full-suite CPU
+  load. Focused reruns passed. The comparison test now keeps the strict
+  relative perf gate on the 50k projection-builder path, but treats direct
+  lookup/scroll as absolute hot-path budgets (`10ms` and `50ms`) so sub-ms
+  scheduling noise does not fail C13.
+- Final post-adjustment rerun on 2026-05-20:
+  `pnpm verify` PASS; unit 145 files / 932 tests; component 104 files /
+  508 tests; lint and `svelte-check` both 0 warnings / 0 errors.
+
+Audit gates:
+
+```powershell
+git diff --check
+rg -n "btnMultiSelection" src test
+obsidian vault=plugin-dev dev:errors
+```
+
+Results:
+
+- `git diff --check`: PASS; Windows LF-to-CRLF working-copy warnings only.
+- `btnMultiSelection` callsites in `src/` and `test/`: 0.
+- DnD working diff: 0 files touching `serviceDnd`, `serviceManualDnd`, or
+  dnd-kit paths.
+- Final `obsidian vault=plugin-dev dev:errors`: `No errors captured.`
+
+Strict flicker live smoke (`strictIdle=0ms`, `--strict-flicker`):
+
+- Tree: PASS, `blankFrames=0`, `blank>100ms=0`, `blank>250ms=0`,
+  `maxBlank=0ms`, `maxDelay=101ms`, `flickerFrames=0`,
+  `maxFlickerRows=0`.
+- List: PASS, `blankFrames=0`, `blank>100ms=0`, `blank>250ms=0`,
+  `maxBlank=0ms`, `maxDelay=280ms`, `flickerFrames=0`,
+  `maxFlickerRows=0`.
+- Table: PASS, `blankFrames=0`, `blank>100ms=0`, `blank>250ms=0`,
+  `maxBlank=0ms`, `maxDelay=19ms`, `flickerFrames=0`,
+  `maxFlickerRows=0`.
+- Grid: PASS, `blankFrames=0`, `blank>100ms=0`, `blank>250ms=0`,
+  `maxBlank=0ms`, `maxDelay=21ms`, `flickerFrames=0`,
+  `maxFlickerRows=0`.
+- Cards: PASS, `blankFrames=0`, `blank>100ms=0`, `blank>250ms=0`,
+  `maxBlank=0ms`, `maxDelay=25ms`, `flickerFrames=0`,
+  `maxFlickerRows=0`.
+
+Non-strict post-0-A scroll smoke baseline:
+
+- Tree: PASS, `blankFrames=0`, `blank>100ms=0`, `blank>250ms=0`,
+  `maxBlank=0ms`, `maxDelay=143ms`.
+- List: PASS, `blankFrames=0`, `blank>100ms=0`, `blank>250ms=0`,
+  `maxBlank=0ms`, `maxDelay=34ms`.
+- Table: PASS, `blankFrames=0`, `blank>100ms=0`, `blank>250ms=0`,
+  `maxBlank=0ms`, `maxDelay=65ms`.
+- Grid: PASS, `blankFrames=0`, `blank>100ms=0`, `blank>250ms=0`,
+  `maxBlank=0ms`, `maxDelay=63ms`.
+- Cards: PASS, `blankFrames=0`, `blank>100ms=0`, `blank>250ms=0`,
+  `maxBlank=0ms`, `maxDelay=40ms`.
+
+Live preset/menu gate:
+
+- Native preset: `menuCount=1`, `nodeToggle=false`.
+- Vaultman preset: `menuCount=5`, labels `Tree,List,Table,Grid,Cards`,
+  `nodeToggle=true`.
+- Final `dev:errors`: `No errors captured.`
+
+Result: 0-A C12/C13 is verified locally and unblocks A.R Gate-0.

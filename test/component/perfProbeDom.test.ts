@@ -334,6 +334,39 @@ describe('perf probe DOM scenarios', () => {
 		});
 	});
 
+	it('reports the configured strict flicker idle delay', async () => {
+		document.body.innerHTML = `
+			<div class="vm-view-list">
+				<div class="vm-view-list-row" data-id="node-0">
+					<span class="vm-view-list-icon"></span>
+					<span class="vm-view-list-main">
+						<span class="vm-view-list-label">Node 0</span>
+					</span>
+				</div>
+			</div>
+		`;
+		const list = document.querySelector<HTMLElement>('.vm-view-list');
+		expect(list).toBeTruthy();
+		Object.defineProperty(list, 'clientHeight', { value: 100, configurable: true });
+		Object.defineProperty(list, 'scrollHeight', { value: 1_100, configurable: true });
+		const probe = createPerfProbe({ now: () => performance.now(), doc: document });
+
+		const result = await probe.api.run('explorer-scroll-burst-live', {
+			view: 'list',
+			jumps: 1,
+			visualDelayMs: 0,
+			overlay: false,
+			strictFlicker: true,
+			strictIdleMs: 0,
+		});
+
+		expect(result.scrollBurst).toMatchObject({
+			strictFlicker: true,
+			strictIdleMs: 0,
+			passed: true,
+		});
+	});
+
 	it('waits for explorer scroll burst target after opening the live view', async () => {
 		document.body.innerHTML = '';
 		setTimeout(() => {
@@ -558,6 +591,108 @@ describe('perf probe DOM scenarios', () => {
 		const overlay = document.querySelector<HTMLElement>('.vm-scroll-smoke-overlay');
 		expect(overlay?.textContent).toContain('tree');
 		expect(overlay?.textContent).toContain('PASS');
+	});
+
+	it('shows the visible tree index range in live scroll smoke reports', async () => {
+		document.body.innerHTML = `
+			<div class="vm-tree-virtual-outer">
+				<div class="vm-tree-virtual-inner">
+					<div class="vm-tree-virtual-row" style="--vm-tree-y: 280px" data-id="node-10">Node 10</div>
+					<div class="vm-tree-virtual-row" style="--vm-tree-y: 308px" data-id="node-11">Node 11</div>
+				</div>
+			</div>
+		`;
+		const tree = document.querySelector<HTMLElement>('.vm-tree-virtual-outer');
+		const rows = [...document.querySelectorAll<HTMLElement>('.vm-tree-virtual-row')];
+		expect(tree).toBeTruthy();
+		expect(rows).toHaveLength(2);
+		Object.defineProperty(tree, 'clientHeight', { value: 56, configurable: true });
+		Object.defineProperty(tree, 'scrollHeight', { value: 2_800, configurable: true });
+		tree!.getBoundingClientRect = () =>
+			({
+				x: 0,
+				y: 0,
+				top: 0,
+				right: 320,
+				bottom: 56,
+				left: 0,
+				width: 320,
+				height: 56,
+				toJSON: () => ({}),
+			}) as DOMRect;
+		rows.forEach((row, index) => {
+			row.getBoundingClientRect = () =>
+				({
+					x: 0,
+					y: index * 28,
+					top: index * 28,
+					right: 320,
+					bottom: index * 28 + 28,
+					left: 0,
+					width: 320,
+					height: 28,
+					toJSON: () => ({}),
+				}) as DOMRect;
+		});
+		const reports: string[] = [];
+		const probe = createPerfProbe({ now: () => performance.now(), doc: document });
+
+		const result = await probe.api.run('explorer-scroll-burst-live', {
+			view: 'tree',
+			pattern: 'monitor',
+			jumps: 1,
+			visualDelayMs: 0,
+			overlay: true,
+			onReport: (report) => reports.push(report.samples.at(-1)?.firstRowId ?? ''),
+		});
+
+		expect(result.scrollBurst?.samples[0]).toMatchObject({
+			firstVisibleIndex: 10,
+			lastVisibleIndex: 11,
+			totalEstimatedRows: 100,
+			firstRowId: 'node-10',
+			lastRowId: 'node-11',
+		});
+		expect(reports).toEqual(['node-10', 'node-10']);
+		const overlay = document.querySelector<HTMLElement>('.vm-scroll-smoke-overlay');
+		expect(overlay?.textContent).toContain('idx=11-12/100');
+		expect(overlay?.textContent).toContain('nodes=node-10..node-11');
+	});
+
+	it('aborts and clears a live scroll smoke overlay', async () => {
+		document.body.innerHTML = `
+			<div class="vm-view-list">
+				<div class="vm-view-list-row" data-id="node-0" data-index="0">
+					<span class="vm-view-list-label">Node 0</span>
+				</div>
+			</div>
+		`;
+		const list = document.querySelector<HTMLElement>('.vm-view-list');
+		expect(list).toBeTruthy();
+		Object.defineProperty(list, 'clientHeight', { value: 100, configurable: true });
+		Object.defineProperty(list, 'scrollHeight', { value: 1_100, configurable: true });
+		const abortController = new AbortController();
+		const probe = createPerfProbe({ now: () => performance.now(), doc: document });
+		let reportCount = 0;
+
+		const result = await probe.api.run('explorer-scroll-burst-live', {
+			view: 'list',
+			pattern: 'monitor',
+			jumps: 10,
+			visualDelayMs: 0,
+			overlay: true,
+			abortSignal: abortController.signal,
+			onReport: () => {
+				reportCount += 1;
+				abortController.abort();
+			},
+		});
+		probe.api.clearScrollSmokeOverlay();
+
+		expect(result.scrollBurst?.samples).toHaveLength(1);
+		expect(result.scrollBurst?.reason).toBe('aborted');
+		expect(reportCount).toBe(1);
+		expect(document.querySelector('.vm-scroll-smoke-overlay')).toBeNull();
 	});
 
 	it('runs platform menu and tree visual scenarios when matching DOM exists', async () => {

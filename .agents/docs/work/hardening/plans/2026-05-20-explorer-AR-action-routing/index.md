@@ -1,10 +1,10 @@
 ---
 title: A.R — Action Routing Contract (implementation plan)
 type: plan-index
-status: draft
+status: ready
 parent: "[[docs/work/hardening/specs/2026-05-20-explorer-AR-action-routing/index|A.R spec]]"
 created: 2026-05-20T00:00:00
-updated: 2026-05-20T00:00:00
+updated: 2026-05-20T14:30:00-05:00
 tags:
   - agent/plan
   - initiative/hardening
@@ -44,14 +44,15 @@ Spec fuente: [[docs/work/hardening/specs/2026-05-20-explorer-AR-action-routing/i
 
 Antes de la Task 1, verificar y NO proceder si falla:
 
-- [ ] **0-A cerrado**: C12 (flicker fix) + C13 (verification gates) checkeados en el plan de 0-A
+- [x] **0-A cerrado**: C12 (flicker fix) + C13 (verification gates) checkeados en el plan de 0-A
   (`.agents/docs/work/hardening/plans/2026-05-18-explorer-sub-system-0-a-native-dom-parity/`),
   y `pnpm verify` verde en 0-A. A.R rebasa sobre el markup post-0-A.
-- [ ] **Dirty worktree seguro**: los ~10 M files pre-existentes del usuario (incluyen
-  `viewTree.svelte` + `ViewNodeList.svelte`) NO se commitean. Ejecutar `git status --short` y confirmar
-  que las ediciones de A.R se pueden aislar. Si hay conflicto en viewTree/ViewNodeList, coordinar con
-  el usuario antes de tocarlos.
-- [ ] **Baseline verde**: `pnpm check` (0 errors) + suite actual verde como línea base.
+- [x] **Dirty worktree seguro**: el cierre 0-A/C12-C13 quedó aislado en archivos de harness,
+  perf probe, tests y docs. A.R aún no tocó `viewTree.svelte`, `ViewNodeList.svelte` ni otros views.
+- [x] **Baseline verde**: `pnpm check` (0 errors) + suite actual verde como línea base.
+
+Gate-0 cerrado el 2026-05-20. Evidencia fuente:
+[[docs/work/hardening/plans/2026-05-18-explorer-sub-system-0-a-native-dom-parity/baseline-log|0-A baseline log]].
 
 ## File structure
 
@@ -95,7 +96,6 @@ Luego 7 → 8 → 9. Tasks 1-3 son los más densos (servicios + tests). Task 5 d
 
 ## Execution handoff
 
-Tras importar este plan a `sandbox`: **NO implementar A.R hasta cerrar Gate-0**. El bloqueo activo
-es 0-A C12/C13, no la falta de spec/plan. Cuando arranque, opciones: (1) subagent-driven (un subagent
-fresco por task, recomendado para 6a-6d en paralelo) o (2) inline con executing-plans (batch +
-checkpoints).
+Tras importar este plan a `sandbox`, Gate-0 quedó cerrado el 2026-05-20 por el cierre 0-A C12/C13.
+A.R puede arrancar. Opciones: (1) subagent-driven (un subagent fresco por task, recomendado para 6a-6d
+en paralelo) o (2) inline con executing-plans (batch + checkpoints).

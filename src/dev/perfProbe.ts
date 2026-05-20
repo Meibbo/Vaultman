@@ -56,6 +56,9 @@ export interface PerfScenarioOptions {
 	visualDelayMs?: number;
 	overlay?: boolean;
 	strictFlicker?: boolean;
+	strictIdleMs?: number;
+	abortSignal?: AbortSignal;
+	onReport?: (report: PerfScrollBurstReport) => void;
 }
 
 export interface PerfScrollBurstSample {
@@ -75,6 +78,9 @@ export interface PerfScrollBurstSample {
 	flickerRows?: string[];
 	firstRowId?: string;
 	lastRowId?: string;
+	firstVisibleIndex?: number;
+	lastVisibleIndex?: number;
+	totalEstimatedRows?: number;
 }
 
 export interface PerfScrollBurstReport {
@@ -94,6 +100,7 @@ export interface PerfScrollBurstReport {
 	longTaskCount: number;
 	maxLongTaskMs: number;
 	strictFlicker: boolean;
+	strictIdleMs: number;
 	flickerFrameCount: number;
 	maxFlickerRowCount: number;
 	passed: boolean;
@@ -123,6 +130,7 @@ export interface PerfProbeApi {
 	reset(): void;
 	snapshot(): PerfProbeSnapshot;
 	run(name: PerfScenarioName, options?: PerfScenarioOptions): Promise<PerfProbeSnapshot>;
+	clearScrollSmokeOverlay(): void;
 }
 
 export interface PerfProbeOptions {
@@ -136,6 +144,7 @@ export interface PerfProbe {
 	measure<T>(name: string, input: PerfProbeMetricInput | undefined, fn: () => T): T;
 	reset(): void;
 	snapshot(): PerfProbeSnapshot;
+	clearScrollSmokeOverlay(): void;
 	installGlobal(target: { __vaultmanPerfProbe?: unknown }): () => void;
 }
 
@@ -553,6 +562,137 @@ function rowId(row: HTMLElement | undefined): string | undefined {
 	return row?.dataset.id ?? row?.dataset.nodeId ?? row?.dataset.callbackId;
 }
 
+const ROW_OFFSET_STYLE_PROPERTIES = [
+	'--vm-tree-y',
+	'--vm-node-table-y',
+	'--vm-node-grid-y',
+	'--vm-node-card-y',
+	'--vm-file-y',
+] as const;
+
+const ROW_HEIGHT_STYLE_PROPERTIES = [
+	'--vm-node-table-row-h',
+	'--vm-node-grid-row-h',
+	'--vm-node-card-row-h',
+] as const;
+
+function finiteNonNegativeInteger(value: string | undefined): number | undefined {
+	if (!value) return undefined;
+	const parsed = Number.parseInt(value, 10);
+	return Number.isFinite(parsed) && parsed >= 0 ? parsed : undefined;
+}
+
+function parseCssPx(value: string | undefined | null): number | undefined {
+	if (!value) return undefined;
+	const parsed = Number.parseFloat(value);
+	return Number.isFinite(parsed) && parsed >= 0 ? parsed : undefined;
+}
+
+function stylePx(row: HTMLElement, property: string): number | undefined {
+	const inlineValue = parseCssPx(row.style.getPropertyValue(property));
+	if (inlineValue !== undefined) return inlineValue;
+	const win = row.ownerDocument.defaultView;
+	const computed = win?.getComputedStyle ? win.getComputedStyle(row) : undefined;
+	return parseCssPx(computed?.getPropertyValue(property));
+}
+
+function transformTranslateYPx(row: HTMLElement): number | undefined {
+	const win = row.ownerDocument.defaultView;
+	const transform =
+		row.style.transform ||
+		(win?.getComputedStyle ? win.getComputedStyle(row).transform : undefined) ||
+		'';
+	const translateY = /translateY\(\s*(-?\d+(?:\.\d+)?)px\s*\)/.exec(transform);
+	if (translateY) return parseCssPx(translateY[1]);
+	const matrix = /matrix\(\s*[^,]+,\s*[^,]+,\s*[^,]+,\s*[^,]+,\s*[^,]+,\s*(-?\d+(?:\.\d+)?)\s*\)/.exec(
+		transform,
+	);
+	return matrix ? parseCssPx(matrix[1]) : undefined;
+}
+
+function rowVirtualOffsetPx(row: HTMLElement): number | undefined {
+	for (const property of ROW_OFFSET_STYLE_PROPERTIES) {
+		const value = stylePx(row, property);
+		if (value !== undefined) return value;
+	}
+	return transformTranslateYPx(row);
+}
+
+function rowMeasuredHeightPx(row: HTMLElement | undefined): number | undefined {
+	if (!row) return undefined;
+	const rectHeight = row.getBoundingClientRect().height;
+	if (Number.isFinite(rectHeight) && rectHeight > 0) return rectHeight;
+	for (const property of ROW_HEIGHT_STYLE_PROPERTIES) {
+		const value = stylePx(row, property);
+		if (value !== undefined && value > 0) return value;
+	}
+	const inlineHeight = parseCssPx(row.style.height);
+	if (inlineHeight !== undefined && inlineHeight > 0) return inlineHeight;
+	const offsetHeight = row.offsetHeight;
+	return Number.isFinite(offsetHeight) && offsetHeight > 0 ? offsetHeight : undefined;
+}
+
+function rowVisibleIndex(row: HTMLElement | undefined, rowHeight: number | undefined): number | undefined {
+	if (!row) return undefined;
+	const explicitIndex = finiteNonNegativeInteger(row.dataset.index);
+	if (explicitIndex !== undefined) return explicitIndex;
+	const offset = rowVirtualOffsetPx(row);
+	if (offset === undefined || rowHeight === undefined || rowHeight <= 0) return undefined;
+	return Math.max(0, Math.round(offset / rowHeight));
+}
+
+function visibleRowPosition(
+	target: ScrollBurstTarget,
+	visibleRows: readonly HTMLElement[],
+): Pick<PerfScrollBurstSample, 'firstVisibleIndex' | 'lastVisibleIndex' | 'totalEstimatedRows'> {
+	const first = visibleRows[0];
+	const last = visibleRows.at(-1);
+	const rowHeight = rowMeasuredHeightPx(first) ?? rowMeasuredHeightPx(last);
+	const firstVisibleIndex = rowVisibleIndex(first, rowHeight);
+	const lastVisibleIndex = rowVisibleIndex(last, rowHeight);
+	const totalEstimatedRows =
+		rowHeight !== undefined && rowHeight > 0 && target.element.scrollHeight > 0
+			? Math.max(
+					firstVisibleIndex ?? 0,
+					lastVisibleIndex ?? 0,
+					Math.round(target.element.scrollHeight / rowHeight),
+				)
+			: undefined;
+	return { firstVisibleIndex, lastVisibleIndex, totalEstimatedRows };
+}
+
+export function formatScrollBurstIndexRange(
+	sample: PerfScrollBurstSample | undefined,
+): string | undefined {
+	if (!sample || sample.firstVisibleIndex === undefined) return undefined;
+	const first = sample.firstVisibleIndex + 1;
+	const last = (sample.lastVisibleIndex ?? sample.firstVisibleIndex) + 1;
+	const range = first === last ? `${first}` : `${first}-${last}`;
+	const total =
+		sample.totalEstimatedRows !== undefined && sample.totalEstimatedRows > 0
+			? `/${Math.max(sample.totalEstimatedRows, last)}`
+			: '';
+	return `idx=${range}${total}`;
+}
+
+function shortRowIdLabel(id: string | undefined): string | undefined {
+	if (!id) return undefined;
+	return id.length > 48 ? `${id.slice(0, 20)}...${id.slice(-24)}` : id;
+}
+
+function formatScrollBurstNodeRange(sample: PerfScrollBurstSample | undefined): string | undefined {
+	if (!sample?.firstRowId) return undefined;
+	const first = shortRowIdLabel(sample.firstRowId);
+	const last = shortRowIdLabel(sample.lastRowId);
+	if (!first) return undefined;
+	if (!last || first === last) return `node=${first}`;
+	return `nodes=${first}..${last}`;
+}
+
+export function clearScrollSmokeOverlay(doc: Document | undefined): void {
+	doc?.querySelector<HTMLElement>('.vm-scroll-smoke-overlay')?.remove();
+}
+
 function rowChildSignatures(
 	rows: readonly HTMLElement[],
 	target: ScrollBurstTarget,
@@ -597,9 +737,18 @@ function upsertScrollSmokeOverlay(doc: Document, report: PerfScrollBurstReport):
 		overlay.setAttribute('role', 'status');
 		doc.body.appendChild(overlay);
 	}
+	const latestSample = report.samples.at(-1);
+	const sampleStatus = [
+		formatScrollBurstIndexRange(latestSample),
+		formatScrollBurstNodeRange(latestSample),
+	]
+		.filter(Boolean)
+		.join(' ');
 	overlay.textContent = `Vaultman scroll smoke ${report.view}/${report.pattern}: ${
 		report.passed ? 'PASS' : 'FAIL'
-	} samples=${report.samples.length}/${report.jumpCount} blanks=${
+	} samples=${report.samples.length}/${report.jumpCount}${
+		sampleStatus ? ` ${sampleStatus}` : ''
+	} blanks=${
 		report.blankFrameCount
 	} maxBlank=${Math.round(report.maxBlankDurationMs)}ms maxViewportGap=${Math.round(
 		report.maxViewportGapPx,
@@ -636,6 +785,7 @@ async function runExplorerScrollBurst(
 			longTaskCount: 0,
 			maxLongTaskMs: 0,
 			strictFlicker: options.strictFlicker === true,
+			strictIdleMs: Math.max(0, Math.floor(options.strictIdleMs ?? SCROLL_BURST_STRICT_IDLE_MS)),
 			flickerFrameCount: 0,
 			maxFlickerRowCount: 0,
 			passed: false,
@@ -658,9 +808,11 @@ async function runExplorerScrollBurst(
 	let maxEventLoopDelayMs = 0;
 	let smoothDirection: 1 | -1 = 1;
 	const strictFlicker = options.strictFlicker === true;
+	const strictIdleMs = Math.max(0, Math.floor(options.strictIdleMs ?? SCROLL_BURST_STRICT_IDLE_MS));
 	const performanceObserver = strictFlicker ? null : createScrollPerformanceObserver(doc);
 
 	for (let jumpIndex = 0; jumpIndex < jumpCount; jumpIndex += 1) {
+		if (options.abortSignal?.aborted) break;
 		const ratio = SCROLL_BURST_RATIOS[jumpIndex % SCROLL_BURST_RATIOS.length];
 		let stableSignatures: Map<string, RowChildSignature> | null = null;
 		let before = clock();
@@ -673,7 +825,7 @@ async function runExplorerScrollBurst(
 				jumpScrollElement(target.element, ratio);
 			}
 			await nextPaintAndTick(doc);
-			await delay(doc, SCROLL_BURST_STRICT_IDLE_MS);
+			await delay(doc, strictIdleMs);
 			await nextPaintAndTick(doc);
 			stableSignatures = rowChildSignatures(
 				[...target.element.querySelectorAll<HTMLElement>(target.rowSelector)],
@@ -699,6 +851,7 @@ async function runExplorerScrollBurst(
 		const visibleRowCount = visibleRows.length;
 		const textPresent = rowTextPresent(visibleRows, target.textSelector);
 		const visibleGapPx = viewportGapPx(target, rows);
+		const position = visibleRowPosition(target, visibleRows);
 		const blank = visibleRowCount === 0 || !textPresent;
 		const flickerRows = stableSignatures
 			? flickeringRows(stableSignatures, rowChildSignatures(rows, target))
@@ -724,6 +877,7 @@ async function runExplorerScrollBurst(
 			flickerRows: flickerRows.length > 0 ? flickerRows.slice(0, 12) : undefined,
 			firstRowId: rowId(visibleRows[0]),
 			lastRowId: rowId(visibleRows.at(-1)),
+			...position,
 		});
 
 		const partialReport = buildScrollBurstReport(
@@ -733,12 +887,17 @@ async function runExplorerScrollBurst(
 			jumpCount,
 			samples,
 			strictFlicker,
+			strictIdleMs,
 			performanceObserver?.read(),
 		);
-		if (options.overlay !== false) upsertScrollSmokeOverlay(doc, partialReport);
+		if (!options.abortSignal?.aborted) {
+			if (options.overlay !== false) upsertScrollSmokeOverlay(doc, partialReport);
+			options.onReport?.(partialReport);
+		}
 		await visualDelay(doc, visualDelayMs);
 	}
 
+	const aborted = options.abortSignal?.aborted === true;
 	const report = buildScrollBurstReport(
 		requestedView,
 		target.view,
@@ -746,11 +905,17 @@ async function runExplorerScrollBurst(
 		jumpCount,
 		samples,
 		strictFlicker,
+		strictIdleMs,
 		performanceObserver?.read(),
 	);
 	performanceObserver?.disconnect();
 	report.maxEventLoopDelayMs = Math.max(report.maxEventLoopDelayMs, maxEventLoopDelayMs);
-	if (options.overlay !== false) upsertScrollSmokeOverlay(doc, report);
+	if (aborted) {
+		report.reason = 'aborted';
+	} else {
+		if (options.overlay !== false) upsertScrollSmokeOverlay(doc, report);
+		options.onReport?.(report);
+	}
 	return report;
 }
 
@@ -761,6 +926,7 @@ function buildScrollBurstReport(
 	jumpCount: number,
 	samples: readonly PerfScrollBurstSample[],
 	strictFlicker = false,
+	strictIdleMs = SCROLL_BURST_STRICT_IDLE_MS,
 	observerStats: ScrollPerformanceObserverStats = {
 		longAnimationFrameCount: 0,
 		maxLongAnimationFrameMs: 0,
@@ -797,6 +963,7 @@ function buildScrollBurstReport(
 		longTaskCount: observerStats.longTaskCount,
 		maxLongTaskMs: observerStats.maxLongTaskMs,
 		strictFlicker,
+		strictIdleMs,
 		flickerFrameCount,
 		maxFlickerRowCount,
 		passed:
@@ -938,6 +1105,10 @@ export function createPerfProbe({ now, doc }: PerfProbeOptions): PerfProbe {
 		};
 	}
 
+	function clearOverlay(): void {
+		clearScrollSmokeOverlay(doc);
+	}
+
 	async function run(
 		name: PerfScenarioName,
 		options: PerfScenarioOptions = {},
@@ -1008,6 +1179,7 @@ export function createPerfProbe({ now, doc }: PerfProbeOptions): PerfProbe {
 		reset,
 		snapshot,
 		run,
+		clearScrollSmokeOverlay: clearOverlay,
 	};
 
 	function installGlobal(target: { __vaultmanPerfProbe?: unknown }): () => void {
@@ -1034,6 +1206,7 @@ export function createPerfProbe({ now, doc }: PerfProbeOptions): PerfProbe {
 		measure,
 		reset,
 		snapshot,
+		clearScrollSmokeOverlay: clearOverlay,
 		installGlobal,
 	};
 }

@@ -20,6 +20,8 @@ describe('explorer scroll smoke runner script', () => {
 		expect(openCommandIndex).toBeGreaterThan(frameCheckIndex);
 		expect(source).toContain('Vaultman Explorer scroll target already open');
 		expect(source).toContain('{ printOutput: false }');
+		expect(source).toContain('--strict-idle-ms');
+		expect(source).toContain('strictIdleMs');
 		expect(source).not.toContain("['command', 'id=vaultman:open', `vault=${VAULT}`]");
 	});
 });

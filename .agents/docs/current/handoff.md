@@ -17,7 +17,7 @@ updated_by: codex
 Compact handoff after archiving the oversized current handoff:
 [[docs/archive/pkm-ai/active-docs/2026-05-11T080321-current-handoff|2026-05-11 handoff archive]].
 
-## ⏩ NEXT AGENT START HERE — Umbrella v1.2.0 Start (2026-05-20)
+## ⏩ NEXT AGENT START HERE — A.R v1.2.0 Start (2026-05-20)
 
 **Release/main reconciliation is complete.** Full source record:
 [[docs/work/hardening/plans/2026-05-20-release-1-1-0-catch-up|Release 1.1.0 catch-up]].
@@ -56,7 +56,7 @@ Compact handoff after archiving the oversized current handoff:
 **Next action**:
 1. A.R spec + implementation plan are already written on `claude/pensive-khorana-ed62bd` and imported
    to `sandbox`.
-2. Close Gate-0: 0-A C12 flicker fix + C13 verification gates.
+2. Gate-0 is closed: 0-A C12 flicker fix + C13 verification gates passed on 2026-05-20.
 3. Execute A.R for `v1.2.0` from
    [[docs/work/hardening/plans/2026-05-20-explorer-AR-action-routing/index|A.R implementation plan]].
 
@@ -68,10 +68,13 @@ Compact handoff after archiving the oversized current handoff:
 
 - Worktree: `C:\Users\vic_A\Desktop\vaultman`
 - Branch: `sandbox`.
-- **Latest (2026-05-20)**: Release 1.1.0 catch-up complete, umbrella pipeline renumerado, and
+- **Latest (2026-05-20)**: 0-A C12/C13 closeout complete and verified locally; A.R Gate-0 is closed/unblocked.
+  Evidence:
+  [[docs/work/hardening/plans/2026-05-18-explorer-sub-system-0-a-native-dom-parity/baseline-log|0-A baseline log]].
+  Release 1.1.0 catch-up complete, umbrella pipeline renumerado, and
   A.R spec/plan imported from `claude/pensive-khorana-ed62bd`.
   [[docs/work/hardening/specs/2026-05-19-explorer-merge-umbrella/index|Explorer Merge Umbrella]]
-  (index + 6 shards). Pipeline `v1.2.0→v2.0.0`; next: close 0-A Gate-0 before A.R implementation.
+  (index + 6 shards). Pipeline `v1.2.0→v2.0.0`; next: A.R implementation.
 - Latest request handled: Explorer Phase 0 sub-system O
   (`frameVaultman.svelte` decomposition) implemented inline across six serial
   commits on `sandbox`.
@@ -96,6 +99,8 @@ Compact handoff after archiving the oversized current handoff:
   - [[docs/work/hardening/plans/2026-05-15-explorer-0-b-servicetheme-token-layer/index|Explorer 0-B executed implementation plan]]
   - [[docs/work/hardening/specs/2026-05-17-explorer-sub-system-o-framevaultman-decomposition/index|Explorer Sub-system O spec]]
   - [[docs/work/hardening/plans/2026-05-17-explorer-sub-system-o-framevaultman-decomposition/index|Explorer Sub-system O executed implementation plan]]
+  - [[docs/work/hardening/specs/2026-05-18-explorer-sub-system-0-a-native-dom-parity/index|Explorer Sub-system 0-A spec]]
+  - [[docs/work/hardening/plans/2026-05-18-explorer-sub-system-0-a-native-dom-parity/index|Explorer Sub-system 0-A executed implementation plan]]
 - Preserve any unrelated dirty files if they appear later. At the time of this
   handoff, `git status --short --branch` showed only the active variable scroll
   repair files and docs.
@@ -130,18 +135,17 @@ repair. Current handoff keeps only the active route and the latest release facts
 - After the 0-B commits, unrelated dirty files still existed and were preserved:
   toolbar/polish agent docs and metrics, `src/main.ts` ribbon icon work,
   `src/types/typeFrame.ts`, and `src/types/typeTabLeaf.ts`.
-- Current dirt is scoped to the active variable scroll repair:
-  `serviceExplorerScrollGeometry`, Table/Grid/Cards adapters, scroll-idle
-  jank guardrails, focused tests, and the linked hardening docs. No unrelated
-  dirty files were visible in the final status check.
+- The 0-A C12/C13 closeout handoff commit is scoped to
+  `scripts/run-explorer-scroll-smoke.mjs`, `src/dev/perfProbe.ts`,
+  perf probe/script/performance tests, restored `PopupIslandChild.svelte`, and
+  linked hardening/current docs.
 
 ## Next Action
 
-- **PRIMARY (post A.R spec/plan import 2026-05-20)**: close 0-A C12+C13. A.R plan is written but
-  explicitly gated on 0-A closure. Do not implement A.R before Gate-0 passes.
-- Phase 0 next action after O: begin 0-A View Feature Contract / native DOM
-  contract, using O's `FrameNavigationService`, `FrameNavbarShell`, and
-  `FrameDashboardShell` as the frame-level integration points.
+- **PRIMARY (post 0-A closeout 2026-05-20)**: execute A.R for `v1.2.0` from
+  [[docs/work/hardening/plans/2026-05-20-explorer-AR-action-routing/index|A.R implementation plan]].
+- Phase 0 spine `0-H → 0-B → O → 0-A` is closed; A.R can consume the
+  View Feature Contract / native DOM contract.
 - If continuing Explorer scroll work, start from the variable scroll repair
   record. The blank fallback bug is repaired for the live selectable modes and
   Table/Grid active-scroll measurement is now deferred. Next target:

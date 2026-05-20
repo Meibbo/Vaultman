@@ -22,12 +22,12 @@ User-reported: when scrolling, node elements (icon/label/detail/badges) hide and
 
 ## Steps
 
-- [ ] **Step 1: Invoke systematic-debugging skill** (REQUIRED)
+- [x] **Step 1: Invoke systematic-debugging skill** (REQUIRED)
 
 The implementing agent must invoke the `superpowers:systematic-debugging`
 skill BEFORE any code change. This step is non-skippable.
 
-- [ ] **Step 2: Reproduce phase**
+- [x] **Step 2: Reproduce phase**
 
 Run:
 
@@ -60,7 +60,7 @@ user-observed scenario. Mark this as a known limitation, document in
 commit message, and move on with the assertion-only patch (which is
 still useful as a regression guard).
 
-- [ ] **Step 3: Locate phase**
+- [x] **Step 3: Locate phase**
 
 Inspect, in priority order:
 
@@ -84,7 +84,7 @@ Test each hypothesis MINIMALLY (e.g., temporarily disable the candidate
 in a scratch branch) and observe whether the flicker disappears. The
 first hypothesis that eliminates the flicker is the root cause.
 
-- [ ] **Step 4: Diagnose decision**
+- [x] **Step 4: Diagnose decision**
 
 If the root cause is in the scroll-idle deferral pass (R-protected
 investment): **escalate to user** before patching. Possible safe
@@ -99,7 +99,7 @@ alternatives:
 If the root cause is elsewhere (a non-deferral render gate that returns
 early for cosmetic reasons): patch directly without escalation.
 
-- [ ] **Step 5: Write failing test for the flicker assertion**
+- [x] **Step 5: Write failing test for the flicker assertion**
 
 Either extend `scripts/run-explorer-scroll-smoke.mjs` with a frame-level
 assertion, or add `test/integration/scroll-flicker.test.ts`:
@@ -120,7 +120,7 @@ Refine the assertion's exact shape based on what `src/dev/perfProbe.ts`
 exposes. If the harness today only reports `blankFrames=0` style aggregate
 metrics, extend it minimally to report per-row child presence.
 
-- [ ] **Step 6: Run failing test to confirm flicker reproduces in test**
+- [x] **Step 6: Run failing test to confirm flicker reproduces in test**
 
 ```powershell
 pnpm smoke:scroll -- --view=cards --jumps=100 --strict-flicker
@@ -130,7 +130,7 @@ pnpm smoke:scroll -- --view=cards --jumps=100 --strict-flicker
 reproduce the flicker in the synthetic harness, log this and move on.
 Manual repro in plugin-dev is the alternative gate.
 
-- [ ] **Step 7: Apply the patch**
+- [x] **Step 7: Apply the patch**
 
 Based on Step 3-4 diagnosis, modify the single relevant file. Patch
 must NOT touch:
@@ -140,7 +140,7 @@ must NOT touch:
 
 Patch SHOULD scope to: the render gate causing children to disappear.
 
-- [ ] **Step 8: Run flicker assertion test to verify PASS**
+- [x] **Step 8: Run flicker assertion test to verify PASS**
 
 ```powershell
 pnpm smoke:scroll -- --view=cards --jumps=100 --strict-flicker
@@ -153,11 +153,11 @@ pnpm smoke:scroll -- --view=list --jumps=100 --strict-flicker
 Expected per view: no flicker frames detected. Existing perf gates
 preserved (blankFrames=0, maxBlank=0ms).
 
-- [ ] **Step 9: Visual smoke on plugin-dev**
+- [x] **Step 9: Visual smoke on plugin-dev**
 
 Re-run the repro from Step 2. Confirm the flicker is gone visually.
 
-- [ ] **Step 10: Run full `pnpm verify`**
+- [x] **Step 10: Run full `pnpm verify`**
 
 ```powershell
 pnpm verify
@@ -165,7 +165,7 @@ pnpm verify
 
 Expected: PASS. No regression in any earlier 0-A gate.
 
-- [ ] **Step 11: Commit**
+- [x] **Step 11: Commit**
 
 Patch is minimal. Commit message documents the root cause clearly:
 
@@ -197,6 +197,15 @@ Verification:
 - `pnpm verify` PASS.
 - Visual manual smoke confirms flicker gone.
 - Patch scope localized to a single module.
+
+## Closeout note
+
+Closed on 2026-05-20 as part of the 0-A C12/C13 gate. Production scroll-render changes were already
+present in the branch by the time of closeout; this pass hardened the live smoke harness with
+`--strict-flicker`, configurable `strictIdleMs`, visible row range reporting, and abort/overlay
+cleanup support, then verified Tree/List/Table/Grid/Cards under strict and non-strict live
+`plugin-dev` runs. Full command output and per-view numbers are preserved in
+[[baseline-log|0-A baseline log]].
 
 ## Risk R4 escalation
 

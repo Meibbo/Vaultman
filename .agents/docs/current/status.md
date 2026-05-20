@@ -29,10 +29,18 @@ Compact route index after archiving the oversized current status:
 ## Current Route
 
 - Active initiative: [[docs/work/hardening/index|Hardening]].
-- **NEXT (post-release 2026-05-20)**: [[docs/work/hardening/specs/2026-05-19-explorer-merge-umbrella/index|Explorer Merge Umbrella]]
+- **NEXT (post-0-A closeout 2026-05-20)**: [[docs/work/hardening/plans/2026-05-20-explorer-AR-action-routing/index|A.R implementation plan]]
+  — Gate-0 is closed/unblocked after 0-A C12/C13 closeout; execute A.R for `v1.2.0`.
+- [[docs/work/hardening/specs/2026-05-19-explorer-merge-umbrella/index|Explorer Merge Umbrella]]
   — proto-v5 ↔ production merge + release pipeline renumerado `v1.2.0→v2.0.0` después del
   catch-up `1.1.0`. A.R spec + plan existen para `v1.2.0`; implementation queda gateada por
-  0-A C12/C13.
+  0-A C12/C13 (closed 2026-05-20).
+- Completed Explorer Phase 0 sub-system 0-A:
+  [[docs/work/hardening/specs/2026-05-18-explorer-sub-system-0-a-native-dom-parity/index|0-A spec]]
+  and
+  [[docs/work/hardening/plans/2026-05-18-explorer-sub-system-0-a-native-dom-parity/index|0-A implementation plan]];
+  closeout evidence in
+  [[docs/work/hardening/plans/2026-05-18-explorer-sub-system-0-a-native-dom-parity/baseline-log|0-A baseline log]].
 - A.R records imported from `claude/pensive-khorana-ed62bd`:
   [[docs/work/hardening/specs/2026-05-20-explorer-AR-action-routing/index|A.R Action Routing spec]]
   and
@@ -73,23 +81,6 @@ Compact route index after archiving the oversized current status:
   [[docs/work/research/2026-05-17-codebase-architecture-cluster/index|Codebase architecture cluster]];
   latest layer:
   [[docs/work/research/2026-05-17-codebase-architecture-cluster/09-residual-src-support-layer|Residual src support layer]].
-
-## Explorer Platform Outcome
-
-- Tasks 1-20 of the Explorer View Platform pass are implemented, verified, and
-  committed on `claude/explorer`.
-- Post-review repair is implemented but not yet committed in this worktree:
-  Notebook Navigator comparison bridge, faster 50K Vaultman projection, and
-  Markmap removed from selectable view menu.
-- Latest Explorer platform commits:
-  - `6aa23aa` `refactor: migrate tree rows to explorer projection`
-  - `f1ba4ac` `refactor: route tree reveal through scroll coordinator`
-  - `25c9d6b` `refactor: align panel tree list projection adapters`
-  - `8056ef5` `refactor: add platform contracts to table grid cards`
-  - `4f609af` `test: verify explorer platform focused gates`
-  - `c457d01` `test: record live explorer platform perf probe`
-- Earlier task commits remain in branch history from `883cb0a` through
-  `a79f905`; `9df9e50` is an unrelated theme-plan commit in between.
 
 ## Verification Snapshot
 
@@ -149,6 +140,16 @@ Compact route index after archiving the oversized current status:
     `viewTableStress.test.ts`, `pageFiltersRenameHandoff.test.ts`, and
     `vmDialogPortal.test.ts`.
   - Final live `plugin-dev` smoke returned `No errors captured.`
+- Explorer Sub-system 0-A C12/C13 closeout on 2026-05-20:
+  - `pnpm verify` passed: lint 0 warnings / 0 errors; `svelte-check` 0 warnings / 0 errors;
+    unit 145 files / 932 tests; component 104 files / 508 tests.
+  - Strict flicker live smokes passed for Tree/List/Table/Grid/Cards with
+    `blankFrames=0`, `maxBlank=0ms`, `flickerFrames=0`, and `maxFlickerRows=0`.
+  - Non-strict live scroll baseline passed for Tree/List/Table/Grid/Cards with
+    `blankFrames=0`, `blank>100ms=0`, `blank>250ms=0`, and `maxBlank=0ms`.
+  - Live preset/menu gate: native `menuCount=1`, vaultman `menuCount=5`,
+    node-elements submenu visible only under vaultman, and final
+    `obsidian vault=plugin-dev dev:errors` returned `No errors captured.`
 
 ## Known Residuals
 
@@ -174,19 +175,14 @@ Compact route index after archiving the oversized current status:
   Grid 58 ms, List 37 ms.
 - Map/ViewNodeMap remains deferred and is not exposed as a selectable
   next-release view after the post-review repair.
-- Current worktree dirt is the active variable scroll repair plus its docs/tests;
-  no unrelated dirty files were visible in `git status --short --branch` at
-  2026-05-16T12:52-05:00.
+- The 0-A C12/C13 closeout handoff commit is scoped to scroll-smoke harness,
+  perf probe, tests, restored fixture, and linked hardening/current docs.
 
 ## Next Action
 
-- **PRIMARY (post A.R spec/plan import 2026-05-20)**: close remaining 0-A commits
-  (C12 flicker fix + C13 verification gates). A.R implementation plan has Gate-0 and must not start
-  until 0-A is closed.
-- Then execute A.R implementation for `v1.2.0` from
+- **PRIMARY (post 0-A closeout 2026-05-20)**: execute A.R implementation for `v1.2.0` from
   [[docs/work/hardening/plans/2026-05-20-explorer-AR-action-routing/index|A.R implementation plan]].
-- Explorer 0-B and O are complete. Next Phase 0 consumer is 0-A View Feature
-  Contract / native DOM contract.
+- Explorer 0-B, O, and 0-A are complete. A.R Gate-0 is closed/unblocked.
 - For Explorer scroll work, continue from the variable scroll repair record:
   add runner-level view switching, add percentile/histogram reporting for scroll
   burst delay, investigate Grid's remaining 58 ms peak if it persists, and
