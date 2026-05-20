@@ -68,3 +68,12 @@ docs/superpowers/audits/*
 !docs/archive/superpowers
 !docs/archive/superpowers/specs
 !docs/archive/superpowers/specs/*.md
+
+# ...----------———————(   main: 0 AI files — enforced   )————————------... #
+# main-clean branch: AI workflow files must NEVER reach main (per AGENTS.md).
+# Unconditional ignores; win over any negation above.
+.agents/
+.codex/
+CLAUDE.md
+AGENTS.md
+.claude/

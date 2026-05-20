@@ -1,9 +1,0 @@
-
-> vaultman@1.0.0-beta.16 check
-> svelte-check --tsconfig ./tsconfig.json
-
-1777487305387 START "c:\\Users\\vic_A\\My Drive (vic_alejandronavas@outlook.com)\\plugin-dev\\.obsidian\\plugins\\obsiman"
-1777487305390 ERROR "src\\components\\layout\\navbarExplorer.svelte" 64:7 "'currentViewMode' is declared but its value is never read."
-1777487305390 ERROR "src\\components\\frameVaultman.svelte" 559:12 "'_setViewMode' is declared but its value is never read."
-1777487305391 ERROR "src\\components\\frameVaultman.svelte" 663:12 "'_openMovePopup' is declared but its value is never read."
-1777487305400 COMPLETED 623 FILES 3 ERRORS 0 WARNINGS 2 FILES_WITH_PROBLEMS
