@@ -32,13 +32,13 @@ jobs:
           persist-credentials: false
 
       - name: Initialize CodeQL
-        uses: github/codeql-action/init@7c1e4cf0b20d7c1872b26569c00ba908797a59bf
+        uses: github/codeql-action/init@9e0d7b8d25671d64c341c19c0152d693099fb5ba
         with:
           languages: ${{ matrix.language }}
           config-file: ./.github/codeql/codeql-config.yml
 
       - name: Perform CodeQL Analysis
-        uses: github/codeql-action/analyze@7c1e4cf0b20d7c1872b26569c00ba908797a59bf
+        uses: github/codeql-action/analyze@9e0d7b8d25671d64c341c19c0152d693099fb5ba
         with:
           category: '/language:${{matrix.language}}'
 
@@ -55,7 +55,7 @@ jobs:
 
       - name: Setup CodeQL
         id: setup-codeql
-        uses: github/codeql-action/setup-codeql@7c1e4cf0b20d7c1872b26569c00ba908797a59bf
+        uses: github/codeql-action/setup-codeql@9e0d7b8d25671d64c341c19c0152d693099fb5ba
 
       - name: Run custom CodeQL query tests
         run: ${{ steps.setup-codeql.outputs.codeql-path }} test run --additional-packs codeql/queries/javascript codeql/tests --threads=0
