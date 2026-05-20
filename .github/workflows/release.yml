@@ -3,7 +3,7 @@ name: Release
 on:
   push:
     tags:
-      - 'v*'
+      - '[0-9]*.[0-9]*.[0-9]*'
   workflow_dispatch:
     inputs:
       dry_run:
@@ -121,12 +121,25 @@ jobs:
           Verify provenance with:
           gh attestation verify main.js -R ${GITHUB_REPOSITORY}
           EOF
-          gh release create "${GITHUB_REF_NAME}" \
-            dist/release/main.js \
-            dist/release/manifest.json \
-            dist/release/styles.css \
-            dist/release/SHA256SUMS \
-            dist/release/sbom.cdx.json \
-            --verify-tag \
-            --title "Vaultman ${GITHUB_REF_NAME}" \
-            --notes-file "${notes_file}"
+          if gh release view "${GITHUB_REF_NAME}" >/dev/null 2>&1; then
+            gh release upload "${GITHUB_REF_NAME}" \
+              dist/release/main.js \
+              dist/release/manifest.json \
+              dist/release/styles.css \
+              dist/release/SHA256SUMS \
+              dist/release/sbom.cdx.json \
+              --clobber
+            gh release edit "${GITHUB_REF_NAME}" \
+              --title "Vaultman ${GITHUB_REF_NAME}" \
+              --notes-file "${notes_file}"
+          else
+            gh release create "${GITHUB_REF_NAME}" \
+              dist/release/main.js \
+              dist/release/manifest.json \
+              dist/release/styles.css \
+              dist/release/SHA256SUMS \
+              dist/release/sbom.cdx.json \
+              --verify-tag \
+              --title "Vaultman ${GITHUB_REF_NAME}" \
+              --notes-file "${notes_file}"
+          fi

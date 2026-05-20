@@ -2,17 +2,46 @@ name: CI
 
 on:
   push:
-    branches: [main, hardening, hardening-tests, hardening-audit, hardening-refactor]
+    branches: [main, sandbox, hardening, hardening-tests, hardening-audit, hardening-refactor]
   pull_request:
-    branches: [main, hardening]
+    branches: [main, sandbox, hardening]
 
 permissions:
   contents: read
+  pull-requests: read
 
 env:
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
 
 jobs:
+  guard-ai-files:
+    name: Guard main against AI workflow files
+    if: github.event_name == 'pull_request' && github.base_ref == 'main'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Detect AI workflow files
+        id: ai
+        uses: dorny/paths-filter@fbd0ab8f3e69293af611ebaee6363fc25e6d187d
+        with:
+          token: ${{ github.token }}
+          list-files: shell
+          filters: |
+            ai:
+              - 'AGENTS.md'
+              - 'CLAUDE.md'
+              - '.agents/**'
+              - '.claude/**'
+
+      - name: Fail if AI workflow files target main
+        if: steps.ai.outputs.ai == 'true'
+        env:
+          AI_FILES: ${{ steps.ai.outputs.ai_files }}
+        shell: bash
+        run: |
+          echo "::error::PRs to main must not include AI workflow files."
+          printf 'Blocked files:\n%s\n' "${AI_FILES}"
+          exit 1
+
   verify:
     runs-on: ubuntu-latest
     steps:
