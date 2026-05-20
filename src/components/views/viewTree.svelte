@@ -73,6 +73,7 @@
 		explorerViewContract,
 		type NativeClassVocabulary,
 	} from '../../services/serviceExplorerViewContract';
+	import { createRowAction, type RowProps, type RowState } from '../../services/serviceRowAction';
 	import type { DndViewState } from '../../services/serviceDnd';
 	import { stateModEmissions } from '../../services/serviceNodeClassEmission';
 	import type { ThemeService } from '../../services/serviceTheme.svelte';
@@ -120,7 +121,7 @@
 		expandedIds: Set<string>;
 		selectedIds?: Set<string>;
 		focusedId?: string | null;
-		onToggle: (id: string) => void;
+		onToggle: (id: string, e?: MouseEvent | KeyboardEvent) => void;
 		onRowClick: (id: string, e: MouseEvent) => void;
 		onPrimaryAction?: (id: string, e: MouseEvent) => void;
 		onSecondaryAction?: (id: string, e: MouseEvent) => void;
@@ -195,10 +196,23 @@
 	const nativeVocab = $derived<NativeClassVocabulary | null>(
 		useNativeDom ? explorerViewContract('tree').nativeDomEmission.panel : null,
 	);
+	const treeFeatures = explorerViewContract('tree').features;
 	const treeInnerClass = $derived(
 		['vm-tree-virtual-inner', nativeVocab?.childrenContainer].filter(Boolean).join(' '),
 	);
 	const effectiveProviderId = $derived(projection?.providerId ?? providerId);
+	const rowAction = $derived(
+		createRowAction({
+			explorerId: effectiveProviderId,
+			role: 'treeitem',
+			features: treeFeatures,
+			contract: {
+				onToggle,
+				onContextMenu,
+				onRowKeydown,
+			},
+		}),
+	);
 	const projectionRowInputs = $derived(projection ? rowInputsFromProjection(projection) : undefined);
 	const effectiveRowInputs = $derived(projectionRowInputs ?? rowInputs);
 	const effectiveSnapshotRevision = $derived(snapshotRevision ?? projection?.rowsRevision ?? null);
@@ -518,14 +532,6 @@
 		};
 	});
 
-	function handleKeydown(e: KeyboardEvent, id: string) {
-		if (onRowKeydown) {
-			onRowKeydown(id, e);
-			return;
-		}
-		if (e.key === 'Enter') onPrimaryAction?.(id, e as unknown as MouseEvent);
-	}
-
 	function handleInputKeydown(e: KeyboardEvent, id: string, inputEl: HTMLInputElement) {
 		if (e.key === 'Enter') {
 			e.stopPropagation();
@@ -553,6 +559,17 @@
 			},
 			nodeMouseConfig,
 		);
+	}
+
+	function treeRowProps(id: string, state: RowState): RowProps {
+		const props = rowAction.getRowProps(id, state);
+		if (onRowKeydown) return props;
+		return {
+			...props,
+			onkeydown: (e) => {
+				if (e.key === 'Enter') onPrimaryAction?.(id, e as unknown as MouseEvent);
+			},
+		};
 	}
 
 	function handleRowAuxClick(e: MouseEvent, id: string) {
@@ -960,12 +977,12 @@
 		data-sticky={sticky ? 'true' : undefined}
 		onclick={(e) => handleRowClick(e, id)}
 		onauxclick={(e) => handleRowAuxClick(e, id)}
-		oncontextmenu={(e) => onContextMenu(id, e)}
-		onkeydown={(e) => handleKeydown(e, id)}
-		role="treeitem"
-		aria-selected={isSelected}
-		tabindex="0"
-		aria-expanded={flat.hasChildren ? flat.isExpanded : undefined}
+		{...treeRowProps(id, {
+			selected: isSelected,
+			focused: isFocused,
+			expandable: flat.hasChildren,
+			expanded: flat.isExpanded,
+		})}
 	>
 		<div
 			class="vm-tree-row-surface {nativeVocab?.innerWrapper ?? ''} {rowStateClassString({
@@ -996,13 +1013,7 @@
 			{#if flat.hasChildren}
 				<div
 					class="vm-tree-toggle {nativeVocab?.collapseIcon ?? ''}"
-					onclick={(e) => {
-						e.stopPropagation();
-						onToggle(id);
-					}}
-					onkeydown={() => {}}
-					role="button"
-					tabindex="-1"
+					{...rowAction.getCaretProps(id)}
 				>
 					<span use:icon={flat.isExpanded ? 'lucide-chevron-down' : 'lucide-chevron-right'}></span>
 				</div>

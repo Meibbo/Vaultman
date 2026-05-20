@@ -4,7 +4,7 @@
 - Modify: `src/components/views/viewTree.svelte` (row root 949-957; caret 985-1001)
 - Test: `test/component/viewTreeActionAdoption.test.ts`
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 ```ts
 // test/component/viewTreeActionAdoption.test.ts
@@ -60,12 +60,12 @@ describe('ViewTree action-routing adoption', () => {
 });
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 Run: `pnpm vitest run test/component/viewTreeActionAdoption.test.ts`
 Expected: FAIL — no `data-row-key` attribute yet.
 
-- [ ] **Step 3: Adopt the builder**
+- [x] **Step 3: Adopt the builder**
 
 In `viewTree.svelte` `<script>` add the common builder block (role `'treeitem'`).
 Row root (949-957) — replace inline `role`/`tabindex`/`aria-selected`/`aria-expanded`/`oncontextmenu`/
@@ -103,16 +103,25 @@ Branch caret (985-996) — replace inline `onclick`/`role`/`tabindex`/`onkeydown
 Note: `data-row-key` (spread) coexists with `data-id` (kept). Existing `viewTreeSelection.test.ts`
 queries `[data-id]` → still pass.
 
-- [ ] **Step 4: Run tests**
+- [x] **Step 4: Run tests**
 
 Run: `pnpm vitest run test/component/viewTreeActionAdoption.test.ts test/component/viewTreeSelection.test.ts test/component/viewTreeCaret.test.ts`
 Expected: all PASS.
 
-- [ ] **Step 5: Commit**
+Actual verification:
+- `pnpm vitest run test/component/viewTreeActionAdoption.test.ts` — RED first, missing `data-row-key` and caret event.
+- `pnpm vitest run test/component/viewTreeActionAdoption.test.ts test/component/viewTreeSelection.test.ts test/component/viewTreeCaret.test.ts` — PASS, 3 files / 24 tests.
+- `npx @sveltejs/mcp svelte-autofixer src/components/views/viewTree.svelte --svelte-version 5` — no issues; pre-existing suggestions only.
+- `pnpm run check` — PASS, 0 errors / 0 warnings.
+- `pnpm run lint` — PASS, 0 errors / 0 warnings.
+
+- [x] **Step 5: Commit**
 
 ```bash
 git add src/components/views/viewTree.svelte test/component/viewTreeActionAdoption.test.ts
 git commit -m "refactor(A.R): viewTree adopts row-action builder + decorative caret"
 ```
+
+Actual commit: `refactor(A.R): viewTree adopts row-action builder`.
 
 ---

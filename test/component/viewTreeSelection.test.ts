@@ -46,7 +46,7 @@ describe('ViewTree selection gestures', () => {
 			selectedIds: Set<string>;
 			focusedId: string | null;
 			activeFilterIds: Set<string>;
-			onToggle: (id: string) => void;
+			onToggle: (id: string, e?: MouseEvent | KeyboardEvent) => void;
 			onRowClick: (id: string, e: MouseEvent) => void;
 			onPrimaryAction: (id: string, e: MouseEvent) => void;
 			onSecondaryAction: (id: string, e: MouseEvent) => void;
@@ -104,7 +104,7 @@ describe('ViewTree selection gestures', () => {
 		(target.querySelector('.vm-tree-toggle') as HTMLElement).click();
 
 		expect(handlers.onToggle).toHaveBeenCalledOnce();
-		expect(handlers.onToggle).toHaveBeenCalledWith('parent');
+		expect(handlers.onToggle).toHaveBeenCalledWith('parent', expect.any(MouseEvent));
 		expect(handlers.onRowClick).not.toHaveBeenCalled();
 		expect(handlers.onPrimaryAction).not.toHaveBeenCalled();
 	});
@@ -215,7 +215,7 @@ describe('ViewTree selection gestures', () => {
 
 		expect(setPointerCapture).not.toHaveBeenCalled();
 		expect(handlers.onToggle).toHaveBeenCalledOnce();
-		expect(handlers.onToggle).toHaveBeenCalledWith('parent');
+		expect(handlers.onToggle).toHaveBeenCalledWith('parent', expect.any(MouseEvent));
 		expect(handlers.onRowClick).not.toHaveBeenCalled();
 		expect(handlers.onPrimaryAction).not.toHaveBeenCalled();
 	});
@@ -242,7 +242,7 @@ describe('ViewTree selection gestures', () => {
 		(target.querySelector('.vm-tree-toggle') as HTMLElement).click();
 
 		expect(handlers.onToggle).toHaveBeenCalledOnce();
-		expect(handlers.onToggle).toHaveBeenCalledWith('parent');
+		expect(handlers.onToggle).toHaveBeenCalledWith('parent', expect.any(MouseEvent));
 		expect(handlers.onRowClick).not.toHaveBeenCalled();
 		expect(handlers.onPrimaryAction).not.toHaveBeenCalled();
 	});
@@ -461,7 +461,7 @@ describe('ViewTree selection gestures', () => {
 		(target.querySelector('.vm-tree-toggle') as HTMLElement).click();
 
 		expect(handlers.onToggle).toHaveBeenCalledOnce();
-		expect(handlers.onToggle).toHaveBeenCalledWith('parent');
+		expect(handlers.onToggle).toHaveBeenCalledWith('parent', expect.any(MouseEvent));
 		expect(handlers.onRowClick).not.toHaveBeenCalled();
 		expect(handlers.onPrimaryAction).not.toHaveBeenCalled();
 	});

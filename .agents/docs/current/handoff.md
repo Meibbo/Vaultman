@@ -5,7 +5,7 @@ status: active
 parent: "[[docs/work/pkm-ai/index|pkm-ai]]"
 archive_source: "docs/archive/pkm-ai/active-docs/2026-05-11T080321-current-handoff.md"
 created: 2026-05-04T01:36:20
-updated: 2026-05-20T16:22:00-05:00
+updated: 2026-05-20T16:28:00-05:00
 tags:
   - agent/current
 created_by: dec
@@ -55,9 +55,9 @@ Compact handoff after archiving the oversized current handoff:
 
 **Next action**:
 1. A.R spec + implementation plan are imported to `sandbox`.
-2. Gate-0 and Tasks 1-5 are complete, through `refactor(A.R): normalize explorer row seams`.
+2. Gate-0, Tasks 1-5, and Task 6a are complete, through `refactor(A.R): viewTree adopts row-action builder`.
 3. Continue A.R for `v1.2.0` from
-   [[docs/work/hardening/plans/2026-05-20-explorer-AR-action-routing/03-view-adoption|Task 6 view adoption]].
+   [[docs/work/hardening/plans/2026-05-20-explorer-AR-action-routing/03-view-adoption-task-6b-table|Task 6b table adoption]].
 
 **Optional cleanup**:
 - Remote branches `main-clean-1.1.0` and `release/1.1.0-infra` are merged/stale branches created
@@ -67,7 +67,11 @@ Compact handoff after archiving the oversized current handoff:
 
 - Worktree: `C:\Users\vic_A\Desktop\vaultman`
 - Branch: `sandbox`.
-- **Latest (2026-05-20)**: A.R Tasks 1-5 complete and verified locally; next is Task 6 view adoption.
+- **Latest (2026-05-20)**: A.R Task 6a complete and verified locally; next is Task 6b table adoption.
+  Task 6a source record:
+  [[docs/work/hardening/plans/2026-05-20-explorer-AR-action-routing/03-view-adoption-task-6a-tree|Task 6a viewTree adoption]].
+  Focused gate: 3 files / 24 tests; `pnpm run check` and `pnpm run lint` passed with 0 errors / 0 warnings.
+- Previous (2026-05-20): A.R Tasks 1-5 complete and verified locally.
   Task 5 source record:
   [[docs/work/hardening/plans/2026-05-20-explorer-AR-action-routing/02-seam-normalization|Task 5 seam normalization]].
   Focused gate: 9 files / 112 tests; `pnpm run check` and `pnpm run lint` passed with 0 errors / 0 warnings.
@@ -145,8 +149,8 @@ repair. Current handoff keeps only the active route and the latest release facts
 
 ## Next Action
 
-- **PRIMARY (post A.R Task 5 2026-05-20)**: continue A.R Task 6 view adoption from
-  [[docs/work/hardening/plans/2026-05-20-explorer-AR-action-routing/03-view-adoption|A.R Task 6 view adoption]].
+- **PRIMARY (post A.R Task 6a 2026-05-20)**: continue A.R Task 6b table adoption from
+  [[docs/work/hardening/plans/2026-05-20-explorer-AR-action-routing/03-view-adoption-task-6b-table|A.R Task 6b table adoption]].
 - Phase 0 spine `0-H → 0-B → O → 0-A` is closed; A.R can consume the
   View Feature Contract / native DOM contract.
 - If continuing Explorer scroll work, start from the variable scroll repair

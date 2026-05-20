@@ -56,7 +56,7 @@ describe('ViewTree caret hit-target', () => {
 		const toggle = target.querySelector<HTMLElement>('.vm-tree-toggle:not(.is-placeholder)');
 		expect(toggle).not.toBeNull();
 		toggle!.click();
-		expect(onToggle).toHaveBeenCalledWith('parent');
+		expect(onToggle).toHaveBeenCalledWith('parent', expect.any(MouseEvent));
 		expect(onRowClick).not.toHaveBeenCalled();
 
 		const source = readFileSync('src/styles/explorer/_tree.scss', 'utf8');
