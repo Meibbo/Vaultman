@@ -141,9 +141,10 @@
 	const selectedNodeMap = $derived(selectionSnapshot.selected);
 	const focusedNodeId = $derived(selectionSnapshot.focusedId);
 	let previousSearchTerm = '';
-	const hasExpansionSurface = $derived(viewMode === 'tree' || viewMode === 'grid');
+	const expandableNodeIds = $derived(collectExpandableNodeIds(nodes));
+	const hasExpandableRows = $derived(expandableNodeIds.length > 0);
 	const autoExpandedIds = $derived(
-		hasExpansionSurface
+		hasExpandableRows
 			? collectAutoExpandedIds(nodes, { searchTerm, smallTreeThreshold: 8 })
 			: new Set<string>(),
 	);
@@ -154,11 +155,8 @@
 			autoExpandedIds,
 		}),
 	);
-	const expandableNodeIds = $derived(
-		hasExpansionSurface ? collectExpandableNodeIds(nodes) : [],
-	);
 	const hasExpandedParents = $derived(
-		hasExpansionSurface && expandableNodeIds.some((id) => expandedIds.has(id)),
+		hasExpandableRows && expandableNodeIds.some((id) => expandedIds.has(id)),
 	);
 	const decoratedNodeById = $derived.by(() => buildNodeLookup(nodes));
 	const treeRowInputs = $derived.by((): ExplorerRowInput<TMeta>[] | undefined => {

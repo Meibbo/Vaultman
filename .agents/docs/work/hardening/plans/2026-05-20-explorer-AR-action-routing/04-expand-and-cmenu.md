@@ -21,7 +21,7 @@ updated: 2026-05-20T00:00:00
 Hoy `hasExpansionSurface = viewMode === 'tree' || 'grid'` (137) gatea por viewMode → list/table/cards
 nunca expanden aunque los datos tengan hijos. Cambiar a gate por datos.
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 ```ts
 // test/component/expandAllParity.test.ts
@@ -45,9 +45,9 @@ describe('expand/collapse-all is data-gated, not viewMode-gated', () => {
 (Completar el montaje con el helper exacto de `panelExplorerSelection.test.ts`; la aserción central es
 `visibleNodeIds`/`expandedIds` tras el comando, independiente de `viewMode`.)
 
-- [ ] **Step 2: Run → FAIL** (`pnpm vitest run test/component/expandAllParity.test.ts`) — list no expande.
+- [x] **Step 2: Run → FAIL** (`pnpm vitest run test/component/expandAllParity.test.ts`) — list no expande.
 
-- [ ] **Step 3: Data-gate**
+- [x] **Step 3: Data-gate**
 
 ```diff
 - const hasExpansionSurface = $derived(viewMode === 'tree' || viewMode === 'grid');
@@ -69,9 +69,26 @@ function collapseAllParents() {
 }
 ```
 
-- [ ] **Step 4: Run → PASS.** Luego `pnpm vitest run test/component/viewGridSelection.test.ts` (grid sin regresión).
+- [x] **Step 4: Run → PASS.** Luego `pnpm vitest run test/component/viewGridSelection.test.ts` (grid sin regresión).
 
-- [ ] **Step 5: Commit** `feat(A.R): data-gate expand/collapse-all across all views`.
+Actual verification:
+- `pnpm vitest run test/component/expandAllParity.test.ts` — RED first:
+  list summary returned `canToggle: false`, proving the view-mode gate blocked hierarchical data.
+- `pnpm vitest run test/component/expandAllParity.test.ts` — PASS, 1 file / 2 tests.
+- `npx @sveltejs/mcp svelte-autofixer src/components/containers/panelExplorer.svelte --svelte-version 5` — no issues; pre-existing suggestions only.
+- `pnpm vitest run test/component/expandAllParity.test.ts test/component/panelExplorerSelection.test.ts test/component/viewGridSelection.test.ts` — PASS, 3 files / 67 tests.
+- `pnpm run check` — PASS, 0 errors / 0 warnings.
+- `pnpm run lint` — PASS, 0 errors / 0 warnings.
+- `git diff --check` — PASS, CRLF working-copy warnings only.
+
+Implementation note: `panelExplorer` now derives `expandableNodeIds` from the data tree regardless of
+view mode, then gates `autoExpandedIds` and `hasExpandedParents` from `hasExpandableRows`. This keeps
+flat providers as no-op while allowing list/table/cards selection/keyboard visibility semantics to see
+expanded hierarchical ids.
+
+- [x] **Step 5: Commit** `feat(A.R): data-gate expand/collapse-all across all views`.
+
+Actual commit: `feat(A.R): data-gate expand/collapse-all across views`.
 
 ---
 
