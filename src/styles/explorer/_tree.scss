@@ -112,6 +112,8 @@
 
 	&-toggle {
 		@include tree-icon-size(var(--vm-tree-toggle-size, 20px));
+		min-width: 24px;
+		min-height: 24px;
 		color: $vm-text-normal;
 		opacity: 0.35;
 	}

@@ -7,7 +7,7 @@
 El placeholder de hoja es inerte by-design (ya probado en `viewTreeSelection.test.ts:139`) y el
 row-click ya funciona — NO se toca. Defecto verificable = hit-target 20px < 24px (WCAG 2.5.8).
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 ```ts
 // test/component/viewTreeCaret.test.ts
@@ -48,7 +48,7 @@ describe('ViewTree caret hit-target (WCAG 2.5.8)', () => {
 });
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 Run: `pnpm vitest run test/component/viewTreeCaret.test.ts`
 Expected: FAIL — minWidth/minHeight `20px` (or unset) < 24.
@@ -56,7 +56,7 @@ Expected: FAIL — minWidth/minHeight `20px` (or unset) < 24.
 (Note: jsdom `getComputedStyle` returns authored CSS, not layout. If the SCSS var is not resolved in
 jsdom, assert against the explicit `min-width`/`min-height` declarations added in Step 3 instead.)
 
-- [ ] **Step 3: Add the hit-target padding**
+- [x] **Step 3: Add the hit-target padding**
 
 ```scss
 /* src/styles/explorer/_tree.scss — inside &-toggle { ... } (~line 113) */
@@ -73,12 +73,12 @@ jsdom, assert against the explicit `min-width`/`min-height` declarations added i
 The icon stays 20px (`--vm-tree-toggle-size`); only the clickable box grows to 24px. Does not affect
 `--vm-tree-icon-size` (16px) asserts in `viewTreeSelection.test.ts`.
 
-- [ ] **Step 4: Run test to verify it passes**
+- [x] **Step 4: Run test to verify it passes**
 
 Run: `pnpm vitest run test/component/viewTreeCaret.test.ts`
 Expected: PASS. Also run `pnpm vitest run test/component/viewTreeSelection.test.ts` → still PASS.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add src/styles/explorer/_tree.scss test/component/viewTreeCaret.test.ts
