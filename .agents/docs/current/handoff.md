@@ -17,6 +17,54 @@ updated_by: codex
 Compact handoff after archiving the oversized current handoff:
 [[docs/archive/pkm-ai/active-docs/2026-05-11T080321-current-handoff|2026-05-11 handoff archive]].
 
+## ⏩ NEXT AGENT START HERE — Release & Main Reconciliation (2026-05-19 sesión 2)
+
+**Estado**: Explorer Merge Umbrella spec escrito + commiteado + pusheado (commits `4cea075`,
+`c0c3a95` en `sandbox`; origin/sandbox en sync). Ver
+[[docs/work/hardening/specs/2026-05-19-explorer-merge-umbrella/index|Explorer Merge Umbrella]].
+
+**Decisiones release (locked by user 2026-05-19)**:
+- **D1 = tags bare (SIN prefijo `v`)** — Obsidian community exige tag == manifest.json version.
+  `.github/workflows/release.yml:6` dispara en `v*` → DEBE cambiar a bare.
+- **D2 = release-driven-from-main** (release-please en main; main recibe contenido sanitizado de sandbox).
+- **D3 = renumber**: primer release = **1.1.0 catch-up** (todo desde 1.0.0). El pipeline del umbrella
+  shifta +0.1.0 → Explorer Hardening = **1.2.0**, …, Bases Parity = **2.0.0** (sigue major).
+  ⚠️ El umbrella NO está renumerado aún — pendiente.
+
+**Main = sandbox − AI (absoluto; directiva user: "nada de main sobrevive, sandbox es la verdad absoluta")**:
+- Clean candidate construido: branch `main-clean-1.1.0` (HEAD `69723fe`), worktree
+  `C:/tmp/vaultman-main-clean`. = árbol de sandbox − AI files (`.agents/.codex/CLAUDE.md/AGENTS.md`),
+  gitignore-enforced. 634 files vs origin/main.
+- ⚠️ LEARNING: NO reconciliar vía `git checkout sandbox -- .` desde base origin/main — es UNIÓN +
+  arrastra ~36 dead stragglers main-only (sidebarOps_old, VaultmanSettings, i18n viejo…). Esos
+  causaron 14 lint errors fantasma. Correcto = branch DESDE sandbox, strip AI. Sandbox es lint-clean.
+- Verify del clean candidate: lanzado (logs `/tmp/mc-verify.log` + `/tmp/mc-audit.log`; security:audit
+  prod limpio, dev 1 moderate brace-expansion bajo threshold). **Confirmar verify VERDE antes de seguir.**
+
+**P1 (release infra) status**:
+- (g) ✅ T.G shard expandido (anti-drift: 3-tier + AgentAssay/CUSUM + flag de ci.yml sin sandbox).
+- (e) ⏸️ release-please bootstrap — pending. Integrar con `release.yml` EXISTENTE (maduro: SLSA attest +
+  SBOM + checksums). release-please crea release-PR + bare tag → release.yml builds. Config:
+  `release-type: node`, `extra-files:[manifest.json,versions.json]`, tag `${version}`.
+- (f) ⏸️ paths-filter guard — pending. `dorny/paths-filter` job que falla PRs a main tocando
+  `.agents/**`/`CLAUDE.md`/`AGENTS.md`/`.claude/**`. Además: ci.yml dispara `[main,hardening,*]` —
+  sandbox NO incluido → agregar sandbox.
+
+**Next actions (en orden)**:
+1. Confirmar verify del clean candidate `main-clean-1.1.0` VERDE (lint+check+build+unit+component) + audit.
+2. Replace/PR `main-clean-1.1.0` → `main` (ALTO STAKES — branch público submitido; aprobación user para push).
+   Desbloquea la submission Obsidian (trae CI + security + código lint-clean).
+3. P1(f) paths-filter guard + agregar sandbox a ci.yml.
+4. P1(e) release-please bootstrap → cortar release **1.1.0 catch-up**.
+5. Renumerar pipeline del umbrella (catch-up shift): Explorer Hardening → v1.2.0, etc.
+6. LUEGO sub-systems del umbrella: primer detail spec = **A.R (Action Routing)** → writing-plans → impl.
+
+**Cleanup si se abandona el candidate**: `git worktree remove C:/tmp/vaultman-main-clean --force;
+git branch -D main-clean-1.1.0`.
+
+**Flags pendientes**: GitHub Dependabot 7 vulns (2 high) en default branch. Task-list de sesión stale
+(9 tareas obsoletas) — ignorar.
+
 ## Resume Point
 
 - Worktree: `C:\Users\vic_A\Desktop\vaultman`
