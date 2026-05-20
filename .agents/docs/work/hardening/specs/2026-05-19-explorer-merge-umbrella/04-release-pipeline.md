@@ -7,14 +7,18 @@ created: 2026-05-19T00:00:00
 updated: 2026-05-19T00:00:00
 ---
 
-# Release Pipeline v1.1.0 → v2.0.0
+# Release Pipeline v1.2.0 → v2.0.0
 
 Per-version: tema, scope sub-systems, shippable criterion (qué debe cumplirse para release),
 SemVer rationale, blockers, R.D actions específicas.
 
-## v1.1.0 — Explorer Hardening + sticky-parents
+`v1.1.0` ya fue usado como release catch-up de main el 2026-05-20. Ese release no pertenece al
+feature pipeline del umbrella; ver
+[[docs/work/hardening/plans/2026-05-20-release-1-1-0-catch-up|Release 1.1.0 catch-up]].
 
-**Tema**: arregla todos los bugs visibles reportados. Foundation para v1.2.0+ refactor.
+## v1.2.0 — Explorer Hardening + sticky-parents
+
+**Tema**: arregla todos los bugs visibles reportados. Foundation para v1.3.0+ refactor.
 
 **Sub-systems incluidos**:
 - **A.R** — Action Routing Contract (FIRST DETAIL SPEC)
@@ -36,17 +40,16 @@ SemVer rationale, blockers, R.D actions específicas.
 - WDIO + wdio-obsidian-service tier configured en CI
 - ARIA tree + caret hit-target (WCAG 2.5.8 ≥ 24×24) tests GREEN
 
-**SemVer rationale**: MINOR (1.0.0 → 1.1.0)
+**SemVer rationale**: MINOR (1.1.0 → 1.2.0)
 - No breaking changes — solo bug fixes + new test infrastructure
-- Reconcile current package.json (1.1.0) vs CHANGELOG (1.0.0-beta.5):
-  → CHANGELOG bumped to 1.1.0 con [Unreleased] section + this release
+- Uses the already-bootstrapped release-please + bare-tag pipeline from 1.1.0 catch-up
 
 **R.D actions**:
-- `[Unreleased]` → `[1.1.0]` en CHANGELOG.md (vía release-please release-PR)
-- Push `sandbox → origin/sandbox` (180 ahead) ANTES de la release
+- `[Unreleased]` → `[1.2.0]` en CHANGELOG.md (vía release-please release-PR)
+- Push `sandbox → origin/sandbox` before release branch/PR as needed
 - manifest.json bump (release-please `extra-files` lo sincroniza con package.json)
-- versions.json append (`"1.1.0": "<minObsidianVersion>"`)
-- Tag `1.1.0` — **NO prefijo `v`**. Obsidian community plugins exigen tag == manifest.json version exacto
+- versions.json append (`"1.2.0": "<minObsidianVersion>"`)
+- Tag `1.2.0` — **NO prefijo `v`**. Obsidian community plugins exigen tag == manifest.json version exacto
 - main merge: release-please release-PR como ÚNICO PR que toca main + `dorny/paths-filter` guard que falla si toca `.agents/**`/`CLAUDE.md`/`AGENTS.md`/`.claude/**`
 - GitHub Release con notes (auto-draft via release-please)
 
@@ -56,9 +59,9 @@ SemVer rationale, blockers, R.D actions específicas.
 
 ---
 
-## v1.2.0 — Architecture cleanup
+## v1.3.0 — Architecture cleanup
 
-**Tema**: god-objects → shells. Clean foundation para v1.3.0+.
+**Tema**: god-objects → shells. Clean foundation para v1.4.0+.
 
 **Sub-systems incluidos**:
 - **V.D** — View Decomposition (5 views → ~1050 LoC vs 4377)
@@ -74,7 +77,7 @@ SemVer rationale, blockers, R.D actions específicas.
 - panelExplorer ≤ 350 LoC (orchestrators extraídos)
 - NodeRow primitive embedded por TODOS los views
 - Cada módulo tiene UNA responsabilidad bien definida + dedicated test
-- Performance gates: no regression vs v1.1.0 (50K projection, scroll burst, 100K proof)
+- Performance gates: no regression vs v1.2.0 (50K projection, scroll burst, 100K proof)
 
 **SemVer rationale**: MINOR
 - Refactor no-breaking si A.R contract preservado
@@ -83,12 +86,12 @@ SemVer rationale, blockers, R.D actions específicas.
 **R.D actions**: standard release flow
 
 **Blockers**:
-- A.R contract definido (v1.1.0)
-- T.G basis configured (v1.1.0)
+- A.R contract definido (v1.2.0)
+- T.G basis configured (v1.2.0)
 
 ---
 
-## v1.3.0 — Keyboard + Public API
+## v1.4.0 — Keyboard + Public API
 
 **Tema**: workspace-wide keyboard + handshake cross-plugin.
 
@@ -110,18 +113,18 @@ SemVer rationale, blockers, R.D actions específicas.
 
 **R.D actions**: standard release flow + publish `@vaultman/api` npm package primera vez
 
-**Blockers**: V.D + P.D landed (v1.2.0)
+**Blockers**: V.D + P.D landed (v1.3.0)
 
 ---
 
-## v1.4.0 — Nautilus rewrites + Adwata icons primer
+## v1.5.0 — Nautilus rewrites + Adwata icons primer
 
 **Tema**: redesign visual de viewList + viewGrid según proto Nautilus. Adwata SVG icons primitive.
 
 **Sub-systems incluidos**:
 - **viewList → Nautilus tiles rewrite**
 - **viewGrid → Nautilus icons rewrite** (+ rich rows-only mode toggle)
-- **Adwata SVG primitive** (primer batch — full sub-feature en v1.5.0 con Theme Builder)
+- **Adwata SVG primitive** (primer batch — full sub-feature en v1.6.0 con Theme Builder)
 
 **Shippable criterion**:
 - ViewNodeList renderea como Nautilus tiles (horizontal icon + multi-meta)
@@ -138,11 +141,11 @@ SemVer rationale, blockers, R.D actions específicas.
 
 **R.D actions**: standard
 
-**Blockers**: V.D landed (v1.2.0) — views como shells permite el rewrite sin tocar A.R
+**Blockers**: V.D landed (v1.3.0) — views como shells permite el rewrite sin tocar A.R
 
 ---
 
-## v1.5.0 — Theme Builder + Layout extension
+## v1.6.0 — Theme Builder + Layout extension
 
 **Tema**: Settings UI rediseño + Theme Builder UI + Layout settings completas.
 
@@ -173,7 +176,7 @@ SemVer rationale, blockers, R.D actions específicas.
 
 ---
 
-## v1.6.0 — Design system migration
+## v1.7.0 — Design system migration
 
 **Tema**: SCSS → UnoCSS + bits-ui preset adoption.
 
@@ -186,7 +189,7 @@ SemVer rationale, blockers, R.D actions específicas.
 - 90% de SCSS migrado a UnoCSS classes
 - Vaultman preset rewritten con bits-ui components
 - StackIsland primitive available + adopted por FiltersIsland + QueueIsland + SortIsland + ViewIsland
-- Suggestion rows component finalizado (de v1.5.0 preview a stable)
+- Suggestion rows component finalizado (de v1.6.0 preview a stable)
 - Bundle size impact documented + acceptable
 
 **SemVer rationale**: MINOR
@@ -198,7 +201,7 @@ SemVer rationale, blockers, R.D actions específicas.
 
 ---
 
-## v1.7.0 — NN Interop
+## v1.8.0 — NN Interop
 
 **Tema**: first cross-plugin compatibility. Vaultman providers → NN explorer.
 
@@ -219,7 +222,7 @@ SemVer rationale, blockers, R.D actions específicas.
 
 **R.D actions**: standard + community announcement (first cross-plugin compat)
 
-**Blockers**: API `vaultman.v1` exposed (v1.3.0)
+**Blockers**: API `vaultman.v1` exposed (v1.4.0)
 
 ---
 
@@ -256,28 +259,28 @@ SemVer rationale, blockers, R.D actions específicas.
 - Migration guide en docs
 - Breaking changes prominently en CHANGELOG
 - Community announcement con migration steps
-- Compatibility window con v1.7.x maintained (security patches only)
+- Compatibility window con v1.8.x maintained (security patches only)
 
-**Blockers**: A.R + N.R + V.D landed (v1.1.0-v1.2.0) + 4-I baseline shipped
+**Blockers**: A.R + N.R + V.D landed (v1.2.0-v1.3.0) + 4-I baseline shipped
 
 ---
 
 ## R.D — Release Discipline (cross-cutting)
 
-Aplica a TODAS las releases v1.1.0 → v2.0.0+.
+Aplica a TODAS las releases desde el catch-up `1.1.0` y el umbrella `v1.2.0 → v2.0.0+`.
 
 ### Per-release checklist
 
 Antes de cada release:
 
 - [ ] `CHANGELOG.md` `[Unreleased]` section accumulating durante el sprint
-- [ ] Pre-release: move `[Unreleased]` → `[vX.Y.Z]` con date
-- [ ] `package.json` version bump (npm run version script existe)
+- [ ] Pre-release: move `[Unreleased]` → `[X.Y.Z]` con date
+- [ ] `package.json` version bump via release-please release PR
 - [ ] `manifest.json` version bump
 - [ ] `versions.json` append entry
 - [ ] `pnpm verify` green (lint + check + unit + component + build)
 - [ ] Live `plugin-dev` smoke: `obsidian vault=plugin-dev dev:errors` returns "No errors captured"
-- [ ] Push `sandbox → origin/sandbox` (currently 180 ahead — initial push antes de v1.1.0)
+- [ ] Push `sandbox → origin/sandbox` before opening release branch/PR if sandbox is the source
 - [ ] Tag `X.Y.Z` — **NO prefijo `v`** (Obsidian exige tag == manifest.json version exacto). No `--no-gpg-sign` unless explicit
 - [ ] Merge to main: release-please release-PR como ÚNICO PR que toca main + `dorny/paths-filter`
       guard Action que FALLA el PR si toca `.agents/**`/`CLAUDE.md`/`AGENTS.md`/`.claude/**`
@@ -290,14 +293,14 @@ Antes de cada release:
 - `main`: production, 0 AI files
 - `origin/main`: published, public release tags
 - `origin/sandbox`: dev integration, AI files OK
-- `sandbox` (local): active work, 180 ahead currently
+- `sandbox` (local): active work, AI files OK
 - `claude/explorer`, etc.: feature branches, AI files OK, merged to sandbox
 
 ### Versioning
 
 - Adheres a SemVer (existing package.json convention)
 - Adheres a Keep a Changelog 1.1.0 format
-- Pre-release suffix `-beta.N` y `-rc.N` para mayor versions (v2.0.0 specifically)
+- Pre-release suffix `-beta.N` y `-rc.N` para major versions (v2.0.0 specifically)
 - Minor bumps cada feature release (v1.X.0)
 - Patch bumps para hotfixes (v1.X.Y donde Y > 0)
 
@@ -309,7 +312,7 @@ Antes de cada release:
 
 ### Tooling (research 2026-05-19)
 
-- **release-please** (`googleapis/release-please-action`, `release-type: node`,
+- **release-please** (installed on `main` 2026-05-20; `googleapis/release-please-action`, `release-type: node`,
   `extra-files: [manifest.json, versions.json]`, tag format `${version}` sin `v`): genera
   release-PR reviewable que consolida commits en changelog Conventional-Commits-grouped.
   Mejor que semantic-release para multi-subsystem porque el PR es amendable antes del tag.

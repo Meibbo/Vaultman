@@ -17,10 +17,10 @@ Sources: proto-v5 (`C:\Users\vic_A\Downloads\Vaultman (1)\`) + auditoría intern
 
 | Current view | LoC | Maps to | Source | Status | First release |
 |---|---|---|---|---|---|
-| `viewTree.svelte` | 1142 | KEEP. Adopt sticky-parents spec del proto (`pages.jsx:323-367` + HTML lines 1019-1031). Adopt chevron rotate animation. Fix triple-write scroll race en viewTree:420. | current + proto reference | hardening | v1.1.0 |
-| `ViewNodeList.svelte` | 464 | proto Nautilus tiles (`nautilus.jsx:NautilusTilesList`) — horizontal icon + multi-meta tile rows | proto Nautilus | rewrite | v1.4.0 |
+| `viewTree.svelte` | 1142 | KEEP. Adopt sticky-parents spec del proto (`pages.jsx:323-367` + HTML lines 1019-1031). Adopt chevron rotate animation. Fix triple-write scroll race en viewTree:420. | current + proto reference | hardening | v1.2.0 |
+| `ViewNodeList.svelte` | 464 | proto Nautilus tiles (`nautilus.jsx:NautilusTilesList`) — horizontal icon + multi-meta tile rows | proto Nautilus | rewrite | v1.5.0 |
 | `ViewNodeTable.svelte` | 858 | Bases table parity: `bases-tr`, `bases-table-cell`, `bases-td`, `bases-table-header`, `data-property="note.X"` | Bases (NOT proto) | rewrite | v2.0.0 |
-| `ViewNodeGrid.svelte` | 1230 | proto Nautilus icons (`nautilus.jsx:NautilusIconsGrid`) — Adwaita SVG folders + file-type labels + per-folder semantic colors. Rich rows-only mode = hidrato viewList + tiles fusionado. | proto Nautilus | rewrite | v1.4.0 |
+| `ViewNodeGrid.svelte` | 1230 | proto Nautilus icons (`nautilus.jsx:NautilusIconsGrid`) — Adwaita SVG folders + file-type labels + per-folder semantic colors. Rich rows-only mode = hidrato viewList + tiles fusionado. | proto Nautilus | rewrite | v1.5.0 |
 | `ViewNodeCards.svelte` | 606 | Bases cards parity: `bases-cards-item`, `bases-cards-property mod-title`, `bases-cards-property`, `bases-cards-cover` (media slot) | Bases (NOT proto) | rewrite | v2.0.0 |
 | (no current) | — | proto `list` mode (compact text list) | proto observation | DEFERRED | sesión futura |
 | `viewOutlineExplorer.svelte` | 77 | out-of-band, recursive snippet — sin cambios | current | preserve | — |
@@ -30,7 +30,7 @@ Notas:
 
 - viewGrid sin columnas (rows-only mode) = estructuralmente equivalente a viewList + view tiles
   fusionado. Resolución de "una view con toggle interno vs dos views separados" se decide en
-  el spec de v1.4.0 (no in-scope esta umbrella). Default propuesto: una sola view con toggle.
+  el spec de v1.5.0 (no in-scope esta umbrella). Default propuesto: una sola view con toggle.
 - `EXPLORER_PLATFORM_VIEW_MODES = ['tree','list','table','grid','cards']` se preserva.
   Map / ViewNodeMap deferred (no selectable). Outline out-of-band.
 
@@ -42,7 +42,7 @@ Notas:
 | Custom hex picker `<input type="color">` | DROP | Obsidian native `--color-accent` / `--interactive-accent` |
 | Accent picker (10 presets) | DROP | Obsidian native |
 | Theme provider de system themes | ADD | New provider detecta Obsidian themes instalados via `app.customCss.themes` y community-themes |
-| Recent themes UI (últimos 3 + custom slot) | ADD | Sub-feature de v1.5.0 (sub-system 10 Theme Builder). 4 slots: 3 recent + 1 custom picker |
+| Recent themes UI (últimos 3 + custom slot) | ADD | Sub-feature de v1.6.0 (sub-system 10 Theme Builder). 4 slots: 3 recent + 1 custom picker |
 
 ## Layout system
 
@@ -68,7 +68,7 @@ Notas:
 | FilterComposer (`parseManualFilter "name = value"`) | ADD | primitive de 4-I |
 | StackIsland (backdrop + island wrap + squircle row + list) | ADOPT | reusable primitive. Opción: squircle row arriba+centro como alt al default arriba-derecha |
 | FiltersIslandV2/V4 + QueueIslandV2/V4 | adopt | instances de StackIsland |
-| IndexOverlay (AZIndexOverlay rebrand) | DEFER | future post-v1.5.0 |
+| IndexOverlay (AZIndexOverlay rebrand) | DEFER | future post-v1.6.0 |
 | SortIslandV4 | MAP | adopt StackIsland — sort overlay con scope (all/folder/filtered) + multi-level |
 | ViewIslandV4 (sidebar) ≠ ViewPopover (desktop) | UNIFY | one mode-aware view picker via `serviceLayout.kind` |
 
@@ -87,7 +87,7 @@ Notas:
 | Proto feature | Decisión |
 |---|---|
 | Nautilus PathBar (breadcrumb back/fwd) | CHECK — current repo tiene breadcrumb (5 hits en `Select-String`). Parity-check vs proto pendiente. Si parity OK: solo polish. Si gap: ADD missing capabilities |
-| Statusbar al pie ("X of Y selected · free: GB") | DEFER → sub-system serviceStats futuro post-v1.7 |
+| Statusbar al pie ("X of Y selected · free: GB") | DEFER → sub-system serviceStats futuro post-v1.8 |
 | Ribbon bar (props/files/tags/content) | MAP existing tabFiles/tabTags/tabProps/tabContent containers — no rewrite |
 | Side props column ("Common to N files") | OBSERVATION — patrón para context-aware properties panel (post-v1.5) |
 | `vm-bp-grid` legacy table (desktop.jsx fallback) | DROP — substituido por Bases table parity (v2.0.0) |

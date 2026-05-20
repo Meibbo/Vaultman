@@ -63,28 +63,28 @@ graph LR
     %% Phase 0 chain
     OH --> OB --> O --> OA
 
-    %% v1.1.0
+    %% v1.2.0
     OA --> AR
     AR --> Tree
     OAS -.parallel.-> AR
     AR --> TG
 
-    %% v1.2.0
+    %% v1.3.0
     AR --> NR
     AR --> VD
     NR --> VD
     VD --> PD
 
-    %% v1.3.0
+    %% v1.4.0
     VD --> API
     PD --> API
     AR --> KB
 
-    %% v1.4.0
+    %% v1.5.0
     VD --> Nautilus
     ThB -.uses.-> Adwata
 
-    %% v1.5.0
+    %% v1.6.0
     OA --> L6
     OB --> L5
     L5 --> ThB
@@ -92,10 +92,10 @@ graph LR
     L8 -.parallel.-> ThB
     Nautilus -.parallel.-> ThB
 
-    %% v1.6.0
+    %% v1.7.0
     N --> B12
 
-    %% v1.7.0
+    %% v1.8.0
     API --> IE
 
     %% v2.0.0
@@ -119,39 +119,39 @@ graph LR
 - `0-H → 0-B → O → 0-A`: locked en roadmap. 0-A close = prereq de TODO downstream porque
   define ViewHost shell + NodeElementMask + View Feature Contract que el merge consume.
 
-### v1.1.0 cluster (Explorer Hardening)
+### v1.2.0 cluster (Explorer Hardening)
 - `0-A → A.R`: A.R consumes el View Feature Contract extendido por 0-A
 - `A.R → Tree sticky fix`: tree sticky-parent + caret + kbd consume action routing
 - `0-A.S parallel`: sibling, no bloquea A.R; corre concurrente con otro agente
 - `A.R → T.G`: T.G testea el contract definido por A.R; TDD red-green durante A.R
 
-### v1.2.0 cluster (Architecture cleanup)
+### v1.3.0 cluster (Architecture cleanup)
 - `A.R → N.R`: N.R primitive incorporates action handlers from A.R via context
 - `A.R + N.R → V.D`: view shells delegan a action routing + embed NodeRow primitive
 - `V.D → P.D`: panel orchestrator extraction post-decomposition de views
 
-### v1.3.0 cluster (Keyboard + Public API)
+### v1.4.0 cluster (Keyboard + Public API)
 - `V.D + P.D → API`: clean architecture pre-req antes de exposar public surface
 - `A.R → K.B`: row keyboard contract delega a workspace-wide keyboard provider
 
-### v1.4.0 cluster (Nautilus rewrites)
+### v1.5.0 cluster (Nautilus rewrites)
 - `V.D → Nautilus`: views as shells permite swap del implementation interno sin tocar A.R
 - `Adwata sub-feature of 10`: Adwata SVG icons son sub-feature del Theme Builder (acceso via
-  Settings). Adwata standalone NO ships en v1.4.0 — solo Nautilus rewrites usan icons que el
-  Theme Builder gestionará en v1.5.0.
+  Settings). Adwata standalone NO ships en v1.5.0 — solo Nautilus rewrites usan icons que el
+  Theme Builder gestionará en v1.6.0.
 
-### v1.5.0 cluster (Theme Builder + Layout)
+### v1.6.0 cluster (Theme Builder + Layout)
 - `0-A + 0-B → L5/L6`: 5 + 6 son consumers de la theme token layer (0-B) y del view-host (0-A)
 - `L5 + L6 → 10 (Theme Builder)`: Theme Builder access vía Settings refresh (5) y consumes
   Layout extension primitives (6)
-- `8 parallel`: color governance es independent, can ship en v1.5.0 sin bloquear 10
-- `Nautilus parallel`: ya en v1.4.0, en v1.5.0 solo si extensions needed
+- `8 parallel`: color governance es independent, can ship en v1.6.0 sin bloquear 10
+- `Nautilus parallel`: ya en v1.5.0, en v1.6.0 solo si extensions needed
 
-### v1.6.0 cluster (Design system migration)
+### v1.7.0 cluster (Design system migration)
 - `N → 12`: SCSS→UnoCSS migración prereq de bits-ui adoption (roadmap line 58)
 - `12 includes StackIsland adoption`
 
-### v1.7.0 cluster (NN Interop)
+### v1.8.0 cluster (NN Interop)
 - `API → I.E`: I.E requires stable public API exposed first
 
 ### v2.0.0 cluster (Bases Parity BREAKING)
@@ -162,8 +162,8 @@ graph LR
 
 ### Cross-cutting R.D
 - R.D gates every release. Each version bump requires:
-  - CHANGELOG section moved from `[Unreleased]` to `[vX.Y.0]`
-  - SemVer tag created via `npm run version`
+  - CHANGELOG section moved from `[Unreleased]` to `[X.Y.0]`
+  - Bare SemVer tag created via release-please
   - manifest.json + versions.json bump
   - sandbox pushed to origin/sandbox antes del merge
   - main merge via AI-files-strip pipeline
@@ -207,12 +207,12 @@ Parallel opportunities:
 Per AGENTS.md "agent dispatch reference" pattern: cada sub-system puede ser ejecutado por
 un agente IA dedicado con pre-reads suficientes. Sugerencia post-umbrella:
 
-- **Agente W — A.R**: spec + plan + impl (v1.1.0)
+- **Agente W — A.R**: spec + plan + impl (v1.2.0)
 - **Agente X — 0-A.S**: existing scroll repair + harness (paralelo con W)
 - **Agente Y — T.G**: write invariant tests primero (TDD red), W los hace verde
 - **Agente Z — viewTree sticky fix**: focused fix paralelo a W
 
-Post-v1.1.0:
+Post-v1.2.0:
 - **Agente A — V.D**: cinco slices, una per view, secuencial o paralelo por view
 - **Agente B — P.D**: post-V.D milestone 1
 - **Agente C — N.R primitive**: una vez A.R contract defined

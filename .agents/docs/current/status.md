@@ -5,7 +5,7 @@ status: active
 parent: "[[docs/work/pkm-ai/index|pkm-ai]]"
 archive_source: "docs/archive/pkm-ai/active-docs/2026-05-11T080321-current-status.md"
 created: 2026-05-04T01:36:20
-updated: 2026-05-18T10:50:00-05:00
+updated: 2026-05-20T00:00:00-05:00
 tags:
   - agent/current
 created_by: dec
@@ -29,9 +29,11 @@ Compact route index after archiving the oversized current status:
 ## Current Route
 
 - Active initiative: [[docs/work/hardening/index|Hardening]].
-- **NEXT (brainstorm 2026-05-19)**: [[docs/work/hardening/specs/2026-05-19-explorer-merge-umbrella/index|Explorer Merge Umbrella]]
-  — proto-v5 ↔ production merge + release pipeline v1.1.0→v2.0.0 aprobado por user. First detail
-  spec target = A.R (Action Routing). Ver shard 06-next-actions para required doc updates + parallel agent dispatch.
+- **NEXT (post-release 2026-05-20)**: [[docs/work/hardening/specs/2026-05-19-explorer-merge-umbrella/index|Explorer Merge Umbrella]]
+  — proto-v5 ↔ production merge + release pipeline renumerado `v1.2.0→v2.0.0` después del
+  catch-up `1.1.0`. First detail spec target = A.R (Action Routing) para `v1.2.0`.
+- Release catch-up complete:
+  [[docs/work/hardening/plans/2026-05-20-release-1-1-0-catch-up|Release 1.1.0 catch-up]].
 - Completed Explorer Phase 0 sub-system B:
   [[docs/work/hardening/specs/2026-05-15-explorer-0-b-servicetheme-token-layer/index|serviceTheme token-layer spec]]
   and
@@ -86,6 +88,12 @@ Compact route index after archiving the oversized current status:
 
 ## Verification Snapshot
 
+- Release 1.1.0 catch-up final gate on 2026-05-20:
+  - Clean candidate `pnpm run verify`: exit 0.
+  - Clean candidate `pnpm run security:audit`: exit 0 for high+ threshold.
+  - Main after PR #22 passed CI, CodeQL, and OpenSSF Scorecard.
+  - GitHub Release `1.1.0` published with `main.js`, `manifest.json`, `styles.css`,
+    `SHA256SUMS`, and `sbom.cdx.json`.
 - Explorer 0-B final gate on 2026-05-17:
   - `pnpm verify` passed: unit 140 files / 882 tests; component 73 files /
     398 tests; lint 11 pre-existing warnings, 0 errors.
@@ -167,9 +175,9 @@ Compact route index after archiving the oversized current status:
 
 ## Next Action
 
-- **PRIMARY (post brainstorm 2026-05-19)**: write A.R (Action Routing) detail spec — first child of
+- **PRIMARY (post release 2026-05-20)**: write A.R (Action Routing) detail spec — first child of
   [[docs/work/hardening/specs/2026-05-19-explorer-merge-umbrella/index|Explorer Merge Umbrella]].
-  Then writing-plans → impl. v1.1.0 = A.R + 0-A close + 0-A.S + T.G basis + viewTree sticky fix.
+  Then writing-plans → impl. v1.2.0 = A.R + 0-A close + 0-A.S + T.G basis + viewTree sticky fix.
 - Close remaining 0-A commits (C12 flicker fix + C13 verification gates) before A.R starts.
 - Explorer 0-B and O are complete. Next Phase 0 consumer is 0-A View Feature
   Contract / native DOM contract.

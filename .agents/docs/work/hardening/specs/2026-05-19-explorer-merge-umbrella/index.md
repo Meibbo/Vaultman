@@ -1,5 +1,5 @@
 ---
-title: Explorer Merge Umbrella — proto-v5 ↔ production merge + release pipeline v1.1.0 → v2.0.0
+title: Explorer Merge Umbrella — proto-v5 ↔ production merge + release pipeline v1.2.0 → v2.0.0
 type: spec-index
 status: draft
 parent: "[[docs/work/hardening/index|hardening]]"
@@ -19,8 +19,8 @@ created_by: claude-opus-4-7
 Umbrella spec que captura las decisiones del brainstorm 2026-05-19: cómo el `proto-v5`
 (en `C:\Users\vic_A\Downloads\Vaultman (1)\`) se mergea con el Explorer de producción;
 cómo el refactor SOLID de los god-objects (panelExplorer 1329 LoC + 5 views 4377 LoC + serviceQueue 1043 LoC deferred)
-se interleavea con el merge del proto; y la release pipeline `v1.1.0 → v2.0.0`
-que orquesta implementaciones, bug fixes y el major version jump.
+se interleavea con el merge del proto; y la release pipeline `v1.2.0 → v2.0.0`
+que orquesta implementaciones, bug fixes y el major version jump después del catch-up `1.1.0`.
 
 Este NO es un implementation spec único. Es el index que ordena hijos:
 
@@ -64,40 +64,44 @@ orden y el merge map.
 
 ## Locked non-goals (esta umbrella, sesiones futuras)
 
-- No tocar serviceQueue refactor (1043 LoC) — deferred post-v1.7.
+- No tocar serviceQueue refactor (1043 LoC) — deferred post-v1.8.
 - No retomar sub-systems retained-in-human: 1 (Unified input), 3 (in-editor diff).
 - proto-list mode (sin equivalencia clara) — observación, no in-scope hasta sesión futura.
 - viewGrid dual-mode (icons full + rich rows-only) — pendiente decidir si toggle interno o
-  views separados; default = una sola view con toggle, se decide en spec de v1.4.0.
-- IndexOverlay (formerly AZIndexOverlay) — future, post-v1.5.0.
+  views separados; default = una sola view con toggle, se decide en spec de v1.5.0.
+- IndexOverlay (formerly AZIndexOverlay) — future, post-v1.6.0.
 - Tab-mount module enhancement details (dashboard3 redefinition) — su propio spec dentro de
-  v1.5.0 / sub-system 5.
+  v1.6.0 / sub-system 5.
 - Statusbar al pie ("X of Y selected · free: GB") — deferred al sub-system serviceStats futuro.
 - viewOutlineExplorer (77 LoC, out-of-band) — preserve sin cambios.
 - ViewMarkmap (deferred) — preserve hidden.
 - proto's Desktop mode big-picture full-screen — NO existe en producción (no hay desktop/sidebar
   split).
 
-## Release pipeline v1.1.0 → v2.0.0
+## Release pipeline v1.2.0 → v2.0.0
+
+`v1.1.0` fue el release catch-up ya completado para reconciliar `main` y activar la release
+automation. No contiene los sub-systems del umbrella; ver
+[[docs/work/hardening/plans/2026-05-20-release-1-1-0-catch-up|Release 1.1.0 catch-up]].
 
 | Version | Tema | Sub-systems incluidos | SemVer rationale |
 |---|---|---|---|
-| **v1.1.0** | Explorer Hardening + sticky-parents | A.R + viewTree sticky fix + 0-A.S + T.G basis + close 0-A | MINOR — no-breaking, fix visible bugs |
-| **v1.2.0** | Architecture cleanup | V.D + P.D + N.R primitive | MINOR — refactor no-breaking |
-| **v1.3.0** | Keyboard + Public API | K.B + API v1 (`vaultman.v1`) | MINOR — adds public API |
-| **v1.4.0** | Nautilus rewrites + Adwata icons | viewList=tiles + viewGrid=icons + Adwata SVG (sub-feature del 10) | MINOR — visual rewrite, no-breaking |
-| **v1.5.0** | Theme Builder + Layout extension | 10 (Theme Builder UI desde Settings) + 6 (Layout settings, recent themes, dashboard3 redef) + 8 (Color governance) + 5 (Settings UI refresh) | MINOR — adds opt-in features |
-| **v1.6.0** | Design system migration | N (SCSS→UnoCSS) + 12 (bits-ui adoption preset) + StackIsland adoption | MINOR — internal, visible polish |
-| **v1.7.0** | NN Interop | I.E direction B (Vaultman providers → NN explorer) | MINOR — opt-in feature |
+| **v1.2.0** | Explorer Hardening + sticky-parents | A.R + viewTree sticky fix + 0-A.S + T.G basis + close 0-A | MINOR — no-breaking, fix visible bugs |
+| **v1.3.0** | Architecture cleanup | V.D + P.D + N.R primitive | MINOR — refactor no-breaking |
+| **v1.4.0** | Keyboard + Public API | K.B + API v1 (`vaultman.v1`) | MINOR — adds public API |
+| **v1.5.0** | Nautilus rewrites + Adwata icons | viewList=tiles + viewGrid=icons + Adwata SVG primer | MINOR — visual rewrite, no-breaking |
+| **v1.6.0** | Theme Builder + Layout extension | 10 (Theme Builder UI desde Settings) + 6 (Layout settings, recent themes, dashboard3 redef) + 8 (Color governance) + 5 (Settings UI refresh) | MINOR — adds opt-in features |
+| **v1.7.0** | Design system migration | N (SCSS→UnoCSS) + 12 (bits-ui adoption preset) + StackIsland adoption | MINOR — internal, visible polish |
+| **v1.8.0** | NN Interop | I.E direction B (Vaultman providers → NN explorer) | MINOR — opt-in feature |
 | **v2.0.0** ⚠️ | Bases Parity BREAKING | B.P (`note.X`/`file.X`/`formula.X` IDs + `bases-` vocab + `registerBasesView`) + C.D (cross-provider cell data) + viewTable Bases rewrite + viewCards Bases rewrite | MAJOR — breaking property IDs |
 
-**R.D Release Discipline** = cross-cutting desde v1.1.0:
+**R.D Release Discipline** = cross-cutting desde `1.1.0` catch-up y todo el umbrella:
 - Keep a Changelog hygiene: `[Unreleased]` section accumulating cada commit/sub-system
-- SemVer tagging (`v1.1.0`, `v1.2.0`...) via `npm run version`
-- branch hygiene: push `sandbox → origin/sandbox` (180 ahead) sin esperar v1.1.0
+- Bare SemVer tags (`1.1.0`, `1.2.0`...) via release-please (`include-v-in-tag: false`)
+- branch hygiene: push `sandbox → origin/sandbox` before release branch/PR if sandbox is source
 - main merge ÚNICAMENTE en releases con AI-files-strip pipeline
 - manifest.json + versions.json bump (Obsidian community plugin distribution)
-- GitHub Release con notes copy-paste desde CHANGELOG section
+- GitHub Release con release.yml assets, SBOM, checksums y notes desde release-please
 
 **Human-retained**: sub-systems 1, 3 + serviceQueue refactor (paralelo cuando capacidad).
 
@@ -107,30 +111,30 @@ Detalle completo en [[02-sub-system-inventory]].
 
 | ID | Name | Origin | First release |
 |---|---|---|---|
-| **0-A** | Native-DOM parity + ViewHost + NodeElementMask | existing | v1.1.0 (close) |
-| **N.R** | NodeRow Primitive | NEW | v1.2.0 |
-| **A.R** | Action Routing Contract | NEW | v1.1.0 (FIRST DETAIL SPEC) |
-| **V.D** | View Decomposition (god → shells) | NEW | v1.2.0 |
-| **P.D** | Panel Decomposition (panelExplorer split) | NEW | v1.2.0 |
-| **T.G** | Test Invariant Gates (WDIO + ARIA + cross-view) | NEW | v1.1.0 |
-| **0-A.S** | Adversarial Scroll Harness + tree triple-write fix | existing sibling | v1.1.0 |
-| **K.B** | Keyboard + Hotkeys/Macros Provider | NEW | v1.3.0 |
-| **API** | Vaultman public API `vaultman.v1` | NEW | v1.3.0 |
-| **I.E** | NN Interop engine swap (direction B) | NEW | v1.7.0 |
+| **0-A** | Native-DOM parity + ViewHost + NodeElementMask | existing | v1.2.0 (close) |
+| **N.R** | NodeRow Primitive | NEW | v1.3.0 |
+| **A.R** | Action Routing Contract | NEW | v1.2.0 (FIRST DETAIL SPEC) |
+| **V.D** | View Decomposition (god → shells) | NEW | v1.3.0 |
+| **P.D** | Panel Decomposition (panelExplorer split) | NEW | v1.3.0 |
+| **T.G** | Test Invariant Gates (WDIO + ARIA + cross-view) | NEW | v1.2.0 |
+| **0-A.S** | Adversarial Scroll Harness + tree triple-write fix | existing sibling | v1.2.0 |
+| **K.B** | Keyboard + Hotkeys/Macros Provider | NEW | v1.4.0 |
+| **API** | Vaultman public API `vaultman.v1` | NEW | v1.4.0 |
+| **I.E** | NN Interop engine swap (direction B) | NEW | v1.8.0 |
 | **B.P** | Bases Parity (extends 4-I) | extends existing 4-I | v2.0.0 |
 | **C.D** | Cross-provider Cell Data | NEW | v2.0.0 |
-| **R.D** | Release Discipline | NEW cross-cutting | from v1.1.0 |
-| **N** | SCSS → UnoCSS migration | existing | v1.6.0 |
-| **5** | Settings UI refresh (+ recent themes + dashboard3 redef) | existing | v1.5.0 |
-| **6** | Layout extension | existing | v1.5.0 |
-| **7** | Toolbar contract | existing | TBD post-v1.5 |
-| **8** | Color governance | existing | v1.5.0 |
+| **R.D** | Release Discipline | NEW cross-cutting | from 1.1.0 catch-up |
+| **N** | SCSS → UnoCSS migration | existing | v1.7.0 |
+| **5** | Settings UI refresh (+ recent themes + dashboard3 redef) | existing | v1.6.0 |
+| **6** | Layout extension | existing | v1.6.0 |
+| **7** | Toolbar contract | existing | TBD post-v1.6 |
+| **8** | Color governance | existing | v1.6.0 |
 | **9** | Snippet provider UX | existing | TBD |
-| **10** | Theme Builder UI (+ Adwata icons sub-feature) | existing | v1.5.0 |
+| **10** | Theme Builder UI (+ Adwata icons sub-feature) | existing | v1.6.0 |
 | **11** | Workspaces provider | existing | TBD |
-| **12** | bits-ui adoption preset + StackIsland | existing | v1.6.0 |
+| **12** | bits-ui adoption preset + StackIsland | existing | v1.7.0 |
 | **4-I** | Bases-parity filter logical switching | existing | extended by B.P at v2.0.0 |
-| **2** | Queue data-model restructure | existing | TBD post-v1.6 |
+| **2** | Queue data-model restructure | existing | TBD post-v1.7 |
 
 ## Shards
 
@@ -143,11 +147,11 @@ Detalle completo en [[02-sub-system-inventory]].
 
 ## Status
 
-- Status: 🟡 spec-drafted, awaiting user review then writing-plans handoff para A.R como first detail spec.
+- Status: 🟡 spec-drafted, release catch-up complete, next writing-plans handoff para A.R como first detail spec.
 - Source brainstorm: 2026-05-19 sesión (transcript de Claude Opus 4.7).
 - Approver: User (Meibbo) aprobó pipeline 2026-05-19.
-- Build order: locked. R.D arranca paralelo desde v1.1.0.
-- Unblocks: A.R detail spec → A.R plan → v1.1.0 execution.
+- Build order: locked. R.D está instalado desde `1.1.0`; umbrella arranca en `v1.2.0`.
+- Unblocks: A.R detail spec → A.R plan → v1.2.0 execution.
 
 ## Adjacent docs
 

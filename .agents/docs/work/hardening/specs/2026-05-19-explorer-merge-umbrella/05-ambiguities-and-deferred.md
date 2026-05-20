@@ -9,7 +9,7 @@ updated: 2026-05-19T00:00:00
 
 # Ambiguities and Deferred
 
-Decisiones pendientes que NO bloquean esta umbrella ni v1.1.0 / v1.2.0, pero deben resolverse
+Decisiones pendientes que NO bloquean esta umbrella ni v1.2.0 / v1.3.0, pero deben resolverse
 antes de su sub-system específico.
 
 ## 1. proto-list mode (TBD)
@@ -23,7 +23,7 @@ text-only file list de file managers)? ¿O algo distinto?
 
 **Estado**: el usuario indicó "aún no estoy seguro".
 
-**Cuándo decidir**: durante spec de v1.4.0 (Nautilus rewrites). Si para entonces el usuario
+**Cuándo decidir**: durante spec de v1.5.0 (Nautilus rewrites). Si para entonces el usuario
 confirma que es valuable: agregar como 6to view mode. Si no: stays out-of-scope.
 
 **Si se agrega**: probably como compact-list variant del NodeRow primitive (sin icon, sin
@@ -41,7 +41,7 @@ Esto sugiere que viewGrid tiene DOS modos visuales internos:
 - **Opción B**: dos views separados (`ViewNodeGrid` icons + nuevo `ViewNodeGridRows`)
 - **Opción C**: ViewNodeGrid solo icons, modo rows-only pasa a ser parte de viewList expandido
 
-**Estado**: pendiente decidir en spec de v1.4.0.
+**Estado**: pendiente decidir en spec de v1.5.0.
 
 **Default recomendado**: Opción A (toggle interno) — keeps view mode taxonomy a 5, no duplica
 shells, expone choice como UI option dentro del view.
@@ -56,7 +56,7 @@ Pero: ¿qué exactamente significa "hidratación"? ¿Es:
 - Una settings UI que controla cómo se montan los tabs?
 - Un mecanismo de drag-tabs-out-to-Obsidian-tabs?
 
-**Estado**: pendiente clarificar en spec de v1.5.0 (sub-system 5).
+**Estado**: pendiente clarificar en spec de v1.6.0 (sub-system 5).
 
 **Posibles scopes**:
 - (a) dashboard3 = settings panel donde user configura per-tab qué bars muestra (toolbar/bottom/top)
@@ -74,7 +74,7 @@ futuros si demand emerges.
 **Pregunta**: proto's `AZIndexOverlay` (jump-to-letter overlay) renamed a `IndexOverlay` porque
 "tendrá más cosas que solo el orden az". ¿Qué otras cosas?
 
-**Estado**: deferred a future, post-v1.5.0.
+**Estado**: deferred a future, post-v1.6.0.
 
 **Posibles features**:
 - Jump-to-letter (existing AZ behavior)
@@ -85,7 +85,7 @@ futuros si demand emerges.
 - Search-as-you-type filter
 - Recent files quick jump
 
-**Cuándo decidir**: cuando se proponga su sub-system. Probably v1.5.0 follow-up o v1.6.0.
+**Cuándo decidir**: cuando se proponga su sub-system. Probably v1.6.0 follow-up o v1.7.0.
 
 ## 5. viewOutlineExplorer (77 LoC, out-of-band)
 
@@ -111,12 +111,12 @@ ViewMarkmap.svelte existe pero no es selectable. Esta umbrella respeta esa decis
 
 ## 7. serviceQueue refactor (1043 LoC god-object)
 
-**Estado**: DEFERRED post-v1.7.0. User dijo "lo vemos en otro momento" durante el brainstorm.
+**Estado**: DEFERRED post-v1.8.0. User dijo "lo vemos en otro momento" durante el brainstorm.
 
 `serviceQueue.svelte.ts` (1043 LoC) es otro god-object. Su refactor NO está en esta umbrella.
 Cuando se aborde: probably su propio sub-system con paralelo a Q.D (Queue data-model 2).
 
-Provisional placement: post-v1.7 (después de NN interop). Could merge con sub-system 2 (Queue
+Provisional placement: post-v1.8 (después de NN interop). Could merge con sub-system 2 (Queue
 data-model restructure existing 🟠) si scope overlap.
 
 ## 8. Sub-systems 1 + 3 (retained in human)
@@ -126,10 +126,10 @@ data-model restructure existing 🟠) si scope overlap.
 - **Sub-system 3 (in-editor diff)**: UX direction no decidida, depende de visión accept-changes
 
 Esta umbrella respeta su retained-in-human status. A.R cubre el subset row-action (caret + kbd +
-selection + expand-all + cmenu) que es relevante para v1.1.0 visibility fixes. Pero NO cubre
+selection + expand-all + cmenu) que es relevante para v1.2.0 visibility fixes. Pero NO cubre
 el cross-cutting "input configuration" completo que sub-system 1 representa.
 
-K.B (workspace keyboard + hotkeys/macros provider) en v1.3.0 puede ser interpretado como partial
+K.B (workspace keyboard + hotkeys/macros provider) en v1.4.0 puede ser interpretado como partial
 delivery de sub-system 1's scope — confirm con user antes de la spec de K.B.
 
 ## 9. proto Desktop mode
@@ -153,7 +153,7 @@ content providers".
 - NN expone content-provider hook (open wiki backlog item)
 - O Vaultman acepta polling `api.selection.getCurrent()` como data link (mid-quality)
 
-Hasta entonces: solo I.E direction B (Vaultman providers → NN explorer) en v1.7.0.
+Hasta entonces: solo I.E direction B (Vaultman providers → NN explorer) en v1.8.0.
 
 ## 11. Inline `key:: value` properties (Dataview territory)
 

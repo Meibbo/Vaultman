@@ -27,7 +27,7 @@ los 9 sub-systems pre-existentes (5, 6, 8, 10, 11, 12, 4-I, 2, N) que reciben me
 - **Out-of-scope**: behaviors (those are A.R), data fetching, decomposition of views
 - **Depends on**: 0-A (NodeElementMask), A.R (action routing context shape)
 - **~Commits**: 6-8
-- **First release**: v1.2.0
+- **First release**: v1.3.0
 
 ## NEW: A.R — Action Routing Contract
 
@@ -50,7 +50,7 @@ los 9 sub-systems pre-existentes (5, 6, 8, 10, 11, 12, 4-I, 2, N) que reciben me
   (es prereq pero se entrega en V.D / N.R)
 - **Depends on**: 0-A (close)
 - **~Commits**: 8-12
-- **First release**: v1.1.0 ← **FIRST DETAIL SPEC TARGET**
+- **First release**: v1.2.0 ← **FIRST DETAIL SPEC TARGET**
 
 ## NEW: V.D — View Decomposition
 
@@ -67,7 +67,7 @@ los 9 sub-systems pre-existentes (5, 6, 8, 10, 11, 12, 4-I, 2, N) que reciben me
 - **Out-of-scope**: action routing (es prereq, A.R first), panel host (P.D), behaviors
 - **Depends on**: A.R (action contract) + N.R (primitive)
 - **~Commits**: 12-18
-- **First release**: v1.2.0
+- **First release**: v1.3.0
 
 ## NEW: P.D — Panel Decomposition
 
@@ -83,7 +83,7 @@ los 9 sub-systems pre-existentes (5, 6, 8, 10, 11, 12, 4-I, 2, N) que reciben me
 - **Out-of-scope**: provider refactor (separate, post-v1.5)
 - **Depends on**: A.R + N.R + V.D
 - **~Commits**: 8-12
-- **First release**: v1.2.0
+- **First release**: v1.3.0
 
 ## NEW: T.G — Test Invariant Gates anti-IA
 
@@ -117,7 +117,7 @@ los 9 sub-systems pre-existentes (5, 6, 8, 10, 11, 12, 4-I, 2, N) que reciben me
     Fisher's exact test → gate pasa solo si el pass-rate es estadísticamente estable (maneja
     non-determinismo de outputs de agentes)
   - **CUSUM drift detection** entre iteraciones del pipeline: trackea pass-rate acumulado a través de
-    los sub-systems v1.1.0→v2.0.0; detecta intent-drift / loops / hallucinated tool calls antes de v2.0.0
+    los sub-systems v1.2.0→v2.0.0; detecta intent-drift / loops / hallucinated tool calls antes de v2.0.0
   - Mismo evaluator gatea CI y merge (no drift dev-time vs merge-time)
 
 - **Integración con CI existente** (`.github/workflows/ci.yml`):
@@ -129,8 +129,8 @@ los 9 sub-systems pre-existentes (5, 6, 8, 10, 11, 12, 4-I, 2, N) que reciben me
 - **Out-of-scope**: feature work
 - **Depends on**: A.R (contract a testear). Tier 1 jsdom puede arrancar antes (service logic ya existe).
 - **~Commits**: 6-10 (subió de 4-8 al agregar statistical gates + CI integration)
-- **First release**: v1.1.0 (basis: jsdom + browser-mode + WAI-ARIA suite + sandbox-en-CI);
-  extends v1.2.0 (wdio tier + CUSUM cross-sub-system) + V.D coverage
+- **First release**: v1.2.0 (basis: jsdom + browser-mode + WAI-ARIA suite + sandbox-en-CI);
+  extends v1.3.0 (wdio tier + CUSUM cross-sub-system) + V.D coverage
 
 ## EXISTING SIBLING: 0-A.S — Adversarial Scroll Harness + tree scroll fix
 
@@ -145,7 +145,7 @@ los 9 sub-systems pre-existentes (5, 6, 8, 10, 11, 12, 4-I, 2, N) que reciben me
 - **Out-of-scope**: action routing, view decomposition
 - **Depends on**: independent (sibling track)
 - **~Commits**: 5-8
-- **First release**: v1.1.0
+- **First release**: v1.2.0
 
 ## NEW: K.B — Keyboard + Hotkeys/Macros Provider
 
@@ -160,7 +160,7 @@ los 9 sub-systems pre-existentes (5, 6, 8, 10, 11, 12, 4-I, 2, N) que reciben me
 - **Out-of-scope**: cross-plugin keyboard sharing (defer to API + I.E)
 - **Depends on**: A.R (row keyboard contract)
 - **~Commits**: 6-10
-- **First release**: v1.3.0
+- **First release**: v1.4.0
 
 ## NEW: API — Vaultman public API `vaultman.v1`
 
@@ -176,7 +176,7 @@ los 9 sub-systems pre-existentes (5, 6, 8, 10, 11, 12, 4-I, 2, N) que reciben me
 - **Out-of-scope**: render override hooks (NN doesn't expose them; defer to I.E)
 - **Depends on**: V.D + P.D (need clean architecture before exposing)
 - **~Commits**: 4-6
-- **First release**: v1.3.0
+- **First release**: v1.4.0
 
 ## NEW: I.E — NN Interop engine swap (direction B)
 
@@ -193,7 +193,7 @@ los 9 sub-systems pre-existentes (5, 6, 8, 10, 11, 12, 4-I, 2, N) que reciben me
 - **Out-of-scope**: render override (upstream limitation)
 - **Depends on**: API (`vaultman.v1` ready first)
 - **~Commits**: 6-10
-- **First release**: v1.7.0
+- **First release**: v1.8.0
 
 ## NEW: B.P — Bases Parity (extiende 4-I)
 
@@ -229,18 +229,18 @@ los 9 sub-systems pre-existentes (5, 6, 8, 10, 11, 12, 4-I, 2, N) que reciben me
 ## NEW cross-cutting: R.D — Release Discipline
 
 - **Goal**: cada release ships clean. Keep a Changelog + SemVer + branch hygiene + push origin.
-- **Scope**: continuo desde v1.1.0
+- **Scope**: continuo desde el catch-up `1.1.0` y el umbrella `v1.2.0+`
   - `[Unreleased]` section accumulating en `CHANGELOG.md` cada commit/sub-system
-  - Reconciliar package.json (1.1.0) vs CHANGELOG (1.0.0-beta.5) — actualmente desincronizados
-  - SemVer tagging: `v1.1.0`, `v1.2.0`... via `npm run version` script (existe)
-  - Push `sandbox → origin/sandbox` (180 ahead) — sin esperar release, preserva trabajo
-  - Merge `sandbox → main` ÚNICAMENTE en releases, vía AI-files-strip pipeline (filter `.agents/`,
-    `CLAUDE.md`, `AGENTS.md`, etc.) per AGENTS.md "main = 0 AI files"
+  - `1.1.0` catch-up reconciled package/changelog through release-please
+  - Bare SemVer tagging: `1.1.0`, `1.2.0`... via release-please (`include-v-in-tag: false`)
+  - Push `sandbox → origin/sandbox` before release branch/PR when sandbox is the source
+  - Merge `sandbox → main` ÚNICAMENTE en releases, vía sanitized main/release-please pipeline
+    with AI-file guard (`.agents/`, `CLAUDE.md`, `AGENTS.md`, `.claude/`, `.codex/`)
   - manifest.json + versions.json bump (Obsidian community plugin distribution)
   - GitHub Release con notes desde CHANGELOG section
   - Per-release: pre-merge checklist + post-merge smoke en `plugin-dev`
 - **~Commits**: continuo (no concentrated; cada release gate)
-- **First release**: v1.1.0 (arranca)
+- **First release**: `1.1.0` catch-up complete; continues from umbrella `v1.2.0`
 
 ## Pre-existing sub-systems con merge layer (resumen)
 
@@ -250,7 +250,7 @@ los 9 sub-systems pre-existentes (5, 6, 8, 10, 11, 12, 4-I, 2, N) que reciben me
   - Recent themes UI (3 + custom slot)
   - Suggestion rows input bits-ui −/+ (instead of chips)
   - Placeholder settings que están — rediseñar con merge proto
-- First release: v1.5.0
+- First release: v1.6.0
 
 ### 6 — Layout extension
 - Existing 🟠 (blocker: O + 0-A). Merge layer:
@@ -258,12 +258,12 @@ los 9 sub-systems pre-existentes (5, 6, 8, 10, 11, 12, 4-I, 2, N) que reciben me
   - Drawer corner + direction
   - Pill style variants
   - Swap tabs ↔ pill items toggle
-- First release: v1.5.0
+- First release: v1.6.0
 
 ### 8 — Color governance
 - Existing 🟠 (independent). Merge layer:
   - Recent accent integration con Theme Builder
-- First release: v1.5.0
+- First release: v1.6.0
 
 ### 10 — Theme Builder UI
 - Existing 🟠 (blocker: 5 + 6). En esta umbrella ABSORBS:
@@ -271,18 +271,18 @@ los 9 sub-systems pre-existentes (5, 6, 8, 10, 11, 12, 4-I, 2, N) que reciben me
   - Recent themes UI consumption
   - Bar visibility toggles (toolbar/bottom/top show-hide)
   - Accedido desde Settings
-- First release: v1.5.0
+- First release: v1.6.0
 
 ### 11 — Workspaces provider
 - Existing 🟠 (independent). Merge layer: posible integration con I.E (workspaces como interop seam)
-- First release: TBD (probably v1.7+)
+- First release: TBD (probably v1.8+)
 
 ### 12 — bits-ui adoption preset
 - Existing 🟠 (blocker: N recomendado). Merge layer:
   - StackIsland primitive adoption con squircle-up-center option
   - Vaultman preset rewrite based on HTML + 10 React files del proto-v5
   - Suggestion rows input componente (bits-ui −/+)
-- First release: v1.6.0
+- First release: v1.7.0
 
 ### 4-I — Bases-parity filter logical switching
 - Existing 🟠 (independent). En esta umbrella EXTENDED por B.P at v2.0.0:
@@ -293,8 +293,8 @@ los 9 sub-systems pre-existentes (5, 6, 8, 10, 11, 12, 4-I, 2, N) que reciben me
 
 ### 2 — Queue data-model restructure
 - Existing 🟠 (independent). Merge layer: adopt StackIsland for queue UI (replaces QueueIslandV2)
-- First release: TBD post-v1.6
+- First release: TBD post-v1.7
 
 ### N — SCSS → UnoCSS migration
 - Existing 🟠 esqueleto. Pre-req del 12 (bits-ui).
-- First release: v1.6.0
+- First release: v1.7.0
