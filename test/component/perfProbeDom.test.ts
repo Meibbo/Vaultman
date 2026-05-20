@@ -659,6 +659,82 @@ describe('perf probe DOM scenarios', () => {
 		expect(overlay?.textContent).toContain('nodes=node-10..node-11');
 	});
 
+	it('prefers virtual row data attributes for visible tree index totals', async () => {
+		document.body.innerHTML = `
+			<div class="vm-tree-virtual-outer">
+				<div class="vm-tree-virtual-inner">
+					<div
+						class="vm-tree-virtual-row"
+						style="--vm-tree-y: 0px"
+						data-id="node-8000"
+						data-index="8000"
+						data-vm-virtual-index="8000"
+						data-vm-total-rows="10000"
+					>Node 8000</div>
+					<div
+						class="vm-tree-virtual-row"
+						style="--vm-tree-y: 28px"
+						data-id="node-8001"
+						data-index="8001"
+						data-vm-virtual-index="8001"
+						data-vm-total-rows="10000"
+					>Node 8001</div>
+				</div>
+			</div>
+		`;
+		const tree = document.querySelector<HTMLElement>('.vm-tree-virtual-outer');
+		const rows = [...document.querySelectorAll<HTMLElement>('.vm-tree-virtual-row')];
+		expect(tree).toBeTruthy();
+		expect(rows).toHaveLength(2);
+		Object.defineProperty(tree, 'clientHeight', { value: 56, configurable: true });
+		Object.defineProperty(tree, 'scrollHeight', { value: 2_800, configurable: true });
+		tree!.getBoundingClientRect = () =>
+			({
+				x: 0,
+				y: 0,
+				top: 0,
+				right: 320,
+				bottom: 56,
+				left: 0,
+				width: 320,
+				height: 56,
+				toJSON: () => ({}),
+			}) as DOMRect;
+		rows.forEach((row, index) => {
+			row.getBoundingClientRect = () =>
+				({
+					x: 0,
+					y: index * 28,
+					top: index * 28,
+					right: 320,
+					bottom: index * 28 + 28,
+					left: 0,
+					width: 320,
+					height: 28,
+					toJSON: () => ({}),
+				}) as DOMRect;
+		});
+		const probe = createPerfProbe({ now: () => performance.now(), doc: document });
+
+		const result = await probe.api.run('explorer-scroll-burst-live', {
+			view: 'tree',
+			pattern: 'monitor',
+			jumps: 1,
+			visualDelayMs: 0,
+			overlay: true,
+		});
+
+		expect(result.scrollBurst?.samples[0]).toMatchObject({
+			firstVisibleIndex: 8000,
+			lastVisibleIndex: 8001,
+			totalEstimatedRows: 10_000,
+			firstRowId: 'node-8000',
+			lastRowId: 'node-8001',
+		});
+		const overlay = document.querySelector<HTMLElement>('.vm-scroll-smoke-overlay');
+		expect(overlay?.textContent).toContain('idx=8001-8002/10000');
+	});
+
 	it('aborts and clears a live scroll smoke overlay', async () => {
 		document.body.innerHTML = `
 			<div class="vm-view-list">

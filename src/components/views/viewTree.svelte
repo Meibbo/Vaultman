@@ -329,7 +329,18 @@
 	const virtualRows = $derived($rowVirtualizer.getVirtualItems());
 	const renderedVirtualRows = $derived.by(() => {
 		const rows = virtualRows.filter((virtualRow) => virtualRow.index < flatArray.length);
-		if (rows.length > 0 || flatArray.length === 0) return rows;
+		if (
+			flatArray.length === 0 ||
+			virtualRowsCoverScrollWindow(
+				rows,
+				flatArray.length,
+				fallbackScrollTop,
+				fallbackViewportHeight,
+				rowHeight,
+			)
+		) {
+			return rows;
+		}
 		return fallbackFixedVirtualRows({
 			count: flatArray.length,
 			rowHeight,
@@ -339,7 +350,7 @@
 			getKey: (index) => treeVirtualItemKey(flatRowInputs, index),
 		});
 	});
-	const totalH = $derived($rowVirtualizer.getTotalSize());
+	const totalH = $derived(Math.max($rowVirtualizer.getTotalSize(), flatArray.length * rowHeight));
 	const stickyRows = $derived(
 		computeStickyRows(flatArray, fallbackScrollTop, fallbackViewportHeight, rowHeight),
 	);
@@ -455,6 +466,27 @@
 					: rowTop - Math.max(0, viewportHeight - rowHeight);
 		const maxTop = Math.max(0, flatArray.length * rowHeight - viewportHeight);
 		return Math.max(0, Math.min(rawTop, maxTop));
+	}
+
+	function virtualRowsCoverScrollWindow(
+		rows: readonly { start: number; end: number; size: number }[],
+		rowCount: number,
+		scrollTop: number,
+		viewportHeight: number,
+		height: number,
+	): boolean {
+		if (rows.length === 0) return false;
+		if (rowCount <= 0) return true;
+		const listEnd = Math.max(0, rowCount * height);
+		const viewportStart = Math.max(0, scrollTop);
+		const viewportEnd = Math.min(listEnd, viewportStart + Math.max(0, viewportHeight));
+		if (viewportEnd <= viewportStart) return true;
+		const first = rows[0];
+		const last = rows.at(-1) ?? first;
+		const firstStart = Number.isFinite(first.start) ? first.start : 0;
+		const lastEnd = Number.isFinite(last.end) ? last.end : last.start + last.size;
+		const tolerance = Math.max(1, height / 2);
+		return firstStart <= viewportStart + tolerance && lastEnd >= viewportEnd - tolerance;
 	}
 
 	function syncFallbackScrollState(): void {
@@ -922,6 +954,9 @@
 		class:is-editing={isEditing}
 		style="--vm-tree-y: {y}px; --depth: {flat.depth}"
 		data-id={id}
+		data-index={flat.index}
+		data-vm-virtual-index={flat.index}
+		data-vm-total-rows={flatArray.length}
 		data-sticky={sticky ? 'true' : undefined}
 		onclick={(e) => handleRowClick(e, id)}
 		onauxclick={(e) => handleRowAuxClick(e, id)}

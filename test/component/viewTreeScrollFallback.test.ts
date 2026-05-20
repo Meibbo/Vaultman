@@ -13,11 +13,23 @@ type VirtualizerOptions = {
 	getItemKey?: (index: number) => string | number;
 };
 
+type MockVirtualRow = {
+	index: number;
+	key: string | number;
+	start: number;
+	size: number;
+	end: number;
+};
+
+const virtualizerMockState = vi.hoisted(() => ({
+	virtualItems: [] as MockVirtualRow[],
+}));
+
 vi.mock('@tanstack/svelte-virtual', () => ({
 	createVirtualizer: vi.fn((options: VirtualizerOptions) => {
 		let current = options;
 		const instance = {
-			getVirtualItems: () => [],
+			getVirtualItems: () => virtualizerMockState.virtualItems,
 			getTotalSize: () => (current.count ?? 0) * (current.estimateSize?.(0) ?? 28),
 			scrollToIndex: vi.fn(),
 			setOptions: (next: VirtualizerOptions) => {
@@ -43,6 +55,7 @@ describe('ViewTree scroll fallback', () => {
 	let clientHeightDescriptor: PropertyDescriptor | undefined;
 
 	beforeEach(() => {
+		virtualizerMockState.virtualItems = [];
 		target = document.createElement('div');
 		document.body.appendChild(target);
 		clientHeightDescriptor = Object.getOwnPropertyDescriptor(HTMLElement.prototype, 'clientHeight');
@@ -86,6 +99,20 @@ describe('ViewTree scroll fallback', () => {
 		}));
 	}
 
+	function fixedRows(startIndex: number, count: number, rowHeight = 28): MockVirtualRow[] {
+		return Array.from({ length: count }, (_, offset) => {
+			const index = startIndex + offset;
+			const start = index * rowHeight;
+			return {
+				index,
+				key: `node-${index}`,
+				start,
+				size: rowHeight,
+				end: start + rowHeight,
+			};
+		});
+	}
+
 	it('renders fallback rows around the current scroll position when virtual rows are empty', () => {
 		app = mount(ViewTree as unknown as Component<Record<string, unknown>>, {
 			target,
@@ -125,6 +152,35 @@ describe('ViewTree scroll fallback', () => {
 		});
 		flushSync();
 
+		const outer = target.querySelector<HTMLDivElement>('.vm-tree-virtual-outer');
+		expect(outer).not.toBeNull();
+		outer!.scrollTop = 49_000 * 28;
+		outer!.dispatchEvent(new Event('scroll'));
+		flushSync();
+
+		const renderedRows = target.querySelectorAll('.vm-tree-virtual-row:not(.vm-tree-sticky-row)');
+		expect(renderedRows.length).toBeGreaterThan(0);
+		expect(renderedRows.length).toBeLessThanOrEqual(32);
+		expect(target.querySelector('[data-id="node-49000"]')).not.toBeNull();
+		expect(target.querySelector('[data-id="node-0"]')).toBeNull();
+	});
+
+	it('uses fixed fallback rows when tanstack rows are stale after a large scroll jump', () => {
+		virtualizerMockState.virtualItems = fixedRows(0, 14);
+		app = mount(ViewTree as unknown as Component<Record<string, unknown>>, {
+			target,
+			props: {
+				nodes: nodes(50_000),
+				expandedIds: new Set<string>(),
+				onToggle: vi.fn(),
+				onRowClick: vi.fn(),
+				onContextMenu: vi.fn(),
+				icon: vi.fn(() => ({ update: vi.fn() })),
+			},
+		});
+		flushSync();
+
+		expect(target.querySelector('[data-id="node-0"]')).not.toBeNull();
 		const outer = target.querySelector<HTMLDivElement>('.vm-tree-virtual-outer');
 		expect(outer).not.toBeNull();
 		outer!.scrollTop = 49_000 * 28;

@@ -38,6 +38,9 @@ PerfMeter timings, but applying row-height corrections through the virtualizer
 during active scroll caused scroll-height and anchor movement. Table and Grid
 now defer row-height measurement/resizing until a short scroll-idle window.
 
+Tree large-scroll follow-up:
+[[docs/work/hardening/plans/2026-05-16-explorer-variable-scroll-repair/2026-05-20-tree-large-scroll-follow-up|2026-05-20 tree large-scroll follow-up]].
+
 ## Implementation
 
 - `src/services/serviceExplorerScrollGeometry.ts`

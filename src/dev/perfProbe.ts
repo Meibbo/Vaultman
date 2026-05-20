@@ -634,11 +634,17 @@ function rowMeasuredHeightPx(row: HTMLElement | undefined): number | undefined {
 
 function rowVisibleIndex(row: HTMLElement | undefined, rowHeight: number | undefined): number | undefined {
 	if (!row) return undefined;
-	const explicitIndex = finiteNonNegativeInteger(row.dataset.index);
+	const explicitIndex =
+		finiteNonNegativeInteger(row.dataset.vmVirtualIndex) ??
+		finiteNonNegativeInteger(row.dataset.index);
 	if (explicitIndex !== undefined) return explicitIndex;
 	const offset = rowVirtualOffsetPx(row);
 	if (offset === undefined || rowHeight === undefined || rowHeight <= 0) return undefined;
 	return Math.max(0, Math.round(offset / rowHeight));
+}
+
+function rowTotalRows(row: HTMLElement | undefined): number | undefined {
+	return finiteNonNegativeInteger(row?.dataset.vmTotalRows);
 }
 
 function visibleRowPosition(
@@ -650,7 +656,8 @@ function visibleRowPosition(
 	const rowHeight = rowMeasuredHeightPx(first) ?? rowMeasuredHeightPx(last);
 	const firstVisibleIndex = rowVisibleIndex(first, rowHeight);
 	const lastVisibleIndex = rowVisibleIndex(last, rowHeight);
-	const totalEstimatedRows =
+	const explicitTotalRows = Math.max(0, rowTotalRows(first) ?? 0, rowTotalRows(last) ?? 0);
+	const geometricTotalRows =
 		rowHeight !== undefined && rowHeight > 0 && target.element.scrollHeight > 0
 			? Math.max(
 					firstVisibleIndex ?? 0,
@@ -658,6 +665,7 @@ function visibleRowPosition(
 					Math.round(target.element.scrollHeight / rowHeight),
 				)
 			: undefined;
+	const totalEstimatedRows = explicitTotalRows > 0 ? explicitTotalRows : geometricTotalRows;
 	return { firstVisibleIndex, lastVisibleIndex, totalEstimatedRows };
 }
 
