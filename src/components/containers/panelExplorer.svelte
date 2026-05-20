@@ -127,6 +127,7 @@
 	let currentGridParentId = $state<string | null>(null);
 	let gridBackStack = $state<(string | null)[]>([]);
 	let gridForwardStack = $state<(string | null)[]>([]);
+	let gridColumnCount = $state(1);
 	const manualExpandedIds = new SvelteSet<string>();
 	const manualCollapsedIds = new SvelteSet<string>();
 	const fallbackSelectionService = new NodeSelectionService();
@@ -312,7 +313,7 @@
 			return keyboardTopology();
 		},
 		orderedIds: visibleNodeIds,
-		columnsAt: () => 1,
+		columnsAt: () => gridColumnCount,
 		pageStep: PAGE_NAVIGATION_STEP,
 		isExpandable: isExpandableId,
 		isExpanded: (id) => expansionSet().has(id),
@@ -795,6 +796,10 @@
 		if (viewMode !== 'grid' || gridHierarchyMode !== 'folder') return false;
 		navigateGridForward();
 		return true;
+	}
+
+	function handleGridColumnCountChange(columns: number): void {
+		gridColumnCount = Math.max(1, columns);
 	}
 
 	function activateNode(node: TreeNode<TMeta>) {
@@ -1313,6 +1318,7 @@
 					gridCanBack={gridBackStack.length > 0}
 					gridCanForward={gridForwardStack.length > 0}
 					gridCanUp={currentGridParentId !== null}
+					onGridColumnCountChange={handleGridColumnCountChange}
 					onBack={navigateGridBack}
 					onForward={navigateGridForward}
 					onUp={navigateGridUp}

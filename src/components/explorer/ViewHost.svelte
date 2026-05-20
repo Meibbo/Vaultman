@@ -73,6 +73,7 @@
 		gridCanBack?: boolean;
 		gridCanForward?: boolean;
 		gridCanUp?: boolean;
+		onGridColumnCountChange?: (columns: number) => void;
 		onBack?: () => void;
 		onForward?: () => void;
 		onUp?: () => void;
@@ -244,6 +245,7 @@
 		visibleFields={rest.visibleFields}
 		manualDndEnabled={rest.manualDndEnabled}
 		onManualDrop={rest.onManualDrop as never}
+		onColumnCountChange={rest.onGridColumnCountChange}
 		themeService={rest.themeService}
 		icon={rest.icon}
 	/>

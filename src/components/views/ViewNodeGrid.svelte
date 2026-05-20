@@ -53,6 +53,7 @@
 		explorerViewContract,
 		type NativeClassVocabulary,
 	} from '../../services/serviceExplorerViewContract';
+	import { createRowAction, type RowProps, type RowState } from '../../services/serviceRowAction';
 	import { stateModEmissions } from '../../services/serviceNodeClassEmission';
 	import {
 		createManualDndService,
@@ -130,6 +131,7 @@
 		onHoverBadgeAction?: (id: string, kind: BadgeKind, e: MouseEvent | KeyboardEvent) => void;
 		activeOpsByNode?: ActiveOpsByNode;
 		onToggleExpand?: (id: string, e: MouseEvent | KeyboardEvent) => void;
+		onColumnCountChange?: (columns: number) => void;
 		scrollTarget?: ScrollTarget | null;
 		mouseGestureConfig?: MouseGestureConfig;
 		sizePresetId?: ViewSizePresetId;
@@ -163,6 +165,7 @@
 		onHoverBadgeAction,
 		activeOpsByNode,
 		onToggleExpand,
+		onColumnCountChange,
 		scrollTarget = null,
 		mouseGestureConfig,
 		sizePresetId = DEFAULT_VIEW_SIZE_PRESET,
@@ -180,6 +183,19 @@
 	const useNativeDom = $derived(presetUseNativeDom ?? themeService?.useNativeDom ?? false);
 	const nativeVocab = $derived<NativeClassVocabulary | null>(
 		useNativeDom ? explorerViewContract('grid').nativeDomEmission.panel : null,
+	);
+	const gridFeatures = explorerViewContract('grid').features;
+	const rowAction = $derived(
+		createRowAction({
+			explorerId: projection?.providerId ?? providerId,
+			role: 'gridcell',
+			features: gridFeatures,
+			contract: {
+				onToggle: noopTileToggle,
+				onContextMenu,
+				onRowKeydown: onTileKeydown,
+			},
+		}),
 	);
 	const maskCtx = getContext<NodeElementMaskContextValue | undefined>(NODE_ELEMENT_MASK_KEY);
 	const nodeElementMask = $derived(maskCtx?.value() ?? DEFAULT_NODE_ELEMENT_MASK);
@@ -696,8 +712,11 @@
 
 	function updateGridMetrics() {
 		const width = gridViewportRect().width;
+		const nextColumnCount = columnsForWidth(width);
 		gridWidth = width;
-		columnCount = columnsForWidth(width);
+		if (columnCount === nextColumnCount) return;
+		columnCount = nextColumnCount;
+		onColumnCountChange?.(nextColumnCount);
 	}
 
 	function updateGridFallbackViewport() {
@@ -802,6 +821,13 @@
 		const contentWidth = Math.max(tileWidth, width - gap * 2);
 		return Math.max(1, Math.floor((contentWidth + gap) / (tileWidth + gap)));
 	}
+
+	function gridTileProps(id: string, state: RowState): RowProps {
+		const props = rowAction.getRowProps(id, state);
+		return { ...props, oncontextmenu: undefined, onkeydown: undefined };
+	}
+
+	function noopTileToggle(): void {}
 
 	function tileOuterWidthFor(
 		width: number,
@@ -1061,10 +1087,12 @@
 		ondragover={(e) => handleManualDragOver(node, e)}
 		ondrop={(e) => handleManualDrop(node, e)}
 		ondragend={handleManualDragEnd}
-		role="gridcell"
-		tabindex="0"
-		aria-selected={isSelected}
-		aria-expanded={hierarchyMode === 'inline' && nodeHasChildren ? nodeExpanded : undefined}
+		{...gridTileProps(node.id, {
+			selected: isSelected,
+			focused: isFocused,
+			expandable: hierarchyMode === 'inline' && nodeHasChildren,
+			expanded: nodeExpanded,
+		})}
 	>
 		{#if hierarchyMode === 'inline'}
 			{#if nodeHasChildren}
