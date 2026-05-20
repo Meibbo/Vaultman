@@ -30,8 +30,8 @@ Compact route index after archiving the oversized current status:
 
 - Active initiative: [[docs/work/hardening/index|Hardening]].
 - **NEXT (post-0-A closeout 2026-05-20)**: [[docs/work/hardening/plans/2026-05-20-explorer-AR-action-routing/index|A.R implementation plan]]
-  — Gate-0, Tasks 1-5, Tasks 6a-6d, and Task 7 are complete; continue with
-  [[docs/work/hardening/plans/2026-05-20-explorer-AR-action-routing/04-expand-and-cmenu|Task 8 cmenu]] for `v1.2.0`.
+  — Gate-0 and Tasks 1-8 are complete; continue with
+  [[docs/work/hardening/plans/2026-05-20-explorer-AR-action-routing/05-verification|Task 9 verification matrix + live smoke]] for `v1.2.0`.
 - [[docs/work/hardening/specs/2026-05-19-explorer-merge-umbrella/index|Explorer Merge Umbrella]]
   — proto-v5 ↔ production merge + release pipeline renumerado `v1.2.0→v2.0.0` después del
   catch-up `1.1.0`. A.R spec + plan existen para `v1.2.0`; implementation queda gateada por
@@ -186,6 +186,12 @@ Compact route index after archiving the oversized current status:
   - Focused expand-all gate passed: 1 file / 2 tests.
   - Panel/grid regression gate passed: 3 files / 67 tests.
   - `pnpm run check` and `pnpm run lint` passed with 0 errors / 0 warnings.
+- A.R Task 8 on 2026-05-20:
+  - Source record:
+    [[docs/work/hardening/plans/2026-05-20-explorer-AR-action-routing/04-expand-and-cmenu|Task 8 cmenu trigger + standard set]].
+  - Trigger/standard-set gate passed: 2 files / 11 tests.
+  - Expanded provider cmenu gate passed: 7 files / 79 tests.
+  - `pnpm run check` and `pnpm run lint` passed with 0 errors / 0 warnings.
 
 ## Known Residuals
 
@@ -216,8 +222,8 @@ Compact route index after archiving the oversized current status:
 
 ## Next Action
 
-- **PRIMARY (post A.R Task 7 2026-05-20)**: continue A.R Task 8 cmenu from
-  [[docs/work/hardening/plans/2026-05-20-explorer-AR-action-routing/04-expand-and-cmenu|A.R expand/cmenu plan]].
+- **PRIMARY (post A.R Task 8 2026-05-20)**: continue A.R Task 9 verification from
+  [[docs/work/hardening/plans/2026-05-20-explorer-AR-action-routing/05-verification|A.R verification matrix plan]].
 - Explorer 0-B, O, and 0-A are complete. A.R Gate-0 is closed/unblocked.
 - For Explorer scroll work, continue from the variable scroll repair record:
   add runner-level view switching, add percentile/histogram reporting for scroll

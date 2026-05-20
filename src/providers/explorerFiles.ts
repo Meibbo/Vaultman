@@ -64,6 +64,18 @@ export class explorerFiles implements ExplorerProvider<FileMeta> {
 		const svc = this.plugin.contextMenuService;
 
 		svc.registerAction({
+			id: 'file.open',
+			nodeTypes: ['file'],
+			surfaces: ['panel', 'file-menu'],
+			label: 'Open',
+			icon: 'lucide-file-text',
+			run: (ctx: MenuCtx) => {
+				const [file] = this.contextFiles(ctx);
+				if (file) this.openFile(file);
+			},
+		});
+
+		svc.registerAction({
 			id: 'file.rename',
 			nodeTypes: ['file'],
 			surfaces: ['panel', 'file-menu'],
@@ -292,6 +304,10 @@ export class explorerFiles implements ExplorerProvider<FileMeta> {
 	handleNodeSecondaryAction(node: TreeNode<FileMeta>): void {
 		const file = node.meta.file;
 		if (!file || node.meta.isFolder) return;
+		this.openFile(file);
+	}
+
+	private openFile(file: TFile): void {
 		const workspace = this.plugin.app.workspace as typeof this.plugin.app.workspace & {
 			openLinkText?: (linktext: string, sourcePath: string, newLeaf?: boolean) => unknown;
 		};

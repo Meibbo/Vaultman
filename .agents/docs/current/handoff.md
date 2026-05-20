@@ -55,9 +55,9 @@ Compact handoff after archiving the oversized current handoff:
 
 **Next action**:
 1. A.R spec + implementation plan are imported to `sandbox`.
-2. Gate-0, Tasks 1-5, Tasks 6a-6d, and Task 7 are complete, through `feat(A.R): data-gate expand/collapse-all across views`.
+2. Gate-0 and Tasks 1-8 are complete, through `refactor(A.R): unify context-menu trigger + verify standard set`.
 3. Continue A.R for `v1.2.0` from
-   [[docs/work/hardening/plans/2026-05-20-explorer-AR-action-routing/04-expand-and-cmenu|Task 8 cmenu]].
+   [[docs/work/hardening/plans/2026-05-20-explorer-AR-action-routing/05-verification|Task 9 verification matrix + live smoke]].
 
 **Optional cleanup**:
 - Remote branches `main-clean-1.1.0` and `release/1.1.0-infra` are merged/stale branches created
@@ -67,7 +67,13 @@ Compact handoff after archiving the oversized current handoff:
 
 - Worktree: `C:\Users\vic_A\Desktop\vaultman`
 - Branch: `sandbox`.
-- **Latest (2026-05-20)**: A.R Task 7 complete and verified locally; next is Task 8 cmenu.
+- **Latest (2026-05-20)**: A.R Task 8 complete and verified locally; next is Task 9 verification.
+  Task 8 source record:
+  [[docs/work/hardening/plans/2026-05-20-explorer-AR-action-routing/04-expand-and-cmenu|Task 8 cmenu trigger + standard set]].
+  Trigger/standard-set gate: 2 files / 11 tests; expanded provider cmenu gate:
+  7 files / 79 tests; `pnpm run check` and `pnpm run lint` passed with
+  0 errors / 0 warnings.
+- Previous (2026-05-20): A.R Task 7 complete and verified locally.
   Task 7 source record:
   [[docs/work/hardening/plans/2026-05-20-explorer-AR-action-routing/04-expand-and-cmenu|Task 7 expand/collapse-all data-gated]].
   Focused expand-all gate: 1 file / 2 tests; panel/grid regression gate:
@@ -172,8 +178,8 @@ repair. Current handoff keeps only the active route and the latest release facts
 
 ## Next Action
 
-- **PRIMARY (post A.R Task 7 2026-05-20)**: continue A.R Task 8 cmenu from
-  [[docs/work/hardening/plans/2026-05-20-explorer-AR-action-routing/04-expand-and-cmenu|A.R expand/cmenu plan]].
+- **PRIMARY (post A.R Task 8 2026-05-20)**: continue A.R Task 9 verification from
+  [[docs/work/hardening/plans/2026-05-20-explorer-AR-action-routing/05-verification|A.R verification matrix plan]].
 - Phase 0 spine `0-H → 0-B → O → 0-A` is closed; A.R can consume the
   View Feature Contract / native DOM contract.
 - If continuing Explorer scroll work, start from the variable scroll repair

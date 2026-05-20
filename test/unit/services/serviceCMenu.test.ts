@@ -1,6 +1,8 @@
 import { describe, it, expect, vi } from 'vitest';
 import { ContextMenuService, type ContextMenuPluginCtx } from '../../../src/services/serviceCMenu';
-import type { ActionDef } from '../../../src/types/typeCMenu';
+import { explorerFiles } from '../../../src/providers/explorerFiles';
+import type { VaultmanPlugin } from '../../../src/main';
+import type { ActionDef } from '../../../src/types/typeCtxMenu';
 import { mockApp, mockTFile, Component } from '../../helpers/obsidian-mocks';
 
 function makeCtx(): ContextMenuPluginCtx {
@@ -22,6 +24,37 @@ const fileAction: ActionDef = {
 	surfaces: ['panel', 'file-menu', 'more-options'],
 	run: () => {},
 };
+
+function makeFilesPlugin(): VaultmanPlugin {
+	const file = mockTFile('Notes/A.md');
+	const app = mockApp({ files: [file] });
+	const openLinkText = vi.fn();
+	(
+		app.workspace as typeof app.workspace & {
+			openLinkText: (linktext: string, sourcePath: string, newLeaf?: boolean) => void;
+		}
+	).openLinkText = openLinkText;
+	return {
+		app,
+		contextMenuService: { registerAction: vi.fn(), openPanelMenu: vi.fn() },
+		propertyIndex: { fileCount: 1 },
+		operationsIndex: { nodes: [], subscribe: vi.fn(() => vi.fn()) },
+		activeFiltersIndex: { nodes: [], subscribe: vi.fn(() => vi.fn()) },
+		filterService: {
+			filteredFiles: [file],
+			selectedFiles: [],
+			setSelectedFiles: vi.fn(),
+		},
+		queueService: { add: vi.fn() },
+		settings: { explorerOperationScope: 'filtered' },
+	} as unknown as VaultmanPlugin;
+}
+
+function registeredActions(plugin: VaultmanPlugin): ActionDef[] {
+	return (plugin.contextMenuService.registerAction as ReturnType<typeof vi.fn>).mock.calls.map(
+		([action]) => action,
+	);
+}
 
 describe('ContextMenuService.registerAction', () => {
 	it('records the action on first registration', () => {
@@ -77,5 +110,53 @@ describe('ContextMenuService applicable filtering', () => {
 				d.nodeTypes.includes('file') && d.surfaces.includes('panel') && (!d.when || d.when(ctxObj)),
 		);
 		expect(applicable.map((d) => d.id)).toEqual([]);
+	});
+});
+
+describe('ContextMenuService provider standard actions', () => {
+	it('file explorer registers the standard panel action set', () => {
+		const plugin = makeFilesPlugin();
+		new explorerFiles(plugin);
+
+		const ids = registeredActions(plugin).map((action) => action.id);
+
+		expect(ids).toEqual(
+			expect.arrayContaining([
+				'file.open',
+				'file.rename',
+				'file.move',
+				'file.set',
+				'file.delete',
+				'folder.filter',
+			]),
+		);
+	});
+
+	it('file.open routes through the same workspace open behavior as file activation', () => {
+		const plugin = makeFilesPlugin();
+		const [file] = plugin.app.vault.getMarkdownFiles();
+		new explorerFiles(plugin);
+		const action = registeredActions(plugin).find((candidate) => candidate.id === 'file.open');
+
+		action?.run({
+			nodeType: 'file',
+			node: {
+				id: file.path,
+				label: file.basename,
+				depth: 0,
+				icon: 'lucide-file',
+				meta: { file, isFolder: false, folderPath: 'Notes' },
+			},
+			surface: 'panel',
+			file,
+		});
+
+		expect(
+			(
+				plugin.app.workspace as typeof plugin.app.workspace & {
+					openLinkText: ReturnType<typeof vi.fn>;
+				}
+			).openLinkText,
+		).toHaveBeenCalledWith(file.path, '', false);
 	});
 });

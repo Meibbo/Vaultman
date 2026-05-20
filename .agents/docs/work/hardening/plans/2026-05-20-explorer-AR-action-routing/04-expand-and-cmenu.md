@@ -1,10 +1,10 @@
 ---
 title: A.R Plan — Task 7 (expand-all data-gated) + Task 8 (cmenu)
 type: plan-shard
-status: draft
+status: completed
 parent: "[[index|A.R plan]]"
 created: 2026-05-20T00:00:00
-updated: 2026-05-20T00:00:00
+updated: 2026-05-20T17:15:00-05:00
 ---
 
 # Task 7 (expand/collapse-all data-gated) + Task 8 (cmenu trigger unify)
@@ -103,7 +103,7 @@ El trigger ya quedó unificado tras Task 5/6 (todos los views → `oncontextmenu
 `onContextMenu(id,e)` → `handleContextMenu`). Aquí: (1) verificar paridad del trigger en los 5 views,
 (2) verificar/registrar el standard set por provider, (3) reconciliar los dos paths de apertura.
 
-- [ ] **Step 1: Write the failing/parity tests**
+- [x] **Step 1: Write the failing/parity tests**
 
 ```ts
 // test/component/cmenuTriggerParity.test.ts — los 5 views disparan onContextMenu(id, e)
@@ -121,9 +121,9 @@ import { ContextMenuService } from '../../../src/services/serviceCMenu';
 // Open, Rename, Move, Delete (+ Tag/Prop/Duplicate/Queue donde el provider los registre).
 ```
 
-- [ ] **Step 2: Run → FAIL** donde falte el set o el trigger.
+- [x] **Step 2: Run → FAIL** donde falte el set o el trigger.
 
-- [ ] **Step 3: Verify + register missing + reconcile path**
+- [x] **Step 3: Verify + register missing + reconcile path**
 
   - **Standard set**: leer los `registerAction({...})` reales de los 6 providers. Conocidos en
     `explorerFiles.ts`: `file.rename` (Rename), `file.delete` (Delete), `file.set` (Set (append link)),
@@ -136,6 +136,21 @@ import { ContextMenuService } from '../../../src/services/serviceCMenu';
     menú. Si construye uno propio divergente, redirigirlo a `openPanelMenu` para un único path. Si ya
     delega al registry, no-op (solo documentar).
 
-- [ ] **Step 4: Run → PASS.** `pnpm vitest run test/unit/services/serviceCMenu.test.ts test/component/cmenuTriggerParity.test.ts test/component/cmenuSetAction.test.ts`.
+- [x] **Step 4: Run → PASS.** `pnpm vitest run test/unit/services/serviceCMenu.test.ts test/component/cmenuTriggerParity.test.ts test/component/cmenuSetAction.test.ts`.
 
-- [ ] **Step 5: Commit** `refactor(A.R): unify context-menu trigger across views + verify standard action set`.
+Actual verification:
+- `pnpm vitest run test/component/cmenuTriggerParity.test.ts test/unit/services/serviceCMenu.test.ts` — RED first in serviceCMenu: `file.open` was missing from the provider standard set and the route-through-open assertion had no action to invoke. Trigger parity across the five views already passed.
+- `pnpm vitest run test/component/cmenuTriggerParity.test.ts test/unit/services/serviceCMenu.test.ts` — PASS, 2 files / 11 tests.
+- `pnpm vitest run test/unit/services/serviceCMenu.test.ts test/component/cmenuTriggerParity.test.ts test/component/cmenuSetAction.test.ts test/component/cmenuCreateBindingNote.test.ts test/unit/components/explorerFiles.test.ts test/unit/components/explorerTags.test.ts test/unit/components/explorerProps.test.ts` — PASS, 7 files / 79 tests.
+- `pnpm run check` — PASS, 0 errors / 0 warnings.
+- `pnpm run lint` — PASS, 0 errors / 0 warnings.
+- `git diff --check` — PASS, CRLF working-copy warnings only.
+
+Implementation note: The five view triggers now have a consolidated parity test. `explorerFiles`
+registers `file.open` for `panel` and `file-menu`, using the same workspace `openLinkText(file.path,
+'', false)` path as file secondary activation. Existing provider `handleContextMenu` methods already
+route through `ContextMenuService.openPanelMenu`; no registry rebuild was needed.
+
+- [x] **Step 5: Commit** `refactor(A.R): unify context-menu trigger across views + verify standard action set`.
+
+Actual commit: `refactor(A.R): unify context-menu trigger + verify standard set`.
