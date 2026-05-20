@@ -237,8 +237,10 @@
 	}
 
 	let outerEl: HTMLDivElement | undefined = $state();
+	const viewSize = $derived(getViewSizePreset(sizePresetId));
+	const viewSizeStyle = $derived(viewSizeCssVars(viewSize));
 	let gridWidth = $state(GRID_FALLBACK_WIDTH);
-	let columnCount = $state(1);
+	let columnCount = $state(columnsForWidth(GRID_FALLBACK_WIDTH));
 	let dragStart = $state<{ x: number; y: number; pointerId: number } | null>(null);
 	let selectionBox = $state<{
 		left: number;
@@ -260,11 +262,10 @@
 	let gridMeasuredRevision = $state('');
 	let gridRowIndexCacheRows: readonly GridRow[] | null = null;
 	let gridRowIndexCache = new Map<string, number>();
+	let reportedColumnCount: number | null = null;
 	const mouse = createMouseGestureService();
 	const manualDnd = createManualDndService();
 	let manualDndVersion = $state(0);
-	const viewSize = $derived(getViewSizePreset(sizePresetId));
-	const viewSizeStyle = $derived(viewSizeCssVars(viewSize));
 	const gridRowBaseHeight = $derived(viewSize.tileHeight + viewSize.gap);
 	const gridTileOuterWidth = $derived(tileOuterWidthFor(gridWidth, columnCount, viewSize));
 	const gridLabelWidth = $derived(
@@ -713,9 +714,10 @@
 	function updateGridMetrics() {
 		const width = gridViewportRect().width;
 		const nextColumnCount = columnsForWidth(width);
-		gridWidth = width;
-		if (columnCount === nextColumnCount) return;
-		columnCount = nextColumnCount;
+		if (gridWidth !== width) gridWidth = width;
+		if (columnCount !== nextColumnCount) columnCount = nextColumnCount;
+		if (reportedColumnCount === nextColumnCount) return;
+		reportedColumnCount = nextColumnCount;
 		onColumnCountChange?.(nextColumnCount);
 	}
 

@@ -82,7 +82,7 @@ describe('tree/grid row input contract', () => {
 		parentRow!.querySelector<HTMLElement>('.vm-tree-toggle')!.click();
 
 		expect(onRowClick).toHaveBeenCalledWith('semantic-child', expect.any(MouseEvent));
-		expect(onToggle).toHaveBeenCalledWith('semantic-parent');
+		expect(onToggle).toHaveBeenCalledWith('semantic-parent', expect.any(MouseEvent));
 	});
 
 	it('renders tree projection rows from visible ids without re-expanding legacy nodes', () => {

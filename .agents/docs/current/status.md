@@ -29,9 +29,9 @@ Compact route index after archiving the oversized current status:
 ## Current Route
 
 - Active initiative: [[docs/work/hardening/index|Hardening]].
-- **NEXT (post-0-A closeout 2026-05-20)**: [[docs/work/hardening/plans/2026-05-20-explorer-AR-action-routing/index|A.R implementation plan]]
-  — Gate-0 and Tasks 1-8 are complete; continue with
-  [[docs/work/hardening/plans/2026-05-20-explorer-AR-action-routing/05-verification|Task 9 verification matrix + live smoke]] for `v1.2.0`.
+- **LATEST (2026-05-20)**: [[docs/work/hardening/plans/2026-05-20-explorer-AR-action-routing/index|A.R implementation plan]]
+  — Gate-0 and Tasks 1-9 are complete; verification source:
+  [[docs/work/hardening/plans/2026-05-20-explorer-AR-action-routing/05-verification|Task 9 verification matrix + live smoke]].
 - [[docs/work/hardening/specs/2026-05-19-explorer-merge-umbrella/index|Explorer Merge Umbrella]]
   — proto-v5 ↔ production merge + release pipeline renumerado `v1.2.0→v2.0.0` después del
   catch-up `1.1.0`. A.R spec + plan existen para `v1.2.0`; implementation queda gateada por
@@ -192,6 +192,17 @@ Compact route index after archiving the oversized current status:
   - Trigger/standard-set gate passed: 2 files / 11 tests.
   - Expanded provider cmenu gate passed: 7 files / 79 tests.
   - `pnpm run check` and `pnpm run lint` passed with 0 errors / 0 warnings.
+- A.R Task 9 on 2026-05-20:
+  - Source record:
+    [[docs/work/hardening/plans/2026-05-20-explorer-AR-action-routing/05-verification|Task 9 verification matrix + live smoke]].
+  - Added keyboard-nav parity and structural-attribute anti-drift tests across
+    Tree/List/Table/Grid/Cards.
+  - `pnpm run verify` passed: lint 0 warnings / 0 errors; `svelte-check`
+    0 warnings / 0 errors; unit 148 files / 953 tests; component 114 files /
+    543 tests.
+  - Live `plugin-dev` explicit-switch scroll smokes passed for
+    Tree/List/Table/Grid/Cards with `blankFrames=0`, `blank>100ms=0`,
+    `blank>250ms=0`, and final `dev:errors` returned `No errors captured.`
 
 ## Known Residuals
 
@@ -222,9 +233,10 @@ Compact route index after archiving the oversized current status:
 
 ## Next Action
 
-- **PRIMARY (post A.R Task 8 2026-05-20)**: continue A.R Task 9 verification from
-  [[docs/work/hardening/plans/2026-05-20-explorer-AR-action-routing/05-verification|A.R verification matrix plan]].
-- Explorer 0-B, O, and 0-A are complete. A.R Gate-0 is closed/unblocked.
+- **PRIMARY (post A.R Task 9 2026-05-20)**: choose the next `v1.2.0`
+  Explorer Hardening slice from the umbrella: tree sticky-parent fix, 0-A.S
+  scroll harness follow-up, or T.G invariant-gate basis.
+- Explorer 0-B, O, 0-A, and A.R are complete.
 - For Explorer scroll work, continue from the variable scroll repair record:
   add runner-level view switching, add percentile/histogram reporting for scroll
   burst delay, investigate Grid's remaining 58 ms peak if it persists, and

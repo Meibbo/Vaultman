@@ -25,6 +25,7 @@
 		explorerViewContract,
 		type NativeClassVocabulary,
 	} from '../../services/serviceExplorerViewContract';
+	import { createRowAction, type RowProps, type RowState } from '../../services/serviceRowAction';
 	import { stateModEmissions } from '../../services/serviceNodeClassEmission';
 	import {
 		DEFAULT_NODE_ELEMENT_MASK,
@@ -35,6 +36,11 @@
 
 	type ListRowInput = ExplorerRowInput<NodeBase>;
 	type ListAction = ViewAction<NodeBase>;
+	type ListRowProps = Omit<RowProps, 'role' | 'tabindex' | 'aria-selected'> & {
+		role: 'option' | 'listitem';
+		tabindex?: 0 | -1;
+		'aria-selected'?: boolean;
+	};
 
 	interface Props {
 		rowInputs?: readonly ListRowInput[];
@@ -91,7 +97,6 @@
 	const rowCount = $derived(effectiveRowInputs.length);
 	const rowIdToIndex = $derived(buildRowInputIdIndex(effectiveRowInputs));
 	const isListboxMode = $derived(Boolean(onRowClick || onRowKeydown));
-	const keyboardEnabled = $derived(Boolean(onRowKeydown));
 	const activeFocusedId = $derived(localFocusedId ?? focusedId ?? null);
 	const maskCtx = getContext<NodeElementMaskContextValue | undefined>(NODE_ELEMENT_MASK_KEY);
 	const nodeElementMask = $derived(maskCtx?.value() ?? DEFAULT_NODE_ELEMENT_MASK);
@@ -99,6 +104,19 @@
 	const useNativeDom = $derived(presetCtx?.value().useNativeDom ?? false);
 	const nativeVocab = $derived<NativeClassVocabulary | null>(
 		useNativeDom ? explorerViewContract('list').nativeDomEmission.panel : null,
+	);
+	const listFeatures = explorerViewContract('list').features;
+	const rowAction = $derived(
+		createRowAction({
+			explorerId: projection?.providerId ?? 'list',
+			role: 'option',
+			features: listFeatures,
+			contract: {
+				onToggle: noopListToggle,
+				onContextMenu: listActionContextMenu,
+				onRowKeydown,
+			},
+		}),
 	);
 	const observeListRect = createRafElementRectObserver<HTMLDivElement, HTMLDivElement>({
 		getElement: () => outerEl ?? null,
@@ -316,6 +334,28 @@
 			hasActiveMenu: false,
 		}).join(' ');
 	}
+
+	function listRowProps(row: ListRowInput, state: RowState): ListRowProps {
+		if (!isListboxMode) {
+			return {
+				role: 'listitem',
+				tabindex: undefined,
+				'aria-selected': undefined,
+				'aria-expanded': undefined,
+				'data-row-key': row.id,
+				oncontextmenu: undefined,
+				onkeydown: undefined,
+			};
+		}
+		const props = rowAction.getRowProps(row.id, state);
+		return { ...props, role: 'option', oncontextmenu: undefined, onkeydown: undefined };
+	}
+
+	function listActionContextMenu(id: string, event: MouseEvent): void {
+		onContextMenu?.(id, event);
+	}
+
+	function noopListToggle(): void {}
 </script>
 
 <!-- svelte-ignore a11y_no_noninteractive_tabindex -->
@@ -336,21 +376,25 @@
 				{@const iconName = !nodeElementMask.icon ? undefined : rowIcon(row)}
 				{@const badges = allBadges(row)}
 				{@const actions = nodeElementMask.actions ? rowActions(row) : []}
+				{@const selected = isRowSelected(row)}
 				<div
 					id="vm-listrow-{row.id}"
 					class="vm-view-list-row vm-explorer-popup-row {row.cls ?? ''} {nativeVocab?.rowRoot ?? ''} {rowStateClassString(
 						row,
 					)}"
-					class:is-selected={isRowSelected(row)}
+					class:is-selected={selected}
 					class:is-disabled={row.disabled || row.layers.state?.disabled}
 					class:is-group={isGroupRow(row)}
 					class:is-dragging={draggingRowId === row.id}
 					style="position: absolute; top: 0; left: 0; right: 0; height: {virtualRow.size}px; transform: translateY({virtualRow.start}px); --vm-list-depth-indent: {(row.depth ?? 0) * 14}px"
 					data-id={row.id}
 					data-index={virtualRow.index}
-					role={isListboxMode ? 'option' : 'listitem'}
-					aria-selected={isListboxMode ? isRowSelected(row) : undefined}
-					tabindex={keyboardEnabled ? 0 : undefined}
+					{...listRowProps(row, {
+						selected,
+						focused: activeFocusedId === row.id,
+						expandable: false,
+						expanded: false,
+					})}
 					draggable={dragEnabled()}
 					onclick={onRowClick ? (event) => onRowClick(row.id, event) : undefined}
 					ondblclick={onSecondaryAction ? (event) => onSecondaryAction(row.id, event) : undefined}

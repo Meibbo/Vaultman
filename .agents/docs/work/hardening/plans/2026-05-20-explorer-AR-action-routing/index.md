@@ -1,10 +1,10 @@
 ---
 title: A.R — Action Routing Contract (implementation plan)
 type: plan-index
-status: ready
+status: complete
 parent: "[[docs/work/hardening/specs/2026-05-20-explorer-AR-action-routing/index|A.R spec]]"
 created: 2026-05-20T00:00:00
-updated: 2026-05-20T14:30:00-05:00
+updated: 2026-05-20T18:25:00-05:00
 tags:
   - agent/plan
   - initiative/hardening
@@ -96,6 +96,6 @@ Luego 7 → 8 → 9. Tasks 1-3 son los más densos (servicios + tests). Task 5 d
 
 ## Execution handoff
 
-Tras importar este plan a `sandbox`, Gate-0 quedó cerrado el 2026-05-20 por el cierre 0-A C12/C13.
-A.R puede arrancar. Opciones: (1) subagent-driven (un subagent fresco por task, recomendado para 6a-6d
-en paralelo) o (2) inline con executing-plans (batch + checkpoints).
+A.R ejecutado completo en `sandbox` el 2026-05-20. Gate-0 y Tasks 1-9 están cerrados; la evidencia
+final vive en [[05-verification]]. Próximo slice de `v1.2.0`: tree sticky-parent fix, 0-A.S scroll
+harness follow-up, o T.G invariant-gate basis.

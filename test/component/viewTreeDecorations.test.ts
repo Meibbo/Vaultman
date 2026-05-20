@@ -322,7 +322,7 @@ describe('ViewTree decorations', () => {
 
 		target.querySelector<HTMLElement>('.vm-tree-sticky-row[data-id="root"] .vm-tree-toggle')?.click();
 
-		expect(onToggle).toHaveBeenCalledWith('root');
+		expect(onToggle).toHaveBeenCalledWith('root', expect.any(MouseEvent));
 	});
 
 	it('removes a queued badge with a single click without triggering row activation', () => {
