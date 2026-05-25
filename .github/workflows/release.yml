@@ -29,7 +29,7 @@ jobs:
       artifact-metadata: write
     steps:
       - name: Checkout immutable ref
-        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
         with:
           fetch-depth: 0
           persist-credentials: false
@@ -44,7 +44,7 @@ jobs:
           fi
 
       - name: Setup Vite+
-        uses: voidzero-dev/setup-vp@9446e853b27985e00fb1b21193be026fc09198db
+        uses: voidzero-dev/setup-vp@ca1c46663915d6c1042ae23bd39ab85718bfb0fa
         with:
           node-version: '24'
           cache: true
@@ -65,6 +65,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
+          rm -rf dist/release
           mkdir -p dist/release
           cp dist/vite/main.js dist/release/main.js
           cp dist/vite/styles.css dist/release/styles.css
@@ -73,28 +74,16 @@ jobs:
           test -s dist/release/styles.css
           test -s dist/release/manifest.json
 
-      - name: Generate SBOM
-        run: vp run sbom:release
-
-      - name: Generate checksums
-        shell: bash
-        run: |
-          set -euo pipefail
-          cd dist/release
-          sha256sum main.js manifest.json styles.css sbom.cdx.json > SHA256SUMS
-
       - name: Attest release artifacts
-        uses: actions/attest@281a49d4cbb0a72c9575a50d18f6deb515a11deb
+        uses: actions/attest@59d89421af93a897026c735860bf21b6eb4f7b26
         with:
           subject-path: |
             dist/release/main.js
             dist/release/manifest.json
             dist/release/styles.css
-            dist/release/SHA256SUMS
-          sbom-path: dist/release/sbom.cdx.json
 
       - name: Upload release bundle
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
         with:
           name: vaultman-release-${{ github.run_id }}
           path: dist/release/
@@ -115,8 +104,6 @@ jobs:
           - main.js
           - manifest.json
           - styles.css
-          - SHA256SUMS
-          - sbom.cdx.json
 
           Verify provenance with:
           gh attestation verify main.js -R ${GITHUB_REPOSITORY}
@@ -126,8 +113,6 @@ jobs:
               dist/release/main.js \
               dist/release/manifest.json \
               dist/release/styles.css \
-              dist/release/SHA256SUMS \
-              dist/release/sbom.cdx.json \
               --clobber
             gh release edit "${GITHUB_REF_NAME}" \
               --title "Vaultman ${GITHUB_REF_NAME}" \
@@ -137,8 +122,6 @@ jobs:
               dist/release/main.js \
               dist/release/manifest.json \
               dist/release/styles.css \
-              dist/release/SHA256SUMS \
-              dist/release/sbom.cdx.json \
               --verify-tag \
               --title "Vaultman ${GITHUB_REF_NAME}" \
               --notes-file "${notes_file}"
