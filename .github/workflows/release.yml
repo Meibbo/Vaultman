@@ -65,6 +65,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
+          rm -rf dist/release
           mkdir -p dist/release
           cp dist/vite/main.js dist/release/main.js
           cp dist/vite/styles.css dist/release/styles.css
@@ -73,16 +74,6 @@ jobs:
           test -s dist/release/styles.css
           test -s dist/release/manifest.json
 
-      - name: Generate SBOM
-        run: vp run sbom:release
-
-      - name: Generate checksums
-        shell: bash
-        run: |
-          set -euo pipefail
-          cd dist/release
-          sha256sum main.js manifest.json styles.css sbom.cdx.json > SHA256SUMS
-
       - name: Attest release artifacts
         uses: actions/attest@59d89421af93a897026c735860bf21b6eb4f7b26
         with:
@@ -90,8 +81,6 @@ jobs:
             dist/release/main.js
             dist/release/manifest.json
             dist/release/styles.css
-            dist/release/SHA256SUMS
-          sbom-path: dist/release/sbom.cdx.json
 
       - name: Upload release bundle
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
@@ -115,8 +104,6 @@ jobs:
           - main.js
           - manifest.json
           - styles.css
-          - SHA256SUMS
-          - sbom.cdx.json
 
           Verify provenance with:
           gh attestation verify main.js -R ${GITHUB_REPOSITORY}
@@ -126,8 +113,6 @@ jobs:
               dist/release/main.js \
               dist/release/manifest.json \
               dist/release/styles.css \
-              dist/release/SHA256SUMS \
-              dist/release/sbom.cdx.json \
               --clobber
             gh release edit "${GITHUB_REF_NAME}" \
               --title "Vaultman ${GITHUB_REF_NAME}" \
@@ -137,8 +122,6 @@ jobs:
               dist/release/main.js \
               dist/release/manifest.json \
               dist/release/styles.css \
-              dist/release/SHA256SUMS \
-              dist/release/sbom.cdx.json \
               --verify-tag \
               --title "Vaultman ${GITHUB_REF_NAME}" \
               --notes-file "${notes_file}"
