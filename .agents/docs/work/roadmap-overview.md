@@ -4,7 +4,8 @@ type: roadmap-index
 status: active
 parent: "[[docs/work/pkm-ai/index|pkm-ai]]"
 created: 2026-05-17T00:00:00
-updated: 2026-05-20T14:20:00-05:00
+updated: 2026-05-26T00:00:00
+updated_by: claude-opus-4-7
 tags:
   - agent/roadmap
   - initiative/overview
@@ -87,6 +88,15 @@ puede tomar cualquiera sin tocar Phase 0.
 
 - **M — SCSS hygiene pass.** Sustituido por N (SCSS-to-UnoCSS); la
   hygiene emerge como subproducto de la migración. Sin spec.
+
+## Reslot proposal (2026-05-26)
+
+The 2026-05-26 foundation brainstorm proposes reslotting the pipeline below to a
+**change-type + dependency-driven dynamic order** with **beta/stable channels**.
+See [[docs/work/hardening/research/2026-05-25-architecture-foundation-discovery/roadmap-reslot|roadmap reslot]],
+the [[docs/architecture/explorer-model/index|explorer-model]], and the
+[[docs/architecture/adr/README|ADRs]]. The fixed `v1.x` slots below are kept for
+reference until the reslot is confirmed.
 
 ## Explorer Merge (brainstorm 2026-05-19)
 

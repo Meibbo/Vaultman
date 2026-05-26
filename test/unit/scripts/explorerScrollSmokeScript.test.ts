@@ -11,17 +11,28 @@ describe('explorer scroll smoke runner script', () => {
 		const source = readFileSync(scriptPath, 'utf8');
 		const targetCheckIndex = source.indexOf('scrollTargetAlreadyOpen');
 		const frameCheckIndex = source.indexOf('vaultmanFrameAlreadyOpen');
+		const switchIndex = source.indexOf('ensureScrollTargetOpen');
 		const openCommandIndex = source.indexOf(
-			"runChecked('obsidian', [`vault=${VAULT}`, 'command', 'id=vaultman:open'",
+			"runChecked('obsidian', [vaultArg(), 'command', 'id=vaultman:open'",
 		);
 
 		expect(targetCheckIndex).toBeGreaterThan(0);
 		expect(frameCheckIndex).toBeGreaterThan(targetCheckIndex);
 		expect(openCommandIndex).toBeGreaterThan(frameCheckIndex);
+		expect(switchIndex).toBeGreaterThan(openCommandIndex);
 		expect(source).toContain('Vaultman Explorer scroll target already open');
+		expect(source).toContain('Switching Vaultman Explorer to requested view');
+		expect(source).toContain('buildViewSwitchCode');
 		expect(source).toContain('{ printOutput: false }');
 		expect(source).toContain('--strict-idle-ms');
 		expect(source).toContain('strictIdleMs');
+		expect(source).toContain('--vault=VAULT');
+		expect(source).toContain('vaultArg()');
+		expect(source).toContain('--surface=current|files');
+		expect(source).toContain('buildExplorerSurfaceCode');
+		expect(source).toContain('activeScrollTargetPresent');
+		expect(source).toContain('p95Delay=');
+		expect(source).toContain('delayHist=');
 		expect(source).not.toContain("['command', 'id=vaultman:open', `vault=${VAULT}`]");
 	});
 });

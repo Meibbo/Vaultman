@@ -116,3 +116,40 @@ tags:
   the tree instead of owning a separate file-only model.
 - Working memory: short-term agent memory in current status, handoff, and active
   work notes; it guides the next moves without replacing source records.
+
+## Architecture model terms (2026-05-26)
+
+Concise lookup. Full detail + how they fit:
+[[docs/architecture/explorer-model/index|explorer-model]]. Per-decision status:
+[[docs/work/hardening/research/2026-05-25-architecture-foundation-discovery/decision-ledger|decision-ledger]].
+Supersedes the older "View adapter" / "Viewgrid" entries (a View no longer does
+projection/translation).
+
+- View: pure renderer over a finished render-projection; owns DOM/markup + shared runtime only. No fixed "5 views".
+- Render engine: reusable layout renderer — Linear (tree/list), Geometry (grid/cards), Table, Canvas.
+- Mode: selectable engine variant (tree-indent | flat-list | miller; grid | cards | group-box; transpose; mindmap | graph).
+- Orientation: horizontal | vertical layout flag applicable to engines (not a mode).
+- Cell: universal element = source ({in|cross}-provider field, incl. note-preview) + semantic role; position owned by view-config.
+- view-config (specific_view): user-editable role→slot/order map per engine+mode; superset of the Bases view-def; the Bases IN/OUT bridge.
+- Node: data atom = kind + source + cells + children; produced by a provider.
+- Panel: {engine + provider(s) + config}; kinds = explorer-panel, dashboard-panel.
+- Explorer: a panel-kind = {provider + engine + view-config} that renders nodes.
+- Scene: orchestrates panels + primitives (NOT bars) in a surface; movable; shipped sets = presets → explorer-builder.
+- Page (PROPOSED): editor-group on native leaves/splits + layout-config; not a leaf, not the whole layout.
+- Surface: mount host owning a layout region + lifecycle, containing primary content (tab/modal/pop-up/cmenu/codeblock).
+- Overlay: layer that assists (nav/info/action) and does not contain primary content (bars/popover/cmenu/selection-box/sticky).
+- pop-up: a Surface popping from a status-bar anchor (MySnippets Menu pattern). subbar: a bar nested in a bar (persistent).
+- Render-projection: DOM-free data-plane output (order/indices/grouping/cell-placement/decoration descriptors/size-marks).
+- Render-runtime: shared View-side DOM layer (virtualizer/scroll/measure/resizer/table/dnd); fed by the projection.
+- ActionNode: NodeKind whose activation invokes a command/macro. ActionProvider aggregates them for cmenus/bars/fabs.
+- menu-curator: rendering Obsidian's menu surfaces from the ActionProvider (add via API, replace via PlatformAdapter).
+- ContainerNode: synthetic parent wrapping children (manual / group-by groups, grid group-box). Produced by serviceGroup.
+- OperationNode: a queued operation (rename/move/set/delete); the queue is an explorer of these.
+- InputBindingNode (DEFERRED): maps input (shortcut/modifier/mouse/swipe) → command, per device.
+- IconNode: icon-source selector node (emoji/lucide/distro/iconic); backs cross-surface icon override (iconize-absorb).
+- metadata: node supertype over tag/prop/nestedprop(TBD)/value/inline-prop (`key:: value`).
+- PlatformAdapter: one module per fragile integration (monkey-patch/private API) with probe + fallback + serviceUnload revert.
+- Fragility Registry: registry of PlatformAdapters; failed probes auto-disable gracefully; T.G shape-tests gate version bumps.
+- LayoutBuilder: spatial-arrangement builder (surfaces/bars/primitives); distinct from ThemeBuilder (tokens/color).
+- capability-profile: a Surface's capacity (size-class/can-host-overlays/mobile-ok) vs a Scene's requirements (full/reduced/deny).
+- sync-boundary: which settings sync via Obsidian Sync vs stay device-local (cache blobs/stats).

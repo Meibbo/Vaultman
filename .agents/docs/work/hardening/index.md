@@ -4,7 +4,7 @@ type: initiative-index
 status: active
 parent: "[[docs/work/pkm-ai/index|pkm-ai]]"
 created: 2026-05-04T01:44:46
-updated: 2026-05-16T12:52:54-05:00
+updated: 2026-05-25T00:00:00-05:00
 tags:
   - agent/work
   - initiative/hardening
@@ -29,6 +29,10 @@ quality work before it reaches `main`.
 
 ## Active Specs
 
+- [[docs/work/hardening/specs/2026-05-25-explorer-node-media-cache/index|Explorer Node Media Index And Thumbnail Cache]]
+- [[docs/work/hardening/specs/2026-05-25-explorer-node-video-provider-media-cache/index|Explorer Node Video Provider Media And Cache Settings]]
+- [[docs/work/hardening/specs/2026-05-25-explorer-icon-pack-cache/index|Explorer Icon Pack Cache]]
+- [[docs/work/hardening/specs/2026-05-25-vd-tree-render-projection/index|V.D Tree Render Projection]]
 - [[docs/work/hardening/specs/2026-05-04-explorer-view-service/index|Explorer view service]]
 - [[docs/work/hardening/specs/2026-05-11-explorer-data-plane-transition/index|Explorer data plane transition]]
 - [[docs/work/hardening/specs/2026-05-11-explorer-data-plane-structural-taxonomy/index|Explorer data plane structural taxonomy]]
@@ -39,6 +43,7 @@ quality work before it reaches `main`.
 
 ## Active Research
 
+- [[docs/work/hardening/research/2026-05-25-vd-tree-list-nn-pipeline-discovery/index|V.D Tree/List/Notebook Navigator pipeline discovery]]
 - [[docs/work/hardening/research/2026-05-16-openssf-osps-baseline/index|OpenSSF OSPS baseline research]]
 - [[docs/work/hardening/research/2026-05-16-multiview-virtualization-research/index|Multiview virtualization research]]
 

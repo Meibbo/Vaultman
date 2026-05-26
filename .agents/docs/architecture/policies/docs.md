@@ -4,7 +4,8 @@ type: policy
 status: active
 parent: "[[docs/work/pkm-ai/specs/2026-05-04-orchestration-refresh/index|pkm-ai]]"
 created: 2026-05-04T01:36:20
-updated: 2026-05-06T19:25:53
+updated: 2026-05-26T00:00:00
+updated_by: claude-opus-4-7
 tags:
   - agent/policy
 ---
@@ -43,9 +44,13 @@ tags:
 - Use one `parent` property with a full-path Obsidian wikilink and initiative alias.
 - Do not use `parent_path`.
 - Include agent tracking in frontmatter:
-    - `created_by`: the agent name who created the document.
-    - `updated_by`: the agent name who last edited the document.
+    - `created_by`: the agent that created the document.
+    - `updated_by`: the agent that last edited the document.
     - Allowed agents: `codex`, `claude`, `gemini`, `antigravity`, `perplexity`, `dev`.
+    - The value SHOULD include the model after the agent name as
+      `<agent>-<model>` (e.g. `claude-opus-4-7`, `codex-gpt-5-1`,
+      `gemini-3-pro`) to record which model produced the edit. The bare agent
+      name stays valid when the model is unknown.
 - Keep indexes compact; shard large docs into folder manifests.
 - Shards may be thematic or continuation-based. Do not force a topic boundary
   just to satisfy a line limit. If one topic exceeds the page size, continue it

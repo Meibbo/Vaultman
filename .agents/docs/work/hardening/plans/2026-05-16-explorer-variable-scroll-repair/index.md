@@ -4,7 +4,7 @@ type: implementation-record
 status: active
 parent: "[[docs/work/hardening/index|Hardening]]"
 created: 2026-05-16T12:52:54-05:00
-updated: 2026-05-16T14:27:20-05:00
+updated: 2026-05-20T20:33:33
 tags:
   - agent/plan
   - explorer/performance
@@ -157,13 +157,80 @@ actual jump/render path.
 | Grid | PASS | 0 | 0 | 0 | 0 ms | 58 ms | none |
 | List | PASS | 0 | 0 | 0 | 0 ms | 37 ms | none |
 
+Runner-level view switching + percentile/histogram + vault selection pass on
+2026-05-20:
+
+- `scripts/run-explorer-scroll-smoke.mjs` now switches the already-open Vaultman
+  Explorer to the requested `--view` by opening the live View Mode menu through
+  `openViewMenuHook`, clicking the matching mode button, and waiting for the
+  expected scroll target selector.
+- The same runner now accepts `--vault=<name>` and routes every Obsidian CLI
+  command through that explicit vault argument. The default remains
+  `plugin-dev`, but the next 50k/100k pass can target a registered stress vault
+  without changing the script.
+- `src/dev/perfProbe.ts` now reports event-loop delay percentiles
+  (`p50/p75/p95/p99`) and a fixed histogram (`<=16ms`, `<=33ms`, `<=50ms`,
+  `<=100ms`, `>100ms`) for each burst report.
+- TDD evidence:
+  - RED: `explorerScrollSmokeScript.test.ts` failed on missing
+    `ensureScrollTargetOpen`; `perfProbeDom.test.ts` failed on missing delay
+    percentile fields.
+  - RED follow-up: `explorerScrollSmokeScript.test.ts` failed on missing
+    `--vault=VAULT` runner support.
+  - GREEN: `pnpm vitest run test/component/perfProbeDom.test.ts test/unit/dev/perfProbe.test.ts test/unit/scripts/explorerScrollSmokeScript.test.ts`
+    passed, 3 files / 32 tests.
+- Build/quality evidence:
+  - `pnpm run build` passed and synced artifacts to repo root, `dist/build`,
+    `plugin-dev`, and the stress vault.
+  - `pnpm run check` passed with 0 errors / 0 warnings.
+  - `pnpm run lint` passed with 0 warnings / 0 errors.
+  - `git diff --check` passed with LF-to-CRLF working-copy warnings only.
+  - Fresh follow-up after `--vault` support: `pnpm vitest run
+    test/component/perfProbeDom.test.ts test/unit/dev/perfProbe.test.ts
+    test/unit/scripts/explorerScrollSmokeScript.test.ts` passed
+    (3 files / 32 tests); `pnpm run check`, `pnpm run lint`,
+    `pnpm run build`, and `git diff --check` passed. `git diff --check`
+    emitted only the existing LF-to-CRLF working-copy warnings.
+- Live `plugin-dev` explicit runner-switch matrix used:
+  `node scripts/run-explorer-scroll-smoke.mjs --view=<mode> --jumps=50 --visual-delay-ms=0 --no-build --no-overlay`.
+
+| View | Result | Blank frames | Blank >100 ms | Blank >250 ms | Max blank | Max delay | p95 delay | p99 delay | Delay histogram | Dev errors |
+| --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | --- | --- |
+| Tree | PASS | 0 | 0 | 0 | 0 ms | 1051 ms | 90 ms | 1051 ms | `<=16:0, <=33:3, <=50:33, <=100:12, >100:2` | none |
+| List | PASS | 0 | 0 | 0 | 0 ms | 43 ms | 10 ms | 43 ms | `<=16:49, <=33:0, <=50:1, <=100:0, >100:0` | none |
+| Table | PASS | 0 | 0 | 0 | 0 ms | 26 ms | 23 ms | 26 ms | `<=16:39, <=33:11, <=50:0, <=100:0, >100:0` | none |
+| Grid | PASS | 0 | 0 | 0 | 0 ms | 24 ms | 20 ms | 24 ms | `<=16:45, <=33:5, <=50:0, <=100:0, >100:0` | none |
+| Cards | PASS | 0 | 0 | 0 | 0 ms | 18 ms | 10 ms | 18 ms | `<=16:49, <=33:1, <=50:0, <=100:0, >100:0` | none |
+
+Stress-vault follow-up on 2026-05-20:
+[[docs/work/hardening/plans/2026-05-16-explorer-variable-scroll-repair/2026-05-20-stress-vault-matrix|2026-05-20 stress-vault scroll matrix]].
+
+- Fixed a harness/probe blind spot before trusting the large-vault numbers:
+  inactive Explorer tab containers can remain mounted, so the runner now
+  defaults to `--surface=files` and the probe prefers active-tab scroll
+  containers.
+- 50k Tree/List/Table Files matrix completed with zero blank frames and no
+  Obsidian dev errors, but event-loop pressure persists at large scale.
+- 50k Grid/Cards runs were only collapsed-topology measurements; Grid
+  `Expand all` at 50k did not return within about 90 seconds.
+- 100k corpus generation completed locally, but live Obsidian/CLI readiness
+  blocked the matrix: basic `stress-vault` eval did not return within 5 minutes
+  after earlier reload/index polling had already timed out. Obsidian was
+  recovered by removing the stress-vault `open` flag and validating
+  `plugin-dev` eval.
+- Fresh local gate after the harness correction passed: focused Vitest
+  3 files / 33 tests, `pnpm run check`, `pnpm run lint`, `pnpm run build`, and
+  `git diff --check`.
+
 ## Residuals
 
 - The blank-screen symptom did not reproduce in the live burst harness for the
   five selectable modes above.
-- The fresh zero-delay smoke no longer reproduces the large Table/List spikes.
-  Grid still has a moderate 58 ms peak and should get a percentile/histogram
-  runner before any claim of full smoothness.
+- The valid 50k Files matrix did not reproduce blank frames, but it did show
+  sustained event-loop delay in Tree/List and max-only Table outliers.
+- Grid/Cards still do not have a valid expanded large-row matrix; the 50k runs
+  stayed on collapsed topology rows, and Grid `Expand all` did not return within
+  about 90 seconds.
 - The first failed `list` smoke in this session was caused by an intentionally
   invalid eval selector used while discovering the view-switch path. The buffer
   was cleared with `obsidian dev:errors clear vault=plugin-dev`; subsequent
@@ -176,12 +243,12 @@ actual jump/render path.
 
 ## Next
 
-1. Add live runner support for selecting a view mode by argument so future
-   multiview smoke runs do not need manual View Mode menu eval clicks.
-2. Add percentile/histogram reporting to the scroll burst report; max-only is
-   too sensitive to unrelated Electron pauses.
-3. Re-run Grid with targeted marks around visible tile rendering, field
-   projection, and row measuring if the 58 ms peak persists under histogram
-   reporting.
-4. Run the same matrix against a confirmed 50k/100k synthetic dataset before
-   declaring full Notebook Navigator-level parity.
+1. Add targeted marks around Tree visible-row work, List row projection, and
+   Grid expansion/render readiness. The valid 50k Files matrix showed sustained
+   Tree/List event-loop pressure, while Grid/Cards still need an expanded-row
+   harness.
+2. Split the 100k work into a launch/index readiness gate before retrying
+   scroll bursts; the current 100k failure is an Obsidian CLI/runtime readiness
+   timeout, not a completed renderer matrix.
+3. Do not declare full Notebook Navigator-level 50k/100k parity until 100k
+   readiness and expanded Grid/Cards large-row coverage are both proven.

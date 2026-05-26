@@ -21,6 +21,10 @@ decisions about what is allowed into `main`.
 - Check current hardening and polish state before release work.
 - Keep release notes separate from agent handoff notes.
 
+## Active Release Records
+
+- [[docs/work/v1-stable/items/2026-05-25-release-1-1-0-beta-relabel|Release 1.1.0 beta relabel]]
+
 ## Related Routes
 
 - Stabilization: [[docs/work/hardening/index|hardening]]

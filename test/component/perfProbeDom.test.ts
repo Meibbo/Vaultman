@@ -158,6 +158,56 @@ describe('perf probe DOM scenarios', () => {
 		expect(scrolls).toBe(5);
 	});
 
+	it('targets the active explorer tab when inactive tabs keep matching scroll containers mounted', async () => {
+		let inactiveScrolls = 0;
+		let activeScrolls = 0;
+		document.body.innerHTML = `
+			<div class="vm-tab-content">
+				<div class="vm-view-list">
+					<div class="vm-view-list-row" data-id="props-row">
+						<span class="vm-view-list-label">Props row</span>
+					</div>
+				</div>
+			</div>
+			<div class="vm-tab-content is-active">
+				<div class="vm-files-tab-content">
+					<div class="vm-view-list">
+						<div class="vm-view-list-row" data-id="files-row">
+							<span class="vm-view-list-label">Files row</span>
+						</div>
+					</div>
+				</div>
+			</div>
+		`;
+		const [inactiveList, activeList] = [
+			...document.querySelectorAll<HTMLElement>('.vm-view-list'),
+		];
+		expect(inactiveList).toBeTruthy();
+		expect(activeList).toBeTruthy();
+		Object.defineProperty(inactiveList, 'clientHeight', { value: 0, configurable: true });
+		Object.defineProperty(inactiveList, 'scrollHeight', { value: 1_100, configurable: true });
+		Object.defineProperty(activeList, 'clientHeight', { value: 100, configurable: true });
+		Object.defineProperty(activeList, 'scrollHeight', { value: 1_100, configurable: true });
+		inactiveList.addEventListener('scroll', () => {
+			inactiveScrolls += 1;
+		});
+		activeList.addEventListener('scroll', () => {
+			activeScrolls += 1;
+		});
+		const probe = createPerfProbe({ now: () => performance.now(), doc: document });
+
+		const result = await probe.api.run('explorer-scroll-burst-live', {
+			view: 'list',
+			jumps: 1,
+			visualDelayMs: 0,
+			overlay: false,
+		});
+
+		expect(result.scrollBurst?.samples[0]?.firstRowId).toBe('files-row');
+		expect(activeScrolls).toBe(1);
+		expect(inactiveScrolls).toBe(0);
+	});
+
 	it('runs explorer scroll burst live as smooth incremental scroll samples', async () => {
 		let scrolls = 0;
 		const scrollTops: number[] = [];
@@ -201,6 +251,53 @@ describe('perf probe DOM scenarios', () => {
 		expect(scrolls).toBe(3);
 		expect(scrollTops).toEqual([20, 40, 60]);
 		expect(result.scrollBurst?.samples.map((sample) => sample.scrollTop)).toEqual([20, 40, 60]);
+	});
+
+	it('reports event-loop delay percentiles and histogram for burst samples', async () => {
+		let scrolls = 0;
+		let now = 0;
+		const delays = [5, 12, 30, 60, 120];
+		document.body.innerHTML = `
+			<div class="vm-view-list">
+				<div class="vm-view-list-row" data-id="node-0">
+					<span class="vm-view-list-label">Node 0</span>
+				</div>
+			</div>
+		`;
+		const list = document.querySelector<HTMLElement>('.vm-view-list');
+		const row = document.querySelector<HTMLElement>('.vm-view-list-row');
+		expect(list).toBeTruthy();
+		expect(row).toBeTruthy();
+		Object.defineProperty(list, 'clientHeight', { value: 100, configurable: true });
+		Object.defineProperty(list, 'scrollHeight', { value: 1_100, configurable: true });
+		list?.addEventListener('scroll', () => {
+			now += delays[scrolls] ?? 0;
+			scrolls += 1;
+			row!.textContent = `Node ${scrolls}`;
+		});
+		const probe = createPerfProbe({ now: () => now, doc: document });
+
+		const result = await probe.api.run('explorer-scroll-burst-live', {
+			view: 'list',
+			jumps: 5,
+			visualDelayMs: 0,
+			overlay: false,
+		});
+
+		expect(result.scrollBurst).toMatchObject({
+			maxEventLoopDelayMs: 120,
+			eventLoopDelayP50Ms: 30,
+			eventLoopDelayP75Ms: 60,
+			eventLoopDelayP95Ms: 120,
+			eventLoopDelayP99Ms: 120,
+		});
+		expect(result.scrollBurst?.eventLoopDelayHistogram).toEqual([
+			{ label: '<=16ms', maxMs: 16, count: 2 },
+			{ label: '<=33ms', maxMs: 33, count: 1 },
+			{ label: '<=50ms', maxMs: 50, count: 0 },
+			{ label: '<=100ms', maxMs: 100, count: 1 },
+			{ label: '>100ms', maxMs: null, count: 1 },
+		]);
 	});
 
 	it('runs explorer scroll burst live as monitor samples without synthetic scrolling', async () => {

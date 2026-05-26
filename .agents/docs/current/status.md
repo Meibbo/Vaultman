@@ -3,13 +3,13 @@ title: Current status
 type: agent-status
 status: active
 parent: "[[docs/work/pkm-ai/index|pkm-ai]]"
-archive_source: "docs/archive/pkm-ai/active-docs/2026-05-11T080321-current-status.md"
+archive_source: docs/archive/pkm-ai/active-docs/2026-05-11T080321-current-status.md
 created: 2026-05-04T01:36:20
-updated: 2026-05-20T16:47:00-05:00
+updated: 2026-05-26T00:00:00
 tags:
   - agent/current
 created_by: dec
-updated_by: codex
+updated_by: claude-opus-4-7
 ---
 
 # Current Status
@@ -29,7 +29,32 @@ Compact route index after archiving the oversized current status:
 ## Current Route
 
 - Active initiative: [[docs/work/hardening/index|Hardening]].
-- **LATEST (2026-05-20)**: [[docs/work/hardening/plans/2026-05-20-explorer-AR-action-routing/index|A.R implementation plan]]
+- **LATEST (2026-05-26)**: Architecture foundation brainstorm captured (8-dimension model).
+  Record: [[docs/work/hardening/research/2026-05-25-architecture-foundation-discovery/index|Architecture Foundation Discovery]]
+  (decision-ledger + research-streams + roadmap-reslot). Durable model:
+  [[docs/architecture/explorer-model/index|explorer-model]] + [[docs/architecture/adr/README|ADRs 0001-0008]].
+  Glossary extended. New initiative: [[docs/work/publish/index|publish]] (1.1.0→beta + CI + mobile).
+  Open: grill orchestration ownership; confirm PROPOSED (page=editor-group, render 2-layer).
+- **LATEST ADDENDUM (2026-05-25)**: Separate specs captured for future NodeElement visual assets,
+  outside the already-handed-off V.D planning package:
+  [[docs/work/hardening/specs/2026-05-25-explorer-node-media-cache/index|Explorer Node Media Index And Thumbnail Cache]]
+  ,
+  [[docs/work/hardening/specs/2026-05-25-explorer-node-video-provider-media-cache/index|Explorer Node Video Provider Media And Cache Settings]],
+  and
+  [[docs/work/hardening/specs/2026-05-25-explorer-icon-pack-cache/index|Explorer Icon Pack Cache]].
+- **LATEST (2026-05-25)**: V.D discovery and spec captured for Tree/List/Notebook Navigator pipeline parity:
+  [[docs/work/hardening/research/2026-05-25-vd-tree-list-nn-pipeline-discovery/index|pipeline discovery]]
+  and
+  [[docs/work/hardening/specs/2026-05-25-vd-tree-render-projection/index|V.D Tree Render Projection]].
+  Next implementation starts by instrumenting Tree projection cost, then moves visible-row projection out of
+  `viewTree.svelte`.
+- **LATEST (2026-05-20)**: [[docs/work/hardening/plans/2026-05-16-explorer-variable-scroll-repair/2026-05-20-stress-vault-matrix|0-A.S stress-vault scroll matrix]]
+  — runner-level view switching, delay percentiles/histogram, explicit
+  `--vault=<name>`, and active Files-surface targeting are implemented. The
+  valid 50k Files matrix passed Tree/List/Table with zero blanks; Grid/Cards
+  still need expanded-row coverage, and 100k is blocked by Obsidian
+  CLI/runtime readiness.
+- [[docs/work/hardening/plans/2026-05-20-explorer-AR-action-routing/index|A.R implementation plan]]
   — Gate-0 and Tasks 1-9 are complete; verification source:
   [[docs/work/hardening/plans/2026-05-20-explorer-AR-action-routing/05-verification|Task 9 verification matrix + live smoke]].
 - [[docs/work/hardening/specs/2026-05-19-explorer-merge-umbrella/index|Explorer Merge Umbrella]]
@@ -78,10 +103,11 @@ Compact route index after archiving the oversized current status:
   [[docs/work/hardening/plans/2026-05-16-explorer-variable-scroll-repair/index|Explorer variable scroll repair]].
 - Toolbar architecture map captured for Polish:
   [[docs/work/polish/research/2026-05-17-toolbar-architecture/index|Toolbar architecture and primitive ordering map]].
-- Codebase architecture cluster phases 01-09 captured:
+- Codebase architecture cluster phases 01-10 captured:
   [[docs/work/research/2026-05-17-codebase-architecture-cluster/index|Codebase architecture cluster]];
   latest layer:
-  [[docs/work/research/2026-05-17-codebase-architecture-cluster/09-residual-src-support-layer|Residual src support layer]].
+  [[docs/work/research/2026-05-25-codebase-orphan-files-audit|Orphan Files Audit]].
+
 
 ## Verification Snapshot
 
@@ -203,6 +229,26 @@ Compact route index after archiving the oversized current status:
   - Live `plugin-dev` explicit-switch scroll smokes passed for
     Tree/List/Table/Grid/Cards with `blankFrames=0`, `blank>100ms=0`,
     `blank>250ms=0`, and final `dev:errors` returned `No errors captured.`
+- 0-A.S scroll harness follow-up on 2026-05-20:
+  - Source record:
+    [[docs/work/hardening/plans/2026-05-16-explorer-variable-scroll-repair/index|Explorer variable scroll repair]].
+  - Runner-level view switching, event-loop delay percentiles/histogram, and
+    `--vault=<name>` selection are implemented.
+  - Fresh local gate passed: targeted Vitest 3 files / 32 tests; `pnpm run check`;
+    `pnpm run lint`; `pnpm run build`; `git diff --check` with LF-to-CRLF
+    warnings only.
+- Stress-vault matrix follow-up on 2026-05-20:
+  - Source record:
+    [[docs/work/hardening/plans/2026-05-16-explorer-variable-scroll-repair/2026-05-20-stress-vault-matrix|0-A.S stress-vault scroll matrix]].
+  - Harness correction passed fresh targeted gate: 3 files / 33 tests;
+    `pnpm run check`; `pnpm run lint`; `pnpm run build`; `git diff --check`
+    with LF-to-CRLF warnings only.
+  - 50k Tree/List/Table Files matrix passed with zero blank frames and no
+    Obsidian dev errors.
+  - 50k Grid/Cards measurements were collapsed-topology only; Grid `Expand all`
+    at 50k did not return within about 90 seconds.
+  - 100k corpus exists locally, but basic `stress-vault` eval timed out after
+    5 minutes; Obsidian was recovered and `plugin-dev` eval returned `=> 2`.
 
 ## Known Residuals
 
@@ -214,9 +260,9 @@ Compact route index after archiving the oversized current status:
   TanStack as the default, add a shared layout/index service, and prototype
   `virtua` only behind the same live blank-frame harness.
 - Scroll smoke harness is implemented in `src/dev/perfProbe.ts` and
-  `scripts/run-explorer-scroll-smoke.mjs`. Live runs use
-  `pnpm smoke:scroll -- --view=<mode>` or direct script invocation, both
-  targeting `vault=plugin-dev`.
+  `scripts/run-explorer-scroll-smoke.mjs`. Live runs default to `plugin-dev`
+  and now accept `--vault=<name>` so registered stress vaults can be targeted
+  explicitly without script edits.
 - Live multiview smoke after variable scroll repair passed with
   `blankFrames=0`, `blank>100ms=0`, `blank>250ms=0`, `maxBlank=0ms`, and no
   Obsidian dev errors for Tree/List/Table/Grid/Cards. Max event-loop delay
@@ -226,6 +272,10 @@ Compact route index after archiving the oversized current status:
   and virtualizer resizing until 96 ms after active scroll. Fresh zero-delay
   live smokes passed with no blanks and no dev errors: Table maxDelay 29 ms,
   Grid 58 ms, List 37 ms.
+- Large-vault stress pass changes the next scroll focus: the valid 50k
+  Tree/List/Table Files matrix had zero blanks but showed sustained event-loop
+  pressure in Tree/List; Grid/Cards are not yet valid large-row measurements
+  because the hierarchy stayed collapsed.
 - Map/ViewNodeMap remains deferred and is not exposed as a selectable
   next-release view after the post-review repair.
 - The 0-A C12/C13 closeout handoff commit is scoped to scroll-smoke harness,
@@ -233,14 +283,15 @@ Compact route index after archiving the oversized current status:
 
 ## Next Action
 
-- **PRIMARY (post A.R Task 9 2026-05-20)**: choose the next `v1.2.0`
-  Explorer Hardening slice from the umbrella: tree sticky-parent fix, 0-A.S
-  scroll harness follow-up, or T.G invariant-gate basis.
+- **PRIMARY (post A.R Task 9 2026-05-20)**: continue the 0-A.S scroll harness
+  follow-up from the stress-vault source record by adding fine-grained marks
+  around Tree visible-row work, List row projection, and Grid expansion/render
+  readiness.
 - Explorer 0-B, O, 0-A, and A.R are complete.
 - For Explorer scroll work, continue from the variable scroll repair record:
-  add runner-level view switching, add percentile/histogram reporting for scroll
-  burst delay, investigate Grid's remaining 58 ms peak if it persists, and
-  confirm the matrix against explicit 50k/100k datasets.
+  view switching, percentile/histogram reporting, `--vault` selection, and
+  active Files-surface targeting are done. Split 100k into launch/index
+  readiness before retrying scroll bursts.
 - If resuming OpenSSF hardening, begin with
   [[docs/work/hardening/plans/2026-05-16-openssf-osps-baseline/01-scope-docs-workflow-permissions|Scope, public docs, and workflow permissions]].
 - If continuing the architecture cluster, next run coverage reconciliation:

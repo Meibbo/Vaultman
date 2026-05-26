@@ -83,6 +83,12 @@ export interface PerfScrollBurstSample {
 	totalEstimatedRows?: number;
 }
 
+export interface PerfScrollBurstDelayHistogramBucket {
+	label: string;
+	maxMs: number | null;
+	count: number;
+}
+
 export interface PerfScrollBurstReport {
 	requestedView: PerfScrollBurstView;
 	view: Exclude<PerfScrollBurstView, 'auto'>;
@@ -95,6 +101,11 @@ export interface PerfScrollBurstReport {
 	maxBlankDurationMs: number;
 	maxViewportGapPx: number;
 	maxEventLoopDelayMs: number;
+	eventLoopDelayP50Ms: number;
+	eventLoopDelayP75Ms: number;
+	eventLoopDelayP95Ms: number;
+	eventLoopDelayP99Ms: number;
+	eventLoopDelayHistogram: PerfScrollBurstDelayHistogramBucket[];
 	longAnimationFrameCount: number;
 	maxLongAnimationFrameMs: number;
 	longTaskCount: number;
@@ -358,7 +369,7 @@ function scrollBurstTargets(doc: Document): ScrollBurstTarget[] {
 		textSelector: string,
 		flickerSelectors: Record<string, string>,
 	): ScrollBurstTarget | null => {
-		const element = doc.querySelector<HTMLElement>(selector);
+		const element = chooseScrollBurstElement([...doc.querySelectorAll<HTMLElement>(selector)]);
 		return element ? { view, element, rowSelector, textSelector, flickerSelectors } : null;
 	};
 
@@ -427,6 +438,28 @@ function scrollBurstTargets(doc: Document): ScrollBurstTarget[] {
 			},
 		),
 	].filter((item): item is ScrollBurstTarget => item !== null);
+}
+
+function chooseScrollBurstElement(elements: readonly HTMLElement[]): HTMLElement | null {
+	if (elements.length === 0) return null;
+	const activeCandidates = elements.filter((element) => !isInsideInactiveTabContent(element));
+	const candidates = activeCandidates.length > 0 ? activeCandidates : elements;
+	return candidates.find(hasUsableScrollGeometry) ?? candidates[0] ?? null;
+}
+
+function isInsideInactiveTabContent(element: HTMLElement): boolean {
+	const tabContent = element.closest<HTMLElement>('.vm-tab-content');
+	return Boolean(tabContent && !tabContent.classList.contains('is-active'));
+}
+
+function hasUsableScrollGeometry(element: HTMLElement): boolean {
+	const rect = element.getBoundingClientRect();
+	return (
+		element.clientHeight > 0 ||
+		element.clientWidth > 0 ||
+		element.scrollHeight > element.clientHeight ||
+		hasMeasurableRect(rect)
+	);
 }
 
 function resolveScrollBurstTarget(
@@ -760,7 +793,9 @@ function upsertScrollSmokeOverlay(doc: Document, report: PerfScrollBurstReport):
 		report.blankFrameCount
 	} maxBlank=${Math.round(report.maxBlankDurationMs)}ms maxViewportGap=${Math.round(
 		report.maxViewportGapPx,
-	)}px maxDelay=${Math.round(report.maxEventLoopDelayMs)}ms LoAF=${
+	)}px maxDelay=${Math.round(report.maxEventLoopDelayMs)}ms p95Delay=${Math.round(
+		report.eventLoopDelayP95Ms,
+	)}ms LoAF=${
 		report.longAnimationFrameCount
 	}/${Math.round(report.maxLongAnimationFrameMs)}ms longtask=${report.longTaskCount}/${Math.round(
 		report.maxLongTaskMs,
@@ -788,6 +823,11 @@ async function runExplorerScrollBurst(
 			maxBlankDurationMs: SCROLL_BURST_HARD_BLANK_FAIL_MS,
 			maxViewportGapPx: 0,
 			maxEventLoopDelayMs: 0,
+			eventLoopDelayP50Ms: 0,
+			eventLoopDelayP75Ms: 0,
+			eventLoopDelayP95Ms: 0,
+			eventLoopDelayP99Ms: 0,
+			eventLoopDelayHistogram: emptyEventLoopDelayHistogram(),
 			longAnimationFrameCount: 0,
 			maxLongAnimationFrameMs: 0,
 			longTaskCount: 0,
@@ -951,7 +991,7 @@ function buildScrollBurstReport(
 	).length;
 	const maxBlankDurationMs = Math.max(0, ...samples.map((sample) => sample.blankDurationMs));
 	const maxViewportGapPx = Math.max(0, ...samples.map((sample) => sample.viewportGapPx));
-	const maxEventLoopDelayMs = Math.max(0, ...samples.map((sample) => sample.eventLoopDelayMs));
+	const eventLoopDelay = eventLoopDelayStats(samples);
 	const flickerFrameCount = samples.filter((sample) => sample.flickerRowCount > 0).length;
 	const maxFlickerRowCount = Math.max(0, ...samples.map((sample) => sample.flickerRowCount));
 	return {
@@ -965,7 +1005,12 @@ function buildScrollBurstReport(
 		blankWindowOver250ms,
 		maxBlankDurationMs,
 		maxViewportGapPx,
-		maxEventLoopDelayMs,
+		maxEventLoopDelayMs: eventLoopDelay.maxMs,
+		eventLoopDelayP50Ms: eventLoopDelay.p50Ms,
+		eventLoopDelayP75Ms: eventLoopDelay.p75Ms,
+		eventLoopDelayP95Ms: eventLoopDelay.p95Ms,
+		eventLoopDelayP99Ms: eventLoopDelay.p99Ms,
+		eventLoopDelayHistogram: eventLoopDelay.histogram,
 		longAnimationFrameCount: observerStats.longAnimationFrameCount,
 		maxLongAnimationFrameMs: observerStats.maxLongAnimationFrameMs,
 		longTaskCount: observerStats.longTaskCount,
@@ -980,6 +1025,50 @@ function buildScrollBurstReport(
 			blankWindowOver250ms === 0 &&
 			(!strictFlicker || flickerFrameCount === 0),
 	};
+}
+
+function eventLoopDelayStats(samples: readonly PerfScrollBurstSample[]) {
+	const delays = samples
+		.map((sample) => Math.max(0, sample.eventLoopDelayMs))
+		.sort((a, b) => a - b);
+	const histogram = eventLoopDelayHistogram(delays);
+	return {
+		maxMs: delays.at(-1) ?? 0,
+		p50Ms: percentileNearestRank(delays, 50),
+		p75Ms: percentileNearestRank(delays, 75),
+		p95Ms: percentileNearestRank(delays, 95),
+		p99Ms: percentileNearestRank(delays, 99),
+		histogram,
+	};
+}
+
+function percentileNearestRank(sortedValues: readonly number[], percentile: number): number {
+	if (sortedValues.length === 0) return 0;
+	const rank = Math.ceil((Math.max(0, Math.min(100, percentile)) / 100) * sortedValues.length);
+	return sortedValues[Math.max(0, rank - 1)] ?? 0;
+}
+
+function eventLoopDelayHistogram(
+	sortedDelays: readonly number[],
+): PerfScrollBurstDelayHistogramBucket[] {
+	const buckets = emptyEventLoopDelayHistogram();
+	for (const delayMs of sortedDelays) {
+		const bucket =
+			buckets.find((candidate) => candidate.maxMs !== null && delayMs <= candidate.maxMs) ??
+			buckets[buckets.length - 1];
+		bucket.count += 1;
+	}
+	return buckets;
+}
+
+function emptyEventLoopDelayHistogram(): PerfScrollBurstDelayHistogramBucket[] {
+	return [
+		{ label: '<=16ms', maxMs: 16, count: 0 },
+		{ label: '<=33ms', maxMs: 33, count: 0 },
+		{ label: '<=50ms', maxMs: 50, count: 0 },
+		{ label: '<=100ms', maxMs: 100, count: 0 },
+		{ label: '>100ms', maxMs: null, count: 0 },
+	];
 }
 
 function dragBoxSelection(element: HTMLElement): void {

@@ -36,6 +36,7 @@ backlog structure, and branch hygiene for AI workflow files.
 - Research: [[docs/work/pkm-ai/research/2026-05-10-residual-classification|residual-classification]]
 - Research: [[docs/work/pkm-ai/research/2026-05-11-pi-crew-agent-coordination|pi-crew-agent-coordination]]
 - Research: [[docs/work/pkm-ai/research/2026-05-11-pi-crew-runtime-spike|pi-crew-runtime-spike]]
+- Research: [[docs/work/pkm-ai/research/2026-05-24-llm-wiki-maintenance-best-practices|llm-wiki-maintenance-best-practices]]
 - Item: [[docs/work/pkm-ai/items/vm-0002-current-docs-as-route-indexes|current docs as route indexes]]
 - Migration archive: [[docs/archive/pkm-ai/migration-2026-05-04/index|migration-2026-05-04]]
 

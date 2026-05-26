@@ -1,15 +1,23 @@
 import { spawnSync } from 'node:child_process';
 
-const VAULT = 'plugin-dev';
+const DEFAULT_VAULT = 'plugin-dev';
 const VIEWS = new Set(['auto', 'tree', 'list', 'table', 'grid', 'cards']);
 const MODES = new Set(['smoke', 'stress']);
 const PATTERNS = new Set(['jump', 'smooth', 'monitor']);
+const SURFACES = new Set(['current', 'files']);
 const SCROLL_TARGET_SELECTORS = {
 	tree: '.vm-tree-virtual-outer',
 	list: '.vm-view-list',
 	table: '.vm-node-table',
 	grid: '.vm-node-grid',
 	cards: '.vm-node-cards',
+};
+const VIEW_MODE_LABELS = {
+	tree: 'Tree',
+	list: 'List',
+	table: 'Table',
+	grid: 'Grid',
+	cards: 'Cards',
 };
 
 const options = parseOptions(process.argv.slice(2));
@@ -21,7 +29,7 @@ if (options.help) {
 
 if (!options.noBuild) runChecked('pnpm', ['run', 'build'], { shellOnWindows: true });
 if (!options.noReload) {
-	runChecked('obsidian', [`vault=${VAULT}`, 'plugin:reload', 'id=vaultman']);
+	runChecked('obsidian', [vaultArg(), 'plugin:reload', 'id=vaultman']);
 }
 if (!options.noOpen) {
 	if (scrollTargetAlreadyOpen(options.view)) {
@@ -29,21 +37,23 @@ if (!options.noOpen) {
 			`Vaultman Explorer scroll target already open for view=${options.view}; skipping vaultman:open.`,
 		);
 	} else if (vaultmanFrameAlreadyOpen()) {
-		console.log('Vaultman frame already open; waiting for requested scroll target.');
+		console.log('Vaultman frame already open; checking requested scroll target.');
 	} else {
-		runChecked('obsidian', [`vault=${VAULT}`, 'command', 'id=vaultman:open']);
+		runChecked('obsidian', [vaultArg(), 'command', 'id=vaultman:open']);
 	}
 }
+ensureExplorerSurfaceOpen(options.surface);
+ensureScrollTargetOpen(options.view);
 
 const evalResult = runChecked('obsidian', [
-	`vault=${VAULT}`,
+	vaultArg(),
 	'eval',
 	`code=${buildEvalCode(options)}`,
 ], { printOutput: false });
 const snapshot = parseJsonFromOutput(evalResult.stdout);
-printBurstSummary(snapshot);
+printBurstSummary(snapshot, options.vault);
 
-const errors = runChecked('obsidian', [`vault=${VAULT}`, 'dev:errors']);
+const errors = runChecked('obsidian', [vaultArg(), 'dev:errors']);
 const hasDevErrors = !(errors.stdout ?? '').includes('No errors captured.');
 const burstPassed = snapshot.scrollBurst?.passed === true;
 
@@ -57,8 +67,10 @@ if (!burstPassed || hasDevErrors) {
 function parseOptions(args) {
 	const parsed = {
 		help: false,
+		vault: DEFAULT_VAULT,
 		mode: 'smoke',
 		view: 'auto',
+		surface: 'files',
 		pattern: 'jump',
 		jumps: undefined,
 		scrollStepPx: undefined,
@@ -78,8 +90,10 @@ function parseOptions(args) {
 		else if (arg === '--no-open') parsed.noOpen = true;
 		else if (arg === '--no-overlay') parsed.overlay = false;
 		else if (arg === '--strict-flicker') parsed.strictFlicker = true;
+		else if (arg.startsWith('--vault=')) parsed.vault = valueFor(arg);
 		else if (arg.startsWith('--mode=')) parsed.mode = valueFor(arg);
 		else if (arg.startsWith('--view=')) parsed.view = valueFor(arg);
+		else if (arg.startsWith('--surface=')) parsed.surface = valueFor(arg);
 		else if (arg.startsWith('--pattern=')) parsed.pattern = valueFor(arg);
 		else if (arg.startsWith('--jumps=')) parsed.jumps = integerValue(arg, 'jumps');
 		else if (arg.startsWith('--scroll-step-px=')) {
@@ -93,9 +107,14 @@ function parseOptions(args) {
 		}
 	}
 
+	parsed.vault = parsed.vault.trim();
+	if (!parsed.vault) fail('--vault must be a non-empty Obsidian vault name.');
 	if (!MODES.has(parsed.mode)) fail(`Unknown mode "${parsed.mode}". Use smoke or stress.`);
 	if (!VIEWS.has(parsed.view)) {
 		fail(`Unknown view "${parsed.view}". Use auto, tree, list, table, grid, or cards.`);
+	}
+	if (!SURFACES.has(parsed.surface)) {
+		fail(`Unknown surface "${parsed.surface}". Use current or files.`);
 	}
 	if (!PATTERNS.has(parsed.pattern)) {
 		fail(`Unknown pattern "${parsed.pattern}". Use jump, smooth, or monitor.`);
@@ -106,6 +125,10 @@ function parseOptions(args) {
 	parsed.visualDelayMs ??= parsed.mode === 'stress' ? 8 : 24;
 	parsed.strictIdleMs ??= parsed.strictFlicker ? 0 : undefined;
 	return parsed;
+}
+
+function vaultArg() {
+	return `vault=${options.vault}`;
 }
 
 function valueFor(arg) {
@@ -159,6 +182,11 @@ function buildEvalCode({
 		'      maxBlankDurationMs: b.maxBlankDurationMs,',
 		'      maxViewportGapPx: b.maxViewportGapPx,',
 		'      maxEventLoopDelayMs: b.maxEventLoopDelayMs,',
+		'      eventLoopDelayP50Ms: b.eventLoopDelayP50Ms,',
+		'      eventLoopDelayP75Ms: b.eventLoopDelayP75Ms,',
+		'      eventLoopDelayP95Ms: b.eventLoopDelayP95Ms,',
+		'      eventLoopDelayP99Ms: b.eventLoopDelayP99Ms,',
+		'      eventLoopDelayHistogram: b.eventLoopDelayHistogram,',
 		'      longAnimationFrameCount: b.longAnimationFrameCount,',
 		'      maxLongAnimationFrameMs: b.maxLongAnimationFrameMs,',
 		'      longTaskCount: b.longTaskCount,',
@@ -185,7 +213,7 @@ function buildEvalCode({
 function scrollTargetAlreadyOpen(view) {
 	const result = runChecked(
 		'obsidian',
-		[`vault=${VAULT}`, 'eval', `code=${buildTargetPresenceCode(view)}`],
+		[vaultArg(), 'eval', `code=${buildTargetPresenceCode(view)}`],
 		{ printOutput: false },
 	);
 	return parseJsonFromOutput(result.stdout).present === true;
@@ -194,10 +222,51 @@ function scrollTargetAlreadyOpen(view) {
 function vaultmanFrameAlreadyOpen() {
 	const result = runChecked(
 		'obsidian',
-		[`vault=${VAULT}`, 'eval', `code=${buildFramePresenceCode()}`],
+		[vaultArg(), 'eval', `code=${buildFramePresenceCode()}`],
 		{ printOutput: false },
 	);
 	return parseJsonFromOutput(result.stdout).present === true;
+}
+
+function ensureExplorerSurfaceOpen(surface) {
+	if (surface === 'current') return;
+	if (!vaultmanFrameAlreadyOpen()) return;
+	console.log(`Switching Vaultman Explorer to requested surface=${surface}.`);
+	const result = runChecked(
+		'obsidian',
+		[vaultArg(), 'eval', `code=${buildExplorerSurfaceCode(surface)}`],
+		{ printOutput: false },
+	);
+	const parsed = parseJsonFromOutput(result.stdout);
+	if (parsed.present === true) return;
+	fail(parsed.reason ?? `Could not switch Vaultman Explorer to surface=${surface}.`);
+}
+
+function ensureScrollTargetOpen(view) {
+	if (view === 'auto' || scrollTargetAlreadyOpen(view)) return;
+	if (!vaultmanFrameAlreadyOpen()) return;
+	console.log(`Switching Vaultman Explorer to requested view=${view}.`);
+	const result = runChecked(
+		'obsidian',
+		[vaultArg(), 'eval', `code=${buildViewSwitchCode(view)}`],
+		{ printOutput: false },
+	);
+	const parsed = parseJsonFromOutput(result.stdout);
+	if (parsed.present === true) return;
+	fail(parsed.reason ?? `Could not switch Vaultman Explorer to view=${view}.`);
+}
+
+function activeScrollTargetPresentCode() {
+	return [
+		'  const activeScrollTargetPresent = (el) => {',
+		"    const tab = el.closest('.vm-tab-content');",
+		"    if (tab && !tab.classList.contains('is-active')) return false;",
+		'    const rect = el.getBoundingClientRect();',
+		'    return el.clientHeight > 0 || el.clientWidth > 0 || el.scrollHeight > el.clientHeight ||',
+		'      rect.width !== 0 || rect.height !== 0 || rect.top !== 0 || rect.bottom !== 0 ||',
+		'      rect.left !== 0 || rect.right !== 0;',
+		'  };',
+	].join('\n');
 }
 
 function buildTargetPresenceCode(view) {
@@ -205,10 +274,62 @@ function buildTargetPresenceCode(view) {
 		view === 'auto'
 			? Object.values(SCROLL_TARGET_SELECTORS)
 			: [SCROLL_TARGET_SELECTORS[view]].filter(Boolean);
-	const expression = selectors
-		.map((selector) => `document.querySelector(${JSON.stringify(selector)})`)
-		.join(' || ');
-	return `JSON.stringify({present: Boolean(${expression || 'false'})})`;
+	return [
+		'(() => {',
+		activeScrollTargetPresentCode(),
+		`  const selectors = ${JSON.stringify(selectors)};`,
+		'  return JSON.stringify({present: selectors.some((selector) => [...document.querySelectorAll(selector)].some(activeScrollTargetPresent))});',
+		'})()',
+	].join('\n');
+}
+
+function buildExplorerSurfaceCode(surface) {
+	if (surface !== 'files') {
+		return 'JSON.stringify({present: true, surface: "current"})';
+	}
+	return [
+		'Promise.resolve().then(async () => {',
+		"  const clickTab = (label) => {",
+		"    const tabs = [...document.querySelectorAll('[role=\"tab\"]')];",
+		"    const tab = tabs.find((el) => el.getAttribute('aria-label') === label || el.textContent?.trim() === label);",
+		'    tab?.click();',
+		'    return Boolean(tab);',
+		'  };',
+		"  const filtersClicked = clickTab('Filters');",
+		'  await new Promise((resolve) => setTimeout(resolve, 120));',
+		"  const filesClicked = clickTab('Files');",
+		'  await new Promise((resolve) => setTimeout(resolve, 120));',
+		"  const filesContent = document.querySelector('.vm-files-tab-content');",
+		"  const active = Boolean(filesContent?.closest('.vm-tab-content.is-active'));",
+		"  if (active) return JSON.stringify({present: true, surface: 'files', filtersClicked, filesClicked});",
+		"  return JSON.stringify({present: false, surface: 'files', filtersClicked, filesClicked, reason: 'Files explorer tab is not active'});",
+		'})',
+	].join('\n');
+}
+
+function buildViewSwitchCode(view) {
+	const selector = SCROLL_TARGET_SELECTORS[view];
+	const label = VIEW_MODE_LABELS[view];
+	return [
+		'Promise.resolve().then(async () => {',
+		activeScrollTargetPresentCode(),
+		`  const selector = ${JSON.stringify(selector)};`,
+		`  const label = ${JSON.stringify(label)};`,
+		'  const targetPresent = () => [...document.querySelectorAll(selector)].some(activeScrollTargetPresent);',
+		'  if (targetPresent()) return JSON.stringify({present: true, switched: false});',
+		'  const plugin = app?.plugins?.plugins?.vaultman;',
+		'  plugin?.openViewMenuHook?.();',
+		'  await new Promise((resolve) => setTimeout(resolve, 150));',
+		"  const button = [...document.querySelectorAll('.vm-view-menu-mode')].find((el) => el.getAttribute('aria-label') === label || el.textContent?.trim() === label);",
+		"  if (!button) return JSON.stringify({present: targetPresent(), switched: false, reason: `View mode button missing: ${label}`});",
+		'  button.click();',
+		'  for (let i = 0; i < 20; i += 1) {',
+		'    await new Promise((resolve) => setTimeout(resolve, 50));',
+		'    if (targetPresent()) return JSON.stringify({present: true, switched: true});',
+		'  }',
+		"  return JSON.stringify({present: false, switched: true, reason: `Scroll target not found after switching to ${label}`});",
+		'})',
+	].join('\n');
 }
 
 function buildFramePresenceCode() {
@@ -256,7 +377,7 @@ function formatSampleIndexRange(sample) {
 	return `idx=${range}${total}`;
 }
 
-function printBurstSummary(snapshot) {
+function printBurstSummary(snapshot, vault) {
 	const burst = snapshot.scrollBurst;
 	if (!burst) fail('Obsidian eval returned no scrollBurst report.');
 	const status = burst.passed ? 'PASS' : 'FAIL';
@@ -265,7 +386,7 @@ function printBurstSummary(snapshot) {
 	console.log(
 		[
 			`Explorer scroll smoke ${status}`,
-			`vault=${VAULT}`,
+			`vault=${vault}`,
 			`view=${burst.view}`,
 			`pattern=${burst.pattern ?? 'jump'}`,
 			`jumps=${burst.jumpCount}`,
@@ -278,6 +399,9 @@ function printBurstSummary(snapshot) {
 			`maxBlank=${Math.round(burst.maxBlankDurationMs)}ms`,
 			`maxViewportGap=${Math.round(burst.maxViewportGapPx ?? 0)}px`,
 			`maxDelay=${Math.round(burst.maxEventLoopDelayMs)}ms`,
+			`p95Delay=${Math.round(burst.eventLoopDelayP95Ms ?? 0)}ms`,
+			`p99Delay=${Math.round(burst.eventLoopDelayP99Ms ?? 0)}ms`,
+			`delayHist=${formatDelayHistogram(burst.eventLoopDelayHistogram)}`,
 			`LoAF=${burst.longAnimationFrameCount ?? 0}/${Math.round(
 				burst.maxLongAnimationFrameMs ?? 0,
 			)}ms`,
@@ -293,14 +417,21 @@ function printBurstSummary(snapshot) {
 	);
 }
 
+function formatDelayHistogram(histogram) {
+	if (!Array.isArray(histogram) || histogram.length === 0) return 'n/a';
+	return histogram.map((bucket) => `${bucket.label}:${bucket.count}`).join(',');
+}
+
 function printHelp() {
 	console.log(`Usage: node scripts/run-explorer-scroll-smoke.mjs [options]
 
-Runs the live Vaultman Explorer scroll burst smoke against vault=${VAULT}.
+Runs the live Vaultman Explorer scroll burst smoke against vault=${DEFAULT_VAULT} by default.
 
 Options:
+  --vault=VAULT                Obsidian vault name, defaults to plugin-dev
   --mode=smoke|stress          smoke defaults to 100 jumps, stress to 1000
   --view=auto|tree|list|table|grid|cards
+  --surface=current|files      target current surface or switch to Files first, defaults to files
   --pattern=jump|smooth|monitor
                                jump uses ratios, smooth uses scrollTop steps, monitor samples manual scroll
   --jumps=N                    override jump count

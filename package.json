@@ -1,6 +1,6 @@
 {
 	"name": "vaultman",
-	"version": "1.1.0",
+	"version": "1.1.0-beta.1",
 	"description": "Files, content and frontmatter explorer like Bases with scoped queued changes list.",
 	"keywords": [],
 	"license": "Apache-2.0",

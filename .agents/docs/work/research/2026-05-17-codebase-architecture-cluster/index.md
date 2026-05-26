@@ -55,7 +55,7 @@ justify a visual map.
 | 07 | done | [[07-tests-architecture-layer|Tests architecture layer]] | `test/` architecture and how tests bind to runtime layers. |
 | 08 | done | [[08-scripts-ci-release-layer|Scripts CI release layer]] | `scripts/`, CI, release, security, generated artifacts. |
 | 09 | done | [[09-residual-src-support-layer|Residual src support layer]] | Residual source support surfaces: `src/index/`, `src/config/`, badges, primitives, settings, modals, addons, dashboard support, styles, i18n. |
-| 10 | recommended | TBD | Coverage reconciliation across all tracked source/config/test/doc paths and generated-artifact exclusions. |
+| 10 | done | [[docs/work/research/2026-05-25-codebase-orphan-files-audit|Orphan Files Audit]] | Audit of stray/unused/orphan files, unused dependencies, and knip configuration repair. |
 
 ## Root Layer Summary
 

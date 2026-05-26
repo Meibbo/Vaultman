@@ -3,13 +3,13 @@ title: Current handoff
 type: agent-handoff
 status: active
 parent: "[[docs/work/pkm-ai/index|pkm-ai]]"
-archive_source: "docs/archive/pkm-ai/active-docs/2026-05-11T080321-current-handoff.md"
+archive_source: docs/archive/pkm-ai/active-docs/2026-05-11T080321-current-handoff.md
 created: 2026-05-04T01:36:20
-updated: 2026-05-20T16:47:00-05:00
+updated: 2026-05-26T00:00:00
 tags:
   - agent/current
 created_by: dec
-updated_by: codex
+updated_by: claude-opus-4-7
 ---
 
 # Current Handoff
@@ -17,7 +17,53 @@ updated_by: codex
 Compact handoff after archiving the oversized current handoff:
 [[docs/archive/pkm-ai/active-docs/2026-05-11T080321-current-handoff|2026-05-11 handoff archive]].
 
-## ⏩ NEXT AGENT START HERE — A.R v1.2.0 Continue (2026-05-20)
+## NEXT AGENT START HERE — Architecture foundation brainstorm + mega-doc (2026-05-26)
+
+The V.D brainstorm widened into a foundation pass (8-dimension model). All captured, health-clean:
+
+- Decisions: [[docs/work/hardening/research/2026-05-25-architecture-foundation-discovery/decision-ledger|decision-ledger]]
+  (LOCKED / PROPOSED / DEFERRED, source-linked). Findings:
+  [[docs/work/hardening/research/2026-05-25-architecture-foundation-discovery/research-streams|research-streams]].
+- Durable model: [[docs/architecture/explorer-model/index|explorer-model]]
+  (+ [[docs/architecture/explorer-model/01-responsibility-map|responsibility map]] +
+  [[docs/architecture/explorer-model/visuals/model-map|visual map/canvas]]).
+- Decisions of record: [[docs/architecture/adr/README|ADRs 0001-0008]] (0007/0008 = Proposed).
+- Glossary: [[docs/architecture/glossary|glossary]]. Roadmap reslot:
+  [[docs/work/hardening/research/2026-05-25-architecture-foundation-discovery/roadmap-reslot|roadmap-reslot]].
+- New initiative: [[docs/work/publish/index|publish]] (1.1.0→beta, CI sandbox, mobile).
+- Docs policy: `created_by`/`updated_by` may include the model (`claude-opus-4-7`). agent-room run `room_20260526_000000_321c3c`.
+
+**Next**: (1) resume grill — orchestration ownership (`panelExplorer` → Scene orchestrators);
+(2) confirm PROPOSED ADRs 0007 (page=editor-group) + 0008 (render 2-layer); (3) hand `publish`
+to a dedicated agent; (4) per-sub-system SPECS→PLANS→Issues (logic-extraction → N.R → V.D → P.D).
+Pre-existing health residuals (umbrella/vertical-threads line-limits, timestamp-offsets) are NOT from this work.
+
+## NEXT AGENT START HERE — V.D Tree render projection discovery/spec ready (2026-05-25)
+
+Latest source records:
+
+- [[docs/work/hardening/research/2026-05-25-vd-tree-list-nn-pipeline-discovery/index|V.D Tree/List/Notebook Navigator pipeline discovery]]
+- [[docs/work/hardening/specs/2026-05-25-vd-tree-render-projection/index|V.D Tree Render Projection]]
+
+Primary next action:
+
+1. Add timing marks around `viewTree` projection/visible-row work as specified in the discovery record.
+2. Implement `TreeRenderProjection` so Files Tree consumes `snapshot.visibleIds` as the render row order.
+3. Keep `ViewNodeList` as the control path in the 50k stress matrix.
+4. Do not start full NodeRow primitive or full View Decomposition before this Tree projection slice is measured.
+
+Sibling specs captured after the V.D package was handed to the planning agent:
+
+- [[docs/work/hardening/specs/2026-05-25-explorer-node-media-cache/index|Explorer Node Media Index And Thumbnail Cache]]
+  — media NodeElement, image-file nodes, cover/first-image sources, remote URL/page resolution,
+  thumbnail quality, animated GIF policy, and cache/index architecture.
+- [[docs/work/hardening/specs/2026-05-25-explorer-node-video-provider-media-cache/index|Explorer Node Video Provider Media And Cache Settings]]
+  — no `vid` codeblocks, node-owned image/video media union, YouTube/Facebook/Instagram/Twitter-X/Reddit/generic
+  provider resolvers, iframe-on-demand policy, and NN-inspired local cache settings/variant storage.
+- [[docs/work/hardening/specs/2026-05-25-explorer-icon-pack-cache/index|Explorer Icon Pack Cache]]
+  — descriptor-based icon pack lookup/cache for Lucide/Iconic/Adwaita/GTK-style groups.
+
+## Previous Handoff — A.R complete / 0-A.S scroll follow-up (2026-05-20)
 
 **Release/main reconciliation is complete.** Full source record:
 [[docs/work/hardening/plans/2026-05-20-release-1-1-0-catch-up|Release 1.1.0 catch-up]].
@@ -56,8 +102,11 @@ Compact handoff after archiving the oversized current handoff:
 **Next action**:
 1. A.R spec + implementation plan are imported to `sandbox`.
 2. Gate-0 and Tasks 1-9 are complete, through Task 9 verification matrix + live smoke.
-3. Choose the next `v1.2.0` Explorer Hardening slice from the umbrella:
-   tree sticky-parent fix, 0-A.S scroll harness follow-up, or T.G invariant-gate basis.
+3. Current active follow-up is 0-A.S scroll harness: view switching,
+   percentile/histogram reporting, `--vault=<name>`, and active Files-surface
+   targeting are done. 50k Tree/List/Table Files matrix passed with zero
+   blanks; Grid/Cards are collapsed-topology only, and 100k is blocked by
+   Obsidian CLI/runtime readiness.
 
 **Optional cleanup**:
 - Remote branches `main-clean-1.1.0` and `release/1.1.0-infra` are merged/stale branches created
@@ -67,7 +116,18 @@ Compact handoff after archiving the oversized current handoff:
 
 - Worktree: `C:\Users\vic_A\Desktop\vaultman`
 - Branch: `sandbox`.
-- **Latest (2026-05-20)**: A.R Task 9 complete and verified locally.
+- **Latest (2026-05-20)**: 0-A.S stress-vault scroll matrix progressed in the
+  variable scroll repair record:
+  [[docs/work/hardening/plans/2026-05-16-explorer-variable-scroll-repair/2026-05-20-stress-vault-matrix|0-A.S stress-vault scroll matrix]].
+  Harness fix: runner now defaults to `--surface=files`, and perf probe ignores
+  inactive matching tab containers. Fresh local gate passed: targeted Vitest
+  3 files / 33 tests; `pnpm run check`; `pnpm run lint`; `pnpm run build`;
+  `git diff --check` with LF-to-CRLF warnings only. 50k Tree/List/Table Files
+  matrix passed with zero blank frames and no Obsidian dev errors; Grid/Cards
+  still need expanded-row coverage. 100k corpus exists locally, but basic
+  `stress-vault` eval timed out after 5 minutes and earlier reload/index
+  polling also timed out.
+- Previous (2026-05-20): A.R Task 9 complete and verified locally.
   Task 9 source record:
   [[docs/work/hardening/plans/2026-05-20-explorer-AR-action-routing/05-verification|Task 9 verification matrix + live smoke]].
   Added keyboard-nav parity and structural-attribute anti-drift tests across
@@ -165,8 +225,15 @@ repair. Current handoff keeps only the active route and the latest release facts
 
 ## Preserve
 
-- Obsidian CLI calls must use explicit `vault=plugin-dev` command options.
+- Obsidian CLI calls must use an explicit `vault=<name>` command option. Normal
+  live smokes default to `plugin-dev`; the 50k/100k matrix should use the new
+  runner `--vault=<registered-stress-vault>` option instead of relying on the
+  focused vault.
 - Do not use generic Obsidian commands that fall back to the active vault.
+- The registered `stress-vault` is intentionally not marked open in
+  `%APPDATA%\obsidian\obsidian.json` after the 100k readiness hang. Backup made
+  before registration:
+  `C:\Users\vic_A\AppData\Roaming\obsidian\obsidian.json.vaultman-stress-backup-20260520192758.json`.
 - Keep Map/ViewNodeMap deferred and not selectable.
 - Keep media/image disabled by default in every view.
 - Keep `main` free of AI workflow files.
@@ -186,20 +253,23 @@ repair. Current handoff keeps only the active route and the latest release facts
 
 ## Next Action
 
-- **PRIMARY (post A.R Task 9 2026-05-20)**: choose the next `v1.2.0`
-  Explorer Hardening slice from the umbrella: tree sticky-parent fix, 0-A.S
-  scroll harness follow-up, or T.G invariant-gate basis.
+- **PRIMARY (post A.R Task 9 2026-05-20)**: continue 0-A.S from
+  [[docs/work/hardening/plans/2026-05-16-explorer-variable-scroll-repair/2026-05-20-stress-vault-matrix|0-A.S stress-vault scroll matrix]]
+  by adding fine-grained timing marks around Tree visible-row work, List row
+  projection, and Grid expansion/render readiness.
 - Phase 0 spine `0-H → 0-B → O → 0-A` and A.R are closed.
 - If continuing Explorer scroll work, start from the variable scroll repair
   record. The blank fallback bug is repaired for the live selectable modes and
-  Table/Grid active-scroll measurement is now deferred. Next target:
-  runner-level view switching, percentile/histogram delay reporting, Grid peak
-  follow-up if the 58 ms max persists, and an explicit 50k/100k matrix.
+  Table/Grid active-scroll measurement is now deferred. Runner-level view
+  switching, percentile/histogram delay reporting, `--vault` selection, and
+  active Files-surface targeting are done. Next target: marks for the valid 50k
+  pressure points plus a separate 100k launch/index readiness gate before
+  retrying scroll bursts.
 - Live scroll smoke harness implemented and verified:
   `pnpm smoke:scroll -- --view=tree --jumps=100`.
   Stress command: `pnpm smoke:scroll:stress -- --view=tree`.
-  Both route through `scripts/run-explorer-scroll-smoke.mjs` and hard-code
-  `vault=plugin-dev`.
+  Both route through `scripts/run-explorer-scroll-smoke.mjs`; default vault is
+  `plugin-dev`, and `--vault=<name>` overrides it for stress-vault runs.
 - Latest live tree result: `blankFrames=0`, `blank>100ms=0`,
   `blank>250ms=0`, `maxBlank=0ms`, `maxDelay=108ms`, and no Obsidian dev
   errors.
