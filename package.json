@@ -13,7 +13,7 @@
 		"check": "tsc -noEmit -skipLibCheck",
 		"verify": "npm run lint && npm run check && npm run build:plugin && npm run test:scorecard",
 		"test:scorecard": "node scripts/scorecard-regression-check.mjs",
-		"test:integrity": "vitest run --config vitest.config.ts",
+		"test:integrity": "npm run build && vitest run --config vitest.config.ts",
 		"test:e2e": "wdio run ./wdio.conf.mts",
 		"test:all": "npm run test:integrity && npm run test:e2e",
 		"security:audit": "npm audit --audit-level=high"
@@ -36,14 +36,19 @@
 		"jiti": "2.6.1",
 		"mocha": "^10.8.2",
 		"obsidian": "latest",
-		"obsidian-integration-testing": "^1.1.2",
+		"obsidian-integration-testing": "^4.1.6",
 		"obsidian-launcher": "^3.0.2",
-		"svelte": "^5.55.1",
-		"type-fest": "^4.41.0",
+		"svelte": "^5.55.9",
+		"type-fest": "^5.6.0",
 		"typescript": "~5.8.0",
 		"typescript-eslint": "8.35.1",
 		"vitest": "^4.1.0",
 		"wdio-obsidian-reporter": "^3.0.2",
 		"wdio-obsidian-service": "^3.0.2"
+	},
+	"overrides": {
+		"devalue": "^5.8.1",
+		"lodash": "^4.18.1",
+		"serialize-javascript": "^7.0.5"
 	}
 }
