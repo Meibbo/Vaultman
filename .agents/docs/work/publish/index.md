@@ -4,7 +4,7 @@ type: initiative-index
 status: active
 parent: "[[docs/work/roadmap-overview|Roadmap Overview]]"
 created: 2026-05-26T00:00:00
-updated: 2026-05-26T00:00:00
+updated: 2026-05-27T00:28:49-05:00
 tags:
   - agent/initiative
   - initiative/publish
@@ -47,6 +47,7 @@ Active design:
 
 - [[docs/work/publish/specs/2026-05-26-release-1-0-1-from-1-0-0-design|Release 1.0.1 from 1.0.0 with beta workflow safety]]
 - [[docs/work/publish/plans/2026-05-26-release-1-0-1-from-1-0-0/index|Release 1.0.1 from 1.0.0 implementation plan]]
+- [[docs/work/publish/items/2026-05-26-release-1-0-1-candidate-verification|Release 1.0.1 candidate verification]]
 
 1. **1.1.0 → beta relabel.** `package.json`/`manifest.json` are already at
    `1.1.0-beta.1`; finish the relabel + decide GitHub Release prerelease state.
@@ -78,6 +79,6 @@ mechanics and the stable-user safety net.
 
 ## Next action
 
-Hand to a dedicated agent: start with item 1 (relabel) + item 3 (CI) as the
-lowest-risk, highest-protection pair, then item 2 (mobile) before any new stable
-release.
+Release candidate branch `release/1.0.1-from-1.0.0` is locally prepared and
+verified. Await explicit user approval before push, PR creation, merge, tag,
+GitHub Release publication, or changing the existing `1.1.0` release state.
