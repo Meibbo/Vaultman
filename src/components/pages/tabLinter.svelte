@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { translate } from '../../index/i18n/lang';
+	import { translate } from "../../i18n/index";
 
 	let {
 		openLinter,
@@ -8,7 +8,9 @@
 	} = $props();
 </script>
 
-<div class="vm-linter-desc">
-	{translate('ops.linter.desc')}
+<div class="vaultman-linter-desc">
+	{translate("ops.linter.desc")}
 </div>
-<button class="vm-btn mod-cta" onclick={openLinter}>{translate('ops.linter.run')}</button>
+<button class="vaultman-btn mod-cta" onclick={openLinter}
+	>{translate("ops.linter.run")}</button
+>

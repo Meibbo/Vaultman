@@ -1,0 +1,62 @@
+{
+  "language": "en",
+  "defaultPropertyType": "text",
+  "filterTemplates": [],
+  "sessionFilePath": "",
+  "explorerCtrlClickSearch": true,
+  "explorerShowQueuePreview": true,
+  "explorerContentSearch": true,
+  "explorerOperationScope": "filtered",
+  "operationsPanelPosition": "replace",
+  "basesLastUsedPath": "+/books.base",
+  "basesOpenMode": "picker",
+  "basesOpsPanelSide": "left",
+  "basesExplorerSide": "right",
+  "basesAutoAttach": false,
+  "basesInjectCheckboxes": false,
+  "basesShowColumnSeparators": false,
+  "openMode": "sidebar",
+  "pageOrder": [
+    "filters",
+    "ops",
+    "statistics"
+  ],
+  "separatePanes": false,
+  "viewMode": "list",
+  "filtersShowTabLabels": true,
+  "filtersTabLabelsMigrated": true,
+  "glassBlurIntensity": 5,
+  "contextMenuShowInFileMenu": true,
+  "contextMenuShowInEditorMenu": true,
+  "contextMenuShowInMoreOptions": true,
+  "contextMenuHideRules": [
+    {
+      "surface": "file-menu",
+      "titleMatch": "Reading view",
+      "enabled": true
+    },
+    {
+      "surface": "editor-menu",
+      "titleMatch": "Reading View",
+      "enabled": true
+    },
+    {
+      "surface": "file-menu",
+      "titleMatch": "Reading view",
+      "enabled": true
+    }
+  ],
+  "gridColumns": [
+    "type",
+    "tags",
+    "in",
+    "up"
+  ],
+  "gridRenderMode": "chunk",
+  "gridRenderChunkSize": 100,
+  "gridLivePreviewColumns": [],
+  "gridEditableColumns": [
+    "name"
+  ],
+  "baseFilePath": "+/Notes.base"
+}

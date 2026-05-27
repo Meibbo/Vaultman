@@ -1,93 +1,39 @@
 <script lang="ts">
-	import { onMount } from 'svelte';
-	import { explorerFiles } from '../../providers/explorerFiles';
-	import PanelExplorer from '../containers/panelExplorer.svelte';
-	import type { VaultmanPlugin } from '../../main';
-	import type {
-		ExplorerExpansionCommand,
-		ExplorerExpansionSummary,
-	} from '../../types/typeExplorer';
-	import type { FnRRenameHandoff } from '../../types/typeFnR';
-	import { setIcon } from 'obsidian';
+  import { FilesExplorerPanel } from "../containers/explorerFiles";
+  import type { VaultmanPlugin } from "../../main";
 
-	let {
-		plugin,
-		fileList = $bindable(),
-		searchTerm = $bindable(''),
-		searchMode = 0,
-		sortBy = $bindable('name'),
-		sortDirection = $bindable('asc'),
-		sortTarget = 'top',
-		viewMode = $bindable('grid'),
-		active = true,
-		showSelectedOnly = false,
-		showHiddenFiles = false,
-		manualDndEnabled = false,
-		selectedFilePaths = $bindable(new Set<string>()),
-		onSelectionChange,
-		nodeExpansionCommand = null,
-		onNodeExpansionSummaryChange,
-		startRenameHandoff,
-		visibleFields = [],
-	}: {
-		plugin: VaultmanPlugin;
-		fileList: explorerFiles | undefined;
-		searchTerm?: string;
-		searchMode?: number;
-		sortBy?: string;
-		sortDirection?: 'asc' | 'desc';
-		sortTarget?: 'top' | 'children';
-		viewMode?: any;
-		active?: boolean;
-		showSelectedOnly?: boolean;
-		showHiddenFiles?: boolean;
-		manualDndEnabled?: boolean;
-		selectedFilePaths: Set<string>;
-		onSelectionChange?: (count: number) => void;
-		nodeExpansionCommand?: ExplorerExpansionCommand | null;
-		onNodeExpansionSummaryChange?: (summary: ExplorerExpansionSummary) => void;
-		startRenameHandoff?: (handoff: FnRRenameHandoff) => void;
-		visibleFields?: readonly string[];
-	} = $props();
+  let {
+    plugin,
+    fileList = $bindable<FilesExplorerPanel | undefined>(undefined),
+    onSelectionChange,
+  }: {
+    plugin: VaultmanPlugin;
+    fileList?: FilesExplorerPanel | undefined;
+    onSelectionChange?: (count: number) => void;
+  } = $props();
 
-	$effect(() => {
-		onSelectionChange?.(selectedFilePaths.size);
-	});
-
-	onMount(() => {
-		fileList = new explorerFiles(plugin, { startRenameHandoff });
-	});
-
-	function icon(el: HTMLElement, name: string) {
-		setIcon(el, name);
-		return {
-			update(n: string) {
-				setIcon(el, n);
-			},
-		};
-	}
+  function initFilesPanel(el: HTMLElement) {
+    fileList = new FilesExplorerPanel(el, plugin, onSelectionChange);
+    fileList.load();
+    fileList.render(
+      plugin.filterService.filteredFiles,
+      plugin.propertyIndex.fileCount,
+    );
+    return {
+      destroy() {
+        fileList?.unload();
+        fileList = undefined;
+      },
+    };
+  }
 </script>
 
-<div class="vm-files-tab-content">
-	{#if fileList}
-		<PanelExplorer
-			{plugin}
-			provider={fileList}
-			bind:viewMode
-			{searchTerm}
-			{searchMode}
-			bind:sortBy
-			bind:sortDirection
-			{sortTarget}
-			{active}
-			{showSelectedOnly}
-			{showHiddenFiles}
-			{manualDndEnabled}
-			{nodeExpansionCommand}
-			{onNodeExpansionSummaryChange}
-			{visibleFields}
-			{icon}
-			bind:selectedFiles={selectedFilePaths}
-		/>
-	{/if}
-</div>
+<div class="vaultman-files-tab-content" use:initFilesPanel></div>
+
+<style>
+  .vaultman-files-tab-content {
+    flex: 1;
+    overflow-y: auto;
+    min-height: 0;
+  }
+</style>

@@ -12,7 +12,7 @@ export class PropertySuggest extends AbstractInputSuggest<string> {
 		app: App,
 		inputEl: HTMLInputElement,
 		items: string[],
-		onSelectItem: (value: string) => void,
+		onSelectItem: (value: string) => void
 	) {
 		super(app, inputEl);
 		this.items = items;

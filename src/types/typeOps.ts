@@ -1,62 +1,39 @@
 import { TFile } from 'obsidian';
-import type {
-	ImmutableStagedOp,
-	ImmutableVirtualFileState,
-} from './typeVfsImmutable';
 
 /** Special return keys for logicFunc — signal non-standard operations */
 export const DELETE_PROP = '_DELETE_PROP';
-export const NATIVE_RENAME_PROP = '_NATIVE_RENAME_PROP';
 export const RENAME_FILE = '_RENAME_FILE';
-export const MOVE_FILE = '_MOVE_FILE';
-export const DELETE_FILE = '_DELETE_FILE';
-export const FIND_REPLACE_CONTENT = '_FIND_REPLACE_CONTENT';
 export const REORDER_ALL = '_REORDER_ALL';
+export const MOVE_FILE = '_MOVE_FILE';
+export const FIND_REPLACE_CONTENT = '_FIND_REPLACE_CONTENT';
+export const NATIVE_RENAME_PROP = '_NATIVE_RENAME_PROP';
 export const APPLY_TEMPLATE = '_APPLY_TEMPLATE';
-/**
- * Phase 7 (multifacet wave 2): append wikilinks to a file's body.
- * The `logicFunc` returns `{ [APPEND_LINKS]: string[] }` carrying the
- * wikilink fragments to add. The queue applier appends only links that
- * are not already present in the body (idempotent on re-runs).
- */
-export const APPEND_LINKS = '_APPEND_LINKS';
 
-export type PropertyAction = 'set' | 'rename' | 'delete' | 'clean_empty' | 'change_type' | 'add';
+export type PropertyAction =
+	| 'set'
+	| 'rename'
+	| 'delete'
+	| 'clean_empty'
+	| 'change_type'
+	| 'add';
 
-export type PropertyType = 'text' | 'number' | 'checkbox' | 'list' | 'date' | 'wikilink';
-
-export type OpKind =
-	| 'set_prop'
-	| 'delete_prop'
-	| 'rename_prop'
-	| 'reorder_props'
-	| 'rename_file'
-	| 'move_file'
-	| 'delete_file'
-	| 'find_replace_content'
-	| 'apply_template'
-	| 'set_tag'
-	| 'delete_tag'
-	| 'add_tag'
-	| 'append_links';
-
-export interface VirtualFileState extends Omit<ImmutableVirtualFileState, 'ops'> {
-	readonly ops: readonly StagedOp[];
-}
-
-export interface StagedOp extends Omit<ImmutableStagedOp, 'apply' | 'kind'> {
-	readonly kind: OpKind;
-	readonly apply: (vfs: VirtualFileState) => VirtualFileState;
-}
+export type PropertyType =
+	| 'text'
+	| 'number'
+	| 'checkbox'
+	| 'list'
+	| 'date'
+	| 'wikilink';
 
 /** Common fields for all queued operations */
 export interface BaseChange {
-	/** Stable identifier for this change entry (used by IOperationsIndex). */
-	id?: string;
 	files: TFile[];
 	action: string;
 	details: string;
-	logicFunc: (file: TFile, metadata: Record<string, unknown>) => Record<string, unknown> | null;
+	logicFunc: (
+		file: TFile,
+		metadata: Record<string, unknown>
+	) => Record<string, unknown> | null;
 	customLogic?: boolean;
 }
 
@@ -80,7 +57,7 @@ export interface ContentChange extends BaseChange {
 
 /** File system operation (rename/move) */
 export interface FileChange extends BaseChange {
-	type: 'file_rename' | 'file_move' | 'file_delete';
+	type: 'file_rename' | 'file_move';
 	newName?: string;
 	targetFolder?: string;
 }
@@ -89,7 +66,6 @@ export interface FileChange extends BaseChange {
 export interface TemplateChange extends BaseChange {
 	type: 'template';
 	templateFileStr: string;
-	templateContent: string; // pre-resolved (variables expanded by caller)
 }
 
 /** Operation on tags (bulk rename/delete) */
@@ -99,12 +75,7 @@ export interface TagChange extends BaseChange {
 	action: 'rename' | 'delete' | 'add';
 }
 
-export type PendingChange =
-	| PropertyChange
-	| ContentChange
-	| FileChange
-	| TemplateChange
-	| TagChange;
+export type PendingChange = PropertyChange | ContentChange | FileChange | TemplateChange | TagChange;
 
 export interface OperationResult {
 	success: number;

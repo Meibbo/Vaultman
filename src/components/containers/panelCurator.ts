@@ -1,7 +1,7 @@
 // src/components/containers/MenuCuratorPanel.ts
 import { Component, setIcon } from 'obsidian';
-import type { VaultmanPlugin } from '../../main';
-import type { MenuHideRule } from '../../types/typeCtxMenu';
+import type { VaultmanPlugin } from "../../main";
+import type { MenuHideRule } from '../../types/typeCMenu';
 
 type Surface = MenuHideRule['surface'];
 
@@ -28,21 +28,21 @@ export class MenuCuratorPanel extends Component {
 	private _render(): void {
 		this.containerEl.empty();
 
-		const wrap = this.containerEl.createDiv({ cls: 'vm-curator-wrap' });
+		const wrap = this.containerEl.createDiv({ cls: 'vaultman-curator-wrap' });
 
 		// ── Header ────────────────────────────────────────────────────────────
-		wrap.createEl('h4', { cls: 'vm-curator-title', text: 'Context menu curator' });
+		wrap.createEl('h4', { cls: 'vaultman-curator-title', text: 'Context menu curator' });
 		wrap.createEl('p', {
-			cls: 'vm-curator-desc',
+			cls: 'vaultman-curator-desc',
 			text: 'Hide any item from Obsidian workspace context menus. Matches by title substring (case-insensitive).',
 		});
 
 		// ── Rule list ─────────────────────────────────────────────────────────
 		const rules = this.plugin.settings.contextMenuHideRules;
-		const listEl = wrap.createDiv({ cls: 'vm-curator-list' });
+		const listEl = wrap.createDiv({ cls: 'vaultman-curator-list' });
 
 		if (rules.length === 0) {
-			listEl.createEl('p', { cls: 'vm-curator-empty', text: 'No hide rules yet. Add one below.' });
+			listEl.createEl('p', { cls: 'vaultman-curator-empty', text: 'No hide rules yet. Add one below.' });
 		} else {
 			for (let i = 0; i < rules.length; i++) {
 				this._renderRule(listEl, rules[i], i);
@@ -50,20 +50,20 @@ export class MenuCuratorPanel extends Component {
 		}
 
 		// ── Add rule form ─────────────────────────────────────────────────────
-		const form = wrap.createDiv({ cls: 'vm-curator-form' });
+		const form = wrap.createDiv({ cls: 'vaultman-curator-form' });
 		const titleInput = form.createEl('input', {
 			type: 'text',
-			cls: 'vm-curator-input',
+			cls: 'vaultman-curator-input',
 			placeholder: 'Item title (substring)',
 		});
 
-		const surfaceSelect = form.createEl('select', { cls: 'vm-curator-select' });
+		const surfaceSelect = form.createEl('select', { cls: 'vaultman-curator-select' });
 		for (const s of SURFACES) {
 			const opt = surfaceSelect.createEl('option', { value: s.id, text: s.label });
 			if (s.id === 'file-menu') opt.selected = true;
 		}
 
-		const addBtn = form.createEl('button', { cls: 'vm-curator-add-btn', text: 'Add rule' });
+		const addBtn = form.createEl('button', { cls: 'vaultman-curator-add-btn', text: 'Add rule' });
 		addBtn.addEventListener('click', () => {
 			const title = titleInput.value.trim();
 			if (!title) return;
@@ -78,10 +78,10 @@ export class MenuCuratorPanel extends Component {
 	}
 
 	private _renderRule(listEl: HTMLElement, rule: MenuHideRule, index: number): void {
-		const row = listEl.createDiv({ cls: 'vm-curator-rule' });
+		const row = listEl.createDiv({ cls: 'vaultman-curator-rule' });
 
 		// Toggle
-		const toggle = row.createEl('input', { type: 'checkbox', cls: 'vm-curator-toggle' });
+		const toggle = row.createEl('input', { type: 'checkbox', cls: 'vaultman-curator-toggle' });
 		toggle.checked = rule.enabled;
 		toggle.addEventListener('change', () => {
 			this.plugin.settings.contextMenuHideRules[index].enabled = toggle.checked;
@@ -90,12 +90,12 @@ export class MenuCuratorPanel extends Component {
 
 		// Label
 		row.createSpan({
-			cls: 'vm-curator-rule-text',
+			cls: 'vaultman-curator-rule-text',
 			text: `"${rule.titleMatch}" in ${rule.surface}`,
 		});
 
 		// Delete button
-		const del = row.createEl('button', { cls: 'vm-curator-del-btn' });
+		const del = row.createEl('button', { cls: 'vaultman-curator-del-btn' });
 		setIcon(del, 'lucide-trash-2');
 		del.addEventListener('click', () => {
 			this.plugin.settings.contextMenuHideRules.splice(index, 1);

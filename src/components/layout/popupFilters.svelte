@@ -1,8 +1,8 @@
 <script lang="ts">
-	import { Menu } from 'obsidian';
-	import { translate } from '../../index/i18n/lang';
-	import type { VaultmanPlugin } from '../../main';
-	import { SaveTemplateModal } from '../../modals/modalSaveTemplate';
+	import { Menu } from "obsidian";
+	import { translate } from "../../i18n/index";
+	import type { VaultmanPlugin } from "../../main";
+	import { SaveTemplateModal } from "../../modals/modalSaveTemplate";
 
 	let {
 		plugin,
@@ -25,13 +25,13 @@
 	} = $props();
 </script>
 
-<div class="vm-active-filters-popup">
+<div class="vaultman-active-filters-popup">
 	<!-- Squircle action buttons row -->
-	<div class="vm-squircle-row">
+	<div class="vaultman-squircle-row">
 		<div
-			class="vm-squircle"
-			aria-label={translate('filters.popup.clear_all')}
-			use:icon={'lucide-x'}
+			class="vaultman-squircle"
+			aria-label={translate("filters.popup.clear_all")}
+			use:icon={"lucide-x"}
 			onclick={() => {
 				plugin.filterService.clearFilters();
 				refreshActiveFiltersPopup();
@@ -39,7 +39,7 @@
 				closePopup();
 			}}
 			onkeydown={(e: KeyboardEvent) => {
-				if (e.key === 'Enter' || e.key === ' ') {
+				if (e.key === "Enter" || e.key === " ") {
 					plugin.filterService.clearFilters();
 					refreshActiveFiltersPopup();
 					updateStats();
@@ -50,16 +50,16 @@
 			tabindex="0"
 		></div>
 		<div
-			class="vm-squircle vm-squircle-reserved"
+			class="vaultman-squircle vaultman-squircle-reserved"
 			aria-label="Reserved"
-			use:icon={'lucide-plus'}
+			use:icon={"lucide-plus"}
 			role="button"
 			tabindex="0"
 		></div>
 		<div
-			class="vm-squircle"
-			aria-label={translate('filters.popup.templates')}
-			use:icon={'lucide-bookmark'}
+			class="vaultman-squircle"
+			aria-label={translate("filters.popup.templates")}
+			use:icon={"lucide-bookmark"}
 			onclick={(e: MouseEvent) => {
 				const menu = new Menu();
 				plugin.settings.filterTemplates.forEach((tpl) => {
@@ -74,15 +74,21 @@
 				});
 				menu.addSeparator();
 				menu.addItem((item) =>
-					item.setTitle(translate('filter.template.save')).onClick(() => {
-						new SaveTemplateModal(plugin.app, plugin, plugin.filterService.activeFilter).open();
-						closePopup();
-					}),
+					item
+						.setTitle(translate("filter.template.save"))
+						.onClick(() => {
+							new SaveTemplateModal(
+								plugin.app,
+								plugin,
+								plugin.filterService.activeFilter,
+							).open();
+							closePopup();
+						}),
 				);
 				menu.showAtMouseEvent(e);
 			}}
 			onkeydown={(e: KeyboardEvent) => {
-				if (e.key === 'Enter' || e.key === ' ') {
+				if (e.key === "Enter" || e.key === " ") {
 					// Menu needs a mouse event or position. For keyboard, we target the element bottom.
 					const target = e.currentTarget as HTMLElement;
 					const rect = target.getBoundingClientRect();
@@ -100,10 +106,16 @@
 					});
 					menu.addSeparator();
 					menu.addItem((item) =>
-						item.setTitle(translate('filter.template.save')).onClick(() => {
-							new SaveTemplateModal(plugin.app, plugin, plugin.filterService.activeFilter).open();
-							closePopup();
-						}),
+						item
+							.setTitle(translate("filter.template.save"))
+							.onClick(() => {
+								new SaveTemplateModal(
+									plugin.app,
+									plugin,
+									plugin.filterService.activeFilter,
+								).open();
+								closePopup();
+							}),
 					);
 					menu.showAtPosition({ x: rect.left, y: rect.bottom });
 				}
@@ -112,44 +124,53 @@
 			tabindex="0"
 		></div>
 		<div
-			class="vm-squircle vm-squircle-reserved"
+			class="vaultman-squircle vaultman-squircle-reserved"
 			aria-label="Reserved"
-			use:icon={'lucide-check'}
+			use:icon={"lucide-check"}
 			role="button"
 			tabindex="0"
 		></div>
 	</div>
 
 	<!-- Filter rules list -->
-	<div class="vm-active-filters-list">
+	<div class="vaultman-active-filters-list">
 		{#if activeFilterRules.length === 0}
-			<div class="vm-active-filters-empty">
-				{translate('filters.popup.empty')}
+			<div class="vaultman-active-filters-empty">
+				{translate("filters.popup.empty")}
 			</div>
 		{:else}
 			{#each activeFilterRules as rule (rule.id)}
-				<div class="vm-active-filter-rule" class:is-disabled={!rule.enabled}>
-					<span class="vm-active-filter-rule-text">{rule.description}</span>
+				<div
+					class="vaultman-active-filter-rule"
+					class:is-disabled={!rule.enabled}
+				>
+					<span class="vaultman-active-filter-rule-text"
+						>{rule.description}</span
+					>
 					<div
-						class="vm-active-filter-toggle clickable-icon"
+						class="vaultman-active-filter-toggle clickable-icon"
 						aria-label={rule.enabled
-							? translate('filters.popup.rule.disable')
-							: translate('filters.popup.rule.enable')}
-						use:icon={rule.enabled ? 'lucide-eye' : 'lucide-eye-off'}
+							? translate("filters.popup.rule.disable")
+							: translate("filters.popup.rule.enable")}
+						use:icon={rule.enabled
+							? "lucide-eye"
+							: "lucide-eye-off"}
 						onclick={() => toggleFilterRule(rule)}
 						onkeydown={(e: KeyboardEvent) => {
-							if (e.key === 'Enter' || e.key === ' ') toggleFilterRule(rule);
+							if (e.key === "Enter" || e.key === " ")
+								toggleFilterRule(rule);
 						}}
 						role="button"
 						tabindex="0"
 					></div>
 					<div
-						class="vm-active-filter-delete clickable-icon"
-						aria-label={translate('filters.popup.rule.delete')}
-						use:icon={'lucide-x'}
+						class="vaultman-active-filter-delete clickable-icon"
+						aria-label={translate("filters.popup.rule.delete")}
+						use:icon={"lucide-x"}
 						onclick={() => deleteFilterRule(rule)}
 						onkeydown={(e: KeyboardEvent) => {
-							if (e.key === 'Enter' || e.key === ' ') deleteFilterRule(rule);
+							if (e.key === "Enter" || e.key === " ")
+								deleteFilterRule(rule);
 						}}
 						role="button"
 						tabindex="0"

@@ -5,35 +5,48 @@
 		"target": "ES2022",
 		"module": "ESNext",
 		"moduleResolution": "bundler",
-		"allowImportingTsExtensions": true,
-		"noEmit": true,
 		"strict": true,
 		"noImplicitAny": true,
 		"noUnusedLocals": true,
 		"noUnusedParameters": true,
 		"outDir": "./dist",
 		"sourceMap": true,
-		"lib": ["ES2022", "DOM", "DOM.Iterable"],
+		"lib": [
+			"ES2022",
+			"DOM",
+			"DOM.Iterable"
+		],
 		"allowSyntheticDefaultImports": true,
 		"esModuleInterop": true,
 		"skipLibCheck": true,
 		"forceConsistentCasingInFileNames": true,
-		"verbatimModuleSyntax": true,
 		"paths": {
-			"@types/*": ["src/types/*"],
-			"@services/*": ["src/services/*"],
-			"@utils/*": ["src/utils/*"],
-			"@components/*": ["src/components/*"],
-			"@modals/*": ["src/modals/*"],
-			"@i18n/*": ["src/index/i18n/*"]
+			"@types/*": [
+				"src/types/*"
+			],
+			"@services/*": [
+				"src/services/*"
+			],
+			"@utils/*": [
+				"src/utils/*"
+			],
+			"@components/*": [
+				"src/components/*"
+			],
+			"@modals/*": [
+				"src/modals/*"
+			],
+			"@i18n/*": [
+				"src/i18n/*"
+			]
 		}
 	},
 	"include": [
+		"src/main.ts",
 		"src/**/*.ts",
 		"src/**/*.svelte",
-		"scripts/esbuild.config.mjs",
-		"svelte.config.js",
-		"vite.config.ts",
-		"main.ts"
+		"vitest.config.ts",
+		"esbuild.config.mjs",
+		"test/**/*.ts"
 	]
 }

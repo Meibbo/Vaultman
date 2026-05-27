@@ -1,9 +1,9 @@
 import { Modal, Setting, type App, type TFile } from 'obsidian';
 import type { PendingChange } from '../types/typeOps';
-import type { PropertyIndexService } from '../index/utilPropIndex';
+import { RENAME_FILE } from '../types/typeOps';
+import type { PropertyIndexService } from '../services/servicePropertyIndex';
 import { PropertySuggest } from '../utils/autocomplete';
-import { translate } from '../index/i18n/lang';
-import { buildFileRenameChange } from '../services/serviceFileQueue';
+import { translate } from '../i18n/index';
 
 type QueueCallback = (change: PendingChange) => void;
 
@@ -30,7 +30,7 @@ export class FileRenameModal extends Modal {
 		app: App,
 		propertyIndex: PropertyIndexService,
 		targetFiles: TFile[],
-		onQueue: QueueCallback,
+		onQueue: QueueCallback
 	) {
 		super(app);
 		this.propertyIndex = propertyIndex;
@@ -41,11 +41,11 @@ export class FileRenameModal extends Modal {
 	onOpen(): void {
 		const { contentEl } = this;
 		contentEl.empty();
-		contentEl.addClasses(['vm-modal', 'vm-rename-modal']);
+		contentEl.addClasses(['vaultman-modal', 'vaultman-rename-modal']);
 
 		contentEl.createEl('h3', { text: translate('rename.title') });
 		contentEl.createEl('p', {
-			cls: 'vm-modal-subtitle',
+			cls: 'vaultman-modal-subtitle',
 			text: `${this.targetFiles.length} ${translate('section.files').toLowerCase()}`,
 		});
 
@@ -55,7 +55,7 @@ export class FileRenameModal extends Modal {
 			.setDesc(translate('rename.pattern_desc'));
 
 		const patternInput = patternSetting.controlEl.createEl('input', {
-			cls: 'vm-rename-pattern-input',
+			cls: 'vaultman-rename-pattern-input',
 			attr: { type: 'text', value: this.pattern },
 		});
 
@@ -72,7 +72,7 @@ export class FileRenameModal extends Modal {
 				patternInput.value = before + value + after;
 				this.pattern = patternInput.value;
 				this.renderPreview();
-			},
+			}
 		);
 
 		patternInput.addEventListener('input', () => {
@@ -81,14 +81,14 @@ export class FileRenameModal extends Modal {
 		});
 
 		// Available placeholders reference
-		const helpEl = contentEl.createDiv({ cls: 'vm-rename-help' });
+		const helpEl = contentEl.createDiv({ cls: 'vaultman-rename-help' });
 		helpEl.createEl('small', {
 			text: '* o {basename} | [fecha] o {date} | (1) o {counter} | {propiedad}',
-			cls: 'vm-text-faint',
+			cls: 'vaultman-text-faint',
 		});
 
 		// Preview
-		this.previewEl = contentEl.createDiv({ cls: 'vm-rename-preview' });
+		this.previewEl = contentEl.createDiv({ cls: 'vaultman-rename-preview' });
 		this.renderPreview();
 
 		// Buttons
@@ -100,9 +100,11 @@ export class FileRenameModal extends Modal {
 					.onClick(() => {
 						this.queueRenames();
 						this.close();
-					}),
+					})
 			)
-			.addButton((btn) => btn.setButtonText('Cancel').onClick(() => this.close()));
+			.addButton((btn) =>
+				btn.setButtonText('Cancel').onClick(() => this.close())
+			);
 	}
 
 	private renderPreview(): void {
@@ -114,15 +116,15 @@ export class FileRenameModal extends Modal {
 
 		for (let i = 0; i < limit; i++) {
 			const { oldName, newName } = previews[i];
-			const row = this.previewEl.createDiv({ cls: 'vm-rename-row' });
-			row.createSpan({ cls: 'vm-diff-deleted', text: oldName });
+			const row = this.previewEl.createDiv({ cls: 'vaultman-rename-row' });
+			row.createSpan({ cls: 'vaultman-diff-deleted', text: oldName });
 			row.createSpan({ text: ' → ' });
-			row.createSpan({ cls: 'vm-diff-added', text: newName });
+			row.createSpan({ cls: 'vaultman-diff-added', text: newName });
 		}
 
 		if (previews.length > limit) {
 			this.previewEl.createDiv({
-				cls: 'vm-text-faint',
+				cls: 'vaultman-text-faint',
 				text: `... and ${previews.length - limit} more`,
 			});
 		}
@@ -137,22 +139,19 @@ export class FileRenameModal extends Modal {
 			let newName = this.pattern;
 			// natural wildcards aliases
 			newName = newName.replace(/\{basename\}|\*/g, file.basename);
-			newName = newName.replace(/\{date\}|\[fecha\]/gi, today);
-			newName = newName.replace(/\{counter\}|\(1\)/gi, String(index + 1).padStart(3, '0'));
+			newName = newName.replace(/\{date\}|\[fecha\]/ig, today);
+			newName = newName.replace(/\{counter\}|\(1\)/ig, String(index + 1).padStart(3, '0'));
 
-			const stringifyValue = (v: unknown): string => {
-				if (v === null || v === undefined) return '';
-				if (typeof v === 'object') return JSON.stringify(v);
-				// Primitives (string, number, boolean, bigint, symbol) — safe to stringify.
-				// eslint-disable-next-line @typescript-eslint/no-base-to-string -- guarded above
-				return String(v);
-			};
 			// Replace {propertyName} with property values
 			newName = newName.replace(/\{(\w[\w-]*)\}/g, (_match: string, prop: string) => {
 				const val: unknown = fm[prop];
 				if (val == null) return '';
-				if (Array.isArray(val)) return val.map(stringifyValue).join('-');
-				return stringifyValue(val);
+				if (Array.isArray(val)) return val.map(String).join('-');
+				if (typeof val === 'string') return val;
+				if (typeof val === 'number' || typeof val === 'boolean' || typeof val === 'bigint') return String(val);
+				if (typeof val === 'symbol') return val.description ?? val.toString();
+				if (typeof val === 'function') return val.name;
+				return JSON.stringify(val) ?? '';
 			});
 
 			// Sanitize filename
@@ -166,8 +165,17 @@ export class FileRenameModal extends Modal {
 		const renames = this.computeRenames();
 
 		for (const { file, newName } of renames) {
-			const change = buildFileRenameChange(file, newName);
-			if (change) this.onQueue(change);
+			if (newName === file.name) continue;
+
+			const change: PendingChange = {
+				type: 'file_rename',
+				action: 'rename',
+				details: `${file.name} → ${newName}`,
+				files: [file],
+				logicFunc: () => ({ [RENAME_FILE]: newName }),
+				customLogic: true,
+			};
+			this.onQueue(change);
 		}
 	}
 
