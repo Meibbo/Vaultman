@@ -1,0 +1,55 @@
+name: CI
+
+on:
+  push:
+    branches: [main, sandbox, hardening]
+  pull_request:
+    branches: [main, sandbox, hardening]
+
+permissions:
+  contents: read
+  pull-requests: read
+
+jobs:
+  guard-ai-files:
+    name: Guard main against AI workflow files
+    if: github.event_name == 'pull_request' && github.base_ref == 'main'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Detect AI workflow files
+        id: ai
+        uses: dorny/paths-filter@fbd0ab8f3e69293af611ebaee6363fc25e6d187d
+        with:
+          token: ${{ github.token }}
+          list-files: shell
+          filters: |
+            ai:
+              - 'AGENTS.md'
+              - 'CLAUDE.md'
+              - '.agents/**'
+              - '.claude/**'
+
+      - name: Fail if AI workflow files target main
+        if: steps.ai.outputs.ai == 'true'
+        env:
+          AI_FILES: ${{ steps.ai.outputs.ai_files }}
+        shell: bash
+        run: |
+          echo "::error::PRs to main must not include AI workflow files."
+          printf 'Blocked files:\n%s\n' "${AI_FILES}"
+          exit 1
+
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: '24'
+          cache: npm
+      - run: npm ci
+      - run: npm run verify
+      - run: npm run security:audit
+      - run: npm run test:integrity
