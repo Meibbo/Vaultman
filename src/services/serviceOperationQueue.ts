@@ -133,7 +133,7 @@ export class OperationQueueService extends Component {
 
 			// Yield to UI thread every CHUNK files to keep the app responsive
 			if ((i + 1) % CHUNK === 0) {
-				await new Promise<void>((r) => setTimeout(r, 0));
+				await new Promise<void>((r) => window.setTimeout(r, 0));
 			}
 		}
 

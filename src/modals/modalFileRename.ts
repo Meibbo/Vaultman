@@ -147,7 +147,11 @@ export class FileRenameModal extends Modal {
 				const val: unknown = fm[prop];
 				if (val == null) return '';
 				if (Array.isArray(val)) return val.map(String).join('-');
-				return String(val as string | number | boolean);
+				if (typeof val === 'string') return val;
+				if (typeof val === 'number' || typeof val === 'boolean' || typeof val === 'bigint') return String(val);
+				if (typeof val === 'symbol') return val.description ?? val.toString();
+				if (typeof val === 'function') return val.name;
+				return JSON.stringify(val) ?? '';
 			});
 
 			// Sanitize filename

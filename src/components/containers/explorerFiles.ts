@@ -197,7 +197,7 @@ export class FilesExplorerPanel extends Component {
 			};
 			applyFolderIcons(tree, this.expandedIds);
 			this.treeView.render({
-				nodes: tree as TreeNode[],
+				nodes: tree,
 				expandedIds: this.expandedIds,
 				onToggle: (id: string) => {
 					if (this.expandedIds.has(id)) this.expandedIds.delete(id);
@@ -224,10 +224,10 @@ export class FilesExplorerPanel extends Component {
 				onContextMenu: (id: string, e: MouseEvent) => {
 					const node = this._findNode(id, tree);
 					if (!node) return;
-					const meta = node.meta as FileMeta;
+					const meta = node.meta;
 					if (meta.isFolder || !meta.file) return;
 					this.plugin.contextMenuService.openPanelMenu(
-						{ nodeType: 'file', node: node as TreeNode<unknown>, surface: 'panel', file: meta.file },
+						{ nodeType: 'file', node, surface: 'panel', file: meta.file },
 						e,
 					);
 				},

@@ -254,7 +254,7 @@ export class TagsExplorerPanel extends Component {
 				const node = this._findNode(id, tree);
 				if (!node) return;
 				this.plugin.contextMenuService.openPanelMenu(
-					{ nodeType: 'tag', node: node as TreeNode<unknown>, surface: 'panel' },
+					{ nodeType: 'tag', node, surface: 'panel' },
 					e,
 				);
 			},

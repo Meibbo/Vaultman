@@ -89,7 +89,7 @@ export class MenuCuratorPanel extends Component {
 		});
 
 		// Label
-		row.createEl('span', {
+		row.createSpan({
 			cls: 'vaultman-curator-rule-text',
 			text: `"${rule.titleMatch}" in ${rule.surface}`,
 		});

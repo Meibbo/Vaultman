@@ -98,7 +98,7 @@ export class ActiveFiltersIslandComponent {
 
 		this.render();
 
-		requestAnimationFrame(() => {
+		window.requestAnimationFrame(() => {
 			this.islandEl?.addClass('is-open');
 		});
 	}

@@ -114,7 +114,7 @@ export class VaultmanPlugin extends Plugin {
 	updateGlassBlur(): void {
 		const intensity: number = this.settings.glassBlurIntensity ?? 60;
 		const px = (intensity / 100) * 20;
-		document.body.style.setProperty('--vaultman-glass-blur', `${px}px`);
+		activeDocument.body.style.setProperty('--vaultman-glass-blur', `${px}px`);
 	}
 
 	async activateView(): Promise<void> {

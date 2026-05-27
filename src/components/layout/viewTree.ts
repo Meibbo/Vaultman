@@ -54,7 +54,7 @@ export class UnifiedTreeView {
 			}
 		};
 
-		this._pendingRaf = requestAnimationFrame(() => {
+		this._pendingRaf = window.requestAnimationFrame(() => {
 			renderNodes(opts.nodes, this.containerEl);
 			this.containerEl.scrollTop = scrollTop;
 			this._pendingRaf = null;

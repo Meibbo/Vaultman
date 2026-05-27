@@ -8,6 +8,7 @@ export default tseslint.config(
 		languageOptions: {
 			globals: {
 				...globals.browser,
+				activeDocument: 'readonly',
 			},
 			parserOptions: {
 				projectService: {
@@ -18,6 +19,14 @@ export default tseslint.config(
 				},
 				tsconfigRootDir: import.meta.dirname,
 				extraFileExtensions: ['.json']
+			},
+		},
+	},
+	{
+		files: ['scripts/**/*.mjs', '*.mjs'],
+		languageOptions: {
+			globals: {
+				...globals.node,
 			},
 		},
 	},

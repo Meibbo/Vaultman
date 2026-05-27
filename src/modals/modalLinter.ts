@@ -243,7 +243,7 @@ export class LinterModal extends Modal {
 				await leaf.openFile(file);
 
 				// Small delay for metadataCache to sync
-				await new Promise((r) => setTimeout(r, 50));
+				await new Promise((r) => window.setTimeout(r, 50));
 
 				// Execute linter command (internal Obsidian API — no public alternative)
 				(this.app as unknown as { commands: { executeCommandById: (id: string) => boolean } })

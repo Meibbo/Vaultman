@@ -237,7 +237,7 @@ export class VaultmanSettingsTab extends PluginSettingTab {
 					.onChange(async (v) => {
 						this.plugin.settings.basesShowColumnSeparators = v;
 						await this.plugin.saveSettings();
-						document.body.toggleClass('vaultman-bases-column-separators', v);
+						activeDocument.body.toggleClass('vaultman-bases-column-separators', v);
 					})
 			);
 

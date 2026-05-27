@@ -263,13 +263,13 @@ export class PropertyManagerModal extends Modal {
 		switch (this.action) {
 			case 'set': {
 				const parsedValue = this.parseValue(this.value, this.propertyType);
-				const strParsed = String(parsedValue as string | number | boolean | null | undefined);
+				const strParsed = String(parsedValue);
 				const finalValue = this.asWikilink ? `[[${strParsed}]]` : parsedValue;
 				return {
 					type: 'property',
 					property: this.property,
 					action: 'set',
-					details: `${this.property} = ${String(finalValue as string | number | boolean | null | undefined)}`,
+					details: `${this.property} = ${String(finalValue)}`,
 					files,
 					logicFunc: (_file, metadata) => {
 						if (this.propertyType === 'list' && this.appendToList) {
@@ -439,12 +439,18 @@ export class PropertyManagerModal extends Modal {
 				}
 				return Boolean(value);
 			}
-			case 'list':
+			case 'list': {
 				if (Array.isArray(value)) return value;
 				if (typeof value === 'string') {
 					return value.split(',').map((s) => s.trim()).filter(Boolean);
 				}
-				return value != null ? [String(value as string | number | boolean)] : [];
+				if (value == null) return [];
+				if (typeof value === 'number' || typeof value === 'boolean' || typeof value === 'bigint') return [String(value)];
+				if (typeof value === 'symbol') return [value.description ?? value.toString()];
+				if (typeof value === 'function') return [value.name];
+				const serialized = JSON.stringify(value);
+				return serialized ? [serialized] : [];
+			}
 			case 'date': {
 				if (Array.isArray(value)) return String(value[0] ?? '');
 				const str = String((value as string | number | boolean) ?? '');

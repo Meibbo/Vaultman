@@ -211,10 +211,10 @@ export class PropsExplorerPanel extends Component {
 
 	private _getFilesWithValue(propName: string, value: string): import('obsidian').TFile[] {
 		return this.plugin.app.vault.getMarkdownFiles().filter(f => {
-			const fm = this.plugin.app.metadataCache.getFileCache(f)?.frontmatter ?? {};
+			const fm: Record<string, unknown> = this.plugin.app.metadataCache.getFileCache(f)?.frontmatter ?? {};
 			if (!(propName in fm)) return false;
-			const v = fm[propName];
-			if (Array.isArray(v)) return (v as unknown[]).some(x => String(x) === value);
+			const v: unknown = fm[propName];
+			if (Array.isArray(v)) return v.some(x => String(x) === value);
 			return String(v) === value;
 		});
 	}
@@ -351,7 +351,7 @@ export class PropsExplorerPanel extends Component {
 				const meta = node.meta;
 				const nodeType: 'prop' | 'value' = meta.isValueNode ? 'value' : 'prop';
 				this.plugin.contextMenuService.openPanelMenu(
-					{ nodeType, node: node as TreeNode<unknown>, surface: 'panel' },
+					{ nodeType, node, surface: 'panel' },
 					e,
 				);
 			},
@@ -390,7 +390,7 @@ export class PropsExplorerPanel extends Component {
 	private _renderGrid(): void {
 		this.containerEl.empty();
 		const tree = this.logic.getTree();
-		const topProps = tree.filter(n => !(n.meta as PropMeta).isValueNode);
+		const topProps = tree.filter(n => !n.meta.isValueNode);
 		const sorted = this._applySort(topProps);
 
 		const searcher = this.searchTerm ? prepareSimpleSearch(this.searchTerm) : null;
@@ -400,7 +400,7 @@ export class PropsExplorerPanel extends Component {
 		for (const node of filtered) {
 			const card = grid.createDiv({ cls: 'vaultman-prop-card' });
 			const iconEl = card.createDiv({ cls: 'vaultman-prop-card-icon' });
-			setIcon(iconEl, TYPE_ICON_MAP[(node.meta as PropMeta).propType ?? ''] ?? 'lucide-tag');
+			setIcon(iconEl, TYPE_ICON_MAP[node.meta.propType ?? ''] ?? 'lucide-tag');
 			card.createDiv({ cls: 'vaultman-prop-card-name', text: node.label });
 			const count = node.count ?? 0;
 			if (count) card.createDiv({ cls: 'vaultman-prop-card-count', text: String(count) });
@@ -425,7 +425,12 @@ export class PropsExplorerPanel extends Component {
 					currentCls = (currentCls + ' is-deleted-prop').trim();
 				}
 			} else if (meta.isValueNode) {
-				const isValueDeleted = queue.some(op => op.type === 'property' && op.property === meta.propName && op.action === 'delete' && (op as PropertyChange).oldValue === meta.rawValue);
+				const isValueDeleted = queue.some((op): op is PropertyChange =>
+					op.type === 'property' &&
+					op.property === meta.propName &&
+					op.action === 'delete' &&
+					op.oldValue === meta.rawValue
+				);
 				if (isValueDeleted) {
 					if (!currentCls.includes('is-deleted-value')) {
 						currentCls = (currentCls + ' is-deleted-value').trim();

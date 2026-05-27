@@ -1,3 +1,4 @@
+import { getLanguage as getObsidianLanguage } from 'obsidian';
 import type { Language } from '../types/typeSettings';
 import { en } from './en';
 import { es } from './es';
@@ -14,14 +15,9 @@ let currentLang: ResolvedLanguage = 'en';
 function resolveLanguage(lang: Language): ResolvedLanguage {
 	if (lang === 'en' || lang === 'es') return lang;
 
-	// Obsidian stores the user's language choice in localStorage
-	// eslint-disable-next-line no-restricted-globals
-	const stored = typeof localStorage !== 'undefined'
-		// eslint-disable-next-line no-restricted-globals
-		? localStorage.getItem('language')
-		: null;
-	if (stored === 'es') return 'es';
-	if (stored && stored !== 'es') return 'en';
+	const obsidianLanguage = getObsidianLanguage();
+	if (obsidianLanguage.startsWith('es')) return 'es';
+	if (obsidianLanguage) return 'en';
 
 	// Fallback: moment.js locale (Obsidian includes moment globally)
 	try {

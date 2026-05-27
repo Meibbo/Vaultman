@@ -44,7 +44,7 @@ export function showInputModal(app: App, message: string): Promise<string | null
 					if (e.key === 'Enter') submit();
 					else if (e.key === 'Escape') cancel();
 				});
-				requestAnimationFrame(() => this.inputEl.focus());
+				window.requestAnimationFrame(() => this.inputEl.focus());
 			}
 
 			onClose(): void {

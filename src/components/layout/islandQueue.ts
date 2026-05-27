@@ -89,7 +89,7 @@ export class QueueIslandComponent {
 		this.render();
 
 		// Slide in after next frame so CSS transition fires
-		requestAnimationFrame(() => {
+		window.requestAnimationFrame(() => {
 			this.islandEl?.addClass('is-open');
 		});
 	}

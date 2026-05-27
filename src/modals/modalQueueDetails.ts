@@ -69,7 +69,7 @@ export class QueueDetailsModal extends Modal {
 		});
 
 		// --- File diffs ---
-		const diffContainer = contentEl.createEl('div', { cls: 'vaultman-diff-container' });
+		const diffContainer = contentEl.createDiv({ cls: 'vaultman-diff-container' });
 		this.renderDiffs(diffContainer, diffs);
 
 		// --- Async content-op snippet section (below property diffs) ---
@@ -228,7 +228,12 @@ export class QueueDetailsModal extends Modal {
 			// YAML-like list for longer arrays
 			return val.map((v) => `  - ${v}`).join('\n');
 		}
-		return String(val as string | number | boolean);
+		if (val == null) return '';
+		if (typeof val === 'string') return val;
+		if (typeof val === 'number' || typeof val === 'boolean' || typeof val === 'bigint') return String(val);
+		if (typeof val === 'symbol') return val.description ?? val.toString();
+		if (typeof val === 'function') return val.name;
+		return JSON.stringify(val) ?? '';
 	}
 
 	private async renderContentOps(container: HTMLElement): Promise<void> {

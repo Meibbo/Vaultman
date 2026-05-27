@@ -20,7 +20,7 @@ export class PropertyIndexService extends Component {
 	private fileProperties: Map<string, Set<string>> = new Map();
 
 	/** Debounce timer for batching metadata changes */
-	private metadataTimer: ReturnType<typeof setTimeout> | null = null;
+	private metadataTimer: number | null = null;
 	private pendingFiles: Set<string> = new Set();
 	private readonly METADATA_DEBOUNCE_MS = 50;
 
@@ -66,7 +66,7 @@ export class PropertyIndexService extends Component {
 
 	onunload(): void {
 		if (this.metadataTimer) {
-			clearTimeout(this.metadataTimer);
+			window.clearTimeout(this.metadataTimer);
 			this.metadataTimer = null;
 		}
 	}
@@ -103,7 +103,7 @@ export class PropertyIndexService extends Component {
 	/** Schedule a debounced flush of pending metadata updates */
 	private scheduleFlush(): void {
 		if (this.metadataTimer) return;
-		this.metadataTimer = setTimeout(() => {
+		this.metadataTimer = window.setTimeout(() => {
 			this.metadataTimer = null;
 			this.flushPending();
 		}, this.METADATA_DEBOUNCE_MS);
@@ -155,10 +155,32 @@ export class PropertyIndexService extends Component {
 		if (value == null) return;
 		if (Array.isArray(value)) {
 			for (const v of value) {
-				if (v != null) target.add(String(v));
+				this.addIndexValue(target, v);
 			}
-		} else {
-			target.add(typeof value === 'object' ? JSON.stringify(value) : String(value as string | number | boolean | null | undefined));
+			return;
 		}
+		this.addIndexValue(target, value);
+	}
+
+	private addIndexValue(target: Set<string>, value: unknown): void {
+		if (value == null) return;
+		if (typeof value === 'string') {
+			target.add(value);
+			return;
+		}
+		if (typeof value === 'number' || typeof value === 'boolean' || typeof value === 'bigint') {
+			target.add(String(value));
+			return;
+		}
+		if (typeof value === 'symbol') {
+			target.add(value.description ?? value.toString());
+			return;
+		}
+		if (typeof value === 'function') {
+			target.add(value.name);
+			return;
+		}
+		const serialized = JSON.stringify(value);
+		if (serialized) target.add(serialized);
 	}
 }

@@ -45,7 +45,7 @@ describe('Vaultman Integration Tests', () => {
                 if (typeof fileName !== 'string') return;
                 const existing = app.vault.getAbstractFileByPath(fileName);
                 if (existing && 'extension' in existing) {
-                    await app.fileManager.trashFile(existing as Parameters<typeof app.fileManager.trashFile>[0]);
+                    await app.fileManager.trashFile(existing);
                 }
             }
         });
@@ -74,7 +74,7 @@ describe('Vaultman Integration Tests', () => {
                 const file = app.vault.getAbstractFileByPath(fileName);
                 // Guard: only trash if it's a file (has an extension), not a folder
                 if (file && 'extension' in file) {
-                    await app.fileManager.trashFile(file as Parameters<typeof app.fileManager.trashFile>[0]);
+                    await app.fileManager.trashFile(file);
                 }
             }
         });

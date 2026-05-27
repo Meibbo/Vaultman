@@ -1,4 +1,0 @@
-#Solo buscar archivos .svelte y .ts
-node_modules/
-dist/
-main.js

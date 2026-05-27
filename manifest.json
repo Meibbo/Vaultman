@@ -3,7 +3,7 @@
 	"name": "Vaultman",
 	"version": "1.0.0",
 	"minAppVersion": "1.12.0",
-	"description": "Files, content and frontmatter explorer like Bases with scoped queued changes list",
+	"description": "Files, content and frontmatter explorer like Bases with scoped queued changes list.",
 	"author": "Meibbo",
 	"authorUrl": "https://github.com/Meibbo",
 	"isDesktopOnly": false
