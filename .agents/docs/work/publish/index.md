@@ -4,7 +4,7 @@ type: initiative-index
 status: active
 parent: "[[docs/work/roadmap-overview|Roadmap Overview]]"
 created: 2026-05-26T00:00:00
-updated: 2026-05-27T12:25:00-05:00
+updated: 2026-05-27T12:55:00-05:00
 tags:
   - agent/initiative
   - initiative/publish
@@ -49,8 +49,9 @@ Active design:
 - [[docs/work/publish/plans/2026-05-26-release-1-0-1-from-1-0-0/index|Release 1.0.1 from 1.0.0 implementation plan]]
 - [[docs/work/publish/items/2026-05-26-release-1-0-1-candidate-verification|Release 1.0.1 candidate verification]]
 
-1. **1.1.0 → beta relabel.** `package.json`/`manifest.json` are already at
-   `1.1.0-beta.1`; finish the relabel + decide GitHub Release prerelease state.
+1. **1.1.0 → beta relabel.** GitHub Release `1.1.0` is now named
+   `1.1.0-beta.1` and marked prerelease. Its Git tag remains `1.1.0`; decide
+   tag strategy before any future stable `1.1.0` plan.
    Source: [[docs/work/v1-stable/items/2026-05-25-release-1-1-0-beta-relabel|1.1.0 beta relabel]].
 2. **Mobile regression.** No `Platform`/`isMobile` checks exist in `src/` and
    `isDesktopOnly:false` still claims mobile support. Document the exact mobile
@@ -88,6 +89,8 @@ Release `1.0.1` is published:
   `manifest.json`, and `styles.css`.
 - Artifact attestations verified for all three assets.
 - `origin/main` has no AI workflow files.
+- GitHub Release `1.0.1` is titled `1.0.1`.
+- GitHub Release `1.1.0` is titled `1.1.0-beta.1` and marked prerelease.
 
-Await explicit user approval before changing the existing `1.1.0` release state
-or cleaning up temporary release branches.
+Await explicit user approval before cleaning up temporary release branches or
+making any tag-level changes to `1.1.0`.

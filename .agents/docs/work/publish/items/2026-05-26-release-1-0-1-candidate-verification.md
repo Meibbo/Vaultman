@@ -4,7 +4,7 @@ type: verification-record
 status: released
 parent: "[[docs/work/publish/index|Publish]]"
 created: 2026-05-27T00:28:49-05:00
-updated: 2026-05-27T12:25:00-05:00
+updated: 2026-05-27T12:55:00-05:00
 tags:
   - agent/verification
   - initiative/publish
@@ -95,7 +95,7 @@ updated_by: codex
     `npm run build:plugin`, asset preparation, artifact attestation, release
     bundle upload, and GitHub Release publication.
 - GitHub Release: <https://github.com/Meibbo/Vaultman/releases/tag/1.0.1>
-  - Name: `Vaultman 1.0.1`.
+  - Name: `1.0.1`.
   - Published at: `2026-05-27T17:16:52Z`.
   - Draft: false.
   - Prerelease: false.
@@ -123,6 +123,24 @@ updated_by: codex
   runs on Node.js 20. The run succeeded, but future workflow maintenance should
   update pinned action SHAs or opt into Node.js 24 before GitHub removes Node.js
   20 runner support.
+
+### Release metadata correction
+
+- Release `1.1.0` was edited to avoid stable-channel confusion:
+  - URL: <https://github.com/Meibbo/Vaultman/releases/tag/1.1.0>
+  - Tag: `1.1.0`
+  - Name: `1.1.0-beta.1`
+  - Draft: false
+  - Prerelease: true
+  - Target: `8d5c4fd61a6e1840cb74e8523ca46312f20936ec`
+- Release `1.0.1` was edited so its title is the bare version:
+  - Name: `1.0.1`
+  - Draft: false
+  - Prerelease: false
+  - Latest: true, as reported by `gh release list`
+- Note: the `1.1.0` Git tag still exists as `1.1.0`; this operation changed
+  GitHub Release metadata only. A future true stable `1.1.0` would require an
+  explicit tag/release strategy decision.
 
 ## Scorecard fixes covered
 
@@ -152,17 +170,21 @@ The release candidate therefore treats `verify` plus `security:audit` as the rep
 - Created and pushed tag `1.0.1`.
 - Published GitHub Release `1.0.1`.
 - Verified release assets and artifact attestations.
+- Marked existing GitHub Release `1.1.0` as prerelease and renamed it
+  `1.1.0-beta.1`.
+- Renamed GitHub Release `1.0.1` to bare title `1.0.1`.
 
 ## Remaining not performed
 
-- No change to the existing `1.1.0` GitHub Release.
 - No branch cleanup.
+- No tag rename, tag delete, or tag retarget.
 
 ## Next release-management actions
 
 After explicit user approval:
 
-1. Decide how to mark the existing `1.1.0` release as prerelease/superseded.
+1. Decide whether to preserve, delete, or otherwise handle the existing
+   `1.1.0` tag before any future stable `1.1.0` plan.
 2. Clean up temporary release branches only if desired.
 3. Schedule the pinned-action Node.js 20 warning as workflow maintenance.
 
