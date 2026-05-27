@@ -4,7 +4,7 @@ type: initiative-index
 status: active
 parent: "[[docs/work/roadmap-overview|Roadmap Overview]]"
 created: 2026-05-26T00:00:00
-updated: 2026-05-27T02:50:00-05:00
+updated: 2026-05-27T12:25:00-05:00
 tags:
   - agent/initiative
   - initiative/publish
@@ -79,10 +79,15 @@ mechanics and the stable-user safety net.
 
 ## Next action
 
-PR #25 is merged to `main` at
-`8fac770481220ca7c43ff78a70d897a62dc136ec`
-(`chore: release 1.0.1 from the stable 1.0.0 line`). GitHub checks passed and
-`origin/main` has no AI workflow files.
+Release `1.0.1` is published:
+<https://github.com/Meibbo/Vaultman/releases/tag/1.0.1>.
 
-Await explicit user approval before tag creation, GitHub Release publication, or
-changing the existing `1.1.0` release state.
+- Tag `1.0.1` points to
+  `8fac770481220ca7c43ff78a70d897a62dc136ec`.
+- Release workflow run `26526886518` passed and published `main.js`,
+  `manifest.json`, and `styles.css`.
+- Artifact attestations verified for all three assets.
+- `origin/main` has no AI workflow files.
+
+Await explicit user approval before changing the existing `1.1.0` release state
+or cleaning up temporary release branches.

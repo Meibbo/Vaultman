@@ -1,10 +1,10 @@
 ---
 title: Release 1.0.1 candidate verification
 type: verification-record
-status: merged-awaiting-tag
+status: released
 parent: "[[docs/work/publish/index|Publish]]"
 created: 2026-05-27T00:28:49-05:00
-updated: 2026-05-27T02:50:00-05:00
+updated: 2026-05-27T12:25:00-05:00
 tags:
   - agent/verification
   - initiative/publish
@@ -83,6 +83,47 @@ updated_by: codex
   - `CodeQL`: pass
   - `CodeRabbit`: pass
 
+### Published release
+
+- Tag: `1.0.1` pushed to
+  `8fac770481220ca7c43ff78a70d897a62dc136ec`.
+- Release workflow run:
+  <https://github.com/Meibbo/Vaultman/actions/runs/26526886518>
+  - Event: push to tag `1.0.1`.
+  - Conclusion: success.
+  - Gates passed: `npm ci`, `npm run verify`, `npm run security:audit`,
+    `npm run build:plugin`, asset preparation, artifact attestation, release
+    bundle upload, and GitHub Release publication.
+- GitHub Release: <https://github.com/Meibbo/Vaultman/releases/tag/1.0.1>
+  - Name: `Vaultman 1.0.1`.
+  - Published at: `2026-05-27T17:16:52Z`.
+  - Draft: false.
+  - Prerelease: false.
+- Published assets:
+  - `main.js` size `227208`, SHA256
+    `06A4B4879DACAC14BDDC90137F0C84073E0E3789A612FC074FD94BEE550EBC35`.
+  - `manifest.json` size `284`, SHA256
+    `6CCC9D97846B8563290136074F3DF8081071E8C384C6A3626BDE224D65CED3A5`.
+  - `styles.css` size `95169`, SHA256
+    `EEEF8075ECF9C7C7130322590C8CE03189AFEDE98B0A97299AB0F65896530AED`.
+- Downloaded `manifest.json` confirms:
+  - `id`: `vaultman`
+  - `name`: `Vaultman`
+  - `version`: `1.0.1`
+  - `minAppVersion`: `1.12.0`
+  - `isDesktopOnly`: `false`
+  - `description`: `Files, content and frontmatter explorer like Bases with scoped queued changes list.`
+- Attestation verification passed for `main.js`, `manifest.json`, and
+  `styles.css` with:
+  - predicate type: `https://slsa.dev/provenance/v1`
+  - source repository: `https://github.com/Meibbo/Vaultman`
+  - source ref: `refs/tags/1.0.1`
+  - source SHA: `8fac770481220ca7c43ff78a70d897a62dc136ec`
+- Non-blocking release-run annotation: GitHub warns that one pinned action still
+  runs on Node.js 20. The run succeeded, but future workflow maintenance should
+  update pinned action SHAs or opt into Node.js 24 before GitHub removes Node.js
+  20 runner support.
+
 ## Scorecard fixes covered
 
 - Manifest description now ends with punctuation.
@@ -108,21 +149,22 @@ The release candidate therefore treats `verify` plus `security:audit` as the rep
 - Created mergeable PR branch `release/1.0.1-main-pr`.
 - Opened PR #25 to `main`.
 - Merged PR #25 to `main` with explicit user-approved admin bypass.
+- Created and pushed tag `1.0.1`.
+- Published GitHub Release `1.0.1`.
+- Verified release assets and artifact attestations.
 
 ## Remaining not performed
 
-- No tag creation.
-- No GitHub Release creation or edit.
 - No change to the existing `1.1.0` GitHub Release.
+- No branch cleanup.
 
 ## Next release-management actions
 
 After explicit user approval:
 
-1. Tag `1.0.1` on merge commit `8fac770481220ca7c43ff78a70d897a62dc136ec`.
-2. Let `.github/workflows/release.yml` publish assets and artifact attestations.
-3. Verify the GitHub Release assets and attestations.
-4. Only then decide how to mark the existing `1.1.0` release as prerelease/superseded.
+1. Decide how to mark the existing `1.1.0` release as prerelease/superseded.
+2. Clean up temporary release branches only if desired.
+3. Schedule the pinned-action Node.js 20 warning as workflow maintenance.
 
 The original pushed branch `release/1.0.1-from-1.0.0` remains as the verified
 source candidate but is not the mergeable PR branch.
