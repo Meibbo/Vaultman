@@ -4,7 +4,7 @@ type: initiative-index
 status: active
 parent: "[[docs/work/roadmap-overview|Roadmap Overview]]"
 created: 2026-05-26T00:00:00
-updated: 2026-05-27T01:25:00-05:00
+updated: 2026-05-27T02:50:00-05:00
 tags:
   - agent/initiative
   - initiative/publish
@@ -79,6 +79,10 @@ mechanics and the stable-user safety net.
 
 ## Next action
 
-Draft PR #25 is open from `release/1.0.1-main-pr` to `main` and GitHub checks
-are passing. Await explicit user approval before converting from draft, merge,
-tag, GitHub Release publication, or changing the existing `1.1.0` release state.
+PR #25 is merged to `main` at
+`8fac770481220ca7c43ff78a70d897a62dc136ec`
+(`chore: release 1.0.1 from the stable 1.0.0 line`). GitHub checks passed and
+`origin/main` has no AI workflow files.
+
+Await explicit user approval before tag creation, GitHub Release publication, or
+changing the existing `1.1.0` release state.

@@ -1,10 +1,10 @@
 ---
 title: Release 1.0.1 candidate verification
 type: verification-record
-status: draft-pr-open
+status: merged-awaiting-tag
 parent: "[[docs/work/publish/index|Publish]]"
 created: 2026-05-27T00:28:49-05:00
-updated: 2026-05-27T01:25:00-05:00
+updated: 2026-05-27T02:50:00-05:00
 tags:
   - agent/verification
   - initiative/publish
@@ -24,14 +24,21 @@ updated_by: codex
 - Product version: `package.json`, `manifest.json`, and `versions.json` set to `1.0.1`.
 - Main-branch AI guard: release worktree contains no `AGENTS.md`, `CLAUDE.md`, `.agents/`, or `.claude/`.
 
-## Draft PR
+## PR #25 merge
 
 - PR: <https://github.com/Meibbo/Vaultman/pull/25>
 - PR branch: `release/1.0.1-main-pr`
 - PR base: `main`
 - PR head: `2793c89 chore(release): restore stable 1.0.1 line`
-- State: draft, open, mergeable.
+- State: merged.
+- Merged at: `2026-05-27T07:48:39Z`.
+- Merged by: `Meibbo`.
+- Merge commit on `main`: `8fac770481220ca7c43ff78a70d897a62dc136ec`
+  (`chore: release 1.0.1 from the stable 1.0.0 line`).
 - Reason for PR branch split: GitHub rejected a direct PR from `release/1.0.1-from-1.0.0` because that branch has no history in common with current `main`. The mergeable PR branch starts from `origin/main` and restores the verified candidate tree.
+- Admin bypass rationale: repository ruleset required one approving review and
+  auto-merge was disabled. The PR was mergeable, required checks were passing,
+  and the user explicitly authorized the admin merge bypass.
 
 ## Commits
 
@@ -95,30 +102,27 @@ updated_by: codex
 
 The release candidate therefore treats `verify` plus `security:audit` as the reproducible release gates, and leaves the desktop integration harness as a separate follow-up.
 
-## Not performed
+## Performed
 
-- No push.
-- No PR creation.
-- No merge to `main`.
+- Pushed source candidate branch `release/1.0.1-from-1.0.0`.
+- Created mergeable PR branch `release/1.0.1-main-pr`.
+- Opened PR #25 to `main`.
+- Merged PR #25 to `main` with explicit user-approved admin bypass.
+
+## Remaining not performed
+
 - No tag creation.
 - No GitHub Release creation or edit.
 - No change to the existing `1.1.0` GitHub Release.
-
-Updated after PR #25:
-
-- PR creation is now complete.
-- Merge to `main`, tag creation, GitHub Release publication, and changes to `1.1.0` remain not performed.
 
 ## Next release-management actions
 
 After explicit user approval:
 
-1. Push `release/1.0.1-from-1.0.0`.
-2. Open a PR to `main`, confirming the PR contains zero AI workflow files.
-3. Review PR #25 and convert from draft when ready.
-4. After merge, tag `1.0.1` on `main`.
-5. Let `.github/workflows/release.yml` publish assets and artifact attestations.
-6. Verify the GitHub Release assets and attestations.
-7. Only then decide how to mark the existing `1.1.0` release as prerelease/superseded.
+1. Tag `1.0.1` on merge commit `8fac770481220ca7c43ff78a70d897a62dc136ec`.
+2. Let `.github/workflows/release.yml` publish assets and artifact attestations.
+3. Verify the GitHub Release assets and attestations.
+4. Only then decide how to mark the existing `1.1.0` release as prerelease/superseded.
 
-Steps 1 and 2 are complete via the mergeable PR branch `release/1.0.1-main-pr`. The original pushed branch `release/1.0.1-from-1.0.0` remains as the verified source candidate but is not the mergeable PR branch.
+The original pushed branch `release/1.0.1-from-1.0.0` remains as the verified
+source candidate but is not the mergeable PR branch.
