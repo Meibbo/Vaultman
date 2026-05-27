@@ -4,7 +4,7 @@ type: initiative-index
 status: active
 parent: "[[docs/work/roadmap-overview|Roadmap Overview]]"
 created: 2026-05-26T00:00:00
-updated: 2026-05-27T00:28:49-05:00
+updated: 2026-05-27T01:25:00-05:00
 tags:
   - agent/initiative
   - initiative/publish
@@ -79,6 +79,6 @@ mechanics and the stable-user safety net.
 
 ## Next action
 
-Release candidate branch `release/1.0.1-from-1.0.0` is locally prepared and
-verified. Await explicit user approval before push, PR creation, merge, tag,
-GitHub Release publication, or changing the existing `1.1.0` release state.
+Draft PR #25 is open from `release/1.0.1-main-pr` to `main` and GitHub checks
+are passing. Await explicit user approval before converting from draft, merge,
+tag, GitHub Release publication, or changing the existing `1.1.0` release state.

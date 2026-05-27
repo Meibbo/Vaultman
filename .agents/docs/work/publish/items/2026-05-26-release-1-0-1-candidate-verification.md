@@ -1,10 +1,10 @@
 ---
 title: Release 1.0.1 candidate verification
 type: verification-record
-status: ready-for-user-release-approval
+status: draft-pr-open
 parent: "[[docs/work/publish/index|Publish]]"
 created: 2026-05-27T00:28:49-05:00
-updated: 2026-05-27T00:28:49-05:00
+updated: 2026-05-27T01:25:00-05:00
 tags:
   - agent/verification
   - initiative/publish
@@ -13,7 +13,6 @@ tags:
 created_by: codex
 updated_by: codex
 ---
-
 # Release 1.0.1 candidate verification
 
 ## Candidate
@@ -25,6 +24,15 @@ updated_by: codex
 - Product version: `package.json`, `manifest.json`, and `versions.json` set to `1.0.1`.
 - Main-branch AI guard: release worktree contains no `AGENTS.md`, `CLAUDE.md`, `.agents/`, or `.claude/`.
 
+## Draft PR
+
+- PR: <https://github.com/Meibbo/Vaultman/pull/25>
+- PR branch: `release/1.0.1-main-pr`
+- PR base: `main`
+- PR head: `2793c89 chore(release): restore stable 1.0.1 line`
+- State: draft, open, mergeable.
+- Reason for PR branch split: GitHub rejected a direct PR from `release/1.0.1-from-1.0.0` because that branch has no history in common with current `main`. The mergeable PR branch starts from `origin/main` and restores the verified candidate tree.
+
 ## Commits
 
 1. `e1440a9 test(scorecard): add release regression scan`
@@ -34,6 +42,8 @@ updated_by: codex
 5. `5c98d70 chore(security): resolve release audit findings`
 
 ## Verification passed
+
+### Original candidate branch
 
 - `npm ci --no-audit --no-fund --prefer-offline`
 - `npm run verify`
@@ -51,6 +61,20 @@ updated_by: codex
   - `dist/release/main.js`
   - `dist/release/manifest.json`
   - `dist/release/styles.css`
+
+### Mergeable PR branch
+
+- `npm ci --no-audit --no-fund --prefer-offline`
+- `npm run verify`
+- `npm run security:audit`
+- `git diff --check origin/main..HEAD`
+- AI-file diff guard against `AGENTS.md`, `CLAUDE.md`, `.agents/`, `.claude/`
+- GitHub checks on PR #25:
+  - `Guard main against AI workflow files`: pass
+  - `verify`: pass
+  - `Analyze (javascript-typescript)`: pass
+  - `CodeQL`: pass
+  - `CodeRabbit`: pass
 
 ## Scorecard fixes covered
 
@@ -80,13 +104,21 @@ The release candidate therefore treats `verify` plus `security:audit` as the rep
 - No GitHub Release creation or edit.
 - No change to the existing `1.1.0` GitHub Release.
 
+Updated after PR #25:
+
+- PR creation is now complete.
+- Merge to `main`, tag creation, GitHub Release publication, and changes to `1.1.0` remain not performed.
+
 ## Next release-management actions
 
 After explicit user approval:
 
 1. Push `release/1.0.1-from-1.0.0`.
 2. Open a PR to `main`, confirming the PR contains zero AI workflow files.
-3. After merge, tag `1.0.1` on `main`.
-4. Let `.github/workflows/release.yml` publish assets and artifact attestations.
-5. Verify the GitHub Release assets and attestations.
-6. Only then decide how to mark the existing `1.1.0` release as prerelease/superseded.
+3. Review PR #25 and convert from draft when ready.
+4. After merge, tag `1.0.1` on `main`.
+5. Let `.github/workflows/release.yml` publish assets and artifact attestations.
+6. Verify the GitHub Release assets and attestations.
+7. Only then decide how to mark the existing `1.1.0` release as prerelease/superseded.
+
+Steps 1 and 2 are complete via the mergeable PR branch `release/1.0.1-main-pr`. The original pushed branch `release/1.0.1-from-1.0.0` remains as the verified source candidate but is not the mergeable PR branch.
