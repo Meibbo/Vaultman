@@ -1,0 +1,136 @@
+---
+title: Release 1.0.1 Plan - Release Workflow
+type: implementation-plan-shard
+status: active
+parent: "[[docs/work/publish/plans/2026-05-26-release-1-0-1-from-1-0-0/index|Release 1.0.1 From 1.0.0 Implementation Plan]]"
+created: 2026-05-26T22:07:55
+updated: 2026-05-26T22:07:55
+tags:
+  - agent/plan
+  - initiative/publish
+created_by: codex-gpt-5
+updated_by: codex-gpt-5
+---
+
+# Release Workflow
+
+## Task 4: Create npm-Adapted Release Workflow
+
+**Files:**
+
+- Create: `.github/workflows/release.yml`
+
+- [ ] **Step 1: Create the release workflow**
+
+Create `.github/workflows/release.yml`:
+
+```yaml
+name: Release
+
+on:
+  push:
+    tags:
+      - '[0-9]*.[0-9]*.[0-9]*'
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: Build and attest assets without publishing a GitHub Release.
+        required: true
+        default: true
+        type: boolean
+
+permissions:
+  contents: read
+
+jobs:
+  release:
+    name: Build release assets
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      id-token: write
+      attestations: write
+      artifact-metadata: write
+    steps:
+      - name: Checkout immutable ref
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Validate publish ref
+        if: github.event_name == 'push' || inputs.dry_run == false
+        shell: bash
+        run: |
+          if [[ "${GITHUB_REF_TYPE}" != "tag" ]]; then
+            echo "Release publishing requires a tag ref; current ref is ${GITHUB_REF_TYPE}:${GITHUB_REF_NAME}." >&2
+            exit 1
+          fi
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: '24'
+          cache: npm
+      - run: npm ci
+      - run: npm run verify
+      - run: npm run security:audit
+      - run: npm run build:plugin
+      - name: Prepare release assets
+        shell: bash
+        run: |
+          set -euo pipefail
+          rm -rf dist/release
+          mkdir -p dist/release
+          cp main.js dist/release/main.js
+          cp styles.css dist/release/styles.css
+          cp manifest.json dist/release/manifest.json
+          test -s dist/release/main.js
+          test -s dist/release/styles.css
+          test -s dist/release/manifest.json
+      - name: Attest release artifacts
+        uses: actions/attest@59d89421af93a897026c735860bf21b6eb4f7b26
+        with:
+          subject-path: |
+            dist/release/main.js
+            dist/release/manifest.json
+            dist/release/styles.css
+      - name: Upload release bundle
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+        with:
+          name: vaultman-release-${{ github.run_id }}
+          path: dist/release/
+          if-no-files-found: error
+      - name: Publish GitHub Release
+        if: github.event_name == 'push' || inputs.dry_run == false
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          notes_file="$(mktemp)"
+          cat > "${notes_file}" <<EOF
+          Vaultman 1.0.1 stable patch built from the 1.0.x product line.
+
+          Included assets:
+          - main.js
+          - manifest.json
+          - styles.css
+
+          Verify provenance with:
+          gh attestation verify main.js -R ${GITHUB_REPOSITORY}
+          gh attestation verify styles.css -R ${GITHUB_REPOSITORY}
+          EOF
+          if gh release view "${GITHUB_REF_NAME}" >/dev/null 2>&1; then
+            gh release upload "${GITHUB_REF_NAME}" dist/release/main.js dist/release/manifest.json dist/release/styles.css --clobber
+            gh release edit "${GITHUB_REF_NAME}" --title "Vaultman ${GITHUB_REF_NAME}" --notes-file "${notes_file}"
+          else
+            gh release create "${GITHUB_REF_NAME}" dist/release/main.js dist/release/manifest.json dist/release/styles.css --verify-tag --title "Vaultman ${GITHUB_REF_NAME}" --notes-file "${notes_file}"
+          fi
+```
+
+- [ ] **Step 2: Commit workflow setup**
+
+Run:
+
+```powershell
+git add .github release-please-config.json .release-please-manifest.json package.json scripts/scorecard-regression-check.mjs
+git commit -m "chore(release): prepare 1.0.1 branch workflow"
+```
