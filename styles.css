@@ -972,8 +972,8 @@
 
 /* --- (session row removed in dev) --- */
 
-.vaultman-hidden {
-  display: none !important;
+.vaultman-hidden.vaultman-hidden {
+  display: none;
 }
 
 /* --- Operations Column (LEFT — smart vertical/horizontal tabs) --- */
@@ -1499,8 +1499,8 @@ body.vaultman-resizing .vaultman-grid-resize-handle {
 }
 
 body.vaultman-resizing {
-  cursor: col-resize !important;
-  user-select: none !important;
+  cursor: col-resize;
+  user-select: none;
 }
 
 .vaultman-grid-row {
@@ -1563,8 +1563,8 @@ body.vaultman-resizing {
 }
 
 /* Inline editing */
-.vaultman-grid-editing {
-  padding: 2px 4px !important;
+.vaultman-grid-td-prop.vaultman-grid-editing {
+  padding: 2px 4px;
 }
 
 .vaultman-grid-edit-input {
@@ -1764,12 +1764,12 @@ th.vaultman-bases-th-check input[type="checkbox"] {
 }
 
 /* Selected row highlight */
-table tbody tr.is-selected {
-  background: color-mix(in srgb, var(--interactive-accent) 15%, transparent) !important;
+body table tbody tr.is-selected {
+  background: color-mix(in srgb, var(--interactive-accent) 15%, transparent);
 }
 
-table tbody tr.is-selected:hover {
-  background: color-mix(in srgb, var(--interactive-accent) 22%, transparent) !important;
+body table tbody tr.is-selected:hover {
+  background: color-mix(in srgb, var(--interactive-accent) 22%, transparent);
 }
 
 /* Column separators (opt-in) */
@@ -2308,7 +2308,7 @@ body.vaultman-bases-column-separators table th {
 /* Hack to completely remove strict inner padding on vaultman view, allowing full height sweep */
 .workspace-leaf-content[data-type="vaultman-view"] .view-content,
 .workspace-leaf-content[data-type="vaultman-frame"] .view-content {
-  padding: 0 !important;
+  padding: 0;
 }
 
 .vaultman-pages-viewport {
@@ -2392,12 +2392,12 @@ body.vaultman-bases-column-separators table th {
   border-color: var(--color-accent);
 }
 
-input.vaultman-filters-search-input {
+.vaultman-filters-header-search-pill input.vaultman-filters-search-input {
   flex: 1;
-  border: none !important;
-  background: transparent !important;
-  box-shadow: none !important;
-  outline: none !important;
+  border: none;
+  background: transparent;
+  box-shadow: none;
+  outline: none;
   font-size: var(--font-ui-smaller);
   color: var(--text-normal);
   min-width: 0;
@@ -2405,19 +2405,19 @@ input.vaultman-filters-search-input {
   padding: 0;
   margin: 0;
   /* Reset native search styles */
-  appearance: none !important;
-  -webkit-appearance: none !important;
-  background-image: none !important;
-  border-radius: 0 !important;
+  appearance: none;
+  -webkit-appearance: none;
+  background-image: none;
+  border-radius: 0;
 }
 
-input.vaultman-filters-search-input::-webkit-search-cancel-button,
-input.vaultman-filters-search-input::-webkit-search-decoration,
-input.vaultman-filters-search-input::-webkit-search-results-button,
-input.vaultman-filters-search-input::-webkit-search-results-decoration {
-  display: none !important;
-  appearance: none !important;
-  -webkit-appearance: none !important;
+.vaultman-filters-header-search-pill input.vaultman-filters-search-input::-webkit-search-cancel-button,
+.vaultman-filters-header-search-pill input.vaultman-filters-search-input::-webkit-search-decoration,
+.vaultman-filters-header-search-pill input.vaultman-filters-search-input::-webkit-search-results-button,
+.vaultman-filters-header-search-pill input.vaultman-filters-search-input::-webkit-search-results-decoration {
+  display: none;
+  appearance: none;
+  -webkit-appearance: none;
 }
 
 .vaultman-filters-search-input::placeholder {
@@ -3679,16 +3679,16 @@ input.vaultman-filters-search-input::-webkit-search-results-decoration {
   /* Subtler for parent-inherited badges */
 }
 
-.vaultman-badge-icon {
-  display: flex !important;
-  width: 10px !important;
-  height: 10px !important;
+.vaultman-badge .vaultman-badge-icon {
+  display: flex;
+  width: 10px;
+  height: 10px;
   color: inherit;
 }
 
-.vaultman-badge-icon svg {
-  width: 10px !important;
-  height: 10px !important;
+.vaultman-badge .vaultman-badge-icon svg {
+  width: 10px;
+  height: 10px;
 }
 
 .vaultman-badge--blue {
@@ -3994,8 +3994,8 @@ input.vaultman-filters-search-input::-webkit-search-results-decoration {
 .vaultman-tree-row.is-deleted-prop,
 .vaultman-tree-row.is-deleted-value,
 .vaultman-tree-row.is-deleted-tag {
-  color: var(--text-faint) !important;
-  opacity: 0.5 !important;
+  color: var(--text-faint);
+  opacity: 0.5;
 }
 
 .vaultman-tree-row.is-deleted-prop .vaultman-tree-label,
@@ -4090,9 +4090,9 @@ input.vaultman-filters-search-input::-webkit-search-results-decoration {
   transform-origin: top;
 }
 
-.vaultman-search-highlight {
-  background-color: color-mix(in srgb, var(--color-accent) 12%, transparent) !important;
-  color: var(--text-normal) !important;
+.vaultman-tree-row.vaultman-search-highlight {
+  background-color: color-mix(in srgb, var(--color-accent) 12%, transparent);
+  color: var(--text-normal);
   /* Simplified animation: opacity only to avoid sub-pixel blur from translateY */
   animation: vaultman-fade-in-simple 0.2s ease;
 }
@@ -4366,7 +4366,10 @@ input.vaultman-filters-search-input::-webkit-search-results-decoration {
 
 /* Tab content wrapper for the {#key} fade */
 .vaultman-filters-tab-content {
-  display: contents;
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-height: 0;
 }
 
 /* ----------------------------------------------------------

@@ -87,7 +87,7 @@ jobs:
           set -euo pipefail
           notes_file="$(mktemp)"
           cat > "${notes_file}" <<EOF
-          Vaultman 1.0.1 stable patch built from the 1.0.x product line.
+          ${GITHUB_REF_NAME} stable patch built from the 1.0.x product line.
 
           Included assets:
           - main.js
@@ -100,7 +100,7 @@ jobs:
           EOF
           if gh release view "${GITHUB_REF_NAME}" >/dev/null 2>&1; then
             gh release upload "${GITHUB_REF_NAME}" dist/release/main.js dist/release/manifest.json dist/release/styles.css --clobber
-            gh release edit "${GITHUB_REF_NAME}" --title "Vaultman ${GITHUB_REF_NAME}" --notes-file "${notes_file}"
+            gh release edit "${GITHUB_REF_NAME}" --title "${GITHUB_REF_NAME}" --notes-file "${notes_file}"
           else
-            gh release create "${GITHUB_REF_NAME}" dist/release/main.js dist/release/manifest.json dist/release/styles.css --verify-tag --title "Vaultman ${GITHUB_REF_NAME}" --notes-file "${notes_file}"
+            gh release create "${GITHUB_REF_NAME}" dist/release/main.js dist/release/manifest.json dist/release/styles.css --verify-tag --title "${GITHUB_REF_NAME}" --notes-file "${notes_file}"
           fi

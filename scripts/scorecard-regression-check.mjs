@@ -70,6 +70,23 @@ const checks = [
 		name: 'property index uses window timers',
 		test: (text) => text.includes('window.setTimeout(') && text.includes('window.clearTimeout('),
 	},
+	{
+		file: 'styles.css',
+		name: 'styles avoid !important',
+		test: (text) => !/!important\b/.test(text),
+	},
+	{
+		file: 'styles.css',
+		name: 'styles avoid display: contents for Obsidian 1.11.4 compatibility',
+		test: (text) => !/display\s*:\s*contents\b/i.test(text),
+	},
+	{
+		file: '.github/workflows/release.yml',
+		name: 'release titles use the bare tag name',
+		test: (text) =>
+			text.includes('--title "${GITHUB_REF_NAME}"') &&
+			!text.includes('--title "Vaultman ${GITHUB_REF_NAME}"'),
+	},
 ];
 
 const failures = [];
