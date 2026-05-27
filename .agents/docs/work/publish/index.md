@@ -45,7 +45,7 @@ Context source:
 
 Active design:
 
-- [[docs/work/publish/specs/2026-05-26-release-1-1-1-from-1-0-0-design|Release 1.1.1 from 1.0.0 with beta workflow safety]]
+- [[docs/work/publish/specs/2026-05-26-release-1-0-1-from-1-0-0-design|Release 1.0.1 from 1.0.0 with beta workflow safety]]
 
 1. **1.1.0 → beta relabel.** `package.json`/`manifest.json` are already at
    `1.1.0-beta.1`; finish the relabel + decide GitHub Release prerelease state.

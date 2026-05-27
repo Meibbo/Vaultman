@@ -1,10 +1,10 @@
 ---
-title: Release 1.1.1 From 1.0.0 With Beta Workflow Safety
+title: Release 1.0.1 From 1.0.0 With Beta Workflow Safety
 type: design-spec
 status: approved
 parent: "[[docs/work/publish/index|publish]]"
 created: 2026-05-26T21:20:53
-updated: 2026-05-26T21:20:53
+updated: 2026-05-26T21:50:51
 tags:
   - agent/spec
   - initiative/publish
@@ -14,11 +14,11 @@ created_by: codex-gpt-5
 updated_by: codex-gpt-5
 ---
 
-# Release 1.1.1 From 1.0.0 With Beta Workflow Safety
+# Release 1.0.1 From 1.0.0 With Beta Workflow Safety
 
 ## Goal
 
-Ship a `1.1.1` stable patch candidate based on the `1.0.0` product code, not
+Ship a `1.0.1` stable patch candidate based on the `1.0.0` product code, not
 on the regressed `1.1.0`/`beta.2` product line, while reusing the safer modern
 release workflow mechanics from the beta/release-infra work.
 
@@ -35,6 +35,10 @@ The user approved the conservative option:
 - Keep product source behavior equivalent to `1.0.0`, except for the Obsidian
   Scorecard fixes listed in this spec.
 - Publish `styles.css` as a real release asset.
+- Publish this as `1.0.1` on `main` so new users see the repaired `1.0.x`
+  stable line, not the regressed `1.1.0`.
+- Do not delete `1.1.0` first; mark it as a prerelease/superseded release and
+  verify the directory/default-branch behavior before considering deletion.
 
 The prior local experiment that changed PR #24 to `1.1.0-beta.2` is not the
 implementation source of truth. It remains useful only as evidence of the
@@ -45,7 +49,7 @@ desired beta/stable channel direction.
 Implementation branch:
 
 - Base commit/tag: `1.0.0` (`b75706b`, `chore: prepare release 1.0.0`).
-- Intended candidate branch: `release/1.1.1-from-1.0.0`.
+- Intended candidate branch: `release/1.0.1-from-1.0.0`.
 
 Product-code boundary:
 
@@ -64,7 +68,7 @@ Infrastructure boundary:
 ## Release Build Design
 
 `1.0.0` originally used an esbuild flow that bundled `src/main.ts` into
-`main.js` and injected Svelte component CSS. For `1.1.1`, the build must emit a
+`main.js` and injected Svelte component CSS. For `1.0.1`, the build must emit a
 separate `styles.css` release asset.
 
 The preferred build design is:
@@ -150,17 +154,45 @@ Type/lint cleanup:
 
 ## Version Metadata
 
-Set release metadata to stable `1.1.1`:
+Set release metadata to stable `1.0.1`:
 
-- `package.json.version = "1.1.1"`
-- `manifest.json.version = "1.1.1"`
-- `versions.json` includes `"1.1.1": "1.12.0"`
-- `.release-please-manifest.json` records `"1.1.1"`
+- `package.json.version = "1.0.1"`
+- `manifest.json.version = "1.0.1"`
+- `versions.json` includes `"1.0.1": "1.12.0"`
+- `.release-please-manifest.json` records `"1.0.1"`
 - Changelog/release notes identify this as a stable patch based on `1.0.0`
   with workflow and Scorecard fixes.
 
-Do not mark this release as beta. This is the stable patch line that repairs
-the stable channel without taking the `1.1.0` product changes.
+Do not mark `1.0.1` as beta. This is the stable patch line that repairs the
+stable channel without taking the `1.1.0` product changes.
+
+## 1.1.0 Remote Release Handling
+
+Current GitHub release state before this design revision:
+
+- `1.1.0` is the latest GitHub release and is not marked prerelease.
+- `1.0.0` remains available as an older stable release.
+- PR #24 still proposes `1.1.1` from release-please.
+
+Recommended remote sequence:
+
+1. Close or supersede PR #24; it should not publish `1.1.1`.
+2. Publish the corrected `1.0.1` release from `main`.
+3. Mark the existing `1.1.0` GitHub Release as prerelease and edit release notes
+   to say it is superseded by `1.0.1` and should not be installed by new users.
+4. Confirm Obsidian/community directory behavior after `main` points to
+   `1.0.1`. Obsidian uses the `manifest.json` in the default branch to infer the
+   latest version and then downloads assets from the matching GitHub release.
+5. Delete the `1.1.0` GitHub Release/tag only if marking it prerelease and
+   moving `main` to `1.0.1` does not remove it from the new-user/update path.
+
+Known tradeoff:
+
+- Users already on `1.1.0` will not see `1.0.1` as an update because `1.0.1` is
+  lower than `1.1.0` under SemVer. This design prioritizes protecting new users
+  and restoring the stable listing. A separate `1.1.1` rollback would be needed
+  if automatic update/downgrade behavior for already-updated users becomes the
+  priority.
 
 ## Verification Gates
 
