@@ -12,6 +12,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.0.1] — 2026-05-26
+
+### Fixed
+- Published a stable `1.0.x` patch from the `1.0.0` product line.
+- Added release workflow provenance for `main.js`, `manifest.json`, and `styles.css` assets.
+- Resolved Obsidian Scorecard findings for manifest punctuation, source directive comments, popout-compatible globals, language detection, and unnecessary assertions.
+
+---
+
 ## [1.0.0-beta.5] — 2026-04-07
 
 > Property browser, queue snippet diffs, and content replace UX polish.
@@ -216,7 +225,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > Versions 0.2–0.6 correspond to the Python script predecessor (PKM Manager).
 > See `docs/pkm_manager_python_architecture.md` for that history.
 
-[Unreleased]: https://github.com/Meibbo/Vaultman-Plugin/compare/1.0.0-beta.5...HEAD
+[Unreleased]: https://github.com/Meibbo/Vaultman/compare/1.0.1...HEAD
+[1.0.1]: https://github.com/Meibbo/Vaultman/compare/1.0.0...1.0.1
 [1.0.0-beta.5]: https://github.com/Meibbo/Vaultman-Plugin/compare/1.0.0-beta.4...1.0.0-beta.5
 [1.0.0-beta.4]: https://github.com/Meibbo/Vaultman-Plugin/compare/1.0.0-beta.3...1.0.0-beta.4
 [1.0.0-beta.3]: https://github.com/Meibbo/Vaultman-Plugin/compare/1.0.0-beta.2...1.0.0-beta.3

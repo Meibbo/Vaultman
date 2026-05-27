@@ -1,7 +1,7 @@
 {
 	"name": "vaultman",
-	"version": "1.0.0",
-	"description": "Files, content and frontmatter explorer like Bases with scoped queued changes list",
+	"version": "1.0.1",
+	"description": "Files, content and frontmatter explorer like Bases with scoped queued changes list.",
 	"main": "main.js",
 	"type": "module",
 	"scripts": {
