@@ -2,16 +2,13 @@ name: CI
 
 on:
   push:
-    branches: [main, sandbox, hardening, hardening-tests, hardening-audit, hardening-refactor]
+    branches: [main, sandbox, hardening]
   pull_request:
     branches: [main, sandbox, hardening]
 
 permissions:
   contents: read
   pull-requests: read
-
-env:
-  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
 
 jobs:
   guard-ai-files:
@@ -48,21 +45,10 @@ jobs:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
         with:
           persist-credentials: false
-      - uses: voidzero-dev/setup-vp@ca1c46663915d6c1042ae23bd39ab85718bfb0fa
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
         with:
           node-version: '24'
-          cache: true
-      - run: vp install
-      - name: Run dependency security audit
-        run: vp run security:audit
-      - run: vp run lint
-      - run: vp run check
-      - run: vp run build
-      - name: Run unit tests with coverage
-        run: vp run test:cover
-      - name: Upload coverage report
-        if: always()
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
-        with:
-          name: coverage
-          path: coverage/
+          cache: npm
+      - run: npm ci
+      - run: npm run verify
+      - run: npm run security:audit

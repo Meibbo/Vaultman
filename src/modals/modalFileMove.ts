@@ -1,8 +1,8 @@
 import { Modal, Setting, type App, type TFile } from 'obsidian';
 import type { PendingChange } from '../types/typeOps';
+import { MOVE_FILE } from '../types/typeOps';
 import { FolderSuggest } from '../utils/autocomplete';
-import { translate } from '../index/i18n/lang';
-import { buildFileMoveChange } from '../services/serviceFileQueue';
+import { translate } from '../i18n/index';
 
 type QueueCallback = (change: PendingChange) => void;
 
@@ -25,11 +25,11 @@ export class FileMoveModal extends Modal {
 	onOpen(): void {
 		const { contentEl } = this;
 		contentEl.empty();
-		contentEl.addClasses(['vm-modal', 'vm-move-modal']);
+		contentEl.addClasses(['vaultman-modal', 'vaultman-move-modal']);
 
 		contentEl.createEl('h3', { text: translate('move.title') });
 		contentEl.createEl('p', {
-			cls: 'vm-modal-subtitle',
+			cls: 'vaultman-modal-subtitle',
 			text: `${this.targetFiles.length} ${translate('section.files').toLowerCase()}`,
 		});
 
@@ -39,7 +39,7 @@ export class FileMoveModal extends Modal {
 			.setDesc(translate('move.root_hint'));
 
 		const folderInput = folderSetting.controlEl.createEl('input', {
-			cls: 'vm-rename-pattern-input',
+			cls: 'vaultman-rename-pattern-input',
 			attr: { type: 'text', placeholder: translate('move.target_folder_placeholder') },
 		});
 
@@ -55,7 +55,7 @@ export class FileMoveModal extends Modal {
 		});
 
 		// Preview
-		this.previewEl = contentEl.createDiv({ cls: 'vm-rename-preview' });
+		this.previewEl = contentEl.createDiv({ cls: 'vaultman-rename-preview' });
 		this.renderPreview();
 
 		// Buttons
@@ -67,9 +67,11 @@ export class FileMoveModal extends Modal {
 					.onClick(() => {
 						this.queueMoves();
 						this.close();
-					}),
+					})
 			)
-			.addButton((btn) => btn.setButtonText('Cancel').onClick(() => this.close()));
+			.addButton((btn) =>
+				btn.setButtonText('Cancel').onClick(() => this.close())
+			);
 	}
 
 	private renderPreview(): void {
@@ -79,17 +81,19 @@ export class FileMoveModal extends Modal {
 		const limit = Math.min(this.targetFiles.length, 10);
 		for (let i = 0; i < limit; i++) {
 			const file = this.targetFiles[i];
-			const newPath = this.targetFolder ? `${this.targetFolder}/${file.name}` : file.name;
+			const newPath = this.targetFolder
+				? `${this.targetFolder}/${file.name}`
+				: file.name;
 
-			const row = this.previewEl.createDiv({ cls: 'vm-rename-row' });
-			row.createSpan({ cls: 'vm-diff-deleted', text: file.path });
+			const row = this.previewEl.createDiv({ cls: 'vaultman-rename-row' });
+			row.createSpan({ cls: 'vaultman-diff-deleted', text: file.path });
 			row.createSpan({ text: ' → ' });
-			row.createSpan({ cls: 'vm-diff-added', text: newPath });
+			row.createSpan({ cls: 'vaultman-diff-added', text: newPath });
 		}
 
 		if (this.targetFiles.length > limit) {
 			this.previewEl.createDiv({
-				cls: 'vm-text-faint',
+				cls: 'vaultman-text-faint',
 				text: `... and ${this.targetFiles.length - limit} more`,
 			});
 		}
@@ -98,8 +102,18 @@ export class FileMoveModal extends Modal {
 	private queueMoves(): void {
 		const targetFolder = this.targetFolder;
 		for (const file of this.targetFiles) {
-			const change = buildFileMoveChange(file, targetFolder);
-			if (change) this.onQueue(change);
+			const newPath = targetFolder ? `${targetFolder}/${file.name}` : file.name;
+			if (newPath === file.path) continue;
+
+			const change: PendingChange = {
+				type: 'file_move',
+				action: 'move',
+				details: `${file.path} → ${newPath}`,
+				files: [file],
+				logicFunc: () => ({ [MOVE_FILE]: targetFolder }),
+				customLogic: true,
+			};
+			this.onQueue(change);
 		}
 	}
 

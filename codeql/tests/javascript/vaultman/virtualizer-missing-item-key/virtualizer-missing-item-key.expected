@@ -1,2 +1,0 @@
-| VirtualizerMissingItemKey.ts:9:19:13:1 | {\\n\\tcoun ... > 32,\\n} | TanStack virtualizer options should define getItemKey with a durable row or node id. |
-| VirtualizerMissingItemKey.ts:22:27:26:1 | {\\n\\tcoun ... > 32,\\n} | TanStack virtualizer options should define getItemKey with a durable row or node id. |

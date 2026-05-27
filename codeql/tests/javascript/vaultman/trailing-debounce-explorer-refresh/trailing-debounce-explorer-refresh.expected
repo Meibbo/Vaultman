@@ -1,4 +1,0 @@
-| TrailingDebounceExplorerRefresh.ts:12:1:12:53 | debounc ... ), 250) | Explorer index refreshes should use leadingDebounce or an approved refresh scheduler so the UI refreshes immediately before trailing burst coalescing. |
-| TrailingDebounceExplorerRefresh.ts:14:1:17:7 | debounc ... }, 250) | Explorer index refreshes should use leadingDebounce or an approved refresh scheduler so the UI refreshes immediately before trailing burst coalescing. |
-| TrailingDebounceExplorerRefresh.ts:19:1:19:70 | activeW ... ), 250) | Explorer index refreshes should use leadingDebounce or an approved refresh scheduler so the UI refreshes immediately before trailing burst coalescing. |
-| TrailingDebounceExplorerRefresh.ts:21:1:21:63 | setTime ... ), 250) | Explorer index refreshes should use leadingDebounce or an approved refresh scheduler so the UI refreshes immediately before trailing burst coalescing. |

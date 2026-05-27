@@ -3,9 +3,10 @@ import { env } from 'node:process';
 import { parseObsidianVersions } from 'wdio-obsidian-service';
 
 const cacheDir = path.resolve('.obsidian-cache');
-const desktopVersions = await parseObsidianVersions(env.OBSIDIAN_VERSIONS ?? 'latest/latest', {
-	cacheDir,
-});
+const desktopVersions = await parseObsidianVersions(
+	env.OBSIDIAN_VERSIONS ?? 'latest/latest',
+	{ cacheDir },
+);
 
 export const config: WebdriverIO.Config = {
 	runner: 'local',

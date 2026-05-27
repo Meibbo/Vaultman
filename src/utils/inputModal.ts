@@ -15,13 +15,13 @@ export function showInputModal(app: App, message: string): Promise<string | null
 
 			onOpen(): void {
 				const { contentEl } = this;
-				contentEl.addClass('vm-prompt-modal');
-				contentEl.createEl('p', { cls: 'vm-prompt-message', text: message });
+				contentEl.addClass('vaultman-prompt-modal');
+				contentEl.createEl('p', { cls: 'vaultman-prompt-message', text: message });
 				this.inputEl = contentEl.createEl('input', {
-					cls: 'vm-prompt-input',
+					cls: 'vaultman-prompt-input',
 					type: 'text',
 				});
-				const btnRow = contentEl.createDiv({ cls: 'vm-prompt-buttons' });
+				const btnRow = contentEl.createDiv({ cls: 'vaultman-prompt-buttons' });
 				const okBtn = btnRow.createEl('button', { cls: 'mod-cta', text: 'OK' });
 				const cancelBtn = btnRow.createEl('button', { text: 'Cancel' });
 
@@ -44,14 +44,11 @@ export function showInputModal(app: App, message: string): Promise<string | null
 					if (e.key === 'Enter') submit();
 					else if (e.key === 'Escape') cancel();
 				});
-				requestAnimationFrame(() => this.inputEl.focus());
+				window.requestAnimationFrame(() => this.inputEl.focus());
 			}
 
 			onClose(): void {
-				if (!resolved) {
-					resolved = true;
-					resolve(null);
-				}
+				if (!resolved) { resolved = true; resolve(null); }
 				this.contentEl.empty();
 			}
 		}

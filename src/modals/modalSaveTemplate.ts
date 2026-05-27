@@ -1,7 +1,7 @@
 import { Modal, Setting, type App } from 'obsidian';
 import type { FilterGroup, FilterTemplate } from '../types/typeFilter';
 import type { VaultmanPlugin } from '../main';
-import { translate } from '../index/i18n/lang';
+import { translate } from '../i18n/index';
 
 /**
  * Modal to save the current filter tree as a named template.
@@ -21,29 +21,31 @@ export class SaveTemplateModal extends Modal {
 	onOpen(): void {
 		const { contentEl } = this;
 		contentEl.empty();
-		contentEl.addClass('vm-modal');
+		contentEl.addClass('vaultman-modal');
 
 		contentEl.createEl('h3', { text: translate('filter.template.save') });
 
 		// Show existing templates for reference
 		const existing = this.plugin.settings.filterTemplates;
 		if (existing.length > 0) {
-			const listEl = contentEl.createDiv({ cls: 'vm-template-list' });
+			const listEl = contentEl.createDiv({ cls: 'vaultman-template-list' });
 			listEl.createEl('small', {
-				cls: 'vm-text-faint',
+				cls: 'vaultman-text-faint',
 				text: `${translate('settings.templates')}: ${existing.map((t) => t.name).join(', ')}`,
 			});
 		}
 
 		// Name input
-		new Setting(contentEl).setName(translate('session.name')).addText((text) =>
-			text
-				.setPlaceholder('Template name...')
-				.setValue(this.templateName)
-				.onChange((v) => {
-					this.templateName = v.trim();
-				}),
-		);
+		new Setting(contentEl)
+			.setName(translate('session.name'))
+			.addText((text) =>
+				text
+					.setPlaceholder('Template name...')
+					.setValue(this.templateName)
+					.onChange((v) => {
+						this.templateName = v.trim();
+					})
+			);
 
 		// Buttons
 		new Setting(contentEl)
@@ -55,9 +57,11 @@ export class SaveTemplateModal extends Modal {
 						if (!this.templateName) return;
 						void this.saveTemplate();
 						this.close();
-					}),
+					})
 			)
-			.addButton((btn) => btn.setButtonText('Cancel').onClick(() => this.close()));
+			.addButton((btn) =>
+				btn.setButtonText('Cancel').onClick(() => this.close())
+			);
 	}
 
 	private async saveTemplate(): Promise<void> {

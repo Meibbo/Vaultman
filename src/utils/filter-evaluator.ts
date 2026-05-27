@@ -1,6 +1,5 @@
 import { getAllTags } from 'obsidian';
 import type { TFile, CachedMetadata } from 'obsidian';
-import { normalizeGroupLogic } from '../types/typeFilter';
 import type { FilterNode, FilterGroup, FilterRule } from '../types/typeFilter';
 
 /**
@@ -18,7 +17,7 @@ export type MetadataGetter = (file: TFile) => CachedMetadata | null;
 export function evalNode(
 	node: FilterNode,
 	universe: TFile[],
-	getMeta: MetadataGetter,
+	getMeta: MetadataGetter
 ): Set<string> {
 	if (node.enabled === false) return new Set();
 	if (node.type === 'rule') {
@@ -27,21 +26,26 @@ export function evalNode(
 	return matchGroup(node, universe, getMeta);
 }
 
-function matchGroup(group: FilterGroup, universe: TFile[], getMeta: MetadataGetter): Set<string> {
+function matchGroup(
+	group: FilterGroup,
+	universe: TFile[],
+	getMeta: MetadataGetter
+): Set<string> {
 	const universePaths = new Set(universe.map((f) => f.path));
 
-	const activeChildren = group.children.filter((c) => c.enabled !== false);
-	const logic = normalizeGroupLogic(group.logic);
+	const activeChildren = group.children.filter(c => c.enabled !== false);
 
 	if (activeChildren.length === 0) {
-		// Empty / all-disabled group: AND = universe, OR = empty, NOT = universe
-		return logic === 'or' ? new Set() : new Set(universePaths);
+		// Empty / All-disabled group: ALL = universe, ANY = empty, NONE = universe
+		return group.logic === 'any' ? new Set() : new Set(universePaths);
 	}
 
-	const childResults = activeChildren.map((child) => evalNode(child, universe, getMeta));
+	const childResults = activeChildren.map((child) =>
+		evalNode(child, universe, getMeta)
+	);
 
-	switch (logic) {
-		case 'and': {
+	switch (group.logic) {
+		case 'all': {
 			// Intersection of all children
 			let result = new Set(childResults[0]);
 			for (let i = 1; i < childResults.length; i++) {
@@ -49,7 +53,7 @@ function matchGroup(group: FilterGroup, universe: TFile[], getMeta: MetadataGett
 			}
 			return result;
 		}
-		case 'or': {
+		case 'any': {
 			// Union of all children
 			let result = new Set<string>();
 			for (const cr of childResults) {
@@ -57,7 +61,7 @@ function matchGroup(group: FilterGroup, universe: TFile[], getMeta: MetadataGett
 			}
 			return result;
 		}
-		case 'not': {
+		case 'none': {
 			// Universe minus union of all children
 			let union = new Set<string>();
 			for (const cr of childResults) {
@@ -68,7 +72,11 @@ function matchGroup(group: FilterGroup, universe: TFile[], getMeta: MetadataGett
 	}
 }
 
-function matchRule(rule: FilterRule, universe: TFile[], getMeta: MetadataGetter): Set<string> {
+function matchRule(
+	rule: FilterRule,
+	universe: TFile[],
+	getMeta: MetadataGetter
+): Set<string> {
 	const result = new Set<string>();
 
 	for (const file of universe) {
@@ -79,7 +87,11 @@ function matchRule(rule: FilterRule, universe: TFile[], getMeta: MetadataGetter)
 	return result;
 }
 
-function matchesFile(rule: FilterRule, file: TFile, getMeta: MetadataGetter): boolean {
+function matchesFile(
+	rule: FilterRule,
+	file: TFile,
+	getMeta: MetadataGetter
+): boolean {
 	const meta = getMeta(file);
 	const fm = meta?.frontmatter ?? {};
 
@@ -124,11 +136,6 @@ function matchesFile(rule: FilterRule, file: TFile, getMeta: MetadataGetter): bo
 			return !file.basename.toLowerCase().includes(term.toLowerCase());
 		}
 
-		case 'file_path': {
-			const filePath = normalizePath(file.path);
-			return rule.values.some((value) => normalizePath(value) === filePath);
-		}
-
 		case 'file_folder': {
 			const folder = rule.values[0] ?? '';
 			if (!folder) return true;
@@ -153,10 +160,6 @@ function matchValue(val: unknown, target: string): boolean {
 		return val.some((v) => String(v).toLowerCase() === target.toLowerCase());
 	}
 	return String(val).toLowerCase() === target.toLowerCase();
-}
-
-function normalizePath(path: string): string {
-	return path.replaceAll('\\', '/').replace(/^\/+/, '').toLowerCase();
 }
 
 // --- Set utilities ---

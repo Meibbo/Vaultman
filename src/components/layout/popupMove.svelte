@@ -1,6 +1,6 @@
 <script lang="ts">
-	import { translate } from '../../index/i18n/lang';
-	import type { TFile } from 'obsidian';
+	import { translate } from "../../i18n/index";
+	import type { TFile } from "obsidian";
 
 	let {
 		moveTargetFiles,
@@ -22,48 +22,55 @@
 </script>
 
 <div>
-	<div class="vm-popup-header">
-		<span class="vm-popup-title">{translate('move.title')} ({moveTargetFiles.length})</span>
+	<div class="vaultman-popup-header">
+		<span class="vaultman-popup-title"
+			>{translate("move.title")} ({moveTargetFiles.length})</span
+		>
 		<div
 			class="clickable-icon"
 			aria-label="Close"
-			use:icon={'lucide-x'}
+			use:icon={"lucide-x"}
 			onclick={closePopup}
 			onkeydown={(e: KeyboardEvent) => {
-				if (e.key === 'Enter' || e.key === ' ') closePopup();
+				if (e.key === "Enter" || e.key === " ") closePopup();
 			}}
 			role="button"
 			tabindex="0"
 		></div>
 	</div>
 	<input
-		class="vm-search-input"
+		class="vaultman-search-input"
 		type="text"
-		placeholder={translate('move.target_folder_placeholder')}
+		placeholder={translate("move.target_folder_placeholder")}
 		use:attachFolderSuggest
 		oninput={(e: Event) => {
 			moveTargetFolder = (e.target as HTMLInputElement).value.trim();
 		}}
 	/>
-	<p class="vm-text-faint" style="font-size: var(--font-ui-smaller); margin: 4px 0 8px;">
-		{translate('move.root_hint')}
+	<p
+		class="vaultman-text-faint"
+		style="font-size: var(--font-ui-smaller); margin: 4px 0 8px;"
+	>
+		{translate("move.root_hint")}
 	</p>
-	<div class="vm-rename-preview">
+	<div class="vaultman-rename-preview">
 		{#each movePreviews as row}
-			<div class="vm-rename-row">
-				<span class="vm-diff-deleted">{row.oldPath}</span>
+			<div class="vaultman-rename-row">
+				<span class="vaultman-diff-deleted">{row.oldPath}</span>
 				<span> → </span>
-				<span class="vm-diff-added">{row.newPath}</span>
+				<span class="vaultman-diff-added">{row.newPath}</span>
 			</div>
 		{/each}
 		{#if moveTargetFiles.length > movePreviews.length}
-			<div class="vm-text-faint">
+			<div class="vaultman-text-faint">
 				... and {moveTargetFiles.length - movePreviews.length} more
 			</div>
 		{/if}
 	</div>
-	<div class="vm-popup-actions">
-		<button class="vm-btn mod-cta" onclick={queueMoves}>{translate('prop.add_to_queue')}</button>
-		<button class="vm-btn" onclick={closePopup}>Cancel</button>
+	<div class="vaultman-popup-actions">
+		<button class="vaultman-btn mod-cta" onclick={queueMoves}
+			>{translate("prop.add_to_queue")}</button
+		>
+		<button class="vaultman-btn" onclick={closePopup}>Cancel</button>
 	</div>
 </div>
