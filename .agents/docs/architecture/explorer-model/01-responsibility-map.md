@@ -33,14 +33,17 @@ explorer vs view). LOC/paths from the service-web research
 | 7 | action / cmenu / keyboard (A.R ✓) | `serviceRowAction`/`serviceKeyboardNav` ✓ | ActionProvider → ActionNodes | Logic |
 | 8 | **row render** (DOM/markup/virtualizer) | the 5 views (also do 3+4) ✗ | View (pure) + shared render-runtime | View |
 | 9 | **mount / host** | `panelExplorer` + `ViewHost` + `VaultmanFrame` (braided) ✗ | Surface adapters + Scene | Surface |
-| 10 | **orchestration** (expansion/search/sort/badge-bubble/selection-auth) | `panelExplorer` 1400 LOC ✗ | Scene orchestrators (P.D) | Surface+Logic |
+| 10 | **orchestration** (expansion/search/sort/badge-bubble/selection-auth) | `panelExplorer` 1275 LOC ✗ | Panel-scoped orchestrators (P.D); Scene composes | Surface+Logic |
 | 11 | grouping | not built | `serviceGroup` → ContainerNodes | Logic→Node |
 | 12 | navigation (incl Nav3D) | not isolated | Navigation controller | Logic sub-axis (DEFERRED) |
 | 13 | operations (queue/diff/VFS) | `serviceQueue`/`serviceDiff` | Operations domain + `OperationNode` | Operations |
 | 14 | style / theme / layout | `serviceTheme`/`serviceLayout` | ThemeBuilder + LayoutBuilder | Style/Theme |
 
 Bold rows (3,4,8,9,10) = today mis-placed (mostly inside `viewTree` 1188 LOC +
-`panelExplorer` 1400 LOC). Fixing them = the core of V.D + P.D + N.R.
+`panelExplorer` 1275 LOC). Fixing them = the core of V.D + P.D + N.R. Note (2026-05-26
+code check): `ViewHost.svelte` is now 260 LOC — already slimmed to a pure view-mode
+switch (mounts the engine + holds `ViewHostService` for viewMode/preset/mask), so the
+Surface⟂View braid is mostly cut there; `panelExplorer` is the sole remaining god-object.
 
 ## First structural move (LOCKED, Q4)
 
@@ -67,10 +70,10 @@ layer, not reimplemented per engine — that duplication is today's `viewTree`
 1051 ms p99). The node-resizer never mutates a node directly; it emits a durable
 size-mark that flows back through the data-plane.
 
-## Open grill branches (Q16 remainder)
+## Resolved (2026-05-26 grill)
 
-- Orchestration ownership: exact split of `panelExplorer` into Scene orchestrators
-  (ProjectionAssembler · ExpansionOrchestrator · SearchSortOrchestrator ·
-  BadgeBubblingOrchestrator · SelectionAuthResolver · ManualDndOrchestrator).
-- Confirm the 2-layer render ownership (then write the ADR).
-- Confirm `page = editor-group`.
+- Orchestration ownership: **Panel-scoped controllers** + panel **kinds** + Selection/Dnd as
+  scope-generic **axons** + **input→action** routing. Detail:
+  [[docs/architecture/explorer-model/04-panels-axons-mutation-layout|04 panels / axons / mutation / layout]].
+- `page = editor-group` (ADR 0007) and the 2-layer render ownership (ADR 0008) = **Accepted**.
+- Remaining micro-opens: `panelContent` vs `ContentNode`; the `PanelHandle` contract shape.

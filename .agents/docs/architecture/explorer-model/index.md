@@ -71,9 +71,15 @@ Bases: IN = translate view-def/results -> our engines; OUT = registerBasesView +
   — per-responsibility current→target owner (the Q16 grill artifact) + render ownership.
 - [[docs/architecture/explorer-model/02-render-and-data|02 Render + data]]
   — engines × modes × orientation, NodeKinds, cell + view-config + Bases IN/OUT.
+- [[docs/architecture/explorer-model/03-surfaces-and-interaction|03 Surfaces + interaction]]
+  — Panel/Scene/Surface/Workspace tiers, tile-tree vs native split, `WorkspaceMediator` +
+  `InteractionPolicy` (editor as a drop target), active-context/scope, editor-as-Scene.
+- [[docs/architecture/explorer-model/04-panels-axons-mutation-layout|04 Panels / axons / mutation / layout]]
+  — panel kinds + per-kind host concerns, Selection/Dnd as scope-generic axons, input→action
+  routing, the unified mutation pipeline (Operations→preview→diff→chunk→commit), LayoutBuilder/profiles.
 
 ## Status
 
-8-dimension model = LOCKED (Y4). Most structure LOCKED; `page=editor-group` and the
-2-layer render ownership are PROPOSED (ADR candidates). Navigation/Controls are
-DEFERRED. See the Decision Ledger for each item.
+8-dimension model = LOCKED (Y4). Most structure LOCKED; `page=editor-group` (ADR 0007) and
+the 2-layer render ownership (ADR 0008) are now ACCEPTED (promoted 2026-05-26 after grill).
+Navigation/Controls are DEFERRED. See the Decision Ledger for each item.

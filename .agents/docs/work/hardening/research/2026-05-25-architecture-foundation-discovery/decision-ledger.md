@@ -22,6 +22,9 @@ Faithful capture of decisions from the V.D → architecture-foundation brainstor
 No lossy compression. Parenthetical ids reference the brainstorm question
 inventory; links point to source records.
 
+**Changed / superseded decisions (audit trail):**
+[[docs/work/hardening/research/2026-05-25-architecture-foundation-discovery/decision-changelog|decision-changelog]].
+
 ## Model spine
 - **LOCKED** 8-dimension model: core axes **Surface · View · Node · Logic** +
   cross-cutting **Navigation** (Logic sub-axis) **· Style/Theme · Process ·
@@ -33,10 +36,12 @@ inventory; links point to source records.
   [[docs/work/pkm-ai/plans/2026-05-10-queue-contract-repair/index|queue-contract-repair]].
 
 ## Surface / composition
-- **PROPOSED** `page = editor-group` on native Obsidian leaves/splits + a thin
-  `layout-config`; not a leaf (too atomic) nor the whole layout (too broad).
-  Tradeoff: ride-native (cheap, monkey-patch) vs reimplement tiling. Awaiting confirm.
-- **PROPOSED** render ownership in 2 layers (see View section). Awaiting confirm; ADR candidate.
+- **LOCKED** (ADR 0007, Accepted 2026-05-26) `page = editor-group` on native Obsidian
+  leaves/splits + a thin `layout-config`; not a leaf nor the whole layout. Complemented by
+  the Scene tile-tree for sub-surface splits (shard 03).
+- **LOCKED** (ADR 0008, Accepted 2026-05-26) render ownership in 2 layers (see View section).
+- **LOCKED** queue + filter-lists (half-hardcoded today) → become Scenes (queue = an explorer
+  of `OperationNode`s; filter-lists = a Scene), mountable on any surface like everything else.
 - **LOCKED** `Scene` = orchestrates panels + primitives (NOT bars) in a surface;
   movable between surfaces from config; shipped sets = presets → explorer-builder.
 - **LOCKED** Surface family = tab (side/main leaf) · modal · pop-up · cmenu · codeblock.
@@ -50,10 +55,10 @@ inventory; links point to source records.
 
 ## View / engines
 - **LOCKED** View = pure renderer (data-pure). No fixed "5 views".
-- **PROPOSED** Render ownership = 2 layers: **data-plane** (DOM-free render-projection:
-  order, indices `idToIndex`, grouping, cell-placement, decoration descriptors,
-  applied size-marks) vs **render-runtime** (View-side, SHARED: tanstack-virtual,
-  scroll, pretext measure, node-resizer→size-marks, tanstack-table, dnd-kit). Awaiting confirm; ADR candidate.
+- **LOCKED** (ADR 0008, Accepted 2026-05-26) Render ownership = 2 layers: **data-plane**
+  (DOM-free render-projection: order, indices `idToIndex`, grouping, cell-placement,
+  decoration descriptors, applied size-marks) vs **render-runtime** (View-side, SHARED:
+  tanstack-virtual, scroll, pretext measure, node-resizer→size-marks, tanstack-table, dnd-kit).
 - **LOCKED** Engines = Linear (tree/list) · Geometry (grid/cards) · Table · **Canvas**
   (mindmap/graph). Each: modes × **orientation** (horizontal/vertical). (c3)
 - **LOCKED** cards = grid cards-mode under the "native" preset (chameleon emits
@@ -120,7 +125,9 @@ inventory; links point to source records.
 
 ## Process / roadmap / docs
 - **LOCKED** roadmap = change-type (patch/minor/major) + dependency-driven dynamic
-  order + beta (`sandbox`) / stable (`main`) channels. (Q11)
+  order + beta (`sandbox`) / stable (`main`) channels (Q11); hardened 2026-05-26 into a
+  dispatch-ready DAG + Now/Next/Later + cost-of-unblock priority + per-slice task contracts:
+  [[docs/work/hardening/research/2026-05-25-architecture-foundation-discovery/roadmap-dispatch|roadmap-dispatch]].
 - **LOCKED** `publish` initiative created:
   [[docs/work/publish/index|publish]] (main/stable reconcile + beta + CI sandbox +
   mobile-break + license/changelog/OpenSSF). (P0/N10)
@@ -129,7 +136,71 @@ inventory; links point to source records.
 - **LOCKED** doc process = agent-control-plane route profiles + orchestration-refresh-v2
   decision-ledger/source-preservation + `agent-room` handoff + pkm-ai tooling.
 
-## Still open (full list in the open-inventory shard, pending)
-Page confirm · 2-layer render-ownership confirm · engine/mode release placement ·
-Bases interop order · minisearch fork (H1) · Q16 remaining grill branches
-(orchestration ownership = panelExplorer god-object split, …).
+## Orchestration (Q16)
+- **LOCKED** (2026-05-26, user-confirmed) Orchestrators = **Panel-scoped controllers**
+  (one set per explorer-panel), NOT Scene-scoped singletons. State is keyed by
+  `provider.id` in code today (`panelExplorer` L133-141). A Panel is self-contained and
+  exposes a uniform `PanelHandle`; the Scene composes panels and never reaches into their
+  internals. Scene = composition + cross-panel coordination (tier model in grill).
+- **PROPOSED** Fold `BadgeBubblingOrchestrator` → ProjectionAssembler: bubbling is a
+  projection/topology pass over `expandedIds`
+  (`utilBadgeBubbling.bubbleHiddenTreeBadges`), not badge semantics. Badge semantics stay
+  in `serviceBadge` (kind / contradictions / queue-op→badge map). Not its own orchestrator.
+- **LOCKED** (2026-05-26, user-confirmed, Q9) Cross-panel interaction = **ONE
+  scene-agnostic mechanism**: singleton `WorkspaceMediator` + stateless `InteractionPolicy`;
+  intra-scene = the special case (not a separate path). The per-Scene coordinator is
+  **thin** (layout + primitive/bar declaration only — no interaction logic, no panel state).
+  The Mediator holds **no panel state** (routes only — else it becomes the next god-object).
+  Multi-panel-per-scene CONFIRMED real (ThemeBuilder layouts+snippets+themes; files+props+tags
+  3-column). Full tier model + diagrams:
+  [[docs/architecture/explorer-model/03-surfaces-and-interaction|03 surfaces + interaction]].
+- **LOCKED** `InteractionPolicy` (stateless): `(sourcePayload, target) → Operation | reject`.
+  target ∈ {`PanelHandle` · editor-drop (caret) · leaf-drop} — the Obsidian **editor + foreign
+  leaves are first-class drop targets**. NodeKind × target → `OperationNode`: tag→inline at
+  caret · prop/value→frontmatter · file(s)→open tabs · style-node→`cssclasses`. Generalizes
+  [[docs/work/polish/specs/2026-05-11-detachable-layout-workspace-tabs/index|detachable-layout-workspace-tabs]]. Detail: shard 03.
+- **LOCKED** Two tiling levels (no hardcoded shells; `Dashboard3Column` deprecated → layout
+  is data): (1) **native split** = `page` = editor-group of Obsidian leaves (each leaf = a
+  surface = one Scene); (2) **Scene tile-tree** = recursive h/v splits inside ONE surface →
+  tiles host a `Panel` OR a `ForeignEmbed` (graph / md-editor / other-plugin leaf via a
+  PlatformAdapter — hover-editor pattern; fallback = own window-manager). The "3 sub-tabs
+  stacked inside one tab" case = a Scene tile-tree. Detail: shard 03.
+- **LOCKED** grid drill-nav: **no special deferral** — decompose the god-object as-is; grid
+  folder-drill folds into ExpansionController. Only Nav3D / `InputBindingNode` stay DEFERRED.
+- **PROPOSED** Editor-as-Scene (late): editor content = Content/paragraph adopted-nodes per
+  edit-mode; a visual `columns` codeblock compiled to markdown (research the `columns` plugin
+  first); draggable paragraphs (drag beside → new column). Driver:
+  [[docs/work/polish/plans/2026-05-11-ui-modernization-vertical-threads/index|ui-modernization-vertical-threads]].
+- **PROPOSED** `Hometab` = override Obsidian "new tab / new window" → mount a configured
+  `page` (`HometabAdapter` = PlatformAdapter; ref the "Home tab" plugin).
+- **OPEN** Overlay/toolbar action-**scope** (search/view/sort): default = focused-scene (via
+  Mediator active-context); override `{focused · selected-scenes · all}`; `selected-scenes`
+  ⇒ Scenes become selectable entities (later capability).
+- **LOCKED** Panel has **kinds** (host concerns per kind — no single host): `panelExplorer`
+  (sort / view-engines / tree-sync; uses Projection+Expansion), `panelData` (stat/widget),
+  `panelContent` (live-preview embed), `custom-panel`. Projection/Expansion = explorer-kind
+  controllers, not generic.
+- **LOCKED** Selection + Dnd = **scope-generic axons** (axons lock), at panel scope (nodes)
+  AND workspace scope (scenes + layout elements: move/resize in live-layout-edit = free-canvas
+  + optional-grid).
+- **LOCKED** **input→action** routing is input-agnostic (mouse · key · future InputBinding):
+  one `InputRouter` per panel → nav to Selection/Expansion, actions to ActionProvider.
+  Keyboard-nav lives HERE — resolves the prior NavController-vs-Selection fork.
+- **LOCKED** imperative API → Panel host; reveal/`scrollTarget` → shared render-runtime
+  (ADR 0008); SearchSort forward → `panelExplorer` host.
+- **LOCKED** Unified **mutation pipeline**: mutation (drag-drop incl. editor-drop · agent ·
+  FnR · rename · manual) → `OperationNode` → preview (`serviceDecorate` + `diffview`) →
+  **chunk acceptance** (agentic-IDE accept/reject) → execute (VFS / queue). Detail: shard 04.
+- **LOCKED** `panelContent` ≠ `ContentNode` (data atom vs editor-runtime panel-kind);
+  `PanelHandle` = minimal core + optional capability members gated by kind (shards 03/04).
+- **DEFERRED** **LayoutBuilder + Workspace-profiles** (own brainstorm, per user): granular
+  split sizing (main/side/whole) + overlay order + cross-builder presets + whole on/off
+  profiles over the same root. Research Obsidian **Workspaces** + **Notion**. Not in
+  explorer-decomposition.
+
+## Still open
+
+Consolidated LOCKED + pending review (this iteration + carried + new):
+[[docs/work/hardening/research/2026-05-25-architecture-foundation-discovery/open-inventory|open-inventory]].
+(0007 + 0008 now Accepted.) Deferred: minisearch fork (H1) + Bases interop order (branch 3);
+engine/mode release placement = assigned at roadmap cut-time.

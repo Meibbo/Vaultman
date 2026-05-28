@@ -14,8 +14,15 @@ tags:
 
 ## Rules
 
-- Active agent Markdown files stay under 200 lines as a sharding trigger, not an
-  instruction to remove detail.
+- Line-limit tiers (navigation/sharding triggers, never an instruction to remove
+  detail). Enforced by `tools/pkm-ai/check-doc-health.mjs`:
+    - **<= 200 lines**: clean.
+    - **201-300 (soft range, limit .. limit+100)**: health emits a `line-limit-soft`
+      WARN, not a failure. The agent must alert the dev to the oversized shard and let
+      the dev decide whether to reduce or shard it. Do not auto-reduce;
+      `--repair-line-limits` does not touch this range.
+    - **> 300 (hard cap, limit+100)**: health fails; the doc must be split into a new
+      shard part. `--repair-line-limits` auto-shards only past this cap.
 - Preserve source detail first. Never compress, omit, summarize away, or delete
   technical context just to satisfy line limits.
 - `current/status.md` and `current/handoff.md` are route indexes, not the
@@ -97,7 +104,8 @@ tags:
 
 ## Repair Triggers
 
-- Line limits are exceeded.
+- The hard line cap (limit + 100 = 300) is exceeded. Soft-range overages (201-300) are
+  dev-decided alerts, not failures.
 - Frontmatter fails YAML parsing.
 - Parent links are missing, duplicated, or use `parent_path`.
 - Active docs accumulate historical logs.

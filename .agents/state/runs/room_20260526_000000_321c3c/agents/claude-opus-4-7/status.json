@@ -2,8 +2,8 @@
   "agentId": "claude-opus-4-7",
   "displayName": "claude-opus-4-7",
   "role": "coordinator",
-  "status": "active",
-  "lastHeartbeatAt": "2026-05-26T00:00:00",
+  "status": "left",
+  "lastHeartbeatAt": "2026-05-26T14:17:43",
   "staleAfterMs": 300000,
   "activeScopes": [],
   "lastMessage": "run started"

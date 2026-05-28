@@ -5,15 +5,13 @@
   "goal": "",
   "status": "running",
   "createdAt": "2026-05-26T00:00:00",
-  "updatedAt": "2026-05-26T00:00:00",
+  "updatedAt": "2026-05-26T14:17:43",
   "createdBy": "claude-opus-4-7",
   "workspace": "C:/Users/vic_A/Desktop/vaultman",
   "source": {
     "kind": "agent-room"
   },
-  "activeAgents": [
-    "claude-opus-4-7"
-  ],
+  "activeAgents": [],
   "summary": "",
   "stateRoot": ".agents/state/runs/room_20260526_000000_321c3c"
 }

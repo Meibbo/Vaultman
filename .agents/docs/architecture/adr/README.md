@@ -26,7 +26,10 @@ Decision capture: [[docs/work/hardening/research/2026-05-25-architecture-foundat
 | [[docs/architecture/adr/0004-platform-adapter-fragility-registry|0004]] | PlatformAdapter + Fragility Registry | Accepted |
 | [[docs/architecture/adr/0005-actionnode-unification|0005]] | ActionNode unification | Accepted |
 | [[docs/architecture/adr/0006-publish-channel-split|0006]] | Publish channel split (beta/stable) | Accepted |
-| [[docs/architecture/adr/0007-page-editor-group|0007]] | Page = editor-group | Proposed |
-| [[docs/architecture/adr/0008-render-ownership-two-layer|0008]] | Render ownership: data-plane vs shared runtime | Proposed |
+| [[docs/architecture/adr/0007-page-editor-group|0007]] | Page = editor-group | Accepted |
+| [[docs/architecture/adr/0008-render-ownership-two-layer|0008]] | Render ownership: data-plane vs shared runtime | Accepted |
+| [[docs/architecture/adr/0009-bases-interop-hybrid|0009]] | Bases interop strategy: native-primary + opt-in `registerBasesView` add-on | Accepted |
 
-Proposed ADRs await user confirmation in the grill before promotion to Accepted.
+ADRs 0001–0009 are all Accepted. 0007 and 0008 were promoted on 2026-05-26 after grill
+confirmation; 0009 was accepted 2026-05-27 after the Bases ecosystem + extension-API research
+(see `bases-interop-findings` and `obsidian-extension-api-findings`). See the decision-ledger.

@@ -14,7 +14,7 @@ tags:
 
 # 0008 — Render ownership: data-plane vs shared render-runtime
 
-**Decision status:** Proposed (awaiting grill confirmation). **Date:** 2026-05-26.
+**Decision status:** Accepted (grill-confirmed 2026-05-26). **Date:** 2026-05-26.
 
 ## Context
 
@@ -37,6 +37,8 @@ through the data-plane.
 - One shared runtime across engines (removes the per-view duplication = the perf fix).
 - The projection is unit-testable without a DOM.
 - Adopting `dnd-kit` is a separate evaluation (not yet used).
+- Reveal/`scrollTarget` execution lives in the runtime (the Panel emits a reveal intent);
+  the unified mutation pipeline (preview / `diffview`) consumes the same data-plane projection.
 
 ## Alternatives considered
 

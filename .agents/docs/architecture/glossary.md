@@ -153,3 +153,26 @@ projection/translation).
 - LayoutBuilder: spatial-arrangement builder (surfaces/bars/primitives); distinct from ThemeBuilder (tokens/color).
 - capability-profile: a Surface's capacity (size-class/can-host-overlays/mobile-ok) vs a Scene's requirements (full/reduced/deny).
 - sync-boundary: which settings sync via Obsidian Sync vs stay device-local (cache blobs/stats).
+- PanelHandle: uniform contract a Panel exposes (id/kind/providerId, selection read+commands, projection, expansion, produceDragPayload, acceptsDrop, revealNode, focus); lets a Scene/Mediator drive a panel without touching its internals.
+- WorkspaceMediator: workspace-level singleton; registers Scenes + foreign surfaces; resolves active-context + scope; routes all cross-panel/scene/editor interaction via InteractionPolicy; bridges Obsidian workspace events (auto-reveal, live outline) + new-leaf/hometab. Holds no panel state.
+- InteractionPolicy: stateless `(sourcePayload, target) → Operation | reject`; drop-compat matrix by NodeKind × target (PanelHandle | editor-drop | leaf-drop). One scene-agnostic mechanism.
+- Scene tile-tree: a Scene's recursive h/v split layout; leaf tiles host a Panel or a ForeignEmbed. Distinct from native split (page = editor-group of Obsidian leaves).
+- ForeignEmbed: a tile hosting non-Vaultman content (Obsidian graph/editor/other-plugin leaf) via a PlatformAdapter (hover-editor pattern); fallback = own window-manager.
+- active-context / scope: WorkspaceMediator's resolution of the focused Scene/Panel (active-context) and the overlay/toolbar action span (scope = focused | selected-scenes | all).
+- EditorScene (PROPOSED): active-editor content modeled as Content/paragraph adopted-nodes per edit-mode; visual columns codeblock compiled to markdown; draggable paragraphs.
+- Hometab (PROPOSED): a configured page mounted on Obsidian new-tab/new-window (HometabAdapter).
+- panel-kind: a Panel's type — panelExplorer (nodes/engines) · panelData (stat/widget) · panelContent (live-preview embed) · custom-panel; host concerns are owned per kind, not by a single Panel host.
+- InputRouter: per-panel input-agnostic dispatch (mouse/key/future InputBinding) → nav-intent to Selection/Expansion, action-intent to ActionProvider; keyboard-nav wiring lives here.
+- diffview: a View engine rendering an OperationNode's chunks for preview.
+- chunk-acceptance: per-chunk accept/reject of a pending OperationNode (agentic-IDE accept/reject UX) before execute.
+- Workspace-profile (OPEN): an on/off bundle of {plugins, layout, snippets, theme, slots} switching the whole vault face over the same root folder.
+
+## Filter / Scene / parity terms (2026-05-27)
+
+- FilterGroup: recursive boolean predicate tree (and/or/not + nested groups + root-level orphans) that composes filter CRITERIA. Bases-shaped (data model in `typeFilter.ts` is already unbounded). Rendered as a ContainerNode tree; the predicate leaf is a generic Cell (no new NodeKind). Distinct from serviceGroup (which partitions displayed nodes); both merely materialize as ContainerNode trees from different producers.
+- FilterProvider: synthetic provider that projects the active panel's filter-config into a predicate ContainerNode tree and writes edits back to that config; the filter-state is savable as a preset/template. Not a serviceMark (marks = durable per-node annotations, wrong fit for a query).
+- filterScene / queueScene / sortScene / viewScene: the proto islands modeled as Scenes on overlay surfaces (filter builder / operation-queue / sort + group-by / view-config editor). A Scene is preset-agnostic logic; the floating-island look (curved corners + optional backdrop) is the polish/presentation preset only — native renders the same Scene as a menu/submenu, barebones as minimal.
+- Predicate/queue rendering: NOT new engine-modes. Both use the existing Linear tree-indent mode over a synthetic provider; the AND/OR/NONE chip, composer, and apply are Scene rule-primitives (the operator chip = a primitive bound to the container, cycling via an ActionNode). Keeps View pure (ADR 0002).
+- 1:1 native parity: the chameleon "native" preset target — Vaultman surfaces/style/functions are indistinguishable from Obsidian; user-loaded features feel integral; retrocompat with snippets/themes. Efficiency lever: native = core CSS classes reused as a pseudo-snippet on all surfaces (not reimplemented styles = no bloat).
+- 2:1 superset: Vaultman matches all replaced-core-plugin capabilities + our extra functions + the full builder to modify every style/layout/function detail. Our builder is the 2:1 upgrade over what the core plugin offered.
+- barebones preset: everything off except surface-settings + commands + the minimal Scene that gives the user a load/unload service UI — which is the same add-on-explorer, with function categories (one category = bridges to other plugins). Fuses install-selector + serviceUnload-granularity + plugin-provider.

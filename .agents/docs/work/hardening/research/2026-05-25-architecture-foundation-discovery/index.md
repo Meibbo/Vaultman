@@ -43,6 +43,13 @@ Companion records:
   reference-plugin mount patterns) + interop verdict table + reference-plugin repos.
 - [[docs/work/hardening/research/2026-05-25-architecture-foundation-discovery/roadmap-reslot|Roadmap Reslot Proposal]]
   — change-type + dependency-driven dynamic order + beta/stable channels.
+- [[docs/work/hardening/research/2026-05-25-architecture-foundation-discovery/roadmap-dispatch|Roadmap Dispatch]]
+  — dispatch-ready dynamic action order (DAG + Now/Next/Later + cost-of-unblock + task
+  contracts), hardens the reslot. The live multi-agent action order.
+- [[docs/work/hardening/research/2026-05-25-architecture-foundation-discovery/open-inventory|Open Inventory + Iteration Review]]
+  — the single consolidated view: LOCKED this iteration + pending (carried + new). Start here for "what's the state".
+- [[docs/work/hardening/research/2026-05-25-architecture-foundation-discovery/decision-changelog|Decision Changelog]]
+  — audit trail of changed/superseded decisions (what → what + why).
 
 Durable model + ADRs (architecture/): [[docs/architecture/explorer-model/index|explorer-model]]
 (+ [[docs/architecture/explorer-model/visuals/model-map|visual map]]) · [[docs/architecture/adr/README|ADRs]].

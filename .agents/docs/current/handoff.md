@@ -5,7 +5,7 @@ status: active
 parent: "[[docs/work/pkm-ai/index|pkm-ai]]"
 archive_source: docs/archive/pkm-ai/active-docs/2026-05-11T080321-current-handoff.md
 created: 2026-05-04T01:36:20
-updated: 2026-05-26T00:00:00
+updated: 2026-05-27T00:00:00
 tags:
   - agent/current
 created_by: dec
@@ -17,51 +17,72 @@ updated_by: claude-opus-4-7
 Compact handoff after archiving the oversized current handoff:
 [[docs/archive/pkm-ai/active-docs/2026-05-11T080321-current-handoff|2026-05-11 handoff archive]].
 
-## NEXT AGENT START HERE — Architecture foundation brainstorm + mega-doc (2026-05-26)
+## NEXT AGENT START HERE — Architecture + Style + Version-streams grill closed (2026-05-27)
 
-The V.D brainstorm widened into a foundation pass (8-dimension model). All captured, health-clean:
+Three-day grill (2026-05-25→27) closed the architecture foundation, mapped proto design, and
+defined the version-stream flow. Health-clean (decision-ledger soft-WARN at 204 lines — shard or leave).
 
-- Decisions: [[docs/work/hardening/research/2026-05-25-architecture-foundation-discovery/decision-ledger|decision-ledger]]
-  (LOCKED / PROPOSED / DEFERRED, source-linked). Findings:
-  [[docs/work/hardening/research/2026-05-25-architecture-foundation-discovery/research-streams|research-streams]].
-- Durable model: [[docs/architecture/explorer-model/index|explorer-model]]
-  (+ [[docs/architecture/explorer-model/01-responsibility-map|responsibility map]] +
-  [[docs/architecture/explorer-model/visuals/model-map|visual map/canvas]]).
-- Decisions of record: [[docs/architecture/adr/README|ADRs 0001-0008]] (0007/0008 = Proposed).
-- Glossary: [[docs/architecture/glossary|glossary]]. Roadmap reslot:
-  [[docs/work/hardening/research/2026-05-25-architecture-foundation-discovery/roadmap-reslot|roadmap-reslot]].
-- New initiative: [[docs/work/publish/index|publish]] (1.1.0→beta, CI sandbox, mobile).
-- Docs policy: `created_by`/`updated_by` may include the model (`claude-opus-4-7`). agent-room run `room_20260526_000000_321c3c`.
+**Read via these hubs (each links its full-detail records):**
+- [[docs/work/hardening/research/2026-05-25-architecture-foundation-discovery/index|Architecture Foundation Discovery]]
+  → decision-ledger + **[[docs/work/hardening/research/2026-05-25-architecture-foundation-discovery/decision-changelog|decision-changelog]]**
+  (read this first — what changed + why) + research-streams + roadmap-reslot +
+  **[[docs/work/hardening/research/2026-05-25-architecture-foundation-discovery/roadmap-dispatch|roadmap-dispatch]]**
+  (live action order; NOTE gaps: Style/Theme + Kbd/API/NN not yet slotted).
+- [[docs/architecture/explorer-model/index|explorer-model]] → 4 shards (responsibility-map · render-data ·
+  surfaces-interaction · panels-axons-mutation-layout) + [[docs/architecture/adr/README|ADRs 0001–0008 all Accepted]] + glossary.
+- [[docs/work/hardening/research/2026-05-26-style-source-reconciliation/index|style-source-reconciliation]]
+  (+ proto-v6-sidebar-map; islands = Scenes; FiltersIsland→logicProps/Tags, FnR→logicFnR*).
+- [[docs/work/hardening/research/2026-05-27-version-streams-distillation/index|version-streams]]
+  (5 streams; main=stable/dev=beta/sandbox=canary; flow discipline; pre-release labels OPEN).
+- [[docs/work/pkm-ai/items/2026-05-27-agent-memory-routing-upgrade|pkm-ai memory-routing item]] (cross-session memory gap).
 
-**Next**: (1) resume grill — orchestration ownership (`panelExplorer` → Scene orchestrators);
-(2) confirm PROPOSED ADRs 0007 (page=editor-group) + 0008 (render 2-layer); (3) hand `publish`
-to a dedicated agent; (4) per-sub-system SPECS→PLANS→Issues (logic-extraction → N.R → V.D → P.D).
-Pre-existing health residuals (umbrella/vertical-threads line-limits, timestamp-offsets) are NOT from this work.
+**Next**: (1) hand [[docs/work/publish/index|publish]] to a dedicated agent (stable = v1.0.0-continuation
+reconcile + branch/channel mechanics + tag labels + the mis-release fix); (2) **proto design integration
+grill** (own session; proto v7 ships 2026-05-28; classify ADOPT/RESHAPE/MAP/ADD/FIX/DROP/DEFER/SUPERSEDE;
+map snapshots, do not chase); (3) complete the unified roadmap (fold Style/Theme + Kbd/API/NN into
+roadmap-dispatch); (4) then NOW-tier SPEC→PLAN→Issues — logic-extraction (proto FiltersIsland → logicProps/Tags,
+FnR island → logicFnR*), PlatformAdapter. Gated on dev greenlight.
 
-## NEXT AGENT START HERE — V.D Tree render projection discovery/spec ready (2026-05-25)
+**2026-05-27 (later) — proto/filter grill checkpoint.** Lead proto-integration grill ran option B (lock the
+two near-term targets, defer proto-deep to v7). New full-detail records + consolidated state:
+[[docs/work/hardening/research/2026-05-25-architecture-foundation-discovery/bases-interop-findings|Bases interop findings]]
++ the LOCKED-2026-05-27 section in
+[[docs/work/hardening/research/2026-05-25-architecture-foundation-discovery/open-inventory|open-inventory]]
+(+ decision-changelog rows + glossary terms). Locked: **FilterGroup synthesis** (recursive Bases-shaped
+predicate tree = ContainerNode tree via synthetic `FilterProvider`; predicate leaf = generic Cell, no new
+NodeKind; rendered by Linear tree-indent + Scene rule-primitives, NOT new engine-modes); **Scene family**
+`filterScene`/`queueScene`/`sortScene`/`viewScene` (island look = polish preset only); island actions =
+ActionNodes; **1:1/2:1 parity vocab**; **core-plugin replace-list** (File Explorer · Search · Tags · Outline
+· Properties · Workspaces · Bookmarks[grill-later]; not-planned = Backlinks/Outgoing Links/Page Preview;
+interop-tension = Bases/Canvas/Graph). **Brownfield discovery**: `typeFilter.ts` / `typeBasesInterop.ts` /
+`serviceBasesInterop.ts` (IN-only) + `obsidian-bases` SKILL already exist; Bases OUT (`registerBasesView`)
+is unbuilt + its API shape is UNKNOWN (web-lab app.js minified) → B.P must source the API from official
+Obsidian API docs. Parked: soft-lock/locked-combos UX (until real cases). **Next this track**: reconcile the
+logic-extraction against `typeFilter.ts`/`serviceBasesInterop.ts`; fold the synthesis into explorer-model
+02/04; sharpen B.P + logic-extraction in roadmap-dispatch; then the remaining opens (style row 7, ActionNode
+refinements, roadmap Style/Theme + Kbd/API/NN fold).
 
-Latest source records:
+**Opens / parking-lot / deferred** (full consolidated review:
+[[docs/work/hardening/research/2026-05-25-architecture-foundation-discovery/open-inventory|open-inventory]]):
+preset taxonomy ·
+serviceUnload/load-preset = USER-FACING granularity (NOT publish) · serviceMark god-object ·
+LayoutBuilder/Workspace-profiles · style row 7 (selection color) · ActionNode refinements · islands
+large-surface · branch 3 deferred (minisearch H1 + Bases interop order). Proto design path:
+`C:\Users\vic_A\Downloads\vaultman`. Researches done: roadmap-methodology + branch-workflow (folded into their docs).
 
-- [[docs/work/hardening/research/2026-05-25-vd-tree-list-nn-pipeline-discovery/index|V.D Tree/List/Notebook Navigator pipeline discovery]]
-- [[docs/work/hardening/specs/2026-05-25-vd-tree-render-projection/index|V.D Tree Render Projection]]
+## Superseded — V.D Tree render projection + sibling specs (2026-05-25)
 
-Primary next action:
+Folded into the 2026-05-27 architecture work above (render-runtime / projection = ADR 0008; media /
+icon caches = roadmap-dispatch lane C). Source records still valid:
+[[docs/work/hardening/research/2026-05-25-vd-tree-list-nn-pipeline-discovery/index|V.D pipeline discovery]] ·
+[[docs/work/hardening/specs/2026-05-25-vd-tree-render-projection/index|V.D Tree Render Projection]] ·
+[[docs/work/hardening/specs/2026-05-25-explorer-node-media-cache/index|node media cache]] ·
+[[docs/work/hardening/specs/2026-05-25-explorer-node-video-provider-media-cache/index|video provider cache]] ·
+[[docs/work/hardening/specs/2026-05-25-explorer-icon-pack-cache/index|icon pack cache]].
 
-1. Add timing marks around `viewTree` projection/visible-row work as specified in the discovery record.
-2. Implement `TreeRenderProjection` so Files Tree consumes `snapshot.visibleIds` as the render row order.
-3. Keep `ViewNodeList` as the control path in the 50k stress matrix.
-4. Do not start full NodeRow primitive or full View Decomposition before this Tree projection slice is measured.
-
-Sibling specs captured after the V.D package was handed to the planning agent:
-
-- [[docs/work/hardening/specs/2026-05-25-explorer-node-media-cache/index|Explorer Node Media Index And Thumbnail Cache]]
-  — media NodeElement, image-file nodes, cover/first-image sources, remote URL/page resolution,
-  thumbnail quality, animated GIF policy, and cache/index architecture.
-- [[docs/work/hardening/specs/2026-05-25-explorer-node-video-provider-media-cache/index|Explorer Node Video Provider Media And Cache Settings]]
-  — no `vid` codeblocks, node-owned image/video media union, YouTube/Facebook/Instagram/Twitter-X/Reddit/generic
-  provider resolvers, iframe-on-demand policy, and NN-inspired local cache settings/variant storage.
-- [[docs/work/hardening/specs/2026-05-25-explorer-icon-pack-cache/index|Explorer Icon Pack Cache]]
-  — descriptor-based icon pack lookup/cache for Lucide/Iconic/Adwaita/GTK-style groups.
+The exact handoff + status text removed in the 2026-05-27 checkpoint (the prior 2026-05-26 + 2026-05-25
+sections) is preserved verbatim:
+[[docs/archive/pkm-ai/active-docs/2026-05-27T000000-handoff-status-superseded-sections|2026-05-27 superseded sections archive]].
 
 ## Previous Handoff — A.R complete / 0-A.S scroll follow-up (2026-05-20)
 

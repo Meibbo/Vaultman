@@ -53,7 +53,7 @@ flowchart LR
 
 ```mermaid
 flowchart TD
-  frame["frame"] --> page["page = editor-group (PROPOSED)"]
+  frame["frame"] --> page["page = editor-group (ADR 0007)"]
   page --> tab["tab = surface"]
   tab --> scene["Scene {panels + primitives}"]
   scene --> panel["Panel {engine + provider + config}"]
@@ -62,7 +62,7 @@ flowchart TD
   surfaces["other surfaces: modal · pop-up · cmenu · codeblock"] -. host .-> scene
 ```
 
-## Render ownership (PROPOSED — ADR 0008)
+## Render ownership (ADR 0008, Accepted)
 
 ```mermaid
 flowchart LR
@@ -85,8 +85,8 @@ flowchart LR
 | PlatformAdapter + Fragility Registry | accepted | [ADR 0004](../../adr/0004-platform-adapter-fragility-registry.md) |
 | ActionNode unification | accepted | [ADR 0005](../../adr/0005-actionnode-unification.md) |
 | Publish channel split | accepted | [ADR 0006](../../adr/0006-publish-channel-split.md) |
-| Page = editor-group | proposed | [ADR 0007](../../adr/0007-page-editor-group.md) |
-| Render ownership 2-layer | proposed | [ADR 0008](../../adr/0008-render-ownership-two-layer.md) |
+| Page = editor-group | accepted | [ADR 0007](../../adr/0007-page-editor-group.md) |
+| Render ownership 2-layer | accepted | [ADR 0008](../../adr/0008-render-ownership-two-layer.md) |
 
 Detailed responsibility ownership (current → target) is the table in
 [01-responsibility-map](../01-responsibility-map.md), not duplicated here.

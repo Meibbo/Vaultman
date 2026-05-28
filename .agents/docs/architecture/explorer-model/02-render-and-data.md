@@ -27,7 +27,7 @@ No fixed "5 views" — a few engines, each with modes, plus an `orientation` fla
 
 | Engine | Modes | Orientation | Notes |
 |---|---|---|---|
-| Linear | tree-indent · flat-list · miller/ranger | h/v | `viewList` = flat mode; tree-indent + horizontal = miller columns |
+| Linear | tree-indent · flat-list · tiles · miller/ranger | h/v | `viewList` = flat mode; `tiles` = detailed-row mode (proto viewTiles), richer than flat-list; tree-indent + horizontal = miller columns |
 | Geometry | grid-icons · cards · group-box | flow h/v | cards = grid mode under the "native" preset (emits `bases-cards-*`); group-box = ContainerNode (homescreen folder); in-folder vs expand-below = expansion sub-mode |
 | Table | column | transpose (rows↔columns) | tanstack-table runtime; column order/visibility from view-config |
 | Canvas | mindmap · graph | dynamic/static | json-canvas-like (4th engine) |

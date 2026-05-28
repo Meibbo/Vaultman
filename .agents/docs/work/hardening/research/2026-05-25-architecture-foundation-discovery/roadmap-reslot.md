@@ -19,6 +19,11 @@ PROPOSED restructure from the foundation brainstorm. Canonical roadmap stays
 [[docs/work/roadmap-overview|roadmap-overview]]; this proposes how to reslot it.
 The Q11 principle is LOCKED; the specific placement is a draft for review.
 
+**Hardened (2026-05-26):** the live, dispatch-ready action order is
+[[docs/work/hardening/research/2026-05-25-architecture-foundation-discovery/roadmap-dispatch|roadmap-dispatch]]
+(DAG + Now/Next/Later + cost-of-unblock priority + task contracts). This file keeps the
+dependency graph + change-type table as background.
+
 ## Principle (Q11, LOCKED)
 
 - Classify each item by **change-type**: patch (fix) · minor (feat/refactor) ·

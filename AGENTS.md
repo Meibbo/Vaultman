@@ -38,7 +38,15 @@ Use `task_size` when supplied:
 - `small`: brief design only if ambiguous.
 - `medium` or `large`: use spec/plan workflow before edits.
 
-If your remaining context appears below 20%, warn the user and suggest switching agents before starting implementation.
+Context window size is model-dependent: about 200K on the standard tier, but up to
+~1M on large-context models (for example Opus 4.7 Max, Gemini CLI, Antigravity). You
+cannot see the exact remaining count — you only infer it. Therefore do NOT assume
+context is low and unilaterally push to checkpoint or close. When a context checkpoint
+seems relevant, ASK the dev: (a) roughly how much window remains, or whether this is a
+long or short session; and (b) whether to checkpoint now — clarifying that a checkpoint
+WITHOUT closing the chat is valid (it keeps parallel agents' knowledge current), as
+distinct from a checkpoint plus handoff to a fresh agent. Act on the dev's answer, not
+on an inference.
 
 ## Line Limits
 

@@ -5,7 +5,7 @@ status: active
 parent: "[[docs/work/pkm-ai/index|pkm-ai]]"
 archive_source: docs/archive/pkm-ai/active-docs/2026-05-11T080321-current-status.md
 created: 2026-05-04T01:36:20
-updated: 2026-05-26T00:00:00
+updated: 2026-05-27T00:00:00
 tags:
   - agent/current
 created_by: dec
@@ -29,25 +29,20 @@ Compact route index after archiving the oversized current status:
 ## Current Route
 
 - Active initiative: [[docs/work/hardening/index|Hardening]].
-- **LATEST (2026-05-26)**: Architecture foundation brainstorm captured (8-dimension model).
-  Record: [[docs/work/hardening/research/2026-05-25-architecture-foundation-discovery/index|Architecture Foundation Discovery]]
-  (decision-ledger + research-streams + roadmap-reslot). Durable model:
-  [[docs/architecture/explorer-model/index|explorer-model]] + [[docs/architecture/adr/README|ADRs 0001-0008]].
-  Glossary extended. New initiative: [[docs/work/publish/index|publish]] (1.1.0→beta + CI + mobile).
-  Open: grill orchestration ownership; confirm PROPOSED (page=editor-group, render 2-layer).
-- **LATEST ADDENDUM (2026-05-25)**: Separate specs captured for future NodeElement visual assets,
-  outside the already-handed-off V.D planning package:
-  [[docs/work/hardening/specs/2026-05-25-explorer-node-media-cache/index|Explorer Node Media Index And Thumbnail Cache]]
-  ,
-  [[docs/work/hardening/specs/2026-05-25-explorer-node-video-provider-media-cache/index|Explorer Node Video Provider Media And Cache Settings]],
-  and
-  [[docs/work/hardening/specs/2026-05-25-explorer-icon-pack-cache/index|Explorer Icon Pack Cache]].
-- **LATEST (2026-05-25)**: V.D discovery and spec captured for Tree/List/Notebook Navigator pipeline parity:
-  [[docs/work/hardening/research/2026-05-25-vd-tree-list-nn-pipeline-discovery/index|pipeline discovery]]
-  and
-  [[docs/work/hardening/specs/2026-05-25-vd-tree-render-projection/index|V.D Tree Render Projection]].
-  Next implementation starts by instrumenting Tree projection cost, then moves visible-row projection out of
-  `viewTree.svelte`.
+- **NAVIGATION (read first)**: [[docs/architecture/zoom-out-map|Zoom-Out Map]] — subsystem + question
+  registry: what's on the table, where, status, and what's buildable now. Use it to avoid re-deriving.
+- **LATEST (2026-05-27)**: 3-day architecture / style / version-streams grill closed. Hubs:
+  [[docs/work/hardening/research/2026-05-25-architecture-foundation-discovery/index|Foundation Discovery]]
+  (decision-ledger + [[docs/work/hardening/research/2026-05-25-architecture-foundation-discovery/decision-changelog|decision-changelog]]
+  + [[docs/work/hardening/research/2026-05-25-architecture-foundation-discovery/roadmap-dispatch|roadmap-dispatch]]),
+  [[docs/architecture/explorer-model/index|explorer-model]] (4 shards; ADRs 0001–0008 Accepted),
+  [[docs/work/hardening/research/2026-05-26-style-source-reconciliation/index|style-source-reconciliation]],
+  [[docs/work/hardening/research/2026-05-27-version-streams-distillation/index|version-streams]],
+  [[docs/work/pkm-ai/items/2026-05-27-agent-memory-routing-upgrade|pkm-ai memory item]].
+  Next: hand `publish`; proto-design integration grill (v7 incoming); fold Style/Theme + Kbd/API/NN into
+  roadmap; then NOW-tier specs (logic-extraction, PlatformAdapter). Full route + opens: [[docs/current/handoff|handoff]].
+  (Earlier V.D + NodeElement-cache specs of 2026-05-25 are folded into these hubs; records still valid.
+  Removed status/handoff text preserved: [[docs/archive/pkm-ai/active-docs/2026-05-27T000000-handoff-status-superseded-sections|2026-05-27 superseded sections archive]].)
 - **LATEST (2026-05-20)**: [[docs/work/hardening/plans/2026-05-16-explorer-variable-scroll-repair/2026-05-20-stress-vault-matrix|0-A.S stress-vault scroll matrix]]
   — runner-level view switching, delay percentiles/histogram, explicit
   `--vault=<name>`, and active Files-surface targeting are implemented. The

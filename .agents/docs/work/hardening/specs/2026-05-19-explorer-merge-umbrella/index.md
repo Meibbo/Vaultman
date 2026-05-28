@@ -13,7 +13,6 @@ tags:
   - explorer/proto-v5-merge
 created_by: claude-opus-4-7
 ---
-
 # Explorer Merge Umbrella
 
 Umbrella spec que captura las decisiones del brainstorm 2026-05-19: cómo el `proto-v5`

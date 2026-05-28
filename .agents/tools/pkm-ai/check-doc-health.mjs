@@ -22,8 +22,9 @@ if (options.help) {
 Checks .agents/docs active Markdown files for line limits, frontmatter rules,
 parent link shape, and forbidden active public agent-doc paths.
 
---repair-line-limits rewrites oversized active docs into continuation shards
-before running the final health check.
+--repair-line-limits rewrites docs past the hard cap (limit + 100 = 300) into
+continuation shards before the final health check. Docs in the soft range (over
+the 200 limit but within the hard cap) only WARN and are left for the dev to decide.
 --repair-residuals also repairs parent shape, timestamp offsets, and public
 docs/superpowers placement.`);
   process.exit(0);
@@ -35,9 +36,14 @@ const warnings = [];
 const superpowersPath = path.join(root, "docs", "superpowers");
 const glossaryTerms = readGlossaryTerms(root);
 const limit = 200;
+// Soft limit = a sharding trigger, not a forced reduction. The soft range
+// (limit+1 .. hardLimit) emits a WARN so the agent alerts the dev, who decides
+// whether to shard. Past hardLimit (= limit + 100) the cap is hard: the doc must
+// be split into a new shard part, and --repair-line-limits only auto-shards there.
+const hardLimit = limit + 100;
 
 if (options.repairLineLimits) {
-  const repairs = repairLineLimitFailures(root, { limit, now: options.now });
+  const repairs = repairLineLimitFailures(root, { limit, hardLimit, now: options.now });
   for (const repair of repairs) {
     console.log(`line-limit repair: sharded ${repair.path} into ${repair.shards} shard(s)`);
   }
@@ -72,8 +78,10 @@ for (const file of listMarkdownFiles(root, ".agents/docs", { excludeArchive: tru
   const rel = relativePath(root, file);
   const text = fs.readFileSync(file, "utf8");
   const lines = lineCount(text);
-  if (lines > limit) {
-    failures.push({ code: "line-limit", path: rel, detail: `${lines} > ${limit}` });
+  if (lines > hardLimit) {
+    failures.push({ code: "line-limit", path: rel, detail: `${lines} > ${hardLimit} hard cap; split into a new shard part` });
+  } else if (lines > limit) {
+    warnings.push({ code: "line-limit-soft", path: rel, detail: `${lines} > ${limit} soft limit; alert the dev to decide whether to shard` });
   }
 
   try {
@@ -248,14 +256,17 @@ function uniqueArchivePath(parent, name) {
   return candidate;
 }
 
-function repairLineLimitFailures(root, { limit, now }) {
+function repairLineLimitFailures(root, { limit, hardLimit, now }) {
   const repairs = [];
   for (const file of listMarkdownFiles(root, ".agents/docs", { excludeArchive: true })) {
     const rel = relativePath(root, file);
     if (isGeneratedShard(rel)) continue;
 
     const text = fs.readFileSync(file, "utf8");
-    if (lineCount(text) <= limit) continue;
+    // Only auto-shard past the hard cap; the soft range (limit..hardLimit) is the
+    // dev's call, so automated repair leaves those docs alone. Shard budget still
+    // targets `limit` so the resulting parts are comfortably sized.
+    if (lineCount(text) <= hardLimit) continue;
 
     const repair = shardOversizedDoc(root, file, rel, text, { limit, now });
     if (repair) repairs.push(repair);
