@@ -228,7 +228,6 @@ export class QueueDetailsModal extends Modal {
 			// YAML-like list for longer arrays
 			return val.map((v) => `  - ${v}`).join('\n');
 		}
-		if (val == null) return '';
 		if (typeof val === 'string') return val;
 		if (typeof val === 'number' || typeof val === 'boolean' || typeof val === 'bigint') return String(val);
 		if (typeof val === 'symbol') return val.description ?? val.toString();
