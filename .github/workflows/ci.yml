@@ -48,7 +48,9 @@ jobs:
       - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
         with:
           node-version: '24'
-          cache: npm
-      - run: npm ci
-      - run: npm run verify
-      - run: npm run security:audit
+          cache: pnpm
+      - name: Enable Corepack
+        run: corepack enable
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm run verify
+      - run: pnpm run security:audit
