@@ -159,6 +159,8 @@ interface StatusSnapshot {
 }
 
 const TERMINAL_TASK_STATUSES = new Set(["done", "failed", "cancelled", "skipped"]);
+const LOCK_STALE_MS = 60000;
+const LOCK_WAIT_TIMEOUT_MS = 120000;
 const OBJECTIVE_STATUS_MAP: Record<string, string> = {
   todo: "todo",
   "in-progress": "in-progress",
@@ -174,7 +176,7 @@ const OBJECTIVE_STATUS_MAP: Record<string, string> = {
 const HELP = `Usage: node .agents/tools/pkm-ai/agent-room.ts <resource> <action> [options]
 
 Resources:
-  run start|list|status
+  run start|list|status|ensure
   agent join|heartbeat|leave
   task add|claim|status|release
   scope claim|conflicts
@@ -229,49 +231,16 @@ async function main(): Promise<void> {
 function handleRun(context: Context, action: string | undefined): void {
   if (action === "start") {
     requireOption(context.args, "agent");
-    const runId = createRunId(context.now);
-    const paths = resolveRunPaths(context.stateRoot, runId);
-    fs.mkdirSync(paths.runRoot, { recursive: true });
-    fs.mkdirSync(paths.agentsRoot, { recursive: true });
-    fs.mkdirSync(paths.artifactsRoot, { recursive: true });
-    fs.mkdirSync(paths.locksRoot, { recursive: true });
+    const manifest = createRun(context);
+    writeOutput(context.args, { ok: true, runId: manifest.runId, status: manifest.status, stateRoot: manifest.stateRoot });
+    return;
+  }
 
-    const manifest = {
-      schemaVersion: 1,
-      runId,
-      title: context.args.title ?? runId,
-      goal: context.args.goal ?? "",
-      status: "running",
-      createdAt: context.now,
-      updatedAt: context.now,
-      createdBy: context.args.agent,
-      workspace: toPosixPath(context.cwd),
-      source: { kind: "agent-room" },
-      activeAgents: [context.args.agent],
-      summary: context.args.summary ?? "",
-      stateRoot: toPosixPath(path.relative(context.cwd, paths.runRoot)),
-    };
-    writeJsonAtomic(paths.manifestPath, manifest, context.stateRoot);
-    writeJsonAtomic(paths.tasksPath, [], context.stateRoot);
-    appendEvent(paths.eventsPath, context.stateRoot, {
-      type: "run.created",
-      runId,
-      agentId: context.args.agent,
-      message: `Run created by ${context.args.agent}`,
-      time: context.now,
-      data: { title: manifest.title, goal: manifest.goal },
-    });
-    writeAgentStatus(context, manifest, {
-      agentId: context.args.agent,
-      displayName: context.args.agent,
-      role: "coordinator",
-      status: "active",
-      lastHeartbeatAt: context.now,
-      staleAfterMs: numberOption(context.args, "staleAfterMs", 300000),
-      activeScopes: [],
-      lastMessage: "run started",
-    });
-    writeOutput(context.args, { ok: true, runId, status: manifest.status, stateRoot: manifest.stateRoot });
+  if (action === "ensure") {
+    requireOption(context.args, "agent");
+    const ensured = ensureRun(context);
+    const manifest = loadManifest(context.stateRoot, ensured.runId);
+    writeOutput(context.args, { ok: true, runId: ensured.runId, created: ensured.created, status: manifest?.status ?? "running" });
     return;
   }
 
@@ -310,9 +279,156 @@ function handleRun(context: Context, action: string | undefined): void {
   throw new CliError(`unknown run action: ${action}`, 2);
 }
 
+// Create a fresh run (manifest + tasks + run.created event + creator agent status). Extracted from
+// `run start` so `ensureRun` can reuse the exact same creation path.
+function createRun(context: Context) {
+  const runId = createRunId(context.now);
+  const paths = resolveRunPaths(context.stateRoot, runId);
+  fs.mkdirSync(paths.runRoot, { recursive: true });
+  fs.mkdirSync(paths.agentsRoot, { recursive: true });
+  fs.mkdirSync(paths.artifactsRoot, { recursive: true });
+  fs.mkdirSync(paths.locksRoot, { recursive: true });
+
+  const manifest = {
+    schemaVersion: 1,
+    runId,
+    title: context.args.title ?? runId,
+    goal: context.args.goal ?? "",
+    status: "running",
+    createdAt: context.now,
+    updatedAt: context.now,
+    createdBy: context.args.agent,
+    workspace: toPosixPath(context.cwd),
+    source: { kind: "agent-room" },
+    activeAgents: [context.args.agent],
+    summary: context.args.summary ?? "",
+    stateRoot: toPosixPath(path.relative(context.cwd, paths.runRoot)),
+  };
+  writeJsonAtomic(paths.manifestPath, manifest, context.stateRoot);
+  writeJsonAtomic(paths.tasksPath, [], context.stateRoot);
+  appendEvent(paths.eventsPath, context.stateRoot, {
+    type: "run.created",
+    runId,
+    agentId: context.args.agent,
+    message: `Run created by ${context.args.agent}`,
+    time: context.now,
+    data: { title: manifest.title, goal: manifest.goal },
+  });
+  writeAgentStatus(context, manifest, {
+    agentId: context.args.agent,
+    displayName: context.args.agent,
+    role: "coordinator",
+    status: "active",
+    lastHeartbeatAt: context.now,
+    staleAfterMs: numberOption(context.args, "staleAfterMs", 300000),
+    activeScopes: [],
+    lastMessage: "run started",
+  });
+  return manifest;
+}
+
+// Deterministic join-or-create: under a workspace-level lock, find the newest running run for this
+// state root, else create one. The lock spans find+create so concurrent agents never produce two
+// rooms for the same workspace (ADR 0003 — "one active room per project; 5 agents = same room").
+function ensureRun(context: Context): { runId: string; created: boolean } {
+  return withEnsureLock(context, () => {
+    const existing = findActiveRunId(context.stateRoot);
+    if (existing) return { runId: existing, created: false };
+    return { runId: createRun(context).runId, created: true };
+  });
+}
+
+// Newest run still marked "running". Runs are long-lived and closed explicitly (`run status`); agent
+// liveness is tracked per-agent via heartbeat leases, NOT per-run — so an idle running room is
+// deliberately not treated as stale here. Joining the existing room is what keeps every agent in ONE.
+function findActiveRunId(stateRoot: string): string | undefined {
+  const runsRoot = path.join(stateRoot, "runs");
+  if (!fs.existsSync(runsRoot)) return undefined;
+  const running = fs
+    .readdirSync(runsRoot, { withFileTypes: true })
+    .filter((entry) => entry.isDirectory())
+    .map((entry) => loadManifest(stateRoot, entry.name))
+    .filter((manifest): manifest is Manifest => manifest !== undefined && manifest.status === "running")
+    .sort((a, b) => String(b.updatedAt ?? b.createdAt).localeCompare(String(a.updatedAt ?? a.createdAt)));
+  return running[0]?.runId;
+}
+
+// Workspace-level lock for ensureRun, built on the shared cooperative file lock below.
+function withEnsureLock<T>(context: Context, fn: () => T): T {
+  return withFileLock(path.join(context.stateRoot, "ensure.lock"), context.now, Boolean(context.args.force), fn);
+}
+
+// Generic cooperative file lock. Acquires with an atomic O_EXCL create (only one writer wins), WAITS
+// for the holder if contended (spin), and steals a stale/abandoned lock. Both the per-run lock
+// (withRunLock) and the workspace ensure lock use it, so concurrent agents serialize cleanly instead
+// of failing — the basis for "5 agents = same room" and for never double-rooming (ADR 0003).
+function withFileLock<T>(lockPath: string, now: string, force: boolean, fn: () => T): T {
+  fs.mkdirSync(path.dirname(lockPath), { recursive: true });
+  acquireFileLock(lockPath, now, force);
+  try {
+    return fn();
+  } finally {
+    try {
+      fs.unlinkSync(lockPath);
+    } catch {
+      // Best-effort lock cleanup.
+    }
+  }
+}
+
+function acquireFileLock(lockPath: string, now: string, force: boolean): void {
+  const startedAt = Date.now();
+  for (;;) {
+    try {
+      const fd = fs.openSync(lockPath, "wx"); // atomic create-exclusive: exactly one writer wins
+      try {
+        fs.writeFileSync(fd, JSON.stringify({ pid: process.pid, createdAt: now, host: os.hostname() }));
+      } finally {
+        fs.closeSync(fd);
+      }
+      return;
+    } catch (error) {
+      if ((error as { code?: string }).code !== "EEXIST") throw error;
+    }
+    if (force || isFileLockStale(lockPath, now)) {
+      // Reclaim a stale/abandoned lock (crashed holder), or steal unconditionally under --force.
+      // Inherent unlink-steal window: this could in theory delete a lock another process just
+      // freshly created — unreachable in practice given ms-scale critical sections vs a 60s stale
+      // threshold. Note: --force therefore defeats the no-double-room guarantee; never pass it to join.
+      try {
+        fs.unlinkSync(lockPath);
+      } catch {
+        // Another waiter stole it first — just retry.
+      }
+      continue;
+    }
+    if (Date.now() - startedAt > LOCK_WAIT_TIMEOUT_MS) throw new CliError(`lock is stuck: ${lockPath}`, 1);
+    sleepSync(50);
+  }
+}
+
+function isFileLockStale(lockPath: string, now: string): boolean {
+  try {
+    const lock = readJson(lockPath) as { createdAt?: string };
+    const ageMs = Date.parse(now) - Date.parse(String(lock.createdAt));
+    return !Number.isFinite(ageMs) || ageMs > LOCK_STALE_MS;
+  } catch {
+    return true; // corrupt/unreadable lock — treat as stale and reclaim
+  }
+}
+
+function sleepSync(ms: number): void {
+  Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, ms);
+}
+
 function handleAgent(context: Context, action: string | undefined): void {
-  const manifest = loadRequiredManifest(context);
   requireOption(context.args, "agent");
+  // join-or-create: `--run current` resolves to the workspace's active run, creating one atomically
+  // if none exists. Pin the resolved id so the join below targets exactly that run (ADR 0003).
+  if (action === "join" && context.args.run === "current") {
+    context.args.run = ensureRun(context).runId;
+  }
+  const manifest = loadRequiredManifest(context);
 
   if (action === "join" || action === "heartbeat") {
     const paths = resolveRunPaths(context.stateRoot, manifest.runId);
@@ -908,24 +1024,7 @@ function loadTasks(context: Context, runId: string): Task[] {
 
 function withRunLock<T>(context: Context, runId: string, fn: () => T): T {
   const paths = resolveRunPaths(context.stateRoot, runId);
-  fs.mkdirSync(paths.locksRoot, { recursive: true });
-  if (fs.existsSync(paths.lockPath)) {
-    const lock = readJson(paths.lockPath) as { pid: number; createdAt: string; host: string };
-    const ageMs = Date.parse(context.now) - Date.parse(lock.createdAt);
-    if (Number.isFinite(ageMs) && ageMs < 300000 && !context.args.force) {
-      throw new CliError(`run ${runId} is locked by pid ${lock.pid}`, 1);
-    }
-  }
-  writeJsonAtomic(paths.lockPath, { pid: process.pid, createdAt: context.now, host: os.hostname() }, context.stateRoot);
-  try {
-    return fn();
-  } finally {
-    try {
-      fs.unlinkSync(paths.lockPath);
-    } catch {
-      // Best-effort lock cleanup.
-    }
-  }
+  return withFileLock(paths.lockPath, context.now, Boolean(context.args.force), fn);
 }
 
 function writeAgentStatus(context: Context, manifest: Manifest, status: AgentStatus): void {

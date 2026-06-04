@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
-import { spawnSync } from "node:child_process";
+import { spawn, spawnSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
 
 const toolPath = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..", "agent-room.ts");
@@ -514,6 +514,65 @@ test("VAULTMAN_ROOM_STATE_ROOT beats git --git-common-dir", () => {
   assert.equal(fs.existsSync(path.join(repo, ".git", "vaultman-room", "runs", runId)), false);
 });
 
+// --- S2 Task 2: atomic ensure-run (deterministic join-or-create, no double-room) --------------
+
+test("agent join --run current creates a run, then a second join --run current reuses it", () => {
+  const cwd = makeTempRoot();
+  const shared = path.join(makeTempRoot(), "ensure-room");
+  const sr = ["--state-root", shared];
+
+  const j1 = run(cwd, ["agent", "join", "--run", "current", "--agent", "A", ...sr, "--now", "2026-06-04T03:00:00", "--json"]);
+  assert.equal(j1.status, 0, j1.stderr);
+  const list1 = JSON.parse(run(cwd, ["run", "list", ...sr, "--json"]).stdout).runs;
+  assert.equal(list1.length, 1);
+  const runId = list1[0].runId;
+
+  const j2 = run(cwd, ["agent", "join", "--run", "current", "--agent", "B", ...sr, "--now", "2026-06-04T03:01:00", "--json"]);
+  assert.equal(j2.status, 0, j2.stderr);
+  const list2 = JSON.parse(run(cwd, ["run", "list", ...sr, "--json"]).stdout).runs;
+  assert.equal(list2.length, 1, "second join --run current must NOT create a second room");
+
+  const snap = JSON.parse(run(cwd, ["status", "--run", runId, ...sr, "--now", "2026-06-04T03:02:00", "--json"]).stdout);
+  assert.deepEqual(snap.agents.map((a) => a.agentId).sort(), ["A", "B"]);
+});
+
+test("run ensure creates once (created:true) then reuses (created:false)", () => {
+  const cwd = makeTempRoot();
+  const shared = path.join(makeTempRoot(), "ensure-room");
+  const sr = ["--state-root", shared];
+
+  const e1 = JSON.parse(run(cwd, ["run", "ensure", "--agent", "A", ...sr, "--now", "2026-06-04T03:00:00", "--json"]).stdout);
+  assert.equal(e1.ok, true);
+  assert.equal(e1.created, true);
+
+  const e2 = JSON.parse(run(cwd, ["run", "ensure", "--agent", "A", ...sr, "--now", "2026-06-04T03:01:00", "--json"]).stdout);
+  assert.equal(e2.created, false);
+  assert.equal(e2.runId, e1.runId);
+});
+
+test("concurrent agent join --run current never double-rooms (workspace lock)", async () => {
+  const cwd = makeTempRoot();
+  const shared = path.join(makeTempRoot(), "race-room");
+  const sr = ["--state-root", shared];
+  const agents = ["A", "B", "C", "D", "E"];
+
+  const results = await Promise.all(
+    agents.map((agent) => runAsync(cwd, ["agent", "join", "--run", "current", "--agent", agent, ...sr, "--json"])),
+  );
+  for (const result of results) assert.equal(result.status, 0, result.stderr);
+
+  const runs = JSON.parse(run(cwd, ["run", "list", ...sr, "--json"]).stdout).runs;
+  assert.equal(runs.length, 1, "race must collapse to exactly ONE room");
+  const runId = runs[0].runId;
+  for (const agent of agents) {
+    assert.equal(
+      fs.existsSync(path.join(shared, "runs", runId, "agents", agent, "status.json")),
+      true,
+      `agent ${agent} must have joined the single shared room`,
+    );
+  }
+});
+
 function createRun(root) {
   const result = run(root, [
     "run",
@@ -565,6 +624,18 @@ function initGitRepo(dir) {
   spawnSync("git", ["init", "-q"], opts);
   spawnSync("git", ["config", "user.email", "test@example.com"], opts);
   spawnSync("git", ["config", "user.name", "Test"], opts);
+}
+
+function runAsync(cwd, args) {
+  return new Promise((resolve) => {
+    const child = spawn(process.execPath, [toolPath, ...args], { cwd });
+    let stdout = "";
+    let stderr = "";
+    child.stdout.on("data", (chunk) => (stdout += chunk));
+    child.stderr.on("data", (chunk) => (stderr += chunk));
+    child.on("error", (error) => resolve({ status: -1, stdout, stderr: String(error) }));
+    child.on("close", (status) => resolve({ status, stdout, stderr }));
+  });
 }
 
 function makeTempRoot() {
