@@ -4,9 +4,9 @@ type: item
 status: active
 parent: "[[docs/work/pkm-ai/index|pkm-ai]]"
 created: 2026-05-27T00:00:00
-updated: 2026-05-27T00:00:00
+updated: 2026-05-29T23:19:07
 created_by: claude-opus-4-7
-updated_by: claude-opus-4-7
+updated_by: codex-gpt-5
 tags:
   - agent/item
   - initiative/pkm-ai
@@ -35,6 +35,12 @@ Two distinct gaps:
    with only an `archive_source` pointer to a single prior snapshot; there is no dated history
    index and no routing to "the handoff as of date X". Old handoff sections that get trimmed are
    archived but not easily discoverable.
+3. **Anecdotal / edge-case example capture** — the dev often uses concrete examples during grill
+   sessions ("zebra/chess decoration", duplicate node labels, snippet manual containers, etc.) as
+   exploratory probes. If the example is not promoted to a decision/spec, it currently disappears
+   from routable memory. That means a future agent may preserve the abstract foundation while losing
+   the reasoning examples that originally tested it. This is a PKM-AI failure, not a product-model
+   failure.
 
 ## Goal
 
@@ -54,6 +60,14 @@ historical — quickly and precisely, backed by scripts rather than manual recal
   history index + the architecture model on session start, reducing "go read doc X" reminders.
 - **Health coverage**: a health check that flags status/handoff snapshots archived without a
   history-index entry, and decisions changed without a changelog row.
+- **Anecdotal edge-case ledger**: a lightweight source record for examples that are not yet decisions,
+  indexed by topic (`style-decoration`, `node-identity`, `membership`, `panelData`, `input-binding`,
+  etc.). It should capture: example, topic tags, why it matters, linked decision/spec if any, status
+  (`unresolved`, `absorbed`, `rejected`, `superseded`). Agents only read it when a routing doc,
+  topic-index, or search hit says the topic is relevant.
+- **Model-thinking routing rule**: if the dev uses an example to test a model boundary, capture it even
+  when no decision is made. Do not let "just an example" vanish if it could become a future edge case.
+  This is not chain-of-thought; it is source-backed design-rationale memory.
 
 ## Why this matters
 
@@ -63,7 +77,12 @@ The dev keeps pushing the system to grow; reliable cross-session memory is the l
 foundation for that growth. Without it, every session re-derives context and risks losing
 decisions.
 
+The 2026-05-29 `zebra/chess` recall check exposed the concrete failure mode: code contains
+`zebraRows`, but no persisted doc captured the dev's original "zebra/chess" idea/goal/anecdote.
+Search can find implementation tokens; it cannot recover the missing design example unless PKM-AI
+captures it.
+
 ## Status
 
-Logged 2026-05-27 from the architecture/style grill. Needs its own brainstorm → spec → plan.
-Not started. Owner: pkm-ai initiative.
+Logged 2026-05-27 from the architecture/style grill. Expanded 2026-05-29 with the anecdotal
+edge-case capture gap. Needs its own brainstorm → spec → plan. Not started. Owner: pkm-ai initiative.

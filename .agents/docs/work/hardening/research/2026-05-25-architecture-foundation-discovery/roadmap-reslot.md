@@ -4,9 +4,9 @@ type: research-shard
 status: draft
 parent: "[[docs/work/hardening/research/2026-05-25-architecture-foundation-discovery/index|Architecture Foundation Discovery]]"
 created: 2026-05-26T00:00:00
-updated: 2026-05-26T00:00:00
+updated: 2026-05-28T21:24:03
 created_by: claude-opus-4-7
-updated_by: claude-opus-4-7
+updated_by: codex-gpt-5
 tags:
   - agent/research
   - initiative/hardening
@@ -19,6 +19,10 @@ PROPOSED restructure from the foundation brainstorm. Canonical roadmap stays
 [[docs/work/roadmap-overview|roadmap-overview]]; this proposes how to reslot it.
 The Q11 principle is LOCKED; the specific placement is a draft for review.
 
+**Supersession note (2026-05-28):** branch/channel text here is historical. Active publish
+discipline is `main=stable`, `dev=beta/nightly`, `sandbox=canary` per
+[[docs/work/hardening/research/2026-05-27-version-streams-distillation/index|version-streams]].
+
 **Hardened (2026-05-26):** the live, dispatch-ready action order is
 [[docs/work/hardening/research/2026-05-25-architecture-foundation-discovery/roadmap-dispatch|roadmap-dispatch]]
 (DAG + Now/Next/Later + cost-of-unblock priority + task contracts). This file keeps the
@@ -30,8 +34,8 @@ dependency graph + change-type table as background.
   major (breaking).
 - Order = **dependency-driven + dynamic**. Version numbers are assigned late, at
   cut time, by what is actually stable — not fixed `v1.2.0…v2.0.0` slots.
-- Channels: **`sandbox` = beta** (may break; BRAT), **`main` = stable**. The
-  [[docs/work/publish/index|publish]] initiative owns the channel mechanics.
+- Channels: active mapping is **`main` = stable · `dev` = beta/nightly · `sandbox` = canary**.
+  The [[docs/work/publish/index|publish]] initiative owns the channel mechanics.
 
 ## Dependency graph
 
@@ -81,8 +85,4 @@ flowchart LR
 
 ## Reconciliation note
 
-The umbrella's fixed `v1.2.0 → v2.0.0` table (in
-[[docs/work/hardening/specs/2026-05-19-explorer-merge-umbrella/index|merge-umbrella]]
-and roadmap-overview) is superseded for **ordering** by this dynamic model; the
-dependency graph (real constraints) is kept. Version numbers attach at cut time
-per change-type. Reslotting `roadmap-overview` tables is a follow-up after review.
+The umbrella's fixed `v1.2.0 → v2.0.0` table (in [[docs/work/hardening/specs/2026-05-19-explorer-merge-umbrella/index|merge-umbrella]] and roadmap-overview) is superseded for **ordering** by this dynamic model; the dependency graph (real constraints) is kept. Version numbers attach at cut time per change-type. Reslotting `roadmap-overview` tables is a follow-up after review.

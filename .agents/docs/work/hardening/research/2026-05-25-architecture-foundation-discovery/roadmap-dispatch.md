@@ -4,9 +4,9 @@ type: research-shard
 status: active
 parent: "[[docs/work/hardening/research/2026-05-25-architecture-foundation-discovery/index|Architecture Foundation Discovery]]"
 created: 2026-05-26T00:00:00
-updated: 2026-05-26T00:00:00
+updated: 2026-05-28T21:24:03
 created_by: claude-opus-4-7
-updated_by: claude-opus-4-7
+updated_by: codex-gpt-5
 tags:
   - agent/roadmap
   - initiative/hardening
@@ -23,8 +23,8 @@ the fixed `v1.x` slot ordering for **sequencing**; version numbers attach at cut
 ## Method (from research)
 
 - **Now / Next / Later** rolling tiers — NOT fixed version/date slots. Commit only to NOW;
-  rebalance every ~2 weeks as dependencies unblock. SemVer assigned late; `sandbox`=beta,
-  `main`=stable.
+  rebalance every ~2 weeks as dependencies unblock. SemVer assigned late; stream authority now
+  comes from `version-streams`: `main`=stable, `dev`=beta/nightly, `sandbox`=canary.
 - **Priority = cost-of-unblock** (WSJF lens for a solo dev): score by how much finishing an
   item releases downstream, then weight by effort. One item that unlocks three is high-leverage
   — beats raw "value". Dependencies-first.

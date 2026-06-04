@@ -4,9 +4,9 @@ type: research-shard
 status: active
 parent: "[[docs/work/hardening/research/2026-05-25-architecture-foundation-discovery/index|Architecture Foundation Discovery]]"
 created: 2026-05-27T00:00:00
-updated: 2026-05-27T00:00:00
+updated: 2026-05-28T21:24:03
 created_by: claude-opus-4-7
-updated_by: claude-opus-4-7
+updated_by: codex-gpt-5
 tags:
   - agent/research
   - initiative/hardening
@@ -107,6 +107,11 @@ New opens from this session:
   `pageOrder` + `serviceLeafDetach` already use it). Risk at scale: `data.json` bloat + sync churn for
   high-cardinality / binary data. Pending the media-cache/IndexedDB research → then a **holistic Storage
   Architecture grill + ADR**. `serviceMark` storage decision DEFERRED to fold into that.
+- **Pending dev decisions (durable registry)** → [[docs/architecture/pending-decisions|pending-decisions]]:
+  storage S-1..S-5 (tier table · media-cache strategy · settings deep-merge · cache-controls UX · ADR 0010);
+  newly raised S-6 note-frontmatter as a tier (node-attribute cells only — never subsystem configs) +
+  S-7 own `.vmscene` format (single polymorphic ext, YAML, `registerExtensions`); R-1 Dataview/Datacore
+  interop research. Dev is sending more analysis before answering.
 - Persist-pending (next agent): fold the FilterGroup synthesis into explorer-model shards (02/04); sharpen
   B.P + logic-extraction cards in `roadmap-dispatch`; reconcile the extraction against `typeFilter.ts`.
 
@@ -136,6 +141,11 @@ New opens from this session:
 - islands top/bottom rule on a large surface (main-leaf) — defer to Surface-foundation spec.
 - style matrix row 7: selection color = restore accent (stable) vs keep text-faint (beta).
 - version-streams: pre-release labels + per-channel versioning; promotion-gate checklist; canary feature-flags.
+- Feature-request intake 2026-05-28:
+  [[docs/work/hardening/research/2026-05-28-feature-request-architecture-fit/index|feature-request architecture fit]]
+  captured public engine/provider API, aliases, gestures/InputBinding, onboarding/agent-write,
+  outline graph, charts/DataViz, ScenesManager/LayoutBuilder, and FrontmatterScene. Dev-blocked
+  decisions are parked as S-15..S-25.
 
 **Roadmap gaps:**
 - `roadmap-dispatch` does NOT yet include the Style/Theme axis (N/UnoCSS, ThemeBuilder, color, bits-ui) or Keyboard/API/NN.

@@ -4,9 +4,9 @@ type: architecture
 status: active
 parent: "[[docs/work/hardening/index|hardening]]"
 created: 2026-05-27T00:00:00
-updated: 2026-05-27T00:00:00
+updated: 2026-05-28T21:24:03
 created_by: claude-opus-4-7
-updated_by: claude-opus-4-7
+updated_by: codex-gpt-5
 tags:
   - agent/architecture
   - agent/navigation
@@ -56,6 +56,11 @@ Source: [[docs/work/hardening/research/2026-05-25-architecture-foundation-discov
 - **Style/Theme axis**: N (SCSS→UnoCSS) · ThemeBuilder (#10) · color governance (#8) · bits-ui (#12) ·
   Settings UI (#5) · snippet UX (#9). Hard constraint: proto-style breaking changes land BEFORE N.
 - **Keyboard / API / NN**: K.B (keyboard) · public API · I.E (NN engine swap / NN-interop).
+- **Feature-request intake 2026-05-28**:
+  [[docs/work/hardening/research/2026-05-28-feature-request-architecture-fit/index|feature-request architecture fit]]
+  adds public engine API, public provider/index API, alias labels/search, gesture/InputBinding,
+  onboarding/agent-write API, outline graph, Charts/DataViz, ScenesManager/LayoutBuilder, and
+  FrontmatterScene; dev-blocked decisions S-15..S-25.
 - **Filter/Scene (2026-05-27 session)**: FilterGroup synthesis + Scene-family + 1:1/2:1 + replace-list —
   see open-inventory "LOCKED 2026-05-27 (later)" + bases-interop-findings.
 - **Storage architecture (cross-cutting, scoped 2026-05-27)**: storage tiers across `serviceMark` (NOT

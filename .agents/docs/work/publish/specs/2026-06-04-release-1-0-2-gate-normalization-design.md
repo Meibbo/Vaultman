@@ -1,10 +1,10 @@
 ---
 title: Release 1.0.2 gate normalization design
 type: spec
-status: proposed
+status: accepted
 parent: "[[docs/work/publish/index|Publish]]"
 created: 2026-06-04T04:21:05
-updated: 2026-06-04T04:57:25
+updated: 2026-06-04T05:11:57
 tags:
   - agent/spec
   - initiative/publish
@@ -20,8 +20,8 @@ updated_by: codex-gpt-5
 
 ## Status
 
-Proposed design awaiting maintainer review. Do not implement until this spec is
-accepted and a separate implementation plan exists.
+Accepted by the maintainer on 2026-06-04. Implementation is governed by
+[[docs/work/publish/plans/2026-06-04-release-1-0-2-gate-normalization/index|Release 1.0.2 gate normalization implementation plan]].
 
 ## Source Records
 

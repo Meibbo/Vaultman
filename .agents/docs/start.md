@@ -13,6 +13,8 @@ updated_by: antigravity
 
 # Agent Start Router
 
+> **Before routing, run the mandatory Runtime Startup sequence in `AGENTS.md` (presence · retrieval-first · scope-claim).**
+
 Always read:
 
 1. [[docs/current/status|status]]
@@ -24,6 +26,22 @@ Always read:
 
 Then choose the smallest route that fits the user's intent. A quick side
 question can be answered directly without changing mode.
+
+## Knowledge Surfaces (architecture cluster — 2026-05-28)
+
+Read after `status` + `handoff` to recover full project context (the new cross-cutting nav):
+
+- [[docs/architecture/zoom-out-map|zoom-out-map]] — subsystems + buildable-now.
+- [[docs/architecture/dev-glossary|dev-glossary]] — VM domain ↔ technical terms.
+- [[docs/architecture/operational-watch-list|operational-watch-list]] — cross-cutting invariants.
+- [[docs/architecture/research-inventory|research-inventory]] — research backlog.
+- [[docs/architecture/pending-decisions|pending-decisions]] — dev-blocked decisions (S-1..S-11).
+- [[docs/architecture/tooling-libraries|tooling-libraries]] — stack + transition.
+- [[docs/architecture/vaultman-identity|vaultman-identity]] — product definition (README / manual / marketing).
+- [[docs/architecture/glossary|canonical glossary]] · [[docs/architecture/adr/README|ADR index 0001–0009]] · [[docs/architecture/explorer-model/index|explorer-model (4 shards)]].
+
+Most recent wave summary + next-chat starter prompt:
+[[docs/current/2026-05-28-checkpoint|2026-05-28 checkpoint]].
 
 ## Modes
 

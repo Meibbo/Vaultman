@@ -176,3 +176,13 @@ projection/translation).
 - 1:1 native parity: the chameleon "native" preset target — Vaultman surfaces/style/functions are indistinguishable from Obsidian; user-loaded features feel integral; retrocompat with snippets/themes. Efficiency lever: native = core CSS classes reused as a pseudo-snippet on all surfaces (not reimplemented styles = no bloat).
 - 2:1 superset: Vaultman matches all replaced-core-plugin capabilities + our extra functions + the full builder to modify every style/layout/function detail. Our builder is the 2:1 upgrade over what the core plugin offered.
 - barebones preset: everything off except surface-settings + commands + the minimal Scene that gives the user a load/unload service UI — which is the same add-on-explorer, with function categories (one category = bridges to other plugins). Fuses install-selector + serviceUnload-granularity + plugin-provider.
+
+## Modularity / scenesManager terms (2026-06-03, ADR 0011)
+
+- module-contract: the plugin-parity interface every detachable module implements — manifest `{id, vmApiVersion, capabilities, onLoad/onUnload}`; `onUnload` is serviceUnload-revertible; cross-module comms ONLY via the internal registry (SASI / provider-index / ActionNode / WorkspaceMediator); no deep cross-module imports (eslint-enforced).
+- detachable-module: an in-plugin feature (ThemeBuilder, LayoutBuilder, input-remap, online-fetch, git, devtools, scene-packs) toggled via preset + serviceUnload, enumerated by LUPA as a virtual plugin, extractable to a separate plugin later without rework. Distinct from CORE (workbench moat + systems + scenesManager).
+- scenesManagerScene: CORE SceneProvider whose nodes are the available scenes (with identity) + the modules composing them. Under native preset it lists chameleon-wrapped Obsidian surfaces as scenes (editorScene / fileScene / ribbon / statusbar). The visibility lever (show/hide) — distinct from LUPA (unload) and LayoutBuilder (spatial arrange).
+- editorScene: Obsidian's live-preview markdown editor (main-leaf), modeled as one of Vaultman's pages under the chameleon abstraction.
+- fileScene: the native File Explorer surface rendered as a Vaultman scene under the chameleon preset (sidebar page).
+- action-cell: a Cell whose semantic role is "action", bound to an ActionNode (e.g. visibility toggle on/off, quick-action badge, operator chip). Presentation variants: badge | toggle | chip. Unifies the "primitive bound via ActionNode" usages.
+- redesign_mode: Live Redesign — real-time spatial editing of the workspace (reorder/resize/pan/zoom/rotate) via LayoutBuilder; edits propagate to scenesManager thumbnails on-demand (perf invariant, operational-watch-list §7).

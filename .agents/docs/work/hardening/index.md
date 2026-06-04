@@ -4,7 +4,8 @@ type: initiative-index
 status: active
 parent: "[[docs/work/pkm-ai/index|pkm-ai]]"
 created: 2026-05-04T01:44:46
-updated: 2026-05-25T00:00:00-05:00
+updated: 2026-05-29T23:45:00
+updated_by: codex-gpt-5
 tags:
   - agent/work
   - initiative/hardening
@@ -41,9 +42,14 @@ quality work before it reaches `main`.
 - [[docs/work/hardening/specs/2026-05-06-user-facing-recovery-wave-a/index|User-facing recovery wave A]]
 - [[docs/work/hardening/specs/2026-05-16-notebook-navigator-scroll-forensics/index|Notebook Navigator scroll forensics]]
 
+## Active Items
+
+- [[docs/work/hardening/items/2026-05-29-dev-pending-question-inventory|Dev Pending Question Inventory]]
+
 ## Active Research
 
 - [[docs/work/hardening/research/2026-05-25-vd-tree-list-nn-pipeline-discovery/index|V.D Tree/List/Notebook Navigator pipeline discovery]]
+- [[docs/work/hardening/research/2026-05-28-feature-request-architecture-fit/index|Feature Request Architecture Fit]]
 - [[docs/work/hardening/research/2026-05-16-openssf-osps-baseline/index|OpenSSF OSPS baseline research]]
 - [[docs/work/hardening/research/2026-05-16-multiview-virtualization-research/index|Multiview virtualization research]]
 

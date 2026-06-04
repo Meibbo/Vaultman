@@ -4,9 +4,9 @@ type: research-index
 status: active
 parent: "[[docs/work/hardening/index|hardening]]"
 created: 2026-05-27T00:00:00
-updated: 2026-05-27T00:00:00
+updated: 2026-05-28T21:24:03
 created_by: claude-opus-4-7
-updated_by: claude-opus-4-7
+updated_by: codex-gpt-5
 tags:
   - agent/research
   - initiative/hardening
@@ -37,6 +37,8 @@ stable (`main`), with **goal (docs)** as the refinement anchor guiding all of it
 
 `main` = stable · `dev` = beta/nightly · `sandbox` = canary. ⚠️ **Supersedes** the earlier
 assumption (ADR 0006 / research-streams said `sandbox` = beta). ADR 0006 + publish must reconcile.
+Dev re-confirmed on 2026-05-28 during feature-request intake: publish discipline is THIS newer
+version-streams model, not the older sandbox-beta model.
 
 ## Current pain (the publish track owns the fix)
 

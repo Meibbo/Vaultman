@@ -5,11 +5,11 @@ status: active
 parent: "[[docs/work/pkm-ai/index|pkm-ai]]"
 archive_source: docs/archive/pkm-ai/active-docs/2026-05-11T080321-current-status.md
 created: 2026-05-04T01:36:20
-updated: 2026-05-27T00:00:00
+updated: 2026-05-29T23:45:00
 tags:
   - agent/current
 created_by: dec
-updated_by: claude-opus-4-7
+updated_by: codex-gpt-5
 ---
 
 # Current Status
@@ -29,8 +29,8 @@ Compact route index after archiving the oversized current status:
 ## Current Route
 
 - Active initiative: [[docs/work/hardening/index|Hardening]].
-- **NAVIGATION (read first)**: [[docs/architecture/zoom-out-map|Zoom-Out Map]] — subsystem + question
-  registry: what's on the table, where, status, and what's buildable now. Use it to avoid re-deriving.
+- **NAVIGATION (read first, in this order)**: [[docs/architecture/zoom-out-map|zoom-out-map]] · [[docs/architecture/dev-glossary|dev-glossary]] · [[docs/architecture/operational-watch-list|operational-watch-list]] · [[docs/architecture/research-inventory|research-inventory]] · [[docs/architecture/pending-decisions|pending-decisions (S-1..S-14)]] · [[docs/architecture/tooling-libraries|tooling-libraries]] · [[docs/architecture/vaultman-identity|vaultman-identity]] · [[docs/architecture/decision-graph|decision-graph]] · [[docs/current/2026-05-28-checkpoint|2026-05-28 checkpoint (wave summary + next-chat prompt)]]. Cluster = full project context in <10 minutes. **Changed since 2026-05-27** → see [[docs/sessions/session-log|session-log]] + [[docs/architecture/agent-memory-routing-best-practices|best-practices recon]].
+- **LATEST (2026-05-29)**: feature-request grill checkpoint closed: [[docs/current/2026-05-29-checkpoint|2026-05-29 checkpoint]] · [[docs/work/hardening/items/2026-05-29-dev-pending-question-inventory|dev question inventory]] · [[docs/work/hardening/visuals/2026-05-29-pending-decisions-roadmap-map|Mermaid map]]. S-26 locked; next = S-27 panelData.
 - **LATEST (2026-05-27)**: 3-day architecture / style / version-streams grill closed. Hubs:
   [[docs/work/hardening/research/2026-05-25-architecture-foundation-discovery/index|Foundation Discovery]]
   (decision-ledger + [[docs/work/hardening/research/2026-05-25-architecture-foundation-discovery/decision-changelog|decision-changelog]]

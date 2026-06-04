@@ -4,9 +4,9 @@ type: research-shard
 status: active
 parent: "[[docs/work/hardening/research/2026-05-25-architecture-foundation-discovery/decision-ledger|Decision Ledger]]"
 created: 2026-05-27T00:00:00
-updated: 2026-05-27T00:00:00
+updated: 2026-05-28T21:24:03
 created_by: claude-opus-4-7
-updated_by: claude-opus-4-7
+updated_by: codex-gpt-5
 tags:
   - agent/research
   - agent/decision-ledger
@@ -37,6 +37,7 @@ not silently overwrite.
 | 2026-05-27 (later) | Bases OUT "confirmed" | ledger "Bases OUT = `registerBasesView` (confirmed in web-lab app.js)" → **target only; NOT built, API method shapes UNKNOWN (app.js minified, not analysable)** | read-only agent could not reverse-engineer minified app.js; current code is IN-only → B.P must source the API from official Obsidian API docs |
 | 2026-05-27 (later, +1) | Bases OUT "API shape UNKNOWN" | "UNKNOWN" → **DOCUMENTED in `obsidian.d.ts` v1.10.0+** (`registerBasesView`/`BasesView`/`BasesEntry`/`Value.renderTo`) | extension-API research found the typings; minified app.js was the wrong source — see `obsidian-extension-api-findings` |
 | 2026-05-27 (later, +2) | Bases interop strategy | ledger "Bases OUT = registerBasesView + emit `bases-*`" (open target) → **HYBRID LOCKED via [[docs/architecture/adr/0009-bases-interop-hybrid\|ADR 0009]]**: native shells PRIMARY · Bases-IN + import/export ALWAYS · Bases-OUT = opt-in PlatformAdapter add-on · foreign views stay OPAQUE | ecosystem recon (~6–10 plugins, API documented 1.10.0+, ~1–2 breaking bumps/12–18mo); bulk-ops + interactive builder = the orthogonal moat — pure Path A or B both suboptimal |
+| 2026-05-28 | publish discipline authority | older ADR/publish text "`sandbox` = beta" → **newer version-streams is authoritative: `main` = stable · `dev` = beta/nightly · `sandbox` = canary** | dev clarified this after feature-intake startup; publish initiative and ADR 0006 must reconcile instead of preserving the old two-channel wording as active guidance |
 
 ## Open meta-improvement
 

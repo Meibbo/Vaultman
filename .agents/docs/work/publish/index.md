@@ -4,7 +4,7 @@ type: initiative-index
 status: active
 parent: "[[docs/work/roadmap-overview|Roadmap Overview]]"
 created: 2026-05-26T00:00:00
-updated: 2026-06-04T04:57:25
+updated: 2026-06-04T05:11:57
 tags:
   - agent/initiative
   - initiative/publish
@@ -50,6 +50,7 @@ Active design:
 - [[docs/work/publish/specs/2026-05-26-release-1-0-1-from-1-0-0-design|Release 1.0.1 from 1.0.0 with beta workflow safety]]
 - [[docs/work/publish/specs/2026-06-04-release-1-0-2-gate-normalization-design|Release 1.0.2 gate normalization design]]
 - [[docs/work/publish/plans/2026-05-26-release-1-0-1-from-1-0-0/index|Release 1.0.1 from 1.0.0 implementation plan]]
+- [[docs/work/publish/plans/2026-06-04-release-1-0-2-gate-normalization/index|Release 1.0.2 gate normalization implementation plan]]
 - [[docs/work/publish/items/2026-05-26-release-1-0-1-candidate-verification|Release 1.0.1 candidate verification]]
 - [[docs/work/publish/items/2026-06-04-release-1-0-2-gate-escape-triage|Release 1.0.2 gate escape triage]]
 - [[docs/work/publish/items/2026-06-04-release-1-0-2-gate-delta-inventory|Release 1.0.2 gate delta inventory]]

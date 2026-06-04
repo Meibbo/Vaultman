@@ -5,17 +5,21 @@ status: active
 parent: "[[docs/work/pkm-ai/index|pkm-ai]]"
 archive_source: docs/archive/pkm-ai/active-docs/2026-05-11T080321-current-handoff.md
 created: 2026-05-04T01:36:20
-updated: 2026-05-27T00:00:00
+updated: 2026-05-29T23:45:00
 tags:
   - agent/current
 created_by: dec
-updated_by: claude-opus-4-7
+updated_by: codex-gpt-5
 ---
 
 # Current Handoff
 
 Compact handoff after archiving the oversized current handoff:
 [[docs/archive/pkm-ai/active-docs/2026-05-11T080321-current-handoff|2026-05-11 handoff archive]].
+
+## NEXT AGENT START HERE — Feature grill checkpoint closed (2026-05-29)
+
+Read [[docs/current/2026-05-29-checkpoint|2026-05-29 checkpoint]] first. It links the dev-facing pending-question item and Mermaid map; S-26 is locked, next grill = S-27 panelData.
 
 ## NEXT AGENT START HERE — Architecture + Style + Version-streams grill closed (2026-05-27)
 
@@ -43,24 +47,14 @@ map snapshots, do not chase); (3) complete the unified roadmap (fold Style/Theme
 roadmap-dispatch); (4) then NOW-tier SPEC→PLAN→Issues — logic-extraction (proto FiltersIsland → logicProps/Tags,
 FnR island → logicFnR*), PlatformAdapter. Gated on dev greenlight.
 
-**2026-05-27 (later) — proto/filter grill checkpoint.** Lead proto-integration grill ran option B (lock the
-two near-term targets, defer proto-deep to v7). New full-detail records + consolidated state:
-[[docs/work/hardening/research/2026-05-25-architecture-foundation-discovery/bases-interop-findings|Bases interop findings]]
-+ the LOCKED-2026-05-27 section in
-[[docs/work/hardening/research/2026-05-25-architecture-foundation-discovery/open-inventory|open-inventory]]
-(+ decision-changelog rows + glossary terms). Locked: **FilterGroup synthesis** (recursive Bases-shaped
-predicate tree = ContainerNode tree via synthetic `FilterProvider`; predicate leaf = generic Cell, no new
-NodeKind; rendered by Linear tree-indent + Scene rule-primitives, NOT new engine-modes); **Scene family**
-`filterScene`/`queueScene`/`sortScene`/`viewScene` (island look = polish preset only); island actions =
-ActionNodes; **1:1/2:1 parity vocab**; **core-plugin replace-list** (File Explorer · Search · Tags · Outline
-· Properties · Workspaces · Bookmarks[grill-later]; not-planned = Backlinks/Outgoing Links/Page Preview;
-interop-tension = Bases/Canvas/Graph). **Brownfield discovery**: `typeFilter.ts` / `typeBasesInterop.ts` /
-`serviceBasesInterop.ts` (IN-only) + `obsidian-bases` SKILL already exist; Bases OUT (`registerBasesView`)
-is unbuilt + its API shape is UNKNOWN (web-lab app.js minified) → B.P must source the API from official
-Obsidian API docs. Parked: soft-lock/locked-combos UX (until real cases). **Next this track**: reconcile the
-logic-extraction against `typeFilter.ts`/`serviceBasesInterop.ts`; fold the synthesis into explorer-model
-02/04; sharpen B.P + logic-extraction in roadmap-dispatch; then the remaining opens (style row 7, ActionNode
-refinements, roadmap Style/Theme + Kbd/API/NN fold).
+**2026-05-28 — full wave checkpoint** (post-2026-05-27 architecture + Bases hybrid + storage recon + DnD
+design + identity + tooling). All detail sharded into
+[[docs/current/2026-05-28-checkpoint|2026-05-28 checkpoint]]: wave summary, the 8 new architecture
+surfaces (`zoom-out-map` · `dev-glossary` · `operational-watch-list` · `research-inventory` ·
+`pending-decisions` · `tooling-libraries` · `vaultman-identity` + ADR 0009 / 0001–0009), the dev-blocked
+decisions S-1..S-11, the open research backlog, and the **copy-pasteable starter prompt** for the next
+chat (feature-request evaluation + publish/commit/branch/release discipline). Fresh agents read:
+AGENTS.md → start.md → status.md → handoff.md → 2026-05-28-checkpoint.md.
 
 **Opens / parking-lot / deferred** (full consolidated review:
 [[docs/work/hardening/research/2026-05-25-architecture-foundation-discovery/open-inventory|open-inventory]]):

@@ -2,13 +2,31 @@
 
 This branch permits AI workflow files. `main` must contain zero AI files: no `AGENTS.md`, `CLAUDE.md`, `.agents/`, `.claude/`, or generated agent caches.
 
-## Start Here
+## Runtime Startup (MANDATORY — every agent, every new thread, in order)
 
-1. Read `.agents/docs/start.md`.
-2. Always read `.agents/docs/current/status.md`.
-3. Always read `.agents/docs/current/handoff.md`.
-4. Route by the user's explicit mode or inferred intent.
-5. Read only the smallest relevant docs before editing.
+Zero-context agents execute this BEFORE any work. Not advisory. Detail:
+`.agents/docs/architecture/policies/coordination.md` + `.agents/docs/work/pkm-ai/adr/`.
+
+0. **Identify** — your agent+model · git stream (goal/proto/canary=sandbox/beta=dev/stable=main) · task_size.
+   If `.agents/pkm-ai.version.json` exists, read it; on a MAJOR version mismatch re-read the protocol docs.
+1. **Register presence (join-or-create — deterministic; no prompt needed)** — join the workspace's CURRENT
+   active run, else start one: `node .agents/tools/pkm-ai/agent-room.mjs agent join --run current --agent <id>`;
+   if it reports no active run, `... run start --agent <id>` then join. Then `agent heartbeat`. **One active
+   room per workspace — all agents of this project converge on it (5 agents = same room).** (ADR 0003.)
+2. **Retrieval-first** — query the index for the top-k relevant docs; do NOT read the whole tree:
+   `node .agents/tools/pkm-ai/query-docs.mjs <topic>`. (Lifecycle-ranked once S6 lands; ADR 0002/0006.)
+3. **Route docs** — `current/status.md` + `current/handoff.md` are route indexes ONLY; read the latest
+   `docs/sessions/session-log.md` entry.
+4. **Memory boundary** —
+   - editing SHARED memory (status/handoff/architecture/specs) → `agent-room scope claim` FIRST (resolve
+     conflicts/leases);
+   - your OWN working memory → your session shard `docs/sessions/<date>-<agent>.md` — never overwrite shared
+     in place. (ADR 0002/0003.)
+5. **Route by mode/intent** (see Session Modes below).
+6. **Exit** — append a `session-log` line + `agent-room scope` release + `agent leave`.
+
+Micro-commands (`status:` · `next:` · `qq:` · `question:` · `help:`) may take a read-only fast path but still
+register presence (step 1).
 
 ## Session Modes
 
