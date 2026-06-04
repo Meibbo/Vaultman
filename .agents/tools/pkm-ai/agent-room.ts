@@ -15,6 +15,7 @@ interface CliArgs {
 
 interface Context {
   cwd: string;
+  stateRoot: string;
   args: CliArgs;
   now: string;
 }
@@ -170,7 +171,7 @@ const OBJECTIVE_STATUS_MAP: Record<string, string> = {
   skipped: "on-hold",
 };
 
-const HELP = `Usage: node .agents/tools/pkm-ai/agent-room.mjs <resource> <action> [options]
+const HELP = `Usage: node .agents/tools/pkm-ai/agent-room.ts <resource> <action> [options]
 
 Resources:
   run start|list|status
@@ -190,6 +191,7 @@ Global options:
   --now <YYYY-MM-DDTHH:mm:ss>
   --lease-ms <ms>
   --force
+  --state-root <dir>   shared room state root (default: <git-common-dir>/vaultman-room, else cwd/.agents/state)
 `;
 
 async function main(): Promise<void> {
@@ -228,7 +230,7 @@ function handleRun(context: Context, action: string | undefined): void {
   if (action === "start") {
     requireOption(context.args, "agent");
     const runId = createRunId(context.now);
-    const paths = resolveRunPaths(context.cwd, runId);
+    const paths = resolveRunPaths(context.stateRoot, runId);
     fs.mkdirSync(paths.runRoot, { recursive: true });
     fs.mkdirSync(paths.agentsRoot, { recursive: true });
     fs.mkdirSync(paths.artifactsRoot, { recursive: true });
@@ -249,9 +251,9 @@ function handleRun(context: Context, action: string | undefined): void {
       summary: context.args.summary ?? "",
       stateRoot: toPosixPath(path.relative(context.cwd, paths.runRoot)),
     };
-    writeJsonAtomic(paths.manifestPath, manifest, context.cwd);
-    writeJsonAtomic(paths.tasksPath, [], context.cwd);
-    appendEvent(paths.eventsPath, context.cwd, {
+    writeJsonAtomic(paths.manifestPath, manifest, context.stateRoot);
+    writeJsonAtomic(paths.tasksPath, [], context.stateRoot);
+    appendEvent(paths.eventsPath, context.stateRoot, {
       type: "run.created",
       runId,
       agentId: context.args.agent,
@@ -274,12 +276,12 @@ function handleRun(context: Context, action: string | undefined): void {
   }
 
   if (action === "list") {
-    fs.mkdirSync(path.join(context.cwd, ".agents", "state", "runs"), { recursive: true });
-    const runsRoot = path.join(context.cwd, ".agents", "state", "runs");
+    fs.mkdirSync(path.join(context.stateRoot, "runs"), { recursive: true });
+    const runsRoot = path.join(context.stateRoot, "runs");
     const runs = fs
       .readdirSync(runsRoot, { withFileTypes: true })
       .filter((entry) => entry.isDirectory())
-      .map((entry) => loadManifest(context.cwd, entry.name))
+      .map((entry) => loadManifest(context.stateRoot, entry.name))
       .filter(Boolean);
     writeOutput(context.args, { ok: true, runs });
     return;
@@ -291,8 +293,8 @@ function handleRun(context: Context, action: string | undefined): void {
     const status = requiredValue(context.args, "status");
     const next = { ...manifest, status, updatedAt: context.now, summary: context.args.reason ?? manifest.summary };
     withRunLock(context, manifest.runId, () => {
-      writeJsonAtomic(resolveRunPaths(context.cwd, manifest.runId).manifestPath, next, context.cwd);
-      appendEvent(resolveRunPaths(context.cwd, manifest.runId).eventsPath, context.cwd, {
+      writeJsonAtomic(resolveRunPaths(context.stateRoot, manifest.runId).manifestPath, next, context.stateRoot);
+      appendEvent(resolveRunPaths(context.stateRoot, manifest.runId).eventsPath, context.stateRoot, {
         type: "run.status_changed",
         runId: manifest.runId,
         agentId: context.args.agent,
@@ -313,7 +315,7 @@ function handleAgent(context: Context, action: string | undefined): void {
   requireOption(context.args, "agent");
 
   if (action === "join" || action === "heartbeat") {
-    const paths = resolveRunPaths(context.cwd, manifest.runId);
+    const paths = resolveRunPaths(context.stateRoot, manifest.runId);
     const existing = readAgentStatus(context, manifest.runId, context.args.agent);
     const activeAgents = new Set(manifest.activeAgents ?? []);
     activeAgents.add(context.args.agent);
@@ -330,9 +332,9 @@ function handleAgent(context: Context, action: string | undefined): void {
       lastMessage: context.args.message ?? existing?.lastMessage ?? (action === "join" ? "joined" : "heartbeat"),
     };
     withRunLock(context, manifest.runId, () => {
-      writeJsonAtomic(paths.manifestPath, nextManifest, context.cwd);
+      writeJsonAtomic(paths.manifestPath, nextManifest, context.stateRoot);
       writeAgentStatus(context, nextManifest, status);
-      appendEvent(paths.eventsPath, context.cwd, {
+      appendEvent(paths.eventsPath, context.stateRoot, {
         type: action === "join" ? "agent.joined" : "agent.heartbeat",
         runId: manifest.runId,
         taskId: context.args.task,
@@ -346,14 +348,14 @@ function handleAgent(context: Context, action: string | undefined): void {
   }
 
   if (action === "leave") {
-    const paths = resolveRunPaths(context.cwd, manifest.runId);
+    const paths = resolveRunPaths(context.stateRoot, manifest.runId);
     const activeAgents = (manifest.activeAgents ?? []).filter((agentId) => agentId !== context.args.agent);
     const existing = readAgentStatus(context, manifest.runId, context.args.agent);
     const status = { ...(existing ?? { agentId: context.args.agent }), status: "left", lastHeartbeatAt: context.now };
     withRunLock(context, manifest.runId, () => {
-      writeJsonAtomic(paths.manifestPath, { ...manifest, activeAgents, updatedAt: context.now }, context.cwd);
+      writeJsonAtomic(paths.manifestPath, { ...manifest, activeAgents, updatedAt: context.now }, context.stateRoot);
       writeAgentStatus(context, manifest, status);
-      appendEvent(paths.eventsPath, context.cwd, {
+      appendEvent(paths.eventsPath, context.stateRoot, {
         type: "agent.left",
         runId: manifest.runId,
         agentId: context.args.agent,
@@ -371,7 +373,7 @@ function handleAgent(context: Context, action: string | undefined): void {
 function handleTask(context: Context, action: string | undefined): void {
   const manifest = loadRequiredManifest(context);
   requireOption(context.args, "agent");
-  const paths = resolveRunPaths(context.cwd, manifest.runId);
+  const paths = resolveRunPaths(context.stateRoot, manifest.runId);
 
   if (action === "add") {
     const title = requiredValue(context.args, "title");
@@ -390,8 +392,8 @@ function handleTask(context: Context, action: string | undefined): void {
       notes: context.args.notes ?? "",
     };
     withRunLock(context, manifest.runId, () => {
-      writeJsonAtomic(paths.tasksPath, [...tasks, task], context.cwd);
-      appendEvent(paths.eventsPath, context.cwd, {
+      writeJsonAtomic(paths.tasksPath, [...tasks, task], context.stateRoot);
+      appendEvent(paths.eventsPath, context.stateRoot, {
         type: "task.created",
         runId: manifest.runId,
         taskId: task.taskId,
@@ -424,8 +426,8 @@ function handleTask(context: Context, action: string | undefined): void {
     };
     tasks[index] = task;
     withRunLock(context, manifest.runId, () => {
-      writeJsonAtomic(paths.tasksPath, tasks, context.cwd);
-      appendEvent(paths.eventsPath, context.cwd, {
+      writeJsonAtomic(paths.tasksPath, tasks, context.stateRoot);
+      appendEvent(paths.eventsPath, context.stateRoot, {
         type: "task.claimed",
         runId: manifest.runId,
         taskId,
@@ -435,7 +437,7 @@ function handleTask(context: Context, action: string | undefined): void {
         data: { leasedUntil: task.claim.leasedUntil, forced: Boolean(context.args.force) },
       });
       for (const scope of task.scope ?? []) {
-        appendEvent(paths.eventsPath, context.cwd, {
+        appendEvent(paths.eventsPath, context.stateRoot, {
           type: "scope.claimed",
           runId: manifest.runId,
           taskId,
@@ -463,8 +465,8 @@ function handleTask(context: Context, action: string | undefined): void {
     task = { ...task, status, updatedAt: context.now };
     tasks[index] = task;
     withRunLock(context, manifest.runId, () => {
-      writeJsonAtomic(paths.tasksPath, tasks, context.cwd);
-      appendEvent(paths.eventsPath, context.cwd, {
+      writeJsonAtomic(paths.tasksPath, tasks, context.stateRoot);
+      appendEvent(paths.eventsPath, context.stateRoot, {
         type: "task.status_changed",
         runId: manifest.runId,
         taskId,
@@ -488,8 +490,8 @@ function handleTask(context: Context, action: string | undefined): void {
     task = { ...released, updatedAt: context.now };
     tasks[index] = task;
     withRunLock(context, manifest.runId, () => {
-      writeJsonAtomic(paths.tasksPath, tasks, context.cwd);
-      appendEvent(paths.eventsPath, context.cwd, {
+      writeJsonAtomic(paths.tasksPath, tasks, context.stateRoot);
+      appendEvent(paths.eventsPath, context.stateRoot, {
         type: "task.claim_released",
         runId: manifest.runId,
         taskId,
@@ -519,7 +521,7 @@ function handleScope(context: Context, action: string | undefined): void {
   if (action === "claim") {
     requireOption(context.args, "agent");
     const taskId = requiredValue(context.args, "task");
-    const paths = resolveRunPaths(context.cwd, manifest.runId);
+    const paths = resolveRunPaths(context.stateRoot, manifest.runId);
     const tasks = loadTasks(context, manifest.runId);
     const index = findTaskIndex(tasks, taskId);
     const conflicts = findScopeConflicts(tasks.filter((task) => task.taskId !== taskId), scopes, context.now);
@@ -532,9 +534,9 @@ function handleScope(context: Context, action: string | undefined): void {
     }
     tasks[index] = { ...tasks[index], scope: merged, updatedAt: context.now };
     withRunLock(context, manifest.runId, () => {
-      writeJsonAtomic(paths.tasksPath, tasks, context.cwd);
+      writeJsonAtomic(paths.tasksPath, tasks, context.stateRoot);
       for (const scope of scopes) {
-        appendEvent(paths.eventsPath, context.cwd, {
+        appendEvent(paths.eventsPath, context.stateRoot, {
           type: "scope.claimed",
           runId: manifest.runId,
           taskId,
@@ -554,7 +556,7 @@ function handleScope(context: Context, action: string | undefined): void {
 
 function handleMailbox(context: Context, action: string | undefined): void {
   const manifest = loadRequiredManifest(context);
-  const paths = resolveRunPaths(context.cwd, manifest.runId);
+  const paths = resolveRunPaths(context.stateRoot, manifest.runId);
 
   if (action === "send") {
     requireOption(context.args, "agent");
@@ -573,12 +575,12 @@ function handleMailbox(context: Context, action: string | undefined): void {
       deliveryMode: context.args.deliveryMode ?? "next_turn",
     };
     withRunLock(context, manifest.runId, () => {
-      appendJsonl(mailboxPath(paths.runRoot, "inbox", message.taskId), message, context.cwd);
+      appendJsonl(mailboxPath(paths.runRoot, "inbox", message.taskId), message, context.stateRoot);
       const delivery = readDelivery(paths.runRoot);
       delivery.messages[message.messageId] = message.status;
       delivery.updatedAt = context.now;
-      writeDelivery(paths.runRoot, delivery, context.cwd);
-      appendEvent(paths.eventsPath, context.cwd, {
+      writeDelivery(paths.runRoot, delivery, context.stateRoot);
+      appendEvent(paths.eventsPath, context.stateRoot, {
         type: "mailbox.message",
         runId: manifest.runId,
         taskId: message.taskId,
@@ -609,8 +611,8 @@ function handleMailbox(context: Context, action: string | undefined): void {
     delivery.messages[messageId] = "acknowledged";
     delivery.updatedAt = context.now;
     withRunLock(context, manifest.runId, () => {
-      writeDelivery(paths.runRoot, delivery, context.cwd);
-      appendEvent(paths.eventsPath, context.cwd, {
+      writeDelivery(paths.runRoot, delivery, context.stateRoot);
+      appendEvent(paths.eventsPath, context.stateRoot, {
         type: "mailbox.ack",
         runId: manifest.runId,
         agentId: context.args.agent,
@@ -633,7 +635,7 @@ function handleObjectives(context: Context, action: string | undefined): void {
   }
 
   const manifest = loadRequiredManifest(context);
-  const paths = resolveRunPaths(context.cwd, manifest.runId);
+  const paths = resolveRunPaths(context.stateRoot, manifest.runId);
 
   if (action === "import") {
     requireOption(context.args, "agent");
@@ -659,9 +661,9 @@ function handleObjectives(context: Context, action: string | undefined): void {
       imported.push(task);
     }
     withRunLock(context, manifest.runId, () => {
-      writeJsonAtomic(paths.tasksPath, [...tasks, ...imported], context.cwd);
+      writeJsonAtomic(paths.tasksPath, [...tasks, ...imported], context.stateRoot);
       for (const task of imported) {
-        appendEvent(paths.eventsPath, context.cwd, {
+        appendEvent(paths.eventsPath, context.stateRoot, {
           type: "task.created",
           runId: manifest.runId,
           taskId: task.taskId,
@@ -669,7 +671,7 @@ function handleObjectives(context: Context, action: string | undefined): void {
           message: `Task imported from objective ${task.objectiveId}`,
           time: context.now,
         });
-        appendEvent(paths.eventsPath, context.cwd, {
+        appendEvent(paths.eventsPath, context.stateRoot, {
           type: "objective.synced",
           runId: manifest.runId,
           taskId: task.taskId,
@@ -706,7 +708,7 @@ function handleObjectives(context: Context, action: string | undefined): void {
       "--now",
       context.now,
     ]);
-    appendEvent(paths.eventsPath, context.cwd, {
+    appendEvent(paths.eventsPath, context.stateRoot, {
       type: "objective.synced",
       runId: manifest.runId,
       taskId: task.taskId,
@@ -762,7 +764,7 @@ function handleHandoff(context: Context): void {
 
 function buildStatusSnapshot(context: Context): StatusSnapshot {
   const manifest = loadRequiredManifest(context);
-  const paths = resolveRunPaths(context.cwd, manifest.runId);
+  const paths = resolveRunPaths(context.stateRoot, manifest.runId);
   const tasks = loadTasks(context, manifest.runId);
   const agents = readAllAgentStatuses(context, manifest.runId);
   const activeClaims = tasks
@@ -801,9 +803,28 @@ function runManageTasks(cwd: string, args: string[]): SpawnSyncReturns<string> {
 }
 
 function createContext(cwd: string, args: CliArgs): Context {
+  const resolvedCwd = path.resolve(cwd);
   const now = (args.now as string | undefined) ?? formatLocalTimestamp(new Date());
   assertTimestamp(now);
-  return { cwd: path.resolve(cwd), args, now };
+  return { cwd: resolvedCwd, stateRoot: resolveStateRoot(resolvedCwd, args), args, now };
+}
+
+// Resolve the room state root. Precedence: explicit --state-root > VAULTMAN_ROOM_STATE_ROOT env >
+// git common dir (shared by every worktree of the repo) > per-worktree cwd/.agents/state fallback.
+// Using the git COMMON dir means all linked worktrees converge on ONE room (ADR 0003).
+export function resolveStateRoot(cwd: string, args: CliArgs): string {
+  if (args.stateRoot && args.stateRoot !== true) return path.resolve(String(args.stateRoot));
+  const envRoot = process.env.VAULTMAN_ROOM_STATE_ROOT;
+  if (envRoot) return path.resolve(envRoot);
+  try {
+    const result = spawnSync("git", ["rev-parse", "--git-common-dir"], { cwd, encoding: "utf8" });
+    if (result.status === 0 && result.stdout.trim()) {
+      return path.join(path.resolve(cwd, result.stdout.trim()), "vaultman-room");
+    }
+  } catch {
+    // not a git repository — fall through to the per-worktree default
+  }
+  return path.join(cwd, ".agents", "state");
 }
 
 function parseArgs(argv: string[]): CliArgs {
@@ -828,9 +849,8 @@ function parseArgs(argv: string[]): CliArgs {
   return args;
 }
 
-function resolveRunPaths(cwd: string, runId: string): RunPaths {
+function resolveRunPaths(stateRoot: string, runId: string): RunPaths {
   assertSafeId("runId", runId);
-  const stateRoot = path.join(cwd, ".agents", "state");
   const runRoot = path.join(stateRoot, "runs", runId);
   const locksRoot = path.join(stateRoot, "locks");
   return {
@@ -848,7 +868,7 @@ function resolveRunPaths(cwd: string, runId: string): RunPaths {
 
 function loadRequiredManifest(context: Context): Manifest {
   const runId = resolveRequestedRunId(context);
-  const manifest = loadManifest(context.cwd, runId);
+  const manifest = loadManifest(context.stateRoot, runId);
   if (!manifest) throw new CliError(`run not found: ${runId}`, 1);
   return manifest;
 }
@@ -857,37 +877,37 @@ function resolveRequestedRunId(context: Context): string {
   if (context.args.run && context.args.run !== true && !["latest", "current"].includes(String(context.args.run))) {
     return String(context.args.run);
   }
-  const runId = latestRunId(context.cwd);
+  const runId = latestRunId(context.stateRoot);
   if (!runId) throw new CliError("--run is required because no agent-room runs exist", 2);
   return runId;
 }
 
-function latestRunId(cwd: string): string | undefined {
-  const runsRoot = path.join(cwd, ".agents", "state", "runs");
+function latestRunId(stateRoot: string): string | undefined {
+  const runsRoot = path.join(stateRoot, "runs");
   if (!fs.existsSync(runsRoot)) return undefined;
   const manifests = fs
     .readdirSync(runsRoot, { withFileTypes: true })
     .filter((entry) => entry.isDirectory())
-    .map((entry) => loadManifest(cwd, entry.name))
+    .map((entry) => loadManifest(stateRoot, entry.name))
     .filter(Boolean)
     .sort((a, b) => String(b.updatedAt ?? b.createdAt).localeCompare(String(a.updatedAt ?? a.createdAt)));
   return manifests[0]?.runId;
 }
 
-function loadManifest(cwd: string, runId: string): Manifest | undefined {
-  const filePath = resolveRunPaths(cwd, runId).manifestPath;
+function loadManifest(stateRoot: string, runId: string): Manifest | undefined {
+  const filePath = resolveRunPaths(stateRoot, runId).manifestPath;
   if (!fs.existsSync(filePath)) return undefined;
   return readJson(filePath) as Manifest;
 }
 
 function loadTasks(context: Context, runId: string): Task[] {
-  const filePath = resolveRunPaths(context.cwd, runId).tasksPath;
+  const filePath = resolveRunPaths(context.stateRoot, runId).tasksPath;
   if (!fs.existsSync(filePath)) return [];
   return readJson(filePath) as Task[];
 }
 
 function withRunLock<T>(context: Context, runId: string, fn: () => T): T {
-  const paths = resolveRunPaths(context.cwd, runId);
+  const paths = resolveRunPaths(context.stateRoot, runId);
   fs.mkdirSync(paths.locksRoot, { recursive: true });
   if (fs.existsSync(paths.lockPath)) {
     const lock = readJson(paths.lockPath) as { pid: number; createdAt: string; host: string };
@@ -896,7 +916,7 @@ function withRunLock<T>(context: Context, runId: string, fn: () => T): T {
       throw new CliError(`run ${runId} is locked by pid ${lock.pid}`, 1);
     }
   }
-  writeJsonAtomic(paths.lockPath, { pid: process.pid, createdAt: context.now, host: os.hostname() }, context.cwd);
+  writeJsonAtomic(paths.lockPath, { pid: process.pid, createdAt: context.now, host: os.hostname() }, context.stateRoot);
   try {
     return fn();
   } finally {
@@ -909,19 +929,19 @@ function withRunLock<T>(context: Context, runId: string, fn: () => T): T {
 }
 
 function writeAgentStatus(context: Context, manifest: Manifest, status: AgentStatus): void {
-  const paths = resolveRunPaths(context.cwd, manifest.runId);
+  const paths = resolveRunPaths(context.stateRoot, manifest.runId);
   const filePath = path.join(paths.agentsRoot, status.agentId, "status.json");
-  writeJsonAtomic(filePath, status, context.cwd);
+  writeJsonAtomic(filePath, status, context.stateRoot);
 }
 
 function readAgentStatus(context: Context, runId: string, agentId: string): AgentStatus | undefined {
-  const filePath = path.join(resolveRunPaths(context.cwd, runId).agentsRoot, agentId, "status.json");
+  const filePath = path.join(resolveRunPaths(context.stateRoot, runId).agentsRoot, agentId, "status.json");
   if (!fs.existsSync(filePath)) return undefined;
   return readJson(filePath) as AgentStatus;
 }
 
 function readAllAgentStatuses(context: Context, runId: string): AgentStatus[] {
-  const root = resolveRunPaths(context.cwd, runId).agentsRoot;
+  const root = resolveRunPaths(context.stateRoot, runId).agentsRoot;
   if (!fs.existsSync(root)) return [];
   return (fs
     .readdirSync(root, { withFileTypes: true })
@@ -931,7 +951,7 @@ function readAllAgentStatuses(context: Context, runId: string): AgentStatus[] {
     .sort((a, b) => a.agentId.localeCompare(b.agentId));
 }
 
-function appendEvent(eventsPath: string, cwd: string, event: RoomEvent): void {
+function appendEvent(eventsPath: string, stateRoot: string, event: RoomEvent): void {
   fs.mkdirSync(path.dirname(eventsPath), { recursive: true });
   const seq = fs.existsSync(eventsPath) ? fs.readFileSync(eventsPath, "utf8").split(/\r?\n/).filter(Boolean).length + 1 : 1;
   const complete = {
@@ -945,7 +965,7 @@ function appendEvent(eventsPath: string, cwd: string, event: RoomEvent): void {
     message: event.message,
     data: event.data ?? {},
   };
-  appendJsonl(eventsPath, complete, cwd);
+  appendJsonl(eventsPath, complete, stateRoot);
 }
 
 function createRunId(now: string): string {
@@ -1078,8 +1098,8 @@ function readDelivery(runRoot: string): Delivery {
   return readJson(filePath) as Delivery;
 }
 
-function writeDelivery(runRoot: string, delivery: Delivery, cwd: string): void {
-  writeJsonAtomic(deliveryPath(runRoot), delivery, cwd);
+function writeDelivery(runRoot: string, delivery: Delivery, stateRoot: string): void {
+  writeJsonAtomic(deliveryPath(runRoot), delivery, stateRoot);
 }
 
 function isAgentStale(agent: AgentStatus, now: string): boolean {
@@ -1108,24 +1128,27 @@ function readJsonl(filePath: string): Json[] {
   return text.split(/\r?\n/).filter(Boolean).map((line) => JSON.parse(line));
 }
 
-function writeJsonAtomic(filePath: string, value: Json, cwd: string): void {
-  assertPathInsideWorkspace(cwd, filePath);
+function writeJsonAtomic(filePath: string, value: Json, stateRoot: string): void {
+  assertPathInsideStateRoot(stateRoot, filePath);
   fs.mkdirSync(path.dirname(filePath), { recursive: true });
   const tempPath = `${filePath}.${process.pid}.${Date.now()}.tmp`;
   fs.writeFileSync(tempPath, `${JSON.stringify(value, null, 2)}\n`, "utf8");
   fs.renameSync(tempPath, filePath);
 }
 
-function appendJsonl(filePath: string, value: Json, cwd: string): void {
-  assertPathInsideWorkspace(cwd, filePath);
+function appendJsonl(filePath: string, value: Json, stateRoot: string): void {
+  assertPathInsideStateRoot(stateRoot, filePath);
   fs.mkdirSync(path.dirname(filePath), { recursive: true });
   fs.appendFileSync(filePath, `${JSON.stringify(value)}\n`, "utf8");
 }
 
-function assertPathInsideWorkspace(cwd: string, filePath: string): void {
-  const relative = path.relative(cwd, path.resolve(filePath));
+// Confine every write to the resolved room state root. All room artifacts (manifest, tasks, events,
+// agents, mailbox, locks, delivery) live under stateRoot, which may legitimately sit OUTSIDE the cwd
+// when worktrees share one room via the git common dir — so the guard tracks stateRoot, not cwd.
+function assertPathInsideStateRoot(stateRoot: string, filePath: string): void {
+  const relative = path.relative(stateRoot, path.resolve(filePath));
   if (relative.startsWith("..") || path.isAbsolute(relative)) {
-    throw new CliError(`write path is outside workspace: ${filePath}`, 1);
+    throw new CliError(`write path is outside the room state root: ${filePath}`, 1);
   }
 }
 

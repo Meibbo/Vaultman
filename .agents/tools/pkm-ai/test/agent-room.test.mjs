@@ -436,6 +436,84 @@ test("agent-room comfort layer resolves latest run, dashboard, handoff, and pkm 
   assert.equal(JSON.parse(wrapped.stdout).runId, runId);
 });
 
+// --- S2 Task 1: cross-worktree state-root resolution -------------------------------------------
+
+test("run honors --state-root and routes every write to the shared root (outside cwd)", () => {
+  const cwd = makeTempRoot();
+  const shared = path.join(makeTempRoot(), "shared-room"); // outside cwd, not yet existing
+  const sr = ["--state-root", shared];
+
+  const start = run(cwd, ["run", "start", "--agent", "A", "--title", "Shared", "--now", "2026-06-04T03:00:00", ...sr, "--json"]);
+  assert.equal(start.status, 0, start.stderr);
+  const runId = JSON.parse(start.stdout).runId;
+  assert.equal(fs.existsSync(path.join(shared, "runs", runId, "manifest.json")), true);
+  // nothing leaked to the per-worktree default location
+  assert.equal(fs.existsSync(path.join(cwd, ".agents", "state")), false);
+
+  const join = run(cwd, ["agent", "join", "--run", runId, "--agent", "B", "--now", "2026-06-04T03:01:00", ...sr, "--json"]);
+  assert.equal(join.status, 0, join.stderr);
+  assert.equal(fs.existsSync(path.join(shared, "runs", runId, "agents", "B", "status.json")), true);
+
+  const add = run(cwd, ["task", "add", "--run", runId, "--agent", "A", "--title", "T", "--now", "2026-06-04T03:02:00", ...sr, "--json"]);
+  assert.equal(add.status, 0, add.stderr);
+
+  const send = run(cwd, ["mailbox", "send", "--run", runId, "--agent", "A", "--to", "B", "--body", "hi", "--now", "2026-06-04T03:03:00", ...sr, "--json"]);
+  assert.equal(send.status, 0, send.stderr);
+
+  const status = run(cwd, ["status", "--run", runId, "--now", "2026-06-04T03:04:00", ...sr, "--json"]);
+  assert.equal(status.status, 0, status.stderr);
+  const snap = JSON.parse(status.stdout);
+  assert.equal(snap.runId, runId);
+  assert.equal(snap.tasks.length, 1);
+  assert.equal(snap.unreadMessages.length, 1);
+  assert.equal(fs.existsSync(path.join(shared, "runs", runId, "events.jsonl")), true);
+});
+
+test("VAULTMAN_ROOM_STATE_ROOT env routes writes when no flag is given", () => {
+  const cwd = makeTempRoot();
+  const shared = path.join(makeTempRoot(), "env-room");
+  const start = runEnv(cwd, ["run", "start", "--agent", "A", "--now", "2026-06-04T03:00:00", "--json"], { VAULTMAN_ROOM_STATE_ROOT: shared });
+  assert.equal(start.status, 0, start.stderr);
+  const runId = JSON.parse(start.stdout).runId;
+  assert.equal(fs.existsSync(path.join(shared, "runs", runId, "manifest.json")), true);
+});
+
+test("--state-root beats VAULTMAN_ROOM_STATE_ROOT", () => {
+  const cwd = makeTempRoot();
+  const flagRoot = path.join(makeTempRoot(), "flag-room");
+  const envRoot = path.join(makeTempRoot(), "env-room");
+  const start = runEnv(
+    cwd,
+    ["run", "start", "--agent", "A", "--state-root", flagRoot, "--now", "2026-06-04T03:00:00", "--json"],
+    { VAULTMAN_ROOM_STATE_ROOT: envRoot },
+  );
+  assert.equal(start.status, 0, start.stderr);
+  const runId = JSON.parse(start.stdout).runId;
+  assert.equal(fs.existsSync(path.join(flagRoot, "runs", runId, "manifest.json")), true);
+  assert.equal(fs.existsSync(path.join(envRoot, "runs")), false);
+});
+
+test("resolves git --git-common-dir to .git/vaultman-room (shared across worktrees)", () => {
+  const repo = makeTempRoot();
+  initGitRepo(repo);
+  const start = run(repo, ["run", "start", "--agent", "A", "--now", "2026-06-04T03:00:00", "--json"]);
+  assert.equal(start.status, 0, start.stderr);
+  const runId = JSON.parse(start.stdout).runId;
+  assert.equal(fs.existsSync(path.join(repo, ".git", "vaultman-room", "runs", runId, "manifest.json")), true);
+  assert.equal(fs.existsSync(path.join(repo, ".agents", "state", "runs", runId)), false);
+});
+
+test("VAULTMAN_ROOM_STATE_ROOT beats git --git-common-dir", () => {
+  const repo = makeTempRoot();
+  initGitRepo(repo);
+  const envRoot = path.join(makeTempRoot(), "env-room");
+  const start = runEnv(repo, ["run", "start", "--agent", "A", "--now", "2026-06-04T03:00:00", "--json"], { VAULTMAN_ROOM_STATE_ROOT: envRoot });
+  assert.equal(start.status, 0, start.stderr);
+  const runId = JSON.parse(start.stdout).runId;
+  assert.equal(fs.existsSync(path.join(envRoot, "runs", runId, "manifest.json")), true);
+  assert.equal(fs.existsSync(path.join(repo, ".git", "vaultman-room", "runs", runId)), false);
+});
+
 function createRun(root) {
   const result = run(root, [
     "run",
@@ -476,6 +554,17 @@ function addTask(root, runId, title, scope) {
 
 function run(root, args) {
   return spawnSync(process.execPath, [toolPath, ...args], { cwd: root, encoding: "utf8" });
+}
+
+function runEnv(cwd, args, env) {
+  return spawnSync(process.execPath, [toolPath, ...args], { cwd, encoding: "utf8", env: { ...process.env, ...env } });
+}
+
+function initGitRepo(dir) {
+  const opts = { cwd: dir, encoding: "utf8" };
+  spawnSync("git", ["init", "-q"], opts);
+  spawnSync("git", ["config", "user.email", "test@example.com"], opts);
+  spawnSync("git", ["config", "user.name", "Test"], opts);
 }
 
 function makeTempRoot() {
