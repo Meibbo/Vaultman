@@ -4,16 +4,15 @@ type: initiative-index
 status: active
 parent: "[[docs/work/roadmap-overview|Roadmap Overview]]"
 created: 2026-05-26T00:00:00
-updated: 2026-05-27T12:55:00-05:00
+updated: 2026-06-04T04:21:05
 tags:
   - agent/initiative
   - initiative/publish
   - release/discipline
   - release/beta-channel
 created_by: claude-opus-4-7
-updated_by: claude-opus-4-7
+updated_by: codex-gpt-5
 ---
-
 # Publish
 
 Standalone initiative for safe shipping. Split out of the Explorer brainstorm on
@@ -39,15 +38,22 @@ Context source:
 - Do NOT push, retag, delete a tag, or edit GitHub Release state without an
   explicit release-management instruction from the user.
 - `main` must stay zero-AI-files.
-- `sandbox` = beta channel; `main` = stable (patches/fixes/refactor).
+- **Current stream authority**:
+  [[docs/work/hardening/research/2026-05-27-version-streams-distillation/index|version-streams]].
+  `main` = stable, `dev` = beta/nightly, `sandbox` = canary. Older "`sandbox` = beta" text is
+  superseded by the 2026-05-28 dev clarification and ADR 0006 reconciliation.
 
 ## Seeded backlog (verify each before acting)
 
 Active design:
 
 - [[docs/work/publish/specs/2026-05-26-release-1-0-1-from-1-0-0-design|Release 1.0.1 from 1.0.0 with beta workflow safety]]
+- [[docs/work/publish/specs/2026-06-04-release-1-0-2-gate-normalization-design|Release 1.0.2 gate normalization design]]
 - [[docs/work/publish/plans/2026-05-26-release-1-0-1-from-1-0-0/index|Release 1.0.1 from 1.0.0 implementation plan]]
 - [[docs/work/publish/items/2026-05-26-release-1-0-1-candidate-verification|Release 1.0.1 candidate verification]]
+- [[docs/work/publish/items/2026-06-04-release-1-0-2-gate-escape-triage|Release 1.0.2 gate escape triage]]
+- [[docs/work/publish/items/2026-06-04-release-1-0-2-gate-delta-inventory|Release 1.0.2 gate delta inventory]]
+- [[docs/work/publish/items/2026-06-04-release-1-0-2-parallel-dispatch|Release 1.0.2 parallel dispatch plan]]
 
 1. **1.1.0 → beta relabel.** GitHub Release `1.1.0` is now named
    `1.1.0-beta.1` and marked prerelease. Its Git tag remains `1.1.0`; decide
@@ -57,19 +63,21 @@ Active design:
    `isDesktopOnly:false` still claims mobile support. Document the exact mobile
    break; decide `isDesktopOnly` vs a platform-gated fix (ties to `serviceUnload`
    + `Platform` API).
-3. **CI for the beta channel.** `sandbox` is not in `ci.yml` triggers (its commits
-   never ran CI). Add `sandbox` (or a `beta` branch) to triggers so betas gate
-   before publish.
-4. **Beta distribution.** `manifest-beta.json` is deprecated; BRAT reads
-   `manifest.json` from releases. Define the beta-publish flow that does NOT bump
-   `main`'s manifest `minAppVersion` (so stable-store users do not auto-update).
-   Mark `-beta` tags as prerelease in `release.yml`.
+3. **CI for beta/canary streams.** `dev` (beta/nightly) and `sandbox` (canary)
+   must both run green checks before prerelease distribution; older sandbox-only
+   beta language is superseded.
+4. **Beta/canary distribution.** `manifest-beta.json` is deprecated; BRAT reads
+   `manifest.json` from releases. Define prerelease flows for `dev` and `sandbox`
+   that do NOT bump `main`'s manifest `minAppVersion` (so stable-store users do
+   not auto-update). Mark channel tags as prerelease in `release.yml`; exact
+   pre-release labels remain open in `version-streams`.
 5. **Root-doc divergence (main vs sandbox).** License, CI/CD workflows, OpenSSF
    (incomplete), CHANGELOG differ between branches. Inventory and reconcile.
 6. **Security.** Resolve dependabot/OpenSSF findings on the default branch;
    keep `pnpm run security:audit` green at high+.
-7. **Beta → stable promotion.** Document the promotion process (when to retag,
-   when to update `versions.json`/`minAppVersion`, release notes from CHANGELOG).
+7. **Canary → beta → stable promotion.** Document upward-only promotion
+   (`sandbox → dev → main`), when to retag, when to update
+   `versions.json`/`minAppVersion`, and release notes from CHANGELOG.
 
 ## Relationship to the umbrella
 
