@@ -55,6 +55,7 @@ Active design:
 - [[docs/work/publish/items/2026-06-04-release-1-0-2-gate-escape-triage|Release 1.0.2 gate escape triage]]
 - [[docs/work/publish/items/2026-06-04-release-1-0-2-gate-delta-inventory|Release 1.0.2 gate delta inventory]]
 - [[docs/work/publish/items/2026-06-04-release-1-0-2-parallel-dispatch|Release 1.0.2 parallel dispatch plan]]
+- [[docs/work/publish/items/2026-06-04-release-1-0-2-inline-execution-verification|Release 1.0.2 inline execution verification]]
 - [[docs/work/publish/research/2026-06-04-stylelint-obsidian-css-gate|Stylelint research for Obsidian CSS gate]]
 
 1. **1.1.0 → beta relabel.** GitHub Release `1.1.0` is now named
@@ -104,3 +105,7 @@ Release `1.0.1` is published:
 
 Await explicit user approval before cleaning up temporary release branches or
 making any tag-level changes to `1.1.0`.
+
+Release `1.0.2` hotfix candidate is locally prepared but not pushed, merged,
+tagged, or published. Source verification:
+[[docs/work/publish/items/2026-06-04-release-1-0-2-inline-execution-verification|Release 1.0.2 inline execution verification]].
