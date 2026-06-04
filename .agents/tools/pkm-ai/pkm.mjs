@@ -14,7 +14,7 @@ const commands = {
   update: 'update-indexes.mjs',
   shard: 'shard-index.mjs',
   'code-index': 'code-index.mjs',
-  room: 'agent-room.mjs',
+  room: 'agent-room.ts',
   'traverse-graph': 'traverse-graph.mjs',
 };
 

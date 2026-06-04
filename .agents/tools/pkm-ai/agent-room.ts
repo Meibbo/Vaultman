@@ -4,9 +4,161 @@ import os from "node:os";
 import path from "node:path";
 import { spawnSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
+import type { SpawnSyncReturns } from "node:child_process";
+
+type Json = unknown;
+
+interface CliArgs {
+  _: string[];
+  [key: string]: string | string[] | boolean | undefined;
+}
+
+interface Context {
+  cwd: string;
+  args: CliArgs;
+  now: string;
+}
+
+interface RunPaths {
+  stateRoot: string;
+  runRoot: string;
+  locksRoot: string;
+  artifactsRoot: string;
+  agentsRoot: string;
+  manifestPath: string;
+  tasksPath: string;
+  eventsPath: string;
+  lockPath: string;
+}
+
+interface Manifest {
+  schemaVersion: number;
+  runId: string;
+  title: string;
+  goal: string;
+  status: string;
+  createdAt: string;
+  updatedAt: string;
+  createdBy?: string;
+  workspace?: string;
+  source?: { kind: string };
+  activeAgents?: string[];
+  summary?: string;
+  stateRoot?: string;
+}
+
+interface AgentStatus {
+  agentId: string;
+  displayName?: string;
+  role?: string;
+  status?: string;
+  currentTaskId?: string;
+  lastHeartbeatAt?: string;
+  staleAfterMs?: number;
+  activeScopes?: Scope[];
+  lastMessage?: string;
+}
+
+interface Scope {
+  kind: string;
+  name?: string;
+  path?: string;
+}
+
+interface Claim {
+  owner: string;
+  token: string;
+  claimedAt: string;
+  leasedUntil: string;
+}
+
+interface Task {
+  taskId: string;
+  objectiveId?: string;
+  objectivePath?: string;
+  objectiveLine?: number;
+  title: string;
+  status: string;
+  createdAt: string;
+  updatedAt: string;
+  dependsOn: string[];
+  scope?: Scope[];
+  notes?: string;
+  claim?: Claim;
+}
+
+interface RoomEvent {
+  type: string;
+  runId?: string;
+  taskId?: string;
+  agentId?: string;
+  message?: string;
+  time: string;
+  data?: Record<string, Json>;
+}
+
+interface MailboxMessage {
+  messageId: string;
+  runId: string;
+  taskId?: string;
+  direction: string;
+  from: string;
+  to: string;
+  body: string;
+  createdAt: string;
+  status: string;
+  kind: string;
+  priority: string;
+  deliveryMode: string;
+}
+
+interface Delivery {
+  messages: Record<string, string>;
+  updatedAt: string;
+}
+
+interface Objective {
+  objective: string;
+  path?: string;
+  line?: number;
+  description: string;
+  status: string;
+}
+
+interface ScopeConflict {
+  scope?: string;
+  existingScope?: string;
+  owner: string;
+  taskId: string;
+  leasedUntil: string;
+}
+
+interface InternalScopeConflict {
+  leftTaskId: string;
+  rightTaskId: string;
+  scope?: string;
+}
+
+interface ActiveClaim {
+  taskId: string;
+  owner: string;
+  leasedUntil: string;
+  scopes: Scope[];
+}
+
+interface StatusSnapshot {
+  runId: string;
+  runStatus: string;
+  agents: AgentStatus[];
+  tasks: Task[];
+  activeClaims: ActiveClaim[];
+  staleAgents: AgentStatus[];
+  scopeConflicts: InternalScopeConflict[];
+  unreadMessages: MailboxMessage[];
+}
 
 const TERMINAL_TASK_STATUSES = new Set(["done", "failed", "cancelled", "skipped"]);
-const OBJECTIVE_STATUS_MAP = {
+const OBJECTIVE_STATUS_MAP: Record<string, string> = {
   todo: "todo",
   "in-progress": "in-progress",
   waiting: "on-hold",
@@ -40,7 +192,7 @@ Global options:
   --force
 `;
 
-async function main() {
+async function main(): Promise<void> {
   const args = parseArgs(process.argv.slice(2));
   if (args.help || args._.length === 0) return print(HELP);
 
@@ -72,7 +224,7 @@ async function main() {
   }
 }
 
-function handleRun(context, action) {
+function handleRun(context: Context, action: string | undefined): void {
   if (action === "start") {
     requireOption(context.args, "agent");
     const runId = createRunId(context.now);
@@ -156,7 +308,7 @@ function handleRun(context, action) {
   throw new CliError(`unknown run action: ${action}`, 2);
 }
 
-function handleAgent(context, action) {
+function handleAgent(context: Context, action: string | undefined): void {
   const manifest = loadRequiredManifest(context);
   requireOption(context.args, "agent");
 
@@ -216,7 +368,7 @@ function handleAgent(context, action) {
   throw new CliError(`unknown agent action: ${action}`, 2);
 }
 
-function handleTask(context, action) {
+function handleTask(context: Context, action: string | undefined): void {
   const manifest = loadRequiredManifest(context);
   requireOption(context.args, "agent");
   const paths = resolveRunPaths(context.cwd, manifest.runId);
@@ -353,7 +505,7 @@ function handleTask(context, action) {
   throw new CliError(`unknown task action: ${action}`, 2);
 }
 
-function handleScope(context, action) {
+function handleScope(context: Context, action: string | undefined): void {
   const manifest = loadRequiredManifest(context);
   const scopes = arrayOption(context.args, "scope").map((scope) => normalizeScope(context.cwd, scope));
 
@@ -400,7 +552,7 @@ function handleScope(context, action) {
   throw new CliError(`unknown scope action: ${action}`, 2);
 }
 
-function handleMailbox(context, action) {
+function handleMailbox(context: Context, action: string | undefined): void {
   const manifest = loadRequiredManifest(context);
   const paths = resolveRunPaths(context.cwd, manifest.runId);
 
@@ -474,7 +626,7 @@ function handleMailbox(context, action) {
   throw new CliError(`unknown mailbox action: ${action}`, 2);
 }
 
-function handleObjectives(context, action) {
+function handleObjectives(context: Context, action: string | undefined): void {
   if (action === "list") {
     writeOutput(context.args, { ok: true, objectives: listObjectives(context) });
     return;
@@ -570,7 +722,7 @@ function handleObjectives(context, action) {
   throw new CliError(`unknown objectives action: ${action}`, 2);
 }
 
-function handleStatus(context) {
+function handleStatus(context: Context): void {
   const snapshot = buildStatusSnapshot(context);
   if (context.args.json) return writeOutput(context.args, snapshot);
 
@@ -585,7 +737,7 @@ function handleStatus(context) {
   );
 }
 
-function handleHandoff(context) {
+function handleHandoff(context: Context): void {
   const snapshot = buildStatusSnapshot(context);
   const lines = [
     "## Agent Room Handoff",
@@ -608,7 +760,7 @@ function handleHandoff(context) {
   else print(markdown);
 }
 
-function buildStatusSnapshot(context) {
+function buildStatusSnapshot(context: Context): StatusSnapshot {
   const manifest = loadRequiredManifest(context);
   const paths = resolveRunPaths(context.cwd, manifest.runId);
   const tasks = loadTasks(context, manifest.runId);
@@ -631,7 +783,7 @@ function buildStatusSnapshot(context) {
   };
 }
 
-function listObjectives(context) {
+function listObjectives(context: Context): Objective[] {
   const args = ["--list-objectives", "--json"];
   if (context.args.initiative) args.push("--initiative", context.args.initiative);
   if (context.args.file) args.push("--file", context.args.file);
@@ -639,7 +791,7 @@ function listObjectives(context) {
   return JSON.parse(runManageTasks(context.cwd, args).stdout || "[]");
 }
 
-function runManageTasks(cwd, args) {
+function runManageTasks(cwd: string, args: string[]): SpawnSyncReturns<string> {
   const scriptDir = path.dirname(fileURLToPath(import.meta.url));
   const result = spawnSync(process.execPath, [path.join(scriptDir, "manage-tasks.mjs"), ...args], { cwd, encoding: "utf8" });
   if (result.status !== 0) {
@@ -648,14 +800,14 @@ function runManageTasks(cwd, args) {
   return result;
 }
 
-function createContext(cwd, args) {
-  const now = args.now ?? formatLocalTimestamp(new Date());
+function createContext(cwd: string, args: CliArgs): Context {
+  const now = (args.now as string | undefined) ?? formatLocalTimestamp(new Date());
   assertTimestamp(now);
   return { cwd: path.resolve(cwd), args, now };
 }
 
-function parseArgs(argv) {
-  const args = { _: [] };
+function parseArgs(argv: string[]): CliArgs {
+  const args: CliArgs = { _: [] };
   for (let i = 0; i < argv.length; i++) {
     const arg = argv[i];
     if (!arg.startsWith("--")) {
@@ -676,7 +828,7 @@ function parseArgs(argv) {
   return args;
 }
 
-function resolveRunPaths(cwd, runId) {
+function resolveRunPaths(cwd: string, runId: string): RunPaths {
   assertSafeId("runId", runId);
   const stateRoot = path.join(cwd, ".agents", "state");
   const runRoot = path.join(stateRoot, "runs", runId);
@@ -694,14 +846,14 @@ function resolveRunPaths(cwd, runId) {
   };
 }
 
-function loadRequiredManifest(context) {
+function loadRequiredManifest(context: Context): Manifest {
   const runId = resolveRequestedRunId(context);
   const manifest = loadManifest(context.cwd, runId);
   if (!manifest) throw new CliError(`run not found: ${runId}`, 1);
   return manifest;
 }
 
-function resolveRequestedRunId(context) {
+function resolveRequestedRunId(context: Context): string {
   if (context.args.run && context.args.run !== true && !["latest", "current"].includes(String(context.args.run))) {
     return String(context.args.run);
   }
@@ -710,7 +862,7 @@ function resolveRequestedRunId(context) {
   return runId;
 }
 
-function latestRunId(cwd) {
+function latestRunId(cwd: string): string | undefined {
   const runsRoot = path.join(cwd, ".agents", "state", "runs");
   if (!fs.existsSync(runsRoot)) return undefined;
   const manifests = fs
@@ -722,23 +874,23 @@ function latestRunId(cwd) {
   return manifests[0]?.runId;
 }
 
-function loadManifest(cwd, runId) {
+function loadManifest(cwd: string, runId: string): Manifest | undefined {
   const filePath = resolveRunPaths(cwd, runId).manifestPath;
   if (!fs.existsSync(filePath)) return undefined;
-  return readJson(filePath);
+  return readJson(filePath) as Manifest;
 }
 
-function loadTasks(context, runId) {
+function loadTasks(context: Context, runId: string): Task[] {
   const filePath = resolveRunPaths(context.cwd, runId).tasksPath;
   if (!fs.existsSync(filePath)) return [];
-  return readJson(filePath);
+  return readJson(filePath) as Task[];
 }
 
-function withRunLock(context, runId, fn) {
+function withRunLock<T>(context: Context, runId: string, fn: () => T): T {
   const paths = resolveRunPaths(context.cwd, runId);
   fs.mkdirSync(paths.locksRoot, { recursive: true });
   if (fs.existsSync(paths.lockPath)) {
-    const lock = readJson(paths.lockPath);
+    const lock = readJson(paths.lockPath) as { pid: number; createdAt: string; host: string };
     const ageMs = Date.parse(context.now) - Date.parse(lock.createdAt);
     if (Number.isFinite(ageMs) && ageMs < 300000 && !context.args.force) {
       throw new CliError(`run ${runId} is locked by pid ${lock.pid}`, 1);
@@ -756,30 +908,30 @@ function withRunLock(context, runId, fn) {
   }
 }
 
-function writeAgentStatus(context, manifest, status) {
+function writeAgentStatus(context: Context, manifest: Manifest, status: AgentStatus): void {
   const paths = resolveRunPaths(context.cwd, manifest.runId);
   const filePath = path.join(paths.agentsRoot, status.agentId, "status.json");
   writeJsonAtomic(filePath, status, context.cwd);
 }
 
-function readAgentStatus(context, runId, agentId) {
+function readAgentStatus(context: Context, runId: string, agentId: string): AgentStatus | undefined {
   const filePath = path.join(resolveRunPaths(context.cwd, runId).agentsRoot, agentId, "status.json");
   if (!fs.existsSync(filePath)) return undefined;
-  return readJson(filePath);
+  return readJson(filePath) as AgentStatus;
 }
 
-function readAllAgentStatuses(context, runId) {
+function readAllAgentStatuses(context: Context, runId: string): AgentStatus[] {
   const root = resolveRunPaths(context.cwd, runId).agentsRoot;
   if (!fs.existsSync(root)) return [];
-  return fs
+  return (fs
     .readdirSync(root, { withFileTypes: true })
     .filter((entry) => entry.isDirectory())
     .map((entry) => readAgentStatus(context, runId, entry.name))
-    .filter(Boolean)
+    .filter(Boolean) as AgentStatus[])
     .sort((a, b) => a.agentId.localeCompare(b.agentId));
 }
 
-function appendEvent(eventsPath, cwd, event) {
+function appendEvent(eventsPath: string, cwd: string, event: RoomEvent): void {
   fs.mkdirSync(path.dirname(eventsPath), { recursive: true });
   const seq = fs.existsSync(eventsPath) ? fs.readFileSync(eventsPath, "utf8").split(/\r?\n/).filter(Boolean).length + 1 : 1;
   const complete = {
@@ -796,25 +948,25 @@ function appendEvent(eventsPath, cwd, event) {
   appendJsonl(eventsPath, complete, cwd);
 }
 
-function createRunId(now) {
+function createRunId(now: string): string {
   return `room_${now.replace(/[-:]/g, "").replace("T", "_")}_${Math.random().toString(16).slice(2, 8)}`;
 }
 
-function createId(prefix) {
+function createId(prefix: string): string {
   return `${prefix}_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 8)}`;
 }
 
-function createClaim(owner, leaseMs, now) {
+function createClaim(owner: string, leaseMs: number, now: string): Claim {
   const claimedAt = now;
   const leasedUntil = new Date(Date.parse(now) + leaseMs).toISOString().slice(0, 19);
   return { owner, token: createId("claim"), claimedAt, leasedUntil };
 }
 
-function isClaimExpired(claim, now) {
+function isClaimExpired(claim: Claim, now: string): boolean {
   return Date.parse(claim.leasedUntil) <= Date.parse(now);
 }
 
-function assertTaskClaim(task, owner, token, now) {
+function assertTaskClaim(task: Task, owner: string, token: string, now: string): void {
   if (!task.claim) throw new CliError(`task ${task.taskId} has no active claim`, 1);
   if (isClaimExpired(task.claim, now)) throw new CliError(`task ${task.taskId} claim expired`, 1);
   if (task.claim.owner !== owner || task.claim.token !== token) {
@@ -822,17 +974,17 @@ function assertTaskClaim(task, owner, token, now) {
   }
 }
 
-function nextTaskId(tasks) {
+function nextTaskId(tasks: Task[]): string {
   return `task_${String(tasks.length + 1).padStart(3, "0")}`;
 }
 
-function findTaskIndex(tasks, taskId) {
+function findTaskIndex(tasks: Task[], taskId: string): number {
   const index = tasks.findIndex((task) => task.taskId === taskId);
   if (index < 0) throw new CliError(`task not found: ${taskId}`, 1);
   return index;
 }
 
-function normalizeScope(cwd, value) {
+function normalizeScope(cwd: string, value: string): Scope {
   if (!value) throw new CliError("scope is required", 1);
   if (/^[A-Za-z0-9_-]+:[A-Za-z0-9._/@-]+$/u.test(value) && !value.includes("\\") && !value.includes("/")) {
     const [kind, name] = value.split(":", 2);
@@ -846,8 +998,8 @@ function normalizeScope(cwd, value) {
   return { kind: "path", path: toPosixPath(relative) };
 }
 
-function findScopeConflicts(tasks, scopes, now) {
-  const conflicts = [];
+function findScopeConflicts(tasks: Task[], scopes: Scope[], now: string): ScopeConflict[] {
+  const conflicts: ScopeConflict[] = [];
   for (const task of tasks) {
     if (!task.claim || isClaimExpired(task.claim, now)) continue;
     for (const existing of task.scope ?? []) {
@@ -856,9 +1008,9 @@ function findScopeConflicts(tasks, scopes, now) {
         conflicts.push({
           scope: requested.path ?? requested.name,
           existingScope: existing.path ?? existing.name,
-          owner: task.claim.owner,
+          owner: task.claim!.owner,
           taskId: task.taskId,
-          leasedUntil: task.claim.leasedUntil,
+          leasedUntil: task.claim!.leasedUntil,
         });
       }
     }
@@ -866,9 +1018,9 @@ function findScopeConflicts(tasks, scopes, now) {
   return conflicts;
 }
 
-function findInternalScopeConflicts(tasks, now) {
+function findInternalScopeConflicts(tasks: Task[], now: string): InternalScopeConflict[] {
   const active = tasks.filter((task) => task.claim && !isClaimExpired(task.claim, now));
-  const conflicts = [];
+  const conflicts: InternalScopeConflict[] = [];
   for (let i = 0; i < active.length; i++) {
     for (let j = i + 1; j < active.length; j++) {
       const left = active[i];
@@ -884,29 +1036,29 @@ function findInternalScopeConflicts(tasks, now) {
   return conflicts;
 }
 
-function scopesConflict(left, right) {
+function scopesConflict(left: Scope, right: Scope): boolean {
   if (left.kind !== "path" || right.kind !== "path") {
     return left.kind === right.kind && left.name === right.name;
   }
-  const a = left.path.toLowerCase();
-  const b = right.path.toLowerCase();
+  const a = left.path!.toLowerCase();
+  const b = right.path!.toLowerCase();
   return a === b || a.startsWith(`${b}/`) || b.startsWith(`${a}/`);
 }
 
-function scopeKey(scope) {
-  return scope.kind === "path" ? `path:${scope.path.toLowerCase()}` : `${scope.kind}:${scope.name}`;
+function scopeKey(scope: Scope): string {
+  return scope.kind === "path" ? `path:${scope.path!.toLowerCase()}` : `${scope.kind}:${scope.name}`;
 }
 
-function mailboxPath(runRoot, direction, taskId) {
+function mailboxPath(runRoot: string, direction: string, taskId: string | undefined): string {
   if (taskId) return path.join(runRoot, "mailbox", "tasks", taskId, `${direction}.jsonl`);
   return path.join(runRoot, "mailbox", `${direction}.jsonl`);
 }
 
-function deliveryPath(runRoot) {
+function deliveryPath(runRoot: string): string {
   return path.join(runRoot, "mailbox", "delivery.json");
 }
 
-function readMailboxMessages(runRoot) {
+function readMailboxMessages(runRoot: string): MailboxMessage[] {
   const mailboxRoot = path.join(runRoot, "mailbox");
   const files = [path.join(mailboxRoot, "inbox.jsonl"), path.join(mailboxRoot, "outbox.jsonl")];
   const tasksRoot = path.join(mailboxRoot, "tasks");
@@ -917,25 +1069,25 @@ function readMailboxMessages(runRoot) {
       files.push(path.join(tasksRoot, entry.name, "outbox.jsonl"));
     }
   }
-  return files.flatMap(readJsonl).sort((a, b) => a.createdAt.localeCompare(b.createdAt));
+  return (files.flatMap(readJsonl) as MailboxMessage[]).sort((a, b) => a.createdAt.localeCompare(b.createdAt));
 }
 
-function readDelivery(runRoot) {
+function readDelivery(runRoot: string): Delivery {
   const filePath = deliveryPath(runRoot);
   if (!fs.existsSync(filePath)) return { messages: {}, updatedAt: "" };
-  return readJson(filePath);
+  return readJson(filePath) as Delivery;
 }
 
-function writeDelivery(runRoot, delivery, cwd) {
+function writeDelivery(runRoot: string, delivery: Delivery, cwd: string): void {
   writeJsonAtomic(deliveryPath(runRoot), delivery, cwd);
 }
 
-function isAgentStale(agent, now) {
+function isAgentStale(agent: AgentStatus, now: string): boolean {
   if (!agent.lastHeartbeatAt || agent.status === "left") return false;
   return Date.parse(now) - Date.parse(agent.lastHeartbeatAt) > (agent.staleAfterMs ?? 300000);
 }
 
-function mapObjectiveStatusToTask(status) {
+function mapObjectiveStatusToTask(status: string): string {
   if (status === "on-hold") return "waiting";
   if (status === "cancelled") return "cancelled";
   if (status === "done") return "done";
@@ -945,18 +1097,18 @@ function mapObjectiveStatusToTask(status) {
   return "todo";
 }
 
-function readJson(filePath) {
+function readJson(filePath: string): Json {
   return JSON.parse(fs.readFileSync(filePath, "utf8"));
 }
 
-function readJsonl(filePath) {
+function readJsonl(filePath: string): Json[] {
   if (!fs.existsSync(filePath)) return [];
   const text = fs.readFileSync(filePath, "utf8").trim();
   if (!text) return [];
   return text.split(/\r?\n/).filter(Boolean).map((line) => JSON.parse(line));
 }
 
-function writeJsonAtomic(filePath, value, cwd) {
+function writeJsonAtomic(filePath: string, value: Json, cwd: string): void {
   assertPathInsideWorkspace(cwd, filePath);
   fs.mkdirSync(path.dirname(filePath), { recursive: true });
   const tempPath = `${filePath}.${process.pid}.${Date.now()}.tmp`;
@@ -964,88 +1116,90 @@ function writeJsonAtomic(filePath, value, cwd) {
   fs.renameSync(tempPath, filePath);
 }
 
-function appendJsonl(filePath, value, cwd) {
+function appendJsonl(filePath: string, value: Json, cwd: string): void {
   assertPathInsideWorkspace(cwd, filePath);
   fs.mkdirSync(path.dirname(filePath), { recursive: true });
   fs.appendFileSync(filePath, `${JSON.stringify(value)}\n`, "utf8");
 }
 
-function assertPathInsideWorkspace(cwd, filePath) {
+function assertPathInsideWorkspace(cwd: string, filePath: string): void {
   const relative = path.relative(cwd, path.resolve(filePath));
   if (relative.startsWith("..") || path.isAbsolute(relative)) {
     throw new CliError(`write path is outside workspace: ${filePath}`, 1);
   }
 }
 
-function assertSafeId(name, value) {
+function assertSafeId(name: string, value: string): void {
   if (!/^[A-Za-z0-9_.-]+$/u.test(value)) throw new CliError(`${name} contains unsafe characters: ${value}`, 1);
 }
 
-function assertTimestamp(timestamp) {
+function assertTimestamp(timestamp: string): void {
   if (!/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}$/u.test(timestamp)) {
     throw new CliError("--now must use YYYY-MM-DDTHH:mm:ss", 2);
   }
 }
 
-function formatLocalTimestamp(date) {
-  const pad = (value) => String(value).padStart(2, "0");
+function formatLocalTimestamp(date: Date): string {
+  const pad = (value: number): string => String(value).padStart(2, "0");
   return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}:${pad(date.getSeconds())}`;
 }
 
-function requiredValue(args, key) {
+function requiredValue(args: CliArgs, key: string): string {
   if (args[key] === undefined || args[key] === true || args[key] === "") throw new CliError(`--${toKebab(key)} is required`, 2);
   return String(args[key]);
 }
 
-function requireOption(args, key) {
+function requireOption(args: CliArgs, key: string): void {
   requiredValue(args, key);
 }
 
-function numberOption(args, key, fallback) {
+function numberOption(args: CliArgs, key: string, fallback: number): number {
   if (args[key] === undefined || args[key] === true) return fallback;
   const value = Number(args[key]);
   if (!Number.isFinite(value)) throw new CliError(`--${toKebab(key)} must be a number`, 2);
   return value;
 }
 
-function arrayOption(args, key) {
+function arrayOption(args: CliArgs, key: string): string[] {
   const value = args[key];
   if (value === undefined) return [];
   return Array.isArray(value) ? value.map(String) : [String(value)];
 }
 
-function writeOutput(args, value) {
+function writeOutput(args: CliArgs, value: Json): void {
   if (args.json) print(JSON.stringify(value, null, 2));
   else print(formatOutput(value));
 }
 
-function formatOutput(value) {
+function formatOutput(value: Json): string {
   if (typeof value === "string") return value;
-  if (value?.ok !== undefined) return value.ok ? "ok" : "failed";
+  if ((value as { ok?: unknown })?.ok !== undefined) return (value as { ok?: unknown }).ok ? "ok" : "failed";
   return JSON.stringify(value, null, 2);
 }
 
-function print(value) {
+function print(value: string): void {
   process.stdout.write(`${value}\n`);
 }
 
-function toKebab(key) {
+function toKebab(key: string): string {
   return key.replace(/[A-Z]/g, (char) => `-${char.toLowerCase()}`);
 }
 
-function toPosixPath(value) {
+function toPosixPath(value: string): string {
   return value.replace(/\\/g, "/");
 }
 
 class CliError extends Error {
-  constructor(message, exitCode = 1) {
+  exitCode: number;
+  constructor(message: string, exitCode: number = 1) {
     super(message);
     this.exitCode = exitCode;
   }
 }
 
 class ConflictResult {
-  constructor(conflicts) {
+  conflicts: ScopeConflict[];
+  constructor(conflicts: ScopeConflict[]) {
     this.conflicts = conflicts;
   }
 }

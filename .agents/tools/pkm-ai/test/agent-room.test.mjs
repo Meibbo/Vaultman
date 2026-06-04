@@ -6,7 +6,7 @@ import path from "node:path";
 import { spawnSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
 
-const toolPath = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..", "agent-room.mjs");
+const toolPath = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..", "agent-room.ts");
 const pkmPath = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..", "pkm.mjs");
 
 test("agent-room creates runs, records agents, and reports stale heartbeats", () => {
