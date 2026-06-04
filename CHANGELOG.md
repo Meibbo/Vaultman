@@ -12,6 +12,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.0.2] — 2026-06-04
+
+### Fixed
+
+- Removed the redundant queue-details value guard reported by CodeQL.
+- Kept stable CSS compatible with Obsidian Scorecard expectations by blocking
+  `!important` and `display: contents` release regressions.
+
+### Changed
+
+- Normalized the stable release gate on pnpm and Node 24 while keeping the
+  esbuild production build.
+- Added release-blocking `svelte-check`, format, stylelint, Scorecard, and
+  security audit gates.
+- Added a public security reporting policy.
+
+---
+
 ## [1.0.1] — 2026-05-26
 
 ### Fixed
