@@ -3142,7 +3142,7 @@ body.vaultman-bases-column-separators table th {
 .vaultman-content-preview-snippet {
   color: var(--text-muted);
   padding-left: 10px;
-  word-break: break-word;
+  overflow-wrap: anywhere;
 }
 
 .vaultman-content-preview-snippet mark {

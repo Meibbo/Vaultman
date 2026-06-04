@@ -1,0 +1,9 @@
+node_modules
+dist
+coverage
+main.js
+package-lock.json
+pnpm-lock.yaml
+.agents
+.claude
+.obsidian

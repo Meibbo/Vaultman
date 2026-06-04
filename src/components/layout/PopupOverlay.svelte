@@ -1,10 +1,10 @@
 <script lang="ts">
-	import type { VaultmanPlugin } from "../../main";
-	import type { PopupType } from "../../types/typeUI";
-	import ActiveFiltersPopup from "./popupFilters.svelte";
-	import ScopePopup from "./popupScope.svelte";
-	import SearchPopup from "./popupSearch.svelte";
-	import MovePopup from "./popupMove.svelte";
+	import type { VaultmanPlugin } from '../../main';
+	import type { PopupType } from '../../types/typeUI';
+	import ActiveFiltersPopup from './popupFilters.svelte';
+	import ScopePopup from './popupScope.svelte';
+	import SearchPopup from './popupSearch.svelte';
+	import MovePopup from './popupMove.svelte';
 
 	let {
 		plugin,
@@ -61,14 +61,14 @@
 		if (e.target === e.currentTarget) closePopup();
 	}}
 	onkeydown={(e: KeyboardEvent) => {
-		if (e.key === "Escape") closePopup();
+		if (e.key === 'Escape') closePopup();
 	}}
 	role="dialog"
 	aria-modal="true"
 	tabindex="-1"
 >
 	<div class="vaultman-popup-content">
-		{#if activePopup === "active-filters"}
+		{#if activePopup === 'active-filters'}
 			<ActiveFiltersPopup
 				{plugin}
 				{activeFilterRules}
@@ -79,22 +79,11 @@
 				{deleteFilterRule}
 				{icon}
 			/>
-		{:else if activePopup === "scope"}
-			<ScopePopup
-				{plugin}
-				{scopeOptions}
-				{setScope}
-				{closePopup}
-				{icon}
-			/>
-		{:else if activePopup === "search"}
-			<SearchPopup
-				bind:searchName
-				bind:searchFolder
-				{closePopup}
-				{icon}
-			/>
-		{:else if activePopup === "move"}
+		{:else if activePopup === 'scope'}
+			<ScopePopup {plugin} {scopeOptions} {setScope} {closePopup} {icon} />
+		{:else if activePopup === 'search'}
+			<SearchPopup bind:searchName bind:searchFolder {closePopup} {icon} />
+		{:else if activePopup === 'move'}
 			<MovePopup
 				{moveTargetFiles}
 				bind:moveTargetFolder

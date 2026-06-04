@@ -87,6 +87,18 @@ const checks = [
 			text.includes('--title "${GITHUB_REF_NAME}"') &&
 			!text.includes('--title "Vaultman ${GITHUB_REF_NAME}"'),
 	},
+	{
+		file: 'package.json',
+		name: 'verify includes format and stylelint gates',
+		test: (text) => {
+			const scripts = JSON.parse(text).scripts ?? {};
+			return (
+				scripts.verify?.includes('pnpm run format:check') &&
+				scripts.verify?.includes('pnpm run stylelint') &&
+				scripts.check?.includes('svelte-check')
+			);
+		},
+	},
 ];
 
 const failures = [];

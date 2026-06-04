@@ -1,6 +1,6 @@
 <script lang="ts">
-	import type { FabDef } from "../../types/typeUI";
-	import { translate } from "../../i18n/index";
+	import type { FabDef } from '../../types/typeUI';
+	import { translate } from '../../i18n/index';
 
 	let {
 		isIslandOpen = false,
@@ -57,17 +57,17 @@
 	use:bindNav
 	class:is-bar-collapsed={navCollapsed}
 	role="navigation"
-	aria-label={translate("toolbar.navigation") || "Bottom navigation"}
+	aria-label={translate('toolbar.navigation') || 'Bottom navigation'}
 >
 	{#if navCollapsed}
 		<button
 			class="vaultman-nav-expand-trigger"
 			onclick={onCollapsedNavClick}
 			onkeydown={(e: KeyboardEvent) => {
-				if (e.key === "Enter" || e.key === " ") onCollapsedNavClick();
+				if (e.key === 'Enter' || e.key === ' ') onCollapsedNavClick();
 			}}
-			aria-label={translate("nav.expand") || "Expand navigation bar"}
-			title={translate("nav.expand") || "Expand navigation bar"}
+			aria-label={translate('nav.expand') || 'Expand navigation bar'}
+			title={translate('nav.expand') || 'Expand navigation bar'}
 		></button>
 	{/if}
 
@@ -82,7 +82,7 @@
 					leftFab.action?.();
 				}}
 				onkeydown={(e: KeyboardEvent) => {
-					if (e.key === "Enter" || e.key === " ") {
+					if (e.key === 'Enter' || e.key === ' ') {
 						e.stopPropagation();
 						leftFab.action?.();
 					}
@@ -115,7 +115,7 @@
 				class:is-active={activePage === pageId && !isReordering}
 				class:is-reorder-target={isReordering && reorderTargetIdx === i}
 				aria-label={pageLabels[pageId] ?? pageId}
-				use:icon={pageIcons[pageId] ?? "lucide-circle"}
+				use:icon={pageIcons[pageId] ?? 'lucide-circle'}
 				onpointerdown={(e: PointerEvent) => onNavIconPointerDown(e, i)}
 				onpointercancel={() => exitReorder()}
 				onclick={(e: MouseEvent) => {
@@ -123,7 +123,7 @@
 					if (!isReordering) navigateTo(pageId);
 				}}
 				onkeydown={(e: KeyboardEvent) => {
-					if (e.key === "Enter" || e.key === " ") {
+					if (e.key === 'Enter' || e.key === ' ') {
 						e.stopPropagation();
 						if (!isReordering) navigateTo(pageId);
 					}
@@ -131,7 +131,7 @@
 				role="tab"
 				tabindex={activePage === pageId ? 0 : -1}
 			>
-				{#if !isReordering && pageId === "statistics" && selectedCount > 0}
+				{#if !isReordering && pageId === 'statistics' && selectedCount > 0}
 					<div class="vaultman-nav-dot-badge"></div>
 				{/if}
 			</div>
@@ -149,7 +149,7 @@
 					rightFab.action?.();
 				}}
 				onkeydown={(e: KeyboardEvent) => {
-					if (e.key === "Enter" || e.key === " ") {
+					if (e.key === 'Enter' || e.key === ' ') {
 						e.stopPropagation();
 						rightFab.action?.();
 					}

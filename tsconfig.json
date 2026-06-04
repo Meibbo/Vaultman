@@ -5,6 +5,7 @@
 		"target": "ES2022",
 		"module": "ESNext",
 		"moduleResolution": "bundler",
+		"verbatimModuleSyntax": true,
 		"strict": true,
 		"noImplicitAny": true,
 		"noUnusedLocals": true,

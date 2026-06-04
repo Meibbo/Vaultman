@@ -1,7 +1,7 @@
 <script lang="ts">
-	import type { VaultmanPlugin } from "../../main";
-	import type { ContentPreviewResult } from "../../types/typeUI";
-	import ContentOpsComponent from "../containers/panelContent.svelte";
+	import type { VaultmanPlugin } from '../../main';
+	import type { ContentPreviewResult } from '../../types/typeUI';
+	import ContentOpsComponent from '../containers/panelContent.svelte';
 
 	let {
 		// Content find/replace props

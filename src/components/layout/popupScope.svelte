@@ -1,6 +1,6 @@
 <script lang="ts">
-	import { translate } from "../../i18n/index";
-	import type { VaultmanPlugin } from "../../main";
+	import { translate } from '../../i18n/index';
+	import type { VaultmanPlugin } from '../../main';
 
 	let {
 		plugin,
@@ -19,14 +19,14 @@
 
 <div>
 	<div class="vaultman-popup-header">
-		<span class="vaultman-popup-title">{translate("scope.title")}</span>
+		<span class="vaultman-popup-title">{translate('scope.title')}</span>
 		<div
 			class="clickable-icon"
 			aria-label="Close"
-			use:icon={"lucide-x"}
+			use:icon={'lucide-x'}
 			onclick={closePopup}
 			onkeydown={(e: KeyboardEvent) => {
-				if (e.key === "Enter" || e.key === " ") closePopup();
+				if (e.key === 'Enter' || e.key === ' ') closePopup();
 			}}
 			role="button"
 			tabindex="0"
@@ -36,15 +36,13 @@
 		{#each scopeOptions as opt}
 			<div
 				class="vaultman-scope-item"
-				class:is-active={plugin.settings.explorerOperationScope ===
-					opt.value}
+				class:is-active={plugin.settings.explorerOperationScope === opt.value}
 				onclick={() => setScope(opt.value)}
 				onkeydown={(e: KeyboardEvent) => {
-					if (e.key === "Enter" || e.key === " ") setScope(opt.value);
+					if (e.key === 'Enter' || e.key === ' ') setScope(opt.value);
 				}}
 				role="option"
-				aria-selected={plugin.settings.explorerOperationScope ===
-					opt.value}
+				aria-selected={plugin.settings.explorerOperationScope === opt.value}
 				tabindex="0"
 			>
 				<div class="vaultman-scope-icon" use:icon={opt.icon}></div>

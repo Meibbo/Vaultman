@@ -1,0 +1,26 @@
+minimumReleaseAge: 1440
+blockExoticSubdeps: true
+strictDepBuilds: true
+
+publicHoistPattern:
+  - '@wdio/protocols'
+  - '@wdio/types'
+  - vite
+  - webdriverio
+
+allowBuilds:
+  classic-level: true
+  edgedriver: true
+  esbuild: true
+  geckodriver: true
+  obsidian-integration-testing: true
+  svelte-preprocess: true
+
+overrides:
+  '@wdio/protocols': 9.27.0
+  '@wdio/types': 9.27.0
+  devalue: 5.8.1
+  lodash: 4.18.1
+  serialize-javascript: 7.0.5
+  vite: 8.0.12
+  webdriverio: 9.27.0

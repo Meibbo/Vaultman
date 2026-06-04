@@ -1,6 +1,6 @@
 <script lang="ts">
-	import { translate } from "../../i18n/index";
-	import type { TFile } from "obsidian";
+	import { translate } from '../../i18n/index';
+	import type { TFile } from 'obsidian';
 
 	let {
 		moveTargetFiles,
@@ -24,15 +24,15 @@
 <div>
 	<div class="vaultman-popup-header">
 		<span class="vaultman-popup-title"
-			>{translate("move.title")} ({moveTargetFiles.length})</span
+			>{translate('move.title')} ({moveTargetFiles.length})</span
 		>
 		<div
 			class="clickable-icon"
 			aria-label="Close"
-			use:icon={"lucide-x"}
+			use:icon={'lucide-x'}
 			onclick={closePopup}
 			onkeydown={(e: KeyboardEvent) => {
-				if (e.key === "Enter" || e.key === " ") closePopup();
+				if (e.key === 'Enter' || e.key === ' ') closePopup();
 			}}
 			role="button"
 			tabindex="0"
@@ -41,7 +41,7 @@
 	<input
 		class="vaultman-search-input"
 		type="text"
-		placeholder={translate("move.target_folder_placeholder")}
+		placeholder={translate('move.target_folder_placeholder')}
 		use:attachFolderSuggest
 		oninput={(e: Event) => {
 			moveTargetFolder = (e.target as HTMLInputElement).value.trim();
@@ -51,7 +51,7 @@
 		class="vaultman-text-faint"
 		style="font-size: var(--font-ui-smaller); margin: 4px 0 8px;"
 	>
-		{translate("move.root_hint")}
+		{translate('move.root_hint')}
 	</p>
 	<div class="vaultman-rename-preview">
 		{#each movePreviews as row}
@@ -69,7 +69,7 @@
 	</div>
 	<div class="vaultman-popup-actions">
 		<button class="vaultman-btn mod-cta" onclick={queueMoves}
-			>{translate("prop.add_to_queue")}</button
+			>{translate('prop.add_to_queue')}</button
 		>
 		<button class="vaultman-btn" onclick={closePopup}>Cancel</button>
 	</div>

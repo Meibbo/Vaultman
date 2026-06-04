@@ -1,22 +1,22 @@
 <script lang="ts">
-	import type { VaultmanPlugin } from "../../main";
-	import { setIcon } from "obsidian";
-	import { fade } from "svelte/transition";
-	import FiltersTagsTab from "./tabTags.svelte";
-	import FiltersPropsTab from "./tabProps.svelte";
-	import FiltersFilesTab from "./tabFiles.svelte";
-	import NavbarTabs from "../layout/navbarTabs.svelte";
-	import NavbarFilters from "../layout/navbarFilters.svelte";
-	import type { FilesExplorerPanel } from "../containers/explorerFiles";
-	import type { PropsExplorerPanel } from "../containers/explorerProps";
-	import type { TagsExplorerPanel } from "../containers/explorerTags";
+	import type { VaultmanPlugin } from '../../main';
+	import { setIcon } from 'obsidian';
+	import { fade } from 'svelte/transition';
+	import FiltersTagsTab from './tabTags.svelte';
+	import FiltersPropsTab from './tabProps.svelte';
+	import FiltersFilesTab from './tabFiles.svelte';
+	import NavbarTabs from '../layout/navbarTabs.svelte';
+	import NavbarFilters from '../layout/navbarFilters.svelte';
+	import type { FilesExplorerPanel } from '../containers/explorerFiles';
+	import type { PropsExplorerPanel } from '../containers/explorerProps';
+	import type { TagsExplorerPanel } from '../containers/explorerTags';
 
-	type FiltersTab = "props" | "files" | "tags";
+	type FiltersTab = 'props' | 'files' | 'tags';
 
 	let {
 		plugin,
-		filtersActiveTab = $bindable("props"),
-		filtersSearch = $bindable(""),
+		filtersActiveTab = $bindable('props'),
+		filtersSearch = $bindable(''),
 		filtersSearchCategory = $bindable({ tags: 0, props: 0, files: 0 }),
 		tagsExplorer = $bindable(),
 		propExplorer = $bindable(),
@@ -74,21 +74,21 @@
 		in:fade={{ duration: 180 }}
 		out:fade={{ duration: 180 }}
 	>
-		{#if filtersActiveTab === "tags"}
+		{#if filtersActiveTab === 'tags'}
 			<FiltersTagsTab
 				{plugin}
 				searchTerm={filtersSearch}
 				searchMode={filtersSearchCategory.tags}
 				bind:tagsExplorer
 			/>
-		{:else if filtersActiveTab === "props"}
+		{:else if filtersActiveTab === 'props'}
 			<FiltersPropsTab
 				{plugin}
 				searchTerm={filtersSearch}
 				searchMode={filtersSearchCategory.props}
 				bind:propExplorer
 			/>
-		{:else if filtersActiveTab === "files"}
+		{:else if filtersActiveTab === 'files'}
 			<FiltersFilesTab
 				{plugin}
 				bind:fileList
