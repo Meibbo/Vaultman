@@ -1,5 +1,5 @@
 // src/logic/FilesLogic.ts
-import type { App, TFile } from 'obsidian';
+import { TFolder, type App, type TFile } from 'obsidian';
 import type { TreeNode, FileMeta } from '../types/typeTree';
 
 export class FilesLogic {
@@ -18,6 +18,15 @@ export class FilesLogic {
 	buildFileTree(filteredFiles: TFile[]): TreeNode<FileMeta>[] {
 		const root: TreeNode<FileMeta>[] = [];
 		const folderMap = new Map<string, TreeNode<FileMeta>>();
+
+		const resolveFolder = (folderPath: string): TFolder | null => {
+			const vault = this.app.vault as
+				| { getAbstractFileByPath?(path: string): unknown }
+				| undefined;
+			const abstractFile = vault?.getAbstractFileByPath?.(folderPath);
+			if (!(abstractFile instanceof TFolder)) return null;
+			return abstractFile;
+		};
 
 		const ensureFolder = (folderPath: string): TreeNode<FileMeta> | null => {
 			if (!folderPath) return null;
@@ -38,7 +47,7 @@ export class FilesLogic {
 					label: parts[index],
 					depth: index,
 					children: [],
-					meta: { file: null, isFolder: true, folderPath: currentPath },
+					meta: { file: null, folder: resolveFolder(currentPath), isFolder: true, folderPath: currentPath },
 				};
 				folderMap.set(currentPath, folderNode);
 				(parentNode?.children ?? root).push(folderNode);
@@ -97,5 +106,18 @@ export class FilesLogic {
 		if (name) result = result.filter(f => f.basename.toLowerCase().includes(name.toLowerCase()));
 		if (folder) result = result.filter(f => f.path.toLowerCase().includes(folder.toLowerCase()));
 		return result;
+	}
+
+	getAncestorFolderIds(files: TFile[]): string[] {
+		const ids = new Set<string>();
+		for (const file of files) {
+			const rawPath = file.parent?.path ?? '';
+			const folderPath = rawPath === '/' ? '' : rawPath;
+			const parts = folderPath.split('/').filter(Boolean);
+			for (let index = 0; index < parts.length; index += 1) {
+				ids.add(`folder:${parts.slice(0, index + 1).join('/')}`);
+			}
+		}
+		return Array.from(ids);
 	}
 }

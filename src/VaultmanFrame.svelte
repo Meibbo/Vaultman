@@ -57,9 +57,13 @@
 
 	const pageIcons: Record<string, string> = {
 		statistics: 'lucide-bar-chart-2',
-		filters: 'lucide-archive',
+		filters: 'lucide-filter',
 		ops: 'lucide-settings-2',
 	};
+	const minimalStyle = $derived.by(() => {
+		void settingsRevision;
+		return plugin.settings.minimalStyle;
+	});
 
 	// ─── Per-page FAB definitions ────────────────────────────────────────────────
 
@@ -383,7 +387,7 @@
 		files: 0,
 	});
 
-	$effect(() => {
+	function applyExplorerSearch() {
 		const term = filtersSearch;
 		const tab: FiltersTab | 'files' =
 			activePage === 'ops' ? 'files' : filtersActiveTab;
@@ -406,6 +410,10 @@
 				}
 				break;
 		}
+	}
+
+	$effect(() => {
+		applyExplorerSearch();
 	});
 
 	// ─── Actions for native components ────────────────────────────────────────
@@ -473,6 +481,7 @@
 			plugin.filterService.filteredFiles,
 			plugin.propertyIndex.fileCount,
 		);
+		if (activePage === 'ops') applyExplorerSearch();
 		updateStats();
 	}
 
@@ -621,29 +630,31 @@
 	<div class="vaultman-queue-island-wrap" bind:this={queueIslandEl}></div>
 	<div class="vaultman-filters-island-wrap" bind:this={filtersIslandEl}></div>
 
-	<BottomNav
-		{pageOrder}
-		{activePage}
-		{pageLabels}
-		{pageIcons}
-		{leftFab}
-		{rightFab}
-		minimalStyle={plugin.settings.minimalStyle}
-		{navCollapsed}
-		isIslandOpen={queueIslandOpen || filtersIslandOpen}
-		bind:isReordering
-		{reorderTargetIdx}
-		bind:pillEl
-		{selectedCount}
-		{filterRuleCount}
-		{queuedCount}
-		{bindNav}
-		{onCollapsedNavClick}
-		{onNavIconPointerDown}
-		{onPillPointerMove}
-		{onPillPointerUp}
-		{exitReorder}
-		{navigateTo}
-		{icon}
-	/>
+	{#key settingsRevision}
+		<BottomNav
+			{pageOrder}
+			{activePage}
+			{pageLabels}
+			{pageIcons}
+			{leftFab}
+			{rightFab}
+			{minimalStyle}
+			{navCollapsed}
+			isIslandOpen={queueIslandOpen || filtersIslandOpen}
+			bind:isReordering
+			{reorderTargetIdx}
+			bind:pillEl
+			{selectedCount}
+			{filterRuleCount}
+			{queuedCount}
+			{bindNav}
+			{onCollapsedNavClick}
+			{onNavIconPointerDown}
+			{onPillPointerMove}
+			{onPillPointerUp}
+			{exitReorder}
+			{navigateTo}
+			{icon}
+		/>
+	{/key}
 </div>

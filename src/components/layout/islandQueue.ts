@@ -108,6 +108,23 @@ export class QueueIslandComponent {
 		this.listEl.empty();
 		if (queue.length === 0) {
 			this.listEl.createDiv({ cls: 'vaultman-queue-island-empty', text: translate('queue.island.empty') });
+			const modeRow = this.listEl.createDiv({ cls: 'vaultman-queue-mode-toggle' });
+			const stageBtn = modeRow.createEl('button', {
+				cls: `vaultman-queue-mode-btn${this.queueService.operationMode === 'stage' ? ' is-active' : ''}`,
+				text: translate('queue.mode.stage'),
+			});
+			stageBtn.addEventListener('click', () => {
+				this.queueService.setOperationMode('stage');
+				this.render();
+			});
+			const bypassBtn = modeRow.createEl('button', {
+				cls: `vaultman-queue-mode-btn${this.queueService.operationMode === 'bypass' ? ' is-active' : ''}`,
+				text: translate('queue.mode.bypass'),
+			});
+			bypassBtn.addEventListener('click', () => {
+				this.queueService.setOperationMode('bypass');
+				this.render();
+			});
 			return;
 		}
 

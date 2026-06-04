@@ -1,5 +1,5 @@
 // src/components/TagsExplorerPanel.ts
-import { Component, App, setIcon } from 'obsidian';
+import { Component, App, Notice, setIcon } from 'obsidian';
 import { TagsLogic } from '../../logic/logicTags';
 import { FilterService } from '../../services/serviceFilter';
 import { IconicService } from '../../services/serviceIcons';
@@ -265,7 +265,7 @@ export class TagsExplorerPanel extends Component {
 
 				// ADD MODE: queue add-tag operation instead of toggling filter
 				if (this.addMode) {
-					this.plugin.queueService.add({
+					this.plugin.queueService.addOrRun({
 						type: 'tag',
 						tag: meta.tagPath,
 						action: 'add',
@@ -440,9 +440,15 @@ export class TagsExplorerPanel extends Component {
 
 	private async _renameTag(tagPath: string, newName: string): Promise<void> {
 		if (!newName || newName === tagPath) return;
-		for (const file of this.plugin.app.vault.getMarkdownFiles()) {
-			await this.plugin.app.fileManager.processFrontMatter(file, (fm: Record<string, unknown>) => {
-				if (!fm.tags) return;
+		this.plugin.queueService.addOrRun({
+			type: 'tag',
+			tag: tagPath,
+			action: 'rename',
+			details: `Rename tag "#${tagPath}" to "#${newName}"`,
+			files: this._getFilesWithTag(tagPath),
+			customLogic: true,
+			logicFunc: (_file, fm) => {
+				if (!fm.tags) return null;
 				const raw: unknown = fm.tags;
 				const tags: string[] = Array.isArray(raw)
 					? (raw as unknown[]).map(v => String(v))
@@ -453,35 +459,48 @@ export class TagsExplorerPanel extends Component {
 					return (cleanT === tagPath) ? newName : t;
 				});
 				fm.tags = newTags;
-			});
-		}
+				return fm;
+			},
+		});
 		this.logic.invalidate();
 		this._render();
 	}
 
 	private async _deleteTag(tagPath: string): Promise<void> {
-		for (const file of this.plugin.app.vault.getMarkdownFiles()) {
-			await this.plugin.app.fileManager.processFrontMatter(file, (fm: Record<string, unknown>) => {
-				if (!fm.tags) return;
+		this.plugin.queueService.addOrRun({
+			type: 'tag',
+			tag: tagPath,
+			action: 'delete',
+			details: `Delete tag "#${tagPath}"`,
+			files: this._getFilesWithTag(tagPath),
+			customLogic: true,
+			logicFunc: (_file, fm) => {
+				if (!fm.tags) return null;
 				const raw: unknown = fm.tags;
 				const tags: string[] = Array.isArray(raw)
 					? (raw as unknown[]).map(v => String(v))
 					: (typeof raw === 'string' ? [raw] : []);
 				const filtered = tags.filter((t: string) => t !== tagPath && t !== `#${tagPath}`);
 				fm.tags = filtered.length > 0 ? filtered : undefined;
-			});
-		}
+				return fm;
+			},
+		});
 		this.logic.invalidate();
 		this._render();
 	}
 
 	private async _sendToFrontmatter(tagPath: string): Promise<void> {
-		// Inline tags → add to frontmatter tags array
-		for (const file of this.plugin.app.vault.getMarkdownFiles()) {
-			const cache = this.plugin.app.metadataCache.getFileCache(file);
-			const inlineTags = (cache?.tags ?? []).map((t) => t.tag);
-			if (inlineTags.some((t: string) => t === `#${tagPath}` || t === tagPath)) {
-				await this.plugin.app.fileManager.processFrontMatter(file, (fm: Record<string, unknown>) => {
+		this.plugin.queueService.addOrRun({
+			type: 'tag',
+			tag: tagPath,
+			action: 'add',
+			details: `Send inline "#${tagPath}" to frontmatter`,
+			files: this._getFilesWithInlineTag(tagPath),
+			customLogic: true,
+			logicFunc: (file, fm) => {
+				const cache = this.plugin.app.metadataCache.getFileCache(file);
+				const inlineTags = (cache?.tags ?? []).map((t) => t.tag);
+				if (inlineTags.some((t: string) => t === `#${tagPath}` || t === tagPath)) {
 					const raw: unknown = fm.tags;
 					const existing: string[] = Array.isArray(raw)
 						? (raw as unknown[]).map(v => String(v))
@@ -489,9 +508,39 @@ export class TagsExplorerPanel extends Component {
 					if (!existing.includes(tagPath)) {
 						fm.tags = [...existing, tagPath];
 					}
-				});
-			}
+					return fm;
+				}
+				return null;
+			},
+		});
+		this.logic.invalidate();
+		this._render();
+	}
+
+	createFromSearch(term: string): void {
+		const tagPath = term.trim().replace(/^#/, '').replace(/\s+/g, '-');
+		if (!tagPath) {
+			this.addMode = true;
+			new Notice('Select a tag to stage it');
+			return;
 		}
+		this.plugin.queueService.addOrRun({
+			type: 'tag',
+			tag: tagPath,
+			action: 'add',
+			details: `Add tag "#${tagPath}"`,
+			files: this.plugin.filterService.filteredFiles,
+			customLogic: true,
+			logicFunc: (_file, fm) => {
+				const raw: unknown = fm.tags;
+				const existing: string[] = Array.isArray(raw)
+					? (raw as unknown[]).map(v => String(v))
+					: (typeof raw === 'string' ? [raw] : []);
+				if (existing.includes(tagPath)) return null;
+				fm.tags = [...existing, tagPath];
+				return fm;
+			},
+		});
 		this.logic.invalidate();
 		this._render();
 	}
@@ -548,5 +597,29 @@ export class TagsExplorerPanel extends Component {
 			if (n.children) result.push(...this._flattenTree(n.children));
 		}
 		return result;
+	}
+
+	private _getFilesWithTag(tagPath: string): import('obsidian').TFile[] {
+		return this.plugin.app.vault.getMarkdownFiles().filter((file) => {
+			const cache = this.plugin.app.metadataCache.getFileCache(file);
+			const fmTags = cache?.frontmatter?.tags as unknown;
+			const frontmatterTags = Array.isArray(fmTags)
+				? fmTags.map((tag) => String(tag))
+				: typeof fmTags === 'string'
+					? [fmTags]
+					: [];
+			const inlineTags = (cache?.tags ?? []).map((tag) => tag.tag);
+			return (
+				frontmatterTags.some((tag) => tag === tagPath || tag === `#${tagPath}`) ||
+				inlineTags.some((tag) => tag === tagPath || tag === `#${tagPath}`)
+			);
+		});
+	}
+
+	private _getFilesWithInlineTag(tagPath: string): import('obsidian').TFile[] {
+		return this.plugin.app.vault.getMarkdownFiles().filter((file) => {
+			const inlineTags = this.plugin.app.metadataCache.getFileCache(file)?.tags ?? [];
+			return inlineTags.some((tag) => tag.tag === tagPath || tag.tag === `#${tagPath}`);
+		});
 	}
 }

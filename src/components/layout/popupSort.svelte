@@ -259,26 +259,11 @@
 
 	<!-- Main content panel: row 1 + row 2 -->
 	<div class="vaultman-sort-main">
-		<!-- Row 1: Close btn -->
+		<!-- Row 1: sort controls + close -->
 		<div class="vaultman-sort-row vaultman-sort-row-controls">
-			<div
-				class="vaultman-sort-close-btn clickable-icon"
-				aria-label={translate('sort.close')}
-				onclick={onClose}
-				onkeydown={(e: KeyboardEvent) => {
-					if (e.key === 'Enter' || e.key === ' ') onClose();
-				}}
-				role="button"
-				tabindex="0"
-				use:icon={'lucide-chevron-right'}
-			></div>
-		</div>
-
-		<!-- Row 2: 4 squircles -->
-		<div class="vaultman-sort-row vaultman-squircle-row">
 			{#each SORT_OPTIONS[activeTab] as opt (opt.id)}
 				<div
-					class="vaultman-squircle"
+					class="vaultman-squircle vaultman-sort-option"
 					class:is-accent={sortBy === opt.id}
 					aria-label={translate(opt.labelKey) +
 						(sortBy === opt.id ? (sortDir === 'asc' ? ' ↑' : ' ↓') : '')}
@@ -300,6 +285,17 @@
 					{/if}
 				</div>
 			{/each}
+			<div
+				class="vaultman-sort-close-btn clickable-icon"
+				aria-label={translate('sort.close')}
+				onclick={onClose}
+				onkeydown={(e: KeyboardEvent) => {
+					if (e.key === 'Enter' || e.key === ' ') onClose();
+				}}
+				role="button"
+				tabindex="0"
+				use:icon={'lucide-chevron-right'}
+			></div>
 		</div>
 	</div>
 </div>

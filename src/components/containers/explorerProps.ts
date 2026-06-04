@@ -1,5 +1,5 @@
 // src/components/PropsExplorerPanel.ts
-import { Component, prepareSimpleSearch, setIcon } from 'obsidian';
+import { Component, Notice, prepareSimpleSearch, setIcon } from 'obsidian';
 import { PropsLogic } from '../../logic/logicProps';
 import type { FilterService } from '../../services/serviceFilter';
 import type { IconicService } from '../../services/serviceIcons';
@@ -17,6 +17,7 @@ export interface PanelPluginCtx {
 import { UnifiedTreeView } from '../layout/viewTree';
 import type { TreeNode, PropMeta } from '../../types/typeTree';
 import type { PropertyChange } from '../../types/typeOps';
+import { NATIVE_SET_PROP_TYPE } from '../../types/typeOps';
 import { showInputModal } from '../../utils/inputModal';
 
 const TYPE_ICON_MAP: Record<string, string> = {
@@ -32,18 +33,45 @@ const TYPE_ICON_MAP: Record<string, string> = {
 	cssclasses: 'lucide-palette',
 };
 
-function normalizePropType(propType: string | undefined, propName?: string): string {
+function normalizePropType(propType: unknown, propName?: string): string {
 	const normalizedName = propName?.toLowerCase();
 	if (normalizedName === 'tags') return 'tags';
 	if (normalizedName === 'aliases') return 'aliases';
 	if (normalizedName === 'cssclasses') return 'cssclasses';
 
-	const normalizedType = (propType ?? 'unknown').toLowerCase();
+	const objectTypeName = (value: object): string => {
+		const record = value as Record<string, unknown>;
+		for (const key of ['widget', 'type', 'name', 'id']) {
+			const candidate = record[key];
+			if (typeof candidate === 'string') return candidate;
+		}
+		return 'unknown';
+	};
+
+	const rawType =
+		typeof propType === 'string'
+			? propType
+			: propType && typeof propType === 'object'
+				? objectTypeName(propType)
+				: 'unknown';
+	const normalizedType = rawType.toLowerCase();
 	if (normalizedType === 'toggle') return 'checkbox';
 	if (normalizedType === 'numeric') return 'number';
 	if (normalizedType === 'multitext') return 'list';
 	if (normalizedType in TYPE_ICON_MAP) return normalizedType;
 	return 'unknown';
+}
+
+interface MetadataTypeManagerLike {
+	getWidget?(propName: string): string | undefined;
+	getTypeInfo?(propName: string): {
+		expected?: string;
+		inferred?: string;
+	} | undefined;
+	getPropertyInfo?(propName: string): {
+		widget?: string;
+		type?: string;
+	} | undefined;
 }
 
 export class PropsExplorerPanel extends Component {
@@ -272,6 +300,30 @@ export class PropsExplorerPanel extends Component {
 		this._render();
 	}
 
+	createFromSearch(term: string, category: number): void {
+		const propName = term.trim();
+		if (!propName || category !== 0) {
+			this.addMode = true;
+			new Notice('Select a property to stage it');
+			return;
+		}
+		this.plugin.queueService.addOrRun({
+			type: 'property',
+			property: propName,
+			action: 'add',
+			details: `Add property "${propName}"`,
+			files: this.plugin.filterService.filteredFiles,
+			customLogic: true,
+			logicFunc: (_file, fm) => {
+				if (propName in fm) return null;
+				fm[propName] = '';
+				return fm;
+			},
+		});
+		this.logic.invalidate();
+		this._render();
+	}
+
 	private _findNode(id: string, nodes: TreeNode<PropMeta>[]): TreeNode<PropMeta> | null {
 		for (const n of nodes) {
 			if (n.id === id) return n;
@@ -343,7 +395,7 @@ export class PropsExplorerPanel extends Component {
 
 				// ADD MODE: queue add-property operation instead of toggling filter
 				if (this.addMode && !meta.isValueNode) {
-					this.plugin.queueService.add({
+					this.plugin.queueService.addOrRun({
 						type: 'property',
 						property: meta.propName,
 						action: 'add',
@@ -420,11 +472,32 @@ export class PropsExplorerPanel extends Component {
 	): TreeNode<PropMeta>[] {
 		return nodes.filter((node) => {
 			if (node.meta.isValueNode) return false;
-			return (
-				normalizePropType(node.meta.propType, node.meta.propName) ===
-				nodeTypeFilter
-			);
+			return this._effectivePropType(node.meta) === nodeTypeFilter;
 		});
+	}
+
+	private _metadataTypeManager(): MetadataTypeManagerLike | null {
+		return (
+			this.plugin.app as unknown as {
+				metadataTypeManager?: MetadataTypeManagerLike;
+			}
+		).metadataTypeManager ?? null;
+	}
+
+	private _effectivePropType(meta: Pick<PropMeta, 'propName' | 'propType'>): string {
+		const manager = this._metadataTypeManager();
+		const assigned = manager?.getWidget?.(meta.propName);
+		const typeInfo = manager?.getTypeInfo?.(meta.propName);
+		const propertyInfo = manager?.getPropertyInfo?.(meta.propName);
+		return normalizePropType(
+			assigned ??
+				typeInfo?.expected ??
+				typeInfo?.inferred ??
+				propertyInfo?.widget ??
+				propertyInfo?.type ??
+				meta.propType,
+			meta.propName,
+		);
 	}
 
 	private _sortNodes(nodes: TreeNode<PropMeta>[]): TreeNode<PropMeta>[] {
@@ -484,7 +557,7 @@ export class PropsExplorerPanel extends Component {
 				const iconEl = card.createDiv({ cls: 'vaultman-prop-card-icon' });
 				setIcon(
 					iconEl,
-					TYPE_ICON_MAP[normalizePropType(node.meta.propType, node.meta.propName)],
+					TYPE_ICON_MAP[this._effectivePropType(node.meta)],
 				);
 			}
 			if (this.visibleCells.has('text')) {
@@ -493,7 +566,7 @@ export class PropsExplorerPanel extends Component {
 			if (this.visibleCells.has('type')) {
 				card.createDiv({
 					cls: 'vaultman-prop-card-type',
-					text: normalizePropType(node.meta.propType, node.meta.propName),
+					text: this._effectivePropType(node.meta),
 				});
 			}
 			const count = node.count ?? 0;
@@ -578,7 +651,7 @@ export class PropsExplorerPanel extends Component {
 				? this.plugin.iconicService?.getIcon(meta.propName)
 				: null;
 			const defaultIcon = !meta.isValueNode
-				? TYPE_ICON_MAP[normalizePropType(meta.propType, meta.propName)]
+				? TYPE_ICON_MAP[this._effectivePropType(meta)]
 				: undefined;
 
 			return {
@@ -592,15 +665,23 @@ export class PropsExplorerPanel extends Component {
 	}
 
 	private async _changePropType(propName: string, newType: string): Promise<void> {
-		const files = this._getFilesWithProp(propName);
-		this.plugin.queueService.add({
+		const markerFile =
+			this._getFilesWithProp(propName)[0] ??
+			this.plugin.app.vault.getMarkdownFiles()[0];
+		if (!markerFile) return;
+		this.plugin.queueService.addOrRun({
 			type: 'property',
 			property: propName,
 			action: 'change_type',
 			details: `Change type of "${propName}" to ${newType}`,
-			files,
+			files: [markerFile],
 			customLogic: true,
-			logicFunc: (_file, fm) => fm
+			logicFunc: () => ({
+				[NATIVE_SET_PROP_TYPE]: {
+					propName,
+					type: newType,
+				},
+			}),
 		});
 	}
 
@@ -608,7 +689,7 @@ export class PropsExplorerPanel extends Component {
 		const newName = await showInputModal(this.plugin.app, `Rename "${propName}" to:`);
 		if (!newName) return;
 		const files = this._getFilesWithProp(propName);
-		this.plugin.queueService.add({
+		this.plugin.queueService.addOrRun({
 			type: 'property',
 			property: propName,
 			action: 'rename',
@@ -626,7 +707,7 @@ export class PropsExplorerPanel extends Component {
 
 	private async _deleteProp(propName: string): Promise<void> {
 		const files = this._getFilesWithProp(propName);
-		this.plugin.queueService.add({
+		this.plugin.queueService.addOrRun({
 			type: 'property',
 			property: propName,
 			action: 'delete',
@@ -649,7 +730,7 @@ export class PropsExplorerPanel extends Component {
 
 	private async _deleteValue(propName: string, oldValue: string): Promise<void> {
 		const files = this._getFilesWithValue(propName, oldValue);
-		this.plugin.queueService.add({
+		this.plugin.queueService.addOrRun({
 			type: 'property',
 			property: propName,
 			action: 'delete',
@@ -677,7 +758,7 @@ export class PropsExplorerPanel extends Component {
 
 	private async _replaceValueInVault(propName: string, oldValue: string, newValue: string, label?: string): Promise<void> {
 		const files = this._getFilesWithValue(propName, oldValue);
-		this.plugin.queueService.add({
+		this.plugin.queueService.addOrRun({
 			type: 'property',
 			property: propName,
 			action: 'set',

@@ -130,44 +130,63 @@
 		const MAX_SNIPPETS = 3;
 		const CONTEXT = 40;
 		let matchFileCount = 0;
-
-		for (const file of files) {
-			try {
-				const content = await plugin.app.vault.read(file);
-				const matches = [...content.matchAll(new RegExp(escaped, flags))];
-				if (matches.length > 0) {
-					matchFileCount++;
-					totalMatches += matches.length;
-					if (fileResults.length < MAX_FILES) {
-						fileResults.push({
-							file,
-							matchCount: matches.length,
-							snippets: matches.slice(0, MAX_SNIPPETS).map((match) => {
-								const start = match.index ?? 0;
-								const end = start + match[0].length;
-								return {
-									before: content.slice(Math.max(0, start - CONTEXT), start),
-									match: match[0],
-									after: content.slice(end, end + CONTEXT),
-								};
-							}),
-						});
-					}
-				}
-			} catch (error) {
-				console.error(error);
-			}
-			if (matchFileCount % 20 === 0)
-				await new Promise((resolve) => setTimeout(resolve, 0));
-		}
+		let processed = 0;
 
 		contentPreviewResult = {
 			totalMatches,
 			files: fileResults,
-			moreFiles: Math.max(0, matchFileCount - fileResults.length),
+			moreFiles: 0,
+			isLoading: true,
 		};
-		contentPreviewing = false;
 		contentPreviewOpen = true;
+
+		try {
+			for (const file of files) {
+				processed += 1;
+				try {
+					const content = await plugin.app.vault.read(file);
+					const matches = [...content.matchAll(new RegExp(escaped, flags))];
+					if (matches.length > 0) {
+						matchFileCount++;
+						totalMatches += matches.length;
+						if (fileResults.length < MAX_FILES) {
+							fileResults.push({
+								file,
+								matchCount: matches.length,
+								snippets: matches.slice(0, MAX_SNIPPETS).map((match) => {
+									const start = match.index ?? 0;
+									const end = start + match[0].length;
+									return {
+										before: content.slice(Math.max(0, start - CONTEXT), start),
+										match: match[0],
+										after: content.slice(end, end + CONTEXT),
+									};
+								}),
+							});
+						}
+						contentPreviewResult = {
+							totalMatches,
+							files: [...fileResults],
+							moreFiles: Math.max(0, matchFileCount - fileResults.length),
+							isLoading: true,
+						};
+					}
+				} catch (error) {
+					console.error(error);
+				}
+				if (processed % 20 === 0)
+					await new Promise((resolve) => setTimeout(resolve, 0));
+			}
+		} finally {
+			contentPreviewResult = {
+				totalMatches,
+				files: fileResults,
+				moreFiles: Math.max(0, matchFileCount - fileResults.length),
+				isLoading: false,
+			};
+			contentPreviewing = false;
+			contentPreviewOpen = true;
+		}
 	}
 
 	function queueContentReplace() {

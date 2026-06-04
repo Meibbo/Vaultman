@@ -63,10 +63,19 @@
 		if (fab.badge === 'filters') return filterRuleCount;
 		return 0;
 	}
+
+	function fabLabel(fab: FabDef): string {
+		if (fab.badge === 'queue') {
+			if (queuedCount === 0) return translate('ops.queue.empty');
+			return translate('ops.queue').replace('{count}', String(queuedCount));
+		}
+		return fab.label;
+	}
 </script>
 
 <div
 	class="vaultman-bottom-nav vaultman-glass vaultman-glass--bottom"
+	class:vaultman-bottom-nav--minimal={minimalStyle}
 	class:is-island-open={isIslandOpen}
 	use:bindNav
 	class:is-bar-collapsed={navCollapsed}
@@ -98,12 +107,12 @@
 		>
 			{#if leftFab}
 				<div
-					class="vaultman-nav-icon vaultman-nav-dock-action"
+					class="clickable-icon nav-action-button vaultman-nav-dock-action"
 					class:is-locked={leftFab.locked}
 					class:vaultman-backdrop-lock={leftFab.lockBackdrop}
-					aria-label={leftFab.label}
+					aria-label={fabLabel(leftFab)}
+					title={fabLabel(leftFab)}
 					aria-disabled={leftFab.locked ? 'true' : undefined}
-					use:icon={leftFab.icon}
 					onclick={(e: MouseEvent) => triggerFab(leftFab, e)}
 					onkeydown={(e: KeyboardEvent) => {
 						if (e.key === 'Enter' || e.key === ' ') triggerFab(leftFab, e);
@@ -111,6 +120,11 @@
 					role="button"
 					tabindex={leftFab.locked ? -1 : 0}
 				>
+					<span
+						class="vaultman-dock-action-icon"
+						aria-hidden="true"
+						use:icon={leftFab.icon}
+					></span>
 					{#if leftFab.locked}
 						<span
 							class="vaultman-dock-lock"
@@ -158,12 +172,12 @@
 			<div class="vaultman-nav-dock-divider"></div>
 			{#if rightFab}
 				<div
-					class="vaultman-nav-icon vaultman-nav-dock-action"
+					class="clickable-icon nav-action-button vaultman-nav-dock-action"
 					class:is-locked={rightFab.locked}
 					class:vaultman-backdrop-lock={rightFab.lockBackdrop}
-					aria-label={rightFab.label}
+					aria-label={fabLabel(rightFab)}
+					title={fabLabel(rightFab)}
 					aria-disabled={rightFab.locked ? 'true' : undefined}
-					use:icon={rightFab.icon}
 					onclick={(e: MouseEvent) => triggerFab(rightFab, e)}
 					onkeydown={(e: KeyboardEvent) => {
 						if (e.key === 'Enter' || e.key === ' ') triggerFab(rightFab, e);
@@ -171,6 +185,11 @@
 					role="button"
 					tabindex={rightFab.locked ? -1 : 0}
 				>
+					<span
+						class="vaultman-dock-action-icon"
+						aria-hidden="true"
+						use:icon={rightFab.icon}
+					></span>
 					{#if rightFab.locked}
 						<span
 							class="vaultman-dock-lock"
@@ -191,7 +210,8 @@
 			<div class="vaultman-nav-fab-wrap">
 				<div
 					class="vaultman-nav-fab"
-					aria-label={leftFab.label}
+					aria-label={fabLabel(leftFab)}
+					title={fabLabel(leftFab)}
 					use:icon={leftFab.icon}
 					onclick={(e: MouseEvent) => triggerFab(leftFab, e)}
 					onkeydown={(e: KeyboardEvent) => {
@@ -252,7 +272,8 @@
 			<div class="vaultman-nav-fab-wrap">
 				<div
 					class="vaultman-nav-fab"
-					aria-label={rightFab.label}
+					aria-label={fabLabel(rightFab)}
+					title={fabLabel(rightFab)}
 					use:icon={rightFab.icon}
 					onclick={(e: MouseEvent) => triggerFab(rightFab, e)}
 					onkeydown={(e: KeyboardEvent) => {

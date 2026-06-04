@@ -7,7 +7,9 @@ export const REORDER_ALL = '_REORDER_ALL';
 export const MOVE_FILE = '_MOVE_FILE';
 export const FIND_REPLACE_CONTENT = '_FIND_REPLACE_CONTENT';
 export const NATIVE_RENAME_PROP = '_NATIVE_RENAME_PROP';
+export const NATIVE_SET_PROP_TYPE = '_NATIVE_SET_PROP_TYPE';
 export const APPLY_TEMPLATE = '_APPLY_TEMPLATE';
+export const DELETE_FILE = '_DELETE_FILE';
 
 export type PropertyAction =
 	| 'set'
@@ -57,7 +59,7 @@ export interface ContentChange extends BaseChange {
 
 /** File system operation (rename/move) */
 export interface FileChange extends BaseChange {
-	type: 'file_rename' | 'file_move';
+	type: 'file_rename' | 'file_move' | 'file_delete';
 	newName?: string;
 	targetFolder?: string;
 }

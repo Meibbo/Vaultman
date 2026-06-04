@@ -1,5 +1,5 @@
 // src/components/FilesExplorerPanel.ts
-import { Component, type TFile } from 'obsidian';
+import { Component, Notice, type TFile } from 'obsidian';
 import type { VaultmanPlugin } from "../../main";
 import { FilesLogic } from '../../logic/logicsFiles';
 import { GridView } from '../layout/viewGrid';
@@ -9,6 +9,7 @@ import type { MenuCtx } from '../../types/typeCMenu';
 import { FileRenameModal } from '../../modals/modalFileRename';
 import { FileMoveModal } from '../../modals/modalFileMove';
 import { PropertyManagerModal } from '../../modals/modalPropertyManager';
+import { DELETE_FILE } from '../../types/typeOps';
 
 export type FilesViewMode = 'grid' | 'tree';
 
@@ -53,7 +54,7 @@ export class FilesExplorerPanel extends Component {
 					this.plugin.app,
 					this.plugin.propertyIndex,
 					[meta.file],
-					(change) => this.plugin.queueService.add(change),
+					(change) => this.plugin.queueService.addOrRun(change),
 				).open();
 			},
 		});
@@ -67,7 +68,14 @@ export class FilesExplorerPanel extends Component {
 			run: (ctx: MenuCtx) => {
 				const meta = ctx.node.meta as FileMeta;
 				if (!meta.file) return;
-				return this.plugin.app.fileManager.trashFile(meta.file);
+				this.plugin.queueService.addOrRun({
+					type: 'file_delete',
+					action: 'delete',
+					details: `Delete file "${meta.file.path}"`,
+					files: [meta.file],
+					customLogic: true,
+					logicFunc: () => ({ [DELETE_FILE]: true }),
+				});
 			},
 		});
 
@@ -83,7 +91,7 @@ export class FilesExplorerPanel extends Component {
 				new FileMoveModal(
 					this.plugin.app,
 					[meta.file],
-					(change) => this.plugin.queueService.add(change),
+					(change) => this.plugin.queueService.addOrRun(change),
 				).open();
 			},
 		});
@@ -131,7 +139,46 @@ export class FilesExplorerPanel extends Component {
 		const total = this.plugin.propertyIndex.fileCount;
 		this._currentFiles = this.logic.filterFlat(base, name, folder);
 		this._totalCount = total;
+		if (name || folder) {
+			for (const id of this.logic.getAncestorFolderIds(this._currentFiles)) {
+				this.expandedIds.add(id);
+			}
+		}
 		this._render();
+	}
+
+	expandAll(): void {
+		const tree = this.logic.buildFileTree(this._sortFiles(this._currentFiles));
+		const walk = (nodes: TreeNode<FileMeta>[]) => {
+			for (const node of nodes) {
+				if (node.meta.isFolder) this.expandedIds.add(node.id);
+				if (node.children?.length) walk(node.children);
+			}
+		};
+		walk(tree);
+		this._render();
+	}
+
+	collapseAll(): void {
+		this.expandedIds.clear();
+		this._render();
+	}
+
+	autoRevealActiveFile(): void {
+		const file = this.plugin.app.workspace.getActiveFile();
+		if (!file) return;
+		for (const id of this.logic.getAncestorFolderIds([file])) {
+			this.expandedIds.add(id);
+		}
+		this._render();
+	}
+
+	async createFromSearch(category: number, term: string): Promise<void> {
+		if (category === 1) {
+			await this._createFolder(term);
+			return;
+		}
+		await this._createNote(term);
 	}
 
 	private _mountView(): void {
@@ -141,26 +188,27 @@ export class FilesExplorerPanel extends Component {
 		if (this.viewMode === 'grid') {
 			this.gridView = new GridView(this.containerEl, this.plugin.app, {
 				onContextMenu: (file: TFile, e: MouseEvent) => {
-					const syntheticNode = { id: file.path, label: file.name, meta: { file, isFolder: false } as FileMeta, icon: '', depth: 0 };
+					const syntheticNode = { id: file.path, label: file.name, meta: { file, isFolder: false, folderPath: file.parent?.path ?? '' } as FileMeta, icon: '', depth: 0 };
 					this.plugin.contextMenuService.openPanelMenu(
 						{ nodeType: 'file', node: syntheticNode, surface: 'panel', file },
 						e,
 					);
 				},
 				onSelectionChange: (selected: Set<string>) => {
+					this.plugin.filterService.setSelectedFiles(this.gridView?.getSelectedFiles() ?? []);
 					if (this.onSelectionChange) this.onSelectionChange(selected.size);
 				},
 				onFileClick: (file: TFile) => {
 					if (this.addMode) {
 						const selected = this.getSelectedFiles();
 						const targets = selected.length > 0 ? (selected.includes(file) ? selected : [...selected, file]) : [file];
-						new PropertyManagerModal(
-							this.plugin.app,
-							this.plugin.propertyIndex,
-							targets,
-							(change) => this.plugin.queueService.add(change),
-						).open();
-						return;
+							new PropertyManagerModal(
+								this.plugin.app,
+								this.plugin.propertyIndex,
+								targets,
+								(change) => this.plugin.queueService.addOrRun(change),
+							).open();
+							return;
 					}
 					void this.plugin.app.workspace.openLinkText(file.path, '', false);
 				},
@@ -223,7 +271,7 @@ export class FilesExplorerPanel extends Component {
 								this.plugin.app,
 								this.plugin.propertyIndex,
 								[meta.file],
-								(change) => this.plugin.queueService.add(change),
+								(change) => this.plugin.queueService.addOrRun(change),
 							).open();
 							return;
 						}
@@ -234,7 +282,14 @@ export class FilesExplorerPanel extends Component {
 					const node = this._findNode(id, tree);
 					if (!node) return;
 					const meta = node.meta;
-					if (meta.isFolder || !meta.file) return;
+					if (meta.isFolder) {
+						this.plugin.contextMenuService.openPanelMenu(
+							{ nodeType: 'folder', node, surface: 'panel' },
+							e,
+						);
+						return;
+					}
+					if (!meta.file) return;
 					this.plugin.contextMenuService.openPanelMenu(
 						{ nodeType: 'file', node, surface: 'panel', file: meta.file },
 						e,
@@ -257,5 +312,41 @@ export class FilesExplorerPanel extends Component {
 
 	getSelectedFiles(): TFile[] {
 		return this.gridView?.getSelectedFiles() ?? [];
+	}
+
+	private async _createNote(term: string): Promise<void> {
+		const baseName = this._safeName(term, 'Untitled');
+		const path = this._uniquePath(`${baseName}.md`);
+		await this.plugin.app.vault.create(path, '');
+		await this.plugin.app.workspace.openLinkText(path, '', false);
+		new Notice(`Created ${path}`);
+	}
+
+	private async _createFolder(term: string): Promise<void> {
+		const baseName = this._safeName(term, 'New folder');
+		const path = this._uniquePath(baseName);
+		await this.plugin.app.vault.createFolder(path);
+		new Notice(`Created ${path}`);
+	}
+
+	private _safeName(term: string, fallback: string): string {
+		const cleaned = term
+			.trim()
+			.replace(/[\\/#^[\]|?*:<>"]/g, '-')
+			.replace(/\s+/g, ' ')
+			.slice(0, 80);
+		return cleaned || fallback;
+	}
+
+	private _uniquePath(path: string): string {
+		const dot = path.endsWith('.md') ? '.md' : '';
+		const base = dot ? path.slice(0, -dot.length) : path;
+		let candidate = path;
+		let counter = 1;
+		while (this.plugin.app.vault.getAbstractFileByPath(candidate)) {
+			candidate = `${base} ${counter}${dot}`;
+			counter += 1;
+		}
+		return candidate;
 	}
 }

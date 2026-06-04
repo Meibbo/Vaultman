@@ -78,4 +78,20 @@ describe('FilesLogic.buildFileTree', () => {
 		expect(tree[0].children?.[0].children?.[0].depth).toBe(2);
 		expect(tree[0].children?.[0].children?.[0].count).toBe(2);
 	});
+
+	it('returns ancestor folder ids for matched files so search can reveal results', () => {
+		const files = [
+			makeFile('alpha/root.md'),
+			makeFile('alpha/beta/deep.md'),
+			makeFile('alpha/beta/gamma/nested.md'),
+			makeFile('z-root.md'),
+		];
+		const logic = new FilesLogic(makeApp({}));
+
+		expect(logic.getAncestorFolderIds(files)).toEqual([
+			'folder:alpha',
+			'folder:alpha/beta',
+			'folder:alpha/beta/gamma',
+		]);
+	});
 });

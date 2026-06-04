@@ -1,11 +1,14 @@
 import { App, Component, Events, Notice, TFile, FileManager } from 'obsidian';
 import type { PendingChange, OperationResult } from '../types/typeOps';
-import { DELETE_PROP, RENAME_FILE, REORDER_ALL, MOVE_FILE, FIND_REPLACE_CONTENT, NATIVE_RENAME_PROP, APPLY_TEMPLATE } from '../types/typeOps';
+import { DELETE_PROP, RENAME_FILE, REORDER_ALL, MOVE_FILE, FIND_REPLACE_CONTENT, NATIVE_RENAME_PROP, NATIVE_SET_PROP_TYPE, APPLY_TEMPLATE, DELETE_FILE } from '../types/typeOps';
 import { translate } from '../i18n/index';
 
 interface InternalApp extends App {
 	fileManager: FileManager & {
 		renameProperty(oldName: string, newName: string): Promise<void>;
+	};
+	metadataTypeManager?: {
+		setType(propName: string, type: string): Promise<void> | void;
 	};
 }
 
@@ -24,6 +27,7 @@ export class OperationQueueService extends Component {
 	}
 
 	readonly queue: PendingChange[] = [];
+	operationMode: 'stage' | 'bypass' = 'stage';
 
 	constructor(app: App) {
 		super();
@@ -47,10 +51,52 @@ export class OperationQueueService extends Component {
 		this.events.off(name, callback as (...data: unknown[]) => unknown);
 	}
 
+	get shouldStageOperations(): boolean {
+		return this.operationMode === 'stage';
+	}
+
+	setOperationMode(mode: 'stage' | 'bypass'): void {
+		if (this.operationMode === mode) return;
+		this.operationMode = mode;
+		this.events.trigger('changed');
+	}
+
 	/** Add a single operation to the queue */
 	add(change: PendingChange): void {
 		this.queue.push(change);
 		this.events.trigger('changed');
+	}
+
+	addOrRun(change: PendingChange): void {
+		if (this.shouldStageOperations) {
+			this.add(change);
+			return;
+		}
+		void this.runNow(change);
+	}
+
+	async runNow(change: PendingChange): Promise<OperationResult> {
+		const result: OperationResult = { success: 0, errors: 0, messages: [] };
+		for (const file of change.files) {
+			try {
+				await this.applyChange(file, change);
+				result.success++;
+			} catch (err) {
+				result.errors++;
+				result.messages.push(`${file.path}: ${String(err)}`);
+			}
+			await new Promise<void>((resolve) => window.setTimeout(resolve, 0));
+		}
+
+		new Notice(
+			result.errors > 0
+				? translate('result.errors', { count: result.errors })
+				: translate('result.success', { count: result.success })
+		);
+
+		this.events.trigger('executed', result);
+		this.events.trigger('changed');
+		return result;
 	}
 
 	/**
@@ -164,7 +210,7 @@ export class OperationQueueService extends Component {
 			if (!updates) return;
 
 			// Check for special signals that require APIs outside frontmatter manipulation
-			if (RENAME_FILE in updates || MOVE_FILE in updates || FIND_REPLACE_CONTENT in updates || NATIVE_RENAME_PROP in updates || APPLY_TEMPLATE in updates) {
+			if (RENAME_FILE in updates || MOVE_FILE in updates || FIND_REPLACE_CONTENT in updates || NATIVE_RENAME_PROP in updates || NATIVE_SET_PROP_TYPE in updates || APPLY_TEMPLATE in updates || DELETE_FILE in updates) {
 				specialUpdates = updates;
 			}
 
@@ -182,7 +228,7 @@ export class OperationQueueService extends Component {
 					for (const k of Object.keys(copy)) {
 						if (!(k in fm)) fm[k] = copy[k];
 					}
-				} else if (key !== RENAME_FILE && key !== MOVE_FILE && key !== FIND_REPLACE_CONTENT && key !== NATIVE_RENAME_PROP && key !== APPLY_TEMPLATE) {
+				} else if (key !== RENAME_FILE && key !== MOVE_FILE && key !== FIND_REPLACE_CONTENT && key !== NATIVE_RENAME_PROP && key !== NATIVE_SET_PROP_TYPE && key !== APPLY_TEMPLATE && key !== DELETE_FILE) {
 					fm[key] = value;
 				}
 			}
@@ -229,6 +275,12 @@ export class OperationQueueService extends Component {
 			return;
 		}
 
+		if (NATIVE_SET_PROP_TYPE in specialUpdates) {
+			const { propName, type } = specialUpdates[NATIVE_SET_PROP_TYPE] as { propName: string; type: string };
+			await this.internalApp.metadataTypeManager?.setType(propName, type);
+			return;
+		}
+
 		if (APPLY_TEMPLATE in specialUpdates) {
 			const templatePath = specialUpdates[APPLY_TEMPLATE] as string;
 			const templateFile = this.app.vault.getAbstractFileByPath(templatePath);
@@ -240,6 +292,11 @@ export class OperationQueueService extends Component {
 				const newContent = content + '\n\n' + templateContent;
 				await this.app.vault.modify(file, newContent);
 			}
+			return;
+		}
+
+		if (DELETE_FILE in specialUpdates) {
+			await this.app.fileManager.trashFile(file);
 			return;
 		}
 	}
@@ -287,7 +344,7 @@ export class OperationQueueService extends Component {
 						const targetFolder = value as string;
 						const fileName = (currentNewPath ?? file.path).split('/').pop()!;
 						currentNewPath = targetFolder ? `${targetFolder}/${fileName}` : fileName;
-					} else if (key !== FIND_REPLACE_CONTENT && key !== NATIVE_RENAME_PROP && key !== APPLY_TEMPLATE) {
+					} else if (key !== FIND_REPLACE_CONTENT && key !== NATIVE_RENAME_PROP && key !== NATIVE_SET_PROP_TYPE && key !== APPLY_TEMPLATE && key !== DELETE_FILE) {
 						after[key] = value;
 					}
 				}

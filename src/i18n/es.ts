@@ -34,6 +34,10 @@ export const es: Record<string, string> = {
 	'filter.template.none': 'Sin plantilla',
 	'filter.template.load': 'Cargar',
 	'filter.refresh': 'Actualizar',
+	'filter.create': 'Crear',
+	'filter.auto_reveal': 'Auto-revelar archivo actual',
+	'filter.expand_all': 'Expandir todo',
+	'filter.collapse_all': 'Colapsar todo',
 
 	// File list
 	'files.search': 'Buscar archivos...',
@@ -87,6 +91,8 @@ export const es: Record<string, string> = {
 	// Queue island
 	'queue.island.pending': 'cambios pendientes',
 	'queue.island.empty': 'La cola está vacía',
+	'queue.mode.stage': 'Stage',
+	'queue.mode.bypass': 'Bypass',
 
 	// Queue details
 	'queue.title': 'Detalles de Cola',

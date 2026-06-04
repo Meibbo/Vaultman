@@ -28,6 +28,7 @@ export interface ContentPreviewResult {
 		snippets: ContentSnippet[];
 	}>;
 	moreFiles: number;
+	isLoading?: boolean;
 }
 
 export interface FabDef {

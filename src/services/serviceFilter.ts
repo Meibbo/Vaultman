@@ -41,6 +41,11 @@ export class FilterService extends Component {
 		this.events.off(name, callback);
 	}
 
+	setSelectedFiles(files: TFile[]): void {
+		this.selectedFiles = [...files];
+		this.events.trigger('changed');
+	}
+
 	/** Set a new filter tree and recompute */
 	setFilter(filter: FilterGroup): void {
 		this.activeFilter = filter;

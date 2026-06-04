@@ -1,6 +1,7 @@
 // src/services/ContextMenuService.ts
-import { Component, Menu, TFile, Notice, App, MenuItem } from 'obsidian';
+import { Component, Menu, TFile, Notice, App, MenuItem, type TFolder } from 'obsidian';
 import type { ActionDef, MenuCtx, MenuHideRule } from '../types/typeCMenu';
+import type { FileMeta } from '../types/typeTree';
 
 export interface ContextMenuPluginCtx extends Component {
 	app: App;
@@ -15,6 +16,7 @@ export interface ContextMenuPluginCtx extends Component {
 export class ContextMenuService extends Component {
 	private plugin: ContextMenuPluginCtx;
 	private _registry: ActionDef[] = [];
+	private suppressWorkspaceInjection = false;
 
 	constructor(plugin: ContextMenuPluginCtx) {
 		super();
@@ -25,6 +27,7 @@ export class ContextMenuService extends Component {
 		this.registerEvent(
 			this.plugin.app.workspace.on('file-menu', (menu, file, source) => {
 				if (!(file instanceof TFile)) return;
+				if (this.suppressWorkspaceInjection) return;
 				const surface: MenuCtx['surface'] =
 					source === 'more-options' ? 'more-options' : 'file-menu';
 				const settingKey =
@@ -62,12 +65,35 @@ export class ContextMenuService extends Component {
 
 	openPanelMenu(ctx: MenuCtx, event: MouseEvent): void {
 		const menu = new Menu();
+		const nativeTarget = this._getNativeMenuTarget(ctx);
+		if (nativeTarget) {
+			this.suppressWorkspaceInjection = true;
+			try {
+				(
+					this.plugin.app.workspace as unknown as {
+						trigger(
+							name: 'file-menu',
+							menu: Menu,
+							file: TFile | TFolder,
+							source: string,
+						): void;
+					}
+				).trigger('file-menu', menu, nativeTarget, 'file-explorer');
+			} finally {
+				this.suppressWorkspaceInjection = false;
+			}
+		}
+
 		const applicable = this._registry.filter(
 			(def) =>
 				def.nodeTypes.includes(ctx.nodeType) &&
 				def.surfaces.includes('panel') &&
 				(def.when ? def.when(ctx) : true),
 		);
+
+		if (nativeTarget && applicable.length > 0) {
+			menu.addSeparator();
+		}
 
 		const submenus = new Map<string, Menu>();
 		let currentSection: string | undefined = undefined;
@@ -109,6 +135,14 @@ export class ContextMenuService extends Component {
 			});
 		}
 		menu.showAtMouseEvent(event);
+	}
+
+	private _getNativeMenuTarget(ctx: MenuCtx): TFile | TFolder | null {
+		if (ctx.file instanceof TFile) return ctx.file;
+		const meta = ctx.node.meta as Partial<FileMeta> | undefined;
+		if (meta?.file instanceof TFile) return meta.file;
+		if (meta?.folder) return meta.folder;
+		return null;
 	}
 
 	private _injectWorkspaceActions(

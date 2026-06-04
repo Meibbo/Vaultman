@@ -1,5 +1,5 @@
 // src/types/tree.ts
-import type { TFile } from 'obsidian';
+import type { TFile, TFolder } from 'obsidian';
 
 export interface NodeBadge {
 	text?: string;
@@ -37,6 +37,7 @@ export interface PropMeta {
 
 export interface FileMeta {
 	file: TFile | null;  // null = folder node
+	folder?: TFolder | null;
 	isFolder: boolean;
 	folderPath: string;
 }

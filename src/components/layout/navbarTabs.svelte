@@ -5,9 +5,10 @@
 
 	const TAB_ICONS: Record<FiltersTab, string> = {
 		tags: 'lucide-tag',
-		props: 'lucide-tag',
+		props: 'lucide-archive',
 		content: 'lucide-file-search',
 	};
+	const FILTER_TABS: FiltersTab[] = ['props', 'tags', 'content'];
 
 	let {
 		activeTab,
@@ -23,7 +24,7 @@
 </script>
 
 <div class="vaultman-tab-bar" class:has-labels={showLabels}>
-	{#each ['props', 'tags', 'content'] as FiltersTab[] as tab}
+	{#each FILTER_TABS as tab (tab)}
 		<div
 			class="vaultman-tab nav-action-button"
 			class:is-active={activeTab === tab}

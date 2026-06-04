@@ -56,6 +56,15 @@
 		CATEGORY_ICONS[activeTab]?.[filtersSearchCategory[activeTab] ?? 0] ??
 			'lucide-search',
 	);
+	const currentCreateIcon = $derived(
+		activeTab === 'files'
+			? filtersSearchCategory.files === 1
+				? 'lucide-folder-plus'
+				: 'lucide-file-plus'
+			: activeTab === 'tags'
+				? 'lucide-tag'
+				: 'lucide-plus',
+	);
 
 	const DEFAULT_SORT_STATE: Record<FiltersTab, ExplorerSortState> = {
 		props: {
@@ -120,6 +129,25 @@
 		const tab = activeTab;
 		filtersSearchCategory[tab] = filtersSearchCategory[tab] === 0 ? 1 : 0;
 		filtersSearchCategory = { ...filtersSearchCategory };
+	}
+
+	function createSearchTarget() {
+		const tab = activeTab;
+		if (tab === 'files') {
+			void fileList?.createFromSearch(
+				filtersSearchCategory.files ?? 0,
+				filtersSearch,
+			);
+			return;
+		}
+		if (tab === 'props') {
+			propExplorer?.createFromSearch(
+				filtersSearch,
+				filtersSearchCategory.props ?? 0,
+			);
+			return;
+		}
+		tagsExplorer?.createFromSearch(filtersSearch);
 	}
 
 	function applySortState(tab: FiltersTab, state: ExplorerSortState) {
@@ -245,7 +273,53 @@
 						use:icon={currentCategoryIcon}
 						onclick={cycleSearchCategory}
 					></button>
+					<button
+						class="vaultman-filters-search-create"
+						aria-label={translate('filter.create')}
+						title={translate('filter.create')}
+						use:icon={currentCreateIcon}
+						onclick={createSearchTarget}
+					></button>
 				</div>
+				{#if activeTab === 'files'}
+					<div
+						class={headerActionClass}
+						role="button"
+						tabindex="0"
+						aria-label={translate('filter.auto_reveal')}
+						title={translate('filter.auto_reveal')}
+						onclick={() => fileList?.autoRevealActiveFile()}
+						onkeydown={(e: KeyboardEvent) => {
+							if (e.key === 'Enter' || e.key === ' ')
+								fileList?.autoRevealActiveFile();
+						}}
+						use:icon={'lucide-crosshair'}
+					></div>
+					<div
+						class={headerActionClass}
+						role="button"
+						tabindex="0"
+						aria-label={translate('filter.expand_all')}
+						title={translate('filter.expand_all')}
+						onclick={() => fileList?.expandAll()}
+						onkeydown={(e: KeyboardEvent) => {
+							if (e.key === 'Enter' || e.key === ' ') fileList?.expandAll();
+						}}
+						use:icon={'lucide-chevrons-down-up'}
+					></div>
+					<div
+						class={headerActionClass}
+						role="button"
+						tabindex="0"
+						aria-label={translate('filter.collapse_all')}
+						title={translate('filter.collapse_all')}
+						onclick={() => fileList?.collapseAll()}
+						onkeydown={(e: KeyboardEvent) => {
+							if (e.key === 'Enter' || e.key === ' ') fileList?.collapseAll();
+						}}
+						use:icon={'lucide-chevrons-up-down'}
+					></div>
+				{/if}
 				<div
 					class={headerActionClass}
 					role="button"
