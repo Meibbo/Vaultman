@@ -1,10 +1,10 @@
 ---
 title: Release 1.0.2 core parity hotfix implementation plan
 type: plan
-status: ready
+status: completed
 parent: "[[docs/work/publish/specs/2026-06-04-release-1-0-2-core-parity-hotfix-design|Release 1.0.2 core parity hotfix design]]"
 created: 2026-06-04T00:00:00
-updated: 2026-06-04T00:00:00
+updated: 2026-06-04T15:30:00
 tags:
   - agent/plan
   - initiative/publish
@@ -155,3 +155,40 @@ to this worktree.
   service-owned.
 - Stable branch guard: docs stay in the `.agents` branch, not in the hotfix
   worktree.
+
+## Execution Evidence
+
+Completed in stable hotfix worktree
+`C:\Users\vic_A\Desktop\vaultman\.claude\worktrees\hotfix-1.0.2-css-scorecard`.
+
+- Product commit: `f4d9a97 fix(stable): align explorers with core parity`.
+- Local gate: `pnpm run verify` passed after the final patch. Evidence:
+  `eslint .`; `tsc -noEmit -skipLibCheck && svelte-check --tsconfig ./tsconfig.json`
+  with `svelte-check found 0 errors and 0 warnings`; Prettier check passed;
+  `stylelint styles.css`; production `build:plugin`; unit tests passed
+  `2 files / 4 tests`; scorecard regression scan passed `17 checks`.
+- Svelte autofixer: edited Svelte files were checked; `navbarTabs.svelte` and
+  `tabContent.svelte` real keyed-each issues were fixed and rechecked clean.
+  A later `VaultmanFrame.svelte` autofixer invocation timed out; the fresh
+  `svelte-check`/verify gate remained clean.
+- Runtime sync: copied `main.js`, `manifest.json`, and `styles.css` to
+  `C:\Users\vic_A\Desktop\plugin-dev\.obsidian\plugins\vaultman`, then ran
+  `obsidian vault=plugin-dev plugin:reload id=vaultman`.
+- Runtime errors: after clearing the CLI error buffer and reloading/opening
+  Vaultman, `obsidian vault=plugin-dev dev:errors` returned
+  `No errors captured`.
+- Runtime smokes:
+  - Minimal style was active/reactive; dock actions rendered as
+    `clickable-icon nav-action-button vaultman-nav-dock-action`.
+  - Filters page icon rendered `lucide-filter`; `tab_props` rendered
+    `lucide-archive`.
+  - Operations page showed Queue and Active filters FABs; Queue empty island
+    showed Stage/Bypass with Stage active.
+  - Statistics page showed only locked Add-ons FAB with
+    `vaultman-backdrop-lock`; stats cards and word count rendered.
+  - Files search for `note-99` survived `filterService.clearFilters()` and
+    rendered ancestor folder rows plus matching files.
+  - Content preview used core Search classes and rendered file title, match row,
+    and matched-text snippets for `Roadmap` in the narrowed Vaultman scope.
+- Stable guard: the hotfix worktree contains no `AGENTS.md`, `CLAUDE.md`,
+  `.agents`, `.claude`, or `.codex` files.
