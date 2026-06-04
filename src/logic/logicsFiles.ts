@@ -19,6 +19,50 @@ export class FilesLogic {
 		const root: TreeNode<FileMeta>[] = [];
 		const folderMap = new Map<string, TreeNode<FileMeta>>();
 
+		const ensureFolder = (folderPath: string): TreeNode<FileMeta> | null => {
+			if (!folderPath) return null;
+
+			const parts = folderPath.split('/').filter(Boolean);
+			let parentNode: TreeNode<FileMeta> | null = null;
+
+			for (let index = 0; index < parts.length; index += 1) {
+				const currentPath = parts.slice(0, index + 1).join('/');
+				const existing = folderMap.get(currentPath);
+				if (existing) {
+					parentNode = existing;
+					continue;
+				}
+
+				const folderNode: TreeNode<FileMeta> = {
+					id: `folder:${currentPath}`,
+					label: parts[index],
+					depth: index,
+					children: [],
+					meta: { file: null, isFolder: true, folderPath: currentPath },
+				};
+				folderMap.set(currentPath, folderNode);
+				(parentNode?.children ?? root).push(folderNode);
+				parentNode = folderNode;
+			}
+
+			return folderMap.get(folderPath) ?? null;
+		};
+
+		const sortTree = (nodes: TreeNode<FileMeta>[]): TreeNode<FileMeta>[] => {
+			nodes.sort((a, b) => {
+				const aFolder = Boolean(a.meta?.isFolder);
+				const bFolder = Boolean(b.meta?.isFolder);
+				if (aFolder !== bFolder) return aFolder ? -1 : 1;
+				return a.label.localeCompare(b.label);
+			});
+
+			for (const node of nodes) {
+				if (node.children?.length) sortTree(node.children);
+			}
+
+			return nodes;
+		};
+
 		const sortedFiles = [...filteredFiles].sort((a, b) =>
 			a.path.localeCompare(b.path),
 		);
@@ -26,21 +70,7 @@ export class FilesLogic {
 		for (const file of sortedFiles) {
 			const rawPath = file.parent?.path ?? '';
 			const folderPath = rawPath === '/' ? '' : rawPath;
-			if (folderPath && !folderMap.has(folderPath)) {
-				const parts = folderPath.split('/');
-				const folderNode: TreeNode<FileMeta> = {
-					id: `folder:${folderPath}`,
-					label: parts[parts.length - 1],
-					depth: parts.length - 1,
-					children: [],
-					meta: { file: null, isFolder: true, folderPath },
-				};
-				folderMap.set(folderPath, folderNode);
-				// attach to correct parent folder or root
-				const parentPath = parts.slice(0, -1).join('/');
-				const parentNode = parentPath ? folderMap.get(parentPath) : null;
-				(parentNode?.children ?? root).push(folderNode);
-			}
+			const parentFolder = ensureFolder(folderPath);
 
 			const cache = this.app.metadataCache.getFileCache(file);
 			const propCount = Object.keys(cache?.frontmatter ?? {}).filter(
@@ -56,10 +86,9 @@ export class FilesLogic {
 				meta: { file, isFolder: false, folderPath },
 			};
 
-			const parentFolder = folderPath ? folderMap.get(folderPath) : null;
 			(parentFolder?.children ?? root).push(fileNode);
 		}
-		return root;
+		return sortTree(root);
 	}
 
 	/** Filter flat file list by name/folder substring */

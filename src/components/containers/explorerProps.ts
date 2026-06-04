@@ -20,14 +20,31 @@ import type { PropertyChange } from '../../types/typeOps';
 import { showInputModal } from '../../utils/inputModal';
 
 const TYPE_ICON_MAP: Record<string, string> = {
-	text: 'lucide-text-align-start',
-	number: 'lucide-hash',
-	checkbox: 'lucide-check-square',
-	date: 'lucide-calendar',
-	datetime: 'lucide-clock',
+	tags: 'lucide-tags',
 	list: 'lucide-list',
-	multitext: 'lucide-list-plus',
+	text: 'lucide-text',
+	number: 'lucide-binary',
+	date: 'lucide-calendar',
+	datetime: 'lucide-calendar',
+	checkbox: 'lucide-check-square',
+	unknown: 'lucide-file-question',
+	aliases: 'lucide-forward',
+	cssclasses: 'lucide-palette',
 };
+
+function normalizePropType(propType: string | undefined, propName?: string): string {
+	const normalizedName = propName?.toLowerCase();
+	if (normalizedName === 'tags') return 'tags';
+	if (normalizedName === 'aliases') return 'aliases';
+	if (normalizedName === 'cssclasses') return 'cssclasses';
+
+	const normalizedType = (propType ?? 'unknown').toLowerCase();
+	if (normalizedType === 'toggle') return 'checkbox';
+	if (normalizedType === 'numeric') return 'number';
+	if (normalizedType === 'multitext') return 'list';
+	if (normalizedType in TYPE_ICON_MAP) return normalizedType;
+	return 'unknown';
+}
 
 export class PropsExplorerPanel extends Component {
 	private plugin: PanelPluginCtx;
@@ -39,6 +56,10 @@ export class PropsExplorerPanel extends Component {
 	private viewMode: 'tree' | 'grid' = 'tree';
 	private sortBy: string = 'name';
 	private sortDir: 'asc' | 'desc' = 'asc';
+	private searchMode = 0;
+	private sortChildLevel = false;
+	private nodeTypeFilter: string | null = null;
+	private visibleCells = new Set<string>(['icon', 'text', 'count']);
 
 	constructor(containerEl: HTMLElement, plugin: PanelPluginCtx) {
 		super();
@@ -219,8 +240,9 @@ export class PropsExplorerPanel extends Component {
 		});
 	}
 
-	setSearchTerm(term: string): void {
+	setSearchTerm(term: string, mode = 0): void {
 		this.searchTerm = term;
+		this.searchMode = mode;
 		this._render();
 	}
 
@@ -232,9 +254,21 @@ export class PropsExplorerPanel extends Component {
 		this._render();
 	}
 
-	setSortBy(sortBy: string, direction: 'asc' | 'desc'): void {
+	setSortBy(
+		sortBy: string,
+		direction: 'asc' | 'desc',
+		childLevel = false,
+		nodeTypeFilter: string | null = null,
+	): void {
 		this.sortBy = sortBy;
 		this.sortDir = direction;
+		this.sortChildLevel = childLevel;
+		this.nodeTypeFilter = nodeTypeFilter;
+		this._render();
+	}
+
+	setVisibleCells(cells: Set<string>): void {
+		this.visibleCells = new Set(cells);
 		this._render();
 	}
 
@@ -254,7 +288,7 @@ export class PropsExplorerPanel extends Component {
 			this._renderGrid();
 			return;
 		}
-		const tree = this.logic.getTree();
+		let tree = this.logic.getTree();
 		const activeFilter = this.plugin.filterService.activeFilter;
 
 		const activeFilterIds = new Set<string>();
@@ -275,6 +309,14 @@ export class PropsExplorerPanel extends Component {
 		};
 		walkFilter(activeFilter);
 
+		if (this.nodeTypeFilter) {
+			tree = this._filterByType(tree, this.nodeTypeFilter);
+		}
+		if (this.searchTerm) {
+			tree = this.logic.filterTree(tree, this.searchTerm, this.searchMode);
+			this._expandAll(tree);
+		}
+
 		// FIX: prepare search function once
 		const searcher = this.searchTerm ? prepareSimpleSearch(this.searchTerm) : null;
 		const searchFunc = searcher ? (text: string) => searcher(text) : null;
@@ -283,9 +325,10 @@ export class PropsExplorerPanel extends Component {
 		const nodesWithIcons = this._resolveIcons(sorted, warningIds, highlightIds, searchFunc, this.plugin.queueService.queue);
 
 		this.view.render({
-			nodes: nodesWithIcons,
-			expandedIds: this.expandedIds,
-			activeFilterIds,
+				nodes: nodesWithIcons,
+				expandedIds: this.expandedIds,
+				visibleCells: this.visibleCells,
+				activeFilterIds,
 			warningIds,
 			searchHighlightIds: highlightIds,
 			onToggle: (id: string) => {
@@ -362,12 +405,33 @@ export class PropsExplorerPanel extends Component {
 		});
 	}
 
-	private _applySort(nodes: TreeNode<PropMeta>[]): TreeNode<PropMeta>[] {
+	private _expandAll(nodes: TreeNode<PropMeta>[]): void {
+		for (const node of nodes) {
+			if (node.children?.length) {
+				this.expandedIds.add(node.id);
+				this._expandAll(node.children);
+			}
+		}
+	}
+
+	private _filterByType(
+		nodes: TreeNode<PropMeta>[],
+		nodeTypeFilter: string,
+	): TreeNode<PropMeta>[] {
+		return nodes.filter((node) => {
+			if (node.meta.isValueNode) return false;
+			return (
+				normalizePropType(node.meta.propType, node.meta.propName) ===
+				nodeTypeFilter
+			);
+		});
+	}
+
+	private _sortNodes(nodes: TreeNode<PropMeta>[]): TreeNode<PropMeta>[] {
 		const dir = this.sortDir === 'asc' ? 1 : -1;
 		if (this.sortBy === 'date') {
 			const mtimeMap = new Map<string, number>();
 			for (const node of nodes) {
-				if (node.meta.isValueNode) continue;
 				const propName = node.meta.propName;
 				let maxMtime = 0;
 				for (const file of this.plugin.app.vault.getMarkdownFiles()) {
@@ -387,23 +451,53 @@ export class PropsExplorerPanel extends Component {
 		});
 	}
 
+	private _applySort(nodes: TreeNode<PropMeta>[]): TreeNode<PropMeta>[] {
+		if (!this.sortChildLevel) {
+			return this._sortNodes(nodes).map((node) => ({
+				...node,
+				children: node.children ? [...node.children] : [],
+			}));
+		}
+
+		return nodes.map((node) => ({
+			...node,
+			children: node.children ? this._sortNodes(node.children) : [],
+		}));
+	}
+
 	private _renderGrid(): void {
 		this.containerEl.empty();
-		const tree = this.logic.getTree();
+		let tree = this.logic.getTree();
+		if (this.nodeTypeFilter) {
+			tree = this._filterByType(tree, this.nodeTypeFilter);
+		}
+		if (this.searchTerm) {
+			tree = this.logic.filterTree(tree, this.searchTerm, this.searchMode);
+		}
 		const topProps = tree.filter(n => !n.meta.isValueNode);
-		const sorted = this._applySort(topProps);
-
-		const searcher = this.searchTerm ? prepareSimpleSearch(this.searchTerm) : null;
-		const filtered = searcher ? sorted.filter(n => searcher(n.label)) : sorted;
+		const filtered = this._applySort(topProps);
 
 		const grid = this.containerEl.createDiv({ cls: 'vaultman-props-grid' });
 		for (const node of filtered) {
 			const card = grid.createDiv({ cls: 'vaultman-prop-card' });
-			const iconEl = card.createDiv({ cls: 'vaultman-prop-card-icon' });
-			setIcon(iconEl, TYPE_ICON_MAP[node.meta.propType ?? ''] ?? 'lucide-tag');
-			card.createDiv({ cls: 'vaultman-prop-card-name', text: node.label });
+			if (this.visibleCells.has('icon')) {
+				const iconEl = card.createDiv({ cls: 'vaultman-prop-card-icon' });
+				setIcon(
+					iconEl,
+					TYPE_ICON_MAP[normalizePropType(node.meta.propType, node.meta.propName)],
+				);
+			}
+			if (this.visibleCells.has('text')) {
+				card.createDiv({ cls: 'vaultman-prop-card-name', text: node.label });
+			}
+			if (this.visibleCells.has('type')) {
+				card.createDiv({
+					cls: 'vaultman-prop-card-type',
+					text: normalizePropType(node.meta.propType, node.meta.propName),
+				});
+			}
 			const count = node.count ?? 0;
-			if (count) card.createDiv({ cls: 'vaultman-prop-card-count', text: String(count) });
+			if (this.visibleCells.has('count') && count) card.createDiv({ cls: 'vaultman-prop-card-count', text: String(count) });
 		}
 		if (filtered.length === 0) {
 			this.containerEl.createDiv({ cls: 'vaultman-empty-state', text: 'No properties' });
@@ -484,7 +578,7 @@ export class PropsExplorerPanel extends Component {
 				? this.plugin.iconicService?.getIcon(meta.propName)
 				: null;
 			const defaultIcon = !meta.isValueNode
-				? (TYPE_ICON_MAP[meta.propType] ?? 'lucide-tag')
+				? TYPE_ICON_MAP[normalizePropType(meta.propType, meta.propName)]
 				: undefined;
 
 			return {

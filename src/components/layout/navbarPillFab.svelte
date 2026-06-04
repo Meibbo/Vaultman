@@ -10,6 +10,7 @@
 		pageIcons,
 		leftFab,
 		rightFab,
+		minimalStyle = true,
 		navCollapsed,
 		isReordering = $bindable(),
 		reorderTargetIdx,
@@ -33,6 +34,7 @@
 		pageIcons: Record<string, string>;
 		leftFab: FabDef | null;
 		rightFab: FabDef | null;
+		minimalStyle?: boolean;
 		navCollapsed: boolean;
 		isReordering: boolean;
 		reorderTargetIdx: number;
@@ -49,6 +51,18 @@
 		navigateTo: (page: string) => void;
 		icon: (node: HTMLElement, name: string) => any;
 	} = $props();
+
+	function triggerFab(fab: FabDef, e: MouseEvent | KeyboardEvent): void {
+		e.stopPropagation();
+		if (fab.locked) return;
+		fab.action?.();
+	}
+
+	function fabBadgeCount(fab: FabDef): number {
+		if (fab.badge === 'queue') return queuedCount;
+		if (fab.badge === 'filters') return filterRuleCount;
+		return 0;
+	}
 </script>
 
 <div
@@ -71,98 +85,189 @@
 		></button>
 	{/if}
 
-	{#if leftFab}
-		<div class="vaultman-nav-fab-wrap">
-			<div
-				class="vaultman-nav-fab"
-				aria-label={leftFab.label}
-				use:icon={leftFab.icon}
-				onclick={(e: MouseEvent) => {
-					e.stopPropagation();
-					leftFab.action?.();
-				}}
-				onkeydown={(e: KeyboardEvent) => {
-					if (e.key === 'Enter' || e.key === ' ') {
-						e.stopPropagation();
-						leftFab.action?.();
-					}
-				}}
-				role="button"
-				tabindex="0"
-			></div>
-			{#if queuedCount > 0}
-				<div class="vaultman-fab-badge">{queuedCount}</div>
+	{#if minimalStyle}
+		<div
+			class="vaultman-nav-pill vaultman-nav-pill--minimal"
+			class:is-reordering={isReordering}
+			bind:this={pillEl}
+			onpointermove={(e: PointerEvent) => onPillPointerMove(e)}
+			onpointerup={() => onPillPointerUp()}
+			onpointerleave={() => exitReorder()}
+			role="tablist"
+			tabindex="-1"
+		>
+			{#if leftFab}
+				<div
+					class="vaultman-nav-icon vaultman-nav-dock-action"
+					class:is-locked={leftFab.locked}
+					class:vaultman-backdrop-lock={leftFab.lockBackdrop}
+					aria-label={leftFab.label}
+					aria-disabled={leftFab.locked ? 'true' : undefined}
+					use:icon={leftFab.icon}
+					onclick={(e: MouseEvent) => triggerFab(leftFab, e)}
+					onkeydown={(e: KeyboardEvent) => {
+						if (e.key === 'Enter' || e.key === ' ') triggerFab(leftFab, e);
+					}}
+					role="button"
+					tabindex={leftFab.locked ? -1 : 0}
+				>
+					{#if leftFab.locked}
+						<span
+							class="vaultman-dock-lock"
+							aria-hidden="true"
+							use:icon={'lucide-lock'}
+						></span>
+					{/if}
+					{#if fabBadgeCount(leftFab) > 0}
+						<div class="vaultman-fab-badge">{fabBadgeCount(leftFab)}</div>
+					{/if}
+				</div>
+			{:else}
+				<div class="vaultman-nav-dock-action-spacer"></div>
 			{/if}
-		</div>
-	{:else}
-		<div class="vaultman-nav-fab-placeholder"></div>
-	{/if}
+			<div class="vaultman-nav-dock-divider"></div>
 
-	<!-- Center: frosted glass pill with page icons -->
-	<div
-		class="vaultman-nav-pill"
-		class:is-reordering={isReordering}
-		bind:this={pillEl}
-		onpointermove={(e: PointerEvent) => onPillPointerMove(e)}
-		onpointerup={() => onPillPointerUp()}
-		onpointerleave={() => exitReorder()}
-		role="tablist"
-		tabindex="-1"
-	>
-		{#each pageOrder as pageId, i}
-			<div
-				class="vaultman-nav-icon"
-				class:is-active={activePage === pageId && !isReordering}
-				class:is-reorder-target={isReordering && reorderTargetIdx === i}
-				aria-label={pageLabels[pageId] ?? pageId}
-				use:icon={pageIcons[pageId] ?? 'lucide-circle'}
-				onpointerdown={(e: PointerEvent) => onNavIconPointerDown(e, i)}
-				onpointercancel={() => exitReorder()}
-				onclick={(e: MouseEvent) => {
-					e.stopPropagation();
-					if (!isReordering) navigateTo(pageId);
-				}}
-				onkeydown={(e: KeyboardEvent) => {
-					if (e.key === 'Enter' || e.key === ' ') {
+			{#each pageOrder as pageId, i (pageId)}
+				<div
+					class="vaultman-nav-icon vaultman-nav-page-icon"
+					class:is-active={activePage === pageId && !isReordering}
+					class:is-reorder-target={isReordering && reorderTargetIdx === i}
+					aria-label={pageLabels[pageId] ?? pageId}
+					use:icon={pageIcons[pageId] ?? 'lucide-circle'}
+					onpointerdown={(e: PointerEvent) => onNavIconPointerDown(e, i)}
+					onpointercancel={() => exitReorder()}
+					onclick={(e: MouseEvent) => {
 						e.stopPropagation();
 						if (!isReordering) navigateTo(pageId);
-					}
-				}}
-				role="tab"
-				tabindex={activePage === pageId ? 0 : -1}
-			>
-				{#if !isReordering && pageId === 'statistics' && selectedCount > 0}
-					<div class="vaultman-nav-dot-badge"></div>
-				{/if}
-			</div>
-		{/each}
-	</div>
+					}}
+					onkeydown={(e: KeyboardEvent) => {
+						if (e.key === 'Enter' || e.key === ' ') {
+							e.stopPropagation();
+							if (!isReordering) navigateTo(pageId);
+						}
+					}}
+					role="tab"
+					tabindex={activePage === pageId ? 0 : -1}
+				>
+					{#if !isReordering && pageId === 'statistics' && selectedCount > 0}
+						<div class="vaultman-nav-dot-badge"></div>
+					{/if}
+				</div>
+			{/each}
 
-	{#if rightFab}
-		<div class="vaultman-nav-fab-wrap">
-			<div
-				class="vaultman-nav-fab"
-				aria-label={rightFab.label}
-				use:icon={rightFab.icon}
-				onclick={(e: MouseEvent) => {
-					e.stopPropagation();
-					rightFab.action?.();
-				}}
-				onkeydown={(e: KeyboardEvent) => {
-					if (e.key === 'Enter' || e.key === ' ') {
-						e.stopPropagation();
-						rightFab.action?.();
-					}
-				}}
-				role="button"
-				tabindex="0"
-			></div>
-			{#if filterRuleCount > 0}
-				<div class="vaultman-fab-badge">{filterRuleCount}</div>
+			<div class="vaultman-nav-dock-divider"></div>
+			{#if rightFab}
+				<div
+					class="vaultman-nav-icon vaultman-nav-dock-action"
+					class:is-locked={rightFab.locked}
+					class:vaultman-backdrop-lock={rightFab.lockBackdrop}
+					aria-label={rightFab.label}
+					aria-disabled={rightFab.locked ? 'true' : undefined}
+					use:icon={rightFab.icon}
+					onclick={(e: MouseEvent) => triggerFab(rightFab, e)}
+					onkeydown={(e: KeyboardEvent) => {
+						if (e.key === 'Enter' || e.key === ' ') triggerFab(rightFab, e);
+					}}
+					role="button"
+					tabindex={rightFab.locked ? -1 : 0}
+				>
+					{#if rightFab.locked}
+						<span
+							class="vaultman-dock-lock"
+							aria-hidden="true"
+							use:icon={'lucide-lock'}
+						></span>
+					{/if}
+					{#if fabBadgeCount(rightFab) > 0}
+						<div class="vaultman-fab-badge">{fabBadgeCount(rightFab)}</div>
+					{/if}
+				</div>
+			{:else}
+				<div class="vaultman-nav-dock-action-spacer"></div>
 			{/if}
 		</div>
 	{:else}
-		<div class="vaultman-nav-fab-placeholder"></div>
+		{#if leftFab}
+			<div class="vaultman-nav-fab-wrap">
+				<div
+					class="vaultman-nav-fab"
+					aria-label={leftFab.label}
+					use:icon={leftFab.icon}
+					onclick={(e: MouseEvent) => triggerFab(leftFab, e)}
+					onkeydown={(e: KeyboardEvent) => {
+						if (e.key === 'Enter' || e.key === ' ') triggerFab(leftFab, e);
+					}}
+					role="button"
+					tabindex="0"
+				></div>
+				{#if fabBadgeCount(leftFab) > 0}
+					<div class="vaultman-fab-badge">{fabBadgeCount(leftFab)}</div>
+				{/if}
+			</div>
+		{:else}
+			<div class="vaultman-nav-fab-placeholder"></div>
+		{/if}
+
+		<!-- Center: frosted glass pill with page icons -->
+		<div
+			class="vaultman-nav-pill"
+			class:is-reordering={isReordering}
+			bind:this={pillEl}
+			onpointermove={(e: PointerEvent) => onPillPointerMove(e)}
+			onpointerup={() => onPillPointerUp()}
+			onpointerleave={() => exitReorder()}
+			role="tablist"
+			tabindex="-1"
+		>
+			{#each pageOrder as pageId, i (pageId)}
+				<div
+					class="vaultman-nav-icon vaultman-nav-page-icon"
+					class:is-active={activePage === pageId && !isReordering}
+					class:is-reorder-target={isReordering && reorderTargetIdx === i}
+					aria-label={pageLabels[pageId] ?? pageId}
+					use:icon={pageIcons[pageId] ?? 'lucide-circle'}
+					onpointerdown={(e: PointerEvent) => onNavIconPointerDown(e, i)}
+					onpointercancel={() => exitReorder()}
+					onclick={(e: MouseEvent) => {
+						e.stopPropagation();
+						if (!isReordering) navigateTo(pageId);
+					}}
+					onkeydown={(e: KeyboardEvent) => {
+						if (e.key === 'Enter' || e.key === ' ') {
+							e.stopPropagation();
+							if (!isReordering) navigateTo(pageId);
+						}
+					}}
+					role="tab"
+					tabindex={activePage === pageId ? 0 : -1}
+				>
+					{#if !isReordering && pageId === 'statistics' && selectedCount > 0}
+						<div class="vaultman-nav-dot-badge"></div>
+					{/if}
+				</div>
+			{/each}
+		</div>
+
+		{#if rightFab}
+			<div class="vaultman-nav-fab-wrap">
+				<div
+					class="vaultman-nav-fab"
+					aria-label={rightFab.label}
+					use:icon={rightFab.icon}
+					onclick={(e: MouseEvent) => triggerFab(rightFab, e)}
+					onkeydown={(e: KeyboardEvent) => {
+						if (e.key === 'Enter' || e.key === ' ') triggerFab(rightFab, e);
+					}}
+					role="button"
+					tabindex="0"
+				></div>
+				{#if fabBadgeCount(rightFab) > 0}
+					<div class="vaultman-fab-badge">{fabBadgeCount(rightFab)}</div>
+				{/if}
+			</div>
+		{:else}
+			<div class="vaultman-nav-fab-placeholder"></div>
+		{/if}
 	{/if}
 </div>
 

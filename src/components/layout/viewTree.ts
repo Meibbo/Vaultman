@@ -16,6 +16,7 @@ export interface TreeViewOptions {
 	onCancelRename?: () => void;
 	onBadgeDoubleClick?: (queueIndex: number) => void;
 	renderLimit?: number;
+	visibleCells?: Set<string>;
 }
 
 const RENDER_LIMIT = 200;
@@ -88,6 +89,12 @@ export class UnifiedTreeView {
 		const isActive = opts.activeFilterIds?.has(node.id) ?? false;
 		const isWarning = opts.warningIds?.has(node.id) ?? false;
 		const isEditing = opts.editingId === node.id;
+		const visibleCells = opts.visibleCells;
+		const showIcon = visibleCells ? visibleCells.has('icon') : true;
+		const showLabel = visibleCells
+			? visibleCells.has('text') || visibleCells.has('name')
+			: true;
+		const showCount = visibleCells ? visibleCells.has('count') : true;
 
 		const row = parent.createDiv({ cls: 'vaultman-tree-row' });
 		if (typeof node.cls === 'string' && node.cls.trim()) {
@@ -113,13 +120,13 @@ export class UnifiedTreeView {
 		}
 
 		// Icon
-		if (node.icon) {
+		if (node.icon && showIcon) {
 			const iconSpan = row.createSpan({ cls: 'vaultman-tree-icon' });
 			setIcon(iconSpan, node.icon);
 		}
 
 		// Label / Input
-		if (isEditing) {
+		if (isEditing && showLabel) {
 			const input = row.createEl('input', {
 				cls: 'vaultman-tree-input',
 				value: node.label,
@@ -138,12 +145,15 @@ export class UnifiedTreeView {
 					opts.onCancelRename?.();
 				}
 			});
-		} else {
+		} else if (showLabel) {
 			row.createSpan({ cls: 'vaultman-tree-label', text: node.label });
 		}
 
 		// Multi-zone Badges container
-		if ((node.count != null && node.count > 0) || (node.badges && node.badges.length > 0)) {
+		if (
+			(showCount && node.count != null && node.count > 0) ||
+			(node.badges && node.badges.length > 0)
+		) {
 			const badgeZone = row.createDiv({ cls: 'vaultman-tree-badge-zone' });
 
 			// Priority: Operations/Conflicts badges first
@@ -174,7 +184,7 @@ export class UnifiedTreeView {
 			}
 
 			// Frequency counter second
-			if (node.count != null && node.count > 0) {
+			if (showCount && node.count != null && node.count > 0) {
 				badgeZone.createSpan({ cls: 'vaultman-tree-count', text: String(node.count) });
 			}
 		}

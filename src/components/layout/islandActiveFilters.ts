@@ -1,7 +1,7 @@
-import { setIcon, Menu } from 'obsidian';
+import { setIcon } from 'obsidian';
 import { translate } from '../../i18n/index';
 import type { VaultmanPlugin } from '../../main';
-import { SaveTemplateModal } from '../../modals/modalSaveTemplate';
+import { openFilterTemplateMenu } from '../../utils/filterTemplateMenu';
 
 /**
  * In-frame floating island showing active filter rules.
@@ -43,16 +43,6 @@ export class ActiveFiltersIslandComponent {
 			this.onClose();
 		});
 
-		// Left: List Details (Reserved/Toggle View?)
-		const detailsBtn = btnRow.createDiv({
-			cls: 'vaultman-squircle',
-			attr: { 'aria-label': translate('ops.details'), role: 'button', tabindex: '0' },
-		});
-		setIcon(detailsBtn, 'lucide-list');
-		detailsBtn.addEventListener('click', () => {
-			// Toggle between tree and flat list if needed in future
-		});
-
 		// Right: Templates
 		const templateBtn = btnRow.createDiv({
 			cls: 'vaultman-squircle',
@@ -60,34 +50,7 @@ export class ActiveFiltersIslandComponent {
 		});
 		setIcon(templateBtn, 'lucide-bookmark');
 		templateBtn.addEventListener('click', (e) => {
-			const menu = new Menu();
-			this.plugin.settings.filterTemplates.forEach((tpl) => {
-				menu.addItem((item) =>
-					item.setTitle(tpl.name).onClick(() => {
-						this.plugin.filterService.loadTemplate(tpl);
-						this.onClose();
-					}),
-				);
-			});
-			menu.addSeparator();
-			menu.addItem((item) =>
-				item.setTitle(translate("filter.template.save")).onClick(() => {
-					new SaveTemplateModal(this.plugin.app, this.plugin, this.plugin.filterService.activeFilter).open();
-					this.onClose();
-				})
-			);
-			menu.showAtMouseEvent(e);
-		});
-
-		// Right: Apply (reserved for active filters, maybe "Save for later")
-		const saveBtn = btnRow.createDiv({
-			cls: 'vaultman-squircle is-accent',
-			attr: { 'aria-label': 'Save Filter', role: 'button', tabindex: '0' },
-		});
-		setIcon(saveBtn, 'lucide-check');
-		saveBtn.addEventListener('click', () => {
-			// Logic to save as permanent filter if needed
-			this.onClose();
+			openFilterTemplateMenu(this.plugin, e, this.onClose);
 		});
 
 		// 2. Header

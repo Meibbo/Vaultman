@@ -47,6 +47,7 @@ export const en: Record<string, string> = {
 	'files.col.name': 'Name',
 	'files.col.props': '# Props',
 	'files.col.path': 'Path',
+	'files.col.date': 'Date',
 
 	// Operations
 	'ops.properties': 'Properties',
@@ -110,6 +111,8 @@ export const en: Record<string, string> = {
 	'settings.language.desc': 'Interface language',
 	'settings.background_blur': 'Background blur intensity',
 	'settings.background_blur.desc': 'Controls the glass blur on the bottom bar and popups.',
+	'settings.minimal_style': 'Minimal style',
+	'settings.minimal_style.desc': 'Use compact Obsidian-native icon buttons in headers and the bottom dock.',
 	'settings.default_type': 'Default property type',
 	'settings.default_type.desc': 'Default type for new properties',
 	'settings.templates': 'Filter templates',
@@ -390,6 +393,7 @@ export const en: Record<string, string> = {
 	'filters.popup.clear_all': 'Clear all filters',
 	'filters.popup.templates': 'Filter templates',
 	'filters.popup.empty': 'No active filters',
+	'filters.popup.active': 'active rules',
 	'filters.popup.rule.enable': 'Enable filter',
 	'filters.popup.rule.disable': 'Disable filter',
 	'filters.popup.rule.delete': 'Remove filter',
@@ -438,6 +442,18 @@ export const en: Record<string, string> = {
 	'sort.vertcol.node_level':    'Toggle node level',
 	'sort.vertcol.direct_toggle': 'Toggle direct',
 	'sort.vertcol.scope_drawer':  'Open scope drawer',
+	'sort.type.all':        'All types',
+	'sort.type.tags':       'Tags',
+	'sort.type.list':       'List',
+	'sort.type.text':       'Text',
+	'sort.type.number':     'Number',
+	'sort.type.date':       'Date',
+	'sort.type.checkbox':   'Checkbox',
+	'sort.type.aliases':    'Aliases',
+	'sort.type.cssclasses': 'CSS classes',
+	'sort.type.unknown':    'Unknown',
+	'sort.type.nested':     'Nested tags',
+	'sort.type.simple':     'Simple tags',
 
 	// View mode popup (Iter 17)
 	'viewmode.close':       'Close view mode',
@@ -468,6 +484,7 @@ export const en: Record<string, string> = {
 	'stats.props': 'Properties',
 	'stats.values': 'Values',
 	'stats.tags': 'Tags',
+	'stats.addons': 'Add-ons',
 	'stats.total_links': 'Total Links',
 	'stats.word_count': 'Word Count',
 };

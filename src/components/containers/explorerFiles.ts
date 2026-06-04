@@ -19,12 +19,13 @@ export class FilesExplorerPanel extends Component {
 	private gridView: GridView | null = null;
 	private treeView: UnifiedTreeView | null = null;
 	private expandedIds = new Set<string>();
-	private viewMode: FilesViewMode = 'grid';
+	private viewMode: FilesViewMode = 'tree';
 	private _currentFiles: TFile[] = [];
 	private _totalCount = 0;
 	private sortBy: string = 'name';
 	private sortDir: 'asc' | 'desc' = 'asc';
 	private addMode = false;
+	private visibleCells = new Set<string>(['icon', 'name', 'count', 'path']);
 
 	private onSelectionChange?: (count: number) => void;
 
@@ -101,6 +102,12 @@ export class FilesExplorerPanel extends Component {
 		this._render();
 	}
 
+	setVisibleCells(cells: Set<string>): void {
+		this.visibleCells = new Set(cells);
+		this.gridView?.setVisibleCells(this.visibleCells);
+		this._render();
+	}
+
 	setSortBy(sortBy: string, direction: 'asc' | 'desc'): void {
 		this.sortBy = sortBy;
 		this.sortDir = direction;
@@ -158,6 +165,7 @@ export class FilesExplorerPanel extends Component {
 					void this.plugin.app.workspace.openLinkText(file.path, '', false);
 				},
 			});
+			this.gridView.setVisibleCells(this.visibleCells);
 			// Sync current sort state to grid on mount
 			const COL_MAP: Record<string, import('../layout/viewGrid').SortColumn> = {
 				name: 'name', count: 'props', date: 'date', columns: 'name',
@@ -199,6 +207,7 @@ export class FilesExplorerPanel extends Component {
 			this.treeView.render({
 				nodes: tree,
 				expandedIds: this.expandedIds,
+				visibleCells: this.visibleCells,
 				onToggle: (id: string) => {
 					if (this.expandedIds.has(id)) this.expandedIds.delete(id);
 					else this.expandedIds.add(id);

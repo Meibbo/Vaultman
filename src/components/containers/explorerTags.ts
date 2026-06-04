@@ -1,5 +1,5 @@
 // src/components/TagsExplorerPanel.ts
-import { Component, App } from 'obsidian';
+import { Component, App, setIcon } from 'obsidian';
 import { TagsLogic } from '../../logic/logicTags';
 import { FilterService } from '../../services/serviceFilter';
 import { IconicService } from '../../services/serviceIcons';
@@ -20,6 +20,7 @@ import type { MenuCtx } from '../../types/typeCMenu';
 export class TagsExplorerPanel extends Component {
 	private plugin: PanelPluginCtx;
 	private logic: TagsLogic;
+	private containerEl: HTMLElement;
 	private view: UnifiedTreeView;
 	private expandedIds = new Set<string>();
 	private searchTerm = '';
@@ -27,11 +28,16 @@ export class TagsExplorerPanel extends Component {
 	private editingId: string | null = null;
 	private sortBy: string = 'name';
 	private sortDir: 'asc' | 'desc' = 'asc';
+	private sortChildLevel = false;
+	private nodeTypeFilter: string | null = null;
+	private viewMode: 'tree' | 'grid' = 'tree';
+	private visibleCells = new Set<string>(['icon', 'text', 'count']);
 
 	constructor(containerEl: HTMLElement, plugin: PanelPluginCtx) {
 		super();
 		this.plugin = plugin;
 		this.logic = new TagsLogic(plugin.app);
+		this.containerEl = containerEl;
 		this.view = new UnifiedTreeView(containerEl);
 	}
 
@@ -111,13 +117,34 @@ export class TagsExplorerPanel extends Component {
 		this._render();
 	}
 
-	setSortBy(sortBy: string, direction: 'asc' | 'desc'): void {
+	setSortBy(
+		sortBy: string,
+		direction: 'asc' | 'desc',
+		childLevel = false,
+		nodeTypeFilter: string | null = null,
+	): void {
 		this.sortBy = sortBy;
 		this.sortDir = direction;
+		this.sortChildLevel = childLevel;
+		this.nodeTypeFilter = nodeTypeFilter;
 		this._render();
 	}
 
-	private _applySort(nodes: TreeNode<TagMeta>[]): TreeNode<TagMeta>[] {
+	setViewMode(mode: 'tree' | 'grid'): void {
+		this.viewMode = mode;
+		if (mode === 'tree') {
+			this.containerEl.empty();
+			this.view = new UnifiedTreeView(this.containerEl);
+		}
+		this._render();
+	}
+
+	setVisibleCells(cells: Set<string>): void {
+		this.visibleCells = new Set(cells);
+		this._render();
+	}
+
+	private _sortNodes(nodes: TreeNode<TagMeta>[]): TreeNode<TagMeta>[] {
 		const dir = this.sortDir === 'asc' ? 1 : -1;
 		if (this.sortBy === 'date') {
 			const mtimeMap = new Map<string, number>();
@@ -145,6 +172,20 @@ export class TagsExplorerPanel extends Component {
 		});
 	}
 
+	private _applySort(nodes: TreeNode<TagMeta>[]): TreeNode<TagMeta>[] {
+		if (!this.sortChildLevel) {
+			return this._sortNodes(nodes).map((node) => ({
+				...node,
+				children: node.children ? [...node.children] : [],
+			}));
+		}
+
+		return nodes.map((node) => ({
+			...node,
+			children: node.children ? this._sortNodes(node.children) : [],
+		}));
+	}
+
 	private _expandAll(nodes: TreeNode<TagMeta>[]): void {
 		for (const n of nodes) {
 			if (n.children && n.children.length > 0) {
@@ -160,11 +201,19 @@ export class TagsExplorerPanel extends Component {
 		if (this.searchMode === 'leaf') {
 			tree = this._collectLeaves(tree);
 		}
+		if (this.nodeTypeFilter) {
+			tree = this._filterByNodeType(tree, this.nodeTypeFilter);
+		}
 		if (this.searchTerm) {
 			tree = this.logic.filterTree(tree, this.searchTerm);
 			this._expandAll(tree);
 		}
 		tree = this._applySort(tree);
+
+		if (this.viewMode === 'grid') {
+			this._renderGrid(tree);
+			return;
+		}
 
 		const activeFilterIds = new Set<string>();
 		for (const node of this._flattenTree(tree)) {
@@ -190,6 +239,7 @@ export class TagsExplorerPanel extends Component {
 		this.view.render({
 			nodes: nodesWithIcons,
 			expandedIds: this.expandedIds,
+			visibleCells: this.visibleCells,
 			activeFilterIds,
 			searchHighlightIds: highlightIds,
 			editingId: this.editingId,
@@ -235,20 +285,7 @@ export class TagsExplorerPanel extends Component {
 					return;
 				}
 
-				const tagId = `#${meta.tagPath}`;
-
-				// Toggle logic: remove if already active filter
-				if (this.plugin.filterService.hasTagFilter(tagId)) {
-					void this.plugin.filterService.removeNodeByTag(tagId);
-					return;
-				}
-
-				void this.plugin.filterService.addNode({
-					type: 'rule',
-					filterType: 'has_tag',
-					property: '',
-					values: [tagId],
-				});
+				this._toggleTagFilter(meta.tagPath);
 			},
 			onContextMenu: (id: string, e: MouseEvent) => {
 				const node = this._findNode(id, tree);
@@ -263,6 +300,79 @@ export class TagsExplorerPanel extends Component {
 				void this._render();
 			},
 		});
+	}
+
+	private _toggleTagFilter(tagPath: string): void {
+		const tagId = `#${tagPath}`;
+		if (this.plugin.filterService.hasTagFilter(tagId)) {
+			void this.plugin.filterService.removeNodeByTag(tagId);
+			return;
+		}
+
+		void this.plugin.filterService.addNode({
+			type: 'rule',
+			filterType: 'has_tag',
+			property: '',
+			values: [tagId],
+		});
+	}
+
+	private _renderGrid(tree: TreeNode<TagMeta>[]): void {
+		this.containerEl.empty();
+		const activeFilterIds = new Set<string>();
+		const flatNodes = this._flattenTree(tree);
+		const grid = this.containerEl.createDiv({ cls: 'vaultman-tags-grid' });
+
+		for (const node of flatNodes) {
+			if (this.plugin.filterService.hasTagFilter(`#${node.meta.tagPath}`)) {
+				activeFilterIds.add(node.id);
+			}
+
+			const card = grid.createDiv({ cls: 'vaultman-tag-card' });
+			card.toggleClass('is-active-filter', activeFilterIds.has(node.id));
+			card.setAttribute('role', 'button');
+			card.setAttribute('tabindex', '0');
+			card.setAttribute('aria-label', node.meta.tagPath);
+
+			if (this.visibleCells.has('icon')) {
+				const iconEl = card.createDiv({ cls: 'vaultman-tag-card-icon' });
+				setIcon(
+					iconEl,
+					this.plugin.iconicService?.getTagIcon(node.meta.tagPath)?.icon ??
+						'lucide-tag',
+				);
+			}
+			if (this.visibleCells.has('text')) {
+				card.createDiv({ cls: 'vaultman-tag-card-name', text: node.label });
+			}
+			if (this.visibleCells.has('nested') && node.children?.length) {
+				card.createDiv({
+					cls: 'vaultman-tag-card-meta',
+					text: String(node.children.length),
+				});
+			}
+			if (this.visibleCells.has('count') && node.count) {
+				card.createDiv({ cls: 'vaultman-tag-card-count', text: String(node.count) });
+			}
+
+			card.addEventListener('click', () => this._toggleTagFilter(node.meta.tagPath));
+			card.addEventListener('keydown', (event) => {
+				if (event.key === 'Enter' || event.key === ' ') {
+					this._toggleTagFilter(node.meta.tagPath);
+				}
+			});
+			card.addEventListener('contextmenu', (event) => {
+				event.preventDefault();
+				this.plugin.contextMenuService.openPanelMenu(
+					{ nodeType: 'tag', node, surface: 'panel' },
+					event,
+				);
+			});
+		}
+
+		if (flatNodes.length === 0) {
+			this.containerEl.createDiv({ cls: 'vaultman-empty-state', text: 'No tags' });
+		}
 	}
 
 	private _resolveIcons(nodes: TreeNode<TagMeta>[], highlightIds: Set<string>, searchFunc: ((text: string) => unknown) | null, parentDeleted = false): TreeNode<TagMeta>[] {
@@ -396,6 +506,28 @@ export class TagsExplorerPanel extends Component {
 		};
 		walk(nodes);
 		return leaves;
+	}
+
+	private _collectNested(nodes: TreeNode<TagMeta>[]): TreeNode<TagMeta>[] {
+		const nested: TreeNode<TagMeta>[] = [];
+		for (const node of nodes) {
+			if (node.children?.length) {
+				nested.push({
+					...node,
+					children: this._collectNested(node.children),
+				});
+			}
+		}
+		return nested;
+	}
+
+	private _filterByNodeType(
+		nodes: TreeNode<TagMeta>[],
+		nodeTypeFilter: string,
+	): TreeNode<TagMeta>[] {
+		if (nodeTypeFilter === 'simple') return this._collectLeaves(nodes);
+		if (nodeTypeFilter === 'nested') return this._collectNested(nodes);
+		return nodes;
 	}
 
 	private _findNode(id: string, nodes: TreeNode<TagMeta>[]): TreeNode<TagMeta> | null {

@@ -5,6 +5,7 @@
 	import type { FilesExplorerPanel } from '../containers/explorerFiles';
 	import type { PropsExplorerPanel } from '../containers/explorerProps';
 	import type { TagsExplorerPanel } from '../containers/explorerTags';
+	import type { ExplorerSortState, ExplorerViewMode } from '../../types/typeUI';
 
 	type FiltersTab = 'props' | 'files' | 'tags';
 	type HeaderMode = 'header' | 'sort' | 'viewmode';
@@ -18,6 +19,7 @@
 		fileList,
 		icon,
 		addOpCount = 0,
+		minimalStyle = true,
 	}: {
 		activeTab: FiltersTab;
 		filtersSearch: string;
@@ -27,6 +29,7 @@
 		fileList: FilesExplorerPanel | undefined;
 		icon: (node: HTMLElement, name: string) => { update(n: string): void };
 		addOpCount?: number;
+		minimalStyle?: boolean;
 	} = $props();
 
 	const CATEGORY_ICONS: Record<FiltersTab, [string, string]> = {
@@ -54,9 +57,52 @@
 			'lucide-search',
 	);
 
+	const DEFAULT_SORT_STATE: Record<FiltersTab, ExplorerSortState> = {
+		props: {
+			sortBy: 'name',
+			direction: 'asc',
+			childLevel: false,
+			nodeTypeFilter: null,
+		},
+		tags: {
+			sortBy: 'name',
+			direction: 'asc',
+			childLevel: false,
+			nodeTypeFilter: null,
+		},
+		files: {
+			sortBy: 'name',
+			direction: 'asc',
+			childLevel: false,
+			nodeTypeFilter: null,
+		},
+	};
+	const DEFAULT_VISIBLE_CELLS: Record<FiltersTab, string[]> = {
+		props: ['icon', 'text', 'count'],
+		tags: ['icon', 'text', 'count'],
+		files: ['icon', 'name', 'count', 'path'],
+	};
+
 	let headerMode = $state<HeaderMode>('header');
 	let headerExitDir = $state<'left' | 'right'>('right');
-	let currentViewMode = $state<'tree' | 'dnd' | 'grid' | 'cards'>('grid'); // Files default is grid
+	let viewModeByTab = $state<Record<FiltersTab, ExplorerViewMode>>({
+		props: 'tree',
+		tags: 'tree',
+		files: 'tree',
+	});
+	let visibleCellsByTab = $state<Record<FiltersTab, string[]>>({
+		props: [...DEFAULT_VISIBLE_CELLS.props],
+		tags: [...DEFAULT_VISIBLE_CELLS.tags],
+		files: [...DEFAULT_VISIBLE_CELLS.files],
+	});
+	let sortStateByTab = $state<Record<FiltersTab, ExplorerSortState>>({
+		props: { ...DEFAULT_SORT_STATE.props },
+		tags: { ...DEFAULT_SORT_STATE.tags },
+		files: { ...DEFAULT_SORT_STATE.files },
+	});
+	const headerActionClass = $derived(
+		minimalStyle ? 'clickable-icon nav-action-button' : 'vaultman-nav-fab',
+	);
 
 	function openSortPopup() {
 		headerExitDir = 'right';
@@ -76,21 +122,77 @@
 		filtersSearchCategory = { ...filtersSearchCategory };
 	}
 
-	function handleSortChange(sortBy: string, direction: 'asc' | 'desc') {
-		if (activeTab === 'files') fileList?.setSortBy(sortBy, direction);
-		if (activeTab === 'props') propExplorer?.setSortBy(sortBy, direction);
-		if (activeTab === 'tags') tagsExplorer?.setSortBy(sortBy, direction);
+	function applySortState(tab: FiltersTab, state: ExplorerSortState) {
+		if (tab === 'files') fileList?.setSortBy(state.sortBy, state.direction);
+		if (tab === 'props') {
+			propExplorer?.setSortBy(
+				state.sortBy,
+				state.direction,
+				state.childLevel,
+				state.nodeTypeFilter,
+			);
+		}
+		if (tab === 'tags') {
+			tagsExplorer?.setSortBy(
+				state.sortBy,
+				state.direction,
+				state.childLevel,
+				state.nodeTypeFilter,
+			);
+		}
 	}
 
-	function handleViewModeChange(mode: 'tree' | 'dnd' | 'grid' | 'cards') {
-		currentViewMode = mode;
-		if (activeTab === 'files') {
-			fileList?.setViewMode(mode === 'grid' ? 'grid' : 'tree');
-		} else if (activeTab === 'props') {
-			propExplorer?.setViewMode(mode === 'grid' ? 'grid' : 'tree');
-		}
-		// tags: tree-only, no-op
+	function applyViewMode(tab: FiltersTab, mode: ExplorerViewMode) {
+		const effectiveMode = mode === 'grid' ? 'grid' : 'tree';
+		if (tab === 'files') fileList?.setViewMode(effectiveMode);
+		if (tab === 'props') propExplorer?.setViewMode(effectiveMode);
+		if (tab === 'tags') tagsExplorer?.setViewMode(effectiveMode);
 	}
+
+	function applyVisibleCells(tab: FiltersTab, cells: string[]) {
+		const cellSet = new Set(cells);
+		if (tab === 'files') fileList?.setVisibleCells(cellSet);
+		if (tab === 'props') propExplorer?.setVisibleCells(cellSet);
+		if (tab === 'tags') tagsExplorer?.setVisibleCells(cellSet);
+	}
+
+	function handleSortChange(state: ExplorerSortState) {
+		sortStateByTab = { ...sortStateByTab, [activeTab]: state };
+		applySortState(activeTab, state);
+	}
+
+	function handleViewModeChange(mode: ExplorerViewMode) {
+		if (mode === 'dnd' || mode === 'cards') return;
+		viewModeByTab = { ...viewModeByTab, [activeTab]: mode };
+		applyViewMode(activeTab, mode);
+	}
+
+	function handlePillsChange(cells: string[]) {
+		visibleCellsByTab = { ...visibleCellsByTab, [activeTab]: cells };
+		applyVisibleCells(activeTab, cells);
+	}
+
+	$effect(() => {
+		const tab = activeTab;
+		const viewMode = viewModeByTab[tab] ?? 'tree';
+		const cells = visibleCellsByTab[tab] ?? DEFAULT_VISIBLE_CELLS[tab];
+		const sortState = sortStateByTab[tab] ?? DEFAULT_SORT_STATE[tab];
+		if (tab === 'files' && fileList) {
+			applyViewMode(tab, viewMode);
+			applyVisibleCells(tab, cells);
+			applySortState(tab, sortState);
+		}
+		if (tab === 'props' && propExplorer) {
+			applyViewMode(tab, viewMode);
+			applyVisibleCells(tab, cells);
+			applySortState(tab, sortState);
+		}
+		if (tab === 'tags' && tagsExplorer) {
+			applyViewMode(tab, viewMode);
+			applyVisibleCells(tab, cells);
+			applySortState(tab, sortState);
+		}
+	});
 
 	function handleAddModeChange(active: boolean) {
 		propExplorer?.setAddMode(active);
@@ -104,7 +206,7 @@
 		{#if headerMode === 'header'}
 			<div class="vaultman-filters-header">
 				<div
-					class="vaultman-nav-fab"
+					class={headerActionClass}
 					role="button"
 					tabindex="0"
 					aria-label={translate('filter.viewmode_btn')}
@@ -145,7 +247,7 @@
 					></button>
 				</div>
 				<div
-					class="vaultman-nav-fab"
+					class={headerActionClass}
 					role="button"
 					tabindex="0"
 					aria-label={translate('filter.sort_btn')}
@@ -162,11 +264,11 @@
 				class:popup-enter-from-left={headerExitDir === 'right'}
 				class:popup-enter-from-right={headerExitDir === 'left'}
 			>
-				<!-- @ts-ignore — onSortChange added to popupSort in Task 7 -->
 				<SortPopup
 					{activeTab}
 					onClose={closeHeaderPopup}
 					onSortChange={handleSortChange}
+					initialSortState={sortStateByTab[activeTab]}
 					{icon}
 				/>
 			</div>
@@ -180,8 +282,10 @@
 					{activeTab}
 					onClose={closeHeaderPopup}
 					onViewModeChange={handleViewModeChange}
+					onPillsChange={handlePillsChange}
 					onAddModeChange={handleAddModeChange}
-					initialViewMode={activeTab === 'files' ? currentViewMode : 'tree'}
+					initialViewMode={viewModeByTab[activeTab]}
+					initialPills={visibleCellsByTab[activeTab]}
 					{addOpCount}
 					{icon}
 				/>

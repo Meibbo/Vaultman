@@ -33,6 +33,7 @@
 	propExplorer={undefined}
 	{fileList}
 	{addOpCount}
+	minimalStyle={plugin.settings.minimalStyle}
 	{icon}
 />
 

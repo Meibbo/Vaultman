@@ -1,5 +1,5 @@
 // src/components/GridView.ts
-import type { App, TFile } from 'obsidian';
+import { setIcon, type App, type TFile } from 'obsidian';
 import { translate } from '../../i18n/index';
 
 export type SortColumn = 'name' | 'props' | 'path' | 'date';
@@ -21,6 +21,7 @@ export class GridView {
 	private sortColumn: SortColumn = 'name';
 	private sortDirection: SortDirection = 'asc';
 	private headerCheckbox: HTMLInputElement | null = null;
+	private visibleCells = new Set<string>(['icon', 'name', 'count', 'path']);
 
 	private readonly RENDER_LIMIT = 200;
 	private showAll = false;
@@ -43,6 +44,7 @@ export class GridView {
 
 		// Column headers
 		const colHeader = this.containerEl.createDiv({ cls: 'vaultman-files-col-header' });
+		colHeader.style.gridTemplateColumns = this._gridColumns();
 		this.headerCheckbox = colHeader.createEl('input', {
 			cls: 'vaultman-file-checkbox',
 			attr: { type: 'checkbox' },
@@ -57,9 +59,21 @@ export class GridView {
 			this.callbacks.onSelectionChange(this.selectedFiles);
 		});
 
-		this._createSortHeader(colHeader, 'name', translate('files.col.name'), files, totalCount);
-		this._createSortHeader(colHeader, 'props', translate('files.col.props'), files, totalCount);
-		this._createSortHeader(colHeader, 'path', translate('files.col.path'), files, totalCount);
+		if (this.visibleCells.has('icon')) {
+			colHeader.createSpan({ cls: 'vaultman-files-col-icon' });
+		}
+		if (this.visibleCells.has('name')) {
+			this._createSortHeader(colHeader, 'name', translate('files.col.name'), files, totalCount);
+		}
+		if (this.visibleCells.has('count')) {
+			this._createSortHeader(colHeader, 'props', translate('files.col.props'), files, totalCount);
+		}
+		if (this.visibleCells.has('date')) {
+			this._createSortHeader(colHeader, 'date', translate('files.col.date'), files, totalCount);
+		}
+		if (this.visibleCells.has('path')) {
+			this._createSortHeader(colHeader, 'path', translate('files.col.path'), files, totalCount);
+		}
 
 		this.containerEl.createDiv({ cls: 'vaultman-files-list' });
 		this._updateList(files, totalCount);
@@ -86,6 +100,20 @@ export class GridView {
 	setSortColumn(col: SortColumn, dir: SortDirection): void {
 		this.sortColumn = col;
 		this.sortDirection = dir;
+	}
+
+	setVisibleCells(cells: Set<string>): void {
+		this.visibleCells = new Set(cells);
+	}
+
+	private _gridColumns(): string {
+		const columns = ['18px'];
+		if (this.visibleCells.has('icon')) columns.push('18px');
+		if (this.visibleCells.has('name')) columns.push('minmax(0, 1fr)');
+		if (this.visibleCells.has('count')) columns.push('50px');
+		if (this.visibleCells.has('date')) columns.push('70px');
+		if (this.visibleCells.has('path')) columns.push('70px');
+		return columns.join(' ');
 	}
 
 	private _updateList(files: TFile[], _total: number): void {
@@ -116,6 +144,7 @@ export class GridView {
 
 	private _renderRow(parent: HTMLElement, file: TFile): void {
 		const row = parent.createDiv({ cls: 'vaultman-file-row' });
+		row.style.gridTemplateColumns = this._gridColumns();
 
 		const cb = row.createEl('input', { cls: 'vaultman-file-checkbox', attr: { type: 'checkbox' } });
 		cb.checked = this.selectedFiles.has(file.path);
@@ -126,13 +155,29 @@ export class GridView {
 			this.callbacks.onSelectionChange(this.selectedFiles);
 		});
 
-		const nameEl = row.createSpan({ cls: 'vaultman-file-name', text: file.basename });
-		nameEl.addEventListener('click', () => this.callbacks.onFileClick(file));
+		if (this.visibleCells.has('icon')) {
+			const iconEl = row.createSpan({ cls: 'vaultman-file-icon' });
+			setIcon(iconEl, 'lucide-file');
+		}
+		if (this.visibleCells.has('name')) {
+			const nameEl = row.createSpan({ cls: 'vaultman-file-name', text: file.basename });
+			nameEl.addEventListener('click', () => this.callbacks.onFileClick(file));
+		}
 
 		const fm = this.app.metadataCache.getFileCache(file)?.frontmatter ?? {};
 		const propCount = Object.keys(fm).filter(k => k !== 'position').length;
-		row.createSpan({ cls: 'vaultman-file-props', text: String(propCount) });
-		row.createSpan({ cls: 'vaultman-file-path', text: file.parent?.path ?? '' });
+		if (this.visibleCells.has('count')) {
+			row.createSpan({ cls: 'vaultman-file-props', text: String(propCount) });
+		}
+		if (this.visibleCells.has('date')) {
+			row.createSpan({
+				cls: 'vaultman-file-date',
+				text: new Date(file.stat.mtime).toLocaleDateString(),
+			});
+		}
+		if (this.visibleCells.has('path')) {
+			row.createSpan({ cls: 'vaultman-file-path', text: file.parent?.path ?? '' });
+		}
 
 		row.addEventListener('contextmenu', (e) => {
 			e.preventDefault();

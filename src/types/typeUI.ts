@@ -35,4 +35,18 @@ export interface FabDef {
 	label: string;
 	action: () => void;
 	isPlaceholder?: boolean;
+	locked?: boolean;
+	lockBackdrop?: boolean;
+	badge?: 'queue' | 'filters';
+}
+
+export type ExplorerTabId = 'props' | 'files' | 'tags';
+export type ExplorerViewMode = 'tree' | 'dnd' | 'grid' | 'cards';
+export type ExplorerSortDirection = 'asc' | 'desc';
+
+export interface ExplorerSortState {
+	sortBy: string;
+	direction: ExplorerSortDirection;
+	childLevel: boolean;
+	nodeTypeFilter: string | null;
 }

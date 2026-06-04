@@ -46,6 +46,8 @@ export interface VaultmanSettings {
 	viewMode: 'list' | 'selected';
 	/** Show labels on the tab bar in the Filters page */
 	filtersShowTabLabels: boolean;
+	/** Use compact Obsidian-native controls for header and dock actions */
+	minimalStyle: boolean;
 	/** Internal one-shot migration marker for the Iter.12 tab label default */
 	filtersTabLabelsMigrated?: boolean;
 	/** Property grid render mode */
@@ -98,6 +100,7 @@ export const DEFAULT_SETTINGS: VaultmanSettings = {
 	separatePanes: false,
 	viewMode: 'list',
 	filtersShowTabLabels: true,
+	minimalStyle: true,
 	filtersTabLabelsMigrated: true,
 	glassBlurIntensity: 60,
 	contextMenuShowInFileMenu: true,

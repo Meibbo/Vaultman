@@ -98,6 +98,18 @@ export class VaultmanSettingsTab extends PluginSettingTab {
 					}),
 			);
 
+		new Setting(containerEl)
+			.setName(translate('settings.minimal_style'))
+			.setDesc(translate('settings.minimal_style.desc'))
+			.addToggle((toggle) =>
+				toggle
+					.setValue(this.plugin.settings.minimalStyle)
+					.onChange(async (value) => {
+						this.plugin.settings.minimalStyle = value;
+						await this.plugin.saveSettings();
+					}),
+			);
+
 		new Setting(containerEl).setName(translate('settings.context_menu')).setHeading();
 
 		new Setting(containerEl)

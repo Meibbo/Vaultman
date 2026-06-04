@@ -5,6 +5,7 @@
 	let {
 		plugin,
 		searchTerm = '',
+		searchMode = 0,
 		propExplorer = $bindable<PropsExplorerPanel | undefined>(undefined),
 	}: {
 		plugin: VaultmanPlugin;
@@ -15,7 +16,7 @@
 
 	$effect(() => {
 		if (propExplorer) {
-			propExplorer.setSearchTerm(searchTerm);
+			propExplorer.setSearchTerm(searchTerm, searchMode);
 		}
 	});
 

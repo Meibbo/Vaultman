@@ -1,9 +1,10 @@
 <script lang="ts">
 	import { translate } from '../../i18n/index';
 	import { untrack } from 'svelte';
+	import type { ExplorerViewMode } from '../../types/typeUI';
 
 	type FiltersTab = 'props' | 'files' | 'tags';
-	type ViewMode = 'tree' | 'dnd' | 'grid' | 'cards';
+	type ViewMode = ExplorerViewMode;
 
 	type PillDef = {
 		id: string;
@@ -11,7 +12,12 @@
 		defaultOn: boolean;
 	};
 
-	const VIEW_MODES: { id: ViewMode; iconName: string; labelKey: string }[] = [
+	const VIEW_MODES: {
+		id: ViewMode;
+		iconName: string;
+		labelKey: string;
+		locked?: boolean;
+	}[] = [
 		{
 			id: 'tree',
 			iconName: 'lucide-list-tree',
@@ -21,6 +27,7 @@
 			id: 'dnd',
 			iconName: 'lucide-grip-vertical',
 			labelKey: 'viewmode.mode.dnd',
+			locked: true,
 		},
 		{
 			id: 'grid',
@@ -31,6 +38,7 @@
 			id: 'cards',
 			iconName: 'lucide-layout-panel-top',
 			labelKey: 'viewmode.mode.cards',
+			locked: true,
 		},
 	];
 
@@ -40,31 +48,24 @@
 			{ id: 'icon', labelKey: 'viewmode.pill.icon', defaultOn: true },
 			{ id: 'text', labelKey: 'viewmode.pill.text', defaultOn: true },
 			{ id: 'count', labelKey: 'viewmode.pill.count', defaultOn: true },
-			{ id: 'files', labelKey: 'viewmode.pill.files', defaultOn: false },
 			{ id: 'nested', labelKey: 'viewmode.pill.nested', defaultOn: false },
-			{ id: 'date', labelKey: 'viewmode.pill.date', defaultOn: false },
 		],
 		props: [
 			{ id: 'icon', labelKey: 'viewmode.pill.icon', defaultOn: true },
 			{ id: 'text', labelKey: 'viewmode.pill.text', defaultOn: true },
 			{ id: 'count', labelKey: 'viewmode.pill.count', defaultOn: true },
-			{ id: 'type', labelKey: 'viewmode.pill.type', defaultOn: false },
-			{ id: 'values', labelKey: 'viewmode.pill.values', defaultOn: false },
-			{ id: 'date', labelKey: 'viewmode.pill.date', defaultOn: false },
 		],
 		'files-grid': [
+			{ id: 'icon', labelKey: 'viewmode.pill.icon', defaultOn: true },
 			{ id: 'name', labelKey: 'viewmode.pill.name', defaultOn: true },
+			{ id: 'count', labelKey: 'viewmode.pill.count', defaultOn: true },
 			{ id: 'date', labelKey: 'viewmode.pill.date', defaultOn: true },
-			{ id: 'tags', labelKey: 'viewmode.pill.tags', defaultOn: false },
 			{ id: 'path', labelKey: 'viewmode.pill.path', defaultOn: false },
-			{ id: 'size', labelKey: 'viewmode.pill.size', defaultOn: false },
 		],
 		'files-tree': [
+			{ id: 'icon', labelKey: 'viewmode.pill.icon', defaultOn: true },
 			{ id: 'name', labelKey: 'viewmode.pill.name', defaultOn: true },
-			{ id: 'ext', labelKey: 'viewmode.pill.ext', defaultOn: true },
-			{ id: 'date', labelKey: 'viewmode.pill.date', defaultOn: false },
-			{ id: 'tags', labelKey: 'viewmode.pill.tags', defaultOn: false },
-			{ id: 'path', labelKey: 'viewmode.pill.path', defaultOn: false },
+			{ id: 'count', labelKey: 'viewmode.pill.count', defaultOn: true },
 		],
 	};
 
@@ -82,23 +83,31 @@
 		activeTab,
 		onClose,
 		onViewModeChange,
+		onPillsChange,
 		onAddModeChange,
 		icon,
 		initialViewMode = 'tree' as ViewMode,
+		initialPills = undefined,
 		addOpCount = 0,
 	}: {
 		activeTab: FiltersTab;
 		onClose: () => void;
 		onViewModeChange?: (mode: 'tree' | 'dnd' | 'grid' | 'cards') => void;
+		onPillsChange?: (activePills: string[]) => void;
 		onAddModeChange?: (active: boolean) => void;
 		icon: (node: HTMLElement, name: string) => { update(n: string): void };
 		initialViewMode?: ViewMode;
+		initialPills?: string[];
 		addOpCount?: number;
 	} = $props();
 
 	let activeView = $state<ViewMode>(untrack(() => initialViewMode));
 	let activePills = $state<Set<string>>(
-		untrack(() => defaultPills(pillsKey(activeTab, initialViewMode))),
+		untrack(() =>
+			initialPills
+				? new Set(initialPills)
+				: defaultPills(pillsKey(activeTab, initialViewMode)),
+		),
 	);
 
 	// Reset when activeTab changes (not on first render — initialViewMode handled above)
@@ -106,8 +115,10 @@
 	$effect(() => {
 		if (activeTab !== _prevTab) {
 			_prevTab = activeTab;
-			activeView = 'tree';
-			activePills = defaultPills(pillsKey(activeTab, 'tree'));
+			activeView = initialViewMode;
+			activePills = initialPills
+				? new Set(initialPills)
+				: defaultPills(pillsKey(activeTab, initialViewMode));
 		}
 	});
 
@@ -116,19 +127,34 @@
 
 	function selectView(v: ViewMode) {
 		if (activeView === v) return;
+		if (v === 'dnd' || v === 'cards') return;
 		activeView = v;
 		activePills = defaultPills(pillsKey(activeTab, v));
 		onViewModeChange?.(v);
+		onPillsChange?.(Array.from(activePills));
+	}
+
+	function isIdentityPill(id: string): boolean {
+		return id === 'icon' || id === 'text' || id === 'name';
 	}
 
 	function togglePill(id: string) {
 		const next = new Set(activePills);
 		if (next.has(id)) {
+			if (
+				isIdentityPill(id) &&
+				![...next].some(
+					(candidate) => candidate !== id && isIdentityPill(candidate),
+				)
+			) {
+				return;
+			}
 			next.delete(id);
 		} else {
 			next.add(id);
 		}
 		activePills = next;
+		onPillsChange?.(Array.from(activePills));
 	}
 
 	let addMode = $state(false);
@@ -176,6 +202,7 @@
 				<button
 					class="vaultman-viewmode-pill"
 					class:is-active={activePills.has(pill.id)}
+					aria-pressed={activePills.has(pill.id)}
 					onclick={() => togglePill(pill.id)}
 				>
 					{translate(pill.labelKey)}
@@ -190,15 +217,26 @@
 			<div
 				class="vaultman-squircle"
 				class:is-accent={activeView === vm.id}
+				class:is-locked={vm.locked}
+				class:vaultman-backdrop-lock={vm.locked}
 				aria-label={translate(vm.labelKey)}
+				aria-disabled={vm.locked ? 'true' : undefined}
 				onclick={() => selectView(vm.id)}
 				onkeydown={(e: KeyboardEvent) => {
 					if (e.key === 'Enter' || e.key === ' ') selectView(vm.id);
 				}}
 				role="button"
-				tabindex="0"
+				tabindex={vm.locked ? -1 : 0}
 				use:icon={vm.iconName}
-			></div>
+			>
+				{#if vm.locked}
+					<span
+						class="vaultman-squircle-lock-overlay"
+						aria-hidden="true"
+						use:icon={'lucide-lock'}
+					></span>
+				{/if}
+			</div>
 		{/each}
 	</div>
 </div>

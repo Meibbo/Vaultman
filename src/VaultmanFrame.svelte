@@ -57,7 +57,7 @@
 
 	const pageIcons: Record<string, string> = {
 		statistics: 'lucide-bar-chart-2',
-		filters: 'lucide-filter',
+		filters: 'lucide-archive',
 		ops: 'lucide-settings-2',
 	};
 
@@ -72,20 +72,7 @@
 				left: {
 					icon: 'lucide-list-checks',
 					label: translate('ops.queue'),
-					action: () => {
-						toggleQueueIsland();
-					},
-				},
-				right: null,
-			},
-			statistics: {
-				left: null,
-				right: null,
-			},
-			filters: {
-				left: {
-					icon: 'lucide-list-checks',
-					label: translate('ops.queue'),
+					badge: 'queue',
 					action: () => {
 						toggleQueueIsland();
 					},
@@ -93,6 +80,33 @@
 				right: {
 					icon: 'lucide-sparkles',
 					label: translate('filters.active'),
+					badge: 'filters',
+					action: () => toggleFiltersIsland(),
+				},
+			},
+			statistics: {
+				left: null,
+				right: {
+					icon: 'lucide-sparkles',
+					label: translate('stats.addons'),
+					locked: true,
+					lockBackdrop: true,
+					action: () => undefined,
+				},
+			},
+			filters: {
+				left: {
+					icon: 'lucide-list-checks',
+					label: translate('ops.queue'),
+					badge: 'queue',
+					action: () => {
+						toggleQueueIsland();
+					},
+				},
+				right: {
+					icon: 'lucide-sparkles',
+					label: translate('filters.active'),
+					badge: 'filters',
 					action: () => toggleFiltersIsland(),
 				},
 			},
@@ -218,9 +232,11 @@
 		if (!isReordering || reorderSourceIdx < 0 || !pillEl) return;
 		// Find which icon the pointer is currently over
 		const el = document.elementFromPoint(e.clientX, e.clientY);
-		const iconEl = el?.closest?.('.vaultman-nav-icon') as HTMLElement | null;
+		const iconEl = el?.closest?.(
+			'.vaultman-nav-page-icon',
+		) as HTMLElement | null;
 		if (iconEl && pillEl.contains(iconEl)) {
-			const icons = pillEl.querySelectorAll('.vaultman-nav-icon');
+			const icons = pillEl.querySelectorAll('.vaultman-nav-page-icon');
 			const idx = Array.from(icons).indexOf(iconEl);
 			if (idx >= 0 && idx !== reorderSourceIdx) {
 				reorderTargetIdx = idx;
@@ -377,7 +393,7 @@
 		// Route search with per-tab category scoping
 		switch (tab) {
 			case 'props':
-				propExplorer?.setSearchTerm(term);
+				propExplorer?.setSearchTerm(term, catMode);
 				break;
 			case 'tags':
 				tagsExplorer?.setSearchTerm(term, catMode === 0 ? 'all' : 'leaf');
@@ -408,7 +424,7 @@
 		queueIslandOpen = true;
 		queueIsland = new QueueIslandComponent(
 			queueIslandEl,
-			plugin.app,
+			plugin,
 			plugin.queueService,
 			() => closeQueueIsland(),
 			() => {
@@ -612,6 +628,7 @@
 		{pageIcons}
 		{leftFab}
 		{rightFab}
+		minimalStyle={plugin.settings.minimalStyle}
 		{navCollapsed}
 		isIslandOpen={queueIslandOpen || filtersIslandOpen}
 		bind:isReordering

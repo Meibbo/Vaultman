@@ -63,6 +63,10 @@
 		void settingsRevision;
 		return plugin.settings.explorerOperationScope;
 	});
+	const minimalStyle = $derived.by(() => {
+		void settingsRevision;
+		return plugin.settings.minimalStyle;
+	});
 
 	const contentScopeHint = $derived.by(() => {
 		const scope = operationScope;
@@ -213,6 +217,7 @@
 		{propExplorer}
 		fileList={undefined}
 		{addOpCount}
+		{minimalStyle}
 		{icon}
 	/>
 {/if}

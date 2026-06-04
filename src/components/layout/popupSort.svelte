@@ -1,5 +1,7 @@
 <script lang="ts">
+	import { untrack } from 'svelte';
 	import { translate } from '../../i18n/index';
+	import type { ExplorerSortState } from '../../types/typeUI';
 
 	type FiltersTab = 'props' | 'files' | 'tags';
 
@@ -62,27 +64,76 @@
 		],
 	};
 
-	const DRAWER_OPTIONS: Record<'props' | 'tags', string[]> = {
-		props: ['Text', 'Number', 'Date', 'Toggle', 'List'],
-		tags: ['All', 'Nested', 'Simple'],
+	type DrawerOption = {
+		id: string;
+		iconName: string;
+		labelKey: string;
+	};
+
+	const DRAWER_OPTIONS: Record<'props' | 'tags', DrawerOption[]> = {
+		props: [
+			{ id: 'tags', iconName: 'lucide-tags', labelKey: 'sort.type.tags' },
+			{ id: 'list', iconName: 'lucide-list', labelKey: 'sort.type.list' },
+			{ id: 'text', iconName: 'lucide-text', labelKey: 'sort.type.text' },
+			{ id: 'number', iconName: 'lucide-binary', labelKey: 'sort.type.number' },
+			{ id: 'date', iconName: 'lucide-calendar', labelKey: 'sort.type.date' },
+			{
+				id: 'checkbox',
+				iconName: 'lucide-check-square',
+				labelKey: 'sort.type.checkbox',
+			},
+			{
+				id: 'aliases',
+				iconName: 'lucide-forward',
+				labelKey: 'sort.type.aliases',
+			},
+			{
+				id: 'cssclasses',
+				iconName: 'lucide-palette',
+				labelKey: 'sort.type.cssclasses',
+			},
+			{
+				id: 'unknown',
+				iconName: 'lucide-file-question',
+				labelKey: 'sort.type.unknown',
+			},
+		],
+		tags: [
+			{ id: 'all', iconName: 'lucide-tags', labelKey: 'sort.type.all' },
+			{
+				id: 'nested',
+				iconName: 'lucide-git-branch',
+				labelKey: 'sort.type.nested',
+			},
+			{ id: 'simple', iconName: 'lucide-tag', labelKey: 'sort.type.simple' },
+		],
 	};
 
 	let {
 		activeTab,
 		onClose,
 		onSortChange,
+		initialSortState,
 		icon,
 	}: {
 		activeTab: FiltersTab;
 		onClose: () => void;
-		onSortChange?: (sortBy: string, direction: 'asc' | 'desc') => void;
+		onSortChange?: (state: ExplorerSortState) => void;
+		initialSortState?: ExplorerSortState;
 		icon: (node: HTMLElement, name: string) => { update(n: string): void };
 	} = $props();
 
-	let sortBy = $state('name');
-	let sortDir = $state<'asc' | 'desc'>('asc');
+	let sortBy = $state(untrack(() => initialSortState?.sortBy ?? 'name'));
+	let sortDir = $state<'asc' | 'desc'>(
+		untrack(() => initialSortState?.direction ?? 'asc'),
+	);
 	let drawerOpen = $state(false);
-	let vertTopActive = $state(false);
+	let vertTopActive = $state(
+		untrack(() => initialSortState?.childLevel ?? false),
+	);
+	let nodeTypeFilter = $state<string | null>(
+		untrack(() => initialSortState?.nodeTypeFilter ?? null),
+	);
 	const DEFAULT_DIR: Record<string, 'asc' | 'desc'> = {
 		name: 'asc',
 		count: 'desc',
@@ -94,11 +145,21 @@
 	// Reset per-tab state when the active tab changes.
 	$effect(() => {
 		void activeTab;
-		sortBy = 'name';
-		sortDir = DEFAULT_DIR['name'];
+		sortBy = initialSortState?.sortBy ?? 'name';
+		sortDir = initialSortState?.direction ?? DEFAULT_DIR['name'];
 		drawerOpen = false;
-		vertTopActive = false;
+		vertTopActive = initialSortState?.childLevel ?? false;
+		nodeTypeFilter = initialSortState?.nodeTypeFilter ?? null;
 	});
+
+	function emitSortChange() {
+		onSortChange?.({
+			sortBy,
+			direction: sortDir,
+			childLevel: vertTopActive,
+			nodeTypeFilter,
+		});
+	}
 
 	function selectSort(id: string) {
 		if (sortBy === id) {
@@ -107,7 +168,30 @@
 			sortBy = id;
 			sortDir = DEFAULT_DIR[id] ?? 'asc';
 		}
-		onSortChange?.(sortBy, sortDir);
+		emitSortChange();
+	}
+
+	function toggleChildLevel() {
+		vertTopActive = !vertTopActive;
+		emitSortChange();
+	}
+
+	function toggleDrawer() {
+		if (activeTab === 'files') {
+			sortDir = sortDir === 'asc' ? 'desc' : 'asc';
+			emitSortChange();
+			return;
+		}
+		drawerOpen = !drawerOpen;
+	}
+
+	function selectNodeTypeFilter(id: string) {
+		if (id === 'all') {
+			nodeTypeFilter = null;
+		} else {
+			nodeTypeFilter = nodeTypeFilter === id ? null : id;
+		}
+		emitSortChange();
 	}
 
 	const vertTopIcon = $derived(
@@ -133,12 +217,9 @@
 				aria-label={activeTab === 'props'
 					? translate('sort.vertcol.props_values')
 					: translate('sort.vertcol.node_level')}
-				onclick={() => {
-					vertTopActive = !vertTopActive;
-				}}
+				onclick={toggleChildLevel}
 				onkeydown={(e: KeyboardEvent) => {
-					if (e.key === 'Enter' || e.key === ' ')
-						vertTopActive = !vertTopActive;
+					if (e.key === 'Enter' || e.key === ' ') toggleChildLevel();
 				}}
 				role="button"
 				tabindex="0"
@@ -151,11 +232,9 @@
 			aria-label={activeTab === 'files'
 				? translate('sort.vertcol.direct_toggle')
 				: translate('sort.vertcol.scope_drawer')}
-			onclick={() => {
-				drawerOpen = !drawerOpen;
-			}}
+			onclick={toggleDrawer}
 			onkeydown={(e: KeyboardEvent) => {
-				if (e.key === 'Enter' || e.key === ' ') drawerOpen = !drawerOpen;
+				if (e.key === 'Enter' || e.key === ' ') toggleDrawer();
 			}}
 			role="button"
 			tabindex="0"
@@ -163,8 +242,16 @@
 		></div>
 		{#if drawerOpen && activeTab !== 'files'}
 			<div class="vaultman-sort-vertcol-drawer">
-				{#each DRAWER_OPTIONS[activeTab] as opt}
-					<div class="vaultman-sort-drawer-item">{opt}</div>
+				{#each DRAWER_OPTIONS[activeTab] as opt (opt.id)}
+					<button
+						class="vaultman-sort-drawer-item"
+						class:is-active={nodeTypeFilter === opt.id ||
+							(opt.id === 'all' && nodeTypeFilter === null)}
+						aria-label={translate(opt.labelKey)}
+						title={translate(opt.labelKey)}
+						onclick={() => selectNodeTypeFilter(opt.id)}
+						use:icon={opt.iconName}
+					></button>
 				{/each}
 			</div>
 		{/if}
