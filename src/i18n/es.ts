@@ -104,6 +104,8 @@ export const es: Record<string, string> = {
 	// Settings
 	'settings.language': 'Idioma',
 	'settings.language.desc': 'Idioma de la interfaz',
+	'settings.background_blur': 'Intensidad de desenfoque del fondo',
+	'settings.background_blur.desc': 'Controla el desenfoque de cristal en la barra inferior y los popups.',
 	'settings.default_type': 'Tipo de propiedad por defecto',
 	'settings.default_type.desc': 'Tipo por defecto para nuevas propiedades',
 	'settings.templates': 'Plantillas de filtros',
@@ -229,6 +231,11 @@ export const es: Record<string, string> = {
 	'settings.scope.selected': 'Solo archivos seleccionados',
 	'settings.scope.filtered': 'Archivos filtrados',
 	'settings.scope.all': 'Todos los archivos',
+	'settings.open_mode': 'Vista por defecto',
+	'settings.open_mode.desc': 'Qué se abre al hacer click en el icono de Vaultman',
+	'settings.open_mode.sidebar': 'Sidebar',
+	'settings.open_mode.main': 'Vista principal',
+	'settings.open_mode.both': 'Ambas',
 
 	// File list (extended)
 	'files.content_search': 'Buscar en contenido...',
@@ -239,6 +246,18 @@ export const es: Record<string, string> = {
 	// Header bar
 	'header.show_selected': 'Mostrar solo seleccionados',
 	'header.queue_badge': '{count} pendientes',
+	'filter.tab.tags': 'Etiquetas',
+	'filter.tab.props': 'Props',
+	'filter.tab.content': 'Contenido',
+	'settings.filters_show_tab_labels': 'Mostrar labels en tabs',
+	'settings.filters_show_tab_labels.desc': 'Muestra u oculta el texto junto a los iconos de tabs en las pages.',
+	'settings.context_menu': 'Menús contextuales',
+	'settings.context_menu.file_menu': 'Mostrar en menú de archivos',
+	'settings.context_menu.file_menu.desc': 'Agrega acciones de Vaultman al menú contextual de archivos de Obsidian.',
+	'settings.context_menu.editor_menu': 'Mostrar en menú del editor',
+	'settings.context_menu.editor_menu.desc': 'Agrega acciones de Vaultman al menú contextual del editor de Obsidian.',
+	'settings.context_menu.more_options': 'Mostrar en menú de más opciones',
+	'settings.context_menu.more_options.desc': 'Agrega acciones de Vaultman al menú de más opciones de archivos.',
 
 	// Operations panel
 	'ops.panel.title': 'Operaciones',

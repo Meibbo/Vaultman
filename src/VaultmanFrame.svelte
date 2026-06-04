@@ -9,16 +9,12 @@
 	import FiltersPage from './components/pages/pageFilters.svelte';
 	import OperationsPage from './components/pages/pageOps.svelte';
 	import BottomNav from './components/layout/navbarPillFab.svelte';
-	import PopupOverlay from './components/layout/PopupOverlay.svelte';
 	import { QueueListComponent } from './components/componentQueueList';
 	import { QueueIslandComponent } from './components/layout/islandQueue';
 	import { ActiveFiltersIslandComponent } from './components/layout/islandActiveFilters';
 	import { QueueDetailsModal } from './modals/modalQueueDetails';
-	import { FolderSuggest } from './utils/autocomplete';
-	import { MOVE_FILE } from './types/typeOps';
-	import type { PendingChange } from './types/typeOps';
 	import { translate } from './i18n/index';
-	import type { PopupType, FabDef } from './types/typeUI';
+	import type { FabDef } from './types/typeUI';
 
 	// ─── Props ────────────────────────────────────────────────────────────────
 
@@ -28,25 +24,36 @@
 
 	function resolvedPageOrder(): string[] {
 		const order = plugin.settings.pageOrder as string[] | undefined;
+		const defaultOrder = ['filters', 'ops', 'statistics'];
+		const oldDefaultOrder = ['ops', 'statistics', 'filters'];
 		const valid = ['statistics', 'filters', 'ops'];
 		if (
 			Array.isArray(order) &&
 			order.length === 3 &&
 			valid.every((p) => order.includes(p))
 		) {
+			if (order.every((p, i) => p === oldDefaultOrder[i])) {
+				plugin.settings.pageOrder = defaultOrder;
+				void plugin.saveSettings();
+				return defaultOrder;
+			}
 			return order;
 		}
-		return ['ops', 'statistics', 'filters'];
+		return defaultOrder;
 	}
 
 	const initialPageOrder = resolvedPageOrder();
 	let pageOrder = $state(initialPageOrder);
 	let pageRenderKey = $state(0); // incremented on each reorder to force page content remount
-	const pageLabels: Record<string, string> = {
-		statistics: translate('nav.statistics'),
-		filters: translate('nav.filters'),
-		ops: translate('nav.ops'),
-	};
+	let settingsRevision = $state(0);
+	const pageLabels = $derived.by<Record<string, string>>(() => {
+		void settingsRevision;
+		return {
+			statistics: translate('nav.statistics'),
+			filters: translate('nav.filters'),
+			ops: translate('nav.ops'),
+		};
+	});
 
 	const pageIcons: Record<string, string> = {
 		statistics: 'lucide-bar-chart-2',
@@ -58,44 +65,39 @@
 
 	const pageFabs = $derived.by<
 		Record<string, { left: FabDef | null; right: FabDef | null }>
-	>(() => ({
-		ops: {
-			left: {
-				icon: 'lucide-list-checks',
-				label: translate('ops.queue'),
-				action: () => {
-					toggleQueueIsland();
+	>(() => {
+		void settingsRevision;
+		return {
+			ops: {
+				left: {
+					icon: 'lucide-list-checks',
+					label: translate('ops.queue'),
+					action: () => {
+						toggleQueueIsland();
+					},
+				},
+				right: null,
+			},
+			statistics: {
+				left: null,
+				right: null,
+			},
+			filters: {
+				left: {
+					icon: 'lucide-list-checks',
+					label: translate('ops.queue'),
+					action: () => {
+						toggleQueueIsland();
+					},
+				},
+				right: {
+					icon: 'lucide-sparkles',
+					label: translate('filters.active'),
+					action: () => toggleFiltersIsland(),
 				},
 			},
-			right: null,
-		},
-		statistics: {
-			left: { icon: 'lucide-blocks', label: 'Add-ons', action: () => {} },
-			right: {
-				icon: 'lucide-settings',
-				label: translate('nav.statistics') ?? 'Settings',
-				action: () => {
-					// Stub settings open hook
-					(plugin.app as any).setting?.open?.();
-					(plugin.app as any).setting?.openTabById?.('vaultman');
-				},
-			},
-		},
-		filters: {
-			left: {
-				icon: 'lucide-list-checks',
-				label: translate('ops.queue'),
-				action: () => {
-					toggleQueueIsland();
-				},
-			},
-			right: {
-				icon: 'lucide-sparkles',
-				label: translate('filters.active'),
-				action: () => toggleFiltersIsland(),
-			},
-		},
-	}));
+		};
+	});
 
 	const leftFab = $derived.by<FabDef | null>(
 		() => pageFabs[activePage]?.left ?? null,
@@ -113,7 +115,6 @@
 		if (activePage !== page) {
 			closeQueueIsland();
 			closeFiltersIsland();
-			if (activePopup === 'active-filters') closePopup();
 		}
 		activePage = page;
 		applyPageTransform(true);
@@ -308,27 +309,6 @@
 		}, 2000);
 	}
 
-	// ─── Popup ────────────────────────────────────────────────────────────────
-
-	let activePopup = $state<PopupType | null>(null);
-	let popupOpen = $state(false);
-
-	function showPopup(type: PopupType) {
-		activePopup = type;
-		// Next frame so CSS transition fires after is-hidden is removed
-		requestAnimationFrame(() => {
-			popupOpen = true;
-		});
-	}
-
-	function closePopup() {
-		popupOpen = false;
-		// Wait for the 0.3s spring transition before clearing content
-		setTimeout(() => {
-			activePopup = null;
-		}, 320);
-	}
-
 	// ─── Stats ────────────────────────────────────────────────────────────────
 
 	let filteredCount = $state(0);
@@ -372,7 +352,8 @@
 	let tagsExplorer = $state<TagsExplorerPanel | null>(null);
 
 	// ─── Filters page state ──────────────────────────────────────────────────
-	type FiltersTab = 'tags' | 'props' | 'files';
+	type FiltersTab = 'tags' | 'props' | 'content';
+	type SearchTab = 'tags' | 'props' | 'files';
 	let filtersActiveTab = $state<FiltersTab>('props');
 	$effect(() => {
 		void filtersActiveTab;
@@ -380,7 +361,7 @@
 		closeFiltersIsland();
 	});
 	let filtersSearch = $state('');
-	let filtersSearchCategory = $state<Record<FiltersTab, number>>({
+	let filtersSearchCategory = $state<Record<SearchTab, number>>({
 		tags: 0,
 		props: 0,
 		files: 0,
@@ -388,7 +369,9 @@
 
 	$effect(() => {
 		const term = filtersSearch;
-		const tab = filtersActiveTab;
+		const tab: FiltersTab | 'files' =
+			activePage === 'ops' ? 'files' : filtersActiveTab;
+		if (tab === 'content') return;
 		const catMode = filtersSearchCategory[tab] ?? 0;
 
 		// Route search with per-tab category scoping
@@ -413,7 +396,6 @@
 
 	function toggleQueueIsland() {
 		closeFiltersIsland();
-		if (activePopup === 'active-filters') closePopup();
 		if (queueIslandOpen) {
 			closeQueueIsland();
 		} else {
@@ -505,189 +487,6 @@
 		updateStats();
 	}
 
-	// ─── Scope popup ──────────────────────────────────────────────────────────
-
-	const scopeOptions = [
-		{
-			value: 'all',
-			label: translate('scope.all'),
-			icon: 'lucide-database',
-		},
-		{
-			value: 'filtered',
-			label: translate('scope.filtered'),
-			icon: 'lucide-filter',
-		},
-		{
-			value: 'selected',
-			label: translate('scope.selected'),
-			icon: 'lucide-check-square',
-		},
-	];
-
-	function setScope(value: string) {
-		plugin.settings.explorerOperationScope = value as
-			| 'auto'
-			| 'selected'
-			| 'filtered'
-			| 'all';
-		void plugin.saveSettings();
-		closePopup();
-	}
-
-	// ─── View mode popup ──────────────────────────────────────────────────────
-
-	// Kept for future use (view mode toggle in Files tab)
-	function setViewMode(mode: 'list' | 'selected') {
-		plugin.settings.viewMode = mode;
-		void plugin.saveSettings();
-		// showSelectedOnly handled by FilesExplorerPanel view mode in future iteration
-		closePopup();
-	}
-	void setViewMode;
-
-	// ─── Search popup ─────────────────────────────────────────────────────────
-
-	let searchName = $state('');
-	let searchFolder = $state('');
-
-	$effect(() => {
-		fileList?.setSearchFilter(searchName, searchFolder);
-		plugin.filterService.setSearchFilter(searchName, searchFolder);
-	});
-
-	// ─── Filters page state (bound to FiltersPage component) ─────────────────
-
-	// ─── Active Filters popup state ───────────────────────────────────────────
-
-	type ActiveFilterRule = {
-		id: string;
-		description: string;
-		node: import('./types/typeFilter').FilterNode;
-		parent: import('./types/typeFilter').FilterGroup;
-		enabled: boolean;
-	};
-
-	let activeFilterRules = $state<ActiveFilterRule[]>([]);
-
-	function refreshActiveFiltersPopup(): void {
-		const rules: ActiveFilterRule[] = [];
-		let counter = 0;
-		function walk(group: import('./types/typeFilter').FilterGroup): void {
-			for (const child of group.children) {
-				if (child.type === 'rule') {
-					rules.push({
-						id: `rule-${counter++}`,
-						description: describeFilterNode(child),
-						node: child,
-						parent: group,
-						enabled: !(child as any).disabled,
-					});
-				} else if (child.type === 'group') {
-					walk(child);
-				}
-			}
-		}
-		walk(plugin.filterService.activeFilter);
-		activeFilterRules = rules;
-	}
-
-	function describeFilterNode(
-		node: import('./types/typeFilter').FilterNode,
-	): string {
-		if (node.type !== 'rule') return 'Group';
-		const prop = (node as any).property ?? '';
-		const vals = (node as any).values ?? [];
-		switch ((node as any).filterType) {
-			case 'has_property':
-				return `has: ${prop}`;
-			case 'specific_value':
-				return `${prop}: ${vals[0] ?? ''}`;
-			case 'has_tag':
-				return `has tag: ${vals[0] ?? ''}`;
-			case 'folder':
-				return `folder: ${vals[0] ?? ''}`;
-			case 'file_name':
-				return `name: ${vals[0] ?? ''}`;
-			default:
-				return prop || 'filter';
-		}
-	}
-
-	function toggleFilterRule(rule: ActiveFilterRule): void {
-		(rule.node as any).disabled = !(rule.node as any).disabled;
-		plugin.filterService.applyFilters();
-		refreshActiveFiltersPopup();
-	}
-
-	function deleteFilterRule(rule: ActiveFilterRule): void {
-		plugin.filterService.removeNode(rule.node, rule.parent);
-		refreshActiveFiltersPopup();
-		updateStats();
-	}
-
-	// ─── Scope popup ──────────────────────────────────────────────────────────
-
-	// ─── Move popup ───────────────────────────────────────────────────────────
-
-	let moveTargetFiles = $state<import('obsidian').TFile[]>([]);
-	let moveTargetFolder = $state('');
-
-	const movePreviews = $derived.by(() => {
-		const limit = Math.min(moveTargetFiles.length, 8);
-		return moveTargetFiles.slice(0, limit).map((file) => ({
-			oldPath: file.path,
-			newPath: moveTargetFolder
-				? `${moveTargetFolder}/${file.name}`
-				: file.name,
-		}));
-	});
-
-	function openMovePopup() {
-		const selected = fileList?.getSelectedFiles() ?? [];
-		moveTargetFiles =
-			selected.length > 0 ? selected : [...plugin.filterService.filteredFiles];
-		moveTargetFolder = '';
-		showPopup('move');
-	}
-
-	function queueMoves() {
-		const targetFolder = moveTargetFolder;
-		// Collect all changes first, then add in one batch (one UI event instead of N)
-		const changes: PendingChange[] = [];
-		for (const file of moveTargetFiles) {
-			const newPath = targetFolder ? `${targetFolder}/${file.name}` : file.name;
-			if (newPath === file.path) continue;
-			changes.push({
-				type: 'file_move',
-				action: 'move',
-				details: `${file.path} → ${newPath}`,
-				files: [file],
-				logicFunc: () => ({ [MOVE_FILE]: targetFolder }),
-				customLogic: true,
-				targetFolder,
-			});
-		}
-		plugin.queueService.addBatch(changes);
-		closePopup();
-	}
-
-	function attachFolderSuggest(el: HTMLElement) {
-		const suggest = new FolderSuggest(
-			plugin.app,
-			el as HTMLInputElement,
-			(path: string) => {
-				moveTargetFolder = path;
-				(el as HTMLInputElement).value = path;
-			},
-		);
-		return {
-			destroy() {
-				suggest.close();
-			},
-		};
-	}
-
 	// ─── Icon action (Svelte action wrapping Obsidian setIcon) ────────────────
 
 	function icon(el: HTMLElement, name: string) {
@@ -699,17 +498,13 @@
 		};
 	}
 
-	// ─── Refresh active filters popup when it becomes visible ────────────────
-
-	$effect(() => {
-		if (activePopup === 'active-filters' && popupOpen) {
-			refreshActiveFiltersPopup();
-		}
-	});
-
 	// ─── Lifecycle ────────────────────────────────────────────────────────────
 
 	onMount(() => {
+		const unsubscribeSettings = plugin.onSettingsChange(() => {
+			settingsRevision += 1;
+			pageRenderKey += 1;
+		});
 		const onFilterChanged = () => {
 			refreshFiles();
 			refreshActiveFilterHighlights();
@@ -737,6 +532,7 @@
 		plugin.app.metadataCache.on('resolved', onVaultResolved);
 
 		return () => {
+			unsubscribeSettings();
 			plugin.filterService.off('changed', onFilterChanged);
 			plugin.queueService.off('changed', onQueueChanged);
 			plugin.app.metadataCache.off('resolved', onVaultResolved);
@@ -758,10 +554,11 @@
 					{#if pageId === 'ops'}
 						<OperationsPage
 							{plugin}
-							getSelectedFiles={() => fileList?.getSelectedFiles() ?? []}
-							{openMovePopup}
-							{filteredCount}
-							{selectedCount}
+							bind:filtersSearch
+							bind:filtersSearchCategory
+							bind:fileList
+							bind:selectedCount
+							{addOpCount}
 							{icon}
 						/>
 					{:else if pageId === 'statistics'}
@@ -774,8 +571,9 @@
 							bind:filtersSearchCategory
 							bind:tagsExplorer
 							bind:propExplorer
-							bind:fileList
-							bind:selectedCount
+							{settingsRevision}
+							getSelectedFiles={() => fileList?.getSelectedFiles() ?? []}
+							{filteredCount}
 							{addOpCount}
 						/>
 					{/if}
@@ -832,25 +630,3 @@
 		{icon}
 	/>
 </div>
-
-<PopupOverlay
-	{plugin}
-	{activePopup}
-	{popupOpen}
-	{closePopup}
-	{activeFilterRules}
-	{refreshActiveFiltersPopup}
-	{updateStats}
-	{toggleFilterRule}
-	{deleteFilterRule}
-	{scopeOptions}
-	{setScope}
-	bind:searchName
-	bind:searchFolder
-	{moveTargetFiles}
-	bind:moveTargetFolder
-	{movePreviews}
-	{attachFolderSuggest}
-	{queueMoves}
-	{icon}
-/>

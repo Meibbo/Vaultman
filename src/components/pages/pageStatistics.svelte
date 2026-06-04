@@ -121,6 +121,19 @@
 </script>
 
 <div class="vaultman-statistics-page">
+	<div class="vaultman-stat-cards-grid">
+		{#each statCards as card (card.icon)}
+			<div class="vaultman-stat-card" style="--card-color: {card.color}">
+				<div class="vaultman-stat-card-icon" use:iconAction={card.icon}></div>
+				<div class="vaultman-stat-card-info">
+					<span class="vaultman-stat-card-value"
+						>{card.value.toLocaleString()}</span
+					>
+					<span class="vaultman-stat-card-label">{card.label}</span>
+				</div>
+			</div>
+		{/each}
+	</div>
 	<div class="vaultman-stat-header">
 		<div class="vaultman-stat-scope-pills">
 			{#each scopeOptions as opt (opt.id)}
@@ -136,21 +149,6 @@
 			{/each}
 		</div>
 	</div>
-
-	<div class="vaultman-stat-cards-grid">
-		{#each statCards as card (card.icon)}
-			<div class="vaultman-stat-card" style="--card-color: {card.color}">
-				<div class="vaultman-stat-card-icon" use:iconAction={card.icon}></div>
-				<div class="vaultman-stat-card-info">
-					<span class="vaultman-stat-card-value"
-						>{card.value.toLocaleString()}</span
-					>
-					<span class="vaultman-stat-card-label">{card.label}</span>
-				</div>
-			</div>
-		{/each}
-	</div>
-
 	<div class="vaultman-stat-meta-island">
 		<div class="vaultman-stat-meta-item">
 			<span class="vaultman-meta-icon" use:iconAction={'lucide-link'}></span>

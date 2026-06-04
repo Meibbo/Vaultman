@@ -1,12 +1,12 @@
 <script lang="ts">
 	import { translate } from '../../i18n/index';
 
-	type FiltersTab = 'props' | 'files' | 'tags';
+	type FiltersTab = 'props' | 'tags' | 'content';
 
 	const TAB_ICONS: Record<FiltersTab, string> = {
 		tags: 'lucide-tag',
 		props: 'lucide-tag',
-		files: 'lucide-files',
+		content: 'lucide-file-search',
 	};
 
 	let {
@@ -23,7 +23,7 @@
 </script>
 
 <div class="vaultman-tab-bar" class:has-labels={showLabels}>
-	{#each ['props', 'files', 'tags'] as FiltersTab[] as tab}
+	{#each ['props', 'tags', 'content'] as FiltersTab[] as tab}
 		<div
 			class="vaultman-tab nav-action-button"
 			class:is-active={activeTab === tab}

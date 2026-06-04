@@ -83,8 +83,6 @@
 	let sortDir = $state<'asc' | 'desc'>('asc');
 	let drawerOpen = $state(false);
 	let vertTopActive = $state(false);
-	let activeScope = $state('all');
-
 	const DEFAULT_DIR: Record<string, 'asc' | 'desc'> = {
 		name: 'asc',
 		count: 'desc',
@@ -174,32 +172,8 @@
 
 	<!-- Main content panel: row 1 + row 2 -->
 	<div class="vaultman-sort-main">
-		<!-- Row 1: Scope dropdown · Template btn · Close btn -->
+		<!-- Row 1: Close btn -->
 		<div class="vaultman-sort-row vaultman-sort-row-controls">
-			<select
-				class="vaultman-sort-scope-select"
-				bind:value={activeScope}
-				aria-label={translate('sort.scope.label')}
-			>
-				<option value="all">{translate('sort.scope.all')}</option>
-				<option value="filtered">{translate('sort.scope.filtered')}</option>
-				<option value="selected">{translate('sort.scope.selected')}</option>
-			</select>
-			<div
-				class="vaultman-sort-circle-btn"
-				aria-label={translate('sort.template')}
-				onclick={() => {
-					/* no-op: Iter 17 */
-				}}
-				onkeydown={(e: KeyboardEvent) => {
-					if (e.key === 'Enter' || e.key === ' ') {
-						/* no-op: Iter 17 */
-					}
-				}}
-				role="button"
-				tabindex="0"
-				use:icon={'lucide-bookmark'}
-			></div>
 			<div
 				class="vaultman-sort-close-btn clickable-icon"
 				aria-label={translate('sort.close')}

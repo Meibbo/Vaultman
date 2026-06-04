@@ -3787,27 +3787,35 @@ body.vaultman-bases-column-separators table th {
 .vaultman-stat-header {
   display: flex;
   justify-content: center;
+  width: 100%;
+  max-width: calc((3 * 96px) + (2 * 8px));
+  margin: 0 auto;
 }
 
 .vaultman-stat-scope-pills {
   display: flex;
   gap: 4px;
   background: var(--background-modifier-hover);
-  padding: 4px;
+  width: 100%;
+  padding: 3px;
   border-radius: 999px;
   border: 1px solid var(--vaultman-border);
 }
 
 .vaultman-stat-scope-pill {
+  flex: 1 1 0;
+  justify-content: center;
   display: flex;
   align-items: center;
-  gap: 6px;
-  padding: 4px 12px;
+  gap: 4px;
+  min-width: 0;
+  padding: 3px 6px;
   border-radius: 999px;
   border: none;
   background: transparent;
   color: var(--text-muted);
-  font-size: var(--font-ui-smaller);
+  font-size: 11px;
+  line-height: 1.2;
   cursor: pointer;
   transition: all 0.2s ease;
 }
@@ -3828,14 +3836,23 @@ body.vaultman-bases-column-separators table th {
 }
 
 .vaultman-pill-icon svg {
-  width: 14px;
-  height: 14px;
+  width: 12px;
+  height: 12px;
+}
+
+.vaultman-pill-label {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .vaultman-stat-cards-grid {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(3, minmax(0, 96px));
+  justify-content: center;
   gap: 8px;
+  width: 100%;
 }
 
 .vaultman-stat-card {

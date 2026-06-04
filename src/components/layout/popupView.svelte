@@ -113,7 +113,6 @@
 
 	const currentPillKey = $derived(pillsKey(activeTab, activeView));
 	const currentPillDefs = $derived(PILLS[currentPillKey] ?? []);
-	const showSearch = $derived(activeTab === 'files' && activeView === 'grid');
 
 	function selectView(v: ViewMode) {
 		if (activeView === v) return;
@@ -141,7 +140,7 @@
 </script>
 
 <div class="vaultman-viewmode-popup">
-	<!-- Row 1: close · template · search* · pills (scroll) -->
+	<!-- Row 1: close · add mode · pills (scroll) -->
 	<div class="vaultman-viewmode-row vaultman-viewmode-row-controls">
 		<div
 			class="vaultman-viewmode-close-btn clickable-icon"
@@ -154,38 +153,6 @@
 			tabindex="0"
 			use:icon={'lucide-chevron-left'}
 		></div>
-		<div
-			class="vaultman-viewmode-circle-btn"
-			aria-label={translate('viewmode.template')}
-			onclick={() => {
-				/* no-op: Iter 17 */
-			}}
-			onkeydown={(e: KeyboardEvent) => {
-				if (e.key === 'Enter' || e.key === ' ') {
-					/* no-op: Iter 17 */
-				}
-			}}
-			role="button"
-			tabindex="0"
-			use:icon={'lucide-bookmark'}
-		></div>
-		{#if showSearch}
-			<div
-				class="vaultman-viewmode-circle-btn"
-				aria-label={translate('viewmode.search_cols')}
-				onclick={() => {
-					/* no-op: Iter 17 */
-				}}
-				onkeydown={(e: KeyboardEvent) => {
-					if (e.key === 'Enter' || e.key === ' ') {
-						/* no-op: Iter 17 */
-					}
-				}}
-				role="button"
-				tabindex="0"
-				use:icon={'lucide-search'}
-			></div>
-		{/if}
 		<!-- ADD mode FAB -->
 		<div
 			class="vaultman-nav-fab"

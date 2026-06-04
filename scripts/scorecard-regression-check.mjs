@@ -23,10 +23,10 @@ const checks = [
 	},
 	{
 		file: 'src/VaultmanSettings.ts',
-		name: 'settings uses activeDocument instead of document',
+		name: 'settings does not use document body toggles',
 		test: (text) =>
-			text.includes('activeDocument.body.toggleClass') &&
-			!text.includes('document.body.toggleClass'),
+			!text.includes('document.body.toggleClass') &&
+			!text.includes('activeDocument.body.toggleClass'),
 	},
 	{
 		file: 'src/main.ts',

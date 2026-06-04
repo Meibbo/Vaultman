@@ -13,6 +13,7 @@ import { setLanguage, translate } from './i18n/index';
 
 export class VaultmanPlugin extends Plugin {
 	settings!: VaultmanSettings;
+	private settingsChangeListeners = new Set<() => void>();
 
 	// Core services — public so components/modals can access them
 	propertyIndex!: PropertyIndexService;
@@ -86,6 +87,8 @@ export class VaultmanPlugin extends Plugin {
 	async onExternalSettingsChange(): Promise<void> {
 		await this.loadSettings();
 		setLanguage(this.settings.language);
+		this.updateGlassBlur();
+		this.notifySettingsChanged();
 	}
 
 	async loadSettings(): Promise<void> {
@@ -109,6 +112,24 @@ export class VaultmanPlugin extends Plugin {
 
 	async saveSettings(): Promise<void> {
 		await this.saveData(this.settings);
+		this.notifySettingsChanged();
+	}
+
+	onSettingsChange(listener: () => void): () => void {
+		this.settingsChangeListeners.add(listener);
+		return () => {
+			this.settingsChangeListeners.delete(listener);
+		};
+	}
+
+	private notifySettingsChanged(): void {
+		for (const listener of [...this.settingsChangeListeners]) {
+			try {
+				listener();
+			} catch (error) {
+				console.error('Vaultman settings listener failed', error);
+			}
+		}
 	}
 
 	updateGlassBlur(): void {

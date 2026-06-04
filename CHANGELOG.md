@@ -19,6 +19,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Removed the redundant queue-details value guard reported by CodeQL.
 - Kept stable CSS compatible with Obsidian Scorecard expectations by blocking
   `!important` and `display: contents` release regressions.
+- Removed stable-channel placeholder tabs and no-op controls while keeping
+  functional settings visible.
 
 ### Changed
 
@@ -27,6 +29,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added release-blocking `svelte-check`, format, stylelint, Scorecard, and
   security audit gates.
 - Added a public security reporting policy.
+- Reordered the sidebar dock to start on Filters, moved Content operations into
+  Filters, moved Files into Operations, and placed the Statistics scope selector
+  below the metrics.
+- Added live settings refresh for Svelte views so tab-label visibility changes
+  no longer require reloading the plugin.
 
 ---
 
