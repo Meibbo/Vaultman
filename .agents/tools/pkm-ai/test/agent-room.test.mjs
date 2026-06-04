@@ -573,6 +573,26 @@ test("concurrent agent join --run current never double-rooms (workspace lock)", 
   }
 });
 
+// --- S2: task dependsOn (poll-based coordination) ---------------------------------------------
+
+test("task add --depends-on records dependencies surfaced in status and dashboard", () => {
+  const root = makeTempRoot();
+  const runId = createRun(root);
+  const upstream = addTask(root, runId, "Upstream", "docs/a.md"); // task_001
+
+  const dependent = run(root, ["task", "add", "--run", runId, "--agent", "codex-main", "--title", "Downstream", "--depends-on", upstream.taskId, "--now", "2026-05-11T02:06:00", "--json"]);
+  assert.equal(dependent.status, 0, dependent.stderr);
+  const task = JSON.parse(dependent.stdout).task;
+  assert.deepEqual(task.dependsOn, [upstream.taskId]);
+
+  const snap = JSON.parse(run(root, ["status", "--run", runId, "--now", "2026-05-11T02:07:00", "--json"]).stdout);
+  const found = snap.tasks.find((entry) => entry.taskId === task.taskId);
+  assert.deepEqual(found.dependsOn, [upstream.taskId]);
+
+  const dash = run(root, ["dashboard", "--run", runId, "--now", "2026-05-11T02:07:30"]);
+  assert.match(dash.stdout, new RegExp(`${task.taskId}.*depends=${upstream.taskId}`));
+});
+
 // --- S2 Task 3: stream / worktree agent tags --------------------------------------------------
 
 test("agent join records stream + worktree tags and surfaces them in status/dashboard", () => {

@@ -507,7 +507,7 @@ function handleTask(context: Context, action: string | undefined): void {
       status: context.args.status ?? "todo",
       createdAt: context.now,
       updatedAt: context.now,
-      dependsOn: [],
+      dependsOn: arrayOption(context.args, "dependsOn"),
       scope: scopes,
       notes: context.args.notes ?? "",
     };
@@ -852,7 +852,7 @@ function handleStatus(context: Context): void {
     [
       `Run ${snapshot.runId} [${snapshot.runStatus}]`,
       `Agents: ${snapshot.agents.map((agent) => `${agent.agentId}${agentTag(agent)} ${isAgentStale(agent, context.now) ? "stale" : agent.status}`).join(", ") || "none"}`,
-      `Tasks: ${snapshot.tasks.map((task) => `${task.taskId} ${task.status} ${task.title}${task.claim ? ` owner=${task.claim.owner}` : ""}`).join(", ") || "none"}`,
+      `Tasks: ${snapshot.tasks.map((task) => `${task.taskId} ${task.status} ${task.title}${task.claim ? ` owner=${task.claim.owner}` : ""}${task.dependsOn?.length ? ` depends=${task.dependsOn.join(",")}` : ""}`).join(", ") || "none"}`,
       `Conflicts: ${snapshot.scopeConflicts.length || "none"}`,
       `Unread: ${snapshot.unreadMessages.length}`,
     ].join("\n"),
@@ -874,7 +874,7 @@ function handleHandoff(context: Context): void {
     "### Tasks",
     "",
     ...(snapshot.tasks.length
-      ? snapshot.tasks.map((task) => `- ${task.taskId} [${task.status}]${task.claim ? ` owner=${task.claim.owner}` : ""} ${task.title}`)
+      ? snapshot.tasks.map((task) => `- ${task.taskId} [${task.status}]${task.claim ? ` owner=${task.claim.owner}` : ""} ${task.title}${task.dependsOn?.length ? ` depends=${task.dependsOn.join(",")}` : ""}`)
       : ["- none"]),
   ];
   const markdown = lines.join("\n");
