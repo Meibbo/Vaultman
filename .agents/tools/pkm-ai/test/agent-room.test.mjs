@@ -573,6 +573,32 @@ test("concurrent agent join --run current never double-rooms (workspace lock)", 
   }
 });
 
+// --- S2 Task 3: stream / worktree agent tags --------------------------------------------------
+
+test("agent join records stream + worktree tags and surfaces them in status/dashboard", () => {
+  const root = makeTempRoot();
+  const runId = createRun(root);
+
+  const joined = run(root, ["agent", "join", "--run", runId, "--agent", "smoke-opus", "--stream", "goal", "--worktree", "sandbox", "--now", "2026-05-11T02:01:00", "--json"]);
+  assert.equal(joined.status, 0, joined.stderr);
+  const agent = JSON.parse(joined.stdout).agent;
+  assert.equal(agent.stream, "goal");
+  assert.equal(agent.worktree, "sandbox");
+
+  const snap = JSON.parse(run(root, ["status", "--run", runId, "--now", "2026-05-11T02:02:00", "--json"]).stdout);
+  const found = snap.agents.find((entry) => entry.agentId === "smoke-opus");
+  assert.equal(found.stream, "goal");
+  assert.equal(found.worktree, "sandbox");
+
+  const dash = run(root, ["dashboard", "--run", runId, "--now", "2026-05-11T02:02:30"]);
+  assert.match(dash.stdout, /smoke-opus \[goal @ sandbox\]/);
+
+  // worktree auto-defaults (from git toplevel basename, else cwd basename) when not supplied
+  const auto = JSON.parse(run(root, ["agent", "join", "--run", runId, "--agent", "auto-wt", "--now", "2026-05-11T02:03:00", "--json"]).stdout).agent;
+  assert.equal(typeof auto.worktree, "string");
+  assert.ok(auto.worktree.length > 0);
+});
+
 function createRun(root) {
   const result = run(root, [
     "run",

@@ -58,6 +58,8 @@ interface AgentStatus {
   staleAfterMs?: number;
   activeScopes?: Scope[];
   lastMessage?: string;
+  stream?: string;
+  worktree?: string;
 }
 
 interface Scope {
@@ -446,6 +448,8 @@ function handleAgent(context: Context, action: string | undefined): void {
       staleAfterMs: numberOption(context.args, "staleAfterMs", existing?.staleAfterMs ?? 300000),
       activeScopes: existing?.activeScopes ?? [],
       lastMessage: context.args.message ?? existing?.lastMessage ?? (action === "join" ? "joined" : "heartbeat"),
+      stream: context.args.stream ?? existing?.stream,
+      worktree: context.args.worktree ?? existing?.worktree ?? resolveWorktree(context.cwd),
     };
     withRunLock(context, manifest.runId, () => {
       writeJsonAtomic(paths.manifestPath, nextManifest, context.stateRoot);
@@ -847,7 +851,7 @@ function handleStatus(context: Context): void {
   print(
     [
       `Run ${snapshot.runId} [${snapshot.runStatus}]`,
-      `Agents: ${snapshot.agents.map((agent) => `${agent.agentId} ${isAgentStale(agent, context.now) ? "stale" : agent.status}`).join(", ") || "none"}`,
+      `Agents: ${snapshot.agents.map((agent) => `${agent.agentId}${agentTag(agent)} ${isAgentStale(agent, context.now) ? "stale" : agent.status}`).join(", ") || "none"}`,
       `Tasks: ${snapshot.tasks.map((task) => `${task.taskId} ${task.status} ${task.title}${task.claim ? ` owner=${task.claim.owner}` : ""}`).join(", ") || "none"}`,
       `Conflicts: ${snapshot.scopeConflicts.length || "none"}`,
       `Unread: ${snapshot.unreadMessages.length}`,
@@ -862,7 +866,7 @@ function handleHandoff(context: Context): void {
     "",
     `- Run: ${snapshot.runId}`,
     `- Status: ${snapshot.runStatus}`,
-    `- Agents: ${snapshot.agents.map((agent) => `${agent.agentId} ${isAgentStale(agent, context.now) ? "stale" : agent.status}`).join(", ") || "none"}`,
+    `- Agents: ${snapshot.agents.map((agent) => `${agent.agentId}${agentTag(agent)} ${isAgentStale(agent, context.now) ? "stale" : agent.status}`).join(", ") || "none"}`,
     `- Active claims: ${snapshot.activeClaims.length}`,
     `- Scope conflicts: ${snapshot.scopeConflicts.length}`,
     `- Unread messages: ${snapshot.unreadMessages.length}`,
@@ -941,6 +945,18 @@ export function resolveStateRoot(cwd: string, args: CliArgs): string {
     // not a git repository — fall through to the per-worktree default
   }
   return path.join(cwd, ".agents", "state");
+}
+
+// The physical worktree an agent occupies: the basename of its git worktree top level (each linked
+// worktree has its own toplevel), else the cwd basename. Paired with --stream for presence tags.
+function resolveWorktree(cwd: string): string {
+  try {
+    const result = spawnSync("git", ["rev-parse", "--show-toplevel"], { cwd, encoding: "utf8" });
+    if (result.status === 0 && result.stdout.trim()) return path.basename(result.stdout.trim());
+  } catch {
+    // not a git repository — fall back to the cwd basename
+  }
+  return path.basename(cwd);
 }
 
 function parseArgs(argv: string[]): CliArgs {
@@ -1204,6 +1220,12 @@ function writeDelivery(runRoot: string, delivery: Delivery, stateRoot: string): 
 function isAgentStale(agent: AgentStatus, now: string): boolean {
   if (!agent.lastHeartbeatAt || agent.status === "left") return false;
   return Date.parse(now) - Date.parse(agent.lastHeartbeatAt) > (agent.staleAfterMs ?? 300000);
+}
+
+// Presence tag "[stream @ worktree]" for human-readable status/dashboard/handoff output (ADR 0003).
+function agentTag(agent: AgentStatus): string {
+  if (!agent.stream && !agent.worktree) return "";
+  return ` [${agent.stream ?? "?"} @ ${agent.worktree ?? "?"}]`;
 }
 
 function mapObjectiveStatusToTask(status: string): string {
