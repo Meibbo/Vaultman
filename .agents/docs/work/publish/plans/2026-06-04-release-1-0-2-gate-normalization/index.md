@@ -72,3 +72,14 @@ copy canary UI, migrate stable to Vite/Vite+, change license, change
 
 Do not create a public `1.0.2` tag from this plan. Passing Task 08 means the
 branch is release-ready for maintainer review, not released.
+
+## Plan Self-Review
+
+- Spec coverage: Tasks 02-08 cover pnpm, Node 24, esbuild retention,
+  `svelte-check`, CI-blocking format, CI-blocking stylelint, Scorecard,
+  security, metadata, workflows, and final local/remote gates.
+- Placeholder scan: no `TBD`, `TODO`, "implement later", or "similar to" plan
+  steps remain.
+- Type and command consistency: all package-manager commands use `pnpm` after
+  Task 02; workflows use `pnpm install --frozen-lockfile`; release publishing is
+  explicitly excluded.
