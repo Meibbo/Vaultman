@@ -98,7 +98,7 @@ Only then launch simultaneous grills safely.
   mandatory-protocol · memory-lifecycle · coordination) → THEN one PKM-AI **spec** → **plan** → **execute**.
   Progress: ADRs **0001–0006** ✓ · agent-room smoke ✓ · R-EMBED research ✓ · **spec S1–S6** ✓ →
   [[docs/work/pkm-ai/specs/2026-06-04-orchestration-upgrade/index|spec]]. **Phase 2 plan started** →
-  [[docs/work/pkm-ai/plans/2026-06-04-orchestration-upgrade/index|plan]] (index + S1 shard ✓; S2–S6 outlined; issues PKM-1..6). Next: execute S1 (AGENTS.md, diff-gated).
+  [[docs/work/pkm-ai/plans/2026-06-04-orchestration-upgrade/index|plan]] (index + S1 shard ✓; S2–S6 outlined; issues PKM-1..6). **S1 EXECUTED** (AGENTS.md mandate live, commit `d974af2`). Next: S2 (coordination) / S3 (lifecycle).
 
 ## Ties
 

@@ -36,6 +36,29 @@ broader "append-only status writes" is parked as **S-12** in
 
 ## Entries (newest at TOP, append above the previous one)
 
+## 2026-06-04 (cont.) — claude-opus-4-8 · PKM-AI orchestration upgrade (decisions → spec → plan → S1/S2 exec)
+- **summary:** Diagnosed the routing/discipline gap (agent-room.mjs existed but unused since 2026-05-26 →
+  sandbox accumulation). Locked PKM-AI ADRs 0001-0006, wrote the orchestration-upgrade spec (S1-S6) + plan,
+  shipped S1 + S2 Task 0. Continues the grill/checkpoint entry below.
+- **key landings:**
+  - PKM-AI sub-project ADR namespace → [[docs/work/pkm-ai/adr/README|pkm-ai/adr]]: 0001 .ts · 0002 lifecycle ·
+    0003 coordination/shared-brain (cross-stream room via `git --git-common-dir`) · 0004 runtime-startup
+    mandate · 0005 versioning · 0006 retrieval (local transformers.js+Orama, swappable, zero-API default).
+  - [[docs/work/pkm-ai/specs/2026-06-04-orchestration-upgrade/index|spec S1-S6]] +
+    [[docs/work/pkm-ai/plans/2026-06-04-orchestration-upgrade/index|plan]].
+  - **S1 SHIPPED `d974af2`** — AGENTS.md "Start Here" → mandatory Runtime Startup 0-6 (presence /
+    retrieval-first / scope-claim / own-shard). Whole-worktree commit (absorbed parallel Codex stable+proto work).
+  - **S2 Task 0 SHIPPED `fce12fb`** — agent-room.mjs → agent-room.ts (erasable types; 35 tests green).
+  - Research: [[docs/work/pkm-ai/items/2026-06-04-gbrain-pi-agent-research|gbrain/pi]] +
+    [[docs/work/pkm-ai/items/2026-06-04-embedding-vectorstore-research|embed/vector]].
+- **next-action:** resume **S2 Tasks 1-7** via
+  [[docs/work/pkm-ai/plans/2026-06-04-orchestration-upgrade/02-S2-coordination|02-S2]] (resolveStateRoot
+  git-common-dir · atomic ensureRun + file-lock · stream/worktree tags · coordination.md · cross-worktree
+  verify). Subagent-driven; FULL two-stage review on the locking code. Tests = black-box node:test (`test/*.test.mjs`).
+- **artifacts:** pkm-ai/adr 0001-0006 + README · spec · plan (index + 01-S1 + 02-S2) · orchestration-upgrade
+  item · 2 research records · AGENTS.md + start.md.
+- **git:** `d974af2` (S1 + session docs, whole-worktree) · `fce12fb` (agent-room.ts). Branch `sandbox`.
+
 ## 2026-06-04 — claude-opus-4-8 · grill/brainstorm + intake + checkpoint
 - **summary:** OneNote/companion-architecture megadump intake + triage; 5 read-only researches + PKM-AI
   mind-routing/health audit (P3); CR-1 (core-vs-companion) RESOLVED → ADR 0011; CR-2 (.scene format)

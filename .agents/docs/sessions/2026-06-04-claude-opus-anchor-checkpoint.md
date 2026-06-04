@@ -46,6 +46,15 @@ contention the dev flagged. This shard = this thread's working memory; link it f
 - **CR-2 PARTIAL** → [[docs/work/draft/2026-06-03-onenote-companion-architecture-megadump/decisions/CR-2-scene-format|CR-2]]:
   container = layered-YAML, ext **`.scene`**; data-vs-code split accepted; payload pending SPS.
 
+## PKM-AI orchestration upgrade — EXECUTED THROUGH S2 Task 0 (resume here)
+
+Decisions → spec → plan → exec. ADRs [[docs/work/pkm-ai/adr/README|0001-0006]] locked · spec + plan written ·
+**S1 shipped `d974af2`** (AGENTS.md Runtime Startup mandate) · **S2 Task 0 shipped `fce12fb`** (agent-room→.ts,
+35 tests green). **RESUME: S2 Tasks 1-7** via
+[[docs/work/pkm-ai/plans/2026-06-04-orchestration-upgrade/02-S2-coordination|02-S2]] (resolveStateRoot via
+git-common-dir · atomic ensureRun+file-lock · stream/worktree tags · coordination.md · cross-worktree verify).
+Hub: [[docs/work/pkm-ai/items/2026-06-04-multi-agent-orchestration-upgrade|orchestration upgrade item]].
+
 ## Open threads / next (for the multi-grill landscape pass)
 
 1. **SPS grill** — Saving Presets System is undefined; gates CR-2 payload + tangles Workspace-profile +

@@ -33,8 +33,8 @@ PKM-AI ADRs [[docs/work/pkm-ai/adr/README|0001–0006]].
 
 | Slice | Shard | Deps | Status |
 |---|---|---|---|
-| S1 runtime-startup mandate | [[docs/work/pkm-ai/plans/2026-06-04-orchestration-upgrade/01-S1-runtime-startup|01-S1]] | — | **PLANNED** |
-| S2 coordination conventions | 02-S2 (at pickup) | S1 | outlined ↓ |
+| S1 runtime-startup mandate | [[docs/work/pkm-ai/plans/2026-06-04-orchestration-upgrade/01-S1-runtime-startup|01-S1]] | — | **DONE** `d974af2` |
+| S2 coordination conventions | [[docs/work/pkm-ai/plans/2026-06-04-orchestration-upgrade/02-S2-coordination|02-S2]] | S1 | **IN PROGRESS** (Task 0 ✓ `fce12fb`) |
 | S3 memory lifecycle | 03-S3 (at pickup) | S1 | outlined ↓ |
 | S4 versioning | 04-S4 (at pickup) | S1 | outlined ↓ |
 | S5 `.ts` migration | 05-S5 (at pickup) | — | outlined ↓ |
@@ -76,7 +76,7 @@ graph-parse test → BM25 test → adapter contract test → local-embed smoke �
 
 ## Issues (tracer-bullet; load into agent-room `task add` once S1/S2 land — dogfood ADR 0003)
 
-- [ ] **PKM-1** (S1): AGENTS.md runtime-startup mandate → [[docs/work/pkm-ai/plans/2026-06-04-orchestration-upgrade/01-S1-runtime-startup|01-S1]]
+- [x] **PKM-1** (S1): AGENTS.md runtime-startup mandate ✓ `d974af2`
 - [ ] **PKM-2** (S2): `coordination.md` policy + agent-room wiring
 - [ ] **PKM-3** (S3): lifecycle states + stale-active health check + working-surface filter + prune (clears P4)
 - [ ] **PKM-4** (S4): `pkm-ai.version.json` + CHANGELOG + startup read
