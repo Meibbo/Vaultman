@@ -1,24 +1,24 @@
 <script lang="ts">
-	import { onMount } from "svelte";
-	import { setIcon } from "obsidian";
-	import type { VaultmanPlugin } from "./main";
-	import type { FilesExplorerPanel } from "./components/containers/explorerFiles";
-	import type { PropsExplorerPanel } from "./components/containers/explorerProps";
-	import type { TagsExplorerPanel } from "./components/containers/explorerTags";
-	import StatisticsPage from "./components/pages/pageStatistics.svelte";
-	import FiltersPage from "./components/pages/pageFilters.svelte";
-	import OperationsPage from "./components/pages/pageOps.svelte";
-	import BottomNav from "./components/layout/navbarPillFab.svelte";
-	import PopupOverlay from "./components/layout/PopupOverlay.svelte";
-	import { QueueListComponent } from "./components/componentQueueList";
-	import { QueueIslandComponent } from "./components/layout/islandQueue";
-	import { ActiveFiltersIslandComponent } from "./components/layout/islandActiveFilters";
-	import { QueueDetailsModal } from "./modals/modalQueueDetails";
-	import { FolderSuggest } from "./utils/autocomplete";
-	import { MOVE_FILE } from "./types/typeOps";
-	import type { PendingChange } from "./types/typeOps";
-	import { translate } from "./i18n/index";
-	import type { PopupType, FabDef } from "./types/typeUI";
+	import { onMount } from 'svelte';
+	import { setIcon } from 'obsidian';
+	import type { VaultmanPlugin } from './main';
+	import type { FilesExplorerPanel } from './components/containers/explorerFiles';
+	import type { PropsExplorerPanel } from './components/containers/explorerProps';
+	import type { TagsExplorerPanel } from './components/containers/explorerTags';
+	import StatisticsPage from './components/pages/pageStatistics.svelte';
+	import FiltersPage from './components/pages/pageFilters.svelte';
+	import OperationsPage from './components/pages/pageOps.svelte';
+	import BottomNav from './components/layout/navbarPillFab.svelte';
+	import PopupOverlay from './components/layout/PopupOverlay.svelte';
+	import { QueueListComponent } from './components/componentQueueList';
+	import { QueueIslandComponent } from './components/layout/islandQueue';
+	import { ActiveFiltersIslandComponent } from './components/layout/islandActiveFilters';
+	import { QueueDetailsModal } from './modals/modalQueueDetails';
+	import { FolderSuggest } from './utils/autocomplete';
+	import { MOVE_FILE } from './types/typeOps';
+	import type { PendingChange } from './types/typeOps';
+	import { translate } from './i18n/index';
+	import type { PopupType, FabDef } from './types/typeUI';
 
 	// ─── Props ────────────────────────────────────────────────────────────────
 
@@ -28,7 +28,7 @@
 
 	function resolvedPageOrder(): string[] {
 		const order = plugin.settings.pageOrder as string[] | undefined;
-		const valid = ["statistics", "filters", "ops"];
+		const valid = ['statistics', 'filters', 'ops'];
 		if (
 			Array.isArray(order) &&
 			order.length === 3 &&
@@ -36,22 +36,22 @@
 		) {
 			return order;
 		}
-		return ["ops", "statistics", "filters"];
+		return ['ops', 'statistics', 'filters'];
 	}
 
 	const initialPageOrder = resolvedPageOrder();
 	let pageOrder = $state(initialPageOrder);
 	let pageRenderKey = $state(0); // incremented on each reorder to force page content remount
 	const pageLabels: Record<string, string> = {
-		statistics: translate("nav.statistics"),
-		filters: translate("nav.filters"),
-		ops: translate("nav.ops"),
+		statistics: translate('nav.statistics'),
+		filters: translate('nav.filters'),
+		ops: translate('nav.ops'),
 	};
 
 	const pageIcons: Record<string, string> = {
-		statistics: "lucide-bar-chart-2",
-		filters: "lucide-filter",
-		ops: "lucide-settings-2",
+		statistics: 'lucide-bar-chart-2',
+		filters: 'lucide-filter',
+		ops: 'lucide-settings-2',
 	};
 
 	// ─── Per-page FAB definitions ────────────────────────────────────────────────
@@ -61,8 +61,8 @@
 	>(() => ({
 		ops: {
 			left: {
-				icon: "lucide-list-checks",
-				label: translate("ops.queue"),
+				icon: 'lucide-list-checks',
+				label: translate('ops.queue'),
 				action: () => {
 					toggleQueueIsland();
 				},
@@ -70,28 +70,28 @@
 			right: null,
 		},
 		statistics: {
-			left: { icon: "lucide-blocks", label: "Add-ons", action: () => {} },
+			left: { icon: 'lucide-blocks', label: 'Add-ons', action: () => {} },
 			right: {
-				icon: "lucide-settings",
-				label: translate("nav.statistics") ?? "Settings",
+				icon: 'lucide-settings',
+				label: translate('nav.statistics') ?? 'Settings',
 				action: () => {
 					// Stub settings open hook
 					(plugin.app as any).setting?.open?.();
-					(plugin.app as any).setting?.openTabById?.("vaultman");
+					(plugin.app as any).setting?.openTabById?.('vaultman');
 				},
 			},
 		},
 		filters: {
 			left: {
-				icon: "lucide-list-checks",
-				label: translate("ops.queue"),
+				icon: 'lucide-list-checks',
+				label: translate('ops.queue'),
 				action: () => {
 					toggleQueueIsland();
 				},
 			},
 			right: {
-				icon: "lucide-sparkles",
-				label: translate("filters.active"),
+				icon: 'lucide-sparkles',
+				label: translate('filters.active'),
 				action: () => toggleFiltersIsland(),
 			},
 		},
@@ -104,7 +104,7 @@
 		() => pageFabs[activePage]?.right ?? null,
 	);
 
-	let activePage = $state(initialPageOrder[0] ?? "ops");
+	let activePage = $state(initialPageOrder[0] ?? 'ops');
 
 	// Use DOM insertion order (pageOrder at mount time) — avoids stale settings mismatch
 	let pageIndex = $derived(pageOrder.indexOf(activePage));
@@ -113,7 +113,7 @@
 		if (activePage !== page) {
 			closeQueueIsland();
 			closeFiltersIsland();
-			if (activePopup === "active-filters") closePopup();
+			if (activePopup === 'active-filters') closePopup();
 		}
 		activePage = page;
 		applyPageTransform(true);
@@ -121,8 +121,8 @@
 
 	function onContainerTransitionEnd(e: TransitionEvent) {
 		// Guard against child element transitions bubbling up
-		if (e.target === e.currentTarget && e.propertyName === "transform") {
-			containerEl?.classList.remove("is-animating");
+		if (e.target === e.currentTarget && e.propertyName === 'transform') {
+			containerEl?.classList.remove('is-animating');
 		}
 	}
 
@@ -135,12 +135,11 @@
 		const w = viewportEl.offsetWidth;
 		if (w === 0) return;
 		// Set each page to exact pixel width
-		const pages =
-			containerEl.querySelectorAll<HTMLElement>(".vaultman-page");
+		const pages = containerEl.querySelectorAll<HTMLElement>('.vaultman-page');
 		pages.forEach((p) => {
 			p.style.width = `${w}px`;
 		});
-		if (animated) containerEl.classList.add("is-animating");
+		if (animated) containerEl.classList.add('is-animating');
 		// BUG-FIX: Round pixel values to prevent sub-pixel blur on high-DPI screens
 		containerEl.style.transform = `translateX(${Math.round(-pageIndex * w)}px)`;
 	}
@@ -177,7 +176,7 @@
 
 	$effect(() => {
 		if (!pageOrder.includes(activePage)) {
-			activePage = pageOrder[0] ?? "ops";
+			activePage = pageOrder[0] ?? 'ops';
 		}
 	});
 
@@ -218,11 +217,9 @@
 		if (!isReordering || reorderSourceIdx < 0 || !pillEl) return;
 		// Find which icon the pointer is currently over
 		const el = document.elementFromPoint(e.clientX, e.clientY);
-		const iconEl = el?.closest?.(
-			".vaultman-nav-icon",
-		) as HTMLElement | null;
+		const iconEl = el?.closest?.('.vaultman-nav-icon') as HTMLElement | null;
 		if (iconEl && pillEl.contains(iconEl)) {
-			const icons = pillEl.querySelectorAll(".vaultman-nav-icon");
+			const icons = pillEl.querySelectorAll('.vaultman-nav-icon');
 			const idx = Array.from(icons).indexOf(iconEl);
 			if (idx >= 0 && idx !== reorderSourceIdx) {
 				reorderTargetIdx = idx;
@@ -281,9 +278,7 @@
 	// ResizeObserver on .vaultman-view updates nav state
 	function bindViewRoot(el: HTMLElement) {
 		const target =
-			(el.closest(".vaultman-view") as HTMLElement) ??
-			el.parentElement ??
-			el;
+			(el.closest('.vaultman-view') as HTMLElement) ?? el.parentElement ?? el;
 		viewRootEl = target;
 		const ro = new ResizeObserver((entries) => {
 			const w = entries[0]?.contentRect.width ?? target.offsetWidth;
@@ -301,7 +296,7 @@
 
 	function onCollapsedNavClick() {
 		if (!navCollapsed || !navEl) return;
-		navEl.classList.add("is-bar-expanding");
+		navEl.classList.add('is-bar-expanding');
 		navCollapsed = false;
 		if (navExpandTimer) clearTimeout(navExpandTimer);
 		navExpandTimer = setTimeout(() => {
@@ -309,7 +304,7 @@
 			if (viewRootEl && viewRootEl.offsetWidth < NAV_COLLAPSE_THRESHOLD) {
 				navCollapsed = true;
 			}
-			navEl?.classList.remove("is-bar-expanding");
+			navEl?.classList.remove('is-bar-expanding');
 		}, 2000);
 	}
 
@@ -341,7 +336,7 @@
 	let queuedCount = $state(0);
 	let filterRuleCount = $state(0);
 	const addOpCount = $derived(
-		plugin.queueService.queue.filter((op) => op.action === "add").length,
+		plugin.queueService.queue.filter((op) => op.action === 'add').length,
 	);
 
 	// ─── Queue island ─────────────────────────────────────────────────────────
@@ -355,12 +350,12 @@
 	let filtersIslandEl = $state<HTMLElement | null>(null);
 
 	function countFilterLeaves(
-		group: import("./types/typeFilter").FilterGroup,
+		group: import('./types/typeFilter').FilterGroup,
 	): number {
 		let count = 0;
 		for (const child of group.children) {
-			if (child.type === "rule") count++;
-			else if (child.type === "group") count += countFilterLeaves(child);
+			if (child.type === 'rule') count++;
+			else if (child.type === 'group') count += countFilterLeaves(child);
 		}
 		return count;
 	}
@@ -377,14 +372,14 @@
 	let tagsExplorer = $state<TagsExplorerPanel | null>(null);
 
 	// ─── Filters page state ──────────────────────────────────────────────────
-	type FiltersTab = "tags" | "props" | "files";
-	let filtersActiveTab = $state<FiltersTab>("props");
+	type FiltersTab = 'tags' | 'props' | 'files';
+	let filtersActiveTab = $state<FiltersTab>('props');
 	$effect(() => {
 		void filtersActiveTab;
 		closeQueueIsland();
 		closeFiltersIsland();
 	});
-	let filtersSearch = $state("");
+	let filtersSearch = $state('');
 	let filtersSearchCategory = $state<Record<FiltersTab, number>>({
 		tags: 0,
 		props: 0,
@@ -398,20 +393,17 @@
 
 		// Route search with per-tab category scoping
 		switch (tab) {
-			case "props":
+			case 'props':
 				propExplorer?.setSearchTerm(term);
 				break;
-			case "tags":
-				tagsExplorer?.setSearchTerm(
-					term,
-					catMode === 0 ? "all" : "leaf",
-				);
+			case 'tags':
+				tagsExplorer?.setSearchTerm(term, catMode === 0 ? 'all' : 'leaf');
 				break;
-			case "files":
+			case 'files':
 				if (catMode === 0) {
-					fileList?.setSearchFilter(term, "");
+					fileList?.setSearchFilter(term, '');
 				} else {
-					fileList?.setSearchFilter("", term);
+					fileList?.setSearchFilter('', term);
 				}
 				break;
 		}
@@ -421,7 +413,7 @@
 
 	function toggleQueueIsland() {
 		closeFiltersIsland();
-		if (activePopup === "active-filters") closePopup();
+		if (activePopup === 'active-filters') closePopup();
 		if (queueIslandOpen) {
 			closeQueueIsland();
 		} else {
@@ -489,19 +481,16 @@
 	function refreshActiveFilterHighlights(): void {
 		const props = new Set<string>();
 		const vals = new Map<string, Set<string>>();
-		function walk(node: import("./types/typeFilter").FilterNode): void {
-			if (node.type === "rule") {
+		function walk(node: import('./types/typeFilter').FilterNode): void {
+			if (node.type === 'rule') {
 				if (node.property) {
 					props.add(node.property);
 					if (node.values && node.values.length > 0) {
-						if (!vals.has(node.property))
-							vals.set(node.property, new Set());
-						node.values.forEach((v) =>
-							vals.get(node.property!)!.add(v),
-						);
+						if (!vals.has(node.property)) vals.set(node.property, new Set());
+						node.values.forEach((v) => vals.get(node.property!)!.add(v));
 					}
 				}
-			} else if (node.type === "group") {
+			} else if (node.type === 'group') {
 				node.children.forEach(walk);
 			}
 		}
@@ -520,28 +509,28 @@
 
 	const scopeOptions = [
 		{
-			value: "all",
-			label: translate("scope.all"),
-			icon: "lucide-database",
+			value: 'all',
+			label: translate('scope.all'),
+			icon: 'lucide-database',
 		},
 		{
-			value: "filtered",
-			label: translate("scope.filtered"),
-			icon: "lucide-filter",
+			value: 'filtered',
+			label: translate('scope.filtered'),
+			icon: 'lucide-filter',
 		},
 		{
-			value: "selected",
-			label: translate("scope.selected"),
-			icon: "lucide-check-square",
+			value: 'selected',
+			label: translate('scope.selected'),
+			icon: 'lucide-check-square',
 		},
 	];
 
 	function setScope(value: string) {
 		plugin.settings.explorerOperationScope = value as
-			| "auto"
-			| "selected"
-			| "filtered"
-			| "all";
+			| 'auto'
+			| 'selected'
+			| 'filtered'
+			| 'all';
 		void plugin.saveSettings();
 		closePopup();
 	}
@@ -549,18 +538,18 @@
 	// ─── View mode popup ──────────────────────────────────────────────────────
 
 	// Kept for future use (view mode toggle in Files tab)
-	// eslint-disable-next-line @typescript-eslint/no-unused-vars
-	function setViewMode(mode: "list" | "selected") {
+	function setViewMode(mode: 'list' | 'selected') {
 		plugin.settings.viewMode = mode;
 		void plugin.saveSettings();
 		// showSelectedOnly handled by FilesExplorerPanel view mode in future iteration
 		closePopup();
 	}
+	void setViewMode;
 
 	// ─── Search popup ─────────────────────────────────────────────────────────
 
-	let searchName = $state("");
-	let searchFolder = $state("");
+	let searchName = $state('');
+	let searchFolder = $state('');
 
 	$effect(() => {
 		fileList?.setSearchFilter(searchName, searchFolder);
@@ -574,8 +563,8 @@
 	type ActiveFilterRule = {
 		id: string;
 		description: string;
-		node: import("./types/typeFilter").FilterNode;
-		parent: import("./types/typeFilter").FilterGroup;
+		node: import('./types/typeFilter').FilterNode;
+		parent: import('./types/typeFilter').FilterGroup;
 		enabled: boolean;
 	};
 
@@ -584,9 +573,9 @@
 	function refreshActiveFiltersPopup(): void {
 		const rules: ActiveFilterRule[] = [];
 		let counter = 0;
-		function walk(group: import("./types/typeFilter").FilterGroup): void {
+		function walk(group: import('./types/typeFilter').FilterGroup): void {
 			for (const child of group.children) {
-				if (child.type === "rule") {
+				if (child.type === 'rule') {
 					rules.push({
 						id: `rule-${counter++}`,
 						description: describeFilterNode(child),
@@ -594,7 +583,7 @@
 						parent: group,
 						enabled: !(child as any).disabled,
 					});
-				} else if (child.type === "group") {
+				} else if (child.type === 'group') {
 					walk(child);
 				}
 			}
@@ -604,24 +593,24 @@
 	}
 
 	function describeFilterNode(
-		node: import("./types/typeFilter").FilterNode,
+		node: import('./types/typeFilter').FilterNode,
 	): string {
-		if (node.type !== "rule") return "Group";
-		const prop = (node as any).property ?? "";
+		if (node.type !== 'rule') return 'Group';
+		const prop = (node as any).property ?? '';
 		const vals = (node as any).values ?? [];
 		switch ((node as any).filterType) {
-			case "has_property":
+			case 'has_property':
 				return `has: ${prop}`;
-			case "specific_value":
-				return `${prop}: ${vals[0] ?? ""}`;
-			case "has_tag":
-				return `has tag: ${vals[0] ?? ""}`;
-			case "folder":
-				return `folder: ${vals[0] ?? ""}`;
-			case "file_name":
-				return `name: ${vals[0] ?? ""}`;
+			case 'specific_value':
+				return `${prop}: ${vals[0] ?? ''}`;
+			case 'has_tag':
+				return `has tag: ${vals[0] ?? ''}`;
+			case 'folder':
+				return `folder: ${vals[0] ?? ''}`;
+			case 'file_name':
+				return `name: ${vals[0] ?? ''}`;
 			default:
-				return prop || "filter";
+				return prop || 'filter';
 		}
 	}
 
@@ -641,8 +630,8 @@
 
 	// ─── Move popup ───────────────────────────────────────────────────────────
 
-	let moveTargetFiles = $state<import("obsidian").TFile[]>([]);
-	let moveTargetFolder = $state("");
+	let moveTargetFiles = $state<import('obsidian').TFile[]>([]);
+	let moveTargetFolder = $state('');
 
 	const movePreviews = $derived.by(() => {
 		const limit = Math.min(moveTargetFiles.length, 8);
@@ -657,11 +646,9 @@
 	function openMovePopup() {
 		const selected = fileList?.getSelectedFiles() ?? [];
 		moveTargetFiles =
-			selected.length > 0
-				? selected
-				: [...plugin.filterService.filteredFiles];
-		moveTargetFolder = "";
-		showPopup("move");
+			selected.length > 0 ? selected : [...plugin.filterService.filteredFiles];
+		moveTargetFolder = '';
+		showPopup('move');
 	}
 
 	function queueMoves() {
@@ -669,13 +656,11 @@
 		// Collect all changes first, then add in one batch (one UI event instead of N)
 		const changes: PendingChange[] = [];
 		for (const file of moveTargetFiles) {
-			const newPath = targetFolder
-				? `${targetFolder}/${file.name}`
-				: file.name;
+			const newPath = targetFolder ? `${targetFolder}/${file.name}` : file.name;
 			if (newPath === file.path) continue;
 			changes.push({
-				type: "file_move",
-				action: "move",
+				type: 'file_move',
+				action: 'move',
 				details: `${file.path} → ${newPath}`,
 				files: [file],
 				logicFunc: () => ({ [MOVE_FILE]: targetFolder }),
@@ -717,7 +702,7 @@
 	// ─── Refresh active filters popup when it becomes visible ────────────────
 
 	$effect(() => {
-		if (activePopup === "active-filters" && popupOpen) {
+		if (activePopup === 'active-filters' && popupOpen) {
 			refreshActiveFiltersPopup();
 		}
 	});
@@ -742,19 +727,19 @@
 			queueIsland?.render();
 		};
 
-		plugin.filterService.on("changed", onFilterChanged);
-		plugin.queueService.on("changed", onQueueChanged);
+		plugin.filterService.on('changed', onFilterChanged);
+		plugin.queueService.on('changed', onQueueChanged);
 
 		refreshFiles();
 		refreshQueue();
 
 		// Re-render file list + prop browser when vault finishes indexing
-		plugin.app.metadataCache.on("resolved", onVaultResolved);
+		plugin.app.metadataCache.on('resolved', onVaultResolved);
 
 		return () => {
-			plugin.filterService.off("changed", onFilterChanged);
-			plugin.queueService.off("changed", onQueueChanged);
-			plugin.app.metadataCache.off("resolved", onVaultResolved);
+			plugin.filterService.off('changed', onFilterChanged);
+			plugin.queueService.off('changed', onQueueChanged);
+			plugin.app.metadataCache.off('resolved', onVaultResolved);
 		};
 	});
 </script>
@@ -770,19 +755,18 @@
 		{#each pageOrder as pageId (pageId)}
 			<div class="vaultman-page" data-page={pageId}>
 				{#key pageRenderKey}
-					{#if pageId === "ops"}
+					{#if pageId === 'ops'}
 						<OperationsPage
 							{plugin}
-							getSelectedFiles={() =>
-								fileList?.getSelectedFiles() ?? []}
+							getSelectedFiles={() => fileList?.getSelectedFiles() ?? []}
 							{openMovePopup}
 							{filteredCount}
 							{selectedCount}
 							{icon}
 						/>
-					{:else if pageId === "statistics"}
+					{:else if pageId === 'statistics'}
 						<StatisticsPage {plugin} />
-					{:else if pageId === "filters"}
+					{:else if pageId === 'filters'}
 						<FiltersPage
 							{plugin}
 							bind:filtersActiveTab
@@ -809,7 +793,7 @@
 			closeFiltersIsland();
 		}}
 		onkeydown={(e) => {
-			if (e.key === "Escape" || e.key === "Enter") {
+			if (e.key === 'Escape' || e.key === 'Enter') {
 				closeQueueIsland();
 				closeFiltersIsland();
 			}
