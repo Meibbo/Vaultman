@@ -4,7 +4,7 @@ type: spec
 status: proposed
 parent: "[[docs/work/publish/index|Publish]]"
 created: 2026-06-04T04:21:05
-updated: 2026-06-04T04:21:05
+updated: 2026-06-04T04:57:25
 tags:
   - agent/spec
   - initiative/publish
@@ -28,6 +28,7 @@ accepted and a separate implementation plan exists.
 - [[docs/work/publish/items/2026-06-04-release-1-0-2-gate-escape-triage|Release 1.0.2 gate escape triage]]
 - [[docs/work/publish/items/2026-06-04-release-1-0-2-gate-delta-inventory|Release 1.0.2 gate delta inventory]]
 - [[docs/work/publish/items/2026-06-04-release-1-0-2-parallel-dispatch|Release 1.0.2 parallel dispatch plan]]
+- [[docs/work/publish/research/2026-06-04-stylelint-obsidian-css-gate|Stylelint research for Obsidian CSS gate]]
 - [[docs/work/hardening/research/2026-05-27-version-streams-distillation/index|Version streams]]
 
 ## Problem
@@ -49,6 +50,9 @@ Normalize the stable gate narrowly before `1.0.2`:
 
 - adopt `pnpm` and Node 24 for stable verification;
 - keep the stable esbuild build path;
+- add `svelte-check` now;
+- make `format:check` CI-blocking;
+- make a narrow `stylelint` gate CI-blocking;
 - update release-blocking lint/security/CSS checks;
 - fix the known CodeQL issue and add security policy docs;
 - prepare stable release metadata without guessing compatibility numbers;
@@ -86,8 +90,8 @@ importing canary complexity into a patch release.
 
 ### Gate Baseline
 
-Stable `1.0.2` should use one package manager and one Node baseline across local
-and hosted verification. The expected baseline is `pnpm` with Node `24`.
+Stable `1.0.2` uses one package manager and one Node baseline across local and
+hosted verification: `pnpm` with Node `24`.
 
 The stable lockfile must be generated from the stable dependency graph. It must
 not be copied from `sandbox`, because `sandbox` includes canary dependencies and
@@ -106,15 +110,15 @@ candidate has `0.1.9`; `sandbox` has `^0.2.9`; npm currently reports `0.3.0`.
 The implementation plan must read release notes/changelog and decide the target
 version before changing dependencies.
 
-Format checks should be considered release-blocking only if they can be adopted
-without a broad formatting rewrite. If formatting produces large unrelated diffs,
-the release should defer broad formatting and use a narrower check.
+`svelte-check` enters stable now. `format:check` is CI-blocking. If formatting
+produces large unrelated diffs, the plan must isolate them in a separate commit
+or narrow the checked surface without weakening CI.
 
 ### CSS And Scorecard Gate
 
 The existing custom Scorecard regression scan stays in the gate because it
-captures Obsidian-specific release risks. A narrow `stylelint` gate is allowed
-only if it blocks release-risk CSS without forcing a style-system rewrite.
+captures Obsidian-specific release risks. A narrow `stylelint` gate is
+CI-blocking for `1.0.2`, informed by the stylelint research source record.
 
 At minimum, stable must prevent recurrence of the issues already seen in
 release assets: unsafe `!important`, unsafe `display: contents`, missing
@@ -160,7 +164,7 @@ Parallelism is allowed only where dependencies permit it:
 - Local and CI gates use the same selected package manager and Node baseline.
 - Stable build remains esbuild-based for `1.0.2`.
 - Release gate covers lint, check/typecheck, build, Scorecard/CSS scan, security
-  audit, and any accepted format/style checks.
+  audit, CI-blocking `format:check`, CI-blocking `stylelint`, and `svelte-check`.
 - `eslint-plugin-obsidianmd` target version and active rule coverage are
   documented.
 - CodeQL #64 is fixed or explicitly documented as not present on the final
@@ -173,25 +177,22 @@ Parallelism is allowed only where dependencies permit it:
   after local gates pass.
 - The process stops before tag/release creation until explicit approval.
 
-## Open Decisions For The Plan
+## Closed Decisions For The Plan
 
-- Whether `pnpm` adoption is mandatory for `1.0.2` or still needs a maintainer
-  decision. This spec recommends yes.
-- Whether `stylelint` is narrow and release-blocking in `1.0.2`, or deferred
-  after extending the custom Scorecard scan.
-- Whether `format:check` is CI-blocking or local-only for this patch.
-- Whether `svelte-check` is added to stable now or deferred to the `dev` tooling
-  promotion lane.
-- Whether SBOM generation is required for `1.0.2` or remains post-release
-  hardening.
+- `pnpm` is mandatory for `1.0.2`.
+- `svelte-check` is added to stable now.
+- `format:check` is CI-blocking.
+- Narrow `stylelint` is CI-blocking.
+- SBOM remains open for the plan; it must not delay `1.0.2` unless the workflow
+  already supports it cleanly.
 
 ## Spec Self-Review
 
 - Placeholder scan: no placeholder-only requirements remain.
-- Consistency check: the spec keeps esbuild while allowing pnpm/Node/lint/CSS
-  normalization; Vite/Vite+ is explicitly deferred.
+- Consistency check: the spec keeps esbuild while requiring pnpm, Node 24,
+  `svelte-check`, CI-blocking format, and CI-blocking stylelint; Vite/Vite+ is
+  explicitly deferred.
 - Scope check: this is one release-gate normalization project, with multi-agent
   subdomains but one final integration gate.
 - Ambiguity check: compatibility metadata must not change without evidence;
   admin-only Scorecard items are separated from patch blockers.
-

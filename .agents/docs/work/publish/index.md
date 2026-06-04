@@ -4,7 +4,7 @@ type: initiative-index
 status: active
 parent: "[[docs/work/roadmap-overview|Roadmap Overview]]"
 created: 2026-05-26T00:00:00
-updated: 2026-06-04T04:21:05
+updated: 2026-06-04T04:57:25
 tags:
   - agent/initiative
   - initiative/publish
@@ -54,6 +54,7 @@ Active design:
 - [[docs/work/publish/items/2026-06-04-release-1-0-2-gate-escape-triage|Release 1.0.2 gate escape triage]]
 - [[docs/work/publish/items/2026-06-04-release-1-0-2-gate-delta-inventory|Release 1.0.2 gate delta inventory]]
 - [[docs/work/publish/items/2026-06-04-release-1-0-2-parallel-dispatch|Release 1.0.2 parallel dispatch plan]]
+- [[docs/work/publish/research/2026-06-04-stylelint-obsidian-css-gate|Stylelint research for Obsidian CSS gate]]
 
 1. **1.1.0 → beta relabel.** GitHub Release `1.1.0` is now named
    `1.1.0-beta.1` and marked prerelease. Its Git tag remains `1.1.0`; decide
