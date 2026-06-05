@@ -40,10 +40,10 @@ documented. Research: [[docs/work/pkm-ai/items/2026-06-04-embedding-vectorstore-
   `.agents/docs`. Edge types `parent` (frontmatter) + `link` (body `[[...]]`); `<node>` normalizes
   wiki-path/file/slug; `--depth` BFS into `reachable`; `--direction out|in|both`; `--json`. TDD
   (`test/traverse-graph.test.mjs`, 4 tests). tsc 47, suite 52. Real corpus: index = 30 out / 47 backlinks.
-- [ ] **S6b — retrieval index + BM25.** `index-docs` also writes `retrieval-index.json` (tokenized body +
-  `content_hash` + `lifecycle` + `updated`). `query-docs` gains a BM25 scorer over that index
-  (lifecycle-weighted: active > deferred > … > archived). TDD on the BM25 ranking. Keep the existing
-  frontmatter-filter mode as-is; BM25 is the search-term ranking path.
+- [x] **S6b — retrieval index + BM25** (`96adba1`): `lib/retrieval.mjs` (`buildRetrievalIndex` = termFreq +
+  sha1 content-hash + lifecycle + length; `bm25Search` k1=1.5/b=0.75 + lifecycle weight; `loadRetrievalIndex`
+  cache-or-in-memory). `index-docs` writes `retrieval-index.json`; `query-docs --rank [--limit N] [--json]`
+  (filter mode untouched). TDD 4 tests; suite 56. Real corpus 824 docs, ranking surfaces the right S6 docs.
 - [ ] **S6c — adapter contracts + zero-dep store + fusion.** `retrieval/` dir: `EmbeddingProvider` +
   `VectorStore` + `EmbeddingConfig` interfaces (ADR 0006 shapes); `flat-json` cosine store; RRF fusion of
   BM25 + vector ranks; lifecycle weighting. Stub/hash provider for deterministic offline tests. Hybrid
