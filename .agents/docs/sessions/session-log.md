@@ -4,7 +4,7 @@ type: agent-journal
 status: active
 parent: "[[docs/current/handoff|handoff]]"
 created: 2026-05-28T00:00:00
-updated: 2026-05-29T23:45:00
+updated: 2026-06-05T04:18:00
 created_by: claude-opus-4-7
 updated_by: codex-gpt-5
 tags:
@@ -35,6 +35,46 @@ broader "append-only status writes" is parked as **S-12** in
 ```
 
 ## Entries (newest at TOP, append above the previous one)
+
+## 2026-06-05 — claude-opus-4-8 · implement · S2 coordination conventions (T1-T7, ADR 0003)
+- **summary:** Executed S2 Tasks 1-7 — `agent-room.ts` is now the cross-stream shared brain: state-root
+  resolves to the git common dir (all worktrees share ONE room), atomic `ensureRun` (no double-room),
+  stream/worktree presence tags, `task --depends-on`, + a `coordination.md` policy. TDD black-box; FULL
+  two-stage review on the locking (T1/T2). Cross-worktree 2-agent run verified live.
+- **key landings:**
+  - **T1 `0baad20`** — `resolveStateRoot` (`--state-root` > `VAULTMAN_ROOM_STATE_ROOT` >
+    `<git-common-dir>/vaultman-room` > `cwd/.agents/state`); write-guard re-anchored cwd→stateRoot so a
+    linked worktree can write the shared room (the room lives untracked in `.git/`); `--help` mjs→ts.
+  - **T2 `8df2d3a`** — atomic `ensureRun` under `<stateRoot>/ensure.lock` (`open(...,"wx")` O_EXCL);
+    `run ensure` + `agent join --run current` wiring (pins resolved runId); `withRunLock` unified to WAIT
+    (not throw) so simultaneous joins all land in one room — behavior change for all mutating cmds, stale 300s→60s.
+  - **T3 `c31c2e3`** — stream/worktree agent tags surfaced as `id [stream @ worktree]`.
+  - **dependsOn `71fc085`** — `task --depends-on` (poll-based, advisory; fills the spec DONE-WHEN the plan's task list omitted).
+  - **T4 `a778f48`** — `coordination.md` shared-brain policy; AGENTS.md link verified (T5, already present).
+  - **T6 (live)** — 2 worktrees (`vaultman` + linked `vm-s2-test`) → ONE room; cross-worktree
+    task/`depends=`/mailbox; tags `[goal @ vaultman]` + `[stable @ vm-s2-test]`. Throwaway worktree removed.
+  - Tests: **16 black-box green** (`node --test`); `tsc` unchanged (47 pre-existing CliArgs-union debt, 0 new).
+- **next-action:** S3 memory lifecycle (ADR 0002) via
+  [[docs/work/pkm-ai/plans/2026-06-04-orchestration-upgrade/index|plan]] (03-S3 at pickup); S4/S5 parallel.
+  **FOLLOW-UPS:** (a) `.agents/state` is git-tracked → dev should `git rm -r --cached .agents/state` +
+  gitignore (room now lives untracked in `.git/vaultman-room`); (b) pre-existing task-claim TOCTOU
+  (read-modify-write outside `withRunLock`) worth tightening.
+- **artifacts:** `coordination.md` · `agent-room.ts` (resolveStateRoot/ensureRun/withFileLock/resolveWorktree/dependsOn)
+  · `test/agent-room.test.mjs` (+11 cases) · session shard [[docs/sessions/2026-06-04-claude-opus-4-8-s2-exec|2026-06-04-claude-opus-4-8-s2-exec]].
+- **git:** `0baad20` · `8df2d3a` · `c31c2e3` · `71fc085` · `a778f48` on `sandbox`.
+
+## 2026-06-05 — codex-gpt-5 · update/research · proto-v12 shard 04 rewrite
+- **summary:** Rebuilt version-streams shard 04 around user-confirmed canonical proto v12 after confirming
+  the Downloads path is a junction into the Open Design project target.
+- **key landings:**
+  - Added [[docs/work/hardening/research/2026-05-29-version-streams-vertical-codebase-analysis/04-proto-design-v12-vertical-read|proto v12 vertical read]] as active shard 04.
+  - Preserved the prior v7 read at
+    [[docs/work/hardening/research/2026-05-29-version-streams-vertical-codebase-analysis/archive/04-proto-design-v7-vertical-read.superseded-by-v12.2026-06-05|archived v7 shard]] and marked the active v7 file as superseded.
+  - Updated the version-streams index and shard 01 so v12 is current proto canon and v7 is historical evidence.
+  - Previewed `split-shard.mjs` without `--write`: shard 04 v12 would split into 8 parts at `--max-lines 300`.
+- **next-action:** Wait for dev instruction on whether to run the splitter over shard 04 or continue to shard 05, the stable/canary/proto system-by-system delta matrix.
+- **artifacts:** v12 shard 04 · archived v7 shard · updated research index · updated shard 01.
+- **git:** uncommitted docs-only changes on `sandbox`; broader worktree already contained unrelated AI/doc changes.
 
 ## 2026-06-04 (cont.) — claude-opus-4-8 · PKM-AI orchestration upgrade (decisions → spec → plan → S1/S2 exec)
 - **summary:** Diagnosed the routing/discipline gap (agent-room.mjs existed but unused since 2026-05-26 →

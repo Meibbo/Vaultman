@@ -43,6 +43,32 @@ file: `test/agent-room.test.mjs`.
 
 ---
 
+## ✅ S2 EXECUTED — 2026-06-05 (claude-opus-4-8)
+
+All tasks complete + verified. TDD **black-box** (`node --test`, 16 tests green); FULL two-stage subagent
+review on the locking (T1/T2 — both PASS). tsc unchanged (47 pre-existing CliArgs-union errors, 0 new).
+
+- **T0** `fce12fb` — agent-room.mjs → `.ts`.
+- **T1** `0baad20` — `resolveStateRoot` (git-common-dir shared root, precedence flag>env>git>fallback) +
+  write-guard re-anchored cwd→stateRoot (so a linked worktree can write the shared room) + `--help` mjs→ts.
+- **T2** `8df2d3a` — atomic `ensureRun` (`open(...,"wx")` O_EXCL on `<stateRoot>/ensure.lock`, no
+  double-room); `run ensure` + `agent join --run current` wiring; `withRunLock` unified to **WAIT** (not throw).
+- **T3** `c31c2e3` — stream/worktree agent tags → `id [stream @ worktree]`.
+- **dependsOn** `71fc085` — `task --depends-on` (poll-based, advisory).
+- **T4** `a778f48` — `coordination.md` policy.
+- **T5** — AGENTS.md → coordination.md link verified (already present from S1; no edit).
+- **T6** — **LIVE**: 2 worktrees (`vaultman` + linked `vm-s2-test`) → ONE `room_20260604_110423_e9c65d`;
+  cross-worktree `task --depends-on`, `mailbox`, tags `[goal @ vaultman]` + `[stable @ vm-s2-test]`. Throwaway removed.
+- **T7** — superseded by per-task commits (above), per the dev "commit per task" guardrail.
+
+**Deviations (flagged in commits + review):** T2 used an atomic O_EXCL lock and unified `withRunLock` to
+wait — the plan's "reuse the check-then-write primitive" could not guarantee no-double-room / "5 agents =
+same room". **Follow-ups for dev:** (a) `.agents/state` is git-tracked → `git rm -r --cached .agents/state`
++ gitignore (room now lives untracked in `.git/vaultman-room`); (b) pre-existing task-claim TOCTOU
+(read-modify-write outside `withRunLock`) worth tightening.
+
+---
+
 ### Task 0: Migrate agent-room → `.ts` (ADR 0001 / S5 first script)
 
 - [ ] **Step 1: baseline** — capture current output:
