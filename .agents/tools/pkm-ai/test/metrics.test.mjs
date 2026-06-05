@@ -6,7 +6,7 @@ import path from "node:path";
 import { execFileSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
 
-const toolPath = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..", "record-metric.mjs");
+const toolPath = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..", "record-metric.ts");
 
 test("record-metric appends JSONL metric events with evidence details", () => {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), "pkm-ai-metrics-"));

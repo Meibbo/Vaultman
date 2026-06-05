@@ -1,8 +1,14 @@
 #!/usr/bin/env node
 import { recordMetric } from "./lib/metrics.mjs";
 
+interface MetricFields {
+  ts?: string;
+  path?: string;
+  detail?: string;
+}
+
 if (process.argv.includes("--help") || process.argv.includes("-h")) {
-  console.log(`Usage: node .agents/tools/pkm-ai/record-metric.mjs <event> [--now YYYY-MM-DDTHH:mm:ss] [--path path] [--detail text]
+  console.log(`Usage: node .agents/tools/pkm-ai/record-metric.ts <event> [--now YYYY-MM-DDTHH:mm:ss] [--path path] [--detail text]
 
 Events:
   glossary_checked
@@ -16,7 +22,7 @@ Events:
 
 const args = process.argv.slice(2);
 const event = args[0];
-const fields = {};
+const fields: MetricFields = {};
 
 for (let index = 1; index < args.length; index += 1) {
   const arg = args[index];
@@ -35,6 +41,6 @@ for (let index = 1; index < args.length; index += 1) {
 try {
   recordMetric(process.cwd(), event, fields);
 } catch (error) {
-  console.error(error.message);
+  console.error((error as Error).message);
   process.exit(1);
 }

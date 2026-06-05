@@ -9,7 +9,7 @@ const commands = {
   health: 'check-doc-health.ts',
   index: 'index-docs.ts',
   query: 'query-docs.ts',
-  metric: 'record-metric.mjs',
+  metric: 'record-metric.ts',
   archive: 'archive-active-doc.mjs',
   update: 'update-indexes.mjs',
   shard: 'shard-index.mjs',
