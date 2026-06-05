@@ -2024,8 +2024,8 @@ body.vaultman-bases-column-separators table th {
 }
 
 .vaultman-bottom-nav--minimal.vaultman-glass.vaultman-glass--bottom {
-  background: var(--background-secondary);
-  border-top: 1px solid var(--background-modifier-border);
+  background: transparent;
+  border-top: none;
 }
 
 .vaultman-bottom-nav--minimal.vaultman-glass.vaultman-glass--bottom::before {
@@ -2178,7 +2178,8 @@ body.vaultman-bases-column-separators table th {
 }
 
 /* Individual icon nav items inside pill */
-.vaultman-nav-icon {
+.vaultman-nav-icon,
+.vaultman-nav-page-icon {
   overflow: visible;
   /* ensure badge is not clipped */
   width: 2em;
@@ -2193,18 +2194,21 @@ body.vaultman-bases-column-separators table th {
   flex-shrink: 0;
 }
 
-.vaultman-nav-icon:hover {
+.vaultman-nav-icon:hover,
+.vaultman-nav-page-icon:hover {
   color: var(--text-normal);
   background: var(--background-modifier-hover);
 }
 
-.vaultman-nav-icon.is-active {
+.vaultman-nav-icon.is-active,
+.vaultman-nav-page-icon.is-active {
   color: var(--color-accent);
   background: color-mix(in srgb, var(--color-accent) 12%, transparent);
   box-shadow: 0 0 10px color-mix(in srgb, var(--color-accent) 40%, transparent);
 }
 
-.vaultman-nav-icon svg {
+.vaultman-nav-icon svg,
+.vaultman-nav-page-icon svg {
   width: 1em;
   height: 1em;
 }
@@ -2234,12 +2238,14 @@ body.vaultman-bases-column-separators table th {
   outline-offset: 2px;
 }
 
-.vaultman-nav-pill.is-reordering .vaultman-nav-icon {
+.vaultman-nav-pill.is-reordering .vaultman-nav-icon,
+.vaultman-nav-pill.is-reordering .vaultman-nav-page-icon {
   cursor: grab;
   opacity: 0.75;
 }
 
-.vaultman-nav-icon.is-reorder-target {
+.vaultman-nav-icon.is-reorder-target,
+.vaultman-nav-page-icon.is-reorder-target {
   background: color-mix(in srgb, var(--color-accent) 25%, transparent);
   border-radius: 50%;
   opacity: 1;
@@ -2669,11 +2675,25 @@ body.vaultman-bases-column-separators table th {
   transition: background 0.12s;
 }
 .vaultman-prop-card:hover { background: var(--background-modifier-hover); }
+.vaultman-prop-card.is-active-filter {
+  border-color: var(--color-accent);
+  color: var(--text-accent);
+  background: color-mix(in srgb, var(--color-accent) 12%, transparent);
+}
 .vaultman-prop-card-icon { display: flex; align-items: center; justify-content: center; color: var(--text-muted); }
 .vaultman-prop-card-icon svg { width: 16px; height: 16px; }
 .vaultman-prop-card-name { font-size: var(--font-ui-smaller); color: var(--text-normal); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; }
 .vaultman-prop-card-type { font-size: 10px; color: var(--text-muted); text-transform: capitalize; }
 .vaultman-prop-card-count { font-size: 10px; color: var(--text-faint); }
+.vaultman-card-badge-zone {
+  justify-content: center;
+  max-width: 100%;
+  min-height: 16px;
+  overflow: hidden;
+}
+.vaultman-card-badge-zone .vaultman-badge {
+  flex-shrink: 0;
+}
 
 .vaultman-tags-grid {
   display: grid;
@@ -3322,6 +3342,23 @@ body.vaultman-bases-column-separators table th {
   color: var(--text-muted);
   padding-left: 10px;
   overflow-wrap: anywhere;
+}
+
+.vaultman-content-replace-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.vaultman-content-replace-row .vaultman-search-input {
+  flex: 1;
+  min-width: 0;
+}
+
+.vaultman-content-queue-btn {
+  width: 30px;
+  height: 30px;
+  flex: 0 0 30px;
 }
 
 .vaultman-content-preview-snippet mark {

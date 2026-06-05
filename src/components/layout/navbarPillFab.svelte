@@ -143,7 +143,7 @@
 
 			{#each pageOrder as pageId, i (pageId)}
 				<div
-					class="vaultman-nav-icon vaultman-nav-page-icon"
+					class="clickable-icon nav-action-button vaultman-nav-page-icon"
 					class:is-active={activePage === pageId && !isReordering}
 					class:is-reorder-target={isReordering && reorderTargetIdx === i}
 					aria-label={pageLabels[pageId] ?? pageId}

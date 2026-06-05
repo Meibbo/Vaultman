@@ -19,60 +19,12 @@ import type { TreeNode, PropMeta } from '../../types/typeTree';
 import type { PropertyChange } from '../../types/typeOps';
 import { NATIVE_SET_PROP_TYPE } from '../../types/typeOps';
 import { showInputModal } from '../../utils/inputModal';
-
-const TYPE_ICON_MAP: Record<string, string> = {
-	tags: 'lucide-tags',
-	list: 'lucide-list',
-	text: 'lucide-text',
-	number: 'lucide-binary',
-	date: 'lucide-calendar',
-	datetime: 'lucide-calendar',
-	checkbox: 'lucide-check-square',
-	unknown: 'lucide-file-question',
-	aliases: 'lucide-forward',
-	cssclasses: 'lucide-palette',
-};
-
-function normalizePropType(propType: unknown, propName?: string): string {
-	const normalizedName = propName?.toLowerCase();
-	if (normalizedName === 'tags') return 'tags';
-	if (normalizedName === 'aliases') return 'aliases';
-	if (normalizedName === 'cssclasses') return 'cssclasses';
-
-	const objectTypeName = (value: object): string => {
-		const record = value as Record<string, unknown>;
-		for (const key of ['widget', 'type', 'name', 'id']) {
-			const candidate = record[key];
-			if (typeof candidate === 'string') return candidate;
-		}
-		return 'unknown';
-	};
-
-	const rawType =
-		typeof propType === 'string'
-			? propType
-			: propType && typeof propType === 'object'
-				? objectTypeName(propType)
-				: 'unknown';
-	const normalizedType = rawType.toLowerCase();
-	if (normalizedType === 'toggle') return 'checkbox';
-	if (normalizedType === 'numeric') return 'number';
-	if (normalizedType === 'multitext') return 'list';
-	if (normalizedType in TYPE_ICON_MAP) return normalizedType;
-	return 'unknown';
-}
-
-interface MetadataTypeManagerLike {
-	getWidget?(propName: string): string | undefined;
-	getTypeInfo?(propName: string): {
-		expected?: string;
-		inferred?: string;
-	} | undefined;
-	getPropertyInfo?(propName: string): {
-		widget?: string;
-		type?: string;
-	} | undefined;
-}
+import {
+	resolveNativePropType,
+	TYPE_ICON_MAP,
+	toNativePropType,
+	type MetadataTypeManagerLike,
+} from '../../logic/propTypes';
 
 export class PropsExplorerPanel extends Component {
 	private plugin: PanelPluginCtx;
@@ -300,6 +252,23 @@ export class PropsExplorerPanel extends Component {
 		this._render();
 	}
 
+	expandAll(): void {
+		let tree = this.logic.getTree();
+		if (this.nodeTypeFilter) {
+			tree = this._filterByType(tree, this.nodeTypeFilter);
+		}
+		if (this.searchTerm) {
+			tree = this.logic.filterTree(tree, this.searchTerm, this.searchMode);
+		}
+		this._expandAll(tree);
+		this._render();
+	}
+
+	collapseAll(): void {
+		this.expandedIds.clear();
+		this._render();
+	}
+
 	createFromSearch(term: string, category: number): void {
 		const propName = term.trim();
 		if (!propName || category !== 0) {
@@ -335,19 +304,9 @@ export class PropsExplorerPanel extends Component {
 		return null;
 	}
 
-	private _render(): void {
-		if (this.viewMode === 'grid') {
-			this._renderGrid();
-			return;
-		}
-		let tree = this.logic.getTree();
-		const activeFilter = this.plugin.filterService.activeFilter;
-
+	private _activeFilterIds(): Set<string> {
 		const activeFilterIds = new Set<string>();
-		const highlightIds = new Set<string>();
-		const warningIds = new Set<string>();
 
-		// Helper to find filter matches
 		const walkFilter = (node: import('../../types/typeFilter').FilterNode) => {
 			if (node.type === 'rule' && node.property) {
 				if (node.filterType === 'has_property') {
@@ -359,7 +318,116 @@ export class PropsExplorerPanel extends Component {
 				node.children.forEach(walkFilter);
 			}
 		};
-		walkFilter(activeFilter);
+
+		walkFilter(this.plugin.filterService.activeFilter);
+		return activeFilterIds;
+	}
+
+	private _handleNodeClick(node: TreeNode<PropMeta>, activeFilterIds: Set<string>): void {
+		const meta = node.meta;
+
+		if (this.addMode && !meta.isValueNode) {
+			this.plugin.queueService.addOrRun({
+				type: 'property',
+				property: meta.propName,
+				action: 'add',
+				details: `Add property "${meta.propName}"`,
+				files: this.plugin.filterService.filteredFiles,
+				customLogic: true,
+				logicFunc: (_file, fm) => {
+					if (meta.propName in fm) return null;
+					fm[meta.propName] = '';
+					return fm;
+				},
+			});
+			return;
+		}
+
+		const isPropDeleted = this.plugin.queueService.queue.some(op =>
+			op.type === 'property' && op.property === meta.propName && op.action === 'delete' && !('value' in op)
+		);
+		if (isPropDeleted) return;
+
+		const filterId = meta.isValueNode ? `${meta.propName}::${meta.rawValue}` : meta.propName;
+		if (activeFilterIds.has(filterId)) {
+			if (meta.isValueNode) {
+				void this.plugin.filterService.removeNodeByProperty(meta.propName, meta.rawValue ?? '');
+			} else {
+				void this.plugin.filterService.removeNodeByProperty(meta.propName);
+			}
+			return;
+		}
+
+		if (meta.isValueNode) {
+			void this.plugin.filterService.addNode({
+				type: 'rule',
+				filterType: 'specific_value',
+				property: meta.propName,
+				values: [meta.rawValue ?? ''],
+			});
+		} else {
+			void this.plugin.filterService.addNode({
+				type: 'rule',
+				filterType: 'has_property',
+				property: meta.propName,
+				values: [],
+			});
+		}
+	}
+
+	private _openNodeMenu(node: TreeNode<PropMeta>, e: MouseEvent): void {
+		const nodeType: 'prop' | 'value' = node.meta.isValueNode ? 'value' : 'prop';
+		this.plugin.contextMenuService.openPanelMenu(
+			{ nodeType, node, surface: 'panel' },
+			e,
+		);
+	}
+
+	private _renderGridBadges(
+		parent: HTMLElement,
+		node: TreeNode<PropMeta>,
+	): void {
+		if (
+			(!node.badges || node.badges.length === 0) &&
+			(!node.count || node.count <= 0 || !this.visibleCells.has('count'))
+		) {
+			return;
+		}
+
+		const badgeZone = parent.createDiv({ cls: 'vaultman-tree-badge-zone vaultman-card-badge-zone' });
+		for (const badge of node.badges ?? []) {
+			const bEl = badgeZone.createSpan({ cls: 'vaultman-badge' });
+			if (badge.solid && badge.color) bEl.addClass(`vaultman-badge--${badge.color}`);
+			if (badge.solid) bEl.addClass('is-solid');
+			if (badge.isInherited) bEl.addClass('is-inherited');
+			if (badge.icon) {
+				const iconEl = bEl.createSpan({ cls: 'vaultman-badge-icon' });
+				setIcon(iconEl, badge.icon);
+			}
+			if (badge.text) bEl.setAttribute('title', badge.text);
+			if (badge.queueIndex !== undefined) {
+				bEl.addClass('is-undoable');
+				bEl.addEventListener('dblclick', (event) => {
+					event.stopPropagation();
+					this.plugin.queueService.remove(badge.queueIndex!);
+					this._render();
+				});
+			}
+		}
+		if (this.visibleCells.has('count') && node.count && node.count > 0) {
+			badgeZone.createSpan({ cls: 'vaultman-tree-count', text: String(node.count) });
+		}
+	}
+
+	private _render(): void {
+		if (this.viewMode === 'grid') {
+			this._renderGrid();
+			return;
+		}
+		let tree = this.logic.getTree();
+		const activeFilterIds = this._activeFilterIds();
+		const highlightIds = new Set<string>();
+		const warningIds = new Set<string>();
 
 		if (this.nodeTypeFilter) {
 			tree = this._filterByType(tree, this.nodeTypeFilter);
@@ -391,64 +459,12 @@ export class PropsExplorerPanel extends Component {
 			onRowClick: (id: string) => {
 				const node = this._findNode(id, tree);
 				if (!node) return;
-				const meta = node.meta;
-
-				// ADD MODE: queue add-property operation instead of toggling filter
-				if (this.addMode && !meta.isValueNode) {
-					this.plugin.queueService.addOrRun({
-						type: 'property',
-						property: meta.propName,
-						action: 'add',
-						details: `Add property "${meta.propName}"`,
-						files: this.plugin.filterService.filteredFiles,
-						customLogic: true,
-						logicFunc: (_file, fm) => {
-							if (meta.propName in fm) return null;
-							fm[meta.propName] = '';
-							return fm;
-						},
-					});
-					return;
-				}
-
-				// Block interaction if property is being deleted
-				const isPropDeleted = this.plugin.queueService.queue.some(op =>
-					op.type === 'property' && op.property === meta.propName && op.action === 'delete' && !('value' in op)
-				);
-				if (isPropDeleted) return;
-
-				// TOGGLE LOGIC: remove if already active filter
-				const filterId = meta.isValueNode ? `${meta.propName}::${meta.rawValue}` : meta.propName;
-				if (activeFilterIds.has(filterId)) {
-					if (meta.isValueNode) {
-						void this.plugin.filterService.removeNodeByProperty(meta.propName, meta.rawValue ?? '');
-					} else {
-						void this.plugin.filterService.removeNodeByProperty(meta.propName);
-					}
-					return;
-				}
-
-				if (meta.isValueNode) {
-					void this.plugin.filterService.addNode({
-						type: 'rule', filterType: 'specific_value',
-						property: meta.propName, values: [meta.rawValue ?? ''],
-					});
-				} else {
-					void this.plugin.filterService.addNode({
-						type: 'rule', filterType: 'has_property',
-						property: meta.propName, values: [],
-					});
-				}
+				this._handleNodeClick(node, activeFilterIds);
 			},
 			onContextMenu: (id: string, e: MouseEvent) => {
 				const node = this._findNode(id, tree);
 				if (!node) return;
-				const meta = node.meta;
-				const nodeType: 'prop' | 'value' = meta.isValueNode ? 'value' : 'prop';
-				this.plugin.contextMenuService.openPanelMenu(
-					{ nodeType, node, surface: 'panel' },
-					e,
-				);
+				this._openNodeMenu(node, e);
 			},
 			onBadgeDoubleClick: (queueIndex: number) => {
 				this.plugin.queueService.remove(queueIndex);
@@ -485,19 +501,19 @@ export class PropsExplorerPanel extends Component {
 	}
 
 	private _effectivePropType(meta: Pick<PropMeta, 'propName' | 'propType'>): string {
-		const manager = this._metadataTypeManager();
-		const assigned = manager?.getWidget?.(meta.propName);
-		const typeInfo = manager?.getTypeInfo?.(meta.propName);
-		const propertyInfo = manager?.getPropertyInfo?.(meta.propName);
-		return normalizePropType(
-			assigned ??
-				typeInfo?.expected ??
-				typeInfo?.inferred ??
-				propertyInfo?.widget ??
-				propertyInfo?.type ??
-				meta.propType,
+		return resolveNativePropType(
 			meta.propName,
-		);
+			meta.propType,
+			this._metadataTypeManager(),
+		).type;
+	}
+
+	private _effectivePropIcon(meta: Pick<PropMeta, 'propName' | 'propType'>): string {
+		return resolveNativePropType(
+			meta.propName,
+			meta.propType,
+			this._metadataTypeManager(),
+		).icon;
 	}
 
 	private _sortNodes(nodes: TreeNode<PropMeta>[]): TreeNode<PropMeta>[] {
@@ -541,24 +557,42 @@ export class PropsExplorerPanel extends Component {
 	private _renderGrid(): void {
 		this.containerEl.empty();
 		let tree = this.logic.getTree();
+		const activeFilterIds = this._activeFilterIds();
+		const highlightIds = new Set<string>();
+		const warningIds = new Set<string>();
 		if (this.nodeTypeFilter) {
 			tree = this._filterByType(tree, this.nodeTypeFilter);
 		}
 		if (this.searchTerm) {
 			tree = this.logic.filterTree(tree, this.searchTerm, this.searchMode);
 		}
+		const searcher = this.searchTerm ? prepareSimpleSearch(this.searchTerm) : null;
+		const searchFunc = searcher ? (text: string) => searcher(text) : null;
 		const topProps = tree.filter(n => !n.meta.isValueNode);
-		const filtered = this._applySort(topProps);
+		const filtered = this._resolveIcons(
+			this._applySort(topProps),
+			warningIds,
+			highlightIds,
+			searchFunc,
+			this.plugin.queueService.queue,
+		);
 
 		const grid = this.containerEl.createDiv({ cls: 'vaultman-props-grid' });
 		for (const node of filtered) {
 			const card = grid.createDiv({ cls: 'vaultman-prop-card' });
+			if (typeof node.cls === 'string' && node.cls.trim()) {
+				for (const c of node.cls.trim().split(/\s+/)) card.addClass(c);
+			}
+			card.toggleClass('is-active-filter', activeFilterIds.has(node.id));
+			card.toggleClass('vaultman-badge-warning', warningIds.has(node.id));
+			card.toggleClass('vaultman-search-highlight', highlightIds.has(node.id));
+			card.setAttribute('role', 'button');
+			card.setAttribute('tabindex', '0');
+			card.setAttribute('aria-label', node.label);
+
 			if (this.visibleCells.has('icon')) {
 				const iconEl = card.createDiv({ cls: 'vaultman-prop-card-icon' });
-				setIcon(
-					iconEl,
-					TYPE_ICON_MAP[this._effectivePropType(node.meta)],
-				);
+				setIcon(iconEl, node.icon ?? this._effectivePropIcon(node.meta));
 			}
 			if (this.visibleCells.has('text')) {
 				card.createDiv({ cls: 'vaultman-prop-card-name', text: node.label });
@@ -569,8 +603,20 @@ export class PropsExplorerPanel extends Component {
 					text: this._effectivePropType(node.meta),
 				});
 			}
-			const count = node.count ?? 0;
-			if (this.visibleCells.has('count') && count) card.createDiv({ cls: 'vaultman-prop-card-count', text: String(count) });
+			this._renderGridBadges(card, node);
+
+			card.addEventListener('click', () => this._handleNodeClick(node, activeFilterIds));
+			card.addEventListener('keydown', (event) => {
+				if (event.key === 'Enter' || event.key === ' ') {
+					event.preventDefault();
+					this._handleNodeClick(node, activeFilterIds);
+				}
+			});
+			card.addEventListener('contextmenu', (event) => {
+				event.preventDefault();
+				event.stopPropagation();
+				this._openNodeMenu(node, event);
+			});
 		}
 		if (filtered.length === 0) {
 			this.containerEl.createDiv({ cls: 'vaultman-empty-state', text: 'No properties' });
@@ -651,7 +697,7 @@ export class PropsExplorerPanel extends Component {
 				? this.plugin.iconicService?.getIcon(meta.propName)
 				: null;
 			const defaultIcon = !meta.isValueNode
-				? TYPE_ICON_MAP[this._effectivePropType(meta)]
+				? this._effectivePropIcon(meta)
 				: undefined;
 
 			return {
@@ -679,7 +725,7 @@ export class PropsExplorerPanel extends Component {
 			logicFunc: () => ({
 				[NATIVE_SET_PROP_TYPE]: {
 					propName,
-					type: newType,
+					type: toNativePropType(newType),
 				},
 			}),
 		});

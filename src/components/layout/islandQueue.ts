@@ -1,8 +1,6 @@
 import { setIcon } from 'obsidian';
 import type { OperationQueueService } from '../../services/serviceOperationQueue';
 import { translate } from '../../i18n/index';
-import type { VaultmanPlugin } from '../../main';
-import { openFilterTemplateMenu } from '../../utils/filterTemplateMenu';
 
 /**
  * In-frame floating island showing the pending operation queue.
@@ -17,7 +15,6 @@ import { openFilterTemplateMenu } from '../../utils/filterTemplateMenu';
  */
 export class QueueIslandComponent {
 	private containerEl: HTMLElement;
-	private plugin: VaultmanPlugin;
 	private queueService: OperationQueueService;
 	private onClose: () => void;
 	private onOpenDetails: () => void;
@@ -28,13 +25,11 @@ export class QueueIslandComponent {
 
 	constructor(
 		containerEl: HTMLElement,
-		plugin: VaultmanPlugin,
 		queueService: OperationQueueService,
 		onClose: () => void,
 		onOpenDetails: () => void
 	) {
 		this.containerEl = containerEl;
-		this.plugin = plugin;
 		this.queueService = queueService;
 		this.onClose = onClose;
 		this.onOpenDetails = onOpenDetails;
@@ -63,15 +58,6 @@ export class QueueIslandComponent {
 		setIcon(detailsBtn, 'lucide-list');
 		detailsBtn.addEventListener('click', () => {
 			this.onOpenDetails();
-		});
-
-		const templateBtn = btnRow.createDiv({
-			cls: 'vaultman-squircle',
-			attr: { 'aria-label': translate('filters.popup.templates'), role: 'button', tabindex: '0' },
-		});
-		setIcon(templateBtn, 'lucide-library');
-		templateBtn.addEventListener('click', (event) => {
-			openFilterTemplateMenu(this.plugin, event, this.onClose);
 		});
 
 		const executeBtn = btnRow.createDiv({

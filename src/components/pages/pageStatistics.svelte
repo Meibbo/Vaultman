@@ -11,6 +11,7 @@
 	let statsRevision = $state(0);
 
 	let metaStats = $state({ links: 0, words: 0, loading: false });
+	let metaStatsRun = 0;
 
 	function scopedFiles(): TFile[] {
 		if (scope === 'vault') return plugin.app.vault.getMarkdownFiles();
@@ -24,17 +25,71 @@
 		return words?.length ?? 0;
 	}
 
+	function folderCountForFiles(files: TFile[]): number {
+		if (scope === 'vault') return plugin.app.vault.getAllFolders(true).length;
+		const folders = new Set<string>();
+		for (const file of files) {
+			const parts = (file.parent?.path ?? '').split('/').filter(Boolean);
+			for (let index = 0; index < parts.length; index += 1) {
+				folders.add(parts.slice(0, index + 1).join('/'));
+			}
+		}
+		return folders.size;
+	}
+
+	function frontmatterEntriesForFiles(files: TFile[]): {
+		props: Set<string>;
+		values: Set<string>;
+		tags: Set<string>;
+	} {
+		const props = new Set<string>();
+		const values = new Set<string>();
+		const tags = new Set<string>();
+
+		for (const file of files) {
+			const cache = plugin.app.metadataCache.getFileCache(file);
+			const frontmatter = cache?.frontmatter ?? {};
+			for (const [key, rawValue] of Object.entries(frontmatter)) {
+				if (key === 'position') continue;
+				props.add(key);
+				const rawValues = Array.isArray(rawValue) ? rawValue : [rawValue];
+				for (const value of rawValues) {
+					if (value === undefined || value === null) continue;
+					values.add(`${key}:${String(value)}`);
+				}
+			}
+
+			const frontmatterTags = frontmatter.tags as unknown;
+			const normalizedFrontmatterTags = Array.isArray(frontmatterTags)
+				? frontmatterTags
+				: typeof frontmatterTags === 'string'
+					? [frontmatterTags]
+					: [];
+			for (const tag of normalizedFrontmatterTags) {
+				const clean = String(tag).replace(/^#/, '');
+				if (clean) tags.add(clean);
+			}
+			for (const tagCache of cache?.tags ?? []) {
+				const clean = tagCache.tag.replace(/^#/, '');
+				if (clean) tags.add(clean);
+			}
+		}
+
+		return { props, values, tags };
+	}
+
 	$effect(() => {
 		void statsRevision;
 		const files = scopedFiles();
+		const runId = ++metaStatsRun;
 		let cancelled = false;
-		metaStats.loading = true;
+		metaStats = { links: 0, words: 0, loading: true };
 		let totalLinks = 0;
 		let totalWords = 0;
 
 		const compute = async () => {
 			for (let index = 0; index < files.length; index += 1) {
-				if (cancelled) return;
+				if (cancelled || runId !== metaStatsRun) return;
 				const file = files[index];
 				const cache = plugin.app.metadataCache.getFileCache(file);
 				totalLinks +=
@@ -45,10 +100,12 @@
 					await new Promise((resolve) => setTimeout(resolve, 0));
 				}
 			}
-			if (cancelled) return;
-			metaStats.links = totalLinks;
-			metaStats.words = totalWords;
-			metaStats.loading = false;
+			if (cancelled || runId !== metaStatsRun) return;
+			metaStats = {
+				links: totalLinks,
+				words: totalWords,
+				loading: false,
+			};
 		};
 		void compute();
 
@@ -91,26 +148,14 @@
 
 	let counts = $derived.by(() => {
 		void statsRevision;
+		const files = scopedFiles();
+		const entries = frontmatterEntriesForFiles(files);
 		return {
-			folders: plugin.app.vault.getAllFolders(true).length,
-			files:
-				scope === 'vault'
-					? plugin.app.vault.getMarkdownFiles().length
-					: scope === 'filtered'
-						? plugin.filterService.filteredFiles.length
-						: plugin.filterService.selectedFiles.length,
-			props: plugin.propertyIndex.index.size,
-			values: [...plugin.propertyIndex.index.values()].reduce(
-				(n, s) => n + s.size,
-				0,
-			),
-			tags: Object.keys(
-				(
-					plugin.app.metadataCache as unknown as {
-						getTags(): Record<string, number>;
-					}
-				).getTags() ?? {},
-			).length,
+			folders: folderCountForFiles(files),
+			files: files.length,
+			props: entries.props.size,
+			values: entries.values.size,
+			tags: entries.tags.size,
 		};
 	});
 

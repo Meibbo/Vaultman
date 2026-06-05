@@ -15,7 +15,10 @@ export class FilesLogic {
 	}
 
 	/** Returns folder-hierarchy tree from filteredFiles */
-	buildFileTree(filteredFiles: TFile[]): TreeNode<FileMeta>[] {
+	buildFileTree(
+		filteredFiles: TFile[],
+		knownFolders: TFolder[] = [],
+	): TreeNode<FileMeta>[] {
 		const root: TreeNode<FileMeta>[] = [];
 		const folderMap = new Map<string, TreeNode<FileMeta>>();
 
@@ -76,6 +79,11 @@ export class FilesLogic {
 			a.path.localeCompare(b.path),
 		);
 
+		for (const folder of knownFolders) {
+			const folderPath = folder.path === '/' ? '' : folder.path;
+			if (folderPath) ensureFolder(folderPath);
+		}
+
 		for (const file of sortedFiles) {
 			const rawPath = file.parent?.path ?? '';
 			const folderPath = rawPath === '/' ? '' : rawPath;
@@ -113,6 +121,17 @@ export class FilesLogic {
 		for (const file of files) {
 			const rawPath = file.parent?.path ?? '';
 			const folderPath = rawPath === '/' ? '' : rawPath;
+			const parts = folderPath.split('/').filter(Boolean);
+			for (let index = 0; index < parts.length; index += 1) {
+				ids.add(`folder:${parts.slice(0, index + 1).join('/')}`);
+			}
+		}
+		return Array.from(ids);
+	}
+
+	getAncestorFolderIdsFromPaths(folderPaths: string[]): string[] {
+		const ids = new Set<string>();
+		for (const folderPath of folderPaths) {
 			const parts = folderPath.split('/').filter(Boolean);
 			for (let index = 0; index < parts.length; index += 1) {
 				ids.add(`folder:${parts.slice(0, index + 1).join('/')}`);

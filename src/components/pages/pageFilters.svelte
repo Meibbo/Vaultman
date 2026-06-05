@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { TFile, setIcon } from 'obsidian';
+	import { MarkdownView, TFile, setIcon } from 'obsidian';
 	import type { VaultmanPlugin } from '../../main';
 	import { fade } from 'svelte/transition';
 	import FiltersTagsTab from './tabTags.svelte';
@@ -97,6 +97,31 @@
 		};
 	}
 
+	function offsetToPosition(
+		content: string,
+		offset: number,
+	): { line: number; ch: number } {
+		const before = content.slice(0, offset).split('\n');
+		return {
+			line: before.length - 1,
+			ch: before[before.length - 1]?.length ?? 0,
+		};
+	}
+
+	async function openContentMatch(file: TFile, line: number, ch: number) {
+		await plugin.app.workspace.openLinkText(file.path, '', false);
+		const view = plugin.app.workspace.getActiveViewOfType(MarkdownView);
+		if (!view) return;
+		view.editor.setCursor({ line, ch });
+		view.editor.scrollIntoView(
+			{
+				from: { line, ch },
+				to: { line, ch },
+			},
+			true,
+		);
+	}
+
 	async function previewContentReplace() {
 		contentRegexError = '';
 		if (!contentFind) {
@@ -156,10 +181,13 @@
 								snippets: matches.slice(0, MAX_SNIPPETS).map((match) => {
 									const start = match.index ?? 0;
 									const end = start + match[0].length;
+									const position = offsetToPosition(content, start);
 									return {
 										before: content.slice(Math.max(0, start - CONTEXT), start),
 										match: match[0],
 										after: content.slice(end, end + CONTEXT),
+										line: position.line,
+										ch: position.ch,
 									};
 								}),
 							});
@@ -198,7 +226,7 @@
 				? selected
 				: plugin.filterService.filteredFiles;
 
-		plugin.queueService.add({
+		plugin.queueService.addOrRun({
 			type: 'content_replace',
 			action: 'find_replace_content',
 			details: `${contentFind} → ${contentReplace}`,
@@ -274,6 +302,7 @@
 				{contentScopeHint}
 				{previewContentReplace}
 				{queueContentReplace}
+				{openContentMatch}
 			/>
 		{/if}
 	</div>

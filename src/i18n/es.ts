@@ -345,6 +345,7 @@ export const es: Record<string, string> = {
 	'viewmode.pill.nested': 'Anidadas',
 	'viewmode.pill.name': 'Nombre',
 	'viewmode.pill.date': 'Fecha',
+	'viewmode.pill.type': 'Tipo',
 	'viewmode.pill.path': 'Ruta',
 	'stats.addons': 'Add-ons',
 	'viewmode.add_mode':    'Modo AGREGAR',

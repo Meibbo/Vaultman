@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { Menu } from 'obsidian';
 	import { translate } from '../../i18n/index';
 	import SortPopup from './popupSort.svelte';
 	import ViewModePopup from './popupView.svelte';
@@ -91,6 +92,100 @@
 		tags: ['icon', 'text', 'count'],
 		files: ['icon', 'name', 'count', 'path'],
 	};
+	const CELL_LABELS: Record<FiltersTab, Record<string, string>> = {
+		props: {
+			icon: 'viewmode.pill.icon',
+			text: 'viewmode.pill.text',
+			count: 'viewmode.pill.count',
+			type: 'viewmode.pill.type',
+		},
+		tags: {
+			icon: 'viewmode.pill.icon',
+			text: 'viewmode.pill.text',
+			count: 'viewmode.pill.count',
+			nested: 'viewmode.pill.nested',
+		},
+		files: {
+			icon: 'viewmode.pill.icon',
+			name: 'viewmode.pill.name',
+			count: 'viewmode.pill.count',
+			date: 'viewmode.pill.date',
+			path: 'viewmode.pill.path',
+		},
+	};
+	const CELL_ICONS: Record<string, string> = {
+		icon: 'lucide-image',
+		text: 'lucide-text',
+		name: 'lucide-file-text',
+		count: 'lucide-hash',
+		type: 'lucide-list-filter',
+		nested: 'lucide-git-branch',
+		date: 'lucide-calendar',
+		path: 'lucide-route',
+	};
+	const SORT_OPTIONS: Record<
+		FiltersTab,
+		Array<{ id: string; icon: string; labelKey: string }>
+	> = {
+		props: [
+			{ id: 'count', icon: 'lucide-hash', labelKey: 'sort.by.count' },
+			{ id: 'name', icon: 'lucide-a-large-small', labelKey: 'sort.by.name' },
+			{ id: 'date', icon: 'lucide-calendar', labelKey: 'sort.by.date' },
+			{ id: 'sub', icon: 'lucide-indent', labelKey: 'sort.by.sub' },
+		],
+		tags: [
+			{ id: 'count', icon: 'lucide-hash', labelKey: 'sort.by.count' },
+			{ id: 'name', icon: 'lucide-a-large-small', labelKey: 'sort.by.name' },
+			{ id: 'date', icon: 'lucide-calendar', labelKey: 'sort.by.date' },
+			{ id: 'sub', icon: 'lucide-indent', labelKey: 'sort.by.subtags' },
+		],
+		files: [
+			{ id: 'name', icon: 'lucide-a-large-small', labelKey: 'sort.by.name' },
+			{ id: 'count', icon: 'lucide-hash', labelKey: 'sort.by.count' },
+			{ id: 'date', icon: 'lucide-calendar', labelKey: 'sort.by.date' },
+			{ id: 'columns', icon: 'lucide-columns-2', labelKey: 'sort.by.columns' },
+		],
+	};
+	const NODE_TYPE_OPTIONS: Record<
+		'props' | 'tags',
+		Array<{ id: string; icon: string; labelKey: string }>
+	> = {
+		props: [
+			{ id: 'tags', icon: 'lucide-tags', labelKey: 'sort.type.tags' },
+			{ id: 'list', icon: 'lucide-list', labelKey: 'sort.type.list' },
+			{ id: 'text', icon: 'lucide-text', labelKey: 'sort.type.text' },
+			{ id: 'number', icon: 'lucide-binary', labelKey: 'sort.type.number' },
+			{ id: 'date', icon: 'lucide-calendar', labelKey: 'sort.type.date' },
+			{
+				id: 'checkbox',
+				icon: 'lucide-check-square',
+				labelKey: 'sort.type.checkbox',
+			},
+			{ id: 'aliases', icon: 'lucide-forward', labelKey: 'sort.type.aliases' },
+			{
+				id: 'cssclasses',
+				icon: 'lucide-palette',
+				labelKey: 'sort.type.cssclasses',
+			},
+			{
+				id: 'unknown',
+				icon: 'lucide-file-question',
+				labelKey: 'sort.type.unknown',
+			},
+		],
+		tags: [
+			{ id: 'all', icon: 'lucide-tags', labelKey: 'sort.type.all' },
+			{ id: 'nested', icon: 'lucide-git-branch', labelKey: 'sort.type.nested' },
+			{ id: 'simple', icon: 'lucide-tag', labelKey: 'sort.type.simple' },
+		],
+	};
+	const DEFAULT_DIR: Record<string, 'asc' | 'desc'> = {
+		name: 'asc',
+		count: 'desc',
+		date: 'desc',
+		sub: 'desc',
+		columns: 'asc',
+	};
 
 	let headerMode = $state<HeaderMode>('header');
 	let headerExitDir = $state<'left' | 'right'>('right');
@@ -109,15 +204,39 @@
 		tags: { ...DEFAULT_SORT_STATE.tags },
 		files: { ...DEFAULT_SORT_STATE.files },
 	});
+	let addModeActive = $state(false);
+	let expandedByTab = $state<Record<FiltersTab, boolean>>({
+		props: false,
+		tags: false,
+		files: false,
+	});
 	const headerActionClass = $derived(
 		minimalStyle ? 'clickable-icon nav-action-button' : 'vaultman-nav-fab',
 	);
+	const expansionLabel = $derived(
+		expandedByTab[activeTab]
+			? translate('filter.collapse_all')
+			: translate('filter.expand_all'),
+	);
+	const expansionIcon = $derived(
+		expandedByTab[activeTab]
+			? 'lucide-chevrons-down-up'
+			: 'lucide-chevrons-up-down',
+	);
 
-	function openSortPopup() {
+	function openSortPopup(event?: MouseEvent) {
+		if (minimalStyle && event) {
+			openNativeSortMenu(event);
+			return;
+		}
 		headerExitDir = 'right';
 		headerMode = 'sort';
 	}
-	function openViewModePopup() {
+	function openViewModePopup(event?: MouseEvent) {
+		if (minimalStyle && event) {
+			openNativeViewMenu(event);
+			return;
+		}
 		headerExitDir = 'left';
 		headerMode = 'viewmode';
 	}
@@ -200,6 +319,178 @@
 		applyVisibleCells(activeTab, cells);
 	}
 
+	function canToggleIdentity(cells: Set<string>, id: string): boolean {
+		const identityCells =
+			activeTab === 'files' ? ['icon', 'name'] : ['icon', 'text'];
+		if (!identityCells.includes(id) || !cells.has(id)) return true;
+		return identityCells.some(
+			(candidate) => candidate !== id && cells.has(candidate),
+		);
+	}
+
+	function toggleVisibleCell(id: string) {
+		const cells = new Set(
+			visibleCellsByTab[activeTab] ?? DEFAULT_VISIBLE_CELLS[activeTab],
+		);
+		if (cells.has(id)) {
+			if (!canToggleIdentity(cells, id)) return;
+			cells.delete(id);
+		} else {
+			cells.add(id);
+		}
+		handlePillsChange(Array.from(cells));
+	}
+
+	function selectNativeViewMode(mode: ExplorerViewMode) {
+		if (mode === 'dnd' || mode === 'cards') return;
+		handleViewModeChange(mode);
+	}
+
+	function openNativeViewMenu(event: MouseEvent) {
+		const menu = new Menu();
+		const activeView = viewModeByTab[activeTab] ?? 'tree';
+		const cells = new Set(
+			visibleCellsByTab[activeTab] ?? DEFAULT_VISIBLE_CELLS[activeTab],
+		);
+
+		for (const option of [
+			{
+				id: 'tree' as ExplorerViewMode,
+				icon: 'lucide-list-tree',
+				label: 'viewmode.mode.tree',
+			},
+			{
+				id: 'grid' as ExplorerViewMode,
+				icon: 'lucide-layout-grid',
+				label: 'viewmode.mode.grid',
+			},
+		]) {
+			menu.addItem((item) => {
+				item
+					.setTitle(translate(option.label))
+					.setIcon(option.icon)
+					.setChecked(activeView === option.id)
+					.onClick(() => selectNativeViewMode(option.id));
+			});
+		}
+
+		menu.addSeparator();
+		for (const id of Object.keys(CELL_LABELS[activeTab])) {
+			menu.addItem((item) => {
+				item
+					.setTitle(translate(CELL_LABELS[activeTab][id]))
+					.setIcon(CELL_ICONS[id] ?? 'lucide-circle')
+					.setChecked(cells.has(id))
+					.onClick(() => toggleVisibleCell(id));
+			});
+		}
+
+		menu.addSeparator();
+		menu.addItem((item) => {
+			item
+				.setTitle(translate('viewmode.add_mode'))
+				.setIcon('lucide-plus')
+				.setChecked(addModeActive)
+				.onClick(() => {
+					addModeActive = !addModeActive;
+					handleAddModeChange(addModeActive);
+				});
+		});
+		menu.showAtMouseEvent(event);
+	}
+
+	function nextSortState(id: string): ExplorerSortState {
+		const current = sortStateByTab[activeTab] ?? DEFAULT_SORT_STATE[activeTab];
+		const direction =
+			current.sortBy === id
+				? current.direction === 'asc'
+					? 'desc'
+					: 'asc'
+				: (DEFAULT_DIR[id] ?? 'asc');
+		return { ...current, sortBy: id, direction };
+	}
+
+	function openNativeSortMenu(event: MouseEvent) {
+		const menu = new Menu();
+		const current = sortStateByTab[activeTab] ?? DEFAULT_SORT_STATE[activeTab];
+
+		for (const option of SORT_OPTIONS[activeTab]) {
+			menu.addItem((item) => {
+				const isActive = current.sortBy === option.id;
+				item
+					.setTitle(
+						`${translate(option.labelKey)}${
+							isActive ? (current.direction === 'asc' ? ' ↑' : ' ↓') : ''
+						}`,
+					)
+					.setIcon(option.icon)
+					.setChecked(isActive)
+					.onClick(() => handleSortChange(nextSortState(option.id)));
+			});
+		}
+
+		if (activeTab !== 'files') {
+			menu.addSeparator();
+			menu.addItem((item) => {
+				item
+					.setTitle(
+						activeTab === 'props'
+							? translate('sort.vertcol.props_values')
+							: translate('sort.vertcol.node_level'),
+					)
+					.setIcon(
+						activeTab === 'props' ? 'lucide-list-tree' : 'lucide-network',
+					)
+					.setChecked(current.childLevel)
+					.onClick(() =>
+						handleSortChange({ ...current, childLevel: !current.childLevel }),
+					);
+			});
+
+			menu.addSeparator();
+			for (const option of NODE_TYPE_OPTIONS[activeTab]) {
+				const isAll = option.id === 'all';
+				const isActive = isAll
+					? current.nodeTypeFilter === null
+					: current.nodeTypeFilter === option.id;
+				menu.addItem((item) => {
+					item
+						.setTitle(translate(option.labelKey))
+						.setIcon(option.icon)
+						.setChecked(isActive)
+						.onClick(() =>
+							handleSortChange({
+								...current,
+								nodeTypeFilter:
+									isAll || current.nodeTypeFilter === option.id
+										? null
+										: option.id,
+							}),
+						);
+				});
+			}
+		}
+
+		menu.showAtMouseEvent(event);
+	}
+
+	function toggleExplorerExpansion() {
+		const next = !(expandedByTab[activeTab] ?? false);
+		expandedByTab = { ...expandedByTab, [activeTab]: next };
+		if (activeTab === 'files') {
+			if (next) fileList?.expandAll();
+			else fileList?.collapseAll();
+		}
+		if (activeTab === 'props') {
+			if (next) propExplorer?.expandAll();
+			else propExplorer?.collapseAll();
+		}
+		if (activeTab === 'tags') {
+			if (next) tagsExplorer?.expandAll();
+			else tagsExplorer?.collapseAll();
+		}
+	}
+
 	$effect(() => {
 		const tab = activeTab;
 		const viewMode = viewModeByTab[tab] ?? 'tree';
@@ -238,12 +529,27 @@
 					role="button"
 					tabindex="0"
 					aria-label={translate('filter.viewmode_btn')}
-					onclick={openViewModePopup}
+					onclick={(event: MouseEvent) => openViewModePopup(event)}
 					onkeydown={(e: KeyboardEvent) => {
 						if (e.key === 'Enter' || e.key === ' ') openViewModePopup();
 					}}
 					use:icon={'lucide-layout-list'}
 				></div>
+				{#if activeTab === 'files'}
+					<div
+						class={headerActionClass}
+						role="button"
+						tabindex="0"
+						aria-label={translate('filter.auto_reveal')}
+						title={translate('filter.auto_reveal')}
+						onclick={() => fileList?.autoRevealActiveFile()}
+						onkeydown={(e: KeyboardEvent) => {
+							if (e.key === 'Enter' || e.key === ' ')
+								fileList?.autoRevealActiveFile();
+						}}
+						use:icon={'lucide-crosshair'}
+					></div>
+				{/if}
 				<div class="vaultman-filters-header-search-pill">
 					<input
 						class="vaultman-filters-search-input"
@@ -281,51 +587,24 @@
 						onclick={createSearchTarget}
 					></button>
 				</div>
-				{#if activeTab === 'files'}
-					<div
-						class={headerActionClass}
-						role="button"
-						tabindex="0"
-						aria-label={translate('filter.auto_reveal')}
-						title={translate('filter.auto_reveal')}
-						onclick={() => fileList?.autoRevealActiveFile()}
-						onkeydown={(e: KeyboardEvent) => {
-							if (e.key === 'Enter' || e.key === ' ')
-								fileList?.autoRevealActiveFile();
-						}}
-						use:icon={'lucide-crosshair'}
-					></div>
-					<div
-						class={headerActionClass}
-						role="button"
-						tabindex="0"
-						aria-label={translate('filter.expand_all')}
-						title={translate('filter.expand_all')}
-						onclick={() => fileList?.expandAll()}
-						onkeydown={(e: KeyboardEvent) => {
-							if (e.key === 'Enter' || e.key === ' ') fileList?.expandAll();
-						}}
-						use:icon={'lucide-chevrons-down-up'}
-					></div>
-					<div
-						class={headerActionClass}
-						role="button"
-						tabindex="0"
-						aria-label={translate('filter.collapse_all')}
-						title={translate('filter.collapse_all')}
-						onclick={() => fileList?.collapseAll()}
-						onkeydown={(e: KeyboardEvent) => {
-							if (e.key === 'Enter' || e.key === ' ') fileList?.collapseAll();
-						}}
-						use:icon={'lucide-chevrons-up-down'}
-					></div>
-				{/if}
+				<div
+					class={headerActionClass}
+					role="button"
+					tabindex="0"
+					aria-label={expansionLabel}
+					title={expansionLabel}
+					onclick={toggleExplorerExpansion}
+					onkeydown={(e: KeyboardEvent) => {
+						if (e.key === 'Enter' || e.key === ' ') toggleExplorerExpansion();
+					}}
+					use:icon={expansionIcon}
+				></div>
 				<div
 					class={headerActionClass}
 					role="button"
 					tabindex="0"
 					aria-label={translate('filter.sort_btn')}
-					onclick={openSortPopup}
+					onclick={(event: MouseEvent) => openSortPopup(event)}
 					onkeydown={(e: KeyboardEvent) => {
 						if (e.key === 'Enter' || e.key === ' ') openSortPopup();
 					}}

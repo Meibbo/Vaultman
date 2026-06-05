@@ -432,7 +432,6 @@
 		queueIslandOpen = true;
 		queueIsland = new QueueIslandComponent(
 			queueIslandEl,
-			plugin,
 			plugin.queueService,
 			() => closeQueueIsland(),
 			() => {

@@ -94,4 +94,24 @@ describe('FilesLogic.buildFileTree', () => {
 			'folder:alpha/beta/gamma',
 		]);
 	});
+
+	it('can include empty vault folders without reading file contents', () => {
+		const logic = new FilesLogic(makeApp({}));
+
+		const tree = logic.buildFileTree(
+			[makeFile('alpha/root.md')],
+			[makeFolder('alpha/empty'), makeFolder('beta')],
+		);
+
+		expect(tree.map((node) => node.label)).toEqual(['alpha', 'beta']);
+		expect(tree[0].children?.map((node) => node.label)).toEqual([
+			'empty',
+			'root',
+		]);
+		expect(tree[1]).toMatchObject({
+			id: 'folder:beta',
+			label: 'beta',
+			meta: { isFolder: true, folderPath: 'beta' },
+		});
+	});
 });

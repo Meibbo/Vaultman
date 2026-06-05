@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { setIcon, type TFile } from 'obsidian';
 	import { translate } from '../../i18n/index';
 	import type { ContentPreviewResult } from '../../types/typeUI';
 
@@ -14,6 +15,7 @@
 		contentScopeHint,
 		previewContentReplace,
 		queueContentReplace,
+		openContentMatch,
 	}: {
 		contentFind: string;
 		contentReplace: string;
@@ -26,7 +28,17 @@
 		contentScopeHint: string;
 		previewContentReplace: () => Promise<void>;
 		queueContentReplace: () => void;
+		openContentMatch: (file: TFile, line: number, ch: number) => Promise<void>;
 	} = $props();
+
+	function iconAction(el: HTMLElement, name: string) {
+		setIcon(el, name);
+		return {
+			update(newName: string) {
+				setIcon(el, newName);
+			},
+		};
+	}
 </script>
 
 <!-- Find row: input + Aa + .* toggles -->
@@ -61,12 +73,22 @@
 		{contentRegexError}
 	</div>
 {/if}
-<input
-	class="vaultman-search-input"
-	type="text"
-	placeholder={translate('content.replace_placeholder')}
-	bind:value={contentReplace}
-/>
+<div class="vaultman-content-replace-row">
+	<input
+		class="vaultman-search-input"
+		type="text"
+		placeholder={translate('content.replace_placeholder')}
+		bind:value={contentReplace}
+	/>
+	<button
+		class="vaultman-icon-toggle vaultman-content-queue-btn"
+		disabled={!contentFind}
+		aria-label={translate('content.queue_replace')}
+		title={translate('content.queue_replace')}
+		onclick={queueContentReplace}
+		use:iconAction={'lucide-list-plus'}
+	></button>
+</div>
 <div class="vaultman-content-scope-hint">
 	{contentScopeHint}
 </div>
@@ -77,11 +99,6 @@
 		onclick={() => {
 			void previewContentReplace();
 		}}>{contentPreviewing ? '…' : translate('content.preview')}</button
-	>
-	<button
-		class="vaultman-btn mod-cta"
-		disabled={!contentFind}
-		onclick={queueContentReplace}>{translate('content.queue_replace')}</button
 	>
 </div>
 {#if contentPreviewResult !== null}
@@ -129,7 +146,28 @@
 			<div class="search-results-children">
 				{#each contentPreviewResult.files as fileResult (fileResult.file.path)}
 					<div class="tree-item search-result">
-						<div class="tree-item-self search-result-file-title is-clickable">
+						<div
+							class="tree-item-self search-result-file-title is-clickable"
+							role="button"
+							tabindex="0"
+							onclick={() => {
+								const first = fileResult.snippets[0];
+								if (first)
+									void openContentMatch(fileResult.file, first.line, first.ch);
+							}}
+							onkeydown={(e: KeyboardEvent) => {
+								if (e.key === 'Enter' || e.key === ' ') {
+									e.preventDefault();
+									const first = fileResult.snippets[0];
+									if (first)
+										void openContentMatch(
+											fileResult.file,
+											first.line,
+											first.ch,
+										);
+								}
+							}}
+						>
 							<div class="tree-item-inner">
 								<div class="tree-item-inner-text">{fileResult.file.path}</div>
 							</div>
@@ -139,7 +177,23 @@
 						</div>
 						<div class="search-result-file-matches">
 							{#each fileResult.snippets as snippet, snippetIndex (`${fileResult.file.path}-${snippetIndex}-${snippet.match}`)}
-								<div class="search-result-file-match tappable">
+								<div
+									class="search-result-file-match tappable is-clickable"
+									role="button"
+									tabindex="0"
+									onclick={() =>
+										openContentMatch(fileResult.file, snippet.line, snippet.ch)}
+									onkeydown={(e: KeyboardEvent) => {
+										if (e.key === 'Enter' || e.key === ' ') {
+											e.preventDefault();
+											void openContentMatch(
+												fileResult.file,
+												snippet.line,
+												snippet.ch,
+											);
+										}
+									}}
+								>
 									<span>{snippet.before}</span><span
 										class="search-result-file-matched-text"
 										>{snippet.match}</span

@@ -144,6 +144,26 @@ export class TagsExplorerPanel extends Component {
 		this._render();
 	}
 
+	expandAll(): void {
+		let tree = this.logic.getTree();
+		if (this.searchMode === 'leaf') {
+			tree = this._collectLeaves(tree);
+		}
+		if (this.nodeTypeFilter) {
+			tree = this._filterByNodeType(tree, this.nodeTypeFilter);
+		}
+		if (this.searchTerm) {
+			tree = this.logic.filterTree(tree, this.searchTerm);
+		}
+		this._expandAll(tree);
+		this._render();
+	}
+
+	collapseAll(): void {
+		this.expandedIds.clear();
+		this._render();
+	}
+
 	private _sortNodes(nodes: TreeNode<TagMeta>[]): TreeNode<TagMeta>[] {
 		const dir = this.sortDir === 'asc' ? 1 : -1;
 		if (this.sortBy === 'date') {
@@ -210,11 +230,6 @@ export class TagsExplorerPanel extends Component {
 		}
 		tree = this._applySort(tree);
 
-		if (this.viewMode === 'grid') {
-			this._renderGrid(tree);
-			return;
-		}
-
 		const activeFilterIds = new Set<string>();
 		for (const node of this._flattenTree(tree)) {
 			if (this.plugin.filterService.hasTagFilter(`#${node.meta.tagPath}`)) {
@@ -235,6 +250,11 @@ export class TagsExplorerPanel extends Component {
 
 		// Resolve icons via Iconic
 		const nodesWithIcons = this._resolveIcons(tree, highlightIds, searchFunc);
+
+		if (this.viewMode === 'grid') {
+			this._renderGrid(nodesWithIcons, activeFilterIds, highlightIds);
+			return;
+		}
 
 		this.view.render({
 			nodes: nodesWithIcons,
@@ -317,30 +337,86 @@ export class TagsExplorerPanel extends Component {
 		});
 	}
 
-	private _renderGrid(tree: TreeNode<TagMeta>[]): void {
+	private _handleNodeClick(node: TreeNode<TagMeta>): void {
+		const meta = node.meta;
+		if (this.addMode) {
+			this.plugin.queueService.addOrRun({
+				type: 'tag',
+				tag: meta.tagPath,
+				action: 'add',
+				details: `Add tag "#${meta.tagPath}"`,
+				files: this.plugin.filterService.filteredFiles,
+				customLogic: true,
+				logicFunc: (_file, fm) => {
+					const raw: unknown = fm.tags;
+					const existing: string[] = Array.isArray(raw)
+						? (raw as unknown[]).map(v => String(v))
+						: (typeof raw === 'string' ? [raw] : []);
+					if (existing.includes(meta.tagPath)) return null;
+					fm.tags = [...existing, meta.tagPath];
+					return fm;
+				},
+			});
+			return;
+		}
+		this._toggleTagFilter(meta.tagPath);
+	}
+
+	private _renderGridBadges(parent: HTMLElement, node: TreeNode<TagMeta>): void {
+		if (
+			(!node.badges || node.badges.length === 0) &&
+			(!node.count || node.count <= 0 || !this.visibleCells.has('count'))
+		) {
+			return;
+		}
+		const badgeZone = parent.createDiv({ cls: 'vaultman-tree-badge-zone vaultman-card-badge-zone' });
+		for (const badge of node.badges ?? []) {
+			const bEl = badgeZone.createSpan({ cls: 'vaultman-badge' });
+			if (badge.solid && badge.color) bEl.addClass(`vaultman-badge--${badge.color}`);
+			if (badge.solid) bEl.addClass('is-solid');
+			if (badge.isInherited) bEl.addClass('is-inherited');
+			if (badge.icon) {
+				const iconEl = bEl.createSpan({ cls: 'vaultman-badge-icon' });
+				setIcon(iconEl, badge.icon);
+			}
+			if (badge.text) bEl.setAttribute('title', badge.text);
+			if (badge.queueIndex !== undefined) {
+				bEl.addClass('is-undoable');
+				bEl.addEventListener('dblclick', (event) => {
+					event.stopPropagation();
+					this.plugin.queueService.remove(badge.queueIndex!);
+					this._render();
+				});
+			}
+		}
+		if (this.visibleCells.has('count') && node.count && node.count > 0) {
+			badgeZone.createSpan({ cls: 'vaultman-tree-count', text: String(node.count) });
+		}
+	}
+
+	private _renderGrid(
+		tree: TreeNode<TagMeta>[],
+		activeFilterIds: Set<string>,
+		highlightIds: Set<string>,
+	): void {
 		this.containerEl.empty();
-		const activeFilterIds = new Set<string>();
 		const flatNodes = this._flattenTree(tree);
 		const grid = this.containerEl.createDiv({ cls: 'vaultman-tags-grid' });
 
 		for (const node of flatNodes) {
-			if (this.plugin.filterService.hasTagFilter(`#${node.meta.tagPath}`)) {
-				activeFilterIds.add(node.id);
-			}
-
 			const card = grid.createDiv({ cls: 'vaultman-tag-card' });
+			if (typeof node.cls === 'string' && node.cls.trim()) {
+				for (const c of node.cls.trim().split(/\s+/)) card.addClass(c);
+			}
 			card.toggleClass('is-active-filter', activeFilterIds.has(node.id));
+			card.toggleClass('vaultman-search-highlight', highlightIds.has(node.id));
 			card.setAttribute('role', 'button');
 			card.setAttribute('tabindex', '0');
 			card.setAttribute('aria-label', node.meta.tagPath);
 
 			if (this.visibleCells.has('icon')) {
 				const iconEl = card.createDiv({ cls: 'vaultman-tag-card-icon' });
-				setIcon(
-					iconEl,
-					this.plugin.iconicService?.getTagIcon(node.meta.tagPath)?.icon ??
-						'lucide-tag',
-				);
+				setIcon(iconEl, node.icon ?? 'lucide-tag');
 			}
 			if (this.visibleCells.has('text')) {
 				card.createDiv({ cls: 'vaultman-tag-card-name', text: node.label });
@@ -351,14 +427,13 @@ export class TagsExplorerPanel extends Component {
 					text: String(node.children.length),
 				});
 			}
-			if (this.visibleCells.has('count') && node.count) {
-				card.createDiv({ cls: 'vaultman-tag-card-count', text: String(node.count) });
-			}
+			this._renderGridBadges(card, node);
 
-			card.addEventListener('click', () => this._toggleTagFilter(node.meta.tagPath));
+			card.addEventListener('click', () => this._handleNodeClick(node));
 			card.addEventListener('keydown', (event) => {
 				if (event.key === 'Enter' || event.key === ' ') {
-					this._toggleTagFilter(node.meta.tagPath);
+					event.preventDefault();
+					this._handleNodeClick(node);
 				}
 			});
 			card.addEventListener('contextmenu', (event) => {

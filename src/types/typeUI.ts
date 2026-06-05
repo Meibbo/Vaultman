@@ -18,6 +18,8 @@ export interface ContentSnippet {
 	before: string;
 	match: string;
 	after: string;
+	line: number;
+	ch: number;
 }
 
 export interface ContentPreviewResult {
