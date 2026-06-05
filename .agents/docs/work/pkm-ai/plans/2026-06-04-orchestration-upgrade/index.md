@@ -35,7 +35,7 @@ PKM-AI ADRs [[docs/work/pkm-ai/adr/README|0001–0006]].
 |---|---|---|---|
 | S1 runtime-startup mandate | [[docs/work/pkm-ai/plans/2026-06-04-orchestration-upgrade/01-S1-runtime-startup|01-S1]] | — | **DONE** `d974af2` |
 | S2 coordination conventions | [[docs/work/pkm-ai/plans/2026-06-04-orchestration-upgrade/02-S2-coordination|02-S2]] | S1 | **DONE** (T0 `fce12fb` · T1 `0baad20` · T2 `8df2d3a` · T3 `c31c2e3` · dependsOn `71fc085` · T4 `a778f48`; cross-worktree verified) |
-| S3 memory lifecycle | 03-S3 (at pickup) | S1 | outlined ↓ |
+| S3 memory lifecycle | 03-S3 (at pickup) | S1 | **S3a DONE** (`lifecycle:` field + health checks `40405a9`/`8d5aad2`); **S3b prune DEFERRED** (123 fails; 85 Codex-contended) |
 | S4 versioning | 04-S4 (at pickup) | S1 | outlined ↓ |
 | S5 `.ts` migration | 05-S5 (at pickup) | — | outlined ↓ |
 | S6 retrieval channel | 06-S6 (at pickup) | S3 | outlined ↓ |
@@ -78,7 +78,7 @@ graph-parse test → BM25 test → adapter contract test → local-embed smoke �
 
 - [x] **PKM-1** (S1): AGENTS.md runtime-startup mandate ✓ `d974af2`
 - [x] **PKM-2** (S2): `coordination.md` policy + agent-room wiring ✓ (T1-T6; commits `0baad20`…`a778f48`)
-- [ ] **PKM-3** (S3): lifecycle states + stale-active health check + working-surface filter + prune (clears P4)
+- [~] **PKM-3** (S3): S3a ✓ `lifecycle:` field + lifecycle-state/stale-active checks (`40405a9`/`8d5aad2`); S3b prune + working-surface migration DEFERRED (123 fails, 85 Codex-contended)
 - [ ] **PKM-4** (S4): `pkm-ai.version.json` + CHANGELOG + startup read
 - [ ] **PKM-5** (S5): tsconfig + migrate agent-room→`.ts` (+ phased rest)
 - [ ] **PKM-6** (S6): wikilink graph + BM25 + embedding/vector adapters (transformers.js + Orama)

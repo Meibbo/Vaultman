@@ -73,5 +73,20 @@ hardening docs.
 - [ ] T3 stream/worktree tags
 - [ ] T4 coordination.md
 - [ ] T5 verify AGENTS.md link
-- [ ] T6 cross-worktree 2-agent verification
-- [ ] T7 / wrap: plan index DONE, session-log, hub update
+- [x] T6 cross-worktree 2-agent verification — LIVE PASS (vaultman + vm-s2-test → one room); Codex also converged (real proof)
+- [x] T7 / wrap: plan index DONE, session-log, hub update — commit `4aebaaa`
+
+## S3 — memory lifecycle (ADR 0002) — STARTED 2026-06-05
+- **Ground truth:** health = FAIL(123) = 54 line-limit + 40 timestamp-offset + 29 parent-shape (+2
+  frontmatter-parse, FIXED). ALL 123 auto-repairable via `--repair-residuals` BUT 85 in Codex's
+  `work/hardening` + 1 in `current/` + 0 in pkm-ai → prune is contended.
+- **Status reality:** 818 docs, ~23 free-form `status` values (295 draft, 265 active, 71 done…) → `status`
+  is NOT lifecycle vocab.
+- **Dev decisions (AskUserQuestion 2026-06-05):** (1) **new additive `lifecycle:` field** (not migrate
+  `status`); (2) **DEFER the prune** (don't touch Codex/current).
+- **S3a DONE (mine):** fixed ADR 0003+0006 colon-title YAML parse fails (123→ was 125); `check-doc-health.mjs`
+  + `lifecycle-state` FAIL (invalid value) + `stale-active` WARN (`--stale-active-days`, default 30); 7
+  doc-health tests green; amended ADR 0002 (status→lifecycle field); docs.md lifecycle policy section;
+  dogfood `lifecycle: active` on ADR 0002 + coordination.md. Opt-in field → corpus stays FAIL(123), 0 new.
+- **S3b DEFERRED:** the 123-fail prune (coordinate w/ Codex; never touch status/handoff). FAIL→0 deferred.
+- **Next:** S4 (versioning) / S5 (.ts migration) parallel; or coordinate S3b prune window.

@@ -36,6 +36,24 @@ broader "append-only status writes" is parked as **S-12** in
 
 ## Entries (newest at TOP, append above the previous one)
 
+## 2026-06-05 — claude-opus-4-8 · implement · S3a memory lifecycle field + health checks (ADR 0002)
+- **summary:** Started S3 (memory lifecycle). Ground truth first: health = FAIL(123) (54 line-limit + 40
+  timestamp-offset + 29 parent-shape; all `--repair-*`-able but 85 in Codex's `hardening` + 1 `current/` →
+  contended). 818 docs use ~23 free-form `status` values → `status` ≠ lifecycle vocab. Dev chose a NEW
+  additive `lifecycle:` field + DEFER the prune. Shipped S3a (field + enforcement); S3b prune deferred.
+- **key landings:**
+  - **`40405a9`** — `check-doc-health.mjs`: `lifecycle-state` FAIL (invalid value) + `stale-active` WARN
+    (`--stale-active-days`, default 30). Opt-in → corpus stays FAIL(123), 0 new. 3 tests; full suite 48 green.
+  - **`8d5aad2`** — amended ADR 0002 (status→`lifecycle:` field); `docs.md` Memory Lifecycle section + repair
+    trigger; fixed ADR 0003+0006 colon-title YAML parse fails (125→123); dogfood `lifecycle:active` on ADR
+    0002 + coordination.md.
+- **next-action:** **S3b prune** (the 123 fails) = DEFERRED — needs a coordinated window (don't touch
+  Codex's `hardening/*` or `current/status`·`handoff`); FAIL→0 then. After: S4 (versioning) / S5 (.ts
+  migration) parallel. Plan: [[docs/work/pkm-ai/plans/2026-06-04-orchestration-upgrade/index|orchestration-upgrade plan]].
+- **artifacts:** `check-doc-health.mjs` + `doc-health.test.mjs` · ADR 0002 (amended) · `docs.md` ·
+  ADR 0003/0006 (YAML fix) · `coordination.md` (lifecycle field).
+- **git:** `40405a9` · `8d5aad2` on `sandbox`.
+
 ## 2026-06-05 — claude-opus-4-8 · implement · S2 coordination conventions (T1-T7, ADR 0003)
 - **summary:** Executed S2 Tasks 1-7 — `agent-room.ts` is now the cross-stream shared brain: state-root
   resolves to the git common dir (all worktrees share ONE room), atomic `ensureRun` (no double-room),

@@ -100,7 +100,10 @@ Only then launch simultaneous grills safely.
   [[docs/work/pkm-ai/specs/2026-06-04-orchestration-upgrade/index|spec]]. **Phase 2 plan started** →
   [[docs/work/pkm-ai/plans/2026-06-04-orchestration-upgrade/index|plan]] (index + S1 shard ✓; S2–S6 outlined; issues PKM-1..6). **S1+S2 EXECUTED** — S1 `d974af2` (AGENTS.md mandate); S2 `0baad20`…`a778f48` (cross-stream shared room:
 git-common-dir state-root + atomic `ensureRun` + stream/worktree tags + `task --depends-on` + `coordination.md`;
-cross-worktree 2-agent run verified live; 16 tests green). Next: S3 (lifecycle) / S4 / S5.
+cross-worktree 2-agent run verified live; 16 tests green). **S3a EXECUTED** `40405a9`/`8d5aad2` — new
+additive `lifecycle:` field + `check-doc-health` lifecycle-state/stale-active checks + ADR 0002 amended
+(status→lifecycle field); **S3b prune DEFERRED** (123 health fails; 85 in Codex's hardening + 1 current/ →
+coordinated window). Next: S4 (versioning) / S5 (.ts migration) parallel; coordinate the S3b prune.
 
 ## Ties
 
