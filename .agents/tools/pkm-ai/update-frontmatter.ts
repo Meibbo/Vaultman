@@ -3,10 +3,16 @@ import fs from "node:fs";
 import path from "node:path";
 import { listMarkdownFiles, parseMarkdown, relativePath, toPosixPath } from "./lib/frontmatter.mjs";
 
+interface ParsedArgs {
+  all: boolean;
+  now: string | undefined;
+  paths: string[];
+}
+
 const TIMESTAMP_PATTERN = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}$/;
 
 if (process.argv.includes("--help") || process.argv.includes("-h")) {
-  console.log(`Usage: node .agents/tools/pkm-ai/update-frontmatter.mjs [--all] [--now YYYY-MM-DDTHH:mm:ss] [path ...]
+  console.log(`Usage: node .agents/tools/pkm-ai/update-frontmatter.ts [--all] [--now YYYY-MM-DDTHH:mm:ss] [path ...]
 
 Updates created/updated timestamps in active .agents/docs Markdown files.
 Use explicit paths for touched docs, or --all for every active doc. Archive raw
@@ -28,12 +34,12 @@ try {
 
   console.log(`updated ${changed}/${files.length} frontmatter file(s)`);
 } catch (error) {
-  console.error(`update-frontmatter: ${error.message}`);
+  console.error(`update-frontmatter: ${(error as Error).message}`);
   process.exit(1);
 }
 
-function parseArgs(argv) {
-  const args = { all: false, now: undefined, paths: [] };
+function parseArgs(argv: string[]): ParsedArgs {
+  const args: ParsedArgs = { all: false, now: undefined, paths: [] };
 
   for (let index = 0; index < argv.length; index += 1) {
     const arg = argv[index];
@@ -57,14 +63,14 @@ function parseArgs(argv) {
   return args;
 }
 
-function resolveFiles(root, args) {
+function resolveFiles(root: string, args: ParsedArgs): string[] {
   const files = args.all
     ? listMarkdownFiles(root, ".agents/docs", { excludeArchive: true, excludeTemplates: true })
     : args.paths.map((filePath) => resolveDocPath(root, filePath));
-  return [...new Set(files)].sort((a, b) => relativePath(root, a).localeCompare(relativePath(root, b)));
+  return [...new Set<string>(files)].sort((a, b) => relativePath(root, a).localeCompare(relativePath(root, b)));
 }
 
-function resolveDocPath(root, filePath) {
+function resolveDocPath(root: string, filePath: string): string {
   const fullPath = path.resolve(root, filePath);
   const rel = toPosixPath(path.relative(path.resolve(root, ".agents/docs"), fullPath));
   if (rel.startsWith("../") || rel === ".." || path.isAbsolute(rel)) {
@@ -82,7 +88,7 @@ function resolveDocPath(root, filePath) {
   return fullPath;
 }
 
-function updateFile(file, timestamp) {
+function updateFile(file: string, timestamp: string): boolean {
   const current = fs.readFileSync(file, "utf8");
   const next = rewriteFrontmatter(current, timestamp);
   if (next === current) return false;
@@ -90,7 +96,7 @@ function updateFile(file, timestamp) {
   return true;
 }
 
-function rewriteFrontmatter(markdown, timestamp) {
+function rewriteFrontmatter(markdown: string, timestamp: string): string {
   const parsed = parseMarkdown(markdown);
   if (!parsed.rawFrontmatter) {
     const body = markdown.startsWith("\n") ? markdown : `\n${markdown}`;
@@ -121,18 +127,18 @@ function rewriteFrontmatter(markdown, timestamp) {
   return `---\n${lines.join("\n")}\n---\n${bodySeparator}${parsed.body}`;
 }
 
-function findKey(lines, key) {
+function findKey(lines: string[], key: string): number {
   return lines.findIndex((line) => line.startsWith(`${key}:`));
 }
 
-function assertTimestamp(timestamp) {
+function assertTimestamp(timestamp: string): void {
   if (!TIMESTAMP_PATTERN.test(timestamp)) {
     throw new Error("timestamp must use YYYY-MM-DDTHH:mm:ss with no timezone offset");
   }
 }
 
-function formatLocalTimestamp(date) {
-  const pad = (value) => String(value).padStart(2, "0");
+function formatLocalTimestamp(date: Date): string {
+  const pad = (value: number): string => String(value).padStart(2, "0");
   return [
     date.getFullYear(),
     "-",

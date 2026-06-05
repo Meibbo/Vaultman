@@ -7,7 +7,7 @@ import { execFileSync } from "node:child_process";
 import { spawnSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
 
-const toolPath = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..", "update-frontmatter.mjs");
+const toolPath = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..", "update-frontmatter.ts");
 
 test("update-frontmatter updates provided docs while preserving created", () => {
   const root = makeTempRoot();
