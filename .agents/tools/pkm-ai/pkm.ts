@@ -15,7 +15,7 @@ const commands: Record<string, string> = {
   shard: 'shard-index.mjs',
   'code-index': 'code-index.mjs',
   room: 'agent-room.ts',
-  'traverse-graph': 'traverse-graph.mjs',
+  'traverse-graph': 'traverse-graph.ts',
 };
 
 const [, , command, ...args] = process.argv;
