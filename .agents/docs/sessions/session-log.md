@@ -36,6 +36,29 @@ broader "append-only status writes" is parked as **S-12** in
 
 ## Entries (newest at TOP, append above the previous one)
 
+## 2026-06-05 — claude-opus-4-8 · refactor · S5 .ts migration started — manage-tasks (ADR 0001)
+- **summary:** Started S5 (phased `.mjs`→`.ts` tool migration). Migrated `manage-tasks` (567 lines) to a
+  fully-typed `.ts`. Proved the per-tool pattern: tsconfig `allowJs:true` lets a `.ts` tool import the
+  shared `.mjs` lib cleanly (tsc stays 47); `git mv` + full erasable types (every param annotated under
+  strict, `Record<string,string>` on lookup tables) + update callers + parity. agent-room was already `.ts` (S2 T0).
+- **key landings:** **`2c15819`** — manage-tasks.mjs→.ts; agent-room spawn ref + test toolPath updated;
+  tsconfig `allowJs`. Verified: tsc 47, manage-tasks 6/6, agent-room objectives 1/1, `--help` parity.
+- **next-action:** continue S5 (next: `check-doc-health` → `split-shard` → `update-frontmatter` →
+  `query-docs`/`index-docs` → `lib/*.mjs` → `pkm.mjs`); same proven pattern each. Bump `toolingVersion`
+  when S5 completes. Plan: [[docs/work/pkm-ai/plans/2026-06-04-orchestration-upgrade/index|plan]].
+- **artifacts:** `manage-tasks.ts` · `tsconfig.json` (allowJs).
+- **git:** `2c15819` on `sandbox`.
+
+## 2026-06-05 — antigravity · implement · Configuration Merge & Recovery
+- **summary:** Merged legacy Antigravity settings and keybindings into the new Antigravity IDE configuration.
+- **key landings:**
+  - Backed up active configurations to `.backup` files in AppData.
+  - Safely merged settings.json and keybindings.json keeping IDE-specific critical paths (marketplace, browser, formatting).
+  - Validated syntax using JSONC parsing.
+- **next-action:** User checks the IDE shortcuts and behavior.
+- **artifacts:** [[docs/sessions/2026-06-05-antigravity-config-merge|2026-06-05-antigravity-config-merge.md]]
+- **git:** uncommitted (this was configuration work in AppData, no workspace changes).
+
 ## 2026-06-05 — claude-opus-4-8 · implement · S4 PKM-AI versioning (ADR 0005)
 - **summary:** Shipped the version surface. `.agents/pkm-ai.version.json` {pkmAiVersion, protocolVersion,
   stateSchemaVersion, toolingVersion} = 1.0.0 / 1.0.0 / 1 / 1.0.0, + `docs/work/pkm-ai/CHANGELOG.md` v1.0.0.
