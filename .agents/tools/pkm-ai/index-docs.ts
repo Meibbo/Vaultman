@@ -2,6 +2,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import { buildIndex, CACHE_PATH } from "./lib/frontmatter.mjs";
+import { buildRetrievalIndex, RETRIEVAL_CACHE_PATH } from "./lib/retrieval.mjs";
 
 interface DocEntry {
   [key: string]: unknown;
@@ -23,3 +24,9 @@ fs.writeFileSync(
   `${JSON.stringify({ generated_at: new Date().toISOString(), entries }, null, 2)}\n`,
 );
 console.log(`indexed ${entries.length} docs -> ${CACHE_PATH}`);
+
+const retrievalIndex = buildRetrievalIndex(root);
+const retrievalPath = path.join(root, RETRIEVAL_CACHE_PATH);
+fs.mkdirSync(path.dirname(retrievalPath), { recursive: true });
+fs.writeFileSync(retrievalPath, `${JSON.stringify(retrievalIndex, null, 2)}\n`);
+console.log(`retrieval-indexed ${retrievalIndex.docs.length} docs -> ${RETRIEVAL_CACHE_PATH}`);

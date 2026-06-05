@@ -4,13 +4,29 @@ import path from "node:path";
 import { buildIndex, CACHE_PATH, filterEntries, formatRows, parseArgs } from "./lib/frontmatter.mjs";
 import { hasGlossaryTerm } from "./lib/glossary.mjs";
 import { recordMetric } from "./lib/metrics.mjs";
+import { bm25Search, loadRetrievalIndex } from "./lib/retrieval.mjs";
 
 interface DocEntry {
   [key: string]: unknown;
 }
 
+interface RankHit {
+  path: string;
+  title: string;
+  lifecycle: string;
+  score: number;
+  rawScore: number;
+}
+
+interface RankArgs {
+  terms: string[];
+  limit: number | undefined;
+  json: boolean;
+}
+
 if (process.argv.includes("--help") || process.argv.includes("-h")) {
   console.log(`Usage: node .agents/tools/pkm-ai/query-docs.ts [filters] [search terms]
+       node .agents/tools/pkm-ai/query-docs.ts --rank [--limit N] [--json] <terms...>
 
 Filters:
   --id VM-0001
@@ -19,11 +35,28 @@ Filters:
   --initiative pkm-ai
   --tag agent/item
   --glossary term
-  --json`);
+  --json
+
+Ranking:
+  --rank        BM25 over .agents/cache/retrieval-index.json (built in-memory if
+                absent), lifecycle-weighted (active > deferred > … > archived).
+  --limit N     cap ranked results (default: all matches).`);
   process.exit(0);
 }
 
 const root = process.cwd();
+
+if (process.argv.includes("--rank")) {
+  const rankArgs = parseRankArgs(process.argv.slice(2));
+  const index = loadRetrievalIndex(root);
+  const hits: RankHit[] = bm25Search(index, rankArgs.terms, { limit: rankArgs.limit });
+  if (rankArgs.json) {
+    console.log(JSON.stringify(hits, null, 2));
+  } else {
+    console.log(formatRankHits(hits));
+  }
+  process.exit(0);
+}
 const glossaryIndex = process.argv.indexOf("--glossary");
 if (glossaryIndex !== -1) {
   const term = process.argv[glossaryIndex + 1] ?? "";
@@ -49,4 +82,30 @@ if (args.json) {
   console.log(JSON.stringify(rows, null, 2));
 } else {
   console.log(formatRows(rows));
+}
+
+function parseRankArgs(argv: string[]): RankArgs {
+  const parsed: RankArgs = { terms: [], limit: undefined, json: false };
+  for (let index = 0; index < argv.length; index += 1) {
+    const arg = argv[index];
+    if (arg === "--rank") {
+      continue;
+    } else if (arg === "--json") {
+      parsed.json = true;
+    } else if (arg === "--limit") {
+      const value = Number.parseInt(argv[index + 1] ?? "", 10);
+      parsed.limit = Number.isInteger(value) && value > 0 ? value : undefined;
+      index += 1;
+    } else if (!arg.startsWith("--")) {
+      parsed.terms.push(arg);
+    }
+  }
+  return parsed;
+}
+
+function formatRankHits(hits: RankHit[]): string {
+  if (hits.length === 0) return "No ranked matches.";
+  return hits
+    .map((hit) => `${hit.score.toFixed(4)}\t${hit.lifecycle || "-"}\t${hit.path}`)
+    .join("\n");
 }
