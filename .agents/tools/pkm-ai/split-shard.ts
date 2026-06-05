@@ -4,10 +4,86 @@ import path from "node:path";
 import yaml from "js-yaml";
 import { parseMarkdown, titleFromPath, toPosixPath } from "./lib/frontmatter.mjs";
 
+interface ParsedArgs {
+  file: string;
+  maxLines: number;
+  now: string;
+  write: boolean;
+}
+
+interface PartInfo {
+  baseRel: string;
+  sourceRel: string;
+  part: number | null;
+}
+
+interface ExistingPart {
+  number: number;
+  rel: string;
+}
+
+interface PartResult {
+  body: string[];
+  number: number;
+  rel: string;
+  text: string;
+}
+
+interface SplitPlan {
+  baseRel: string;
+  existingBefore: ExistingPart[];
+  inputIsPart: boolean;
+  maxLines: number;
+  now: string;
+  parts: PartResult[];
+  sourceRel: string;
+  sourceTitle: string;
+  targetRel: string;
+  totalParts: number;
+  writeManifest: boolean;
+  manifestText: string | null;
+}
+
+// Shared shape for the whole-document split pass (chunk sizing).
+interface SplitContext {
+  baseRel: string;
+  maxLines: number;
+  now: string;
+  sourceRel: string;
+  sourceTitle: string;
+  sourceWiki: string;
+  startPart: number;
+  totalParts: number;
+}
+
+// Shared shape for rendering a single numbered part. `body` is only present when
+// the part text is actually rendered (renderPart); budget/prefix/footer helpers
+// reuse the same options without it.
+interface PartContext {
+  baseRel: string;
+  maxLines: number;
+  now: string;
+  number: number;
+  sourceRel: string;
+  sourceTitle: string;
+  sourceWiki: string;
+  totalParts: number;
+  body?: string[];
+}
+
+interface ManifestArgs {
+  baseRel: string;
+  now: string;
+  parts: PartResult[];
+  sourceTitle: string;
+  sourceText: string;
+  totalParts: number;
+}
+
 const args = parseArgs(process.argv.slice(2));
 
 if (!args.file) {
-  console.error("Usage: node split-shard.mjs --file .agents/docs/path/shard.md [--max-lines 300] [--write] [--now YYYY-MM-DDTHH:mm:ss]");
+  console.error("Usage: node split-shard.ts --file .agents/docs/path/shard.md [--max-lines 300] [--write] [--now YYYY-MM-DDTHH:mm:ss]");
   process.exit(2);
 }
 
@@ -31,8 +107,8 @@ if (args.write) {
   writePlan(root, plan);
 }
 
-function parseArgs(argv) {
-  const parsed = {
+function parseArgs(argv: string[]): ParsedArgs {
+  const parsed: ParsedArgs = {
     file: "",
     maxLines: 300,
     now: new Date().toISOString().slice(0, 19),
@@ -62,7 +138,7 @@ function parseArgs(argv) {
   return parsed;
 }
 
-function planSplit(rootDir, rel, { maxLines, now }) {
+function planSplit(rootDir: string, rel: string, { maxLines, now }: { maxLines: number; now: string }): SplitPlan {
   const abs = path.resolve(rootDir, rel);
   const sourceText = fs.readFileSync(abs, "utf8");
   const markdown = parseMarkdown(sourceText);
@@ -70,7 +146,7 @@ function planSplit(rootDir, rel, { maxLines, now }) {
   const sourceRel = partInfo.sourceRel;
   const baseRel = partInfo.baseRel;
   const startPart = partInfo.part ?? 1;
-  const sourceTitle = cleanPartTitle(String(markdown.frontmatter.title ?? titleFromPath(baseRel)));
+  const sourceTitle = cleanPartTitle(String((markdown.frontmatter as any).title ?? titleFromPath(baseRel)));
   const sourceWiki = wikiLink(baseRel, sourceTitle);
   const bodyLines = contentLinesForSplit(markdown, partInfo, sourceTitle);
 
@@ -97,7 +173,7 @@ function planSplit(rootDir, rel, { maxLines, now }) {
     totalParts,
   });
 
-  const parts = chunks.map((body, index) => {
+  const parts: PartResult[] = chunks.map((body, index) => {
     const number = startPart + index;
     return {
       body,
@@ -139,12 +215,12 @@ function planSplit(rootDir, rel, { maxLines, now }) {
             sourceTitle,
             sourceText,
             totalParts,
-          })
+          } as ManifestArgs)
         : null,
   };
 }
 
-function parsePartPath(rel) {
+function parsePartPath(rel: string): PartInfo {
   const parsed = path.posix.parse(rel);
   const match = parsed.name.match(/^(.*)-part-(\d+)$/);
   if (!match) {
@@ -158,11 +234,11 @@ function parsePartPath(rel) {
   };
 }
 
-function cleanPartTitle(title) {
+function cleanPartTitle(title: string): string {
   return title.replace(/\s+-\s+part\s+\d+$/i, "").trim();
 }
 
-function contentLinesForSplit(markdown, partInfo, sourceTitle) {
+function contentLinesForSplit(markdown: { body: string }, partInfo: PartInfo, sourceTitle: string): string[] {
   const lines = splitLines(markdown.body);
   if (partInfo.part === null) return lines;
   return stripContinuationWrapper(lines, {
@@ -171,7 +247,7 @@ function contentLinesForSplit(markdown, partInfo, sourceTitle) {
   });
 }
 
-function stripContinuationWrapper(lines, { part, sourceTitle }) {
+function stripContinuationWrapper(lines: string[], { part, sourceTitle }: { part: number; sourceTitle: string }): string[] {
   let start = 0;
   let end = lines.length;
   let cursor = 0;
@@ -206,7 +282,7 @@ function stripContinuationWrapper(lines, { part, sourceTitle }) {
   return lines.slice(start, end);
 }
 
-function isGeneratedTopNavLine(line) {
+function isGeneratedTopNavLine(line: string): boolean {
   return (
     /^>\s+Parte\s+\d+\s+de\s+\d+\.$/i.test(line) ||
     /^>\s+Viene de \[\[.+\]\]\.$/i.test(line) ||
@@ -214,14 +290,14 @@ function isGeneratedTopNavLine(line) {
   );
 }
 
-function isGeneratedFooterNavLine(line) {
+function isGeneratedFooterNavLine(line: string): boolean {
   return (
     /^Viene de \[\[.+\]\]\.$/i.test(line) ||
     /^Contin[uú]a en \[\[.+\]\]\.$/i.test(line)
   );
 }
 
-function listExistingParts(rootDir, baseRel) {
+function listExistingParts(rootDir: string, baseRel: string): ExistingPart[] {
   const parsed = path.posix.parse(baseRel);
   const dirAbs = path.resolve(rootDir, parsed.dir);
   if (!fs.existsSync(dirAbs)) return [];
@@ -229,7 +305,7 @@ function listExistingParts(rootDir, baseRel) {
   return fs
     .readdirSync(dirAbs, { withFileTypes: true })
     .filter((entry) => entry.isFile())
-    .map((entry) => {
+    .map((entry): ExistingPart | null => {
       const match = entry.name.match(pattern);
       if (!match) return null;
       return {
@@ -237,16 +313,16 @@ function listExistingParts(rootDir, baseRel) {
         rel: path.posix.join(parsed.dir, entry.name),
       };
     })
-    .filter(Boolean)
+    .filter((entry): entry is ExistingPart => entry !== null)
     .sort((a, b) => a.number - b.number);
 }
 
-function chunkCountFor(bodyLines, options) {
+function chunkCountFor(bodyLines: string[], options: SplitContext): number {
   return chunkBody(bodyLines, options).length;
 }
 
-function chunkBody(bodyLines, options) {
-  const chunks = [];
+function chunkBody(bodyLines: string[], options: SplitContext): string[][] {
+  const chunks: string[][] = [];
   let cursor = 0;
   while (cursor < bodyLines.length) {
     const number = options.startPart + chunks.length;
@@ -260,17 +336,17 @@ function chunkBody(bodyLines, options) {
   return chunks.length > 0 ? chunks : [[]];
 }
 
-function partBodyBudget(options) {
+function partBodyBudget(options: PartContext): number {
   const prefix = partPrefixLines(options);
   const footer = partFooterLines(options);
   return options.maxLines - prefix.length - footer.length - 1;
 }
 
-function renderPart(options) {
-  return renderLines([...partPrefixLines(options), ...options.body, ...partFooterLines(options)]);
+function renderPart(options: PartContext): string {
+  return renderLines([...partPrefixLines(options), ...(options.body as string[]), ...partFooterLines(options)]);
 }
 
-function partPrefixLines({ baseRel, now, number, sourceRel, sourceTitle, sourceWiki, totalParts }) {
+function partPrefixLines({ baseRel, now, number, sourceRel, sourceTitle, sourceWiki, totalParts }: PartContext): string[] {
   const previousRel = number > 1 ? partRelFor(baseRel, number - 1) : null;
   const nextRel = number < totalParts ? partRelFor(baseRel, number + 1) : null;
   return [
@@ -299,7 +375,7 @@ function partPrefixLines({ baseRel, now, number, sourceRel, sourceTitle, sourceW
   ];
 }
 
-function partFooterLines({ baseRel, number, totalParts }) {
+function partFooterLines({ baseRel, number, totalParts }: PartContext): string[] {
   const lines = ["", "---"];
   if (number > 1) {
     lines.push(`Viene de [[${wikiPath(partRelFor(baseRel, number - 1))}|parte ${padPart(number - 1)}]].`);
@@ -310,13 +386,13 @@ function partFooterLines({ baseRel, number, totalParts }) {
   return lines;
 }
 
-function renderManifest({ baseRel, now, parts, sourceTitle, sourceText, totalParts }) {
+function renderManifest({ now, parts, sourceTitle, sourceText, totalParts }: ManifestArgs): string {
   const parsed = parseMarkdown(sourceText);
   const frontmatter = {
     ...parsed.frontmatter,
     title: sourceTitle,
-    type: `${String(parsed.frontmatter.type ?? "research-shard")}-index`,
-    status: parsed.frontmatter.status ?? "active",
+    type: `${String((parsed.frontmatter as any).type ?? "research-shard")}-index`,
+    status: (parsed.frontmatter as any).status ?? "active",
     updated: now,
     summary: true,
     compacted: true,
@@ -325,7 +401,7 @@ function renderManifest({ baseRel, now, parts, sourceTitle, sourceText, totalPar
   return `---\n${yaml.dump(frontmatter, { schema: yaml.JSON_SCHEMA })}---\n\n# ${sourceTitle}\n\nThis shard was mechanically split into ${totalParts} continuation parts.\n\n## Parts\n\n${links.join("\n")}\n`;
 }
 
-function writePlan(rootDir, plan) {
+function writePlan(rootDir: string, plan: SplitPlan): void {
   if (plan.writeManifest && plan.manifestText) {
     fs.writeFileSync(path.resolve(rootDir, plan.baseRel), plan.manifestText);
   }
@@ -339,14 +415,14 @@ function writePlan(rootDir, plan) {
   }
 }
 
-function removeGeneratedPartsFrom(rootDir, baseRel, startNumber) {
+function removeGeneratedPartsFrom(rootDir: string, baseRel: string, startNumber: number): void {
   for (const part of listExistingParts(rootDir, baseRel)) {
     if (part.number < startNumber) continue;
     fs.unlinkSync(path.resolve(rootDir, part.rel));
   }
 }
 
-function printPlan(plan, { write }) {
+function printPlan(plan: SplitPlan, { write }: { write: boolean }): void {
   console.log(`${write ? "WROTE" : "DRY RUN"} split-shard ${plan.targetRel}`);
   console.log(`base\t${plan.baseRel}`);
   console.log(`max-lines\t${plan.maxLines}`);
@@ -356,40 +432,40 @@ function printPlan(plan, { write }) {
   }
 }
 
-function partRelFor(baseRel, number) {
+function partRelFor(baseRel: string, number: number): string {
   const parsed = path.posix.parse(baseRel);
   return path.posix.join(parsed.dir, `${parsed.name}-part-${padPart(number)}${parsed.ext}`);
 }
 
-function wikiLink(rel, alias) {
+function wikiLink(rel: string, alias: string): string {
   return `[[${wikiPath(rel)}|${alias}]]`;
 }
 
-function wikiPath(rel) {
+function wikiPath(rel: string): string {
   return rel.replace(/^\.agents\//, "").replace(/\.md$/i, "");
 }
 
-function padPart(number) {
+function padPart(number: number): string {
   return String(number).padStart(2, "0");
 }
 
-function quoteYaml(value) {
+function quoteYaml(value: unknown): string {
   return JSON.stringify(String(value));
 }
 
-function splitLines(text) {
+function splitLines(text: string): string[] {
   return text.replace(/\r\n/g, "\n").split("\n");
 }
 
-function renderLines(lines) {
+function renderLines(lines: string[]): string {
   return `${lines.join("\n").replace(/\s+$/u, "")}\n`;
 }
 
-function lineCount(text) {
+function lineCount(text: string): number {
   if (text.length === 0) return 0;
   return text.split(/\r?\n/).length;
 }
 
-function escapeRegExp(value) {
+function escapeRegExp(value: string): string {
   return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }

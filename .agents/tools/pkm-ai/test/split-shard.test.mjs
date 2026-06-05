@@ -6,7 +6,7 @@ import path from "node:path";
 import { spawnSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
 
-const toolPath = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..", "split-shard.mjs");
+const toolPath = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..", "split-shard.ts");
 
 test("split-shard previews mechanical part files without writing", () => {
   const root = makeTempRoot();
