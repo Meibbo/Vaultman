@@ -2,6 +2,7 @@
 title: Coordination policy
 type: policy
 status: active
+lifecycle: active
 parent: "[[docs/work/pkm-ai/index|pkm-ai]]"
 created: 2026-06-04T11:00:00
 updated: 2026-06-04T11:00:00

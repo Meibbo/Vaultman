@@ -4,8 +4,8 @@ type: policy
 status: active
 parent: "[[docs/work/pkm-ai/specs/2026-05-04-orchestration-refresh/index|pkm-ai]]"
 created: 2026-05-04T01:36:20
-updated: 2026-05-26T00:00:00
-updated_by: claude-opus-4-7
+updated: 2026-06-05T00:00:00
+updated_by: claude-opus-4-8
 tags:
   - agent/policy
 ---
@@ -90,6 +90,23 @@ tags:
 - New docs that intentionally introduce glossary candidates should list them in
   `glossary_candidates` until they are accepted or rejected.
 
+## Memory Lifecycle (PKM-AI ADR 0002)
+
+- Every memory entry MAY carry an explicit **`lifecycle:`** frontmatter field — one of `active` ·
+  `deferred` · `triaged` · `blocked` · `superseded` · `archived`. This is ADDITIVE: `status:` stays the
+  free-form doc-workflow field; `lifecycle:` is the curation state. Absent `lifecycle:` is allowed
+  (adoption is incremental), but an invalid value is a health failure (`lifecycle-state`).
+- **Working-surface rule:** `current/status.md`, `current/handoff.md`, and the session-log surface ONLY
+  `active` items plus compact pointers. `deferred`/`triaged`/`blocked` material lives in its initiative
+  source record (+ the agent-room registry), surfaced on query — not inlined into the active surfaces.
+- **Supersede / archive:** move `superseded`/`archived` material out via
+  `tools/pkm-ai/archive-active-doc.mjs` (archive-first) and link it — never delete (706-file-deletion risk).
+- **Stale-active curation:** `check-doc-health.mjs --stale-active-days N` (default 30) WARNs when a
+  `lifecycle:active` doc is untouched past N days, so a recurring curation pass can demote it to
+  `deferred`/`superseded`/`archived`. The pass is curation, not deletion.
+- **Retrieval coupling:** rank weights lifecycle (`active` > `deferred` > `superseded`) so queries surface
+  live material first (ties PKM-AI ADR 0003 + the retrieval channel, S6).
+
 ## Read When
 
 - Creating, migrating, refreshing, or reviewing agent docs.
@@ -117,3 +134,4 @@ tags:
 - Active work detail was archived instead of being promoted to the relevant
   initiative record.
 - Unknown `glossary_candidates` appear in active docs.
+- A `lifecycle:` value is not one of the six ADR 0002 states.

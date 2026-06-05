@@ -1,5 +1,5 @@
 ---
-title: PKM-AI 0006 — Retrieval channel: pluggable embeddings + vector store (default local)
+title: "PKM-AI 0006 — Retrieval channel: pluggable embeddings + vector store (default local)"
 type: adr
 status: active
 parent: "[[docs/work/pkm-ai/adr/README|pkm-ai adr]]"

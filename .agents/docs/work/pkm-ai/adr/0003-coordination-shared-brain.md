@@ -1,5 +1,5 @@
 ---
-title: PKM-AI 0003 — Coordination model: shared-brain-on-disk (no master agent)
+title: "PKM-AI 0003 — Coordination model: shared-brain-on-disk (no master agent)"
 type: adr
 status: active
 parent: "[[docs/work/pkm-ai/adr/README|pkm-ai adr]]"

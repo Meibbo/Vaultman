@@ -2,9 +2,10 @@
 title: PKM-AI 0002 — Memory lifecycle states + pruning
 type: adr
 status: active
+lifecycle: active
 parent: "[[docs/work/pkm-ai/adr/README|pkm-ai adr]]"
 created: 2026-06-04T00:00:00
-updated: 2026-06-04T00:00:00
+updated: 2026-06-05T00:00:00
 created_by: claude-opus-4-8
 updated_by: claude-opus-4-8
 tags:
@@ -28,8 +29,12 @@ curation discipline.
 
 Every memory entry carries an explicit **lifecycle state**, and the system enforces transitions + pruning.
 
-- **States:** `active` · `deferred` · `triaged` · `blocked` · `superseded` · `archived` (recorded in
-  frontmatter `status` / a per-row tag).
+- **States:** `active` · `deferred` · `triaged` · `blocked` · `superseded` · `archived`, recorded in a
+  dedicated frontmatter **`lifecycle:`** field. **Amended 2026-06-05 (ground truth):** the corpus has 818
+  docs using ~23 free-form `status` values (draft/active/done/completed/…), so lifecycle gets its OWN
+  additive field rather than overloading `status` (which stays the free-form doc-workflow field). Enforced
+  by `check-doc-health.mjs`: an invalid `lifecycle:` value = FAIL; `lifecycle:active` untouched past
+  `--stale-active-days` (default 30) = WARN. Opt-in — absent `lifecycle:` is not flagged, so adoption is incremental.
 - **Working-surface rule:** `status.md` / `handoff.md` / session-log surfaces show ONLY `active` items
   (+ compact pointers to the rest). Deferred/triaged/blocked live in their initiative source record +
   the registry, surfaced on QUERY, not inlined into active surfaces.
