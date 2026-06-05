@@ -20,7 +20,11 @@ if (options.help) {
        node .agents/tools/pkm-ai/check-doc-health.mjs --repair-residuals [--now YYYY-MM-DDTHH:mm:ss]
 
 Checks .agents/docs active Markdown files for line limits, frontmatter rules,
-parent link shape, and forbidden active public agent-doc paths.
+parent link shape, lifecycle states (PKM-AI ADR 0002), and forbidden active
+public agent-doc paths.
+
+--stale-active-days N (default 30) flags lifecycle:active docs untouched past N
+days as a WARN (review/demote), not a failure.
 
 --repair-line-limits rewrites docs past the hard cap (limit + 100 = 300) into
 continuation shards before the final health check. Docs in the soft range (over
@@ -41,6 +45,9 @@ const limit = 200;
 // whether to shard. Past hardLimit (= limit + 100) the cap is hard: the doc must
 // be split into a new shard part, and --repair-line-limits only auto-shards there.
 const hardLimit = limit + 100;
+// Memory lifecycle states (PKM-AI ADR 0002). Carried in a dedicated `lifecycle:` frontmatter field
+// (additive — `status` stays the doc-workflow field). Opt-in: docs without `lifecycle:` are not flagged.
+const LIFECYCLE_STATES = new Set(["active", "deferred", "triaged", "blocked", "superseded", "archived"]);
 
 if (options.repairLineLimits) {
   const repairs = repairLineLimitFailures(root, { limit, hardLimit, now: options.now });
@@ -88,8 +95,10 @@ for (const file of listMarkdownFiles(root, ".agents/docs", { excludeArchive: tru
     const markdown = readMarkdown(file);
     failures.push(...validateFrontmatter(markdown.frontmatter, rel).filter((failure) => !isAllowedTemplateParent(failure, markdown.frontmatter, rel)));
     failures.push(...validateArchiveSource(markdown.frontmatter, text, rel));
+    failures.push(...validateLifecycle(markdown.frontmatter, rel));
     warnings.push(...validateGlossaryCandidates(markdown.frontmatter, rel, glossaryTerms));
     warnings.push(...validateSummarySource(markdown.frontmatter, text, rel));
+    warnings.push(...validateStaleActive(markdown.frontmatter, rel, options.now, options.staleActiveDays));
   } catch (error) {
     failures.push({ code: "frontmatter-parse", path: rel, detail: error.message });
   }
@@ -121,6 +130,7 @@ function parseArgs(args) {
     repairTimestampOffsets: false,
     repairForbiddenPublicDocs: false,
     now: nowTimestamp(),
+    staleActiveDays: 30,
   };
 
   for (let index = 0; index < args.length; index += 1) {
@@ -140,6 +150,9 @@ function parseArgs(args) {
       parsed.repairParentShape = true;
       parsed.repairTimestampOffsets = true;
       parsed.repairForbiddenPublicDocs = true;
+    } else if (arg === "--stale-active-days") {
+      parsed.staleActiveDays = Number(args[index + 1] ?? "30");
+      index += 1;
     } else if (arg === "--now") {
       parsed.now = args[index + 1] ?? "";
       index += 1;
@@ -432,6 +445,28 @@ function validateSummarySource(frontmatter, text, rel) {
   if (!isReplacementLike(frontmatter) && !/^##\s+(Summary|Resumen)\b/im.test(text)) return [];
   if (hasArchiveSource(frontmatter, text) || /(^|\/)\d{2}-[^/\n]+\.md\b/.test(text)) return [];
   return [{ code: "summary-source", path: rel, detail: "summary-like spec/plan should link source, shard, or archive" }];
+}
+
+// PKM-AI ADR 0002: validate the optional `lifecycle:` field against the allowed states (catches typos).
+// Opt-in — absent `lifecycle:` is not an error, so this adds zero failures to the existing corpus.
+function validateLifecycle(frontmatter, rel) {
+  if (!Object.hasOwn(frontmatter, "lifecycle")) return [];
+  const value = frontmatter.lifecycle;
+  if (typeof value === "string" && LIFECYCLE_STATES.has(value)) return [];
+  return [{ code: "lifecycle-state", path: rel, detail: `lifecycle must be one of ${[...LIFECYCLE_STATES].join("/")}; got ${JSON.stringify(value)}` }];
+}
+
+// PKM-AI ADR 0002: flag (WARN, not FAIL) `lifecycle: active` docs untouched past the stale threshold so
+// a curation pass can demote them to deferred/superseded/archived. Only fires on the opt-in field.
+function validateStaleActive(frontmatter, rel, now, staleActiveDays) {
+  if (frontmatter.lifecycle !== "active") return [];
+  const updated = frontmatter.updated;
+  if (typeof updated !== "string") return [];
+  const ageMs = Date.parse(now) - Date.parse(updated);
+  if (!Number.isFinite(ageMs)) return [];
+  const ageDays = ageMs / 86400000;
+  if (ageDays <= staleActiveDays) return [];
+  return [{ code: "stale-active", path: rel, detail: `lifecycle:active untouched ${Math.floor(ageDays)}d (> ${staleActiveDays}d) — review or demote` }];
 }
 
 function validateGlossaryCandidates(frontmatter, rel, terms) {

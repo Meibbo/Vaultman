@@ -216,6 +216,89 @@ updated: {{timestamp}}
   );
 });
 
+// --- S3: memory lifecycle (ADR 0002) ----------------------------------------------------------
+
+test("check-doc-health fails docs with an invalid lifecycle state", () => {
+  const root = makeTempRoot();
+  writeFile(
+    path.join(root, ".agents", "docs", "work", "pkm-ai", "items", "bad-lifecycle.md"),
+    `---
+title: Bad lifecycle
+type: work-item
+status: active
+lifecycle: parked
+parent: "[[docs/work/pkm-ai/index|pkm-ai]]"
+created: 2026-05-04T01:00:00
+updated: 2026-05-04T16:22:00
+tags:
+  - agent/work
+---
+
+# Bad lifecycle
+`,
+  );
+
+  const result = spawnSync(process.execPath, [toolPath, "--now", "2026-05-10T10:00:00"], { cwd: root, encoding: "utf8" });
+
+  assert.notEqual(result.status, 0);
+  assert.match(result.stdout, /lifecycle-state/);
+  assert.match(result.stdout, /parked/);
+});
+
+test("check-doc-health warns stale active lifecycle docs past the threshold", () => {
+  const root = makeTempRoot();
+  writeFile(
+    path.join(root, ".agents", "docs", "work", "pkm-ai", "items", "stale-active.md"),
+    `---
+title: Stale active
+type: work-item
+status: active
+lifecycle: active
+parent: "[[docs/work/pkm-ai/index|pkm-ai]]"
+created: 2026-01-01T00:00:00
+updated: 2026-01-01T00:00:00
+tags:
+  - agent/work
+---
+
+# Stale active
+`,
+  );
+
+  const result = spawnSync(process.execPath, [toolPath, "--now", "2026-06-04T00:00:00"], { cwd: root, encoding: "utf8" });
+
+  assert.equal(result.status, 0, result.stdout + result.stderr);
+  assert.match(result.stdout, /doc health: OK/);
+  assert.match(result.stdout, /WARN\tstale-active/);
+});
+
+test("check-doc-health accepts a fresh active lifecycle doc", () => {
+  const root = makeTempRoot();
+  writeFile(
+    path.join(root, ".agents", "docs", "work", "pkm-ai", "items", "fresh-active.md"),
+    `---
+title: Fresh active
+type: work-item
+status: active
+lifecycle: active
+parent: "[[docs/work/pkm-ai/index|pkm-ai]]"
+created: 2026-06-01T00:00:00
+updated: 2026-06-03T00:00:00
+tags:
+  - agent/work
+---
+
+# Fresh active
+`,
+  );
+
+  const result = spawnSync(process.execPath, [toolPath, "--now", "2026-06-04T00:00:00"], { cwd: root, encoding: "utf8" });
+
+  assert.equal(result.status, 0, result.stdout + result.stderr);
+  assert.match(result.stdout, /doc health: OK/);
+  assert.doesNotMatch(result.stdout, /stale-active/);
+});
+
 function makeTempRoot() {
   return fs.mkdtempSync(path.join(os.tmpdir(), "pkm-ai-health-"));
 }
