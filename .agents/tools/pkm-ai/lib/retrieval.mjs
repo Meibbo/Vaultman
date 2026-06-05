@@ -1,6 +1,7 @@
 import fs from "node:fs";
 import crypto from "node:crypto";
 import { listMarkdownFiles, parseMarkdown, relativePath } from "./frontmatter.mjs";
+import { FlatJsonVectorStore } from "../retrieval/vector-store.mjs";
 
 export const RETRIEVAL_CACHE_PATH = ".agents/cache/retrieval-index.json";
 
@@ -114,5 +115,64 @@ export function bm25Search(index, query, options = {}) {
 
   results.sort((a, b) => b.score - a.score || a.path.localeCompare(b.path));
   const limit = options.limit ?? results.length;
+  return results.slice(0, limit);
+}
+
+// Reciprocal Rank Fusion: merge several ranked id-lists into one. Each list contributes
+// 1 / (k + rank) per id; ids ranked high across lists win. Ties broken by id for determinism.
+export function rrfFuse(rankings, options = {}) {
+  const k = options.k ?? 60;
+  const scores = new Map();
+  for (const ranking of rankings) {
+    ranking.forEach((id, rank) => {
+      scores.set(id, (scores.get(id) ?? 0) + 1 / (k + rank + 1));
+    });
+  }
+  return [...scores.entries()]
+    .map(([id, score]) => ({ id, score }))
+    .sort((a, b) => b.score - a.score || a.id.localeCompare(b.id));
+}
+
+// Hybrid retrieval: BM25 keyword ranking + (optional) vector ranking via an EmbeddingProvider,
+// fused with RRF, then lifecycle-weighted. Zero-network when the provider is local (default
+// HashEmbeddingProvider). The real semantic provider swaps in behind the same signature at S6d.
+export function hybridSearch(index, query, options = {}) {
+  const provider = options.provider;
+  const limit = options.limit ?? 10;
+  const rrfK = options.rrfK ?? 60;
+  const weights = options.lifecycleWeights ?? LIFECYCLE_WEIGHTS;
+  const defaultWeight = options.defaultWeight ?? DEFAULT_LIFECYCLE_WEIGHT;
+  const docs = Array.isArray(index?.docs) ? index.docs : [];
+  if (docs.length === 0) return [];
+
+  const bm25Order = bm25Search(index, query, {
+    limit: docs.length,
+    lifecycleWeights: weights,
+    defaultWeight,
+  }).map((hit) => hit.path);
+
+  let vectorOrder = [];
+  if (provider) {
+    const store = options.vectorStore ?? new FlatJsonVectorStore();
+    store.rebuild(docs.map((doc) => ({ id: doc.path, vector: provider.embedCounts(doc.termFreq) })));
+    const queryText = Array.isArray(query) ? query.join(" ") : query;
+    const queryVector = provider.embed([queryText])[0];
+    vectorOrder = store.query(queryVector, docs.length).map((hit) => hit.id);
+  }
+
+  const fused = rrfFuse([bm25Order, vectorOrder].filter((list) => list.length > 0), { k: rrfK });
+  const byPath = new Map(docs.map((doc) => [doc.path, doc]));
+  const results = fused.map((entry) => {
+    const doc = byPath.get(entry.id) ?? {};
+    const weight = doc.lifecycle && weights[doc.lifecycle] !== undefined ? weights[doc.lifecycle] : defaultWeight;
+    return {
+      path: entry.id,
+      title: doc.title,
+      lifecycle: doc.lifecycle,
+      score: entry.score * weight,
+      fusedScore: entry.score,
+    };
+  });
+  results.sort((a, b) => b.score - a.score || a.path.localeCompare(b.path));
   return results.slice(0, limit);
 }

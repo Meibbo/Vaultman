@@ -4,7 +4,8 @@ import path from "node:path";
 import { buildIndex, CACHE_PATH, filterEntries, formatRows, parseArgs } from "./lib/frontmatter.mjs";
 import { hasGlossaryTerm } from "./lib/glossary.mjs";
 import { recordMetric } from "./lib/metrics.mjs";
-import { bm25Search, loadRetrievalIndex } from "./lib/retrieval.mjs";
+import { bm25Search, hybridSearch, loadRetrievalIndex } from "./lib/retrieval.mjs";
+import { HashEmbeddingProvider } from "./retrieval/embedding-provider.mjs";
 
 interface DocEntry {
   [key: string]: unknown;
@@ -15,7 +16,8 @@ interface RankHit {
   title: string;
   lifecycle: string;
   score: number;
-  rawScore: number;
+  rawScore?: number;
+  fusedScore?: number;
 }
 
 interface RankArgs {
@@ -40,11 +42,26 @@ Filters:
 Ranking:
   --rank        BM25 over .agents/cache/retrieval-index.json (built in-memory if
                 absent), lifecycle-weighted (active > deferred > … > archived).
+  --hybrid      BM25 + local vector embedding fused via Reciprocal Rank Fusion,
+                lifecycle-weighted (zero-network local embedding by default).
   --limit N     cap ranked results (default: all matches).`);
   process.exit(0);
 }
 
 const root = process.cwd();
+
+if (process.argv.includes("--hybrid")) {
+  const rankArgs = parseRankArgs(process.argv.slice(2));
+  const index = loadRetrievalIndex(root);
+  const provider = new HashEmbeddingProvider();
+  const hits: RankHit[] = hybridSearch(index, rankArgs.terms, { provider, limit: rankArgs.limit });
+  if (rankArgs.json) {
+    console.log(JSON.stringify(hits, null, 2));
+  } else {
+    console.log(formatRankHits(hits));
+  }
+  process.exit(0);
+}
 
 if (process.argv.includes("--rank")) {
   const rankArgs = parseRankArgs(process.argv.slice(2));
