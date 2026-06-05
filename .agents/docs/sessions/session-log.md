@@ -36,6 +36,19 @@ broader "append-only status writes" is parked as **S-12** in
 
 ## Entries (newest at TOP, append above the previous one)
 
+## 2026-06-05 — claude-opus-4-8 · implement · S4 PKM-AI versioning (ADR 0005)
+- **summary:** Shipped the version surface. `.agents/pkm-ai.version.json` {pkmAiVersion, protocolVersion,
+  stateSchemaVersion, toolingVersion} = 1.0.0 / 1.0.0 / 1 / 1.0.0, + `docs/work/pkm-ai/CHANGELOG.md` v1.0.0.
+  AGENTS.md step 0 already reads it (from S1) incl. the MAJOR-bump re-read rule. No code — data + doc +
+  existing mandate.
+- **key landings:** version.json (4 ADR-0005 fields + changelog/spec pointers); CHANGELOG v1.0.0 documenting
+  protocol 1.0.0 (startup + coordination) / stateSchema 1 (agent-room) / tooling 1.0.0 (.ts) / lifecycle
+  field, + Unreleased (S3b/S5/S6). CHANGELOG passes health (dogfood `lifecycle:active`); 0 pkm-ai fails.
+- **next-action:** S5 (.ts migration of the remaining `.mjs` tools → bumps `toolingVersion`) / S6 (retrieval);
+  coordinate the S3b prune. Plan: [[docs/work/pkm-ai/plans/2026-06-04-orchestration-upgrade/index|plan]].
+- **artifacts:** `.agents/pkm-ai.version.json` · `docs/work/pkm-ai/CHANGELOG.md`.
+- **git:** S4 commit on `sandbox`.
+
 ## 2026-06-05 — claude-opus-4-8 · implement · S3a memory lifecycle field + health checks (ADR 0002)
 - **summary:** Started S3 (memory lifecycle). Ground truth first: health = FAIL(123) (54 line-limit + 40
   timestamp-offset + 29 parent-shape; all `--repair-*`-able but 85 in Codex's `hardening` + 1 `current/` →

@@ -103,7 +103,8 @@ git-common-dir state-root + atomic `ensureRun` + stream/worktree tags + `task --
 cross-worktree 2-agent run verified live; 16 tests green). **S3a EXECUTED** `40405a9`/`8d5aad2` — new
 additive `lifecycle:` field + `check-doc-health` lifecycle-state/stale-active checks + ADR 0002 amended
 (status→lifecycle field); **S3b prune DEFERRED** (123 health fails; 85 in Codex's hardening + 1 current/ →
-coordinated window). Next: S4 (versioning) / S5 (.ts migration) parallel; coordinate the S3b prune.
+coordinated window). **S4 EXECUTED** — `.agents/pkm-ai.version.json` v1.0.0 + `CHANGELOG.md` (ADR 0005;
+AGENTS.md step 0 reads it). Next: S5 (.ts migration → bumps toolingVersion) / S6 (retrieval); coordinate the S3b prune.
 
 ## Ties
 

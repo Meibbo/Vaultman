@@ -1,0 +1,9 @@
+{
+  "pkmAiVersion": "1.0.0",
+  "protocolVersion": "1.0.0",
+  "stateSchemaVersion": 1,
+  "toolingVersion": "1.0.0",
+  "updatedAt": "2026-06-05T00:00:00",
+  "changelog": "docs/work/pkm-ai/CHANGELOG.md",
+  "spec": "docs/work/pkm-ai/adr/0005-pkm-ai-versioning"
+}
