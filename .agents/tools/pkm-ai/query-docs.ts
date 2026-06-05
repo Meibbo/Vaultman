@@ -5,8 +5,12 @@ import { buildIndex, CACHE_PATH, filterEntries, formatRows, parseArgs } from "./
 import { hasGlossaryTerm } from "./lib/glossary.mjs";
 import { recordMetric } from "./lib/metrics.mjs";
 
+interface DocEntry {
+  [key: string]: unknown;
+}
+
 if (process.argv.includes("--help") || process.argv.includes("-h")) {
-  console.log(`Usage: node .agents/tools/pkm-ai/query-docs.mjs [filters] [search terms]
+  console.log(`Usage: node .agents/tools/pkm-ai/query-docs.ts [filters] [search terms]
 
 Filters:
   --id VM-0001
@@ -36,10 +40,10 @@ if (glossaryIndex !== -1) {
 
 const args = parseArgs(process.argv.slice(2));
 const cachePath = path.join(root, CACHE_PATH);
-const entries = fs.existsSync(cachePath)
+const entries: DocEntry[] = fs.existsSync(cachePath)
   ? JSON.parse(fs.readFileSync(cachePath, "utf8")).entries
   : buildIndex(root, { excludeArchiveRaw: false, excludeTemplates: true });
-const rows = filterEntries(entries, args.filters, args.search);
+const rows: DocEntry[] = filterEntries(entries, args.filters, args.search);
 
 if (args.json) {
   console.log(JSON.stringify(rows, null, 2));

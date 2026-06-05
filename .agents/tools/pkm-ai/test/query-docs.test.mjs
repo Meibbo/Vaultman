@@ -6,7 +6,7 @@ import path from "node:path";
 import { spawnSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
 
-const toolPath = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..", "query-docs.mjs");
+const toolPath = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..", "query-docs.ts");
 
 test("query-docs --glossary reports glossary misses explicitly", () => {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), "pkm-ai-query-"));
