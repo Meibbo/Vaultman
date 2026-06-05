@@ -4,7 +4,7 @@
   "type": "module",
   "scripts": {
     "health": "node check-doc-health.ts",
-    "index": "node index-docs.mjs",
+    "index": "node index-docs.ts",
     "query": "node query-docs.ts",
     "metric": "node record-metric.mjs",
     "archive": "node archive-active-doc.mjs",
@@ -19,7 +19,7 @@
   "bin": {
     "pkm": "./pkm.mjs",
     "pkm-ai-health": "./check-doc-health.ts",
-    "pkm-ai-index": "./index-docs.mjs",
+    "pkm-ai-index": "./index-docs.ts",
     "pkm-ai-query": "./query-docs.ts",
     "pkm-ai-metric": "./record-metric.mjs",
     "pkm-ai-archive": "./archive-active-doc.mjs",

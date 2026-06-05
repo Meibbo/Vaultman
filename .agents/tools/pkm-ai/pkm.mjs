@@ -7,7 +7,7 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 const commands = {
   health: 'check-doc-health.ts',
-  index: 'index-docs.mjs',
+  index: 'index-docs.ts',
   query: 'query-docs.ts',
   metric: 'record-metric.mjs',
   archive: 'archive-active-doc.mjs',
