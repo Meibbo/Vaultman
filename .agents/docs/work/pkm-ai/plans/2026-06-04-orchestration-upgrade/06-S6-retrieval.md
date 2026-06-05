@@ -44,10 +44,12 @@ documented. Research: [[docs/work/pkm-ai/items/2026-06-04-embedding-vectorstore-
   sha1 content-hash + lifecycle + length; `bm25Search` k1=1.5/b=0.75 + lifecycle weight; `loadRetrievalIndex`
   cache-or-in-memory). `index-docs` writes `retrieval-index.json`; `query-docs --rank [--limit N] [--json]`
   (filter mode untouched). TDD 4 tests; suite 56. Real corpus 824 docs, ranking surfaces the right S6 docs.
-- [ ] **S6c — adapter contracts + zero-dep store + fusion.** `retrieval/` dir: `EmbeddingProvider` +
-  `VectorStore` + `EmbeddingConfig` interfaces (ADR 0006 shapes); `flat-json` cosine store; RRF fusion of
-  BM25 + vector ranks; lifecycle weighting. Stub/hash provider for deterministic offline tests. Hybrid
-  `query-docs` returns fused lifecycle-ranked top-k.
+- [x] **S6c — adapter contracts + zero-dep store + fusion** (`f8857c0`): `retrieval/embedding-provider.mjs`
+  (`HashEmbeddingProvider` — deterministic FNV-1a BoW, L2-norm, `dataPrivacy:local`; `embed` + `embedCounts`)
+  + `retrieval/vector-store.mjs` (`FlatJsonVectorStore` — cosine query + JSON snapshot). `lib/retrieval.mjs`
+  `rrfFuse` + `hybridSearch` (BM25 + vector via RRF, lifecycle-weighted). `query-docs --hybrid`. TDD 5 tests;
+  suite 61. **Caveat:** the hash stub is non-semantic → on the full corpus `--hybrid` dilutes BM25 precision;
+  `--rank` stays the strong path until S6d swaps in real MiniLM behind the same `EmbeddingProvider` contract.
 - [ ] **S6d — real local provider (install-gated).** `npm i @xenova/transformers @orama/orama`;
   `local-transformers` provider (MiniLM-L6-v2, 384) + Orama store adapter; embed-on-change (content-hash;
   soft-delete on `git rm`); fallback-to-local. Smoke-gated (model download) — not in the default
