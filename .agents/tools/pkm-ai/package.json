@@ -17,7 +17,7 @@
     "test": "node --test \"test/*.test.mjs\""
   },
   "bin": {
-    "pkm": "./pkm.mjs",
+    "pkm": "./pkm.ts",
     "pkm-ai-health": "./check-doc-health.ts",
     "pkm-ai-index": "./index-docs.ts",
     "pkm-ai-query": "./query-docs.ts",
