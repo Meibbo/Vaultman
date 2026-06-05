@@ -13,7 +13,7 @@
     "split-shard": "node split-shard.mjs",
     "code-index": "node code-index.mjs",
     "room": "node agent-room.ts",
-    "tasks": "node manage-tasks.mjs",
+    "tasks": "node manage-tasks.ts",
     "test": "node --test \"test/*.test.mjs\""
   },
   "bin": {
@@ -28,6 +28,6 @@
     "pkm-ai-split-shard": "./split-shard.mjs",
     "pkm-ai-code-index": "./code-index.mjs",
     "pkm-ai-room": "./agent-room.ts",
-    "pkm-ai-tasks": "./manage-tasks.mjs"
+    "pkm-ai-tasks": "./manage-tasks.ts"
   }
 }
