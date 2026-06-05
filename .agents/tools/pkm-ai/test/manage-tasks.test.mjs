@@ -6,7 +6,7 @@ import path from "node:path";
 import { spawnSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
 
-const toolPath = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..", "manage-tasks.mjs");
+const toolPath = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..", "manage-tasks.ts");
 
 test("manage-tasks completes an objective, adds done date, and closes the plan when all tasks are closed", () => {
   const root = makeTempRoot();

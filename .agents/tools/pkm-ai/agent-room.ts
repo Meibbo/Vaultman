@@ -915,7 +915,7 @@ function listObjectives(context: Context): Objective[] {
 
 function runManageTasks(cwd: string, args: string[]): SpawnSyncReturns<string> {
   const scriptDir = path.dirname(fileURLToPath(import.meta.url));
-  const result = spawnSync(process.execPath, [path.join(scriptDir, "manage-tasks.mjs"), ...args], { cwd, encoding: "utf8" });
+  const result = spawnSync(process.execPath, [path.join(scriptDir, "manage-tasks.ts"), ...args], { cwd, encoding: "utf8" });
   if (result.status !== 0) {
     throw new CliError((result.stderr || result.stdout || "manage-tasks failed").trim(), result.status ?? 1);
   }
