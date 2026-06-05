@@ -6,7 +6,7 @@ import { fileURLToPath } from 'node:url';
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 const commands = {
-  health: 'check-doc-health.mjs',
+  health: 'check-doc-health.ts',
   index: 'index-docs.mjs',
   query: 'query-docs.mjs',
   metric: 'record-metric.mjs',

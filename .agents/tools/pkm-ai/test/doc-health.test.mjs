@@ -6,7 +6,7 @@ import path from "node:path";
 import { spawnSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
 
-const toolPath = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..", "check-doc-health.mjs");
+const toolPath = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..", "check-doc-health.ts");
 
 test("check-doc-health fails compacted active docs without archive source", () => {
   const root = makeTempRoot();

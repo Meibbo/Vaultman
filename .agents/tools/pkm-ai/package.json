@@ -3,7 +3,7 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "health": "node check-doc-health.mjs",
+    "health": "node check-doc-health.ts",
     "index": "node index-docs.mjs",
     "query": "node query-docs.mjs",
     "metric": "node record-metric.mjs",
@@ -18,7 +18,7 @@
   },
   "bin": {
     "pkm": "./pkm.mjs",
-    "pkm-ai-health": "./check-doc-health.mjs",
+    "pkm-ai-health": "./check-doc-health.ts",
     "pkm-ai-index": "./index-docs.mjs",
     "pkm-ai-query": "./query-docs.mjs",
     "pkm-ai-metric": "./record-metric.mjs",

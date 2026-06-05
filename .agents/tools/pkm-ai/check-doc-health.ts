@@ -12,12 +12,45 @@ import {
 import { normalizeGlossaryTerm, readGlossaryTerms } from "./lib/glossary.mjs";
 import { assertTimestamp, nowTimestamp, recordMetric } from "./lib/metrics.mjs";
 
+interface ParsedArgs {
+  help: boolean;
+  repairLineLimits: boolean;
+  repairParentShape: boolean;
+  repairTimestampOffsets: boolean;
+  repairForbiddenPublicDocs: boolean;
+  now: string;
+  staleActiveDays: number;
+}
+
+interface HealthIssue {
+  code: string;
+  path: string;
+  detail: string;
+}
+
+interface LineRepair {
+  path: string;
+  shards: number;
+}
+
+interface ShardRenderArgs {
+  bodyLines: string[];
+  nextRel: string | null;
+  now: string;
+  part: number;
+  rel: string;
+  sourceTitle: string;
+  sourceWiki: string;
+}
+
+type ShardPrefixArgs = Omit<ShardRenderArgs, "bodyLines" | "nextRel">;
+
 const options = parseArgs(process.argv.slice(2));
 
 if (options.help) {
-  console.log(`Usage: node .agents/tools/pkm-ai/check-doc-health.mjs
-       node .agents/tools/pkm-ai/check-doc-health.mjs --repair-line-limits [--now YYYY-MM-DDTHH:mm:ss]
-       node .agents/tools/pkm-ai/check-doc-health.mjs --repair-residuals [--now YYYY-MM-DDTHH:mm:ss]
+  console.log(`Usage: node .agents/tools/pkm-ai/check-doc-health.ts
+       node .agents/tools/pkm-ai/check-doc-health.ts --repair-line-limits [--now YYYY-MM-DDTHH:mm:ss]
+       node .agents/tools/pkm-ai/check-doc-health.ts --repair-residuals [--now YYYY-MM-DDTHH:mm:ss]
 
 Checks .agents/docs active Markdown files for line limits, frontmatter rules,
 parent link shape, lifecycle states (PKM-AI ADR 0002), and forbidden active
@@ -35,10 +68,10 @@ docs/superpowers placement.`);
 }
 
 const root = process.cwd();
-const failures = [];
-const warnings = [];
+const failures: HealthIssue[] = [];
+const warnings: HealthIssue[] = [];
 const superpowersPath = path.join(root, "docs", "superpowers");
-const glossaryTerms = readGlossaryTerms(root);
+const glossaryTerms: Set<string> = readGlossaryTerms(root);
 const limit = 200;
 // Soft limit = a sharding trigger, not a forced reduction. The soft range
 // (limit+1 .. hardLimit) emits a WARN so the agent alerts the dev, who decides
@@ -47,7 +80,7 @@ const limit = 200;
 const hardLimit = limit + 100;
 // Memory lifecycle states (PKM-AI ADR 0002). Carried in a dedicated `lifecycle:` frontmatter field
 // (additive — `status` stays the doc-workflow field). Opt-in: docs without `lifecycle:` are not flagged.
-const LIFECYCLE_STATES = new Set(["active", "deferred", "triaged", "blocked", "superseded", "archived"]);
+const LIFECYCLE_STATES = new Set<string>(["active", "deferred", "triaged", "blocked", "superseded", "archived"]);
 
 if (options.repairLineLimits) {
   const repairs = repairLineLimitFailures(root, { limit, hardLimit, now: options.now });
@@ -93,14 +126,14 @@ for (const file of listMarkdownFiles(root, ".agents/docs", { excludeArchive: tru
 
   try {
     const markdown = readMarkdown(file);
-    failures.push(...validateFrontmatter(markdown.frontmatter, rel).filter((failure) => !isAllowedTemplateParent(failure, markdown.frontmatter, rel)));
+    failures.push(...validateFrontmatter(markdown.frontmatter, rel).filter((failure: HealthIssue) => !isAllowedTemplateParent(failure, markdown.frontmatter, rel)));
     failures.push(...validateArchiveSource(markdown.frontmatter, text, rel));
     failures.push(...validateLifecycle(markdown.frontmatter, rel));
     warnings.push(...validateGlossaryCandidates(markdown.frontmatter, rel, glossaryTerms));
     warnings.push(...validateSummarySource(markdown.frontmatter, text, rel));
     warnings.push(...validateStaleActive(markdown.frontmatter, rel, options.now, options.staleActiveDays));
   } catch (error) {
-    failures.push({ code: "frontmatter-parse", path: rel, detail: error.message });
+    failures.push({ code: "frontmatter-parse", path: rel, detail: (error as Error).message });
   }
 }
 
@@ -122,8 +155,8 @@ if (failures.length > 0) {
 recordMetric(root, "health_passed", { path: ".agents/docs", detail: `${warnings.length} warnings` });
 console.log("doc health: OK");
 
-function parseArgs(args) {
-  const parsed = {
+function parseArgs(args: string[]): ParsedArgs {
+  const parsed: ParsedArgs = {
     help: false,
     repairLineLimits: false,
     repairParentShape: false,
@@ -165,14 +198,14 @@ function parseArgs(args) {
   return parsed;
 }
 
-function repairParentShapeFailures(root) {
-  const repaired = [];
+function repairParentShapeFailures(root: string): string[] {
+  const repaired: string[] = [];
   for (const file of listMarkdownFiles(root, ".agents/docs", { excludeArchive: true })) {
     const rel = relativePath(root, file);
     const markdown = readMarkdown(file);
     if (!Object.hasOwn(markdown.frontmatter, "parent")) continue;
     if (isTemplateParentPlaceholder(markdown.frontmatter, rel)) continue;
-    const parent = markdown.frontmatter.parent;
+    const parent = (markdown.frontmatter as any).parent;
     if (typeof parent === "string" && isValidParentLink(parent)) continue;
 
     const replacement = normalizeParentLink(String(parent ?? ""), rel);
@@ -184,8 +217,8 @@ function repairParentShapeFailures(root) {
   return repaired;
 }
 
-function repairTimestampOffsetFailures(root) {
-  const repaired = [];
+function repairTimestampOffsetFailures(root: string): string[] {
+  const repaired: string[] = [];
   for (const file of listMarkdownFiles(root, ".agents/docs", { excludeArchive: true })) {
     const text = fs.readFileSync(file, "utf8");
     const next = text.replace(
@@ -199,7 +232,7 @@ function repairTimestampOffsetFailures(root) {
   return repaired;
 }
 
-function repairForbiddenPublicDocs(root, now) {
+function repairForbiddenPublicDocs(root: string, now: string): { path: string } | null {
   const source = path.join(root, "docs", "superpowers");
   if (!fs.existsSync(source)) return null;
   const archiveRoot = path.join(root, ".agents", "docs", "archive", "pkm-ai", "public-docs");
@@ -215,19 +248,19 @@ function repairForbiddenPublicDocs(root, now) {
   return { path: rel };
 }
 
-function isValidParentLink(parent) {
+function isValidParentLink(parent: string): boolean {
   return /^\[\[[^|\]]+\|[^\]]+\]\]$/.test(parent);
 }
 
-function isAllowedTemplateParent(failure, frontmatter, rel) {
+function isAllowedTemplateParent(failure: HealthIssue, frontmatter: any, rel: string): boolean {
   return failure.code === "parent-shape" && isTemplateParentPlaceholder(frontmatter, rel);
 }
 
-function isTemplateParentPlaceholder(frontmatter, rel) {
+function isTemplateParentPlaceholder(frontmatter: any, rel: string): boolean {
   return rel.startsWith(".agents/docs/templates/") && frontmatter.parent === "{{parent_link}}";
 }
 
-function normalizeParentLink(parent, rel) {
+function normalizeParentLink(parent: string, rel: string): string {
   const value = parent.trim().replace(/^["']|["']$/g, "");
   if (/^\[\[[^\]]+\]\]$/.test(value)) {
     const inner = value.slice(2, -2);
@@ -245,12 +278,12 @@ function normalizeParentLink(parent, rel) {
   return "[[docs/work/pkm-ai/index|pkm-ai]]";
 }
 
-function resolveRelativeParentTarget(rel, target) {
+function resolveRelativeParentTarget(rel: string, target: string): string {
   if (!target || target.includes("/") || target.startsWith("{{")) return target;
   return path.posix.join(path.posix.dirname(wikiPathForRel(rel)), target);
 }
 
-function replaceFrontmatterLine(text, key, replacementLine) {
+function replaceFrontmatterLine(text: string, key: string, replacementLine: string): string | null {
   const match = text.match(/^---\r?\n([\s\S]*?)\r?\n---\r?\n/);
   if (!match) return null;
   const raw = match[1];
@@ -259,7 +292,7 @@ function replaceFrontmatterLine(text, key, replacementLine) {
   return match[0].replace(raw, nextRaw) + text.slice(match[0].length);
 }
 
-function uniqueArchivePath(parent, name) {
+function uniqueArchivePath(parent: string, name: string): string {
   let candidate = path.join(parent, name);
   let suffix = 2;
   while (fs.existsSync(candidate)) {
@@ -269,8 +302,8 @@ function uniqueArchivePath(parent, name) {
   return candidate;
 }
 
-function repairLineLimitFailures(root, { limit, hardLimit, now }) {
-  const repairs = [];
+function repairLineLimitFailures(root: string, { limit, hardLimit, now }: { limit: number; hardLimit: number; now: string }): LineRepair[] {
+  const repairs: LineRepair[] = [];
   for (const file of listMarkdownFiles(root, ".agents/docs", { excludeArchive: true })) {
     const rel = relativePath(root, file);
     if (isGeneratedShard(rel)) continue;
@@ -287,9 +320,9 @@ function repairLineLimitFailures(root, { limit, hardLimit, now }) {
   return repairs;
 }
 
-function shardOversizedDoc(root, file, rel, text, { limit, now }) {
+function shardOversizedDoc(root: string, file: string, rel: string, text: string, { limit, now }: { limit: number; now: string }): LineRepair | null {
   const markdown = readMarkdown(file);
-  const sourceTitle = String(markdown.frontmatter.title ?? titleFromPath(rel));
+  const sourceTitle = String((markdown.frontmatter as any).title ?? titleFromPath(rel));
   const sourceWiki = wikiLinkForRel(rel, sourceTitle);
   const bodyLines = splitLines(markdown.body);
   const headerLines = markdown.rawFrontmatter ? ["---", ...splitLines(markdown.rawFrontmatter), "---", ""] : [];
@@ -336,12 +369,12 @@ function shardOversizedDoc(root, file, rel, text, { limit, now }) {
   return { path: rel, shards: chunks.length };
 }
 
-function shardBodyLineBudget(rel, sourceTitle, sourceWiki, { limit, now }) {
+function shardBodyLineBudget(rel: string, sourceTitle: string, sourceWiki: string, { limit, now }: { limit: number; now: string }): number {
   const prefix = shardPrefixLines({ now, part: 1, rel, sourceTitle, sourceWiki });
   return limit - prefix.length - 2;
 }
 
-function renderShard({ bodyLines, nextRel, now, part, rel, sourceTitle, sourceWiki }) {
+function renderShard({ bodyLines, nextRel, now, part, rel, sourceTitle, sourceWiki }: ShardRenderArgs): string {
   const lines = [...shardPrefixLines({ now, part, rel, sourceTitle, sourceWiki }), ...bodyLines];
   if (nextRel) {
     lines.push("", continuationLine(nextRel, part + 1));
@@ -349,7 +382,7 @@ function renderShard({ bodyLines, nextRel, now, part, rel, sourceTitle, sourceWi
   return renderLines(lines);
 }
 
-function shardPrefixLines({ now, part, rel, sourceTitle, sourceWiki }) {
+function shardPrefixLines({ now, part, rel, sourceTitle, sourceWiki }: ShardPrefixArgs): string[] {
   return [
     "---",
     `title: ${quoteYamlString(`${sourceTitle} - continuation ${part}`)}`,
@@ -374,73 +407,73 @@ function shardPrefixLines({ now, part, rel, sourceTitle, sourceWiki }) {
   ];
 }
 
-function removeGeneratedShardsForSource(dir, baseName, rel) {
+function removeGeneratedShardsForSource(dir: string, baseName: string, rel: string): void {
   const pattern = new RegExp(`^${escapeRegExp(baseName)}-shard-\\d+\\.md$`);
   for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
     if (!entry.isFile() || !pattern.test(entry.name)) continue;
     const filePath = path.join(dir, entry.name);
     try {
       const markdown = readMarkdown(filePath);
-      if (markdown.frontmatter.shard_source === rel) fs.unlinkSync(filePath);
+      if ((markdown.frontmatter as any).shard_source === rel) fs.unlinkSync(filePath);
     } catch {
       // Leave non-generated or malformed files alone.
     }
   }
 }
 
-function shardRelFor(rel, part) {
+function shardRelFor(rel: string, part: number): string {
   const parsed = path.posix.parse(rel);
   return path.posix.join(parsed.dir, `${parsed.name}-shard-${part}.md`);
 }
 
-function continuationLine(rel, part) {
+function continuationLine(rel: string, part: number): string {
   return `Continua en [[${wikiPathForRel(rel)}|continuacion ${part}]].`;
 }
 
-function wikiLinkForRel(rel, alias) {
+function wikiLinkForRel(rel: string, alias: string): string {
   return `[[${wikiPathForRel(rel)}|${alias}]]`;
 }
 
-function wikiPathForRel(rel) {
+function wikiPathForRel(rel: string): string {
   return rel.replace(/^\.agents\/docs\//, "docs/").replace(/\.md$/, "");
 }
 
-function splitLines(text) {
+function splitLines(text: string): string[] {
   return text.replace(/\r\n/g, "\n").split("\n");
 }
 
-function chunkLines(lines, size) {
-  const chunks = [];
+function chunkLines(lines: string[], size: number): string[][] {
+  const chunks: string[][] = [];
   for (let index = 0; index < lines.length; index += size) {
     chunks.push(lines.slice(index, index + size));
   }
   return chunks;
 }
 
-function renderLines(lines) {
+function renderLines(lines: string[]): string {
   return lines.join("\n");
 }
 
-function quoteYamlString(value) {
+function quoteYamlString(value: unknown): string {
   return JSON.stringify(String(value).replace(/\r?\n/g, " "));
 }
 
-function isGeneratedShard(rel) {
+function isGeneratedShard(rel: string): boolean {
   return /-shard-\d+\.md$/.test(rel);
 }
 
-function escapeRegExp(value) {
+function escapeRegExp(value: string): string {
   return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }
 
-function validateArchiveSource(frontmatter, text, rel) {
+function validateArchiveSource(frontmatter: any, text: string, rel: string): HealthIssue[] {
   if (!isActiveDoc(rel)) return [];
   if (!isReplacementLike(frontmatter)) return [];
   if (hasArchiveSource(frontmatter, text)) return [];
   return [{ code: "archive-source", path: rel, detail: "replacement/compaction needs archive_source or archive link" }];
 }
 
-function validateSummarySource(frontmatter, text, rel) {
+function validateSummarySource(frontmatter: any, text: string, rel: string): HealthIssue[] {
   if (!/(^|\/)(specs|plans)\//.test(rel)) return [];
   if (!isReplacementLike(frontmatter) && !/^##\s+(Summary|Resumen)\b/im.test(text)) return [];
   if (hasArchiveSource(frontmatter, text) || /(^|\/)\d{2}-[^/\n]+\.md\b/.test(text)) return [];
@@ -449,7 +482,7 @@ function validateSummarySource(frontmatter, text, rel) {
 
 // PKM-AI ADR 0002: validate the optional `lifecycle:` field against the allowed states (catches typos).
 // Opt-in — absent `lifecycle:` is not an error, so this adds zero failures to the existing corpus.
-function validateLifecycle(frontmatter, rel) {
+function validateLifecycle(frontmatter: any, rel: string): HealthIssue[] {
   if (!Object.hasOwn(frontmatter, "lifecycle")) return [];
   const value = frontmatter.lifecycle;
   if (typeof value === "string" && LIFECYCLE_STATES.has(value)) return [];
@@ -458,7 +491,7 @@ function validateLifecycle(frontmatter, rel) {
 
 // PKM-AI ADR 0002: flag (WARN, not FAIL) `lifecycle: active` docs untouched past the stale threshold so
 // a curation pass can demote them to deferred/superseded/archived. Only fires on the opt-in field.
-function validateStaleActive(frontmatter, rel, now, staleActiveDays) {
+function validateStaleActive(frontmatter: any, rel: string, now: string, staleActiveDays: number): HealthIssue[] {
   if (frontmatter.lifecycle !== "active") return [];
   const updated = frontmatter.updated;
   if (typeof updated !== "string") return [];
@@ -469,18 +502,18 @@ function validateStaleActive(frontmatter, rel, now, staleActiveDays) {
   return [{ code: "stale-active", path: rel, detail: `lifecycle:active untouched ${Math.floor(ageDays)}d (> ${staleActiveDays}d) — review or demote` }];
 }
 
-function validateGlossaryCandidates(frontmatter, rel, terms) {
+function validateGlossaryCandidates(frontmatter: any, rel: string, terms: Set<string>): HealthIssue[] {
   const candidates = Array.isArray(frontmatter.glossary_candidates) ? frontmatter.glossary_candidates : [];
   return candidates
-    .filter((candidate) => !terms.has(normalizeGlossaryTerm(candidate)))
-    .map((candidate) => ({ code: "glossary-unknown", path: rel, detail: String(candidate) }));
+    .filter((candidate: unknown) => !terms.has(normalizeGlossaryTerm(candidate)))
+    .map((candidate: unknown) => ({ code: "glossary-unknown", path: rel, detail: String(candidate) }));
 }
 
-function isActiveDoc(rel) {
+function isActiveDoc(rel: string): boolean {
   return rel.startsWith(".agents/docs/") && !rel.startsWith(".agents/docs/archive/");
 }
 
-function isReplacementLike(frontmatter) {
+function isReplacementLike(frontmatter: any): boolean {
   return Boolean(
     frontmatter.compacted === true ||
       frontmatter.summary === true ||
@@ -490,7 +523,7 @@ function isReplacementLike(frontmatter) {
   );
 }
 
-function hasArchiveSource(frontmatter, text) {
+function hasArchiveSource(frontmatter: any, text: string): boolean {
   return Boolean(
     frontmatter.archive_source ||
       frontmatter.source_record ||
