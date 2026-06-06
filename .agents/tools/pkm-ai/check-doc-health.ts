@@ -20,6 +20,8 @@ interface ParsedArgs {
   repairForbiddenPublicDocs: boolean;
   now: string;
   staleActiveDays: number;
+  paths: string[];
+  excludes: string[];
 }
 
 interface HealthIssue {
@@ -63,7 +65,12 @@ days as a WARN (review/demote), not a failure.
 continuation shards before the final health check. Docs in the soft range (over
 the 200 limit but within the hard cap) only WARN and are left for the dev to decide.
 --repair-residuals also repairs parent shape, timestamp offsets, and public
-docs/superpowers placement.`);
+docs/superpowers placement.
+
+--path <prefix> (repeatable) confines the check + repair to a subtree;
+--exclude <prefix> (repeatable) skips one. Prefixes accept ".agents/docs/work/x",
+"docs/work/x", or "work/x". Use these to keep a repair off another stream's
+contended docs (e.g. --exclude work/hardening --exclude current).`);
   process.exit(0);
 }
 
@@ -103,19 +110,20 @@ if (options.repairTimestampOffsets) {
   }
 }
 
-if (options.repairForbiddenPublicDocs) {
+if (options.repairForbiddenPublicDocs && inScope("docs/superpowers")) {
   const repair = repairForbiddenPublicDocs(root, options.now);
   if (repair) {
     console.log(`public-doc repair: archived docs/superpowers to ${repair.path}`);
   }
 }
 
-if (fs.existsSync(superpowersPath)) {
+if (inScope("docs/superpowers") && fs.existsSync(superpowersPath)) {
   failures.push({ code: "forbidden-path", path: "docs/superpowers", detail: "active public docs/superpowers must not exist" });
 }
 
 for (const file of listMarkdownFiles(root, ".agents/docs", { excludeArchive: true })) {
   const rel = relativePath(root, file);
+  if (!inScope(rel)) continue;
   const text = fs.readFileSync(file, "utf8");
   const lines = lineCount(text);
   if (lines > hardLimit) {
@@ -164,6 +172,8 @@ function parseArgs(args: string[]): ParsedArgs {
     repairForbiddenPublicDocs: false,
     now: nowTimestamp(),
     staleActiveDays: 30,
+    paths: [],
+    excludes: [],
   };
 
   for (let index = 0; index < args.length; index += 1) {
@@ -186,6 +196,12 @@ function parseArgs(args: string[]): ParsedArgs {
     } else if (arg === "--stale-active-days") {
       parsed.staleActiveDays = Number(args[index + 1] ?? "30");
       index += 1;
+    } else if (arg === "--path") {
+      parsed.paths.push(args[index + 1] ?? "");
+      index += 1;
+    } else if (arg === "--exclude") {
+      parsed.excludes.push(args[index + 1] ?? "");
+      index += 1;
     } else if (arg === "--now") {
       parsed.now = args[index + 1] ?? "";
       index += 1;
@@ -198,10 +214,30 @@ function parseArgs(args: string[]): ParsedArgs {
   return parsed;
 }
 
+// Normalize a path/prefix to docs-relative form so --path/--exclude accept
+// ".agents/docs/work/x", "docs/work/x", or "work/x" interchangeably.
+function toDocRel(value: string): string {
+  return value
+    .replace(/\\/g, "/")
+    .replace(/^\.agents\/docs\//, "")
+    .replace(/^docs\//, "")
+    .replace(/^\/+/, "");
+}
+
+// Multi-agent-safe scoping (S3b): a doc is in scope unless an --exclude prefix matches; when any
+// --path is given, the doc must also match one. Default (no flags) = whole .agents/docs tree.
+function inScope(rel: string): boolean {
+  const dr = toDocRel(rel);
+  if (options.excludes.some((prefix) => dr.startsWith(toDocRel(prefix)))) return false;
+  if (options.paths.length > 0) return options.paths.some((prefix) => dr.startsWith(toDocRel(prefix)));
+  return true;
+}
+
 function repairParentShapeFailures(root: string): string[] {
   const repaired: string[] = [];
   for (const file of listMarkdownFiles(root, ".agents/docs", { excludeArchive: true })) {
     const rel = relativePath(root, file);
+    if (!inScope(rel)) continue;
     const markdown = readMarkdown(file);
     if (!Object.hasOwn(markdown.frontmatter, "parent")) continue;
     if (isTemplateParentPlaceholder(markdown.frontmatter, rel)) continue;
@@ -220,6 +256,7 @@ function repairParentShapeFailures(root: string): string[] {
 function repairTimestampOffsetFailures(root: string): string[] {
   const repaired: string[] = [];
   for (const file of listMarkdownFiles(root, ".agents/docs", { excludeArchive: true })) {
+    if (!inScope(relativePath(root, file))) continue;
     const text = fs.readFileSync(file, "utf8");
     const next = text.replace(
       /^(created|updated): (\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2})(?:Z|[+-]\d{2}:?\d{2})$/gm,
@@ -306,6 +343,7 @@ function repairLineLimitFailures(root: string, { limit, hardLimit, now }: { limi
   const repairs: LineRepair[] = [];
   for (const file of listMarkdownFiles(root, ".agents/docs", { excludeArchive: true })) {
     const rel = relativePath(root, file);
+    if (!inScope(rel)) continue;
     if (isGeneratedShard(rel)) continue;
 
     const text = fs.readFileSync(file, "utf8");

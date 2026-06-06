@@ -299,6 +299,89 @@ tags:
   assert.doesNotMatch(result.stdout, /stale-active/);
 });
 
+test("--path scopes a repair to the given subtree, leaving out-of-scope failing docs untouched", () => {
+  const root = makeTempRoot();
+  writeFile(path.join(root, ".agents", "docs", "work", "pkm-ai", "in.md"), offsetDoc("In scope"));
+  writeFile(path.join(root, ".agents", "docs", "work", "hardening", "out.md"), offsetDoc("Out of scope"));
+
+  const result = spawnSync(
+    process.execPath,
+    [toolPath, "--repair-timestamp-offsets", "--path", ".agents/docs/work/pkm-ai"],
+    { cwd: root, encoding: "utf8" },
+  );
+
+  assert.notEqual(result.status, undefined);
+  const inText = fs.readFileSync(path.join(root, ".agents", "docs", "work", "pkm-ai", "in.md"), "utf8");
+  const outText = fs.readFileSync(path.join(root, ".agents", "docs", "work", "hardening", "out.md"), "utf8");
+  assert.doesNotMatch(inText, /updated: .*Z$/m, "in-scope doc should be repaired");
+  assert.match(outText, /updated: .*Z$/m, "out-of-scope doc must stay untouched");
+});
+
+test("--exclude skips a subtree in a repair", () => {
+  const root = makeTempRoot();
+  writeFile(path.join(root, ".agents", "docs", "work", "pkm-ai", "in.md"), offsetDoc("In scope"));
+  writeFile(path.join(root, ".agents", "docs", "work", "hardening", "out.md"), offsetDoc("Out of scope"));
+
+  spawnSync(
+    process.execPath,
+    [toolPath, "--repair-timestamp-offsets", "--exclude", ".agents/docs/work/hardening"],
+    { cwd: root, encoding: "utf8" },
+  );
+
+  const inText = fs.readFileSync(path.join(root, ".agents", "docs", "work", "pkm-ai", "in.md"), "utf8");
+  const outText = fs.readFileSync(path.join(root, ".agents", "docs", "work", "hardening", "out.md"), "utf8");
+  assert.doesNotMatch(inText, /updated: .*Z$/m, "non-excluded doc should be repaired");
+  assert.match(outText, /updated: .*Z$/m, "excluded doc must stay untouched");
+});
+
+test("--path scopes the check pass so out-of-scope failures do not fail the run", () => {
+  const root = makeTempRoot();
+  writeFile(path.join(root, ".agents", "docs", "work", "pkm-ai", "clean.md"), cleanDoc("Clean"));
+  writeFile(path.join(root, ".agents", "docs", "work", "hardening", "bad.md"), offsetDoc("Bad out of scope"));
+
+  const scoped = spawnSync(process.execPath, [toolPath, "--path", ".agents/docs/work/pkm-ai"], {
+    cwd: root,
+    encoding: "utf8",
+  });
+  assert.equal(scoped.status, 0, `scoped run should pass, got: ${scoped.stdout}`);
+
+  const full = spawnSync(process.execPath, [toolPath], { cwd: root, encoding: "utf8" });
+  assert.notEqual(full.status, 0, "unscoped run should still see the out-of-scope failure");
+  assert.match(full.stdout, /timestamp-offset/);
+});
+
+function offsetDoc(title) {
+  return `---
+title: ${title}
+type: note
+status: active
+parent: "[[docs/work/pkm-ai/index|pkm-ai]]"
+created: 2026-05-04T01:00:00
+updated: 2026-05-04T16:22:00Z
+tags:
+  - agent/note
+---
+
+# ${title}
+`;
+}
+
+function cleanDoc(title) {
+  return `---
+title: ${title}
+type: note
+status: active
+parent: "[[docs/work/pkm-ai/index|pkm-ai]]"
+created: 2026-05-04T01:00:00
+updated: 2026-05-04T16:22:00
+tags:
+  - agent/note
+---
+
+# ${title}
+`;
+}
+
 function makeTempRoot() {
   return fs.mkdtempSync(path.join(os.tmpdir(), "pkm-ai-health-"));
 }
