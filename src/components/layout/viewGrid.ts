@@ -13,6 +13,7 @@ import {
 	type FileTableColumn,
 	type FileTableLayout,
 } from '../../logic/logicTableLayout';
+import { vaultmanPerfMonitor } from '../../utils/performanceMonitor';
 
 export type SortColumn = 'name' | 'props' | 'path' | 'mtime' | 'ctime' | 'ext';
 export type SortDirection = 'asc' | 'desc';
@@ -38,12 +39,14 @@ export class GridView {
 	private tableEl: HTMLElement | null = null;
 	private tbodyEl: HTMLElement | null = null;
 	private activePath: string | null = null;
+	private pendingRaf: number | null = null;
+	private pendingScrollTimer: number | null = null;
 	private readonly rowHeight = 30;
 	private readonly overscan = 8;
 	private visibleCells = new Set<string>(['name', 'ext', 'path']);
 	private readonly onScroll = () => {
 		this._syncHeaderScroll();
-		this._renderWindow();
+		this.scheduleWindowRender();
 	};
 
 	constructor(
@@ -68,13 +71,28 @@ export class GridView {
 		if (this.tbodyEl) {
 			this.tbodyEl.style.height = `${this.displayedFiles.length * this.rowHeight}px`;
 		}
+		this.cancelScheduledRender();
 		this._renderWindow();
+	}
+
+	destroy(): void {
+		this.cancelScheduledRender();
+		this.listEl?.removeEventListener('scroll', this.onScroll);
+		this.containerEl.removeClass('vaultman-files-table-root');
+		this.containerEl.empty();
+		this.headerEl = null;
+		this.listEl = null;
+		this.tableEl = null;
+		this.tbodyEl = null;
+		this.displayedFiles = [];
+		this.selectedFiles.clear();
 	}
 
 	private _ensureScaffold(): void {
 		if (this.listEl && this.tbodyEl && this.containerEl.contains(this.listEl))
 			return;
 
+		this.listEl?.removeEventListener('scroll', this.onScroll);
 		this.containerEl.empty();
 		this.containerEl.addClass('vaultman-files-table-root');
 
@@ -224,6 +242,7 @@ export class GridView {
 
 	private _renderWindow(): void {
 		if (!this.listEl || !this.tbodyEl) return;
+		const started = performance.now();
 		const projection = buildVirtualTableWindow({
 			rows: this.displayedFiles,
 			scrollTop: this.listEl.scrollTop,
@@ -236,6 +255,44 @@ export class GridView {
 		this._applyTableDimensions(layout);
 		for (const row of projection.visibleRows) {
 			this._renderRow(this.tbodyEl, row.row, row.top, layout);
+		}
+		vaultmanPerfMonitor.record(
+			'files.table.window',
+			performance.now() - started,
+			{
+				rows: this.displayedFiles.length,
+				visibleRows: projection.visibleRows.length,
+				start: projection.startIndex,
+				end: projection.endIndex,
+			},
+		);
+	}
+
+	private scheduleWindowRender(): void {
+		if (this.pendingRaf !== null || this.pendingScrollTimer !== null) return;
+		const run = () => {
+			if (this.pendingRaf !== null) {
+				window.cancelAnimationFrame(this.pendingRaf);
+			}
+			if (this.pendingScrollTimer !== null) {
+				window.clearTimeout(this.pendingScrollTimer);
+			}
+			this.pendingRaf = null;
+			this.pendingScrollTimer = null;
+			this._renderWindow();
+		};
+		this.pendingRaf = window.requestAnimationFrame(run);
+		this.pendingScrollTimer = window.setTimeout(run, 32);
+	}
+
+	private cancelScheduledRender(): void {
+		if (this.pendingRaf !== null) {
+			window.cancelAnimationFrame(this.pendingRaf);
+			this.pendingRaf = null;
+		}
+		if (this.pendingScrollTimer !== null) {
+			window.clearTimeout(this.pendingScrollTimer);
+			this.pendingScrollTimer = null;
 		}
 	}
 
@@ -403,6 +460,6 @@ export class GridView {
 		const index = this.displayedFiles.findIndex((file) => file.path === path);
 		if (index === -1 || !this.listEl) return;
 		this.listEl.scrollTop = Math.max(0, index * this.rowHeight);
-		this._renderWindow();
+		this.scheduleWindowRender();
 	}
 }

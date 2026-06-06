@@ -239,6 +239,7 @@ export class FilesExplorerPanel extends Component {
 			window.clearTimeout(this.refreshTimer);
 			this.refreshTimer = null;
 		}
+		this.gridView?.destroy();
 		this.treeView?.destroy();
 		super.onunload();
 	}
@@ -362,6 +363,7 @@ export class FilesExplorerPanel extends Component {
 	}
 
 	private _mountView(): void {
+		this.gridView?.destroy();
 		this.treeView?.destroy();
 		this.containerEl.empty();
 		this.gridView = null;

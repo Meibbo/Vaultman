@@ -8,6 +8,7 @@ import {
 } from '../../logic/logicNodeTableLayout';
 import type { TreeNode } from '../../types/typeTree';
 import { buildVirtualTableWindow } from '../../utils/tableVirtualization';
+import { vaultmanPerfMonitor } from '../../utils/performanceMonitor';
 import { flattenVisibleTree } from '../../utils/treeVirtualization';
 
 export interface NodeTableViewOptions<TMeta = unknown> {
@@ -32,11 +33,13 @@ export class NodeTableView<TMeta = unknown> {
 	private tbodyEl: HTMLElement | null = null;
 	private opts: NodeTableViewOptions<TMeta> | null = null;
 	private rows: TreeNode<TMeta>[] = [];
+	private pendingRaf: number | null = null;
+	private pendingScrollTimer: number | null = null;
 	private readonly rowHeight = 30;
 	private readonly overscan = 12;
 	private readonly onScroll = () => {
 		this._syncHeaderScroll();
-		this._renderWindow();
+		this.scheduleWindowRender();
 	};
 
 	constructor(containerEl: HTMLElement) {
@@ -53,12 +56,15 @@ export class NodeTableView<TMeta = unknown> {
 		const layout = resolveNodeTableLayout(opts.surface, opts.visibleCells);
 		this._renderHeader(layout);
 		this._applyDimensions(layout);
+		this.cancelScheduledRender();
 		this._renderWindow();
 	}
 
 	destroy(): void {
+		this.cancelScheduledRender();
 		this.listEl?.removeEventListener('scroll', this.onScroll);
 		this.containerEl.removeClass('vaultman-node-table-root');
+		this.containerEl.empty();
 		this.headerEl = null;
 		this.listEl = null;
 		this.tableEl = null;
@@ -71,6 +77,7 @@ export class NodeTableView<TMeta = unknown> {
 		if (this.listEl && this.tbodyEl && this.containerEl.contains(this.listEl))
 			return;
 
+		this.listEl?.removeEventListener('scroll', this.onScroll);
 		this.containerEl.empty();
 		this.containerEl.addClass('vaultman-node-table-root');
 		this.headerEl = this.containerEl.createDiv({
@@ -143,6 +150,7 @@ export class NodeTableView<TMeta = unknown> {
 
 	private _renderWindow(): void {
 		if (!this.opts || !this.listEl || !this.tbodyEl) return;
+		const started = performance.now();
 		const projection = buildVirtualTableWindow({
 			rows: this.rows,
 			scrollTop: this.listEl.scrollTop,
@@ -158,6 +166,44 @@ export class NodeTableView<TMeta = unknown> {
 		this.tbodyEl.empty();
 		for (const row of projection.visibleRows) {
 			this._renderRow(row.row, row.top, layout, this.opts);
+		}
+		vaultmanPerfMonitor.record(
+			'node.table.window',
+			performance.now() - started,
+			{
+				rows: this.rows.length,
+				visibleRows: projection.visibleRows.length,
+				start: projection.startIndex,
+				end: projection.endIndex,
+			},
+		);
+	}
+
+	private scheduleWindowRender(): void {
+		if (this.pendingRaf !== null || this.pendingScrollTimer !== null) return;
+		const run = () => {
+			if (this.pendingRaf !== null) {
+				window.cancelAnimationFrame(this.pendingRaf);
+			}
+			if (this.pendingScrollTimer !== null) {
+				window.clearTimeout(this.pendingScrollTimer);
+			}
+			this.pendingRaf = null;
+			this.pendingScrollTimer = null;
+			this._renderWindow();
+		};
+		this.pendingRaf = window.requestAnimationFrame(run);
+		this.pendingScrollTimer = window.setTimeout(run, 32);
+	}
+
+	private cancelScheduledRender(): void {
+		if (this.pendingRaf !== null) {
+			window.cancelAnimationFrame(this.pendingRaf);
+			this.pendingRaf = null;
+		}
+		if (this.pendingScrollTimer !== null) {
+			window.clearTimeout(this.pendingScrollTimer);
+			this.pendingScrollTimer = null;
 		}
 	}
 

@@ -9,4 +9,23 @@ describe('GridView source guards', () => {
 		expect(gridViewSource).toContain('style.width');
 		expect(gridViewSource).not.toContain('gridTemplateColumns');
 	});
+
+	it('cleans up table root state when the file table view is destroyed', () => {
+		expect(gridViewSource).toContain('destroy(): void');
+		expect(gridViewSource).toContain(
+			"removeClass('vaultman-files-table-root')",
+		);
+		expect(gridViewSource).toContain(
+			"removeEventListener('scroll', this.onScroll)",
+		);
+	});
+
+	it('schedules table window rendering through requestAnimationFrame while scrolling', () => {
+		expect(gridViewSource).toContain('private pendingRaf');
+		expect(gridViewSource).toContain('private scheduleWindowRender');
+		expect(gridViewSource).toContain('window.requestAnimationFrame(run)');
+		expect(gridViewSource).not.toContain(
+			'private readonly onScroll = () => {\n\t\tthis._syncHeaderScroll();\n\t\tthis._renderWindow();\n\t};',
+		);
+	});
 });
