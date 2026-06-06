@@ -5,7 +5,7 @@ status: active
 parent: "[[docs/work/pkm-ai/index|pkm-ai]]"
 archive_source: docs/archive/pkm-ai/active-docs/2026-05-11T080321-current-status.md
 created: 2026-05-04T01:36:20
-updated: 2026-06-06T16:07:29-05:00
+updated: 2026-06-06T17:39:16-05:00
 tags:
   - agent/current
 created_by: dec
@@ -29,6 +29,17 @@ Compact route index after archiving the oversized current status:
 ## Current Route
 
 - Active initiative: [[docs/work/hardening/index|Hardening]].
+- **LATEST (2026-06-06)**: Stable `1.1.0` Data/Files parity
+  [[docs/work/hardening/issues/stable-1-1-data-files-parity/016-explorer-view-parity-and-stat-card-routing|SDF-016]]
+  SDF-016b completed the Props/Tags generic table slice in product worktree
+  `hotfix/1.0.2-css-scorecard`: Props and Tags now expose selectable `Table` through the centralized
+  view-mode contract, render via a shared `viewNodeTable.ts` using Bases/core table classes and stable
+  node table column offsets, and mount correctly when reached from Statistics card routing. SDF-016
+  remains in progress because Content table parity and Files grid parity are still deferred. Verification:
+  focused gate `4` unit files / `16` tests, Svelte MCP autofixer no issues on the touched Svelte
+  component, `pnpm run check`, stylelint, targeted Prettier, `pnpm run build` synced to `plugin-dev`,
+  runtime Props/Tags table smoke from Statistics routing, final clean `dev:errors` and captured console,
+  and full `pnpm run verify` passed (`30` unit files / `100` tests; scorecard `17` checks).
 - **LATEST (2026-06-06)**: Stable `1.1.0` Data/Files parity
   [[docs/work/hardening/issues/stable-1-1-data-files-parity/016-explorer-view-parity-and-stat-card-routing|SDF-016]]
   is now in progress in product worktree `hotfix/1.0.2-css-scorecard`: the Statistics card routing

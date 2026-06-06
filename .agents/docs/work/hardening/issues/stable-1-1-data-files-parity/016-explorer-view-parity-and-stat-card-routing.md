@@ -6,7 +6,7 @@ status: in-progress
 issue_kind: AFK
 parent: "[[docs/work/hardening/issues/stable-1-1-data-files-parity/index|Stable 1.1.0 Data/Files parity local issues]]"
 created: 2026-06-06T11:15:23
-updated: 2026-06-06T16:07:29-05:00
+updated: 2026-06-06T17:39:16-05:00
 labels:
   - ready-for-agent
   - needs-research
@@ -41,6 +41,10 @@ view-mode availability, and the still-open table layout work.
       view to more explorers while the current table presentation remains broken.
 - [ ] Props, Tags, Files, and Content explorer surfaces expose table view only after the table renderer
       has acceptable Bases/core-class parity, column separation, resize affordances, and stable scroll.
+      - [x] Props and Tags expose a generic node table renderer with Bases/core classes, stable column
+            offsets, and virtualized visible rows.
+      - [ ] Content still needs its own Core Search-compatible table/list renderer before this parent
+            criterion can close.
 - [ ] Files explorer exposes grid view in addition to tree and table once the grid interaction defects are
       resolved for file nodes.
 - [x] View menu copy and icons make the difference between grid, table, tree, and future views explicit.
@@ -68,6 +72,53 @@ view-mode availability, and the still-open table layout work.
 The Statistics card routing is useful independently, but implementing it together with the view-parity
 work keeps the Data surface navigation contract coherent: Statistics becomes a map into the same explorer
 surfaces whose view modes are being normalized.
+
+## Progress - 2026-06-06T17:39:16-05:00
+
+SDF-016b completed the generic table slice for Props and Tags only. SDF-016 remains in progress because
+Content table parity and Files grid parity are still intentionally deferred.
+
+- Product change: `logicNodeTableLayout.ts` defines stable Bases-style column offsets for generic node
+  tables; `viewNodeTable.ts` renders `bases-thead`, `bases-table-container`, `bases-table`,
+  `bases-tbody`, `bases-tr`, and `bases-td` rows over the existing visible tree projection.
+- Props and Tags explorers now accept `table` as a real view mode. Tree/Grid teardown is explicit, table
+  rows preserve node click/context-menu/filter behavior, and the Count/Type/Icon/Text cells respect the
+  existing visible-cell toggles.
+- `logicExplorerViewModes.ts` now exposes Props/Tags `Tree`, `Grid`, and `Table` as selectable while
+  keeping `Drag & Drop list` and `Cards` disabled. Files remains `Tree`/`Table` selectable with internal
+  Files table renderer mapping unchanged; Content still exposes no view modes.
+- `pageFilters.svelte` now mounts an externally activated Data tab even when the user arrived through
+  Statistics card routing instead of the local tab switcher. The implementation avoids adding a new
+  Svelte `$effect`; active panes render when `visitedTabs[tab] || filtersActiveTab === tab`, and local
+  tab switching marks both the current and target tab as visited.
+- Focused tests/source guards updated:
+  `test/unit/explorerViewModes.test.ts`, `test/unit/nodeTableLayout.test.ts`, and
+  `test/unit/pageFiltersSource.test.ts`.
+- Verification:
+  - RED/GREEN source guard confirmed the external-routing mount regression.
+  - Focused gate passed: `4` unit files / `16` tests.
+  - Svelte MCP autofixer reported no issues on `pageFilters.svelte`; remaining suggestions are the
+    pre-existing Content search effect structure.
+  - `pnpm run check`, `pnpm run stylelint`, and targeted Prettier check passed after formatting the new
+    test.
+  - `pnpm run build` synced artifacts to `plugin-dev`.
+  - `obsidian vault=plugin-dev plugin:reload id=vaultman`, `command id=vaultman:open`, and initial
+    `dev:errors` passed.
+  - Runtime smoke routed from Statistics to Properties and Tags, opened the View menu, selected `Table`,
+    and confirmed `.vaultman-node-table-root` inside the active pane with headers at `0/34/334` and
+    visible rows for both surfaces.
+  - A transient Obsidian `e.isShown is not a function` error was isolated to the smoke script's direct
+    `.click()` on native menu items. After clearing the buffer and re-running with real `MouseEvent`
+    dispatches, final `dev:errors` and captured console errors were clean.
+  - Full `pnpm run verify` passed: lint, `svelte-check`, format check, stylelint, production build,
+    `30` unit files / `100` tests, and scorecard regression scan `17` checks.
+
+Remaining work for completing SDF-016:
+
+- Implement Content explorer table/list parity against Core Search result semantics instead of adding
+  another capped ad-hoc list.
+- Implement the separate Files grid view only after file-grid selection, context menu,
+  badges/decorations, and file affordances are fixed.
 
 ## Progress — 2026-06-06T16:07:29-05:00
 

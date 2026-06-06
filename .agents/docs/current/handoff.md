@@ -5,7 +5,7 @@ status: active
 parent: "[[docs/work/pkm-ai/index|pkm-ai]]"
 archive_source: docs/archive/pkm-ai/active-docs/2026-05-11T080321-current-handoff.md
 created: 2026-05-04T01:36:20
-updated: 2026-06-06T16:07:29-05:00
+updated: 2026-06-06T17:39:16-05:00
 tags:
   - agent/current
 created_by: dec
@@ -16,6 +16,27 @@ updated_by: codex-gpt-5
 
 Compact handoff after archiving the oversized current handoff:
 [[docs/archive/pkm-ai/active-docs/2026-05-11T080321-current-handoff|2026-05-11 handoff archive]].
+
+## NEXT AGENT START HERE — SDF-016b Props/Tags table slice complete (2026-06-06)
+
+Stable `1.1.0` Data/Files parity
+[[docs/work/hardening/issues/stable-1-1-data-files-parity/016-explorer-view-parity-and-stat-card-routing|SDF-016]]
+is still in progress in product worktree `hotfix/1.0.2-css-scorecard`, but the Props/Tags generic table
+slice is complete. `logicNodeTableLayout.ts` defines stable Bases-style node table offsets;
+`viewNodeTable.ts` renders generic explorer rows with `bases-thead`, `bases-table-container`,
+`bases-table`, `bases-tbody`, `bases-tr`, and `bases-td`; and `explorerProps.ts` / `explorerTags.ts`
+now accept `table` as a real view mode while preserving row click, context-menu, filter, count, icon,
+type, and visible-cell behavior. `logicExplorerViewModes.ts` exposes Props/Tags `Tree`, `Grid`, and
+`Table` as selectable; DnD/Cards remain disabled; Content still has no view modes. A routing/mount
+regression found during smoke was fixed in `pageFilters.svelte`: externally activated Data tabs now
+mount when reached from Statistics cards without adding a new Svelte effect. Evidence: focused gate
+`4` unit files / `16` tests; Svelte MCP autofixer reported no issues on the touched component; `pnpm run
+check`, stylelint, and targeted Prettier passed; `pnpm run build` synced to `plugin-dev`; reload/open
+passed; runtime smoke routed from Statistics to Properties and Tags, selected `Table`, and confirmed
+`.vaultman-node-table-root` rows/headers in the active pane; final `dev:errors` and captured console
+were clean; full `pnpm run verify` passed (`30` unit files / `100` tests; scorecard `17` checks).
+Remaining SDF-016 work: Content explorer table/list parity against Core Search semantics and Files grid
+only after file-grid interaction defects are fixed.
 
 ## NEXT AGENT START HERE — SDF-016a stats routing + view contract complete (2026-06-06)
 
