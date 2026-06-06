@@ -46,12 +46,20 @@ the repair must become path-scopable before any prune.
 
 ## Slices
 
-- [ ] **S3b.1 — `--path` scoping** (TDD). Multi-agent-safe repair.
-- [ ] **S3b.2 — repair SAFE subset** (~37): scoped `--repair-residuals --path <safe dirs> --exclude
-  work/hardening --exclude current --exclude sessions`. Verify the in-scope subset → 0 fails; commit.
-- [ ] **S3b.3 — hardening (88) — GATED on Codex.** Only after the coordination handshake (below) confirms
-  which hardening paths are committed/safe. Scoped repair over the confirmed paths only; never the
-  in-flight `2026-05-29-version-streams` shards unless Codex hands them off.
+- [x] **S3b.1 — `--path`/`--exclude` scoping** (`f380a84`, TDD 3 tests). Multi-agent-safe repair.
+- [x] **S3b.2a — repair SAFE content-preserving subset** (`e6dc2ed`): scoped
+  `--repair-timestamp-offsets --repair-parent-shape --exclude work/hardening --exclude current --exclude
+  sessions`. 16 files (work/research, work/publish, work/polish, superpowers specs): stripped tz offsets
+  (value preserved) + 3 parent-shape fixes. SAFE-scope timestamp+parent fails → 0; hardening/current
+  untouched (proven: my repair wrote only those 16 safe files).
+- [ ] **S3b.2b — line-limit auto-shard (9 SAFE files), dev-gated.** `--repair-line-limits` re-shards docs
+  >300 lines into continuation parts (structural reshape, new files + source rewrite). Files:
+  `architecture/pending-decisions.md`; `work/polish/plans/2026-05-11-ui-modernization-vertical-threads/`
+  (01–04 + index); `work/polish/plans/2026-05-13-toolbar-coexistence-fnr-recents/` (01–03). Held for an
+  explicit dev OK before reshaping polish plans.
+- [ ] **S3b.3 — hardening (88) — GATED on Codex.** Message sent (`msg_mq27ocvh_gfawv6`). Only after Codex
+  confirms safe/committed paths; scoped repair over confirmed paths only; never the in-flight
+  `2026-05-29-version-streams` shards unless handed off.
 - current/ (3) + session-log (1): **out of scope** for this agent (route docs + shared journal).
 
 ## Coordination protocol (how the hardening window opens)
