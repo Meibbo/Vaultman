@@ -4,7 +4,7 @@ type: issue-index
 status: active
 parent: "[[docs/work/hardening/plans/2026-06-05-stable-1-1-0-data-files-parity/index|Stable 1.1.0 Data/Files parity implementation plan]]"
 created: 2026-06-06T07:53:25
-updated: 2026-06-06T15:38:32-05:00
+updated: 2026-06-06T16:07:29-05:00
 tags:
   - agent/issue
   - initiative/hardening
@@ -51,7 +51,7 @@ Local Markdown tracker for the release-facing Data/Files parity follow-up after 
 13. [[013-empty-folder-caret-and-extension-icons|SDF-013 Empty folder caret and extension-aware file icons]] - completed
 14. [[014-data-tab-switch-performance-and-offset-regression|SDF-014 Data tab switch performance and vertical offset regression]] - completed
 15. [[015-queue-duplicate-contradictory-operation-guards|SDF-015 Queue duplicate and contradictory operation guards]] - completed
-16. [[016-explorer-view-parity-and-stat-card-routing|SDF-016 Explorer view parity and Statistics card routing]]
+16. [[016-explorer-view-parity-and-stat-card-routing|SDF-016 Explorer view parity and Statistics card routing]] - in progress
 
 ## Dependency Order
 

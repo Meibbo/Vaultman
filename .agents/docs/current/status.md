@@ -5,7 +5,7 @@ status: active
 parent: "[[docs/work/pkm-ai/index|pkm-ai]]"
 archive_source: docs/archive/pkm-ai/active-docs/2026-05-11T080321-current-status.md
 created: 2026-05-04T01:36:20
-updated: 2026-06-06T15:38:32-05:00
+updated: 2026-06-06T16:07:29-05:00
 tags:
   - agent/current
 created_by: dec
@@ -29,6 +29,17 @@ Compact route index after archiving the oversized current status:
 ## Current Route
 
 - Active initiative: [[docs/work/hardening/index|Hardening]].
+- **LATEST (2026-06-06)**: Stable `1.1.0` Data/Files parity
+  [[docs/work/hardening/issues/stable-1-1-data-files-parity/016-explorer-view-parity-and-stat-card-routing|SDF-016]]
+  is now in progress in product worktree `hotfix/1.0.2-css-scorecard`: the Statistics card routing
+  slice is complete and the view-mode availability contract is explicit. Folders/Files route to
+  Data/Files, Props/Values to Data/Props, Tags to Data/Tags, and Word Count to Data/Content while
+  preserving filter/search state and closing open islands. Files View now presents Tree/Table as
+  selectable and Grid/DnD/Cards as disabled; Props/Tags present Tree/Grid selectable and Table/DnD/Cards
+  disabled. `pnpm run verify` passed (`29` unit files / `96` tests; scorecard `17` checks); build
+  synced to `plugin-dev`; CLI smokes confirmed all Statistics routes, view-menu disabled/enabled states,
+  Files Table scroll/columns, clean `dev:errors`, and no console errors. Remaining SDF-016 work:
+  generic table views for Props/Tags/Content and real Files grid once its interaction defects are fixed.
 - **LATEST (2026-06-06)**: Stable `1.1.0` Data/Files parity
   [[docs/work/hardening/issues/stable-1-1-data-files-parity/011-bases-parity-table-view-layout|SDF-011]]
   is complete in product worktree `hotfix/1.0.2-css-scorecard`: Files table view now mirrors Core

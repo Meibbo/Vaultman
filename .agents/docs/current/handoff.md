@@ -5,7 +5,7 @@ status: active
 parent: "[[docs/work/pkm-ai/index|pkm-ai]]"
 archive_source: docs/archive/pkm-ai/active-docs/2026-05-11T080321-current-handoff.md
 created: 2026-05-04T01:36:20
-updated: 2026-06-06T15:38:32-05:00
+updated: 2026-06-06T16:07:29-05:00
 tags:
   - agent/current
 created_by: dec
@@ -16,6 +16,23 @@ updated_by: codex-gpt-5
 
 Compact handoff after archiving the oversized current handoff:
 [[docs/archive/pkm-ai/active-docs/2026-05-11T080321-current-handoff|2026-05-11 handoff archive]].
+
+## NEXT AGENT START HERE — SDF-016a stats routing + view contract complete (2026-06-06)
+
+Stable `1.1.0` Data/Files parity
+[[docs/work/hardening/issues/stable-1-1-data-files-parity/016-explorer-view-parity-and-stat-card-routing|SDF-016]]
+is in progress, not complete. This cut completed the safe navigation slice and view-mode contract:
+`logicStatisticsNavigation.ts` maps Statistics cards to Data tabs; `pageStatistics.svelte` makes the
+stat cards and Word Count row clickable; `VaultmanFrame` routes to Data/Files, Props, Tags, or Content
+while closing queue/filter islands and preserving current filters/search. `logicExplorerViewModes.ts`
+centralizes availability: Files has selectable Tree/Table with Grid/DnD/Cards disabled; Props/Tags
+have selectable Tree/Grid with Table/DnD/Cards disabled; Content exposes no view modes yet. Evidence:
+Svelte autofixer clean on touched components, `pnpm run verify` passed (`29` unit files / `96` tests;
+scorecard `17` checks), build synced to `plugin-dev`, reload/open passed, Statistics click smoke passed
+for Folders/Files/Properties/Values/Tags/Word Count, View menu smoke passed for Files/Props/Tags, Files
+Table rendered scrollable with offsets `0/300/411`, and `dev:errors` plus console error capture were
+clean. Remaining SDF-016 work: generic table views for Props/Tags/Content and real Files grid after
+file-grid interaction defects are fixed. SDF-010 also remains active.
 
 ## NEXT AGENT START HERE — SDF-011 Bases-parity table complete (2026-06-06)
 
