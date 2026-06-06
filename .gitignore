@@ -16,6 +16,7 @@ node_modules/
 node_modules.partial/
 dist/
 coverage/
+.worktrees/
 **/stress-vault/
 stress-test-data/
 main.js
