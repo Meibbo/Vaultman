@@ -5,7 +5,7 @@ status: active
 parent: "[[docs/work/pkm-ai/index|pkm-ai]]"
 archive_source: docs/archive/pkm-ai/active-docs/2026-05-11T080321-current-status.md
 created: 2026-05-04T01:36:20
-updated: 2026-06-06T12:20:12
+updated: 2026-06-06T13:20:45
 tags:
   - agent/current
 created_by: dec
@@ -29,6 +29,17 @@ Compact route index after archiving the oversized current status:
 ## Current Route
 
 - Active initiative: [[docs/work/hardening/index|Hardening]].
+- **LATEST (2026-06-06)**: Stable `1.1.0` Data/Files parity
+  [[docs/work/hardening/issues/stable-1-1-data-files-parity/006-zero-result-filters-warning-indicator|SDF-006]]
+  and
+  [[docs/work/hardening/issues/stable-1-1-data-files-parity/009-content-active-tab-header-label|SDF-009]]
+  are complete in product worktree `hotfix/1.0.2-css-scorecard`: the active-filters FAB now switches
+  from numeric count to a visible warning badge when active filters return zero files, and the minimal
+  Data Tabs button shows `Content` as visible text when Content is the active tab. `pnpm run verify`
+  passed (`21` unit files / `72` tests; scorecard `17` checks); build synced to `plugin-dev`;
+  reload/open passed; runtime smoke confirmed warning badge with rendered `lucide-alert-triangle`,
+  zero-result aria label, filter cleanup, Content visible label, `Tabs: Content` aria, and final
+  `dev:errors` returned `No errors captured`.
 - **LATEST (2026-06-06)**: Stable `1.1.0` Data/Files parity
   [[docs/work/hardening/issues/stable-1-1-data-files-parity/015-queue-duplicate-contradictory-operation-guards|SDF-015]]
   is complete in product worktree `hotfix/1.0.2-css-scorecard`: `OperationQueueService` now gates
@@ -88,8 +99,9 @@ Compact route index after archiving the oversized current status:
 - **LATEST (2026-06-06)**: Follow-up tracker published for Stable `1.1.0`
   Data/Files parity:
   [[docs/work/hardening/issues/stable-1-1-data-files-parity/index|Stable 1.1.0 Data/Files parity local issues]].
-  It now contains 16 local issues: SDF-001, SDF-002, SDF-012, SDF-013, SDF-014, and SDF-015 are
-  completed; SDF-003 through SDF-011 plus SDF-016 remain active follow-up work.
+  It now contains 16 local issues: SDF-001, SDF-002, SDF-006, SDF-009, SDF-012, SDF-013, SDF-014,
+  and SDF-015 are completed; SDF-003, SDF-004, SDF-005, SDF-007, SDF-008, SDF-010, SDF-011, and
+  SDF-016 remain active follow-up work.
 - **LATEST (2026-06-06)**: Stable `1.1.0` Data/Files parity Task 6L completed in
   [[docs/work/hardening/plans/2026-06-05-stable-1-1-0-data-files-parity/index|Data/Files parity plan]]:
   Files extension display is now the same tree type cell used by Props (`TreeNode.typeText` /

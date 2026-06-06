@@ -5,7 +5,7 @@ status: active
 parent: "[[docs/work/pkm-ai/index|pkm-ai]]"
 archive_source: docs/archive/pkm-ai/active-docs/2026-05-11T080321-current-handoff.md
 created: 2026-05-04T01:36:20
-updated: 2026-06-06T12:20:12
+updated: 2026-06-06T13:20:45
 tags:
   - agent/current
 created_by: dec
@@ -16,6 +16,26 @@ updated_by: codex-gpt-5
 
 Compact handoff after archiving the oversized current handoff:
 [[docs/archive/pkm-ai/active-docs/2026-05-11T080321-current-handoff|2026-05-11 handoff archive]].
+
+## NEXT AGENT START HERE — SDF-006/SDF-009 complete (2026-06-06)
+
+Stable `1.1.0` Data/Files parity
+[[docs/work/hardening/issues/stable-1-1-data-files-parity/006-zero-result-filters-warning-indicator|SDF-006]]
+and
+[[docs/work/hardening/issues/stable-1-1-data-files-parity/009-content-active-tab-header-label|SDF-009]]
+are complete in product worktree `hotfix/1.0.2-css-scorecard`. `VaultmanFrame` now passes
+`filteredCount` as `filterResultCount` into `navbarPillFab`; `logicFabIndicator` resolves queue/filter
+indicators as `none`, `count`, or `warning`; active filters with zero results render a neutral
+warning badge and accessible zero-result label instead of a numeric count. `navbarFilters` now renders
+the minimal Tabs button as icon span + text span only when `activeSectionTab === 'content'`, so the
+Content header no longer looks blank while Props/Tags keep icon-only behavior. Runtime note:
+`lucide-warning` did not render in Obsidian, so the implementation uses the valid warning icon
+`lucide-alert-triangle`. Evidence: RED/GREEN focused tests, Svelte autofixer had no issues on touched
+components except existing suggestions, `pnpm run verify` passed (`21` unit files / `72` tests;
+scorecard `17` checks), build synced to `plugin-dev`, reload/open passed, runtime smoke confirmed
+warning SVG + zero-result aria + filter cleanup and Content label + `Tabs: Content` aria, final
+`dev:errors` returned `No errors captured`. Next recommended wave: SDF-003/SDF-004/SDF-005 together
+because Files sort, split date sort, and Statistics cache share data/index/cache concerns.
 
 ## NEXT AGENT START HERE — SDF-015 queue guard complete (2026-06-06)
 
