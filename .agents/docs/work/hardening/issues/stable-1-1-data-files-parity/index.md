@@ -4,7 +4,7 @@ type: issue-index
 status: active
 parent: "[[docs/work/hardening/plans/2026-06-05-stable-1-1-0-data-files-parity/index|Stable 1.1.0 Data/Files parity implementation plan]]"
 created: 2026-06-06T07:53:25
-updated: 2026-06-06T15:02:00-05:00
+updated: 2026-06-06T15:38:32-05:00
 tags:
   - agent/issue
   - initiative/hardening
@@ -46,7 +46,7 @@ Local Markdown tracker for the release-facing Data/Files parity follow-up after 
 8. [[008-correct-tags-nested-simple-grouping|SDF-008 Correct Tags nested/simple grouping semantics]] - completed
 9. [[009-content-active-tab-header-label|SDF-009 Content active tab header label]] - completed
 10. [[010-content-explorer-core-search-parity|SDF-010 Content explorer parity with Core Search]]
-11. [[011-bases-parity-table-view-layout|SDF-011 Bases-parity table view layout]]
+11. [[011-bases-parity-table-view-layout|SDF-011 Bases-parity table view layout]] - completed
 12. [[012-data-files-tab-menu-and-filter-fab-clear|SDF-012 Data Files tab menu and active-filter quick clear]] - completed
 13. [[013-empty-folder-caret-and-extension-icons|SDF-013 Empty folder caret and extension-aware file icons]] - completed
 14. [[014-data-tab-switch-performance-and-offset-regression|SDF-014 Data tab switch performance and vertical offset regression]] - completed

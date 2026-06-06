@@ -5,7 +5,7 @@ status: active
 parent: "[[docs/work/pkm-ai/index|pkm-ai]]"
 archive_source: docs/archive/pkm-ai/active-docs/2026-05-11T080321-current-status.md
 created: 2026-05-04T01:36:20
-updated: 2026-06-06T15:02:00-05:00
+updated: 2026-06-06T15:38:32-05:00
 tags:
   - agent/current
 created_by: dec
@@ -29,6 +29,17 @@ Compact route index after archiving the oversized current status:
 ## Current Route
 
 - Active initiative: [[docs/work/hardening/index|Hardening]].
+- **LATEST (2026-06-06)**: Stable `1.1.0` Data/Files parity
+  [[docs/work/hardening/issues/stable-1-1-data-files-parity/011-bases-parity-table-view-layout|SDF-011]]
+  is complete in product worktree `hotfix/1.0.2-css-scorecard`: Files table view now mirrors Core
+  Bases' absolute `.bases-td` column positioning with stable offsets/widths, visible column
+  separators, header/body alignment, horizontal header sync, and non-Markdown file names retaining
+  their extensions. `pnpm run verify` passed (`27` unit files / `87` tests; scorecard `17` checks);
+  build synced to `plugin-dev`; reload/open passed; DOM smoke confirmed header/body columns at
+  `0/300/411`, scrollWidth `612`, near-bottom rows did not duplicate the first rows, and final
+  `dev:errors` plus console error capture were clean. CLI screenshot capture failed with
+  `TypeError: Cannot read properties of undefined (reading 'includes')`, so SDF-011 records DOM
+  evidence instead.
 - **LATEST (2026-06-06)**: Stable `1.1.0` Data/Files parity
   [[docs/work/hardening/issues/stable-1-1-data-files-parity/007-nested-flat-hierarchy-mode-all-explorers|SDF-007]]
   and

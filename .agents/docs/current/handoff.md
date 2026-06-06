@@ -5,7 +5,7 @@ status: active
 parent: "[[docs/work/pkm-ai/index|pkm-ai]]"
 archive_source: docs/archive/pkm-ai/active-docs/2026-05-11T080321-current-handoff.md
 created: 2026-05-04T01:36:20
-updated: 2026-06-06T15:02:00-05:00
+updated: 2026-06-06T15:38:32-05:00
 tags:
   - agent/current
 created_by: dec
@@ -16,6 +16,24 @@ updated_by: codex-gpt-5
 
 Compact handoff after archiving the oversized current handoff:
 [[docs/archive/pkm-ai/active-docs/2026-05-11T080321-current-handoff|2026-05-11 handoff archive]].
+
+## NEXT AGENT START HERE — SDF-011 Bases-parity table complete (2026-06-06)
+
+Stable `1.1.0` Data/Files parity
+[[docs/work/hardening/issues/stable-1-1-data-files-parity/011-bases-parity-table-view-layout|SDF-011]]
+is complete in product worktree `hotfix/1.0.2-css-scorecard`. Core Bases research on
+`_vaultman_table_parity_reference.base` showed the native table uses `.bases-td` cells positioned by
+inline `inset-inline-start` and `width`, not CSS grid tracks. Vaultman Files table now uses
+`src/logic/logicTableLayout.ts` to project stable column offsets and `viewGrid.ts` applies those
+offsets to every header/body cell; table CSS is scoped under `.vaultman-files-table-root`.
+Runtime DOM evidence in `plugin-dev`: default columns align at offsets `0/300/411`, total width
+`612px`, horizontal scroll syncs the header with `translateX(-250px)`, `.base` files retain their
+extension while `.md` rows show basename, and near-bottom scroll rendered final-vault rows without
+duplicating the first rows. Verification: focused layout/source/virtualization tests passed,
+`pnpm run verify` passed (`27` unit files / `87` tests; scorecard `17` checks), build synced to
+`plugin-dev`, reload/open passed, `dev:errors` returned `No errors captured`, and console error
+capture returned `No console messages captured`. Note: `dev:screenshot` failed with CLI TypeError, so
+the issue record uses DOM rect/scroll evidence instead. Next active issues: SDF-010 and SDF-016.
 
 ## NEXT AGENT START HERE — SDF-007/SDF-008 nested/flat hierarchy complete (2026-06-06)
 
