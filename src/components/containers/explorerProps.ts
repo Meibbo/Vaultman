@@ -253,8 +253,13 @@ export class PropsExplorerPanel extends Component {
 	}
 
 	setSearchTerm(term: string, mode = 0): void {
+		const previousKey = `${this.searchTerm}\0${this.searchMode}`;
 		this.searchTerm = term;
 		this.searchMode = mode;
+		const nextKey = `${this.searchTerm}\0${this.searchMode}`;
+		if (this.searchTerm && previousKey !== nextKey) {
+			this._expandSearchMatches();
+		}
 		this._render();
 	}
 
@@ -283,6 +288,10 @@ export class PropsExplorerPanel extends Component {
 	setVisibleCells(cells: Set<string>): void {
 		this.visibleCells = new Set(cells);
 		this._render();
+	}
+
+	hasExpandedNodes(): boolean {
+		return this.expandedIds.size > 0;
 	}
 
 	expandAll(): void {
@@ -554,6 +563,21 @@ export class PropsExplorerPanel extends Component {
 				this.expandedIds.add(node.id);
 				this._expandAll(node.children);
 			}
+		}
+	}
+
+	private _expandSearchMatches(): void {
+		let tree = this.logic.getTree();
+		if (this.nodeTypeFilter) {
+			tree = this._filterByType(tree, this.nodeTypeFilter);
+		}
+		tree = this.logic.filterTree(tree, this.searchTerm, this.searchMode);
+		for (const id of this.logic.expansionIdsForSearchMatches(
+			tree,
+			this.searchTerm,
+			this.searchMode,
+		)) {
+			this.expandedIds.add(id);
 		}
 	}
 
@@ -876,6 +900,7 @@ export class PropsExplorerPanel extends Component {
 				...node,
 				cls: currentCls,
 				icon: (iconic?.icon ?? defaultIcon) || undefined,
+				typeText: !meta.isValueNode ? this._effectivePropType(meta) : undefined,
 				badges: badges,
 				children: resolvedChildren,
 			};

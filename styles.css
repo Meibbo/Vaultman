@@ -2641,7 +2641,7 @@ body.vaultman-bases-column-separators table th {
 }
 
 .vaultman-filters-header--minimal {
-  justify-content: flex-start;
+  justify-content: center;
   gap: 2px;
   padding: 0;
   min-height: var(--clickable-icon-size);
@@ -4303,6 +4303,21 @@ body.vaultman-bases-column-separators table th {
   opacity: 0.8;
 }
 
+.vaultman-tree-type {
+  flex-shrink: 0;
+  min-width: 28px;
+  max-width: 72px;
+  padding: 0 4px;
+  font-size: 9px;
+  line-height: 16px;
+  color: var(--text-muted);
+  text-align: right;
+  text-transform: lowercase;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
 .vaultman-tree-icon+.vaultman-tree-label {
   margin-left: 2px;
 }
@@ -4628,7 +4643,7 @@ body.vaultman-bases-column-separators table th {
   /* Inset doesn't push */
 }
 
-.vaultman-tree-row.is-active-filter :is(.vaultman-tree-toggle, .vaultman-tree-icon, .vaultman-tree-label, .vaultman-tree-count, .vaultman-tree-badge, .vaultman-badge-icon) {
+.vaultman-tree-row.is-active-filter :is(.vaultman-tree-toggle, .vaultman-tree-icon, .vaultman-tree-label, .vaultman-tree-type, .vaultman-tree-count, .vaultman-tree-badge, .vaultman-badge-icon) {
   opacity: 1;
 }
 

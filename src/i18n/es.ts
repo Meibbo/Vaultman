@@ -152,6 +152,8 @@ export const es: Record<string, string> = {
 	'settings.default_type.desc': 'Tipo por defecto para nuevas propiedades',
 	'settings.templates': 'Plantillas de filtros',
 	'settings.templates.desc': 'Gestionar plantillas de filtros guardadas',
+	'settings.queue_templates.desc':
+		'Gestionar presets guardados de operaciones preparadas',
 
 	// Main view
 	'view.main.title': 'Vaultman',

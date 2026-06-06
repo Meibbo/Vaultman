@@ -274,6 +274,9 @@ export class UnifiedTreeView {
 			? visibleCells.has('text') || visibleCells.has('name')
 			: true;
 		const showCount = visibleCells ? visibleCells.has('count') : true;
+		const showType = visibleCells
+			? visibleCells.has('type') || visibleCells.has('ext')
+			: false;
 
 		const row = parent.createDiv({ cls: 'vaultman-tree-row' });
 		if (typeof node.cls === 'string' && node.cls.trim()) {
@@ -330,6 +333,10 @@ export class UnifiedTreeView {
 			});
 		} else if (showLabel) {
 			row.createSpan({ cls: 'vaultman-tree-label', text: node.label });
+		}
+
+		if (showType && node.typeText) {
+			row.createSpan({ cls: 'vaultman-tree-type', text: node.typeText });
 		}
 
 		// Multi-zone Badges container

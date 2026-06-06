@@ -25,7 +25,9 @@
 		tabOptions = [],
 		activeSectionTab = activeTab,
 		onSectionTabChange,
+		onFiltersSearchChange,
 		showExplorerControls = true,
+		expansionRevision = 0,
 	}: {
 		activeTab: FiltersTab;
 		filtersSearch: string;
@@ -39,7 +41,9 @@
 		tabOptions?: HeaderTabOption[];
 		activeSectionTab?: string;
 		onSectionTabChange?: (tab: string) => void;
+		onFiltersSearchChange?: (value: string) => void;
 		showExplorerControls?: boolean;
+		expansionRevision?: number;
 	} = $props();
 
 	const CATEGORY_ICONS: Record<FiltersTab, [string, string]> = {
@@ -219,23 +223,26 @@
 	let addModeActive = $state(false);
 	let searchExpanded = $state(false);
 	let searchInputEl = $state<HTMLInputElement | null>(null);
-	let expandedByTab = $state<Record<FiltersTab, boolean>>({
-		props: false,
-		tags: false,
-		files: false,
-	});
+	let expansionRefresh = $state(0);
 	const headerActionClass = $derived(
 		minimalStyle ? 'clickable-icon nav-action-button' : 'vaultman-nav-fab',
 	);
+	const hasExpandedNodes = $derived.by(() => {
+		void expansionRevision;
+		void expansionRefresh;
+		void filtersSearch;
+		void filtersSearchCategory[activeTab];
+		if (activeTab === 'files') return fileList?.hasExpandedNodes() ?? false;
+		if (activeTab === 'props') return propExplorer?.hasExpandedNodes() ?? false;
+		return tagsExplorer?.hasExpandedNodes() ?? false;
+	});
 	const expansionLabel = $derived(
-		expandedByTab[activeTab]
+		hasExpandedNodes
 			? translate('filter.collapse_all')
 			: translate('filter.expand_all'),
 	);
 	const expansionIcon = $derived(
-		expandedByTab[activeTab]
-			? 'lucide-chevrons-down-up'
-			: 'lucide-chevrons-up-down',
+		hasExpandedNodes ? 'lucide-chevrons-down-up' : 'lucide-chevrons-up-down',
 	);
 	const showSearchInput = $derived(
 		!minimalStyle || searchExpanded || filtersSearch.length > 0,
@@ -293,6 +300,14 @@
 		const tab = activeTab;
 		filtersSearchCategory[tab] = filtersSearchCategory[tab] === 0 ? 1 : 0;
 		filtersSearchCategory = { ...filtersSearchCategory };
+	}
+
+	function setFiltersSearch(value: string) {
+		if (onFiltersSearchChange) {
+			onFiltersSearchChange(value);
+			return;
+		}
+		filtersSearch = value;
 	}
 
 	function expandSearch() {
@@ -553,8 +568,7 @@
 	}
 
 	function toggleExplorerExpansion() {
-		const next = !(expandedByTab[activeTab] ?? false);
-		expandedByTab = { ...expandedByTab, [activeTab]: next };
+		const next = !hasExpandedNodes;
 		if (activeTab === 'files') {
 			if (next) fileList?.expandAll();
 			else fileList?.collapseAll();
@@ -567,6 +581,10 @@
 			if (next) tagsExplorer?.expandAll();
 			else tagsExplorer?.collapseAll();
 		}
+		expansionRefresh += 1;
+		window.requestAnimationFrame(() => {
+			expansionRefresh += 1;
+		});
 	}
 
 	$effect(() => {
@@ -678,7 +696,11 @@
 								spellcheck="false"
 								placeholder={translate('filter.search_placeholder')}
 								bind:this={searchInputEl}
-								bind:value={filtersSearch}
+								value={filtersSearch}
+								oninput={(event: Event) =>
+									setFiltersSearch(
+										(event.currentTarget as HTMLInputElement).value,
+									)}
 							/>
 							{#if filtersSearch}
 								<button
@@ -686,7 +708,7 @@
 									aria-label={translate('filter.search_clear')}
 									use:icon={'lucide-x'}
 									onclick={() => {
-										filtersSearch = '';
+										setFiltersSearch('');
 										if (minimalStyle) searchExpanded = false;
 									}}
 								></button>

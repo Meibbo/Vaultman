@@ -422,7 +422,11 @@
 		closeQueueIsland();
 		closeFiltersIsland();
 	});
-	let filtersSearch = $state('');
+	let filtersSearchByTab = $state<Record<SearchTab, string>>({
+		tags: '',
+		props: '',
+		files: '',
+	});
 	let filtersSearchCategory = $state<Record<SearchTab, number>>({
 		tags: 0,
 		props: 0,
@@ -446,10 +450,10 @@
 	}
 
 	function applyExplorerSearch() {
-		const term = filtersSearch;
 		const tab: FiltersTab | 'files' =
 			activePage === 'ops' ? 'files' : filtersActiveTab;
 		if (tab === 'content') return;
+		const term = filtersSearchByTab[tab] ?? '';
 		const catMode = filtersSearchCategory[tab] ?? 0;
 
 		// Route search with per-tab category scoping
@@ -594,10 +598,10 @@
 			filtersIsland?.render();
 			if (
 				lastFilesSearchTerm &&
-				filtersSearch === lastFilesSearchTerm &&
+				filtersSearchByTab.files === lastFilesSearchTerm &&
 				!hasEnabledFileSearchRule()
 			) {
-				filtersSearch = '';
+				filtersSearchByTab = { ...filtersSearchByTab, files: '' };
 				lastFilesSearchTerm = '';
 			}
 		};
@@ -644,11 +648,12 @@
 					{#if pageId === 'ops'}
 						<OperationsPage
 							{plugin}
-							bind:filtersSearch
+							bind:filtersSearchByTab
 							bind:filtersSearchCategory
 							bind:fileList
 							bind:selectedCount
 							{addOpCount}
+							expansionRevision={filterRuleCount + filteredCount}
 							{icon}
 						/>
 					{:else if pageId === 'statistics'}
@@ -657,7 +662,7 @@
 						<FiltersPage
 							{plugin}
 							bind:filtersActiveTab
-							bind:filtersSearch
+							bind:filtersSearchByTab
 							bind:filtersSearchCategory
 							bind:tagsExplorer
 							bind:propExplorer
@@ -665,6 +670,7 @@
 							getSelectedFiles={() => fileList?.getSelectedFiles() ?? []}
 							{filteredCount}
 							{addOpCount}
+							expansionRevision={filterRuleCount + filteredCount}
 						/>
 					{/if}
 				{/key}

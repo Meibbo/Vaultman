@@ -85,7 +85,7 @@ export class PropsLogic {
 				mode === 0 ? isMatch : !node.meta.isValueNode && isMatch;
 
 			const filteredChildren =
-				!node.meta.isValueNode && currentMatches
+				mode === 0 && !node.meta.isValueNode && currentMatches
 					? (node.children ?? [])
 					: node.children
 						? this._filterNodes(node.children, search, mode)
@@ -99,11 +99,12 @@ export class PropsLogic {
 	}
 
 	private _buildTree(): TreeNode<PropMeta>[] {
-		const allProps = (
-			this.app.metadataCache as unknown as {
-				getAllPropertyInfos(): Record<string, { type: string }>;
-			}
-		).getAllPropertyInfos?.() ?? {};
+		const allProps =
+			(
+				this.app.metadataCache as unknown as {
+					getAllPropertyInfos(): Record<string, { type: string }>;
+				}
+			).getAllPropertyInfos?.() ?? {};
 
 		// Map to store values and their frequencies
 		const valueMap = new Map<string, Map<string, number>>();
@@ -153,7 +154,8 @@ export class PropsLogic {
 
 		const nodes: TreeNode<PropMeta>[] = [];
 		for (const propName of propNames) {
-			const info = allProps[propName] ?? infoByLower.get(propName.toLowerCase());
+			const info =
+				allProps[propName] ?? infoByLower.get(propName.toLowerCase());
 			const propType = info?.type ?? 'text';
 			const valuesMap = (valueMap.get(propName) ?? new Map()) as Map<
 				string,

@@ -4,7 +4,18 @@ import type { TFile, TFolder } from 'obsidian';
 export interface NodeBadge {
 	text?: string;
 	icon?: string;
-	color?: 'accent' | 'warning' | 'error' | 'success' | 'info' | 'faint' | 'red' | 'blue' | 'purple' | 'orange' | 'green';
+	color?:
+		| 'accent'
+		| 'warning'
+		| 'error'
+		| 'success'
+		| 'info'
+		| 'faint'
+		| 'red'
+		| 'blue'
+		| 'purple'
+		| 'orange'
+		| 'green';
 	solid?: boolean;
 	isInherited?: boolean;
 	/** Queue index for undo on double-click. Undefined = inherited/unremovable badge. */
@@ -15,6 +26,7 @@ export interface TreeNode<TMeta = unknown> {
 	id: string;
 	label: string;
 	icon?: string;
+	typeText?: string;
 	count?: number;
 	badges?: NodeBadge[];
 	children?: TreeNode<TMeta>[];
@@ -36,7 +48,7 @@ export interface PropMeta {
 }
 
 export interface FileMeta {
-	file: TFile | null;  // null = folder node
+	file: TFile | null; // null = folder node
 	folder?: TFolder | null;
 	isFolder: boolean;
 	folderPath: string;

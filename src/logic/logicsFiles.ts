@@ -50,7 +50,12 @@ export class FilesLogic {
 					label: parts[index],
 					depth: index,
 					children: [],
-					meta: { file: null, folder: resolveFolder(currentPath), isFolder: true, folderPath: currentPath },
+					meta: {
+						file: null,
+						folder: resolveFolder(currentPath),
+						isFolder: true,
+						folderPath: currentPath,
+					},
 				};
 				folderMap.set(currentPath, folderNode);
 				(parentNode?.children ?? root).push(folderNode);
@@ -97,6 +102,7 @@ export class FilesLogic {
 			const fileNode: TreeNode<FileMeta> = {
 				id: file.path,
 				label: file.basename,
+				typeText: file.extension || undefined,
 				count: propCount,
 				depth: folderPath.split('/').filter(Boolean).length,
 				children: [],
@@ -113,13 +119,17 @@ export class FilesLogic {
 		let result = files;
 		if (name) {
 			const term = name.toLowerCase();
-			result = result.filter(f =>
-				f.basename.toLowerCase().includes(term) ||
-				f.name.toLowerCase().includes(term) ||
-				f.path.toLowerCase().includes(term)
+			result = result.filter(
+				(f) =>
+					f.basename.toLowerCase().includes(term) ||
+					f.name.toLowerCase().includes(term) ||
+					f.path.toLowerCase().includes(term),
 			);
 		}
-		if (folder) result = result.filter(f => f.path.toLowerCase().includes(folder.toLowerCase()));
+		if (folder)
+			result = result.filter((f) =>
+				f.path.toLowerCase().includes(folder.toLowerCase()),
+			);
 		return result;
 	}
 

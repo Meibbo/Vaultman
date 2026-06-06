@@ -154,6 +154,7 @@ export const en: Record<string, string> = {
 	'settings.default_type.desc': 'Default type for new properties',
 	'settings.templates': 'Filter templates',
 	'settings.templates.desc': 'Manage saved filter templates',
+	'settings.queue_templates.desc': 'Manage saved staged operation presets',
 
 	// Main view
 	'view.main.title': 'Vaultman',

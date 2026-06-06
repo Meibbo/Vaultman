@@ -147,6 +147,10 @@ export class TagsExplorerPanel extends Component {
 		this._render();
 	}
 
+	hasExpandedNodes(): boolean {
+		return this.expandedIds.size > 0;
+	}
+
 	expandAll(): void {
 		let tree = this.logic.getTree();
 		if (this.searchMode === 'leaf') {

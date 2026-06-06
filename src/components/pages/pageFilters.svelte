@@ -24,7 +24,7 @@
 	let {
 		plugin,
 		filtersActiveTab = $bindable('props'),
-		filtersSearch = $bindable(''),
+		filtersSearchByTab = $bindable({ props: '', tags: '', files: '' }),
 		filtersSearchCategory = $bindable({ tags: 0, props: 0, files: 0 }),
 		tagsExplorer = $bindable(),
 		propExplorer = $bindable(),
@@ -32,10 +32,11 @@
 		getSelectedFiles,
 		filteredCount,
 		addOpCount = 0,
+		expansionRevision = 0,
 	}: {
 		plugin: VaultmanPlugin;
 		filtersActiveTab: FiltersTab;
-		filtersSearch: string;
+		filtersSearchByTab: Record<SearchTab, string>;
 		filtersSearchCategory: Record<SearchTab, number>;
 		tagsExplorer: TagsExplorerPanel | null;
 		propExplorer: PropsExplorerPanel | undefined;
@@ -43,6 +44,7 @@
 		getSelectedFiles: () => TFile[];
 		filteredCount: number;
 		addOpCount?: number;
+		expansionRevision?: number;
 	} = $props();
 
 	let contentFind = $state('');
@@ -62,6 +64,10 @@
 	const explorerActiveTab = $derived(
 		filtersActiveTab === 'content' ? 'props' : filtersActiveTab,
 	);
+	const explorerSearchTab = $derived<SearchTab>(
+		filtersActiveTab === 'tags' ? 'tags' : 'props',
+	);
+	const filtersSearch = $derived(filtersSearchByTab[explorerSearchTab] ?? '');
 	const showTabLabels = $derived.by(() => {
 		void settingsRevision;
 		return plugin.settings.filtersShowTabLabels;
@@ -111,6 +117,13 @@
 	function switchFiltersTab(tab: FiltersTab) {
 		if (filtersActiveTab === tab) return;
 		filtersActiveTab = tab;
+	}
+
+	function setExplorerSearch(value: string) {
+		filtersSearchByTab = {
+			...filtersSearchByTab,
+			[explorerSearchTab]: value,
+		};
 	}
 
 	function icon(el: HTMLElement, name: string) {
@@ -263,7 +276,7 @@
 {#if filtersActiveTab !== 'content' || minimalStyle}
 	<NavbarFilters
 		activeTab={explorerActiveTab}
-		bind:filtersSearch
+		{filtersSearch}
 		bind:filtersSearchCategory
 		{tagsExplorer}
 		{propExplorer}
@@ -273,7 +286,9 @@
 		tabOptions={minimalStyle ? filterTabOptions : []}
 		activeSectionTab={filtersActiveTab}
 		onSectionTabChange={(tab) => switchFiltersTab(tab as FiltersTab)}
+		onFiltersSearchChange={setExplorerSearch}
 		showExplorerControls={filtersActiveTab !== 'content'}
+		{expansionRevision}
 		{icon}
 	/>
 {/if}

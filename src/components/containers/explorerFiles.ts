@@ -30,15 +30,12 @@ export class FilesExplorerPanel extends Component {
 	private sortBy: string = 'name';
 	private sortDir: 'asc' | 'desc' = 'asc';
 	private addMode = false;
-	private visibleCells = new Set<string>([
-		'name',
-		'ext',
-		'path',
-	]);
+	private visibleCells = new Set<string>(['name', 'ext', 'path']);
 	private searchName = '';
 	private searchFolder = '';
 	private refreshTimer: number | null = null;
 	private activeRevealPath: string | null = null;
+	private sparseAutoExpandSignature = '';
 
 	private onSelectionChange?: (count: number) => void;
 
@@ -248,6 +245,10 @@ export class FilesExplorerPanel extends Component {
 		this._render();
 	}
 
+	hasExpandedNodes(): boolean {
+		return this.expandedIds.size > 0;
+	}
+
 	setSortBy(sortBy: string, direction: 'asc' | 'desc'): void {
 		this.sortBy = sortBy;
 		this.sortDir = direction;
@@ -432,6 +433,7 @@ export class FilesExplorerPanel extends Component {
 				this._sortFiles(this._currentFiles),
 				this._foldersForCurrentView(),
 			);
+			this._autoExpandSparseTopLevel(tree);
 			this._decorateTreeWithQueue(tree);
 			this._decorateTreeWithActiveReveal(tree);
 			const applyFolderIcons = (
@@ -520,7 +522,8 @@ export class FilesExplorerPanel extends Component {
 				node.cls =
 					`${node.cls ?? ''} tree-item-self nav-file-title tappable is-clickable is-active`.trim();
 			}
-			if (node.children?.length) this._decorateTreeWithActiveReveal(node.children);
+			if (node.children?.length)
+				this._decorateTreeWithActiveReveal(node.children);
 		}
 	}
 
@@ -546,12 +549,6 @@ export class FilesExplorerPanel extends Component {
 
 	private _badgesForFile(file: TFile): NodeBadge[] {
 		const badges: NodeBadge[] = [];
-		if (this.visibleCells.has('ext') && file.extension) {
-			badges.push({
-				text: `.${file.extension}`,
-				color: 'faint',
-			});
-		}
 		this.plugin.queueService.queue.forEach((change, queueIndex) => {
 			if (
 				!('files' in change) ||
@@ -592,7 +589,9 @@ export class FilesExplorerPanel extends Component {
 		this._render();
 	};
 
-	private _syncActiveFilePath(file = this.plugin.app.workspace.getActiveFile()): void {
+	private _syncActiveFilePath(
+		file = this.plugin.app.workspace.getActiveFile(),
+	): void {
 		const nextPath = file?.path ?? null;
 		if (this.activeRevealPath === nextPath) return;
 		this.activeRevealPath = nextPath;
@@ -748,10 +747,39 @@ export class FilesExplorerPanel extends Component {
 	private _foldersForCurrentView(): TFolder[] {
 		if (this.viewMode !== 'tree') return [];
 		const folders = this._allVaultFolders();
+		if (this._hasActiveConstraints()) return [];
 		if (this.searchName && !this.searchFolder) return [];
 		if (!this.searchFolder) return folders;
 		const term = this.searchFolder.toLowerCase();
 		return folders.filter((folder) => folder.path.toLowerCase().includes(term));
+	}
+
+	private _hasActiveConstraints(): boolean {
+		return (
+			this.plugin.filterService.activeFilter.children.length > 0 ||
+			Boolean(this.searchName || this.searchFolder)
+		);
+	}
+
+	private _autoExpandSparseTopLevel(tree: TreeNode<FileMeta>[]): void {
+		if (!this._hasActiveConstraints()) {
+			this.sparseAutoExpandSignature = '';
+			return;
+		}
+		const topFolders = tree.filter((node) => node.meta.isFolder);
+		if (topFolders.length === 0 || topFolders.length >= 4) {
+			this.sparseAutoExpandSignature = '';
+			return;
+		}
+		const signature = [
+			topFolders.map((node) => node.id).join('|'),
+			this._currentFiles.map((file) => file.path).join('|'),
+		].join('::');
+		if (signature === this.sparseAutoExpandSignature) return;
+		this.sparseAutoExpandSignature = signature;
+		for (const node of topFolders) {
+			this.expandedIds.add(node.id);
+		}
 	}
 
 	private _allVaultFolders(): TFolder[] {

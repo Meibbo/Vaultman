@@ -127,4 +127,15 @@ describe('FilesLogic.buildFileTree', () => {
 			logic.filterFlat(files, '.base', '').map((file) => file.path),
 		).toEqual(['Data/Projects.base']);
 	});
+
+	it('exposes file extensions as tree type cell text', () => {
+		const logic = new FilesLogic(makeApp({}));
+
+		const tree = logic.buildFileTree([makeFile('Data/Projects.base')]);
+
+		expect(tree[0].children?.[0]).toMatchObject({
+			label: 'Projects',
+			typeText: 'base',
+		});
+	});
 });

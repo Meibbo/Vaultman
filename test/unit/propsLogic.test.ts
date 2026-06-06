@@ -23,7 +23,9 @@ function makeFile(path: string): TFile {
 		basename: dot === -1 ? name : name.slice(0, dot),
 		extension: dot === -1 ? '' : name.slice(dot + 1),
 		name,
-		parent: makeFolder(path.includes('/') ? path.split('/').slice(0, -1).join('/') : '/'),
+		parent: makeFolder(
+			path.includes('/') ? path.split('/').slice(0, -1).join('/') : '/',
+		),
 		path,
 		stat: { ctime: 0, mtime: 0, size: 0 },
 		vault,
@@ -105,6 +107,7 @@ describe('PropsLogic', () => {
 		const results = logic.filterTree(logic.getTree(), 'journal', 1);
 
 		expect(results.map((node) => node.label)).toEqual(['journalTopic']);
+		expect(results[0].children).toEqual([]);
 	});
 
 	it('expands only ancestors needed to reveal descendant search matches', () => {
@@ -118,9 +121,9 @@ describe('PropsLogic', () => {
 		);
 		const tree = logic.getTree();
 
-		expect(
-			[...logic.expansionIdsForSearchMatches(tree, 'journalTopic', 0)],
-		).toEqual([]);
+		expect([
+			...logic.expansionIdsForSearchMatches(tree, 'journalTopic', 0),
+		]).toEqual([]);
 		expect([...logic.expansionIdsForSearchMatches(tree, 'journal', 0)]).toEqual(
 			['mood'],
 		);

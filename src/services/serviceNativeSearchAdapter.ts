@@ -25,9 +25,6 @@ interface NativeSearchView {
 }
 
 interface SearchApp extends App {
-	commands?: {
-		executeCommandById(id: string): void;
-	};
 	workspace: App['workspace'] & {
 		getLeavesOfType(type: string): WorkspaceLeaf[];
 	};
@@ -47,7 +44,7 @@ export interface NativeSearchOptions {
 	onUpdate(result: ContentPreviewResult): void;
 }
 
-const MAX_FILES = 10;
+const MAX_FILES = 200;
 const MAX_SNIPPETS = 3;
 const CONTEXT = 40;
 const LOCAL_UPDATE_INTERVAL = 12;
@@ -167,7 +164,7 @@ export class NativeSearchAdapter {
 
 	async search(options: NativeSearchOptions): Promise<void> {
 		const run = (this.activeRun += 1);
-		const view = await this.getSearchView();
+		const view = this.findSearchView();
 		if (!view) {
 			await this.searchLocal(options, run);
 			return;
@@ -250,15 +247,6 @@ export class NativeSearchAdapter {
 			inputs.push({ file, content, offsets });
 		}
 		return inputs;
-	}
-
-	private async getSearchView(): Promise<NativeSearchView | null> {
-		const existing = this.findSearchView();
-		if (existing) return existing;
-
-		this.app.commands?.executeCommandById('global-search:open');
-		await new Promise((resolve) => window.setTimeout(resolve, 100));
-		return this.findSearchView();
 	}
 
 	private findSearchView(): NativeSearchView | null {

@@ -8,32 +8,45 @@
 
 	let {
 		plugin,
-		filtersSearch = $bindable(''),
+		filtersSearchByTab = $bindable({ props: '', tags: '', files: '' }),
 		filtersSearchCategory = $bindable({ tags: 0, props: 0, files: 0 }),
 		fileList = $bindable(),
 		selectedCount = $bindable(0),
 		addOpCount = 0,
+		expansionRevision = 0,
 		icon,
 	}: {
 		plugin: VaultmanPlugin;
-		filtersSearch: string;
+		filtersSearchByTab: Record<SearchTab, string>;
 		filtersSearchCategory: Record<SearchTab, number>;
 		fileList: FilesExplorerPanel | undefined;
 		selectedCount: number;
 		addOpCount?: number;
+		expansionRevision?: number;
 		icon: (el: HTMLElement, name: string) => any;
 	} = $props();
+
+	const filtersSearch = $derived(filtersSearchByTab.files ?? '');
+
+	function setFilesSearch(value: string) {
+		filtersSearchByTab = {
+			...filtersSearchByTab,
+			files: value,
+		};
+	}
 </script>
 
 <NavbarFilters
 	activeTab="files"
-	bind:filtersSearch
+	{filtersSearch}
 	bind:filtersSearchCategory
 	tagsExplorer={undefined}
 	propExplorer={undefined}
 	{fileList}
 	{addOpCount}
 	minimalStyle={plugin.settings.minimalStyle}
+	onFiltersSearchChange={setFilesSearch}
+	{expansionRevision}
 	{icon}
 />
 

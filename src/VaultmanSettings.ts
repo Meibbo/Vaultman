@@ -192,26 +192,55 @@ export class VaultmanSettingsTab extends PluginSettingTab {
 				text: translate('settings.templates.desc'),
 				cls: 'setting-item-description',
 			});
-			return;
+		} else {
+			for (const template of this.plugin.settings.filterTemplates) {
+				new Setting(containerEl)
+					.setName(template.name)
+					.setDesc(`${template.root.children.length} filters`)
+					.addButton((button) =>
+						button
+							.setButtonText(translate('filter.template.delete'))
+							.setWarning()
+							.onClick(async () => {
+								this.plugin.settings.filterTemplates =
+									this.plugin.settings.filterTemplates.filter(
+										(item) => item.name !== template.name,
+									);
+								await this.plugin.saveSettings();
+								this.display();
+							}),
+					);
+			}
 		}
 
-		for (const template of this.plugin.settings.filterTemplates) {
-			new Setting(containerEl)
-				.setName(template.name)
-				.setDesc(`${template.root.children.length} filters`)
-				.addButton((button) =>
-					button
-						.setButtonText(translate('filter.template.delete'))
-						.setWarning()
-						.onClick(async () => {
-							this.plugin.settings.filterTemplates =
-								this.plugin.settings.filterTemplates.filter(
-									(item) => item.name !== template.name,
-								);
-							await this.plugin.saveSettings();
-							this.display();
-						}),
-				);
+		new Setting(containerEl)
+			.setName(translate('queue.template.templates'))
+			.setHeading();
+
+		if (this.plugin.settings.queueTemplates.length === 0) {
+			containerEl.createEl('p', {
+				text: translate('settings.queue_templates.desc'),
+				cls: 'setting-item-description',
+			});
+		} else {
+			for (const template of this.plugin.settings.queueTemplates) {
+				new Setting(containerEl)
+					.setName(template.name)
+					.setDesc(`${template.changes.length} operations`)
+					.addButton((button) =>
+						button
+							.setButtonText(translate('filter.template.delete'))
+							.setWarning()
+							.onClick(async () => {
+								this.plugin.settings.queueTemplates =
+									this.plugin.settings.queueTemplates.filter(
+										(item) => item.name !== template.name,
+									);
+								await this.plugin.saveSettings();
+								this.display();
+							}),
+					);
+			}
 		}
 	}
 }

@@ -20,7 +20,7 @@ export class VaultmanFrame extends ItemView {
 
 	getViewType(): string { return VAULTMAN_FRAME_TYPE; }
 	getDisplayText(): string { return translate('plugin.frame_name'); }
-	getIcon(): string { return 'lucide-dessert'; }
+	getIcon(): string { return 'lucide-vault'; }
 
 	async onOpen(): Promise<void> {
 		const { contentEl } = this;

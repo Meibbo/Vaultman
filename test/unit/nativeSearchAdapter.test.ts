@@ -1,9 +1,10 @@
 import type { TFile, TFolder, Vault } from 'obsidian';
-import { describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import {
 	buildNativeSearchPreview,
 	findContentOffsets,
+	NativeSearchAdapter,
 	toNativeSearchQuery,
 } from '../../src/services/serviceNativeSearchAdapter';
 
@@ -38,6 +39,10 @@ function makeFile(path: string): TFile {
 }
 
 describe('Native search adapter helpers', () => {
+	afterEach(() => {
+		vi.unstubAllGlobals();
+	});
+
 	it('maps native offsets into content preview snippets', () => {
 		const file = makeFile('notes/example.md');
 		const content = 'first line\nstatus: done\nlast line';
@@ -68,7 +73,7 @@ describe('Native search adapter helpers', () => {
 		expect(toNativeSearchQuery('/status/', true)).toBe('/status/');
 	});
 
-	it('keeps all matched files even when the preview is capped', () => {
+	it('renders normal multi-file previews without the old ten-file cap', () => {
 		const inputs = Array.from({ length: 12 }, (_, index) => ({
 			file: makeFile(`notes/${index}.md`),
 			content: 'birthday',
@@ -77,9 +82,23 @@ describe('Native search adapter helpers', () => {
 
 		const preview = buildNativeSearchPreview(inputs);
 
-		expect(preview.files).toHaveLength(10);
-		expect(preview.moreFiles).toBe(2);
+		expect(preview.files).toHaveLength(12);
+		expect(preview.moreFiles).toBe(0);
 		expect(preview.matchedFiles?.map((file) => file.path)).toHaveLength(12);
+	});
+
+	it('keeps all matched files even when a pathological preview is capped', () => {
+		const inputs = Array.from({ length: 205 }, (_, index) => ({
+			file: makeFile(`notes/${index}.md`),
+			content: 'birthday',
+			offsets: [[0, 8]] as [number, number][],
+		}));
+
+		const preview = buildNativeSearchPreview(inputs);
+
+		expect(preview.files).toHaveLength(200);
+		expect(preview.moreFiles).toBe(5);
+		expect(preview.matchedFiles?.map((file) => file.path)).toHaveLength(205);
 	});
 
 	it('finds literal and regex content offsets for the public fallback search', () => {
@@ -92,5 +111,35 @@ describe('Native search adapter helpers', () => {
 			[0, 5],
 			[6, 12],
 		]);
+	});
+
+	it('does not open the core Search leaf when no existing search view is available', async () => {
+		vi.stubGlobal('window', { setTimeout });
+		const file = makeFile('notes/journal.md');
+		const executeCommandById = vi.fn();
+		const adapter = new NativeSearchAdapter({
+			commands: { executeCommandById },
+			vault: {
+				cachedRead: async () => 'today journal entry',
+			},
+			workspace: {
+				getLeavesOfType: () => [],
+			},
+		} as never);
+		const updates: ReturnType<typeof buildNativeSearchPreview>[] = [];
+
+		await adapter.search({
+			query: 'journal',
+			isRegex: false,
+			caseSensitive: false,
+			scopeFiles: [file],
+			onUpdate: (result) => updates.push(result),
+		});
+
+		expect(executeCommandById).not.toHaveBeenCalled();
+		expect(updates.at(-1)).toMatchObject({
+			totalMatches: 1,
+			isLoading: false,
+		});
 	});
 });
