@@ -2,6 +2,34 @@
 import { TFolder, type App, type TFile } from 'obsidian';
 import type { TreeNode, FileMeta } from '../types/typeTree';
 
+const IMAGE_EXTENSIONS = new Set([
+	'apng',
+	'avif',
+	'bmp',
+	'gif',
+	'ico',
+	'jpeg',
+	'jpg',
+	'png',
+	'svg',
+	'webp',
+]);
+
+const CODE_EXTENSIONS = new Set([
+	'css',
+	'html',
+	'js',
+	'jsx',
+	'json',
+	'mdx',
+	'scss',
+	'ts',
+	'tsx',
+	'xml',
+	'yaml',
+	'yml',
+]);
+
 export class FilesLogic {
 	private app: App;
 
@@ -48,6 +76,8 @@ export class FilesLogic {
 				const folderNode: TreeNode<FileMeta> = {
 					id: `folder:${currentPath}`,
 					label: parts[index],
+					icon: 'lucide-folder',
+					showCaret: true,
 					depth: index,
 					children: [],
 					meta: {
@@ -102,6 +132,7 @@ export class FilesLogic {
 			const fileNode: TreeNode<FileMeta> = {
 				id: file.path,
 				label: file.basename,
+				icon: this.iconForExtension(file.extension),
 				typeText:
 					file.extension && file.extension !== 'md'
 						? file.extension
@@ -115,6 +146,17 @@ export class FilesLogic {
 			(parentFolder?.children ?? root).push(fileNode);
 		}
 		return sortTree(root);
+	}
+
+	private iconForExtension(extension: string): string {
+		const ext = extension.toLowerCase();
+		if (!ext || ext === 'md' || ext === 'markdown') return 'lucide-file-text';
+		if (ext === 'base') return 'lucide-database';
+		if (ext === 'canvas') return 'lucide-layout-dashboard';
+		if (IMAGE_EXTENSIONS.has(ext)) return 'lucide-image';
+		if (ext === 'pdf') return 'lucide-file-text';
+		if (CODE_EXTENSIONS.has(ext)) return 'lucide-file-code';
+		return 'lucide-file-question';
 	}
 
 	/** Filter flat file list by name/folder substring */

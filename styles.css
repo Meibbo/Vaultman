@@ -4688,6 +4688,11 @@ body.vaultman-bases-column-separators table th {
   color: inherit;
 }
 
+.vaultman-tree-toggle--empty {
+  pointer-events: none;
+  opacity: 0.22;
+}
+
 .vaultman-tree-icon {
   min-width: 16px;
   flex-shrink: 0;

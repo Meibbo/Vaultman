@@ -264,6 +264,7 @@ export class UnifiedTreeView {
 		opts: TreeViewOptions,
 	): HTMLElement {
 		const hasChildren = (node.children?.length ?? 0) > 0;
+		const showCaret = hasChildren || Boolean(node.showCaret);
 		const isExpanded = opts.expandedIds.has(node.id);
 		const isActive = opts.activeFilterIds?.has(node.id) ?? false;
 		const isWarning = opts.warningIds?.has(node.id) ?? false;
@@ -294,15 +295,20 @@ export class UnifiedTreeView {
 
 		// Chevron / spacer
 		const toggleSpan = row.createSpan({ cls: 'vaultman-tree-toggle' });
-		if (hasChildren) {
+		if (showCaret) {
 			setIcon(
 				toggleSpan,
 				isExpanded ? 'lucide-chevron-down' : 'lucide-chevron-right',
 			);
-			toggleSpan.addEventListener('click', (e) => {
-				e.stopPropagation();
-				opts.onToggle(node.id);
-			});
+			if (hasChildren) {
+				toggleSpan.addEventListener('click', (e) => {
+					e.stopPropagation();
+					opts.onToggle(node.id);
+				});
+			} else {
+				toggleSpan.addClass('vaultman-tree-toggle--empty');
+				toggleSpan.setAttribute('aria-hidden', 'true');
+			}
 		}
 
 		// Icon

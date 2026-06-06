@@ -111,6 +111,8 @@ describe('FilesLogic.buildFileTree', () => {
 		expect(tree[1]).toMatchObject({
 			id: 'folder:beta',
 			label: 'beta',
+			icon: 'lucide-folder',
+			showCaret: true,
 			meta: { isFolder: true, folderPath: 'beta' },
 		});
 	});
@@ -148,5 +150,26 @@ describe('FilesLogic.buildFileTree', () => {
 			label: 'Projects',
 			typeText: undefined,
 		});
+	});
+
+	it('assigns extension-aware fallback icons to file nodes', () => {
+		const logic = new FilesLogic(makeApp({}));
+
+		const tree = logic.buildFileTree([
+			makeFile('Data/Board.canvas'),
+			makeFile('Data/Project.base'),
+			makeFile('Data/Sketch.png'),
+			makeFile('Data/Spec.pdf'),
+			makeFile('Data/Unknown.xyz'),
+		]);
+
+		const iconsByLabel = new Map(
+			tree[0].children?.map((node) => [node.label, node.icon]) ?? [],
+		);
+		expect(iconsByLabel.get('Board')).toBe('lucide-layout-dashboard');
+		expect(iconsByLabel.get('Project')).toBe('lucide-database');
+		expect(iconsByLabel.get('Sketch')).toBe('lucide-image');
+		expect(iconsByLabel.get('Spec')).toBe('lucide-file-text');
+		expect(iconsByLabel.get('Unknown')).toBe('lucide-file-question');
 	});
 });

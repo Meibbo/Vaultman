@@ -2,7 +2,6 @@
 	import { onDestroy } from 'svelte';
 	import { MarkdownView, Notice, TFile } from 'obsidian';
 	import type { VaultmanPlugin } from '../../main';
-	import { fade } from 'svelte/transition';
 	import FiltersTagsTab from './tabTags.svelte';
 	import FiltersPropsTab from './tabProps.svelte';
 	import FilesTab from './tabFiles.svelte';
@@ -301,45 +300,39 @@
 	/>
 {/if}
 
-{#key filtersActiveTab}
-	<div
-		class="vaultman-filters-tab-content"
-		in:fade={{ duration: 180 }}
-		out:fade={{ duration: 180 }}
-	>
-		{#if filtersActiveTab === 'files'}
-			<FilesTab
-				{plugin}
-				bind:fileList
-				onSelectionChange={(count) => (selectedCount = count)}
-			/>
-		{:else if filtersActiveTab === 'tags'}
-			<FiltersTagsTab
-				{plugin}
-				searchTerm={filtersSearch}
-				searchMode={filtersSearchCategory.tags}
-				bind:tagsExplorer
-			/>
-		{:else if filtersActiveTab === 'props'}
-			<FiltersPropsTab
-				{plugin}
-				searchTerm={filtersSearch}
-				searchMode={filtersSearchCategory.props}
-				bind:propExplorer
-			/>
-		{:else if filtersActiveTab === 'content'}
-			<TabContent
-				bind:contentFind
-				bind:contentReplace
-				bind:contentCaseSensitive
-				bind:contentIsRegex
-				bind:contentPreviewResult
-				bind:contentPreviewOpen
-				{contentRegexError}
-				{contentScopeHint}
-				{queueContentReplace}
-				{openContentMatch}
-			/>
-		{/if}
-	</div>
-{/key}
+<div class="vaultman-filters-tab-content">
+	{#if filtersActiveTab === 'files'}
+		<FilesTab
+			{plugin}
+			bind:fileList
+			onSelectionChange={(count) => (selectedCount = count)}
+		/>
+	{:else if filtersActiveTab === 'tags'}
+		<FiltersTagsTab
+			{plugin}
+			searchTerm={filtersSearch}
+			searchMode={filtersSearchCategory.tags}
+			bind:tagsExplorer
+		/>
+	{:else if filtersActiveTab === 'props'}
+		<FiltersPropsTab
+			{plugin}
+			searchTerm={filtersSearch}
+			searchMode={filtersSearchCategory.props}
+			bind:propExplorer
+		/>
+	{:else if filtersActiveTab === 'content'}
+		<TabContent
+			bind:contentFind
+			bind:contentReplace
+			bind:contentCaseSensitive
+			bind:contentIsRegex
+			bind:contentPreviewResult
+			bind:contentPreviewOpen
+			{contentRegexError}
+			{contentScopeHint}
+			{queueContentReplace}
+			{openContentMatch}
+		/>
+	{/if}
+</div>

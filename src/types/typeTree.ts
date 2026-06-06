@@ -26,6 +26,7 @@ export interface TreeNode<TMeta = unknown> {
 	id: string;
 	label: string;
 	icon?: string;
+	showCaret?: boolean;
 	typeText?: string;
 	count?: number;
 	badges?: NodeBadge[];
