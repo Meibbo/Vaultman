@@ -5,7 +5,7 @@ status: active
 parent: "[[docs/work/pkm-ai/index|pkm-ai]]"
 archive_source: docs/archive/pkm-ai/active-docs/2026-05-11T080321-current-status.md
 created: 2026-05-04T01:36:20
-updated: 2026-06-06T13:55:00
+updated: 2026-06-06T15:02:00-05:00
 tags:
   - agent/current
 created_by: dec
@@ -29,6 +29,20 @@ Compact route index after archiving the oversized current status:
 ## Current Route
 
 - Active initiative: [[docs/work/hardening/index|Hardening]].
+- **LATEST (2026-06-06)**: Stable `1.1.0` Data/Files parity
+  [[docs/work/hardening/issues/stable-1-1-data-files-parity/007-nested-flat-hierarchy-mode-all-explorers|SDF-007]]
+  and
+  [[docs/work/hardening/issues/stable-1-1-data-files-parity/008-correct-tags-nested-simple-grouping|SDF-008]]
+  are complete in product worktree `hotfix/1.0.2-css-scorecard`: Files, Props, and Tags now expose
+  `Nested` in minimal/native and popup View controls with `Nested` on by default; a shared pure
+  hierarchy helper projects flat `level1/level2/levelN` labels while preserving node ids/meta; Files
+  flat mode no longer toggles hidden folder expansion; Props flat mode shows `prop/value` rows with
+  original ids; Tags `Nested tags` now returns only roots with children and `Simple tags` returns only
+  childless root tags. `pnpm run verify` passed (`25` unit files / `82` tests; scorecard `17`
+  checks); build synced to `plugin-dev`; reload/open passed; runtime DOM smokes confirmed Files flat
+  rows (`depth=0`, no carets), Props flat `prop/value` labels, Tags nested roots all with carets,
+  Tags simple roots with no slash ids/carets, default `Nested` checked after final reload, and final
+  `dev:errors` returned `No errors captured`.
 - **LATEST (2026-06-06)**: Stable `1.1.0` Data/Files parity
   [[docs/work/hardening/issues/stable-1-1-data-files-parity/003-repair-files-explorer-sort-execution|SDF-003]],
   [[docs/work/hardening/issues/stable-1-1-data-files-parity/004-split-date-sort-created-modified-cache|SDF-004]],
