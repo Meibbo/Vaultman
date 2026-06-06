@@ -4,7 +4,7 @@ type: issue-index
 status: active
 parent: "[[docs/work/hardening/plans/2026-06-05-stable-1-1-0-data-files-parity/index|Stable 1.1.0 Data/Files parity implementation plan]]"
 created: 2026-06-06T07:53:25
-updated: 2026-06-06T13:20:45
+updated: 2026-06-06T13:55:00
 tags:
   - agent/issue
   - initiative/hardening
@@ -38,9 +38,9 @@ Local Markdown tracker for the release-facing Data/Files parity follow-up after 
 
 1. [[001-native-extension-cell-polish|SDF-001 Native extension cell polish]] - completed
 2. [[002-explorer-expand-state-header-action|SDF-002 Explorer expand state drives header action]] - completed
-3. [[003-repair-files-explorer-sort-execution|SDF-003 Repair Files explorer sort execution]]
-4. [[004-split-date-sort-created-modified-cache|SDF-004 Split date sort into modified and created cache-backed sorts]]
-5. [[005-statistics-shared-cache-scoped-projections|SDF-005 Statistics shared cache with scoped projections]]
+3. [[003-repair-files-explorer-sort-execution|SDF-003 Repair Files explorer sort execution]] - completed
+4. [[004-split-date-sort-created-modified-cache|SDF-004 Split date sort into modified and created cache-backed sorts]] - completed
+5. [[005-statistics-shared-cache-scoped-projections|SDF-005 Statistics shared cache with scoped projections]] - completed
 6. [[006-zero-result-filters-warning-indicator|SDF-006 Zero-result filters warning indicator]] - completed
 7. [[007-nested-flat-hierarchy-mode-all-explorers|SDF-007 Nested and flat hierarchy mode across explorers]]
 8. [[008-correct-tags-nested-simple-grouping|SDF-008 Correct Tags nested/simple grouping semantics]]

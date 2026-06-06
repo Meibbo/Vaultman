@@ -5,7 +5,7 @@ status: active
 parent: "[[docs/work/pkm-ai/index|pkm-ai]]"
 archive_source: docs/archive/pkm-ai/active-docs/2026-05-11T080321-current-handoff.md
 created: 2026-05-04T01:36:20
-updated: 2026-06-06T13:20:45
+updated: 2026-06-06T13:55:00
 tags:
   - agent/current
 created_by: dec
@@ -16,6 +16,32 @@ updated_by: codex-gpt-5
 
 Compact handoff after archiving the oversized current handoff:
 [[docs/archive/pkm-ai/active-docs/2026-05-11T080321-current-handoff|2026-05-11 handoff archive]].
+
+## NEXT AGENT START HERE — SDF-003/SDF-004/SDF-005 complete (2026-06-06)
+
+Stable `1.1.0` Data/Files parity
+[[docs/work/hardening/issues/stable-1-1-data-files-parity/003-repair-files-explorer-sort-execution|SDF-003]],
+[[docs/work/hardening/issues/stable-1-1-data-files-parity/004-split-date-sort-created-modified-cache|SDF-004]],
+and
+[[docs/work/hardening/issues/stable-1-1-data-files-parity/005-statistics-shared-cache-scoped-projections|SDF-005]]
+are complete in product worktree `hotfix/1.0.2-css-scorecard`. Main code points:
+`src/logic/logicSort.ts` centralizes sort normalization/comparators and maps legacy `date` to
+`mtime`; `FilesLogic.buildFileTree()` now keeps folders first without re-sorting file siblings, so
+Files tree respects caller-provided sort order; `navbarFilters.svelte` and `popupSort.svelte` expose
+`Modified time` / `Created time` and no longer expose ambiguous `Date`; `StatisticsCacheService`
+persists `ctime` with per-file cache records and exposes `getFileTimes()`; Props/Tags date-derived
+sorts now build one-pass timestamp indexes instead of nested scans; `logicStatisticsScope.ts` makes
+Statistics scope projection testable and `pageStatistics.svelte` uses `workspace.getActiveFile()` for
+selected-file scope. Evidence: RED/GREEN focused tests (`6` files / `22` tests), Svelte autofixer no
+issues on touched components, `pnpm run verify` passed (`24` unit files / `79` tests; scorecard `17`
+checks), build synced to `plugin-dev`, reload/open passed, DOM smoke confirmed Files Sort menu
+`Name/Count/Extension/Modified time/Created time/Path` with no `Date`, Props smoke clicked both
+date-derived sorts, Statistics smoke confirmed filtered markdown count equals markdown count
+(`11068`), selected scope points to the active editor file, and `getFileTimes()` ctime/mtime match file
+stat. Final `dev:errors`: `No errors captured`. Performance note: Props `Modified time` first smoke
+rendered in about `909 ms`, Created in about `241 ms`; not a freeze, but keep Modified on the watch
+list if user-visible jank remains. Next active issues: SDF-007, SDF-008, SDF-010, SDF-011, and
+SDF-016.
 
 ## NEXT AGENT START HERE — SDF-006/SDF-009 complete (2026-06-06)
 

@@ -5,7 +5,7 @@ status: active
 parent: "[[docs/work/pkm-ai/index|pkm-ai]]"
 archive_source: docs/archive/pkm-ai/active-docs/2026-05-11T080321-current-status.md
 created: 2026-05-04T01:36:20
-updated: 2026-06-06T13:20:45
+updated: 2026-06-06T13:55:00
 tags:
   - agent/current
 created_by: dec
@@ -29,6 +29,22 @@ Compact route index after archiving the oversized current status:
 ## Current Route
 
 - Active initiative: [[docs/work/hardening/index|Hardening]].
+- **LATEST (2026-06-06)**: Stable `1.1.0` Data/Files parity
+  [[docs/work/hardening/issues/stable-1-1-data-files-parity/003-repair-files-explorer-sort-execution|SDF-003]],
+  [[docs/work/hardening/issues/stable-1-1-data-files-parity/004-split-date-sort-created-modified-cache|SDF-004]],
+  and
+  [[docs/work/hardening/issues/stable-1-1-data-files-parity/005-statistics-shared-cache-scoped-projections|SDF-005]]
+  are complete in product worktree `hotfix/1.0.2-css-scorecard`: Files tree now preserves caller
+  sort order while keeping folders first; explorer sort state migrates legacy `date` to `mtime`;
+  Sort menus expose `Modified time` and `Created time`; per-file statistics cache records persist
+  `ctime`; Props/Tags date-derived sorts use one-pass timestamp indexes instead of nested
+  `nodes x files` scans; Statistics scopes use a pure projection where `selected` is the focused
+  editor file and folder counts project from scoped files. `pnpm run verify` passed (`24` unit files /
+  `79` tests; scorecard `17` checks); build synced to `plugin-dev`; reload/open passed; DOM/runtime
+  smokes confirmed Files Sort menu labels, Props Modified/Created sort clicks, selected-file
+  statistics over the active editor, clean `ctime`/`mtime`, filtered markdown count `11068`, and final
+  `dev:errors` returned `No errors captured`. Note: Props `Modified time` first smoke rendered in
+  about `909 ms`; keep it on the performance watch list if user-visible jank persists.
 - **LATEST (2026-06-06)**: Stable `1.1.0` Data/Files parity
   [[docs/work/hardening/issues/stable-1-1-data-files-parity/006-zero-result-filters-warning-indicator|SDF-006]]
   and
@@ -99,9 +115,8 @@ Compact route index after archiving the oversized current status:
 - **LATEST (2026-06-06)**: Follow-up tracker published for Stable `1.1.0`
   Data/Files parity:
   [[docs/work/hardening/issues/stable-1-1-data-files-parity/index|Stable 1.1.0 Data/Files parity local issues]].
-  It now contains 16 local issues: SDF-001, SDF-002, SDF-006, SDF-009, SDF-012, SDF-013, SDF-014,
-  and SDF-015 are completed; SDF-003, SDF-004, SDF-005, SDF-007, SDF-008, SDF-010, SDF-011, and
-  SDF-016 remain active follow-up work.
+  It now contains 16 local issues: SDF-001 through SDF-006, SDF-009, and SDF-012 through SDF-015
+  are completed; SDF-007, SDF-008, SDF-010, SDF-011, and SDF-016 remain active follow-up work.
 - **LATEST (2026-06-06)**: Stable `1.1.0` Data/Files parity Task 6L completed in
   [[docs/work/hardening/plans/2026-06-05-stable-1-1-0-data-files-parity/index|Data/Files parity plan]]:
   Files extension display is now the same tree type cell used by Props (`TreeNode.typeText` /
