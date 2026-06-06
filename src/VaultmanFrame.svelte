@@ -16,6 +16,7 @@
 	import { translate } from './i18n/index';
 	import type { FabDef } from './types/typeUI';
 	import { resolveDockPageOrder } from './logic/logicNavigation';
+	import type { StatisticsDataTab } from './logic/logicStatisticsNavigation';
 
 	// ─── Props ────────────────────────────────────────────────────────────────
 
@@ -150,6 +151,14 @@
 			closeFiltersIsland();
 		}
 		activePage = page;
+		applyPageTransform(!minimalStyle);
+	}
+
+	function navigateToDataTab(tab: StatisticsDataTab) {
+		closeQueueIsland();
+		closeFiltersIsland();
+		filtersActiveTab = tab;
+		activePage = 'filters';
 		applyPageTransform(!minimalStyle);
 	}
 
@@ -628,7 +637,11 @@
 			<div class="vaultman-page" data-page={pageId}>
 				{#key pageRenderKey}
 					{#if pageId === 'statistics'}
-						<StatisticsPage {plugin} active={activePage === pageId} />
+						<StatisticsPage
+							{plugin}
+							active={activePage === pageId}
+							onNavigateToDataTab={navigateToDataTab}
+						/>
 					{:else if pageId === 'filters'}
 						<FiltersPage
 							{plugin}

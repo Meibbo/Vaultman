@@ -1,12 +1,8 @@
 import type { TFile } from 'obsidian';
 
-export type PopupType =
-	| "active-filters"
-	| "scope"
-	| "search"
-	| "move";
+export type PopupType = 'active-filters' | 'scope' | 'search' | 'move';
 
-export type OpsTab = "template" | "layout" | "content";
+export type OpsTab = 'template' | 'layout' | 'content';
 
 export interface defOpsTab {
 	id: OpsTab;
@@ -47,7 +43,7 @@ export interface FabDef {
 }
 
 export type ExplorerTabId = 'props' | 'files' | 'tags';
-export type ExplorerViewMode = 'tree' | 'dnd' | 'grid' | 'cards';
+export type ExplorerViewMode = 'tree' | 'table' | 'dnd' | 'grid' | 'cards';
 export type ExplorerSortDirection = 'asc' | 'desc';
 
 export interface ExplorerSortState {

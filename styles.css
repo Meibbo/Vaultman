@@ -4548,6 +4548,9 @@ body.vaultman-bases-column-separators table th {
   background: var(--background-secondary);
   border: 1px solid var(--vaultman-border);
   border-radius: 12px;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
   transition: transform 0.2s ease, border-color 0.2s ease;
 }
 
@@ -4601,6 +4604,21 @@ body.vaultman-bases-column-separators table th {
   align-items: center;
   gap: 8px;
   font-size: var(--font-ui-small);
+}
+
+.vaultman-stat-meta-action {
+  width: 100%;
+  padding: 0;
+  color: inherit;
+  font: inherit;
+  background: transparent;
+  border: 0;
+  cursor: pointer;
+  text-align: left;
+}
+
+.vaultman-stat-meta-action:hover .vaultman-meta-label {
+  color: var(--text-normal);
 }
 
 .vaultman-stat-reconcile-status {

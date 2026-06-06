@@ -2,6 +2,10 @@
 	import { translate } from '../../i18n/index';
 	import { untrack } from 'svelte';
 	import type { ExplorerViewMode } from '../../types/typeUI';
+	import {
+		isViewModeSelectableForDataSurface,
+		viewModesForDataSurface,
+	} from '../../logic/logicExplorerViewModes';
 
 	type FiltersTab = 'props' | 'files' | 'tags';
 	type ViewMode = ExplorerViewMode;
@@ -11,36 +15,6 @@
 		labelKey: string;
 		defaultOn: boolean;
 	};
-
-	const VIEW_MODES: {
-		id: ViewMode;
-		iconName: string;
-		labelKey: string;
-		locked?: boolean;
-	}[] = [
-		{
-			id: 'tree',
-			iconName: 'lucide-list-tree',
-			labelKey: 'viewmode.mode.tree',
-		},
-		{
-			id: 'dnd',
-			iconName: 'lucide-grip-vertical',
-			labelKey: 'viewmode.mode.dnd',
-			locked: true,
-		},
-		{
-			id: 'grid',
-			iconName: 'lucide-layout-grid',
-			labelKey: 'viewmode.mode.grid',
-		},
-		{
-			id: 'cards',
-			iconName: 'lucide-layout-panel-top',
-			labelKey: 'viewmode.mode.cards',
-			locked: true,
-		},
-	];
 
 	// Pills for each combination of tab × view (files splits by view mode).
 	const PILLS: Record<string, PillDef[]> = {
@@ -56,13 +30,20 @@
 			{ id: 'count', labelKey: 'viewmode.pill.count', defaultOn: true },
 			{ id: 'nested', labelKey: 'viewmode.pill.nested', defaultOn: true },
 		],
-		'files-grid': [
+		'files-table': [
 			{ id: 'icon', labelKey: 'viewmode.pill.icon', defaultOn: true },
 			{ id: 'name', labelKey: 'viewmode.pill.name', defaultOn: true },
 			{ id: 'count', labelKey: 'viewmode.pill.count', defaultOn: true },
 			{ id: 'ext', labelKey: 'viewmode.pill.ext', defaultOn: true },
 			{ id: 'date', labelKey: 'viewmode.pill.date', defaultOn: true },
 			{ id: 'path', labelKey: 'viewmode.pill.path', defaultOn: false },
+			{ id: 'nested', labelKey: 'viewmode.pill.nested', defaultOn: true },
+		],
+		'files-grid': [
+			{ id: 'icon', labelKey: 'viewmode.pill.icon', defaultOn: true },
+			{ id: 'name', labelKey: 'viewmode.pill.name', defaultOn: true },
+			{ id: 'count', labelKey: 'viewmode.pill.count', defaultOn: true },
+			{ id: 'ext', labelKey: 'viewmode.pill.ext', defaultOn: true },
 			{ id: 'nested', labelKey: 'viewmode.pill.nested', defaultOn: true },
 		],
 		'files-tree': [
@@ -80,7 +61,11 @@
 	}
 
 	function pillsKey(tab: FiltersTab, view: ViewMode): string {
-		if (tab === 'files') return view === 'grid' ? 'files-grid' : 'files-tree';
+		if (tab === 'files') {
+			if (view === 'table') return 'files-table';
+			if (view === 'grid') return 'files-grid';
+			return 'files-tree';
+		}
 		return tab;
 	}
 
@@ -97,7 +82,7 @@
 	}: {
 		activeTab: FiltersTab;
 		onClose: () => void;
-		onViewModeChange?: (mode: 'tree' | 'dnd' | 'grid' | 'cards') => void;
+		onViewModeChange?: (mode: ExplorerViewMode) => void;
 		onPillsChange?: (activePills: string[]) => void;
 		onAddModeChange?: (active: boolean) => void;
 		icon: (node: HTMLElement, name: string) => { update(n: string): void };
@@ -129,10 +114,11 @@
 
 	const currentPillKey = $derived(pillsKey(activeTab, activeView));
 	const currentPillDefs = $derived(PILLS[currentPillKey] ?? []);
+	const currentViewModes = $derived(viewModesForDataSurface(activeTab));
 
 	function selectView(v: ViewMode) {
 		if (activeView === v) return;
-		if (v === 'dnd' || v === 'cards') return;
+		if (!isViewModeSelectableForDataSurface(activeTab, v)) return;
 		activeView = v;
 		activePills = defaultPills(pillsKey(activeTab, v));
 		onViewModeChange?.(v);
@@ -141,18 +127,6 @@
 
 	function isIdentityPill(id: string): boolean {
 		return id === 'icon' || id === 'text' || id === 'name';
-	}
-
-	function viewModeLabelKey(mode: ViewMode, labelKey: string): string {
-		return activeTab === 'files' && mode === 'grid'
-			? 'viewmode.mode.table'
-			: labelKey;
-	}
-
-	function viewModeIconName(mode: ViewMode, iconName: string): string {
-		return activeTab === 'files' && mode === 'grid'
-			? 'lucide-table-2'
-			: iconName;
 	}
 
 	function togglePill(id: string) {
@@ -230,13 +204,13 @@
 
 	<!-- Row 2: view-mode squircles -->
 	<div class="vaultman-viewmode-row vaultman-squircle-row">
-		{#each VIEW_MODES as vm (vm.id)}
+		{#each currentViewModes as vm (vm.id)}
 			<div
 				class="vaultman-squircle"
 				class:is-accent={activeView === vm.id}
 				class:is-locked={vm.locked}
 				class:vaultman-backdrop-lock={vm.locked}
-				aria-label={translate(viewModeLabelKey(vm.id, vm.labelKey))}
+				aria-label={translate(vm.labelKey)}
 				aria-disabled={vm.locked ? 'true' : undefined}
 				onclick={() => selectView(vm.id)}
 				onkeydown={(e: KeyboardEvent) => {
@@ -244,7 +218,7 @@
 				}}
 				role="button"
 				tabindex={vm.locked ? -1 : 0}
-				use:icon={viewModeIconName(vm.id, vm.iconName)}
+				use:icon={vm.icon}
 			>
 				{#if vm.locked}
 					<span

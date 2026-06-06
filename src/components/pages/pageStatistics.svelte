@@ -10,9 +10,21 @@
 		filesForStatisticsScope,
 		folderCountForStatisticsFiles,
 	} from '../../logic/logicStatisticsScope';
+	import {
+		dataTabForStatisticsCard,
+		type StatisticsDataTab,
+		type StatisticsNavigationCard,
+	} from '../../logic/logicStatisticsNavigation';
 
-	let { plugin, active = false }: { plugin: VaultmanPlugin; active?: boolean } =
-		$props();
+	let {
+		plugin,
+		active = false,
+		onNavigateToDataTab,
+	}: {
+		plugin: VaultmanPlugin;
+		active?: boolean;
+		onNavigateToDataTab?: (tab: StatisticsDataTab) => void;
+	} = $props();
 
 	type Scope = StatisticsScope;
 	let scope = $state<Scope>('vault');
@@ -129,30 +141,35 @@
 
 	const statCards = $derived([
 		{
+			id: 'folders' as StatisticsNavigationCard,
 			label: translate('stats.folders'),
 			icon: 'lucide-folder',
 			value: counts.folders,
 			color: 'var(--color-blue)',
 		},
 		{
+			id: 'files' as StatisticsNavigationCard,
 			label: translate('stats.files'),
 			icon: 'lucide-file-text',
 			value: counts.files,
 			color: 'var(--color-green)',
 		},
 		{
+			id: 'props' as StatisticsNavigationCard,
 			label: translate('stats.props'),
 			icon: 'lucide-tag',
 			value: counts.props,
 			color: 'var(--color-orange)',
 		},
 		{
+			id: 'values' as StatisticsNavigationCard,
 			label: translate('stats.values'),
 			icon: 'lucide-list',
 			value: counts.values,
 			color: 'var(--color-purple)',
 		},
 		{
+			id: 'tags' as StatisticsNavigationCard,
 			label: translate('stats.tags'),
 			icon: 'lucide-hash',
 			value: counts.tags,
@@ -194,12 +211,22 @@
 			},
 		};
 	}
+
+	function navigateFromCard(card: StatisticsNavigationCard) {
+		onNavigateToDataTab?.(dataTabForStatisticsCard(card));
+	}
 </script>
 
 <div class="vaultman-statistics-page" class:is-reconciling={statsReconciling}>
 	<div class="vaultman-stat-cards-grid">
 		{#each statCards as card (card.icon)}
-			<div class="vaultman-stat-card" style="--card-color: {card.color}">
+			<button
+				type="button"
+				class="vaultman-stat-card"
+				style="--card-color: {card.color}"
+				aria-label={`${card.label}: ${card.value.toLocaleString()}`}
+				onclick={() => navigateFromCard(card.id)}
+			>
 				<div class="vaultman-stat-card-icon" use:iconAction={card.icon}></div>
 				<div class="vaultman-stat-card-info">
 					<span class="vaultman-stat-card-value"
@@ -207,7 +234,7 @@
 					>
 					<span class="vaultman-stat-card-label">{card.label}</span>
 				</div>
-			</div>
+			</button>
 		{/each}
 	</div>
 	<div class="vaultman-stat-header">
@@ -242,7 +269,12 @@
 				>{statsSnapshot.links.toLocaleString()}</span
 			>
 		</div>
-		<div class="vaultman-stat-meta-item">
+		<button
+			type="button"
+			class="vaultman-stat-meta-item vaultman-stat-meta-action"
+			onclick={() => navigateFromCard('words')}
+			aria-label={translate('stats.word_count')}
+		>
 			<span class="vaultman-meta-icon" use:iconAction={'lucide-type'}></span>
 			<span class="vaultman-meta-label">{translate('stats.word_count')}</span>
 			<span class="vaultman-meta-value"
@@ -250,6 +282,6 @@
 					? statsSnapshot.words.toLocaleString()
 					: '—'}</span
 			>
-		</div>
+		</button>
 	</div>
 </div>

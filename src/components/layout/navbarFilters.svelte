@@ -11,6 +11,11 @@
 		DEFAULT_EXPLORER_SORT_DIR,
 		normalizeExplorerSortBy,
 	} from '../../logic/logicSort';
+	import {
+		isViewModeSelectableForDataSurface,
+		panelViewModeForDataSurface,
+		viewModesForDataSurface,
+	} from '../../logic/logicExplorerViewModes';
 
 	type FiltersTab = 'props' | 'files' | 'tags';
 	type HeaderTabOption = { id: string; label: string; icon: string };
@@ -402,7 +407,7 @@
 	}
 
 	function applyViewMode(tab: FiltersTab, mode: ExplorerViewMode) {
-		const effectiveMode = mode === 'grid' ? 'grid' : 'tree';
+		const effectiveMode = panelViewModeForDataSurface(tab, mode);
 		if (tab === 'files') fileList?.setViewMode(effectiveMode);
 		if (tab === 'props') propExplorer?.setViewMode(effectiveMode);
 		if (tab === 'tags') tagsExplorer?.setViewMode(effectiveMode);
@@ -422,7 +427,7 @@
 	}
 
 	function handleViewModeChange(mode: ExplorerViewMode) {
-		if (mode === 'dnd' || mode === 'cards') return;
+		if (!isViewModeSelectableForDataSurface(activeTab, mode)) return;
 		viewModeByTab = { ...viewModeByTab, [activeTab]: mode };
 		applyViewMode(activeTab, mode);
 	}
@@ -455,7 +460,7 @@
 	}
 
 	function selectNativeViewMode(mode: ExplorerViewMode) {
-		if (mode === 'dnd' || mode === 'cards') return;
+		if (!isViewModeSelectableForDataSurface(activeTab, mode)) return;
 		handleViewModeChange(mode);
 	}
 
@@ -466,25 +471,16 @@
 			visibleCellsByTab[activeTab] ?? DEFAULT_VISIBLE_CELLS[activeTab],
 		);
 
-		for (const option of [
-			{
-				id: 'tree' as ExplorerViewMode,
-				icon: 'lucide-list-tree',
-				label: 'viewmode.mode.tree',
-			},
-			{
-				id: 'grid' as ExplorerViewMode,
-				icon: activeTab === 'files' ? 'lucide-table-2' : 'lucide-layout-grid',
-				label:
-					activeTab === 'files' ? 'viewmode.mode.table' : 'viewmode.mode.grid',
-			},
-		]) {
+		for (const option of viewModesForDataSurface(activeTab)) {
 			menu.addItem((item) => {
 				item
-					.setTitle(translate(option.label))
+					.setTitle(translate(option.labelKey))
 					.setIcon(option.icon)
 					.setChecked(activeView === option.id)
-					.onClick(() => selectNativeViewMode(option.id));
+					.setDisabled(option.locked ?? false);
+				if (!option.locked) {
+					item.onClick(() => selectNativeViewMode(option.id));
+				}
 			});
 		}
 
