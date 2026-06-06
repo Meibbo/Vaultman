@@ -5,7 +5,7 @@ status: active
 parent: "[[docs/work/pkm-ai/index|pkm-ai]]"
 archive_source: docs/archive/pkm-ai/active-docs/2026-05-11T080321-current-handoff.md
 created: 2026-05-04T01:36:20
-updated: 2026-06-06T17:39:16-05:00
+updated: 2026-06-06T18:44:22-05:00
 tags:
   - agent/current
 created_by: dec
@@ -16,6 +16,26 @@ updated_by: codex-gpt-5
 
 Compact handoff after archiving the oversized current handoff:
 [[docs/archive/pkm-ai/active-docs/2026-05-11T080321-current-handoff|2026-05-11 handoff archive]].
+
+## NEXT AGENT START HERE — SDF-016c scroll lifecycle cut complete (2026-06-06)
+
+Stable `1.1.0` Data/Files parity
+[[docs/work/hardening/issues/stable-1-1-data-files-parity/016-explorer-view-parity-and-stat-card-routing|SDF-016]]
+is still in progress in product worktree `hotfix/1.0.2-css-scorecard`. This cut fixed the severe
+Files Table -> Tree lifecycle regression and added perf instrumentation for table windows. Key product
+points: `GridView.destroy()` now cancels scheduled renders, removes the scroll listener, removes
+`vaultman-files-table-root`, empties the container, and clears stale refs; `FilesExplorerPanel` destroys
+the table view during remount/unload; `viewGrid.ts` and `viewNodeTable.ts` coalesce scroll window
+renders with RAF scheduling and emit `files.table.window` / `node.table.window` entries. Evidence:
+focused RED/GREEN guards passed, virtualization gate `5` files / `8` tests passed, `pnpm run check`,
+lint, format check, stylelint, and `pnpm run build` passed; build synced to `plugin-dev`; DOM smoke
+confirmed expanded Files Tree `scrollHeight=301887` and computed spacer `301887px` with no stale table
+root; Files Table `scrollHeight=333570` with about `25` DOM rows; final `dev:errors` clean. Residual
+risk: scroll jank remains measurable, especially expanded Tree (`tree.window` around `17-27ms`,
+sampler `fps=16`, `7` long tasks / `1164ms`). Next slice should target render-row cost/reuse and add
+Vaultman node DnD. Core Files DOM exposes `draggable="true"` plus `data-path` on file/folder rows;
+visible Core Tag pane rows did not expose `draggable` in the CLI DOM snapshot, so Tags/Props DnD
+should be implemented as deliberate Vaultman payload behavior, not a blind Files clone.
 
 ## NEXT AGENT START HERE — SDF-016b Props/Tags table slice complete (2026-06-06)
 

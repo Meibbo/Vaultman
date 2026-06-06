@@ -5,7 +5,7 @@ status: active
 parent: "[[docs/work/pkm-ai/index|pkm-ai]]"
 archive_source: docs/archive/pkm-ai/active-docs/2026-05-11T080321-current-status.md
 created: 2026-05-04T01:36:20
-updated: 2026-06-06T17:39:16-05:00
+updated: 2026-06-06T18:44:22-05:00
 tags:
   - agent/current
 created_by: dec
@@ -29,6 +29,18 @@ Compact route index after archiving the oversized current status:
 ## Current Route
 
 - Active initiative: [[docs/work/hardening/index|Hardening]].
+- **LATEST (2026-06-06)**: Stable `1.1.0` Data/Files parity
+  [[docs/work/hardening/issues/stable-1-1-data-files-parity/016-explorer-view-parity-and-stat-card-routing|SDF-016]]
+  SDF-016c completed a targeted explorer scroll/lifecycle cut in product worktree
+  `hotfix/1.0.2-css-scorecard`: Files Table now destroys its root state before Tree remounts,
+  Files/Node table scroll handlers coalesce window DOM rebuilds through RAF scheduling, and table
+  renderers now emit `files.table.window` / `node.table.window` perf entries. Verification: RED/GREEN
+  source guards, focused virtualization gate `5` unit files / `8` tests, `pnpm run check`, lint,
+  format check, stylelint, `pnpm run build` synced to `plugin-dev`, runtime DOM smoke confirmed
+  expanded Files Tree `scrollHeight=301887` with no stale `vaultman-files-table-root`, Files Table
+  `scrollHeight=333570`, final `dev:errors` clean. Remaining risk: explorer scroll jank is still
+  measurable (`tree.window` around `17-27ms`, Files Table windows mostly `13-23ms` with one `34.6ms`
+  spike). DnD native DOM research was captured as the next separate slice.
 - **LATEST (2026-06-06)**: Stable `1.1.0` Data/Files parity
   [[docs/work/hardening/issues/stable-1-1-data-files-parity/016-explorer-view-parity-and-stat-card-routing|SDF-016]]
   SDF-016b completed the Props/Tags generic table slice in product worktree

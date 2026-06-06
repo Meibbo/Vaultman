@@ -6,7 +6,7 @@ status: in-progress
 issue_kind: AFK
 parent: "[[docs/work/hardening/issues/stable-1-1-data-files-parity/index|Stable 1.1.0 Data/Files parity local issues]]"
 created: 2026-06-06T11:15:23
-updated: 2026-06-06T17:39:16-05:00
+updated: 2026-06-06T18:44:22-05:00
 labels:
   - ready-for-agent
   - needs-research
@@ -72,6 +72,60 @@ view-mode availability, and the still-open table layout work.
 The Statistics card routing is useful independently, but implementing it together with the view-parity
 work keeps the Data surface navigation contract coherent: Statistics becomes a map into the same explorer
 surfaces whose view modes are being normalized.
+
+## Progress - 2026-06-06T18:44:22-05:00
+
+SDF-016c completed a targeted table/tree lifecycle and scroll scheduling cut. SDF-016 remains
+in progress because this fixes a severe scroll/root-state regression but does not complete Content
+parity, Files grid, or DnD view behavior.
+
+- Root cause confirmed in `plugin-dev`: after switching Files Table -> Tree, the active
+  `.vaultman-files-tab-content` could keep the stale `vaultman-files-table-root` class. That table root
+  layout compressed the tree virtual spacer: the inline tree spacer height was large, but computed
+  height collapsed to about one viewport, producing the "bottom only reaches part of the list" symptom.
+- Product change:
+  - `GridView.destroy()` now removes the scroll listener, cancels pending scheduled renders, removes
+    `vaultman-files-table-root`, empties the container, and clears stale table refs.
+  - `FilesExplorerPanel._mountView()` and `onunload()` now destroy the Files table view before mounting
+    another view or unloading the panel.
+  - Files table and generic node table scroll handlers now sync the header immediately but coalesce
+    virtual-window DOM rebuilds through `window.requestAnimationFrame(run)` plus a short timeout fallback.
+  - `viewGrid.ts` records `files.table.window`; `viewNodeTable.ts` records `node.table.window`, matching
+    the existing `tree.window` performance evidence pattern.
+- Focused RED/GREEN source guards:
+  `test/unit/gridViewSource.test.ts`, `test/unit/nodeTableViewSource.test.ts`, and
+  `test/unit/explorerFilesSource.test.ts`.
+- Verification:
+  - RED confirmed missing Files table `destroy()`, missing node/table RAF scheduling, and missing
+    `this.gridView?.destroy()` in Files explorer lifecycle.
+  - Focused gate passed: `5` unit files / `8` tests including table/tree virtualization guards.
+  - `pnpm run check`, `pnpm run lint`, `pnpm run format:check`, and `pnpm run stylelint` passed.
+  - `pnpm run build` passed and synced artifacts to
+    `C:/Users/vic_A/Desktop/plugin-dev/.obsidian/plugins/vaultman`.
+  - Runtime DOM smoke after Files Table -> Tree confirmed
+    `vaultman-files-tab-content vaultman-tree-virtual-viewport`, no stale
+    `vaultman-files-table-root`, and matching inline/computed tree spacer height.
+  - Runtime expanded-files smoke confirmed `scrollHeight=301887`, `computedHeight=301887px`, and only
+    virtual visible rows in DOM, so the large file tree can scroll to the end again.
+  - Runtime Files Table smoke confirmed `vaultman-files-table-root` without
+    `vaultman-tree-virtual-viewport`, `scrollHeight=333570`, and about `25` DOM rows.
+  - Runtime perf smoke on Files Table recorded `files.table.window` samples mostly around `13-23ms`
+    with one `34.6ms` spike; sampler reported `fps=40`, `7` long tasks, `716ms` long-task time.
+  - Runtime perf smoke on expanded Files Tree still shows remaining optimization work:
+    `tree.window` samples around `17-27ms`, sampler `fps=16`, `7` long tasks, `1164ms` long-task time.
+    This cut fixes broken scroll/lifecycle; it does not fully solve explorer scroll jank.
+  - Runtime Props Table smoke recorded `node.table.window` samples around `14-30ms` over `258` rows.
+  - Final `obsidian vault=plugin-dev dev:errors` returned `No errors captured`. Console capture was not
+    available because the debugger was not attached.
+- DnD follow-up research captured with `obsidian-cli`:
+  - Core Files nodes expose `tree-item-self nav-folder-title/nav-file-title ...`, `draggable="true"`,
+    and `data-path` on both folders and files.
+  - Visible Core Tag pane nodes expose `tree-item-self tag-pane-tag is-clickable` and
+    `tag-pane-tag-count tree-item-flair`; this DOM snapshot did not expose `draggable` on tag rows.
+  - Next slice should implement Vaultman node DnD deliberately instead of treating tag/prop DnD as a
+    blind copy of Files. Files should carry path payloads; Tags should carry tag payloads; Props values
+    should stage prop+value when the prop is not already active, or value-only when the prop filter is
+    already active.
 
 ## Progress - 2026-06-06T17:39:16-05:00
 
