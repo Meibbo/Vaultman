@@ -22,4 +22,11 @@ describe('minimal dock source guards', () => {
 		expect(navbarPillFabSource).toContain("fab.badge === 'queue'");
 		expect(navbarPillFabSource).toContain("fab.badge === 'filters'");
 	});
+
+	it('shows a warning icon instead of a count when active filters return zero files', () => {
+		expect(navbarPillFabSource).toContain('filterResultCount');
+		expect(navbarPillFabSource).toContain('function fabShowsWarning');
+		expect(navbarPillFabSource).toContain("use:icon={'lucide-alert-triangle'}");
+		expect(navbarPillFabSource).toContain('vaultman-fab-badge--warning');
+	});
 });

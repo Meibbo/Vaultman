@@ -2674,6 +2674,31 @@ body.vaultman-bases-column-separators table th {
   align-self: center;
 }
 
+.vaultman-filters-header .vaultman-header-action-with-label {
+  width: auto;
+  min-width: var(--clickable-icon-size);
+  max-width: min(132px, 48vw);
+  gap: 5px;
+  padding: 0 8px;
+}
+
+.vaultman-header-action-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+}
+
+.vaultman-header-action-label {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--text-normal);
+  font-size: var(--font-ui-small);
+  line-height: 1;
+}
+
 .vaultman-filters-header-btn {
   display: flex;
   align-items: center;
@@ -4370,6 +4395,21 @@ body.vaultman-bases-column-separators table th {
   box-shadow: 0 1px 4px rgba(0, 0, 0, 0.1);
   z-index: 5;
   pointer-events: none;
+}
+
+.vaultman-fab-badge--warning {
+  width: 16px;
+  min-width: 16px;
+  height: 16px;
+  padding: 0;
+  color: var(--text-warning);
+  background: var(--background-primary);
+  border-color: var(--background-modifier-border);
+}
+
+.vaultman-fab-badge--warning svg {
+  width: 11px;
+  height: 11px;
 }
 
 

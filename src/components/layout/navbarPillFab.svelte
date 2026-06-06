@@ -1,6 +1,10 @@
 <script lang="ts">
 	import type { FabDef } from '../../types/typeUI';
 	import { translate } from '../../i18n/index';
+	import {
+		resolveFabIndicator,
+		type FabIndicator,
+	} from '../../logic/logicFabIndicator';
 
 	let {
 		isIslandOpen = false,
@@ -19,6 +23,7 @@
 		pillEl = $bindable(),
 		selectedCount,
 		filterRuleCount,
+		filterResultCount,
 		queuedCount,
 		bindNav,
 		onCollapsedNavClick,
@@ -45,6 +50,7 @@
 		pillEl: HTMLElement | null;
 		selectedCount: number;
 		filterRuleCount: number;
+		filterResultCount: number;
 		queuedCount: number;
 		bindNav: (node: HTMLElement) => any;
 		onCollapsedNavClick: () => void;
@@ -68,16 +74,31 @@
 		fab.doubleClickAction?.();
 	}
 
+	function fabIndicator(fab: FabDef): FabIndicator {
+		return resolveFabIndicator({
+			badge: fab.badge,
+			queuedCount,
+			filterRuleCount,
+			filterResultCount,
+		});
+	}
+
 	function fabBadgeCount(fab: FabDef): number {
-		if (fab.badge === 'queue') return queuedCount;
-		if (fab.badge === 'filters') return filterRuleCount;
-		return 0;
+		const indicator = fabIndicator(fab);
+		return indicator.kind === 'count' ? indicator.count : 0;
+	}
+
+	function fabShowsWarning(fab: FabDef): boolean {
+		return fabIndicator(fab).kind === 'warning';
 	}
 
 	function fabLabel(fab: FabDef): string {
 		if (fab.badge === 'queue') {
 			if (queuedCount === 0) return translate('ops.queue.empty');
 			return translate('ops.queue').replace('{count}', String(queuedCount));
+		}
+		if (fab.badge === 'filters' && fabShowsWarning(fab)) {
+			return translate('filters.active_zero');
 		}
 		return fab.label;
 	}
@@ -149,7 +170,13 @@
 							use:icon={'lucide-lock'}
 						></span>
 					{/if}
-					{#if fabBadgeCount(leftFab) > 0}
+					{#if fabShowsWarning(leftFab)}
+						<div
+							class="vaultman-fab-badge vaultman-fab-badge--warning"
+							aria-hidden="true"
+							use:icon={'lucide-alert-triangle'}
+						></div>
+					{:else if fabBadgeCount(leftFab) > 0}
 						<div class="vaultman-fab-badge">{fabBadgeCount(leftFab)}</div>
 					{/if}
 				</div>
@@ -215,7 +242,13 @@
 							use:icon={'lucide-lock'}
 						></span>
 					{/if}
-					{#if fabBadgeCount(rightFab) > 0}
+					{#if fabShowsWarning(rightFab)}
+						<div
+							class="vaultman-fab-badge vaultman-fab-badge--warning"
+							aria-hidden="true"
+							use:icon={'lucide-alert-triangle'}
+						></div>
+					{:else if fabBadgeCount(rightFab) > 0}
 						<div class="vaultman-fab-badge">{fabBadgeCount(rightFab)}</div>
 					{/if}
 				</div>
@@ -239,7 +272,13 @@
 					role="button"
 					tabindex="0"
 				></div>
-				{#if fabBadgeCount(leftFab) > 0}
+				{#if fabShowsWarning(leftFab)}
+					<div
+						class="vaultman-fab-badge vaultman-fab-badge--warning"
+						aria-hidden="true"
+						use:icon={'lucide-alert-triangle'}
+					></div>
+				{:else if fabBadgeCount(leftFab) > 0}
 					<div class="vaultman-fab-badge">{fabBadgeCount(leftFab)}</div>
 				{/if}
 			</div>
@@ -302,7 +341,13 @@
 					role="button"
 					tabindex="0"
 				></div>
-				{#if fabBadgeCount(rightFab) > 0}
+				{#if fabShowsWarning(rightFab)}
+					<div
+						class="vaultman-fab-badge vaultman-fab-badge--warning"
+						aria-hidden="true"
+						use:icon={'lucide-alert-triangle'}
+					></div>
+				{:else if fabBadgeCount(rightFab) > 0}
 					<div class="vaultman-fab-badge">{fabBadgeCount(rightFab)}</div>
 				{/if}
 			</div>

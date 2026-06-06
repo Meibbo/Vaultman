@@ -390,6 +390,7 @@ export const en: Record<string, string> = {
 		'Reorder and clean YAML frontmatter using the Obsidian Linter plugin.',
 	'ops.linter.run': 'Run Linter',
 	'filters.active': 'Active filters',
+	'filters.active_zero': 'Active filters return no files',
 	'scope.title': 'Operation scope',
 	'scope.desc': "Determines which files' properties appear in the filter list.",
 	'scope.all': 'All vault files',

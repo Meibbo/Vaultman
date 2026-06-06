@@ -695,6 +695,7 @@
 			bind:pillEl
 			{selectedCount}
 			{filterRuleCount}
+			filterResultCount={filteredCount}
 			{queuedCount}
 			{bindNav}
 			{onCollapsedNavClick}

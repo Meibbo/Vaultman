@@ -321,6 +321,8 @@ export const es: Record<string, string> = {
 	'filter.tab.props': 'Props',
 	'filter.tab.files': 'Archivos',
 	'filter.tab.content': 'Contenido',
+	'filters.active': 'Filtros activos',
+	'filters.active_zero': 'Los filtros activos no devuelven archivos',
 	'settings.filters_show_tab_labels': 'Mostrar labels en tabs',
 	'settings.filters_show_tab_labels.desc':
 		'Muestra u oculta el texto junto a los iconos de tabs en las pages.',

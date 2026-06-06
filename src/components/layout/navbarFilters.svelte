@@ -260,6 +260,11 @@
 			? `${translate('filter.tabs_btn')}: ${currentTabsOption.label}`
 			: translate('filter.tabs_btn'),
 	);
+	const showTabsButtonLabel = $derived(
+		minimalStyle &&
+			activeSectionTab === 'content' &&
+			currentTabsOption !== null,
+	);
 
 	function menuEventFromElement(element: HTMLElement): MouseEvent {
 		const rect = element.getBoundingClientRect();
@@ -645,6 +650,7 @@
 				{#if minimalStyle && tabOptions.length > 0}
 					<div
 						class={headerActionClass}
+						class:vaultman-header-action-with-label={showTabsButtonLabel}
 						role="button"
 						tabindex="0"
 						aria-label={currentTabsLabel}
@@ -658,8 +664,18 @@
 								);
 							}
 						}}
-						use:icon={currentTabsIcon}
-					></div>
+					>
+						<span
+							class="vaultman-header-action-icon"
+							aria-hidden="true"
+							use:icon={currentTabsIcon}
+						></span>
+						{#if showTabsButtonLabel && currentTabsOption}
+							<span class="vaultman-header-action-label">
+								{currentTabsOption.label}
+							</span>
+						{/if}
+					</div>
 				{/if}
 				{#if showExplorerControls}
 					<div
