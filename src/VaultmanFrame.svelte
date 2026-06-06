@@ -686,6 +686,8 @@
 			{leftFab}
 			{rightFab}
 			{minimalStyle}
+			{queueIslandOpen}
+			{filtersIslandOpen}
 			{navCollapsed}
 			isIslandOpen={queueIslandOpen || filtersIslandOpen}
 			bind:isReordering

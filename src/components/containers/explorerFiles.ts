@@ -16,6 +16,14 @@ import { showInputModal } from '../../utils/inputModal';
 
 export type FilesViewMode = 'grid' | 'tree';
 
+function sameStringSet(a: Set<string>, b: Set<string>): boolean {
+	if (a.size !== b.size) return false;
+	for (const value of a) {
+		if (!b.has(value)) return false;
+	}
+	return true;
+}
+
 export class FilesExplorerPanel extends Component {
 	private containerEl: HTMLElement;
 	private plugin: VaultmanPlugin;
@@ -235,12 +243,14 @@ export class FilesExplorerPanel extends Component {
 	}
 
 	setViewMode(mode: FilesViewMode): void {
+		if (this.viewMode === mode) return;
 		this.viewMode = mode;
 		this._mountView();
 		this._render();
 	}
 
 	setVisibleCells(cells: Set<string>): void {
+		if (sameStringSet(this.visibleCells, cells)) return;
 		this.visibleCells = new Set(cells);
 		this.gridView?.setVisibleCells(this.visibleCells);
 		this._render();
@@ -255,6 +265,7 @@ export class FilesExplorerPanel extends Component {
 	}
 
 	setSortBy(sortBy: string, direction: 'asc' | 'desc'): void {
+		if (this.sortBy === sortBy && this.sortDir === direction) return;
 		this.sortBy = sortBy;
 		this.sortDir = direction;
 		if (this.viewMode === 'grid' && this.gridView) {
@@ -280,6 +291,7 @@ export class FilesExplorerPanel extends Component {
 	}
 
 	setSearchFilter(name: string, folder: string): void {
+		if (this.searchName === name && this.searchFolder === folder) return;
 		this.searchName = name;
 		this.searchFolder = folder;
 		const base =

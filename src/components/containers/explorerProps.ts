@@ -27,6 +27,14 @@ import {
 	type MetadataTypeManagerLike,
 } from '../../logic/propTypes';
 
+function sameStringSet(a: Set<string>, b: Set<string>): boolean {
+	if (a.size !== b.size) return false;
+	for (const value of a) {
+		if (!b.has(value)) return false;
+	}
+	return true;
+}
+
 export class PropsExplorerPanel extends Component {
 	private plugin: PanelPluginCtx;
 	private logic: PropsLogic;
@@ -254,6 +262,7 @@ export class PropsExplorerPanel extends Component {
 	}
 
 	setSearchTerm(term: string, mode = 0): void {
+		if (this.searchTerm === term && this.searchMode === mode) return;
 		const previousKey = `${this.searchTerm}\0${this.searchMode}`;
 		this.searchTerm = term;
 		this.searchMode = mode;
@@ -265,6 +274,7 @@ export class PropsExplorerPanel extends Component {
 	}
 
 	setViewMode(mode: 'tree' | 'grid'): void {
+		if (this.viewMode === mode) return;
 		this.viewMode = mode;
 		if (mode === 'tree') {
 			this.view.destroy();
@@ -279,6 +289,14 @@ export class PropsExplorerPanel extends Component {
 		childLevel = false,
 		nodeTypeFilter: string | null = null,
 	): void {
+		if (
+			this.sortBy === sortBy &&
+			this.sortDir === direction &&
+			this.sortChildLevel === childLevel &&
+			this.nodeTypeFilter === nodeTypeFilter
+		) {
+			return;
+		}
 		this.sortBy = sortBy;
 		this.sortDir = direction;
 		this.sortChildLevel = childLevel;
@@ -287,6 +305,7 @@ export class PropsExplorerPanel extends Component {
 	}
 
 	setVisibleCells(cells: Set<string>): void {
+		if (sameStringSet(this.visibleCells, cells)) return;
 		this.visibleCells = new Set(cells);
 		this._render();
 	}

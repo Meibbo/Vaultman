@@ -116,6 +116,11 @@ export const en: Record<string, string> = {
 	'queue.template.source.vault': 'the whole vault',
 	'queue.mode.stage': 'Stage',
 	'queue.mode.bypass': 'Bypass',
+	'queue.guard.duplicate': 'Skipped duplicate operation',
+	'queue.guard.merged': 'Merged duplicate operation targets',
+	'queue.guard.conflict': 'Blocked conflicting operation',
+	'queue.guard.batch':
+		'Queue guard: {merged} merged, {duplicates} duplicate(s) skipped, {conflicts} conflict(s) blocked',
 
 	// Queue details
 	'queue.title': 'Queue Details',

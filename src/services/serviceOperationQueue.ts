@@ -16,6 +16,162 @@ interface OperationQueueOptions {
 	bypassOperations?: boolean;
 }
 
+type QueuePolicyDecision =
+	| { kind: 'accept' }
+	| { kind: 'duplicate' }
+	| { kind: 'merge'; existing: PendingChange }
+	| { kind: 'conflict' };
+
+interface QueuePolicyStats {
+	accepted: number;
+	merged: number;
+	duplicates: number;
+	conflicts: number;
+	changed: boolean;
+}
+
+function createQueuePolicyStats(): QueuePolicyStats {
+	return {
+		accepted: 0,
+		merged: 0,
+		duplicates: 0,
+		conflicts: 0,
+		changed: false,
+	};
+}
+
+function filePathSet(change: PendingChange): Set<string> {
+	return new Set(change.files.map((file) => file.path));
+}
+
+function hasFileOverlap(a: PendingChange, b: PendingChange): boolean {
+	const aPaths = filePathSet(a);
+	return b.files.some((file) => aPaths.has(file.path));
+}
+
+function missingFiles(existing: PendingChange, incoming: PendingChange): TFile[] {
+	const existingPaths = filePathSet(existing);
+	return incoming.files.filter((file) => !existingPaths.has(file.path));
+}
+
+function normalizeTagSubject(tag: string): string {
+	return tag.trim().replace(/^#/, '');
+}
+
+function stableValue(value: unknown): string {
+	if (value === undefined) return '';
+	if (value === null) return 'null';
+	if (Array.isArray(value)) return `[${value.map(stableValue).join(',')}]`;
+	if (typeof value === 'object') {
+		const record = value as Record<string, unknown>;
+		return `{${Object.keys(record)
+			.sort()
+			.map((key) => `${key}:${stableValue(record[key])}`)
+			.join(',')}}`;
+	}
+	if (typeof value === 'string') return value;
+	if (typeof value === 'number' || typeof value === 'boolean' || typeof value === 'bigint') {
+		return value.toString();
+	}
+	if (typeof value === 'symbol') return value.description ?? '';
+	if (typeof value === 'function') return value.name;
+	return '';
+}
+
+function changeSubject(change: PendingChange): string {
+	if (change.type === 'property') return change.property;
+	if (change.type === 'tag') return normalizeTagSubject(change.tag);
+	return change.type;
+}
+
+function propertyPayload(change: Extract<PendingChange, { type: 'property' }>): string {
+	return stableValue({
+		oldValue: change.oldValue,
+		value: change.value,
+		details: change.value === undefined && change.oldValue === undefined ? change.details : '',
+	});
+}
+
+function operationPayload(change: PendingChange): string {
+	if (change.type === 'property') return propertyPayload(change);
+	if (change.type === 'tag') {
+		return stableValue({
+			details: change.action === 'rename' ? change.details : '',
+			value: (change as unknown as { value?: unknown }).value,
+		});
+	}
+	if (change.type === 'file_rename') {
+		return stableValue(change.newName ?? change.details);
+	}
+	if (change.type === 'file_move') {
+		return stableValue(change.targetFolder ?? change.details);
+	}
+	if (change.type === 'content_replace') {
+		return stableValue({
+			caseSensitive: change.caseSensitive,
+			find: change.find,
+			isRegex: change.isRegex,
+			replace: change.replace,
+		});
+	}
+	if (change.type === 'template') {
+		return stableValue(change.templateFileStr);
+	}
+	return '';
+}
+
+function operationIdentity(change: PendingChange): string {
+	return [
+		change.type,
+		change.action,
+		changeSubject(change),
+		operationPayload(change),
+	].join('\u0000');
+}
+
+function propertyActionsConflict(
+	a: Extract<PendingChange, { type: 'property' }>,
+	b: Extract<PendingChange, { type: 'property' }>,
+): boolean {
+	if (a.property !== b.property) return false;
+	if (operationIdentity(a) === operationIdentity(b)) return false;
+	const highImpactActions = new Set(['delete', 'clean_empty', 'rename', 'change_type']);
+	if (highImpactActions.has(a.action) || highImpactActions.has(b.action)) return true;
+	if ((a.action === 'set' || a.action === 'add') && (b.action === 'set' || b.action === 'add')) {
+		return propertyPayload(a) !== propertyPayload(b);
+	}
+	return false;
+}
+
+function tagActionsConflict(
+	a: Extract<PendingChange, { type: 'tag' }>,
+	b: Extract<PendingChange, { type: 'tag' }>,
+): boolean {
+	if (normalizeTagSubject(a.tag) !== normalizeTagSubject(b.tag)) return false;
+	if (operationIdentity(a) === operationIdentity(b)) return false;
+	if (a.action === 'delete' || b.action === 'delete') return true;
+	if (a.action === 'rename' || b.action === 'rename') return true;
+	return false;
+}
+
+function fileActionsConflict(a: PendingChange, b: PendingChange): boolean {
+	if (a.type === 'file_delete' || b.type === 'file_delete') return true;
+	const fileActions = new Set(['file_rename', 'file_move']);
+	if (!fileActions.has(a.type) || !fileActions.has(b.type)) return false;
+	return operationIdentity(a) !== operationIdentity(b);
+}
+
+function operationsConflict(existing: PendingChange, incoming: PendingChange): boolean {
+	if (!hasFileOverlap(existing, incoming)) return false;
+	if (existing.type === 'property' && incoming.type === 'property') {
+		return propertyActionsConflict(existing, incoming);
+	}
+	if (existing.type === 'tag' && incoming.type === 'tag') {
+		return tagActionsConflict(existing, incoming);
+	}
+	return fileActionsConflict(existing, incoming);
+}
+
 /**
  * Manages the queue of pending property operations.
  * All operations are staged first, then executed atomically on user confirmation.
@@ -72,13 +228,22 @@ export class OperationQueueService extends Component {
 
 	/** Add a single operation to the queue */
 	add(change: PendingChange): void {
-		this.queue.push(change);
-		this.events.trigger('changed');
+		const stats = this.stageChange(change);
+		this.reportQueuePolicy(stats);
+		if (stats.changed) this.events.trigger('changed');
 	}
 
 	addOrRun(change: PendingChange): void {
 		if (this.shouldStageOperations) {
 			this.add(change);
+			return;
+		}
+		const decision = this.assessChange(change, true);
+		if (decision.kind !== 'accept') {
+			const stats = createQueuePolicyStats();
+			if (decision.kind === 'duplicate') stats.duplicates++;
+			else stats.conflicts++;
+			this.reportQueuePolicy(stats);
 			return;
 		}
 		void this.runNow(change);
@@ -115,8 +280,84 @@ export class OperationQueueService extends Component {
 	 */
 	addBatch(changes: PendingChange[]): void {
 		if (changes.length === 0) return;
-		this.queue.push(...changes);
-		this.events.trigger('changed');
+		const batchStats = createQueuePolicyStats();
+		for (const change of changes) {
+			this.mergeStats(batchStats, this.stageChange(change));
+		}
+		this.reportQueuePolicy(batchStats, true);
+		if (batchStats.changed) this.events.trigger('changed');
+	}
+
+	private stageChange(change: PendingChange): QueuePolicyStats {
+		const stats = createQueuePolicyStats();
+		const decision = this.assessChange(change);
+		if (decision.kind === 'accept') {
+			this.queue.push(change);
+			stats.accepted++;
+			stats.changed = true;
+			return stats;
+		}
+		if (decision.kind === 'merge') {
+			const files = missingFiles(decision.existing, change);
+			if (files.length === 0) {
+				stats.duplicates++;
+				return stats;
+			}
+			decision.existing.files.push(...files);
+			stats.merged++;
+			stats.changed = true;
+			return stats;
+		}
+		if (decision.kind === 'duplicate') {
+			stats.duplicates++;
+			return stats;
+		}
+		stats.conflicts++;
+		return stats;
+	}
+
+	private assessChange(change: PendingChange, bypass = false): QueuePolicyDecision {
+		const incomingIdentity = operationIdentity(change);
+		for (const existing of this.queue) {
+			if (operationIdentity(existing) === incomingIdentity) {
+				if (!bypass) return { kind: 'merge', existing };
+				if (hasFileOverlap(existing, change)) return { kind: 'duplicate' };
+				continue;
+			}
+			if (operationsConflict(existing, change)) return { kind: 'conflict' };
+		}
+		return { kind: 'accept' };
+	}
+
+	private mergeStats(target: QueuePolicyStats, source: QueuePolicyStats): void {
+		target.accepted += source.accepted;
+		target.merged += source.merged;
+		target.duplicates += source.duplicates;
+		target.conflicts += source.conflicts;
+		target.changed = target.changed || source.changed;
+	}
+
+	private reportQueuePolicy(stats: QueuePolicyStats, batch = false): void {
+		if (stats.merged === 0 && stats.duplicates === 0 && stats.conflicts === 0) return;
+		if (batch || stats.merged + stats.duplicates + stats.conflicts > 1) {
+			new Notice(
+				translate('queue.guard.batch', {
+					merged: stats.merged,
+					duplicates: stats.duplicates,
+					conflicts: stats.conflicts,
+				}),
+			);
+			return;
+		}
+		if (stats.conflicts > 0) {
+			new Notice(translate('queue.guard.conflict'));
+			return;
+		}
+		if (stats.duplicates > 0) {
+			new Notice(translate('queue.guard.duplicate'));
+			return;
+		}
+		new Notice(translate('queue.guard.merged'));
 	}
 
 	/** Remove an operation by index */

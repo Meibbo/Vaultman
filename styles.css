@@ -2215,12 +2215,18 @@ body.vaultman-bases-column-separators table th {
 
 .vaultman-nav-pill--minimal .vaultman-nav-page-icon {
   color: var(--tab-text-color);
+  border-radius: var(--radius-s);
   box-shadow: none;
+}
+
+.vaultman-nav-pill--minimal .vaultman-nav-page-icon:hover {
+  border-radius: var(--radius-s);
 }
 
 .vaultman-nav-pill--minimal .vaultman-nav-page-icon.is-active {
   color: var(--tab-text-color-active);
   background: var(--background-modifier-hover);
+  border-radius: var(--radius-s);
   box-shadow: none;
 }
 
@@ -2241,6 +2247,17 @@ body.vaultman-bases-column-separators table th {
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
+}
+
+.vaultman-nav-pill--minimal .vaultman-nav-dock-action {
+  border-radius: 50%;
+}
+
+.vaultman-nav-pill--minimal .vaultman-nav-dock-action:hover,
+.vaultman-nav-pill--minimal .vaultman-nav-dock-action.is-active {
+  color: var(--text-normal);
+  background: var(--background-modifier-hover);
+  border-radius: 50%;
 }
 
 .vaultman-dock-action-icon {
@@ -2392,6 +2409,11 @@ body.vaultman-bases-column-separators table th {
 }
 
 .vaultman-nav-fab.is-add-active {
+  box-shadow: 0 0 0 2px var(--color-accent), 0 4px 12px rgba(0, 0, 0, 0.2);
+}
+
+.vaultman-nav-fab.is-active {
+  opacity: 1;
   box-shadow: 0 0 0 2px var(--color-accent), 0 4px 12px rgba(0, 0, 0, 0.2);
 }
 
@@ -5051,6 +5073,17 @@ body.vaultman-bases-column-separators table th {
   flex: 1;
   flex-direction: column;
   min-height: 0;
+}
+
+.vaultman-filters-tab-pane {
+  display: none;
+  flex: 1;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.vaultman-filters-tab-pane.is-active {
+  display: flex;
 }
 
 /* ----------------------------------------------------------

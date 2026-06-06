@@ -18,6 +18,14 @@ import type { TreeNode, TagMeta } from '../../types/typeTree';
 import type { MenuCtx } from '../../types/typeCMenu';
 import { translate } from '../../i18n/index';
 
+function sameStringSet(a: Set<string>, b: Set<string>): boolean {
+	if (a.size !== b.size) return false;
+	for (const value of a) {
+		if (!b.has(value)) return false;
+	}
+	return true;
+}
+
 export class TagsExplorerPanel extends Component {
 	private plugin: PanelPluginCtx;
 	private logic: TagsLogic;
@@ -115,6 +123,7 @@ export class TagsExplorerPanel extends Component {
 	private readonly _handleStateChange = () => this._render();
 
 	setSearchTerm(term: string, mode: 'all' | 'leaf' = 'all'): void {
+		if (this.searchTerm === term && this.searchMode === mode) return;
 		this.searchTerm = term;
 		this.searchMode = mode;
 		this._render();
@@ -126,6 +135,14 @@ export class TagsExplorerPanel extends Component {
 		childLevel = false,
 		nodeTypeFilter: string | null = null,
 	): void {
+		if (
+			this.sortBy === sortBy &&
+			this.sortDir === direction &&
+			this.sortChildLevel === childLevel &&
+			this.nodeTypeFilter === nodeTypeFilter
+		) {
+			return;
+		}
 		this.sortBy = sortBy;
 		this.sortDir = direction;
 		this.sortChildLevel = childLevel;
@@ -134,6 +151,7 @@ export class TagsExplorerPanel extends Component {
 	}
 
 	setViewMode(mode: 'tree' | 'grid'): void {
+		if (this.viewMode === mode) return;
 		this.viewMode = mode;
 		if (mode === 'tree') {
 			this.view.destroy();
@@ -144,6 +162,7 @@ export class TagsExplorerPanel extends Component {
 	}
 
 	setVisibleCells(cells: Set<string>): void {
+		if (sameStringSet(this.visibleCells, cells)) return;
 		this.visibleCells = new Set(cells);
 		this._render();
 	}

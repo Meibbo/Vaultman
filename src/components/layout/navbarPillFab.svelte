@@ -11,6 +11,8 @@
 		leftFab,
 		rightFab,
 		minimalStyle = true,
+		queueIslandOpen = false,
+		filtersIslandOpen = false,
 		navCollapsed,
 		isReordering = $bindable(),
 		reorderTargetIdx,
@@ -35,6 +37,8 @@
 		leftFab: FabDef | null;
 		rightFab: FabDef | null;
 		minimalStyle?: boolean;
+		queueIslandOpen?: boolean;
+		filtersIslandOpen?: boolean;
 		navCollapsed: boolean;
 		isReordering: boolean;
 		reorderTargetIdx: number;
@@ -77,6 +81,12 @@
 		}
 		return fab.label;
 	}
+
+	function fabIsActive(fab: FabDef): boolean {
+		if (fab.badge === 'queue') return queueIslandOpen;
+		if (fab.badge === 'filters') return filtersIslandOpen;
+		return false;
+	}
 </script>
 
 <div
@@ -115,9 +125,9 @@
 				<div
 					class="clickable-icon nav-action-button vaultman-nav-dock-action"
 					class:is-locked={leftFab.locked}
+					class:is-active={fabIsActive(leftFab)}
 					class:vaultman-backdrop-lock={leftFab.lockBackdrop}
 					aria-label={fabLabel(leftFab)}
-					title={fabLabel(leftFab)}
 					aria-disabled={leftFab.locked ? 'true' : undefined}
 					onclick={(e: MouseEvent) => triggerFab(leftFab, e)}
 					ondblclick={(e: MouseEvent) => triggerFabDoubleClick(leftFab, e)}
@@ -181,9 +191,9 @@
 				<div
 					class="clickable-icon nav-action-button vaultman-nav-dock-action"
 					class:is-locked={rightFab.locked}
+					class:is-active={fabIsActive(rightFab)}
 					class:vaultman-backdrop-lock={rightFab.lockBackdrop}
 					aria-label={fabLabel(rightFab)}
-					title={fabLabel(rightFab)}
 					aria-disabled={rightFab.locked ? 'true' : undefined}
 					onclick={(e: MouseEvent) => triggerFab(rightFab, e)}
 					ondblclick={(e: MouseEvent) => triggerFabDoubleClick(rightFab, e)}
@@ -218,8 +228,8 @@
 			<div class="vaultman-nav-fab-wrap">
 				<div
 					class="vaultman-nav-fab"
+					class:is-active={fabIsActive(leftFab)}
 					aria-label={fabLabel(leftFab)}
-					title={fabLabel(leftFab)}
 					use:icon={leftFab.icon}
 					onclick={(e: MouseEvent) => triggerFab(leftFab, e)}
 					ondblclick={(e: MouseEvent) => triggerFabDoubleClick(leftFab, e)}
@@ -281,8 +291,8 @@
 			<div class="vaultman-nav-fab-wrap">
 				<div
 					class="vaultman-nav-fab"
+					class:is-active={fabIsActive(rightFab)}
 					aria-label={fabLabel(rightFab)}
-					title={fabLabel(rightFab)}
 					use:icon={rightFab.icon}
 					onclick={(e: MouseEvent) => triggerFab(rightFab, e)}
 					ondblclick={(e: MouseEvent) => triggerFabDoubleClick(rightFab, e)}

@@ -61,6 +61,12 @@
 	let contentPreviewResult = $state<ContentPreviewResult | null>(null);
 	let contentPreviewOpen = $state(true);
 	let contentRegexError = $state('');
+	let visitedTabs = $state<Record<FiltersTab, boolean>>({
+		files: filtersActiveTab === 'files',
+		props: filtersActiveTab === 'props',
+		tags: filtersActiveTab === 'tags',
+		content: filtersActiveTab === 'content',
+	});
 
 	function createNativeSearchAdapter(): NativeSearchAdapter {
 		return new NativeSearchAdapter(plugin.app);
@@ -132,6 +138,7 @@
 
 	function switchFiltersTab(tab: FiltersTab) {
 		if (filtersActiveTab === tab) return;
+		visitedTabs = { ...visitedTabs, [tab]: true };
 		filtersActiveTab = tab;
 	}
 
@@ -301,38 +308,65 @@
 {/if}
 
 <div class="vaultman-filters-tab-content">
-	{#if filtersActiveTab === 'files'}
-		<FilesTab
-			{plugin}
-			bind:fileList
-			onSelectionChange={(count) => (selectedCount = count)}
-		/>
-	{:else if filtersActiveTab === 'tags'}
-		<FiltersTagsTab
-			{plugin}
-			searchTerm={filtersSearch}
-			searchMode={filtersSearchCategory.tags}
-			bind:tagsExplorer
-		/>
-	{:else if filtersActiveTab === 'props'}
-		<FiltersPropsTab
-			{plugin}
-			searchTerm={filtersSearch}
-			searchMode={filtersSearchCategory.props}
-			bind:propExplorer
-		/>
-	{:else if filtersActiveTab === 'content'}
-		<TabContent
-			bind:contentFind
-			bind:contentReplace
-			bind:contentCaseSensitive
-			bind:contentIsRegex
-			bind:contentPreviewResult
-			bind:contentPreviewOpen
-			{contentRegexError}
-			{contentScopeHint}
-			{queueContentReplace}
-			{openContentMatch}
-		/>
+	{#if visitedTabs.files}
+		<div
+			class="vaultman-filters-tab-pane"
+			class:is-active={filtersActiveTab === 'files'}
+			aria-hidden={filtersActiveTab !== 'files'}
+		>
+			<FilesTab
+				{plugin}
+				bind:fileList
+				onSelectionChange={(count) => (selectedCount = count)}
+			/>
+		</div>
+	{/if}
+	{#if visitedTabs.tags}
+		<div
+			class="vaultman-filters-tab-pane"
+			class:is-active={filtersActiveTab === 'tags'}
+			aria-hidden={filtersActiveTab !== 'tags'}
+		>
+			<FiltersTagsTab
+				{plugin}
+				searchTerm={filtersSearchByTab.tags}
+				searchMode={filtersSearchCategory.tags}
+				bind:tagsExplorer
+			/>
+		</div>
+	{/if}
+	{#if visitedTabs.props}
+		<div
+			class="vaultman-filters-tab-pane"
+			class:is-active={filtersActiveTab === 'props'}
+			aria-hidden={filtersActiveTab !== 'props'}
+		>
+			<FiltersPropsTab
+				{plugin}
+				searchTerm={filtersSearchByTab.props}
+				searchMode={filtersSearchCategory.props}
+				bind:propExplorer
+			/>
+		</div>
+	{/if}
+	{#if visitedTabs.content}
+		<div
+			class="vaultman-filters-tab-pane"
+			class:is-active={filtersActiveTab === 'content'}
+			aria-hidden={filtersActiveTab !== 'content'}
+		>
+			<TabContent
+				bind:contentFind
+				bind:contentReplace
+				bind:contentCaseSensitive
+				bind:contentIsRegex
+				bind:contentPreviewResult
+				bind:contentPreviewOpen
+				{contentRegexError}
+				{contentScopeHint}
+				{queueContentReplace}
+				{openContentMatch}
+			/>
+		</div>
 	{/if}
 </div>

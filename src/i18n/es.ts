@@ -115,6 +115,11 @@ export const es: Record<string, string> = {
 	'queue.template.source.vault': 'todo el vault',
 	'queue.mode.stage': 'Stage',
 	'queue.mode.bypass': 'Bypass',
+	'queue.guard.duplicate': 'Operación duplicada omitida',
+	'queue.guard.merged': 'Objetivos duplicados fusionados en la cola',
+	'queue.guard.conflict': 'Operación contradictoria bloqueada',
+	'queue.guard.batch':
+		'Guardia de cola: {merged} fusionadas, {duplicates} duplicadas omitidas, {conflicts} contradicciones bloqueadas',
 
 	// Queue details
 	'queue.title': 'Detalles de Cola',
