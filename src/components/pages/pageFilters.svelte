@@ -1,13 +1,15 @@
 <script lang="ts">
 	import { onDestroy } from 'svelte';
-	import { MarkdownView, Notice, TFile, setIcon } from 'obsidian';
+	import { MarkdownView, Notice, TFile } from 'obsidian';
 	import type { VaultmanPlugin } from '../../main';
 	import { fade } from 'svelte/transition';
 	import FiltersTagsTab from './tabTags.svelte';
 	import FiltersPropsTab from './tabProps.svelte';
+	import FilesTab from './tabFiles.svelte';
 	import TabContent from './tabContent.svelte';
 	import NavbarTabs from '../layout/navbarTabs.svelte';
 	import NavbarFilters from '../layout/navbarFilters.svelte';
+	import type { FilesExplorerPanel } from '../containers/explorerFiles';
 	import type { PropsExplorerPanel } from '../containers/explorerProps';
 	import type { TagsExplorerPanel } from '../containers/explorerTags';
 	import type { ContentPreviewResult } from '../../types/typeUI';
@@ -18,14 +20,16 @@
 	import { translate } from '../../i18n/index';
 	import { NativeSearchAdapter } from '../../services/serviceNativeSearchAdapter';
 
-	type FiltersTab = 'props' | 'tags' | 'content';
+	type FiltersTab = 'files' | 'props' | 'tags' | 'content';
 	type SearchTab = 'props' | 'files' | 'tags';
 
 	let {
 		plugin,
-		filtersActiveTab = $bindable('props'),
+		filtersActiveTab = $bindable('files'),
 		filtersSearchByTab = $bindable({ props: '', tags: '', files: '' }),
 		filtersSearchCategory = $bindable({ tags: 0, props: 0, files: 0 }),
+		fileList = $bindable(),
+		selectedCount = $bindable(0),
 		tagsExplorer = $bindable(),
 		propExplorer = $bindable(),
 		settingsRevision = 0,
@@ -33,11 +37,14 @@
 		filteredCount,
 		addOpCount = 0,
 		expansionRevision = 0,
+		icon,
 	}: {
 		plugin: VaultmanPlugin;
 		filtersActiveTab: FiltersTab;
 		filtersSearchByTab: Record<SearchTab, string>;
 		filtersSearchCategory: Record<SearchTab, number>;
+		fileList: FilesExplorerPanel | undefined;
+		selectedCount: number;
 		tagsExplorer: TagsExplorerPanel | null;
 		propExplorer: PropsExplorerPanel | undefined;
 		settingsRevision?: number;
@@ -45,6 +52,7 @@
 		filteredCount: number;
 		addOpCount?: number;
 		expansionRevision?: number;
+		icon: (el: HTMLElement, name: string) => any;
 	} = $props();
 
 	let contentFind = $state('');
@@ -65,7 +73,11 @@
 		filtersActiveTab === 'content' ? 'props' : filtersActiveTab,
 	);
 	const explorerSearchTab = $derived<SearchTab>(
-		filtersActiveTab === 'tags' ? 'tags' : 'props',
+		filtersActiveTab === 'files'
+			? 'files'
+			: filtersActiveTab === 'tags'
+				? 'tags'
+				: 'props',
 	);
 	const filtersSearch = $derived(filtersSearchByTab[explorerSearchTab] ?? '');
 	const showTabLabels = $derived.by(() => {
@@ -83,6 +95,11 @@
 	const filterTabOptions = $derived.by(() => {
 		void settingsRevision;
 		return [
+			{
+				id: 'files',
+				label: translate('filter.tab.files'),
+				icon: 'lucide-folder',
+			},
 			{
 				id: 'props',
 				label: translate('filter.tab.props'),
@@ -123,15 +140,6 @@
 		filtersSearchByTab = {
 			...filtersSearchByTab,
 			[explorerSearchTab]: value,
-		};
-	}
-
-	function icon(el: HTMLElement, name: string) {
-		setIcon(el, name);
-		return {
-			update(n: string) {
-				setIcon(el, n);
-			},
 		};
 	}
 
@@ -280,7 +288,7 @@
 		bind:filtersSearchCategory
 		{tagsExplorer}
 		{propExplorer}
-		fileList={undefined}
+		{fileList}
 		{addOpCount}
 		{minimalStyle}
 		tabOptions={minimalStyle ? filterTabOptions : []}
@@ -299,7 +307,13 @@
 		in:fade={{ duration: 180 }}
 		out:fade={{ duration: 180 }}
 	>
-		{#if filtersActiveTab === 'tags'}
+		{#if filtersActiveTab === 'files'}
+			<FilesTab
+				{plugin}
+				bind:fileList
+				onSelectionChange={(count) => (selectedCount = count)}
+			/>
+		{:else if filtersActiveTab === 'tags'}
 			<FiltersTagsTab
 				{plugin}
 				searchTerm={filtersSearch}

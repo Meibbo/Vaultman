@@ -336,7 +336,10 @@ export class UnifiedTreeView {
 		}
 
 		if (showType && node.typeText) {
-			row.createSpan({ cls: 'vaultman-tree-type', text: node.typeText });
+			row.createSpan({
+				cls: 'vaultman-tree-type nav-file-tag',
+				text: node.typeText,
+			});
 		}
 
 		// Multi-zone Badges container

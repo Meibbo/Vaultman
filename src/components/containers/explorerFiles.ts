@@ -38,6 +38,7 @@ export class FilesExplorerPanel extends Component {
 	private sparseAutoExpandSignature = '';
 
 	private onSelectionChange?: (count: number) => void;
+	private onExpansionChange?: () => void;
 
 	constructor(
 		containerEl: HTMLElement,
@@ -249,6 +250,10 @@ export class FilesExplorerPanel extends Component {
 		return this.expandedIds.size > 0;
 	}
 
+	setExpansionChangeHandler(handler?: () => void): void {
+		this.onExpansionChange = handler;
+	}
+
 	setSortBy(sortBy: string, direction: 'asc' | 'desc'): void {
 		this.sortBy = sortBy;
 		this.sortDir = direction;
@@ -300,11 +305,13 @@ export class FilesExplorerPanel extends Component {
 			}
 		};
 		walk(tree);
+		this._notifyExpansionChanged();
 		this._render();
 	}
 
 	collapseAll(): void {
 		this.expandedIds.clear();
+		this._notifyExpansionChanged();
 		this._render();
 	}
 
@@ -315,6 +322,7 @@ export class FilesExplorerPanel extends Component {
 		for (const id of this.logic.getAncestorFolderIds([file])) {
 			this.expandedIds.add(id);
 		}
+		this._notifyExpansionChanged();
 		this._render();
 		window.requestAnimationFrame(() => {
 			if (this.viewMode === 'grid') {
@@ -457,6 +465,7 @@ export class FilesExplorerPanel extends Component {
 				onToggle: (id: string) => {
 					if (this.expandedIds.has(id)) this.expandedIds.delete(id);
 					else this.expandedIds.add(id);
+					this._notifyExpansionChanged();
 					this._render();
 				},
 				onRowClick: (id: string) => {
@@ -466,6 +475,7 @@ export class FilesExplorerPanel extends Component {
 					if (meta.isFolder) {
 						if (this.expandedIds.has(id)) this.expandedIds.delete(id);
 						else this.expandedIds.add(id);
+						this._notifyExpansionChanged();
 						this._render();
 						return;
 					}
@@ -514,6 +524,10 @@ export class FilesExplorerPanel extends Component {
 	private _folderFromCtx(ctx: MenuCtx): TFolder | null {
 		const meta = ctx.node.meta as Partial<FileMeta> | undefined;
 		return meta?.folder ?? null;
+	}
+
+	private _notifyExpansionChanged(): void {
+		this.onExpansionChange?.();
 	}
 
 	private _decorateTreeWithActiveReveal(nodes: TreeNode<FileMeta>[]): void {
@@ -665,6 +679,7 @@ export class FilesExplorerPanel extends Component {
 		for (const id of this.logic.getAncestorFolderIds([file])) {
 			this.expandedIds.add(id);
 		}
+		this._notifyExpansionChanged();
 		this._refreshFromFilterService();
 		await this.plugin.app.workspace.openLinkText(path, '', false);
 		new Notice(`Created ${path}`);
@@ -677,6 +692,7 @@ export class FilesExplorerPanel extends Component {
 		for (const id of this.logic.getAncestorFolderIdsFromPaths([path])) {
 			this.expandedIds.add(id);
 		}
+		this._notifyExpansionChanged();
 		this._render();
 		new Notice(`Created ${path}`);
 	}
@@ -727,8 +743,12 @@ export class FilesExplorerPanel extends Component {
 
 	private _expandSearchMatches(): void {
 		if (!this.searchName && !this.searchFolder) return;
+		let changed = false;
 		for (const id of this.logic.getAncestorFolderIds(this._currentFiles)) {
-			this.expandedIds.add(id);
+			if (!this.expandedIds.has(id)) {
+				this.expandedIds.add(id);
+				changed = true;
+			}
 		}
 		if (this.searchFolder) {
 			const matchedFolders = this._allVaultFolders()
@@ -739,9 +759,13 @@ export class FilesExplorerPanel extends Component {
 			for (const id of this.logic.getAncestorFolderIdsFromPaths(
 				matchedFolders,
 			)) {
-				this.expandedIds.add(id);
+				if (!this.expandedIds.has(id)) {
+					this.expandedIds.add(id);
+					changed = true;
+				}
 			}
 		}
+		if (changed) this._notifyExpansionChanged();
 	}
 
 	private _foldersForCurrentView(): TFolder[] {
@@ -777,9 +801,14 @@ export class FilesExplorerPanel extends Component {
 		].join('::');
 		if (signature === this.sparseAutoExpandSignature) return;
 		this.sparseAutoExpandSignature = signature;
+		let changed = false;
 		for (const node of topFolders) {
-			this.expandedIds.add(node.id);
+			if (!this.expandedIds.has(node.id)) {
+				this.expandedIds.add(node.id);
+				changed = true;
+			}
 		}
+		if (changed) this._notifyExpansionChanged();
 	}
 
 	private _allVaultFolders(): TFolder[] {

@@ -314,6 +314,7 @@ export const es: Record<string, string> = {
 	'header.queue_badge': '{count} pendientes',
 	'filter.tab.tags': 'Etiquetas',
 	'filter.tab.props': 'Props',
+	'filter.tab.files': 'Archivos',
 	'filter.tab.content': 'Contenido',
 	'settings.filters_show_tab_labels': 'Mostrar labels en tabs',
 	'settings.filters_show_tab_labels.desc':

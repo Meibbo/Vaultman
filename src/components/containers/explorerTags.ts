@@ -33,6 +33,7 @@ export class TagsExplorerPanel extends Component {
 	private nodeTypeFilter: string | null = null;
 	private viewMode: 'tree' | 'grid' = 'tree';
 	private visibleCells = new Set<string>(['icon', 'text', 'count']);
+	private onExpansionChange?: () => void;
 
 	constructor(containerEl: HTMLElement, plugin: PanelPluginCtx) {
 		super();
@@ -151,6 +152,10 @@ export class TagsExplorerPanel extends Component {
 		return this.expandedIds.size > 0;
 	}
 
+	setExpansionChangeHandler(handler?: () => void): void {
+		this.onExpansionChange = handler;
+	}
+
 	expandAll(): void {
 		let tree = this.logic.getTree();
 		if (this.searchMode === 'leaf') {
@@ -163,11 +168,13 @@ export class TagsExplorerPanel extends Component {
 			tree = this.logic.filterTree(tree, this.searchTerm);
 		}
 		this._expandAll(tree);
+		this._notifyExpansionChanged();
 		this._render();
 	}
 
 	collapseAll(): void {
 		this.expandedIds.clear();
+		this._notifyExpansionChanged();
 		this._render();
 	}
 
@@ -226,6 +233,10 @@ export class TagsExplorerPanel extends Component {
 				this._expandAll(n.children);
 			}
 		}
+	}
+
+	private _notifyExpansionChanged(): void {
+		this.onExpansionChange?.();
 	}
 
 	private _render(): void {
@@ -298,6 +309,7 @@ export class TagsExplorerPanel extends Component {
 			onToggle: (id: string) => {
 				if (this.expandedIds.has(id)) this.expandedIds.delete(id);
 				else this.expandedIds.add(id);
+				this._notifyExpansionChanged();
 				void this._render();
 			},
 			onRowClick: (id: string) => {

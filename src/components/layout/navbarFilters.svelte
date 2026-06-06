@@ -587,6 +587,24 @@
 		});
 	}
 
+	function refreshExpansionState() {
+		expansionRefresh += 1;
+	}
+
+	$effect(() => {
+		fileList?.setExpansionChangeHandler(refreshExpansionState);
+		propExplorer?.setExpansionChangeHandler(refreshExpansionState);
+		tagsExplorer?.setExpansionChangeHandler(refreshExpansionState);
+		const frame = window.requestAnimationFrame(refreshExpansionState);
+
+		return () => {
+			window.cancelAnimationFrame(frame);
+			fileList?.setExpansionChangeHandler(undefined);
+			propExplorer?.setExpansionChangeHandler(undefined);
+			tagsExplorer?.setExpansionChangeHandler(undefined);
+		};
+	});
+
 	$effect(() => {
 		const tab = activeTab;
 		const viewMode = viewModeByTab[tab] ?? 'tree';

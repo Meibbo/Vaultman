@@ -102,7 +102,10 @@ export class FilesLogic {
 			const fileNode: TreeNode<FileMeta> = {
 				id: file.path,
 				label: file.basename,
-				typeText: file.extension || undefined,
+				typeText:
+					file.extension && file.extension !== 'md'
+						? file.extension
+						: undefined,
 				count: propCount,
 				depth: folderPath.split('/').filter(Boolean).length,
 				children: [],

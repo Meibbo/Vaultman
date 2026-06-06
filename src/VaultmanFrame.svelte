@@ -7,7 +7,6 @@
 	import type { TagsExplorerPanel } from './components/containers/explorerTags';
 	import StatisticsPage from './components/pages/pageStatistics.svelte';
 	import FiltersPage from './components/pages/pageFilters.svelte';
-	import OperationsPage from './components/pages/pageOps.svelte';
 	import BottomNav from './components/layout/navbarPillFab.svelte';
 	import PerformanceHud from './components/layout/performanceHud.svelte';
 	import { QueueListComponent } from './components/componentQueueList';
@@ -16,6 +15,7 @@
 	import { QueueDetailsModal } from './modals/modalQueueDetails';
 	import { translate } from './i18n/index';
 	import type { FabDef } from './types/typeUI';
+	import { resolveDockPageOrder } from './logic/logicNavigation';
 
 	// ─── Props ────────────────────────────────────────────────────────────────
 
@@ -25,22 +25,16 @@
 
 	function resolvedPageOrder(): string[] {
 		const order = plugin.settings.pageOrder as string[] | undefined;
-		const defaultOrder = ['filters', 'ops', 'statistics'];
-		const oldDefaultOrder = ['ops', 'statistics', 'filters'];
-		const valid = ['statistics', 'filters', 'ops'];
+		const normalized = resolveDockPageOrder(order);
 		if (
-			Array.isArray(order) &&
-			order.length === 3 &&
-			valid.every((p) => order.includes(p))
+			!Array.isArray(order) ||
+			order.length !== normalized.length ||
+			!normalized.every((page, index) => order[index] === page)
 		) {
-			if (order.every((p, i) => p === oldDefaultOrder[i])) {
-				plugin.settings.pageOrder = defaultOrder;
-				void plugin.saveSettings();
-				return defaultOrder;
-			}
-			return order;
+			plugin.settings.pageOrder = normalized;
+			void plugin.saveSettings();
 		}
-		return defaultOrder;
+		return normalized;
 	}
 
 	const initialPageOrder = resolvedPageOrder();
@@ -52,14 +46,12 @@
 		return {
 			statistics: translate('nav.statistics'),
 			filters: translate('nav.filters'),
-			ops: translate('nav.ops'),
 		};
 	});
 
 	const pageIcons: Record<string, string> = {
 		statistics: 'lucide-bar-chart-2',
 		filters: 'lucide-database',
-		ops: 'lucide-folder',
 	};
 	const minimalStyle = $derived.by(() => {
 		void settingsRevision;
@@ -103,22 +95,6 @@
 	>(() => {
 		void settingsRevision;
 		return {
-			ops: {
-				left: {
-					icon: 'lucide-list-checks',
-					label: translate('ops.queue'),
-					badge: 'queue',
-					action: () => {
-						toggleQueueIsland();
-					},
-				},
-				right: {
-					icon: 'lucide-filter',
-					label: translate('filters.active'),
-					badge: 'filters',
-					action: () => toggleFiltersIsland(),
-				},
-			},
 			statistics: {
 				left: {
 					icon: 'lucide-list-checks',
@@ -150,6 +126,7 @@
 					label: translate('filters.active'),
 					badge: 'filters',
 					action: () => toggleFiltersIsland(),
+					doubleClickAction: () => clearActiveFilters(),
 				},
 			},
 		};
@@ -162,7 +139,7 @@
 		() => pageFabs[activePage]?.right ?? null,
 	);
 
-	let activePage = $state(initialPageOrder[0] ?? 'ops');
+	let activePage = $state(initialPageOrder[0] ?? 'filters');
 
 	// Use DOM insertion order (pageOrder at mount time) — avoids stale settings mismatch
 	let pageIndex = $derived(pageOrder.indexOf(activePage));
@@ -237,7 +214,7 @@
 
 	$effect(() => {
 		if (!pageOrder.includes(activePage)) {
-			activePage = pageOrder[0] ?? 'ops';
+			activePage = pageOrder[0] ?? 'filters';
 		}
 	});
 
@@ -414,9 +391,9 @@
 	let tagsExplorer = $state<TagsExplorerPanel | null>(null);
 
 	// ─── Filters page state ──────────────────────────────────────────────────
-	type FiltersTab = 'tags' | 'props' | 'content';
+	type FiltersTab = 'files' | 'tags' | 'props' | 'content';
 	type SearchTab = 'tags' | 'props' | 'files';
-	let filtersActiveTab = $state<FiltersTab>('props');
+	let filtersActiveTab = $state<FiltersTab>('files');
 	$effect(() => {
 		void filtersActiveTab;
 		closeQueueIsland();
@@ -450,8 +427,7 @@
 	}
 
 	function applyExplorerSearch() {
-		const tab: FiltersTab | 'files' =
-			activePage === 'ops' ? 'files' : filtersActiveTab;
+		const tab = filtersActiveTab;
 		if (tab === 'content') return;
 		const term = filtersSearchByTab[tab] ?? '';
 		const catMode = filtersSearchCategory[tab] ?? 0;
@@ -534,6 +510,12 @@
 		filtersIsland?.destroy();
 		filtersIsland = undefined;
 		filtersIslandOpen = false;
+	}
+
+	function clearActiveFilters() {
+		plugin.filterService.clearFilters();
+		closeFiltersIsland();
+		updateStats();
 	}
 
 	// ─── Refresh ─────────────────────────────────────────────────────────────
@@ -645,18 +627,7 @@
 		{#each pageOrder as pageId (pageId)}
 			<div class="vaultman-page" data-page={pageId}>
 				{#key pageRenderKey}
-					{#if pageId === 'ops'}
-						<OperationsPage
-							{plugin}
-							bind:filtersSearchByTab
-							bind:filtersSearchCategory
-							bind:fileList
-							bind:selectedCount
-							{addOpCount}
-							expansionRevision={filterRuleCount + filteredCount}
-							{icon}
-						/>
-					{:else if pageId === 'statistics'}
+					{#if pageId === 'statistics'}
 						<StatisticsPage {plugin} active={activePage === pageId} />
 					{:else if pageId === 'filters'}
 						<FiltersPage
@@ -664,13 +635,18 @@
 							bind:filtersActiveTab
 							bind:filtersSearchByTab
 							bind:filtersSearchCategory
+							bind:fileList
+							bind:selectedCount
 							bind:tagsExplorer
 							bind:propExplorer
 							{settingsRevision}
-							getSelectedFiles={() => fileList?.getSelectedFiles() ?? []}
+							getSelectedFiles={() =>
+								fileList?.getSelectedFiles() ??
+								plugin.filterService.selectedFiles}
 							{filteredCount}
 							{addOpCount}
 							expansionRevision={filterRuleCount + filteredCount}
+							{icon}
 						/>
 					{/if}
 				{/key}

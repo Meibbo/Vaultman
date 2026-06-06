@@ -138,4 +138,15 @@ describe('FilesLogic.buildFileTree', () => {
 			typeText: 'base',
 		});
 	});
+
+	it('omits markdown extension text because markdown is the default note type', () => {
+		const logic = new FilesLogic(makeApp({}));
+
+		const tree = logic.buildFileTree([makeFile('Data/Projects.md')]);
+
+		expect(tree[0].children?.[0]).toMatchObject({
+			label: 'Projects',
+			typeText: undefined,
+		});
+	});
 });

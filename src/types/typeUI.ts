@@ -39,6 +39,7 @@ export interface FabDef {
 	icon: string;
 	label: string;
 	action: () => void;
+	doubleClickAction?: () => void;
 	isPlaceholder?: boolean;
 	locked?: boolean;
 	lockBackdrop?: boolean;

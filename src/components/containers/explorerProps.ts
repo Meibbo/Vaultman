@@ -41,6 +41,7 @@ export class PropsExplorerPanel extends Component {
 	private sortChildLevel = false;
 	private nodeTypeFilter: string | null = null;
 	private visibleCells = new Set<string>(['icon', 'text', 'count']);
+	private onExpansionChange?: () => void;
 
 	constructor(containerEl: HTMLElement, plugin: PanelPluginCtx) {
 		super();
@@ -294,6 +295,10 @@ export class PropsExplorerPanel extends Component {
 		return this.expandedIds.size > 0;
 	}
 
+	setExpansionChangeHandler(handler?: () => void): void {
+		this.onExpansionChange = handler;
+	}
+
 	expandAll(): void {
 		let tree = this.logic.getTree();
 		if (this.nodeTypeFilter) {
@@ -310,11 +315,13 @@ export class PropsExplorerPanel extends Component {
 			}
 		}
 		this._expandAll(tree);
+		this._notifyExpansionChanged();
 		this._render();
 	}
 
 	collapseAll(): void {
 		this.expandedIds.clear();
+		this._notifyExpansionChanged();
 		this._render();
 	}
 
@@ -538,6 +545,7 @@ export class PropsExplorerPanel extends Component {
 			onToggle: (id: string) => {
 				if (this.expandedIds.has(id)) this.expandedIds.delete(id);
 				else this.expandedIds.add(id);
+				this._notifyExpansionChanged();
 				void this._render();
 			},
 			onRowClick: (id: string) => {
@@ -579,6 +587,11 @@ export class PropsExplorerPanel extends Component {
 		)) {
 			this.expandedIds.add(id);
 		}
+		this._notifyExpansionChanged();
+	}
+
+	private _notifyExpansionChanged(): void {
+		this.onExpansionChange?.();
 	}
 
 	private _filterByType(

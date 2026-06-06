@@ -38,7 +38,7 @@ export interface VaultmanSettings {
 	basesShowColumnSeparators: boolean;
 	/** What to open when the ribbon icon is clicked: sidebar only, main view only, or both */
 	openMode: 'sidebar' | 'main' | 'both';
-	/** Order of pages in the sidebar bottom nav (page IDs: 'filters', 'ops', 'statistics') */
+	/** Order of pages in the sidebar bottom nav (page IDs: 'filters', 'statistics') */
 	pageOrder: string[];
 	/** Glassmorphism blur intensity for bottom bar and popups (0–100, maps to 0–20px) */
 	glassBlurIntensity: number;
@@ -108,7 +108,7 @@ export const DEFAULT_SETTINGS: VaultmanSettings = {
 	basesInjectCheckboxes: true,
 	basesShowColumnSeparators: false,
 	openMode: 'sidebar',
-	pageOrder: ['filters', 'ops', 'statistics'],
+	pageOrder: ['filters', 'statistics'],
 	separatePanes: false,
 	viewMode: 'list',
 	filtersShowTabLabels: true,

@@ -2635,7 +2635,7 @@ body.vaultman-bases-column-separators table th {
   align-items: center;
   justify-content: center;
   gap: 6px;
-  padding: 6px 8px 4px;
+  padding: 8px;
   flex-shrink: 0;
   min-height: 40px;
 }
@@ -2643,8 +2643,8 @@ body.vaultman-bases-column-separators table th {
 .vaultman-filters-header--minimal {
   justify-content: center;
   gap: 2px;
-  padding: 0;
-  min-height: var(--clickable-icon-size);
+  padding: 8px;
+  min-height: calc(var(--clickable-icon-size) + 16px);
 }
 
 .vaultman-filters-header > .nav-action-button {
@@ -4305,13 +4305,9 @@ body.vaultman-bases-column-separators table th {
 
 .vaultman-tree-type {
   flex-shrink: 0;
-  min-width: 28px;
+  min-width: 0;
   max-width: 72px;
-  padding: 0 4px;
-  font-size: 9px;
-  line-height: 16px;
-  color: var(--text-muted);
-  text-align: right;
+  margin-left: 4px;
   text-transform: lowercase;
   white-space: nowrap;
   overflow: hidden;
@@ -4394,7 +4390,7 @@ body.vaultman-bases-column-separators table th {
 .vaultman-stat-scope-pills {
   display: flex;
   gap: 4px;
-  background: var(--background-modifier-hover);
+  background: var(--background-secondary);
   width: 100%;
   padding: 3px;
   border-radius: 999px;
@@ -4410,8 +4406,8 @@ body.vaultman-bases-column-separators table th {
   min-width: 0;
   padding: 3px 6px;
   border-radius: 999px;
-  border: none;
-  background: transparent;
+  border: 1px solid transparent;
+  background: color-mix(in srgb, var(--scope-color, var(--text-muted)) 8%, transparent);
   color: var(--text-muted);
   font-size: 11px;
   line-height: 1.2;
@@ -4420,13 +4416,15 @@ body.vaultman-bases-column-separators table th {
 }
 
 .vaultman-stat-scope-pill:hover {
-  color: var(--text-normal);
+  border-color: color-mix(in srgb, var(--scope-color, var(--text-muted)) 28%, transparent);
+  color: var(--scope-color, var(--text-normal));
 }
 
 .vaultman-stat-scope-pill.is-active {
-  background: var(--background-primary);
-  color: var(--text-accent);
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  background: color-mix(in srgb, var(--scope-color, var(--interactive-accent)) 18%, var(--background-secondary));
+  border-color: color-mix(in srgb, var(--scope-color, var(--interactive-accent)) 55%, transparent);
+  color: var(--scope-color, var(--text-normal));
+  box-shadow: 0 2px 8px color-mix(in srgb, var(--scope-color, var(--interactive-accent)) 18%, transparent);
 }
 
 .vaultman-pill-icon {

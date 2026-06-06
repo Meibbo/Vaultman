@@ -10,4 +10,8 @@ describe('Vaultman default settings', () => {
 	it('shows bulk operation warnings by default', () => {
 		expect(DEFAULT_SETTINGS.suppressBulkOperationWarning).toBe(false);
 	});
+
+	it('keeps Files inside the Data tab menu instead of the dock', () => {
+		expect(DEFAULT_SETTINGS.pageOrder).toEqual(['filters', 'statistics']);
+	});
 });

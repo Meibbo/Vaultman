@@ -160,17 +160,29 @@
 		},
 	]);
 
-	const scopeOptions: { id: Scope; label: string; icon: string }[] = [
-		{ id: 'vault', label: translate('scope.all'), icon: 'lucide-database' },
+	const scopeOptions: {
+		id: Scope;
+		label: string;
+		icon: string;
+		color: string;
+	}[] = [
+		{
+			id: 'vault',
+			label: translate('scope.all'),
+			icon: 'lucide-database',
+			color: 'var(--color-blue)',
+		},
 		{
 			id: 'filtered',
 			label: translate('scope.filtered'),
 			icon: 'lucide-filter',
+			color: 'var(--color-green)',
 		},
 		{
 			id: 'selected',
 			label: translate('scope.selected'),
 			icon: 'lucide-check-square',
+			color: 'var(--color-orange)',
 		},
 	];
 
@@ -204,6 +216,7 @@
 				<button
 					class="vaultman-stat-scope-pill"
 					class:is-active={scope === opt.id}
+					style="--scope-color: {opt.color}"
 					onclick={() => (scope = opt.id)}
 					aria-label={opt.label}
 				>
