@@ -52,11 +52,12 @@ the repair must become path-scopable before any prune.
   sessions`. 16 files (work/research, work/publish, work/polish, superpowers specs): stripped tz offsets
   (value preserved) + 3 parent-shape fixes. SAFE-scope timestamp+parent fails → 0; hardening/current
   untouched (proven: my repair wrote only those 16 safe files).
-- [ ] **S3b.2b — line-limit auto-shard (9 SAFE files), dev-gated.** `--repair-line-limits` re-shards docs
-  >300 lines into continuation parts (structural reshape, new files + source rewrite). Files:
-  `architecture/pending-decisions.md`; `work/polish/plans/2026-05-11-ui-modernization-vertical-threads/`
-  (01–04 + index); `work/polish/plans/2026-05-13-toolbar-coexistence-fnr-recents/` (01–03). Held for an
-  explicit dev OK before reshaping polish plans.
+- [~] **S3b.2b — line-limit auto-shard (9 SAFE files): DEFERRED** (dev decision 2026-06-06 — do not reshape
+  historical plans for a line-limit WARN). `--repair-line-limits` would split docs >300 lines into
+  continuation parts. Files: `architecture/pending-decisions.md`;
+  `work/polish/plans/2026-05-11-ui-modernization-vertical-threads/` (01–04 + index);
+  `work/polish/plans/2026-05-13-toolbar-coexistence-fnr-recents/` (01–03). Better remedy for the old plans:
+  mark `lifecycle: archived/superseded` (archived docs need no sharding) when curated.
 - [ ] **S3b.3 — hardening (88) — GATED on Codex.** Message sent (`msg_mq27ocvh_gfawv6`). Only after Codex
   confirms safe/committed paths; scoped repair over confirmed paths only; never the in-flight
   `2026-05-29-version-streams` shards unless handed off.
