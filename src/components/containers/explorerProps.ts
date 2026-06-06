@@ -5,6 +5,7 @@ import type { FilterService } from '../../services/serviceFilter';
 import type { IconicService } from '../../services/serviceIcons';
 import type { ContextMenuService } from '../../services/serviceContextMenu';
 import { OperationQueueService } from '../../services/serviceOperationQueue';
+import type { StatisticsCacheService } from '../../services/serviceStatisticsCache';
 
 export interface PanelPluginCtx {
 	app: import('obsidian').App;
@@ -12,6 +13,7 @@ export interface PanelPluginCtx {
 	iconicService?: IconicService;
 	contextMenuService: ContextMenuService;
 	queueService: OperationQueueService;
+	statisticsCache?: Pick<StatisticsCacheService, 'getFileTimes'>;
 }
 
 import { UnifiedTreeView } from '../layout/viewTree';
@@ -26,6 +28,13 @@ import {
 	toNativePropType,
 	type MetadataTypeManagerLike,
 } from '../../logic/propTypes';
+import { normalizeExplorerSortBy } from '../../logic/logicSort';
+
+type DateSortId = 'mtime' | 'ctime';
+type PropTimeIndex = {
+	props: Map<string, number>;
+	values: Map<string, number>;
+};
 
 function sameStringSet(a: Set<string>, b: Set<string>): boolean {
 	if (a.size !== b.size) return false;
@@ -289,15 +298,16 @@ export class PropsExplorerPanel extends Component {
 		childLevel = false,
 		nodeTypeFilter: string | null = null,
 	): void {
+		const normalizedSortBy = normalizeExplorerSortBy(sortBy);
 		if (
-			this.sortBy === sortBy &&
+			this.sortBy === normalizedSortBy &&
 			this.sortDir === direction &&
 			this.sortChildLevel === childLevel &&
 			this.nodeTypeFilter === nodeTypeFilter
 		) {
 			return;
 		}
-		this.sortBy = sortBy;
+		this.sortBy = normalizedSortBy;
 		this.sortDir = direction;
 		this.sortChildLevel = childLevel;
 		this.nodeTypeFilter = nodeTypeFilter;
@@ -653,38 +663,40 @@ export class PropsExplorerPanel extends Component {
 		).icon;
 	}
 
-	private _sortNodes(nodes: TreeNode<PropMeta>[]): TreeNode<PropMeta>[] {
+	private _sortNodes(
+		nodes: TreeNode<PropMeta>[],
+		timeIndex: PropTimeIndex | null,
+	): TreeNode<PropMeta>[] {
 		const dir = this.sortDir === 'asc' ? 1 : -1;
-		if (this.sortBy === 'date') {
-			const mtimeMap = new Map<string, number>();
-			for (const node of nodes) {
-				const propName = node.meta.propName;
-				let maxMtime = 0;
-				for (const file of this.plugin.app.vault.getMarkdownFiles()) {
-					const fm =
-						this.plugin.app.metadataCache.getFileCache(file)?.frontmatter;
-					if (fm && propName in fm && file.stat.mtime > maxMtime) {
-						maxMtime = file.stat.mtime;
-					}
-				}
-				mtimeMap.set(node.id, maxMtime);
-			}
+		const normalizedSortBy = normalizeExplorerSortBy(this.sortBy);
+		if (
+			(normalizedSortBy === 'mtime' || normalizedSortBy === 'ctime') &&
+			timeIndex
+		) {
 			return [...nodes].sort(
-				(a, b) => dir * ((mtimeMap.get(a.id) ?? 0) - (mtimeMap.get(b.id) ?? 0)),
+				(a, b) =>
+					dir *
+					(this._timeForPropNode(a, timeIndex) -
+						this._timeForPropNode(b, timeIndex)),
 			);
 		}
 		return [...nodes].sort((a, b) => {
-			if (this.sortBy === 'count')
+			if (normalizedSortBy === 'count')
 				return dir * ((a.count ?? 0) - (b.count ?? 0));
-			if (this.sortBy === 'sub')
+			if (normalizedSortBy === 'sub')
 				return dir * ((a.children?.length ?? 0) - (b.children?.length ?? 0));
 			return dir * a.label.localeCompare(b.label);
 		});
 	}
 
 	private _applySort(nodes: TreeNode<PropMeta>[]): TreeNode<PropMeta>[] {
+		const normalizedSortBy = normalizeExplorerSortBy(this.sortBy);
+		const timeIndex =
+			normalizedSortBy === 'mtime' || normalizedSortBy === 'ctime'
+				? this._buildPropTimeIndex(normalizedSortBy)
+				: null;
 		if (!this.sortChildLevel) {
-			return this._sortNodes(nodes).map((node) => ({
+			return this._sortNodes(nodes, timeIndex).map((node) => ({
 				...node,
 				children: node.children ? [...node.children] : [],
 			}));
@@ -692,8 +704,54 @@ export class PropsExplorerPanel extends Component {
 
 		return nodes.map((node) => ({
 			...node,
-			children: node.children ? this._sortNodes(node.children) : [],
+			children: node.children ? this._sortNodes(node.children, timeIndex) : [],
 		}));
+	}
+
+	private _buildPropTimeIndex(sortBy: DateSortId): PropTimeIndex {
+		const props = new Map<string, number>();
+		const values = new Map<string, number>();
+		for (const file of this.plugin.app.vault.getMarkdownFiles()) {
+			const frontmatter =
+				this.plugin.app.metadataCache.getFileCache(file)?.frontmatter ?? {};
+			const time =
+				this.plugin.statisticsCache?.getFileTimes(file)?.[sortBy] ??
+				file.stat[sortBy] ??
+				0;
+			for (const [propName, rawValue] of Object.entries(frontmatter)) {
+				if (propName === 'position') continue;
+				this._setMaxTime(props, propName, time);
+				const rawValues = Array.isArray(rawValue) ? rawValue : [rawValue];
+				for (const value of rawValues) {
+					if (value === undefined || value === null) continue;
+					this._setMaxTime(values, `${propName}::${String(value)}`, time);
+				}
+			}
+		}
+		return { props, values };
+	}
+
+	private _timeForPropNode(
+		node: TreeNode<PropMeta>,
+		index: PropTimeIndex,
+	): number {
+		const meta = node.meta;
+		if (meta.isValueNode) {
+			return (
+				index.values.get(`${meta.propName}::${meta.rawValue ?? ''}`) ??
+				index.props.get(meta.propName) ??
+				0
+			);
+		}
+		return index.props.get(meta.propName) ?? 0;
+	}
+
+	private _setMaxTime(
+		index: Map<string, number>,
+		key: string,
+		time: number,
+	): void {
+		if (time > (index.get(key) ?? 0)) index.set(key, time);
 	}
 
 	private _renderGrid(): void {

@@ -10,6 +10,7 @@ export type StatisticsScope = 'vault' | 'filtered' | 'selected';
 
 export interface CachedFileStats {
 	path: string;
+	ctime: number;
 	mtime: number;
 	size: number;
 	links: number;
@@ -110,6 +111,7 @@ export class StatisticsCacheService extends Component {
 		let hash = 2166136261;
 		for (const file of files) {
 			hash = this.hashString(hash, file.path);
+			hash = this.hashString(hash, String(file.stat.ctime));
 			hash = this.hashString(hash, String(file.stat.mtime));
 			hash = this.hashString(hash, String(file.stat.size));
 		}
@@ -183,6 +185,20 @@ export class StatisticsCacheService extends Component {
 		return this.snapshotForDisplay(snapshot);
 	}
 
+	getFileTimes(file: TFile): { ctime: number; mtime: number } {
+		const cached = this.fileStatsCache.get(file.path);
+		if (this.isFreshCachedStats(file, cached)) {
+			return {
+				ctime: cached.ctime,
+				mtime: cached.mtime,
+			};
+		}
+		return {
+			ctime: file.stat.ctime,
+			mtime: file.stat.mtime,
+		};
+	}
+
 	private snapshotForDisplay(
 		snapshot: StatisticsSnapshot | undefined,
 	): StatisticsSnapshot | null {
@@ -235,6 +251,7 @@ export class StatisticsCacheService extends Component {
 						const content = await this.app.vault.cachedRead(file);
 						fileStats = {
 							path: file.path,
+							ctime: file.stat.ctime,
 							mtime: file.stat.mtime,
 							size: file.stat.size,
 							words: this.countWords(content),
@@ -331,7 +348,7 @@ export class StatisticsCacheService extends Component {
 
 	private collectFileMetadata(
 		file: TFile,
-	): Omit<CachedFileStats, 'path' | 'mtime' | 'size' | 'words'> {
+	): Omit<CachedFileStats, 'path' | 'ctime' | 'mtime' | 'size' | 'words'> {
 		const props = new Set<string>();
 		const values = new Set<string>();
 		const tags = new Set<string>();
@@ -377,6 +394,7 @@ export class StatisticsCacheService extends Component {
 	): cached is CachedFileStats {
 		return (
 			!!cached &&
+			cached.ctime === file.stat.ctime &&
 			cached.mtime === file.stat.mtime &&
 			cached.size === file.stat.size
 		);

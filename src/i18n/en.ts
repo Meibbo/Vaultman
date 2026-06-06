@@ -58,6 +58,8 @@ export const en: Record<string, string> = {
 	'files.col.path': 'Path',
 	'files.col.file_folder': 'folder',
 	'files.col.date': 'Date',
+	'files.col.modified': 'Modified',
+	'files.col.created': 'Created',
 	'files.empty_filtered_title': 'No matching files',
 	'files.empty_filtered_desc': 'Try changing or clearing active filters.',
 
@@ -518,6 +520,8 @@ export const en: Record<string, string> = {
 	'sort.by.name': 'Name',
 	'sort.by.count': 'Count',
 	'sort.by.date': 'Date',
+	'sort.by.modified': 'Modified time',
+	'sort.by.created': 'Created time',
 	'sort.by.ext': 'Extension',
 	'sort.by.path': 'Path',
 	'sort.by.sub': 'Sub-elements',

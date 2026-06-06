@@ -56,6 +56,8 @@ export const es: Record<string, string> = {
 	'files.col.path': 'Ruta',
 	'files.col.file_folder': 'folder',
 	'files.col.date': 'Fecha',
+	'files.col.modified': 'Modificación',
+	'files.col.created': 'Creación',
 	'files.empty_filtered_title': 'No hay archivos que coincidan',
 	'files.empty_filtered_desc': 'Prueba cambiar o limpiar los filtros activos.',
 
@@ -408,6 +410,8 @@ export const es: Record<string, string> = {
 	'sort.by.name': 'Nombre',
 	'sort.by.count': 'Cantidad',
 	'sort.by.date': 'Fecha',
+	'sort.by.modified': 'Modificación',
+	'sort.by.created': 'Creación',
 	'sort.by.ext': 'Extensión',
 	'sort.by.path': 'Ruta',
 	'sort.by.sub': 'Subelementos',

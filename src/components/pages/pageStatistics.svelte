@@ -6,6 +6,10 @@
 		StatisticsSnapshot,
 		StatisticsScope,
 	} from '../../services/serviceStatisticsCache';
+	import {
+		filesForStatisticsScope,
+		folderCountForStatisticsFiles,
+	} from '../../logic/logicStatisticsScope';
 
 	let { plugin, active = false }: { plugin: VaultmanPlugin; active?: boolean } =
 		$props();
@@ -32,21 +36,15 @@
 	});
 
 	function scopedFiles(): TFile[] {
-		if (scope === 'vault') return plugin.app.vault.getMarkdownFiles();
-		if (scope === 'filtered') return plugin.filterService.filteredFiles;
-		return plugin.filterService.selectedFiles;
+		return filesForStatisticsScope(scope, {
+			markdownFiles: plugin.app.vault.getMarkdownFiles(),
+			filteredFiles: plugin.filterService.filteredFiles,
+			activeFile: plugin.app.workspace.getActiveFile(),
+		});
 	}
 
 	function folderCountForFiles(files: TFile[]): number {
-		if (scope === 'vault') return plugin.app.vault.getAllFolders(true).length;
-		const folders = new Set<string>();
-		for (const file of files) {
-			const parts = (file.parent?.path ?? '').split('/').filter(Boolean);
-			for (let index = 0; index < parts.length; index += 1) {
-				folders.add(parts.slice(0, index + 1).join('/'));
-			}
-		}
-		return folders.size;
+		return folderCountForStatisticsFiles(files);
 	}
 
 	$effect(() => {
@@ -111,11 +109,13 @@
 		plugin.statisticsCache.on('changed', bump);
 		plugin.filterService.on('changed', bump);
 		plugin.queueService.on('executed', bump);
+		const fileOpenRef = plugin.app.workspace.on('file-open', bump);
 
 		return () => {
 			plugin.statisticsCache.off('changed', bump);
 			plugin.filterService.off('changed', bump);
 			plugin.queueService.off('executed', bump);
+			plugin.app.workspace.offref(fileOpenRef);
 		};
 	});
 

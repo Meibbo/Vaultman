@@ -13,6 +13,10 @@ import { PropertyManagerModal } from '../../modals/modalPropertyManager';
 import { DELETE_FILE } from '../../types/typeOps';
 import { translate } from '../../i18n/index';
 import { showInputModal } from '../../utils/inputModal';
+import {
+	compareFilesForExplorer,
+	normalizeExplorerSortBy,
+} from '../../logic/logicSort';
 
 export type FilesViewMode = 'grid' | 'tree';
 
@@ -265,18 +269,20 @@ export class FilesExplorerPanel extends Component {
 	}
 
 	setSortBy(sortBy: string, direction: 'asc' | 'desc'): void {
-		if (this.sortBy === sortBy && this.sortDir === direction) return;
-		this.sortBy = sortBy;
+		const normalizedSortBy = normalizeExplorerSortBy(sortBy);
+		if (this.sortBy === normalizedSortBy && this.sortDir === direction) return;
+		this.sortBy = normalizedSortBy;
 		this.sortDir = direction;
 		if (this.viewMode === 'grid' && this.gridView) {
 			const COL_MAP: Record<string, import('../layout/viewGrid').SortColumn> = {
 				name: 'name',
 				count: 'props',
 				ext: 'ext',
-				date: 'date',
+				mtime: 'mtime',
+				ctime: 'ctime',
 				path: 'path',
 			};
-			this.gridView.setSortColumn(COL_MAP[sortBy] ?? 'name', direction);
+			this.gridView.setSortColumn(COL_MAP[normalizedSortBy] ?? 'name', direction);
 		}
 		this._render();
 	}
@@ -360,6 +366,8 @@ export class FilesExplorerPanel extends Component {
 		this.treeView = null;
 		if (this.viewMode === 'grid') {
 			this.gridView = new GridView(this.containerEl, this.plugin.app, {
+				getFileTimes: (file: TFile) =>
+					this.plugin.statisticsCache.getFileTimes(file),
 				onContextMenu: (file: TFile, e: MouseEvent) => {
 					const syntheticNode = {
 						id: file.path,
@@ -410,7 +418,8 @@ export class FilesExplorerPanel extends Component {
 				name: 'name',
 				count: 'props',
 				ext: 'ext',
-				date: 'date',
+				mtime: 'mtime',
+				ctime: 'ctime',
 				path: 'path',
 			};
 			this.gridView.setSortColumn(COL_MAP[this.sortBy] ?? 'name', this.sortDir);
@@ -420,23 +429,15 @@ export class FilesExplorerPanel extends Component {
 	}
 
 	private _sortFiles(files: TFile[]): TFile[] {
-		const dir = this.sortDir === 'asc' ? 1 : -1;
-		return [...files].sort((a, b) => {
-			if (this.sortBy === 'path') return dir * a.path.localeCompare(b.path);
-			if (this.sortBy === 'ext')
-				return dir * a.extension.localeCompare(b.extension);
-			if (this.sortBy === 'date') return dir * (b.stat.mtime - a.stat.mtime);
-			if (this.sortBy === 'count') {
-				const aC = Object.keys(
-					this.plugin.app.metadataCache.getFileCache(a)?.frontmatter ?? {},
-				).filter((k) => k !== 'position').length;
-				const bC = Object.keys(
-					this.plugin.app.metadataCache.getFileCache(b)?.frontmatter ?? {},
-				).filter((k) => k !== 'position').length;
-				return dir * (aC - bC);
-			}
-			return dir * a.basename.localeCompare(b.basename);
-		});
+		return [...files].sort((a, b) =>
+			compareFilesForExplorer(a, b, this.sortBy, this.sortDir, {
+				countForFile: (file) =>
+					Object.keys(
+						this.plugin.app.metadataCache.getFileCache(file)?.frontmatter ?? {},
+					).filter((k) => k !== 'position').length,
+				getFileTimes: (file) => this.plugin.statisticsCache.getFileTimes(file),
+			}),
+		);
 	}
 
 	private _render(): void {

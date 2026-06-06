@@ -2,6 +2,10 @@
 	import { untrack } from 'svelte';
 	import { translate } from '../../i18n/index';
 	import type { ExplorerSortState } from '../../types/typeUI';
+	import {
+		DEFAULT_EXPLORER_SORT_DIR,
+		normalizeExplorerSortBy,
+	} from '../../logic/logicSort';
 
 	type FiltersTab = 'props' | 'files' | 'tags';
 
@@ -20,9 +24,14 @@
 				labelKey: 'sort.by.name',
 			},
 			{
-				id: 'date',
-				iconName: 'lucide-calendar',
-				labelKey: 'sort.by.date',
+				id: 'mtime',
+				iconName: 'lucide-calendar-clock',
+				labelKey: 'sort.by.modified',
+			},
+			{
+				id: 'ctime',
+				iconName: 'lucide-calendar-plus',
+				labelKey: 'sort.by.created',
 			},
 			{ id: 'sub', iconName: 'lucide-indent', labelKey: 'sort.by.sub' },
 		],
@@ -34,9 +43,14 @@
 				labelKey: 'sort.by.name',
 			},
 			{
-				id: 'date',
-				iconName: 'lucide-calendar',
-				labelKey: 'sort.by.date',
+				id: 'mtime',
+				iconName: 'lucide-calendar-clock',
+				labelKey: 'sort.by.modified',
+			},
+			{
+				id: 'ctime',
+				iconName: 'lucide-calendar-plus',
+				labelKey: 'sort.by.created',
 			},
 			{
 				id: 'sub',
@@ -53,9 +67,14 @@
 			{ id: 'count', iconName: 'lucide-hash', labelKey: 'sort.by.count' },
 			{ id: 'ext', iconName: 'lucide-file-type', labelKey: 'sort.by.ext' },
 			{
-				id: 'date',
-				iconName: 'lucide-calendar',
-				labelKey: 'sort.by.date',
+				id: 'mtime',
+				iconName: 'lucide-calendar-clock',
+				labelKey: 'sort.by.modified',
+			},
+			{
+				id: 'ctime',
+				iconName: 'lucide-calendar-plus',
+				labelKey: 'sort.by.created',
 			},
 			{
 				id: 'path',
@@ -124,7 +143,9 @@
 		icon: (node: HTMLElement, name: string) => { update(n: string): void };
 	} = $props();
 
-	let sortBy = $state(untrack(() => initialSortState?.sortBy ?? 'name'));
+	let sortBy = $state(
+		untrack(() => normalizeExplorerSortBy(initialSortState?.sortBy ?? 'name')),
+	);
 	let sortDir = $state<'asc' | 'desc'>(
 		untrack(() => initialSortState?.direction ?? 'asc'),
 	);
@@ -135,19 +156,13 @@
 	let nodeTypeFilter = $state<string | null>(
 		untrack(() => initialSortState?.nodeTypeFilter ?? null),
 	);
-	const DEFAULT_DIR: Record<string, 'asc' | 'desc'> = {
-		name: 'asc',
-		count: 'desc',
-		date: 'desc',
-		sub: 'desc',
-		columns: 'asc',
-	};
+	const DEFAULT_DIR = DEFAULT_EXPLORER_SORT_DIR;
 
 	// Reset per-tab state when the active tab changes.
 	$effect(() => {
 		void activeTab;
-		sortBy = initialSortState?.sortBy ?? 'name';
-		sortDir = initialSortState?.direction ?? DEFAULT_DIR['name'];
+		sortBy = normalizeExplorerSortBy(initialSortState?.sortBy ?? 'name');
+		sortDir = initialSortState?.direction ?? DEFAULT_DIR[sortBy] ?? 'asc';
 		drawerOpen = false;
 		vertTopActive = initialSortState?.childLevel ?? false;
 		nodeTypeFilter = initialSortState?.nodeTypeFilter ?? null;

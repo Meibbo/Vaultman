@@ -2,11 +2,17 @@
 import { setIcon, type App, type TFile } from 'obsidian';
 import { translate } from '../../i18n/index';
 import { buildVirtualTableWindow } from '../../utils/tableVirtualization';
+import {
+	compareFilesForExplorer,
+	normalizeExplorerSortBy,
+	type ExplorerFileTimes,
+} from '../../logic/logicSort';
 
-export type SortColumn = 'name' | 'props' | 'path' | 'date' | 'ext';
+export type SortColumn = 'name' | 'props' | 'path' | 'mtime' | 'ctime' | 'ext';
 export type SortDirection = 'asc' | 'desc';
 
 export interface GridViewCallbacks {
+	getFileTimes?: (file: TFile) => ExplorerFileTimes;
 	onContextMenu: (file: TFile, e: MouseEvent) => void;
 	onSelectionChange: (selected: Set<string>) => void;
 	onFileClick: (file: TFile) => void;
@@ -126,10 +132,15 @@ export class GridView {
 			);
 		}
 		if (this.visibleCells.has('date')) {
+			const dateColumn = this.sortColumn === 'ctime' ? 'ctime' : 'mtime';
 			this._createSortHeader(
 				row,
-				'date',
-				translate('files.col.date'),
+				dateColumn,
+				translate(
+					dateColumn === 'ctime'
+						? 'files.col.created'
+						: 'files.col.modified',
+				),
 				files,
 				totalCount,
 				'',
@@ -197,7 +208,7 @@ export class GridView {
 	}
 
 	setSortColumn(col: SortColumn, dir: SortDirection): void {
-		this.sortColumn = col;
+		this.sortColumn = normalizeExplorerSortBy(col) as SortColumn;
 		this.sortDirection = dir;
 	}
 
@@ -293,11 +304,14 @@ export class GridView {
 			);
 		}
 		if (this.visibleCells.has('date')) {
+			const times = this.callbacks.getFileTimes?.(file) ?? file.stat;
 			this._renderTextCell(
 				row,
-				new Date(file.stat.mtime).toLocaleDateString(),
+				new Date(
+					this.sortColumn === 'ctime' ? times.ctime : times.mtime,
+				).toLocaleDateString(),
 				'vaultman-file-date',
-				'file.mtime',
+				this.sortColumn === 'ctime' ? 'file.ctime' : 'file.mtime',
 			);
 		}
 		if (this.visibleCells.has('path')) {
@@ -332,22 +346,22 @@ export class GridView {
 
 	private _sortFiles(files: TFile[]): TFile[] {
 		const sorted = [...files];
-		const dir = this.sortDirection === 'asc' ? 1 : -1;
-		sorted.sort((a, b) => {
-			if (this.sortColumn === 'name')
-				return dir * a.basename.localeCompare(b.basename);
-			if (this.sortColumn === 'path')
-				return dir * (a.parent?.path ?? '').localeCompare(b.parent?.path ?? '');
-			if (this.sortColumn === 'date')
-				return dir * (a.stat.mtime - b.stat.mtime);
-			if (this.sortColumn === 'ext')
-				return dir * a.extension.localeCompare(b.extension);
-			const aFm = this.app.metadataCache.getFileCache(a)?.frontmatter ?? {};
-			const bFm = this.app.metadataCache.getFileCache(b)?.frontmatter ?? {};
-			const aC = Object.keys(aFm).filter((k) => k !== 'position').length;
-			const bC = Object.keys(bFm).filter((k) => k !== 'position').length;
-			return dir * (aC - bC);
-		});
+		sorted.sort((a, b) =>
+			compareFilesForExplorer(
+				a,
+				b,
+				this.sortColumn === 'props' ? 'count' : this.sortColumn,
+				this.sortDirection,
+				{
+					countForFile: (file) => {
+						const fm =
+							this.app.metadataCache.getFileCache(file)?.frontmatter ?? {};
+						return Object.keys(fm).filter((k) => k !== 'position').length;
+					},
+					getFileTimes: this.callbacks.getFileTimes,
+				},
+			),
+		);
 		return sorted;
 	}
 

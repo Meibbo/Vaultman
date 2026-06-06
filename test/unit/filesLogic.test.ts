@@ -51,9 +51,9 @@ function makeApp(
 describe('FilesLogic.buildFileTree', () => {
 	it('creates ancestor folders and keeps folders before files at every level', () => {
 		const files = [
-			makeFile('alpha/root.md'),
 			makeFile('alpha/beta/deep.md'),
 			makeFile('alpha/aa-file.md'),
+			makeFile('alpha/root.md'),
 			makeFile('z-root.md'),
 		];
 		const logic = new FilesLogic(
@@ -77,6 +77,25 @@ describe('FilesLogic.buildFileTree', () => {
 		expect(tree[0].children?.[0].depth).toBe(1);
 		expect(tree[0].children?.[0].children?.[0].depth).toBe(2);
 		expect(tree[0].children?.[0].children?.[0].count).toBe(2);
+	});
+
+	it('preserves caller-provided file order within a folder while keeping folders first', () => {
+		const files = [
+			makeFile('alpha/zeta.md'),
+			makeFile('alpha/beta/deep.md'),
+			makeFile('alpha/alpha.md'),
+			makeFile('alpha/middle.md'),
+		];
+		const logic = new FilesLogic(makeApp({}));
+
+		const tree = logic.buildFileTree(files);
+
+		expect(tree[0].children?.map((node) => node.label)).toEqual([
+			'beta',
+			'zeta',
+			'alpha',
+			'middle',
+		]);
 	});
 
 	it('returns ancestor folder ids for matched files so search can reveal results', () => {

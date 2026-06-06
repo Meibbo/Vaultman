@@ -7,6 +7,10 @@
 	import type { PropsExplorerPanel } from '../containers/explorerProps';
 	import type { TagsExplorerPanel } from '../containers/explorerTags';
 	import type { ExplorerSortState, ExplorerViewMode } from '../../types/typeUI';
+	import {
+		DEFAULT_EXPLORER_SORT_DIR,
+		normalizeExplorerSortBy,
+	} from '../../logic/logicSort';
 
 	type FiltersTab = 'props' | 'files' | 'tags';
 	type HeaderTabOption = { id: string; label: string; icon: string };
@@ -145,20 +149,47 @@
 		props: [
 			{ id: 'count', icon: 'lucide-hash', labelKey: 'sort.by.count' },
 			{ id: 'name', icon: 'lucide-a-large-small', labelKey: 'sort.by.name' },
-			{ id: 'date', icon: 'lucide-calendar', labelKey: 'sort.by.date' },
+			{
+				id: 'mtime',
+				icon: 'lucide-calendar-clock',
+				labelKey: 'sort.by.modified',
+			},
+			{
+				id: 'ctime',
+				icon: 'lucide-calendar-plus',
+				labelKey: 'sort.by.created',
+			},
 			{ id: 'sub', icon: 'lucide-indent', labelKey: 'sort.by.sub' },
 		],
 		tags: [
 			{ id: 'count', icon: 'lucide-hash', labelKey: 'sort.by.count' },
 			{ id: 'name', icon: 'lucide-a-large-small', labelKey: 'sort.by.name' },
-			{ id: 'date', icon: 'lucide-calendar', labelKey: 'sort.by.date' },
+			{
+				id: 'mtime',
+				icon: 'lucide-calendar-clock',
+				labelKey: 'sort.by.modified',
+			},
+			{
+				id: 'ctime',
+				icon: 'lucide-calendar-plus',
+				labelKey: 'sort.by.created',
+			},
 			{ id: 'sub', icon: 'lucide-indent', labelKey: 'sort.by.subtags' },
 		],
 		files: [
 			{ id: 'name', icon: 'lucide-a-large-small', labelKey: 'sort.by.name' },
 			{ id: 'count', icon: 'lucide-hash', labelKey: 'sort.by.count' },
 			{ id: 'ext', icon: 'lucide-file-type', labelKey: 'sort.by.ext' },
-			{ id: 'date', icon: 'lucide-calendar', labelKey: 'sort.by.date' },
+			{
+				id: 'mtime',
+				icon: 'lucide-calendar-clock',
+				labelKey: 'sort.by.modified',
+			},
+			{
+				id: 'ctime',
+				icon: 'lucide-calendar-plus',
+				labelKey: 'sort.by.created',
+			},
 			{ id: 'path', icon: 'lucide-route', labelKey: 'sort.by.path' },
 		],
 	};
@@ -195,13 +226,7 @@
 			{ id: 'simple', icon: 'lucide-tag', labelKey: 'sort.type.simple' },
 		],
 	};
-	const DEFAULT_DIR: Record<string, 'asc' | 'desc'> = {
-		name: 'asc',
-		count: 'desc',
-		date: 'desc',
-		sub: 'desc',
-		columns: 'asc',
-	};
+	const DEFAULT_DIR = DEFAULT_EXPLORER_SORT_DIR;
 
 	let headerMode = $state<HeaderMode>('header');
 	let headerExitDir = $state<'left' | 'right'>('right');
@@ -353,21 +378,23 @@
 	}
 
 	function applySortState(tab: FiltersTab, state: ExplorerSortState) {
-		if (tab === 'files') fileList?.setSortBy(state.sortBy, state.direction);
+		const normalizedState = normalizeSortState(state);
+		if (tab === 'files')
+			fileList?.setSortBy(normalizedState.sortBy, normalizedState.direction);
 		if (tab === 'props') {
 			propExplorer?.setSortBy(
-				state.sortBy,
-				state.direction,
-				state.childLevel,
-				state.nodeTypeFilter,
+				normalizedState.sortBy,
+				normalizedState.direction,
+				normalizedState.childLevel,
+				normalizedState.nodeTypeFilter,
 			);
 		}
 		if (tab === 'tags') {
 			tagsExplorer?.setSortBy(
-				state.sortBy,
-				state.direction,
-				state.childLevel,
-				state.nodeTypeFilter,
+				normalizedState.sortBy,
+				normalizedState.direction,
+				normalizedState.childLevel,
+				normalizedState.nodeTypeFilter,
 			);
 		}
 	}
@@ -387,8 +414,9 @@
 	}
 
 	function handleSortChange(state: ExplorerSortState) {
-		sortStateByTab = { ...sortStateByTab, [activeTab]: state };
-		applySortState(activeTab, state);
+		const normalizedState = normalizeSortState(state);
+		sortStateByTab = { ...sortStateByTab, [activeTab]: normalizedState };
+		applySortState(activeTab, normalizedState);
 	}
 
 	function handleViewModeChange(mode: ExplorerViewMode) {
@@ -498,7 +526,9 @@
 	}
 
 	function nextSortState(id: string): ExplorerSortState {
-		const current = sortStateByTab[activeTab] ?? DEFAULT_SORT_STATE[activeTab];
+		const current = normalizeSortState(
+			sortStateByTab[activeTab] ?? DEFAULT_SORT_STATE[activeTab],
+		);
 		const direction =
 			current.sortBy === id
 				? current.direction === 'asc'
@@ -508,9 +538,20 @@
 		return { ...current, sortBy: id, direction };
 	}
 
+	function normalizeSortState(state: ExplorerSortState): ExplorerSortState {
+		const sortBy = normalizeExplorerSortBy(state.sortBy);
+		return {
+			...state,
+			sortBy,
+			direction: state.direction ?? DEFAULT_DIR[sortBy] ?? 'asc',
+		};
+	}
+
 	function openNativeSortMenu(event: MouseEvent) {
 		const menu = new Menu();
-		const current = sortStateByTab[activeTab] ?? DEFAULT_SORT_STATE[activeTab];
+		const current = normalizeSortState(
+			sortStateByTab[activeTab] ?? DEFAULT_SORT_STATE[activeTab],
+		);
 
 		for (const option of SORT_OPTIONS[activeTab]) {
 			menu.addItem((item) => {

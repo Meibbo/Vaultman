@@ -5,6 +5,7 @@ import { FilterService } from '../../services/serviceFilter';
 import { IconicService } from '../../services/serviceIcons';
 import { ContextMenuService } from '../../services/serviceContextMenu';
 import { OperationQueueService } from '../../services/serviceOperationQueue';
+import type { StatisticsCacheService } from '../../services/serviceStatisticsCache';
 
 export interface PanelPluginCtx {
 	app: App;
@@ -12,11 +13,15 @@ export interface PanelPluginCtx {
 	iconicService?: IconicService;
 	contextMenuService: ContextMenuService;
 	queueService: OperationQueueService;
+	statisticsCache?: Pick<StatisticsCacheService, 'getFileTimes'>;
 }
 import { UnifiedTreeView } from '../layout/viewTree';
 import type { TreeNode, TagMeta } from '../../types/typeTree';
 import type { MenuCtx } from '../../types/typeCMenu';
 import { translate } from '../../i18n/index';
+import { normalizeExplorerSortBy } from '../../logic/logicSort';
+
+type DateSortId = 'mtime' | 'ctime';
 
 function sameStringSet(a: Set<string>, b: Set<string>): boolean {
 	if (a.size !== b.size) return false;
@@ -135,15 +140,16 @@ export class TagsExplorerPanel extends Component {
 		childLevel = false,
 		nodeTypeFilter: string | null = null,
 	): void {
+		const normalizedSortBy = normalizeExplorerSortBy(sortBy);
 		if (
-			this.sortBy === sortBy &&
+			this.sortBy === normalizedSortBy &&
 			this.sortDir === direction &&
 			this.sortChildLevel === childLevel &&
 			this.nodeTypeFilter === nodeTypeFilter
 		) {
 			return;
 		}
-		this.sortBy = sortBy;
+		this.sortBy = normalizedSortBy;
 		this.sortDir = direction;
 		this.sortChildLevel = childLevel;
 		this.nodeTypeFilter = nodeTypeFilter;
@@ -197,43 +203,40 @@ export class TagsExplorerPanel extends Component {
 		this._render();
 	}
 
-	private _sortNodes(nodes: TreeNode<TagMeta>[]): TreeNode<TagMeta>[] {
+	private _sortNodes(
+		nodes: TreeNode<TagMeta>[],
+		timeIndex: Map<string, number> | null,
+	): TreeNode<TagMeta>[] {
 		const dir = this.sortDir === 'asc' ? 1 : -1;
-		if (this.sortBy === 'date') {
-			const mtimeMap = new Map<string, number>();
-			for (const node of nodes) {
-				const tagPath = node.meta.tagPath;
-				let maxMtime = 0;
-				for (const file of this.plugin.app.vault.getMarkdownFiles()) {
-					const cache = this.plugin.app.metadataCache.getFileCache(file);
-					const hasFmTag = (
-						cache?.frontmatter?.tags as unknown[] | undefined
-					)?.some((t) => String(t).replace(/^#/, '') === tagPath);
-					const hasInlineTag = cache?.tags?.some(
-						(t) => t.tag === `#${tagPath}`,
-					);
-					if ((hasFmTag || hasInlineTag) && file.stat.mtime > maxMtime) {
-						maxMtime = file.stat.mtime;
-					}
-				}
-				mtimeMap.set(node.id, maxMtime);
-			}
+		const normalizedSortBy = normalizeExplorerSortBy(this.sortBy);
+		if (
+			(normalizedSortBy === 'mtime' || normalizedSortBy === 'ctime') &&
+			timeIndex
+		) {
 			return [...nodes].sort(
-				(a, b) => dir * ((mtimeMap.get(a.id) ?? 0) - (mtimeMap.get(b.id) ?? 0)),
+				(a, b) =>
+					dir *
+					((timeIndex.get(a.meta.tagPath) ?? 0) -
+						(timeIndex.get(b.meta.tagPath) ?? 0)),
 			);
 		}
 		return [...nodes].sort((a, b) => {
-			if (this.sortBy === 'count')
+			if (normalizedSortBy === 'count')
 				return dir * ((a.count ?? 0) - (b.count ?? 0));
-			if (this.sortBy === 'sub')
+			if (normalizedSortBy === 'sub')
 				return dir * ((a.children?.length ?? 0) - (b.children?.length ?? 0));
 			return dir * a.label.localeCompare(b.label);
 		});
 	}
 
 	private _applySort(nodes: TreeNode<TagMeta>[]): TreeNode<TagMeta>[] {
+		const normalizedSortBy = normalizeExplorerSortBy(this.sortBy);
+		const timeIndex =
+			normalizedSortBy === 'mtime' || normalizedSortBy === 'ctime'
+				? this._buildTagTimeIndex(normalizedSortBy)
+				: null;
 		if (!this.sortChildLevel) {
-			return this._sortNodes(nodes).map((node) => ({
+			return this._sortNodes(nodes, timeIndex).map((node) => ({
 				...node,
 				children: node.children ? [...node.children] : [],
 			}));
@@ -241,8 +244,38 @@ export class TagsExplorerPanel extends Component {
 
 		return nodes.map((node) => ({
 			...node,
-			children: node.children ? this._sortNodes(node.children) : [],
+			children: node.children ? this._sortNodes(node.children, timeIndex) : [],
 		}));
+	}
+
+	private _buildTagTimeIndex(sortBy: DateSortId): Map<string, number> {
+		const index = new Map<string, number>();
+		for (const file of this.plugin.app.vault.getMarkdownFiles()) {
+			const cache = this.plugin.app.metadataCache.getFileCache(file);
+			const time =
+				this.plugin.statisticsCache?.getFileTimes(file)?.[sortBy] ??
+				file.stat[sortBy] ??
+				0;
+			const tags = new Set<string>();
+			const frontmatterTags = cache?.frontmatter?.tags as unknown;
+			if (Array.isArray(frontmatterTags)) {
+				for (const tag of frontmatterTags) {
+					const clean = String(tag).replace(/^#/, '');
+					if (clean) tags.add(clean);
+				}
+			} else if (typeof frontmatterTags === 'string') {
+				const clean = frontmatterTags.replace(/^#/, '');
+				if (clean) tags.add(clean);
+			}
+			for (const tag of cache?.tags ?? []) {
+				const clean = tag.tag.replace(/^#/, '');
+				if (clean) tags.add(clean);
+			}
+			for (const tag of tags) {
+				if (time > (index.get(tag) ?? 0)) index.set(tag, time);
+			}
+		}
+		return index;
 	}
 
 	private _expandAll(nodes: TreeNode<TagMeta>[]): void {

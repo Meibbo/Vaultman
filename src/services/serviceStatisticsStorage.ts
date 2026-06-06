@@ -67,7 +67,10 @@ function normalizeFileStats(value: unknown): CachedFileStats | null {
 	if (!isStringArray(candidate.props)) return null;
 	if (!isStringArray(candidate.values)) return null;
 	if (!isStringArray(candidate.tags)) return null;
-	return cloneFileStats(candidate as CachedFileStats);
+	return cloneFileStats({
+		...(candidate as CachedFileStats),
+		ctime: typeof candidate.ctime === 'number' ? candidate.ctime : 0,
+	});
 }
 
 function normalizeSnapshot(value: unknown): StatisticsSnapshot | null {

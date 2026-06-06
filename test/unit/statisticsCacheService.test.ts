@@ -16,7 +16,7 @@ function makeFolder(path: string): TFolder {
 	} satisfies TFolder;
 }
 
-function makeFile(path: string, mtime = 1, size = 10): TFile {
+function makeFile(path: string, mtime = 1, size = 10, ctime = 0): TFile {
 	const name = path.split('/').pop() ?? path;
 	const dot = name.lastIndexOf('.');
 	return {
@@ -25,7 +25,7 @@ function makeFile(path: string, mtime = 1, size = 10): TFile {
 		name,
 		parent: makeFolder(path.includes('/') ? path.split('/').slice(0, -1).join('/') : '/'),
 		path,
-		stat: { ctime: 0, mtime, size },
+		stat: { ctime, mtime, size },
 		vault,
 	} satisfies TFile;
 }
@@ -133,6 +133,29 @@ describe('StatisticsCacheService', () => {
 		expect(second.cacheHits).toBe(1);
 		expect(second.filesRead).toBe(0);
 		expect(readCounter.count).toBe(1);
+	});
+
+	it('persists created and modified timestamps in file-level cache records', async () => {
+		const readCounter = { count: 0 };
+		const file = makeFile('Notes/a.md', 200, 10, 100);
+		const storage = new Map<string, unknown>();
+		const service = new StatisticsCacheService(makeApp(readCounter), {
+			storage,
+			storageKey: 'test-vault',
+		});
+
+		await service.initializeStorage();
+		await service.computeSnapshot({
+			files: [file],
+			folders: 1,
+			scope: 'vault',
+		});
+
+		expect(storage.get('test-vault:file:Notes/a.md')).toMatchObject({
+			path: 'Notes/a.md',
+			ctime: 100,
+			mtime: 200,
+		});
 	});
 
 	it('hydrates last-good aggregate snapshots from persistent storage', async () => {

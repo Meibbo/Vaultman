@@ -96,12 +96,11 @@ export class FilesLogic {
 		};
 
 		const sortTree = (nodes: TreeNode<FileMeta>[]): TreeNode<FileMeta>[] => {
-			nodes.sort((a, b) => {
-				const aFolder = Boolean(a.meta?.isFolder);
-				const bFolder = Boolean(b.meta?.isFolder);
-				if (aFolder !== bFolder) return aFolder ? -1 : 1;
-				return a.label.localeCompare(b.label);
-			});
+			const folders = nodes
+				.filter((node) => node.meta?.isFolder)
+				.sort((a, b) => a.label.localeCompare(b.label));
+			const files = nodes.filter((node) => !node.meta?.isFolder);
+			nodes.splice(0, nodes.length, ...folders, ...files);
 
 			for (const node of nodes) {
 				if (node.children?.length) sortTree(node.children);
@@ -110,16 +109,12 @@ export class FilesLogic {
 			return nodes;
 		};
 
-		const sortedFiles = [...filteredFiles].sort((a, b) =>
-			a.path.localeCompare(b.path),
-		);
-
 		for (const folder of knownFolders) {
 			const folderPath = folder.path === '/' ? '' : folder.path;
 			if (folderPath) ensureFolder(folderPath);
 		}
 
-		for (const file of sortedFiles) {
+		for (const file of filteredFiles) {
 			const rawPath = file.parent?.path ?? '';
 			const folderPath = rawPath === '/' ? '' : rawPath;
 			const parentFolder = ensureFolder(folderPath);
