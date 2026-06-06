@@ -5,7 +5,7 @@ status: active
 parent: "[[docs/work/pkm-ai/index|pkm-ai]]"
 archive_source: docs/archive/pkm-ai/active-docs/2026-05-11T080321-current-status.md
 created: 2026-05-04T01:36:20
-updated: 2026-05-29T23:45:00
+updated: 2026-06-06T12:20:12
 tags:
   - agent/current
 created_by: dec
@@ -29,6 +29,103 @@ Compact route index after archiving the oversized current status:
 ## Current Route
 
 - Active initiative: [[docs/work/hardening/index|Hardening]].
+- **LATEST (2026-06-06)**: Stable `1.1.0` Data/Files parity
+  [[docs/work/hardening/issues/stable-1-1-data-files-parity/015-queue-duplicate-contradictory-operation-guards|SDF-015]]
+  is complete in product worktree `hotfix/1.0.2-css-scorecard`: `OperationQueueService` now gates
+  `add`, `addBatch`, and bypass `addOrRun` through a stable conflict policy. Exact duplicates are
+  skipped, partial duplicate targets merge into one queued op, property/tag/file contradictions on
+  overlapping files are blocked, action presets cannot materialize duplicate/conflicting changes, and
+  bypass no longer runs an operation that conflicts with the pending queue. `pnpm run verify` passed
+  (`19` unit files / `66` tests; scorecard `17` checks); build synced to `plugin-dev`; reload/open
+  passed; runtime smoke confirmed duplicate skip, target merge, contradiction block, bypass
+  `processFrontMatter` calls `0`, queue cleanup, and final `dev:errors` returned `No errors captured`.
+- **LATEST (2026-06-06)**: Stable `1.1.0` Data/Files parity dock follow-up completed in
+  product worktree `hotfix/1.0.2-css-scorecard`: minimal dock FABs no longer emit `title` attributes
+  that duplicate Obsidian tooltips, queue/filter FABs receive active state from their open islands,
+  and minimal dock styling now gives page buttons the squarer hover/active treatment while FAB
+  island states stay round. Added
+  [[docs/work/hardening/issues/stable-1-1-data-files-parity/016-explorer-view-parity-and-stat-card-routing|SDF-016]]
+  for future table/grid view parity and Statistics-card routing. `pnpm run verify` passed with
+  `18` unit files / `59` tests and scorecard `17` checks; build synced to `plugin-dev`; reload passed;
+  DOM smoke confirmed dock FABs have no `title`, page buttons compute `4px` radius, FABs compute
+  `50%` radius, queue/filters FABs become `is-active` while their islands are open, and final
+  `dev:errors` returned `No errors captured`.
+- **LATEST (2026-06-06)**: Stable `1.1.0` Data/Files parity
+  [[docs/work/hardening/issues/stable-1-1-data-files-parity/014-data-tab-switch-performance-and-offset-regression|SDF-014]]
+  is complete in product worktree `hotfix/1.0.2-css-scorecard`: Data tabs now keep visited panes
+  mounted, no longer use the keyed in-flow `fade` transition, Props/Tags receive per-tab search state,
+  and Files/Props/Tags setter paths no-op when view/sort/cells/search state is unchanged. Runtime
+  smoke improved from repeated `20-41 fps` pressure samples and many tree render actions to
+  `46/56/57/60/60 fps`, only `2` tree render actions, `maxTopDelta=0`, and one active pane. Native
+  workspace-tab reference in the same `plugin-dev` session stayed at `56/60 fps`, `0` long tasks, and
+  `maxTopDelta=0`. `pnpm run verify` passed (`17` unit files / `56` tests; scorecard `17` checks);
+  build synced to `plugin-dev`; reload and fresh `dev:errors` passed.
+- **LATEST (2026-06-06)**: Added three new Stable `1.1.0` Data/Files parity follow-up issues:
+  [[docs/work/hardening/issues/stable-1-1-data-files-parity/013-empty-folder-caret-and-extension-icons|SDF-013]]
+  for empty-folder caret affordance and extension-aware file icons,
+  [[docs/work/hardening/issues/stable-1-1-data-files-parity/014-data-tab-switch-performance-and-offset-regression|SDF-014]]
+  for sampler-backed Data tab switching FPS/layout-offset diagnosis, and
+  [[docs/work/hardening/issues/stable-1-1-data-files-parity/015-queue-duplicate-contradictory-operation-guards|SDF-015]]
+  for sandbox-researched duplicate/contradictory queue operation guards. SDF-014 is now completed;
+  SDF-015 still needs sandbox/runtime research before implementation.
+- **LATEST (2026-06-06)**: Stable `1.1.0` Data/Files parity issue
+  [[docs/work/hardening/issues/stable-1-1-data-files-parity/012-data-files-tab-menu-and-filter-fab-clear|SDF-012]]
+  is complete: Files moved from the bottom dock into the Data header Tabs menu as the first option;
+  the dock now normalizes to Data + Statistics only; legacy `ops` page-order settings migrate through
+  `resolveDockPageOrder()`; double-clicking the active-filters FAB clears all filters; the filters
+  header has `8px` padding; and Statistics scope pills now carry scope-color styling aligned with the
+  stats grid. `pnpm run verify` passed; build synced to `plugin-dev`; CLI reload and fresh
+  `dev:errors` passed; DOM smokes confirmed dock/menu order, Files-in-Data rendering, active-filter
+  quick clear, and Statistics pill color variables.
+- **LATEST (2026-06-06)**: Stable `1.1.0` Data/Files parity issues
+  [[docs/work/hardening/issues/stable-1-1-data-files-parity/001-native-extension-cell-polish|SDF-001]]
+  and
+  [[docs/work/hardening/issues/stable-1-1-data-files-parity/002-explorer-expand-state-header-action|SDF-002]]
+  are complete: `.md` extension cells are suppressed, non-markdown extension/type cells use
+  `nav-file-tag`, and explorer headers now react to real expanded-node state after row/caret
+  expansion. `pnpm run verify` passed; final build synced to `plugin-dev`; CLI reload and fresh
+  `dev:errors` passed; Files/Props DOM smokes passed.
+- **LATEST (2026-06-06)**: Follow-up tracker published for Stable `1.1.0`
+  Data/Files parity:
+  [[docs/work/hardening/issues/stable-1-1-data-files-parity/index|Stable 1.1.0 Data/Files parity local issues]].
+  It now contains 16 local issues: SDF-001, SDF-002, SDF-012, SDF-013, SDF-014, and SDF-015 are
+  completed; SDF-003 through SDF-011 plus SDF-016 remain active follow-up work.
+- **LATEST (2026-06-06)**: Stable `1.1.0` Data/Files parity Task 6L completed in
+  [[docs/work/hardening/plans/2026-06-05-stable-1-1-0-data-files-parity/index|Data/Files parity plan]]:
+  Files extension display is now the same tree type cell used by Props (`TreeNode.typeText` /
+  `.vaultman-tree-type`) instead of a badge; Props `property names` search no longer leaks value
+  nodes; explorer expand/collapse labels now follow real expanded-node state; Files filters/search no
+  longer render unrelated empty folders and sparse filtered top-level folders auto-expand when fewer
+  than four level-1 folders are visible; Content search preview lifted the old ten-file visual cap
+  while keeping `matchedFiles` complete. Focused tests, `pnpm run verify`, final sync to
+  `plugin-dev`, CLI reload, `dev:errors`, and DOM smokes passed.
+- **LATEST (2026-06-06)**: Stable `1.1.0` Data/Files parity Task 6K completed in
+  [[docs/work/hardening/plans/2026-06-05-stable-1-1-0-data-files-parity/index|Data/Files parity plan]]:
+  minimal filters header centering now matches Obsidian's `.nav-buttons-container` behavior
+  (`justify-content:center`); explorer search state is split per surface (`props`, `tags`, `files`)
+  so Props/Tags terms no longer bleed into Files search or create accidental `file_name` filters;
+  Props search now expands ancestors only when descendant values match, preserving parent-only
+  collapsed semantics; the native Search adapter no longer opens/focuses the core Search leaf when no
+  existing Search view is available; Settings now has a separate Action presets section for staged
+  operation templates. `pnpm run verify` passed; final build was synced to `plugin-dev`; CLI reload,
+  `dev:errors`, header CSS DOM, Props `journal` DOM, Files bleed DOM, Content focus DOM, and Settings
+  DOM smokes passed.
+- **LATEST (2026-06-05)**: Stable `1.1.0` Data/Files parity Task 6J completed in
+  [[docs/work/hardening/plans/2026-06-05-stable-1-1-0-data-files-parity/index|Data/Files parity plan]]:
+  the minimal Data tabbar is now a native Obsidian `Menu` button in the filters header,
+  Props uses `lucide-archive`, the ribbon icon remains verified as `lucide-vault`, minimal dock
+  active icons now use Obsidian sidebar active contrast instead of accent halo, the minimal filters
+  header carries Obsidian's `nav-buttons-container` class while children keep
+  `clickable-icon nav-action-button`, and Files tree extension cells show every file extension
+  including `.md`, `.base`, and `.png`. Files tree scroll was repaired after finding a stale scoped
+  `overflow:hidden` rule overriding the virtual viewport; a higher-specificity Vaultman view
+  override restores `overflow-y:auto` only on `.vaultman-files-tab-content.vaultman-tree-virtual-viewport`.
+  Prior 6H content
+  search/Bases work remains in place. `pnpm run verify` passed; `pnpm run build` synced to
+  `plugin-dev`; after restarting a stale Obsidian CLI bridge, `plugin:reload`, `dev:errors`, tabs
+  menu DOM, dock contrast DOM, header class/size DOM, Files scroll DOM, and `.base` Files
+  search/extension badge smoke all passed. Residual
+  from Task 6E still stands: Files table switch recorded one `868 ms` long-task sample.
 - **NAVIGATION (read first, in this order)**: [[docs/architecture/zoom-out-map|zoom-out-map]] · [[docs/architecture/dev-glossary|dev-glossary]] · [[docs/architecture/operational-watch-list|operational-watch-list]] · [[docs/architecture/research-inventory|research-inventory]] · [[docs/architecture/pending-decisions|pending-decisions (S-1..S-14)]] · [[docs/architecture/tooling-libraries|tooling-libraries]] · [[docs/architecture/vaultman-identity|vaultman-identity]] · [[docs/architecture/decision-graph|decision-graph]] · [[docs/current/2026-05-28-checkpoint|2026-05-28 checkpoint (wave summary + next-chat prompt)]]. Cluster = full project context in <10 minutes. **Changed since 2026-05-27** → see [[docs/sessions/session-log|session-log]] + [[docs/architecture/agent-memory-routing-best-practices|best-practices recon]].
 - **LATEST (2026-05-29)**: feature-request grill checkpoint closed: [[docs/current/2026-05-29-checkpoint|2026-05-29 checkpoint]] · [[docs/work/hardening/items/2026-05-29-dev-pending-question-inventory|dev question inventory]] · [[docs/work/hardening/visuals/2026-05-29-pending-decisions-roadmap-map|Mermaid map]]. S-26 locked; next = S-27 panelData.
 - **LATEST (2026-05-27)**: 3-day architecture / style / version-streams grill closed. Hubs:

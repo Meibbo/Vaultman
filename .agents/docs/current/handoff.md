@@ -5,7 +5,7 @@ status: active
 parent: "[[docs/work/pkm-ai/index|pkm-ai]]"
 archive_source: docs/archive/pkm-ai/active-docs/2026-05-11T080321-current-handoff.md
 created: 2026-05-04T01:36:20
-updated: 2026-05-29T23:45:00
+updated: 2026-06-06T12:20:12
 tags:
   - agent/current
 created_by: dec
@@ -16,6 +16,163 @@ updated_by: codex-gpt-5
 
 Compact handoff after archiving the oversized current handoff:
 [[docs/archive/pkm-ai/active-docs/2026-05-11T080321-current-handoff|2026-05-11 handoff archive]].
+
+## NEXT AGENT START HERE — SDF-015 queue guard complete (2026-06-06)
+
+Stable `1.1.0` Data/Files parity
+[[docs/work/hardening/issues/stable-1-1-data-files-parity/015-queue-duplicate-contradictory-operation-guards|SDF-015]]
+is complete in product worktree `hotfix/1.0.2-css-scorecard`. The stable queue remains the existing
+`PendingChange[]` service, but `OperationQueueService.add`, `addBatch`, and bypass `addOrRun` now
+share a semantic gate. Exact duplicates are skipped, same-operation partial target overlap merges
+missing files into the existing queued op, property/tag/file contradictions on overlapping files are
+blocked, action presets pass through the same policy, and bypass does not execute an immediate
+operation that conflicts with pending staged work. Sandbox research found that `origin/sandbox` uses a
+larger VFS/transaction queue (`serviceQueue.svelte.ts`) with node-bound delete-conflict purge; this
+wave intentionally ported the stable-compatible policy, not the full architecture. Evidence:
+new RED/GREEN `operationQueueConflictPolicy.test.ts`, focused queue/template tests passed, `pnpm run
+verify` passed (`19` unit files / `66` tests; scorecard `17` checks), build synced to `plugin-dev`,
+reload/open passed, runtime smoke confirmed duplicate skip, target merge, contradiction block, bypass
+`processFrontMatter` calls `0`, queue cleanup, and final `dev:errors` returned `No errors captured`.
+
+## NEXT AGENT START HERE — Dock tooltip/active-state fix complete + SDF-016 added (2026-06-06)
+
+Stable `1.1.0` Data/Files parity dock follow-up is complete in product worktree
+`hotfix/1.0.2-css-scorecard`. `navbarPillFab.svelte` no longer emits native `title` attributes on
+dock FABs, preventing duplicate tooltip surfaces when Obsidian also uses `aria-label`. `VaultmanFrame`
+passes `queueIslandOpen` / `filtersIslandOpen` into `BottomNav`, and the dock FABs now get
+`is-active` while their matching islands are open. Minimal dock CSS now gives page buttons a squarer
+`var(--radius-s)` hover/active shape and keeps dock FAB hover/active states round. Added
+[[docs/work/hardening/issues/stable-1-1-data-files-parity/016-explorer-view-parity-and-stat-card-routing|SDF-016]]
+for future all-explorer table view parity, Files grid view, and Statistics-card routing into Data
+tabs. Evidence: Svelte autofixer on `navbarPillFab.svelte` and `VaultmanFrame.svelte` reported no
+issues; focused source guard `navbarPillFabSource.test.ts` passed; `pnpm run verify` passed
+(`18` unit files / `59` tests; scorecard `17` checks); build synced to `plugin-dev`; reload passed;
+DOM smoke confirmed no dock FAB `title`, page button radius `4px`, dock FAB radius `50%`, queue and
+filters FABs becoming `is-active` while islands are open, and final `dev:errors` returned
+`No errors captured`.
+
+## NEXT AGENT START HERE — SDF-014 Data tab switching complete (2026-06-06)
+
+Stable `1.1.0` Data/Files parity
+[[docs/work/hardening/issues/stable-1-1-data-files-parity/014-data-tab-switch-performance-and-offset-regression|SDF-014]]
+is complete in product worktree `hotfix/1.0.2-css-scorecard`. `pageFilters.svelte` now keeps visited
+Data tab panes mounted, removed the keyed in-flow `fade` transition, and passes Props/Tags their own
+per-tab search values. Files/Props/Tags explorer setters now return early when view mode, visible
+cells, sort state, or search state are unchanged, stopping repeated header effects from forcing
+redundant renders. Runtime smoke after the final fix reported `maxPaneCount=4`,
+`maxActivePaneCount=1`, `maxTopDelta=0`, only `2` tree render actions, and sampler samples
+`46/56/57/60/60 fps`; native workspace-tab reference in the same `plugin-dev` session reported
+`56/60 fps`, `0` long tasks, and `maxTopDelta=0`. Evidence: Svelte autofixer on
+`pageFilters.svelte`, focused source-guard tests (`2` files / `6` tests), `pnpm run verify` passed
+(`17` unit files / `56` tests; scorecard `17` checks), final build synced to `plugin-dev`, reload
+passed, and fresh `dev:errors` returned `No errors captured`.
+
+## NEXT AGENT START HERE — New SDF-013/SDF-014/SDF-015 follow-ups added (2026-06-06)
+
+Three new Stable `1.1.0` Data/Files parity issues were added to
+[[docs/work/hardening/issues/stable-1-1-data-files-parity/index|Stable 1.1.0 Data/Files parity local issues]]:
+[[docs/work/hardening/issues/stable-1-1-data-files-parity/013-empty-folder-caret-and-extension-icons|SDF-013]]
+for empty-folder caret affordance plus extension-aware file icons;
+[[docs/work/hardening/issues/stable-1-1-data-files-parity/014-data-tab-switch-performance-and-offset-regression|SDF-014]]
+for sampler-backed Data tab switch FPS and vertical-offset regression diagnosis; and
+[[docs/work/hardening/issues/stable-1-1-data-files-parity/015-queue-duplicate-contradictory-operation-guards|SDF-015]]
+for duplicate/contradictory queue-operation guards researched against sandbox. SDF-014 is now
+completed; SDF-015 must still start with runtime/sandbox research before coding.
+
+## NEXT AGENT START HERE — SDF-012 Data Files tab menu cut complete (2026-06-06)
+
+Stable `1.1.0` Data/Files parity issue
+[[docs/work/hardening/issues/stable-1-1-data-files-parity/012-data-files-tab-menu-and-filter-fab-clear|SDF-012]]
+is done in product worktree `hotfix/1.0.2-css-scorecard`. Files is no longer a bottom-dock page;
+the dock is Data + Statistics and old `ops` page-order settings normalize through
+`src/logic/logicNavigation.ts`. Files is now the first Data header Tabs menu option and still uses
+the existing `FilesExplorerPanel` via `FilesTab`. The active-filters FAB supports double-click clear,
+filters header padding is `8px`, and Statistics scope pills use `--scope-color` values from the stats
+grid palette. Evidence: focused RED/GREEN navigation/default tests, `pnpm run verify` passed, final
+build synced to `plugin-dev`, plugin reload passed, fresh `dev:errors` returned `No errors captured`,
+DOM smokes confirmed dock labels `Data`/`Statistics`, Tabs order `Files/Props/Tags/Content`, Files
+visible inside Data, double-click active-filter clear, and Statistics scope pill color variables.
+
+## NEXT AGENT START HERE — Stable Data/Files parity follow-up issue set (2026-06-06)
+
+The next release-facing work is now tracked as
+[[docs/work/hardening/issues/stable-1-1-data-files-parity/index|Stable 1.1.0 Data/Files parity local issues]].
+SDF-001 and SDF-002 are completed and verified in product worktree `hotfix/1.0.2-css-scorecard`.
+Next recommended wave: SDF-006 and SDF-009 for remaining small visible UX fixes, then SDF-003 before
+SDF-004/SDF-005. SDF-010 still requires Core Search research with `obsidian-cli` and
+`obsidian-web-lab`; SDF-011 still requires Bases table screenshot/DOM research. Latest verification
+for SDF-001/SDF-002: `pnpm run verify` passed, build synced to `plugin-dev`, plugin reload passed,
+fresh `dev:errors` returned `No errors captured`, Files DOM showed `.base`/`.png`
+`.vaultman-tree-type.nav-file-tag` with `.md` hidden, and Files/Props expansion changed headers to
+`Collapse all` before collapsing them again.
+
+## NEXT AGENT START HERE — Stable Data/Files parity extension/search/filter pass (2026-06-06)
+
+Continue from
+[[docs/work/hardening/plans/2026-06-05-stable-1-1-0-data-files-parity/index|Stable 1.1.0 Data/Files parity plan]],
+Task 6L. Latest cut: Files extension display moved from ad-hoc badges into the same row cell model as
+Props node types (`TreeNode.typeText` rendered by `.vaultman-tree-type`), so `.md`, `.base`, `.png`,
+and other extensions appear as the node type/ext cell when enabled. Props `property names` search now
+returns only property nodes; value/level-2 rows are reserved for `all property text`. The
+expand/collapse header button derives its label from the active explorer's real expanded-node state,
+so one or more expanded rows shows `Collapse all`. Files active filters/search no longer pass the full
+vault folder list into the tree projection, preventing unrelated empty folders from rendering under
+constraints; sparse filtered results auto-expand level-1 folders when fewer than four top-level folders
+are visible, while a manual collapse stays collapsed until the result signature changes. Content search
+preview lifted the old ten-file visual cap to a high DOM-safety cap and keeps `matchedFiles`
+uncapped. Evidence: focused unit tests passed, `pnpm run verify` passed, final build synced to
+`plugin-dev`, `plugin:reload` passed, `dev:errors` returned `No errors captured`, and CLI DOM smokes
+covered filtered Files rows/extensions, manual collapse persistence, Props `banner` property-name mode,
+and Content `journal` preview without the old `and N more files` normal cap. Test filters were cleared
+from `plugin-dev` after smokes.
+
+Prior Task 6K context:
+Task 6K. Latest cut: minimal filters header centering now matches the native File Explorer header
+because Vaultman uses Obsidian's plural `.nav-buttons-container` behavior without overriding it to
+`flex-start`; CLI measured the active Vaultman header as `justify-content:center`. Explorer search
+state is now per surface (`props`, `tags`, `files`), so Props/Tags search text stays on Data and does
+not create accidental Files `file_name contains ...` filters. Props search calls the existing
+`PropsLogic.expansionIdsForSearchMatches()` on search changes, so level-2/value matches such as
+`journal` expand their parents while parent-only matches still do not force irrelevant children.
+Content search no longer opens the core Search pane when none exists, avoiding focus/leaf steal; with
+core Search enabled and present, CLI smoke kept the active leaf and focus on Vaultman while typing.
+Settings now renders `Filter templates` and a separate `Action presets` section for saved staged
+operations. Evidence: `pnpm run verify` passed; final build synced to `plugin-dev`; `plugin:reload`,
+`dev:errors`, header DOM/CSS, Props `journal` DOM, Files search-bleed DOM, Content focus DOM, and
+Settings DOM smokes passed.
+
+Prior Task 6I/6J context:
+Task 6I. Completed this cut: proto design v12's tabs-as-chip idea was reshaped into a minimal
+Data-header `Tabs` button that opens an Obsidian `Menu` with Props/Tags/Content; the visual tabbar is
+hidden only in minimal style, and Content keeps the Tabs button so the user cannot get trapped there.
+Header order on Data explorer tabs is `Tabs -> View mode -> Sort -> Search -> Auto-reveal when Files
+surface exists -> Expand/Collapse`; page Files keeps `View -> Sort -> Search -> Auto-reveal ->
+Expand/Collapse` because it has no Data tabs. Props now uses `lucide-archive`; `main.ts` was verified
+already using `lucide-vault`, with no `lucide-cupcake` remaining in `src`. Minimal dock active icons
+now use Obsidian sidebar active contrast (`workspace-tab-header tappable is-active`, hover background,
+tab active color, no accent halo). Files tree extension badges now show any extension when the `ext`
+cell is enabled, including `.md` and `.base`.
+
+Evidence: `pnpm run verify` passed; `pnpm run build` synced to `plugin-dev`. The Obsidian CLI bridge
+initially timed out; stale `Obsidian.com` processes were cleared and Obsidian was restarted via
+`Obsidian.exe obsidian://open?vault=plugin-dev`. After that, `plugin:reload` passed and
+`dev:errors` returned `No errors captured`. CLI DOM smoke confirmed no minimal Data tabbar, Tabs menu
+items `Props/Tags/Content`, Content state still exposing only `Tabs: Content`, active dock style
+matching the active Obsidian sidebar tab (`rgba(255,255,255,0.067)`, `rgb(179,179,179)`, no shadow),
+Files tree badges including `.base`, `.md`, and `.png`, and `.base` Files search showing base files
+with `.base` badges. Residual: Files table switch still produced one earlier `868 ms` long-task
+sample, and Props expand-all still has model/projection cost.
+
+Task 6J follow-up: the minimal filters header now also carries Obsidian's real
+`nav-buttons-container` class while each action remains `clickable-icon nav-action-button`.
+CLI DOM measured the header as 26px high with `gap: 2px`, and each button as 30x26 with an 18x18
+centered icon. A Files scroll regression was reproduced: the virtual viewport had scrollable content
+but computed `overflow-y: hidden` because an old scoped Svelte rule
+`.vaultman-files-tab-content.svelte-1iho35x { overflow: hidden; }` could persist after reload. The
+product source removed that scoped overflow and `styles.css` now has a higher-specificity override
+only for `.vaultman-files-tab-content.vaultman-tree-virtual-viewport` inside Vaultman leaves. Fresh
+smoke after reload showed `overflowY: auto`, `scrollTop` moving `0 -> 1057`, and `canScroll: true`.
+`pnpm run verify` passed again after the follow-up.
 
 ## NEXT AGENT START HERE — Feature grill checkpoint closed (2026-05-29)
 
