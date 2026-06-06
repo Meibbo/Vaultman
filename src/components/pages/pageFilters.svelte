@@ -1,5 +1,6 @@
 <script lang="ts">
-	import { MarkdownView, TFile, setIcon } from 'obsidian';
+	import { onDestroy } from 'svelte';
+	import { MarkdownView, Notice, TFile, setIcon } from 'obsidian';
 	import type { VaultmanPlugin } from '../../main';
 	import { fade } from 'svelte/transition';
 	import FiltersTagsTab from './tabTags.svelte';
@@ -15,6 +16,7 @@
 		FIND_REPLACE_CONTENT,
 	} from '../../types/typeOps';
 	import { translate } from '../../i18n/index';
+	import { NativeSearchAdapter } from '../../services/serviceNativeSearchAdapter';
 
 	type FiltersTab = 'props' | 'tags' | 'content';
 	type SearchTab = 'props' | 'files' | 'tags';
@@ -49,8 +51,13 @@
 	let contentIsRegex = $state(false);
 	let contentPreviewResult = $state<ContentPreviewResult | null>(null);
 	let contentPreviewOpen = $state(true);
-	let contentPreviewing = $state(false);
 	let contentRegexError = $state('');
+
+	function createNativeSearchAdapter(): NativeSearchAdapter {
+		return new NativeSearchAdapter(plugin.app);
+	}
+
+	const nativeSearchAdapter = createNativeSearchAdapter();
 
 	const explorerActiveTab = $derived(
 		filtersActiveTab === 'content' ? 'props' : filtersActiveTab,
@@ -67,6 +74,22 @@
 		void settingsRevision;
 		return plugin.settings.minimalStyle;
 	});
+	const filterTabOptions = $derived.by(() => {
+		void settingsRevision;
+		return [
+			{
+				id: 'props',
+				label: translate('filter.tab.props'),
+				icon: 'lucide-archive',
+			},
+			{ id: 'tags', label: translate('filter.tab.tags'), icon: 'lucide-tag' },
+			{
+				id: 'content',
+				label: translate('filter.tab.content'),
+				icon: 'lucide-file-search',
+			},
+		];
+	});
 
 	const contentScopeHint = $derived.by(() => {
 		const scope = operationScope;
@@ -77,9 +100,11 @@
 				String(selected.length),
 			);
 		}
+		const baseCount =
+			plugin.filterService.getFilesIgnoringContentSearch().length;
 		return translate('content.scope_hint_filtered').replace(
 			'{count}',
-			String(filteredCount),
+			String(baseCount),
 		);
 	});
 
@@ -97,17 +122,6 @@
 		};
 	}
 
-	function offsetToPosition(
-		content: string,
-		offset: number,
-	): { line: number; ch: number } {
-		const before = content.slice(0, offset).split('\n');
-		return {
-			line: before.length - 1,
-			ch: before[before.length - 1]?.length ?? 0,
-		};
-	}
-
 	async function openContentMatch(file: TFile, line: number, ch: number) {
 		await plugin.app.workspace.openLinkText(file.path, '', false);
 		const view = plugin.app.workspace.getActiveViewOfType(MarkdownView);
@@ -122,109 +136,97 @@
 		);
 	}
 
-	async function previewContentReplace() {
+	function validateContentSearch(): boolean {
 		contentRegexError = '';
 		if (!contentFind) {
 			contentPreviewResult = null;
-			return;
+			return false;
 		}
 
 		const flags = 'g' + (contentCaseSensitive ? '' : 'i');
-		const escaped = contentIsRegex
-			? contentFind
-			: contentFind.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 
 		try {
-			new RegExp(escaped, flags);
+			new RegExp(
+				contentIsRegex
+					? contentFind
+					: contentFind.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'),
+				flags,
+			);
 		} catch {
 			contentRegexError = translate('content.invalid_regex');
-			return;
+			return false;
 		}
+		return true;
+	}
 
-		contentPreviewing = true;
+	$effect(() => {
+		void filteredCount;
+		const tab = filtersActiveTab;
+		const find = contentFind;
+		const caseSensitive = contentCaseSensitive;
+		const isRegex = contentIsRegex;
 		const scope = operationScope;
 		const selected = getSelectedFiles();
 		const files =
 			scope === 'selected' || (scope === 'auto' && selected.length > 0)
 				? selected
-				: plugin.filterService.filteredFiles;
+				: plugin.filterService.getFilesIgnoringContentSearch();
 
-		let totalMatches = 0;
-		const fileResults: ContentPreviewResult['files'] = [];
-		const MAX_FILES = 10;
-		const MAX_SNIPPETS = 3;
-		const CONTEXT = 40;
-		let matchFileCount = 0;
-		let processed = 0;
-
+		if (tab !== 'content') return;
+		nativeSearchAdapter.cancel();
+		if (!find) {
+			contentPreviewResult = null;
+			contentRegexError = '';
+			plugin.filterService.setContentSearchRule('', []);
+			return;
+		}
+		if (!validateContentSearch()) {
+			return;
+		}
 		contentPreviewResult = {
-			totalMatches,
-			files: fileResults,
+			totalMatches: 0,
+			files: [],
 			moreFiles: 0,
 			isLoading: true,
 		};
 		contentPreviewOpen = true;
-
-		try {
-			for (const file of files) {
-				processed += 1;
-				try {
-					const content = await plugin.app.vault.read(file);
-					const matches = [...content.matchAll(new RegExp(escaped, flags))];
-					if (matches.length > 0) {
-						matchFileCount++;
-						totalMatches += matches.length;
-						if (fileResults.length < MAX_FILES) {
-							fileResults.push({
-								file,
-								matchCount: matches.length,
-								snippets: matches.slice(0, MAX_SNIPPETS).map((match) => {
-									const start = match.index ?? 0;
-									const end = start + match[0].length;
-									const position = offsetToPosition(content, start);
-									return {
-										before: content.slice(Math.max(0, start - CONTEXT), start),
-										match: match[0],
-										after: content.slice(end, end + CONTEXT),
-										line: position.line,
-										ch: position.ch,
-									};
-								}),
-							});
+		const timer = window.setTimeout(() => {
+			void nativeSearchAdapter
+				.search({
+					query: find,
+					isRegex,
+					caseSensitive,
+					scopeFiles: files,
+					onUpdate: (result) => {
+						contentPreviewResult = result;
+						contentPreviewOpen = true;
+						if (!result.isLoading) {
+							plugin.filterService.setContentSearchRule(
+								find,
+								result.matchedFiles ?? result.files.map((entry) => entry.file),
+							);
 						}
-						contentPreviewResult = {
-							totalMatches,
-							files: [...fileResults],
-							moreFiles: Math.max(0, matchFileCount - fileResults.length),
-							isLoading: true,
-						};
-					}
-				} catch (error) {
-					console.error(error);
-				}
-				if (processed % 20 === 0)
-					await new Promise((resolve) => setTimeout(resolve, 0));
-			}
-		} finally {
-			contentPreviewResult = {
-				totalMatches,
-				files: fileResults,
-				moreFiles: Math.max(0, matchFileCount - fileResults.length),
-				isLoading: false,
-			};
-			contentPreviewing = false;
-			contentPreviewOpen = true;
-		}
-	}
+					},
+				})
+				.catch((error) => console.error(error));
+		}, 250);
+
+		return () => {
+			window.clearTimeout(timer);
+			nativeSearchAdapter.cancel();
+		};
+	});
+
+	onDestroy(() => nativeSearchAdapter.destroy());
 
 	function queueContentReplace() {
 		if (!contentFind) return;
-		const scope = operationScope;
-		const selected = getSelectedFiles();
-		const files =
-			scope === 'selected' || (scope === 'auto' && selected.length > 0)
-				? selected
-				: plugin.filterService.filteredFiles;
+		if (!validateContentSearch()) return;
+		const files = contentPreviewResult?.matchedFiles ?? [];
+		if (files.length === 0) {
+			new Notice(translate('content.queue_no_matches'));
+			return;
+		}
 
 		plugin.queueService.addOrRun({
 			type: 'content_replace',
@@ -248,14 +250,17 @@
 	}
 </script>
 
-<NavbarTabs
-	activeTab={filtersActiveTab}
-	showLabels={showTabLabels}
-	onTabChange={switchFiltersTab}
-	{icon}
-/>
+{#if !minimalStyle}
+	<NavbarTabs
+		activeTab={filtersActiveTab}
+		showLabels={showTabLabels}
+		{minimalStyle}
+		onTabChange={switchFiltersTab}
+		{icon}
+	/>
+{/if}
 
-{#if filtersActiveTab !== 'content'}
+{#if filtersActiveTab !== 'content' || minimalStyle}
 	<NavbarFilters
 		activeTab={explorerActiveTab}
 		bind:filtersSearch
@@ -265,6 +270,10 @@
 		fileList={undefined}
 		{addOpCount}
 		{minimalStyle}
+		tabOptions={minimalStyle ? filterTabOptions : []}
+		activeSectionTab={filtersActiveTab}
+		onSectionTabChange={(tab) => switchFiltersTab(tab as FiltersTab)}
+		showExplorerControls={filtersActiveTab !== 'content'}
 		{icon}
 	/>
 {/if}
@@ -297,10 +306,8 @@
 				bind:contentIsRegex
 				bind:contentPreviewResult
 				bind:contentPreviewOpen
-				{contentPreviewing}
 				{contentRegexError}
 				{contentScopeHint}
-				{previewContentReplace}
 				{queueContentReplace}
 				{openContentMatch}
 			/>

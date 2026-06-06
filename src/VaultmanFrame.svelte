@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { onMount } from 'svelte';
+	import { mount, onMount, unmount } from 'svelte';
 	import { setIcon } from 'obsidian';
 	import type { VaultmanPlugin } from './main';
 	import type { FilesExplorerPanel } from './components/containers/explorerFiles';
@@ -9,6 +9,7 @@
 	import FiltersPage from './components/pages/pageFilters.svelte';
 	import OperationsPage from './components/pages/pageOps.svelte';
 	import BottomNav from './components/layout/navbarPillFab.svelte';
+	import PerformanceHud from './components/layout/performanceHud.svelte';
 	import { QueueListComponent } from './components/componentQueueList';
 	import { QueueIslandComponent } from './components/layout/islandQueue';
 	import { ActiveFiltersIslandComponent } from './components/layout/islandActiveFilters';
@@ -57,12 +58,42 @@
 
 	const pageIcons: Record<string, string> = {
 		statistics: 'lucide-bar-chart-2',
-		filters: 'lucide-filter',
-		ops: 'lucide-settings-2',
+		filters: 'lucide-database',
+		ops: 'lucide-folder',
 	};
 	const minimalStyle = $derived.by(() => {
 		void settingsRevision;
 		return plugin.settings.minimalStyle;
+	});
+	const performanceHudEnabled = $derived.by(() => {
+		void settingsRevision;
+		return plugin.settings.performanceHudEnabled;
+	});
+	let performanceHudHost: HTMLElement | null = null;
+	let performanceHudInstance: Record<string, never> | null = null;
+
+	function destroyPerformanceHud(): void {
+		if (performanceHudInstance) {
+			void unmount(performanceHudInstance);
+			performanceHudInstance = null;
+		}
+		performanceHudHost?.remove();
+		performanceHudHost = null;
+	}
+
+	$effect(() => {
+		if (!performanceHudEnabled) {
+			destroyPerformanceHud();
+			return;
+		}
+
+		const host = document.createElement('div');
+		host.className = 'vaultman-performance-host';
+		document.body.appendChild(host);
+		performanceHudHost = host;
+		performanceHudInstance = mount(PerformanceHud, { target: host });
+
+		return destroyPerformanceHud;
 	});
 
 	// ─── Per-page FAB definitions ────────────────────────────────────────────────
@@ -82,14 +113,21 @@
 					},
 				},
 				right: {
-					icon: 'lucide-sparkles',
+					icon: 'lucide-filter',
 					label: translate('filters.active'),
 					badge: 'filters',
 					action: () => toggleFiltersIsland(),
 				},
 			},
 			statistics: {
-				left: null,
+				left: {
+					icon: 'lucide-list-checks',
+					label: translate('ops.queue'),
+					badge: 'queue',
+					action: () => {
+						toggleQueueIsland();
+					},
+				},
 				right: {
 					icon: 'lucide-sparkles',
 					label: translate('stats.addons'),
@@ -108,7 +146,7 @@
 					},
 				},
 				right: {
-					icon: 'lucide-sparkles',
+					icon: 'lucide-filter',
 					label: translate('filters.active'),
 					badge: 'filters',
 					action: () => toggleFiltersIsland(),
@@ -135,7 +173,7 @@
 			closeFiltersIsland();
 		}
 		activePage = page;
-		applyPageTransform(true);
+		applyPageTransform(!minimalStyle);
 	}
 
 	function onContainerTransitionEnd(e: TransitionEvent) {
@@ -158,7 +196,11 @@
 		pages.forEach((p) => {
 			p.style.width = `${w}px`;
 		});
-		if (animated) containerEl.classList.add('is-animating');
+		if (animated && !minimalStyle) {
+			containerEl.classList.add('is-animating');
+		} else {
+			containerEl.classList.remove('is-animating');
+		}
 		// BUG-FIX: Round pixel values to prevent sub-pixel blur on high-DPI screens
 		containerEl.style.transform = `translateX(${Math.round(-pageIndex * w)}px)`;
 	}
@@ -190,7 +232,7 @@
 
 	$effect(() => {
 		void pageIndex; // declare dependency
-		applyPageTransform(true);
+		applyPageTransform(!minimalStyle);
 	});
 
 	$effect(() => {
@@ -386,6 +428,22 @@
 		props: 0,
 		files: 0,
 	});
+	let lastFilesSearchTerm = '';
+
+	function hasEnabledFileSearchRule(): boolean {
+		let found = false;
+		function walk(node: import('./types/typeFilter').FilterNode): void {
+			if (found || node.enabled === false) return;
+			if (node.type === 'rule') {
+				found =
+					node.filterType === 'file_name' || node.filterType === 'file_folder';
+				return;
+			}
+			node.children.forEach(walk);
+		}
+		walk(plugin.filterService.activeFilter);
+		return found;
+	}
 
 	function applyExplorerSearch() {
 		const term = filtersSearch;
@@ -403,10 +461,11 @@
 				tagsExplorer?.setSearchTerm(term, catMode === 0 ? 'all' : 'leaf');
 				break;
 			case 'files':
+				lastFilesSearchTerm = term;
 				if (catMode === 0) {
-					fileList?.setSearchFilter(term, '');
+					plugin.filterService.setFileSearchRule('file_name', term);
 				} else {
-					fileList?.setSearchFilter('', term);
+					plugin.filterService.setFileSearchRule('file_folder', term);
 				}
 				break;
 		}
@@ -432,7 +491,7 @@
 		queueIslandOpen = true;
 		queueIsland = new QueueIslandComponent(
 			queueIslandEl,
-			plugin.queueService,
+			plugin,
 			() => closeQueueIsland(),
 			() => {
 				new QueueDetailsModal(plugin.app, plugin.queueService).open();
@@ -477,10 +536,9 @@
 
 	function refreshFiles() {
 		fileList?.render(
-			plugin.filterService.filteredFiles,
-			plugin.propertyIndex.fileCount,
+			plugin.filterService.filteredVaultFiles,
+			plugin.app.vault.getFiles().length,
 		);
-		if (activePage === 'ops') applyExplorerSearch();
 		updateStats();
 	}
 
@@ -534,6 +592,14 @@
 			refreshActiveFilterHighlights();
 			updateStats();
 			filtersIsland?.render();
+			if (
+				lastFilesSearchTerm &&
+				filtersSearch === lastFilesSearchTerm &&
+				!hasEnabledFileSearchRule()
+			) {
+				filtersSearch = '';
+				lastFilesSearchTerm = '';
+			}
 		};
 		const onVaultResolved = () => {
 			refreshFiles();
@@ -586,7 +652,7 @@
 							{icon}
 						/>
 					{:else if pageId === 'statistics'}
-						<StatisticsPage {plugin} />
+						<StatisticsPage {plugin} active={activePage === pageId} />
 					{:else if pageId === 'filters'}
 						<FiltersPage
 							{plugin}

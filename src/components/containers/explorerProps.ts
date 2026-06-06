@@ -19,6 +19,7 @@ import type { TreeNode, PropMeta } from '../../types/typeTree';
 import type { PropertyChange } from '../../types/typeOps';
 import { NATIVE_SET_PROP_TYPE } from '../../types/typeOps';
 import { showInputModal } from '../../utils/inputModal';
+import { translate } from '../../i18n/index';
 import {
 	resolveNativePropType,
 	TYPE_ICON_MAP,
@@ -75,7 +76,7 @@ export class PropsExplorerPanel extends Component {
 
 		// Change type actions
 		const types = ['text', 'number', 'checkbox', 'date', 'list'] as const;
-		types.forEach(type => {
+		types.forEach((type) => {
 			svc.registerAction({
 				id: `prop.type-${type}`,
 				nodeTypes: ['prop'],
@@ -112,11 +113,20 @@ export class PropsExplorerPanel extends Component {
 			section: 'Text',
 			when: (ctx) => {
 				const meta = ctx.node.meta as PropMeta;
-				return meta.isValueNode && !meta.isTypeIncompatible && meta.propType === 'text';
+				return (
+					meta.isValueNode &&
+					!meta.isTypeIncompatible &&
+					meta.propType === 'text'
+				);
 			},
 			run: (ctx) => {
 				const meta = ctx.node.meta as PropMeta;
-				return this._convertValue(meta.propName, meta.rawValue ?? '', v => v.toLowerCase(), 'lowercase');
+				return this._convertValue(
+					meta.propName,
+					meta.rawValue ?? '',
+					(v) => v.toLowerCase(),
+					'lowercase',
+				);
 			},
 		});
 
@@ -130,11 +140,20 @@ export class PropsExplorerPanel extends Component {
 			section: 'Text',
 			when: (ctx) => {
 				const meta = ctx.node.meta as PropMeta;
-				return meta.isValueNode && !meta.isTypeIncompatible && meta.propType === 'text';
+				return (
+					meta.isValueNode &&
+					!meta.isTypeIncompatible &&
+					meta.propType === 'text'
+				);
 			},
 			run: (ctx) => {
 				const meta = ctx.node.meta as PropMeta;
-				return this._convertValue(meta.propName, meta.rawValue ?? '', v => v.toUpperCase(), 'uppercase');
+				return this._convertValue(
+					meta.propName,
+					meta.rawValue ?? '',
+					(v) => v.toUpperCase(),
+					'uppercase',
+				);
 			},
 		});
 
@@ -148,15 +167,19 @@ export class PropsExplorerPanel extends Component {
 			section: 'Text',
 			when: (ctx) => {
 				const meta = ctx.node.meta as PropMeta;
-				return meta.isValueNode && !meta.isTypeIncompatible && meta.propType === 'text';
+				return (
+					meta.isValueNode &&
+					!meta.isTypeIncompatible &&
+					meta.propType === 'text'
+				);
 			},
 			run: (ctx) => {
 				const meta = ctx.node.meta as PropMeta;
 				return this._convertValue(
 					meta.propName,
 					meta.rawValue ?? '',
-					v => v.charAt(0).toUpperCase() + v.slice(1).toLowerCase(),
-					'title case'
+					(v) => v.charAt(0).toUpperCase() + v.slice(1).toLowerCase(),
+					'title case',
 				);
 			},
 		});
@@ -175,7 +198,7 @@ export class PropsExplorerPanel extends Component {
 		});
 
 		this.registerEvent(
-			this.plugin.app.metadataCache.on('resolved', () => {
+			this.plugin.app.metadataCache.on('changed', () => {
 				this.logic.invalidate();
 				this._render();
 			}),
@@ -193,6 +216,7 @@ export class PropsExplorerPanel extends Component {
 	onunload(): void {
 		this.plugin.filterService.off('changed', this._handleStateChange);
 		this.plugin.queueService.off('changed', this._handleStateChange);
+		this.view.destroy();
 		super.onunload();
 	}
 
@@ -205,17 +229,25 @@ export class PropsExplorerPanel extends Component {
 	private readonly _handleStateChange = () => this._render();
 
 	private _getFilesWithProp(propName: string): import('obsidian').TFile[] {
-		return this.plugin.app.vault.getMarkdownFiles().filter(f =>
-			propName in (this.plugin.app.metadataCache.getFileCache(f)?.frontmatter ?? {})
-		);
+		return this.plugin.app.vault
+			.getMarkdownFiles()
+			.filter(
+				(f) =>
+					propName in
+					(this.plugin.app.metadataCache.getFileCache(f)?.frontmatter ?? {}),
+			);
 	}
 
-	private _getFilesWithValue(propName: string, value: string): import('obsidian').TFile[] {
-		return this.plugin.app.vault.getMarkdownFiles().filter(f => {
-			const fm: Record<string, unknown> = this.plugin.app.metadataCache.getFileCache(f)?.frontmatter ?? {};
+	private _getFilesWithValue(
+		propName: string,
+		value: string,
+	): import('obsidian').TFile[] {
+		return this.plugin.app.vault.getMarkdownFiles().filter((f) => {
+			const fm: Record<string, unknown> =
+				this.plugin.app.metadataCache.getFileCache(f)?.frontmatter ?? {};
 			if (!(propName in fm)) return false;
 			const v: unknown = fm[propName];
-			if (Array.isArray(v)) return v.some(x => String(x) === value);
+			if (Array.isArray(v)) return v.some((x) => String(x) === value);
 			return String(v) === value;
 		});
 	}
@@ -229,6 +261,7 @@ export class PropsExplorerPanel extends Component {
 	setViewMode(mode: 'tree' | 'grid'): void {
 		this.viewMode = mode;
 		if (mode === 'tree') {
+			this.view.destroy();
 			this.view = new UnifiedTreeView(this.containerEl);
 		}
 		this._render();
@@ -259,6 +292,13 @@ export class PropsExplorerPanel extends Component {
 		}
 		if (this.searchTerm) {
 			tree = this.logic.filterTree(tree, this.searchTerm, this.searchMode);
+			for (const id of this.logic.expansionIdsForSearchMatches(
+				tree,
+				this.searchTerm,
+				this.searchMode,
+			)) {
+				this.expandedIds.add(id);
+			}
 		}
 		this._expandAll(tree);
 		this._render();
@@ -271,7 +311,8 @@ export class PropsExplorerPanel extends Component {
 
 	createFromSearch(term: string, category: number): void {
 		const propName = term.trim();
-		if (!propName || category !== 0) {
+		void category;
+		if (!propName) {
 			this.addMode = true;
 			new Notice('Select a property to stage it');
 			return;
@@ -293,7 +334,10 @@ export class PropsExplorerPanel extends Component {
 		this._render();
 	}
 
-	private _findNode(id: string, nodes: TreeNode<PropMeta>[]): TreeNode<PropMeta> | null {
+	private _findNode(
+		id: string,
+		nodes: TreeNode<PropMeta>[],
+	): TreeNode<PropMeta> | null {
 		for (const n of nodes) {
 			if (n.id === id) return n;
 			if (n.children) {
@@ -312,7 +356,9 @@ export class PropsExplorerPanel extends Component {
 				if (node.filterType === 'has_property') {
 					activeFilterIds.add(node.property);
 				} else if (node.filterType === 'specific_value') {
-					node.values?.forEach(v => activeFilterIds.add(`${node.property}::${v}`));
+					node.values?.forEach((v) =>
+						activeFilterIds.add(`${node.property}::${v}`),
+					);
 				}
 			} else if (node.type === 'group') {
 				node.children.forEach(walkFilter);
@@ -323,7 +369,10 @@ export class PropsExplorerPanel extends Component {
 		return activeFilterIds;
 	}
 
-	private _handleNodeClick(node: TreeNode<PropMeta>, activeFilterIds: Set<string>): void {
+	private _handleNodeClick(
+		node: TreeNode<PropMeta>,
+		activeFilterIds: Set<string>,
+	): void {
 		const meta = node.meta;
 
 		if (this.addMode && !meta.isValueNode) {
@@ -343,15 +392,24 @@ export class PropsExplorerPanel extends Component {
 			return;
 		}
 
-		const isPropDeleted = this.plugin.queueService.queue.some(op =>
-			op.type === 'property' && op.property === meta.propName && op.action === 'delete' && !('value' in op)
+		const isPropDeleted = this.plugin.queueService.queue.some(
+			(op) =>
+				op.type === 'property' &&
+				op.property === meta.propName &&
+				op.action === 'delete' &&
+				!('value' in op),
 		);
 		if (isPropDeleted) return;
 
-		const filterId = meta.isValueNode ? `${meta.propName}::${meta.rawValue}` : meta.propName;
+		const filterId = meta.isValueNode
+			? `${meta.propName}::${meta.rawValue}`
+			: meta.propName;
 		if (activeFilterIds.has(filterId)) {
 			if (meta.isValueNode) {
-				void this.plugin.filterService.removeNodeByProperty(meta.propName, meta.rawValue ?? '');
+				void this.plugin.filterService.removeNodeByProperty(
+					meta.propName,
+					meta.rawValue ?? '',
+				);
 			} else {
 				void this.plugin.filterService.removeNodeByProperty(meta.propName);
 			}
@@ -394,10 +452,13 @@ export class PropsExplorerPanel extends Component {
 			return;
 		}
 
-		const badgeZone = parent.createDiv({ cls: 'vaultman-tree-badge-zone vaultman-card-badge-zone' });
+		const badgeZone = parent.createDiv({
+			cls: 'vaultman-tree-badge-zone vaultman-card-badge-zone',
+		});
 		for (const badge of node.badges ?? []) {
 			const bEl = badgeZone.createSpan({ cls: 'vaultman-badge' });
-			if (badge.solid && badge.color) bEl.addClass(`vaultman-badge--${badge.color}`);
+			if (badge.solid && badge.color)
+				bEl.addClass(`vaultman-badge--${badge.color}`);
 			if (badge.solid) bEl.addClass('is-solid');
 			if (badge.isInherited) bEl.addClass('is-inherited');
 			if (badge.icon) {
@@ -415,7 +476,10 @@ export class PropsExplorerPanel extends Component {
 			}
 		}
 		if (this.visibleCells.has('count') && node.count && node.count > 0) {
-			badgeZone.createSpan({ cls: 'vaultman-tree-count', text: String(node.count) });
+			badgeZone.createSpan({
+				cls: 'vaultman-tree-count',
+				text: String(node.count),
+			});
 		}
 	}
 
@@ -434,21 +498,32 @@ export class PropsExplorerPanel extends Component {
 		}
 		if (this.searchTerm) {
 			tree = this.logic.filterTree(tree, this.searchTerm, this.searchMode);
-			this._expandAll(tree);
 		}
 
 		// FIX: prepare search function once
-		const searcher = this.searchTerm ? prepareSimpleSearch(this.searchTerm) : null;
+		const searcher = this.searchTerm
+			? prepareSimpleSearch(this.searchTerm)
+			: null;
 		const searchFunc = searcher ? (text: string) => searcher(text) : null;
 
 		const sorted = this._applySort(tree);
-		const nodesWithIcons = this._resolveIcons(sorted, warningIds, highlightIds, searchFunc, this.plugin.queueService.queue);
+		const nodesWithIcons = this._resolveIcons(
+			sorted,
+			warningIds,
+			highlightIds,
+			searchFunc,
+			this.plugin.queueService.queue,
+		);
+		if (nodesWithIcons.length === 0) {
+			this._renderEmptyState();
+			return;
+		}
 
 		this.view.render({
-				nodes: nodesWithIcons,
-				expandedIds: this.expandedIds,
-				visibleCells: this.visibleCells,
-				activeFilterIds,
+			nodes: nodesWithIcons,
+			expandedIds: this.expandedIds,
+			visibleCells: this.visibleCells,
+			activeFilterIds,
 			warningIds,
 			searchHighlightIds: highlightIds,
 			onToggle: (id: string) => {
@@ -494,13 +569,17 @@ export class PropsExplorerPanel extends Component {
 
 	private _metadataTypeManager(): MetadataTypeManagerLike | null {
 		return (
-			this.plugin.app as unknown as {
-				metadataTypeManager?: MetadataTypeManagerLike;
-			}
-		).metadataTypeManager ?? null;
+			(
+				this.plugin.app as unknown as {
+					metadataTypeManager?: MetadataTypeManagerLike;
+				}
+			).metadataTypeManager ?? null
+		);
 	}
 
-	private _effectivePropType(meta: Pick<PropMeta, 'propName' | 'propType'>): string {
+	private _effectivePropType(
+		meta: Pick<PropMeta, 'propName' | 'propType'>,
+	): string {
 		return resolveNativePropType(
 			meta.propName,
 			meta.propType,
@@ -508,7 +587,9 @@ export class PropsExplorerPanel extends Component {
 		).type;
 	}
 
-	private _effectivePropIcon(meta: Pick<PropMeta, 'propName' | 'propType'>): string {
+	private _effectivePropIcon(
+		meta: Pick<PropMeta, 'propName' | 'propType'>,
+	): string {
 		return resolveNativePropType(
 			meta.propName,
 			meta.propType,
@@ -524,18 +605,23 @@ export class PropsExplorerPanel extends Component {
 				const propName = node.meta.propName;
 				let maxMtime = 0;
 				for (const file of this.plugin.app.vault.getMarkdownFiles()) {
-					const fm = this.plugin.app.metadataCache.getFileCache(file)?.frontmatter;
+					const fm =
+						this.plugin.app.metadataCache.getFileCache(file)?.frontmatter;
 					if (fm && propName in fm && file.stat.mtime > maxMtime) {
 						maxMtime = file.stat.mtime;
 					}
 				}
 				mtimeMap.set(node.id, maxMtime);
 			}
-			return [...nodes].sort((a, b) => dir * ((mtimeMap.get(a.id) ?? 0) - (mtimeMap.get(b.id) ?? 0)));
+			return [...nodes].sort(
+				(a, b) => dir * ((mtimeMap.get(a.id) ?? 0) - (mtimeMap.get(b.id) ?? 0)),
+			);
 		}
 		return [...nodes].sort((a, b) => {
-			if (this.sortBy === 'count') return dir * ((a.count ?? 0) - (b.count ?? 0));
-			if (this.sortBy === 'sub')   return dir * ((a.children?.length ?? 0) - (b.children?.length ?? 0));
+			if (this.sortBy === 'count')
+				return dir * ((a.count ?? 0) - (b.count ?? 0));
+			if (this.sortBy === 'sub')
+				return dir * ((a.children?.length ?? 0) - (b.children?.length ?? 0));
 			return dir * a.label.localeCompare(b.label);
 		});
 	}
@@ -566,9 +652,11 @@ export class PropsExplorerPanel extends Component {
 		if (this.searchTerm) {
 			tree = this.logic.filterTree(tree, this.searchTerm, this.searchMode);
 		}
-		const searcher = this.searchTerm ? prepareSimpleSearch(this.searchTerm) : null;
+		const searcher = this.searchTerm
+			? prepareSimpleSearch(this.searchTerm)
+			: null;
 		const searchFunc = searcher ? (text: string) => searcher(text) : null;
-		const topProps = tree.filter(n => !n.meta.isValueNode);
+		const topProps = tree.filter((n) => !n.meta.isValueNode);
 		const filtered = this._resolveIcons(
 			this._applySort(topProps),
 			warningIds,
@@ -576,6 +664,10 @@ export class PropsExplorerPanel extends Component {
 			searchFunc,
 			this.plugin.queueService.queue,
 		);
+		if (filtered.length === 0) {
+			this._renderEmptyState();
+			return;
+		}
 
 		const grid = this.containerEl.createDiv({ cls: 'vaultman-props-grid' });
 		for (const node of filtered) {
@@ -605,7 +697,9 @@ export class PropsExplorerPanel extends Component {
 			}
 			this._renderGridBadges(card, node);
 
-			card.addEventListener('click', () => this._handleNodeClick(node, activeFilterIds));
+			card.addEventListener('click', () =>
+				this._handleNodeClick(node, activeFilterIds),
+			);
 			card.addEventListener('keydown', (event) => {
 				if (event.key === 'Enter' || event.key === ' ') {
 					event.preventDefault();
@@ -618,31 +712,62 @@ export class PropsExplorerPanel extends Component {
 				this._openNodeMenu(node, event);
 			});
 		}
-		if (filtered.length === 0) {
-			this.containerEl.createDiv({ cls: 'vaultman-empty-state', text: 'No properties' });
-		}
 	}
 
-	private _resolveIcons(nodes: TreeNode<PropMeta>[], warningIds: Set<string>, highlightIds: Set<string>, searchFunc: ((text: string) => unknown) | null, queue: import('../../types/typeOps').PendingChange[], parentDeleted = false): TreeNode<PropMeta>[] {
-		return nodes.map(node => {
+	private _renderEmptyState(): void {
+		this.view.destroy();
+		this.containerEl.empty();
+		const emptyEl = this.containerEl.createDiv({
+			cls: 'vaultman-explorer-empty-landing',
+		});
+		emptyEl.createDiv({
+			cls: 'vaultman-explorer-empty-title',
+			text: translate('explorer.props.empty_title'),
+		});
+		emptyEl.createDiv({
+			cls: 'vaultman-explorer-empty-desc',
+			text: this.searchTerm
+				? translate('explorer.props.empty_search_desc')
+				: translate('filter.prop_browser.empty'),
+		});
+	}
+
+	private _resolveIcons(
+		nodes: TreeNode<PropMeta>[],
+		warningIds: Set<string>,
+		highlightIds: Set<string>,
+		searchFunc: ((text: string) => unknown) | null,
+		queue: import('../../types/typeOps').PendingChange[],
+		parentDeleted = false,
+	): TreeNode<PropMeta>[] {
+		return nodes.map((node) => {
 			const meta = node.meta;
 			let currentCls = node.cls || '';
 
 			if (meta.isTypeIncompatible) warningIds.add(node.id);
 			if (searchFunc && searchFunc(node.label)) highlightIds.add(node.id);
 
-			const isPropDeleted = parentDeleted || queue.some(op => op.type === 'property' && op.property === meta.propName && op.action === 'delete' && !('value' in op));
+			const isPropDeleted =
+				parentDeleted ||
+				queue.some(
+					(op) =>
+						op.type === 'property' &&
+						op.property === meta.propName &&
+						op.action === 'delete' &&
+						!('value' in op),
+				);
 
 			if (isPropDeleted) {
 				if (!currentCls.includes('is-deleted-prop')) {
 					currentCls = (currentCls + ' is-deleted-prop').trim();
 				}
 			} else if (meta.isValueNode) {
-				const isValueDeleted = queue.some((op): op is PropertyChange =>
-					op.type === 'property' &&
-					op.property === meta.propName &&
-					op.action === 'delete' &&
-					op.oldValue === meta.rawValue
+				const isValueDeleted = queue.some(
+					(op): op is PropertyChange =>
+						op.type === 'property' &&
+						op.property === meta.propName &&
+						op.action === 'delete' &&
+						op.oldValue === meta.rawValue,
 				);
 				if (isValueDeleted) {
 					if (!currentCls.includes('is-deleted-value')) {
@@ -652,37 +777,84 @@ export class PropsExplorerPanel extends Component {
 			}
 
 			const resolvedChildren = node.children
-				? this._resolveIcons(node.children, warningIds, highlightIds, searchFunc, queue, isPropDeleted)
+				? this._resolveIcons(
+						node.children,
+						warningIds,
+						highlightIds,
+						searchFunc,
+						queue,
+						isPropDeleted,
+					)
 				: [];
 
 			const badges: import('../../types/typeTree').NodeBadge[] = [];
 			if (meta.isTypeIncompatible) {
-				badges.push({ text: 'Conflict', color: 'red', solid: true, icon: 'lucide-alert-triangle' });
+				badges.push({
+					text: 'Conflict',
+					color: 'red',
+					solid: true,
+					icon: 'lucide-alert-triangle',
+				});
 			}
 
-			const relevantOps = queue.filter(op =>
-				op.type === 'property' &&
-				op.property === meta.propName &&
-				(meta.isValueNode
-					? (op.value === meta.rawValue || op.oldValue === meta.rawValue || op.action === 'change_type')
-					: true)
+			const relevantOps = queue.filter(
+				(op) =>
+					op.type === 'property' &&
+					op.property === meta.propName &&
+					(meta.isValueNode
+						? op.value === meta.rawValue ||
+							op.oldValue === meta.rawValue ||
+							op.action === 'change_type'
+						: true),
 			) as import('../../types/typeOps').PropertyChange[];
 
 			for (const op of relevantOps) {
 				const action = op.action;
 				const opIdx = queue.indexOf(op);
-				if (action === 'delete') badges.push({ text: 'Delete', icon: 'lucide-trash-2', color: 'red', queueIndex: opIdx });
-				else if (action === 'rename' || action === 'set') badges.push({ text: 'Update', icon: 'lucide-pencil', color: 'blue', queueIndex: opIdx });
-				else if (action === 'move') badges.push({ text: 'Move', icon: 'lucide-move', color: 'orange', queueIndex: opIdx });
-				else if (action === 'change_type' || (meta.isValueNode && op.details.toLowerCase().includes('convert'))) {
-					badges.push({ text: 'Convert', icon: 'lucide-arrow-right-left', color: 'blue', queueIndex: opIdx });
-				} else badges.push({ text: 'In Queue', icon: 'lucide-clock', color: 'purple', queueIndex: opIdx });
+				if (action === 'delete')
+					badges.push({
+						text: 'Delete',
+						icon: 'lucide-trash-2',
+						color: 'red',
+						queueIndex: opIdx,
+					});
+				else if (action === 'rename' || action === 'set')
+					badges.push({
+						text: 'Update',
+						icon: 'lucide-pencil',
+						color: 'blue',
+						queueIndex: opIdx,
+					});
+				else if (action === 'move')
+					badges.push({
+						text: 'Move',
+						icon: 'lucide-move',
+						color: 'orange',
+						queueIndex: opIdx,
+					});
+				else if (
+					action === 'change_type' ||
+					(meta.isValueNode && op.details.toLowerCase().includes('convert'))
+				) {
+					badges.push({
+						text: 'Convert',
+						icon: 'lucide-arrow-right-left',
+						color: 'blue',
+						queueIndex: opIdx,
+					});
+				} else
+					badges.push({
+						text: 'In Queue',
+						icon: 'lucide-clock',
+						color: 'purple',
+						queueIndex: opIdx,
+					});
 			}
 
 			// BUBLLE UP: If collapsed property node, show badges from resolved children
 			const isExpanded = this.expandedIds.has(node.id);
 			if (!meta.isValueNode && !isExpanded && resolvedChildren.length > 0) {
-				const childBadges = resolvedChildren.flatMap(c => c.badges || []);
+				const childBadges = resolvedChildren.flatMap((c) => c.badges || []);
 				const seen = new Set<string>();
 				for (const b of childBadges) {
 					const key = `${b.text}-${b.icon}`;
@@ -710,7 +882,10 @@ export class PropsExplorerPanel extends Component {
 		});
 	}
 
-	private async _changePropType(propName: string, newType: string): Promise<void> {
+	private async _changePropType(
+		propName: string,
+		newType: string,
+	): Promise<void> {
 		const markerFile =
 			this._getFilesWithProp(propName)[0] ??
 			this.plugin.app.vault.getMarkdownFiles()[0];
@@ -732,7 +907,10 @@ export class PropsExplorerPanel extends Component {
 	}
 
 	private async _renameProp(propName: string): Promise<void> {
-		const newName = await showInputModal(this.plugin.app, `Rename "${propName}" to:`);
+		const newName = await showInputModal(
+			this.plugin.app,
+			`Rename "${propName}" to:`,
+		);
 		if (!newName) return;
 		const files = this._getFilesWithProp(propName);
 		this.plugin.queueService.addOrRun({
@@ -747,7 +925,7 @@ export class PropsExplorerPanel extends Component {
 				fm[newName] = fm[propName];
 				delete fm[propName];
 				return fm;
-			}
+			},
 		});
 	}
 
@@ -764,17 +942,26 @@ export class PropsExplorerPanel extends Component {
 				if (!(propName in fm)) return null;
 				delete fm[propName];
 				return fm;
-			}
+			},
 		});
 	}
 
-	private async _renameValue(propName: string, oldValue: string): Promise<void> {
-		const newVal = await showInputModal(this.plugin.app, `Rename value "${oldValue}" to:`);
+	private async _renameValue(
+		propName: string,
+		oldValue: string,
+	): Promise<void> {
+		const newVal = await showInputModal(
+			this.plugin.app,
+			`Rename value "${oldValue}" to:`,
+		);
 		if (!newVal) return;
 		await this._replaceValueInVault(propName, oldValue, newVal);
 	}
 
-	private async _deleteValue(propName: string, oldValue: string): Promise<void> {
+	private async _deleteValue(
+		propName: string,
+		oldValue: string,
+	): Promise<void> {
 		const files = this._getFilesWithValue(propName, oldValue);
 		this.plugin.queueService.addOrRun({
 			type: 'property',
@@ -787,28 +974,47 @@ export class PropsExplorerPanel extends Component {
 				if (!(propName in fm)) return null;
 				const val = fm[propName];
 				if (Array.isArray(val)) {
-					fm[propName] = (val as unknown[]).filter(v => String(v) !== oldValue);
+					fm[propName] = (val as unknown[]).filter(
+						(v) => String(v) !== oldValue,
+					);
 				} else if (String(val) === oldValue) {
 					delete fm[propName];
 				} else {
 					return null;
 				}
 				return fm;
-			}
+			},
 		});
 	}
 
-	private async _convertValue(propName: string, oldValue: string, transform: (v: string) => string, details: string): Promise<void> {
-		await this._replaceValueInVault(propName, oldValue, transform(oldValue), details);
+	private async _convertValue(
+		propName: string,
+		oldValue: string,
+		transform: (v: string) => string,
+		details: string,
+	): Promise<void> {
+		await this._replaceValueInVault(
+			propName,
+			oldValue,
+			transform(oldValue),
+			details,
+		);
 	}
 
-	private async _replaceValueInVault(propName: string, oldValue: string, newValue: string, label?: string): Promise<void> {
+	private async _replaceValueInVault(
+		propName: string,
+		oldValue: string,
+		newValue: string,
+		label?: string,
+	): Promise<void> {
 		const files = this._getFilesWithValue(propName, oldValue);
 		this.plugin.queueService.addOrRun({
 			type: 'property',
 			property: propName,
 			action: 'set',
-			details: label ? `Convert "${oldValue}" to ${label}` : `Rename value "${oldValue}" → "${newValue}"`,
+			details: label
+				? `Convert "${oldValue}" to ${label}`
+				: `Rename value "${oldValue}" → "${newValue}"`,
 			files,
 			value: newValue,
 			oldValue: oldValue,
@@ -818,8 +1024,11 @@ export class PropsExplorerPanel extends Component {
 				const val = fm[propName];
 				let changed = false;
 				if (Array.isArray(val)) {
-					const newArr = (val as unknown[]).map(v => {
-						if (String(v) === oldValue) { changed = true; return newValue; }
+					const newArr = (val as unknown[]).map((v) => {
+						if (String(v) === oldValue) {
+							changed = true;
+							return newValue;
+						}
 						return v;
 					});
 					if (changed) fm[propName] = newArr;
@@ -828,7 +1037,7 @@ export class PropsExplorerPanel extends Component {
 					changed = true;
 				}
 				return changed ? fm : null;
-			}
+			},
 		});
 	}
 }

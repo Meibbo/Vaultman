@@ -10,6 +10,7 @@ export type FilterType =
 	| 'file_name'
 	| 'file_name_exclude'
 	| 'file_folder'    // matches folder path only (not filename)
+	| 'content_search' // transient content-search result set
 	| 'has_tag';       // matches files with a specific tag
 
 export type GroupLogic = 'all' | 'any' | 'none';

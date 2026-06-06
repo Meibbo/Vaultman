@@ -16,8 +16,8 @@
 		fileList = new FilesExplorerPanel(el, plugin, onSelectionChange);
 		fileList.load();
 		fileList.render(
-			plugin.filterService.filteredFiles,
-			plugin.propertyIndex.fileCount,
+			plugin.filterService.filteredVaultFiles,
+			plugin.app.vault.getFiles().length,
 		);
 		return {
 			destroy() {
@@ -33,7 +33,6 @@
 <style>
 	.vaultman-files-tab-content {
 		flex: 1;
-		overflow-y: auto;
 		min-height: 0;
 	}
 </style>

@@ -1,6 +1,7 @@
 import type { Plugin } from 'obsidian';
 import type { FilterTemplate } from './typeFilter';
 import type { MenuHideRule } from './typeCMenu';
+import type { QueueTemplate } from './typeOps';
 
 export type Language = 'auto' | 'en' | 'es';
 
@@ -8,6 +9,7 @@ export interface VaultmanSettings {
 	language: Language;
 	defaultPropertyType: string;
 	filterTemplates: FilterTemplate[];
+	queueTemplates: QueueTemplate[];
 	/** Path to the active session .md file (empty = no session) */
 	sessionFilePath: string;
 	/** Ctrl+click on property/value opens Obsidian core search */
@@ -48,6 +50,12 @@ export interface VaultmanSettings {
 	filtersShowTabLabels: boolean;
 	/** Use compact Obsidian-native controls for header and dock actions */
 	minimalStyle: boolean;
+	/** Run operations immediately instead of staging them in the queue */
+	bypassOperations: boolean;
+	/** Suppress the bulk target confirmation for reusable action presets */
+	suppressBulkOperationWarning: boolean;
+	/** Show the floating performance diagnostics monitor */
+	performanceHudEnabled: boolean;
 	/** Internal one-shot migration marker for the Iter.12 tab label default */
 	filtersTabLabelsMigrated?: boolean;
 	/** Property grid render mode */
@@ -76,12 +84,16 @@ export interface iVaultmanPlugin extends Plugin {
 	saveSettings(): Promise<void>;
 	onSettingsChange(listener: () => void): () => void;
 	updateGlassBlur(): void;
+	queueService?: {
+		setBypassOperations(enabled: boolean): void;
+	};
 }
 
 export const DEFAULT_SETTINGS: VaultmanSettings = {
 	language: 'auto',
 	defaultPropertyType: 'text',
 	filterTemplates: [],
+	queueTemplates: [],
 	sessionFilePath: '',
 	explorerCtrlClickSearch: true,
 	explorerShowQueuePreview: true,
@@ -101,6 +113,9 @@ export const DEFAULT_SETTINGS: VaultmanSettings = {
 	viewMode: 'list',
 	filtersShowTabLabels: true,
 	minimalStyle: true,
+	bypassOperations: false,
+	suppressBulkOperationWarning: false,
+	performanceHudEnabled: false,
 	filtersTabLabelsMigrated: true,
 	glassBlurIntensity: 60,
 	contextMenuShowInFileMenu: true,

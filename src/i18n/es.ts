@@ -1,8 +1,10 @@
 export const es: Record<string, string> = {
 	// General
 	'plugin.name': 'Vaultman',
-	'plugin.description': 'Editor masivo de propiedades y herramienta de gestión de vault',
+	'plugin.description':
+		'Editor masivo de propiedades y herramienta de gestión de vault',
 	'plugin.open': 'Abrir Vaultman',
+	'common.cancel': 'Cancelar',
 
 	// Sections
 	'section.filters': 'Filtros',
@@ -35,6 +37,7 @@ export const es: Record<string, string> = {
 	'filter.template.load': 'Cargar',
 	'filter.refresh': 'Actualizar',
 	'filter.create': 'Crear',
+	'filter.tabs_btn': 'Pestañas',
 	'filter.auto_reveal': 'Auto-revelar archivo actual',
 	'filter.expand_all': 'Expandir todo',
 	'filter.collapse_all': 'Colapsar todo',
@@ -46,9 +49,15 @@ export const es: Record<string, string> = {
 	'files.show_checked_only': 'Mostrar solo archivos marcados',
 	'files.count': '{filtered} / {total} archivos',
 	'files.col.name': 'Nombre',
+	'files.col.file_name': 'file name',
 	'files.col.props': '# Props',
+	'files.col.ext': 'Ext',
+	'files.col.file_ext': 'file extension',
 	'files.col.path': 'Ruta',
+	'files.col.file_folder': 'folder',
 	'files.col.date': 'Fecha',
+	'files.empty_filtered_title': 'No hay archivos que coincidan',
+	'files.empty_filtered_desc': 'Prueba cambiar o limpiar los filtros activos.',
 
 	// Operations
 	'ops.properties': 'Propiedades',
@@ -86,11 +95,24 @@ export const es: Record<string, string> = {
 	'prop.add_to_queue': 'Agregar a cola',
 	'prop.new_name': 'Nuevo nombre',
 	'prop.option.native_rename': 'Renombrado Global (Nativo)',
-	'prop.option.native_rename_desc': 'Usa el motor interno de Obsidian para renombrar esta propiedad en todo el baúl. Es más rápido para grandes volúmenes de datos.',
+	'prop.option.native_rename_desc':
+		'Usa el motor interno de Obsidian para renombrar esta propiedad en todo el baúl. Es más rápido para grandes volúmenes de datos.',
 
 	// Queue island
 	'queue.island.pending': 'cambios pendientes',
 	'queue.island.empty': 'La cola está vacía',
+	'queue.template.templates': 'Presets de acción',
+	'queue.template.save': 'Guardar preset de acción',
+	'queue.template.no_serializable':
+		'No hay operaciones de cola que se puedan guardar como preset de acción',
+	'queue.template.bulk_title': 'Objetivo de operación grande',
+	'queue.template.bulk_desc':
+		'Este preset de acción preparará {count} de {total} archivos desde {source}. Revisa la cola antes de aplicar.',
+	'queue.template.bulk_suppress': 'No volver a mostrar este aviso',
+	'queue.template.bulk_confirm': 'Enlistar operaciones',
+	'queue.template.source.selected': 'la selección actual',
+	'queue.template.source.filtered': 'los filtros activos',
+	'queue.template.source.vault': 'todo el vault',
 	'queue.mode.stage': 'Stage',
 	'queue.mode.bypass': 'Bypass',
 
@@ -112,9 +134,20 @@ export const es: Record<string, string> = {
 	'settings.language': 'Idioma',
 	'settings.language.desc': 'Idioma de la interfaz',
 	'settings.background_blur': 'Intensidad de desenfoque del fondo',
-	'settings.background_blur.desc': 'Controla el desenfoque de cristal en la barra inferior y los popups.',
+	'settings.background_blur.desc':
+		'Controla el desenfoque de cristal en la barra inferior y los popups.',
 	'settings.minimal_style': 'Estilo minimal',
-	'settings.minimal_style.desc': 'Usa botones compactos nativos de Obsidian en headers y dock inferior.',
+	'settings.minimal_style.desc':
+		'Usa botones compactos nativos de Obsidian en headers y dock inferior.',
+	'settings.bypass_operations': 'Omitir cola de operaciones',
+	'settings.bypass_operations.desc':
+		'Ejecuta operaciones inmediatamente en vez de prepararlas en la cola.',
+	'settings.bulk_operation_warning': 'Aviso de operación masiva',
+	'settings.bulk_operation_warning.desc':
+		'Avisa antes de que los presets de acción preparen conjuntos muy grandes de archivos.',
+	'settings.performance_monitor': 'Monitor de rendimiento',
+	'settings.performance_monitor.desc':
+		'Muestra el monitor flotante de FPS, long tasks, memoria y acciones.',
 	'settings.default_type': 'Tipo de propiedad por defecto',
 	'settings.default_type.desc': 'Tipo por defecto para nuevas propiedades',
 	'settings.templates': 'Plantillas de filtros',
@@ -148,7 +181,8 @@ export const es: Record<string, string> = {
 	// Linter
 	'linter.title': 'Linter de Propiedades',
 	'linter.description': 'Reordena las propiedades YAML usando obsidian-linter.',
-	'linter.not_installed': 'El plugin obsidian-linter no está instalado. Instálalo para usar esta función.',
+	'linter.not_installed':
+		'El plugin obsidian-linter no está instalado. Instálalo para usar esta función.',
 	'linter.scope': 'Alcance',
 	'linter.add_property': 'Agregar propiedad al orden...',
 	'linter.save_order': 'Guardar orden',
@@ -162,7 +196,8 @@ export const es: Record<string, string> = {
 	// File Rename
 	'rename.title': 'Renombrar Archivos',
 	'rename.pattern': 'Patrón',
-	'rename.pattern_desc': 'Usa marcadores: {basename}, {date}, {counter}, {propiedad}',
+	'rename.pattern_desc':
+		'Usa marcadores: {basename}, {date}, {counter}, {propiedad}',
 
 	// Status bar (extended)
 	'statusbar.props_label': '{count} props',
@@ -172,6 +207,13 @@ export const es: Record<string, string> = {
 	'explorer.title': 'Propiedades',
 	'explorer.search': 'Buscar propiedades...',
 	'explorer.empty': 'No se encontraron propiedades',
+	'explorer.props.empty_title': 'No hay propiedades que coincidan',
+	'explorer.props.empty_search_desc':
+		'Prueba otro término o cambia la categoría de propiedades.',
+	'explorer.tags.empty_title': 'No hay etiquetas que coincidan',
+	'explorer.tags.empty_desc': 'No hay etiquetas en el vault',
+	'explorer.tags.empty_search_desc':
+		'Prueba otro término o cambia la categoría de etiquetas.',
 	'explorer.toggle': 'Explorador',
 
 	// Explorer nav buttons
@@ -212,6 +254,13 @@ export const es: Record<string, string> = {
 	'explorer.ctx.uppercase': 'MAYÚSCULAS',
 	'explorer.ctx.lowercase': 'minúsculas',
 	'explorer.ctx.capitalize': 'Primera Letra Mayúscula',
+	'folder.ctx.filter_include': 'Filtrar a esta carpeta',
+	'folder.ctx.filter_exclude': 'Excluir esta carpeta',
+	'folder.ctx.rename': 'Renombrar carpeta',
+	'folder.ctx.move': 'Mover carpeta',
+	'folder.ctx.delete': 'Eliminar carpeta',
+	'folder.prompt.rename': 'Nuevo nombre de carpeta',
+	'folder.prompt.move': 'Ruta de carpeta destino',
 
 	// Explorer add value form
 	'explorer.add_value.append': 'Agregar valor',
@@ -225,23 +274,29 @@ export const es: Record<string, string> = {
 	'explorer.rename.target_exists': 'La propiedad destino ya existe',
 
 	// Explorer warnings
-	'explorer.warn.no_files_selected': 'Selecciona archivos en el file tree primero',
+	'explorer.warn.no_files_selected':
+		'Selecciona archivos en el file tree primero',
 
 	// Settings (new)
 	'settings.ctrl_click_search': 'Ctrl+click abre búsqueda',
-	'settings.ctrl_click_search.desc': 'Ctrl+click en una propiedad o valor abre la búsqueda de Obsidian con la query',
+	'settings.ctrl_click_search.desc':
+		'Ctrl+click en una propiedad o valor abre la búsqueda de Obsidian con la query',
 	'settings.queue_preview': 'Vista previa de cola en explorador',
-	'settings.queue_preview.desc': 'Muestra cambios pendientes de la cola en el explorador de propiedades',
+	'settings.queue_preview.desc':
+		'Muestra cambios pendientes de la cola en el explorador de propiedades',
 	'settings.content_search': 'Búsqueda de contenido',
-	'settings.content_search.desc': 'Habilita búsqueda en contenido de archivos en el file tree',
+	'settings.content_search.desc':
+		'Habilita búsqueda en contenido de archivos en el file tree',
 	'settings.operation_scope': 'Alcance de operaciones',
-	'settings.operation_scope.desc': 'Alcance por defecto para operaciones del explorador',
+	'settings.operation_scope.desc':
+		'Alcance por defecto para operaciones del explorador',
 	'settings.scope.auto': 'Auto (seleccionados > filtrados > todos)',
 	'settings.scope.selected': 'Solo archivos seleccionados',
 	'settings.scope.filtered': 'Archivos filtrados',
 	'settings.scope.all': 'Todos los archivos',
 	'settings.open_mode': 'Vista por defecto',
-	'settings.open_mode.desc': 'Qué se abre al hacer click en el icono de Vaultman',
+	'settings.open_mode.desc':
+		'Qué se abre al hacer click en el icono de Vaultman',
 	'settings.open_mode.sidebar': 'Sidebar',
 	'settings.open_mode.main': 'Vista principal',
 	'settings.open_mode.both': 'Ambas',
@@ -259,14 +314,21 @@ export const es: Record<string, string> = {
 	'filter.tab.props': 'Props',
 	'filter.tab.content': 'Contenido',
 	'settings.filters_show_tab_labels': 'Mostrar labels en tabs',
-	'settings.filters_show_tab_labels.desc': 'Muestra u oculta el texto junto a los iconos de tabs en las pages.',
+	'settings.filters_show_tab_labels.desc':
+		'Muestra u oculta el texto junto a los iconos de tabs en las pages.',
 	'settings.context_menu': 'Menús contextuales',
 	'settings.context_menu.file_menu': 'Mostrar en menú de archivos',
-	'settings.context_menu.file_menu.desc': 'Agrega acciones de Vaultman al menú contextual de archivos de Obsidian.',
+	'settings.context_menu.file_menu.desc':
+		'Agrega acciones de Vaultman al menú contextual de archivos de Obsidian.',
 	'settings.context_menu.editor_menu': 'Mostrar en menú del editor',
-	'settings.context_menu.editor_menu.desc': 'Agrega acciones de Vaultman al menú contextual del editor de Obsidian.',
+	'settings.context_menu.editor_menu.desc':
+		'Agrega acciones de Vaultman al menú contextual del editor de Obsidian.',
 	'settings.context_menu.more_options': 'Mostrar en menú de más opciones',
-	'settings.context_menu.more_options.desc': 'Agrega acciones de Vaultman al menú de más opciones de archivos.',
+	'settings.context_menu.more_options.desc':
+		'Agrega acciones de Vaultman al menú de más opciones de archivos.',
+	'nav.filters': 'Datos',
+	'nav.ops': 'Archivos',
+	'nav.statistics': 'Estadísticas',
 
 	// Operations panel
 	'ops.panel.title': 'Operaciones',
@@ -292,28 +354,52 @@ export const es: Record<string, string> = {
 
 	// Grid settings
 	'settings.grid_render_mode': 'Modo de renderizado de la tabla',
-	'settings.grid_render_mode.desc': 'Cómo se renderizan los valores de propiedades en la tabla',
+	'settings.grid_render_mode.desc':
+		'Cómo se renderizan los valores de propiedades en la tabla',
 	'settings.grid_render_mode.plain': 'Texto plano',
 	'settings.grid_render_mode.chunk': 'Vista previa (por bloques)',
 	'settings.grid_render_mode.all': 'Vista previa (todo a la vez)',
 	'settings.grid_editable_columns': 'Columnas editables',
-	'settings.grid_editable_columns.desc': 'Columnas que permiten edición en línea (separadas por coma, incluir "name" para renombrar)',
+	'settings.grid_editable_columns.desc':
+		'Columnas que permiten edición en línea (separadas por coma, incluir "name" para renombrar)',
 	'settings.base_file': 'Ruta del archivo base',
-	'settings.base_file.desc': 'Ruta a un archivo .base para sincronización bidireccional con Obsidian Bases',
+	'settings.base_file.desc':
+		'Ruta a un archivo .base para sincronización bidireccional con Obsidian Bases',
 	'filter.viewmode_btn': 'Modo de vista',
 	'filter.sort_btn': 'Ordenar',
 	'filter.search_clear': 'Limpiar búsqueda',
 	'filter.search_mode': 'Modo de búsqueda',
+	'filter.category.all_props': 'Todo',
+	'filter.category.prop_names': 'Nombre de prop',
+	'filter.category.all_tags': 'Todas',
+	'filter.category.leaf_tags': 'Hojas',
+	'filter.category.files': 'Archivos',
+	'filter.category.folders': 'Carpetas',
 	'filters.popup.templates': 'Plantillas de filtros',
 	'filters.popup.empty': 'Sin filtros activos',
 	'filters.popup.active': 'reglas activas',
+	'filters.popup.filtered_files': '{filtered} / {total} archivos',
 	'filters.popup.clear_all': 'Limpiar filtros',
 	'filters.popup.rule.disable': 'Desactivar filtro',
 	'filters.popup.rule.enable': 'Activar filtro',
 	'filters.popup.rule.delete': 'Eliminar filtro',
+	'filters.bases.menu': 'Importar/exportar filtros de Bases',
+	'filters.bases.import': 'Importar',
+	'filters.bases.export': 'Exportar filtros activos a Base',
+	'filters.bases.exported': 'Filtros exportados a {path}',
+	'filters.bases.imported': 'Filtros de Bases importados',
+	'filters.bases.no_files': 'No se encontraron archivos .base',
+	'filters.bases.no_active_filters': 'No hay filtros activos para exportar',
+	'filters.bases.no_supported_filters':
+		'No se encontraron filtros de Bases compatibles',
+	'filters.bases.invalid_yaml': 'No se pudo leer este archivo .base',
+	'filters.bases.global_filters': 'Filtros globales',
+	'filters.bases.view': 'Vista',
 	'sort.by.name': 'Nombre',
 	'sort.by.count': 'Cantidad',
 	'sort.by.date': 'Fecha',
+	'sort.by.ext': 'Extensión',
+	'sort.by.path': 'Ruta',
 	'sort.by.sub': 'Subelementos',
 	'sort.by.subtags': 'Subetiquetas',
 	'sort.by.columns': 'Columnas',
@@ -338,15 +424,26 @@ export const es: Record<string, string> = {
 	'viewmode.mode.tree': 'Árbol',
 	'viewmode.mode.dnd': 'Drag & Drop',
 	'viewmode.mode.grid': 'Grid',
+	'viewmode.mode.table': 'Tabla',
 	'viewmode.mode.cards': 'Cards',
 	'viewmode.pill.icon': 'Icono',
 	'viewmode.pill.text': 'Texto',
 	'viewmode.pill.count': 'Cantidad',
+	'viewmode.pill.ext': 'Ext',
 	'viewmode.pill.nested': 'Anidadas',
 	'viewmode.pill.name': 'Nombre',
 	'viewmode.pill.date': 'Fecha',
 	'viewmode.pill.type': 'Tipo',
 	'viewmode.pill.path': 'Ruta',
+	'stats.folders': 'Carpetas',
+	'stats.files': 'Archivos',
+	'stats.props': 'Propiedades',
+	'stats.values': 'Valores',
+	'stats.tags': 'Etiquetas',
 	'stats.addons': 'Add-ons',
-	'viewmode.add_mode':    'Modo AGREGAR',
+	'stats.total_links': 'Links totales',
+	'stats.word_count': 'Conteo de palabras',
+	'stats.reconciling': 'Reconciliando',
+	'viewmode.add_mode': 'Modo AGREGAR',
+	'content.queue_no_matches': 'No hay coincidencias de contenido para encolar',
 };

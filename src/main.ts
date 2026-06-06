@@ -8,6 +8,7 @@ import { VaultmanFrame, VAULTMAN_FRAME_TYPE } from './VaultmanFrame';
 import { IconicService } from './services/serviceIcons';
 import { PropertyTypeService } from './services/servicePropertyType';
 import { ContextMenuService } from './services/serviceContextMenu';
+import { StatisticsCacheService } from './services/serviceStatisticsCache';
 import { VaultmanSettingsTab } from './VaultmanSettings';
 import { setLanguage, translate } from './i18n/index';
 
@@ -22,6 +23,7 @@ export class VaultmanPlugin extends Plugin {
 	iconicService!: IconicService;
 	propertyTypeService!: PropertyTypeService;
 	contextMenuService!: ContextMenuService;
+	statisticsCache!: StatisticsCacheService;
 
 	// Native status bar element
 	private statusBarEl!: HTMLElement;
@@ -34,10 +36,11 @@ export class VaultmanPlugin extends Plugin {
 
 		this.propertyIndex = new PropertyIndexService(this.app);
 		this.filterService = new FilterService(this.app);
-		this.queueService = new OperationQueueService(this.app);
+		this.queueService = new OperationQueueService(this.app, this.settings);
 		this.iconicService = new IconicService(this.app);
 		this.propertyTypeService = new PropertyTypeService(this.app);
 		this.contextMenuService = new ContextMenuService(this);
+		this.statisticsCache = new StatisticsCacheService(this.app);
 
 		this.addChild(this.propertyIndex);
 		this.addChild(this.filterService);
@@ -45,6 +48,7 @@ export class VaultmanPlugin extends Plugin {
 		this.addChild(this.iconicService);
 		this.addChild(this.propertyTypeService);
 		this.addChild(this.contextMenuService);
+		this.addChild(this.statisticsCache);
 
 		this.registerEvent(
 			this.app.metadataCache.on('resolved', () => {
@@ -87,6 +91,7 @@ export class VaultmanPlugin extends Plugin {
 	async onExternalSettingsChange(): Promise<void> {
 		await this.loadSettings();
 		setLanguage(this.settings.language);
+		this.queueService?.setBypassOperations(this.settings.bypassOperations);
 		this.updateGlassBlur();
 		this.notifySettingsChanged();
 	}

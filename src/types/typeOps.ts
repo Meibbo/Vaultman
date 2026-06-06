@@ -79,6 +79,40 @@ export interface TagChange extends BaseChange {
 
 export type PendingChange = PropertyChange | ContentChange | FileChange | TemplateChange | TagChange;
 
+export type QueueTemplateChange =
+	| {
+			type: 'property';
+			action: PropertyAction;
+			property: string;
+			value?: string;
+			oldValue?: string;
+			details: string;
+	  }
+	| {
+			type: 'content_replace';
+			find: string;
+			replace: string;
+			isRegex: boolean;
+			caseSensitive: boolean;
+			details: string;
+	  }
+	| {
+			type: 'template';
+			templateFileStr: string;
+			details: string;
+	  }
+	| {
+			type: 'tag';
+			action: 'add' | 'delete';
+			tag: string;
+			details: string;
+	  };
+
+export interface QueueTemplate {
+	name: string;
+	changes: QueueTemplateChange[];
+}
+
 export interface OperationResult {
 	success: number;
 	errors: number;

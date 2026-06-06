@@ -6,7 +6,7 @@ import { FilesLogic } from '../../src/logic/logicsFiles';
 const vault = {} as Vault;
 
 function makeFolder(path: string): TFolder {
-	const name = path === '/' ? '' : path.split('/').pop() ?? path;
+	const name = path === '/' ? '' : (path.split('/').pop() ?? path);
 	return {
 		children: [],
 		isRoot: () => path === '/',
@@ -113,5 +113,18 @@ describe('FilesLogic.buildFileTree', () => {
 			label: 'beta',
 			meta: { isFolder: true, folderPath: 'beta' },
 		});
+	});
+
+	it('matches files by extension when filtering by file name', () => {
+		const logic = new FilesLogic(makeApp({}));
+		const files = [
+			makeFile('Data/Projects.base'),
+			makeFile('Data/Projects.md'),
+			makeFile('Data/Notes.canvas'),
+		];
+
+		expect(
+			logic.filterFlat(files, '.base', '').map((file) => file.path),
+		).toEqual(['Data/Projects.base']);
 	});
 });

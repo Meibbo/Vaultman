@@ -58,3 +58,98 @@ export class Notice {
 }
 
 export class FileManager {}
+
+export class Modal {
+	contentEl = {
+		empty: () => {},
+		addClass: () => {},
+		createEl: () => ({}),
+		createDiv: () => ({
+			createEl: () => ({}),
+		}),
+	};
+
+	constructor(..._args: unknown[]) {}
+
+	open(): void {}
+	close(): void {}
+	onOpen(): void {}
+	onClose(): void {}
+}
+
+export class Setting {
+	constructor(..._args: unknown[]) {}
+
+	setName(): this {
+		return this;
+	}
+
+	addText(callback: (text: { setPlaceholder: () => unknown; setValue: () => { onChange: () => unknown } }) => unknown): this {
+		callback({
+			setPlaceholder: () => ({
+				setValue: () => ({
+					onChange: () => {},
+				}),
+			}),
+			setValue: () => ({
+				onChange: () => {},
+			}),
+		});
+		return this;
+	}
+
+	addButton(callback: (button: { setButtonText: () => { setCta: () => { onClick: () => unknown }; onClick: () => unknown }; setCta: () => { onClick: () => unknown }; onClick: () => unknown }) => unknown): this {
+		const chain = {
+			setButtonText: () => chain,
+			setCta: () => chain,
+			onClick: () => chain,
+		};
+		callback(chain);
+		return this;
+	}
+}
+
+interface MenuItemStub {
+	setTitle: () => MenuItemStub;
+	setIcon: () => MenuItemStub;
+	setDisabled: () => MenuItemStub;
+	onClick: () => MenuItemStub;
+}
+
+export class Menu {
+	addItem(callback: (item: MenuItemStub) => unknown): void {
+		const chain: MenuItemStub = {
+			setTitle: () => chain,
+			setIcon: () => chain,
+			setDisabled: () => chain,
+			onClick: () => chain,
+		};
+		callback(chain);
+	}
+
+	addSeparator(): void {}
+	showAtMouseEvent(): void {}
+	showAtPosition(): void {}
+}
+
+export function prepareSimpleSearch(query: string): (text: string) => { score: number } | null {
+	const normalized = query.toLowerCase();
+	return (text: string) =>
+		text.toLowerCase().includes(normalized) ? { score: 1 } : null;
+}
+
+export function parseYaml(_yaml: string): unknown {
+	return {};
+}
+
+export function getAllTags(cache: { tags?: Array<{ tag: string }>; frontmatter?: Record<string, unknown> }): string[] {
+	const tags = new Set<string>();
+	for (const tag of cache.tags ?? []) tags.add(tag.tag);
+	const raw = cache.frontmatter?.tags;
+	if (Array.isArray(raw)) {
+		for (const tag of raw) tags.add(String(tag).startsWith('#') ? String(tag) : `#${String(tag)}`);
+	} else if (typeof raw === 'string') {
+		tags.add(raw.startsWith('#') ? raw : `#${raw}`);
+	}
+	return [...tags];
+}

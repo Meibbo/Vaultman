@@ -6,6 +6,7 @@ export const en: Record<string, string> = {
 	'plugin.name_explorer': 'Vaultman Explorer',
 	'plugin.description': 'Bulk property editor and vault management tool',
 	'plugin.open': 'Open Vaultman',
+	'common.cancel': 'Cancel',
 
 	// Sections
 	'section.filters': 'Filters',
@@ -38,6 +39,7 @@ export const en: Record<string, string> = {
 	'filter.template.load': 'Load',
 	'filter.refresh': 'Refresh',
 	'filter.create': 'Create',
+	'filter.tabs_btn': 'Tabs',
 	'filter.auto_reveal': 'Auto-reveal current file',
 	'filter.expand_all': 'Expand all',
 	'filter.collapse_all': 'Collapse all',
@@ -49,9 +51,15 @@ export const en: Record<string, string> = {
 	'files.show_checked_only': 'Show only checked files',
 	'files.count': '{filtered} / {total} files',
 	'files.col.name': 'Name',
+	'files.col.file_name': 'file name',
 	'files.col.props': '# Props',
+	'files.col.ext': 'Ext',
+	'files.col.file_ext': 'file extension',
 	'files.col.path': 'Path',
+	'files.col.file_folder': 'folder',
 	'files.col.date': 'Date',
+	'files.empty_filtered_title': 'No matching files',
+	'files.empty_filtered_desc': 'Try changing or clearing active filters.',
 
 	// Operations
 	'ops.properties': 'Properties',
@@ -89,11 +97,23 @@ export const en: Record<string, string> = {
 	'prop.add_to_queue': 'Add to queue',
 	'prop.new_name': 'New name',
 	'prop.option.native_rename': 'Global Vault Rename (Native)',
-	'prop.option.native_rename_desc': 'Use Obsidian\'s internal core engine to rename this property across the whole vault. This is faster for large datasets.',
+	'prop.option.native_rename_desc':
+		"Use Obsidian's internal core engine to rename this property across the whole vault. This is faster for large datasets.",
 
 	// Queue island
 	'queue.island.pending': 'pending changes',
 	'queue.island.empty': 'Queue is empty',
+	'queue.template.templates': 'Action presets',
+	'queue.template.save': 'Save action preset',
+	'queue.template.no_serializable': 'No queue operations can be saved as an action preset',
+	'queue.template.bulk_title': 'Large operation target',
+	'queue.template.bulk_desc':
+		'This action preset will stage {count} of {total} files from {source}. Review the queue before applying.',
+	'queue.template.bulk_suppress': 'Do not show this warning again',
+	'queue.template.bulk_confirm': 'Stage operations',
+	'queue.template.source.selected': 'the current selection',
+	'queue.template.source.filtered': 'active filters',
+	'queue.template.source.vault': 'the whole vault',
 	'queue.mode.stage': 'Stage',
 	'queue.mode.bypass': 'Bypass',
 
@@ -116,9 +136,20 @@ export const en: Record<string, string> = {
 	'settings.language': 'Language',
 	'settings.language.desc': 'Interface language',
 	'settings.background_blur': 'Background blur intensity',
-	'settings.background_blur.desc': 'Controls the glass blur on the bottom bar and popups.',
+	'settings.background_blur.desc':
+		'Controls the glass blur on the bottom bar and popups.',
 	'settings.minimal_style': 'Minimal style',
-	'settings.minimal_style.desc': 'Use compact Obsidian-native icon buttons in headers and the bottom dock.',
+	'settings.minimal_style.desc':
+		'Use compact Obsidian-native icon buttons in headers and the bottom dock.',
+	'settings.bypass_operations': 'Bypass operations',
+	'settings.bypass_operations.desc':
+		'Run operations immediately instead of staging them in the queue.',
+	'settings.bulk_operation_warning': 'Bulk operation warning',
+	'settings.bulk_operation_warning.desc':
+		'Warn before action presets stage very large file sets.',
+	'settings.performance_monitor': 'Performance monitor',
+	'settings.performance_monitor.desc':
+		'Show the floating live FPS, long-task, memory, and action monitor.',
 	'settings.default_type': 'Default property type',
 	'settings.default_type.desc': 'Default type for new properties',
 	'settings.templates': 'Filter templates',
@@ -153,7 +184,8 @@ export const en: Record<string, string> = {
 	// Linter
 	'linter.title': 'Property Linter',
 	'linter.description': 'Reorder YAML properties using obsidian-linter.',
-	'linter.not_installed': 'obsidian-linter plugin is not installed. Please install it to use this feature.',
+	'linter.not_installed':
+		'obsidian-linter plugin is not installed. Please install it to use this feature.',
 	'linter.scope': 'Scope',
 	'linter.add_property': 'Add property to order...',
 	'linter.save_order': 'Save order',
@@ -167,7 +199,8 @@ export const en: Record<string, string> = {
 	// File Rename
 	'rename.title': 'Rename Files',
 	'rename.pattern': 'Pattern',
-	'rename.pattern_desc': 'Use placeholders: {basename}, {date}, {counter}, {property}',
+	'rename.pattern_desc':
+		'Use placeholders: {basename}, {date}, {counter}, {property}',
 
 	// Status bar (extended)
 	'statusbar.props_label': '{count} props',
@@ -218,6 +251,13 @@ export const en: Record<string, string> = {
 	'explorer.ctx.tag.filter': 'Add as filter',
 	'explorer.ctx.tag.coming_soon': 'More options coming soon',
 	'explorer.cards.back': 'All files',
+	'folder.ctx.filter_include': 'Filter to this folder',
+	'folder.ctx.filter_exclude': 'Exclude this folder',
+	'folder.ctx.rename': 'Rename folder',
+	'folder.ctx.move': 'Move folder',
+	'folder.ctx.delete': 'Delete folder',
+	'folder.prompt.rename': 'New folder name',
+	'folder.prompt.move': 'Destination folder path',
 
 	// Explorer add value form
 	'explorer.add_value.append': 'Append value',
@@ -235,11 +275,14 @@ export const en: Record<string, string> = {
 
 	// Settings (new)
 	'settings.ctrl_click_search': 'Ctrl+click opens search',
-	'settings.ctrl_click_search.desc': 'Ctrl+click on a property or value opens Obsidian search with the query',
+	'settings.ctrl_click_search.desc':
+		'Ctrl+click on a property or value opens Obsidian search with the query',
 	'settings.queue_preview': 'Queue preview in explorer',
-	'settings.queue_preview.desc': 'Show pending queue changes in the property explorer',
+	'settings.queue_preview.desc':
+		'Show pending queue changes in the property explorer',
 	'settings.content_search': 'Content search in file tree',
-	'settings.content_search.desc': 'Enable searching file content in the file tree',
+	'settings.content_search.desc':
+		'Enable searching file content in the file tree',
 	'settings.operation_scope': 'Operation scope',
 	'settings.operation_scope.desc': 'Default scope for explorer operations',
 	'settings.scope.auto': 'Auto (selected > filtered > all)',
@@ -287,17 +330,21 @@ export const en: Record<string, string> = {
 	// View mode settings
 	'settings.view_section': 'View',
 	'settings.open_mode': 'Default view',
-	'settings.open_mode.desc': 'What to open when clicking the Vaultman ribbon icon',
+	'settings.open_mode.desc':
+		'What to open when clicking the Vaultman ribbon icon',
 	'settings.open_mode.sidebar': 'Sidebar',
 	'settings.open_mode.main': 'Main view (full-width)',
 	'settings.open_mode.both': 'Both',
 	'settings.context_menu': 'Context menus',
 	'settings.context_menu.file_menu': 'Show in file menu',
-	'settings.context_menu.file_menu.desc': 'Add Vaultman actions to Obsidian file context menus.',
+	'settings.context_menu.file_menu.desc':
+		'Add Vaultman actions to Obsidian file context menus.',
 	'settings.context_menu.editor_menu': 'Show in editor menu',
-	'settings.context_menu.editor_menu.desc': 'Add Vaultman actions to Obsidian editor context menus.',
+	'settings.context_menu.editor_menu.desc':
+		'Add Vaultman actions to Obsidian editor context menus.',
 	'settings.context_menu.more_options': 'Show in more-options menu',
-	'settings.context_menu.more_options.desc': 'Add Vaultman actions to Obsidian more-options file menus.',
+	'settings.context_menu.more_options.desc':
+		'Add Vaultman actions to Obsidian more-options file menus.',
 	'settings.page_order': 'Sidebar page order',
 	'settings.page_order.desc': 'Choose the order of the three sidebar pages',
 	'settings.page_order.pos': 'Position {n}',
@@ -306,8 +353,8 @@ export const en: Record<string, string> = {
 	'settings.page.ops': 'Operations',
 	'nav.expand': 'Open main view',
 	'nav.files': 'Files',
-	'nav.filters': 'Filters',
-	'nav.ops': 'Operations',
+	'nav.filters': 'Data',
+	'nav.ops': 'Files',
 	'nav.statistics': 'Statistics',
 	'filter.tab.tags': 'Tags',
 	'filter.tab.props': 'Props',
@@ -333,11 +380,12 @@ export const en: Record<string, string> = {
 	'ops.rename': 'Rename',
 	'ops.delete': 'Delete',
 	'ops.add_property': 'Add property',
-	'ops.linter.desc': 'Reorder and clean YAML frontmatter using the Obsidian Linter plugin.',
+	'ops.linter.desc':
+		'Reorder and clean YAML frontmatter using the Obsidian Linter plugin.',
 	'ops.linter.run': 'Run Linter',
 	'filters.active': 'Active filters',
 	'scope.title': 'Operation scope',
-	'scope.desc': 'Determines which files\' properties appear in the filter list.',
+	'scope.desc': "Determines which files' properties appear in the filter list.",
 	'scope.all': 'All vault files',
 	'scope.filtered': 'Filtered files',
 	'scope.selected': 'Selected files',
@@ -348,6 +396,8 @@ export const en: Record<string, string> = {
 	'filter.category': 'All',
 	'filter.category.props': 'Property names',
 	'filter.category.values': 'Property values',
+	'filter.category.all_props': 'All property text',
+	'filter.category.prop_names': 'Property names',
 	'filter.category.all_tags': 'All tags',
 	'filter.category.leaf_tags': 'Leaf tags',
 	'filter.category.files': 'File names',
@@ -355,14 +405,17 @@ export const en: Record<string, string> = {
 
 	// Grid settings
 	'settings.grid_render_mode': 'Grid rendering mode',
-	'settings.grid_render_mode.desc': 'How property values are rendered in the grid',
+	'settings.grid_render_mode.desc':
+		'How property values are rendered in the grid',
 	'settings.grid_render_mode.plain': 'Plain text',
 	'settings.grid_render_mode.chunk': 'Live preview (chunked)',
 	'settings.grid_render_mode.all': 'Live preview (all at once)',
 	'settings.grid_editable_columns': 'Editable columns',
-	'settings.grid_editable_columns.desc': 'Columns that allow inline editing (comma-separated, include "name" for rename)',
+	'settings.grid_editable_columns.desc':
+		'Columns that allow inline editing (comma-separated, include "name" for rename)',
 	'settings.base_file': 'Base file path',
-	'settings.base_file.desc': 'Path to a .base file for bidirectional sync with Obsidian Bases',
+	'settings.base_file.desc':
+		'Path to a .base file for bidirectional sync with Obsidian Bases',
 
 	// Content tab — Find & Replace
 	'content.find_placeholder': 'Find in content…',
@@ -373,12 +426,20 @@ export const en: Record<string, string> = {
 	'content.scope_hint_filtered': 'Scope: {count} filtered file(s)',
 	'content.preview': 'Preview',
 	'content.queue_replace': 'Queue replace',
+	'content.queue_no_matches': 'No content matches to queue',
 	'content.preview_count': '{matches} matches in {files} file(s)',
 	'content.preview_more': '…and {count} more files',
 	'content.no_matches': 'No matches found',
 	'content.invalid_regex': 'Invalid regular expression',
 	'filter.prop_browser.empty': 'No properties in vault',
 	'filter.prop_browser.title': 'Properties',
+	'explorer.props.empty_title': 'No matching properties',
+	'explorer.props.empty_search_desc':
+		'Try another term or switch the property category.',
+	'explorer.tags.empty_title': 'No matching tags',
+	'explorer.tags.empty_desc': 'No tags in vault',
+	'explorer.tags.empty_search_desc':
+		'Try another term or switch the tag category.',
 	'queue.content_changes': 'Content changes',
 	'queue.content_no_matches': 'No matches in this file',
 
@@ -400,9 +461,21 @@ export const en: Record<string, string> = {
 	'filters.popup.templates': 'Filter templates',
 	'filters.popup.empty': 'No active filters',
 	'filters.popup.active': 'active rules',
+	'filters.popup.filtered_files': '{filtered} / {total} files',
 	'filters.popup.rule.enable': 'Enable filter',
 	'filters.popup.rule.disable': 'Disable filter',
 	'filters.popup.rule.delete': 'Remove filter',
+	'filters.bases.menu': 'Import/export Bases filters',
+	'filters.bases.import': 'Import',
+	'filters.bases.export': 'Export active filters to Base',
+	'filters.bases.exported': 'Exported filters to {path}',
+	'filters.bases.imported': 'Imported Bases filters',
+	'filters.bases.no_files': 'No .base files found',
+	'filters.bases.no_active_filters': 'No active filters to export',
+	'filters.bases.no_supported_filters': 'No supported Bases filters found',
+	'filters.bases.invalid_yaml': 'Could not parse this .base file',
+	'filters.bases.global_filters': 'Global filters',
+	'filters.bases.view': 'View',
 
 	// View tab options
 	'filters.view.format': 'Display format',
@@ -416,73 +489,79 @@ export const en: Record<string, string> = {
 	'filters.view.show.values': 'Values',
 	'filters.view.show.type': 'Property type icon',
 	'filters.view.tags_only': 'Tags only mode',
-	'filters.view.tags_only.desc': 'Show only tags including inline tags, grouped by path',
+	'filters.view.tags_only.desc':
+		'Show only tags including inline tags, grouped by path',
 
 	// Settings — Layout
 	'settings.layout.title': 'Layout',
 	'settings.layout.separate_panes': 'Separate sidebar panes',
-	'settings.layout.separate_panes.desc': 'Open Ops, Files, and Filters as individual Obsidian sidebar views instead of a combined panel.',
+	'settings.layout.separate_panes.desc':
+		'Open Ops, Files, and Filters as individual Obsidian sidebar views instead of a combined panel.',
 	'settings.filters_show_tab_labels': 'Show tab labels',
-	'settings.filters_show_tab_labels.desc': 'Show or hide text labels next to page tab icons.',
+	'settings.filters_show_tab_labels.desc':
+		'Show or hide text labels next to page tab icons.',
 
 	// Filters header buttons (Iter 17)
 	'filter.viewmode_btn': 'View mode',
-	'filter.sort_btn':     'Sort',
+	'filter.sort_btn': 'Sort',
 	'filter.search_clear': 'Clear search',
-	'filter.search_mode':  'Search mode',
+	'filter.search_mode': 'Search mode',
 
 	// Sort popup (Iter 17)
-	'sort.by.name':    'Name',
-	'sort.by.count':   'Count',
-	'sort.by.date':    'Date',
-	'sort.by.sub':     'Sub-elements',
+	'sort.by.name': 'Name',
+	'sort.by.count': 'Count',
+	'sort.by.date': 'Date',
+	'sort.by.ext': 'Extension',
+	'sort.by.path': 'Path',
+	'sort.by.sub': 'Sub-elements',
 	'sort.by.subtags': 'Sub-tags',
 	'sort.by.columns': 'Columns',
-	'sort.scope.label':    'Sort scope',
-	'sort.scope.all':      'All vault',
+	'sort.scope.label': 'Sort scope',
+	'sort.scope.all': 'All vault',
 	'sort.scope.filtered': 'Filtered files',
 	'sort.scope.selected': 'Selected files',
-	'sort.template':              'Sort templates',
-	'sort.close':                 'Close sort',
-	'sort.vertcol.props_values':  'Toggle Props / Values',
-	'sort.vertcol.node_level':    'Toggle node level',
+	'sort.template': 'Sort templates',
+	'sort.close': 'Close sort',
+	'sort.vertcol.props_values': 'Toggle Props / Values',
+	'sort.vertcol.node_level': 'Toggle node level',
 	'sort.vertcol.direct_toggle': 'Toggle direct',
-	'sort.vertcol.scope_drawer':  'Open scope drawer',
-	'sort.type.all':        'All types',
-	'sort.type.tags':       'Tags',
-	'sort.type.list':       'List',
-	'sort.type.text':       'Text',
-	'sort.type.number':     'Number',
-	'sort.type.date':       'Date',
-	'sort.type.checkbox':   'Checkbox',
-	'sort.type.aliases':    'Aliases',
+	'sort.vertcol.scope_drawer': 'Open scope drawer',
+	'sort.type.all': 'All types',
+	'sort.type.tags': 'Tags',
+	'sort.type.list': 'List',
+	'sort.type.text': 'Text',
+	'sort.type.number': 'Number',
+	'sort.type.date': 'Date',
+	'sort.type.checkbox': 'Checkbox',
+	'sort.type.aliases': 'Aliases',
 	'sort.type.cssclasses': 'CSS classes',
-	'sort.type.unknown':    'Unknown',
-	'sort.type.nested':     'Nested tags',
-	'sort.type.simple':     'Simple tags',
+	'sort.type.unknown': 'Unknown',
+	'sort.type.nested': 'Nested tags',
+	'sort.type.simple': 'Simple tags',
 
 	// View mode popup (Iter 17)
-	'viewmode.close':       'Close view mode',
-	'viewmode.template':    'View templates',
+	'viewmode.close': 'Close view mode',
+	'viewmode.template': 'View templates',
 	'viewmode.search_cols': 'Search property columns',
-	'viewmode.mode.tree':   'Tree',
-	'viewmode.mode.dnd':    'Drag & Drop list',
-	'viewmode.mode.grid':   'Grid',
-	'viewmode.mode.cards':  'Cards',
-	'viewmode.pill.icon':   'Icon',
-	'viewmode.pill.text':   'Text',
-	'viewmode.pill.count':  'Count',
-	'viewmode.pill.files':  'Files',
+	'viewmode.mode.tree': 'Tree',
+	'viewmode.mode.dnd': 'Drag & Drop list',
+	'viewmode.mode.grid': 'Grid',
+	'viewmode.mode.table': 'Table',
+	'viewmode.mode.cards': 'Cards',
+	'viewmode.pill.icon': 'Icon',
+	'viewmode.pill.text': 'Text',
+	'viewmode.pill.count': 'Count',
+	'viewmode.pill.files': 'Files',
 	'viewmode.pill.nested': 'Nested',
-	'viewmode.pill.date':   'Date',
-	'viewmode.pill.type':   'Type',
+	'viewmode.pill.date': 'Date',
+	'viewmode.pill.type': 'Type',
 	'viewmode.pill.values': 'Values',
-	'viewmode.pill.name':   'Name',
-	'viewmode.pill.ext':    'Ext',
-	'viewmode.pill.tags':   'Tags',
-	'viewmode.pill.path':   'Path',
-	'viewmode.pill.size':   'Size',
-	'viewmode.add_mode':    'ADD mode',
+	'viewmode.pill.name': 'Name',
+	'viewmode.pill.ext': 'Ext',
+	'viewmode.pill.tags': 'Tags',
+	'viewmode.pill.path': 'Path',
+	'viewmode.pill.size': 'Size',
+	'viewmode.add_mode': 'ADD mode',
 
 	// Statistics
 	'stats.folders': 'Folders',
@@ -493,4 +572,5 @@ export const en: Record<string, string> = {
 	'stats.addons': 'Add-ons',
 	'stats.total_links': 'Total Links',
 	'stats.word_count': 'Word Count',
+	'stats.reconciling': 'Reconciling',
 };

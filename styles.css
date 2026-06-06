@@ -185,31 +185,104 @@
   margin-bottom: 4px;
 }
 
+.vaultman-files-empty-state {
+  min-height: 180px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 24px;
+  text-align: center;
+  color: var(--text-muted);
+}
+
+.vaultman-files-empty-state-title {
+  color: var(--text-normal);
+  font-size: var(--font-ui-medium);
+  font-weight: 600;
+}
+
+.vaultman-files-empty-state-desc {
+  max-width: 260px;
+  font-size: var(--font-ui-small);
+  line-height: 1.35;
+}
+
+.vaultman-explorer-empty-landing {
+  min-height: 180px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 24px;
+  text-align: center;
+  color: var(--text-muted);
+}
+
+.vaultman-explorer-empty-title {
+  color: var(--text-normal);
+  font-size: var(--font-ui-medium);
+  font-weight: 600;
+}
+
+.vaultman-explorer-empty-desc {
+  max-width: 280px;
+  font-size: var(--font-ui-small);
+  line-height: 1.35;
+}
+
 .vaultman-files-bulk {
   display: flex;
   gap: 4px;
   margin-bottom: 4px;
 }
 
+.vaultman-files-table-root {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  height: 100%;
+}
+
 .vaultman-files-col-header {
-  display: grid;
-  grid-template-columns: 18px 1fr 50px 50px;
-  gap: 4px;
   border-bottom: 1px solid var(--vaultman-border);
-  padding-bottom: 2px;
-  margin-bottom: 2px;
+  flex: 0 0 auto;
+}
+
+.vaultman-files-table {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: auto;
+  position: relative;
+  contain: strict;
+}
+
+.vaultman-files-table-header {
+  background: var(--background-primary);
+  border-radius: 0;
+  margin-bottom: 0;
+}
+
+.vaultman-files-table-header-row {
+  display: grid;
+  align-items: center;
+  min-height: 30px;
 }
 
 .vaultman-col-header {
-  font-size: 0.7em;
-  font-weight: 600;
-  text-transform: uppercase;
-  color: var(--vaultman-text-muted);
+  align-items: center;
+  font-size: var(--font-ui-small);
+  font-weight: 400;
+  text-transform: none;
+  color: var(--text-muted);
   background: transparent;
   border: none;
   cursor: pointer;
   text-align: left;
-  padding: 2px 0;
+  padding: 0;
+  width: 100%;
 }
 
 .vaultman-col-header:hover,
@@ -219,16 +292,27 @@
 
 .vaultman-file-row {
   display: grid;
-  grid-template-columns: 18px 1fr 36px 50px;
-  gap: 4px;
+  gap: 0;
   align-items: center;
-  padding: 2px 0;
-  font-size: 0.8em;
-  border-radius: var(--radius-s);
+  padding: 0;
+  font-size: var(--font-ui-small);
+  border-bottom: 1px solid var(--background-modifier-border);
+  border-radius: 0;
+  box-sizing: border-box;
+}
+
+.vaultman-file-table-row {
+  position: absolute;
+  left: 0;
+  right: 0;
+}
+
+.vaultman-file-table-row:last-child {
+  border-bottom: none;
 }
 
 .vaultman-file-row:hover {
-  background: var(--vaultman-bg-hover);
+  background: var(--background-modifier-hover);
 }
 
 .vaultman-file-icon {
@@ -255,12 +339,24 @@
   height: 14px;
 }
 
+.vaultman-files-table-check-cell {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.vaultman-files-table-virtual-table,
+.vaultman-files-table-virtual-body {
+  position: relative;
+  width: 100%;
+}
+
 .vaultman-file-name {
   cursor: pointer;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  color: var(--text-normal);
+  color: var(--text-accent);
 }
 
 .vaultman-file-name:hover {
@@ -274,9 +370,15 @@
   font-size: 0.9em;
 }
 
+.vaultman-file-ext {
+  color: var(--text-normal);
+  font-size: var(--font-ui-small);
+  font-variant-numeric: tabular-nums;
+}
+
 .vaultman-file-path {
-  color: var(--vaultman-text-faint);
-  font-size: 0.85em;
+  color: var(--text-normal);
+  font-size: var(--font-ui-small);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -1955,6 +2057,8 @@ body.vaultman-bases-column-separators table th {
   bottom: 0;
   left: 0;
   right: 0;
+  box-sizing: border-box;
+  height: var(--vaultman-nav-height, 64px);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -2026,6 +2130,7 @@ body.vaultman-bases-column-separators table th {
 .vaultman-bottom-nav--minimal.vaultman-glass.vaultman-glass--bottom {
   background: transparent;
   border-top: none;
+  padding: 0;
 }
 
 .vaultman-bottom-nav--minimal.vaultman-glass.vaultman-glass--bottom::before {
@@ -2082,6 +2187,7 @@ body.vaultman-bases-column-separators table th {
 .vaultman-nav-pill {
   display: flex;
   align-items: center;
+  box-sizing: border-box;
   gap: 4px;
   background: var(--background-modifier-hover);
   border: 1px solid var(--background-modifier-border);
@@ -2099,6 +2205,23 @@ body.vaultman-bases-column-separators table th {
   background: var(--background-secondary);
   backdrop-filter: none;
   -webkit-backdrop-filter: none;
+  max-height: calc(var(--vaultman-nav-height, 64px) - 14px);
+}
+
+.vaultman-nav-pill--minimal .workspace-tab-header-inner.vaultman-nav-page-icon {
+  min-width: 28px;
+  min-height: 28px;
+}
+
+.vaultman-nav-pill--minimal .vaultman-nav-page-icon {
+  color: var(--tab-text-color);
+  box-shadow: none;
+}
+
+.vaultman-nav-pill--minimal .vaultman-nav-page-icon.is-active {
+  color: var(--tab-text-color-active);
+  background: var(--background-modifier-hover);
+  box-shadow: none;
 }
 
 .vaultman-nav-dock-divider {
@@ -2366,7 +2489,18 @@ body.vaultman-bases-column-separators table th {
   overflow-x: auto;
 }
 
+.vaultman-tab-bar-inner {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 0;
+}
+
 .vaultman-tab-bar.has-labels {
+  gap: var(--size-4-2, 8px);
+}
+
+.vaultman-tab-bar.has-labels .vaultman-tab-bar-inner {
   gap: var(--size-4-2, 8px);
 }
 
@@ -2383,6 +2517,17 @@ body.vaultman-bases-column-separators table th {
   white-space: nowrap;
   user-select: none;
   transition: color 0.12s, border-color 0.12s;
+}
+
+.vaultman-tab-inner {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  min-width: 0;
+}
+
+.vaultman-tab:not(.is-active) {
+  background-color: var(--background-primary);
 }
 
 .vaultman-tab:hover {
@@ -2406,6 +2551,33 @@ body.vaultman-bases-column-separators table th {
 .vaultman-tab-icon svg {
   width: 14px;
   height: 14px;
+}
+
+.vaultman-tab-bar--minimal.workspace-tab-header-container {
+  min-height: var(--header-height);
+  padding-inline: var(--size-4-1);
+  background: var(--background-primary);
+  border-bottom: 1px solid var(--background-modifier-border);
+}
+
+.vaultman-tab-bar--minimal .workspace-tab-header-container-inner {
+  height: var(--header-height);
+  gap: 0;
+}
+
+.vaultman-tab-bar--minimal .vaultman-tab {
+  height: var(--header-height);
+  padding: 0;
+  border-bottom: 0;
+  background: transparent;
+}
+
+.vaultman-tab-bar--minimal .vaultman-tab:not(.is-active) {
+  background: transparent;
+}
+
+.vaultman-tab-bar--minimal .vaultman-tab-inner {
+  gap: var(--size-4-1);
 }
 
 @container (max-width: 220px) {
@@ -2461,9 +2633,23 @@ body.vaultman-bases-column-separators table th {
 .vaultman-filters-header {
   display: flex;
   align-items: center;
+  justify-content: center;
   gap: 6px;
   padding: 6px 8px 4px;
   flex-shrink: 0;
+  min-height: 40px;
+}
+
+.vaultman-filters-header--minimal {
+  justify-content: flex-start;
+  gap: 2px;
+  padding: 0;
+  min-height: var(--clickable-icon-size);
+}
+
+.vaultman-filters-header > .nav-action-button {
+  flex: 0 0 auto;
+  align-self: center;
 }
 
 .vaultman-filters-header-btn {
@@ -2493,8 +2679,9 @@ body.vaultman-bases-column-separators table th {
 }
 
 .vaultman-filters-header-search-pill {
-  flex: 1;
+  flex: 0 1 220px;
   min-width: 0;
+  max-width: min(220px, 48%);
   display: flex;
   align-items: center;
   background: var(--background-modifier-form-field);
@@ -2928,6 +3115,7 @@ body.vaultman-bases-column-separators table th {
   align-items: center;
   gap: 6px;
   padding: 6px 8px;
+  min-height: 28px;
   border-radius: var(--radius-s);
   background: var(--background-secondary);
 }
@@ -2938,23 +3126,50 @@ body.vaultman-bases-column-separators table th {
 
 .vaultman-active-filter-rule-text {
   flex: 1;
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
   font-size: var(--font-ui-small);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
+.vaultman-active-filter-row-rule {
+  flex: 0 1 auto;
+  min-width: 0;
+  color: var(--text-muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.vaultman-active-filter-row-label {
+  flex: 1 1 auto;
+  min-width: 0;
+  color: var(--text-normal);
+  font-weight: 500;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .vaultman-active-filter-toggle {
-  width: 18px;
-  height: 18px;
-  border-radius: 50%;
-  border: 2px solid var(--color-accent);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border-radius: var(--clickable-icon-radius);
+  border: none;
+  color: var(--text-normal);
+  background: transparent;
   flex-shrink: 0;
   cursor: pointer;
 }
 
 .vaultman-active-filter-rule:not(.is-disabled) .vaultman-active-filter-toggle {
-  background: var(--color-accent);
+  background: transparent;
 }
 
 .vaultman-active-filter-delete {
@@ -3531,7 +3746,9 @@ body.vaultman-bases-column-separators table th {
 
 .vaultman-queue-island {
   pointer-events: auto;
-  margin: 0 12px;
+  width: calc(100% - 24px);
+  max-width: 420px;
+  margin: 0 auto;
   background: var(--background-secondary);
   border: 1px solid var(--background-modifier-border);
   border-radius: 16px;
@@ -3588,6 +3805,123 @@ body.vaultman-bases-column-separators table th {
   flex-direction: column;
   gap: 4px;
   min-height: 80px;
+}
+
+.vaultman-performance-hud {
+  position: fixed;
+  z-index: 10000;
+  width: min(220px, calc(100vw - 20px));
+  pointer-events: none;
+  user-select: none;
+}
+
+.vaultman-performance-host {
+  position: fixed;
+  inset: 0;
+  z-index: 10000;
+  pointer-events: none;
+}
+
+.vaultman-performance-hud.is-collapsed {
+  width: auto;
+}
+
+.vaultman-performance-toggle {
+  pointer-events: auto;
+  position: absolute;
+  right: 0;
+  top: 0;
+  width: 28px;
+  height: 28px;
+  z-index: 1;
+}
+
+.vaultman-performance-panel {
+  pointer-events: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 8px;
+  padding-right: 34px;
+  border: 1px solid var(--background-modifier-border);
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--background-secondary) 94%, transparent);
+  box-shadow: 0 8px 28px rgba(0, 0, 0, 0.16);
+  backdrop-filter: blur(8px);
+}
+
+.vaultman-performance-hud.is-dragging .vaultman-performance-panel {
+  box-shadow: 0 10px 34px rgba(0, 0, 0, 0.24);
+}
+
+.vaultman-performance-head,
+.vaultman-performance-metrics,
+.vaultman-performance-action {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  min-width: 0;
+}
+
+.vaultman-performance-head {
+  cursor: grab;
+  touch-action: none;
+}
+
+.vaultman-performance-hud.is-dragging .vaultman-performance-head {
+  cursor: grabbing;
+}
+
+.vaultman-performance-title {
+  font-size: var(--font-ui-smaller);
+  font-weight: 600;
+  color: var(--text-normal);
+}
+
+.vaultman-performance-fps,
+.vaultman-performance-metrics {
+  font-size: var(--font-ui-smaller);
+  color: var(--text-muted);
+}
+
+.vaultman-performance-chart {
+  width: 100%;
+  height: 34px;
+  overflow: visible;
+}
+
+.vaultman-performance-line {
+  fill: none;
+  stroke: var(--color-green);
+  stroke-width: 1.5;
+  vector-effect: non-scaling-stroke;
+}
+
+.vaultman-performance-line--pressure {
+  stroke: var(--color-red);
+  opacity: 0.7;
+}
+
+.vaultman-performance-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  max-height: 72px;
+  overflow: hidden;
+}
+
+.vaultman-performance-action {
+  font-size: var(--font-ui-smaller);
+  color: var(--text-muted);
+}
+
+.vaultman-performance-action strong {
+  color: var(--text-normal);
+  font-weight: 500;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .vaultman-queue-island-row {
@@ -4170,6 +4504,15 @@ body.vaultman-bases-column-separators table th {
   font-size: var(--font-ui-small);
 }
 
+.vaultman-stat-reconcile-status {
+  color: var(--text-muted);
+}
+
+.vaultman-stat-reconcile-status .vaultman-meta-icon,
+.vaultman-stat-reconcile-status .vaultman-meta-label {
+  color: var(--text-faint);
+}
+
 .vaultman-meta-icon {
   color: var(--text-muted);
 }
@@ -4190,6 +4533,31 @@ body.vaultman-bases-column-separators table th {
 }
 
 /* ── Unified Tree ────────────────────────────────── */
+.vaultman-tree-virtual-viewport {
+  position: relative;
+  overflow-y: auto;
+  overflow-x: hidden;
+  contain: paint;
+}
+
+.workspace-leaf-content[data-type="vaultman-frame"] .vaultman-files-tab-content.vaultman-tree-virtual-viewport,
+.workspace-leaf-content[data-type="vaultman-view"] .vaultman-files-tab-content.vaultman-tree-virtual-viewport {
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+
+.vaultman-tree-virtual-spacer {
+  position: relative;
+  width: 100%;
+  min-height: 100%;
+}
+
+.vaultman-tree-virtual-content {
+  position: absolute;
+  inset: 0 0 auto;
+  width: 100%;
+}
+
 .vaultman-tree-row {
   position: relative;
   display: flex;
@@ -4212,6 +4580,12 @@ body.vaultman-bases-column-separators table th {
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   transform: translateZ(0);
+}
+
+.vaultman-tree-row--virtual {
+  position: absolute;
+  left: 0;
+  right: 0;
 }
 
 .vaultman-tree-toggle {
@@ -4459,7 +4833,9 @@ body.vaultman-bases-column-separators table th {
 .vaultman-queue-island,
 .vaultman-active-filters-island {
   pointer-events: auto;
-  margin: 0 12px;
+  width: calc(100% - 24px);
+  max-width: 420px;
+  margin: 0 auto;
   background: var(--background-secondary);
   border: 1px solid var(--background-modifier-border);
   border-radius: 16px;
@@ -4552,6 +4928,7 @@ body.vaultman-bases-column-separators table th {
   align-items: center;
   gap: 8px;
   padding: 6px 10px;
+  min-height: 30px;
   border-radius: 6px;
   font-size: var(--font-ui-smaller);
 }
@@ -4570,15 +4947,34 @@ body.vaultman-bases-column-separators table th {
 .vaultman-queue-island-row-detail,
 .vaultman-active-filter-row-text {
   flex: 1;
-  color: var(--text-muted);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
+.vaultman-active-filter-row-text {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+}
+
 .vaultman-active-filter-row-actions {
   display: flex;
+  align-items: center;
   gap: 4px;
+}
+
+.vaultman-active-filters-island .vaultman-active-filter-toggle,
+.vaultman-active-filters-popup .vaultman-active-filter-toggle {
+  color: var(--text-normal);
+  background: transparent;
+  border: none;
+  align-self: center;
+}
+
+.vaultman-active-filter-island-row.is-disabled .vaultman-active-filter-toggle,
+.vaultman-active-filter-rule.is-disabled .vaultman-active-filter-toggle {
+  color: var(--text-faint);
 }
 
 .vaultman-queue-island-empty,

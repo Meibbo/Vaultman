@@ -1,6 +1,11 @@
 // src/components/UnifiedTreeView.ts
 import { setIcon } from 'obsidian';
 import type { TreeNode } from '../../types/typeTree';
+import { vaultmanPerfMonitor } from '../../utils/performanceMonitor';
+import {
+	buildVirtualTreeWindow,
+	flattenVisibleTree,
+} from '../../utils/treeVirtualization';
 
 export interface TreeViewOptions {
 	nodes: TreeNode[];
@@ -15,17 +20,27 @@ export interface TreeViewOptions {
 	onRename?: (id: string, newLabel: string) => void;
 	onCancelRename?: () => void;
 	onBadgeDoubleClick?: (queueIndex: number) => void;
-	renderLimit?: number;
 	visibleCells?: Set<string>;
 }
-
-const RENDER_LIMIT = 200;
 
 export class UnifiedTreeView {
 	private containerEl: HTMLElement;
 	private rowEls = new Map<string, HTMLElement>();
 	private _pendingRaf: number | null = null;
+	private _pendingScrollTimer: number | null = null;
 	private _opts: TreeViewOptions | null = null;
+	private readonly _ownerId = `vaultman-tree-${Math.random()
+		.toString(36)
+		.slice(2)}`;
+	private _pendingScroll: { id: string; block: ScrollLogicalPosition } | null =
+		null;
+	private _spacerEl: HTMLElement | null = null;
+	private _contentEl: HTMLElement | null = null;
+	private _rows: TreeNode[] = [];
+	private _indexById = new Map<string, number>();
+	private readonly _rowHeight = 27;
+	private readonly _overscan = 24;
+	private readonly _onScroll = () => this._scheduleWindowRender();
 
 	constructor(containerEl: HTMLElement) {
 		this.containerEl = containerEl;
@@ -33,47 +48,73 @@ export class UnifiedTreeView {
 
 	render(opts: TreeViewOptions): void {
 		this._opts = opts;
+		this.containerEl.dataset.vaultmanTreeOwner = this._ownerId;
 		if (this._pendingRaf !== null) {
 			cancelAnimationFrame(this._pendingRaf);
+			this._pendingRaf = null;
+		}
+		if (this._pendingScrollTimer !== null) {
+			window.clearTimeout(this._pendingScrollTimer);
+			this._pendingScrollTimer = null;
 		}
 
 		const scrollTop = this.containerEl.scrollTop;
-		this.containerEl.empty();
-		this.rowEls.clear();
-		let rendered = 0;
-		const limit = opts.renderLimit ?? RENDER_LIMIT;
-
-		const renderNodes = (nodes: TreeNode[], parent: HTMLElement) => {
-			for (const node of nodes) {
-				if (rendered >= limit) break;
-				this._renderRow(node, parent, opts);
-				rendered++;
-				if (node.children?.length && opts.expandedIds.has(node.id)) {
-					const childWrap = parent.createDiv({ cls: 'vaultman-tree-children' });
-					renderNodes(node.children, childWrap);
-				}
-			}
-		};
-
-		this._pendingRaf = window.requestAnimationFrame(() => {
-			renderNodes(opts.nodes, this.containerEl);
-			this.containerEl.scrollTop = scrollTop;
-			this._pendingRaf = null;
-
-			// Handle focus if editing
-			if (opts.editingId) {
-				const row = this.rowEls.get(opts.editingId);
-				const input = row?.querySelector('input');
-				if (input instanceof HTMLInputElement) {
-					input.focus();
-					input.select();
-				}
-			}
-
-			if (opts.nodes.length > limit) {
-				this._renderShowMore(opts);
-			}
+		const modelStarted = performance.now();
+		this._rows = flattenVisibleTree(opts.nodes, opts.expandedIds);
+		this._indexById = this._buildIndex(this._rows);
+		this._ensureScaffold();
+		if (this._spacerEl) {
+			this._spacerEl.style.height = `${this._rows.length * this._rowHeight}px`;
+		}
+		this.containerEl.scrollTop = Math.min(
+			scrollTop,
+			Math.max(
+				0,
+				this._rows.length * this._rowHeight - this.containerEl.clientHeight,
+			),
+		);
+		vaultmanPerfMonitor.record('tree.model', performance.now() - modelStarted, {
+			rows: this._rows.length,
 		});
+
+		const renderStarted = performance.now();
+		this._renderWindow();
+		this._flushPendingScroll();
+		vaultmanPerfMonitor.record(
+			'tree.render',
+			performance.now() - renderStarted,
+			{
+				rows: this._rows.length,
+				visibleRows: this.rowEls.size,
+			},
+		);
+		vaultmanPerfMonitor.recordAction('tree', 'render', {
+			rows: this._rows.length,
+			visibleRows: this.rowEls.size,
+		});
+	}
+
+	destroy(): void {
+		if (this._pendingRaf !== null) {
+			cancelAnimationFrame(this._pendingRaf);
+			this._pendingRaf = null;
+		}
+		if (this._pendingScrollTimer !== null) {
+			window.clearTimeout(this._pendingScrollTimer);
+			this._pendingScrollTimer = null;
+		}
+		if (this.containerEl.dataset.vaultmanTreeOwner === this._ownerId) {
+			delete this.containerEl.dataset.vaultmanTreeOwner;
+		}
+		this.containerEl.removeEventListener('scroll', this._onScroll);
+		this.containerEl.removeClass('vaultman-tree-virtual-viewport');
+		this._spacerEl?.remove();
+		this._spacerEl = null;
+		this._contentEl = null;
+		this._rows = [];
+		this._indexById.clear();
+		this.rowEls.clear();
+		this._pendingScroll = null;
 	}
 
 	/** Toggle visibility of rows matching/not matching filtered IDs — no DOM rebuild */
@@ -83,7 +124,145 @@ export class UnifiedTreeView {
 		}
 	}
 
-	private _renderRow(node: TreeNode, parent: HTMLElement, opts: TreeViewOptions): void {
+	scrollToId(id: string, block: ScrollLogicalPosition = 'center'): void {
+		const row = this.rowEls.get(id);
+		if (row) {
+			row.scrollIntoView({ block, inline: 'nearest' });
+			return;
+		}
+		const index = this._indexById.get(id);
+		if (index !== undefined) {
+			this.containerEl.scrollTop = this._scrollTopForIndex(index, block);
+			this._scheduleWindowRender();
+			this._pendingScroll = null;
+			vaultmanPerfMonitor.recordAction('tree', 'scrollToId', { id, index });
+			return;
+		}
+		this._pendingScroll = { id, block };
+	}
+
+	private _buildIndex(rows: TreeNode[]): Map<string, number> {
+		const indexById = new Map<string, number>();
+		rows.forEach((row, index) => {
+			if (!indexById.has(row.id)) indexById.set(row.id, index);
+		});
+		return indexById;
+	}
+
+	private _ensureScaffold(): void {
+		if (this._spacerEl && this.containerEl.contains(this._spacerEl)) return;
+		this.containerEl.removeEventListener('scroll', this._onScroll);
+		this.containerEl.empty();
+		this.rowEls.clear();
+		this.containerEl.addClass('vaultman-tree-virtual-viewport');
+		this._spacerEl = this.containerEl.createDiv({
+			cls: 'vaultman-tree-virtual-spacer',
+		});
+		this._contentEl = this._spacerEl.createDiv({
+			cls: 'vaultman-tree-virtual-content',
+		});
+		this.containerEl.addEventListener('scroll', this._onScroll, {
+			passive: true,
+		});
+	}
+
+	private _scheduleWindowRender(): void {
+		if (this._pendingRaf !== null || this._pendingScrollTimer !== null) return;
+		const run = () => {
+			if (this._pendingRaf !== null) {
+				window.cancelAnimationFrame(this._pendingRaf);
+			}
+			if (this._pendingScrollTimer !== null) {
+				window.clearTimeout(this._pendingScrollTimer);
+			}
+			this._pendingRaf = null;
+			this._pendingScrollTimer = null;
+			this._renderWindow();
+		};
+		this._pendingRaf = window.requestAnimationFrame(run);
+		this._pendingScrollTimer = window.setTimeout(run, 32);
+	}
+
+	private _renderWindow(): void {
+		if (!this._opts || !this._contentEl) return;
+		const started = performance.now();
+		const projection = buildVirtualTreeWindow({
+			rows: this._rows,
+			scrollTop: this.containerEl.scrollTop,
+			viewportHeight: this.containerEl.clientHeight,
+			rowHeight: this._rowHeight,
+			overscan: this._overscan,
+		});
+		this._contentEl.empty();
+		this.rowEls.clear();
+		for (const row of projection.visibleRows) {
+			const rowEl = this._renderRow(row.node, this._contentEl, this._opts);
+			rowEl.addClass('vaultman-tree-row--virtual');
+			rowEl.style.top = `${row.top}px`;
+		}
+		this._focusEditingRow(this._opts);
+		vaultmanPerfMonitor.record('tree.window', performance.now() - started, {
+			rows: this._rows.length,
+			visibleRows: projection.visibleRows.length,
+			start: projection.startIndex,
+			end: projection.endIndex,
+		});
+	}
+
+	private _scrollTopForIndex(
+		index: number,
+		block: ScrollLogicalPosition,
+	): number {
+		const rowTop = index * this._rowHeight;
+		const rowBottom = rowTop + this._rowHeight;
+		const viewportHeight = this.containerEl.clientHeight;
+		const currentTop = this.containerEl.scrollTop;
+		const currentBottom = currentTop + viewportHeight;
+		let target = currentTop;
+		if (block === 'start') {
+			target = rowTop;
+		} else if (block === 'end') {
+			target = rowBottom - viewportHeight;
+		} else if (block === 'nearest') {
+			if (rowTop < currentTop) target = rowTop;
+			else if (rowBottom > currentBottom) target = rowBottom - viewportHeight;
+		} else {
+			target = rowTop - viewportHeight / 2 + this._rowHeight / 2;
+		}
+		const maxScroll = Math.max(
+			0,
+			this._rows.length * this._rowHeight - viewportHeight,
+		);
+		return Math.max(0, Math.min(maxScroll, target));
+	}
+
+	private _focusEditingRow(opts: TreeViewOptions): void {
+		if (!opts.editingId) return;
+		const row = this.rowEls.get(opts.editingId);
+		const input = row?.querySelector('input');
+		if (input instanceof HTMLInputElement) {
+			input.focus();
+			input.select();
+		}
+	}
+
+	private _flushPendingScroll(): void {
+		if (!this._pendingScroll) return;
+		const { id, block } = this._pendingScroll;
+		const row = this.rowEls.get(id);
+		if (!row) return;
+		row.scrollIntoView({
+			block,
+			inline: 'nearest',
+		});
+		this._pendingScroll = null;
+	}
+
+	private _renderRow(
+		node: TreeNode,
+		parent: HTMLElement,
+		opts: TreeViewOptions,
+	): HTMLElement {
 		const hasChildren = (node.children?.length ?? 0) > 0;
 		const isExpanded = opts.expandedIds.has(node.id);
 		const isActive = opts.activeFilterIds?.has(node.id) ?? false;
@@ -104,7 +283,8 @@ export class UnifiedTreeView {
 		row.style.setProperty('--depth', String(node.depth));
 		if (isActive) row.addClass('is-active-filter');
 		if (isWarning) row.addClass('vaultman-badge-warning');
-		if (opts.searchHighlightIds?.has(node.id)) row.addClass('vaultman-search-highlight');
+		if (opts.searchHighlightIds?.has(node.id))
+			row.addClass('vaultman-search-highlight');
 		if (isEditing) row.addClass('is-editing');
 
 		this.rowEls.set(node.id, row);
@@ -112,7 +292,10 @@ export class UnifiedTreeView {
 		// Chevron / spacer
 		const toggleSpan = row.createSpan({ cls: 'vaultman-tree-toggle' });
 		if (hasChildren) {
-			setIcon(toggleSpan, isExpanded ? 'lucide-chevron-down' : 'lucide-chevron-right');
+			setIcon(
+				toggleSpan,
+				isExpanded ? 'lucide-chevron-down' : 'lucide-chevron-right',
+			);
 			toggleSpan.addEventListener('click', (e) => {
 				e.stopPropagation();
 				opts.onToggle(node.id);
@@ -161,7 +344,8 @@ export class UnifiedTreeView {
 				for (const badge of node.badges) {
 					const bEl = badgeZone.createSpan({ cls: 'vaultman-badge' });
 					// Only apply color class for solid/inherited badges; default is --text-normal
-					if (badge.solid && badge.color) bEl.addClass(`vaultman-badge--${badge.color}`);
+					if (badge.solid && badge.color)
+						bEl.addClass(`vaultman-badge--${badge.color}`);
 					if (badge.solid) bEl.addClass('is-solid');
 					if (badge.isInherited) bEl.addClass('is-inherited');
 					if (badge.icon) {
@@ -170,11 +354,15 @@ export class UnifiedTreeView {
 					}
 					if (badge.text) {
 						bEl.setAttribute('title', badge.text);
+						if (!badge.icon) bEl.setText(badge.text);
 					}
 					// Double-click to undo this specific queue operation
 					if (badge.queueIndex !== undefined && opts.onBadgeDoubleClick) {
 						bEl.addClass('is-undoable');
-						bEl.setAttribute('title', `${badge.text ?? ''} — double-click to undo`);
+						bEl.setAttribute(
+							'title',
+							`${badge.text ?? ''} — double-click to undo`,
+						);
 						bEl.addEventListener('dblclick', (e) => {
 							e.stopPropagation();
 							opts.onBadgeDoubleClick!(badge.queueIndex!);
@@ -185,7 +373,10 @@ export class UnifiedTreeView {
 
 			// Frequency counter second
 			if (showCount && node.count != null && node.count > 0) {
-				badgeZone.createSpan({ cls: 'vaultman-tree-count', text: String(node.count) });
+				badgeZone.createSpan({
+					cls: 'vaultman-tree-count',
+					text: String(node.count),
+				});
 			}
 		}
 
@@ -196,15 +387,6 @@ export class UnifiedTreeView {
 			e.stopPropagation();
 			opts.onContextMenu(node.id, e);
 		});
-	}
-
-	private _renderShowMore(opts: TreeViewOptions): void {
-		const btn = this.containerEl.createEl('button', {
-			cls: 'vaultman-btn-small vaultman-show-more',
-			text: `Show all ${opts.nodes.length} items…`,
-		});
-		btn.addEventListener('click', () => {
-			this.render({ ...opts, renderLimit: Infinity });
-		});
+		return row;
 	}
 }

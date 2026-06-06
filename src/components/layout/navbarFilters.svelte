@@ -9,6 +9,7 @@
 	import type { ExplorerSortState, ExplorerViewMode } from '../../types/typeUI';
 
 	type FiltersTab = 'props' | 'files' | 'tags';
+	type HeaderTabOption = { id: string; label: string; icon: string };
 	type HeaderMode = 'header' | 'sort' | 'viewmode';
 
 	let {
@@ -21,6 +22,10 @@
 		icon,
 		addOpCount = 0,
 		minimalStyle = true,
+		tabOptions = [],
+		activeSectionTab = activeTab,
+		onSectionTabChange,
+		showExplorerControls = true,
 	}: {
 		activeTab: FiltersTab;
 		filtersSearch: string;
@@ -31,17 +36,21 @@
 		icon: (node: HTMLElement, name: string) => { update(n: string): void };
 		addOpCount?: number;
 		minimalStyle?: boolean;
+		tabOptions?: HeaderTabOption[];
+		activeSectionTab?: string;
+		onSectionTabChange?: (tab: string) => void;
+		showExplorerControls?: boolean;
 	} = $props();
 
 	const CATEGORY_ICONS: Record<FiltersTab, [string, string]> = {
-		props: ['lucide-tag', 'lucide-text-cursor-input'],
+		props: ['lucide-search', 'lucide-tag'],
 		tags: ['lucide-hash', 'lucide-git-branch'],
 		files: ['lucide-file', 'lucide-folder'],
 	};
 	const CATEGORY_LABELS: Record<FiltersTab, [string, string]> = {
 		props: [
-			translate('filter.category.props'),
-			translate('filter.category.values'),
+			translate('filter.category.all_props'),
+			translate('filter.category.prop_names'),
 		],
 		tags: [
 			translate('filter.category.all_tags'),
@@ -90,7 +99,7 @@
 	const DEFAULT_VISIBLE_CELLS: Record<FiltersTab, string[]> = {
 		props: ['icon', 'text', 'count'],
 		tags: ['icon', 'text', 'count'],
-		files: ['icon', 'name', 'count', 'path'],
+		files: ['name', 'ext', 'path'],
 	};
 	const CELL_LABELS: Record<FiltersTab, Record<string, string>> = {
 		props: {
@@ -109,6 +118,7 @@
 			icon: 'viewmode.pill.icon',
 			name: 'viewmode.pill.name',
 			count: 'viewmode.pill.count',
+			ext: 'viewmode.pill.ext',
 			date: 'viewmode.pill.date',
 			path: 'viewmode.pill.path',
 		},
@@ -118,6 +128,7 @@
 		text: 'lucide-text',
 		name: 'lucide-file-text',
 		count: 'lucide-hash',
+		ext: 'lucide-file-type',
 		type: 'lucide-list-filter',
 		nested: 'lucide-git-branch',
 		date: 'lucide-calendar',
@@ -142,8 +153,9 @@
 		files: [
 			{ id: 'name', icon: 'lucide-a-large-small', labelKey: 'sort.by.name' },
 			{ id: 'count', icon: 'lucide-hash', labelKey: 'sort.by.count' },
+			{ id: 'ext', icon: 'lucide-file-type', labelKey: 'sort.by.ext' },
 			{ id: 'date', icon: 'lucide-calendar', labelKey: 'sort.by.date' },
-			{ id: 'columns', icon: 'lucide-columns-2', labelKey: 'sort.by.columns' },
+			{ id: 'path', icon: 'lucide-route', labelKey: 'sort.by.path' },
 		],
 	};
 	const NODE_TYPE_OPTIONS: Record<
@@ -205,6 +217,8 @@
 		files: { ...DEFAULT_SORT_STATE.files },
 	});
 	let addModeActive = $state(false);
+	let searchExpanded = $state(false);
+	let searchInputEl = $state<HTMLInputElement | null>(null);
 	let expandedByTab = $state<Record<FiltersTab, boolean>>({
 		props: false,
 		tags: false,
@@ -223,6 +237,33 @@
 			? 'lucide-chevrons-down-up'
 			: 'lucide-chevrons-up-down',
 	);
+	const showSearchInput = $derived(
+		!minimalStyle || searchExpanded || filtersSearch.length > 0,
+	);
+	const currentTabsOption = $derived(
+		tabOptions.find((option) => option.id === activeSectionTab) ??
+			tabOptions[0] ??
+			null,
+	);
+	const currentTabsIcon = $derived(
+		currentTabsOption?.icon ?? 'lucide-panels-top-left',
+	);
+	const currentTabsLabel = $derived(
+		currentTabsOption
+			? `${translate('filter.tabs_btn')}: ${currentTabsOption.label}`
+			: translate('filter.tabs_btn'),
+	);
+
+	function menuEventFromElement(element: HTMLElement): MouseEvent {
+		const rect = element.getBoundingClientRect();
+		return new MouseEvent('click', {
+			bubbles: true,
+			cancelable: true,
+			clientX: rect.left + rect.width / 2,
+			clientY: rect.bottom,
+			view: window,
+		});
+	}
 
 	function openSortPopup(event?: MouseEvent) {
 		if (minimalStyle && event) {
@@ -240,6 +281,10 @@
 		headerExitDir = 'left';
 		headerMode = 'viewmode';
 	}
+	function openTabsPopup(event: MouseEvent) {
+		if (!tabOptions.length) return;
+		openNativeTabsMenu(event);
+	}
 	function closeHeaderPopup() {
 		headerMode = 'header';
 	}
@@ -248,6 +293,24 @@
 		const tab = activeTab;
 		filtersSearchCategory[tab] = filtersSearchCategory[tab] === 0 ? 1 : 0;
 		filtersSearchCategory = { ...filtersSearchCategory };
+	}
+
+	function expandSearch() {
+		searchExpanded = true;
+		window.requestAnimationFrame(() => searchInputEl?.focus());
+	}
+
+	function handleSearchFocusOut(event: FocusEvent) {
+		if (!minimalStyle || filtersSearch) return;
+		const nextTarget = event.relatedTarget as Node | null;
+		if (
+			nextTarget &&
+			event.currentTarget instanceof HTMLElement &&
+			event.currentTarget.contains(nextTarget)
+		) {
+			return;
+		}
+		searchExpanded = false;
 	}
 
 	function createSearchTarget() {
@@ -361,8 +424,9 @@
 			},
 			{
 				id: 'grid' as ExplorerViewMode,
-				icon: 'lucide-layout-grid',
-				label: 'viewmode.mode.grid',
+				icon: activeTab === 'files' ? 'lucide-table-2' : 'lucide-layout-grid',
+				label:
+					activeTab === 'files' ? 'viewmode.mode.table' : 'viewmode.mode.grid',
 			},
 		]) {
 			menu.addItem((item) => {
@@ -396,6 +460,20 @@
 					handleAddModeChange(addModeActive);
 				});
 		});
+		menu.showAtMouseEvent(event);
+	}
+
+	function openNativeTabsMenu(event: MouseEvent) {
+		const menu = new Menu();
+		for (const option of tabOptions) {
+			menu.addItem((item) => {
+				item
+					.setTitle(option.label)
+					.setIcon(option.icon)
+					.setChecked(option.id === activeSectionTab)
+					.onClick(() => onSectionTabChange?.(option.id));
+			});
+		}
 		menu.showAtMouseEvent(event);
 	}
 
@@ -523,93 +601,162 @@
 <div class="vaultman-navbar-filters vaultman-glass vaultman-glass--top">
 	<div class="vaultman-filters-header-wrap">
 		{#if headerMode === 'header'}
-			<div class="vaultman-filters-header">
-				<div
-					class={headerActionClass}
-					role="button"
-					tabindex="0"
-					aria-label={translate('filter.viewmode_btn')}
-					onclick={(event: MouseEvent) => openViewModePopup(event)}
-					onkeydown={(e: KeyboardEvent) => {
-						if (e.key === 'Enter' || e.key === ' ') openViewModePopup();
-					}}
-					use:icon={'lucide-layout-list'}
-				></div>
-				{#if activeTab === 'files'}
+			<div
+				class="vaultman-filters-header"
+				class:vaultman-filters-header--minimal={minimalStyle}
+				class:nav-buttons-container={minimalStyle}
+			>
+				{#if minimalStyle && tabOptions.length > 0}
 					<div
 						class={headerActionClass}
 						role="button"
 						tabindex="0"
-						aria-label={translate('filter.auto_reveal')}
-						title={translate('filter.auto_reveal')}
-						onclick={() => fileList?.autoRevealActiveFile()}
+						aria-label={currentTabsLabel}
+						title={currentTabsLabel}
+						onclick={(event: MouseEvent) => openTabsPopup(event)}
 						onkeydown={(e: KeyboardEvent) => {
-							if (e.key === 'Enter' || e.key === ' ')
-								fileList?.autoRevealActiveFile();
+							if (e.key === 'Enter' || e.key === ' ') {
+								e.preventDefault();
+								openTabsPopup(
+									menuEventFromElement(e.currentTarget as HTMLElement),
+								);
+							}
 						}}
-						use:icon={'lucide-crosshair'}
+						use:icon={currentTabsIcon}
 					></div>
 				{/if}
-				<div class="vaultman-filters-header-search-pill">
-					<input
-						class="vaultman-filters-search-input"
-						type="text"
-						autocomplete="off"
-						autocorrect="off"
-						autocapitalize="off"
-						spellcheck="false"
-						placeholder={translate('filter.search_placeholder')}
-						bind:value={filtersSearch}
-					/>
-					{#if filtersSearch}
-						<button
-							class="vaultman-filters-search-clear"
-							aria-label={translate('filter.search_clear')}
-							use:icon={'lucide-x'}
-							onclick={() => {
-								filtersSearch = '';
+				{#if showExplorerControls}
+					<div
+						class={headerActionClass}
+						role="button"
+						tabindex="0"
+						aria-label={translate('filter.viewmode_btn')}
+						title={translate('filter.viewmode_btn')}
+						onclick={(event: MouseEvent) => openViewModePopup(event)}
+						onkeydown={(e: KeyboardEvent) => {
+							if (e.key === 'Enter' || e.key === ' ') {
+								e.preventDefault();
+								openViewModePopup(
+									minimalStyle
+										? menuEventFromElement(e.currentTarget as HTMLElement)
+										: undefined,
+								);
+							}
+						}}
+						use:icon={'lucide-layout-list'}
+					></div>
+					<div
+						class={headerActionClass}
+						role="button"
+						tabindex="0"
+						aria-label={translate('filter.sort_btn')}
+						title={translate('filter.sort_btn')}
+						onclick={(event: MouseEvent) => openSortPopup(event)}
+						onkeydown={(e: KeyboardEvent) => {
+							if (e.key === 'Enter' || e.key === ' ') {
+								e.preventDefault();
+								openSortPopup(
+									minimalStyle
+										? menuEventFromElement(e.currentTarget as HTMLElement)
+										: undefined,
+								);
+							}
+						}}
+						use:icon={'lucide-arrow-up-down'}
+					></div>
+					{#if showSearchInput}
+						<div
+							class="vaultman-filters-header-search-pill"
+							onfocusout={handleSearchFocusOut}
+						>
+							<input
+								class="vaultman-filters-search-input"
+								type="text"
+								autocomplete="off"
+								autocorrect="off"
+								autocapitalize="off"
+								spellcheck="false"
+								placeholder={translate('filter.search_placeholder')}
+								bind:this={searchInputEl}
+								bind:value={filtersSearch}
+							/>
+							{#if filtersSearch}
+								<button
+									class="vaultman-filters-search-clear"
+									aria-label={translate('filter.search_clear')}
+									use:icon={'lucide-x'}
+									onclick={() => {
+										filtersSearch = '';
+										if (minimalStyle) searchExpanded = false;
+									}}
+								></button>
+							{/if}
+							<button
+								class="vaultman-filters-search-mode"
+								aria-label={CATEGORY_LABELS[activeTab]?.[
+									filtersSearchCategory[activeTab] ?? 0
+								] ?? translate('filter.search_mode')}
+								use:icon={currentCategoryIcon}
+								onclick={cycleSearchCategory}
+							></button>
+							<button
+								class="vaultman-filters-search-create"
+								aria-label={translate('filter.create')}
+								title={translate('filter.create')}
+								use:icon={currentCreateIcon}
+								onclick={createSearchTarget}
+							></button>
+						</div>
+					{:else}
+						<div
+							class={headerActionClass}
+							role="button"
+							tabindex="0"
+							aria-label={translate('explorer.btn.search')}
+							title={translate('explorer.btn.search')}
+							onclick={expandSearch}
+							onkeydown={(e: KeyboardEvent) => {
+								if (e.key === 'Enter' || e.key === ' ') {
+									e.preventDefault();
+									expandSearch();
+								}
 							}}
-						></button>
+							use:icon={'lucide-search'}
+						></div>
 					{/if}
-					<button
-						class="vaultman-filters-search-mode"
-						aria-label={CATEGORY_LABELS[activeTab]?.[
-							filtersSearchCategory[activeTab] ?? 0
-						] ?? translate('filter.search_mode')}
-						use:icon={currentCategoryIcon}
-						onclick={cycleSearchCategory}
-					></button>
-					<button
-						class="vaultman-filters-search-create"
-						aria-label={translate('filter.create')}
-						title={translate('filter.create')}
-						use:icon={currentCreateIcon}
-						onclick={createSearchTarget}
-					></button>
-				</div>
-				<div
-					class={headerActionClass}
-					role="button"
-					tabindex="0"
-					aria-label={expansionLabel}
-					title={expansionLabel}
-					onclick={toggleExplorerExpansion}
-					onkeydown={(e: KeyboardEvent) => {
-						if (e.key === 'Enter' || e.key === ' ') toggleExplorerExpansion();
-					}}
-					use:icon={expansionIcon}
-				></div>
-				<div
-					class={headerActionClass}
-					role="button"
-					tabindex="0"
-					aria-label={translate('filter.sort_btn')}
-					onclick={(event: MouseEvent) => openSortPopup(event)}
-					onkeydown={(e: KeyboardEvent) => {
-						if (e.key === 'Enter' || e.key === ' ') openSortPopup();
-					}}
-					use:icon={'lucide-arrow-up-down'}
-				></div>
+					{#if activeTab === 'files'}
+						<div
+							class={headerActionClass}
+							role="button"
+							tabindex="0"
+							aria-label={translate('filter.auto_reveal')}
+							title={translate('filter.auto_reveal')}
+							onclick={() => fileList?.autoRevealActiveFile()}
+							onkeydown={(e: KeyboardEvent) => {
+								if (e.key === 'Enter' || e.key === ' ') {
+									e.preventDefault();
+									fileList?.autoRevealActiveFile();
+								}
+							}}
+							use:icon={'lucide-gallery-vertical'}
+						></div>
+					{/if}
+					<div
+						class={headerActionClass}
+						role="button"
+						tabindex="0"
+						aria-label={expansionLabel}
+						title={expansionLabel}
+						onclick={toggleExplorerExpansion}
+						onkeydown={(e: KeyboardEvent) => {
+							if (e.key === 'Enter' || e.key === ' ') {
+								e.preventDefault();
+								toggleExplorerExpansion();
+							}
+						}}
+						use:icon={expansionIcon}
+					></div>
+				{/if}
 			</div>
 		{:else if headerMode === 'sort'}
 			<div

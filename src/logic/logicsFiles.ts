@@ -111,7 +111,14 @@ export class FilesLogic {
 	/** Filter flat file list by name/folder substring */
 	filterFlat(files: TFile[], name: string, folder: string): TFile[] {
 		let result = files;
-		if (name) result = result.filter(f => f.basename.toLowerCase().includes(name.toLowerCase()));
+		if (name) {
+			const term = name.toLowerCase();
+			result = result.filter(f =>
+				f.basename.toLowerCase().includes(term) ||
+				f.name.toLowerCase().includes(term) ||
+				f.path.toLowerCase().includes(term)
+			);
+		}
 		if (folder) result = result.filter(f => f.path.toLowerCase().includes(folder.toLowerCase()));
 		return result;
 	}

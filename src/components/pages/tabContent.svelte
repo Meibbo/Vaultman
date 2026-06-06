@@ -10,10 +10,8 @@
 		contentIsRegex = $bindable(),
 		contentPreviewResult = $bindable(),
 		contentPreviewOpen = $bindable(),
-		contentPreviewing,
 		contentRegexError,
 		contentScopeHint,
-		previewContentReplace,
 		queueContentReplace,
 		openContentMatch,
 	}: {
@@ -23,10 +21,8 @@
 		contentIsRegex: boolean;
 		contentPreviewResult: ContentPreviewResult | null;
 		contentPreviewOpen: boolean;
-		contentPreviewing: boolean;
 		contentRegexError: string;
 		contentScopeHint: string;
-		previewContentReplace: () => Promise<void>;
 		queueContentReplace: () => void;
 		openContentMatch: (file: TFile, line: number, ch: number) => Promise<void>;
 	} = $props();
@@ -82,7 +78,9 @@
 	/>
 	<button
 		class="vaultman-icon-toggle vaultman-content-queue-btn"
-		disabled={!contentFind}
+		disabled={!contentFind ||
+			!!contentRegexError ||
+			contentPreviewResult?.isLoading}
 		aria-label={translate('content.queue_replace')}
 		title={translate('content.queue_replace')}
 		onclick={queueContentReplace}
@@ -91,15 +89,6 @@
 </div>
 <div class="vaultman-content-scope-hint">
 	{contentScopeHint}
-</div>
-<div class="vaultman-content-actions">
-	<button
-		class="vaultman-btn"
-		disabled={!contentFind || contentPreviewing}
-		onclick={() => {
-			void previewContentReplace();
-		}}>{contentPreviewing ? '…' : translate('content.preview')}</button
-	>
 </div>
 {#if contentPreviewResult !== null}
 	<div

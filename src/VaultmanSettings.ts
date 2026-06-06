@@ -110,6 +110,43 @@ export class VaultmanSettingsTab extends PluginSettingTab {
 					}),
 			);
 
+		new Setting(containerEl)
+			.setName(translate('settings.bypass_operations'))
+			.setDesc(translate('settings.bypass_operations.desc'))
+			.addToggle((toggle) =>
+				toggle
+					.setValue(this.plugin.settings.bypassOperations)
+					.onChange(async (value) => {
+						this.plugin.settings.bypassOperations = value;
+						this.plugin.queueService?.setBypassOperations(value);
+						await this.plugin.saveSettings();
+					}),
+			);
+
+		new Setting(containerEl)
+			.setName(translate('settings.bulk_operation_warning'))
+			.setDesc(translate('settings.bulk_operation_warning.desc'))
+			.addToggle((toggle) =>
+				toggle
+					.setValue(!this.plugin.settings.suppressBulkOperationWarning)
+					.onChange(async (value) => {
+						this.plugin.settings.suppressBulkOperationWarning = !value;
+						await this.plugin.saveSettings();
+					}),
+			);
+
+		new Setting(containerEl)
+			.setName(translate('settings.performance_monitor'))
+			.setDesc(translate('settings.performance_monitor.desc'))
+			.addToggle((toggle) =>
+				toggle
+					.setValue(this.plugin.settings.performanceHudEnabled)
+					.onChange(async (value) => {
+						this.plugin.settings.performanceHudEnabled = value;
+						await this.plugin.saveSettings();
+					}),
+			);
+
 		new Setting(containerEl).setName(translate('settings.context_menu')).setHeading();
 
 		new Setting(containerEl)

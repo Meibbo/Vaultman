@@ -35,35 +35,61 @@ export class PropsLogic {
 		return this._cache;
 	}
 
-	filterTree(nodes: TreeNode<PropMeta>[], term: string, mode: number = 0): TreeNode<PropMeta>[] {
+	filterTree(
+		nodes: TreeNode<PropMeta>[],
+		term: string,
+		mode: number = 0,
+	): TreeNode<PropMeta>[] {
 		if (!term) return nodes;
 		const search = prepareSimpleSearch(term);
 		return this._filterNodes(nodes, search, mode);
 	}
 
+	expansionIdsForSearchMatches(
+		nodes: TreeNode<PropMeta>[],
+		term: string,
+		mode: number = 0,
+	): Set<string> {
+		const expansionIds = new Set<string>();
+		if (!term) return expansionIds;
+		const search = prepareSimpleSearch(term);
+
+		const walk = (node: TreeNode<PropMeta>, ancestors: string[]): void => {
+			const matches =
+				mode === 0
+					? !!search(node.label)
+					: !node.meta.isValueNode && !!search(node.label);
+			if (matches && ancestors.length > 0) {
+				for (const ancestorId of ancestors) expansionIds.add(ancestorId);
+			}
+			for (const child of node.children ?? []) {
+				walk(child, [...ancestors, node.id]);
+			}
+		};
+
+		for (const node of nodes) walk(node, []);
+		return expansionIds;
+	}
+
 	private _filterNodes(
 		nodes: TreeNode<PropMeta>[],
 		search: (text: string) => { score: number } | null,
-		mode: number
+		mode: number,
 	): TreeNode<PropMeta>[] {
 		const result: TreeNode<PropMeta>[] = [];
 		for (const node of nodes) {
 			const isMatch = !!search(node.label);
 
-			// If mode 0 (Props), we check match on property name (parent nodes)
-			// If mode 1 (Values), we check match on value (child nodes)
-			let currentMatches = false;
-			if (mode === 0 && !node.meta.isValueNode && isMatch) {
-				currentMatches = true;
-			} else if (mode === 1 && node.meta.isValueNode && isMatch) {
-				currentMatches = true;
-			}
+			// mode 0 = all property text; mode 1 = property names only.
+			const currentMatches =
+				mode === 0 ? isMatch : !node.meta.isValueNode && isMatch;
 
-			// BUG-FIX: If we are in "Property Name" mode and the parent matches,
-			// we keep ALL its children (values) so the user can explore them.
-			const filteredChildren = (mode === 0 && currentMatches)
-				? (node.children ?? [])
-				: (node.children ? this._filterNodes(node.children, search, mode) : []);
+			const filteredChildren =
+				!node.meta.isValueNode && currentMatches
+					? (node.children ?? [])
+					: node.children
+						? this._filterNodes(node.children, search, mode)
+						: [];
 
 			if (currentMatches || filteredChildren.length > 0) {
 				result.push({ ...node, children: filteredChildren });
@@ -83,45 +109,62 @@ export class PropsLogic {
 		const valueMap = new Map<string, Map<string, number>>();
 		// Map to store which files contain which property (for accurate file count)
 		const propFileMap = new Map<string, Set<string>>();
+		const observedProps = new Set<string>();
 
 		for (const file of this.app.vault.getMarkdownFiles()) {
 			const fm = this.app.metadataCache.getFileCache(file)?.frontmatter ?? {};
 			for (const [key, val] of Object.entries(fm)) {
 				if (key === 'position') continue;
 
-				// Obsidian properties are case-insensitive for indexing
-				const normalizedKey = key.toLowerCase();
+				observedProps.add(key);
 
 				// Track unique files per property
-				if (!propFileMap.has(normalizedKey)) propFileMap.set(normalizedKey, new Set());
-				propFileMap.get(normalizedKey)!.add(file.path);
+				if (!propFileMap.has(key)) propFileMap.set(key, new Set());
+				propFileMap.get(key)!.add(file.path);
 
 				// Track value frequencies
-				if (!valueMap.has(normalizedKey)) valueMap.set(normalizedKey, new Map());
+				if (!valueMap.has(key)) valueMap.set(key, new Map());
 				const vals = Array.isArray(val) ? val : [val];
 				for (const v of vals) {
 					if (v == null) continue;
 					const str = String(v);
 					if (str === '') continue;
-					const vMap = valueMap.get(normalizedKey)!;
+					const vMap = valueMap.get(key)!;
 					vMap.set(str, (vMap.get(str) ?? 0) + 1);
 				}
 			}
 		}
 
+		const infoByLower = new Map(
+			Object.entries(allProps).map(([propName, info]) => [
+				propName.toLowerCase(),
+				info,
+			]),
+		);
+		const observedLower = new Set(
+			[...observedProps].map((propName) => propName.toLowerCase()),
+		);
+		const propNames = [
+			...observedProps,
+			...Object.keys(allProps).filter(
+				(propName) => !observedLower.has(propName.toLowerCase()),
+			),
+		];
+
 		const nodes: TreeNode<PropMeta>[] = [];
-		for (const [propName, info] of Object.entries(allProps)) {
-			// Obsidian's getAllPropertyInfos already returns lowercase keys or canonical keys?
-			// Actually, it returns what's in the index. We use lowercase as the primary key.
-			const normalizedName = propName.toLowerCase();
-			const propType = info.type ?? 'text';
-			const valuesMap = (valueMap.get(normalizedName) ?? new Map()) as Map<string, number>;
+		for (const propName of propNames) {
+			const info = allProps[propName] ?? infoByLower.get(propName.toLowerCase());
+			const propType = info?.type ?? 'text';
+			const valuesMap = (valueMap.get(propName) ?? new Map()) as Map<
+				string,
+				number
+			>;
 
 			// Accurate file count: how many unique files have this property
-			const fileCount = propFileMap.get(normalizedName)?.size ?? 0;
+			const fileCount = propFileMap.get(propName)?.size ?? 0;
 
-			const valueNodes: TreeNode<PropMeta>[] = Array.from(valuesMap.entries()).map(
-				([rawValue, cnt]: [string, number]) => ({
+			const valueNodes: TreeNode<PropMeta>[] = Array.from(valuesMap.entries())
+				.map(([rawValue, cnt]: [string, number]) => ({
 					id: `${propName}::${rawValue}`,
 					label: rawValue,
 					count: cnt,
@@ -134,8 +177,8 @@ export class PropsLogic {
 						rawValue,
 						isTypeIncompatible: !isCompatible(rawValue, propType),
 					},
-				}),
-			).sort((a, b) => (b.count ?? 0) - (a.count ?? 0));
+				}))
+				.sort((a, b) => (b.count ?? 0) - (a.count ?? 0));
 
 			nodes.push({
 				id: propName,

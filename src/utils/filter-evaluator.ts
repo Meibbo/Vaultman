@@ -17,7 +17,7 @@ export type MetadataGetter = (file: TFile) => CachedMetadata | null;
 export function evalNode(
 	node: FilterNode,
 	universe: TFile[],
-	getMeta: MetadataGetter
+	getMeta: MetadataGetter,
 ): Set<string> {
 	if (node.enabled === false) return new Set();
 	if (node.type === 'rule') {
@@ -29,11 +29,11 @@ export function evalNode(
 function matchGroup(
 	group: FilterGroup,
 	universe: TFile[],
-	getMeta: MetadataGetter
+	getMeta: MetadataGetter,
 ): Set<string> {
 	const universePaths = new Set(universe.map((f) => f.path));
 
-	const activeChildren = group.children.filter(c => c.enabled !== false);
+	const activeChildren = group.children.filter((c) => c.enabled !== false);
 
 	if (activeChildren.length === 0) {
 		// Empty / All-disabled group: ALL = universe, ANY = empty, NONE = universe
@@ -41,7 +41,7 @@ function matchGroup(
 	}
 
 	const childResults = activeChildren.map((child) =>
-		evalNode(child, universe, getMeta)
+		evalNode(child, universe, getMeta),
 	);
 
 	switch (group.logic) {
@@ -75,7 +75,7 @@ function matchGroup(
 function matchRule(
 	rule: FilterRule,
 	universe: TFile[],
-	getMeta: MetadataGetter
+	getMeta: MetadataGetter,
 ): Set<string> {
 	const result = new Set<string>();
 
@@ -90,7 +90,7 @@ function matchRule(
 function matchesFile(
 	rule: FilterRule,
 	file: TFile,
-	getMeta: MetadataGetter
+	getMeta: MetadataGetter,
 ): boolean {
 	const meta = getMeta(file);
 	const fm = meta?.frontmatter ?? {};
@@ -128,12 +128,12 @@ function matchesFile(
 
 		case 'file_name': {
 			const term = rule.values[0] ?? '';
-			return file.basename.toLowerCase().includes(term.toLowerCase());
+			return matchesFileName(file, term);
 		}
 
 		case 'file_name_exclude': {
 			const term = rule.values[0] ?? '';
-			return !file.basename.toLowerCase().includes(term.toLowerCase());
+			return !matchesFileName(file, term);
 		}
 
 		case 'file_folder': {
@@ -143,15 +143,27 @@ function matchesFile(
 			return parentPath.includes(folder.toLowerCase());
 		}
 
+		case 'content_search':
+			return false;
+
 		case 'has_tag': {
 			const tagTarget = (rule.values[0] ?? '').toLowerCase().replace(/^#/, '');
 			const allTags = getAllTags(meta ?? {}) ?? [];
-			return allTags.some((tag) => tag.toLowerCase().replace(/^#/, '') === tagTarget);
+			return allTags.some(
+				(tag) => tag.toLowerCase().replace(/^#/, '') === tagTarget,
+			);
 		}
 
 		default:
 			return false;
 	}
+}
+
+function matchesFileName(file: TFile, term: string): boolean {
+	const lowerTerm = term.toLowerCase();
+	return [file.basename, file.name, file.path].some((candidate) =>
+		candidate.toLowerCase().includes(lowerTerm),
+	);
 }
 
 /** Compare a frontmatter value (possibly array) against a target string */

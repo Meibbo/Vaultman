@@ -1,28 +1,40 @@
 <script lang="ts">
-	import { setIcon } from 'obsidian';
-	import type { TFile } from 'obsidian';
+	import { setIcon, TFile } from 'obsidian';
 	import { translate } from '../../i18n/index';
 	import type { VaultmanPlugin } from '../../main';
+	import type {
+		StatisticsSnapshot,
+		StatisticsScope,
+	} from '../../services/serviceStatisticsCache';
 
-	let { plugin }: { plugin: VaultmanPlugin } = $props();
+	let { plugin, active = false }: { plugin: VaultmanPlugin; active?: boolean } =
+		$props();
 
-	type Scope = 'vault' | 'filtered' | 'selected';
+	type Scope = StatisticsScope;
 	let scope = $state<Scope>('vault');
 	let statsRevision = $state(0);
-
-	let metaStats = $state({ links: 0, words: 0, loading: false });
+	let statsReconciling = $state(false);
 	let metaStatsRun = 0;
+	let lastStatsSignature = '';
+	let computingSignature = '';
+
+	let statsSnapshot = $state<StatisticsSnapshot>({
+		folders: 0,
+		files: 0,
+		props: 0,
+		values: 0,
+		tags: 0,
+		links: 0,
+		words: 0,
+		cacheHits: 0,
+		filesRead: 0,
+		durationMs: 0,
+	});
 
 	function scopedFiles(): TFile[] {
 		if (scope === 'vault') return plugin.app.vault.getMarkdownFiles();
 		if (scope === 'filtered') return plugin.filterService.filteredFiles;
 		return plugin.filterService.selectedFiles;
-	}
-
-	function countWords(content: string): number {
-		const withoutFrontmatter = content.replace(/^---[\s\S]*?---\s*/, '');
-		const words = withoutFrontmatter.trim().match(/\S+/g);
-		return words?.length ?? 0;
 	}
 
 	function folderCountForFiles(files: TFile[]): number {
@@ -37,126 +49,82 @@
 		return folders.size;
 	}
 
-	function frontmatterEntriesForFiles(files: TFile[]): {
-		props: Set<string>;
-		values: Set<string>;
-		tags: Set<string>;
-	} {
-		const props = new Set<string>();
-		const values = new Set<string>();
-		const tags = new Set<string>();
-
-		for (const file of files) {
-			const cache = plugin.app.metadataCache.getFileCache(file);
-			const frontmatter = cache?.frontmatter ?? {};
-			for (const [key, rawValue] of Object.entries(frontmatter)) {
-				if (key === 'position') continue;
-				props.add(key);
-				const rawValues = Array.isArray(rawValue) ? rawValue : [rawValue];
-				for (const value of rawValues) {
-					if (value === undefined || value === null) continue;
-					values.add(`${key}:${String(value)}`);
-				}
-			}
-
-			const frontmatterTags = frontmatter.tags as unknown;
-			const normalizedFrontmatterTags = Array.isArray(frontmatterTags)
-				? frontmatterTags
-				: typeof frontmatterTags === 'string'
-					? [frontmatterTags]
-					: [];
-			for (const tag of normalizedFrontmatterTags) {
-				const clean = String(tag).replace(/^#/, '');
-				if (clean) tags.add(clean);
-			}
-			for (const tagCache of cache?.tags ?? []) {
-				const clean = tagCache.tag.replace(/^#/, '');
-				if (clean) tags.add(clean);
-			}
-		}
-
-		return { props, values, tags };
-	}
-
 	$effect(() => {
 		void statsRevision;
+		if (!active) {
+			metaStatsRun += 1;
+			computingSignature = '';
+			statsReconciling = false;
+			return;
+		}
+
 		const files = scopedFiles();
+		const folders = folderCountForFiles(files);
+		const signature = plugin.statisticsCache.snapshotSignatureFor(
+			files,
+			folders,
+		);
+		if (signature === lastStatsSignature) return;
+		lastStatsSignature = signature;
+		if (computingSignature === signature) return;
+
 		const runId = ++metaStatsRun;
-		let cancelled = false;
-		metaStats = { links: 0, words: 0, loading: true };
-		let totalLinks = 0;
-		let totalWords = 0;
+		computingSignature = signature;
+		const lastGood =
+			plugin.statisticsCache.getLastGoodSnapshot(signature) ??
+			plugin.statisticsCache.getLastGoodSnapshotForScope(scope);
+		if (lastGood) statsSnapshot = lastGood;
+		statsReconciling = true;
 
-		const compute = async () => {
-			for (let index = 0; index < files.length; index += 1) {
-				if (cancelled || runId !== metaStatsRun) return;
-				const file = files[index];
-				const cache = plugin.app.metadataCache.getFileCache(file);
-				totalLinks +=
-					(cache?.links?.length ?? 0) + (cache?.embeds?.length ?? 0);
-				const content = await plugin.app.vault.cachedRead(file);
-				totalWords += countWords(content);
-				if ((index + 1) % 20 === 0) {
-					await new Promise((resolve) => setTimeout(resolve, 0));
-				}
-			}
-			if (cancelled || runId !== metaStatsRun) return;
-			metaStats = {
-				links: totalLinks,
-				words: totalWords,
-				loading: false,
-			};
-		};
-		void compute();
-
-		return () => {
-			cancelled = true;
-		};
+		void plugin.statisticsCache
+			.computeSnapshot({
+				files,
+				folders,
+				scope,
+				shouldContinue: () => runId === metaStatsRun,
+				onPartial: lastGood
+					? undefined
+					: (snapshot) => {
+							if (runId === metaStatsRun) statsSnapshot = snapshot;
+						},
+			})
+			.then((snapshot) => {
+				if (runId !== metaStatsRun) return;
+				statsSnapshot = snapshot;
+				statsReconciling = false;
+				computingSignature = '';
+			})
+			.catch((error) => {
+				if (runId !== metaStatsRun) return;
+				statsReconciling = false;
+				computingSignature = '';
+				console.warn('[Vaultman] Failed to compute statistics', error);
+			});
 	});
 
 	$effect(() => {
 		const bump = () => {
+			lastStatsSignature = '';
 			statsRevision += 1;
 		};
-		const metadataCache = plugin.app.metadataCache as unknown as {
-			on(name: string, callback: () => void): unknown;
-			off(name: string, callback: () => void): void;
-		};
-		const vault = plugin.app.vault as unknown as {
-			on(name: string, callback: () => void): unknown;
-			off(name: string, callback: () => void): void;
-		};
 
+		plugin.statisticsCache.on('changed', bump);
 		plugin.filterService.on('changed', bump);
 		plugin.queueService.on('executed', bump);
-		metadataCache.on('resolved', bump);
-		vault.on('modify', bump);
-		vault.on('create', bump);
-		vault.on('delete', bump);
-		vault.on('rename', bump);
 
 		return () => {
+			plugin.statisticsCache.off('changed', bump);
 			plugin.filterService.off('changed', bump);
 			plugin.queueService.off('executed', bump);
-			metadataCache.off('resolved', bump);
-			vault.off('modify', bump);
-			vault.off('create', bump);
-			vault.off('delete', bump);
-			vault.off('rename', bump);
 		};
 	});
 
-	let counts = $derived.by(() => {
-		void statsRevision;
-		const files = scopedFiles();
-		const entries = frontmatterEntriesForFiles(files);
-		return {
-			folders: folderCountForFiles(files),
-			files: files.length,
-			props: entries.props.size,
-			values: entries.values.size,
-			tags: entries.tags.size,
-		};
+	let counts = $derived({
+		folders: statsSnapshot.folders,
+		files: statsSnapshot.files,
+		props: statsSnapshot.props,
+		values: statsSnapshot.values,
+		tags: statsSnapshot.tags,
 	});
 
 	const statCards = $derived([
@@ -216,7 +184,7 @@
 	}
 </script>
 
-<div class="vaultman-statistics-page">
+<div class="vaultman-statistics-page" class:is-reconciling={statsReconciling}>
 	<div class="vaultman-stat-cards-grid">
 		{#each statCards as card (card.icon)}
 			<div class="vaultman-stat-card" style="--card-color: {card.color}">
@@ -246,17 +214,28 @@
 		</div>
 	</div>
 	<div class="vaultman-stat-meta-island">
+		{#if statsReconciling}
+			<div class="vaultman-stat-meta-item vaultman-stat-reconcile-status">
+				<span class="vaultman-meta-icon" use:iconAction={'lucide-refresh-cw'}
+				></span>
+				<span class="vaultman-meta-label">{translate('stats.reconciling')}</span
+				>
+			</div>
+		{/if}
 		<div class="vaultman-stat-meta-item">
 			<span class="vaultman-meta-icon" use:iconAction={'lucide-link'}></span>
 			<span class="vaultman-meta-label">{translate('stats.total_links')}</span>
-			<span class="vaultman-meta-value">{metaStats.links.toLocaleString()}</span
+			<span class="vaultman-meta-value"
+				>{statsSnapshot.links.toLocaleString()}</span
 			>
 		</div>
 		<div class="vaultman-stat-meta-item">
 			<span class="vaultman-meta-icon" use:iconAction={'lucide-type'}></span>
 			<span class="vaultman-meta-label">{translate('stats.word_count')}</span>
 			<span class="vaultman-meta-value"
-				>{metaStats.words > 0 ? metaStats.words.toLocaleString() : '—'}</span
+				>{statsSnapshot.words > 0
+					? statsSnapshot.words.toLocaleString()
+					: '—'}</span
 			>
 		</div>
 	</div>

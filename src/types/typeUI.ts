@@ -29,6 +29,8 @@ export interface ContentPreviewResult {
 		matchCount: number;
 		snippets: ContentSnippet[];
 	}>;
+	/** All files with at least one match, including files not rendered in the preview cap. */
+	matchedFiles?: TFile[];
 	moreFiles: number;
 	isLoading?: boolean;
 }

@@ -59,6 +59,7 @@
 			{ id: 'icon', labelKey: 'viewmode.pill.icon', defaultOn: true },
 			{ id: 'name', labelKey: 'viewmode.pill.name', defaultOn: true },
 			{ id: 'count', labelKey: 'viewmode.pill.count', defaultOn: true },
+			{ id: 'ext', labelKey: 'viewmode.pill.ext', defaultOn: true },
 			{ id: 'date', labelKey: 'viewmode.pill.date', defaultOn: true },
 			{ id: 'path', labelKey: 'viewmode.pill.path', defaultOn: false },
 		],
@@ -66,6 +67,7 @@
 			{ id: 'icon', labelKey: 'viewmode.pill.icon', defaultOn: true },
 			{ id: 'name', labelKey: 'viewmode.pill.name', defaultOn: true },
 			{ id: 'count', labelKey: 'viewmode.pill.count', defaultOn: true },
+			{ id: 'ext', labelKey: 'viewmode.pill.ext', defaultOn: true },
 		],
 	};
 
@@ -136,6 +138,18 @@
 
 	function isIdentityPill(id: string): boolean {
 		return id === 'icon' || id === 'text' || id === 'name';
+	}
+
+	function viewModeLabelKey(mode: ViewMode, labelKey: string): string {
+		return activeTab === 'files' && mode === 'grid'
+			? 'viewmode.mode.table'
+			: labelKey;
+	}
+
+	function viewModeIconName(mode: ViewMode, iconName: string): string {
+		return activeTab === 'files' && mode === 'grid'
+			? 'lucide-table-2'
+			: iconName;
 	}
 
 	function togglePill(id: string) {
@@ -219,7 +233,7 @@
 				class:is-accent={activeView === vm.id}
 				class:is-locked={vm.locked}
 				class:vaultman-backdrop-lock={vm.locked}
-				aria-label={translate(vm.labelKey)}
+				aria-label={translate(viewModeLabelKey(vm.id, vm.labelKey))}
 				aria-disabled={vm.locked ? 'true' : undefined}
 				onclick={() => selectView(vm.id)}
 				onkeydown={(e: KeyboardEvent) => {
@@ -227,7 +241,7 @@
 				}}
 				role="button"
 				tabindex={vm.locked ? -1 : 0}
-				use:icon={vm.iconName}
+				use:icon={viewModeIconName(vm.id, vm.iconName)}
 			>
 				{#if vm.locked}
 					<span

@@ -51,15 +51,16 @@
 				labelKey: 'sort.by.name',
 			},
 			{ id: 'count', iconName: 'lucide-hash', labelKey: 'sort.by.count' },
+			{ id: 'ext', iconName: 'lucide-file-type', labelKey: 'sort.by.ext' },
 			{
 				id: 'date',
 				iconName: 'lucide-calendar',
 				labelKey: 'sort.by.date',
 			},
 			{
-				id: 'columns',
-				iconName: 'lucide-columns-2',
-				labelKey: 'sort.by.columns',
+				id: 'path',
+				iconName: 'lucide-route',
+				labelKey: 'sort.by.path',
 			},
 		],
 	};

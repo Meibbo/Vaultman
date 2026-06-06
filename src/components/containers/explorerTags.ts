@@ -16,6 +16,7 @@ export interface PanelPluginCtx {
 import { UnifiedTreeView } from '../layout/viewTree';
 import type { TreeNode, TagMeta } from '../../types/typeTree';
 import type { MenuCtx } from '../../types/typeCMenu';
+import { translate } from '../../i18n/index';
 
 export class TagsExplorerPanel extends Component {
 	private plugin: PanelPluginCtx;
@@ -100,6 +101,7 @@ export class TagsExplorerPanel extends Component {
 	onunload(): void {
 		this.plugin.filterService.off('changed', this._handleStateChange);
 		this.plugin.queueService.off('changed', this._handleStateChange);
+		this.view.destroy();
 		super.onunload();
 	}
 
@@ -133,6 +135,7 @@ export class TagsExplorerPanel extends Component {
 	setViewMode(mode: 'tree' | 'grid'): void {
 		this.viewMode = mode;
 		if (mode === 'tree') {
+			this.view.destroy();
 			this.containerEl.empty();
 			this.view = new UnifiedTreeView(this.containerEl);
 		}
@@ -173,21 +176,27 @@ export class TagsExplorerPanel extends Component {
 				let maxMtime = 0;
 				for (const file of this.plugin.app.vault.getMarkdownFiles()) {
 					const cache = this.plugin.app.metadataCache.getFileCache(file);
-					const hasFmTag = (cache?.frontmatter?.tags as unknown[] | undefined)?.some(
-						t => String(t).replace(/^#/, '') === tagPath
+					const hasFmTag = (
+						cache?.frontmatter?.tags as unknown[] | undefined
+					)?.some((t) => String(t).replace(/^#/, '') === tagPath);
+					const hasInlineTag = cache?.tags?.some(
+						(t) => t.tag === `#${tagPath}`,
 					);
-					const hasInlineTag = cache?.tags?.some(t => t.tag === `#${tagPath}`);
 					if ((hasFmTag || hasInlineTag) && file.stat.mtime > maxMtime) {
 						maxMtime = file.stat.mtime;
 					}
 				}
 				mtimeMap.set(node.id, maxMtime);
 			}
-			return [...nodes].sort((a, b) => dir * ((mtimeMap.get(a.id) ?? 0) - (mtimeMap.get(b.id) ?? 0)));
+			return [...nodes].sort(
+				(a, b) => dir * ((mtimeMap.get(a.id) ?? 0) - (mtimeMap.get(b.id) ?? 0)),
+			);
 		}
 		return [...nodes].sort((a, b) => {
-			if (this.sortBy === 'count') return dir * ((a.count ?? 0) - (b.count ?? 0));
-			if (this.sortBy === 'sub')   return dir * ((a.children?.length ?? 0) - (b.children?.length ?? 0));
+			if (this.sortBy === 'count')
+				return dir * ((a.count ?? 0) - (b.count ?? 0));
+			if (this.sortBy === 'sub')
+				return dir * ((a.children?.length ?? 0) - (b.children?.length ?? 0));
 			return dir * a.label.localeCompare(b.label);
 		});
 	}
@@ -243,13 +252,22 @@ export class TagsExplorerPanel extends Component {
 		}
 		const cache = this.plugin.app.metadataCache as unknown as ObsMetadataCache;
 		const searchFunc: ((text: string) => unknown) | null = this.searchTerm
-			? (cache.prepareSimpleSearch ? cache.prepareSimpleSearch(this.searchTerm) : ((text: string) => text.toLowerCase().includes(this.searchTerm.toLowerCase()) ? {} : null))
+			? cache.prepareSimpleSearch
+				? cache.prepareSimpleSearch(this.searchTerm)
+				: (text: string) =>
+						text.toLowerCase().includes(this.searchTerm.toLowerCase())
+							? {}
+							: null
 			: null;
 
 		const highlightIds = new Set<string>();
 
 		// Resolve icons via Iconic
 		const nodesWithIcons = this._resolveIcons(tree, highlightIds, searchFunc);
+		if (nodesWithIcons.length === 0) {
+			this._renderEmptyState();
+			return;
+		}
 
 		if (this.viewMode === 'grid') {
 			this._renderGrid(nodesWithIcons, activeFilterIds, highlightIds);
@@ -295,8 +313,10 @@ export class TagsExplorerPanel extends Component {
 						logicFunc: (_file, fm) => {
 							const raw: unknown = fm.tags;
 							const existing: string[] = Array.isArray(raw)
-								? (raw as unknown[]).map(v => String(v))
-								: (typeof raw === 'string' ? [raw] : []);
+								? (raw as unknown[]).map((v) => String(v))
+								: typeof raw === 'string'
+									? [raw]
+									: [];
 							if (existing.includes(meta.tagPath)) return null;
 							fm.tags = [...existing, meta.tagPath];
 							return fm;
@@ -350,8 +370,10 @@ export class TagsExplorerPanel extends Component {
 				logicFunc: (_file, fm) => {
 					const raw: unknown = fm.tags;
 					const existing: string[] = Array.isArray(raw)
-						? (raw as unknown[]).map(v => String(v))
-						: (typeof raw === 'string' ? [raw] : []);
+						? (raw as unknown[]).map((v) => String(v))
+						: typeof raw === 'string'
+							? [raw]
+							: [];
 					if (existing.includes(meta.tagPath)) return null;
 					fm.tags = [...existing, meta.tagPath];
 					return fm;
@@ -362,17 +384,23 @@ export class TagsExplorerPanel extends Component {
 		this._toggleTagFilter(meta.tagPath);
 	}
 
-	private _renderGridBadges(parent: HTMLElement, node: TreeNode<TagMeta>): void {
+	private _renderGridBadges(
+		parent: HTMLElement,
+		node: TreeNode<TagMeta>,
+	): void {
 		if (
 			(!node.badges || node.badges.length === 0) &&
 			(!node.count || node.count <= 0 || !this.visibleCells.has('count'))
 		) {
 			return;
 		}
-		const badgeZone = parent.createDiv({ cls: 'vaultman-tree-badge-zone vaultman-card-badge-zone' });
+		const badgeZone = parent.createDiv({
+			cls: 'vaultman-tree-badge-zone vaultman-card-badge-zone',
+		});
 		for (const badge of node.badges ?? []) {
 			const bEl = badgeZone.createSpan({ cls: 'vaultman-badge' });
-			if (badge.solid && badge.color) bEl.addClass(`vaultman-badge--${badge.color}`);
+			if (badge.solid && badge.color)
+				bEl.addClass(`vaultman-badge--${badge.color}`);
 			if (badge.solid) bEl.addClass('is-solid');
 			if (badge.isInherited) bEl.addClass('is-inherited');
 			if (badge.icon) {
@@ -390,7 +418,10 @@ export class TagsExplorerPanel extends Component {
 			}
 		}
 		if (this.visibleCells.has('count') && node.count && node.count > 0) {
-			badgeZone.createSpan({ cls: 'vaultman-tree-count', text: String(node.count) });
+			badgeZone.createSpan({
+				cls: 'vaultman-tree-count',
+				text: String(node.count),
+			});
 		}
 	}
 
@@ -446,14 +477,37 @@ export class TagsExplorerPanel extends Component {
 		}
 
 		if (flatNodes.length === 0) {
-			this.containerEl.createDiv({ cls: 'vaultman-empty-state', text: 'No tags' });
+			this._renderEmptyState();
 		}
 	}
 
-	private _resolveIcons(nodes: TreeNode<TagMeta>[], highlightIds: Set<string>, searchFunc: ((text: string) => unknown) | null, parentDeleted = false): TreeNode<TagMeta>[] {
+	private _renderEmptyState(): void {
+		this.view.destroy();
+		this.containerEl.empty();
+		const emptyEl = this.containerEl.createDiv({
+			cls: 'vaultman-explorer-empty-landing',
+		});
+		emptyEl.createDiv({
+			cls: 'vaultman-explorer-empty-title',
+			text: translate('explorer.tags.empty_title'),
+		});
+		emptyEl.createDiv({
+			cls: 'vaultman-explorer-empty-desc',
+			text: this.searchTerm
+				? translate('explorer.tags.empty_search_desc')
+				: translate('explorer.tags.empty_desc'),
+		});
+	}
+
+	private _resolveIcons(
+		nodes: TreeNode<TagMeta>[],
+		highlightIds: Set<string>,
+		searchFunc: ((text: string) => unknown) | null,
+		parentDeleted = false,
+	): TreeNode<TagMeta>[] {
 		const queue = this.plugin.queueService.queue;
 
-		return nodes.map(node => {
+		return nodes.map((node) => {
 			const meta = node.meta;
 			const currentCls = node.cls || '';
 
@@ -462,11 +516,12 @@ export class TagsExplorerPanel extends Component {
 				highlightIds.add(node.id);
 			}
 
-			const relevantOps = queue.filter((op): op is import('../../types/typeOps').TagChange =>
-				op.type === 'tag' && op.tag === meta.tagPath
+			const relevantOps = queue.filter(
+				(op): op is import('../../types/typeOps').TagChange =>
+					op.type === 'tag' && op.tag === meta.tagPath,
 			);
 
-			const isDeletedInQueue = relevantOps.some(op => op.action === 'delete');
+			const isDeletedInQueue = relevantOps.some((op) => op.action === 'delete');
 			const isEffectivelyDeleted = parentDeleted || isDeletedInQueue;
 
 			const cls = isEffectivelyDeleted
@@ -474,25 +529,51 @@ export class TagsExplorerPanel extends Component {
 				: currentCls;
 
 			const resolvedChildren = node.children
-				? this._resolveIcons(node.children, highlightIds, searchFunc, isEffectivelyDeleted)
+				? this._resolveIcons(
+						node.children,
+						highlightIds,
+						searchFunc,
+						isEffectivelyDeleted,
+					)
 				: [];
 
 			const badges: import('../../types/typeTree').NodeBadge[] = [];
 			for (const op of relevantOps) {
 				const opIdx = queue.indexOf(op);
 				if (op.action === 'delete') {
-					badges.push({ text: 'Delete', icon: 'lucide-trash-2', color: 'red', queueIndex: opIdx });
+					badges.push({
+						text: 'Delete',
+						icon: 'lucide-trash-2',
+						color: 'red',
+						queueIndex: opIdx,
+					});
 				} else if (op.action === 'rename') {
-					badges.push({ text: 'Update', icon: 'lucide-pencil', color: 'blue', queueIndex: opIdx });
+					badges.push({
+						text: 'Update',
+						icon: 'lucide-pencil',
+						color: 'blue',
+						queueIndex: opIdx,
+					});
 				} else if (op.action === 'add') {
-					badges.push({ text: 'Add', icon: 'lucide-plus', color: 'green', queueIndex: opIdx });
-				} else badges.push({ text: 'In Queue', icon: 'lucide-clock', color: 'purple', queueIndex: opIdx });
+					badges.push({
+						text: 'Add',
+						icon: 'lucide-plus',
+						color: 'green',
+						queueIndex: opIdx,
+					});
+				} else
+					badges.push({
+						text: 'In Queue',
+						icon: 'lucide-clock',
+						color: 'purple',
+						queueIndex: opIdx,
+					});
 			}
 
 			// BUBBLE UP child badges if parent is collapsed
 			const isExpanded = this.expandedIds.has(node.id);
 			if (!isExpanded && resolvedChildren.length > 0) {
-				const childBadges = resolvedChildren.flatMap(c => c.badges || []);
+				const childBadges = resolvedChildren.flatMap((c) => c.badges || []);
 				const seen = new Set<string>();
 				for (const b of childBadges) {
 					const key = `${b.text}-${b.icon}`;
@@ -506,7 +587,9 @@ export class TagsExplorerPanel extends Component {
 			return {
 				...node,
 				cls: cls,
-				icon: this.plugin.iconicService?.getTagIcon(meta.tagPath)?.icon ?? 'lucide-tag',
+				icon:
+					this.plugin.iconicService?.getTagIcon(meta.tagPath)?.icon ??
+					'lucide-tag',
 				badges: badges,
 				children: resolvedChildren,
 			};
@@ -526,12 +609,14 @@ export class TagsExplorerPanel extends Component {
 				if (!fm.tags) return null;
 				const raw: unknown = fm.tags;
 				const tags: string[] = Array.isArray(raw)
-					? (raw as unknown[]).map(v => String(v))
-					: (typeof raw === 'string' ? [raw] : []);
+					? (raw as unknown[]).map((v) => String(v))
+					: typeof raw === 'string'
+						? [raw]
+						: [];
 
 				const newTags = tags.map((t: string) => {
 					const cleanT = t.startsWith('#') ? t.slice(1) : t;
-					return (cleanT === tagPath) ? newName : t;
+					return cleanT === tagPath ? newName : t;
 				});
 				fm.tags = newTags;
 				return fm;
@@ -553,9 +638,13 @@ export class TagsExplorerPanel extends Component {
 				if (!fm.tags) return null;
 				const raw: unknown = fm.tags;
 				const tags: string[] = Array.isArray(raw)
-					? (raw as unknown[]).map(v => String(v))
-					: (typeof raw === 'string' ? [raw] : []);
-				const filtered = tags.filter((t: string) => t !== tagPath && t !== `#${tagPath}`);
+					? (raw as unknown[]).map((v) => String(v))
+					: typeof raw === 'string'
+						? [raw]
+						: [];
+				const filtered = tags.filter(
+					(t: string) => t !== tagPath && t !== `#${tagPath}`,
+				);
 				fm.tags = filtered.length > 0 ? filtered : undefined;
 				return fm;
 			},
@@ -575,11 +664,15 @@ export class TagsExplorerPanel extends Component {
 			logicFunc: (file, fm) => {
 				const cache = this.plugin.app.metadataCache.getFileCache(file);
 				const inlineTags = (cache?.tags ?? []).map((t) => t.tag);
-				if (inlineTags.some((t: string) => t === `#${tagPath}` || t === tagPath)) {
+				if (
+					inlineTags.some((t: string) => t === `#${tagPath}` || t === tagPath)
+				) {
 					const raw: unknown = fm.tags;
 					const existing: string[] = Array.isArray(raw)
-						? (raw as unknown[]).map(v => String(v))
-						: (typeof raw === 'string' ? [raw] : []);
+						? (raw as unknown[]).map((v) => String(v))
+						: typeof raw === 'string'
+							? [raw]
+							: [];
 					if (!existing.includes(tagPath)) {
 						fm.tags = [...existing, tagPath];
 					}
@@ -609,8 +702,10 @@ export class TagsExplorerPanel extends Component {
 			logicFunc: (_file, fm) => {
 				const raw: unknown = fm.tags;
 				const existing: string[] = Array.isArray(raw)
-					? (raw as unknown[]).map(v => String(v))
-					: (typeof raw === 'string' ? [raw] : []);
+					? (raw as unknown[]).map((v) => String(v))
+					: typeof raw === 'string'
+						? [raw]
+						: [];
 				if (existing.includes(tagPath)) return null;
 				fm.tags = [...existing, tagPath];
 				return fm;
@@ -624,7 +719,8 @@ export class TagsExplorerPanel extends Component {
 		const leaves: TreeNode<TagMeta>[] = [];
 		const walk = (ns: TreeNode<TagMeta>[]) => {
 			for (const n of ns) {
-				if (!n.children || n.children.length === 0) leaves.push({ ...n, children: [] });
+				if (!n.children || n.children.length === 0)
+					leaves.push({ ...n, children: [] });
 				else walk(n.children);
 			}
 		};
@@ -654,7 +750,10 @@ export class TagsExplorerPanel extends Component {
 		return nodes;
 	}
 
-	private _findNode(id: string, nodes: TreeNode<TagMeta>[]): TreeNode<TagMeta> | null {
+	private _findNode(
+		id: string,
+		nodes: TreeNode<TagMeta>[],
+	): TreeNode<TagMeta> | null {
 		for (const n of nodes) {
 			if (n.id === id) return n;
 			if (n.children) {
@@ -685,16 +784,20 @@ export class TagsExplorerPanel extends Component {
 					: [];
 			const inlineTags = (cache?.tags ?? []).map((tag) => tag.tag);
 			return (
-				frontmatterTags.some((tag) => tag === tagPath || tag === `#${tagPath}`) ||
-				inlineTags.some((tag) => tag === tagPath || tag === `#${tagPath}`)
+				frontmatterTags.some(
+					(tag) => tag === tagPath || tag === `#${tagPath}`,
+				) || inlineTags.some((tag) => tag === tagPath || tag === `#${tagPath}`)
 			);
 		});
 	}
 
 	private _getFilesWithInlineTag(tagPath: string): import('obsidian').TFile[] {
 		return this.plugin.app.vault.getMarkdownFiles().filter((file) => {
-			const inlineTags = this.plugin.app.metadataCache.getFileCache(file)?.tags ?? [];
-			return inlineTags.some((tag) => tag.tag === tagPath || tag.tag === `#${tagPath}`);
+			const inlineTags =
+				this.plugin.app.metadataCache.getFileCache(file)?.tags ?? [];
+			return inlineTags.some(
+				(tag) => tag.tag === tagPath || tag.tag === `#${tagPath}`,
+			);
 		});
 	}
 }

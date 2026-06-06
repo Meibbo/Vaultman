@@ -12,6 +12,10 @@ interface InternalApp extends App {
 	};
 }
 
+interface OperationQueueOptions {
+	bypassOperations?: boolean;
+}
+
 /**
  * Manages the queue of pending property operations.
  * All operations are staged first, then executed atomically on user confirmation.
@@ -29,9 +33,10 @@ export class OperationQueueService extends Component {
 	readonly queue: PendingChange[] = [];
 	operationMode: 'stage' | 'bypass' = 'stage';
 
-	constructor(app: App) {
+	constructor(app: App, options: OperationQueueOptions = {}) {
 		super();
 		this.app = app;
+		this.operationMode = options.bypassOperations ? 'bypass' : 'stage';
 	}
 
 	/**
@@ -59,6 +64,10 @@ export class OperationQueueService extends Component {
 		if (this.operationMode === mode) return;
 		this.operationMode = mode;
 		this.events.trigger('changed');
+	}
+
+	setBypassOperations(enabled: boolean): void {
+		this.setOperationMode(enabled ? 'bypass' : 'stage');
 	}
 
 	/** Add a single operation to the queue */

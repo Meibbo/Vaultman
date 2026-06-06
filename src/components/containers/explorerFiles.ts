@@ -1,15 +1,18 @@
 // src/components/FilesExplorerPanel.ts
 import { Component, Notice, type TFile, type TFolder } from 'obsidian';
-import type { VaultmanPlugin } from "../../main";
+import type { VaultmanPlugin } from '../../main';
 import { FilesLogic } from '../../logic/logicsFiles';
 import { GridView } from '../layout/viewGrid';
 import { UnifiedTreeView } from '../layout/viewTree';
-import type { TreeNode, FileMeta } from '../../types/typeTree';
+import type { TreeNode, FileMeta, NodeBadge } from '../../types/typeTree';
 import type { MenuCtx } from '../../types/typeCMenu';
+import type { FilterNode } from '../../types/typeFilter';
 import { FileRenameModal } from '../../modals/modalFileRename';
 import { FileMoveModal } from '../../modals/modalFileMove';
 import { PropertyManagerModal } from '../../modals/modalPropertyManager';
 import { DELETE_FILE } from '../../types/typeOps';
+import { translate } from '../../i18n/index';
+import { showInputModal } from '../../utils/inputModal';
 
 export type FilesViewMode = 'grid' | 'tree';
 
@@ -21,19 +24,29 @@ export class FilesExplorerPanel extends Component {
 	private treeView: UnifiedTreeView | null = null;
 	private expandedIds = new Set<string>();
 	private viewMode: FilesViewMode = 'tree';
+	private _sourceFiles: TFile[] = [];
 	private _currentFiles: TFile[] = [];
 	private _totalCount = 0;
 	private sortBy: string = 'name';
 	private sortDir: 'asc' | 'desc' = 'asc';
 	private addMode = false;
-	private visibleCells = new Set<string>(['icon', 'name', 'count', 'path']);
+	private visibleCells = new Set<string>([
+		'name',
+		'ext',
+		'path',
+	]);
 	private searchName = '';
 	private searchFolder = '';
 	private refreshTimer: number | null = null;
+	private activeRevealPath: string | null = null;
 
 	private onSelectionChange?: (count: number) => void;
 
-	constructor(containerEl: HTMLElement, plugin: VaultmanPlugin, onSelectionChange?: (count: number) => void) {
+	constructor(
+		containerEl: HTMLElement,
+		plugin: VaultmanPlugin,
+		onSelectionChange?: (count: number) => void,
+	) {
 		super();
 		this.containerEl = containerEl;
 		this.plugin = plugin;
@@ -91,19 +104,122 @@ export class FilesExplorerPanel extends Component {
 			run: (ctx: MenuCtx) => {
 				const meta = ctx.node.meta as FileMeta;
 				if (!meta.file) return;
-				new FileMoveModal(
-					this.plugin.app,
-					[meta.file],
-					(change) => this.plugin.queueService.addOrRun(change),
+				new FileMoveModal(this.plugin.app, [meta.file], (change) =>
+					this.plugin.queueService.addOrRun(change),
 				).open();
 			},
 		});
 
-		this.registerEvent(this.plugin.app.vault.on('create', this._scheduleRefresh));
-		this.registerEvent(this.plugin.app.vault.on('delete', this._scheduleRefresh));
-		this.registerEvent(this.plugin.app.vault.on('rename', this._scheduleRefresh));
+		svc.registerAction({
+			id: 'folder.filter_include',
+			nodeTypes: ['folder'],
+			surfaces: ['panel'],
+			label: translate('folder.ctx.filter_include'),
+			icon: 'lucide-filter',
+			run: (ctx: MenuCtx) => {
+				const folder = this._folderFromCtx(ctx);
+				if (!folder) return;
+				this.plugin.filterService.addNode({
+					type: 'rule',
+					filterType: 'folder',
+					property: '',
+					values: [folder.path],
+				});
+			},
+		});
+
+		svc.registerAction({
+			id: 'folder.filter_exclude',
+			nodeTypes: ['folder'],
+			surfaces: ['panel'],
+			label: translate('folder.ctx.filter_exclude'),
+			icon: 'lucide-filter-x',
+			run: (ctx: MenuCtx) => {
+				const folder = this._folderFromCtx(ctx);
+				if (!folder) return;
+				this.plugin.filterService.addNode({
+					type: 'rule',
+					filterType: 'folder_exclude',
+					property: '',
+					values: [folder.path],
+				});
+			},
+		});
+
+		svc.registerAction({
+			id: 'folder.rename',
+			nodeTypes: ['folder'],
+			surfaces: ['panel'],
+			label: translate('folder.ctx.rename'),
+			icon: 'lucide-pencil',
+			run: async (ctx: MenuCtx) => {
+				const folder = this._folderFromCtx(ctx);
+				if (!folder) return;
+				const newName = await showInputModal(
+					this.plugin.app,
+					translate('folder.prompt.rename'),
+				);
+				if (!newName || newName === folder.name) return;
+				const parentPath =
+					folder.parent?.path && folder.parent.path !== '/'
+						? folder.parent.path
+						: '';
+				const newPath = parentPath ? `${parentPath}/${newName}` : newName;
+				await this.plugin.app.fileManager.renameFile(folder, newPath);
+			},
+		});
+
+		svc.registerAction({
+			id: 'folder.move',
+			nodeTypes: ['folder'],
+			surfaces: ['panel'],
+			label: translate('folder.ctx.move'),
+			icon: 'lucide-folder-input',
+			run: async (ctx: MenuCtx) => {
+				const folder = this._folderFromCtx(ctx);
+				if (!folder) return;
+				const target = await showInputModal(
+					this.plugin.app,
+					translate('folder.prompt.move'),
+				);
+				if (target === null) return;
+				const targetFolder = target.trim().replace(/^\/|\/$/g, '');
+				const newPath = targetFolder
+					? `${targetFolder}/${folder.name}`
+					: folder.name;
+				if (newPath === folder.path) return;
+				await this.plugin.app.fileManager.renameFile(folder, newPath);
+			},
+		});
+
+		svc.registerAction({
+			id: 'folder.delete',
+			nodeTypes: ['folder'],
+			surfaces: ['panel'],
+			label: translate('folder.ctx.delete'),
+			icon: 'lucide-trash',
+			run: async (ctx: MenuCtx) => {
+				const folder = this._folderFromCtx(ctx);
+				if (!folder) return;
+				await this.plugin.app.fileManager.trashFile(folder);
+			},
+		});
+
+		this.registerEvent(
+			this.plugin.app.vault.on('create', this._scheduleRefresh),
+		);
+		this.registerEvent(
+			this.plugin.app.vault.on('delete', this._scheduleRefresh),
+		);
+		this.registerEvent(
+			this.plugin.app.vault.on('rename', this._scheduleRefresh),
+		);
+		this.registerEvent(
+			this.plugin.app.workspace.on('file-open', this._handleActiveFileChange),
+		);
 
 		this._mountView();
+		this._syncActiveFilePath();
 		this._render();
 	}
 
@@ -112,6 +228,7 @@ export class FilesExplorerPanel extends Component {
 			window.clearTimeout(this.refreshTimer);
 			this.refreshTimer = null;
 		}
+		this.treeView?.destroy();
 		super.onunload();
 	}
 
@@ -136,7 +253,11 @@ export class FilesExplorerPanel extends Component {
 		this.sortDir = direction;
 		if (this.viewMode === 'grid' && this.gridView) {
 			const COL_MAP: Record<string, import('../layout/viewGrid').SortColumn> = {
-				name: 'name', count: 'props', date: 'date', columns: 'name',
+				name: 'name',
+				count: 'props',
+				ext: 'ext',
+				date: 'date',
+				path: 'path',
 			};
 			this.gridView.setSortColumn(COL_MAP[sortBy] ?? 'name', direction);
 		}
@@ -144,24 +265,22 @@ export class FilesExplorerPanel extends Component {
 	}
 
 	render(filteredFiles: TFile[], totalCount: number): void {
+		this._sourceFiles = filteredFiles;
 		this._currentFiles = filteredFiles;
 		this._totalCount = totalCount;
-		if (this.searchName || this.searchFolder) {
-			this._currentFiles = this.logic.filterFlat(
-				this._currentFiles,
-				this.searchName,
-				this.searchFolder,
-			);
-			this._expandSearchMatches();
-		}
+		this._syncSearchTermsFromActiveFilters();
+		this._expandSearchMatches();
 		this._render();
 	}
 
 	setSearchFilter(name: string, folder: string): void {
 		this.searchName = name;
 		this.searchFolder = folder;
-		const base = this.plugin.filterService.filteredFiles;
-		const total = this.plugin.propertyIndex.fileCount;
+		const base =
+			this._sourceFiles.length > 0
+				? this._sourceFiles
+				: this._filesForCurrentScope();
+		const total = this._totalCount || this.plugin.app.vault.getFiles().length;
 		this._currentFiles = this.logic.filterFlat(base, name, folder);
 		this._totalCount = total;
 		this._expandSearchMatches();
@@ -191,10 +310,18 @@ export class FilesExplorerPanel extends Component {
 	autoRevealActiveFile(): void {
 		const file = this.plugin.app.workspace.getActiveFile();
 		if (!file) return;
+		this._syncActiveFilePath(file);
 		for (const id of this.logic.getAncestorFolderIds([file])) {
 			this.expandedIds.add(id);
 		}
 		this._render();
+		window.requestAnimationFrame(() => {
+			if (this.viewMode === 'grid') {
+				this.gridView?.scrollToPath(file.path);
+				return;
+			}
+			this.treeView?.scrollToId(file.path);
+		});
 	}
 
 	async createFromSearch(category: number, term: string): Promise<void> {
@@ -206,41 +333,64 @@ export class FilesExplorerPanel extends Component {
 	}
 
 	private _mountView(): void {
+		this.treeView?.destroy();
 		this.containerEl.empty();
 		this.gridView = null;
 		this.treeView = null;
 		if (this.viewMode === 'grid') {
 			this.gridView = new GridView(this.containerEl, this.plugin.app, {
 				onContextMenu: (file: TFile, e: MouseEvent) => {
-					const syntheticNode = { id: file.path, label: file.name, meta: { file, isFolder: false, folderPath: file.parent?.path ?? '' } as FileMeta, icon: '', depth: 0 };
+					const syntheticNode = {
+						id: file.path,
+						label: file.name,
+						meta: {
+							file,
+							isFolder: false,
+							folderPath: file.parent?.path ?? '',
+						} as FileMeta,
+						icon: '',
+						depth: 0,
+					};
 					this.plugin.contextMenuService.openPanelMenu(
 						{ nodeType: 'file', node: syntheticNode, surface: 'panel', file },
 						e,
 					);
 				},
 				onSelectionChange: (selected: Set<string>) => {
-					this.plugin.filterService.setSelectedFiles(this.gridView?.getSelectedFiles() ?? []);
+					this.plugin.filterService.setSelectedFiles(
+						this.gridView?.getSelectedFiles() ?? [],
+					);
 					if (this.onSelectionChange) this.onSelectionChange(selected.size);
 				},
 				onFileClick: (file: TFile) => {
 					if (this.addMode) {
 						const selected = this.getSelectedFiles();
-						const targets = selected.length > 0 ? (selected.includes(file) ? selected : [...selected, file]) : [file];
-							new PropertyManagerModal(
-								this.plugin.app,
-								this.plugin.propertyIndex,
-								targets,
-								(change) => this.plugin.queueService.addOrRun(change),
-							).open();
-							return;
+						const targets =
+							selected.length > 0
+								? selected.includes(file)
+									? selected
+									: [...selected, file]
+								: [file];
+						new PropertyManagerModal(
+							this.plugin.app,
+							this.plugin.propertyIndex,
+							targets,
+							(change) => this.plugin.queueService.addOrRun(change),
+						).open();
+						return;
 					}
 					void this.plugin.app.workspace.openLinkText(file.path, '', false);
 				},
 			});
 			this.gridView.setVisibleCells(this.visibleCells);
+			this.gridView.setActivePath(this.activeRevealPath);
 			// Sync current sort state to grid on mount
 			const COL_MAP: Record<string, import('../layout/viewGrid').SortColumn> = {
-				name: 'name', count: 'props', date: 'date', columns: 'name',
+				name: 'name',
+				count: 'props',
+				ext: 'ext',
+				date: 'date',
+				path: 'path',
 			};
 			this.gridView.setSortColumn(COL_MAP[this.sortBy] ?? 'name', this.sortDir);
 		} else {
@@ -251,10 +401,17 @@ export class FilesExplorerPanel extends Component {
 	private _sortFiles(files: TFile[]): TFile[] {
 		const dir = this.sortDir === 'asc' ? 1 : -1;
 		return [...files].sort((a, b) => {
+			if (this.sortBy === 'path') return dir * a.path.localeCompare(b.path);
+			if (this.sortBy === 'ext')
+				return dir * a.extension.localeCompare(b.extension);
 			if (this.sortBy === 'date') return dir * (b.stat.mtime - a.stat.mtime);
 			if (this.sortBy === 'count') {
-				const aC = Object.keys(this.plugin.app.metadataCache.getFileCache(a)?.frontmatter ?? {}).filter(k => k !== 'position').length;
-				const bC = Object.keys(this.plugin.app.metadataCache.getFileCache(b)?.frontmatter ?? {}).filter(k => k !== 'position').length;
+				const aC = Object.keys(
+					this.plugin.app.metadataCache.getFileCache(a)?.frontmatter ?? {},
+				).filter((k) => k !== 'position').length;
+				const bC = Object.keys(
+					this.plugin.app.metadataCache.getFileCache(b)?.frontmatter ?? {},
+				).filter((k) => k !== 'position').length;
 				return dir * (aC - bC);
 			}
 			return dir * a.basename.localeCompare(b.basename);
@@ -262,18 +419,30 @@ export class FilesExplorerPanel extends Component {
 	}
 
 	private _render(): void {
+		if (this._shouldShowEmptyFilteredState()) {
+			this._renderEmptyFilteredState();
+			return;
+		}
 		if (this.viewMode === 'grid' && this.gridView) {
 			// Grid owns sorting — pass unsorted; sort state synced via setSortColumn
+			this.gridView.setActivePath(this.activeRevealPath);
 			this.gridView.render(this._currentFiles, this._totalCount);
 		} else if (this.viewMode === 'tree' && this.treeView) {
 			const tree = this.logic.buildFileTree(
 				this._sortFiles(this._currentFiles),
 				this._foldersForCurrentView(),
 			);
-			const applyFolderIcons = (nodes: TreeNode<FileMeta>[], expanded: Set<string>): void => {
+			this._decorateTreeWithQueue(tree);
+			this._decorateTreeWithActiveReveal(tree);
+			const applyFolderIcons = (
+				nodes: TreeNode<FileMeta>[],
+				expanded: Set<string>,
+			): void => {
 				for (const n of nodes) {
 					if (n.meta.isFolder) {
-						n.icon = expanded.has(n.id) ? 'lucide-folder-open' : 'lucide-folder';
+						n.icon = expanded.has(n.id)
+							? 'lucide-folder-open'
+							: 'lucide-folder';
 					}
 					if (n.children?.length) applyFolderIcons(n.children, expanded);
 				}
@@ -292,6 +461,12 @@ export class FilesExplorerPanel extends Component {
 					const node = this._findNode(id, tree);
 					if (!node) return;
 					const meta = node.meta;
+					if (meta.isFolder) {
+						if (this.expandedIds.has(id)) this.expandedIds.delete(id);
+						else this.expandedIds.add(id);
+						this._render();
+						return;
+					}
 					if (!meta.isFolder && meta.file) {
 						if (this.addMode) {
 							new PropertyManagerModal(
@@ -302,7 +477,11 @@ export class FilesExplorerPanel extends Component {
 							).open();
 							return;
 						}
-						void this.plugin.app.workspace.openLinkText(meta.file.path, '', false);
+						void this.plugin.app.workspace.openLinkText(
+							meta.file.path,
+							'',
+							false,
+						);
 					}
 				},
 				onContextMenu: (id: string, e: MouseEvent) => {
@@ -322,11 +501,127 @@ export class FilesExplorerPanel extends Component {
 						e,
 					);
 				},
+				onBadgeDoubleClick: (queueIndex: number) => {
+					this.plugin.queueService.remove(queueIndex);
+					this._render();
+				},
 			});
 		}
 	}
 
-	private _findNode(id: string, nodes: TreeNode<FileMeta>[]): TreeNode<FileMeta> | null {
+	private _folderFromCtx(ctx: MenuCtx): TFolder | null {
+		const meta = ctx.node.meta as Partial<FileMeta> | undefined;
+		return meta?.folder ?? null;
+	}
+
+	private _decorateTreeWithActiveReveal(nodes: TreeNode<FileMeta>[]): void {
+		for (const node of nodes) {
+			if (node.meta.file?.path === this.activeRevealPath) {
+				node.cls =
+					`${node.cls ?? ''} tree-item-self nav-file-title tappable is-clickable is-active`.trim();
+			}
+			if (node.children?.length) this._decorateTreeWithActiveReveal(node.children);
+		}
+	}
+
+	private _decorateTreeWithQueue(nodes: TreeNode<FileMeta>[]): void {
+		const decorateNode = (node: TreeNode<FileMeta>): NodeBadge[] => {
+			const childBadges = node.children?.flatMap(decorateNode) ?? [];
+			if (node.meta.file) {
+				const badges = this._badgesForFile(node.meta.file);
+				node.badges = badges;
+				if (badges.some((badge) => badge.color === 'red')) {
+					node.cls = `${node.cls ?? ''} is-deleted-file`.trim();
+				}
+				return badges;
+			}
+			const inherited = this._dedupeInheritedBadges(childBadges);
+			if (inherited.length > 0) {
+				node.badges = inherited;
+			}
+			return inherited;
+		};
+		for (const node of nodes) decorateNode(node);
+	}
+
+	private _badgesForFile(file: TFile): NodeBadge[] {
+		const badges: NodeBadge[] = [];
+		if (this.visibleCells.has('ext') && file.extension) {
+			badges.push({
+				text: `.${file.extension}`,
+				color: 'faint',
+			});
+		}
+		this.plugin.queueService.queue.forEach((change, queueIndex) => {
+			if (
+				!('files' in change) ||
+				!change.files.some((f) => f.path === file.path)
+			)
+				return;
+			if (change.type === 'file_delete') {
+				badges.push({
+					text: change.details,
+					icon: 'lucide-trash',
+					color: 'red',
+					solid: true,
+					queueIndex,
+				});
+			} else if (change.type === 'file_move') {
+				badges.push({
+					text: change.details,
+					icon: 'lucide-folder-input',
+					color: 'blue',
+					solid: true,
+					queueIndex,
+				});
+			} else if (change.type === 'file_rename') {
+				badges.push({
+					text: change.details,
+					icon: 'lucide-pencil',
+					color: 'orange',
+					solid: true,
+					queueIndex,
+				});
+			}
+		});
+		return badges;
+	}
+
+	private readonly _handleActiveFileChange = (file: TFile | null): void => {
+		this._syncActiveFilePath(file ?? undefined);
+		this._render();
+	};
+
+	private _syncActiveFilePath(file = this.plugin.app.workspace.getActiveFile()): void {
+		const nextPath = file?.path ?? null;
+		if (this.activeRevealPath === nextPath) return;
+		this.activeRevealPath = nextPath;
+		this.gridView?.setActivePath(nextPath);
+	}
+
+	private _dedupeInheritedBadges(badges: NodeBadge[]): NodeBadge[] {
+		const seen = new Set<string>();
+		const inherited: NodeBadge[] = [];
+		for (const badge of badges) {
+			if (!badge.solid) continue;
+			const key = `${badge.icon}:${badge.color}`;
+			if (seen.has(key)) continue;
+			seen.add(key);
+			inherited.push({
+				text: badge.text,
+				icon: badge.icon,
+				color: badge.color,
+				solid: badge.solid,
+				isInherited: true,
+			});
+		}
+		return inherited;
+	}
+
+	private _findNode(
+		id: string,
+		nodes: TreeNode<FileMeta>[],
+	): TreeNode<FileMeta> | null {
 		for (const n of nodes) {
 			if (n.id === id) return n;
 			if (n.children) {
@@ -339,6 +634,28 @@ export class FilesExplorerPanel extends Component {
 
 	getSelectedFiles(): TFile[] {
 		return this.gridView?.getSelectedFiles() ?? [];
+	}
+
+	private _shouldShowEmptyFilteredState(): boolean {
+		return (
+			this.plugin.filterService.activeFilter.children.length > 0 &&
+			this._currentFiles.length === 0
+		);
+	}
+
+	private _renderEmptyFilteredState(): void {
+		this.containerEl.empty();
+		const emptyEl = this.containerEl.createDiv({
+			cls: 'vaultman-files-empty-state',
+		});
+		emptyEl.createDiv({
+			cls: 'vaultman-files-empty-state-title',
+			text: translate('files.empty_filtered_title'),
+		});
+		emptyEl.createDiv({
+			cls: 'vaultman-files-empty-state-desc',
+			text: translate('files.empty_filtered_desc'),
+		});
 	}
 
 	private async _createNote(term: string): Promise<void> {
@@ -376,14 +693,37 @@ export class FilesExplorerPanel extends Component {
 	};
 
 	private _refreshFromFilterService(): void {
-		this._currentFiles = this.logic.filterFlat(
-			this.plugin.filterService.filteredFiles,
-			this.searchName,
-			this.searchFolder,
-		);
-		this._totalCount = this.plugin.propertyIndex.fileCount;
+		this._sourceFiles = this._filesForCurrentScope();
+		this._currentFiles = this._sourceFiles;
+		this._totalCount = this.plugin.app.vault.getFiles().length;
+		this._syncSearchTermsFromActiveFilters();
 		this._expandSearchMatches();
 		this._render();
+	}
+
+	private _filesForCurrentScope(): TFile[] {
+		return this.plugin.filterService.filteredVaultFiles;
+	}
+
+	private _syncSearchTermsFromActiveFilters(): void {
+		let name = '';
+		let folder = '';
+		const walk = (node: FilterNode): void => {
+			if (node.enabled === false) return;
+			if (node.type === 'rule') {
+				if (node.filterType === 'file_name') {
+					name = node.values[0] ?? '';
+				}
+				if (node.filterType === 'file_folder') {
+					folder = node.values[0] ?? '';
+				}
+				return;
+			}
+			node.children.forEach(walk);
+		};
+		walk(this.plugin.filterService.activeFilter);
+		this.searchName = name;
+		this.searchFolder = folder;
 	}
 
 	private _expandSearchMatches(): void {
@@ -397,7 +737,9 @@ export class FilesExplorerPanel extends Component {
 					folder.path.toLowerCase().includes(this.searchFolder.toLowerCase()),
 				)
 				.map((folder) => folder.path);
-			for (const id of this.logic.getAncestorFolderIdsFromPaths(matchedFolders)) {
+			for (const id of this.logic.getAncestorFolderIdsFromPaths(
+				matchedFolders,
+			)) {
 				this.expandedIds.add(id);
 			}
 		}

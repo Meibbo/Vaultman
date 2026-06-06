@@ -1,6 +1,8 @@
 import { setIcon } from 'obsidian';
 import type { OperationQueueService } from '../../services/serviceOperationQueue';
 import { translate } from '../../i18n/index';
+import type { VaultmanPlugin } from '../../main';
+import { openQueueTemplateMenu } from '../../utils/queueTemplateMenu';
 
 /**
  * In-frame floating island showing the pending operation queue.
@@ -15,6 +17,7 @@ import { translate } from '../../i18n/index';
  */
 export class QueueIslandComponent {
 	private containerEl: HTMLElement;
+	private plugin: VaultmanPlugin;
 	private queueService: OperationQueueService;
 	private onClose: () => void;
 	private onOpenDetails: () => void;
@@ -25,12 +28,13 @@ export class QueueIslandComponent {
 
 	constructor(
 		containerEl: HTMLElement,
-		queueService: OperationQueueService,
+		plugin: VaultmanPlugin,
 		onClose: () => void,
-		onOpenDetails: () => void
+		onOpenDetails: () => void,
 	) {
 		this.containerEl = containerEl;
-		this.queueService = queueService;
+		this.plugin = plugin;
+		this.queueService = plugin.queueService;
 		this.onClose = onClose;
 		this.onOpenDetails = onOpenDetails;
 	}
@@ -39,11 +43,17 @@ export class QueueIslandComponent {
 		this.islandEl = this.containerEl.createDiv({ cls: 'vaultman-queue-island' });
 
 		// 1. Squircle action buttons (Now first, floating above body via CSS)
-		const btnRow = this.islandEl.createDiv({ cls: 'vaultman-squircle-row vaultman-queue-island-btns' });
+		const btnRow = this.islandEl.createDiv({
+			cls: 'vaultman-squircle-row vaultman-queue-island-btns',
+		});
 
 		const clearBtn = btnRow.createDiv({
 			cls: 'vaultman-squircle',
-			attr: { 'aria-label': translate('ops.clear'), role: 'button', tabindex: '0' },
+			attr: {
+				'aria-label': translate('ops.clear'),
+				role: 'button',
+				tabindex: '0',
+			},
 		});
 		setIcon(clearBtn, 'lucide-trash'); // Changed from x to trash for "Clear queue"
 		clearBtn.addEventListener('click', () => {
@@ -53,16 +63,37 @@ export class QueueIslandComponent {
 
 		const detailsBtn = btnRow.createDiv({
 			cls: 'vaultman-squircle',
-			attr: { 'aria-label': translate('ops.details'), role: 'button', tabindex: '0' },
+			attr: {
+				'aria-label': translate('ops.details'),
+				role: 'button',
+				tabindex: '0',
+			},
 		});
 		setIcon(detailsBtn, 'lucide-list');
 		detailsBtn.addEventListener('click', () => {
 			this.onOpenDetails();
 		});
 
+		const templateBtn = btnRow.createDiv({
+			cls: 'vaultman-squircle',
+			attr: {
+				'aria-label': translate('queue.template.templates'),
+				role: 'button',
+				tabindex: '0',
+			},
+		});
+		setIcon(templateBtn, 'lucide-bookmark');
+		templateBtn.addEventListener('click', (event) => {
+			openQueueTemplateMenu(this.plugin, event, this.onClose);
+		});
+
 		const executeBtn = btnRow.createDiv({
-			cls: 'vaultman-squircle is-accent',
-			attr: { 'aria-label': translate('ops.apply'), role: 'button', tabindex: '0' },
+			cls: 'vaultman-squircle',
+			attr: {
+				'aria-label': translate('ops.apply'),
+				role: 'button',
+				tabindex: '0',
+			},
 		});
 		setIcon(executeBtn, 'lucide-play');
 		executeBtn.addEventListener('click', () => {
@@ -71,10 +102,14 @@ export class QueueIslandComponent {
 		});
 
 		// 2. Header — count label (Now below squircles)
-		this.headerEl = this.islandEl.createDiv({ cls: 'vaultman-queue-island-header' });
+		this.headerEl = this.islandEl.createDiv({
+			cls: 'vaultman-queue-island-header',
+		});
 
 		// 3. Scrollable item list
-		this.listEl = this.islandEl.createDiv({ cls: 'vaultman-queue-island-list' });
+		this.listEl = this.islandEl.createDiv({
+			cls: 'vaultman-queue-island-list',
+		});
 
 		this.render();
 
@@ -93,23 +128,9 @@ export class QueueIslandComponent {
 
 		this.listEl.empty();
 		if (queue.length === 0) {
-			this.listEl.createDiv({ cls: 'vaultman-queue-island-empty', text: translate('queue.island.empty') });
-			const modeRow = this.listEl.createDiv({ cls: 'vaultman-queue-mode-toggle' });
-			const stageBtn = modeRow.createEl('button', {
-				cls: `vaultman-queue-mode-btn${this.queueService.operationMode === 'stage' ? ' is-active' : ''}`,
-				text: translate('queue.mode.stage'),
-			});
-			stageBtn.addEventListener('click', () => {
-				this.queueService.setOperationMode('stage');
-				this.render();
-			});
-			const bypassBtn = modeRow.createEl('button', {
-				cls: `vaultman-queue-mode-btn${this.queueService.operationMode === 'bypass' ? ' is-active' : ''}`,
-				text: translate('queue.mode.bypass'),
-			});
-			bypassBtn.addEventListener('click', () => {
-				this.queueService.setOperationMode('bypass');
-				this.render();
+			this.listEl.createDiv({
+				cls: 'vaultman-queue-island-empty',
+				text: translate('queue.island.empty'),
 			});
 			return;
 		}

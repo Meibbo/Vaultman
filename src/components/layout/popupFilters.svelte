@@ -3,6 +3,7 @@
 	import { translate } from '../../i18n/index';
 	import type { VaultmanPlugin } from '../../main';
 	import { SaveTemplateModal } from '../../modals/modalSaveTemplate';
+	import { openBasesFilterInteropMenu } from '../../utils/basesFilterInterop';
 
 	let {
 		plugin,
@@ -120,9 +121,24 @@
 			tabindex="0"
 		></div>
 		<div
-			class="vaultman-squircle vaultman-squircle-reserved"
-			aria-label="Reserved"
-			use:icon={'lucide-check'}
+			class="vaultman-squircle"
+			aria-label={translate('filters.bases.menu')}
+			use:icon={'lucide-database-zap'}
+			onclick={(e: MouseEvent) =>
+				openBasesFilterInteropMenu(plugin, e, closePopup)}
+			onkeydown={(e: KeyboardEvent) => {
+				if (e.key === 'Enter' || e.key === ' ') {
+					const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
+					openBasesFilterInteropMenu(
+						plugin,
+						new MouseEvent('click', {
+							clientX: rect.left,
+							clientY: rect.bottom,
+						}),
+						closePopup,
+					);
+				}
+			}}
 			role="button"
 			tabindex="0"
 		></div>
@@ -140,9 +156,14 @@
 					class="vaultman-active-filter-rule"
 					class:is-disabled={!rule.enabled}
 				>
-					<span class="vaultman-active-filter-rule-text"
-						>{rule.description}</span
-					>
+					<span class="vaultman-active-filter-rule-text">
+						<span class="vaultman-active-filter-row-rule"
+							>{rule.rule ?? ''}</span
+						>
+						<span class="vaultman-active-filter-row-label"
+							>{rule.label ?? rule.description}</span
+						>
+					</span>
 					<div
 						class="vaultman-active-filter-toggle clickable-icon"
 						aria-label={rule.enabled
