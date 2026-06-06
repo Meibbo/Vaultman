@@ -2,7 +2,7 @@
 title: Thread 3 - VFS & Review UX
 type: implementation-plan-shard
 status: draft
-parent: "[[index]]"
+parent: "[[docs/work/polish/plans/2026-05-11-elastic-ui-chameleon/index|index]]"
 created: 2026-05-11
 tags:
   - agent/plan

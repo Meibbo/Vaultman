@@ -3,8 +3,8 @@ title: Release 1.0.1 candidate verification
 type: verification-record
 status: released
 parent: "[[docs/work/publish/index|Publish]]"
-created: 2026-05-27T00:28:49-05:00
-updated: 2026-05-27T12:55:00-05:00
+created: 2026-05-27T00:28:49
+updated: 2026-05-27T12:55:00
 tags:
   - agent/verification
   - initiative/publish

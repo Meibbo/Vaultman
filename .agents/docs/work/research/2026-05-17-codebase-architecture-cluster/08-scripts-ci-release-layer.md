@@ -3,8 +3,8 @@ title: Scripts CI release layer
 type: research-record
 status: complete
 parent: "[[index|Codebase architecture cluster]]"
-created: 2026-05-17T18:10:00-05:00
-updated: 2026-05-17T18:10:00-05:00
+created: 2026-05-17T18:10:00
+updated: 2026-05-17T18:10:00
 tags:
   - agent/research
   - architecture

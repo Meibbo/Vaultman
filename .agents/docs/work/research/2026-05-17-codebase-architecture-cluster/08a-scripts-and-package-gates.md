@@ -3,8 +3,8 @@ title: Scripts and package gates
 type: research-shard
 status: complete
 parent: "[[08-scripts-ci-release-layer|Scripts CI release layer]]"
-created: 2026-05-17T18:10:00-05:00
-updated: 2026-05-17T18:10:00-05:00
+created: 2026-05-17T18:10:00
+updated: 2026-05-17T18:10:00
 tags:
   - agent/research
   - architecture

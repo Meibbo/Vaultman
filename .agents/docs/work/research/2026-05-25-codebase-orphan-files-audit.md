@@ -3,8 +3,8 @@ title: Codebase Orphan Files Audit
 type: research-note
 status: active
 parent: "[[docs/work/research/2026-05-17-codebase-architecture-cluster/index|Codebase architecture cluster]]"
-created: 2026-05-25T12:24:00-05:00
-updated: 2026-05-25T12:24:00-05:00
+created: 2026-05-25T12:24:00
+updated: 2026-05-25T12:24:00
 tags:
   - agent/research
   - architecture

@@ -4,7 +4,7 @@ type: research-index
 status: draft
 parent: "[[docs/work/pkm-ai/index|pkm-ai]]"
 created: 2026-05-17T13:10:00
-updated: 2026-05-17T18:55:00-05:00
+updated: 2026-05-17T18:55:00
 tags:
   - agent/research
   - architecture

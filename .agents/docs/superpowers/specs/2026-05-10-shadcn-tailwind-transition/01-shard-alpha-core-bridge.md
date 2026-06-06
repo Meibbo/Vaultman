@@ -1,7 +1,7 @@
 ---
 title: Shard ALPHA - Estilos & Camaleón Bridge
 type: implementation-shard
-parent: "[[index]]"
+parent: "[[docs/superpowers/specs/2026-05-10-shadcn-tailwind-transition/index|index]]"
 created: 2026-05-10
 ---
 

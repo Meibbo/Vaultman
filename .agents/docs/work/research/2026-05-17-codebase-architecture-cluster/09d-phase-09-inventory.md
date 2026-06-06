@@ -3,8 +3,8 @@ title: Phase 09 inventory
 type: research-inventory
 status: complete
 parent: "[[09-residual-src-support-layer|Residual src support layer]]"
-created: 2026-05-17T18:55:00-05:00
-updated: 2026-05-17T18:55:00-05:00
+created: 2026-05-17T18:55:00
+updated: 2026-05-17T18:55:00
 tags:
   - agent/research
   - architecture
