@@ -20,6 +20,10 @@ import type { TreeNode, TagMeta } from '../../types/typeTree';
 import type { MenuCtx } from '../../types/typeCMenu';
 import { translate } from '../../i18n/index';
 import { normalizeExplorerSortBy } from '../../logic/logicSort';
+import {
+	flattenTreeToPathLabels,
+	groupRootHierarchy,
+} from '../../logic/logicExplorerHierarchy';
 
 type DateSortId = 'mtime' | 'ctime';
 
@@ -45,7 +49,7 @@ export class TagsExplorerPanel extends Component {
 	private sortChildLevel = false;
 	private nodeTypeFilter: string | null = null;
 	private viewMode: 'tree' | 'grid' = 'tree';
-	private visibleCells = new Set<string>(['icon', 'text', 'count']);
+	private visibleCells = new Set<string>(['icon', 'text', 'count', 'nested']);
 	private onExpansionChange?: () => void;
 
 	constructor(containerEl: HTMLElement, plugin: PanelPluginCtx) {
@@ -174,7 +178,7 @@ export class TagsExplorerPanel extends Component {
 	}
 
 	hasExpandedNodes(): boolean {
-		return this.expandedIds.size > 0;
+		return this._nestedEnabled() && this.expandedIds.size > 0;
 	}
 
 	setExpansionChangeHandler(handler?: () => void): void {
@@ -182,6 +186,7 @@ export class TagsExplorerPanel extends Component {
 	}
 
 	expandAll(): void {
+		if (!this._nestedEnabled()) return;
 		let tree = this.logic.getTree();
 		if (this.searchMode === 'leaf') {
 			tree = this._collectLeaves(tree);
@@ -330,7 +335,10 @@ export class TagsExplorerPanel extends Component {
 		const highlightIds = new Set<string>();
 
 		// Resolve icons via Iconic
-		const nodesWithIcons = this._resolveIcons(tree, highlightIds, searchFunc);
+		let nodesWithIcons = this._resolveIcons(tree, highlightIds, searchFunc);
+		if (!this._nestedEnabled()) {
+			nodesWithIcons = flattenTreeToPathLabels(nodesWithIcons);
+		}
 		if (nodesWithIcons.length === 0) {
 			this._renderEmptyState();
 			return;
@@ -797,25 +805,20 @@ export class TagsExplorerPanel extends Component {
 	}
 
 	private _collectNested(nodes: TreeNode<TagMeta>[]): TreeNode<TagMeta>[] {
-		const nested: TreeNode<TagMeta>[] = [];
-		for (const node of nodes) {
-			if (node.children?.length) {
-				nested.push({
-					...node,
-					children: this._collectNested(node.children),
-				});
-			}
-		}
-		return nested;
+		return groupRootHierarchy(nodes, 'nested');
 	}
 
 	private _filterByNodeType(
 		nodes: TreeNode<TagMeta>[],
 		nodeTypeFilter: string,
 	): TreeNode<TagMeta>[] {
-		if (nodeTypeFilter === 'simple') return this._collectLeaves(nodes);
+		if (nodeTypeFilter === 'simple') return groupRootHierarchy(nodes, 'simple');
 		if (nodeTypeFilter === 'nested') return this._collectNested(nodes);
 		return nodes;
+	}
+
+	private _nestedEnabled(): boolean {
+		return this.visibleCells.has('nested');
 	}
 
 	private _findNode(

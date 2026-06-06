@@ -105,9 +105,9 @@
 		},
 	};
 	const DEFAULT_VISIBLE_CELLS: Record<FiltersTab, string[]> = {
-		props: ['icon', 'text', 'count'],
-		tags: ['icon', 'text', 'count'],
-		files: ['name', 'ext', 'path'],
+		props: ['icon', 'text', 'count', 'nested'],
+		tags: ['icon', 'text', 'count', 'nested'],
+		files: ['name', 'ext', 'path', 'nested'],
 	};
 	const CELL_LABELS: Record<FiltersTab, Record<string, string>> = {
 		props: {
@@ -115,6 +115,7 @@
 			text: 'viewmode.pill.text',
 			count: 'viewmode.pill.count',
 			type: 'viewmode.pill.type',
+			nested: 'viewmode.pill.nested',
 		},
 		tags: {
 			icon: 'viewmode.pill.icon',
@@ -129,6 +130,7 @@
 			ext: 'viewmode.pill.ext',
 			date: 'viewmode.pill.date',
 			path: 'viewmode.pill.path',
+			nested: 'viewmode.pill.nested',
 		},
 	};
 	const CELL_ICONS: Record<string, string> = {

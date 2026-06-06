@@ -48,12 +48,13 @@
 			{ id: 'icon', labelKey: 'viewmode.pill.icon', defaultOn: true },
 			{ id: 'text', labelKey: 'viewmode.pill.text', defaultOn: true },
 			{ id: 'count', labelKey: 'viewmode.pill.count', defaultOn: true },
-			{ id: 'nested', labelKey: 'viewmode.pill.nested', defaultOn: false },
+			{ id: 'nested', labelKey: 'viewmode.pill.nested', defaultOn: true },
 		],
 		props: [
 			{ id: 'icon', labelKey: 'viewmode.pill.icon', defaultOn: true },
 			{ id: 'text', labelKey: 'viewmode.pill.text', defaultOn: true },
 			{ id: 'count', labelKey: 'viewmode.pill.count', defaultOn: true },
+			{ id: 'nested', labelKey: 'viewmode.pill.nested', defaultOn: true },
 		],
 		'files-grid': [
 			{ id: 'icon', labelKey: 'viewmode.pill.icon', defaultOn: true },
@@ -62,12 +63,14 @@
 			{ id: 'ext', labelKey: 'viewmode.pill.ext', defaultOn: true },
 			{ id: 'date', labelKey: 'viewmode.pill.date', defaultOn: true },
 			{ id: 'path', labelKey: 'viewmode.pill.path', defaultOn: false },
+			{ id: 'nested', labelKey: 'viewmode.pill.nested', defaultOn: true },
 		],
 		'files-tree': [
 			{ id: 'icon', labelKey: 'viewmode.pill.icon', defaultOn: true },
 			{ id: 'name', labelKey: 'viewmode.pill.name', defaultOn: true },
 			{ id: 'count', labelKey: 'viewmode.pill.count', defaultOn: true },
 			{ id: 'ext', labelKey: 'viewmode.pill.ext', defaultOn: true },
+			{ id: 'nested', labelKey: 'viewmode.pill.nested', defaultOn: true },
 		],
 	};
 

@@ -17,6 +17,7 @@ import {
 	compareFilesForExplorer,
 	normalizeExplorerSortBy,
 } from '../../logic/logicSort';
+import { flattenTreeToPathLabels } from '../../logic/logicExplorerHierarchy';
 
 export type FilesViewMode = 'grid' | 'tree';
 
@@ -42,7 +43,7 @@ export class FilesExplorerPanel extends Component {
 	private sortBy: string = 'name';
 	private sortDir: 'asc' | 'desc' = 'asc';
 	private addMode = false;
-	private visibleCells = new Set<string>(['name', 'ext', 'path']);
+	private visibleCells = new Set<string>(['name', 'ext', 'path', 'nested']);
 	private searchName = '';
 	private searchFolder = '';
 	private refreshTimer: number | null = null;
@@ -261,7 +262,7 @@ export class FilesExplorerPanel extends Component {
 	}
 
 	hasExpandedNodes(): boolean {
-		return this.expandedIds.size > 0;
+		return this._nestedEnabled() && this.expandedIds.size > 0;
 	}
 
 	setExpansionChangeHandler(handler?: () => void): void {
@@ -312,6 +313,7 @@ export class FilesExplorerPanel extends Component {
 	}
 
 	expandAll(): void {
+		if (!this._nestedEnabled()) return;
 		const tree = this.logic.buildFileTree(
 			this._sortFiles(this._currentFiles),
 			this._foldersForCurrentView(),
@@ -471,8 +473,11 @@ export class FilesExplorerPanel extends Component {
 				}
 			};
 			applyFolderIcons(tree, this.expandedIds);
+			const renderTree = this._nestedEnabled()
+				? tree
+				: flattenTreeToPathLabels(tree);
 			this.treeView.render({
-				nodes: tree,
+				nodes: renderTree,
 				expandedIds: this.expandedIds,
 				visibleCells: this.visibleCells,
 				onToggle: (id: string) => {
@@ -486,6 +491,7 @@ export class FilesExplorerPanel extends Component {
 					if (!node) return;
 					const meta = node.meta;
 					if (meta.isFolder) {
+						if (!this._nestedEnabled()) return;
 						if (this.expandedIds.has(id)) this.expandedIds.delete(id);
 						else this.expandedIds.add(id);
 						this._notifyExpansionChanged();
@@ -541,6 +547,10 @@ export class FilesExplorerPanel extends Component {
 
 	private _notifyExpansionChanged(): void {
 		this.onExpansionChange?.();
+	}
+
+	private _nestedEnabled(): boolean {
+		return this.visibleCells.has('nested');
 	}
 
 	private _decorateTreeWithActiveReveal(nodes: TreeNode<FileMeta>[]): void {

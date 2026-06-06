@@ -29,6 +29,7 @@ import {
 	type MetadataTypeManagerLike,
 } from '../../logic/propTypes';
 import { normalizeExplorerSortBy } from '../../logic/logicSort';
+import { flattenTreeToPathLabels } from '../../logic/logicExplorerHierarchy';
 
 type DateSortId = 'mtime' | 'ctime';
 type PropTimeIndex = {
@@ -57,7 +58,7 @@ export class PropsExplorerPanel extends Component {
 	private searchMode = 0;
 	private sortChildLevel = false;
 	private nodeTypeFilter: string | null = null;
-	private visibleCells = new Set<string>(['icon', 'text', 'count']);
+	private visibleCells = new Set<string>(['icon', 'text', 'count', 'nested']);
 	private onExpansionChange?: () => void;
 
 	constructor(containerEl: HTMLElement, plugin: PanelPluginCtx) {
@@ -321,7 +322,7 @@ export class PropsExplorerPanel extends Component {
 	}
 
 	hasExpandedNodes(): boolean {
-		return this.expandedIds.size > 0;
+		return this._nestedEnabled() && this.expandedIds.size > 0;
 	}
 
 	setExpansionChangeHandler(handler?: () => void): void {
@@ -329,6 +330,7 @@ export class PropsExplorerPanel extends Component {
 	}
 
 	expandAll(): void {
+		if (!this._nestedEnabled()) return;
 		let tree = this.logic.getTree();
 		if (this.nodeTypeFilter) {
 			tree = this._filterByType(tree, this.nodeTypeFilter);
@@ -552,13 +554,16 @@ export class PropsExplorerPanel extends Component {
 		const searchFunc = searcher ? (text: string) => searcher(text) : null;
 
 		const sorted = this._applySort(tree);
-		const nodesWithIcons = this._resolveIcons(
+		let nodesWithIcons = this._resolveIcons(
 			sorted,
 			warningIds,
 			highlightIds,
 			searchFunc,
 			this.plugin.queueService.queue,
 		);
+		if (!this._nestedEnabled()) {
+			nodesWithIcons = flattenTreeToPathLabels(nodesWithIcons);
+		}
 		if (nodesWithIcons.length === 0) {
 			this._renderEmptyState();
 			return;
@@ -631,6 +636,10 @@ export class PropsExplorerPanel extends Component {
 			if (node.meta.isValueNode) return false;
 			return this._effectivePropType(node.meta) === nodeTypeFilter;
 		});
+	}
+
+	private _nestedEnabled(): boolean {
+		return this.visibleCells.has('nested');
 	}
 
 	private _metadataTypeManager(): MetadataTypeManagerLike | null {
@@ -770,14 +779,17 @@ export class PropsExplorerPanel extends Component {
 			? prepareSimpleSearch(this.searchTerm)
 			: null;
 		const searchFunc = searcher ? (text: string) => searcher(text) : null;
-		const topProps = tree.filter((n) => !n.meta.isValueNode);
-		const filtered = this._resolveIcons(
-			this._applySort(topProps),
+		const sorted = this._applySort(tree);
+		const resolved = this._resolveIcons(
+			sorted,
 			warningIds,
 			highlightIds,
 			searchFunc,
 			this.plugin.queueService.queue,
 		);
+		const filtered = this._nestedEnabled()
+			? resolved.filter((node) => !node.meta.isValueNode)
+			: flattenTreeToPathLabels(resolved);
 		if (filtered.length === 0) {
 			this._renderEmptyState();
 			return;
