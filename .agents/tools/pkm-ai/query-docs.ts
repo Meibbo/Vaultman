@@ -6,6 +6,9 @@ import { hasGlossaryTerm } from "./lib/glossary.mjs";
 import { recordMetric } from "./lib/metrics.mjs";
 import { bm25Search, hybridSearch, loadRetrievalIndex } from "./lib/retrieval.mjs";
 import { HashEmbeddingProvider } from "./retrieval/embedding-provider.mjs";
+import { TransformersEmbeddingProvider } from "./retrieval/transformers-provider.mjs";
+import { OramaVectorStore } from "./retrieval/orama-store.mjs";
+import { semanticSearch } from "./retrieval/semantic.mjs";
 
 interface DocEntry {
   [key: string]: unknown;
@@ -42,13 +45,34 @@ Filters:
 Ranking:
   --rank        BM25 over .agents/cache/retrieval-index.json (built in-memory if
                 absent), lifecycle-weighted (active > deferred > … > archived).
-  --hybrid      BM25 + local vector embedding fused via Reciprocal Rank Fusion,
-                lifecycle-weighted (zero-network local embedding by default).
+  --hybrid      BM25 + local hash embedding fused via Reciprocal Rank Fusion,
+                lifecycle-weighted (zero-dep stub embedding).
+  --semantic    BM25 + real transformers.js MiniLM embeddings (Orama vector
+                store) fused via RRF, lifecycle-weighted. Requires embed-docs
+                first (run: node .agents/tools/pkm-ai/embed-docs.ts).
   --limit N     cap ranked results (default: all matches).`);
   process.exit(0);
 }
 
 const root = process.cwd();
+
+if (process.argv.includes("--semantic")) {
+  const rankArgs = parseRankArgs(process.argv.slice(2));
+  const index = loadRetrievalIndex(root);
+  const provider = new TransformersEmbeddingProvider();
+  const store = new OramaVectorStore({ dims: provider.dims });
+  const hits: RankHit[] = await semanticSearch(index, rankArgs.terms, { provider, store, limit: rankArgs.limit });
+  if (hits.length === 0) {
+    console.error("query-docs --semantic: no embeddings found. Run: node .agents/tools/pkm-ai/embed-docs.ts");
+    process.exit(2);
+  }
+  if (rankArgs.json) {
+    console.log(JSON.stringify(hits, null, 2));
+  } else {
+    console.log(formatRankHits(hits));
+  }
+  process.exit(0);
+}
 
 if (process.argv.includes("--hybrid")) {
   const rankArgs = parseRankArgs(process.argv.slice(2));

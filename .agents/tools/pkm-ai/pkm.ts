@@ -8,6 +8,7 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const commands: Record<string, string> = {
   health: 'check-doc-health.ts',
   index: 'index-docs.ts',
+  embed: 'embed-docs.ts',
   query: 'query-docs.ts',
   metric: 'record-metric.ts',
   archive: 'archive-active-doc.mjs',
