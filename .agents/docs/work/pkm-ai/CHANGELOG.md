@@ -5,7 +5,7 @@ status: active
 lifecycle: active
 parent: "[[docs/work/pkm-ai/index|pkm-ai]]"
 created: 2026-06-05T00:00:00
-updated: 2026-06-05T15:56:48
+updated: 2026-06-06T04:48:09
 created_by: claude-opus-4-8
 updated_by: claude-opus-4-8
 tags:
@@ -24,8 +24,29 @@ Doubles as the "new-since" delta surface for fresh agents. Newest at top.
 
 - **S3b** — recurring prune of the doc-health backlog (123 fails: line-limit/timestamp/parent) once a
   coordinated window opens (most fails are in another stream's contended docs).
-- **S6** — local tri-layer retrieval (wikilink graph + BM25 + pluggable local embeddings) → likely a
-  MINOR protocol bump (lifecycle-weighted ranking).
+
+## tooling 1.1.0 — 2026-06-06
+
+**S6 complete** — local tri-layer retrieval channel (ADR
+[[docs/work/pkm-ai/adr/0006-retrieval-channel-pluggable-embeddings|0006]]), zero-API, lifecycle-weighted.
+Additive (MINOR); protocol/state-schema untouched.
+
+- **Graph** (`0c2b7b3`) — `traverse-graph.ts`: wikilink/typed-edge graph over `.agents/docs` (`parent` +
+  body `[[link]]` edges), `<node>` normalization, `--depth` BFS, `--direction`, `--json`.
+- **BM25** (`96adba1`) — `lib/retrieval.mjs` (`buildRetrievalIndex` termFreq + sha1 content-hash +
+  lifecycle; `bm25Search` k1=1.5/b=0.75 + lifecycle weight active>…>archived; `loadRetrievalIndex`).
+  `index-docs` writes `.agents/cache/retrieval-index.json`; `query-docs --rank`.
+- **Hybrid + adapters** (`f8857c0`) — ADR-0006 contracts: `retrieval/embedding-provider.mjs`
+  (`HashEmbeddingProvider` zero-dep stub) + `retrieval/vector-store.mjs` (`FlatJsonVectorStore`);
+  `rrfFuse` (Reciprocal Rank Fusion) + `hybridSearch`; `query-docs --hybrid`.
+- **Real semantic** (`9be984d`) — deps `@xenova/transformers` + `@orama/orama` (isolated to the tool
+  package). `TransformersEmbeddingProvider` (MiniLM all-MiniLM-L6-v2, 384) + `OramaVectorStore` +
+  async `semanticSearch`. `embed-docs.ts` = embed-on-change persist (content-hash gated); `query-docs
+  --semantic`; `pkm embed`. Model caches to gitignored node_modules (device-local, not synced);
+  re-embed offline. Cold-rebuild documented in the S6 plan shard.
+- Verified: default `node --test` suite 48→61 green (model path gated to `test/semantic.smoke.mjs`,
+  excluded from the glob); `tsc --noEmit` holds at the 47 baseline; per-slice TDD; end-to-end semantic
+  smoke ranks by meaning. `--rank`/`--hybrid`/`traverse-graph` need no model.
 
 ## tooling 1.0.1 — 2026-06-05
 

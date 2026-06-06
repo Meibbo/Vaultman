@@ -4,7 +4,7 @@ type: plan-index
 status: active
 parent: "[[docs/work/pkm-ai/specs/2026-06-04-orchestration-upgrade/index|orchestration-upgrade spec]]"
 created: 2026-06-04T00:00:00
-updated: 2026-06-05T15:56:48
+updated: 2026-06-06T04:48:09
 created_by: claude-opus-4-8
 updated_by: claude-opus-4-8
 tags:
@@ -38,7 +38,7 @@ PKM-AI ADRs [[docs/work/pkm-ai/adr/README|0001–0006]].
 | S3 memory lifecycle | 03-S3 (at pickup) | S1 | **S3a DONE** (`lifecycle:` field + health checks `40405a9`/`8d5aad2`); **S3b prune DEFERRED** (123 fails; 85 Codex-contended) |
 | S4 versioning | 04-S4 (at pickup) | S1 | **DONE** (`pkm-ai.version.json` v1.0.0 + `CHANGELOG.md`; AGENTS.md step 0 reads it) |
 | S5 `.ts` migration | 05-S5 (at pickup) | — | **DONE** (`toolingVersion` 1.0.1) — agent-room ✓ (S2 T0) + manage-tasks ✓ `2c15819`; check-doc-health `d27de12` · split-shard `d7f1093` · update-frontmatter `761cb66` · query-docs `3765db5` · index-docs `ba3a63d` · record-metric `bded7df` · pkm dispatcher `f2a3143`; `lib/*.mjs` stay `.mjs` via tsconfig `allowJs`. Out-of-scope `.mjs` (archive/update-indexes/shard-index/code-index/manage-memory/analyze-*/traverse-graph) remain; traverse-graph migrates with S6 |
-| S6 retrieval channel | [[docs/work/pkm-ai/plans/2026-06-04-orchestration-upgrade/06-S6-retrieval|06-S6]] | S3 | **IN PROGRESS** — S6a graph ✓ `0c2b7b3` · S6b BM25 ✓ `96adba1` · S6c contracts/RRF-hybrid ✓ `f8857c0`; **S6d** real MiniLM+Orama queued (dev-gated: network install) |
+| S6 retrieval channel | [[docs/work/pkm-ai/plans/2026-06-04-orchestration-upgrade/06-S6-retrieval|06-S6]] | S3 | **DONE** (tooling 1.1.0) — S6a graph `0c2b7b3` · S6b BM25 `96adba1` · S6c RRF-hybrid `f8857c0` · S6d real MiniLM+Orama `9be984d` |
 
 **Critical path:** S1 → S2/S3 → S6. S4 + S5 parallel anytime.
 
@@ -81,7 +81,7 @@ graph-parse test → BM25 test → adapter contract test → local-embed smoke �
 - [~] **PKM-3** (S3): S3a ✓ `lifecycle:` field + lifecycle-state/stale-active checks (`40405a9`/`8d5aad2`); S3b prune + working-surface migration DEFERRED (123 fails, 85 Codex-contended)
 - [x] **PKM-4** (S4): `pkm-ai.version.json` v1.0.0 + CHANGELOG + AGENTS.md step-0 read ✓
 - [x] **PKM-5** (S5): all 7 phased tools migrated `.mjs`→`.ts` (`d27de12`…`f2a3143`); `allowJs` lib-import pattern; `toolingVersion` 1.0.1 ✓
-- [~] **PKM-6** (S6): S6a graph ✓ (`0c2b7b3`) + S6b BM25 ✓ (`96adba1`) + S6c RRF-hybrid ✓ (`f8857c0`); S6d real MiniLM+Orama dev-gated (network install) — see [[docs/work/pkm-ai/plans/2026-06-04-orchestration-upgrade/06-S6-retrieval|06-S6 shard]]
+- [x] **PKM-6** (S6): graph + BM25 + RRF hybrid + real MiniLM/Orama semantic — all 4 sub-slices done (`0c2b7b3` · `96adba1` · `f8857c0` · `9be984d`); tooling 1.1.0 — see [[docs/work/pkm-ai/plans/2026-06-04-orchestration-upgrade/06-S6-retrieval|06-S6 shard]]
 
 ## Verification (overall)
 2-agent coordination smoke (S2) · `check-doc-health` green incl. lifecycle (S3) · `node x.ts` parity (S5) ·
