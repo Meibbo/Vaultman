@@ -244,11 +244,13 @@
   flex-direction: column;
   min-height: 0;
   height: 100%;
+  overflow: hidden;
 }
 
 .vaultman-files-col-header {
   border-bottom: 1px solid var(--vaultman-border);
   flex: 0 0 auto;
+  overflow: visible;
 }
 
 .vaultman-files-table {
@@ -257,6 +259,7 @@
   overflow: auto;
   position: relative;
   contain: strict;
+  overscroll-behavior: contain;
 }
 
 .vaultman-files-table-header {
@@ -266,13 +269,32 @@
 }
 
 .vaultman-files-table-header-row {
-  display: grid;
-  align-items: center;
+  position: relative;
+  height: 30px;
   min-height: 30px;
+  --bases-table-row-height: 30px;
+}
+
+.vaultman-files-table-root .bases-td {
+  box-sizing: border-box;
+  position: absolute;
+  inset-block-start: 0;
+  height: var(--bases-table-row-height, 30px);
+  min-width: 0;
+  overflow: hidden;
+  border-inline-end: 1px solid var(--background-modifier-border);
+}
+
+.vaultman-files-table-header-row .bases-td,
+.vaultman-file-table-row .bases-td {
+  display: flex;
+  align-items: center;
 }
 
 .vaultman-col-header {
+  display: flex;
   align-items: center;
+  gap: 4px;
   font-size: var(--font-ui-small);
   font-weight: 400;
   text-transform: none;
@@ -281,8 +303,10 @@
   border: none;
   cursor: pointer;
   text-align: left;
-  padding: 0;
+  padding: 0 8px;
   width: 100%;
+  height: 100%;
+  min-width: 0;
 }
 
 .vaultman-col-header:hover,
@@ -291,7 +315,6 @@
 }
 
 .vaultman-file-row {
-  display: grid;
   gap: 0;
   align-items: center;
   padding: 0;
@@ -304,7 +327,6 @@
 .vaultman-file-table-row {
   position: absolute;
   left: 0;
-  right: 0;
 }
 
 .vaultman-file-table-row:last-child {
@@ -328,7 +350,13 @@
 }
 
 .vaultman-file-date,
-.vaultman-file-path {
+.vaultman-file-path,
+.vaultman-file-ext,
+.vaultman-file-props,
+.vaultman-file-name {
+  display: block;
+  min-width: 0;
+  width: 100%;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -348,14 +376,10 @@
 .vaultman-files-table-virtual-table,
 .vaultman-files-table-virtual-body {
   position: relative;
-  width: 100%;
 }
 
 .vaultman-file-name {
   cursor: pointer;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
   color: var(--text-accent);
 }
 

@@ -7,6 +7,12 @@ import {
 	normalizeExplorerSortBy,
 	type ExplorerFileTimes,
 } from '../../logic/logicSort';
+import {
+	formatFileTableName,
+	resolveFileTableLayout,
+	type FileTableColumn,
+	type FileTableLayout,
+} from '../../logic/logicTableLayout';
 
 export type SortColumn = 'name' | 'props' | 'path' | 'mtime' | 'ctime' | 'ext';
 export type SortDirection = 'asc' | 'desc';
@@ -34,12 +40,11 @@ export class GridView {
 	private activePath: string | null = null;
 	private readonly rowHeight = 30;
 	private readonly overscan = 8;
-	private visibleCells = new Set<string>([
-		'name',
-		'ext',
-		'path',
-	]);
-	private readonly onScroll = () => this._renderWindow();
+	private visibleCells = new Set<string>(['name', 'ext', 'path']);
+	private readonly onScroll = () => {
+		this._syncHeaderScroll();
+		this._renderWindow();
+	};
 
 	constructor(
 		containerEl: HTMLElement,
@@ -53,8 +58,10 @@ export class GridView {
 
 	render(files: TFile[], totalCount: number): void {
 		this._ensureScaffold();
-		this._renderHeader(files, totalCount);
 		this.displayedFiles = this._sortFiles(files);
+		const layout = this._layout();
+		this._renderHeader(files, totalCount, layout);
+		this._applyTableDimensions(layout);
 		if (this.tableEl) {
 			this.tableEl.style.height = `${this.displayedFiles.length * this.rowHeight}px`;
 		}
@@ -87,97 +94,60 @@ export class GridView {
 		this.listEl.addEventListener('scroll', this.onScroll, { passive: true });
 	}
 
-	private _renderHeader(files: TFile[], totalCount: number): void {
+	private _renderHeader(
+		files: TFile[],
+		totalCount: number,
+		layout: FileTableLayout,
+	): void {
 		if (!this.headerEl) return;
 		this.headerEl.empty();
+		this.headerEl.style.width = `${layout.totalWidth}px`;
 		const row = this.headerEl.createDiv({
 			cls: 'bases-tr vaultman-files-table-header-row',
 		});
-		row.style.gridTemplateColumns = this._gridColumns();
+		row.style.width = `${layout.totalWidth}px`;
 
-		if (this.visibleCells.has('icon')) {
-			row.createDiv({ cls: 'bases-td vaultman-files-col-icon' });
-		}
-		if (this.visibleCells.has('name')) {
+		for (const column of layout.columns) {
+			if (column.id === 'icon') {
+				const cell = row.createDiv({
+					cls: 'bases-td vaultman-files-col-icon',
+				});
+				this._positionCell(cell, column);
+				continue;
+			}
 			this._createSortHeader(
 				row,
-				'name',
-				translate('files.col.file_name'),
+				column,
+				this._headerLabel(column),
 				files,
 				totalCount,
-				'mod-implicit',
-				'file.name',
 			);
 		}
-		if (this.visibleCells.has('count')) {
-			this._createSortHeader(
-				row,
-				'props',
-				translate('files.col.props'),
-				files,
-				totalCount,
-				'',
-				'vaultman.props',
-			);
-		}
-		if (this.visibleCells.has('ext')) {
-			this._createSortHeader(
-				row,
-				'ext',
-				translate('files.col.file_ext'),
-				files,
-				totalCount,
-				'mod-implicit',
-				'file.ext',
-			);
-		}
-		if (this.visibleCells.has('date')) {
-			const dateColumn = this.sortColumn === 'ctime' ? 'ctime' : 'mtime';
-			this._createSortHeader(
-				row,
-				dateColumn,
-				translate(
-					dateColumn === 'ctime'
-						? 'files.col.created'
-						: 'files.col.modified',
-				),
-				files,
-				totalCount,
-				'',
-				'file.mtime',
-			);
-		}
-		if (this.visibleCells.has('path')) {
-			this._createSortHeader(
-				row,
-				'path',
-				translate('files.col.file_folder'),
-				files,
-				totalCount,
-				'mod-implicit',
-				'file.folder',
-			);
-		}
+		this._syncHeaderScroll();
 	}
 
 	private _createSortHeader(
 		parent: HTMLElement,
-		col: SortColumn,
+		column: FileTableColumn,
 		label: string,
 		files: TFile[],
 		total: number,
-		modClass = '',
-		dataProperty = '',
 	): void {
+		const col = column.sortColumn;
+		if (!col) return;
 		const isActive = this.sortColumn === col;
 		const cell = parent.createDiv({
-			cls: `bases-td ${modClass}`.trim(),
+			cls: `bases-td ${column.modClass ?? ''}`.trim(),
 		});
-		if (dataProperty) cell.dataset.property = dataProperty;
+		this._positionCell(cell, column);
+		if (column.dataProperty) cell.dataset.property = column.dataProperty;
 		const header = cell.createDiv({ cls: 'bases-table-header' });
-		const btn = header.createEl('button', {
+		const btn = header.createDiv({
 			cls: `bases-table-header-label vaultman-col-header${isActive ? ' active' : ''}`,
 		});
+		btn.setAttribute('role', 'button');
+		btn.setAttribute('tabindex', '0');
+		btn.createDiv({ cls: 'bases-table-header-icon' });
 		const name = btn.createSpan({
 			cls: 'bases-table-header-name',
 			text: label,
@@ -190,12 +160,10 @@ export class GridView {
 		if (isActive) {
 			setIcon(
 				sortIcon,
-				this.sortDirection === 'asc'
-					? 'lucide-arrow-up'
-					: 'lucide-arrow-down',
+				this.sortDirection === 'asc' ? 'lucide-arrow-up' : 'lucide-arrow-down',
 			);
 		}
-		btn.addEventListener('click', () => {
+		const updateSort = () => {
 			if (this.sortColumn === col) {
 				this.sortDirection = this.sortDirection === 'asc' ? 'desc' : 'asc';
 			} else {
@@ -203,6 +171,12 @@ export class GridView {
 				this.sortDirection = 'asc';
 			}
 			this.render(files, total);
+		};
+		btn.addEventListener('click', updateSort);
+		btn.addEventListener('keydown', (event) => {
+			if (event.key !== 'Enter' && event.key !== ' ') return;
+			event.preventDefault();
+			updateSort();
 		});
 		header.createDiv({ cls: 'bases-table-header-resizer' });
 	}
@@ -220,15 +194,32 @@ export class GridView {
 		this.activePath = path;
 	}
 
-	private _gridColumns(): string {
-		const columns: string[] = [];
-		if (this.visibleCells.has('icon')) columns.push('26px');
-		if (this.visibleCells.has('name')) columns.push('minmax(180px, 1fr)');
-		if (this.visibleCells.has('count')) columns.push('68px');
-		if (this.visibleCells.has('ext')) columns.push('68px');
-		if (this.visibleCells.has('date')) columns.push('96px');
-		if (this.visibleCells.has('path')) columns.push('minmax(120px, 0.8fr)');
-		return columns.join(' ');
+	private _layout(): FileTableLayout {
+		const dateSortColumn = this.sortColumn === 'ctime' ? 'ctime' : 'mtime';
+		return resolveFileTableLayout(this.visibleCells, dateSortColumn);
+	}
+
+	private _applyTableDimensions(layout: FileTableLayout): void {
+		const width = `${layout.totalWidth}px`;
+		if (this.headerEl) this.headerEl.style.width = width;
+		if (this.tableEl) this.tableEl.style.width = width;
+		if (this.tbodyEl) {
+			this.tbodyEl.style.width = width;
+			this.tbodyEl.style.setProperty(
+				'--bases-table-row-height',
+				`${this.rowHeight}px`,
+			);
+		}
+	}
+
+	private _syncHeaderScroll(): void {
+		if (!this.headerEl || !this.listEl) return;
+		this.headerEl.style.transform = `translateX(${-this.listEl.scrollLeft}px)`;
+	}
+
+	private _positionCell(cell: HTMLElement, column: FileTableColumn): void {
+		cell.style.insetInlineStart = `${column.left}px`;
+		cell.style.width = `${column.width}px`;
 	}
 
 	private _renderWindow(): void {
@@ -241,86 +232,62 @@ export class GridView {
 			overscan: this.overscan,
 		});
 		this.tbodyEl.empty();
+		const layout = this._layout();
+		this._applyTableDimensions(layout);
 		for (const row of projection.visibleRows) {
-			this._renderRow(this.tbodyEl, row.row, row.top);
+			this._renderRow(this.tbodyEl, row.row, row.top, layout);
 		}
 	}
 
-	private _renderRow(parent: HTMLElement, file: TFile, top: number): void {
+	private _renderRow(
+		parent: HTMLElement,
+		file: TFile,
+		top: number,
+		layout: FileTableLayout,
+	): void {
 		const row = parent.createDiv({
 			cls: 'bases-tr vaultman-file-row vaultman-file-table-row',
 		});
 		row.dataset.path = file.path;
-		row.style.gridTemplateColumns = this._gridColumns();
 		row.style.top = `${top}px`;
 		row.style.height = `${this.rowHeight}px`;
-
-		if (this.visibleCells.has('icon')) {
-			const cell = row.createDiv({ cls: 'bases-td' });
-			const iconEl = cell.createSpan({
-				cls: 'bases-table-cell vaultman-file-icon',
-			});
-			setIcon(iconEl, 'lucide-file');
-		}
-		if (this.visibleCells.has('name')) {
-			const cell = row.createDiv({ cls: 'bases-td mod-implicit' });
-			cell.dataset.property = 'file.name';
-			const nameEl = cell.createSpan({
-				cls: 'bases-table-cell bases-rendered-value markdown-rendered internal-link vaultman-file-name',
-				text: file.basename,
-			});
-			nameEl.dataset.href = file.path;
-			nameEl.draggable = true;
-			if (file.path === this.activePath) {
-				for (const className of [
-					'tree-item-self',
-					'nav-file-title',
-					'tappable',
-					'is-clickable',
-					'is-active',
-				]) {
-					nameEl.addClass(className);
-				}
-			}
-			nameEl.addEventListener('click', () => this.callbacks.onFileClick(file));
-		}
+		row.style.width = `${layout.totalWidth}px`;
 
 		const fm = this.app.metadataCache.getFileCache(file)?.frontmatter ?? {};
 		const propCount = Object.keys(fm).filter((k) => k !== 'position').length;
-		if (this.visibleCells.has('count')) {
-			this._renderTextCell(
-				row,
-				String(propCount),
-				'vaultman-file-props',
-				'vaultman.props',
-			);
-		}
-		if (this.visibleCells.has('ext')) {
-			this._renderTextCell(
-				row,
-				file.extension,
-				'vaultman-file-ext',
-				'file.ext',
-			);
-		}
-		if (this.visibleCells.has('date')) {
-			const times = this.callbacks.getFileTimes?.(file) ?? file.stat;
-			this._renderTextCell(
-				row,
-				new Date(
-					this.sortColumn === 'ctime' ? times.ctime : times.mtime,
-				).toLocaleDateString(),
-				'vaultman-file-date',
-				this.sortColumn === 'ctime' ? 'file.ctime' : 'file.mtime',
-			);
-		}
-		if (this.visibleCells.has('path')) {
-			this._renderTextCell(
-				row,
-				file.parent?.path ?? '',
-				'vaultman-file-path',
-				'file.folder',
-			);
+
+		for (const column of layout.columns) {
+			if (column.id === 'icon') {
+				this._renderIconCell(row, column, file);
+			} else if (column.id === 'name') {
+				this._renderNameCell(row, column, file);
+			} else if (column.id === 'count') {
+				this._renderTextCell(
+					row,
+					column,
+					String(propCount),
+					'vaultman-file-props',
+				);
+			} else if (column.id === 'ext') {
+				this._renderTextCell(row, column, file.extension, 'vaultman-file-ext');
+			} else if (column.id === 'date') {
+				const times = this.callbacks.getFileTimes?.(file) ?? file.stat;
+				this._renderTextCell(
+					row,
+					column,
+					new Date(
+						this.sortColumn === 'ctime' ? times.ctime : times.mtime,
+					).toLocaleDateString(),
+					'vaultman-file-date',
+				);
+			} else if (column.id === 'path') {
+				this._renderTextCell(
+					row,
+					column,
+					file.parent?.path && file.parent.path !== '' ? file.parent.path : '/',
+					'vaultman-file-path',
+				);
+			}
 		}
 
 		row.addEventListener('contextmenu', (event) => {
@@ -329,19 +296,80 @@ export class GridView {
 		});
 	}
 
-	private _renderTextCell(
+	private _renderIconCell(
 		row: HTMLElement,
-		text: string,
-		cls: string,
-		dataProperty = '',
+		column: FileTableColumn,
+		file: TFile,
 	): void {
 		const cell = row.createDiv({ cls: 'bases-td' });
-		if (dataProperty) cell.dataset.property = dataProperty;
+		this._positionCell(cell, column);
+		const iconEl = cell.createSpan({
+			cls: 'bases-table-cell vaultman-file-icon',
+		});
+		setIcon(
+			iconEl,
+			file.extension === 'base' ? 'lucide-database' : 'lucide-file',
+		);
+	}
+
+	private _renderNameCell(
+		row: HTMLElement,
+		column: FileTableColumn,
+		file: TFile,
+	): void {
+		const cell = row.createDiv({ cls: 'bases-td mod-implicit' });
+		this._positionCell(cell, column);
+		if (column.dataProperty) cell.dataset.property = column.dataProperty;
+		const nameEl = cell.createSpan({
+			cls: 'bases-table-cell bases-rendered-value markdown-rendered internal-link vaultman-file-name',
+			text: formatFileTableName(file),
+		});
+		nameEl.dataset.href = file.path;
+		nameEl.draggable = true;
+		if (file.path === this.activePath) {
+			for (const className of [
+				'tree-item-self',
+				'nav-file-title',
+				'tappable',
+				'is-clickable',
+				'is-active',
+			]) {
+				nameEl.addClass(className);
+			}
+		}
+		nameEl.addEventListener('click', () => this.callbacks.onFileClick(file));
+	}
+
+	private _renderTextCell(
+		row: HTMLElement,
+		column: FileTableColumn,
+		text: string,
+		cls: string,
+	): void {
+		const cell = row.createDiv({
+			cls: `bases-td ${column.modClass ?? ''}`.trim(),
+		});
+		this._positionCell(cell, column);
+		if (column.dataProperty) cell.dataset.property = column.dataProperty;
 		const valueEl = cell.createSpan({
 			cls: `bases-table-cell bases-rendered-value ${cls}`,
 			text,
 		});
 		valueEl.dataset.propertyType = 'text';
+	}
+
+	private _headerLabel(column: FileTableColumn): string {
+		if (column.id === 'name') return translate('files.col.file_name');
+		if (column.id === 'count') return translate('files.col.props');
+		if (column.id === 'ext') return translate('files.col.file_ext');
+		if (column.id === 'date') {
+			return translate(
+				column.sortColumn === 'ctime'
+					? 'files.col.created'
+					: 'files.col.modified',
+			);
+		}
+		return translate('files.col.file_folder');
 	}
 
 	private _sortFiles(files: TFile[]): TFile[] {
