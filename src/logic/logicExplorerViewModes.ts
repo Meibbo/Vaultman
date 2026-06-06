@@ -2,7 +2,7 @@ import type { ExplorerViewMode } from '../types/typeUI';
 import type { StatisticsDataTab } from './logicStatisticsNavigation';
 
 export type DataExplorerSurface = StatisticsDataTab;
-export type PanelViewMode = 'tree' | 'grid';
+export type PanelViewMode = 'tree' | 'grid' | 'table';
 
 export interface ExplorerViewModeOption {
 	id: ExplorerViewMode;
@@ -57,7 +57,7 @@ export function viewModesForDataSurface(
 	return [
 		VIEW_MODE_DEFS.tree,
 		VIEW_MODE_DEFS.grid,
-		{ ...VIEW_MODE_DEFS.table, locked: true },
+		VIEW_MODE_DEFS.table,
 		VIEW_MODE_DEFS.dnd,
 		VIEW_MODE_DEFS.cards,
 	];
@@ -86,5 +86,7 @@ export function panelViewModeForDataSurface(
 	if (surface === 'files' && mode === 'table') return 'grid';
 	if ((surface === 'props' || surface === 'tags') && mode === 'grid')
 		return 'grid';
+	if ((surface === 'props' || surface === 'tags') && mode === 'table')
+		return 'table';
 	return 'tree';
 }

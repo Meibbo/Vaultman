@@ -136,9 +136,15 @@
 		);
 	});
 
-	function switchFiltersTab(tab: FiltersTab) {
-		if (filtersActiveTab === tab) return;
+	function ensureActiveTabVisited(tab: FiltersTab) {
+		if (visitedTabs[tab]) return;
 		visitedTabs = { ...visitedTabs, [tab]: true };
+	}
+
+	function switchFiltersTab(tab: FiltersTab) {
+		ensureActiveTabVisited(filtersActiveTab);
+		ensureActiveTabVisited(tab);
+		if (filtersActiveTab === tab) return;
 		filtersActiveTab = tab;
 	}
 
@@ -308,7 +314,7 @@
 {/if}
 
 <div class="vaultman-filters-tab-content">
-	{#if visitedTabs.files}
+	{#if visitedTabs.files || filtersActiveTab === 'files'}
 		<div
 			class="vaultman-filters-tab-pane"
 			class:is-active={filtersActiveTab === 'files'}
@@ -321,7 +327,7 @@
 			/>
 		</div>
 	{/if}
-	{#if visitedTabs.tags}
+	{#if visitedTabs.tags || filtersActiveTab === 'tags'}
 		<div
 			class="vaultman-filters-tab-pane"
 			class:is-active={filtersActiveTab === 'tags'}
@@ -335,7 +341,7 @@
 			/>
 		</div>
 	{/if}
-	{#if visitedTabs.props}
+	{#if visitedTabs.props || filtersActiveTab === 'props'}
 		<div
 			class="vaultman-filters-tab-pane"
 			class:is-active={filtersActiveTab === 'props'}
@@ -349,7 +355,7 @@
 			/>
 		</div>
 	{/if}
-	{#if visitedTabs.content}
+	{#if visitedTabs.content || filtersActiveTab === 'content'}
 		<div
 			class="vaultman-filters-tab-pane"
 			class:is-active={filtersActiveTab === 'content'}

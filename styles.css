@@ -388,6 +388,135 @@
   text-decoration: underline;
 }
 
+.vaultman-node-table-root {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  height: 100%;
+  overflow: hidden;
+}
+
+.vaultman-node-table-header {
+  flex: 0 0 auto;
+  background: var(--background-primary);
+  border-bottom: 1px solid var(--vaultman-border);
+  overflow: visible;
+}
+
+.vaultman-node-table-scroll {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: auto;
+  position: relative;
+  contain: strict;
+  overscroll-behavior: contain;
+}
+
+.vaultman-node-table-header-row {
+  position: relative;
+  height: 30px;
+  min-height: 30px;
+  --bases-table-row-height: 30px;
+}
+
+.vaultman-node-table-root .bases-td {
+  box-sizing: border-box;
+  position: absolute;
+  inset-block-start: 0;
+  height: var(--bases-table-row-height, 30px);
+  min-width: 0;
+  overflow: hidden;
+  border-inline-end: 1px solid var(--background-modifier-border);
+}
+
+.vaultman-node-table-header-row .bases-td,
+.vaultman-node-table-row .bases-td {
+  display: flex;
+  align-items: center;
+}
+
+.vaultman-node-table-header-label {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  width: 100%;
+  height: 100%;
+  padding: 0 8px;
+  color: var(--text-muted);
+  font-size: var(--font-ui-small);
+}
+
+.vaultman-node-table-virtual-table,
+.vaultman-node-table-virtual-body {
+  position: relative;
+}
+
+.vaultman-node-table-row {
+  position: absolute;
+  left: 0;
+  color: var(--text-muted);
+  font-size: var(--font-ui-small);
+  border-bottom: 1px solid var(--background-modifier-border);
+  cursor: pointer;
+}
+
+.vaultman-node-table-row:hover {
+  background: var(--background-modifier-hover);
+  color: var(--text-normal);
+}
+
+.vaultman-node-table-row.is-active-filter {
+  background-color: color-mix(in srgb, var(--color-accent) 8%, transparent);
+  color: var(--text-normal);
+  box-shadow: inset 2px 0 0 0 var(--color-accent);
+}
+
+.vaultman-node-table-row.vaultman-search-highlight {
+  background-color: color-mix(in srgb, var(--color-accent) 12%, transparent);
+  color: var(--text-normal);
+}
+
+.vaultman-node-table-toggle,
+.vaultman-node-table-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 16px;
+  color: inherit;
+}
+
+.vaultman-node-table-toggle {
+  opacity: 0.45;
+}
+
+.vaultman-node-table-toggle--empty {
+  opacity: 0.22;
+}
+
+.vaultman-node-table-label,
+.vaultman-node-table-type {
+  display: block;
+  min-width: 0;
+  width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.vaultman-node-table-label {
+  padding-left: calc(var(--depth, 0) * 16px);
+  color: inherit;
+}
+
+.vaultman-node-table-badge-zone {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 4px;
+  width: 100%;
+  min-width: 0;
+}
+
 .vaultman-file-props {
   text-align: center;
   color: var(--vaultman-text-muted);

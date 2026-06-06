@@ -17,6 +17,7 @@ export interface PanelPluginCtx {
 }
 
 import { UnifiedTreeView } from '../layout/viewTree';
+import { NodeTableView } from '../layout/viewNodeTable';
 import type { TreeNode, PropMeta } from '../../types/typeTree';
 import type { PropertyChange } from '../../types/typeOps';
 import { NATIVE_SET_PROP_TYPE } from '../../types/typeOps';
@@ -50,9 +51,10 @@ export class PropsExplorerPanel extends Component {
 	private logic: PropsLogic;
 	private containerEl: HTMLElement;
 	private view: UnifiedTreeView;
+	private tableView: NodeTableView<PropMeta> | null = null;
 	private expandedIds = new Set<string>();
 	private searchTerm = '';
-	private viewMode: 'tree' | 'grid' = 'tree';
+	private viewMode: 'tree' | 'grid' | 'table' = 'tree';
 	private sortBy: string = 'name';
 	private sortDir: 'asc' | 'desc' = 'asc';
 	private searchMode = 0;
@@ -236,6 +238,7 @@ export class PropsExplorerPanel extends Component {
 		this.plugin.filterService.off('changed', this._handleStateChange);
 		this.plugin.queueService.off('changed', this._handleStateChange);
 		this.view.destroy();
+		this.tableView?.destroy();
 		super.onunload();
 	}
 
@@ -283,12 +286,19 @@ export class PropsExplorerPanel extends Component {
 		this._render();
 	}
 
-	setViewMode(mode: 'tree' | 'grid'): void {
+	setViewMode(mode: 'tree' | 'grid' | 'table'): void {
 		if (this.viewMode === mode) return;
 		this.viewMode = mode;
 		if (mode === 'tree') {
+			this.tableView?.destroy();
 			this.view.destroy();
 			this.view = new UnifiedTreeView(this.containerEl);
+		} else {
+			this.view.destroy();
+			if (mode === 'grid') {
+				this.tableView?.destroy();
+				this.containerEl.empty();
+			}
 		}
 		this._render();
 	}
@@ -569,6 +579,42 @@ export class PropsExplorerPanel extends Component {
 			return;
 		}
 
+		if (this.viewMode === 'table') {
+			if (!this.tableView) {
+				this.tableView = new NodeTableView<PropMeta>(this.containerEl);
+			}
+			this.tableView.render({
+				surface: 'props',
+				nodes: nodesWithIcons,
+				expandedIds: this.expandedIds,
+				visibleCells: this.visibleCells,
+				activeFilterIds,
+				warningIds,
+				searchHighlightIds: highlightIds,
+				onToggle: (id: string) => {
+					if (this.expandedIds.has(id)) this.expandedIds.delete(id);
+					else this.expandedIds.add(id);
+					this._notifyExpansionChanged();
+					void this._render();
+				},
+				onRowClick: (id: string) => {
+					const node = this._findNode(id, tree);
+					if (!node) return;
+					this._handleNodeClick(node, activeFilterIds);
+				},
+				onContextMenu: (id: string, event: MouseEvent) => {
+					const node = this._findNode(id, tree);
+					if (!node) return;
+					this._openNodeMenu(node, event);
+				},
+				onBadgeDoubleClick: (queueIndex: number) => {
+					this.plugin.queueService.remove(queueIndex);
+					void this._render();
+				},
+			});
+			return;
+		}
+
 		this.view.render({
 			nodes: nodesWithIcons,
 			expandedIds: this.expandedIds,
@@ -842,6 +888,7 @@ export class PropsExplorerPanel extends Component {
 
 	private _renderEmptyState(): void {
 		this.view.destroy();
+		this.tableView?.destroy();
 		this.containerEl.empty();
 		const emptyEl = this.containerEl.createDiv({
 			cls: 'vaultman-explorer-empty-landing',

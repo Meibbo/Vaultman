@@ -16,6 +16,7 @@ export interface PanelPluginCtx {
 	statisticsCache?: Pick<StatisticsCacheService, 'getFileTimes'>;
 }
 import { UnifiedTreeView } from '../layout/viewTree';
+import { NodeTableView } from '../layout/viewNodeTable';
 import type { TreeNode, TagMeta } from '../../types/typeTree';
 import type { MenuCtx } from '../../types/typeCMenu';
 import { translate } from '../../i18n/index';
@@ -40,6 +41,7 @@ export class TagsExplorerPanel extends Component {
 	private logic: TagsLogic;
 	private containerEl: HTMLElement;
 	private view: UnifiedTreeView;
+	private tableView: NodeTableView<TagMeta> | null = null;
 	private expandedIds = new Set<string>();
 	private searchTerm = '';
 	private searchMode: 'all' | 'leaf' = 'all';
@@ -48,7 +50,7 @@ export class TagsExplorerPanel extends Component {
 	private sortDir: 'asc' | 'desc' = 'asc';
 	private sortChildLevel = false;
 	private nodeTypeFilter: string | null = null;
-	private viewMode: 'tree' | 'grid' = 'tree';
+	private viewMode: 'tree' | 'grid' | 'table' = 'tree';
 	private visibleCells = new Set<string>(['icon', 'text', 'count', 'nested']);
 	private onExpansionChange?: () => void;
 
@@ -120,6 +122,7 @@ export class TagsExplorerPanel extends Component {
 		this.plugin.filterService.off('changed', this._handleStateChange);
 		this.plugin.queueService.off('changed', this._handleStateChange);
 		this.view.destroy();
+		this.tableView?.destroy();
 		super.onunload();
 	}
 
@@ -160,13 +163,20 @@ export class TagsExplorerPanel extends Component {
 		this._render();
 	}
 
-	setViewMode(mode: 'tree' | 'grid'): void {
+	setViewMode(mode: 'tree' | 'grid' | 'table'): void {
 		if (this.viewMode === mode) return;
 		this.viewMode = mode;
 		if (mode === 'tree') {
+			this.tableView?.destroy();
 			this.view.destroy();
 			this.containerEl.empty();
 			this.view = new UnifiedTreeView(this.containerEl);
+		} else {
+			this.view.destroy();
+			if (mode === 'grid') {
+				this.tableView?.destroy();
+				this.containerEl.empty();
+			}
 		}
 		this._render();
 	}
@@ -346,6 +356,44 @@ export class TagsExplorerPanel extends Component {
 
 		if (this.viewMode === 'grid') {
 			this._renderGrid(nodesWithIcons, activeFilterIds, highlightIds);
+			return;
+		}
+
+		if (this.viewMode === 'table') {
+			if (!this.tableView) {
+				this.tableView = new NodeTableView<TagMeta>(this.containerEl);
+			}
+			this.tableView.render({
+				surface: 'tags',
+				nodes: nodesWithIcons,
+				expandedIds: this.expandedIds,
+				visibleCells: this.visibleCells,
+				activeFilterIds,
+				searchHighlightIds: highlightIds,
+				onToggle: (id: string) => {
+					if (this.expandedIds.has(id)) this.expandedIds.delete(id);
+					else this.expandedIds.add(id);
+					this._notifyExpansionChanged();
+					void this._render();
+				},
+				onRowClick: (id: string) => {
+					const node = this._findNode(id, tree);
+					if (!node) return;
+					this._handleNodeClick(node);
+				},
+				onContextMenu: (id: string, event: MouseEvent) => {
+					const node = this._findNode(id, tree);
+					if (!node) return;
+					this.plugin.contextMenuService.openPanelMenu(
+						{ nodeType: 'tag', node, surface: 'panel' },
+						event,
+					);
+				},
+				onBadgeDoubleClick: (queueIndex: number) => {
+					this.plugin.queueService.remove(queueIndex);
+					void this._render();
+				},
+			});
 			return;
 		}
 
@@ -559,6 +607,7 @@ export class TagsExplorerPanel extends Component {
 
 	private _renderEmptyState(): void {
 		this.view.destroy();
+		this.tableView?.destroy();
 		this.containerEl.empty();
 		const emptyEl = this.containerEl.createDiv({
 			cls: 'vaultman-explorer-empty-landing',

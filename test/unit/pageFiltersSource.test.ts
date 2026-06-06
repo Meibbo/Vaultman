@@ -18,12 +18,20 @@ describe('pageFilters tab switching source guard', () => {
 	});
 
 	it('passes each mounted explorer its own tab search state', () => {
-		expect(pageFiltersSource).toContain(
-			'searchTerm={filtersSearchByTab.tags}',
-		);
+		expect(pageFiltersSource).toContain('searchTerm={filtersSearchByTab.tags}');
 		expect(pageFiltersSource).toContain(
 			'searchTerm={filtersSearchByTab.props}',
 		);
 		expect(pageFiltersSource).not.toContain('searchTerm={filtersSearch}');
+	});
+
+	it('marks externally activated tabs as visited so routed statistics cards mount their explorers', () => {
+		expect(pageFiltersSource).toContain('ensureActiveTabVisited');
+		expect(pageFiltersSource).toContain(
+			'ensureActiveTabVisited(filtersActiveTab)',
+		);
+		expect(pageFiltersSource).toContain(
+			"visitedTabs.props || filtersActiveTab === 'props'",
+		);
 	});
 });

@@ -24,16 +24,19 @@ describe('explorer view mode availability', () => {
 		expect(panelViewModeForDataSurface('files', 'table')).toBe('grid');
 	});
 
-	it('keeps Props and Tags grid selectable while generic table remains locked', () => {
+	it('exposes Props and Tags table after the generic node table renderer is available', () => {
 		for (const surface of ['props', 'tags'] as const) {
 			expect(selectableViewModesForDataSurface(surface)).toEqual([
 				'tree',
 				'grid',
+				'table',
 			]);
-			expect(
-				viewModesForDataSurface(surface).find((mode) => mode.id === 'table'),
-			).toMatchObject({ locked: true });
 			expect(panelViewModeForDataSurface(surface, 'grid')).toBe('grid');
+			expect(panelViewModeForDataSurface(surface, 'table')).toBe('table');
+			expect(
+				viewModesForDataSurface(surface).find((mode) => mode.id === 'table')
+					?.locked ?? false,
+			).toBe(false);
 		}
 	});
 

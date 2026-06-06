@@ -408,7 +408,9 @@
 
 	function applyViewMode(tab: FiltersTab, mode: ExplorerViewMode) {
 		const effectiveMode = panelViewModeForDataSurface(tab, mode);
-		if (tab === 'files') fileList?.setViewMode(effectiveMode);
+		if (tab === 'files') {
+			fileList?.setViewMode(effectiveMode === 'grid' ? 'grid' : 'tree');
+		}
 		if (tab === 'props') propExplorer?.setViewMode(effectiveMode);
 		if (tab === 'tags') tagsExplorer?.setViewMode(effectiveMode);
 	}
