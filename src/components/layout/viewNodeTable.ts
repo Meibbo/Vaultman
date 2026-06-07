@@ -1,8 +1,10 @@
 import { setIcon } from 'obsidian';
 import { translate } from '../../i18n/index';
 import {
+	clampNodeTableColumnWidth,
 	resolveNodeTableLayout,
 	type NodeTableColumn,
+	type NodeTableColumnWidths,
 	type NodeTableLayout,
 	type NodeTableSurface,
 } from '../../logic/logicNodeTableLayout';
@@ -20,10 +22,10 @@ export interface NodeTableViewOptions<TMeta = unknown> {
 	searchHighlightIds?: Set<string>;
 	warningIds?: Set<string>;
 	onToggle: (id: string) => void;
-        onRowClick: (id: string) => void;
-        onContextMenu: (id: string, event: MouseEvent) => void;
-        onBadgeDoubleClick?: (queueIndex: number) => void;
-        onDragStart?: (id: string, event: DragEvent) => void;
+	onRowClick: (id: string) => void;
+	onContextMenu: (id: string, event: MouseEvent) => void;
+	onBadgeDoubleClick?: (queueIndex: number) => void;
+	onDragStart?: (id: string, event: DragEvent) => void;
 }
 
 export class NodeTableView<TMeta = unknown> {
@@ -37,6 +39,7 @@ export class NodeTableView<TMeta = unknown> {
 	private rowEls = new Map<string, HTMLElement>();
 	private pendingRaf: number | null = null;
 	private pendingScrollTimer: number | null = null;
+	private columnWidths: NodeTableColumnWidths = {};
 	private readonly rowHeight = 30;
 	private readonly overscan = 12;
 	private readonly onScroll = () => {
@@ -55,7 +58,7 @@ export class NodeTableView<TMeta = unknown> {
 			opts.expandedIds,
 		) as TreeNode<TMeta>[];
 		this._ensureScaffold();
-		const layout = resolveNodeTableLayout(opts.surface, opts.visibleCells);
+		const layout = this.layoutFor(opts);
 		this._renderHeader(layout);
 		this._applyDimensions(layout);
 		this.cancelScheduledRender();
@@ -120,7 +123,8 @@ export class NodeTableView<TMeta = unknown> {
 				cls: 'bases-table-header-name',
 				text: translate(column.labelKey),
 			});
-			header.createDiv({ cls: 'bases-table-header-resizer' });
+			const resizer = header.createDiv({ cls: 'bases-table-header-resizer' });
+			this.attachColumnResizer(resizer, column);
 		}
 		this._syncHeaderScroll();
 	}
@@ -152,6 +156,53 @@ export class NodeTableView<TMeta = unknown> {
 		cell.style.width = `${column.width}px`;
 	}
 
+	private layoutFor(opts: NodeTableViewOptions<TMeta>): NodeTableLayout {
+		return resolveNodeTableLayout(
+			opts.surface,
+			opts.visibleCells,
+			this.columnWidths,
+		);
+	}
+
+	private attachColumnResizer(
+		resizer: HTMLElement,
+		column: NodeTableColumn,
+	): void {
+		resizer.onpointerdown = (event) => {
+			event.preventDefault();
+			event.stopPropagation();
+			if (!this.opts) return;
+			const startX = event.clientX;
+			const startWidth = column.width;
+			const ownerWindow = resizer.ownerDocument.defaultView ?? window;
+			const ownerBody = resizer.ownerDocument.body;
+			ownerBody.classList.add('vaultman-table-resizing');
+
+			const onMove = (moveEvent: PointerEvent) => {
+				if (!this.opts) return;
+				const nextWidth = clampNodeTableColumnWidth(
+					column.id,
+					startWidth + moveEvent.clientX - startX,
+				);
+				if (this.columnWidths[column.id] === nextWidth) return;
+				this.columnWidths = {
+					...this.columnWidths,
+					[column.id]: nextWidth,
+				};
+				const layout = this.layoutFor(this.opts);
+				this._renderHeader(layout);
+				this._applyDimensions(layout);
+				this._renderWindow();
+			};
+			const onUp = () => {
+				ownerWindow.removeEventListener('pointermove', onMove);
+				ownerBody.classList.remove('vaultman-table-resizing');
+			};
+			ownerWindow.addEventListener('pointermove', onMove);
+			ownerWindow.addEventListener('pointerup', onUp, { once: true });
+		};
+	}
+
 	private _renderWindow(): void {
 		if (!this.opts || !this.listEl || !this.tbodyEl) return;
 		const started = performance.now();
@@ -162,10 +213,7 @@ export class NodeTableView<TMeta = unknown> {
 			rowHeight: this.rowHeight,
 			overscan: this.overscan,
 		});
-		const layout = resolveNodeTableLayout(
-			this.opts.surface,
-			this.opts.visibleCells,
-		);
+		const layout = this.layoutFor(this.opts);
 		this._applyDimensions(layout);
 		const visibleIds = new Set(projection.visibleRows.map((row) => row.row.id));
 		this.removeStaleRows(visibleIds);
@@ -277,15 +325,15 @@ export class NodeTableView<TMeta = unknown> {
 			});
 		this.tbodyEl.appendChild(row);
 		this.rowEls.set(node.id, row);
-                row.dataset.id = node.id;
-                row.draggable = Boolean(opts.onDragStart);
-                row.style.top = `${top}px`;
+		row.dataset.id = node.id;
+		row.draggable = Boolean(opts.onDragStart);
+		row.style.top = `${top}px`;
 		row.style.height = `${this.rowHeight}px`;
 		row.style.width = `${layout.totalWidth}px`;
 		row.style.setProperty('--depth', String(node.depth));
-                row.onclick = () => opts.onRowClick(node.id);
-                row.ondragstart = (event) => opts.onDragStart?.(node.id, event);
-                row.onkeydown = (event) => {
+		row.onclick = () => opts.onRowClick(node.id);
+		row.ondragstart = (event) => opts.onDragStart?.(node.id, event);
+		row.onkeydown = (event) => {
 			if (event.key !== 'Enter' && event.key !== ' ') return;
 			event.preventDefault();
 			opts.onRowClick(node.id);

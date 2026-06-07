@@ -8,9 +8,11 @@ import {
 	type ExplorerFileTimes,
 } from '../../logic/logicSort';
 import {
+	clampFileTableColumnWidth,
 	formatFileTableName,
 	resolveFileTableLayout,
 	type FileTableColumn,
+	type FileTableColumnWidths,
 	type FileTableLayout,
 } from '../../logic/logicTableLayout';
 import { vaultmanPerfMonitor } from '../../utils/performanceMonitor';
@@ -20,10 +22,10 @@ export type SortDirection = 'asc' | 'desc';
 
 export interface GridViewCallbacks {
 	getFileTimes?: (file: TFile) => ExplorerFileTimes;
-        onContextMenu: (file: TFile, e: MouseEvent) => void;
-        onSelectionChange: (selected: Set<string>) => void;
-        onFileClick: (file: TFile) => void;
-        onDragStart?: (file: TFile, event: DragEvent) => void;
+	onContextMenu: (file: TFile, e: MouseEvent) => void;
+	onSelectionChange: (selected: Set<string>) => void;
+	onFileClick: (file: TFile) => void;
+	onDragStart?: (file: TFile, event: DragEvent) => void;
 }
 
 export class GridView {
@@ -43,6 +45,8 @@ export class GridView {
 	private rowEls = new Map<string, HTMLElement>();
 	private pendingRaf: number | null = null;
 	private pendingScrollTimer: number | null = null;
+	private totalCount = 0;
+	private columnWidths: FileTableColumnWidths = {};
 	private readonly rowHeight = 30;
 	private readonly overscan = 8;
 	private visibleCells = new Set<string>(['name', 'ext', 'path']);
@@ -64,6 +68,7 @@ export class GridView {
 	render(files: TFile[], totalCount: number): void {
 		this._ensureScaffold();
 		this.displayedFiles = this._sortFiles(files);
+		this.totalCount = totalCount;
 		const layout = this._layout();
 		this._renderHeader(files, totalCount, layout);
 		this._applyTableDimensions(layout);
@@ -89,6 +94,7 @@ export class GridView {
 		this.displayedFiles = [];
 		this.rowEls.clear();
 		this.selectedFiles.clear();
+		this.totalCount = 0;
 	}
 
 	private _ensureScaffold(): void {
@@ -200,7 +206,8 @@ export class GridView {
 			event.preventDefault();
 			updateSort();
 		});
-		header.createDiv({ cls: 'bases-table-header-resizer' });
+		const resizer = header.createDiv({ cls: 'bases-table-header-resizer' });
+		this.attachColumnResizer(resizer, column);
 	}
 
 	setSortColumn(col: SortColumn, dir: SortDirection): void {
@@ -218,7 +225,48 @@ export class GridView {
 
 	private _layout(): FileTableLayout {
 		const dateSortColumn = this.sortColumn === 'ctime' ? 'ctime' : 'mtime';
-		return resolveFileTableLayout(this.visibleCells, dateSortColumn);
+		return resolveFileTableLayout(
+			this.visibleCells,
+			dateSortColumn,
+			this.columnWidths,
+		);
+	}
+
+	private attachColumnResizer(
+		resizer: HTMLElement,
+		column: FileTableColumn,
+	): void {
+		resizer.onpointerdown = (event) => {
+			event.preventDefault();
+			event.stopPropagation();
+			const startX = event.clientX;
+			const startWidth = column.width;
+			const ownerWindow = resizer.ownerDocument.defaultView ?? window;
+			const ownerBody = resizer.ownerDocument.body;
+			ownerBody.classList.add('vaultman-table-resizing');
+
+			const onMove = (moveEvent: PointerEvent) => {
+				const nextWidth = clampFileTableColumnWidth(
+					column.id,
+					startWidth + moveEvent.clientX - startX,
+				);
+				if (this.columnWidths[column.id] === nextWidth) return;
+				this.columnWidths = {
+					...this.columnWidths,
+					[column.id]: nextWidth,
+				};
+				const layout = this._layout();
+				this._renderHeader(this.displayedFiles, this.totalCount, layout);
+				this._applyTableDimensions(layout);
+				this._renderWindow();
+			};
+			const onUp = () => {
+				ownerWindow.removeEventListener('pointermove', onMove);
+				ownerBody.classList.remove('vaultman-table-resizing');
+			};
+			ownerWindow.addEventListener('pointermove', onMove);
+			ownerWindow.addEventListener('pointerup', onUp, { once: true });
+		};
 	}
 
 	private _applyTableDimensions(layout: FileTableLayout): void {
@@ -356,16 +404,16 @@ export class GridView {
 			});
 		parent.appendChild(row);
 		this.rowEls.set(file.path, row);
-                row.dataset.path = file.path;
-                row.draggable = Boolean(this.callbacks.onDragStart);
-                row.style.top = `${top}px`;
+		row.dataset.path = file.path;
+		row.draggable = Boolean(this.callbacks.onDragStart);
+		row.style.top = `${top}px`;
 		row.style.height = `${this.rowHeight}px`;
 		row.style.width = `${layout.totalWidth}px`;
-                row.oncontextmenu = (event) => {
-                        event.preventDefault();
-                        this.callbacks.onContextMenu(file, event);
-                };
-                row.ondragstart = (event) => this.callbacks.onDragStart?.(file, event);
+		row.oncontextmenu = (event) => {
+			event.preventDefault();
+			this.callbacks.onContextMenu(file, event);
+		};
+		row.ondragstart = (event) => this.callbacks.onDragStart?.(file, event);
 		if (row.dataset.renderSignature === signature) {
 			return;
 		}
@@ -405,7 +453,6 @@ export class GridView {
 				);
 			}
 		}
-
 	}
 
 	private _renderIconCell(
@@ -436,11 +483,11 @@ export class GridView {
 			cls: 'bases-table-cell bases-rendered-value markdown-rendered internal-link vaultman-file-name',
 			text: formatFileTableName(file),
 		});
-                nameEl.dataset.href = file.path;
-                nameEl.draggable = true;
-                nameEl.addEventListener('dragstart', (event) =>
-                        this.callbacks.onDragStart?.(file, event),
-                );
+		nameEl.dataset.href = file.path;
+		nameEl.draggable = true;
+		nameEl.addEventListener('dragstart', (event) =>
+			this.callbacks.onDragStart?.(file, event),
+		);
 		if (file.path === this.activePath) {
 			for (const className of [
 				'tree-item-self',

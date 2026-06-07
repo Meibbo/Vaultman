@@ -36,6 +36,15 @@ describe('NodeTableView source guards', () => {
 		expect(nodeTableSource).toContain(
 			'row.dataset.renderSignature === signature',
 		);
-		expect(nodeTableSource).toContain('row.dataset.renderSignature = signature');
+		expect(nodeTableSource).toContain(
+			'row.dataset.renderSignature = signature',
+		);
+	});
+
+	it('wires Bases-style header resizers into node table column widths', () => {
+		expect(nodeTableSource).toContain('private columnWidths');
+		expect(nodeTableSource).toContain('attachColumnResizer');
+		expect(nodeTableSource).toContain('clampNodeTableColumnWidth');
+		expect(nodeTableSource).toContain('onpointerdown');
 	});
 });

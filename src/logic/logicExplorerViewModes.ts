@@ -49,7 +49,7 @@ export function viewModesForDataSurface(
 		return [
 			VIEW_MODE_DEFS.tree,
 			VIEW_MODE_DEFS.table,
-			{ ...VIEW_MODE_DEFS.grid, locked: true },
+			VIEW_MODE_DEFS.grid,
 			VIEW_MODE_DEFS.dnd,
 			VIEW_MODE_DEFS.cards,
 		];
@@ -83,7 +83,8 @@ export function panelViewModeForDataSurface(
 	mode: ExplorerViewMode,
 ): PanelViewMode {
 	if (!isViewModeSelectableForDataSurface(surface, mode)) return 'tree';
-	if (surface === 'files' && mode === 'table') return 'grid';
+	if (surface === 'files' && mode === 'table') return 'table';
+	if (surface === 'files' && mode === 'grid') return 'grid';
 	if ((surface === 'props' || surface === 'tags') && mode === 'grid')
 		return 'grid';
 	if ((surface === 'props' || surface === 'tags') && mode === 'table')

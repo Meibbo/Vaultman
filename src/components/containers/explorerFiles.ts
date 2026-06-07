@@ -2,7 +2,8 @@
 import { Component, Notice, type TFile, type TFolder } from 'obsidian';
 import type { VaultmanPlugin } from '../../main';
 import { FilesLogic } from '../../logic/logicsFiles';
-import { GridView } from '../layout/viewGrid';
+import { FilesGridView } from '../layout/viewFilesGrid';
+import { GridView as FilesTableView } from '../layout/viewGrid';
 import { UnifiedTreeView } from '../layout/viewTree';
 import type { TreeNode, FileMeta, NodeBadge } from '../../types/typeTree';
 import type { MenuCtx } from '../../types/typeCMenu';
@@ -23,7 +24,7 @@ import {
 	withActiveFilterDragSelection,
 } from '../../utils/dragPayload';
 
-export type FilesViewMode = 'grid' | 'tree';
+export type FilesViewMode = 'grid' | 'table' | 'tree';
 
 function sameStringSet(a: Set<string>, b: Set<string>): boolean {
 	if (a.size !== b.size) return false;
@@ -37,7 +38,8 @@ export class FilesExplorerPanel extends Component {
 	private containerEl: HTMLElement;
 	private plugin: VaultmanPlugin;
 	private logic: FilesLogic;
-	private gridView: GridView | null = null;
+	private tableView: FilesTableView | null = null;
+	private gridView: FilesGridView | null = null;
 	private treeView: UnifiedTreeView | null = null;
 	private expandedIds = new Set<string>();
 	private viewMode: FilesViewMode = 'tree';
@@ -243,6 +245,7 @@ export class FilesExplorerPanel extends Component {
 			window.clearTimeout(this.refreshTimer);
 			this.refreshTimer = null;
 		}
+		this.tableView?.destroy();
 		this.gridView?.destroy();
 		this.treeView?.destroy();
 		super.onunload();
@@ -262,6 +265,7 @@ export class FilesExplorerPanel extends Component {
 	setVisibleCells(cells: Set<string>): void {
 		if (sameStringSet(this.visibleCells, cells)) return;
 		this.visibleCells = new Set(cells);
+		this.tableView?.setVisibleCells(this.visibleCells);
 		this.gridView?.setVisibleCells(this.visibleCells);
 		this._render();
 	}
@@ -279,7 +283,7 @@ export class FilesExplorerPanel extends Component {
 		if (this.sortBy === normalizedSortBy && this.sortDir === direction) return;
 		this.sortBy = normalizedSortBy;
 		this.sortDir = direction;
-		if (this.viewMode === 'grid' && this.gridView) {
+		if (this.viewMode === 'table' && this.tableView) {
 			const COL_MAP: Record<string, import('../layout/viewGrid').SortColumn> = {
 				name: 'name',
 				count: 'props',
@@ -288,7 +292,7 @@ export class FilesExplorerPanel extends Component {
 				ctime: 'ctime',
 				path: 'path',
 			};
-			this.gridView.setSortColumn(
+			this.tableView.setSortColumn(
 				COL_MAP[normalizedSortBy] ?? 'name',
 				direction,
 			);
@@ -353,6 +357,10 @@ export class FilesExplorerPanel extends Component {
 		this._notifyExpansionChanged();
 		this._render();
 		window.requestAnimationFrame(() => {
+			if (this.viewMode === 'table') {
+				this.tableView?.scrollToPath(file.path);
+				return;
+			}
 			if (this.viewMode === 'grid') {
 				this.gridView?.scrollToPath(file.path);
 				return;
@@ -370,74 +378,31 @@ export class FilesExplorerPanel extends Component {
 	}
 
 	private _mountView(): void {
+		this.tableView?.destroy();
 		this.gridView?.destroy();
 		this.treeView?.destroy();
 		this.containerEl.empty();
+		this.tableView = null;
 		this.gridView = null;
 		this.treeView = null;
-		if (this.viewMode === 'grid') {
-			this.gridView = new GridView(this.containerEl, this.plugin.app, {
+		if (this.viewMode === 'table') {
+			this.tableView = new FilesTableView(this.containerEl, this.plugin.app, {
 				getFileTimes: (file: TFile) =>
 					this.plugin.statisticsCache.getFileTimes(file),
-				onContextMenu: (file: TFile, e: MouseEvent) => {
-					const syntheticNode = {
-						id: file.path,
-						label: file.name,
-						meta: {
-							file,
-							isFolder: false,
-							folderPath: file.parent?.path ?? '',
-						} as FileMeta,
-						icon: '',
-						depth: 0,
-					};
-					this.plugin.contextMenuService.openPanelMenu(
-						{ nodeType: 'file', node: syntheticNode, surface: 'panel', file },
-						e,
-					);
-				},
+				onContextMenu: (file: TFile, e: MouseEvent) =>
+					this._openFileContextMenu(file, e),
 				onSelectionChange: (selected: Set<string>) => {
 					this.plugin.filterService.setSelectedFiles(
-						this.gridView?.getSelectedFiles() ?? [],
+						this.tableView?.getSelectedFiles() ?? [],
 					);
 					if (this.onSelectionChange) this.onSelectionChange(selected.size);
 				},
-				onFileClick: (file: TFile) => {
-					if (this.addMode) {
-						const selected = this.getSelectedFiles();
-						const targets =
-							selected.length > 0
-								? selected.includes(file)
-									? selected
-									: [...selected, file]
-								: [file];
-						new PropertyManagerModal(
-							this.plugin.app,
-							this.plugin.propertyIndex,
-							targets,
-							(change) => this.plugin.queueService.addOrRun(change),
-						).open();
-						return;
-					}
-					void this.plugin.app.workspace.openLinkText(file.path, '', false);
-				},
-				onDragStart: (file: TFile, event: DragEvent) => {
-					setVaultmanDragPayload(
-						event,
-						withActiveFilterDragSelection(
-							{
-								kind: 'file',
-								path: file.path,
-							},
-							this.plugin.filterService.activeFilter,
-							'files',
-						),
-					);
-				},
+				onFileClick: (file: TFile) => this._handleFileClick(file),
+				onDragStart: (file: TFile, event: DragEvent) =>
+					this._setFileDragPayload(file, event),
 			});
-			this.gridView.setVisibleCells(this.visibleCells);
-			this.gridView.setActivePath(this.activeRevealPath);
-			// Sync current sort state to grid on mount
+			this.tableView.setVisibleCells(this.visibleCells);
+			this.tableView.setActivePath(this.activeRevealPath);
 			const COL_MAP: Record<string, import('../layout/viewGrid').SortColumn> = {
 				name: 'name',
 				count: 'props',
@@ -446,7 +411,28 @@ export class FilesExplorerPanel extends Component {
 				ctime: 'ctime',
 				path: 'path',
 			};
-			this.gridView.setSortColumn(COL_MAP[this.sortBy] ?? 'name', this.sortDir);
+			this.tableView.setSortColumn(
+				COL_MAP[this.sortBy] ?? 'name',
+				this.sortDir,
+			);
+		} else if (this.viewMode === 'grid') {
+			this.gridView = new FilesGridView(this.containerEl, {
+				onContextMenu: (file: TFile, e: MouseEvent) =>
+					this._openFileContextMenu(file, e),
+				onSelectionChange: (selected: Set<string>) => {
+					this.plugin.filterService.setSelectedFiles(
+						this.gridView?.getSelectedFiles() ?? [],
+					);
+					if (this.onSelectionChange) this.onSelectionChange(selected.size);
+				},
+				onFileClick: (file: TFile) => this._handleFileClick(file),
+				onDragStart: (file: TFile, event: DragEvent) =>
+					this._setFileDragPayload(file, event),
+				getBadges: (file: TFile) => this._badgesForFile(file),
+				getPropCount: (file: TFile) => this._propCountForFile(file),
+			});
+			this.gridView.setVisibleCells(this.visibleCells);
+			this.gridView.setActivePath(this.activeRevealPath);
 		} else {
 			this.treeView = new UnifiedTreeView(this.containerEl);
 		}
@@ -455,12 +441,67 @@ export class FilesExplorerPanel extends Component {
 	private _sortFiles(files: TFile[]): TFile[] {
 		return [...files].sort((a, b) =>
 			compareFilesForExplorer(a, b, this.sortBy, this.sortDir, {
-				countForFile: (file) =>
-					Object.keys(
-						this.plugin.app.metadataCache.getFileCache(file)?.frontmatter ?? {},
-					).filter((k) => k !== 'position').length,
+				countForFile: (file) => this._propCountForFile(file),
 				getFileTimes: (file) => this.plugin.statisticsCache.getFileTimes(file),
 			}),
+		);
+	}
+
+	private _propCountForFile(file: TFile): number {
+		return Object.keys(
+			this.plugin.app.metadataCache.getFileCache(file)?.frontmatter ?? {},
+		).filter((key) => key !== 'position').length;
+	}
+
+	private _openFileContextMenu(file: TFile, event: MouseEvent): void {
+		const syntheticNode = {
+			id: file.path,
+			label: file.name,
+			meta: {
+				file,
+				isFolder: false,
+				folderPath: file.parent?.path ?? '',
+			} as FileMeta,
+			icon: '',
+			depth: 0,
+		};
+		this.plugin.contextMenuService.openPanelMenu(
+			{ nodeType: 'file', node: syntheticNode, surface: 'panel', file },
+			event,
+		);
+	}
+
+	private _handleFileClick(file: TFile): void {
+		if (this.addMode) {
+			const selected = this.getSelectedFiles();
+			const targets =
+				selected.length > 0
+					? selected.includes(file)
+						? selected
+						: [...selected, file]
+					: [file];
+			new PropertyManagerModal(
+				this.plugin.app,
+				this.plugin.propertyIndex,
+				targets,
+				(change) => this.plugin.queueService.addOrRun(change),
+			).open();
+			return;
+		}
+		void this.plugin.app.workspace.openLinkText(file.path, '', false);
+	}
+
+	private _setFileDragPayload(file: TFile, event: DragEvent): void {
+		setVaultmanDragPayload(
+			event,
+			withActiveFilterDragSelection(
+				{
+					kind: 'file',
+					path: file.path,
+				},
+				this.plugin.filterService.activeFilter,
+				'files',
+			),
 		);
 	}
 
@@ -469,10 +510,12 @@ export class FilesExplorerPanel extends Component {
 			this._renderEmptyFilteredState();
 			return;
 		}
-		if (this.viewMode === 'grid' && this.gridView) {
-			// Grid owns sorting — pass unsorted; sort state synced via setSortColumn
+		if (this.viewMode === 'table' && this.tableView) {
+			this.tableView.setActivePath(this.activeRevealPath);
+			this.tableView.render(this._currentFiles, this._totalCount);
+		} else if (this.viewMode === 'grid' && this.gridView) {
 			this.gridView.setActivePath(this.activeRevealPath);
-			this.gridView.render(this._currentFiles, this._totalCount);
+			this.gridView.render(this._sortFiles(this._currentFiles));
 		} else if (this.viewMode === 'tree' && this.treeView) {
 			const tree = this.logic.buildFileTree(
 				this._sortFiles(this._currentFiles),
@@ -685,6 +728,7 @@ export class FilesExplorerPanel extends Component {
 		const nextPath = file?.path ?? null;
 		if (this.activeRevealPath === nextPath) return;
 		this.activeRevealPath = nextPath;
+		this.tableView?.setActivePath(nextPath);
 		this.gridView?.setActivePath(nextPath);
 	}
 
@@ -722,7 +766,11 @@ export class FilesExplorerPanel extends Component {
 	}
 
 	getSelectedFiles(): TFile[] {
-		return this.gridView?.getSelectedFiles() ?? [];
+		if (this.viewMode === 'table')
+			return this.tableView?.getSelectedFiles() ?? [];
+		if (this.viewMode === 'grid')
+			return this.gridView?.getSelectedFiles() ?? [];
+		return [];
 	}
 
 	private _shouldShowEmptyFilteredState(): boolean {
@@ -733,6 +781,9 @@ export class FilesExplorerPanel extends Component {
 	}
 
 	private _renderEmptyFilteredState(): void {
+		this.tableView?.destroy();
+		this.gridView?.destroy();
+		this.treeView?.destroy();
 		this.containerEl.empty();
 		const emptyEl = this.containerEl.createDiv({
 			cls: 'vaultman-files-empty-state',

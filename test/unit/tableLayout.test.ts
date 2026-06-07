@@ -59,6 +59,23 @@ describe('file table layout', () => {
 		]);
 	});
 
+	it('applies resizable column overrides while clamping to useful minimum widths', () => {
+		const layout = resolveFileTableLayout(
+			new Set(['name', 'ext', 'path']),
+			'mtime',
+			{ name: 420, ext: 20 },
+		);
+
+		expect(layout.totalWidth).toBe(693);
+		expect(
+			layout.columns.map((column) => [column.id, column.left, column.width]),
+		).toEqual([
+			['name', 0, 420],
+			['ext', 420, 72],
+			['path', 492, 201],
+		]);
+	});
+
 	it('shows Markdown files without extension but keeps non-Markdown extensions visible', () => {
 		expect(
 			formatFileTableName({

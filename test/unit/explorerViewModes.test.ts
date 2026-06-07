@@ -13,15 +13,17 @@ describe('explorer view mode availability', () => {
 		expect(filesModes.map((mode) => [mode.id, mode.locked ?? false])).toEqual([
 			['tree', false],
 			['table', false],
-			['grid', true],
+			['grid', false],
 			['dnd', true],
 			['cards', true],
 		]);
 		expect(selectableViewModesForDataSurface('files')).toEqual([
 			'tree',
 			'table',
+			'grid',
 		]);
-		expect(panelViewModeForDataSurface('files', 'table')).toBe('grid');
+		expect(panelViewModeForDataSurface('files', 'table')).toBe('table');
+		expect(panelViewModeForDataSurface('files', 'grid')).toBe('grid');
 	});
 
 	it('exposes Props and Tags table after the generic node table renderer is available', () => {

@@ -27,6 +27,8 @@ export interface FileTableLayout {
 	totalWidth: number;
 }
 
+export type FileTableColumnWidths = Partial<Record<FileTableColumnId, number>>;
+
 const COLUMN_ORDER: FileTableColumnId[] = [
 	'icon',
 	'name',
@@ -45,16 +47,36 @@ const COLUMN_WIDTHS: Record<FileTableColumnId, number> = {
 	path: 201,
 };
 
+const MIN_COLUMN_WIDTHS: Record<FileTableColumnId, number> = {
+	icon: 34,
+	name: 120,
+	count: 64,
+	ext: 72,
+	date: 120,
+	path: 100,
+};
+
+export function clampFileTableColumnWidth(
+	id: FileTableColumnId,
+	width: number,
+): number {
+	return Math.max(MIN_COLUMN_WIDTHS[id], Math.round(width));
+}
+
 export function resolveFileTableLayout(
 	visibleCells: Set<string>,
 	dateSortColumn: Extract<FileTableSortColumn, 'mtime' | 'ctime'> = 'mtime',
+	columnWidths: FileTableColumnWidths = {},
 ): FileTableLayout {
 	const columns: FileTableColumn[] = [];
 	let left = 0;
 
 	for (const id of COLUMN_ORDER) {
 		if (!visibleCells.has(id)) continue;
-		const width = COLUMN_WIDTHS[id];
+		const width = clampFileTableColumnWidth(
+			id,
+			columnWidths[id] ?? COLUMN_WIDTHS[id],
+		);
 		columns.push({
 			id,
 			left,

@@ -39,7 +39,16 @@ describe('GridView source guards', () => {
 
 	it('skips rebuilding unchanged file table row contents', () => {
 		expect(gridViewSource).toContain('private rowSignature');
-		expect(gridViewSource).toContain('row.dataset.renderSignature === signature');
+		expect(gridViewSource).toContain(
+			'row.dataset.renderSignature === signature',
+		);
 		expect(gridViewSource).toContain('row.dataset.renderSignature = signature');
+	});
+
+	it('wires Bases-style header resizers into file table column widths', () => {
+		expect(gridViewSource).toContain('private columnWidths');
+		expect(gridViewSource).toContain('attachColumnResizer');
+		expect(gridViewSource).toContain('clampFileTableColumnWidth');
+		expect(gridViewSource).toContain('onpointerdown');
 	});
 });

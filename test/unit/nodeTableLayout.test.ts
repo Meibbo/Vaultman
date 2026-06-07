@@ -39,4 +39,21 @@ describe('node table layout', () => {
 			'count',
 		]);
 	});
+
+	it('applies resizable node-table column overrides with minimum widths', () => {
+		const layout = resolveNodeTableLayout(
+			'props',
+			new Set(['icon', 'text', 'count']),
+			{ text: 420, count: 10 },
+		);
+
+		expect(layout.totalWidth).toBe(510);
+		expect(
+			layout.columns.map((column) => [column.id, column.left, column.width]),
+		).toEqual([
+			['icon', 0, 34],
+			['text', 34, 420],
+			['count', 454, 56],
+		]);
+	});
 });
