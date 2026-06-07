@@ -6,7 +6,7 @@ status: in-progress
 issue_kind: AFK
 parent: "[[docs/work/hardening/issues/stable-1-1-data-files-parity/index|Stable 1.1.0 Data/Files parity local issues]]"
 created: 2026-06-06T11:15:23
-updated: 2026-06-07T04:07:46-05:00
+updated: 2026-06-07T06:58:00-05:00
 labels:
   - ready-for-agent
   - needs-research
@@ -72,6 +72,66 @@ view-mode availability, and the still-open table layout work.
 The Statistics card routing is useful independently, but implementing it together with the view-parity
 work keeps the Data surface navigation contract coherent: Statistics becomes a map into the same explorer
 surfaces whose view modes are being normalized.
+
+## Progress - 2026-06-07T06:58:00-05:00
+
+Completed the first recommended follow-up wave after cuts 1-3. SDF-016 remains in progress because the
+newly requested resizable table and fully working Files grid are not part of this completed cut.
+
+- Product change:
+  - `filter-evaluator.ts` now evaluates `all` groups incrementally: each rule receives the candidate
+    files that survived the previous rule instead of scanning the full vault for every child rule.
+  - `filter-evaluator.ts` now caches metadata per file for the duration of a single evaluation, so sibling
+    rules do not repeatedly call `metadataCache.getFileCache(file)` for the same path.
+  - Minimal Data header now mirrors Core plugin DOM structure: `.nav-header > .nav-buttons-container >
+    .clickable-icon.nav-action-button`. The previous structure placed `nav-buttons-container` on the
+    Vaultman header itself, which could bypass theme rules such as Baseline's hover reveal behavior.
+  - Minimal Data header no longer emits native `title` attributes on icon buttons; Obsidian-style
+    `aria-label` remains.
+  - When dock is disabled, the Data Tabs menu now lists `Files`, `Props`, `Tags`, `Content`, then
+    `Statistics`, `Active filters`, and `Queue`.
+  - Panel context menus now include `Clean selection` when active filters exist; it clears active filters.
+  - DnD payloads now use active filters as the temporary multi-selection model. Dragging an active
+    filtered node in Files/Props/Tags includes the matching same-surface active filters in
+    `payload.selection`; dragging an unfiltered node remains a single-node payload.
+- Tests/source guards:
+  - `test/unit/filterEvaluator.test.ts` now proves `all` groups narrow candidates and perform no more than
+    one metadata read per file during a multi-rule evaluation.
+  - `test/unit/dragPayload.test.ts` covers active-filter-derived DnD selections.
+  - `test/unit/contextMenuSource.test.ts` guards the global `filters.clear-selection` cmenu action.
+  - `test/unit/navbarFiltersSource.test.ts` guards the Core-like `nav-header` / `nav-buttons-container`
+    structure.
+  - `test/unit/pageFiltersSource.test.ts` guards the dock-off Statistics action in the Data Tabs menu.
+- Verification:
+  - RED confirmed the old evaluator performed `300` metadata reads for `100` files and `3` `all` rules.
+  - Focused unit gate passed: `5` files / `15` tests.
+  - Svelte MCP CLI autofixer on `navbarFilters.svelte`, `pageFilters.svelte`, and `VaultmanFrame.svelte`
+    reported no `issues`; it emitted only broad existing suggestions about `$effect`, `bind:this`,
+    `Set`, and `Map`, then timed out after printing suggestions.
+  - `pnpm run check` passed with `svelte-check` `0` errors / `0` warnings.
+  - `pnpm run test:unit` passed: `36` files / `125` tests.
+  - `pnpm run test:scorecard` passed: `17` checks.
+  - `pnpm run build` passed and synced artifacts to
+    `C:/Users/vic_A/Desktop/plugin-dev/.obsidian/plugins/vaultman`.
+  - `pnpm run format:check` and `pnpm run stylelint` passed.
+  - Targeted ESLint over touched TS/test files passed. Full `pnpm run lint` / `eslint .` timed out without
+    emitting diagnostics; treat this as an environment/tooling timeout to re-check in the next gate, not
+    as a clean full-lint pass.
+  - `plugin-dev` reload/open passed and final `dev:errors` returned `No errors captured`.
+  - Runtime DOM smoke confirmed `vaultman-filters-header vaultman-filters-header--minimal nav-header`,
+    a direct child `.nav-buttons-container`, no `title` attributes on header icon buttons, and Tabs menu
+    items `Files`, `Props`, `Tags`, `Content`, `Statistics`, `Active filters`, `Queue`.
+  - Runtime perf smoke before this cut reproduced `filter.applyFilters` pikes of `152.5ms`, `143.5ms`,
+    `190.0ms`, `229.0ms`, `270.5ms`, `369.4ms`, `456.4ms`, and `490.2ms` over `8` sequential Props
+    filter clicks.
+  - Runtime perf smoke after this cut removed the large `300-490ms` pikes, but the sequence still measured
+    around `70-113ms` per filter apply and about `12fps` during the burst. Remaining work should use a
+    property/tag index or a deliberate filter-apply batching model; this cut improves the worst pikes but
+    does not fully solve rapid-click FPS.
+- Next SDF-016 subcut requested by dev:
+  - Add resizable table columns.
+  - Make Files grid view fully working before exposing it as a normal Files view.
+  - Continue the remaining filter performance work with indexed rule evaluation or batching.
 
 ## Progress - 2026-06-07T04:07:46-05:00
 

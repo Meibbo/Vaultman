@@ -5,7 +5,7 @@ status: active
 parent: "[[docs/work/pkm-ai/index|pkm-ai]]"
 archive_source: docs/archive/pkm-ai/active-docs/2026-05-11T080321-current-handoff.md
 created: 2026-05-04T01:36:20
-updated: 2026-06-07T04:07:46-05:00
+updated: 2026-06-07T06:58:00-05:00
 tags:
   - agent/current
 created_by: dec
@@ -16,6 +16,23 @@ updated_by: codex-gpt-5
 
 Compact handoff after archiving the oversized current handoff:
 [[docs/archive/pkm-ai/active-docs/2026-05-11T080321-current-handoff|2026-05-11 handoff archive]].
+
+## NEXT AGENT START HERE — SDF-016 follow-up wave complete (2026-06-07)
+
+Stable `1.1.0` Data/Files parity
+[[docs/work/hardening/issues/stable-1-1-data-files-parity/016-explorer-view-parity-and-stat-card-routing|SDF-016]]
+remains in progress in product worktree `hotfix/1.0.2-css-scorecard`. This wave completed the
+recommended first follow-up after cuts 1-3: `all` filter groups now narrow candidate files and cache
+metadata per evaluation; minimal Data header now uses Core-like `nav-header > nav-buttons-container >
+clickable-icon.nav-action-button`; dock-off Tabs menu includes `Statistics`; node panel context menus
+show `Clean selection` when active filters exist; and DnD payloads use same-surface active filters as a
+temporary multi-selection model. Evidence: focused RED/GREEN, focused unit `5` files / `15` tests,
+`pnpm run check`, full unit `36` files / `125` tests, scorecard `17`, format check, stylelint, targeted
+ESLint over touched files, build synced to `plugin-dev`, reload/open, DOM smoke, and final `dev:errors`
+clean. Caveat: full `pnpm run lint` / `eslint .` timed out without diagnostics. Perf pikes improved from
+up to `490.2ms` to roughly `70-113ms` per apply, but rapid Props clicks still dropped to about `12fps`;
+next subcut should use property/tag indexes or batching. Newly requested SDF-016 work still pending:
+resizable table columns and a fully working Files grid view.
 
 ## NEXT AGENT START HERE — SDF-016 cuts 1-3 complete (2026-06-07)
 

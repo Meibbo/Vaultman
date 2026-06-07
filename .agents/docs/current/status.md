@@ -5,7 +5,7 @@ status: active
 parent: "[[docs/work/pkm-ai/index|pkm-ai]]"
 archive_source: docs/archive/pkm-ai/active-docs/2026-05-11T080321-current-status.md
 created: 2026-05-04T01:36:20
-updated: 2026-06-07T04:07:46-05:00
+updated: 2026-06-07T06:58:00-05:00
 tags:
   - agent/current
 created_by: dec
@@ -29,6 +29,19 @@ Compact route index after archiving the oversized current status:
 ## Current Route
 
 - Active initiative: [[docs/work/hardening/index|Hardening]].
+- **LATEST (2026-06-07)**: Stable `1.1.0` Data/Files parity
+  [[docs/work/hardening/issues/stable-1-1-data-files-parity/016-explorer-view-parity-and-stat-card-routing|SDF-016]]
+  completed the first recommended follow-up after cuts 1-3 in product worktree
+  `hotfix/1.0.2-css-scorecard`: `all` filter groups now narrow candidates and cache metadata per
+  evaluation; minimal Data header now matches Core `nav-header > nav-buttons-container >
+  clickable-icon.nav-action-button`; dock-off Tabs menu now includes `Statistics`; panel cmenu has
+  `Clean selection`; DnD payloads can include same-surface active filters as temporary multi-selection.
+  Verification: focused RED/GREEN, focused unit `5` files / `15` tests, `pnpm run check`, full unit `36`
+  files / `125` tests, scorecard `17`, format check, stylelint, targeted ESLint, build synced to
+  `plugin-dev`, reload/open, DOM smoke, final `dev:errors` clean. Full `pnpm run lint`/`eslint .` timed
+  out without diagnostics. Perf improved from `filter.applyFilters` pikes up to `490.2ms` to roughly
+  `70-113ms`, but burst FPS still dropped to about `12fps`; next subcut should add indexed/batched filter
+  evaluation plus the newly requested resizable table and working Files grid.
 - **LATEST (2026-06-07)**: Stable `1.1.0` Data/Files parity
   [[docs/work/hardening/issues/stable-1-1-data-files-parity/016-explorer-view-parity-and-stat-card-routing|SDF-016]]
   completed cuts 1-3 in product worktree `hotfix/1.0.2-css-scorecard`: dock defaults off with
