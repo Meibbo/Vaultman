@@ -736,6 +736,7 @@
 							onClearFilters={clearActiveFilters}
 							onOpenQueue={openQueueLauncher}
 							onClearQueue={clearQueueQuick}
+							onOpenStatistics={() => navigateTo('statistics')}
 							{addOpCount}
 							expansionRevision={filterRuleCount + filteredCount}
 							{icon}

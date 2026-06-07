@@ -19,6 +19,21 @@ export function evalNode(
 	universe: TFile[],
 	getMeta: MetadataGetter,
 ): Set<string> {
+	const metaCache = new Map<string, CachedMetadata | null>();
+	const getCachedMeta = (file: TFile): CachedMetadata | null => {
+		if (!metaCache.has(file.path)) {
+			metaCache.set(file.path, getMeta(file));
+		}
+		return metaCache.get(file.path) ?? null;
+	};
+	return evalNodeInternal(node, universe, getCachedMeta);
+}
+
+function evalNodeInternal(
+	node: FilterNode,
+	universe: TFile[],
+	getMeta: MetadataGetter,
+): Set<string> {
 	if (node.enabled === false) return new Set();
 	if (node.type === 'rule') {
 		return matchRule(node, universe, getMeta);
@@ -40,20 +55,21 @@ function matchGroup(
 		return group.logic === 'any' ? new Set() : new Set(universePaths);
 	}
 
-	const childResults = activeChildren.map((child) =>
-		evalNode(child, universe, getMeta),
-	);
-
 	switch (group.logic) {
 		case 'all': {
-			// Intersection of all children
-			let result = new Set(childResults[0]);
-			for (let i = 1; i < childResults.length; i++) {
-				result = setIntersection(result, childResults[i]);
+			let candidates = universe;
+			let result = new Set<string>();
+			for (const child of activeChildren) {
+				result = evalNodeInternal(child, candidates, getMeta);
+				if (result.size === 0) return result;
+				candidates = candidates.filter((file) => result.has(file.path));
 			}
 			return result;
 		}
 		case 'any': {
+			const childResults = activeChildren.map((child) =>
+				evalNodeInternal(child, universe, getMeta),
+			);
 			// Union of all children
 			let result = new Set<string>();
 			for (const cr of childResults) {
@@ -62,6 +78,9 @@ function matchGroup(
 			return result;
 		}
 		case 'none': {
+			const childResults = activeChildren.map((child) =>
+				evalNodeInternal(child, universe, getMeta),
+			);
 			// Universe minus union of all children
 			let union = new Set<string>();
 			for (const cr of childResults) {
@@ -175,14 +194,6 @@ function matchValue(val: unknown, target: string): boolean {
 }
 
 // --- Set utilities ---
-
-function setIntersection<T>(a: Set<T>, b: Set<T>): Set<T> {
-	const result = new Set<T>();
-	for (const item of a) {
-		if (b.has(item)) result.add(item);
-	}
-	return result;
-}
 
 function setUnion<T>(a: Set<T>, b: Set<T>): Set<T> {
 	const result = new Set(a);

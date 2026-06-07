@@ -22,7 +22,7 @@
 	type FiltersTab = 'files' | 'props' | 'tags' | 'content';
 	type SearchTab = 'props' | 'files' | 'tags';
 	type HeaderMenuAction = {
-		id: 'filters' | 'queue';
+		id: 'filters' | 'queue' | 'statistics';
 		label: string;
 		icon: string;
 		count?: number;
@@ -50,6 +50,7 @@
 		onClearFilters,
 		onOpenQueue,
 		onClearQueue,
+		onOpenStatistics,
 		addOpCount = 0,
 		expansionRevision = 0,
 		icon,
@@ -71,6 +72,7 @@
 		onClearFilters?: () => void;
 		onOpenQueue?: () => void;
 		onClearQueue?: () => void;
+		onOpenStatistics?: () => void;
 		addOpCount?: number;
 		expansionRevision?: number;
 		icon: (el: HTMLElement, name: string) => any;
@@ -144,6 +146,12 @@
 		void settingsRevision;
 		if (showDock) return [];
 		return [
+			{
+				id: 'statistics',
+				label: translate('nav.statistics'),
+				icon: 'lucide-chart-column',
+				onClick: () => onOpenStatistics?.(),
+			},
 			{
 				id: 'filters',
 				label: translate('filters.active'),

@@ -31,7 +31,10 @@ import {
 } from '../../logic/propTypes';
 import { normalizeExplorerSortBy } from '../../logic/logicSort';
 import { flattenTreeToPathLabels } from '../../logic/logicExplorerHierarchy';
-import { setVaultmanDragPayload } from '../../utils/dragPayload';
+import {
+	setVaultmanDragPayload,
+	withActiveFilterDragSelection,
+} from '../../utils/dragPayload';
 
 type DateSortId = 'mtime' | 'ctime';
 type PropTimeIndex = {
@@ -491,38 +494,52 @@ export class PropsExplorerPanel extends Component {
 		}
 	}
 
-        private _openNodeMenu(node: TreeNode<PropMeta>, e: MouseEvent): void {
-                const nodeType: 'prop' | 'value' = node.meta.isValueNode ? 'value' : 'prop';
-                this.plugin.contextMenuService.openPanelMenu(
-                        { nodeType, node, surface: 'panel' },
-                        e,
-                );
-        }
+	private _openNodeMenu(node: TreeNode<PropMeta>, e: MouseEvent): void {
+		const nodeType: 'prop' | 'value' = node.meta.isValueNode ? 'value' : 'prop';
+		this.plugin.contextMenuService.openPanelMenu(
+			{ nodeType, node, surface: 'panel' },
+			e,
+		);
+	}
 
-        private _setPropDragPayload(
-                node: TreeNode<PropMeta>,
-                activeFilterIds: Set<string>,
-                event: DragEvent,
-        ): void {
-                const meta = node.meta;
-                if (!meta.isValueNode) {
-                        setVaultmanDragPayload(event, {
-                                kind: 'property',
-                                property: meta.propName,
-                        });
-                        return;
-                }
-                setVaultmanDragPayload(event, {
-                        kind: 'property-value',
-                        property: meta.propName,
-                        value: meta.rawValue ?? '',
-                        mode: activeFilterIds.has(meta.propName)
-                                ? 'value-only'
-                                : 'property-value',
-                });
-        }
+	private _setPropDragPayload(
+		node: TreeNode<PropMeta>,
+		activeFilterIds: Set<string>,
+		event: DragEvent,
+	): void {
+		const meta = node.meta;
+		if (!meta.isValueNode) {
+			setVaultmanDragPayload(
+				event,
+				withActiveFilterDragSelection(
+					{
+						kind: 'property',
+						property: meta.propName,
+					},
+					this.plugin.filterService.activeFilter,
+					'props',
+				),
+			);
+			return;
+		}
+		setVaultmanDragPayload(
+			event,
+			withActiveFilterDragSelection(
+				{
+					kind: 'property-value',
+					property: meta.propName,
+					value: meta.rawValue ?? '',
+					mode: activeFilterIds.has(meta.propName)
+						? 'value-only'
+						: 'property-value',
+				},
+				this.plugin.filterService.activeFilter,
+				'props',
+			),
+		);
+	}
 
-        private _renderGridBadges(
+	private _renderGridBadges(
 		parent: HTMLElement,
 		node: TreeNode<PropMeta>,
 	): void {
@@ -626,17 +643,17 @@ export class PropsExplorerPanel extends Component {
 					if (!node) return;
 					this._handleNodeClick(node, activeFilterIds);
 				},
-                                onContextMenu: (id: string, event: MouseEvent) => {
-                                        const node = this._findNode(id, tree);
-                                        if (!node) return;
-                                        this._openNodeMenu(node, event);
-                                },
-                                onDragStart: (id: string, event: DragEvent) => {
-                                        const node = this._findNode(id, tree);
-                                        if (!node) return;
-                                        this._setPropDragPayload(node, activeFilterIds, event);
-                                },
-                                onBadgeDoubleClick: (queueIndex: number) => {
+				onContextMenu: (id: string, event: MouseEvent) => {
+					const node = this._findNode(id, tree);
+					if (!node) return;
+					this._openNodeMenu(node, event);
+				},
+				onDragStart: (id: string, event: DragEvent) => {
+					const node = this._findNode(id, tree);
+					if (!node) return;
+					this._setPropDragPayload(node, activeFilterIds, event);
+				},
+				onBadgeDoubleClick: (queueIndex: number) => {
 					this.plugin.queueService.remove(queueIndex);
 					void this._render();
 				},
@@ -662,17 +679,17 @@ export class PropsExplorerPanel extends Component {
 				if (!node) return;
 				this._handleNodeClick(node, activeFilterIds);
 			},
-                        onContextMenu: (id: string, e: MouseEvent) => {
-                                const node = this._findNode(id, tree);
-                                if (!node) return;
-                                this._openNodeMenu(node, e);
-                        },
-                        onDragStart: (id: string, event: DragEvent) => {
-                                const node = this._findNode(id, tree);
-                                if (!node) return;
-                                this._setPropDragPayload(node, activeFilterIds, event);
-                        },
-                        onBadgeDoubleClick: (queueIndex: number) => {
+			onContextMenu: (id: string, e: MouseEvent) => {
+				const node = this._findNode(id, tree);
+				if (!node) return;
+				this._openNodeMenu(node, e);
+			},
+			onDragStart: (id: string, event: DragEvent) => {
+				const node = this._findNode(id, tree);
+				if (!node) return;
+				this._setPropDragPayload(node, activeFilterIds, event);
+			},
+			onBadgeDoubleClick: (queueIndex: number) => {
 				this.plugin.queueService.remove(queueIndex);
 				void this._render();
 			},
@@ -882,11 +899,11 @@ export class PropsExplorerPanel extends Component {
 				for (const c of node.cls.trim().split(/\s+/)) card.addClass(c);
 			}
 			card.toggleClass('is-active-filter', activeFilterIds.has(node.id));
-                        card.toggleClass('vaultman-badge-warning', warningIds.has(node.id));
-                        card.toggleClass('vaultman-search-highlight', highlightIds.has(node.id));
-                        card.setAttribute('role', 'button');
-                        card.draggable = true;
-                        card.setAttribute('tabindex', '0');
+			card.toggleClass('vaultman-badge-warning', warningIds.has(node.id));
+			card.toggleClass('vaultman-search-highlight', highlightIds.has(node.id));
+			card.setAttribute('role', 'button');
+			card.draggable = true;
+			card.setAttribute('tabindex', '0');
 			card.setAttribute('aria-label', node.label);
 
 			if (this.visibleCells.has('icon')) {
@@ -904,13 +921,13 @@ export class PropsExplorerPanel extends Component {
 			}
 			this._renderGridBadges(card, node);
 
-                        card.addEventListener('click', () =>
-                                this._handleNodeClick(node, activeFilterIds),
-                        );
-                        card.addEventListener('dragstart', (event) =>
-                                this._setPropDragPayload(node, activeFilterIds, event),
-                        );
-                        card.addEventListener('keydown', (event) => {
+			card.addEventListener('click', () =>
+				this._handleNodeClick(node, activeFilterIds),
+			);
+			card.addEventListener('dragstart', (event) =>
+				this._setPropDragPayload(node, activeFilterIds, event),
+			);
+			card.addEventListener('keydown', (event) => {
 				if (event.key === 'Enter' || event.key === ' ') {
 					event.preventDefault();
 					this._handleNodeClick(node, activeFilterIds);

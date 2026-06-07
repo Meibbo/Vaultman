@@ -34,4 +34,10 @@ describe('pageFilters tab switching source guard', () => {
 			"visitedTabs.props || filtersActiveTab === 'props'",
 		);
 	});
+
+	it('adds Statistics to the dock-off Data tabs menu before Filters and Queue actions', () => {
+		expect(pageFiltersSource).toContain("id: 'statistics'");
+		expect(pageFiltersSource).toContain("label: translate('nav.statistics')");
+		expect(pageFiltersSource).toContain('onOpenStatistics');
+	});
 });

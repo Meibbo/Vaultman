@@ -73,4 +73,53 @@ describe('filter evaluator file rules', () => {
 
 		expect([...result]).toEqual(['Data/Projects.base']);
 	});
+
+	it('narrows all-group candidates after each rule instead of scanning the whole vault per rule', () => {
+		const files = Array.from({ length: 100 }, (_, index) =>
+			makeFile(`Notes/${index}.md`),
+		);
+		let metadataReads = 0;
+
+		const result = evalNode(
+			{
+				type: 'group',
+				logic: 'all',
+				children: [
+					{
+						type: 'rule',
+						filterType: 'has_property',
+						property: 'first',
+						values: [],
+					},
+					{
+						type: 'rule',
+						filterType: 'has_property',
+						property: 'second',
+						values: [],
+					},
+					{
+						type: 'rule',
+						filterType: 'specific_value',
+						property: 'kind',
+						values: ['keep'],
+					},
+				],
+			},
+			files,
+			(file) => {
+				metadataReads += 1;
+				const index = Number(file.basename);
+				return {
+					frontmatter: {
+						...(index < 10 ? { first: true } : {}),
+						...(index < 5 ? { second: true } : {}),
+						...(index < 2 ? { kind: 'keep' } : {}),
+					},
+				} as CachedMetadata;
+			},
+		);
+
+		expect([...result]).toEqual(['Notes/0.md', 'Notes/1.md']);
+		expect(metadataReads).toBeLessThanOrEqual(files.length);
+	});
 });

@@ -11,6 +11,16 @@ describe('minimal filters header source guards', () => {
 		expect(navbarFiltersSource).toContain('{currentTabsOption.label}');
 	});
 
+	it('keeps minimal header buttons in the same nav-header/nav-buttons-container structure as core plugins', () => {
+		expect(navbarFiltersSource).toContain('class:nav-header={minimalStyle}');
+		expect(navbarFiltersSource).toContain(
+			'<div class:nav-buttons-container={minimalStyle}',
+		);
+		expect(navbarFiltersSource).not.toContain(
+			'class:nav-buttons-container={minimalStyle}\n\t\t\t>',
+		);
+	});
+
 	it('keeps Nested enabled by default across Files, Props, and Tags view controls', () => {
 		expect(navbarFiltersSource).toContain(
 			"props: ['icon', 'text', 'count', 'nested']",

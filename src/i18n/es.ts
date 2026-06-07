@@ -342,6 +342,7 @@ export const es: Record<string, string> = {
 	'settings.context_menu.more_options': 'Mostrar en menú de más opciones',
 	'settings.context_menu.more_options.desc':
 		'Agrega acciones de Vaultman al menú de más opciones de archivos.',
+	'context_menu.clean_selection': 'Limpiar seleccion',
 	'nav.filters': 'Datos',
 	'nav.ops': 'Archivos',
 	'nav.statistics': 'Estadísticas',

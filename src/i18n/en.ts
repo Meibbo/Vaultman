@@ -357,6 +357,7 @@ export const en: Record<string, string> = {
 	'settings.context_menu.more_options': 'Show in more-options menu',
 	'settings.context_menu.more_options.desc':
 		'Add Vaultman actions to Obsidian more-options file menus.',
+	'context_menu.clean_selection': 'Clean selection',
 	'settings.page_order': 'Sidebar page order',
 	'settings.page_order.desc': 'Choose the order of the three sidebar pages',
 	'settings.page_order.pos': 'Position {n}',

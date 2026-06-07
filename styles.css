@@ -2820,11 +2820,22 @@ body.vaultman-bases-column-separators table th {
   gap: 2px;
   padding: 8px;
   min-height: calc(var(--clickable-icon-size) + 16px);
+  background: transparent;
 }
 
-.vaultman-filters-header > .nav-action-button {
+.vaultman-filters-header > .nav-action-button,
+.vaultman-filters-header > .nav-buttons-container > .nav-action-button {
   flex: 0 0 auto;
   align-self: center;
+}
+
+.vaultman-filters-header > .nav-buttons-container {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  width: 100%;
+  background: transparent;
 }
 
 .vaultman-filters-header .vaultman-header-action-with-label {

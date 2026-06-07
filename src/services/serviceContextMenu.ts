@@ -1,7 +1,16 @@
 // src/services/ContextMenuService.ts
-import { Component, Menu, TFile, Notice, App, MenuItem, type TFolder } from 'obsidian';
+import {
+	Component,
+	Menu,
+	TFile,
+	Notice,
+	App,
+	MenuItem,
+	type TFolder,
+} from 'obsidian';
 import type { ActionDef, MenuCtx, MenuHideRule } from '../types/typeCMenu';
 import type { FileMeta } from '../types/typeTree';
+import { translate } from '../i18n/index';
 
 export interface ContextMenuPluginCtx extends Component {
 	app: App;
@@ -10,6 +19,10 @@ export interface ContextMenuPluginCtx extends Component {
 		contextMenuShowInFileMenu: boolean;
 		contextMenuShowInEditorMenu: boolean;
 		contextMenuHideRules: MenuHideRule[];
+	};
+	filterService?: {
+		activeFilter: { children: unknown[] };
+		clearFilters(): void;
 	};
 }
 
@@ -24,6 +37,18 @@ export class ContextMenuService extends Component {
 	}
 
 	onload(): void {
+		this.registerAction({
+			id: 'filters.clear-selection',
+			nodeTypes: ['file', 'folder', 'tag', 'prop', 'value'],
+			surfaces: ['panel'],
+			label: translate('context_menu.clean_selection'),
+			icon: 'lucide-eraser',
+			section: 'filters',
+			when: () =>
+				(this.plugin.filterService?.activeFilter.children.length ?? 0) > 0,
+			run: () => this.plugin.filterService?.clearFilters(),
+		});
+
 		this.registerEvent(
 			this.plugin.app.workspace.on('file-menu', (menu, file, source) => {
 				if (!(file instanceof TFile)) return;
@@ -59,7 +84,7 @@ export class ContextMenuService extends Component {
 	}
 
 	registerAction(def: ActionDef): void {
-		if (this._registry.some(a => a.id === def.id)) return;
+		if (this._registry.some((a) => a.id === def.id)) return;
 		this._registry.push(def);
 	}
 
@@ -110,18 +135,24 @@ export class ContextMenuService extends Component {
 				if (sm) {
 					targetMenu = sm;
 				} else {
-					const icon = def.submenu === 'Convert' ? 'lucide-arrow-right-left' : 'lucide-chevron-right';
+					const icon =
+						def.submenu === 'Convert'
+							? 'lucide-arrow-right-left'
+							: 'lucide-chevron-right';
 					menu.addItem((i: MenuItem) => {
 						i.setTitle(def.submenu!).setIcon(icon);
 						// Internal API for submenus in modern Obsidian
-						targetMenu = (i as unknown as { setSubmenu: () => Menu }).setSubmenu() || new Menu();
+						targetMenu =
+							(i as unknown as { setSubmenu: () => Menu }).setSubmenu() ||
+							new Menu();
 					});
 					submenus.set(def.submenu, targetMenu);
 				}
 			}
 
 			targetMenu.addItem((item) => {
-				const label = typeof def.label === 'function' ? def.label(ctx) : def.label;
+				const label =
+					typeof def.label === 'function' ? def.label(ctx) : def.label;
 				item.setTitle(label);
 				if (def.icon) item.setIcon(def.icon);
 				item.onClick(() => {
@@ -152,7 +183,13 @@ export class ContextMenuService extends Component {
 	): void {
 		const ctx: MenuCtx = {
 			nodeType: 'file',
-			node: { id: file.path, label: file.name, meta: { file }, icon: '', depth: 0 },
+			node: {
+				id: file.path,
+				label: file.name,
+				meta: { file },
+				icon: '',
+				depth: 0,
+			},
 			surface,
 			file,
 		};
@@ -183,17 +220,23 @@ export class ContextMenuService extends Component {
 				if (sm) {
 					targetMenu = sm;
 				} else {
-					const icon = def.submenu === 'Convert' ? 'lucide-arrow-right-left' : 'lucide-chevron-right';
+					const icon =
+						def.submenu === 'Convert'
+							? 'lucide-arrow-right-left'
+							: 'lucide-chevron-right';
 					menu.addItem((i: MenuItem) => {
 						i.setTitle(def.submenu!).setIcon(icon);
-						targetMenu = (i as unknown as { setSubmenu: () => Menu }).setSubmenu() || new Menu();
+						targetMenu =
+							(i as unknown as { setSubmenu: () => Menu }).setSubmenu() ||
+							new Menu();
 					});
 					submenus.set(def.submenu, targetMenu);
 				}
 			}
 
 			targetMenu.addItem((item) => {
-				const label = typeof def.label === 'function' ? def.label(ctx) : def.label;
+				const label =
+					typeof def.label === 'function' ? def.label(ctx) : def.label;
 				item.setTitle(label);
 				if (def.icon) item.setIcon(def.icon);
 				item.onClick(() => {
@@ -224,13 +267,18 @@ export class ContextMenuService extends Component {
 			for (const rule of activeRules) {
 				const matchedIdx = items.findIndex((i: MenuItem) => {
 					// Access internal title via cast
-					const title = String((i as unknown as { title: string }).title || '').toLowerCase();
+					const title = String(
+						(i as unknown as { title: string }).title || '',
+					).toLowerCase();
 					return title.includes(rule.titleMatch.toLowerCase());
 				});
 
 				if (matchedIdx !== -1) {
 					// Use internal items array for splice
-					(menu as unknown as { items: MenuItem[] }).items.splice(matchedIdx, 1);
+					(menu as unknown as { items: MenuItem[] }).items.splice(
+						matchedIdx,
+						1,
+					);
 				}
 			}
 		} catch (e) {
