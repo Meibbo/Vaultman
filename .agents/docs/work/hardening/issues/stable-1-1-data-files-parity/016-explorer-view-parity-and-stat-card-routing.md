@@ -6,7 +6,7 @@ status: in-progress
 issue_kind: AFK
 parent: "[[docs/work/hardening/issues/stable-1-1-data-files-parity/index|Stable 1.1.0 Data/Files parity local issues]]"
 created: 2026-06-06T11:15:23
-updated: 2026-06-06T19:40:28-05:00
+updated: 2026-06-07T04:07:46-05:00
 labels:
   - ready-for-agent
   - needs-research
@@ -72,6 +72,56 @@ view-mode availability, and the still-open table layout work.
 The Statistics card routing is useful independently, but implementing it together with the view-parity
 work keeps the Data surface navigation contract coherent: Statistics becomes a map into the same explorer
 surfaces whose view modes are being normalized.
+
+## Progress - 2026-06-07T04:07:46-05:00
+
+Completed cuts 1, 2, and 3 as a release-facing interaction slice. SDF-016 remains in progress because
+this does not close Content parity or Files grid parity.
+
+- Cut 1 product change:
+  - Added a `showDock` setting, default `false`, with Settings copy in English and Spanish.
+  - When dock is disabled, Data's native Tabs menu appends `Active filters` and `Queue` after a
+    separator; Statistics is not exposed through that fallback menu.
+  - Queue and Filters launchers now debounce double-click behavior so a quick double-click clears the
+    relevant list instead of toggling islands open/closed.
+  - Queue indicators now surface warning state when any staged operation crosses the existing bulk-risk
+    threshold; tooltip copy reports pending count plus warning count.
+  - Minimal View menu hides disabled `Drag & Drop list` and `Cards` entries to reduce non-functional
+    visual noise.
+- Cut 2 product change:
+  - Added `src/utils/dragPayload.ts` with a stable `application/x-vaultman-node` JSON payload plus
+    `text/plain` fallback.
+  - Tree, generic node table, and Files table/grid renderers now accept row drag-start callbacks without
+    rebuilding the virtualization pipeline.
+  - Files nodes emit file/folder path payloads.
+  - Tag nodes emit tag-path payloads.
+  - Property nodes emit property payloads; property-value nodes emit `property-value` payloads and mark
+    `mode=value-only` when the parent property filter is already active.
+- Cut 3 product change:
+  - Added `src/utils/basesMultiSelectOperations.ts` as a defensive Core Bases multi-select adapter.
+  - The adapter listens on `activeDocument`, detects selected Bases rows, resolves selected files, and
+    adds Vaultman batch operations for add property, rename files, move files, and delete files.
+  - If the native Bases context menu is open, Vaultman items are injected into that menu; otherwise a
+    fallback Obsidian `Menu` opens at the context-menu event.
+- Focused tests/source guards:
+  - `test/unit/settingsDefaults.test.ts`
+  - `test/unit/fabIndicator.test.ts`
+  - `test/unit/dragPayload.test.ts`
+  - `test/unit/cut123Source.test.ts`
+- Verification:
+  - Svelte MCP autofixer on `navbarPillFab.svelte`: no issues; only non-blocking `bind:this`
+    suggestions.
+  - Targeted unit gate passed: `4` files / `15` tests.
+  - `pnpm run verify` passed: lint, `svelte-check`, format check, stylelint, production build,
+    `35` unit files / `119` tests, and scorecard regression scan `17` checks.
+  - `pnpm run build` passed and synced artifacts to
+    `C:/Users/vic_A/Desktop/plugin-dev/.obsidian/plugins/vaultman`.
+  - `obsidian vault=plugin-dev plugin:reload id=vaultman` passed after clearing old errors; final
+    `dev:errors` returned `No errors captured`.
+  - Runtime DOM smoke confirmed `showDock=false`, no `.vaultman-bottom-nav`, Data header labels
+    `Tabs: Files`, `View mode`, `Sort`, `Search`, `Auto-reveal current file`, `Expand all`, and Tabs menu
+    items `Files`, `Props`, `Tags`, `Content`, `Active filters`, `Queue`.
+  - Runtime DOM smoke confirmed visible explorer rows render `draggable="true"`.
 
 ## Progress - 2026-06-06T19:40:28-05:00
 

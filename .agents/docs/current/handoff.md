@@ -5,7 +5,7 @@ status: active
 parent: "[[docs/work/pkm-ai/index|pkm-ai]]"
 archive_source: docs/archive/pkm-ai/active-docs/2026-05-11T080321-current-handoff.md
 created: 2026-05-04T01:36:20
-updated: 2026-06-06T19:40:28-05:00
+updated: 2026-06-07T04:07:46-05:00
 tags:
   - agent/current
 created_by: dec
@@ -16,6 +16,21 @@ updated_by: codex-gpt-5
 
 Compact handoff after archiving the oversized current handoff:
 [[docs/archive/pkm-ai/active-docs/2026-05-11T080321-current-handoff|2026-05-11 handoff archive]].
+
+## NEXT AGENT START HERE — SDF-016 cuts 1-3 complete (2026-06-07)
+
+Stable `1.1.0` Data/Files parity
+[[docs/work/hardening/issues/stable-1-1-data-files-parity/016-explorer-view-parity-and-stat-card-routing|SDF-016]]
+remains in progress in product worktree `hotfix/1.0.2-css-scorecard`. This cut completed the requested
+cuts 1-3: dock defaults off and moves Filters/Queue into the Data Tabs menu; quick double-click clears
+Filters/Queue lists; Queue warning indicators surface bulk-risk operations; minimal View menu hides DnD
+and Cards; Files/Tags/Props rows now emit Vaultman DnD payloads; and a defensive Core Bases
+multi-select adapter injects Vaultman batch operations for add property, rename, move, and delete.
+Evidence: Svelte MCP autofixer no issues on `navbarPillFab.svelte`, focused unit `4` files / `15`
+tests, full `pnpm run verify` passed (`35` unit files / `119` tests; scorecard `17` checks), build
+synced to `plugin-dev`, `plugin:reload` passed, runtime DOM smoke confirmed dock off, Tabs menu
+`Files/Props/Tags/Content/Active filters/Queue`, visible explorer rows `draggable="true"`, and final
+`dev:errors` clean. Remaining SDF-016 work is still Content parity and Files grid parity.
 
 ## NEXT AGENT START HERE — SDF-016d row reuse/signature cut complete (2026-06-06)
 
