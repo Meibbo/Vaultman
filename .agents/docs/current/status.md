@@ -5,7 +5,7 @@ status: active
 parent: "[[docs/work/pkm-ai/index|pkm-ai]]"
 archive_source: docs/archive/pkm-ai/active-docs/2026-05-11T080321-current-status.md
 created: 2026-05-04T01:36:20
-updated: 2026-06-07T06:58:00-05:00
+updated: 2026-06-07T08:11:13-05:00
 tags:
   - agent/current
 created_by: dec
@@ -29,6 +29,17 @@ Compact route index after archiving the oversized current status:
 ## Current Route
 
 - Active initiative: [[docs/work/hardening/index|Hardening]].
+- **LATEST (2026-06-07)**: Stable `1.1.0` Data/Files parity
+  [[docs/work/hardening/issues/stable-1-1-data-files-parity/016-explorer-view-parity-and-stat-card-routing|SDF-016]]
+  completed the requested resizable-table + working Files-grid subcut in product worktree
+  `hotfix/1.0.2-css-scorecard`: Files now exposes selectable `Tree`, `Table`, and `Grid`; `Table` is the
+  repaired Bases-style table renderer, `Grid` is a dedicated row-virtualized card renderer; Files/generic
+  node tables now have working header resizers with clamped in-memory widths. Verification: focused
+  RED/GREEN, Svelte MCP autofixer `issues: []`, `pnpm run check`, full unit `37` files / `130` tests,
+  full `pnpm run verify` including `eslint .`, stylelint, production build, and scorecard `17`; build was
+  synced to `plugin-dev`; CLI bridge was restarted; reload/open and DOM smoke confirmed Grid cards,
+  draggable/data-path/scroll, Table rows, resizer `300px -> 360px`, and final `dev:errors` clean. SDF-016
+  remains open for Content parity and the next indexed/batched filter-performance cut.
 - **LATEST (2026-06-07)**: Stable `1.1.0` Data/Files parity
   [[docs/work/hardening/issues/stable-1-1-data-files-parity/016-explorer-view-parity-and-stat-card-routing|SDF-016]]
   completed the first recommended follow-up after cuts 1-3 in product worktree

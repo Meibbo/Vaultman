@@ -6,7 +6,7 @@ status: in-progress
 issue_kind: AFK
 parent: "[[docs/work/hardening/issues/stable-1-1-data-files-parity/index|Stable 1.1.0 Data/Files parity local issues]]"
 created: 2026-06-06T11:15:23
-updated: 2026-06-07T06:58:00-05:00
+updated: 2026-06-07T08:11:13-05:00
 labels:
   - ready-for-agent
   - needs-research
@@ -43,9 +43,11 @@ view-mode availability, and the still-open table layout work.
       has acceptable Bases/core-class parity, column separation, resize affordances, and stable scroll.
       - [x] Props and Tags expose a generic node table renderer with Bases/core classes, stable column
             offsets, and virtualized visible rows.
+      - [x] Files table and generic node tables expose working header resize handles that update absolute
+            column offsets without replacing the virtualized row pipeline.
       - [ ] Content still needs its own Core Search-compatible table/list renderer before this parent
             criterion can close.
-- [ ] Files explorer exposes grid view in addition to tree and table once the grid interaction defects are
+- [x] Files explorer exposes grid view in addition to tree and table once the grid interaction defects are
       resolved for file nodes.
 - [x] View menu copy and icons make the difference between grid, table, tree, and future views explicit.
 - [x] Page Statistics card clicks route to the matching Data explorer:
@@ -64,14 +66,60 @@ view-mode availability, and the still-open table layout work.
 ## Blocked By
 
 - [[011-bases-parity-table-view-layout|SDF-011 Bases-parity table view layout]] for table view expansion.
-- Files grid interaction defects already reported by the user: grid view must support selection, context
-  menu, badges/decorations, and file-specific affordances before becoming a normal Files view.
+- Files grid interaction defects were resolved in the 2026-06-07T08:11:13-05:00 cut for the stable Files
+  surface; keep future work scoped to Content parity and filter performance unless new grid regressions
+  are reported.
 
 ## Notes
 
 The Statistics card routing is useful independently, but implementing it together with the view-parity
 work keeps the Data surface navigation contract coherent: Statistics becomes a map into the same explorer
 surfaces whose view modes are being normalized.
+
+## Progress - 2026-06-07T08:11:13-05:00
+
+Completed the requested resizable-table and working Files-grid subcut. SDF-016 remains in progress because
+Content still needs Core Search-compatible table/list parity and the rapid-click filter FPS follow-up still
+needs indexed or batched filter evaluation.
+
+- Product change:
+  - `logicTableLayout.ts` and `logicNodeTableLayout.ts` now accept per-column width overrides and clamp them
+    to useful minimum widths.
+  - Files table and generic node table headers now wire `.bases-table-header-resizer` handles to in-memory
+    column widths; resizing updates Bases-style absolute offsets and visible virtual rows without replacing
+    the table virtualization pipeline.
+  - Files view modes now expose `Tree`, `Table`, and `Grid` as selectable. `Table` maps to the existing
+    Bases-style Files table renderer, while `Grid` maps to a dedicated `FilesGridView`.
+  - Added `viewFilesGrid.ts` plus `gridVirtualization.ts`: Files grid is row-virtualized, scrollable, uses
+    file cards, preserves file click/open, context menu, drag payloads, active-file styling, visible-cell
+    toggles, non-Markdown extension tags, queue badges, and Ctrl/Meta selection.
+  - `explorerFiles.ts` now keeps `tableView` and `gridView` separate, routes auto-reveal to the correct
+    renderer, and shares file click/cmenu/dnd behavior across tree, table, and grid.
+- Tests/source guards:
+  - `explorerViewModes.test.ts` now proves Files exposes selectable `tree/table/grid` and maps `table` to
+    `table`, not the old internal `grid` alias.
+  - `tableLayout.test.ts` and `nodeTableLayout.test.ts` cover resizable width overrides and min-width clamps.
+  - `gridViewSource.test.ts` and `nodeTableViewSource.test.ts` guard the header resizer wiring.
+  - `filesGridViewSource.test.ts` guards the dedicated Files grid renderer and virtual-grid dependency.
+- Verification:
+  - RED failed for locked Files grid, `table -> grid` mapping, missing `viewFilesGrid.ts`, and missing resize
+    wiring/width overrides.
+  - Focused GREEN passed: `6` unit files / `24` tests.
+  - Svelte MCP official autofixer on `navbarFilters.svelte` reported `issues: []`; suggestions were only
+    existing broad notes about `$effect`, `bind:this`, and mutable `Set`.
+  - `pnpm run check` passed with `svelte-check` `0` errors / `0` warnings.
+  - `pnpm run test:unit` passed: `37` files / `130` tests.
+  - `pnpm run verify` passed end-to-end: `eslint .`, `svelte-check`, Prettier check, stylelint, production
+    build plugin, unit suite, and scorecard `17` checks.
+  - Earlier in the cut, `pnpm run build` passed and synced artifacts to
+    `C:/Users/vic_A/Desktop/plugin-dev/.obsidian/plugins/vaultman`.
+  - `plugin-dev` reload/open passed after restarting a stuck CLI bridge. Final `dev:errors` returned
+    `No errors captured`.
+  - Runtime DOM smoke confirmed Files Grid with `22` virtualized cards, cards `draggable=true`, `data-path`
+    present, grid scrollable, and no stale Files table root while Grid is active.
+  - Runtime DOM smoke confirmed Files Table with `25` virtualized rows, a visible resizer, and column resize
+    changing width from `300px` to `360px`.
+  - Console capture was not available until debugger attachment; `dev:errors` was clean after the smoke.
 
 ## Progress - 2026-06-07T06:58:00-05:00
 

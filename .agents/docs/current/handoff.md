@@ -5,7 +5,7 @@ status: active
 parent: "[[docs/work/pkm-ai/index|pkm-ai]]"
 archive_source: docs/archive/pkm-ai/active-docs/2026-05-11T080321-current-handoff.md
 created: 2026-05-04T01:36:20
-updated: 2026-06-07T06:58:00-05:00
+updated: 2026-06-07T08:11:13-05:00
 tags:
   - agent/current
 created_by: dec
@@ -16,6 +16,22 @@ updated_by: codex-gpt-5
 
 Compact handoff after archiving the oversized current handoff:
 [[docs/archive/pkm-ai/active-docs/2026-05-11T080321-current-handoff|2026-05-11 handoff archive]].
+
+## NEXT AGENT START HERE — SDF-016 resizable table + Files grid complete (2026-06-07)
+
+Stable `1.1.0` Data/Files parity
+[[docs/work/hardening/issues/stable-1-1-data-files-parity/016-explorer-view-parity-and-stat-card-routing|SDF-016]]
+remains in progress in product worktree `hotfix/1.0.2-css-scorecard`. This subcut completed the newly
+requested table/grid work: Files exposes selectable `Tree`, `Table`, and `Grid`; `Table` maps to the
+existing Bases-style Files table renderer; `Grid` maps to a dedicated row-virtualized `FilesGridView`;
+Files/generic node table headers now have working `.bases-table-header-resizer` handles with clamped
+in-memory widths. Evidence: RED/GREEN focused guards, official Svelte MCP autofixer `issues: []` on
+`navbarFilters.svelte`, `pnpm run check`, full unit `37` files / `130` tests, full `pnpm run verify`
+including `eslint .`, stylelint, production build plugin, and scorecard `17`; build synced to
+`plugin-dev`; after restarting a stuck CLI bridge, reload/open passed and DOM smoke confirmed Files Grid
+`22` virtualized cards with `draggable=true`, `data-path`, scrollability, no stale table root, plus Files
+Table `25` virtual rows and a resizer changing width `300px -> 360px`; final `dev:errors` clean. Next
+SDF-016 work: Content parity against Core Search and indexed/batched filter evaluation for rapid-click FPS.
 
 ## NEXT AGENT START HERE — SDF-016 follow-up wave complete (2026-06-07)
 
