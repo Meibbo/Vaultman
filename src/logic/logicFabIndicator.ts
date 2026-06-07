@@ -8,6 +8,7 @@ export type FabIndicator =
 export interface FabIndicatorInput {
 	badge: FabBadgeType;
 	queuedCount: number;
+	queueWarningCount?: number;
 	filterRuleCount: number;
 	filterResultCount: number;
 }
@@ -15,10 +16,12 @@ export interface FabIndicatorInput {
 export function resolveFabIndicator({
 	badge,
 	queuedCount,
+	queueWarningCount = 0,
 	filterRuleCount,
 	filterResultCount,
 }: FabIndicatorInput): FabIndicator {
 	if (badge === 'queue') {
+		if (queueWarningCount > 0) return { kind: 'warning' };
 		return queuedCount > 0 ? { kind: 'count', count: queuedCount } : { kind: 'none' };
 	}
 	if (badge === 'filters') {

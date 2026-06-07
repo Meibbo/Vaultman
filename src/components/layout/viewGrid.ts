@@ -20,9 +20,10 @@ export type SortDirection = 'asc' | 'desc';
 
 export interface GridViewCallbacks {
 	getFileTimes?: (file: TFile) => ExplorerFileTimes;
-	onContextMenu: (file: TFile, e: MouseEvent) => void;
-	onSelectionChange: (selected: Set<string>) => void;
-	onFileClick: (file: TFile) => void;
+        onContextMenu: (file: TFile, e: MouseEvent) => void;
+        onSelectionChange: (selected: Set<string>) => void;
+        onFileClick: (file: TFile) => void;
+        onDragStart?: (file: TFile, event: DragEvent) => void;
 }
 
 export class GridView {
@@ -355,14 +356,16 @@ export class GridView {
 			});
 		parent.appendChild(row);
 		this.rowEls.set(file.path, row);
-		row.dataset.path = file.path;
-		row.style.top = `${top}px`;
+                row.dataset.path = file.path;
+                row.draggable = Boolean(this.callbacks.onDragStart);
+                row.style.top = `${top}px`;
 		row.style.height = `${this.rowHeight}px`;
 		row.style.width = `${layout.totalWidth}px`;
-		row.oncontextmenu = (event) => {
-			event.preventDefault();
-			this.callbacks.onContextMenu(file, event);
-		};
+                row.oncontextmenu = (event) => {
+                        event.preventDefault();
+                        this.callbacks.onContextMenu(file, event);
+                };
+                row.ondragstart = (event) => this.callbacks.onDragStart?.(file, event);
 		if (row.dataset.renderSignature === signature) {
 			return;
 		}
@@ -433,8 +436,11 @@ export class GridView {
 			cls: 'bases-table-cell bases-rendered-value markdown-rendered internal-link vaultman-file-name',
 			text: formatFileTableName(file),
 		});
-		nameEl.dataset.href = file.path;
-		nameEl.draggable = true;
+                nameEl.dataset.href = file.path;
+                nameEl.draggable = true;
+                nameEl.addEventListener('dragstart', (event) =>
+                        this.callbacks.onDragStart?.(file, event),
+                );
 		if (file.path === this.activePath) {
 			for (const className of [
 				'tree-item-self',

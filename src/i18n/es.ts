@@ -66,6 +66,7 @@ export const es: Record<string, string> = {
 	'ops.tools': 'Herramientas',
 	'ops.queue': 'Cola ({count} pendientes)',
 	'ops.queue.empty': 'Cola (vacía)',
+	'ops.queue.warning': '{count} pendientes, {warnings} aviso(s)',
 	'ops.apply': 'Aplicar',
 	'ops.clear': 'Limpiar cola',
 	'ops.details': 'Ver detalles',
@@ -146,6 +147,9 @@ export const es: Record<string, string> = {
 	'settings.minimal_style': 'Estilo minimal',
 	'settings.minimal_style.desc':
 		'Usa botones compactos nativos de Obsidian en headers y dock inferior.',
+	'settings.show_dock': 'Mostrar dock inferior',
+	'settings.show_dock.desc':
+		'Muestra el dock inferior. Al desactivarlo, Filtros y Cola quedan en el menú de tabs de Datos.',
 	'settings.bypass_operations': 'Omitir cola de operaciones',
 	'settings.bypass_operations.desc':
 		'Ejecuta operaciones inmediatamente en vez de prepararlas en la cola.',

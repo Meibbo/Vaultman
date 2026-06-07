@@ -20,9 +20,10 @@ export interface NodeTableViewOptions<TMeta = unknown> {
 	searchHighlightIds?: Set<string>;
 	warningIds?: Set<string>;
 	onToggle: (id: string) => void;
-	onRowClick: (id: string) => void;
-	onContextMenu: (id: string, event: MouseEvent) => void;
-	onBadgeDoubleClick?: (queueIndex: number) => void;
+        onRowClick: (id: string) => void;
+        onContextMenu: (id: string, event: MouseEvent) => void;
+        onBadgeDoubleClick?: (queueIndex: number) => void;
+        onDragStart?: (id: string, event: DragEvent) => void;
 }
 
 export class NodeTableView<TMeta = unknown> {
@@ -276,13 +277,15 @@ export class NodeTableView<TMeta = unknown> {
 			});
 		this.tbodyEl.appendChild(row);
 		this.rowEls.set(node.id, row);
-		row.dataset.id = node.id;
-		row.style.top = `${top}px`;
+                row.dataset.id = node.id;
+                row.draggable = Boolean(opts.onDragStart);
+                row.style.top = `${top}px`;
 		row.style.height = `${this.rowHeight}px`;
 		row.style.width = `${layout.totalWidth}px`;
 		row.style.setProperty('--depth', String(node.depth));
-		row.onclick = () => opts.onRowClick(node.id);
-		row.onkeydown = (event) => {
+                row.onclick = () => opts.onRowClick(node.id);
+                row.ondragstart = (event) => opts.onDragStart?.(node.id, event);
+                row.onkeydown = (event) => {
 			if (event.key !== 'Enter' && event.key !== ' ') return;
 			event.preventDefault();
 			opts.onRowClick(node.id);

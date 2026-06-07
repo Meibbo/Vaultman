@@ -111,6 +111,18 @@ export class VaultmanSettingsTab extends PluginSettingTab {
 			);
 
 		new Setting(containerEl)
+			.setName(translate('settings.show_dock'))
+			.setDesc(translate('settings.show_dock.desc'))
+			.addToggle((toggle) =>
+				toggle
+					.setValue(this.plugin.settings.showDock)
+					.onChange(async (value) => {
+						this.plugin.settings.showDock = value;
+						await this.plugin.saveSettings();
+					}),
+			);
+
+		new Setting(containerEl)
 			.setName(translate('settings.bypass_operations'))
 			.setDesc(translate('settings.bypass_operations.desc'))
 			.addToggle((toggle) =>

@@ -21,6 +21,16 @@
 
 	type FiltersTab = 'files' | 'props' | 'tags' | 'content';
 	type SearchTab = 'props' | 'files' | 'tags';
+	type HeaderMenuAction = {
+		id: 'filters' | 'queue';
+		label: string;
+		icon: string;
+		count?: number;
+		warning?: boolean;
+		tooltip?: string;
+		onClick: () => void;
+		onDoubleClick?: () => void;
+	};
 
 	let {
 		plugin,
@@ -34,6 +44,12 @@
 		settingsRevision = 0,
 		getSelectedFiles,
 		filteredCount,
+		showDock = true,
+		queueWarningCount = 0,
+		onOpenFilters,
+		onClearFilters,
+		onOpenQueue,
+		onClearQueue,
 		addOpCount = 0,
 		expansionRevision = 0,
 		icon,
@@ -49,6 +65,12 @@
 		settingsRevision?: number;
 		getSelectedFiles: () => TFile[];
 		filteredCount: number;
+		showDock?: boolean;
+		queueWarningCount?: number;
+		onOpenFilters?: () => void;
+		onClearFilters?: () => void;
+		onOpenQueue?: () => void;
+		onClearQueue?: () => void;
 		addOpCount?: number;
 		expansionRevision?: number;
 		icon: (el: HTMLElement, name: string) => any;
@@ -115,6 +137,44 @@
 				id: 'content',
 				label: translate('filter.tab.content'),
 				icon: 'lucide-file-search',
+			},
+		];
+	});
+	const tabMenuActions = $derived.by<HeaderMenuAction[]>(() => {
+		void settingsRevision;
+		if (showDock) return [];
+		return [
+			{
+				id: 'filters',
+				label: translate('filters.active'),
+				icon: 'lucide-filter',
+				count: plugin.filterService.activeFilter.children.length,
+				warning:
+					plugin.filterService.activeFilter.children.length > 0 &&
+					filteredCount === 0,
+				tooltip:
+					plugin.filterService.activeFilter.children.length > 0 &&
+					filteredCount === 0
+						? translate('filters.active_zero')
+						: undefined,
+				onClick: () => onOpenFilters?.(),
+				onDoubleClick: () => onClearFilters?.(),
+			},
+			{
+				id: 'queue',
+				label: translate('ops.tab.queue'),
+				icon: 'lucide-list-checks',
+				count: plugin.queueService.queue.length,
+				warning: queueWarningCount > 0,
+				tooltip:
+					queueWarningCount > 0
+						? translate('ops.queue.warning', {
+								count: plugin.queueService.queue.length,
+								warnings: queueWarningCount,
+							})
+						: undefined,
+				onClick: () => onOpenQueue?.(),
+				onDoubleClick: () => onClearQueue?.(),
 			},
 		];
 	});
@@ -303,7 +363,9 @@
 		{fileList}
 		{addOpCount}
 		{minimalStyle}
+		{showDock}
 		tabOptions={minimalStyle ? filterTabOptions : []}
+		{tabMenuActions}
 		activeSectionTab={filtersActiveTab}
 		onSectionTabChange={(tab) => switchFiltersTab(tab as FiltersTab)}
 		onFiltersSearchChange={setExplorerSearch}

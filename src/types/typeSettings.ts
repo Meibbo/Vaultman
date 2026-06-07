@@ -50,6 +50,8 @@ export interface VaultmanSettings {
 	filtersShowTabLabels: boolean;
 	/** Use compact Obsidian-native controls for header and dock actions */
 	minimalStyle: boolean;
+	/** Show the bottom dock; when false, Filters and Queue move into the Data tab menu. */
+	showDock: boolean;
 	/** Run operations immediately instead of staging them in the queue */
 	bypassOperations: boolean;
 	/** Suppress the bulk target confirmation for reusable action presets */
@@ -113,6 +115,7 @@ export const DEFAULT_SETTINGS: VaultmanSettings = {
 	viewMode: 'list',
 	filtersShowTabLabels: true,
 	minimalStyle: true,
+	showDock: false,
 	bypassOperations: false,
 	suppressBulkOperationWarning: false,
 	performanceHudEnabled: false,

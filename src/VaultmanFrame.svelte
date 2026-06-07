@@ -17,6 +17,8 @@
 	import type { FabDef } from './types/typeUI';
 	import { resolveDockPageOrder } from './logic/logicNavigation';
 	import type { StatisticsDataTab } from './logic/logicStatisticsNavigation';
+	import { isBulkQueueTarget } from './utils/queueTemplateMenu';
+	import { attachBasesMultiSelectOperations } from './utils/basesMultiSelectOperations';
 
 	// ─── Props ────────────────────────────────────────────────────────────────
 
@@ -57,6 +59,10 @@
 	const minimalStyle = $derived.by(() => {
 		void settingsRevision;
 		return plugin.settings.minimalStyle;
+	});
+	const showDock = $derived.by(() => {
+		void settingsRevision;
+		return plugin.settings.showDock;
 	});
 	const performanceHudEnabled = $derived.by(() => {
 		void settingsRevision;
@@ -101,9 +107,9 @@
 					icon: 'lucide-list-checks',
 					label: translate('ops.queue'),
 					badge: 'queue',
-					action: () => {
-						toggleQueueIsland();
-					},
+					warningCount: queueWarningCount,
+					action: () => openQueueLauncher(),
+					doubleClickAction: () => clearQueueQuick(),
 				},
 				right: {
 					icon: 'lucide-sparkles',
@@ -118,15 +124,15 @@
 					icon: 'lucide-list-checks',
 					label: translate('ops.queue'),
 					badge: 'queue',
-					action: () => {
-						toggleQueueIsland();
-					},
+					warningCount: queueWarningCount,
+					action: () => openQueueLauncher(),
+					doubleClickAction: () => clearQueueQuick(),
 				},
 				right: {
 					icon: 'lucide-filter',
 					label: translate('filters.active'),
 					badge: 'filters',
-					action: () => toggleFiltersIsland(),
+					action: () => openFiltersLauncher(),
 					doubleClickAction: () => clearActiveFilters(),
 				},
 			},
@@ -362,6 +368,7 @@
 	let filteredCount = $state(0);
 	let selectedCount = $state(0);
 	let queuedCount = $state(0);
+	let queueWarningCount = $state(0);
 	let filterRuleCount = $state(0);
 	const addOpCount = $derived(
 		plugin.queueService.queue.filter((op) => op.action === 'add').length,
@@ -391,7 +398,18 @@
 	function updateStats() {
 		filteredCount = plugin.filterService.filteredFiles.length;
 		queuedCount = plugin.queueService.queue.length;
+		queueWarningCount = countQueueWarnings();
 		filterRuleCount = countFilterLeaves(plugin.filterService.activeFilter);
+	}
+
+	function countQueueWarnings(): number {
+		const vaultCount = plugin.app.vault.getFiles().length;
+		return plugin.queueService.queue.filter((change) =>
+			isBulkQueueTarget({
+				targetCount: change.files.length,
+				vaultCount,
+			}),
+		).length;
 	}
 
 	let fileList = $state<FilesExplorerPanel | undefined>(undefined);
@@ -475,6 +493,51 @@
 		}
 	}
 
+	type LauncherKey = 'filters' | 'queue';
+	const launcherTimers: Partial<Record<LauncherKey, number>> = {};
+
+	function handleLauncherClick(
+		key: LauncherKey,
+		singleClick: () => void,
+		doubleClick: () => void,
+	): void {
+		const existing = launcherTimers[key];
+		if (existing !== undefined) {
+			window.clearTimeout(existing);
+			delete launcherTimers[key];
+			doubleClick();
+			return;
+		}
+		launcherTimers[key] = window.setTimeout(() => {
+			delete launcherTimers[key];
+			singleClick();
+		}, 180);
+	}
+
+	function clearLauncherTimers(): void {
+		for (const key of Object.keys(launcherTimers) as LauncherKey[]) {
+			const timer = launcherTimers[key];
+			if (timer !== undefined) window.clearTimeout(timer);
+			delete launcherTimers[key];
+		}
+	}
+
+	function openQueueLauncher(): void {
+		handleLauncherClick(
+			'queue',
+			() => toggleQueueIsland(),
+			() => clearQueueQuick(),
+		);
+	}
+
+	function openFiltersLauncher(): void {
+		handleLauncherClick(
+			'filters',
+			() => toggleFiltersIsland(),
+			() => clearActiveFilters(),
+		);
+	}
+
 	function openQueueIsland() {
 		if (!queueIslandEl) return;
 		queueIslandOpen = true;
@@ -524,6 +587,12 @@
 	function clearActiveFilters() {
 		plugin.filterService.clearFilters();
 		closeFiltersIsland();
+		updateStats();
+	}
+
+	function clearQueueQuick() {
+		plugin.queueService.clear();
+		closeQueueIsland();
 		updateStats();
 	}
 
@@ -582,6 +651,8 @@
 			settingsRevision += 1;
 			pageRenderKey += 1;
 		});
+		const detachBasesMultiSelectOperations =
+			attachBasesMultiSelectOperations(plugin);
 		const onFilterChanged = () => {
 			refreshFiles();
 			refreshActiveFilterHighlights();
@@ -617,6 +688,8 @@
 		plugin.app.metadataCache.on('resolved', onVaultResolved);
 
 		return () => {
+			clearLauncherTimers();
+			detachBasesMultiSelectOperations();
 			unsubscribeSettings();
 			plugin.filterService.off('changed', onFilterChanged);
 			plugin.queueService.off('changed', onQueueChanged);
@@ -657,6 +730,12 @@
 								fileList?.getSelectedFiles() ??
 								plugin.filterService.selectedFiles}
 							{filteredCount}
+							{showDock}
+							{queueWarningCount}
+							onOpenFilters={openFiltersLauncher}
+							onClearFilters={clearActiveFilters}
+							onOpenQueue={openQueueLauncher}
+							onClearQueue={clearQueueQuick}
 							{addOpCount}
 							expansionRevision={filterRuleCount + filteredCount}
 							{icon}
@@ -690,34 +769,37 @@
 	<div class="vaultman-queue-island-wrap" bind:this={queueIslandEl}></div>
 	<div class="vaultman-filters-island-wrap" bind:this={filtersIslandEl}></div>
 
-	{#key settingsRevision}
-		<BottomNav
-			{pageOrder}
-			{activePage}
-			{pageLabels}
-			{pageIcons}
-			{leftFab}
-			{rightFab}
-			{minimalStyle}
-			{queueIslandOpen}
-			{filtersIslandOpen}
-			{navCollapsed}
-			isIslandOpen={queueIslandOpen || filtersIslandOpen}
-			bind:isReordering
-			{reorderTargetIdx}
-			bind:pillEl
-			{selectedCount}
-			{filterRuleCount}
-			filterResultCount={filteredCount}
-			{queuedCount}
-			{bindNav}
-			{onCollapsedNavClick}
-			{onNavIconPointerDown}
-			{onPillPointerMove}
-			{onPillPointerUp}
-			{exitReorder}
-			{navigateTo}
-			{icon}
-		/>
-	{/key}
+	{#if showDock}
+		{#key settingsRevision}
+			<BottomNav
+				{pageOrder}
+				{activePage}
+				{pageLabels}
+				{pageIcons}
+				{leftFab}
+				{rightFab}
+				{minimalStyle}
+				{queueIslandOpen}
+				{filtersIslandOpen}
+				{navCollapsed}
+				isIslandOpen={queueIslandOpen || filtersIslandOpen}
+				bind:isReordering
+				{reorderTargetIdx}
+				bind:pillEl
+				{selectedCount}
+				{filterRuleCount}
+				filterResultCount={filteredCount}
+				{queuedCount}
+				{queueWarningCount}
+				{bindNav}
+				{onCollapsedNavClick}
+				{onNavIconPointerDown}
+				{onPillPointerMove}
+				{onPillPointerUp}
+				{exitReorder}
+				{navigateTo}
+				{icon}
+			/>
+		{/key}
+	{/if}
 </div>

@@ -68,6 +68,7 @@ export const en: Record<string, string> = {
 	'ops.tools': 'Tools',
 	'ops.queue': 'Queue ({count} pending)',
 	'ops.queue.empty': 'Queue (empty)',
+	'ops.queue.warning': '{count} pending, {warnings} warning(s)',
 	'ops.apply': 'Apply',
 	'ops.clear': 'Clear queue',
 	'ops.details': 'View details',
@@ -148,6 +149,9 @@ export const en: Record<string, string> = {
 	'settings.minimal_style': 'Minimal style',
 	'settings.minimal_style.desc':
 		'Use compact Obsidian-native icon buttons in headers and the bottom dock.',
+	'settings.show_dock': 'Show bottom dock',
+	'settings.show_dock.desc':
+		'Show the bottom dock. When disabled, Filters and Queue stay in the Data tab menu.',
 	'settings.bypass_operations': 'Bypass operations',
 	'settings.bypass_operations.desc':
 		'Run operations immediately instead of staging them in the queue.',

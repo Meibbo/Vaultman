@@ -22,9 +22,10 @@ import type { MenuCtx } from '../../types/typeCMenu';
 import { translate } from '../../i18n/index';
 import { normalizeExplorerSortBy } from '../../logic/logicSort';
 import {
-	flattenTreeToPathLabels,
-	groupRootHierarchy,
+        flattenTreeToPathLabels,
+        groupRootHierarchy,
 } from '../../logic/logicExplorerHierarchy';
+import { setVaultmanDragPayload } from '../../utils/dragPayload';
 
 type DateSortId = 'mtime' | 'ctime';
 
@@ -381,15 +382,23 @@ export class TagsExplorerPanel extends Component {
 					if (!node) return;
 					this._handleNodeClick(node);
 				},
-				onContextMenu: (id: string, event: MouseEvent) => {
-					const node = this._findNode(id, tree);
-					if (!node) return;
+                                onContextMenu: (id: string, event: MouseEvent) => {
+                                        const node = this._findNode(id, tree);
+                                        if (!node) return;
 					this.plugin.contextMenuService.openPanelMenu(
 						{ nodeType: 'tag', node, surface: 'panel' },
-						event,
-					);
-				},
-				onBadgeDoubleClick: (queueIndex: number) => {
+                                                event,
+                                        );
+                                },
+                                onDragStart: (id: string, event: DragEvent) => {
+                                        const node = this._findNode(id, tree);
+                                        if (!node) return;
+                                        setVaultmanDragPayload(event, {
+                                                kind: 'tag',
+                                                tagPath: node.meta.tagPath,
+                                        });
+                                },
+                                onBadgeDoubleClick: (queueIndex: number) => {
 					this.plugin.queueService.remove(queueIndex);
 					void this._render();
 				},
@@ -451,15 +460,23 @@ export class TagsExplorerPanel extends Component {
 
 				this._toggleTagFilter(meta.tagPath);
 			},
-			onContextMenu: (id: string, e: MouseEvent) => {
-				const node = this._findNode(id, tree);
-				if (!node) return;
+                        onContextMenu: (id: string, e: MouseEvent) => {
+                                const node = this._findNode(id, tree);
+                                if (!node) return;
 				this.plugin.contextMenuService.openPanelMenu(
 					{ nodeType: 'tag', node, surface: 'panel' },
-					e,
-				);
-			},
-			onBadgeDoubleClick: (queueIndex: number) => {
+                                        e,
+                                );
+                        },
+                        onDragStart: (id: string, event: DragEvent) => {
+                                const node = this._findNode(id, tree);
+                                if (!node) return;
+                                setVaultmanDragPayload(event, {
+                                        kind: 'tag',
+                                        tagPath: node.meta.tagPath,
+                                });
+                        },
+                        onBadgeDoubleClick: (queueIndex: number) => {
 				this.plugin.queueService.remove(queueIndex);
 				void this._render();
 			},
@@ -563,10 +580,11 @@ export class TagsExplorerPanel extends Component {
 			if (typeof node.cls === 'string' && node.cls.trim()) {
 				for (const c of node.cls.trim().split(/\s+/)) card.addClass(c);
 			}
-			card.toggleClass('is-active-filter', activeFilterIds.has(node.id));
-			card.toggleClass('vaultman-search-highlight', highlightIds.has(node.id));
-			card.setAttribute('role', 'button');
-			card.setAttribute('tabindex', '0');
+                        card.toggleClass('is-active-filter', activeFilterIds.has(node.id));
+                        card.toggleClass('vaultman-search-highlight', highlightIds.has(node.id));
+                        card.setAttribute('role', 'button');
+                        card.draggable = true;
+                        card.setAttribute('tabindex', '0');
 			card.setAttribute('aria-label', node.meta.tagPath);
 
 			if (this.visibleCells.has('icon')) {
@@ -584,8 +602,14 @@ export class TagsExplorerPanel extends Component {
 			}
 			this._renderGridBadges(card, node);
 
-			card.addEventListener('click', () => this._handleNodeClick(node));
-			card.addEventListener('keydown', (event) => {
+                        card.addEventListener('click', () => this._handleNodeClick(node));
+                        card.addEventListener('dragstart', (event) =>
+                                setVaultmanDragPayload(event, {
+                                        kind: 'tag',
+                                        tagPath: node.meta.tagPath,
+                                }),
+                        );
+                        card.addEventListener('keydown', (event) => {
 				if (event.key === 'Enter' || event.key === ' ') {
 					event.preventDefault();
 					this._handleNodeClick(node);

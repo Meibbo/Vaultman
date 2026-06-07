@@ -25,6 +25,7 @@
 		filterRuleCount,
 		filterResultCount,
 		queuedCount,
+		queueWarningCount = 0,
 		bindNav,
 		onCollapsedNavClick,
 		onNavIconPointerDown,
@@ -52,6 +53,7 @@
 		filterRuleCount: number;
 		filterResultCount: number;
 		queuedCount: number;
+		queueWarningCount?: number;
 		bindNav: (node: HTMLElement) => any;
 		onCollapsedNavClick: () => void;
 		onNavIconPointerDown: (e: PointerEvent, idx: number) => void;
@@ -63,12 +65,14 @@
 	} = $props();
 
 	function triggerFab(fab: FabDef, e: MouseEvent | KeyboardEvent): void {
+		e.preventDefault();
 		e.stopPropagation();
 		if (fab.locked) return;
 		fab.action?.();
 	}
 
 	function triggerFabDoubleClick(fab: FabDef, e: MouseEvent): void {
+		e.preventDefault();
 		e.stopPropagation();
 		if (fab.locked) return;
 		fab.doubleClickAction?.();
@@ -78,6 +82,7 @@
 		return resolveFabIndicator({
 			badge: fab.badge,
 			queuedCount,
+			queueWarningCount: fab.warningCount ?? queueWarningCount,
 			filterRuleCount,
 			filterResultCount,
 		});
@@ -94,6 +99,13 @@
 
 	function fabLabel(fab: FabDef): string {
 		if (fab.badge === 'queue') {
+			const warnings = fab.warningCount ?? queueWarningCount;
+			if (warnings > 0) {
+				return translate('ops.queue.warning', {
+					count: queuedCount,
+					warnings,
+				});
+			}
 			if (queuedCount === 0) return translate('ops.queue.empty');
 			return translate('ops.queue').replace('{count}', String(queuedCount));
 		}

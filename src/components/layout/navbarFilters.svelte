@@ -19,6 +19,16 @@
 
 	type FiltersTab = 'props' | 'files' | 'tags';
 	type HeaderTabOption = { id: string; label: string; icon: string };
+	type HeaderMenuAction = {
+		id: 'filters' | 'queue';
+		label: string;
+		icon: string;
+		count?: number;
+		warning?: boolean;
+		tooltip?: string;
+		onClick: () => void;
+		onDoubleClick?: () => void;
+	};
 	type HeaderMode = 'header' | 'sort' | 'viewmode';
 
 	let {
@@ -31,7 +41,9 @@
 		icon,
 		addOpCount = 0,
 		minimalStyle = true,
+		showDock = false,
 		tabOptions = [],
+		tabMenuActions = [],
 		activeSectionTab = activeTab,
 		onSectionTabChange,
 		onFiltersSearchChange,
@@ -47,7 +59,9 @@
 		icon: (node: HTMLElement, name: string) => { update(n: string): void };
 		addOpCount?: number;
 		minimalStyle?: boolean;
+		showDock?: boolean;
 		tabOptions?: HeaderTabOption[];
+		tabMenuActions?: HeaderMenuAction[];
 		activeSectionTab?: string;
 		onSectionTabChange?: (tab: string) => void;
 		onFiltersSearchChange?: (value: string) => void;
@@ -473,7 +487,13 @@
 			visibleCellsByTab[activeTab] ?? DEFAULT_VISIBLE_CELLS[activeTab],
 		);
 
-		for (const option of viewModesForDataSurface(activeTab)) {
+		const minimalNativeViewModes = minimalStyle
+			? viewModesForDataSurface(activeTab).filter(
+					(option) => option.id !== 'dnd' && option.id !== 'cards',
+				)
+			: viewModesForDataSurface(activeTab);
+
+		for (const option of minimalNativeViewModes) {
 			menu.addItem((item) => {
 				item
 					.setTitle(translate(option.labelKey))
@@ -521,6 +541,26 @@
 					.setChecked(option.id === activeSectionTab)
 					.onClick(() => onSectionTabChange?.(option.id));
 			});
+		}
+		if (!showDock && tabMenuActions.length > 0) {
+			menu.addSeparator();
+			for (const action of tabMenuActions) {
+				menu.addItem((item) => {
+					const isFiltersAction = action.id === 'filters';
+					const isQueueAction = action.id === 'queue';
+					const countLabel =
+						action.count && action.count > 0 ? ` (${action.count})` : '';
+					const warningLabel = action.warning ? ' !' : '';
+					const title =
+						action.tooltip && (isFiltersAction || isQueueAction)
+							? action.tooltip
+							: `${action.label}${countLabel}${warningLabel}`;
+					item
+						.setTitle(title)
+						.setIcon(action.warning ? 'lucide-alert-triangle' : action.icon)
+						.onClick(() => action.onClick());
+				});
+			}
 		}
 		menu.showAtMouseEvent(event);
 	}

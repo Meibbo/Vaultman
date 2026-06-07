@@ -14,4 +14,8 @@ describe('Vaultman default settings', () => {
 	it('keeps Files inside the Data tab menu instead of the dock', () => {
 		expect(DEFAULT_SETTINGS.pageOrder).toEqual(['filters', 'statistics']);
 	});
+
+	it('keeps the bottom dock disabled by default', () => {
+		expect(DEFAULT_SETTINGS.showDock).toBe(false);
+	});
 });

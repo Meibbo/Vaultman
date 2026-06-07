@@ -14,10 +14,11 @@ import { DELETE_FILE } from '../../types/typeOps';
 import { translate } from '../../i18n/index';
 import { showInputModal } from '../../utils/inputModal';
 import {
-	compareFilesForExplorer,
-	normalizeExplorerSortBy,
+        compareFilesForExplorer,
+        normalizeExplorerSortBy,
 } from '../../logic/logicSort';
 import { flattenTreeToPathLabels } from '../../logic/logicExplorerHierarchy';
+import { setVaultmanDragPayload } from '../../utils/dragPayload';
 
 export type FilesViewMode = 'grid' | 'tree';
 
@@ -395,9 +396,9 @@ export class FilesExplorerPanel extends Component {
 					);
 					if (this.onSelectionChange) this.onSelectionChange(selected.size);
 				},
-				onFileClick: (file: TFile) => {
-					if (this.addMode) {
-						const selected = this.getSelectedFiles();
+                                onFileClick: (file: TFile) => {
+                                        if (this.addMode) {
+                                                const selected = this.getSelectedFiles();
 						const targets =
 							selected.length > 0
 								? selected.includes(file)
@@ -411,10 +412,16 @@ export class FilesExplorerPanel extends Component {
 							(change) => this.plugin.queueService.addOrRun(change),
 						).open();
 						return;
-					}
-					void this.plugin.app.workspace.openLinkText(file.path, '', false);
-				},
-			});
+                                        }
+                                        void this.plugin.app.workspace.openLinkText(file.path, '', false);
+                                },
+                                onDragStart: (file: TFile, event: DragEvent) => {
+                                        setVaultmanDragPayload(event, {
+                                                kind: 'file',
+                                                path: file.path,
+                                        });
+                                },
+                        });
 			this.gridView.setVisibleCells(this.visibleCells);
 			this.gridView.setActivePath(this.activeRevealPath);
 			// Sync current sort state to grid on mount
@@ -517,9 +524,9 @@ export class FilesExplorerPanel extends Component {
 						);
 					}
 				},
-				onContextMenu: (id: string, e: MouseEvent) => {
-					const node = this._findNode(id, tree);
-					if (!node) return;
+                                onContextMenu: (id: string, e: MouseEvent) => {
+                                        const node = this._findNode(id, tree);
+                                        if (!node) return;
 					const meta = node.meta;
 					if (meta.isFolder) {
 						this.plugin.contextMenuService.openPanelMenu(
@@ -530,12 +537,29 @@ export class FilesExplorerPanel extends Component {
 					}
 					if (!meta.file) return;
 					this.plugin.contextMenuService.openPanelMenu(
-						{ nodeType: 'file', node, surface: 'panel', file: meta.file },
-						e,
-					);
-				},
-				onBadgeDoubleClick: (queueIndex: number) => {
-					this.plugin.queueService.remove(queueIndex);
+                                                { nodeType: 'file', node, surface: 'panel', file: meta.file },
+                                                e,
+                                        );
+                                },
+                                onDragStart: (id: string, event: DragEvent) => {
+                                        const node = this._findNode(id, tree);
+                                        if (!node) return;
+                                        const meta = node.meta;
+                                        if (meta.isFolder) {
+                                                setVaultmanDragPayload(event, {
+                                                        kind: 'folder',
+                                                        path: meta.folder?.path ?? meta.folderPath,
+                                                });
+                                                return;
+                                        }
+                                        if (!meta.file) return;
+                                        setVaultmanDragPayload(event, {
+                                                kind: 'file',
+                                                path: meta.file.path,
+                                        });
+                                },
+                                onBadgeDoubleClick: (queueIndex: number) => {
+                                        this.plugin.queueService.remove(queueIndex);
 					this._render();
 				},
 			});

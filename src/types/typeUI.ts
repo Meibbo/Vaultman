@@ -40,6 +40,7 @@ export interface FabDef {
 	locked?: boolean;
 	lockBackdrop?: boolean;
 	badge?: 'queue' | 'filters';
+	warningCount?: number;
 }
 
 export type ExplorerTabId = 'props' | 'files' | 'tags';

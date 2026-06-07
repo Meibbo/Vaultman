@@ -20,6 +20,7 @@ export interface TreeViewOptions {
 	onRename?: (id: string, newLabel: string) => void;
 	onCancelRename?: () => void;
 	onBadgeDoubleClick?: (queueIndex: number) => void;
+	onDragStart?: (id: string, event: DragEvent) => void;
 	visibleCells?: Set<string>;
 }
 
@@ -328,10 +329,12 @@ export class UnifiedTreeView {
 		const row =
 			this.rowEls.get(node.id) ?? parent.createDiv({ cls: 'vaultman-tree-row' });
 		parent.appendChild(row);
-		row.dataset.id = node.id;
-		row.style.setProperty('--depth', String(node.depth));
-		row.onclick = () => opts.onRowClick(node.id);
-		row.oncontextmenu = (e) => {
+				row.dataset.id = node.id;
+				row.draggable = Boolean(opts.onDragStart);
+				row.style.setProperty('--depth', String(node.depth));
+				row.onclick = () => opts.onRowClick(node.id);
+				row.ondragstart = (event) => opts.onDragStart?.(node.id, event);
+				row.oncontextmenu = (e) => {
 			e.preventDefault();
 			e.stopPropagation();
 			opts.onContextMenu(node.id, e);

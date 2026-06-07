@@ -43,7 +43,20 @@ describe('resolveFabIndicator', () => {
 				filterRuleCount: 3,
 				filterResultCount: 0,
 				queuedCount: 4,
+				queueWarningCount: 0,
 			}),
 		).toEqual({ kind: 'count', count: 4 });
+	});
+
+	it('switches queue badges to warning when queued operations exceed risk thresholds', () => {
+		expect(
+			resolveFabIndicator({
+				badge: 'queue',
+				filterRuleCount: 0,
+				filterResultCount: 0,
+				queuedCount: 4,
+				queueWarningCount: 2,
+			}),
+		).toEqual({ kind: 'warning' });
 	});
 });
