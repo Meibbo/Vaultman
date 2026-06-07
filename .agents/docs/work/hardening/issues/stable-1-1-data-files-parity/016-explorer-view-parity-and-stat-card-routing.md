@@ -6,7 +6,7 @@ status: in-progress
 issue_kind: AFK
 parent: "[[docs/work/hardening/issues/stable-1-1-data-files-parity/index|Stable 1.1.0 Data/Files parity local issues]]"
 created: 2026-06-06T11:15:23
-updated: 2026-06-06T18:44:22-05:00
+updated: 2026-06-06T19:40:28-05:00
 labels:
   - ready-for-agent
   - needs-research
@@ -72,6 +72,46 @@ view-mode availability, and the still-open table layout work.
 The Statistics card routing is useful independently, but implementing it together with the view-parity
 work keeps the Data surface navigation contract coherent: Statistics becomes a map into the same explorer
 surfaces whose view modes are being normalized.
+
+## Progress - 2026-06-06T19:40:28-05:00
+
+SDF-016d completed a second scroll-rendering cut focused on row reuse and row-content signatures. SDF-016
+remains in progress because this improves the existing Tree/Table renderers but still does not complete
+Content parity, Files grid, or DnD view behavior.
+
+- Product change:
+  - `UnifiedTreeView`, `GridView`, and `NodeTableView` no longer clear the whole visible-window body on
+    every virtual scroll render. Each renderer keeps a `rowEls` map, removes only stale rows that leave
+    the projected viewport, and reuses row shell elements for rows that remain visible.
+  - Each renderer now computes a `rowSignature` from visible row content and state. If a row keeps the
+    same id/content/classes/badges/visible-cell state, the renderer updates position and handlers but
+    skips rebuilding child DOM.
+  - Row-level click/context-menu handlers were switched to direct handler assignment on reused rows so
+    repeated renders do not accumulate duplicate row listeners.
+- Focused RED/GREEN source guards:
+  `test/unit/viewTreeSource.test.ts`, `test/unit/gridViewSource.test.ts`, and
+  `test/unit/nodeTableViewSource.test.ts`.
+- Verification:
+  - RED confirmed the renderers still lacked row-shell maps, stale-row cleanup guards, and
+    `rowSignature`-based skip logic.
+  - Focused gate passed: `5` unit files / `13` tests including table/tree virtualization guards.
+  - `pnpm run check`, `pnpm run lint`, `pnpm run format:check`, and `pnpm run stylelint` passed.
+  - `pnpm run build` passed and synced artifacts to
+    `C:/Users/vic_A/Desktop/plugin-dev/.obsidian/plugins/vaultman`.
+  - `plugin-dev` reload via JS `disablePlugin/enablePlugin` passed and reopened Vaultman.
+  - Runtime synchronous DOM smoke confirmed rendered virtual rows carry `data-render-signature`
+    (`66/66` rows in the active visible window) and `obsidian vault=plugin-dev dev:errors` returned
+    `No errors captured`.
+  - Full unit gate passed: `33` unit files / `111` tests. Scorecard regression scan passed `17` checks.
+- Runtime perf evidence and limitation:
+  - Before adding row signatures, the row-shell reuse version measured Files Tree `tree.window` mostly
+    around `9-16ms` with one `23.2ms` spike, and Files Table `files.table.window` mostly around `9-16ms`
+    with one `25.2ms` spike. Props Table still had a `63.4ms` `node.table.window` spike, which motivated
+    the signature skip pass.
+  - After the final signature build/reload, CLI scripts that depended on timers/RAF did not resolve
+    reliably, despite synchronous evals working. Treat post-signature numeric perf as not freshly
+    measured in this cut. The next perf cut should use a more reliable sampling harness or visible HUD
+    interaction rather than relying on timed CLI promises.
 
 ## Progress - 2026-06-06T18:44:22-05:00
 

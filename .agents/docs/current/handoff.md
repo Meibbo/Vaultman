@@ -5,7 +5,7 @@ status: active
 parent: "[[docs/work/pkm-ai/index|pkm-ai]]"
 archive_source: docs/archive/pkm-ai/active-docs/2026-05-11T080321-current-handoff.md
 created: 2026-05-04T01:36:20
-updated: 2026-06-06T18:44:22-05:00
+updated: 2026-06-06T19:40:28-05:00
 tags:
   - agent/current
 created_by: dec
@@ -16,6 +16,24 @@ updated_by: codex-gpt-5
 
 Compact handoff after archiving the oversized current handoff:
 [[docs/archive/pkm-ai/active-docs/2026-05-11T080321-current-handoff|2026-05-11 handoff archive]].
+
+## NEXT AGENT START HERE — SDF-016d row reuse/signature cut complete (2026-06-06)
+
+Stable `1.1.0` Data/Files parity
+[[docs/work/hardening/issues/stable-1-1-data-files-parity/016-explorer-view-parity-and-stat-card-routing|SDF-016]]
+is still in progress in product worktree `hotfix/1.0.2-css-scorecard`. This cut changed
+`UnifiedTreeView`, `GridView`, and `NodeTableView` so virtual-window renders keep `rowEls` maps,
+remove only stale rows, reuse row shell elements, and skip child DOM rebuilds when
+`rowSignature` is unchanged. Evidence: focused RED/GREEN source guards, virtualization gate `5` files /
+`13` tests, `pnpm run check`, lint, format check, stylelint, and build passed; build synced to
+`plugin-dev`; reload through JS `disablePlugin/enablePlugin` passed; sync DOM smoke confirmed
+`data-render-signature` on `66/66` visible rows; final `dev:errors` clean; full unit `33` files / `111`
+tests and scorecard `17` checks passed. Note: post-signature numeric perf is not freshly captured
+because CLI timer/RAF promises stopped resolving after reload, although synchronous evals worked. Before
+the signature pass, row-shell reuse measured Files Tree windows mostly `9-16ms` with one `23.2ms` spike
+and Files Table mostly `9-16ms` with one `25.2ms` spike; Props Table still had a `63.4ms` spike. Next
+perf slice should use a more reliable harness/HUD-visible workflow and then tackle remaining
+`node.table.window` row child cost or event delegation.
 
 ## NEXT AGENT START HERE — SDF-016c scroll lifecycle cut complete (2026-06-06)
 
