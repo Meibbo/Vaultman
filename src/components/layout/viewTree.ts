@@ -193,8 +193,10 @@ export class UnifiedTreeView {
 			rowHeight: this._rowHeight,
 			overscan: this._overscan,
 		});
-		this._contentEl.empty();
-		this.rowEls.clear();
+		const visibleIds = new Set(
+			projection.visibleRows.map((row) => row.node.id),
+		);
+		this.removeStaleRows(visibleIds);
 		for (const row of projection.visibleRows) {
 			const rowEl = this._renderRow(row.node, this._contentEl, this._opts);
 			rowEl.addClass('vaultman-tree-row--virtual');
@@ -207,6 +209,50 @@ export class UnifiedTreeView {
 			start: projection.startIndex,
 			end: projection.endIndex,
 		});
+	}
+
+	private removeStaleRows(visibleIds: Set<string>): void {
+		for (const [id, row] of this.rowEls) {
+			if (visibleIds.has(id)) continue;
+			row.remove();
+			this.rowEls.delete(id);
+		}
+	}
+
+	private rowSignature(node: TreeNode, opts: TreeViewOptions): string {
+		const visibleCells = opts.visibleCells
+			? Array.from(opts.visibleCells).sort().join(',')
+			: 'default';
+		const badges = (node.badges ?? [])
+			.map((badge) =>
+				[
+					badge.text ?? '',
+					badge.icon ?? '',
+					badge.color ?? '',
+					badge.solid ? '1' : '0',
+					badge.isInherited ? '1' : '0',
+					badge.queueIndex ?? '',
+				].join(':'),
+			)
+			.join('|');
+		return [
+			node.id,
+			node.label,
+			node.depth,
+			node.cls ?? '',
+			node.icon ?? '',
+			node.typeText ?? '',
+			node.count ?? '',
+			node.children?.length ?? 0,
+			node.showCaret ? '1' : '0',
+			opts.expandedIds.has(node.id) ? '1' : '0',
+			opts.activeFilterIds?.has(node.id) ? '1' : '0',
+			opts.warningIds?.has(node.id) ? '1' : '0',
+			opts.searchHighlightIds?.has(node.id) ? '1' : '0',
+			opts.editingId === node.id ? '1' : '0',
+			visibleCells,
+			badges,
+		].join('\u001f');
 	}
 
 	private _scrollTopForIndex(
@@ -279,12 +325,27 @@ export class UnifiedTreeView {
 			? visibleCells.has('type') || visibleCells.has('ext')
 			: false;
 
-		const row = parent.createDiv({ cls: 'vaultman-tree-row' });
+		const row =
+			this.rowEls.get(node.id) ?? parent.createDiv({ cls: 'vaultman-tree-row' });
+		parent.appendChild(row);
+		row.dataset.id = node.id;
+		row.style.setProperty('--depth', String(node.depth));
+		row.onclick = () => opts.onRowClick(node.id);
+		row.oncontextmenu = (e) => {
+			e.preventDefault();
+			e.stopPropagation();
+			opts.onContextMenu(node.id, e);
+		};
+		const signature = this.rowSignature(node, opts);
+		if (row.dataset.renderSignature === signature) {
+			return row;
+		}
+		row.empty();
+		row.className = 'vaultman-tree-row';
+		row.dataset.renderSignature = signature;
 		if (typeof node.cls === 'string' && node.cls.trim()) {
 			for (const c of node.cls.trim().split(/\s+/)) row.addClass(c);
 		}
-		row.dataset.id = node.id;
-		row.style.setProperty('--depth', String(node.depth));
 		if (isActive) row.addClass('is-active-filter');
 		if (isWarning) row.addClass('vaultman-badge-warning');
 		if (opts.searchHighlightIds?.has(node.id))
@@ -396,13 +457,6 @@ export class UnifiedTreeView {
 			}
 		}
 
-		// Click + context menu
-		row.addEventListener('click', () => opts.onRowClick(node.id));
-		row.addEventListener('contextmenu', (e) => {
-			e.preventDefault();
-			e.stopPropagation();
-			opts.onContextMenu(node.id, e);
-		});
 		return row;
 	}
 }

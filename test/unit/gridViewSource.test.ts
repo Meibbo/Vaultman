@@ -28,4 +28,18 @@ describe('GridView source guards', () => {
 			'private readonly onScroll = () => {\n\t\tthis._syncHeaderScroll();\n\t\tthis._renderWindow();\n\t};',
 		);
 	});
+
+	it('reuses file table row shells while scrolling virtual windows', () => {
+		expect(gridViewSource).toContain(
+			'private rowEls = new Map<string, HTMLElement>()',
+		);
+		expect(gridViewSource).toContain('private removeStaleRows');
+		expect(gridViewSource).not.toContain('this.tbodyEl.empty();');
+	});
+
+	it('skips rebuilding unchanged file table row contents', () => {
+		expect(gridViewSource).toContain('private rowSignature');
+		expect(gridViewSource).toContain('row.dataset.renderSignature === signature');
+		expect(gridViewSource).toContain('row.dataset.renderSignature = signature');
+	});
 });

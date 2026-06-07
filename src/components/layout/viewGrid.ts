@@ -39,6 +39,7 @@ export class GridView {
 	private tableEl: HTMLElement | null = null;
 	private tbodyEl: HTMLElement | null = null;
 	private activePath: string | null = null;
+	private rowEls = new Map<string, HTMLElement>();
 	private pendingRaf: number | null = null;
 	private pendingScrollTimer: number | null = null;
 	private readonly rowHeight = 30;
@@ -85,6 +86,7 @@ export class GridView {
 		this.tableEl = null;
 		this.tbodyEl = null;
 		this.displayedFiles = [];
+		this.rowEls.clear();
 		this.selectedFiles.clear();
 	}
 
@@ -94,6 +96,7 @@ export class GridView {
 
 		this.listEl?.removeEventListener('scroll', this.onScroll);
 		this.containerEl.empty();
+		this.rowEls.clear();
 		this.containerEl.addClass('vaultman-files-table-root');
 
 		this.headerEl = this.containerEl.createDiv({
@@ -250,7 +253,10 @@ export class GridView {
 			rowHeight: this.rowHeight,
 			overscan: this.overscan,
 		});
-		this.tbodyEl.empty();
+		const visiblePaths = new Set(
+			projection.visibleRows.map((row) => row.row.path),
+		);
+		this.removeStaleRows(visiblePaths);
 		const layout = this._layout();
 		this._applyTableDimensions(layout);
 		for (const row of projection.visibleRows) {
@@ -296,22 +302,73 @@ export class GridView {
 		}
 	}
 
+	private removeStaleRows(visiblePaths: Set<string>): void {
+		for (const [path, row] of this.rowEls) {
+			if (visiblePaths.has(path)) continue;
+			row.remove();
+			this.rowEls.delete(path);
+		}
+	}
+
+	private rowSignature(
+		file: TFile,
+		layout: FileTableLayout,
+		propCount: number,
+		times: ExplorerFileTimes,
+	): string {
+		const columns = layout.columns
+			.map(
+				(column) =>
+					`${column.id}:${column.left}:${column.width}:${column.sortColumn ?? ''}`,
+			)
+			.join('|');
+		return [
+			file.path,
+			file.name,
+			file.extension,
+			file.parent?.path ?? '',
+			file.stat.ctime,
+			file.stat.mtime,
+			times.ctime,
+			times.mtime,
+			propCount,
+			this.sortColumn,
+			this.activePath === file.path ? '1' : '0',
+			columns,
+		].join('\u001f');
+	}
+
 	private _renderRow(
 		parent: HTMLElement,
 		file: TFile,
 		top: number,
 		layout: FileTableLayout,
 	): void {
-		const row = parent.createDiv({
-			cls: 'bases-tr vaultman-file-row vaultman-file-table-row',
-		});
+		const fm = this.app.metadataCache.getFileCache(file)?.frontmatter ?? {};
+		const propCount = Object.keys(fm).filter((k) => k !== 'position').length;
+		const times = this.callbacks.getFileTimes?.(file) ?? file.stat;
+		const signature = this.rowSignature(file, layout, propCount, times);
+		const row =
+			this.rowEls.get(file.path) ??
+			parent.createDiv({
+				cls: 'bases-tr vaultman-file-row vaultman-file-table-row',
+			});
+		parent.appendChild(row);
+		this.rowEls.set(file.path, row);
 		row.dataset.path = file.path;
 		row.style.top = `${top}px`;
 		row.style.height = `${this.rowHeight}px`;
 		row.style.width = `${layout.totalWidth}px`;
-
-		const fm = this.app.metadataCache.getFileCache(file)?.frontmatter ?? {};
-		const propCount = Object.keys(fm).filter((k) => k !== 'position').length;
+		row.oncontextmenu = (event) => {
+			event.preventDefault();
+			this.callbacks.onContextMenu(file, event);
+		};
+		if (row.dataset.renderSignature === signature) {
+			return;
+		}
+		row.empty();
+		row.className = 'bases-tr vaultman-file-row vaultman-file-table-row';
+		row.dataset.renderSignature = signature;
 
 		for (const column of layout.columns) {
 			if (column.id === 'icon') {
@@ -328,7 +385,6 @@ export class GridView {
 			} else if (column.id === 'ext') {
 				this._renderTextCell(row, column, file.extension, 'vaultman-file-ext');
 			} else if (column.id === 'date') {
-				const times = this.callbacks.getFileTimes?.(file) ?? file.stat;
 				this._renderTextCell(
 					row,
 					column,
@@ -347,10 +403,6 @@ export class GridView {
 			}
 		}
 
-		row.addEventListener('contextmenu', (event) => {
-			event.preventDefault();
-			this.callbacks.onContextMenu(file, event);
-		});
 	}
 
 	private _renderIconCell(

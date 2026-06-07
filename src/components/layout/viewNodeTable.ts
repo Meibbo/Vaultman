@@ -33,6 +33,7 @@ export class NodeTableView<TMeta = unknown> {
 	private tbodyEl: HTMLElement | null = null;
 	private opts: NodeTableViewOptions<TMeta> | null = null;
 	private rows: TreeNode<TMeta>[] = [];
+	private rowEls = new Map<string, HTMLElement>();
 	private pendingRaf: number | null = null;
 	private pendingScrollTimer: number | null = null;
 	private readonly rowHeight = 30;
@@ -71,6 +72,7 @@ export class NodeTableView<TMeta = unknown> {
 		this.tbodyEl = null;
 		this.opts = null;
 		this.rows = [];
+		this.rowEls.clear();
 	}
 
 	private _ensureScaffold(): void {
@@ -79,6 +81,7 @@ export class NodeTableView<TMeta = unknown> {
 
 		this.listEl?.removeEventListener('scroll', this.onScroll);
 		this.containerEl.empty();
+		this.rowEls.clear();
 		this.containerEl.addClass('vaultman-node-table-root');
 		this.headerEl = this.containerEl.createDiv({
 			cls: 'bases-thead vaultman-node-table-header',
@@ -163,7 +166,8 @@ export class NodeTableView<TMeta = unknown> {
 			this.opts.visibleCells,
 		);
 		this._applyDimensions(layout);
-		this.tbodyEl.empty();
+		const visibleIds = new Set(projection.visibleRows.map((row) => row.row.id));
+		this.removeStaleRows(visibleIds);
 		for (const row of projection.visibleRows) {
 			this._renderRow(row.row, row.top, layout, this.opts);
 		}
@@ -207,6 +211,56 @@ export class NodeTableView<TMeta = unknown> {
 		}
 	}
 
+	private removeStaleRows(visibleIds: Set<string>): void {
+		for (const [id, row] of this.rowEls) {
+			if (visibleIds.has(id)) continue;
+			row.remove();
+			this.rowEls.delete(id);
+		}
+	}
+
+	private rowSignature(
+		node: TreeNode<TMeta>,
+		layout: NodeTableLayout,
+		opts: NodeTableViewOptions<TMeta>,
+	): string {
+		const visibleCells = Array.from(opts.visibleCells).sort().join(',');
+		const columns = layout.columns
+			.map((column) => `${column.id}:${column.left}:${column.width}`)
+			.join('|');
+		const badges = (node.badges ?? [])
+			.map((badge) =>
+				[
+					badge.text ?? '',
+					badge.icon ?? '',
+					badge.color ?? '',
+					badge.solid ? '1' : '0',
+					badge.isInherited ? '1' : '0',
+					badge.queueIndex ?? '',
+				].join(':'),
+			)
+			.join('|');
+		return [
+			opts.surface,
+			node.id,
+			node.label,
+			node.depth,
+			node.cls ?? '',
+			node.icon ?? '',
+			node.typeText ?? '',
+			node.count ?? '',
+			node.children?.length ?? 0,
+			node.showCaret ? '1' : '0',
+			opts.expandedIds.has(node.id) ? '1' : '0',
+			opts.activeFilterIds?.has(node.id) ? '1' : '0',
+			opts.warningIds?.has(node.id) ? '1' : '0',
+			opts.searchHighlightIds?.has(node.id) ? '1' : '0',
+			visibleCells,
+			columns,
+			badges,
+		].join('\u001f');
+	}
+
 	private _renderRow(
 		node: TreeNode<TMeta>,
 		top: number,
@@ -214,19 +268,41 @@ export class NodeTableView<TMeta = unknown> {
 		opts: NodeTableViewOptions<TMeta>,
 	): void {
 		if (!this.tbodyEl) return;
-		const row = this.tbodyEl.createDiv({
-			cls: 'bases-tr vaultman-node-table-row',
-		});
-		if (typeof node.cls === 'string' && node.cls.trim()) {
-			for (const className of node.cls.trim().split(/\s+/)) {
-				row.addClass(className);
-			}
-		}
+		const signature = this.rowSignature(node, layout, opts);
+		const row =
+			this.rowEls.get(node.id) ??
+			this.tbodyEl.createDiv({
+				cls: 'bases-tr vaultman-node-table-row',
+			});
+		this.tbodyEl.appendChild(row);
+		this.rowEls.set(node.id, row);
 		row.dataset.id = node.id;
 		row.style.top = `${top}px`;
 		row.style.height = `${this.rowHeight}px`;
 		row.style.width = `${layout.totalWidth}px`;
 		row.style.setProperty('--depth', String(node.depth));
+		row.onclick = () => opts.onRowClick(node.id);
+		row.onkeydown = (event) => {
+			if (event.key !== 'Enter' && event.key !== ' ') return;
+			event.preventDefault();
+			opts.onRowClick(node.id);
+		};
+		row.oncontextmenu = (event) => {
+			event.preventDefault();
+			event.stopPropagation();
+			opts.onContextMenu(node.id, event);
+		};
+		if (row.dataset.renderSignature === signature) {
+			return;
+		}
+		row.empty();
+		row.className = 'bases-tr vaultman-node-table-row';
+		row.dataset.renderSignature = signature;
+		if (typeof node.cls === 'string' && node.cls.trim()) {
+			for (const className of node.cls.trim().split(/\s+/)) {
+				row.addClass(className);
+			}
+		}
 		row.toggleClass(
 			'is-active-filter',
 			opts.activeFilterIds?.has(node.id) ?? false,
@@ -243,18 +319,6 @@ export class NodeTableView<TMeta = unknown> {
 		for (const column of layout.columns) {
 			this._renderCell(row, node, column, opts);
 		}
-
-		row.addEventListener('click', () => opts.onRowClick(node.id));
-		row.addEventListener('keydown', (event) => {
-			if (event.key !== 'Enter' && event.key !== ' ') return;
-			event.preventDefault();
-			opts.onRowClick(node.id);
-		});
-		row.addEventListener('contextmenu', (event) => {
-			event.preventDefault();
-			event.stopPropagation();
-			opts.onContextMenu(node.id, event);
-		});
 	}
 
 	private _renderCell(

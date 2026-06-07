@@ -22,4 +22,20 @@ describe('NodeTableView source guards', () => {
 			'private readonly onScroll = () => {\n\t\tthis._syncHeaderScroll();\n\t\tthis._renderWindow();\n\t};',
 		);
 	});
+
+	it('reuses node table row shells while scrolling virtual windows', () => {
+		expect(nodeTableSource).toContain(
+			'private rowEls = new Map<string, HTMLElement>()',
+		);
+		expect(nodeTableSource).toContain('private removeStaleRows');
+		expect(nodeTableSource).not.toContain('this.tbodyEl.empty();');
+	});
+
+	it('skips rebuilding unchanged node table row contents', () => {
+		expect(nodeTableSource).toContain('private rowSignature');
+		expect(nodeTableSource).toContain(
+			'row.dataset.renderSignature === signature',
+		);
+		expect(nodeTableSource).toContain('row.dataset.renderSignature = signature');
+	});
 });
