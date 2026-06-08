@@ -12,6 +12,54 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.1.0-beta.2] — 2026-06-08
+
+### Added
+
+- Added a minimal-style Data surface with dock-off navigation, Core-like header controls, and Data tab
+  routing for Files, Props, Tags, Content, Active filters, Queue, and Statistics.
+- Added table and grid view parity work for Files, plus table view support for Props and Tags with
+  resizable Bases-style columns.
+- Added Content search result hierarchy with Core Search-like rows, result sorting, expand/collapse all,
+  idle/no-result landings, and queue-compatible replace behavior.
+- Added queue risk warnings for bulk operations and folder operations, plus duplicate/contradictory
+  operation guards.
+- Added explorer drag payload support for files, tags, and properties, including frontmatter-aware
+  property drops and wikilink file drops.
+
+### Changed
+
+- Moved Files into the Data header tab menu and made Data the primary explorer surface for beta testing.
+- Split explorer search state by surface so Props/Tags search terms do not leak into Files filters.
+- Improved Files, Props, Tags, and Content sorting, including modified-time and created-time fields.
+- Reworked Statistics routing, scoped projections, and cache-backed file time data for the beta gate.
+- Added `dev` branch coverage to CI, CodeQL, and OpenSSF Scorecard workflows.
+
+### Fixed
+
+- Fixed multiple stable UX placeholders and non-reactive settings, including tab-label visibility and
+  minimal-style FAB/dock updates.
+- Fixed Files explorer extension display, folder filtering, folder queue operations, active-file styling,
+  file-grid selection/context menu behavior, and empty-folder affordances.
+- Fixed Props explorer property-name search semantics, property type display, value filtering, and grid
+  node interactions.
+- Fixed Tags nested/simple grouping semantics and view-grid interaction behavior.
+- Fixed severe explorer virtualization regressions: stale Files table roots, duplicated file rows, scroll
+  lifecycle leaks, row rebuild churn, and tab-switch vertical offset jumps.
+- Fixed Content search fallback so hidden matches missed by the native Search DOM can still appear in
+  Vaultman results.
+
+### Known beta gaps
+
+- Full Core Search parity for 1000+ result virtualization, snippet context controls, copy results, and
+  bookmark actions remains deferred.
+- Full Content table renderer parity remains deferred while the Core Search-compatible result-list
+  surface stabilizes.
+- Further indexed or batched filter-performance work may still be needed if rapid active-filter clicks
+  produce user-visible FPS drops in plugin-dev.
+
+---
+
 ## [1.0.2] — 2026-06-04
 
 ### Fixed

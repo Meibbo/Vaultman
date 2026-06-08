@@ -89,7 +89,7 @@ jobs:
           set -euo pipefail
           notes_file="$(mktemp)"
           cat > "${notes_file}" <<EOF
-          ${GITHUB_REF_NAME} stable patch built from the 1.0.x product line.
+          ${GITHUB_REF_NAME} release candidate built from the verified Vaultman release line.
 
           Included assets:
           - main.js

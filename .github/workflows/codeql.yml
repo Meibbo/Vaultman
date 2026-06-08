@@ -2,9 +2,9 @@ name: 'CodeQL'
 
 on:
   push:
-    branches: ['main', 'hardening', 'hardening-refactor']
+    branches: ['main', 'dev', 'hardening', 'hardening-refactor']
   pull_request:
-    branches: ['main', 'hardening']
+    branches: ['main', 'dev', 'hardening']
 
 env:
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
