@@ -1,10 +1,10 @@
 ---
 title: Stable 1.1.0 Data/Files parity local issues
 type: issue-index
-status: active
+status: completed
 parent: "[[docs/work/hardening/plans/2026-06-05-stable-1-1-0-data-files-parity/index|Stable 1.1.0 Data/Files parity implementation plan]]"
 created: 2026-06-06T07:53:25
-updated: 2026-06-06T17:39:16-05:00
+updated: 2026-06-07T22:15:10
 tags:
   - agent/issue
   - initiative/hardening
@@ -12,7 +12,7 @@ tags:
   - explorer/files
   - explorer/search
 labels:
-  - needs-triage
+  - completed
 created_by: codex-gpt-5
 updated_by: codex-gpt-5
 ---
@@ -45,13 +45,13 @@ Local Markdown tracker for the release-facing Data/Files parity follow-up after 
 7. [[007-nested-flat-hierarchy-mode-all-explorers|SDF-007 Nested and flat hierarchy mode across explorers]] - completed
 8. [[008-correct-tags-nested-simple-grouping|SDF-008 Correct Tags nested/simple grouping semantics]] - completed
 9. [[009-content-active-tab-header-label|SDF-009 Content active tab header label]] - completed
-10. [[010-content-explorer-core-search-parity|SDF-010 Content explorer parity with Core Search]]
+10. [[010-content-explorer-core-search-parity|SDF-010 Content explorer parity with Core Search]] - completed
 11. [[011-bases-parity-table-view-layout|SDF-011 Bases-parity table view layout]] - completed
 12. [[012-data-files-tab-menu-and-filter-fab-clear|SDF-012 Data Files tab menu and active-filter quick clear]] - completed
 13. [[013-empty-folder-caret-and-extension-icons|SDF-013 Empty folder caret and extension-aware file icons]] - completed
 14. [[014-data-tab-switch-performance-and-offset-regression|SDF-014 Data tab switch performance and vertical offset regression]] - completed
 15. [[015-queue-duplicate-contradictory-operation-guards|SDF-015 Queue duplicate and contradictory operation guards]] - completed
-16. [[016-explorer-view-parity-and-stat-card-routing|SDF-016 Explorer view parity and Statistics card routing]] - in progress; Props/Tags table slice complete
+16. [[016-explorer-view-parity-and-stat-card-routing|SDF-016 Explorer view parity and Statistics card routing]] - completed
 
 ## Dependency Order
 
@@ -81,3 +81,17 @@ graph TD
   SDF012 --> SDF014
   SDF011 --> SDF016
 ```
+
+## Closure - 2026-06-07T22:15:10
+
+All local SDF issues in this tracker are closed for the `1.1.0-beta.2` release-gate wave.
+Product implementation was committed in the main-derived worktree as
+`9150c90 feat(data): close explorer parity wave`.
+
+Residual work intentionally moved outside this tracker:
+
+- full Core Search 1000+ result virtualization parity, snippet context expansion controls,
+  copy-results/bookmark actions, and exact `obsiman` count reconciliation;
+- full Content table renderer parity after the Core Search-compatible result-list surface is stable;
+- further indexed or batched filter-performance work if plugin-dev testing still shows rapid-click FPS
+  degradation.
