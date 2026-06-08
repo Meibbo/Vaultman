@@ -28,6 +28,8 @@ export interface TreeNode<TMeta = unknown> {
 	icon?: string;
 	showCaret?: boolean;
 	typeText?: string;
+	mtimeText?: string;
+	ctimeText?: string;
 	count?: number;
 	badges?: NodeBadge[];
 	children?: TreeNode<TMeta>[];

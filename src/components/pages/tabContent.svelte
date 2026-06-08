@@ -12,6 +12,9 @@
 		contentPreviewOpen = $bindable(),
 		contentRegexError,
 		contentScopeHint,
+		sortedContentFiles,
+		isContentFileExpanded,
+		toggleContentFile,
 		queueContentReplace,
 		openContentMatch,
 	}: {
@@ -23,6 +26,9 @@
 		contentPreviewOpen: boolean;
 		contentRegexError: string;
 		contentScopeHint: string;
+		sortedContentFiles: ContentPreviewResult['files'];
+		isContentFileExpanded: (filePath: string) => boolean;
+		toggleContentFile: (filePath: string) => void;
 		queueContentReplace: () => void;
 		openContentMatch: (file: TFile, line: number, ch: number) => Promise<void>;
 	} = $props();
@@ -90,6 +96,21 @@
 <div class="vaultman-content-scope-hint">
 	{contentScopeHint}
 </div>
+{#if contentPreviewResult === null}
+	<div class="vaultman-content-landing">
+		<div
+			class="vaultman-content-landing-icon"
+			aria-hidden="true"
+			use:iconAction={'lucide-file-search'}
+		></div>
+		<div class="vaultman-content-landing-title">
+			{translate('content.landing_title')}
+		</div>
+		<div class="vaultman-content-landing-desc">
+			{translate('content.landing_desc')}
+		</div>
+	</div>
+{/if}
 {#if contentPreviewResult !== null}
 	<div
 		class={`search-result-container mod-global-search node-insert-event${contentPreviewResult.isLoading ? ' is-loading' : ''}`}
@@ -133,30 +154,26 @@
 		</div>
 		{#if contentPreviewOpen && contentPreviewResult.totalMatches > 0}
 			<div class="search-results-children">
-				{#each contentPreviewResult.files as fileResult (fileResult.file.path)}
+				{#each sortedContentFiles as fileResult (fileResult.file.path)}
 					<div class="tree-item search-result">
 						<div
 							class="tree-item-self search-result-file-title is-clickable"
 							role="button"
 							tabindex="0"
 							onclick={() => {
-								const first = fileResult.snippets[0];
-								if (first)
-									void openContentMatch(fileResult.file, first.line, first.ch);
+								toggleContentFile(fileResult.file.path);
 							}}
 							onkeydown={(e: KeyboardEvent) => {
 								if (e.key === 'Enter' || e.key === ' ') {
 									e.preventDefault();
-									const first = fileResult.snippets[0];
-									if (first)
-										void openContentMatch(
-											fileResult.file,
-											first.line,
-											first.ch,
-										);
+									toggleContentFile(fileResult.file.path);
 								}
 							}}
 						>
+							<span
+								class="tree-item-icon collapse-icon vaultman-preview-chevron"
+								>{isContentFileExpanded(fileResult.file.path) ? '▼' : '▶'}</span
+							>
 							<div class="tree-item-inner">
 								<div class="tree-item-inner-text">{fileResult.file.path}</div>
 							</div>
@@ -164,32 +181,38 @@
 								<span class="tree-item-flair">{fileResult.matchCount}</span>
 							</div>
 						</div>
-						<div class="search-result-file-matches">
-							{#each fileResult.snippets as snippet, snippetIndex (`${fileResult.file.path}-${snippetIndex}-${snippet.match}`)}
-								<div
-									class="search-result-file-match tappable is-clickable"
-									role="button"
-									tabindex="0"
-									onclick={() =>
-										openContentMatch(fileResult.file, snippet.line, snippet.ch)}
-									onkeydown={(e: KeyboardEvent) => {
-										if (e.key === 'Enter' || e.key === ' ') {
-											e.preventDefault();
-											void openContentMatch(
+						{#if isContentFileExpanded(fileResult.file.path)}
+							<div class="search-result-file-matches">
+								{#each fileResult.snippets as snippet, snippetIndex (`${fileResult.file.path}-${snippetIndex}-${snippet.match}`)}
+									<div
+										class="search-result-file-match tappable is-clickable"
+										role="button"
+										tabindex="0"
+										onclick={() =>
+											openContentMatch(
 												fileResult.file,
 												snippet.line,
 												snippet.ch,
-											);
-										}
-									}}
-								>
-									<span>{snippet.before}</span><span
-										class="search-result-file-matched-text"
-										>{snippet.match}</span
-									><span>{snippet.after}</span>
-								</div>
-							{/each}
-						</div>
+											)}
+										onkeydown={(e: KeyboardEvent) => {
+											if (e.key === 'Enter' || e.key === ' ') {
+												e.preventDefault();
+												void openContentMatch(
+													fileResult.file,
+													snippet.line,
+													snippet.ch,
+												);
+											}
+										}}
+									>
+										<span>{snippet.before}</span><span
+											class="search-result-file-matched-text"
+											>{snippet.match}</span
+										><span>{snippet.after}</span>
+									</div>
+								{/each}
+							</div>
+						{/if}
 					</div>
 				{/each}
 				{#if contentPreviewResult.moreFiles > 0}
@@ -200,6 +223,20 @@
 						)}
 					</div>
 				{/if}
+			</div>
+		{:else if !contentPreviewResult.isLoading && contentPreviewResult.totalMatches === 0}
+			<div class="vaultman-content-landing vaultman-content-landing--empty">
+				<div
+					class="vaultman-content-landing-icon"
+					aria-hidden="true"
+					use:iconAction={'lucide-search-x'}
+				></div>
+				<div class="vaultman-content-landing-title">
+					{translate('content.no_matches')}
+				</div>
+				<div class="vaultman-content-landing-desc">
+					{translate('content.empty_desc')}
+				</div>
 			</div>
 		{/if}
 	</div>

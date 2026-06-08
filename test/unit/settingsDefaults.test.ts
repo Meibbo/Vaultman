@@ -11,6 +11,10 @@ describe('Vaultman default settings', () => {
 		expect(DEFAULT_SETTINGS.suppressBulkOperationWarning).toBe(false);
 	});
 
+	it('uses 400 files as the default queued operation warning threshold', () => {
+		expect(DEFAULT_SETTINGS.bulkOperationWarningThreshold).toBe(400);
+	});
+
 	it('keeps Files inside the Data tab menu instead of the dock', () => {
 		expect(DEFAULT_SETTINGS.pageOrder).toEqual(['filters', 'statistics']);
 	});

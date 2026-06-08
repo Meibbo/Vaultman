@@ -17,7 +17,7 @@
 	import type { FabDef } from './types/typeUI';
 	import { resolveDockPageOrder } from './logic/logicNavigation';
 	import type { StatisticsDataTab } from './logic/logicStatisticsNavigation';
-	import { isBulkQueueTarget } from './utils/queueTemplateMenu';
+	import { countQueuedOperationWarnings } from './logic/logicQueueWarnings';
 	import { attachBasesMultiSelectOperations } from './utils/basesMultiSelectOperations';
 
 	// ─── Props ────────────────────────────────────────────────────────────────
@@ -403,13 +403,10 @@
 	}
 
 	function countQueueWarnings(): number {
-		const vaultCount = plugin.app.vault.getFiles().length;
-		return plugin.queueService.queue.filter((change) =>
-			isBulkQueueTarget({
-				targetCount: change.files.length,
-				vaultCount,
-			}),
-		).length;
+		return countQueuedOperationWarnings(
+			plugin.queueService.queue,
+			plugin.settings.bulkOperationWarningThreshold ?? 400,
+		);
 	}
 
 	let fileList = $state<FilesExplorerPanel | undefined>(undefined);

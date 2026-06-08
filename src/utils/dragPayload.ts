@@ -28,11 +28,30 @@ export function setVaultmanDragPayload(
 	event.dataTransfer.setData('text/plain', fallbackText(payload));
 }
 
+export function readVaultmanDragPayload(
+	event: DragEvent,
+): VaultmanDragPayload | null {
+	const raw = event.dataTransfer?.getData(VAULTMAN_DRAG_MIME);
+	if (!raw) return null;
+	try {
+		const parsed = JSON.parse(raw) as VaultmanDragPayload;
+		return isVaultmanDragPayload(parsed) ? parsed : null;
+	} catch {
+		return null;
+	}
+}
+
 function fallbackText(payload: VaultmanDragPayload): string {
-	if (payload.kind === 'file' || payload.kind === 'folder') return payload.path;
+	if (payload.kind === 'file') return wikilinkForPath(payload.path);
+	if (payload.kind === 'folder') return payload.path;
 	if (payload.kind === 'tag') return `#${payload.tagPath}`;
-	if (payload.kind === 'property') return payload.property;
-	return `${payload.property}: ${payload.value}`;
+	if (payload.kind === 'property') return '';
+	return '';
+}
+
+function wikilinkForPath(path: string): string {
+	const withoutMarkdown = path.replace(/\.md$/i, '');
+	return `[[${withoutMarkdown}]]`;
 }
 
 export function activeFilterDragSelection(
@@ -114,6 +133,23 @@ function sameDragNode(
 		return left.property === right.property;
 	if (left.kind === 'property-value' && right.kind === 'property-value') {
 		return left.property === right.property && left.value === right.value;
+	}
+	return false;
+}
+
+function isVaultmanDragPayload(value: unknown): value is VaultmanDragPayload {
+	if (!value || typeof value !== 'object') return false;
+	const record = value as Partial<VaultmanDragPayload>;
+	if (record.kind === 'file' || record.kind === 'folder')
+		return typeof record.path === 'string';
+	if (record.kind === 'tag') return typeof record.tagPath === 'string';
+	if (record.kind === 'property') return typeof record.property === 'string';
+	if (record.kind === 'property-value') {
+		return (
+			typeof record.property === 'string' &&
+			typeof record.value === 'string' &&
+			(record.mode === 'property-value' || record.mode === 'value-only')
+		);
 	}
 	return false;
 }

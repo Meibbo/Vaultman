@@ -123,6 +123,9 @@ export const es: Record<string, string> = {
 	'queue.guard.conflict': 'Operación contradictoria bloqueada',
 	'queue.guard.batch':
 		'Guardia de cola: {merged} fusionadas, {duplicates} duplicadas omitidas, {conflicts} contradicciones bloqueadas',
+	'queue.warning.empty_target': 'Esta operación afecta 0 archivos.',
+	'queue.warning.large_target':
+		'Esta operación afecta {count} archivos, sobre el límite de aviso de {threshold}.',
 
 	// Queue details
 	'queue.title': 'Detalles de Cola',
@@ -156,6 +159,9 @@ export const es: Record<string, string> = {
 	'settings.bulk_operation_warning': 'Aviso de operación masiva',
 	'settings.bulk_operation_warning.desc':
 		'Avisa antes de que los presets de acción preparen conjuntos muy grandes de archivos.',
+	'settings.bulk_operation_warning_threshold': 'Umbral de aviso en cola',
+	'settings.bulk_operation_warning_threshold.desc':
+		'Muestra avisos en la cola cuando una operación afecta más archivos que este límite.',
 	'settings.performance_monitor': 'Monitor de rendimiento',
 	'settings.performance_monitor.desc':
 		'Muestra el monitor flotante de FPS, long tasks, memoria y acciones.',
@@ -452,6 +458,8 @@ export const es: Record<string, string> = {
 	'viewmode.pill.nested': 'Anidadas',
 	'viewmode.pill.name': 'Nombre',
 	'viewmode.pill.date': 'Fecha',
+	'viewmode.pill.mtime': 'Modificación',
+	'viewmode.pill.ctime': 'Creación',
 	'viewmode.pill.type': 'Tipo',
 	'viewmode.pill.path': 'Ruta',
 	'stats.folders': 'Carpetas',
@@ -465,4 +473,7 @@ export const es: Record<string, string> = {
 	'stats.reconciling': 'Reconciliando',
 	'viewmode.add_mode': 'Modo AGREGAR',
 	'content.queue_no_matches': 'No hay coincidencias de contenido para encolar',
+	'content.landing_title': 'Búsqueda de contenido',
+	'content.landing_desc': 'Escribe un término para buscar en el alcance actual.',
+	'content.empty_desc': 'Prueba otro término o ajusta los filtros activos.',
 };

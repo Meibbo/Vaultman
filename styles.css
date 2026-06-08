@@ -411,6 +411,11 @@ body.vaultman-table-resizing {
   color: var(--text-accent);
 }
 
+.vaultman-file-table-badge-zone {
+  flex: 0 0 auto;
+  margin-inline-start: 6px;
+}
+
 .vaultman-file-name:hover {
   color: var(--vaultman-accent);
   text-decoration: underline;
@@ -2857,6 +2862,11 @@ body.vaultman-bases-column-separators table th {
   align-self: center;
 }
 
+.vaultman-filters-header .nav-action-button.is-disabled {
+  opacity: 0.45;
+  pointer-events: none;
+}
+
 .vaultman-filters-header > .nav-buttons-container {
   display: flex;
   align-items: center;
@@ -3845,6 +3855,40 @@ body.vaultman-bases-column-separators table th {
   margin: 4px 0 8px;
 }
 
+.vaultman-content-landing {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 120px;
+  gap: 6px;
+  padding: 18px 12px;
+  color: var(--text-muted);
+  text-align: center;
+}
+
+.vaultman-content-landing-icon {
+  display: inline-flex;
+  color: var(--text-faint);
+}
+
+.vaultman-content-landing-icon svg {
+  width: 22px;
+  height: 22px;
+}
+
+.vaultman-content-landing-title {
+  color: var(--text-normal);
+  font-size: var(--font-ui-small);
+  font-weight: 600;
+}
+
+.vaultman-content-landing-desc {
+  max-width: 260px;
+  font-size: var(--font-ui-smaller);
+  line-height: 1.35;
+}
+
 .vaultman-content-actions {
   display: flex;
   gap: 6px;
@@ -4250,6 +4294,14 @@ body.vaultman-bases-column-separators table th {
   white-space: nowrap;
 }
 
+.vaultman-queue-island-node {
+  border-radius: 6px;
+}
+
+.vaultman-queue-island-node:nth-child(odd) {
+  background: var(--background-modifier-hover);
+}
+
 .vaultman-queue-island-row {
   display: flex;
   align-items: baseline;
@@ -4257,10 +4309,6 @@ body.vaultman-bases-column-separators table th {
   padding: 4px 6px;
   border-radius: 6px;
   font-size: var(--font-ui-smaller);
-}
-
-.vaultman-queue-island-row:nth-child(odd) {
-  background: var(--background-modifier-hover);
 }
 
 .vaultman-queue-island-row-files {
@@ -4274,6 +4322,30 @@ body.vaultman-bases-column-separators table th {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.vaultman-queue-island-warning {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0 6px 5px 24px;
+  color: var(--text-muted);
+  font-size: var(--font-ui-smaller);
+  line-height: 1.25;
+}
+
+.vaultman-queue-island-warning.is-error {
+  color: var(--text-error);
+}
+
+.vaultman-queue-island-warning-icon {
+  display: inline-flex;
+  flex: 0 0 auto;
+}
+
+.vaultman-queue-island-warning-icon svg {
+  width: 12px;
+  height: 12px;
 }
 
 .vaultman-queue-mode-toggle {
@@ -4716,8 +4788,10 @@ body.vaultman-bases-column-separators table th {
 .vaultman-statistics-page {
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  align-items: stretch;
+  gap: 10px;
   padding: 16px 12px;
+  min-height: 0;
 }
 
 .vaultman-stat-header {
@@ -4734,7 +4808,7 @@ body.vaultman-bases-column-separators table th {
   background: var(--background-secondary);
   width: 100%;
   padding: 3px;
-  border-radius: 999px;
+  border-radius: var(--radius-s);
   border: 1px solid var(--vaultman-border);
 }
 
@@ -4746,26 +4820,24 @@ body.vaultman-bases-column-separators table th {
   gap: 4px;
   min-width: 0;
   padding: 3px 6px;
-  border-radius: 999px;
+  border-radius: var(--radius-s);
   border: 1px solid transparent;
-  background: color-mix(in srgb, var(--scope-color, var(--text-muted)) 8%, transparent);
+  background: transparent;
   color: var(--text-muted);
   font-size: 11px;
   line-height: 1.2;
   cursor: pointer;
-  transition: all 0.2s ease;
 }
 
 .vaultman-stat-scope-pill:hover {
-  border-color: color-mix(in srgb, var(--scope-color, var(--text-muted)) 28%, transparent);
-  color: var(--scope-color, var(--text-normal));
+  background: var(--background-modifier-hover);
+  color: var(--text-normal);
 }
 
 .vaultman-stat-scope-pill.is-active {
-  background: color-mix(in srgb, var(--scope-color, var(--interactive-accent)) 18%, var(--background-secondary));
-  border-color: color-mix(in srgb, var(--scope-color, var(--interactive-accent)) 55%, transparent);
-  color: var(--scope-color, var(--text-normal));
-  box-shadow: 0 2px 8px color-mix(in srgb, var(--scope-color, var(--interactive-accent)) 18%, transparent);
+  background: var(--background-modifier-hover);
+  border-color: var(--background-modifier-border);
+  color: var(--text-normal);
 }
 
 .vaultman-pill-icon {
@@ -4787,10 +4859,12 @@ body.vaultman-bases-column-separators table th {
 
 .vaultman-stat-cards-grid {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 96px));
+  grid-template-columns: repeat(auto-fit, minmax(88px, 1fr));
   justify-content: center;
   gap: 8px;
   width: 100%;
+  max-width: calc((3 * 96px) + (2 * 8px));
+  margin-inline: auto;
 }
 
 .vaultman-stat-card {
@@ -4802,24 +4876,24 @@ body.vaultman-bases-column-separators table th {
   padding: 12px 8px;
   background: var(--background-secondary);
   border: 1px solid var(--vaultman-border);
-  border-radius: 12px;
+  border-radius: var(--radius-s);
   color: inherit;
   font: inherit;
   cursor: pointer;
-  transition: transform 0.2s ease, border-color 0.2s ease;
+  min-width: 0;
+  min-height: 74px;
 }
 
 .vaultman-stat-card:hover {
-  border-color: var(--card-color, var(--vaultman-accent));
-  transform: translateY(-2px);
+  background: var(--background-modifier-hover);
+  border-color: var(--background-modifier-border-hover);
 }
 
 .vaultman-stat-card-icon {
   display: flex;
   align-items: center;
   justify-content: center;
-  color: var(--card-color, var(--vaultman-accent));
-  opacity: 0.8;
+  color: var(--text-muted);
 }
 
 .vaultman-stat-card-icon svg {
@@ -4848,10 +4922,12 @@ body.vaultman-bases-column-separators table th {
   flex-direction: column;
   gap: 8px;
   padding: 12px;
-  background: color-mix(in srgb, var(--background-secondary) 50%, transparent);
+  width: 100%;
+  max-width: calc((3 * 96px) + (2 * 8px));
+  margin-inline: auto;
+  background: var(--background-secondary);
   border: 1px solid var(--vaultman-border);
-  border-radius: 16px;
-  backdrop-filter: blur(8px);
+  border-radius: var(--radius-s);
 }
 
 .vaultman-stat-meta-item {
@@ -5299,6 +5375,14 @@ body.vaultman-bases-column-separators table th {
   min-height: 80px;
 }
 
+.vaultman-queue-island-node {
+  border-radius: 6px;
+}
+
+.vaultman-queue-island-node:nth-child(odd) {
+  background: var(--background-modifier-hover);
+}
+
 .vaultman-queue-island-row,
 .vaultman-active-filter-island-row {
   display: flex;
@@ -5310,7 +5394,6 @@ body.vaultman-bases-column-separators table th {
   font-size: var(--font-ui-smaller);
 }
 
-.vaultman-queue-island-row:nth-child(odd),
 .vaultman-active-filters-island-list .vaultman-active-filter-island-row:nth-child(odd) {
   background: var(--background-modifier-hover);
 }
@@ -5327,6 +5410,30 @@ body.vaultman-bases-column-separators table th {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.vaultman-queue-island-warning {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0 10px 6px 28px;
+  color: var(--text-muted);
+  font-size: var(--font-ui-smaller);
+  line-height: 1.25;
+}
+
+.vaultman-queue-island-warning.is-error {
+  color: var(--text-error);
+}
+
+.vaultman-queue-island-warning-icon {
+  display: inline-flex;
+  flex: 0 0 auto;
+}
+
+.vaultman-queue-island-warning-icon svg {
+  width: 12px;
+  height: 12px;
 }
 
 .vaultman-active-filter-row-text {

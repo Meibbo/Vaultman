@@ -56,6 +56,8 @@ export interface VaultmanSettings {
 	bypassOperations: boolean;
 	/** Suppress the bulk target confirmation for reusable action presets */
 	suppressBulkOperationWarning: boolean;
+	/** Queue warning threshold for operations that target many files */
+	bulkOperationWarningThreshold: number;
 	/** Show the floating performance diagnostics monitor */
 	performanceHudEnabled: boolean;
 	/** Internal one-shot migration marker for the Iter.12 tab label default */
@@ -118,6 +120,7 @@ export const DEFAULT_SETTINGS: VaultmanSettings = {
 	showDock: false,
 	bypassOperations: false,
 	suppressBulkOperationWarning: false,
+	bulkOperationWarningThreshold: 400,
 	performanceHudEnabled: false,
 	filtersTabLabelsMigrated: true,
 	glassBlurIntensity: 60,

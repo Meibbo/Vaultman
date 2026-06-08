@@ -29,6 +29,13 @@
 		onClick: () => void;
 		onDoubleClick?: () => void;
 	};
+	type HeaderAction = {
+		id: string;
+		label: string;
+		icon: string;
+		disabled?: boolean;
+		onClick: (event: MouseEvent) => void;
+	};
 	type HeaderMode = 'header' | 'sort' | 'viewmode';
 
 	let {
@@ -44,6 +51,7 @@
 		showDock = false,
 		tabOptions = [],
 		tabMenuActions = [],
+		headerActions = [],
 		activeSectionTab = activeTab,
 		onSectionTabChange,
 		onFiltersSearchChange,
@@ -62,6 +70,7 @@
 		showDock?: boolean;
 		tabOptions?: HeaderTabOption[];
 		tabMenuActions?: HeaderMenuAction[];
+		headerActions?: HeaderAction[];
 		activeSectionTab?: string;
 		onSectionTabChange?: (tab: string) => void;
 		onFiltersSearchChange?: (value: string) => void;
@@ -126,7 +135,7 @@
 	const DEFAULT_VISIBLE_CELLS: Record<FiltersTab, string[]> = {
 		props: ['icon', 'text', 'count', 'nested'],
 		tags: ['icon', 'text', 'count', 'nested'],
-		files: ['name', 'ext', 'path', 'nested'],
+		files: ['name', 'ext', 'mtime', 'path', 'nested'],
 	};
 	const CELL_LABELS: Record<FiltersTab, Record<string, string>> = {
 		props: {
@@ -147,7 +156,8 @@
 			name: 'viewmode.pill.name',
 			count: 'viewmode.pill.count',
 			ext: 'viewmode.pill.ext',
-			date: 'viewmode.pill.date',
+			mtime: 'viewmode.pill.mtime',
+			ctime: 'viewmode.pill.ctime',
 			path: 'viewmode.pill.path',
 			nested: 'viewmode.pill.nested',
 		},
@@ -160,7 +170,8 @@
 		ext: 'lucide-file-type',
 		type: 'lucide-list-filter',
 		nested: 'lucide-git-branch',
-		date: 'lucide-calendar',
+		mtime: 'lucide-calendar-clock',
+		ctime: 'lucide-calendar-plus',
 		path: 'lucide-route',
 	};
 	const SORT_OPTIONS: Record<
@@ -765,6 +776,31 @@
 							{/if}
 						</div>
 					{/if}
+					{#each headerActions as action (action.id)}
+						<div
+							class={headerActionClass}
+							class:is-disabled={action.disabled}
+							role="button"
+							tabindex={action.disabled ? -1 : 0}
+							aria-label={action.label}
+							aria-disabled={action.disabled ? 'true' : undefined}
+							title={minimalStyle ? undefined : action.label}
+							onclick={(event: MouseEvent) => {
+								if (action.disabled) return;
+								action.onClick(event);
+							}}
+							onkeydown={(e: KeyboardEvent) => {
+								if (action.disabled) return;
+								if (e.key === 'Enter' || e.key === ' ') {
+									e.preventDefault();
+									action.onClick(
+										menuEventFromElement(e.currentTarget as HTMLElement),
+									);
+								}
+							}}
+							use:icon={action.icon}
+						></div>
+					{/each}
 					{#if showExplorerControls}
 						<div
 							class={headerActionClass}

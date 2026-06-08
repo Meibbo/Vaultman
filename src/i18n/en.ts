@@ -124,6 +124,9 @@ export const en: Record<string, string> = {
 	'queue.guard.conflict': 'Blocked conflicting operation',
 	'queue.guard.batch':
 		'Queue guard: {merged} merged, {duplicates} duplicate(s) skipped, {conflicts} conflict(s) blocked',
+	'queue.warning.empty_target': 'This operation targets 0 files.',
+	'queue.warning.large_target':
+		'This operation targets {count} files, above the {threshold} file warning limit.',
 
 	// Queue details
 	'queue.title': 'Queue Details',
@@ -158,6 +161,9 @@ export const en: Record<string, string> = {
 	'settings.bulk_operation_warning': 'Bulk operation warning',
 	'settings.bulk_operation_warning.desc':
 		'Warn before action presets stage very large file sets.',
+	'settings.bulk_operation_warning_threshold': 'Queue warning threshold',
+	'settings.bulk_operation_warning_threshold.desc':
+		'Show queue warnings when an operation targets more than this many files.',
 	'settings.performance_monitor': 'Performance monitor',
 	'settings.performance_monitor.desc':
 		'Show the floating live FPS, long-task, memory, and action monitor.',
@@ -444,6 +450,9 @@ export const en: Record<string, string> = {
 	'content.preview_count': '{matches} matches in {files} file(s)',
 	'content.preview_more': '…and {count} more files',
 	'content.no_matches': 'No matches found',
+	'content.landing_title': 'Content search',
+	'content.landing_desc': 'Type a term to scan the current scope.',
+	'content.empty_desc': 'Try another term or adjust the current filters.',
 	'content.invalid_regex': 'Invalid regular expression',
 	'filter.prop_browser.empty': 'No properties in vault',
 	'filter.prop_browser.title': 'Properties',
@@ -570,6 +579,8 @@ export const en: Record<string, string> = {
 	'viewmode.pill.files': 'Files',
 	'viewmode.pill.nested': 'Nested',
 	'viewmode.pill.date': 'Date',
+	'viewmode.pill.mtime': 'Modified',
+	'viewmode.pill.ctime': 'Created',
 	'viewmode.pill.type': 'Type',
 	'viewmode.pill.values': 'Values',
 	'viewmode.pill.name': 'Name',

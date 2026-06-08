@@ -21,6 +21,19 @@ describe('minimal filters header source guards', () => {
 		);
 	});
 
+	it('renders caller-provided header actions immediately after the tabs button', () => {
+		const tabsIndex = navbarFiltersSource.indexOf('openTabsPopup(event)');
+		const headerActionsIndex = navbarFiltersSource.indexOf(
+			'{#each headerActions as action',
+		);
+		const explorerControlsIndex = navbarFiltersSource.indexOf(
+			'{#if showExplorerControls}',
+		);
+
+		expect(headerActionsIndex).toBeGreaterThan(tabsIndex);
+		expect(headerActionsIndex).toBeLessThan(explorerControlsIndex);
+	});
+
 	it('keeps Nested enabled by default across Files, Props, and Tags view controls', () => {
 		expect(navbarFiltersSource).toContain(
 			"props: ['icon', 'text', 'count', 'nested']",
@@ -29,8 +42,9 @@ describe('minimal filters header source guards', () => {
 			"tags: ['icon', 'text', 'count', 'nested']",
 		);
 		expect(navbarFiltersSource).toContain(
-			"files: ['name', 'ext', 'path', 'nested']",
+			"files: ['name', 'ext', 'mtime', 'path', 'nested']",
 		);
+		expect(navbarFiltersSource).toContain("mtime: 'viewmode.pill.mtime'");
 		expect(navbarFiltersSource).toContain("nested: 'viewmode.pill.nested'");
 		expect(popupViewSource).toContain(
 			"{ id: 'nested', labelKey: 'viewmode.pill.nested', defaultOn: true }",

@@ -3,6 +3,7 @@ import type { OperationQueueService } from '../../services/serviceOperationQueue
 import { translate } from '../../i18n/index';
 import type { VaultmanPlugin } from '../../main';
 import { openQueueTemplateMenu } from '../../utils/queueTemplateMenu';
+import { warningsForQueuedChange } from '../../logic/logicQueueWarnings';
 
 /**
  * In-frame floating island showing the pending operation queue.
@@ -135,8 +136,12 @@ export class QueueIslandComponent {
 			return;
 		}
 
+		const threshold = this.plugin.settings.bulkOperationWarningThreshold ?? 400;
 		for (const change of queue) {
-			const rowEl = this.listEl.createDiv({ cls: 'vaultman-queue-island-row' });
+			const rowWrap = this.listEl.createDiv({
+				cls: 'vaultman-queue-island-node',
+			});
+			const rowEl = rowWrap.createDiv({ cls: 'vaultman-queue-island-row' });
 			const fileCount = change.files.length;
 			rowEl.createSpan({
 				cls: 'vaultman-queue-island-row-files',
@@ -146,6 +151,30 @@ export class QueueIslandComponent {
 				cls: 'vaultman-queue-island-row-detail',
 				text: change.details,
 			});
+			for (const warning of warningsForQueuedChange(change, threshold)) {
+				const warningEl = rowWrap.createDiv({
+					cls: `vaultman-queue-island-warning is-${warning.severity}`,
+				});
+				const iconEl = warningEl.createSpan({
+					cls: 'vaultman-queue-island-warning-icon',
+				});
+				setIcon(
+					iconEl,
+					warning.severity === 'error'
+						? 'lucide-circle-alert'
+						: 'lucide-alert-triangle',
+				);
+				warningEl.createSpan({
+					cls: 'vaultman-queue-island-warning-text',
+					text:
+						warning.kind === 'empty-target'
+							? translate('queue.warning.empty_target')
+							: translate('queue.warning.large_target', {
+									count: warning.targetCount,
+									threshold: warning.threshold ?? threshold,
+								}),
+				});
+			}
 		}
 	}
 

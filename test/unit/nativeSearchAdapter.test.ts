@@ -142,4 +142,41 @@ describe('Native search adapter helpers', () => {
 			isLoading: false,
 		});
 	});
+
+	it('supplements native search with local reads when the native DOM misses hidden matches', async () => {
+		vi.stubGlobal('window', { setTimeout });
+		const file = makeFile('this works.md');
+		const view = {
+			dom: {
+				getFiles: () => [],
+				getResult: () => null,
+			},
+			setQuery: vi.fn(),
+			startSearch: vi.fn(),
+			setMatchingCase: vi.fn(),
+		};
+		const adapter = new NativeSearchAdapter({
+			vault: {
+				cachedRead: async () => '#dashboard#das#donehboard',
+			},
+			workspace: {
+				getLeavesOfType: () => [{ view }],
+			},
+		} as never);
+		const updates: ReturnType<typeof buildNativeSearchPreview>[] = [];
+
+		await adapter.search({
+			query: 'doneh',
+			isRegex: false,
+			caseSensitive: false,
+			scopeFiles: [file],
+			onUpdate: (result) => updates.push(result),
+		});
+
+		expect(updates.at(-1)).toMatchObject({
+			totalMatches: 1,
+			isLoading: false,
+		});
+		expect(updates.at(-1)?.files[0].file.path).toBe('this works.md');
+	});
 });

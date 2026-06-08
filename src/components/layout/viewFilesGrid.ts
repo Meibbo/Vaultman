@@ -1,5 +1,6 @@
 import { setIcon, type TFile } from 'obsidian';
 import { formatFileTableName } from '../../logic/logicTableLayout';
+import type { ExplorerFileTimes } from '../../logic/logicSort';
 import type { NodeBadge } from '../../types/typeTree';
 import { buildVirtualGridWindow } from '../../utils/gridVirtualization';
 import { vaultmanPerfMonitor } from '../../utils/performanceMonitor';
@@ -11,6 +12,7 @@ export interface FilesGridViewCallbacks {
 	onDragStart?: (file: TFile, event: DragEvent) => void;
 	getBadges?: (file: TFile) => NodeBadge[];
 	getPropCount?: (file: TFile) => number;
+	getFileTimes?: (file: TFile) => ExplorerFileTimes;
 }
 
 export class FilesGridView {
@@ -209,10 +211,13 @@ export class FilesGridView {
 		if (!this.contentEl) return;
 		const propCount = this.callbacks.getPropCount?.(file) ?? 0;
 		const badges = this.callbacks.getBadges?.(file) ?? [];
+		const times = this.callbacks.getFileTimes?.(file) ?? file.stat;
 		const signature = [
 			file.path,
 			file.name,
 			file.extension,
+			times.mtime,
+			times.ctime,
 			this.activePath === file.path ? '1' : '0',
 			this.selectedFiles.has(file.path) ? '1' : '0',
 			Array.from(this.visibleCells).sort().join(','),
@@ -289,7 +294,21 @@ export class FilesGridView {
 				text: String(propCount),
 			});
 		}
+		if (this.visibleCells.has('mtime')) {
+			this.renderDateCell(metaRow, times.mtime);
+		}
+		if (this.visibleCells.has('ctime')) {
+			this.renderDateCell(metaRow, times.ctime);
+		}
 		this.renderBadges(card, badges);
+	}
+
+	private renderDateCell(parent: HTMLElement, time: number): void {
+		if (!Number.isFinite(time) || time <= 0) return;
+		parent.createSpan({
+			cls: 'nav-file-tag vaultman-files-grid-card-date',
+			text: new Date(time).toLocaleDateString(),
+		});
 	}
 
 	private renderBadges(parent: HTMLElement, badges: NodeBadge[]): void {

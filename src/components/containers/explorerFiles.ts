@@ -11,7 +11,7 @@ import type { FilterNode } from '../../types/typeFilter';
 import { FileRenameModal } from '../../modals/modalFileRename';
 import { FileMoveModal } from '../../modals/modalFileMove';
 import { PropertyManagerModal } from '../../modals/modalPropertyManager';
-import { DELETE_FILE } from '../../types/typeOps';
+import { DELETE_FILE, MOVE_FILE } from '../../types/typeOps';
 import { translate } from '../../i18n/index';
 import { showInputModal } from '../../utils/inputModal';
 import {
@@ -19,6 +19,10 @@ import {
 	normalizeExplorerSortBy,
 } from '../../logic/logicSort';
 import { flattenTreeToPathLabels } from '../../logic/logicExplorerHierarchy';
+import {
+	filesInsideFolder,
+	movedParentPathForFolderFile,
+} from '../../logic/logicFolderQueue';
 import {
 	setVaultmanDragPayload,
 	withActiveFilterDragSelection,
@@ -49,7 +53,7 @@ export class FilesExplorerPanel extends Component {
 	private sortBy: string = 'name';
 	private sortDir: 'asc' | 'desc' = 'asc';
 	private addMode = false;
-	private visibleCells = new Set<string>(['name', 'ext', 'path', 'nested']);
+	private visibleCells = new Set<string>(['name', 'ext', 'mtime', 'path', 'nested']);
 	private searchName = '';
 	private searchFolder = '';
 	private refreshTimer: number | null = null;
@@ -182,7 +186,11 @@ export class FilesExplorerPanel extends Component {
 						? folder.parent.path
 						: '';
 				const newPath = parentPath ? `${parentPath}/${newName}` : newName;
-				await this.plugin.app.fileManager.renameFile(folder, newPath);
+				this._queueFolderMove(
+					folder,
+					newPath,
+					`Rename folder "${folder.path}" to "${newPath}"`,
+				);
 			},
 		});
 
@@ -205,7 +213,11 @@ export class FilesExplorerPanel extends Component {
 					? `${targetFolder}/${folder.name}`
 					: folder.name;
 				if (newPath === folder.path) return;
-				await this.plugin.app.fileManager.renameFile(folder, newPath);
+				this._queueFolderMove(
+					folder,
+					newPath,
+					`Move folder "${folder.path}" to "${newPath}"`,
+				);
 			},
 		});
 
@@ -218,7 +230,7 @@ export class FilesExplorerPanel extends Component {
 			run: async (ctx: MenuCtx) => {
 				const folder = this._folderFromCtx(ctx);
 				if (!folder) return;
-				await this.plugin.app.fileManager.trashFile(folder);
+				this._queueFolderDelete(folder);
 			},
 		});
 
@@ -234,6 +246,7 @@ export class FilesExplorerPanel extends Component {
 		this.registerEvent(
 			this.plugin.app.workspace.on('file-open', this._handleActiveFileChange),
 		);
+		this.plugin.queueService.on('changed', this._handleQueueChange);
 
 		this._mountView();
 		this._syncActiveFilePath();
@@ -245,6 +258,7 @@ export class FilesExplorerPanel extends Component {
 			window.clearTimeout(this.refreshTimer);
 			this.refreshTimer = null;
 		}
+		this.plugin.queueService.off('changed', this._handleQueueChange);
 		this.tableView?.destroy();
 		this.gridView?.destroy();
 		this.treeView?.destroy();
@@ -389,6 +403,7 @@ export class FilesExplorerPanel extends Component {
 			this.tableView = new FilesTableView(this.containerEl, this.plugin.app, {
 				getFileTimes: (file: TFile) =>
 					this.plugin.statisticsCache.getFileTimes(file),
+				getBadges: (file: TFile) => this._badgesForFile(file),
 				onContextMenu: (file: TFile, e: MouseEvent) =>
 					this._openFileContextMenu(file, e),
 				onSelectionChange: (selected: Set<string>) => {
@@ -430,6 +445,8 @@ export class FilesExplorerPanel extends Component {
 					this._setFileDragPayload(file, event),
 				getBadges: (file: TFile) => this._badgesForFile(file),
 				getPropCount: (file: TFile) => this._propCountForFile(file),
+				getFileTimes: (file: TFile) =>
+					this.plugin.statisticsCache.getFileTimes(file),
 			});
 			this.gridView.setVisibleCells(this.visibleCells);
 			this.gridView.setActivePath(this.activeRevealPath);
@@ -522,6 +539,7 @@ export class FilesExplorerPanel extends Component {
 				this._foldersForCurrentView(),
 			);
 			this._autoExpandSparseTopLevel(tree);
+			this._decorateTreeWithFileTimes(tree);
 			this._decorateTreeWithQueue(tree);
 			this._decorateTreeWithActiveReveal(tree);
 			const applyFolderIcons = (
@@ -717,6 +735,10 @@ export class FilesExplorerPanel extends Component {
 		return badges;
 	}
 
+	private readonly _handleQueueChange = (): void => {
+		this._render();
+	};
+
 	private readonly _handleActiveFileChange = (file: TFile | null): void => {
 		this._syncActiveFilePath(file ?? undefined);
 		this._render();
@@ -749,6 +771,22 @@ export class FilesExplorerPanel extends Component {
 			});
 		}
 		return inherited;
+	}
+
+	private _decorateTreeWithFileTimes(nodes: TreeNode<FileMeta>[]): void {
+		for (const node of nodes) {
+			if (node.meta.file) {
+				const times = this.plugin.statisticsCache.getFileTimes(node.meta.file);
+				node.mtimeText = this._formatDateCell(times.mtime);
+				node.ctimeText = this._formatDateCell(times.ctime);
+			}
+			if (node.children?.length) this._decorateTreeWithFileTimes(node.children);
+		}
+	}
+
+	private _formatDateCell(time: number): string | undefined {
+		if (!Number.isFinite(time) || time <= 0) return undefined;
+		return new Date(time).toLocaleDateString();
 	}
 
 	private _findNode(
@@ -942,6 +980,44 @@ export class FilesExplorerPanel extends Component {
 		return this.plugin.app.vault
 			.getAllFolders(true)
 			.filter((folder) => folder.path && folder.path !== '/');
+	}
+
+	private _filesInsideFolder(folder: TFolder): TFile[] {
+		return filesInsideFolder(this.plugin.app.vault.getFiles(), folder.path);
+	}
+
+	private _queueFolderMove(
+		folder: TFolder,
+		newFolderPath: string,
+		details: string,
+	): void {
+		const files = this._filesInsideFolder(folder);
+		this.plugin.queueService.addOrRun({
+			type: 'file_move',
+			action: 'move',
+			details,
+			files,
+			targetFolder: newFolderPath,
+			customLogic: true,
+			logicFunc: (file) => ({
+				[MOVE_FILE]: movedParentPathForFolderFile(
+					file.path,
+					folder.path,
+					newFolderPath,
+				),
+			}),
+		});
+	}
+
+	private _queueFolderDelete(folder: TFolder): void {
+		this.plugin.queueService.addOrRun({
+			type: 'file_delete',
+			action: 'delete',
+			details: `Delete folder "${folder.path}"`,
+			files: this._filesInsideFolder(folder),
+			customLogic: true,
+			logicFunc: () => ({ [DELETE_FILE]: true }),
+		});
 	}
 
 	private _safeName(term: string, fallback: string): string {

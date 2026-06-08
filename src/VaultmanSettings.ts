@@ -148,6 +148,20 @@ export class VaultmanSettingsTab extends PluginSettingTab {
 			);
 
 		new Setting(containerEl)
+			.setName(translate('settings.bulk_operation_warning_threshold'))
+			.setDesc(translate('settings.bulk_operation_warning_threshold.desc'))
+			.addSlider((slider) =>
+				slider
+					.setLimits(50, 2000, 50)
+					.setValue(this.plugin.settings.bulkOperationWarningThreshold ?? 400)
+					.setDynamicTooltip()
+					.onChange(async (value) => {
+						this.plugin.settings.bulkOperationWarningThreshold = value;
+						await this.plugin.saveSettings();
+					}),
+			);
+
+		new Setting(containerEl)
 			.setName(translate('settings.performance_monitor'))
 			.setDesc(translate('settings.performance_monitor.desc'))
 			.addToggle((toggle) =>

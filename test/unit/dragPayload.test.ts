@@ -23,7 +23,7 @@ describe('setVaultmanDragPayload', () => {
 			'application/x-vaultman-node',
 			JSON.stringify({ kind: 'file', path: 'Notes/a.md' }),
 		);
-		expect(setData).toHaveBeenCalledWith('text/plain', 'Notes/a.md');
+		expect(setData).toHaveBeenCalledWith('text/plain', '[[Notes/a]]');
 		expect(event.dataTransfer?.effectAllowed).toBe('copyMove');
 	});
 
@@ -101,5 +101,19 @@ describe('setVaultmanDragPayload', () => {
 				'tags',
 			),
 		).toEqual({ kind: 'tag', tagPath: 'other' });
+	});
+
+	it('does not expose property drags as plain text for editor insertion', () => {
+		const setData = vi.fn();
+		const event = {
+			dataTransfer: {
+				setData,
+				effectAllowed: '',
+			},
+		} as unknown as DragEvent;
+
+		setVaultmanDragPayload(event, { kind: 'property', property: 'Birthday' });
+
+		expect(setData).toHaveBeenCalledWith('text/plain', '');
 	});
 });

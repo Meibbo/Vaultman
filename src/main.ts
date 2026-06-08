@@ -1,4 +1,4 @@
-import { Plugin, WorkspaceLeaf } from 'obsidian';
+import { MarkdownView, Plugin, WorkspaceLeaf } from 'obsidian';
 import type { VaultmanSettings } from './types/typeSettings';
 import { DEFAULT_SETTINGS } from './types/typeSettings';
 import { PropertyIndexService } from './services/servicePropertyIndex';
@@ -11,6 +11,18 @@ import { ContextMenuService } from './services/serviceContextMenu';
 import { StatisticsCacheService } from './services/serviceStatisticsCache';
 import { VaultmanSettingsTab } from './VaultmanSettings';
 import { setLanguage, translate } from './i18n/index';
+import { readVaultmanDragPayload } from './utils/dragPayload';
+import {
+	applyPropertyDragNodesToFrontmatter,
+	propertyDragNodes,
+} from './utils/dragFrontmatter';
+import {
+	appendTagsToMarkdownView,
+	isMarkdownDropTarget,
+	shouldAppendTagDrop,
+	tagDragNodes,
+	tagTextForDrop,
+} from './utils/dragEditorDrop';
 
 export class VaultmanPlugin extends Plugin {
 	settings!: VaultmanSettings;
@@ -85,8 +97,44 @@ export class VaultmanPlugin extends Plugin {
 			},
 		});
 
+		activeDocument.addEventListener('drop', this.handleVaultmanDrop, true);
+		this.register(() =>
+			activeDocument.removeEventListener('drop', this.handleVaultmanDrop, true),
+		);
+
 		this.addSettingTab(new VaultmanSettingsTab(this.app, this));
 	}
+
+	private readonly handleVaultmanDrop = (event: DragEvent): void => {
+		const payload = readVaultmanDragPayload(event);
+		if (!payload) return;
+		const nodes = propertyDragNodes(payload);
+		if (nodes.length > 0) {
+			const file = this.app.workspace.getActiveFile();
+			if (!file) return;
+
+			event.preventDefault();
+			event.stopPropagation();
+			void this.app.fileManager.processFrontMatter(file, (frontmatter) => {
+				applyPropertyDragNodesToFrontmatter(
+					frontmatter as Record<string, unknown>,
+					nodes,
+				);
+			});
+			return;
+		}
+
+		const tagNodes = tagDragNodes(payload);
+		if (tagNodes.length === 0) return;
+		if (!isMarkdownDropTarget(event.target)) return;
+		if (!shouldAppendTagDrop(event.target)) return;
+		const view = this.app.workspace.getActiveViewOfType(MarkdownView);
+		if (!view) return;
+
+		event.preventDefault();
+		event.stopPropagation();
+		appendTagsToMarkdownView(view, tagTextForDrop(tagNodes));
+	};
 
 	async onExternalSettingsChange(): Promise<void> {
 		await this.loadSettings();

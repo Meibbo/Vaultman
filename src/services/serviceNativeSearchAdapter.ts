@@ -194,19 +194,47 @@ export class NativeSearchAdapter {
 		}
 
 		if (run !== this.activeRun) return;
-		options.onUpdate({ ...lastResult, isLoading: false });
+		const nativeInputs = this.collectResults(view, scopePaths);
+		const nativePaths = new Set(nativeInputs.map((input) => input.file.path));
+		const mergedInputs = await this.collectLocalResults(
+			options,
+			run,
+			nativePaths,
+			nativeInputs,
+			true,
+		);
+		if (run !== this.activeRun) return;
+		options.onUpdate(buildNativeSearchPreview(mergedInputs, false));
 	}
 
 	private async searchLocal(
 		options: NativeSearchOptions,
 		run: number,
 	): Promise<void> {
-		const inputs: NativeSearchInput[] = [];
-		options.onUpdate(buildNativeSearchPreview(inputs, true));
+		options.onUpdate(buildNativeSearchPreview([], true));
+		const inputs = await this.collectLocalResults(
+			options,
+			run,
+			new Set(),
+			[],
+			true,
+		);
+		if (run !== this.activeRun) return;
+		options.onUpdate(buildNativeSearchPreview(inputs, false));
+	}
 
+	private async collectLocalResults(
+		options: NativeSearchOptions,
+		run: number,
+		skipPaths: Set<string>,
+		initialInputs: NativeSearchInput[],
+		emitPartial: boolean,
+	): Promise<NativeSearchInput[]> {
+		const inputs = [...initialInputs];
 		for (let index = 0; index < options.scopeFiles.length; index += 1) {
-			if (run !== this.activeRun) return;
+			if (run !== this.activeRun) return inputs;
 			const file = options.scopeFiles[index];
+			if (skipPaths.has(file.path)) continue;
 			let content = '';
 			try {
 				content = await this.app.vault.cachedRead(file);
@@ -222,14 +250,12 @@ export class NativeSearchAdapter {
 			if (offsets.length > 0) {
 				inputs.push({ file, content, offsets });
 			}
-			if (index % LOCAL_UPDATE_INTERVAL === 0) {
+			if (emitPartial && index % LOCAL_UPDATE_INTERVAL === 0) {
 				options.onUpdate(buildNativeSearchPreview(inputs, true));
 				await new Promise((resolve) => window.setTimeout(resolve, 0));
 			}
 		}
-
-		if (run !== this.activeRun) return;
-		options.onUpdate(buildNativeSearchPreview(inputs, false));
+		return inputs;
 	}
 
 	private collectResults(

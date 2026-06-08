@@ -453,6 +453,13 @@ export class OperationQueueService extends Component {
 	private async applyChange(file: TFile, change: PendingChange): Promise<void> {
 		let specialUpdates: Record<string, unknown> | null = null;
 
+		if (this.isFileSystemChange(change)) {
+			const updates = change.logicFunc(file, {});
+			if (!updates) return;
+			await this.applySpecialUpdates(file, updates);
+			return;
+		}
+
 		// By executing logic inside processFrontMatter, we bypass metadataCache entirely
 		// and guarantee we are acting on the absolute freshest file frontmatter buffer.
 		await this.app.fileManager.processFrontMatter(file, (fm: Record<string, unknown>) => {
@@ -486,6 +493,23 @@ export class OperationQueueService extends Component {
 
 		if (!specialUpdates) return;
 
+		await this.applySpecialUpdates(file, specialUpdates);
+	}
+
+	private isFileSystemChange(change: PendingChange): boolean {
+		return (
+			change.type === 'file_rename' ||
+			change.type === 'file_move' ||
+			change.type === 'file_delete' ||
+			change.type === 'content_replace' ||
+			change.type === 'template'
+		);
+	}
+
+	private async applySpecialUpdates(
+		file: TFile,
+		specialUpdates: Record<string, unknown>,
+	): Promise<void> {
 		// Execute special vault operations sequentially AFTER frontmatter is safely saved
 		if (RENAME_FILE in specialUpdates) {
 			const newName = specialUpdates[RENAME_FILE] as string;
@@ -497,6 +521,7 @@ export class OperationQueueService extends Component {
 		if (MOVE_FILE in specialUpdates) {
 			const targetFolder = specialUpdates[MOVE_FILE] as string;
 			const newPath = targetFolder ? `${targetFolder}/${file.name}` : file.name;
+			await this.ensureFolderExists(targetFolder);
 			await this.app.fileManager.renameFile(file, newPath);
 			return;
 		}
@@ -548,6 +573,18 @@ export class OperationQueueService extends Component {
 		if (DELETE_FILE in specialUpdates) {
 			await this.app.fileManager.trashFile(file);
 			return;
+		}
+	}
+
+	private async ensureFolderExists(folderPath: string): Promise<void> {
+		const normalized = folderPath.replace(/^\/|\/$/g, '');
+		if (!normalized) return;
+		const parts = normalized.split('/').filter((part) => part.length > 0);
+		let current = '';
+		for (const part of parts) {
+			current = current ? `${current}/${part}` : part;
+			if (this.app.vault.getAbstractFileByPath(current)) continue;
+			await this.app.vault.createFolder(current);
 		}
 	}
 

@@ -24,23 +24,22 @@ describe('file table layout', () => {
 		]);
 	});
 
-	it('maps the visible date column to the active date sort property', () => {
-		const modified = resolveFileTableLayout(new Set(['name', 'date']), 'mtime');
-		const created = resolveFileTableLayout(new Set(['name', 'date']), 'ctime');
+	it('exposes modified and created time as independent file columns', () => {
+		const layout = resolveFileTableLayout(new Set(['name', 'mtime', 'ctime']));
 
-		expect(modified.columns[1]).toMatchObject({
-			id: 'date',
+		expect(layout.columns[1]).toMatchObject({
+			id: 'mtime',
 			sortColumn: 'mtime',
 			dataProperty: 'file.mtime',
 			left: 300,
-			width: 213,
+			width: 156,
 		});
-		expect(created.columns[1]).toMatchObject({
-			id: 'date',
+		expect(layout.columns[2]).toMatchObject({
+			id: 'ctime',
 			sortColumn: 'ctime',
 			dataProperty: 'file.ctime',
-			left: 300,
-			width: 213,
+			left: 456,
+			width: 156,
 		});
 	});
 

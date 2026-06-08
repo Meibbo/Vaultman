@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { onDestroy } from 'svelte';
-	import { MarkdownView, Notice, TFile } from 'obsidian';
+	import { MarkdownView, Menu, Notice, TFile } from 'obsidian';
 	import type { VaultmanPlugin } from '../../main';
 	import FiltersTagsTab from './tabTags.svelte';
 	import FiltersPropsTab from './tabProps.svelte';
@@ -18,6 +18,11 @@
 	} from '../../types/typeOps';
 	import { translate } from '../../i18n/index';
 	import { NativeSearchAdapter } from '../../services/serviceNativeSearchAdapter';
+	import {
+		sortContentPreviewFiles,
+		type ContentSortBy,
+		type ContentSortDirection,
+	} from '../../logic/logicContentPreview';
 
 	type FiltersTab = 'files' | 'props' | 'tags' | 'content';
 	type SearchTab = 'props' | 'files' | 'tags';
@@ -31,6 +36,45 @@
 		onClick: () => void;
 		onDoubleClick?: () => void;
 	};
+	type HeaderAction = {
+		id: string;
+		label: string;
+		icon: string;
+		disabled?: boolean;
+		onClick: (event: MouseEvent) => void;
+	};
+
+	const CONTENT_SORT_OPTIONS: {
+		id: ContentSortBy;
+		labelKey: string;
+		icon: string;
+		defaultDirection: ContentSortDirection;
+	}[] = [
+		{
+			id: 'count',
+			labelKey: 'sort.by.count',
+			icon: 'lucide-list-ordered',
+			defaultDirection: 'desc',
+		},
+		{
+			id: 'name',
+			labelKey: 'sort.by.name',
+			icon: 'lucide-a-large-small',
+			defaultDirection: 'asc',
+		},
+		{
+			id: 'mtime',
+			labelKey: 'sort.by.modified',
+			icon: 'lucide-calendar-clock',
+			defaultDirection: 'desc',
+		},
+		{
+			id: 'ctime',
+			labelKey: 'sort.by.created',
+			icon: 'lucide-calendar-plus',
+			defaultDirection: 'desc',
+		},
+	];
 
 	let {
 		plugin,
@@ -85,6 +129,9 @@
 	let contentPreviewResult = $state<ContentPreviewResult | null>(null);
 	let contentPreviewOpen = $state(true);
 	let contentRegexError = $state('');
+	let contentSortBy = $state<ContentSortBy>('count');
+	let contentSortDirection = $state<ContentSortDirection>('desc');
+	let collapsedContentFilePaths = $state<string[]>([]);
 	let visitedTabs = $state<Record<FiltersTab, boolean>>({
 		files: filtersActiveTab === 'files',
 		props: filtersActiveTab === 'props',
@@ -203,6 +250,46 @@
 			String(baseCount),
 		);
 	});
+	const sortedContentFiles = $derived(
+		sortContentPreviewFiles(
+			contentPreviewResult?.files ?? [],
+			contentSortBy,
+			contentSortDirection,
+		),
+	);
+	const collapsedContentPathSet = $derived(new Set(collapsedContentFilePaths));
+	const contentFilePaths = $derived(
+		sortedContentFiles.map((fileResult) => fileResult.file.path),
+	);
+	const hasExpandedContentFiles = $derived(
+		contentPreviewOpen &&
+			sortedContentFiles.some(
+				(fileResult) => !collapsedContentPathSet.has(fileResult.file.path),
+			),
+	);
+	const contentHeaderActions = $derived<HeaderAction[]>(
+		filtersActiveTab === 'content'
+			? [
+					{
+						id: 'content-sort',
+						label: translate('filter.sort_btn'),
+						icon: 'lucide-arrow-up-down',
+						onClick: openContentSortMenu,
+					},
+					{
+						id: 'content-expand',
+						label: hasExpandedContentFiles
+							? translate('filter.collapse_all')
+							: translate('filter.expand_all'),
+						icon: hasExpandedContentFiles
+							? 'lucide-chevrons-down-up'
+							: 'lucide-chevrons-up-down',
+						disabled: sortedContentFiles.length === 0,
+						onClick: () => toggleAllContentFiles(),
+					},
+				]
+			: [],
+	);
 
 	function ensureActiveTabVisited(tab: FiltersTab) {
 		if (visitedTabs[tab]) return;
@@ -221,6 +308,62 @@
 			...filtersSearchByTab,
 			[explorerSearchTab]: value,
 		};
+	}
+
+	function nextContentSortDirection(
+		sortBy: ContentSortBy,
+	): ContentSortDirection {
+		const option = CONTENT_SORT_OPTIONS.find(
+			(candidate) => candidate.id === sortBy,
+		);
+		if (contentSortBy !== sortBy) return option?.defaultDirection ?? 'asc';
+		return contentSortDirection === 'asc' ? 'desc' : 'asc';
+	}
+
+	function openContentSortMenu(event: MouseEvent) {
+		const menu = new Menu();
+		for (const option of CONTENT_SORT_OPTIONS) {
+			menu.addItem((item) => {
+				const isActive = contentSortBy === option.id;
+				item
+					.setTitle(
+						`${translate(option.labelKey)}${
+							isActive ? (contentSortDirection === 'asc' ? ' ↑' : ' ↓') : ''
+						}`,
+					)
+					.setIcon(option.icon)
+					.setChecked(isActive)
+					.onClick(() => {
+						contentSortDirection = nextContentSortDirection(option.id);
+						contentSortBy = option.id;
+					});
+			});
+		}
+		menu.showAtMouseEvent(event);
+	}
+
+	function isContentFileExpanded(filePath: string): boolean {
+		return !collapsedContentPathSet.has(filePath);
+	}
+
+	function toggleContentFile(filePath: string) {
+		if (collapsedContentPathSet.has(filePath)) {
+			collapsedContentFilePaths = collapsedContentFilePaths.filter(
+				(path) => path !== filePath,
+			);
+			return;
+		}
+		collapsedContentFilePaths = [...collapsedContentFilePaths, filePath];
+	}
+
+	function toggleAllContentFiles() {
+		if (contentFilePaths.length === 0) return;
+		if (hasExpandedContentFiles) {
+			collapsedContentFilePaths = contentFilePaths;
+			return;
+		}
+		collapsedContentFilePaths = [];
+		contentPreviewOpen = true;
 	}
 
 	async function openContentMatch(file: TFile, line: number, ch: number) {
@@ -278,6 +421,7 @@
 		if (!find) {
 			contentPreviewResult = null;
 			contentRegexError = '';
+			collapsedContentFilePaths = [];
 			plugin.filterService.setContentSearchRule('', []);
 			return;
 		}
@@ -291,6 +435,7 @@
 			isLoading: true,
 		};
 		contentPreviewOpen = true;
+		collapsedContentFilePaths = [];
 		const timer = window.setTimeout(() => {
 			void nativeSearchAdapter
 				.search({
@@ -374,6 +519,7 @@
 		{showDock}
 		tabOptions={minimalStyle ? filterTabOptions : []}
 		{tabMenuActions}
+		headerActions={contentHeaderActions}
 		activeSectionTab={filtersActiveTab}
 		onSectionTabChange={(tab) => switchFiltersTab(tab as FiltersTab)}
 		onFiltersSearchChange={setExplorerSearch}
@@ -440,6 +586,9 @@
 				bind:contentPreviewOpen
 				{contentRegexError}
 				{contentScopeHint}
+				{sortedContentFiles}
+				{isContentFileExpanded}
+				{toggleContentFile}
 				{queueContentReplace}
 				{openContentMatch}
 			/>

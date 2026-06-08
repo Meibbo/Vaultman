@@ -3,7 +3,8 @@ export type FileTableColumnId =
 	| 'name'
 	| 'count'
 	| 'ext'
-	| 'date'
+	| 'mtime'
+	| 'ctime'
 	| 'path';
 export type FileTableSortColumn =
 	| 'name'
@@ -34,7 +35,8 @@ const COLUMN_ORDER: FileTableColumnId[] = [
 	'name',
 	'count',
 	'ext',
-	'date',
+	'mtime',
+	'ctime',
 	'path',
 ];
 
@@ -43,7 +45,8 @@ const COLUMN_WIDTHS: Record<FileTableColumnId, number> = {
 	name: 300,
 	count: 96,
 	ext: 111,
-	date: 213,
+	mtime: 156,
+	ctime: 156,
 	path: 201,
 };
 
@@ -52,7 +55,8 @@ const MIN_COLUMN_WIDTHS: Record<FileTableColumnId, number> = {
 	name: 120,
 	count: 64,
 	ext: 72,
-	date: 120,
+	mtime: 110,
+	ctime: 110,
 	path: 100,
 };
 
@@ -65,7 +69,7 @@ export function clampFileTableColumnWidth(
 
 export function resolveFileTableLayout(
 	visibleCells: Set<string>,
-	dateSortColumn: Extract<FileTableSortColumn, 'mtime' | 'ctime'> = 'mtime',
+	_dateSortColumn: Extract<FileTableSortColumn, 'mtime' | 'ctime'> = 'mtime',
 	columnWidths: FileTableColumnWidths = {},
 ): FileTableLayout {
 	const columns: FileTableColumn[] = [];
@@ -81,7 +85,7 @@ export function resolveFileTableLayout(
 			id,
 			left,
 			width,
-			...columnMetadata(id, dateSortColumn),
+			...columnMetadata(id),
 		});
 		left += width;
 	}
@@ -104,7 +108,6 @@ export function formatFileTableName(file: {
 
 function columnMetadata(
 	id: FileTableColumnId,
-	dateSortColumn: Extract<FileTableSortColumn, 'mtime' | 'ctime'>,
 ): Pick<FileTableColumn, 'sortColumn' | 'dataProperty' | 'modClass'> {
 	if (id === 'icon') return {};
 	if (id === 'name')
@@ -121,10 +124,15 @@ function columnMetadata(
 			dataProperty: 'file.ext',
 			modClass: 'mod-implicit',
 		};
-	if (id === 'date')
+	if (id === 'mtime')
 		return {
-			sortColumn: dateSortColumn,
-			dataProperty: dateSortColumn === 'ctime' ? 'file.ctime' : 'file.mtime',
+			sortColumn: 'mtime',
+			dataProperty: 'file.mtime',
+		};
+	if (id === 'ctime')
+		return {
+			sortColumn: 'ctime',
+			dataProperty: 'file.ctime',
 		};
 	return {
 		sortColumn: 'path',

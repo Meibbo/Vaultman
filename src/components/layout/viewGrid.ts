@@ -2,6 +2,7 @@
 import { setIcon, type App, type TFile } from 'obsidian';
 import { translate } from '../../i18n/index';
 import { buildVirtualTableWindow } from '../../utils/tableVirtualization';
+import type { NodeBadge } from '../../types/typeTree';
 import {
 	compareFilesForExplorer,
 	normalizeExplorerSortBy,
@@ -22,6 +23,7 @@ export type SortDirection = 'asc' | 'desc';
 
 export interface GridViewCallbacks {
 	getFileTimes?: (file: TFile) => ExplorerFileTimes;
+	getBadges?: (file: TFile) => NodeBadge[];
 	onContextMenu: (file: TFile, e: MouseEvent) => void;
 	onSelectionChange: (selected: Set<string>) => void;
 	onFileClick: (file: TFile) => void;
@@ -364,6 +366,7 @@ export class GridView {
 		layout: FileTableLayout,
 		propCount: number,
 		times: ExplorerFileTimes,
+		badges: NodeBadge[],
 	): string {
 		const columns = layout.columns
 			.map(
@@ -381,6 +384,17 @@ export class GridView {
 			times.ctime,
 			times.mtime,
 			propCount,
+			badges
+				.map((badge) =>
+					[
+						badge.text ?? '',
+						badge.icon ?? '',
+						badge.color ?? '',
+						badge.solid ? '1' : '0',
+						badge.queueIndex ?? '',
+					].join(':'),
+				)
+				.join('|'),
 			this.sortColumn,
 			this.activePath === file.path ? '1' : '0',
 			columns,
@@ -396,7 +410,8 @@ export class GridView {
 		const fm = this.app.metadataCache.getFileCache(file)?.frontmatter ?? {};
 		const propCount = Object.keys(fm).filter((k) => k !== 'position').length;
 		const times = this.callbacks.getFileTimes?.(file) ?? file.stat;
-		const signature = this.rowSignature(file, layout, propCount, times);
+		const badges = this.callbacks.getBadges?.(file) ?? [];
+		const signature = this.rowSignature(file, layout, propCount, times, badges);
 		const row =
 			this.rowEls.get(file.path) ??
 			parent.createDiv({
@@ -425,7 +440,7 @@ export class GridView {
 			if (column.id === 'icon') {
 				this._renderIconCell(row, column, file);
 			} else if (column.id === 'name') {
-				this._renderNameCell(row, column, file);
+				this._renderNameCell(row, column, file, badges);
 			} else if (column.id === 'count') {
 				this._renderTextCell(
 					row,
@@ -434,14 +449,17 @@ export class GridView {
 					'vaultman-file-props',
 				);
 			} else if (column.id === 'ext') {
-				this._renderTextCell(row, column, file.extension, 'vaultman-file-ext');
-			} else if (column.id === 'date') {
 				this._renderTextCell(
 					row,
 					column,
-					new Date(
-						this.sortColumn === 'ctime' ? times.ctime : times.mtime,
-					).toLocaleDateString(),
+					this.visibleExtension(file),
+					'vaultman-file-ext',
+				);
+			} else if (column.id === 'mtime' || column.id === 'ctime') {
+				this._renderTextCell(
+					row,
+					column,
+					new Date(times[column.id]).toLocaleDateString(),
 					'vaultman-file-date',
 				);
 			} else if (column.id === 'path') {
@@ -475,6 +493,7 @@ export class GridView {
 		row: HTMLElement,
 		column: FileTableColumn,
 		file: TFile,
+		badges: NodeBadge[],
 	): void {
 		const cell = row.createDiv({ cls: 'bases-td mod-implicit' });
 		this._positionCell(cell, column);
@@ -499,7 +518,27 @@ export class GridView {
 				nameEl.addClass(className);
 			}
 		}
+		this.renderBadges(cell, badges);
 		nameEl.addEventListener('click', () => this.callbacks.onFileClick(file));
+	}
+
+	private renderBadges(parent: HTMLElement, badges: NodeBadge[]): void {
+		if (badges.length === 0) return;
+		const zone = parent.createSpan({
+			cls: 'vaultman-tree-badge-zone vaultman-file-table-badge-zone',
+		});
+		for (const badge of badges) {
+			const badgeEl = zone.createSpan({ cls: 'vaultman-badge' });
+			if (badge.solid && badge.color)
+				badgeEl.addClass(`vaultman-badge--${badge.color}`);
+			if (badge.solid) badgeEl.addClass('is-solid');
+			if (badge.isInherited) badgeEl.addClass('is-inherited');
+			if (badge.icon) {
+				const iconEl = badgeEl.createSpan({ cls: 'vaultman-badge-icon' });
+				setIcon(iconEl, badge.icon);
+			}
+			if (badge.text) badgeEl.setAttribute('title', badge.text);
+		}
 	}
 
 	private _renderTextCell(
@@ -520,17 +559,18 @@ export class GridView {
 		valueEl.dataset.propertyType = 'text';
 	}
 
+	private visibleExtension(file: TFile): string {
+		return file.extension === 'md' || file.extension === 'markdown'
+			? ''
+			: file.extension;
+	}
+
 	private _headerLabel(column: FileTableColumn): string {
 		if (column.id === 'name') return translate('files.col.file_name');
 		if (column.id === 'count') return translate('files.col.props');
 		if (column.id === 'ext') return translate('files.col.file_ext');
-		if (column.id === 'date') {
-			return translate(
-				column.sortColumn === 'ctime'
-					? 'files.col.created'
-					: 'files.col.modified',
-			);
-		}
+		if (column.id === 'mtime') return translate('files.col.modified');
+		if (column.id === 'ctime') return translate('files.col.created');
 		return translate('files.col.file_folder');
 	}
 

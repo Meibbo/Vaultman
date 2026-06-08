@@ -35,7 +35,8 @@
 			{ id: 'name', labelKey: 'viewmode.pill.name', defaultOn: true },
 			{ id: 'count', labelKey: 'viewmode.pill.count', defaultOn: true },
 			{ id: 'ext', labelKey: 'viewmode.pill.ext', defaultOn: true },
-			{ id: 'date', labelKey: 'viewmode.pill.date', defaultOn: true },
+			{ id: 'mtime', labelKey: 'viewmode.pill.mtime', defaultOn: true },
+			{ id: 'ctime', labelKey: 'viewmode.pill.ctime', defaultOn: false },
 			{ id: 'path', labelKey: 'viewmode.pill.path', defaultOn: false },
 			{ id: 'nested', labelKey: 'viewmode.pill.nested', defaultOn: true },
 		],
@@ -44,6 +45,8 @@
 			{ id: 'name', labelKey: 'viewmode.pill.name', defaultOn: true },
 			{ id: 'count', labelKey: 'viewmode.pill.count', defaultOn: true },
 			{ id: 'ext', labelKey: 'viewmode.pill.ext', defaultOn: true },
+			{ id: 'mtime', labelKey: 'viewmode.pill.mtime', defaultOn: true },
+			{ id: 'ctime', labelKey: 'viewmode.pill.ctime', defaultOn: false },
 			{ id: 'nested', labelKey: 'viewmode.pill.nested', defaultOn: true },
 		],
 		'files-tree': [
@@ -51,6 +54,8 @@
 			{ id: 'name', labelKey: 'viewmode.pill.name', defaultOn: true },
 			{ id: 'count', labelKey: 'viewmode.pill.count', defaultOn: true },
 			{ id: 'ext', labelKey: 'viewmode.pill.ext', defaultOn: true },
+			{ id: 'mtime', labelKey: 'viewmode.pill.mtime', defaultOn: true },
+			{ id: 'ctime', labelKey: 'viewmode.pill.ctime', defaultOn: false },
 			{ id: 'nested', labelKey: 'viewmode.pill.nested', defaultOn: true },
 		],
 	};

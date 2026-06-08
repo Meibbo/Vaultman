@@ -40,4 +40,11 @@ describe('pageFilters tab switching source guard', () => {
 		expect(pageFiltersSource).toContain("label: translate('nav.statistics')");
 		expect(pageFiltersSource).toContain('onOpenStatistics');
 	});
+
+	it('moves Content sort and expand controls into the filters header actions after the tab menu', () => {
+		expect(pageFiltersSource).toContain('contentHeaderActions');
+		expect(pageFiltersSource).toContain('openContentSortMenu');
+		expect(pageFiltersSource).toContain('toggleAllContentFiles');
+		expect(pageFiltersSource).toContain('headerActions={contentHeaderActions}');
+	});
 });

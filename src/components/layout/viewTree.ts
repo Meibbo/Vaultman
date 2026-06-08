@@ -243,6 +243,8 @@ export class UnifiedTreeView {
 			node.cls ?? '',
 			node.icon ?? '',
 			node.typeText ?? '',
+			node.mtimeText ?? '',
+			node.ctimeText ?? '',
 			node.count ?? '',
 			node.children?.length ?? 0,
 			node.showCaret ? '1' : '0',
@@ -325,6 +327,8 @@ export class UnifiedTreeView {
 		const showType = visibleCells
 			? visibleCells.has('type') || visibleCells.has('ext')
 			: false;
+		const showMtime = visibleCells ? visibleCells.has('mtime') : false;
+		const showCtime = visibleCells ? visibleCells.has('ctime') : false;
 
 		const row =
 			this.rowEls.get(node.id) ?? parent.createDiv({ cls: 'vaultman-tree-row' });
@@ -414,10 +418,25 @@ export class UnifiedTreeView {
 
 		// Multi-zone Badges container
 		if (
+			(showMtime && node.mtimeText) ||
+			(showCtime && node.ctimeText) ||
 			(showCount && node.count != null && node.count > 0) ||
 			(node.badges && node.badges.length > 0)
 		) {
 			const badgeZone = row.createDiv({ cls: 'vaultman-tree-badge-zone' });
+
+			if (showMtime && node.mtimeText) {
+				badgeZone.createSpan({
+					cls: 'vaultman-tree-date nav-file-tag',
+					text: node.mtimeText,
+				});
+			}
+			if (showCtime && node.ctimeText) {
+				badgeZone.createSpan({
+					cls: 'vaultman-tree-date nav-file-tag',
+					text: node.ctimeText,
+				});
+			}
 
 			// Priority: Operations/Conflicts badges first
 			if (node.badges) {
