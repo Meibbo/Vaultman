@@ -16,4 +16,37 @@ describe('Content tab source guards', () => {
 		expect(tabContentSource).toContain("translate('content.landing_title')");
 		expect(tabContentSource).toContain("translate('content.empty_desc')");
 	});
+
+	it('keeps replace input collapsed behind a dedicated toggle', () => {
+		expect(tabContentSource).toContain('contentReplaceOpen');
+		expect(tabContentSource).toContain("translate('content.toggle_replace')");
+		expect(tabContentSource).toContain(
+			'{#if contentReplaceOpen || contentReplace}',
+		);
+		expect(tabContentSource).toContain('vaultman-content-replace-toggle');
+	});
+
+	it('keeps clear buttons inside Content search and replace inputs', () => {
+		expect(tabContentSource).toContain('vaultman-content-clear-button');
+		expect(tabContentSource).toContain(
+			'class="clickable-icon vaultman-content-clear-button"',
+		);
+		expect(tabContentSource).not.toContain('search-input-clear-button');
+		expect(tabContentSource).not.toContain(
+			"title={translate('filter.search_clear')}",
+		);
+		expect(tabContentSource).toContain(
+			'class="clickable-icon vaultman-icon-toggle',
+		);
+		expect(tabContentSource).toContain('{#if contentFind}');
+		expect(tabContentSource).toContain('{#if contentReplace}');
+		expect(tabContentSource).toContain("contentFind = ''");
+		expect(tabContentSource).toContain("contentReplace = ''");
+	});
+
+	it('uses distinct explicit icons for Content search and replace inputs', () => {
+		expect(tabContentSource).toContain("use:iconAction={'lucide-search'}");
+		expect(tabContentSource).toContain("use:iconAction={'lucide-replace'}");
+		expect(tabContentSource).toContain('vaultman-content-replace-container');
+	});
 });

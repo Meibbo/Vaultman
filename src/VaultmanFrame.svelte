@@ -370,6 +370,7 @@
 	let queuedCount = $state(0);
 	let queueWarningCount = $state(0);
 	let filterRuleCount = $state(0);
+	let contentSearchScopeRevision = $state('');
 	const addOpCount = $derived(
 		plugin.queueService.queue.filter((op) => op.action === 'add').length,
 	);
@@ -400,6 +401,11 @@
 		queuedCount = plugin.queueService.queue.length;
 		queueWarningCount = countQueueWarnings();
 		filterRuleCount = countFilterLeaves(plugin.filterService.activeFilter);
+		const nextContentSearchScopeRevision =
+			plugin.filterService.getContentSearchScopeSignature();
+		if (nextContentSearchScopeRevision !== contentSearchScopeRevision) {
+			contentSearchScopeRevision = nextContentSearchScopeRevision;
+		}
 	}
 
 	function countQueueWarnings(): number {
@@ -697,7 +703,12 @@
 
 <!-- ─── Page container (horizontal slide strip) ────────────────────────────── -->
 <!-- vaultman-pages-viewport clips via overflow:hidden; the container slides inside it -->
-<div class="vaultman-pages-viewport" use:bindViewport use:bindViewRoot>
+<div
+	class="vaultman-pages-viewport"
+	class:vaultman-pages-viewport--dock-off={!showDock}
+	use:bindViewport
+	use:bindViewRoot
+>
 	<div
 		class="vaultman-page-container"
 		use:bindContainer
@@ -727,7 +738,10 @@
 								fileList?.getSelectedFiles() ??
 								plugin.filterService.selectedFiles}
 							{filteredCount}
+							{filterRuleCount}
+							{contentSearchScopeRevision}
 							{showDock}
+							{queuedCount}
 							{queueWarningCount}
 							onOpenFilters={openFiltersLauncher}
 							onClearFilters={clearActiveFilters}

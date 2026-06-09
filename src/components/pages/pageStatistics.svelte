@@ -175,6 +175,13 @@
 			value: counts.tags,
 			color: 'var(--color-red)',
 		},
+		{
+			id: 'words' as StatisticsNavigationCard,
+			label: translate('stats.word_count'),
+			icon: 'lucide-type',
+			value: statsSnapshot.words,
+			color: 'var(--color-cyan)',
+		},
 	]);
 
 	const scopeOptions: {
@@ -222,7 +229,7 @@
 		{#each statCards as card (card.icon)}
 			<button
 				type="button"
-				class="vaultman-stat-card"
+				class="clickable-icon vaultman-stat-card"
 				style="--card-color: {card.color}"
 				aria-label={`${card.label}: ${card.value.toLocaleString()}`}
 				onclick={() => navigateFromCard(card.id)}
@@ -241,7 +248,7 @@
 		<div class="vaultman-stat-scope-pills">
 			{#each scopeOptions as opt (opt.id)}
 				<button
-					class="vaultman-stat-scope-pill"
+					class="clickable-icon vaultman-stat-scope-pill"
 					class:is-active={scope === opt.id}
 					style="--scope-color: {opt.color}"
 					onclick={() => (scope = opt.id)}
@@ -269,19 +276,5 @@
 				>{statsSnapshot.links.toLocaleString()}</span
 			>
 		</div>
-		<button
-			type="button"
-			class="vaultman-stat-meta-item vaultman-stat-meta-action"
-			onclick={() => navigateFromCard('words')}
-			aria-label={translate('stats.word_count')}
-		>
-			<span class="vaultman-meta-icon" use:iconAction={'lucide-type'}></span>
-			<span class="vaultman-meta-label">{translate('stats.word_count')}</span>
-			<span class="vaultman-meta-value"
-				>{statsSnapshot.words > 0
-					? statsSnapshot.words.toLocaleString()
-					: '—'}</span
-			>
-		</button>
 	</div>
 </div>

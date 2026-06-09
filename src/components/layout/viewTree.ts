@@ -21,6 +21,8 @@ export interface TreeViewOptions {
 	onCancelRename?: () => void;
 	onBadgeDoubleClick?: (queueIndex: number) => void;
 	onDragStart?: (id: string, event: DragEvent) => void;
+	onDragOver?: (id: string, event: DragEvent) => void;
+	onDrop?: (id: string, event: DragEvent) => void;
 	visibleCells?: Set<string>;
 }
 
@@ -39,9 +41,17 @@ export class UnifiedTreeView {
 	private _contentEl: HTMLElement | null = null;
 	private _rows: TreeNode[] = [];
 	private _indexById = new Map<string, number>();
-	private readonly _rowHeight = 27;
+	private readonly _rowHeight = 28;
+	private readonly _mobileCoreRowHeight = 37;
 	private readonly _overscan = 24;
-	private readonly _onScroll = () => this._scheduleWindowRender();
+	private readonly _onScroll = () => {
+		if (this._hasVisibleRenderedRows()) {
+			this._scheduleWindowRender();
+			return;
+		}
+		this._cancelWindowRender();
+		this._renderWindow();
+	};
 
 	constructor(containerEl: HTMLElement) {
 		this.containerEl = containerEl;
@@ -60,18 +70,19 @@ export class UnifiedTreeView {
 		}
 
 		const scrollTop = this.containerEl.scrollTop;
+		const rowHeight = this.rowHeight();
 		const modelStarted = performance.now();
 		this._rows = flattenVisibleTree(opts.nodes, opts.expandedIds);
 		this._indexById = this._buildIndex(this._rows);
 		this._ensureScaffold();
 		if (this._spacerEl) {
-			this._spacerEl.style.height = `${this._rows.length * this._rowHeight}px`;
+			this._spacerEl.style.height = `${this._rows.length * rowHeight}px`;
 		}
 		this.containerEl.scrollTop = Math.min(
 			scrollTop,
 			Math.max(
 				0,
-				this._rows.length * this._rowHeight - this.containerEl.clientHeight,
+				this._rows.length * rowHeight - this.containerEl.clientHeight,
 			),
 		);
 		vaultmanPerfMonitor.record('tree.model', performance.now() - modelStarted, {
@@ -170,18 +181,34 @@ export class UnifiedTreeView {
 	private _scheduleWindowRender(): void {
 		if (this._pendingRaf !== null || this._pendingScrollTimer !== null) return;
 		const run = () => {
-			if (this._pendingRaf !== null) {
-				window.cancelAnimationFrame(this._pendingRaf);
-			}
-			if (this._pendingScrollTimer !== null) {
-				window.clearTimeout(this._pendingScrollTimer);
-			}
-			this._pendingRaf = null;
-			this._pendingScrollTimer = null;
+			this._cancelWindowRender();
 			this._renderWindow();
 		};
 		this._pendingRaf = window.requestAnimationFrame(run);
 		this._pendingScrollTimer = window.setTimeout(run, 32);
+	}
+
+	private _cancelWindowRender(): void {
+		if (this._pendingRaf !== null) {
+			window.cancelAnimationFrame(this._pendingRaf);
+		}
+		if (this._pendingScrollTimer !== null) {
+			window.clearTimeout(this._pendingScrollTimer);
+		}
+		this._pendingRaf = null;
+		this._pendingScrollTimer = null;
+	}
+
+	private _hasVisibleRenderedRows(): boolean {
+		if (this.rowEls.size === 0) return false;
+		const viewport = this.containerEl.getBoundingClientRect();
+		for (const row of this.rowEls.values()) {
+			const rect = row.getBoundingClientRect();
+			if (rect.bottom > viewport.top + 1 && rect.top < viewport.bottom - 1) {
+				return true;
+			}
+		}
+		return false;
 	}
 
 	private _renderWindow(): void {
@@ -191,7 +218,7 @@ export class UnifiedTreeView {
 			rows: this._rows,
 			scrollTop: this.containerEl.scrollTop,
 			viewportHeight: this.containerEl.clientHeight,
-			rowHeight: this._rowHeight,
+			rowHeight: this.rowHeight(),
 			overscan: this._overscan,
 		});
 		const visibleIds = new Set(
@@ -245,6 +272,7 @@ export class UnifiedTreeView {
 			node.typeText ?? '',
 			node.mtimeText ?? '',
 			node.ctimeText ?? '',
+			node.coreCls ?? '',
 			node.count ?? '',
 			node.children?.length ?? 0,
 			node.showCaret ? '1' : '0',
@@ -258,12 +286,62 @@ export class UnifiedTreeView {
 		].join('\u001f');
 	}
 
+	private rowTitle(node: TreeNode): string | null {
+		const parts: string[] = [];
+		if (node.mtimeText) parts.push(`Last modified: ${node.mtimeText}`);
+		if (node.ctimeText) parts.push(`Created at: ${node.ctimeText}`);
+		return parts.length > 0 ? parts.join('\n') : null;
+	}
+
+	private applyRowTitle(row: HTMLElement, node: TreeNode): void {
+		const title = this.rowTitle(node);
+		if (title) row.setAttribute('title', title);
+		else row.removeAttribute('title');
+	}
+
+	private nodeDataPath(node: TreeNode): string | null {
+		const meta = node.meta as
+			| {
+					file?: { path?: string } | null;
+					folderPath?: string | null;
+			  }
+			| null
+			| undefined;
+		return meta?.file?.path ?? meta?.folderPath ?? null;
+	}
+
+	private applyDataPath(row: HTMLElement, node: TreeNode): void {
+		const path = this.nodeDataPath(node);
+		if (path) row.dataset.path = path;
+		else delete row.dataset.path;
+	}
+
+	private rowHeight(): number {
+		const isPhone = activeDocument.body.classList.contains('is-phone');
+		const isVaultmanDrawer = Boolean(
+			this.containerEl.closest(
+				'.workspace-drawer .workspace-leaf-content[data-type="vaultman-frame"]',
+			),
+		);
+		return isPhone && isVaultmanDrawer
+			? this._mobileCoreRowHeight
+			: this._rowHeight;
+	}
+
+	private applyCoreRowClasses(row: HTMLElement, node: TreeNode): void {
+		if (!node.coreCls) return;
+		for (const className of node.coreCls.trim().split(/\s+/)) {
+			if (className) row.addClass(className);
+		}
+	}
+
 	private _scrollTopForIndex(
 		index: number,
 		block: ScrollLogicalPosition,
 	): number {
-		const rowTop = index * this._rowHeight;
-		const rowBottom = rowTop + this._rowHeight;
+		const rowHeight = this.rowHeight();
+		const rowTop = index * rowHeight;
+		const rowBottom = rowTop + rowHeight;
 		const viewportHeight = this.containerEl.clientHeight;
 		const currentTop = this.containerEl.scrollTop;
 		const currentBottom = currentTop + viewportHeight;
@@ -276,11 +354,11 @@ export class UnifiedTreeView {
 			if (rowTop < currentTop) target = rowTop;
 			else if (rowBottom > currentBottom) target = rowBottom - viewportHeight;
 		} else {
-			target = rowTop - viewportHeight / 2 + this._rowHeight / 2;
+			target = rowTop - viewportHeight / 2 + rowHeight / 2;
 		}
 		const maxScroll = Math.max(
 			0,
-			this._rows.length * this._rowHeight - viewportHeight,
+			this._rows.length * rowHeight - viewportHeight,
 		);
 		return Math.max(0, Math.min(maxScroll, target));
 	}
@@ -331,18 +409,32 @@ export class UnifiedTreeView {
 		const showCtime = visibleCells ? visibleCells.has('ctime') : false;
 
 		const row =
-			this.rowEls.get(node.id) ?? parent.createDiv({ cls: 'vaultman-tree-row' });
+			this.rowEls.get(node.id) ??
+			parent.createDiv({ cls: 'vaultman-tree-row' });
 		parent.appendChild(row);
-				row.dataset.id = node.id;
-				row.draggable = Boolean(opts.onDragStart);
-				row.style.setProperty('--depth', String(node.depth));
-				row.onclick = () => opts.onRowClick(node.id);
-				row.ondragstart = (event) => opts.onDragStart?.(node.id, event);
-				row.oncontextmenu = (e) => {
+		row.dataset.id = node.id;
+		this.applyDataPath(row, node);
+		row.draggable = Boolean(opts.onDragStart);
+		row.style.setProperty('--depth', String(node.depth));
+		row.onclick = () => opts.onRowClick(node.id);
+		row.ondragstart = (event) => {
+			row.addClass('is-being-dragged');
+			opts.onDragStart?.(node.id, event);
+		};
+		row.ondragend = () => row.removeClass('is-being-dragged');
+		row.ondragover = (event) => this._handleRowDragOver(row, node.id, event, opts);
+		row.ondragenter = (event) => this._handleRowDragOver(row, node.id, event, opts);
+		row.ondragleave = () => row.removeClass('is-being-dragged-over');
+		row.ondrop = (event) => {
+			row.removeClass('is-being-dragged-over');
+			opts.onDrop?.(node.id, event);
+		};
+		row.oncontextmenu = (e) => {
 			e.preventDefault();
 			e.stopPropagation();
 			opts.onContextMenu(node.id, e);
 		};
+		this.applyRowTitle(row, node);
 		const signature = this.rowSignature(node, opts);
 		if (row.dataset.renderSignature === signature) {
 			return row;
@@ -350,6 +442,7 @@ export class UnifiedTreeView {
 		row.empty();
 		row.className = 'vaultman-tree-row';
 		row.dataset.renderSignature = signature;
+		this.applyCoreRowClasses(row, node);
 		if (typeof node.cls === 'string' && node.cls.trim()) {
 			for (const c of node.cls.trim().split(/\s+/)) row.addClass(c);
 		}
@@ -480,5 +573,15 @@ export class UnifiedTreeView {
 		}
 
 		return row;
+	}
+
+	private _handleRowDragOver(
+		row: HTMLElement,
+		id: string,
+		event: DragEvent,
+		opts: TreeViewOptions,
+	): void {
+		opts.onDragOver?.(id, event);
+		row.toggleClass('is-being-dragged-over', event.defaultPrevented);
 	}
 }

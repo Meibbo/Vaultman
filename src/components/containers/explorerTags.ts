@@ -14,6 +14,8 @@ export interface PanelPluginCtx {
 	contextMenuService: ContextMenuService;
 	queueService: OperationQueueService;
 	statisticsCache?: Pick<StatisticsCacheService, 'getFileTimes'>;
+	showDragActionGuide?: (text: string) => void;
+	clearDragActionGuide?: () => void;
 }
 import { UnifiedTreeView } from '../layout/viewTree';
 import { NodeTableView } from '../layout/viewNodeTable';
@@ -26,7 +28,9 @@ import {
 	groupRootHierarchy,
 } from '../../logic/logicExplorerHierarchy';
 import {
+	readVaultmanDragPayload,
 	setVaultmanDragPayload,
+	type VaultmanDragNodePayload,
 	withActiveFilterDragSelection,
 } from '../../utils/dragPayload';
 
@@ -118,6 +122,8 @@ export class TagsExplorerPanel extends Component {
 		// Re-render dynamically when filters or queues change
 		this.plugin.filterService.on('changed', this._handleStateChange);
 		this.plugin.queueService.on('changed', this._handleStateChange);
+		this.containerEl.addEventListener('dragover', this._handleRootTagDragOver);
+		this.containerEl.addEventListener('drop', this._handleRootTagDrop);
 
 		this._render();
 	}
@@ -125,6 +131,11 @@ export class TagsExplorerPanel extends Component {
 	onunload(): void {
 		this.plugin.filterService.off('changed', this._handleStateChange);
 		this.plugin.queueService.off('changed', this._handleStateChange);
+		this.containerEl.removeEventListener(
+			'dragover',
+			this._handleRootTagDragOver,
+		);
+		this.containerEl.removeEventListener('drop', this._handleRootTagDrop);
 		this.view.destroy();
 		this.tableView?.destroy();
 		super.onunload();
@@ -408,6 +419,16 @@ export class TagsExplorerPanel extends Component {
 						),
 					);
 				},
+				onDragOver: (id: string, event: DragEvent) => {
+					const node = this._findNode(id, tree);
+					if (!node) return;
+					this._handleTagDragOver(node, event);
+				},
+				onDrop: (id: string, event: DragEvent) => {
+					const node = this._findNode(id, tree);
+					if (!node) return;
+					this._handleTagDrop(node, event);
+				},
 				onBadgeDoubleClick: (queueIndex: number) => {
 					this.plugin.queueService.remove(queueIndex);
 					void this._render();
@@ -492,6 +513,16 @@ export class TagsExplorerPanel extends Component {
 						'tags',
 					),
 				);
+			},
+			onDragOver: (id: string, event: DragEvent) => {
+				const node = this._findNode(id, tree);
+				if (!node) return;
+				this._handleTagDragOver(node, event);
+			},
+			onDrop: (id: string, event: DragEvent) => {
+				const node = this._findNode(id, tree);
+				if (!node) return;
+				this._handleTagDrop(node, event);
 			},
 			onBadgeDoubleClick: (queueIndex: number) => {
 				this.plugin.queueService.remove(queueIndex);
@@ -633,6 +664,12 @@ export class TagsExplorerPanel extends Component {
 					),
 				),
 			);
+			card.addEventListener('dragover', (event) =>
+				this._handleTagDragOver(node, event),
+			);
+			card.addEventListener('drop', (event) =>
+				this._handleTagDrop(node, event),
+			);
 			card.addEventListener('keydown', (event) => {
 				if (event.key === 'Enter' || event.key === ' ') {
 					event.preventDefault();
@@ -651,6 +688,99 @@ export class TagsExplorerPanel extends Component {
 		if (flatNodes.length === 0) {
 			this._renderEmptyState();
 		}
+	}
+
+	private _handleTagDragOver(
+		targetNode: TreeNode<TagMeta>,
+		event: DragEvent,
+	): void {
+		const payload = readVaultmanDragPayload(event);
+		if (!payload) return;
+		const tagPaths = this._dragTagPaths(payload);
+		if (!tagPaths.some((path) => path !== targetNode.meta.tagPath))
+			return;
+		event.preventDefault();
+		if (event.dataTransfer) event.dataTransfer.dropEffect = 'move';
+		this.plugin.showDragActionGuide?.(
+			`Move ${tagPaths.length === 1 ? 'tag' : 'tags'} under #${targetNode.meta.tagPath}`,
+		);
+	}
+
+	private _handleTagDrop(
+		targetNode: TreeNode<TagMeta>,
+		event: DragEvent,
+	): void {
+		const payload = readVaultmanDragPayload(event);
+		if (!payload) return;
+		event.preventDefault();
+		event.stopPropagation();
+		this.plugin.clearDragActionGuide?.();
+		void this._nestDraggedTags(payload, targetNode.meta.tagPath);
+	}
+
+	private readonly _handleRootTagDragOver = (event: DragEvent): void => {
+		if (this._isRowDropTarget(event.target)) return;
+		const payload = readVaultmanDragPayload(event);
+		if (!payload) return;
+		const tagPaths = this._dragTagPaths(payload).filter((path) =>
+			path.includes('/'),
+		);
+		if (tagPaths.length === 0) return;
+		event.preventDefault();
+		if (event.dataTransfer) event.dataTransfer.dropEffect = 'move';
+		this.plugin.showDragActionGuide?.(
+			`Move ${tagPaths.length === 1 ? `#${tagPaths[0]}` : `${tagPaths.length} tags`} to root`,
+		);
+	};
+
+	private readonly _handleRootTagDrop = (event: DragEvent): void => {
+		if (this._isRowDropTarget(event.target)) return;
+		const payload = readVaultmanDragPayload(event);
+		if (!payload) return;
+		const tagPaths = this._dragTagPaths(payload).filter((path) =>
+			path.includes('/'),
+		);
+		if (tagPaths.length === 0) return;
+		event.preventDefault();
+		event.stopPropagation();
+		this.plugin.clearDragActionGuide?.();
+		void this._nestDraggedTags(payload, '');
+	};
+
+	private _isRowDropTarget(target: EventTarget | null): boolean {
+		if (typeof HTMLElement === 'undefined') return false;
+		if (!(target instanceof HTMLElement)) return false;
+		return Boolean(
+			target.closest(
+				'.vaultman-tree-row, .vaultman-node-table-row, .vaultman-tag-card',
+			),
+		);
+	}
+
+	private async _nestDraggedTags(
+		payload: VaultmanDragNodePayload & { selection?: VaultmanDragNodePayload[] },
+		targetTagPath: string,
+	): Promise<void> {
+		const tagPaths = this._dragTagPaths(payload);
+		for (const tagPath of tagPaths) {
+			if (tagPath === targetTagPath) continue;
+			if (targetTagPath.startsWith(`${tagPath}/`)) continue;
+			const leaf = tagPath.split('/').filter(Boolean).pop() ?? tagPath;
+			const nestedPath = targetTagPath ? `${targetTagPath}/${leaf}` : leaf;
+			if (tagPath === nestedPath) continue;
+			await this._renameTag(tagPath, nestedPath);
+		}
+	}
+
+	private _dragTagPaths(
+		payload: VaultmanDragNodePayload & { selection?: VaultmanDragNodePayload[] },
+	): string[] {
+		const nodes = payload.selection?.length ? payload.selection : [payload];
+		return nodes
+			.filter((node): node is Extract<VaultmanDragNodePayload, { kind: 'tag' }> =>
+				node.kind === 'tag',
+			)
+			.map((node) => node.tagPath);
 	}
 
 	private _renderEmptyState(): void {

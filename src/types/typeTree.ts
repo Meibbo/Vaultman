@@ -36,6 +36,7 @@ export interface TreeNode<TMeta = unknown> {
 	depth: number;
 	meta: TMeta;
 	cls?: string;
+	coreCls?: string;
 }
 
 export interface TagMeta {

@@ -88,7 +88,10 @@
 		settingsRevision = 0,
 		getSelectedFiles,
 		filteredCount,
+		filterRuleCount = 0,
+		contentSearchScopeRevision,
 		showDock = true,
+		queuedCount = 0,
 		queueWarningCount = 0,
 		onOpenFilters,
 		onClearFilters,
@@ -110,7 +113,10 @@
 		settingsRevision?: number;
 		getSelectedFiles: () => TFile[];
 		filteredCount: number;
+		filterRuleCount?: number;
+		contentSearchScopeRevision: string;
 		showDock?: boolean;
+		queuedCount?: number;
 		queueWarningCount?: number;
 		onOpenFilters?: () => void;
 		onClearFilters?: () => void;
@@ -203,13 +209,10 @@
 				id: 'filters',
 				label: translate('filters.active'),
 				icon: 'lucide-filter',
-				count: plugin.filterService.activeFilter.children.length,
-				warning:
-					plugin.filterService.activeFilter.children.length > 0 &&
-					filteredCount === 0,
+				count: filterRuleCount,
+				warning: filterRuleCount > 0 && filteredCount === 0,
 				tooltip:
-					plugin.filterService.activeFilter.children.length > 0 &&
-					filteredCount === 0
+					filterRuleCount > 0 && filteredCount === 0
 						? translate('filters.active_zero')
 						: undefined,
 				onClick: () => onOpenFilters?.(),
@@ -219,12 +222,12 @@
 				id: 'queue',
 				label: translate('ops.tab.queue'),
 				icon: 'lucide-list-checks',
-				count: plugin.queueService.queue.length,
+				count: queuedCount,
 				warning: queueWarningCount > 0,
 				tooltip:
 					queueWarningCount > 0
 						? translate('ops.queue.warning', {
-								count: plugin.queueService.queue.length,
+								count: queuedCount,
 								warnings: queueWarningCount,
 							})
 						: undefined,
@@ -404,7 +407,7 @@
 	}
 
 	$effect(() => {
-		void filteredCount;
+		void contentSearchScopeRevision;
 		const tab = filtersActiveTab;
 		const find = contentFind;
 		const caseSensitive = contentCaseSensitive;

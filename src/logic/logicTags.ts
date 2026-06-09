@@ -54,11 +54,12 @@ export class TagsLogic {
 	}
 
 	private _buildTree(): TreeNode<TagMeta>[] {
-		const rawTags = (
-			this.app.metadataCache as unknown as {
-				getTags(): Record<string, number>;
-			}
-		).getTags() ?? {};
+		const rawTags =
+			(
+				this.app.metadataCache as unknown as {
+					getTags(): Record<string, number>;
+				}
+			).getTags() ?? {};
 
 		const root: TreeNode<TagMeta>[] = [];
 		const nodeMap = new Map<string, TreeNode<TagMeta>>();
@@ -82,6 +83,7 @@ export class TagsLogic {
 						id: currentPath,
 						label: part,
 						count: i === parts.length - 1 ? count : 0,
+						coreCls: 'tree-item-self tag-pane-tag is-clickable',
 						children: [],
 						depth: i,
 						meta: { tagPath: currentPath },

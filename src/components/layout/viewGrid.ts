@@ -131,11 +131,12 @@ export class GridView {
 	): void {
 		if (!this.headerEl) return;
 		this.headerEl.empty();
-		this.headerEl.style.width = `${layout.totalWidth}px`;
+		const width = `${this.surfaceWidth(layout)}px`;
+		this.headerEl.style.width = width;
 		const row = this.headerEl.createDiv({
 			cls: 'bases-tr vaultman-files-table-header-row',
 		});
-		row.style.width = `${layout.totalWidth}px`;
+		row.style.width = width;
 
 		for (const column of layout.columns) {
 			if (column.id === 'icon') {
@@ -272,7 +273,7 @@ export class GridView {
 	}
 
 	private _applyTableDimensions(layout: FileTableLayout): void {
-		const width = `${layout.totalWidth}px`;
+		const width = `${this.surfaceWidth(layout)}px`;
 		if (this.headerEl) this.headerEl.style.width = width;
 		if (this.tableEl) this.tableEl.style.width = width;
 		if (this.tbodyEl) {
@@ -287,6 +288,13 @@ export class GridView {
 	private _syncHeaderScroll(): void {
 		if (!this.headerEl || !this.listEl) return;
 		this.headerEl.style.transform = `translateX(${-this.listEl.scrollLeft}px)`;
+	}
+
+	private surfaceWidth(layout: FileTableLayout): number {
+		return Math.max(layout.totalWidth,
+			this.listEl?.clientWidth ?? 0,
+			this.containerEl.clientWidth,
+		);
 	}
 
 	private _positionCell(cell: HTMLElement, column: FileTableColumn): void {
@@ -423,7 +431,7 @@ export class GridView {
 		row.draggable = Boolean(this.callbacks.onDragStart);
 		row.style.top = `${top}px`;
 		row.style.height = `${this.rowHeight}px`;
-		row.style.width = `${layout.totalWidth}px`;
+		row.style.width = `${this.surfaceWidth(layout)}px`;
 		row.oncontextmenu = (event) => {
 			event.preventDefault();
 			this.callbacks.onContextMenu(file, event);

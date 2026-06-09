@@ -1,4 +1,4 @@
-import { MarkdownView, Plugin, WorkspaceLeaf } from 'obsidian';
+import { MarkdownView, Plugin, TFile, WorkspaceLeaf } from 'obsidian';
 import type { VaultmanSettings } from './types/typeSettings';
 import { DEFAULT_SETTINGS } from './types/typeSettings';
 import { PropertyIndexService } from './services/servicePropertyIndex';
@@ -11,7 +11,11 @@ import { ContextMenuService } from './services/serviceContextMenu';
 import { StatisticsCacheService } from './services/serviceStatisticsCache';
 import { VaultmanSettingsTab } from './VaultmanSettings';
 import { setLanguage, translate } from './i18n/index';
-import { readVaultmanDragPayload } from './utils/dragPayload';
+import {
+	readVaultmanDragPayload,
+	type VaultmanDragNodePayload,
+	type VaultmanDragPayload,
+} from './utils/dragPayload';
 import {
 	applyPropertyDragNodesToFrontmatter,
 	propertyDragNodes,
@@ -23,6 +27,7 @@ import {
 	tagDragNodes,
 	tagTextForDrop,
 } from './utils/dragEditorDrop';
+import { createPerfProbe } from './dev/perfProbe';
 
 export class VaultmanPlugin extends Plugin {
 	settings!: VaultmanSettings;
@@ -62,6 +67,16 @@ export class VaultmanPlugin extends Plugin {
 		this.addChild(this.contextMenuService);
 		this.addChild(this.statisticsCache);
 
+		const perfProbe = createPerfProbe({
+			now: () => activeWindow.performance.now(),
+			doc: activeDocument,
+		});
+		this.register(
+			perfProbe.installGlobal(
+				activeWindow as unknown as { __vaultmanPerfProbe?: unknown },
+			),
+		);
+
 		this.registerEvent(
 			this.app.metadataCache.on('resolved', () => {
 				this.filterService.applyFilters();
@@ -98,19 +113,100 @@ export class VaultmanPlugin extends Plugin {
 		});
 
 		activeDocument.addEventListener('drop', this.handleVaultmanDrop, true);
+		activeDocument.addEventListener('dragover', this.handleVaultmanDragOver, true);
+		activeDocument.addEventListener('dragend', this.handleVaultmanDragEnd, true);
 		this.register(() =>
 			activeDocument.removeEventListener('drop', this.handleVaultmanDrop, true),
+		);
+		this.register(() =>
+			activeDocument.removeEventListener(
+				'dragover',
+				this.handleVaultmanDragOver,
+				true,
+			),
+		);
+		this.register(() =>
+			activeDocument.removeEventListener(
+				'dragend',
+				this.handleVaultmanDragEnd,
+				true,
+			),
 		);
 
 		this.addSettingTab(new VaultmanSettingsTab(this.app, this));
 	}
 
+	showDragActionGuide(text: string): void {
+		const dragManager = this.dragManagerLike();
+		if (typeof dragManager?.setAction === 'function') {
+			dragManager.setAction(text);
+		}
+	}
+
+	clearDragActionGuide(): void {
+		const dragManager = this.dragManagerLike();
+		if (typeof dragManager?.setAction === 'function') {
+			dragManager.setAction(null);
+		}
+	}
+
+	private readonly handleVaultmanDragOver = (event: DragEvent): void => {
+		const payload = readVaultmanDragPayload(event);
+		if (!payload) return;
+
+		if (this.isWorkspaceTabDropTarget(event.target)) {
+			if (this.hasNativeFileDragPayload()) return;
+			if (!this.fileDragNodes(payload).length) return;
+			event.preventDefault();
+			if (event.dataTransfer) event.dataTransfer.dropEffect = 'copy';
+			this.showDragActionGuide(this.fileTabDropAction(payload));
+			return;
+		}
+
+		const nodes = propertyDragNodes(payload);
+		if (nodes.length > 0 && isMarkdownDropTarget(event.target)) {
+			event.preventDefault();
+			event.stopPropagation();
+			if (event.dataTransfer) event.dataTransfer.dropEffect = 'copy';
+			this.showDragActionGuide(this.propertyDropAction(nodes));
+			return;
+		}
+
+		const tagNodes = tagDragNodes(payload);
+		if (
+			tagNodes.length > 0 &&
+			isMarkdownDropTarget(event.target) &&
+			shouldAppendTagDrop(event.target)
+		) {
+			event.preventDefault();
+			event.stopPropagation();
+			if (event.dataTransfer) event.dataTransfer.dropEffect = 'copy';
+			this.showDragActionGuide(`Append ${tagNodes.length === 1 ? 'tag' : 'tags'}`);
+		}
+	};
+
 	private readonly handleVaultmanDrop = (event: DragEvent): void => {
 		const payload = readVaultmanDragPayload(event);
 		if (!payload) return;
+
+		if (this.isWorkspaceTabDropTarget(event.target)) {
+			if (this.hasNativeFileDragPayload()) return;
+			const files = this.filesFromDragPayload(payload);
+			if (files.length === 0) return;
+			event.preventDefault();
+			event.stopPropagation();
+			void this.openDroppedFilesInNewTabs(files);
+			this.clearDragActionGuide();
+			return;
+		}
+
 		const nodes = propertyDragNodes(payload);
 		if (nodes.length > 0) {
-			const file = this.app.workspace.getActiveFile();
+			if (!isMarkdownDropTarget(event.target)) return;
+			const view =
+				this.markdownViewFromDropTarget(event.target) ??
+				this.app.workspace.getActiveViewOfType(MarkdownView);
+			const file = view?.file ?? this.app.workspace.getActiveFile();
 			if (!file) return;
 
 			event.preventDefault();
@@ -121,6 +217,7 @@ export class VaultmanPlugin extends Plugin {
 					nodes,
 				);
 			});
+			this.clearDragActionGuide();
 			return;
 		}
 
@@ -134,7 +231,102 @@ export class VaultmanPlugin extends Plugin {
 		event.preventDefault();
 		event.stopPropagation();
 		appendTagsToMarkdownView(view, tagTextForDrop(tagNodes));
+		this.clearDragActionGuide();
 	};
+
+	private readonly handleVaultmanDragEnd = (event: DragEvent): void => {
+		if (!readVaultmanDragPayload(event)) return;
+		this.clearDragActionGuide();
+		const dragManager = this.dragManagerLike();
+		if (dragManager && 'draggable' in dragManager) {
+			dragManager.draggable = null;
+		}
+	};
+
+	private dragManagerLike(): {
+		draggable?: unknown;
+		setAction?: (text: string | null) => void;
+	} | null {
+		return (
+			(
+				this.app as unknown as {
+					dragManager?: {
+						draggable?: unknown;
+						setAction?: (text: string | null) => void;
+					};
+				}
+			).dragManager ?? null
+		);
+	}
+
+	private hasNativeFileDragPayload(): boolean {
+		const draggable = this.dragManagerLike()?.draggable as
+			| { type?: unknown }
+			| null
+			| undefined;
+		return draggable?.type === 'file' || draggable?.type === 'files';
+	}
+
+	private isWorkspaceTabDropTarget(target: EventTarget | null): boolean {
+		if (typeof HTMLElement === 'undefined') return false;
+		if (!(target instanceof HTMLElement)) return false;
+		return Boolean(
+			target.closest(
+				'.workspace-tab-header, .workspace-tab-header-container, .workspace-tab-header-container-inner, .workspace-tab-header-new-tab, .workspace-tab-header-spacer',
+			),
+		);
+	}
+
+	private markdownViewFromDropTarget(
+		target: EventTarget | null,
+	): MarkdownView | null {
+		if (typeof HTMLElement === 'undefined') return null;
+		if (!(target instanceof HTMLElement)) return null;
+		for (const leaf of this.app.workspace.getLeavesOfType('markdown')) {
+			const view = leaf.view;
+			if (!(view instanceof MarkdownView)) continue;
+			if (view.containerEl.contains(target)) return view;
+		}
+		return null;
+	}
+
+	private fileDragNodes(
+		payload: VaultmanDragPayload,
+	): Array<Extract<VaultmanDragNodePayload, { kind: 'file' }>> {
+		const nodes = payload.selection?.length ? payload.selection : [payload];
+		return nodes.filter(
+			(node): node is Extract<VaultmanDragNodePayload, { kind: 'file' }> =>
+				node.kind === 'file',
+		);
+	}
+
+	private filesFromDragPayload(payload: VaultmanDragPayload): TFile[] {
+		return this.fileDragNodes(payload)
+			.map((node) => this.app.vault.getAbstractFileByPath(node.path))
+			.filter((file): file is TFile => file instanceof TFile);
+	}
+
+	private async openDroppedFilesInNewTabs(files: TFile[]): Promise<void> {
+		for (const file of files) {
+			const leaf = this.app.workspace.getLeaf('tab');
+			await leaf.openFile(file, { active: true });
+		}
+	}
+
+	private fileTabDropAction(payload: VaultmanDragPayload): string {
+		const count = this.fileDragNodes(payload).length;
+		return count === 1 ? 'Open file in new tab' : `Open ${count} files in new tabs`;
+	}
+
+	private propertyDropAction(nodes: VaultmanDragNodePayload[]): string {
+		if (nodes.length === 1) {
+			const node = nodes[0];
+			if (node.kind === 'property') return `Set property "${node.property}"`;
+			if (node.kind === 'property-value')
+				return `Set "${node.property}" frontmatter`;
+		}
+		return `Set ${nodes.length} frontmatter entries`;
+	}
 
 	async onExternalSettingsChange(): Promise<void> {
 		await this.loadSettings();

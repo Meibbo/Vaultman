@@ -107,7 +107,9 @@ describe('FilterService vault-wide Files filtering', () => {
 			values: ['#person'],
 		});
 
-		expect(service.getFlatRules().map((rule) => [rule.rule, rule.label])).toEqual([
+		expect(
+			service.getFlatRules().map((rule) => [rule.rule, rule.label]),
+		).toEqual([
 			['Has property', 'Birthday'],
 			['Has tag', '#person'],
 		]);
@@ -161,16 +163,22 @@ describe('FilterService vault-wide Files filtering', () => {
 			property: 'Birthday',
 			values: [],
 		});
+		const scopeSignatureBeforeContent =
+			service.getContentSearchScopeSignature();
 		service.setContentSearchRule('birthday', [first]);
 
 		expect(service.filteredFiles.map((file) => file.path)).toEqual([
 			'People/Birthday.md',
 		]);
-		expect(service.getFilesIgnoringContentSearch().map((file) => file.path)).toEqual([
-			'People/Birthday.md',
-			'People/Journal.md',
-		]);
-		expect(service.getFlatRules().map((rule) => [rule.rule, rule.label])).toEqual([
+		expect(service.getContentSearchScopeSignature()).toBe(
+			scopeSignatureBeforeContent,
+		);
+		expect(
+			service.getFilesIgnoringContentSearch().map((file) => file.path),
+		).toEqual(['People/Birthday.md', 'People/Journal.md']);
+		expect(
+			service.getFlatRules().map((rule) => [rule.rule, rule.label]),
+		).toEqual([
 			['Has property', 'Birthday'],
 			['Content contains', 'birthday'],
 		]);

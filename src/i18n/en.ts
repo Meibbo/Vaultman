@@ -108,7 +108,8 @@ export const en: Record<string, string> = {
 	'queue.island.empty': 'Queue is empty',
 	'queue.template.templates': 'Action presets',
 	'queue.template.save': 'Save action preset',
-	'queue.template.no_serializable': 'No queue operations can be saved as an action preset',
+	'queue.template.no_serializable':
+		'No queue operations can be saved as an action preset',
 	'queue.template.bulk_title': 'Large operation target',
 	'queue.template.bulk_desc':
 		'This action preset will stage {count} of {total} files from {source}. Review the queue before applying.',
@@ -219,6 +220,7 @@ export const en: Record<string, string> = {
 	'rename.pattern': 'Pattern',
 	'rename.pattern_desc':
 		'Use placeholders: {basename}, {date}, {counter}, {property}',
+	'rename.help': '* or {basename} | {date} | {counter} | {property}',
 
 	// Status bar (extended)
 	'statusbar.props_label': '{count} props',
@@ -442,6 +444,7 @@ export const en: Record<string, string> = {
 	'content.replace_placeholder': 'Replace with…',
 	'content.toggle_case': 'Case sensitive',
 	'content.toggle_regex': 'Regular expression',
+	'content.toggle_replace': 'Show replace field',
 	'content.scope_hint_selected': 'Scope: {count} selected file(s)',
 	'content.scope_hint_filtered': 'Scope: {count} filtered file(s)',
 	'content.preview': 'Preview',

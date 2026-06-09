@@ -171,6 +171,7 @@ export class PropsLogic {
 					label: rawValue,
 					count: cnt,
 					depth: 1,
+					coreCls: 'tree-item-self tappable is-clickable',
 					children: [],
 					meta: {
 						propName,
@@ -187,6 +188,7 @@ export class PropsLogic {
 				label: propName,
 				count: fileCount,
 				depth: 0,
+				coreCls: 'tree-item-self tappable is-clickable',
 				children: valueNodes,
 				meta: { propName, propType, isValueNode: false },
 			});

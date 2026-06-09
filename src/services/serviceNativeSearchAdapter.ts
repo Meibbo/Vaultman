@@ -13,6 +13,7 @@ interface NativeSearchResult {
 interface NativeSearchDom {
 	getFiles(): TFile[];
 	getResult(file: TFile): NativeSearchResult | null;
+	getMatchCount?(): number;
 }
 
 interface NativeSearchView {
@@ -48,6 +49,13 @@ const MAX_FILES = 200;
 const MAX_SNIPPETS = 3;
 const CONTEXT = 40;
 const LOCAL_UPDATE_INTERVAL = 12;
+const NATIVE_POLL_INTERVAL = 150;
+const MAX_NATIVE_ATTEMPTS = 180;
+const MIN_NATIVE_ATTEMPTS = 12;
+const MIN_LARGE_NATIVE_ATTEMPTS = 150;
+const MIN_NATIVE_STABLE_ATTEMPTS = 3;
+const LARGE_NATIVE_MATCH_THRESHOLD = 50;
+const LOCAL_RECONCILE_NATIVE_FILE_LIMIT = 40;
 
 function offsetToPosition(
 	content: string,
@@ -75,6 +83,26 @@ function buildSnippet(
 	};
 }
 
+function mergeSearchOffsets(
+	left: SearchOffset[],
+	right: SearchOffset[],
+): SearchOffset[] {
+	const seen = new Set<string>();
+	const merged: SearchOffset[] = [];
+	for (const [start, end] of [...left, ...right]) {
+		const key = `${start}:${end}`;
+		if (seen.has(key)) continue;
+		seen.add(key);
+		merged.push([start, end]);
+	}
+	merged.sort((a, b) => a[0] - b[0] || a[1] - b[1]);
+	return merged;
+}
+
+function countInputOffsets(inputs: NativeSearchInput[]): number {
+	return inputs.reduce((sum, input) => sum + input.offsets.length, 0);
+}
+
 export function toNativeSearchQuery(query: string, isRegex: boolean): string {
 	if (!isRegex) return query;
 	const trimmed = query.trim();
@@ -85,6 +113,7 @@ export function toNativeSearchQuery(query: string, isRegex: boolean): string {
 export function buildNativeSearchPreview(
 	inputs: NativeSearchInput[],
 	isLoading = false,
+	totalMatchesOverride?: number,
 ): ContentPreviewResult {
 	let totalMatches = 0;
 	let matchFileCount = 0;
@@ -107,7 +136,11 @@ export function buildNativeSearchPreview(
 	}
 
 	return {
-		totalMatches,
+		totalMatches:
+			typeof totalMatchesOverride === 'number' &&
+			totalMatchesOverride > totalMatches
+				? totalMatchesOverride
+				: totalMatches,
 		files,
 		matchedFiles,
 		moreFiles: Math.max(0, matchFileCount - files.length),
@@ -180,26 +213,86 @@ export class NativeSearchAdapter {
 		view.startSearch();
 
 		const scopePaths = new Set(options.scopeFiles.map((file) => file.path));
-		let lastResult = buildNativeSearchPreview([], true);
-		options.onUpdate(lastResult);
+		let latestNativeInputs: NativeSearchInput[] = [];
+		let bestNativeInputs: NativeSearchInput[] = [];
+		let bestNativeScore = -1;
+		let lastSnapshotKey = '';
+		let stableSnapshots = 0;
+		options.onUpdate(buildNativeSearchPreview([], true));
 
-		for (let attempt = 0; attempt < 8; attempt += 1) {
-			await new Promise((resolve) => window.setTimeout(resolve, 150));
-			if (run !== this.activeRun) return;
-			lastResult = buildNativeSearchPreview(
-				this.collectResults(view, scopePaths),
-				true,
+		for (let attempt = 0; attempt < MAX_NATIVE_ATTEMPTS; attempt += 1) {
+			await new Promise((resolve) =>
+				window.setTimeout(resolve, NATIVE_POLL_INTERVAL),
 			);
-			options.onUpdate(lastResult);
+			if (run !== this.activeRun) return;
+			const attemptInputs = this.collectResults(view, scopePaths);
+			const nativeMatchCount = view.dom?.getMatchCount?.();
+			const totalOffsets = countInputOffsets(attemptInputs);
+			const snapshotKey = `${attemptInputs.length}:${totalOffsets}:${nativeMatchCount ?? 'unknown'}`;
+			if (attemptInputs.length > 0) latestNativeInputs = attemptInputs;
+			const nativeScore = nativeMatchCount ?? totalOffsets;
+			if (attemptInputs.length > 0 && nativeScore >= bestNativeScore) {
+				bestNativeInputs = attemptInputs;
+				bestNativeScore = nativeScore;
+			}
+			options.onUpdate(buildNativeSearchPreview(attemptInputs, true));
+			if (
+				attempt + 1 >= MIN_NATIVE_ATTEMPTS &&
+				attemptInputs.length === 0 &&
+				(nativeMatchCount === undefined || nativeMatchCount === 0)
+			) {
+				break;
+			}
+			if (snapshotKey === lastSnapshotKey && attemptInputs.length > 0) {
+				stableSnapshots += 1;
+			} else {
+				lastSnapshotKey = snapshotKey;
+				stableSnapshots = attemptInputs.length > 0 ? 1 : 0;
+			}
+			const requiredAttempts =
+				bestNativeScore >= LARGE_NATIVE_MATCH_THRESHOLD
+					? MIN_LARGE_NATIVE_ATTEMPTS
+					: MIN_NATIVE_ATTEMPTS;
+			if (
+				attempt + 1 >= requiredAttempts &&
+				stableSnapshots >= MIN_NATIVE_STABLE_ATTEMPTS
+			) {
+				break;
+			}
 		}
 
 		if (run !== this.activeRun) return;
-		const nativeInputs = this.collectResults(view, scopePaths);
-		const nativePaths = new Set(nativeInputs.map((input) => input.file.path));
+		const finalNativeInputs = this.collectResults(view, scopePaths);
+		const finalNativeScore =
+			view.dom?.getMatchCount?.() ?? countInputOffsets(finalNativeInputs);
+		const nativeInputs =
+			finalNativeInputs.length > 0 && finalNativeScore >= bestNativeScore
+				? finalNativeInputs
+				: bestNativeInputs.length > 0
+					? bestNativeInputs
+					: latestNativeInputs;
+		const nativeMatchCount = view.dom?.getMatchCount?.();
+		if (
+			nativeInputs.length > 0 &&
+			(nativeInputs.length > LOCAL_RECONCILE_NATIVE_FILE_LIMIT ||
+				(typeof nativeMatchCount === 'number' &&
+					nativeMatchCount >= LARGE_NATIVE_MATCH_THRESHOLD))
+		) {
+			options.onUpdate(
+				buildNativeSearchPreview(nativeInputs, false, nativeMatchCount),
+			);
+			return;
+		}
+		const reconciliationOptions =
+			nativeInputs.length > 0
+				? {
+						...options,
+						scopeFiles: nativeInputs.map((input) => input.file),
+					}
+				: options;
 		const mergedInputs = await this.collectLocalResults(
-			options,
+			reconciliationOptions,
 			run,
-			nativePaths,
 			nativeInputs,
 			true,
 		);
@@ -212,13 +305,7 @@ export class NativeSearchAdapter {
 		run: number,
 	): Promise<void> {
 		options.onUpdate(buildNativeSearchPreview([], true));
-		const inputs = await this.collectLocalResults(
-			options,
-			run,
-			new Set(),
-			[],
-			true,
-		);
+		const inputs = await this.collectLocalResults(options, run, [], true);
 		if (run !== this.activeRun) return;
 		options.onUpdate(buildNativeSearchPreview(inputs, false));
 	}
@@ -226,15 +313,15 @@ export class NativeSearchAdapter {
 	private async collectLocalResults(
 		options: NativeSearchOptions,
 		run: number,
-		skipPaths: Set<string>,
 		initialInputs: NativeSearchInput[],
 		emitPartial: boolean,
 	): Promise<NativeSearchInput[]> {
-		const inputs = [...initialInputs];
+		const inputsByPath = new Map(
+			initialInputs.map((input) => [input.file.path, { ...input }]),
+		);
 		for (let index = 0; index < options.scopeFiles.length; index += 1) {
-			if (run !== this.activeRun) return inputs;
+			if (run !== this.activeRun) return [...inputsByPath.values()];
 			const file = options.scopeFiles[index];
-			if (skipPaths.has(file.path)) continue;
 			let content = '';
 			try {
 				content = await this.app.vault.cachedRead(file);
@@ -248,14 +335,23 @@ export class NativeSearchAdapter {
 				options.caseSensitive,
 			);
 			if (offsets.length > 0) {
-				inputs.push({ file, content, offsets });
+				const existing = inputsByPath.get(file.path);
+				inputsByPath.set(file.path, {
+					file,
+					content,
+					offsets: existing
+						? mergeSearchOffsets(existing.offsets, offsets)
+						: offsets,
+				});
 			}
 			if (emitPartial && index % LOCAL_UPDATE_INTERVAL === 0) {
-				options.onUpdate(buildNativeSearchPreview(inputs, true));
+				options.onUpdate(
+					buildNativeSearchPreview([...inputsByPath.values()], true),
+				);
 				await new Promise((resolve) => window.setTimeout(resolve, 0));
 			}
 		}
-		return inputs;
+		return [...inputsByPath.values()];
 	}
 
 	private collectResults(

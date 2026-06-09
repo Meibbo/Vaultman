@@ -305,6 +305,14 @@ export class FilterService extends Component {
 		return this.sortFiles(matches);
 	}
 
+	getContentSearchScopeSignature(): string {
+		return JSON.stringify({
+			searchName: this._searchName,
+			searchFolder: this._searchFolder,
+			activeFilter: this.filterWithoutContentSearch(),
+		});
+	}
+
 	/** Load a saved filter template */
 	loadTemplate(template: FilterTemplate): void {
 		this.activeFilter = JSON.parse(

@@ -37,7 +37,7 @@ export function isMarkdownDropTarget(target: EventTarget | null): boolean {
 	if (!(target instanceof HTMLElement)) return false;
 	return Boolean(
 		target.closest(
-			'.markdown-source-view, .markdown-preview-view, .workspace-leaf-content[data-type="markdown"]',
+			'.cm-content, .cm-line, .cm-editor, .cm-scroller, .markdown-source-view, .markdown-preview-view, .workspace-leaf-content[data-type="markdown"]',
 		),
 	);
 }

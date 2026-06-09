@@ -12,9 +12,9 @@ describe('explorer setter source guards', () => {
 		expect(filesSource).toContain(
 			'const normalizedSortBy = normalizeExplorerSortBy(sortBy);',
 		);
-		expect(filesSource).toContain(
-			'if (this.sortBy === normalizedSortBy && this.sortDir === direction) return;',
-		);
+		expect(filesSource).toContain('this.sortBy === normalizedSortBy');
+		expect(filesSource).toContain('this.sortDir === direction');
+		expect(filesSource).toContain('this.nodeTypeFilter === nodeTypeFilter');
 		expect(filesSource).toContain(
 			'if (this.searchName === name && this.searchFolder === folder) return;',
 		);

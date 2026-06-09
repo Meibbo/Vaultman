@@ -1,5 +1,5 @@
 // src/components/FilesExplorerPanel.ts
-import { Component, Notice, type TFile, type TFolder } from 'obsidian';
+import { Component, Notice, TFile, TFolder } from 'obsidian';
 import type { VaultmanPlugin } from '../../main';
 import { FilesLogic } from '../../logic/logicsFiles';
 import { FilesGridView } from '../layout/viewFilesGrid';
@@ -24,7 +24,9 @@ import {
 	movedParentPathForFolderFile,
 } from '../../logic/logicFolderQueue';
 import {
+	readVaultmanDragPayload,
 	setVaultmanDragPayload,
+	type VaultmanDragNodePayload,
 	withActiveFilterDragSelection,
 } from '../../utils/dragPayload';
 
@@ -52,8 +54,9 @@ export class FilesExplorerPanel extends Component {
 	private _totalCount = 0;
 	private sortBy: string = 'name';
 	private sortDir: 'asc' | 'desc' = 'asc';
+	private nodeTypeFilter: string | null = null;
 	private addMode = false;
-	private visibleCells = new Set<string>(['name', 'ext', 'mtime', 'path', 'nested']);
+	private visibleCells = new Set<string>(['name', 'ext', 'count', 'nested']);
 	private searchName = '';
 	private searchFolder = '';
 	private refreshTimer: number | null = null;
@@ -247,6 +250,8 @@ export class FilesExplorerPanel extends Component {
 			this.plugin.app.workspace.on('file-open', this._handleActiveFileChange),
 		);
 		this.plugin.queueService.on('changed', this._handleQueueChange);
+		this.containerEl.addEventListener('dragover', this._handleRootFileDragOver);
+		this.containerEl.addEventListener('drop', this._handleRootFileDrop);
 
 		this._mountView();
 		this._syncActiveFilePath();
@@ -259,6 +264,11 @@ export class FilesExplorerPanel extends Component {
 			this.refreshTimer = null;
 		}
 		this.plugin.queueService.off('changed', this._handleQueueChange);
+		this.containerEl.removeEventListener(
+			'dragover',
+			this._handleRootFileDragOver,
+		);
+		this.containerEl.removeEventListener('drop', this._handleRootFileDrop);
 		this.tableView?.destroy();
 		this.gridView?.destroy();
 		this.treeView?.destroy();
@@ -292,11 +302,23 @@ export class FilesExplorerPanel extends Component {
 		this.onExpansionChange = handler;
 	}
 
-	setSortBy(sortBy: string, direction: 'asc' | 'desc'): void {
+	setSortBy(
+		sortBy: string,
+		direction: 'asc' | 'desc',
+		_childLevel = false,
+		nodeTypeFilter: string | null = null,
+	): void {
 		const normalizedSortBy = normalizeExplorerSortBy(sortBy);
-		if (this.sortBy === normalizedSortBy && this.sortDir === direction) return;
+		if (
+			this.sortBy === normalizedSortBy &&
+			this.sortDir === direction &&
+			this.nodeTypeFilter === nodeTypeFilter
+		) {
+			return;
+		}
 		this.sortBy = normalizedSortBy;
 		this.sortDir = direction;
+		this.nodeTypeFilter = nodeTypeFilter;
 		if (this.viewMode === 'table' && this.tableView) {
 			const COL_MAP: Record<string, import('../layout/viewGrid').SortColumn> = {
 				name: 'name',
@@ -341,7 +363,7 @@ export class FilesExplorerPanel extends Component {
 	expandAll(): void {
 		if (!this._nestedEnabled()) return;
 		const tree = this.logic.buildFileTree(
-			this._sortFiles(this._currentFiles),
+			this._sortFiles(this._filesForDisplay()),
 			this._foldersForCurrentView(),
 		);
 		const walk = (nodes: TreeNode<FileMeta>[]) => {
@@ -464,6 +486,37 @@ export class FilesExplorerPanel extends Component {
 		);
 	}
 
+	private _filesForDisplay(): TFile[] {
+		if (!this.nodeTypeFilter) return this._currentFiles;
+		return this._currentFiles.filter(
+			(file) => this._fileTypeId(file) === this.nodeTypeFilter,
+		);
+	}
+
+	private _fileTypeId(file: TFile): string {
+		return file.extension || 'none';
+	}
+
+	getFileTypeOptions(): Array<{ id: string; icon: string; label: string }> {
+		const files =
+			this._sourceFiles.length > 0
+				? this._sourceFiles
+				: this.plugin.app.vault.getFiles();
+		const extensions = new Set<string>();
+		for (const file of files) extensions.add(this._fileTypeId(file));
+		return Array.from(extensions)
+			.sort((a, b) => {
+				if (a === 'md') return -1;
+				if (b === 'md') return 1;
+				return a.localeCompare(b);
+			})
+			.map((extension) => ({
+				id: extension,
+				icon: extension === 'base' ? 'lucide-database' : 'lucide-file-type',
+				label: extension === 'none' ? 'No extension' : `.${extension}`,
+			}));
+	}
+
 	private _propCountForFile(file: TFile): number {
 		return Object.keys(
 			this.plugin.app.metadataCache.getFileCache(file)?.frontmatter ?? {},
@@ -509,16 +562,12 @@ export class FilesExplorerPanel extends Component {
 	}
 
 	private _setFileDragPayload(file: TFile, event: DragEvent): void {
-		setVaultmanDragPayload(
+		this._setFileNodeDragPayload(
+			{
+				kind: 'file',
+				path: file.path,
+			},
 			event,
-			withActiveFilterDragSelection(
-				{
-					kind: 'file',
-					path: file.path,
-				},
-				this.plugin.filterService.activeFilter,
-				'files',
-			),
 		);
 	}
 
@@ -527,15 +576,16 @@ export class FilesExplorerPanel extends Component {
 			this._renderEmptyFilteredState();
 			return;
 		}
+		const displayFiles = this._filesForDisplay();
 		if (this.viewMode === 'table' && this.tableView) {
 			this.tableView.setActivePath(this.activeRevealPath);
-			this.tableView.render(this._currentFiles, this._totalCount);
+			this.tableView.render(displayFiles, this._totalCount);
 		} else if (this.viewMode === 'grid' && this.gridView) {
 			this.gridView.setActivePath(this.activeRevealPath);
-			this.gridView.render(this._sortFiles(this._currentFiles));
+			this.gridView.render(this._sortFiles(displayFiles));
 		} else if (this.viewMode === 'tree' && this.treeView) {
 			const tree = this.logic.buildFileTree(
-				this._sortFiles(this._currentFiles),
+				this._sortFiles(displayFiles),
 				this._foldersForCurrentView(),
 			);
 			this._autoExpandSparseTopLevel(tree);
@@ -620,31 +670,33 @@ export class FilesExplorerPanel extends Component {
 					if (!node) return;
 					const meta = node.meta;
 					if (meta.isFolder) {
-						setVaultmanDragPayload(
+						this._setFileNodeDragPayload(
+							{
+								kind: 'folder',
+								path: meta.folder?.path ?? meta.folderPath,
+							},
 							event,
-							withActiveFilterDragSelection(
-								{
-									kind: 'folder',
-									path: meta.folder?.path ?? meta.folderPath,
-								},
-								this.plugin.filterService.activeFilter,
-								'files',
-							),
 						);
 						return;
 					}
 					if (!meta.file) return;
-					setVaultmanDragPayload(
+					this._setFileNodeDragPayload(
+						{
+							kind: 'file',
+							path: meta.file.path,
+						},
 						event,
-						withActiveFilterDragSelection(
-							{
-								kind: 'file',
-								path: meta.file.path,
-							},
-							this.plugin.filterService.activeFilter,
-							'files',
-						),
 					);
+				},
+				onDragOver: (id: string, event: DragEvent) => {
+					const node = this._findNode(id, tree);
+					if (!node) return;
+					this._handleFileDragOver(node, event);
+				},
+				onDrop: (id: string, event: DragEvent) => {
+					const node = this._findNode(id, tree);
+					if (!node) return;
+					this._handleFileDrop(node, event);
 				},
 				onBadgeDoubleClick: (queueIndex: number) => {
 					this.plugin.queueService.remove(queueIndex);
@@ -652,6 +704,173 @@ export class FilesExplorerPanel extends Component {
 				},
 			});
 		}
+	}
+
+	private _handleFileDragOver(
+		targetNode: TreeNode<FileMeta>,
+		event: DragEvent,
+	): void {
+		if (!targetNode.meta.isFolder) return;
+		const payload = readVaultmanDragPayload(event);
+		if (!payload) return;
+		event.preventDefault();
+		if (event.dataTransfer) event.dataTransfer.dropEffect = 'move';
+		this.plugin.showDragActionGuide(
+			this._fileDropGuide(payload, targetNode.meta.folderPath),
+		);
+	}
+
+	private _handleFileDrop(
+		targetNode: TreeNode<FileMeta>,
+		event: DragEvent,
+	): void {
+		if (!targetNode.meta.isFolder) return;
+		const payload = readVaultmanDragPayload(event);
+		if (!payload) return;
+		event.preventDefault();
+		event.stopPropagation();
+		this.plugin.clearDragActionGuide();
+		void this._moveDraggedNodesIntoFolder(payload, targetNode.meta.folderPath);
+	}
+
+	private readonly _handleRootFileDragOver = (event: DragEvent): void => {
+		if (this._isRowDropTarget(event.target)) return;
+		const payload = readVaultmanDragPayload(event);
+		if (!payload || this._fileDragNodes(payload).length === 0) return;
+		event.preventDefault();
+		if (event.dataTransfer) event.dataTransfer.dropEffect = 'move';
+		this.plugin.showDragActionGuide(this._fileDropGuide(payload, ''));
+	};
+
+	private readonly _handleRootFileDrop = (event: DragEvent): void => {
+		if (this._isRowDropTarget(event.target)) return;
+		const payload = readVaultmanDragPayload(event);
+		if (!payload || this._fileDragNodes(payload).length === 0) return;
+		event.preventDefault();
+		event.stopPropagation();
+		this.plugin.clearDragActionGuide();
+		void this._moveDraggedNodesIntoFolder(payload, '');
+	};
+
+	private _isRowDropTarget(target: EventTarget | null): boolean {
+		if (typeof HTMLElement === 'undefined') return false;
+		if (!(target instanceof HTMLElement)) return false;
+		return Boolean(
+			target.closest(
+				'.vaultman-tree-row, .vaultman-file-row, .vaultman-file-card, .vaultman-node-table-row',
+			),
+		);
+	}
+
+	private async _moveDraggedNodesIntoFolder(
+		payload: VaultmanDragNodePayload & { selection?: VaultmanDragNodePayload[] },
+		targetFolderPath: string,
+	): Promise<void> {
+		const nodes = this._dragNodes(payload).filter(
+			(node) => node.kind === 'file' || node.kind === 'folder',
+		);
+		if (nodes.length === 0) return;
+
+		let moved = 0;
+		for (const node of nodes) {
+			const source = this.plugin.app.vault.getAbstractFileByPath(node.path);
+			if (!(source instanceof TFile || source instanceof TFolder)) continue;
+			if (source.parent?.path === targetFolderPath) continue;
+			if (
+				source instanceof TFolder &&
+				(targetFolderPath === source.path ||
+					targetFolderPath.startsWith(`${source.path}/`))
+			) {
+				continue;
+			}
+			const targetPath = this._uniqueMovePath(
+				targetFolderPath ? `${targetFolderPath}/${source.name}` : source.name,
+			);
+			await this.plugin.app.fileManager.renameFile(source, targetPath);
+			moved += 1;
+		}
+		if (moved === 0) return;
+		this.plugin.filterService.applyFilters();
+		this._refreshFromFilterService();
+	}
+
+	private _dragNodes(
+		payload: VaultmanDragNodePayload & { selection?: VaultmanDragNodePayload[] },
+	): VaultmanDragNodePayload[] {
+		return payload.selection?.length ? payload.selection : [payload];
+	}
+
+	private _fileDragNodes(
+		payload: VaultmanDragNodePayload & { selection?: VaultmanDragNodePayload[] },
+	): Array<Extract<VaultmanDragNodePayload, { kind: 'file' | 'folder' }>> {
+		return this._dragNodes(payload).filter(
+			(
+				node,
+			): node is Extract<
+				VaultmanDragNodePayload,
+				{ kind: 'file' | 'folder' }
+			> => node.kind === 'file' || node.kind === 'folder',
+		);
+	}
+
+	private _setFileNodeDragPayload(
+		nodePayload: Extract<VaultmanDragNodePayload, { kind: 'file' | 'folder' }>,
+		event: DragEvent,
+	): void {
+		const payload = withActiveFilterDragSelection(
+			nodePayload,
+			this.plugin.filterService.activeFilter,
+			'files',
+		);
+		setVaultmanDragPayload(event, payload);
+		this._setNativeFileDragPayload(event, payload);
+	}
+
+	private _setNativeFileDragPayload(
+		event: DragEvent,
+		payload: VaultmanDragNodePayload & { selection?: VaultmanDragNodePayload[] },
+	): void {
+		const dragManager = (
+			this.plugin.app as unknown as {
+				dragManager?: {
+					draggable?: unknown;
+					dragFile?: (event: DragEvent, file: TFile, source?: string) => unknown;
+					dragFiles?: (
+						event: DragEvent,
+						files: Array<TFile | TFolder>,
+						source?: string,
+					) => unknown;
+				};
+			}
+		).dragManager;
+		if (!dragManager) return;
+		const entries = this._fileDragNodes(payload)
+			.map((node) => this.plugin.app.vault.getAbstractFileByPath(node.path))
+			.filter((entry): entry is TFile | TFolder =>
+				entry instanceof TFile || entry instanceof TFolder,
+			);
+		if (entries.length === 0) return;
+		const draggable =
+			entries.length === 1 && entries[0] instanceof TFile
+				? dragManager.dragFile?.(event, entries[0], 'vaultman')
+				: dragManager.dragFiles?.(event, entries, 'vaultman');
+		if (draggable !== undefined) dragManager.draggable = draggable;
+	}
+
+	private _fileDropGuide(
+		payload: VaultmanDragNodePayload & { selection?: VaultmanDragNodePayload[] },
+		targetFolderPath: string,
+	): string {
+		const nodes = this._fileDragNodes(payload);
+		const subject =
+			nodes.length === 1 ? `"${this._dragNodeName(nodes[0])}"` : `${nodes.length} items`;
+		const target = targetFolderPath ? `"${targetFolderPath}"` : 'vault root';
+		return `Move ${subject} to ${target}`;
+	}
+
+	private _dragNodeName(node: VaultmanDragNodePayload): string {
+		if (node.kind !== 'file' && node.kind !== 'folder') return '';
+		return node.path.split('/').filter(Boolean).pop() ?? node.path;
 	}
 
 	private _folderFromCtx(ctx: MenuCtx): TFolder | null {
@@ -1037,6 +1256,24 @@ export class FilesExplorerPanel extends Component {
 		while (this.plugin.app.vault.getAbstractFileByPath(candidate)) {
 			candidate = `${base} ${counter}${dot}`;
 			counter += 1;
+		}
+		return candidate;
+	}
+
+	private _uniqueMovePath(path: string): string {
+		if (!this.plugin.app.vault.getAbstractFileByPath(path)) return path;
+		const slashIndex = path.lastIndexOf('/');
+		const dir = slashIndex >= 0 ? `${path.slice(0, slashIndex)}/` : '';
+		const name = slashIndex >= 0 ? path.slice(slashIndex + 1) : path;
+		const dotIndex = name.lastIndexOf('.');
+		const hasExtension = dotIndex > 0;
+		const base = hasExtension ? name.slice(0, dotIndex) : name;
+		const ext = hasExtension ? name.slice(dotIndex) : '';
+		let counter = 1;
+		let candidate = `${dir}${base} ${counter}${ext}`;
+		while (this.plugin.app.vault.getAbstractFileByPath(candidate)) {
+			counter += 1;
+			candidate = `${dir}${base} ${counter}${ext}`;
 		}
 		return candidate;
 	}

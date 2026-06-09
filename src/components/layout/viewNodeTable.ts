@@ -26,6 +26,8 @@ export interface NodeTableViewOptions<TMeta = unknown> {
 	onContextMenu: (id: string, event: MouseEvent) => void;
 	onBadgeDoubleClick?: (queueIndex: number) => void;
 	onDragStart?: (id: string, event: DragEvent) => void;
+	onDragOver?: (id: string, event: DragEvent) => void;
+	onDrop?: (id: string, event: DragEvent) => void;
 }
 
 export class NodeTableView<TMeta = unknown> {
@@ -105,11 +107,12 @@ export class NodeTableView<TMeta = unknown> {
 	private _renderHeader(layout: NodeTableLayout): void {
 		if (!this.headerEl) return;
 		this.headerEl.empty();
-		this.headerEl.style.width = `${layout.totalWidth}px`;
+		const width = `${this.surfaceWidth(layout)}px`;
+		this.headerEl.style.width = width;
 		const row = this.headerEl.createDiv({
 			cls: 'bases-tr vaultman-node-table-header-row',
 		});
-		row.style.width = `${layout.totalWidth}px`;
+		row.style.width = width;
 		for (const column of layout.columns) {
 			const cell = row.createDiv({
 				cls: `bases-td vaultman-node-table-col-${column.id}`,
@@ -130,7 +133,7 @@ export class NodeTableView<TMeta = unknown> {
 	}
 
 	private _applyDimensions(layout: NodeTableLayout): void {
-		const width = `${layout.totalWidth}px`;
+		const width = `${this.surfaceWidth(layout)}px`;
 		if (this.headerEl) this.headerEl.style.width = width;
 		if (this.tableEl) {
 			this.tableEl.style.width = width;
@@ -149,6 +152,13 @@ export class NodeTableView<TMeta = unknown> {
 	private _syncHeaderScroll(): void {
 		if (!this.headerEl || !this.listEl) return;
 		this.headerEl.style.transform = `translateX(${-this.listEl.scrollLeft}px)`;
+	}
+
+	private surfaceWidth(layout: NodeTableLayout): number {
+		return Math.max(layout.totalWidth,
+			this.listEl?.clientWidth ?? 0,
+			this.containerEl.clientWidth,
+		);
 	}
 
 	private _positionCell(cell: HTMLElement, column: NodeTableColumn): void {
@@ -329,10 +339,21 @@ export class NodeTableView<TMeta = unknown> {
 		row.draggable = Boolean(opts.onDragStart);
 		row.style.top = `${top}px`;
 		row.style.height = `${this.rowHeight}px`;
-		row.style.width = `${layout.totalWidth}px`;
+		row.style.width = `${this.surfaceWidth(layout)}px`;
 		row.style.setProperty('--depth', String(node.depth));
 		row.onclick = () => opts.onRowClick(node.id);
-		row.ondragstart = (event) => opts.onDragStart?.(node.id, event);
+		row.ondragstart = (event) => {
+			row.addClass('is-being-dragged');
+			opts.onDragStart?.(node.id, event);
+		};
+		row.ondragend = () => row.removeClass('is-being-dragged');
+		row.ondragover = (event) => this._handleRowDragOver(row, node.id, event, opts);
+		row.ondragenter = (event) => this._handleRowDragOver(row, node.id, event, opts);
+		row.ondragleave = () => row.removeClass('is-being-dragged-over');
+		row.ondrop = (event) => {
+			row.removeClass('is-being-dragged-over');
+			opts.onDrop?.(node.id, event);
+		};
 		row.onkeydown = (event) => {
 			if (event.key !== 'Enter' && event.key !== ' ') return;
 			event.preventDefault();
@@ -465,5 +486,15 @@ export class NodeTableView<TMeta = unknown> {
 				text: String(node.count),
 			});
 		}
+	}
+
+	private _handleRowDragOver(
+		row: HTMLElement,
+		id: string,
+		event: DragEvent,
+		opts: NodeTableViewOptions<TMeta>,
+	): void {
+		opts.onDragOver?.(id, event);
+		row.toggleClass('is-being-dragged-over', event.defaultPrevented);
 	}
 }

@@ -83,7 +83,7 @@ export class FileRenameModal extends Modal {
 		// Available placeholders reference
 		const helpEl = contentEl.createDiv({ cls: 'vaultman-rename-help' });
 		helpEl.createEl('small', {
-			text: '* o {basename} | [fecha] o {date} | (1) o {counter} | {propiedad}',
+			text: translate('rename.help'),
 			cls: 'vaultman-text-faint',
 		});
 

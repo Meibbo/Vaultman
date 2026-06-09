@@ -1,6 +1,6 @@
 {
 	"name": "vaultman",
-	"version": "1.1.0-beta.2",
+	"version": "1.1.0-beta.3",
 	"description": "Files, content and frontmatter explorer like Bases with scoped queued changes list.",
 	"main": "main.js",
 	"type": "module",
@@ -23,6 +23,8 @@
 		"test:integrity": "pnpm run build && vitest run --config vitest.config.ts",
 		"test:e2e": "wdio run ./wdio.conf.mts",
 		"test:all": "pnpm run test:integrity && pnpm run test:e2e",
+		"smoke:scroll": "node scripts/run-explorer-scroll-smoke.mjs",
+		"smoke:scroll:stress": "node scripts/run-explorer-scroll-smoke.mjs --mode=stress",
 		"security:audit": "pnpm audit --audit-level=high"
 	},
 	"keywords": [],

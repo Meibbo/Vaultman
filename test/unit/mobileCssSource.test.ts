@@ -1,0 +1,95 @@
+// eslint-disable-next-line import/no-nodejs-modules -- source guard reads the root CSS file in Vitest's Node environment.
+import { readFileSync } from 'node:fs';
+import { describe, expect, it } from 'vitest';
+
+const stylesSource = readFileSync(
+	new URL('../../styles.css', import.meta.url),
+	'utf8',
+);
+
+describe('mobile CSS source guards', () => {
+	it('keeps phone navbar controls above Obsidian mobile gradients and moves Vaultman dock to the top', () => {
+		expect(stylesSource).toContain('z-index: 30');
+		expect(stylesSource).toContain('.vaultman-bottom-nav');
+		expect(stylesSource).toContain('top: 0');
+		expect(stylesSource).toContain('bottom: auto');
+	});
+
+	it('keeps minimal search wide inline, then moves it below navbar buttons in narrow frames', () => {
+		expect(stylesSource).toContain(
+			'.vaultman-filters-header--minimal .vaultman-filters-header-search-pill:focus-within',
+		);
+		expect(stylesSource).toContain(
+			'border-color: var(--background-modifier-border)',
+		);
+		expect(stylesSource).toContain('container-type: inline-size');
+		expect(stylesSource).toContain('@container (max-width: 799px)');
+		expect(stylesSource).toContain(
+			'.vaultman-filters-header--minimal .vaultman-filters-header-search-pill',
+		);
+		expect(stylesSource).toContain('border-radius: var(--radius-s)');
+		expect(stylesSource).not.toContain('vaultman-minimal-search-row');
+		expect(stylesSource).toContain('width: 28px');
+		expect(stylesSource).toContain('height: 28px');
+	});
+
+	it('keeps container queries scoped to the filters navbar instead of the virtualized page', () => {
+		const pageBlock =
+			stylesSource.match(/\.vaultman-page\s*\{[\s\S]*?\n\}/)?.[0] ?? '';
+		const navbarBlock =
+			stylesSource.match(/\.vaultman-navbar-filters\s*\{[\s\S]*?\n\}/)?.[0] ??
+			'';
+		const headerWrapBlocks = Array.from(
+			stylesSource.matchAll(
+				/(?:^|\n)\.vaultman-filters-header-wrap\s*\{[\s\S]*?\n\}/g,
+			),
+			(match) => match[0],
+		);
+		const globalHeaderWrapBlock =
+			headerWrapBlocks.find((block) => block.includes('max-width: 520px')) ??
+			'';
+
+		expect(pageBlock).not.toContain('container-type');
+		expect(navbarBlock).toContain('container-type: inline-size');
+		expect(navbarBlock).not.toContain('max-width: 520px');
+		expect(globalHeaderWrapBlock).toContain('max-width: 520px');
+		expect(globalHeaderWrapBlock).toContain('margin-inline: auto');
+	});
+
+	it('aligns phone explorer viewport padding with core panes instead of custom side padding', () => {
+		expect(stylesSource).toContain('padding: 8px 0 96px');
+	});
+
+	it('keeps mobile tree row CSS height aligned with the fixed virtual row model', () => {
+		expect(stylesSource).toContain('.vaultman-tree-row.tree-item-self');
+		expect(stylesSource).toContain('height: 37px');
+		expect(stylesSource).not.toContain('height: 36.7969px');
+	});
+
+	it('keeps Content and Statistics buttons transparent in their resting state', () => {
+		expect(stylesSource).toContain(
+			'.vaultman-content-find-row .vaultman-icon-toggle',
+		);
+		expect(stylesSource).toContain('vaultman-content-clear-button');
+		expect(stylesSource).toContain('.vaultman-stat-card {\n  display: flex;');
+		expect(stylesSource).toContain('background: transparent');
+		expect(stylesSource).not.toContain(
+			'.vaultman-statistics-page button.vaultman-stat-card',
+		);
+		expect(stylesSource).not.toContain(
+			'.vaultman-statistics-page button.vaultman-stat-scope-pill',
+		);
+	});
+
+	it('separates Content inputs and aligns explicit Content input icons', () => {
+		expect(stylesSource).toContain(
+			'.vaultman-content-search-container.search-input-container::before',
+		);
+		expect(stylesSource).toContain('display: none');
+		expect(stylesSource).toContain('.vaultman-content-input-icon');
+		expect(stylesSource).toContain(
+			'border-top: 1px solid var(--background-modifier-border)',
+		);
+		expect(stylesSource).toContain('background: var(--color-accent)');
+	});
+});

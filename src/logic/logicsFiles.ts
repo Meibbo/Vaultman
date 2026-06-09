@@ -79,6 +79,7 @@ export class FilesLogic {
 					icon: 'lucide-folder',
 					showCaret: true,
 					depth: index,
+					coreCls: 'tree-item-self nav-folder-title is-clickable',
 					children: [],
 					meta: {
 						file: null,
@@ -128,6 +129,7 @@ export class FilesLogic {
 				id: file.path,
 				label: file.basename,
 				icon: this.iconForExtension(file.extension),
+				coreCls: 'tree-item-self nav-file-title tappable is-clickable',
 				typeText:
 					file.extension && file.extension !== 'md'
 						? file.extension

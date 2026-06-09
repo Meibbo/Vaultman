@@ -179,4 +179,249 @@ describe('Native search adapter helpers', () => {
 		});
 		expect(updates.at(-1)?.files[0].file.path).toBe('this works.md');
 	});
+
+	it('merges local offsets into native files when the native DOM under-reports snippets', async () => {
+		vi.stubGlobal('window', { setTimeout });
+		const file = makeFile('notes/como.md');
+		const view = {
+			dom: {
+				getFiles: () => [file],
+				getResult: () => ({
+					content: 'como aqui',
+					result: { content: [[0, 4]] as [number, number][] },
+				}),
+			},
+			setQuery: vi.fn(),
+			startSearch: vi.fn(),
+			setMatchingCase: vi.fn(),
+		};
+		const adapter = new NativeSearchAdapter({
+			vault: {
+				cachedRead: async () => 'como aqui como tambien',
+			},
+			workspace: {
+				getLeavesOfType: () => [{ view }],
+			},
+		} as never);
+		const updates: ReturnType<typeof buildNativeSearchPreview>[] = [];
+
+		await adapter.search({
+			query: 'como',
+			isRegex: false,
+			caseSensitive: false,
+			scopeFiles: [file],
+			onUpdate: (result) => updates.push(result),
+		});
+
+		expect(updates.at(-1)).toMatchObject({
+			totalMatches: 2,
+			isLoading: false,
+		});
+		expect(updates.at(-1)?.files[0].matchCount).toBe(2);
+	});
+
+	it('limits native reconciliation reads to native result files so common queries finish promptly', async () => {
+		vi.stubGlobal('window', { setTimeout });
+		const nativeFile = makeFile('notes/como.md');
+		const unrelatedFile = makeFile('notes/unrelated.md');
+		const readPaths: string[] = [];
+		const view = {
+			dom: {
+				getFiles: () => [nativeFile],
+				getResult: (file: TFile) =>
+					file === nativeFile
+						? {
+								content: 'como aqui',
+								result: { content: [[0, 4]] as [number, number][] },
+							}
+						: null,
+			},
+			setQuery: vi.fn(),
+			startSearch: vi.fn(),
+			setMatchingCase: vi.fn(),
+		};
+		const adapter = new NativeSearchAdapter({
+			vault: {
+				cachedRead: async (file: TFile) => {
+					readPaths.push(file.path);
+					return file === nativeFile ? 'como aqui como tambien' : 'como';
+				},
+			},
+			workspace: {
+				getLeavesOfType: () => [{ view }],
+			},
+		} as never);
+
+		await adapter.search({
+			query: 'como',
+			isRegex: false,
+			caseSensitive: false,
+			scopeFiles: [nativeFile, unrelatedFile],
+			onUpdate: () => undefined,
+		});
+
+		expect(readPaths).toEqual([nativeFile.path]);
+	});
+
+	it('uses the latest non-empty native snapshot when the final native DOM snapshot is empty', async () => {
+		vi.stubGlobal('window', { setTimeout });
+		const nativeFile = makeFile('notes/como.md');
+		const unrelatedFile = makeFile('notes/unrelated.md');
+		const readPaths: string[] = [];
+		let getFilesCalls = 0;
+		const view = {
+			dom: {
+				getFiles: () => {
+					getFilesCalls += 1;
+					return getFilesCalls <= 8 ? [nativeFile] : [];
+				},
+				getResult: (file: TFile) =>
+					file === nativeFile
+						? {
+								content: 'como aqui',
+								result: { content: [[0, 4]] as [number, number][] },
+							}
+						: null,
+			},
+			setQuery: vi.fn(),
+			startSearch: vi.fn(),
+			setMatchingCase: vi.fn(),
+		};
+		const adapter = new NativeSearchAdapter({
+			vault: {
+				cachedRead: async (file: TFile) => {
+					readPaths.push(file.path);
+					return file === nativeFile ? 'como aqui como tambien' : 'como';
+				},
+			},
+			workspace: {
+				getLeavesOfType: () => [{ view }],
+			},
+		} as never);
+		const updates: ReturnType<typeof buildNativeSearchPreview>[] = [];
+
+		await adapter.search({
+			query: 'como',
+			isRegex: false,
+			caseSensitive: false,
+			scopeFiles: [nativeFile, unrelatedFile],
+			onUpdate: (result) => updates.push(result),
+		});
+
+		expect(readPaths).toEqual([nativeFile.path]);
+		expect(updates.at(-1)).toMatchObject({
+			totalMatches: 2,
+			isLoading: false,
+		});
+	});
+
+	it('waits past the old short polling window before reconciling native results', async () => {
+		vi.stubGlobal('window', {
+			setTimeout: (handler: () => void, _timeout?: number) => {
+				handler();
+				return 0;
+			},
+		});
+		const firstFile = makeFile('notes/first.md');
+		const lateFile = makeFile('notes/late.md');
+		const readPaths: string[] = [];
+		let getFilesCalls = 0;
+		const view = {
+			dom: {
+				getFiles: () => {
+					getFilesCalls += 1;
+					return getFilesCalls <= 10 ? [firstFile] : [firstFile, lateFile];
+				},
+				getMatchCount: () => (getFilesCalls <= 10 ? 1 : 2),
+				getResult: (file: TFile) => ({
+					content: file === firstFile ? 'como first' : 'como late',
+					result: { content: [[0, 4]] as [number, number][] },
+				}),
+			},
+			setQuery: vi.fn(),
+			startSearch: vi.fn(),
+			setMatchingCase: vi.fn(),
+		};
+		const adapter = new NativeSearchAdapter({
+			vault: {
+				cachedRead: async (file: TFile) => {
+					readPaths.push(file.path);
+					return file === firstFile ? 'como first' : 'como late';
+				},
+			},
+			workspace: {
+				getLeavesOfType: () => [{ view }],
+			},
+		} as never);
+		const updates: ReturnType<typeof buildNativeSearchPreview>[] = [];
+
+		await adapter.search({
+			query: 'como',
+			isRegex: false,
+			caseSensitive: false,
+			scopeFiles: [firstFile, lateFile],
+			onUpdate: (result) => updates.push(result),
+		});
+
+		expect(readPaths).toEqual([firstFile.path, lateFile.path]);
+		expect(updates.at(-1)).toMatchObject({
+			totalMatches: 2,
+			isLoading: false,
+		});
+	});
+
+	it('keeps polling longer for large native result sets', async () => {
+		vi.stubGlobal('window', {
+			setTimeout: (handler: () => void, _timeout?: number) => {
+				handler();
+				return 0;
+			},
+		});
+		const firstFile = makeFile('notes/first.md');
+		const lateFile = makeFile('notes/late.md');
+		const readPaths: string[] = [];
+		const updates: ReturnType<typeof buildNativeSearchPreview>[] = [];
+		let getFilesCalls = 0;
+		const view = {
+			dom: {
+				getFiles: () => {
+					getFilesCalls += 1;
+					return getFilesCalls <= 20 ? [firstFile] : [firstFile, lateFile];
+				},
+				getMatchCount: () => 60,
+				getResult: (file: TFile) => ({
+					content: file === firstFile ? 'como first' : 'como late',
+					result: { content: [[0, 4]] as [number, number][] },
+				}),
+			},
+			setQuery: vi.fn(),
+			startSearch: vi.fn(),
+			setMatchingCase: vi.fn(),
+		};
+		const adapter = new NativeSearchAdapter({
+			vault: {
+				cachedRead: async (file: TFile) => {
+					readPaths.push(file.path);
+					return file === firstFile ? 'como first' : 'como late';
+				},
+			},
+			workspace: {
+				getLeavesOfType: () => [{ view }],
+			},
+		} as never);
+
+		await adapter.search({
+			query: 'como',
+			isRegex: false,
+			caseSensitive: false,
+			scopeFiles: [firstFile, lateFile],
+			onUpdate: (result) => updates.push(result),
+		});
+
+		expect(readPaths).toEqual([]);
+		expect(updates.at(-1)).toMatchObject({
+			totalMatches: 60,
+			isLoading: false,
+		});
+	});
 });

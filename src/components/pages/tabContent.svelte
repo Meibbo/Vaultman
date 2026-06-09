@@ -33,6 +33,8 @@
 		openContentMatch: (file: TFile, line: number, ch: number) => Promise<void>;
 	} = $props();
 
+	let contentReplaceOpen = $state(false);
+
 	function iconAction(el: HTMLElement, name: string) {
 		setIcon(el, name);
 		return {
@@ -45,14 +47,36 @@
 
 <!-- Find row: input + Aa + .* toggles -->
 <div class="vaultman-content-find-row">
-	<input
-		class="vaultman-search-input"
-		type="text"
-		placeholder={translate('content.find_placeholder')}
-		bind:value={contentFind}
-	/>
+	<div class="search-input-container vaultman-content-search-container">
+		<span
+			class="vaultman-content-input-icon"
+			aria-hidden="true"
+			use:iconAction={'lucide-search'}
+		></span>
+		<input
+			class="vaultman-search-input vaultman-content-input"
+			type="search"
+			autocomplete="off"
+			autocorrect="off"
+			autocapitalize="off"
+			spellcheck="false"
+			placeholder={translate('content.find_placeholder')}
+			bind:value={contentFind}
+		/>
+		{#if contentFind}
+			<button
+				type="button"
+				class="clickable-icon vaultman-content-clear-button"
+				aria-label={translate('filter.search_clear')}
+				onclick={() => {
+					contentFind = '';
+				}}
+				use:iconAction={'lucide-x'}
+			></button>
+		{/if}
+	</div>
 	<button
-		class="vaultman-icon-toggle"
+		class="clickable-icon vaultman-icon-toggle"
 		class:is-active={contentCaseSensitive}
 		aria-label={translate('content.toggle_case')}
 		title={translate('content.toggle_case')}
@@ -61,7 +85,7 @@
 		}}>Aa</button
 	>
 	<button
-		class="vaultman-icon-toggle"
+		class="clickable-icon vaultman-icon-toggle"
 		class:is-active={contentIsRegex}
 		aria-label={translate('content.toggle_regex')}
 		title={translate('content.toggle_regex')}
@@ -69,30 +93,66 @@
 			contentIsRegex = !contentIsRegex;
 		}}>.*</button
 	>
+	<button
+		class="clickable-icon vaultman-icon-toggle vaultman-content-replace-toggle"
+		class:is-active={contentReplaceOpen || !!contentReplace}
+		aria-label={translate('content.toggle_replace')}
+		title={translate('content.toggle_replace')}
+		onclick={() => {
+			contentReplaceOpen = !contentReplaceOpen;
+		}}
+		use:iconAction={'lucide-replace'}
+	></button>
 </div>
 {#if contentRegexError}
 	<div class="vaultman-content-regex-error">
 		{contentRegexError}
 	</div>
 {/if}
-<div class="vaultman-content-replace-row">
-	<input
-		class="vaultman-search-input"
-		type="text"
-		placeholder={translate('content.replace_placeholder')}
-		bind:value={contentReplace}
-	/>
-	<button
-		class="vaultman-icon-toggle vaultman-content-queue-btn"
-		disabled={!contentFind ||
-			!!contentRegexError ||
-			contentPreviewResult?.isLoading}
-		aria-label={translate('content.queue_replace')}
-		title={translate('content.queue_replace')}
-		onclick={queueContentReplace}
-		use:iconAction={'lucide-list-plus'}
-	></button>
-</div>
+{#if contentReplaceOpen || contentReplace}
+	<div class="vaultman-content-replace-row">
+		<div
+			class="search-input-container vaultman-content-search-container vaultman-content-replace-container"
+		>
+			<span
+				class="vaultman-content-input-icon"
+				aria-hidden="true"
+				use:iconAction={'lucide-replace'}
+			></span>
+			<input
+				class="vaultman-search-input vaultman-content-input"
+				type="text"
+				autocomplete="off"
+				autocorrect="off"
+				autocapitalize="off"
+				spellcheck="false"
+				placeholder={translate('content.replace_placeholder')}
+				bind:value={contentReplace}
+			/>
+			{#if contentReplace}
+				<button
+					type="button"
+					class="clickable-icon vaultman-content-clear-button"
+					aria-label={translate('filter.search_clear')}
+					onclick={() => {
+						contentReplace = '';
+					}}
+					use:iconAction={'lucide-x'}
+				></button>
+			{/if}
+		</div>
+		<button
+			class="clickable-icon vaultman-icon-toggle vaultman-content-queue-btn"
+			disabled={!contentFind ||
+				!!contentRegexError ||
+				contentPreviewResult?.isLoading}
+			aria-label={translate('content.queue_replace')}
+			title={translate('content.queue_replace')}
+			onclick={queueContentReplace}
+			use:iconAction={'lucide-list-plus'}
+		></button>
+	</div>
+{/if}
 <div class="vaultman-content-scope-hint">
 	{contentScopeHint}
 </div>

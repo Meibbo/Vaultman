@@ -12,6 +12,33 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.1.0-beta.3] — 2026-06-09
+
+### Added
+
+- Added a performance probe and scroll smoke scripts for explorer regression checks.
+- Added Core-like DnD action guides for Vaultman file, tag, and property drags.
+
+### Changed
+
+- Improved mobile/minimal navigation behavior, searchbox layout, explorer row styling, and Content input controls.
+- Updated file/property/tag explorer DnD payloads so Vaultman nodes participate more closely in Obsidian-native drag flows.
+
+### Fixed
+
+- Fixed property drops into Markdown editors so frontmatter entries can be applied without the invalid-drop target path.
+- Fixed file/folder drag payloads so file nodes expose native Obsidian file payloads for workspace tab drops.
+- Fixed root-level drops for files and nested tags.
+- Fixed queue/filter islands retaining dock spacing when the dock is disabled.
+- Fixed release metadata registration so new versions are added to `versions.json` even when they share `minAppVersion`.
+
+### Known beta gaps
+
+- Full Core Files DnD parity still needs manual validation for destructive move operations and workspace tabbar drops.
+- Explorer virtualization remains release-critical to watch under large-vault scroll and tab-switch stress.
+
+---
+
 ## [1.1.0-beta.2] — 2026-06-08
 
 ### Added

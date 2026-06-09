@@ -14,6 +14,8 @@ export interface PanelPluginCtx {
 	contextMenuService: ContextMenuService;
 	queueService: OperationQueueService;
 	statisticsCache?: Pick<StatisticsCacheService, 'getFileTimes'>;
+	showDragActionGuide?: (text: string) => void;
+	clearDragActionGuide?: () => void;
 }
 
 import { UnifiedTreeView } from '../layout/viewTree';
@@ -32,7 +34,9 @@ import {
 import { normalizeExplorerSortBy } from '../../logic/logicSort';
 import { flattenTreeToPathLabels } from '../../logic/logicExplorerHierarchy';
 import {
+	readVaultmanDragPayload,
 	setVaultmanDragPayload,
+	type VaultmanDragNodePayload,
 	withActiveFilterDragSelection,
 } from '../../utils/dragPayload';
 
@@ -653,6 +657,16 @@ export class PropsExplorerPanel extends Component {
 					if (!node) return;
 					this._setPropDragPayload(node, activeFilterIds, event);
 				},
+				onDragOver: (id: string, event: DragEvent) => {
+					const node = this._findNode(id, tree);
+					if (!node) return;
+					this._handlePropDragOver(node, event);
+				},
+				onDrop: (id: string, event: DragEvent) => {
+					const node = this._findNode(id, tree);
+					if (!node) return;
+					this._handlePropDrop(node, event);
+				},
 				onBadgeDoubleClick: (queueIndex: number) => {
 					this.plugin.queueService.remove(queueIndex);
 					void this._render();
@@ -688,6 +702,16 @@ export class PropsExplorerPanel extends Component {
 				const node = this._findNode(id, tree);
 				if (!node) return;
 				this._setPropDragPayload(node, activeFilterIds, event);
+			},
+			onDragOver: (id: string, event: DragEvent) => {
+				const node = this._findNode(id, tree);
+				if (!node) return;
+				this._handlePropDragOver(node, event);
+			},
+			onDrop: (id: string, event: DragEvent) => {
+				const node = this._findNode(id, tree);
+				if (!node) return;
+				this._handlePropDrop(node, event);
 			},
 			onBadgeDoubleClick: (queueIndex: number) => {
 				this.plugin.queueService.remove(queueIndex);
@@ -927,6 +951,12 @@ export class PropsExplorerPanel extends Component {
 			card.addEventListener('dragstart', (event) =>
 				this._setPropDragPayload(node, activeFilterIds, event),
 			);
+			card.addEventListener('dragover', (event) =>
+				this._handlePropDragOver(node, event),
+			);
+			card.addEventListener('drop', (event) =>
+				this._handlePropDrop(node, event),
+			);
 			card.addEventListener('keydown', (event) => {
 				if (event.key === 'Enter' || event.key === ' ') {
 					event.preventDefault();
@@ -939,6 +969,118 @@ export class PropsExplorerPanel extends Component {
 				this._openNodeMenu(node, event);
 			});
 		}
+	}
+
+	private _handlePropDragOver(
+		targetNode: TreeNode<PropMeta>,
+		event: DragEvent,
+	): void {
+		if (targetNode.meta.isValueNode) return;
+		const payload = readVaultmanDragPayload(event);
+		if (!payload) return;
+		if (
+			!this._dragValueNodes(payload).some(
+				(node) => node.property !== targetNode.meta.propName,
+			)
+		) {
+			return;
+		}
+		event.preventDefault();
+		if (event.dataTransfer) event.dataTransfer.dropEffect = 'copy';
+		this.plugin.showDragActionGuide?.(
+			`Copy value to "${targetNode.meta.propName}"`,
+		);
+	}
+
+	private _handlePropDrop(
+		targetNode: TreeNode<PropMeta>,
+		event: DragEvent,
+	): void {
+		if (targetNode.meta.isValueNode) return;
+		const payload = readVaultmanDragPayload(event);
+		if (!payload) return;
+		event.preventDefault();
+		event.stopPropagation();
+		this.plugin.clearDragActionGuide?.();
+		void this._copyDraggedValueToProperty(payload, targetNode.meta.propName);
+	}
+
+	private async _copyDraggedValueToProperty(
+		payload: VaultmanDragNodePayload & { selection?: VaultmanDragNodePayload[] },
+		targetPropName: string,
+	): Promise<void> {
+		const valueNodes = this._dragValueNodes(payload).filter(
+			(node) => node.property !== targetPropName,
+		);
+		for (const node of valueNodes) {
+			const files = this._getFilesWithValue(node.property, node.value);
+			if (files.length === 0) continue;
+			this.plugin.queueService.addOrRun({
+				type: 'property',
+				property: targetPropName,
+				action: 'set',
+				value: node.value,
+				oldValue: node.value,
+				details: `Copy value "${node.value}" from "${node.property}" to "${targetPropName}"`,
+				files,
+				customLogic: true,
+				logicFunc: (_file, fm) => {
+					if (!this._frontmatterHasValue(fm[node.property], node.value)) {
+						return null;
+					}
+					fm[targetPropName] = this._appendFrontmatterValue(
+						fm[targetPropName],
+						node.value,
+					);
+					return fm;
+				},
+			});
+		}
+		this.logic.invalidate();
+		this._render();
+	}
+
+	private _dragValueNodes(
+		payload: VaultmanDragNodePayload & { selection?: VaultmanDragNodePayload[] },
+	): Array<Extract<VaultmanDragNodePayload, { kind: 'property-value' }>> {
+		const nodes = payload.selection?.length ? payload.selection : [payload];
+		return nodes.filter(
+			(
+				node,
+			): node is Extract<VaultmanDragNodePayload, { kind: 'property-value' }> =>
+				node.kind === 'property-value',
+		);
+	}
+
+	private _frontmatterHasValue(raw: unknown, value: string): boolean {
+		if (Array.isArray(raw)) {
+			return raw.some((item) => this._stringComparableValue(item) === value);
+		}
+		return this._stringComparableValue(raw) === value;
+	}
+
+	private _appendFrontmatterValue(raw: unknown, value: string): unknown {
+		if (raw === undefined || raw === null) return value;
+		if (Array.isArray(raw)) {
+			const values: unknown[] = raw;
+			if (values.some((item) => this._stringComparableValue(item) === value)) {
+				return values;
+			}
+			return [...values, value];
+		}
+		if (this._stringComparableValue(raw) === value) return raw;
+		return [raw, value];
+	}
+
+	private _stringComparableValue(raw: unknown): string | null {
+		if (
+			typeof raw === 'string' ||
+			typeof raw === 'number' ||
+			typeof raw === 'boolean'
+		) {
+			return String(raw);
+		}
+		return null;
 	}
 
 	private _renderEmptyState(): void {

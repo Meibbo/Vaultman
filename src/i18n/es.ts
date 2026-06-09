@@ -216,7 +216,8 @@ export const es: Record<string, string> = {
 	'rename.title': 'Renombrar Archivos',
 	'rename.pattern': 'Patrón',
 	'rename.pattern_desc':
-		'Usa marcadores: {basename}, {date}, {counter}, {propiedad}',
+		'Usa marcadores: {basename}, {date}, {counter}, {property}',
+	'rename.help': '* o {basename} | {date} | {counter} | {property}',
 
 	// Status bar (extended)
 	'statusbar.props_label': '{count} props',
@@ -472,8 +473,10 @@ export const es: Record<string, string> = {
 	'stats.word_count': 'Conteo de palabras',
 	'stats.reconciling': 'Reconciliando',
 	'viewmode.add_mode': 'Modo AGREGAR',
+	'content.toggle_replace': 'Mostrar campo de reemplazo',
 	'content.queue_no_matches': 'No hay coincidencias de contenido para encolar',
 	'content.landing_title': 'Búsqueda de contenido',
-	'content.landing_desc': 'Escribe un término para buscar en el alcance actual.',
+	'content.landing_desc':
+		'Escribe un término para buscar en el alcance actual.',
 	'content.empty_desc': 'Prueba otro término o ajusta los filtros activos.',
 };

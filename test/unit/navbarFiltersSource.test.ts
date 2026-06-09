@@ -13,12 +13,21 @@ describe('minimal filters header source guards', () => {
 
 	it('keeps minimal header buttons in the same nav-header/nav-buttons-container structure as core plugins', () => {
 		expect(navbarFiltersSource).toContain('class:nav-header={minimalStyle}');
+		expect(navbarFiltersSource).toContain('class="vaultman-filters-actions"');
 		expect(navbarFiltersSource).toContain(
-			'<div class:nav-buttons-container={minimalStyle}',
+			'class:nav-buttons-container={minimalStyle}',
 		);
 		expect(navbarFiltersSource).not.toContain(
 			'class:nav-buttons-container={minimalStyle}\n\t\t\t>',
 		);
+	});
+
+	it('keeps minimal search inline in wide frames so only narrow frames move it below the buttons', () => {
+		expect(navbarFiltersSource).toContain('{#if showSearchInput}');
+		expect(navbarFiltersSource).toContain('{@render searchControl()}');
+		expect(navbarFiltersSource).not.toContain('showMinimalSearchRow');
+		expect(navbarFiltersSource).not.toContain('vaultman-minimal-search-row');
+		expect(navbarFiltersSource).not.toContain('isPhoneMode');
 	});
 
 	it('renders caller-provided header actions immediately after the tabs button', () => {
@@ -42,12 +51,36 @@ describe('minimal filters header source guards', () => {
 			"tags: ['icon', 'text', 'count', 'nested']",
 		);
 		expect(navbarFiltersSource).toContain(
-			"files: ['name', 'ext', 'mtime', 'path', 'nested']",
+			"files: ['name', 'ext', 'count', 'nested']",
 		);
 		expect(navbarFiltersSource).toContain("mtime: 'viewmode.pill.mtime'");
 		expect(navbarFiltersSource).toContain("nested: 'viewmode.pill.nested'");
 		expect(popupViewSource).toContain(
 			"{ id: 'nested', labelKey: 'viewmode.pill.nested', defaultOn: true }",
+		);
+	});
+
+	it('keeps Files date and path cells opt-in instead of default-on', () => {
+		expect(navbarFiltersSource).toContain(
+			"files: ['name', 'ext', 'count', 'nested']",
+		);
+		expect(popupViewSource).toContain(
+			"{ id: 'mtime', labelKey: 'viewmode.pill.mtime', defaultOn: false }",
+		);
+		expect(popupViewSource).toContain(
+			"{ id: 'path', labelKey: 'viewmode.pill.path', defaultOn: false }",
+		);
+	});
+
+	it('keeps dock-off menu labels reactive and exposes Files grouping by extension', () => {
+		expect(navbarFiltersSource).toContain('getFileTypeOptions');
+		expect(navbarFiltersSource).toContain('nodeTypeOptionsForActiveTab');
+		expect(navbarFiltersSource).toContain('normalizedState.nodeTypeFilter');
+		expect(navbarFiltersSource).toContain(
+			'const title = `${action.label}${countLabel}${warningLabel}`',
+		);
+		expect(navbarFiltersSource).not.toContain(
+			'action.tooltip && (isFiltersAction || isQueueAction)',
 		);
 	});
 });
