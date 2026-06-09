@@ -2216,6 +2216,15 @@ body.vaultman-bases-column-separators table th {
   opacity: 1;
 }
 
+.vaultman-island-backdrop:not(.is-open) {
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+}
+
+.vaultman-island-backdrop:not(.is-open)::before {
+  display: none;
+}
+
 .vaultman-island-backdrop::before {
   content: "";
   position: absolute;
@@ -2888,6 +2897,17 @@ body.vaultman-bases-column-separators table th {
 
 .is-phone .workspace-drawer .workspace-leaf-content[data-type="vaultman-frame"] .vaultman-navbar-filters {
   position: static;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+}
+
+.is-phone .workspace-drawer .workspace-leaf-content[data-type="vaultman-frame"] .vaultman-navbar-filters.vaultman-glass::before,
+.is-phone .workspace-drawer .workspace-leaf-content[data-type="vaultman-frame"] .vaultman-bottom-nav--minimal.vaultman-glass::before {
+  display: none;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+  -webkit-mask-image: none;
+  mask-image: none;
 }
 
 .is-phone .workspace-drawer .workspace-leaf-content[data-type="vaultman-frame"] .vaultman-page {
@@ -2896,9 +2916,46 @@ body.vaultman-bases-column-separators table th {
 
 .is-phone .workspace-drawer .workspace-leaf-content[data-type="vaultman-frame"] .vaultman-filters-actions.nav-buttons-container {
   justify-content: center;
+  gap: var(--size-4-2);
+  padding: 0;
+  z-index: 60;
+  background: transparent;
+  border: 0;
+  box-shadow: none;
+}
+
+.vaultman-filters-phone-search-row {
+  display: none;
+}
+
+.is-phone .workspace-drawer .workspace-leaf-content[data-type="vaultman-frame"] .vaultman-filters-phone-search-row {
+  display: block;
+  position: static;
+  width: 100%;
+  padding: 8px 8px 4px;
+}
+
+.is-phone .workspace-drawer .workspace-leaf-content[data-type="vaultman-frame"] .vaultman-filters-header-search-pill--inline {
+  display: none;
+}
+
+.is-phone .workspace-drawer .workspace-leaf-content[data-type="vaultman-frame"] .vaultman-filters-header-search-pill--phone {
+  width: auto;
+  max-width: none;
+  height: 36px;
+  margin: 0;
+  border-radius: var(--radius-s);
   gap: 8px;
-  padding: 4px 0 8px;
-  z-index: 30;
+  padding-inline: 8px;
+  background: transparent;
+  border-color: transparent;
+  border-bottom-color: var(--background-modifier-border);
+  box-shadow: none;
+}
+
+.is-phone .workspace-drawer .workspace-leaf-content[data-type="vaultman-frame"] .vaultman-filters-header-search-pill--phone:focus-within {
+  border-color: transparent;
+  border-bottom-color: var(--background-modifier-border);
 }
 
 @container (max-width: 799px) {
@@ -2923,6 +2980,10 @@ body.vaultman-bases-column-separators table th {
   top: 0;
   bottom: auto;
   z-index: 20;
+}
+
+.is-phone .workspace-drawer .workspace-leaf-content[data-type="vaultman-frame"] :is(.vaultman-queue-island-wrap, .vaultman-filters-island-wrap) {
+  bottom: calc(56px + 8px);
 }
 
 .vaultman-filters-header .vaultman-header-action-with-label {

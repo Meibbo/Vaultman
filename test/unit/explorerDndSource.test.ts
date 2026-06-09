@@ -50,6 +50,8 @@ describe('explorer drag and drop source guards', () => {
 
 	it('wires files, props and tags explorer internal drops', () => {
 		expect(filesSource).toContain('private _handleFileDrop');
+		expect(filesSource).toContain('private _fileDropTargetFolderPath');
+		expect(filesSource).toContain("if (targetNode.depth === 0) return ''");
 		expect(filesSource).toContain('this._moveDraggedNodesIntoFolder');
 		expect(filesSource).toContain('fileManager.renameFile');
 		expect(filesSource).toContain("targetFolderPath.startsWith(`${source.path}/`)");

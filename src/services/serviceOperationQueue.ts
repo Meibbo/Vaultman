@@ -1,4 +1,4 @@
-import { App, Component, Events, Notice, TFile, FileManager } from 'obsidian';
+import { App, Component, Events, Notice, TFile, FileManager, TFolder } from 'obsidian';
 import type { PendingChange, OperationResult } from '../types/typeOps';
 import { DELETE_PROP, RENAME_FILE, REORDER_ALL, MOVE_FILE, FIND_REPLACE_CONTENT, NATIVE_RENAME_PROP, NATIVE_SET_PROP_TYPE, APPLY_TEMPLATE, DELETE_FILE } from '../types/typeOps';
 import { translate } from '../i18n/index';
@@ -21,6 +21,11 @@ type QueuePolicyDecision =
 	| { kind: 'duplicate' }
 	| { kind: 'merge'; existing: PendingChange }
 	| { kind: 'conflict' };
+
+type FolderDeleteChange = PendingChange & {
+	type: 'file_delete';
+	targetFolder: string;
+};
 
 interface QueuePolicyStats {
 	accepted: number;
@@ -105,6 +110,11 @@ function operationPayload(change: PendingChange): string {
 	}
 	if (change.type === 'file_move') {
 		return stableValue(change.targetFolder ?? change.details);
+	}
+	if (change.type === 'file_delete') {
+		return stableValue(
+			(change as { targetFolder?: string }).targetFolder ?? change.details,
+		);
 	}
 	if (change.type === 'content_replace') {
 		return stableValue({
@@ -251,6 +261,24 @@ export class OperationQueueService extends Component {
 
 	async runNow(change: PendingChange): Promise<OperationResult> {
 		const result: OperationResult = { success: 0, errors: 0, messages: [] };
+		if (this.isFolderDeleteChange(change)) {
+			try {
+				await this.applyFolderDeleteChange(change);
+				result.success++;
+			} catch (err) {
+				result.errors++;
+				result.messages.push(`${change.targetFolder}: ${String(err)}`);
+			}
+			new Notice(
+				result.errors > 0
+					? translate('result.errors', { count: result.errors })
+					: translate('result.success', { count: result.success })
+			);
+			this.events.trigger('executed', result);
+			this.events.trigger('changed');
+			return result;
+		}
+
 		for (const file of change.files) {
 			try {
 				await this.applyChange(file, change);
@@ -402,10 +430,14 @@ export class OperationQueueService extends Component {
 		}
 
 		// Flatten all (file, change) pairs for progress tracking
-		const ops: Array<{ file: TFile; change: PendingChange }> = [];
+		const ops: Array<{ file: TFile | null; change: PendingChange }> = [];
 		for (const change of this.queue) {
-			for (const file of change.files) {
-				ops.push({ file, change });
+			if (this.isFolderDeleteChange(change)) {
+				ops.push({ file: null, change });
+			} else {
+				for (const file of change.files) {
+					ops.push({ file, change });
+				}
 			}
 		}
 
@@ -420,11 +452,17 @@ export class OperationQueueService extends Component {
 			notice.setMessage(`${translate('result.applying')} ${i + 1} / ${total}`);
 
 			try {
-				await this.applyChange(file, change);
+				if (file) {
+					await this.applyChange(file, change);
+				} else if (this.isFolderDeleteChange(change)) {
+					await this.applyFolderDeleteChange(change);
+				}
 				result.success++;
 			} catch (err) {
 				result.errors++;
-				result.messages.push(`${file.path}: ${String(err)}`);
+				result.messages.push(
+					`${file?.path ?? this.changeTargetLabel(change)}: ${String(err)}`,
+				);
 			}
 
 			// Yield to UI thread every CHUNK files to keep the app responsive
@@ -504,6 +542,33 @@ export class OperationQueueService extends Component {
 			change.type === 'content_replace' ||
 			change.type === 'template'
 		);
+	}
+
+	private isFolderDeleteChange(
+		change: PendingChange,
+	): change is FolderDeleteChange {
+		return (
+			change.type === 'file_delete' &&
+			typeof (change as { targetFolder?: string }).targetFolder === 'string' &&
+			((change as { targetFolder?: string }).targetFolder?.length ?? 0) > 0 &&
+			change.files.length === 0
+		);
+	}
+
+	private changeTargetLabel(change: PendingChange): string {
+		return (change as { targetFolder?: string }).targetFolder ?? change.details;
+	}
+
+	private async applyFolderDeleteChange(change: FolderDeleteChange): Promise<void> {
+		const target = this.app.vault.getAbstractFileByPath(change.targetFolder);
+		if (!(target instanceof TFolder)) {
+			throw new Error(`Folder not found: ${change.targetFolder}`);
+		}
+		await (
+			this.app.fileManager as unknown as {
+				trashFile(file: TFile | TFolder): Promise<void>;
+			}
+		).trashFile(target);
 	}
 
 	private async applySpecialUpdates(

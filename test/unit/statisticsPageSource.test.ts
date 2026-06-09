@@ -23,4 +23,12 @@ describe('Statistics page source guards', () => {
 			'class="clickable-icon vaultman-stat-scope-pill"',
 		);
 	});
+
+	it('keeps the shared filters navbar on Statistics with a tabmenu-only configuration', () => {
+		expect(statisticsPageSource).toContain('import NavbarFilters');
+		expect(statisticsPageSource).toContain('statsTabOptions');
+		expect(statisticsPageSource).toContain('activeSectionTab="statistics"');
+		expect(statisticsPageSource).toContain('showExplorerControls={false}');
+		expect(statisticsPageSource).toContain('onSectionTabChange={navigateFromHeader}');
+	});
 });

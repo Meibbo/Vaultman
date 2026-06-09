@@ -10,11 +10,30 @@ export interface QueueOperationWarning {
 	threshold?: number;
 }
 
+export interface QueueWarningTarget {
+	files: PendingChange['files'];
+	type: PendingChange['type'];
+	targetFolder?: string;
+}
+
+export function targetCountForQueuedChange(
+	change: QueueWarningTarget,
+): number {
+	if (
+		change.type === 'file_delete' &&
+		change.targetFolder &&
+		change.files.length === 0
+	) {
+		return 1;
+	}
+	return change.files.length;
+}
+
 export function warningsForQueuedChange(
-	change: Pick<PendingChange, 'files'>,
+	change: QueueWarningTarget,
 	threshold: number,
 ): QueueOperationWarning[] {
-	const targetCount = change.files.length;
+	const targetCount = targetCountForQueuedChange(change);
 	if (targetCount === 0) {
 		return [{ kind: 'empty-target', severity: 'error', targetCount }];
 	}
@@ -33,7 +52,7 @@ export function warningsForQueuedChange(
 }
 
 export function countQueuedOperationWarnings(
-	queue: Array<Pick<PendingChange, 'files'>>,
+	queue: QueueWarningTarget[],
 	threshold: number,
 ): number {
 	return queue.reduce(

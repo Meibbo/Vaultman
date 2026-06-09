@@ -86,6 +86,43 @@ export class FilterService extends Component {
 		this.events.trigger('changed');
 	}
 
+	activeFolderFilterPaths(filter: FilterGroup = this.activeFilter): string[] {
+		const paths = new Set<string>();
+		const walk = (node: FilterNode): void => {
+			if (node.enabled === false) return;
+			if (node.type === 'rule') {
+				if (node.filterType === 'folder') {
+					for (const value of node.values) {
+						const normalized = value.trim().replace(/^\/|\/$/g, '');
+						if (normalized) paths.add(normalized);
+					}
+				}
+				return;
+			}
+			node.children.forEach(walk);
+		};
+		walk(filter);
+		return Array.from(paths);
+	}
+
+	filteredVaultFilesForFolderScopes(folderPaths: string[]): TFile[] {
+		const normalizedPaths = normalizeFolderScopePaths(folderPaths);
+		if (normalizedPaths.length === 0) return [...this.filteredVaultFiles];
+		const vaultFiles = this.app.vault.getFiles();
+		const nonFolderFilter = this.filterWithoutFolderRules();
+		const metadataMatches =
+			nonFolderFilter.children.length > 0
+				? this.applyActiveTree(vaultFiles, nonFolderFilter)
+				: vaultFiles;
+		return this.sortFiles(
+			this.applyLegacySearch(
+				this.applyContentSearch(metadataMatches).filter((file) =>
+					fileMatchesFolderScopes(file, normalizedPaths),
+				),
+			),
+		);
+	}
+
 	/** Set a new filter tree and recompute */
 	setFilter(filter: FilterGroup): void {
 		this.activeFilter = filter;
@@ -634,6 +671,22 @@ export class FilterService extends Component {
 		};
 	}
 
+	private filterWithoutFolderRules(
+		filter: FilterGroup = this.filterWithoutContentSearch(),
+	): FilterGroup {
+		return {
+			...filter,
+			children: filter.children
+				.map((node): FilterNode | null => {
+					if (node.type === 'rule') {
+						return node.filterType === 'folder' ? null : node;
+					}
+					return this.filterWithoutFolderRules(node);
+				})
+				.filter((node): node is FilterNode => node !== null),
+		};
+	}
+
 	private hasEnabledContentSearchRule(): boolean {
 		const rule = this.findRootRuleById(CONTENT_SEARCH_RULE_ID);
 		return rule?.filterType === 'content_search' && rule.enabled !== false;
@@ -666,4 +719,21 @@ export class FilterService extends Component {
 		this.activeFilter.children.splice(idx, 1);
 		return true;
 	}
+}
+
+function normalizeFolderScopePaths(folderPaths: string[]): string[] {
+	return Array.from(
+		new Set(
+			folderPaths
+				.map((path) => path.trim().replace(/^\/|\/$/g, ''))
+				.filter((path) => path.length > 0),
+		),
+	).sort((a, b) => b.length - a.length);
+}
+
+function fileMatchesFolderScopes(file: TFile, folderPaths: string[]): boolean {
+	const folderPath = (file.parent?.path ?? '').replace(/^\/|\/$/g, '');
+	return folderPaths.some(
+		(path) => folderPath === path || folderPath.startsWith(`${path}/`),
+	);
 }

@@ -191,4 +191,53 @@ describe('FilesLogic.buildFileTree', () => {
 		expect(iconsByLabel.get('Spec')).toBe('lucide-file-text');
 		expect(iconsByLabel.get('Unknown')).toBe('lucide-file-question');
 	});
+
+	it('rebases active folder filter contents as visual root nodes', () => {
+		const logic = new FilesLogic(makeApp({}));
+
+		const tree = logic.buildFileTree(
+			[
+				makeFile('Projects/Client/root.md'),
+				makeFile('Projects/Client/Sub/deep.md'),
+				makeFile('Other/outside.md'),
+			],
+			[
+				makeFolder('Projects/Client/Empty'),
+				makeFolder('Projects/Sibling'),
+				makeFolder('Other/Hidden'),
+			],
+			{ rebaseFolderPaths: ['Projects/Client'] },
+		);
+
+		expect(tree.map((node) => [node.label, node.depth])).toEqual([
+			['Empty', 0],
+			['Sub', 0],
+			['root', 0],
+		]);
+		expect(tree[1].children?.map((node) => [node.label, node.depth])).toEqual([
+			['deep', 1],
+		]);
+		expect(tree.some((node) => node.label === 'Projects')).toBe(false);
+		expect(tree.some((node) => node.label === 'Client')).toBe(false);
+		expect(tree.some((node) => node.label === 'outside')).toBe(false);
+	});
+
+	it('merges multiple active folder roots into one visual root surface', () => {
+		const logic = new FilesLogic(makeApp({}));
+
+		const tree = logic.buildFileTree(
+			[
+				makeFile('Areas/Work/todo.md'),
+				makeFile('Areas/Home/list.md'),
+				makeFile('Archive/old.md'),
+			],
+			[],
+			{ rebaseFolderPaths: ['Areas/Work', 'Areas/Home'] },
+		);
+
+		expect(tree.map((node) => [node.label, node.depth])).toEqual([
+			['todo', 0],
+			['list', 0],
+		]);
+	});
 });

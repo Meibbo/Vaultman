@@ -35,6 +35,19 @@ describe('queue warnings', () => {
 		]);
 	});
 
+	it('counts empty folder deletes as a folder target, not as zero affected files', () => {
+		expect(
+			warningsForQueuedChange(
+				{
+					type: 'file_delete',
+					files: [],
+					targetFolder: 'empty',
+				},
+				400,
+			),
+		).toEqual([]);
+	});
+
 	it('marks operations over the configured threshold as bulk warnings', () => {
 		const files = Array.from({ length: 401 }, (_, index) =>
 			makeFile(`${index}.md`),

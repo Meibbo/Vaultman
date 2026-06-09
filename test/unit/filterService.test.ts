@@ -183,4 +183,37 @@ describe('FilterService vault-wide Files filtering', () => {
 			['Content contains', 'birthday'],
 		]);
 	});
+
+	it('projects multiple active folder filters as a union scope for the Files explorer', () => {
+		const work = makeFile('Areas/Work/todo.md');
+		const home = makeFile('Areas/Home/list.md');
+		const archive = makeFile('Archive/old.md');
+		const service = new FilterService(
+			makeApp([work, home, archive], [work, home, archive]),
+		);
+
+		service.addNode({
+			type: 'rule',
+			filterType: 'folder',
+			property: '',
+			values: ['Areas/Work'],
+		});
+		service.addNode({
+			type: 'rule',
+			filterType: 'folder',
+			property: '',
+			values: ['Areas/Home'],
+		});
+
+		const activeFolders = service.activeFolderFilterPaths();
+		expect(activeFolders).toEqual(['Areas/Work', 'Areas/Home']);
+		expect(
+			service
+				.filteredVaultFilesForFolderScopes(activeFolders)
+				.map((file) => file.path),
+		).toEqual(['Areas/Home/list.md', 'Areas/Work/todo.md']);
+		expect(
+			service.filteredVaultFiles.map((file) => file.path),
+		).not.toContain('Archive/old.md');
+	});
 });

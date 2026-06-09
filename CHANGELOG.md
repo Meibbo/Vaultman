@@ -12,6 +12,29 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.1.0-beta.4] — 2026-06-09
+
+### Changed
+
+- Hardened beta release publishing so prerelease tags are created as GitHub prereleases and are not marked latest.
+- Improved mobile minimal navbar behavior so the search toggle can close the searchbox directly.
+- Rebased active folder filters so filtered folder contents appear as a temporary root surface while filters are active.
+
+### Fixed
+
+- Fixed mobile minimal navbar styling that introduced black side bars, borders, and extra visual layers over Obsidian's phone navigation.
+- Fixed Files explorer drag-and-drop so nested files and folders can be moved back to the vault root by dropping onto a level-1 row.
+- Fixed folder delete queue handling so empty folders can be queued and deleted as folder targets instead of reporting zero affected files.
+- Fixed duplicate native file move menu entries by keeping Vaultman's autosuggest move action as the visible move command.
+- Fixed Statistics page navigation parity by restoring a minimal header tab menu surface.
+
+### Known beta gaps
+
+- Clean-install validation on a real phone is still required before any stable promotion.
+- Stable promotion should use a normal-version release from the same code lineage, not a mutation of this prerelease tag.
+
+---
+
 ## [1.1.0-beta.3] — 2026-06-09
 
 ### Added

@@ -9,13 +9,20 @@ const stylesSource = readFileSync(
 
 describe('mobile CSS source guards', () => {
 	it('keeps phone navbar controls above Obsidian mobile gradients and moves Vaultman dock to the top', () => {
-		expect(stylesSource).toContain('z-index: 30');
+		expect(stylesSource).toContain('z-index: 60');
 		expect(stylesSource).toContain('.vaultman-bottom-nav');
 		expect(stylesSource).toContain('top: 0');
 		expect(stylesSource).toContain('bottom: auto');
+		expect(stylesSource).toContain('background: transparent');
+		expect(stylesSource).toContain('border: 0');
+		expect(stylesSource).toContain('box-shadow: none');
+		expect(stylesSource).toContain(
+			'.vaultman-navbar-filters.vaultman-glass::before',
+		);
+		expect(stylesSource).toContain('-webkit-mask-image: none');
 	});
 
-	it('keeps minimal search wide inline, then moves it below navbar buttons in narrow frames', () => {
+	it('keeps phone minimal search as a top overlay while the search button remains a toggle', () => {
 		expect(stylesSource).toContain(
 			'.vaultman-filters-header--minimal .vaultman-filters-header-search-pill:focus-within',
 		);
@@ -27,10 +34,25 @@ describe('mobile CSS source guards', () => {
 		expect(stylesSource).toContain(
 			'.vaultman-filters-header--minimal .vaultman-filters-header-search-pill',
 		);
+		expect(stylesSource).toContain('.vaultman-filters-phone-search-row');
+		expect(stylesSource).toContain('position: static');
+		expect(stylesSource).toContain('padding: 8px 8px 4px');
+		expect(stylesSource).toContain('background: transparent');
+		expect(stylesSource).toContain('border-bottom-color: var(--background-modifier-border)');
+		expect(stylesSource).toContain('.vaultman-filters-header-search-pill--inline');
+		expect(stylesSource).toContain('.vaultman-filters-header-search-pill--phone');
 		expect(stylesSource).toContain('border-radius: var(--radius-s)');
 		expect(stylesSource).not.toContain('vaultman-minimal-search-row');
 		expect(stylesSource).toContain('width: 28px');
 		expect(stylesSource).toContain('height: 28px');
+	});
+
+	it('keeps inactive island backdrop from blurring the phone explorer', () => {
+		expect(stylesSource).toContain('.vaultman-island-backdrop:not(.is-open)');
+		expect(stylesSource).toContain(
+			'.vaultman-island-backdrop:not(.is-open)::before',
+		);
+		expect(stylesSource).toContain('backdrop-filter: none');
 	});
 
 	it('keeps container queries scoped to the filters navbar instead of the virtualized page', () => {

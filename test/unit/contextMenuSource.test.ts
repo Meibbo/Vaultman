@@ -15,4 +15,10 @@ describe('ContextMenuService source guards', () => {
 			"nodeTypes: ['file', 'folder', 'tag', 'prop', 'value']",
 		);
 	});
+
+	it('removes the native file move action from Vaultman panel menus before adding its autosuggest move action', () => {
+		expect(contextMenuSource).toContain('_removeNativeFileMoveActions(menu)');
+		expect(contextMenuSource).toContain("_isNativeFileMoveTitle(title)");
+		expect(contextMenuSource).toContain("title.includes('move file to')");
+	});
 });

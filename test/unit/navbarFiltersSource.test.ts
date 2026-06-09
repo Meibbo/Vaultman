@@ -22,9 +22,28 @@ describe('minimal filters header source guards', () => {
 		);
 	});
 
-	it('keeps minimal search inline in wide frames so only narrow frames move it below the buttons', () => {
+	it('keeps minimal search as a toggle and gives phone mode its own top layer', () => {
 		expect(navbarFiltersSource).toContain('{#if showSearchInput}');
-		expect(navbarFiltersSource).toContain('{@render searchControl()}');
+		expect(navbarFiltersSource).toContain('function toggleSearch()');
+		expect(navbarFiltersSource).toContain('function focusVisibleSearchInput()');
+		expect(navbarFiltersSource).toContain('function markSearchToggleActivation()');
+		expect(navbarFiltersSource).toContain('function isSearchToggleTarget');
+		expect(navbarFiltersSource).toContain('vaultman-filters-phone-search-row');
+		expect(navbarFiltersSource).toContain('aria-pressed={searchExpanded}');
+		expect(navbarFiltersSource).toContain(
+			'data-vaultman-search-toggle="true"',
+		);
+		expect(navbarFiltersSource).toContain(
+			'searchToggleActivationPending || isSearchToggleTarget(nextTarget)',
+		);
+		expect(navbarFiltersSource).toContain(
+			'onpointerdown={markSearchToggleActivation}',
+		);
+		expect(navbarFiltersSource).toContain(
+			'class:is-active={searchExpanded || filtersSearch.length > 0}',
+		);
+		expect(navbarFiltersSource).toContain("{@render searchControl('phone')}");
+		expect(navbarFiltersSource).toContain("{@render searchControl('inline')}");
 		expect(navbarFiltersSource).not.toContain('showMinimalSearchRow');
 		expect(navbarFiltersSource).not.toContain('vaultman-minimal-search-row');
 		expect(navbarFiltersSource).not.toContain('isPhoneMode');

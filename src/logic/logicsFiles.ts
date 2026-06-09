@@ -30,6 +30,15 @@ const CODE_EXTENSIONS = new Set([
 	'yml',
 ]);
 
+interface FolderRebaseInfo {
+	rootPath: string;
+	visualPath: string;
+}
+
+export interface BuildFileTreeOptions {
+	rebaseFolderPaths?: string[];
+}
+
 export class FilesLogic {
 	private app: App;
 
@@ -46,9 +55,13 @@ export class FilesLogic {
 	buildFileTree(
 		filteredFiles: TFile[],
 		knownFolders: TFolder[] = [],
+		options: BuildFileTreeOptions = {},
 	): TreeNode<FileMeta>[] {
 		const root: TreeNode<FileMeta>[] = [];
 		const folderMap = new Map<string, TreeNode<FileMeta>>();
+		const rebaseFolderPaths = normalizeRebaseFolderPaths(
+			options.rebaseFolderPaths ?? [],
+		);
 
 		const resolveFolder = (folderPath: string): TFolder | null => {
 			const vault = this.app.vault as
@@ -59,14 +72,22 @@ export class FilesLogic {
 			return abstractFile;
 		};
 
-		const ensureFolder = (folderPath: string): TreeNode<FileMeta> | null => {
+		const ensureFolder = (
+			folderPath: string,
+		): TreeNode<FileMeta> | null | undefined => {
 			if (!folderPath) return null;
+			const rebaseInfo = rebaseFolderInfo(folderPath, rebaseFolderPaths);
+			if (!rebaseInfo) return undefined;
+			if (!rebaseInfo.visualPath) return null;
 
-			const parts = folderPath.split('/').filter(Boolean);
+			const parts = rebaseInfo.visualPath.split('/').filter(Boolean);
 			let parentNode: TreeNode<FileMeta> | null = null;
 
 			for (let index = 0; index < parts.length; index += 1) {
-				const currentPath = parts.slice(0, index + 1).join('/');
+				const currentVisualPath = parts.slice(0, index + 1).join('/');
+				const currentPath = rebaseInfo.rootPath
+					? `${rebaseInfo.rootPath}/${currentVisualPath}`
+					: currentVisualPath;
 				const existing = folderMap.get(currentPath);
 				if (existing) {
 					parentNode = existing;
@@ -118,7 +139,10 @@ export class FilesLogic {
 		for (const file of filteredFiles) {
 			const rawPath = file.parent?.path ?? '';
 			const folderPath = rawPath === '/' ? '' : rawPath;
+			const rebaseInfo = rebaseFolderInfo(folderPath, rebaseFolderPaths);
+			if (!rebaseInfo) continue;
 			const parentFolder = ensureFolder(folderPath);
+			if (parentFolder === undefined) continue;
 
 			const cache = this.app.metadataCache.getFileCache(file);
 			const propCount = Object.keys(cache?.frontmatter ?? {}).filter(
@@ -135,7 +159,7 @@ export class FilesLogic {
 						? file.extension
 						: undefined,
 				count: propCount,
-				depth: folderPath.split('/').filter(Boolean).length,
+				depth: rebaseInfo.visualPath.split('/').filter(Boolean).length,
 				children: [],
 				meta: { file, isFolder: false, folderPath },
 			};
@@ -198,4 +222,36 @@ export class FilesLogic {
 		}
 		return Array.from(ids);
 	}
+}
+
+function normalizeRebaseFolderPaths(folderPaths: string[]): string[] {
+	return Array.from(
+		new Set(
+			folderPaths
+				.map((path) => path.trim().replace(/^\/|\/$/g, ''))
+				.filter((path) => path.length > 0),
+		),
+	).sort((a, b) => b.length - a.length);
+}
+
+function rebaseFolderInfo(
+	folderPath: string,
+	rebaseFolderPaths: string[],
+): FolderRebaseInfo | null {
+	const normalizedFolder = folderPath.trim().replace(/^\/|\/$/g, '');
+	if (rebaseFolderPaths.length === 0) {
+		return { rootPath: '', visualPath: normalizedFolder };
+	}
+	for (const rootPath of rebaseFolderPaths) {
+		if (normalizedFolder === rootPath) {
+			return { rootPath, visualPath: '' };
+		}
+		if (normalizedFolder.startsWith(`${rootPath}/`)) {
+			return {
+				rootPath,
+				visualPath: normalizedFolder.slice(rootPath.length + 1),
+			};
+		}
+	}
+	return null;
 }

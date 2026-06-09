@@ -123,7 +123,7 @@ export class FilesExplorerPanel extends Component {
 			id: 'file.move',
 			nodeTypes: ['file'],
 			surfaces: ['panel'],
-			label: 'Move file',
+			label: `${translate('ops.move')}...`,
 			icon: 'lucide-folder-input',
 			run: (ctx: MenuCtx) => {
 				const meta = ctx.node.meta as FileMeta;
@@ -365,6 +365,7 @@ export class FilesExplorerPanel extends Component {
 		const tree = this.logic.buildFileTree(
 			this._sortFiles(this._filesForDisplay()),
 			this._foldersForCurrentView(),
+			{ rebaseFolderPaths: this._activeFolderFilterPaths() },
 		);
 		const walk = (nodes: TreeNode<FileMeta>[]) => {
 			for (const node of nodes) {
@@ -587,6 +588,7 @@ export class FilesExplorerPanel extends Component {
 			const tree = this.logic.buildFileTree(
 				this._sortFiles(displayFiles),
 				this._foldersForCurrentView(),
+				{ rebaseFolderPaths: this._activeFolderFilterPaths() },
 			);
 			this._autoExpandSparseTopLevel(tree);
 			this._decorateTreeWithFileTimes(tree);
@@ -710,27 +712,33 @@ export class FilesExplorerPanel extends Component {
 		targetNode: TreeNode<FileMeta>,
 		event: DragEvent,
 	): void {
-		if (!targetNode.meta.isFolder) return;
+		const targetFolderPath = this._fileDropTargetFolderPath(targetNode);
+		if (targetFolderPath === null) return;
 		const payload = readVaultmanDragPayload(event);
 		if (!payload) return;
 		event.preventDefault();
 		if (event.dataTransfer) event.dataTransfer.dropEffect = 'move';
-		this.plugin.showDragActionGuide(
-			this._fileDropGuide(payload, targetNode.meta.folderPath),
-		);
+		this.plugin.showDragActionGuide(this._fileDropGuide(payload, targetFolderPath));
 	}
 
 	private _handleFileDrop(
 		targetNode: TreeNode<FileMeta>,
 		event: DragEvent,
 	): void {
-		if (!targetNode.meta.isFolder) return;
+		const targetFolderPath = this._fileDropTargetFolderPath(targetNode);
+		if (targetFolderPath === null) return;
 		const payload = readVaultmanDragPayload(event);
 		if (!payload) return;
 		event.preventDefault();
 		event.stopPropagation();
 		this.plugin.clearDragActionGuide();
-		void this._moveDraggedNodesIntoFolder(payload, targetNode.meta.folderPath);
+		void this._moveDraggedNodesIntoFolder(payload, targetFolderPath);
+	}
+
+	private _fileDropTargetFolderPath(targetNode: TreeNode<FileMeta>): string | null {
+		if (targetNode.meta.isFolder) return targetNode.meta.folderPath;
+		if (targetNode.depth === 0) return '';
+		return null;
 	}
 
 	private readonly _handleRootFileDragOver = (event: DragEvent): void => {
@@ -1101,7 +1109,17 @@ export class FilesExplorerPanel extends Component {
 	}
 
 	private _filesForCurrentScope(): TFile[] {
+		const activeFolderPaths = this._activeFolderFilterPaths();
+		if (activeFolderPaths.length > 0) {
+			return this.plugin.filterService.filteredVaultFilesForFolderScopes(
+				activeFolderPaths,
+			);
+		}
 		return this.plugin.filterService.filteredVaultFiles;
+	}
+
+	private _activeFolderFilterPaths(): string[] {
+		return this.plugin.filterService.activeFolderFilterPaths();
 	}
 
 	private _syncSearchTermsFromActiveFilters(): void {
@@ -1155,6 +1173,16 @@ export class FilesExplorerPanel extends Component {
 	private _foldersForCurrentView(): TFolder[] {
 		if (this.viewMode !== 'tree') return [];
 		const folders = this._allVaultFolders();
+		const activeFolderPaths = this._activeFolderFilterPaths();
+		if (activeFolderPaths.length > 0) {
+			return folders.filter((folder) =>
+				activeFolderPaths.some(
+					(path) =>
+						folder.path !== path &&
+						(folder.path === path || folder.path.startsWith(`${path}/`)),
+				),
+			);
+		}
 		if (this._hasActiveConstraints()) return [];
 		if (this.searchName && !this.searchFolder) return [];
 		if (!this.searchFolder) return folders;
@@ -1233,7 +1261,8 @@ export class FilesExplorerPanel extends Component {
 			type: 'file_delete',
 			action: 'delete',
 			details: `Delete folder "${folder.path}"`,
-			files: this._filesInsideFolder(folder),
+			files: [],
+			targetFolder: folder.path,
 			customLogic: true,
 			logicFunc: () => ({ [DELETE_FILE]: true }),
 		});

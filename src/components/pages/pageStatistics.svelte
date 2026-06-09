@@ -15,6 +15,7 @@
 		type StatisticsDataTab,
 		type StatisticsNavigationCard,
 	} from '../../logic/logicStatisticsNavigation';
+	import NavbarFilters from '../layout/navbarFilters.svelte';
 
 	let {
 		plugin,
@@ -30,6 +31,8 @@
 	let scope = $state<Scope>('vault');
 	let statsRevision = $state(0);
 	let statsReconciling = $state(false);
+	let headerSearch = $state('');
+	let headerSearchCategory = $state({ files: 0, props: 0, tags: 0 });
 	let metaStatsRun = 0;
 	let lastStatsSignature = '';
 	let computingSignature = '';
@@ -210,6 +213,22 @@
 		},
 	];
 
+	const statsTabOptions = $derived([
+		{ id: 'files', label: translate('nav.files'), icon: 'lucide-folder-tree' },
+		{ id: 'props', label: translate('nav.filters'), icon: 'lucide-archive' },
+		{ id: 'tags', label: translate('filter.tab.tags'), icon: 'lucide-tags' },
+		{
+			id: 'content',
+			label: translate('filter.tab.content'),
+			icon: 'lucide-search',
+		},
+		{
+			id: 'statistics',
+			label: translate('nav.statistics'),
+			icon: 'lucide-bar-chart-2',
+		},
+	]);
+
 	function iconAction(el: HTMLElement, name: string) {
 		setIcon(el, name);
 		return {
@@ -222,9 +241,36 @@
 	function navigateFromCard(card: StatisticsNavigationCard) {
 		onNavigateToDataTab?.(dataTabForStatisticsCard(card));
 	}
+
+	function navigateFromHeader(tab: string) {
+		if (tab === 'statistics') return;
+		if (
+			tab === 'files' ||
+			tab === 'props' ||
+			tab === 'tags' ||
+			tab === 'content'
+		) {
+			onNavigateToDataTab?.(tab as StatisticsDataTab);
+		}
+	}
 </script>
 
 <div class="vaultman-statistics-page" class:is-reconciling={statsReconciling}>
+	<NavbarFilters
+		activeTab="files"
+		bind:filtersSearch={headerSearch}
+		bind:filtersSearchCategory={headerSearchCategory}
+		tagsExplorer={undefined}
+		propExplorer={undefined}
+		fileList={undefined}
+		icon={iconAction}
+		minimalStyle={plugin.settings.minimalStyle}
+		showDock={false}
+		tabOptions={statsTabOptions}
+		activeSectionTab="statistics"
+		onSectionTabChange={navigateFromHeader}
+		showExplorerControls={false}
+	/>
 	<div class="vaultman-stat-cards-grid">
 		{#each statCards as card (card.icon)}
 			<button

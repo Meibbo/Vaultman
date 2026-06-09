@@ -37,6 +37,7 @@
 		onClick: (event: MouseEvent) => void;
 	};
 	type HeaderMode = 'header' | 'sort' | 'viewmode';
+	type SearchControlVariant = 'inline' | 'phone';
 	type NodeTypeOption = {
 		id: string;
 		icon: string;
@@ -282,7 +283,8 @@
 	});
 	let addModeActive = $state(false);
 	let searchExpanded = $state(false);
-	let searchInputEl = $state<HTMLInputElement | null>(null);
+	let searchToggleActivationPending = false;
+	let navbarEl = $state<HTMLElement | null>(null);
 	let expansionRefresh = $state(0);
 	const headerActionClass = $derived(
 		minimalStyle ? 'clickable-icon nav-action-button' : 'vaultman-nav-fab',
@@ -304,9 +306,7 @@
 	const expansionIcon = $derived(
 		hasExpandedNodes ? 'lucide-chevrons-down-up' : 'lucide-chevrons-up-down',
 	);
-	const showSearchInput = $derived(
-		!minimalStyle || searchExpanded || filtersSearch.length > 0,
-	);
+	const showSearchInput = $derived(!minimalStyle || searchExpanded);
 	const currentTabsOption = $derived(
 		tabOptions.find((option) => option.id === activeSectionTab) ??
 			tabOptions[0] ??
@@ -377,7 +377,48 @@
 
 	function expandSearch() {
 		searchExpanded = true;
-		window.requestAnimationFrame(() => searchInputEl?.focus());
+		window.requestAnimationFrame(() => focusVisibleSearchInput());
+	}
+
+	function markSearchToggleActivation() {
+		searchToggleActivationPending = true;
+		window.setTimeout(() => {
+			searchToggleActivationPending = false;
+		}, 0);
+	}
+
+	function toggleSearch() {
+		searchToggleActivationPending = false;
+		if (!minimalStyle || !searchExpanded) {
+			expandSearch();
+			return;
+		}
+		searchExpanded = false;
+		blurSearchInputs();
+	}
+
+	function searchInputs() {
+		return Array.from(
+			(navbarEl ?? document).querySelectorAll<HTMLInputElement>(
+				'.vaultman-filters-search-input',
+			),
+		);
+	}
+
+	function focusVisibleSearchInput() {
+		const input = searchInputs().find((candidate) => candidate.offsetParent);
+		input?.focus();
+	}
+
+	function blurSearchInputs() {
+		for (const input of searchInputs()) input.blur();
+	}
+
+	function isSearchToggleTarget(target: Node | null) {
+		return (
+			target instanceof HTMLElement &&
+			target.closest('[data-vaultman-search-toggle="true"]') !== null
+		);
 	}
 
 	function handleSearchFocusOut(event: FocusEvent) {
@@ -390,6 +431,8 @@
 		) {
 			return;
 		}
+		if (searchToggleActivationPending || isSearchToggleTarget(nextTarget))
+			return;
 		searchExpanded = false;
 	}
 
@@ -759,9 +802,9 @@
 	}
 </script>
 
-{#snippet searchControl()}
+{#snippet searchControl(variant: SearchControlVariant)}
 	<div
-		class="vaultman-filters-header-search-pill"
+		class={`vaultman-filters-header-search-pill vaultman-filters-header-search-pill--${variant}`}
 		onfocusout={handleSearchFocusOut}
 	>
 		<input
@@ -772,7 +815,6 @@
 			autocapitalize="off"
 			spellcheck="false"
 			placeholder={translate('filter.search_placeholder')}
-			bind:this={searchInputEl}
 			value={filtersSearch}
 			oninput={(event: Event) =>
 				setFiltersSearch((event.currentTarget as HTMLInputElement).value)}
@@ -806,7 +848,15 @@
 	</div>
 {/snippet}
 
-<div class="vaultman-navbar-filters vaultman-glass vaultman-glass--top">
+<div
+	class="vaultman-navbar-filters vaultman-glass vaultman-glass--top"
+	bind:this={navbarEl}
+>
+	{#if minimalStyle && showSearchInput}
+		<div class="vaultman-filters-phone-search-row">
+			{@render searchControl('phone')}
+		</div>
+	{/if}
 	<div class="vaultman-filters-header-wrap">
 		{#if headerMode === 'header'}
 			<div
@@ -914,9 +964,32 @@
 							}}
 							use:icon={'lucide-arrow-up-down'}
 						></div>
+						{#if minimalStyle}
+							<div
+								class={headerActionClass}
+								class:is-active={searchExpanded || filtersSearch.length > 0}
+								data-vaultman-search-toggle="true"
+								role="button"
+								tabindex="0"
+								aria-label={translate('explorer.btn.search')}
+								aria-pressed={searchExpanded}
+								title={minimalStyle
+									? undefined
+									: translate('explorer.btn.search')}
+								onpointerdown={markSearchToggleActivation}
+								onclick={toggleSearch}
+								onkeydown={(e: KeyboardEvent) => {
+									if (e.key === 'Enter' || e.key === ' ') {
+										e.preventDefault();
+										toggleSearch();
+									}
+								}}
+								use:icon={'lucide-search'}
+							></div>
+						{/if}
 						{#if showSearchInput}
-							{@render searchControl()}
-						{:else}
+							{@render searchControl('inline')}
+						{:else if !minimalStyle}
 							<div
 								class={headerActionClass}
 								role="button"

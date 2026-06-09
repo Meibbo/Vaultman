@@ -107,6 +107,7 @@ export class ContextMenuService extends Component {
 			} finally {
 				this.suppressWorkspaceInjection = false;
 			}
+			if (ctx.nodeType === 'file') this._removeNativeFileMoveActions(menu);
 		}
 
 		const applicable = this._registry.filter(
@@ -166,6 +167,28 @@ export class ContextMenuService extends Component {
 			});
 		}
 		menu.showAtMouseEvent(event);
+	}
+
+	private _removeNativeFileMoveActions(menu: Menu): void {
+		const items = (menu as unknown as { items?: MenuItem[] }).items;
+		if (!Array.isArray(items)) return;
+		for (let index = items.length - 1; index >= 0; index--) {
+			const title = String(
+				(items[index] as unknown as { title?: string }).title ?? '',
+			).toLowerCase();
+			if (this._isNativeFileMoveTitle(title)) {
+				items.splice(index, 1);
+			}
+		}
+	}
+
+	private _isNativeFileMoveTitle(title: string): boolean {
+		return (
+			title.includes('move file to') ||
+			title.includes('move to') ||
+			title.includes('mover archivo') ||
+			title.includes('mover a')
+		);
 	}
 
 	private _getNativeMenuTarget(ctx: MenuCtx): TFile | TFolder | null {
