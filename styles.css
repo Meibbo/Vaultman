@@ -2915,13 +2915,43 @@ body.vaultman-bases-column-separators table th {
 }
 
 .is-phone .workspace-drawer .workspace-leaf-content[data-type="vaultman-frame"] .vaultman-filters-actions.nav-buttons-container {
+  position: absolute;
+  inset-inline: 0;
+  top: auto;
+  bottom: 0;
+  height: 56px;
+  min-height: 0;
+  align-items: normal;
   justify-content: center;
   gap: var(--size-4-2);
-  padding: 0;
-  z-index: 60;
+  padding: 4px 0 8px;
+  z-index: 1;
   background: transparent;
   border: 0;
   box-shadow: none;
+}
+
+.is-phone .workspace-drawer .vaultman-filters-actions.nav-buttons-container {
+  position: absolute;
+  inset-inline: 0;
+  top: auto;
+  bottom: 0;
+  height: 56px;
+  min-height: 0;
+  align-items: normal;
+  justify-content: center;
+  gap: var(--size-4-2);
+  padding: 4px 0 8px;
+  z-index: 1;
+  background: transparent;
+  border: 0;
+  box-shadow: none;
+}
+
+.is-phone .workspace-drawer .vaultman-filters-actions.nav-buttons-container > .nav-action-button {
+  width: 44px;
+  height: 44px;
+  padding: 8px;
 }
 
 .vaultman-filters-phone-search-row {
@@ -5206,6 +5236,9 @@ body.vaultman-bases-column-separators table th {
   overflow-y: auto;
   overflow-x: hidden;
   contain: paint;
+  --vaultman-tree-indent-unit: 16px;
+  --vaultman-tree-indent-line-color: var(--nav-indentation-guide-color, var(--background-modifier-border));
+  --vaultman-tree-indent-line-width: var(--nav-indentation-guide-width, 1px);
 }
 
 .workspace-leaf-content[data-type="vaultman-frame"] .vaultman-files-tab-content.vaultman-tree-virtual-viewport,
@@ -5270,18 +5303,26 @@ body.vaultman-bases-column-separators table th {
   flex-shrink: 0;
 }
 
-/* Vertical hierarchy guideline */
 .vaultman-tree-row::before {
   content: '';
   position: absolute;
-  left: calc(var(--depth, 0) * 16px);
-  top: 0;
-  bottom: 0;
-  width: 1px;
-  background-color: var(--background-modifier-border);
-  opacity: 0.6;
+  inset-block: 0 -1px;
+  inset-inline-start: 8px;
+  width: calc(var(--depth, 0) * var(--vaultman-tree-indent-unit));
+  pointer-events: none;
+  opacity: 0.7;
+  background-image: repeating-linear-gradient(
+    to right,
+    transparent 0,
+    transparent calc(var(--vaultman-tree-indent-unit) - var(--vaultman-tree-indent-line-width)),
+    var(--vaultman-tree-indent-line-color) calc(var(--vaultman-tree-indent-unit) - var(--vaultman-tree-indent-line-width)),
+    var(--vaultman-tree-indent-line-color) var(--vaultman-tree-indent-unit)
+  );
+  background-size: var(--vaultman-tree-indent-unit) 100%;
+  background-repeat: repeat-x;
 }
 
+.vaultman-tree-virtual-viewport:not(.vaultman-tree-nested-guides) .vaultman-tree-row::before,
 .vaultman-tree-row[style*="--depth: 0"]::before,
 .vaultman-tree-row:not([style*="--depth"])::before {
   display: none;
@@ -5322,7 +5363,7 @@ body.vaultman-bases-column-separators table th {
 }
 
 .is-phone .workspace-drawer .workspace-leaf-content[data-type="vaultman-frame"] .vaultman-tree-row.tree-item-self::before {
-  display: none;
+  inset-inline-start: 16px;
 }
 
 .vaultman-tree-row.is-active-filter {

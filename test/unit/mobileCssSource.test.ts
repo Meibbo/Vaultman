@@ -9,7 +9,11 @@ const stylesSource = readFileSync(
 
 describe('mobile CSS source guards', () => {
 	it('keeps phone navbar controls above Obsidian mobile gradients and moves Vaultman dock to the top', () => {
-		expect(stylesSource).toContain('z-index: 60');
+		expect(stylesSource).toContain('position: absolute');
+		expect(stylesSource).toContain('bottom: 0');
+		expect(stylesSource).toContain('height: 56px');
+		expect(stylesSource).toContain('padding: 4px 0 8px');
+		expect(stylesSource).toContain('z-index: 1');
 		expect(stylesSource).toContain('.vaultman-bottom-nav');
 		expect(stylesSource).toContain('top: 0');
 		expect(stylesSource).toContain('bottom: auto');

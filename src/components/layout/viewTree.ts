@@ -60,6 +60,10 @@ export class UnifiedTreeView {
 	render(opts: TreeViewOptions): void {
 		this._opts = opts;
 		this.containerEl.dataset.vaultmanTreeOwner = this._ownerId;
+		this.containerEl.toggleClass(
+			'vaultman-tree-nested-guides',
+			opts.visibleCells?.has('nested') ?? true,
+		);
 		if (this._pendingRaf !== null) {
 			cancelAnimationFrame(this._pendingRaf);
 			this._pendingRaf = null;
@@ -120,6 +124,7 @@ export class UnifiedTreeView {
 		}
 		this.containerEl.removeEventListener('scroll', this._onScroll);
 		this.containerEl.removeClass('vaultman-tree-virtual-viewport');
+		this.containerEl.removeClass('vaultman-tree-nested-guides');
 		this._spacerEl?.remove();
 		this._spacerEl = null;
 		this._contentEl = null;

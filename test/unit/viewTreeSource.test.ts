@@ -41,4 +41,12 @@ describe('UnifiedTreeView source guards', () => {
 		expect(treeSource).toContain('this._renderWindow();');
 		expect(treeSource).toContain('rect.bottom > viewport.top + 1');
 	});
+
+	it('toggles nested indent guides from the visible nested cell without rebuilding rows', () => {
+		expect(treeSource).toContain('vaultman-tree-nested-guides');
+		expect(treeSource).toContain("opts.visibleCells?.has('nested') ?? true");
+		expect(treeSource).toContain(
+			"this.containerEl.removeClass('vaultman-tree-nested-guides')",
+		);
+	});
 });
