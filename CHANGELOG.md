@@ -12,6 +12,35 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.1.1] — 2026-06-09
+
+### Added
+
+- Added the Data surface as the stable explorer workspace for Files, Props, Tags, Content, active filters, Queue, and Statistics.
+- Added Core-like explorer controls, including dock-off tab navigation, view/sort/search controls, resizable table surfaces, Files grid view, and nested/path view behavior.
+- Added Content search and replace with queued operations, native-search fallback support, sorting, expand/collapse controls, and result landings.
+- Added queue templates, filter templates, risk warnings for bulk operations, and safer duplicate/contradictory operation handling.
+- Added cache-backed Statistics projections, live update support, and a local performance HUD for large-vault diagnostics.
+
+### Changed
+
+- Promoted the validated `1.1.0-beta.4` code line to stable as `1.1.1`; `1.1.0` remains skipped for stable because that tag already exists from earlier prerelease work.
+- Replaced the npm-based release gate with the pnpm/Node 24 toolchain used by the beta stream.
+- Aligned the minimal mobile navbar with Obsidian Core Files geometry instead of a custom floating visual layer.
+- Changed Files path display so `Nested` on/off is the single tree/path presentation toggle.
+
+### Fixed
+
+- Fixed severe explorer virtualization regressions, including stale rows, duplicated Files rows, scroll lifecycle leaks, tab-switch offsets, and row rebuild churn.
+- Fixed Files explorer filtering so folder and file-type filters hide unrelated empty folders and present matched folder contents as the active root surface.
+- Fixed Files, Tags, and Props drag payloads, folder queue handling, root-level drops, and Obsidian editor/frontmatter drop behavior.
+- Fixed mobile phone navigation regressions in minimal mode, including navbar placement, search toggle behavior, and transparent Core-like controls.
+- Fixed nested explorer indentation guides so `nested=on` exposes hierarchy lines without changing virtual row heights.
+- Fixed multiple stable UX placeholders, silent setting reactivity issues, active-filter zero-result warnings, and queue warning indicators.
+- Fixed Obsidian Scorecard CSS regressions by guarding against `!important`, `display: contents`, and unsupported stable styling patterns.
+
+---
+
 ## [1.1.0-beta.4] — 2026-06-09
 
 ### Changed
@@ -348,7 +377,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > Versions 0.2–0.6 correspond to the Python script predecessor (PKM Manager).
 > See `docs/pkm_manager_python_architecture.md` for that history.
 
-[Unreleased]: https://github.com/Meibbo/Vaultman/compare/1.0.1...HEAD
+[Unreleased]: https://github.com/Meibbo/Vaultman/compare/1.1.1...HEAD
+[1.1.1]: https://github.com/Meibbo/Vaultman/compare/1.0.1...1.1.1
+[1.1.0-beta.4]: https://github.com/Meibbo/Vaultman/compare/1.1.0-beta.3...1.1.0-beta.4
+[1.1.0-beta.3]: https://github.com/Meibbo/Vaultman/compare/1.1.0-beta.2...1.1.0-beta.3
+[1.1.0-beta.2]: https://github.com/Meibbo/Vaultman/compare/1.0.1...1.1.0-beta.2
+[1.0.2]: https://github.com/Meibbo/Vaultman/compare/1.0.1...1.0.2
 [1.0.1]: https://github.com/Meibbo/Vaultman/compare/1.0.0...1.0.1
 [1.0.0-beta.5]: https://github.com/Meibbo/Vaultman-Plugin/compare/1.0.0-beta.4...1.0.0-beta.5
 [1.0.0-beta.4]: https://github.com/Meibbo/Vaultman-Plugin/compare/1.0.0-beta.3...1.0.0-beta.4
