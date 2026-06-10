@@ -37,7 +37,6 @@
 			{ id: 'ext', labelKey: 'viewmode.pill.ext', defaultOn: true },
 			{ id: 'mtime', labelKey: 'viewmode.pill.mtime', defaultOn: false },
 			{ id: 'ctime', labelKey: 'viewmode.pill.ctime', defaultOn: false },
-			{ id: 'path', labelKey: 'viewmode.pill.path', defaultOn: false },
 			{ id: 'nested', labelKey: 'viewmode.pill.nested', defaultOn: true },
 		],
 		'files-grid': [

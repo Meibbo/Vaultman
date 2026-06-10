@@ -79,7 +79,7 @@ describe('minimal filters header source guards', () => {
 		);
 	});
 
-	it('keeps Files date and path cells opt-in instead of default-on', () => {
+	it('keeps Files date cells opt-in and represents path mode as Nested off', () => {
 		expect(navbarFiltersSource).toContain(
 			"files: ['name', 'ext', 'count', 'nested']",
 		);
@@ -87,8 +87,11 @@ describe('minimal filters header source guards', () => {
 			"{ id: 'mtime', labelKey: 'viewmode.pill.mtime', defaultOn: false }",
 		);
 		expect(popupViewSource).toContain(
-			"{ id: 'path', labelKey: 'viewmode.pill.path', defaultOn: false }",
+			"{ id: 'nested', labelKey: 'viewmode.pill.nested', defaultOn: true }",
 		);
+		expect(navbarFiltersSource).not.toContain("path: 'viewmode.pill.path'");
+		expect(navbarFiltersSource).not.toContain("path: 'lucide-route'");
+		expect(popupViewSource).not.toContain("id: 'path'");
 	});
 
 	it('keeps dock-off menu labels reactive and exposes Files grouping by extension', () => {

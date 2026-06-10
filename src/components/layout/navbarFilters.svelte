@@ -165,7 +165,6 @@
 			ext: 'viewmode.pill.ext',
 			mtime: 'viewmode.pill.mtime',
 			ctime: 'viewmode.pill.ctime',
-			path: 'viewmode.pill.path',
 			nested: 'viewmode.pill.nested',
 		},
 	};
@@ -179,7 +178,6 @@
 		nested: 'lucide-git-branch',
 		mtime: 'lucide-calendar-clock',
 		ctime: 'lucide-calendar-plus',
-		path: 'lucide-route',
 	};
 	const SORT_OPTIONS: Record<
 		FiltersTab,

@@ -30,4 +30,19 @@ describe('FilesExplorerPanel source guards', () => {
 		expect(explorerFilesSource).toContain("label: `${translate('ops.move')}...`");
 		expect(explorerFilesSource).toContain('new FileMoveModal');
 	});
+
+	it('does not inject empty known folders when Files grouping or other narrowing constraints are active', () => {
+		expect(explorerFilesSource).toContain(
+			'private _hasNarrowingConstraintsBeyondFolderScopes()',
+		);
+		expect(explorerFilesSource).toContain(
+			'Boolean(this.searchName || this.searchFolder || this.nodeTypeFilter)',
+		);
+		expect(explorerFilesSource).toContain(
+			'if (this._hasNarrowingConstraintsBeyondFolderScopes()) return []',
+		);
+		expect(explorerFilesSource).toContain(
+			"if (node.type === 'rule') return node.filterType !== 'folder'",
+		);
+	});
 });

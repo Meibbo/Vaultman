@@ -1175,6 +1175,7 @@ export class FilesExplorerPanel extends Component {
 		const folders = this._allVaultFolders();
 		const activeFolderPaths = this._activeFolderFilterPaths();
 		if (activeFolderPaths.length > 0) {
+			if (this._hasNarrowingConstraintsBeyondFolderScopes()) return [];
 			return folders.filter((folder) =>
 				activeFolderPaths.some(
 					(path) =>
@@ -1193,7 +1194,24 @@ export class FilesExplorerPanel extends Component {
 	private _hasActiveConstraints(): boolean {
 		return (
 			this.plugin.filterService.activeFilter.children.length > 0 ||
-			Boolean(this.searchName || this.searchFolder)
+			Boolean(this.searchName || this.searchFolder || this.nodeTypeFilter)
+		);
+	}
+
+	private _hasNarrowingConstraintsBeyondFolderScopes(): boolean {
+		return (
+			Boolean(this.searchName || this.searchFolder || this.nodeTypeFilter) ||
+			this._hasEnabledNonFolderIncludeFilter(
+				this.plugin.filterService.activeFilter,
+			)
+		);
+	}
+
+	private _hasEnabledNonFolderIncludeFilter(node: FilterNode): boolean {
+		if (node.enabled === false) return false;
+		if (node.type === 'rule') return node.filterType !== 'folder';
+		return node.children.some((child) =>
+			this._hasEnabledNonFolderIncludeFilter(child),
 		);
 	}
 
