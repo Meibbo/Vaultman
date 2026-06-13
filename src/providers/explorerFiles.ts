@@ -2,7 +2,13 @@ import type { TFile } from 'obsidian';
 import { getActivePerfProbe } from '../dev/perfProbe';
 import type { VaultmanPlugin } from '../main';
 import { buildExplorerSnapshot } from '../logic/logicExplorerSnapshot';
-import { FilesLogic } from '../logic/logicsFiles';
+import {
+	buildFileTree,
+	filterFlat,
+	isHiddenPath,
+	sortFileDescriptors,
+	type FileDescriptor,
+} from '../logic/logicFiles';
 import type { TreeNode, FileMeta } from '../types/typeNode';
 import type { MenuCtx } from '../types/typeCtxMenu';
 import { FileRenameModal } from '../modals/modalFileRename';
@@ -40,7 +46,6 @@ export class explorerFiles implements ExplorerProvider<FileMeta> {
 	id = 'files';
 	private plugin: VaultmanPlugin;
 	private options: ExplorerFilesOptions;
-	private logic: FilesLogic;
 	private sortBy: string = 'name';
 	private sortDir: 'asc' | 'desc' = 'asc';
 	private addMode = false;
@@ -55,7 +60,6 @@ export class explorerFiles implements ExplorerProvider<FileMeta> {
 	constructor(plugin: VaultmanPlugin, options: ExplorerFilesOptions = {}) {
 		this.plugin = plugin;
 		this.options = options;
-		this.logic = new FilesLogic(plugin.app);
 		this.showHiddenFiles = plugin.settings?.explorerFilesShowHidden === true;
 		this.registerActions();
 	}
@@ -160,21 +164,22 @@ export class explorerFiles implements ExplorerProvider<FileMeta> {
 		const getSearchBuffer = this.plugin.filesIndex
 			? (path: string) => this.fileSearchBuffer(path)
 			: undefined;
+		const descriptors = this.toDescriptors(source);
 		const filtered = PerfMeter.time(
 			'explorer.files.filterFlat',
-			() => this.logic.filterFlat(source, this.searchName, this.searchFolder, getSearchBuffer),
+			() => filterFlat(descriptors, this.searchName, this.searchFolder, getSearchBuffer),
 			'service',
-			{ files: source.length },
+			{ files: descriptors.length },
 		);
 		const sorted = PerfMeter.time(
 			'explorer.files.sort',
-			() => this._sortFiles(filtered),
+			() => sortFileDescriptors(filtered, this.sortBy, this.sortDir),
 			'service',
 			{ files: filtered.length },
 		);
 		const tree = PerfMeter.time(
 			'explorer.files.buildTree',
-			() => this.logic.buildFileTree(sorted, { foldersFirst: this.foldersFirstEnabled() }),
+			() => buildFileTree(sorted, { foldersFirst: this.foldersFirstEnabled() }) as TreeNode<FileMeta>[],
 			'service',
 			{ files: sorted.length },
 		);
@@ -289,11 +294,15 @@ export class explorerFiles implements ExplorerProvider<FileMeta> {
 		const getSearchBuffer = this.plugin.filesIndex
 			? (path: string) => this.fileSearchBuffer(path)
 			: undefined;
+		const descriptors = this.toDescriptors(source);
 		return PerfMeter.time(
 			'explorer.files.filterFlat',
-			() => this.logic.filterFlat(source, this.searchName, this.searchFolder, getSearchBuffer),
+			() =>
+				filterFlat(descriptors, this.searchName, this.searchFolder, getSearchBuffer).map(
+					(d) => d.ref,
+				),
 			'service',
-			{ files: source.length },
+			{ files: descriptors.length },
 		);
 	}
 
@@ -429,7 +438,7 @@ export class explorerFiles implements ExplorerProvider<FileMeta> {
 
 	private visibleFiles(files: TFile[]): TFile[] {
 		if (this.showHiddenFiles) return files;
-		return files.filter((file) => !hasHiddenPathSegment(file.path));
+		return files.filter((file) => !isHiddenPath(file.path));
 	}
 
 	private foldersFirstEnabled(): boolean {
@@ -492,22 +501,34 @@ export class explorerFiles implements ExplorerProvider<FileMeta> {
 		});
 	}
 
-	private _sortFiles(files: TFile[]): TFile[] {
-		const dir = this.sortDir === 'asc' ? 1 : -1;
-		if (this.sortBy === 'count') {
-			const countMap = new Map<string, number>();
-			for (const file of files) {
-				const count = Object.keys(
-					this.plugin.app.metadataCache.getFileCache(file)?.frontmatter ?? {},
-				).filter((k) => k !== 'position').length;
-				countMap.set(file.path, count);
-			}
-			return [...files].sort((a, b) => dir * ((countMap.get(a.path) ?? 0) - (countMap.get(b.path) ?? 0)));
-		}
-		return [...files].sort((a, b) => {
-			if (this.sortBy === 'date') return dir * (b.stat.mtime - a.stat.mtime);
-			return dir * a.basename.localeCompare(b.basename);
+	/**
+	 * The single impurity boundary: flatten `TFile[]` into the app-free
+	 * `FileDescriptor[]` the pure `logicFiles` module consumes. Frontmatter
+	 * prop-count is read here (the only place that touches metadataCache for
+	 * the structural build).
+	 */
+	private toDescriptors(files: readonly TFile[]): FileDescriptor<TFile>[] {
+		return files.map((file) => {
+			const rawParent = file.parent?.path ?? '';
+			const folderPath = rawParent === '/' ? '' : rawParent;
+			return {
+				path: file.path,
+				basename: file.basename,
+				extension: file.extension?.trim() ?? '',
+				folderPath,
+				parentPath: folderPath,
+				mtime: file.stat.mtime,
+				ctime: file.stat.ctime,
+				propCount: this.propCountFor(file),
+				ref: file,
+			};
 		});
+	}
+
+	private propCountFor(file: TFile): number {
+		return Object.keys(
+			this.plugin.app.metadataCache.getFileCache(file)?.frontmatter ?? {},
+		).filter((k) => k !== 'position').length;
 	}
 
 	private setSelectedFiles(files: TFile[]): void {
@@ -566,6 +587,7 @@ export class explorerFiles implements ExplorerProvider<FileMeta> {
 			label: node.label,
 			icon: adoptedNodeIcon(node.kind),
 			depth,
+			relation: 'adopted' as const,
 			children: this.toAdoptedTreeNodes(node.children, depth + 1, folderPath),
 			meta: {
 				file: node.file,
@@ -578,13 +600,6 @@ export class explorerFiles implements ExplorerProvider<FileMeta> {
 	private fire(): void {
 		for (const cb of this.subscribers) cb();
 	}
-}
-
-function hasHiddenPathSegment(path: string): boolean {
-	return path
-		.split('/')
-		.filter(Boolean)
-		.some((segment) => segment.startsWith('.'));
 }
 
 function countTreeNodes(nodes: TreeNode<FileMeta>[]): number {

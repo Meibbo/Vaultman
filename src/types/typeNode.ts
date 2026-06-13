@@ -1,45 +1,9 @@
 // src/types/tree.ts
 import type { TFile } from 'obsidian';
 
-export interface NodeBadge {
-	text?: string;
-	icon?: string;
-	color?:
-		| 'accent'
-		| 'warning'
-		| 'error'
-		| 'success'
-		| 'info'
-		| 'faint'
-		| 'red'
-		| 'blue'
-		| 'purple'
-		| 'orange'
-		| 'green';
-	solid?: boolean;
-	isInherited?: boolean;
-	quickAction?: boolean;
-	title?: string;
-	ariaLabel?: string;
-	onClick?: () => void | Promise<void>;
-	/** Queue operation index for click-to-remove. Undefined = visual-only badge. */
-	queueIndex?: number;
-}
-
-export interface TreeNode<TMeta = unknown> {
-	id: string;
-	label: string;
-	labelPrefix?: string;
-	icon?: string;
-	count?: number;
-	countLabel?: string;
-	badges?: NodeBadge[];
-	children?: TreeNode<TMeta>[];
-	depth: number;
-	meta: TMeta;
-	cls?: string;
-	highlights?: { start: number; end: number }[];
-}
+// App-free node primitives live in typeTreeNode.ts so pure logic modules can use
+// them without pulling `obsidian` into their dependency graph (Q4 AC#1).
+export type { NodeBadge, NodeRelationKind, TreeNode } from './typeTreeNode';
 
 export interface TagMeta {
 	tagPath: string;

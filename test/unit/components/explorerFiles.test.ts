@@ -115,7 +115,7 @@ describe('explorerFiles interactions', () => {
 		(plugin.operationsIndex as unknown as { revision: number }).revision = 2;
 
 		const tree = explorer.getTree();
-		const fileNode = flattenNodes(tree).find((node) => node.id === files[0].path);
+		const fileNode = flattenNodes(tree).find((node) => node.meta.file === files[0]);
 		if (!fileNode) throw new Error('Expected test file node to be present');
 		const layers = (fileNode.meta as FileMeta & { layers?: { state?: { pending?: boolean } } })
 			.layers;
@@ -237,7 +237,7 @@ describe('explorerFiles interactions', () => {
 		const explorer = new explorerFiles(plugin);
 
 		expect(explorer.getFiles()).toEqual([...files, pdf]);
-		expect(explorer.getTree().some((node) => node.id === 'folder:Assets')).toBe(true);
+		expect(explorer.getTree().some((node) => node.id === 'folder.Assets')).toBe(true);
 	});
 
 	it('hides dot-prefixed files and folders by default', () => {
@@ -257,7 +257,7 @@ describe('explorerFiles interactions', () => {
 		const paths = explorer.getFiles().map((file) => file.path);
 
 		expect(paths).toEqual(files.map((file) => file.path));
-		expect(explorer.getTree().some((node) => node.id === 'folder:.vaultman')).toBe(false);
+		expect(explorer.getTree().some((node) => node.id === 'folder..vaultman')).toBe(false);
 	});
 
 	it('shows dot-prefixed files and folders when enabled in settings', () => {
@@ -279,7 +279,7 @@ describe('explorerFiles interactions', () => {
 		const paths = explorer.getFiles().map((file) => file.path);
 
 		expect(paths).toEqual([...files, hiddenFile, hiddenFolderFile].map((file) => file.path));
-		expect(explorer.getTree().some((node) => node.id === 'folder:.vaultman')).toBe(true);
+		expect(explorer.getTree().some((node) => node.id === 'folder..vaultman')).toBe(true);
 	});
 
 	it('places folders before root files by default when building the Files tree', () => {
@@ -300,16 +300,16 @@ describe('explorerFiles interactions', () => {
 		const explorer = new explorerFiles(plugin);
 
 		expect(explorer.getTree().map((node) => node.id)).toEqual([
-			'folder:Projects',
-			rootA.path,
-			rootB.path,
+			'folder.Projects',
+			`file.${rootA.path}`,
+			`file.${rootB.path}`,
 		]);
 		expect(
 			explorer
 				.getTree()
-				.find((node) => node.id === 'folder:Projects')
+				.find((node) => node.id === 'folder.Projects')
 				?.children?.map((node) => node.id),
-		).toEqual(['folder:Projects/zz', nested.path]);
+		).toEqual(['folder.Projects/zz', `file.${nested.path}`]);
 	});
 
 	it('keeps root files before later folders when folders-first is disabled', () => {
@@ -331,9 +331,9 @@ describe('explorerFiles interactions', () => {
 		const explorer = new explorerFiles(plugin);
 
 		expect(explorer.getTree().map((node) => node.id)).toEqual([
-			rootA.path,
-			rootB.path,
-			'folder:Projects',
+			`file.${rootA.path}`,
+			`file.${rootB.path}`,
+			'folder.Projects',
 		]);
 	});
 
@@ -347,18 +347,18 @@ describe('explorerFiles interactions', () => {
 		const explorer = new explorerFiles(plugin);
 
 		const tree = explorer.getTree();
-		const root = tree.find((node) => node.id === 'folder:Root');
-		const child = root?.children?.find((node) => node.id === 'folder:Root/Child');
+		const root = tree.find((node) => node.id === 'folder.Root');
+		const child = root?.children?.find((node) => node.id === 'folder.Root/Child');
 
 		expect(root).toBeTruthy();
 		expect(root?.depth).toBe(0);
 		expect(child).toBeTruthy();
 		expect(child?.depth).toBe(1);
 		expect(child?.children?.[0]).toMatchObject({
-			id: 'Root/Child/file.md',
+			id: 'file.Root/Child/file.md',
 			depth: 2,
 		});
-		expect(tree.some((node) => node.id === 'folder:Root/Child')).toBe(false);
+		expect(tree.some((node) => node.id === 'folder.Root/Child')).toBe(false);
 	});
 
 	it('opens the panel context menu for folder nodes', () => {
@@ -369,7 +369,7 @@ describe('explorerFiles interactions', () => {
 			children: [],
 		};
 		const explorer = new explorerFiles(plugin);
-		const root = explorer.getTree().find((node) => node.id === 'folder:Root');
+		const root = explorer.getTree().find((node) => node.id === 'folder.Root');
 		const event = {} as MouseEvent;
 
 		expect(root).toBeTruthy();
@@ -395,8 +395,8 @@ describe('explorerFiles interactions', () => {
 		};
 		const explorer = new explorerFiles(plugin);
 
-		const assets = explorer.getTree().find((node) => node.id === 'folder:Assets');
-		const pdfNode = assets?.children?.find((node) => node.id === pdf.path);
+		const assets = explorer.getTree().find((node) => node.id === 'folder.Assets');
+		const pdfNode = assets?.children?.find((node) => node.id === `file.${pdf.path}`);
 
 		expect(pdfNode).toBeTruthy();
 		expect(pdfNode?.countLabel).toBe('pdf');
@@ -412,7 +412,7 @@ describe('explorerFiles interactions', () => {
 		};
 		const explorer = new explorerFiles(plugin);
 
-		const pngNode = explorer.getTree().find((node) => node.id === 'cover.png');
+		const pngNode = explorer.getTree().find((node) => node.id === 'file.cover.png');
 
 		expect(pngNode).toBeTruthy();
 		expect(pngNode?.icon).toBe('lucide-image');
