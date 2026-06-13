@@ -774,9 +774,7 @@ export class FilesExplorerPanel extends Component {
 		payload: VaultmanDragNodePayload & { selection?: VaultmanDragNodePayload[] },
 		targetFolderPath: string,
 	): Promise<void> {
-		const nodes = this._dragNodes(payload).filter(
-			(node) => node.kind === 'file' || node.kind === 'folder',
-		);
+		const nodes = this._fileDragNodes(payload);
 		if (nodes.length === 0) return;
 
 		let moved = 0;

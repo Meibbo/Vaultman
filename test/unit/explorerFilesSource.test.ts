@@ -45,4 +45,20 @@ describe('FilesExplorerPanel source guards', () => {
 			"if (node.type === 'rule') return node.filterType !== 'folder'",
 		);
 	});
+
+	it('narrows dragged file and folder payloads before passing paths into Obsidian vault APIs', () => {
+		const moveDraggedNodesBlock = explorerFilesSource.match(
+			/private async _moveDraggedNodesIntoFolder[\s\S]*?\n\tprivate _dragNodes/,
+		)?.[0];
+
+		expect(moveDraggedNodesBlock).toContain(
+			'const nodes = this._fileDragNodes(payload);',
+		);
+		expect(moveDraggedNodesBlock).toContain(
+			'this.plugin.app.vault.getAbstractFileByPath(node.path)',
+		);
+		expect(moveDraggedNodesBlock).not.toContain(
+			'this._dragNodes(payload).filter',
+		);
+	});
 });
