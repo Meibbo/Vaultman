@@ -78,12 +78,37 @@ describe('FilterService vault-wide Files filtering', () => {
 		expect(service.getFlatRules()).toEqual([
 			{
 				id: 'vaultman-search-file-name',
-				rule: 'Name contains',
-				label: '.base',
-				description: 'Name contains: .base',
+				rule: 'With extension',
+				label: 'base',
+				description: 'With extension: base',
 				enabled: true,
 			},
 		]);
+	});
+
+	it('explains folder filters that only match non-note files', () => {
+		const note = makeFile('Notes/Inbox.md');
+		const image = makeFile('Screenshots/Capture.jpg');
+		const service = new FilterService(makeApp([note], [note, image]));
+
+		service.addNode({
+			type: 'rule',
+			filterType: 'folder',
+			property: '',
+			values: ['Screenshots'],
+		});
+
+		expect(service.filteredFiles.map((file) => file.path)).toEqual([]);
+		expect(service.filteredVaultFiles.map((file) => file.path)).toEqual([
+			'Screenshots/Capture.jpg',
+		]);
+		expect(service.getFlatRules()[0]).toMatchObject({
+			rule: 'In folder',
+			label: 'Screenshots',
+			description: 'In folder: Screenshots',
+			warning:
+				'This folder filter matches only non-note files; note-scoped views show 0 files.',
+		});
 	});
 
 	it('uses concise node labels for active filter rows', () => {

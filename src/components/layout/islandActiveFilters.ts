@@ -120,6 +120,7 @@ export class ActiveFiltersIslandComponent {
 				cls: 'vaultman-active-filter-island-row',
 			});
 			row.toggleClass('is-disabled', !rule.enabled);
+			row.setAttribute('title', rule.warning ?? rule.description);
 
 			const textEl = row.createSpan({
 				cls: 'vaultman-active-filter-row-text',

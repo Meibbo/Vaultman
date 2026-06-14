@@ -371,6 +371,7 @@ export class FilterService extends Component {
 		rule: string;
 		label: string;
 		description: string;
+		warning?: string;
 		enabled: boolean;
 	}[] {
 		const rules: {
@@ -378,12 +379,14 @@ export class FilterService extends Component {
 			rule: string;
 			label: string;
 			description: string;
+			warning?: string;
 			enabled: boolean;
 		}[] = [];
 		const walk = (node: FilterNode) => {
 			if (node.type === 'rule') {
 				let rule = '';
 				let label = '';
+				let warning: string | undefined;
 				switch (node.filterType) {
 					case 'has_property':
 						rule = 'Has property';
@@ -401,17 +404,25 @@ export class FilterService extends Component {
 						rule = 'Has tag';
 						label = node.values[0] ?? '';
 						break;
-					case 'file_name':
-						rule = 'Name contains';
-						label = node.values[0] ?? '';
+					case 'file_name': {
+						const extension = extensionFilterLabel(node.values[0] ?? '');
+						if (extension) {
+							rule = 'With extension';
+							label = extension;
+						} else {
+							rule = 'Name contains';
+							label = node.values[0] ?? '';
+						}
 						break;
+					}
 					case 'file_name_exclude':
 						rule = 'Name excludes';
 						label = node.values[0] ?? '';
 						break;
 					case 'file_folder':
-						rule = 'Folder contains';
+						rule = 'Folder path contains';
 						label = node.values[0] ?? '';
+						warning = this.warningForFolderRule();
 						break;
 					case 'content_search':
 						rule = 'Content contains';
@@ -420,10 +431,12 @@ export class FilterService extends Component {
 					case 'folder':
 						rule = 'In folder';
 						label = node.values[0] ?? '';
+						warning = this.warningForFolderRule();
 						break;
 					case 'folder_exclude':
 						rule = 'Exclude folder';
 						label = node.values[0] ?? '';
+						warning = this.warningForFolderRule();
 						break;
 					default:
 						rule = node.filterType;
@@ -434,6 +447,7 @@ export class FilterService extends Component {
 					rule,
 					label,
 					description: label ? `${rule}: ${label}` : rule,
+					...(warning ? { warning } : {}),
 					enabled: node.enabled !== false,
 				});
 			} else {
@@ -442,6 +456,14 @@ export class FilterService extends Component {
 		};
 		walk(this.activeFilter);
 		return rules;
+	}
+
+	private warningForFolderRule(): string | undefined {
+		if (this.filteredFiles.length > 0) return undefined;
+		if (this.filteredVaultFiles.length > 0) {
+			return 'This folder filter matches only non-note files; note-scoped views show 0 files.';
+		}
+		return 'No files match this folder filter.';
 	}
 
 	toggleFilterRule(id: string): void {
@@ -736,4 +758,9 @@ function fileMatchesFolderScopes(file: TFile, folderPaths: string[]): boolean {
 	return folderPaths.some(
 		(path) => folderPath === path || folderPath.startsWith(`${path}/`),
 	);
+}
+
+function extensionFilterLabel(value: string): string | null {
+	const match = value.trim().match(/^\.([a-z0-9][a-z0-9_-]*)$/i);
+	return match?.[1]?.toLowerCase() ?? null;
 }

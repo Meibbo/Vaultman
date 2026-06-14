@@ -166,16 +166,26 @@ function matchesFile(
 			return false;
 
 		case 'has_tag': {
-			const tagTarget = (rule.values[0] ?? '').toLowerCase().replace(/^#/, '');
+			const tagTarget = normalizeTagName(rule.values[0] ?? '');
+			if (!tagTarget) return false;
 			const allTags = getAllTags(meta ?? {}) ?? [];
-			return allTags.some(
-				(tag) => tag.toLowerCase().replace(/^#/, '') === tagTarget,
-			);
+			return allTags.some((tag) => tagMatchesFilter(tag, tagTarget));
 		}
 
 		default:
 			return false;
 	}
+}
+
+function normalizeTagName(tag: string): string {
+	return tag.trim().toLowerCase().replace(/^#/, '').replace(/^\/+|\/+$/g, '');
+}
+
+function tagMatchesFilter(tag: string, tagTarget: string): boolean {
+	const normalizedTag = normalizeTagName(tag);
+	return (
+		normalizedTag === tagTarget || normalizedTag.startsWith(`${tagTarget}/`)
+	);
 }
 
 function matchesFileName(file: TFile, term: string): boolean {
