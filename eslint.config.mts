@@ -8,6 +8,10 @@ export default tseslint.config(
 	{
 		ignores: [
 			'node_modules',
+			// Nested git worktrees are full repo copies; type-aware linting them hangs
+			// eslint indefinitely (~50k files across worktrees). `.claude` below covers
+			// `.claude/worktrees`; this covers `.worktrees`.
+			'.worktrees',
 			'dist',
 			'codeql',
 			'obsidian-sample-plugin',
