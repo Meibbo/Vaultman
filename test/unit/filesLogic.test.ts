@@ -98,6 +98,23 @@ describe('FilesLogic.buildFileTree', () => {
 		]);
 	});
 
+	it('preserves caller-provided sibling folder order for nested sorted results', () => {
+		const files = [
+			makeFile('beta/newest.md'),
+			makeFile('alpha/oldest.md'),
+			makeFile('beta/second.md'),
+		];
+		const logic = new FilesLogic(makeApp({}));
+
+		const tree = logic.buildFileTree(files);
+
+		expect(tree.map((node) => node.label)).toEqual(['beta', 'alpha']);
+		expect(tree[0].children?.map((node) => node.label)).toEqual([
+			'newest',
+			'second',
+		]);
+	});
+
 	it('returns ancestor folder ids for matched files so search can reveal results', () => {
 		const files = [
 			makeFile('alpha/root.md'),

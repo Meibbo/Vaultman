@@ -118,9 +118,7 @@ export class FilesLogic {
 		};
 
 		const sortTree = (nodes: TreeNode<FileMeta>[]): TreeNode<FileMeta>[] => {
-			const folders = nodes
-				.filter((node) => node.meta?.isFolder)
-				.sort((a, b) => a.label.localeCompare(b.label));
+			const folders = nodes.filter((node) => node.meta?.isFolder);
 			const files = nodes.filter((node) => !node.meta?.isFolder);
 			nodes.splice(0, nodes.length, ...folders, ...files);
 

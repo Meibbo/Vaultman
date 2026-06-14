@@ -74,6 +74,43 @@ describe('filter evaluator file rules', () => {
 		expect([...result]).toEqual(['Data/Projects.base']);
 	});
 
+	it('matches root tag filters against nested descendant tags', () => {
+		const files = [
+			makeFile('Projects/Root.md'),
+			makeFile('Projects/Child.md'),
+			makeFile('Projects/Similar.md'),
+			makeFile('Areas/Other.md'),
+		];
+
+		const result = evalNode(
+			{
+				type: 'rule',
+				filterType: 'has_tag',
+				property: '',
+				values: ['#project'],
+			},
+			files,
+			(file) =>
+				({
+					frontmatter: {
+						tags:
+							file.path === 'Projects/Root.md'
+								? ['project']
+								: file.path === 'Projects/Child.md'
+									? ['project/client']
+									: file.path === 'Projects/Similar.md'
+										? ['projectile']
+										: ['area/project'],
+					},
+				}) as CachedMetadata,
+		);
+
+		expect([...result]).toEqual([
+			'Projects/Root.md',
+			'Projects/Child.md',
+		]);
+	});
+
 	it('narrows all-group candidates after each rule instead of scanning the whole vault per rule', () => {
 		const files = Array.from({ length: 100 }, (_, index) =>
 			makeFile(`Notes/${index}.md`),
