@@ -510,6 +510,13 @@
 		applySortState(activeTab, normalizedState);
 	}
 
+	function handleExternalFilesSortState(state: ExplorerSortState) {
+		sortStateByTab = {
+			...sortStateByTab,
+			files: normalizeSortState(state),
+		};
+	}
+
 	function handleViewModeChange(mode: ExplorerViewMode) {
 		if (!isViewModeSelectableForDataSurface(activeTab, mode)) return;
 		viewModeByTab = { ...viewModeByTab, [activeTab]: mode };
@@ -770,6 +777,14 @@
 			fileList?.setExpansionChangeHandler(undefined);
 			propExplorer?.setExpansionChangeHandler(undefined);
 			tagsExplorer?.setExpansionChangeHandler(undefined);
+		};
+	});
+
+	$effect(() => {
+		const currentFileList = fileList;
+		currentFileList?.setSortStateChangeHandler(handleExternalFilesSortState);
+		return () => {
+			currentFileList?.setSortStateChangeHandler(undefined);
 		};
 	});
 

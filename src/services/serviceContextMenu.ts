@@ -49,9 +49,13 @@ export class ContextMenuService extends Component {
 			label: translate('context_menu.clean_selection'),
 			icon: 'lucide-eraser',
 			section: 'filters',
-			when: () =>
-				(this.plugin.filterService?.activeFilter.children.length ?? 0) > 0,
-			run: () => this.plugin.filterService?.clearFilters(),
+			when: (ctx) =>
+				(this.plugin.filterService?.activeFilter.children.length ?? 0) > 0 ||
+				ctx.hasViewFilters?.() === true,
+			run: (ctx) => {
+				this.plugin.filterService?.clearFilters();
+				ctx.clearViewFilters?.();
+			},
 		});
 
 		this.registerAction({

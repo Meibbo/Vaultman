@@ -4,6 +4,14 @@ import type { VaultmanPlugin } from '../../main';
 import { openBasesFilterInteropMenu } from '../../utils/basesFilterInterop';
 import { openFilterTemplateMenu } from '../../utils/filterTemplateMenu';
 
+export interface ActiveFilterViewState {
+	id: string;
+	rule: string;
+	label: string;
+	description: string;
+	clear: () => void;
+}
+
 /**
  * In-frame floating island showing active filter rules.
  * Mirrors the design of QueueIslandComponent.
@@ -12,6 +20,7 @@ export class ActiveFiltersIslandComponent {
 	private containerEl: HTMLElement;
 	private plugin: VaultmanPlugin;
 	private onClose: () => void;
+	private viewStates: () => ActiveFilterViewState[];
 
 	private islandEl: HTMLElement | null = null;
 	private listEl: HTMLElement | null = null;
@@ -21,10 +30,12 @@ export class ActiveFiltersIslandComponent {
 		containerEl: HTMLElement,
 		plugin: VaultmanPlugin,
 		onClose: () => void,
+		viewStates: () => ActiveFilterViewState[] = () => [],
 	) {
 		this.containerEl = containerEl;
 		this.plugin = plugin;
 		this.onClose = onClose;
+		this.viewStates = viewStates;
 	}
 
 	mount(): void {
@@ -99,6 +110,7 @@ export class ActiveFiltersIslandComponent {
 	render(): void {
 		if (!this.listEl || !this.headerEl) return;
 		const rules = this.plugin.filterService.getFlatRules();
+		const viewStates = this.viewStates();
 		const filtered = this.plugin.filterService.filteredVaultFiles.length;
 		const total = this.plugin.app.vault.getFiles().length;
 
@@ -107,7 +119,7 @@ export class ActiveFiltersIslandComponent {
 		);
 
 		this.listEl.empty();
-		if (rules.length === 0) {
+		if (rules.length === 0 && viewStates.length === 0) {
 			this.listEl.createDiv({
 				cls: 'vaultman-active-filters-empty',
 				text: translate('filters.popup.empty'),
@@ -157,6 +169,40 @@ export class ActiveFiltersIslandComponent {
 			del.addEventListener('click', (e) => {
 				e.stopPropagation();
 				this.plugin.filterService.deleteFilterRule(rule.id);
+				this.render();
+			});
+		}
+
+		for (const viewState of viewStates) {
+			const row = this.listEl.createDiv({
+				cls: 'vaultman-active-filter-island-row is-view-state',
+			});
+			row.setAttribute('title', viewState.description);
+
+			const textEl = row.createSpan({
+				cls: 'vaultman-active-filter-row-text',
+			});
+			textEl.createSpan({
+				cls: 'vaultman-active-filter-row-rule',
+				text: viewState.rule,
+			});
+			textEl.createSpan({
+				cls: 'vaultman-active-filter-row-label',
+				text: viewState.label,
+			});
+
+			const actions = row.createDiv({
+				cls: 'vaultman-active-filter-row-actions',
+			});
+
+			const del = actions.createDiv({
+				cls: 'vaultman-active-filter-delete clickable-icon',
+				attr: { 'aria-label': translate('filters.popup.rule.delete') },
+			});
+			setIcon(del, 'lucide-x');
+			del.addEventListener('click', (e) => {
+				e.stopPropagation();
+				viewState.clear();
 				this.render();
 			});
 		}

@@ -8,6 +8,7 @@ import { UnifiedTreeView } from '../layout/viewTree';
 import type { TreeNode, FileMeta, NodeBadge } from '../../types/typeTree';
 import type { MenuCtx } from '../../types/typeCMenu';
 import type { FilterNode } from '../../types/typeFilter';
+import type { ExplorerSortState } from '../../types/typeUI';
 import { FileRenameModal } from '../../modals/modalFileRename';
 import { FileMoveModal } from '../../modals/modalFileMove';
 import { PropertyManagerModal } from '../../modals/modalPropertyManager';
@@ -30,6 +31,11 @@ import {
 } from '../../utils/dragPayload';
 
 export type FilesViewMode = 'grid' | 'table' | 'tree';
+
+export interface FilesTypeFilterState {
+	id: string;
+	label: string;
+}
 
 function sameStringSet(a: Set<string>, b: Set<string>): boolean {
 	if (a.size !== b.size) return false;
@@ -64,6 +70,7 @@ export class FilesExplorerPanel extends Component {
 
 	private onSelectionChange?: (count: number) => void;
 	private onExpansionChange?: () => void;
+	private onSortStateChange?: (state: ExplorerSortState) => void;
 
 	constructor(
 		containerEl: HTMLElement,
@@ -301,6 +308,13 @@ export class FilesExplorerPanel extends Component {
 		this.onExpansionChange = handler;
 	}
 
+	setSortStateChangeHandler(
+		handler?: (state: ExplorerSortState) => void,
+	): void {
+		this.onSortStateChange = handler;
+		handler?.(this._sortState());
+	}
+
 	setSortBy(
 		sortBy: string,
 		direction: 'asc' | 'desc',
@@ -332,7 +346,28 @@ export class FilesExplorerPanel extends Component {
 				direction,
 			);
 		}
+		this._notifySortStateChanged();
 		this._render();
+	}
+
+	getActiveTypeFilter(): FilesTypeFilterState | null {
+		if (!this.nodeTypeFilter) return null;
+		const option = this.getFileTypeOptions().find(
+			(candidate) => candidate.id === this.nodeTypeFilter,
+		);
+		return {
+			id: this.nodeTypeFilter,
+			label: option?.label ?? this._fileTypeLabel(this.nodeTypeFilter),
+		};
+	}
+
+	hasViewFilters(): boolean {
+		return Boolean(this.nodeTypeFilter);
+	}
+
+	clearNodeTypeFilter(): void {
+		if (!this.nodeTypeFilter) return;
+		this.setSortBy(this.sortBy, this.sortDir, false, null);
 	}
 
 	render(filteredFiles: TFile[], totalCount: number): void {
@@ -517,8 +552,12 @@ export class FilesExplorerPanel extends Component {
 			.map((extension) => ({
 				id: extension,
 				icon: extension === 'base' ? 'lucide-database' : 'lucide-file-type',
-				label: extension === 'none' ? 'No extension' : `.${extension}`,
+				label: this._fileTypeLabel(extension),
 			}));
+	}
+
+	private _fileTypeLabel(extension: string): string {
+		return extension === 'none' ? 'No extension' : `.${extension}`;
 	}
 
 	private _propCountForFile(file: TFile): number {
@@ -540,7 +579,13 @@ export class FilesExplorerPanel extends Component {
 			depth: 0,
 		};
 		this.plugin.contextMenuService.openPanelMenu(
-			{ nodeType: 'file', node: syntheticNode, surface: 'panel', file },
+			{
+				nodeType: 'file',
+				node: syntheticNode,
+				surface: 'panel',
+				file,
+				...this._viewFilterMenuActions(),
+			},
 			event,
 		);
 	}
@@ -658,14 +703,25 @@ export class FilesExplorerPanel extends Component {
 					const meta = node.meta;
 					if (meta.isFolder) {
 						this.plugin.contextMenuService.openPanelMenu(
-							{ nodeType: 'folder', node, surface: 'panel' },
+							{
+								nodeType: 'folder',
+								node,
+								surface: 'panel',
+								...this._viewFilterMenuActions(),
+							},
 							e,
 						);
 						return;
 					}
 					if (!meta.file) return;
 					this.plugin.contextMenuService.openPanelMenu(
-						{ nodeType: 'file', node, surface: 'panel', file: meta.file },
+						{
+							nodeType: 'file',
+							node,
+							surface: 'panel',
+							file: meta.file,
+							...this._viewFilterMenuActions(),
+						},
 						e,
 					);
 				},
@@ -888,6 +944,29 @@ export class FilesExplorerPanel extends Component {
 
 	private _notifyExpansionChanged(): void {
 		this.onExpansionChange?.();
+	}
+
+	private _sortState(): ExplorerSortState {
+		return {
+			sortBy: this.sortBy,
+			direction: this.sortDir,
+			childLevel: false,
+			nodeTypeFilter: this.nodeTypeFilter,
+		};
+	}
+
+	private _notifySortStateChanged(): void {
+		this.onSortStateChange?.(this._sortState());
+	}
+
+	private _viewFilterMenuActions(): Pick<
+		MenuCtx,
+		'hasViewFilters' | 'clearViewFilters'
+	> {
+		return {
+			hasViewFilters: () => this.hasViewFilters(),
+			clearViewFilters: () => this.clearNodeTypeFilter(),
+		};
 	}
 
 	private _nestedEnabled(): boolean {

@@ -7,6 +7,8 @@ export interface MenuCtx {
 	node: TreeNode<unknown>;
 	surface: 'panel' | 'file-menu' | 'editor-menu' | 'more-options';
 	file?: TFile;
+	hasViewFilters?: () => boolean;
+	clearViewFilters?: () => void;
 }
 
 export interface ActionDef {

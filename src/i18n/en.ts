@@ -495,6 +495,8 @@ export const en: Record<string, string> = {
 	'filters.popup.rule.enable': 'Enable filter',
 	'filters.popup.rule.disable': 'Disable filter',
 	'filters.popup.rule.delete': 'Remove filter',
+	'filters.view_state.files_type': 'Files view type',
+	'filters.view_state.files_type_desc': 'Files view is limited to {type} files.',
 	'filters.bases.menu': 'Import/export Bases filters',
 	'filters.bases.import': 'Import',
 	'filters.bases.export': 'Export active filters to Base',
