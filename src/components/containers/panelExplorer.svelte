@@ -270,10 +270,10 @@
 	let lastExpansionSummaryKey = '';
 	let lastExpansionCommandSerial = -1;
 	let queueVersion = $state(0);
-	const subscribeFilesSnapshot = createSubscriber((update) => {
+	const subscribeProviderSnapshot = createSubscriber((update) => {
 		const service = plugin.explorerDataPlaneService;
 		if (!service) return;
-		return service.subscribe('files', update);
+		return service.subscribe(provider.id, update);
 	});
 	const activeOpsByNode: ActiveOpsByNode = $derived.by(() => {
 		if (viewMode !== 'tree' && viewMode !== 'grid') return new Map<string, Set<BadgeKind>>();
@@ -301,9 +301,12 @@
 		resolveNodeMouseActions(plugin.settings?.nodeMouseActions, LEGACY_NODE_MOUSE_ACTIONS),
 	);
 	const filesSnapshot = $derived.by(() => {
-		if (provider.id !== 'files') return null;
-		subscribeFilesSnapshot();
-		return plugin.explorerDataPlaneService?.snapshot<TMeta>('files') ?? null;
+		// Snapshot path is active for any provider that has published a snapshot
+		// into the data plane for its id (files/props/tags/content). Add-on
+		// providers (snippets/plugins/operations) never publish, so no snapshot
+		// exists for them and they fall back to the recursive provider tree.
+		subscribeProviderSnapshot();
+		return plugin.explorerDataPlaneService?.snapshot<TMeta>(provider.id) ?? null;
 	});
 	let keyboardOriginId: string | null = null;
 	const keyboardNav: KeyboardNavController = createKeyboardNav({
@@ -468,12 +471,16 @@
 
 	function publishProviderSnapshot(): void {
 		const service = plugin.explorerDataPlaneService;
-		if (provider.id !== 'files' || !service || !provider.getSnapshot) return;
+		// Any provider that implements the dual-snapshot trio publishes to the
+		// data plane under its own id (files/props/tags/content). Add-on providers
+		// without getSnapshot (snippets/plugins/operations) stay on the recursive
+		// tree fallback below.
+		if (!service || !provider.getSnapshot) return;
 		const snapshot = provider.getSnapshot(expandedIds);
 		const key = snapshotPublishKey(snapshot);
 		if (key === lastPublishedSnapshotKey) return;
 		lastPublishedSnapshotKey = key;
-		service.publish('files', snapshot);
+		service.publish(provider.id, snapshot);
 	}
 
 	function snapshotPublishKey(snapshot: ExplorerSnapshot<TMeta>): string {

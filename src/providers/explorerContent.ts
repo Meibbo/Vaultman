@@ -4,7 +4,12 @@ import type { ExplorerProvider } from '../types/typeExplorer';
 import type { MenuCtx } from '../types/typeCtxMenu';
 import type { ContentMeta, TreeNode } from '../types/typeNode';
 import type { ContentMatch } from '../types/typeContracts';
+import type {
+	ExplorerDataPlaneRevisions,
+	ExplorerSnapshot,
+} from '../types/typeExplorerDataPlane';
 import { buildFileDeleteChange } from '../services/serviceFileQueue';
+import { buildExplorerSnapshot } from '../logic/logicExplorerSnapshot';
 import { withViewStateClasses } from '../utils/utilViewLayers';
 
 export class explorerContent implements ExplorerProvider<ContentMeta> {
@@ -92,6 +97,73 @@ export class explorerContent implements ExplorerProvider<ContentMeta> {
 			if (file) files.set(file.path, file);
 		}
 		return [...files.values()];
+	}
+
+	/**
+	 * Bare structural tree (group + match nodes) without view-state decoration.
+	 * The decorated tree lives in {@link getTree}; the data-plane snapshot owns
+	 * only structure (EDP-004 contract).
+	 */
+	private buildStructuralTree(): TreeNode<ContentMeta>[] {
+		const grouped = new Map<string, ContentMatch[]>();
+		for (const match of this.plugin.contentIndex.nodes) {
+			const list = grouped.get(match.filePath) ?? [];
+			list.push(match);
+			grouped.set(match.filePath, list);
+		}
+
+		return [...grouped.entries()].map(([filePath, matches]) => {
+			const file = this.resolveFile(filePath);
+			return {
+				id: `content:file:${filePath}`,
+				label: filePath,
+				icon: 'lucide-file-text',
+				count: matches.length,
+				depth: 0,
+				meta: {
+					kind: 'file',
+					filePath,
+					file,
+				},
+				children: matches.map((match) => this.matchNode(match, file)),
+			} satisfies TreeNode<ContentMeta>;
+		});
+	}
+
+	getStructuralTree(): TreeNode<ContentMeta>[] {
+		return this.buildStructuralTree();
+	}
+
+	getStructuralRevisions(): ExplorerDataPlaneRevisions {
+		// Only the structural content index revision belongs here. Queue/filter
+		// (operations/activeFilters) revisions are reserved (EDP-004) and stay in
+		// the decoration path in getTree(), never in the structural snapshot.
+		return {
+			contentRevision: this.plugin.contentIndex?.revision ?? 0,
+		};
+	}
+
+	getSnapshot(expandedIds: ReadonlySet<string> = new Set()): ExplorerSnapshot<ContentMeta> {
+		return buildExplorerSnapshot({
+			explorerId: this.id,
+			providerKey: this.id,
+			tree: this.getStructuralTree(),
+			expandedIds,
+			revisions: this.getStructuralRevisions(),
+			projection: {
+				searchTerm: '',
+				searchMode: 'all',
+				sortBy: 'name',
+				sortDirection: 'asc',
+				sortTarget: 'top',
+			},
+			kindFor: ({ node }) => (node.meta.kind === 'file' ? 'file' : 'unknown'),
+			// Only the file-group node is a stable reveal/domain target. Match
+			// children share the same filePath, so they carry no path/domainKey to
+			// keep the snapshot's pathToId/domainKeyToId maps file-unique.
+			pathFor: ({ node }) => (node.meta.kind === 'file' ? node.meta.filePath : undefined),
+			domainKeyFor: ({ node }) => (node.meta.kind === 'file' ? node.meta.filePath : undefined),
+		});
 	}
 
 	subscribe(cb: () => void): () => void {

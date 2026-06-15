@@ -139,6 +139,55 @@ function makeFilesSnapshot(visibleIds: string[]): ExplorerSnapshot {
 	};
 }
 
+function makeDomainSnapshot(
+	explorerId: string,
+	visibleIds: string[],
+	sourceRevisions: ExplorerSnapshot['sourceRevisions'],
+): ExplorerSnapshot {
+	const rows = visibleIds.map((id, index) => {
+		const node: TreeNode = {
+			id,
+			label: id,
+			depth: 0,
+			meta: {},
+			icon: 'lucide-file',
+		};
+		return {
+			id,
+			label: id,
+			depth: 0,
+			parentId: null,
+			childrenIds: [],
+			node,
+			kind: 'unknown' as const,
+			domainKey: id,
+			index,
+		};
+	});
+	return {
+		explorerId,
+		providerKey: explorerId,
+		revision: 1,
+		structureRevision: 1,
+		rows,
+		tree: rows.map((row) => row.node),
+		visibleIds,
+		byId: new Map(rows.map((row) => [row.id, row])),
+		idToIndex: new Map(visibleIds.map((id, index) => [id, index])),
+		pathToId: new Map(),
+		folderPathToId: new Map(),
+		domainKeyToId: new Map(visibleIds.map((id) => [id, id])),
+		projection: {
+			searchTerm: '',
+			searchMode: 'all',
+			sortBy: 'name',
+			sortDirection: 'asc',
+			sortTarget: 'top',
+		},
+		sourceRevisions,
+	};
+}
+
 function makeNestedFilesSnapshot(expandedIds: ReadonlySet<string>): ExplorerSnapshot {
 	const parent: TreeNode = {
 		id: 'parent',
@@ -617,6 +666,111 @@ describe('PanelExplorer tree selection adapter', () => {
 
 		expect(pruneSpy).toHaveBeenCalledWith('tags', ['alpha', 'beta']);
 		expect(pruneSpy).not.toHaveBeenCalledWith('tags', ['snapshot-a.md']);
+	});
+
+	it('props panel publishes provider snapshots into the data-plane service', () => {
+		const service = new ExplorerDataPlaneService();
+		const snapshot = makeDomainSnapshot('props', ['note.status', 'note.status::draft'], {
+			propsRevision: 1,
+		});
+		const getSnapshot = vi.fn(() => snapshot);
+
+		renderPanel({
+			explorerDataPlaneService: service,
+			provider: provider({
+				id: 'props',
+				getTree: vi.fn(() => nodes()),
+				getSnapshot,
+			} as Partial<ExplorerProvider>),
+		});
+
+		expect(getSnapshot).toHaveBeenCalled();
+		expect(service.snapshot('props')?.visibleIds).toEqual(['note.status', 'note.status::draft']);
+		// Files slot stays untouched: each provider publishes under its own id.
+		expect(service.snapshot('files')).toBeUndefined();
+	});
+
+	it('tags panel publishes provider snapshots into the data-plane service', () => {
+		const service = new ExplorerDataPlaneService();
+		const snapshot = makeDomainSnapshot('tags', ['tag.project', 'tag.project/sub'], {
+			tagsRevision: 1,
+		});
+		const getSnapshot = vi.fn(() => snapshot);
+
+		renderPanel({
+			explorerDataPlaneService: service,
+			provider: provider({
+				id: 'tags',
+				getTree: vi.fn(() => nodes()),
+				getSnapshot,
+			} as Partial<ExplorerProvider>),
+		});
+
+		expect(getSnapshot).toHaveBeenCalled();
+		expect(service.snapshot('tags')?.visibleIds).toEqual(['tag.project', 'tag.project/sub']);
+		expect(service.snapshot('files')).toBeUndefined();
+	});
+
+	it('content panel publishes provider snapshots into the data-plane service', () => {
+		const service = new ExplorerDataPlaneService();
+		const snapshot = makeDomainSnapshot('content', ['content:file:Notes/Alpha.md'], {
+			contentRevision: 1,
+		});
+		const getSnapshot = vi.fn(() => snapshot);
+
+		renderPanel({
+			explorerDataPlaneService: service,
+			provider: provider({
+				id: 'content',
+				getTree: vi.fn(() => nodes()),
+				getSnapshot,
+			} as Partial<ExplorerProvider>),
+		});
+
+		expect(getSnapshot).toHaveBeenCalled();
+		expect(service.snapshot('content')?.visibleIds).toEqual(['content:file:Notes/Alpha.md']);
+	});
+
+	it('props tree prune uses snapshot.visibleIds instead of the recursive provider tree', () => {
+		const selectionService = new NodeSelectionService();
+		const pruneSpy = vi.spyOn(selectionService, 'prune');
+		const service = new ExplorerDataPlaneService();
+		const snapshot = makeDomainSnapshot('props', ['note.status', 'note.status::draft'], {
+			propsRevision: 1,
+		});
+		const getTree = vi.fn(() => nodes());
+
+		renderPanel({
+			selectionService,
+			explorerDataPlaneService: service,
+			provider: provider({
+				id: 'props',
+				getTree,
+				getSnapshot: vi.fn(() => snapshot),
+			} as Partial<ExplorerProvider>),
+		});
+
+		// Visible ids come from the snapshot path, NOT the recursive getTree() ['alpha','beta'].
+		expect(pruneSpy).toHaveBeenCalledWith('props', ['note.status', 'note.status::draft']);
+		expect(pruneSpy).not.toHaveBeenCalledWith('props', ['alpha', 'beta']);
+	});
+
+	it('add-on providers without a snapshot trio keep the recursive fallback path', () => {
+		const selectionService = new NodeSelectionService();
+		const pruneSpy = vi.spyOn(selectionService, 'prune');
+		const service = new ExplorerDataPlaneService();
+		const publishSpy = vi.spyOn(service, 'publish');
+
+		renderPanel({
+			selectionService,
+			explorerDataPlaneService: service,
+			// snippets/plugins/operations: no getSnapshot -> recursive tree path only.
+			provider: provider({ id: 'snippets', getTree: vi.fn(() => nodes()) }),
+		});
+
+		expect(publishSpy).not.toHaveBeenCalled();
+		expect(service.snapshot('snippets')).toBeUndefined();
+		expect(pruneSpy).toHaveBeenCalledWith('snippets', ['alpha', 'beta']);
 	});
 
 	it('grid mode reflects node ids already selected in the shared selection service', () => {
