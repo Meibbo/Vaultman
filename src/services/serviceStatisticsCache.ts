@@ -51,6 +51,7 @@ export class StatisticsCacheService extends Component {
 	private readonly events = new Events();
 	private readonly storage: StatisticsCacheStorage | null;
 	private fileStatsCache = new Map<string, CachedFileStats>();
+	private staleFileStatsCache = new Map<string, CachedFileStats>();
 	private aggregateStatsCache = new Map<string, StatisticsSnapshot>();
 	private scopeStatsCache = new Map<StatisticsScope, StatisticsSnapshot>();
 	private storageInitialized = false;
@@ -123,18 +124,22 @@ export class StatisticsCacheService extends Component {
 	}
 
 	invalidateFile(file: TFile): void {
+		const cached = this.fileStatsCache.get(file.path);
+		if (cached) this.staleFileStatsCache.set(file.path, cached);
 		this.fileStatsCache.delete(file.path);
 		this.invalidateAggregates();
 	}
 
 	deleteCachedPath(path: string): void {
 		this.fileStatsCache.delete(path);
+		this.staleFileStatsCache.delete(path);
 		this.invalidateAggregates();
 		void this.deletePersistedPath(path);
 	}
 
 	clear(): void {
 		this.fileStatsCache.clear();
+		this.staleFileStatsCache.clear();
 		this.scopeStatsCache.clear();
 		this.invalidateAggregates();
 		void this.storage?.clear();
@@ -202,7 +207,7 @@ export class StatisticsCacheService extends Component {
 	getFileWordCount(file: TFile): number | null {
 		const cached = this.fileStatsCache.get(file.path);
 		if (this.isFreshCachedStats(file, cached)) return cached.words;
-		return null;
+		return this.staleFileStatsCache.get(file.path)?.words ?? null;
 	}
 
 	private snapshotForDisplay(
@@ -252,6 +257,7 @@ export class StatisticsCacheService extends Component {
 					const file = files[index];
 					let fileStats = this.fileStatsCache.get(file.path);
 					if (this.isFreshCachedStats(file, fileStats)) {
+						this.staleFileStatsCache.delete(file.path);
 						cacheHits += 1;
 					} else {
 						const content = await this.app.vault.cachedRead(file);
@@ -264,6 +270,7 @@ export class StatisticsCacheService extends Component {
 							...this.collectFileMetadata(file),
 						};
 						this.fileStatsCache.set(file.path, fileStats);
+						this.staleFileStatsCache.delete(file.path);
 						void this.persistFileStats(fileStats);
 						filesRead += 1;
 					}
