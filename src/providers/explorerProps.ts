@@ -1,5 +1,11 @@
 import type { TFile } from 'obsidian';
-import { PropsLogic } from '../logic/logicProps';
+import {
+	buildPropTree,
+	filterPropTree,
+	propDomainKey,
+	type PropNodeMeta,
+	type PropTreeSource,
+} from '../logic/logicProps';
 import { buildExplorerSnapshot } from '../logic/logicExplorerSnapshot';
 import type { TreeNode, PropMeta, NodeBadge } from '../types/typeNode';
 import { DELETE_PROP, NATIVE_RENAME_PROP } from '../types/typeOps';
@@ -52,7 +58,6 @@ export interface ExplorerPropsOptions {
 export class explorerProps implements ExplorerProvider<PropMeta> {
 	id = 'props';
 	private plugin: VaultmanPlugin;
-	private logic: PropsLogic;
 	private options: ExplorerPropsOptions;
 	private searchTerm = '';
 	private searchMode: 'all' | 'leaf' = 'all';
@@ -66,10 +71,8 @@ export class explorerProps implements ExplorerProvider<PropMeta> {
 	constructor(plugin: VaultmanPlugin, options: ExplorerPropsOptions = {}) {
 		this.plugin = plugin;
 		this.options = options;
-		this.logic = new PropsLogic(plugin.app, plugin.propsIndex);
 		this.unsubscribePropsIndex = this.plugin.propsIndex.subscribe(() => {
 			getActivePerfProbe()?.count('explorerProps.invalidate');
-			this.logic.invalidate();
 			this.structuralCache = null;
 		});
 		this.registerActions();
@@ -248,12 +251,17 @@ export class explorerProps implements ExplorerProvider<PropMeta> {
 		if (this.structuralCache?.key === cacheKey) return this.structuralCache.tree;
 
 		const probe = getActivePerfProbe();
+		const buildTree = () =>
+			buildPropTree(this.toPropSources(), this.propTypeByName()) as TreeNode<PropMeta>[];
 		let tree =
-			probe?.measure('explorerProps.logicTree', undefined, () => this.logic.getTree()) ??
-			this.logic.getTree();
+			probe?.measure('explorerProps.logicTree', undefined, buildTree) ?? buildTree();
 		if (this.searchTerm) {
 			const filterTree = () =>
-				this.logic.filterTree(tree, this.searchTerm, this.searchMode === 'leaf' ? 1 : 0);
+				filterPropTree(
+					tree as TreeNode<PropNodeMeta>[],
+					this.searchTerm,
+					this.searchMode === 'leaf' ? 1 : 0,
+				) as TreeNode<PropMeta>[];
 			tree =
 				probe?.measure('explorerProps.filterTree', { nodes: tree.length }, filterTree) ??
 				filterTree();
@@ -263,6 +271,32 @@ export class explorerProps implements ExplorerProvider<PropMeta> {
 			probe?.measure('explorerProps.sort', { nodes: tree.length }, sortTree) ?? sortTree();
 		this.structuralCache = { key: cacheKey, tree: sorted };
 		return sorted;
+	}
+
+	/**
+	 * Impurity boundary: the index rows the pure `logicProps` builder consumes.
+	 * Narrows `IPropsIndex` `PropNode`s to the app-free `PropTreeSource` shape.
+	 */
+	private toPropSources(): PropTreeSource[] {
+		return this.plugin.propsIndex.nodes.map((node) => ({
+			property: node.property,
+			valueFrequencies: node.valueFrequencies,
+			fileCount: node.fileCount,
+		}));
+	}
+
+	/**
+	 * Impurity boundary: the only `metadataCache` read for the structural build.
+	 * Returns the declared `prop -> type` map (honest, case-sensitive keys).
+	 */
+	private propTypeByName(): Record<string, { type: string }> {
+		return (
+			(
+				this.plugin.app.metadataCache as unknown as {
+					getAllPropertyInfos?: () => Record<string, { type: string }>;
+				}
+			).getAllPropertyInfos?.() ?? {}
+		);
 	}
 
 	getTree(): TreeNode<PropMeta>[] {
@@ -483,8 +517,7 @@ export class explorerProps implements ExplorerProvider<PropMeta> {
 	}
 
 	private domainKeyForNode(node: TreeNode<PropMeta>): string {
-		if (!node.meta.isValueNode) return node.meta.propName;
-		return `${node.meta.propName}::${node.meta.rawValue ?? node.label}`;
+		return propDomainKey(node.meta);
 	}
 
 	private async _renameProp(propName: string): Promise<void> {

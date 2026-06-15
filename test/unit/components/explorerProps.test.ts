@@ -128,7 +128,7 @@ describe('explorerProps search', () => {
 		const startRenameHandoff = vi.fn();
 		const plugin = makePlugin();
 		const explorer = new explorerProps(plugin, { startRenameHandoff });
-		const statusNode = explorer.getTree().find((node) => node.id === 'status');
+		const statusNode = explorer.getTree().find((node) => node.id === 'note.status');
 		const renameAction = (
 			plugin.contextMenuService.registerAction as ReturnType<typeof vi.fn>
 		).mock.calls.find(([action]) => action.id === 'prop.rename')?.[0];
@@ -154,7 +154,7 @@ describe('explorerProps search', () => {
 		const explorer = new explorerProps(plugin, { startRenameHandoff });
 		const valueNode = explorer
 			.getTree()
-			.find((node) => node.id === 'status')
+			.find((node) => node.id === 'note.status')
 			?.children?.find((node) => node.label === 'draft');
 		const renameAction = (
 			plugin.contextMenuService.registerAction as ReturnType<typeof vi.fn>
@@ -181,7 +181,7 @@ describe('explorerProps search', () => {
 		explorer.setSearchTerm('owner', 'all');
 		const tree = explorer.getTree();
 
-		expect(tree.map((node) => node.id)).toEqual(['owner']);
+		expect(tree.map((node) => node.id)).toEqual(['note.owner']);
 		expect(tree[0].highlights).toEqual([{ start: 0, end: 5 }]);
 	});
 
@@ -191,7 +191,7 @@ describe('explorerProps search', () => {
 		explorer.setSearchTerm('draft', 'leaf');
 		const tree = explorer.getTree();
 
-		expect(tree.map((node) => node.id)).toEqual(['status']);
+		expect(tree.map((node) => node.id)).toEqual(['note.status']);
 		expect(tree[0].children?.map((node) => node.label)).toEqual(['draft']);
 	});
 
@@ -227,7 +227,7 @@ describe('explorerProps search', () => {
 
 		const tree = explorer.getTree();
 		const valueNode = tree
-			.find((node) => node.id === 'status')
+			.find((node) => node.id === 'note.status')
 			?.children?.find((node) => node.label === 'draft');
 
 		expect(valueNode?.cls).not.toContain('is-active-filter');
@@ -277,7 +277,7 @@ describe('explorerProps search', () => {
 
 		const tree = explorer.getTree();
 		const valueNode = tree
-			.find((node) => node.id === 'status')
+			.find((node) => node.id === 'note.status')
 			?.children?.find((node) => node.label === 'draft');
 
 		expect(valueNode?.cls).toContain('is-active-filter');
@@ -320,7 +320,7 @@ describe('explorerProps search', () => {
 		const explorer = new explorerProps(plugin);
 		const valueNode = explorer
 			.getTree()
-			.find((node) => node.id === 'tags')
+			.find((node) => node.id === 'note.tags')
 			?.children?.find((node) => node.label === 'project');
 		expect(valueNode).toBeTruthy();
 
@@ -344,8 +344,8 @@ describe('explorerProps search', () => {
 		const plugin = makePlugin();
 		const explorer = new explorerProps(plugin);
 		const tree = explorer.getTree();
-		const statusNode = tree.find((node) => node.id === 'status');
-		const ownerNode = tree.find((node) => node.id === 'owner');
+		const statusNode = tree.find((node) => node.id === 'note.status');
+		const ownerNode = tree.find((node) => node.id === 'note.owner');
 		const deleteAction = (
 			plugin.contextMenuService.registerAction as ReturnType<typeof vi.fn>
 		).mock.calls.find(([action]) => action.id === 'prop.delete')?.[0];
@@ -369,8 +369,8 @@ describe('explorerProps search', () => {
 		const plugin = makePlugin();
 		const explorer = new explorerProps(plugin);
 		const tree = explorer.getTree();
-		const statusNode = tree.find((node) => node.id === 'status');
-		const ownerNode = tree.find((node) => node.id === 'owner');
+		const statusNode = tree.find((node) => node.id === 'note.status');
+		const ownerNode = tree.find((node) => node.id === 'note.owner');
 		const typeAction = (
 			plugin.contextMenuService.registerAction as ReturnType<typeof vi.fn>
 		).mock.calls.find(([action]) => action.id === 'prop.type-number')?.[0];
@@ -397,7 +397,7 @@ describe('explorerProps search', () => {
 		const plugin = makePlugin();
 		const explorer = new explorerProps(plugin);
 		const statusValues =
-			explorer.getTree().find((node) => node.id === 'status')?.children ?? [];
+			explorer.getTree().find((node) => node.id === 'note.status')?.children ?? [];
 		const draftNode = statusValues.find((node) => node.label === 'draft');
 		const doneNode = statusValues.find((node) => node.label === 'done');
 		const deleteAction = (
@@ -424,7 +424,7 @@ describe('explorerProps search', () => {
 		const explorer = new explorerProps(plugin);
 		explorer.setAddMode(true);
 
-		const ownerNode = explorer.getTree().find((node) => node.id === 'owner');
+		const ownerNode = explorer.getTree().find((node) => node.id === 'note.owner');
 		const addBadge = ownerNode?.badges?.find(
 			(badge) => badge.quickAction && badge.icon === 'lucide-plus',
 		);
@@ -446,7 +446,7 @@ describe('explorerProps search', () => {
 		const explorer = new explorerProps(plugin, { openPropSetIsland }) as explorerProps & {
 			handleHoverBadge?: (node: ReturnType<explorerProps['getTree']>[number], kind: string) => void;
 		};
-		const statusNode = explorer.getTree().find((node) => node.id === 'status');
+		const statusNode = explorer.getTree().find((node) => node.id === 'note.status');
 		const draftNode = statusNode?.children?.find((node) => node.label === 'draft');
 
 		expect(statusNode).toBeTruthy();
@@ -471,7 +471,7 @@ describe('explorerProps search', () => {
 		const openContentSearchHook = vi.fn();
 		const plugin = makePlugin({ openContentSearchHook } as Partial<VaultmanPlugin>);
 		const explorer = new explorerProps(plugin);
-		const statusNode = explorer.getTree().find((node) => node.id === 'status');
+		const statusNode = explorer.getTree().find((node) => node.id === 'note.status');
 		const draftNode = statusNode?.children?.find((node) => node.label === 'draft');
 
 		explorer.handleNodeSecondaryAction?.(statusNode!);
@@ -620,11 +620,10 @@ describe('explorerProps search', () => {
 		explorer.setSortTarget('children');
 		const tree = explorer.getTree();
 
-		expect(tree.map((node) => node.id)).toEqual(['status', 'owner']);
-		expect(tree.find((node) => node.id === 'status')?.children?.map((node) => node.label)).toEqual([
-			'done',
-			'draft',
-		]);
+		expect(tree.map((node) => node.id)).toEqual(['note.status', 'note.owner']);
+		expect(
+			tree.find((node) => node.id === 'note.status')?.children?.map((node) => node.label),
+		).toEqual(['done', 'draft']);
 	});
 
 	it('builds a Props snapshot with projection, parent links, visible order, and domain keys', () => {
@@ -634,7 +633,7 @@ describe('explorerProps search', () => {
 		explorer.setSearchTerm('draft', 'leaf');
 		explorer.setSortBy('name', 'desc');
 		explorer.setSortTarget('children');
-		const snapshot = explorer.getSnapshot(new Set(['status']));
+		const snapshot = explorer.getSnapshot(new Set(['note.status']));
 
 		expect(snapshot).toMatchObject({
 			explorerId: 'props',
@@ -649,13 +648,13 @@ describe('explorerProps search', () => {
 			},
 		});
 		expect(snapshot.rows.map((row) => [row.id, row.parentId, row.kind, row.domainKey])).toEqual([
-			['status', null, 'prop', 'status'],
-			['status::draft', 'status', 'value', 'status::draft'],
+			['note.status', null, 'prop', 'status'],
+			['note.status::draft', 'note.status', 'value', 'status::draft'],
 		]);
-		expect(snapshot.visibleIds).toEqual(['status', 'status::draft']);
-		expect(snapshot.byId.get('status::draft')?.node.meta.rawValue).toBe('draft');
-		expect(snapshot.domainKeyToId.get('status')).toBe('status');
-		expect(snapshot.domainKeyToId.get('status::draft')).toBe('status::draft');
+		expect(snapshot.visibleIds).toEqual(['note.status', 'note.status::draft']);
+		expect(snapshot.byId.get('note.status::draft')?.node.meta.rawValue).toBe('draft');
+		expect(snapshot.domainKeyToId.get('status')).toBe('note.status');
+		expect(snapshot.domainKeyToId.get('status::draft')).toBe('note.status::draft');
 	});
 
 	it('uses IPropsIndex, not PropertyIndexService, for object value structure and removals', () => {
@@ -717,10 +716,15 @@ describe('explorerProps search', () => {
 		});
 		const explorer = new explorerProps(plugin) as PropsSnapshotAdapter;
 
-		const before = explorer.getSnapshot(new Set(['Config']));
+		const before = explorer.getSnapshot(new Set(['note.Config']));
 
-		expect(before.rows.map((row) => row.id)).toEqual(['Config', 'Config::{"mode":"fast"}']);
-		expect(before.domainKeyToId.get('Config::{"mode":"fast"}')).toBe('Config::{"mode":"fast"}');
+		expect(before.rows.map((row) => row.id)).toEqual([
+			'note.Config',
+			'note.Config::{"mode":"fast"}',
+		]);
+		expect(before.domainKeyToId.get('Config::{"mode":"fast"}')).toBe(
+			'note.Config::{"mode":"fast"}',
+		);
 		expect(stalePropertyIndex.getPropertyValues).not.toHaveBeenCalled();
 
 		propsNodes = [
@@ -735,9 +739,9 @@ describe('explorerProps search', () => {
 		revision += 1;
 		notifyPropsChanged?.();
 
-		const after = explorer.getSnapshot(new Set(['Config']));
+		const after = explorer.getSnapshot(new Set(['note.Config']));
 
-		expect(after.rows.map((row) => row.id)).toEqual(['Config']);
+		expect(after.rows.map((row) => row.id)).toEqual(['note.Config']);
 		expect(after.domainKeyToId.has('Config::{"mode":"fast"}')).toBe(false);
 		expect(stalePropertyIndex.getPropertyValues).not.toHaveBeenCalled();
 	});
@@ -763,9 +767,13 @@ describe('explorerProps search', () => {
 
 		explorer.getStructuralTree();
 		const viewSpy = vi.spyOn(plugin.viewService, 'getModel');
-		const logicSpy = vi.spyOn(
-			(explorer as unknown as { logic: { getTree(): TreeNode<PropMeta>[] } }).logic,
-			'getTree',
+		// The pure build path's only metadataCache read is getAllPropertyInfos; a
+		// warm structural cache must not re-read it when queue/filter revisions bump.
+		const buildSpy = vi.spyOn(
+			plugin.app.metadataCache as unknown as {
+				getAllPropertyInfos: () => Record<string, { type: string }>;
+			},
+			'getAllPropertyInfos',
 		);
 		(plugin.operationsIndex as { revision: number }).revision += 1;
 		(plugin.activeFiltersIndex as { revision: number }).revision += 1;
@@ -774,8 +782,8 @@ describe('explorerProps search', () => {
 		const revisions = explorer.getStructuralRevisions();
 		const snapshot = explorer.getSnapshot();
 
-		expect(tree.map((node) => node.id)).toEqual(['owner', 'status']);
-		expect(logicSpy).not.toHaveBeenCalled();
+		expect(tree.map((node) => node.id)).toEqual(['note.owner', 'note.status']);
+		expect(buildSpy).not.toHaveBeenCalled();
 		expect(viewSpy).not.toHaveBeenCalled();
 		expect(revisions).toEqual({ propsRevision: plugin.propsIndex.revision });
 		expect(snapshot.sourceRevisions).toEqual({ propsRevision: plugin.propsIndex.revision });

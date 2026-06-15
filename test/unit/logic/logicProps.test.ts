@@ -1,130 +1,185 @@
 import { describe, it, expect } from 'vitest';
-import type { App } from 'obsidian';
-import { PropsLogic } from '../../../src/logic/logicProps';
-import type { IPropsIndex, PropNode } from '../../../src/types/typeContracts';
-import { mockApp, mockTFile, type CachedMetadata } from '../../helpers/obsidian-mocks';
+import {
+	buildPropTree,
+	filterPropTree,
+	isCompatible,
+	propDomainKey,
+	propNodeId,
+	propValueNodeId,
+	sortPropValuesByFrequency,
+	type PropNodeMeta,
+	type PropTreeSource,
+} from '../../../src/logic/logicProps';
+import type { TreeNode } from '../../../src/types/typeTreeNode';
 
-function makePropsIndex(app: App): IPropsIndex {
-	const acc = new Map<string, { values: Map<string, number>; files: Set<string> }>();
-	for (const file of app.vault.getMarkdownFiles()) {
-		const fm = app.metadataCache.getFileCache(file)?.frontmatter;
-		if (!fm) continue;
-		for (const [property, value] of Object.entries(fm)) {
-			if (property === 'position') continue;
-			let entry = acc.get(property);
-			if (!entry) {
-				entry = { values: new Map(), files: new Set() };
-				acc.set(property, entry);
-			}
-			entry.files.add(file.path);
-			for (const raw of Array.isArray(value) ? value : [value]) {
-				if (raw == null) continue;
-				const key = String(raw);
-				entry.values.set(key, (entry.values.get(key) ?? 0) + 1);
-			}
-		}
-	}
-	const nodes: PropNode[] = Array.from(acc.entries()).map(([property, entry]) => ({
-		id: property,
-		property,
-		values: Array.from(entry.values.keys()),
-		valueFrequencies: Object.fromEntries(entry.values),
-		fileCount: entry.files.size,
-	}));
-	return {
-		nodes,
-		flatIds: nodes.map((node) => node.id),
-		revision: 1,
-		refresh: () => {},
-		subscribe: () => () => {},
-		byId: (id: string) => nodes.find((node) => node.id === id),
-		getSearchBuffer: (id: string) => {
-			const node = nodes.find((item) => item.id === id);
-			return node ? `${node.property}\n${node.values.join('\n')}`.toLowerCase() : '';
-		},
-	};
+/**
+ * Pure `logicProps` contract (Q4 slice 2). No `obsidian`/`app` — the builder takes
+ * plain index rows + a `prop -> type` map. Covers tree shape, namespaced ids, raw
+ * domain keys, honest casing, value-frequency sort, type-incompatibility, and the
+ * mode 0/1 filter semantics.
+ */
+
+function source(rows: PropTreeSource[]): PropTreeSource[] {
+	return rows;
 }
 
-function setup() {
-	const a = mockTFile('a.md', { frontmatter: { status: 'draft', tags: ['x'] } });
-	const b = mockTFile('b.md', { frontmatter: { status: 'done' } });
-	const meta = new Map<string, CachedMetadata>([
-		[a.path, { frontmatter: { status: 'draft', tags: ['x'] } }],
-		[b.path, { frontmatter: { status: 'done' } }],
-	]);
-	const app = mockApp({ files: [a, b], metadata: meta });
-	(
-		app.metadataCache as unknown as { getAllPropertyInfos: () => Record<string, { type: string }> }
-	).getAllPropertyInfos = () => ({ status: { type: 'text' }, tags: { type: 'list' } });
-	return { app, propsIndex: makePropsIndex(app) };
-}
+describe('buildPropTree', () => {
+	it('builds a 2-level prop -> value tree with counts and holarchy relation', () => {
+		const tree = buildPropTree(
+			source([
+				{ property: 'status', valueFrequencies: { draft: 1, done: 1 }, fileCount: 2 },
+			]),
+			{ status: { type: 'text' } },
+		);
 
-describe('PropsLogic.getTree', () => {
-	it('builds a 2-level tree of property → value nodes with counts', () => {
-		const { app, propsIndex } = setup();
-		const logic = new PropsLogic(app, propsIndex);
-		const tree = logic.getTree();
-
-		const status = tree.find((n) => n.id === 'status');
+		const status = tree.find((n) => n.label === 'status');
 		expect(status).toBeDefined();
 		expect(status!.count).toBe(2);
-		expect(status!.children?.map((c) => c.label).sort()).toEqual(['done', 'draft']);
+		expect(status!.relation).toBe('holarchy');
 		expect(status!.meta.isValueNode).toBe(false);
+		expect(status!.children?.map((c) => c.label).sort()).toEqual(['done', 'draft']);
+		expect(status!.children?.every((c) => c.relation === 'holarchy')).toBe(true);
 	});
 
-	it('value nodes carry isTypeIncompatible when the value does not match the declared type', () => {
-		const file = mockTFile('a.md', { frontmatter: { age: 'not-a-number' } });
-		const meta = new Map<string, CachedMetadata>([
-			[file.path, { frontmatter: { age: 'not-a-number' } }],
+	it('emits D6 namespaced ids (note.<prop>, note.<prop>::<rawValue>) but keeps raw value in meta', () => {
+		const tree = buildPropTree(
+			source([{ property: 'status', valueFrequencies: { draft: 3 }, fileCount: 1 }]),
+			{ status: { type: 'text' } },
+		);
+
+		const prop = tree[0];
+		const value = prop.children![0];
+		expect(prop.id).toBe('note.status');
+		expect(value.id).toBe('note.status::draft');
+		expect(value.label).toBe('draft');
+		expect(value.meta.rawValue).toBe('draft');
+		// raw domain key stays un-namespaced for filter toggles / reveal
+		expect(propDomainKey(prop.meta)).toBe('status');
+		expect(propDomainKey(value.meta)).toBe('status::draft');
+	});
+
+	it('honest casing: distinct-cased keys are NOT merged and type lookup is case-sensitive', () => {
+		const tree = buildPropTree(
+			source([
+				{ property: 'Status', valueFrequencies: { A: 1 }, fileCount: 1 },
+				{ property: 'status', valueFrequencies: { b: 1 }, fileCount: 1 },
+			]),
+			// only the capitalized key declares a number type; lowercase falls back to text
+			{ Status: { type: 'number' } },
+		);
+
+		expect(tree.map((n) => n.label).sort()).toEqual(['Status', 'status']);
+		expect(tree.find((n) => n.label === 'Status')!.meta.propType).toBe('number');
+		expect(tree.find((n) => n.label === 'status')!.meta.propType).toBe('text');
+		expect(tree.map((n) => n.id).sort()).toEqual(['note.Status', 'note.status']);
+	});
+
+	it('sorts value nodes by frequency (desc) and top-level props by fileCount (desc)', () => {
+		const tree = buildPropTree(
+			source([
+				{ property: 'low', valueFrequencies: {}, fileCount: 1 },
+				{ property: 'high', valueFrequencies: { rare: 1, common: 5, mid: 3 }, fileCount: 9 },
+			]),
+			{},
+		);
+
+		expect(tree.map((n) => n.label)).toEqual(['high', 'low']);
+		expect(tree[0].children?.map((c) => c.label)).toEqual(['common', 'mid', 'rare']);
+	});
+
+	it('flags isTypeIncompatible when a value does not satisfy the declared type', () => {
+		const tree = buildPropTree(
+			source([{ property: 'age', valueFrequencies: { 'not-a-number': 1 }, fileCount: 1 }]),
+			{ age: { type: 'number' } },
+		);
+
+		expect(tree[0].children![0].meta.isTypeIncompatible).toBe(true);
+	});
+
+	it('does not mutate the input rows', () => {
+		const rows = source([
+			{ property: 'b', valueFrequencies: { y: 1 }, fileCount: 1 },
+			{ property: 'a', valueFrequencies: { x: 1 }, fileCount: 2 },
 		]);
-		const app = mockApp({ files: [file], metadata: meta });
-		(
-			app.metadataCache as unknown as {
-				getAllPropertyInfos: () => Record<string, { type: string }>;
-			}
-		).getAllPropertyInfos = () => ({ age: { type: 'number' } });
-
-		const logic = new PropsLogic(app, makePropsIndex(app));
-		const valueNode = logic.getTree()[0].children![0];
-		expect(valueNode.meta.isTypeIncompatible).toBe(true);
-	});
-
-	it('caches results across calls and invalidates on demand', () => {
-		const { app, propsIndex } = setup();
-		const logic = new PropsLogic(app, propsIndex);
-		const t1 = logic.getTree();
-		const t2 = logic.getTree();
-		expect(t1).toBe(t2);
-
-		logic.invalidate();
-		const t3 = logic.getTree();
-		expect(t3).not.toBe(t1);
+		const snapshot = JSON.stringify(rows);
+		buildPropTree(rows, {});
+		expect(JSON.stringify(rows)).toBe(snapshot);
 	});
 });
 
-describe('PropsLogic.filterTree', () => {
-	it('mode 0 (Property name): keeps all child values when parent matches', () => {
-		const { app, propsIndex } = setup();
-		const logic = new PropsLogic(app, propsIndex);
-		const tree = logic.getTree();
-		const filtered = logic.filterTree(tree, 'status', 0);
+describe('isCompatible', () => {
+	it('treats text/list/multitext/unknown as always compatible', () => {
+		expect(isCompatible('anything', 'text')).toBe(true);
+		expect(isCompatible('anything', 'list')).toBe(true);
+		expect(isCompatible('anything', 'multitext')).toBe(true);
+	});
+
+	it('validates number / checkbox / date / datetime values', () => {
+		expect(isCompatible('42', 'number')).toBe(true);
+		expect(isCompatible('nope', 'number')).toBe(false);
+		expect(isCompatible('true', 'checkbox')).toBe(true);
+		expect(isCompatible('maybe', 'checkbox')).toBe(false);
+		expect(isCompatible('2026-06-14', 'date')).toBe(true);
+		expect(isCompatible('2026/06/14', 'date')).toBe(false);
+	});
+});
+
+describe('sortPropValuesByFrequency', () => {
+	it('orders by count desc and is stable for equal counts', () => {
+		const nodes: TreeNode<PropNodeMeta>[] = [
+			{ id: 'a', label: 'a', count: 1, depth: 1, meta: {} as PropNodeMeta },
+			{ id: 'b', label: 'b', count: 5, depth: 1, meta: {} as PropNodeMeta },
+			{ id: 'c', label: 'c', count: 1, depth: 1, meta: {} as PropNodeMeta },
+		];
+		expect(sortPropValuesByFrequency(nodes).map((n) => n.label)).toEqual(['b', 'a', 'c']);
+		// input untouched
+		expect(nodes.map((n) => n.label)).toEqual(['a', 'b', 'c']);
+	});
+});
+
+describe('filterPropTree', () => {
+	function tree(): TreeNode<PropNodeMeta>[] {
+		return buildPropTree(
+			source([
+				{ property: 'status', valueFrequencies: { draft: 1, done: 1 }, fileCount: 2 },
+			]),
+			{ status: { type: 'text' } },
+		);
+	}
+
+	it('mode 0 (Property name): keeps all child values when the parent matches', () => {
+		const filtered = filterPropTree(tree(), 'status', 0);
 		expect(filtered).toHaveLength(1);
 		expect(filtered[0].children?.length).toBe(2);
 	});
 
 	it('mode 1 (Value): keeps only the matching child', () => {
-		const { app, propsIndex } = setup();
-		const logic = new PropsLogic(app, propsIndex);
-		const tree = logic.getTree();
-		const filtered = logic.filterTree(tree, 'draft', 1);
-		const status = filtered.find((n) => n.id === 'status');
+		const filtered = filterPropTree(tree(), 'draft', 1);
+		const status = filtered.find((n) => n.id === propNodeId('status'));
 		expect(status?.children?.map((c) => c.label)).toEqual(['draft']);
 	});
 
-	it('empty term returns the original tree', () => {
-		const { app, propsIndex } = setup();
-		const logic = new PropsLogic(app, propsIndex);
-		const tree = logic.getTree();
-		expect(logic.filterTree(tree, '', 0)).toBe(tree);
+	it('matching is case-insensitive on the label', () => {
+		const filtered = filterPropTree(tree(), 'STATUS', 0);
+		expect(filtered).toHaveLength(1);
+	});
+
+	it('empty term returns the original reference', () => {
+		const t = tree();
+		expect(filterPropTree(t, '', 0)).toBe(t);
+	});
+});
+
+describe('id + domain-key helpers', () => {
+	it('namespace props and values consistently', () => {
+		expect(propNodeId('Tags')).toBe('note.Tags');
+		expect(propValueNodeId('Tags', 'x')).toBe('note.Tags::x');
+	});
+
+	it('propDomainKey returns the raw (un-namespaced) key', () => {
+		expect(propDomainKey({ propName: 'p', propType: 'text', isValueNode: false })).toBe('p');
+		expect(
+			propDomainKey({ propName: 'p', propType: 'text', isValueNode: true, rawValue: 'v' }),
+		).toBe('p::v');
 	});
 });
