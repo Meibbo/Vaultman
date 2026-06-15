@@ -5,6 +5,7 @@ import {
 	type ContentChange,
 	type PendingChange,
 } from '../types/typeOps';
+import { fnrContentReplaceLabel, fnrContentReplaceScopeCount } from '../logic/logicFnR';
 import { buildFileRenameChange, normalizeFileRenameTarget } from './serviceFileQueue';
 import { buildTagRenameChange } from './serviceTagQueue';
 import type {
@@ -237,12 +238,12 @@ export function buildContentReplaceChange(
 			? normalizeAntReplacement(input.state.replace)
 			: input.state.replace;
 	const files = [...input.files];
-	const fileCount = files.length;
+	const fileCount = fnrContentReplaceScopeCount(files);
 
 	return {
 		type: 'content_replace',
 		action: 'replace',
-		details: `Replace "${find}" with "${replacement}" in ${fileCount} ${fileCount === 1 ? 'file' : 'files'}`,
+		details: fnrContentReplaceLabel(find, replacement, fileCount),
 		files,
 		find,
 		replace: replacement,

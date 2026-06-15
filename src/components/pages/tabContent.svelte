@@ -10,6 +10,7 @@
 	} from '../../types/typeExplorer';
 	import type { FnRScope, FnRState } from '../../types/typeFnR';
 	import { buildContentReplaceChange, createFnRState } from '../../services/serviceFnR';
+	import { fnrScopeSummary } from '../../logic/logicFnR';
 	import { resolveOperationScopeFiles } from '../../services/serviceOperationScope';
 	import { translate } from '../../index/i18n/lang';
 	import { SEARCH_SEMANTICS_SOURCES } from '../frame/frameSearchSources';
@@ -58,12 +59,15 @@
 	let pillMode = $state<'search' | 'replace'>('search');
 
 	const scopeFiles = $derived.by(() => resolveFnRScopeFiles(fnrState.scope));
-	const scopeLabel = $derived(
-		translate('fnr.scope_label', {
-			count: scopeFiles.length,
-			scope: translate(`fnr.scope.${fnrState.scope}`),
-		}),
-	);
+	const scopeLabel = $derived.by(() => {
+		// Pure projection (logicFnR) decides key + params; translate() (incl. the
+		// nested scope key) stays here at the UI boundary.
+		const summary = fnrScopeSummary(fnrState.scope, scopeFiles.length);
+		const { scopeKey, ...rest } = summary.params;
+		const params =
+			typeof scopeKey === 'string' ? { ...rest, scope: translate(scopeKey) } : summary.params;
+		return translate(summary.key, params);
+	});
 	const canQueueReplace = $derived(query.trim().length > 0 && scopeFiles.length > 0);
 	const contentStatus = $derived.by((): ContentSearchStatus => {
 		void contentVersion;

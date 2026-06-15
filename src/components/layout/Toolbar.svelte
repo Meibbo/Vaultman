@@ -10,6 +10,7 @@
 	import type { ActiveFnRRenameHandoff, FnRState } from '../../types/typeFnR';
 	import type { ExplorerExpansionSummary, ExplorerSortTarget } from '../../types/typeExplorer';
 	import { FnRIslandService, type FnRIslandMode } from '../../services/serviceFnRIsland.svelte';
+	import { fnrRenamePreview } from '../../logic/logicFnR';
 	import { getAddOpBuilder } from '../../registry/explorerAddOps';
 	import type { PendingChange } from '../../types/typeOps';
 	import {
@@ -377,18 +378,18 @@
 	}
 
 	function renameContext(rename: ActiveFnRRenameHandoff): string {
-		if (rename.sourceKind === 'value' && rename.propName) {
-			return translate('fnr.rename.context_value', {
-				original: rename.original,
-				prop: rename.propName,
-				count: rename.files.length,
-			});
-		}
-		return translate('fnr.rename.context', {
-			kind: translate(`fnr.rename.kind.${rename.sourceKind}`),
+		// Pure projection (logicFnR) decides the key + params; the impure
+		// translate() (incl. resolving the nested kind key) stays here.
+		const preview = fnrRenamePreview({
+			sourceKind: rename.sourceKind,
 			original: rename.original,
-			count: rename.files.length,
+			propName: rename.propName,
+			fileCount: rename.files.length,
 		});
+		const { kindKey, ...rest } = preview.params;
+		const params =
+			typeof kindKey === 'string' ? { ...rest, kind: translate(kindKey) } : preview.params;
+		return translate(preview.key, params);
 	}
 
 	function handleRenameKeydown(event: KeyboardEvent) {
