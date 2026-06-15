@@ -9,6 +9,12 @@ describe('Page filters Content source guards', () => {
 		expect(pageFiltersSource).not.toContain('void filteredCount;');
 	});
 
+	it('uses the vault-wide non-content filter scope as Content search candidates', () => {
+		expect(pageFiltersSource).toContain(
+			'plugin.filterService.getFilesIgnoringContentSearch(true)',
+		);
+	});
+
 	it('uses reactive frame counters for dock-off Filters and Queue menu labels', () => {
 		expect(pageFiltersSource).toContain('filterRuleCount = 0');
 		expect(pageFiltersSource).toContain('queuedCount = 0');

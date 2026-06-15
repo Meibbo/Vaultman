@@ -118,4 +118,14 @@ describe('mobile CSS source guards', () => {
 		);
 		expect(stylesSource).toContain('background: var(--color-accent)');
 	});
+
+	it('keeps Content clear buttons large enough for the compact input scale', () => {
+		expect(stylesSource).toContain('padding-inline-end: 34px');
+		expect(stylesSource).toContain('inset-inline-end: 2px');
+		expect(stylesSource).toContain('width: 28px');
+		expect(stylesSource).toContain('height: 28px');
+		expect(stylesSource).toContain('.vaultman-content-clear-button svg');
+		expect(stylesSource).toContain('width: 16px');
+		expect(stylesSource).toContain('height: 16px');
+	});
 });
