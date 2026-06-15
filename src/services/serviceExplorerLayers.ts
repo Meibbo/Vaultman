@@ -8,11 +8,8 @@ import type {
 	ViewAction,
 	ViewLayers,
 } from '../types/typeViews';
-import {
-	highlightsFromViewLayers,
-	nodeBadgesFromViewLayers,
-	withViewStateClasses,
-} from '../utils/utilViewLayers';
+import { highlightsFromViewLayers, withViewStateClasses } from '../utils/utilViewLayers';
+import { nodeBadgesFromLayers } from '../logic/logicBadge';
 import type { ExplorerProjection, ExplorerProjectionRow } from './serviceExplorerProjection';
 
 export interface ExplorerLayerBatchInput<TNode extends NodeBase> {
@@ -208,7 +205,7 @@ export function decorateTreeWithExplorerLayers<TMeta>(
 			deletedClass: options.deletedClass,
 		});
 		if (options.includeBadges !== false) {
-			const badges = nodeBadgesFromViewLayers(layers, options.operations);
+			const badges = nodeBadgesFromLayers(layers, options.operations);
 			next.badges = badges.length > 0 ? badges : undefined;
 		}
 		if (options.attachLayersToMeta !== false) next.meta = metaWithLayers(node.meta, layers);

@@ -7,7 +7,18 @@ import type {
 	ViewLayers,
 	ViewTextRange,
 } from '../types/typeViews';
+import { type BadgeTone } from '../logic/logicBadge';
 import { queueChangeIntent } from './serviceQueuePresentation';
+
+/**
+ * Filter/group badge tone (slice 4): a single source for the enabled/disabled
+ * tone shared by every filter overlay badge below, typed against the pure
+ * `logicBadge.BadgeTone` vocabulary so the layer tones and the downstream
+ * `logicBadge` color projection cannot drift apart.
+ */
+function filterBadgeTone(enabled: boolean): BadgeTone {
+	return enabled ? 'info' : 'neutral';
+}
 
 interface SemanticContext {
 	kind?: string;
@@ -235,7 +246,7 @@ function filterLayersFor(node: NodeBase, label: string): ViewLayers {
 					id: `${node.id}:filter`,
 					label: filterTypeLabel(node.rule.filterType),
 					icon: 'lucide-filter',
-					tone: enabled ? 'info' : 'neutral',
+					tone: filterBadgeTone(enabled),
 					sourceId: node.id,
 					actionId: 'remove',
 				},
@@ -269,7 +280,7 @@ function filterGroupLayersFor(node: ActiveFilterEntry): ViewLayers {
 					id: `${node.id}:filter-group`,
 					label,
 					icon: 'lucide-list-filter',
-					tone: enabled ? 'info' : 'neutral',
+					tone: filterBadgeTone(enabled),
 					sourceId: node.id,
 					actionId: 'remove',
 				},
@@ -366,7 +377,7 @@ function matchedActiveFilterLayersFor(
 			id: `${node.id}:filter:${sourceId}`,
 			label: filterTypeLabel(entry.rule.filterType),
 			icon: 'lucide-filter',
-			tone: enabled ? 'info' : 'neutral',
+			tone: filterBadgeTone(enabled),
 			sourceId,
 			actionId: 'remove',
 		};
