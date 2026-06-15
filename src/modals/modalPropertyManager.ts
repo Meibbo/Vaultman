@@ -4,6 +4,7 @@ import { DELETE_PROP, NATIVE_RENAME_PROP } from '../types/typeOps';
 import type { PropertyIndexService } from '../services/servicePropertyIndex';
 import { PropertySuggest } from '../utils/autocomplete';
 import { translate } from '../i18n/index';
+import { convertPropertyValueType, parsePropertyValue } from '../logic/propertyValueCoercion';
 
 type QueueCallback = (change: PendingChange) => void;
 
@@ -262,7 +263,7 @@ export class PropertyManagerModal extends Modal {
 
 		switch (this.action) {
 			case 'set': {
-				const parsedValue = this.parseValue(this.value, this.propertyType);
+				const parsedValue = parsePropertyValue(this.value, this.propertyType);
 				const strParsed = String(parsedValue);
 				const finalValue = this.asWikilink ? `[[${strParsed}]]` : parsedValue;
 				return {
@@ -363,7 +364,7 @@ export class PropertyManagerModal extends Modal {
 					logicFunc: (_file, metadata) => {
 						if (!(this.property in metadata)) return null;
 						const current = metadata[this.property];
-						return { [this.property]: this.convertType(current, this.propertyType) };
+						return { [this.property]: convertPropertyValueType(current, this.propertyType) };
 					},
 					customLogic: false,
 				};
@@ -377,7 +378,7 @@ export class PropertyManagerModal extends Modal {
 					files,
 					logicFunc: (_file, metadata) => {
 						if (this.property in metadata) return null;
-						const parsedValue = this.parseValue(this.value, this.propertyType);
+						const parsedValue = parsePropertyValue(this.value, this.propertyType);
 						return { [this.property]: parsedValue };
 					},
 					customLogic: false,
@@ -385,86 +386,6 @@ export class PropertyManagerModal extends Modal {
 
 			default:
 				return null;
-		}
-	}
-
-	private parseValue(raw: string, type: PropertyType): unknown {
-		switch (type) {
-			case 'number': {
-				const n = Number(raw);
-				return isNaN(n) ? 0 : n;
-			}
-			case 'checkbox':
-				return !['false', '0', 'no', 'none', 'null', ''].includes(
-					raw.toLowerCase().trim()
-				);
-			case 'list':
-				return raw.split(',').map((s) => s.trim()).filter((s) => s.length > 0);
-			case 'date':
-			case 'text':
-			default:
-				return raw;
-		}
-	}
-
-	private convertType(value: unknown, targetType: PropertyType): unknown {
-		switch (targetType) {
-			case 'wikilink': {
-				// Wrap in [[...]] if not already wrapped
-				const toWikilink = (v: unknown): string => {
-					const s = String((v as string | number | boolean) ?? '').replace(/^\[\[|\]\]$/g, '');
-					return s ? `[[${s}]]` : '';
-				};
-				if (Array.isArray(value)) return value.map(toWikilink);
-				return toWikilink(value);
-			}
-			case 'text':
-				if (Array.isArray(value)) return value.map(String).join(', ');
-				// Strip wikilink brackets if present
-				return String((value as string | number | boolean) ?? '').replace(/^\[\[|\]\]$/g, '');
-			case 'number': {
-				if (Array.isArray(value)) {
-					const first = (value as unknown[])[0];
-					const n = Number(first);
-					return isNaN(n) ? 0 : n;
-				}
-				const n = Number(value);
-				return isNaN(n) ? 0 : n;
-			}
-			case 'checkbox': {
-				if (typeof value === 'string') {
-					return !['false', '0', 'no', 'none', 'null', ''].includes(
-						value.toLowerCase().trim()
-					);
-				}
-				return Boolean(value);
-			}
-			case 'list': {
-				if (Array.isArray(value)) return value;
-				if (typeof value === 'string') {
-					return value.split(',').map((s) => s.trim()).filter(Boolean);
-				}
-				if (value == null) return [];
-				if (typeof value === 'number' || typeof value === 'boolean' || typeof value === 'bigint') return [String(value)];
-				if (typeof value === 'symbol') return [value.description ?? value.toString()];
-				if (typeof value === 'function') return [value.name];
-				const serialized = JSON.stringify(value);
-				return serialized ? [serialized] : [];
-			}
-			case 'date': {
-				if (Array.isArray(value)) return String(value[0] ?? '');
-				const str = String((value as string | number | boolean) ?? '');
-				// Try to extract ISO date pattern
-				const dateMatch = str.match(
-					/(\d{4}-\d{2}-\d{2})(?:T|\s)?(\d{2}:\d{2}:\d{2})?/
-				);
-				if (dateMatch) {
-					return dateMatch[2]
-						? `${dateMatch[1]}T${dateMatch[2]}`
-						: dateMatch[1];
-				}
-				return str;
-			}
 		}
 	}
 

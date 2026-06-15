@@ -21,4 +21,22 @@ describe('ContextMenuService source guards', () => {
 		expect(contextMenuSource).toContain("_isNativeFileMoveTitle(title)");
 		expect(contextMenuSource).toContain("title.includes('move file to')");
 	});
+
+	it('routes minimal explorer apply-queue menu action to the existing queue executor', () => {
+		expect(contextMenuSource).toContain('minimalStyle: boolean;');
+		expect(contextMenuSource).toContain('queueService?: {');
+		expect(contextMenuSource).toContain("id: 'queue.apply'");
+		expect(contextMenuSource).toContain(
+			"label: translate('command.apply_queue')",
+		);
+		expect(contextMenuSource).toContain(
+			"this.plugin.settings.minimalStyle === true",
+		);
+		expect(contextMenuSource).toContain(
+			"this.plugin.queueService?.isEmpty === false",
+		);
+		expect(contextMenuSource).toContain(
+			'void this.plugin.queueService?.execute();',
+		);
+	});
 });
