@@ -112,6 +112,22 @@ export class VaultmanPlugin extends Plugin {
 			},
 		});
 
+		this.addCommand({
+			id: 'focus-content-search',
+			name: translate('command.focus_content_search'),
+			callback: () => {
+				void this.focusVaultmanContentSearch();
+			},
+		});
+
+		this.addCommand({
+			id: 'focus-active-explorer-search',
+			name: translate('command.focus_active_explorer_search'),
+			callback: () => {
+				void this.focusVaultmanExplorerSearch();
+			},
+		});
+
 		activeDocument.addEventListener('drop', this.handleVaultmanDrop, true);
 		activeDocument.addEventListener('dragover', this.handleVaultmanDragOver, true);
 		activeDocument.addEventListener('dragend', this.handleVaultmanDragEnd, true);
@@ -148,6 +164,25 @@ export class VaultmanPlugin extends Plugin {
 		if (typeof dragManager?.setAction === 'function') {
 			dragManager.setAction(null);
 		}
+	}
+
+	private async vaultmanFrameForCommand(): Promise<VaultmanFrame | null> {
+		await this.activateView();
+		const leaf = this.app.workspace.getLeavesOfType(VAULTMAN_FRAME_TYPE)[0];
+		if (!leaf) return null;
+		await this.app.workspace.revealLeaf(leaf);
+		const view = leaf.view;
+		return view instanceof VaultmanFrame ? view : null;
+	}
+
+	private async focusVaultmanContentSearch(): Promise<void> {
+		const view = await this.vaultmanFrameForCommand();
+		if (view) await view.focusContentSearch();
+	}
+
+	private async focusVaultmanExplorerSearch(): Promise<void> {
+		const view = await this.vaultmanFrameForCommand();
+		if (view) await view.focusActiveExplorerSearch();
 	}
 
 	private readonly handleVaultmanDragOver = (event: DragEvent): void => {

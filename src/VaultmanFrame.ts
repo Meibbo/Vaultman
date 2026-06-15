@@ -6,12 +6,17 @@ import { translate } from './i18n/index';
 
 export const VAULTMAN_FRAME_TYPE = 'vaultman-frame';
 
+type VaultmanFrameSvelteApi = ReturnType<typeof mount> & {
+	focusContentSearch?(): Promise<void> | void;
+	focusActiveExplorerSearch?(): Promise<void> | void;
+};
+
 /**
  * Full-width explorer view shell.
  */
 export class VaultmanFrame extends ItemView {
 	private plugin: VaultmanPlugin;
-	private svelteApp: ReturnType<typeof mount> | null = null;
+	private svelteApp: VaultmanFrameSvelteApi | null = null;
 
 	constructor(leaf: WorkspaceLeaf, plugin: VaultmanPlugin) {
 		super(leaf);
@@ -30,7 +35,7 @@ export class VaultmanFrame extends ItemView {
 		this.svelteApp = mount(VaultmanFrameSvelte, {
 			target: contentEl,
 			props: { plugin: this.plugin },
-		});
+		}) as VaultmanFrameSvelteApi;
 	}
 
 	async onClose(): Promise<void> {
@@ -39,5 +44,13 @@ export class VaultmanFrame extends ItemView {
 			this.svelteApp = null;
 		}
 		this.contentEl.empty();
+	}
+
+	async focusContentSearch(): Promise<void> {
+		await this.svelteApp?.focusContentSearch?.();
+	}
+
+	async focusActiveExplorerSearch(): Promise<void> {
+		await this.svelteApp?.focusActiveExplorerSearch?.();
 	}
 }

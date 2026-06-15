@@ -179,6 +179,8 @@ export const en: Record<string, string> = {
 	'command.open_main': 'Open Vaultman (full view)',
 	'command.open_sidebar': 'Open Vaultman sidebar',
 	'command.apply_queue': 'Apply pending operations',
+	'command.focus_content_search': 'Focus Content search',
+	'command.focus_active_explorer_search': 'Focus active explorer search',
 
 	// Toolbar
 	'toolbar.filters': 'Filters',
