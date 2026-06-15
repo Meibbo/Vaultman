@@ -161,7 +161,7 @@
 		files: {
 			icon: 'viewmode.pill.icon',
 			name: 'viewmode.pill.name',
-			count: 'viewmode.pill.count',
+			count: 'viewmode.pill.prop_count',
 			ext: 'viewmode.pill.ext',
 			words: 'viewmode.pill.words',
 			mtime: 'viewmode.pill.mtime',
