@@ -426,6 +426,8 @@ export class FilesExplorerPanel extends Component {
 			this.tableView = new FilesTableView(this.containerEl, this.plugin.app, {
 				getFileTimes: (file: TFile) =>
 					this.plugin.statisticsCache.getFileTimes(file),
+				getWordCount: (file: TFile) =>
+					this.plugin.statisticsCache.getFileWordCount(file),
 				getBadges: (file: TFile) => this._badgesForFile(file),
 				onContextMenu: (file: TFile, e: MouseEvent) =>
 					this._openFileContextMenu(file, e),
@@ -470,6 +472,8 @@ export class FilesExplorerPanel extends Component {
 				getPropCount: (file: TFile) => this._propCountForFile(file),
 				getFileTimes: (file: TFile) =>
 					this.plugin.statisticsCache.getFileTimes(file),
+				getWordCount: (file: TFile) =>
+					this.plugin.statisticsCache.getFileWordCount(file),
 			});
 			this.gridView.setVisibleCells(this.visibleCells);
 			this.gridView.setActivePath(this.activeRevealPath);
@@ -1002,11 +1006,20 @@ export class FilesExplorerPanel extends Component {
 		for (const node of nodes) {
 			if (node.meta.file) {
 				const times = this.plugin.statisticsCache.getFileTimes(node.meta.file);
+				const wordCount = this.plugin.statisticsCache.getFileWordCount(
+					node.meta.file,
+				);
 				node.mtimeText = this._formatDateCell(times.mtime);
 				node.ctimeText = this._formatDateCell(times.ctime);
+				node.wordCountText =
+					wordCount === null ? undefined : this._formatWordCountCell(wordCount);
 			}
 			if (node.children?.length) this._decorateTreeWithFileTimes(node.children);
 		}
+	}
+
+	private _formatWordCountCell(wordCount: number): string {
+		return String(wordCount);
 	}
 
 	private _formatDateCell(time: number): string | undefined {

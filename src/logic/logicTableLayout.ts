@@ -2,6 +2,7 @@ export type FileTableColumnId =
 	| 'icon'
 	| 'name'
 	| 'count'
+	| 'words'
 	| 'ext'
 	| 'mtime'
 	| 'ctime'
@@ -34,6 +35,7 @@ const COLUMN_ORDER: FileTableColumnId[] = [
 	'icon',
 	'name',
 	'count',
+	'words',
 	'ext',
 	'mtime',
 	'ctime',
@@ -44,6 +46,7 @@ const COLUMN_WIDTHS: Record<FileTableColumnId, number> = {
 	icon: 34,
 	name: 300,
 	count: 96,
+	words: 96,
 	ext: 111,
 	mtime: 156,
 	ctime: 156,
@@ -54,6 +57,7 @@ const MIN_COLUMN_WIDTHS: Record<FileTableColumnId, number> = {
 	icon: 34,
 	name: 120,
 	count: 64,
+	words: 72,
 	ext: 72,
 	mtime: 110,
 	ctime: 110,
@@ -118,6 +122,7 @@ function columnMetadata(
 		};
 	if (id === 'count')
 		return { sortColumn: 'props', dataProperty: 'vaultman.props' };
+	if (id === 'words') return { dataProperty: 'vaultman.words' };
 	if (id === 'ext')
 		return {
 			sortColumn: 'ext',
