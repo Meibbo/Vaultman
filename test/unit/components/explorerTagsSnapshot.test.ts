@@ -90,20 +90,27 @@ describe('explorerTags snapshot adapter', () => {
 
 		explorer.setSortBy('name', 'asc');
 		explorer.setSortTarget('children');
-		const snapshot = explorer.getSnapshot(new Set(['a', 'z']));
+		const snapshot = explorer.getSnapshot(new Set(['tag.a', 'tag.z']));
 
 		expect(snapshot.explorerId).toBe('tags');
 		expect(snapshot.providerKey).toBe('tags');
 		expect(snapshot.sourceRevisions).toEqual({ tagsRevision: 12 });
-		expect(snapshot.rows.map((row) => row.id)).toEqual(['a', 'a/root', 'z', 'z/a', 'z/b']);
-		expect(snapshot.visibleIds).toEqual(['a', 'a/root', 'z', 'z/a', 'z/b']);
-		expect(snapshot.byId.get('z/a')).toMatchObject({
-			parentId: 'z',
+		// D6 namespaced ids `tag.<path>`; raw path stays the domain key.
+		expect(snapshot.rows.map((row) => row.id)).toEqual([
+			'tag.a',
+			'tag.a/root',
+			'tag.z',
+			'tag.z/a',
+			'tag.z/b',
+		]);
+		expect(snapshot.visibleIds).toEqual(['tag.a', 'tag.a/root', 'tag.z', 'tag.z/a', 'tag.z/b']);
+		expect(snapshot.byId.get('tag.z/a')).toMatchObject({
+			parentId: 'tag.z',
 			childrenIds: [],
 			kind: 'tag',
 			domainKey: '#z/a',
 		});
-		expect(snapshot.domainKeyToId.get('#z/b')).toBe('z/b');
+		expect(snapshot.domainKeyToId.get('#z/b')).toBe('tag.z/b');
 		expect(snapshot.projection).toEqual({
 			searchTerm: '',
 			searchMode: 'all',
@@ -113,19 +120,22 @@ describe('explorerTags snapshot adapter', () => {
 		});
 	});
 
-	it('records leaf search projection while preserving tag path casing', () => {
-		const { plugin } = makePlugin(['Project/Active', 'project/archive', 'Other']);
+	it('records leaf (Simple) projection over childless roots while preserving tag path casing', () => {
+		// SDF-008 corrected: Simple = childless level-1 roots only. `Inbox` is a
+		// childless root (kept); `Project/Active` lives under a parent-with-children
+		// (dropped). Namespaced ids + raw domain key are preserved on the survivor.
+		const { plugin } = makePlugin(['Project/Active', 'project/archive', 'Inbox']);
 		const explorer = new explorerTags(plugin) as SnapshotBackedTags;
 
-		explorer.setSearchTerm('Active', 'leaf');
+		explorer.setSearchTerm('Inbox', 'leaf');
 		explorer.setSortBy('count', 'desc');
-		const snapshot = explorer.getSnapshot(new Set(['Project/Active']));
+		const snapshot = explorer.getSnapshot(new Set(['tag.Inbox']));
 
-		expect(snapshot.rows.map((row) => row.id)).toEqual(['Project/Active']);
-		expect(snapshot.byId.get('Project/Active')?.node.meta.tagPath).toBe('Project/Active');
-		expect(snapshot.domainKeyToId.get('#Project/Active')).toBe('Project/Active');
+		expect(snapshot.rows.map((row) => row.id)).toEqual(['tag.Inbox']);
+		expect(snapshot.byId.get('tag.Inbox')?.node.meta.tagPath).toBe('Inbox');
+		expect(snapshot.domainKeyToId.get('#Inbox')).toBe('tag.Inbox');
 		expect(snapshot.projection).toEqual({
-			searchTerm: 'Active',
+			searchTerm: 'Inbox',
 			searchMode: 'leaf',
 			sortBy: 'count',
 			sortDirection: 'desc',
@@ -137,7 +147,7 @@ describe('explorerTags snapshot adapter', () => {
 		const { plugin, getTags } = makePlugin(['project/active'], { revision: 3 });
 		const explorer = new explorerTags(plugin) as SnapshotBackedTags;
 
-		const first = explorer.getSnapshot(new Set(['project']));
+		const first = explorer.getSnapshot(new Set(['tag.project']));
 		(plugin.operationsIndex as unknown as { nodes: unknown[]; revision: number }).nodes = [
 			{ id: 'op-delete-project', group: 'tag', change: { action: 'delete' } },
 		];
@@ -147,11 +157,13 @@ describe('explorerTags snapshot adapter', () => {
 		];
 		(plugin.activeFiltersIndex as unknown as { revision: number }).revision = 42;
 
-		const second = explorer.getSnapshot(new Set(['project']));
+		const second = explorer.getSnapshot(new Set(['tag.project']));
 
-		expect(first.rows.map((row) => row.id)).toEqual(['project', 'project/active']);
-		expect(second.rows.map((row) => row.id)).toEqual(['project', 'project/active']);
+		expect(first.rows.map((row) => row.id)).toEqual(['tag.project', 'tag.project/active']);
+		expect(second.rows.map((row) => row.id)).toEqual(['tag.project', 'tag.project/active']);
 		expect(second.sourceRevisions).toEqual({ tagsRevision: 3 });
+		// Structural cache keys off the tags revision (unchanged), so the single
+		// `getTags()` impurity-boundary read is reused across both snapshots.
 		expect(getTags).toHaveBeenCalledTimes(1);
 	});
 
@@ -160,7 +172,7 @@ describe('explorerTags snapshot adapter', () => {
 		const explorer = new explorerTags(plugin) as SnapshotBackedTags;
 		const getModel = vi.spyOn(plugin.viewService, 'getModel');
 
-		expect(explorer.getStructuralTree().map((node) => node.id)).toEqual(['project']);
+		expect(explorer.getStructuralTree().map((node) => node.id)).toEqual(['tag.project']);
 		expect(getModel).not.toHaveBeenCalled();
 	});
 });
