@@ -6,6 +6,10 @@ import { translate } from '../i18n/index';
 
 type QueueCallback = (change: PendingChange) => void;
 
+export function formatFileMoveDetails(sourcePath: string, targetPath: string): string {
+	return `Move file "${sourcePath}" to "${targetPath}"`;
+}
+
 /**
  * Move files to a target folder.
  * Shows a folder picker with autocomplete and a live preview of old → new paths.
@@ -108,7 +112,7 @@ export class FileMoveModal extends Modal {
 			const change: PendingChange = {
 				type: 'file_move',
 				action: 'move',
-				details: `${file.path} → ${newPath}`,
+				details: formatFileMoveDetails(file.path, newPath),
 				files: [file],
 				logicFunc: () => ({ [MOVE_FILE]: targetFolder }),
 				customLogic: true,

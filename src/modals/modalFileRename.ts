@@ -7,6 +7,53 @@ import { translate } from '../i18n/index';
 
 type QueueCallback = (change: PendingChange) => void;
 
+export type RenameTargetFile = Pick<TFile, 'name' | 'basename' | 'extension'>;
+
+export function formatFileRenameTargetName(
+	file: RenameTargetFile,
+	pattern: string,
+	frontmatter: Record<string, unknown>,
+	index: number,
+	today = new Date().toISOString().slice(0, 10),
+): string {
+	let newName = pattern;
+	newName = newName.replace(/\{basename\}|\*/g, file.basename);
+	newName = newName.replace(/\{date\}|\[fecha\]/gi, today);
+	newName = newName.replace(
+		/\{counter\}|\(1\)/gi,
+		String(index + 1).padStart(3, '0'),
+	);
+
+	newName = newName.replace(/\{(\w[\w-]*)\}/g, (_match: string, prop: string) =>
+		stringifyFrontmatterValue(frontmatter[prop]),
+	);
+	newName = newName.replace(/[<>:"/\\|?*]/g, '-').trim();
+
+	if (patternHasExplicitExtension(pattern)) return newName;
+	const extension = file.extension.replace(/^\./, '');
+	return extension ? `${newName}.${extension}` : newName;
+}
+
+function stringifyFrontmatterValue(value: unknown): string {
+	if (value == null) return '';
+	if (Array.isArray(value)) return value.map(String).join('-');
+	if (typeof value === 'string') return value;
+	if (
+		typeof value === 'number' ||
+		typeof value === 'boolean' ||
+		typeof value === 'bigint'
+	)
+		return String(value);
+	if (typeof value === 'symbol') return value.description ?? value.toString();
+	if (typeof value === 'function') return value.name;
+	return JSON.stringify(value) ?? '';
+}
+
+function patternHasExplicitExtension(pattern: string): boolean {
+	const sanitized = pattern.replace(/[<>:"/\\|?*]/g, '-').trim();
+	return /\.[A-Za-z0-9][A-Za-z0-9_-]{0,31}$/.test(sanitized);
+}
+
 /**
  * File rename modal with pattern-based renaming.
  *
@@ -136,28 +183,17 @@ export class FileRenameModal extends Modal {
 			const cache = this.app.metadataCache.getFileCache(file);
 			const fm = (cache?.frontmatter ?? {}) as Record<string, unknown>;
 
-			let newName = this.pattern;
-			// natural wildcards aliases
-			newName = newName.replace(/\{basename\}|\*/g, file.basename);
-			newName = newName.replace(/\{date\}|\[fecha\]/ig, today);
-			newName = newName.replace(/\{counter\}|\(1\)/ig, String(index + 1).padStart(3, '0'));
-
-			// Replace {propertyName} with property values
-			newName = newName.replace(/\{(\w[\w-]*)\}/g, (_match: string, prop: string) => {
-				const val: unknown = fm[prop];
-				if (val == null) return '';
-				if (Array.isArray(val)) return val.map(String).join('-');
-				if (typeof val === 'string') return val;
-				if (typeof val === 'number' || typeof val === 'boolean' || typeof val === 'bigint') return String(val);
-				if (typeof val === 'symbol') return val.description ?? val.toString();
-				if (typeof val === 'function') return val.name;
-				return JSON.stringify(val) ?? '';
-			});
-
-			// Sanitize filename
-			newName = newName.replace(/[<>:"/\\|?*]/g, '-').trim();
-
-			return { file, oldName: file.name, newName: newName + '.md' };
+			return {
+				file,
+				oldName: file.name,
+				newName: formatFileRenameTargetName(
+					file,
+					this.pattern,
+					fm,
+					index,
+					today,
+				),
+			};
 		});
 	}
 
