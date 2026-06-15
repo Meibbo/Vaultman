@@ -11,7 +11,7 @@
 	import PerformanceHud from './components/layout/performanceHud.svelte';
 	import { QueueListComponent } from './components/componentQueueList';
 	import { QueueIslandComponent } from './components/layout/islandQueue';
-	import { ActiveFiltersIslandComponent } from './components/layout/islandActiveFilters';
+	import { ActiveFiltersIslandComponent, type ActiveFilterViewState } from './components/layout/islandActiveFilters';
 	import { QueueDetailsModal } from './modals/modalQueueDetails';
 	import { translate } from './i18n/index';
 	import type { FabDef } from './types/typeUI';
@@ -649,6 +649,7 @@
 			filtersIslandEl,
 			plugin,
 			() => closeFiltersIsland(),
+			activeFilterViewStates,
 		);
 		filtersIsland.mount();
 	}
@@ -661,8 +662,28 @@
 
 	function clearActiveFilters() {
 		plugin.filterService.clearFilters();
+		fileList?.clearNodeTypeFilter();
 		closeFiltersIsland();
 		updateStats();
+	}
+
+	function activeFilterViewStates(): ActiveFilterViewState[] {
+		const fileTypeFilter = fileList?.getActiveTypeFilter();
+		if (!fileTypeFilter) return [];
+		return [
+			{
+				id: `files:type:${fileTypeFilter.id}`,
+				rule: translate('filters.view_state.files_type'),
+				label: fileTypeFilter.label,
+				description: translate('filters.view_state.files_type_desc', {
+					type: fileTypeFilter.label,
+				}),
+				clear: () => {
+					fileList?.clearNodeTypeFilter();
+					updateStats();
+				},
+			},
+		];
 	}
 
 	function clearQueueQuick() {
