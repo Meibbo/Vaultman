@@ -180,6 +180,7 @@ export const es: Record<string, string> = {
 	'command.apply_queue': 'Aplicar operaciones pendientes',
 	'command.focus_content_search': 'Enfocar busqueda de contenido',
 	'command.focus_active_explorer_search': 'Enfocar busqueda del explorador activo',
+	'command.focus_search_unavailable': 'No hay un campo de busqueda de Vaultman disponible.',
 
 	// Toolbar
 	'toolbar.filters': 'Filtros',
