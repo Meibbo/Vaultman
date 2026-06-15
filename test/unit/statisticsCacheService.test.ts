@@ -30,12 +30,15 @@ function makeFile(path: string, mtime = 1, size = 10, ctime = 0): TFile {
 	} satisfies TFile;
 }
 
-function makeApp(readCounter: { count: number }): App {
+function makeApp(
+	readCounter: { count: number },
+	contentByPath: Record<string, string> = {},
+): App {
 	return {
 		vault: {
-			cachedRead: async () => {
+			cachedRead: async (file: TFile) => {
 				readCounter.count += 1;
-				return 'one two three';
+				return contentByPath[file.path] ?? 'one two three';
 			},
 		},
 		metadataCache: {
@@ -205,5 +208,37 @@ describe('StatisticsCacheService', () => {
 		expect(lastGood?.files).toBe(1);
 		expect(lastGood?.words).toBe(3);
 		expect(lastGood?.filesRead).toBe(0);
+	});
+
+	it('exposes cached per-file word counts that sum to the scoped snapshot total', async () => {
+		const readCounter = { count: 0 };
+		const first = makeFile('Notes/a.md');
+		const second = makeFile('Notes/b.md');
+		const service = new StatisticsCacheService(
+			makeApp(readCounter, {
+				'Notes/a.md': 'one two three',
+				'Notes/b.md': 'four five',
+			}),
+		);
+
+		expect(service.getFileWordCount(first)).toBeNull();
+
+		const snapshot = await service.computeSnapshot({
+			files: [first, second],
+			folders: 1,
+			scope: 'filtered',
+		});
+		const projectedWords =
+			(service.getFileWordCount(first) ?? 0) +
+			(service.getFileWordCount(second) ?? 0);
+
+		expect(snapshot.words).toBe(5);
+		expect(projectedWords).toBe(snapshot.words);
+		expect(readCounter.count).toBe(2);
+
+		service.invalidateFile(first);
+
+		expect(service.getFileWordCount(first)).toBeNull();
+		expect(readCounter.count).toBe(2);
 	});
 });

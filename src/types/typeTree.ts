@@ -30,6 +30,7 @@ export interface TreeNode<TMeta = unknown> {
 	typeText?: string;
 	mtimeText?: string;
 	ctimeText?: string;
+	wordCountText?: string;
 	count?: number;
 	badges?: NodeBadge[];
 	children?: TreeNode<TMeta>[];

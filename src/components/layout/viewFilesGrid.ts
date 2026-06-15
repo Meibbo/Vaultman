@@ -13,6 +13,7 @@ export interface FilesGridViewCallbacks {
 	getBadges?: (file: TFile) => NodeBadge[];
 	getPropCount?: (file: TFile) => number;
 	getFileTimes?: (file: TFile) => ExplorerFileTimes;
+	getWordCount?: (file: TFile) => number | null;
 }
 
 export class FilesGridView {
@@ -212,6 +213,10 @@ export class FilesGridView {
 		const propCount = this.callbacks.getPropCount?.(file) ?? 0;
 		const badges = this.callbacks.getBadges?.(file) ?? [];
 		const times = this.callbacks.getFileTimes?.(file) ?? file.stat;
+		const showWords = this.visibleCells.has('words');
+		const wordCount = showWords
+			? (this.callbacks.getWordCount?.(file) ?? null)
+			: null;
 		const signature = [
 			file.path,
 			file.name,
@@ -222,6 +227,7 @@ export class FilesGridView {
 			this.selectedFiles.has(file.path) ? '1' : '0',
 			Array.from(this.visibleCells).sort().join(','),
 			propCount,
+			wordCount ?? '',
 			badges
 				.map((badge) =>
 					[
@@ -292,6 +298,12 @@ export class FilesGridView {
 			metaRow.createSpan({
 				cls: 'vaultman-tree-count',
 				text: String(propCount),
+			});
+		}
+		if (showWords && wordCount !== null) {
+			metaRow.createSpan({
+				cls: 'nav-file-tag vaultman-files-grid-card-words',
+				text: String(wordCount),
 			});
 		}
 		if (this.visibleCells.has('mtime')) {

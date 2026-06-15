@@ -53,6 +53,7 @@ export const en: Record<string, string> = {
 	'files.col.name': 'Name',
 	'files.col.file_name': 'file name',
 	'files.col.props': '# Props',
+	'files.col.words': 'Words',
 	'files.col.ext': 'Ext',
 	'files.col.file_ext': 'file extension',
 	'files.col.path': 'Path',
@@ -593,6 +594,7 @@ export const en: Record<string, string> = {
 	'viewmode.pill.tags': 'Tags',
 	'viewmode.pill.path': 'Path',
 	'viewmode.pill.size': 'Size',
+	'viewmode.pill.words': 'Words',
 	'viewmode.add_mode': 'ADD mode',
 
 	// Statistics

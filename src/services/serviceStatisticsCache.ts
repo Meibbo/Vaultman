@@ -199,6 +199,12 @@ export class StatisticsCacheService extends Component {
 		};
 	}
 
+	getFileWordCount(file: TFile): number | null {
+		const cached = this.fileStatsCache.get(file.path);
+		if (this.isFreshCachedStats(file, cached)) return cached.words;
+		return null;
+	}
+
 	private snapshotForDisplay(
 		snapshot: StatisticsSnapshot | undefined,
 	): StatisticsSnapshot | null {

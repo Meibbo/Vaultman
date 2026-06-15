@@ -277,6 +277,7 @@ export class UnifiedTreeView {
 			node.typeText ?? '',
 			node.mtimeText ?? '',
 			node.ctimeText ?? '',
+			node.wordCountText ?? '',
 			node.coreCls ?? '',
 			node.count ?? '',
 			node.children?.length ?? 0,
@@ -294,6 +295,7 @@ export class UnifiedTreeView {
 		const parts: string[] = [];
 		if (node.mtimeText) parts.push(`Last modified: ${node.mtimeText}`);
 		if (node.ctimeText) parts.push(`Created at: ${node.ctimeText}`);
+		if (node.wordCountText) parts.push(`Words: ${node.wordCountText}`);
 		return parts.length > 0 ? parts.join('\n') : null;
 	}
 
@@ -412,6 +414,7 @@ export class UnifiedTreeView {
 			: false;
 		const showMtime = visibleCells ? visibleCells.has('mtime') : false;
 		const showCtime = visibleCells ? visibleCells.has('ctime') : false;
+		const showWords = visibleCells ? visibleCells.has('words') : false;
 
 		const row =
 			this.rowEls.get(node.id) ??
@@ -518,6 +521,7 @@ export class UnifiedTreeView {
 		if (
 			(showMtime && node.mtimeText) ||
 			(showCtime && node.ctimeText) ||
+			(showWords && node.wordCountText) ||
 			(showCount && node.count != null && node.count > 0) ||
 			(node.badges && node.badges.length > 0)
 		) {
@@ -533,6 +537,12 @@ export class UnifiedTreeView {
 				badgeZone.createSpan({
 					cls: 'vaultman-tree-date nav-file-tag',
 					text: node.ctimeText,
+				});
+			}
+			if (showWords && node.wordCountText) {
+				badgeZone.createSpan({
+					cls: 'vaultman-tree-words nav-file-tag',
+					text: node.wordCountText,
 				});
 			}
 

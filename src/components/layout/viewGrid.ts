@@ -23,6 +23,7 @@ export type SortDirection = 'asc' | 'desc';
 
 export interface GridViewCallbacks {
 	getFileTimes?: (file: TFile) => ExplorerFileTimes;
+	getWordCount?: (file: TFile) => number | null;
 	getBadges?: (file: TFile) => NodeBadge[];
 	onContextMenu: (file: TFile, e: MouseEvent) => void;
 	onSelectionChange: (selected: Set<string>) => void;
@@ -146,15 +147,42 @@ export class GridView {
 				this._positionCell(cell, column);
 				continue;
 			}
-			this._createSortHeader(
-				row,
-				column,
-				this._headerLabel(column),
-				files,
-				totalCount,
-			);
+			if (column.sortColumn) {
+				this._createSortHeader(
+					row,
+					column,
+					this._headerLabel(column),
+					files,
+					totalCount,
+				);
+			} else {
+				this._createStaticHeader(row, column, this._headerLabel(column));
+			}
 		}
 		this._syncHeaderScroll();
+	}
+
+	private _createStaticHeader(
+		parent: HTMLElement,
+		column: FileTableColumn,
+		label: string,
+	): void {
+		const cell = parent.createDiv({
+			cls: `bases-td ${column.modClass ?? ''}`.trim(),
+		});
+		this._positionCell(cell, column);
+		if (column.dataProperty) cell.dataset.property = column.dataProperty;
+		const header = cell.createDiv({ cls: 'bases-table-header' });
+		const headerLabel = header.createDiv({
+			cls: 'bases-table-header-label vaultman-col-header',
+		});
+		headerLabel.createDiv({ cls: 'bases-table-header-icon' });
+		headerLabel.createSpan({
+			cls: 'bases-table-header-name',
+			text: label,
+		});
+		const resizer = header.createDiv({ cls: 'bases-table-header-resizer' });
+		this.attachColumnResizer(resizer, column);
 	}
 
 	private _createSortHeader(
@@ -374,6 +402,7 @@ export class GridView {
 		layout: FileTableLayout,
 		propCount: number,
 		times: ExplorerFileTimes,
+		wordCount: number | null,
 		badges: NodeBadge[],
 	): string {
 		const columns = layout.columns
@@ -392,6 +421,7 @@ export class GridView {
 			times.ctime,
 			times.mtime,
 			propCount,
+			wordCount ?? '',
 			badges
 				.map((badge) =>
 					[
@@ -418,8 +448,21 @@ export class GridView {
 		const fm = this.app.metadataCache.getFileCache(file)?.frontmatter ?? {};
 		const propCount = Object.keys(fm).filter((k) => k !== 'position').length;
 		const times = this.callbacks.getFileTimes?.(file) ?? file.stat;
+		const needsWordCount = layout.columns.some(
+			(column) => column.id === 'words',
+		);
+		const wordCount = needsWordCount
+			? (this.callbacks.getWordCount?.(file) ?? null)
+			: null;
 		const badges = this.callbacks.getBadges?.(file) ?? [];
-		const signature = this.rowSignature(file, layout, propCount, times, badges);
+		const signature = this.rowSignature(
+			file,
+			layout,
+			propCount,
+			times,
+			wordCount,
+			badges,
+		);
 		const row =
 			this.rowEls.get(file.path) ??
 			parent.createDiv({
@@ -455,6 +498,13 @@ export class GridView {
 					column,
 					String(propCount),
 					'vaultman-file-props',
+				);
+			} else if (column.id === 'words') {
+				this._renderTextCell(
+					row,
+					column,
+					wordCount == null ? '' : String(wordCount),
+					'vaultman-file-words',
 				);
 			} else if (column.id === 'ext') {
 				this._renderTextCell(
@@ -576,6 +626,7 @@ export class GridView {
 	private _headerLabel(column: FileTableColumn): string {
 		if (column.id === 'name') return translate('files.col.file_name');
 		if (column.id === 'count') return translate('files.col.props');
+		if (column.id === 'words') return translate('files.col.words');
 		if (column.id === 'ext') return translate('files.col.file_ext');
 		if (column.id === 'mtime') return translate('files.col.modified');
 		if (column.id === 'ctime') return translate('files.col.created');
