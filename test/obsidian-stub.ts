@@ -59,6 +59,18 @@ export class Notice {
 
 export class FileManager {}
 
+export class AbstractInputSuggest<T> {
+	constructor(..._args: unknown[]) {}
+
+	getSuggestions(_inputStr: string): T[] {
+		return [];
+	}
+
+	renderSuggestion(_value: T, _el: HTMLElement): void {}
+
+	selectSuggestion(_value: T, _evt: MouseEvent | KeyboardEvent): void {}
+}
+
 export class Modal {
 	contentEl = {
 		empty: () => {},
