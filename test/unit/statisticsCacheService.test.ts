@@ -238,7 +238,43 @@ describe('StatisticsCacheService', () => {
 
 		service.invalidateFile(first);
 
-		expect(service.getFileWordCount(first)).toBeNull();
+		expect(service.getFileWordCount(first)).toBe(3);
+		expect(readCounter.count).toBe(2);
+	});
+
+	it('keeps last-known file word counts after modify invalidation until refresh completes', async () => {
+		const readCounter = { count: 0 };
+		const contentByPath = {
+			'Notes/a.md': 'one two three',
+		};
+		const file = makeFile('Notes/a.md', 1, 10);
+		const service = new StatisticsCacheService(
+			makeApp(readCounter, contentByPath),
+		);
+
+		await service.computeSnapshot({
+			files: [file],
+			folders: 1,
+			scope: 'filtered',
+		});
+		expect(service.getFileWordCount(file)).toBe(3);
+
+		file.stat.mtime = 2;
+		file.stat.size = 20;
+		contentByPath['Notes/a.md'] = 'one two three four five';
+		service.invalidateFile(file);
+
+		expect(service.getFileWordCount(file)).toBe(3);
+		expect(readCounter.count).toBe(1);
+
+		const snapshot = await service.computeSnapshot({
+			files: [file],
+			folders: 1,
+			scope: 'filtered',
+		});
+
+		expect(snapshot.words).toBe(5);
+		expect(service.getFileWordCount(file)).toBe(5);
 		expect(readCounter.count).toBe(2);
 	});
 });
