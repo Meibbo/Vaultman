@@ -3387,6 +3387,13 @@ body.vaultman-bases-column-separators table th {
   overflow: hidden;
 }
 
+.vaultman-tag-card .vaultman-badge,
+.vaultman-prop-card .vaultman-badge {
+  color: var(--text-muted);
+  background: transparent;
+  opacity: 0.8;
+}
+
 .vaultman-tags-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(76px, 1fr));
@@ -5320,7 +5327,7 @@ body.vaultman-bases-column-separators table th {
   content: '';
   position: absolute;
   inset-block: 0 -1px;
-  inset-inline-start: 8px;
+  inset-inline-start: 16px;
   width: calc(var(--depth, 0) * var(--vaultman-tree-indent-unit));
   pointer-events: none;
   opacity: 0.7;
