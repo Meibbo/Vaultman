@@ -61,4 +61,12 @@ describe('FilesExplorerPanel source guards', () => {
 			'this._dragNodes(payload).filter',
 		);
 	});
+
+	it('uses direct flat file nodes when nested display is disabled', () => {
+		expect(explorerFilesSource).toContain('this.logic.buildFlatFileNodes(');
+		expect(explorerFilesSource).toContain(
+			'const renderTree = this._nestedEnabled()',
+		);
+		expect(explorerFilesSource).toContain(': this.logic.buildFlatFileNodes');
+	});
 });
