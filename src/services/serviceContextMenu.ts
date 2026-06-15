@@ -15,6 +15,7 @@ import { translate } from '../i18n/index';
 export interface ContextMenuPluginCtx extends Component {
 	app: App;
 	settings: {
+		minimalStyle: boolean;
 		contextMenuShowInMoreOptions: boolean;
 		contextMenuShowInFileMenu: boolean;
 		contextMenuShowInEditorMenu: boolean;
@@ -23,6 +24,10 @@ export interface ContextMenuPluginCtx extends Component {
 	filterService?: {
 		activeFilter: { children: unknown[] };
 		clearFilters(): void;
+	};
+	queueService?: {
+		readonly isEmpty: boolean;
+		execute(): unknown;
 	};
 }
 
@@ -47,6 +52,21 @@ export class ContextMenuService extends Component {
 			when: () =>
 				(this.plugin.filterService?.activeFilter.children.length ?? 0) > 0,
 			run: () => this.plugin.filterService?.clearFilters(),
+		});
+
+		this.registerAction({
+			id: 'queue.apply',
+			nodeTypes: ['file', 'folder', 'tag', 'prop', 'value'],
+			surfaces: ['panel'],
+			label: translate('command.apply_queue'),
+			icon: 'lucide-play',
+			section: 'queue',
+			when: () =>
+				this.plugin.settings.minimalStyle === true &&
+				this.plugin.queueService?.isEmpty === false,
+			run: () => {
+				void this.plugin.queueService?.execute();
+			},
 		});
 
 		this.registerEvent(

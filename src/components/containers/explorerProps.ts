@@ -13,6 +13,7 @@ export interface PanelPluginCtx {
 	iconicService?: IconicService;
 	contextMenuService: ContextMenuService;
 	queueService: OperationQueueService;
+	settings?: { minimalStyle: boolean };
 	statisticsCache?: Pick<StatisticsCacheService, 'getFileTimes'>;
 	showDragActionGuide?: (text: string) => void;
 	clearDragActionGuide?: () => void;
@@ -33,6 +34,7 @@ import {
 } from '../../logic/propTypes';
 import { normalizeExplorerSortBy } from '../../logic/logicSort';
 import { flattenTreeToPathLabels } from '../../logic/logicExplorerHierarchy';
+import { parsePropertyValue } from '../../logic/propertyValueCoercion';
 import {
 	readVaultmanDragPayload,
 	setVaultmanDragPayload,
@@ -129,6 +131,52 @@ export class PropsExplorerPanel extends Component {
 			run: (ctx) => {
 				const meta = ctx.node.meta as PropMeta;
 				return this._renameValue(meta.propName, meta.rawValue ?? '');
+			},
+		});
+
+		svc.registerAction({
+			id: 'value.checkbox-checked',
+			nodeTypes: ['value'],
+			surfaces: ['panel'],
+			label: 'Mark checked',
+			icon: 'lucide-check-square',
+			section: 'Checkbox',
+			when: (ctx) => {
+				const meta = ctx.node.meta as PropMeta;
+				return (
+					this.plugin.settings?.minimalStyle === true &&
+					meta.isValueNode &&
+					!meta.isTypeIncompatible &&
+					meta.propType === 'checkbox' &&
+					parsePropertyValue(meta.rawValue ?? '', 'checkbox') !== true
+				);
+			},
+			run: (ctx) => {
+				const meta = ctx.node.meta as PropMeta;
+				return this._setCheckboxValue(meta.propName, meta.rawValue ?? '', true);
+			},
+		});
+
+		svc.registerAction({
+			id: 'value.checkbox-unchecked',
+			nodeTypes: ['value'],
+			surfaces: ['panel'],
+			label: 'Mark unchecked',
+			icon: 'lucide-square',
+			section: 'Checkbox',
+			when: (ctx) => {
+				const meta = ctx.node.meta as PropMeta;
+				return (
+					this.plugin.settings?.minimalStyle === true &&
+					meta.isValueNode &&
+					!meta.isTypeIncompatible &&
+					meta.propType === 'checkbox' &&
+					parsePropertyValue(meta.rawValue ?? '', 'checkbox') !== false
+				);
+			},
+			run: (ctx) => {
+				const meta = ctx.node.meta as PropMeta;
+				return this._setCheckboxValue(meta.propName, meta.rawValue ?? '', false);
 			},
 		});
 
@@ -1372,10 +1420,23 @@ export class PropsExplorerPanel extends Component {
 		);
 	}
 
+	private async _setCheckboxValue(
+		propName: string,
+		oldValue: string,
+		checked: boolean,
+	): Promise<void> {
+		await this._replaceValueInVault(
+			propName,
+			oldValue,
+			parsePropertyValue(String(checked), 'checkbox'),
+			checked ? 'checked' : 'unchecked',
+		);
+	}
+
 	private async _replaceValueInVault(
 		propName: string,
 		oldValue: string,
-		newValue: string,
+		newValue: unknown,
 		label?: string,
 	): Promise<void> {
 		const files = this._getFilesWithValue(propName, oldValue);
@@ -1385,9 +1446,9 @@ export class PropsExplorerPanel extends Component {
 			action: 'set',
 			details: label
 				? `Convert "${oldValue}" to ${label}`
-				: `Rename value "${oldValue}" → "${newValue}"`,
+				: `Rename value "${oldValue}" → "${String(newValue)}"`,
 			files,
-			value: newValue,
+			value: String(newValue),
 			oldValue: oldValue,
 			customLogic: true,
 			logicFunc: (_file, fm) => {
