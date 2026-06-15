@@ -182,6 +182,7 @@ export const en: Record<string, string> = {
 	'command.apply_queue': 'Apply pending operations',
 	'command.focus_content_search': 'Focus Content search',
 	'command.focus_active_explorer_search': 'Focus active explorer search',
+	'command.focus_search_unavailable': 'No Vaultman search field is available.',
 
 	// Toolbar
 	'toolbar.filters': 'Filters',

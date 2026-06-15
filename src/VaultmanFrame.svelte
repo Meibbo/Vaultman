@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { mount, onMount, tick, unmount } from 'svelte';
-	import { setIcon } from 'obsidian';
+	import { Notice, setIcon } from 'obsidian';
 	import type { VaultmanPlugin } from './main';
 	import type { FilesExplorerPanel } from './components/containers/explorerFiles';
 	import type { PropsExplorerPanel } from './components/containers/explorerProps';
@@ -168,30 +168,76 @@
 		applyPageTransform(!minimalStyle);
 	}
 
-	async function focusFrameInput(selector: string): Promise<void> {
+	async function waitForFrameDom(): Promise<void> {
 		await tick();
 		await new Promise<void>((resolve) => {
 			window.requestAnimationFrame(() => resolve());
 		});
-		const root = viewRootEl ?? document;
-		const input = root.querySelector<HTMLInputElement>(selector);
+	}
+
+	function frameRoot(): ParentNode {
+		return viewRootEl ?? document;
+	}
+
+	function queryFrameInputs(selectors: string[]): HTMLInputElement[] {
+		return selectors.flatMap((selector) =>
+			Array.from(frameRoot().querySelectorAll<HTMLInputElement>(selector)),
+		);
+	}
+
+	function visibleInput(inputs: HTMLInputElement[]): HTMLInputElement | null {
+		return (
+			inputs.find((input) => input.offsetParent !== null && !input.disabled) ??
+			inputs.find((input) => !input.disabled) ??
+			null
+		);
+	}
+
+	async function focusFrameInput(selector: string | string[]): Promise<boolean> {
+		await waitForFrameDom();
+		const selectors = Array.isArray(selector) ? selector : [selector];
+		const input = visibleInput(queryFrameInputs(selectors));
+		if (!input) return false;
 		input?.focus();
 		input?.select();
+		return true;
+	}
+
+	async function activateFrameControl(selector: string): Promise<boolean> {
+		await waitForFrameDom();
+		const control = frameRoot().querySelector<HTMLElement>(selector);
+		if (!control) return false;
+		control.click();
+		return true;
+	}
+
+	function notifyFocusUnavailable(): void {
+		new Notice(translate('command.focus_search_unavailable'));
 	}
 
 	export async function focusContentSearch(): Promise<void> {
 		navigateToDataTab('content');
-		await focusFrameInput(
-			'.vaultman-filters-tab-pane.is-active .vaultman-content-input[type="search"]',
+		const focused = await focusFrameInput(
+			'.vaultman-page[data-page="filters"] .vaultman-filters-tab-pane.is-active .vaultman-content-input[type="search"]',
 		);
+		if (!focused) notifyFocusUnavailable();
 	}
 
 	export async function focusActiveExplorerSearch(): Promise<void> {
 		const tab: StatisticsDataTab = filtersActiveTab === 'content' ? 'props' : filtersActiveTab;
 		navigateToDataTab(tab);
-		await focusFrameInput(
+		const explorerSearchSelectors = [
+			'.vaultman-page[data-page="filters"] .vaultman-navbar-filters .vaultman-filters-search-input',
 			'.vaultman-filters-tab-pane.is-active .vaultman-filters-search-input',
-		);
+		];
+		let focused = await focusFrameInput(explorerSearchSelectors);
+		if (!focused) {
+			const expanded = await activateFrameControl(
+				'.vaultman-page[data-page="filters"] [data-vaultman-search-toggle="true"]',
+			);
+			if (expanded) focused = await focusFrameInput(explorerSearchSelectors);
+		}
+		if (!focused) notifyFocusUnavailable();
 	}
 
 	function onContainerTransitionEnd(e: TransitionEvent) {

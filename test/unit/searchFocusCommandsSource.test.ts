@@ -1,5 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
+import enSource from '../../src/i18n/en.ts?raw';
+import esSource from '../../src/i18n/es.ts?raw';
 import frameSource from '../../src/VaultmanFrame.svelte?raw';
 import frameHostSource from '../../src/VaultmanFrame.ts?raw';
 import mainSource from '../../src/main.ts?raw';
@@ -52,8 +54,22 @@ describe('search focus command source guards', () => {
 		expect(frameSource).toContain(
 			"filtersActiveTab === 'content' ? 'props' : filtersActiveTab",
 		);
-		expect(frameSource).toContain('.vaultman-filters-search-input');
+		expect(frameSource).toContain(
+			'.vaultman-page[data-page="filters"] .vaultman-navbar-filters .vaultman-filters-search-input',
+		);
+		expect(frameSource).toContain(
+			'.vaultman-page[data-page="filters"] [data-vaultman-search-toggle="true"]',
+		);
 		expect(frameSource).toContain('input?.focus();');
 		expect(frameSource).toContain('input?.select();');
+		expect(frameSource).toContain(
+			"new Notice(translate('command.focus_search_unavailable'))",
+		);
+		expect(enSource).toContain(
+			"'command.focus_search_unavailable': 'No Vaultman search field is available.'",
+		);
+		expect(esSource).toContain(
+			"'command.focus_search_unavailable': 'No hay un campo de busqueda de Vaultman disponible.'",
+		);
 	});
 });
