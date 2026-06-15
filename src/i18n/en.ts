@@ -582,6 +582,7 @@ export const en: Record<string, string> = {
 	'viewmode.pill.icon': 'Icon',
 	'viewmode.pill.text': 'Text',
 	'viewmode.pill.count': 'Count',
+	'viewmode.pill.prop_count': 'Prop Count',
 	'viewmode.pill.files': 'Files',
 	'viewmode.pill.nested': 'Nested',
 	'viewmode.pill.date': 'Date',

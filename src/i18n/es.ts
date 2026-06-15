@@ -458,6 +458,7 @@ export const es: Record<string, string> = {
 	'viewmode.pill.icon': 'Icono',
 	'viewmode.pill.text': 'Texto',
 	'viewmode.pill.count': 'Cantidad',
+	'viewmode.pill.prop_count': 'Props',
 	'viewmode.pill.ext': 'Ext',
 	'viewmode.pill.nested': 'Anidadas',
 	'viewmode.pill.name': 'Nombre',
