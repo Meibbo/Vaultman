@@ -177,6 +177,8 @@ export const es: Record<string, string> = {
 	'command.open_main': 'Abrir Vaultman (vista completa)',
 	'command.open_sidebar': 'Abrir barra lateral de Vaultman',
 	'command.apply_queue': 'Aplicar operaciones pendientes',
+	'command.focus_content_search': 'Enfocar busqueda de contenido',
+	'command.focus_active_explorer_search': 'Enfocar busqueda del explorador activo',
 
 	// Toolbar
 	'toolbar.filters': 'Filtros',

@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { mount, onMount, unmount } from 'svelte';
+	import { mount, onMount, tick, unmount } from 'svelte';
 	import { setIcon } from 'obsidian';
 	import type { VaultmanPlugin } from './main';
 	import type { FilesExplorerPanel } from './components/containers/explorerFiles';
@@ -166,6 +166,32 @@
 		filtersActiveTab = tab;
 		activePage = 'filters';
 		applyPageTransform(!minimalStyle);
+	}
+
+	async function focusFrameInput(selector: string): Promise<void> {
+		await tick();
+		await new Promise<void>((resolve) => {
+			window.requestAnimationFrame(() => resolve());
+		});
+		const root = viewRootEl ?? document;
+		const input = root.querySelector<HTMLInputElement>(selector);
+		input?.focus();
+		input?.select();
+	}
+
+	export async function focusContentSearch(): Promise<void> {
+		navigateToDataTab('content');
+		await focusFrameInput(
+			'.vaultman-filters-tab-pane.is-active .vaultman-content-input[type="search"]',
+		);
+	}
+
+	export async function focusActiveExplorerSearch(): Promise<void> {
+		const tab: StatisticsDataTab = filtersActiveTab === 'content' ? 'props' : filtersActiveTab;
+		navigateToDataTab(tab);
+		await focusFrameInput(
+			'.vaultman-filters-tab-pane.is-active .vaultman-filters-search-input',
+		);
 	}
 
 	function onContainerTransitionEnd(e: TransitionEvent) {
