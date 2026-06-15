@@ -313,7 +313,6 @@ export class NodeTableView<TMeta = unknown> {
 			opts.expandedIds.has(node.id) ? '1' : '0',
 			opts.activeFilterIds?.has(node.id) ? '1' : '0',
 			opts.warningIds?.has(node.id) ? '1' : '0',
-			opts.searchHighlightIds?.has(node.id) ? '1' : '0',
 			visibleCells,
 			columns,
 			badges,
@@ -364,7 +363,9 @@ export class NodeTableView<TMeta = unknown> {
 			event.stopPropagation();
 			opts.onContextMenu(node.id, event);
 		};
+		const isHighlighted = opts.searchHighlightIds?.has(node.id) ?? false;
 		if (row.dataset.renderSignature === signature) {
+			row.toggleClass('vaultman-search-highlight', isHighlighted);
 			return;
 		}
 		row.empty();
@@ -385,7 +386,7 @@ export class NodeTableView<TMeta = unknown> {
 		);
 		row.toggleClass(
 			'vaultman-search-highlight',
-			opts.searchHighlightIds?.has(node.id) ?? false,
+			isHighlighted,
 		);
 
 		for (const column of layout.columns) {
