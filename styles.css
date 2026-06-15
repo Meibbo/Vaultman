@@ -4012,7 +4012,7 @@ body.vaultman-bases-column-separators table th {
   box-shadow: none;
   background: transparent;
   padding-inline-start: 30px;
-  padding-inline-end: 24px;
+  padding-inline-end: 34px;
 }
 
 .vaultman-content-search-container .vaultman-content-input:focus {
@@ -4021,13 +4021,13 @@ body.vaultman-bases-column-separators table th {
 
 .vaultman-content-clear-button {
   position: absolute;
-  inset-inline-end: 6px;
+  inset-inline-end: 2px;
   top: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 18px;
-  height: 18px;
+  width: 28px;
+  height: 28px;
   transform: translateY(-50%);
   background: transparent;
   border: 0;
@@ -4041,8 +4041,8 @@ body.vaultman-bases-column-separators table th {
 }
 
 .vaultman-content-clear-button svg {
-  width: 13px;
-  height: 13px;
+  width: 16px;
+  height: 16px;
 }
 
 .vaultman-icon-toggle {

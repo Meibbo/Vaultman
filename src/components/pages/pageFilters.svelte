@@ -247,7 +247,7 @@
 			);
 		}
 		const baseCount =
-			plugin.filterService.getFilesIgnoringContentSearch().length;
+			plugin.filterService.getFilesIgnoringContentSearch(true).length;
 		return translate('content.scope_hint_filtered').replace(
 			'{count}',
 			String(baseCount),
@@ -417,7 +417,7 @@
 		const files =
 			scope === 'selected' || (scope === 'auto' && selected.length > 0)
 				? selected
-				: plugin.filterService.getFilesIgnoringContentSearch();
+				: plugin.filterService.getFilesIgnoringContentSearch(true);
 
 		if (tab !== 'content') return;
 		nativeSearchAdapter.cancel();
