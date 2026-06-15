@@ -46,6 +46,13 @@ describe('FilesExplorerPanel source guards', () => {
 		);
 	});
 
+	it('does not inject all vault folders into the default nested Files result surface', () => {
+		expect(explorerFilesSource).toContain('if (!this.searchFolder) return []');
+		expect(explorerFilesSource).toContain(
+			'return folders.filter((folder) => folder.path.toLowerCase().includes(term))',
+		);
+	});
+
 	it('narrows dragged file and folder payloads before passing paths into Obsidian vault APIs', () => {
 		const moveDraggedNodesBlock = explorerFilesSource.match(
 			/private async _moveDraggedNodesIntoFolder[\s\S]*?\n\tprivate _dragNodes/,

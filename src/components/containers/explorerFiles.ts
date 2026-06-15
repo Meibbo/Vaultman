@@ -1195,7 +1195,7 @@ export class FilesExplorerPanel extends Component {
 		}
 		if (this._hasActiveConstraints()) return [];
 		if (this.searchName && !this.searchFolder) return [];
-		if (!this.searchFolder) return folders;
+		if (!this.searchFolder) return [];
 		const term = this.searchFolder.toLowerCase();
 		return folders.filter((folder) => folder.path.toLowerCase().includes(term));
 	}
