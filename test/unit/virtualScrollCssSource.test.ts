@@ -25,6 +25,10 @@ describe('virtual scroll CSS source guards', () => {
 	});
 
 	it('draws Obsidian-like nested indentation guides without changing virtual row heights', () => {
+		const treeGuideBlock =
+			stylesSource.match(/\.vaultman-tree-row::before\s*\{[\s\S]*?\n\}/)?.[0] ??
+			'';
+
 		expect(stylesSource).toContain('--vaultman-tree-indent-unit: 16px');
 		expect(stylesSource).toContain(
 			'--vaultman-tree-indent-line-color: var(--nav-indentation-guide-color, var(--background-modifier-border))',
@@ -37,7 +41,21 @@ describe('virtual scroll CSS source guards', () => {
 		);
 		expect(stylesSource).toContain('background-image: repeating-linear-gradient');
 		expect(stylesSource).toContain('width: calc(var(--depth, 0) * var(--vaultman-tree-indent-unit))');
+		expect(treeGuideBlock).toContain('inset-inline-start: 16px');
 		expect(stylesSource).toContain('height: 27px');
 		expect(stylesSource).toContain('height: 37px');
+	});
+
+	it('keeps Tags and Props grid operation badges visually quieter than Files operation badges', () => {
+		const mutedBadgeBlock =
+			stylesSource.match(
+				/\.vaultman-tag-card \.vaultman-badge,\n\.vaultman-prop-card \.vaultman-badge\s*\{[\s\S]*?\n\}/,
+			)?.[0] ?? '';
+
+		expect(mutedBadgeBlock).toContain('color: var(--text-muted)');
+		expect(mutedBadgeBlock).toContain('background: transparent');
+		expect(mutedBadgeBlock).toContain('opacity: 0.8');
+		expect(stylesSource).toContain('.vaultman-badge--blue');
+		expect(stylesSource).toContain('.vaultman-badge--orange');
 	});
 });
