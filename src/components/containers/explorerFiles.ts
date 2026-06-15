@@ -18,7 +18,6 @@ import {
 	compareFilesForExplorer,
 	normalizeExplorerSortBy,
 } from '../../logic/logicSort';
-import { flattenTreeToPathLabels } from '../../logic/logicExplorerHierarchy';
 import {
 	filesInsideFolder,
 	movedParentPathForFolderFile,
@@ -589,15 +588,17 @@ export class FilesExplorerPanel extends Component {
 			this.gridView.setActivePath(this.activeRevealPath);
 			this.gridView.render(this._sortFiles(displayFiles));
 		} else if (this.viewMode === 'tree' && this.treeView) {
-			const tree = this.logic.buildFileTree(
-				this._sortFiles(displayFiles),
-				this._foldersForCurrentView(),
-				{ rebaseFolderPaths: this._activeFolderFilterPaths() },
-			);
-			this._autoExpandSparseTopLevel(tree);
-			this._decorateTreeWithFileTimes(tree);
-			this._decorateTreeWithQueue(tree);
-			this._decorateTreeWithActiveReveal(tree);
+			const sortedFiles = this._sortFiles(displayFiles);
+			const rebaseFolderPaths = this._activeFolderFilterPaths();
+			const renderTree = this._nestedEnabled()
+				? this.logic.buildFileTree(sortedFiles, this._foldersForCurrentView(), {
+						rebaseFolderPaths,
+					})
+				: this.logic.buildFlatFileNodes(sortedFiles, { rebaseFolderPaths });
+			if (this._nestedEnabled()) this._autoExpandSparseTopLevel(renderTree);
+			this._decorateTreeWithFileTimes(renderTree);
+			this._decorateTreeWithQueue(renderTree);
+			this._decorateTreeWithActiveReveal(renderTree);
 			const applyFolderIcons = (
 				nodes: TreeNode<FileMeta>[],
 				expanded: Set<string>,
@@ -611,10 +612,7 @@ export class FilesExplorerPanel extends Component {
 					if (n.children?.length) applyFolderIcons(n.children, expanded);
 				}
 			};
-			applyFolderIcons(tree, this.expandedIds);
-			const renderTree = this._nestedEnabled()
-				? tree
-				: flattenTreeToPathLabels(tree);
+			applyFolderIcons(renderTree, this.expandedIds);
 			this.treeView.render({
 				nodes: renderTree,
 				expandedIds: this.expandedIds,
@@ -626,7 +624,7 @@ export class FilesExplorerPanel extends Component {
 					this._render();
 				},
 				onRowClick: (id: string) => {
-					const node = this._findNode(id, tree);
+					const node = this._findNode(id, renderTree);
 					if (!node) return;
 					const meta = node.meta;
 					if (meta.isFolder) {
@@ -655,7 +653,7 @@ export class FilesExplorerPanel extends Component {
 					}
 				},
 				onContextMenu: (id: string, e: MouseEvent) => {
-					const node = this._findNode(id, tree);
+					const node = this._findNode(id, renderTree);
 					if (!node) return;
 					const meta = node.meta;
 					if (meta.isFolder) {
@@ -672,7 +670,7 @@ export class FilesExplorerPanel extends Component {
 					);
 				},
 				onDragStart: (id: string, event: DragEvent) => {
-					const node = this._findNode(id, tree);
+					const node = this._findNode(id, renderTree);
 					if (!node) return;
 					const meta = node.meta;
 					if (meta.isFolder) {
@@ -695,12 +693,12 @@ export class FilesExplorerPanel extends Component {
 					);
 				},
 				onDragOver: (id: string, event: DragEvent) => {
-					const node = this._findNode(id, tree);
+					const node = this._findNode(id, renderTree);
 					if (!node) return;
 					this._handleFileDragOver(node, event);
 				},
 				onDrop: (id: string, event: DragEvent) => {
-					const node = this._findNode(id, tree);
+					const node = this._findNode(id, renderTree);
 					if (!node) return;
 					this._handleFileDrop(node, event);
 				},

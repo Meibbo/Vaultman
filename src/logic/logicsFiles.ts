@@ -51,6 +51,44 @@ export class FilesLogic {
 		return [...filteredFiles];
 	}
 
+	/** Returns path-labeled file nodes without structural folder rows. */
+	buildFlatFileNodes(
+		filteredFiles: TFile[],
+		options: BuildFileTreeOptions = {},
+	): TreeNode<FileMeta>[] {
+		const rebaseFolderPaths = normalizeRebaseFolderPaths(
+			options.rebaseFolderPaths ?? [],
+		);
+
+		return filteredFiles.flatMap((file) => {
+			const rawPath = file.parent?.path ?? '';
+			const folderPath = rawPath === '/' ? '' : rawPath;
+			const rebaseInfo = rebaseFolderInfo(folderPath, rebaseFolderPaths);
+			if (!rebaseInfo) return [];
+
+			const labelPrefix = rebaseInfo.visualPath
+				? `${rebaseInfo.visualPath}/`
+				: '';
+			return [
+				{
+					id: file.path,
+					label: `${labelPrefix}${file.basename}`,
+					icon: this.iconForExtension(file.extension),
+					showCaret: false,
+					depth: 0,
+					coreCls: 'tree-item-self nav-file-title tappable is-clickable',
+					typeText:
+						file.extension && file.extension !== 'md'
+							? file.extension
+							: undefined,
+					count: this.propCountForFile(file),
+					children: [],
+					meta: { file, isFolder: false, folderPath },
+				},
+			];
+		});
+	}
+
 	/** Returns folder-hierarchy tree from filteredFiles */
 	buildFileTree(
 		filteredFiles: TFile[],
@@ -142,11 +180,6 @@ export class FilesLogic {
 			const parentFolder = ensureFolder(folderPath);
 			if (parentFolder === undefined) continue;
 
-			const cache = this.app.metadataCache.getFileCache(file);
-			const propCount = Object.keys(cache?.frontmatter ?? {}).filter(
-				(k) => k !== 'position',
-			).length;
-
 			const fileNode: TreeNode<FileMeta> = {
 				id: file.path,
 				label: file.basename,
@@ -156,7 +189,7 @@ export class FilesLogic {
 					file.extension && file.extension !== 'md'
 						? file.extension
 						: undefined,
-				count: propCount,
+				count: this.propCountForFile(file),
 				depth: rebaseInfo.visualPath.split('/').filter(Boolean).length,
 				children: [],
 				meta: { file, isFolder: false, folderPath },
@@ -165,6 +198,13 @@ export class FilesLogic {
 			(parentFolder?.children ?? root).push(fileNode);
 		}
 		return sortTree(root);
+	}
+
+	private propCountForFile(file: TFile): number {
+		const cache = this.app.metadataCache.getFileCache(file);
+		return Object.keys(cache?.frontmatter ?? {}).filter(
+			(key) => key !== 'position',
+		).length;
 	}
 
 	private iconForExtension(extension: string): string {

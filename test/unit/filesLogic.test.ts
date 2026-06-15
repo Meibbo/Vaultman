@@ -36,6 +36,14 @@ function makeFile(path: string): TFile {
 	return file;
 }
 
+function makeTimedFile(path: string, mtime: number): TFile {
+	const file = makeFile(path);
+	return {
+		...file,
+		stat: { ...file.stat, mtime },
+	} satisfies TFile;
+}
+
 function makeApp(
 	frontmatterByPath: Record<string, Record<string, unknown>>,
 ): App {
@@ -256,5 +264,28 @@ describe('FilesLogic.buildFileTree', () => {
 			['todo', 0],
 			['list', 0],
 		]);
+	});
+
+	it('builds flat file nodes in caller sort order without folder result rows', () => {
+		const newest = makeTimedFile('zeta/newest.md', 300);
+		const middle = makeTimedFile('alpha/middle.md', 200);
+		const oldest = makeTimedFile('beta/oldest.md', 100);
+		const logic = new FilesLogic(makeApp({}));
+
+		const nodes = logic.buildFlatFileNodes([newest, middle, oldest]);
+
+		expect(nodes.map((node) => node.id)).toEqual([
+			'zeta/newest.md',
+			'alpha/middle.md',
+			'beta/oldest.md',
+		]);
+		expect(nodes.map((node) => node.label)).toEqual([
+			'zeta/newest',
+			'alpha/middle',
+			'beta/oldest',
+		]);
+		expect(nodes.every((node) => !node.meta.isFolder)).toBe(true);
+		expect(nodes.every((node) => node.depth === 0)).toBe(true);
+		expect(nodes.every((node) => node.showCaret === false)).toBe(true);
 	});
 });
