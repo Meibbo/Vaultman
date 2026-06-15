@@ -284,7 +284,6 @@ export class UnifiedTreeView {
 			opts.expandedIds.has(node.id) ? '1' : '0',
 			opts.activeFilterIds?.has(node.id) ? '1' : '0',
 			opts.warningIds?.has(node.id) ? '1' : '0',
-			opts.searchHighlightIds?.has(node.id) ? '1' : '0',
 			opts.editingId === node.id ? '1' : '0',
 			visibleCells,
 			badges,
@@ -401,6 +400,7 @@ export class UnifiedTreeView {
 		const isActive = opts.activeFilterIds?.has(node.id) ?? false;
 		const isWarning = opts.warningIds?.has(node.id) ?? false;
 		const isEditing = opts.editingId === node.id;
+		const isHighlighted = opts.searchHighlightIds?.has(node.id) ?? false;
 		const visibleCells = opts.visibleCells;
 		const showIcon = visibleCells ? visibleCells.has('icon') : true;
 		const showLabel = visibleCells
@@ -442,6 +442,7 @@ export class UnifiedTreeView {
 		this.applyRowTitle(row, node);
 		const signature = this.rowSignature(node, opts);
 		if (row.dataset.renderSignature === signature) {
+			row.toggleClass('vaultman-search-highlight', isHighlighted);
 			return row;
 		}
 		row.empty();
@@ -453,8 +454,7 @@ export class UnifiedTreeView {
 		}
 		if (isActive) row.addClass('is-active-filter');
 		if (isWarning) row.addClass('vaultman-badge-warning');
-		if (opts.searchHighlightIds?.has(node.id))
-			row.addClass('vaultman-search-highlight');
+		row.toggleClass('vaultman-search-highlight', isHighlighted);
 		if (isEditing) row.addClass('is-editing');
 
 		this.rowEls.set(node.id, row);
