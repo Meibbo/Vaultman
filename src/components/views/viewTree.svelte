@@ -4,7 +4,7 @@
 	import type { NodeBadge, TreeNode } from '../../types/typeNode';
 	import type { ExplorerRevealAlign, ExplorerRevealTarget } from '../../types/typeExplorerDataPlane';
 	import { getActivePerfProbe } from '../../dev/perfProbe';
-	import HighlightText from '../primitives/HighlightText.svelte';
+	import NodeRow from './NodeRow.svelte';
 	import {
 		visibleHoverBadgeDescriptors,
 		type ActiveOpsByNode,
@@ -53,10 +53,6 @@
 	import {
 		handleNodeBadgePress,
 		inheritedNodeBadges,
-		nodeBadgeAriaLabel,
-		nodeBadgeIsActionable,
-		nodeBadgeKey,
-		nodeBadgeTitle,
 		ownNodeBadges,
 	} from './nodeBadgeHelpers';
 	import {
@@ -256,14 +252,6 @@
 			return 'lucide-folder-open';
 		}
 		return node.icon;
-	}
-
-	function hasVisibleCount(node: TreeNode): boolean {
-		return Boolean(node.countLabel || (node.count != null && node.count > 0));
-	}
-
-	function hasActiveRowBadge(badges: readonly NodeBadge[]): boolean {
-		return badges.some((badge) => badge.queueIndex !== undefined || (badge.solid && !badge.quickAction));
 	}
 
 	function rowStateClassString(
@@ -532,16 +520,6 @@
 		};
 	});
 
-	function handleInputKeydown(e: KeyboardEvent, id: string, inputEl: HTMLInputElement) {
-		if (e.key === 'Enter') {
-			e.stopPropagation();
-			onRename?.(id, inputEl.value);
-		} else if (e.key === 'Escape') {
-			e.stopPropagation();
-			onCancelRename?.();
-		}
-	}
-
 	function handleRowClick(e: MouseEvent, id: string) {
 		if (suppressNextClick) {
 			suppressNextClick = false;
@@ -769,11 +747,6 @@
 		}
 	}
 
-	function focus(el: HTMLInputElement) {
-		el.focus();
-		el.select();
-	}
-
 	function updateRowHeight() {
 		if (!outerEl) return;
 		const value = parseFloat(getComputedStyle(outerEl).getPropertyValue('--vm-tree-row-h'));
@@ -951,13 +924,9 @@
 	{@const childBadges = visibleNodeBadgesForMask(inheritedNodeBadges(node), nodeElementMask)}
 	{@const hoverBadges = hoverBadgesFor(id)}
 	{@const rowIcon = showNodeIcon ? iconForNode(node, flat) : undefined}
-	{@const hasCount = showNodeCount && hasVisibleCount(node)}
 	{@const fieldValues = nodeElementMask.detail
 		? visibleNodeFieldValues(effectiveProviderId, 'tree', node, effectiveVisibleFields)
 		: []}
-	{@const hasOverlayBadges =
-		directBadges.length > 0 || childBadges.length > 0 || hoverBadges.length > 0}
-	{@const hasActiveBadges = hasActiveRowBadge(directBadges) || hasActiveRowBadge(childBadges)}
 	{@const dndState = dndStateForId?.(id)}
 
 	<div
@@ -984,170 +953,61 @@
 			expanded: flat.isExpanded,
 		})}
 	>
-		<div
-			class="vm-tree-row-surface {nativeVocab?.innerWrapper ?? ''} {rowStateClassString({
-				isSelected,
-				isFocused,
-				isActive,
-			}, dndState)}"
-			class:is-active-filter={isActive}
-			class:is-selected={isSelected}
-			class:is-focused={isFocused}
-			class:vm-badge-warning={isWarning}
-			class:vm-search-highlight={isHighlighted}
-			class:is-editing={isEditing}
-			class:has-toggle={flat.hasChildren}
-			class:has-icon={!!rowIcon}
-			class:has-count={hasCount}
-			class:has-overlay-badges={hasOverlayBadges}
-			class:is-expanded-parent={flat.hasChildren && flat.isExpanded}
+		<NodeRow
+			label={node.label}
+			labelPrefix={node.labelPrefix}
+			highlights={node.highlights ?? []}
+			iconName={rowIcon}
+			fields={fieldValues}
+			count={showNodeCount ? node.count : null}
+			countLabel={showNodeCount ? node.countLabel : null}
+			showLabel={showNodeText}
+			editing={isEditing}
+			onRename={(value) => onRename?.(id, value)}
+			{onCancelRename}
+			{directBadges}
+			{childBadges}
+			{hoverBadges}
+			childBadgeTitle={inheritedBadgeTitle(childBadges)}
+			onBadgePress={handleBadgePress}
+			onBadgeKeydown={handleBadgeKeydown}
+			onHoverBadgePress={(e, kind) => handleHoverBadgePress(e, id, kind)}
+			onHoverBadgeKeydown={(e, kind) => handleHoverBadgeKeydown(e, id, kind)}
+			{isSelected}
+			{isFocused}
+			isActiveFilter={isActive}
+			{isWarning}
+			{isHighlighted}
+			hasToggle={flat.hasChildren}
+			isExpandedParent={flat.isExpanded}
+			{dndState}
+			{nativeVocab}
+			{icon}
 		>
-			{#if flat.depth > 0}
-				<div class="vm-tree-indent-guides" aria-hidden="true">
-					{#each indentGuideDepths(flat.depth) as guideDepth (guideDepth)}
-						<span class="vm-tree-indent-guide" style="--guide-depth: {guideDepth}"></span>
-					{/each}
-				</div>
-			{/if}
+			{#snippet leading()}
+				{#if flat.depth > 0}
+					<div class="vm-tree-indent-guides" aria-hidden="true">
+						{#each indentGuideDepths(flat.depth) as guideDepth (guideDepth)}
+							<span class="vm-tree-indent-guide" style="--guide-depth: {guideDepth}"></span>
+						{/each}
+					</div>
+				{/if}
 
-			{#if flat.hasChildren}
-				<div
-					class="vm-tree-toggle {nativeVocab?.collapseIcon ?? ''}"
-					{...rowAction.getCaretProps(id)}
-				>
-					<span use:icon={flat.isExpanded ? 'lucide-chevron-down' : 'lucide-chevron-right'}></span>
-				</div>
-			{:else}
-				<div
-					class="vm-tree-toggle is-placeholder {nativeVocab?.collapseIcon ?? ''}"
-					aria-hidden="true"
-				></div>
-			{/if}
-
-			{#if rowIcon}
-				<span class="vm-tree-icon" use:icon={rowIcon}></span>
-			{/if}
-
-			{#if isEditing}
-				<input
-					class="vm-tree-input"
-					value={node.label}
-					onclick={(e) => e.stopPropagation()}
-					onkeydown={(e) => handleInputKeydown(e, id, e.currentTarget)}
-					onblur={() => onCancelRename?.()}
-					use:focus
-				/>
-			{:else if showNodeText}
-				<span class="vm-tree-label {nativeVocab?.primaryLabel ?? ''}">
-					{#if node.labelPrefix}<span class="vm-tree-label-prefix">{node.labelPrefix}</span
-						>{/if}<HighlightText text={node.label} ranges={node.highlights ?? []} />
-				</span>
-			{/if}
-
-			{#if fieldValues.length > 0}
-				<div class="vm-tree-field-zone">
-					{#each fieldValues as field (field.id)}
-						<span class="vm-tree-field" data-node-field={field.id}>{field.text}</span>
-					{/each}
-				</div>
-			{/if}
-
-			{#if hasCount || hasOverlayBadges}
-				<div
-					class="vm-tree-badge-zone"
-					class:has-count={hasCount}
-					class:has-overlay-badges={hasOverlayBadges}
-				>
-					{#if hasOverlayBadges}
-						<div class="vm-tree-overlay-badge-zone" class:has-active-badges={hasActiveBadges}>
-							{#if hoverBadges.length > 0}
-								<div class="vm-tree-hover-badge-zone">
-									{#each hoverBadges as badge (badge.kind)}
-										<div
-											class="vm-badge is-hover-badge is-actionable"
-											data-hover-kind={badge.kind}
-											role="button"
-											tabindex="0"
-											title={badge.label}
-											aria-label={badge.label}
-											onclick={(e) => handleHoverBadgePress(e, id, badge.kind)}
-											onkeydown={(e) => handleHoverBadgeKeydown(e, id, badge.kind)}
-										>
-											<span class="vm-badge-icon" use:icon={badge.icon}></span>
-										</div>
-									{/each}
-								</div>
-							{/if}
-							{#if directBadges.length > 0}
-								{#each directBadges as badge, badgeIndex (nodeBadgeKey(badge, badgeIndex))}
-									<div
-										class="vm-badge"
-										role="button"
-										class:is-solid={badge.solid}
-										class:is-undoable={badge.queueIndex !== undefined}
-										class:is-actionable={nodeBadgeIsActionable(badge)}
-										class:is-quick-action={badge.quickAction}
-										class:vm-badge--red={badge.solid && badge.color === 'red'}
-										class:vm-badge--blue={badge.solid && badge.color === 'blue'}
-										class:vm-badge--purple={badge.solid && badge.color === 'purple'}
-										class:vm-badge--orange={badge.solid && badge.color === 'orange'}
-										class:vm-badge--green={badge.solid && badge.color === 'green'}
-										title={nodeBadgeTitle(badge)}
-										aria-label={nodeBadgeAriaLabel(badge)}
-										tabindex={nodeBadgeIsActionable(badge) ? 0 : -1}
-										onclick={(e) => handleBadgePress(e, badge)}
-										onkeydown={(e) => handleBadgeKeydown(e, badge)}
-									>
-										{#if badge.icon}
-											<span class="vm-badge-icon" use:icon={badge.icon}></span>
-										{/if}
-									</div>
-								{/each}
-							{/if}
-
-							{#if childBadges.length > 0}
-								<div class="vm-tree-child-badge-indicator" title={inheritedBadgeTitle(childBadges)}>
-									<span class="vm-tree-child-badge-dot"></span>
-									<div class="vm-tree-child-badge-pill">
-										{#each childBadges as badge, badgeIndex (nodeBadgeKey(badge, badgeIndex))}
-											<div
-												class="vm-badge"
-												role="button"
-												class:is-solid={badge.solid}
-												class:is-inherited={badge.isInherited}
-												class:is-undoable={badge.queueIndex !== undefined}
-												class:is-actionable={nodeBadgeIsActionable(badge)}
-												class:is-quick-action={badge.quickAction}
-												class:vm-badge--red={badge.solid && badge.color === 'red'}
-												class:vm-badge--blue={badge.solid && badge.color === 'blue'}
-												class:vm-badge--purple={badge.solid && badge.color === 'purple'}
-												class:vm-badge--orange={badge.solid && badge.color === 'orange'}
-												class:vm-badge--green={badge.solid && badge.color === 'green'}
-												title={nodeBadgeTitle(badge, true)}
-												aria-label={nodeBadgeAriaLabel(badge, true)}
-												tabindex={nodeBadgeIsActionable(badge) ? 0 : -1}
-												onclick={(e) => handleBadgePress(e, badge)}
-												onkeydown={(e) => handleBadgeKeydown(e, badge)}
-											>
-												{#if badge.icon}
-													<span class="vm-badge-icon" use:icon={badge.icon}></span>
-												{/if}
-											</div>
-										{/each}
-									</div>
-								</div>
-							{/if}
-						</div>
-					{/if}
-
-					{#if node.countLabel}
-						<span class="vm-tree-count">{node.countLabel}</span>
-					{:else if node.count != null && node.count > 0}
-						<span class="vm-tree-count">{node.count}</span>
-					{/if}
-				</div>
-			{/if}
-		</div>
+				{#if flat.hasChildren}
+					<div
+						class="vm-tree-toggle {nativeVocab?.collapseIcon ?? ''}"
+						{...rowAction.getCaretProps(id)}
+					>
+						<span use:icon={flat.isExpanded ? 'lucide-chevron-down' : 'lucide-chevron-right'}></span>
+					</div>
+				{:else}
+					<div
+						class="vm-tree-toggle is-placeholder {nativeVocab?.collapseIcon ?? ''}"
+						aria-hidden="true"
+					></div>
+				{/if}
+			{/snippet}
+		</NodeRow>
 	</div>
 {/snippet}
 
