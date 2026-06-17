@@ -5,9 +5,9 @@ status: active
 lifecycle: active
 parent: "[[docs/work/pkm-ai/index|pkm-ai]]"
 created: 2026-06-04T11:00:00
-updated: 2026-06-04T11:00:00
+updated: 2026-06-17T18:03:55
 created_by: claude-opus-4-8
-updated_by: claude-opus-4-8
+updated_by: codex-gpt-5
 tags:
   - agent/policy
   - initiative/pkm-ai
@@ -77,6 +77,17 @@ Tag presence with the git stream and the physical worktree so `status`/`dashboar
 
 Cross-stream scope claims are **advisory awareness**, not enforced locks — files differ per branch/worktree,
 so a claim signals intent, it does not prevent edits.
+
+## Regression recovery worktree discipline
+
+When a regression appears after a plan/backlog wave, do **not** create another worktree as the default
+response. First use the current relevant worktree to identify `GOOD/BAD` commits, because the existing
+history and working build artifacts are the fastest source of truth. If the dev needs to visually judge
+interactive behavior, ask with concrete hashes and flows: "¿este commit está bien? ¿y este otro?".
+
+Create a new recovery worktree only when the current one is unsuitable: dirty unrelated changes block the
+test, the worktree cannot build enough to bisect, or the dev explicitly asks for isolation. Record the reason
+in the task notes so abandoned worktrees do not become hidden process debt.
 
 ## Memory boundary
 

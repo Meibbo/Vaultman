@@ -4,7 +4,8 @@ type: initiative-index
 status: active
 parent: "[[docs/work/pkm-ai/index|pkm-ai]]"
 created: 2026-05-04T01:44:46
-updated: 2026-05-04T01:44:46
+updated: 2026-06-17T18:03:55
+updated_by: codex-gpt-5
 tags:
   - agent/work
   - initiative/draft
@@ -26,4 +27,8 @@ to hardening, polish, v1-stable, or PKM-AI.
 - Hardening: [[docs/work/hardening/index|hardening]]
 - Polish: [[docs/work/polish/index|polish]]
 - PKM-AI: [[docs/work/pkm-ai/index|pkm-ai]]
+
+## Active Drafts
+
+- [[docs/work/draft/2026-06-17-gitlens-multi-agent-git-orchestration|GitLens multi-agent git orchestration research]]
 

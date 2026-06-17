@@ -21,9 +21,11 @@ La regla central: **preservar la intención del código funcional, adaptándolo 
 
 3. **Copiar textual es plan A, no el único plan.** Si el codebase cambió estructuralmente (refactors, nuevas abstracciones, APIs renombradas), extraer el *concepto* y reimplementarlo adaptado es mejor que forzar un copy-paste que rompe otras cosas.
 
-4. **Pedir aprobación antes de aplicar cambios adaptados.** Restauración literal → aplicar directo. Adaptación conceptual → presentar plan al humano y esperar confirmación antes de modificar archivos.
+4. **Usar el historial antes de crear más worktrees.** Si la regresión aparece después de un plan/backlog ya cerrado, el primer movimiento es ubicar el último commit bueno dentro del mismo stream y decidir entre `revert` de rango, restauración selectiva o cherry-pick inverso. Crear otro worktree es excepcional: sólo si el worktree actual no puede compilar, tiene cambios ajenos que bloquean la prueba, o el dev pide aislamiento.
 
-5. **Nunca modificar el historial.** No `git reset --hard`, no `git push --force`, no reescritura de commits. El historial es evidencia; preservarlo.
+5. **Pedir aprobación antes de aplicar cambios adaptados.** Restauración literal → aplicar directo. Adaptación conceptual → presentar plan al humano y esperar confirmación antes de modificar archivos.
+
+6. **Nunca modificar el historial.** No `git reset --hard`, no `git push --force`, no reescritura de commits. El historial es evidencia; preservarlo.
 
 ## Workflow
 
@@ -74,10 +76,25 @@ git log --oneline --since="<fecha>"
 
 Menos preciso, pero sirve como primera aproximación.
 
+**Estrategia D — confirmación visual con el dev (cuando el oráculo es UI/UX):**
+
+Úsala cuando la regresión es visual, interactiva, o el test automatizado aún no cubre el comportamiento real. Reproduce builds de commits candidatos y pregunta de forma binaria, con hashes concretos:
+
+```text
+Estoy probando el rango <GOOD?>..<BAD>.
+¿Este commit está bien visualmente? <hash> <mensaje>
+¿Y este otro? <hash> <mensaje>
+Ruta exacta a revisar: <pantalla/flujo>.
+```
+
+Si el dev confirma que un commit está bien y otro está mal, acota el rango con bisect/manual cherry-pick. No sigas parchando hasta tener `COMMIT_BUENO` y `COMMIT_MALO` o una razón explícita para no poder determinarlos.
+
 Al terminar Fase 2, debes tener **dos referencias concretas**:
 
 - `COMMIT_BUENO`: hash del último commit donde la característica funcionaba
 - `COMMIT_MALO`: hash del primer commit donde se rompió (normalmente HEAD o cercano)
+
+En trabajo de planes/backlogs, `COMMIT_BUENO` suele ser el commit que cerró el issue anterior, no necesariamente el tag estable más cercano. Si el dev dice "el issue ya estaba resuelto antes de esta ola", busca ese commit primero.
 
 Consulta `references/git-commands.md` para la lista completa de comandos útiles con ejemplos.
 
@@ -106,6 +123,7 @@ git diff --stat <COMMIT_BUENO> HEAD             # resumen de qué archivos cambi
 
 Si solo cambió el archivo roto → probablemente **reimplementación directa** (Fase 4A).
 Si cambiaron muchos archivos relacionados → probablemente **adaptación conceptual** (Fase 4B).
+Si hay una ola de commits posterior a un backlog cerrado y varias superficies se rompieron a la vez → probablemente **rollback por rango** (Fase 4C).
 
 ### Fase 4 — Resolver
 
@@ -145,6 +163,17 @@ Aplicable cuando el codebase cambió de forma que la versión buena ya no encaja
 
 Consulta `references/adaptation-patterns.md` para patrones comunes de adaptación (rename de funciones, extracción de métodos, cambios de firma, migración de API).
 
+#### 4C. Rollback por rango conservando historia
+
+Aplicable cuando una ola posterior a un commit bueno rompe varias rutas estables, o cuando el dev reporta que "se dañaron demasiadas cosas" tras un intento fallido de aplicar un backlog.
+
+1. Confirma que el worktree actual está limpio o separa cambios ajenos sin revertirlos.
+2. Propón el rango exacto: `COMMIT_BUENO..HEAD` o `COMMIT_BUENO..<COMMIT_MALO>`.
+3. Pide confirmación del dev si el último commit bueno depende de inspección visual: "¿este commit está bien? ¿y este otro?"
+4. Prefiere un commit de `git revert` del rango malo para preservar historia. No uses `reset --hard` salvo petición explícita.
+5. Si sólo uno o pocos commits causan el daño, revierte esos commits o restaura selectivamente los archivos afectados; no descartes trabajo bueno por comodidad.
+6. Después del rollback, reintroduce cambios útiles como cherry-picks pequeños sólo cuando tengan reproducción y verificación focal.
+
 ### Fase 5 — Documentar y cerrar
 
 Cada resolución deja rastro para futuros agentes:
@@ -156,6 +185,8 @@ Cada resolución deja rastro para futuros agentes:
 ## Qué NO hacer
 
 - **No modificar el historial de Git** (`reset --hard`, `push --force`, rebase interactivo destructivo). El historial es la fuente de verdad para este skill y para futuros agentes.
+- **No crear worktrees de rescate por reflejo.** Si el worktree actual puede evaluar `GOOD/BAD`, úsalo. Worktree nuevo sólo para aislamiento justificado.
+- **No rehacer trabajo que Git puede aislar.** Primero intenta `git log`, `git bisect`, confirmación visual, `git revert` de rango o cherry-pick selectivo.
 - **No aplicar adaptaciones conceptuales sin aprobación humana.** El agente puede equivocarse al interpretar la intención; el humano es el árbitro.
 - **No asumir que "el commit más reciente que tocó el archivo" es el culpable.** Los cambios estructurales en otros archivos pueden romper un archivo que no fue tocado directamente. Usa bisect cuando haya duda.
 - **No resolver sin tests.** Si no hay test que falle, créalo primero. Resolver "a ojo" deja la regresión vulnerable a reaparecer.
