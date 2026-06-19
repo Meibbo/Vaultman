@@ -5,7 +5,7 @@ import { describe, expect, it } from 'vitest';
 const stylesSource = readFileSync(
 	new URL('../../styles.css', import.meta.url),
 	'utf8',
-);
+).replace(/\r\n/g, '\n');
 
 describe('mobile CSS source guards', () => {
 	it('keeps phone navbar controls above Obsidian mobile gradients and moves Vaultman dock to the top', () => {
