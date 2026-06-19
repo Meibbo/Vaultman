@@ -6,9 +6,11 @@ import filesGridSource from '../../src/components/layout/viewFilesGrid.ts?raw';
 import popupViewSource from '../../src/components/layout/popupView.svelte?raw';
 import navbarFiltersSource from '../../src/components/layout/navbarFilters.svelte?raw';
 import tableLayoutSource from '../../src/logic/logicTableLayout.ts?raw';
-import statisticsCacheSource from '../../src/services/serviceStatisticsCache.ts?raw';
+import statisticsCacheSourceRaw from '../../src/services/serviceStatisticsCache.ts?raw';
 import treeSource from '../../src/components/layout/viewTree.ts?raw';
 import typeTreeSource from '../../src/types/typeTree.ts?raw';
+
+const statisticsCacheSource = statisticsCacheSourceRaw.replace(/\r\n/g, '\n');
 
 describe('Files word count cell source guards', () => {
 	it('keeps word count cells opt-in in the Files visible-cell controls', () => {

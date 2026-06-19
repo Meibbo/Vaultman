@@ -5,7 +5,7 @@ import { describe, expect, it } from 'vitest';
 const stylesSource = readFileSync(
 	new URL('../../styles.css', import.meta.url),
 	'utf8',
-);
+).replace(/\r\n/g, '\n');
 
 describe('virtual scroll CSS source guards', () => {
 	it('does not force scroll anchoring policy on virtualized explorer scrollports', () => {
