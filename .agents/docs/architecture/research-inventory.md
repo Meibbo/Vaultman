@@ -44,6 +44,16 @@ general-purpose write agent once deleted 706 files; never give research write ac
 | Topic | Why | Status |
 |---|---|---|
 
+## 2026-06-15 — Frontend stack deep research (advances several codes)
+
+[[docs/work/hardening/research/2026-06-15-frontend-stack-deep-research/index|Frontend Stack Deep Research]]
+(6 read-only Explore agents + verification) advances: **virtua-vs-tanstack** (TanStack Virtual internals +
+shared-runtime orchestration — feeds V.D), **R-UNOCSS** (UnoCSS already wired; presetWind4 EXISTS → migration
+viable), **R-UI-PRIMITIVES / S-29** (bits-ui headless strategy + FnR-breakage hypothesis), **R-CHARTS / S-23**
+(LayerChart = defer to dashboard pilot), **R-DND-C** (deepened; official `@dnd-kit/svelte` likely supersedes the
+HanielU port — reconcile). Open verification flags carried in the research index ledger (#9/#11/#12). render-tag
+identified = Polotno html-in-canvas (N4 only).
+
 ## PENDING / BLOCKING (not started)
 
 | Topic | Blocks | Tier |
@@ -74,6 +84,7 @@ general-purpose write agent once deleted 706 files; never give research write ac
 | **R-MOBILE-WIDGETS — homescreen widget layout patterns** | S-8/S-24/S-30; placement/resize/customization patterns for aesthetic dashboard/layout-builder inspiration | LATER |
 | **R-UI-PRIMITIVES — Bits UI vs shadcn-svelte vs custom** | S-29; prototype one toolbar, popover/menu, drawer, checkbox variant under Obsidian-native + Notion-like presets | NEXT |
 | **R-PANELDATA — panelData/charts/widgets/spreadsheet contract** | S-27; distinguish explorer table vs dashboard/widget/chart/timer panels; evaluate scripts and bridges to Dataview/Datacore/JS Engine/MetaBind before own sandbox | NEXT |
+| **View-addressing canon — DEFERRED items** | Canvas modes/orientations · Charts modes + `form` · viewScope-as-filter + `in_explorer` + multi-provider col1 (NN) + per_surface filterScene · scoped-views composition/homescreen. Canon NOW-tier LOCKED 2026-06-18 → [[docs/architecture/explorer-model/05-view-canon\|05 View Canon]] / ADR 0012 | N3 (filter/composition) / N4 (Canvas/Charts) |
 
 ## Process
 

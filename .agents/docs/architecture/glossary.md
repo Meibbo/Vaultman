@@ -126,9 +126,9 @@ Supersedes the older "View adapter" / "Viewgrid" entries (a View no longer does
 projection/translation).
 
 - View: pure renderer over a finished render-projection; owns DOM/markup + shared runtime only. No fixed "5 views".
-- Render engine: reusable layout renderer — Linear (tree/list), Geometry (grid/cards), Table, Canvas.
-- Mode: selectable engine variant (tree-indent | flat-list | miller; grid | cards | group-box; transpose; mindmap | graph).
-- Orientation: horizontal | vertical layout flag applicable to engines (not a mode).
+- Render engine: reusable layout family — **Linear · Geometry · Canvas · Charts** (Table = Geometry mode; Charts = 4th). Canon: [[docs/architecture/explorer-model/05-view-canon|05 View Canon]] / ADR 0012. (Superseded the old `Linear/Geometry/Table/Canvas`.)
+- Mode: engine variant — Linear `flat·indent·cascade·detail`; Geometry `grid·cards·masonry·table`; Canvas `mindmap·graph`; Charts `chart`. group-box removed (= composition). See 05.
+- Orientation: **arrangement semantics, engine-specific** (Linear `list·collapsible·accordion·drill`; Geometry `list·section·drill·container`) — NOT h/v; h/v moved to the `direction` axis. Plus `direction` / `child_global_direction` / `viewScope` (per_panel/level/parent/node) / `regime` (slot|coordinates): see 05.
 - Cell: universal element = source ({in|cross}-provider field, incl. note-preview) + semantic role; position owned by view-config.
 - view-config (specific_view): user-editable role→slot/order map per engine+mode; superset of the Bases view-def; the Bases IN/OUT bridge.
 - Node: data atom = kind + source + cells + children; produced by a provider.
@@ -165,7 +165,7 @@ projection/translation).
 - InputRouter: per-panel input-agnostic dispatch (mouse/key/future InputBinding) → nav-intent to Selection/Expansion, action-intent to ActionProvider; keyboard-nav wiring lives here.
 - diffview: a View engine rendering an OperationNode's chunks for preview.
 - chunk-acceptance: per-chunk accept/reject of a pending OperationNode (agentic-IDE accept/reject UX) before execute.
-- Workspace-profile (OPEN): an on/off bundle of {plugins, layout, snippets, theme, slots} switching the whole vault face over the same root folder.
+- Workspace-profile (RESOLVED 2026-06-11, PSS grill Q8): = a PSS **Profile bound at workspace scope** whose composition includes the load facet (LUPA) — the on/off bundle of {plugins, layout, snippets, theme, slots} is exactly a Profile composing {load, layout, style, workspace} facets. Term folds into Profile; keep "Workspace-profile" only as the workspace-scoped usage of Profile.
 
 ## Filter / Scene / parity terms (2026-05-27)
 
@@ -186,3 +186,8 @@ projection/translation).
 - fileScene: the native File Explorer surface rendered as a Vaultman scene under the chameleon preset (sidebar page).
 - action-cell: a Cell whose semantic role is "action", bound to an ActionNode (e.g. visibility toggle on/off, quick-action badge, operator chip). Presentation variants: badge | toggle | chip. Unifies the "primitive bound via ActionNode" usages.
 - redesign_mode: Live Redesign — real-time spatial editing of the workspace (reorder/resize/pan/zoom/rotate) via LayoutBuilder; edits propagate to scenesManager thumbnails on-demand (perf invariant, operational-watch-list §7).
+
+## Presets / PSS terms (2026-06-10)
+
+- PSS (Presets Saving System): official name (dev, 2026-06-10) for the presets persistence system. **DEFINED 2026-06-11** (grill closed — D-PSS-1..10 in [[docs/work/hardening/specs/2026-06-10-vaultman-2-0-synthesis-umbrella/01-locked-decisions-grill|umbrella shard 01]]): typed facet presets (style/layout/load/view/workspace/input) + Profile composition + cascade resolution per scope (most-specific-wins, facet-by-facet); 4 storage classes (Presets/Profiles · Library items · Marks · Session) over one write-batcher infra; presets reference assets/library by id; `.scene` payload = multi-doc layered YAML (CR-2 unlocked); the operation queue protects the VAULT while config is protected by undo/ephemeral-snapshot. Persists non-rigid placement (xyz/layers/z-order). Acceptance tests: `legacy-1.1` profile exercising ALL subsystems · native preset = core-Bases behavior parity · barebones = {config_scene, snippet_scene, plugin_scene}.
+- SPS: superseded alias of PSS — the megadump 2026-06-03 acronym ("Saving Presets System"). Read historical SPS mentions (megadump, ADR 0011 context, anchor checkpoint 2026-06-04) as PSS.

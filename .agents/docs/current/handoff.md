@@ -17,6 +17,266 @@ updated_by: codex-gpt-5
 Compact handoff after archiving the oversized current handoff:
 [[docs/archive/pkm-ai/active-docs/2026-05-11T080321-current-handoff|2026-05-11 handoff archive]].
 
+## NEXT AGENT START HERE — V.D shared render-runtime (N.R landed, 2026-06-16)
+
+> **CANON NOW-tier LOCKED (2026-06-18, claude-opus-4-8) — leer el canon ANTES de tocar views.** El grill
+> de V.D destapó que el canon engine/mode/orientation estaba en conflicto 3-vías (tracer vs explorer-model
+> vs proto) y homeless. Se lockeó y aterrizó en su HOME canónico (SIN código; sandbox sigue `cc23ad9`):
+> **[[docs/architecture/explorer-model/05-view-canon|05 View Addressing Canon]]** (living) + **ADR 0012**
+> (supersede taxonomía-view de ADR 0008) + glossary L129-131 + research-inventory. Trail/planeación:
+> [[docs/work/hardening/specs/2026-06-17-vd-shared-render-runtime/index|V.D shard]].
+> **Esencial:** orientation ≠ h/v (→ `direction`); engines Linear/Geometry/Canvas/Charts (**Table=modo
+> Geometry, group-box ELIMINADO=composición, Charts 4º placeholder**); Linear modes flat/indent/cascade/
+> detail · Geometry grid/cards/masonry/table; **validity compose-free**; viewScope per_panel/level/parent/
+> node; `regime` slot|coordinates + regime-flip; Geometry = **Opt-1** (un GeometryView + strategies, seam
+> size/order/slot+`media` reservado); selection box/lasso = hit-test geométrico del shared service.
+> DEFERRED: Canvas/Charts N4 · viewScope-filter/composición N3.
+> **NEXT = thread A: pilot Linear del perf-runtime** (desbloqueado; geometría fixed-height incontestada por
+> el canon). thread B = re-modelar `typeViewConfig` al canon + cerrar DEFERRED. La "forma de V.D" de abajo
+> sigue válida (es thread A).
+
+**N.R CERRADO.** sandbox `d81be5e` → **`cc23ad9`** (fast-forward, sin push). `NodeRow` cell
+primitive + `NodeBadgeZone` extraídos del cell inline de `viewTree`, **pilot en tree**, contrato
+headless `data-vm-*` (D-PSS-2). Plan + survey del abanico de cells (proto·sandbox·stable):
+[[docs/work/hardening/plans/2026-06-15-nr-noderow-cell/index|N.R plan]] (+ shard 01).
+Decisiones locked con dev: **A1** (NodeRow = surface + content + `leading` affordance snippet;
+la vista conserva el outer row posicionado = turf de V.D) · **B1** (data-vm-* ya) · **Q1** (el
+contrato anticipa TODO el abanico — slots `media/contentSnippet/metric/trailing` definidos pero
+**sin cablear**; tree cablea solo lo suyo, D7). `metric` slot = prop/word-count por NODO
+(word-count = trabajo VIVO de codex en la línea stable 1.1.x; reconciliar al adoptar el Files cell,
+paridad D3). **StatCard/Statistics = panel de MyWorkspace, NO un explorer** (fuera de NodeRow, D9).
+Verify N.R: svelte-check 0/0 · autofixer `issues:[]` · build ok · test:unit 1092/1092 · viewTree +
+tests nuevos verde · snapshot regenerado (solo `data-vm-*` aditivo).
+
+**NEXT = V.D (view shells + shared render-runtime)** — el **lever real de perf** (razón del abandono
+de 1.1.0 beta.1), research-listo. ANTES de tocar render lee el skill `vm-explorer-virtualization` +
+shard 01 de [[docs/work/hardening/research/2026-06-15-frontend-stack-deep-research/index|Frontend Stack Deep Research]]
+(TanStack Virtual: failure modes clase-beta.1 + orquestación shared-layout-service) +
+[[docs/work/hardening/research/2026-05-16-multiview-virtualization-research/index|multiview virtualization]]
+(decisión previa: UN shared layout service + blank-frame gate).
+
+**Forma de V.D:** UN `shared-layout-service` que envuelve `@tanstack/svelte-virtual` para todos los
+engines (tree/list/table/grid/cards) — geometría Fenwick (ya en `serviceExplorerScrollGeometry.ts`,
+O(log n), nunca scans O(n)) · medición pretext (`serviceTextMeasure.ts`, alimenta `estimateSize`) ·
+overscan = `ceil(viewportH/estimateSize)` · range-fallback · total-size policy. **Monta `NodeRow`**
+(el cell ya unificado por N.R) como único target. Gatea CADA claim de perf con el blank-frame detector
+(`src/dev/perfProbe.ts`): `blankFrameCount===0 && blankWindowOver100ms===0 && (!strict || flickerFrameCount===0)`.
+**Aplicar decisión del spike tracer:** ViewHost switchea sobre `(engine,mode)` de un `ViewConfig`
+RESUELTO (D-C-8), NO crecer el enum flat `ExplorerViewMode`. **DoD parcial (D3):** cerrar paridad
+stable de los sistemas tocados (tablas/resizers/grid SDF-011/016; resizers = stable-only delta que
+sandbox aún no tiene).
+
+**Patrón de slice probado:** worktree manual en `C:/tmp` (NO `isolation:worktree` → EEXIST por
+`.claude/worktrees`) desde sandbox HEAD; `pnpm install` 1ª vez; implementar (coordinador directo, o
+subagente con spec inline — los límites de cuenta han cortado subagentes a mitad y el coordinador
+recupera inspeccionando el worktree); commit selectivo (`.snap` con cambio de CONTENIDO sí se stagea;
+solo-LF→CRLF no) → verify → FF a sandbox → update PLAN/status/handoff/session-log. No push; no
+`dev`/`main`; preguntar antes de edit destructivo.
+
+**Ajenos pre-existentes (NO de N.R; sí ensucian `verify`):** el chain `verify` corta en `eslint .` por
+**7 errores `@typescript-eslint/no-unnecessary-type-assertion`** en `explorerProps.ts`/`explorerTags.ts`/
+`typeViewConfig.ts` (archivos NO tocados; contenido de d81be5e; enmascarados por timeouts previos de
+eslint) — dev eligió **opción A = dejarlos** (known-ajeno; auto-fixables con `eslint --fix` cuando alguien
+quiera). + `explorerNotebookNavigatorComparison` falla siempre (repo externo `@notebook-navigator`
+ausente). Worktree N.R `C:/tmp/vaultman-uv2-nr` (branch `umbrella-v2/wave-1-nr`) queda para cleanup.
+
+---
+
+## NEXT AGENT START HERE — Frontend stack deep-research + N.R/V.D form decision (2026-06-15, tarde)
+
+**Qué pasó.** Al escopear **N.R** (NodeRow primitive), el grill del dev destapó que la decisión "imperative
+builder vs Svelte cell" no se podía tomar sin datos del stack real (y 1.1.0 beta.1 se abandonó por
+virtualización pésima → no confiar ciego). Se corrió **research profundo**: **6 Explore agents read-only en
+paralelo + verificación del coordinador (repo + web)** →
+[[docs/work/hardening/research/2026-06-15-frontend-stack-deep-research/index|Frontend Stack Deep Research]]
+(index con **ledger de verificación** + 6 shards: TanStack Virtual · pretext/render-tag · TanStack Table ·
+dnd-kit · bits-ui/daisy/shadcn · UnoCSS/presetWind4/LayerChart). Skill nuevo (reference, **sin retrieval-test
+aún**): `vm-explorer-virtualization`. Correcciones fechadas en `tooling-libraries.md` + `research-inventory.md`.
+**Sin código tocado; sandbox intacto @ `d81be5e`.**
+
+**Decisión central (D-FE-1).** El stack ya está casado con **Svelte 5 + `@tanstack/svelte-virtual` + pretext**;
+`viewTree` renderiza filas como snippet `{@render}`, Grid/Table/Cards imperativos (createEl). ⇒ **N.R = celda
+Svelte 5** (el imperative-builder era optimización prematura). **El lever real de perf es V.D = el shared
+render-runtime**: orquestar svelte-virtual con UN shared-layout-service (geometría Fenwick ya existe en
+`serviceExplorerScrollGeometry.ts`, medición pretext, gate de blank-frames `src/dev/perfProbe.ts`). N.R y V.D
+más acopladas de lo que la pirámide decía (la forma de la celda depende de cómo el runtime la monta).
+
+**Correcciones verificadas (vs output crudo de los agentes):** **presetWind4 EXISTE** (`@unocss/preset-wind4`,
+UnoCSS 66.1+; estamos en 66.6.8) y **UnoCSS ya está cableado** (presetWind3, no "research pending") · **dnd-kit =
+oficial `@dnd-kit/svelte`** (ya en deps 0.4.0; `{@attach x.attach}` + `DragDropProvider`), **supersede el port
+HanielU** de R-DND-C · **table-core = solo TYPES**, no el adapter · **render-tag = Polotno html-in-canvas** (=
+respuesta a "¿por qué no canvas?": candidato motor **N4**, nunca la celda DOM).
+
+**Decisiones abiertas dev:** D-FE-2 (reconciliar paquete dnd-kit) · D-FE-3 (migrar presetWind3→Wind4, pilot tras
+visual diff) · D-FE-4 (TanStack Table: keep types-only vs adoptar `createSvelteTable`) · D-FE-5 (LayerChart =
+defer a pilot dashboard). **Flags a re-verificar ANTES de codear** (ledger #9/#11/#12): identidad exacta del
+paquete dnd-kit · hipótesis FnR de bits-ui (reproducir) · API extendida de pretext.
+
+**NEXT (elige; spine serial):** **N.R** con D-FE-1 (celda Svelte 5 consumiendo `ExplorerRowInput` +
+`NativeClassVocabulary`, headless `data-vm-*`, pilot en una vista) · o **V.D** (ya research-listo: el
+shared-layout-service = el perf fix real) · o una migración surgida (presetWind4 / reconciliar dnd-kit).
+
+**Infra:** statusline configurado (`~/.claude/vm-statusline.ps1` + `settings.json`): `[CAVEMAN] dir [branch] |
+model | ctx% left` (ctx% asume budget 200k, ajustable). `autoCompactEnabled:false` (dev gestiona contexto).
+
+---
+
+## NEXT AGENT START HERE — CHECKPOINT: Q4 COMPLETO, wave 1 en curso (2026-06-15)
+
+**Dónde estamos.** Vaultman 2.0 Synthesis Umbrella, wave 1 (N0 del spine). **sandbox @
+`d81be5e` = `2.0.0-alpha.1`** (canary; `dev`/`main` = `1.1.1` intactos, hotfix-only).
+Fases B (function-union ledger 8/8 + síntesis) y C-lite (3 specs + decisiones D-C-1/5/7/8)
+CERRADAS. Lo aterrizado en wave 1:
+- **Q4 logic-extraction COMPLETO (6/6)** — `logicFiles` · `logicProps` · `logicTags`(+fix
+  SDF-008) · `logicBadge` · `logicFnR` · cierre dual-snapshot. Plan + status log por slice:
+  [[docs/work/hardening/plans/2026-06-13-q4-logic-extraction/index|Q4 plan]].
+- **PlatformAdapter (lane B) slice 1** — `src/platform/` contrato + Fragility Registry +
+  native-search. Plan: [[docs/work/hardening/plans/2026-06-13-platform-adapter/index|PA plan]].
+- **tracer (lane C)** — `typeViewConfig` (forma normal D-C-8) + `typeSearchEngine` (D-C-1).
+  Spike MillerColumns murió en rama; informe:
+  [[docs/work/hardening/plans/2026-06-13-tracer-viewconfig/spike-learnings|spike-learnings]].
+
+**Verificación:** cada slice pasó check 0/0 + unit (hasta 1092; 1 fallo SIEMPRE ajeno =
+`explorerNotebookNavigatorComparison`, repo externo ausente). Wave-closing smoke de Q4:
+build→plugin-dev + reload + `dev:errors` "No errors captured".
+
+**Estado git/entorno (importante):** branch `sandbox`, **sin push** (≈100 commits locales
+ahead de `origin/sandbox` — intencional; AGENTS.md: no push sin pedir). Tag de respaldo
+`sandbox-pre-umbrella-v2-2026-06-10` (`de4e29b`). Worktrees vivos en `C:/tmp/`:
+`vaultman-uv2-q4` (= sandbox `d81be5e`), `-pa` (`b32b335`, base lane B para PA slices 2-5),
+`-tracer` (`e5b658b`, spike — solo el durable se aterrizó). `isolation:worktree` del Agent
+tool ROTO aquí (EEXIST por `.claude/worktrees`); usar worktrees manuales en `C:/tmp`.
+node_modules por worktree (`pnpm install` la 1ª vez). Los `.snap` salen "M" por LF→CRLF —
+NO stagear (0 cambios de contenido). Límites de cuenta han cortado subagentes a mitad —
+patrón de recuperación: inspeccionar el worktree, el coordinador completa commit/verify.
+
+**NEXT (elige una; spine = serial):** **N.R** NodeRow primitive (Q4 ya lo gatea) · **V.D**
+view shells + render-runtime (= el perf fix; consume tracer + **decisión: ViewHost switchea
+sobre `(engine,mode)` de un `ViewConfig` resuelto, NO crecer el enum flat `ExplorerViewMode`**)
+· **PA slices 2-5** (∥: native-binding consolidation, file-menu, **port `basesMultiSelectOperations`
+desde stable `1.1.1`** — está en `e374367`/`dev`, no en sandbox; wire `main.ts` + mobile
+inventory). Patrón de slice probado: worktree `C:/tmp` → subagente → inspeccionar/commit selectivo
+→ verify → FF a sandbox → actualizar PLAN status log.
+
+**Follow-ups menores (coordinador, no bloquean):** colapsar shims (`logicsFiles`,
+`components/containers/explorerProps`, `utilViewLayers`+`utilBadgeBubbling`) + re-point importers;
+fix mojibake heredado en `explorerTags.ts` (git lo marca "Bin").
+
+---
+
+## NEXT AGENT START HERE — Wave 1 N0 ATERRIZADO: sandbox = `2.0.0-alpha.1` (2026-06-13)
+
+**Wave 1 (A=Q4 logicFiles slice 1 + B=PlatformAdapter slice 1) ATERRIZADA a sandbox.**
+sandbox: `de4e29b` → `306acde` vía fast-forward. **Manifest/package = `2.0.0-alpha.1`**
+(primer código de la línea 2.0 en canary; corrige el label `beta`-en-canary del ledger).
+Respaldo: tag `sandbox-pre-umbrella-v2-2026-06-10` (`de4e29b`). Sin push.
+
+- **Verify integrado verde**: svelte-check 1169/0/0 · build ✓ · test:unit 987 pass · test:component 551 pass · oxlint ✓. Smoke plugin-dev: reload + `dev:errors` limpio.
+- **Lo aterrizado**: A = `src/logic/logicFiles.ts` (puro) + `src/types/typeTreeNode.ts` (app-free) + provider adelgazado + namespaced IDs `file.`/`folder.` + SDF-003 fix + relation kinds; B = `src/platform/` (PlatformAdapter contract + Fragility Registry + native-search adapter + SearchEngine seam). PLANs en `docs/work/hardening/plans/2026-06-13-q4-logic-extraction/` y `.../2026-06-13-platform-adapter/`.
+
+**WAVE 1 N0 COMPLETO (2026-06-14)**: los 3 lanes en sandbox `22979b1` (`2.0.0-alpha.1`).
+Lane C aterrizado vía cherry-pick selectivo: `src/types/typeViewConfig.ts` (forma normal
+D-C-8 + ViewBinding/resolve/normalize + engine MAP + capability matrix) + `typeSearchEngine.ts`
+(seam canónico; `nativeSearchEngineFrom` castea el adapter de B sin cambio — D-C-1 resuelto).
+Spike MillerColumns MURIÓ en `wave-1-tracer` (informe en
+[[docs/work/hardening/plans/2026-06-13-tracer-viewconfig/spike-learnings|spike-learnings]]).
+Verify sandbox: svelte-check 1171/0/0, test:unit 1030 pass EXIT 0. **Decisión pendiente para V.D**
+(del spike): que ViewHost switchee sobre `(engine,mode)` de un `ViewConfig` resuelto en vez de
+crecer el enum flat `ExplorerViewMode` (alinea con D-C-8).
+
+**Q4 COMPLETO (2026-06-15)** — los 6 slices aterrizados a sandbox `d81be5e` (`2.0.0-alpha.1`):
+logicFiles · logicProps · logicTags(+SDF-008) · logicBadge · logicFnR · dual-snapshot close.
+Módulos `logic*` puros con boundary tests; providers delgados; D6 namespaced ids; SDF-008
+nested/simple corregido; props/tags/content publican snapshots al data plane (fallback recursivo
+solo para add-on providers). Wave-closing smoke: build→plugin-dev, `plugin:reload` + `dev:errors`
+"No errors captured". **Spine N0 listo para N.R.** Verify por slice: check 0/0 + unit (1092 al
+cierre, 1 ajeno notebook-navigator). NOTA: los límites de cuenta cortaron 2 subagentes a mitad
+(slices 2, 5) — recuperados por el coordinador (inspeccionar worktree + completar commit/verify;
+el código del subagente estaba bien). Worktree `C:/tmp/vaultman-uv2-q4` = sandbox.
+
+**Orden restante**: slice 6 (en vuelo, cierra el dual-snapshot) → **Q4 COMPLETO** (spine N0 listo
+para N.R) · PA slices 2-5 (native-binding, file-menu, **port Bases adapter desde stable `1.1.1`**,
+wire main.ts + mobile inventory) · luego **V.D** (con la decisión ViewHost-sobre-`ViewConfig`).
+**Follow-ups abiertos** (detalle en session-log 2026-06-13/14/15):
+1. ✅ **`eslint .` cuelga — RESUELTO (2026-06-14)**: causa = worktree anidado `.worktrees/` no ignorado (eslint recorría ~50k archivos de copias del repo con type-aware linting). Fix: `.worktrees` añadido a ignores en `eslint.config.mts` (+ comentario). `eslint .` ahora 87s limpio; `pnpm run verify` completo pasa. Fix en working tree, sin commit. Detalle: session-log 2026-06-14.
+2. shim `src/logic/logicsFiles.ts` → rename a `logicFiles.ts` (toca knip/ADR-009/docs).
+3. seam `SearchEngine` (B provisional) → reconciliar cuando lane C defina el tipo canónico (D-C-1).
+4. Q4 slices 1-5 ✅ aterrizados; slice 6 en vuelo. Shims a colapsar (follow-up coordinador, fuera de scope de cada slice): `logicsFiles.ts`, `components/containers/explorerProps.ts` (2 líneas), `utils/utilViewLayers`+`utils/utilBadgeBubbling` → re-export de `logicBadge` + re-point `serviceExplorerRowInput`/`explorerProps`. Wart: mojibake heredado en `explorerTags.ts` (git "Bin"). PA slices 2-5 (native-binding consolidation, file-menu, **port `basesMultiSelectOperations` desde stable 1.1.1** — está en `e374367`/`dev`, NO en sandbox; ledger 07 flag resuelto, line-divergence no over-claim, wire main.ts + mobile inventory).
+5. worktrees `C:/tmp/vaultman-uv2-q4` (=sandbox tras FF) y `-pa` siguen; cleanup cuando quieras.
+
+**Gotchas del entorno** (para el próximo despacho): `isolation: worktree` del Agent tool falla con `EEXIST` (`.claude/worktrees` preexistente) → worktrees manuales en `C:/tmp` + subagentes con `cd` al worktree. node_modules ausente en worktree fresco → `pnpm install`. Constraint contradictoria a evitar: NO decir "never write .agents" si la task pide escribir un PLAN bajo `.agents/` del worktree — decir "nunca `.agents/` del repo PRINCIPAL; tu PLAN va en `.agents/` de TU worktree".
+
+## NEXT AGENT START HERE — Fase C-lite ESCRITA: D-C-1/5/7 locked + 3 specs wave 1 (2026-06-12)
+
+**Grill Fase C cerrado con el dev** — 3 decisiones registradas como **D-C-1/D-C-5/D-C-7**
+en [[docs/work/hardening/specs/2026-06-10-vaultman-2-0-synthesis-umbrella/01-locked-decisions-grill|umbrella shard 01]]:
+content search alpha = NativeSearchAdapter tras seam `SearchEngine` (ContentIndex
+archivado; minisearch H1 decide engine propio) · conflict gate = policy-identity de
+stable primario + delete-purge VFS secundario · diff único desde VfsChain (espejo
+serviceDiff/serviceDiffSnapshot se elimina). Prioridad alpha del dev: **robustez
+MyWorkspace + Symbiont Explorer + node-notes**. Los 3 specs de wave 1 están en
+[[docs/work/hardening/specs/2026-06-12-wave-1-specs/index|Wave 1 specs (Fase C-lite)]]
+(index + Q4 logic-extraction + PlatformAdapter/Fragility Registry + tracer
+ViewConfig/cascade), estado **draft pendiente de review del dev**. Nota: el bump de
+metadata es `2.0.0-alpha.1` (D-PSS-7 supersede el `canary.1` del umbrella shard 04).
+**Next**: review dev de los specs → tag respaldo `sandbox-pre-umbrella-v2-2026-06-10`
+→ lanzar lanes A (Q4) y B (PlatformAdapter) en worktrees `umbrella-v2/wave-1-*`
+(PLAN→implementación por lane); C (tracer) cuando haya capacidad. Workaround tooling
+documentado en AGENTS.md: si `npx tsx` falla, `node` 24 corre los `.ts` directo.
+
+## NEXT AGENT START HERE — Fase B COMPLETA: ledger 8/8 + síntesis (2026-06-12)
+
+**Fase B del Synthesis Umbrella cerrada.** El cluster 08 fue re-lanzado y escrito
+([[docs/work/hardening/research/2026-06-11-function-union-ledger/08-bases-api-diagnostics-mobile-packaging-boot|shard 08]]
+— ~80 filas: ServiceAPI/diagnostics SOLO-SANDBOX en bloque; CONTRADICE labels `beta` en
+canary; mobile = gap de los 3 streams; nota del coordinador corrige el framing stale del
+shard 06 pre-1.1.1 que el subagente arrastró). La síntesis transversal está en
+[[docs/work/hardening/research/2026-06-11-function-union-ledger/09-sintesis-transversal|shard 09]]:
+tesis por capas (policy=stable · arquitectura=sandbox · vocabulario=proto), inventario de
+16 CONTRADICE (C-1..C-16), 5 duales internos de sandbox que gatean N1/N2, gaps SOLO-PROTO,
+inputs directos para cada spec de wave 1 (§7) y 7 decisiones abiertas del dev (§8).
+**Next: Fase C-lite** — specs de wave 1 (Q4 ∥ PlatformAdapter ∥ tracer ViewConfig+cascade)
+consumiendo §7 del shard 09; las decisiones dev C-1/C-5/C-7 gatean el spec Q4 y conviene
+resolverlas en grill corto antes o al inicio de esa sesión. Ledger total ~595 filas + 9
+verificaciones puntuales pendientes (shard 09 §9, baratas y de alta señal).
+
+## NEXT AGENT START HERE — Vaultman 2.0 Synthesis Umbrella fundada (2026-06-10)
+
+Nueva iniciativa rectora:
+[[docs/work/hardening/specs/2026-06-10-vaultman-2-0-synthesis-umbrella/index|Vaultman 2.0 Synthesis Umbrella]]
+(index + 4 shards: locked decisions D1-D9 · node-distribution model · pirámide N0-N4 +
+gates · wave-1 contracts). Convierte la gramática de proto v12 en Scenes/engines
+preset-agnósticos sobre Svelte 5, entregando la unión proto+sandbox+stable como línea
+`2.0.0`. Absorbe el spine del roadmap-dispatch (Q4→N.R→V.D→P.D) como primeras waves;
+supersede la Explorer Merge Umbrella 2026-05-19 (v5-era). Topología: sandbox sigue
+canary; waves en worktree `umbrella-v2/wave-N` aterrizando a sandbox; `dev` (= `main` =
+`1.1.1`, publicado 2026-06-09) intacto hasta gates de promoción; stable queda
+hotfix-only y es el oráculo de paridad por sistema (function-union ledger, Fase B).
+Canon por preset: proto=polish/demo · stable-minimal=native · sandbox=decorations ·
+barebones=add-on-explorer (ADR 0011). Dominios dev: **Symbiont Explorer** (riqueza de
+explorers) + **MyWorkspace** (control/edición del workspace UI). **PSS grill CERRADO
+2026-06-11** — D-PSS-1..10 consolidados en
+[[docs/work/hardening/specs/2026-06-10-vaultman-2-0-synthesis-umbrella/01-locked-decisions-grill|shard 01]]
+(detalle §1-26 en
+[[docs/work/hardening/specs/2026-06-10-vaultman-2-0-synthesis-umbrella/05-pss-grill-notes|shard 05]]):
+facetas×cascada, ley de estilo headless 4+3 (`data-vm-*`), 4 clases de storage,
+payload `.scene` (CR-2 destrabado), labels `alpha→beta→rc` (enmienda D4), tests de
+aceptación (profile `legacy-1.1`, native=paridad Bases, barebones=3 scenes).
+**Orden de ejecución restante**: Fase B ledger **7/8 clusters HECHOS 2026-06-11**
+([[docs/work/hardening/research/2026-06-11-function-union-ledger/index|function-union ledger]]
+— ~515 filas; hallazgo central: stable=policy sin VFS + sandbox=arquitectura sin
+policy → la 2.0 une ambas) → **re-lanzar cluster 08** (prompt de reconstrucción en
+el index del ledger; el subagente golpeó session limit) → síntesis transversal →
+Fase C-lite (specs de wave 1: Q4 ∥ PlatformAdapter ∥ tracer) → Fase D wave 1 →
+`2.0.0-alpha.1`.
+Tooling: pkm-ai tools son `.ts` — correr con `npx tsx` (AGENTS.md/vm-start-session
+corregidos); inventario en
+[[docs/work/pkm-ai/items/2026-06-10-agent-tooling-working-memory|agent tooling working-memory]]
+(gap: is-phone sin doc). Opens umbrella: research TanStack virtualizer/Svelte (con
+sección working-memory) · índice de primitives Obsidian · icon packs como assets.
+No commitear el dirty `.agents` preexistente; tag `sandbox-pre-umbrella-v2-2026-06-10`
+se crea al arrancar wave 1, no antes.
+
 ## NEXT AGENT START HERE — SDF-016 resizable table + Files grid complete (2026-06-07)
 
 Stable `1.1.0` Data/Files parity

@@ -77,6 +77,10 @@ Bases: IN = translate view-def/results -> our engines; OUT = registerBasesView +
 - [[docs/architecture/explorer-model/04-panels-axons-mutation-layout|04 Panels / axons / mutation / layout]]
   — panel kinds + per-kind host concerns, Selection/Dnd as scope-generic axons, input→action
   routing, the unified mutation pipeline (Operations→preview→diff→chunk→commit), LayoutBuilder/profiles.
+- [[docs/architecture/explorer-model/05-view-canon|05 View Addressing Canon]]
+  — LIVING canon (grill 2026-06-17/18): engine × mode × orientation × direction ×
+  child_global_direction × viewScope + regime + cell-config plane. **SUPERSEDES-IN-PROGRESS** the
+  stale `orientation = h/v` model in shard 02 + glossary L129-130 + `typeViewConfig.ts`.
 
 ## Status
 

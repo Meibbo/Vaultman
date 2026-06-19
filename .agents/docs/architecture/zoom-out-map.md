@@ -76,15 +76,21 @@ Source: [[docs/work/hardening/research/2026-05-25-architecture-foundation-discov
 - style matrix row 7 — selection color: restore accent (stable) vs keep text-faint (beta).
 - ActionNode refinements — `opensOverlay` · anim-by-order · binding-cell (dev to define).
 - islands top/bottom on a large surface (main-leaf) — defer to Surface-foundation spec.
-- version-streams — pre-release labels + per-channel versioning + promotion-gate checklist + canary flags.
+- version-streams — promotion-gate checklist + canary feature-flags. (Pre-release labels + per-channel
+  versioning RESOLVED 2026-06-11, PSS grill Q10: `alpha`(sandbox) → `beta`(dev) → `rc` → stable; canary =
+  stream name only.)
 - Bases replace-vs-interop risk (1:1 replicate → user can disable core, but upstream-break exposure → Fragility Registry).
 - serviceGroup → `logicGroup`? (naming, low-stakes, dev's call).
 
 **Parking-lot (each its own grill/brainstorm session):**
-- preset taxonomy (style/layout/load/workspace) · install-preset selector (barebones/native/polish) ·
-  serviceUnload/load-preset granularity (user-facing) · plugin-provider intercepts CORE plugins ·
-  serviceMark god-object decomposition · LayoutBuilder + Workspace-profiles (research Workspaces+Notion) ·
-  Bookmarks (in replace-scope, grill later) · proto-deep grill on v7 (ships 2026-05-28) · EditorScene · Hometab.
+- ~~preset taxonomy~~ RESOLVED 2026-06-11 (PSS grill: 6 facetas style/layout/load/view/workspace/input +
+  Profile + cascada — [[docs/work/hardening/specs/2026-06-10-vaultman-2-0-synthesis-umbrella/05-pss-grill-notes|notas]]) ·
+  install-preset selector (barebones/native/polish — barebones = {config_scene, snippet_scene, plugin_scene}) ·
+  serviceUnload/load-preset granularity (user-facing; ahora = faceta load/LUPA) · plugin-provider intercepts CORE plugins ·
+  serviceMark god-object decomposition (frontera con PSS ya definida: mark = dato de nodo, infra compartida) ·
+  LayoutBuilder + Workspace-profiles (Workspace-profile = Profile a scope workspace, glossary) ·
+  ~~Bookmarks~~ → marks_scene + mark kinds (PSS grill §21) · ~~proto-deep grill~~ DONE como v12
+  (synthesis umbrella 2026-06-10) · EditorScene · Hometab.
 
 **Deferred:** minisearch fork (H1) · Bases interop release order · Nav3D / InputBindingNode · NN-interop.
 

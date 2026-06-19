@@ -22,6 +22,13 @@ defs: [[docs/architecture/glossary|glossary]]. Decision status:
 
 ## Engines × modes × orientation
 
+> **⚠ SUPERSEDED-IN-PROGRESS (2026-06-18):** the table below (`orientation = h/v`; Table as an
+> engine; group-box mode) is STALE. The live canon is
+> [[docs/architecture/explorer-model/05-view-canon|05 View Addressing Canon]] — orientation is rich
+> (engine-specific) with h/v moved to a `direction` axis; Table is a Geometry mode; group-box is a
+> composition; Charts is the 4th engine. This section will be archived to `docs/archive/` once shard
+> 05 stabilizes (archive-superseded discipline). Do not treat the table below as canonical.
+
 No fixed "5 views" — a few engines, each with modes, plus an `orientation` flag
 (horizontal/vertical), plus externally registered views (Bases-out / third-party-via-Bases).
 

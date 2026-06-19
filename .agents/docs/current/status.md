@@ -29,6 +29,87 @@ Compact route index after archiving the oversized current status:
 ## Current Route
 
 - Active initiative: [[docs/work/hardening/index|Hardening]].
+- **LATEST (2026-06-18)**: **View Addressing Canon NOW-tier LOCKED + landed** (sin código; sandbox @
+  `cc23ad9`). El grill de V.D destapó un conflicto 3-vías en el canon engine/mode/orientation (tracer vs
+  explorer-model vs proto) — se lockeó el NOW-tier y se aterrizó en home canónico:
+  [[docs/architecture/explorer-model/05-view-canon|05 View Canon]] (living) + **ADR 0012** (supersede la
+  taxonomía-view de ADR 0008) + glossary L129-131 + research-inventory. Esencial: **orientation ≠ h/v**
+  (→`direction`); Linear modes flat/indent/cascade/detail; Geometry grid/cards/masonry/table (**group-box
+  fuera**); validity compose-free; viewScope 4; regime + regime-flip. DEFERRED: Canvas/Charts N4 ·
+  viewScope-filter/composición N3. **Next = thread A: pilot Linear del perf-runtime** (desbloqueado).
+  Detalle: session-log 2026-06-18 + [[docs/work/hardening/specs/2026-06-17-vd-shared-render-runtime/index|V.D shard]].
+- **LATEST (2026-06-17)**: **V.D grill EN CURSO** (sin código; sandbox @ `cc23ad9`). Modelo del
+  shared render-runtime validado con el dev. LOCKED: runtime = **Linear+Geometry only** (Canvas/Charts
+  aparte/deferred); **canon engines CORREGIDO → Linear/Geometry/Canvas/Charts** (Table=modo Geometry,
+  Charts=4º; `typeViewConfig` L64 + `glossary` L129 STALE); Geometry = **Opt-1** (un GeometryView +
+  mode-strategies); reservar seam size/order/slot+`media` (wired solo slot regime); `ViewPlacement.regime`
+  = frontera engine (slot=virtualizable, coordinates=Canvas); selection box/lasso = hit-test geométrico del
+  shared service. Open: Q-C..Q-H. Detalle:
+  [[docs/work/hardening/specs/2026-06-17-vd-shared-render-runtime/index|V.D grill checkpoint]] + session-log 2026-06-17.
+- **LATEST (2026-06-16)**: **N.R NodeRow cell primitive ATERRIZADO** — sandbox @ `cc23ad9`
+  (FF de `d81be5e`). `NodeRow` + `NodeBadgeZone` extraídos del cell inline de `viewTree`, pilot
+  tree, contrato headless `data-vm-*` (D-PSS-2 B1; contrato anticipa el abanico, cabla solo tree —
+  Q1/D7). `metric` slot (prop/word-count por nodo) definido sin cablear; StatCard = panel MyWorkspace
+  fuera de scope. Verify: svelte-check 0/0 · autofixer `issues:[]` · build ok · test:unit 1092/1092
+  (1 ajeno notebook-nav) · viewTree+tests nuevos verde. `verify` chain corta en `eslint .` por 7
+  errores ajenos pre-existentes (opción A = dejados). **Next spine = V.D** (shared render-runtime
+  monta NodeRow; el perf fix real). Detalle:
+  [[docs/work/hardening/plans/2026-06-15-nr-noderow-cell/index|N.R plan]] + handoff (sección V.D) +
+  session-log 2026-06-16.
+- **LATEST (2026-06-15)**: **Q4 COMPLETO (6/6)** — sandbox @ `d81be5e` (`2.0.0-alpha.1`):
+  logicFiles · logicProps · logicTags(+SDF-008) · logicBadge · logicFnR · cierre dual-snapshot.
+  Módulos `logic*` puros + boundary tests; providers delgados; D6 namespaced ids; props/tags/
+  content publican snapshots. Wave-closing smoke limpio (reload + dev:errors). **Spine N0 listo
+  para N.R.** Plan:
+  [[docs/work/hardening/plans/2026-06-13-q4-logic-extraction/index|Q4 plan]] (status log por slice).
+  Pendiente wave 1: PA slices 2-5, lane C tracer ya aterrizado. Next: PA 2-5 · V.D (ViewHost sobre
+  `ViewConfig` resuelto) · N.R. Buen punto de checkpoint (sesión 3 días). Detalle:
+  [[docs/current/handoff|handoff]] + session-log 2026-06-15.
+- **LATEST (2026-06-15, tarde)**: **Frontend stack deep-research** (pre-N.R) — 6 Explore agents read-only +
+  verificación repo/web →
+  [[docs/work/hardening/research/2026-06-15-frontend-stack-deep-research/index|Frontend Stack Deep Research]]
+  (ledger de verificación + 6 shards). **D-FE-1: N.R = celda Svelte 5** (stack ya casado con svelte-virtual +
+  pretext; imperative-builder prematuro); **lever real = V.D shared-runtime**. Correcciones: presetWind4 EXISTE ·
+  UnoCSS ya cableado · dnd-kit oficial supersede HanielU · render-tag = html-in-canvas (N4). Skill
+  `vm-explorer-virtualization`. Abiertas D-FE-2..5. Statusline configurado. Sin código tocado; sandbox @
+  `d81be5e`. Detalle: [[docs/current/handoff|handoff]] + session-log 2026-06-15.
+- **2026-06-14**: Wave 1 N0 (3 lanes Q4-s1/PlatformAdapter/tracer) aterrizado `22979b1`; eslint
+  `.worktrees` hang RESUELTO (`c2062d9`); spike MillerColumns murió en rama (informe guardado).
+- **LATEST (2026-06-12, tarde)**: **Fase C-lite escrita** — grill D-C-1/5/7 locked
+  (content search nativo + seam · conflict gate identity+VFS · diff único VfsChain) en
+  [[docs/work/hardening/specs/2026-06-10-vaultman-2-0-synthesis-umbrella/01-locked-decisions-grill|umbrella shard 01]];
+  3 specs de wave 1 en
+  [[docs/work/hardening/specs/2026-06-12-wave-1-specs/index|Wave 1 specs]] (Q4 ·
+  PlatformAdapter · tracer ViewConfig), **draft pendiente review dev**. Prioridad alpha:
+  MyWorkspace + Symbiont Explorer + node-notes. Next: review → tag respaldo → lanes A/B.
+- **LATEST (2026-06-12)**: **Fase B COMPLETA** — function-union ledger 8/8 clusters
+  (~595 filas) + síntesis transversal:
+  [[docs/work/hardening/research/2026-06-11-function-union-ledger/index|ledger index]] ·
+  [[docs/work/hardening/research/2026-06-11-function-union-ledger/09-sintesis-transversal|síntesis (shard 09)]].
+  Cluster 08 re-lanzado y escrito (ServiceAPI/diagnostics SOLO-SANDBOX; mobile = gap de
+  los 3 streams; labels `beta`-en-canary CONTRADICE D4). Síntesis: 16 CONTRADICE
+  (C-1..C-16), 5 duales internos sandbox (gates N1/N2), inputs por spec de wave 1 (§7),
+  7 decisiones dev abiertas (§8). Next: **Fase C-lite** (specs Q4 ∥ PlatformAdapter ∥
+  tracer) — C-1/C-5/C-7 gatean el spec Q4.
+- **LATEST (2026-06-10)**: Iniciativa fundada —
+  [[docs/work/hardening/specs/2026-06-10-vaultman-2-0-synthesis-umbrella/index|Vaultman 2.0 Synthesis Umbrella]]
+  (proto-v12 × sandbox × stable → línea `2.0.0`). Grill de 9 decisiones locked (D1-D9):
+  absorbe el spine del roadmap-dispatch; sandbox sigue canary (waves en worktree
+  `umbrella-v2/wave-N`, dev intacto hasta gates); paridad stable `1.1.1` por sistema vía
+  function-union ledger; canon por preset (proto=polish/demo · stable-minimal=native ·
+  sandbox=decorations); pirámide N0-N4 = orden de gates; **PSS grill CERRADO
+  2026-06-11** (D-PSS-1..10 en shard 01 de la umbrella: facetas×cascada, estilo
+  headless 4+3 `data-vm-*`, 4 clases de storage, payload `.scene`/CR-2 destrabado,
+  labels `alpha→beta→rc`, tests de aceptación legacy-1.1/native-Bases/barebones);
+  dominios
+  **MyWorkspace** + **Symbiont Explorer**; whiteboard Node Distribution digitalizado.
+  Supersede la Explorer Merge Umbrella 2026-05-19. Stable `1.1.1` publicado 2026-06-09
+  (`main`=`dev`=`33d9d23`) queda hotfix-only. Fix pkm-ai: AGENTS.md + vm-start-session
+  ahora apuntan a los tools `.ts` vía `npx tsx` (la migración 2026-06-04 dejó paths
+  `.mjs` muertos). Nuevo:
+  [[docs/work/pkm-ai/items/2026-06-10-agent-tooling-working-memory|agent tooling working-memory]]
+  + open de research TanStack virtualizer/Svelte en la umbrella. Next: PSS grill →
+  Fase B ledger.
 - **LATEST (2026-06-07)**: Stable `1.1.0` Data/Files parity
   [[docs/work/hardening/issues/stable-1-1-data-files-parity/016-explorer-view-parity-and-stat-card-routing|SDF-016]]
   completed the requested resizable-table + working Files-grid subcut in product worktree

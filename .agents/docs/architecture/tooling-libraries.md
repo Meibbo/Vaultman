@@ -73,6 +73,25 @@ Pair with: [[docs/architecture/dev-glossary|dev-glossary]] · [[docs/architectur
 | **`@svar-ui/svelte-filemanager`** | tbd | reference filemanager | reference / command-opened | n/a | not the production explorer |
 | **iconize replacement** (`IconNode`) | (own implementation) | cross-surface icon override | LOCKED design | iconize plugin dependency | absorbs the role |
 
+## 2026-06-15 — Frontend stack deep-research corrections
+
+Source: [[docs/work/hardening/research/2026-06-15-frontend-stack-deep-research/index|Frontend Stack Deep Research]]
+(6 read-only Explore agents + coordinator verification — repo files + live web). Corrections to the tables above:
+
+- **UnoCSS = IN USE, not "research pending".** `uno.config.ts` wired with `presetWind3({preflight:false})`
+  + `presetAttributify`/`presetIcons`/`unocss-preset-theme` (native/vaultman). Partial adoption (shortcuts
+  defined; most components still SCSS). Hybrid SCSS+UnoCSS is the standing architecture.
+- **presetWind4 EXISTS** (`@unocss/preset-wind4`, UnoCSS 66.1+; we are on 66.6.8). Wind3-compatible + oklch +
+  base/theme/properties layers + built-in remToPx. Migration Wind3→Wind4 viable; pilot behind a visual diff (D-FE-3).
+- **dnd-kit: official `@dnd-kit/svelte` is IN USE** (`package.json` 0.4.0; `createDraggable/Droppable/Sortable`
+  + `{@attach x.attach}` + `DragDropProvider`). Likely **supersedes the HanielU `dnd-kit-svelte`** port selected
+  in R-DND-C / proposed lock S-10 — reconcile before locking (D-FE-2).
+- **bits-ui FnR breakage** = hypothesis: portal + `trapFocus` vs Obsidian editor focus; fix = `trapFocus:false`
+  in editor + portal scoped to activeDocument (`servicePortalResolver.ts`). Reproduce before trusting.
+- **render-tag identified** = Polotno html-in-canvas renderer (HTML/CSS → Canvas 2D); N4 canvas-engine candidate
+  only, NOT installed. **pretext** = IN USE (`serviceTextMeasure.ts`); add theme-change cache invalidation.
+  **LayerChart** stays deferred (N3 dashboard pilot, Obsidian-theme-mapped, lazy-loaded).
+
 ## Stream-tier alignment for the transition
 
 - **Stable (`main`)**: minimal modernization until promoted. Current = `1.0.1` line. Adopts tooling
