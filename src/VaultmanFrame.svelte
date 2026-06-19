@@ -68,6 +68,10 @@
 		void settingsRevision;
 		return plugin.settings.performanceHudEnabled;
 	});
+	const coloredBadges = $derived.by(() => {
+		void settingsRevision;
+		return plugin.settings.coloredBadges === true;
+	});
 	let performanceHudHost: HTMLElement | null = null;
 	let performanceHudInstance: Record<string, never> | null = null;
 
@@ -799,6 +803,7 @@
 <div
 	class="vaultman-pages-viewport"
 	class:vaultman-pages-viewport--dock-off={!showDock}
+	class:vaultman-badges-colored={coloredBadges}
 	use:bindViewport
 	use:bindViewRoot
 >

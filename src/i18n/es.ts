@@ -151,6 +151,9 @@ export const es: Record<string, string> = {
 	'settings.minimal_style': 'Estilo minimal',
 	'settings.minimal_style.desc':
 		'Usa botones compactos nativos de Obsidian en headers y dock inferior.',
+	'settings.badge_colors': 'Badges con color',
+	'settings.badge_colors.desc':
+		'Usa iconos de badge con color en Files, Tags y Properties. Desactivado mantiene badges monotonos.',
 	'settings.show_dock': 'Mostrar dock inferior',
 	'settings.show_dock.desc':
 		'Muestra el dock inferior. Al desactivarlo, Filtros y Cola quedan en el menú de tabs de Datos.',
