@@ -6,6 +6,7 @@ import { describe, expect, it } from 'vitest';
 import explorerFilesSource from '../../src/components/containers/explorerFiles.ts?raw';
 import filesGridSource from '../../src/components/layout/viewFilesGrid.ts?raw';
 import {
+	formatFileRenameTarget,
 	formatFileRenameTargetName,
 	type RenameTargetFile,
 } from '../../src/modals/modalFileRename';
@@ -70,6 +71,60 @@ describe('file operation presentation', () => {
 				'2026-06-14',
 			),
 		).toBe('Daily backup.canvas');
+	});
+
+	it('formats property rename targets only from text frontmatter values', () => {
+		const result = formatFileRenameTarget(
+			targetFile('Draft.md', 'Draft', 'md'),
+			'{title}',
+			{ title: 'attempt 1' },
+			0,
+			'2026-06-14',
+		);
+
+		expect(result.newName).toBe('attempt 1.md');
+		expect(result.issues).toEqual([]);
+	});
+
+	it('reports missing, non-text, and malformed property rename patterns', () => {
+		expect(
+			formatFileRenameTarget(
+				targetFile('Draft.md', 'Draft', 'md'),
+				'{missing}',
+				{},
+				0,
+				'2026-06-14',
+			).issues,
+		).toContainEqual({
+			code: 'missing_property',
+			property: 'missing',
+		});
+
+		expect(
+			formatFileRenameTarget(
+				targetFile('Draft.md', 'Draft', 'md'),
+				'{rating}',
+				{ rating: 5 },
+				0,
+				'2026-06-14',
+			).issues,
+		).toContainEqual({
+			code: 'non_text_property',
+			property: 'rating',
+		});
+
+		expect(
+			formatFileRenameTarget(
+				targetFile('Draft.md', 'Draft', 'md'),
+				'{title',
+				{ title: 'attempt 1' },
+				0,
+				'2026-06-14',
+			).issues,
+		).toContainEqual({
+			code: 'invalid_pattern',
+			token: '{title',
+		});
 	});
 
 	it('does not treat dots already present in the basename as explicit extension changes', () => {
