@@ -154,6 +154,11 @@ export const es: Record<string, string> = {
 	'settings.badge_colors': 'Badges con color',
 	'settings.badge_colors.desc':
 		'Usa iconos de badge con color en Files, Tags y Properties. Desactivado mantiene badges monotonos.',
+	'settings.badge_cancel_click': 'Interaccion para cancelar badges',
+	'settings.badge_cancel_click.desc':
+		'Elige si los badges de operaciones se cancelan con doble click o click simple.',
+	'settings.badge_cancel_click.double': 'Doble click',
+	'settings.badge_cancel_click.single': 'Click simple',
 	'settings.show_dock': 'Mostrar dock inferior',
 	'settings.show_dock.desc':
 		'Muestra el dock inferior. Al desactivarlo, Filtros y Cola quedan en el menú de tabs de Datos.',

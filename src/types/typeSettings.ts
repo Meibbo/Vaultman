@@ -2,6 +2,7 @@ import type { Plugin } from 'obsidian';
 import type { FilterTemplate } from './typeFilter';
 import type { MenuHideRule } from './typeCMenu';
 import type { QueueTemplate } from './typeOps';
+import type { BadgeCancelClickMode } from '../utils/badgeInteraction';
 
 export type Language = 'auto' | 'en' | 'es';
 
@@ -52,6 +53,8 @@ export interface VaultmanSettings {
 	minimalStyle: boolean;
 	/** Use colored badge icons instead of the default monotone badge style */
 	coloredBadges: boolean;
+	/** Interaction required to cancel an operation badge */
+	badgeCancelClickMode: BadgeCancelClickMode;
 	/** Show the bottom dock; when false, Filters and Queue move into the Data tab menu. */
 	showDock: boolean;
 	/** Run operations immediately instead of staging them in the queue */
@@ -120,6 +123,7 @@ export const DEFAULT_SETTINGS: VaultmanSettings = {
 	filtersShowTabLabels: true,
 	minimalStyle: true,
 	coloredBadges: false,
+	badgeCancelClickMode: 'double',
 	showDock: false,
 	bypassOperations: false,
 	suppressBulkOperationWarning: false,

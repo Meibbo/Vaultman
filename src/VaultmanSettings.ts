@@ -123,6 +123,27 @@ export class VaultmanSettingsTab extends PluginSettingTab {
 			);
 
 		new Setting(containerEl)
+			.setName(translate('settings.badge_cancel_click'))
+			.setDesc(translate('settings.badge_cancel_click.desc'))
+			.addDropdown((dropdown) =>
+				dropdown
+					.addOption(
+						'double',
+						translate('settings.badge_cancel_click.double'),
+					)
+					.addOption(
+						'single',
+						translate('settings.badge_cancel_click.single'),
+					)
+					.setValue(this.plugin.settings.badgeCancelClickMode)
+					.onChange(async (value) => {
+						this.plugin.settings.badgeCancelClickMode =
+							value === 'single' ? 'single' : 'double';
+						await this.plugin.saveSettings();
+					}),
+			);
+
+		new Setting(containerEl)
 			.setName(translate('settings.show_dock'))
 			.setDesc(translate('settings.show_dock.desc'))
 			.addToggle((toggle) =>
