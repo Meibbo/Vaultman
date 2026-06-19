@@ -209,6 +209,39 @@ describe('FilterService vault-wide Files filtering', () => {
 		]);
 	});
 
+	it('uses active vault-wide filters as Content search candidates while ignoring only content search', () => {
+		const note = makeFile('Projects/Alpha.md');
+		const base = makeFile('Projects/Alpha.base');
+		const other = makeFile('Projects/Beta.md');
+		const service = new FilterService(
+			makeApp([note, other], [note, base, other], {
+				[note.path]: { project: 'alpha' },
+				[base.path]: { project: 'alpha' },
+				[other.path]: { project: 'beta' },
+			}),
+		);
+
+		service.addNode({
+			type: 'rule',
+			filterType: 'specific_value',
+			property: 'project',
+			values: ['alpha'],
+		});
+
+		expect(
+			service.getFilesIgnoringContentSearch(true).map((file) => file.path),
+		).toEqual(['Projects/Alpha.md', 'Projects/Alpha.base']);
+
+		service.setContentSearchRule('newes', [note]);
+
+		expect(service.filteredVaultFiles.map((file) => file.path)).toEqual([
+			'Projects/Alpha.md',
+		]);
+		expect(
+			service.getFilesIgnoringContentSearch(true).map((file) => file.path),
+		).toEqual(['Projects/Alpha.md', 'Projects/Alpha.base']);
+	});
+
 	it('projects multiple active folder filters as a union scope for the Files explorer', () => {
 		const work = makeFile('Areas/Work/todo.md');
 		const home = makeFile('Areas/Home/list.md');
