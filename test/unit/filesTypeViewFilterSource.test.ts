@@ -46,4 +46,14 @@ describe('Files type view filter source guards', () => {
 
 		expect(navbarFiltersSource).toContain('setSortStateChangeHandler');
 	});
+
+	it('keeps the external Files sort bridge out of the registering effect dependencies', () => {
+		expect(navbarFiltersSource).toContain("import { untrack } from 'svelte';");
+		expect(navbarFiltersSource).toContain(
+			'const currentByTab = untrack(() => ({',
+		);
+		expect(navbarFiltersSource).toContain(
+			'if (sameSortState(currentByTab.files, normalizedState)) return;',
+		);
+	});
 });

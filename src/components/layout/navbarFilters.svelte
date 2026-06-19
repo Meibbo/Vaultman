@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { Menu } from 'obsidian';
+	import { untrack } from 'svelte';
 	import { translate } from '../../i18n/index';
 	import SortPopup from './popupSort.svelte';
 	import ViewModePopup from './popupView.svelte';
@@ -510,10 +511,30 @@
 		applySortState(activeTab, normalizedState);
 	}
 
+	function sameSortState(
+		left: ExplorerSortState,
+		right: ExplorerSortState,
+	): boolean {
+		return (
+			left.sortBy === right.sortBy &&
+			left.direction === right.direction &&
+			left.childLevel === right.childLevel &&
+			left.nodeTypeFilter === right.nodeTypeFilter
+		);
+	}
+
 	function handleExternalFilesSortState(state: ExplorerSortState) {
-		sortStateByTab = {
+		const normalizedState = normalizeSortState(state);
+		const currentByTab = untrack(() => ({
 			...sortStateByTab,
-			files: normalizeSortState(state),
+			files: normalizeSortState(
+				sortStateByTab.files ?? DEFAULT_SORT_STATE.files,
+			),
+		}));
+		if (sameSortState(currentByTab.files, normalizedState)) return;
+		sortStateByTab = {
+			...currentByTab,
+			files: normalizedState,
 		};
 	}
 
