@@ -220,11 +220,12 @@ describe('Native search adapter helpers', () => {
 		expect(updates.at(-1)?.files[0].matchCount).toBe(2);
 	});
 
-	it('limits native reconciliation reads to native result files so common queries finish promptly', async () => {
+	it('reconciles small native snapshots against the full scoped candidate set', async () => {
 		vi.stubGlobal('window', { setTimeout });
 		const nativeFile = makeFile('notes/como.md');
 		const unrelatedFile = makeFile('notes/unrelated.md');
 		const readPaths: string[] = [];
+		const updates: ReturnType<typeof buildNativeSearchPreview>[] = [];
 		const view = {
 			dom: {
 				getFiles: () => [nativeFile],
@@ -257,10 +258,18 @@ describe('Native search adapter helpers', () => {
 			isRegex: false,
 			caseSensitive: false,
 			scopeFiles: [nativeFile, unrelatedFile],
-			onUpdate: () => undefined,
+			onUpdate: (result) => updates.push(result),
 		});
 
-		expect(readPaths).toEqual([nativeFile.path]);
+		expect(readPaths).toEqual([nativeFile.path, unrelatedFile.path]);
+		expect(updates.at(-1)).toMatchObject({
+			totalMatches: 3,
+			isLoading: false,
+		});
+		expect(updates.at(-1)?.files.map((entry) => entry.file.path)).toEqual([
+			nativeFile.path,
+			unrelatedFile.path,
+		]);
 	});
 
 	it('uses the latest non-empty native snapshot when the final native DOM snapshot is empty', async () => {
@@ -308,9 +317,9 @@ describe('Native search adapter helpers', () => {
 			onUpdate: (result) => updates.push(result),
 		});
 
-		expect(readPaths).toEqual([nativeFile.path]);
+		expect(readPaths).toEqual([nativeFile.path, unrelatedFile.path]);
 		expect(updates.at(-1)).toMatchObject({
-			totalMatches: 2,
+			totalMatches: 3,
 			isLoading: false,
 		});
 	});

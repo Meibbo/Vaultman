@@ -283,15 +283,8 @@ export class NativeSearchAdapter {
 			);
 			return;
 		}
-		const reconciliationOptions =
-			nativeInputs.length > 0
-				? {
-						...options,
-						scopeFiles: nativeInputs.map((input) => input.file),
-					}
-				: options;
 		const mergedInputs = await this.collectLocalResults(
-			reconciliationOptions,
+			options,
 			run,
 			nativeInputs,
 			true,
