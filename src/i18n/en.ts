@@ -157,6 +157,11 @@ export const en: Record<string, string> = {
 	'settings.badge_colors': 'Colored badges',
 	'settings.badge_colors.desc':
 		'Use colored badge icons across Files, Tags, and Properties. Disabled keeps badges monotone.',
+	'settings.badge_cancel_click': 'Cancel badge interaction',
+	'settings.badge_cancel_click.desc':
+		'Choose whether operation badges are canceled with a double-click or single-click.',
+	'settings.badge_cancel_click.double': 'Double-click',
+	'settings.badge_cancel_click.single': 'Single-click',
 	'settings.show_dock': 'Show bottom dock',
 	'settings.show_dock.desc':
 		'Show the bottom dock. When disabled, Filters and Queue stay in the Data tab menu.',

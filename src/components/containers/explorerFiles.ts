@@ -762,6 +762,7 @@ export class FilesExplorerPanel extends Component {
 					this.plugin.queueService.remove(queueIndex);
 					this._render();
 				},
+				badgeCancelClickMode: this.plugin.settings.badgeCancelClickMode,
 			});
 		}
 	}

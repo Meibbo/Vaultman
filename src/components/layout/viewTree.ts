@@ -6,6 +6,12 @@ import {
 	buildVirtualTreeWindow,
 	flattenVisibleTree,
 } from '../../utils/treeVirtualization';
+import {
+	attachBadgeCancelInteraction,
+	badgeCancelInteractionLabel,
+	normalizeBadgeCancelClickMode,
+	type BadgeCancelClickMode,
+} from '../../utils/badgeInteraction';
 
 export interface TreeViewOptions {
 	nodes: TreeNode[];
@@ -20,6 +26,7 @@ export interface TreeViewOptions {
 	onRename?: (id: string, newLabel: string) => void;
 	onCancelRename?: () => void;
 	onBadgeDoubleClick?: (queueIndex: number) => void;
+	badgeCancelClickMode?: BadgeCancelClickMode;
 	onDragStart?: (id: string, event: DragEvent) => void;
 	onDragOver?: (id: string, event: DragEvent) => void;
 	onDrop?: (id: string, event: DragEvent) => void;
@@ -565,13 +572,15 @@ export class UnifiedTreeView {
 					}
 					// Double-click to undo this specific queue operation
 					if (badge.queueIndex !== undefined && opts.onBadgeDoubleClick) {
+						const cancelMode = normalizeBadgeCancelClickMode(
+							opts.badgeCancelClickMode,
+						);
 						bEl.addClass('is-undoable');
 						bEl.setAttribute(
 							'title',
-							`${badge.text ?? ''} — double-click to undo`,
+							`${badge.text ?? ''} — ${badgeCancelInteractionLabel(cancelMode)}`,
 						);
-						bEl.addEventListener('dblclick', (e) => {
-							e.stopPropagation();
+						attachBadgeCancelInteraction(bEl, cancelMode, () => {
 							opts.onBadgeDoubleClick!(badge.queueIndex!);
 						});
 					}

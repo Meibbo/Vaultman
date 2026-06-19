@@ -13,6 +13,9 @@ export interface PanelPluginCtx {
 	iconicService?: IconicService;
 	contextMenuService: ContextMenuService;
 	queueService: OperationQueueService;
+	settings?: {
+		badgeCancelClickMode?: import('../../utils/badgeInteraction').BadgeCancelClickMode;
+	};
 	statisticsCache?: Pick<StatisticsCacheService, 'getFileTimes'>;
 	showDragActionGuide?: (text: string) => void;
 	clearDragActionGuide?: () => void;
@@ -23,6 +26,10 @@ import type { TreeNode, TagMeta } from '../../types/typeTree';
 import type { MenuCtx } from '../../types/typeCMenu';
 import { translate } from '../../i18n/index';
 import { normalizeExplorerSortBy } from '../../logic/logicSort';
+import {
+	attachBadgeCancelInteraction,
+	normalizeBadgeCancelClickMode,
+} from '../../utils/badgeInteraction';
 import {
 	flattenTreeToPathLabels,
 	groupRootHierarchy,
@@ -433,6 +440,7 @@ export class TagsExplorerPanel extends Component {
 					this.plugin.queueService.remove(queueIndex);
 					void this._render();
 				},
+				badgeCancelClickMode: this.plugin.settings?.badgeCancelClickMode,
 			});
 			return;
 		}
@@ -528,6 +536,7 @@ export class TagsExplorerPanel extends Component {
 				this.plugin.queueService.remove(queueIndex);
 				void this._render();
 			},
+			badgeCancelClickMode: this.plugin.settings?.badgeCancelClickMode,
 		});
 	}
 
@@ -598,9 +607,11 @@ export class TagsExplorerPanel extends Component {
 			}
 			if (badge.text) bEl.setAttribute('title', badge.text);
 			if (badge.queueIndex !== undefined) {
+				const badgeCancelClickMode = normalizeBadgeCancelClickMode(
+					this.plugin.settings?.badgeCancelClickMode,
+				);
 				bEl.addClass('is-undoable');
-				bEl.addEventListener('dblclick', (event) => {
-					event.stopPropagation();
+				attachBadgeCancelInteraction(bEl, badgeCancelClickMode, () => {
 					this.plugin.queueService.remove(badge.queueIndex!);
 					this._render();
 				});

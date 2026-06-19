@@ -12,6 +12,11 @@ import type { TreeNode } from '../../types/typeTree';
 import { buildVirtualTableWindow } from '../../utils/tableVirtualization';
 import { vaultmanPerfMonitor } from '../../utils/performanceMonitor';
 import { flattenVisibleTree } from '../../utils/treeVirtualization';
+import {
+	attachBadgeCancelInteraction,
+	normalizeBadgeCancelClickMode,
+	type BadgeCancelClickMode,
+} from '../../utils/badgeInteraction';
 
 export interface NodeTableViewOptions<TMeta = unknown> {
 	surface: NodeTableSurface;
@@ -25,6 +30,7 @@ export interface NodeTableViewOptions<TMeta = unknown> {
 	onRowClick: (id: string) => void;
 	onContextMenu: (id: string, event: MouseEvent) => void;
 	onBadgeDoubleClick?: (queueIndex: number) => void;
+	badgeCancelClickMode?: BadgeCancelClickMode;
 	onDragStart?: (id: string, event: DragEvent) => void;
 	onDragOver?: (id: string, event: DragEvent) => void;
 	onDrop?: (id: string, event: DragEvent) => void;
@@ -474,9 +480,11 @@ export class NodeTableView<TMeta = unknown> {
 			}
 			if (badge.text) badgeEl.setAttribute('title', badge.text);
 			if (badge.queueIndex !== undefined && opts.onBadgeDoubleClick) {
+				const cancelMode = normalizeBadgeCancelClickMode(
+					opts.badgeCancelClickMode,
+				);
 				badgeEl.addClass('is-undoable');
-				badgeEl.addEventListener('dblclick', (event) => {
-					event.stopPropagation();
+				attachBadgeCancelInteraction(badgeEl, cancelMode, () => {
 					opts.onBadgeDoubleClick?.(badge.queueIndex!);
 				});
 			}

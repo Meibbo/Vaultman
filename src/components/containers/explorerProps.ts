@@ -13,7 +13,10 @@ export interface PanelPluginCtx {
 	iconicService?: IconicService;
 	contextMenuService: ContextMenuService;
 	queueService: OperationQueueService;
-	settings?: { minimalStyle: boolean };
+	settings?: {
+		minimalStyle: boolean;
+		badgeCancelClickMode?: import('../../utils/badgeInteraction').BadgeCancelClickMode;
+	};
 	statisticsCache?: Pick<StatisticsCacheService, 'getFileTimes'>;
 	showDragActionGuide?: (text: string) => void;
 	clearDragActionGuide?: () => void;
@@ -26,6 +29,10 @@ import type { PropertyChange } from '../../types/typeOps';
 import { NATIVE_SET_PROP_TYPE } from '../../types/typeOps';
 import { showInputModal } from '../../utils/inputModal';
 import { translate } from '../../i18n/index';
+import {
+	attachBadgeCancelInteraction,
+	normalizeBadgeCancelClickMode,
+} from '../../utils/badgeInteraction';
 import {
 	resolveNativePropType,
 	TYPE_ICON_MAP,
@@ -617,9 +624,11 @@ export class PropsExplorerPanel extends Component {
 			}
 			if (badge.text) bEl.setAttribute('title', badge.text);
 			if (badge.queueIndex !== undefined) {
+				const badgeCancelClickMode = normalizeBadgeCancelClickMode(
+					this.plugin.settings?.badgeCancelClickMode,
+				);
 				bEl.addClass('is-undoable');
-				bEl.addEventListener('dblclick', (event) => {
-					event.stopPropagation();
+				attachBadgeCancelInteraction(bEl, badgeCancelClickMode, () => {
 					this.plugin.queueService.remove(badge.queueIndex!);
 					this._render();
 				});
@@ -719,6 +728,7 @@ export class PropsExplorerPanel extends Component {
 					this.plugin.queueService.remove(queueIndex);
 					void this._render();
 				},
+				badgeCancelClickMode: this.plugin.settings?.badgeCancelClickMode,
 			});
 			return;
 		}
@@ -765,6 +775,7 @@ export class PropsExplorerPanel extends Component {
 				this.plugin.queueService.remove(queueIndex);
 				void this._render();
 			},
+			badgeCancelClickMode: this.plugin.settings?.badgeCancelClickMode,
 		});
 	}
 
