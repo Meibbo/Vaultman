@@ -3190,23 +3190,9 @@ body.vaultman-bases-column-separators table th {
   color: var(--text-muted);
 }
 
-/* ─── Search result highlight pulse animation ─────────────────────────────── */
-@keyframes vaultman-search-pulse {
-  0% {
-    background-color: transparent;
-  }
-
-  20% {
-    background-color: var(--background-modifier-active-hover);
-  }
-
-  100% {
-    background-color: transparent;
-  }
-}
-
 .vaultman-search-highlight {
-  animation: vaultman-search-pulse 0.8s ease-out;
+  background-color: color-mix(in srgb, var(--color-accent) 12%, transparent);
+  color: var(--text-normal);
 }
 
 .vaultman-filters-view-panel {
@@ -5512,18 +5498,6 @@ body.vaultman-bases-column-separators table th {
 .vaultman-tree-row.vaultman-search-highlight {
   background-color: color-mix(in srgb, var(--color-accent) 12%, transparent);
   color: var(--text-normal);
-  /* Simplified animation: opacity only to avoid sub-pixel blur from translateY */
-  animation: vaultman-fade-in-simple 0.2s ease;
-}
-
-@keyframes vaultman-fade-in-simple {
-  from {
-    opacity: 0;
-  }
-
-  to {
-    opacity: 1;
-  }
 }
 
 /* ── Menu Curator Panel ──────────────────────────────────────────────────── */
