@@ -1,4 +1,4 @@
-import { Modal, Setting, type App, type TFile } from 'obsidian';
+import { Modal, Notice, Setting, type App, type TFile } from 'obsidian';
 import type { PendingChange } from '../types/typeOps';
 import { RENAME_FILE } from '../types/typeOps';
 import type { PropertyIndexService } from '../services/servicePropertyIndex';
@@ -8,15 +8,33 @@ import { translate } from '../i18n/index';
 type QueueCallback = (change: PendingChange) => void;
 
 export type RenameTargetFile = Pick<TFile, 'name' | 'basename' | 'extension'>;
+export type FileRenameValidationIssue =
+	| { code: 'missing_property'; property: string }
+	| { code: 'non_text_property'; property: string }
+	| { code: 'invalid_pattern'; token: string };
 
-export function formatFileRenameTargetName(
+export interface FileRenameTargetResult {
+	newName: string;
+	issues: FileRenameValidationIssue[];
+}
+
+interface FileRenamePreview extends FileRenameTargetResult {
+	file: TFile;
+	oldName: string;
+}
+
+export function formatFileRenameTarget(
 	file: RenameTargetFile,
 	pattern: string,
 	frontmatter: Record<string, unknown>,
 	index: number,
 	today = new Date().toISOString().slice(0, 10),
-): string {
+): FileRenameTargetResult {
+	const issues: FileRenameValidationIssue[] = collectInvalidPatternTokens(
+		pattern,
+	).map((token) => ({ code: 'invalid_pattern', token }));
 	let newName = pattern;
+
 	newName = newName.replace(/\{basename\}|\*/g, file.basename);
 	newName = newName.replace(/\{date\}|\[fecha\]/gi, today);
 	newName = newName.replace(
@@ -25,28 +43,62 @@ export function formatFileRenameTargetName(
 	);
 
 	newName = newName.replace(/\{(\w[\w-]*)\}/g, (_match: string, prop: string) =>
-		stringifyFrontmatterValue(frontmatter[prop]),
+		resolveTextFrontmatterProperty(frontmatter, prop, issues),
 	);
-	newName = newName.replace(/[<>:"/\\|?*]/g, '-').trim();
 
-	if (patternHasExplicitExtension(pattern)) return newName;
-	const extension = file.extension.replace(/^\./, '');
-	return extension ? `${newName}.${extension}` : newName;
+	let sanitizedName = newName.replace(/[<>:"/\\|?*]/g, '-').trim();
+	if (!sanitizedName) {
+		sanitizedName = file.basename;
+		if (issues.length === 0) {
+			issues.push({ code: 'invalid_pattern', token: pattern });
+		}
+	}
+
+	if (!patternHasExplicitExtension(pattern)) {
+		const extension = file.extension.replace(/^\./, '');
+		if (extension) sanitizedName = `${sanitizedName}.${extension}`;
+	}
+
+	return { newName: sanitizedName, issues };
 }
 
-function stringifyFrontmatterValue(value: unknown): string {
-	if (value == null) return '';
-	if (Array.isArray(value)) return value.map(String).join('-');
-	if (typeof value === 'string') return value;
-	if (
-		typeof value === 'number' ||
-		typeof value === 'boolean' ||
-		typeof value === 'bigint'
-	)
-		return String(value);
-	if (typeof value === 'symbol') return value.description ?? value.toString();
-	if (typeof value === 'function') return value.name;
-	return JSON.stringify(value) ?? '';
+export function formatFileRenameTargetName(
+	file: RenameTargetFile,
+	pattern: string,
+	frontmatter: Record<string, unknown>,
+	index: number,
+	today = new Date().toISOString().slice(0, 10),
+): string {
+	return formatFileRenameTarget(file, pattern, frontmatter, index, today).newName;
+}
+
+function resolveTextFrontmatterProperty(
+	frontmatter: Record<string, unknown>,
+	prop: string,
+	issues: FileRenameValidationIssue[],
+): string {
+	const value = frontmatter[prop];
+	if (value == null || (typeof value === 'string' && value.trim() === '')) {
+		issues.push({ code: 'missing_property', property: prop });
+		return '';
+	}
+	if (typeof value !== 'string') {
+		issues.push({ code: 'non_text_property', property: prop });
+		return '';
+	}
+	return value;
+}
+
+function collectInvalidPatternTokens(pattern: string): string[] {
+	const unmatched = pattern
+		.replace(/\{basename\}|\*/g, '')
+		.replace(/\{date\}|\[fecha\]/gi, '')
+		.replace(/\{counter\}|\(1\)/gi, '')
+		.replace(/\{(\w[\w-]*)\}/g, '');
+
+	return (unmatched.match(/\{[^{}]*\}?|[^{}\s]*\}/g) ?? [])
+		.map((token) => token.trim())
+		.filter(Boolean);
 }
 
 function patternHasExplicitExtension(pattern: string): boolean {
@@ -177,28 +229,38 @@ export class FileRenameModal extends Modal {
 		}
 	}
 
-	private computeRenames(): { file: TFile; oldName: string; newName: string }[] {
+	private computeRenames(): FileRenamePreview[] {
 		const today = new Date().toISOString().slice(0, 10);
 		return this.targetFiles.map((file, index) => {
 			const cache = this.app.metadataCache.getFileCache(file);
 			const fm = (cache?.frontmatter ?? {}) as Record<string, unknown>;
+			const result = formatFileRenameTarget(
+				file,
+				this.pattern,
+				fm,
+				index,
+				today,
+			);
 
 			return {
 				file,
 				oldName: file.name,
-				newName: formatFileRenameTargetName(
-					file,
-					this.pattern,
-					fm,
-					index,
-					today,
-				),
+				newName: result.newName,
+				issues: result.issues,
 			};
 		});
 	}
 
 	private queueRenames(): void {
 		const renames = this.computeRenames();
+		const blockedRenames = renames.filter(({ issues }) => issues.length > 0);
+
+		if (blockedRenames.length > 0) {
+			new Notice(translate('rename.pattern_warning')
+				.replace('{count}', String(blockedRenames.length))
+				.replace('{reason}', this.formatRenameIssue(blockedRenames[0].issues[0])));
+			return;
+		}
 
 		for (const { file, newName } of renames) {
 			if (newName === file.name) continue;
@@ -213,6 +275,25 @@ export class FileRenameModal extends Modal {
 			};
 			this.onQueue(change);
 		}
+	}
+
+	private formatRenameIssue(issue: FileRenameValidationIssue): string {
+		if (issue.code === 'missing_property') {
+			return translate('rename.issue.missing_property').replace(
+				'{property}',
+				issue.property,
+			);
+		}
+		if (issue.code === 'non_text_property') {
+			return translate('rename.issue.non_text_property').replace(
+				'{property}',
+				issue.property,
+			);
+		}
+		return translate('rename.issue.invalid_pattern').replace(
+			'{token}',
+			issue.token,
+		);
 	}
 
 	onClose(): void {

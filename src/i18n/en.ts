@@ -225,6 +225,11 @@ export const en: Record<string, string> = {
 	'rename.pattern_desc':
 		'Use placeholders: {basename}, {date}, {counter}, {property}',
 	'rename.help': '* or {basename} | {date} | {counter} | {property}',
+	'rename.pattern_warning':
+		'Rename pattern blocked for {count} file(s): {reason}',
+	'rename.issue.missing_property': 'Missing text property "{property}"',
+	'rename.issue.non_text_property': 'Property "{property}" is not text',
+	'rename.issue.invalid_pattern': 'Invalid rename pattern "{token}"',
 
 	// Status bar (extended)
 	'statusbar.props_label': '{count} props',

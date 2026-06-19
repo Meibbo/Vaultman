@@ -222,6 +222,11 @@ export const es: Record<string, string> = {
 	'rename.pattern_desc':
 		'Usa marcadores: {basename}, {date}, {counter}, {property}',
 	'rename.help': '* o {basename} | {date} | {counter} | {property}',
+	'rename.pattern_warning':
+		'Patron de renombrado bloqueado para {count} archivo(s): {reason}',
+	'rename.issue.missing_property': 'Falta la propiedad de texto "{property}"',
+	'rename.issue.non_text_property': 'La propiedad "{property}" no es texto',
+	'rename.issue.invalid_pattern': 'Patron de renombrado invalido "{token}"',
 
 	// Status bar (extended)
 	'statusbar.props_label': '{count} props',
