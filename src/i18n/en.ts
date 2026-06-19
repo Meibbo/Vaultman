@@ -154,6 +154,9 @@ export const en: Record<string, string> = {
 	'settings.minimal_style': 'Minimal style',
 	'settings.minimal_style.desc':
 		'Use compact Obsidian-native icon buttons in headers and the bottom dock.',
+	'settings.badge_colors': 'Colored badges',
+	'settings.badge_colors.desc':
+		'Use colored badge icons across Files, Tags, and Properties. Disabled keeps badges monotone.',
 	'settings.show_dock': 'Show bottom dock',
 	'settings.show_dock.desc':
 		'Show the bottom dock. When disabled, Filters and Queue stay in the Data tab menu.',

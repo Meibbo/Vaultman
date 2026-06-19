@@ -4943,23 +4943,31 @@ body.vaultman-bases-column-separators table th {
   height: 10px;
 }
 
-.vaultman-badge--blue {
+.vaultman-badge--blue,
+.vaultman-badge--red,
+.vaultman-badge--purple,
+.vaultman-badge--orange,
+.vaultman-badge--green {
+  color: var(--text-muted);
+}
+
+.vaultman-badges-colored .vaultman-badge--blue {
   color: #007aff;
 }
 
-.vaultman-badge--red {
+.vaultman-badges-colored .vaultman-badge--red {
   color: #ff3b30;
 }
 
-.vaultman-badge--purple {
+.vaultman-badges-colored .vaultman-badge--purple {
   color: #af52de;
 }
 
-.vaultman-badge--orange {
+.vaultman-badges-colored .vaultman-badge--orange {
   color: #ff9500;
 }
 
-.vaultman-badge--green {
+.vaultman-badges-colored .vaultman-badge--green {
   color: #34c759;
 }
 

@@ -50,6 +50,8 @@ export interface VaultmanSettings {
 	filtersShowTabLabels: boolean;
 	/** Use compact Obsidian-native controls for header and dock actions */
 	minimalStyle: boolean;
+	/** Use colored badge icons instead of the default monotone badge style */
+	coloredBadges: boolean;
 	/** Show the bottom dock; when false, Filters and Queue move into the Data tab menu. */
 	showDock: boolean;
 	/** Run operations immediately instead of staging them in the queue */
@@ -117,6 +119,7 @@ export const DEFAULT_SETTINGS: VaultmanSettings = {
 	viewMode: 'list',
 	filtersShowTabLabels: true,
 	minimalStyle: true,
+	coloredBadges: false,
 	showDock: false,
 	bypassOperations: false,
 	suppressBulkOperationWarning: false,

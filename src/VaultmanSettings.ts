@@ -111,6 +111,18 @@ export class VaultmanSettingsTab extends PluginSettingTab {
 			);
 
 		new Setting(containerEl)
+			.setName(translate('settings.badge_colors'))
+			.setDesc(translate('settings.badge_colors.desc'))
+			.addToggle((toggle) =>
+				toggle
+					.setValue(this.plugin.settings.coloredBadges)
+					.onChange(async (value) => {
+						this.plugin.settings.coloredBadges = value;
+						await this.plugin.saveSettings();
+					}),
+			);
+
+		new Setting(containerEl)
 			.setName(translate('settings.show_dock'))
 			.setDesc(translate('settings.show_dock.desc'))
 			.addToggle((toggle) =>
