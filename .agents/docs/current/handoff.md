@@ -17,23 +17,38 @@ updated_by: codex-gpt-5
 Compact handoff after archiving the oversized current handoff:
 [[docs/archive/pkm-ai/active-docs/2026-05-11T080321-current-handoff|2026-05-11 handoff archive]].
 
-## NEXT AGENT START HERE — V.D shared render-runtime (N.R landed, 2026-06-16)
+## NEXT AGENT START HERE — V.D thread A: perf render-runtime (2026-06-19)
 
-> **CANON NOW-tier LOCKED (2026-06-18, claude-opus-4-8) — leer el canon ANTES de tocar views.** El grill
-> de V.D destapó que el canon engine/mode/orientation estaba en conflicto 3-vías (tracer vs explorer-model
-> vs proto) y homeless. Se lockeó y aterrizó en su HOME canónico (SIN código; sandbox sigue `cc23ad9`):
-> **[[docs/architecture/explorer-model/05-view-canon|05 View Addressing Canon]]** (living) + **ADR 0012**
-> (supersede taxonomía-view de ADR 0008) + glossary L129-131 + research-inventory. Trail/planeación:
-> [[docs/work/hardening/specs/2026-06-17-vd-shared-render-runtime/index|V.D shard]].
-> **Esencial:** orientation ≠ h/v (→ `direction`); engines Linear/Geometry/Canvas/Charts (**Table=modo
-> Geometry, group-box ELIMINADO=composición, Charts 4º placeholder**); Linear modes flat/indent/cascade/
-> detail · Geometry grid/cards/masonry/table; **validity compose-free**; viewScope per_panel/level/parent/
-> node; `regime` slot|coordinates + regime-flip; Geometry = **Opt-1** (un GeometryView + strategies, seam
-> size/order/slot+`media` reservado); selection box/lasso = hit-test geométrico del shared service.
-> DEFERRED: Canvas/Charts N4 · viewScope-filter/composición N3.
-> **NEXT = thread A: pilot Linear del perf-runtime** (desbloqueado; geometría fixed-height incontestada por
-> el canon). thread B = re-modelar `typeViewConfig` al canon + cerrar DEFERRED. La "forma de V.D" de abajo
-> sigue válida (es thread A).
+**Dónde:** Spine V.D. El **CANON NOW-tier de view-addressing está LOCKED + aterrizado** (canon ≠ shard de
+planeación): **[[docs/architecture/explorer-model/05-view-canon|05 View Addressing Canon]]** + **ADR 0012**
+(supersede la taxonomía-view de ADR 0008) + glossary L129-131 + research-inventory. Esenciales del canon:
+orientation ≠ h/v (→ eje `direction`); engines **Linear/Geometry/Canvas/Charts** (Table=modo Geometry,
+group-box ELIMINADO=composición, Charts 4º placeholder); Linear modes flat/indent/cascade/detail; Geometry
+grid/cards/masonry/table; **validity compose-free**; viewScope per_panel/level/parent/node; `regime`
+slot|coordinates + regime-flip; Geometry = **Opt-1** (un GeometryView + strategies). **thread B** (re-modelar
+`typeViewConfig` al canon + DEFERRED Canvas/Charts/viewScope-filter) = aparte, después.
+
+**Thread A = el perf render-runtime (el lever real). Plan + contrato + respuestas Q1-Q4:**
+[[docs/work/hardening/specs/2026-06-17-vd-shared-render-runtime/index|V.D shard]] §Thread A.
+- ✅ **Slice 1 paso 1 HECHO + verificado:** pure core `src/services/serviceSharedVirtualLayout.ts` (Linear-fixed,
+  framework-agnóstico: `viewportOverscan`/`fixedVisibleRange`/`fixedIndicesInBand`/`fixedScrollOffsetForIndex`) +
+  **12/12 unit tests**. **Commiteado en rama `umbrella-v2/wave-1-vd` @ `8863191`** (worktree
+  `C:/tmp/vaultman-uv2-vd`, deps instaladas).
+- **NEXT:** paso 2 **shell Svelte 5** (`serviceSharedVirtualLayout.svelte.ts`: class+`$state`, `$derived` window,
+  `$state.raw` snapshot, **`{@attach}`** scroll/ResizeObserver→svelte-virtual, `createContext`) → paso 3 **migrar
+  `viewTree.svelte`** a consumir el shell (botar inline `createVirtualizer` + `fallbackFixedVirtualRows` +
+  `virtualRowsCoverScrollWindow` + `intersectingRowIds*` + `TREE_OVERSCAN=10`; conservar sticky rows + box-select
+  vía `service.idsInRect`) → paso 4 **gate STRICT** (plugin-dev `src/dev/perfProbe.ts`) → paso 5 svelte-check/tests + FF a sandbox.
+
+**⚠ Gotchas (costaron una pérdida de datos esta sesión — LEER):**
+- `.agents/docs` está conjunto con el vault Obsidian "Start of The Road" (My Drive, prefijo `x/Agent Docs`).
+  **Cierra Obsidian + pausa Drive ANTES de cualquier move de filesystem sobre `.agents/docs`** (si no, `mv`
+  falla/lockea). Un `rm` borró `.agents/docs/work` sin commitear esta sesión; recuperado vía Obsidian File
+  Recovery (técnica en memoria `reference_agents_docs_recovery`). **Commitea snapshots de seguridad de
+  `.agents/docs`** (dirty-sin-commit = riesgo de rm). Residual perdido: function-union-ledger shards 01-03.
+- Worktree pattern: código en `C:/tmp/vaultman-uv2-vd`; docs/shard en sandbox `.agents` (visible en vault). FF a sandbox tras verify.
+- Known-ajenos: `eslint .` 7 `no-unnecessary-type-assertion` (explorerProps/Tags/typeViewConfig) · `explorerNotebookNavigatorComparison` (repo externo ausente).
+- sandbox @ `d5382c1` (safety commit sobre `cb9d3f0`; `2.0.0-alpha.1`; sin push).
 
 **N.R CERRADO.** sandbox `d81be5e` → **`cc23ad9`** (fast-forward, sin push). `NodeRow` cell
 primitive + `NodeBadgeZone` extraídos del cell inline de `viewTree`, **pilot en tree**, contrato

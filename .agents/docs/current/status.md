@@ -29,6 +29,13 @@ Compact route index after archiving the oversized current status:
 ## Current Route
 
 - Active initiative: [[docs/work/hardening/index|Hardening]].
+- **LATEST (2026-06-19)**: **V.D thread A arrancado + DATA-LOSS recuperada.** (1) Un `rm` borró
+  `.agents/docs/work` sin commitear; **recuperado 100%** (git baseline + 73 docs junio vía Obsidian File
+  Recovery) + remapeado + **safety-commit `d5382c1`**. (2) Thread A (perf render-runtime) slice 1 paso 1
+  **HECHO**: pure core `serviceSharedVirtualLayout.ts` (Linear-fixed) + 12/12 tests, commit `8863191` en
+  worktree `C:/tmp/vaultman-uv2-vd` (rama `umbrella-v2/wave-1-vd`). **NEXT**: shell Svelte 5 → migrar
+  viewTree → gate strict → FF. Detalle: [[docs/current/handoff|handoff]] (sección thread A) +
+  [[docs/work/hardening/specs/2026-06-17-vd-shared-render-runtime/index|V.D shard §Thread A]] + session-log 2026-06-19.
 - **LATEST (2026-06-18)**: **View Addressing Canon NOW-tier LOCKED + landed** (sin código; sandbox @
   `cc23ad9`). El grill de V.D destapó un conflicto 3-vías en el canon engine/mode/orientation (tracer vs
   explorer-model vs proto) — se lockeó el NOW-tier y se aterrizó en home canónico:

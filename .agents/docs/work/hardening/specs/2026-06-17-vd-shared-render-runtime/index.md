@@ -142,6 +142,65 @@ flowchart TB
     end
 ```
 
+## Thread A — perf render-runtime: contract + slice 1 plan (2026-06-19)
+
+**Canon NOW-tier LOCKED + landed** → [[docs/architecture/explorer-model/05-view-canon|05 View Canon]] + ADR 0012.
+Q-C..Q-H resolved: Q-C canon = separate types-only landing (DONE in 05/ADR) · Q-D Linear pilot → Geometry ·
+Q-E ViewHost `(engine,mode)` = thread B (after) · Q-F DoD parity → Geometry slice · **Q-G gate STRICT** · Q-H contract below.
+(Note: D-VD-2 mode list above is the early grill trail; final canon = group-box REMOVED, masonry added — see 05.)
+
+### `SharedVirtualLayoutService` contract (LOCKED)
+
+```ts
+interface SharedVirtualLayoutService {
+  fixedVisibleRange(in:{scrollTop;viewportH;rowHeight;rowCount;overscan}): {startIndex;endIndex};
+  variableVisibleRange(in:{providerId;scrollTop;viewportH;rowCount;overscan}): {startIndex;endIndex;top;bottom};
+  measure(providerId, index, size): void;            // patch Fenwick per provider (warm cross-view)
+  scrollToIndex(providerId, index, align): {offset;align};
+  snapshot(providerId): LayoutSnapshot; restore(providerId, snap): void;
+  idsInRect(providerId, rect): string[];             // box-select — geometry-based (crosses unrendered range)
+  idsInPath(providerId, path): string[];             // lasso
+  detectBlankFrame(providerId, in:{scrollTop;viewportH;renderedRowCount;hasVisibleText}): boolean;
+  // RESERVED designed-for, unwired (slot regime): per-node size/order/slot · lanes(columns/rows)
+}
+```
+overscan = `ceil(viewportH/estimateSize)`; estimateSize ← pretext.
+
+**Contract Q1-Q4 (dev-confirmed 2026-06-19):**
+- **Scope (Q1):** every `regime=slot` view — Linear (all modes/orientations/directions) + Geometry (all). The
+  runtime sees only the GEOMETRY shape (fixed-height vs variable-height+lanes), NOT mode/orientation. Config
+  change (mode/orientation/engine) = swap strategy params, NOT remount/re-measure; Fenwick kept WARM per provider.
+- **Boundary (Q2):** runtime = the layer between `render-projection` and `View` (explorer-model data-flow). Owns
+  geometry · window · measure · hit-test · blank-frame · scroll/resize wiring. STOPS at: DOM/markup (View+NodeRow) ·
+  intra-cell order (N.R/UPV/CSS) · addressing (ViewConfig/ViewHost, thread B) · data (provider) · selection STATE
+  (data-plane) · actions (ActionNode/SASI/NIB, P.D) · coordinates regime (Canvas runtime).
+- **Libraries (Q3):** TanStack Virtual (core) + pretext (estimate + resize re-layout) + own Fenwick + RAF rect
+  observer. NOT TanStack Table (types-only; column-model = D-FE-4 deferred) · NOT render-tag (canvas N4) ·
+  dnd-kit `@dnd-kit/svelte` = adjacent reorder seam, not the core.
+- **Framework (Q4):** TWO layers — (a) pure **agnostic core** (geometry/hit-test math; already
+  `serviceExplorerScrollGeometry` TS pure; testable sans Svelte); (b) **Svelte 5 shell** (class with `$state`,
+  `$derived` window, `$state.raw` geometry snapshot, **`{@attach}`** for scroll/ResizeObserver wiring to
+  svelte-virtual — not `$effect`, `createContext` type-safe, keyed `{#each}` by stable id).
+
+### Slice 1 — Linear pilot (in worktree `C:/tmp/vaultman-uv2-vd`, branch `umbrella-v2/wave-1-vd`)
+
+1. **Pure core** `serviceSharedVirtualLayout.ts` (build on `serviceExplorerScrollGeometry`): fixed/variable
+   visibleRange · measure · idsInRect/idsInPath (lift viewTree geometry hit-test) · scrollToIndex · snapshot/restore. TDD.
+2. **Svelte 5 shell** wrapping `@tanstack/svelte-virtual` + the core (class+`$state`, `{@attach}`, `createContext`).
+3. **viewTree consumes the shell** → drop inline `createVirtualizer` + `fallbackFixedVirtualRows` +
+   `virtualRowsCoverScrollWindow` + `intersectingRowIds*` + `TREE_OVERSCAN=10` (→ `ceil(viewportH/estimateSize)`).
+   Keep sticky rows + box-select (via `service.idsInRect`).
+4. **Gate STRICT** (`src/dev/perfProbe.ts`): `blankFrameCount===0 && blankWindowOver100ms===0 &&
+   blankWindowOver250ms===0 && flickerFrameCount===0`.
+5. **DoD:** viewTree behavior parity + strict gate + svelte-check 0/0 + unit/component green. FF to sandbox after verify.
+
+**Slice 1 progress (2026-06-19):** ✅ **step 1 DONE + verified** — pure core `src/services/serviceSharedVirtualLayout.ts`
+(`viewportOverscan` · `fixedVisibleRange` · `fixedIndicesInBand` · `fixedScrollOffsetForIndex`, framework-agnostic
+TS) + `test/unit/services/serviceSharedVirtualLayout.test.ts` **12/12 green** in worktree `C:/tmp/vaultman-uv2-vd`
+(branch `umbrella-v2/wave-1-vd`, deps installed, **uncommitted WIP**). On wiring it replaces: `TREE_OVERSCAN=10`,
+`fallbackFixedVirtualRows` range, `intersectingRowIdsByFixedGeometry`, `scrollTopForAlign`. **NEXT:** step 2 Svelte 5
+shell (class+`$state`, `{@attach}`, `createContext`) → step 3 viewTree migration → step 4 strict gate (plugin-dev) → step 5 FF.
+
 ## Sources (grounded this session)
 
 - `src/types/typeViewConfig.ts` (engine/mode/ViewPlacement/resolve/normalize/serialize) ·
