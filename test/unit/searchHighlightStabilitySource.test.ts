@@ -13,7 +13,8 @@ describe('search highlight render stability source guards', () => {
 			)?.[0] ?? '';
 
 		expect(signatureBlock).not.toContain('opts.searchHighlightIds?.has(node.id)');
-		expect(stableReturnBlock).toContain(
+		expect(stableReturnBlock).toContain('this.applyMutableRowState({');
+		expect(treeSource).toContain(
 			"row.toggleClass('vaultman-search-highlight', isHighlighted);",
 		);
 	});

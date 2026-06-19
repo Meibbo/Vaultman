@@ -41,7 +41,17 @@ describe('virtual scroll CSS source guards', () => {
 		);
 		expect(stylesSource).toContain('background-image: repeating-linear-gradient');
 		expect(stylesSource).toContain('width: calc(var(--depth, 0) * var(--vaultman-tree-indent-unit))');
-		expect(treeGuideBlock).toContain('inset-inline-start: 16px');
+		expect(stylesSource).toContain(
+			'--vaultman-tree-row-padding-start: var(--size-4-6)',
+		);
+		expect(stylesSource).toContain(
+			'--vaultman-tree-caret-offset: var(--size-4-5)',
+		);
+		expect(treeGuideBlock).toContain(
+			'inset-inline-start: var(--vaultman-tree-guide-start)',
+		);
+		expect(treeGuideBlock).not.toContain('inset-inline-start: 16px');
+		expect(treeGuideBlock).not.toContain('inset-inline-start: 8px');
 		expect(stylesSource).toContain('height: 27px');
 		expect(stylesSource).toContain('height: 37px');
 	});

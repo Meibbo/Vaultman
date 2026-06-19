@@ -42,6 +42,7 @@ export class UnifiedTreeView {
 	private readonly _ownerId = `vaultman-tree-${Math.random()
 		.toString(36)
 		.slice(2)}`;
+	private readonly _markupVersion = 2;
 	private _pendingScroll: { id: string; block: ScrollLogicalPosition } | null =
 		null;
 	private _spacerEl: HTMLElement | null = null;
@@ -276,6 +277,7 @@ export class UnifiedTreeView {
 			)
 			.join('|');
 		return [
+			`markup:${this._markupVersion}`,
 			node.id,
 			node.label,
 			node.depth,
@@ -289,7 +291,6 @@ export class UnifiedTreeView {
 			node.count ?? '',
 			node.children?.length ?? 0,
 			node.showCaret ? '1' : '0',
-			opts.expandedIds.has(node.id) ? '1' : '0',
 			opts.activeFilterIds?.has(node.id) ? '1' : '0',
 			opts.warningIds?.has(node.id) ? '1' : '0',
 			opts.editingId === node.id ? '1' : '0',
@@ -327,6 +328,33 @@ export class UnifiedTreeView {
 		const path = this.nodeDataPath(node);
 		if (path) row.dataset.path = path;
 		else delete row.dataset.path;
+	}
+
+	private applyMutableRowState({
+		row,
+		hasChildren,
+		showCaret,
+		isExpanded,
+		isHighlighted,
+	}: {
+		row: HTMLElement;
+		hasChildren: boolean;
+		showCaret: boolean;
+		isExpanded: boolean;
+		isHighlighted: boolean;
+	}): void {
+		row.toggleClass('mod-collapsible', showCaret);
+		row.toggleClass('vaultman-search-highlight', isHighlighted);
+		const toggleEl = row.querySelector<HTMLElement>('.collapse-icon');
+		if (!toggleEl) return;
+		toggleEl.toggleClass('is-collapsed', showCaret && !isExpanded);
+		if (hasChildren) {
+			toggleEl.setAttribute('aria-expanded', String(isExpanded));
+			toggleEl.removeAttribute('aria-hidden');
+		} else {
+			toggleEl.removeAttribute('aria-expanded');
+			toggleEl.setAttribute('aria-hidden', 'true');
+		}
 	}
 
 	private rowHeight(): number {
@@ -452,7 +480,13 @@ export class UnifiedTreeView {
 		this.applyRowTitle(row, node);
 		const signature = this.rowSignature(node, opts);
 		if (row.dataset.renderSignature === signature) {
-			row.toggleClass('vaultman-search-highlight', isHighlighted);
+			this.applyMutableRowState({
+				row,
+				hasChildren,
+				showCaret,
+				isExpanded,
+				isHighlighted,
+			});
 			return row;
 		}
 		row.empty();
@@ -464,28 +498,32 @@ export class UnifiedTreeView {
 		}
 		if (isActive) row.addClass('is-active-filter');
 		if (isWarning) row.addClass('vaultman-badge-warning');
-		row.toggleClass('vaultman-search-highlight', isHighlighted);
 		if (isEditing) row.addClass('is-editing');
 
 		this.rowEls.set(node.id, row);
 
-		// Chevron / spacer
-		const toggleSpan = row.createSpan({ cls: 'vaultman-tree-toggle' });
 		if (showCaret) {
-			setIcon(
-				toggleSpan,
-				isExpanded ? 'lucide-chevron-down' : 'lucide-chevron-right',
-			);
+			const toggleEl = row.createDiv({
+				cls: 'vaultman-tree-toggle tree-item-icon collapse-icon',
+			});
+			setIcon(toggleEl, 'right-triangle');
 			if (hasChildren) {
-				toggleSpan.addEventListener('click', (e) => {
+				toggleEl.addEventListener('click', (e) => {
 					e.stopPropagation();
 					opts.onToggle(node.id);
 				});
 			} else {
-				toggleSpan.addClass('vaultman-tree-toggle--empty');
-				toggleSpan.setAttribute('aria-hidden', 'true');
+				toggleEl.addClass('vaultman-tree-toggle--empty');
 			}
 		}
+
+		this.applyMutableRowState({
+			row,
+			hasChildren,
+			showCaret,
+			isExpanded,
+			isHighlighted,
+		});
 
 		// Icon
 		if (node.icon && showIcon) {

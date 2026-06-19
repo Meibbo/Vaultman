@@ -3174,12 +3174,6 @@ body.vaultman-bases-column-separators table th {
   /* spacing for bottom bar */
 }
 
-/* Modifying custom native properties tree elements if needed */
-.tree-item-icon.collapse-icon svg {
-  width: 12px;
-  height: 12px;
-}
-
 .tree-item-flair {
   display: flex;
 }
@@ -5251,6 +5245,10 @@ body.vaultman-bases-column-separators table th {
   overflow-x: hidden;
   contain: paint;
   --vaultman-tree-indent-unit: 16px;
+  --vaultman-tree-row-padding-start: var(--size-4-6);
+  --vaultman-tree-caret-offset: var(--size-4-5);
+  --vaultman-tree-caret-size: var(--size-4-4);
+  --vaultman-tree-guide-start: calc(var(--vaultman-tree-row-padding-start) - var(--size-4-3));
   --vaultman-tree-indent-line-color: var(--nav-indentation-guide-color, var(--background-modifier-border));
   --vaultman-tree-indent-line-width: var(--nav-indentation-guide-width, 1px);
 }
@@ -5282,10 +5280,11 @@ body.vaultman-bases-column-separators table th {
   display: flex;
   align-items: center;
   gap: 5px;
-  padding: 0 8px;
+  padding-block: 0;
+  padding-inline-start: calc(var(--vaultman-tree-row-padding-start) + var(--depth, 0) * var(--vaultman-tree-indent-unit));
+  padding-inline-end: 8px;
   height: 27px;
   margin-bottom: 1px;
-  padding-left: calc(8px + var(--depth, 0) * 16px);
   cursor: pointer;
   border-radius: var(--radius-s);
   width: 100%;
@@ -5307,13 +5306,13 @@ body.vaultman-bases-column-separators table th {
 }
 
 .vaultman-tree-toggle {
-  color: var(--text-normal);
-  opacity: 0.35;
-  /* Even darker/more subtle */
+  color: var(--nav-collapse-icon-color, var(--text-faint));
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 20px;
+  width: var(--vaultman-tree-caret-size);
+  min-width: var(--vaultman-tree-caret-size);
+  margin-inline-start: calc(-1 * var(--vaultman-tree-caret-offset));
   flex-shrink: 0;
 }
 
@@ -5321,16 +5320,16 @@ body.vaultman-bases-column-separators table th {
   content: '';
   position: absolute;
   inset-block: 0 -1px;
-  inset-inline-start: 16px;
+  inset-inline-start: var(--vaultman-tree-guide-start);
   width: calc(var(--depth, 0) * var(--vaultman-tree-indent-unit));
   pointer-events: none;
   opacity: 0.7;
   background-image: repeating-linear-gradient(
     to right,
-    transparent 0,
-    transparent calc(var(--vaultman-tree-indent-unit) - var(--vaultman-tree-indent-line-width)),
-    var(--vaultman-tree-indent-line-color) calc(var(--vaultman-tree-indent-unit) - var(--vaultman-tree-indent-line-width)),
-    var(--vaultman-tree-indent-line-color) var(--vaultman-tree-indent-unit)
+    var(--vaultman-tree-indent-line-color) 0,
+    var(--vaultman-tree-indent-line-color) var(--vaultman-tree-indent-line-width),
+    transparent var(--vaultman-tree-indent-line-width),
+    transparent var(--vaultman-tree-indent-unit)
   );
   background-size: var(--vaultman-tree-indent-unit) 100%;
   background-repeat: repeat-x;
@@ -5371,13 +5370,15 @@ body.vaultman-bases-column-separators table th {
   gap: normal;
   height: 37px;
   margin-bottom: 0;
-  padding: 8px 8px 8px calc(24px + var(--depth, 0) * 16px);
+  padding-block: 8px;
+  padding-inline-start: calc(var(--vaultman-tree-row-padding-start) + var(--depth, 0) * var(--vaultman-tree-indent-unit));
+  padding-inline-end: 8px;
   line-height: 20.8px;
   color: var(--text-normal);
 }
 
 .is-phone .workspace-drawer .workspace-leaf-content[data-type="vaultman-frame"] .vaultman-tree-row.tree-item-self::before {
-  inset-inline-start: 16px;
+  inset-inline-start: var(--vaultman-tree-guide-start);
 }
 
 .vaultman-tree-row.is-active-filter {
@@ -5424,14 +5425,6 @@ body.vaultman-bases-column-separators table th {
 
 .vaultman-tree-row.vaultman-badge-warning {
   outline: 1px solid var(--color-yellow);
-}
-
-.vaultman-tree-toggle {
-  min-width: 16px;
-  flex-shrink: 0;
-  display: flex;
-  align-items: center;
-  color: inherit;
 }
 
 .vaultman-tree-toggle--empty {
