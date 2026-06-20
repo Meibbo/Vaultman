@@ -29,6 +29,17 @@ Compact route index after archiving the oversized current status:
 ## Current Route
 
 - Active initiative: [[docs/work/hardening/index|Hardening]].
+- **LATEST (2026-06-19, tarde)**: **V.D thread A slice 1 COMPLETE + FF a sandbox (`bd3faf8`).** Shared
+  render-runtime Linear pilot aterrizado: pure core + **Svelte 5 shell** (`serviceSharedVirtualLayout.svelte.ts`:
+  `$state`→`$derived` window vía core autoritativo, `{@attach}` cabla scroll/RO + seam `@tanstack/svelte-virtual`)
+  + **viewTree migrado** (botado inline `createVirtualizer`/`fallbackFixedVirtualRows`/`intersectingRowIds*`/
+  `TREE_OVERSCAN=10`; overscan=`ceil(viewportH/estimateSize)`; box-select vía `idsInRect`; 1048→836 líneas).
+  **Gate STRICT plugin-dev** (tree, 11162 nodos, 100 jumps): blankFrames=0 · flickerFrames=0 · **p99 124ms (era
+  ~1051ms)** · sin dev errors. Verify: svelte-check 0/0 · shell 9/9 · component+unit verde (1113) · snapshots DOM
+  byte-idénticos (EOL-only). Decisiones: **Q1=Opt-B** (TanStack en el shell ya → slice-2 aditivo, sin reshape) ·
+  **Q2=controller local** (registro `createContext` → slice-2). **NEXT = slice 2 Geometry** (variable-height:
+  `variableVisibleRange`+`measureElement`+lanes; las 4 vistas Geometry adoptan el shell; registro caliente
+  per-provider). Detalle: [[docs/work/hardening/specs/2026-06-17-vd-shared-render-runtime/index|V.D shard §Thread A]] + session-log 2026-06-19.
 - **LATEST (2026-06-19)**: **V.D thread A arrancado + DATA-LOSS recuperada.** (1) Un `rm` borró
   `.agents/docs/work` sin commitear; **recuperado 100%** (git baseline + 73 docs junio vía Obsidian File
   Recovery) + remapeado + **safety-commit `d5382c1`**. (2) Thread A (perf render-runtime) slice 1 paso 1

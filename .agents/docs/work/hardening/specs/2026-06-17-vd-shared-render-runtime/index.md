@@ -194,12 +194,14 @@ overscan = `ceil(viewportH/estimateSize)`; estimateSize ← pretext.
    blankWindowOver250ms===0 && flickerFrameCount===0`.
 5. **DoD:** viewTree behavior parity + strict gate + svelte-check 0/0 + unit/component green. FF to sandbox after verify.
 
-**Slice 1 progress (2026-06-19):** ✅ **step 1 DONE + verified** — pure core `src/services/serviceSharedVirtualLayout.ts`
-(`viewportOverscan` · `fixedVisibleRange` · `fixedIndicesInBand` · `fixedScrollOffsetForIndex`, framework-agnostic
-TS) + `test/unit/services/serviceSharedVirtualLayout.test.ts` **12/12 green** in worktree `C:/tmp/vaultman-uv2-vd`
-(branch `umbrella-v2/wave-1-vd`, deps installed, **uncommitted WIP**). On wiring it replaces: `TREE_OVERSCAN=10`,
-`fallbackFixedVirtualRows` range, `intersectingRowIdsByFixedGeometry`, `scrollTopForAlign`. **NEXT:** step 2 Svelte 5
-shell (class+`$state`, `{@attach}`, `createContext`) → step 3 viewTree migration → step 4 strict gate (plugin-dev) → step 5 FF.
+**Slice 1 progress — COMPLETE + FF'd to sandbox `bd3faf8` (2026-06-19):**
+- ✅ **step 1** pure core `serviceSharedVirtualLayout.ts` (`viewportOverscan`·`fixedVisibleRange`·`fixedIndicesInBand`·`fixedScrollOffsetForIndex`) + 12/12 unit. (Committed `8863191` on `wave-1-vd`; rebased → `61ff673` at FF.)
+- ✅ **step 2** Svelte 5 shell `serviceSharedVirtualLayout.svelte.ts` — class+`$state`(scrollTop/viewportHeight/rowHeight), `$derived` window/rows/totalHeight via the **core (authoritative, deterministic coverage → no `fallbackFixedVirtualRows`)**, `{@attach}` wires scroll+ResizeObserver + the `@tanstack/svelte-virtual` seam. 9/9 unit + autofixer `issues:[]`. **Design decisions (dev-confirmed):** **Q1 = Option B** — TanStack lives in the shell NOW via `{@attach}` so slice-2 Geometry is purely *additive* (no reshape); core range shadows TanStack's fixed-path range (= the beta.1 fix). Framed to the dev as "same end-result, different internal form" (not "different results"); A (defer TanStack) was rejected because it forces a slice-2 retrofit. **Q2 = local controller per-view now**; the `createContext` warm-measurement *registry* deferred to slice-2 (one context'd instance can't hold N mounted views' scroll state; nothing to warm on fixed-height).
+- ✅ **step 3** `viewTree.svelte` consumes the shell — dropped inline `createVirtualizer`+`fallbackFixedVirtualRows`+`virtualRowsCoverScrollWindow`+`intersectingRowIds*`+`scrollTopForAlign`+`TREE_OVERSCAN=10` (→ `overscan=ceil(viewportH/estimateSize)`); box-select via `layout.idsInRect` (geometry hit-test across the unrendered range); sticky rows preserved. **1048→836 lines.** svelte-check **0/0**; viewTree+integration component suite green; unit 1113 pass; panel snapshots **DOM byte-identical** (EOL-only). Two parity tests retargeted to locked-contract behavior (viewport-sized overscan; geometry box hit-test). Fixed one reveal regression: `scrollToIndex` reads the viewport live (`clientHeight`) like the old `scrollRowIntoView` (panelExplorerSelection PageDown).
+- ✅ **step 4 STRICT gate** (plugin-dev `tree`, 11162-node stress vault, 100 jumps): `blankFrames=0 blank>100ms=0 blank>250ms=0 flickerFrames=0 maxFlickerRows=0`; **p99 delay 124ms (was ~1051ms)**; `No errors captured`.
+- ✅ **step 5 FF** — `wave-1-vd` rebased onto sandbox `76c6cfb` (clean, no overlap with the `main.scss` drift) → `merge --ff-only` → **sandbox `76c6cfb`→`bd3faf8`** (`2.0.0-alpha.1`; no push). Known-ajenos unchanged (eslint 7 · notebook-nav external repo).
+
+**NEXT = slice 2 (Geometry / variable-height):** `variableVisibleRange` (Fenwick via `serviceExplorerScrollGeometry`) + `measureElement`-fed cache + lanes(columns) strategy *inside the shell*; the 4 Geometry views (grid/cards/masonry/table) adopt it; stand up the `createContext` warm per-provider measurement registry; close DoD-D3 stable parity (tables/resizers/grid SDF-011/016). **Reconcile flag:** P112 (codex 2026-06-20, stable hotfix `3d42010` on `p112-type-view-loop-fix`) touched `viewTreeBehavior`/`virtualScrollCssSource` on the stable line — reconcile with this migration when P112 promotes to sandbox.
 
 ## Sources (grounded this session)
 

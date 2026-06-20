@@ -17,7 +17,7 @@ updated_by: codex-gpt-5
 Compact handoff after archiving the oversized current handoff:
 [[docs/archive/pkm-ai/active-docs/2026-05-11T080321-current-handoff|2026-05-11 handoff archive]].
 
-## NEXT AGENT START HERE — V.D thread A: perf render-runtime (2026-06-19)
+## NEXT AGENT START HERE — V.D thread A slice 1 DONE → slice 2 Geometry (2026-06-19)
 
 **Dónde:** Spine V.D. El **CANON NOW-tier de view-addressing está LOCKED + aterrizado** (canon ≠ shard de
 planeación): **[[docs/architecture/explorer-model/05-view-canon|05 View Addressing Canon]]** + **ADR 0012**
@@ -30,15 +30,22 @@ slot|coordinates + regime-flip; Geometry = **Opt-1** (un GeometryView + strategi
 
 **Thread A = el perf render-runtime (el lever real). Plan + contrato + respuestas Q1-Q4:**
 [[docs/work/hardening/specs/2026-06-17-vd-shared-render-runtime/index|V.D shard]] §Thread A.
-- ✅ **Slice 1 paso 1 HECHO + verificado:** pure core `src/services/serviceSharedVirtualLayout.ts` (Linear-fixed,
-  framework-agnóstico: `viewportOverscan`/`fixedVisibleRange`/`fixedIndicesInBand`/`fixedScrollOffsetForIndex`) +
-  **12/12 unit tests**. **Commiteado en rama `umbrella-v2/wave-1-vd` @ `8863191`** (worktree
-  `C:/tmp/vaultman-uv2-vd`, deps instaladas).
-- **NEXT:** paso 2 **shell Svelte 5** (`serviceSharedVirtualLayout.svelte.ts`: class+`$state`, `$derived` window,
-  `$state.raw` snapshot, **`{@attach}`** scroll/ResizeObserver→svelte-virtual, `createContext`) → paso 3 **migrar
-  `viewTree.svelte`** a consumir el shell (botar inline `createVirtualizer` + `fallbackFixedVirtualRows` +
-  `virtualRowsCoverScrollWindow` + `intersectingRowIds*` + `TREE_OVERSCAN=10`; conservar sticky rows + box-select
-  vía `service.idsInRect`) → paso 4 **gate STRICT** (plugin-dev `src/dev/perfProbe.ts`) → paso 5 svelte-check/tests + FF a sandbox.
+- ✅ **Slice 1 (Linear pilot) COMPLETO + FF a sandbox `bd3faf8`.** pure core (`61ff673`) + **shell Svelte 5**
+  `serviceSharedVirtualLayout.svelte.ts` (`$state`→`$derived` window vía core **autoritativo** = sin
+  `fallbackFixedVirtualRows`; `{@attach}` cabla scroll/ResizeObserver + seam `@tanstack/svelte-virtual`) +
+  **viewTree migrado** (botado inline `createVirtualizer`/`fallbackFixedVirtualRows`/`virtualRowsCoverScrollWindow`/
+  `intersectingRowIds*`/`scrollTopForAlign`/`TREE_OVERSCAN=10` → `overscan=ceil(viewportH/estimateSize)`; box-select
+  vía `idsInRect`; sticky rows OK; 1048→836 líneas). **Decisiones dev:** Q1=**Opt-B** (TanStack en el shell ya →
+  slice-2 aditivo, sin reshape; core sombrea su rango fixed = el fix beta.1) · Q2=**controller local** (registro
+  `createContext` → slice-2). Verify: svelte-check 0/0 · shell 9/9 · autofixer `issues:[]` · component+unit verde
+  (1113) · snapshots DOM byte-idénticos. **Gate STRICT plugin-dev** (tree, 11162 nodos, 100 jumps): blankFrames=0 ·
+  flickerFrames=0 · **p99 124ms (era ~1051ms)** · sin dev errors.
+- **NEXT = slice 2 (Geometry / variable-height):** en el shell, estrategia variable = `variableVisibleRange`
+  (Fenwick `serviceExplorerScrollGeometry`) + `measureElement`-fed cache + lanes(columns); las 4 vistas Geometry
+  (grid/cards/masonry/table) adoptan el shell; levantar el **registro `createContext`** caliente per-provider;
+  cerrar DoD-D3 paridad stable (tablas/resizers/grid SDF-011/016). **Reconcile:** P112 (codex 2026-06-20, stable
+  hotfix `3d42010` en `p112-type-view-loop-fix`) tocó `viewTreeBehavior`/`virtualScrollCssSource` en stable —
+  reconciliar con esta migración al promover P112 a sandbox.
 
 **⚠ Gotchas (costaron una pérdida de datos esta sesión — LEER):**
 - `.agents/docs` está conjunto con el vault Obsidian "Start of The Road" (My Drive, prefijo `x/Agent Docs`).
@@ -48,7 +55,7 @@ slot|coordinates + regime-flip; Geometry = **Opt-1** (un GeometryView + strategi
   `.agents/docs`** (dirty-sin-commit = riesgo de rm). Residual perdido: function-union-ledger shards 01-03.
 - Worktree pattern: código en `C:/tmp/vaultman-uv2-vd`; docs/shard en sandbox `.agents` (visible en vault). FF a sandbox tras verify.
 - Known-ajenos: `eslint .` 7 `no-unnecessary-type-assertion` (explorerProps/Tags/typeViewConfig) · `explorerNotebookNavigatorComparison` (repo externo ausente).
-- sandbox @ `d5382c1` (safety commit sobre `cb9d3f0`; `2.0.0-alpha.1`; sin push).
+- sandbox @ `bd3faf8` (V.D slice-1 FF sobre `76c6cfb`; `2.0.0-alpha.1`; sin push). Worktree `C:/tmp/vaultman-uv2-vd` rama `umbrella-v2/wave-1-vd` rebasada a sandbox (queda para slice 2).
 
 **N.R CERRADO.** sandbox `d81be5e` → **`cc23ad9`** (fast-forward, sin push). `NodeRow` cell
 primitive + `NodeBadgeZone` extraídos del cell inline de `viewTree`, **pilot en tree**, contrato
