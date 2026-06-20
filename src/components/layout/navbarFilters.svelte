@@ -221,7 +221,7 @@
 		],
 		files: [
 			{ id: 'name', icon: 'lucide-a-large-small', labelKey: 'sort.by.name' },
-			{ id: 'count', icon: 'lucide-hash', labelKey: 'sort.by.count' },
+			{ id: 'count', icon: 'lucide-hash', labelKey: 'sort.by.props' },
 			{ id: 'ext', icon: 'lucide-file-type', labelKey: 'sort.by.ext' },
 			{
 				id: 'mtime',

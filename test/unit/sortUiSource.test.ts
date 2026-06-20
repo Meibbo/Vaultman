@@ -20,4 +20,9 @@ describe('explorer sort UI source', () => {
 		expect(popupSource).toContain('parentsFirst');
 		expect(popupSource).toContain("translate('sort.parents_first')");
 	});
+
+	it('labels Files count sort as Props without renaming generic count sorts', () => {
+		expect(navbarSource).toContain("labelKey: 'sort.by.props'");
+		expect(popupSource).toContain("labelKey: 'sort.by.props'");
+	});
 });
