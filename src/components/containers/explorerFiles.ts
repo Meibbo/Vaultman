@@ -369,6 +369,10 @@ export class FilesExplorerPanel extends Component {
 		return Boolean(this.nodeTypeFilter);
 	}
 
+	getVisibleFileCount(): number {
+		return this._filesForDisplay().length;
+	}
+
 	clearNodeTypeFilter(): void {
 		if (!this.nodeTypeFilter) return;
 		this.setSortBy(this.sortBy, this.sortDir, false, null, this.parentsFirst);

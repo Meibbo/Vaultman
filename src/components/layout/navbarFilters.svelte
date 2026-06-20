@@ -63,6 +63,7 @@
 		activeSectionTab = activeTab,
 		onSectionTabChange,
 		onFiltersSearchChange,
+		onViewFiltersChanged,
 		showExplorerControls = true,
 		expansionRevision = 0,
 	}: {
@@ -82,6 +83,7 @@
 		activeSectionTab?: string;
 		onSectionTabChange?: (tab: string) => void;
 		onFiltersSearchChange?: (value: string) => void;
+		onViewFiltersChanged?: () => void;
 		showExplorerControls?: boolean;
 		expansionRevision?: number;
 	} = $props();
@@ -511,6 +513,7 @@
 		const normalizedState = normalizeSortState(state);
 		sortStateByTab = { ...sortStateByTab, [activeTab]: normalizedState };
 		applySortState(activeTab, normalizedState);
+		onViewFiltersChanged?.();
 	}
 
 	function sameSortState(

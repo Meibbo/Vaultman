@@ -17,6 +17,7 @@
 		toggleContentFile,
 		queueContentReplace,
 		openContentMatch,
+		onOpenFilters,
 	}: {
 		contentFind: string;
 		contentReplace: string;
@@ -31,6 +32,7 @@
 		toggleContentFile: (filePath: string) => void;
 		queueContentReplace: () => void;
 		openContentMatch: (file: TFile, line: number, ch: number) => Promise<void>;
+		onOpenFilters?: () => void;
 	} = $props();
 
 	let contentReplaceOpen = $state(false);
@@ -153,9 +155,13 @@
 		></button>
 	</div>
 {/if}
-<div class="vaultman-content-scope-hint">
+<button
+	type="button"
+	class="vaultman-content-scope-hint"
+	onclick={() => onOpenFilters?.()}
+>
 	{contentScopeHint}
-</div>
+</button>
 {#if contentPreviewResult === null}
 	<div class="vaultman-content-landing">
 		<div
