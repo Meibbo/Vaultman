@@ -30,7 +30,6 @@ quality work before it reaches `main`.
 
 ## Active Specs
 
-- [[docs/work/hardening/specs/2026-06-20-p112-stability-polish/index|P112 Stability Polish]]
 - [[docs/work/hardening/specs/2026-05-25-explorer-node-media-cache/index|Explorer Node Media Index And Thumbnail Cache]]
 - [[docs/work/hardening/specs/2026-05-25-explorer-node-video-provider-media-cache/index|Explorer Node Video Provider Media And Cache Settings]]
 - [[docs/work/hardening/specs/2026-05-25-explorer-icon-pack-cache/index|Explorer Icon Pack Cache]]
@@ -56,7 +55,6 @@ quality work before it reaches `main`.
 
 ## Active Plans
 
-- [[docs/work/hardening/plans/2026-06-20-p112-stability-polish/index|P112 Stability Polish implementation]]
 - [[docs/work/hardening/plans/2026-05-04-serviceviews-implementation/index|serviceViews implementation]]
 - [[docs/work/hardening/plans/2026-05-05-bases-import-choose-mode/index|Bases import choose mode implementation]]
 - [[docs/work/hardening/plans/2026-05-05-performance-diagnosis-loop/index|Performance diagnosis loop implementation]]
@@ -71,6 +69,10 @@ quality work before it reaches `main`.
 ## Active Issue Sets
 
 - [[docs/work/hardening/issues/explorer-data-plane/index|Explorer data plane local issues]]
+
+## Recent Closeouts
+
+- [[docs/work/hardening/items/2026-06-20-p112-stability-polish-closeout|P112 Stability Polish closeout]]
 
 ## Active Backlog
 

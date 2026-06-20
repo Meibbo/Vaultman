@@ -1,11 +1,11 @@
 ---
 title: P112 Stability Polish
 type: spec
-status: active
+status: completed
 lifecycle: active
 parent: "[[docs/work/hardening/index|hardening]]"
 created: 2026-06-20T02:00:27
-updated: 2026-06-20T02:00:27
+updated: 2026-06-20T03:50:00
 created_by: codex-gpt-5
 updated_by: codex-gpt-5
 tags:
@@ -24,9 +24,10 @@ glossary_candidates:
 
 ## Status
 
-Drafted after the P112 tree recovery build (`3d42010`) was validated by the dev as visually acceptable. This
-document is a source spec only. Product implementation and the detailed implementation plan are gated on dev review
-of this file.
+Completed in product commits recorded by
+[[docs/work/hardening/items/2026-06-20-p112-stability-polish-closeout|P112 Stability Polish closeout]].
+
+Drafted after the P112 tree recovery build (`3d42010`) was validated by the dev as visually acceptable.
 
 The exact Core Files expand/collapse push animation is deferred by dev decision. This spec can keep row-motion
 regressions from returning, but it does not attempt to replace the current virtual tree with Obsidian's native-flow
