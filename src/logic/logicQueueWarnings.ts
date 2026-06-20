@@ -19,13 +19,8 @@ export interface QueueWarningTarget {
 export function targetCountForQueuedChange(
 	change: QueueWarningTarget,
 ): number {
-	if (
-		change.type === 'file_delete' &&
-		change.targetFolder &&
-		change.files.length === 0
-	) {
-		return 1;
-	}
+	if (change.type === 'file_delete' && change.targetFolder)
+		return change.files.length;
 	return change.files.length;
 }
 
@@ -35,6 +30,7 @@ export function warningsForQueuedChange(
 ): QueueOperationWarning[] {
 	const targetCount = targetCountForQueuedChange(change);
 	if (targetCount === 0) {
+		if (change.type === 'file_delete' && change.targetFolder) return [];
 		return [{ kind: 'empty-target', severity: 'error', targetCount }];
 	}
 	const safeThreshold = Math.max(1, Math.floor(threshold));

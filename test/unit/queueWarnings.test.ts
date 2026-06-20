@@ -48,6 +48,30 @@ describe('queue warnings', () => {
 		).toEqual([]);
 	});
 
+	it('uses recursive affected files as the folder delete warning count', () => {
+		const files = Array.from({ length: 401 }, (_, index) =>
+			makeFile(`stress/${index}.md`),
+		);
+
+		expect(
+			warningsForQueuedChange(
+				{
+					type: 'file_delete',
+					files,
+					targetFolder: 'stress',
+				},
+				400,
+			),
+		).toEqual([
+			{
+				kind: 'large-target',
+				severity: 'warning',
+				targetCount: 401,
+				threshold: 400,
+			},
+		]);
+	});
+
 	it('marks operations over the configured threshold as bulk warnings', () => {
 		const files = Array.from({ length: 401 }, (_, index) =>
 			makeFile(`${index}.md`),

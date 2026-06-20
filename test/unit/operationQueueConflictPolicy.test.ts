@@ -1,4 +1,4 @@
-import type { App, TFile } from 'obsidian';
+import { TFolder, type App, type TFile } from 'obsidian';
 import { describe, expect, it, vi } from 'vitest';
 
 import { OperationQueueService } from '../../src/services/serviceOperationQueue';
@@ -25,6 +25,20 @@ function makeFile(path: string): TFile {
 		stat: { ctime: 0, mtime: 0, size: 0 },
 		vault: {} as TFile['vault'],
 	} satisfies TFile;
+}
+
+function makeFolder(path: string): TFolder {
+	const name = path.split('/').pop() || path;
+	const folder = new TFolder();
+	Object.assign(folder, {
+		children: [],
+		isRoot: () => false,
+		name,
+		parent: null,
+		path,
+		vault: {} as TFolder['vault'],
+	});
+	return folder as TFolder;
 }
 
 function propertySet(files: TFile[], property: string, value: string): PendingChange {
@@ -226,5 +240,31 @@ describe('OperationQueueService conflict policy', () => {
 
 		expect(service.queue).toHaveLength(1);
 		expect(processFrontMatter).not.toHaveBeenCalled();
+	});
+
+	it('executes folder deletes through targetFolder even when affected files are present', async () => {
+		const child = makeFile('folder/a.md');
+		const folder = makeFolder('folder');
+		const trashFile = vi.fn().mockResolvedValue(undefined);
+		const app = {
+			vault: { getAbstractFileByPath: vi.fn().mockReturnValue(folder) },
+			fileManager: { trashFile },
+		} as unknown as App;
+		const service = new OperationQueueService(app);
+
+		service.add({
+			type: 'file_delete',
+			action: 'delete',
+			details: 'Delete folder "folder"',
+			files: [child],
+			targetFolder: 'folder',
+			logicFunc: () => ({ [DELETE_FILE]: true }),
+		});
+
+		const result = await service.execute();
+
+		expect(result).toMatchObject({ success: 1, errors: 0 });
+		expect(trashFile).toHaveBeenCalledTimes(1);
+		expect(trashFile).toHaveBeenCalledWith(folder);
 	});
 });

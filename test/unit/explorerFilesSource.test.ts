@@ -23,6 +23,11 @@ describe('FilesExplorerPanel source guards', () => {
 		expect(explorerFilesSource).toContain('this._queueFolderMove');
 		expect(explorerFilesSource).toContain('this._queueFolderDelete');
 		expect(explorerFilesSource).toContain('targetFolder: folder.path');
+		expect(explorerFilesSource).toContain(
+			'const files = this._filesInsideFolder(folder);',
+		);
+		expect(explorerFilesSource).toContain('files,');
+		expect(explorerFilesSource).not.toContain('files: [],');
 	});
 
 	it('uses the Vaultman folder autosuggest move modal for file move actions', () => {

@@ -1364,11 +1364,12 @@ export class FilesExplorerPanel extends Component {
 	}
 
 	private _queueFolderDelete(folder: TFolder): void {
+		const files = this._filesInsideFolder(folder);
 		this.plugin.queueService.addOrRun({
 			type: 'file_delete',
 			action: 'delete',
 			details: `Delete folder "${folder.path}"`,
-			files: [],
+			files,
 			targetFolder: folder.path,
 			customLogic: true,
 			logicFunc: () => ({ [DELETE_FILE]: true }),
