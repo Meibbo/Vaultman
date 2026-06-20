@@ -731,3 +731,10 @@ broader "append-only status writes" is parked as **S-12** in
 - **verification:** `C:\Users\vic_A\Desktop\codex.exe --version` reporta `codex-cli 0.141.0`. `codex doctor` reporta databases healthy, updates actualizados ("current version is not older"), y conectividad OK.
 - **git:** No se modificaron archivos del repositorio. Workspace limpio en rama sandbox.
 - **next-action:** Continuar con V.D thread A slice 1 paso 2 (shell Svelte 5).
+
+## 2026-06-20 — codex-gpt-5 · P112 tree indent/caret recovery (implement small)
+- **summary:** Recuperado el tree visual regression del build 1.1.2 beta: los parent rows depth `1+` quedaban al mismo indent que root porque `.tree-item-self.mod-collapsible` de Obsidian ganaba contra `.vaultman-tree-row`. Se agregó selector scoped para Vaultman frame/view sin `!important`, y animación temporal de `top` solo durante cambios de `expandedIds` en el virtual tree.
+- **product commit:** `3d42010 fix(tree): restore nested indent and expand motion` en product worktree `C:\Users\vic_A\Desktop\vaultman\.claude\worktrees\hotfix-1.0.2-css-scorecard`, rama `p112-type-view-loop-fix`.
+- **docs commit:** `4ef1fd9 docs(hardening): record p112 tree recovery` en sandbox. Source record: [[docs/work/hardening/items/2026-06-20-p112-tree-indent-caret-recovery|P112 tree indent and caret animation recovery]]. El tracker `post-1-1-2-stability-polish` no existía en la `.agents` recuperada.
+- **verification:** focal red/green para `virtualScrollCssSource` y `viewTreeBehavior`; focused suite `5 files / 19 tests`; `corepack pnpm run lint`; `corepack pnpm run check`; `corepack pnpm run stylelint`; `corepack pnpm run test:unit` (`65 files / 254 tests`); `corepack pnpm run build` sincronizó a `plugin-dev`; `obsidian vault=plugin-dev` reload/open DOM confirmó depth 1 `padding=40px`, caret SVG `transform 0.1s`, transición `top` temporal y `dev:errors` limpio.
+- **next-action:** Dev debe validar visualmente en plugin-dev. Si aún quiere paridad exacta de "push" con Core Files, la decisión pendiente es arquitectura de render: mantener virtualización plana con transición bounded o diseñar modo no virtual/native-flow para scopes pequeños.
