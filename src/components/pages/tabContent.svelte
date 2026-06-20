@@ -12,6 +12,8 @@
 		contentPreviewOpen = $bindable(),
 		contentRegexError,
 		contentScopeHint,
+		activeContentRevealPath,
+		contentRevealRevision,
 		sortedContentFiles,
 		isContentFileExpanded,
 		toggleContentFile,
@@ -27,6 +29,8 @@
 		contentPreviewOpen: boolean;
 		contentRegexError: string;
 		contentScopeHint: string;
+		activeContentRevealPath: string | null;
+		contentRevealRevision: number;
 		sortedContentFiles: ContentPreviewResult['files'];
 		isContentFileExpanded: (filePath: string) => boolean;
 		toggleContentFile: (filePath: string) => void;
@@ -36,6 +40,18 @@
 	} = $props();
 
 	let contentReplaceOpen = $state(false);
+	let contentResultsEl = $state<HTMLElement | null>(null);
+
+	$effect(() => {
+		void contentRevealRevision;
+		const path = activeContentRevealPath;
+		if (!path || !contentResultsEl) return;
+		const row = contentResultsEl.querySelector<HTMLElement>(
+			`[data-vm-content-path="${CSS.escape(path)}"]`,
+		);
+		row?.scrollIntoView({ block: 'center' });
+		row?.focus();
+	});
 
 	function iconAction(el: HTMLElement, name: string) {
 		setIcon(el, name);
@@ -219,9 +235,14 @@
 			</span>
 		</div>
 		{#if contentPreviewOpen && contentPreviewResult.totalMatches > 0}
-			<div class="search-results-children">
+			<div class="search-results-children" bind:this={contentResultsEl}>
 				{#each sortedContentFiles as fileResult (fileResult.file.path)}
-					<div class="tree-item search-result">
+					<div
+						class="tree-item search-result"
+						class:is-active={activeContentRevealPath === fileResult.file.path}
+						data-vm-content-path={fileResult.file.path}
+						tabindex="-1"
+					>
 						<div
 							class="tree-item-self search-result-file-title is-clickable"
 							role="button"

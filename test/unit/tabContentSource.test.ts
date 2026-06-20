@@ -49,4 +49,12 @@ describe('Content tab source guards', () => {
 		expect(tabContentSource).toContain("use:iconAction={'lucide-replace'}");
 		expect(tabContentSource).toContain('vaultman-content-replace-container');
 	});
+
+	it('can reveal the active file inside Content results', () => {
+		expect(tabContentSource).toContain('activeContentRevealPath');
+		expect(tabContentSource).toContain('contentRevealRevision');
+		expect(tabContentSource).toContain('bind:this={contentResultsEl}');
+		expect(tabContentSource).toContain('scrollIntoView({ block:');
+		expect(tabContentSource).toContain('data-vm-content-path');
+	});
 });

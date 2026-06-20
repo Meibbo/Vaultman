@@ -146,6 +146,8 @@
 	let contentSortBy = $state<ContentSortBy>('count');
 	let contentSortDirection = $state<ContentSortDirection>('desc');
 	let collapsedContentFilePaths = $state<string[]>([]);
+	let activeContentRevealPath = $state<string | null>(null);
+	let contentRevealRevision = $state(0);
 	let visitedTabs = $state<Record<FiltersTab, boolean>>({
 		files: filtersActiveTab === 'files',
 		props: filtersActiveTab === 'props',
@@ -286,6 +288,13 @@
 						onClick: openContentSortMenu,
 					},
 					{
+						id: 'content-reveal',
+						label: translate('filter.auto_reveal'),
+						icon: 'lucide-gallery-vertical',
+						disabled: sortedContentFiles.length === 0,
+						onClick: () => revealActiveContentFile(),
+					},
+					{
 						id: 'content-expand',
 						label: hasExpandedContentFiles
 							? translate('filter.collapse_all')
@@ -373,6 +382,25 @@
 		}
 		collapsedContentFilePaths = [];
 		contentPreviewOpen = true;
+	}
+
+	function revealActiveContentFile() {
+		const file = plugin.app.workspace.getActiveFile();
+		if (!file) {
+			new Notice(translate('content.reveal_no_active_file'));
+			return;
+		}
+		const paths = new Set(sortedContentFiles.map((entry) => entry.file.path));
+		if (!paths.has(file.path)) {
+			new Notice(translate('content.reveal_not_in_results'));
+			return;
+		}
+		activeContentRevealPath = file.path;
+		contentRevealRevision += 1;
+		contentPreviewOpen = true;
+		collapsedContentFilePaths = collapsedContentFilePaths.filter(
+			(path) => path !== file.path,
+		);
 	}
 
 	function fileTypeIdForContentScope(file: TFile): string {
@@ -614,6 +642,8 @@
 				bind:contentPreviewOpen
 				{contentRegexError}
 				{contentScopeHint}
+				{activeContentRevealPath}
+				{contentRevealRevision}
 				{sortedContentFiles}
 				{isContentFileExpanded}
 				{toggleContentFile}
