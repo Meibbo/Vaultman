@@ -64,7 +64,7 @@
 				iconName: 'lucide-a-large-small',
 				labelKey: 'sort.by.name',
 			},
-			{ id: 'count', iconName: 'lucide-hash', labelKey: 'sort.by.count' },
+			{ id: 'count', iconName: 'lucide-hash', labelKey: 'sort.by.props' },
 			{ id: 'ext', iconName: 'lucide-file-type', labelKey: 'sort.by.ext' },
 			{
 				id: 'mtime',

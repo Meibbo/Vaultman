@@ -9,8 +9,10 @@ const navbarFiltersSource = navbarFiltersSourceRaw.replace(/\r\n/g, '\n');
 
 describe('Files prop count label source guards', () => {
 	it('labels Files count cells as prop counts without renaming generic count labels', () => {
-		expect(enSource).toContain("'viewmode.pill.prop_count': 'Prop Count'");
+		expect(enSource).toContain("'viewmode.pill.prop_count': 'Props'");
 		expect(esSource).toContain("'viewmode.pill.prop_count': 'Props'");
+		expect(enSource).toContain("'files.col.props': 'Props'");
+		expect(esSource).toContain("'files.col.props': 'Props'");
 
 		expect(popupViewSource).toContain(
 			"{ id: 'count', labelKey: 'viewmode.pill.prop_count', defaultOn: true }",
