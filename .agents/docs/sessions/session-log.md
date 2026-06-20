@@ -739,6 +739,13 @@ broader "append-only status writes" is parked as **S-12** in
 - **verification:** focal red/green para `virtualScrollCssSource` y `viewTreeBehavior`; focused suite `5 files / 19 tests`; `corepack pnpm run lint`; `corepack pnpm run check`; `corepack pnpm run stylelint`; `corepack pnpm run test:unit` (`65 files / 254 tests`); `corepack pnpm run build` sincronizó a `plugin-dev`; `obsidian vault=plugin-dev` reload/open DOM confirmó depth 1 `padding=40px`, caret SVG `transform 0.1s`, transición `top` temporal y `dev:errors` limpio.
 - **next-action:** Dev debe validar visualmente en plugin-dev. Si aún quiere paridad exacta de "push" con Core Files, la decisión pendiente es arquitectura de render: mantener virtualización plana con transición bounded o diseñar modo no virtual/native-flow para scopes pequeños.
 
+## 2026-06-20 — codex-gpt-5 · P112 stability polish spec drafted
+- **summary:** Source spec creada para la siguiente ola P112 estable: folder operation projection, Files `parentsFirst`, view/content scope counters, Content auto-reveal, global search-highlight setting y labels `Props`.
+- **docs commit:** `99e8294 docs(hardening): spec p112 stability polish`. Source record: [[docs/work/hardening/specs/2026-06-20-p112-stability-polish/index|P112 Stability Polish]]. `hardening/index` enlaza la spec bajo Active Specs.
+- **verification:** spec self-review sin placeholders (`TBD`/`TODO`/`??`/placeholder); `git diff --cached --check` paso con avisos LF->CRLF normales de `.agents`; docs-only, sin producto.
+- **note:** el spec index tiene 249 lineas, soft range docs policy pero bajo hard cap; se preservo detalle para review del dev antes de planear implementacion.
+- **next-action:** dev review del source spec; si se aprueba, invocar `writing-plans` y crear plan de implementacion antes de tocar producto.
+
 ## 2026-06-19 — claude-opus-4-8 · V.D thread A slice 1 COMPLETE (shell + viewTree migration) + FF (implement medium)
 - **summary:** Shared render-runtime Linear pilot terminado y aterrizado a sandbox. Steps 2-5 sobre el step-1 pure core: shell Svelte 5 + viewTree migrado + gate strict + FF. Base de FF = `76c6cfb` (sobre el P112 de codex). Detalle: [[docs/work/hardening/specs/2026-06-17-vd-shared-render-runtime/index|V.D shard §Thread A]].
 - **shell (step 2):** `src/services/serviceSharedVirtualLayout.svelte.ts` — clase + `$state`(scrollTop/viewportHeight/rowHeight) → `$derived` window/rows/totalHeight vía el **pure core (autoritativo, cobertura determinista → sin `fallbackFixedVirtualRows`)**; `{@attach}` cabla scroll listener + ResizeObserver y crea/subscribe el virtualizer `@tanstack/svelte-virtual` (seam); `idsInRect`/`scrollOffsetForIndex`/`scrollToIndex` delegan al core. 9/9 unit + autofixer `issues:[]`.
