@@ -43,6 +43,9 @@ export class UnifiedTreeView {
 		.toString(36)
 		.slice(2)}`;
 	private readonly _markupVersion = 2;
+	private _structureAnimationTimer: number | null = null;
+	private _expandedIdsSignature = '';
+	private _hasRenderedExpandedState = false;
 	private _pendingScroll: { id: string; block: ScrollLogicalPosition } | null =
 		null;
 	private _spacerEl: HTMLElement | null = null;
@@ -72,6 +75,7 @@ export class UnifiedTreeView {
 			'vaultman-tree-nested-guides',
 			opts.visibleCells?.has('nested') ?? true,
 		);
+		this._markStructureAnimationIfNeeded(opts.expandedIds);
 		if (this._pendingRaf !== null) {
 			cancelAnimationFrame(this._pendingRaf);
 			this._pendingRaf = null;
@@ -127,12 +131,17 @@ export class UnifiedTreeView {
 			window.clearTimeout(this._pendingScrollTimer);
 			this._pendingScrollTimer = null;
 		}
+		if (this._structureAnimationTimer !== null) {
+			this._treeWindow().clearTimeout(this._structureAnimationTimer);
+			this._structureAnimationTimer = null;
+		}
 		if (this.containerEl.dataset.vaultmanTreeOwner === this._ownerId) {
 			delete this.containerEl.dataset.vaultmanTreeOwner;
 		}
 		this.containerEl.removeEventListener('scroll', this._onScroll);
 		this.containerEl.removeClass('vaultman-tree-virtual-viewport');
 		this.containerEl.removeClass('vaultman-tree-nested-guides');
+		this.containerEl.removeClass('vaultman-tree-structure-animating');
 		this._spacerEl?.remove();
 		this._spacerEl = null;
 		this._contentEl = null;
@@ -140,6 +149,8 @@ export class UnifiedTreeView {
 		this._indexById.clear();
 		this.rowEls.clear();
 		this._pendingScroll = null;
+		this._expandedIdsSignature = '';
+		this._hasRenderedExpandedState = false;
 	}
 
 	/** Toggle visibility of rows matching/not matching filtered IDs — no DOM rebuild */
@@ -172,6 +183,38 @@ export class UnifiedTreeView {
 			if (!indexById.has(row.id)) indexById.set(row.id, index);
 		});
 		return indexById;
+	}
+
+	private _markStructureAnimationIfNeeded(expandedIds: Set<string>): void {
+		const nextSignature = this._expandedIdsSignatureFor(expandedIds);
+		if (
+			this._hasRenderedExpandedState &&
+			nextSignature !== this._expandedIdsSignature
+		) {
+			this._startStructureAnimation();
+		}
+		this._expandedIdsSignature = nextSignature;
+		this._hasRenderedExpandedState = true;
+	}
+
+	private _expandedIdsSignatureFor(expandedIds: Set<string>): string {
+		return [...expandedIds].sort().join('\u001f');
+	}
+
+	private _startStructureAnimation(): void {
+		this.containerEl.addClass('vaultman-tree-structure-animating');
+		const treeWindow = this._treeWindow();
+		if (this._structureAnimationTimer !== null) {
+			treeWindow.clearTimeout(this._structureAnimationTimer);
+		}
+		this._structureAnimationTimer = treeWindow.setTimeout(() => {
+			this.containerEl.removeClass('vaultman-tree-structure-animating');
+			this._structureAnimationTimer = null;
+		}, 140);
+	}
+
+	private _treeWindow(): Window {
+		return this.containerEl.ownerDocument?.defaultView ?? window;
 	}
 
 	private _ensureScaffold(): void {
