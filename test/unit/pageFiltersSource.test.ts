@@ -48,6 +48,13 @@ describe('pageFilters tab switching source guard', () => {
 		expect(pageFiltersSource).toContain('headerActions={contentHeaderActions}');
 	});
 
+	it('adds a Content header action to reveal the active file in results', () => {
+		expect(pageFiltersSource).toContain('revealActiveContentFile');
+		expect(pageFiltersSource).toContain("id: 'content-reveal'");
+		expect(pageFiltersSource).toContain("icon: 'lucide-gallery-vertical'");
+		expect(pageFiltersSource).toContain('contentRevealRevision');
+	});
+
 	it('passes Content scope counters and filter launcher into the Content tab', () => {
 		expect(pageFiltersSource).toContain('contentScopeFilteredCount');
 		expect(pageFiltersSource).toContain('contentScopeTotalCount');

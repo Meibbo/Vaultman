@@ -474,6 +474,9 @@ export const en: Record<string, string> = {
 	'content.landing_desc': 'Type a term to scan the current scope.',
 	'content.empty_desc': 'Try another term or adjust the current filters.',
 	'content.invalid_regex': 'Invalid regular expression',
+	'content.reveal_no_active_file': 'No active Markdown file',
+	'content.reveal_not_in_results':
+		'Active file is outside current Content results',
 	'filter.prop_browser.empty': 'No properties in vault',
 	'filter.prop_browser.title': 'Properties',
 	'explorer.props.empty_title': 'No matching properties',

@@ -510,6 +510,9 @@ export const es: Record<string, string> = {
 	'content.preview_more': '{count} archivo(s) mas',
 	'content.no_matches': 'Sin coincidencias',
 	'content.invalid_regex': 'Expresion regular invalida',
+	'content.reveal_no_active_file': 'No hay un archivo Markdown activo',
+	'content.reveal_not_in_results':
+		'El archivo activo esta fuera de los resultados de Content',
 	'content.landing_title': 'Búsqueda de contenido',
 	'content.landing_desc':
 		'Escribe un término para buscar en el alcance actual.',
