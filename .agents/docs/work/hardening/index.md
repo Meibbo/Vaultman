@@ -56,6 +56,7 @@ quality work before it reaches `main`.
 
 ## Active Plans
 
+- [[docs/work/hardening/plans/2026-06-20-p112-stability-polish/index|P112 Stability Polish implementation]]
 - [[docs/work/hardening/plans/2026-05-04-serviceviews-implementation/index|serviceViews implementation]]
 - [[docs/work/hardening/plans/2026-05-05-bases-import-choose-mode/index|Bases import choose mode implementation]]
 - [[docs/work/hardening/plans/2026-05-05-performance-diagnosis-loop/index|Performance diagnosis loop implementation]]
