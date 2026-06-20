@@ -30,6 +30,7 @@ quality work before it reaches `main`.
 
 ## Active Specs
 
+- [[docs/work/hardening/specs/2026-06-20-p112-stability-polish/index|P112 Stability Polish]]
 - [[docs/work/hardening/specs/2026-05-25-explorer-node-media-cache/index|Explorer Node Media Index And Thumbnail Cache]]
 - [[docs/work/hardening/specs/2026-05-25-explorer-node-video-provider-media-cache/index|Explorer Node Video Provider Media And Cache Settings]]
 - [[docs/work/hardening/specs/2026-05-25-explorer-icon-pack-cache/index|Explorer Icon Pack Cache]]
