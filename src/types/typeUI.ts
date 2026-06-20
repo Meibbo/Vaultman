@@ -52,4 +52,5 @@ export interface ExplorerSortState {
 	direction: ExplorerSortDirection;
 	childLevel: boolean;
 	nodeTypeFilter: string | null;
+	parentsFirst?: boolean;
 }

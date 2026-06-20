@@ -106,6 +106,38 @@ describe('FilesLogic.buildFileTree', () => {
 		]);
 	});
 
+	it('can preserve normal sibling order instead of hoisting folders first', () => {
+		const files = [
+			makeFile('alpha/zeta.md'),
+			makeFile('alpha/beta/deep.md'),
+			makeFile('alpha/alpha.md'),
+		];
+		const logic = new FilesLogic(makeApp({}));
+
+		const tree = logic.buildFileTree(files, [], { parentsFirst: false });
+
+		expect(tree[0].children?.map((node) => node.label)).toEqual([
+			'zeta',
+			'beta',
+			'alpha',
+		]);
+	});
+
+	it('keeps parents first as the default nested tree behavior', () => {
+		const files = [
+			makeFile('alpha/zeta.md'),
+			makeFile('alpha/beta/deep.md'),
+		];
+		const logic = new FilesLogic(makeApp({}));
+
+		const tree = logic.buildFileTree(files);
+
+		expect(tree[0].children?.map((node) => node.label)).toEqual([
+			'beta',
+			'zeta',
+		]);
+	});
+
 	it('preserves caller-provided sibling folder order for nested sorted results', () => {
 		const files = [
 			makeFile('beta/newest.md'),

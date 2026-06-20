@@ -37,6 +37,7 @@ interface FolderRebaseInfo {
 
 export interface BuildFileTreeOptions {
 	rebaseFolderPaths?: string[];
+	parentsFirst?: boolean;
 }
 
 export class FilesLogic {
@@ -100,6 +101,7 @@ export class FilesLogic {
 		const rebaseFolderPaths = normalizeRebaseFolderPaths(
 			options.rebaseFolderPaths ?? [],
 		);
+		const parentsFirst = options.parentsFirst ?? true;
 
 		const resolveFolder = (folderPath: string): TFolder | null => {
 			const vault = this.app.vault as
@@ -156,9 +158,11 @@ export class FilesLogic {
 		};
 
 		const sortTree = (nodes: TreeNode<FileMeta>[]): TreeNode<FileMeta>[] => {
-			const folders = nodes.filter((node) => node.meta?.isFolder);
-			const files = nodes.filter((node) => !node.meta?.isFolder);
-			nodes.splice(0, nodes.length, ...folders, ...files);
+			if (parentsFirst) {
+				const folders = nodes.filter((node) => node.meta?.isFolder);
+				const files = nodes.filter((node) => !node.meta?.isFolder);
+				nodes.splice(0, nodes.length, ...folders, ...files);
+			}
 
 			for (const node of nodes) {
 				if (node.children?.length) sortTree(node.children);

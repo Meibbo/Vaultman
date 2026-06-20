@@ -448,6 +448,7 @@ export const es: Record<string, string> = {
 	'sort.by.sub': 'Subelementos',
 	'sort.by.subtags': 'Subetiquetas',
 	'sort.by.columns': 'Columnas',
+	'sort.parents_first': 'Parents First',
 	'sort.close': 'Cerrar orden',
 	'sort.vertcol.props_values': 'Alternar props / valores',
 	'sort.vertcol.node_level': 'Alternar nivel de nodos',

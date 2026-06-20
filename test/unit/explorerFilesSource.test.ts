@@ -81,4 +81,15 @@ describe('FilesExplorerPanel source guards', () => {
 		);
 		expect(explorerFilesSource).toContain(': this.logic.buildFlatFileNodes');
 	});
+
+	it('keeps Parents First separate from nested display mode', () => {
+		expect(explorerFilesSource).toContain('private parentsFirst = true;');
+		expect(explorerFilesSource).toContain('parentsFirst = true');
+		expect(explorerFilesSource).toContain(
+			'this.parentsFirst === parentsFirst',
+		);
+		expect(explorerFilesSource).toContain('this.parentsFirst = parentsFirst');
+		expect(explorerFilesSource).toContain('parentsFirst: this.parentsFirst');
+		expect(explorerFilesSource).toContain('parentsFirst: this.parentsFirst,');
+	});
 });
