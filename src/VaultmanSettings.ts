@@ -111,6 +111,18 @@ export class VaultmanSettingsTab extends PluginSettingTab {
 			);
 
 		new Setting(containerEl)
+			.setName(translate('settings.search_highlights'))
+			.setDesc(translate('settings.search_highlights.desc'))
+			.addToggle((toggle) =>
+				toggle
+					.setValue(this.plugin.settings.explorerSearchHighlights)
+					.onChange(async (value) => {
+						this.plugin.settings.explorerSearchHighlights = value;
+						await this.plugin.saveSettings();
+					}),
+			);
+
+		new Setting(containerEl)
 			.setName(translate('settings.badge_colors'))
 			.setDesc(translate('settings.badge_colors.desc'))
 			.addToggle((toggle) =>

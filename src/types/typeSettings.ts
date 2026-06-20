@@ -19,6 +19,8 @@ export interface VaultmanSettings {
 	explorerShowQueuePreview: boolean;
 	/** Enable content search in file tree */
 	explorerContentSearch: boolean;
+	/** Highlight explorer rows/cards that match the current explorer search */
+	explorerSearchHighlights: boolean;
 	/** Default scope for explorer operations: auto = selected > filtered > all */
 	explorerOperationScope: 'auto' | 'selected' | 'filtered' | 'all';
 	/** Position of the operations panel */
@@ -107,6 +109,7 @@ export const DEFAULT_SETTINGS: VaultmanSettings = {
 	explorerCtrlClickSearch: true,
 	explorerShowQueuePreview: true,
 	explorerContentSearch: true,
+	explorerSearchHighlights: false,
 	explorerOperationScope: 'auto',
 	operationsPanelPosition: 'right',
 	basesLastUsedPath: '',
