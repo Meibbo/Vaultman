@@ -38,7 +38,7 @@ function makeFolder(path: string): TFolder {
 		path,
 		vault: {} as TFolder['vault'],
 	});
-	return folder as TFolder;
+	return folder;
 }
 
 function propertySet(files: TFile[], property: string, value: string): PendingChange {
