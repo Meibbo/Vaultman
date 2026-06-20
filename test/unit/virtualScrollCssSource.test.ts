@@ -56,6 +56,31 @@ describe('virtual scroll CSS source guards', () => {
 		expect(stylesSource).toContain('height: 37px');
 	});
 
+	it('keeps flat virtual tree row indentation stronger than native collapsible padding without important', () => {
+		const desktopCoreRowIndentBlock =
+			stylesSource.match(
+				/\.workspace-leaf-content\[data-type="vaultman-frame"\] \.vaultman-tree-virtual-viewport \.vaultman-tree-row\.tree-item-self,[\s\S]*?\.workspace-leaf-content\[data-type="vaultman-view"\] \.vaultman-tree-virtual-viewport \.vaultman-tree-row\.tree-item-self\s*\{[\s\S]*?\n\}/,
+			)?.[0] ?? '';
+
+		expect(desktopCoreRowIndentBlock).toContain(
+			'padding-inline-start: calc(var(--vaultman-tree-row-padding-start) + var(--depth, 0) * var(--vaultman-tree-indent-unit))',
+		);
+		expect(desktopCoreRowIndentBlock).toContain('padding-inline-end: 8px');
+		expect(desktopCoreRowIndentBlock).not.toContain('!important');
+	});
+
+	it('only adds top motion to virtual rows during expand collapse structure animation', () => {
+		const structureAnimationBlock =
+			stylesSource.match(
+				/\.vaultman-tree-virtual-viewport\.vaultman-tree-structure-animating \.vaultman-tree-row--virtual\s*\{[\s\S]*?\n\}/,
+			)?.[0] ?? '';
+
+		expect(structureAnimationBlock).toContain('top 100ms ease-in-out');
+		expect(structureAnimationBlock).toContain('background-color 120ms ease');
+		expect(structureAnimationBlock).not.toContain('!important');
+		expect(stylesSource).toContain('@media (prefers-reduced-motion: reduce)');
+	});
+
 	it('keeps Tags and Props grid operation badges visually quieter than Files operation badges', () => {
 		const mutedBadgeBlock =
 			stylesSource.match(

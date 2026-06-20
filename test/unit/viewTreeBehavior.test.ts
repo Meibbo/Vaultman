@@ -310,4 +310,72 @@ describe('UnifiedTreeView behavior', () => {
 		expect(caret?.classList.contains('tree-item-icon')).toBe(true);
 		expect(caret?.classList.contains('collapse-icon')).toBe(true);
 	});
+
+	it('marks expanded set changes for temporary virtual row structure animation', async () => {
+		const scheduledTimers: Array<() => void> = [];
+		vi.stubGlobal('window', {
+			clearTimeout: vi.fn(),
+			setTimeout: vi.fn((callback: TimerHandler) => {
+				if (typeof callback === 'function') {
+					scheduledTimers.push(callback as () => void);
+				}
+				return scheduledTimers.length;
+			}),
+			requestAnimationFrame: (callback: FrameRequestCallback) => {
+				callback(0);
+				return 1;
+			},
+			cancelAnimationFrame: () => {},
+		});
+		const { UnifiedTreeView } = await import(
+			'../../src/components/layout/viewTree'
+		);
+		const root: TreeNode = {
+			id: 'folder:Projects',
+			label: 'Projects',
+			depth: 0,
+			meta: {},
+			coreCls: 'tree-item-self nav-folder-title is-clickable',
+			children: [
+				{
+					id: 'file:Projects/Alpha.md',
+					label: 'Alpha.md',
+					depth: 1,
+					meta: {},
+				},
+			],
+		};
+		const container = new TinyElement('div') as unknown as HTMLElement;
+		const view = new UnifiedTreeView(container);
+		const baseOptions = {
+			nodes: [root],
+			onToggle: () => {},
+			onRowClick: () => {},
+			onContextMenu: () => {},
+		};
+
+		view.render({ ...baseOptions, expandedIds: new Set<string>() });
+		expect(
+			(container as unknown as TinyElement).classList.contains(
+				'vaultman-tree-structure-animating',
+			),
+		).toBe(false);
+
+		view.render({
+			...baseOptions,
+			expandedIds: new Set<string>(['folder:Projects']),
+		});
+		expect(
+			(container as unknown as TinyElement).classList.contains(
+				'vaultman-tree-structure-animating',
+			),
+		).toBe(true);
+
+		scheduledTimers.at(-1)?.();
+		expect(
+			(container as unknown as TinyElement).classList.contains(
+				'vaultman-tree-structure-animating',
+			),
+		).toBe(false);
+	});
 });
