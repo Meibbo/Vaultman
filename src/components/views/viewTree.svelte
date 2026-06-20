@@ -1,8 +1,8 @@
 <script lang="ts" generics="TMeta = unknown">
-	import { getContext, untrack } from 'svelte';
-	import { createVirtualizer } from '@tanstack/svelte-virtual';
+	import { getContext } from 'svelte';
+	import { SharedVirtualLayout } from '../../services/serviceSharedVirtualLayout.svelte';
 	import type { NodeBadge, TreeNode } from '../../types/typeNode';
-	import type { ExplorerRevealAlign, ExplorerRevealTarget } from '../../types/typeExplorerDataPlane';
+	import type { ExplorerRevealTarget } from '../../types/typeExplorerDataPlane';
 	import { getActivePerfProbe } from '../../dev/perfProbe';
 	import NodeRow from './NodeRow.svelte';
 	import {
@@ -32,11 +32,6 @@
 		isNodeTextVisible,
 		visibleNodeFieldValues,
 	} from '../../services/serviceNodeFieldVisibility';
-	import {
-		createRafElementRectObserver,
-		fallbackFixedVirtualRows,
-		scrollFixedIndexIntoView,
-	} from '../../services/serviceScroll';
 	import {
 		buildRowInputIdIndex,
 		rowInputCallbackId,
@@ -78,7 +73,6 @@
 	const TREE_ROW_HEIGHT = DEFAULT_VIEW_SIZE.treeRowHeight;
 	const TREE_FALLBACK_WIDTH = 320;
 	const TREE_FALLBACK_HEIGHT = 400;
-	const TREE_OVERSCAN = 10;
 	const TREE_STICKY_MAX_ROWS = 7;
 	const TREE_STICKY_MAX_VIEWPORT_RATIO = 0.4;
 	type ScrollTarget = ExplorerRevealTarget;
@@ -277,9 +271,6 @@
 	}
 
 	let outerEl: HTMLDivElement | undefined = $state();
-	let rowHeight = $state(TREE_ROW_HEIGHT);
-	let fallbackScrollTop = $state(0);
-	let fallbackViewportHeight = $state(TREE_FALLBACK_HEIGHT);
 	let dragStart = $state<{ x: number; y: number; pointerId: number } | null>(null);
 	let capturedSelectionPointerId: number | null = null;
 	let selectionBox = $state<{
@@ -289,7 +280,6 @@
 		height: number;
 	} | null>(null);
 	let suppressNextClick = false;
-	let rowHeightFrame: number | null = null;
 	let consumedScrollTargetSerial: number | null = null;
 	const mouse = createMouseGestureService();
 	const viewSize = $derived(getViewSizePreset(sizePresetId));
@@ -297,17 +287,8 @@
 	const nodeMouseConfig = $derived(
 		mergeMouseGestureConfig(NODE_MOUSE_GESTURE_CONFIG, mouseGestureConfig),
 	);
-	const observeTreeRect = createRafElementRectObserver<HTMLDivElement, HTMLDivElement>({
-		getElement: () => outerEl ?? null,
-		fallbackWidth: TREE_FALLBACK_WIDTH,
-		fallbackHeight: TREE_FALLBACK_HEIGHT,
-	});
 
 	$effect(() => () => mouse.cancelAll());
-	$effect(() => {
-		if (!outerEl) return;
-		syncFallbackScrollState();
-	});
 
 	const treeRows = $derived(
 		projectionRowInputs ? [] : treeRowsFromInputs(nodes, effectiveRowInputs),
@@ -319,61 +300,26 @@
 	);
 	const flatRowInputs = $derived(flatArray.map((flat) => flat.row));
 	const flatIdToIndex = $derived(buildRowInputIdIndex(flatRowInputs));
-	const rowVirtualizer = createVirtualizer<HTMLDivElement, HTMLDivElement>({
-		count: 0,
-		getScrollElement: () => outerEl ?? null,
-		getItemKey: (index) => treeVirtualItemKey(flatRowInputs, index),
-		estimateSize: () => rowHeight,
-		observeElementRect: observeTreeRect,
-		overscan: TREE_OVERSCAN,
-		initialRect: { width: TREE_FALLBACK_WIDTH, height: TREE_FALLBACK_HEIGHT },
-	});
-	const virtualRows = $derived($rowVirtualizer.getVirtualItems());
-	const renderedVirtualRows = $derived.by(() => {
-		const rows = virtualRows.filter((virtualRow) => virtualRow.index < flatArray.length);
-		if (
-			flatArray.length === 0 ||
-			virtualRowsCoverScrollWindow(
-				rows,
-				flatArray.length,
-				fallbackScrollTop,
-				fallbackViewportHeight,
-				rowHeight,
-			)
-		) {
-			return rows;
-		}
-		return fallbackFixedVirtualRows({
-			count: flatArray.length,
-			rowHeight,
-			viewportHeight: fallbackViewportHeight,
-			scrollTop: fallbackScrollTop,
-			overscan: TREE_OVERSCAN,
-			getKey: (index) => treeVirtualItemKey(flatRowInputs, index),
-		});
-	});
-	const totalH = $derived(Math.max($rowVirtualizer.getTotalSize(), flatArray.length * rowHeight));
-	const stickyRows = $derived(
-		computeStickyRows(flatArray, fallbackScrollTop, fallbackViewportHeight, rowHeight),
-	);
 
-	$effect(() => {
-		const count = flatArray.length;
-		const rows = flatRowInputs;
-		const scrollElement = outerEl;
-		const height = rowHeight;
-		untrack(() =>
-			$rowVirtualizer.setOptions({
-				count,
-				getScrollElement: () => scrollElement ?? null,
-				getItemKey: (index) => treeVirtualItemKey(rows, index),
-				estimateSize: () => height,
-				observeElementRect: observeTreeRect,
-				overscan: TREE_OVERSCAN,
-				initialRect: { width: TREE_FALLBACK_WIDTH, height: TREE_FALLBACK_HEIGHT },
-			}),
-		);
+	// Shared render-runtime (V.D): the pure-core fixed geometry is the AUTHORITATIVE window
+	// source — no fallbackFixedVirtualRows cover-check. `layout.attach` wires scroll/resize and
+	// owns the @tanstack/svelte-virtual seam. `flatArray`/`flatRowInputs` are read lazily through
+	// the option getters so the controller stays in sync with the reactive projection.
+	const layout = new SharedVirtualLayout({
+		rowCount: () => flatArray.length,
+		estimateSize: () => TREE_ROW_HEIGHT,
+		getKey: (index) => treeVirtualItemKey(flatRowInputs, index),
+		resolveId: (index) => {
+			const flat = flatArray[index];
+			return flat ? rowInputCallbackId(flat.row) : undefined;
+		},
+		rowHeightVar: '--vm-tree-row-h',
+		fallbackViewportHeight: TREE_FALLBACK_HEIGHT,
+		fallbackWidth: TREE_FALLBACK_WIDTH,
 	});
+	const stickyRows = $derived(
+		computeStickyRows(flatArray, layout.scrollTop, layout.viewportHeight, layout.rowHeight),
+	);
 
 	$effect(() => {
 		const target = scrollTarget;
@@ -382,14 +328,13 @@
 		const index = resolveRevealIndex(target);
 		if (index < 0) return;
 		consumedScrollTargetSerial = target.serial;
-		scrollRowIntoView(index, target.align);
+		layout.scrollToIndex(index, target.align ?? 'auto');
 	});
 
 	function onScroll() {
-		syncFallbackScrollState();
 		getActivePerfProbe()?.count('viewTree.scroll', {
 			rows: flatArray.length,
-			visibleRows: virtualRows.length,
+			visibleRows: layout.rows.length,
 		});
 	}
 
@@ -414,7 +359,7 @@
 				: flatIdToIndex;
 		const coordinator = createExplorerScrollGeometry({
 			idToIndex: resolvedIdToIndex,
-			rowHeight,
+			rowHeight: layout.rowHeight,
 			rowCount: flatRowInputs.length,
 			revision: effectiveSnapshotRevision ?? undefined,
 			resolveIndexById,
@@ -430,73 +375,6 @@
 		return flatRowInputs[resolved.index]?.id === target.id ? resolved.index : -1;
 	}
 
-	function scrollRowIntoView(index: number, preferredAlign: ExplorerRevealAlign = 'auto'): void {
-		if (!outerEl) return;
-		const viewportHeight = outerEl.clientHeight || TREE_FALLBACK_HEIGHT;
-		const currentTop = outerEl.scrollTop;
-		const rowTop = index * rowHeight;
-		let virtualAlign: 'start' | 'center' | 'end' = rowTop < currentTop ? 'start' : 'end';
-		let nextTop = scrollFixedIndexIntoView({
-			index,
-			rowHeight,
-			viewportHeight,
-			scrollTop: currentTop,
-		});
-		if (preferredAlign !== 'auto') {
-			virtualAlign = preferredAlign;
-			nextTop = scrollTopForAlign(index, preferredAlign, viewportHeight);
-		}
-		if (nextTop === currentTop) return;
-
-		untrack(() => $rowVirtualizer.scrollToIndex(index, { align: virtualAlign, behavior: 'auto' }));
-		outerEl.scrollTop = nextTop;
-		syncFallbackScrollState();
-		outerEl.dispatchEvent(new Event('scroll'));
-	}
-
-	function scrollTopForAlign(
-		index: number,
-		align: Exclude<ExplorerRevealAlign, 'auto'>,
-		viewportHeight: number,
-	): number {
-		const rowTop = index * rowHeight;
-		const rawTop =
-			align === 'start'
-				? rowTop
-				: align === 'center'
-					? rowTop - Math.max(0, viewportHeight - rowHeight) / 2
-					: rowTop - Math.max(0, viewportHeight - rowHeight);
-		const maxTop = Math.max(0, flatArray.length * rowHeight - viewportHeight);
-		return Math.max(0, Math.min(rawTop, maxTop));
-	}
-
-	function virtualRowsCoverScrollWindow(
-		rows: readonly { start: number; end: number; size: number }[],
-		rowCount: number,
-		scrollTop: number,
-		viewportHeight: number,
-		height: number,
-	): boolean {
-		if (rows.length === 0) return false;
-		if (rowCount <= 0) return true;
-		const listEnd = Math.max(0, rowCount * height);
-		const viewportStart = Math.max(0, scrollTop);
-		const viewportEnd = Math.min(listEnd, viewportStart + Math.max(0, viewportHeight));
-		if (viewportEnd <= viewportStart) return true;
-		const first = rows[0];
-		const last = rows.at(-1) ?? first;
-		const firstStart = Number.isFinite(first.start) ? first.start : 0;
-		const lastEnd = Number.isFinite(last.end) ? last.end : last.start + last.size;
-		const tolerance = Math.max(1, height / 2);
-		return firstStart <= viewportStart + tolerance && lastEnd >= viewportEnd - tolerance;
-	}
-
-	function syncFallbackScrollState(): void {
-		if (!outerEl) return;
-		fallbackScrollTop = outerEl.scrollTop;
-		fallbackViewportHeight = outerEl.clientHeight || TREE_FALLBACK_HEIGHT;
-	}
-
 	function flattenMeasured(items: readonly TreeRowNode[], expanded: ReadonlySet<string>): TreeFlatNode[] {
 		return (
 			getActivePerfProbe()?.measure('viewTree.flatten', { nodes: items.length }, () =>
@@ -504,21 +382,6 @@
 			) ?? flattenTreeRows(items, expanded)
 		);
 	}
-
-	$effect(() => {
-		if (!outerEl) return;
-		updateRowHeight();
-		if (typeof ResizeObserver === 'undefined') return;
-		const ro = new ResizeObserver(() => {
-			scheduleRowHeightUpdate();
-		});
-		ro.observe(outerEl);
-		return () => {
-			if (rowHeightFrame !== null) cancelAnimationFrame(rowHeightFrame);
-			rowHeightFrame = null;
-			ro.disconnect();
-		};
-	});
 
 	function handleRowClick(e: MouseEvent, id: string) {
 		if (suppressNextClick) {
@@ -582,7 +445,7 @@
 		dragStart = null;
 		selectionBox = null;
 		if (!box) return;
-		const ids = intersectingRowIds(box);
+		const ids = layout.idsInRect({ top: box.top, bottom: box.top + box.height });
 		suppressNextClick = true;
 		if (ids.length > 0) onBoxSelect?.(ids, e);
 	}
@@ -626,51 +489,6 @@
 			width: Math.abs(endLeft - startLeft),
 			height: Math.abs(endTop - startTop),
 		};
-	}
-
-	function intersectingRowIds(box: NonNullable<typeof selectionBox>): string[] {
-		const renderedRows = Array.from(
-			outerEl?.querySelectorAll<HTMLElement>(
-				'.vm-tree-virtual-row:not(.vm-tree-sticky-row)',
-			) ?? [],
-		);
-		if (renderedRows.length > 0) {
-			const boxRect = viewportRectFromBox(box);
-			const ids: string[] = [];
-			let hasMeasuredRows = false;
-			for (const row of renderedRows) {
-				const id = row.dataset.id;
-				if (!id) continue;
-				const rowRect = row.getBoundingClientRect();
-				if (!rectHasArea(rowRect)) continue;
-				hasMeasuredRows = true;
-				if (rectsIntersect(boxRect, rowRect)) ids.push(id);
-			}
-			if (hasMeasuredRows) return ids;
-		}
-
-		return intersectingRowIdsByFixedGeometry(box);
-	}
-
-	function intersectingRowIdsByFixedGeometry(box: NonNullable<typeof selectionBox>): string[] {
-		const ids: string[] = [];
-		const boxRect = rectFromBox(box);
-		const width = outerEl?.scrollWidth || outerEl?.clientWidth || TREE_FALLBACK_WIDTH;
-		for (let index = 0; index < flatArray.length; index += 1) {
-			const rowRect = new DOMRect(0, index * rowHeight, width, rowHeight);
-			if (rectsIntersect(boxRect, rowRect)) ids.push(rowInputCallbackId(flatArray[index].row));
-		}
-		return ids;
-	}
-
-	function viewportRectFromBox(box: NonNullable<typeof selectionBox>): DOMRect {
-		const outerRect = outerEl!.getBoundingClientRect();
-		return new DOMRect(
-			outerRect.left + box.left - outerEl!.scrollLeft,
-			outerRect.top + box.top - outerEl!.scrollTop,
-			box.width,
-			box.height,
-		);
 	}
 
 	function flatProjectionRows(
@@ -721,18 +539,6 @@
 		return flats;
 	}
 
-	function rectFromBox(box: NonNullable<typeof selectionBox>): DOMRect {
-		return new DOMRect(box.left, box.top, box.width, box.height);
-	}
-
-	function rectHasArea(rect: DOMRect): boolean {
-		return rect.width > 0 || rect.height > 0;
-	}
-
-	function rectsIntersect(a: DOMRect, b: DOMRect): boolean {
-		return a.left <= b.right && a.right >= b.left && a.top <= b.bottom && a.bottom >= b.top;
-	}
-
 	function inheritedBadgeTitle(badges: NodeBadge[]): string {
 		return `${badges.length} hidden descendant badge${badges.length === 1 ? '' : 's'}`;
 	}
@@ -745,24 +551,6 @@
 		if (e.key === 'Enter' || e.key === ' ' || e.key === 'Spacebar') {
 			handleBadgePress(e, badge);
 		}
-	}
-
-	function updateRowHeight() {
-		if (!outerEl) return;
-		const value = parseFloat(getComputedStyle(outerEl).getPropertyValue('--vm-tree-row-h'));
-		if (value > 0) rowHeight = value;
-	}
-
-	function scheduleRowHeightUpdate() {
-		if (typeof requestAnimationFrame === 'undefined') {
-			updateRowHeight();
-			return;
-		}
-		if (rowHeightFrame !== null) return;
-		rowHeightFrame = requestAnimationFrame(() => {
-			rowHeightFrame = null;
-			updateRowHeight();
-		});
 	}
 
 	function treeRowsFromInputs(
@@ -1013,6 +801,7 @@
 
 <div
 	bind:this={outerEl}
+	{@attach layout.attach}
 	class="vm-tree-virtual-outer"
 	onscroll={onScroll}
 	onpointerdown={handlePointerDown}
@@ -1027,15 +816,15 @@
 	{#if stickyRows.length > 0}
 		<div
 			class="vm-tree-sticky-layer"
-			style="--vm-tree-sticky-scroll-y: {fallbackScrollTop}px; --vm-tree-sticky-top-offset: {stickyTopOffset}px"
+			style="--vm-tree-sticky-scroll-y: {layout.scrollTop}px; --vm-tree-sticky-top-offset: {stickyTopOffset}px"
 		>
 			{#each stickyRows as stickyRow (stickyRow.key)}
 				{@render treeRow(stickyRow.flat, stickyRow.top, true)}
 			{/each}
 		</div>
 	{/if}
-	<div class={treeInnerClass} style="--vm-tree-total-h: {totalH}px">
-		{#each renderedVirtualRows as virtualRow (virtualRow.key)}
+	<div class={treeInnerClass} style="--vm-tree-total-h: {layout.totalHeight}px">
+		{#each layout.rows as virtualRow (virtualRow.key)}
 			{@render treeRow(flatArray[virtualRow.index], virtualRow.start, false)}
 		{/each}
 	</div>

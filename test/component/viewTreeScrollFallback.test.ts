@@ -113,7 +113,7 @@ describe('ViewTree scroll fallback', () => {
 		});
 	}
 
-	it('renders fallback rows around the current scroll position when virtual rows are empty', () => {
+	it('renders the core-authoritative window around the scroll position (overscan sized to viewport)', () => {
 		app = mount(ViewTree as unknown as Component<Record<string, unknown>>, {
 			target,
 			props: {
@@ -133,8 +133,15 @@ describe('ViewTree scroll fallback', () => {
 		outer!.dispatchEvent(new Event('scroll'));
 		flushSync();
 
+		// V.D shared render-runtime: the pure core (fixedVisibleRange) is now the authoritative
+		// window source — there is no fallbackFixedVirtualRows. overscan = ceil(viewportH/rowHeight)
+		// = ceil(112/28) = 4; first/last visible 30/33 => window [26, 38). This replaces the old
+		// magic TREE_OVERSCAN=10 window (20..43).
 		expect(target.querySelector('[data-id="node-30"]')).not.toBeNull();
-		expect(target.querySelector('[data-id="node-43"]')).not.toBeNull();
+		expect(target.querySelector('[data-id="node-26"]')).not.toBeNull();
+		expect(target.querySelector('[data-id="node-37"]')).not.toBeNull();
+		expect(target.querySelector('[data-id="node-25"]')).toBeNull();
+		expect(target.querySelector('[data-id="node-38"]')).toBeNull();
 		expect(target.querySelector('[data-id="node-5"]')).toBeNull();
 	});
 

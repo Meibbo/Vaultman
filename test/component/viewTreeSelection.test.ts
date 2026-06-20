@@ -390,22 +390,18 @@ describe('ViewTree selection gestures', () => {
 		expect(handlers.onBoxSelect).toHaveBeenCalledWith(['alpha'], expect.any(PointerEvent));
 	});
 
-	it('shows a drag-box and resolves selected ids from rendered row geometry', () => {
+	it('shows a drag-box and resolves selected ids from fixed geometry across the virtualized range', () => {
 		const handlers = renderTree([
 			{ id: 'alpha', label: 'Alpha', depth: 0, meta: {} },
 			{ id: 'beta', label: 'Beta', depth: 0, meta: {} },
 		]);
 		const tree = target.querySelector('.vm-tree-virtual-outer') as HTMLElement;
-		const alpha = target.querySelector('[data-id="alpha"]') as HTMLElement;
-		const beta = target.querySelector('[data-id="beta"]') as HTMLElement;
 		Object.assign(tree, {
 			setPointerCapture: vi.fn(),
 			releasePointerCapture: vi.fn(),
 			hasPointerCapture: vi.fn(() => true),
 		});
 		vi.spyOn(tree, 'getBoundingClientRect').mockReturnValue(rect(0, 0, 240, 120));
-		vi.spyOn(alpha, 'getBoundingClientRect').mockReturnValue(rect(0, 64, 220, 92));
-		vi.spyOn(beta, 'getBoundingClientRect').mockReturnValue(rect(0, 4, 220, 32));
 
 		tree.dispatchEvent(
 			new PointerEvent('pointerdown', {
@@ -435,7 +431,10 @@ describe('ViewTree selection gestures', () => {
 			}),
 		);
 
-		expect(handlers.onBoxSelect).toHaveBeenCalledWith(['beta'], expect.any(PointerEvent));
+		// V.D: box-select is geometry-based (SharedVirtualLayout.idsInRect), not DOM-rect based, so
+		// it resolves ids across the unrendered virtualized range. The box spans content-y 4..26;
+		// rows are 28px fixed, so only row 0 (alpha, y 0..28) intersects.
+		expect(handlers.onBoxSelect).toHaveBeenCalledWith(['alpha'], expect.any(PointerEvent));
 	});
 
 	it('keeps inherited badge actions and chevron expansion isolated on collapsed parents', () => {
