@@ -156,6 +156,9 @@
 	let nodeTypeFilter = $state<string | null>(
 		untrack(() => initialSortState?.nodeTypeFilter ?? null),
 	);
+	let parentsFirst = $state(
+		untrack(() => initialSortState?.parentsFirst ?? true),
+	);
 	const DEFAULT_DIR = DEFAULT_EXPLORER_SORT_DIR;
 
 	// Reset per-tab state when the active tab changes.
@@ -166,6 +169,7 @@
 		drawerOpen = false;
 		vertTopActive = initialSortState?.childLevel ?? false;
 		nodeTypeFilter = initialSortState?.nodeTypeFilter ?? null;
+		parentsFirst = initialSortState?.parentsFirst ?? true;
 	});
 
 	function emitSortChange() {
@@ -174,6 +178,7 @@
 			direction: sortDir,
 			childLevel: vertTopActive,
 			nodeTypeFilter,
+			parentsFirst,
 		});
 	}
 
@@ -194,7 +199,7 @@
 
 	function toggleDrawer() {
 		if (activeTab === 'files') {
-			sortDir = sortDir === 'asc' ? 'desc' : 'asc';
+			parentsFirst = !parentsFirst;
 			emitSortChange();
 			return;
 		}
@@ -219,7 +224,7 @@
 	);
 
 	const vertBotIcon = $derived(
-		activeTab === 'files' ? 'lucide-circle-dot' : 'lucide-chevrons-down',
+		activeTab === 'files' ? 'lucide-folder-tree' : 'lucide-chevrons-down',
 	);
 </script>
 
@@ -244,9 +249,9 @@
 		{/if}
 		<div
 			class="vaultman-sort-vertcol-btn"
-			class:is-active={drawerOpen}
+			class:is-active={activeTab === 'files' ? parentsFirst : drawerOpen}
 			aria-label={activeTab === 'files'
-				? translate('sort.vertcol.direct_toggle')
+				? translate('sort.parents_first')
 				: translate('sort.vertcol.scope_drawer')}
 			onclick={toggleDrawer}
 			onkeydown={(e: KeyboardEvent) => {

@@ -138,6 +138,7 @@
 			direction: 'asc',
 			childLevel: false,
 			nodeTypeFilter: null,
+			parentsFirst: true,
 		},
 	};
 	const DEFAULT_VISIBLE_CELLS: Record<FiltersTab, string[]> = {
@@ -464,6 +465,7 @@
 				normalizedState.direction,
 				normalizedState.childLevel,
 				normalizedState.nodeTypeFilter,
+				normalizedState.parentsFirst,
 			);
 		if (tab === 'props') {
 			propExplorer?.setSortBy(
@@ -519,7 +521,8 @@
 			left.sortBy === right.sortBy &&
 			left.direction === right.direction &&
 			left.childLevel === right.childLevel &&
-			left.nodeTypeFilter === right.nodeTypeFilter
+			left.nodeTypeFilter === right.nodeTypeFilter &&
+			left.parentsFirst === right.parentsFirst
 		);
 	}
 
@@ -680,6 +683,7 @@
 			...state,
 			sortBy,
 			direction: state.direction ?? DEFAULT_DIR[sortBy] ?? 'asc',
+			parentsFirst: state.parentsFirst ?? true,
 		};
 	}
 
@@ -715,6 +719,20 @@
 					.setIcon(option.icon)
 					.setChecked(isActive)
 					.onClick(() => handleSortChange(nextSortState(option.id)));
+			});
+		}
+
+		if (activeTab === 'files') {
+			menu.addSeparator();
+			menu.addItem((item) => {
+				const parentsFirst = current.parentsFirst ?? true;
+				item
+					.setTitle(translate('sort.parents_first'))
+					.setIcon('lucide-folder-tree')
+					.setChecked(parentsFirst)
+					.onClick(() =>
+						handleSortChange({ ...current, parentsFirst: !parentsFirst }),
+					);
 			});
 		}
 

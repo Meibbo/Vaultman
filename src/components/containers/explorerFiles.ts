@@ -60,6 +60,7 @@ export class FilesExplorerPanel extends Component {
 	private sortBy: string = 'name';
 	private sortDir: 'asc' | 'desc' = 'asc';
 	private nodeTypeFilter: string | null = null;
+	private parentsFirst = true;
 	private addMode = false;
 	private visibleCells = new Set<string>(['name', 'ext', 'count', 'nested']);
 	private searchName = '';
@@ -320,18 +321,21 @@ export class FilesExplorerPanel extends Component {
 		direction: 'asc' | 'desc',
 		_childLevel = false,
 		nodeTypeFilter: string | null = null,
+		parentsFirst = true,
 	): void {
 		const normalizedSortBy = normalizeExplorerSortBy(sortBy);
 		if (
 			this.sortBy === normalizedSortBy &&
 			this.sortDir === direction &&
-			this.nodeTypeFilter === nodeTypeFilter
+			this.nodeTypeFilter === nodeTypeFilter &&
+			this.parentsFirst === parentsFirst
 		) {
 			return;
 		}
 		this.sortBy = normalizedSortBy;
 		this.sortDir = direction;
 		this.nodeTypeFilter = nodeTypeFilter;
+		this.parentsFirst = parentsFirst;
 		if (this.viewMode === 'table' && this.tableView) {
 			const COL_MAP: Record<string, import('../layout/viewGrid').SortColumn> = {
 				name: 'name',
@@ -367,7 +371,7 @@ export class FilesExplorerPanel extends Component {
 
 	clearNodeTypeFilter(): void {
 		if (!this.nodeTypeFilter) return;
-		this.setSortBy(this.sortBy, this.sortDir, false, null);
+		this.setSortBy(this.sortBy, this.sortDir, false, null, this.parentsFirst);
 	}
 
 	render(filteredFiles: TFile[], totalCount: number): void {
@@ -399,7 +403,10 @@ export class FilesExplorerPanel extends Component {
 		const tree = this.logic.buildFileTree(
 			this._sortFiles(this._filesForDisplay()),
 			this._foldersForCurrentView(),
-			{ rebaseFolderPaths: this._activeFolderFilterPaths() },
+			{
+				rebaseFolderPaths: this._activeFolderFilterPaths(),
+				parentsFirst: this.parentsFirst,
+			},
 		);
 		const walk = (nodes: TreeNode<FileMeta>[]) => {
 			for (const node of nodes) {
@@ -638,6 +645,7 @@ export class FilesExplorerPanel extends Component {
 			const renderTree = this._nestedEnabled()
 				? this.logic.buildFileTree(sortedFiles, this._foldersForCurrentView(), {
 						rebaseFolderPaths,
+						parentsFirst: this.parentsFirst,
 					})
 				: this.logic.buildFlatFileNodes(sortedFiles, { rebaseFolderPaths });
 			if (this._nestedEnabled()) this._autoExpandSparseTopLevel(renderTree);
@@ -953,6 +961,7 @@ export class FilesExplorerPanel extends Component {
 			direction: this.sortDir,
 			childLevel: false,
 			nodeTypeFilter: this.nodeTypeFilter,
+			parentsFirst: this.parentsFirst,
 		};
 	}
 

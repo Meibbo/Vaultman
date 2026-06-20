@@ -105,4 +105,12 @@ describe('minimal filters header source guards', () => {
 			'action.tooltip && (isFiltersAction || isQueueAction)',
 		);
 	});
+
+	it('exposes Files Parents First as a sort preference separate from node type filters', () => {
+		expect(navbarFiltersSource).toContain('parentsFirst: true');
+		expect(navbarFiltersSource).toContain('normalizedState.parentsFirst');
+		expect(navbarFiltersSource).toContain('left.parentsFirst === right.parentsFirst');
+		expect(navbarFiltersSource).toContain("translate('sort.parents_first')");
+		expect(navbarFiltersSource).toContain("setIcon('lucide-folder-tree')");
+	});
 });

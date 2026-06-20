@@ -13,4 +13,11 @@ describe('explorer sort UI source', () => {
 			);
 		}
 	});
+
+	it('transports Files Parents First through native and popup sort controls', () => {
+		expect(navbarSource).toContain('parentsFirst: true');
+		expect(navbarSource).toContain("translate('sort.parents_first')");
+		expect(popupSource).toContain('parentsFirst');
+		expect(popupSource).toContain("translate('sort.parents_first')");
+	});
 });

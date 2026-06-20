@@ -563,6 +563,7 @@ export const en: Record<string, string> = {
 	'sort.by.sub': 'Sub-elements',
 	'sort.by.subtags': 'Sub-tags',
 	'sort.by.columns': 'Columns',
+	'sort.parents_first': 'Parents First',
 	'sort.scope.label': 'Sort scope',
 	'sort.scope.all': 'All vault',
 	'sort.scope.filtered': 'Filtered files',
