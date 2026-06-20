@@ -47,4 +47,11 @@ describe('pageFilters tab switching source guard', () => {
 		expect(pageFiltersSource).toContain('toggleAllContentFiles');
 		expect(pageFiltersSource).toContain('headerActions={contentHeaderActions}');
 	});
+
+	it('passes Content scope counters and filter launcher into the Content tab', () => {
+		expect(pageFiltersSource).toContain('contentScopeFilteredCount');
+		expect(pageFiltersSource).toContain('contentScopeTotalCount');
+		expect(pageFiltersSource).toContain('contentScopeFilterCount');
+		expect(pageFiltersSource).toContain('{onOpenFilters}');
+	});
 });

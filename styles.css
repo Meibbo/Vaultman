@@ -4104,6 +4104,22 @@ body.vaultman-bases-column-separators table th {
   margin: 4px 0 8px;
 }
 
+button.vaultman-content-scope-hint {
+  display: block;
+  width: fit-content;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  text-align: left;
+  cursor: pointer;
+  font: inherit;
+}
+
+button.vaultman-content-scope-hint:hover,
+button.vaultman-content-scope-hint:focus-visible {
+  color: var(--text-normal);
+}
+
 .vaultman-content-landing {
   display: flex;
   flex-direction: column;

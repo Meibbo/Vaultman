@@ -90,10 +90,14 @@
 		filteredCount,
 		filterRuleCount = 0,
 		contentSearchScopeRevision,
+		contentScopeFilteredCount,
+		contentScopeTotalCount,
+		contentScopeFilterCount,
 		showDock = true,
 		queuedCount = 0,
 		queueWarningCount = 0,
 		onOpenFilters,
+		onViewFiltersChanged,
 		onClearFilters,
 		onOpenQueue,
 		onClearQueue,
@@ -115,10 +119,14 @@
 		filteredCount: number;
 		filterRuleCount?: number;
 		contentSearchScopeRevision: string;
+		contentScopeFilteredCount: number;
+		contentScopeTotalCount: number;
+		contentScopeFilterCount: number;
 		showDock?: boolean;
 		queuedCount?: number;
 		queueWarningCount?: number;
 		onOpenFilters?: () => void;
+		onViewFiltersChanged?: () => void;
 		onClearFilters?: () => void;
 		onOpenQueue?: () => void;
 		onClearQueue?: () => void;
@@ -246,12 +254,10 @@
 				String(selected.length),
 			);
 		}
-		const baseCount =
-			plugin.filterService.getFilesIgnoringContentSearch(true).length;
-		return translate('content.scope_hint_filtered').replace(
-			'{count}',
-			String(baseCount),
-		);
+		return translate('content.scope_hint_filtered')
+			.replace('{count}', String(contentScopeFilteredCount))
+			.replace('{total}', String(contentScopeTotalCount))
+			.replace('{filters}', String(contentScopeFilterCount));
 	});
 	const sortedContentFiles = $derived(
 		sortContentPreviewFiles(
@@ -369,6 +375,24 @@
 		contentPreviewOpen = true;
 	}
 
+	function fileTypeIdForContentScope(file: TFile): string {
+		return file.extension || 'none';
+	}
+
+	function applyContentViewFilters(files: TFile[]): TFile[] {
+		const fileTypeFilter = fileList?.getActiveTypeFilter();
+		if (!fileTypeFilter) return files;
+		return files.filter(
+			(file) => fileTypeIdForContentScope(file) === fileTypeFilter.id,
+		);
+	}
+
+	function contentSearchCandidateFiles(): TFile[] {
+		return applyContentViewFilters(
+			plugin.filterService.getFilesIgnoringContentSearch(true),
+		);
+	}
+
 	async function openContentMatch(file: TFile, line: number, ch: number) {
 		await plugin.app.workspace.openLinkText(file.path, '', false);
 		const view = plugin.app.workspace.getActiveViewOfType(MarkdownView);
@@ -417,7 +441,7 @@
 		const files =
 			scope === 'selected' || (scope === 'auto' && selected.length > 0)
 				? selected
-				: plugin.filterService.getFilesIgnoringContentSearch(true);
+				: contentSearchCandidateFiles();
 
 		if (tab !== 'content') return;
 		nativeSearchAdapter.cancel();
@@ -528,6 +552,7 @@
 		onFiltersSearchChange={setExplorerSearch}
 		showExplorerControls={filtersActiveTab !== 'content'}
 		{expansionRevision}
+		{onViewFiltersChanged}
 		{icon}
 	/>
 {/if}
@@ -594,6 +619,7 @@
 				{toggleContentFile}
 				{queueContentReplace}
 				{openContentMatch}
+				{onOpenFilters}
 			/>
 		</div>
 	{/if}

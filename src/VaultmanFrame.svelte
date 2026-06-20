@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { mount, onMount, tick, unmount } from 'svelte';
-	import { Notice, setIcon } from 'obsidian';
+	import { Notice, setIcon, type TFile } from 'obsidian';
 	import type { VaultmanPlugin } from './main';
 	import type { FilesExplorerPanel } from './components/containers/explorerFiles';
 	import type { PropsExplorerPanel } from './components/containers/explorerProps';
@@ -446,6 +446,7 @@
 	let queuedCount = $state(0);
 	let queueWarningCount = $state(0);
 	let filterRuleCount = $state(0);
+	let viewFilterRevision = $state(0);
 	let contentSearchScopeRevision = $state('');
 	const addOpCount = $derived(
 		plugin.queueService.queue.filter((op) => op.action === 'add').length,
@@ -477,8 +478,7 @@
 		queuedCount = plugin.queueService.queue.length;
 		queueWarningCount = countQueueWarnings();
 		filterRuleCount = countFilterLeaves(plugin.filterService.activeFilter);
-		const nextContentSearchScopeRevision =
-			plugin.filterService.getContentSearchScopeSignature();
+		const nextContentSearchScopeRevision = `${plugin.filterService.getContentSearchScopeSignature()}:view:${viewFilterRevision}`;
 		if (nextContentSearchScopeRevision !== contentSearchScopeRevision) {
 			contentSearchScopeRevision = nextContentSearchScopeRevision;
 		}
@@ -500,6 +500,38 @@
 	type FiltersTab = 'files' | 'tags' | 'props' | 'content';
 	type SearchTab = 'tags' | 'props' | 'files';
 	let filtersActiveTab = $state<FiltersTab>('files');
+	function fileTypeIdForViewFilter(file: TFile): string {
+		return file.extension || 'none';
+	}
+
+	function applyActiveFileViewFilters(files: TFile[]): TFile[] {
+		const fileTypeFilter = fileList?.getActiveTypeFilter();
+		if (!fileTypeFilter) return files;
+		return files.filter(
+			(file) => fileTypeIdForViewFilter(file) === fileTypeFilter.id,
+		);
+	}
+
+	const activeViewFilterCount = $derived.by(() => {
+		void viewFilterRevision;
+		return activeFilterViewStates().length;
+	});
+	const displayedFilterRuleCount = $derived(
+		filterRuleCount + activeViewFilterCount,
+	);
+	const displayedFilteredCount = $derived.by(() => {
+		void viewFilterRevision;
+		if (filtersActiveTab === 'files' && fileList?.hasViewFilters()) {
+			return fileList.getVisibleFileCount();
+		}
+		return filteredCount;
+	});
+	const contentScopeFilteredCount = $derived.by(() => {
+		void viewFilterRevision;
+		return applyActiveFileViewFilters(
+			plugin.filterService.getFilesIgnoringContentSearch(true),
+		).length;
+	});
 	$effect(() => {
 		void filtersActiveTab;
 		closeQueueIsland();
@@ -668,7 +700,13 @@
 		plugin.filterService.clearFilters();
 		fileList?.clearNodeTypeFilter();
 		closeFiltersIsland();
+		notifyViewFiltersChanged();
+	}
+
+	function notifyViewFiltersChanged() {
+		viewFilterRevision += 1;
 		updateStats();
+		filtersIsland?.render();
 	}
 
 	function activeFilterViewStates(): ActiveFilterViewState[] {
@@ -684,7 +722,7 @@
 				}),
 				clear: () => {
 					fileList?.clearNodeTypeFilter();
-					updateStats();
+					notifyViewFiltersChanged();
 				},
 			},
 		];
@@ -835,19 +873,23 @@
 							getSelectedFiles={() =>
 								fileList?.getSelectedFiles() ??
 								plugin.filterService.selectedFiles}
-							{filteredCount}
-							{filterRuleCount}
+							filteredCount={displayedFilteredCount}
+							filterRuleCount={displayedFilterRuleCount}
 							{contentSearchScopeRevision}
+							{contentScopeFilteredCount}
+							contentScopeTotalCount={plugin.app.vault.getFiles().length}
+							contentScopeFilterCount={displayedFilterRuleCount}
 							{showDock}
 							{queuedCount}
 							{queueWarningCount}
 							onOpenFilters={openFiltersLauncher}
+							onViewFiltersChanged={notifyViewFiltersChanged}
 							onClearFilters={clearActiveFilters}
 							onOpenQueue={openQueueLauncher}
 							onClearQueue={clearQueueQuick}
 							onOpenStatistics={() => navigateTo('statistics')}
 							{addOpCount}
-							expansionRevision={filterRuleCount + filteredCount}
+							expansionRevision={displayedFilterRuleCount + displayedFilteredCount}
 							{icon}
 						/>
 					{/if}
@@ -897,8 +939,8 @@
 				{reorderTargetIdx}
 				bind:pillEl
 				{selectedCount}
-				{filterRuleCount}
-				filterResultCount={filteredCount}
+				filterRuleCount={displayedFilterRuleCount}
+				filterResultCount={displayedFilteredCount}
 				{queuedCount}
 				{queueWarningCount}
 				{bindNav}
