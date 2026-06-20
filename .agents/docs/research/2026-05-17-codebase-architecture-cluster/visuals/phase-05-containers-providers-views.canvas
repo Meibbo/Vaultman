@@ -1,0 +1,597 @@
+{
+  "nodes": [
+    {
+      "id": "e500000000000001",
+      "type": "text",
+      "text": "Phase 05 - Containers + Providers + Views\nPanelExplorer is the explorer narrow waist. Providers own data/actions. Views own rendering, focus, keyboard, badges, and scroll.",
+      "x": 0,
+      "y": 0,
+      "width": 520,
+      "height": 150,
+      "color": "6"
+    },
+    {
+      "id": "e500000000000002",
+      "type": "file",
+      "file": ".agents/docs/work/research/2026-05-17-codebase-architecture-cluster/05-containers-providers-views-layer.md",
+      "x": 0,
+      "y": -230,
+      "width": 500,
+      "height": 90,
+      "color": "4"
+    },
+    {
+      "id": "e500000000000003",
+      "type": "file",
+      "file": ".agents/docs/work/research/2026-05-17-codebase-architecture-cluster/05a-panel-explorer-orchestrator.md",
+      "x": -590,
+      "y": -150,
+      "width": 500,
+      "height": 90,
+      "color": "5"
+    },
+    {
+      "id": "e500000000000004",
+      "type": "file",
+      "file": ".agents/docs/work/research/2026-05-17-codebase-architecture-cluster/05b-explorer-providers.md",
+      "x": -590,
+      "y": -20,
+      "width": 500,
+      "height": 90,
+      "color": "5"
+    },
+    {
+      "id": "e500000000000005",
+      "type": "file",
+      "file": ".agents/docs/work/research/2026-05-17-codebase-architecture-cluster/05c-view-adapters-and-contracts.md",
+      "x": -590,
+      "y": 110,
+      "width": 500,
+      "height": 90,
+      "color": "5"
+    },
+    {
+      "id": "e500000000000006",
+      "type": "group",
+      "label": "Containers",
+      "x": 590,
+      "y": -360,
+      "width": 530,
+      "height": 690,
+      "color": "5"
+    },
+    {
+      "id": "e500000000000007",
+      "type": "file",
+      "file": "src/components/containers/panelExplorer.svelte",
+      "x": 630,
+      "y": -310,
+      "width": 440,
+      "height": 80,
+      "color": "5"
+    },
+    {
+      "id": "e500000000000008",
+      "type": "file",
+      "file": "src/components/containers/explorerQueue.svelte",
+      "x": 630,
+      "y": -200,
+      "width": 440,
+      "height": 70,
+      "color": "5"
+    },
+    {
+      "id": "e500000000000009",
+      "type": "file",
+      "file": "src/components/containers/explorerActiveFilters.svelte",
+      "x": 630,
+      "y": -100,
+      "width": 440,
+      "height": 70,
+      "color": "5"
+    },
+    {
+      "id": "e50000000000000a",
+      "type": "file",
+      "file": "src/components/containers/explorerBasesImport.ts",
+      "x": 630,
+      "y": 0,
+      "width": 440,
+      "height": 70,
+      "color": "5"
+    },
+    {
+      "id": "e50000000000000b",
+      "type": "file",
+      "file": "src/components/containers/panelCurator.ts",
+      "x": 630,
+      "y": 100,
+      "width": 440,
+      "height": 70,
+      "color": "5"
+    },
+    {
+      "id": "e50000000000000c",
+      "type": "text",
+      "text": "Container re-export shims\nexplorerFiles, explorerProps, explorerTags, explorerContent, explorerPlugins, explorerSnippets keep older imports pointed at src/providers.",
+      "x": 630,
+      "y": 200,
+      "width": 440,
+      "height": 100,
+      "color": "6"
+    },
+    {
+      "id": "e50000000000000d",
+      "type": "group",
+      "label": "Providers",
+      "x": 1180,
+      "y": -360,
+      "width": 530,
+      "height": 690,
+      "color": "5"
+    },
+    {
+      "id": "e50000000000000e",
+      "type": "file",
+      "file": "src/providers/explorerFiles.ts",
+      "x": 1220,
+      "y": -310,
+      "width": 430,
+      "height": 70,
+      "color": "5"
+    },
+    {
+      "id": "e50000000000000f",
+      "type": "file",
+      "file": "src/providers/explorerProps.ts",
+      "x": 1220,
+      "y": -215,
+      "width": 430,
+      "height": 70,
+      "color": "5"
+    },
+    {
+      "id": "e500000000000010",
+      "type": "file",
+      "file": "src/providers/explorerTags.ts",
+      "x": 1220,
+      "y": -120,
+      "width": 430,
+      "height": 70,
+      "color": "5"
+    },
+    {
+      "id": "e500000000000011",
+      "type": "file",
+      "file": "src/providers/explorerContent.ts",
+      "x": 1220,
+      "y": -25,
+      "width": 430,
+      "height": 70,
+      "color": "5"
+    },
+    {
+      "id": "e500000000000012",
+      "type": "file",
+      "file": "src/providers/explorerPlugins.ts",
+      "x": 1220,
+      "y": 70,
+      "width": 430,
+      "height": 70,
+      "color": "5"
+    },
+    {
+      "id": "e500000000000013",
+      "type": "file",
+      "file": "src/providers/explorerSnippets.ts",
+      "x": 1220,
+      "y": 165,
+      "width": 430,
+      "height": 70,
+      "color": "5"
+    },
+    {
+      "id": "e500000000000014",
+      "type": "file",
+      "file": "src/providers/explorerOutline.ts",
+      "x": 1220,
+      "y": 260,
+      "width": 430,
+      "height": 70,
+      "color": "5"
+    },
+    {
+      "id": "e500000000000015",
+      "type": "group",
+      "label": "Views",
+      "x": 590,
+      "y": 390,
+      "width": 1120,
+      "height": 520,
+      "color": "5"
+    },
+    {
+      "id": "e500000000000016",
+      "type": "file",
+      "file": "src/components/views/viewTree.svelte",
+      "x": 630,
+      "y": 440,
+      "width": 330,
+      "height": 70,
+      "color": "5"
+    },
+    {
+      "id": "e500000000000017",
+      "type": "file",
+      "file": "src/components/views/ViewNodeList.svelte",
+      "x": 630,
+      "y": 535,
+      "width": 330,
+      "height": 70,
+      "color": "5"
+    },
+    {
+      "id": "e500000000000018",
+      "type": "file",
+      "file": "src/components/views/ViewNodeGrid.svelte",
+      "x": 630,
+      "y": 630,
+      "width": 330,
+      "height": 70,
+      "color": "5"
+    },
+    {
+      "id": "e500000000000019",
+      "type": "file",
+      "file": "src/components/views/ViewNodeTable.svelte",
+      "x": 630,
+      "y": 725,
+      "width": 330,
+      "height": 70,
+      "color": "5"
+    },
+    {
+      "id": "e50000000000001a",
+      "type": "file",
+      "file": "src/components/views/ViewNodeCards.svelte",
+      "x": 1000,
+      "y": 440,
+      "width": 330,
+      "height": 70,
+      "color": "5"
+    },
+    {
+      "id": "e50000000000001b",
+      "type": "file",
+      "file": "src/components/views/ViewMarkmap.svelte",
+      "x": 1000,
+      "y": 535,
+      "width": 330,
+      "height": 70,
+      "color": "5"
+    },
+    {
+      "id": "e50000000000001c",
+      "type": "file",
+      "file": "src/components/views/viewDiff.svelte",
+      "x": 1000,
+      "y": 630,
+      "width": 330,
+      "height": 70,
+      "color": "5"
+    },
+    {
+      "id": "e50000000000001d",
+      "type": "file",
+      "file": "src/components/views/viewDiffNavbar.svelte",
+      "x": 1000,
+      "y": 725,
+      "width": 330,
+      "height": 70,
+      "color": "5"
+    },
+    {
+      "id": "e50000000000001e",
+      "type": "file",
+      "file": "src/components/views/viewEmptyLanding.svelte",
+      "x": 1370,
+      "y": 440,
+      "width": 300,
+      "height": 70,
+      "color": "5"
+    },
+    {
+      "id": "e50000000000001f",
+      "type": "file",
+      "file": "src/components/views/viewOutlineExplorer.svelte",
+      "x": 1370,
+      "y": 535,
+      "width": 300,
+      "height": 70,
+      "color": "5"
+    },
+    {
+      "id": "e500000000000020",
+      "type": "file",
+      "file": "src/components/views/nodeBadgeHelpers.ts",
+      "x": 1370,
+      "y": 630,
+      "width": 300,
+      "height": 70,
+      "color": "5"
+    },
+    {
+      "id": "e500000000000021",
+      "type": "group",
+      "label": "Contracts and services",
+      "x": -590,
+      "y": 300,
+      "width": 520,
+      "height": 540,
+      "color": "3"
+    },
+    {
+      "id": "e500000000000022",
+      "type": "file",
+      "file": "src/types/typeExplorer.ts",
+      "x": -550,
+      "y": 350,
+      "width": 430,
+      "height": 70,
+      "color": "3"
+    },
+    {
+      "id": "e500000000000023",
+      "type": "file",
+      "file": "src/types/typeExplorerDataPlane.ts",
+      "x": -550,
+      "y": 445,
+      "width": 430,
+      "height": 70,
+      "color": "3"
+    },
+    {
+      "id": "e500000000000024",
+      "type": "file",
+      "file": "src/services/serviceExplorerProjection.ts",
+      "x": -550,
+      "y": 540,
+      "width": 430,
+      "height": 70,
+      "color": "3"
+    },
+    {
+      "id": "e500000000000025",
+      "type": "file",
+      "file": "src/services/serviceExplorerRowInput.ts",
+      "x": -550,
+      "y": 635,
+      "width": 430,
+      "height": 70,
+      "color": "3"
+    },
+    {
+      "id": "e500000000000026",
+      "type": "file",
+      "file": "src/services/serviceViewTableAdapter.ts",
+      "x": -550,
+      "y": 730,
+      "width": 430,
+      "height": 70,
+      "color": "3"
+    },
+    {
+      "id": "e500000000000027",
+      "type": "file",
+      "file": "src/services/serviceExplorerScrollGeometry.ts",
+      "x": -550,
+      "y": 825,
+      "width": 430,
+      "height": 70,
+      "color": "3"
+    },
+    {
+      "id": "e500000000000028",
+      "type": "text",
+      "text": "Next phase\nMap services, logic, registry, utils, and types because this phase repeatedly crosses those modules.",
+      "x": 0,
+      "y": 760,
+      "width": 520,
+      "height": 120,
+      "color": "3"
+    }
+  ],
+  "edges": [
+    {
+      "id": "e5e0000000000001",
+      "fromNode": "e500000000000002",
+      "toNode": "e500000000000001"
+    },
+    {
+      "id": "e5e0000000000002",
+      "fromNode": "e500000000000003",
+      "toNode": "e500000000000007",
+      "label": "orchestrates"
+    },
+    {
+      "id": "e5e0000000000003",
+      "fromNode": "e500000000000004",
+      "toNode": "e50000000000000d",
+      "label": "documents"
+    },
+    {
+      "id": "e5e0000000000004",
+      "fromNode": "e500000000000005",
+      "toNode": "e500000000000015",
+      "label": "documents"
+    },
+    {
+      "id": "e5e0000000000005",
+      "fromNode": "e500000000000007",
+      "toNode": "e500000000000022",
+      "label": "provider contract"
+    },
+    {
+      "id": "e5e0000000000006",
+      "fromNode": "e500000000000007",
+      "toNode": "e500000000000023",
+      "label": "snapshot/reveal"
+    },
+    {
+      "id": "e5e0000000000007",
+      "fromNode": "e500000000000007",
+      "toNode": "e50000000000000e",
+      "label": "active provider"
+    },
+    {
+      "id": "e5e0000000000008",
+      "fromNode": "e500000000000007",
+      "toNode": "e50000000000000f",
+      "label": "active provider"
+    },
+    {
+      "id": "e5e0000000000009",
+      "fromNode": "e500000000000007",
+      "toNode": "e500000000000010",
+      "label": "active provider"
+    },
+    {
+      "id": "e5e000000000000a",
+      "fromNode": "e500000000000007",
+      "toNode": "e500000000000011",
+      "label": "active provider"
+    },
+    {
+      "id": "e5e000000000000b",
+      "fromNode": "e500000000000007",
+      "toNode": "e500000000000012",
+      "label": "active provider"
+    },
+    {
+      "id": "e5e000000000000c",
+      "fromNode": "e500000000000007",
+      "toNode": "e500000000000013",
+      "label": "active provider"
+    },
+    {
+      "id": "e5e000000000000d",
+      "fromNode": "e50000000000000e",
+      "toNode": "e500000000000014",
+      "label": "adopts outline"
+    },
+    {
+      "id": "e5e000000000000e",
+      "fromNode": "e500000000000007",
+      "toNode": "e500000000000024",
+      "label": "projects"
+    },
+    {
+      "id": "e5e000000000000f",
+      "fromNode": "e500000000000024",
+      "toNode": "e500000000000025",
+      "label": "row input"
+    },
+    {
+      "id": "e5e0000000000010",
+      "fromNode": "e500000000000007",
+      "toNode": "e500000000000026",
+      "label": "table columns"
+    },
+    {
+      "id": "e5e0000000000011",
+      "fromNode": "e500000000000007",
+      "toNode": "e500000000000016",
+      "label": "tree mode"
+    },
+    {
+      "id": "e5e0000000000012",
+      "fromNode": "e500000000000007",
+      "toNode": "e500000000000017",
+      "label": "list mode"
+    },
+    {
+      "id": "e5e0000000000013",
+      "fromNode": "e500000000000007",
+      "toNode": "e500000000000018",
+      "label": "grid mode"
+    },
+    {
+      "id": "e5e0000000000014",
+      "fromNode": "e500000000000007",
+      "toNode": "e500000000000019",
+      "label": "table mode"
+    },
+    {
+      "id": "e5e0000000000015",
+      "fromNode": "e500000000000007",
+      "toNode": "e50000000000001a",
+      "label": "cards mode"
+    },
+    {
+      "id": "e5e0000000000016",
+      "fromNode": "e500000000000007",
+      "toNode": "e50000000000001b",
+      "label": "markmap mode"
+    },
+    {
+      "id": "e5e0000000000017",
+      "fromNode": "e500000000000016",
+      "toNode": "e500000000000027",
+      "label": "fixed geometry"
+    },
+    {
+      "id": "e5e0000000000018",
+      "fromNode": "e500000000000017",
+      "toNode": "e500000000000027",
+      "label": "fixed geometry"
+    },
+    {
+      "id": "e5e0000000000019",
+      "fromNode": "e500000000000018",
+      "toNode": "e500000000000027",
+      "label": "variable geometry"
+    },
+    {
+      "id": "e5e000000000001a",
+      "fromNode": "e500000000000019",
+      "toNode": "e500000000000027",
+      "label": "variable geometry"
+    },
+    {
+      "id": "e5e000000000001b",
+      "fromNode": "e50000000000001a",
+      "toNode": "e500000000000027",
+      "label": "variable geometry"
+    },
+    {
+      "id": "e5e000000000001c",
+      "fromNode": "e500000000000020",
+      "toNode": "e500000000000015",
+      "label": "badges"
+    },
+    {
+      "id": "e5e000000000001d",
+      "fromNode": "e500000000000008",
+      "toNode": "e500000000000017",
+      "label": "uses list view"
+    },
+    {
+      "id": "e5e000000000001e",
+      "fromNode": "e500000000000009",
+      "toNode": "e500000000000017",
+      "label": "uses list view"
+    },
+    {
+      "id": "e5e000000000001f",
+      "fromNode": "e50000000000001c",
+      "toNode": "e50000000000001d",
+      "label": "navbar"
+    },
+    {
+      "id": "e5e0000000000020",
+      "fromNode": "e500000000000001",
+      "toNode": "e500000000000028",
+      "label": "next"
+    }
+  ]
+}

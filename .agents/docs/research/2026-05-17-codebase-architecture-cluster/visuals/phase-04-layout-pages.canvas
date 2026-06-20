@@ -1,0 +1,226 @@
+{
+  "nodes": [
+    {
+      "id": "d400000000000001",
+      "type": "text",
+      "text": "Phase 04 - Layout + Pages\nMaps generic nav, Filters toolbar, popups, page surfaces, dashboard edge, and toolbar/navbar recovery path.",
+      "x": 0,
+      "y": 0,
+      "width": 480,
+      "height": 150,
+      "color": "6"
+    },
+    {
+      "id": "d400000000000002",
+      "type": "file",
+      "file": ".agents/docs/work/research/2026-05-17-codebase-architecture-cluster/04-components-layout-pages-layer.md",
+      "x": 0,
+      "y": -230,
+      "width": 440,
+      "height": 90,
+      "color": "4"
+    },
+    {
+      "id": "d400000000000003",
+      "type": "file",
+      "file": ".agents/docs/work/research/2026-05-17-codebase-architecture-cluster/04a-layout-navigation-toolbar.md",
+      "x": -560,
+      "y": -140,
+      "width": 430,
+      "height": 90,
+      "color": "5"
+    },
+    {
+      "id": "d400000000000004",
+      "type": "file",
+      "file": ".agents/docs/work/research/2026-05-17-codebase-architecture-cluster/04b-page-surfaces.md",
+      "x": -560,
+      "y": 30,
+      "width": 430,
+      "height": 90,
+      "color": "5"
+    },
+    {
+      "id": "d400000000000005",
+      "type": "file",
+      "file": ".agents/docs/work/research/2026-05-17-codebase-architecture-cluster/04c-toolbar-navbar-recovery-path.md",
+      "x": -560,
+      "y": 200,
+      "width": 430,
+      "height": 90,
+      "color": "3"
+    },
+    {
+      "id": "d400000000000006",
+      "type": "file",
+      "file": "src/components/layout/Toolbar.svelte",
+      "x": 560,
+      "y": -210,
+      "width": 420,
+      "height": 90,
+      "color": "5"
+    },
+    {
+      "id": "d400000000000007",
+      "type": "file",
+      "file": "src/components/layout/navbarDock.svelte",
+      "x": 560,
+      "y": -80,
+      "width": 420,
+      "height": 80,
+      "color": "5"
+    },
+    {
+      "id": "d400000000000008",
+      "type": "file",
+      "file": "src/components/layout/navbarTabs.svelte",
+      "x": 560,
+      "y": 30,
+      "width": 420,
+      "height": 80,
+      "color": "5"
+    },
+    {
+      "id": "d400000000000009",
+      "type": "file",
+      "file": "src/components/pages/pageFilters.svelte",
+      "x": 560,
+      "y": 150,
+      "width": 420,
+      "height": 90,
+      "color": "5"
+    },
+    {
+      "id": "d40000000000000a",
+      "type": "file",
+      "file": "src/components/pages/pageTools.svelte",
+      "x": 560,
+      "y": 280,
+      "width": 420,
+      "height": 80,
+      "color": "5"
+    },
+    {
+      "id": "d40000000000000b",
+      "type": "file",
+      "file": "src/components/pages/pageStats.svelte",
+      "x": 560,
+      "y": 390,
+      "width": 420,
+      "height": 80,
+      "color": "5"
+    },
+    {
+      "id": "d40000000000000c",
+      "type": "text",
+      "text": "Style sources\nsrc/styles/nav/_v3-nav.scss\nsrc/styles/nav/_tab-bar.scss\nsrc/styles/data/_filters.scss\nsrc/styles/explorer/_explorer.scss\nsrc/styles/popup/*.scss",
+      "x": 20,
+      "y": 290,
+      "width": 500,
+      "height": 160,
+      "color": "6"
+    },
+    {
+      "id": "d40000000000000d",
+      "type": "text",
+      "text": "Toolbar recovery\nKeep current primitives. Restore navbar rhythm by making collapsed search visually inline again and styling extra controls as attached navbar primitives instead of a side-heavy cluster.",
+      "x": 20,
+      "y": 520,
+      "width": 560,
+      "height": 150,
+      "color": "3"
+    },
+    {
+      "id": "d40000000000000e",
+      "type": "text",
+      "text": "Recommended Phase 05\nMap src/components/containers/, src/providers/, and src/components/views/ because page tabs delegate explorer bodies to PanelExplorer plus provider classes.",
+      "x": 650,
+      "y": 550,
+      "width": 460,
+      "height": 140,
+      "color": "3"
+    }
+  ],
+  "edges": [
+    {
+      "id": "d4e0000000000001",
+      "fromNode": "d400000000000002",
+      "toNode": "d400000000000001"
+    },
+    {
+      "id": "d4e0000000000002",
+      "fromNode": "d400000000000003",
+      "toNode": "d400000000000001"
+    },
+    {
+      "id": "d4e0000000000003",
+      "fromNode": "d400000000000004",
+      "toNode": "d400000000000001"
+    },
+    {
+      "id": "d4e0000000000004",
+      "fromNode": "d400000000000005",
+      "toNode": "d400000000000001"
+    },
+    {
+      "id": "d4e0000000000005",
+      "fromNode": "d400000000000001",
+      "toNode": "d400000000000006",
+      "label": "toolbar"
+    },
+    {
+      "id": "d4e0000000000006",
+      "fromNode": "d400000000000001",
+      "toNode": "d400000000000007",
+      "label": "bottom nav"
+    },
+    {
+      "id": "d4e0000000000007",
+      "fromNode": "d400000000000001",
+      "toNode": "d400000000000008",
+      "label": "top tabs"
+    },
+    {
+      "id": "d4e0000000000008",
+      "fromNode": "d400000000000009",
+      "toNode": "d400000000000006",
+      "label": "mounts"
+    },
+    {
+      "id": "d4e0000000000009",
+      "fromNode": "d400000000000001",
+      "toNode": "d400000000000009",
+      "label": "filters page"
+    },
+    {
+      "id": "d4e000000000000a",
+      "fromNode": "d400000000000001",
+      "toNode": "d40000000000000a",
+      "label": "tools page"
+    },
+    {
+      "id": "d4e000000000000b",
+      "fromNode": "d400000000000001",
+      "toNode": "d40000000000000b",
+      "label": "stats page"
+    },
+    {
+      "id": "d4e000000000000c",
+      "fromNode": "d400000000000006",
+      "toNode": "d40000000000000c",
+      "label": "styled by"
+    },
+    {
+      "id": "d4e000000000000d",
+      "fromNode": "d40000000000000c",
+      "toNode": "d40000000000000d",
+      "label": "evidence"
+    },
+    {
+      "id": "d4e000000000000e",
+      "fromNode": "d400000000000009",
+      "toNode": "d40000000000000e",
+      "label": "delegates next"
+    }
+  ]
+}

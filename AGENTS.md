@@ -10,11 +10,17 @@ Zero-context agents execute this BEFORE any work. Not advisory. Detail:
 0. **Identify** — your agent+model · git stream (goal/proto/canary=sandbox/beta=dev/stable=main) · task_size.
    If `.agents/pkm-ai.version.json` exists, read it; on a MAJOR version mismatch re-read the protocol docs.
 1. **Register presence (join-or-create — deterministic; no prompt needed)** — join the workspace's CURRENT
-   active run, else start one: `node .agents/tools/pkm-ai/agent-room.mjs agent join --run current --agent <id>`;
+   active run, else start one: `npx tsx .agents/tools/pkm-ai/agent-room.ts agent join --run current --agent <id>`;
    if it reports no active run, `... run start --agent <id>` then join. Then `agent heartbeat`. **One active
    room per workspace — all agents of this project converge on it (5 agents = same room).** (ADR 0003.)
+   (Tooling migrated `.mjs` → `.ts` in the 2026-06-04 orchestration upgrade S2. Preferred runner:
+   `npx tsx`. KNOWN FAILURE 2026-06-11/12: in some local shells `npx tsx` fails with
+   `'tsx' is not recognized` because tsx is only a transitive dep and npx does not materialize it.
+   Working fallback: Node 24 runs the `.ts` tools natively — `node .agents/tools/pkm-ai/agent-room.ts ...`
+   (verified by claude-fable-5 and antigravity). If both fail, report in session-log instead of skipping
+   presence registration.)
 2. **Retrieval-first** — query the index for the top-k relevant docs; do NOT read the whole tree:
-   `node .agents/tools/pkm-ai/query-docs.mjs <topic>`. (Lifecycle-ranked once S6 lands; ADR 0002/0006.)
+   `npx tsx .agents/tools/pkm-ai/query-docs.ts <topic>`. (Lifecycle-ranked once S6 lands; ADR 0002/0006.)
 3. **Route docs** — `current/status.md` + `current/handoff.md` are route indexes ONLY; read the latest
    `docs/sessions/session-log.md` entry.
 4. **Memory boundary** —

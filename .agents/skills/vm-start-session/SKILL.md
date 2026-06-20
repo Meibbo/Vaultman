@@ -31,11 +31,15 @@ For micro commands such as `skills:`, `status:`, `next:`, `qq:`, `question:`, or
 
 ## Tools And Docs
 
-Use project scripts when they reduce reading:
+Use project scripts when they reduce reading (run `.ts` tools with `npx tsx` —
+migrated 2026-06-04). If `npx tsx` fails with `'tsx' is not recognized` (tsx is
+only a transitive dep in some environments), fall back to Node 24 native TS:
+`node .agents/tools/pkm-ai/agent-room.ts ...` (verified working 2026-06-12):
 
-- `.agents/tools/pkm-ai/query-docs.mjs`
-- `.agents/tools/pkm-ai/index-docs.mjs`
-- `.agents/tools/pkm-ai/check-doc-health.mjs`
+- `npx tsx .agents/tools/pkm-ai/query-docs.ts`
+- `npx tsx .agents/tools/pkm-ai/index-docs.ts`
+- `npx tsx .agents/tools/pkm-ai/check-doc-health.ts`
+- `npx tsx .agents/tools/pkm-ai/agent-room.ts` (presence/lease)
 
 Relevant docs:
 

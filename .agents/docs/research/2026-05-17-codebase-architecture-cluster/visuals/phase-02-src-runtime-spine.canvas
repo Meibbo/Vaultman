@@ -1,0 +1,457 @@
+{
+  "nodes": [
+    {
+      "id": "d200000000000001",
+      "type": "group",
+      "x": -40,
+      "y": -40,
+      "width": 370,
+      "height": 900,
+      "label": "Entrypoint",
+      "color": "5"
+    },
+    {
+      "id": "d200000000000002",
+      "type": "group",
+      "x": 370,
+      "y": -40,
+      "width": 390,
+      "height": 900,
+      "label": "Plugin lifecycle",
+      "color": "4"
+    },
+    {
+      "id": "d200000000000003",
+      "type": "group",
+      "x": 800,
+      "y": -40,
+      "width": 400,
+      "height": 900,
+      "label": "UI bridges",
+      "color": "6"
+    },
+    {
+      "id": "d200000000000004",
+      "type": "group",
+      "x": 1240,
+      "y": -40,
+      "width": 400,
+      "height": 900,
+      "label": "Service and contract bridges",
+      "color": "3"
+    },
+    {
+      "id": "d200000000000005",
+      "type": "group",
+      "x": 1680,
+      "y": -40,
+      "width": 400,
+      "height": 900,
+      "label": "Next attachment points",
+      "color": "2"
+    },
+    {
+      "id": "d200000000000006",
+      "type": "file",
+      "x": 0,
+      "y": 20,
+      "width": 290,
+      "height": 90,
+      "file": ".agents/docs/work/research/2026-05-17-codebase-architecture-cluster/02-src-runtime-spine.md",
+      "color": "5"
+    },
+    {
+      "id": "d200000000000007",
+      "type": "file",
+      "x": 0,
+      "y": 140,
+      "width": 290,
+      "height": 90,
+      "file": "src/pluginEntry.ts",
+      "color": "5"
+    },
+    {
+      "id": "d200000000000008",
+      "type": "file",
+      "x": 0,
+      "y": 260,
+      "width": 290,
+      "height": 90,
+      "file": "src/main.scss",
+      "color": "5"
+    },
+    {
+      "id": "d200000000000009",
+      "type": "file",
+      "x": 410,
+      "y": 20,
+      "width": 310,
+      "height": 100,
+      "file": "src/main.ts",
+      "color": "4"
+    },
+    {
+      "id": "d20000000000000a",
+      "type": "text",
+      "x": 410,
+      "y": 150,
+      "width": 310,
+      "height": 160,
+      "text": "# onload\n\nLoads settings, hydrates theme, creates indexes/services, registers events, views, commands, settings tab, and perf probe.",
+      "color": "4"
+    },
+    {
+      "id": "d20000000000000b",
+      "type": "text",
+      "x": 410,
+      "y": 340,
+      "width": 310,
+      "height": 140,
+      "text": "# view lifecycle\n\n`activateView`, `toggleView`, and `openView` create/reveal Obsidian leaves for `TYPE_FRAME_VM`.",
+      "color": "4"
+    },
+    {
+      "id": "d20000000000000c",
+      "type": "text",
+      "x": 410,
+      "y": 510,
+      "width": 310,
+      "height": 140,
+      "text": "# settings lifecycle\n\n`loadSettings` merges defaults/saved data; `saveSettings` persists theme preset state.",
+      "color": "4"
+    },
+    {
+      "id": "d20000000000000d",
+      "type": "file",
+      "x": 840,
+      "y": 20,
+      "width": 320,
+      "height": 90,
+      "file": "src/types/typeFrame.ts",
+      "color": "6"
+    },
+    {
+      "id": "d20000000000000e",
+      "type": "file",
+      "x": 840,
+      "y": 140,
+      "width": 320,
+      "height": 90,
+      "file": "src/components/frame/frameVaultman.svelte",
+      "color": "6"
+    },
+    {
+      "id": "d20000000000000f",
+      "type": "file",
+      "x": 840,
+      "y": 260,
+      "width": 320,
+      "height": 90,
+      "file": "src/types/typeTabLeaf.ts",
+      "color": "6"
+    },
+    {
+      "id": "d200000000000010",
+      "type": "file",
+      "x": 840,
+      "y": 380,
+      "width": 320,
+      "height": 90,
+      "file": "src/components/frame/DetachedTabHost.svelte",
+      "color": "6"
+    },
+    {
+      "id": "d200000000000011",
+      "type": "file",
+      "x": 840,
+      "y": 500,
+      "width": 320,
+      "height": 90,
+      "file": "src/settingsVM.ts",
+      "color": "6"
+    },
+    {
+      "id": "d200000000000012",
+      "type": "file",
+      "x": 1280,
+      "y": 20,
+      "width": 320,
+      "height": 90,
+      "file": "src/types/typeSettings.ts",
+      "color": "3"
+    },
+    {
+      "id": "d200000000000013",
+      "type": "file",
+      "x": 1280,
+      "y": 140,
+      "width": 320,
+      "height": 90,
+      "file": "src/types/typeContracts.ts",
+      "color": "3"
+    },
+    {
+      "id": "d200000000000014",
+      "type": "file",
+      "x": 1280,
+      "y": 260,
+      "width": 320,
+      "height": 90,
+      "file": "src/services/serviceCommands.ts",
+      "color": "3"
+    },
+    {
+      "id": "d200000000000015",
+      "type": "file",
+      "x": 1280,
+      "y": 380,
+      "width": 320,
+      "height": 90,
+      "file": "src/registry/tabRegistry.ts",
+      "color": "3"
+    },
+    {
+      "id": "d200000000000016",
+      "type": "file",
+      "x": 1280,
+      "y": 500,
+      "width": 320,
+      "height": 90,
+      "file": "src/services/serviceLayout.ts",
+      "color": "3"
+    },
+    {
+      "id": "d200000000000017",
+      "type": "file",
+      "x": 1280,
+      "y": 620,
+      "width": 320,
+      "height": 90,
+      "file": "src/services/serviceTheme.svelte.ts",
+      "color": "3"
+    },
+    {
+      "id": "d200000000000018",
+      "type": "file",
+      "x": 1280,
+      "y": 740,
+      "width": 320,
+      "height": 90,
+      "file": "src/dev/perfProbe.ts",
+      "color": "3"
+    },
+    {
+      "id": "d200000000000019",
+      "type": "text",
+      "x": 1720,
+      "y": 20,
+      "width": 320,
+      "height": 130,
+      "text": "# Phase 03\n\nMap `src/components/frame/` first: frame shell, overlays, viewport, page routing, nav reorder, hooks.",
+      "color": "3"
+    },
+    {
+      "id": "d20000000000001a",
+      "type": "text",
+      "x": 1720,
+      "y": 180,
+      "width": 320,
+      "height": 130,
+      "text": "# Later component layers\n\nAfter frame: pages, layout, containers, views, primitives.",
+      "color": "2"
+    },
+    {
+      "id": "d20000000000001b",
+      "type": "text",
+      "x": 1720,
+      "y": 340,
+      "width": 320,
+      "height": 130,
+      "text": "# Later service layers\n\nMap services/providers/registry/index/types after the frame attachment points are stable.",
+      "color": "2"
+    },
+    {
+      "id": "d20000000000001c",
+      "type": "text",
+      "x": 1720,
+      "y": 500,
+      "width": 320,
+      "height": 130,
+      "text": "# Style layers\n\nAttach UI maps back to `main.scss` imports: nav, explorer, data, panels, popups.",
+      "color": "2"
+    }
+  ],
+  "edges": [
+    {
+      "id": "e200000000000001",
+      "fromNode": "d200000000000006",
+      "fromSide": "right",
+      "toNode": "d200000000000007",
+      "toSide": "left",
+      "toEnd": "arrow",
+      "label": "documents"
+    },
+    {
+      "id": "e200000000000002",
+      "fromNode": "d200000000000007",
+      "fromSide": "right",
+      "toNode": "d200000000000009",
+      "toSide": "left",
+      "toEnd": "arrow",
+      "label": "exports"
+    },
+    {
+      "id": "e200000000000003",
+      "fromNode": "d200000000000007",
+      "fromSide": "bottom",
+      "toNode": "d200000000000008",
+      "toSide": "top",
+      "toEnd": "arrow",
+      "label": "imports styles"
+    },
+    {
+      "id": "e200000000000004",
+      "fromNode": "d200000000000009",
+      "fromSide": "bottom",
+      "toNode": "d20000000000000a",
+      "toSide": "top",
+      "toEnd": "arrow",
+      "label": "runs"
+    },
+    {
+      "id": "e200000000000005",
+      "fromNode": "d200000000000009",
+      "fromSide": "right",
+      "toNode": "d20000000000000d",
+      "toSide": "left",
+      "toEnd": "arrow",
+      "label": "registers"
+    },
+    {
+      "id": "e200000000000006",
+      "fromNode": "d20000000000000d",
+      "fromSide": "bottom",
+      "toNode": "d20000000000000e",
+      "toSide": "top",
+      "toEnd": "arrow",
+      "label": "mounts"
+    },
+    {
+      "id": "e200000000000007",
+      "fromNode": "d200000000000009",
+      "fromSide": "right",
+      "toNode": "d20000000000000f",
+      "toSide": "left",
+      "toEnd": "arrow",
+      "label": "registers tabs"
+    },
+    {
+      "id": "e200000000000008",
+      "fromNode": "d20000000000000f",
+      "fromSide": "bottom",
+      "toNode": "d200000000000010",
+      "toSide": "top",
+      "toEnd": "arrow",
+      "label": "mounts"
+    },
+    {
+      "id": "e200000000000009",
+      "fromNode": "d200000000000009",
+      "fromSide": "right",
+      "toNode": "d200000000000011",
+      "toSide": "left",
+      "toEnd": "arrow",
+      "label": "settings tab"
+    },
+    {
+      "id": "e20000000000000a",
+      "fromNode": "d200000000000009",
+      "fromSide": "right",
+      "toNode": "d200000000000012",
+      "toSide": "left",
+      "toEnd": "arrow",
+      "label": "defaults"
+    },
+    {
+      "id": "e20000000000000b",
+      "fromNode": "d200000000000009",
+      "fromSide": "right",
+      "toNode": "d200000000000013",
+      "toSide": "left",
+      "toEnd": "arrow",
+      "label": "contracts"
+    },
+    {
+      "id": "e20000000000000c",
+      "fromNode": "d200000000000009",
+      "fromSide": "right",
+      "toNode": "d200000000000014",
+      "toSide": "left",
+      "toEnd": "arrow",
+      "label": "commands"
+    },
+    {
+      "id": "e20000000000000d",
+      "fromNode": "d200000000000009",
+      "fromSide": "right",
+      "toNode": "d200000000000015",
+      "toSide": "left",
+      "toEnd": "arrow",
+      "label": "tab ids"
+    },
+    {
+      "id": "e20000000000000e",
+      "fromNode": "d200000000000009",
+      "fromSide": "right",
+      "toNode": "d200000000000016",
+      "toSide": "left",
+      "toEnd": "arrow",
+      "label": "layout"
+    },
+    {
+      "id": "e20000000000000f",
+      "fromNode": "d200000000000009",
+      "fromSide": "right",
+      "toNode": "d200000000000017",
+      "toSide": "left",
+      "toEnd": "arrow",
+      "label": "theme"
+    },
+    {
+      "id": "e200000000000010",
+      "fromNode": "d200000000000009",
+      "fromSide": "right",
+      "toNode": "d200000000000018",
+      "toSide": "left",
+      "toEnd": "arrow",
+      "label": "perf"
+    },
+    {
+      "id": "e200000000000011",
+      "fromNode": "d20000000000000e",
+      "fromSide": "right",
+      "toNode": "d200000000000019",
+      "toSide": "left",
+      "toEnd": "arrow",
+      "label": "next"
+    },
+    {
+      "id": "e200000000000012",
+      "fromNode": "d200000000000008",
+      "fromSide": "right",
+      "toNode": "d20000000000001c",
+      "toSide": "left",
+      "toEnd": "arrow",
+      "label": "style map"
+    },
+    {
+      "id": "e200000000000013",
+      "fromNode": "d200000000000013",
+      "fromSide": "right",
+      "toNode": "d20000000000001b",
+      "toSide": "left",
+      "toEnd": "arrow",
+      "label": "later"
+    }
+  ]
+}

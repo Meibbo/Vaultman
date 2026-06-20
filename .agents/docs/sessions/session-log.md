@@ -725,3 +725,9 @@ broader "append-only status writes" is parked as **S-12** in
 - **V.D thread A (perf render-runtime) — slice 1 paso 1 HECHO:** contrato + respuestas Q1-Q4 + slice plan aterrizados en el shard V.D §Thread A. Pure core `src/services/serviceSharedVirtualLayout.ts` (Linear-fixed, framework-agnóstico: viewportOverscan/fixedVisibleRange/fixedIndicesInBand/fixedScrollOffsetForIndex) + **12/12 unit tests** — **commit `8863191` en `umbrella-v2/wave-1-vd`** (worktree `C:/tmp/vaultman-uv2-vd`, deps OK). Reemplaza (al cablear): TREE_OVERSCAN=10, fallbackFixedVirtualRows range, intersectingRowIdsByFixedGeometry, scrollTopForAlign.
 - **NEXT (sesión fresca):** thread A slice 1 paso 2 shell Svelte 5 (`serviceSharedVirtualLayout.svelte.ts`) → paso 3 migrar viewTree → paso 4 gate strict (plugin-dev) → paso 5 FF a sandbox. Entrada = handoff §"V.D thread A".
 - **git:** sandbox @ `d5382c1` (sin push); rama worktree `umbrella-v2/wave-1-vd` @ `8863191`. Checkpoint + CIERRE de thread (context 67%).
+
+## 2026-06-19 — antigravity · codex update to 0.141.0 (implement micro)
+- **summary:** Codex CLI actualizado exitosamente de 0.138.0 a 0.141.0. Se detectó que la instalación original era un standalone `codex.exe` en el Desktop (other) con un wrapper `codex.cmd` en `.local/bin`. Se ejecutó el instalador oficial de PowerShell con `$env:CODEX_NON_INTERACTIVE='true'` para instalar `0.141.0` en la ruta estándar `AppData\Local\Programs\OpenAI\Codex\bin`, y luego se copió el ejecutable actualizado a `Desktop\codex.exe` para sobreescribir el standalone manteniendo compatibilidad.
+- **verification:** `C:\Users\vic_A\Desktop\codex.exe --version` reporta `codex-cli 0.141.0`. `codex doctor` reporta databases healthy, updates actualizados ("current version is not older"), y conectividad OK.
+- **git:** No se modificaron archivos del repositorio. Workspace limpio en rama sandbox.
+- **next-action:** Continuar con V.D thread A slice 1 paso 2 (shell Svelte 5).
