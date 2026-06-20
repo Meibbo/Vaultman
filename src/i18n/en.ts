@@ -154,6 +154,9 @@ export const en: Record<string, string> = {
 	'settings.minimal_style': 'Minimal style',
 	'settings.minimal_style.desc':
 		'Use compact Obsidian-native icon buttons in headers and the bottom dock.',
+	'settings.search_highlights': 'Explorer search highlights',
+	'settings.search_highlights.desc':
+		'Highlight explorer rows that match the current search.',
 	'settings.badge_colors': 'Colored badges',
 	'settings.badge_colors.desc':
 		'Use colored badge icons across Files, Tags, and Properties. Disabled keeps badges monotone.',

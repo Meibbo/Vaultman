@@ -22,4 +22,8 @@ describe('Vaultman default settings', () => {
 	it('keeps the bottom dock disabled by default', () => {
 		expect(DEFAULT_SETTINGS.showDock).toBe(false);
 	});
+
+	it('keeps explorer search highlights disabled by default', () => {
+		expect(DEFAULT_SETTINGS.explorerSearchHighlights).toBe(false);
+	});
 });

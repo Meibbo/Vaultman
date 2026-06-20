@@ -15,6 +15,7 @@ export interface PanelPluginCtx {
 	queueService: OperationQueueService;
 	settings?: {
 		badgeCancelClickMode?: import('../../utils/badgeInteraction').BadgeCancelClickMode;
+		explorerSearchHighlights?: boolean;
 	};
 	statisticsCache?: Pick<StatisticsCacheService, 'getFileTimes'>;
 	showDragActionGuide?: (text: string) => void;
@@ -342,6 +343,8 @@ export class TagsExplorerPanel extends Component {
 			this._expandAll(tree);
 		}
 		tree = this._applySort(tree);
+		const searchHighlightsEnabled =
+			this.plugin.settings?.explorerSearchHighlights === true;
 
 		const activeFilterIds = new Set<string>();
 		for (const node of this._flattenTree(tree)) {
@@ -355,14 +358,15 @@ export class TagsExplorerPanel extends Component {
 			prepareSimpleSearch?(query: string): (text: string) => unknown;
 		}
 		const cache = this.plugin.app.metadataCache as unknown as ObsMetadataCache;
-		const searchFunc: ((text: string) => unknown) | null = this.searchTerm
-			? cache.prepareSimpleSearch
+		let searchFunc: ((text: string) => unknown) | null = null;
+		if (this.searchTerm && searchHighlightsEnabled) {
+			searchFunc = cache.prepareSimpleSearch
 				? cache.prepareSimpleSearch(this.searchTerm)
 				: (text: string) =>
 						text.toLowerCase().includes(this.searchTerm.toLowerCase())
 							? {}
-							: null
-			: null;
+							: null;
+		}
 
 		const highlightIds = new Set<string>();
 

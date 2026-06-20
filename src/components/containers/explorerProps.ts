@@ -16,6 +16,7 @@ export interface PanelPluginCtx {
 	settings?: {
 		minimalStyle: boolean;
 		badgeCancelClickMode?: import('../../utils/badgeInteraction').BadgeCancelClickMode;
+		explorerSearchHighlights?: boolean;
 	};
 	statisticsCache?: Pick<StatisticsCacheService, 'getFileTimes'>;
 	showDragActionGuide?: (text: string) => void;
@@ -651,6 +652,8 @@ export class PropsExplorerPanel extends Component {
 		const activeFilterIds = this._activeFilterIds();
 		const highlightIds = new Set<string>();
 		const warningIds = new Set<string>();
+		const searchHighlightsEnabled =
+			this.plugin.settings?.explorerSearchHighlights === true;
 
 		if (this.nodeTypeFilter) {
 			tree = this._filterByType(tree, this.nodeTypeFilter);
@@ -663,7 +666,10 @@ export class PropsExplorerPanel extends Component {
 		const searcher = this.searchTerm
 			? prepareSimpleSearch(this.searchTerm)
 			: null;
-		const searchFunc = searcher ? (text: string) => searcher(text) : null;
+		const searchFunc =
+			searcher && searchHighlightsEnabled
+				? (text: string) => searcher(text)
+				: null;
 
 		const sorted = this._applySort(tree);
 		let nodesWithIcons = this._resolveIcons(
@@ -949,6 +955,8 @@ export class PropsExplorerPanel extends Component {
 		const activeFilterIds = this._activeFilterIds();
 		const highlightIds = new Set<string>();
 		const warningIds = new Set<string>();
+		const searchHighlightsEnabled =
+			this.plugin.settings?.explorerSearchHighlights === true;
 		if (this.nodeTypeFilter) {
 			tree = this._filterByType(tree, this.nodeTypeFilter);
 		}
@@ -958,7 +966,10 @@ export class PropsExplorerPanel extends Component {
 		const searcher = this.searchTerm
 			? prepareSimpleSearch(this.searchTerm)
 			: null;
-		const searchFunc = searcher ? (text: string) => searcher(text) : null;
+		const searchFunc =
+			searcher && searchHighlightsEnabled
+				? (text: string) => searcher(text)
+				: null;
 		const sorted = this._applySort(tree);
 		const resolved = this._resolveIcons(
 			sorted,
