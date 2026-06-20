@@ -547,11 +547,11 @@ export class OperationQueueService extends Component {
 	private isFolderDeleteChange(
 		change: PendingChange,
 	): change is FolderDeleteChange {
+		const targetFolder = (change as { targetFolder?: string }).targetFolder;
 		return (
 			change.type === 'file_delete' &&
-			typeof (change as { targetFolder?: string }).targetFolder === 'string' &&
-			((change as { targetFolder?: string }).targetFolder?.length ?? 0) > 0 &&
-			change.files.length === 0
+			typeof targetFolder === 'string' &&
+			targetFolder.length > 0
 		);
 	}
 
