@@ -106,18 +106,6 @@ export class TagsExplorerPanel extends Component {
 			},
 		});
 
-		svc.registerAction({
-			id: 'tag.inline-to-frontmatter',
-			nodeTypes: ['tag'],
-			surfaces: ['panel'],
-			label: 'Send all inline to frontmatter',
-			icon: 'lucide-arrow-up-to-line',
-			run: (ctx: MenuCtx) => {
-				const meta = ctx.node.meta as TagMeta;
-				return this._sendToFrontmatter(meta.tagPath);
-			},
-		});
-
 		this.registerEvent(
 			this.plugin.app.metadataCache.on('resolved', () => {
 				this.logic.invalidate();
@@ -971,38 +959,6 @@ export class TagsExplorerPanel extends Component {
 		this._render();
 	}
 
-	private async _sendToFrontmatter(tagPath: string): Promise<void> {
-		this.plugin.queueService.addOrRun({
-			type: 'tag',
-			tag: tagPath,
-			action: 'add',
-			details: `Send inline "#${tagPath}" to frontmatter`,
-			files: this._getFilesWithInlineTag(tagPath),
-			customLogic: true,
-			logicFunc: (file, fm) => {
-				const cache = this.plugin.app.metadataCache.getFileCache(file);
-				const inlineTags = (cache?.tags ?? []).map((t) => t.tag);
-				if (
-					inlineTags.some((t: string) => t === `#${tagPath}` || t === tagPath)
-				) {
-					const raw: unknown = fm.tags;
-					const existing: string[] = Array.isArray(raw)
-						? (raw as unknown[]).map((v) => String(v))
-						: typeof raw === 'string'
-							? [raw]
-							: [];
-					if (!existing.includes(tagPath)) {
-						fm.tags = [...existing, tagPath];
-					}
-					return fm;
-				}
-				return null;
-			},
-		});
-		this.logic.invalidate();
-		this._render();
-	}
-
 	createFromSearch(term: string): void {
 		const tagPath = term.trim().replace(/^#/, '').replace(/\s+/g, '-');
 		if (!tagPath) {
@@ -1104,13 +1060,4 @@ export class TagsExplorerPanel extends Component {
 		});
 	}
 
-	private _getFilesWithInlineTag(tagPath: string): import('obsidian').TFile[] {
-		return this.plugin.app.vault.getMarkdownFiles().filter((file) => {
-			const inlineTags =
-				this.plugin.app.metadataCache.getFileCache(file)?.tags ?? [];
-			return inlineTags.some(
-				(tag) => tag.tag === tagPath || tag.tag === `#${tagPath}`,
-			);
-		});
-	}
 }
