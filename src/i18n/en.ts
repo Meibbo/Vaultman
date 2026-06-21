@@ -467,6 +467,8 @@ export const en: Record<string, string> = {
 	'content.toggle_replace': 'Show replace field',
 	'content.scope_hint_selected': 'Scope: {count} selected file(s)',
 	'content.scope_hint_filtered': 'Scope: {count}/{total} files - {filters} filter(s)',
+	'content.scope_hint_searching':
+		'Searching {count}/{total} files - {filters} filter(s)',
 	'content.preview': 'Preview',
 	'content.queue_replace': 'Queue replace',
 	'content.queue_no_matches': 'No content matches to queue',

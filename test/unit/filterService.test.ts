@@ -242,6 +242,45 @@ describe('FilterService vault-wide Files filtering', () => {
 		).toEqual(['Projects/Alpha.md', 'Projects/Alpha.base']);
 	});
 
+	it('publishes a pending content search filter before matches narrow the scope', () => {
+		const note = makeFile('Projects/Alpha.md');
+		const base = makeFile('Projects/Alpha.base');
+		const other = makeFile('Projects/Beta.md');
+		const service = new FilterService(
+			makeApp([note, other], [note, base, other], {
+				[note.path]: { project: 'alpha' },
+				[base.path]: { project: 'alpha' },
+				[other.path]: { project: 'beta' },
+			}),
+		);
+
+		service.addNode({
+			type: 'rule',
+			filterType: 'specific_value',
+			property: 'project',
+			values: ['alpha'],
+		});
+
+		service.setContentSearchPending('newes');
+
+		expect(service.filteredVaultFiles.map((file) => file.path)).toEqual([
+			'Projects/Alpha.md',
+			'Projects/Alpha.base',
+		]);
+		expect(
+			service.getFlatRules().map((rule) => [rule.rule, rule.label]),
+		).toEqual([
+			['project', 'alpha'],
+			['Content contains', 'newes'],
+		]);
+
+		service.setContentSearchRule('newes', [note]);
+
+		expect(service.filteredVaultFiles.map((file) => file.path)).toEqual([
+			'Projects/Alpha.md',
+		]);
+	});
+
 	it('projects multiple active folder filters as a union scope for the Files explorer', () => {
 		const work = makeFile('Areas/Work/todo.md');
 		const home = makeFile('Areas/Home/list.md');

@@ -12,6 +12,7 @@
 		contentPreviewOpen = $bindable(),
 		contentRegexError,
 		contentScopeHint,
+		contentPreviewFileCount,
 		activeContentRevealPath,
 		contentRevealRevision,
 		sortedContentFiles,
@@ -29,6 +30,7 @@
 		contentPreviewOpen: boolean;
 		contentRegexError: string;
 		contentScopeHint: string;
+		contentPreviewFileCount: number;
 		activeContentRevealPath: string | null;
 		contentRevealRevision: number;
 		sortedContentFiles: ContentPreviewResult['files'];
@@ -223,14 +225,8 @@
 					<span class="tree-item-inner-text"
 						>{translate('content.preview_count')
 							.replace('{matches}', String(contentPreviewResult.totalMatches))
-							.replace(
-								'{files}',
-								String(
-									contentPreviewResult.files.length +
-										contentPreviewResult.moreFiles,
-								),
-							)}</span
-					>
+							.replace('{files}', String(contentPreviewFileCount))}</span
+						>
 				{/if}
 			</span>
 		</div>

@@ -507,6 +507,8 @@ export const es: Record<string, string> = {
 	'content.scope_hint_selected': 'Alcance: {count} archivo(s) seleccionado(s)',
 	'content.scope_hint_filtered':
 		'Alcance: {count}/{total} archivos - {filters} filtro(s)',
+	'content.scope_hint_searching':
+		'Buscando {count}/{total} archivos - {filters} filtro(s)',
 	'content.preview': 'Vista previa',
 	'content.queue_replace': 'Encolar reemplazo',
 	'content.queue_no_matches': 'No hay coincidencias de contenido para encolar',

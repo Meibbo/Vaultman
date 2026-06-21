@@ -40,6 +40,27 @@ describe('Page filters Content source guards', () => {
 		expect(pageFiltersSource).toContain('contentScopeFilterCount');
 	});
 
+	it('publishes the Content query as a pending filter before async search results settle', () => {
+		expect(pageFiltersSource).toContain('onContentFilterChanged');
+		expect(pageFiltersSource).toContain(
+			'plugin.filterService.setContentSearchPending(find)',
+		);
+		expect(pageFiltersSource).toContain('onContentFilterChanged?.()');
+		expect(frameSource).toContain('onContentFilterChanged={refreshFiles}');
+	});
+
+	it('uses one Content scope summary for the hint and preview file count', () => {
+		expect(pageFiltersSource).toContain('contentScopeSummary');
+		expect(pageFiltersSource).toContain('contentPreviewFileCount');
+		expect(pageFiltersSource).toContain(
+			'contentScopeSummary.resultFileCount ?? contentScopeSummary.baseFileCount',
+		);
+		expect(tabContentSource).toContain('contentPreviewFileCount');
+		expect(tabContentSource).not.toContain(
+			'contentPreviewResult.files.length +',
+		);
+	});
+
 	it('opens Filters from the Content scope hint', () => {
 		expect(tabContentSource).toContain('onOpenFilters');
 		expect(tabContentSource).toContain(
