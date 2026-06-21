@@ -448,6 +448,7 @@
 	let filterRuleCount = $state(0);
 	let viewFilterRevision = $state(0);
 	let contentSearchScopeRevision = $state('');
+	let filtersClearRevision = $state(0);
 	const addOpCount = $derived(
 		plugin.queueService.queue.filter((op) => op.action === 'add').length,
 	);
@@ -686,6 +687,7 @@
 			plugin,
 			() => closeFiltersIsland(),
 			activeFilterViewStates,
+			() => clearActiveFilters(),
 		);
 		filtersIsland.mount();
 	}
@@ -699,6 +701,7 @@
 	function clearActiveFilters() {
 		plugin.filterService.clearFilters();
 		fileList?.clearNodeTypeFilter();
+		filtersClearRevision += 1;
 		closeFiltersIsland();
 		notifyViewFiltersChanged();
 	}
@@ -879,6 +882,7 @@
 							{contentScopeFilteredCount}
 							contentScopeTotalCount={plugin.app.vault.getFiles().length}
 							contentScopeFilterCount={displayedFilterRuleCount}
+							clearFiltersRevision={filtersClearRevision}
 							{showDock}
 							{queuedCount}
 							{queueWarningCount}

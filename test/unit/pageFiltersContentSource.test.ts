@@ -49,24 +49,37 @@ describe('Page filters Content source guards', () => {
 		expect(frameSource).toContain('onContentFilterChanged={refreshFiles}');
 	});
 
-	it('uses one Content scope summary for the hint and preview file count', () => {
+	it('uses one Content scope summary for the preview file count and active-filter context', () => {
 		expect(pageFiltersSource).toContain('contentScopeSummary');
 		expect(pageFiltersSource).toContain('contentPreviewFileCount');
+		expect(pageFiltersSource).toContain('contentHasActiveNonContentFilters');
 		expect(pageFiltersSource).toContain(
 			'contentScopeSummary.resultFileCount ?? contentScopeSummary.baseFileCount',
 		);
 		expect(tabContentSource).toContain('contentPreviewFileCount');
+		expect(tabContentSource).toContain('contentHasActiveNonContentFilters');
+		expect(tabContentSource).toContain("translate('content.with_active_filters')");
 		expect(tabContentSource).not.toContain(
 			'contentPreviewResult.files.length +',
 		);
 	});
 
-	it('opens Filters from the Content scope hint', () => {
-		expect(tabContentSource).toContain('onOpenFilters');
-		expect(tabContentSource).toContain(
-			'class="vaultman-content-scope-hint"',
+	it('does not render the old Content scope hint row', () => {
+		expect(tabContentSource).not.toContain('contentScopeHint');
+		expect(tabContentSource).not.toContain('vaultman-content-scope-hint');
+		expect(pageFiltersSource).not.toContain('{contentScopeHint}');
+	});
+
+	it('clears Content search state when active filters are cleared', () => {
+		expect(frameSource).toContain('filtersClearRevision');
+		expect(frameSource).toContain('filtersClearRevision += 1');
+		expect(pageFiltersSource).toContain('clearFiltersRevision');
+		expect(pageFiltersSource).toContain('clearContentSearchState()');
+		expect(pageFiltersSource).toContain("contentFind = ''");
+		expect(pageFiltersSource).toContain("contentReplace = ''");
+		expect(pageFiltersSource).toContain(
+			'plugin.filterService.setContentSearchRule(\'\', [])',
 		);
-		expect(tabContentSource).toContain('onclick={() => onOpenFilters?.()}');
-		expect(pageFiltersSource).toContain('{onOpenFilters}');
+		expect(frameSource).toContain('() => clearActiveFilters(),');
 	});
 });
