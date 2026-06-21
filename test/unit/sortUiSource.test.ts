@@ -21,6 +21,13 @@ describe('explorer sort UI source', () => {
 		expect(popupSource).toContain("translate('sort.parents_first')");
 	});
 
+	it('shows active sort-axis label on Props and Tags vert-col toggle', () => {
+		expect(popupSource).toContain("translate('sort.vertcol.by_values')");
+		expect(popupSource).toContain("translate('sort.vertcol.by_props')");
+		expect(popupSource).toContain("translate('sort.vertcol.by_nested')");
+		expect(popupSource).toContain("translate('sort.vertcol.by_root')");
+	});
+
 	it('labels Files count sort as Props without renaming generic count sorts', () => {
 		expect(navbarSource).toContain("labelKey: 'sort.by.props'");
 		expect(popupSource).toContain("labelKey: 'sort.by.props'");

@@ -236,8 +236,12 @@
 				class="vaultman-sort-vertcol-btn"
 				class:is-active={vertTopActive}
 				aria-label={activeTab === 'props'
-					? translate('sort.vertcol.props_values')
-					: translate('sort.vertcol.node_level')}
+					? (vertTopActive
+						? translate('sort.vertcol.by_values')
+						: translate('sort.vertcol.by_props'))
+					: (vertTopActive
+						? translate('sort.vertcol.by_nested')
+						: translate('sort.vertcol.by_root'))}
 				onclick={toggleChildLevel}
 				onkeydown={(e: KeyboardEvent) => {
 					if (e.key === 'Enter' || e.key === ' ') toggleChildLevel();
