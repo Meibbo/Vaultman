@@ -142,6 +142,81 @@ export class FilesExplorerPanel extends Component {
 		});
 
 		svc.registerAction({
+			id: 'folder.new_note',
+			nodeTypes: ['folder'],
+			surfaces: ['panel'],
+			label: translate('folder.ctx.new_note'),
+			icon: 'lucide-file-plus',
+			run: async (ctx: MenuCtx) => {
+				const folder = this._folderFromCtx(ctx);
+				if (!folder) return;
+				await this._createFileInFolder(folder, 'Untitled.md', '', true);
+			},
+		});
+
+		svc.registerAction({
+			id: 'folder.new_folder',
+			nodeTypes: ['folder'],
+			surfaces: ['panel'],
+			label: translate('folder.ctx.new_folder'),
+			icon: 'lucide-folder-plus',
+			run: async (ctx: MenuCtx) => {
+				const folder = this._folderFromCtx(ctx);
+				if (!folder) return;
+				await this._createFolderInFolder(folder);
+			},
+		});
+
+		svc.registerAction({
+			id: 'folder.new_canvas',
+			nodeTypes: ['folder'],
+			surfaces: ['panel'],
+			label: translate('folder.ctx.new_canvas'),
+			icon: 'lucide-layout-dashboard',
+			run: async (ctx: MenuCtx) => {
+				const folder = this._folderFromCtx(ctx);
+				if (!folder) return;
+				await this._createFileInFolder(
+					folder,
+					'Untitled.canvas',
+					JSON.stringify({ nodes: [], edges: [] }, null, '\t'),
+					true,
+				);
+			},
+		});
+
+		svc.registerAction({
+			id: 'folder.new_base',
+			nodeTypes: ['folder'],
+			surfaces: ['panel'],
+			label: translate('folder.ctx.new_base'),
+			icon: 'lucide-database',
+			run: async (ctx: MenuCtx) => {
+				const folder = this._folderFromCtx(ctx);
+				if (!folder) return;
+				await this._createFileInFolder(
+					folder,
+					'Untitled.base',
+					'views:\n  - type: table\n    name: Table\n',
+					true,
+				);
+			},
+		});
+
+		svc.registerAction({
+			id: 'folder.make_copy',
+			nodeTypes: ['folder'],
+			surfaces: ['panel'],
+			label: translate('folder.ctx.make_copy'),
+			icon: 'lucide-copy',
+			run: async (ctx: MenuCtx) => {
+				const folder = this._folderFromCtx(ctx);
+				if (!folder) return;
+				await this._copyFolder(folder);
+			},
+		});
+
+		svc.registerAction({
 			id: 'folder.filter_include',
 			nodeTypes: ['folder'],
 			surfaces: ['panel'],
@@ -165,6 +240,7 @@ export class FilesExplorerPanel extends Component {
 			surfaces: ['panel'],
 			label: translate('folder.ctx.filter_exclude'),
 			icon: 'lucide-filter-x',
+			separatorBefore: true,
 			run: (ctx: MenuCtx) => {
 				const folder = this._folderFromCtx(ctx);
 				if (!folder) return;
@@ -1191,6 +1267,59 @@ export class FilesExplorerPanel extends Component {
 		new Notice(`Created ${path}`);
 	}
 
+	private async _createFileInFolder(
+		folder: TFolder,
+		name: string,
+		content: string,
+		openFile: boolean,
+	): Promise<void> {
+		const path = this._uniquePath(this._joinPath(folder.path, name));
+		const file = await this.plugin.app.vault.create(path, content);
+		this.plugin.filterService.applyFilters();
+		for (const id of this.logic.getAncestorFolderIds([file])) {
+			this.expandedIds.add(id);
+		}
+		this._notifyExpansionChanged();
+		this._refreshFromFilterService();
+		if (openFile) await this.plugin.app.workspace.openLinkText(path, '', false);
+		new Notice(`Created ${path}`);
+	}
+
+	private async _createFolderInFolder(folder: TFolder): Promise<void> {
+		const path = this._uniquePath(this._joinPath(folder.path, 'New folder'));
+		await this.plugin.app.vault.createFolder(path);
+		for (const id of this.logic.getAncestorFolderIdsFromPaths([path])) {
+			this.expandedIds.add(id);
+		}
+		this._notifyExpansionChanged();
+		this._refreshFromFilterService();
+		new Notice(`Created ${path}`);
+	}
+
+	private async _copyFolder(folder: TFolder): Promise<void> {
+		const targetRoot = this._uniquePath(this._folderCopyPath(folder.path));
+		await this._ensureFolderExists(targetRoot);
+		const nestedFolders = this._allVaultFolders()
+			.filter((candidate) => candidate.path.startsWith(`${folder.path}/`))
+			.sort((a, b) => a.path.localeCompare(b.path));
+		for (const nestedFolder of nestedFolders) {
+			const relative = nestedFolder.path.slice(folder.path.length + 1);
+			await this._ensureFolderExists(this._joinPath(targetRoot, relative));
+		}
+		for (const file of this._filesInsideFolder(folder)) {
+			const relative = file.path.slice(folder.path.length + 1);
+			const targetPath = this._joinPath(targetRoot, relative);
+			await this._ensureFolderExists(this._parentPath(targetPath));
+			await this.plugin.app.vault.create(
+				this._uniquePath(targetPath),
+				await this.plugin.app.vault.read(file),
+			);
+		}
+		this.plugin.filterService.applyFilters();
+		this._refreshFromFilterService();
+		new Notice(`Copied ${folder.path} to ${targetRoot}`);
+	}
+
 	private readonly _scheduleRefresh = (): void => {
 		if (this.refreshTimer !== null) {
 			window.clearTimeout(this.refreshTimer);
@@ -1288,7 +1417,7 @@ export class FilesExplorerPanel extends Component {
 		}
 		if (this._hasActiveConstraints()) return [];
 		if (this.searchName && !this.searchFolder) return [];
-		if (!this.searchFolder) return [];
+		if (!this.searchFolder) return folders;
 		const term = this.searchFolder.toLowerCase();
 		return folders.filter((folder) => folder.path.toLowerCase().includes(term));
 	}
@@ -1399,8 +1528,13 @@ export class FilesExplorerPanel extends Component {
 	}
 
 	private _uniquePath(path: string): string {
-		const dot = path.endsWith('.md') ? '.md' : '';
-		const base = dot ? path.slice(0, -dot.length) : path;
+		const slashIndex = path.lastIndexOf('/');
+		const dir = slashIndex >= 0 ? `${path.slice(0, slashIndex)}/` : '';
+		const name = slashIndex >= 0 ? path.slice(slashIndex + 1) : path;
+		const dotIndex = name.lastIndexOf('.');
+		const hasExtension = dotIndex > 0;
+		const base = `${dir}${hasExtension ? name.slice(0, dotIndex) : name}`;
+		const dot = hasExtension ? name.slice(dotIndex) : '';
 		let candidate = path;
 		let counter = 1;
 		while (this.plugin.app.vault.getAbstractFileByPath(candidate)) {
@@ -1408,6 +1542,32 @@ export class FilesExplorerPanel extends Component {
 			counter += 1;
 		}
 		return candidate;
+	}
+
+	private _folderCopyPath(path: string): string {
+		const slashIndex = path.lastIndexOf('/');
+		const dir = slashIndex >= 0 ? `${path.slice(0, slashIndex)}/` : '';
+		const name = slashIndex >= 0 ? path.slice(slashIndex + 1) : path;
+		return `${dir}${name} copy`;
+	}
+
+	private async _ensureFolderExists(path: string): Promise<void> {
+		if (!path) return;
+		if (this.plugin.app.vault.getAbstractFileByPath(path)) return;
+		await this.plugin.app.vault.createFolder(path);
+	}
+
+	private _parentPath(path: string): string {
+		const slashIndex = path.lastIndexOf('/');
+		if (slashIndex < 0) return '';
+		return path.slice(0, slashIndex);
+	}
+
+	private _joinPath(...parts: string[]): string {
+		return parts
+			.map((part) => part.replace(/^\/|\/$/g, ''))
+			.filter((part) => part.length > 0)
+			.join('/');
 	}
 
 	private _uniqueMovePath(path: string): string {

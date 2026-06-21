@@ -52,10 +52,23 @@ describe('FilesExplorerPanel source guards', () => {
 	});
 
 	it('does not inject all vault folders into the default nested Files result surface', () => {
-		expect(explorerFilesSource).toContain('if (!this.searchFolder) return []');
+		expect(explorerFilesSource).toContain(
+			'if (!this.searchFolder) return folders',
+		);
 		expect(explorerFilesSource).toContain(
 			'return folders.filter((folder) => folder.path.toLowerCase().includes(term))',
 		);
+	});
+
+	it('keeps folder create actions and separates include/exclude folder filters in panel menus', () => {
+		expect(explorerFilesSource).toContain("id: 'folder.new_note'");
+		expect(explorerFilesSource).toContain("id: 'folder.new_folder'");
+		expect(explorerFilesSource).toContain("id: 'folder.new_canvas'");
+		expect(explorerFilesSource).toContain("id: 'folder.new_base'");
+		expect(explorerFilesSource).toContain("id: 'folder.make_copy'");
+		expect(explorerFilesSource).toContain('this._createFileInFolder');
+		expect(explorerFilesSource).toContain('this._copyFolder');
+		expect(explorerFilesSource).toContain('separatorBefore: true');
 	});
 
 	it('narrows dragged file and folder payloads before passing paths into Obsidian vault APIs', () => {

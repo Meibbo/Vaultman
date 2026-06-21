@@ -20,6 +20,7 @@
 		toggleContentFile,
 		queueContentReplace,
 		openContentMatch,
+		onOpenFilters,
 	}: {
 		contentFind: string;
 		contentReplace: string;
@@ -37,6 +38,7 @@
 		toggleContentFile: (filePath: string) => void;
 		queueContentReplace: () => void;
 		openContentMatch: (file: TFile, line: number, ch: number) => Promise<void>;
+		onOpenFilters?: () => void;
 	} = $props();
 
 	let contentReplaceOpen = $state(false);
@@ -252,9 +254,11 @@
 								<div class="tree-item-inner-text">
 									{fileResult.file.path}
 									{#if contentHasActiveNonContentFilters}
-										<span class="vaultman-content-filter-context">
-											{translate('content.with_active_filters')}
-										</span>
+										<button
+											type="button"
+											class="vaultman-content-filter-context"
+											onclick={() => onOpenFilters?.()}
+										>{translate('content.with_active_filters')}</button>
 									{/if}
 								</div>
 							</div>

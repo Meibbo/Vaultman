@@ -39,4 +39,9 @@ describe('ContextMenuService source guards', () => {
 			'void this.plugin.queueService?.execute();',
 		);
 	});
+
+	it('supports explicit separators between adjacent panel actions', () => {
+		expect(contextMenuSource).toContain('def.separatorBefore');
+		expect(contextMenuSource).toContain('menu.addSeparator();');
+	});
 });
