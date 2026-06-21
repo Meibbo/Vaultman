@@ -205,6 +205,7 @@ export class StatisticsCacheService extends Component {
 	}
 
 	getFileWordCount(file: TFile): number | null {
+		if (file.extension !== 'md') return null;
 		const cached = this.fileStatsCache.get(file.path);
 		if (this.isFreshCachedStats(file, cached)) return cached.words;
 		return this.staleFileStatsCache.get(file.path)?.words ?? null;
@@ -260,13 +261,16 @@ export class StatisticsCacheService extends Component {
 						this.staleFileStatsCache.delete(file.path);
 						cacheHits += 1;
 					} else {
-						const content = await this.app.vault.cachedRead(file);
+						const content =
+							file.extension === 'md'
+								? await this.app.vault.cachedRead(file)
+								: null;
 						fileStats = {
 							path: file.path,
 							ctime: file.stat.ctime,
 							mtime: file.stat.mtime,
 							size: file.stat.size,
-							words: this.countWords(content),
+							words: content !== null ? this.countWords(content) : 0,
 							...this.collectFileMetadata(file),
 						};
 						this.fileStatsCache.set(file.path, fileStats);
@@ -354,8 +358,11 @@ export class StatisticsCacheService extends Component {
 	}
 
 	private countWords(content: string): number {
+		// Match Obsidian's word counter: count runs of Unicode letters/numbers
+		// (handles accented Spanish text) instead of whitespace-separated tokens,
+		// which previously counted Markdown punctuation (-, [ ], #, >) as words.
 		const withoutFrontmatter = content.replace(/^---[\s\S]*?---\s*/, '');
-		const words = withoutFrontmatter.trim().match(/\S+/g);
+		const words = withoutFrontmatter.match(/[\p{L}\p{N}]+/gu);
 		return words?.length ?? 0;
 	}
 
