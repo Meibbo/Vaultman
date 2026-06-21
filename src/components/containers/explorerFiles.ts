@@ -89,6 +89,47 @@ export class FilesExplorerPanel extends Component {
 		const svc = this.plugin.contextMenuService;
 
 		svc.registerAction({
+			id: 'file.open_tab',
+			nodeTypes: ['file'],
+			surfaces: ['panel'],
+			label: translate('file.ctx.open_tab'),
+			icon: 'lucide-panel-top',
+			run: async (ctx: MenuCtx) => {
+				const meta = ctx.node.meta as FileMeta;
+				if (!meta.file) return;
+				const leaf = this.plugin.app.workspace.getLeaf('tab');
+				await leaf.openFile(meta.file, { active: true });
+			},
+		});
+		svc.registerAction({
+			id: 'file.open_right',
+			nodeTypes: ['file'],
+			surfaces: ['panel'],
+			label: translate('file.ctx.open_right'),
+			icon: 'lucide-panel-right',
+			run: async (ctx: MenuCtx) => {
+				const meta = ctx.node.meta as FileMeta;
+				if (!meta.file) return;
+				const leaf = this.plugin.app.workspace.getLeaf('split', 'vertical');
+				await leaf.openFile(meta.file, { active: true });
+			},
+		});
+		svc.registerAction({
+			id: 'file.open_window',
+			nodeTypes: ['file'],
+			surfaces: ['panel'],
+			label: translate('file.ctx.open_window'),
+			icon: 'lucide-app-window',
+			run: async (ctx: MenuCtx) => {
+				const meta = ctx.node.meta as FileMeta;
+				if (!meta.file) return;
+				// eslint-disable-next-line @typescript-eslint/no-explicit-any
+				const workspace = this.plugin.app.workspace as any;
+				const leaf = workspace.openPopoutLeaf() as import('obsidian').WorkspaceLeaf;
+				await leaf.openFile(meta.file, { active: true });
+			},
+		});
+		svc.registerAction({
 			id: 'file.rename',
 			nodeTypes: ['file'],
 			surfaces: ['panel', 'file-menu'],
