@@ -95,6 +95,15 @@ describe('FilesExplorerPanel source guards', () => {
 		expect(explorerFilesSource).toContain(': this.logic.buildFlatFileNodes');
 	});
 
+	it('exposes file open-mode actions for new tab, split-right, and new window', () => {
+		expect(explorerFilesSource).toContain("id: 'file.open_tab'");
+		expect(explorerFilesSource).toContain("id: 'file.open_right'");
+		expect(explorerFilesSource).toContain("id: 'file.open_window'");
+		expect(explorerFilesSource).toContain("workspace.getLeaf('tab')");
+		expect(explorerFilesSource).toContain("workspace.getLeaf('split', 'vertical')");
+		expect(explorerFilesSource).toContain('workspace.openPopoutLeaf()');
+	});
+
 	it('keeps Parents First separate from nested display mode', () => {
 		expect(explorerFilesSource).toContain('private parentsFirst = true;');
 		expect(explorerFilesSource).toContain('parentsFirst = true');
