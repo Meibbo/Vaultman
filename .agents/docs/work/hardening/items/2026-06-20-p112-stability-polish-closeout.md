@@ -5,7 +5,7 @@ status: completed
 lifecycle: active
 parent: "[[docs/work/hardening/index|hardening]]"
 created: 2026-06-20T03:50:00
-updated: 2026-06-20T03:50:00
+updated: 2026-06-20T19:42:24
 timestamp_note: "approximate local time; timestamp command timed out during closeout"
 created_by: codex-gpt-5
 updated_by: codex-gpt-5
@@ -41,6 +41,7 @@ recovered behavior as the baseline.
 - `7531279 feat(content): reveal current file in results`
 - `4f946d0 feat(settings): gate explorer search highlights`
 - `23c7285 fix(files): label prop counts as props`
+- `3b5f0f5 fix(content): unify search scope counters`
 
 No push, merge, tag, or `main` work was performed.
 
@@ -63,6 +64,32 @@ No push, merge, tag, or `main` work was performed.
    setting is enabled.
 6. Files property-count labels now display `Props` in table/grid/view/sort UI,
    while generic count labels remain available for Props and Tags.
+
+## Follow-Up Correction - Content Scope Counters
+
+After dev QA, the Content tab still had split counter sources:
+
+- typing in Content search only became an active filter after async search
+  completion;
+- the Content preview header used `matches in Y files` from the search result,
+  while the scope hint used the pre-search Files scope;
+- the Filters counter depended on a separate service update path.
+
+Product commit `3b5f0f5` fixes this by publishing a pending content-search rule
+immediately through `FilterService.setContentSearchPending()`. Pending content
+search counts as an active filter but does not narrow files until search results
+settle. `pageFilters.svelte` now derives a single `contentScopeSummary` used by
+both the scope hint and `tabContent.svelte` preview file count, and notifies
+`VaultmanFrame` via `onContentFilterChanged={refreshFiles}` so Files counters
+and active filters refresh from the same `FilterService` state.
+
+Focused regression coverage added:
+
+- `test/unit/filterService.test.ts`: pending content search is visible as an
+  active filter before results narrow the scope.
+- `test/unit/pageFiltersContentSource.test.ts`: Content publishes pending
+  filters before async settlement and uses one scope summary for hint + preview
+  file count.
 
 ## Verification
 
@@ -88,7 +115,8 @@ Final gate from the product worktree:
 - `corepack pnpm run lint` passed.
 - `corepack pnpm run check` passed with `svelte-check found 0 errors and 0 warnings`.
 - `corepack pnpm run stylelint` passed.
-- `corepack pnpm run test:unit` passed: 65 test files, 270 tests.
+- `corepack pnpm run test:unit` passed: 65 test files, 273 tests after
+  `3b5f0f5`.
 - `corepack pnpm run build` passed and synced artifacts to:
   `C:/Users/vic_A/Desktop/plugin-dev/.obsidian/plugins/vaultman`.
 
