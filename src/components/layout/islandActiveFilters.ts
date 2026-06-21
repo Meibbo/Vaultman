@@ -33,6 +33,7 @@ export class ActiveFiltersIslandComponent {
 		onClose: () => void,
 		viewStates: () => ActiveFilterViewState[] = () => [],
 		onClearAll?: () => void,
+		private readonly getDisplayedCount?: () => { filtered: number; total: number },
 	) {
 		this.containerEl = containerEl;
 		this.plugin = plugin;
@@ -118,11 +119,13 @@ export class ActiveFiltersIslandComponent {
 		if (!this.listEl || !this.headerEl) return;
 		const rules = this.plugin.filterService.getFlatRules();
 		const viewStates = this.viewStates();
-		const filtered = this.plugin.filterService.filteredVaultFiles.length;
-		const total = this.plugin.app.vault.getFiles().length;
+		const counts = this.getDisplayedCount?.() ?? {
+			filtered: this.plugin.filterService.filteredVaultFiles.length,
+			total: this.plugin.app.vault.getFiles().length,
+		};
 
 		this.headerEl.setText(
-			translate('filters.popup.filtered_files', { filtered, total }),
+			translate('filters.popup.filtered_files', counts),
 		);
 
 		this.listEl.empty();
