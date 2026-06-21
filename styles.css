@@ -4019,6 +4019,23 @@ body.vaultman-bases-column-separators table th {
   box-shadow: none;
 }
 
+/* Bottom underline for find + replace inputs. Starts at the placeholder text
+   (30px = input padding-inline-start) so it never covers the leading icon. */
+.vaultman-content-search-container::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  inset-inline-start: 30px;
+  inset-inline-end: 0;
+  height: 1px;
+  background: var(--background-modifier-border);
+  pointer-events: none;
+}
+
+.vaultman-content-search-container:focus-within::after {
+  background: var(--color-accent);
+}
+
 .vaultman-content-clear-button {
   position: absolute;
   inset-inline-end: 2px;
