@@ -490,6 +490,13 @@ export class FilesExplorerPanel extends Component {
 		return this._filesForDisplay().length;
 	}
 
+	getDisplayedCount(): { filtered: number; total: number } {
+		return {
+			filtered: this.getVisibleFileCount(),
+			total: this.plugin.filterService.filteredVaultFiles.length,
+		};
+	}
+
 	clearNodeTypeFilter(): void {
 		if (!this.nodeTypeFilter) return;
 		this.setSortBy(this.sortBy, this.sortDir, false, null, this.parentsFirst);

@@ -688,6 +688,11 @@
 			() => closeFiltersIsland(),
 			activeFilterViewStates,
 			() => clearActiveFilters(),
+			() =>
+				fileList?.getDisplayedCount() ?? {
+					filtered: plugin.filterService.filteredVaultFiles.length,
+					total: plugin.app.vault.getFiles().length,
+				},
 		);
 		filtersIsland.mount();
 	}
