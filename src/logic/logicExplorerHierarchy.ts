@@ -16,13 +16,18 @@ export function groupRootHierarchy<TMeta>(
 	group: RootHierarchyGroup,
 ): TreeNode<TMeta>[] {
 	if (group === 'all') return cloneTree(nodes);
-	const wantsNested = group === 'nested';
+	if (group === 'nested') {
+		return nodes
+			.filter((node) => Boolean(node.children?.length))
+			.map((node) => ({
+				...node,
+				children: node.children ? cloneTree(node.children) : [],
+			}));
+	}
+	// simple: keep leaves + parents that have direct occurrences (count > 0)
 	return nodes
-		.filter((node) => Boolean(node.children?.length) === wantsNested)
-		.map((node) => ({
-			...node,
-			children: node.children ? cloneTree(node.children) : [],
-		}));
+		.filter((node) => !node.children?.length || (node.count ?? 0) > 0)
+		.map((node) => ({ ...node, children: [] }));
 }
 
 export function flattenTreeToPathLabels<TMeta>(
