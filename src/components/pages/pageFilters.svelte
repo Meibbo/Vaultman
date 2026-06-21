@@ -719,6 +719,7 @@
 				{toggleContentFile}
 				{queueContentReplace}
 				{openContentMatch}
+				{onOpenFilters}
 			/>
 		</div>
 	{/if}

@@ -19,6 +19,7 @@ export interface ActionDef {
 	icon?: string;
 	submenu?: string;
 	section?: string;
+	separatorBefore?: boolean;
 	when?: (ctx: MenuCtx) => boolean;
 	run: (ctx: MenuCtx) => Promise<void> | void;
 }

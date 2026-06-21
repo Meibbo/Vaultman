@@ -149,6 +149,10 @@ export class ContextMenuService extends Component {
 		let currentSection: string | undefined = undefined;
 
 		for (const def of applicable) {
+			if (def.separatorBefore) {
+				menu.addSeparator();
+				currentSection = undefined;
+			}
 			if (def.section && def.section !== currentSection) {
 				menu.addSeparator();
 				currentSection = def.section;
@@ -256,6 +260,10 @@ export class ContextMenuService extends Component {
 		let currentSection: string | undefined = undefined;
 
 		for (const def of applicable) {
+			if (def.separatorBefore) {
+				menu.addSeparator();
+				currentSection = undefined;
+			}
 			if (def.section && def.section !== currentSection) {
 				menu.addSeparator();
 				currentSection = def.section;
