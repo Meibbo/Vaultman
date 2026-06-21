@@ -54,10 +54,11 @@ export function compareFilesForExplorer(
 	const dir = direction === 'asc' ? 1 : -1;
 	let result = 0;
 
+	const numericLocale = { numeric: true, sensitivity: 'base' } as const;
 	if (normalizedSortBy === 'path') {
-		result = (a.parent?.path ?? '').localeCompare(b.parent?.path ?? '');
+		result = (a.parent?.path ?? '').localeCompare(b.parent?.path ?? '', undefined, numericLocale);
 	} else if (normalizedSortBy === 'ext') {
-		result = a.extension.localeCompare(b.extension);
+		result = a.extension.localeCompare(b.extension, undefined, numericLocale);
 	} else if (normalizedSortBy === 'mtime' || normalizedSortBy === 'ctime') {
 		result =
 			fileTimeForExplorer(a, normalizedSortBy, options.getFileTimes) -
@@ -65,8 +66,8 @@ export function compareFilesForExplorer(
 	} else if (normalizedSortBy === 'count') {
 		result = (options.countForFile?.(a) ?? 0) - (options.countForFile?.(b) ?? 0);
 	} else {
-		result = a.basename.localeCompare(b.basename);
+		result = a.basename.localeCompare(b.basename, undefined, numericLocale);
 	}
 
-	return result === 0 ? a.path.localeCompare(b.path) : dir * result;
+	return result === 0 ? a.path.localeCompare(b.path, undefined, numericLocale) : dir * result;
 }

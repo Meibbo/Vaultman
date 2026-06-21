@@ -157,9 +157,12 @@ export class FilesLogic {
 			return folderMap.get(folderPath) ?? null;
 		};
 
+		const numericLocale = { numeric: true, sensitivity: 'base' } as const;
 		const sortTree = (nodes: TreeNode<FileMeta>[]): TreeNode<FileMeta>[] => {
 			if (parentsFirst) {
-				const folders = nodes.filter((node) => node.meta?.isFolder);
+				const folders = nodes
+					.filter((node) => node.meta?.isFolder)
+					.sort((a, b) => a.label.localeCompare(b.label, undefined, numericLocale));
 				const files = nodes.filter((node) => !node.meta?.isFolder);
 				nodes.splice(0, nodes.length, ...folders, ...files);
 			}

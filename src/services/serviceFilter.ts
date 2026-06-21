@@ -46,6 +46,7 @@ export class FilterService extends Component {
 	/** Folder path search applied alongside the filter tree */
 	private _searchFolder = '';
 	private readonly collator = new Intl.Collator(undefined, {
+		numeric: true,
 		sensitivity: 'base',
 	});
 	private readonly sortedFilesCache = new Map<
