@@ -509,6 +509,7 @@ export const es: Record<string, string> = {
 		'Alcance: {count}/{total} archivos - {filters} filtro(s)',
 	'content.scope_hint_searching':
 		'Buscando {count}/{total} archivos - {filters} filtro(s)',
+	'content.with_active_filters': 'con filtros activos',
 	'content.preview': 'Vista previa',
 	'content.queue_replace': 'Encolar reemplazo',
 	'content.queue_no_matches': 'No hay coincidencias de contenido para encolar',

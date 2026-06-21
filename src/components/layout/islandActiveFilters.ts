@@ -21,6 +21,7 @@ export class ActiveFiltersIslandComponent {
 	private plugin: VaultmanPlugin;
 	private onClose: () => void;
 	private viewStates: () => ActiveFilterViewState[];
+	private onClearAll: () => void;
 
 	private islandEl: HTMLElement | null = null;
 	private listEl: HTMLElement | null = null;
@@ -31,11 +32,18 @@ export class ActiveFiltersIslandComponent {
 		plugin: VaultmanPlugin,
 		onClose: () => void,
 		viewStates: () => ActiveFilterViewState[] = () => [],
+		onClearAll?: () => void,
 	) {
 		this.containerEl = containerEl;
 		this.plugin = plugin;
 		this.onClose = onClose;
 		this.viewStates = viewStates;
+		this.onClearAll =
+			onClearAll ??
+			(() => {
+				this.plugin.filterService.clearFilters();
+				this.onClose();
+			});
 	}
 
 	mount(): void {
@@ -59,8 +67,7 @@ export class ActiveFiltersIslandComponent {
 		});
 		setIcon(clearAllBtn, 'lucide-trash-2');
 		clearAllBtn.addEventListener('click', () => {
-			this.plugin.filterService.clearFilters();
-			this.onClose();
+			this.onClearAll();
 		});
 
 		// Right: Templates

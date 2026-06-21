@@ -11,8 +11,8 @@
 		contentPreviewResult = $bindable(),
 		contentPreviewOpen = $bindable(),
 		contentRegexError,
-		contentScopeHint,
 		contentPreviewFileCount,
+		contentHasActiveNonContentFilters,
 		activeContentRevealPath,
 		contentRevealRevision,
 		sortedContentFiles,
@@ -20,7 +20,6 @@
 		toggleContentFile,
 		queueContentReplace,
 		openContentMatch,
-		onOpenFilters,
 	}: {
 		contentFind: string;
 		contentReplace: string;
@@ -29,8 +28,8 @@
 		contentPreviewResult: ContentPreviewResult | null;
 		contentPreviewOpen: boolean;
 		contentRegexError: string;
-		contentScopeHint: string;
 		contentPreviewFileCount: number;
+		contentHasActiveNonContentFilters: boolean;
 		activeContentRevealPath: string | null;
 		contentRevealRevision: number;
 		sortedContentFiles: ContentPreviewResult['files'];
@@ -38,7 +37,6 @@
 		toggleContentFile: (filePath: string) => void;
 		queueContentReplace: () => void;
 		openContentMatch: (file: TFile, line: number, ch: number) => Promise<void>;
-		onOpenFilters?: () => void;
 	} = $props();
 
 	let contentReplaceOpen = $state(false);
@@ -173,13 +171,6 @@
 		></button>
 	</div>
 {/if}
-<button
-	type="button"
-	class="vaultman-content-scope-hint"
-	onclick={() => onOpenFilters?.()}
->
-	{contentScopeHint}
-</button>
 {#if contentPreviewResult === null}
 	<div class="vaultman-content-landing">
 		<div
@@ -258,7 +249,14 @@
 								>{isContentFileExpanded(fileResult.file.path) ? '▼' : '▶'}</span
 							>
 							<div class="tree-item-inner">
-								<div class="tree-item-inner-text">{fileResult.file.path}</div>
+								<div class="tree-item-inner-text">
+									{fileResult.file.path}
+									{#if contentHasActiveNonContentFilters}
+										<span class="vaultman-content-filter-context">
+											{translate('content.with_active_filters')}
+										</span>
+									{/if}
+								</div>
 							</div>
 							<div class="tree-item-flair-outer">
 								<span class="tree-item-flair">{fileResult.matchCount}</span>

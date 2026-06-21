@@ -102,6 +102,7 @@
 		contentScopeFilteredCount,
 		contentScopeTotalCount,
 		contentScopeFilterCount,
+		clearFiltersRevision = 0,
 		showDock = true,
 		queuedCount = 0,
 		queueWarningCount = 0,
@@ -132,6 +133,7 @@
 		contentScopeFilteredCount: number;
 		contentScopeTotalCount: number;
 		contentScopeFilterCount: number;
+		clearFiltersRevision?: number;
 		showDock?: boolean;
 		queuedCount?: number;
 		queueWarningCount?: number;
@@ -159,6 +161,7 @@
 	let collapsedContentFilePaths = $state<string[]>([]);
 	let activeContentRevealPath = $state<string | null>(null);
 	let contentRevealRevision = $state(0);
+	let lastClearFiltersRevision = $state<number | null>(null);
 	let visitedTabs = $state<Record<FiltersTab, boolean>>({
 		files: filtersActiveTab === 'files',
 		props: filtersActiveTab === 'props',
@@ -298,24 +301,9 @@
 	const contentPreviewFileCount = $derived(
 		contentScopeSummary.resultFileCount ?? contentScopeSummary.baseFileCount,
 	);
-	const contentScopeHint = $derived.by(() => {
-		if (
-			contentScopeSummary.usesSelectedScope &&
-			!contentScopeSummary.hasContentQuery
-		) {
-			return translate('content.scope_hint_selected').replace(
-				'{count}',
-				String(contentScopeSummary.baseFileCount),
-			);
-		}
-
-		const hintKey = contentScopeSummary.isSearching
-			? 'content.scope_hint_searching'
-			: 'content.scope_hint_filtered';
-		return translate(hintKey)
-			.replace('{count}', String(contentPreviewFileCount))
-			.replace('{total}', String(contentScopeSummary.totalFileCount))
-			.replace('{filters}', String(contentScopeSummary.filterCount));
+	const contentHasActiveNonContentFilters = $derived.by(() => {
+		const contentFilterCount = contentScopeSummary.hasContentQuery ? 1 : 0;
+		return contentScopeSummary.filterCount - contentFilterCount > 0;
 	});
 	const sortedContentFiles = $derived(
 		sortContentPreviewFiles(
@@ -514,6 +502,30 @@
 		return true;
 	}
 
+	function clearContentSearchState(): void {
+		nativeSearchAdapter.cancel();
+		contentFind = '';
+		contentReplace = '';
+		contentPreviewResult = null;
+		contentPreviewOpen = true;
+		contentRegexError = '';
+		collapsedContentFilePaths = [];
+		activeContentRevealPath = null;
+		plugin.filterService.setContentSearchRule('', []);
+		onContentFilterChanged?.();
+	}
+
+	$effect(() => {
+		const revision = clearFiltersRevision;
+		if (lastClearFiltersRevision === null) {
+			lastClearFiltersRevision = revision;
+			return;
+		}
+		if (revision === lastClearFiltersRevision) return;
+		lastClearFiltersRevision = revision;
+		clearContentSearchState();
+	});
+
 	$effect(() => {
 		void contentSearchScopeRevision;
 		const tab = filtersActiveTab;
@@ -698,8 +710,8 @@
 				bind:contentPreviewResult
 				bind:contentPreviewOpen
 				{contentRegexError}
-				{contentScopeHint}
 				{contentPreviewFileCount}
+				{contentHasActiveNonContentFilters}
 				{activeContentRevealPath}
 				{contentRevealRevision}
 				{sortedContentFiles}
@@ -707,7 +719,6 @@
 				{toggleContentFile}
 				{queueContentReplace}
 				{openContentMatch}
-				{onOpenFilters}
 			/>
 		</div>
 	{/if}
