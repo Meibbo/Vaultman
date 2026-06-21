@@ -493,7 +493,7 @@ export class FilesExplorerPanel extends Component {
 	getDisplayedCount(): { filtered: number; total: number } {
 		return {
 			filtered: this.getVisibleFileCount(),
-			total: this.plugin.filterService.filteredVaultFiles.length,
+			total: this.plugin.app.vault.getFiles().length,
 		};
 	}
 
