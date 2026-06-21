@@ -285,6 +285,24 @@ export class FilterService extends Component {
 	 * applyFilters read file contents. The expensive search runs in the Content
 	 * tab; this service only intersects with the matched file paths.
 	 */
+	setContentSearchPending(value: string): void {
+		const term = value.trim();
+		let changed = false;
+
+		if (!term) {
+			this.setContentSearchRule('', []);
+			return;
+		}
+
+		if (this.contentSearchPaths !== null) {
+			this.contentSearchPaths = null;
+			changed = true;
+		}
+
+		changed = this.upsertContentSearchRootRule(term) || changed;
+		if (changed) this.applyFilters();
+	}
+
 	setContentSearchRule(value: string, files: TFile[]): void {
 		const term = value.trim();
 		let changed = false;
@@ -302,31 +320,7 @@ export class FilterService extends Component {
 			changed = true;
 		}
 
-		const existing = this.findRootRuleById(CONTENT_SEARCH_RULE_ID);
-		if (existing) {
-			if (
-				existing.filterType !== 'content_search' ||
-				existing.values[0] !== term ||
-				existing.enabled === false
-			) {
-				existing.filterType = 'content_search';
-				existing.property = '';
-				existing.values = [term];
-				existing.enabled = true;
-				changed = true;
-			}
-		} else {
-			this.activeFilter.children.push({
-				type: 'rule',
-				filterType: 'content_search',
-				property: '',
-				values: [term],
-				id: CONTENT_SEARCH_RULE_ID,
-				enabled: true,
-			});
-			changed = true;
-		}
-
+		changed = this.upsertContentSearchRootRule(term) || changed;
 		if (changed) this.applyFilters();
 	}
 
@@ -622,7 +616,8 @@ export class FilterService extends Component {
 
 	private applyContentSearch(files: TFile[]): TFile[] {
 		if (!this.hasEnabledContentSearchRule()) return files;
-		const paths = this.contentSearchPaths ?? new Set<string>();
+		if (this.contentSearchPaths === null) return files;
+		const paths = this.contentSearchPaths;
 		return files.filter((file) => paths.has(file.path));
 	}
 
@@ -731,6 +726,34 @@ export class FilterService extends Component {
 		return this.activeFilter.children.find(
 			(node): node is FilterRule => node.type === 'rule' && node.id === id,
 		);
+	}
+
+	private upsertContentSearchRootRule(term: string): boolean {
+		const existing = this.findRootRuleById(CONTENT_SEARCH_RULE_ID);
+		if (existing) {
+			if (
+				existing.filterType === 'content_search' &&
+				existing.values[0] === term &&
+				existing.enabled !== false
+			) {
+				return false;
+			}
+			existing.filterType = 'content_search';
+			existing.property = '';
+			existing.values = [term];
+			existing.enabled = true;
+			return true;
+		}
+
+		this.activeFilter.children.push({
+			type: 'rule',
+			filterType: 'content_search',
+			property: '',
+			values: [term],
+			id: CONTENT_SEARCH_RULE_ID,
+			enabled: true,
+		});
+		return true;
 	}
 
 	private removeRootRuleById(id: string): boolean {

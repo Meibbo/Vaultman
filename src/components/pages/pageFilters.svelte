@@ -43,6 +43,15 @@
 		disabled?: boolean;
 		onClick: (event: MouseEvent) => void;
 	};
+	type ContentScopeSummary = {
+		baseFileCount: number;
+		resultFileCount: number | null;
+		totalFileCount: number;
+		filterCount: number;
+		hasContentQuery: boolean;
+		isSearching: boolean;
+		usesSelectedScope: boolean;
+	};
 
 	const CONTENT_SORT_OPTIONS: {
 		id: ContentSortBy;
@@ -98,6 +107,7 @@
 		queueWarningCount = 0,
 		onOpenFilters,
 		onViewFiltersChanged,
+		onContentFilterChanged,
 		onClearFilters,
 		onOpenQueue,
 		onClearQueue,
@@ -127,6 +137,7 @@
 		queueWarningCount?: number;
 		onOpenFilters?: () => void;
 		onViewFiltersChanged?: () => void;
+		onContentFilterChanged?: () => void;
 		onClearFilters?: () => void;
 		onOpenQueue?: () => void;
 		onClearQueue?: () => void;
@@ -247,19 +258,64 @@
 		];
 	});
 
-	const contentScopeHint = $derived.by(() => {
+	function contentPreviewMatchedFileCount(
+		result: ContentPreviewResult,
+	): number {
+		return result.matchedFiles?.length ?? result.files.length + result.moreFiles;
+	}
+
+	function contentSearchUsesSelectedScope(): boolean {
 		const scope = operationScope;
 		const selected = getSelectedFiles();
-		if (scope === 'selected' || (scope === 'auto' && selected.length > 0)) {
+		return scope === 'selected' || (scope === 'auto' && selected.length > 0);
+	}
+
+	function contentSearchScopeFiles(): TFile[] {
+		if (contentSearchUsesSelectedScope()) return getSelectedFiles();
+		return contentSearchCandidateFiles();
+	}
+
+	const contentScopeSummary = $derived.by<ContentScopeSummary>(() => {
+		void contentSearchScopeRevision;
+		void contentScopeFilteredCount;
+		const hasContentQuery = contentFind.trim().length > 0 && !contentRegexError;
+		const resultFileCount =
+			hasContentQuery && contentPreviewResult && !contentPreviewResult.isLoading
+				? contentPreviewMatchedFileCount(contentPreviewResult)
+				: null;
+
+		return {
+			baseFileCount: contentSearchScopeFiles().length,
+			resultFileCount,
+			totalFileCount: contentScopeTotalCount,
+			filterCount: contentScopeFilterCount,
+			hasContentQuery,
+			isSearching:
+				hasContentQuery && contentPreviewResult?.isLoading === true,
+			usesSelectedScope: contentSearchUsesSelectedScope(),
+		};
+	});
+	const contentPreviewFileCount = $derived(
+		contentScopeSummary.resultFileCount ?? contentScopeSummary.baseFileCount,
+	);
+	const contentScopeHint = $derived.by(() => {
+		if (
+			contentScopeSummary.usesSelectedScope &&
+			!contentScopeSummary.hasContentQuery
+		) {
 			return translate('content.scope_hint_selected').replace(
 				'{count}',
-				String(selected.length),
+				String(contentScopeSummary.baseFileCount),
 			);
 		}
-		return translate('content.scope_hint_filtered')
-			.replace('{count}', String(contentScopeFilteredCount))
-			.replace('{total}', String(contentScopeTotalCount))
-			.replace('{filters}', String(contentScopeFilterCount));
+
+		const hintKey = contentScopeSummary.isSearching
+			? 'content.scope_hint_searching'
+			: 'content.scope_hint_filtered';
+		return translate(hintKey)
+			.replace('{count}', String(contentPreviewFileCount))
+			.replace('{total}', String(contentScopeSummary.totalFileCount))
+			.replace('{filters}', String(contentScopeSummary.filterCount));
 	});
 	const sortedContentFiles = $derived(
 		sortContentPreviewFiles(
@@ -464,12 +520,7 @@
 		const find = contentFind;
 		const caseSensitive = contentCaseSensitive;
 		const isRegex = contentIsRegex;
-		const scope = operationScope;
-		const selected = getSelectedFiles();
-		const files =
-			scope === 'selected' || (scope === 'auto' && selected.length > 0)
-				? selected
-				: contentSearchCandidateFiles();
+		const files = contentSearchScopeFiles();
 
 		if (tab !== 'content') return;
 		nativeSearchAdapter.cancel();
@@ -478,11 +529,16 @@
 			contentRegexError = '';
 			collapsedContentFilePaths = [];
 			plugin.filterService.setContentSearchRule('', []);
+			onContentFilterChanged?.();
 			return;
 		}
 		if (!validateContentSearch()) {
+			plugin.filterService.setContentSearchRule('', []);
+			onContentFilterChanged?.();
 			return;
 		}
+		plugin.filterService.setContentSearchPending(find);
+		onContentFilterChanged?.();
 		contentPreviewResult = {
 			totalMatches: 0,
 			files: [],
@@ -506,6 +562,7 @@
 								find,
 								result.matchedFiles ?? result.files.map((entry) => entry.file),
 							);
+							onContentFilterChanged?.();
 						}
 					},
 				})
@@ -642,6 +699,7 @@
 				bind:contentPreviewOpen
 				{contentRegexError}
 				{contentScopeHint}
+				{contentPreviewFileCount}
 				{activeContentRevealPath}
 				{contentRevealRevision}
 				{sortedContentFiles}

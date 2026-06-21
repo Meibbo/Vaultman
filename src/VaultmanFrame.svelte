@@ -884,6 +884,7 @@
 							{queueWarningCount}
 							onOpenFilters={openFiltersLauncher}
 							onViewFiltersChanged={notifyViewFiltersChanged}
+							onContentFilterChanged={refreshFiles}
 							onClearFilters={clearActiveFilters}
 							onOpenQueue={openQueueLauncher}
 							onClearQueue={clearQueueQuick}
