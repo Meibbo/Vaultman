@@ -283,7 +283,7 @@
 		void contentScopeFilteredCount;
 		const hasContentQuery = contentFind.trim().length > 0 && !contentRegexError;
 		const resultFileCount =
-			hasContentQuery && contentPreviewResult && !contentPreviewResult.isLoading
+			hasContentQuery && contentPreviewResult
 				? contentPreviewMatchedFileCount(contentPreviewResult)
 				: null;
 
