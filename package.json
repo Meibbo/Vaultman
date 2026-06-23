@@ -25,7 +25,7 @@
 		"test:all": "pnpm run test:integrity && pnpm run test:e2e",
 		"smoke:scroll": "node scripts/run-explorer-scroll-smoke.mjs",
 		"smoke:scroll:stress": "node scripts/run-explorer-scroll-smoke.mjs --mode=stress",
-		"security:audit": "pnpm audit --audit-level=high"
+		"security:audit": "pnpm audit --prod --audit-level=high"
 	},
 	"keywords": [],
 	"author": "Meibbo",
@@ -72,16 +72,6 @@
 		"vite": "8.0.12",
 		"webdriverio": "9.27.0"
 	},
-	"//auditConfig": "Ignored GHSAs are high-severity advisories in devDependency test tooling only (vite via vitest/obsidian-integration-testing, undici via @wdio). They are not in the shipped plugin bundle (`pnpm audit --prod` is clean). vite is frozen at 8.0.12 by a patch-package patch in obsidian-integration-testing, so it cannot be bumped without recreating that e2e patch.",
-	"pnpm": {
-		"auditConfig": {
-			"ignoreGhsas": [
-				"GHSA-fx2h-pf6j-xcff",
-				"GHSA-vmh5-mc38-953g",
-				"GHSA-vxpw-j846-p89q",
-				"GHSA-hm92-r4w5-c3mj"
-			]
-		}
-	},
+	"//security:audit": "Audit is scoped to production (shipped) dependencies. The only high-severity advisories are in devDependency test tooling (vite via vitest/obsidian-integration-testing, undici via @wdio); none are in the shipped plugin bundle. vite is frozen at 8.0.12 by a patch-package patch in the e2e harness, so it cannot be bumped without recreating that patch. pnpm.auditConfig.ignoreGhsas proved environment-inconsistent (honored locally, not on CI), so we gate on --prod instead.",
 	"packageManager": "pnpm@11.1.2"
 }
