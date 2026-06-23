@@ -124,9 +124,10 @@ export class FilesExplorerPanel extends Component {
 			run: async (ctx: MenuCtx) => {
 				const meta = ctx.node.meta as FileMeta;
 				if (!meta.file) return;
-				// eslint-disable-next-line @typescript-eslint/no-explicit-any
-				const workspace = this.plugin.app.workspace as any;
-				const leaf = workspace.openPopoutLeaf() as import('obsidian').WorkspaceLeaf;
+				const workspace = this.plugin.app.workspace as typeof this.plugin.app.workspace & {
+					openPopoutLeaf(): import('obsidian').WorkspaceLeaf;
+				};
+				const leaf = workspace.openPopoutLeaf();
 				await leaf.openFile(meta.file, { active: true });
 			},
 		});
