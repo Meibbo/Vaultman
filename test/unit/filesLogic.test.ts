@@ -138,7 +138,7 @@ describe('FilesLogic.buildFileTree', () => {
 		]);
 	});
 
-	it('preserves caller-provided sibling folder order for nested sorted results', () => {
+	it('sorts sibling folders naturally for nested results', () => {
 		const files = [
 			makeFile('beta/newest.md'),
 			makeFile('alpha/oldest.md'),
@@ -148,8 +148,8 @@ describe('FilesLogic.buildFileTree', () => {
 
 		const tree = logic.buildFileTree(files);
 
-		expect(tree.map((node) => node.label)).toEqual(['beta', 'alpha']);
-		expect(tree[0].children?.map((node) => node.label)).toEqual([
+		expect(tree.map((node) => node.label)).toEqual(['alpha', 'beta']);
+		expect(tree[1].children?.map((node) => node.label)).toEqual([
 			'newest',
 			'second',
 		]);
