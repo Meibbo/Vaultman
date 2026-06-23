@@ -30,9 +30,8 @@ describe('Files type view filter source guards', () => {
 		);
 		expect(activeFiltersIslandSource).toContain('viewState.clear();');
 
-		expect(frameSource).toContain(
-			'import { ActiveFiltersIslandComponent, type ActiveFilterViewState }',
-		);
+		expect(frameSource).toContain('ActiveFiltersIslandComponent');
+		expect(frameSource).toContain('type ActiveFilterViewState');
 		expect(frameSource).toContain(
 			'function activeFilterViewStates(): ActiveFilterViewState[]',
 		);
