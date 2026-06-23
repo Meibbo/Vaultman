@@ -56,6 +56,7 @@ export class StatisticsCacheService extends Component {
 	private scopeStatsCache = new Map<StatisticsScope, StatisticsSnapshot>();
 	private storageInitialized = false;
 	private storageInitPromise: Promise<void> | null = null;
+	private readonly fileStatsRefreshTimers = new Map<string, number>();
 
 	constructor(app: App, options: StatisticsCacheServiceOptions = {}) {
 		super();
@@ -70,12 +71,18 @@ export class StatisticsCacheService extends Component {
 		void this.initializeStorage();
 		this.registerEvent(
 			this.app.metadataCache.on('changed', (file) => {
-				if (file instanceof TFile) this.invalidateFile(file);
+				if (file instanceof TFile) {
+					this.invalidateFile(file);
+					this.scheduleFileStatsRefresh(file);
+				}
 			}),
 		);
 		this.registerEvent(
 			this.app.vault.on('modify', (file) => {
-				if (file instanceof TFile) this.invalidateFile(file);
+				if (file instanceof TFile) {
+					this.invalidateFile(file);
+					this.scheduleFileStatsRefresh(file);
+				}
 			}),
 		);
 		this.registerEvent(
@@ -97,7 +104,61 @@ export class StatisticsCacheService extends Component {
 	}
 
 	onunload(): void {
+		for (const timer of this.fileStatsRefreshTimers.values()) {
+			window.clearTimeout(timer);
+		}
+		this.fileStatsRefreshTimers.clear();
 		this.storage?.close?.();
+	}
+
+	/**
+	 * Keep an already-known file's word count (and metadata) fresh in near-real
+	 * time after the file is modified, mirroring Obsidian's own word counter.
+	 * Only refreshes files the cache already tracks, so a bulk edit of unseen
+	 * files does not trigger a read storm. The full Statistics compute still
+	 * owns first-time population. Debounced per path to coalesce the paired
+	 * metadata-changed + modify events.
+	 */
+	private scheduleFileStatsRefresh(file: TFile): void {
+		if (file.extension !== 'md') return;
+		if (
+			!this.fileStatsCache.has(file.path) &&
+			!this.staleFileStatsCache.has(file.path)
+		) {
+			return;
+		}
+		const existing = this.fileStatsRefreshTimers.get(file.path);
+		if (existing !== undefined) window.clearTimeout(existing);
+		this.fileStatsRefreshTimers.set(
+			file.path,
+			window.setTimeout(() => {
+				this.fileStatsRefreshTimers.delete(file.path);
+				void this.refreshFileStats(file.path);
+			}, 120),
+		);
+	}
+
+	private async refreshFileStats(path: string): Promise<void> {
+		const file = this.app.vault.getAbstractFileByPath(path);
+		if (!(file instanceof TFile)) return;
+		const stats = await this.computeFileStats(file);
+		this.fileStatsCache.set(path, stats);
+		this.staleFileStatsCache.delete(path);
+		void this.persistFileStats(stats);
+		this.events.trigger('changed');
+	}
+
+	private async computeFileStats(file: TFile): Promise<CachedFileStats> {
+		const content =
+			file.extension === 'md' ? await this.app.vault.cachedRead(file) : null;
+		return {
+			path: file.path,
+			ctime: file.stat.ctime,
+			mtime: file.stat.mtime,
+			size: file.stat.size,
+			words: content !== null ? this.countWords(content) : 0,
+			...this.collectFileMetadata(file),
+		};
 	}
 
 	on(name: 'changed', callback: () => void): void {
@@ -261,18 +322,7 @@ export class StatisticsCacheService extends Component {
 						this.staleFileStatsCache.delete(file.path);
 						cacheHits += 1;
 					} else {
-						const content =
-							file.extension === 'md'
-								? await this.app.vault.cachedRead(file)
-								: null;
-						fileStats = {
-							path: file.path,
-							ctime: file.stat.ctime,
-							mtime: file.stat.mtime,
-							size: file.stat.size,
-							words: content !== null ? this.countWords(content) : 0,
-							...this.collectFileMetadata(file),
-						};
+						fileStats = await this.computeFileStats(file);
 						this.fileStatsCache.set(file.path, fileStats);
 						this.staleFileStatsCache.delete(file.path);
 						void this.persistFileStats(fileStats);
