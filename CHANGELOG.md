@@ -12,6 +12,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.1.6] — 2026-06-23
+
+### Fixed
+
+- Active-filters counter now shows visible/total-vault file counts instead of repeating the filtered count.
+- Content search header counts the matched files while a search is running, updating as results arrive, instead of showing the full scope total.
+- Content find and replace inputs now have a bottom border that starts at the placeholder text rather than under the leading icon.
+- Word count no longer reports a count for binary files (PNG and other non-Markdown files).
+- Word count now matches Obsidian's own counter, including accented text, instead of counting Markdown punctuation as words.
+- The Files Words cell refreshes in near-real time as files are saved, without needing to open Statistics or toggle the column.
+
+---
+
 ## [1.1.1] — 2026-06-09
 
 ### Added
