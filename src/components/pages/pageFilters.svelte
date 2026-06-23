@@ -264,7 +264,9 @@
 	function contentPreviewMatchedFileCount(
 		result: ContentPreviewResult,
 	): number {
-		return result.matchedFiles?.length ?? result.files.length + result.moreFiles;
+		return (
+			result.matchedFiles?.length ?? result.files.length + result.moreFiles
+		);
 	}
 
 	function contentSearchUsesSelectedScope(): boolean {
@@ -293,8 +295,7 @@
 			totalFileCount: contentScopeTotalCount,
 			filterCount: contentScopeFilterCount,
 			hasContentQuery,
-			isSearching:
-				hasContentQuery && contentPreviewResult?.isLoading === true,
+			isSearching: hasContentQuery && contentPreviewResult?.isLoading === true,
 			usesSelectedScope: contentSearchUsesSelectedScope(),
 		};
 	});
