@@ -72,5 +72,16 @@
 		"vite": "8.0.12",
 		"webdriverio": "9.27.0"
 	},
+	"//auditConfig": "Ignored GHSAs are high-severity advisories in devDependency test tooling only (vite via vitest/obsidian-integration-testing, undici via @wdio). They are not in the shipped plugin bundle (`pnpm audit --prod` is clean). vite is frozen at 8.0.12 by a patch-package patch in obsidian-integration-testing, so it cannot be bumped without recreating that e2e patch.",
+	"pnpm": {
+		"auditConfig": {
+			"ignoreGhsas": [
+				"GHSA-fx2h-pf6j-xcff",
+				"GHSA-vmh5-mc38-953g",
+				"GHSA-vxpw-j846-p89q",
+				"GHSA-hm92-r4w5-c3mj"
+			]
+		}
+	},
 	"packageManager": "pnpm@11.1.2"
 }
