@@ -4219,10 +4219,6 @@ button.vaultman-content-scope-hint:focus-visible {
   padding-top: 2px;
 }
 
-.vaultman-content-replace-container {
-  border-bottom: 1px solid var(--background-modifier-border);
-}
-
 .vaultman-content-queue-btn {
   width: 30px;
   height: 30px;

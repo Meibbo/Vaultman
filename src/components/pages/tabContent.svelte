@@ -219,7 +219,7 @@
 						>{translate('content.preview_count')
 							.replace('{matches}', String(contentPreviewResult.totalMatches))
 							.replace('{files}', String(contentPreviewFileCount))}</span
-						>
+					>
 				{/if}
 			</span>
 		</div>
@@ -258,7 +258,8 @@
 											type="button"
 											class="vaultman-content-filter-context"
 											onclick={() => onOpenFilters?.()}
-										>{translate('content.with_active_filters')}</button>
+											>{translate('content.with_active_filters')}</button
+										>
 									{/if}
 								</div>
 							</div>

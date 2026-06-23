@@ -11,7 +11,10 @@
 	import PerformanceHud from './components/layout/performanceHud.svelte';
 	import { QueueListComponent } from './components/componentQueueList';
 	import { QueueIslandComponent } from './components/layout/islandQueue';
-	import { ActiveFiltersIslandComponent, type ActiveFilterViewState } from './components/layout/islandActiveFilters';
+	import {
+		ActiveFiltersIslandComponent,
+		type ActiveFilterViewState,
+	} from './components/layout/islandActiveFilters';
 	import { QueueDetailsModal } from './modals/modalQueueDetails';
 	import { translate } from './i18n/index';
 	import type { FabDef } from './types/typeUI';
@@ -197,7 +200,9 @@
 		);
 	}
 
-	async function focusFrameInput(selector: string | string[]): Promise<boolean> {
+	async function focusFrameInput(
+		selector: string | string[],
+	): Promise<boolean> {
 		await waitForFrameDom();
 		const selectors = Array.isArray(selector) ? selector : [selector];
 		const input = visibleInput(queryFrameInputs(selectors));
@@ -228,7 +233,8 @@
 	}
 
 	export async function focusActiveExplorerSearch(): Promise<void> {
-		const tab: StatisticsDataTab = filtersActiveTab === 'content' ? 'props' : filtersActiveTab;
+		const tab: StatisticsDataTab =
+			filtersActiveTab === 'content' ? 'props' : filtersActiveTab;
 		navigateToDataTab(tab);
 		const explorerSearchSelectors = [
 			'.vaultman-page[data-page="filters"] .vaultman-navbar-filters .vaultman-filters-search-input',
@@ -899,7 +905,8 @@
 							onClearQueue={clearQueueQuick}
 							onOpenStatistics={() => navigateTo('statistics')}
 							{addOpCount}
-							expansionRevision={displayedFilterRuleCount + displayedFilteredCount}
+							expansionRevision={displayedFilterRuleCount +
+								displayedFilteredCount}
 							{icon}
 						/>
 					{/if}
