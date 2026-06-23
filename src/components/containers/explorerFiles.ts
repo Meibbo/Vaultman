@@ -66,6 +66,7 @@ export class FilesExplorerPanel extends Component {
 	private searchName = '';
 	private searchFolder = '';
 	private refreshTimer: number | null = null;
+	private statsRefreshTimer: number | null = null;
 	private activeRevealPath: string | null = null;
 	private sparseAutoExpandSignature = '';
 
@@ -374,6 +375,7 @@ export class FilesExplorerPanel extends Component {
 			this.plugin.app.workspace.on('file-open', this._handleActiveFileChange),
 		);
 		this.plugin.queueService.on('changed', this._handleQueueChange);
+		this.plugin.statisticsCache.on('changed', this._handleStatsChange);
 		this.containerEl.addEventListener('dragover', this._handleRootFileDragOver);
 		this.containerEl.addEventListener('drop', this._handleRootFileDrop);
 
@@ -387,7 +389,12 @@ export class FilesExplorerPanel extends Component {
 			window.clearTimeout(this.refreshTimer);
 			this.refreshTimer = null;
 		}
+		if (this.statsRefreshTimer !== null) {
+			window.clearTimeout(this.statsRefreshTimer);
+			this.statsRefreshTimer = null;
+		}
 		this.plugin.queueService.off('changed', this._handleQueueChange);
+		this.plugin.statisticsCache.off('changed', this._handleStatsChange);
 		this.containerEl.removeEventListener(
 			'dragover',
 			this._handleRootFileDragOver,
@@ -1181,6 +1188,20 @@ export class FilesExplorerPanel extends Component {
 
 	private readonly _handleQueueChange = (): void => {
 		this._render();
+	};
+
+	// The statistics cache refreshes a modified file's word count in the
+	// background; re-render so the Words cell tracks it in near-real time.
+	// Only relevant when the Words cell is visible — skip the churn otherwise.
+	private readonly _handleStatsChange = (): void => {
+		if (!this.visibleCells.has('words')) return;
+		if (this.statsRefreshTimer !== null) {
+			window.clearTimeout(this.statsRefreshTimer);
+		}
+		this.statsRefreshTimer = window.setTimeout(() => {
+			this.statsRefreshTimer = null;
+			this._render();
+		}, 60);
 	};
 
 	private readonly _handleActiveFileChange = (file: TFile | null): void => {
