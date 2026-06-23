@@ -1191,8 +1191,10 @@ export class FilesExplorerPanel extends Component {
 	};
 
 	// The statistics cache refreshes a modified file's word count in the
-	// background; re-render so the Words cell tracks it in near-real time.
-	// Only relevant when the Words cell is visible — skip the churn otherwise.
+	// background; patch the Words cell in place so it tracks the change in
+	// near-real time. Only relevant when the Words cell is visible. We avoid a
+	// full _render() here on purpose: rebuilding the whole tree per edit was the
+	// typing-FPS regression (see issue p112-word-count-realtime-perf).
 	private readonly _handleStatsChange = (): void => {
 		if (!this.visibleCells.has('words')) return;
 		if (this.statsRefreshTimer !== null) {
@@ -1200,9 +1202,34 @@ export class FilesExplorerPanel extends Component {
 		}
 		this.statsRefreshTimer = window.setTimeout(() => {
 			this.statsRefreshTimer = null;
-			this._render();
+			this._patchVisibleWordCounts();
 		}, 60);
 	};
+
+	private _patchVisibleWordCounts(): void {
+		if (!this.visibleCells.has('words')) return;
+		// Tree mode owns the lightweight per-row patch. Table/grid are not the
+		// typing hot path; fall back to their normal render.
+		if (this.viewMode !== 'tree') {
+			this._render();
+			return;
+		}
+		const rows = this.containerEl.querySelectorAll<HTMLElement>(
+			'.vaultman-tree-row[data-path]',
+		);
+		for (const row of Array.from(rows)) {
+			const cell = row.querySelector<HTMLElement>('.vaultman-tree-words');
+			if (!cell) continue;
+			const path = row.dataset.path;
+			if (!path) continue;
+			const file = this.plugin.app.vault.getAbstractFileByPath(path);
+			if (!(file instanceof TFile)) continue;
+			const wordCount = this.plugin.statisticsCache.getFileWordCount(file);
+			if (wordCount === null) continue;
+			const text = this._formatWordCountCell(wordCount);
+			if (cell.textContent !== text) cell.textContent = text;
+		}
+	}
 
 	private readonly _handleActiveFileChange = (file: TFile | null): void => {
 		this._syncActiveFilePath(file ?? undefined);

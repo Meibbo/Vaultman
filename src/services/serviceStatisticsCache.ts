@@ -71,14 +71,13 @@ export class StatisticsCacheService extends Component {
 		void this.initializeStorage();
 		this.registerEvent(
 			this.app.metadataCache.on('changed', (file) => {
-				if (file instanceof TFile) {
-					this.invalidateFile(file);
-					this.scheduleFileStatsRefresh(file);
-				}
+				if (file instanceof TFile) this.invalidateFile(file);
 			}),
 		);
 		this.registerEvent(
 			this.app.vault.on('modify', (file) => {
+				// Refresh the word count only on actual writes (autosave/save), not on
+				// every metadata re-parse while typing — the latter is the FPS hog.
 				if (file instanceof TFile) {
 					this.invalidateFile(file);
 					this.scheduleFileStatsRefresh(file);
