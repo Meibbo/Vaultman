@@ -1,0 +1,194 @@
+---
+title: TanStack node table styles and accessibility
+type: implementation-plan
+status: active
+parent: "[[docs/work/polish/plans/2026-05-07-tanstack-node-table/index|tanstack-node-table-plan]]"
+created: 2026-05-07T08:26:53
+updated: 2026-05-07T08:26:53
+tags:
+  - agent/plan
+  - initiative/polish
+  - table
+  - accessibility
+  - scss
+created_by: codex
+updated_by: codex
+---
+
+# Styles And Accessibility
+
+## Purpose
+
+Give table mode its own dense, readable, operational surface without leaking old
+`vm-grid-*` table debt into the new view.
+
+## Files
+
+- Create: `src/styles/data/_table.scss`
+- Modify: `src/main.scss`
+- Modify: `test/component/viewTableSelection.test.ts`
+
+## Task 4: Styling And ARIA Contracts
+
+- [ ] **Step 1: Add component assertions for table ARIA and classes**
+
+Extend `test/component/viewTableSelection.test.ts` with:
+
+```ts
+it('marks table rows and cells with stable ARIA contracts', () => {
+	renderTable({ selectedIds: new Set(['alpha']), focusedId: 'alpha' });
+
+	const table = target.querySelector('.vm-node-table') as HTMLElement;
+	const row = target.querySelector('[data-id="alpha"]') as HTMLElement;
+	const cell = target.querySelector('[data-vm-table-cell="alpha:label"]') as HTMLElement;
+
+	expect(table.getAttribute('role')).toBe('grid');
+	expect(table.getAttribute('aria-multiselectable')).toBe('true');
+	expect(row.getAttribute('role')).toBe('row');
+	expect(row.getAttribute('aria-selected')).toBe('true');
+	expect(cell.getAttribute('role')).toBe('gridcell');
+	expect(row.classList.contains('is-selected')).toBe(true);
+	expect(row.classList.contains('is-focused')).toBe(true);
+});
+```
+
+- [ ] **Step 2: Run the focused component test**
+
+Run:
+
+```powershell
+pnpm exec vp test run --project component --config vitest.config.ts test/component/viewTableSelection.test.ts --fileParallelism=false
+```
+
+Expected: fail until the markup exposes the full ARIA/data contract.
+
+- [ ] **Step 3: Create table SCSS**
+
+Create `src/styles/data/_table.scss`:
+
+```scss
+@use '../tokens' as *;
+@use '../mixins' as *;
+
+.vm-node-table {
+	position: relative;
+	height: 100%;
+	min-height: 0;
+	overflow: auto;
+	box-sizing: border-box;
+	background: color-mix(in srgb, $vm-bg-primary 94%, transparent);
+}
+
+.vm-node-table-inner {
+	position: relative;
+	min-width: 100%;
+	height: var(--vm-node-table-total-h, 0);
+}
+
+.vm-node-table-header {
+	position: sticky;
+	top: 0;
+	z-index: 3;
+	display: grid;
+	grid-template-columns: var(--vm-node-table-columns, minmax(180px, 1fr));
+	background: color-mix(in srgb, $vm-bg-secondary 92%, transparent);
+	border-bottom: $vm-border-width solid $vm-border-color;
+}
+
+.vm-node-table-header-cell {
+	min-width: 0;
+	padding: 6px 8px;
+	border: 0;
+	border-right: $vm-border-width solid color-mix(in srgb, $vm-border-color 72%, transparent);
+	background: transparent;
+	color: $vm-text-muted;
+	font-size: var(--font-ui-smaller);
+	font-weight: 700;
+	text-align: left;
+	text-transform: uppercase;
+	letter-spacing: 0;
+	@include text-ellipsis;
+
+	&:hover,
+	&:focus-visible {
+		color: $vm-text-normal;
+		background: $vm-bg-modifier-hover;
+		outline: none;
+	}
+}
+
+.vm-node-table-row {
+	position: absolute;
+	left: 0;
+	right: 0;
+	display: grid;
+	grid-template-columns: var(--vm-node-table-columns, minmax(180px, 1fr));
+	min-height: 30px;
+	transform: translateY(var(--vm-node-table-y, 0));
+	border-bottom: $vm-border-width solid color-mix(in srgb, $vm-border-color 70%, transparent);
+	box-sizing: border-box;
+	color: $vm-text-normal;
+}
+
+.vm-node-table-row:hover,
+.vm-node-table-row.is-active-node {
+	background: $vm-bg-modifier-hover;
+}
+
+.vm-node-table-row.is-selected {
+	background: color-mix(in srgb, $vm-color-accent 13%, $vm-bg-primary);
+	box-shadow: inset 3px 0 0 color-mix(in srgb, $vm-color-accent 78%, transparent);
+}
+
+.vm-node-table-row.is-focused {
+	outline: 1px solid color-mix(in srgb, $vm-color-accent 62%, transparent);
+	outline-offset: -1px;
+}
+
+.vm-node-table-cell {
+	min-width: 0;
+	padding: 5px 8px;
+	border-right: $vm-border-width solid color-mix(in srgb, $vm-border-color 56%, transparent);
+	font-size: var(--font-ui-smaller);
+	@include text-ellipsis;
+}
+
+.vm-node-table-primary {
+	min-width: 0;
+	padding: 0;
+	border: 0;
+	background: transparent;
+	color: inherit;
+	font: inherit;
+	text-align: left;
+	cursor: pointer;
+	@include text-ellipsis;
+}
+
+@media (prefers-reduced-motion: reduce) {
+	.vm-node-table-row {
+		transition: none;
+	}
+}
+```
+
+- [ ] **Step 4: Import table SCSS**
+
+Modify `src/main.scss` in the Data Components section:
+
+```scss
+@use './styles/data/grid';
+@use './styles/data/table';
+@use 'styles/data/filters';
+```
+
+- [ ] **Step 5: Run style and component checks**
+
+Run:
+
+```powershell
+pnpm exec vp test run --project component --config vitest.config.ts test/component/viewTableSelection.test.ts --fileParallelism=false
+pnpm run build
+```
+
+Expected: table component passes, and `styles.css` is regenerated by the build.

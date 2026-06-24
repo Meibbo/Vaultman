@@ -1,6 +1,5 @@
 ---
 id: VM-0002
-project: vaultman
 type: docs-policy
 status: completed
 priority: high
@@ -23,6 +22,7 @@ updated: 2026-05-06T19:25:53
 tags:
   - agent/item
   - agent/policy
+projects: vaultman
 ---
 
 # VM-0002 Current Docs As Route Indexes

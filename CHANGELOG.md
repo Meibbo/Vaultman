@@ -12,6 +12,181 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.1.6] — 2026-06-23
+
+### Fixed
+
+- Active-filters counter now shows visible/total-vault file counts instead of repeating the filtered count.
+- Content search header counts the matched files while a search is running, updating as results arrive, instead of showing the full scope total.
+- Content find and replace inputs now have a bottom border that starts at the placeholder text rather than under the leading icon.
+- Word count no longer reports a count for binary files (PNG and other non-Markdown files).
+- Word count now matches Obsidian's own counter, including accented text, instead of counting Markdown punctuation as words.
+- The Files Words cell refreshes in near-real time as files are saved, without needing to open Statistics or toggle the column.
+
+---
+
+## [1.1.1] — 2026-06-09
+
+### Added
+
+- Added the Data surface as the stable explorer workspace for Files, Props, Tags, Content, active filters, Queue, and Statistics.
+- Added Core-like explorer controls, including dock-off tab navigation, view/sort/search controls, resizable table surfaces, Files grid view, and nested/path view behavior.
+- Added Content search and replace with queued operations, native-search fallback support, sorting, expand/collapse controls, and result landings.
+- Added queue templates, filter templates, risk warnings for bulk operations, and safer duplicate/contradictory operation handling.
+- Added cache-backed Statistics projections, live update support, and a local performance HUD for large-vault diagnostics.
+
+### Changed
+
+- Promoted the validated `1.1.0-beta.4` code line to stable as `1.1.1`; `1.1.0` remains skipped for stable because that tag already exists from earlier prerelease work.
+- Replaced the npm-based release gate with the pnpm/Node 24 toolchain used by the beta stream.
+- Aligned the minimal mobile navbar with Obsidian Core Files geometry instead of a custom floating visual layer.
+- Changed Files path display so `Nested` on/off is the single tree/path presentation toggle.
+
+### Fixed
+
+- Fixed severe explorer virtualization regressions, including stale rows, duplicated Files rows, scroll lifecycle leaks, tab-switch offsets, and row rebuild churn.
+- Fixed Files explorer filtering so folder and file-type filters hide unrelated empty folders and present matched folder contents as the active root surface.
+- Fixed Files, Tags, and Props drag payloads, folder queue handling, root-level drops, and Obsidian editor/frontmatter drop behavior.
+- Fixed mobile phone navigation regressions in minimal mode, including navbar placement, search toggle behavior, and transparent Core-like controls.
+- Fixed nested explorer indentation guides so `nested=on` exposes hierarchy lines without changing virtual row heights.
+- Fixed multiple stable UX placeholders, silent setting reactivity issues, active-filter zero-result warnings, and queue warning indicators.
+- Fixed Obsidian Scorecard CSS regressions by guarding against `!important`, `display: contents`, and unsupported stable styling patterns.
+
+---
+
+## [1.1.0-beta.4] — 2026-06-09
+
+### Changed
+
+- Hardened beta release publishing so prerelease tags are created as GitHub prereleases and are not marked latest.
+- Improved mobile minimal navbar behavior so the search toggle can close the searchbox directly.
+- Rebased active folder filters so filtered folder contents appear as a temporary root surface while filters are active.
+
+### Fixed
+
+- Fixed mobile minimal navbar styling that introduced black side bars, borders, and extra visual layers over Obsidian's phone navigation.
+- Fixed Files explorer drag-and-drop so nested files and folders can be moved back to the vault root by dropping onto a level-1 row.
+- Fixed folder delete queue handling so empty folders can be queued and deleted as folder targets instead of reporting zero affected files.
+- Fixed duplicate native file move menu entries by keeping Vaultman's autosuggest move action as the visible move command.
+- Fixed Statistics page navigation parity by restoring a minimal header tab menu surface.
+
+### Known beta gaps
+
+- Clean-install validation on a real phone is still required before any stable promotion.
+- Stable promotion should use a normal-version release from the same code lineage, not a mutation of this prerelease tag.
+
+---
+
+## [1.1.0-beta.3] — 2026-06-09
+
+### Added
+
+- Added a performance probe and scroll smoke scripts for explorer regression checks.
+- Added Core-like DnD action guides for Vaultman file, tag, and property drags.
+
+### Changed
+
+- Improved mobile/minimal navigation behavior, searchbox layout, explorer row styling, and Content input controls.
+- Updated file/property/tag explorer DnD payloads so Vaultman nodes participate more closely in Obsidian-native drag flows.
+
+### Fixed
+
+- Fixed property drops into Markdown editors so frontmatter entries can be applied without the invalid-drop target path.
+- Fixed file/folder drag payloads so file nodes expose native Obsidian file payloads for workspace tab drops.
+- Fixed root-level drops for files and nested tags.
+- Fixed queue/filter islands retaining dock spacing when the dock is disabled.
+- Fixed release metadata registration so new versions are added to `versions.json` even when they share `minAppVersion`.
+
+### Known beta gaps
+
+- Full Core Files DnD parity still needs manual validation for destructive move operations and workspace tabbar drops.
+- Explorer virtualization remains release-critical to watch under large-vault scroll and tab-switch stress.
+
+---
+
+## [1.1.0-beta.2] — 2026-06-08
+
+### Added
+
+- Added a minimal-style Data surface with dock-off navigation, Core-like header controls, and Data tab
+  routing for Files, Props, Tags, Content, Active filters, Queue, and Statistics.
+- Added table and grid view parity work for Files, plus table view support for Props and Tags with
+  resizable Bases-style columns.
+- Added Content search result hierarchy with Core Search-like rows, result sorting, expand/collapse all,
+  idle/no-result landings, and queue-compatible replace behavior.
+- Added queue risk warnings for bulk operations and folder operations, plus duplicate/contradictory
+  operation guards.
+- Added explorer drag payload support for files, tags, and properties, including frontmatter-aware
+  property drops and wikilink file drops.
+
+### Changed
+
+- Moved Files into the Data header tab menu and made Data the primary explorer surface for beta testing.
+- Split explorer search state by surface so Props/Tags search terms do not leak into Files filters.
+- Improved Files, Props, Tags, and Content sorting, including modified-time and created-time fields.
+- Reworked Statistics routing, scoped projections, and cache-backed file time data for the beta gate.
+- Added `dev` branch coverage to CI, CodeQL, and OpenSSF Scorecard workflows.
+
+### Fixed
+
+- Fixed multiple stable UX placeholders and non-reactive settings, including tab-label visibility and
+  minimal-style FAB/dock updates.
+- Fixed Files explorer extension display, folder filtering, folder queue operations, active-file styling,
+  file-grid selection/context menu behavior, and empty-folder affordances.
+- Fixed Props explorer property-name search semantics, property type display, value filtering, and grid
+  node interactions.
+- Fixed Tags nested/simple grouping semantics and view-grid interaction behavior.
+- Fixed severe explorer virtualization regressions: stale Files table roots, duplicated file rows, scroll
+  lifecycle leaks, row rebuild churn, and tab-switch vertical offset jumps.
+- Fixed Content search fallback so hidden matches missed by the native Search DOM can still appear in
+  Vaultman results.
+
+### Known beta gaps
+
+- Full Core Search parity for 1000+ result virtualization, snippet context controls, copy results, and
+  bookmark actions remains deferred.
+- Full Content table renderer parity remains deferred while the Core Search-compatible result-list
+  surface stabilizes.
+- Further indexed or batched filter-performance work may still be needed if rapid active-filter clicks
+  produce user-visible FPS drops in plugin-dev.
+
+---
+
+## [1.0.2] — 2026-06-04
+
+### Fixed
+
+- Removed the redundant queue-details value guard reported by CodeQL.
+- Kept stable CSS compatible with Obsidian Scorecard expectations by blocking
+  `!important` and `display: contents` release regressions.
+- Removed stable-channel placeholder tabs and no-op controls while keeping
+  functional settings visible.
+
+### Changed
+
+- Normalized the stable release gate on pnpm and Node 24 while keeping the
+  esbuild production build.
+- Added release-blocking `svelte-check`, format, stylelint, Scorecard, and
+  security audit gates.
+- Added a public security reporting policy.
+- Reordered the sidebar dock to start on Filters, moved Content operations into
+  Filters, moved Files into Operations, and placed the Statistics scope selector
+  below the metrics.
+- Added live settings refresh for Svelte views so tab-label visibility changes
+  no longer require reloading the plugin.
+
+---
+
+## [1.0.1] — 2026-05-26
+
+### Fixed
+
+- Published a stable `1.0.x` patch from the `1.0.0` product line.
+- Added release workflow provenance for `main.js`, `manifest.json`, and `styles.css` assets.
+- Resolved Obsidian Scorecard findings for manifest punctuation, source directive comments, popout-compatible globals, language detection, and unnecessary assertions.
+
+---
+
 ## [1.0.0-beta.5] — 2026-04-07
 
 > Property browser, queue snippet diffs, and content replace UX polish.
@@ -239,7 +414,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > Versions 0.2–0.6 correspond to the Python script predecessor (PKM Manager).
 > See `docs/pkm_manager_python_architecture.md` for that history.
 
-[Unreleased]: https://github.com/Meibbo/Vaultman-Plugin/compare/1.0.0-beta.5...HEAD
+[Unreleased]: https://github.com/Meibbo/Vaultman/compare/1.1.1...HEAD
+[1.1.1]: https://github.com/Meibbo/Vaultman/compare/1.0.1...1.1.1
+[1.1.0-beta.4]: https://github.com/Meibbo/Vaultman/compare/1.1.0-beta.3...1.1.0-beta.4
+[1.1.0-beta.3]: https://github.com/Meibbo/Vaultman/compare/1.1.0-beta.2...1.1.0-beta.3
+[1.1.0-beta.2]: https://github.com/Meibbo/Vaultman/compare/1.0.1...1.1.0-beta.2
+[1.0.2]: https://github.com/Meibbo/Vaultman/compare/1.0.1...1.0.2
+[1.0.1]: https://github.com/Meibbo/Vaultman/compare/1.0.0...1.0.1
 [1.0.0-beta.5]: https://github.com/Meibbo/Vaultman-Plugin/compare/1.0.0-beta.4...1.0.0-beta.5
 [1.0.0-beta.4]: https://github.com/Meibbo/Vaultman-Plugin/compare/1.0.0-beta.3...1.0.0-beta.4
 [1.0.0-beta.3]: https://github.com/Meibbo/Vaultman-Plugin/compare/1.0.0-beta.2...1.0.0-beta.3

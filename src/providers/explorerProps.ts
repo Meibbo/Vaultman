@@ -258,7 +258,7 @@ export class explorerProps implements ExplorerProvider<PropMeta> {
 		if (this.searchTerm) {
 			const filterTree = () =>
 				filterPropTree(
-					tree as TreeNode<PropNodeMeta>[],
+					tree,
 					this.searchTerm,
 					this.searchMode === 'leaf' ? 1 : 0,
 				) as TreeNode<PropMeta>[];

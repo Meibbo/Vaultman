@@ -1,6 +1,5 @@
 ---
 id: VM-0001
-project: vaultman
 type: conflict
 status: new
 priority: normal
@@ -17,6 +16,7 @@ created: 2026-05-04T01:48:51
 updated: 2026-05-04T01:48:51
 tags:
   - agent/item
+projects: vaultman
 ---
 
 # VM-0001 Conflict Title

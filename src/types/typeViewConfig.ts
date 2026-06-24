@@ -326,7 +326,7 @@ function mergeSparse(partials: readonly Partial<ViewConfig>[]): Partial<ViewConf
 			if (v !== undefined) {
 				// Index-erased assignment: keys are validated by the ViewConfig type at the
 				// call boundary; the merge itself is shape-generic.
-				(out as Record<string, unknown>)[k] = v as unknown;
+				(out as Record<string, unknown>)[k] = v;
 			}
 		}
 	}
@@ -355,8 +355,8 @@ export function resolveViewConfig(
 		partial,
 	]);
 
-	const engine = (merged.engine ?? DEFAULT_VIEW_CONFIG.engine) as ViewEngine;
-	let mode = (merged.mode ?? ENGINE_DEFAULT_MODE[engine]) as ViewMode;
+	const engine = (merged.engine ?? DEFAULT_VIEW_CONFIG.engine);
+	let mode = (merged.mode ?? ENGINE_DEFAULT_MODE[engine]);
 	// Repair an incoherent inherited pair: if the cascade handed us a mode that does
 	// not belong to the resolved engine, fall back to that engine's default mode.
 	if (!isModeForEngine(engine, mode)) {
@@ -366,8 +366,8 @@ export function resolveViewConfig(
 	const resolved: ViewConfig = {
 		engine,
 		mode,
-		orientation: (merged.orientation ?? DEFAULT_VIEW_CONFIG.orientation) as ViewOrientation,
-		viewScope: (merged.viewScope ?? DEFAULT_VIEW_CONFIG.viewScope) as ViewScope,
+		orientation: (merged.orientation ?? DEFAULT_VIEW_CONFIG.orientation),
+		viewScope: (merged.viewScope ?? DEFAULT_VIEW_CONFIG.viewScope),
 	};
 	if (merged.placement !== undefined) resolved.placement = merged.placement;
 	if (merged.layerId !== undefined) resolved.layerId = merged.layerId;

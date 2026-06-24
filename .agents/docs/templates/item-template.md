@@ -1,18 +1,24 @@
 ---
-id: {{id}}
-project: vaultman
+id:
+  "{ id }":
 type: feature
 status: triaged
 priority: normal
-initiative: {{initiative}}
+initiative:
+  "{ initiative }":
 task_size: small
-created: {{timestamp}}
-updated: {{timestamp}}
-created_by: {{agent}}
-updated_by: {{agent}}
+created:
+  "{ timestamp }":
+updated:
+  "{ timestamp }":
+created_by:
+  "{ agent }":
+updated_by:
+  "{ agent }":
 parent: "{{parent_link}}"
 tags:
   - agent/item
+projects: vaultman
 ---
 
 # {{id}} {{title}}

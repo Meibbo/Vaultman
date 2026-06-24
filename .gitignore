@@ -26,8 +26,6 @@ settings.local.json
 .DS_Store
 .env
 .log
-!eslint-rules/
-!eslint-rules/no-mutable-vfs.mjs
 
 #/...----------—————————————(   CodeQL   )————————————------------... #
 # codeql/tests/

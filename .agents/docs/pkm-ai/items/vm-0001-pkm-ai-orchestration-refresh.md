@@ -1,6 +1,5 @@
 ---
 id: VM-0001
-project: vaultman
 type: feature
 status: verify
 priority: high
@@ -20,6 +19,7 @@ created: 2026-05-04T01:48:51
 updated: 2026-05-04T07:26:01
 tags:
   - agent/item
+projects: vaultman
 ---
 
 # VM-0001 PKM-AI Orchestration Refresh

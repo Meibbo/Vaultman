@@ -1,0 +1,150 @@
+{
+  "nodes": [
+    {
+      "id": "type",
+      "type": "text",
+      "x": -700,
+      "y": -560,
+      "width": 360,
+      "height": 240,
+      "color": "1",
+      "text": "**Layer 1 — Type contract**\n\n`src/types/typeThemePreset.ts`\n\n- `ThemePreset` (exhaustive)\n- `ThemePresetId`, `ThemePresetSource`\n- Chrome/Density/NodeElementVisibility\n- Dock/Tabs/Toolbar settings\n- ColorKnobMap, LayoutPlacementMap\n- `normalizeCustomPreset()`\n- `isBuiltInPreset()`"
+    },
+    {
+      "id": "builtins",
+      "type": "text",
+      "x": -260,
+      "y": -560,
+      "width": 360,
+      "height": 240,
+      "color": "1",
+      "text": "**Layer 2 — Built-in constants**\n\n`src/config/themePresetsBuiltin.ts`\n\n- `PRESET_NATIVE` (chameleon disguise)\n- `PRESET_VAULTMAN` (full plugin)\n- `BUILT_IN_PRESETS` array\n\nBoth `as const`, inmutables."
+    },
+    {
+      "id": "data_json",
+      "type": "text",
+      "x": 180,
+      "y": -560,
+      "width": 360,
+      "height": 240,
+      "color": "5",
+      "text": "**Persistence — `data.json`**\n\n`elasticUi.themePresetId`\n`elasticUi.customPresets[]`\n\nClean break: no `layoutTheme`,\nno `glassBlurIntensity`,\nno `islandBackdropBlur`."
+    },
+    {
+      "id": "main_ts",
+      "type": "text",
+      "x": 620,
+      "y": -560,
+      "width": 360,
+      "height": 240,
+      "color": "5",
+      "text": "**Plugin orchestrator — `main.ts`**\n\n`onload`:\n  `new ThemeService()`\n  `themeService.hydrate(settings.elasticUi)`\n\n`saveSettings`: sync runes → settings.\n\n`onunload`: `themeService.dispose()`.\n\nNo more `updateGlassBlur`, no\n`applyVaultmanTheme` call."
+    },
+    {
+      "id": "service",
+      "type": "text",
+      "x": -260,
+      "y": -240,
+      "width": 800,
+      "height": 380,
+      "color": "4",
+      "text": "**Layer 3 — `ThemeService` (runes, deep module)**\n\n`src/services/serviceTheme.svelte.ts`\n\n**Public reads:**\n- `activePreset` (derived)  •  `availablePresets` (built-in + custom)\n- `useNativeDom`  •  `rootClasses`\n- `faintActive`  •  `useUtilities`\n\n**Public writes:**\n- `setPreset(id)`\n- `registerCustomPreset(p)` / `unregisterCustomPreset(id)` / `updateCustomPreset(id, partial)`\n- `hydrate(settings)`  •  `dispose()`\n\n**Runes state:** activePresetId, customPresets, mode, identity,\nfaintModeEnabled, reducedMotion, windowFocused, foulDetection.\n\n**Private:** `#styleEl`, `#syncCustomStyles()`,\n`#cssEscape()`, `#sanitizeCssLength()`, `#sanitizeNumber01()`."
+    },
+    {
+      "id": "frame",
+      "type": "text",
+      "x": -700,
+      "y": 220,
+      "width": 360,
+      "height": 200,
+      "color": "2",
+      "text": "**Consumer — `frameVaultman.svelte:619`**\n\n`elasticRootClasses = themeService.rootClasses.join(' ')`\n\n→ `<div class={elasticRootClasses}>` ... `</div>`\n\n(`.vm-root` element)"
+    },
+    {
+      "id": "views",
+      "type": "text",
+      "x": -260,
+      "y": 220,
+      "width": 360,
+      "height": 200,
+      "color": "2",
+      "text": "**Consumers — view components**\n\n`viewTree`, `ViewNodeTable`, `ViewNodeCards`,\n`ViewNodeGrid`, `viewOutlineExplorer`.\n\n`const useNativeDom = $derived(themeService?.useNativeDom)`\n\nUnchanged after 0-B. Source flips internally."
+    },
+    {
+      "id": "style_inject",
+      "type": "text",
+      "x": 180,
+      "y": 220,
+      "width": 360,
+      "height": 200,
+      "color": "3",
+      "text": "**Runtime injection — custom presets**\n\n`#syncCustomStyles()` appends:\n\n`<style data-vm-theme-presets=\"custom\">`\n  `.vm-theme-{id} { --vm-...; ... }`\n`</style>`\n\nTo `document.head`. CSS sanitized."
+    },
+    {
+      "id": "scss_presets",
+      "type": "text",
+      "x": 620,
+      "y": 220,
+      "width": 360,
+      "height": 200,
+      "color": "6",
+      "text": "**SCSS — `_theme-presets.scss` (NEW)**\n\n`.vm-theme-native { ... }`\n`.vm-theme-vaultman { ... }`\n\nBuilt-in token blocks.\n6 vars: bg-opacity, blur, tint,\nrow-height, padding-y, icon-size."
+    },
+    {
+      "id": "dom",
+      "type": "text",
+      "x": -700,
+      "y": 520,
+      "width": 360,
+      "height": 200,
+      "color": "2",
+      "text": "**DOM result**\n\n`<div class=\"vm-root vm-mode-thin vm-id-native\n            vm-theme-vaultman ...\">`\n  `...rows emit nav-file/.vm-* per useNativeDom...`\n`</div>`"
+    },
+    {
+      "id": "cascade",
+      "type": "text",
+      "x": -260,
+      "y": 520,
+      "width": 360,
+      "height": 200,
+      "color": "6",
+      "text": "**SCSS cascade — `_islands.scss`, `_virtual-list.scss`, `_tree.scss`**\n\nResolve `var(--vm-popup-bg-opacity)`,\n`var(--vm-popup-backdrop-blur)`,\n`var(--vm-row-height)`, etc.\n\n→ paint."
+    },
+    {
+      "id": "future",
+      "type": "text",
+      "x": 180,
+      "y": 520,
+      "width": 360,
+      "height": 200,
+      "color": "5",
+      "text": "**Future seams (declare-only in 0-B)**\n\n`preset.dock` → Sub-system Layout\n`preset.tabs` → Sub-system Layout\n`preset.toolbar.buttons` → Toolbar contract\n`preset.viewModes` → 0-A\n`preset.nodeElements` → 0-A\n`preset.unload` → J (Phase 3)\n`preset.colors` → Color governance\n`preset.layout` → Theme Builder\n`preset.workspaceId` → Workspaces"
+    },
+    {
+      "id": "deleted",
+      "type": "text",
+      "x": 620,
+      "y": 520,
+      "width": 360,
+      "height": 200,
+      "color": "5",
+      "text": "**Deleted in 0-B**\n\n- `src/services/serviceTheme.ts` (49 LOC)\n- `applyVaultmanTheme()` calls\n- `updateGlassBlur()` method\n- `layoutTheme` setting + type\n- `glassBlurIntensity`, `islandBackdropBlur` settings\n- legacy `.vm-theme-{default,polish,glass}` SCSS blocks"
+    }
+  ],
+  "edges": [
+    { "id": "e1", "fromNode": "type", "fromSide": "right", "toNode": "builtins", "toSide": "left", "label": "imported by" },
+    { "id": "e2", "fromNode": "type", "fromSide": "bottom", "toNode": "service", "toSide": "left", "label": "imports" },
+    { "id": "e3", "fromNode": "builtins", "fromSide": "bottom", "toNode": "service", "toSide": "top", "label": "BUILT_IN_PRESETS" },
+    { "id": "e4", "fromNode": "data_json", "fromSide": "bottom", "toNode": "service", "toSide": "right", "label": "hydrate" },
+    { "id": "e5", "fromNode": "main_ts", "fromSide": "bottom", "toNode": "service", "toSide": "right", "label": "construct + lifecycle" },
+    { "id": "e6", "fromNode": "service", "fromSide": "bottom", "toNode": "frame", "toSide": "top", "label": "rootClasses" },
+    { "id": "e7", "fromNode": "service", "fromSide": "bottom", "toNode": "views", "toSide": "top", "label": "useNativeDom" },
+    { "id": "e8", "fromNode": "service", "fromSide": "bottom", "toNode": "style_inject", "toSide": "top", "label": "#syncCustomStyles" },
+    { "id": "e9", "fromNode": "frame", "fromSide": "bottom", "toNode": "dom", "toSide": "top", "label": "class binding" },
+    { "id": "e10", "fromNode": "views", "fromSide": "bottom", "toNode": "dom", "toSide": "top", "label": "class:nav-file etc." },
+    { "id": "e11", "fromNode": "scss_presets", "fromSide": "left", "toNode": "cascade", "toSide": "right", "label": "var defs" },
+    { "id": "e12", "fromNode": "style_inject", "fromSide": "bottom", "toNode": "cascade", "toSide": "top", "label": "runtime var defs" },
+    { "id": "e13", "fromNode": "dom", "fromSide": "right", "toNode": "cascade", "toSide": "left", "label": ".vm-theme-{id} selector" },
+    { "id": "e14", "fromNode": "service", "fromSide": "right", "toNode": "future", "toSide": "top", "label": "declare-only fields" }
+  ]
+}
