@@ -36,6 +36,9 @@ export default defineConfig({
 		singleQuote: true,
 		semi: true,
 	},
+	// Type-only skew: @unocss/vite and @sveltejs/vite-plugin-svelte resolve their own
+	// vite Plugin types, which vite-plus 0.2.1 no longer accepts structurally (post
+	// 2026-06-20 toolchain upgrade). Runtime plugin shapes are unchanged.
 	plugins: [
 		UnoCSS({ configFile: './uno.config.ts' }),
 		svelte({
@@ -44,7 +47,7 @@ export default defineConfig({
 			},
 			preprocess: sveltePreprocess(),
 		}),
-	],
+	] as import('vite-plus').PluginOption[],
 	build: {
 		emptyOutDir: true,
 		lib: {

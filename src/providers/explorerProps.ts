@@ -3,7 +3,6 @@ import {
 	buildPropTree,
 	filterPropTree,
 	propDomainKey,
-	type PropNodeMeta,
 	type PropTreeSource,
 } from '../logic/logicProps';
 import { buildExplorerSnapshot } from '../logic/logicExplorerSnapshot';

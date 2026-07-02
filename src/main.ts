@@ -76,7 +76,9 @@ import type {
 } from './types/typeContracts';
 
 export class VaultmanPlugin extends Plugin {
-	settings!: VaultmanSettings;
+	// `declare`: obsidian's Plugin base now types `settings`; this narrows it for
+	// Vaultman without emitting a field that would overwrite the base at runtime.
+	declare settings: VaultmanSettings;
 
 	// Core services — public so components/modals can access them
 	propertyIndex!: PropertyIndexService;

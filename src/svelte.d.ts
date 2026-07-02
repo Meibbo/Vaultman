@@ -5,3 +5,8 @@ declare module '*.svelte' {
 	const component: any;
 	export default component;
 }
+
+// Side-effect imports that Vite resolves at build time. TypeScript 6.0 (TS2882)
+// requires declarations even for side-effect-only imports.
+declare module 'virtual:uno.css';
+declare module '*.scss';
