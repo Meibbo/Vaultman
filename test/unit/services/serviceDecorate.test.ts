@@ -65,6 +65,96 @@ describe('DecorationManager', () => {
 		).toBe('lucide-folder');
 	});
 
+	// Characterization (PAI-001): captured BEFORE routing serviceDecorate through
+	// logicIconResolver, to prove the resolver wiring is visual-parity-preserving,
+	// not just assumed. These exact icon ids must stay stable across the wiring.
+	describe('characterization — icon output per representative node type (pre-resolver baseline)', () => {
+		it('folder node -> lucide-folder', () => {
+			const dm = new DecorationManager(mockApp());
+			const out = dm.decorate({ id: 'folder-1', label: 'Projects' } as never, {
+				kind: 'file',
+				isFolder: true,
+			});
+			expect(out.icons[0]).toBe('lucide-folder');
+		});
+
+		it('plain file node (.md) -> lucide-file', () => {
+			const dm = new DecorationManager(mockApp());
+			const out = dm.decorate({ id: 'file-1', label: 'note.md' } as never, {
+				kind: 'file',
+				isFolder: false,
+				extension: 'md',
+			});
+			expect(out.icons[0]).toBe('lucide-file');
+		});
+
+		it('image file node (.png) -> lucide-image', () => {
+			const dm = new DecorationManager(mockApp());
+			const out = dm.decorate({ id: 'file-2', label: 'photo.png' } as never, {
+				kind: 'file',
+				isFolder: false,
+				extension: 'png',
+			});
+			expect(out.icons[0]).toBe('lucide-image');
+		});
+
+		it('tag node without Iconic -> lucide-tag', () => {
+			const dm = new DecorationManager(mockApp());
+			const out = dm.decorate({ id: 'tag-1', label: '#project' } as never, {
+				kind: 'tag',
+				iconicIcon: null,
+			});
+			expect(out.icons[0]).toBe('lucide-tag');
+		});
+
+		it('tag node with Iconic override -> Iconic wins', () => {
+			const dm = new DecorationManager(mockApp());
+			const out = dm.decorate({ id: 'tag-2', label: '#project' } as never, {
+				kind: 'tag',
+				iconicIcon: 'lucide-star',
+			});
+			expect(out.icons[0]).toBe('lucide-star');
+		});
+
+		it('prop node with known type (checkbox) -> TYPE_ICON_MAP entry', () => {
+			const dm = new DecorationManager(mockApp());
+			const out = dm.decorate({ id: 'prop-1', label: 'done' } as never, {
+				kind: 'prop',
+				propType: 'checkbox',
+			});
+			expect(out.icons[0]).toBe('lucide-check-square');
+		});
+
+		it('prop node with unknown type -> generic lucide-tag fallback', () => {
+			const dm = new DecorationManager(mockApp());
+			const out = dm.decorate({ id: 'prop-2', label: 'weird' } as never, {
+				kind: 'prop',
+				propType: 'not-a-real-type',
+			});
+			expect(out.icons[0]).toBe('lucide-tag');
+		});
+
+		it('prop node with Iconic override -> Iconic wins over type map', () => {
+			const dm = new DecorationManager(mockApp());
+			const out = dm.decorate({ id: 'prop-3', label: 'done' } as never, {
+				kind: 'prop',
+				propType: 'checkbox',
+				iconicIcon: 'lucide-flag',
+			});
+			expect(out.icons[0]).toBe('lucide-flag');
+		});
+
+		it('value node (isValueNode) -> generic lucide-tag fallback (no dedicated file/tag/prop branch)', () => {
+			const dm = new DecorationManager(mockApp());
+			const out = dm.decorate({ id: 'value-1', label: 'active' } as never, {
+				kind: 'prop',
+				isValueNode: true,
+			});
+			// Today's decorateNode has no branch for isValueNode -> icons stays empty.
+			expect(out.icons).toEqual([]);
+		});
+	});
+
 	it('records active probe metrics for decoration calls', () => {
 		const probe = createPerfProbe({ now: () => 0 });
 		const dm = new DecorationManager(mockApp());
