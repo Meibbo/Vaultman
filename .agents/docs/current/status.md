@@ -29,6 +29,15 @@ Compact route index after archiving the oversized current status:
 ## Current Route
 
 - Active initiative: [[docs/work/hardening/index|Hardening]].
+- **LATEST (2026-07-02)**: **Workflow "absorption loop" adoptado + [[docs/current/norte|norte]] creado**
+  (roadmap-at-a-glance para re-orientar al dev; se actualiza en fronteras de wave). Research online de
+  workflows (3 Explore agents: spec-driven · iterativo · PRD/issues+orquestación) → convergencia: parity
+  checklist (= function-union ledger, ya existe) + tracer-bullet slices con gates + issues verticales
+  **AFK/HITL** + autonomía solo sobre DoD tool-checkable. Piloto del formato: issue-set
+  [[docs/work/hardening/issues/proto-absorption-icons/index|PAI — Proto Absorption Icons]] (001-005;
+  gap SOLO-PROTO N2, paralelo a V.D slice 2). Git: dirty tree del dev commiteado (`1971fbb` community
+  health) + **push respaldo `origin/sandbox` 30eddb6→1971fbb** (117 commits). ⚠️ Dependabot: 12 vulns
+  en `main` (3 high) — triage pendiente. Detalle: session-log 2026-07-02.
 - **LATEST (2026-06-19, tarde)**: **V.D thread A slice 1 COMPLETE + FF a sandbox (`bd3faf8`).** Shared
   render-runtime Linear pilot aterrizado: pure core + **Svelte 5 shell** (`serviceSharedVirtualLayout.svelte.ts`:
   `$state`→`$derived` window vía core autoritativo, `{@attach}` cabla scroll/RO + seam `@tanstack/svelte-virtual`)

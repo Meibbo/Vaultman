@@ -68,6 +68,7 @@ quality work before it reaches `main`.
 
 ## Active Issue Sets
 
+- [[docs/work/hardening/issues/proto-absorption-icons/index|Proto Absorption — Icons (PAI, piloto absorption loop)]]
 - [[docs/work/hardening/issues/explorer-data-plane/index|Explorer data plane local issues]]
 
 ## Recent Closeouts
