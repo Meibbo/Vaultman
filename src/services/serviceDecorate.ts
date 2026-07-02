@@ -1,29 +1,7 @@
 import type { App } from 'obsidian';
 import type { IDecorationManager, DecorationOutput, NodeBase } from '../types/typeContracts';
 import { getActivePerfProbe } from '../dev/perfProbe';
-
-const TYPE_ICON_MAP: Record<string, string> = {
-	text: 'lucide-text-align-start',
-	number: 'lucide-hash',
-	checkbox: 'lucide-check-square',
-	date: 'lucide-calendar',
-	datetime: 'lucide-clock',
-	list: 'lucide-list',
-	multitext: 'lucide-list-plus',
-};
-const IMAGE_EXTENSIONS = new Set([
-	'avif',
-	'bmp',
-	'gif',
-	'ico',
-	'jpeg',
-	'jpg',
-	'png',
-	'svg',
-	'tif',
-	'tiff',
-	'webp',
-]);
+import { resolveIcon } from '../logic/logicIconResolver';
 
 type DecorationContext = {
 	kind?: 'prop' | 'tag' | 'file';
@@ -74,11 +52,13 @@ export class DecorationManager implements IDecorationManager {
 		const query = ctx.highlightQuery ?? this.highlightQuery;
 
 		if (ctx.kind === 'prop' && !ctx.isValueNode) {
-			out.icons.push(ctx.iconicIcon ?? TYPE_ICON_MAP[ctx.propType ?? ''] ?? 'lucide-tag');
+			out.icons.push(ctx.iconicIcon ?? resolveIcon({ kind: 'prop', propType: ctx.propType }).iconId);
 		} else if (ctx.kind === 'tag') {
-			out.icons.push(ctx.iconicIcon ?? 'lucide-tag');
+			out.icons.push(ctx.iconicIcon ?? resolveIcon({ kind: 'tag' }).iconId);
 		} else if (ctx.kind === 'file') {
-			out.icons.push(fileIconForContext(ctx));
+			out.icons.push(
+				resolveIcon({ kind: 'file', isFolder: ctx.isFolder, extension: ctx.extension }).iconId,
+			);
 		}
 
 		if (query && label) {
@@ -97,11 +77,4 @@ export class DecorationManager implements IDecorationManager {
 		this.subs.add(cb);
 		return () => this.subs.delete(cb);
 	}
-}
-
-function fileIconForContext(ctx: DecorationContext): string {
-	if (ctx.isFolder) return 'lucide-folder';
-	const extension = ctx.extension?.toLowerCase() ?? '';
-	if (IMAGE_EXTENSIONS.has(extension)) return 'lucide-image';
-	return 'lucide-file';
 }
