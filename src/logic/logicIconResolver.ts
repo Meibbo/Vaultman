@@ -48,7 +48,7 @@ export interface IconResolution {
 
 export interface IconResolutionInput {
 	/** Semantic node kind. Anything outside `ICON_ROLES` degrades to fallback. */
-	kind?: IconRole | string;
+	kind?: string;
 	isFolder?: boolean;
 	/** File extension, with or without leading dot, any case. */
 	extension?: string;
