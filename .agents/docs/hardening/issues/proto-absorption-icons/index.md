@@ -48,21 +48,13 @@ sugerido** · **Dependencias**.
 
 | # | Issue | Tag | Nivel | Estado |
 |---|---|---|---|---|
-| 001 | [[001-resolver-core-tree-tracer\|Resolver semántico core + tracer en tree]] | AFK | N2 | ✅ done 2026-07-02 (sandbox `a38c731`) |
+| 001 | [[001-resolver-core-tree-tracer\|Resolver semántico core + tracer en tree]] | AFK | N2 | todo |
 | 002 | [[002-override-model-persistence\|Override model + persistencia PSS-shaped]] | AFK | N2 | todo |
 | 003 | [[003-icon-picker-island\|Icon picker island (polish)]] | HITL | N2 | todo (gated 001+002) |
 | 004 | [[004-resolver-rollout-explorers\|Rollout del resolver a props/tags/content]] | AFK | N2 | todo (gated 001) |
 | 005 | [[005-icon-packs-deferred\|Icon packs como assets — registro DEFER]] | DEFER | N4 | registro, no accionable |
 
 Orden: 001 → (002 ∥ 004) → 003. 005 no se ejecuta en esta wave.
-
-## Canon raw (⚠ leer antes de tocar cualquier PAI)
-
-**Proto canónico = `C:/Users/vic_A/Downloads/vaultman/proto-v12/`** (carpetas `proto-vXX/`
-por versión; la carpeta `proto/` SIN sufijo es STALE v7-era — costó una corrección a mitad
-de PAI-001). El "vertical read v12" citado abajo ES el shard v7; deltas v7→v12 se verifican
-por sistema contra el raw. Detalle + convención de versiones:
-[[docs/work/hardening/research/2026-07-02-proto-v12-design-inputs/index|Proto v12 design inputs]].
 
 ## Prior art y fuentes
 

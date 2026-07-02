@@ -1,7 +1,7 @@
 ---
 title: PAI-001 — Resolver semántico core + tracer end-to-end en tree
 type: issue
-status: done
+status: todo
 parent: "[[docs/work/hardening/issues/proto-absorption-icons/index|PAI index]]"
 created: 2026-07-02T13:30:00
 updated: 2026-07-02T13:30:00
@@ -64,26 +64,3 @@ ADOPT-sandbox, degradación graceful obligatoria.
 ## Dependencias
 
 Ninguna (arranca ya). No toca V.D slice 2.
-
-## Closeout (2026-07-02 — sandbox `a38c731`)
-
-- **Entregado**: `src/logic/logicIconResolver.ts` (16 roles v12 = claves de
-  `LUCIDE_ROLE_ICONS`; alias de kinds/exts; type step gana a ext; orden v12
-  `resolveIconPackKey` :199-212) + `serviceDecorate` delega prop/tag/file al resolver
-  (precedencia Iconic conservada) + 24 tests resolver + 8 de caracterización paridad.
-  **Paridad visual = ids activos sin cambio**; look v12 = `PROTO_POLISH_ROLE_ICONS`
-  exportado SIN cablear (preset polish, D8).
-- **Ejecución**: subagente Sonnet (worktree `C:/tmp/vaultman-pai-001`) + recuperación
-  del coordinador tras session-limit (patrón conocido). Incidente de canon: primer pass
-  leyó `proto/` stale; corregido a `proto-v12/` vía mensaje al subagente + cierre del
-  coordinador (ver §Canon raw del index).
-- **Gates**: focal 49/49 · svelte-check **0/0** · unit 1155 pass (1 known-ajeno
-  notebook-nav) · build→plugin-dev · reload + `dev:errors` limpio ×2 · DOM smoke:
-  folder/file/tag renderizando ids de paridad, 0 fugas del mapa polish (`lucide-tags`
-  único = dock chrome, no resolver).
-- **Bonus (baseline, no PAI)**: commit `a38c731` reparó los 6 type-errors del upgrade
-  de toolchain 2026-06-20 que ROMPÍAN `pnpm run build` (vite.config cast · svelte.d.ts
-  TS2882 · explorerProps import · main.ts `declare settings`). Queda pendiente ajeno:
-  crash de `eslint .` sobre `package.json` (chip/task aparte).
-- Commits: `5fc80be`·`6f96ed0`·`27f8354`·`14916e4` (subagente) + `c7459bd` (v12 align) +
-  `a38c731` (baseline build repair).

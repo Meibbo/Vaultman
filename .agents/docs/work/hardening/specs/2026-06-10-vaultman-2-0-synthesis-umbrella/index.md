@@ -80,7 +80,11 @@ tag de respaldo al arrancar wave 1: sandbox-pre-umbrella-v2-2026-06-10
 ## Design inputs
 
 1. **Proto v12** (canon preset polish/demo) —
-   [[docs/work/hardening/research/2026-05-29-version-streams-vertical-codebase-analysis/04-proto-design-v12-vertical-read|shard 04 vertical read]];
+   [[docs/work/hardening/research/2026-05-29-version-streams-vertical-codebase-analysis/04-proto-design-v7-vertical-read|shard 04 vertical read]]
+   (⚠ el shard documenta **v7**; el link decía "v12" y no existía tal archivo — corregido
+   2026-07-02. Raw canónico = `Downloads/vaultman/proto-v12/`; deltas v7→v12 se verifican
+   por sistema al absorber:
+   [[docs/work/hardening/research/2026-07-02-proto-v12-design-inputs/index|proto v12 design inputs]]);
    reglas duras de traducción en su §29 (no copiar `window.*`, script order, mock data,
    DOM-query nav, `_hiddenSecs`, desktop taxonomy stale).
 2. **Whiteboard Node Distribution 2026-06-02** — [[02-node-distribution-presentation-model|shard 02]].

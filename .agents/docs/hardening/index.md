@@ -48,6 +48,7 @@ quality work before it reaches `main`.
 
 ## Active Research
 
+- [[docs/work/hardening/research/2026-07-02-proto-v12-design-inputs/index|Proto v12 design inputs (canon raw + 3 docs del dev)]]
 - [[docs/work/hardening/research/2026-05-25-vd-tree-list-nn-pipeline-discovery/index|V.D Tree/List/Notebook Navigator pipeline discovery]]
 - [[docs/work/hardening/research/2026-05-28-feature-request-architecture-fit/index|Feature Request Architecture Fit]]
 - [[docs/work/hardening/research/2026-05-16-openssf-osps-baseline/index|OpenSSF OSPS baseline research]]
@@ -68,6 +69,7 @@ quality work before it reaches `main`.
 
 ## Active Issue Sets
 
+- [[docs/work/hardening/issues/proto-absorption-icons/index|Proto Absorption — Icons (PAI, piloto absorption loop)]]
 - [[docs/work/hardening/issues/explorer-data-plane/index|Explorer data plane local issues]]
 
 ## Recent Closeouts

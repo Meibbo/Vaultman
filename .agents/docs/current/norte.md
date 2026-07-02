@@ -73,10 +73,17 @@ flowchart LR
 
 ## Próximos gates (orden)
 
-1. V.D slice 2 Geometry: verify + gate STRICT + paridad stable (SDF-011/016).
-2. PAI-001 (tracer del resolver de iconos) — valida el formato del absorption loop.
-3. P112 → sandbox con reconcile de `viewTreeBehavior`/`virtualScrollCssSource`.
-4. Decisión dev pendiente: orden PA 2-5 vs siguiente sistema de absorción (f4/f5 del grill 2026-07-02).
+1. ~~PAI-001~~ ✅ **done 2026-07-02** (`a38c731`): resolver v12 + tracer tree, paridad
+   probada, formato AFK/HITL VALIDADO. Bonus: reparó el build roto del baseline
+   (6 type-errors del upgrade de toolchain).
+2. V.D slice 2 Geometry: verify + gate STRICT + paridad stable (SDF-011/016).
+3. PAI-002 (overrides) ∥ PAI-004 (rollout) — despachables AFK ya.
+4. P112 → sandbox con reconcile de `viewTreeBehavior`/`virtualScrollCssSource`.
+5. Decisión dev pendiente: orden PA 2-5 vs siguiente sistema de absorción (f4/f5 del grill 2026-07-02).
+
+**Canon raw proto**: `Downloads/vaultman/proto-vXX/` (v12 actual; `proto/` sin sufijo =
+STALE v7). El "vertical read v12" citado en docs viejos ES el shard v7 — deltas por
+sistema contra el raw al absorber.
 
 ## Workflow vigente (decisión 2026-07-02, research-backed)
 

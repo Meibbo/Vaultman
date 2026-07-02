@@ -29,6 +29,18 @@ Compact route index after archiving the oversized current status:
 ## Current Route
 
 - Active initiative: [[docs/work/hardening/index|Hardening]].
+- **LATEST (2026-07-02, tarde)**: **PAI-001 COMPLETO** — sandbox `741677d`→`a38c731` (FF, pushed).
+  Resolver semántico de iconos (canon **proto-v12**: 16 roles, alias, type>ext, orden
+  `resolveIconPackKey`) + tree cableado vía `serviceDecorate` con **paridad visual probada**
+  (caracterización 8 tests + DOM smoke plugin-dev); look v12 = `PROTO_POLISH_ROLE_ICONS`
+  exportado SIN cablear (D8). Gates: focal 49/49 · check 0/0 · unit 1155 · reload+`dev:errors`
+  limpio. **Bonus**: `a38c731` reparó los 6 type-errors del upgrade toolchain que ROMPÍAN
+  `pnpm run build` (vite.config · TS2882 d.ts · explorerProps · main.ts `declare settings`);
+  queda ajeno el crash de `eslint .` en `package.json`. **Incidente de canon resuelto**: docs
+  citaban "vertical read v12" inexistente (shard real = v7) y el raw stale `proto/`; canon
+  registrado = `Downloads/vaultman/proto-v12/` + 3 design-inputs del dev importados:
+  [[docs/work/hardening/research/2026-07-02-proto-v12-design-inputs/index|proto v12 design inputs]].
+  Detalle: [[docs/work/hardening/issues/proto-absorption-icons/001-resolver-core-tree-tracer|PAI-001 closeout]] + session-log.
 - **LATEST (2026-07-02)**: **Workflow "absorption loop" adoptado + [[docs/current/norte|norte]] creado**
   (roadmap-at-a-glance para re-orientar al dev; se actualiza en fronteras de wave). Research online de
   workflows (3 Explore agents: spec-driven · iterativo · PRD/issues+orquestación) → convergencia: parity
