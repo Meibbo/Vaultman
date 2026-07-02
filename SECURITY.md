@@ -2,9 +2,8 @@
 
 ## Supported Versions
 
-Vaultman is pre-1.0 software. Security fixes are applied to the latest release
-line and to unreleased hardening branches when a fix is needed before the next
-public release.
+Vaultman security fixes are applied to the latest stable release line and to
+active prerelease branches when a fix is needed before the next public release.
 
 ## Reporting A Vulnerability
 
@@ -19,12 +18,7 @@ the repository profile and include:
 - Obsidian version and platform;
 - steps to reproduce;
 - impact and affected files or vault data;
-- any proof of concept details needed to validate the issue.
+- proof of concept details needed to validate the issue.
 
-The maintainer will acknowledge validated reports, assess impact, and publish a
-fix or mitigation when appropriate.
-
-## Scope
-
-Security reports should focus on behavior that can affect user vault data,
-plugin execution, release assets, dependencies, or repository supply chain.
+The maintainer will assess validated reports and publish a fix or mitigation
+when appropriate.
