@@ -393,6 +393,32 @@ describe('explorerProps search', () => {
 		]);
 	});
 
+	// Characterization (PAI-004): captured BEFORE routing the "Change type" submenu
+	// action icons through the shared logicIconResolver TYPE_ICON_MAP export, to prove
+	// dropping the local duplicate is parity-preserving. These exact icon ids must stay
+	// stable across the wiring.
+	describe('characterization — "Change type" submenu action icons (pre-resolver-import baseline)', () => {
+		it('registers one prop.type-<type> action per known type with the TYPE_ICON_MAP icon', () => {
+			const plugin = makePlugin();
+			new explorerProps(plugin);
+			const registerAction = plugin.contextMenuService.registerAction as ReturnType<typeof vi.fn>;
+			const typeActionIcons = Object.fromEntries(
+				registerAction.mock.calls
+					.map(([action]) => action)
+					.filter((action) => typeof action.id === 'string' && action.id.startsWith('prop.type-'))
+					.map((action) => [action.id, action.icon]),
+			);
+
+			expect(typeActionIcons).toEqual({
+				'prop.type-text': 'lucide-text-align-start',
+				'prop.type-number': 'lucide-hash',
+				'prop.type-checkbox': 'lucide-check-square',
+				'prop.type-date': 'lucide-calendar',
+				'prop.type-list': 'lucide-list',
+			});
+		});
+	});
+
 	it('applies value delete context menu action to selected value nodes', () => {
 		const plugin = makePlugin();
 		const explorer = new explorerProps(plugin);

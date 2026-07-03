@@ -33,16 +33,7 @@ import type {
 } from '../types/typeExplorerDataPlane';
 import type { MenuCtx } from '../types/typeCtxMenu';
 import { serviceMessage } from '../services/serviceMessage';
-
-const TYPE_ICON_MAP: Record<string, string> = {
-	text: 'lucide-text-align-start',
-	number: 'lucide-hash',
-	checkbox: 'lucide-check-square',
-	date: 'lucide-calendar',
-	datetime: 'lucide-clock',
-	list: 'lucide-list',
-	multitext: 'lucide-list-plus',
-};
+import { TYPE_ICON_MAP } from '../logic/logicIconResolver';
 
 export interface ExplorerPropsOptions {
 	startRenameHandoff?: (handoff: FnRRenameHandoff) => void;
