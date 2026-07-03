@@ -28,7 +28,7 @@ Tesis por capas (ledger Fase B, 8/8 clusters):
 
 | Capa | Fuente canónica |
 |---|---|
-| Policy / comportamiento correcto de usuario | **stable 1.1.1** (oráculo D3, hotfix-only) |
+| Policy / comportamiento correcto de usuario | **stable 1.1.x** (oráculo D3, hotfix-only — línea ya en **1.1.6**; docs/ledger citan 1.1.1: re-baseline D4 PENDIENTE, despriorizado por dev 2026-07-02 a favor de absorber proto) |
 | Arquitectura / contratos / servicios | **sandbox** (canary, autoridad) |
 | Vocabulario / diseño / canon visual polish | **proto v12** (nunca mergea — se TRADUCE) |
 

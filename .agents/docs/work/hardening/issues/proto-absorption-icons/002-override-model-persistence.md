@@ -68,7 +68,10 @@ PAI-001 (consume `IconResolution` y el slot `override` de la cadena).
   PSS core = mover el sobre, no reshape).
 - **Paridad**: 0 overrides = output byte-idéntico (caracterización intacta).
 - **Gates**: focal 105/105 · check 0/0 (1199) · unit integrado 1213 pass (1 known-ajeno
-  notebook-nav) · build exit 0 → plugin-dev. **Pendiente**: smoke live (reload +
-  round-trip override en DOM) — Obsidian estaba cerrado al integrar; correr al reabrir.
+  notebook-nav) · build exit 0 → plugin-dev. **Smoke live (2026-07-02 noche, plugin-dev)**:
+  reload + `dev:errors` limpio · round-trip runtime: `setForProvider('files','emoji:🧪')`
+  → resolve provider-level OK · `setForNode('file.x','star')` → **node gana a provider**
+  (`lucide/star`) · `toDocument()` emite envelope `{pssVersion:1, storageClass:'config',
+  scope:'node'}` · clears → resolve null · paridad tree intacta. ✅ DoD 5/5.
 - Ejecución: subagente Sonnet, worktree `C:/tmp/vaultman-pai-001`, commits
   `b91b136`→`9c3ae29` (5, rebased). Fence con PAI-004 respetado (0 conflictos de rebase).

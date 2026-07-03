@@ -834,3 +834,9 @@ broader "append-only status writes" is parked as **S-12** in
 - **verification (integrado, worktree pai-001 tras rebase)**: svelte-check 0/0 (1199 files) · test:unit **1213 pass** / 1 known-ajeno (notebook-nav) · build exit 0 → sync plugin-dev. FF sandbox `147e54f`→`09ba424`→`9c3ae29`. **PENDIENTE: smoke live** (reload + `dev:errors` + round-trip de override en DOM) — el bridge obsidian-cli no responde (Obsidian cerrado tras la purga); correr al reabrir plugin-dev y registrar aquí.
 - **estado PAI**: 001 ✅ · 002 ✅ · 004 ✅ (= subsistema iconos AFK completo) · 003 picker HITL desbloqueado (requiere dev) · 005 DEFER N4.
 - **next-action**: (1) dev abre Obsidian → coordinador corre smoke live y registra; (2) PAI-003 con dev o V.D slice 2 (spine); (3) worktrees `C:/tmp/vaultman-pai-001` (rama pai-002) y `-pai-004` para cleanup o reuso.
+
+## 2026-07-02 — claude-fable-5 · PAI-002 smoke live ✅ + nota stable 1.1.6 (update micro)
+
+- **smoke live plugin-dev**: reload + `dev:errors` limpio · store presente con API completa (get/set/clear ForNode/ForProvider, resolve, hydrate, toDocument) · round-trip: provider-level resuelve; node GANA a provider; envelope PSS `{pssVersion:1, storageClass:'config', scope:'node'}`; clears limpian; paridad tree intacta (1 lucide-folder, ids sin cambio). PAI-002 DoD 5/5 cerrado.
+- **corrección de contexto (dev)**: la línea stable ya va por **1.1.6** — docs/ledger citan 1.1.1 como oráculo. Re-baseline del ledger (obligación D4: registrar cada hotfix 1.1.x) queda PENDIENTE y despriorizado por decisión dev 2026-07-02 ("primero absorber proto"). Nota puesta en norte §tabla de capas. Al retomar paridad D3 (p.ej. DoD de V.D slice 2 SDF-011/016): re-verificar contra `git show 1.1.6:<path>`, no 1.1.1.
+- **next**: V.D slice 2a despachada (ver entrada siguiente cuando aterrice).
