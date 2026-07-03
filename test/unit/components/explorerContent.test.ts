@@ -103,6 +103,29 @@ describe('explorerContent', () => {
 		expect(tree[1].count).toBe(1);
 	});
 
+	// Characterization (PAI-004): captured BEFORE routing the match-node leading icon
+	// through logicIconResolver's `match` role, to prove the resolver wiring is
+	// visual-parity-preserving. This exact icon id must stay stable across the wiring.
+	describe('characterization — match-node leading icon (pre-resolver baseline)', () => {
+		it('content match child node -> lucide-search', () => {
+			const { plugin } = makePlugin([
+				{
+					id: 'Notes/Alpha.md:0:6',
+					filePath: 'Notes/Alpha.md',
+					line: 0,
+					before: 'alpha ',
+					match: 'needle',
+					after: ' one',
+				},
+			]);
+			const explorer = new explorerContent(plugin);
+
+			const tree = explorer.getTree();
+
+			expect(tree[0].children?.[0].icon).toBe('lucide-search');
+		});
+	});
+
 	it('returns unique files for the current content results', () => {
 		const { plugin, files } = makePlugin([
 			{

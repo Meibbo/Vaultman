@@ -11,6 +11,7 @@ import type {
 import { buildFileDeleteChange } from '../services/serviceFileQueue';
 import { buildExplorerSnapshot } from '../logic/logicExplorerSnapshot';
 import { withViewStateClasses } from '../utils/utilViewLayers';
+import { resolveIcon } from '../logic/logicIconResolver';
 
 export class explorerContent implements ExplorerProvider<ContentMeta> {
 	id = 'content';
@@ -227,7 +228,7 @@ export class explorerContent implements ExplorerProvider<ContentMeta> {
 			id: `content:match:${match.id}`,
 			label,
 			labelPrefix,
-			icon: 'lucide-search',
+			icon: resolveIcon({ kind: 'match' }).iconId,
 			depth: 1,
 			meta: {
 				kind: 'match',
