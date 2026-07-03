@@ -42,3 +42,22 @@ if-chains básicos duplicados que el ledger marca OVERLAP.
 ## Dependencias
 
 PAI-001. Paralelizable con PAI-002.
+
+## Closeout (2026-07-02 — sandbox `09ba424`)
+
+- **Survey completo**: PAI-001 ya cubría tags/props/files/content-file-groups vía
+  DecorationManager. Residuales unificados: match-node de `explorerContent` (:230,
+  `lucide-search` hardcoded → `resolveIcon({kind:'match'})`, mismo id) + duplicado
+  byte-idéntico de `TYPE_ICON_MAP` en `explorerProps` (:37-45, borrado → import del
+  resolver; alimenta iconos del submenu "Change type").
+- **Dejados con razón** (registrados): placeholder pre-decoración de `explorerContent`
+  (:59,120, no es decision-site) · iconos outline `header/task/block`
+  (`explorerFiles.adoptedNodeIcon` vs `viewOutlineExplorer.iconFor` — SIN rol en el
+  vocabulario de 16; además el par ya divergió entre sí = smell pre-existente, flag para
+  issue futuro) · `folder-open` en viewTree (turf N.R) · iconos de acciones/cmenu (no son
+  leading de node-row).
+- **Paridad**: caracterización GREEN antes y después por sitio; value nodes siguen sin
+  icono (regla respetada).
+- **Gates**: focal 61/61 · check 0/0 · unit 1157→1213 (integrado con 002) · build exit 0.
+  Fence respetado: 0 ediciones a `logicIconResolver`/`serviceDecorate`.
+- Ejecución: subagente Sonnet, worktree `C:/tmp/vaultman-pai-004`, commits `4c92ce8`+`09ba424`.

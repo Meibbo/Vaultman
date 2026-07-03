@@ -76,8 +76,11 @@ flowchart LR
 1. ~~PAI-001~~ ✅ **done 2026-07-02** (`a38c731`): resolver v12 + tracer tree, paridad
    probada, formato AFK/HITL VALIDADO. Bonus: reparó el build roto del baseline
    (6 type-errors del upgrade de toolchain).
-2. V.D slice 2 Geometry: verify + gate STRICT + paridad stable (SDF-011/016).
-3. PAI-002 (overrides) ∥ PAI-004 (rollout) — despachables AFK ya.
+2. ~~PAI-002 ∥ PAI-004~~ ✅ **done 2026-07-02** (`9c3ae29`): overrides con persistencia
+   PSS-shaped + rollout completo del resolver. Pendiente micro: smoke live al reabrir
+   Obsidian. **El subsistema de iconos AFK está COMPLETO** — queda PAI-003 (picker, HITL,
+   necesita al dev) y PAI-005 (packs, DEFER N4).
+3. V.D slice 2 Geometry: verify + gate STRICT + paridad stable (SDF-011/016).
 4. P112 → sandbox con reconcile de `viewTreeBehavior`/`virtualScrollCssSource`.
 5. Decisión dev pendiente: orden PA 2-5 vs siguiente sistema de absorción (f4/f5 del grill 2026-07-02).
 

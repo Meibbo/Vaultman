@@ -54,3 +54,21 @@ Las de PAI-001 (§29). Además: el payload persistido usa ids namespaced D6
 ## Dependencias
 
 PAI-001 (consume `IconResolution` y el slot `override` de la cadena).
+
+## Closeout (2026-07-02 — sandbox `9c3ae29`, rebased sobre PAI-004)
+
+- **Entregado**: `logicIconOverride.ts` (normalizador puro `IconOverrideSpec`: `emoji:`/
+  `adw:`→pack adwaita-v10/`pack:iconId`/bare→lucide + forma objeto, modos auto/manual per
+  v12 :236-257) · slot `override` cableado en `resolveIcon` (gana a toda la cadena,
+  conserva el `role` clasificado; malformado/pack no-local cae a la cadena — packs
+  remotos = PAI-005) · `serviceIconOverrides.ts` (store per-node D6-namespaced + default
+  per-provider; node > provider) · `DecorationManager` lo consulta (override > Iconic >
+  cadena) · persistencia vía settings con **documento PSS-shaped**
+  (`{pssVersion, storageClass:'config', scope:'node', nodes, providers}` — migración a
+  PSS core = mover el sobre, no reshape).
+- **Paridad**: 0 overrides = output byte-idéntico (caracterización intacta).
+- **Gates**: focal 105/105 · check 0/0 (1199) · unit integrado 1213 pass (1 known-ajeno
+  notebook-nav) · build exit 0 → plugin-dev. **Pendiente**: smoke live (reload +
+  round-trip override en DOM) — Obsidian estaba cerrado al integrar; correr al reabrir.
+- Ejecución: subagente Sonnet, worktree `C:/tmp/vaultman-pai-001`, commits
+  `b91b136`→`9c3ae29` (5, rebased). Fence con PAI-004 respetado (0 conflictos de rebase).

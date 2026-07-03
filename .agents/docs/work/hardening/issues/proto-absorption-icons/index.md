@@ -49,9 +49,9 @@ sugerido** · **Dependencias**.
 | # | Issue | Tag | Nivel | Estado |
 |---|---|---|---|---|
 | 001 | [[001-resolver-core-tree-tracer\|Resolver semántico core + tracer en tree]] | AFK | N2 | ✅ done 2026-07-02 (sandbox `a38c731`) |
-| 002 | [[002-override-model-persistence\|Override model + persistencia PSS-shaped]] | AFK | N2 | todo |
-| 003 | [[003-icon-picker-island\|Icon picker island (polish)]] | HITL | N2 | todo (gated 001+002) |
-| 004 | [[004-resolver-rollout-explorers\|Rollout del resolver a props/tags/content]] | AFK | N2 | todo (gated 001) |
+| 002 | [[002-override-model-persistence\|Override model + persistencia PSS-shaped]] | AFK | N2 | ✅ done 2026-07-02 (`9c3ae29`; smoke live pendiente de Obsidian abierto) |
+| 003 | [[003-icon-picker-island\|Icon picker island (polish)]] | HITL | N2 | **desbloqueado** (001+002 done) — próximo, requiere dev |
+| 004 | [[004-resolver-rollout-explorers\|Rollout del resolver a props/tags/content]] | AFK | N2 | ✅ done 2026-07-02 (`09ba424`) |
 | 005 | [[005-icon-packs-deferred\|Icon packs como assets — registro DEFER]] | DEFER | N4 | registro, no accionable |
 
 Orden: 001 → (002 ∥ 004) → 003. 005 no se ejecuta en esta wave.

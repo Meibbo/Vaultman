@@ -29,6 +29,17 @@ Compact route index after archiving the oversized current status:
 ## Current Route
 
 - Active initiative: [[docs/work/hardening/index|Hardening]].
+- **LATEST (2026-07-02, noche)**: **PAI-002 + PAI-004 COMPLETOS** — sandbox `147e54f`→`9c3ae29`
+  (2 subagentes Sonnet en paralelo con scope-fence, 0 conflictos de rebase). 002: override model
+  v12 (`logicIconOverride` + store per-node/per-provider D6 + `DecorationManager` override>Iconic>cadena)
+  con **persistencia PSS-shaped** (`storageClass:'config'`, scope node — migración a PSS core = move,
+  no reshape). 004: rollout resolver (match-node de Content + dedup `TYPE_ICON_MAP`; survey completo
+  con dejados-razonados: outline icons sin rol = flag futuro). Gates integrados: check 0/0 · unit
+  **1213** pass (1 known-ajeno) · build ✓. **Pendiente micro**: smoke live (Obsidian cerrado al
+  integrar). **Subsistema iconos AFK completo** → PAI-003 picker = HITL con dev · PAI-005 DEFER.
+  Antes, misma sesión: **purga Drive/espejo** `147e54f` (531 files: árbol `.agents/docs/hardening/`
+  residuo del recovery + copias `(N).md`; guard en .gitignore; conflict-files de mayo NO tocados).
+  Detalle: closeouts en [[docs/work/hardening/issues/proto-absorption-icons/index|PAI index]] + session-log.
 - **LATEST (2026-07-02, tarde)**: **PAI-001 COMPLETO** — sandbox `741677d`→`a38c731` (FF, pushed).
   Resolver semántico de iconos (canon **proto-v12**: 16 roles, alias, type>ext, orden
   `resolveIconPackKey`) + tree cableado vía `serviceDecorate` con **paridad visual probada**
