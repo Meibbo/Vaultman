@@ -248,7 +248,12 @@ export function measure(
 	registry.entries.get(providerId)?.geometry.measure(index, size);
 }
 
-/** Layout snapshot for `providerId` — `null` if the provider has never been established. */
+/**
+ * Layout snapshot for `providerId` — `null` if the provider has never been established. O(n)
+ * (one array read per row), same as `createExplorerVariableGeometry`'s O(n) construction — a
+ * one-time handoff operation, NOT a per-frame/per-scroll hot path, so it does not violate the
+ * "never O(n) scans" rule that governs `variableVisibleRange`/`measure`.
+ */
 export function snapshot(
 	registry: VariableProviderRegistry,
 	providerId: string,
