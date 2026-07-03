@@ -68,3 +68,6 @@ docs/superpowers/audits/*
 !docs/archive/superpowers
 !docs/archive/superpowers/specs
 !docs/archive/superpowers/specs/*.md
+
+# Drive sync conflict copies inside the conjoined .agents vault (2026-07-02)
+.agents/docs/**/*\ (*.md
