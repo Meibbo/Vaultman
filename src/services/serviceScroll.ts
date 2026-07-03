@@ -136,7 +136,7 @@ export function createRafElementRectObserver<
 				return;
 			}
 			if (rectFrame !== null) return;
-			rectFrame = requestAnimationFrame(() => {
+			rectFrame = window.requestAnimationFrame(() => {
 				rectFrame = null;
 				emit();
 			});

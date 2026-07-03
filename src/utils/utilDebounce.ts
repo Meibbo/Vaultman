@@ -8,8 +8,8 @@ interface DebounceScheduler {
 
 function defaultScheduler(): DebounceScheduler {
 	return {
-		setTimeout: (cb, ms) => activeWindow.setTimeout(cb, ms),
-		clearTimeout: (handle) => activeWindow.clearTimeout(handle),
+		setTimeout: (cb, ms) => window.setTimeout(cb, ms),
+		clearTimeout: (handle) => window.clearTimeout(handle),
 	};
 }
 

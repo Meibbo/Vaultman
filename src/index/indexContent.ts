@@ -149,7 +149,7 @@ export function createContentIndex(app: App): IContentIndex {
 							resultCount: out.length,
 						});
 						// Allow UI to breathe
-						await new Promise<void>((resolve) => activeWindow.setTimeout(resolve, 0));
+						await new Promise<void>((resolve) => window.setTimeout(resolve, 0));
 					}
 				}
 			};

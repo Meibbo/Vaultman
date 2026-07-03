@@ -285,7 +285,7 @@ export class FilterService implements IFilterService {
 		const rules: { id: string; description: string; enabled: boolean }[] = [];
 		const walk = (node: FilterNode) => {
 			if (node.type === 'rule') {
-				let desc = '';
+				let desc: string;
 				switch (node.filterType) {
 					case 'has_property':
 						desc = `Has property: ${node.property}`;

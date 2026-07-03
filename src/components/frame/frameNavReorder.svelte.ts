@@ -25,7 +25,7 @@ export class FrameNavReorderController {
 
 	private startLongPress(idx: number, pointerId: number): void {
 		this.pendingPointerId = pointerId;
-		this.longPressTimer = activeWindow.setTimeout(() => {
+		this.longPressTimer = window.setTimeout(() => {
 			this.isReordering = true;
 			this.reorderSourceIdx = idx;
 			if (this.pillEl) this.pillEl.setPointerCapture(this.pendingPointerId);
@@ -34,7 +34,7 @@ export class FrameNavReorderController {
 
 	private cancelLongPress(): void {
 		if (this.longPressTimer !== null) {
-			activeWindow.clearTimeout(this.longPressTimer);
+			window.clearTimeout(this.longPressTimer);
 			this.longPressTimer = null;
 		}
 		this.pendingPointerId = -1;
@@ -90,7 +90,7 @@ export class FrameNavReorderController {
 		return {
 			destroy: () => {
 				if (this.navExpandTimer) {
-					activeWindow.clearTimeout(this.navExpandTimer);
+					window.clearTimeout(this.navExpandTimer);
 					this.navExpandTimer = null;
 				}
 				this.navEl = null;
@@ -119,8 +119,8 @@ export class FrameNavReorderController {
 		if (!this.navCollapsed || !this.navEl) return;
 		this.navEl.classList.add('is-bar-expanding');
 		this.navCollapsed = false;
-		if (this.navExpandTimer) activeWindow.clearTimeout(this.navExpandTimer);
-		this.navExpandTimer = activeWindow.setTimeout(() => {
+		if (this.navExpandTimer) window.clearTimeout(this.navExpandTimer);
+		this.navExpandTimer = window.setTimeout(() => {
 			if (this.viewRootEl && this.viewRootEl.offsetWidth < NAV_COLLAPSE_THRESHOLD) {
 				this.navCollapsed = true;
 			}

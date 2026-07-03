@@ -300,7 +300,9 @@ export class SharedVariableVirtualLayout {
 	readonly #measureIdleMs: number;
 
 	#measuredEls = new Map<number, HTMLElement>();
-	#measureIdleTimer: ReturnType<typeof setTimeout> | null = null;
+	// window.setTimeout (dom lib) returns number; ReturnType<typeof setTimeout> would
+	// pick up @types/node's Timeout and clash with the prefer-window-timers form.
+	#measureIdleTimer: number | null = null;
 	#measureScrollActive = $state(false);
 
 	/** Scroll offset of the viewport (px) — written by the scroll listener at attach time. */
@@ -410,7 +412,7 @@ export class SharedVariableVirtualLayout {
 		return () => {
 			node.removeEventListener('scroll', syncScroll);
 			resizeObserver?.disconnect();
-			if (this.#measureIdleTimer !== null) clearTimeout(this.#measureIdleTimer);
+			if (this.#measureIdleTimer !== null) window.clearTimeout(this.#measureIdleTimer);
 			this.#measureIdleTimer = null;
 			this.#measuredEls.clear();
 		};
@@ -447,8 +449,8 @@ export class SharedVariableVirtualLayout {
 
 	#markMeasureScrollActive(): void {
 		this.#measureScrollActive = true;
-		if (this.#measureIdleTimer !== null) clearTimeout(this.#measureIdleTimer);
-		this.#measureIdleTimer = setTimeout(() => {
+		if (this.#measureIdleTimer !== null) window.clearTimeout(this.#measureIdleTimer);
+		this.#measureIdleTimer = window.setTimeout(() => {
 			this.#measureIdleTimer = null;
 			this.#measureScrollActive = false;
 			for (const [bandIndex, node] of this.#measuredEls) this.#scheduleMeasure(bandIndex, node);

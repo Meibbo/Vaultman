@@ -715,7 +715,9 @@ export class OperationQueueService extends Component implements IOperationQueue 
 					return v;
 				},
 			};
-			vfs = this.applyTransactionOp(vfs, op);
+			// applyTransactionOp persists into this.transactions itself; the returned
+			// chain state is only needed by callers that keep folding ops over it.
+			this.applyTransactionOp(vfs, op);
 		}
 	}
 
@@ -879,7 +881,7 @@ export class OperationQueueService extends Component implements IOperationQueue 
 			}
 
 			if ((i + 1) % CHUNK === 0) {
-				await new Promise<void>((r) => activeWindow.setTimeout(r, 0));
+				await new Promise<void>((r) => window.setTimeout(r, 0));
 			}
 		}
 

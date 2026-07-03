@@ -64,7 +64,7 @@ export class PropertyIndexService extends Component {
 
 	onunload(): void {
 		if (this.metadataTimer) {
-			activeWindow.clearTimeout(this.metadataTimer);
+			window.clearTimeout(this.metadataTimer);
 			this.metadataTimer = null;
 		}
 	}
@@ -99,7 +99,7 @@ export class PropertyIndexService extends Component {
 	/** Schedule a debounced flush of pending metadata updates */
 	private scheduleFlush(): void {
 		if (this.metadataTimer) return;
-		this.metadataTimer = activeWindow.setTimeout(() => {
+		this.metadataTimer = window.setTimeout(() => {
 			this.metadataTimer = null;
 			this.flushPending();
 		}, this.METADATA_DEBOUNCE_MS);

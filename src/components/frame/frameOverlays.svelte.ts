@@ -30,7 +30,7 @@ export class FrameOverlayController {
 
 	closePopup(): void {
 		this.popupOpen = false;
-		activeWindow.setTimeout(() => {
+		window.setTimeout(() => {
 			this.activePopup = null;
 		}, 320);
 	}

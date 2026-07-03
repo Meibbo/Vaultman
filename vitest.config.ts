@@ -78,6 +78,7 @@ export default defineConfig({
 					name: 'unit',
 					environment: 'node',
 					include: ['test/unit/**/*.test.ts'],
+					setupFiles: ['test/unit/setup-env.ts'],
 					alias: {
 						'@notebook-navigator': notebookNavigatorRoot,
 						obsidian: obsidianMockPath,

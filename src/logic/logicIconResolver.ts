@@ -248,7 +248,7 @@ function extRoleOf(value: string | undefined): IconRole | null {
 	const clean = cleanToken(value);
 	if (!clean) return null;
 	const candidate = EXT_ROLE_ALIASES[clean] ?? clean;
-	return EXT_ROLES.has(candidate as IconRole) ? (candidate as IconRole) : null;
+	return EXT_ROLES.has(candidate) ? (candidate) : null;
 }
 
 /** v12 type step: normalize like an ext, then look up NODE_TYPE_ICONS. */
@@ -365,7 +365,7 @@ export function resolveIcon(input: IconResolutionInput): IconResolution {
 
 	const spec = isIconOverrideSpec(input.override)
 		? input.override
-		: normalizeIconOverride(input.override as RawIconOverride);
+		: normalizeIconOverride(input.override);
 	if (!spec) return chainResult;
 
 	const iconId = resolveOverrideIconId(spec);
