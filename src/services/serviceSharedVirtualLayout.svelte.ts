@@ -294,12 +294,17 @@ export interface SharedVariableVirtualLayoutOptions {
  * itself lives in `registry` (per `providerId`) so it survives this instance being torn down —
  * that's the warm cross-view/cross-config handoff (Q1/Q2), not a per-instance cache.
  */
+/** Resolves an element's real rendered size — `measureRow`'s default size source. */
+function offsetHeightOf(node: HTMLElement): number {
+	return node.offsetHeight;
+}
+
 export class SharedVariableVirtualLayout {
 	readonly #options: SharedVariableVirtualLayoutOptions;
 	readonly #fallbackViewportHeight: number;
 	readonly #measureIdleMs: number;
 
-	#measuredEls = new Map<number, HTMLElement>();
+	#measuredEls = new Map<number, { node: HTMLElement; sizeOf: (node: HTMLElement) => number }>();
 	// window.setTimeout (dom lib) returns number; ReturnType<typeof setTimeout> would
 	// pick up @types/node's Timeout and clash with the prefer-window-timers form.
 	#measureIdleTimer: number | null = null;
@@ -424,16 +429,27 @@ export class SharedVariableVirtualLayout {
 	 * idle — never synchronous measurement thrash mid-scroll, per the TanStack failure-mode
 	 * table). `bandIndex` is the row-BAND this element belongs to (not the flat item index — the
 	 * Fenwick indexes bands; see the module docblock in serviceSharedVirtualLayout.ts).
+	 *
+	 * `sizeOf` overrides the size SOURCE (defaults to the element's real `offsetHeight`, unchanged
+	 * from the original contract). Callers whose measurement is PREDICTION-based rather than
+	 * DOM-based — e.g. a pretext text-measurement service — can supply their own synchronous size
+	 * getter instead: `offsetHeight` is always `0` under jsdom (no real layout engine) and, even in
+	 * a real browser, only reflects layout AFTER paint, which a synchronous predictor can beat to
+	 * avoid a flash-of-wrong-height. The ResizeObserver/idle-debounce lifecycle is identical either
+	 * way — this only swaps what "measure this element" means, not when it happens.
 	 */
-	measureRow = (bandIndex: number): ((node: HTMLElement) => () => void) => {
+	measureRow = (
+		bandIndex: number,
+		sizeOf: (node: HTMLElement) => number = offsetHeightOf,
+	): ((node: HTMLElement) => () => void) => {
 		return (node: HTMLElement) => {
-			this.#measuredEls.set(bandIndex, node);
+			this.#measuredEls.set(bandIndex, { node, sizeOf });
 			const ro =
 				typeof ResizeObserver === 'undefined'
 					? undefined
-					: new ResizeObserver(() => this.#scheduleMeasure(bandIndex, node));
+					: new ResizeObserver(() => this.#scheduleMeasure(bandIndex, node, sizeOf));
 			ro?.observe(node);
-			this.#scheduleMeasure(bandIndex, node);
+			this.#scheduleMeasure(bandIndex, node, sizeOf);
 			return () => {
 				ro?.disconnect();
 				this.#measuredEls.delete(bandIndex);
@@ -441,9 +457,9 @@ export class SharedVariableVirtualLayout {
 		};
 	};
 
-	#scheduleMeasure(bandIndex: number, node: HTMLElement): void {
+	#scheduleMeasure(bandIndex: number, node: HTMLElement, sizeOf: (node: HTMLElement) => number): void {
 		if (this.#measureScrollActive) return;
-		const size = node.offsetHeight;
+		const size = sizeOf(node);
 		if (size > 0) this.measure(bandIndex, size);
 	}
 
@@ -453,13 +469,33 @@ export class SharedVariableVirtualLayout {
 		this.#measureIdleTimer = window.setTimeout(() => {
 			this.#measureIdleTimer = null;
 			this.#measureScrollActive = false;
-			for (const [bandIndex, node] of this.#measuredEls) this.#scheduleMeasure(bandIndex, node);
+			for (const [bandIndex, { node, sizeOf }] of this.#measuredEls) {
+				this.#scheduleMeasure(bandIndex, node, sizeOf);
+			}
 		}, this.#measureIdleMs);
 	}
 
 	/** Patches the provider Fenwick at `bandIndex` — O(log n), idempotent for the same size. */
 	measure(bandIndex: number, size: number): void {
 		measureVariableProvider(this.#options.registry, this.#options.providerId, bandIndex, size);
+	}
+
+	/**
+	 * Cumulative top offset (px) for an arbitrary band index — O(log n) via the warm Fenwick, NOT
+	 * bounded by the current `window`/`rows` (unlike those, which only cover the visible+overscan
+	 * range). Needed for scroll-to-reveal of an off-window index (ViewNodeGrid/ViewNodeCards
+	 * already do the equivalent today via direct access to their own local
+	 * `ExplorerVariableGeometry`; this exposes the same pure-core capability the registry already
+	 * holds). Returns `0` for a provider that has never been established (nothing to query yet —
+	 * mirrors `measure()`'s no-op-until-established contract).
+	 */
+	topForIndex(index: number): number {
+		return geometryHandle(this.#options.registry, this.#options.providerId)?.topForIndex(index) ?? 0;
+	}
+
+	/** Size (px) for an arbitrary band index — same off-window reach as `topForIndex`. */
+	sizeForIndex(index: number): number {
+		return geometryHandle(this.#options.registry, this.#options.providerId)?.sizeForIndex(index) ?? 0;
 	}
 
 	/** Layout snapshot for this provider — for warm cross-view handoff. */

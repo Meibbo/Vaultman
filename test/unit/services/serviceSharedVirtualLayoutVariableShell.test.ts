@@ -141,4 +141,82 @@ describe('SharedVariableVirtualLayout — Svelte 5 shell, variable-height strate
 			expect(typeof setSharedGeometryRegistry).toBe('function');
 		});
 	});
+
+	// slice 2b (view adoption, table): scroll-to-reveal for an arbitrary (possibly off-window)
+	// index needs top/size lookups that are NOT bounded by the current visible `window`/`rows`.
+	// ViewNodeGrid/ViewNodeCards already do this today via direct access to their OWN local
+	// `ExplorerVariableGeometry` (`gridGeometry.topForIndex`/`cardGeometry.topForIndex`); the
+	// shell's pure core already has the capability (`ExplorerVariableGeometry.topForIndex`/
+	// `sizeForIndex`) but never exposed it publicly — these two thin pass-throughs close that gap.
+	describe('topForIndex / sizeForIndex (arbitrary-index geometry lookup)', () => {
+		it('returns the cumulative offset and size for an index outside the current window', () => {
+			const layout = makeVariableLayout({ rowCount: 100_000 });
+			void layout.window; // establish the provider
+			expect(layout.topForIndex(0)).toBe(0);
+			expect(layout.topForIndex(500)).toBe(500 * 20);
+			expect(layout.sizeForIndex(500)).toBe(20);
+		});
+
+		it('reflects measure() patches made at an arbitrary index', () => {
+			const layout = makeVariableLayout({ rowCount: 100_000 });
+			void layout.window;
+			layout.measure(10, 90); // row 10: 20 -> 90 (delta +70)
+			expect(layout.sizeForIndex(10)).toBe(90);
+			expect(layout.topForIndex(11)).toBe(10 * 20 + 90);
+		});
+
+		it('does not require an explicit window read first (constructor eagerly establishes the provider)', () => {
+			// The constructor already does `void this.window` (documented above it: "so measure()
+			// calls made before the first window read ... are never dropped") — so topForIndex/
+			// sizeForIndex work immediately after construction, with no separate "prime the
+			// provider" step required of the caller.
+			const layout = makeVariableLayout({ rowCount: 100_000 });
+			expect(layout.topForIndex(5)).toBe(5 * 20);
+			expect(layout.sizeForIndex(5)).toBe(20);
+		});
+	});
+
+	// slice 2b: table's row height source is pretext TEXT PREDICTION (`serviceTextMeasure`), not
+	// real DOM layout — `measureRow`'s original hardcoded `node.offsetHeight` is unusable for that
+	// (offsetHeight is always 0 under jsdom, and pretext must run synchronously to avoid a
+	// flash-of-wrong-height on first paint in real browsers too). The optional `sizeOf` override
+	// lets a caller swap the size SOURCE while reusing the SAME ResizeObserver/idle-debounce
+	// lifecycle; omitting it preserves the original offsetHeight-based default exactly.
+	describe('measureRow sizeOf override (arbitrary size source)', () => {
+		it('defaults to node.offsetHeight when no sizeOf is supplied', () => {
+			const layout = makeVariableLayout({ rowCount: 10 });
+			void layout.window;
+			const node = { offsetHeight: 77 } as unknown as HTMLElement;
+			const detach = layout.measureRow(0)(node);
+			expect(layout.snapshot()!.sizes[0]).toBe(77);
+			detach();
+		});
+
+		it('uses the supplied sizeOf instead of offsetHeight when provided', () => {
+			const layout = makeVariableLayout({ rowCount: 10 });
+			void layout.window;
+			const node = { offsetHeight: 0 } as unknown as HTMLElement; // jsdom-like: always 0
+			const detach = layout.measureRow(0, () => 64)(node);
+			expect(layout.snapshot()!.sizes[0]).toBe(64);
+			detach();
+		});
+
+		it('a fresh measureRow attach (teardown + reattach) re-measures using the NEW sizeOf', () => {
+			// Mirrors what Svelte does to a reactive `{@attach}` expression when one of its
+			// tracked arguments changes (e.g. a table column-resize width) between renders: the
+			// OLD attachment's cleanup runs, then the NEW attachment fires fresh — never a stale
+			// closure surviving the swap.
+			const layout = makeVariableLayout({ rowCount: 10 });
+			void layout.window;
+			const node = { offsetHeight: 0 } as unknown as HTMLElement;
+
+			const detachA = layout.measureRow(0, () => 20)(node);
+			expect(layout.snapshot()!.sizes[0]).toBe(20);
+			detachA();
+
+			const detachB = layout.measureRow(0, () => 64)(node);
+			expect(layout.snapshot()!.sizes[0]).toBe(64);
+			detachB();
+		});
+	});
 });
