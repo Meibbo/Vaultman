@@ -2,6 +2,7 @@ import type { App } from 'obsidian';
 import type { IDecorationManager, DecorationOutput, NodeBase } from '../types/typeContracts';
 import { getActivePerfProbe } from '../dev/perfProbe';
 import { resolveIcon } from '../logic/logicIconResolver';
+import type { IconOverrideStore } from './serviceIconOverrides';
 
 type DecorationContext = {
 	kind?: 'prop' | 'tag' | 'file';
@@ -11,15 +12,21 @@ type DecorationContext = {
 	iconicIcon?: string | null;
 	isFolder?: boolean;
 	extension?: string;
+	/** D6 namespaced id (`file.X`/`folder.X`/`tag.X`/`prop.X`) — PAI-002 override lookup key. */
+	nodeKey?: string;
+	/** Provider id for the per-provider default override fallback (PAI-002). */
+	providerId?: string;
 };
 
 export class DecorationManager implements IDecorationManager {
 	private app: App;
 	private subs = new Set<() => void>();
 	private highlightQuery = '';
+	private overrides: IconOverrideStore | undefined;
 
-	constructor(app: App) {
+	constructor(app: App, overrides?: IconOverrideStore) {
 		this.app = app;
+		this.overrides = overrides;
 	}
 
 	// reserved for decorator plugins (v1.1+)
@@ -50,14 +57,33 @@ export class DecorationManager implements IDecorationManager {
 			(node as { basename?: string }).basename ??
 			'';
 		const query = ctx.highlightQuery ?? this.highlightQuery;
+		const override = ctx.nodeKey
+			? this.overrides?.resolve(ctx.nodeKey, ctx.providerId)
+			: undefined;
 
 		if (ctx.kind === 'prop' && !ctx.isValueNode) {
-			out.icons.push(ctx.iconicIcon ?? resolveIcon({ kind: 'prop', propType: ctx.propType }).iconId);
+			// Override is EXPLICIT user intent: it wins over Iconic (issue PAI-002).
+			// Absence of an override falls through to today's exact precedence
+			// (Iconic wins over the resolver chain).
+			out.icons.push(
+				override
+					? resolveIcon({ kind: 'prop', propType: ctx.propType, override }).iconId
+					: (ctx.iconicIcon ?? resolveIcon({ kind: 'prop', propType: ctx.propType }).iconId),
+			);
 		} else if (ctx.kind === 'tag') {
-			out.icons.push(ctx.iconicIcon ?? resolveIcon({ kind: 'tag' }).iconId);
+			out.icons.push(
+				override
+					? resolveIcon({ kind: 'tag', override }).iconId
+					: (ctx.iconicIcon ?? resolveIcon({ kind: 'tag' }).iconId),
+			);
 		} else if (ctx.kind === 'file') {
 			out.icons.push(
-				resolveIcon({ kind: 'file', isFolder: ctx.isFolder, extension: ctx.extension }).iconId,
+				resolveIcon({
+					kind: 'file',
+					isFolder: ctx.isFolder,
+					extension: ctx.extension,
+					override,
+				}).iconId,
 			);
 		}
 
