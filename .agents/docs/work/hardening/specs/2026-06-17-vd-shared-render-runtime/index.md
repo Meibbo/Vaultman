@@ -209,13 +209,23 @@ overscan = `ceil(viewportH/estimateSize)`; estimateSize ← pretext.
 - **Warmth semantics (interpretation, flagged for dev):** warm-guarantee holds at `providerId`+shape level — same `rowCount` reuses the Fenwick (in-flight `measure` patches never dropped); **`laneCount` change = genuine reshape** (band boundaries shift → rebuild from estimateSize is CORRECT, not a warmth violation). Config swap ≠ remount stands; it does not mean "any param change preserves patches".
 - **Verify:** 55/55 focused (existing suites unchanged) + 27 new · component **564/564** with viewTree + 4 Geometry panel snapshots **byte-identical** (no view touched — proven, not assumed) · check 0/0 · unit 1240 (1 known-ajeno) · build exit 0 · plugin-dev reload + `dev:errors` clean. Known tool wart: svelte-autofixer misparses `.svelte.ts` docblocks containing literal `{@attach}` (pre-existing since slice 1; svelte-check is the authoritative gate).
 
-**NEXT = slice 2b (view adoption) — grill Q-2b-1..3 with dev BEFORE dispatch:**
-- **Q-2b-1 (form decision, "same result diff form"):** views keep their own row-chunking and only swap their `createExplorerVariableGeometry` for the shared registry (low-risk, incremental) **vs** migrate `buildGridRows`/`buildCardRows`/table-chunking onto `laneOffsetForIndex`/`laneRangeForBand` (bigger diff, kills 3 near-duplicate band implementations). Contract-faithful shape = the latter; risk profile favors staging it per-view.
-- **Q-2b-2:** replace ViewNodeGrid's per-row `ResizeObserver`+`resizeItem` `$effect` (~L366-430) with the shell's `measureRow` `{@attach}`? Slice-1 discipline says yes; it widens the per-view diff.
-- **Q-2b-3:** DoD-D3 parity scope for 2b — tables/resizers/grid SDF-011/016, now against **stable 1.1.6** (line moved past 1.1.1; re-baseline D4 pending, deprioritized 2026-07-02).
-- **Decided (not contested):** adoption order = table (`laneCount=1`) → grid → cards; **masonry excluded from 2b** (no `ViewNodeMasonry` exists — canon mode name only); table ignores the `rows[].lane` field (always 0) — no lane-free accessor needed.
-- **Gate:** slice 2b claims land ONLY behind the STRICT blank-frame gate per view (`run-explorer-scroll-smoke --strict-flicker`).
-- **Reconcile flag (carried):** P112 (codex stable hotfix `3d42010`) touched `viewTreeBehavior`/`virtualScrollCssSource` — reconcile when P112 promotes to sandbox.
+**Slice 2b (view adoption) — Q-2b-1..3 LOCKED by dev 2026-07-03 ("ok recomendaciones"):**
+- **D-2b-1 — Full migration (Option B).** Each adopting view migrates its row-chunking onto
+  `laneOffsetForIndex`/`laneRangeForBand` and deletes its local band implementation + local
+  `createExplorerVariableGeometry` in favor of the shared warm registry. Contract-faithful shape
+  ("build the contract shape once"); risk controlled by staging per-view: **table → grid → cards**.
+- **D-2b-2 — Shell `measureRow` `{@attach}` REPLACES the views' own `ResizeObserver`+`resizeItem`
+  `$effect` measurement paths** (e.g. ViewNodeGrid ~L366-430). Two measurement paths = internal dual
+  (DO_NOT_PROMOTE smell) and contradicts the locked Q4 `{@attach}` discipline.
+- **D-2b-3 — D3 parity folded into each view's slice, verified against stable 1.1.6** (tag exists
+  locally): table slice carries SDF-011 resizer parity (stable-only delta sandbox lacks); grid slice
+  carries SDF-016 grid parity. No separate parity slice.
+- **Decided (not contested):** masonry excluded from 2b (no `ViewNodeMasonry` exists — canon mode
+  name only); table ignores `rows[].lane` (always 0) — no lane-free accessor.
+- **Gate:** each 2b view lands ONLY behind the STRICT blank-frame gate
+  (`run-explorer-scroll-smoke --view=<v> --strict-flicker`), run by the coordinator on plugin-dev.
+- **Reconcile flag (carried):** P112 (codex stable hotfix `3d42010`) touched
+  `viewTreeBehavior`/`virtualScrollCssSource` — reconcile when P112 promotes to sandbox.
 
 ## Sources (grounded this session)
 
