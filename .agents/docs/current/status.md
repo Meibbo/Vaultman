@@ -29,6 +29,17 @@ Compact route index after archiving the oversized current status:
 ## Current Route
 
 - Active initiative: [[docs/work/hardening/index|Hardening]].
+- **LATEST (2026-07-03)**: **V.D slice 2a (Geometry variable-height runtime) COMPLETA** — sandbox
+  `31ae5a2`→`585e944` (4 commits, subagente Sonnet + integración coordinador). Pure core:
+  `variableVisibleRange` Fenwick per-provider · `measure` O(log n) · lanes = **striped Fenwick
+  sobre row-bands** (formaliza el patrón ya vivo en Grid/Cards/Table) · `idsInRect` variable ·
+  snapshot/restore. Shell: `SharedVariableVirtualLayout` con `measureElement` vía `{@attach}`,
+  estimateSize←pretext, **registro `createContext` caliente per-provider (Q2 cumplido)**; fixed
+  path intacto. **Ninguna vista tocada** — snapshots byte-idénticos probados (564/564 component).
+  Verify: check 0/0 · unit 1240 · build ✓ · reload plugin-dev limpio. **NEXT = slice 2b (adopción
+  table→grid→cards; masonry excluido, no existe la vista) GATED por grill Q-2b-1..3** (forma del
+  diff por vista · measureRow vs $effect · alcance paridad D3 contra **1.1.6**). Detalle:
+  [[docs/work/hardening/specs/2026-06-17-vd-shared-render-runtime/index|V.D shard §Thread A]] + session-log.
 - **LATEST (2026-07-02, noche)**: **PAI-002 + PAI-004 COMPLETOS** — sandbox `147e54f`→`9c3ae29`
   (2 subagentes Sonnet en paralelo con scope-fence, 0 conflictos de rebase). 002: override model
   v12 (`logicIconOverride` + store per-node/per-provider D6 + `DecorationManager` override>Iconic>cadena)
