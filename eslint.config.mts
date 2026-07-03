@@ -29,6 +29,10 @@ export default tseslint.config(
 			'.obsidian',
 			'.agents',
 			'.claude',
+			// Tooling configs, same convention as vite/svelte/esbuild configs above;
+			// eslint.config.mts otherwise gets parsed by espree (no TS parser -> crash on `as`).
+			'eslint.config.mts',
+			'stylelint.config.mjs',
 			'scripts',
 			'test',
 			'coverage',
@@ -48,16 +52,36 @@ export default tseslint.config(
 				$bindable: 'readonly',
 				$host: 'readonly',
 			},
+		},
+	},
+	{
+		files: ['**/*.ts', '**/*.mts', '**/*.cts'],
+		languageOptions: {
 			parserOptions: {
 				projectService: {
-					allowDefaultProject: ['eslint.config.mts', 'manifest.json', 'uno.config.ts'],
+					allowDefaultProject: ['uno.config.ts'],
 				},
 				tsconfigRootDir: import.meta.dirname,
-				extraFileExtensions: ['.json'],
 			},
 		},
 	},
 	...(obsidianmd as any).configs.recommended,
+	// obsidianmd recommended registers its type-aware rule with no files scoping, so
+	// it loads for json/mjs/config files whose parsers can never provide typescript
+	// parser services — getParserServices throws and crashes the whole `eslint .` run
+	// (first package.json, then stylelint.config.mjs, ...). Scope it structurally:
+	// off everywhere, re-enabled only for the typed project-service TS sources.
+	{
+		rules: {
+			'obsidianmd/no-plugin-as-component': 'off',
+		},
+	},
+	{
+		files: ['src/**/*.ts'],
+		rules: {
+			'obsidianmd/no-plugin-as-component': 'error',
+		},
+	},
 	// T5: block (app as any) + explicit-any + type-unsafe rules — ts only
 	// (.svelte files excluded: no Svelte parser configured, obsidianmd handles svelte via its own pipeline)
 	{
