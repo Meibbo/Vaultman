@@ -310,7 +310,15 @@ export class SharedVariableVirtualLayout {
 	/** Column count for the lanes strategy — swappable on the SAME instance (Q1: no remount). */
 	laneCount = $state(1);
 
-	/** Overscan sized to the viewport (`ceil(viewportH / estimateSize(0))`), not a magic constant. */
+	/**
+	 * Overscan sized to the viewport (`ceil(viewportH / estimateSize)`), not a magic constant —
+	 * per the locked contract. Geometry rows are variable-height, so there is no single scalar
+	 * `estimateSize` the way the fixed path has `rowHeight`; `estimateSize(0)` is used as the
+	 * typical-row proxy (same role pretext's per-provider default row estimate plays for the
+	 * FIRST paint, before anything is measured). This only sizes the overscan margin — the
+	 * window itself is exact, computed per-row from the warm Fenwick, so a proxy that's off by a
+	 * row or two costs a slightly smaller/larger overscan band, never a wrong visible window.
+	 */
 	readonly overscan: number = $derived(
 		viewportOverscan(this.viewportHeight, this.#cfg.estimateSize(0)),
 	);
