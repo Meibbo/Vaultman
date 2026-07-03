@@ -139,17 +139,66 @@ describe('logicIconResolver', () => {
 		});
 	});
 
-	describe('override parameter (designed, unwired this slice)', () => {
-		it('accepts an override in the input shape without applying it (PAI-002 wires it)', () => {
-			const input: IconResolutionInput = {
-				kind: 'tag',
-				override: 'lucide-star',
-			};
-			const result = resolveIcon(input);
-			// PAI-001 tracer slice passes no overrides through; the resolver must not
-			// apply `override` yet, to keep visual parity with today's behavior.
-			expect(result.iconId).toBe('lucide-tag');
-			expect(result.source).not.toBe('override');
+	describe('override slot (PAI-002 — wired)', () => {
+		it('a normalized lucide override wins over role/type/ext and resolves with source "override"', () => {
+			const result = resolveIcon({ kind: 'tag', override: 'star' });
+			expect(result).toEqual({ role: 'tag', source: 'override', iconId: 'lucide-star' });
+		});
+
+		it('accepts the emoji: string form and resolves the emoji itself as the icon id', () => {
+			const result = resolveIcon({ kind: 'file', extension: 'md', override: 'emoji:📝' });
+			expect(result).toEqual({ role: 'md', source: 'override', iconId: '📝' });
+		});
+
+		it('accepts an already-normalized IconOverrideSpec object form (lucide pack)', () => {
+			const result = resolveIcon({
+				kind: 'folder',
+				override: { mode: 'manual', packId: 'lucide', iconId: 'archive' },
+			});
+			expect(result).toEqual({ role: 'folder', source: 'override', iconId: 'lucide-archive' });
+		});
+
+		it('falls through to the normal chain when override is empty/undefined (parity default)', () => {
+			expect(resolveIcon({ kind: 'tag' })).toEqual({
+				role: 'tag',
+				source: 'role',
+				iconId: 'lucide-tag',
+			});
+			expect(resolveIcon({ kind: 'tag', override: undefined })).toEqual({
+				role: 'tag',
+				source: 'role',
+				iconId: 'lucide-tag',
+			});
+		});
+
+		it('falls through to the normal chain when override is a malformed/empty string', () => {
+			const result = resolveIcon({ kind: 'tag', override: '' });
+			expect(result).toEqual({ role: 'tag', source: 'role', iconId: 'lucide-tag' });
+		});
+
+		it('falls through when override normalizes but carries no usable iconId (auto mode, no iconId)', () => {
+			const result = resolveIcon({ kind: 'tag', override: { mode: 'auto', packId: 'lucide' } });
+			expect(result).toEqual({ role: 'tag', source: 'role', iconId: 'lucide-tag' });
+		});
+
+		it('falls through to the chain for an unresolvable pack id this slice (remote/asset packs = PAI-005)', () => {
+			const result = resolveIcon({ kind: 'tag', override: 'papirus:tag' });
+			expect(result).toEqual({ role: 'tag', source: 'role', iconId: 'lucide-tag' });
+		});
+
+		it('resolves an emoji override even on the folder short-circuit step', () => {
+			const result = resolveIcon({ isFolder: true, override: 'emoji:🗂️' });
+			expect(result).toEqual({ role: 'folder', source: 'override', iconId: '🗂️' });
+		});
+
+		it('resolves an override on the fallback path (unrecognized kind, no type/ext)', () => {
+			const result = resolveIcon({ kind: 'totally-unknown' as never, override: 'star' });
+			expect(result).toEqual({ role: 'fallback', source: 'override', iconId: 'lucide-star' });
+		});
+
+		it('a bare-id override normalizes to the lucide- prefixed icon id, matching product id conventions', () => {
+			const result = resolveIcon({ kind: 'prop', propType: 'checkbox', override: 'flag' });
+			expect(result).toEqual({ role: 'prop', source: 'override', iconId: 'lucide-flag' });
 		});
 	});
 

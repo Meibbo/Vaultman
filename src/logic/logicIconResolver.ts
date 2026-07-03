@@ -1,15 +1,22 @@
 /**
- * logicIconResolver — PURE semantic icon resolver core (PAI-001, tracer slice).
+ * logicIconResolver — PURE semantic icon resolver core (PAI-001 tracer + PAI-002
+ * override wiring).
  *
  * Canon: **proto v12** `icons.jsx` (`C:/Users/vic_A/Downloads/vaultman/proto-v12/icons.jsx`)
  * — `NODE_KIND_ICONS` (:73), `NODE_TYPE_ICONS` (:92), `FILE_ICON_ALIASES` (:47),
  * `LUCIDE_ROLE_ICONS` (:126), `resolveIconPackKey` (:190) — translated into a typed,
- * framework-agnostic priority chain, per issue
+ * framework-agnostic priority chain, per issues
  * `.agents/docs/work/hardening/issues/proto-absorption-icons/001-resolver-core-tree-tracer.md`
- * and ledger `06-theme-style-icons-decorations.md` (table "Iconos semánticos").
+ * and `002-override-model-persistence.md`, and ledger `06-theme-style-icons-decorations.md`
+ * (table "Iconos semánticos").
  *
  * Priority chain (canon, v12 = authority on ORDER, icons.jsx:199-212):
  *   folder -> role -> type -> ext -> override -> fallback
+ *
+ * The chain always classifies role/type/ext first (`resolveIconChain`); `override`
+ * (PAI-002, via `logicIconOverride.ts`) is then applied as a final step that keeps
+ * the classified `role` but WINS on `source`/`iconId` when present and resolvable —
+ * see `resolveIcon`'s docblock below for the exact precedence rule.
  *
  * SEMANTICS vs THEME: this module resolves the semantic ROLE per v12, but the icon ids
  * it emits come from `ACTIVE_ROLE_ICON_MAP`, which preserves today's product output
@@ -20,16 +27,17 @@
  * ZERO `obsidian`, DOM, or Svelte imports — matches the style of the other
  * `logic*.ts` modules (see `logicBadge.ts`). No `window.*` (proto §29 hard rule:
  * proto's `window.normalizeIconOverride`/globals are NOT ported — state lives in the
- * caller).
- *
- * This slice does NOT wire overrides: the `override` field exists on
- * `IconResolutionInput` so the chain's shape is final now, but `resolveIcon` never
- * reads it. PAI-002 wires override application; until then the chain always falls
- * through override to whatever the earlier steps produced (parity with today).
+ * caller/store, see `serviceIconOverrides.ts`).
  *
  * The Iconic bridge (`serviceIcons.ts`) is NOT consulted here — that precedence
- * ("Iconic wins when present") lives in the caller (`serviceDecorate.ts`).
+ * ("override wins over Iconic, Iconic wins over the chain when no override") lives
+ * in the caller (`serviceDecorate.ts`).
  */
+import {
+	normalizeIconOverride,
+	type IconOverrideSpec,
+	type RawIconOverride,
+} from './logicIconOverride';
 
 /**
  * Semantic roles: the 16 keys of v12 `LUCIDE_ROLE_ICONS` (icons.jsx:126-143).
@@ -79,10 +87,13 @@ export interface IconResolutionInput {
 	/** Property type (only meaningful when kind normalizes to `prop`); keys into `TYPE_ICON_MAP`. */
 	propType?: string;
 	/**
-	 * Reserved for PAI-002 (persisted overrides). The parameter exists so the chain's
-	 * shape is locked now; `resolveIcon` does not read it in this slice.
+	 * PAI-002: a per-node icon override. Accepts a raw v12-style shorthand
+	 * (`emoji:<id>` / `adw:<id>` / `packId:iconId` / bare id) or object, OR an
+	 * already-normalized `IconOverrideSpec` from the override store — both are
+	 * normalized internally. When present and resolvable, it wins over every
+	 * chain step; malformed/empty/unresolvable overrides fall through.
 	 */
-	override?: string;
+	override?: RawIconOverride | IconOverrideSpec;
 }
 
 /** Prop-type -> icon map. CONSUMED (not replaced) from `serviceDecorate.ts` TYPE_ICON_MAP. */
@@ -249,8 +260,11 @@ function typeRoleOf(value: string | undefined): IconRole | null {
 }
 
 /**
- * Resolve the semantic icon for a node through the canon priority chain
- * (v12 `resolveIconPackKey`, icons.jsx:199-212):
+ * Resolve the semantic ROLE + parity icon id through the canon priority chain
+ * (v12 `resolveIconPackKey`, icons.jsx:199-212), ignoring `override` entirely.
+ * `resolveIcon` (below) computes this first — the role classification always
+ * runs, since an applied override REPLACES the icon id/source but must not
+ * change what role the node is understood to have.
  *
  * - `folder`: `isFolder` (or a folder-aliased kind) short-circuits everything.
  * - `role`: fixed per-role icon for tag/prop/value/content/match (and their aliases).
@@ -258,10 +272,9 @@ function typeRoleOf(value: string | undefined): IconRole | null {
  *   v12 :212) use `nodeType` -> `NODE_TYPE_ICONS`, which WINS over the extension.
  * - `ext`: extension -> ext-role (md/txt/json/img/pdf/canvas/base); unknown extensions
  *   on files stay the generic `file` role.
- * - `override`: reserved, unwired this slice (see module docblock).
  * - `fallback`: unrecognized/missing kind with no usable type/ext.
  */
-export function resolveIcon(input: IconResolutionInput): IconResolution {
+function resolveIconChain(input: IconResolutionInput): IconResolution {
 	if (input.isFolder) {
 		return { role: 'folder', source: 'folder', iconId: ACTIVE_ROLE_ICON_MAP.folder };
 	}
@@ -305,4 +318,67 @@ export function resolveIcon(input: IconResolutionInput): IconResolution {
 	}
 
 	return { role: 'fallback', source: 'fallback', iconId: FALLBACK_ICON };
+}
+
+/**
+ * Resolve the icon id an id for `packId` in the override to an icon id string
+ * this slice knows how to render. PAI-002 scope: only `lucide` (bare id ->
+ * `lucide-<id>`) and `emoji` (the iconId itself IS the glyph, rendered as-is —
+ * matches v12's `EmojiPackIcon`, icons.jsx:358-372) resolve. Any other pack id
+ * (remote/asset packs, PAI-005) or a manual override with no iconId returns
+ * `null` so the caller falls through to the existing chain result — v12's
+ * graceful degradation (icons.jsx:476 falls back to `lucideName`), never throws.
+ */
+function resolveOverrideIconId(spec: IconOverrideSpec): string | null {
+	if (!spec.iconId) return null;
+	if (spec.packId === 'emoji') return spec.iconId;
+	if (spec.packId === 'lucide' || spec.packId === null) {
+		return spec.iconId.startsWith('lucide-') ? spec.iconId : `lucide-${spec.iconId}`;
+	}
+	return null;
+}
+
+/**
+ * Resolve the semantic icon for a node: the priority chain (`resolveIconChain`)
+ * ALWAYS runs first to classify the role, then a normalized `override`
+ * (PAI-002) is applied on top when present and resolvable — overrides are
+ * EXPLICIT user intent, so they WIN over every chain step (folder/role/type/
+ * ext/fallback alike), matching v12's `Icon` component where a manual override
+ * short-circuits before the pack/theme lookup (icons.jsx:453-477). Iconic
+ * precedence is NOT decided here — that lives in the caller (`serviceDecorate.ts`);
+ * this function only decides override-vs-chain.
+ *
+ * `input.override` accepts either a raw v12-style string/object (normalized
+ * internally via `normalizeIconOverride`) or an already-normalized
+ * `IconOverrideSpec` (the shape the override store persists) — both forms are
+ * structurally accepted so callers don't have to double-normalize.
+ *
+ * Malformed/empty overrides (unnormalizable, or normalized but missing a
+ * usable iconId, or an unresolvable pack id this slice) fall through to the
+ * chain result unchanged — parity with today's behavior when no override
+ * applies (PAI-002 DoD: zero overrides = byte-identical output).
+ */
+export function resolveIcon(input: IconResolutionInput): IconResolution {
+	const chainResult = resolveIconChain(input);
+
+	if (!input.override) return chainResult;
+
+	const spec = isIconOverrideSpec(input.override)
+		? input.override
+		: normalizeIconOverride(input.override as RawIconOverride);
+	if (!spec) return chainResult;
+
+	const iconId = resolveOverrideIconId(spec);
+	if (!iconId) return chainResult;
+
+	return { role: chainResult.role, source: 'override', iconId };
+}
+
+function isIconOverrideSpec(value: unknown): value is IconOverrideSpec {
+	return (
+		typeof value === 'object' &&
+		value !== null &&
+		'mode' in value &&
+		('packId' in value || 'iconId' in value)
+	);
 }
