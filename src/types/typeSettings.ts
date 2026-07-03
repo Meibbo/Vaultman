@@ -6,6 +6,10 @@ import type { MouseGestureConfig, NodeMouseActionConfig } from '../services/serv
 import { DEFAULT_NODE_MOUSE_ACTIONS } from '../services/serviceMouse';
 import type { OperationScope } from '../services/serviceOperationScope';
 import { DEFAULT_ELASTIC_UI_SETTINGS, type ElasticUiSettings } from './typeElasticUi';
+import {
+	EMPTY_ICON_OVERRIDES_DOCUMENT,
+	type IconOverridesDocument,
+} from '../logic/logicIconOverride';
 
 export type Language = 'auto' | 'en' | 'es';
 export type MouseGestureSurface = 'node' | 'fab' | 'toolbar';
@@ -125,6 +129,14 @@ export interface VaultmanSettings {
 	 * because of mutual exclusion).
 	 */
 	fnrRegexDefault?: boolean;
+	/**
+	 * Persisted per-node/per-provider icon overrides (PAI-002). PSS-shaped
+	 * (`config` storage class, `node` scope, D6-namespaced node keys) so a
+	 * future move to PSS core (N1) relocates the envelope without reshaping
+	 * the payload. Owned by `IconOverrideStore` (`serviceIconOverrides.ts`);
+	 * hydrated on load, written back before `saveSettings()`.
+	 */
+	iconOverrides?: IconOverridesDocument;
 }
 
 /** Minimal interface used by VaultmanSettingsTab — breaks the main.ts circular import. */
@@ -185,4 +197,5 @@ export const DEFAULT_SETTINGS: VaultmanSettings = {
 	independentLeaves: {},
 	bindingNoteFolder: '',
 	fnrRegexDefault: false,
+	iconOverrides: { ...EMPTY_ICON_OVERRIDES_DOCUMENT, nodes: {}, providers: {} },
 };

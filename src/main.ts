@@ -43,6 +43,7 @@ import { createCommunityPluginsIndex } from './index/indexPlugins';
 import { createTemplatesIndex } from './services/serviceTemplatesIndex';
 import { OverlayStateService } from './services/serviceOverlayState.svelte';
 import { DecorationManager } from './services/serviceDecorate';
+import { IconOverrideStore } from './services/serviceIconOverrides';
 import { ViewService } from './services/serviceViews.svelte';
 import { ExplorerDataPlaneService } from './services/serviceExplorerDataPlane.svelte';
 import { createPerfProbe } from './dev/perfProbe';
@@ -101,6 +102,7 @@ export class VaultmanPlugin extends Plugin {
 	templatesIndex!: ITemplatesIndex;
 	overlayState!: IOverlayState;
 	decorationManager!: IDecorationManager;
+	iconOverrideStore!: IconOverrideStore;
 	viewService!: IViewService;
 	explorerDataPlaneService!: ExplorerDataPlaneService;
 
@@ -199,7 +201,9 @@ export class VaultmanPlugin extends Plugin {
 			this.templatesIndex.refresh(),
 		]);
 		this.overlayState = new OverlayStateService();
-		this.decorationManager = new DecorationManager(this.app);
+		this.iconOverrideStore = new IconOverrideStore();
+		this.iconOverrideStore.hydrate(this.settings.iconOverrides);
+		this.decorationManager = new DecorationManager(this.app, this.iconOverrideStore);
 		this.viewService = new ViewService({
 			decorationManager: this.decorationManager,
 			showMatchedFilterDecorations: () =>
@@ -384,6 +388,9 @@ export class VaultmanPlugin extends Plugin {
 		if (this.themeService) {
 			this.settings.elasticUi.themePresetId = this.themeService.activePresetId;
 			this.settings.elasticUi.customPresets = [...this.themeService.customPresets];
+		}
+		if (this.iconOverrideStore) {
+			this.settings.iconOverrides = this.iconOverrideStore.toDocument();
 		}
 		await this.saveData(this.settings);
 	}
