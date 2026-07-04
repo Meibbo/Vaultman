@@ -43,6 +43,8 @@ export interface NativeClassVocabulary {
 	cellWrapper: string | null;
 	coverImage: string | null;
 	headerCell: string | null;
+	/** Column resize handle inside a header cell (SDF-011 Bases parity; table only). */
+	headerResizer: string | null;
 	rowStateMods: readonly NativeStateMod[];
 }
 
@@ -78,6 +80,7 @@ const NULL_VOCAB: NativeClassVocabulary = {
 	cellWrapper: null,
 	coverImage: null,
 	headerCell: null,
+	headerResizer: null,
 	rowStateMods: [],
 };
 
@@ -96,6 +99,7 @@ const CONTRACTS: Record<ExplorerPlatformViewMode, ExplorerViewFeatureContract> =
 				cellWrapper: null,
 				coverImage: null,
 				headerCell: null,
+				headerResizer: null,
 				rowStateMods: [
 					'is-active',
 					'is-selected',
@@ -116,6 +120,7 @@ const CONTRACTS: Record<ExplorerPlatformViewMode, ExplorerViewFeatureContract> =
 				cellWrapper: null,
 				coverImage: null,
 				headerCell: null,
+				headerResizer: null,
 				rowStateMods: ['is-active', 'is-selected', 'is-focused'],
 			},
 		},
@@ -142,6 +147,7 @@ const CONTRACTS: Record<ExplorerPlatformViewMode, ExplorerViewFeatureContract> =
 				cellWrapper: 'bases-td',
 				coverImage: null,
 				headerCell: 'bases-table-header',
+				headerResizer: 'bases-table-header-resizer',
 				rowStateMods: [
 					'is-active',
 					'is-selected',
@@ -160,6 +166,7 @@ const CONTRACTS: Record<ExplorerPlatformViewMode, ExplorerViewFeatureContract> =
 				cellWrapper: 'bases-td',
 				coverImage: null,
 				headerCell: 'bases-table-header',
+				headerResizer: 'bases-table-header-resizer',
 				rowStateMods: ['is-active', 'is-selected', 'is-focused'],
 			},
 		},
@@ -188,6 +195,7 @@ const CONTRACTS: Record<ExplorerPlatformViewMode, ExplorerViewFeatureContract> =
 				cellWrapper: 'bases-cards-property',
 				coverImage: 'bases-cards-cover',
 				headerCell: null,
+				headerResizer: null,
 				rowStateMods: [
 					'is-active',
 					'is-selected',
@@ -206,6 +214,7 @@ const CONTRACTS: Record<ExplorerPlatformViewMode, ExplorerViewFeatureContract> =
 				cellWrapper: 'bases-cards-property',
 				coverImage: 'bases-cards-cover',
 				headerCell: null,
+				headerResizer: null,
 				rowStateMods: ['is-active', 'is-selected', 'is-focused'],
 			},
 		},

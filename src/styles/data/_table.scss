@@ -13,6 +13,11 @@
 .vm-node-table-inner {
 	position: relative;
 	min-width: 100%;
+	// SDF-011: once a column drag materializes fixed px tracks, the surface width follows the
+	// projected total (may exceed the viewport -> horizontal scroll, like stable 1.1.6's
+	// surfaceWidth = max(layout.totalWidth, clientWidth)); before any drag the var is unset
+	// and max(0px, 100%) preserves the fluid full-width layout exactly.
+	width: max(var(--vm-node-table-w, 0px), 100%);
 	height: var(--vm-node-table-total-h, 0);
 }
 
@@ -22,11 +27,22 @@
 	z-index: 3;
 	display: grid;
 	grid-template-columns: var(--vm-node-table-columns, minmax(180px, 1fr));
+	width: max(var(--vm-node-table-w, 0px), 100%);
 	background: color-mix(in srgb, $vm-bg-secondary 92%, transparent);
 	border-bottom: $vm-border-width solid $vm-border-color;
 }
 
+// One grid track per column: hosts the header button plus the SDF-011 resize handle (the
+// handle cannot live INSIDE the button - interactive-in-interactive - so stable's
+// header-label/resizer sibling pair maps to button + handle under this positioned wrapper).
+.vm-node-table-header-col {
+	position: relative;
+	display: flex;
+	min-width: 0;
+}
+
 .vm-node-table-header-cell {
+	flex: 1;
 	min-width: 0;
 	padding: 6px 8px;
 	border: 0;
@@ -45,6 +61,28 @@
 		color: $vm-text-normal;
 		background: $vm-bg-modifier-hover;
 		outline: none;
+	}
+}
+
+// SDF-011 Bases-parity column resizer — geometry mirrors stable 1.1.6 styles.css
+// (.bases-table-header-resizer: absolute, inset-block 0, inset-inline-end -3px, 6px wide,
+// col-resize, straddling the column boundary; accent feedback on hover and while dragging).
+// The drag session reuses the sandbox's existing global body.vm-resizing (stable:
+// body.vaultman-table-resizing) for the forced cursor + user-select lock.
+.vm-node-table-header-resizer {
+	position: absolute;
+	inset-block: 0;
+	inset-inline-end: -3px;
+	width: 6px;
+	cursor: col-resize;
+	z-index: 2;
+
+	&:hover {
+		background: color-mix(in srgb, $vm-color-accent 35%, transparent);
+	}
+
+	body.vm-resizing & {
+		background: color-mix(in srgb, $vm-color-accent 35%, transparent);
 	}
 }
 

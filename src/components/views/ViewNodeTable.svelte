@@ -50,6 +50,14 @@
 	import { stateModEmissions } from '../../services/serviceNodeClassEmission';
 	import { PerfMeter } from '../../services/perfMeter';
 	import { NodeRowMeasureService } from '../../services/serviceNodeRowMeasure';
+	import {
+		clampTableColumnWidth,
+		isTableColumnResizable,
+		materializeTableColumnWidths,
+		resolveTableColumnLayout,
+		tableColumnTemplate,
+		type TableColumnWidthOverrides,
+	} from '../../logic/logicTableLayout';
 	import { createVariableProviderRegistry } from '../../services/serviceSharedVirtualLayout';
 	import {
 		SharedVariableVirtualLayout,
@@ -179,11 +187,15 @@
 		`${nodeRowMeasureStyleKey(tableMeasureStyle)}:${columns.length}:${tableRows.length}:${effectiveTableLabelWidth}`,
 	);
 	const labelColumn = $derived(columns.find((column) => column.id === 'label') ?? columns[0]);
-	const columnTemplate = $derived(
-		columns
-			.map((column) => `minmax(${column.minWidth ?? 120}px, ${column.width ?? 1}fr)`)
-			.join(' '),
-	);
+
+	// SDF-011 Bases-parity column resizing (phase 2): clamped IN-MEMORY width overrides (never
+	// persisted, reset on remount — stable 1.1.6's columnWidths semantics) projected through ONE
+	// shared grid-template + total-width pair of CSS vars instead of stable's per-cell
+	// insetInlineStart/width inline styles — same resulting offsets, one projection point.
+	// With no overrides the template is byte-identical to the pre-resizer fluid template.
+	let columnWidthOverrides: TableColumnWidthOverrides = $state({});
+	const columnTemplate = $derived(tableColumnTemplate(columns, columnWidthOverrides));
+	const columnLayoutProjection = $derived(resolveTableColumnLayout(columns, columnWidthOverrides));
 
 	// Shared render-runtime (V.D, slice 2b): table adopts the SAME variable-height + lanes
 	// strategy grid/cards already use band-for-band (`laneCount=1` degenerates the shared lane
@@ -535,6 +547,64 @@
 		);
 	}
 
+	function measuredHeaderColWidth(columnId: string): number {
+		// Iterate + dataset-match instead of interpolating the id into a selector: column ids are
+		// caller-defined strings and `CSS.escape` is not available in every runtime (jsdom).
+		const cols = outerEl?.querySelectorAll<HTMLElement>('[data-vm-table-header-col]');
+		if (!cols) return 0;
+		for (const el of cols) {
+			if (el.dataset.vmTableHeaderCol === columnId) return el.getBoundingClientRect().width;
+		}
+		return 0;
+	}
+
+	// `{@attach}` for one header's resize handle — the stable 1.1.6 `attachColumnResizer`
+	// (viewGrid.ts / viewNodeTable.ts) drag mechanics, verbatim where possible: pointerdown
+	// (preventDefault + stopPropagation, so a drag never becomes a sort click) captures startX +
+	// startWidth, tags the body with the resizing cursor class, then window-level pointermove
+	// applies `clamp(startWidth + dx)` to the dragged column only and pointerup (once) tears
+	// down. Adapted: body class = the sandbox's existing global `vm-resizing` (stable:
+	// `vaultman-table-resizing`); stable resolved every column to constant px up front, the
+	// sandbox's fluid columns materialize to their current rendered widths on first pointerdown
+	// (see logicTableLayout) so all OTHER columns keep their width during the drag — stable's
+	// observable invariant; re-projection is the reactive template var, not manual re-renders.
+	function attachColumnResizer(column: ViewColumn<TNode>) {
+		return (node: HTMLElement) => {
+			const onPointerDown = (event: PointerEvent) => {
+				event.preventDefault();
+				event.stopPropagation();
+				const materialized = materializeTableColumnWidths(
+					columns,
+					measuredHeaderColWidth,
+					columnWidthOverrides,
+				);
+				columnWidthOverrides = materialized;
+				const startX = event.clientX;
+				const startWidth = materialized[column.id] ?? clampTableColumnWidth(column, 0);
+				const ownerWindow = node.ownerDocument.defaultView ?? window;
+				const ownerBody = node.ownerDocument.body;
+				ownerBody.classList.add('vm-resizing');
+
+				const onMove = (moveEvent: PointerEvent) => {
+					const nextWidth = clampTableColumnWidth(
+						column,
+						startWidth + moveEvent.clientX - startX,
+					);
+					if (columnWidthOverrides[column.id] === nextWidth) return;
+					columnWidthOverrides = { ...columnWidthOverrides, [column.id]: nextWidth };
+				};
+				const onUp = () => {
+					ownerWindow.removeEventListener('pointermove', onMove);
+					ownerBody.classList.remove('vm-resizing');
+				};
+				ownerWindow.addEventListener('pointermove', onMove);
+				ownerWindow.addEventListener('pointerup', onUp, { once: true });
+			};
+			node.addEventListener('pointerdown', onPointerDown);
+			return () => node.removeEventListener('pointerdown', onPointerDown);
+		};
+	}
+
 	function isTextMeasureService(service: TableMeasureService): service is TextMeasureService {
 		return 'measureRowHeight' in service;
 	}
@@ -566,30 +636,43 @@
 	oncontextmenu={handleDelegatedTableContextMenu}
 	onkeydown={handleDelegatedTableKeydown}
 	style:--vm-node-table-columns={columnTemplate}
+	style:--vm-node-table-w={columnLayoutProjection
+		? `${columnLayoutProjection.totalWidth}px`
+		: undefined}
 >
 	<div class="vm-node-table-header" role="row">
 		{#each columns as column (column.id)}
 			{@const sortState = headerSortState(column.id)}
-			<button
-				type="button"
-				class="vm-node-table-header-cell {nativeVocab?.headerCell ?? ''}"
-				data-vm-table-header={column.id}
-				role="columnheader"
-				aria-sort={sortState === 'asc'
-					? 'ascending'
-					: sortState === 'desc'
-						? 'descending'
-						: 'none'}
-				disabled={column.sortable !== true}
-				onclick={() => handleHeaderClick(column)}
-			>
-				<span>{column.label}</span>
-				{#if sortState}
-					<span class="vm-node-table-sort" data-vm-table-sort={column.id}>
-						{sortState}
-					</span>
+			<div class="vm-node-table-header-col" data-vm-table-header-col={column.id}>
+				<button
+					type="button"
+					class="vm-node-table-header-cell {nativeVocab?.headerCell ?? ''}"
+					data-vm-table-header={column.id}
+					role="columnheader"
+					aria-sort={sortState === 'asc'
+						? 'ascending'
+						: sortState === 'desc'
+							? 'descending'
+							: 'none'}
+					disabled={column.sortable !== true}
+					onclick={() => handleHeaderClick(column)}
+				>
+					<span>{column.label}</span>
+					{#if sortState}
+						<span class="vm-node-table-sort" data-vm-table-sort={column.id}>
+							{sortState}
+						</span>
+					{/if}
+				</button>
+				{#if isTableColumnResizable(column)}
+					<div
+						class="vm-node-table-header-resizer {nativeVocab?.headerResizer ?? ''}"
+						data-vm-table-resizer={column.id}
+						aria-hidden="true"
+						{@attach attachColumnResizer(column)}
+					></div>
 				{/if}
-			</button>
+			</div>
 		{/each}
 	</div>
 	<div
