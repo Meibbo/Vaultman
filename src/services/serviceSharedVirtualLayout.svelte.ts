@@ -29,7 +29,7 @@
 //
 // See docs/work/hardening/specs/2026-06-17-vd-shared-render-runtime + ADR 0012 / 05-view-canon.
 
-import { createContext } from 'svelte';
+import { getContext, hasContext, setContext, untrack } from 'svelte';
 import { createVirtualizer, type SvelteVirtualizer } from '@tanstack/svelte-virtual';
 import { createRafElementRectObserver } from './serviceScroll';
 import {
@@ -309,6 +309,17 @@ export class SharedVariableVirtualLayout {
 	// pick up @types/node's Timeout and clash with the prefer-window-timers form.
 	#measureIdleTimer: number | null = null;
 	#measureScrollActive = $state(false);
+	/**
+	 * Reactive shadow of the provider Fenwick's mutation state (slice-2b adoption finding). The
+	 * Fenwick itself is deliberately NOT reactive ($state-free registry, framework-agnostic core),
+	 * so an OWNED `$derived` (one a mounted component's template subscribes to) would never
+	 * recompute `window`/`rows`/`totalHeight` after a `measure()` patch — rendered rows would keep
+	 * stale positions until the next scroll/resize/prop change. (The 2a headless unit tests could
+	 * not catch this: UNOWNED deriveds re-evaluate on read.) `measure()` bumps this only when a
+	 * patch actually changes a size, and the three deriveds read it — a real measurement reflows
+	 * the window, an idempotent re-measure settles with no extra render pass.
+	 */
+	#measurementRevision = $state(0);
 
 	/** Scroll offset of the viewport (px) — written by the scroll listener at attach time. */
 	scrollTop = $state(0);
@@ -332,6 +343,7 @@ export class SharedVariableVirtualLayout {
 
 	/** Authoritative visible window [startIndex, endIndex) + content band, from the pure core. */
 	readonly window: VisibleRangeBand = $derived.by(() => {
+		void this.#measurementRevision; // Fenwick patches are not otherwise tracked — see its docblock.
 		const lanes = this.#resolvedLaneCount();
 		const bandRange = variableVisibleRange(this.#options.registry, {
 			providerId: this.#options.providerId,
@@ -346,6 +358,7 @@ export class SharedVariableVirtualLayout {
 
 	/** Virtual rows (one per lane per band) for the current window. */
 	readonly rows: SharedVariableVirtualRow[] = $derived.by(() => {
+		void this.#measurementRevision; // Fenwick patches are not otherwise tracked — see its docblock.
 		const lanes = this.#resolvedLaneCount();
 		const { startIndex, endIndex } = this.window;
 		const getKey = this.#cfg.getKey;
@@ -366,6 +379,7 @@ export class SharedVariableVirtualLayout {
 
 	/** Total scrollable content height (px), from the provider's warm Fenwick. */
 	readonly totalHeight: number = $derived.by(() => {
+		void this.#measurementRevision; // Fenwick patches are not otherwise tracked — see its docblock.
 		const geometry = geometryHandle(this.#options.registry, this.#options.providerId);
 		return geometry ? geometry.totalSize() : 0;
 	});
@@ -412,7 +426,13 @@ export class SharedVariableVirtualLayout {
 			resizeObserver.observe(node);
 		}
 		syncViewport();
-		syncScroll();
+		// Initial state sync WITHOUT marking the measure path scroll-active (slice-2b adoption
+		// finding): mount is not scrolling. Routing this through syncScroll() would defer every
+		// first-paint `measureRow` measurement by `measureIdleMs`, rendering estimate-height rows
+		// for that window (the flash-of-wrong-height class the STRICT gate punishes). The
+		// pre-adoption views measured immediately at mount and deferred only on REAL scroll
+		// events — only the scroll listener above marks scroll-active now.
+		this.scrollTop = node.scrollTop;
 
 		return () => {
 			node.removeEventListener('scroll', syncScroll);
@@ -475,9 +495,27 @@ export class SharedVariableVirtualLayout {
 		}, this.#measureIdleMs);
 	}
 
-	/** Patches the provider Fenwick at `bandIndex` — O(log n), idempotent for the same size. */
+	/**
+	 * Patches the provider Fenwick at `bandIndex` — O(log n), idempotent for the same size. Bumps
+	 * the reactive measurement revision ONLY when the patch actually changed the stored size, so
+	 * an attachment re-running with an unchanged measurement settles instead of re-rendering
+	 * (self-terminating: render -> re-attach -> measure(same) -> no bump).
+	 */
 	measure(bandIndex: number, size: number): void {
+		const geometry = geometryHandle(this.#options.registry, this.#options.providerId);
+		const before = geometry?.sizeForIndex(bandIndex);
 		measureVariableProvider(this.#options.registry, this.#options.providerId, bandIndex, size);
+		if (geometry && geometry.sizeForIndex(bandIndex) !== before) this.#bumpMeasurementRevision();
+	}
+
+	/**
+	 * Bumps the revision WITHOUT registering a read in the caller's tracking context: `measure()`
+	 * runs inside `measureRow` attachments, and an un-untracked `+= 1` would subscribe every row
+	 * attachment to every OTHER row's bumps — an O(window^2) re-attach storm per landed
+	 * measurement. `untrack` only skips dependency registration; subscribers are still notified.
+	 */
+	#bumpMeasurementRevision(): void {
+		this.#measurementRevision = untrack(() => this.#measurementRevision) + 1;
 	}
 
 	/**
@@ -506,6 +544,8 @@ export class SharedVariableVirtualLayout {
 	/** Restores this provider's warm geometry from a snapshot (e.g. from a sibling view). */
 	restore(snap: VariableProviderSnapshot): void {
 		restoreVariableProvider(this.#options.registry, this.#options.providerId, snap);
+		// A restore replaces the whole entry — always a layout-relevant change.
+		this.#bumpMeasurementRevision();
 	}
 
 	/**
@@ -543,7 +583,7 @@ function geometryHandle(
 }
 
 /**
- * `createContext` warm per-provider measurement registry (Q2, slice-2 commitment): a type-safe
+ * Warm per-provider measurement registry context (Q2, slice-2 commitment): a type-safe
  * `[get, set]` pair over ONE shared `VariableProviderRegistry`. Call `setSharedGeometryRegistry`
  * once near the explorer root (e.g. `ViewHost`) with a registry created via
  * `createVariableProviderRegistry()`; every mounted `SharedVariableVirtualLayout` in that
@@ -552,6 +592,23 @@ function geometryHandle(
  * same `providerId`) reuses the warm Fenwick instead of re-measuring from scratch. Both calls
  * must run during component initialization (Svelte context rule) — this module only defines the
  * pair; wiring happens in the `.svelte` consumer.
+ *
+ * Implemented over `getContext`/`setContext`/`hasContext` with a module-private symbol rather
+ * than Svelte's `createContext` (slice-2b adoption finding): `createContext`'s getter THROWS
+ * `missing_context` when no ancestor ever set the pair, but "no explorer root above me" is a
+ * legitimate state for a Geometry view — direct component-test mounts and any embedded usage
+ * outside `ViewHost` must be able to probe the context and fall back to a local registry.
+ * `getSharedGeometryRegistry()` therefore returns `undefined` when absent instead of throwing;
+ * type-safety is preserved by the explicit generics below (same names, same call sites).
  */
-export const [getSharedGeometryRegistry, setSharedGeometryRegistry] =
-	createContext<VariableProviderRegistry>();
+const SHARED_GEOMETRY_REGISTRY_KEY = Symbol('vm-shared-geometry-registry');
+
+export function getSharedGeometryRegistry(): VariableProviderRegistry | undefined {
+	return hasContext(SHARED_GEOMETRY_REGISTRY_KEY)
+		? getContext<VariableProviderRegistry>(SHARED_GEOMETRY_REGISTRY_KEY)
+		: undefined;
+}
+
+export function setSharedGeometryRegistry(registry: VariableProviderRegistry): VariableProviderRegistry {
+	return setContext<VariableProviderRegistry>(SHARED_GEOMETRY_REGISTRY_KEY, registry);
+}

@@ -218,5 +218,27 @@ describe('SharedVariableVirtualLayout — Svelte 5 shell, variable-height strate
 			expect(layout.snapshot()!.sizes[0]).toBe(64);
 			detachB();
 		});
+
+		it("attach()'s initial state sync does not defer measurement (mount is not scrolling)", () => {
+			// A measureRow patch made right after attach() must land immediately, WITHOUT waiting
+			// out the measureIdleMs scroll-idle window: routing the initial sync through the same
+			// path as real scroll events would render every first paint at estimate heights for
+			// ~100ms (flash-of-wrong-height). Only actual scroll events may defer measurement.
+			const layout = makeVariableLayout({ rowCount: 10 });
+			const scrollEl = {
+				scrollTop: 0,
+				clientHeight: 100,
+				addEventListener() {},
+				removeEventListener() {},
+			} as unknown as HTMLElement;
+			const detachScroll = layout.attach(scrollEl);
+
+			const rowEl = { offsetHeight: 0 } as unknown as HTMLElement;
+			const detachRow = layout.measureRow(0, () => 64)(rowEl);
+			expect(layout.snapshot()!.sizes[0]).toBe(64);
+
+			detachRow();
+			detachScroll();
+		});
 	});
 });
