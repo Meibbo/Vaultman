@@ -124,7 +124,16 @@ describe('ViewNode scroll jank guardrails', () => {
 		vi.unstubAllGlobals();
 	});
 
-	it('does not reconfigure the table virtualizer when visible row measurements change', () => {
+	// V.D slice 2b: ViewNodeTable no longer drives its own @tanstack/svelte-virtual instance (full
+	// migration to the shared SharedVariableVirtualLayout registry, which has no TanStack
+	// setOptions seam on the variable-height path) — so counting `setOptions` calls on the mocked
+	// module no longer observes anything table does; the anti-thrash class of bug this guarded
+	// against (a `setOptions` feedback loop from an un-`untrack`'d $effect) is now structurally
+	// unreachable for table, since there is no `setOptions` to call. Retargeted to the
+	// locked-contract behavior the call-count was a proxy for: measuring visible rows must not
+	// remount row DOM (stable identity) or change the rendered row count on a redundant reactive
+	// pass — the observable anti-thrash guarantee, independent of virtualizer internals.
+	it('does not remount table rows or change the rendered window on a redundant reactive pass', () => {
 		app = mount(ViewNodeTable as unknown as Component<Record<string, unknown>>, {
 			target,
 			props: {
@@ -139,11 +148,12 @@ describe('ViewNode scroll jank guardrails', () => {
 		});
 
 		flushSync();
-		const callsAfterMount = virtualizerStats.setOptionsCalls;
+		const firstRow = target.querySelector('.vm-node-table-row[data-id]');
+		const rowCount = target.querySelectorAll('.vm-node-table-row').length;
 		flushSync();
 
-		expect(callsAfterMount).toBe(1);
-		expect(virtualizerStats.setOptionsCalls).toBe(callsAfterMount);
+		expect(target.querySelector('.vm-node-table-row[data-id]')).toBe(firstRow);
+		expect(target.querySelectorAll('.vm-node-table-row').length).toBe(rowCount);
 	});
 
 	it('does not reconfigure the grid virtualizer when visible tile measurements change', () => {

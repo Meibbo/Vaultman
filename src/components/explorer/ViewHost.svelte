@@ -6,6 +6,11 @@
 	import type { ThemeService } from '../../services/serviceTheme.svelte';
 	import type { ViewSizePresetId } from '../../services/serviceViewSize';
 	import { ViewHostService } from '../../services/serviceViewHost.svelte';
+	import { createVariableProviderRegistry } from '../../services/serviceSharedVirtualLayout';
+	import {
+		getSharedGeometryRegistry,
+		setSharedGeometryRegistry,
+	} from '../../services/serviceSharedVirtualLayout.svelte';
 	import type { ExplorerProjection } from '../../services/serviceExplorerProjection';
 	import type { ExplorerRowInput } from '../../services/serviceExplorerRowInput';
 	import type { NodeBase } from '../../types/typeContracts';
@@ -115,6 +120,16 @@
 		value: () => service.nodeElementMask,
 	});
 	setContext<PresetContextValue>(PRESET_KEY, { value: () => service.preset });
+	// V.D shared render-runtime (slice 2b): the warm per-provider Geometry registry, stood up
+	// once near the explorer root so N mounted Geometry views (table now; grid/cards in later
+	// slices) share ONE VariableProviderRegistry — a mode switch (e.g. table -> grid on the same
+	// provider) reuses the warm Fenwick instead of re-measuring from scratch (Q1/Q2). Only wired
+	// here if no ancestor ViewHost already provided one (mirrors the inheritedService fallback
+	// above): a nested ViewHost (e.g. an in-editor embed under a panel ViewHost) should share its
+	// ancestor's registry, not shadow it with an empty one.
+	if (getSharedGeometryRegistry() === undefined) {
+		setSharedGeometryRegistry(createVariableProviderRegistry());
+	}
 
 	$effect(() => {
 		service.preset = preset;

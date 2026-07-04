@@ -1,7 +1,6 @@
 <script lang="ts" generics="TNode extends NodeBase = NodeBase">
-	import { getContext, untrack } from 'svelte';
+	import { getContext } from 'svelte';
 	import type { SortingState } from '@tanstack/table-core';
-	import { createVirtualizer, type Rect, type Virtualizer } from '@tanstack/svelte-virtual';
 	import type { NodeBase } from '../../types/typeContracts';
 	import type { ViewColumn, ViewRow } from '../../types/typeViews';
 	import {
@@ -51,21 +50,22 @@
 	import { stateModEmissions } from '../../services/serviceNodeClassEmission';
 	import { PerfMeter } from '../../services/perfMeter';
 	import { NodeRowMeasureService } from '../../services/serviceNodeRowMeasure';
-	import { createExplorerVariableGeometry } from '../../services/serviceExplorerScrollGeometry';
+	import { createVariableProviderRegistry } from '../../services/serviceSharedVirtualLayout';
+	import {
+		SharedVariableVirtualLayout,
+		getSharedGeometryRegistry,
+	} from '../../services/serviceSharedVirtualLayout.svelte';
 	import {
 		DEFAULT_NODE_ROW_MEASURE_STYLE,
 		nodeRowMeasureStyleKey,
 		resolveNodeRowMeasureStyle,
 	} from '../../services/serviceNodeRowStyle';
-	import { boundedElementViewportRect } from '../../services/serviceScroll';
 	import type { ThemeService } from '../../services/serviceTheme.svelte';
 
 	const TABLE_ROW_HEIGHT = 32;
-	const TABLE_OVERSCAN = 14;
 	const TABLE_FALLBACK_WIDTH = 640;
 	const TABLE_FALLBACK_HEIGHT = 360;
 	const TABLE_ROW_PADDING_BLOCK = 10;
-	const TABLE_SCROLL_MEASURE_IDLE_MS = 96;
 	const TABLE_LABEL_SELECTOR = '.vm-node-table-primary';
 	const EMPTY_SELECTED_IDS: ReadonlySet<string> = new Set();
 	type ScrollTarget = { id: string; serial: number };
@@ -128,20 +128,12 @@
 	}: Props<TNode> = $props();
 
 	let outerEl: HTMLDivElement | undefined = $state();
-	let tableWidth = $state(TABLE_FALLBACK_WIDTH);
 	let sorting: SortingState = $state([]);
 	let gpuReadyMarked = false;
 	let tableLabelWidth = $state(TABLE_FALLBACK_WIDTH);
 	let tableMeasureStyle: TextMeasureStyle = $state(DEFAULT_NODE_ROW_MEASURE_STYLE);
 	let tableMetricsFrame: number | null = null;
-	let tableRemeasureFrame: number | null = null;
 	let consumedScrollTargetSerial: number | null = null;
-	let fallbackScrollTop = $state(0);
-	let fallbackViewportHeight = $state(TABLE_FALLBACK_HEIGHT);
-	let tableMeasureScrollActive = $state(false);
-	let tableMeasureIdleTimer: ReturnType<typeof setTimeout> | null = null;
-	let measuredTableRows = $state(new Map<string, number>());
-	let measuredTableRowsRevision = $state('');
 	let tableRowIndexCacheRows: readonly RowInputCompatibleRow<TNode>[] | null = null;
 	let tableRowIndexCache = new Map<string, number>();
 	const mouse = createMouseGestureService();
@@ -173,12 +165,9 @@
 		nodeElementMask.icon && (!visibleFields || visibleFields.includes('icon')),
 	);
 
-	$effect(
-		() => () => {
-			mouse.cancelAll();
-			clearTableMeasureIdleTimer();
-		},
-	);
+	$effect(() => () => {
+		mouse.cancelAll();
+	});
 
 	const projectionRows = $derived(
 		projection ? nodeRowsFromRowInputs(rowInputsFromProjection(projection)) : undefined,
@@ -189,119 +178,48 @@
 	const tableMeasureRevision = $derived(
 		`${nodeRowMeasureStyleKey(tableMeasureStyle)}:${columns.length}:${tableRows.length}:${effectiveTableLabelWidth}`,
 	);
+	const labelColumn = $derived(columns.find((column) => column.id === 'label') ?? columns[0]);
 	const columnTemplate = $derived(
 		columns
 			.map((column) => `minmax(${column.minWidth ?? 120}px, ${column.width ?? 1}fr)`)
 			.join(' '),
 	);
-	const rowVirtualizer = createVirtualizer<HTMLDivElement, HTMLDivElement>({
-		count: 0,
-		getScrollElement: () => outerEl ?? null,
-		getItemKey: (index) => tableVirtualRowKey(tableRows, index),
-		estimateSize: (index) => tableEstimateSize(index),
-		observeElementRect: observeTableRect,
-		overscan: TABLE_OVERSCAN,
-		initialRect: { width: TABLE_FALLBACK_WIDTH, height: TABLE_FALLBACK_HEIGHT },
-	});
-	const virtualRows = $derived($rowVirtualizer.getVirtualItems());
-	const tableGeometry = $derived.by(() => {
-		const rowsForGeometry = tableRows;
-		return createExplorerVariableGeometry({
-			rowCount: rowsForGeometry.length,
-			estimateSize: () => TABLE_ROW_HEIGHT,
-		});
-	});
-	const renderedRows = $derived.by(() => {
-		const visibleRows = virtualRows
-			.filter((row) => row.index < tableRows.length)
-			.map((row) => ({
-				key: row.key,
-				index: row.index,
-				start: row.start,
-				size: row.size,
-			}));
-		if (visibleRows.length > 0 || tableRows.length === 0) return visibleRows;
-		return fallbackRenderedRows(tableRows, tableGeometry);
-	});
-	const totalHeight = $derived.by(() => {
-		const virtualTotal = $rowVirtualizer.getTotalSize();
-		return virtualTotal > 0 || tableRows.length === 0 ? virtualTotal : tableGeometry.totalSize();
-	});
 
-	$effect(() => {
-		const count = tableRows.length;
-		const rows = tableRows;
-		const scrollElement = outerEl;
-		const width = tableWidth;
-		untrack(() =>
-			$rowVirtualizer.setOptions({
-				count,
-				getScrollElement: () => scrollElement ?? null,
-				getItemKey: (index) => tableVirtualRowKey(rows, index),
-				estimateSize: (index) => tableEstimateSize(index),
-				observeElementRect: observeTableRect,
-				overscan: TABLE_OVERSCAN,
-				initialRect: { width, height: TABLE_FALLBACK_HEIGHT },
-			}),
-		);
-	});
-
-	$effect(() => {
-		const rows = tableRows;
-		const visibleRows = virtualRows.filter((row) => row.index < rows.length);
-		const labelColumn = columns.find((column) => column.id === 'label') ?? columns[0];
-		const revision = tableMeasureRevision;
-		const width = effectiveTableLabelWidth;
-		const style = tableMeasureStyle;
-		const scrollActive = tableMeasureScrollActive;
-		if (scrollActive) return;
-
-		untrack(() => {
-			const next =
-				measuredTableRowsRevision === revision
-					? new Map(measuredTableRows)
-					: new Map<string, number>();
-			let changed = measuredTableRowsRevision !== revision;
-			PerfMeter.time(
-				'explorer.table.measureRows',
-				() => {
-					for (const virtualRow of visibleRows) {
-						const row = rows[virtualRow.index];
-						if (!row) continue;
-						const height = measureTableRowHeight(row, labelColumn, width, style, revision);
-						if (next.get(row.id) !== height) {
-							next.set(row.id, height);
-							tableGeometry.measure(virtualRow.index, height);
-							resizeVirtualTableRow(virtualRow.index, height);
-							changed = true;
-						}
-					}
-				},
-				'service',
-				{ rows: visibleRows.length },
-			);
-			if (!changed) return;
-			measuredTableRowsRevision = revision;
-			measuredTableRows = next;
-		});
+	// Shared render-runtime (V.D, slice 2b): table adopts the SAME variable-height + lanes
+	// strategy grid/cards already use band-for-band (`laneCount=1` degenerates the shared lane
+	// math to the identity single-lane case — band === index, lane === 0 always; table has no
+	// `rows[].lane` field and none is needed here). `providerId` keys the warm per-provider
+	// Fenwick registry (context'd once near the explorer root by ViewHost); this component
+	// falls back to a local, unshared registry when mounted WITHOUT that ancestor (most component
+	// tests mount ViewNodeTable directly) so it still behaves correctly standalone, just without
+	// cross-view warmth. `estimateSize` stays a flat TABLE_ROW_HEIGHT constant — cheap for the
+	// Fenwick's eager O(n) initial build (matches the pre-adoption local Fenwick's own baseline);
+	// REAL per-row heights come from `attachTableRowMeasure` below (pretext, not this estimate).
+	// svelte-ignore state_referenced_locally -- the layout controller (and the provider key it
+	// warms) is intentionally fixed per mounted view instance: a provider swap is a different
+	// panel, not a reshape of this one (same lifecycle stance as ViewHost's inherited service).
+	// Reactive inputs (rowCount / keys) flow through the option getters below.
+	const providerId = projection?.providerId ?? 'table';
+	const localGeometryRegistry = getSharedGeometryRegistry() ?? createVariableProviderRegistry();
+	const layout = new SharedVariableVirtualLayout({
+		providerId,
+		registry: localGeometryRegistry,
+		rowCount: () => tableRows.length,
+		estimateSize: () => TABLE_ROW_HEIGHT,
+		laneCount: 1,
+		getKey: (index) => tableVirtualRowKey(tableRows, index),
+		fallbackViewportHeight: TABLE_FALLBACK_HEIGHT,
 	});
 
 	$effect(() => {
 		if (!outerEl) return;
 		updateTableMeasureInputs();
-		updateTableFallbackViewport();
 		if (typeof ResizeObserver === 'undefined') return;
-		const ro = new ResizeObserver(() => {
-			scheduleTableMetricsUpdate();
-			updateTableFallbackViewport();
-			scheduleVirtualizerRemeasure('table');
-		});
+		const ro = new ResizeObserver(() => scheduleTableMetricsUpdate());
 		ro.observe(outerEl);
 		return () => {
 			if (tableMetricsFrame !== null) cancelAnimationFrame(tableMetricsFrame);
-			if (tableRemeasureFrame !== null) cancelAnimationFrame(tableRemeasureFrame);
 			tableMetricsFrame = null;
-			tableRemeasureFrame = null;
 			ro.disconnect();
 		};
 	});
@@ -331,31 +249,22 @@
 	function scrollTableRowIntoView(rowIndex: number): void {
 		if (!outerEl) return;
 		PerfMeter.time('explorer.table.scrollIntoView', () => {
-			const viewportHeight = tableViewportRect().height;
+			// Read the viewport live (clientHeight), not the layout's tracked $state, so reveal
+			// works even when no scroll/resize event has refreshed it since the element was last
+			// sized — matches the shared runtime's own fixed-path scrollToIndex precedent.
+			const viewportHeight = outerEl!.clientHeight || TABLE_FALLBACK_HEIGHT;
 			const currentTop = outerEl!.scrollTop;
-			const rowTop = tableRowTop(rowIndex);
-			const rowBottom = rowTop + tableGeometry.sizeForIndex(rowIndex);
+			const rowTop = layout.topForIndex(rowIndex);
+			const rowBottom = rowTop + layout.sizeForIndex(rowIndex);
 			const currentBottom = currentTop + viewportHeight;
 			if (rowTop >= currentTop && rowBottom <= currentBottom) return;
 
 			const nextTop = rowTop < currentTop ? rowTop : Math.max(0, rowBottom - viewportHeight);
-			untrack(() =>
-				$rowVirtualizer.scrollToIndex(rowIndex, {
-					align: rowTop < currentTop ? 'start' : 'end',
-					behavior: 'auto',
-				}),
-			);
 			outerEl!.scrollTop = nextTop;
-			updateTableFallbackViewport();
+			layout.scrollTop = nextTop;
+			layout.viewportHeight = viewportHeight;
 			outerEl!.dispatchEvent(new Event('scroll'));
 		});
-	}
-
-	function handleTableScroll(e: Event): void {
-		const element = e.currentTarget as HTMLDivElement;
-		fallbackScrollTop = element.scrollTop;
-		fallbackViewportHeight = element.clientHeight || TABLE_FALLBACK_HEIGHT;
-		markTableMeasureScrollActive();
 	}
 
 	function updateTableMeasureInputs(): void {
@@ -368,11 +277,6 @@
 		if (nodeRowMeasureStyleKey(nextStyle) !== nodeRowMeasureStyleKey(tableMeasureStyle)) {
 			tableMeasureStyle = nextStyle;
 		}
-	}
-
-	function updateTableFallbackViewport(): void {
-		fallbackScrollTop = outerEl?.scrollTop ?? 0;
-		fallbackViewportHeight = tableViewportRect().height;
 	}
 
 	function tableLabelContentWidth(): number {
@@ -392,61 +296,6 @@
 			tableMetricsFrame = null;
 			updateTableMeasureInputs();
 		});
-	}
-
-	function scheduleVirtualizerRemeasure(_surface: 'table'): void {
-		if (typeof requestAnimationFrame === 'undefined') {
-			PerfMeter.time('explorer.table.resizeRemeasure', () => $rowVirtualizer.measure?.());
-			return;
-		}
-		if (tableRemeasureFrame !== null) return;
-		tableRemeasureFrame = requestAnimationFrame(() => {
-			tableRemeasureFrame = null;
-			PerfMeter.time('explorer.table.resizeRemeasure', () => $rowVirtualizer.measure?.());
-		});
-	}
-
-	function markTableMeasureScrollActive(): void {
-		tableMeasureScrollActive = true;
-		clearTableMeasureIdleTimer();
-		tableMeasureIdleTimer = setTimeout(() => {
-			tableMeasureIdleTimer = null;
-			tableMeasureScrollActive = false;
-		}, TABLE_SCROLL_MEASURE_IDLE_MS);
-	}
-
-	function clearTableMeasureIdleTimer(): void {
-		if (tableMeasureIdleTimer !== null) clearTimeout(tableMeasureIdleTimer);
-		tableMeasureIdleTimer = null;
-	}
-
-	function resizeVirtualTableRow(index: number, height: number): void {
-		const virtualizer = $rowVirtualizer;
-		if (typeof virtualizer.resizeItem === 'function') {
-			virtualizer.resizeItem(index, height);
-			return;
-		}
-		scheduleVirtualizerRemeasure('table');
-	}
-
-	function observeTableRect(
-		_: Virtualizer<HTMLDivElement, HTMLDivElement>,
-		cb: (rect: Rect) => void,
-	): () => void {
-		const emit = () => {
-			const rect = tableViewportRect();
-			if (rect.width !== tableWidth) tableWidth = rect.width;
-			cb(rect);
-		};
-		emit();
-		if (!outerEl || typeof ResizeObserver === 'undefined') return () => {};
-		const ro = new ResizeObserver(emit);
-		ro.observe(outerEl);
-		return () => ro.disconnect();
-	}
-
-	function tableViewportRect(): Rect {
-		return boundedElementViewportRect(outerEl, TABLE_FALLBACK_WIDTH, TABLE_FALLBACK_HEIGHT);
 	}
 
 	function handleRowClick(id: string, e: MouseEvent) {
@@ -594,66 +443,6 @@
 		return rows[index]?.id ?? index;
 	}
 
-	function tableEstimateSize(index: number): number {
-		return tableEstimateSizeFromMap(measuredTableRows, index);
-	}
-
-	function tableEstimateSizeFromMap(
-		measuredRows: ReadonlyMap<string, number>,
-		index: number,
-	): number {
-		const row = tableRows[index];
-		return row ? measuredRows.get(row.id) ?? TABLE_ROW_HEIGHT : TABLE_ROW_HEIGHT;
-	}
-
-	function tableRowTop(rowIndex: number): number {
-		return tableGeometry.topForIndex(rowIndex);
-	}
-
-	function fallbackRenderedRows(
-		rows: readonly RowInputCompatibleRow<TNode>[],
-		geometry: typeof tableGeometry,
-	): {
-		key: string;
-		index: number;
-		start: number;
-		size: number;
-	}[] {
-		const range = geometry.visibleRange({
-			scrollTop: fallbackScrollTop,
-			viewportHeight: fallbackViewportHeight,
-			overscan: TABLE_OVERSCAN,
-		});
-		const labelColumn = columns.find((column) => column.id === 'label') ?? columns[0];
-		const width = effectiveTableLabelWidth;
-		const style = tableMeasureStyle;
-		const revision = tableMeasureRevision;
-		const out: {
-			key: string;
-			index: number;
-			start: number;
-			size: number;
-		}[] = [];
-		let start = geometry.topForIndex(range.startIndex);
-		for (let index = range.startIndex; index < range.endIndex; index += 1) {
-			const row = rows[index];
-			if (!row) continue;
-			const size =
-				measuredTableRows.get(row.id) ??
-				(tableMeasureScrollActive
-					? TABLE_ROW_HEIGHT
-					: measureTableRowHeight(row, labelColumn, width, style, revision));
-			out.push({
-				key: row.id,
-				index,
-				start,
-				size,
-			});
-			start += size;
-		}
-		return out;
-	}
-
 	function sortRows(
 		sourceRows: readonly RowInputCompatibleRow<TNode>[],
 		sourceColumns: readonly ViewColumn<TNode>[],
@@ -697,12 +486,12 @@
 
 	function measureTableRowHeight(
 		row: RowInputCompatibleRow<TNode>,
-		labelColumn: ViewColumn<TNode> | undefined,
+		column: ViewColumn<TNode> | undefined,
 		width: number,
 		style: TextMeasureStyle,
 		revision: string,
 	): number {
-		const text = labelColumn ? cellDisplay(row, labelColumn) : row.label;
+		const text = column ? cellDisplay(row, column) : row.label;
 		if (isTextMeasureService(measure)) {
 			return measure.measureRowHeight(text, {
 				width,
@@ -720,6 +509,30 @@
 			style,
 			revision,
 		});
+	}
+
+	// `{@attach}` per rendered row — replaces the old per-visible-row ResizeObserver/$effect
+	// measurement path (D-2b-2). Wraps the shell's `measureRow` (shared idle-during-scroll
+	// debounce, shared ResizeObserver lifecycle) with a PRETEXT size source instead of the
+	// default `node.offsetHeight`: table's row height is a synchronous TEXT-WRAP PREDICTION
+	// (`measureTableRowHeight`/pretext), not a real-DOM measurement — offsetHeight is always 0
+	// under jsdom (no layout engine) and only reflects layout AFTER paint even in a real browser,
+	// which pretext beats to avoid a flash-of-wrong-height on first render. `column`/`width`/
+	// `style`/`revision` are read as direct arguments (not hidden inside a nested closure) so
+	// Svelte's `{@attach}` reactivity re-fires this attachment — tearing down the old one, running
+	// the new one fresh — whenever any of them change (e.g. a Phase-2 column resize), the same
+	// dependency set the old $effect tracked.
+	function attachTableRowMeasure(
+		bandIndex: number,
+		row: RowInputCompatibleRow<TNode>,
+		column: ViewColumn<TNode> | undefined,
+		width: number,
+		style: TextMeasureStyle,
+		revision: string,
+	) {
+		return layout.measureRow(bandIndex, () =>
+			measureTableRowHeight(row, column, width, style, revision),
+		);
 	}
 
 	function isTextMeasureService(service: TableMeasureService): service is TextMeasureService {
@@ -744,6 +557,7 @@
 <div
 	class="vm-node-table"
 	bind:this={outerEl}
+	{@attach layout.attach}
 	role="grid"
 	aria-multiselectable="true"
 	tabindex="0"
@@ -751,7 +565,6 @@
 	onauxclick={handleDelegatedTableAuxClick}
 	oncontextmenu={handleDelegatedTableContextMenu}
 	onkeydown={handleDelegatedTableKeydown}
-	onscroll={handleTableScroll}
 	style:--vm-node-table-columns={columnTemplate}
 >
 	<div class="vm-node-table-header" role="row">
@@ -781,9 +594,9 @@
 	</div>
 	<div
 		class="vm-node-table-inner"
-		style:--vm-node-table-total-h={`${totalHeight}px`}
+		style:--vm-node-table-total-h={`${layout.totalHeight}px`}
 	>
-		{#each renderedRows as virtualRow (virtualRow.key)}
+		{#each layout.rows as virtualRow (virtualRow.key)}
 				{@const row = tableRows[virtualRow.index]}
 			{#if row}
 				{@const id = row.id}
@@ -803,6 +616,14 @@
 					class:is-active-node={isActive}
 					data-id={id}
 					data-callback-id={callbackId}
+					{@attach attachTableRowMeasure(
+						virtualRow.index,
+						row,
+						labelColumn,
+						effectiveTableLabelWidth,
+						tableMeasureStyle,
+						tableMeasureRevision,
+					)}
 					style:--vm-node-table-y={`${virtualRow.start}px`}
 					style:--vm-node-table-row-h={`${virtualRow.size}px`}
 					{...tableRowProps(callbackId, {

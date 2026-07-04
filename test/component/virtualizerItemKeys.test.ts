@@ -180,6 +180,13 @@ describe('view virtualizer item keys', () => {
 		expect(getItemKey(99)).toBe(99);
 	});
 
+	// V.D slice 2b: ViewNodeTable no longer drives its own @tanstack/svelte-virtual instance (it
+	// consumes the shared SharedVariableVirtualLayout registry, which has no TanStack seam on the
+	// variable-height path) — so there is no `createVirtualizer` call left to intercept via the
+	// mocked module's `getItemKey` option. Retargeted to the LOCKED-CONTRACT behavior the old
+	// assertion was really protecting: each rendered row's DOM identity is keyed by its row id, in
+	// list order (what stable virtual-row keys are FOR — preserving DOM node identity/focus across
+	// re-renders). This is the observable guarantee, independent of which engine renders it.
 	it('keys ViewNodeTable virtual rows by table row id', () => {
 		app = mount(ViewNodeTable as unknown as Component<Record<string, unknown>>, {
 			target,
@@ -193,12 +200,10 @@ describe('view virtualizer item keys', () => {
 		});
 		flushSync();
 
-		const { getItemKey } = latestOptions();
-
-		expect(getItemKey(0)).toBe('parent');
-		expect(getItemKey(1)).toBe('child');
-		expect(getItemKey(2)).toBe('sibling');
-		expect(getItemKey(99)).toBe(99);
+		const ids = Array.from(target.querySelectorAll<HTMLElement>('.vm-node-table-row[data-id]')).map(
+			(row) => row.dataset.id,
+		);
+		expect(ids).toEqual(['parent', 'child', 'sibling']);
 	});
 
 	it('keys ViewNodeCards virtual rows by composed card row node ids', () => {
