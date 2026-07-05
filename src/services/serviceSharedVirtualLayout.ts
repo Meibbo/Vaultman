@@ -172,6 +172,11 @@ export interface VariableVisibleRangeInput {
 	overscan: number;
 	/** Per-index size estimate — only read when the provider's Fenwick is (re)built. */
 	estimateSize: (index: number) => number;
+	/**
+	 * Shape key alongside `providerId` (slice 2b pre-work) — see `providerRegistryKey`. Default `1`
+	 * (single lane), matching every pre-2b call site's implicit behavior.
+	 */
+	laneCount?: number;
 }
 
 /** Opaque snapshot of one provider's warm Fenwick geometry, for cross-view/cross-registry handoff. */
@@ -201,64 +206,101 @@ export function createVariableProviderRegistry(): VariableProviderRegistry {
 	return { entries: new Map() };
 }
 
+const DEFAULT_LANE_COUNT = 1;
+
 /**
- * Visible window + content band for `providerId`, backed by a warm per-provider Fenwick
- * (`createExplorerVariableGeometry`). O(log n) per call once the provider exists. The provider's
- * tree is (re)built from `estimateSize` only on first sight OR when `rowCount` changes for that
- * provider (data swap / count shrink) — an existing tree with the SAME rowCount is reused as-is,
- * so `measure()` patches made between calls are never silently dropped by a rebuild.
+ * Internal registry key for a `(providerId, laneCount)` SHAPE (slice 2b adoption finding). The
+ * warm Fenwick lives per SHAPE, not per `providerId` alone: two views sharing a `providerId` with
+ * DIFFERENT `laneCount`s (e.g. a table at `laneCount=1` and a grid at `laneCount=4` over the same
+ * underlying data) must never alternate-rebuild each other's tree when the user switches between
+ * them — under a bare-`providerId` key, switching table->grid->table would rebuild from
+ * `estimateSize` on EVERY switch (each shape's `bandCount` mismatches the other's stored
+ * `rowCount`), discarding whichever shape's warmth was resident. Keying by shape instead gives
+ * each shape its OWN permanently-warm slot: revisiting an already-seen shape is instant, and only
+ * a genuinely NEW shape (never seen before for this provider) pays the one-time build cost — which
+ * matches 2a's own "laneCount change = genuine reshape, rebuild is correct" framing (that framing
+ * was about ONE mounted view's shape changing under it, not about two shapes racing to share one
+ * slot). Exported for the Svelte shell's read-only geometry lookups (`geometryHandle`) to
+ * construct the IDENTICAL key without duplicating the scheme; callers of the public functions
+ * below never see or construct this string themselves — they pass `providerId` + `laneCount` as
+ * plain values, same as every other parameter.
+ */
+export function providerRegistryKey(providerId: string, laneCount: number): string {
+	const lanes = Math.max(1, Math.floor(laneCount || DEFAULT_LANE_COUNT));
+	return `${providerId}#lanes=${lanes}`;
+}
+
+/**
+ * Visible window + content band for `providerId` (at the given `laneCount` shape), backed by a
+ * warm per-shape Fenwick (`createExplorerVariableGeometry`). O(log n) per call once the shape
+ * exists. The shape's tree is (re)built from `estimateSize` only on first sight OR when `rowCount`
+ * changes for that shape (data swap / count shrink) — an existing tree with the SAME rowCount is
+ * reused as-is, so `measure()` patches made between calls are never silently dropped by a rebuild.
  */
 export function variableVisibleRange(
 	registry: VariableProviderRegistry,
-	{ providerId, scrollTop, viewportH, rowCount, overscan, estimateSize }: VariableVisibleRangeInput,
+	{
+		providerId,
+		scrollTop,
+		viewportH,
+		rowCount,
+		overscan,
+		estimateSize,
+		laneCount = DEFAULT_LANE_COUNT,
+	}: VariableVisibleRangeInput,
 ): VariableVisibleRangeResult {
-	const geometry = geometryFor(registry, providerId, rowCount, estimateSize);
+	const geometry = geometryFor(registry, providerId, rowCount, estimateSize, laneCount);
 	return geometry.visibleRange({ scrollTop, viewportHeight: viewportH, overscan });
 }
 
-/** Resolves (building if absent/stale) the warm geometry for `providerId`. */
+/** Resolves (building if absent/stale) the warm geometry for the `(providerId, laneCount)` shape. */
 function geometryFor(
 	registry: VariableProviderRegistry,
 	providerId: string,
 	rowCount: number,
 	estimateSize: (index: number) => number,
+	laneCount: number,
 ): ExplorerVariableGeometry {
-	const existing = registry.entries.get(providerId);
+	const key = providerRegistryKey(providerId, laneCount);
+	const existing = registry.entries.get(key);
 	const safeRowCount = Math.max(0, Math.floor(rowCount));
 	if (existing && existing.rowCount === safeRowCount) return existing.geometry;
 
 	const geometry = createExplorerVariableGeometry({ rowCount: safeRowCount, estimateSize });
-	registry.entries.set(providerId, { rowCount: safeRowCount, geometry });
+	registry.entries.set(key, { rowCount: safeRowCount, geometry });
 	return geometry;
 }
 
 /**
- * Patches `providerId`'s Fenwick at `index` — O(log n), idempotent for the same size (the
- * underlying geometry already no-ops a zero-delta patch). No-op for a provider that has never
- * been seen by `variableVisibleRange` (nothing to build a bare patch against; mirrors the
- * contract's "warm cross-view" framing — measurement always follows a range query that
- * establishes the provider).
+ * Patches `providerId`'s (at the given `laneCount` shape) Fenwick at `index` — O(log n),
+ * idempotent for the same size (the underlying geometry already no-ops a zero-delta patch). No-op
+ * for a shape that has never been seen by `variableVisibleRange` (nothing to build a bare patch
+ * against; mirrors the contract's "warm cross-view" framing — measurement always follows a range
+ * query that establishes the shape).
  */
 export function measure(
 	registry: VariableProviderRegistry,
 	providerId: string,
 	index: number,
 	size: number,
+	laneCount: number = DEFAULT_LANE_COUNT,
 ): void {
-	registry.entries.get(providerId)?.geometry.measure(index, size);
+	registry.entries.get(providerRegistryKey(providerId, laneCount))?.geometry.measure(index, size);
 }
 
 /**
- * Layout snapshot for `providerId` — `null` if the provider has never been established. O(n)
- * (one array read per row), same as `createExplorerVariableGeometry`'s O(n) construction — a
- * one-time handoff operation, NOT a per-frame/per-scroll hot path, so it does not violate the
- * "never O(n) scans" rule that governs `variableVisibleRange`/`measure`.
+ * Layout snapshot for `providerId` at the given `laneCount` shape — `null` if that shape has
+ * never been established. O(n) (one array read per row), same as
+ * `createExplorerVariableGeometry`'s O(n) construction — a one-time handoff operation, NOT a
+ * per-frame/per-scroll hot path, so it does not violate the "never O(n) scans" rule that governs
+ * `variableVisibleRange`/`measure`.
  */
 export function snapshot(
 	registry: VariableProviderRegistry,
 	providerId: string,
+	laneCount: number = DEFAULT_LANE_COUNT,
 ): VariableProviderSnapshot | null {
-	const entry = registry.entries.get(providerId);
+	const entry = registry.entries.get(providerRegistryKey(providerId, laneCount));
 	if (!entry) return null;
 	const sizes = Array.from({ length: entry.rowCount }, (_, index) =>
 		entry.geometry.sizeForIndex(index),
@@ -267,20 +309,24 @@ export function snapshot(
 }
 
 /**
- * Restores `providerId`'s warm geometry from a snapshot — cross-view handoff (mount a second
- * Geometry view on the same provider without re-measuring from scratch). Replaces any existing
- * entry for `providerId` in `registry` outright.
+ * Restores `providerId`'s warm geometry (at the given `laneCount` shape) from a snapshot —
+ * cross-view handoff (mount a second Geometry view on the same provider/shape without
+ * re-measuring from scratch). Replaces any existing entry for that shape in `registry` outright.
  */
 export function restore(
 	registry: VariableProviderRegistry,
 	providerId: string,
 	snap: VariableProviderSnapshot,
+	laneCount: number = DEFAULT_LANE_COUNT,
 ): void {
 	const geometry = createExplorerVariableGeometry({
 		rowCount: snap.rowCount,
 		estimateSize: (index) => snap.sizes[index] ?? 0,
 	});
-	registry.entries.set(providerId, { rowCount: snap.rowCount, geometry });
+	registry.entries.set(providerRegistryKey(providerId, laneCount), {
+		rowCount: snap.rowCount,
+		geometry,
+	});
 }
 
 /** An item's lane (column) position within its row-band, for a striped single Fenwick. */
@@ -327,17 +373,26 @@ export interface IdsInRectVariableInput {
 /**
  * Ids whose rows/tiles intersect a content-space y-band for a VARIABLE-height + lanes provider —
  * the Geometry analogue of `fixedIndicesInBand`. Geometry-based (Fenwick `indexForOffset`), not
- * DOM-based: works across the unrendered virtualized range. Every lane within an intersecting
- * band is included (a box that clips a row of tiles selects the whole row's tiles, matching
- * today's ViewNodeGrid/Cards DOM-rect hit-test semantics — the box is drawn against band extents,
- * not per-tile pixel columns).
+ * DOM-based: works across the unrendered virtualized range. `band` is VERTICAL-only (`{top,
+ * bottom}`, no left/right) — every lane within an intersecting band is included, i.e. this
+ * function's own granularity is "whole band" (a box that clips a row of tiles selects every tile
+ * in that row). A caller that needs per-tile horizontal precision (e.g. a grid whose box-select
+ * should exclude lanes the box doesn't actually cross) layers that on top via `resolveId`:
+ * returning `null`/`undefined` for an index outside the box's horizontal extent excludes it from
+ * the result (see the "skips indices with no resolvable id" contract below) — this function never
+ * assumes horizontal precision is or isn't wanted, it only offers the vertical Fenwick lookup.
+ * (2026-07 correction: an earlier revision of this docblock claimed today's ViewNodeGrid/Cards
+ * DOM-rect hit-test was ALSO whole-band-only; verified false on inspection of the actual grid
+ * component — its DOM hit-test intersects each tile's real bounding rect, i.e. per-tile precise.
+ * Grid's slice-2b adoption therefore keeps its DOM-based box-select rather than switching to this
+ * function outright, specifically to avoid that precision regression.)
  */
 export function idsInRectVariable(
 	registry: VariableProviderRegistry,
 	providerId: string,
 	{ band, laneCount, resolveId }: IdsInRectVariableInput,
 ): string[] {
-	const entry = registry.entries.get(providerId);
+	const entry = registry.entries.get(providerRegistryKey(providerId, laneCount));
 	if (!entry) return [];
 
 	const lo = Math.max(0, Math.min(band.top, band.bottom));

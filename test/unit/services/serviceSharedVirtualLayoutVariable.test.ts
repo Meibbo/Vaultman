@@ -117,6 +117,62 @@ describe('serviceSharedVirtualLayout — Geometry variable core (slice 2a)', () 
 		});
 	});
 
+	describe('registry keying carries the (providerId, laneCount) shape (slice 2b pre-work)', () => {
+		it('lets two lane-shapes of one provider coexist warm (no alternate-rebuild ping-pong)', () => {
+			const registry = createVariableProviderRegistry();
+
+			// Shape A: laneCount=1 (e.g. a table view over 'shared'), 4 items -> 4 bands.
+			variableVisibleRange(registry, {
+				providerId: 'shared',
+				scrollTop: 0,
+				viewportH: 10,
+				rowCount: 4,
+				overscan: 0,
+				estimateSize: () => 20,
+				laneCount: 1,
+			});
+			measure(registry, 'shared', 0, 500, 1);
+			expect(snapshot(registry, 'shared', 1)!.sizes[0]).toBe(500);
+
+			// Shape B: laneCount=2 (e.g. a grid view at 2 columns), the SAME providerId, 4 items ->
+			// 2 bands. Establishing/patching shape B must not evict or corrupt shape A's entry —
+			// each (providerId, laneCount) shape gets its own permanently-warm slot.
+			variableVisibleRange(registry, {
+				providerId: 'shared',
+				scrollTop: 0,
+				viewportH: 10,
+				rowCount: 2,
+				overscan: 0,
+				estimateSize: () => 20,
+				laneCount: 2,
+			});
+			measure(registry, 'shared', 0, 300, 2);
+			expect(snapshot(registry, 'shared', 2)!.sizes[0]).toBe(300);
+
+			// Switching BACK to shape A (e.g. the user flips the view mode back) must see its OWN
+			// warm patch still intact — not evicted by shape B's activity in between, and not
+			// rebuilt from estimateSize (which would silently drop the 500 patch).
+			expect(snapshot(registry, 'shared', 1)!.sizes[0]).toBe(500);
+			// ...and shape B's own warmth is likewise undisturbed by re-touching shape A.
+			expect(snapshot(registry, 'shared', 2)!.sizes[0]).toBe(300);
+		});
+
+		it('omitting laneCount defaults to the single-lane shape (backward compatible)', () => {
+			const registry = createVariableProviderRegistry();
+			variableVisibleRange(registry, {
+				providerId: 'legacy',
+				scrollTop: 0,
+				viewportH: 10,
+				rowCount: 4,
+				overscan: 0,
+				estimateSize: () => 20,
+			});
+			measure(registry, 'legacy', 0, 500); // no laneCount arg — must land on the lanes=1 shape
+			expect(snapshot(registry, 'legacy')!.sizes[0]).toBe(500); // no laneCount arg here either
+			expect(snapshot(registry, 'legacy', 1)!.sizes[0]).toBe(500); // same shape, explicit lanes=1
+		});
+	});
+
 	describe('measure (idempotent Fenwick patch)', () => {
 		it('patches a provider row size and is idempotent for the same size', () => {
 			const registry = createVariableProviderRegistry();
@@ -248,7 +304,10 @@ describe('serviceSharedVirtualLayout — Geometry variable core (slice 2a)', () 
 
 		it('resolves ids intersecting a band across lanes (grid-like, all lanes in the band)', () => {
 			const registry = createVariableProviderRegistry();
-			// 9 items, 3 lanes => 3 bands of height 20 each (band = row of tiles)
+			// 9 items, 3 lanes => 3 bands of height 20 each (band = row of tiles). Establishing
+			// call must declare the SAME laneCount=3 shape the idsInRectVariable lookup below uses
+			// (slice 2b: the registry now keys warm entries by (providerId, laneCount) shape, so
+			// an establish/lookup pair must agree on the shape, same as any other provider entry).
 			variableVisibleRange(registry, {
 				providerId: 'g',
 				scrollTop: 0,
@@ -256,6 +315,7 @@ describe('serviceSharedVirtualLayout — Geometry variable core (slice 2a)', () 
 				rowCount: 3, // 3 bands
 				overscan: 0,
 				estimateSize: () => 20,
+				laneCount: 3,
 			});
 			const ids = idsInRectVariable(registry, 'g', {
 				band: { top: 0, bottom: 20 },

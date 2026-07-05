@@ -38,6 +38,7 @@ import {
 	fixedVisibleRange,
 	idsInRectVariable,
 	measure as measureVariableProvider,
+	providerRegistryKey,
 	restore as restoreVariableProvider,
 	snapshot as snapshotVariableProvider,
 	variableVisibleRange,
@@ -352,6 +353,7 @@ export class SharedVariableVirtualLayout {
 			rowCount: bandCountFor(this.#cfg.rowCount(), lanes),
 			overscan: this.overscan,
 			estimateSize: (bandIndex) => this.#cfg.estimateSize(bandIndex * lanes),
+			laneCount: lanes,
 		});
 		return bandRange;
 	});
@@ -363,7 +365,7 @@ export class SharedVariableVirtualLayout {
 		const { startIndex, endIndex } = this.window;
 		const getKey = this.#cfg.getKey;
 		const rowCount = this.#cfg.rowCount();
-		const geometry = geometryHandle(this.#options.registry, this.#options.providerId);
+		const geometry = geometryHandle(this.#options.registry, this.#options.providerId, lanes);
 		const out: SharedVariableVirtualRow[] = [];
 		for (let band = startIndex; band < endIndex; band += 1) {
 			const start = geometry ? geometry.topForIndex(band) : 0;
@@ -380,7 +382,11 @@ export class SharedVariableVirtualLayout {
 	/** Total scrollable content height (px), from the provider's warm Fenwick. */
 	readonly totalHeight: number = $derived.by(() => {
 		void this.#measurementRevision; // Fenwick patches are not otherwise tracked — see its docblock.
-		const geometry = geometryHandle(this.#options.registry, this.#options.providerId);
+		const geometry = geometryHandle(
+			this.#options.registry,
+			this.#options.providerId,
+			this.#resolvedLaneCount(),
+		);
 		return geometry ? geometry.totalSize() : 0;
 	});
 
@@ -502,9 +508,10 @@ export class SharedVariableVirtualLayout {
 	 * (self-terminating: render -> re-attach -> measure(same) -> no bump).
 	 */
 	measure(bandIndex: number, size: number): void {
-		const geometry = geometryHandle(this.#options.registry, this.#options.providerId);
+		const lanes = this.#resolvedLaneCount();
+		const geometry = geometryHandle(this.#options.registry, this.#options.providerId, lanes);
 		const before = geometry?.sizeForIndex(bandIndex);
-		measureVariableProvider(this.#options.registry, this.#options.providerId, bandIndex, size);
+		measureVariableProvider(this.#options.registry, this.#options.providerId, bandIndex, size, lanes);
 		if (geometry && geometry.sizeForIndex(bandIndex) !== before) this.#bumpMeasurementRevision();
 	}
 
@@ -528,22 +535,37 @@ export class SharedVariableVirtualLayout {
 	 * mirrors `measure()`'s no-op-until-established contract).
 	 */
 	topForIndex(index: number): number {
-		return geometryHandle(this.#options.registry, this.#options.providerId)?.topForIndex(index) ?? 0;
+		return (
+			geometryHandle(this.#options.registry, this.#options.providerId, this.#resolvedLaneCount())
+				?.topForIndex(index) ?? 0
+		);
 	}
 
 	/** Size (px) for an arbitrary band index — same off-window reach as `topForIndex`. */
 	sizeForIndex(index: number): number {
-		return geometryHandle(this.#options.registry, this.#options.providerId)?.sizeForIndex(index) ?? 0;
+		return (
+			geometryHandle(this.#options.registry, this.#options.providerId, this.#resolvedLaneCount())
+				?.sizeForIndex(index) ?? 0
+		);
 	}
 
-	/** Layout snapshot for this provider — for warm cross-view handoff. */
+	/** Layout snapshot for this provider (at its current laneCount shape) — for warm cross-view handoff. */
 	snapshot(): VariableProviderSnapshot | null {
-		return snapshotVariableProvider(this.#options.registry, this.#options.providerId);
+		return snapshotVariableProvider(
+			this.#options.registry,
+			this.#options.providerId,
+			this.#resolvedLaneCount(),
+		);
 	}
 
-	/** Restores this provider's warm geometry from a snapshot (e.g. from a sibling view). */
+	/** Restores this provider's warm geometry (at its current laneCount shape) from a snapshot. */
 	restore(snap: VariableProviderSnapshot): void {
-		restoreVariableProvider(this.#options.registry, this.#options.providerId, snap);
+		restoreVariableProvider(
+			this.#options.registry,
+			this.#options.providerId,
+			snap,
+			this.#resolvedLaneCount(),
+		);
 		// A restore replaces the whole entry — always a layout-relevant change.
 		this.#bumpMeasurementRevision();
 	}
@@ -574,12 +596,18 @@ function bandCountFor(rowCount: number, laneCount: number): number {
 	return Math.max(0, Math.ceil(Math.max(0, rowCount) / lanes));
 }
 
-/** Reads the live geometry handle for a provider without patching it (band top/size lookups). */
+/**
+ * Reads the live geometry handle for a `(providerId, laneCount)` shape without patching it (band
+ * top/size lookups) — uses the SAME shape key `providerRegistryKey` builds for the core's own
+ * `variableVisibleRange`/`measure`/etc., so this direct `registry.entries` read never drifts from
+ * the keying scheme those functions use.
+ */
 function geometryHandle(
 	registry: VariableProviderRegistry,
 	providerId: string,
+	laneCount: number,
 ): { topForIndex(index: number): number; sizeForIndex(index: number): number; totalSize(): number } | null {
-	return registry.entries.get(providerId)?.geometry ?? null;
+	return registry.entries.get(providerRegistryKey(providerId, laneCount))?.geometry ?? null;
 }
 
 /**
