@@ -209,7 +209,24 @@ overscan = `ceil(viewportH/estimateSize)`; estimateSize ← pretext.
 - **Warmth semantics (interpretation, flagged for dev):** warm-guarantee holds at `providerId`+shape level — same `rowCount` reuses the Fenwick (in-flight `measure` patches never dropped); **`laneCount` change = genuine reshape** (band boundaries shift → rebuild from estimateSize is CORRECT, not a warmth violation). Config swap ≠ remount stands; it does not mean "any param change preserves patches".
 - **Verify:** 55/55 focused (existing suites unchanged) + 27 new · component **564/564** with viewTree + 4 Geometry panel snapshots **byte-identical** (no view touched — proven, not assumed) · check 0/0 · unit 1240 (1 known-ajeno) · build exit 0 · plugin-dev reload + `dev:errors` clean. Known tool wart: svelte-autofixer misparses `.svelte.ts` docblocks containing literal `{@attach}` (pre-existing since slice 1; svelte-check is the authoritative gate).
 
-**Slice 2b (view adoption) — Q-2b-1..3 LOCKED by dev 2026-07-03 ("ok recomendaciones"):**
+**Slice 2b-TABLE — COMPLETE + gate STRICT PASS (2026-07-04, sandbox `ff828d8`):**
+ViewNodeTable (873→777 lines) adopted the shared variable runtime per D-2b-1/2 (local
+Fenwick/banding/measure plumbing deleted, ViewHost warm registry stood up inherit-if-ancestor,
+`TABLE_OVERSCAN=14`→viewport-derived) + SDF-011 resizers per D-2b-3 (pure `logicTableLayout`
+TDD'd against `git show 1.1.6:` oracle; headless `vm-node-table-header-resizer` always +
+native `bases-table-header-resizer` only when vocab applies — 4+3 law). 5 flagged additive
+shell changes, incl. a REAL 2a fix: reactive `#measurementRevision` (non-reactive Fenwick never
+repositioned rows in owned deriveds; headless tests couldn't see it). **Gate STRICT (plugin-dev,
+11177 nodes, 100 jumps): `blankFrames=0 blank>100ms=0 blank>250ms=0 flickerFrames=0
+maxFlickerRows=0` · p99 delay 17ms · maxDelay 27ms · LoAF 0 · longtask 0.** Live resizer smoke:
+synthetic drag → `--vm-node-table-w: 414px` projected (reactive flush is post-tick — read it in
+a later eval). dev:errors: 1 known-benign `ResizeObserver loop` warning (P112-era class).
+Verify: check 0/0 · eslint 0 · unit 1258 · component 570/570. Harness lessons: `--no-open`
+aborts (jumps=0 pseudo-FAIL); in-script plugin reload kills the CLI bridge (use
+`--no-build --no-reload`, runner-managed open); long gates survive inside the Monitor tool,
+not background Bash. Opens for grid/cards recorded in the 2b-table session-log entry.
+
+**Slice 2b locks (dev 2026-07-03 "ok recomendaciones"):**
 - **D-2b-1 — Full migration (Option B).** Each adopting view migrates its row-chunking onto
   `laneOffsetForIndex`/`laneRangeForBand` and deletes its local band implementation + local
   `createExplorerVariableGeometry` in favor of the shared warm registry. Contract-faithful shape

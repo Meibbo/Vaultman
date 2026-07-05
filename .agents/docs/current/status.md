@@ -29,6 +29,17 @@ Compact route index after archiving the oversized current status:
 ## Current Route
 
 - Active initiative: [[docs/work/hardening/index|Hardening]].
+- **LATEST (2026-07-04)**: **V.D slice 2b-TABLE COMPLETA + gate STRICT PASS** — sandbox
+  `be3a40e`→`ff828d8`. ViewNodeTable adopta el runtime compartido (D-2b-1/2, 873→777 líneas,
+  plumbing local borrado con prueba de no-consumo) + **resizers SDF-011 paridad 1.1.6** (D-2b-3,
+  oracle `git show`). Fix real de 2a incluido (`#measurementRevision` reactivo). **Gate:
+  blankFrames=0 · flicker=0 · p99 17ms · maxDelay 27ms (11177 nodos, 100 jumps)** + resizer
+  drag smoke vivo (`--vm-node-table-w` proyectada). Antes, misma sesión: **eslint full-repo
+  crash RESUELTO** (pilot codex exec → diagnóstico ok pero sandbox Windows write-only; completado
+  por coordinador: regla obsidianmd scoped + 23 findings reales fixeados + bridge `window` para
+  unit-node) — `pnpm run verify` entero verde por primera vez desde el upgrade. NEXT = 2b-grid
+  (mismo molde; opens registrados). Detalle:
+  [[docs/work/hardening/specs/2026-06-17-vd-shared-render-runtime/index|V.D shard §Thread A]] + session-log.
 - **LATEST (2026-07-03)**: **V.D slice 2a (Geometry variable-height runtime) COMPLETA** — sandbox
   `31ae5a2`→`585e944` (4 commits, subagente Sonnet + integración coordinador). Pure core:
   `variableVisibleRange` Fenwick per-provider · `measure` O(log n) · lanes = **striped Fenwick

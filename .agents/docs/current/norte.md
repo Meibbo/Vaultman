@@ -80,12 +80,13 @@ flowchart LR
    PSS-shaped + rollout completo del resolver. Pendiente micro: smoke live al reabrir
    Obsidian. **El subsistema de iconos AFK está COMPLETO** — queda PAI-003 (picker, HITL,
    necesita al dev) y PAI-005 (packs, DEFER N4).
-3. ~~V.D slice 2a (runtime variable-height)~~ ✅ **done 2026-07-03** (`585e944`): Fenwick
-   per-provider + lanes striped + registro caliente `createContext`. Ninguna vista tocada
-   (snapshots byte-idénticos). **NEXT = slice 2b (adopción table→grid→cards) — GATED por
-   grill corto con dev**: Q-2b-1 forma del diff (swap mínimo vs matar 3 band-implementations
-   duplicadas) · Q-2b-2 measureRow `{@attach}` vs `$effect` existente · Q-2b-3 alcance
-   paridad D3 (SDF-011/016 contra **1.1.6**). Detalle en V.D shard §Thread A.
+3. ~~V.D slice 2a~~ ✅ + ~~2b-TABLE~~ ✅ **done 2026-07-04** (`ff828d8`): table sobre el
+   runtime compartido + resizers 1.1.6 (SDF-011). **Gate STRICT PASS: blank=0 · flicker=0 ·
+   p99 17ms** (11177 nodos). Locks D-2b-1..3 aplicados. **NEXT = 2b-grid** (mismo molde,
+   opens en session-log 2026-07-04: registry keying laneCount · offsetHeight default ·
+   CARD_GAP en turf vista · untrack de #scheduleMeasure). Luego 2b-cards → thread B.
+   También done en el camino: **eslint full-repo reparado** (verify entero verde, primera
+   vez post-upgrade; lección codex exec = write-only en esta máquina).
 4. P112 → sandbox con reconcile de `viewTreeBehavior`/`virtualScrollCssSource`.
 5. Decisión dev pendiente: orden PA 2-5 vs siguiente sistema de absorción (f4/f5 del grill 2026-07-02).
 
