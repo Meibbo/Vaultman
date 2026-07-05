@@ -1,7 +1,5 @@
 <script lang="ts">
-	import { getContext, untrack } from 'svelte';
-	import { createVirtualizer } from '@tanstack/svelte-virtual';
-	import type { Rect, Virtualizer } from '@tanstack/svelte-virtual';
+	import { getContext } from 'svelte';
 	import type { TreeNode } from '../../types/typeNode';
 	import {
 		visibleHoverBadgeDescriptors,
@@ -21,7 +19,6 @@
 		DEFAULT_VIEW_SIZE_PRESET,
 		getViewSizePreset,
 		viewSizeCssVars,
-		type ViewSizePreset,
 		type ViewSizePresetId,
 	} from '../../services/serviceViewSize';
 	import {
@@ -62,7 +59,6 @@
 	} from '../../services/serviceManualDnd';
 	import {
 		rowInputFromTreeNode,
-		rowInputGroupKey,
 		rowInputToTreeNode,
 		type ExplorerRowInput,
 	} from '../../services/serviceExplorerRowInput';
@@ -72,42 +68,36 @@
 	} from '../../services/serviceExplorerProjection';
 	import type { DndDropPosition, DndDropResult } from '../../services/serviceDnd';
 	import { PerfMeter } from '../../services/perfMeter';
-	import { NodeRowMeasureService } from '../../services/serviceNodeRowMeasure';
-	import { createExplorerVariableGeometry } from '../../services/serviceExplorerScrollGeometry';
 	import {
-		DEFAULT_NODE_ROW_MEASURE_STYLE,
-		nodeRowMeasureStyleKey,
-		resolveNodeRowMeasureStyle,
-	} from '../../services/serviceNodeRowStyle';
+		createVariableProviderRegistry,
+		laneOffsetForIndex,
+		laneRangeForBand,
+	} from '../../services/serviceSharedVirtualLayout';
 	import {
-		createTextMeasureService,
-		fallbackTextMeasureEngine,
-		type TextMeasureStyle,
-	} from '../../services/serviceTextMeasure';
-	import { boundedElementViewportRect } from '../../services/serviceScroll';
+		SharedVariableVirtualLayout,
+		getSharedGeometryRegistry,
+	} from '../../services/serviceSharedVirtualLayout.svelte';
+	import { boundedElementViewportRect, type ElementViewportRect } from '../../services/serviceScroll';
 	import type { ThemeService } from '../../services/serviceTheme.svelte';
 
 	const GRID_FALLBACK_WIDTH = 480;
 	const GRID_FALLBACK_HEIGHT = 360;
-	const GRID_OVERSCAN = 6;
-	const GRID_BADGE_ALLOWANCE = 28;
-	const GRID_SCROLL_MEASURE_IDLE_MS = 96;
-	const GRID_LABEL_SELECTOR = '.vm-node-grid-label';
 	const EMPTY_EXPANDED_IDS: ReadonlySet<string> = new Set();
 	type ScrollTarget = { id: string; serial: number };
 
 	type HierarchyMode = 'folder' | 'inline';
 
-	interface GridRow {
-		key: string;
-		nodes: TreeNode[];
-		rowInputs: ExplorerRowInput[];
-		height: number;
-	}
-
 	interface GridInputModel {
 		nodes: TreeNode[];
 		rowInputs: ExplorerRowInput[];
+	}
+
+	/** One rendered row-band: the tiles (and inline panels) sharing a virtualized y-offset. */
+	interface GridVirtualBand {
+		bandIndex: number;
+		renderKey: string | number;
+		start: number;
+		entries: Array<{ node: TreeNode; lane: number }>;
 	}
 
 	interface Props {
@@ -139,7 +129,6 @@
 		visibleFields?: readonly string[];
 		manualDndEnabled?: boolean;
 		onManualDrop?: (result: DndDropResult) => void;
-		measure?: NodeRowMeasureService;
 		themeService?: ThemeService;
 		icon: (node: HTMLElement, name: string) => { update(n: string): void };
 	}
@@ -173,7 +162,6 @@
 		visibleFields = [],
 		manualDndEnabled = false,
 		onManualDrop,
-		measure = createNodeRowMeasureService(),
 		themeService = undefined,
 		icon,
 	}: Props = $props();
@@ -250,34 +238,14 @@
 	} | null>(null);
 	let suppressNextClick = false;
 	let gridMetricsFrame: number | null = null;
-	let gridRemeasureFrame: number | null = null;
 	let gpuReadyMarked = false;
 	let consumedScrollTargetSerial: number | null = null;
-	let fallbackScrollTop = $state(0);
-	let fallbackViewportHeight = $state(GRID_FALLBACK_HEIGHT);
-	let gridMeasureScrollActive = $state(false);
-	let gridMeasureIdleTimer: ReturnType<typeof setTimeout> | null = null;
-	let gridMeasureStyle: TextMeasureStyle = $state(DEFAULT_NODE_ROW_MEASURE_STYLE);
-	let gridMeasuredRowHeights = $state(new Map<string, number>());
-	let gridMeasuredRevision = $state('');
-	let gridRowIndexCacheRows: readonly GridRow[] | null = null;
-	let gridRowIndexCache = new Map<string, number>();
+	let gridItemIndexCacheNodes: readonly TreeNode[] | null = null;
+	let gridItemIndexCache = new Map<string, number>();
 	let reportedColumnCount: number | null = null;
 	const mouse = createMouseGestureService();
 	const manualDnd = createManualDndService();
 	let manualDndVersion = $state(0);
-	const gridRowBaseHeight = $derived(viewSize.tileHeight + viewSize.gap);
-	const gridTileOuterWidth = $derived(tileOuterWidthFor(gridWidth, columnCount, viewSize));
-	const gridLabelWidth = $derived(
-		Math.max(
-			1,
-			gridTileOuterWidth -
-				viewSize.iconSize -
-				viewSize.gap * 3 -
-				GRID_BADGE_ALLOWANCE -
-				(hierarchyMode === 'inline' ? viewSize.treeToggleSize + viewSize.gap : 0),
-		),
-	);
 	const nodeMouseConfig = $derived(
 		mergeMouseGestureConfig(NODE_MOUSE_GESTURE_CONFIG, mouseGestureConfig),
 	);
@@ -285,7 +253,6 @@
 	$effect(
 		() => () => {
 			mouse.cancelAll();
-			clearGridMeasureIdleTimer();
 		},
 	);
 	$effect(() => manualDnd.subscribe(() => (manualDndVersion += 1)));
@@ -295,168 +262,89 @@
 
 	const effectiveRowInputs = $derived(projection ? rowInputsFromProjection(projection) : rowInputs);
 	const gridInputModel = $derived(gridInputModelFromInputs(nodes, effectiveRowInputs));
-	const gridRows = $derived(
-		buildGridRows(
-			gridInputModel.nodes,
-			gridInputModel.rowInputs,
-			columnCount,
-			hierarchyMode,
-			expandedIds,
-		),
-	);
-	const gridMeasureRevision = $derived(
-		`${nodeRowMeasureStyleKey(gridMeasureStyle)}:${gridRows.length}:${gridLabelWidth}`,
-	);
-	const rowVirtualizer = createVirtualizer<HTMLDivElement, HTMLDivElement>({
-		count: 0,
-		getScrollElement: () => outerEl ?? null,
-		getItemKey: (index) => gridVirtualRowKey(gridRows, index),
-		estimateSize: (index) => gridEstimateSize(index),
-		observeElementRect: observeGridRect,
-		overscan: GRID_OVERSCAN,
-		initialRect: { width: GRID_FALLBACK_WIDTH, height: GRID_FALLBACK_HEIGHT },
-	});
-	const virtualRows = $derived($rowVirtualizer.getVirtualItems());
-	const gridGeometry = $derived.by(() => {
-		const rowsForGeometry = gridRows;
-		const fallbackSize = gridRowBaseHeight;
-		const gap = viewSize.gap;
-		return createExplorerVariableGeometry({
-			rowCount: rowsForGeometry.length,
-			estimateSize: (index) => {
-				const row = rowsForGeometry[index];
-				return row ? row.height + gap : fallbackSize;
-			},
-		});
-	});
-	const renderedRows = $derived.by(() => {
-		const rows = virtualRows
-			.filter((row) => row.index < gridRows.length)
-			.map((row) => ({
-				...row,
-				renderKey: gridRenderRowKey(gridRows, row.index),
-			}));
-		if (rows.length > 0 || gridRows.length === 0) return rows;
-		return fallbackGridRows(gridRows);
-	});
-	const totalHeight = $derived($rowVirtualizer.getTotalSize());
-	const resolvedTotalHeight = $derived.by(() =>
-		totalHeight > 0 || gridRows.length === 0 ? totalHeight : gridGeometry.totalSize(),
-	);
 
-	$effect(() => {
-		const rows = gridRows;
-		const count = rows.length;
-		const scrollElement = outerEl;
-		const width = gridWidth;
-		untrack(() =>
-			$rowVirtualizer.setOptions({
-				count,
-				getScrollElement: () => scrollElement ?? null,
-				getItemKey: (index) => gridVirtualRowKey(rows, index),
-				estimateSize: (index) => gridEstimateSize(index),
-				observeElementRect: observeGridRect,
-				overscan: GRID_OVERSCAN,
-				initialRect: { width, height: GRID_FALLBACK_HEIGHT },
-			}),
-		);
-		scheduleVirtualizerRemeasure('grid');
+	// Shared render-runtime (V.D, slice 2b): the grid adopts the SAME variable-height + lanes
+	// strategy table already consumes, but as the first REAL lanes consumer — `laneCount` =
+	// `columnCount` (the responsive column count), and the layout runs over the FLAT top-level
+	// item list: the shared striped-Fenwick band math (`laneOffsetForIndex`/`laneRangeForBand`)
+	// replaces the local `buildGridRows` chunking + local `createExplorerVariableGeometry` +
+	// TanStack `setOptions` seam + fallback cover path this component carried (D-2b-1 full
+	// migration). A column-count change is a genuine RESHAPE per the locked 2a warmth semantics
+	// (band boundaries move) — the shape-keyed registry gives each `(providerId, laneCount)` its
+	// own permanently-warm Fenwick, so bouncing between column counts revisits warm shapes
+	// instead of rebuilding. `providerId` keys the warm per-provider registry (context'd once
+	// near the explorer root by ViewHost); standalone mounts (most component tests) fall back to
+	// a local, unshared registry. `estimateSize` is the same structural estimate the deleted
+	// local Fenwick used (tile height + inline-panel expansion + gap); REAL band heights come
+	// from the shell's `measureRow` `{@attach}` with its DEFAULT `offsetHeight` size source —
+	// real tile DOM heights, replacing the deleted pretext text-prediction path (D-2b-2).
+	// svelte-ignore state_referenced_locally -- the layout controller (and the provider key it
+	// warms) is intentionally fixed per mounted view instance: a provider swap is a different
+	// panel, not a reshape of this one (same lifecycle stance as ViewHost's inherited service).
+	// Reactive inputs (rowCount / keys / estimates / laneCount) flow through the option getters;
+	// the `laneCount` getter is read once at construction and kept in sync by updateGridMetrics
+	// (the single place `columnCount` changes).
+	const gridProviderId = projection?.providerId ?? providerId;
+	const localGeometryRegistry = getSharedGeometryRegistry() ?? createVariableProviderRegistry();
+	const layout = new SharedVariableVirtualLayout({
+		providerId: gridProviderId,
+		registry: localGeometryRegistry,
+		rowCount: () => gridInputModel.nodes.length,
+		estimateSize: (itemIndex) => gridBandEstimate(itemIndex),
+		laneCount: () => columnCount,
+		getKey: (itemIndex) => gridInputModel.nodes[itemIndex]?.id ?? itemIndex,
+		resolveId: (itemIndex) => gridInputModel.nodes[itemIndex]?.id,
+		fallbackViewportHeight: GRID_FALLBACK_HEIGHT,
 	});
 
-	$effect(() => {
-		const rows = gridRows;
-		const visibleRows = virtualRows.filter((row) => row.index < rows.length);
-		const revision = gridMeasureRevision;
-		const width = gridLabelWidth;
-		const style = gridMeasureStyle;
-		const preset = viewSize;
-		const mode = hierarchyMode;
-		const columns = columnCount;
-		const expanded = expandedIds;
-		const scrollActive = gridMeasureScrollActive;
-		if (scrollActive) return;
-
-		untrack(() => {
-			const next =
-				gridMeasuredRevision === revision
-					? new Map(gridMeasuredRowHeights)
-					: new Map<string, number>();
-			let changed = gridMeasuredRevision !== revision;
-			PerfMeter.time(
-				'explorer.grid.measureRows',
-				() => {
-					for (const virtualRow of visibleRows) {
-						const row = rows[virtualRow.index];
-						if (!row) continue;
-						const baseHeight = row.nodes.reduce(
-							(height, node) =>
-								Math.max(
-									height,
-									measure.measure({
-										id: node.id,
-										text: node.label,
-										width,
-										minHeight: preset.tileHeight,
-										paddingBlock: preset.gap * 2,
-										style,
-										revision,
-									}),
-								),
-							preset.tileHeight,
-						);
-						const inlineExtra =
-							mode === 'inline'
-								? row.nodes.reduce(
-										(height, node) => height + expandedPanelHeight(node, columns, expanded),
-										0,
-									)
-								: 0;
-						const height = baseHeight + inlineExtra;
-						if (next.get(row.key) !== height) {
-							next.set(row.key, height);
-							gridGeometry.measure(virtualRow.index, height + viewSize.gap);
-							resizeVirtualGridRow(virtualRow.index, height + viewSize.gap);
-							changed = true;
-						}
-					}
-				},
-				'service',
-				{ rows: visibleRows.length },
-			);
-			if (!changed) return;
-			gridMeasuredRevision = revision;
-			gridMeasuredRowHeights = next;
-		});
+	/**
+	 * The rendered row-bands: `layout.rows` (one entry per tile, each carrying its `lane`) grouped
+	 * back into bands purely for the template — the band wrapper positions a row of tiles at one
+	 * shared y-offset and hosts the inline hierarchy panels below the tiles, exactly the DOM shape
+	 * the pre-adoption grid rendered. The grouping is O(window) over the visible+overscan range
+	 * (never the whole item list — that was `buildGridRows`, deleted) and uses the shared
+	 * `laneOffsetForIndex` band math, so it can never disagree with the Fenwick's banding.
+	 */
+	const gridVirtualBands: GridVirtualBand[] = $derived.by(() => {
+		const items = gridInputModel.nodes;
+		const lanes = Math.max(1, Math.floor(layout.laneCount));
+		const bands: GridVirtualBand[] = [];
+		let current: GridVirtualBand | null = null;
+		for (const row of layout.rows) {
+			const node = items[row.index];
+			if (!node) continue;
+			const band = laneOffsetForIndex(row.index, lanes).band;
+			if (!current || current.bandIndex !== band) {
+				current = { bandIndex: band, renderKey: node.id, start: row.start, entries: [] };
+				bands.push(current);
+			}
+			current.entries.push({ node, lane: row.lane });
+		}
+		return bands;
 	});
 
 	$effect(() => {
 		const target = scrollTarget;
 		if (!target || !outerEl) return;
 		if (target.serial === consumedScrollTargetSerial) return;
-		const rowIndex = gridRowIndexForId(target.id);
-		if (rowIndex < 0) return;
+		const itemIndex = gridItemIndexForId(target.id);
+		if (itemIndex < 0) return;
 		consumedScrollTargetSerial = target.serial;
-		scrollGridRowIntoView(rowIndex);
+		scrollGridRowIntoView(laneOffsetForIndex(itemIndex, layout.laneCount).band);
 	});
 
+	// Container metrics only (width -> responsive column count). Viewport height / scrollTop /
+	// per-band measurement all moved into the shared runtime: `layout.attach` owns the scroll
+	// listener + viewport ResizeObserver, and `layout.measureRow` (template) owns band heights.
 	$effect(() => {
 		if (!outerEl) return;
 		updateGridMetrics();
-		updateGridMeasureStyle();
-		updateGridFallbackViewport();
 		if (typeof ResizeObserver === 'undefined') return;
-		const ro = new ResizeObserver(() => {
-			scheduleGridMetricsUpdate();
-			updateGridMeasureStyle();
-			updateGridFallbackViewport();
-			scheduleVirtualizerRemeasure('grid');
-		});
+		const ro = new ResizeObserver(() => scheduleGridMetricsUpdate());
 		ro.observe(outerEl);
 		return () => {
 			if (gridMetricsFrame !== null) cancelAnimationFrame(gridMetricsFrame);
-			if (gridRemeasureFrame !== null) cancelAnimationFrame(gridRemeasureFrame);
 			gridMetricsFrame = null;
-			gridRemeasureFrame = null;
 			ro.disconnect();
 		};
 	});
@@ -528,36 +416,26 @@
 		PerfMeter.time('explorer.grid.delegate.keydown', () => handleTileKeydown(id, e));
 	}
 
-	function scrollGridRowIntoView(rowIndex: number): void {
+	function scrollGridRowIntoView(bandIndex: number): void {
 		if (!outerEl) return;
 		PerfMeter.time('explorer.grid.scrollIntoView', () => {
-			const row = gridRows[rowIndex];
-			const rowHeight = row ? gridGeometry.sizeForIndex(rowIndex) : gridRowBaseHeight;
+			// Read the viewport live (bounded rect), not the layout's tracked $state, so reveal
+			// works even when no scroll/resize event has refreshed it since the element was last
+			// sized — same discipline as the shared runtime's own scrollToIndex and the table's
+			// scrollTableRowIntoView. Band top/size come from the warm Fenwick (off-window reach).
 			const viewportHeight = gridViewportRect().height;
-			const rowTop = gridRowTop(rowIndex);
-			const rowBottom = rowTop + rowHeight;
 			const currentTop = outerEl!.scrollTop;
+			const rowTop = layout.topForIndex(bandIndex);
+			const rowBottom = rowTop + layout.sizeForIndex(bandIndex);
 			const currentBottom = currentTop + viewportHeight;
 			if (rowTop >= currentTop && rowBottom <= currentBottom) return;
 
 			const nextTop = rowTop < currentTop ? rowTop : Math.max(0, rowBottom - viewportHeight);
-			untrack(() =>
-				$rowVirtualizer.scrollToIndex(rowIndex, {
-					align: rowTop < currentTop ? 'start' : 'end',
-					behavior: 'auto',
-				}),
-			);
 			outerEl!.scrollTop = nextTop;
-			updateGridFallbackViewport();
+			layout.scrollTop = nextTop;
+			layout.viewportHeight = viewportHeight;
 			outerEl!.dispatchEvent(new Event('scroll'));
 		});
-	}
-
-	function handleGridScroll(e: Event): void {
-		const element = e.currentTarget as HTMLDivElement;
-		fallbackScrollTop = element.scrollTop;
-		fallbackViewportHeight = element.clientHeight || GRID_FALLBACK_HEIGHT;
-		markGridMeasureScrollActive();
 	}
 
 	function handleTileKeydown(id: string, e: KeyboardEvent) {
@@ -716,25 +594,13 @@
 		const nextColumnCount = columnsForWidth(width);
 		if (gridWidth !== width) gridWidth = width;
 		if (columnCount !== nextColumnCount) columnCount = nextColumnCount;
+		// Keep the runtime's lane strategy in step with the responsive column count. A lane-count
+		// change is a genuine reshape (locked 2a semantics): the shape-keyed registry parks the
+		// old shape's warm Fenwick and activates (or creates) the one for the new shape.
+		if (layout.laneCount !== nextColumnCount) layout.laneCount = nextColumnCount;
 		if (reportedColumnCount === nextColumnCount) return;
 		reportedColumnCount = nextColumnCount;
 		onColumnCountChange?.(nextColumnCount);
-	}
-
-	function updateGridFallbackViewport() {
-		fallbackScrollTop = outerEl?.scrollTop ?? 0;
-		fallbackViewportHeight = gridViewportRect().height;
-	}
-
-	function updateGridMeasureStyle(): void {
-		const nextStyle = resolveNodeRowMeasureStyle(
-			outerEl,
-			GRID_LABEL_SELECTOR,
-			gridMeasureStyle,
-		);
-		if (nodeRowMeasureStyleKey(nextStyle) !== nodeRowMeasureStyleKey(gridMeasureStyle)) {
-			gridMeasureStyle = nextStyle;
-		}
 	}
 
 	function scheduleGridMetricsUpdate() {
@@ -749,71 +615,7 @@
 		});
 	}
 
-	function scheduleVirtualizerRemeasure(_surface: 'grid'): void {
-		if (typeof requestAnimationFrame === 'undefined') {
-			PerfMeter.time('explorer.grid.resizeRemeasure', () => $rowVirtualizer.measure?.());
-			return;
-		}
-		if (gridRemeasureFrame !== null) return;
-		gridRemeasureFrame = requestAnimationFrame(() => {
-			gridRemeasureFrame = null;
-			PerfMeter.time('explorer.grid.resizeRemeasure', () => $rowVirtualizer.measure?.());
-		});
-	}
-
-	function markGridMeasureScrollActive(): void {
-		gridMeasureScrollActive = true;
-		clearGridMeasureIdleTimer();
-		gridMeasureIdleTimer = setTimeout(() => {
-			gridMeasureIdleTimer = null;
-			gridMeasureScrollActive = false;
-		}, GRID_SCROLL_MEASURE_IDLE_MS);
-	}
-
-	function clearGridMeasureIdleTimer(): void {
-		if (gridMeasureIdleTimer !== null) clearTimeout(gridMeasureIdleTimer);
-		gridMeasureIdleTimer = null;
-	}
-
-	function resizeVirtualGridRow(index: number, height: number): void {
-		const virtualizer = $rowVirtualizer;
-		if (typeof virtualizer.resizeItem === 'function') {
-			virtualizer.resizeItem(index, height);
-			return;
-		}
-		scheduleVirtualizerRemeasure('grid');
-	}
-
-	function observeGridRect(
-		_: Virtualizer<HTMLDivElement, HTMLDivElement>,
-		cb: (rect: Rect) => void,
-	): () => void {
-		let rectFrame: number | null = null;
-		const emit = () => {
-			cb(gridViewportRect());
-		};
-		const schedule = () => {
-			if (typeof requestAnimationFrame === 'undefined') {
-				emit();
-				return;
-			}
-			if (rectFrame !== null) return;
-			rectFrame = requestAnimationFrame(() => {
-				rectFrame = null;
-				emit();
-			});
-		};
-		schedule();
-		if (!outerEl || typeof ResizeObserver === 'undefined') return () => {};
-		const ro = new ResizeObserver(schedule);
-		ro.observe(outerEl);
-		return () => {
-			if (rectFrame !== null) cancelAnimationFrame(rectFrame);
-			ro.disconnect();
-		};
-	}
-
-	function gridViewportRect(): Rect {
+	function gridViewportRect(): ElementViewportRect {
 		return boundedElementViewportRect(outerEl, gridWidth || GRID_FALLBACK_WIDTH, GRID_FALLBACK_HEIGHT);
 	}
 
@@ -831,43 +633,23 @@
 
 	function noopTileToggle(): void {}
 
-	function tileOuterWidthFor(
-		width: number,
-		columns: number,
-		preset: ViewSizePreset,
-	): number {
-		const safeColumns = Math.max(1, columns);
-		const available = Math.max(preset.tileWidth, width - preset.gap * 2);
-		return Math.max(
-			preset.tileWidth,
-			(available - preset.gap * (safeColumns - 1)) / safeColumns,
-		);
-	}
-
 	function rectsIntersect(a: DOMRect, b: DOMRect): boolean {
 		return a.left <= b.right && a.right >= b.left && a.top <= b.bottom && a.bottom >= b.top;
 	}
 
-	function buildGridRows(
-		items: TreeNode[],
-		inputs: readonly ExplorerRowInput[],
-		columns: number,
-		mode: HierarchyMode,
-		expanded: ReadonlySet<string>,
-	): GridRow[] {
-		const safeColumns = Math.max(1, columns);
-		const rows: GridRow[] = [];
-		for (let index = 0; index < items.length; index += safeColumns) {
-			const rowNodes = items.slice(index, index + safeColumns);
-			const rowInputs = inputs.slice(index, index + safeColumns);
-			rows.push({
-				key: String(rowInputGroupKey(rowInputs, index)),
-				nodes: rowNodes,
-				rowInputs,
-				height: gridRowHeight(rowNodes, safeColumns, mode, expanded),
-			});
-		}
-		return rows;
+	/**
+	 * Structural band-height ESTIMATE for the shared runtime — tile height plus the inline
+	 * hierarchy expansion of every node in the band, plus the inter-band gap (the same model the
+	 * deleted local Fenwick was seeded with). The runtime hands this the band's FIRST item index;
+	 * `laneOffsetForIndex`/`laneRangeForBand` recover the band's item slice under the current
+	 * column count. Real heights come from `measureRow` (`offsetHeight`) once a band renders.
+	 */
+	function gridBandEstimate(itemIndex: number): number {
+		const lanes = Math.max(1, Math.floor(columnCount));
+		const band = laneOffsetForIndex(itemIndex, lanes).band;
+		const itemRange = laneRangeForBand({ startIndex: band, endIndex: band + 1 }, lanes);
+		const bandNodes = gridInputModel.nodes.slice(itemRange.startIndex, itemRange.endIndex);
+		return gridRowHeight(bandNodes, lanes, hierarchyMode, expandedIds) + viewSize.gap;
 	}
 
 	function gridInputModelFromInputs(
@@ -976,83 +758,36 @@
 		return !!node.children && node.children.length > 0;
 	}
 
-	function indexGridNode(indexes: Map<string, number>, node: TreeNode, rowIndex: number): void {
-		indexes.set(node.id, rowIndex);
+	function indexGridNode(indexes: Map<string, number>, node: TreeNode, itemIndex: number): void {
+		indexes.set(node.id, itemIndex);
 		for (const child of node.children ?? []) {
-			indexGridNode(indexes, child, rowIndex);
+			indexGridNode(indexes, child, itemIndex);
 		}
 	}
 
-	function gridRowIndexForId(id: string): number {
-		if (gridRowIndexCacheRows !== gridRows) {
-			gridRowIndexCacheRows = gridRows;
-			gridRowIndexCache = new Map<string, number>();
-			gridRows.forEach((row, index) => {
-				for (const node of row.nodes) {
-					indexGridNode(gridRowIndexCache, node, index);
-				}
-			});
+	/**
+	 * Flat item index for a node id — descendants map to their top-level ancestor's index (an
+	 * inline child reveals by scrolling its ancestor band into view, as before). Cached per items
+	 * array identity; the ITEM index is column-count-independent, so a resize never invalidates
+	 * it — the band is derived at lookup time via `laneOffsetForIndex`.
+	 */
+	function gridItemIndexForId(id: string): number {
+		const items = gridInputModel.nodes;
+		if (gridItemIndexCacheNodes !== items) {
+			gridItemIndexCacheNodes = items;
+			gridItemIndexCache = new Map<string, number>();
+			items.forEach((node, index) => indexGridNode(gridItemIndexCache, node, index));
 		}
-		return gridRowIndexCache.get(id) ?? -1;
+		return gridItemIndexCache.get(id) ?? -1;
 	}
 
 	function inlineRowKey(rowNodes: TreeNode[], rowIndex: number): string {
 		return `${rowIndex}:${rowNodes.map((node) => node.id).join('\u0000')}`;
 	}
 
-	function gridVirtualRowKey(rows: readonly GridRow[], index: number): string | number {
-		return rows[index]?.key ?? index;
-	}
-
-	function gridRenderRowKey(rows: readonly GridRow[], index: number): string | number {
-		return rows[index]?.nodes[0]?.id ?? gridVirtualRowKey(rows, index);
-	}
-
-	function gridEstimateSize(index: number): number {
-		const row = gridRows[index];
-		return row ? (gridMeasuredRowHeights.get(row.key) ?? row.height) + viewSize.gap : gridRowBaseHeight;
-	}
-
-	function gridRowTop(rowIndex: number): number {
-		return gridGeometry.topForIndex(rowIndex);
-	}
-
-	function fallbackGridRows(rows: readonly GridRow[]) {
-		const range = gridGeometry.visibleRange({
-			scrollTop: fallbackScrollTop,
-			viewportHeight: fallbackViewportHeight,
-			overscan: GRID_OVERSCAN,
-		});
-		const out: Array<{ index: number; key: string | number; renderKey: string | number; start: number }> = [];
-		for (let index = range.startIndex; index < range.endIndex; index += 1) {
-			const row = rows[index];
-			if (!row) continue;
-			out.push({
-				index,
-				key: gridVirtualRowKey(rows, index),
-				renderKey: gridRenderRowKey(rows, index),
-				start: gridGeometry.topForIndex(index),
-			});
-		}
-		return out;
-	}
-
-	function createNodeRowMeasureService(): NodeRowMeasureService {
-		if (typeof document === 'undefined') {
-			return new NodeRowMeasureService(
-				createTextMeasureService({ engine: fallbackTextMeasureEngine }),
-			);
-		}
-		if (typeof navigator !== 'undefined' && navigator.userAgent.includes('jsdom')) {
-			return new NodeRowMeasureService(
-				createTextMeasureService({ engine: fallbackTextMeasureEngine }),
-			);
-		}
-		return new NodeRowMeasureService(createTextMeasureService());
-	}
 </script>
 
-{#snippet nodeTile(node: TreeNode)}
+{#snippet nodeTile(node: TreeNode, lane?: number)}
 	{@const nodeHasChildren = hasChildren(node)}
 	{@const nodeExpanded = nodeHasChildren && expandedIds.has(node.id)}
 	{@const isSelected = selectedMap?.get(node.id) ?? selectedIds?.has(node.id) ?? false}
@@ -1082,6 +817,7 @@
 		class:is-manual-dnd={manualDndEnabled}
 		class:is-expanded={nodeExpanded}
 		class:is-inline-hierarchy={hierarchyMode === 'inline'}
+		style:grid-column={lane === undefined ? undefined : lane + 1}
 		data-id={node.id}
 		data-vm-manual-dnd={manualDndEnabled ? 'true' : undefined}
 		draggable={manualDndEnabled}
@@ -1217,6 +953,7 @@
 	aria-multiselectable="true"
 	tabindex="-1"
 	style={viewSizeStyle}
+	{@attach layout.attach}
 	onclick={handleDelegatedGridClick}
 	onauxclick={handleDelegatedGridAuxClick}
 	oncontextmenu={handleDelegatedGridContextMenu}
@@ -1225,30 +962,26 @@
 	onpointermove={handlePointerMove}
 	onpointerup={handlePointerUp}
 	onpointercancel={handlePointerCancel}
-	onscroll={handleGridScroll}
 >
 	<div
 		class="vm-node-grid-inner"
-		style="--vm-node-grid-total-h: {resolvedTotalHeight}px; --vm-node-grid-columns: {columnCount}"
+		style="--vm-node-grid-total-h: {layout.totalHeight}px; --vm-node-grid-columns: {columnCount}"
 	>
-		{#each renderedRows as virtualRow (virtualRow.renderKey)}
-			{@const row = gridRows[virtualRow.index]}
-			{#if row}
-				<div
-					class="vm-node-grid-row"
-					style="--vm-node-grid-y: {virtualRow.start}px; --vm-node-grid-row-h: {gridMeasuredRowHeights.get(row.key) ??
-						row.height}px"
-				>
-					<div class="vm-node-grid-row-tiles">
-						{#each row.nodes as node (node.id)}
-							{@render nodeTile(node)}
-						{/each}
-					</div>
-					{#each row.nodes as node (node.id)}
-						{@render inlinePanel(node, 1)}
+		{#each gridVirtualBands as band (band.renderKey)}
+			<div
+				class="vm-node-grid-row"
+				style="--vm-node-grid-y: {band.start}px"
+				{@attach layout.measureRow(band.bandIndex)}
+			>
+				<div class="vm-node-grid-row-tiles">
+					{#each band.entries as entry (entry.node.id)}
+						{@render nodeTile(entry.node, entry.lane)}
 					{/each}
 				</div>
-			{/if}
+				{#each band.entries as entry (entry.node.id)}
+					{@render inlinePanel(entry.node, 1)}
+				{/each}
+			</div>
 		{/each}
 	</div>
 	{#if selectionBox}

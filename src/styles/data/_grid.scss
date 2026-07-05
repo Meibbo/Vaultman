@@ -339,7 +339,14 @@ body.vm-resizing {
 	top: 0;
 	left: var(--vm-node-grid-gap, 8px);
 	right: var(--vm-node-grid-gap, 8px);
-	height: var(--vm-node-grid-row-h, 54px);
+	// Content-sized on purpose (V.D slice 2b): the shared runtime measures each band via the
+	// element's real offsetHeight ({@attach} measureRow, default size source), so the band
+	// wrapper must derive its height from its tiles + inline panels — a pinned height here would
+	// feed the runtime's own estimate back to the measurer. The old --vm-node-grid-row-h pin is
+	// gone with the pretext prediction path; padding-bottom carries the inter-band gap INTO the
+	// measured height, replacing the `height + gap` the deleted local Fenwick added arithmetically.
+	height: auto;
+	padding-bottom: var(--vm-node-grid-gap, 8px);
 	transform: translate3d(0, var(--vm-node-grid-y, 0), 0);
 	box-sizing: border-box;
 	will-change: transform;
