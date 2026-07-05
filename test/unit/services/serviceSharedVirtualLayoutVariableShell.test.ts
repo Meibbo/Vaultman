@@ -240,5 +240,43 @@ describe('SharedVariableVirtualLayout — Svelte 5 shell, variable-height strate
 			detachRow();
 			detachScroll();
 		});
+
+		it('a real scroll event marks the measure path scroll-active, deferring a landing patch until idle (slice 2b pre-work)', () => {
+			// #scheduleMeasure's scroll-active early-return is a plain instance-field read today
+			// (`this.#measureScrollActive`); the pre-work wraps it in untrack() so that reading it
+			// from INSIDE a live Svelte attachment effect (measureRow runs as one) never subscribes
+			// that attachment to every future scroll-active flip -- an O(window) re-attach storm on
+			// every scroll-start/scroll-end once a real view (grid) mounts many rows at once. This
+			// headless test cannot observe the subscription-graph difference (no reactive tracking
+			// context exists outside a mounted component), but it locks in the OBSERVABLE contract
+			// the untrack wrap must not change: a REAL scroll defers a landing measurement until the
+			// idle timer fires, while attach()'s own initial sync (proven above) does not.
+			const layout = makeVariableLayout({ rowCount: 10 });
+			let scrollHandler: (() => void) | undefined;
+			const scrollEl = {
+				scrollTop: 0,
+				clientHeight: 100,
+				addEventListener(type: string, handler: () => void) {
+					if (type === 'scroll') scrollHandler = handler;
+				},
+				removeEventListener() {},
+			} as unknown as HTMLElement;
+			const detachScroll = layout.attach(scrollEl);
+
+			const rowEl = { offsetHeight: 0 } as unknown as HTMLElement;
+			const detachRowA = layout.measureRow(0, () => 40)(rowEl);
+			expect(layout.snapshot()!.sizes[0]).toBe(40); // at rest: lands immediately
+
+			expect(scrollHandler).toBeTypeOf('function');
+			scrollEl.scrollTop = 50;
+			scrollHandler?.(); // simulates a real 'scroll' event -> marks scroll-active
+
+			const detachRowB = layout.measureRow(0, () => 999)(rowEl);
+			expect(layout.snapshot()!.sizes[0]).toBe(40); // deferred: scroll-active skip, not 999
+
+			detachRowB();
+			detachRowA();
+			detachScroll();
+		});
 	});
 });

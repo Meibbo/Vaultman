@@ -483,8 +483,20 @@ export class SharedVariableVirtualLayout {
 		};
 	};
 
+	/**
+	 * Reads `#measureScrollActive` untracked (slice 2b pre-work). This runs at the top of every
+	 * `measureRow` attachment (both the initial synchronous call and every ResizeObserver
+	 * callback), and an attachment body executes inside Svelte's own effect for that `{@attach}` —
+	 * an un-untracked `$state` read there would subscribe THAT row's attachment to every future
+	 * flip of `#measureScrollActive` (true on scroll-start, false ~measureIdleMs after scroll-end),
+	 * scheduling a teardown+rerun of every mounted row's ResizeObserver on every scroll start/stop.
+	 * For a fixed few rows (table today) that's noise; for a grid's window of dozens of tiles it
+	 * is an O(window) re-attach storm twice per scroll gesture. `untrack` only skips dependency
+	 * registration — the read is still live (current value), so the skip-while-scrolling behavior
+	 * itself is unchanged (see the shell test above proving the observable contract).
+	 */
 	#scheduleMeasure(bandIndex: number, node: HTMLElement, sizeOf: (node: HTMLElement) => number): void {
-		if (this.#measureScrollActive) return;
+		if (untrack(() => this.#measureScrollActive)) return;
 		const size = sizeOf(node);
 		if (size > 0) this.measure(bandIndex, size);
 	}
