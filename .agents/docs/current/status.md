@@ -29,6 +29,13 @@ Compact route index after archiving the oversized current status:
 ## Current Route
 
 - Active initiative: [[docs/work/hardening/index|Hardening]].
+- **LATEST (2026-07-05, parallel handoff)**: sandbox `290a123`. **PA-3 + PA-4 integrados** (4 adapters
+  reales en `src/platform/adapters/`; PA-5 wiring pendiente). **Thread B B1 done** (`87b4732`, canon
+  types). **Plan de ejecución paralela para Codex** →
+  [[docs/work/hardening/plans/2026-07-05-thread-b-and-parallel-lanes|Thread B + parallel lanes]]:
+  lanes disjuntas B2 (ViewHost switch) · PA-5 (wire main.ts) · glossary (docs) en paralelo; shim + deps
+  serial-after; HITL = PAI-003 picker + cards-37s re-run + P112. **FF single-thread por coordinador
+  fresco** (corre el STRICT gate de B2). deps deferida (`chore/dependabot-vulns` @ `2e6b7b9`, lockfile).
 - **LATEST (2026-07-05)**: **ADOPCIÓN GEOMETRY COMPLETA** — sandbox `8ea87be`→`398dfdb`
   (grid+cards combinados, FF tras gate). table+grid+cards las tres sobre el shared render-runtime;
   `buildGridRows`/`buildCardRows`/Fenwick locales borrados, `measureRow {@attach}` reemplaza RO/$effect,
