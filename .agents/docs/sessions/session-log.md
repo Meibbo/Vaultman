@@ -930,3 +930,10 @@ broader "append-only status writes" is parked as **S-12** in
 - **deps lane DEFERIDA (no integrada):** `chore/dependabot-vulns` @ `2e6b7b9` (restaurada en su worktree/rama; NO en sandbox). Su commit choca en `pnpm-lock.yaml` (lockfiles conflictúan fácil) y reintegrarlo limpio cuesta regenerar lockfile — no vale los tokens escasos de esta sesión. Reporte de codex: fixeó high/moderate, dejó low que necesita major bump. **Re-integrar limpio en sesión fresca** (rebase onto sandbox → si choca lockfile, `pnpm install` regenera → verify build+test).
 - **PA slice 5 pendiente:** wire de los 3 adapters en `main.ts` (`registry.add()` + `activate` on load) + inventario mobile doc — punto de convergencia single-thread (NO paralelo; después de tener los adapters, que ya están).
 - **git:** sandbox `eeb43aa`, push siguiente. Worktrees pa3/pa4/deps quedan (cleanup pendiente).
+
+## 2026-07-05 — codex-gpt-5 · glossary canon align to 05-view-canon (update micro)
+
+- **scope:** worktree `C:/tmp/vaultman-gloss`, branch `chore/glossary-canon`, task `task_010`. Arranque AGENTS cumplido: join/heartbeat/task claim/scope claim. `query-docs.ts --rank` falló por dependencia local ausente `js-yaml` en el worktree fresco; se continuó con lectura directa de `AGENTS.md`, `start/status/handoff`, latest session-log y `docs/architecture/explorer-model/05-view-canon`.
+- **cambio:** docs-only en `glossary.md` + `dev-glossary.md`: canon engine/mode alineado a **Linear / Geometry / Canvas / Charts**, Table explícito como modo de Geometry, modes apuntados al canon LOCKED, y ambos docs enlazan a [[docs/architecture/explorer-model/05-view-canon|05-view-canon]]. También se corrigió la segunda mención stale de `dev-glossary` en la definición de Panel.
+- **verify:** lectura contextual de las líneas editadas; `Select-String` sin hits para `Linear/Geometry/Table/Canvas`, `Linear / Geometry / Table / Canvas`, ni `tree-indent / flat-list / tiles` en los dos docs; `git diff --check` sin errores (solo warnings CRLF conocidos de Windows).
+- **next-action:** coordinador puede integrar esta rama con FF; no se tocó código ni runtime.

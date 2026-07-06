@@ -46,7 +46,8 @@ The exact confusion you flagged. Clean cut:
   preset only. Examples: `filterScene`, `queueScene`, `sortScene`, `viewScene`. Implemented as a
   Svelte component file but the word "Scene" refers to the role/orchestration, not the file.
 - **Panel** (VM domain) — a **rendering atom**: `{engine + provider + config}`. Renders data via an
-  engine (Linear / Geometry / Table / Canvas). Kinds: `panelExplorer` (nodes), `panelData` (widgets),
+  engine (Linear / Geometry / Canvas / Charts; Table = Geometry mode). Canon:
+  [[docs/architecture/explorer-model/05-view-canon|05-view-canon]]. Kinds: `panelExplorer` (nodes), `panelData` (widgets),
   `panelContent` (live-preview embed), `custom-panel`. Lives INSIDE a Scene; exposes a `PanelHandle`.
   Implemented as a Svelte component.
 - **Primitive** (VM domain) — a **small interactive UI building block** that a Scene slots alongside
@@ -79,8 +80,10 @@ flowchart TD
   context" when the technical sense is meant.
 - **Mark** (`serviceMark`, durable view-state) vs **Decoration** (`serviceDecorate`, transient).
 - **Surface** (mount host: tab · modal · pop-up · cmenu · codeblock) vs **screen** (avoid — ambiguous).
-- **Engine** (VM render engine: Linear / Geometry / Table / Canvas) vs **renderer** (DOM-level drawer).
-- **Mode** (engine variant: tree-indent / flat-list / tiles / miller / cards / etc.) vs **state**
+- **Engine** (VM render engine: Linear / Geometry / Canvas / Charts; Table = Geometry mode; canon:
+  [[docs/architecture/explorer-model/05-view-canon|05-view-canon]]) vs **renderer** (DOM-level drawer).
+- **Mode** (engine variant: Linear `flat·indent·cascade·detail`; Geometry
+  `grid·cards·masonry·table`; Canvas/Charts deferred per [[docs/architecture/explorer-model/05-view-canon|05-view-canon]]) vs **state**
   (Svelte 5 `$state`).
 - **Operation** (`OperationNode`, queued change) vs **Action** (`ActionNode`, command/macro). Actions
   produce Operations.

@@ -126,8 +126,8 @@ Supersedes the older "View adapter" / "Viewgrid" entries (a View no longer does
 projection/translation).
 
 - View: pure renderer over a finished render-projection; owns DOM/markup + shared runtime only. No fixed "5 views".
-- Render engine: reusable layout family — **Linear · Geometry · Canvas · Charts** (Table = Geometry mode; Charts = 4th). Canon: [[docs/architecture/explorer-model/05-view-canon|05 View Canon]] / ADR 0012. (Superseded the old `Linear/Geometry/Table/Canvas`.)
-- Mode: engine variant — Linear `flat·indent·cascade·detail`; Geometry `grid·cards·masonry·table`; Canvas `mindmap·graph`; Charts `chart`. group-box removed (= composition). See 05.
+- Render engine: reusable layout family — **Linear · Geometry · Canvas · Charts** (Table = Geometry mode; Charts = 4th). Canon: [[docs/architecture/explorer-model/05-view-canon|05 View Canon]] / ADR 0012. Supersedes the old four-engine wording.
+- Mode: engine variant — Linear `flat·indent·cascade·detail`; Geometry `grid·cards·masonry·table`; Canvas `mindmap·graph`; Charts `chart`. group-box removed (= composition). Canon: [[docs/architecture/explorer-model/05-view-canon|05-view-canon]].
 - Orientation: **arrangement semantics, engine-specific** (Linear `list·collapsible·accordion·drill`; Geometry `list·section·drill·container`) — NOT h/v; h/v moved to the `direction` axis. Plus `direction` / `child_global_direction` / `viewScope` (per_panel/level/parent/node) / `regime` (slot|coordinates): see 05.
 - Cell: universal element = source ({in|cross}-provider field, incl. note-preview) + semantic role; position owned by view-config.
 - view-config (specific_view): user-editable role→slot/order map per engine+mode; superset of the Bases view-def; the Bases IN/OUT bridge.
