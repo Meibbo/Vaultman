@@ -80,13 +80,13 @@ flowchart LR
    PSS-shaped + rollout completo del resolver. Pendiente micro: smoke live al reabrir
    Obsidian. **El subsistema de iconos AFK está COMPLETO** — queda PAI-003 (picker, HITL,
    necesita al dev) y PAI-005 (packs, DEFER N4).
-3. ~~V.D slice 2a~~ ✅ + ~~2b-TABLE~~ ✅ **done 2026-07-04** (`ff828d8`): table sobre el
-   runtime compartido + resizers 1.1.6 (SDF-011). **Gate STRICT PASS: blank=0 · flicker=0 ·
-   p99 17ms** (11177 nodos). Locks D-2b-1..3 aplicados. **NEXT = 2b-grid** (mismo molde,
-   opens en session-log 2026-07-04: registry keying laneCount · offsetHeight default ·
-   CARD_GAP en turf vista · untrack de #scheduleMeasure). Luego 2b-cards → thread B.
-   También done en el camino: **eslint full-repo reparado** (verify entero verde, primera
-   vez post-upgrade; lección codex exec = write-only en esta máquina).
+3. ~~V.D 2a~~ ✅ + ~~2b table/grid/cards~~ ✅ **done 2026-07-05** (`398dfdb`): **ADOPCIÓN
+   GEOMETRY COMPLETA** — table+grid+cards las tres sobre el runtime compartido. Gates STRICT
+   PASS (blank=0 · flicker=0): table p99 17ms · grid p99 55ms · cards p99 153ms (⚠ cards
+   maxDelay 37s single outlier = watch-item, re-correr en idle). Resizers 1.1.6 (SDF-011) en
+   table. **NEXT = thread B** (ViewHost switchea `(engine,mode)` de ViewConfig resuelto, retira
+   enum flat `ExplorerViewMode`) → luego P.D (panel/scene, N3). Masonry diferido (no existe la vista).
+   En el camino: eslint full-repo reparado (verify entero verde) + PA slice 2 (Codex, aterrizada).
 4. P112 → sandbox con reconcile de `viewTreeBehavior`/`virtualScrollCssSource`.
 5. Decisión dev pendiente: orden PA 2-5 vs siguiente sistema de absorción (f4/f5 del grill 2026-07-02).
 

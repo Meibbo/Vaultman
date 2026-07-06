@@ -29,6 +29,16 @@ Compact route index after archiving the oversized current status:
 ## Current Route
 
 - Active initiative: [[docs/work/hardening/index|Hardening]].
+- **LATEST (2026-07-05)**: **ADOPCIÓN GEOMETRY COMPLETA** — sandbox `8ea87be`→`398dfdb`
+  (grid+cards combinados, FF tras gate). table+grid+cards las tres sobre el shared render-runtime;
+  `buildGridRows`/`buildCardRows`/Fenwick locales borrados, `measureRow {@attach}` reemplaza RO/$effect,
+  registry keyed por `(providerId,laneCount)`. **Gates STRICT PASS (100 jumps c/u): blank=0 · flicker=0**
+  — table p99 17ms · grid p99 55ms · cards p99 153ms (⚠ cards maxDelay 37s outlier único bajo máquina
+  cargada = watch-item, re-correr idle). Ambos slices RECUPERADOS de subagentes que crashearon
+  (grid mid-slice, cards `FailedToOpenSocket`) — migraciones íntegras, snapshots ajenos eran ruido EOL.
+  **PA slice 2 (Codex paralelo) aterrizada** (`nativeBindingAdapter`, 100% en scope). **NEXT = V.D
+  thread B** (ViewHost sobre `(engine,mode)`) → P.D. Lanes paralelas Codex disponibles: PA 3/4, deps.
+  Detalle: [[docs/work/hardening/specs/2026-06-17-vd-shared-render-runtime/index|V.D shard §2b]] + session-log.
 - **LATEST (2026-07-04)**: **V.D slice 2b-TABLE COMPLETA + gate STRICT PASS** — sandbox
   `be3a40e`→`ff828d8`. ViewNodeTable adopta el runtime compartido (D-2b-1/2, 873→777 líneas,
   plumbing local borrado con prueba de no-consumo) + **resizers SDF-011 paridad 1.1.6** (D-2b-3,

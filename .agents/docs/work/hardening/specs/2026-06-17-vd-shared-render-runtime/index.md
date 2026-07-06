@@ -226,6 +226,24 @@ aborts (jumps=0 pseudo-FAIL); in-script plugin reload kills the CLI bridge (use
 `--no-build --no-reload`, runner-managed open); long gates survive inside the Monitor tool,
 not background Bash. Opens for grid/cards recorded in the 2b-table session-log entry.
 
+**Slice 2b-GRID + 2b-CARDS — COMPLETE + gate STRICT PASS (2026-07-05, sandbox `398dfdb`):**
+Both migrated onto the shared runtime per D-2b-1/2 (local `buildGridRows`/`buildCardRows` chunking
++ local `createExplorerVariableGeometry` deleted; `measureRow` `{@attach}` default `offsetHeight`
+replaced the per-row RO/`$effect`; `laneCount=columnCount` reactive; `rows[].lane` → CSS placement;
+CARD_GAP stays in view turf = gap-free runtime geometry). Runtime pre-work (committed): registry
+keyed by `(providerId, laneCount)` shape + `#scheduleMeasure` scroll-active read `untrack`ed.
+**Gate STRICT (plugin-dev, 100 jumps each):** grid `blankFrames=0 flickerFrames=0` p99 55ms
+(maxDelay 155ms = PNG tile decode outlier); cards `blankFrames=0 flickerFrames=0` p99 153ms
+(⚠ maxDelay **37486ms** = single first-render/decode outlier under a loaded machine; blank=0 proves
+nothing blanked; **watch-item: re-run on idle to confirm not steady-state**). Verify: check 0/0 ·
+unit 1258 (flaky-perf confirmed environmental) · component 570/570 snapshots byte-identical except
+each view's own placement wrapper. Grid recovery: subagent crashed mid-slice, phase-1 recovered from
+worktree (svelte-check 0/0, deletions proven). Cards recovery: Sonnet crashed `FailedToOpenSocket`
+before commit; migration recovered, 5 other-view snapshots were EOL-only noise (reverted).
+**➡ GEOMETRY ENGINE ADOPTION COMPLETE (table + grid + cards on the shared runtime).**
+**NEXT = thread B:** ViewHost switches on resolved `(engine,mode)` from ViewConfig (D-C-8), retire
+the flat `ExplorerViewMode` enum. Then P.D (panel/scene, N3). Masonry deferred (no `ViewNodeMasonry`).
+
 **Slice 2b locks (dev 2026-07-03 "ok recomendaciones"):**
 - **D-2b-1 — Full migration (Option B).** Each adopting view migrates its row-chunking onto
   `laneOffsetForIndex`/`laneRangeForBand` and deletes its local band implementation + local
