@@ -1,4 +1,5 @@
 import { describe, it, expect, vi } from 'vitest';
+import { Menu } from 'obsidian';
 import { ContextMenuService, type ContextMenuPluginCtx } from '../../../src/services/serviceCMenu';
 import { explorerFiles } from '../../../src/providers/explorerFiles';
 import type { VaultmanPlugin } from '../../../src/main';
@@ -110,6 +111,47 @@ describe('ContextMenuService applicable filtering', () => {
 				d.nodeTypes.includes('file') && d.surfaces.includes('panel') && (!d.when || d.when(ctxObj)),
 		);
 		expect(applicable.map((d) => d.id)).toEqual([]);
+	});
+});
+
+describe('ContextMenuService file-menu delegation seam', () => {
+	it('injects applicable actions through delegateFileMenu', () => {
+		const svc = new ContextMenuService(makeCtx());
+		const run = vi.fn();
+		svc.registerAction({ ...fileAction, run });
+		const file = mockTFile('Notes/A.md');
+		const menu = new Menu();
+
+		svc.delegateFileMenu(menu, file, 'file-menu');
+		const action = menu.items.find((item) => item.title === 'Test action');
+		action?.onClick?.();
+
+		expect(menu.items.map((item) => item.title)).toContain('Test action');
+		expect(run).toHaveBeenCalledWith(
+			expect.objectContaining({
+				nodeType: 'file',
+				surface: 'file-menu',
+				file,
+			}),
+		);
+	});
+
+	it('maps the native more-options source onto the more-options surface', () => {
+		const svc = new ContextMenuService(makeCtx());
+		const run = vi.fn();
+		svc.registerAction({ ...fileAction, run });
+		const file = mockTFile('Notes/A.md');
+		const menu = new Menu();
+
+		svc.delegateFileMenu(menu, file, 'more-options');
+		menu.items.find((item) => item.title === 'Test action')?.onClick?.();
+
+		expect(run).toHaveBeenCalledWith(
+			expect.objectContaining({
+				surface: 'more-options',
+				file,
+			}),
+		);
 	});
 });
 

@@ -25,19 +25,7 @@ export class ContextMenuService extends Component {
 	onload(): void {
 		this.registerEvent(
 			this.plugin.app.workspace.on('file-menu', (menu, file, source) => {
-				if (!(file instanceof TFile)) return;
-				const surface: MenuCtx['surface'] =
-					source === 'more-options' ? 'more-options' : 'file-menu';
-				const settingKey =
-					surface === 'more-options' ? 'contextMenuShowInMoreOptions' : 'contextMenuShowInFileMenu';
-				if (!this.plugin.settings[settingKey]) {
-					this._applyHideRules(menu, surface);
-					return;
-				}
-				if (file instanceof TFile) {
-					this._injectWorkspaceActions(menu, file, surface);
-				}
-				this._applyHideRules(menu, surface);
+				this.delegateFileMenu(menu, file, source);
 			}),
 		);
 
@@ -57,6 +45,19 @@ export class ContextMenuService extends Component {
 	registerAction(def: ActionDef): void {
 		if (this._registry.some((a) => a.id === def.id)) return;
 		this._registry.push(def);
+	}
+
+	delegateFileMenu(menu: Menu, file: unknown, source?: string): void {
+		if (!(file instanceof TFile)) return;
+		const surface: MenuCtx['surface'] = source === 'more-options' ? 'more-options' : 'file-menu';
+		const settingKey =
+			surface === 'more-options' ? 'contextMenuShowInMoreOptions' : 'contextMenuShowInFileMenu';
+		if (!this.plugin.settings[settingKey]) {
+			this._applyHideRules(menu, surface);
+			return;
+		}
+		this._injectWorkspaceActions(menu, file, surface);
+		this._applyHideRules(menu, surface);
 	}
 
 	openPanelMenu(ctx: MenuCtx, event: MouseEvent): void {
