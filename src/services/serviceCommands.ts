@@ -45,6 +45,10 @@ export interface VaultmanCommandHost {
 	 * command can fall back to the legacy explorer API.
 	 */
 	focusActivePanel?(): boolean;
+	/** Select every currently visible node in the active workspace panel. */
+	selectActivePanelVisibleNodes?(): boolean;
+	/** Clear selection in the active workspace panel. */
+	clearActivePanelSelection?(): boolean;
 	/**
 	 * Reveals the Vaultman panel leaf (sidebar or main pane,
 	 * whichever the user configured). Mirrors `VaultmanPlugin.activateView`.
@@ -87,6 +91,8 @@ export const VAULTMAN_COMMAND_IDS = [
 	'open',
 	'open-diff',
 	'open-find-replace-active-explorer',
+	'select-visible-active-explorer',
+	'clear-active-explorer-selection',
 ] as const;
 
 export type VaultmanCommandId = (typeof VAULTMAN_COMMAND_IDS)[number];
@@ -280,6 +286,26 @@ export function registerVaultmanCommands(
 					});
 				})();
 			}
+			return true;
+		},
+	});
+
+	add({
+		id: 'select-visible-active-explorer',
+		name: 'Select visible nodes in active explorer',
+		checkCallback: (checking) => {
+			if (!panelIsAvailable() || !host.selectActivePanelVisibleNodes) return false;
+			if (!checking) return host.selectActivePanelVisibleNodes();
+			return true;
+		},
+	});
+
+	add({
+		id: 'clear-active-explorer-selection',
+		name: 'Clear active explorer selection',
+		checkCallback: (checking) => {
+			if (!panelIsAvailable() || !host.clearActivePanelSelection) return false;
+			if (!checking) return host.clearActivePanelSelection();
 			return true;
 		},
 	});

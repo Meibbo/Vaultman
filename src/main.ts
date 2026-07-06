@@ -139,6 +139,8 @@ export class VaultmanPlugin extends Plugin {
 	openSortMenuHook: (() => void) | null = null;
 	openDiffViewHook: (() => void) | null = null;
 	focusActivePanelHook: (() => boolean) | null = null;
+	selectActivePanelVisibleNodesHook: (() => boolean) | null = null;
+	clearActivePanelSelectionHook: (() => boolean) | null = null;
 	openContentSearchHook: ((term: string) => void) | null = null;
 
 	async onload(): Promise<void> {
@@ -341,6 +343,9 @@ export class VaultmanPlugin extends Plugin {
 			getActiveFnRIslandService: () => this.activeFnRIslandService,
 			getActivePanelExplorerApi: () => this.activePanelExplorerApi,
 			focusActivePanel: () => this.focusActivePanelHook?.() ?? false,
+			selectActivePanelVisibleNodes: () =>
+				this.selectActivePanelVisibleNodesHook?.() ?? false,
+			clearActivePanelSelection: () => this.clearActivePanelSelectionHook?.() ?? false,
 			openFiltersPopup: () => this.openFiltersPopupHook?.(),
 			openQueuePopup: () => this.openQueuePopupHook?.(),
 			openViewMenu: () => this.openViewMenuHook?.(),

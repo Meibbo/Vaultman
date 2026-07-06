@@ -1,23 +1,33 @@
 import type { WorkspaceMediatorService } from './serviceWorkspaceMediator.svelte';
 import type { PanelId } from '../types/typePanelScene';
 
-export type WorkspaceInputCommand = 'focus-active-panel';
+export type WorkspaceInputCommand =
+	| 'focus-active-panel'
+	| 'select-visible-nodes'
+	| 'clear-selection';
 
 export type WorkspaceInputRouterResult =
 	| {
 			kind: 'handled';
 			command: WorkspaceInputCommand;
 			panelId: PanelId;
+			count?: number;
 	  }
 	| {
 			kind: 'unhandled';
 			command: WorkspaceInputCommand;
-			reason: 'no-active-panel' | 'focus-rejected';
+			reason:
+				| 'no-active-panel'
+				| 'focus-rejected'
+				| 'missing-selection-port'
+				| 'missing-projection-port';
 			panelId?: PanelId;
 	  };
 
 export interface WorkspaceInputRouter {
 	focusActivePanel(): WorkspaceInputRouterResult;
+	selectActivePanelVisibleNodes(): WorkspaceInputRouterResult;
+	clearActivePanelSelection(): WorkspaceInputRouterResult;
 }
 
 export interface WorkspaceInputRouterOptions {
@@ -54,5 +64,68 @@ export function createWorkspaceInputRouter(
 				panelId: panel.id,
 			};
 		},
+		selectActivePanelVisibleNodes() {
+			const panel = options.mediator.getActivePanel();
+			if (!panel) return noActivePanel('select-visible-nodes');
+			if (!panel.selection) {
+				return {
+					kind: 'unhandled',
+					command: 'select-visible-nodes',
+					reason: 'missing-selection-port',
+					panelId: panel.id,
+				};
+			}
+			if (!panel.projection) {
+				return {
+					kind: 'unhandled',
+					command: 'select-visible-nodes',
+					reason: 'missing-projection-port',
+					panelId: panel.id,
+				};
+			}
+
+			const visibleIds = [...panel.projection.readVisibleIds()];
+			const focusedId = panel.projection.readFocusedId?.();
+			panel.selection.select(
+				focusedId
+					? { kind: 'replace', ids: visibleIds, focusedId }
+					: { kind: 'replace', ids: visibleIds },
+			);
+			return {
+				kind: 'handled',
+				command: 'select-visible-nodes',
+				panelId: panel.id,
+				count: visibleIds.length,
+			};
+		},
+		clearActivePanelSelection() {
+			const panel = options.mediator.getActivePanel();
+			if (!panel) return noActivePanel('clear-selection');
+			if (!panel.selection) {
+				return {
+					kind: 'unhandled',
+					command: 'clear-selection',
+					reason: 'missing-selection-port',
+					panelId: panel.id,
+				};
+			}
+
+			const count = panel.selection.read().size;
+			panel.selection.clear();
+			return {
+				kind: 'handled',
+				command: 'clear-selection',
+				panelId: panel.id,
+				count,
+			};
+		},
+	};
+}
+
+function noActivePanel(command: WorkspaceInputCommand): WorkspaceInputRouterResult {
+	return {
+		kind: 'unhandled',
+		command,
+		reason: 'no-active-panel',
 	};
 }

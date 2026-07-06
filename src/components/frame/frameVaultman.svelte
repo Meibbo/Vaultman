@@ -80,10 +80,22 @@
 	$effect(() => installFrameOverlayCommandHooks(plugin, overlays));
 
 	$effect(() => {
-		const hook = () => workspaceInputRouter.focusActivePanel().kind === 'handled';
-		plugin.focusActivePanelHook = hook;
+		const focusHook = () => workspaceInputRouter.focusActivePanel().kind === 'handled';
+		const selectVisibleHook = () =>
+			workspaceInputRouter.selectActivePanelVisibleNodes().kind === 'handled';
+		const clearSelectionHook = () =>
+			workspaceInputRouter.clearActivePanelSelection().kind === 'handled';
+		plugin.focusActivePanelHook = focusHook;
+		plugin.selectActivePanelVisibleNodesHook = selectVisibleHook;
+		plugin.clearActivePanelSelectionHook = clearSelectionHook;
 		return () => {
-			if (plugin.focusActivePanelHook === hook) plugin.focusActivePanelHook = null;
+			if (plugin.focusActivePanelHook === focusHook) plugin.focusActivePanelHook = null;
+			if (plugin.selectActivePanelVisibleNodesHook === selectVisibleHook) {
+				plugin.selectActivePanelVisibleNodesHook = null;
+			}
+			if (plugin.clearActivePanelSelectionHook === clearSelectionHook) {
+				plugin.clearActivePanelSelectionHook = null;
+			}
 		};
 	});
 

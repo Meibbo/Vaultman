@@ -23,14 +23,21 @@ function makeScene(id = 'scene:filters', panelId = 'panel:filters'): SceneDefini
 	};
 }
 
+function registerActivePanel(
+	mediator: WorkspaceMediatorService,
+	panel: PanelHandle,
+	scene = makeScene('scene:filters', panel.id),
+): void {
+	mediator.registerScene(scene);
+	mediator.registerPanel(panel);
+	mediator.activateScene(scene.id);
+}
+
 describe('WorkspaceInputRouter', () => {
 	it('focuses the active panel through the workspace mediator', () => {
 		const mediator = new WorkspaceMediatorService();
 		const panel = makePanel();
-		const scene = makeScene();
-		mediator.registerScene(scene);
-		mediator.registerPanel(panel);
-		mediator.activateScene(scene.id);
+		registerActivePanel(mediator, panel);
 
 		const router = createWorkspaceInputRouter({ mediator });
 
@@ -57,10 +64,7 @@ describe('WorkspaceInputRouter', () => {
 		const mediator = new WorkspaceMediatorService();
 		const panel = makePanel();
 		vi.mocked(panel.focus).mockReturnValue(false);
-		const scene = makeScene();
-		mediator.registerScene(scene);
-		mediator.registerPanel(panel);
-		mediator.activateScene(scene.id);
+		registerActivePanel(mediator, panel);
 
 		const router = createWorkspaceInputRouter({ mediator });
 
@@ -70,5 +74,83 @@ describe('WorkspaceInputRouter', () => {
 			reason: 'focus-rejected',
 			panelId: panel.id,
 		});
+	});
+
+	it('selects visible nodes in the active panel through projection and selection ports', () => {
+		const mediator = new WorkspaceMediatorService();
+		const select = vi.fn();
+		const panel = {
+			...makePanel(),
+			selection: {
+				read: () => new Set(['old']),
+				select,
+				clear: vi.fn(),
+			},
+			projection: {
+				readVisibleIds: () => ['a', 'b', 'c'],
+				readFocusedId: () => 'b',
+			},
+		} satisfies PanelHandle;
+		registerActivePanel(mediator, panel);
+
+		const router = createWorkspaceInputRouter({ mediator });
+
+		expect(router.selectActivePanelVisibleNodes()).toEqual({
+			kind: 'handled',
+			command: 'select-visible-nodes',
+			panelId: panel.id,
+			count: 3,
+		});
+		expect(select).toHaveBeenCalledWith({
+			kind: 'replace',
+			ids: ['a', 'b', 'c'],
+			focusedId: 'b',
+		});
+	});
+
+	it('reports a missing projection port when selecting visible nodes is unsupported', () => {
+		const mediator = new WorkspaceMediatorService();
+		const panel = {
+			...makePanel(),
+			selection: {
+				read: () => new Set(),
+				select: vi.fn(),
+				clear: vi.fn(),
+			},
+		} satisfies PanelHandle;
+		registerActivePanel(mediator, panel);
+
+		const router = createWorkspaceInputRouter({ mediator });
+
+		expect(router.selectActivePanelVisibleNodes()).toEqual({
+			kind: 'unhandled',
+			command: 'select-visible-nodes',
+			reason: 'missing-projection-port',
+			panelId: panel.id,
+		});
+	});
+
+	it('clears active panel selection through the selection port', () => {
+		const mediator = new WorkspaceMediatorService();
+		const clear = vi.fn();
+		const panel = {
+			...makePanel(),
+			selection: {
+				read: () => new Set(['a']),
+				select: vi.fn(),
+				clear,
+			},
+		} satisfies PanelHandle;
+		registerActivePanel(mediator, panel);
+
+		const router = createWorkspaceInputRouter({ mediator });
+
+		expect(router.clearActivePanelSelection()).toEqual({
+			kind: 'handled',
+			command: 'clear-selection',
+			panelId: panel.id,
+			count: 1,
+		});
+		expect(clear).toHaveBeenCalledOnce();
 	});
 });

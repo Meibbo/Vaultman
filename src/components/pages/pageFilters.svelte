@@ -35,6 +35,11 @@
 	import { isExplorerViewMode, type ExplorerViewMode } from '../../types/typeViews';
 	import type { FilterGroup } from '../../types/typeFilter';
 	import type { BasesImportTarget } from '../../types/typeBasesInterop';
+	import type {
+		PanelProjectionPort,
+		PanelSelectionCommand,
+		PanelSelectionPort,
+	} from '../../types/typePanelScene';
 	import { PRESET_VAULTMAN } from '../../config/themePresetsBuiltin';
 	import { ViewHostService } from '../../services/serviceViewHost.svelte';
 	import { createPanelExplorerHandle } from '../../services/servicePanelHandle';
@@ -182,6 +187,69 @@
 		};
 	}
 
+	function createFilesSelectionPort(): PanelSelectionPort {
+		return {
+			read: () => new Set(selectedFilePaths),
+			select: applyFilesSelectionCommand,
+			clear: () => commitSelectedFilePaths([]),
+		};
+	}
+
+	function createFilesProjectionPort(): PanelProjectionPort {
+		return {
+			readVisibleIds: readVisibleFileIds,
+			readFocusedId: readFocusedFileId,
+		};
+	}
+
+	function applyFilesSelectionCommand(command: PanelSelectionCommand): void {
+		const current = new Set(selectedFilePaths);
+		let next: Set<string>;
+		switch (command.kind) {
+			case 'replace':
+				next = new Set(command.ids);
+				break;
+			case 'add':
+				next = new Set([...current, ...command.ids]);
+				break;
+			case 'remove':
+				next = new Set(current);
+				for (const id of command.ids) next.delete(id);
+				break;
+			case 'toggle':
+				next = new Set(current);
+				for (const id of command.ids) {
+					if (next.has(id)) next.delete(id);
+					else next.add(id);
+				}
+				break;
+		}
+		commitSelectedFilePaths(next);
+	}
+
+	function commitSelectedFilePaths(ids: Iterable<string>): void {
+		const next = new Set(ids);
+		selectedFilePaths = next;
+		selectedCount = next.size;
+		plugin.filterService.setSelectedFiles(filesFromPaths(next));
+	}
+
+	function filesFromPaths(paths: Iterable<string>): TFile[] {
+		return [...paths]
+			.map((path) => plugin.app.vault.getFileByPath(path) ?? null)
+			.filter((file): file is TFile => Boolean(file));
+	}
+
+	function readVisibleFileIds(): readonly string[] {
+		return fileList?.getFiles().map((file) => file.path) ?? [];
+	}
+
+	function readFocusedFileId(): string | null {
+		const visibleIds = readVisibleFileIds();
+		const visible = new Set(visibleIds);
+		return [...selectedFilePaths].find((id) => visible.has(id)) ?? visibleIds[0] ?? null;
+	}
+
 	function initialFnRFlags(): { regex: boolean } {
 		return { regex: plugin.settings.fnrRegexDefault === true };
 	}
@@ -221,6 +289,8 @@
 
 	$effect(() => {
 		if (!workspaceMediator) return;
+		const selection = filtersActiveTab === 'files' ? createFilesSelectionPort() : undefined;
+		const projection = filtersActiveTab === 'files' ? createFilesProjectionPort() : undefined;
 		const panelHandle = createPanelExplorerHandle({
 			id: FILTERS_PANEL_ID,
 			providerId: providerIdForTab(filtersActiveTab),
@@ -230,6 +300,8 @@
 						activePanelExplorerApi?: PanelExplorerImperativeApi | null;
 					}
 				).activePanelExplorerApi?.focusFirstNode() ?? false,
+			selection,
+			projection,
 		});
 		const unregisterScene = workspaceMediator.registerScene({
 			id: FILTERS_SCENE_ID,

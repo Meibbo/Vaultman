@@ -38,6 +38,8 @@ function createFakeHost(state: FakeHostState): {
 		openSortMenu: ReturnType<typeof vi.fn>;
 		openDiffView: ReturnType<typeof vi.fn>;
 		focusActivePanel: ReturnType<typeof vi.fn>;
+		selectActivePanelVisibleNodes: ReturnType<typeof vi.fn>;
+		clearActivePanelSelection: ReturnType<typeof vi.fn>;
 		setMode: ReturnType<typeof vi.fn>;
 		expand: ReturnType<typeof vi.fn>;
 		collapse: ReturnType<typeof vi.fn>;
@@ -55,6 +57,8 @@ function createFakeHost(state: FakeHostState): {
 		openSortMenu: vi.fn(),
 		openDiffView: vi.fn(),
 		focusActivePanel: vi.fn(() => true),
+		selectActivePanelVisibleNodes: vi.fn(() => true),
+		clearActivePanelSelection: vi.fn(() => true),
 		setMode: vi.fn(),
 		expand: vi.fn(),
 		collapse: vi.fn(),
@@ -97,6 +101,8 @@ function createFakeHost(state: FakeHostState): {
 		openSortMenu: calls.openSortMenu,
 		openDiffView: calls.openDiffView,
 		focusActivePanel: calls.focusActivePanel,
+		selectActivePanelVisibleNodes: calls.selectActivePanelVisibleNodes,
+		clearActivePanelSelection: calls.clearActivePanelSelection,
 	};
 	return { host, calls };
 }
@@ -141,6 +147,8 @@ describe('registerVaultmanCommands', () => {
 			'open-view-menu',
 			'open-sort-menu',
 			'open-find-replace-active-explorer',
+			'select-visible-active-explorer',
+			'clear-active-explorer-selection',
 		]) {
 			const cmd = findCommand(commands, id);
 			expect(cmd.checkCallback).toBeDefined();
@@ -262,6 +270,38 @@ describe('registerVaultmanCommands', () => {
 
 		expect(calls.focusActivePanel).toHaveBeenCalledTimes(1);
 		expect(calls.focusFirstNode).toHaveBeenCalledTimes(1);
+	});
+
+	it('select-visible-active-explorer routes visible-node selection through the input router', () => {
+		const { plugin } = createFakePlugin();
+		const { host, calls } = createFakeHost({
+			hasLeaf: true,
+			queueEmpty: false,
+			hasFnRService: true,
+			hasPanelApi: true,
+		});
+		const commands = registerVaultmanCommands(plugin as never, host);
+		const cmd = findCommand(commands, 'select-visible-active-explorer');
+
+		expect(cmd.checkCallback!(false)).toBe(true);
+
+		expect(calls.selectActivePanelVisibleNodes).toHaveBeenCalledOnce();
+	});
+
+	it('clear-active-explorer-selection routes selection clear through the input router', () => {
+		const { plugin } = createFakePlugin();
+		const { host, calls } = createFakeHost({
+			hasLeaf: true,
+			queueEmpty: false,
+			hasFnRService: true,
+			hasPanelApi: true,
+		});
+		const commands = registerVaultmanCommands(plugin as never, host);
+		const cmd = findCommand(commands, 'clear-active-explorer-selection');
+
+		expect(cmd.checkCallback!(false)).toBe(true);
+
+		expect(calls.clearActivePanelSelection).toHaveBeenCalledOnce();
 	});
 
 	it('open-find-replace-active-explorer collapses an already open replace island', async () => {
