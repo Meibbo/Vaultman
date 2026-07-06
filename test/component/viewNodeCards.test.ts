@@ -3,6 +3,7 @@ import { flushSync, mount, unmount, type Component } from 'svelte';
 import ViewNodeCards from '../../src/components/views/ViewNodeCards.svelte';
 import { createExplorerProjection } from '../../src/services/serviceExplorerProjection';
 import { rowInputFromTreeNode } from '../../src/services/serviceExplorerRowInput';
+import { CARD_HEIGHT_BUCKETS } from '../../src/services/serviceNodeCardLayout';
 import type { TextMeasureService } from '../../src/services/serviceTextMeasure';
 import type { TreeNode } from '../../src/types/typeNode';
 
@@ -241,5 +242,87 @@ describe('ViewNodeCards', () => {
 			}),
 			expect.any(Number),
 		);
+	});
+
+	// V.D slice 2b: the shared runtime's Fenwick stores GAP-FREE band sizes (layout.topForIndex);
+	// CARD_GAP arithmetic is view turf (D-2b CARD_GAP discipline). This proves the pre-adoption
+	// spacing is preserved bit-for-bit: each band sits CARD_GAP below the previous band's bottom
+	// edge, and the leading/trailing gap match the old gap-inclusive-Fenwick formula
+	// (`CARD_GAP + topForIndex(index)` where the OLD Fenwick's own stored sizes already included
+	// `+ CARD_GAP` per row -- see ViewNodeCards.svelte's `cardBandTop` docblock for the algebra).
+	it('preserves CARD_GAP spacing between bands and the leading/trailing edges', () => {
+		const CARD_GAP = 8;
+		// updateCardMetrics only runs from the mount $effect + the ResizeObserver callback (never
+		// from a bare 'scroll' event) -- capture the real callback (this file's shared beforeEach
+		// stub is a no-op) so we can force columnCount=1 deterministically, same pattern as
+		// viewNodeDynamicGeometry.test.ts's triggerResize(). requestAnimationFrame must run
+		// synchronously too: scheduleCardMetricsUpdate defers updateCardMetrics through it, and
+		// flushSync() does not pump real animation frames.
+		const resizeCallbacks: ResizeObserverCallback[] = [];
+		vi.stubGlobal('requestAnimationFrame', (cb: FrameRequestCallback) => {
+			cb(0);
+			return 1;
+		});
+		vi.stubGlobal('cancelAnimationFrame', vi.fn());
+		vi.stubGlobal(
+			'ResizeObserver',
+			class {
+				constructor(cb: ResizeObserverCallback) {
+					resizeCallbacks.push(cb);
+				}
+				observe(): void {}
+				disconnect(): void {}
+			},
+		);
+		// Single column: force columnCount=1 so each node is its own band (bands === nodes,
+		// simplest possible case to hand-verify the accumulating-gap formula against).
+		const singleColumnWidth = 160; // < CARD_MIN_WIDTH(176) + CARD_GAP*2 -> columnsForWidth = 1
+		const spacingNodes: TreeNode[] = [
+			{ id: 'short', label: 'x', depth: 0, meta: {} }, // lineCount 1 -> compact (72)
+			{ id: 'mid', label: 'x'.repeat(30), depth: 0, meta: {} }, // lineCount 2 -> standard (96)
+			{ id: 'long', label: 'x'.repeat(100), depth: 0, meta: {} }, // lineCount 5 -> tall (136)
+		];
+		render({ nodes: spacingNodes, visibleFields: ['text'] });
+
+		const outer = target.querySelector<HTMLElement>('.vm-node-cards')!;
+		Object.defineProperty(outer, 'clientWidth', { value: singleColumnWidth, configurable: true });
+		for (const cb of resizeCallbacks) cb([], {} as ResizeObserver);
+		flushSync();
+
+		const rows = Array.from(target.querySelectorAll<HTMLElement>('.vm-node-card-row'));
+		expect(rows.length).toBe(3);
+
+		const yOf = (row: HTMLElement) =>
+			Number(/--vm-node-card-y:\s*([\d.]+)px/.exec(row.getAttribute('style') ?? '')?.[1]);
+		const hOf = (row: HTMLElement) =>
+			Number(/--vm-node-card-row-h:\s*([\d.]+)px/.exec(row.getAttribute('style') ?? '')?.[1]);
+
+		const [row0, row1, row2] = rows;
+		const h0 = hOf(row0);
+		const h1 = hOf(row1);
+		expect(h0).toBe(CARD_HEIGHT_BUCKETS.compact);
+		expect(h1).toBe(CARD_HEIGHT_BUCKETS.standard);
+		expect(hOf(row2)).toBe(CARD_HEIGHT_BUCKETS.tall);
+
+		// Leading gap: band 0 sits exactly one CARD_GAP from the top.
+		expect(yOf(row0)).toBe(CARD_GAP);
+		// Each subsequent band sits CARD_GAP below the previous band's bottom edge.
+		expect(yOf(row1)).toBe(yOf(row0) + h0 + CARD_GAP);
+		expect(yOf(row2)).toBe(yOf(row1) + h1 + CARD_GAP);
+
+		// Trailing gap: total scrollable height clears the last band's bottom edge by one CARD_GAP.
+		const inner = target.querySelector<HTMLElement>('.vm-node-cards-inner')!;
+		const totalH = Number(
+			/--vm-node-cards-total-h:\s*([\d.]+)px/.exec(inner.getAttribute('style') ?? '')?.[1],
+		);
+		expect(totalH).toBe(yOf(row2) + hOf(row2) + CARD_GAP);
+	});
+
+	it('renders zero total height for an empty card list (no orphan leading gap)', () => {
+		render({ nodes: [] });
+
+		const inner = target.querySelector<HTMLElement>('.vm-node-cards-inner')!;
+		expect(inner.getAttribute('style')).toContain('--vm-node-cards-total-h: 0px');
+		expect(target.querySelectorAll('.vm-node-card-row').length).toBe(0);
 	});
 });
