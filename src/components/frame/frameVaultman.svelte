@@ -26,6 +26,11 @@
 	import { AddonsIslandService, type AddonsQuickSwitcherApp } from '../../services/serviceAddonsIsland.svelte';
 	import { FRAME_NAVIGATION_KEY, FrameNavigationService } from './frameNavigation.svelte';
 	import { FRAME_POPUPS_KEY, FramePopupsState } from './framePopups.svelte';
+	import {
+		WORKSPACE_MEDIATOR_KEY,
+		WorkspaceMediatorService,
+	} from '../../services/serviceWorkspaceMediator.svelte';
+	import { createWorkspaceInputRouter } from '../../services/serviceWorkspaceInputRouter';
 	import FrameNavbarShell from './FrameNavbarShell.svelte';
 	import FrameDashboardShell from './FrameDashboardShell.svelte';
 
@@ -52,6 +57,8 @@
 	const nav = new FrameNavigationService(plugin, overlays, () => selectedCount);
 	const viewport = new FrameViewportController(() => nav.pageIndex);
 	nav.attachViewport(viewport);
+	const workspaceMediator = new WorkspaceMediatorService();
+	const workspaceInputRouter = createWorkspaceInputRouter({ mediator: workspaceMediator });
 
 	const navReorder = new FrameNavReorderController({
 		getPageOrder: () => [...nav.pageOrder],
@@ -64,12 +71,21 @@
 	});
 	nav.attachNavReorder(navReorder);
 	setContext(FRAME_NAVIGATION_KEY, nav);
+	setContext(WORKSPACE_MEDIATOR_KEY, workspaceMediator);
 
 	// svelte-ignore state_referenced_locally
 	const popups = new FramePopupsState(plugin, overlays, () => updateStats());
 	setContext(FRAME_POPUPS_KEY, popups);
 
 	$effect(() => installFrameOverlayCommandHooks(plugin, overlays));
+
+	$effect(() => {
+		const hook = () => workspaceInputRouter.focusActivePanel().kind === 'handled';
+		plugin.focusActivePanelHook = hook;
+		return () => {
+			if (plugin.focusActivePanelHook === hook) plugin.focusActivePanelHook = null;
+		};
+	});
 
 	$effect(() => {
 		const hook = () => nav.openDiffIntent();

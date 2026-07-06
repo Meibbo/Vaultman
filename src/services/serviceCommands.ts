@@ -40,6 +40,12 @@ export interface VaultmanCommandHost {
 	 */
 	getActivePanelExplorerApi?(): PanelExplorerImperativeApi | null;
 	/**
+	 * Routes focus to the active workspace panel through the panel-scene
+	 * mediator. Returns false when no mediated panel accepted focus so the
+	 * command can fall back to the legacy explorer API.
+	 */
+	focusActivePanel?(): boolean;
+	/**
 	 * Reveals the Vaultman panel leaf (sidebar or main pane,
 	 * whichever the user configured). Mirrors `VaultmanPlugin.activateView`.
 	 */
@@ -218,8 +224,11 @@ export function registerVaultmanCommands(
 				else await host.activateView();
 				if (host.toggleView && wasOpen) return;
 				revealVaultmanLeaf();
-				const api = host.getActivePanelExplorerApi?.();
-				api?.focusFirstNode();
+				const focused = host.focusActivePanel?.() ?? false;
+				if (!focused) {
+					const api = host.getActivePanelExplorerApi?.();
+					api?.focusFirstNode();
+				}
 			})();
 		},
 	});

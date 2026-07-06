@@ -37,6 +37,7 @@ function createFakeHost(state: FakeHostState): {
 		openViewMenu: ReturnType<typeof vi.fn>;
 		openSortMenu: ReturnType<typeof vi.fn>;
 		openDiffView: ReturnType<typeof vi.fn>;
+		focusActivePanel: ReturnType<typeof vi.fn>;
 		setMode: ReturnType<typeof vi.fn>;
 		expand: ReturnType<typeof vi.fn>;
 		collapse: ReturnType<typeof vi.fn>;
@@ -53,6 +54,7 @@ function createFakeHost(state: FakeHostState): {
 		openViewMenu: vi.fn(),
 		openSortMenu: vi.fn(),
 		openDiffView: vi.fn(),
+		focusActivePanel: vi.fn(() => true),
 		setMode: vi.fn(),
 		expand: vi.fn(),
 		collapse: vi.fn(),
@@ -94,6 +96,7 @@ function createFakeHost(state: FakeHostState): {
 		openViewMenu: calls.openViewMenu,
 		openSortMenu: calls.openSortMenu,
 		openDiffView: calls.openDiffView,
+		focusActivePanel: calls.focusActivePanel,
 	};
 	return { host, calls };
 }
@@ -217,7 +220,48 @@ describe('registerVaultmanCommands', () => {
 
 		expect(calls.toggleView).toHaveBeenCalledTimes(1);
 		expect(calls.activateView).not.toHaveBeenCalled();
+		expect(calls.focusActivePanel).not.toHaveBeenCalled();
 		expect(calls.focusFirstNode).not.toHaveBeenCalled();
+	});
+
+	it('open command focuses the active workspace panel after opening Vaultman', async () => {
+		const { plugin } = createFakePlugin();
+		const { host, calls } = createFakeHost({
+			hasLeaf: false,
+			queueEmpty: false,
+			hasFnRService: true,
+			hasPanelApi: true,
+		});
+		const commands = registerVaultmanCommands(plugin as never, host);
+		const cmd = findCommand(commands, 'open');
+
+		cmd.callback?.();
+		await Promise.resolve();
+		await Promise.resolve();
+
+		expect(calls.toggleView).toHaveBeenCalledTimes(1);
+		expect(calls.focusActivePanel).toHaveBeenCalledTimes(1);
+		expect(calls.focusFirstNode).not.toHaveBeenCalled();
+	});
+
+	it('open command falls back to the legacy panel API when the input router cannot focus', async () => {
+		const { plugin } = createFakePlugin();
+		const { host, calls } = createFakeHost({
+			hasLeaf: false,
+			queueEmpty: false,
+			hasFnRService: true,
+			hasPanelApi: true,
+		});
+		calls.focusActivePanel.mockReturnValue(false);
+		const commands = registerVaultmanCommands(plugin as never, host);
+		const cmd = findCommand(commands, 'open');
+
+		cmd.callback?.();
+		await Promise.resolve();
+		await Promise.resolve();
+
+		expect(calls.focusActivePanel).toHaveBeenCalledTimes(1);
+		expect(calls.focusFirstNode).toHaveBeenCalledTimes(1);
 	});
 
 	it('open-find-replace-active-explorer collapses an already open replace island', async () => {
