@@ -5,6 +5,7 @@
 	import type { DndDropResult } from '../../services/serviceDnd';
 	import type { ThemeService } from '../../services/serviceTheme.svelte';
 	import type { ViewSizePresetId } from '../../services/serviceViewSize';
+	import { viewModeToConfig } from '../../logic/logicViewAddressing';
 	import { ViewHostService } from '../../services/serviceViewHost.svelte';
 	import { createVariableProviderRegistry } from '../../services/serviceSharedVirtualLayout';
 	import {
@@ -113,6 +114,7 @@
 	const service =
 		inheritedService ?? new ViewHostService({ preset, mountContext, initialViewMode: viewMode });
 	const renderedViewMode = $derived(service.viewMode);
+	const renderedViewAddress = $derived(viewModeToConfig(renderedViewMode));
 	const gridPath = $derived(rest.gridPath ?? rest.currentGridPath ?? []);
 
 	setContext<ViewHostContextValue>(VIEW_HOST_KEY, service);
@@ -149,7 +151,7 @@
 	});
 </script>
 
-{#if renderedViewMode === 'tree'}
+{#if renderedViewAddress?.engine === 'Linear' && renderedViewAddress.mode === 'indent'}
 	<ViewTree
 		nodes={rest.nodes ?? []}
 		rowInputs={rest.rowInputs}
@@ -179,7 +181,7 @@
 		themeService={rest.themeService}
 		icon={rest.icon}
 	/>
-{:else if renderedViewMode === 'list'}
+{:else if renderedViewAddress?.engine === 'Linear' && renderedViewAddress.mode === 'flat'}
 	<ViewNodeList
 		rowInputs={rest.listRowInputs}
 		projection={rest.listProjection}
@@ -193,7 +195,7 @@
 		onContextMenu={rest.onContextMenu}
 		icon={rest.icon}
 	/>
-{:else if renderedViewMode === 'table'}
+{:else if renderedViewAddress?.engine === 'Geometry' && renderedViewAddress.mode === 'table'}
 	<ViewNodeTable
 		rows={(rest.tableRows ?? []) as never}
 		columns={(rest.tableColumns ?? []) as never}
@@ -216,7 +218,7 @@
 		visibleFields={rest.visibleFields}
 		icon={rest.icon}
 	/>
-{:else if renderedViewMode === 'grid'}
+{:else if renderedViewAddress?.engine === 'Geometry' && renderedViewAddress.mode === 'grid'}
 	{#if rest.gridHierarchyMode === 'folder'}
 		<GridNavigationToolbar
 			path={gridPath}
@@ -264,7 +266,7 @@
 		themeService={rest.themeService}
 		icon={rest.icon}
 	/>
-{:else if renderedViewMode === 'cards'}
+{:else if renderedViewAddress?.engine === 'Geometry' && renderedViewAddress.mode === 'cards'}
 	<ViewNodeCards
 		providerId={rest.providerId ?? 'nodes'}
 		nodes={rest.cardNodes ?? []}
