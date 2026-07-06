@@ -56,6 +56,11 @@ import { NodeBindingService } from './services/serviceNodeBinding';
 import { NativeSurfaceBindingService } from './services/serviceNativeSurfaceBinding';
 import { resolveLayoutSettings } from './services/serviceLayout';
 import { ThemeService } from './services/serviceTheme.svelte';
+import { PlatformAdapterRegistry } from './platform/fragilityRegistry';
+import { BasesMultiSelectAdapter } from './platform/adapters/basesMultiSelectAdapter';
+import { FileMenuDelegationAdapter } from './platform/adapters/fileMenuDelegationAdapter';
+import { NativeBindingAdapter } from './platform/adapters/nativeBindingAdapter';
+import { NativeSearchAdapter } from './platform/adapters/nativeSearchAdapter';
 import { normalizeElasticUiSettings } from './types/typeElasticUi';
 import { ALL_TAB_IDS, viewTypeFor, type TabId } from './registry/tabRegistry';
 import { VaultmanTabLeafView } from './types/typeTabLeaf';
@@ -119,6 +124,7 @@ export class VaultmanPlugin extends Plugin {
 	/** Binding-note resolver (phase 7, multifacet wave 2). */
 	nodeBindingService!: NodeBindingService;
 	nativeSurfaceBindingService!: NativeSurfaceBindingService;
+	platformAdapterRegistry!: PlatformAdapterRegistry;
 
 	/**
 	 * Frame-level registries populated by mounted Svelte components so
@@ -236,13 +242,41 @@ export class VaultmanPlugin extends Plugin {
 			app: this.app,
 			bindingService: this.nodeBindingService,
 		});
+		this.platformAdapterRegistry = new PlatformAdapterRegistry()
+			.add(new NativeSearchAdapter())
+			.add(
+				new NativeBindingAdapter({
+					routes: {
+						bindNativeTarget: async (target) => {
+							await this.nodeBindingService.bindOrCreate(target.node);
+						},
+						openNodeAlias: (alias) => this.openBindingNoteForAlias(alias),
+					},
+				}),
+			)
+			.add(
+				new FileMenuDelegationAdapter({
+					delegateFileMenu: (menu, file, source) =>
+						this.contextMenuService.delegateFileMenu(menu, file, source),
+				}),
+			)
+			.add(
+				new BasesMultiSelectAdapter({
+					propertyIndex: this.propertyIndex,
+					enqueue: (change) => this.queueService.add(change),
+				}),
+			);
 
 		this.addChild(this.propertyIndex);
 		this.addChild(this.queueService);
 		this.addChild(this.iconicService);
 		this.addChild(this.propertyTypeService);
-		this.addChild(this.contextMenuService);
-		this.addChild(this.nativeSurfaceBindingService);
+		this.addChild(this.platformAdapterRegistry);
+		await this.platformAdapterRegistry.activate({
+			app: this.app,
+			plugin: this,
+			doc: activeDocument,
+		});
 
 		this.registerEvent(
 			this.app.metadataCache.on('resolved', () => {
@@ -350,6 +384,37 @@ export class VaultmanPlugin extends Plugin {
 		const viewType = viewTypeFor(tabId);
 		const leaves = this.app.workspace.getLeavesOfType(viewType);
 		for (const leaf of leaves) leaf.detach();
+	}
+
+	private async openBindingNoteForAlias(alias: string): Promise<void> {
+		const token = alias.trim();
+		if (!token) return;
+		if (token.startsWith('#')) {
+			const tagPath = token.slice(1);
+			await this.nodeBindingService.bindOrCreate({
+				kind: 'tag',
+				label: tagPath,
+				tagPath,
+			});
+			return;
+		}
+		if (token.startsWith('$')) {
+			await this.nodeBindingService.bindOrCreate({
+				kind: 'snippet',
+				label: token.slice(1),
+			});
+			return;
+		}
+		if (token.startsWith('%')) {
+			const pluginId = token.slice(1);
+			await this.nodeBindingService.bindOrCreate({
+				kind: 'plugin',
+				label: pluginId,
+				pluginId,
+			});
+			return;
+		}
+		await this.nodeBindingService.bindOrCreate({ kind: 'value', label: token });
 	}
 
 	onunload(): void {
