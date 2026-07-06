@@ -5,7 +5,7 @@ status: active
 parent: "[[docs/work/pkm-ai/index|pkm-ai]]"
 archive_source: docs/archive/pkm-ai/active-docs/2026-05-11T080321-current-handoff.md
 created: 2026-05-04T01:36:20
-updated: 2026-06-07T08:11:13-05:00
+updated: 2026-07-06T12:25:00-05:00
 tags:
   - agent/current
 created_by: dec
@@ -16,6 +16,45 @@ updated_by: codex-gpt-5
 
 Compact handoff after archiving the oversized current handoff:
 [[docs/archive/pkm-ai/active-docs/2026-05-11T080321-current-handoff|2026-05-11 handoff archive]].
+
+## NEXT AGENT START HERE — P.D checkpoint after Thread B + Codex lanes landed (2026-07-06)
+
+**Current commit:** `origin/sandbox` = `7107b1a` (`chore(deps): patch Dependabot advisories`).
+Do not use the main checkout if it is still behind or dirty; create a fresh worktree from
+`origin/sandbox`.
+
+**What just closed.**
+- **V.D Geometry + Thread B closed:** table/grid/cards are on the shared render-runtime and
+  `ViewHost` dispatches by resolved `(engine,mode)` instead of the flat branch mechanism.
+- **PA closed through slice 5:** `PlatformAdapterRegistry` is wired in `main.ts`; adapters are
+  native-search, native-binding, file-menu delegation, and Bases multi-select; mobile inventory
+  exists under `src/platform/`.
+- **Parallel cleanup closed:** glossary canon aligned, legacy shims collapsed, and deps landed last
+  after lockfile-safe rebase.
+- **Verification summary:** integrated headless gates passed; B2 STRICT gates on all 5 views had
+  blank/flicker zero; deps audit has 0 high/0 moderate and 1 low dev residual
+  (`GHSA-73rr-hh4g-fpgx`, `diff` via `mocha`, needs major transitive).
+
+**Next spine node:** **P.D panel/scene decomposition** (N3/MyWorkspace tracer). Source plan:
+[[docs/work/hardening/plans/2026-07-06-pd-panel-scene-decomposition/index|P.D panel/scene decomposition kickoff]].
+
+**Read first for P.D:**
+- [[docs/architecture/explorer-model/03-surfaces-and-interaction|Explorer Model 03 — Surfaces + Interaction]]
+- [[docs/architecture/explorer-model/04-panels-axons-mutation-layout|Explorer Model 04 — Panel kinds / axons / mutation / layout]]
+- [[docs/work/hardening/specs/2026-06-10-vaultman-2-0-synthesis-umbrella/03-dependency-pyramid-and-gates|N0-N4 pyramid]]
+- [[docs/work/hardening/specs/2026-06-10-vaultman-2-0-synthesis-umbrella/01-locked-decisions-grill|Locked decisions D1-D9 + D-C-8]]
+
+**Implementation stance:** first slice is a tracer, not a UI rewrite. Define typed P.D seams
+(`PanelHandle`, `SceneDefinition`, `WorkspaceMediator`, `InteractionPolicy`, `InputRouter` bridge)
+and adapt the existing Filters `panelExplorer` through them while preserving visual/behavioral parity.
+Defer WSA/free-canvas/tile editing, `panelData`, `panelContent`, scene persistence, and PSS integration.
+
+**Residual decisions/watch items before beta promotion:**
+- P112 reconcile against current V.D migration.
+- PAI-003 icon picker remains HITL.
+- Optional idle-machine rerun for the historical cards 37s outlier; latest B2 integrated cards gate
+  was clean (p95/p99/max 32/45/49ms).
+- Main branch must remain zero-AI-files.
 
 ## NEXT AGENT START HERE — V.D thread A slice 1 DONE → slice 2 Geometry (2026-06-19)
 

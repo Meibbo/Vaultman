@@ -5,7 +5,7 @@ status: active
 parent: "[[docs/work/pkm-ai/index|pkm-ai]]"
 archive_source: docs/archive/pkm-ai/active-docs/2026-05-11T080321-current-status.md
 created: 2026-05-04T01:36:20
-updated: 2026-06-07T08:11:13-05:00
+updated: 2026-07-06T12:25:00-05:00
 tags:
   - agent/current
 created_by: dec
@@ -29,6 +29,16 @@ Compact route index after archiving the oversized current status:
 ## Current Route
 
 - Active initiative: [[docs/work/hardening/index|Hardening]].
+- **LATEST (2026-07-06 checkpoint)**: `origin/sandbox` = `7107b1a`. The Thread-B/Codex
+  lane train is landed: B2 `ViewHost` now dispatches by resolved `(engine,mode)`; PA-5 wires
+  `PlatformAdapterRegistry` in `main.ts` with 4 adapters + mobile inventory; glossary canon is
+  aligned; shim collapse removed `logicsFiles`/`utilViewLayers`/`utilBadgeBubbling`; deps lane
+  fixed all high/moderate audit findings (1 low dev residual in `diff` via `mocha`, major
+  transitive required). Headless gates for the integrated train passed; B2 STRICT gates for all
+  5 views passed with blank/flicker zero; PA5 smoke was explicitly skipped by dev after manual
+  Obsidian validation. **Current spine position: V.D + Thread B are closed; next = P.D
+  panel/scene decomposition (N3/MyWorkspace tracer)**. New route plan:
+  [[docs/work/hardening/plans/2026-07-06-pd-panel-scene-decomposition/index|P.D panel/scene decomposition kickoff]].
 - **LATEST (2026-07-05, parallel handoff)**: sandbox `290a123`. **PA-3 + PA-4 integrados** (4 adapters
   reales en `src/platform/adapters/`; PA-5 wiring pendiente). **Thread B B1 done** (`87b4732`, canon
   types). **Plan de ejecución paralela para Codex** →
