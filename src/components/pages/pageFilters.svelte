@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { setContext, untrack } from 'svelte';
+	import { getContext, setContext, untrack } from 'svelte';
 	import type { VaultmanPlugin } from '../../main';
 	// TODO: por quÃ© importo los tabs y los explorer?
 	import FiltersPropsTab from './tabProps.svelte';
@@ -29,6 +29,7 @@
 	import type {
 		ExplorerExpansionCommand,
 		ExplorerExpansionSummary,
+		PanelExplorerImperativeApi,
 		ExplorerSortTarget,
 	} from '../../types/typeExplorer';
 	import { isExplorerViewMode, type ExplorerViewMode } from '../../types/typeViews';
@@ -36,6 +37,11 @@
 	import type { BasesImportTarget } from '../../types/typeBasesInterop';
 	import { PRESET_VAULTMAN } from '../../config/themePresetsBuiltin';
 	import { ViewHostService } from '../../services/serviceViewHost.svelte';
+	import { createPanelExplorerHandle } from '../../services/servicePanelHandle';
+	import {
+		WORKSPACE_MEDIATOR_KEY,
+		type WorkspaceMediatorService,
+	} from '../../services/serviceWorkspaceMediator.svelte';
 	import { VIEW_HOST_KEY } from '../explorer/viewHostContext';
 	import {
 		addFiltersSearchHistory,
@@ -71,6 +77,11 @@
 		openSortMenu: () => void;
 	};
 	type ToolbarFiltersTab = Exclude<FiltersSearchTab, 'outline'>;
+
+	const FILTERS_SURFACE_ID = 'surface:filters';
+	const FILTERS_SCENE_ID = 'scene:filters';
+	const FILTERS_PANEL_ID = 'panel:filters';
+	const FILTERS_TILE_ID = 'tile:filters-root';
 
 	let {
 		plugin,
@@ -158,6 +169,7 @@
 		mountContext: 'panel',
 		initialViewMode: normalizeExplorerViewMode(filtersViewMode),
 	});
+	const workspaceMediator = getContext<WorkspaceMediatorService | undefined>(WORKSPACE_MEDIATOR_KEY);
 
 	setContext(VIEW_HOST_KEY, viewHostService);
 
@@ -205,6 +217,36 @@
 	$effect(() => {
 		const next = viewHostService.viewMode;
 		if (untrack(() => filtersViewMode) !== next) filtersViewMode = next;
+	});
+
+	$effect(() => {
+		if (!workspaceMediator) return;
+		const panelHandle = createPanelExplorerHandle({
+			id: FILTERS_PANEL_ID,
+			providerId: providerIdForTab(filtersActiveTab),
+			focus: () =>
+				(
+					plugin as VaultmanPlugin & {
+						activePanelExplorerApi?: PanelExplorerImperativeApi | null;
+					}
+				).activePanelExplorerApi?.focusFirstNode() ?? false,
+		});
+		const unregisterScene = workspaceMediator.registerScene({
+			id: FILTERS_SCENE_ID,
+			surfaceId: FILTERS_SURFACE_ID,
+			rootTile: { id: FILTERS_TILE_ID, kind: 'panel', panelId: FILTERS_PANEL_ID },
+			activePanelId: FILTERS_PANEL_ID,
+		});
+		const unregisterPanel = workspaceMediator.registerPanel(panelHandle);
+		workspaceMediator.setActiveContext({
+			surfaceId: FILTERS_SURFACE_ID,
+			sceneId: FILTERS_SCENE_ID,
+			panelId: FILTERS_PANEL_ID,
+		});
+		return () => {
+			unregisterPanel();
+			unregisterScene();
+		};
 	});
 
 	// Panel-scoped FnR island service. Single instance per page so the
