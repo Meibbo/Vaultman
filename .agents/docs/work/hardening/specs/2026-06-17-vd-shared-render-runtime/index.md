@@ -241,8 +241,23 @@ each view's own placement wrapper. Grid recovery: subagent crashed mid-slice, ph
 worktree (svelte-check 0/0, deletions proven). Cards recovery: Sonnet crashed `FailedToOpenSocket`
 before commit; migration recovered, 5 other-view snapshots were EOL-only noise (reverted).
 **➡ GEOMETRY ENGINE ADOPTION COMPLETE (table + grid + cards on the shared runtime).**
-**NEXT = thread B:** ViewHost switches on resolved `(engine,mode)` from ViewConfig (D-C-8), retire
-the flat `ExplorerViewMode` enum. Then P.D (panel/scene, N3). Masonry deferred (no `ViewNodeMasonry`).
+**Thread B (view-addressing) — slices:**
+- ✅ **B1 canon types alignment (2026-07-05, sandbox `87b4732`):** `typeViewConfig` engine/mode canon
+  fixed to ADR 0012 — engines `Linear/Geometry/Canvas/Charts` (Table→Geometry mode; Charts placeholder),
+  Linear modes `flat/indent/cascade/detail`, Geometry modes `grid/cards/masonry/table` (group-box out).
+  Updated `ENGINE_DEFAULT_MODE`/`ENGINE_MODES`/`ENGINE_CAPABILITIES`/`DEFAULT_VIEW_CONFIG`. Blast radius =
+  the tracer's own test (only consumer; not yet wired into render). svelte-check 0/0 · 32/32.
+  **Deferred (documented in-file, later B slice):** richer axes — orientation-semantics, `direction`,
+  `child_global_direction`, viewScope-4 (05-view-canon §Axes); B1 kept legacy orientation=h/v.
+- **B2 (NEXT) — ViewHost switches on resolved `(engine,mode)`:** a pure `ExplorerViewMode`↔`(engine,mode)`
+  bridge (render-plane flat enum ↔ addressing-plane ViewConfig), ViewHost renders off the resolved pair
+  instead of the flat `{#if renderedViewMode === 'tree'}` switch. Flat enum kept as external interface
+  (24 caller files untouched); progressive caller migration = B3+. This is the D-C-8 tracer that stops
+  the enum growing when new views (masonry/miller/charts) are added.
+- **B-later — axis adoption + progressive enum retirement.** Then P.D (panel/scene, N3).
+- **Canonical-homes follow-up (flagged, not done):** glossary L129-130 + dev-glossary L82 still carry the
+  stale `Linear/Geometry/Table/Canvas` — align to 05-view-canon in a docs pass. Masonry has no
+  `ViewNodeMasonry` view yet (canon mode only).
 
 **Slice 2b locks (dev 2026-07-03 "ok recomendaciones"):**
 - **D-2b-1 — Full migration (Option B).** Each adopting view migrates its row-chunking onto
