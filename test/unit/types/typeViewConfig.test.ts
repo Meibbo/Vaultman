@@ -24,34 +24,37 @@ import type {
 } from '../../../src/types/typeViewConfig';
 
 describe('typeViewConfig — axes + engine-naming MAP', () => {
-	it('engines are exactly the glossary canon (Linear/Geometry/Table/Canvas)', () => {
-		expect([...VIEW_ENGINES]).toEqual(['Linear', 'Geometry', 'Table', 'Canvas']);
+	it('engines are exactly the LOCKED canon (Linear/Geometry/Canvas/Charts — ADR 0012)', () => {
+		expect([...VIEW_ENGINES]).toEqual(['Linear', 'Geometry', 'Canvas', 'Charts']);
 	});
 
-	it('orientation is reduced to horizontal | vertical (proto rich values are modes)', () => {
+	it('Table is NOT an engine (folded into Geometry as a mode, D-VD-2)', () => {
+		expect(VIEW_ENGINES as readonly string[]).not.toContain('Table');
+	});
+
+	it('orientation axis (legacy h/v; canon direction-split deferred to the axis slice)', () => {
 		expect([...VIEW_ORIENTATIONS]).toEqual(['horizontal', 'vertical']);
 	});
 
-	it('viewScope axis = off | per-level | per-parent', () => {
+	it('viewScope axis = off | per-level | per-parent (canon 4-value set deferred)', () => {
 		expect([...VIEW_SCOPES]).toEqual(['off', 'per-level', 'per-parent']);
 	});
 
-	it('does NOT expose a `matrix` engine (reserved word, decided later by dev)', () => {
+	it('does NOT expose a `matrix` engine (proto matrix = a Geometry sub-style)', () => {
 		expect(VIEW_ENGINES as readonly string[]).not.toContain('matrix');
 	});
 
-	it('Linear modes map proto lineal (tree/flat-list/miller)', () => {
-		expect([...ENGINE_MODES.Linear]).toEqual(['tree-indent', 'flat-list', 'miller']);
+	it('Linear modes = flat/indent/cascade/detail (canon 05; indent=tree, cascade=miller base)', () => {
+		expect([...ENGINE_MODES.Linear]).toEqual(['flat', 'indent', 'cascade', 'detail']);
 	});
 
-	it('Geometry modes map proto grid (grid/cards/group-box)', () => {
-		expect([...ENGINE_MODES.Geometry]).toEqual(['grid', 'cards', 'group-box']);
+	it('Geometry modes = grid/cards/masonry/table (group-box removed, table folded in)', () => {
+		expect([...ENGINE_MODES.Geometry]).toEqual(['grid', 'cards', 'masonry', 'table']);
+		expect(ENGINE_MODES.Geometry as readonly string[]).not.toContain('group-box');
 	});
 
-	it('Table mode = column (proto matrix-engine table; chart/form deferred, absent)', () => {
-		expect([...ENGINE_MODES.Table]).toEqual(['column']);
-		expect(ENGINE_MODES.Table as readonly string[]).not.toContain('chart');
-		expect(ENGINE_MODES.Table as readonly string[]).not.toContain('form');
+	it('Charts mode = chart (canary placeholder; renderer deferred N4)', () => {
+		expect([...ENGINE_MODES.Charts]).toEqual(['chart']);
 	});
 
 	it('every engine has a default mode that is valid for that engine', () => {
@@ -62,15 +65,15 @@ describe('typeViewConfig — axes + engine-naming MAP', () => {
 
 	it('isModeForEngine rejects a cross-engine mode', () => {
 		expect(isModeForEngine('Linear', 'grid')).toBe(false);
-		expect(isModeForEngine('Geometry', 'tree-indent')).toBe(false);
+		expect(isModeForEngine('Geometry', 'indent')).toBe(false);
 	});
 });
 
 describe('typeViewConfig — centralized defaults', () => {
-	it('DEFAULT_VIEW_CONFIG is the single source: Linear/tree-indent/vertical/off', () => {
+	it('DEFAULT_VIEW_CONFIG is the single source: Linear/indent/vertical/off', () => {
 		expect(DEFAULT_VIEW_CONFIG).toEqual({
 			engine: 'Linear',
-			mode: 'tree-indent',
+			mode: 'indent',
 			orientation: 'vertical',
 			viewScope: 'off',
 		});
@@ -81,8 +84,8 @@ describe('typeViewConfig — centralized defaults', () => {
 	});
 
 	it('resolving against an empty cascade equals resolving with no cascade', () => {
-		expect(resolveViewConfig({ mode: 'miller' }, EMPTY_CASCADE)).toEqual(
-			resolveViewConfig({ mode: 'miller' }),
+		expect(resolveViewConfig({ mode: 'cascade' }, EMPTY_CASCADE)).toEqual(
+			resolveViewConfig({ mode: 'cascade' }),
 		);
 	});
 });
@@ -92,14 +95,14 @@ describe('typeViewConfig — sparse merge by scope (D-PSS-1 cascade)', () => {
 		const cascade: CascadeContext = {
 			layers: [
 				{ orientation: 'horizontal' }, // outermost (workspace)
-				{ orientation: 'vertical', mode: 'flat-list' }, // innermost (panel) wins on orientation
+				{ orientation: 'vertical', mode: 'flat' }, // innermost (panel) wins on orientation
 			],
 		};
 		const resolved = resolveViewConfig({ viewScope: 'off' }, cascade);
 		// orientation: innermost layer (vertical) wins over outer (horizontal)
 		expect(resolved.orientation).toBe('vertical');
 		// mode: from innermost layer
-		expect(resolved.mode).toBe('flat-list');
+		expect(resolved.mode).toBe('flat');
 		// engine: nobody asserted → default
 		expect(resolved.engine).toBe('Linear');
 	});
@@ -142,7 +145,7 @@ describe('typeViewConfig — absolute vs relative bindings ("miller")', () => {
 			label: 'Miller (absolute)',
 			payload: {
 				engine: 'Linear',
-				mode: 'miller',
+				mode: 'cascade',
 				orientation: 'horizontal',
 				viewScope: 'off',
 			},
@@ -151,7 +154,7 @@ describe('typeViewConfig — absolute vs relative bindings ("miller")', () => {
 		const resolved = resolveBinding(millerAbsolute, cascade);
 		expect(resolved).toEqual({
 			engine: 'Linear',
-			mode: 'miller',
+			mode: 'cascade',
 			orientation: 'horizontal',
 			viewScope: 'off',
 		});
@@ -161,7 +164,7 @@ describe('typeViewConfig — absolute vs relative bindings ("miller")', () => {
 		const millerRelative: ViewBinding = {
 			id: 'miller-relative',
 			label: 'Make it miller',
-			payload: { mode: 'miller' }, // only asserts mode
+			payload: { mode: 'cascade' }, // only asserts mode
 			surfaces: ['hotkey'],
 		};
 		const resolved = resolveBinding(millerRelative, cascade);
@@ -180,11 +183,11 @@ describe('typeViewConfig — absolute vs relative bindings ("miller")', () => {
 			surfaces: ['axis-selector'],
 		};
 		const verticalCascade: CascadeContext = {
-			layers: [{ engine: 'Linear', mode: 'tree-indent', orientation: 'vertical' }],
+			layers: [{ engine: 'Linear', mode: 'indent', orientation: 'vertical' }],
 		};
 		const resolved = resolveBinding(goHorizontal, verticalCascade);
 		expect(resolved.engine).toBe('Linear');
-		expect(resolved.mode).toBe('tree-indent');
+		expect(resolved.mode).toBe('indent');
 		expect(resolved.orientation).toBe('horizontal');
 	});
 });
@@ -193,14 +196,14 @@ describe('typeViewConfig — normalize round-trip (reflexive active-state key)',
 	it('normalize is stable regardless of property insertion order', () => {
 		const a: ViewConfig = {
 			engine: 'Linear',
-			mode: 'miller',
+			mode: 'cascade',
 			orientation: 'horizontal',
 			viewScope: 'off',
 		};
 		const b: ViewConfig = {
 			viewScope: 'off',
 			orientation: 'horizontal',
-			mode: 'miller',
+			mode: 'cascade',
 			engine: 'Linear',
 		} as ViewConfig;
 		expect(normalizeViewConfig(a)).toBe(normalizeViewConfig(b));
@@ -213,7 +216,7 @@ describe('typeViewConfig — normalize round-trip (reflexive active-state key)',
 			label: 'Linear · miller · horizontal',
 			payload: {
 				engine: 'Linear',
-				mode: 'miller',
+				mode: 'cascade',
 				orientation: 'horizontal',
 				viewScope: 'off',
 			},
@@ -224,7 +227,7 @@ describe('typeViewConfig — normalize round-trip (reflexive active-state key)',
 		const b2: ViewBinding = {
 			id: 'flat-miller',
 			label: 'Miller columns',
-			payload: { engine: 'Linear', mode: 'miller', orientation: 'horizontal' },
+			payload: { engine: 'Linear', mode: 'cascade', orientation: 'horizontal' },
 			surfaces: ['flat-list'],
 		};
 		const k1 = normalizeViewConfig(resolveBinding(b1));
@@ -234,7 +237,7 @@ describe('typeViewConfig — normalize round-trip (reflexive active-state key)',
 	});
 
 	it('distinct views normalize to distinct keys', () => {
-		const tree = resolveViewConfig({ engine: 'Linear', mode: 'tree-indent' });
+		const tree = resolveViewConfig({ engine: 'Linear', mode: 'indent' });
 		const grid = resolveViewConfig({ engine: 'Geometry', mode: 'grid' });
 		expect(normalizeViewConfig(tree)).not.toBe(normalizeViewConfig(grid));
 	});
@@ -255,16 +258,16 @@ describe('typeViewConfig — normalize round-trip (reflexive active-state key)',
 });
 
 describe('typeViewConfig — capability matrix (conflict #4: proto promises > renders)', () => {
-	it('only Linear/tree-indent resolves scoped-view overrides', () => {
-		expect(capabilityOf({ engine: 'Linear', mode: 'tree-indent' })).toEqual({
+	it('only Linear/indent resolves scoped-view overrides', () => {
+		expect(capabilityOf({ engine: 'Linear', mode: 'indent' })).toEqual({
 			levelViews: true,
 			parentViews: true,
 			renderEmbedded: true,
 		});
 	});
 
-	it('Linear/flat-list and miller do NOT honor scoped overrides', () => {
-		for (const mode of ['flat-list', 'miller'] as const) {
+	it('Linear/flat, cascade, detail do NOT honor scoped overrides', () => {
+		for (const mode of ['flat', 'cascade', 'detail'] as const) {
 			expect(capabilityOf({ engine: 'Linear', mode })).toEqual({
 				levelViews: false,
 				parentViews: false,
@@ -273,12 +276,14 @@ describe('typeViewConfig — capability matrix (conflict #4: proto promises > re
 		}
 	});
 
-	it('no Geometry/Table/Canvas mode honors scoped overrides', () => {
+	it('no Geometry/Canvas/Charts mode honors scoped overrides', () => {
 		const cases = [
 			{ engine: 'Geometry', mode: 'grid' },
 			{ engine: 'Geometry', mode: 'cards' },
-			{ engine: 'Table', mode: 'column' },
+			{ engine: 'Geometry', mode: 'masonry' },
+			{ engine: 'Geometry', mode: 'table' },
 			{ engine: 'Canvas', mode: 'mindmap' },
+			{ engine: 'Charts', mode: 'chart' },
 		] as const;
 		for (const c of cases) {
 			const cap = capabilityOf(c);
@@ -289,7 +294,7 @@ describe('typeViewConfig — capability matrix (conflict #4: proto promises > re
 	it('isViewScopeSupported: off always ok; per-level/per-parent gated by capability', () => {
 		const treeScoped: ViewConfig = {
 			engine: 'Linear',
-			mode: 'tree-indent',
+			mode: 'indent',
 			orientation: 'vertical',
 			viewScope: 'per-level',
 		};
@@ -332,7 +337,7 @@ describe('typeViewConfig — .scene serialization parity (D-PSS-4)', () => {
 	it('round-trips through serialize → resolve → normalize unchanged', () => {
 		const cfg = resolveViewConfig({
 			engine: 'Linear',
-			mode: 'miller',
+			mode: 'cascade',
 			orientation: 'horizontal',
 		});
 		const serialized = serializeViewConfig(cfg);

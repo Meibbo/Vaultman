@@ -44,24 +44,28 @@
 // ─────────────────────────────────────────────────────────────────────────────
 
 /**
- * Render engine = reusable layout-renderer family. Canon (glossary): Linear /
- * Geometry / Table / Canvas.
+ * Render engine = reusable layout-renderer family. Canon (ADR 0012 / 05-view-canon,
+ * NOW-tier LOCKED grill 2026-06-17/18): **Linear / Geometry / Canvas / Charts**.
  *
- * ENGINE-NAMING MAP (ledger C-12, conflicts #1/#2/#3 — proto v12 → this canon):
- * | Proto v12 engine          | Canon    | Notes                                          |
- * |---------------------------|----------|------------------------------------------------|
- * | `lineal`                  | Linear   | ordered/hierarchical reading                   |
- * | `grid`                    | Geometry | visual scanning (proto's `matrix` *mode* = a   |
- * |                           |          | dense-grid sub-style, NOT this engine)         |
- * | `matrix` (table/chart/form)| Table   | table→Table; chart/form = reserved Table modes,|
- * |                           |          | DEFERRED (ledger 09 §8.4) — type leaves room   |
- * | `canvas`                  | Canvas   | relationship/spatial exploration               |
+ * ENGINE CANON (ledger C-12 + ADR 0012 — supersedes the earlier tracer's
+ * `Linear/Geometry/Table/Canvas`, which wrongly promoted Table to an engine):
+ * | Engine    | Regime      | Notes                                                      |
+ * |-----------|-------------|------------------------------------------------------------|
+ * | `Linear`  | slot        | 1D ordered/hierarchical stack; fixed-height; shared runtime |
+ * | `Geometry`| slot        | 2D positional cells; variable-height+lanes; **Table = a    |
+ * |           |             | MODE here, not an engine** (Bases column layout)           |
+ * | `Canvas`  | coordinates | free spatial + edges; separate runtime — DEFERRED N4       |
+ * | `Charts`  | —           | scales/axes/marks (LayerChart) — canary placeholder, N4    |
  *
- * `matrix` is intentionally NOT an engine in the canon: it is a reserved word whose
- * fate (absorb into Table-transpose, or a future engine) is the dev's final call in
- * V.D. The union below leaves no `matrix` member so callers cannot depend on it yet.
+ * `Table` is intentionally NOT an engine: it folded into Geometry as a mode (D-VD-2,
+ * repo evidence: ViewNodeGrid/Table/Cards already share the Geometry variable runtime).
+ * `Charts` is a canary placeholder (sandbox tolerates placeholder union members; stable=0;
+ * no renderer until N4). Deferred axes (orientation-semantics, direction,
+ * child_global_direction, viewScope-4) are NOT in this types slice — see 05-view-canon
+ * §Axes; this file keeps the legacy orientation=h/v + viewScope=off/level/parent until the
+ * axis-adoption slice. `matrix` remains absent (proto `matrix` = a Geometry sub-style).
  */
-export const VIEW_ENGINES = ['Linear', 'Geometry', 'Table', 'Canvas'] as const;
+export const VIEW_ENGINES = ['Linear', 'Geometry', 'Canvas', 'Charts'] as const;
 export type ViewEngine = (typeof VIEW_ENGINES)[number];
 
 /**
@@ -72,33 +76,39 @@ export type ViewEngine = (typeof VIEW_ENGINES)[number];
  * and proto modes flat-list/tiles/accordion are MODES or sub-modes here, NOT
  * `orientation` (the glossary reduces orientation to horizontal|vertical).
  */
-export const LINEAR_MODES = ['tree-indent', 'flat-list', 'miller'] as const;
-export const GEOMETRY_MODES = ['grid', 'cards', 'group-box'] as const;
-export const TABLE_MODES = ['column'] as const;
+// Modes per engine (05-view-canon LOCKED). Linear: flat/indent/cascade/detail
+// (indent=tree-indent · flat=flat-list · cascade=miller's column-per-level base ·
+// detail=NN master-detail). Geometry: grid/cards/masonry/table (group-box REMOVED =
+// a viewBuilder+viewScope composition, not a primitive; masonry + table ADDED).
+// Charts: `chart` placeholder. Named views like "miller"/"tree" are BINDINGS over a
+// (engine,mode) pair, not modes themselves.
+export const LINEAR_MODES = ['flat', 'indent', 'cascade', 'detail'] as const;
+export const GEOMETRY_MODES = ['grid', 'cards', 'masonry', 'table'] as const;
 export const CANVAS_MODES = ['mindmap', 'graph'] as const;
+export const CHARTS_MODES = ['chart'] as const;
 
 export type LinearMode = (typeof LINEAR_MODES)[number];
 export type GeometryMode = (typeof GEOMETRY_MODES)[number];
-export type TableMode = (typeof TABLE_MODES)[number];
 export type CanvasMode = (typeof CANVAS_MODES)[number];
+export type ChartsMode = (typeof CHARTS_MODES)[number];
 
 /** All modes across all engines (loose union; pair validity is enforced separately). */
-export type ViewMode = LinearMode | GeometryMode | TableMode | CanvasMode;
+export type ViewMode = LinearMode | GeometryMode | CanvasMode | ChartsMode;
 
 /** The canonical default mode for each engine (used when a binding fixes only `engine`). */
 export const ENGINE_DEFAULT_MODE: { readonly [E in ViewEngine]: ViewMode } = {
-	Linear: 'tree-indent',
+	Linear: 'indent',
 	Geometry: 'grid',
-	Table: 'column',
 	Canvas: 'mindmap',
+	Charts: 'chart',
 } as const;
 
 /** Valid modes for a given engine, as a runtime-checkable set. */
 export const ENGINE_MODES: { readonly [E in ViewEngine]: readonly ViewMode[] } = {
 	Linear: LINEAR_MODES,
 	Geometry: GEOMETRY_MODES,
-	Table: TABLE_MODES,
 	Canvas: CANVAS_MODES,
+	Charts: CHARTS_MODES,
 } as const;
 
 export function isModeForEngine(engine: ViewEngine, mode: ViewMode): boolean {
@@ -181,7 +191,7 @@ export interface ViewConfig {
  */
 export const DEFAULT_VIEW_CONFIG: ViewConfig = {
 	engine: 'Linear',
-	mode: 'tree-indent',
+	mode: 'indent',
 	orientation: 'vertical',
 	viewScope: 'off',
 } as const;
@@ -217,30 +227,32 @@ const FULL_SCOPED_SUPPORT: EngineModeCapability = {
 } as const;
 
 /**
- * Capability matrix keyed by engine then mode. Only Linear/tree-indent resolves
- * scoped-view overrides today (verified against the proto: flat/accordion/master-detail
- * do NOT apply overrides). Everything else = no scoped support. This is the type-level
+ * Capability matrix keyed by engine then mode. Only Linear/`indent` (tree) resolves
+ * scoped-view overrides today (verified against the proto: flat/cascade/detail do NOT
+ * apply overrides). Everything else = no scoped support. This is the type-level
  * expression of conflict #4 — the resolver/UI consults it before exposing scope controls.
  */
 export const ENGINE_CAPABILITIES: {
 	readonly [E in ViewEngine]: { readonly [m: string]: EngineModeCapability };
 } = {
 	Linear: {
-		'tree-indent': FULL_SCOPED_SUPPORT,
-		'flat-list': NO_SCOPED_SUPPORT,
-		miller: NO_SCOPED_SUPPORT,
+		indent: FULL_SCOPED_SUPPORT,
+		flat: NO_SCOPED_SUPPORT,
+		cascade: NO_SCOPED_SUPPORT,
+		detail: NO_SCOPED_SUPPORT,
 	},
 	Geometry: {
 		grid: NO_SCOPED_SUPPORT,
 		cards: NO_SCOPED_SUPPORT,
-		'group-box': NO_SCOPED_SUPPORT,
-	},
-	Table: {
-		column: NO_SCOPED_SUPPORT,
+		masonry: NO_SCOPED_SUPPORT,
+		table: NO_SCOPED_SUPPORT,
 	},
 	Canvas: {
 		mindmap: NO_SCOPED_SUPPORT,
 		graph: NO_SCOPED_SUPPORT,
+	},
+	Charts: {
+		chart: NO_SCOPED_SUPPORT,
 	},
 } as const;
 
