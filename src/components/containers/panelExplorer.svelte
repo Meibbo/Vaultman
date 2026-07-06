@@ -47,7 +47,7 @@
 	} from '../../services/serviceKeyboardNav';
 	import type { TreeNode } from '../../types/typeNode';
 	import { selectionModifiersFromEvent } from '../../types/typeActionRouting';
-	import { bubbleHiddenTreeBadges } from '../../utils/utilBadgeBubbling';
+	import { bubbleNodeBadges } from '../../logic/logicBadge';
 	import { collectAutoExpandedIds, resolveExpandedIds } from '../../utils/utilExplorerExpansion';
 	import { isExplorerPlatformViewMode } from '../../services/serviceExplorerViewContract';
 	import {
@@ -540,8 +540,8 @@
 			getActivePerfProbe()?.measure(
 				'panelExplorer.bubbleHiddenTreeBadges',
 				{ nodes: items.length },
-				() => bubbleHiddenTreeBadges(items, expanded),
-			) ?? bubbleHiddenTreeBadges(items, expanded)
+				() => bubbleNodeBadges(items, expanded),
+			) ?? bubbleNodeBadges(items, expanded)
 		);
 	}
 

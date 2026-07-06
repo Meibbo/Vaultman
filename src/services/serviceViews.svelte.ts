@@ -20,7 +20,7 @@ import type {
 	ViewTone,
 } from '../types/typeViews';
 import { getActivePerfProbe } from '../dev/perfProbe';
-import { withViewStateClasses } from '../utils/utilViewLayers';
+import { withViewStateClasses } from '../logic/logicViewLayers';
 import { NodeSelectionService } from './serviceSelection.svelte';
 import {
 	createActiveFilterOverlayIndex,

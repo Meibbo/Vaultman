@@ -3,11 +3,8 @@ import type { ExplorerRevealTarget, ExplorerSnapshotRow } from '../types/typeExp
 import type { TreeNode } from '../types/typeNode';
 import type { ViewAction, ViewCell, ViewLayers, ViewRow } from '../types/typeViews';
 import type { ExplorerMediaRecord } from './serviceExplorerMediaCache';
-import {
-	highlightsFromViewLayers,
-	nodeBadgesFromViewLayers,
-	withViewStateClasses,
-} from '../utils/utilViewLayers';
+import { nodeBadgesFromLayers } from '../logic/logicBadge';
+import { highlightsFromViewLayers, withViewStateClasses } from '../logic/logicViewLayers';
 
 export type ExplorerRowInputSource = 'snapshot' | 'tree-node' | 'view-row';
 
@@ -181,7 +178,7 @@ export function rowInputToTreeNode<TMeta>(
 	const highlights = highlightsFromViewLayers(row.layers);
 	if (highlights) bridged.highlights = highlights;
 	if (options.includeBadges !== false) {
-		const badges = nodeBadgesFromViewLayers(row.layers, options.operations);
+		const badges = nodeBadgesFromLayers(row.layers, options.operations);
 		bridged.badges = badges.length > 0 ? badges : row.node.badges;
 	}
 	if (options.attachLayersToMeta !== false) {

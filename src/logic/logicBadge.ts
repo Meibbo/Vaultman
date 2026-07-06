@@ -140,8 +140,7 @@ function badgeFromDescriptor(
  * (`actionId === 'remove'` with a `sourceId`) resolves its `queueIndex` against
  * `operations` by stable identity. Does not mutate input.
  *
- * (This is the canonical home of the old `utilViewLayers.nodeBadgesFromViewLayers`
- * projection; that util now delegates here.)
+ * (This is the canonical home of the legacy view-layer badge projection.)
  */
 export function nodeBadgesFromLayers(
 	layers: BadgeLayersInput,

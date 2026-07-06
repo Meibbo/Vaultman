@@ -8,8 +8,8 @@ import type {
 	ViewAction,
 	ViewLayers,
 } from '../types/typeViews';
-import { highlightsFromViewLayers, withViewStateClasses } from '../utils/utilViewLayers';
 import { nodeBadgesFromLayers } from '../logic/logicBadge';
+import { highlightsFromViewLayers, withViewStateClasses } from '../logic/logicViewLayers';
 import type { ExplorerProjection, ExplorerProjectionRow } from './serviceExplorerProjection';
 
 export interface ExplorerLayerBatchInput<TNode extends NodeBase> {

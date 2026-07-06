@@ -209,6 +209,21 @@ describe('bubbleNodeBadges (inherited folder-badge bubbling — SDF-016/§06.17)
 		expect(bubbled[0].children?.[0]).toBe(child);
 	});
 
+	it('reuses expanded branch references when bubbling does not change badges', () => {
+		const child = node(
+			'status:draft',
+			[],
+			[{ text: 'delete', icon: 'lucide-trash-2', color: 'red', queueIndex: 0 }],
+		);
+		const parent = node('status', [child]);
+		const tree = [parent];
+
+		const bubbled = bubbleNodeBadges(tree, new Set(['status']));
+
+		expect(bubbled[0]).toBe(parent);
+		expect(bubbled[0].children?.[0]).toBe(child);
+	});
+
 	it('clones only collapsed ancestors that receive inherited badges', () => {
 		const child = node(
 			'status:draft',

@@ -19,11 +19,8 @@ import {
 	operationScopeToFnRScope,
 	resolveOperationScopeFiles,
 } from '../services/serviceOperationScope';
-import {
-	highlightsFromViewLayers,
-	nodeBadgesFromViewLayers,
-	withViewStateClasses,
-} from '../utils/utilViewLayers';
+import { nodeBadgesFromLayers } from '../logic/logicBadge';
+import { highlightsFromViewLayers, withViewStateClasses } from '../logic/logicViewLayers';
 import { getActivePerfProbe } from '../dev/perfProbe';
 import type { VaultmanPlugin } from '../main';
 import type { ExplorerProvider, ExplorerSortTarget, ExplorerViewMode } from '../types/typeExplorer';
@@ -350,7 +347,7 @@ export class explorerProps implements ExplorerProvider<PropMeta> {
 			if (meta.isTypeIncompatible) {
 				badges.push({ text: 'Conflict', color: 'red', solid: true, icon: 'lucide-alert-triangle' });
 			}
-			badges.push(...nodeBadgesFromViewLayers(viewRow.layers, operations));
+			badges.push(...nodeBadgesFromLayers(viewRow.layers, operations));
 			badges.push(...this.quickActionBadges(meta));
 			const isDeleted = parentDeleted || viewRow.layers.state?.deleted === true;
 

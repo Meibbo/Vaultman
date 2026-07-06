@@ -10,7 +10,7 @@ import type {
 } from '../types/typeExplorerDataPlane';
 import { buildFileDeleteChange } from '../services/serviceFileQueue';
 import { buildExplorerSnapshot } from '../logic/logicExplorerSnapshot';
-import { withViewStateClasses } from '../utils/utilViewLayers';
+import { withViewStateClasses } from '../logic/logicViewLayers';
 import { resolveIcon } from '../logic/logicIconResolver';
 
 export class explorerContent implements ExplorerProvider<ContentMeta> {
