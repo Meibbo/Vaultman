@@ -22,12 +22,12 @@ tags:
 
 - [ ] **PAI-003 icon picker** — juicio visual en plugin-dev.
       [[docs/work/hardening/issues/proto-absorption-icons/index|PAI index]]
-- [ ] **cards-37s**: re-run del gate en máquina idle — el B2 integrado ya salió limpio
-      (p95/p99/max 32/45/49ms); decidir si se cierra el watch-item. [[docs/current/handoff|handoff]]
+- [x] **cards-37s** ✅ CERRADO por dev 2026-07-09: el gate B2 integrado limpio (32/45/49ms) es
+      el dato válido; el outlier 37s fue carga de máquina.
 - [ ] **P112 reconcile** al promover a sandbox: hotfixes stable tocaron
       `viewTreeBehavior`/`virtualScrollCssSource` que V.D slice 1 migró. Session-log 2026-06-21/23.
-- [ ] **Juicio comandos palette de P.D slice 3** (`select-visible-active-explorer`,
-      `clear-active-explorer-selection`): ¿quedan expuestos o se ocultan hasta N3 maduro?
+- [x] **Juicio comandos palette de P.D slice 3** ✅ DECIDIDO por dev 2026-07-09: quedan
+      VISIBLES (aditivos, gated; sirven de smoke real del seam).
 - [ ] **Worktree `C:/tmp/vaultman-doc-recovery-embeddings`** (branch `dev` @ `34fa414`):
       identificar qué es y si se conserva — el coordinador no lo tocó.
 - [x] **Worktrees dirty conservados** ✅ 2026-07-09: los 3 "dirty" eran EOL-only (incluido
@@ -43,9 +43,8 @@ tags:
       `diff` low conocida. Resto (1 high/3 mod/4 low) exige `gh api dependabot/alerts` real —
       correrlo el dev o instalar gh en PATH de agentes.
       https://github.com/Meibbo/Vaultman/security/dependabot
-- [ ] **PR #38 release-please** (`chore(main): release 1.2.0`, abierto tras 1.1.6): cerrar o
-      conservar para el próximo corte. Session-log 2026-06-23.
-- [ ] **Branch remota `p112-type-view-loop-fix`**: borrable cuando convenga. Session-log 2026-06-23.
+- [x] **PR #38 + branch `p112-type-view-loop-fix`** — dev decidió 2026-07-09: cerrar PR y
+      borrar branch (ejecución registrada abajo en esta línea al completarse).
 - [ ] **Repro runtime bits-ui FnR** (flag #11): reproducir el breakage portal/trapFocus en
       plugin-dev antes de codear fix; portal-scoping ya presente, `trapFocus` sin tocar.
 - [ ] **Re-baseline D4** (docs/ledger citan stable `1.1.1`; la línea va en `1.1.6`) —
