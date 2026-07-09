@@ -5,17 +5,53 @@ status: active
 parent: "[[docs/work/pkm-ai/index|pkm-ai]]"
 archive_source: docs/archive/pkm-ai/active-docs/2026-05-11T080321-current-handoff.md
 created: 2026-05-04T01:36:20
-updated: 2026-07-06T12:25:00-05:00
+updated: 2026-07-08T21:30:00-05:00
 tags:
   - agent/current
 created_by: dec
-updated_by: codex-gpt-5
+updated_by: claude-fable-5
 ---
 
 # Current Handoff
 
 Compact handoff after archiving the oversized current handoff:
 [[docs/archive/pkm-ai/active-docs/2026-05-11T080321-current-handoff|2026-05-11 handoff archive]].
+
+## NEXT AGENT START HERE — P.D tracer 1-3 LANDED + gate integrado verde (2026-07-08)
+
+**Current commit:** local `sandbox` = `9a56172` (`docs: restore audit/recovery docs orphaned by sandbox
+reset`). `origin/sandbox` = `18465c2` — slice 3 (`0359780`) + docs restore (`9a56172`) están SOLO
+locales; **push pendiente de autorización del dev**.
+
+**Qué cerró (tren P.D, tracer N3/MyWorkspace, parity-first, sin cambio visual):**
+- Slice 1 `fcf895e` — contracts `typePanelScene` + `logicInteractionPolicy` puro +
+  `WorkspaceMediatorService` (stateless) + `createPanelExplorerHandle` + registro gated en
+  `pageFilters` (sin mediator en contexto = no-op).
+- Slice 2 `18465c2` — `serviceWorkspaceInputRouter` (focus) + mediator/router instanciados en
+  `frameVaultman` + `vaultman:open` enfoca vía router con fallback legacy.
+- Slice 3 `0359780` — router cubre `select-visible-nodes`/`clear-selection`; puertos
+  selection/projection SOLO tab files; único delta visible: 2 comandos palette aditivos
+  (`select-visible-active-explorer`, `clear-active-explorer-selection`), gated por disponibilidad.
+  Review coordinador: contract-faithful, sin dudas contested → FF single-thread.
+- Docs restore `9a56172` — 12 files huérfanos del `reset` 2026-07-06 (reflog `0c29e68..9db3d67`)
+  recuperados: audit codebase-intelligence (8), `api-reference.md`, P112-025, version-streams 04/05/06.
+- **Gate integrado coordinador @ `9a56172`: check 0/0 (1205 files) · unit 178 files / 1303 tests
+  0 flakes · build ✓ (synced plugin-dev) · `git diff --check` ✓.** Gates por-worktree previos de codex
+  en las entries del session-log 2026-07-06.
+
+**Siguiente P.D (decisión dev):** ensanchar tracer — candidatos de codex: puerto focus/reveal por
+node-id en `panelExplorer`, o primer bridge `ActionProvider -> ActionNode`. Si el ensanchamiento toca
+contrato panel/scene con dudas contested → **grill corto ANTES** (P.D = 2º dominio pilar).
+
+**Paralelo Codex-able (no bloquea P.D):** `task_019` B3 retiro del enum flat `ExplorerViewMode`
+(callers post-Thread-B) · `task_020` deps low residual (`GHSA-73rr-hh4g-fpgx`, `diff` via `mocha`,
+major transitive). HITL dev: PAI-003 picker · cards-37s idle re-run · P112 reconcile · `task_016`
+embeddings rebuild (codex, in-progress — los sources ya volvieron con el restore).
+
+**Room/entorno:** FF single-thread del coordinador (slices 1-2 los FF/push'eó codex — recordar la
+regla). Worktrees `C:/tmp` purgados; quedan: `doc-recovery-embeddings` (branch `dev` @ `34fa414` —
+REVISAR con dev), `main-clean` (dirty: `styles.css`), `uv2-q4`/`pai-001` (dirty: `.snap` EOL-noise),
+`uv2-pa` (untracked plan dir que DIFIERE del aterrizado — reconciliar antes de borrar).
 
 ## NEXT AGENT START HERE — P.D checkpoint after Thread B + Codex lanes landed (2026-07-06)
 

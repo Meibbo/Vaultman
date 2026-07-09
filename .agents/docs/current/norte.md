@@ -4,7 +4,7 @@ type: agent-current
 status: active
 parent: "[[docs/work/pkm-ai/index|pkm-ai]]"
 created: 2026-07-02T13:30:00
-updated: 2026-07-06T12:25:00
+updated: 2026-07-08T21:25:00
 created_by: claude-fable-5
 updated_by: claude-fable-5
 tags:
@@ -36,21 +36,23 @@ Iniciativa rectora: [[docs/work/hardening/specs/2026-06-10-vaultman-2-0-synthesi
 Dominios pilares: **Symbiont Explorer** (riqueza de explorers, ~N0-N2) y
 **MyWorkspace** (control del workspace UI, ~N1+N3).
 
-## Dónde estamos HOY (2026-07-06)
+## Dónde estamos HOY (2026-07-08)
 
 - **Fase D** (ejecución por waves). Fases A (alineación), B (ledger ~595 filas) y
   C-lite (specs wave 1 + PSS grill D-PSS-1..10) están CERRADAS.
-- **Wave 1 / N0+N2 spine cerrado hasta Thread B:** Q4 ✅ · PA 1-5 ✅ · tracer ✅ ·
-  N.R ✅ · V.D ✅ · Thread B ✅ · shim/deps cleanup ✅.
-- **Spine: Q4 → N.R → V.D → Thread B → P.D ◀ AQUÍ.**
-- `origin/sandbox` @ `7107b1a` (`2.0.0-alpha.1` canary line). Último full unit de deps:
-  173 files / 1282 tests; audit high/moderate = 0, queda 1 low dev residual.
+- **Wave 1 spine:** Q4 ✅ · PA 1-5 ✅ · tracer ✅ · N.R ✅ · V.D ✅ · Thread B ✅ ·
+  shim/deps cleanup ✅ · **P.D tracer slices 1-3 ✅** (contracts + mediator + InputRouter +
+  selection ports; primer código N3/MyWorkspace).
+- **Spine: Q4 → N.R → V.D → Thread B → P.D ◀ AQUÍ (tracer ✅, ensanchamiento pendiente).**
+- sandbox local @ `9a56172` (`2.0.0-alpha.1`; `origin/sandbox` @ `18465c2`, push del resto
+  pendiente de dev). Gate integrado 2026-07-08: check 0/0 · **unit 178 files / 1303 tests
+  (0 flakes)** · build ✓; audit high/moderate = 0, 1 low dev residual (task_020).
 - Canon LOCKED: view-addressing ([[docs/architecture/explorer-model/05-view-canon|05-view-canon]] + ADR 0012).
 
 ```mermaid
 flowchart LR
     subgraph SPINE["Spine 2.0 (serial)"]
-        Q4["Q4 ✅<br/>logic puro"] --> NR["N.R ✅<br/>NodeRow cell"] --> VD["V.D ✅<br/>shared runtime"] --> TB["Thread B ✅<br/>ViewHost (engine,mode)"] --> PD["P.D ◀ AQUÍ<br/>panel/scene"]
+        Q4["Q4 ✅<br/>logic puro"] --> NR["N.R ✅<br/>NodeRow cell"] --> VD["V.D ✅<br/>shared runtime"] --> TB["Thread B ✅<br/>ViewHost (engine,mode)"] --> PD["P.D ◀ AQUÍ<br/>panel/scene<br/>tracer 1-3 ✅"]
     end
     subgraph PAR["Paralelo (no bloquea spine)"]
         PA["PA slices 2-5 ✅<br/>mobile + Bases port"]
@@ -91,11 +93,16 @@ flowchart LR
 4. ~~Thread B + PA-5 + glossary + shim + deps~~ ✅ **done 2026-07-06** (`7107b1a`): B2
    `ViewHost` usa `(engine,mode)`; PA registry cableado; shims legacy removidos; deps high/moderate
    cerradas, con 1 low dev residual (`diff` via `mocha`, major transitive).
-5. **P.D slice 1**: plan creado en
-   [[docs/work/hardening/plans/2026-07-06-pd-panel-scene-decomposition/index|P.D panel/scene decomposition kickoff]].
-   Objetivo: contracts + mediator tracer + adaptar el Filters `panelExplorer` sin cambio visual.
-6. P112 → sandbox con reconcile de `viewTreeBehavior`/`virtualScrollCssSource`.
-7. PAI-003 icon picker sigue HITL; requiere juicio visual del dev.
+5. ~~P.D tracer slices 1-3~~ ✅ **done 2026-07-06/08** (`fcf895e`+`18465c2`+`0359780`, gate
+   integrado verde 178f/1303t): contracts + policy pura + mediator stateless + InputRouter
+   (focus/select-visible/clear-selection) + puertos files-tab, parity-first sin rewrite visual.
+   Plan: [[docs/work/hardening/plans/2026-07-06-pd-panel-scene-decomposition/index|P.D kickoff]].
+   Nota: +2 comandos palette aditivos (gated) — juicio dev pendiente.
+6. **P.D ensanchamiento**: focus/reveal por node-id o bridge `ActionProvider -> ActionNode`;
+   grill corto ANTES si toca contrato contested. ∥ Codex: B3 enum flat (task_019) · deps
+   residual (task_020).
+7. P112 → sandbox con reconcile de `viewTreeBehavior`/`virtualScrollCssSource`.
+8. PAI-003 icon picker sigue HITL; requiere juicio visual del dev.
 
 **Canon raw proto**: `Downloads/vaultman/proto-vXX/` (v12 actual; `proto/` sin sufijo =
 STALE v7). El "vertical read v12" citado en docs viejos ES el shard v7 — deltas por

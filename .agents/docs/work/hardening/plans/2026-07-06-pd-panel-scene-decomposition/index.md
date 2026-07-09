@@ -55,6 +55,21 @@ the existing Filters `panelExplorer` without changing user-visible behavior.
 
 - [[01-task-plan|01 Task Plan]] — executable steps for P.D slice 1.
 
+## Status Log
+
+- **2026-07-06 (codex-gpt-5)** — slice 1 `fcf895e` (Tasks 1-4 en un commit: contracts + policy +
+  mediator + panel handle + wiring gated de `pageFilters`); slice 2 `18465c2` (InputRouter focus
+  bridge + `frameVaultman`/`main.ts`/`vaultman:open`); slice 3 `0359780` (selection/projection ports
+  files-tab + comandos select-visible/clear-selection). Gates por-worktree: focal verde por slice ·
+  check 0/0 (slice 3: svelte-check directo tras un `pnpm run check` colgado) · build 0 · full unit con
+  flakes worker autorizados por dev. Detalle: session-log 2026-07-06 (3 entries).
+- **2026-07-08 (claude-fable-5, coordinador)** — review slice 3 contract-faithful → **FF
+  `18465c2`→`0359780`** + docs restore `9a56172` (12 files huérfanos del reset, recuperados de
+  `9db3d67`). **Task 5 (Coordinator Verification) COMPLETA @ `9a56172`: check 0/0 · unit 178
+  files / 1303 tests (0 flakes) · build ✓ · diff-check ✓.** Live smoke omitido (tracer sin cambio
+  de render; gates headless verdes). Tren P.D slice 1-3 CERRADO; sin push (autoriza dev). Nota
+  dev pendiente: juicio sobre los 2 comandos palette aditivos de slice 3.
+
 ## Non-Goals
 
 - Do not build WSA/free-canvas/Live Redesign in this slice.

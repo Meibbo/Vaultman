@@ -14,6 +14,12 @@ tags:
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
+> **EXECUTED 2026-07-06/08** — codex-gpt-5 ejecutó Tasks 0-4 en 3 slices (`fcf895e` Tasks 1-4,
+> `18465c2` + `0359780` = ensanchamiento InputRouter/puertos aprobado por review de coordinador);
+> claude-fable-5 cerró Task 5 (gate integrado verde @ `9a56172`: check 0/0 · unit 178f/1303t ·
+> build ✓). Los checkboxes de abajo quedan como registro de la forma planeada; el estado real
+> vive en el Status Log del [[index|index]]. Filenames de tests = los del plan (sin colocated).
+
 **Goal:** Start the P.D spine by extracting panel/scene contracts without changing user-visible Explorer behavior.
 
 **Architecture:** P.D is the bridge from the completed V.D/Thread-B work into MyWorkspace N3. The first slice defines typed `PanelHandle`, `Scene`, `WorkspaceMediator`, `InteractionPolicy`, and `InputRouter` seams, then adapts the existing single Explorer panel through those seams while keeping `frameVaultman`/`pageFilters` visually identical.

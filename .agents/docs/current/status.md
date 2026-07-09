@@ -5,11 +5,11 @@ status: active
 parent: "[[docs/work/pkm-ai/index|pkm-ai]]"
 archive_source: docs/archive/pkm-ai/active-docs/2026-05-11T080321-current-status.md
 created: 2026-05-04T01:36:20
-updated: 2026-07-06T12:25:00-05:00
+updated: 2026-07-08T21:30:00-05:00
 tags:
   - agent/current
 created_by: dec
-updated_by: codex-gpt-5
+updated_by: claude-fable-5
 ---
 
 # Current Status
@@ -29,6 +29,19 @@ Compact route index after archiving the oversized current status:
 ## Current Route
 
 - Active initiative: [[docs/work/hardening/index|Hardening]].
+- **LATEST (2026-07-08, coordinador)**: **P.D tracer slices 1-3 LANDED + gate integrado VERDE** —
+  sandbox local = `9a56172`. Confirmación que pidió el dev: slices 1-2 (`fcf895e`,`18465c2`) ya estaban
+  FF+push en `origin/sandbox` (el FF/push lo ejecutó codex-gpt-5, anotado vs regla FF-coordinador); lo
+  realmente en vuelo era slice 3 `0359780` (`umbrella-v2/pd-slice3`, selection/projection ports files-tab
+  + 2 comandos palette aditivos): review de coordinador contract-faithful → FF. **Gate integrado @ HEAD:
+  check 0/0 · unit 178 files / 1303 tests (0 flakes) · build ✓ · diff-check ✓.** **Docs restore
+  `9a56172`**: el `reset: moving to origin/sandbox` del 2026-07-06 dejó huérfanos 12 docs (audit
+  codebase-intelligence, `api-reference.md`, P112-025, y los shards version-streams 04/05/06
+  re-recuperados) — restaurados file-level desde el dangling `9db3d67`. Sin push (autoriza el dev).
+  Worktrees `C:/tmp` purgados (quedan 5 con motivo, ver session-log). Paralelo Codex listo: `task_019`
+  B3 retiro enum flat `ExplorerViewMode` · `task_020` deps low residual (`diff` via `mocha`). HITL dev:
+  PAI-003 picker · cards-37s idle re-run · P112 reconcile. Detalle:
+  [[docs/work/hardening/plans/2026-07-06-pd-panel-scene-decomposition/index|P.D kickoff]] + session-log 2026-07-08.
 - **LATEST (2026-07-06 checkpoint)**: `origin/sandbox` = `7107b1a`. The Thread-B/Codex
   lane train is landed: B2 `ViewHost` now dispatches by resolved `(engine,mode)`; PA-5 wires
   `PlatformAdapterRegistry` in `main.ts` with 4 adapters + mobile inventory; glossary canon is
