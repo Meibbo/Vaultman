@@ -43,6 +43,8 @@ codeql-db/
 .claude/
 .agents/cache/
 .agents/cache/**
+# pkm-ai tool writes its retrieval cache relative to its own dir (2026-07-09)
+.agents/tools/pkm-ai/.agents/
 .agents/tmp/
 .agents/tmp/**
 # Agent-room runtime state lives untracked in .git/vaultman-room since S2 (2026-06-04);
