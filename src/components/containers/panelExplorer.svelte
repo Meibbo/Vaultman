@@ -1185,8 +1185,29 @@
 		return value.replace(/[^a-zA-Z0-9_-]/g, (ch) => `\\${ch}`);
 	}
 
+	/**
+	 * Reveals a node by id when it is part of the current projection
+	 * (`visibleNodeIds()` for the active view mode): selects/focuses it
+	 * through the same path as `focusKeyboardId` and scrolls it into view
+	 * via the existing `revealNode` scroll-target setter. Returns false
+	 * without expanding collapsed ancestors when the node is not
+	 * currently visible — surface reveal only, no runtime changes. Backs
+	 * the P.D `PanelExplorerImperativeApi.revealNode` port (slice 4).
+	 */
+	function revealNodeInPanel(id: string): boolean {
+		const orderedIds = visibleNodeIds();
+		if (!orderedIds.includes(id)) return false;
+		const snapshot =
+			viewMode === 'tree'
+				? selectionService.selectPointer(provider.id, orderedIds, id)
+				: selectionService.setFocused(provider.id, id);
+		commitSelection(snapshot);
+		revealNode(id);
+		return true;
+	}
+
 	$effect(() => {
-		const api: PanelExplorerImperativeApi = { focusFirstNode };
+		const api: PanelExplorerImperativeApi = { focusFirstNode, revealNode: revealNodeInPanel };
 		onImperativeApiReady?.(api);
 		if (!active) return;
 		// Auto-register with the plugin so commands (e.g. `vaultman:open`)

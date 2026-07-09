@@ -51,4 +51,26 @@ describe('createPanelExplorerHandle', () => {
 			}),
 		).toBe(true);
 	});
+
+	it('wires the reveal callback and forwards node ids when provided', () => {
+		const revealNode = vi.fn();
+		const handle = createPanelExplorerHandle({
+			id: 'panel:filters',
+			providerId: 'files',
+			revealNode,
+		});
+
+		handle.revealNode?.('node-1');
+
+		expect(revealNode).toHaveBeenCalledWith('node-1');
+	});
+
+	it('leaves revealNode unset when no callback is provided', () => {
+		const handle = createPanelExplorerHandle({
+			id: 'panel:filters',
+			providerId: 'files',
+		});
+
+		expect(handle.revealNode).toBeUndefined();
+	});
 });

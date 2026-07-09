@@ -25,10 +25,21 @@ export interface ExplorerExpansionSummary {
 /**
  * Imperative API exposed by `panelExplorer.svelte` for commands and other
  * outside agents that need to bypass the normal reactive flow. Kept
- * narrow: only verbs the `vaultman:open*` commands need.
+ * narrow: verbs the `vaultman:open*` commands and the P.D workspace
+ * reveal port need.
  */
 export interface PanelExplorerImperativeApi {
 	focusFirstNode(): boolean;
+	/**
+	 * Reveals a node by id when it is part of the panel's current
+	 * projection (visible ids for the active view mode): selects/focuses
+	 * it and scrolls it into view. Returns false without expanding
+	 * collapsed ancestors when the node is not currently visible — deep
+	 * reveal (auto-expand + scroll to a hidden node) is deferred to a
+	 * later P.D slice. Optional so callers that only need
+	 * `focusFirstNode` are unaffected.
+	 */
+	revealNode?(id: string): boolean;
 }
 
 export interface ExplorerProvider<TMeta = unknown> {

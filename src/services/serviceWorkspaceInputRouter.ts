@@ -4,7 +4,8 @@ import type { PanelId } from '../types/typePanelScene';
 export type WorkspaceInputCommand =
 	| 'focus-active-panel'
 	| 'select-visible-nodes'
-	| 'clear-selection';
+	| 'clear-selection'
+	| 'reveal-node';
 
 export type WorkspaceInputRouterResult =
 	| {
@@ -20,7 +21,9 @@ export type WorkspaceInputRouterResult =
 				| 'no-active-panel'
 				| 'focus-rejected'
 				| 'missing-selection-port'
-				| 'missing-projection-port';
+				| 'missing-projection-port'
+				| 'missing-reveal-port'
+				| 'reveal-rejected';
 			panelId?: PanelId;
 	  };
 
@@ -28,6 +31,7 @@ export interface WorkspaceInputRouter {
 	focusActivePanel(): WorkspaceInputRouterResult;
 	selectActivePanelVisibleNodes(): WorkspaceInputRouterResult;
 	clearActivePanelSelection(): WorkspaceInputRouterResult;
+	revealNode(nodeId: string): WorkspaceInputRouterResult;
 }
 
 export interface WorkspaceInputRouterOptions {
@@ -117,6 +121,40 @@ export function createWorkspaceInputRouter(
 				command: 'clear-selection',
 				panelId: panel.id,
 				count,
+			};
+		},
+		revealNode(nodeId: string) {
+			const panel = options.mediator.getActivePanel();
+			if (!panel) return noActivePanel('reveal-node');
+			if (!panel.revealNode) {
+				return {
+					kind: 'unhandled',
+					command: 'reveal-node',
+					reason: 'missing-reveal-port',
+					panelId: panel.id,
+				};
+			}
+
+			// The projection port (when present) is the router's only way to
+			// know which nodes are currently reachable, since `revealNode`
+			// itself returns void (fixed contract from slice 1). When no
+			// projection port is wired the router defers the decision to the
+			// panel implementation and calls through unconditionally.
+			const visibleIds = panel.projection?.readVisibleIds();
+			if (visibleIds && !visibleIds.includes(nodeId)) {
+				return {
+					kind: 'unhandled',
+					command: 'reveal-node',
+					reason: 'reveal-rejected',
+					panelId: panel.id,
+				};
+			}
+
+			panel.revealNode(nodeId);
+			return {
+				kind: 'handled',
+				command: 'reveal-node',
+				panelId: panel.id,
 			};
 		},
 	};

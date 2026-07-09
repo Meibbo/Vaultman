@@ -250,6 +250,14 @@
 		return [...selectedFilePaths].find((id) => visible.has(id)) ?? visibleIds[0] ?? null;
 	}
 
+	function revealActivePanelNode(id: string): void {
+		(
+			plugin as VaultmanPlugin & {
+				activePanelExplorerApi?: PanelExplorerImperativeApi | null;
+			}
+		).activePanelExplorerApi?.revealNode?.(id);
+	}
+
 	function initialFnRFlags(): { regex: boolean } {
 		return { regex: plugin.settings.fnrRegexDefault === true };
 	}
@@ -291,6 +299,7 @@
 		if (!workspaceMediator) return;
 		const selection = filtersActiveTab === 'files' ? createFilesSelectionPort() : undefined;
 		const projection = filtersActiveTab === 'files' ? createFilesProjectionPort() : undefined;
+		const revealNode = filtersActiveTab === 'files' ? revealActivePanelNode : undefined;
 		const panelHandle = createPanelExplorerHandle({
 			id: FILTERS_PANEL_ID,
 			providerId: providerIdForTab(filtersActiveTab),
@@ -302,6 +311,7 @@
 				).activePanelExplorerApi?.focusFirstNode() ?? false,
 			selection,
 			projection,
+			revealNode,
 		});
 		const unregisterScene = workspaceMediator.registerScene({
 			id: FILTERS_SCENE_ID,

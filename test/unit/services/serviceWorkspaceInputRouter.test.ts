@@ -153,4 +153,75 @@ describe('WorkspaceInputRouter', () => {
 		});
 		expect(clear).toHaveBeenCalledOnce();
 	});
+
+	it('reveals a node in the active panel through the reveal port', () => {
+		const mediator = new WorkspaceMediatorService();
+		const revealNode = vi.fn();
+		const panel = {
+			...makePanel(),
+			revealNode,
+			projection: {
+				readVisibleIds: () => ['a', 'b', 'c'],
+			},
+		} satisfies PanelHandle;
+		registerActivePanel(mediator, panel);
+
+		const router = createWorkspaceInputRouter({ mediator });
+
+		expect(router.revealNode('b')).toEqual({
+			kind: 'handled',
+			command: 'reveal-node',
+			panelId: panel.id,
+		});
+		expect(revealNode).toHaveBeenCalledWith('b');
+	});
+
+	it('reports no active panel when revealing a node without a focused panel', () => {
+		const mediator = new WorkspaceMediatorService();
+		const router = createWorkspaceInputRouter({ mediator });
+
+		expect(router.revealNode('b')).toEqual({
+			kind: 'unhandled',
+			command: 'reveal-node',
+			reason: 'no-active-panel',
+		});
+	});
+
+	it('reports a missing reveal port when the active panel cannot reveal nodes', () => {
+		const mediator = new WorkspaceMediatorService();
+		const panel = makePanel();
+		registerActivePanel(mediator, panel);
+
+		const router = createWorkspaceInputRouter({ mediator });
+
+		expect(router.revealNode('b')).toEqual({
+			kind: 'unhandled',
+			command: 'reveal-node',
+			reason: 'missing-reveal-port',
+			panelId: panel.id,
+		});
+	});
+
+	it('rejects revealing a node outside the active panel projection', () => {
+		const mediator = new WorkspaceMediatorService();
+		const revealNode = vi.fn();
+		const panel = {
+			...makePanel(),
+			revealNode,
+			projection: {
+				readVisibleIds: () => ['a', 'c'],
+			},
+		} satisfies PanelHandle;
+		registerActivePanel(mediator, panel);
+
+		const router = createWorkspaceInputRouter({ mediator });
+
+		expect(router.revealNode('b')).toEqual({
+			kind: 'unhandled',
+			command: 'reveal-node',
+			reason: 'reveal-rejected',
+			panelId: panel.id,
+		});
+		expect(revealNode).not.toHaveBeenCalled();
+	});
 });
