@@ -29,6 +29,8 @@ Compact route index after archiving the oversized current status:
 ## Current Route
 
 - Active initiative: [[docs/work/hardening/index|Hardening]].
+- **Pendientes consolidados (dev-facing)**: [[docs/current/pendientes|pendientes]] —
+  HITL · Codex · spine · researches · infra (creado 2026-07-09, mantener al cerrar/abrir ítems).
 - **LATEST (2026-07-08, coordinador)**: **P.D tracer slices 1-3 LANDED + gate integrado VERDE** —
   sandbox local = `9a56172`. Confirmación que pidió el dev: slices 1-2 (`fcf895e`,`18465c2`) ya estaban
   FF+push en `origin/sandbox` (el FF/push lo ejecutó codex-gpt-5, anotado vs regla FF-coordinador); lo
