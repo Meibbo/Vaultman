@@ -57,9 +57,15 @@ tags:
 
 ## 3. Spine P.D — siguiente
 
-- [~] **task_021 — slice 4 node reveal** (subagente claude-sonnet EN CURSO 2026-07-09, worktree
-      `C:/tmp/vaultman-pd4`, rama `umbrella-v2/pd-slice4`; review/gate/FF = coordinador).
-- [ ] **Bridge `ActionProvider -> ActionNode`** (primer paso NIB): candidato post-slice-4 —
+- [x] **task_021 — slice 4 node reveal** ✅ 2026-07-09: subagente claude-sonnet, aterrizada
+      `c72381b` (FF coordinador tras review PASS). Cadena `InputRouter.revealNode →
+      PanelHandle.revealNode → panelExplorer` completa pero INERTE (sin consumidor).
+- [ ] **Consumidor real de `reveal-node`** (comando, atajo o drop): juicio dev — hoy la cadena
+      no tiene entry-point user-facing (decisión deliberada de la slice).
+- [ ] **Deep reveal** (auto-expand ancestros colapsados + cross-tab): fuera de scope de slice 4
+      (tocaría runtime); decidir si es slice P.D propia o se resuelve ampliando
+      `PanelExpansionPort` primero.
+- [ ] **Bridge `ActionProvider -> ActionNode`** (primer paso NIB): candidato siguiente —
       **grill corto ANTES** (probable contrato contested; P.D = 2º dominio pilar).
 - [ ] **`panelData` / `panelContent`**: definir shape typed only (non-goal declarado del kickoff).
 - [ ] **Scene persistence + integración PSS** (deferred del kickoff).

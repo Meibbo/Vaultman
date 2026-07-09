@@ -67,8 +67,20 @@ the existing Filters `panelExplorer` without changing user-visible behavior.
   `18465c2`→`0359780`** + docs restore `9a56172` (12 files huérfanos del reset, recuperados de
   `9db3d67`). **Task 5 (Coordinator Verification) COMPLETA @ `9a56172`: check 0/0 · unit 178
   files / 1303 tests (0 flakes) · build ✓ · diff-check ✓.** Live smoke omitido (tracer sin cambio
-  de render; gates headless verdes). Tren P.D slice 1-3 CERRADO; sin push (autoriza dev). Nota
-  dev pendiente: juicio sobre los 2 comandos palette aditivos de slice 3.
+  de render; gates headless verdes). Tren P.D slice 1-3 CERRADO; push posterior autorizado
+  (`origin/sandbox` = `03afccd`). Nota dev pendiente: juicio sobre los 2 comandos palette
+  aditivos de slice 3.
+- **2026-07-09 (claude-sonnet-pd4 subagente + claude-fable-5 coordinador)** — **slice 4 "route
+  node reveal"** `a8e1567` (rebased → `c72381b`, FF a sandbox): router `reveal-node` puro
+  (razones `missing-reveal-port`/`reveal-rejected`; projection port como señal de alcanzabilidad,
+  contrato `revealNode: void` de slice 1 intacto) + `PanelExplorerImperativeApi.revealNode?`
+  opcional (reusa camino `focusKeyboardId` + scroll-target existente) + puerto reveal gated
+  files-tab en `pageFilters`. **Cero superficie user-facing** (sin hooks/comandos — cadena
+  inerte hasta slice futura). Gates subagente: RED/GREEN focal 2f/14t · check 0/0 · build ✓ ·
+  full-unit bonus en RED = 178f/1305t sin regresiones. Review coordinador PASS. **Open:** reveal
+  superficial únicamente (sin auto-expand de ancestros — deep reveal = slice futura o
+  `PanelExpansionPort`); decidir consumidor real de `reveal-node`. Gate integrado del
+  coordinador: ver session-log 2026-07-09.
 
 ## Non-Goals
 
