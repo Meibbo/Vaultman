@@ -526,7 +526,7 @@ export class explorerProps implements ExplorerProvider<PropMeta> {
 			type: 'property',
 			property: canonicalName,
 			action: 'rename',
-			details: `Rename property "${propName}" ÃƒÂ¢Ã¢â‚¬Â Ã¢â‚¬â„¢ "${newName}"`,
+			details: `Rename property "${propName}" → "${newName}"`,
 			files,
 			customLogic: true,
 			logicFunc: (_file, fm) => {

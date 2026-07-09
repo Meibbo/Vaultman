@@ -1,13 +1,13 @@
 <script lang="ts">
 	import { getContext, setContext, untrack } from 'svelte';
 	import type { VaultmanPlugin } from '../../main';
-	// TODO: por quÃ© importo los tabs y los explorer?
+	// TODO: por qué importo los tabs y los explorer?
 	import FiltersPropsTab from './tabProps.svelte';
 	import FiltersFilesTab from './tabFiles.svelte';
 	import FiltersTagsTab from './tabTags.svelte';
 	import ContentTab from './tabContent.svelte';
 	import OutlinesTab from './tabOutlines.svelte';
-	// TODO: por quÃ© importa navbartabs??
+	// TODO: por qué importa navbartabs??
 	import NavbarTabs from '../layout/navbarTabs.svelte';
 	import Toolbar from '../layout/Toolbar.svelte';
 	import PanelExplorer from '../containers/panelExplorer.svelte';
@@ -74,7 +74,7 @@
 		resolveOperationScopeFiles,
 		type OperationScope,
 	} from '../../services/serviceOperationScope';
-	// TODO: por quÃ© setIcon?
+	// TODO: por qué setIcon?
 	import { setIcon, type TFile } from 'obsidian';
 
 	type ToolbarApi = {
