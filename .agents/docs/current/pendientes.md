@@ -30,19 +30,29 @@ tags:
       `clear-active-explorer-selection`): ¿quedan expuestos o se ocultan hasta N3 maduro?
 - [ ] **Worktree `C:/tmp/vaultman-doc-recovery-embeddings`** (branch `dev` @ `34fa414`):
       identificar qué es y si se conserva — el coordinador no lo tocó.
-- [ ] **Worktrees dirty conservados**: `main-clean` (`styles.css` REAL) · `uv2-pa` (untracked
-      `plans/2026-06-13-platform-adapter/` que DIFIERE del aterrizado — reconciliar antes de
-      borrar) · `uv2-q4` / `pai-001` (solo `.snap` EOL-noise, descartables a ojo).
-- [ ] **Dependabot en `main`**: 12 vulns (3 high / 4 moderate / 5 low) en la default branch —
-      triage pendiente desde 2026-07-02 (sandbox ya quedó 0 high/moderate; `main` = línea stable).
+- [x] **Worktrees dirty conservados** ✅ 2026-07-09: los 3 "dirty" eran EOL-only (incluido
+      `styles.css` de main-clean) — descartados y worktrees removidos; draft de uv2-pa archivado
+      en `archive/pkm-ai/2026-07-09-pa-plan-worktree-draft`; `doc-recovery-embeddings` removido
+      tras verificar contenido cubierto, branch `dev` local RESCATADA (estaba movida a commits del
+      audit → marker `audit/dev-line-2026-07-06`, `dev` reset a `origin/dev`).
+- [ ] **Dependabot en `main`** — triage 2026-07-09 (agente, verificado): `main:package.json` NO
+      tiene bloque `dependencies` → las 12 alertas son devDeps/test-tooling POR CONSTRUCCIÓN,
+      nada toca el bundle distribuido; ningún hotfix stable urgente. Ancladas: vite 8.0.12
+      GHSA-fx2h-pf6j-xcff high (frozen por patch-package e2e, esperar) · undici 7.27.0
+      GHSA-vxpw-j846-p89q high + GHSA-p88m-4jfj-68fv mod (**bump barato a 7.28.0 vía override**) ·
+      `diff` low conocida. Resto (1 high/3 mod/4 low) exige `gh api dependabot/alerts` real —
+      correrlo el dev o instalar gh en PATH de agentes.
       https://github.com/Meibbo/Vaultman/security/dependabot
 - [ ] **PR #38 release-please** (`chore(main): release 1.2.0`, abierto tras 1.1.6): cerrar o
       conservar para el próximo corte. Session-log 2026-06-23.
 - [ ] **Branch remota `p112-type-view-loop-fix`**: borrable cuando convenga. Session-log 2026-06-23.
+- [ ] **Repro runtime bits-ui FnR** (flag #11): reproducir el breakage portal/trapFocus en
+      plugin-dev antes de codear fix; portal-scoping ya presente, `trapFocus` sin tocar.
 - [ ] **Re-baseline D4** (docs/ledger citan stable `1.1.1`; la línea va en `1.1.6`) —
       despriorizado por dev 2026-07-02; decidir cuándo. [[docs/current/norte|norte]]
-- [ ] **Chatarra `C:/tmp` no-worktree**: `vaultman-gitignore-head/`, `vaultman-gitignore-worktrees/`,
-      `vaultman-pa-unit*.log`, `vaultman-screenshot.png` — restos de sesiones viejas, no verificados.
+- [ ] **Borrado manual `C:/tmp`**: quedan 5 dirs de RESTOS sin registro git (integrate-logs,
+      main-clean, pai-001, uv2-pa, uv2-q4 — solo node_modules; el harness bloquea rm del agente).
+      Archivos sueltos ya borrados 2026-07-09.
 
 ## 2. Codex — listas en el room (sin tokens hasta 2026-07-10)
 
@@ -50,10 +60,17 @@ tags:
       despacha por `(engine,mode)` resuelto (D-C-8). Aislada, no bloquea P.D.
 - [ ] **task_020 — deps low residual**: `GHSA-73rr-hh4g-fpgx` (`diff` vía `mocha`, exige major
       transitive). [[docs/current/handoff|handoff]]
-- [ ] **task_016 — embeddings rebuild** (in-progress de codex): sources restaurados en `9a56172`;
-      `query-docs.ts` falla por dep local faltante `@xenova/transformers`. Session-log 2026-07-06.
+- [x] **task_016 — embeddings rebuild** ✅ 2026-07-09 EJECUTADA (lane B5): 1261 docs BM25 +
+      1214 embebidos MiniLM; `--rank` y `--semantic` smoke-verificados. Codex solo cierra la
+      task en el room (token suyo).
 - [ ] **Reconciliar tasks stale 001-005** del room (todo/in-progress pero el trabajo aterrizó);
       el status setter exige token del owner (codex).
+- [ ] **Anotar veredictos en research shards** (docs micro): shard 09 §9 — 2 claims REFUTADOS
+      (`indexActiveFilters.ts` SÍ existe/activo; `unocss-preset-theme` SÍ cableado en
+      `uno.config.ts`), 2 confirmados, 1 moot por refactor (evidencia: session-log 2026-07-09) ·
+      frontend research index: tabla stack-inventory desactualizada (`@dnd-kit/svelte` real 0.5.0,
+      pretext 0.0.8) · `tooling-libraries.md` L42 "Table engine spec" contradice canon (Table =
+      modo Geometry).
 
 ## 3. Spine P.D — siguiente
 
@@ -74,20 +91,30 @@ tags:
 
 ## 4. Researches / decisiones abiertas
 
-- [ ] **D-FE-2**: reconciliar paquete dnd-kit (identidad exacta `@dnd-kit/svelte` vs port).
+- [x] **D-FE-2** ✅ 2026-07-09 verificado: `@dnd-kit/svelte` 0.5.0 ES el paquete oficial
+      (monorepo clauderic), ya instalado; HanielU sin deprecación formal pero sin razón de uso.
+      Falta solo el "cerrado" formal del dev.
 - [ ] **D-FE-3**: migración UnoCSS presetWind3 → Wind4 (pilot tras visual diff).
 - [ ] **D-FE-4**: TanStack Table — seguir types-only vs adoptar `createSvelteTable`.
 - [ ] **D-FE-5**: LayerChart — defer hasta pilot dashboard.
       Fuente D-FE-*: [[docs/work/hardening/research/2026-06-15-frontend-stack-deep-research/index|Frontend Stack Deep Research]]
-- [ ] **Flags ledger frontend #9/#11/#12** re-verificar antes de codear en esas zonas:
-      identidad dnd-kit · hipótesis FnR de bits-ui (reproducir) · API extendida de pretext.
-- [ ] **Ledger shard 09 §9**: 9 verificaciones puntuales baratas de alta señal.
+- [x] **Flags ledger frontend #9/#11/#12** ✅ 2026-07-09 re-verificados: #9 dnd-kit CONFIRMADO
+      oficial · #12 pretext API extendida CONFIRMADA real (0.0.8, `prepareWithSegments`/
+      `rich-inline` etc., no usada hoy) · #11 bits-ui FnR = **REQUIERE-REPRO-RUNTIME** (queda como
+      HITL abajo): portal-scoping a `activeDocument` YA implementado; `trapFocus` nunca seteado —
+      el fix hipotético no está aplicado; reproducir breakage antes de codear.
+- [x] **Ledger shard 09 §9** ✅ 2026-07-09: 5 verificaciones ejecutadas — 2 REFUTADAS ·
+      2 CONFIRMADAS · 1 no-determinable (refactor). Veredictos en session-log 2026-07-09;
+      anotación en el shard = ítem Codex arriba.
       [[docs/work/hardening/research/2026-06-11-function-union-ledger/09-sintesis-transversal|síntesis transversal]]
 - [ ] **Opens de la umbrella**: research TanStack virtualizer/Svelte (sección working-memory) ·
       índice de primitives Obsidian · icon packs como assets.
       [[docs/work/hardening/specs/2026-06-10-vaultman-2-0-synthesis-umbrella/index|umbrella]]
-- [ ] **Canon STALE por sincronizar**: glossary / explorer-model / view-model de `typeViewConfig`
-      arrastran huecos vs canon locked (05-view-canon + ADR 0012) — barrido de sincronización.
+- [x] **Canon STALE por sincronizar** ✅ 2026-07-09 (parcial-core): explorer-model 01/02/index +
+      comentario `typeViewConfig` corregidos con notas fechadas (commit `8bc1785`); glossary/
+      dev-glossary verificados ya-alineados. Restan (ítem Codex arriba): `tooling-libraries.md`
+      L42 + 3 conflict-copies `(conflict 2026-05-26...)` de explorer-model — borrar/fusionar =
+      decisión dev (van con el ítem mirror-tree de Drive).
 - [ ] **Duales internos sandbox DO_NOT_PROMOTE_AS_IS** (queue/VFS · diff espejo · 4 caminos DnD):
       gatean N1/N2 antes de cualquier beta. [[docs/current/norte|norte]]
 - [ ] **Canvas/Charts engines (N4)** y **viewScope-filter/composición (N3)**: deferred del canon.
@@ -97,17 +124,17 @@ tags:
 ## 5. Infra / pkm-ai / higiene docs
 
 - [ ] **S3b doc-health prune** (~123 fails) — necesita ventana coordinada (mayoría en zona codex).
-- [ ] **Untrack `.agents/state`** (`git rm -r --cached` + gitignore) — el room vive untracked
-      en `.git/vaultman-room` desde S2.
-- [ ] **session-log.md**: convención rota — el header dice "newest at TOP" pero desde julio las
-      entries se apéndean al FONDO; >1000 líneas. Normalizar (enmendar header o re-ordenar) y
-      considerar shard.
+- [x] **Untrack `.agents/state`** ✅ 2026-07-09 (`8bc1785`).
+- [x] **session-log.md convención** ✅ 2026-07-09: header enmendado (append al fondo documentado).
+      Queda opcional: shard del archivo (>1000 líneas) — Codex/futuro.
 - [ ] **Riesgo reset/reflog**: 3er evento de pérdida de docs fue un `reset` a origin que huérfano
       commits docs locales (recuperado en `9a56172`). Regla coordinador: antes de mover `sandbox`,
       revisar `git reflog` + `merge-base --is-ancestor` del tip previo.
 - [ ] **Mirror tree `.agents/docs/hardening/`** (residuo recovery) + conflict-copies de Drive:
       guard en .gitignore ya existe; borrar el mirror = decisión dev con Obsidian cerrado + Drive
       pausado.
-- [ ] **Mojibake `explorerTags.ts`** (git lo marca "Bin") — wart heredado.
+- [x] **Mojibake** ✅ 2026-07-09 (`ad64c5f`): los hits reales estaban en `pageFilters.svelte`
+      (3 TODOs) + `explorerProps.ts` (string user-facing de rename con "→" corrupto) — reparados,
+      check 0/0. `explorerTags.ts` ya no presenta mojibake (grep limpio).
 - [ ] **status.md / handoff.md >200 líneas**: son route indexes; compactar/archivar secciones
       viejas al archive (patrón 2026-05-11).
