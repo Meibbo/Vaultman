@@ -81,6 +81,10 @@ Bases: IN = translate view-def/results -> our engines; OUT = registerBasesView +
   — LIVING canon (grill 2026-06-17/18): engine × mode × orientation × direction ×
   child_global_direction × viewScope + regime + cell-config plane. **SUPERSEDES-IN-PROGRESS** the
   stale `orientation = h/v` model in shard 02 + glossary L129-130 + `typeViewConfig.ts`.
+  *(corregido 2026-07-09 al canon 05-view-canon/ADR 0012: ADR 0012 status is now Accepted and the
+  canon's NOW-tier is LOCKED, not merely "in progress" — glossary L129-131 and `typeViewConfig.ts`
+  are already re-modeled to this canon; only shard 02's engine table below remains the pre-canon
+  artifact, kept intentionally until it is archived per the canon's own Landing TODO.)*
 
 ## Status
 

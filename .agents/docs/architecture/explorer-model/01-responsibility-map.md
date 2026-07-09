@@ -62,7 +62,7 @@ build the shared primitive (N.R) + view shells (V.D).
 | virtualizer (tanstack-virtual) · scroll element/state · visible-range | `serviceVirtualizer` (shared) | **Render-runtime (View-side, shared)** |
 | text/height measurement (pretext) | `serviceTextMeasure` (shared) | Render-runtime |
 | node-resizer (drag resize) | runtime emits a **size-mark** → `serviceMark` (durable) → projection re-reads | runtime emits; data-plane consumes |
-| table columns/sort/selection (tanstack-table) | Table engine runtime (order/visibility from view-config) | Render-runtime |
+| table columns/sort/selection (tanstack-table) | Table engine runtime (order/visibility from view-config) *(corregido 2026-07-09 al canon 05-view-canon/ADR 0012: "Table" is a Geometry MODE, not a separate engine — read as "Geometry(table) runtime")* | Render-runtime |
 | dnd interaction (dnd-kit) | shared dnd runtime → intent → `serviceDnd`/`serviceManualDnd` → operations/reorder-marks | Render-runtime emits; Logic decides |
 
 Keys: the render-runtime is **shared across engines** (one virtualizer/measure/dnd

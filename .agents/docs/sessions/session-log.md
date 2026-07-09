@@ -34,7 +34,7 @@ broader "append-only status writes" is parked as **S-12** in
 - git: <hash if committed; "uncommitted" otherwise>
 ```
 
-## Entries (newest at TOP, append above the previous one)
+## Entries (append-only — convención vigente 2026-07-09: las entries nuevas van AL FONDO, la más reciente al final; las entries anteriores a 2026-07 quedaron en el orden viejo newest-at-top y no se reordenan)
 
 ## 2026-06-24 — antigravity-gemini · research · Fix TS5101 baseUrl deprecation error in tsconfig.json
 - **summary:** Explained and resolved compiler warning/error TS5101 about deprecated `baseUrl` in `tsconfig.json`.

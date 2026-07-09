@@ -116,9 +116,17 @@ export function isModeForEngine(engine: ViewEngine, mode: ViewMode): boolean {
 }
 
 /**
- * Orientation = horizontal | vertical layout flag (glossary canon). It is a FLAG,
- * not a mode. The proto's rich orientation vocabulary (drill/accordion/radial/etc.)
- * lives in `mode`/sub-modes, never here.
+ * Orientation = horizontal | vertical layout flag. It is a FLAG, not a mode. The
+ * proto's rich orientation vocabulary (drill/accordion/radial/etc.) lives in
+ * `mode`/sub-modes, never here.
+ *
+ * (corregido 2026-07-09 al canon 05-view-canon/ADR 0012: this is NO LONGER "glossary
+ * canon" — the current canon says orientation ≠ h/v; orientation is rich,
+ * engine-specific arrangement semantics (Linear list/collapsible/accordion/drill;
+ * Geometry list/section/drill/container), and h/v moved to the `direction` axis.
+ * `ViewOrientation`/`VIEW_ORIENTATIONS` below are the legacy h/v flag this tracer
+ * intentionally keeps until the axis-adoption slice — see the file-header note above
+ * (line ~65) and 05-view-canon §Axes. Do not read this block as current canon.)
  */
 export const VIEW_ORIENTATIONS = ['horizontal', 'vertical'] as const;
 export type ViewOrientation = (typeof VIEW_ORIENTATIONS)[number];

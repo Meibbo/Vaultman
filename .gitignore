@@ -45,6 +45,9 @@ codeql-db/
 .agents/cache/**
 .agents/tmp/
 .agents/tmp/**
+# Agent-room runtime state lives untracked in .git/vaultman-room since S2 (2026-06-04);
+# legacy tracked runs under .agents/state were untracked 2026-07-09.
+.agents/state/
 .agents/skills/*
 !.agents/skills/vm-*/
 !.agents/skills/vm-*/**
