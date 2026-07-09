@@ -43,8 +43,9 @@ tags:
       `diff` low conocida. Resto (1 high/3 mod/4 low) exige `gh api dependabot/alerts` real —
       correrlo el dev o instalar gh en PATH de agentes.
       https://github.com/Meibbo/Vaultman/security/dependabot
-- [x] **PR #38 + branch `p112-type-view-loop-fix`** — dev decidió 2026-07-09: cerrar PR y
-      borrar branch (ejecución registrada abajo en esta línea al completarse).
+- [x] **PR #38 + branch `p112-type-view-loop-fix`** ✅ EJECUTADO 2026-07-09: PR #38 cerrado
+      (gh, con comentario) y branch remota borrada. Nota entorno: gh SÍ funciona vía PowerShell
+      (el "gh not found" del triage fue el bash con PATH roto).
 - [ ] **Repro runtime bits-ui FnR** (flag #11): reproducir el breakage portal/trapFocus en
       plugin-dev antes de codear fix; portal-scoping ya presente, `trapFocus` sin tocar.
 - [ ] **Re-baseline D4** (docs/ledger citan stable `1.1.1`; la línea va en `1.1.6`) —
