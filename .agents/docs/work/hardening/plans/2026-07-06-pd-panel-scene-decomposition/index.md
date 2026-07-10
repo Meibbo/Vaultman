@@ -53,7 +53,9 @@ the existing Filters `panelExplorer` without changing user-visible behavior.
 
 ## Shards
 
-- [[01-task-plan|01 Task Plan]] — executable steps for P.D slice 1.
+- [[01-task-plan|01 Task Plan]] — executable steps for P.D slice 1 (tracer, EJECUTADO).
+- [[02-nib-slices|02 NIB Slices]] — grill NIB 2026-07-09/10: locks D-NIB-1..8 + Mermaid del
+  pipeline + slices 0 (vocabulary) / 0.5 (extraer providers-svelte) / 1 (NIB vertical).
 
 ## Status Log
 

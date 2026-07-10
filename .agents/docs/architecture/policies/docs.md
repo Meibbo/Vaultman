@@ -14,6 +14,20 @@ tags:
 
 ## Rules
 
+- **Canonical-term citations in chat (2026-07-09, dev request):** when an agent uses a
+  project-canonical term in a chat/grill answer (PanelHandle, data-plane, ActionNode,
+  regime, …), cite the doc that defines it (glossary line / explorer-model shard / ADR /
+  type file) so the dev can jump to the definition instead of re-asking. New terms coined
+  mid-grill get a glossary (or shard) entry BEFORE further use. Usage examples given by the
+  dev in chat are registered the same session in
+  [[docs/architecture/usage-workflows|usage-workflows]].
+- **Grill pendientes are born with a dossier (2026-07-10, dev request):** when a session
+  defers a topic to a future grill/audit, the deferring agent creates (or appends to) a
+  source-record dossier carrying the DATA that motivated it — census numbers, dev
+  statements, verified findings, candidate options — and links it from the pendientes item.
+  A future agent must be able to start the grill from the dossier alone, without the
+  original chat.
+
 - Line-limit tiers (navigation/sharding triggers, never an instruction to remove
   detail). Enforced by `tools/pkm-ai/check-doc-health.mjs`:
     - **<= 200 lines**: clean.

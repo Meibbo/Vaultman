@@ -28,9 +28,19 @@ There is no single "Panel host" — host concerns are owned **per kind**:
 | Kind | Renders | Kind-specific host concerns | Projection/Expansion? |
 |---|---|---|---|
 | `panelExplorer` | nodes via engines × modes | provider-tree sync, sort, view-engine select, search forward | yes |
-| `panelData` | widgets (stats / heatmaps / decoration primitives) | widget/stat refresh; mostly read-only | no |
+| `panelWidget` (was `panelData`) | bars (toolbar/dock/ribbon/statusbar/tab-strips) · scope selectors · interactive primitives · stat/heatmap widgets | widget refresh; acts ON rendered data / frame, not on the data itself | no |
 | `panelContent` | header-section embed w/ live-preview editing (full Obsidian md render) | editor-render, edit-mode | no (block-level) |
 | `custom-panel` | user composition of our primitives and/or scripts | user-defined | depends |
+
+> **panelWidget rename + boundary (2026-07-10 NIB grill, dev-locked):** `panelData` → **`panelWidget`**.
+> Hierarchy argument: surface > scene > panel > node > cell — a bar is a CHILD of a Scene, so bars
+> cannot be Overlays (overlays = assistive surface-kinds; glossary corrected). A panelWidget's
+> function acts ON the rendered data / frame navigation (via mediator → Actions as nodes or cells),
+> vs panelExplorer/panelContent which carry the data itself. "Mostly read-only" is superseded:
+> read "static-leaning vs the extremely dynamic panelExplorer" — dynamic widget nodes/cells are
+> fine (condition-driven tab-selector). Edge refined by dev: in pageStats, the configurable
+> statsProvider cards = a panelExplorer (provider is extensible → it IS an explorer); only the
+> scope-router is the widget. Code union rename (`typePanelScene.ts`) lands in NIB slice 1.
 
 So Projection + Expansion are **`panelExplorer`-kind controllers**, not generic-panel. Each
 kind composes only the controllers it needs. `panelExplorer` is the only kind needing
@@ -76,6 +86,23 @@ So there is NO separate nav-intent branch — nav-kind ActionNodes are simply ha
 Selection/Expansion (supersedes the earlier "nav-intent vs action-intent" split). Keyboard-nav
 wiring (`createKeyboardNav`), `serviceMouse`, and the DEFERRED `InputBindingNode` are all input
 adapters feeding the one router; each panel wires an InputRouter.
+
+> **NIB grill additions (2026-07-09, Q1 LOCKED):**
+> - **Two router tiers by what they see**: the per-panel `InputRouter` is the ONLY tier that sees
+>   RAW inputs; the mediator-level **`WorkspaceActionRouter`** (rename of the P.D tracer's
+>   `serviceWorkspaceInputRouter`, pending NIB slice 1) receives already-resolved **ActionNode
+>   invocations** (palette, hotkey, macro, agent, cross-panel) — Obsidian resolves its own inputs
+>   before we see them. Glossary entries updated.
+> - **`zoom` added to nav-kind** (was missing from move/expand/select/scroll/reveal). Same gesture
+>   resolves PER TARGET: pinch over nodes = node-resize (→ size-mark, persistent) vs pinch over
+>   frame/panel = zoom (transient view-state). Gesture→ActionNode resolution is target-scoped.
+> - **Persistence is a per-facet USER option, not a dev norm**: the view-state / view-config split
+>   is the mechanism (two write destinations), but WHICH view-state facets get snapshotted or
+>   promoted to config (e.g. scroll position, committed zoom/density) is PSS-configurable per
+>   facet — both stay user-facing options in the plugin.
+> - **Gesture index (SDK direction)**: own + native gestures registered in the internal registry
+>   as a 4th plane alongside SASI commands/services/scripts — feeds the DEFERRED gesture-grammar
+>   research; third parties could register gestures/actions and Vaultman routes them.
 
 ## Unified mutation pipeline (LOCKED)
 

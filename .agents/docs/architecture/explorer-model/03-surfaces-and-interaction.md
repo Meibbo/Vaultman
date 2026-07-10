@@ -93,7 +93,9 @@ classes alter a note's look, so the `cssclasses` drop knows what to write.
 
 ## Active-context + scope (overlay / toolbar targeting)
 
-Overlays (bars/cmenu/island/toolbar) ask the Mediator who they act on:
+Overlays (cmenu/island/pop-up — *bars/toolbars reclassified 2026-07-10 NIB grill: they are
+`panelWidget` children of a Scene, not overlays; same active-context/scope resolution applies to
+them as panels*) ask the Mediator who they act on:
 
 - **active-context** = the focused Scene/Panel (point actions: a cmenu item, a fab).
 - **scope** = the span for broadcast actions (a toolbar searchbox / view / sort menu).

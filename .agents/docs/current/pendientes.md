@@ -120,6 +120,64 @@ tags:
 - [ ] **Canvas/Charts engines (N4)** y **viewScope-filter/composición (N3)**: deferred del canon.
 - [ ] **PAI-005 icon packs**: DEFER N4.
 - [ ] **Masonry**: la vista no existe (excluida de V.D) — decidir si 2.0.0 la trae.
+- [ ] **Research (GRAVE, pedido dev 2026-07-10): patrón "rename/coherencia diferida"** —
+      interno (instancias en session-log/git donde agentes difirieron renombres/alineación y
+      crearon ventanas de drift semántico: typeActionRouting, ExplorerProvider, getTree,
+      explorer* prefijos, panelData) + online (rename-debt, semantic drift, large-scale
+      refactoring policies, vocabulary-first refactors). Output: policy anti-drift para
+      agentes + catálogo de deuda de nombres vigente.
+- [ ] **Research/harness: tooling adversarial + ruteo de skills** — evaluar si policies/
+      skills/MCPs actuales fuerzan el destape de fallas sin pedido explícito (respuesta hoy:
+      NO — fix parcial aplicado al skill grill-with-docs 2026-07-10: adversarial pass
+      obligatorio + cierre con skills sugeridas); investigar online prácticas (red-team
+      prompts, devil's-advocate agents, critique-before-lock) y qué adquirir/configurar en
+      el harness (hook de fin de mensaje con skills según postura del dev).
+- [x] **Deuda de NOMBRES — DECIDIDA en grill NIB 2026-07-10** (ejecución = slices 0/0.5 del
+      [[docs/work/hardening/plans/2026-07-06-pd-panel-scene-decomposition/02-nib-slices|shard 02]]):
+      convención capa-primero SE MANTIENE; interface **`ProviderContract`** en `typeProvider.ts`
+      (elección dev); `explorer*`→`provider*` (7); `getTree()`→`getNodes()` (verificado libre);
+      `typeActionRouting`→`typeInputRouting`; extracción de `explorerActiveFilters.svelte` +
+      `explorerQueue.svelte` (providers mezclados con render) = slice 0.5 con parity.
+      Disciplina refactor (dev): post-wave como recomendación + a-petición skill.
+- [ ] **Auditoría estructural src/ (refactor-mandate del stream goal, dev 2026-07-10)** —
+      censo: services/ 78 files (God-folder), components/ 90, index/ 14 (espejo 1:1 por
+      dominio con providers/ + `i18n` fuera de lugar dentro de index/), 14 carpetas
+      layer-first → un dominio (files) cruza 4-5 carpetas. Evaluar: fronteras
+      index-vs-logic-vs-service, partición feature-first vs layer-first, y si la división
+      actual cumple SOLID o fragmenta el rastro (pregunta dev). Herramienta:
+      /improve-codebase-architecture o vm-vertical-codebase-analysis + codebase-memory MCP.
+      PRINCIPIO nuevo (dev): el stream goal no solo expande — habilita refactor profundo de
+      secciones verticales enteras; la refactorización es práctica normal y frecuente, no
+      señal de fracaso. **Dossier-semilla (leer primero):**
+      [[docs/work/hardening/research/2026-07-10-structural-refactor-dossier|structural-refactor dossier]]
+      — incluye: dev declara `providers/explorer*` god-objects post-WSA (extraer valor antes
+      de desechar) + decisión de forma de la disciplina de refactor (rutina vs post-wave vs
+      a-petición) pendiente.
+- [ ] **Research: visual node-based programming** (Node-RED · Unreal Blueprints · n8n ·
+      Max/MSP · Blender geometry nodes): patrones de "programar conectando nodos" como
+      referencia para macros/composición de ActionNodes + SDK index-explorers (pedido dev,
+      grill NIB 2026-07-09).
+- [ ] **Grill futuro: matriz de compatibilidad renderer nativo vs Vaultman** — si un
+      plugin/snippet de terceros estiliza una surface nativa, el fallback nativo preserva
+      compatibilidad total; renderer Vaultman la preserva solo parcialmente (clases nativas
+      compartidas vía 0-A parity). Definir la frontera per-surface `renderer: native|vaultman`
+      × LUPA × snippets de terceros (grill NIB 2026-07-09, planteado por dev).
+- [x] **Grill panelWidget** ✅ RESUELTO en grill NIB 2026-07-10 (dev-locked): `panelData` →
+      **`panelWidget`**; bars NO son Overlays (jerarquía surface>scene>panel>node>cell — un bar
+      es hijo de Scene); panelWidget = función SOBRE lo renderizado/frame, "static-leaning" no
+      read-only; pageStats refinado: statsProvider configurable = panelExplorer, scope-router =
+      widget. Canon actualizado: glossary (Overlay + panel-kind + panelWidget nuevo) + shard 04
+      tabla+nota + shard 03 §active-context. Rename del union en código → NIB slice 1.
+- [ ] **Grill corto: Symbiont/ComposedViews al glosario** — el dominio pilar "Symbiont
+      Explorer" NO tiene entrada de glosario (grep architecture = 0 hits); posible
+      superposición ComposedViews/SymbiontViews; hipótesis dev 2026-07-09: la mecánica
+      symbiont aplica a todo panel-kind con nodos/celdas, no solo al explorer. Añadido
+      2026-07-10: reconciliar también el término **viewComposer** ("cards es una config del
+      viewComposer", dev) vs `viewScene`/view-config editor del glossary.
+- [ ] **Candidato a canon: "index-as-provider"** — todo índice interno (SASI commands/services/
+      scripts/gestures · provider-index · fragility registry) expone su propio provider para
+      explorarse desde explorers (capacidades Obsidian+Vaultman+plugins como workspace vivo,
+      efecto SDK/documentación viva). Formalizar en glossary/ADR al escalar (grill NIB 2026-07-09).
 
 ## 5. Infra / pkm-ai / higiene docs
 
