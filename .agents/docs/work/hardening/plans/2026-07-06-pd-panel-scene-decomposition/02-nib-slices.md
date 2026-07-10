@@ -76,7 +76,12 @@ Renames sin cambio semántico, UN commit, gates = check 0/0 · unit verde · bui
 `typeExplorer.ts` interface `ExplorerProvider`→**`ProviderContract`** en `typeProvider.ts`
 (re-export temporal permitido para no tocar 6 providers en el mismo commit… o incluirlos:
 decisión del ejecutor, catálogo completo) ·
-`providers/explorer*`→`providers/provider*` (7 archivos + clases) · `getTree()`→`getNodes()`.
+`providers/explorer*`→`providers/provider*` (7 archivos + clases) · `getTree()`→`getNodes()` ·
+**BORRAR los 6 shims muertos** `components/containers/explorer{Files,Props,Tags,Content,Snippets,Plugins}.ts`
+(re-exports de 2 líneas a providers/; quedaron fuera del shim-collapse `1409e31`; detectados por el
+rename-debt research 2026-07-10, impacto corregido por coordinador: **cero importers verificados** →
+borrado directo, no re-point) · revisar `containers/explorerBasesImport.ts` (real e importado por
+`pageFilters` — ubicación/prefijo sospechosos, ¿mover a providers/? juicio del ejecutor con parity).
 
 ## Slice 0.5 — extraer los 2 providers-svelte (juicio + parity)
 
