@@ -22,7 +22,10 @@ Zero-context agents execute this BEFORE any work. Not advisory. Detail:
 2. **Retrieval-first** — query the index for the top-k relevant docs; do NOT read the whole tree:
    `npx tsx .agents/tools/pkm-ai/query-docs.ts <topic>`. (Lifecycle-ranked once S6 lands; ADR 0002/0006.)
 3. **Route docs** — `current/status.md` + `current/handoff.md` are route indexes ONLY; read the latest
-   `docs/sessions/session-log.md` entry.
+   `docs/sessions/session-log.md` entry. **Also read your unread room mailbox**
+   (`agent-room.ts mailbox read --agent <id>`) — the dev leaves out-of-band notices there
+   (e.g. "I moved src/modals, don't touch") without spending a prompt; treat them as
+   dev instructions.
 4. **Memory boundary** —
    - editing SHARED memory (status/handoff/architecture/specs) → `agent-room scope claim` FIRST (resolve
      conflicts/leases);
@@ -53,6 +56,17 @@ Use the mode named by the user, or infer one:
 - **Documentación y Código:** Mantener siempre el máximo detalle técnico, fidelidad y contexto en archivos. La compresión de archivos de conocimiento está prohibida para evitar alucinaciones y pérdida de contexto.
 
 Micro commands are read-only and short: `skills:`, `status:`, `next:`, `qq:`, `question:`, `help:`.
+
+## Adversarial Pass (policy — dev-locked 2026-07-10, C2)
+
+Before locking ANY substantial plan/spec/design proposal (and roughly every ~3 locked
+decisions in long design sessions), run an UNPROMPTED adversarial pass on your OWN
+accumulated proposal: invent scenarios the dev has not raised (third-party integrations,
+degenerate inputs, roadmap features from the ADRs), check names against the real codebase
+(grep, not memory), check SOLID on the post-plan state + dev-in-a-week readability, and
+state what the design does NOT cover and what quality would be LOST vs the status quo.
+Performative agreement is a defect. Technique menu:
+`docs/pkm-ai/research/2026-07-10-adversarial-harness-research/`.
 
 ## Size And Context
 
@@ -106,6 +120,11 @@ on an inference.
   the natural handoff unit.
 - Do not push, tag, merge, force-push, rewrite history, or commit unrelated
   user changes unless explicitly asked.
+- **Agent-doc push boundary (dev, 2026-07-10):** `.agents/` docs are committed LOCALLY
+  only and are NEVER pushed to origin — the dev backs them up separately. Keep CODE
+  commits free of `.agents/` paths (two commits: `feat/fix` code-only, then `docs:`
+  local) so code history stays pushable. When code and local-only doc commits
+  interleave on the branch, ask the dev how to push (cherry/range/branch split).
 - Before merge/release work, confirm how AI files will be excluded from `main`.
 
 ## Project Rules

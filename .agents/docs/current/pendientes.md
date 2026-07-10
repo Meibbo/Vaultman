@@ -136,6 +136,12 @@ tags:
       `security-guidance` (crítico independiente en background + re-prompt no bloqueante).
       Dato verificado: `Stop` (no `UserPromptSubmit`) es el evento correcto para sugerir
       skills al final de cada respuesta.
+- [ ] **Harness: unificar pkm-ai con codebase-memory-mcp** (pedido dev 2026-07-10): mínimo =
+      arranque conjunto (un script/config levanta ambos); ideal = exponer agent-room/query-docs
+      como MCP server (tools `mcp__pkmai__*`) para que agentes y dev usen UNA interfaz — el
+      mailbox dev→agentes ya funciona hoy vía CLI (`agent-room.ts mailbox send --agent dev
+      --to <agente>`); AGENTS.md ya obliga a leerlo en el startup (edit 2026-07-10). Evaluar
+      wrapper corto (`pkm msg "..."`).
 - [ ] **⚠️ INVESTIGAR: poda silenciosa bajo `.agents/docs/work/pkm-ai/`** — el research agent
       escribió sus 4 files ahí DOS veces (write exitoso) y desaparecieron sin error a los
       segundos; en `.agents/docs/pkm-ai/` (path legacy sin `work/`) sobreviven. Sospechoso #1:
