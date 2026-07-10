@@ -126,12 +126,22 @@ tags:
       explorer* prefijos, panelData) + online (rename-debt, semantic drift, large-scale
       refactoring policies, vocabulary-first refactors). Output: policy anti-drift para
       agentes + catálogo de deuda de nombres vigente.
-- [ ] **Research/harness: tooling adversarial + ruteo de skills** — evaluar si policies/
-      skills/MCPs actuales fuerzan el destape de fallas sin pedido explícito (respuesta hoy:
-      NO — fix parcial aplicado al skill grill-with-docs 2026-07-10: adversarial pass
-      obligatorio + cierre con skills sugeridas); investigar online prácticas (red-team
-      prompts, devil's-advocate agents, critique-before-lock) y qué adquirir/configurar en
-      el harness (hook de fin de mensaje con skills según postura del dev).
+- [x] **Research/harness adversarial** ✅ ENTREGADO 2026-07-10 →
+      [[docs/pkm-ai/research/2026-07-10-adversarial-harness-research/index|adversarial-harness research]]
+      (inventario 49 skills/7 policies con huecos por fase · 8 técnicas evaluadas con fuente ·
+      propuesta priorizada). **DECISIONES DEV pendientes**: C1 portar Adversarial Pass a
+      grill-me/brainstorming/writing-plans · C2 subirlo a policy-level · C3 fix del Stop-hook
+      stale (apunta a `docs/HANDOFF.md` inexistente; real = `.agents/docs/current/handoff.md`)
+      · M1/M2 Stop-hook con heurística o juicio (`type:prompt`) · E1 patrón del plugin oficial
+      `security-guidance` (crítico independiente en background + re-prompt no bloqueante).
+      Dato verificado: `Stop` (no `UserPromptSubmit`) es el evento correcto para sugerir
+      skills al final de cada respuesta.
+- [ ] **⚠️ INVESTIGAR: poda silenciosa bajo `.agents/docs/work/pkm-ai/`** — el research agent
+      escribió sus 4 files ahí DOS veces (write exitoso) y desaparecieron sin error a los
+      segundos; en `.agents/docs/pkm-ai/` (path legacy sin `work/`) sobreviven. Sospechoso #1:
+      mirror/sync Drive+Obsidian del vault conjunto (histórico de mirror-tree/conflict-copies).
+      4º riesgo de pérdida de docs — NO escribir contenido nuevo top-level en ese path hasta
+      resolver; revisar con Obsidian cerrado + Drive pausado.
 - [x] **Deuda de NOMBRES — DECIDIDA en grill NIB 2026-07-10** (ejecución = slices 0/0.5 del
       [[docs/work/hardening/plans/2026-07-06-pd-panel-scene-decomposition/02-nib-slices|shard 02]]):
       convención capa-primero SE MANTIENE; interface **`ProviderContract`** en `typeProvider.ts`
