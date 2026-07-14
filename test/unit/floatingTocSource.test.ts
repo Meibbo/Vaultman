@@ -49,10 +49,10 @@ describe('Floating TOC source and panel contracts', () => {
 			"floatingTocRouter.invoke('reveal-node', targetId)",
 		);
 		expect(frameSource).toMatch(/floatingTocRouter\.setPort\(/);
-		// Pick mode resolves the scope root from a clicked row's data-id.
+		// Pick mode resolves the picked node's LEVEL (parent) from its data-id.
 		expect(frameSource).toContain('tocPickMode');
 		expect(frameSource).toContain("'[data-id]'");
-		expect(frameSource).toContain('expandNodeById(id)');
+		expect(frameSource).toContain('scopeRootForNode(id)');
 	});
 
 	it('renders a toggle with long-press plus glyph buttons (no dead list markup)', () => {

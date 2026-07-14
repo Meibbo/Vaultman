@@ -65,6 +65,26 @@ export function indexLevel<T extends IndexTreeNode>(
 	}));
 }
 
+/**
+ * The scope root that owns `id`'s level: the id of `id`'s parent, or null when
+ * `id` is top-level or absent. Feeds the drill so that picking ANY node indexes
+ * the level it lives on (its siblings), not the picked node's own children.
+ */
+export function findParentId<T extends IndexTreeNode>(
+	roots: readonly T[] | null | undefined,
+	id: string,
+	parent: string | null = null,
+): string | null {
+	for (const node of roots ?? []) {
+		if (node.id === id) return parent;
+		const hit = node.children
+			? findParentId(node.children as T[], id, node.id)
+			: null;
+		if (hit !== null) return hit;
+	}
+	return null;
+}
+
 export function buildIndexGroups(
 	nodes: readonly IndexNodeRef[] | null | undefined,
 ): IndexGroup[] {

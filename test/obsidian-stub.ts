@@ -150,6 +150,12 @@ export function prepareSimpleSearch(query: string): (text: string) => { score: n
 		text.toLowerCase().includes(normalized) ? { score: 1 } : null;
 }
 
+export function setTooltip(
+	_el: HTMLElement,
+	_text: string,
+	_options?: unknown,
+): void {}
+
 export function parseYaml(_yaml: string): unknown {
 	return {};
 }

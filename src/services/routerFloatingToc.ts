@@ -20,6 +20,12 @@ export interface RevealNodePort {
 export interface FloatingTocPanel extends RevealNodePort {
 	getIndexNodes(rootId: string | null): import('../logic/logicIndexGroups').IndexNodeRef[];
 	isIndexableSort(): boolean;
+	/** Files/folders toggle applies (files tree); else the rail indexes all nodes. */
+	supportsKindToggle(): boolean;
+	/** Scope drill is available (any tree with a hierarchy). */
+	supportsDrill(): boolean;
+	/** Scope root owning a picked node's level (its parent id, or null). */
+	scopeRootForNode(id: string): string | null;
 	expandNodeById(id: string): void;
 	onIndexChanged?: () => void;
 }

@@ -586,6 +586,18 @@
 		const panel = activeFloatingTocPanel();
 		return !!panel && panel.isIndexableSort();
 	});
+	const tocKindToggle = $derived.by(() => {
+		void settingsRevision;
+		void filtersActiveTab;
+		void explorerRenderRevision;
+		return activeFloatingTocPanel()?.supportsKindToggle() ?? false;
+	});
+	const tocDrill = $derived.by(() => {
+		void settingsRevision;
+		void filtersActiveTab;
+		void explorerRenderRevision;
+		return activeFloatingTocPanel()?.supportsDrill() ?? false;
+	});
 	const tocGroups = $derived.by(() => {
 		void explorerRenderRevision;
 		void tocKind;
@@ -593,12 +605,14 @@
 		void filtersActiveTab;
 		const panel = activeFloatingTocPanel();
 		if (!panel || !panel.isIndexableSort()) return [];
-		const nodes = panel
-			.getIndexNodes(tocRootId)
-			.filter((node) =>
-				tocKind === 'folders' ? node.isContainer : !node.isContainer,
-			);
-		return buildIndexGroups(nodes);
+		const nodes = panel.getIndexNodes(tocRootId);
+		// Files/folders toggle only splits the files tree; elsewhere index all nodes.
+		const filtered = panel.supportsKindToggle()
+			? nodes.filter((node) =>
+					tocKind === 'folders' ? node.isContainer : !node.isContainer,
+				)
+			: nodes;
+		return buildIndexGroups(filtered);
 	});
 
 	// FTC-002: WAR-shaped router; the active explorer panel is the reveal port.
@@ -636,8 +650,11 @@
 			if (!id) return;
 			event.preventDefault();
 			event.stopPropagation();
-			tocRootId = id;
-			activeFloatingTocPanel()?.expandNodeById(id);
+			// Index the level the picked node lives on (its siblings), so picking
+			// any node — parent or child — works instead of emptying on a leaf.
+			const parentId = activeFloatingTocPanel()?.scopeRootForNode(id) ?? null;
+			tocRootId = parentId;
+			if (parentId) activeFloatingTocPanel()?.expandNodeById(parentId);
 			stopTocPick();
 		};
 		pane.addEventListener('click', onPick, true);
@@ -1088,6 +1105,8 @@
 			tocAvailable}
 		groups={tocGroups}
 		kind={tocKind}
+		kindToggle={tocKindToggle}
+		drill={tocDrill}
 		scoped={tocRootId !== null}
 		pickMode={tocPickMode}
 		onJump={jumpFloatingToc}

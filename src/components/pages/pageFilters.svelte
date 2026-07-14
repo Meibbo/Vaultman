@@ -194,6 +194,14 @@
 		void settingsRevision;
 		return plugin.settings.explorerOperationScope;
 	});
+	const floatingTocEnabled = $derived.by(() => {
+		void settingsRevision;
+		return plugin.settings.floatingTocEnabled === true;
+	});
+	function toggleFloatingToc() {
+		plugin.settings.floatingTocEnabled = !plugin.settings.floatingTocEnabled;
+		void plugin.saveSettings();
+	}
 	const minimalStyle = $derived.by(() => {
 		void settingsRevision;
 		return plugin.settings.minimalStyle;
@@ -651,6 +659,8 @@
 		showExplorerControls={filtersActiveTab !== 'content'}
 		{expansionRevision}
 		{onViewFiltersChanged}
+		{floatingTocEnabled}
+		onToggleFloatingToc={toggleFloatingToc}
 		{icon}
 	/>
 {/if}

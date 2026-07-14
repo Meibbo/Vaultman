@@ -41,7 +41,11 @@ import {
 	type MetadataTypeManagerLike,
 } from '../../logic/propTypes';
 import { normalizeExplorerSortBy } from '../../logic/logicSort';
-import { indexLevel, type IndexNodeRef } from '../../logic/logicIndexGroups';
+import {
+	findParentId,
+	indexLevel,
+	type IndexNodeRef,
+} from '../../logic/logicIndexGroups';
 import { flattenTreeToPathLabels } from '../../logic/logicExplorerHierarchy';
 import { parsePropertyValue } from '../../logic/propertyValueCoercion';
 import {
@@ -661,6 +665,20 @@ export class PropsExplorerPanel extends Component {
 		return ['name', 'path', 'ext'].includes(
 			normalizeExplorerSortBy(this.sortBy),
 		);
+	}
+
+	/** Props have no folders — the drill uses the container/leaf hierarchy, no kind toggle. */
+	supportsKindToggle(): boolean {
+		return false;
+	}
+
+	supportsDrill(): boolean {
+		return this.viewMode === 'tree';
+	}
+
+	scopeRootForNode(id: string): string | null {
+		if (this.viewMode !== 'tree') return null;
+		return findParentId(this._lastRenderTree, id);
 	}
 
 	expandNodeById(id: string): void {

@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { setIcon } from 'obsidian';
+	import { setIcon, setTooltip } from 'obsidian';
 	import { translate } from '../../i18n/index';
 	import type { IndexGroup } from '../../logic/logicIndexGroups';
 
@@ -7,6 +7,8 @@
 		visible,
 		groups,
 		kind,
+		kindToggle,
+		drill,
 		scoped,
 		pickMode,
 		onJump,
@@ -17,6 +19,8 @@
 		visible: boolean;
 		groups: IndexGroup[];
 		kind: 'files' | 'folders';
+		kindToggle: boolean;
+		drill: boolean;
 		scoped: boolean;
 		pickMode: boolean;
 		onJump: (targetId: string) => void;
@@ -33,12 +37,22 @@
 			},
 		};
 	}
+	// Obsidian's native tooltip (no `title` attribute, which double-renders).
+	function tooltip(el: HTMLElement, text: string) {
+		setTooltip(el, text, { placement: 'left' });
+		return {
+			update(next: string) {
+				setTooltip(el, next, { placement: 'left' });
+			},
+		};
+	}
 
-	// Long-press on the toggle enters scope-pick (a WIR→WAR gesture twin); a plain
-	// click flips files↔folders. The hold suppresses the click that follows it.
+	// On the kind toggle a long-press enters the scope drill and a plain click
+	// flips files↔folders; the hold suppresses the click that follows it.
 	let pressTimer: number | null = null;
 	let longPressed = false;
 	function startPress() {
+		if (!drill) return;
 		longPressed = false;
 		pressTimer = window.setTimeout(() => {
 			longPressed = true;
@@ -73,9 +87,12 @@
 				? translate('floating_toc.folders')
 				: translate('floating_toc.files'),
 	);
+	const drillTitle = $derived(
+		pickMode ? translate('floating_toc.pick') : translate('floating_toc.drill'),
+	);
 </script>
 
-<!-- FTC-002+: toggle (files↔folders, long-press = scope drill) then glyph jumps. -->
+<!-- FTC-002+: kind toggle / scope-drill control, then glyph jumps. -->
 {#if visible}
 	<div class="vaultman-floating-toc-wrap">
 		<nav
@@ -83,26 +100,42 @@
 			class:is-picking={pickMode}
 			aria-label={translate('floating_toc.aria')}
 		>
-			<button
-				type="button"
-				class="vaultman-floating-toc-toggle"
-				class:is-active={pickMode}
-				title={toggleTitle}
-				aria-label={toggleTitle}
-				onpointerdown={startPress}
-				onpointerup={cancelPress}
-				onpointerleave={cancelPress}
-				onclick={onToggleClick}
-			>
-				<span class="vaultman-floating-toc-toggle-icon" use:icon={toggleIcon}
-				></span>
-			</button>
+			{#if kindToggle}
+				<button
+					type="button"
+					class="vaultman-floating-toc-toggle"
+					class:is-active={pickMode}
+					aria-label={toggleTitle}
+					use:tooltip={toggleTitle}
+					onpointerdown={startPress}
+					onpointerup={cancelPress}
+					onpointerleave={cancelPress}
+					onclick={onToggleClick}
+				>
+					<span class="vaultman-floating-toc-toggle-icon" use:icon={toggleIcon}
+					></span>
+				</button>
+			{:else if drill}
+				<button
+					type="button"
+					class="vaultman-floating-toc-toggle"
+					class:is-active={pickMode}
+					aria-label={drillTitle}
+					use:tooltip={drillTitle}
+					onclick={onEnterPick}
+				>
+					<span
+						class="vaultman-floating-toc-toggle-icon"
+						use:icon={pickMode ? 'lucide-target' : 'lucide-list-tree'}
+					></span>
+				</button>
+			{/if}
 			{#if scoped}
 				<button
 					type="button"
 					class="vaultman-floating-toc-reset"
-					title={translate('floating_toc.reset')}
 					aria-label={translate('floating_toc.reset')}
+					use:tooltip={translate('floating_toc.reset')}
 					onclick={onResetScope}
 				>
 					<span use:icon={'lucide-corner-left-up'}></span>
@@ -112,8 +145,8 @@
 				<button
 					type="button"
 					class="vaultman-floating-toc-item"
-					title={group.label}
 					aria-label={group.label}
+					use:tooltip={group.label}
 					onclick={() => onJump(group.firstId)}
 				>
 					{group.key}

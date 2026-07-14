@@ -66,6 +66,8 @@
 		onViewFiltersChanged,
 		showExplorerControls = true,
 		expansionRevision = 0,
+		floatingTocEnabled = false,
+		onToggleFloatingToc,
 	}: {
 		activeTab: FiltersTab;
 		filtersSearch: string;
@@ -86,6 +88,8 @@
 		onViewFiltersChanged?: () => void;
 		showExplorerControls?: boolean;
 		expansionRevision?: number;
+		floatingTocEnabled?: boolean;
+		onToggleFloatingToc?: () => void;
 	} = $props();
 
 	const CATEGORY_ICONS: Record<FiltersTab, [string, string]> = {
@@ -605,6 +609,18 @@
 				if (!option.locked) {
 					item.onClick(() => selectNativeViewMode(option.id));
 				}
+			});
+		}
+
+		// Floating index toggle — its own section between engines and cells.
+		if (onToggleFloatingToc) {
+			menu.addSeparator();
+			menu.addItem((item) => {
+				item
+					.setTitle(translate('floating_toc.menu'))
+					.setIcon('lucide-a-arrow-down')
+					.setChecked(floatingTocEnabled)
+					.onClick(() => onToggleFloatingToc?.());
 			});
 		}
 

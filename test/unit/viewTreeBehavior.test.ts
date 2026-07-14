@@ -193,6 +193,7 @@ vi.mock('obsidian', () => ({
 	setIcon: (el: TinyElement, icon: string) => {
 		el.createEl('svg', { cls: `svg-icon ${icon}` });
 	},
+	setTooltip: () => {},
 }));
 
 describe('UnifiedTreeView behavior', () => {

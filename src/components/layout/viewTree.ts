@@ -1,5 +1,5 @@
 // src/components/UnifiedTreeView.ts
-import { setIcon } from 'obsidian';
+import { setIcon, setTooltip } from 'obsidian';
 import type { TreeNode } from '../../types/typeTree';
 import { vaultmanPerfMonitor } from '../../utils/performanceMonitor';
 import {
@@ -351,9 +351,9 @@ export class UnifiedTreeView {
 	}
 
 	private applyRowTitle(row: HTMLElement, node: TreeNode): void {
-		const title = this.rowTitle(node);
-		if (title) row.setAttribute('title', title);
-		else row.removeAttribute('title');
+		// Obsidian's native tooltip, not the browser `title` (which double-renders).
+		row.removeAttribute('title');
+		setTooltip(row, this.rowTitle(node) ?? '');
 	}
 
 	private nodeDataPath(node: TreeNode): string | null {
@@ -648,7 +648,7 @@ export class UnifiedTreeView {
 						setIcon(iEl, badge.icon);
 					}
 					if (badge.text) {
-						bEl.setAttribute('title', badge.text);
+						setTooltip(bEl, badge.text);
 						if (!badge.icon) bEl.setText(badge.text);
 					}
 					// Double-click to undo this specific queue operation

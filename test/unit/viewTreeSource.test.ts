@@ -24,7 +24,7 @@ describe('UnifiedTreeView source guards', () => {
 		expect(treeSource).toContain('private rowTitle');
 		expect(treeSource).toContain('Last modified:');
 		expect(treeSource).toContain('Created at:');
-		expect(treeSource).toContain('row.setAttribute');
+		expect(treeSource).toContain('setTooltip(row');
 	});
 
 	it('exposes row drop callbacks without rebuilding the virtualized tree', () => {

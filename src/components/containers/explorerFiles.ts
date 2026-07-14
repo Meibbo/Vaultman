@@ -19,7 +19,11 @@ import {
 	compareFilesForExplorer,
 	normalizeExplorerSortBy,
 } from '../../logic/logicSort';
-import { indexLevel, type IndexNodeRef } from '../../logic/logicIndexGroups';
+import {
+	findParentId,
+	indexLevel,
+	type IndexNodeRef,
+} from '../../logic/logicIndexGroups';
 import {
 	filesInsideFolder,
 	movedParentPathForFolderFile,
@@ -790,6 +794,22 @@ export class FilesExplorerPanel extends Component {
 		return ['name', 'path', 'ext'].includes(
 			normalizeExplorerSortBy(this.sortBy),
 		);
+	}
+
+	/** Files/folders toggle only applies to the tree (flat/table/grid = files). */
+	supportsKindToggle(): boolean {
+		return this.viewMode === 'tree';
+	}
+
+	/** Scope drill needs a hierarchy — tree mode only. */
+	supportsDrill(): boolean {
+		return this.viewMode === 'tree';
+	}
+
+	/** Scope root that owns a picked node's level (its parent id, or null). */
+	scopeRootForNode(id: string): string | null {
+		if (this.viewMode !== 'tree') return null;
+		return findParentId(this._lastRenderTree, id);
 	}
 
 	/** Expand a node so the scope-drill can reveal its children. */

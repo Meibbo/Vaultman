@@ -27,7 +27,11 @@ import type { TreeNode, TagMeta } from '../../types/typeTree';
 import type { MenuCtx } from '../../types/typeCMenu';
 import { translate } from '../../i18n/index';
 import { normalizeExplorerSortBy } from '../../logic/logicSort';
-import { indexLevel, type IndexNodeRef } from '../../logic/logicIndexGroups';
+import {
+	findParentId,
+	indexLevel,
+	type IndexNodeRef,
+} from '../../logic/logicIndexGroups';
 import {
 	attachBadgeCancelInteraction,
 	normalizeBadgeCancelClickMode,
@@ -334,6 +338,20 @@ export class TagsExplorerPanel extends Component {
 		return ['name', 'path', 'ext'].includes(
 			normalizeExplorerSortBy(this.sortBy),
 		);
+	}
+
+	/** Tags have no folders — the drill uses the tag hierarchy, no kind toggle. */
+	supportsKindToggle(): boolean {
+		return false;
+	}
+
+	supportsDrill(): boolean {
+		return this.viewMode === 'tree';
+	}
+
+	scopeRootForNode(id: string): string | null {
+		if (this.viewMode !== 'tree') return null;
+		return findParentId(this._lastRenderTree, id);
 	}
 
 	expandNodeById(id: string): void {

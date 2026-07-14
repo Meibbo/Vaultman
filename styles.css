@@ -6245,8 +6245,8 @@ button.vaultman-content-scope-hint:focus-visible {
 	color: var(--text-normal);
 }
 .vaultman-floating-toc-toggle.is-active {
-	color: var(--text-on-accent);
-	background: var(--interactive-accent);
+	color: var(--text-faint);
+	background: transparent;
 }
 .vaultman-floating-toc-toggle-icon {
 	display: flex;
