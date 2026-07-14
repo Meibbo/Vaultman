@@ -28,10 +28,15 @@ describe('buildIndexGroups', () => {
 		expect(groups.map((g) => g.key)).toEqual(['1', '2', 'N']);
 	});
 
-	it('sends non-alphanumeric and empty labels to # and sorts # last', () => {
+	it('indexes sigil-prefixed labels by their first real glyph', () => {
+		const groups = buildIndexGroups(refs('_templates', '+maps', 'notes'));
+		expect(groups.map((g) => g.key)).toEqual(['M', 'N', 'T']);
+	});
+
+	it('sends only glyph-less labels to # and sorts # last', () => {
 		const groups = buildIndexGroups(refs('_draft', '', '  ', '#tag', 'zed'));
-		expect(groups.map((g) => g.key)).toEqual(['Z', INDEX_FALLBACK_KEY]);
-		expect(groups.find((g) => g.key === INDEX_FALLBACK_KEY)?.count).toBe(4);
+		expect(groups.map((g) => g.key)).toEqual(['D', 'T', 'Z', INDEX_FALLBACK_KEY]);
+		expect(groups.find((g) => g.key === INDEX_FALLBACK_KEY)?.count).toBe(2);
 	});
 
 	it('handles unicode letters as their own uppercase buckets', () => {

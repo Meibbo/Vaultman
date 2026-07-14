@@ -6170,7 +6170,7 @@ button.vaultman-content-scope-hint:focus-visible {
 	position: absolute;
 	top: 48px;
 	bottom: calc(var(--vaultman-nav-height, 64px) + 8px);
-	right: 2px;
+	right: 12px;
 	z-index: 12;
 	display: flex;
 	align-items: center;

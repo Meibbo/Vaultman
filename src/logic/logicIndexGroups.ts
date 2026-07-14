@@ -23,11 +23,14 @@ export interface IndexGroup {
 export const INDEX_FALLBACK_KEY = '#';
 
 function indexKeyFor(label: string): string {
-	const [ch] = Array.from((label ?? '').trim());
-	if (!ch) return INDEX_FALLBACK_KEY;
-	if (!/[\p{L}\p{N}]/u.test(ch)) return INDEX_FALLBACK_KEY;
-	const [upperGlyph] = Array.from(ch.toLocaleUpperCase());
-	return upperGlyph ?? INDEX_FALLBACK_KEY;
+	// Skip leading sigils (e.g. "+maps", "_templates") and index by the first
+	// real letter/digit; only labels with no alphanumeric glyph fall back to '#'.
+	for (const ch of Array.from((label ?? '').trim())) {
+		if (!/[\p{L}\p{N}]/u.test(ch)) continue;
+		const [upperGlyph] = Array.from(ch.toLocaleUpperCase());
+		return upperGlyph ?? INDEX_FALLBACK_KEY;
+	}
+	return INDEX_FALLBACK_KEY;
 }
 
 export function buildIndexGroups(
