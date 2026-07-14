@@ -9,10 +9,12 @@
 		visible,
 		revision,
 		getNodes,
+		onJump,
 	}: {
 		visible: boolean;
 		revision: number;
 		getNodes: () => IndexNodeRef[];
+		onJump: (targetId: string) => void;
 	} = $props();
 
 	const groups = $derived.by(() => {
@@ -22,24 +24,24 @@
 	});
 </script>
 
-<!-- FTC-001: static glyph rail; interactive jump controls land in FTC-002. -->
+<!-- FTC-002: each glyph jumps the active explorer to its group's first node. -->
 {#if visible && groups.length > 1}
 	<div class="vaultman-floating-toc-wrap">
-		<div
+		<nav
 			class="vaultman-floating-toc"
-			role="list"
 			aria-label={translate('floating_toc.aria')}
 		>
 			{#each groups as group (group.key)}
-				<span
+				<button
+					type="button"
 					class="vaultman-floating-toc-item"
-					role="listitem"
 					title={group.label}
 					aria-label={group.label}
+					onclick={() => onJump(group.firstId)}
 				>
 					{group.key}
-				</span>
+				</button>
 			{/each}
-		</div>
+		</nav>
 	</div>
 {/if}

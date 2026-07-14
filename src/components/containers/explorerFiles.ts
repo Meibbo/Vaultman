@@ -770,6 +770,24 @@ export class FilesExplorerPanel extends Component {
 		return this._lastTopLevelNodes;
 	}
 
+	/** Floating TOC reveal port (FTC-002): scroll to a top-level node by id/path. */
+	revealNode(id: string): boolean {
+		if (!this._lastTopLevelNodes.some((node) => node.id === id)) return false;
+		if (this.viewMode === 'table') {
+			if (!this.tableView) return false;
+			this.tableView.scrollToPath(id);
+			return true;
+		}
+		if (this.viewMode === 'grid') {
+			if (!this.gridView) return false;
+			this.gridView.scrollToPath(id);
+			return true;
+		}
+		if (!this.treeView) return false;
+		this.treeView.scrollToId(id, 'start');
+		return true;
+	}
+
 	private _setTopLevelNodes(nodes: { id: string; label: string }[]): void {
 		this._lastTopLevelNodes = nodes;
 		this.onTopLevelNodesChanged?.();

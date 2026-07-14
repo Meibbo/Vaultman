@@ -6201,7 +6201,7 @@ button.vaultman-content-scope-hint:focus-visible {
 	align-items: center;
 	justify-content: center;
 	flex: 0 0 15px;
-	pointer-events: none;
+	pointer-events: auto;
 	width: 18px;
 	height: 15px;
 	padding: 0;
@@ -6214,7 +6214,7 @@ button.vaultman-content-scope-hint:focus-visible {
 	font-weight: 700;
 	line-height: 1;
 	border-radius: 2px;
-	cursor: default;
+	cursor: pointer;
 }
 .vaultman-floating-toc-item:hover {
 	color: var(--text-normal);

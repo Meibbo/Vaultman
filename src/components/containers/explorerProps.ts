@@ -651,6 +651,17 @@ export class PropsExplorerPanel extends Component {
 		return this._lastTopLevelNodes;
 	}
 
+	/**
+	 * Floating TOC reveal port (FTC-002). Tree mode scrolls by node id; table and
+	 * grid have no scroll-to primitive yet, so they reject cleanly (no throw).
+	 */
+	revealNode(id: string): boolean {
+		if (!this._lastTopLevelNodes.some((node) => node.id === id)) return false;
+		if (this.viewMode !== 'tree') return false;
+		this.view.scrollToId(id, 'start');
+		return true;
+	}
+
 	private _setTopLevelNodes(nodes: { id: string; label: string }[]): void {
 		this._lastTopLevelNodes = nodes;
 		this.onTopLevelNodesChanged?.();

@@ -9,6 +9,10 @@
 	import FiltersPage from './components/pages/pageFilters.svelte';
 	import BottomNav from './components/layout/navbarPillFab.svelte';
 	import FloatingToc from './components/layout/floatingToc.svelte';
+	import {
+		FloatingTocRouter,
+		type RevealNodePort,
+	} from './services/routerFloatingToc';
 	import PerformanceHud from './components/layout/performanceHud.svelte';
 	import { QueueListComponent } from './components/componentQueueList';
 	import { QueueIslandComponent } from './components/layout/islandQueue';
@@ -546,6 +550,28 @@
 				return [];
 		}
 	}
+
+	// FTC-002: WAR-shaped router; the active explorer panel is the reveal port.
+	const floatingTocRouter = new FloatingTocRouter();
+	function activeFloatingTocPort(): RevealNodePort | null {
+		switch (filtersActiveTab) {
+			case 'files':
+				return fileList ?? null;
+			case 'props':
+				return propExplorer ?? null;
+			case 'tags':
+				return tagsExplorer ?? null;
+			default:
+				return null;
+		}
+	}
+	$effect(() => {
+		floatingTocRouter.setPort(activeFloatingTocPort());
+		return () => floatingTocRouter.setPort(null);
+	});
+	function jumpFloatingToc(targetId: string): void {
+		floatingTocRouter.invoke('reveal-node', targetId);
+	}
 	function fileTypeIdForViewFilter(file: TFile): string {
 		return file.extension || 'none';
 	}
@@ -977,13 +1003,14 @@
 	<div class="vaultman-queue-island-wrap" bind:this={queueIslandEl}></div>
 	<div class="vaultman-filters-island-wrap" bind:this={filtersIslandEl}></div>
 
-	<!-- ─── Floating TOC rail (FTC-001) — overlays the filters page ───────────── -->
+	<!-- ─── Floating TOC rail — overlays the filters page (FTC-001/002) ───────── -->
 	<FloatingToc
 		visible={floatingTocEnabled &&
 			activePage === 'filters' &&
 			filtersActiveTab !== 'content'}
 		revision={explorerRenderRevision}
 		getNodes={activeFloatingTocNodes}
+		onJump={jumpFloatingToc}
 	/>
 
 	{#if showDock}

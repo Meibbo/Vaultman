@@ -96,7 +96,7 @@ describe('Floating TOC source and panel contracts', () => {
 		expect(floatingTocSource).toContain('{#if visible && groups.length > 1}');
 	});
 
-	it('allows pointer passthrough outside the static rail', () => {
+	it('allows pointer passthrough outside the rail while glyphs stay interactive', () => {
 		expect(stylesSource).toMatch(
 			/\.vaultman-floating-toc-wrap \{[\s\S]*?pointer-events:\s*none;/,
 		);
@@ -104,13 +104,19 @@ describe('Floating TOC source and panel contracts', () => {
 			/\.vaultman-floating-toc \{[\s\S]*?pointer-events:\s*auto;/,
 		);
 		expect(stylesSource).toMatch(
-			/\.vaultman-floating-toc-item \{[\s\S]*?pointer-events:\s*none;/,
+			/\.vaultman-floating-toc-item \{[\s\S]*?pointer-events:\s*auto;/,
 		);
 	});
 
-	it('keeps every static glyph reachable without exposing dead controls', () => {
-		expect(floatingTocSource).not.toContain('<button');
-		expect(floatingTocSource).toContain('role="listitem"');
+	it('wires each glyph button to the reveal router (FTC-002)', () => {
+		expect(floatingTocSource).toContain('<button');
+		expect(floatingTocSource).toContain(
+			'onclick={() => onJump(group.firstId)}',
+		);
+		expect(frameSource).toContain(
+			"floatingTocRouter.invoke('reveal-node', targetId)",
+		);
+		expect(frameSource).toMatch(/floatingTocRouter\.setPort\(/);
 		expect(stylesSource).toMatch(
 			/\.vaultman-floating-toc \{[\s\S]*?overflow-y:\s*auto;/,
 		);
@@ -118,4 +124,11 @@ describe('Floating TOC source and panel contracts', () => {
 			/\.vaultman-floating-toc \{[\s\S]*?overflow:\s*hidden;/,
 		);
 	});
+
+	it.each(panelPrototypes)(
+		'%s exposes a revealNode reveal port (FTC-002)',
+		(_name, prototype) => {
+			expect(typeof prototype.revealNode).toBe('function');
+		},
+	);
 });
