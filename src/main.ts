@@ -391,8 +391,10 @@ export class VaultmanPlugin extends Plugin {
 	}
 
 	async saveSettings(): Promise<void> {
-		await this.saveData(this.settings);
+		// Notify listeners first so UI reacts immediately; persist in the
+		// background (the in-memory settings are already the source of truth).
 		this.notifySettingsChanged();
+		await this.saveData(this.settings);
 	}
 
 	onSettingsChange(listener: () => void): () => void {

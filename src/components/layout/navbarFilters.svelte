@@ -614,27 +614,16 @@
 			});
 		}
 
-		// Workspace section (toolbar / floating index) between engines and cells.
-		if (onToggleToolbar || onToggleFloatingToc) {
+		// Floating index toggle — its own section between engines and cells.
+		if (onToggleFloatingToc) {
 			menu.addSeparator();
-			if (onToggleToolbar) {
-				menu.addItem((item) => {
-					item
-						.setTitle(translate('viewmenu.toolbar'))
-						.setIcon('lucide-panel-top')
-						.setChecked(true)
-						.onClick(() => onToggleToolbar?.());
-				});
-			}
-			if (onToggleFloatingToc) {
-				menu.addItem((item) => {
-					item
-						.setTitle(translate('floating_toc.menu'))
-						.setIcon('lucide-a-arrow-down')
-						.setChecked(floatingTocEnabled)
-						.onClick(() => onToggleFloatingToc?.());
-				});
-			}
+			menu.addItem((item) => {
+				item
+					.setTitle(translate('floating_toc.menu'))
+					.setIcon('lucide-a-arrow-down')
+					.setChecked(floatingTocEnabled)
+					.onClick(() => onToggleFloatingToc?.());
+			});
 		}
 
 		menu.addSeparator();
@@ -692,6 +681,17 @@
 						.onClick(() => action.onClick());
 				});
 			}
+		}
+		// Toolbar visibility — its own section at the end of the tabs menu.
+		if (onToggleToolbar) {
+			menu.addSeparator();
+			menu.addItem((item) => {
+				item
+					.setTitle(translate('viewmenu.toolbar'))
+					.setIcon('lucide-panel-top')
+					.setChecked(true)
+					.onClick(() => onToggleToolbar?.());
+			});
 		}
 		menu.showAtMouseEvent(event);
 	}

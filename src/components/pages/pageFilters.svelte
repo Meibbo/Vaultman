@@ -115,6 +115,8 @@
 		onOpenStatistics,
 		addOpCount = 0,
 		expansionRevision = 0,
+		floatingTocEnabled = false,
+		onToggleFloatingToc,
 		icon,
 	}: {
 		plugin: VaultmanPlugin;
@@ -146,6 +148,8 @@
 		onOpenStatistics?: () => void;
 		addOpCount?: number;
 		expansionRevision?: number;
+		floatingTocEnabled?: boolean;
+		onToggleFloatingToc?: () => void;
 		icon: (el: HTMLElement, name: string) => any;
 	} = $props();
 
@@ -194,18 +198,13 @@
 		void settingsRevision;
 		return plugin.settings.explorerOperationScope;
 	});
-	const floatingTocEnabled = $derived.by(() => {
-		void settingsRevision;
-		return plugin.settings.floatingTocEnabled === true;
-	});
-	function toggleFloatingToc() {
-		plugin.settings.floatingTocEnabled = !plugin.settings.floatingTocEnabled;
-		void plugin.saveSettings();
-	}
 	const showToolbar = $derived.by(() => {
 		void settingsRevision;
 		return plugin.settings.showToolbar !== false;
 	});
+	// When hidden, the toolbar slides out of the frame and peeks back on hover of
+	// the top edge, so it can be re-enabled from its own tabs menu.
+	let toolbarPeek = $state(false);
 	function toggleToolbar() {
 		plugin.settings.showToolbar = plugin.settings.showToolbar === false;
 		void plugin.saveSettings();
@@ -647,31 +646,46 @@
 	/>
 {/if}
 
-{#if (filtersActiveTab !== 'content' || minimalStyle) && showToolbar}
-	<NavbarFilters
-		activeTab={explorerActiveTab}
-		{filtersSearch}
-		bind:filtersSearchCategory
-		{tagsExplorer}
-		{propExplorer}
-		{fileList}
-		{addOpCount}
-		{minimalStyle}
-		{showDock}
-		tabOptions={minimalStyle ? filterTabOptions : []}
-		{tabMenuActions}
-		headerActions={contentHeaderActions}
-		activeSectionTab={filtersActiveTab}
-		onSectionTabChange={(tab) => switchFiltersTab(tab as FiltersTab)}
-		onFiltersSearchChange={setExplorerSearch}
-		showExplorerControls={filtersActiveTab !== 'content'}
-		{expansionRevision}
-		{onViewFiltersChanged}
-		{floatingTocEnabled}
-		onToggleFloatingToc={toggleFloatingToc}
-		onToggleToolbar={toggleToolbar}
-		{icon}
-	/>
+{#if filtersActiveTab !== 'content' || minimalStyle}
+	<!-- svelte-ignore a11y_no_static_element_interactions -->
+	<div
+		class="vaultman-toolbar-slot"
+		class:is-hidden-mode={!showToolbar}
+		class:is-peeking={toolbarPeek}
+		onpointerleave={() => (toolbarPeek = false)}
+	>
+		<NavbarFilters
+			activeTab={explorerActiveTab}
+			{filtersSearch}
+			bind:filtersSearchCategory
+			{tagsExplorer}
+			{propExplorer}
+			{fileList}
+			{addOpCount}
+			{minimalStyle}
+			{showDock}
+			tabOptions={minimalStyle ? filterTabOptions : []}
+			{tabMenuActions}
+			headerActions={contentHeaderActions}
+			activeSectionTab={filtersActiveTab}
+			onSectionTabChange={(tab) => switchFiltersTab(tab as FiltersTab)}
+			onFiltersSearchChange={setExplorerSearch}
+			showExplorerControls={filtersActiveTab !== 'content'}
+			{expansionRevision}
+			{onViewFiltersChanged}
+			{floatingTocEnabled}
+			{onToggleFloatingToc}
+			onToggleToolbar={toggleToolbar}
+			{icon}
+		/>
+	</div>
+	{#if !showToolbar}
+		<!-- svelte-ignore a11y_no_static_element_interactions -->
+		<div
+			class="vaultman-toolbar-peek"
+			onpointerenter={() => (toolbarPeek = true)}
+		></div>
+	{/if}
 {/if}
 
 <div class="vaultman-filters-tab-content">

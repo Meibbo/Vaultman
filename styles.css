@@ -6268,3 +6268,32 @@ button.vaultman-content-scope-hint:focus-visible {
 	top: 44px;
 	right: 4px;
 }
+
+/* ─── Toolbar auto-hide + edge peek (FTC-003) ──────────────────────────────
+   Hidden toolbar slides out of the frame and peeks back on hover of the top
+   edge, so it can be re-enabled from its own tabs menu. */
+.vaultman-toolbar-slot.is-hidden-mode {
+	position: sticky;
+	top: 0;
+	z-index: 15;
+	height: 0;
+	overflow: visible;
+}
+.vaultman-toolbar-slot.is-hidden-mode .vaultman-navbar-filters {
+	position: relative;
+	top: auto;
+	transform: translateY(-110%);
+	transition: transform 0.22s ease;
+	will-change: transform;
+}
+.vaultman-toolbar-slot.is-hidden-mode.is-peeking .vaultman-navbar-filters {
+	transform: translateY(0);
+	box-shadow: 0 4px 12px rgba(0, 0, 0, 0.28);
+}
+.vaultman-toolbar-peek {
+	position: sticky;
+	top: 0;
+	z-index: 14;
+	height: 10px;
+	margin: 0 4px;
+}

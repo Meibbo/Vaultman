@@ -73,10 +73,19 @@
 		void settingsRevision;
 		return plugin.settings.showDock;
 	});
-	const floatingTocEnabled = $derived.by(() => {
+	// Rail visibility is a local $state so toggling it is instant — persisting
+	// through the generic saveSettings would remount the page and add a visible
+	// lag. We sync from settings (settings-tab toggle) and save quietly.
+	let floatingTocEnabled = $state(false);
+	$effect(() => {
 		void settingsRevision;
-		return plugin.settings.floatingTocEnabled === true;
+		floatingTocEnabled = plugin.settings.floatingTocEnabled === true;
 	});
+	function toggleFloatingToc() {
+		floatingTocEnabled = !floatingTocEnabled;
+		plugin.settings.floatingTocEnabled = floatingTocEnabled;
+		void plugin.saveData(plugin.settings);
+	}
 	const performanceHudEnabled = $derived.by(() => {
 		void settingsRevision;
 		return plugin.settings.performanceHudEnabled;
@@ -1058,6 +1067,8 @@
 							bind:tagsExplorer
 							bind:propExplorer
 							{settingsRevision}
+							{floatingTocEnabled}
+							onToggleFloatingToc={toggleFloatingToc}
 							getSelectedFiles={() =>
 								fileList?.getSelectedFiles() ??
 								plugin.filterService.selectedFiles}
