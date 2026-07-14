@@ -41,6 +41,7 @@ import {
 	type MetadataTypeManagerLike,
 } from '../../logic/propTypes';
 import { normalizeExplorerSortBy } from '../../logic/logicSort';
+import { indexLevel, type IndexNodeRef } from '../../logic/logicIndexGroups';
 import { flattenTreeToPathLabels } from '../../logic/logicExplorerHierarchy';
 import { parsePropertyValue } from '../../logic/propertyValueCoercion';
 import {
@@ -643,12 +644,29 @@ export class PropsExplorerPanel extends Component {
 		}
 	}
 
-	/** Top-level nodes of the last render — feeds the floating TOC (FTC-001). */
-	private _lastTopLevelNodes: { id: string; label: string }[] = [];
-	onTopLevelNodesChanged?: () => void;
+	/** Last rendered tree — feeds the floating TOC (index/scope drill). */
+	private _lastRenderTree: TreeNode<PropMeta>[] = [];
+	onIndexChanged?: () => void;
 
-	getTopLevelNodes(): { id: string; label: string }[] {
-		return this._lastTopLevelNodes;
+	/** Floating TOC: nodes at a scope level (rootId=null → top level). */
+	getIndexNodes(rootId: string | null): IndexNodeRef[] {
+		return indexLevel(
+			this._lastRenderTree,
+			rootId,
+			(node) => (node.children?.length ?? 0) > 0,
+		);
+	}
+
+	isIndexableSort(): boolean {
+		return ['name', 'path', 'ext'].includes(
+			normalizeExplorerSortBy(this.sortBy),
+		);
+	}
+
+	expandNodeById(id: string): void {
+		if (this.viewMode !== 'tree' || this.expandedIds.has(id)) return;
+		this.expandedIds.add(id);
+		this._render();
 	}
 
 	/**
@@ -656,15 +674,14 @@ export class PropsExplorerPanel extends Component {
 	 * grid have no scroll-to primitive yet, so they reject cleanly (no throw).
 	 */
 	revealNode(id: string): boolean {
-		if (!this._lastTopLevelNodes.some((node) => node.id === id)) return false;
 		if (this.viewMode !== 'tree') return false;
 		this.view.scrollToId(id, 'start');
 		return true;
 	}
 
-	private _setTopLevelNodes(nodes: { id: string; label: string }[]): void {
-		this._lastTopLevelNodes = nodes;
-		this.onTopLevelNodesChanged?.();
+	private _setIndexRoots(tree: TreeNode<PropMeta>[]): void {
+		this._lastRenderTree = tree;
+		this.onIndexChanged?.();
 	}
 
 	private _render(): void {
@@ -706,9 +723,7 @@ export class PropsExplorerPanel extends Component {
 		if (!this._nestedEnabled()) {
 			nodesWithIcons = flattenTreeToPathLabels(nodesWithIcons);
 		}
-		this._setTopLevelNodes(
-			nodesWithIcons.map((node) => ({ id: node.id, label: node.label })),
-		);
+		this._setIndexRoots(nodesWithIcons);
 		if (nodesWithIcons.length === 0) {
 			this._renderEmptyState();
 			return;
@@ -1008,9 +1023,7 @@ export class PropsExplorerPanel extends Component {
 		const filtered = this._nestedEnabled()
 			? resolved.filter((node) => !node.meta.isValueNode)
 			: flattenTreeToPathLabels(resolved);
-		this._setTopLevelNodes(
-			filtered.map((node) => ({ id: node.id, label: node.label })),
-		);
+		this._setIndexRoots(filtered);
 		if (filtered.length === 0) {
 			this._renderEmptyState();
 			return;

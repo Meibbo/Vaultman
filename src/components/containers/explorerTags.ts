@@ -27,6 +27,7 @@ import type { TreeNode, TagMeta } from '../../types/typeTree';
 import type { MenuCtx } from '../../types/typeCMenu';
 import { translate } from '../../i18n/index';
 import { normalizeExplorerSortBy } from '../../logic/logicSort';
+import { indexLevel, type IndexNodeRef } from '../../logic/logicIndexGroups';
 import {
 	attachBadgeCancelInteraction,
 	normalizeBadgeCancelClickMode,
@@ -317,12 +318,28 @@ export class TagsExplorerPanel extends Component {
 		this.onExpansionChange?.();
 	}
 
-	/** Top-level nodes of the last render — feeds the floating TOC (FTC-001). */
-	private _lastTopLevelNodes: { id: string; label: string }[] = [];
-	onTopLevelNodesChanged?: () => void;
+	/** Last rendered tree — feeds the floating TOC (index/scope drill). */
+	private _lastRenderTree: TreeNode<TagMeta>[] = [];
+	onIndexChanged?: () => void;
 
-	getTopLevelNodes(): { id: string; label: string }[] {
-		return this._lastTopLevelNodes;
+	getIndexNodes(rootId: string | null): IndexNodeRef[] {
+		return indexLevel(
+			this._lastRenderTree,
+			rootId,
+			(node) => (node.children?.length ?? 0) > 0,
+		);
+	}
+
+	isIndexableSort(): boolean {
+		return ['name', 'path', 'ext'].includes(
+			normalizeExplorerSortBy(this.sortBy),
+		);
+	}
+
+	expandNodeById(id: string): void {
+		if (this.viewMode !== 'tree' || this.expandedIds.has(id)) return;
+		this.expandedIds.add(id);
+		this._render();
 	}
 
 	/**
@@ -330,15 +347,14 @@ export class TagsExplorerPanel extends Component {
 	 * grid have no scroll-to primitive yet, so they reject cleanly (no throw).
 	 */
 	revealNode(id: string): boolean {
-		if (!this._lastTopLevelNodes.some((node) => node.id === id)) return false;
 		if (this.viewMode !== 'tree') return false;
 		this.view.scrollToId(id, 'start');
 		return true;
 	}
 
-	private _setTopLevelNodes(nodes: { id: string; label: string }[]): void {
-		this._lastTopLevelNodes = nodes;
-		this.onTopLevelNodesChanged?.();
+	private _setIndexRoots(tree: TreeNode<TagMeta>[]): void {
+		this._lastRenderTree = tree;
+		this.onIndexChanged?.();
 	}
 
 	private _render(): void {
@@ -388,13 +404,11 @@ export class TagsExplorerPanel extends Component {
 			nodesWithIcons = flattenTreeToPathLabels(nodesWithIcons);
 		}
 		if (nodesWithIcons.length === 0) {
-			this._setTopLevelNodes([]);
+			this._setIndexRoots([]);
 			this._renderEmptyState();
 			return;
 		}
-		this._setTopLevelNodes(
-			nodesWithIcons.map((node) => ({ id: node.id, label: node.label })),
-		);
+		this._setIndexRoots(nodesWithIcons);
 
 		if (this.viewMode === 'grid') {
 			this._renderGrid(nodesWithIcons, activeFilterIds, highlightIds);

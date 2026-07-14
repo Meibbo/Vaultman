@@ -186,6 +186,12 @@ export const es: Record<string, string> = {
 	'settings.floating_toc_enable.desc':
 		'Muestra un índice flotante de primeras letras sobre los explorers de Files, Props y Tags.',
 	'floating_toc.aria': 'Índice del explorer',
+	'floating_toc.files':
+		'Indexando archivos — toca para indexar carpetas, mantén para elegir alcance',
+	'floating_toc.folders':
+		'Indexando carpetas — toca para indexar archivos, mantén para elegir alcance',
+	'floating_toc.pick': 'Elige un nodo para indexar su nivel',
+	'floating_toc.reset': 'Volver al nivel superior',
 	'settings.queue_templates.desc':
 		'Gestionar presets guardados de operaciones preparadas',
 

@@ -189,6 +189,11 @@ export const en: Record<string, string> = {
 	'settings.floating_toc_enable.desc':
 		'Show a floating first-letter index over the Files, Props, and Tags explorers.',
 	'floating_toc.aria': 'Explorer index',
+	'floating_toc.files': 'Indexing files — tap to index folders, hold to pick a scope',
+	'floating_toc.folders':
+		'Indexing folders — tap to index files, hold to pick a scope',
+	'floating_toc.pick': 'Pick a node to index its level',
+	'floating_toc.reset': 'Back to top level',
 	'settings.queue_templates.desc': 'Manage saved staged operation presets',
 
 	// Main view

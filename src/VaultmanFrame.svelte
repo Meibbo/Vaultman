@@ -11,8 +11,9 @@
 	import FloatingToc from './components/layout/floatingToc.svelte';
 	import {
 		FloatingTocRouter,
-		type RevealNodePort,
+		type FloatingTocPanel,
 	} from './services/routerFloatingToc';
+	import { buildIndexGroups } from './logic/logicIndexGroups';
 	import PerformanceHud from './components/layout/performanceHud.svelte';
 	import { QueueListComponent } from './components/componentQueueList';
 	import { QueueIslandComponent } from './components/layout/islandQueue';
@@ -517,43 +518,18 @@
 	type SearchTab = 'tags' | 'props' | 'files';
 	let filtersActiveTab = $state<FiltersTab>('files');
 
-	// ─── Floating TOC (FTC-001) ───────────────────────────────────────────────
-	// Explorer panels notify after each render; the rail re-derives its letters.
+	// ─── Floating TOC (FTC-001/002 + toggle/scope-drill) ──────────────────────
+	// Explorer panels notify after each render; the rail re-derives its glyphs.
 	let explorerRenderRevision = $state(0);
+	// Index scope: which node kind (files=leaves / folders=containers) and which
+	// subtree root (null = top level; set by the long-press scope drill).
+	let tocKind = $state<'files' | 'folders'>('folders');
+	let tocRootId = $state<string | null>(null);
+	let tocPickMode = $state(false);
 	function bumpExplorerRenderRevision(): void {
 		explorerRenderRevision += 1;
 	}
-	$effect(() => {
-		const panels = [fileList, propExplorer, tagsExplorer].filter(
-			(panel) => panel !== undefined && panel !== null,
-		);
-		for (const panel of panels) {
-			if (panel) panel.onTopLevelNodesChanged = bumpExplorerRenderRevision;
-		}
-		return () => {
-			for (const panel of panels) {
-				if (panel.onTopLevelNodesChanged === bumpExplorerRenderRevision) {
-					panel.onTopLevelNodesChanged = undefined;
-				}
-			}
-		};
-	});
-	function activeFloatingTocNodes(): { id: string; label: string }[] {
-		switch (filtersActiveTab) {
-			case 'files':
-				return fileList?.getTopLevelNodes() ?? [];
-			case 'props':
-				return propExplorer?.getTopLevelNodes() ?? [];
-			case 'tags':
-				return tagsExplorer?.getTopLevelNodes() ?? [];
-			default:
-				return [];
-		}
-	}
-
-	// FTC-002: WAR-shaped router; the active explorer panel is the reveal port.
-	const floatingTocRouter = new FloatingTocRouter();
-	function activeFloatingTocPort(): RevealNodePort | null {
+	function activeFloatingTocPanel(): FloatingTocPanel | null {
 		switch (filtersActiveTab) {
 			case 'files':
 				return fileList ?? null;
@@ -566,12 +542,99 @@
 		}
 	}
 	$effect(() => {
-		floatingTocRouter.setPort(activeFloatingTocPort());
+		const panels = [fileList, propExplorer, tagsExplorer].filter(
+			(panel): panel is NonNullable<typeof panel> =>
+				panel !== undefined && panel !== null,
+		);
+		for (const panel of panels) {
+			panel.onIndexChanged = bumpExplorerRenderRevision;
+		}
+		return () => {
+			for (const panel of panels) {
+				if (panel.onIndexChanged === bumpExplorerRenderRevision) {
+					panel.onIndexChanged = undefined;
+				}
+			}
+		};
+	});
+	// Reset the scope drill when the active tab changes.
+	$effect(() => {
+		void filtersActiveTab;
+		tocRootId = null;
+		tocPickMode = false;
+	});
+	const tocAvailable = $derived.by(() => {
+		void settingsRevision;
+		void filtersActiveTab;
+		void explorerRenderRevision;
+		const panel = activeFloatingTocPanel();
+		return !!panel && panel.isIndexableSort();
+	});
+	const tocGroups = $derived.by(() => {
+		void explorerRenderRevision;
+		void tocKind;
+		void tocRootId;
+		void filtersActiveTab;
+		const panel = activeFloatingTocPanel();
+		if (!panel || !panel.isIndexableSort()) return [];
+		const nodes = panel
+			.getIndexNodes(tocRootId)
+			.filter((node) =>
+				tocKind === 'folders' ? node.isContainer : !node.isContainer,
+			);
+		return buildIndexGroups(nodes);
+	});
+
+	// FTC-002: WAR-shaped router; the active explorer panel is the reveal port.
+	const floatingTocRouter = new FloatingTocRouter();
+	$effect(() => {
+		floatingTocRouter.setPort(activeFloatingTocPanel());
 		return () => floatingTocRouter.setPort(null);
 	});
 	function jumpFloatingToc(targetId: string): void {
 		floatingTocRouter.invoke('reveal-node', targetId);
 	}
+	function toggleTocKind(): void {
+		tocKind = tocKind === 'folders' ? 'files' : 'folders';
+	}
+	function resetTocScope(): void {
+		tocRootId = null;
+	}
+	// Scope drill: the long-press enters pick mode (a WIR→WAR gesture twin); the
+	// next explorer row click resolves the scope root from its data-id.
+	function enterTocPick(): void {
+		tocPickMode = !tocPickMode;
+	}
+	$effect(() => {
+		if (!tocPickMode) return;
+		const pane = frameRoot().querySelector<HTMLElement>(
+			'.vaultman-filters-tab-pane.is-active',
+		);
+		if (!pane) {
+			tocPickMode = false;
+			return;
+		}
+		const onPick = (event: MouseEvent) => {
+			const row = (event.target as HTMLElement | null)?.closest<HTMLElement>(
+				'[data-id]',
+			);
+			const id = row?.dataset.id;
+			if (!id) return;
+			event.preventDefault();
+			event.stopPropagation();
+			tocRootId = id;
+			activeFloatingTocPanel()?.expandNodeById(id);
+			tocPickMode = false;
+		};
+		pane.addEventListener('click', onPick, true);
+		const cancelTimer = window.setTimeout(() => {
+			tocPickMode = false;
+		}, 8000);
+		return () => {
+			pane.removeEventListener('click', onPick, true);
+			window.clearTimeout(cancelTimer);
+		};
+	});
 	function fileTypeIdForViewFilter(file: TFile): string {
 		return file.extension || 'none';
 	}
@@ -1007,10 +1070,16 @@
 	<FloatingToc
 		visible={floatingTocEnabled &&
 			activePage === 'filters' &&
-			filtersActiveTab !== 'content'}
-		revision={explorerRenderRevision}
-		getNodes={activeFloatingTocNodes}
+			filtersActiveTab !== 'content' &&
+			tocAvailable}
+		groups={tocGroups}
+		kind={tocKind}
+		scoped={tocRootId !== null}
+		pickMode={tocPickMode}
 		onJump={jumpFloatingToc}
+		onToggleKind={toggleTocKind}
+		onEnterPick={enterTocPick}
+		onResetScope={resetTocScope}
 	/>
 
 	{#if showDock}

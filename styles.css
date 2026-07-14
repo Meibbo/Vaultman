@@ -6219,6 +6219,48 @@ button.vaultman-content-scope-hint:focus-visible {
 .vaultman-floating-toc-item:hover {
 	color: var(--text-normal);
 }
+.vaultman-floating-toc-toggle,
+.vaultman-floating-toc-reset {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	flex: 0 0 18px;
+	pointer-events: auto;
+	width: 18px;
+	height: 18px;
+	padding: 0;
+	margin-bottom: 2px;
+	border: none;
+	border-radius: 3px;
+	background: var(--background-modifier-hover);
+	box-shadow: none;
+	color: var(--text-muted);
+	cursor: pointer;
+}
+.vaultman-floating-toc-reset {
+	background: transparent;
+}
+.vaultman-floating-toc-toggle:hover,
+.vaultman-floating-toc-reset:hover {
+	color: var(--text-normal);
+}
+.vaultman-floating-toc-toggle.is-active {
+	color: var(--text-on-accent);
+	background: var(--interactive-accent);
+}
+.vaultman-floating-toc-toggle-icon {
+	display: flex;
+}
+.vaultman-floating-toc-toggle-icon .svg-icon,
+.vaultman-floating-toc-reset .svg-icon {
+	width: 12px;
+	height: 12px;
+}
+.vaultman-floating-toc.is-picking {
+	outline: 1px dashed var(--interactive-accent);
+	outline-offset: 2px;
+	border-radius: 4px;
+}
 .is-phone
 	.workspace-drawer
 	.workspace-leaf-content[data-type='vaultman-frame']

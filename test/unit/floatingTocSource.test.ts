@@ -1,14 +1,11 @@
 // eslint-disable-next-line import/no-nodejs-modules -- source guard reads the root CSS file in Vitest's Node environment.
 import { readFileSync } from 'node:fs';
-import { describe, expect, it, vi } from 'vitest';
+import { describe, expect, it } from 'vitest';
 
 import { FilesExplorerPanel } from '../../src/components/containers/explorerFiles';
-import filesExplorerSource from '../../src/components/containers/explorerFiles.ts?raw';
 import { PropsExplorerPanel } from '../../src/components/containers/explorerProps';
-import propsExplorerSource from '../../src/components/containers/explorerProps.ts?raw';
 import { TagsExplorerPanel } from '../../src/components/containers/explorerTags';
 import floatingTocSource from '../../src/components/layout/floatingToc.svelte?raw';
-import gridViewSource from '../../src/components/layout/viewGrid.ts?raw';
 import frameSource from '../../src/VaultmanFrame.svelte?raw';
 import { DEFAULT_SETTINGS } from '../../src/types/typeSettings';
 
@@ -16,12 +13,6 @@ const stylesSource = readFileSync(
 	new URL('../../styles.css', import.meta.url),
 	'utf8',
 ).replace(/\r\n/g, '\n');
-
-interface TopLevelSnapshotPanel {
-	onTopLevelNodesChanged?: () => void;
-	_setTopLevelNodes(nodes: { id: string; label: string }[]): void;
-	getTopLevelNodes(): { id: string; label: string }[];
-}
 
 const panelPrototypes = [
 	['files', FilesExplorerPanel.prototype],
@@ -31,72 +22,48 @@ const panelPrototypes = [
 
 describe('Floating TOC source and panel contracts', () => {
 	it.each(panelPrototypes)(
-		'%s accessor returns the exact latest top-level snapshot and notifies',
+		'%s exposes the floating TOC panel port',
 		(_name, prototype) => {
-			const panel = Object.create(prototype) as TopLevelSnapshotPanel;
-			const onChanged = vi.fn();
-			panel.onTopLevelNodesChanged = onChanged;
-			const first = [
-				{ id: 'a', label: 'Alpha' },
-				{ id: 'b', label: 'Beta' },
-			];
-			const second = [{ id: 'g', label: 'Gamma' }];
-
-			panel._setTopLevelNodes(first);
-			expect(panel.getTopLevelNodes()).toEqual(first);
-			panel._setTopLevelNodes(second);
-			expect(panel.getTopLevelNodes()).toEqual(second);
-			expect(onChanged).toHaveBeenCalledTimes(2);
+			expect(typeof prototype.getIndexNodes).toBe('function');
+			expect(typeof prototype.isIndexableSort).toBe('function');
+			expect(typeof prototype.expandNodeById).toBe('function');
+			expect(typeof prototype.revealNode).toBe('function');
 		},
 	);
 
-	it('captures Props top-level nodes from the sorted arrays that are rendered', () => {
-		const regularRender = propsExplorerSource.match(
-			/private _render\(\): void \{[\s\S]*?\n\tprivate _renderGrid/,
-		)?.[0];
-		const gridRender = propsExplorerSource.match(
-			/private _renderGrid\(\): void \{[\s\S]*?\n\tprivate /,
-		)?.[0];
-
-		expect(regularRender).toBeTruthy();
-		expect(gridRender).toBeTruthy();
-		expect(
-			regularRender!.indexOf('const sorted = this._applySort(tree);'),
-		).toBeLessThan(regularRender!.indexOf('this._setTopLevelNodes('));
-		expect(
-			gridRender!.indexOf('const filtered = this._nestedEnabled()'),
-		).toBeLessThan(gridRender!.indexOf('this._setTopLevelNodes('));
-	});
-
-	it('captures Files table nodes from the table order that was actually rendered', () => {
-		expect(gridViewSource).toContain('getDisplayedFiles(): readonly TFile[]');
-		expect(filesExplorerSource).toContain(
-			'this.tableView.getDisplayedFiles().map((file) => ({',
-		);
-	});
-
-	it('cleans panel callbacks when reactive panel bindings are replaced', () => {
-		const callbackName = frameSource.indexOf('bumpExplorerRenderRevision');
-		const effectStart = frameSource.indexOf('$effect(() => {', callbackName);
-		const effectEnd = frameSource.indexOf('\n\t});', effectStart);
-		const effect = frameSource.slice(effectStart, effectEnd + '\n\t});'.length);
-
-		expect(effectStart).toBeGreaterThan(-1);
-		expect(effectEnd).toBeGreaterThan(effectStart);
-		expect(effect).toContain('return () =>');
-		expect(effect).toMatch(
-			/if \(\s*panel\.onTopLevelNodesChanged === bumpExplorerRenderRevision\s*\)/,
-		);
-	});
-
-	it('keeps the rail disabled by default and gated away from Content', () => {
+	it('keeps the rail disabled by default and gated away from Content + non-text sorts', () => {
 		expect(DEFAULT_SETTINGS.floatingTocEnabled).toBe(false);
 		expect(frameSource).toContain("filtersActiveTab !== 'content'");
-		expect(frameSource).toContain("activePage === 'filters'");
-		expect(floatingTocSource).toContain('{#if visible && groups.length > 1}');
+		expect(frameSource).toContain('tocAvailable');
+		expect(frameSource).toContain('panel.isIndexableSort()');
 	});
 
-	it('allows pointer passthrough outside the rail while glyphs stay interactive', () => {
+	it('derives groups from the active panel at the current scope', () => {
+		expect(frameSource).toContain('buildIndexGroups(');
+		expect(frameSource).toContain('getIndexNodes(tocRootId)');
+		expect(frameSource).toMatch(/tocKind === 'folders' \? node\.isContainer/);
+	});
+
+	it('wires the reveal router and the scope-drill pick listener', () => {
+		expect(frameSource).toContain(
+			"floatingTocRouter.invoke('reveal-node', targetId)",
+		);
+		expect(frameSource).toMatch(/floatingTocRouter\.setPort\(/);
+		// Pick mode resolves the scope root from a clicked row's data-id.
+		expect(frameSource).toContain('tocPickMode');
+		expect(frameSource).toContain("'[data-id]'");
+		expect(frameSource).toContain('expandNodeById(id)');
+	});
+
+	it('renders a toggle with long-press plus glyph buttons (no dead list markup)', () => {
+		expect(floatingTocSource).toContain('vaultman-floating-toc-toggle');
+		expect(floatingTocSource).toContain('onpointerdown={startPress}');
+		expect(floatingTocSource).toContain('onEnterPick()');
+		expect(floatingTocSource).toContain('onclick={() => onJump(group.firstId)}');
+		expect(floatingTocSource).not.toContain('role="listitem"');
+	});
+
+	it('keeps pointer passthrough on the wrapper while glyphs stay interactive', () => {
 		expect(stylesSource).toMatch(
 			/\.vaultman-floating-toc-wrap \{[\s\S]*?pointer-events:\s*none;/,
 		);
@@ -107,28 +74,4 @@ describe('Floating TOC source and panel contracts', () => {
 			/\.vaultman-floating-toc-item \{[\s\S]*?pointer-events:\s*auto;/,
 		);
 	});
-
-	it('wires each glyph button to the reveal router (FTC-002)', () => {
-		expect(floatingTocSource).toContain('<button');
-		expect(floatingTocSource).toContain(
-			'onclick={() => onJump(group.firstId)}',
-		);
-		expect(frameSource).toContain(
-			"floatingTocRouter.invoke('reveal-node', targetId)",
-		);
-		expect(frameSource).toMatch(/floatingTocRouter\.setPort\(/);
-		expect(stylesSource).toMatch(
-			/\.vaultman-floating-toc \{[\s\S]*?overflow-y:\s*auto;/,
-		);
-		expect(stylesSource).not.toMatch(
-			/\.vaultman-floating-toc \{[\s\S]*?overflow:\s*hidden;/,
-		);
-	});
-
-	it.each(panelPrototypes)(
-		'%s exposes a revealNode reveal port (FTC-002)',
-		(_name, prototype) => {
-			expect(typeof prototype.revealNode).toBe('function');
-		},
-	);
 });

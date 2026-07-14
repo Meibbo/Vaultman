@@ -13,6 +13,8 @@
 export interface IndexNodeRef {
 	id: string;
 	label: string;
+	/** container = folder (files) / node with children (props, tags). */
+	isContainer: boolean;
 }
 
 export interface IndexGroup {
@@ -22,11 +24,45 @@ export interface IndexGroup {
 	count: number;
 }
 
+/** Minimal shape a tree node must satisfy to be projected into an index level. */
+export interface IndexTreeNode {
+	id: string;
+	label: string;
+	children?: IndexTreeNode[];
+}
+
 function indexKeyFor(label: string): string | null {
 	const [ch] = Array.from((label ?? '').trim());
 	if (!ch) return null;
 	const [upper] = Array.from(ch.toLocaleUpperCase());
 	return upper ?? ch;
+}
+
+/**
+ * Project one hierarchy level into index node refs. `rootId === null` yields the
+ * top level; otherwise the direct children of the node with that id (empty when
+ * absent). `isContainer` classifies each node (folder vs file / has children).
+ */
+export function indexLevel<T extends IndexTreeNode>(
+	roots: readonly T[] | null | undefined,
+	rootId: string | null,
+	isContainer: (node: T) => boolean,
+): IndexNodeRef[] {
+	const source = roots ?? [];
+	const find = (nodes: readonly T[]): T | null => {
+		for (const node of nodes) {
+			if (node.id === rootId) return node;
+			const hit = node.children ? find(node.children as T[]) : null;
+			if (hit) return hit;
+		}
+		return null;
+	};
+	const level = rootId === null ? source : ((find(source)?.children as T[]) ?? []);
+	return level.map((node) => ({
+		id: node.id,
+		label: node.label,
+		isContainer: isContainer(node),
+	}));
 }
 
 export function buildIndexGroups(

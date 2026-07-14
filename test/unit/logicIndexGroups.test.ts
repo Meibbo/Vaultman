@@ -1,9 +1,16 @@
 import { describe, expect, it } from 'vitest';
 
-import { buildIndexGroups } from '../../src/logic/logicIndexGroups';
+import {
+	buildIndexGroups,
+	indexLevel,
+} from '../../src/logic/logicIndexGroups';
 
 function refs(...labels: string[]) {
-	return labels.map((label, i) => ({ id: `id-${i}-${label}`, label }));
+	return labels.map((label, i) => ({
+		id: `id-${i}-${label}`,
+		label,
+		isContainer: false,
+	}));
 }
 
 describe('buildIndexGroups', () => {
@@ -46,5 +53,40 @@ describe('buildIndexGroups', () => {
 	it('tolerates null/undefined input', () => {
 		expect(buildIndexGroups(null)).toEqual([]);
 		expect(buildIndexGroups(undefined)).toEqual([]);
+	});
+});
+
+describe('indexLevel', () => {
+	const tree = [
+		{
+			id: 'folderA',
+			label: 'Alpha',
+			children: [
+				{ id: 'a/one.md', label: 'one' },
+				{ id: 'a/sub', label: 'sub', children: [{ id: 'a/sub/deep.md', label: 'deep' }] },
+			],
+		},
+		{ id: 'root.md', label: 'root' },
+	];
+	const isContainer = (n: { children?: unknown[] }) =>
+		(n.children?.length ?? 0) > 0;
+
+	it('projects the top level with container flags when rootId is null', () => {
+		const level = indexLevel(tree, null, isContainer);
+		expect(level).toEqual([
+			{ id: 'folderA', label: 'Alpha', isContainer: true },
+			{ id: 'root.md', label: 'root', isContainer: false },
+		]);
+	});
+
+	it('drills into a node and returns its direct children', () => {
+		const level = indexLevel(tree, 'folderA', isContainer);
+		expect(level.map((n) => n.id)).toEqual(['a/one.md', 'a/sub']);
+		expect(level.find((n) => n.id === 'a/sub')?.isContainer).toBe(true);
+	});
+
+	it('returns empty for an unknown or leaf rootId', () => {
+		expect(indexLevel(tree, 'missing', isContainer)).toEqual([]);
+		expect(indexLevel(tree, 'root.md', isContainer)).toEqual([]);
 	});
 });

@@ -19,6 +19,7 @@ import {
 	compareFilesForExplorer,
 	normalizeExplorerSortBy,
 } from '../../logic/logicSort';
+import { indexLevel, type IndexNodeRef } from '../../logic/logicIndexGroups';
 import {
 	filesInsideFolder,
 	movedParentPathForFolderFile,
@@ -69,9 +70,10 @@ export class FilesExplorerPanel extends Component {
 	private statsRefreshTimer: number | null = null;
 	private activeRevealPath: string | null = null;
 	private sparseAutoExpandSignature = '';
-	/** Top-level nodes of the last render — feeds the floating TOC (FTC-001). */
-	private _lastTopLevelNodes: { id: string; label: string }[] = [];
-	onTopLevelNodesChanged?: () => void;
+	/** Last rendered hierarchy — feeds the floating TOC (index/scope drill). */
+	private _lastRenderTree: TreeNode<FileMeta>[] = [];
+	private _lastFlatFiles: { id: string; label: string }[] = [];
+	onIndexChanged?: () => void;
 
 	private onSelectionChange?: (count: number) => void;
 	private onExpansionChange?: () => void;
@@ -766,13 +768,40 @@ export class FilesExplorerPanel extends Component {
 		);
 	}
 
-	getTopLevelNodes(): { id: string; label: string }[] {
-		return this._lastTopLevelNodes;
+	/** Floating TOC: nodes at a scope level (rootId=null → top level). */
+	getIndexNodes(rootId: string | null): IndexNodeRef[] {
+		if (this.viewMode === 'tree') {
+			return indexLevel(
+				this._lastRenderTree,
+				rootId,
+				(node) => node.meta.isFolder,
+			);
+		}
+		// Flat / table / grid have no folder hierarchy: files only.
+		return this._lastFlatFiles.map((file) => ({
+			id: file.id,
+			label: file.label,
+			isContainer: false,
+		}));
 	}
 
-	/** Floating TOC reveal port (FTC-002): scroll to a top-level node by id/path. */
+	/** The rail's first-glyph index only makes sense for text-ordered sorts. */
+	isIndexableSort(): boolean {
+		return ['name', 'path', 'ext'].includes(
+			normalizeExplorerSortBy(this.sortBy),
+		);
+	}
+
+	/** Expand a node so the scope-drill can reveal its children. */
+	expandNodeById(id: string): void {
+		if (this.viewMode !== 'tree' || this.expandedIds.has(id)) return;
+		this.expandedIds.add(id);
+		this._notifyExpansionChanged();
+		this._render();
+	}
+
+	/** Floating TOC reveal port (FTC-002): scroll to a node by id/path. */
 	revealNode(id: string): boolean {
-		if (!this._lastTopLevelNodes.some((node) => node.id === id)) return false;
 		if (this.viewMode === 'table') {
 			if (!this.tableView) return false;
 			this.tableView.scrollToPath(id);
@@ -788,22 +817,27 @@ export class FilesExplorerPanel extends Component {
 		return true;
 	}
 
-	private _setTopLevelNodes(nodes: { id: string; label: string }[]): void {
-		this._lastTopLevelNodes = nodes;
-		this.onTopLevelNodesChanged?.();
+	private _setIndexRoots(
+		tree: TreeNode<FileMeta>[],
+		flatFiles: { id: string; label: string }[],
+	): void {
+		this._lastRenderTree = tree;
+		this._lastFlatFiles = flatFiles;
+		this.onIndexChanged?.();
 	}
 
 	private _render(): void {
 		if (this._shouldShowEmptyFilteredState()) {
 			this._renderEmptyFilteredState();
-			this._setTopLevelNodes([]);
+			this._setIndexRoots([], []);
 			return;
 		}
 		const displayFiles = this._filesForDisplay();
 		if (this.viewMode === 'table' && this.tableView) {
 			this.tableView.setActivePath(this.activeRevealPath);
 			this.tableView.render(displayFiles, this._totalCount);
-			this._setTopLevelNodes(
+			this._setIndexRoots(
+				[],
 				this.tableView.getDisplayedFiles().map((file) => ({
 					id: file.path,
 					label: file.basename,
@@ -813,7 +847,8 @@ export class FilesExplorerPanel extends Component {
 			this.gridView.setActivePath(this.activeRevealPath);
 			const sortedGridFiles = this._sortFiles(displayFiles);
 			this.gridView.render(sortedGridFiles);
-			this._setTopLevelNodes(
+			this._setIndexRoots(
+				[],
 				sortedGridFiles.map((file) => ({
 					id: file.path,
 					label: file.basename,
@@ -846,9 +881,7 @@ export class FilesExplorerPanel extends Component {
 				}
 			};
 			applyFolderIcons(renderTree, this.expandedIds);
-			this._setTopLevelNodes(
-				renderTree.map((node) => ({ id: node.id, label: node.label })),
-			);
+			this._setIndexRoots(renderTree, []);
 			this.treeView.render({
 				nodes: renderTree,
 				expandedIds: this.expandedIds,

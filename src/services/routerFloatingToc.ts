@@ -16,6 +16,14 @@ export interface RevealNodePort {
 	revealNode(id: string): boolean;
 }
 
+/** The active explorer panel, as the floating TOC consumes it. */
+export interface FloatingTocPanel extends RevealNodePort {
+	getIndexNodes(rootId: string | null): import('../logic/logicIndexGroups').IndexNodeRef[];
+	isIndexableSort(): boolean;
+	expandNodeById(id: string): void;
+	onIndexChanged?: () => void;
+}
+
 export interface FloatingTocResult {
 	ok: boolean;
 	reason?: RevealNodeReason;
