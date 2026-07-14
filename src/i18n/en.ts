@@ -184,6 +184,11 @@ export const en: Record<string, string> = {
 	'settings.default_type.desc': 'Default type for new properties',
 	'settings.templates': 'Filter templates',
 	'settings.templates.desc': 'Manage saved filter templates',
+	'settings.floating_toc': 'Floating TOC',
+	'settings.floating_toc_enable': 'Enable floating TOC',
+	'settings.floating_toc_enable.desc':
+		'Show a floating first-letter index over the Files, Props, and Tags explorers.',
+	'floating_toc.aria': 'Explorer index',
 	'settings.queue_templates.desc': 'Manage saved staged operation presets',
 
 	// Main view

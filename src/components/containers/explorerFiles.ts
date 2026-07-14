@@ -69,6 +69,9 @@ export class FilesExplorerPanel extends Component {
 	private statsRefreshTimer: number | null = null;
 	private activeRevealPath: string | null = null;
 	private sparseAutoExpandSignature = '';
+	/** Top-level nodes of the last render — feeds the floating TOC (FTC-001). */
+	private _lastTopLevelNodes: { id: string; label: string }[] = [];
+	onTopLevelNodesChanged?: () => void;
 
 	private onSelectionChange?: (count: number) => void;
 	private onExpansionChange?: () => void;
@@ -763,18 +766,41 @@ export class FilesExplorerPanel extends Component {
 		);
 	}
 
+	getTopLevelNodes(): { id: string; label: string }[] {
+		return this._lastTopLevelNodes;
+	}
+
+	private _setTopLevelNodes(nodes: { id: string; label: string }[]): void {
+		this._lastTopLevelNodes = nodes;
+		this.onTopLevelNodesChanged?.();
+	}
+
 	private _render(): void {
 		if (this._shouldShowEmptyFilteredState()) {
 			this._renderEmptyFilteredState();
+			this._setTopLevelNodes([]);
 			return;
 		}
 		const displayFiles = this._filesForDisplay();
 		if (this.viewMode === 'table' && this.tableView) {
 			this.tableView.setActivePath(this.activeRevealPath);
 			this.tableView.render(displayFiles, this._totalCount);
+			this._setTopLevelNodes(
+				this.tableView.getDisplayedFiles().map((file) => ({
+					id: file.path,
+					label: file.basename,
+				})),
+			);
 		} else if (this.viewMode === 'grid' && this.gridView) {
 			this.gridView.setActivePath(this.activeRevealPath);
-			this.gridView.render(this._sortFiles(displayFiles));
+			const sortedGridFiles = this._sortFiles(displayFiles);
+			this.gridView.render(sortedGridFiles);
+			this._setTopLevelNodes(
+				sortedGridFiles.map((file) => ({
+					id: file.path,
+					label: file.basename,
+				})),
+			);
 		} else if (this.viewMode === 'tree' && this.treeView) {
 			const sortedFiles = this._sortFiles(displayFiles);
 			const rebaseFolderPaths = this._activeFolderFilterPaths();
@@ -802,6 +828,9 @@ export class FilesExplorerPanel extends Component {
 				}
 			};
 			applyFolderIcons(renderTree, this.expandedIds);
+			this._setTopLevelNodes(
+				renderTree.map((node) => ({ id: node.id, label: node.label })),
+			);
 			this.treeView.render({
 				nodes: renderTree,
 				expandedIds: this.expandedIds,

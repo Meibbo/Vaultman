@@ -181,6 +181,11 @@ export const es: Record<string, string> = {
 	'settings.default_type.desc': 'Tipo por defecto para nuevas propiedades',
 	'settings.templates': 'Plantillas de filtros',
 	'settings.templates.desc': 'Gestionar plantillas de filtros guardadas',
+	'settings.floating_toc': 'TOC flotante',
+	'settings.floating_toc_enable': 'Activar TOC flotante',
+	'settings.floating_toc_enable.desc':
+		'Muestra un índice flotante de primeras letras sobre los explorers de Files, Props y Tags.',
+	'floating_toc.aria': 'Índice del explorer',
 	'settings.queue_templates.desc':
 		'Gestionar presets guardados de operaciones preparadas',
 

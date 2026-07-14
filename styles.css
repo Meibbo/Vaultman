@@ -6162,3 +6162,67 @@ button.vaultman-content-scope-hint:focus-visible {
   cursor: default;
   color: var(--text-faint);
 }
+
+/* ─── Floating TOC rail (v1.2 FTC-001) ─────────────────────────────────────
+   Overlay inside .vaultman-pages-viewport (position:relative). Wrapper strip
+   ignores pointer events so the explorer stays clickable; buttons re-enable. */
+.vaultman-floating-toc-wrap {
+	position: absolute;
+	top: 48px;
+	bottom: calc(var(--vaultman-nav-height, 64px) + 8px);
+	right: 2px;
+	z-index: 12;
+	display: flex;
+	align-items: center;
+	pointer-events: none;
+}
+.vaultman-pages-viewport--dock-off .vaultman-floating-toc-wrap {
+	bottom: 16px;
+}
+.vaultman-floating-toc {
+	display: flex;
+	flex-direction: column;
+	gap: 2px;
+	min-height: 0;
+	max-height: 100%;
+	overflow-x: hidden;
+	overflow-y: auto;
+	overscroll-behavior: contain;
+	pointer-events: auto;
+	scrollbar-width: none;
+	touch-action: pan-y;
+	padding: 2px 0;
+}
+.vaultman-floating-toc::-webkit-scrollbar {
+	display: none;
+}
+.vaultman-floating-toc-item {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	flex: 0 0 15px;
+	pointer-events: none;
+	width: 18px;
+	height: 15px;
+	padding: 0;
+	border: none;
+	background: transparent;
+	box-shadow: none;
+	color: var(--text-muted);
+	font-family: var(--font-monospace);
+	font-size: 9px;
+	font-weight: 700;
+	line-height: 1;
+	border-radius: 2px;
+	cursor: default;
+}
+.vaultman-floating-toc-item:hover {
+	color: var(--text-normal);
+}
+.is-phone
+	.workspace-drawer
+	.workspace-leaf-content[data-type='vaultman-frame']
+	.vaultman-floating-toc-wrap {
+	top: 44px;
+	right: 4px;
+}

@@ -643,6 +643,19 @@ export class PropsExplorerPanel extends Component {
 		}
 	}
 
+	/** Top-level nodes of the last render — feeds the floating TOC (FTC-001). */
+	private _lastTopLevelNodes: { id: string; label: string }[] = [];
+	onTopLevelNodesChanged?: () => void;
+
+	getTopLevelNodes(): { id: string; label: string }[] {
+		return this._lastTopLevelNodes;
+	}
+
+	private _setTopLevelNodes(nodes: { id: string; label: string }[]): void {
+		this._lastTopLevelNodes = nodes;
+		this.onTopLevelNodesChanged?.();
+	}
+
 	private _render(): void {
 		if (this.viewMode === 'grid') {
 			this._renderGrid();
@@ -682,6 +695,9 @@ export class PropsExplorerPanel extends Component {
 		if (!this._nestedEnabled()) {
 			nodesWithIcons = flattenTreeToPathLabels(nodesWithIcons);
 		}
+		this._setTopLevelNodes(
+			nodesWithIcons.map((node) => ({ id: node.id, label: node.label })),
+		);
 		if (nodesWithIcons.length === 0) {
 			this._renderEmptyState();
 			return;
@@ -981,6 +997,9 @@ export class PropsExplorerPanel extends Component {
 		const filtered = this._nestedEnabled()
 			? resolved.filter((node) => !node.meta.isValueNode)
 			: flattenTreeToPathLabels(resolved);
+		this._setTopLevelNodes(
+			filtered.map((node) => ({ id: node.id, label: node.label })),
+		);
 		if (filtered.length === 0) {
 			this._renderEmptyState();
 			return;

@@ -654,6 +654,10 @@ export class GridView {
 		return sorted;
 	}
 
+	getDisplayedFiles(): readonly TFile[] {
+		return this.displayedFiles;
+	}
+
 	getSelectedFiles(): TFile[] {
 		return this.displayedFiles.filter((file) =>
 			this.selectedFiles.has(file.path),

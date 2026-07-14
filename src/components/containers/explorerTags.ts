@@ -317,6 +317,19 @@ export class TagsExplorerPanel extends Component {
 		this.onExpansionChange?.();
 	}
 
+	/** Top-level nodes of the last render — feeds the floating TOC (FTC-001). */
+	private _lastTopLevelNodes: { id: string; label: string }[] = [];
+	onTopLevelNodesChanged?: () => void;
+
+	getTopLevelNodes(): { id: string; label: string }[] {
+		return this._lastTopLevelNodes;
+	}
+
+	private _setTopLevelNodes(nodes: { id: string; label: string }[]): void {
+		this._lastTopLevelNodes = nodes;
+		this.onTopLevelNodesChanged?.();
+	}
+
 	private _render(): void {
 		let tree = this.logic.getTree();
 
@@ -364,9 +377,13 @@ export class TagsExplorerPanel extends Component {
 			nodesWithIcons = flattenTreeToPathLabels(nodesWithIcons);
 		}
 		if (nodesWithIcons.length === 0) {
+			this._setTopLevelNodes([]);
 			this._renderEmptyState();
 			return;
 		}
+		this._setTopLevelNodes(
+			nodesWithIcons.map((node) => ({ id: node.id, label: node.label })),
+		);
 
 		if (this.viewMode === 'grid') {
 			this._renderGrid(nodesWithIcons, activeFilterIds, highlightIds);

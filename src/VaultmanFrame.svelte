@@ -8,6 +8,7 @@
 	import StatisticsPage from './components/pages/pageStatistics.svelte';
 	import FiltersPage from './components/pages/pageFilters.svelte';
 	import BottomNav from './components/layout/navbarPillFab.svelte';
+	import FloatingToc from './components/layout/floatingToc.svelte';
 	import PerformanceHud from './components/layout/performanceHud.svelte';
 	import { QueueListComponent } from './components/componentQueueList';
 	import { QueueIslandComponent } from './components/layout/islandQueue';
@@ -66,6 +67,10 @@
 	const showDock = $derived.by(() => {
 		void settingsRevision;
 		return plugin.settings.showDock;
+	});
+	const floatingTocEnabled = $derived.by(() => {
+		void settingsRevision;
+		return plugin.settings.floatingTocEnabled === true;
 	});
 	const performanceHudEnabled = $derived.by(() => {
 		void settingsRevision;
@@ -507,6 +512,40 @@
 	type FiltersTab = 'files' | 'tags' | 'props' | 'content';
 	type SearchTab = 'tags' | 'props' | 'files';
 	let filtersActiveTab = $state<FiltersTab>('files');
+
+	// ─── Floating TOC (FTC-001) ───────────────────────────────────────────────
+	// Explorer panels notify after each render; the rail re-derives its letters.
+	let explorerRenderRevision = $state(0);
+	function bumpExplorerRenderRevision(): void {
+		explorerRenderRevision += 1;
+	}
+	$effect(() => {
+		const panels = [fileList, propExplorer, tagsExplorer].filter(
+			(panel) => panel !== undefined && panel !== null,
+		);
+		for (const panel of panels) {
+			if (panel) panel.onTopLevelNodesChanged = bumpExplorerRenderRevision;
+		}
+		return () => {
+			for (const panel of panels) {
+				if (panel.onTopLevelNodesChanged === bumpExplorerRenderRevision) {
+					panel.onTopLevelNodesChanged = undefined;
+				}
+			}
+		};
+	});
+	function activeFloatingTocNodes(): { id: string; label: string }[] {
+		switch (filtersActiveTab) {
+			case 'files':
+				return fileList?.getTopLevelNodes() ?? [];
+			case 'props':
+				return propExplorer?.getTopLevelNodes() ?? [];
+			case 'tags':
+				return tagsExplorer?.getTopLevelNodes() ?? [];
+			default:
+				return [];
+		}
+	}
 	function fileTypeIdForViewFilter(file: TFile): string {
 		return file.extension || 'none';
 	}
@@ -937,6 +976,15 @@
 	<!-- ─── Queue island container — floats above bottom nav ────────────────────── -->
 	<div class="vaultman-queue-island-wrap" bind:this={queueIslandEl}></div>
 	<div class="vaultman-filters-island-wrap" bind:this={filtersIslandEl}></div>
+
+	<!-- ─── Floating TOC rail (FTC-001) — overlays the filters page ───────────── -->
+	<FloatingToc
+		visible={floatingTocEnabled &&
+			activePage === 'filters' &&
+			filtersActiveTab !== 'content'}
+		revision={explorerRenderRevision}
+		getNodes={activeFloatingTocNodes}
+	/>
 
 	{#if showDock}
 		{#key settingsRevision}

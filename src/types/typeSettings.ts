@@ -59,6 +59,8 @@ export interface VaultmanSettings {
 	badgeCancelClickMode: BadgeCancelClickMode;
 	/** Show the bottom dock; when false, Filters and Queue move into the Data tab menu. */
 	showDock: boolean;
+	/** Show the floating TOC rail (first-letter index) over the explorer tabs */
+	floatingTocEnabled: boolean;
 	/** Run operations immediately instead of staging them in the queue */
 	bypassOperations: boolean;
 	/** Suppress the bulk target confirmation for reusable action presets */
@@ -128,6 +130,7 @@ export const DEFAULT_SETTINGS: VaultmanSettings = {
 	coloredBadges: false,
 	badgeCancelClickMode: 'double',
 	showDock: false,
+	floatingTocEnabled: false,
 	bypassOperations: false,
 	suppressBulkOperationWarning: false,
 	bulkOperationWarningThreshold: 400,

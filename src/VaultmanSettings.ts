@@ -313,5 +313,21 @@ export class VaultmanSettingsTab extends PluginSettingTab {
 					);
 			}
 		}
+
+		new Setting(containerEl)
+			.setName(translate('settings.floating_toc'))
+			.setHeading();
+
+		new Setting(containerEl)
+			.setName(translate('settings.floating_toc_enable'))
+			.setDesc(translate('settings.floating_toc_enable.desc'))
+			.addToggle((toggle) =>
+				toggle
+					.setValue(this.plugin.settings.floatingTocEnabled === true)
+					.onChange(async (value) => {
+						this.plugin.settings.floatingTocEnabled = value;
+						await this.plugin.saveSettings();
+					}),
+			);
 	}
 }
