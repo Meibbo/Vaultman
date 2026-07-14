@@ -6257,7 +6257,7 @@ button.vaultman-content-scope-hint:focus-visible {
 	height: 12px;
 }
 .vaultman-floating-toc.is-picking {
-	outline: 1px dashed var(--interactive-accent);
+	outline: 1px dashed var(--text-faint);
 	outline-offset: 2px;
 	border-radius: 4px;
 }

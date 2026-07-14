@@ -168,6 +168,18 @@ export class VaultmanSettingsTab extends PluginSettingTab {
 			);
 
 		new Setting(containerEl)
+			.setName(translate('settings.show_toolbar'))
+			.setDesc(translate('settings.show_toolbar.desc'))
+			.addToggle((toggle) =>
+				toggle
+					.setValue(this.plugin.settings.showToolbar !== false)
+					.onChange(async (value) => {
+						this.plugin.settings.showToolbar = value;
+						await this.plugin.saveSettings();
+					}),
+			);
+
+		new Setting(containerEl)
 			.setName(translate('settings.bypass_operations'))
 			.setDesc(translate('settings.bypass_operations.desc'))
 			.addToggle((toggle) =>

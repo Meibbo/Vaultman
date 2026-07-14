@@ -165,6 +165,9 @@ export const en: Record<string, string> = {
 		'Choose whether operation badges are canceled with a double-click or single-click.',
 	'settings.badge_cancel_click.double': 'Double-click',
 	'settings.badge_cancel_click.single': 'Single-click',
+	'settings.show_toolbar': 'Show toolbar',
+	'settings.show_toolbar.desc':
+		'Show the explorer header toolbar (tabs, view, sort, search). Toggle it from the view menu; restore it here when hidden.',
 	'settings.show_dock': 'Show bottom dock',
 	'settings.show_dock.desc':
 		'Show the bottom dock. When disabled, Filters and Queue stay in the Data tab menu.',
@@ -190,6 +193,7 @@ export const en: Record<string, string> = {
 		'Show a floating first-letter index over the Files, Props, and Tags explorers.',
 	'floating_toc.aria': 'Explorer index',
 	'floating_toc.menu': 'Floating index',
+	'viewmenu.toolbar': 'Toolbar',
 	'floating_toc.files': 'Indexing files — tap to index folders, hold to pick a scope',
 	'floating_toc.folders':
 		'Indexing folders — tap to index files, hold to pick a scope',

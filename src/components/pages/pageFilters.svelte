@@ -202,6 +202,14 @@
 		plugin.settings.floatingTocEnabled = !plugin.settings.floatingTocEnabled;
 		void plugin.saveSettings();
 	}
+	const showToolbar = $derived.by(() => {
+		void settingsRevision;
+		return plugin.settings.showToolbar !== false;
+	});
+	function toggleToolbar() {
+		plugin.settings.showToolbar = plugin.settings.showToolbar === false;
+		void plugin.saveSettings();
+	}
 	const minimalStyle = $derived.by(() => {
 		void settingsRevision;
 		return plugin.settings.minimalStyle;
@@ -639,7 +647,7 @@
 	/>
 {/if}
 
-{#if filtersActiveTab !== 'content' || minimalStyle}
+{#if (filtersActiveTab !== 'content' || minimalStyle) && showToolbar}
 	<NavbarFilters
 		activeTab={explorerActiveTab}
 		{filtersSearch}
@@ -661,6 +669,7 @@
 		{onViewFiltersChanged}
 		{floatingTocEnabled}
 		onToggleFloatingToc={toggleFloatingToc}
+		onToggleToolbar={toggleToolbar}
 		{icon}
 	/>
 {/if}

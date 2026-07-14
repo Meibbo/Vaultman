@@ -61,6 +61,8 @@ export interface VaultmanSettings {
 	showDock: boolean;
 	/** Show the floating TOC rail (first-letter index) over the explorer tabs */
 	floatingTocEnabled: boolean;
+	/** Show the explorer toolbar (tabs / view / sort / search header) */
+	showToolbar: boolean;
 	/** Run operations immediately instead of staging them in the queue */
 	bypassOperations: boolean;
 	/** Suppress the bulk target confirmation for reusable action presets */
@@ -131,6 +133,7 @@ export const DEFAULT_SETTINGS: VaultmanSettings = {
 	badgeCancelClickMode: 'double',
 	showDock: false,
 	floatingTocEnabled: false,
+	showToolbar: true,
 	bypassOperations: false,
 	suppressBulkOperationWarning: false,
 	bulkOperationWarningThreshold: 400,

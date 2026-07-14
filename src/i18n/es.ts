@@ -162,6 +162,9 @@ export const es: Record<string, string> = {
 		'Elige si los badges de operaciones se cancelan con doble click o click simple.',
 	'settings.badge_cancel_click.double': 'Doble click',
 	'settings.badge_cancel_click.single': 'Click simple',
+	'settings.show_toolbar': 'Mostrar barra de herramientas',
+	'settings.show_toolbar.desc':
+		'Muestra la barra del explorer (tabs, vista, orden, búsqueda). Actívala desde el menú de vista; restáurala aquí cuando esté oculta.',
 	'settings.show_dock': 'Mostrar dock inferior',
 	'settings.show_dock.desc':
 		'Muestra el dock inferior. Al desactivarlo, Filtros y Cola quedan en el menú de tabs de Datos.',
@@ -187,6 +190,7 @@ export const es: Record<string, string> = {
 		'Muestra un índice flotante de primeras letras sobre los explorers de Files, Props y Tags.',
 	'floating_toc.aria': 'Índice del explorer',
 	'floating_toc.menu': 'Índice flotante',
+	'viewmenu.toolbar': 'Barra de herramientas',
 	'floating_toc.files':
 		'Indexando archivos — toca para indexar carpetas, mantén para elegir alcance',
 	'floating_toc.folders':

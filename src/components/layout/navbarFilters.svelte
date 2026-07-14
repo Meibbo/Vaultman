@@ -68,6 +68,7 @@
 		expansionRevision = 0,
 		floatingTocEnabled = false,
 		onToggleFloatingToc,
+		onToggleToolbar,
 	}: {
 		activeTab: FiltersTab;
 		filtersSearch: string;
@@ -90,6 +91,7 @@
 		expansionRevision?: number;
 		floatingTocEnabled?: boolean;
 		onToggleFloatingToc?: () => void;
+		onToggleToolbar?: () => void;
 	} = $props();
 
 	const CATEGORY_ICONS: Record<FiltersTab, [string, string]> = {
@@ -612,16 +614,27 @@
 			});
 		}
 
-		// Floating index toggle — its own section between engines and cells.
-		if (onToggleFloatingToc) {
+		// Workspace section (toolbar / floating index) between engines and cells.
+		if (onToggleToolbar || onToggleFloatingToc) {
 			menu.addSeparator();
-			menu.addItem((item) => {
-				item
-					.setTitle(translate('floating_toc.menu'))
-					.setIcon('lucide-a-arrow-down')
-					.setChecked(floatingTocEnabled)
-					.onClick(() => onToggleFloatingToc?.());
-			});
+			if (onToggleToolbar) {
+				menu.addItem((item) => {
+					item
+						.setTitle(translate('viewmenu.toolbar'))
+						.setIcon('lucide-panel-top')
+						.setChecked(true)
+						.onClick(() => onToggleToolbar?.());
+				});
+			}
+			if (onToggleFloatingToc) {
+				menu.addItem((item) => {
+					item
+						.setTitle(translate('floating_toc.menu'))
+						.setIcon('lucide-a-arrow-down')
+						.setChecked(floatingTocEnabled)
+						.onClick(() => onToggleFloatingToc?.());
+				});
+			}
 		}
 
 		menu.addSeparator();

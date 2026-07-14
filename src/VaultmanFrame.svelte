@@ -590,7 +590,17 @@
 		void settingsRevision;
 		void filtersActiveTab;
 		void explorerRenderRevision;
-		return activeFloatingTocPanel()?.supportsKindToggle() ?? false;
+		void tocRootId;
+		const panel = activeFloatingTocPanel();
+		if (!panel?.supportsKindToggle()) return false;
+		// The files/folders toggle only makes sense when THIS level actually holds
+		// both kinds; a level with only files (or only folders) uses the simple
+		// drill action instead, and indexes all of them.
+		const nodes = panel.getIndexNodes(tocRootId);
+		return (
+			nodes.some((node) => node.isContainer) &&
+			nodes.some((node) => !node.isContainer)
+		);
 	});
 	const tocDrill = $derived.by(() => {
 		void settingsRevision;
@@ -606,8 +616,13 @@
 		const panel = activeFloatingTocPanel();
 		if (!panel || !panel.isIndexableSort()) return [];
 		const nodes = panel.getIndexNodes(tocRootId);
-		// Files/folders toggle only splits the files tree; elsewhere index all nodes.
-		const filtered = panel.supportsKindToggle()
+		// Split by kind only when the toggle is actually shown (a mixed files
+		// level); a homogeneous level (all files or all folders) indexes all.
+		const mixed =
+			panel.supportsKindToggle() &&
+			nodes.some((node) => node.isContainer) &&
+			nodes.some((node) => !node.isContainer);
+		const filtered = mixed
 			? nodes.filter((node) =>
 					tocKind === 'folders' ? node.isContainer : !node.isContainer,
 				)
