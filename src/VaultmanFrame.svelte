@@ -526,8 +526,24 @@
 	let tocKind = $state<'files' | 'folders'>('folders');
 	let tocRootId = $state<string | null>(null);
 	let tocPickMode = $state(false);
+	// Pick-mode listener lifecycle is imperative (NOT a reactive $effect) so it can
+	// never form a self-referential effect loop with tocPickMode.
+	let tocPickCleanup: (() => void) | null = null;
+	function stopTocPick(): void {
+		tocPickCleanup?.();
+		tocPickCleanup = null;
+		tocPickMode = false;
+	}
+	// Panels call this synchronously from their render; coalesce + defer the state
+	// write out of the render call stack so it never re-enters Svelte's flush.
+	let renderRevisionBumpScheduled = false;
 	function bumpExplorerRenderRevision(): void {
-		explorerRenderRevision += 1;
+		if (renderRevisionBumpScheduled) return;
+		renderRevisionBumpScheduled = true;
+		queueMicrotask(() => {
+			renderRevisionBumpScheduled = false;
+			explorerRenderRevision += 1;
+		});
 	}
 	function activeFloatingTocPanel(): FloatingTocPanel | null {
 		switch (filtersActiveTab) {
@@ -561,7 +577,7 @@
 	$effect(() => {
 		void filtersActiveTab;
 		tocRootId = null;
-		tocPickMode = false;
+		stopTocPick();
 	});
 	const tocAvailable = $derived.by(() => {
 		void settingsRevision;
@@ -601,19 +617,17 @@
 		tocRootId = null;
 	}
 	// Scope drill: the long-press enters pick mode (a WIR→WAR gesture twin); the
-	// next explorer row click resolves the scope root from its data-id.
+	// next explorer row click resolves the scope root from its data-id. Managed
+	// imperatively — no reactive effect watches tocPickMode.
 	function enterTocPick(): void {
-		tocPickMode = !tocPickMode;
-	}
-	$effect(() => {
-		if (!tocPickMode) return;
+		if (tocPickMode) {
+			stopTocPick();
+			return;
+		}
 		const pane = frameRoot().querySelector<HTMLElement>(
 			'.vaultman-filters-tab-pane.is-active',
 		);
-		if (!pane) {
-			tocPickMode = false;
-			return;
-		}
+		if (!pane) return;
 		const onPick = (event: MouseEvent) => {
 			const row = (event.target as HTMLElement | null)?.closest<HTMLElement>(
 				'[data-id]',
@@ -624,17 +638,16 @@
 			event.stopPropagation();
 			tocRootId = id;
 			activeFloatingTocPanel()?.expandNodeById(id);
-			tocPickMode = false;
+			stopTocPick();
 		};
 		pane.addEventListener('click', onPick, true);
-		const cancelTimer = window.setTimeout(() => {
-			tocPickMode = false;
-		}, 8000);
-		return () => {
+		const cancelTimer = window.setTimeout(() => stopTocPick(), 8000);
+		tocPickCleanup = () => {
 			pane.removeEventListener('click', onPick, true);
 			window.clearTimeout(cancelTimer);
 		};
-	});
+		tocPickMode = true;
+	}
 	function fileTypeIdForViewFilter(file: TFile): string {
 		return file.extension || 'none';
 	}
@@ -969,6 +982,7 @@
 
 		return () => {
 			clearLauncherTimers();
+			stopTocPick();
 			detachBasesMultiSelectOperations();
 			unsubscribeSettings();
 			plugin.filterService.off('changed', onFilterChanged);
