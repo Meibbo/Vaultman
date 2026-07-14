@@ -341,5 +341,32 @@ export class VaultmanSettingsTab extends PluginSettingTab {
 						await this.plugin.saveSettings();
 					}),
 			);
+
+		new Setting(containerEl)
+			.setName(translate('settings.saved_view_config'))
+			.setHeading();
+
+		const savedConfig = this.plugin.settings.viewConfigByTab;
+		const savedTabs = savedConfig ? Object.keys(savedConfig) : [];
+		if (savedTabs.length === 0) {
+			containerEl.createEl('p', {
+				text: translate('settings.saved_view_config.empty'),
+				cls: 'setting-item-description',
+			});
+		} else {
+			new Setting(containerEl)
+				.setName(translate('settings.saved_view_config.desc'))
+				.setDesc(savedTabs.join(', '))
+				.addButton((button) =>
+					button
+						.setButtonText(translate('settings.saved_view_config.clear'))
+						.setWarning()
+						.onClick(async () => {
+							delete this.plugin.settings.viewConfigByTab;
+							await this.plugin.saveSettings();
+							this.display();
+						}),
+				);
+		}
 	}
 }

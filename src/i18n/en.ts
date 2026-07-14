@@ -187,6 +187,11 @@ export const en: Record<string, string> = {
 	'settings.default_type.desc': 'Default type for new properties',
 	'settings.templates': 'Filter templates',
 	'settings.templates.desc': 'Manage saved filter templates',
+	'settings.saved_view_config': 'Saved view config',
+	'settings.saved_view_config.desc': 'Saved tabs',
+	'settings.saved_view_config.empty':
+		'No saved view config. Use "Save view config" in the view menu to remember view options and sorts per tab.',
+	'settings.saved_view_config.clear': 'Clear',
 	'settings.floating_toc': 'Floating TOC',
 	'settings.floating_toc_enable': 'Enable floating TOC',
 	'settings.floating_toc_enable.desc':
@@ -194,6 +199,8 @@ export const en: Record<string, string> = {
 	'floating_toc.aria': 'Explorer index',
 	'floating_toc.menu': 'Floating index',
 	'viewmenu.toolbar': 'Toolbar',
+	'viewmenu.save_config': 'Save view config',
+	'viewmenu.saved_config_notice': 'View config saved',
 	'floating_toc.files': 'Indexing files — tap to index folders, hold to pick a scope',
 	'floating_toc.folders':
 		'Indexing folders — tap to index files, hold to pick a scope',

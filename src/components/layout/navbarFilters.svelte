@@ -8,6 +8,7 @@
 	import type { PropsExplorerPanel } from '../containers/explorerProps';
 	import type { TagsExplorerPanel } from '../containers/explorerTags';
 	import type { ExplorerSortState, ExplorerViewMode } from '../../types/typeUI';
+	import type { SavedViewConfig } from '../../types/typeSettings';
 	import {
 		DEFAULT_EXPLORER_SORT_DIR,
 		normalizeExplorerSortBy,
@@ -69,6 +70,8 @@
 		floatingTocEnabled = false,
 		onToggleFloatingToc,
 		onToggleToolbar,
+		savedViewConfig,
+		onSaveViewConfig,
 	}: {
 		activeTab: FiltersTab;
 		filtersSearch: string;
@@ -92,6 +95,8 @@
 		floatingTocEnabled?: boolean;
 		onToggleFloatingToc?: () => void;
 		onToggleToolbar?: () => void;
+		savedViewConfig?: Record<string, SavedViewConfig>;
+		onSaveViewConfig?: (config: Record<string, SavedViewConfig>) => void;
 	} = $props();
 
 	const CATEGORY_ICONS: Record<FiltersTab, [string, string]> = {
@@ -276,21 +281,46 @@
 
 	let headerMode = $state<HeaderMode>('header');
 	let headerExitDir = $state<'left' | 'right'>('right');
+	// Rehydrate from the saved view config (FTC-004) when present; else defaults.
+	function initViewMode(tab: FiltersTab): ExplorerViewMode {
+		return (savedViewConfig?.[tab]?.viewMode as ExplorerViewMode) ?? 'tree';
+	}
+	function initCells(tab: FiltersTab): string[] {
+		return savedViewConfig?.[tab]?.visibleCells
+			? [...savedViewConfig[tab].visibleCells]
+			: [...DEFAULT_VISIBLE_CELLS[tab]];
+	}
+	function initSort(tab: FiltersTab): ExplorerSortState {
+		const saved = savedViewConfig?.[tab]?.sortState;
+		return saved ? { ...saved } : { ...DEFAULT_SORT_STATE[tab] };
+	}
 	let viewModeByTab = $state<Record<FiltersTab, ExplorerViewMode>>({
-		props: 'tree',
-		tags: 'tree',
-		files: 'tree',
+		props: initViewMode('props'),
+		tags: initViewMode('tags'),
+		files: initViewMode('files'),
 	});
 	let visibleCellsByTab = $state<Record<FiltersTab, string[]>>({
-		props: [...DEFAULT_VISIBLE_CELLS.props],
-		tags: [...DEFAULT_VISIBLE_CELLS.tags],
-		files: [...DEFAULT_VISIBLE_CELLS.files],
+		props: initCells('props'),
+		tags: initCells('tags'),
+		files: initCells('files'),
 	});
 	let sortStateByTab = $state<Record<FiltersTab, ExplorerSortState>>({
-		props: { ...DEFAULT_SORT_STATE.props },
-		tags: { ...DEFAULT_SORT_STATE.tags },
-		files: { ...DEFAULT_SORT_STATE.files },
+		props: initSort('props'),
+		tags: initSort('tags'),
+		files: initSort('files'),
 	});
+	function saveViewConfig() {
+		const tabs: FiltersTab[] = ['files', 'props', 'tags'];
+		const config: Record<string, SavedViewConfig> = {};
+		for (const tab of tabs) {
+			config[tab] = {
+				viewMode: viewModeByTab[tab],
+				visibleCells: [...(visibleCellsByTab[tab] ?? [])],
+				sortState: { ...sortStateByTab[tab] },
+			};
+		}
+		onSaveViewConfig?.(config);
+	}
 	let addModeActive = $state(false);
 	let searchExpanded = $state(false);
 	let searchToggleActivationPending = false;
@@ -614,16 +644,26 @@
 			});
 		}
 
-		// Floating index toggle — its own section between engines and cells.
-		if (onToggleFloatingToc) {
+		// Floating index + save-config — their own section between engines and cells.
+		if (onToggleFloatingToc || onSaveViewConfig) {
 			menu.addSeparator();
-			menu.addItem((item) => {
-				item
-					.setTitle(translate('floating_toc.menu'))
-					.setIcon('lucide-a-arrow-down')
-					.setChecked(floatingTocEnabled)
-					.onClick(() => onToggleFloatingToc?.());
-			});
+			if (onToggleFloatingToc) {
+				menu.addItem((item) => {
+					item
+						.setTitle(translate('floating_toc.menu'))
+						.setIcon('lucide-a-arrow-down')
+						.setChecked(floatingTocEnabled)
+						.onClick(() => onToggleFloatingToc?.());
+				});
+			}
+			if (onSaveViewConfig) {
+				menu.addItem((item) => {
+					item
+						.setTitle(translate('viewmenu.save_config'))
+						.setIcon('lucide-save')
+						.onClick(() => saveViewConfig());
+				});
+			}
 		}
 
 		menu.addSeparator();

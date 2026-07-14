@@ -6,6 +6,18 @@ import type { BadgeCancelClickMode } from '../utils/badgeInteraction';
 
 export type Language = 'auto' | 'en' | 'es';
 
+/** A saved per-tab explorer view config (view options + sort). */
+export interface SavedViewConfig {
+	viewMode: string;
+	visibleCells: string[];
+	sortState: {
+		sortBy: string;
+		direction: 'asc' | 'desc';
+		childLevel: boolean;
+		nodeTypeFilter: string | null;
+	};
+}
+
 export interface VaultmanSettings {
 	language: Language;
 	defaultPropertyType: string;
@@ -63,6 +75,8 @@ export interface VaultmanSettings {
 	floatingTocEnabled: boolean;
 	/** Show the explorer toolbar (tabs / view / sort / search header) */
 	showToolbar: boolean;
+	/** Saved per-tab view options + sorts (empty = use live defaults) */
+	viewConfigByTab?: Record<string, SavedViewConfig>;
 	/** Run operations immediately instead of staging them in the queue */
 	bypassOperations: boolean;
 	/** Suppress the bulk target confirmation for reusable action presets */

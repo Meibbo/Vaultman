@@ -184,6 +184,11 @@ export const es: Record<string, string> = {
 	'settings.default_type.desc': 'Tipo por defecto para nuevas propiedades',
 	'settings.templates': 'Plantillas de filtros',
 	'settings.templates.desc': 'Gestionar plantillas de filtros guardadas',
+	'settings.saved_view_config': 'Config de vista guardada',
+	'settings.saved_view_config.desc': 'Tabs guardados',
+	'settings.saved_view_config.empty':
+		'Sin config de vista guardada. Usa "Guardar config de vista" en el menú de vista para recordar opciones y orden por tab.',
+	'settings.saved_view_config.clear': 'Limpiar',
 	'settings.floating_toc': 'TOC flotante',
 	'settings.floating_toc_enable': 'Activar TOC flotante',
 	'settings.floating_toc_enable.desc':
@@ -191,6 +196,8 @@ export const es: Record<string, string> = {
 	'floating_toc.aria': 'Índice del explorer',
 	'floating_toc.menu': 'Índice flotante',
 	'viewmenu.toolbar': 'Barra de herramientas',
+	'viewmenu.save_config': 'Guardar config de vista',
+	'viewmenu.saved_config_notice': 'Config de vista guardada',
 	'floating_toc.files':
 		'Indexando archivos — toca para indexar carpetas, mantén para elegir alcance',
 	'floating_toc.folders':

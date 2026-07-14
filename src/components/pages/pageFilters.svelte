@@ -12,6 +12,7 @@
 	import type { PropsExplorerPanel } from '../containers/explorerProps';
 	import type { TagsExplorerPanel } from '../containers/explorerTags';
 	import type { ContentPreviewResult } from '../../types/typeUI';
+	import type { SavedViewConfig } from '../../types/typeSettings';
 	import {
 		type PendingChange,
 		FIND_REPLACE_CONTENT,
@@ -208,6 +209,15 @@
 	function toggleToolbar() {
 		plugin.settings.showToolbar = plugin.settings.showToolbar === false;
 		void plugin.saveSettings();
+	}
+	const savedViewConfig = $derived.by(() => {
+		void settingsRevision;
+		return plugin.settings.viewConfigByTab;
+	});
+	function saveViewConfig(config: Record<string, SavedViewConfig>) {
+		plugin.settings.viewConfigByTab = config;
+		void plugin.saveData(plugin.settings);
+		new Notice(translate('viewmenu.saved_config_notice'));
 	}
 	const minimalStyle = $derived.by(() => {
 		void settingsRevision;
@@ -676,6 +686,8 @@
 			{floatingTocEnabled}
 			{onToggleFloatingToc}
 			onToggleToolbar={toggleToolbar}
+			{savedViewConfig}
+			onSaveViewConfig={saveViewConfig}
 			{icon}
 		/>
 	</div>
