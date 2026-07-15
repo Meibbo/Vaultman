@@ -90,6 +90,22 @@
 		void settingsRevision;
 		return plugin.settings.floatingTocNiagara === true;
 	});
+	const niagaraOpts = $derived.by(() => {
+		void settingsRevision;
+		const s = plugin.settings;
+		return {
+			nodes: s.floatingTocNiagaraNodes === true,
+			plainStyle: s.floatingTocPlainStyle === true,
+			position: s.tocPosition ?? 'right',
+			glyphMode: s.tocGlyphMode ?? 'letter',
+			labelMode: s.tocLabelMode ?? 'scrub',
+			reveal: s.tocReveal ?? 'all',
+			glow: s.tocGlow !== false,
+			nameOrder: s.tocNameOrder ?? 'down',
+			namePill: s.tocNamePill === true,
+			hardJump: s.tocHardJump === true,
+		};
+	});
 	const performanceHudEnabled = $derived.by(() => {
 		void settingsRevision;
 		return plugin.settings.performanceHudEnabled;
@@ -1140,6 +1156,7 @@
 		scoped={tocRootId !== null}
 		pickMode={tocPickMode}
 		niagara={floatingTocNiagara}
+		opts={niagaraOpts}
 		onJump={jumpFloatingToc}
 		onToggleKind={toggleTocKind}
 		onEnterPick={enterTocPick}

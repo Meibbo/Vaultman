@@ -1,5 +1,9 @@
 import { PluginSettingTab, Setting, type App } from 'obsidian';
-import type { iVaultmanPlugin, Language } from './types/typeSettings';
+import type {
+	iVaultmanPlugin,
+	Language,
+	VaultmanSettings,
+} from './types/typeSettings';
 import { translate, setLanguage } from './i18n/index';
 
 export class VaultmanSettingsTab extends PluginSettingTab {
@@ -76,14 +80,8 @@ export class VaultmanSettingsTab extends PluginSettingTab {
 			.setDesc(translate('settings.badge_cancel_click.desc'))
 			.addDropdown((dropdown) =>
 				dropdown
-					.addOption(
-						'double',
-						translate('settings.badge_cancel_click.double'),
-					)
-					.addOption(
-						'single',
-						translate('settings.badge_cancel_click.single'),
-					)
+					.addOption('double', translate('settings.badge_cancel_click.double'))
+					.addOption('single', translate('settings.badge_cancel_click.single'))
 					.setValue(this.plugin.settings.badgeCancelClickMode)
 					.onChange(async (value) => {
 						this.plugin.settings.badgeCancelClickMode =
@@ -143,7 +141,9 @@ export class VaultmanSettingsTab extends PluginSettingTab {
 					}),
 			);
 
-		new Setting(containerEl).setName(translate('settings.context_menu')).setHeading();
+		new Setting(containerEl)
+			.setName(translate('settings.context_menu'))
+			.setHeading();
 
 		new Setting(containerEl)
 			.setName(translate('settings.context_menu.file_menu'))
@@ -181,7 +181,9 @@ export class VaultmanSettingsTab extends PluginSettingTab {
 					}),
 			);
 
-		new Setting(containerEl).setName(translate('settings.templates')).setHeading();
+		new Setting(containerEl)
+			.setName(translate('settings.templates'))
+			.setHeading();
 
 		if (this.plugin.settings.filterTemplates.length === 0) {
 			containerEl.createEl('p', {
@@ -253,7 +255,9 @@ export class VaultmanSettingsTab extends PluginSettingTab {
 						'experimental',
 						translate('settings.style_preset.experimental'),
 					)
-					.setValue(this.plugin.settings.minimalStyle ? 'minimal' : 'experimental')
+					.setValue(
+						this.plugin.settings.minimalStyle ? 'minimal' : 'experimental',
+					)
 					.onChange(async (value) => {
 						this.plugin.settings.minimalStyle = value === 'minimal';
 						await this.plugin.saveSettings();
@@ -361,6 +365,122 @@ export class VaultmanSettingsTab extends PluginSettingTab {
 						this.plugin.settings.floatingTocNiagara = value;
 						await this.plugin.saveSettings();
 					}),
+			);
+
+		const setToc = async (patch: Partial<typeof this.plugin.settings>) => {
+			Object.assign(this.plugin.settings, patch);
+			await this.plugin.saveSettings();
+		};
+		new Setting(containerEl)
+			.setName(translate('settings.toc_plain_style'))
+			.setDesc(translate('settings.toc_plain_style.desc'))
+			.addToggle((t) =>
+				t
+					.setValue(this.plugin.settings.floatingTocPlainStyle === true)
+					.onChange((v) => setToc({ floatingTocPlainStyle: v })),
+			);
+		new Setting(containerEl)
+			.setName(translate('settings.toc_position'))
+			.addDropdown((d) =>
+				d
+					.addOptions({
+						right: translate('settings.toc_position.right'),
+						left: translate('settings.toc_position.left'),
+						top: translate('settings.toc_position.top'),
+						bottom: translate('settings.toc_position.bottom'),
+					})
+					.setValue(this.plugin.settings.tocPosition ?? 'right')
+					.onChange((v) =>
+						setToc({ tocPosition: v as VaultmanSettings['tocPosition'] }),
+					),
+			);
+		new Setting(containerEl)
+			.setName(translate('settings.toc_glyph_mode'))
+			.addDropdown((d) =>
+				d
+					.addOptions({
+						letter: translate('settings.toc_glyph_mode.letter'),
+						name: translate('settings.toc_glyph_mode.name'),
+					})
+					.setValue(this.plugin.settings.tocGlyphMode ?? 'letter')
+					.onChange((v) =>
+						setToc({ tocGlyphMode: v as VaultmanSettings['tocGlyphMode'] }),
+					),
+			);
+		new Setting(containerEl)
+			.setName(translate('settings.toc_label_mode'))
+			.setDesc(translate('settings.toc_label_mode.desc'))
+			.addDropdown((d) =>
+				d
+					.addOptions({
+						off: translate('settings.toc_label_mode.off'),
+						selected: translate('settings.toc_label_mode.selected'),
+						scrub: translate('settings.toc_label_mode.scrub'),
+						always: translate('settings.toc_label_mode.always'),
+					})
+					.setValue(this.plugin.settings.tocLabelMode ?? 'scrub')
+					.onChange((v) =>
+						setToc({ tocLabelMode: v as VaultmanSettings['tocLabelMode'] }),
+					),
+			);
+		new Setting(containerEl)
+			.setName(translate('settings.toc_reveal'))
+			.addDropdown((d) =>
+				d
+					.addOptions({
+						selected: translate('settings.toc_reveal.selected'),
+						near: translate('settings.toc_reveal.near'),
+						wide: translate('settings.toc_reveal.wide'),
+						all: translate('settings.toc_reveal.all'),
+					})
+					.setValue(this.plugin.settings.tocReveal ?? 'all')
+					.onChange((v) =>
+						setToc({ tocReveal: v as VaultmanSettings['tocReveal'] }),
+					),
+			);
+		new Setting(containerEl)
+			.setName(translate('settings.toc_name_order'))
+			.addDropdown((d) =>
+				d
+					.addOptions({
+						down: translate('settings.toc_name_order.down'),
+						up: translate('settings.toc_name_order.up'),
+						flat: translate('settings.toc_name_order.flat'),
+					})
+					.setValue(this.plugin.settings.tocNameOrder ?? 'down')
+					.onChange((v) =>
+						setToc({ tocNameOrder: v as VaultmanSettings['tocNameOrder'] }),
+					),
+			);
+		new Setting(containerEl)
+			.setName(translate('settings.toc_glow'))
+			.addToggle((t) =>
+				t
+					.setValue(this.plugin.settings.tocGlow !== false)
+					.onChange((v) => setToc({ tocGlow: v })),
+			);
+		new Setting(containerEl)
+			.setName(translate('settings.toc_name_pill'))
+			.addToggle((t) =>
+				t
+					.setValue(this.plugin.settings.tocNamePill === true)
+					.onChange((v) => setToc({ tocNamePill: v })),
+			);
+		new Setting(containerEl)
+			.setName(translate('settings.toc_hard_jump'))
+			.setDesc(translate('settings.toc_hard_jump.desc'))
+			.addToggle((t) =>
+				t
+					.setValue(this.plugin.settings.tocHardJump === true)
+					.onChange((v) => setToc({ tocHardJump: v })),
+			);
+		new Setting(containerEl)
+			.setName(translate('settings.toc_niagara_nodes'))
+			.setDesc(translate('settings.toc_niagara_nodes.desc'))
+			.addToggle((t) =>
+				t
+					.setValue(this.plugin.settings.floatingTocNiagaraNodes === true)
+					.onChange((v) => setToc({ floatingTocNiagaraNodes: v })),
 			);
 
 		new Setting(containerEl)

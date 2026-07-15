@@ -21,6 +21,8 @@ export interface IndexGroup {
 	key: string;
 	label: string;
 	firstId: string;
+	/** Label of the group's first node — shown as the Niagara scrub name cell. */
+	firstLabel: string;
 	count: number;
 }
 
@@ -57,7 +59,8 @@ export function indexLevel<T extends IndexTreeNode>(
 		}
 		return null;
 	};
-	const level = rootId === null ? source : ((find(source)?.children as T[]) ?? []);
+	const level =
+		rootId === null ? source : ((find(source)?.children as T[]) ?? []);
 	return level.map((node) => ({
 		id: node.id,
 		label: node.label,
@@ -97,7 +100,13 @@ export function buildIndexGroups(
 		if (existing) {
 			existing.count += 1;
 		} else {
-			groups.set(key, { key, label: key, firstId: node.id, count: 1 });
+			groups.set(key, {
+				key,
+				label: key,
+				firstId: node.id,
+				firstLabel: node.label,
+				count: 1,
+			});
 			order.push(key);
 		}
 	}

@@ -82,6 +82,26 @@ export interface VaultmanSettings {
 	floatingTocEnabled: boolean;
 	/** Enable the Niagara scrub effects on the floating TOC (off = static) */
 	floatingTocNiagara: boolean;
+	/** Let the rail's control nodes (toggle/drill) join the Niagara scrub */
+	floatingTocNiagaraNodes: boolean;
+	/** Proto-style rail: bare glyphs with transparent control nodes (no boxes) */
+	floatingTocPlainStyle: boolean;
+	/** Rail edge: right (default) / left / top / bottom */
+	tocPosition: 'right' | 'left' | 'top' | 'bottom';
+	/** Glyph mode: first letter or full name */
+	tocGlyphMode: 'letter' | 'name';
+	/** Name cell visibility while scrubbing: off / selected / scrub / always */
+	tocLabelMode: 'off' | 'selected' | 'scrub' | 'always';
+	/** Name-cell reveal falloff range: selected / near / wide / all */
+	tocReveal: 'selected' | 'near' | 'wide' | 'all';
+	/** Radial glow that follows the active glyph while scrubbing */
+	tocGlow: boolean;
+	/** Vertical name-letter stack order: down / up / flat */
+	tocNameOrder: 'down' | 'up' | 'flat';
+	/** Wrap the scrub name cell in a frosted pill */
+	tocNamePill: boolean;
+	/** Hard (instant) jump instead of smooth scroll */
+	tocHardJump: boolean;
 	/** Show the explorer toolbar (tabs / view / sort / search header) */
 	showToolbar: boolean;
 	/** Named saved explorer layouts (view options + sorts per tab) */
@@ -157,6 +177,16 @@ export const DEFAULT_SETTINGS: VaultmanSettings = {
 	showDock: false,
 	floatingTocEnabled: false,
 	floatingTocNiagara: false,
+	floatingTocNiagaraNodes: false,
+	floatingTocPlainStyle: false,
+	tocPosition: 'right',
+	tocGlyphMode: 'letter',
+	tocLabelMode: 'scrub',
+	tocReveal: 'all',
+	tocGlow: true,
+	tocNameOrder: 'down',
+	tocNamePill: false,
+	tocHardJump: false,
 	showToolbar: true,
 	bypassOperations: false,
 	suppressBulkOperationWarning: false,

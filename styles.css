@@ -6219,25 +6219,151 @@ button.vaultman-content-scope-hint:focus-visible {
 .vaultman-floating-toc-item:hover {
 	color: var(--text-normal);
 }
-/* Niagara scrub: magnify wave + active-glyph glow (off by default). */
+/* ─── Niagara scrub (off by default): magnify wave + glow + name cells ─────── */
 .vaultman-floating-toc-glyphs {
 	display: flex;
 	flex-direction: column;
 	gap: 2px;
 	min-height: 0;
+	will-change: transform;
 }
 .vaultman-floating-toc-glyphs.is-niagara {
 	touch-action: none;
 }
+.vaultman-floating-toc.is-scrubbing {
+	overflow: visible;
+}
 .vaultman-floating-toc-glyphs.is-niagara .vaultman-floating-toc-item {
 	transform-origin: right center;
+	flex-direction: row-reverse;
+	gap: 6px;
+	white-space: nowrap;
 	transition:
-		transform 0.08s ease,
+		transform 0.12s cubic-bezier(0.34, 1.56, 0.64, 1),
 		color 0.1s ease;
+}
+.vaultman-floating-toc.is-instant .vaultman-floating-toc-item {
+	transition: color 0.1s ease;
 }
 .vaultman-floating-toc-item.is-scrub-active {
 	color: var(--color-accent);
-	text-shadow: 0 0 6px var(--color-accent);
+}
+.vaultman-floating-toc .vaultman-floating-toc-item:hover {
+	color: var(--text-normal);
+}
+/* Radial glow that follows the active glyph. */
+.vaultman-floating-toc-glow {
+	position: absolute;
+	width: 150px;
+	height: 150px;
+	transform: translate(-50%, -50%);
+	border-radius: 50%;
+	pointer-events: none;
+	z-index: 0;
+	opacity: 0;
+	background: radial-gradient(
+		circle,
+		color-mix(in srgb, var(--color-accent) 24%, transparent) 0%,
+		color-mix(in srgb, var(--color-accent) 12%, transparent) 40%,
+		transparent 70%
+	);
+	filter: blur(3px);
+	transition:
+		opacity 0.18s ease,
+		left 0.13s cubic-bezier(0.22, 1, 0.36, 1),
+		top 0.13s cubic-bezier(0.22, 1, 0.36, 1);
+}
+.vaultman-floating-toc.is-scrubbing.has-glow .vaultman-floating-toc-glow {
+	opacity: 1;
+}
+/* Name cell that bulges beside the glyph while scrubbing. */
+.vaultman-floating-toc-cell-glyph {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	flex-shrink: 0;
+}
+.vaultman-floating-toc-cell-name {
+	font-size: 11px;
+	font-weight: 600;
+	color: var(--text-normal);
+	white-space: nowrap;
+	max-width: 240px;
+	overflow: hidden;
+	text-overflow: ellipsis;
+}
+.vaultman-floating-toc-cell-name.is-vertical {
+	display: inline-flex;
+	flex-direction: column;
+	align-items: center;
+	line-height: 0.92;
+	max-width: none;
+	overflow: visible;
+}
+.vaultman-floating-toc-vletter {
+	font-size: 9.5px;
+	font-weight: 600;
+}
+.vaultman-floating-toc-item.is-scrub-active .vaultman-floating-toc-cell-name {
+	font-weight: 800;
+	color: var(--color-accent);
+}
+.vaultman-floating-toc.name-pill .vaultman-floating-toc-cell-name {
+	padding: 2px 8px;
+	border-radius: 999px;
+	background: color-mix(in srgb, var(--background-secondary) 92%, transparent);
+	box-shadow: 0 2px 8px rgba(0, 0, 0, 0.28);
+	backdrop-filter: blur(6px);
+}
+.vaultman-floating-toc.name-pill
+	.vaultman-floating-toc-item.is-scrub-active
+	.vaultman-floating-toc-cell-name {
+	background: var(--color-accent);
+	color: var(--text-on-accent);
+}
+.vaultman-floating-toc-fullname {
+	font-size: 10px;
+	font-weight: 600;
+	white-space: nowrap;
+	max-width: 150px;
+	overflow: hidden;
+	text-overflow: ellipsis;
+}
+/* Proto/plain style: bare glyphs, transparent control nodes (no boxes). */
+.vaultman-floating-toc.is-plain .vaultman-floating-toc-toggle,
+.vaultman-floating-toc.is-plain .vaultman-floating-toc-drill {
+	background: transparent;
+}
+/* Rail position variants. */
+.vaultman-floating-toc-wrap.pos-left {
+	right: auto;
+	left: 2px;
+}
+.vaultman-floating-toc-wrap.pos-top {
+	top: 4px;
+	bottom: auto;
+	left: 4px;
+	right: 4px;
+	align-items: flex-start;
+}
+.vaultman-floating-toc-wrap.pos-bottom {
+	top: auto;
+	bottom: calc(var(--vaultman-nav-height, 64px) + 8px);
+	left: 4px;
+	right: 4px;
+	align-items: flex-end;
+}
+.vaultman-floating-toc-wrap.is-horizontal .vaultman-floating-toc,
+.vaultman-floating-toc-wrap.is-horizontal .vaultman-floating-toc-glyphs {
+	flex-direction: row;
+	overflow-x: auto;
+	overflow-y: hidden;
+}
+.vaultman-floating-toc-wrap.pos-left
+	.vaultman-floating-toc-glyphs.is-niagara
+	.vaultman-floating-toc-item {
+	transform-origin: left center;
+	flex-direction: row;
 }
 .vaultman-floating-toc-toggle,
 .vaultman-floating-toc-drill,
