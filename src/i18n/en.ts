@@ -187,7 +187,7 @@ export const en: Record<string, string> = {
 	'settings.default_type.desc': 'Default type for new properties',
 	'settings.templates': 'Filter templates',
 	'settings.templates.desc': 'Manage saved filter templates',
-	'settings.saved_view_config': 'Saved view config',
+	'settings.saved_view_config': 'View Config',
 	'settings.saved_view_config.desc': 'Saved tabs',
 	'settings.saved_view_config.empty':
 		'No saved view config. Use "Save view config" in the view menu to remember view options and sorts per tab.',

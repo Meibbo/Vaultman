@@ -210,16 +210,20 @@
 		plugin.settings.showToolbar = plugin.settings.showToolbar === false;
 		void plugin.saveSettings();
 	}
-	const savedLayouts = $derived.by(() => {
+	// Local mirror so a save updates the submenu list immediately (quiet persist,
+	// no page remount); synced from settings for external changes (delete).
+	let savedLayouts = $state<SavedLayout[]>([]);
+	$effect(() => {
 		void settingsRevision;
-		return plugin.settings.savedLayouts ?? [];
+		savedLayouts = plugin.settings.savedLayouts ?? [];
 	});
 	function saveLayout(layout: SavedLayout) {
-		const existing = plugin.settings.savedLayouts ?? [];
-		plugin.settings.savedLayouts = [
-			...existing.filter((entry) => entry.name !== layout.name),
+		const next = [
+			...savedLayouts.filter((entry) => entry.name !== layout.name),
 			layout,
 		];
+		plugin.settings.savedLayouts = next;
+		savedLayouts = next;
 		void plugin.saveData(plugin.settings);
 		new Notice(translate('viewmenu.saved_config_notice'));
 	}
@@ -692,6 +696,7 @@
 			onToggleToolbar={toggleToolbar}
 			{savedLayouts}
 			onSaveLayout={saveLayout}
+			toolbarShown={showToolbar}
 			app={plugin.app}
 			{showTabLabels}
 			{icon}

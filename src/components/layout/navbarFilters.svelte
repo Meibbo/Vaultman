@@ -71,6 +71,7 @@
 		floatingTocEnabled = false,
 		onToggleFloatingToc,
 		onToggleToolbar,
+		toolbarShown = true,
 		savedLayouts = [],
 		onSaveLayout,
 		app,
@@ -98,6 +99,7 @@
 		floatingTocEnabled?: boolean;
 		onToggleFloatingToc?: () => void;
 		onToggleToolbar?: () => void;
+		toolbarShown?: boolean;
 		savedLayouts?: SavedLayout[];
 		onSaveLayout?: (layout: SavedLayout) => void;
 		app?: import('obsidian').App;
@@ -776,7 +778,7 @@
 				item
 					.setTitle(translate('viewmenu.toolbar'))
 					.setIcon('lucide-panel-top')
-					.setChecked(true)
+					.setChecked(toolbarShown)
 					.onClick(() => onToggleToolbar?.());
 			});
 		}

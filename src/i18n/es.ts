@@ -184,7 +184,7 @@ export const es: Record<string, string> = {
 	'settings.default_type.desc': 'Tipo por defecto para nuevas propiedades',
 	'settings.templates': 'Plantillas de filtros',
 	'settings.templates.desc': 'Gestionar plantillas de filtros guardadas',
-	'settings.saved_view_config': 'Config de vista guardada',
+	'settings.saved_view_config': 'View Config',
 	'settings.saved_view_config.desc': 'Tabs guardados',
 	'settings.saved_view_config.empty':
 		'Sin config de vista guardada. Usa "Guardar config de vista" en el menú de vista para recordar opciones y orden por tab.',
