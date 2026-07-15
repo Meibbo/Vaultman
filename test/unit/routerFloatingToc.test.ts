@@ -11,6 +11,16 @@ describe('FloatingTocRouter', () => {
 		expect(revealNode).toHaveBeenCalledWith('file.md');
 	});
 
+	it('forwards scroll behavior to the registered reveal port', () => {
+		const router = new FloatingTocRouter();
+		const revealNode = vi.fn().mockReturnValue(true);
+		const options = { behavior: 'smooth' } as const;
+		router.setPort({ revealNode });
+
+		expect(router.invoke('reveal-node', 'file.md', options)).toEqual({ ok: true });
+		expect(revealNode).toHaveBeenCalledWith('file.md', options);
+	});
+
 	it('reports missing-reveal-port when no port is registered', () => {
 		const router = new FloatingTocRouter();
 		expect(router.invoke('reveal-node', 'file.md')).toEqual({

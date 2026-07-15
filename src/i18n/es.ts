@@ -231,8 +231,9 @@ export const es: Record<string, string> = {
 	'settings.toc_name_order.flat': 'Horizontal',
 	'settings.toc_glow': 'Glow en scrub',
 	'settings.toc_name_pill': 'Pastilla de nombre',
-	'settings.toc_hard_jump': 'Salto instantáneo',
-	'settings.toc_hard_jump.desc': 'Salta al instante en vez de scroll suave.',
+	'settings.toc_soft_scroll': 'Desplazamiento suave',
+	'settings.toc_soft_scroll.desc':
+		'Desliza suavemente el explorer entre grupos del índice durante el scrub.',
 	'settings.toc_niagara_nodes': 'Nodos en el scrub',
 	'settings.toc_niagara_nodes.desc':
 		'Deja que los nodos de control (toggle/drill) se magnifiquen con la onda Niagara.',
@@ -248,7 +249,8 @@ export const es: Record<string, string> = {
 		'Indexando carpetas — toca para indexar archivos, mantén para elegir alcance',
 	'floating_toc.pick': 'Elige un nodo para indexar su nivel',
 	'floating_toc.drill': 'Indexar el nivel de un nodo',
-	'floating_toc.reset': 'Volver al nivel superior',
+	'floating_toc.close': 'Cerrar índice',
+	'floating_toc.back': 'Volver un nivel',
 	'settings.queue_templates.desc':
 		'Gestionar presets guardados de operaciones preparadas',
 

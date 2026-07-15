@@ -58,6 +58,8 @@ class TinyElement {
 	textContent = '';
 	scrollTop = 0;
 	clientHeight = 800;
+	lastScrollIntoViewOptions: ScrollIntoViewOptions | undefined;
+	lastScrollToOptions: ScrollToOptions | undefined;
 	draggable = false;
 	onclick: ((event: MouseEvent) => void) | null = null;
 	ondragstart: ((event: DragEvent) => void) | null = null;
@@ -167,7 +169,14 @@ class TinyElement {
 
 	addEventListener(): void {}
 	removeEventListener(): void {}
-	scrollIntoView(): void {}
+	scrollIntoView(options?: ScrollIntoViewOptions): void {
+		this.lastScrollIntoViewOptions = options;
+	}
+
+	scrollTo(options?: ScrollToOptions): void {
+		this.lastScrollToOptions = options;
+		if (typeof options?.top === 'number') this.scrollTop = options.top;
+	}
 
 	getBoundingClientRect(): Pick<DOMRect, 'top' | 'bottom'> {
 		return { top: 0, bottom: 28 };
@@ -378,5 +387,59 @@ describe('UnifiedTreeView behavior', () => {
 				'vaultman-tree-structure-animating',
 			),
 		).toBe(false);
+	});
+
+	it('passes smooth behavior to a rendered row', async () => {
+		const { UnifiedTreeView } = await import(
+			'../../src/components/layout/viewTree'
+		);
+		const container = new TinyElement('div') as unknown as HTMLElement;
+		const view = new UnifiedTreeView(container);
+		view.render({
+			nodes: [{ id: 'alpha.md', label: 'Alpha', depth: 0, meta: {} }],
+			expandedIds: new Set<string>(),
+			onToggle: () => {},
+			onRowClick: () => {},
+			onContextMenu: () => {},
+		});
+
+		view.scrollToId('alpha.md', 'start', 'smooth');
+
+		const row = container.querySelector(
+			'.vaultman-tree-row',
+		) as unknown as TinyElement | null;
+		expect(row?.lastScrollIntoViewOptions).toEqual({
+			block: 'start',
+			inline: 'nearest',
+			behavior: 'smooth',
+		});
+	});
+
+	it('uses smooth scrolling when the target row is outside the virtual window', async () => {
+		const { UnifiedTreeView } = await import(
+			'../../src/components/layout/viewTree'
+		);
+		const tinyContainer = new TinyElement('div');
+		tinyContainer.clientHeight = 28;
+		const view = new UnifiedTreeView(tinyContainer as unknown as HTMLElement);
+		view.render({
+			nodes: Array.from({ length: 100 }, (_, index) => ({
+				id: `node-${index}`,
+				label: `Node ${index}`,
+				depth: 0,
+				meta: {},
+			})),
+			expandedIds: new Set<string>(),
+			onToggle: () => {},
+			onRowClick: () => {},
+			onContextMenu: () => {},
+		});
+
+		view.scrollToId('node-99', 'start', 'smooth');
+
+		expect(tinyContainer.lastScrollToOptions).toEqual({
+			top: 99 * 28,
+			behavior: 'smooth',
+		});
 	});
 });

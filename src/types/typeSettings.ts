@@ -100,8 +100,8 @@ export interface VaultmanSettings {
 	tocNameOrder: 'down' | 'up' | 'flat';
 	/** Wrap the scrub name cell in a frosted pill */
 	tocNamePill: boolean;
-	/** Hard (instant) jump instead of smooth scroll */
-	tocHardJump: boolean;
+	/** Smoothly scroll the explorer while scrubbing the floating TOC */
+	tocSoftScroll: boolean;
 	/** Show the explorer toolbar (tabs / view / sort / search header) */
 	showToolbar: boolean;
 	/** Named saved explorer layouts (view options + sorts per tab) */
@@ -186,7 +186,7 @@ export const DEFAULT_SETTINGS: VaultmanSettings = {
 	tocGlow: true,
 	tocNameOrder: 'down',
 	tocNamePill: false,
-	tocHardJump: false,
+	tocSoftScroll: false,
 	showToolbar: true,
 	bypassOperations: false,
 	suppressBulkOperationWarning: false,

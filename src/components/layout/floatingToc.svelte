@@ -13,7 +13,6 @@
 		glow: boolean;
 		nameOrder: 'down' | 'up' | 'flat';
 		namePill: boolean;
-		hardJump: boolean;
 	}
 
 	let {
@@ -29,7 +28,8 @@
 		onJump,
 		onToggleKind,
 		onEnterPick,
-		onResetScope,
+		onClose,
+		onBack,
 	}: {
 		visible: boolean;
 		groups: IndexGroup[];
@@ -43,7 +43,8 @@
 		onJump: (targetId: string) => void;
 		onToggleKind: () => void;
 		onEnterPick: () => void;
-		onResetScope: () => void;
+		onClose: () => void;
+		onBack: () => void;
 	} = $props();
 
 	function icon(el: HTMLElement, name: string) {
@@ -276,7 +277,6 @@
 			class:is-plain={opts.plainStyle}
 			class:has-glow={opts.glow}
 			class:name-pill={opts.namePill}
-			class:is-instant={opts.hardJump}
 			aria-label={translate('floating_toc.aria')}
 		>
 			{#if niagara && opts.glow}
@@ -285,6 +285,15 @@
 					style="left: {glowX}px; top: {glowY}px"
 				></div>
 			{/if}
+			<button
+				type="button"
+				class="vaultman-floating-toc-close"
+				aria-label={translate('floating_toc.close')}
+				use:tooltip={translate('floating_toc.close')}
+				onclick={onClose}
+			>
+				<span use:icon={'lucide-x'}></span>
+			</button>
 			{#if kindToggle}
 				<button
 					type="button"
@@ -317,10 +326,10 @@
 			{#if scoped}
 				<button
 					type="button"
-					class="vaultman-floating-toc-reset"
-					aria-label={translate('floating_toc.reset')}
-					use:tooltip={translate('floating_toc.reset')}
-					onclick={onResetScope}
+					class="vaultman-floating-toc-back"
+					aria-label={translate('floating_toc.back')}
+					use:tooltip={translate('floating_toc.back')}
+					onclick={onBack}
 				>
 					<span use:icon={'lucide-corner-left-up'}></span>
 				</button>

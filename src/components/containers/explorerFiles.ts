@@ -9,6 +9,7 @@ import type { TreeNode, FileMeta, NodeBadge } from '../../types/typeTree';
 import type { MenuCtx } from '../../types/typeCMenu';
 import type { FilterNode } from '../../types/typeFilter';
 import type { ExplorerSortState } from '../../types/typeUI';
+import type { RevealNodeOptions } from '../../services/routerFloatingToc';
 import { FileRenameModal } from '../../modals/modalFileRename';
 import { FileMoveModal } from '../../modals/modalFileMove';
 import { PropertyManagerModal } from '../../modals/modalPropertyManager';
@@ -22,6 +23,7 @@ import {
 import {
 	findParentId,
 	indexLevel,
+	type FloatingTocExpansionChange,
 	type IndexNodeRef,
 } from '../../logic/logicIndexGroups';
 import {
@@ -77,7 +79,7 @@ export class FilesExplorerPanel extends Component {
 	/** Last rendered hierarchy — feeds the floating TOC (index/scope drill). */
 	private _lastRenderTree: TreeNode<FileMeta>[] = [];
 	private _lastFlatFiles: { id: string; label: string }[] = [];
-	onIndexChanged?: () => void;
+	onIndexChanged?: (change?: FloatingTocExpansionChange) => void;
 
 	private onSelectionChange?: (count: number) => void;
 	private onExpansionChange?: () => void;
@@ -566,7 +568,7 @@ export class FilesExplorerPanel extends Component {
 
 	collapseAll(): void {
 		this.expandedIds.clear();
-		this._notifyExpansionChanged();
+		this._notifyExpansionChanged({ type: 'collapse-all' });
 		this._render();
 	}
 
@@ -821,19 +823,19 @@ export class FilesExplorerPanel extends Component {
 	}
 
 	/** Floating TOC reveal port (FTC-002): scroll to a node by id/path. */
-	revealNode(id: string): boolean {
+	revealNode(id: string, options?: RevealNodeOptions): boolean {
 		if (this.viewMode === 'table') {
 			if (!this.tableView) return false;
-			this.tableView.scrollToPath(id);
+			this.tableView.scrollToPath(id, options?.behavior);
 			return true;
 		}
 		if (this.viewMode === 'grid') {
 			if (!this.gridView) return false;
-			this.gridView.scrollToPath(id);
+			this.gridView.scrollToPath(id, options?.behavior);
 			return true;
 		}
 		if (!this.treeView) return false;
-		this.treeView.scrollToId(id, 'start');
+		this.treeView.scrollToId(id, 'start', options?.behavior);
 		return true;
 	}
 
@@ -907,9 +909,7 @@ export class FilesExplorerPanel extends Component {
 				expandedIds: this.expandedIds,
 				visibleCells: this.visibleCells,
 				onToggle: (id: string) => {
-					if (this.expandedIds.has(id)) this.expandedIds.delete(id);
-					else this.expandedIds.add(id);
-					this._notifyExpansionChanged();
+					this._toggleExpanded(id);
 					this._render();
 				},
 				onRowClick: (id: string) => {
@@ -918,9 +918,7 @@ export class FilesExplorerPanel extends Component {
 					const meta = node.meta;
 					if (meta.isFolder) {
 						if (!this._nestedEnabled()) return;
-						if (this.expandedIds.has(id)) this.expandedIds.delete(id);
-						else this.expandedIds.add(id);
-						this._notifyExpansionChanged();
+						this._toggleExpanded(id);
 						this._render();
 						return;
 					}
@@ -1187,8 +1185,18 @@ export class FilesExplorerPanel extends Component {
 		return meta?.folder ?? null;
 	}
 
-	private _notifyExpansionChanged(): void {
+	private _toggleExpanded(id: string): void {
+		const wasExpanded = this.expandedIds.has(id);
+		if (wasExpanded) this.expandedIds.delete(id);
+		else this.expandedIds.add(id);
+		this._notifyExpansionChanged(
+			wasExpanded ? { type: 'collapse-node', id } : undefined,
+		);
+	}
+
+	private _notifyExpansionChanged(change?: FloatingTocExpansionChange): void {
 		this.onExpansionChange?.();
+		if (change) this.onIndexChanged?.(change);
 	}
 
 	private _sortState(): ExplorerSortState {

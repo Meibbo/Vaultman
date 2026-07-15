@@ -26,4 +26,8 @@ describe('Vaultman default settings', () => {
 	it('keeps explorer search highlights disabled by default', () => {
 		expect(DEFAULT_SETTINGS.explorerSearchHighlights).toBe(false);
 	});
+
+	it('keeps floating TOC soft scrolling opt-in', () => {
+		expect(DEFAULT_SETTINGS.tocSoftScroll).toBe(false);
+	});
 });

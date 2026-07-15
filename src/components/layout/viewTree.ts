@@ -46,8 +46,11 @@ export class UnifiedTreeView {
 	private _structureAnimationTimer: number | null = null;
 	private _expandedIdsSignature = '';
 	private _hasRenderedExpandedState = false;
-	private _pendingScroll: { id: string; block: ScrollLogicalPosition } | null =
-		null;
+	private _pendingScroll: {
+		id: string;
+		block: ScrollLogicalPosition;
+		behavior: ScrollBehavior;
+	} | null = null;
 	private _spacerEl: HTMLElement | null = null;
 	private _contentEl: HTMLElement | null = null;
 	private _rows: TreeNode[] = [];
@@ -160,21 +163,28 @@ export class UnifiedTreeView {
 		}
 	}
 
-	scrollToId(id: string, block: ScrollLogicalPosition = 'center'): void {
+	scrollToId(
+		id: string,
+		block: ScrollLogicalPosition = 'center',
+		behavior: ScrollBehavior = 'auto',
+	): void {
 		const row = this.rowEls.get(id);
 		if (row) {
-			row.scrollIntoView({ block, inline: 'nearest' });
+			row.scrollIntoView({ block, inline: 'nearest', behavior });
 			return;
 		}
 		const index = this._indexById.get(id);
 		if (index !== undefined) {
-			this.containerEl.scrollTop = this._scrollTopForIndex(index, block);
+			this.containerEl.scrollTo({
+				top: this._scrollTopForIndex(index, block),
+				behavior,
+			});
 			this._scheduleWindowRender();
 			this._pendingScroll = null;
 			vaultmanPerfMonitor.recordAction('tree', 'scrollToId', { id, index });
 			return;
 		}
-		this._pendingScroll = { id, block };
+		this._pendingScroll = { id, block, behavior };
 	}
 
 	private _buildIndex(rows: TreeNode[]): Map<string, number> {
@@ -459,12 +469,13 @@ export class UnifiedTreeView {
 
 	private _flushPendingScroll(): void {
 		if (!this._pendingScroll) return;
-		const { id, block } = this._pendingScroll;
+		const { id, block, behavior } = this._pendingScroll;
 		const row = this.rowEls.get(id);
 		if (!row) return;
 		row.scrollIntoView({
 			block,
 			inline: 'nearest',
+			behavior,
 		});
 		this._pendingScroll = null;
 	}

@@ -75,13 +75,16 @@ export class FilesGridView {
 		return this.files.filter((file) => this.selectedFiles.has(file.path));
 	}
 
-	scrollToPath(path: string): void {
+	scrollToPath(path: string, behavior: ScrollBehavior = 'auto'): void {
 		if (!this.scrollEl) return;
 		const metrics = this.metrics();
 		const index = this.files.findIndex((file) => file.path === path);
 		if (index === -1) return;
 		const rowNumber = Math.floor(index / metrics.columnCount);
-		this.scrollEl.scrollTop = Math.max(0, rowNumber * this.rowHeight);
+		this.scrollEl.scrollTo({
+			top: Math.max(0, rowNumber * this.rowHeight),
+			behavior,
+		});
 		this.scheduleWindowRender();
 	}
 

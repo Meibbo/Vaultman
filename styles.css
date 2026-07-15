@@ -6242,9 +6242,6 @@ button.vaultman-content-scope-hint:focus-visible {
 		transform 0.12s cubic-bezier(0.34, 1.56, 0.64, 1),
 		color 0.1s ease;
 }
-.vaultman-floating-toc.is-instant .vaultman-floating-toc-item {
-	transition: color 0.1s ease;
-}
 .vaultman-floating-toc-item.is-scrub-active {
 	color: var(--color-accent);
 }
@@ -6367,7 +6364,8 @@ button.vaultman-content-scope-hint:focus-visible {
 }
 .vaultman-floating-toc-toggle,
 .vaultman-floating-toc-drill,
-.vaultman-floating-toc-reset {
+.vaultman-floating-toc-close,
+.vaultman-floating-toc-back {
 	display: flex;
 	align-items: center;
 	justify-content: center;
@@ -6384,12 +6382,14 @@ button.vaultman-content-scope-hint:focus-visible {
 	color: var(--text-muted);
 	cursor: pointer;
 }
-.vaultman-floating-toc-reset {
+.vaultman-floating-toc-close,
+.vaultman-floating-toc-back {
 	background: transparent;
 }
 .vaultman-floating-toc-toggle:hover,
 .vaultman-floating-toc-drill:hover,
-.vaultman-floating-toc-reset:hover {
+.vaultman-floating-toc-close:hover,
+.vaultman-floating-toc-back:hover {
 	color: var(--text-normal);
 }
 .vaultman-floating-toc-drill.is-active {
@@ -6400,7 +6400,8 @@ button.vaultman-content-scope-hint:focus-visible {
 	display: flex;
 }
 .vaultman-floating-toc-toggle-icon .svg-icon,
-.vaultman-floating-toc-reset .svg-icon {
+.vaultman-floating-toc-close .svg-icon,
+.vaultman-floating-toc-back .svg-icon {
 	width: 12px;
 	height: 12px;
 }

@@ -11,9 +11,13 @@
 	import FloatingToc from './components/layout/floatingToc.svelte';
 	import {
 		FloatingTocRouter,
+		type FloatingTocExpansionChange,
 		type FloatingTocPanel,
 	} from './services/routerFloatingToc';
-	import { buildIndexGroups } from './logic/logicIndexGroups';
+	import {
+		buildIndexGroups,
+		scopeAfterExpansionChange,
+	} from './logic/logicIndexGroups';
 	import PerformanceHud from './components/layout/performanceHud.svelte';
 	import { QueueListComponent } from './components/componentQueueList';
 	import { QueueIslandComponent } from './components/layout/islandQueue';
@@ -90,6 +94,10 @@
 		void settingsRevision;
 		return plugin.settings.floatingTocNiagara === true;
 	});
+	const tocSoftScroll = $derived.by(() => {
+		void settingsRevision;
+		return plugin.settings.tocSoftScroll === true;
+	});
 	const niagaraOpts = $derived.by(() => {
 		void settingsRevision;
 		const s = plugin.settings;
@@ -103,7 +111,6 @@
 			glow: s.tocGlow !== false,
 			nameOrder: s.tocNameOrder ?? 'down',
 			namePill: s.tocNamePill === true,
-			hardJump: s.tocHardJump === true,
 		};
 	});
 	const performanceHudEnabled = $derived.by(() => {
@@ -586,19 +593,40 @@
 				return null;
 		}
 	}
-	$effect(() => {
-		const panels = [fileList, propExplorer, tagsExplorer].filter(
-			(panel): panel is NonNullable<typeof panel> =>
-				panel !== undefined && panel !== null,
+	function handleTocIndexChanged(
+		panelId: SearchTab,
+		panel: FloatingTocPanel,
+		change?: FloatingTocExpansionChange,
+	): void {
+		bumpExplorerRenderRevision();
+		if (!change || filtersActiveTab !== panelId) return;
+		tocRootId = scopeAfterExpansionChange(tocRootId, change, (id) =>
+			panel.scopeRootForNode(id),
 		);
-		for (const panel of panels) {
-			panel.onIndexChanged = bumpExplorerRenderRevision;
+	}
+	$effect(() => {
+		const candidates: Array<{
+			panelId: SearchTab;
+			panel: FloatingTocPanel | null | undefined;
+		}> = [
+			{ panelId: 'files', panel: fileList },
+			{ panelId: 'props', panel: propExplorer },
+			{ panelId: 'tags', panel: tagsExplorer },
+		];
+		const bindings: Array<{
+			panel: FloatingTocPanel;
+			handler: (change?: FloatingTocExpansionChange) => void;
+		}> = [];
+		for (const { panelId, panel } of candidates) {
+			if (!panel) continue;
+			const handler = (change?: FloatingTocExpansionChange) =>
+				handleTocIndexChanged(panelId, panel, change);
+			panel.onIndexChanged = handler;
+			bindings.push({ panel, handler });
 		}
 		return () => {
-			for (const panel of panels) {
-				if (panel.onIndexChanged === bumpExplorerRenderRevision) {
-					panel.onIndexChanged = undefined;
-				}
+			for (const { panel, handler } of bindings) {
+				if (panel.onIndexChanged === handler) panel.onIndexChanged = undefined;
 			}
 		};
 	});
@@ -666,13 +694,24 @@
 		return () => floatingTocRouter.setPort(null);
 	});
 	function jumpFloatingToc(targetId: string): void {
-		floatingTocRouter.invoke('reveal-node', targetId);
+		floatingTocRouter.invoke('reveal-node', targetId, {
+			behavior: tocSoftScroll ? 'smooth' : 'auto',
+		});
 	}
 	function toggleTocKind(): void {
 		tocKind = tocKind === 'folders' ? 'files' : 'folders';
 	}
-	function resetTocScope(): void {
-		tocRootId = null;
+	function closeFloatingToc(): void {
+		if (!floatingTocEnabled) return;
+		floatingTocEnabled = false;
+		plugin.settings.floatingTocEnabled = false;
+		void plugin.saveData(plugin.settings);
+		stopTocPick();
+	}
+	function backTocScope(): void {
+		const panel = activeFloatingTocPanel();
+		if (!panel || tocRootId === null) return;
+		tocRootId = panel.scopeRootForNode(tocRootId);
 	}
 	// Scope drill: the long-press enters pick mode (a WIR→WAR gesture twin); the
 	// next explorer row click resolves the scope root from its data-id. Managed
@@ -1160,7 +1199,8 @@
 		onJump={jumpFloatingToc}
 		onToggleKind={toggleTocKind}
 		onEnterPick={enterTocPick}
-		onResetScope={resetTocScope}
+		onClose={closeFloatingToc}
+		onBack={backTocScope}
 	/>
 
 	{#if showDock}

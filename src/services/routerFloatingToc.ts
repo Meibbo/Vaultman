@@ -7,13 +7,21 @@
  * move, not a reshape — the port here is the 1.x stand-in for `PanelHandle`.
  */
 
+import type { FloatingTocExpansionChange } from '../logic/logicIndexGroups';
+
+export type { FloatingTocExpansionChange } from '../logic/logicIndexGroups';
+
 export type FloatingTocAction = 'reveal-node';
 
 export type RevealNodeReason = 'missing-reveal-port' | 'reveal-rejected';
 
+export interface RevealNodeOptions {
+	behavior?: ScrollBehavior;
+}
+
 export interface RevealNodePort {
 	/** Reveal the node with `id` in the active explorer; returns whether a target existed. */
-	revealNode(id: string): boolean;
+	revealNode(id: string, options?: RevealNodeOptions): boolean;
 }
 
 /** The active explorer panel, as the floating TOC consumes it. */
@@ -27,7 +35,7 @@ export interface FloatingTocPanel extends RevealNodePort {
 	/** Scope root owning a picked node's level (its parent id, or null). */
 	scopeRootForNode(id: string): string | null;
 	expandNodeById(id: string): void;
-	onIndexChanged?: () => void;
+	onIndexChanged?: (change?: FloatingTocExpansionChange) => void;
 }
 
 export interface FloatingTocResult {
@@ -42,14 +50,21 @@ export class FloatingTocRouter {
 		this.port = port;
 	}
 
-	invoke(action: FloatingTocAction, targetId: string): FloatingTocResult {
+	invoke(
+		action: FloatingTocAction,
+		targetId: string,
+		options?: RevealNodeOptions,
+	): FloatingTocResult {
 		if (action !== 'reveal-node' || !targetId) {
 			return { ok: false, reason: 'reveal-rejected' };
 		}
 		if (!this.port) {
 			return { ok: false, reason: 'missing-reveal-port' };
 		}
-		return this.port.revealNode(targetId)
+		const revealed = options
+			? this.port.revealNode(targetId, options)
+			: this.port.revealNode(targetId);
+		return revealed
 			? { ok: true }
 			: { ok: false, reason: 'reveal-rejected' };
 	}

@@ -6,6 +6,7 @@ import type { IconicService } from '../../services/serviceIcons';
 import type { ContextMenuService } from '../../services/serviceContextMenu';
 import { OperationQueueService } from '../../services/serviceOperationQueue';
 import type { StatisticsCacheService } from '../../services/serviceStatisticsCache';
+import type { RevealNodeOptions } from '../../services/routerFloatingToc';
 
 export interface PanelPluginCtx {
 	app: import('obsidian').App;
@@ -44,6 +45,7 @@ import { normalizeExplorerSortBy } from '../../logic/logicSort';
 import {
 	findParentId,
 	indexLevel,
+	type FloatingTocExpansionChange,
 	type IndexNodeRef,
 } from '../../logic/logicIndexGroups';
 import { flattenTreeToPathLabels } from '../../logic/logicExplorerHierarchy';
@@ -431,7 +433,7 @@ export class PropsExplorerPanel extends Component {
 
 	collapseAll(): void {
 		this.expandedIds.clear();
-		this._notifyExpansionChanged();
+		this._notifyExpansionChanged({ type: 'collapse-all' });
 		this._render();
 	}
 
@@ -650,7 +652,7 @@ export class PropsExplorerPanel extends Component {
 
 	/** Last rendered tree — feeds the floating TOC (index/scope drill). */
 	private _lastRenderTree: TreeNode<PropMeta>[] = [];
-	onIndexChanged?: () => void;
+	onIndexChanged?: (change?: FloatingTocExpansionChange) => void;
 
 	/** Floating TOC: nodes at a scope level (rootId=null → top level). */
 	getIndexNodes(rootId: string | null): IndexNodeRef[] {
@@ -691,9 +693,9 @@ export class PropsExplorerPanel extends Component {
 	 * Floating TOC reveal port (FTC-002). Tree mode scrolls by node id; table and
 	 * grid have no scroll-to primitive yet, so they reject cleanly (no throw).
 	 */
-	revealNode(id: string): boolean {
+	revealNode(id: string, options?: RevealNodeOptions): boolean {
 		if (this.viewMode !== 'tree') return false;
-		this.view.scrollToId(id, 'start');
+		this.view.scrollToId(id, 'start', options?.behavior);
 		return true;
 	}
 
@@ -760,9 +762,7 @@ export class PropsExplorerPanel extends Component {
 				warningIds,
 				searchHighlightIds: highlightIds,
 				onToggle: (id: string) => {
-					if (this.expandedIds.has(id)) this.expandedIds.delete(id);
-					else this.expandedIds.add(id);
-					this._notifyExpansionChanged();
+					this._toggleExpanded(id);
 					void this._render();
 				},
 				onRowClick: (id: string) => {
@@ -807,9 +807,7 @@ export class PropsExplorerPanel extends Component {
 			warningIds,
 			searchHighlightIds: highlightIds,
 			onToggle: (id: string) => {
-				if (this.expandedIds.has(id)) this.expandedIds.delete(id);
-				else this.expandedIds.add(id);
-				this._notifyExpansionChanged();
+				this._toggleExpanded(id);
 				void this._render();
 			},
 			onRowClick: (id: string) => {
@@ -870,8 +868,18 @@ export class PropsExplorerPanel extends Component {
 		this._notifyExpansionChanged();
 	}
 
-	private _notifyExpansionChanged(): void {
+	private _toggleExpanded(id: string): void {
+		const wasExpanded = this.expandedIds.has(id);
+		if (wasExpanded) this.expandedIds.delete(id);
+		else this.expandedIds.add(id);
+		this._notifyExpansionChanged(
+			wasExpanded ? { type: 'collapse-node', id } : undefined,
+		);
+	}
+
+	private _notifyExpansionChanged(change?: FloatingTocExpansionChange): void {
 		this.onExpansionChange?.();
+		if (change) this.onIndexChanged?.(change);
 	}
 
 	private _filterByType(

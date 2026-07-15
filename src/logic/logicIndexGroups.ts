@@ -33,6 +33,10 @@ export interface IndexTreeNode {
 	children?: IndexTreeNode[];
 }
 
+export type FloatingTocExpansionChange =
+	| { type: 'collapse-node'; id: string }
+	| { type: 'collapse-all' };
+
 function indexKeyFor(label: string): string | null {
 	const [ch] = Array.from((label ?? '').trim());
 	if (!ch) return null;
@@ -86,6 +90,29 @@ export function findParentId<T extends IndexTreeNode>(
 		if (hit !== null) return hit;
 	}
 	return null;
+}
+
+/**
+ * Reconcile a scoped floating index with an explicit explorer collapse.
+ * Unrelated collapses preserve the scope; collapsing the scope or one of its
+ * ancestors moves the index to the level immediately above that collapsed node.
+ */
+export function scopeAfterExpansionChange(
+	currentRootId: string | null,
+	change: FloatingTocExpansionChange,
+	parentForNode: (id: string) => string | null,
+): string | null {
+	if (change.type === 'collapse-all') return null;
+	if (currentRootId === null) return null;
+
+	const visited = new Set<string>();
+	let cursor: string | null = currentRootId;
+	while (cursor !== null && !visited.has(cursor)) {
+		if (cursor === change.id) return parentForNode(change.id);
+		visited.add(cursor);
+		cursor = parentForNode(cursor);
+	}
+	return currentRootId;
 }
 
 export function buildIndexGroups(

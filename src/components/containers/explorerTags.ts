@@ -6,6 +6,7 @@ import { IconicService } from '../../services/serviceIcons';
 import { ContextMenuService } from '../../services/serviceContextMenu';
 import { OperationQueueService } from '../../services/serviceOperationQueue';
 import type { StatisticsCacheService } from '../../services/serviceStatisticsCache';
+import type { RevealNodeOptions } from '../../services/routerFloatingToc';
 
 export interface PanelPluginCtx {
 	app: App;
@@ -30,6 +31,7 @@ import { normalizeExplorerSortBy } from '../../logic/logicSort';
 import {
 	findParentId,
 	indexLevel,
+	type FloatingTocExpansionChange,
 	type IndexNodeRef,
 } from '../../logic/logicIndexGroups';
 import {
@@ -230,7 +232,7 @@ export class TagsExplorerPanel extends Component {
 
 	collapseAll(): void {
 		this.expandedIds.clear();
-		this._notifyExpansionChanged();
+		this._notifyExpansionChanged({ type: 'collapse-all' });
 		this._render();
 	}
 
@@ -318,13 +320,23 @@ export class TagsExplorerPanel extends Component {
 		}
 	}
 
-	private _notifyExpansionChanged(): void {
+	private _toggleExpanded(id: string): void {
+		const wasExpanded = this.expandedIds.has(id);
+		if (wasExpanded) this.expandedIds.delete(id);
+		else this.expandedIds.add(id);
+		this._notifyExpansionChanged(
+			wasExpanded ? { type: 'collapse-node', id } : undefined,
+		);
+	}
+
+	private _notifyExpansionChanged(change?: FloatingTocExpansionChange): void {
 		this.onExpansionChange?.();
+		if (change) this.onIndexChanged?.(change);
 	}
 
 	/** Last rendered tree — feeds the floating TOC (index/scope drill). */
 	private _lastRenderTree: TreeNode<TagMeta>[] = [];
-	onIndexChanged?: () => void;
+	onIndexChanged?: (change?: FloatingTocExpansionChange) => void;
 
 	getIndexNodes(rootId: string | null): IndexNodeRef[] {
 		return indexLevel(
@@ -364,9 +376,9 @@ export class TagsExplorerPanel extends Component {
 	 * Floating TOC reveal port (FTC-002). Tree mode scrolls by node id; table and
 	 * grid have no scroll-to primitive yet, so they reject cleanly (no throw).
 	 */
-	revealNode(id: string): boolean {
+	revealNode(id: string, options?: RevealNodeOptions): boolean {
 		if (this.viewMode !== 'tree') return false;
-		this.view.scrollToId(id, 'start');
+		this.view.scrollToId(id, 'start', options?.behavior);
 		return true;
 	}
 
@@ -445,9 +457,7 @@ export class TagsExplorerPanel extends Component {
 				activeFilterIds,
 				searchHighlightIds: highlightIds,
 				onToggle: (id: string) => {
-					if (this.expandedIds.has(id)) this.expandedIds.delete(id);
-					else this.expandedIds.add(id);
-					this._notifyExpansionChanged();
+					this._toggleExpanded(id);
 					void this._render();
 				},
 				onRowClick: (id: string) => {
@@ -515,9 +525,7 @@ export class TagsExplorerPanel extends Component {
 				this._render();
 			},
 			onToggle: (id: string) => {
-				if (this.expandedIds.has(id)) this.expandedIds.delete(id);
-				else this.expandedIds.add(id);
-				this._notifyExpansionChanged();
+				this._toggleExpanded(id);
 				void this._render();
 			},
 			onRowClick: (id: string) => {

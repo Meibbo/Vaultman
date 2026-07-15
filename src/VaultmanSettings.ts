@@ -467,12 +467,12 @@ export class VaultmanSettingsTab extends PluginSettingTab {
 					.onChange((v) => setToc({ tocNamePill: v })),
 			);
 		new Setting(containerEl)
-			.setName(translate('settings.toc_hard_jump'))
-			.setDesc(translate('settings.toc_hard_jump.desc'))
+			.setName(translate('settings.toc_soft_scroll'))
+			.setDesc(translate('settings.toc_soft_scroll.desc'))
 			.addToggle((t) =>
 				t
-					.setValue(this.plugin.settings.tocHardJump === true)
-					.onChange((v) => setToc({ tocHardJump: v })),
+					.setValue(this.plugin.settings.tocSoftScroll === true)
+					.onChange((v) => setToc({ tocSoftScroll: v })),
 			);
 		new Setting(containerEl)
 			.setName(translate('settings.toc_niagara_nodes'))

@@ -234,8 +234,9 @@ export const en: Record<string, string> = {
 	'settings.toc_name_order.flat': 'Horizontal',
 	'settings.toc_glow': 'Scrub glow',
 	'settings.toc_name_pill': 'Name pill',
-	'settings.toc_hard_jump': 'Instant jump',
-	'settings.toc_hard_jump.desc': 'Jump instantly instead of smooth-scrolling.',
+	'settings.toc_soft_scroll': 'Soft scroll',
+	'settings.toc_soft_scroll.desc':
+		'Smoothly slide the explorer between index groups while scrubbing.',
 	'settings.toc_niagara_nodes': 'Nodes join scrub',
 	'settings.toc_niagara_nodes.desc':
 		'Let the toggle/drill control nodes magnify with the Niagara wave.',
@@ -249,7 +250,8 @@ export const en: Record<string, string> = {
 	'floating_toc.folders': 'Index files',
 	'floating_toc.pick': 'Pick a node to index its level',
 	'floating_toc.drill': "Index a node's level",
-	'floating_toc.reset': 'Back to top level',
+	'floating_toc.close': 'Close index',
+	'floating_toc.back': 'Back one level',
 	'settings.queue_templates.desc': 'Manage saved staged operation presets',
 
 	// Main view

@@ -664,10 +664,13 @@ export class GridView {
 		);
 	}
 
-	scrollToPath(path: string): void {
+	scrollToPath(path: string, behavior: ScrollBehavior = 'auto'): void {
 		const index = this.displayedFiles.findIndex((file) => file.path === path);
 		if (index === -1 || !this.listEl) return;
-		this.listEl.scrollTop = Math.max(0, index * this.rowHeight);
+		this.listEl.scrollTo({
+			top: Math.max(0, index * this.rowHeight),
+			behavior,
+		});
 		this.scheduleWindowRender();
 	}
 }
