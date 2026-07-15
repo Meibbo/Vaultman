@@ -8,7 +8,8 @@
 	import type { PropsExplorerPanel } from '../containers/explorerProps';
 	import type { TagsExplorerPanel } from '../containers/explorerTags';
 	import type { ExplorerSortState, ExplorerViewMode } from '../../types/typeUI';
-	import type { SavedViewConfig } from '../../types/typeSettings';
+	import type { SavedLayout, SavedViewConfig } from '../../types/typeSettings';
+	import { showInputModal } from '../../utils/inputModal';
 	import {
 		DEFAULT_EXPLORER_SORT_DIR,
 		normalizeExplorerSortBy,
@@ -70,8 +71,9 @@
 		floatingTocEnabled = false,
 		onToggleFloatingToc,
 		onToggleToolbar,
-		savedViewConfig,
-		onSaveViewConfig,
+		savedLayouts = [],
+		onSaveLayout,
+		app,
 		showTabLabels = true,
 	}: {
 		activeTab: FiltersTab;
@@ -96,10 +98,17 @@
 		floatingTocEnabled?: boolean;
 		onToggleFloatingToc?: () => void;
 		onToggleToolbar?: () => void;
-		savedViewConfig?: Record<string, SavedViewConfig>;
-		onSaveViewConfig?: (config: Record<string, SavedViewConfig>) => void;
+		savedLayouts?: SavedLayout[];
+		onSaveLayout?: (layout: SavedLayout) => void;
+		app?: import('obsidian').App;
 		showTabLabels?: boolean;
 	} = $props();
+
+	async function promptSaveLayout() {
+		if (!app) return;
+		const name = await showInputModal(app, translate('viewmenu.save_layout'));
+		if (name) saveLayout(name);
+	}
 
 	const CATEGORY_ICONS: Record<FiltersTab, [string, string]> = {
 		props: ['lucide-search', 'lucide-tag'],
@@ -283,45 +292,57 @@
 
 	let headerMode = $state<HeaderMode>('header');
 	let headerExitDir = $state<'left' | 'right'>('right');
-	// Rehydrate from the saved view config (FTC-004) when present; else defaults.
-	function initViewMode(tab: FiltersTab): ExplorerViewMode {
-		return (savedViewConfig?.[tab]?.viewMode as ExplorerViewMode) ?? 'tree';
-	}
-	function initCells(tab: FiltersTab): string[] {
-		return savedViewConfig?.[tab]?.visibleCells
-			? [...savedViewConfig[tab].visibleCells]
-			: [...DEFAULT_VISIBLE_CELLS[tab]];
-	}
-	function initSort(tab: FiltersTab): ExplorerSortState {
-		const saved = savedViewConfig?.[tab]?.sortState;
-		return saved ? { ...saved } : { ...DEFAULT_SORT_STATE[tab] };
-	}
 	let viewModeByTab = $state<Record<FiltersTab, ExplorerViewMode>>({
-		props: initViewMode('props'),
-		tags: initViewMode('tags'),
-		files: initViewMode('files'),
+		props: 'tree',
+		tags: 'tree',
+		files: 'tree',
 	});
 	let visibleCellsByTab = $state<Record<FiltersTab, string[]>>({
-		props: initCells('props'),
-		tags: initCells('tags'),
-		files: initCells('files'),
+		props: [...DEFAULT_VISIBLE_CELLS.props],
+		tags: [...DEFAULT_VISIBLE_CELLS.tags],
+		files: [...DEFAULT_VISIBLE_CELLS.files],
 	});
 	let sortStateByTab = $state<Record<FiltersTab, ExplorerSortState>>({
-		props: initSort('props'),
-		tags: initSort('tags'),
-		files: initSort('files'),
+		props: { ...DEFAULT_SORT_STATE.props },
+		tags: { ...DEFAULT_SORT_STATE.tags },
+		files: { ...DEFAULT_SORT_STATE.files },
 	});
-	function saveViewConfig() {
-		const tabs: FiltersTab[] = ['files', 'props', 'tags'];
+	const LAYOUT_TABS: FiltersTab[] = ['files', 'props', 'tags'];
+	// A short, caveman-ish summary of what each explorer holds in this layout.
+	function buildLayoutSummary(): string {
+		return LAYOUT_TABS.map((tab) => {
+			const sort = sortStateByTab[tab] ?? DEFAULT_SORT_STATE[tab];
+			const arrow = sort.direction === 'desc' ? '↓' : '↑';
+			return `${tab} ${viewModeByTab[tab]}·${sort.sortBy}${arrow}`;
+		}).join(' · ');
+	}
+	function saveLayout(name: string) {
+		const trimmed = name.trim();
+		if (!trimmed) return;
 		const config: Record<string, SavedViewConfig> = {};
-		for (const tab of tabs) {
+		for (const tab of LAYOUT_TABS) {
 			config[tab] = {
 				viewMode: viewModeByTab[tab],
 				visibleCells: [...(visibleCellsByTab[tab] ?? [])],
 				sortState: { ...sortStateByTab[tab] },
 			};
 		}
-		onSaveViewConfig?.(config);
+		onSaveLayout?.({ name: trimmed, summary: buildLayoutSummary(), config });
+	}
+	function loadLayout(layout: SavedLayout) {
+		const nextView = { ...viewModeByTab };
+		const nextCells = { ...visibleCellsByTab };
+		const nextSort = { ...sortStateByTab };
+		for (const tab of LAYOUT_TABS) {
+			const saved = layout.config[tab];
+			if (!saved) continue;
+			nextView[tab] = saved.viewMode as ExplorerViewMode;
+			nextCells[tab] = [...saved.visibleCells];
+			nextSort[tab] = { ...saved.sortState };
+		}
+		viewModeByTab = nextView;
+		visibleCellsByTab = nextCells;
+		sortStateByTab = nextSort;
 	}
 	let addModeActive = $state(false);
 	let searchExpanded = $state(false);
@@ -647,14 +668,31 @@
 			});
 		}
 
-		// Save-config — its own section between engines and cells.
-		if (onSaveViewConfig) {
+		// Config — gear submenu: save layout + saved layouts, between engines/cells.
+		if (onSaveLayout) {
 			menu.addSeparator();
 			menu.addItem((item) => {
-				item
-					.setTitle(translate('viewmenu.save_config'))
-					.setIcon('lucide-save')
-					.onClick(() => saveViewConfig());
+				item.setTitle(translate('viewmenu.config')).setIcon('lucide-settings');
+				const sub = (
+					item as typeof item & { setSubmenu: () => Menu }
+				).setSubmenu();
+				sub.addItem((s) =>
+					s
+						.setTitle(translate('viewmenu.save_layout'))
+						.setIcon('lucide-save')
+						.onClick(() => void promptSaveLayout()),
+				);
+				if (savedLayouts.length > 0) {
+					sub.addSeparator();
+					for (const layout of savedLayouts) {
+						sub.addItem((s) =>
+							s
+								.setTitle(layout.name)
+								.setIcon('lucide-layout-template')
+								.onClick(() => loadLayout(layout)),
+						);
+					}
+				}
 			});
 		}
 

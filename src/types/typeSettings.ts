@@ -18,6 +18,13 @@ export interface SavedViewConfig {
 	};
 }
 
+/** A named explorer layout: per-tab configs + a short human summary. */
+export interface SavedLayout {
+	name: string;
+	summary: string;
+	config: Record<string, SavedViewConfig>;
+}
+
 export interface VaultmanSettings {
 	language: Language;
 	defaultPropertyType: string;
@@ -75,8 +82,8 @@ export interface VaultmanSettings {
 	floatingTocEnabled: boolean;
 	/** Show the explorer toolbar (tabs / view / sort / search header) */
 	showToolbar: boolean;
-	/** Saved per-tab view options + sorts (empty = use live defaults) */
-	viewConfigByTab?: Record<string, SavedViewConfig>;
+	/** Named saved explorer layouts (view options + sorts per tab) */
+	savedLayouts?: SavedLayout[];
 	/** Run operations immediately instead of staging them in the queue */
 	bypassOperations: boolean;
 	/** Suppress the bulk target confirmation for reusable action presets */

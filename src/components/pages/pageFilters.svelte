@@ -12,7 +12,7 @@
 	import type { PropsExplorerPanel } from '../containers/explorerProps';
 	import type { TagsExplorerPanel } from '../containers/explorerTags';
 	import type { ContentPreviewResult } from '../../types/typeUI';
-	import type { SavedViewConfig } from '../../types/typeSettings';
+	import type { SavedLayout } from '../../types/typeSettings';
 	import {
 		type PendingChange,
 		FIND_REPLACE_CONTENT,
@@ -210,12 +210,16 @@
 		plugin.settings.showToolbar = plugin.settings.showToolbar === false;
 		void plugin.saveSettings();
 	}
-	const savedViewConfig = $derived.by(() => {
+	const savedLayouts = $derived.by(() => {
 		void settingsRevision;
-		return plugin.settings.viewConfigByTab;
+		return plugin.settings.savedLayouts ?? [];
 	});
-	function saveViewConfig(config: Record<string, SavedViewConfig>) {
-		plugin.settings.viewConfigByTab = config;
+	function saveLayout(layout: SavedLayout) {
+		const existing = plugin.settings.savedLayouts ?? [];
+		plugin.settings.savedLayouts = [
+			...existing.filter((entry) => entry.name !== layout.name),
+			layout,
+		];
 		void plugin.saveData(plugin.settings);
 		new Notice(translate('viewmenu.saved_config_notice'));
 	}
@@ -686,8 +690,9 @@
 			{floatingTocEnabled}
 			{onToggleFloatingToc}
 			onToggleToolbar={toggleToolbar}
-			{savedViewConfig}
-			onSaveViewConfig={saveViewConfig}
+			{savedLayouts}
+			onSaveLayout={saveLayout}
+			app={plugin.app}
 			{showTabLabels}
 			{icon}
 		/>

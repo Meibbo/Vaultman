@@ -199,8 +199,9 @@ export const en: Record<string, string> = {
 	'floating_toc.aria': 'Explorer index',
 	'floating_toc.menu': 'Floating index',
 	'viewmenu.toolbar': 'Toolbar',
-	'viewmenu.save_config': 'Save view config',
-	'viewmenu.saved_config_notice': 'View config saved',
+	'viewmenu.config': 'Config',
+	'viewmenu.save_layout': 'Save layout',
+	'viewmenu.saved_config_notice': 'Layout saved',
 	'floating_toc.files': 'Indexing files — tap to index folders, hold to pick a scope',
 	'floating_toc.folders':
 		'Indexing folders — tap to index files, hold to pick a scope',
