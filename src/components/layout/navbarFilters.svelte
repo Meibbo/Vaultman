@@ -647,26 +647,15 @@
 			});
 		}
 
-		// Floating index + save-config — their own section between engines and cells.
-		if (onToggleFloatingToc || onSaveViewConfig) {
+		// Save-config — its own section between engines and cells.
+		if (onSaveViewConfig) {
 			menu.addSeparator();
-			if (onToggleFloatingToc) {
-				menu.addItem((item) => {
-					item
-						.setTitle(translate('floating_toc.menu'))
-						.setIcon('lucide-a-arrow-down')
-						.setChecked(floatingTocEnabled)
-						.onClick(() => onToggleFloatingToc?.());
-				});
-			}
-			if (onSaveViewConfig) {
-				menu.addItem((item) => {
-					item
-						.setTitle(translate('viewmenu.save_config'))
-						.setIcon('lucide-save')
-						.onClick(() => saveViewConfig());
-				});
-			}
+			menu.addItem((item) => {
+				item
+					.setTitle(translate('viewmenu.save_config'))
+					.setIcon('lucide-save')
+					.onClick(() => saveViewConfig());
+			});
 		}
 
 		menu.addSeparator();
@@ -705,25 +694,42 @@
 					.onClick(() => onSectionTabChange?.(option.id));
 			});
 		}
-		if (!showDock && tabMenuActions.length > 0) {
+		const renderTabAction = (action: HeaderMenuAction) => {
+			menu.addItem((item) => {
+				const isCountedLauncher =
+					action.id === 'filters' || action.id === 'queue';
+				const countLabel =
+					isCountedLauncher && action.count && action.count > 0
+						? ` (${action.count})`
+						: '';
+				const warningLabel = isCountedLauncher && action.warning ? ' !' : '';
+				item
+					.setTitle(`${action.label}${countLabel}${warningLabel}`)
+					.setIcon(action.warning ? 'lucide-alert-triangle' : action.icon)
+					.onClick(() => action.onClick());
+			});
+		};
+		const statisticsAction = tabMenuActions.find((a) => a.id === 'statistics');
+		const launcherActions = tabMenuActions.filter((a) => a.id !== 'statistics');
+		if (!showDock && launcherActions.length > 0) {
 			menu.addSeparator();
-			for (const action of tabMenuActions) {
-				menu.addItem((item) => {
-					const isFiltersAction = action.id === 'filters';
-					const isQueueAction = action.id === 'queue';
-					const isCountedLauncher = isFiltersAction || isQueueAction;
-					const countLabel =
-						isCountedLauncher && action.count && action.count > 0
-							? ` (${action.count})`
-							: '';
-					const warningLabel = isCountedLauncher && action.warning ? ' !' : '';
-					const title = `${action.label}${countLabel}${warningLabel}`;
-					item
-						.setTitle(title)
-						.setIcon(action.warning ? 'lucide-alert-triangle' : action.icon)
-						.onClick(() => action.onClick());
-				});
-			}
+			for (const action of launcherActions) renderTabAction(action);
+		}
+		// Floating index on/off — below the queue node.
+		if (onToggleFloatingToc) {
+			if (showDock || launcherActions.length === 0) menu.addSeparator();
+			menu.addItem((item) => {
+				item
+					.setTitle(translate('floating_toc.menu'))
+					.setIcon('lucide-a-arrow-down')
+					.setChecked(floatingTocEnabled)
+					.onClick(() => onToggleFloatingToc?.());
+			});
+		}
+		// Statistics — below its own divider.
+		if (!showDock && statisticsAction) {
+			menu.addSeparator();
+			renderTabAction(statisticsAction);
 		}
 		// Toolbar visibility — its own section at the end of the tabs menu.
 		if (onToggleToolbar) {
