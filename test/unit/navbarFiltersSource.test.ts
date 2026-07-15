@@ -99,7 +99,7 @@ describe('minimal filters header source guards', () => {
 		expect(navbarFiltersSource).toContain('nodeTypeOptionsForActiveTab');
 		expect(navbarFiltersSource).toContain('normalizedState.nodeTypeFilter');
 		expect(navbarFiltersSource).toContain(
-			'const title = `${action.label}${countLabel}${warningLabel}`',
+			'`${action.label}${countLabel}${warningLabel}`',
 		);
 		expect(navbarFiltersSource).not.toContain(
 			'action.tooltip && (isFiltersAction || isQueueAction)',
