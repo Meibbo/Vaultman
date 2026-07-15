@@ -30,4 +30,8 @@ describe('Vaultman default settings', () => {
 	it('keeps floating TOC soft scrolling opt-in', () => {
 		expect(DEFAULT_SETTINGS.tocSoftScroll).toBe(false);
 	});
+
+	it('keeps the condensed Files tools menu opt-in', () => {
+		expect(DEFAULT_SETTINGS.toolbarToolsMenu).toBe(false);
+	});
 });

@@ -70,6 +70,7 @@
 		expansionRevision = 0,
 		floatingTocEnabled = false,
 		onToggleFloatingToc,
+		toolbarToolsMenu = false,
 		onToggleToolbar,
 		toolbarShown = true,
 		savedLayouts = [],
@@ -98,6 +99,7 @@
 		expansionRevision?: number;
 		floatingTocEnabled?: boolean;
 		onToggleFloatingToc?: () => void;
+		toolbarToolsMenu?: boolean;
 		onToggleToolbar?: () => void;
 		toolbarShown?: boolean;
 		savedLayouts?: SavedLayout[];
@@ -370,6 +372,9 @@
 	);
 	const expansionIcon = $derived(
 		hasExpandedNodes ? 'lucide-chevrons-down-up' : 'lucide-chevrons-up-down',
+	);
+	const compactFilesTools = $derived(
+		minimalStyle && toolbarToolsMenu && activeSectionTab === 'files',
 	);
 	const showSearchInput = $derived(!minimalStyle || searchExpanded);
 	const currentTabsOption = $derived(
@@ -922,6 +927,23 @@
 		});
 	}
 
+	function openToolsMenu(event: MouseEvent) {
+		const menu = new Menu();
+		menu.addItem((item) =>
+			item
+				.setTitle(translate('filter.auto_reveal'))
+				.setIcon('lucide-gallery-vertical')
+				.onClick(() => fileList?.autoRevealActiveFile()),
+		);
+		menu.addItem((item) =>
+			item
+				.setTitle(expansionLabel)
+				.setIcon(expansionIcon)
+				.onClick(toggleExplorerExpansion),
+		);
+		menu.showAtMouseEvent(event);
+	}
+
 	function refreshExpansionState() {
 		expansionRefresh += 1;
 	}
@@ -1183,7 +1205,7 @@
 								use:icon={'lucide-search'}
 							></div>
 						{/if}
-						{#if activeTab === 'files'}
+						{#if activeTab === 'files' && !compactFilesTools}
 							<div
 								class={headerActionClass}
 								role="button"
@@ -1202,21 +1224,40 @@
 								use:icon={'lucide-gallery-vertical'}
 							></div>
 						{/if}
-						<div
-							class={headerActionClass}
-							role="button"
-							tabindex="0"
-							aria-label={expansionLabel}
-							title={minimalStyle ? undefined : expansionLabel}
-							onclick={toggleExplorerExpansion}
-							onkeydown={(e: KeyboardEvent) => {
-								if (e.key === 'Enter' || e.key === ' ') {
-									e.preventDefault();
-									toggleExplorerExpansion();
-								}
-							}}
-							use:icon={expansionIcon}
-						></div>
+						{#if compactFilesTools}
+							<div
+								class={headerActionClass}
+								role="button"
+								tabindex="0"
+								aria-label={translate('filter.tools')}
+								onclick={(event: MouseEvent) => openToolsMenu(event)}
+								onkeydown={(e: KeyboardEvent) => {
+									if (e.key === 'Enter' || e.key === ' ') {
+										e.preventDefault();
+										openToolsMenu(
+											menuEventFromElement(e.currentTarget as HTMLElement),
+										);
+									}
+								}}
+								use:icon={'lucide-wrench'}
+							></div>
+						{:else}
+							<div
+								class={headerActionClass}
+								role="button"
+								tabindex="0"
+								aria-label={expansionLabel}
+								title={minimalStyle ? undefined : expansionLabel}
+								onclick={toggleExplorerExpansion}
+								onkeydown={(e: KeyboardEvent) => {
+									if (e.key === 'Enter' || e.key === ' ') {
+										e.preventDefault();
+										toggleExplorerExpansion();
+									}
+								}}
+								use:icon={expansionIcon}
+							></div>
+						{/if}
 					{/if}
 				</div>
 			</div>

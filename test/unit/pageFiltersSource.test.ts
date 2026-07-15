@@ -61,4 +61,12 @@ describe('pageFilters tab switching source guard', () => {
 		expect(pageFiltersSource).toContain('contentScopeFilterCount');
 		expect(pageFiltersSource).toContain('{onOpenFilters}');
 	});
+
+	it('passes the reactive Files tools-menu preference into the explorer toolbar', () => {
+		expect(pageFiltersSource).toContain('const toolbarToolsMenu = $derived.by');
+		expect(pageFiltersSource).toContain(
+			'plugin.settings.toolbarToolsMenu === true',
+		);
+		expect(pageFiltersSource).toContain('{toolbarToolsMenu}');
+	});
 });

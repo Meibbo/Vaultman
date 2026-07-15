@@ -242,6 +242,36 @@ export class VaultmanSettingsTab extends PluginSettingTab {
 		}
 
 		new Setting(containerEl)
+			.setName(translate('settings.saved_view_config'))
+			.setHeading();
+
+		const layouts = this.plugin.settings.savedLayouts ?? [];
+		if (layouts.length === 0) {
+			containerEl.createEl('p', {
+				text: translate('settings.saved_view_config.empty'),
+				cls: 'setting-item-description',
+			});
+		} else {
+			for (const layout of layouts) {
+				new Setting(containerEl)
+					.setName(layout.name)
+					.setDesc(layout.summary)
+					.addButton((button) =>
+						button
+							.setButtonText(translate('settings.saved_view_config.clear'))
+							.setWarning()
+							.onClick(async () => {
+								this.plugin.settings.savedLayouts = (
+									this.plugin.settings.savedLayouts ?? []
+								).filter((entry) => entry.name !== layout.name);
+								await this.plugin.saveSettings();
+								this.display();
+							}),
+					);
+			}
+		}
+
+		new Setting(containerEl)
 			.setName(translate('settings.style_config'))
 			.setHeading();
 
@@ -323,6 +353,18 @@ export class VaultmanSettingsTab extends PluginSettingTab {
 					.setValue(this.plugin.settings.showToolbar !== false)
 					.onChange(async (value) => {
 						this.plugin.settings.showToolbar = value;
+						await this.plugin.saveSettings();
+					}),
+			);
+
+		new Setting(containerEl)
+			.setName(translate('settings.toolbar_tools_menu'))
+			.setDesc(translate('settings.toolbar_tools_menu.desc'))
+			.addToggle((toggle) =>
+				toggle
+					.setValue(this.plugin.settings.toolbarToolsMenu === true)
+					.onChange(async (value) => {
+						this.plugin.settings.toolbarToolsMenu = value;
 						await this.plugin.saveSettings();
 					}),
 			);
@@ -482,35 +524,5 @@ export class VaultmanSettingsTab extends PluginSettingTab {
 					.setValue(this.plugin.settings.floatingTocNiagaraNodes === true)
 					.onChange((v) => setToc({ floatingTocNiagaraNodes: v })),
 			);
-
-		new Setting(containerEl)
-			.setName(translate('settings.saved_view_config'))
-			.setHeading();
-
-		const layouts = this.plugin.settings.savedLayouts ?? [];
-		if (layouts.length === 0) {
-			containerEl.createEl('p', {
-				text: translate('settings.saved_view_config.empty'),
-				cls: 'setting-item-description',
-			});
-		} else {
-			for (const layout of layouts) {
-				new Setting(containerEl)
-					.setName(layout.name)
-					.setDesc(layout.summary)
-					.addButton((button) =>
-						button
-							.setButtonText(translate('settings.saved_view_config.clear'))
-							.setWarning()
-							.onClick(async () => {
-								this.plugin.settings.savedLayouts = (
-									this.plugin.settings.savedLayouts ?? []
-								).filter((entry) => entry.name !== layout.name);
-								await this.plugin.saveSettings();
-								this.display();
-							}),
-					);
-			}
-		}
 	}
 }

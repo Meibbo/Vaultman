@@ -113,4 +113,41 @@ describe('minimal filters header source guards', () => {
 		expect(navbarFiltersSource).toContain("translate('sort.parents_first')");
 		expect(navbarFiltersSource).toContain("setIcon('lucide-folder-tree')");
 	});
+
+	it('condenses only the minimal Files toolbar to tabs, view, sort, search, tools', () => {
+		expect(navbarFiltersSource).toContain('toolbarToolsMenu = false');
+		expect(navbarFiltersSource).toContain('const compactFilesTools = $derived(');
+		expect(navbarFiltersSource).toContain("activeSectionTab === 'files'");
+		expect(navbarFiltersSource).toContain('!compactFilesTools');
+
+		const actionsSource = navbarFiltersSource.slice(
+			navbarFiltersSource.indexOf('class="vaultman-filters-actions"'),
+		);
+		const tabsIndex = actionsSource.indexOf('openTabsPopup(event)');
+		const viewIndex = actionsSource.indexOf('openViewModePopup(event)');
+		const sortIndex = actionsSource.indexOf('openSortPopup(event)');
+		const searchIndex = actionsSource.indexOf(
+			'data-vaultman-search-toggle="true"',
+		);
+		const toolsIndex = actionsSource.indexOf('openToolsMenu(event)');
+		expect(tabsIndex).toBeLessThan(viewIndex);
+		expect(viewIndex).toBeLessThan(sortIndex);
+		expect(sortIndex).toBeLessThan(searchIndex);
+		expect(searchIndex).toBeLessThan(toolsIndex);
+	});
+
+	it('puts auto-reveal before dynamic expand/collapse in the native Tools menu', () => {
+		const menuStart = navbarFiltersSource.indexOf(
+			'function openToolsMenu(event: MouseEvent)',
+		);
+		const menuEnd = navbarFiltersSource.indexOf('\n\tfunction ', menuStart + 1);
+		const menuSource = navbarFiltersSource.slice(menuStart, menuEnd);
+		expect(menuSource).toContain("translate('filter.auto_reveal')");
+		expect(menuSource).toContain('fileList?.autoRevealActiveFile()');
+		expect(menuSource).toContain('expansionLabel');
+		expect(menuSource).toContain('toggleExplorerExpansion');
+		expect(menuSource.indexOf("translate('filter.auto_reveal')")).toBeLessThan(
+			menuSource.indexOf('expansionLabel'),
+		);
+	});
 });

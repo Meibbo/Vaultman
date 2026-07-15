@@ -39,6 +39,7 @@ export const es: Record<string, string> = {
 	'filter.create': 'Crear',
 	'filter.tabs_btn': 'Pestañas',
 	'filter.auto_reveal': 'Auto-revelar archivo actual',
+	'filter.tools': 'Herramientas',
 	'filter.expand_all': 'Expandir todo',
 	'filter.collapse_all': 'Colapsar todo',
 
@@ -105,7 +106,7 @@ export const es: Record<string, string> = {
 	// Queue island
 	'queue.island.pending': 'cambios pendientes',
 	'queue.island.empty': 'La cola está vacía',
-	'queue.template.templates': 'Presets de acción',
+	'queue.template.templates': 'Presets de operaciones',
 	'queue.template.save': 'Guardar preset de acción',
 	'queue.template.no_serializable':
 		'No hay operaciones de cola que se puedan guardar como preset de acción',
@@ -171,6 +172,9 @@ export const es: Record<string, string> = {
 	'settings.show_toolbar': 'Mostrar barra de herramientas',
 	'settings.show_toolbar.desc':
 		'Muestra la barra del explorer (tabs, vista, orden, búsqueda). Actívala desde el menú de vista; restáurala aquí cuando esté oculta.',
+	'settings.toolbar_tools_menu': 'Condensar herramientas de Files',
+	'settings.toolbar_tools_menu.desc':
+		'Reemplaza Auto-revelar y Expandir/Colapsar por un menú Tools nativo para mantener cinco nodos en la barra de Files.',
 	'settings.show_dock': 'Mostrar dock inferior',
 	'settings.show_dock.desc':
 		'Muestra el dock inferior. Al desactivarlo, Filtros y Cola quedan en el menú de tabs de Datos.',

@@ -102,6 +102,8 @@ export interface VaultmanSettings {
 	tocNamePill: boolean;
 	/** Smoothly scroll the explorer while scrubbing the floating TOC */
 	tocSoftScroll: boolean;
+	/** Condense Files auto-reveal and expansion into one native Tools menu */
+	toolbarToolsMenu: boolean;
 	/** Show the explorer toolbar (tabs / view / sort / search header) */
 	showToolbar: boolean;
 	/** Named saved explorer layouts (view options + sorts per tab) */
@@ -187,6 +189,7 @@ export const DEFAULT_SETTINGS: VaultmanSettings = {
 	tocNameOrder: 'down',
 	tocNamePill: false,
 	tocSoftScroll: false,
+	toolbarToolsMenu: false,
 	showToolbar: true,
 	bypassOperations: false,
 	suppressBulkOperationWarning: false,

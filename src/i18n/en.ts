@@ -41,6 +41,7 @@ export const en: Record<string, string> = {
 	'filter.create': 'Create',
 	'filter.tabs_btn': 'Tabs',
 	'filter.auto_reveal': 'Auto-reveal current file',
+	'filter.tools': 'Tools',
 	'filter.expand_all': 'Expand all',
 	'filter.collapse_all': 'Collapse all',
 
@@ -107,7 +108,7 @@ export const en: Record<string, string> = {
 	// Queue island
 	'queue.island.pending': 'pending changes',
 	'queue.island.empty': 'Queue is empty',
-	'queue.template.templates': 'Action presets',
+	'queue.template.templates': 'Operations Presets',
 	'queue.template.save': 'Save action preset',
 	'queue.template.no_serializable':
 		'No queue operations can be saved as an action preset',
@@ -174,6 +175,9 @@ export const en: Record<string, string> = {
 	'settings.show_toolbar': 'Show toolbar',
 	'settings.show_toolbar.desc':
 		'Show the explorer header toolbar (tabs, view, sort, search). Toggle it from the view menu; restore it here when hidden.',
+	'settings.toolbar_tools_menu': 'Condense Files tools',
+	'settings.toolbar_tools_menu.desc':
+		'Replace Auto-reveal and Expand/Collapse with one native Tools menu so the Files toolbar stays at five nodes.',
 	'settings.show_dock': 'Show bottom dock',
 	'settings.show_dock.desc':
 		'Show the bottom dock. When disabled, Filters and Queue stay in the Data tab menu.',
