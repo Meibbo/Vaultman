@@ -1,4 +1,6 @@
 {
+	"author": "Meibbo",
+	"license": "Apache-2.0",
 	"name": "vaultman",
 	"version": "1.1.6",
 	"description": "Files, content and frontmatter explorer like Bases with scoped queued changes list.",
@@ -28,8 +30,6 @@
 		"security:audit": "pnpm audit --prod --audit-level=high"
 	},
 	"keywords": [],
-	"author": "Meibbo",
-	"license": "MIT",
 	"devDependencies": {
 		"@eslint/js": "9.30.1",
 		"@types/node": "24.12.4",

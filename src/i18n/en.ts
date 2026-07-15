@@ -202,7 +202,7 @@ export const en: Record<string, string> = {
 	'settings.floating_toc_enable': 'Enable floating TOC',
 	'settings.floating_toc_enable.desc':
 		'Show a floating first-letter index over the Files, Props, and Tags explorers.',
-	'settings.floating_toc_niagara': 'Niagara effects',
+	'settings.floating_toc_niagara': 'Niagara slide',
 	'settings.floating_toc_niagara.desc':
 		'Drag along the index to magnify glyphs and scrub between groups. Off keeps the index static.',
 	'settings.toc_plain_style': 'Plain rail style',
@@ -240,14 +240,13 @@ export const en: Record<string, string> = {
 	'settings.toc_niagara_nodes.desc':
 		'Let the toggle/drill control nodes magnify with the Niagara wave.',
 	'floating_toc.aria': 'Explorer index',
-	'floating_toc.menu': 'Floating index',
+	'floating_toc.menu': 'Index',
 	'viewmenu.toolbar': 'Toolbar',
 	'viewmenu.config': 'Config',
 	'viewmenu.save_layout': 'Save layout',
 	'viewmenu.saved_config_notice': 'Layout saved',
-	'floating_toc.files': 'Indexing files — tap to index folders, hold to pick a scope',
-	'floating_toc.folders':
-		'Indexing folders — tap to index files, hold to pick a scope',
+	'floating_toc.files': 'Index folders',
+	'floating_toc.folders': 'Index files',
 	'floating_toc.pick': 'Pick a node to index its level',
 	'floating_toc.drill': "Index a node's level",
 	'floating_toc.reset': 'Back to top level',
@@ -499,7 +498,7 @@ export const en: Record<string, string> = {
 	'ops.linter.desc':
 		'Reorder and clean YAML frontmatter using the Obsidian Linter plugin.',
 	'ops.linter.run': 'Run Linter',
-	'filters.active': 'Active filters',
+	'filters.active': 'Filters',
 	'filters.active_zero': 'Active filters return no files',
 	'scope.title': 'Operation scope',
 	'scope.desc': "Determines which files' properties appear in the filter list.",
