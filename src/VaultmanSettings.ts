@@ -450,65 +450,6 @@ export class VaultmanSettingsTab extends PluginSettingTab {
 					),
 			);
 		new Setting(containerEl)
-			.setName(translate('settings.toc_label_mode'))
-			.setDesc(translate('settings.toc_label_mode.desc'))
-			.addDropdown((d) =>
-				d
-					.addOptions({
-						off: translate('settings.toc_label_mode.off'),
-						selected: translate('settings.toc_label_mode.selected'),
-						scrub: translate('settings.toc_label_mode.scrub'),
-						always: translate('settings.toc_label_mode.always'),
-					})
-					.setValue(this.plugin.settings.tocLabelMode ?? 'scrub')
-					.onChange((v) =>
-						setToc({ tocLabelMode: v as VaultmanSettings['tocLabelMode'] }),
-					),
-			);
-		new Setting(containerEl)
-			.setName(translate('settings.toc_reveal'))
-			.addDropdown((d) =>
-				d
-					.addOptions({
-						selected: translate('settings.toc_reveal.selected'),
-						near: translate('settings.toc_reveal.near'),
-						wide: translate('settings.toc_reveal.wide'),
-						all: translate('settings.toc_reveal.all'),
-					})
-					.setValue(this.plugin.settings.tocReveal ?? 'all')
-					.onChange((v) =>
-						setToc({ tocReveal: v as VaultmanSettings['tocReveal'] }),
-					),
-			);
-		new Setting(containerEl)
-			.setName(translate('settings.toc_name_order'))
-			.addDropdown((d) =>
-				d
-					.addOptions({
-						down: translate('settings.toc_name_order.down'),
-						up: translate('settings.toc_name_order.up'),
-						flat: translate('settings.toc_name_order.flat'),
-					})
-					.setValue(this.plugin.settings.tocNameOrder ?? 'down')
-					.onChange((v) =>
-						setToc({ tocNameOrder: v as VaultmanSettings['tocNameOrder'] }),
-					),
-			);
-		new Setting(containerEl)
-			.setName(translate('settings.toc_glow'))
-			.addToggle((t) =>
-				t
-					.setValue(this.plugin.settings.tocGlow !== false)
-					.onChange((v) => setToc({ tocGlow: v })),
-			);
-		new Setting(containerEl)
-			.setName(translate('settings.toc_name_pill'))
-			.addToggle((t) =>
-				t
-					.setValue(this.plugin.settings.tocNamePill === true)
-					.onChange((v) => setToc({ tocNamePill: v })),
-			);
-		new Setting(containerEl)
 			.setName(translate('settings.toc_soft_scroll'))
 			.setDesc(translate('settings.toc_soft_scroll.desc'))
 			.addToggle((t) =>

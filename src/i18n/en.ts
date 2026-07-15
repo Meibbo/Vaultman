@@ -241,9 +241,9 @@ export const en: Record<string, string> = {
 	'settings.toc_soft_scroll': 'Soft scroll',
 	'settings.toc_soft_scroll.desc':
 		'Smoothly slide the explorer between index groups while scrubbing.',
-	'settings.toc_niagara_nodes': 'Nodes join scrub',
+	'settings.toc_niagara_nodes': 'Join action nodes to slide',
 	'settings.toc_niagara_nodes.desc':
-		'Let the toggle/drill control nodes magnify with the Niagara wave.',
+		'Place action controls and indexed nodes on the same Niagara scrub track.',
 	'floating_toc.aria': 'Explorer index',
 	'floating_toc.menu': 'Index',
 	'viewmenu.toolbar': 'Toolbar',

@@ -6206,7 +6206,7 @@ button.vaultman-content-scope-hint:focus-visible {
 	height: 15px;
 	padding: 0;
 	border: none;
-	background: transparent;
+	background: var(--background-modifier-hover);
 	box-shadow: none;
 	color: var(--text-muted);
 	font-family: var(--font-monospace);
@@ -6220,11 +6220,14 @@ button.vaultman-content-scope-hint:focus-visible {
 	color: var(--text-normal);
 }
 /* ─── Niagara scrub (off by default): magnify wave + glow + name cells ─────── */
+.vaultman-floating-toc-actions,
 .vaultman-floating-toc-glyphs {
 	display: flex;
 	flex-direction: column;
 	gap: 2px;
 	min-height: 0;
+}
+.vaultman-floating-toc-glyphs {
 	will-change: transform;
 }
 .vaultman-floating-toc-glyphs.is-niagara {
@@ -6233,7 +6236,9 @@ button.vaultman-content-scope-hint:focus-visible {
 .vaultman-floating-toc.is-scrubbing {
 	overflow: visible;
 }
-.vaultman-floating-toc-glyphs.is-niagara .vaultman-floating-toc-item {
+.vaultman-floating-toc-glyphs.is-niagara > .vaultman-floating-toc-item,
+.vaultman-floating-toc-glyphs.is-niagara
+	> .vaultman-floating-toc-action.is-track-entry {
 	transform-origin: right center;
 	flex-direction: row-reverse;
 	gap: 6px;
@@ -6326,10 +6331,16 @@ button.vaultman-content-scope-hint:focus-visible {
 	overflow: hidden;
 	text-overflow: ellipsis;
 }
-/* Proto/plain style: bare glyphs, transparent control nodes (no boxes). */
+/* Proto/plain style: one bare surface contract for actions and indexed nodes. */
+.vaultman-floating-toc.is-plain .vaultman-floating-toc-item,
 .vaultman-floating-toc.is-plain .vaultman-floating-toc-toggle,
-.vaultman-floating-toc.is-plain .vaultman-floating-toc-drill {
+.vaultman-floating-toc.is-plain .vaultman-floating-toc-drill,
+.vaultman-floating-toc.is-plain .vaultman-floating-toc-close,
+.vaultman-floating-toc.is-plain .vaultman-floating-toc-back {
 	background: transparent;
+	border-color: transparent;
+	box-shadow: none;
+	backdrop-filter: none;
 }
 /* Rail position variants. */
 .vaultman-floating-toc-wrap.pos-left {
@@ -6342,6 +6353,7 @@ button.vaultman-content-scope-hint:focus-visible {
 	left: 4px;
 	right: 4px;
 	align-items: flex-start;
+	justify-content: center;
 }
 .vaultman-floating-toc-wrap.pos-bottom {
 	top: auto;
@@ -6349,18 +6361,49 @@ button.vaultman-content-scope-hint:focus-visible {
 	left: 4px;
 	right: 4px;
 	align-items: flex-end;
+	justify-content: center;
+}
+.vaultman-pages-viewport--dock-off
+	.vaultman-floating-toc-wrap.pos-bottom {
+	bottom: 16px;
+}
+.vaultman-floating-toc-wrap.is-horizontal .vaultman-floating-toc,
+.vaultman-floating-toc-wrap.is-horizontal .vaultman-floating-toc-actions,
+.vaultman-floating-toc-wrap.is-horizontal .vaultman-floating-toc-glyphs {
+	flex-direction: row;
+	flex-wrap: nowrap;
+	max-width: 100%;
+	white-space: nowrap;
 }
 .vaultman-floating-toc-wrap.is-horizontal .vaultman-floating-toc,
 .vaultman-floating-toc-wrap.is-horizontal .vaultman-floating-toc-glyphs {
-	flex-direction: row;
 	overflow-x: auto;
 	overflow-y: hidden;
 }
 .vaultman-floating-toc-wrap.pos-left
 	.vaultman-floating-toc-glyphs.is-niagara
-	.vaultman-floating-toc-item {
+	> .vaultman-floating-toc-item,
+.vaultman-floating-toc-wrap.pos-left
+	.vaultman-floating-toc-glyphs.is-niagara
+	> .vaultman-floating-toc-action.is-track-entry {
 	transform-origin: left center;
 	flex-direction: row;
+}
+.vaultman-floating-toc-wrap.pos-top
+	.vaultman-floating-toc-glyphs.is-niagara
+	> .vaultman-floating-toc-item,
+.vaultman-floating-toc-wrap.pos-top
+	.vaultman-floating-toc-glyphs.is-niagara
+	> .vaultman-floating-toc-action.is-track-entry {
+	transform-origin: center top;
+}
+.vaultman-floating-toc-wrap.pos-bottom
+	.vaultman-floating-toc-glyphs.is-niagara
+	> .vaultman-floating-toc-item,
+.vaultman-floating-toc-wrap.pos-bottom
+	.vaultman-floating-toc-glyphs.is-niagara
+	> .vaultman-floating-toc-action.is-track-entry {
+	transform-origin: center bottom;
 }
 .vaultman-floating-toc-toggle,
 .vaultman-floating-toc-drill,
@@ -6374,17 +6417,13 @@ button.vaultman-content-scope-hint:focus-visible {
 	width: 18px;
 	height: 18px;
 	padding: 0;
-	margin-bottom: 2px;
+	margin: 0;
 	border: none;
 	border-radius: 3px;
 	background: var(--background-modifier-hover);
 	box-shadow: none;
 	color: var(--text-muted);
 	cursor: pointer;
-}
-.vaultman-floating-toc-close,
-.vaultman-floating-toc-back {
-	background: transparent;
 }
 .vaultman-floating-toc-toggle:hover,
 .vaultman-floating-toc-drill:hover,
@@ -6393,15 +6432,12 @@ button.vaultman-content-scope-hint:focus-visible {
 	color: var(--text-normal);
 }
 .vaultman-floating-toc-drill.is-active {
-	color: var(--text-faint);
-	background: transparent;
+	color: var(--text-accent);
 }
-.vaultman-floating-toc-toggle-icon {
+.vaultman-floating-toc-action-icon {
 	display: flex;
 }
-.vaultman-floating-toc-toggle-icon .svg-icon,
-.vaultman-floating-toc-close .svg-icon,
-.vaultman-floating-toc-back .svg-icon {
+.vaultman-floating-toc-action-icon .svg-icon {
 	width: 12px;
 	height: 12px;
 }
@@ -6415,6 +6451,14 @@ button.vaultman-content-scope-hint:focus-visible {
 	.workspace-leaf-content[data-type='vaultman-frame']
 	.vaultman-floating-toc-wrap {
 	top: 44px;
+	right: 4px;
+}
+.is-phone
+	.workspace-drawer
+	.workspace-leaf-content[data-type='vaultman-frame']
+	.vaultman-floating-toc-wrap.pos-bottom {
+	top: auto;
+	left: 4px;
 	right: 4px;
 }
 

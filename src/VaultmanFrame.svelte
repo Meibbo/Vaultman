@@ -106,11 +106,12 @@
 			plainStyle: s.floatingTocPlainStyle === true,
 			position: s.tocPosition ?? 'right',
 			glyphMode: s.tocGlyphMode ?? 'letter',
-			labelMode: s.tocLabelMode ?? 'scrub',
-			reveal: s.tocReveal ?? 'all',
-			glow: s.tocGlow !== false,
-			nameOrder: s.tocNameOrder ?? 'down',
-			namePill: s.tocNamePill === true,
+			// Deferred until the post-beta Niagara effects are specified and patched.
+			labelMode: 'off' as const,
+			reveal: 'selected' as const,
+			glow: false,
+			nameOrder: 'flat' as const,
+			namePill: false,
 		};
 	});
 	const performanceHudEnabled = $derived.by(() => {

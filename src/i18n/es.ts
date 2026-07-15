@@ -238,9 +238,9 @@ export const es: Record<string, string> = {
 	'settings.toc_soft_scroll': 'Desplazamiento suave',
 	'settings.toc_soft_scroll.desc':
 		'Desliza suavemente el explorer entre grupos del índice durante el scrub.',
-	'settings.toc_niagara_nodes': 'Nodos en el scrub',
+	'settings.toc_niagara_nodes': 'Unir acciones al deslizamiento',
 	'settings.toc_niagara_nodes.desc':
-		'Deja que los nodos de control (toggle/drill) se magnifiquen con la onda Niagara.',
+		'Coloca los controles de acción y los nodos indexados en el mismo track Niagara.',
 	'floating_toc.aria': 'Índice del explorer',
 	'floating_toc.menu': 'Índice flotante',
 	'viewmenu.toolbar': 'Barra de herramientas',

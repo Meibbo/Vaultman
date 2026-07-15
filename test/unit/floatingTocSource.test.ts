@@ -102,30 +102,47 @@ describe('Floating TOC source and panel contracts', () => {
 		expect(frameSource).toContain('scopeRootForNode(id)');
 	});
 
-	it('renders separate kind-toggle and drill nodes plus glyph buttons', () => {
+	it('renders kind-toggle and drill actions plus indexed buttons', () => {
 		expect(floatingTocSource).toContain('vaultman-floating-toc-toggle');
 		expect(floatingTocSource).toContain('vaultman-floating-toc-drill');
-		expect(floatingTocSource).toContain('onclick={onToggleKind}');
-		expect(floatingTocSource).toContain('onclick={onEnterPick}');
-		expect(floatingTocSource).toContain('onclick={() => onJump(group.firstId)}');
+		expect(floatingTocSource).toContain('onToggleKind()');
+		expect(floatingTocSource).toContain('onEnterPick()');
+		expect(floatingTocSource).toContain('handleGroupClick(event, i)');
 		expect(floatingTocSource).not.toContain('role="listitem"');
 	});
 
 	it('renders close first and uses a one-level scoped back action', () => {
-		const closeIndex = floatingTocSource.indexOf(
-			'vaultman-floating-toc-close',
-		);
+		const closeIndex = floatingTocSource.indexOf('vaultman-floating-toc-close');
 		const toggleIndex = floatingTocSource.indexOf(
 			'vaultman-floating-toc-toggle',
 		);
 		expect(closeIndex).toBeGreaterThan(-1);
 		expect(closeIndex).toBeLessThan(toggleIndex);
-		expect(floatingTocSource).toContain('onclick={onClose}');
-		expect(floatingTocSource).toContain('onclick={onBack}');
+		expect(floatingTocSource).toContain('onClose()');
+		expect(floatingTocSource).toContain('onBack()');
 		expect(floatingTocSource).not.toContain('onResetScope');
-		expect(frameSource).toContain(
-			'panel.scopeRootForNode(tocRootId)',
-		);
+		expect(frameSource).toContain('panel.scopeRootForNode(tocRootId)');
+	});
+
+	it('joins ordered action controls and indexed groups on one Niagara track', () => {
+		expect(floatingTocSource).toContain('niagaraActionOrder({');
+		expect(floatingTocSource).toContain('{#if !opts.nodes}');
+		expect(floatingTocSource).toContain('{#if opts.nodes}');
+		expect(floatingTocSource).toContain('groupTrackIndex(i)');
+		expect(floatingTocSource).toContain('use:registerTrackEntry={trackIndex}');
+		expect(floatingTocSource).toContain('niagaraNodeTransform(');
+	});
+
+	it('keeps scrubbed actions inert and navigates only when the nearest group changes', () => {
+		expect(floatingTocSource).toContain("target.kind === 'group'");
+		expect(floatingTocSource).toContain('groupIndex !== lastJumpedGroupIndex');
+		expect(floatingTocSource).toContain('suppressNextTrackClick');
+		expect(floatingTocSource).toContain('handleActionClick(');
+	});
+
+	it('uses a reversible signed track shift with no monotonic high-water mark', () => {
+		expect(floatingTocSource).toContain('niagaraTrackShift(');
+		expect(floatingTocSource).not.toContain('shiftHWM');
 	});
 
 	it('reconciles collapse events only for the active panel', () => {
@@ -153,6 +170,38 @@ describe('Floating TOC source and panel contracts', () => {
 		);
 		expect(stylesSource).toMatch(
 			/\.vaultman-floating-toc-item \{[\s\S]*?pointer-events:\s*auto;/,
+		);
+	});
+
+	it('centers the horizontal rail, anchors dock-off bottom, and mirrors Niagara origins', () => {
+		expect(stylesSource).toMatch(
+			/\.vaultman-floating-toc-wrap\.pos-bottom \{[\s\S]*?justify-content:\s*center;/,
+		);
+		expect(stylesSource).toMatch(
+			/\.vaultman-pages-viewport--dock-off\s+\.vaultman-floating-toc-wrap\.pos-bottom \{[\s\S]*?bottom:\s*16px;/,
+		);
+		expect(stylesSource).toContain('transform-origin: center top;');
+		expect(stylesSource).toContain('transform-origin: center bottom;');
+	});
+
+	it('applies the plain surface contract to actions and indexed nodes', () => {
+		expect(stylesSource).toContain(
+			'.vaultman-floating-toc.is-plain .vaultman-floating-toc-item',
+		);
+		expect(stylesSource).toContain(
+			'.vaultman-floating-toc.is-plain .vaultman-floating-toc-close',
+		);
+		expect(stylesSource).toContain(
+			'.vaultman-floating-toc.is-plain .vaultman-floating-toc-back',
+		);
+	});
+
+	it('gives non-plain actions and indexed nodes the same compact surface', () => {
+		expect(stylesSource).toMatch(
+			/\.vaultman-floating-toc-item \{[\s\S]*?background:\s*var\(--background-modifier-hover\);/,
+		);
+		expect(stylesSource).toMatch(
+			/\.vaultman-floating-toc-toggle,[\s\S]*?\{[\s\S]*?background:\s*var\(--background-modifier-hover\);/,
 		);
 	});
 });

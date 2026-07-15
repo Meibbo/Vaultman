@@ -2,6 +2,15 @@
 	import { setIcon, setTooltip } from 'obsidian';
 	import { translate } from '../../i18n/index';
 	import type { IndexGroup } from '../../logic/logicIndexGroups';
+	import {
+		niagaraActionOrder,
+		niagaraClampToFrame,
+		niagaraNodeTransform,
+		niagaraTrackShift,
+		niagaraTrackTarget,
+		shouldSuppressNiagaraClick,
+	} from '../../logic/logicNiagaraTrack';
+	import type { NiagaraActionId } from '../../logic/logicNiagaraTrack';
 
 	export interface NiagaraOptions {
 		nodes: boolean;
@@ -14,6 +23,12 @@
 		nameOrder: 'down' | 'up' | 'flat';
 		namePill: boolean;
 	}
+
+	export type FloatingTocActionId = NiagaraActionId;
+
+	type FloatingTocTrackTarget =
+		| { kind: 'action'; actionId: FloatingTocActionId }
+		| { kind: 'group'; groupIndex: number };
 
 	let {
 		visible,
@@ -75,12 +90,69 @@
 	const drillTitle = $derived(
 		pickMode ? translate('floating_toc.pick') : translate('floating_toc.drill'),
 	);
+	const actionIds = $derived(niagaraActionOrder({ kindToggle, drill, scoped }));
+
+	function actionClass(actionId: FloatingTocActionId): string {
+		switch (actionId) {
+			case 'close':
+				return 'vaultman-floating-toc-close';
+			case 'toggle-kind':
+				return 'vaultman-floating-toc-toggle';
+			case 'drill':
+				return 'vaultman-floating-toc-drill';
+			case 'back':
+				return 'vaultman-floating-toc-back';
+		}
+	}
+	function actionIcon(actionId: FloatingTocActionId): string {
+		switch (actionId) {
+			case 'close':
+				return 'lucide-x';
+			case 'toggle-kind':
+				return kindIcon;
+			case 'drill':
+				return pickMode ? 'lucide-target' : 'lucide-list-tree';
+			case 'back':
+				return 'lucide-corner-left-up';
+		}
+	}
+	function actionTitle(actionId: FloatingTocActionId): string {
+		switch (actionId) {
+			case 'close':
+				return translate('floating_toc.close');
+			case 'toggle-kind':
+				return kindTitle;
+			case 'drill':
+				return drillTitle;
+			case 'back':
+				return translate('floating_toc.back');
+		}
+	}
+	function invokeAction(actionId: FloatingTocActionId): void {
+		switch (actionId) {
+			case 'close':
+				onClose();
+				break;
+			case 'toggle-kind':
+				onToggleKind();
+				break;
+			case 'drill':
+				onEnterPick();
+				break;
+			case 'back':
+				onBack();
+				break;
+		}
+	}
 
 	const horizontal = $derived(
 		opts.position === 'top' || opts.position === 'bottom',
 	);
 	const dir = $derived(
 		opts.position === 'right' || opts.position === 'bottom' ? -1 : 1,
+	);
+	const trackEntryCount = $derived(
+		groups.length + (opts.nodes ? actionIds.length : 0),
 	);
 	const NIA_REVEAL = { selected: 1.1, near: 2.2, wide: 3.6, all: 7 } as const;
 
@@ -89,171 +161,298 @@
 	let activeIdx = $state(-1);
 	let perp = $state(0); // perpendicular pull toward the finger
 	let perpOver = $state(0); // rail-follow overshoot past the frame edge
-	let shift = $state(0); // off-side drag-follow (monotonic high-water mark)
+	let shift = $state(0); // reversible signed rail-follow displacement
 	let glowX = $state(0);
 	let glowY = $state(0);
-	let engaged = $state(false); // wave only forms after a hold / small move
-	let shiftHWM = 0;
-	let downAt = { t: 0, x: 0, y: 0 };
+	let engaged = $state(false); // wave follows after a hold / deliberate move
+	let downAt = { x: 0, y: 0 };
+	let downTargetKind: FloatingTocTrackTarget['kind'] | null = null;
+	let gestureMoved = false;
+	let lastJumpedGroupIndex = -1;
+	let suppressNextTrackClick = false;
 	let holdTimer: number | null = null;
-	const glyphEls: HTMLElement[] = [];
+	let clickResetTimer: number | null = null;
+	const trackEls: Array<HTMLElement | undefined> = [];
 	let railEl: HTMLElement | undefined = $state();
-	let trackEl: HTMLElement | undefined = $state();
 
-	function idxFromPointer(cx: number, cy: number): number {
+	function registerTrackEntry(el: HTMLElement, trackIndex: number) {
+		let currentIndex = -1;
+		const register = (nextIndex: number) => {
+			if (currentIndex >= 0 && trackEls[currentIndex] === el) {
+				trackEls[currentIndex] = undefined;
+			}
+			currentIndex = nextIndex;
+			if (currentIndex >= 0) trackEls[currentIndex] = el;
+		};
+		register(trackIndex);
+		return {
+			update: register,
+			destroy() {
+				if (currentIndex >= 0 && trackEls[currentIndex] === el) {
+					trackEls[currentIndex] = undefined;
+				}
+			},
+		};
+	}
+
+	function groupTrackIndex(groupIndex: number): number {
+		return (opts.nodes ? actionIds.length : 0) + groupIndex;
+	}
+	function targetForTrackIndex(index: number): FloatingTocTrackTarget | null {
+		const target = niagaraTrackTarget(
+			index,
+			opts.nodes ? actionIds.length : 0,
+			groups.length,
+		);
+		if (target?.kind === 'action') {
+			const actionId = actionIds[target.actionIndex];
+			return actionId ? { kind: 'action', actionId } : null;
+		}
+		return target;
+	}
+	function indexFromPointer(cx: number, cy: number): number {
 		let best = -1;
-		let bestD = Infinity;
-		for (let i = 0; i < groups.length; i++) {
-			const el = glyphEls[i];
+		let bestDistance = Infinity;
+		const along = horizontal ? cx : cy;
+		for (let i = 0; i < trackEntryCount; i++) {
+			const el = trackEls[i];
 			if (!el) continue;
-			const r = el.getBoundingClientRect();
-			const center = horizontal ? r.left + r.width / 2 : r.top + r.height / 2;
-			const along = horizontal ? cx : cy;
-			const d = Math.abs(along - center);
-			if (d < bestD) {
-				bestD = d;
+			const rect = el.getBoundingClientRect();
+			const center = horizontal
+				? rect.left + rect.width / 2
+				: rect.top + rect.height / 2;
+			const distance = Math.abs(along - center);
+			if (distance < bestDistance) {
+				bestDistance = distance;
 				best = i;
 			}
 		}
 		return best;
 	}
-	function handleAt(cx: number, cy: number) {
+	function updateTrackShift(
+		cx: number,
+		cy: number,
+		hostRect: DOMRect | null,
+	): void {
+		const first = trackEls[0];
+		const last = trackEls[trackEntryCount - 1];
+		if (!engaged || !first || !last) {
+			shift = 0;
+			return;
+		}
+
+		const firstRect = first.getBoundingClientRect();
+		const lastRect = last.getBoundingClientRect();
+		const firstSpread =
+			activeIdx < 0
+				? 0
+				: niagaraNodeTransform(-activeIdx, trackEntryCount, dir, perp).spread;
+		const lastSpread =
+			activeIdx < 0
+				? 0
+				: niagaraNodeTransform(
+						trackEntryCount - 1 - activeIdx,
+						trackEntryCount,
+						dir,
+						perp,
+					).spread;
+		const firstCenter =
+			(horizontal
+				? firstRect.left + firstRect.width / 2
+				: firstRect.top + firstRect.height / 2) -
+			shift -
+			firstSpread;
+		const lastCenter =
+			(horizontal
+				? lastRect.left + lastRect.width / 2
+				: lastRect.top + lastRect.height / 2) -
+			shift -
+			lastSpread;
+		const along = horizontal ? cx : cy;
+		const constrainedAlong = hostRect
+			? niagaraClampToFrame(
+					along,
+					(horizontal ? hostRect.left : hostRect.top) + 8,
+					(horizontal ? hostRect.right : hostRect.bottom) - 8,
+				)
+			: along;
+		shift = niagaraTrackShift(constrainedAlong, firstCenter, lastCenter);
+	}
+	function handleAt(cx: number, cy: number): void {
 		const rail = railEl;
-		const track = trackEl;
 		if (rail) {
-			const r = rail.getBoundingClientRect();
-			let p: number;
-			if (opts.position === 'right') p = r.right - cx;
-			else if (opts.position === 'left') p = cx - r.left;
-			else if (opts.position === 'top') p = cy - r.top;
-			else p = r.bottom - cy;
+			const rect = rail.getBoundingClientRect();
+			let pull: number;
+			if (opts.position === 'right') pull = rect.right - cx;
+			else if (opts.position === 'left') pull = cx - rect.left;
+			else if (opts.position === 'top') pull = cy - rect.top;
+			else pull = rect.bottom - cy;
+
 			const host = rail.offsetParent ?? rail.parentElement;
+			let hostRect: DOMRect | null = null;
 			let over = 0;
-			let hr: DOMRect | null = null;
 			if (host instanceof HTMLElement) {
-				hr = host.getBoundingClientRect();
-				const cap = (horizontal ? hr.height : hr.width) - 54;
-				const raw = Math.max(0, p);
-				p = Math.min(raw, Math.max(40, cap));
-				over = Math.max(0, raw - Math.max(40, cap));
+				hostRect = host.getBoundingClientRect();
+				const cap = Math.max(
+					40,
+					(horizontal ? hostRect.height : hostRect.width) - 54,
+				);
+				const raw = Math.max(0, pull);
+				pull = Math.min(raw, cap);
+				over = Math.max(0, raw - cap);
 			}
 			perpOver = engaged ? over : 0;
-			perp = engaged ? Math.max(0, p) : 0;
-			glowX = horizontal ? cx - r.left : opts.position === 'left' ? 0 : r.width;
+			perp = engaged ? Math.max(0, pull) : 0;
+			glowX = horizontal
+				? cx - rect.left
+				: opts.position === 'left'
+					? 0
+					: rect.width;
 			glowY = horizontal
 				? opts.position === 'top'
 					? 0
-					: r.height
-				: cy - r.top;
-			if (track) {
-				const band = horizontal ? track.scrollWidth : track.scrollHeight;
-				const centerAlong = horizontal
-					? r.left + r.width / 2
-					: r.top + r.height / 2;
-				const lastN = centerAlong + band / 2;
-				const along = horizontal ? cx : cy;
-				const frameEnd = hr
-					? (horizontal ? hr.right : hr.bottom) - 8
-					: lastN + 9999;
-				const room = Math.max(0, frameEnd - lastN);
-				const want = Math.max(0, Math.min(along - lastN, room));
-				shiftHWM = Math.max(shiftHWM, want);
-				shift = shiftHWM;
-			}
+					: rect.height
+				: cy - rect.top;
+			updateTrackShift(cx, cy, hostRect);
 		}
-		const i = idxFromPointer(cx, cy);
-		if (i < 0) return;
-		if (i !== activeIdx) {
-			activeIdx = i;
+
+		const index = indexFromPointer(cx, cy);
+		if (index < 0) return;
+		if (index !== activeIdx) {
+			activeIdx = index;
 			if (navigator.vibrate) navigator.vibrate(3);
 		}
-		onJump(groups[i].firstId);
+		const target = targetForTrackIndex(index);
+		if (target && target.kind === 'group') {
+			const { groupIndex } = target;
+			if (groupIndex !== lastJumpedGroupIndex) {
+				lastJumpedGroupIndex = groupIndex;
+				onJump(groups[groupIndex].firstId);
+			}
+		}
 	}
-	function onPointerMove(ev: PointerEvent) {
+	function clearHoldTimer(): void {
+		if (holdTimer === null) return;
+		window.clearTimeout(holdTimer);
+		holdTimer = null;
+	}
+	function onPointerMove(ev: PointerEvent): void {
 		ev.preventDefault();
-		if (
-			!engaged &&
-			Math.abs(ev.clientX - downAt.x) + Math.abs(ev.clientY - downAt.y) > 6
-		)
+		const distance =
+			Math.abs(ev.clientX - downAt.x) + Math.abs(ev.clientY - downAt.y);
+		if (!engaged && distance > 6) {
 			engaged = true;
+			gestureMoved = true;
+			clearHoldTimer();
+		}
 		handleAt(ev.clientX, ev.clientY);
 	}
-	function endScrub() {
-		if (holdTimer !== null) {
-			window.clearTimeout(holdTimer);
-			holdTimer = null;
-		}
+	function armClickSuppression(): void {
+		suppressNextTrackClick = true;
+		if (clickResetTimer !== null) window.clearTimeout(clickResetTimer);
+		clickResetTimer = window.setTimeout(() => {
+			suppressNextTrackClick = false;
+			clickResetTimer = null;
+		}, 0);
+	}
+	function endScrub(): void {
+		const consumedGesture = shouldSuppressNiagaraClick(
+			gestureMoved,
+			engaged,
+			downTargetKind,
+		);
+		clearHoldTimer();
+		if (consumedGesture) armClickSuppression();
 		scrubbing = false;
 		activeIdx = -1;
 		perp = 0;
 		perpOver = 0;
 		shift = 0;
-		shiftHWM = 0;
 		engaged = false;
+		gestureMoved = false;
+		downTargetKind = null;
+		lastJumpedGroupIndex = -1;
 		window.removeEventListener('pointermove', onPointerMove);
 		window.removeEventListener('pointerup', endScrub);
+		window.removeEventListener('pointercancel', endScrub);
 	}
-	function onScrubDown(ev: PointerEvent) {
+	function onScrubDown(ev: PointerEvent): void {
 		if (!niagara || ev.button !== 0) return;
+		if (clickResetTimer !== null) {
+			window.clearTimeout(clickResetTimer);
+			clickResetTimer = null;
+		}
+		suppressNextTrackClick = false;
 		scrubbing = true;
 		engaged = false;
-		shiftHWM = 0;
-		downAt = { t: Date.now(), x: ev.clientX, y: ev.clientY };
+		gestureMoved = false;
+		shift = 0;
+		lastJumpedGroupIndex = -1;
+		downAt = { x: ev.clientX, y: ev.clientY };
+		downTargetKind =
+			targetForTrackIndex(indexFromPointer(ev.clientX, ev.clientY))?.kind ??
+			null;
 		holdTimer = window.setTimeout(() => {
+			holdTimer = null;
 			engaged = true;
+			handleAt(downAt.x, downAt.y);
 		}, 150);
 		handleAt(ev.clientX, ev.clientY);
 		window.addEventListener('pointermove', onPointerMove);
 		window.addEventListener('pointerup', endScrub);
+		window.addEventListener('pointercancel', endScrub);
 	}
 
-	// ─── Niagara wave (Gaussian bell, fixed σ) ──────────────────────────────────
-	const sigma = $derived(Math.min(7, Math.max(3, (groups.length || 1) * 0.28)));
-	function gauss(d: number): number {
-		return Math.exp(-(d * d) / (2 * sigma * sigma));
+	function consumeSuppressedClick(event: MouseEvent): boolean {
+		if (!suppressNextTrackClick) return false;
+		event.preventDefault();
+		event.stopPropagation();
+		return true;
 	}
-	function scaleFor(i: number): number {
-		return activeIdx < 0 ? 1 : 1 + 0.5 * gauss(Math.abs(i - activeIdx));
+	function handleActionClick(
+		event: MouseEvent,
+		actionId: FloatingTocActionId,
+	): void {
+		if (consumeSuppressedClick(event)) return;
+		invokeAction(actionId);
 	}
-	function offsetFor(i: number): number {
-		return activeIdx < 0 ? 0 : dir * perp * gauss(Math.abs(i - activeIdx));
+	function handleGroupClick(event: MouseEvent, groupIndex: number): void {
+		if (consumeSuppressedClick(event)) return;
+		const group = groups[groupIndex];
+		if (group) onJump(group.firstId);
 	}
-	function spreadFor(i: number): number {
-		return activeIdx < 0
-			? 0
-			: 7 * Math.tanh((i - activeIdx) / 1.5) * gauss(Math.abs(i - activeIdx));
-	}
-	function glyphTransform(i: number): string {
-		if (!niagara || !scrubbing) return '';
-		const off = offsetFor(i);
-		const spr = spreadFor(i);
-		const sc = scaleFor(i);
+
+	// ─── Exact proto Niagara wave ───────────────────────────────────────────────
+	function entryTransform(index: number): string {
+		if (!niagara || !scrubbing || activeIdx < 0) return '';
+		const transform = niagaraNodeTransform(
+			index - activeIdx,
+			trackEntryCount,
+			dir,
+			perp,
+		);
 		return horizontal
-			? `transform: translate(${spr}px, ${off}px) scale(${sc})`
-			: `transform: translate(${off}px, ${spr}px) scale(${sc})`;
-	}
-	// Control nodes sit just before glyph 0; with the nodes option they ride the
-	// same wave (their "index" is negative), else they stay put.
-	function nodeTransform(slot: number): string {
-		if (!niagara || !scrubbing || !opts.nodes || activeIdx < 0) return '';
-		return `transform: scale(${scaleFor(slot)})`;
+			? `transform: translate(${transform.spread}px, ${transform.perpendicular}px) scale(${transform.scale})`
+			: `transform: translate(${transform.perpendicular}px, ${transform.spread}px) scale(${transform.scale})`;
 	}
 
 	const revealR = $derived(NIA_REVEAL[opts.reveal] ?? NIA_REVEAL.all);
-	function nameAlphaFor(i: number): number {
+	function nameAlphaFor(groupIndex: number): number {
+		const distance = Math.abs(groupTrackIndex(groupIndex) - activeIdx);
 		if (scrubbing && activeIdx >= 0 && engaged)
-			return Math.max(0.05, 1 - Math.abs(i - activeIdx) / revealR);
+			return Math.max(0.05, 1 - distance / revealR);
 		return opts.labelMode === 'always' ? 0.85 : 0;
 	}
-	function showName(i: number): boolean {
+	function showName(groupIndex: number): boolean {
 		if (opts.glyphMode === 'name' || opts.labelMode === 'off') return false;
-		if (opts.labelMode === 'selected') return scrubbing && i === activeIdx;
+		const isSelected = groupTrackIndex(groupIndex) === activeIdx;
+		if (opts.labelMode === 'selected') return scrubbing && isSelected;
 		if (opts.labelMode === 'always') return true;
-		return scrubbing && engaged && nameAlphaFor(i) > 0.04;
+		return scrubbing && engaged && nameAlphaFor(groupIndex) > 0.04;
 	}
-	function nameLetters(g: IndexGroup): string[] {
-		const name = (g.firstLabel || '').replace(/^[#=]\s*/, '').trim();
-		const letters = Array.from(opts.nameOrder === 'flat' ? name : name);
+	function nameLetters(group: IndexGroup): string[] {
+		const name = (group.firstLabel || '').replace(/^[#=]\s*/, '').trim();
+		const letters = Array.from(name);
 		return opts.nameOrder === 'up' ? letters.slice().reverse() : letters;
 	}
 	const trackShift = $derived(
@@ -263,7 +462,27 @@
 	);
 </script>
 
-<!-- Niagara-capable floating TOC: kind toggle + scope drill nodes, then glyphs. -->
+{#snippet actionButton(actionId: FloatingTocActionId, trackIndex: number)}
+	<button
+		type="button"
+		class="vaultman-floating-toc-action {actionClass(actionId)}"
+		class:is-active={actionId === 'drill' && pickMode}
+		class:is-track-entry={trackIndex >= 0}
+		class:is-scrub-active={scrubbing && trackIndex === activeIdx}
+		aria-label={actionTitle(actionId)}
+		use:tooltip={actionTitle(actionId)}
+		use:registerTrackEntry={trackIndex}
+		style={trackIndex >= 0 ? entryTransform(trackIndex) : ''}
+		onclick={(event) => handleActionClick(event, actionId)}
+	>
+		<span
+			class="vaultman-floating-toc-action-icon"
+			use:icon={actionIcon(actionId)}
+		></span>
+	</button>
+{/snippet}
+
+<!-- Close is always action 0. Joined mode places every action and group on one track. -->
 {#if visible}
 	<div
 		class="vaultman-floating-toc-wrap pos-{opts.position}"
@@ -285,75 +504,39 @@
 					style="left: {glowX}px; top: {glowY}px"
 				></div>
 			{/if}
-			<button
-				type="button"
-				class="vaultman-floating-toc-close"
-				aria-label={translate('floating_toc.close')}
-				use:tooltip={translate('floating_toc.close')}
-				onclick={onClose}
-			>
-				<span use:icon={'lucide-x'}></span>
-			</button>
-			{#if kindToggle}
-				<button
-					type="button"
-					class="vaultman-floating-toc-toggle"
-					aria-label={kindTitle}
-					use:tooltip={kindTitle}
-					style={nodeTransform(-2)}
-					onclick={onToggleKind}
-				>
-					<span class="vaultman-floating-toc-toggle-icon" use:icon={kindIcon}
-					></span>
-				</button>
-			{/if}
-			{#if drill}
-				<button
-					type="button"
-					class="vaultman-floating-toc-drill"
-					class:is-active={pickMode}
-					aria-label={drillTitle}
-					use:tooltip={drillTitle}
-					style={nodeTransform(-1)}
-					onclick={onEnterPick}
-				>
-					<span
-						class="vaultman-floating-toc-toggle-icon"
-						use:icon={pickMode ? 'lucide-target' : 'lucide-list-tree'}
-					></span>
-				</button>
-			{/if}
-			{#if scoped}
-				<button
-					type="button"
-					class="vaultman-floating-toc-back"
-					aria-label={translate('floating_toc.back')}
-					use:tooltip={translate('floating_toc.back')}
-					onclick={onBack}
-				>
-					<span use:icon={'lucide-corner-left-up'}></span>
-				</button>
+			{#if !opts.nodes}
+				<div class="vaultman-floating-toc-actions">
+					{#each actionIds as actionId (actionId)}
+						{@render actionButton(actionId, -1)}
+					{/each}
+				</div>
 			{/if}
 			<!-- svelte-ignore a11y_no_static_element_interactions -->
 			<div
-				bind:this={trackEl}
 				class="vaultman-floating-toc-glyphs"
 				class:is-niagara={niagara}
+				class:has-joined-actions={opts.nodes}
 				style="transform: {trackShift}; transition: {scrubbing
 					? 'none'
 					: 'transform 0.2s ease'}"
 				onpointerdown={onScrubDown}
 			>
+				{#if opts.nodes}
+					{#each actionIds as actionId, i (actionId)}
+						{@render actionButton(actionId, i)}
+					{/each}
+				{/if}
 				{#each groups as group, i (group.key)}
+					{@const trackIndex = groupTrackIndex(i)}
 					<button
 						type="button"
 						class="vaultman-floating-toc-item"
-						class:is-scrub-active={scrubbing && i === activeIdx}
-						bind:this={glyphEls[i]}
+						class:is-scrub-active={scrubbing && trackIndex === activeIdx}
 						aria-label={group.label}
 						use:tooltip={group.label}
-						style={glyphTransform(i)}
-						onclick={() => onJump(group.firstId)}
+						use:registerTrackEntry={trackIndex}
+						style={entryTransform(trackIndex)}
+						onclick={(event) => handleGroupClick(event, i)}
 					>
 						{#if opts.glyphMode === 'name'}
 							<span class="vaultman-floating-toc-fullname"
@@ -370,9 +553,9 @@
 									{#if opts.nameOrder === 'flat'}
 										{group.firstLabel}
 									{:else}
-										{#each nameLetters(group) as ch, k (k)}
+										{#each nameLetters(group) as character, k (k)}
 											<span class="vaultman-floating-toc-vletter"
-												>{ch === ' ' ? ' ' : ch}</span
+												>{character === ' ' ? ' ' : character}</span
 											>
 										{/each}
 									{/if}
