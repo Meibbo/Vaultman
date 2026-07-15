@@ -151,6 +151,12 @@ export const en: Record<string, string> = {
 	'settings.background_blur': 'Background blur intensity',
 	'settings.background_blur.desc':
 		'Controls the glass blur on the bottom bar and popups.',
+	'settings.style_config': 'Style Config',
+	'settings.style_preset': 'Style preset',
+	'settings.style_preset.desc':
+		'Minimal uses compact Obsidian-native controls; Experimental uses the decorated Vaultman controls.',
+	'settings.style_preset.minimal': 'Minimal',
+	'settings.style_preset.experimental': 'Experimental',
 	'settings.minimal_style': 'Minimal style',
 	'settings.minimal_style.desc':
 		'Use compact Obsidian-native icon buttons in headers and the bottom dock.',

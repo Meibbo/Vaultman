@@ -148,6 +148,12 @@ export const es: Record<string, string> = {
 	'settings.background_blur': 'Intensidad de desenfoque del fondo',
 	'settings.background_blur.desc':
 		'Controla el desenfoque de cristal en la barra inferior y los popups.',
+	'settings.style_config': 'Style Config',
+	'settings.style_preset': 'Preset de estilo',
+	'settings.style_preset.desc':
+		'Minimal usa controles compactos nativos de Obsidian; Experimental usa los controles decorados de Vaultman.',
+	'settings.style_preset.minimal': 'Minimal',
+	'settings.style_preset.experimental': 'Experimental',
 	'settings.minimal_style': 'Estilo minimal',
 	'settings.minimal_style.desc':
 		'Usa botones compactos nativos de Obsidian en headers y dock inferior.',

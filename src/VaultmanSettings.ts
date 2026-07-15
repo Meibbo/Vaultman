@@ -72,69 +72,6 @@ export class VaultmanSettingsTab extends PluginSettingTab {
 			);
 
 		new Setting(containerEl)
-			.setName(translate('settings.background_blur'))
-			.setDesc(translate('settings.background_blur.desc'))
-			.addSlider((slider) =>
-				slider
-					.setLimits(0, 100, 1)
-					.setValue(this.plugin.settings.glassBlurIntensity ?? 60)
-					.setDynamicTooltip()
-					.onChange(async (value) => {
-						this.plugin.settings.glassBlurIntensity = value;
-						await this.plugin.saveSettings();
-						this.plugin.updateGlassBlur();
-					}),
-			);
-
-		new Setting(containerEl)
-			.setName(translate('settings.filters_show_tab_labels'))
-			.setDesc(translate('settings.filters_show_tab_labels.desc'))
-			.addToggle((toggle) =>
-				toggle
-					.setValue(this.plugin.settings.filtersShowTabLabels)
-					.onChange(async (value) => {
-						this.plugin.settings.filtersShowTabLabels = value;
-						await this.plugin.saveSettings();
-					}),
-			);
-
-		new Setting(containerEl)
-			.setName(translate('settings.minimal_style'))
-			.setDesc(translate('settings.minimal_style.desc'))
-			.addToggle((toggle) =>
-				toggle
-					.setValue(this.plugin.settings.minimalStyle)
-					.onChange(async (value) => {
-						this.plugin.settings.minimalStyle = value;
-						await this.plugin.saveSettings();
-					}),
-			);
-
-		new Setting(containerEl)
-			.setName(translate('settings.search_highlights'))
-			.setDesc(translate('settings.search_highlights.desc'))
-			.addToggle((toggle) =>
-				toggle
-					.setValue(this.plugin.settings.explorerSearchHighlights)
-					.onChange(async (value) => {
-						this.plugin.settings.explorerSearchHighlights = value;
-						await this.plugin.saveSettings();
-					}),
-			);
-
-		new Setting(containerEl)
-			.setName(translate('settings.badge_colors'))
-			.setDesc(translate('settings.badge_colors.desc'))
-			.addToggle((toggle) =>
-				toggle
-					.setValue(this.plugin.settings.coloredBadges)
-					.onChange(async (value) => {
-						this.plugin.settings.coloredBadges = value;
-						await this.plugin.saveSettings();
-					}),
-			);
-
-		new Setting(containerEl)
 			.setName(translate('settings.badge_cancel_click'))
 			.setDesc(translate('settings.badge_cancel_click.desc'))
 			.addDropdown((dropdown) =>
@@ -151,30 +88,6 @@ export class VaultmanSettingsTab extends PluginSettingTab {
 					.onChange(async (value) => {
 						this.plugin.settings.badgeCancelClickMode =
 							value === 'single' ? 'single' : 'double';
-						await this.plugin.saveSettings();
-					}),
-			);
-
-		new Setting(containerEl)
-			.setName(translate('settings.show_dock'))
-			.setDesc(translate('settings.show_dock.desc'))
-			.addToggle((toggle) =>
-				toggle
-					.setValue(this.plugin.settings.showDock)
-					.onChange(async (value) => {
-						this.plugin.settings.showDock = value;
-						await this.plugin.saveSettings();
-					}),
-			);
-
-		new Setting(containerEl)
-			.setName(translate('settings.show_toolbar'))
-			.setDesc(translate('settings.show_toolbar.desc'))
-			.addToggle((toggle) =>
-				toggle
-					.setValue(this.plugin.settings.showToolbar !== false)
-					.onChange(async (value) => {
-						this.plugin.settings.showToolbar = value;
 						await this.plugin.saveSettings();
 					}),
 			);
@@ -325,6 +238,102 @@ export class VaultmanSettingsTab extends PluginSettingTab {
 					);
 			}
 		}
+
+		new Setting(containerEl)
+			.setName(translate('settings.style_config'))
+			.setHeading();
+
+		new Setting(containerEl)
+			.setName(translate('settings.style_preset'))
+			.setDesc(translate('settings.style_preset.desc'))
+			.addDropdown((dropdown) =>
+				dropdown
+					.addOption('minimal', translate('settings.style_preset.minimal'))
+					.addOption(
+						'experimental',
+						translate('settings.style_preset.experimental'),
+					)
+					.setValue(this.plugin.settings.minimalStyle ? 'minimal' : 'experimental')
+					.onChange(async (value) => {
+						this.plugin.settings.minimalStyle = value === 'minimal';
+						await this.plugin.saveSettings();
+					}),
+			);
+
+		new Setting(containerEl)
+			.setName(translate('settings.background_blur'))
+			.setDesc(translate('settings.background_blur.desc'))
+			.addSlider((slider) =>
+				slider
+					.setLimits(0, 100, 1)
+					.setValue(this.plugin.settings.glassBlurIntensity ?? 60)
+					.setDynamicTooltip()
+					.onChange(async (value) => {
+						this.plugin.settings.glassBlurIntensity = value;
+						await this.plugin.saveSettings();
+						this.plugin.updateGlassBlur();
+					}),
+			);
+
+		new Setting(containerEl)
+			.setName(translate('settings.filters_show_tab_labels'))
+			.setDesc(translate('settings.filters_show_tab_labels.desc'))
+			.addToggle((toggle) =>
+				toggle
+					.setValue(this.plugin.settings.filtersShowTabLabels)
+					.onChange(async (value) => {
+						this.plugin.settings.filtersShowTabLabels = value;
+						await this.plugin.saveSettings();
+					}),
+			);
+
+		new Setting(containerEl)
+			.setName(translate('settings.search_highlights'))
+			.setDesc(translate('settings.search_highlights.desc'))
+			.addToggle((toggle) =>
+				toggle
+					.setValue(this.plugin.settings.explorerSearchHighlights)
+					.onChange(async (value) => {
+						this.plugin.settings.explorerSearchHighlights = value;
+						await this.plugin.saveSettings();
+					}),
+			);
+
+		new Setting(containerEl)
+			.setName(translate('settings.badge_colors'))
+			.setDesc(translate('settings.badge_colors.desc'))
+			.addToggle((toggle) =>
+				toggle
+					.setValue(this.plugin.settings.coloredBadges)
+					.onChange(async (value) => {
+						this.plugin.settings.coloredBadges = value;
+						await this.plugin.saveSettings();
+					}),
+			);
+
+		new Setting(containerEl)
+			.setName(translate('settings.show_toolbar'))
+			.setDesc(translate('settings.show_toolbar.desc'))
+			.addToggle((toggle) =>
+				toggle
+					.setValue(this.plugin.settings.showToolbar !== false)
+					.onChange(async (value) => {
+						this.plugin.settings.showToolbar = value;
+						await this.plugin.saveSettings();
+					}),
+			);
+
+		new Setting(containerEl)
+			.setName(translate('settings.show_dock'))
+			.setDesc(translate('settings.show_dock.desc'))
+			.addToggle((toggle) =>
+				toggle
+					.setValue(this.plugin.settings.showDock)
+					.onChange(async (value) => {
+						this.plugin.settings.showDock = value;
+						await this.plugin.saveSettings();
+					}),
+			);
 
 		new Setting(containerEl)
 			.setName(translate('settings.floating_toc'))
