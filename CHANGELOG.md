@@ -12,6 +12,33 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.2.0-beta.1] — 2026-07-15
+
+### Added
+
+- Added an optional floating index for Files, Props, and Tags, with literal glyphs that follow the visible explorer order and route jumps through the active explorer panel.
+- Added index lifecycle actions for close, files/folders mode, scope drill, back, and collapse-aware return to a valid level.
+- Added optional Niagara scrubbing with the prototype curve, reversible movement, soft scrolling, joined action/index tracks, configurable rail placement, and a plain rail style.
+- Added named view layouts, Style Config controls, toolbar auto-hide with edge peek, and an optional Files Tools menu that keeps the primary toolbar to at most five nodes.
+
+### Changed
+
+- Renamed Action Presets to Operations Presets and moved View Config directly below it in Settings.
+- Replaced the inactive instant-jump setting with Soft scroll and kept the deferred name/glow sub-effects out of the beta UI.
+
+### Fixed
+
+- Fixed the floating index lifecycle when switching Content, collapsing a scoped node, or using Collapse all.
+- Fixed Niagara upward scrubbing, action activation during scrub, bottom rail positioning, plain styling across indexed nodes, and duplicate group navigation.
+
+### Known beta gaps
+
+- Props and Tags table/grid modes do not yet expose scroll-to routing, so their floating-index jumps are limited to tree mode; Files supports its available views.
+- Name Pill, Scrub Glow, Name Cell, Name Reveal, and Name Letters remain deferred for later 1.2.x work.
+- Real-device mobile, clean-install, and stable-upgrade validation remain required before promotion to `1.2.0` stable.
+
+---
+
 ## [1.1.6] — 2026-06-23
 
 ### Fixed
@@ -390,7 +417,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > Versions 0.2–0.6 correspond to the Python script predecessor (PKM Manager).
 > See `docs/pkm_manager_python_architecture.md` for that history.
 
-[Unreleased]: https://github.com/Meibbo/Vaultman/compare/1.1.1...HEAD
+[Unreleased]: https://github.com/Meibbo/Vaultman/compare/1.2.0-beta.1...HEAD
+[1.2.0-beta.1]: https://github.com/Meibbo/Vaultman/compare/1.1.6...1.2.0-beta.1
+[1.1.6]: https://github.com/Meibbo/Vaultman/compare/1.1.1...1.1.6
 [1.1.1]: https://github.com/Meibbo/Vaultman/compare/1.0.1...1.1.1
 [1.1.0-beta.4]: https://github.com/Meibbo/Vaultman/compare/1.1.0-beta.3...1.1.0-beta.4
 [1.1.0-beta.3]: https://github.com/Meibbo/Vaultman/compare/1.1.0-beta.2...1.1.0-beta.3
