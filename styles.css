@@ -6219,6 +6219,26 @@ button.vaultman-content-scope-hint:focus-visible {
 .vaultman-floating-toc-item:hover {
 	color: var(--text-normal);
 }
+/* Niagara scrub: magnify wave + active-glyph glow (off by default). */
+.vaultman-floating-toc-glyphs {
+	display: flex;
+	flex-direction: column;
+	gap: 2px;
+	min-height: 0;
+}
+.vaultman-floating-toc-glyphs.is-niagara {
+	touch-action: none;
+}
+.vaultman-floating-toc-glyphs.is-niagara .vaultman-floating-toc-item {
+	transform-origin: right center;
+	transition:
+		transform 0.08s ease,
+		color 0.1s ease;
+}
+.vaultman-floating-toc-item.is-scrub-active {
+	color: var(--color-accent);
+	text-shadow: 0 0 6px var(--color-accent);
+}
 .vaultman-floating-toc-toggle,
 .vaultman-floating-toc-drill,
 .vaultman-floating-toc-reset {

@@ -343,6 +343,18 @@ export class VaultmanSettingsTab extends PluginSettingTab {
 			);
 
 		new Setting(containerEl)
+			.setName(translate('settings.floating_toc_niagara'))
+			.setDesc(translate('settings.floating_toc_niagara.desc'))
+			.addToggle((toggle) =>
+				toggle
+					.setValue(this.plugin.settings.floatingTocNiagara === true)
+					.onChange(async (value) => {
+						this.plugin.settings.floatingTocNiagara = value;
+						await this.plugin.saveSettings();
+					}),
+			);
+
+		new Setting(containerEl)
 			.setName(translate('settings.saved_view_config'))
 			.setHeading();
 

@@ -196,6 +196,9 @@ export const en: Record<string, string> = {
 	'settings.floating_toc_enable': 'Enable floating TOC',
 	'settings.floating_toc_enable.desc':
 		'Show a floating first-letter index over the Files, Props, and Tags explorers.',
+	'settings.floating_toc_niagara': 'Niagara effects',
+	'settings.floating_toc_niagara.desc':
+		'Drag along the index to magnify glyphs and scrub between groups. Off keeps the index static.',
 	'floating_toc.aria': 'Explorer index',
 	'floating_toc.menu': 'Floating index',
 	'viewmenu.toolbar': 'Toolbar',

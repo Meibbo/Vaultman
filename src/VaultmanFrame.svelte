@@ -86,6 +86,10 @@
 		plugin.settings.floatingTocEnabled = floatingTocEnabled;
 		void plugin.saveData(plugin.settings);
 	}
+	const floatingTocNiagara = $derived.by(() => {
+		void settingsRevision;
+		return plugin.settings.floatingTocNiagara === true;
+	});
 	const performanceHudEnabled = $derived.by(() => {
 		void settingsRevision;
 		return plugin.settings.performanceHudEnabled;
@@ -1135,6 +1139,7 @@
 		drill={tocDrill}
 		scoped={tocRootId !== null}
 		pickMode={tocPickMode}
+		niagara={floatingTocNiagara}
 		onJump={jumpFloatingToc}
 		onToggleKind={toggleTocKind}
 		onEnterPick={enterTocPick}

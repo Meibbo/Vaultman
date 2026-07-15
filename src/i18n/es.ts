@@ -193,6 +193,9 @@ export const es: Record<string, string> = {
 	'settings.floating_toc_enable': 'Activar TOC flotante',
 	'settings.floating_toc_enable.desc':
 		'Muestra un índice flotante de primeras letras sobre los explorers de Files, Props y Tags.',
+	'settings.floating_toc_niagara': 'Efectos Niagara',
+	'settings.floating_toc_niagara.desc':
+		'Arrastra por el índice para magnificar glifos y desplazarte entre grupos. Off lo mantiene estático.',
 	'floating_toc.aria': 'Índice del explorer',
 	'floating_toc.menu': 'Índice flotante',
 	'viewmenu.toolbar': 'Barra de herramientas',

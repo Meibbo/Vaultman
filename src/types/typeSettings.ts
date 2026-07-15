@@ -80,6 +80,8 @@ export interface VaultmanSettings {
 	showDock: boolean;
 	/** Show the floating TOC rail (first-letter index) over the explorer tabs */
 	floatingTocEnabled: boolean;
+	/** Enable the Niagara scrub effects on the floating TOC (off = static) */
+	floatingTocNiagara: boolean;
 	/** Show the explorer toolbar (tabs / view / sort / search header) */
 	showToolbar: boolean;
 	/** Named saved explorer layouts (view options + sorts per tab) */
@@ -154,6 +156,7 @@ export const DEFAULT_SETTINGS: VaultmanSettings = {
 	badgeCancelClickMode: 'double',
 	showDock: false,
 	floatingTocEnabled: false,
+	floatingTocNiagara: false,
 	showToolbar: true,
 	bypassOperations: false,
 	suppressBulkOperationWarning: false,
