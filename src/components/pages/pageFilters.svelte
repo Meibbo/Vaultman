@@ -688,6 +688,7 @@
 			onToggleToolbar={toggleToolbar}
 			{savedViewConfig}
 			onSaveViewConfig={saveViewConfig}
+			{showTabLabels}
 			{icon}
 		/>
 	</div>

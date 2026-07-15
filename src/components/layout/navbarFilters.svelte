@@ -72,6 +72,7 @@
 		onToggleToolbar,
 		savedViewConfig,
 		onSaveViewConfig,
+		showTabLabels = true,
 	}: {
 		activeTab: FiltersTab;
 		filtersSearch: string;
@@ -97,6 +98,7 @@
 		onToggleToolbar?: () => void;
 		savedViewConfig?: Record<string, SavedViewConfig>;
 		onSaveViewConfig?: (config: Record<string, SavedViewConfig>) => void;
+		showTabLabels?: boolean;
 	} = $props();
 
 	const CATEGORY_ICONS: Record<FiltersTab, [string, string]> = {
@@ -363,7 +365,8 @@
 	const showTabsButtonLabel = $derived(
 		minimalStyle &&
 			activeSectionTab === 'content' &&
-			currentTabsOption !== null,
+			currentTabsOption !== null &&
+			showTabLabels !== false,
 	);
 
 	function menuEventFromElement(element: HTMLElement): MouseEvent {

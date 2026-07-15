@@ -47,52 +47,20 @@
 		};
 	}
 
-	// On the kind toggle a long-press enters the scope drill and a plain click
-	// flips files↔folders; the hold suppresses the click that follows it.
-	let pressTimer: number | null = null;
-	let longPressed = false;
-	function startPress() {
-		if (!drill) return;
-		longPressed = false;
-		pressTimer = window.setTimeout(() => {
-			longPressed = true;
-			onEnterPick();
-		}, 500);
-	}
-	function cancelPress() {
-		if (pressTimer !== null) {
-			window.clearTimeout(pressTimer);
-			pressTimer = null;
-		}
-	}
-	function onToggleClick() {
-		if (longPressed) {
-			longPressed = false;
-			return;
-		}
-		onToggleKind();
-	}
-
-	const toggleIcon = $derived(
-		pickMode
-			? 'lucide-target'
-			: kind === 'folders'
-				? 'lucide-folder'
-				: 'lucide-file',
+	const kindIcon = $derived(
+		kind === 'folders' ? 'lucide-folder' : 'lucide-file',
 	);
-	const toggleTitle = $derived(
-		pickMode
-			? translate('floating_toc.pick')
-			: kind === 'folders'
-				? translate('floating_toc.folders')
-				: translate('floating_toc.files'),
+	const kindTitle = $derived(
+		kind === 'folders'
+			? translate('floating_toc.folders')
+			: translate('floating_toc.files'),
 	);
 	const drillTitle = $derived(
 		pickMode ? translate('floating_toc.pick') : translate('floating_toc.drill'),
 	);
 </script>
 
-<!-- FTC-002+: kind toggle / scope-drill control, then glyph jumps. -->
+<!-- FTC-002+: kind toggle + scope drill as separate nodes, then glyph jumps. -->
 {#if visible}
 	<div class="vaultman-floating-toc-wrap">
 		<nav
@@ -104,21 +72,18 @@
 				<button
 					type="button"
 					class="vaultman-floating-toc-toggle"
-					class:is-active={pickMode}
-					aria-label={toggleTitle}
-					use:tooltip={toggleTitle}
-					onpointerdown={startPress}
-					onpointerup={cancelPress}
-					onpointerleave={cancelPress}
-					onclick={onToggleClick}
+					aria-label={kindTitle}
+					use:tooltip={kindTitle}
+					onclick={onToggleKind}
 				>
-					<span class="vaultman-floating-toc-toggle-icon" use:icon={toggleIcon}
+					<span class="vaultman-floating-toc-toggle-icon" use:icon={kindIcon}
 					></span>
 				</button>
-			{:else if drill}
+			{/if}
+			{#if drill}
 				<button
 					type="button"
-					class="vaultman-floating-toc-toggle"
+					class="vaultman-floating-toc-drill"
 					class:is-active={pickMode}
 					aria-label={drillTitle}
 					use:tooltip={drillTitle}

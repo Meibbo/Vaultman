@@ -55,10 +55,11 @@ describe('Floating TOC source and panel contracts', () => {
 		expect(frameSource).toContain('scopeRootForNode(id)');
 	});
 
-	it('renders a toggle with long-press plus glyph buttons (no dead list markup)', () => {
+	it('renders separate kind-toggle and drill nodes plus glyph buttons', () => {
 		expect(floatingTocSource).toContain('vaultman-floating-toc-toggle');
-		expect(floatingTocSource).toContain('onpointerdown={startPress}');
-		expect(floatingTocSource).toContain('onEnterPick()');
+		expect(floatingTocSource).toContain('vaultman-floating-toc-drill');
+		expect(floatingTocSource).toContain('onclick={onToggleKind}');
+		expect(floatingTocSource).toContain('onclick={onEnterPick}');
 		expect(floatingTocSource).toContain('onclick={() => onJump(group.firstId)}');
 		expect(floatingTocSource).not.toContain('role="listitem"');
 	});

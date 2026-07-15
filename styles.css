@@ -6170,7 +6170,7 @@ button.vaultman-content-scope-hint:focus-visible {
 	position: absolute;
 	top: 48px;
 	bottom: calc(var(--vaultman-nav-height, 64px) + 8px);
-	right: 12px;
+	right: 2px;
 	z-index: 12;
 	display: flex;
 	align-items: center;
@@ -6220,6 +6220,7 @@ button.vaultman-content-scope-hint:focus-visible {
 	color: var(--text-normal);
 }
 .vaultman-floating-toc-toggle,
+.vaultman-floating-toc-drill,
 .vaultman-floating-toc-reset {
 	display: flex;
 	align-items: center;
@@ -6241,10 +6242,11 @@ button.vaultman-content-scope-hint:focus-visible {
 	background: transparent;
 }
 .vaultman-floating-toc-toggle:hover,
+.vaultman-floating-toc-drill:hover,
 .vaultman-floating-toc-reset:hover {
 	color: var(--text-normal);
 }
-.vaultman-floating-toc-toggle.is-active {
+.vaultman-floating-toc-drill.is-active {
 	color: var(--text-faint);
 	background: transparent;
 }
