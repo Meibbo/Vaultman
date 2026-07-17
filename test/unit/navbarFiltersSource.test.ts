@@ -4,10 +4,15 @@ import navbarFiltersSource from '../../src/components/layout/navbarFilters.svelt
 import popupViewSource from '../../src/components/layout/popupView.svelte?raw';
 
 describe('minimal filters header source guards', () => {
-	it('shows the active Content tab label on the minimal Tabs button', () => {
+	it('uses the tab-label setting for every active minimal Tabs button', () => {
 		expect(navbarFiltersSource).toContain('showTabsButtonLabel');
-		expect(navbarFiltersSource).toContain("activeSectionTab === 'content'");
+		expect(navbarFiltersSource).not.toContain("activeSectionTab === 'content'");
+		expect(navbarFiltersSource).toContain('showTabLabels !== false');
+		expect(navbarFiltersSource).toContain('TODO(refactor)');
 		expect(navbarFiltersSource).toContain('vaultman-header-action-label');
+		expect(navbarFiltersSource).toContain(
+			'{#if showTabsButtonLabel && currentTabsOption}',
+		);
 		expect(navbarFiltersSource).toContain('{currentTabsOption.label}');
 	});
 
@@ -47,6 +52,8 @@ describe('minimal filters header source guards', () => {
 		expect(navbarFiltersSource).not.toContain('showMinimalSearchRow');
 		expect(navbarFiltersSource).not.toContain('vaultman-minimal-search-row');
 		expect(navbarFiltersSource).not.toContain('isPhoneMode');
+		expect(navbarFiltersSource).toContain('shouldShowMinimalSearchInput({');
+		expect(navbarFiltersSource).toContain('tabLabelVisible: showTabsButtonLabel');
 	});
 
 	it('renders caller-provided header actions immediately after the tabs button', () => {

@@ -26,7 +26,10 @@
 		panelViewModeForDataSurface,
 		viewModesForDataSurface,
 	} from '../../logic/logicExplorerViewModes';
-	import { shouldCondenseFilesToolbar } from '../../logic/logicResponsiveLayout';
+	import {
+		shouldCondenseFilesToolbar,
+		shouldShowMinimalSearchInput,
+	} from '../../logic/logicResponsiveLayout';
 	import {
 		nodeTypeFilterPatch,
 		nodeTypeFiltersForState,
@@ -407,7 +410,6 @@
 			minimalStyle,
 		}),
 	);
-	const showSearchInput = $derived(!minimalStyle || searchExpanded);
 	const currentTabsOption = $derived(
 		tabOptions.find((option) => option.id === activeSectionTab) ??
 			tabOptions[0] ??
@@ -422,10 +424,17 @@
 			: translate('filter.tabs_btn'),
 	);
 	const showTabsButtonLabel = $derived(
-		minimalStyle &&
-			activeSectionTab === 'content' &&
-			currentTabsOption !== null &&
-			showTabLabels !== false,
+		minimalStyle && currentTabsOption !== null && showTabLabels !== false,
+	);
+	// TODO(refactor): remove this pre-scene bridge once the sandbox header owns
+	// tab labels and responsive sacrifices as one layout contract.
+	const showSearchInput = $derived(
+		shouldShowMinimalSearchInput({
+			frameWidth,
+			minimalStyle,
+			searchExpanded,
+			tabLabelVisible: showTabsButtonLabel,
+		}),
 	);
 
 	function menuEventFromElement(element: HTMLElement): MouseEvent {

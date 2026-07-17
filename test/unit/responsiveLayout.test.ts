@@ -1,8 +1,10 @@
 import { describe, expect, it } from 'vitest';
 import {
 	explorerDensityProfile,
+	NARROW_LABELED_SEARCH_WIDTH,
 	NARROW_FILES_TOOLBAR_WIDTH,
 	shouldCondenseFilesToolbar,
+	shouldShowMinimalSearchInput,
 	usesMobileExplorerDensity,
 } from '../../src/logic/logicResponsiveLayout';
 
@@ -57,6 +59,57 @@ describe('responsive explorer layout', () => {
 				activeSectionTab: 'tags',
 				frameWidth: 120,
 				manual: true,
+			}),
+		).toBe(false);
+	});
+
+	it('hides an expanded minimal search only after labeled tabs exhaust narrow width', () => {
+		const base = {
+			minimalStyle: true,
+			searchExpanded: true,
+			tabLabelVisible: true,
+		};
+
+		expect(
+			shouldShowMinimalSearchInput({ ...base, frameWidth: 0 }),
+		).toBe(true);
+		expect(
+			shouldShowMinimalSearchInput({
+				...base,
+				frameWidth: NARROW_FILES_TOOLBAR_WIDTH - 1,
+			}),
+		).toBe(true);
+		expect(
+			shouldShowMinimalSearchInput({
+				...base,
+				frameWidth: NARROW_LABELED_SEARCH_WIDTH,
+			}),
+		).toBe(true);
+		expect(
+			shouldShowMinimalSearchInput({
+				...base,
+				frameWidth: NARROW_LABELED_SEARCH_WIDTH - 1,
+			}),
+		).toBe(false);
+		expect(
+			shouldShowMinimalSearchInput({
+				...base,
+				frameWidth: NARROW_LABELED_SEARCH_WIDTH - 1,
+				tabLabelVisible: false,
+			}),
+		).toBe(true);
+		expect(
+			shouldShowMinimalSearchInput({
+				...base,
+				frameWidth: NARROW_LABELED_SEARCH_WIDTH - 1,
+				minimalStyle: false,
+			}),
+		).toBe(true);
+		expect(
+			shouldShowMinimalSearchInput({
+				...base,
+				frameWidth: NARROW_LABELED_SEARCH_WIDTH + 100,
+				searchExpanded: false,
 			}),
 		).toBe(false);
 	});
