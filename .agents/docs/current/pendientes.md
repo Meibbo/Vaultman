@@ -5,8 +5,8 @@ status: active
 parent: "[[docs/work/pkm-ai/index|pkm-ai]]"
 created: 2026-07-09T00:25:00
 created_by: claude-fable-5
-updated: 2026-07-09T00:25:00
-updated_by: claude-fable-5
+updated: 2026-07-10T07:34:22
+updated_by: codex-gpt-5
 tags:
   - agent/current
   - navigation
@@ -20,6 +20,16 @@ tags:
 
 ## 1. HITL — requieren juicio/mano del dev
 
+- [x] **Review catálogo taxonomía** ✅ 2026-07-14 dev OK + corrección aplicada
+      (GP/P/C/GC/AD = **estados posicionales** computados, no kinds; combinables) →
+      cascada DESBLOQUEADA y asignada a Codex (ítem §2).
+      [[docs/work/hardening/research/2026-07-14-goal-taxonomy-alignment/index|catálogo]]
+- [ ] **v1.2 Floating TOC — ejecución**: ✅ FF `dev`→1.1.6 HECHO (`5b0ea994`, local).
+      Restan: push de `dev` (autorización dev) · FTC-001..004 (lane Codex ofrecida por
+      budget; Fable = review/FF) · betas BRAT = HITL dev (device real).
+      Spec: [[docs/work/polish/specs/2026-07-14-v1-2-floating-toc/index|v1.2]] ·
+      issues: [[docs/work/polish/issues/ftc-floating-toc/index|FTC]] ·
+      runbook: [[docs/architecture/policies/release|policy release]].
 - [ ] **PAI-003 icon picker** — juicio visual en plugin-dev.
       [[docs/work/hardening/issues/proto-absorption-icons/index|PAI index]]
 - [x] **cards-37s** ✅ CERRADO por dev 2026-07-09: el gate B2 integrado limpio (32/45/49ms) es
@@ -55,6 +65,15 @@ tags:
       Archivos sueltos ya borrados 2026-07-09.
 
 ## 2. Codex — listas en el room (sin tokens hasta 2026-07-10)
+
+- [ ] **Cascada taxonomía goal (2026-07-14, mailbox enviado)**: ejecutar checklist del
+      [[docs/work/hardening/research/2026-07-14-goal-taxonomy-alignment/index|catálogo]]
+      (glossary=single source, notas fechadas, no big-bang).
+- [ ] **Backlog v1.2 → issues 1.2.x (2026-07-14)**: al cierre de sesión el dev entrega
+      el backlog; triage con vm-backlog-manager hacia
+      [[docs/work/polish/issues/ftc-floating-toc/index|FTC]].
+- [ ] **Lane FTC-001..004 (ofrecida)**: issues AFK-ready; base `dev`=1.1.6 lista;
+      coordinador Fable revisa/FF (budget Fable bajo: 12% semanal).
 
 - [ ] **task_019 — B3**: retirar el enum flat `ExplorerViewMode` de los callers; ViewHost ya
       despacha por `(engine,mode)` resuelto (D-C-8). Aislada, no bloquea P.D.
@@ -127,7 +146,7 @@ tags:
       refactoring policies, vocabulary-first refactors). Output: policy anti-drift para
       agentes + catálogo de deuda de nombres vigente.
 - [x] **Research/harness adversarial** ✅ ENTREGADO 2026-07-10 →
-      [[docs/pkm-ai/research/2026-07-10-adversarial-harness-research/index|adversarial-harness research]]
+      [[docs/work/pkm-ai/research/2026-07-10-adversarial-harness-research/index|adversarial-harness research]]
       (inventario 49 skills/7 policies con huecos por fase · 8 técnicas evaluadas con fuente ·
       propuesta priorizada). **DECISIONES DEV pendientes**: C1 portar Adversarial Pass a
       grill-me/brainstorming/writing-plans · C2 subirlo a policy-level · C3 fix del Stop-hook
@@ -142,12 +161,12 @@ tags:
       mailbox dev→agentes ya funciona hoy vía CLI (`agent-room.ts mailbox send --agent dev
       --to <agente>`); AGENTS.md ya obliga a leerlo en el startup (edit 2026-07-10). Evaluar
       wrapper corto (`pkm msg "..."`).
-- [ ] **⚠️ INVESTIGAR: poda silenciosa bajo `.agents/docs/work/pkm-ai/`** — el research agent
+- [ ] **⚠️ INVESTIGAR: poda silenciosa previa bajo `.agents/docs/work/pkm-ai/`** — el research agent
       escribió sus 4 files ahí DOS veces (write exitoso) y desaparecieron sin error a los
-      segundos; en `.agents/docs/pkm-ai/` (path legacy sin `work/`) sobreviven. Sospechoso #1:
-      mirror/sync Drive+Obsidian del vault conjunto (histórico de mirror-tree/conflict-copies).
-      4º riesgo de pérdida de docs — NO escribir contenido nuevo top-level en ese path hasta
-      resolver; revisar con Obsidian cerrado + Drive pausado.
+      segundos antes de la normalización; sobrevivieron temporalmente en el path legacy
+      y ahora viven en `.agents/docs/work/pkm-ai/`. Sospechoso #1: mirror/sync Drive+Obsidian
+      del vault conjunto (histórico de mirror-tree/conflict-copies). 4º riesgo de pérdida de docs:
+      tratar futuros writes bajo `work/pkm-ai` como regression-test con Obsidian cerrado + Drive pausado.
 - [x] **Deuda de NOMBRES — DECIDIDA en grill NIB 2026-07-10** (ejecución = slices 0/0.5 del
       [[docs/work/hardening/plans/2026-07-06-pd-panel-scene-decomposition/02-nib-slices|shard 02]]):
       convención capa-primero SE MANTIENE; interface **`ProviderContract`** en `typeProvider.ts`
@@ -184,12 +203,12 @@ tags:
       read-only; pageStats refinado: statsProvider configurable = panelExplorer, scope-router =
       widget. Canon actualizado: glossary (Overlay + panel-kind + panelWidget nuevo) + shard 04
       tabla+nota + shard 03 §active-context. Rename del union en código → NIB slice 1.
-- [ ] **Grill corto: Symbiont/ComposedViews al glosario** — el dominio pilar "Symbiont
-      Explorer" NO tiene entrada de glosario (grep architecture = 0 hits); posible
-      superposición ComposedViews/SymbiontViews; hipótesis dev 2026-07-09: la mecánica
-      symbiont aplica a todo panel-kind con nodos/celdas, no solo al explorer. Añadido
-      2026-07-10: reconciliar también el término **viewComposer** ("cards es una config del
-      viewComposer", dev) vs `viewScene`/view-config editor del glossary.
+- [x] **Grill Symbiont/ComposedViews/viewComposer** ✅ RESUELTO grill 2026-07-13/14:
+      **Symbiont Explorer DILUIDO** entre MyWorkspace y MyConfig (ya no dominio pilar);
+      **ComposedViews ≈ VIECO** ("en otro orden"); **viewComposer = VIECO** (spelling
+      fijado; ex-PLPZRR disuelto en LIVRE{HOST,NAVCO,VIECO}). Fuente:
+      [[docs/work/hardening/research/2026-07-14-goal-taxonomy-alignment/index|catálogo taxonomía]]
+      — cascada a glossary pendiente de review dev (ítem HITL abajo).
 - [ ] **Candidato a canon: "index-as-provider"** — todo índice interno (SASI commands/services/
       scripts/gestures · provider-index · fragility registry) expone su propio provider para
       explorarse desde explorers (capacidades Obsidian+Vaultman+plugins como workspace vivo,
@@ -197,7 +216,7 @@ tags:
 
 ## 5. Infra / pkm-ai / higiene docs
 
-- [ ] **S3b doc-health prune** (~123 fails) — necesita ventana coordinada (mayoría en zona codex).
+- [ ] **S3b doc-health prune** (110 fails tras normalizar topología 2026-07-10) — necesita ventana coordinada; es deuda legacy de sharding/timestamps/parents, separada del incidente DriveSync ya limpio.
 - [x] **Untrack `.agents/state`** ✅ 2026-07-09 (`8bc1785`).
 - [x] **session-log.md convención** ✅ 2026-07-09: header enmendado (append al fondo documentado).
       Queda opcional: shard del archivo (>1000 líneas) — Codex/futuro.

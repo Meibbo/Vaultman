@@ -84,6 +84,13 @@ Active design:
    (`sandbox → dev → main`), when to retag, when to update
    `versions.json`/`minAppVersion`, and release notes from CHANGELOG.
 
+> **2026-07-14:** los ítems 3/4/7 quedan operacionalizados en la policy nueva
+> [[docs/architecture/policies/release|release]] (canales alpha/beta/stable + labels,
+> runbook beta→stable, guardas de alphas, rollback/YANKED + caveat BRAT, clean-install
+> + upgrade-path, lanes mobile emulada/real, CHANGELOG). Cierre definitivo al ejecutarse
+> la primera beta `1.2.0-beta.1`
+> ([[docs/work/polish/specs/2026-07-14-v1-2-floating-toc/index|spec v1.2]]).
+
 ## Relationship to the umbrella
 
 Absorbs the user-facing/release half of **R.D (Release Discipline)** from the

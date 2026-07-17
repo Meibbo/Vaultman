@@ -5,17 +5,50 @@ status: active
 parent: "[[docs/work/pkm-ai/index|pkm-ai]]"
 archive_source: docs/archive/pkm-ai/active-docs/2026-05-11T080321-current-handoff.md
 created: 2026-05-04T01:36:20
-updated: 2026-07-08T21:30:00-05:00
+updated: 2026-07-15T07:05:00
 tags:
   - agent/current
 created_by: dec
-updated_by: claude-fable-5
+updated_by: codex-gpt-5
 ---
 
 # Current Handoff
 
 Compact handoff after archiving the oversized current handoff:
 [[docs/archive/pkm-ai/active-docs/2026-05-11T080321-current-handoff|2026-05-11 handoff archive]].
+
+## NEXT AGENT START HERE — v1.2.0-beta.1 corrective batch landed (2026-07-15)
+
+**Estado:** FTC-001→009 están implementados en el worktree compartido
+`C:/tmp/vaultman-v12-ftc001`, rama `v12/ftc-001`. El corrective batch pedido tras la
+revisión manual del dev quedó apilado así:
+
+1. `409b15ed` — FTC-007 Close/Back, collapse scope-aware y Soft Scroll real.
+2. `d9eb4cf0` — FTC-008 Files Tools menu de cinco nodos + Settings IA/copy.
+3. `58193e14` — FTC-009 track unido action+index, curva proto exacta, slide firmado
+   reversible, bottom/plain y cinco subefectos diferidos.
+
+**Lee en orden:**
+
+1. [[docs/work/polish/issues/ftc-floating-toc/index|Issue-set FTC-001..009]].
+2. [[docs/work/polish/specs/2026-07-15-v1-2-beta1-floating-toc-fixes/index|Corrective spec]].
+3. [[docs/work/polish/plans/2026-07-15-ftc-beta1-fixes/index|Plan ejecutado]].
+4. [[docs/architecture/policies/release|Policy release]].
+
+**Gate final:** full unit 70 files / 345 tests; `pnpm run check` 0 errors/0 warnings;
+production bundle, ESLint, Stylelint, targeted Svelte format y diff-check verdes. El
+`format:check` global conserva 18 rojos Svelte preexistentes fuera del diff. Worktree de
+producto limpio. No hubo push, merge, tag, PR ni integración a `dev`.
+
+**Siguiente acción autorizada:** ninguna integración automática. El dev valida
+manualmente el resultado cuando quiera y decide distribución/integración; después
+entrega o prioriza el backlog restante de v1.2/patches. Testing visual, browser/UI,
+Obsidian smoke, screenshots y mobile emulation están **delistados para agentes hasta
+nuevo aviso** y no deben reaparecer como gate o pendiente.
+
+**Gotchas:** two-commit (código pushable / docs local-only) · no incluir `.agents` en
+pushes · Content no tiene árbol · props/tags table/grid conservan la limitación conocida
+del reveal seam · el jump jamás usa DOM query sobre el explorer virtualizado.
 
 ## NEXT AGENT START HERE — P.D tracer 1-3 LANDED + gate integrado verde (2026-07-08)
 
@@ -34,7 +67,7 @@ locales; **push pendiente de autorización del dev**.
   (`select-visible-active-explorer`, `clear-active-explorer-selection`), gated por disponibilidad.
   Review coordinador: contract-faithful, sin dudas contested → FF single-thread.
 - Docs restore `9a56172` — 12 files huérfanos del `reset` 2026-07-06 (reflog `0c29e68..9db3d67`)
-  recuperados: audit codebase-intelligence (8), `api-reference.md`, P112-025, version-streams 04/05/06.
+  recuperados: audit codebase-intelligence (8), snapshot API de Notebook Navigator en `work/hardening/research/2026-06-15-notebook-navigator-api-lupa-addon/sources/`, P112-025, version-streams 04/05/06.
 - **Gate integrado coordinador @ `9a56172`: check 0/0 (1205 files) · unit 178 files / 1303 tests
   0 flakes · build ✓ (synced plugin-dev) · `git diff --check` ✓.** Gates por-worktree previos de codex
   en las entries del session-log 2026-07-06.

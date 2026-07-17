@@ -1,7 +1,7 @@
 filters:
   and:
     - file.ext == "md"
-    - file.inFolder(".agents/docs/work")
+    - file.inFolder("x/Agent Docs/work")
     - file.hasTag("agent/item")
 properties:
   id:

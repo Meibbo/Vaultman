@@ -3,8 +3,8 @@ title: Session Log — append-only timestamped index of agent sessions
 type: agent-journal
 status: active
 parent: "[[docs/current/handoff|handoff]]"
-created: 2026-05-28T00:00:00
-updated: 2026-06-17T15:58:35
+dateCreated: 2026-05-28T00:00:00
+dateUpdated: 2026-06-17T15:58:35
 created_by: claude-opus-4-7
 updated_by: codex-gpt-5
 tags:
@@ -1022,7 +1022,7 @@ broader "append-only status writes" is parked as **S-12** in
 
 - **confirmación de estado (primera acción pedida por dev):** slices 1-2 (`fcf895e`, `18465c2`) NO estaban "en vuelo" — ya estaban FF **y pushed** en `origin/sandbox`; el FF/push `fcf895e`→`18465c2` lo ejecutó codex-gpt-5 (declarado en su entry de slice 3), desviándose de la regla "FF single-thread por coordinador" sin daño material (review propio sin findings). Lo realmente en vuelo era **slice 3** `0359780` (`umbrella-v2/pd-slice3`, C:/tmp/vaultman-pd3), con focal 4f/24t + svelte-check directo 0/0 + build 0 y full-unit omitido por autorización dev. task_013/015/017 ya estaban done en el room.
 - **review + FF slice 3 (coordinador):** diff 332+ revisado contra el contrato locked: router puro sin Obsidian/DOM, puertos selection/projection SOLO tab files (opcionales desde slice 1, forma general `replace/add/remove/toggle`), mediator sigue stateless, hooks con cleanup guardado. Contract-faithful, sin dudas contested → sin grill; FF `18465c2`→`0359780`. **Delta visible único: 2 comandos palette aditivos** (`select-visible-active-explorer`, `clear-active-explorer-selection`), gated por disponibilidad — juicio final del dev pendiente (¿ocultar hasta N3 maduro?).
-- **DATA-LOSS docs detectada y recuperada:** el reflog de `sandbox` muestra `reset: moving to origin/sandbox` que dejó huérfana la cadena local `0c29e68..9db3d67` (7 commits docs, ~9.5k líneas). 12 files NO existían ni en HEAD ni en disco: audit codebase-intelligence (8 files, `.agents/docs/pkm-ai/items/2026-07-06-codebase-intelligence-and-doc-recovery-audit/`), `api-reference.md` (628), P112-025 recovery plan (293), y los shards version-streams **04-proto-v12-vertical-read (2173) / 05-delta-matrix (2437) / 06-promotion-spec (3312)** — la RE-recuperación previa perdida otra vez. Restaurados file-level desde el dangling `9db3d67` → commit `9a56172`. `session-log` y `thread-b-parallel-lanes` ya vivían en HEAD por el lane train. task_016 (embeddings rebuild, codex) recupera sus sources.
+- **DATA-LOSS docs detectada y recuperada:** el reflog de `sandbox` muestra `reset: moving to origin/sandbox` que dejó huérfana la cadena local `0c29e68..9db3d67` (7 commits docs, ~9.5k líneas). 12 files NO existían ni en HEAD ni en disco: audit codebase-intelligence (8 files, `.agents/docs/work/pkm-ai/items/2026-07-06-codebase-intelligence-and-doc-recovery-audit/`), `api-reference.md` (628), P112-025 recovery plan (293), y los shards version-streams **04-proto-v12-vertical-read (2173) / 05-delta-matrix (2437) / 06-promotion-spec (3312)** — la RE-recuperación previa perdida otra vez. Restaurados file-level desde el dangling `9db3d67` → commit `9a56172`. `session-log` y `thread-b-parallel-lanes` ya vivían en HEAD por el lane train. task_016 (embeddings rebuild, codex) recupera sus sources.
 - **gate integrado (Task 5 del plan) @ `9a56172`:** `pnpm install --frozen-lockfile` 0 · **check 0/0 (1205 files)** · **full unit 178 files / 1303 tests PASS exit 0, CERO flakes** (con `VM_NOTEBOOK_NAVIGATOR_ROOT`, `--maxWorkers=3` — la corrida más limpia del tren; los worker-timeouts de las corridas codex no reaparecieron) · **build ✓** (23.4s, synced plugin-dev + stress-vault) · `git diff --check` ✓. Live smoke omitido: tracer sin cambio de render y gates headless verdes (Task 5 Step 2 era opcional).
 - **room/worktrees:** tasks nuevas `task_018` (este cierre, done) · `task_019` **B3 retiro enum flat `ExplorerViewMode`** (Codex, aislada) · `task_020` **deps low residual** `GHSA-73rr-hh4g-fpgx` (`diff` via `mocha` major transitive; Codex). Tasks stale 001-005 siguen in-progress/todo por diseño del tool (status setter exige token del owner codex) — reconciliar cuando codex vuelva. Worktrees C:/tmp: removidos 19 (pd/pd2/pd3/pd-checkpoint/b2/deps/gloss/integrate-codex-lanes/shim-collapse/pa/pa3/pa4/pa5/uv2-nr/uv2-vd/uv2-tracer/eslint-fix/pai-004/scorecard; varios dejaron restos de node_modules borrados con rm posterior — locks Windows). **Conservados con motivo:** `doc-recovery-embeddings` (branch `dev` @ `34fa414` — REVISAR con dev qué es), `main-clean` (dirty `styles.css` real), `uv2-q4`/`pai-001` (dirty solo `.snap` EOL-noise), `uv2-pa` (untracked `plans/2026-06-13-platform-adapter/` que DIFIERE del aterrizado — reconciliar antes de borrar).
 - **next-action:** dev autoriza **push** de `0359780`+`9a56172` · decide siguiente slice P.D (focus/reveal por node-id vs `ActionProvider -> ActionNode` bridge; **grill corto ANTES si ensancha contrato contested**) · lanza Codex sobre task_019/task_020 · HITL: PAI-003 picker · cards-37s idle re-run · P112 reconcile.
@@ -1088,3 +1088,233 @@ broader "append-only status writes" is parked as **S-12** in
 - **acción no destructiva:** se movieron SOLO roots no trackeadas vacías, byte-idénticas, o revisadas como versiones viejas a cuarentena externa `C:\tmp\vaultman-docs-quarantine-20260710`. Incluye `performance (1..3)`, `v1-stable (1..3)`, todas las `pkm-ai (n)` visibles, tres roots fechadas duplicadas exactas, y tres roots fechadas únicas no trackeadas (`2026-05-10-performance-optimizations`, `2026-05-10-shadcn-tailwind-transition`, `2026-05-11-performance-overhaul`) preservadas para rehome/review futuro.
 - **resultado:** `.agents/docs` quedó en 20 roots visibles, 0 roots numeradas, `git status -- .agents/docs .agents/cache .agents/tmp` limpio. `query-docs.ts --rank` sigue respondiendo; el índice no mostró referencias a las rutas cuarentenadas. No se borró contenido ni se movieron roots trackeadas.
 - **pendiente:** decidir la normalización trackeada de roots legacy vs la topología `docs/work/<initiative>` antes de hacer un `git mv` masivo. En particular, `docs/work/pkm-ai` es la ruta política/canónica pero no existe físicamente; mover `pkm-ai/` allí requiere plan de link/Obsidian/retrieval y commit local-only de `.agents`.
+
+## 2026-07-10 — codex-gpt-5 · limpieza DriveSync docs cerrada + embeddings incrementales (update/health medium)
+
+- **canon aplicado:** `AGENTS.md` + `docs/start.md` + `architecture/policies/docs.md` gobiernan la topología. El root físico quedó limitado a `architecture/`, `archive/`, `current/`, `sessions/`, `templates/`, `work/` y a los archivos `start.md`, `index.md`, `Recent Notes.base` (utility Obsidian, no memoria canónica). `draft`, `performance`, `pkm-ai` y `v1-stable` se movieron a `work/`; los roots `polish`, `publish`, `research` y cuatro roots fechadas duplicadas se retiraron porque eran copias exactas de sus destinos canónicos.
+- **conflictos internos:** se eliminaron 47 placeholders `(N)` trackeados de 0 bytes, todos con contraparte canónica no vacía. Treinta copias `(2)` no trackeadas fueron movidas, con ruta relativa preservada, a `C:\tmp\vaultman-docs-quarantine-20260710\internal-conflicts\untracked-copies`; 27 eran idénticas al normalizar EOL y tres eran revisiones anteriores. Cuatro conflict-copies divergentes de `architecture/` se preservaron en [[docs/archive/pkm-ai/drive-conflicts-2026-07-10/index|DriveSync conflict archive]]. El `HANDOFF (1).md` de `archive/.../migration.../raw` quedó intacto como payload histórico.
+- **roots sueltos:** `roadmap-overview.md` volvió a `work/`, como ya exigían sus enlaces; el audit taxonómico de 2026-05-15 + canvas pasó a [[docs/archive/research/2026-05-15-codebase-taxonomy-audit/index|research archive]]; el `api-reference.md` recuperado quedó junto al research Notebook Navigator y se shardió en cuatro partes de 151/143/163/171 líneas sin pérdida de contenido; la copia root P112 se cuarentenó porque el source record más nuevo ya vive en `work/hardening/items/`.
+- **retrieval/embeddings — root cause + TDD:** `embed-docs.ts` ya saltaba hashes sin cambios, pero `index-docs.ts` sobrescribía el retrieval index y borraba los vectores antes de poder reutilizarlos. Test RED reprodujo rename sin cambio de contenido; fix GREEN reconcilia el cache por `contentHash`, conserva vector/modelo/dimensiones solo para `embedHash` vigente y deja sin vector los docs editados. Gate focal: `node --test .agents/tools/pkm-ai/test/retrieval.test.mjs` = 5/5.
+- **prueba incremental real (sync final tras sharding):** `index-docs.ts` generó 973 entradas textuales / 918 retrieval docs y **reutilizó 909 embeddings**; `embed-docs.ts --limit 50` calculó **solo 9** y saltó 909. Estado: 918/918 con vector+embedHash actual, MiniLM 384, 0 rutas legacy/stale. Smokes BM25+semantic devolvieron primero el adversarial harness en `work/pkm-ai/...`; la consulta API devolvió primero el research y sus shards canónicos.
+- **health:** topología, canvas (11 nodes/4 edges, ids únicos, 0 edges colgantes), referencias legacy y `git diff --check` pasan. `check-doc-health.ts` conserva **110 fails legacy** (sharding >300, timestamps con offset y parents antiguos); S3b queda registrado en [[docs/current/pendientes|pendientes]] como iniciativa separada, no como residuo DriveSync.
+- **quarantine/commit policy:** cuarentena completa en `C:\tmp\vaultman-docs-quarantine-20260710`; cambios `.agents` son commit local-only en `sandbox`, sin push/FF. Próximo paso tras cierre: volver al plan original de codebase intelligence/adversarial harness, no a más recuperación física.
+
+## 2026-07-11 — antigravity · README.md badge style tweak + statistics badges + room-ui startup (implement micro)
+
+- **cambio:** ajustado el badge de `downloads@latest` en `README.md` (L11) para que tenga la apariencia del otro de downloads (blanco, `style=for-the-badge` y `label=downloads@latest`). Añadidos badges para `GitHub stars` y `GitHub open issues` en la sección de estadísticas (`style=for-the-badge` y `color=white`). Iniciado el servidor local de la interfaz de la sala (`room-ui`) en el puerto 8787.
+- **verify:** `git diff` verificado y confirmado. Servidor room-ui iniciado en background.
+
+## 2026-07-11 — claude-fable-5 · coordinador · CIERRE de sesión larga (P.D 1-4 + barrido + grill NIB + slices 0/deps listos)
+
+- **LISTO PARA FF (próximo coordinador — bloqueado solo por la contención de main durante la poda Codex):**
+  (1) **`chore/deps-residual`** — código `37210ad8` (pnpm-lock + pnpm-workspace) + docs `1083d24c`. Audit low 1→0 (GHSA-73rr resuelta: **mocha@11.7.6 SÍ tolera diff@8.0.4 — veredicto "unbumpable" REFUTADO con probe**); undici 7.x endurecido a 7.28. Gates: audit/--prod 0 · check 0/0 · unit 178f/1309t · build ✓. Hallazgo: `pnpm.overrides` de package.json = CONFIG MUERTA (manda `pnpm-workspace.yaml`; follow-up: limpiar el bloque muerto).
+  (2) **`nib/slice-0`** — código `deb7b9b0` (60 files, catálogo a-h completo: WorkspaceActionRouter · panelWidget · typeInputRouting · ProviderContract en typeProvider.ts · provider* ×7 · shims borrados · getNodes) + docs `cb23688f`. Gates: check 0/0 (1200) · focal 14f/112t + comp 9f/87t · full unit 178f/1309t CERO flakes · build ✓. Desviaciones del subagente (correctas, en su entry): shims TENÍAN importers en tests (mi "cero importers" era src-only) → re-apuntados antes de borrar · `explorerBasesImport` relocación diferida · test-files provider conservan nombre `explorer*.test.ts`.
+  FF: primero deps (toca solo lockfile), luego slice-0 (rebase; session-log = triple-append conflict, resolver cronológico como el precedente slice-4). Gate integrado post-FF por el coordinador. Worktrees vivos: `C:/tmp/vaultman-nib0` y `-deps2` (conservar hasta FF).
+- **Room:** task_020 + task_022 done (subagentes claude-sonnet). Quedan: 023 slice 0.5 (GATEADA por FF slice-0) · 024 slice 1 · 019 B3 (serial post-slice-0) · 025 auditoría (dossier LEER PRIMERO) · 001-005 stale (token codex).
+- **Mini-grill shape ActionNode ABIERTO:** shard 03 del plan P.D con tabla + Q-SH-1..6; **Q-SH-1 espera respuesta dev** (¿TreeNode<ActionMeta>? REC sí).
+- **Incidente propio (lección):** el coordinador lanzó un codemod sobre `vaultman-nib0` creyendo muerto al subagente (límite mal leído: 1:30pm era de HOY, ya pasado) — colisión con subagente ACTIVO evitada solo porque el codemod abortó en su primer `git mv`. Regla: antes de intervenir el worktree de un subagente, verificar actividad (mtime/командos recientes) y matarlo formalmente primero.
+- **Esta entry queda UNSTAGED a propósito** (main tiene 571 files de la poda Codex + session-log staged ajeno — no se pisa; el próximo commit de docs la recoge).
+- **next-action:** dev responde Q-SH-1 · FF deps+slice-0 cuando main se libere · Codex: 023 tras slice-0 · push: nada pusheable (política docs-local; el código sube con los FF, esquema de push del intercalado PENDIENTE de decisión dev).
+- **git:** sin commits nuevos en este cierre; ramas listas: `chore/deps-residual` @ `1083d24c` · `nib/slice-0` @ `cb23688f`.
+
+
+## 2026-07-14 — claude-fable-5 · grill+docs · v1.2 Floating TOC kickoff (polish) + enmienda D4 + policy release + catálogo taxonomía goal
+
+- **Pedido dev:** implementar el Niagara Index del proto como "floating toc" en una v1.2 del main stream (base 1.1.6, trabajo en `dev`, betas mobile), + toolbar toggle + save-config + sección settings; proponer pipeline entendimiento→betas→release.
+- **Research (4 subagentes read-only):** (1) anatomía proto-v12 (`explorer.jsx` L83-285, CSS `.vm-nia-*`, contrato de grupos/glifos, lista de efectos, mandato "no DOM-query jumping"); (2) anclajes 1.1.6 vía `git show` (greenfield; view-menu/toolbar/frame/settings/scroll/estado volátil); (3) workflow beta en docs = **GAP** (1.1.1 y 1.1.6 salieron stable-directo; ciclo beta+BRAT real solo en 1.1.0; mecanismo prerelease vivo en `release.yml` de dev); (4) release-discipline online con fuentes (semver 11.4, keepachangelog, DORA small-batches, canales Chrome/Firefox/VSCode/Obsidian/Minecraft/Factorio, Spolsky/strangler/Caudill/Python2→3, BRAT guide + caveat no-auto-jump, emulateMobile límites).
+- **Grill cerrado (locks dev):** enmienda D4 (1.x sigue con feature-minors; no hard-sunset; registrada en umbrella 01) · carve-out D-NIB-3 (bar persistente=panelWidget · rail flotante asistivo=overlay surface; CSS nunca decide tier) · árbol dominios MyWorkspace{WASA{WIR·WAR·WOW}·LIVRE{HOST·NAVCO·VIECO}·PVPUI(+UCV)} / MyConfig{PSS·LUPAPI·SASI} (+MyTools candidato; **Symbiont DILUIDO**; ComposedViews≈VIECO; NIB muere como nombre) · surface-kinds PVPUI (adapted incl. cmenu/codeblock, reemplazables por PSS; underlay nuevo) · GC=hoja terminal (enmienda a shard 02) · AD reclasifica (condición externa config/state) · action node-vs-cell = UN dominio ActionNode, hosts referencian · PSS tri-config (router/view/space) · efectos niagara = opción off-default (minimal=estático) · toolbar toggle en view-menu+settings · save-config = snapshot manual · scope option diferida.
+- **Docs escritos (9 nuevos + 8 edits):** catálogo `work/hardening/research/2026-07-14-goal-taxonomy-alignment/` (cascada GATEADA por review dev) · spec `work/polish/specs/2026-07-14-v1-2-floating-toc/` (index + 01-anchors) · issues `work/polish/issues/ftc-floating-toc/` (index + FTC-001..006) · policy `architecture/policies/release.md` (canales/labels/runbook/YANKED/caveat BRAT/clean-install/lanes mobile/DORA-lite/no-sunset; cierra publish items 3/4/7) · edits: umbrella 01 (enmienda D4) · roadmap-overview (nota pipeline) · publish/index · polish/index · 02-nib-slices (nota WIR/WAR) · pendientes (cierre Symbiont/viewComposer + 2 HITL nuevos) · status/handoff (LATEST + NEXT AGENT).
+- **Verificaciones puntuales:** plugin `advanced-debug-mode` v1.9.8 (mnaoumov) confirmado en plugin-dev (`isDesktopOnly:false`) · sandbox HOY = nombres pre-split (`typeActionRouting.ts`/`serviceWorkspaceInputRouter.ts`); `nib/slice-0` @ `deb7b9b0` ejecutada, FF pendiente, targets ya alineados WIR/WAR · dev branch 57 behind / 0 ahead de origin/main.
+- **Room/entorno:** presence join+heartbeat OK; `scope claim` FALLÓ (exige `--task <id>` de una task existente del room — no había; reportado aquí en vez de omitirse). **Docs SIN COMMIT** a propósito: el checkout arrastra staged ajeno de la poda Codex (precedente cierre 2026-07-11); el próximo commit de docs los recoge.
+- **next-action:** dev revisa catálogo → cascada glossary/norte/explorer-model · FF `dev`→`origin/main` + autorización de push · FTC-001 en worktree `C:/tmp/vaultman-v12-ftc001` · betas per policy release.
+
+## 2026-07-14 — claude-fable-5 · cierre parcial · catálogo aprobado + FF dev→1.1.6 + handoff Codex (budget)
+
+- **Review catálogo: dev OK** con corrección aplicada: GP/P/C/GC/AD = **estados posicionales** computados y combinables (P y C a la vez; GP/GC = extremos; AD quita el estado GC del padre y puede ser GC él mismo), NO kinds — node-kinds quedan action/data/container. Corregidos catálogo + FTC-006.
+- **FF `dev` → `origin/main` EJECUTADO**: `33d9d23`(1.1.1) → `5b0ea994`(1.1.6), local sin push (aclarada al dev la dirección: dev se ADELANTA hasta main; nada baja).
+- **Handoff a Codex por presupuesto** (dev: 35% semanal total / 12% Fable; backlog aún no visto): mailbox enviado a codex-gpt-5 con (1) cascada taxonomía (checklist en el catálogo), (2) triage backlog v1.2 → issues 1.2.x al cierre de sesión con el dev, (3) lane FTC-001..004 ofrecida (issues AFK-ready; Fable = coordinador/review). Pendientes §1/§2 y handoff actualizados.
+- **next-action:** Codex ejecuta cascada + espera backlog del dev · FTC-001 cuando el dev asigne ejecutor · push `dev` cuando el dev autorice · betas BRAT = HITL dev.
+
+## 2026-07-14 — codex-gpt5-ftc001-review · review read-only · FTC-001 static rail
+
+- **Scope:** review del diff no committeado en `C:/tmp/vaultman-v12-ftc001` sobre base `5b0ea994`; sin edits de producto, commit, push, merge ni smoke live.
+- **Hallazgos:** 0 Critical; Important: rail recorta grupos por `overflow:hidden` en altura restringida/mobile; glifos estáticos expuestos como botones focusables sin acción; dos rewrites Prettier ajenos rompen source guards (`explorerProps` checkbox y `i18n/es`); tests nuevos no cumplen el gate component/reactividad/mobile porque ejercitan prototipos y raw-source.
+- **Verificación:** focal FTC 2 files/16 tests PASS; `pnpm run check` 0/0; lint PASS; stylelint PASS; diff-check PASS; Svelte autofixer nuevo componente `issues:[]`; full unit en el estado revisado FAIL por source guards de formato (coordinador confirmó 65/67 files, 293/295 tests); format-check conserva deuda preexistente en 20 Svelte files. Build omitido porque el script escribe artefactos y el encargo era read-only.
+- **Room:** task `task_028` y scope `session-log.md` reclamados para este cierre; liberar claim y dejar room tras append.
+- **next-action:** restaurar solo rewrites Prettier ajenos; reparar clipping/mobile y semántica de controles estáticos; sustituir source guards por prueba montada de tab/re-render/cleanup y constrained-height antes de cerrar FTC-001.
+
+## 2026-07-14 — codex-gpt-5 · implement · FTC-001 static floating TOC code closure
+
+- **Recuperación:** inspeccionado el worktree huérfano `C:/tmp/vaultman-v12-ftc001` (`v12/ftc-001`, base `5b0ea994`); Claude había dejado implementación sustancial sin commit ni gates. El cierre corrigió Unicode astral/expansiones uppercase en grouping, orden real de Props y Files/table, y cleanup de callbacks reactivos al reemplazar panel bindings.
+- **Implementación:** rail estático off-by-default para Files/Props/Tags; Content excluido; setting+i18n; snapshots L1 exactos por panel; agrupación pura locale/numeric con fallback `#`; overlay dentro de `vaultman-pages-viewport`; wrapper deja pasar pointer events fuera del rail. El review independiente detectó y se corrigió clipping por `overflow:hidden`: el rail ahora usa overflow vertical contenido y conserva todos los grupos en altura restringida. Los glifos FTC-001 ya no son botones focusables sin acción: usan semántica estática `role=list/listitem`; FTC-002 conserva ownership exclusivo del jump.
+- **TDD/review:** RED reproducido para Unicode, orden Props, cleanup de callback, orden Files/table, semántica estática y altura restringida; GREEN final. Review read-only separado reportó 0 Critical y cuatro Important; se resolvieron los dos defects funcionales y se restauró todo churn Prettier ajeno que rompía source guards. El repo no tiene harness DOM para montar `.svelte` en unit; se preservó cobertura conductual de lógica/accesores + source guards de integración/semántica/overflow. Svelte autofixer final: `issues:[]`, `suggestions:[]`.
+- **Gates finales sobre contenido committeado:** full unit serial `67 files / 296 tests PASS`; `pnpm run check` = TypeScript + Svelte `0 errors / 0 warnings`; `pnpm run build` PASS y sync test build; ESLint PASS; Stylelint PASS; scorecard `17 checks PASS`; `git diff --check` PASS salvo avisos CRLF. El `format:check` global conserva deuda preexistente de 20 `.svelte`; no se expandió el diff para corregirla.
+- **Política dev nueva (explícita, 2026-07-14):** testing visual/UI, smokes de Obsidian, `emulateMobile` y automatización visual quedan **delistados para agentes hasta nuevo aviso** y son responsabilidad exclusiva del dev. Se abortó ese gate como requisito del agente y se restauró el estado temporal desktop + `floatingTocEnabled=false`.
+- **Commit local code-only:** `8050bb2b feat(explorer): add floating toc rail` en `v12/ftc-001`; worktree limpio; sin `.agents`, push, merge, FF, PR ni cleanup del worktree.
+- **next-action:** dev hace validación visual manual cuando lo considere; después el coordinador decide integración de `8050bb2b` y toma FTC-002. Backlog v1.2 actualizado sigue pendiente de entrega/triage con el dev.
+
+## 2026-07-14 — claude-fable-5 (opus-4-8) · implement · FTC-002 reveal-seam LANDED
+
+- **Contexto:** dev canceló mi ejecución manual de FTC-001 (codex ya lo commiteó `8050bb2b` en el worktree compartido `C:/tmp/vaultman-v12-ftc001`, rama `v12/ftc-001`); dev me pasó "las siguientes".
+- **FTC-002 `33e8741d`** (apilado sobre 001): `services/routerFloatingToc.ts` = `FloatingTocRouter` WAR-shaped (`invoke('reveal-node',id)`, razones tipadas `missing-reveal-port`/`reveal-rejected`, puerto = panel activo) — shape-twin del `WorkspaceActionRouter` de sandbox (P.D slice 4) → port v2 = move. `revealNode(id)` en los 3 paneles: tree→`scrollToId(id,'start')`, files table/grid→`scrollToPath`; props/tags table/grid rechazan limpio (NodeTableView sin scroll-to). Rail: spans→buttons con `onJump(firstId)`; wiring del puerto por tab en `VaultmanFrame` ($effect setPort/cleanup). CSS item→interactivo.
+- **Gates:** check 0/0 · lint ✓ · build ✓ · stylelint ✓ · **full unit 68f/304t** · scorecard 17 · autofixer `issues:[]`. Tests nuevos: `routerFloatingToc.test.ts` (5) + guards 002 en `floatingTocSource.test.ts`.
+- **Incidente resuelto:** mi `prettier --write` sobre los `.ts` reformateó de más (repo NO hace `format:check` sobre `.ts`, solo `.svelte`) y rompió un source-guard ajeno (`explorerPropsContextMenuSource`) — revertí los 3 `.ts` a `8050bb2b` y re-apliqué solo `revealNode`. `format:check` está RED en 22 `.svelte` ajenos YA en `8050bb2b` (known-ajeno de la línea; mis 2 `.svelte` sí quedaron limpios, incl. VaultmanFrame que codex dejó sucio).
+- **Adversarial pass:** 1 limitación real documentada (click muerto en props/tags table/grid; sin bug de correctitud) → candidato patch 1.2.x. Sin otros hallazgos (lifetimes del puerto, offscreen jump, empty/single group, leaks = OK).
+- **Pendiente:** smoke vivo plugin-dev + emulateMobile (no corrido, budget) → HITL dev / beta.1. FF `v12/ftc-001`→`dev` sin hacer (sin push, autorización dev). FTC-003/004 sin empezar.
+- **next-action:** dev decide 003/004 = fable (budget bajo) vs codex (100%). Tracker actualizado: [[docs/work/polish/issues/ftc-floating-toc/index|FTC index]].
+
+## 2026-07-14 (cont.) — claude-fable-5 · deploy fix + FTC-002 polish
+
+- **Root cause del "click no hace nada"**: nunca sincronicé el build a plugin-dev — el dev probaba el build de codex (001 estático, `reveal-node` count=0 en main.js). Corrí `build:plugin` (sin sync) en vez de `build` (que corre `sync-test-build.mjs`). Corregido: `pnpm run build` → synced + `plugin:reload id=vaultman`.
+- **DOM smoke plugin-dev VERDE**: 15 buttons (tag BUTTON), click glyph 'W' → `.vaultman-files-tab-content` scroll 0→1246. `dev:errors` limpio. (El scroller real es `.vaultman-files-tab-content`, no el virtual-viewport.)
+- **2 fixes `ab2465e7`**: (1) `indexKeyFor` salta sigilos iniciales → `+maps`→M, `_templates`→T (antes todos a `#`; reportado por dev "se saltaba los folders"); `#` solo para labels sin ningún glyph alfanumérico. (2) rail wrapper `right 2px→12px` para librar el scrollbar del explorer (dev: "aparece sobre el scrollbar"). Gates: check 0/0 · full unit 68f/305t · stylelint. Test sigil añadido.
+- **Rama `v12/ftc-001`**: `8050bb2b`(001) → `33e8741d`(002) → `ab2465e7`(fixes). Sin FF/push.
+
+## 2026-07-14 (cont.2) — claude-fable-5 · FTC-002 fix orden/glyph + rediseño TOC pendiente (grill)
+
+- **2 defectos corregidos `ccb26349`** (deployed+reload): (1) el TOC imponía orden alfabético → ahora sigue el **orden visible del explorer** (reacciona a asc/desc y a folders-first por construcción); (2) revertido el strip-sigil de `ab2465e7` → **primer glyph LITERAL** (`_`,`+`,dígitos tal cual, en orden de aparición); sin bucket `#`, nodos sin nombre se saltan. Smoke: glyphs `+CS_AHMNOPRTUVWY`, click `_`→scroll. focal 25 · check 0/0.
+- **REDISEÑO pedido por dev (grill pendiente, NO codeado) — eleva FTC-002/003/006:**
+  1. **files-vs-folders**: L1 hoy mezcla folders+files (folders-first) → "click c → folder caro" + glyphs duplicados. Dev quiere indexar UNO u OTRO. Variaciones a cubrir (surveyadas): tree+parentsFirst · tree mixto · flat (files-only) · table/grid (files-only).
+  2. **Propuesta dev (unificadora)**: primer nodo del TOC = **toggle** (como el toggle de search) que alterna files↔folders; **long-press** = elegir un nodo cualquiera para indexar los de SU nivel (L2+). = scope drill = FTC-006 (deferred) + modelo WAR action_node/NAVCO.scope del catálogo goal → shape debe ser twin de v2 (grill antes de codear).
+  3. **glyph = f(sortAxis)**: index por primer-char solo tiene sentido con sorts char (name/path/ext); mtime/ctime/count → el primer char del label es ruido (¿ocultar rail? ¿buckets fecha/número?).
+  4. **números/`#`**: con char-literal ya indexan por dígito; `#` como normalización = opción, no norma.
+  5. **appearance config** (settings): dev vio flip muted(transparente)→normal(sólido) = color default `--text-muted` + hover `--text-normal`, no restyle intencional; dev quiere control desde settings.
+  - Recomendación: grill corto (decisiones 1-3 tocan contrato scope locked) → codex construye (budget Fable bajo).
+
+## 2026-07-14 (cont.3) — claude-fable-5 · FTC toggle files/folders + scope drill (FTC-006 elevado a v1.2)
+
+- **Decisiones dev grill:** toggle files↔folders EN v1.2 · rail solo sorts de texto · scope drill (long-press) EN v1.2 = gesto WIR→WAR. Budget reset (sin límite).
+- **`5c776f28`** (rama `v12/ftc-001`): reshape del modelo de datos del rail. `logicIndexGroups.ts`: `IndexNodeRef.isContainer` + `indexLevel(roots,rootId,isContainerFn)` (proyecta L1 o hijos de un nodo). Paneles files/props/tags: `getIndexNodes(rootId)` · `isIndexableSort()` (name/path/ext) · `expandNodeById(id)` · `_lastRenderTree`; `revealNode` adaptado (files 3 modos; props/tags tree). `routerFloatingToc.ts`: interface `FloatingTocPanel` (twin de PanelHandle). `VaultmanFrame`: scope state `tocKind/tocRootId/tocPickMode` + `tocGroups` derivado (filtra por kind) + `tocAvailable` (sort-gate) + **pick listener** capture-phase que lee `data-id` de la fila y setea root + auto-expand. Componente: toggle (icono folder/file, long-press 500ms→enterPick, click→flip) + reset (corner-left-up cuando scoped) + glyph buttons; CSS toggle/reset/is-picking; i18n en/es.
+- **Smoke plugin-dev VERDE:** toggle default 'folders'=`+CS` → flip 'files'=`_ACHMNOPRSTUVWY`; long-press→pick-mode (outline)→click folder `+`→rail indexa hijos `+912ABC…鈴` (incl. CJK literal); reset→L1; jump scrollea; `dev:errors` limpio. Gates: check 0/0 · lint · stylelint · **full unit 68f/303t** · build.
+- **Rama:** `8050bb2b`(001) → `33e8741d`(002) → `ab2465e7`+`ccb26349`(fixes orden/glyph/scrollbar) → `5c776f28`(toggle+drill). Sin FF/push. FTC-006 cerrado (elevado). Restan FTC-003 (view-menu) · FTC-004 (save-config) · FTC-005 (efectos) · appearance-config (pedido dev, sub-sección settings).
+- **Limitación:** props/tags table/grid = click sin scroll (NodeTableView sin scroll-to). **Shape v2** documentada: port = move.
+
+## 2026-07-14 (cont.4) — claude-fable-5 · FTC batch feedback: content crash + drill/toggle refinements
+
+- **CRASH content tab RESUELTO `524c30c0`**: root cause = pick-mode en un `$effect` que LEÍA y ESCRIBÍA `tocPickMode` → `effect_update_depth_exceeded` (loop de flush) al cambiar a content. Diagnóstico: bisect empírico (ccb26349 responde `2+2`=4 → lo introdujo el toggle-commit; deshabilitar reset/pick effects aisló el pick; instrumentación con throw confirmó `effect_update_depth_exceeded`). Fix: lifecycle del listener IMPERATIVO (attach/detach desde el gesto + cleanup en reset/unmount), sin `$effect` auto-referencial; bump de render coalescido con microtask. Verificado: content responde tras switch, dev:errors limpio.
+  - NOTA método: los evals CLI con Promise+setTimeout anidado dan FALSO-VACÍO (no hang); confirmar responsividad SIEMPRE con `eval 1+1` directo, no por eval vacío.
+- **Batch refinements `c02b18e2`** (6 ítems dev): (A/B) toggle/drill tree-only — table/grid solo glyphs; files-tree=toggle files/folders; props/tags-tree=botón drill (files/folders no aplica) vía `supportsKindToggle`/`supportsDrill`. (F) drill indexa el NIVEL del nodo picado (children del parent vía `findParentId`/`scopeRootForNode`) → picar un child ya no vacía el index. (C) decoración pick-mode = faint (no accent). (D) "Floating index" on/off = sección con dividers entre engine-selectors y cell-switches del view-menu (verificado: `Tree·Table·Grid │ Floating index │ Icon·…·Nested │ ADD mode`). (E) tooltips vía `setTooltip` de Obsidian (sin `title` de browser) — fix doble-hover en glyphs del rail + filas/badges del explorer (viewTree).
+- **Gates:** check 0/0 · lint · stylelint · **full unit 68f/303t** · build. Tests: `findParentId`/`indexLevel` cubiertos; source-guards + obsidian-stub (`setTooltip`) + viewTreeBehavior mock actualizados.
+- **Rama `v12/ftc-001`**: `…5c776f28` → `524c30c0`(crash) → `c02b18e2`(batch). Sin FF/push.
+- **Verificación pendiente HITL (gestos/menú difíciles por CLI)**: drill dentro de carpeta expandida (picar child→nivel), color faint en pick, tooltip único, table sin toggle, popupView (no-minimal) sin el ítem index aún (solo native menu). Restan FTC-003 (toolbar toggle + save en view-menu) · FTC-004 (save-config) · FTC-005 (efectos) · appearance-config settings.
+
+## 2026-07-14 (cont.5) — claude-fable-5 · toc scope-aware toggle + FTC-003 toolbar on/off
+
+- **`296c8b52`**: (1) FIX toggle scope-aware — el toggle files/folders solo aparece cuando el NIVEL actual del index tiene AMBOS (folders Y files); nivel homogéneo (solo files/solo folders, ej. tras drillear a carpeta sin subfolders) → drill simple + indexa todo (antes: folders-mode vacío). `tocKindToggle` = supportsKindToggle && level.some(container) && level.some(leaf). (2) FIX borde dashed pick-mode → faint (era accent; el usuario lo había pedido y quedó pendiente). (3) FTC-003 toolbar on/off: setting `showToolbar` (default true) + item "Toolbar" en la sección del view-menu (Toolbar · Floating index entre engines y cells) + gate del NavbarFilters en pageFilters + toggle en settings (restore path). Verificado: `filtersNavbar=0` al ocultar; menú = `Tree·Table·Grid │ Toolbar·Floating index │ Icon·…·Nested │ ADD mode`. Nota: statistics/ops pages tienen su propio navbar (no gateado — la "toolbar" del usuario = la del explorer/filters).
+- **Gates:** check 0/0 · lint · stylelint · full unit 68f/303t · build.
+- **Rama `v12/ftc-001`**: `…c02b18e2 → 296c8b52`. Sin push. Restan FTC-003 save-config item (= FTC-004 persistencia) · FTC-004 · FTC-005 efectos · appearance-config · popupView parity (índice/toolbar solo en native menu por ahora).
+
+## 2026-07-14 (cont.6) — claude-fable-5 · toolbar auto-hide + instant toggle + FTC-003/004
+
+- **`d06d48ca`** — (1) **Toolbar auto-hide**: ya no es literal; oculto = se desliza fuera del frame (`translateY(-110%)`, sticky height:0 = espacio reclamado) y **peek** al hover del borde superior (zona sticky 10px → `is-peeking` → `translateY(0)` + shadow). Toggle **movido al cmenu de TABS** (sección propia al final), fuera del view-menu. (2) **Delay del floating-toc RESUELTO**: `saveSettings` ahora notifica ANTES de `saveData` (UI optimista) + el frame posee `floatingTocEnabled` como `$state` y persiste vía `saveData` quiet (sin remount de `pageRenderKey`) → toggle instantáneo. (3) **Toggle scope-aware** (corrección): el toggle files/folders solo aparece si el NIVEL actual tiene AMBOS kinds; homogéneo → drill simple + indexa todo (antes: folders-mode vacío al drillear a carpeta sin subfolders). (4) borde dashed pick-mode → faint.
+- **`213baaef` FTC-004**: "Save view config" (sección view-menu) snapshotea viewMode+cells+sort por tab a `settings.viewConfigByTab`; navbarFilters **rehidrata** en mount (init desde saved) → sobrevive reloads/remounts. Sección settings "Saved view config" (lista tabs + clear). Persistido quiet. Verificado: set files=table+sort ext → reload → explorer restauró table (`filesTable:true`).
+- **Verificación DOM**: tabs-menu = `…│ Toolbar`; view-menu = `Tree·Table·Grid │ Floating index · Save view config │ Icon·…·Nested │ ADD mode`; auto-hide navbar `-77px` oculto / `0`+shadow en peek; save→reload restaura.
+- **Gates:** check 0/0 · lint · stylelint · full unit 68f/303t · build. Rama `v12/ftc-001`: `…296c8b52 → d06d48ca → 213baaef`. Sin push.
+- **FTC-003/004 CERRADOS.** Restan: FTC-005 efectos niagara · appearance-config settings · popupView parity (view/tabs items solo en native/minimal menu) · statistics/ops navbars no auto-hide (solo el del explorer). Nota: notify-first en saveSettings = cambio global (todos los toggles ahora instantáneos).
+
+## 2026-07-14 (cont.7) — claude-fable-5 · toc feedback batch (6 ítems) + FTC-005
+
+- **`0bd21c48`**: rail **sobre el scrollbar** de nuevo (right 2px); **toggle files/folders y scope-drill SEPARADOS** en dos nodos del rail (toggle arriba, drill abajo; sin long-press); **content label** reacciona a `filtersShowTabLabels` (antes hardcoded).
+- **`adfc046c`+`7badc5c5`**: **index on/off movido del view-menu al TABS menu** (bajo Queue); Statistics bajo su propio divider; view-menu conserva solo el config. Source-guard actualizado.
+- **`e238a36b`**: **layouts nombrados** (rework FTC-004→presets). View-menu item **"Config"** (tuerca) → submenu: "Save layout" (prompt nombre + snapshot con summary caveman `files table·ext↑ · props tree·name↑ · …`) | divider | nombres de layouts → click carga. Settings lista layouts + delete. `viewConfigByTab`→`savedLayouts[]`.
+- **`9cf8cf68` FTC-005**: opción **"Niagara effects"** (off-default): al arrastrar por el índice, magnify gaussiano del glyph bajo el puntero (`scale` hasta 1.8x) + glow (`is-scrub-active`) + live-scrub (jump). Off = estático (preset minimal). **Diferidos**: name-pill, off-side drag/HWM, haptics, pila vertical de letras. Verificado DOM: scrub → glyph activo `scale(1.8)` + clase glow.
+- **Gates (cada chunk)**: check 0/0 · lint · stylelint · **full unit 68f/303t** · build. Rama `v12/ftc-001`: `…213baaef → 0bd21c48 → adfc046c → 7badc5c5 → e238a36b → 9cf8cf68`. Sin push.
+- **FTC-001..006 CERRADOS.** Restante roadmap: sub-efectos niagara diferidos · popupView parity (items solo en native/minimal menu) · statistics/ops navbars sin auto-hide. Nota: `saveSettings` notify-first (global) + toc toggle vía `saveData` quiet = sin remount.
+- **HITL (gestos/submenus/modales difíciles por CLI)**: submenu Config (Obsidian abre en hover real) · save-layout modal · niagara scrub feel/perf en device · toolbar peek.
+
+## 2026-07-14 (cont.8) — claude-fable-5 · fixes + Style Config + FULL Niagara port
+
+- **`eee7ed31`**: toolbar menu-item checkmark refleja `showToolbar` (era hardcoded on); save-layout actualiza la lista del submenu al instante (mirror `$state`, sin reload); rename settings "Saved view config" → "View Config".
+- **`0011b297`**: sección **Style Config** que agrupa los settings visuales (preset de estilo, blur, tab labels, highlights, badges, toolbar, dock); toggle minimal → **selector de preset** (Minimal default / Experimental). (Aclaración dev: Style Config = sección de settings; el CSS del proto = opción aparte abajo.)
+- **`3d86f57c` FULL NIAGARA PORT** (proto explorer.jsx L83-285 + CSS + control-island opts): magnify gaussiano · perp finger-pull · spread vecinos · off-side drag/high-water-mark · **engage gate** (tap=jump, hold/drag=scrub) · glow radial · **name cell** por grupo (via nuevo `IndexGroup.firstLabel`) con pila vertical de letras + reveal falloff + name-pill · haptics. **Opciones en settings** (todas las del control-island): position (right/left/top/bottom), glyph mode (letter/name), label mode, reveal range, glow, name order, name pill, hard jump, + **plain style** (glyphs sin caja, F) + **nodes join scrub** (E, default off). Efectos independientes del preset. Verificado DOM: scrub → `scale(1.5)` + `translateX(-40)` (perp) + name cell "calo" + glow opacity 1.
+- **Gates**: check 0/0 · lint · stylelint · **full unit 68f/303t** · build. Rama `v12/ftc-001`: `…0011b297 → 3d86f57c`. Sin push. **FTC-001..006 + niagara completo CERRADOS.**
+- **Nota fix**: `engaged` debía ser `$state` (si no, el name cell no re-renderiza al activarse el hold-timer).
+- **HITL device**: feel/perf del scrub completo (perp/spread/HWM/haptics), name-pill, posiciones left/top/bottom, plain style — mejor a mano. **Sesión MUY larga (~25 commits sin push)** → checkpoint recomendado.
+
+## 2026-07-15 — codex-gpt-5 · implement · v1.2.0-beta.1 corrective FTC-007→009
+
+- **Ruta:** worktree `C:/tmp/vaultman-v12-ftc001`, branch `v12/ftc-001`, base externa
+  preservada `8aa28e25`; checkout principal usado solo para memoria `.agents` local.
+- **FTC-007 `409b15ed`:** Close/off literal primero; Back de un nivel; eventos tipados
+  `collapse-node`/`collapse-all` reconcilian scope por panel; `tocHardJump` sustituido
+  por `tocSoftScroll` off-default y `ScrollBehavior` llega a router/panel/vistas.
+- **FTC-008 `d9eb4cf0`:** `toolbarToolsMenu` off-default; Files proyecta
+  Tabs·View·Sort·Search·Tools; cmenu nativo conserva auto-reveal y expansión; View
+  Config movido justo debajo de **Operations Presets**. El orden de Settings depende de
+  la secuencia literal de `new Setting(...)` dentro de `VaultmanSettingsTab.display()`.
+- **FTC-009 `58193e14`:** `logicNiagaraTrack.ts` congela sigma/Gaussian/tanh del proto,
+  orden de acciones, clamp, target map, supresión de click y shift firmado; join on
+  renderiza Close·Toggle·Drill·Back y grupos en un mismo track; actions solo se ejecutan
+  por tap rápido, nunca al cruzarlas durante scrub; navegación de grupo se deduplica;
+  HWM eliminado y slide reversible; bottom/top centrados y con origins espejados; plain
+  cubre actions+index. Name Pill, Scrub Glow, Name Cell, Name Reveal y Name Letters
+  salen de Settings y quedan force-off/dormidos en runtime beta.
+- **Name Pill aclarado:** no era capacidad independiente; solo decoraba con padding,
+  fondo, shadow y blur una Name Cell ya visible. Sin Name Cell no tenía target, por eso
+  parecía no hacer nada.
+- **TDD/gates finales:** RED observado para módulo puro ausente, joined/source contracts,
+  action-map/suppression y action-order/clamp; GREEN integrado = 70 unit files / 345
+  tests. `pnpm run check` 0/0; bundle productivo in-memory, ESLint, Stylelint, Svelte
+  autofixer `issues:[]`, targeted Prettier y diff-check verdes. `format:check` global
+  sigue rojo solo por 18 `.svelte` preexistentes fuera del diff.
+- **Policy dev:** visual/UI/Obsidian smoke/screenshots/emulateMobile delistados hasta
+  nuevo aviso; no se ejecutaron ni se registran como gate. Dev conserva validación
+  manual. Sin push, merge, tag, PR ni sync plugin-dev; worktree product limpio.
+- **next-action:** dev prueba manualmente cuando quiera y decide integración/distribución
+  de beta.1; luego se triagea el backlog restante. No trabajar 1.1.6 sin aviso explícito.
+
+## 2026-07-15 (cont.) — codex-gpt-5 · implement · build + sync plugin-dev
+
+- Ejecutado `pnpm run build` en `C:/tmp/vaultman-v12-ftc001`, rama `v12/ftc-001`
+  @ `58193e14`: TypeScript no-emit, bundle productivo y `sync-test-build.mjs`
+  terminaron con exit code 0.
+- Sincronizados `main.js`, `manifest.json` y `styles.css` tanto a `dist/build` como a
+  `C:/Users/vic_A/Desktop/plugin-dev/.obsidian/plugins/vaultman`.
+- Verificación binaria SHA-256: los tres artefactos de `dist/build` y `plugin-dev`
+  coinciden exactamente con sus fuentes del worktree. `main.js` =
+  `840F5648CB316EC4303BD24AA0643C870ED69CC80C41EC342005176338CCCC71`.
+- Worktree de producto limpio. No se ejecutó testing visual/UI/Obsidian por instrucción
+  del dev; sin commit, push, merge, tag ni PR adicionales.
+
+## 2026-07-15 (cont.2) — codex-gpt-5 · release · `1.2.0-beta.1` en `dev`
+
+- **Metadata:** preservado el bump concurrente de `package.json` y completados
+  `manifest.json`, `versions.json` y `CHANGELOG.md`; versiones alineadas en
+  `1.2.0-beta.1`, `minAppVersion=1.12.0`. Commit code-only
+  `c3455400 chore(release): prepare 1.2.0-beta.1` sobre `v12/ftc-001`.
+- **Gate feature:** `pnpm run verify` verde — lint · check 0/0 · format · Stylelint ·
+  bundle · 70 unit files / 345 tests · Scorecard 17; `pnpm run security:audit` =
+  cero vulnerabilidades de producción. Los 18 Svelte heredados eran solo checkout
+  CRLF en Windows; Prettier local produjo cero diff Git. Autofixer revisó los 18:
+  dos issues legacy (`each` sin key en popupMove/popupScope) fuera del diff, no
+  refactorizados oportunísticamente.
+- **Integración:** worktree aislado temporal `.worktrees/release-1.2.0-beta.1-dev`;
+  `dev` coincidía con `origin/main` @ `5b0ea994`; fast-forward sin conflictos a
+  `c3455400`. Diff publicable = cero `.agents`/`AGENTS.md`/`.claude`/`CLAUDE.md`.
+- **Gate integrado dev:** `pnpm run verify` verde nuevamente (70/345, check 0/0,
+  formato, lint, Stylelint, bundle, Scorecard 17) + audit producción 0. Worktree
+  temporal eliminado después de verificar/push.
+- **Publicación:** `origin/dev` avanzó `33d9d236..c3455400`; tag ligero
+  `1.2.0-beta.1` apunta al mismo SHA. Workflow Release run `29442292420` verde en
+  1m04s y publicó GitHub prerelease no-draft con `main.js`, `manifest.json` y
+  `styles.css`: `https://github.com/Meibbo/Vaultman/releases/tag/1.2.0-beta.1`.
+- **plugin-dev:** sincronizado desde el build integrado; versión local ahora
+  `1.2.0-beta.1`; source↔target SHA-256 idéntico para los tres artefactos.
+- **Policy dev:** no se ejecutó testing visual/UI/Obsidian/mobile; la validación
+  manual, clean-install, upgrade-path y device real siguen en manos del dev antes de
+  promoción stable.
+
+## 2026-07-17 — codex-gpt5 · release · `1.2.0-beta.2` + CLI multicanal
+
+- Publicado `1.2.0-beta.2` desde `dev` @ `5e5fa1df`; workflow Release
+  `29570726976` verde y prerelease con `main.js`/`manifest.json`/`styles.css`:
+  `https://github.com/Meibbo/Vaultman/releases/tag/1.2.0-beta.2`.
+- Gate local verde: lint, check Svelte 0/0, Prettier, Stylelint, build, 92 files/472
+  tests, scorecard 17, audit producción 0; plugin-dev sincronizado con SHA idéntico.
+- Añadido `pnpm release -- <stable|beta|alpha> <X.Y>` o versión exacta, con resolver
+  SemVer por tren, fragments `changes/X.Y`, dry-run/prepare-only/yes, guardas Git/GitHub,
+  commit/push/tag, espera de workflow y verificación de assets.
+- Alphas generalizadas a `X.Y.0-alpha.N`; patches `1.2.x`, betas `1.3.0-beta.N` y otra
+  línea alpha pueden coexistir sin compararse contra un máximo global ni mezclar notas.
+- Detalle completo: [[docs/sessions/2026-07-17-codex-gpt5-release-beta2]]. Sin testing
+  visual/UI/Obsidian/mobile; las ediciones concurrentes ajenas quedaron preservadas.

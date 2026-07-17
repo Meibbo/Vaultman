@@ -27,6 +27,45 @@ test("index-docs writes a retrieval index with per-doc termFreq, content-hash, a
   assert.ok(doc.termFreq.lifecycle >= 1, `expected 'lifecycle' term, got ${JSON.stringify(doc.termFreq)}`);
 });
 
+test("index-docs reconciles cached embeddings by content hash", () => {
+  const root = makeRoot();
+  writeDoc(root, "work/pkm-ai/renamed.md", "Renamed", "active", "Stable content survives a path move.");
+  writeDoc(root, "work/pkm-ai/changed.md", "Changed", "active", "Original content must be re-embedded after edits.");
+
+  let result = run(root, indexDocsPath, []);
+  assert.equal(result.status, 0, result.stderr);
+
+  const indexPath = path.join(root, ".agents", "cache", "retrieval-index.json");
+  const cached = JSON.parse(fs.readFileSync(indexPath, "utf8"));
+  for (const doc of cached.docs) {
+    doc.vector = [0.25, 0.75];
+    doc.embedHash = doc.contentHash;
+    doc.embedModel = "test-model";
+  }
+  cached.embedModel = "test-model";
+  cached.embedDims = 2;
+  fs.writeFileSync(indexPath, `${JSON.stringify(cached, null, 2)}\n`);
+
+  const renamedSource = path.join(root, ".agents", "docs", "work", "pkm-ai", "renamed.md");
+  const renamedTarget = path.join(root, ".agents", "docs", "work", "pkm-ai", "moved.md");
+  fs.renameSync(renamedSource, renamedTarget);
+  writeDoc(root, "work/pkm-ai/changed.md", "Changed", "active", "Edited content now requires a fresh vector.");
+
+  result = run(root, indexDocsPath, []);
+  assert.equal(result.status, 0, result.stderr);
+
+  const rebuilt = JSON.parse(fs.readFileSync(indexPath, "utf8"));
+  const moved = rebuilt.docs.find((entry) => entry.path.endsWith("moved.md"));
+  const changed = rebuilt.docs.find((entry) => entry.path.endsWith("changed.md"));
+  assert.deepEqual(moved?.vector, [0.25, 0.75]);
+  assert.equal(moved?.embedHash, moved?.contentHash);
+  assert.equal(moved?.embedModel, "test-model");
+  assert.equal(changed?.vector, undefined);
+  assert.equal(changed?.embedHash, undefined);
+  assert.equal(rebuilt.embedModel, "test-model");
+  assert.equal(rebuilt.embedDims, 2);
+});
+
 test("query-docs --rank ranks a doc containing the term above one that does not (BM25)", () => {
   const root = makeRoot();
   writeDoc(root, "work/pkm-ai/match.md", "Match", "active", "Lifecycle lifecycle lifecycle ranking states.");

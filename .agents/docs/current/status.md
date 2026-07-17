@@ -5,11 +5,11 @@ status: active
 parent: "[[docs/work/pkm-ai/index|pkm-ai]]"
 archive_source: docs/archive/pkm-ai/active-docs/2026-05-11T080321-current-status.md
 created: 2026-05-04T01:36:20
-updated: 2026-07-08T21:30:00-05:00
+updated: 2026-07-15T07:05:00
 tags:
   - agent/current
 created_by: dec
-updated_by: claude-fable-5
+updated_by: codex-gpt-5
 ---
 
 # Current Status
@@ -31,6 +31,33 @@ Compact route index after archiving the oversized current status:
 - Active initiative: [[docs/work/hardening/index|Hardening]].
 - **Pendientes consolidados (dev-facing)**: [[docs/current/pendientes|pendientes]] —
   HITL · Codex · spine · researches · infra (creado 2026-07-09, mantener al cerrar/abrir ítems).
+- **LATEST (2026-07-15, codex-gpt-5):** batch correctivo **v1.2.0-beta.1 Floating
+  TOC FTC-007→009 completado** en `C:/tmp/vaultman-v12-ftc001`, rama `v12/ftc-001`:
+  `409b15ed` lifecycle/collapse/Soft Scroll · `d9eb4cf0` toolbar Tools + Settings IA ·
+  `58193e14` track Niagara action+index, slide reversible, bottom/plain y deferrals.
+  Gate integrado: 70 unit files / 345 tests, check 0/0, bundle, ESLint y Stylelint
+  verdes; formato dirigido verde (global conserva 18 Svelte preexistentes). Worktree
+  limpio; sin push/merge/tag. Toda prueba visual/UI/Obsidian/mobile está delistada para
+  agentes; el dev hace su validación manual y decide integración/distribución. Ruta:
+  [[docs/work/polish/issues/ftc-floating-toc/index|FTC index]] +
+  [[docs/work/polish/plans/2026-07-15-ftc-beta1-fixes/index|plan completado]].
+- **LATEST (2026-07-14, claude-fable-5)**: **v1.2 Floating TOC KICKOFF (iniciativa
+  polish) + enmienda D4 + policy release + catálogo taxonomía goal.** Grill cerrado con
+  dev: port del Niagara Index (proto-v12) como floating toc sobre base **1.1.6**
+  (= `origin/main`; `dev` local 57 behind/0 ahead → FF = paso 0). Research 4 agentes:
+  anatomía proto · anclajes 1.1.6 · workflow beta (GAP: 1.1.1/1.1.6 salieron
+  stable-directo; ciclo beta real solo en 1.1.0) · release-discipline online
+  (semver/keepachangelog/DORA/BRAT/strangler). Locks: enmienda D4 (1.x sigue con
+  feature-minors; no hard-sunset) · carve-out D-NIB-3 (bar persistente=panelWidget ·
+  rail flotante=overlay) · árbol dominios MyWorkspace{WASA{WIR·WAR·WOW}·LIVRE{HOST·
+  NAVCO·VIECO}·PVPUI} / MyConfig{PSS·LUPAPI·SASI} (+MyTools cand.; Symbiont DILUIDO;
+  NIB muere como nombre) · GC/AD redefinidos · PSS tri-config. Docs nuevos:
+  [[docs/work/polish/specs/2026-07-14-v1-2-floating-toc/index|spec]] +
+  [[docs/work/polish/issues/ftc-floating-toc/index|FTC-001..006]] +
+  [[docs/architecture/policies/release|policy release]] +
+  [[docs/work/hardening/research/2026-07-14-goal-taxonomy-alignment/index|catálogo taxonomía]].
+  **Docs SIN COMMIT** (staged ajeno de la poda Codex en el checkout). Next: review dev
+  del catálogo → cascada glossary · FF dev · FTC-001. Detalle: session-log 2026-07-14.
 - **LATEST (2026-07-08, coordinador)**: **P.D tracer slices 1-3 LANDED + gate integrado VERDE** —
   sandbox local = `9a56172`. Confirmación que pidió el dev: slices 1-2 (`fcf895e`,`18465c2`) ya estaban
   FF+push en `origin/sandbox` (el FF/push lo ejecutó codex-gpt-5, anotado vs regla FF-coordinador); lo
@@ -38,7 +65,7 @@ Compact route index after archiving the oversized current status:
   + 2 comandos palette aditivos): review de coordinador contract-faithful → FF. **Gate integrado @ HEAD:
   check 0/0 · unit 178 files / 1303 tests (0 flakes) · build ✓ · diff-check ✓.** **Docs restore
   `9a56172`**: el `reset: moving to origin/sandbox` del 2026-07-06 dejó huérfanos 12 docs (audit
-  codebase-intelligence, `api-reference.md`, P112-025, y los shards version-streams 04/05/06
+  codebase-intelligence, el snapshot API de Notebook Navigator en `work/hardening/research/2026-06-15-notebook-navigator-api-lupa-addon/sources/`, P112-025, y los shards version-streams 04/05/06
   re-recuperados) — restaurados file-level desde el dangling `9db3d67`. Sin push (autoriza el dev).
   Worktrees `C:/tmp` purgados (quedan 5 con motivo, ver session-log). Paralelo Codex listo: `task_019`
   B3 retiro enum flat `ExplorerViewMode` · `task_020` deps low residual (`diff` via `mocha`). HITL dev:

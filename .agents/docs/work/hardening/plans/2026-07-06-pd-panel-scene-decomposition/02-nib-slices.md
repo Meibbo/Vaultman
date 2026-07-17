@@ -13,6 +13,14 @@ tags:
 
 # NIB — Slices post-grill (2026-07-09/10)
 
+> **Nota 2026-07-14:** el paraguas "NIB" queda superseded como NOMBRE — el sistema se
+> divide en **WIR** (WorkspaceInputRouting) + **WAR** (WorkspaceActionRouter), hijos de
+> **WASA** junto a WOW
+> ([[docs/work/hardening/research/2026-07-14-goal-taxonomy-alignment/index|catálogo de taxonomía]]).
+> Los locks D-NIB-* y el contenido de las slices NO cambian; los targets de slice 0 ya
+> coinciden con el split (`typeInputRouting` = WIR · `serviceWorkspaceActionRouter` =
+> WAR). Estado: slice-0 ejecutada en `nib/slice-0` @ `deb7b9b0`, FF pendiente.
+
 Grill NIB cerrado (claude-fable-5 + dev, chat 2026-07-09/10). Canon aterrizado en: glossary
 (InputRouter · WorkspaceActionRouter · panelWidget · Overlay corregido), shard 03/04 (notas
 fechadas), [[docs/architecture/usage-workflows|usage-workflows]] W-001..003,

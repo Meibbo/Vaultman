@@ -23,6 +23,9 @@ and non-blocking UX improvements.
 
 ## Active Specs
 
+- **[[docs/work/polish/specs/2026-07-14-v1-2-floating-toc/index|v1.2 Floating TOC]]**
+  (port Niagara Index proto-v12 → línea 1.x; release `1.2.0` con betas BRAT) + issue-set
+  [[docs/work/polish/issues/ftc-floating-toc/index|FTC-001..006]].
 - [[docs/work/polish/specs/2026-05-07-tanstack-node-table/index|TanStack node table]]
 - [[docs/work/polish/specs/2026-05-10-pretext-grid-cards/index|Pretext grid cards hybrid layout]]
 

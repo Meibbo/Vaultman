@@ -3,8 +3,9 @@ title: Notebook Navigator API research for first LUPA add-on
 type: research-index
 status: active
 created: 2026-06-15
-updated: 2026-06-15
+updated: 2026-07-10T07:34:22
 created_by: codex-gpt5
+updated_by: codex-gpt-5
 initiative: hardening
 tags:
   - agent/research
@@ -36,6 +37,7 @@ The first add-on should therefore be a `NotebookNavigatorBridge` that:
 
 Primary sources inspected on 2026-06-15:
 
+- [[docs/work/hardening/research/2026-06-15-notebook-navigator-api-lupa-addon/sources/api-reference|Recovered local API reference snapshot]]
 - [Notebook Navigator public API page](https://notebooknavigator.com/docs.html?doc=developer%2Fapi-reference) - official docs entrypoint requested by the user.
 - [GitHub docs/api-reference.md](https://github.com/johansan/notebook-navigator/blob/main/docs/api-reference.md) - API reference content behind the public docs page.
 - [GitHub src/api/public/notebook-navigator.d.ts](https://github.com/johansan/notebook-navigator/blob/main/src/api/public/notebook-navigator.d.ts) - TypeScript compatibility contract.

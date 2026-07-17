@@ -64,6 +64,17 @@ final (drift máximo).
 - Rechazadas: cadencia de minors con la reconstrucción (un "minor" que en percepción
   es producto nuevo) e híbrido con cherry-picks inversos (doble mantenimiento).
 
+> **ENMIENDA 2026-07-14 (grill v1.2, dev + claude-fable-5):** "hotfix-only" queda
+> superseded — la línea 1.x continúa con **feature-minors oficiales** (v1.2 floating
+> toc en curso; v1.3…) con ciclo beta BRAT propio, hasta paridad+estabilidad de 2.0;
+> `2.0.0` = major por incompatibilidades reales; **no hard-sunset** de 1.x al aterrizar
+> 2.0. La regla original "minors se registran en el ledger" (D3) queda intacta; lo
+> rechazado que se reinstala es la cadencia de minors — respaldo: research
+> release-discipline 2026-07-13 (strangler-fig/Spolsky/DORA small-batches/Caudill;
+> fuentes en [[docs/architecture/policies/release|policy release]]) + el flujo continuo
+> que version-streams ya preveía. Spec:
+> [[docs/work/polish/specs/2026-07-14-v1-2-floating-toc/index|v1.2 Floating TOC]].
+
 ## D5 — Wave 1: spine + lanes paralelos con tracer
 
 - Agente A (serial): Q4 logic-extraction.

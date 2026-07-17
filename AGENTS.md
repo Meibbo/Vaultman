@@ -66,7 +66,7 @@ degenerate inputs, roadmap features from the ADRs), check names against the real
 (grep, not memory), check SOLID on the post-plan state + dev-in-a-week readability, and
 state what the design does NOT cover and what quality would be LOST vs the status quo.
 Performative agreement is a defect. Technique menu:
-`docs/pkm-ai/research/2026-07-10-adversarial-harness-research/`.
+`docs/work/pkm-ai/research/2026-07-10-adversarial-harness-research/`.
 
 ## Size And Context
 

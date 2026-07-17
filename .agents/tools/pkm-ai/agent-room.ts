@@ -88,6 +88,18 @@ interface Task {
   scope?: Scope[];
   notes?: string;
   claim?: Claim;
+  createdBy?: string;
+  claimedBy?: string;
+  claimedAt?: string;
+  completedBy?: string;
+  completedAt?: string;
+  closedBy?: string;
+  closedAt?: string;
+  releasedBy?: string;
+  releasedAt?: string;
+  lastActor?: string;
+  lastActorAt?: string;
+  lastActorEvent?: string;
 }
 
 interface RoomEvent {
@@ -510,6 +522,10 @@ function handleTask(context: Context, action: string | undefined): void {
       dependsOn: arrayOption(context.args, "dependsOn"),
       scope: scopes,
       notes: context.args.notes ?? "",
+      createdBy: context.args.agent,
+      lastActor: context.args.agent,
+      lastActorAt: context.now,
+      lastActorEvent: "task.created",
     };
     withRunLock(context, manifest.runId, () => {
       writeJsonAtomic(paths.tasksPath, [...tasks, task], context.stateRoot);
@@ -543,6 +559,11 @@ function handleTask(context: Context, action: string | undefined): void {
       status: "in-progress",
       updatedAt: context.now,
       claim: createClaim(context.args.agent, numberOption(context.args, "leaseMs", 300000), context.now),
+      claimedBy: context.args.agent,
+      claimedAt: context.now,
+      lastActor: context.args.agent,
+      lastActorAt: context.now,
+      lastActorEvent: "task.claimed",
     };
     tasks[index] = task;
     withRunLock(context, manifest.runId, () => {
@@ -582,7 +603,16 @@ function handleTask(context: Context, action: string | undefined): void {
     if (TERMINAL_TASK_STATUSES.has(task.status) && !context.args.reopen) {
       throw new CliError(`task ${taskId} is terminal; pass --reopen to change it`, 1);
     }
-    task = { ...task, status, updatedAt: context.now };
+    task = {
+      ...task,
+      status,
+      updatedAt: context.now,
+      ...(status === "done" ? { completedBy: context.args.agent, completedAt: context.now } : {}),
+      ...(TERMINAL_TASK_STATUSES.has(status) ? { closedBy: context.args.agent, closedAt: context.now } : {}),
+      lastActor: context.args.agent,
+      lastActorAt: context.now,
+      lastActorEvent: "task.status_changed",
+    };
     tasks[index] = task;
     withRunLock(context, manifest.runId, () => {
       writeJsonAtomic(paths.tasksPath, tasks, context.stateRoot);
@@ -607,7 +637,15 @@ function handleTask(context: Context, action: string | undefined): void {
     let task = tasks[index];
     assertTaskClaim(task, context.args.agent, requiredValue(context.args, "token"), context.now);
     const { claim: _claim, ...released } = task;
-    task = { ...released, updatedAt: context.now };
+    task = {
+      ...released,
+      updatedAt: context.now,
+      releasedBy: context.args.agent,
+      releasedAt: context.now,
+      lastActor: context.args.agent,
+      lastActorAt: context.now,
+      lastActorEvent: "task.claim_released",
+    };
     tasks[index] = task;
     withRunLock(context, manifest.runId, () => {
       writeJsonAtomic(paths.tasksPath, tasks, context.stateRoot);
@@ -885,7 +923,7 @@ function handleHandoff(context: Context): void {
 function buildStatusSnapshot(context: Context): StatusSnapshot {
   const manifest = loadRequiredManifest(context);
   const paths = resolveRunPaths(context.stateRoot, manifest.runId);
-  const tasks = loadTasks(context, manifest.runId);
+  const tasks = enrichTasksWithEvents(loadTasks(context, manifest.runId), readJsonl(paths.eventsPath) as RoomEvent[]);
   const agents = readAllAgentStatuses(context, manifest.runId);
   const activeClaims = tasks
     .filter((task) => task.claim && !isClaimExpired(task.claim, context.now))
@@ -903,6 +941,42 @@ function buildStatusSnapshot(context: Context): StatusSnapshot {
     scopeConflicts,
     unreadMessages,
   };
+}
+
+function enrichTasksWithEvents(tasks: Task[], events: RoomEvent[]): Task[] {
+  const byTask = new Map(tasks.map((task) => [task.taskId, { ...task }]));
+  for (const event of events) {
+    if (!event.taskId || !event.agentId) continue;
+    const task = byTask.get(event.taskId);
+    if (!task) continue;
+    const actorPatch = {
+      lastActor: event.agentId,
+      lastActorAt: event.time,
+      lastActorEvent: event.type,
+    };
+    if (event.type === "task.created") {
+      byTask.set(event.taskId, { ...task, createdBy: task.createdBy ?? event.agentId, ...actorPatch });
+      continue;
+    }
+    if (event.type === "task.claimed") {
+      byTask.set(event.taskId, { ...task, claimedBy: event.agentId, claimedAt: event.time, ...actorPatch });
+      continue;
+    }
+    if (event.type === "task.status_changed") {
+      const status = typeof event.data?.status === "string" ? event.data.status : task.status;
+      byTask.set(event.taskId, {
+        ...task,
+        ...(status === "done" ? { completedBy: event.agentId, completedAt: event.time } : {}),
+        ...(TERMINAL_TASK_STATUSES.has(status) ? { closedBy: event.agentId, closedAt: event.time } : {}),
+        ...actorPatch,
+      });
+      continue;
+    }
+    if (event.type === "task.claim_released") {
+      byTask.set(event.taskId, { ...task, releasedBy: event.agentId, releasedAt: event.time, ...actorPatch });
+    }
+  }
+  return tasks.map((task) => byTask.get(task.taskId) ?? task);
 }
 
 function listObjectives(context: Context): Objective[] {

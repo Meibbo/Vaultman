@@ -1,0 +1,12 @@
+{
+  "name": "vaultman-agent-room-ui",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "node scripts/run-tool.mjs vite build",
+    "dev": "node server.ts --host 127.0.0.1",
+    "dev:lan": "node server.ts --lan",
+    "test": "node --test \"test/*.test.mjs\"",
+    "typecheck": "node scripts/run-tool.mjs tsc --noEmit"
+  }
+}

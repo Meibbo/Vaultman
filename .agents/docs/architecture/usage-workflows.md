@@ -39,7 +39,7 @@ la descripción del video o las anotaciones del user. La scene se guarda/compart
 
 | Pieza del ejemplo | Sistema canónico | Estado hoy |
 |---|---|---|
-| Contenedor compartible | `.vmscene` DATA declarativo (CR-2: [[docs/draft/2026-06-03-onenote-companion-architecture-megadump/previews/cr2-scene-format-demos|demos]] — Demo 1 ES este ejemplo, layered YAML) | dirección destrabada (D-PSS payload `.scene`); spec formal pendiente |
+| Contenedor compartible | `.vmscene` DATA declarativo (CR-2: [[docs/work/draft/2026-06-03-onenote-companion-architecture-megadump/previews/cr2-scene-format-demos|demos]] — Demo 1 ES este ejemplo, layered YAML) | dirección destrabada (D-PSS payload `.scene`); spec formal pendiente |
 | customProvider fetched-data | `vm-online_fetch` module (MD-F6: core 100% local, fetch = companion) + R-REMOTE-PROVIDER ([[docs/architecture/research-inventory|research-inventory]] §S-16/17) | LATER/MAJOR; no construido |
 | ¿Provider en TS o declarativo? | **AMBOS, artefactos separados** (CR-2 data-vs-code): `.vmscene` referencia providers por id+params (jamás código inline, share-like-`.base`); provider con LÓGICA propia = `.vmmodule.ts` (module-contract ADR 0011, reviewed/trusted) que puede EMITIR `.vmscene` | decidido como frontera de seguridad; formato module = S-15/16 API |
 | Composed views sobre nodos | engines × modes ([[docs/architecture/explorer-model/05-view-canon|05-view-canon]]) + cells (D-PSS-2 `data-vm-*`) | núcleo construido (V.D/Thread B) |
