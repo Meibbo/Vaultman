@@ -35,4 +35,10 @@ describe('release CLI safety contract', () => {
 		expect(releaseSource).toContain("'RELEASE_NOTES.md'");
 		expect(workflowSource).toContain('--notes-file RELEASE_NOTES.md');
 	});
+
+	it('reports slow preflight boundaries instead of appearing stalled', () => {
+		expect(releaseSource).toContain('Checking clean worktree');
+		expect(releaseSource).toContain('Fetching remote tags');
+		expect(releaseSource).toContain('Checking GitHub release state');
+	});
 });

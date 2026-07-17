@@ -136,7 +136,6 @@ function ensureExpectedBranch(branch) {
 
 function ensureUpstreamContainsHeadBase(branch) {
 	const remoteRef = `origin/${branch}`;
-	run('git', ['rev-parse', '--verify', remoteRef], { capture: true });
 	const result = run('git', ['merge-base', '--is-ancestor', remoteRef, 'HEAD'], {
 		capture: true,
 		allowFailure: true,
@@ -339,13 +338,17 @@ async function main() {
 	if (Number(process.versions.node.split('.')[0]) < 24) {
 		throw new Error('Vaultman releases require Node.js 24 or newer.');
 	}
+	console.log('Checking clean worktree...');
 	ensureCleanWorktree();
+	console.log('Fetching remote tags...');
 	run('git', ['fetch', 'origin', '--tags']);
 	const tags = listTags();
 	const target = resolveReleaseRequest(options.request, tags);
+	console.log(`Checking ${target.channel} branch and public diff...`);
 	ensureExpectedBranch(target.branch);
 	ensureUpstreamContainsHeadBase(target.branch);
 	ensureNoForbiddenPublicPaths(target.branch);
+	console.log('Checking GitHub release state...');
 	ensureGitHubState(target.version, tags);
 
 	const fragments = selectChangeFragments(loadFragments(), target.line);
