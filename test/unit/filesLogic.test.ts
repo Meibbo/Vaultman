@@ -114,12 +114,66 @@ describe('FilesLogic.buildFileTree', () => {
 		];
 		const logic = new FilesLogic(makeApp({}));
 
-		const tree = logic.buildFileTree(files, [], { parentsFirst: false });
+		const tree = logic.buildFileTree(files, [], {
+			parentsFirst: false,
+			sorts: { all: { sortBy: 'name', direction: 'asc' } },
+			compareNodes: (a, b, sort) =>
+				sort.direction === 'asc'
+					? a.label.localeCompare(b.label)
+					: b.label.localeCompare(a.label),
+		});
 
 		expect(tree[0].children?.map((node) => node.label)).toEqual([
+			'alpha',
+			'beta',
+			'zeta',
+		]);
+	});
+
+	it('overrides All only for children of the selected drill folder', () => {
+		const files = [
+			makeFile('alpha/zeta.md'),
+			makeFile('alpha/beta/deep.md'),
+			makeFile('alpha/alpha.md'),
+		];
+		const logic = new FilesLogic(makeApp({}));
+		const compareNodes = (
+			a: { label: string },
+			b: { label: string },
+			sort: { direction: 'asc' | 'desc' },
+		) =>
+			sort.direction === 'asc'
+				? a.label.localeCompare(b.label)
+				: b.label.localeCompare(a.label);
+
+		const drilled = logic.buildFileTree(files, [], {
+			parentsFirst: false,
+			sorts: {
+				all: { sortBy: 'name', direction: 'asc' },
+				drill: { sortBy: 'name', direction: 'desc' },
+			},
+			drillNodeId: 'folder:alpha',
+			compareNodes,
+		});
+		const reset = logic.buildFileTree(files, [], {
+			parentsFirst: false,
+			sorts: {
+				all: { sortBy: 'name', direction: 'asc' },
+				drill: { sortBy: 'name', direction: 'desc' },
+			},
+			drillNodeId: null,
+			compareNodes,
+		});
+
+		expect(drilled[0].children?.map((node) => node.label)).toEqual([
 			'zeta',
 			'beta',
 			'alpha',
+		]);
+		expect(reset[0].children?.map((node) => node.label)).toEqual([
+			'alpha',
+			'beta',
+			'zeta',
 		]);
 	});
 

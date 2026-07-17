@@ -46,11 +46,17 @@ export interface FabDef {
 export type ExplorerTabId = 'props' | 'files' | 'tags';
 export type ExplorerViewMode = 'tree' | 'table' | 'dnd' | 'grid' | 'cards';
 export type ExplorerSortDirection = 'asc' | 'desc';
+export type SortScopeKey = 'all' | 'drill' | 'properties' | 'values';
 
-export interface ExplorerSortState {
+export interface ScopeSort {
 	sortBy: string;
 	direction: ExplorerSortDirection;
-	childLevel: boolean;
+}
+
+export interface ExplorerSortState {
+	sorts: Partial<Record<SortScopeKey, ScopeSort>>;
+	activeScope: SortScopeKey;
+	drillNodeId?: string | null;
 	/** Legacy single selection; retained when exactly one type is selected. */
 	nodeTypeFilter: string | null;
 	/** Multi-selection form. Missing means load nodeTypeFilter for compatibility. */

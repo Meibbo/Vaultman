@@ -3,6 +3,7 @@ import type { FilterTemplate } from './typeFilter';
 import type { MenuHideRule } from './typeCMenu';
 import type { QueueTemplate } from './typeOps';
 import type { BadgeCancelClickMode } from '../utils/badgeInteraction';
+import type { ExplorerSortState } from './typeUI';
 
 export type Language = 'auto' | 'en' | 'es';
 
@@ -10,12 +11,7 @@ export type Language = 'auto' | 'en' | 'es';
 export interface SavedViewConfig {
 	viewMode: string;
 	visibleCells: string[];
-	sortState: {
-		sortBy: string;
-		direction: 'asc' | 'desc';
-		childLevel: boolean;
-		nodeTypeFilter: string | null;
-	};
+	sortState: ExplorerSortState;
 }
 
 /** A named explorer layout: per-tab configs + a short human summary. */

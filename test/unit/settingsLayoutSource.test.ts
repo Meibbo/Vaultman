@@ -4,8 +4,14 @@ import { en } from '../../src/i18n/en';
 import { es } from '../../src/i18n/es';
 import settingsSource from '../../src/VaultmanSettings.ts?raw';
 import frameSource from '../../src/VaultmanFrame.svelte?raw';
+import typeSettingsSource from '../../src/types/typeSettings.ts?raw';
 
 describe('Vaultman Settings layout', () => {
+	it('stores the full explorer sort state in saved view configs', () => {
+		expect(typeSettingsSource).toContain('sortState: ExplorerSortState;');
+		expect(typeSettingsSource).not.toContain('childLevel: boolean;');
+	});
+
 	it('renames Action Presets to Operations Presets in both languages', () => {
 		expect(en['queue.template.templates']).toBe('Operations Presets');
 		expect(es['queue.template.templates']).toBe('Presets de operaciones');

@@ -157,9 +157,15 @@ describe('FilesExplorerPanel source guards', () => {
 
 	it('keeps Parents First separate from nested display mode', () => {
 		expect(explorerFilesSource).toContain('private parentsFirst = true;');
-		expect(explorerFilesSource).toContain('parentsFirst = true');
-		expect(explorerFilesSource).toContain('this.parentsFirst === parentsFirst');
-		expect(explorerFilesSource).toContain('this.parentsFirst = parentsFirst');
+		expect(explorerFilesSource).toContain(
+			"normalizeExplorerSortState('files', null)",
+		);
+		expect(explorerFilesSource).toContain(
+			'sameExplorerSortState(this.sortState, normalizedState)',
+		);
+		expect(explorerFilesSource).toContain(
+			'this.parentsFirst = normalizedState.parentsFirst !== false',
+		);
 		expect(explorerFilesSource).toContain('parentsFirst: this.parentsFirst');
 		expect(explorerFilesSource).toContain('parentsFirst: this.parentsFirst,');
 	});
@@ -173,7 +179,7 @@ describe('FilesExplorerPanel source guards', () => {
 			"column === 'props' ? 'count' : column",
 		);
 		expect(explorerFilesSource).toContain(
-			"if (normalizedSortBy === 'words') this._warmWordCountSort()",
+			'if (this._usesWordSort()) this._warmWordCountSort();',
 		);
 	});
 
@@ -182,7 +188,7 @@ describe('FilesExplorerPanel source guards', () => {
 			"if (change.kind === 'invalidated') return;",
 		);
 		expect(explorerFilesSource).toContain(
-			"if (this.sortBy === 'words') this._warmWordCountSort(displayFiles);",
+			'if (this._usesWordSort()) this._warmWordCountSort(displayFiles);',
 		);
 		expect(explorerFilesSource).toContain(
 			'this.wordSortWarmup = this.wordSortWarmup',

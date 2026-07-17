@@ -10,14 +10,19 @@ describe('explorer setter source guards', () => {
 		expect(filesSource).toContain('if (this.viewMode === mode) return;');
 		expect(filesSource).toContain('if (sameStringSet(this.visibleCells, cells)) return;');
 		expect(filesSource).toContain(
-			'const normalizedSortBy = normalizeExplorerSortBy(sortBy);',
+			'setSortState(state: ExplorerSortState): void',
 		);
-		expect(filesSource).toContain('this.sortBy === normalizedSortBy');
-		expect(filesSource).toContain('this.sortDir === direction');
+		expect(filesSource).toContain(
+			'sameExplorerSortState(this.sortState, normalizedState)',
+		);
 		expect(filesSource).toContain(
 			'sameNodeTypeFilters(this.nodeTypeFilters, nextNodeTypeFilters)',
 		);
-		expect(filesSource).toContain('this.parentsFirst === parentsFirst');
+		expect(filesSource).toContain(
+			"all: activeScopeSort('files', this.sortState, 'all')",
+		);
+		expect(filesSource).toContain('drillNodeId: this.sortState.drillNodeId');
+		expect(filesSource).not.toContain('childLevel');
 		expect(filesSource).toContain(
 			'if (this.searchName === name && this.searchFolder === folder) return;',
 		);
@@ -30,10 +35,15 @@ describe('explorer setter source guards', () => {
 		);
 		expect(propsSource).toContain('if (this.viewMode === mode) return;');
 		expect(propsSource).toContain('if (sameStringSet(this.visibleCells, cells)) return;');
-		expect(propsSource).toContain('this.sortChildLevel === childLevel');
+		expect(propsSource).toContain(
+			'setSortState(state: ExplorerSortState): void',
+		);
+		expect(propsSource).toContain('sortTwoLevel(');
 		expect(propsSource).toContain(
 			'sameNodeTypeFilters(this.nodeTypeFilters, nextNodeTypeFilters)',
 		);
+		expect(propsSource).not.toContain('sortChildLevel');
+		expect(propsSource).not.toContain('childLevel');
 	});
 
 	it('keeps repeated Tags explorer setter calls from re-rendering', () => {
@@ -43,9 +53,14 @@ describe('explorer setter source guards', () => {
 		);
 		expect(tagsSource).toContain('if (this.viewMode === mode) return;');
 		expect(tagsSource).toContain('if (sameStringSet(this.visibleCells, cells)) return;');
-		expect(tagsSource).toContain('this.sortChildLevel === childLevel');
+		expect(tagsSource).toContain(
+			'setSortState(state: ExplorerSortState): void',
+		);
+		expect(tagsSource).toContain('sortAllWithDrill(');
 		expect(tagsSource).toContain(
 			'sameNodeTypeFilters(this.nodeTypeFilters, nextNodeTypeFilters)',
 		);
+		expect(tagsSource).not.toContain('sortChildLevel');
+		expect(tagsSource).not.toContain('childLevel');
 	});
 });

@@ -18,28 +18,43 @@ describe('explorer sort UI source', () => {
 	});
 
 	it('transports Files Parents First through native and popup sort controls', () => {
-		expect(navbarSource).toContain('parentsFirst: true');
+		expect(navbarSource).toContain(
+			'const parentsFirst = current.parentsFirst ?? true;',
+		);
 		expect(navbarSource).toContain("translate('sort.parents_first')");
 		expect(popupSource).toContain('parentsFirst');
 		expect(popupSource).toContain("translate('sort.parents_first')");
 	});
 
-	it('shows active sort-axis label on Props and Tags vert-col toggle', () => {
-		expect(popupSource).toContain("translate('sort.vertcol.by_values')");
-		expect(popupSource).toContain("translate('sort.vertcol.by_props')");
-		expect(popupSource).toContain("translate('sort.vertcol.by_nested')");
-		expect(popupSource).toContain("translate('sort.vertcol.by_root')");
+	it('offers explicit per-tab sort levels in native and popup controls', () => {
+		expect(navbarSource).toContain("translate('sort.level.title')");
+		expect(navbarSource).toContain("translate('sort.level.properties')");
+		expect(navbarSource).toContain("translate('sort.level.values')");
+		expect(navbarSource).toContain("translate('sort.level.all')");
+		expect(navbarSource).toContain("translate('sort.level.drill')");
+		expect(popupSource).toContain('activeScope');
+		expect(popupSource).toContain('selectScope(');
+		expect(popupSource).toContain("translate('sort.level.title')");
+		expect(en['sort.level.title']).toBe('Sort level');
+		expect(es['sort.level.title']).toBe('Nivel de orden');
+		expect('sort.vertcol.sort_props' in en).toBe(false);
+		expect('sort.vertcol.sort_values' in en).toBe(false);
+		expect('sort.vertcol.sort_props' in es).toBe(false);
+		expect('sort.vertcol.sort_values' in es).toBe(false);
 	});
 
-	it('names the Props context-menu action by the sort axis it will activate', () => {
+	it('captures a drill target by long press without applying a sort immediately', () => {
+		expect(navbarSource).toContain('new LongPressGesture()');
+		expect(navbarSource).toContain("closest<HTMLElement>('[data-id]')");
+		expect(navbarSource).toContain('handleScopeChangeForTab(tab, {');
+		const start = navbarSource.indexOf('function handleScopeChangeForTab(');
+		const end = navbarSource.indexOf('\n\tfunction ', start + 1);
+		const handler = navbarSource.slice(start, end);
+		expect(handler).toContain('sortStateByTab =');
+		expect(handler).not.toContain('applySortState(');
 		expect(navbarSource).toContain(
-			"current.childLevel\n\t\t\t\t\t\t\t\t? translate('sort.vertcol.sort_props')",
+			'const sortState = untrack(\n\t\t\t() => sortStateByTab[tab]',
 		);
-		expect(navbarSource).toContain(": translate('sort.vertcol.sort_values')");
-		expect(en['sort.vertcol.sort_props']).toBe('Sort props');
-		expect(en['sort.vertcol.sort_values']).toBe('Sort values');
-		expect(es['sort.vertcol.sort_props']).toBe('Ordenar props');
-		expect(es['sort.vertcol.sort_values']).toBe('Ordenar valores');
 	});
 
 	it('labels Files count sort as Props without renaming generic count sorts', () => {
@@ -56,16 +71,29 @@ describe('explorer sort UI source', () => {
 		expect(popupSource).toContain('toggleNodeTypeFilter(nodeTypeFilters, id)');
 	});
 
+	it('applies node filters without applying a newly selected sort scope', () => {
+		expect(popupSource).toContain('onFilterChange?: (state: ExplorerSortState) => void;');
+		expect(popupSource).toContain('onFilterChange?.(sortState);');
+		expect(navbarSource).toContain('function handleFilterChange(');
+		expect(navbarSource).toContain('sorts: appliedState.sorts');
+		expect(navbarSource).toContain('activeScope: appliedState.activeScope');
+		expect(navbarSource).toContain('onFilterChange={handleFilterChange}');
+	});
+
 	it('offers Files word-count sorting and warms persisted stats on demand', () => {
 		for (const source of [navbarSource, popupSource]) {
 			expect(source).toContain("id: 'words'");
 			expect(source).toContain("labelKey: 'sort.by.words'");
 		}
 		expect(filesSource).toContain(
-			"if (normalizedSortBy === 'words') this._warmWordCountSort()",
+			'if (this._usesWordSort()) this._warmWordCountSort();',
 		);
 		expect(filesSource).toMatch(
 			/_warmWordCountSort\(files = this\._filesForDisplay\(\)\)/,
+		);
+		expect(filesSource).toContain('private _usesWordSort(): boolean');
+		expect(filesSource).toMatch(
+			/Object\.values\(this\.sortState\.sorts\)\.some\([\s\S]{0,80}sort\?\.sortBy === 'words'/,
 		);
 		expect(filesSource).toContain('.ensureFileStats(files)');
 		expect(filesSource).toContain(

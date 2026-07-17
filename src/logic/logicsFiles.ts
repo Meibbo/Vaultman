@@ -1,6 +1,7 @@
 // src/logic/FilesLogic.ts
 import { TFolder, type App, type TFile } from 'obsidian';
 import type { TreeNode, FileMeta } from '../types/typeTree';
+import type { ScopeSort } from '../types/typeUI';
 
 const IMAGE_EXTENSIONS = new Set([
 	'apng',
@@ -38,6 +39,13 @@ interface FolderRebaseInfo {
 export interface BuildFileTreeOptions {
 	rebaseFolderPaths?: string[];
 	parentsFirst?: boolean;
+	sorts?: Partial<Record<'all' | 'drill', ScopeSort>>;
+	drillNodeId?: string | null;
+	compareNodes?: (
+		a: TreeNode<FileMeta>,
+		b: TreeNode<FileMeta>,
+		sort: ScopeSort,
+	) => number;
 }
 
 export class FilesLogic {
@@ -158,17 +166,32 @@ export class FilesLogic {
 		};
 
 		const numericLocale = { numeric: true, sensitivity: 'base' } as const;
-		const sortTree = (nodes: TreeNode<FileMeta>[]): TreeNode<FileMeta>[] => {
+		const sortTree = (
+			nodes: TreeNode<FileMeta>[],
+			parentId: string | null = null,
+		): TreeNode<FileMeta>[] => {
+			const scopeSort =
+				parentId === options.drillNodeId
+					? (options.sorts?.drill ?? options.sorts?.all)
+					: options.sorts?.all;
+			if (options.compareNodes && scopeSort) {
+				nodes.sort((a, b) => options.compareNodes!(a, b, scopeSort));
+			}
+
 			if (parentsFirst) {
 				const folders = nodes
 					.filter((node) => node.meta?.isFolder)
-					.sort((a, b) => a.label.localeCompare(b.label, undefined, numericLocale));
+					.sort((a, b) =>
+						options.compareNodes && scopeSort
+							? options.compareNodes(a, b, scopeSort)
+							: a.label.localeCompare(b.label, undefined, numericLocale),
+					);
 				const files = nodes.filter((node) => !node.meta?.isFolder);
 				nodes.splice(0, nodes.length, ...folders, ...files);
 			}
 
 			for (const node of nodes) {
-				if (node.children?.length) sortTree(node.children);
+				if (node.children?.length) sortTree(node.children, node.id);
 			}
 
 			return nodes;

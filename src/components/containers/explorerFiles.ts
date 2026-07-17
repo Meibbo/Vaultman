@@ -15,7 +15,7 @@ import { UnifiedTreeView } from '../layout/viewTree';
 import type { TreeNode, FileMeta, NodeBadge } from '../../types/typeTree';
 import type { MenuCtx } from '../../types/typeCMenu';
 import type { FilterNode } from '../../types/typeFilter';
-import type { ExplorerSortState } from '../../types/typeUI';
+import type { ExplorerSortState, ScopeSort } from '../../types/typeUI';
 import {
 	DEFAULT_FILES_HOVER_INFO,
 	FILES_HOVER_INFO_FIELDS,
@@ -25,7 +25,6 @@ import {
 	nodeTypeFilterPatch,
 	normalizeNodeTypeFilters,
 	sameNodeTypeFilters,
-	type NodeTypeFilterInput,
 } from '../../logic/logicNodeTypeFilters';
 import type { RevealNodeOptions } from '../../services/routerFloatingToc';
 import type { StatisticsCacheChange } from '../../services/serviceStatisticsCache';
@@ -40,6 +39,12 @@ import {
 	compareFilesForExplorer,
 	normalizeExplorerSortBy,
 } from '../../logic/logicSort';
+import {
+	activeScopeSort,
+	normalizeExplorerSortState,
+	replaceActiveScopeSort,
+	sameExplorerSortState,
+} from '../../logic/logicScopedSort';
 import {
 	findParentId,
 	indexLevel,
@@ -107,6 +112,7 @@ export class FilesExplorerPanel extends Component {
 	private _totalCount = 0;
 	private sortBy: string = 'name';
 	private sortDir: 'asc' | 'desc' = 'asc';
+	private sortState = normalizeExplorerSortState('files', null);
 	private nodeTypeFilters: string[] = [];
 	private parentsFirst = true;
 	private addMode = false;
@@ -519,28 +525,25 @@ export class FilesExplorerPanel extends Component {
 		handler?.(this._sortState());
 	}
 
-	setSortBy(
-		sortBy: string,
-		direction: 'asc' | 'desc',
-		_childLevel = false,
-		nodeTypeFilter: NodeTypeFilterInput = null,
-		parentsFirst = true,
-	): void {
-		const normalizedSortBy = normalizeExplorerSortBy(sortBy);
-		const nextNodeTypeFilters = normalizeNodeTypeFilters(nodeTypeFilter);
+	setSortState(state: ExplorerSortState): void {
+		const normalizedState = normalizeExplorerSortState('files', state);
+		const activeSort = activeScopeSort('files', normalizedState);
+		const normalizedSortBy = normalizeExplorerSortBy(activeSort.sortBy);
+		const nextNodeTypeFilters = normalizeNodeTypeFilters(
+			normalizedState.nodeTypeFilters ?? normalizedState.nodeTypeFilter,
+		);
 		if (
-			this.sortBy === normalizedSortBy &&
-			this.sortDir === direction &&
-			sameNodeTypeFilters(this.nodeTypeFilters, nextNodeTypeFilters) &&
-			this.parentsFirst === parentsFirst
+			sameExplorerSortState(this.sortState, normalizedState) &&
+			sameNodeTypeFilters(this.nodeTypeFilters, nextNodeTypeFilters)
 		) {
 			return;
 		}
+		this.sortState = normalizedState;
 		this.sortBy = normalizedSortBy;
-		this.sortDir = direction;
+		this.sortDir = activeSort.direction;
 		this.nodeTypeFilters = nextNodeTypeFilters;
-		this.parentsFirst = parentsFirst;
-		if (normalizedSortBy === 'words') this._warmWordCountSort();
+		this.parentsFirst = normalizedState.parentsFirst !== false;
+		if (this._usesWordSort()) this._warmWordCountSort();
 		if (this.viewMode === 'table' && this.tableView) {
 			const COL_MAP: Record<string, import('../layout/viewGrid').SortColumn> = {
 				name: 'name',
@@ -553,7 +556,7 @@ export class FilesExplorerPanel extends Component {
 			};
 			this.tableView.setSortColumn(
 				COL_MAP[normalizedSortBy] ?? 'name',
-				direction,
+				activeSort.direction,
 			);
 		}
 		this._notifySortStateChanged();
@@ -590,7 +593,10 @@ export class FilesExplorerPanel extends Component {
 
 	clearNodeTypeFilter(): void {
 		if (this.nodeTypeFilters.length === 0) return;
-		this.setSortBy(this.sortBy, this.sortDir, false, null, this.parentsFirst);
+		this.setSortState({
+			...this.sortState,
+			...nodeTypeFilterPatch([]),
+		});
 	}
 
 	render(filteredFiles: TFile[], totalCount: number): void {
@@ -625,6 +631,13 @@ export class FilesExplorerPanel extends Component {
 			{
 				rebaseFolderPaths: this._activeFolderFilterPaths(),
 				parentsFirst: this.parentsFirst,
+				sorts: {
+					all: activeScopeSort('files', this.sortState, 'all'),
+					drill: activeScopeSort('files', this.sortState, 'drill'),
+				},
+				drillNodeId: this.sortState.drillNodeId,
+				compareNodes: (a, b, sort) =>
+					this._compareFileTreeNodes(a, b, sort),
 			},
 		);
 		const walk = (nodes: TreeNode<FileMeta>[]) => {
@@ -703,12 +716,11 @@ export class FilesExplorerPanel extends Component {
 				onFileHover: (file: TFile, element: HTMLElement) =>
 					this._handleFileHover(file, element),
 				onSortChange: (column, direction) =>
-					this.setSortBy(
-						column === 'props' ? 'count' : column,
-						direction,
-						false,
-						this.nodeTypeFilters,
-						this.parentsFirst,
+					this.setSortState(
+						replaceActiveScopeSort('files', this.sortState, {
+							sortBy: column === 'props' ? 'count' : column,
+							direction,
+						}),
 					),
 				onDragStart: (file: TFile, event: DragEvent) =>
 					this._setFileDragPayload(file, event),
@@ -769,6 +781,64 @@ export class FilesExplorerPanel extends Component {
 					this.plugin.statisticsCache.getFileWordCount(file) ?? 0,
 				getFileTimes: (file) => this.plugin.statisticsCache.getFileTimes(file),
 			}),
+		);
+	}
+
+	private _compareFileTreeNodes(
+		a: TreeNode<FileMeta>,
+		b: TreeNode<FileMeta>,
+		sort: ScopeSort,
+	): number {
+		if (a.meta.file && b.meta.file) {
+			return compareFilesForExplorer(
+				a.meta.file,
+				b.meta.file,
+				sort.sortBy,
+				sort.direction,
+				{
+					countForFile: (file) => this._propCountForFile(file),
+					wordCountForFile: (file) =>
+						this.plugin.statisticsCache.getFileWordCount(file) ?? 0,
+					getFileTimes: (file) =>
+						this.plugin.statisticsCache.getFileTimes(file),
+				},
+			);
+		}
+
+		const dir = sort.direction === 'asc' ? 1 : -1;
+		const sortBy = normalizeExplorerSortBy(sort.sortBy);
+		const numberValue = (node: TreeNode<FileMeta>): number => {
+			if (sortBy === 'count') return node.count ?? 0;
+			if (sortBy === 'sub') return node.children?.length ?? 0;
+			if (sortBy === 'words') {
+				return node.meta.file
+					? (this.plugin.statisticsCache.getFileWordCount(node.meta.file) ?? 0)
+					: 0;
+			}
+			if (sortBy === 'mtime' || sortBy === 'ctime') {
+				return node.meta.file
+					? this.plugin.statisticsCache.getFileTimes(node.meta.file)[sortBy]
+					: 0;
+			}
+			return 0;
+		};
+		if (['count', 'sub', 'words', 'mtime', 'ctime'].includes(sortBy)) {
+			return dir * (numberValue(a) - numberValue(b));
+		}
+
+		const stringValue = (node: TreeNode<FileMeta>): string => {
+			if (sortBy === 'ext') return node.meta.file?.extension ?? '';
+			if (sortBy === 'path') {
+				return node.meta.file?.path ?? node.meta.folderPath;
+			}
+			return node.label;
+		};
+		return (
+			dir *
+			stringValue(a).localeCompare(stringValue(b), undefined, {
+				numeric: true,
+				sensitivity: 'base',
+			})
 		);
 	}
 
@@ -927,6 +997,10 @@ export class FilesExplorerPanel extends Component {
 		return findParentId(this._lastRenderTree, id);
 	}
 
+	hasSortNode(id: string): boolean {
+		return this._findNode(id, this._lastRenderTree) !== null;
+	}
+
 	/** Expand a node so the scope-drill can reveal its children. */
 	expandNodeById(id: string): void {
 		if (this.viewMode !== 'tree' || this.expandedIds.has(id)) return;
@@ -969,7 +1043,7 @@ export class FilesExplorerPanel extends Component {
 			return;
 		}
 		const displayFiles = this._filesForDisplay();
-		if (this.sortBy === 'words') this._warmWordCountSort(displayFiles);
+		if (this._usesWordSort()) this._warmWordCountSort(displayFiles);
 		if (this.viewMode === 'table' && this.tableView) {
 			this.tableView.setSelectedPaths(this.selectedFilePaths);
 			this.tableView.setActivePath(this.activeRevealPath);
@@ -1004,6 +1078,13 @@ export class FilesExplorerPanel extends Component {
 				? this.logic.buildFileTree(sortedFiles, this._foldersForCurrentView(), {
 						rebaseFolderPaths,
 						parentsFirst: this.parentsFirst,
+						sorts: {
+							all: activeScopeSort('files', this.sortState, 'all'),
+							drill: activeScopeSort('files', this.sortState, 'drill'),
+						},
+						drillNodeId: this.sortState.drillNodeId,
+						compareNodes: (a, b, sort) =>
+							this._compareFileTreeNodes(a, b, sort),
 					})
 				: this.logic.buildFlatFileNodes(sortedFiles, { rebaseFolderPaths });
 			if (this._nestedEnabled()) this._autoExpandSparseTopLevel(renderTree);
@@ -1373,7 +1454,7 @@ export class FilesExplorerPanel extends Component {
 	}
 
 	private _warmWordCountSort(files = this._filesForDisplay()): void {
-		if (this.sortBy !== 'words') return;
+		if (!this._usesWordSort()) return;
 		const signature = this.plugin.statisticsCache.signatureFor(files);
 		if (signature === this.wordSortWarmSignature) return;
 		this.wordSortWarmSignature = signature;
@@ -1389,7 +1470,7 @@ export class FilesExplorerPanel extends Component {
 					this.wordSortWarmSignature = '';
 				}
 				if (
-					this.sortBy === 'words' &&
+					this._usesWordSort() &&
 					this.wordSortRetrySignature !== signature
 				) {
 					this.wordSortRetrySignature = signature;
@@ -1397,6 +1478,12 @@ export class FilesExplorerPanel extends Component {
 				}
 				console.error('Vaultman word-count sort failed', error);
 			});
+	}
+
+	private _usesWordSort(): boolean {
+		return Object.values(this.sortState.sorts).some(
+			(sort) => sort?.sortBy === 'words',
+		);
 	}
 
 	private _rememberWordSortOrder(files: readonly TFile[]): void {
@@ -1434,9 +1521,9 @@ export class FilesExplorerPanel extends Component {
 
 	private _sortState(): ExplorerSortState {
 		return {
-			sortBy: this.sortBy,
-			direction: this.sortDir,
-			childLevel: false,
+			...this.sortState,
+			sorts: this.sortState.sorts,
+			drillNodeId: this.sortState.drillNodeId,
 			...nodeTypeFilterPatch(this.nodeTypeFilters),
 			parentsFirst: this.parentsFirst,
 		};
@@ -1571,7 +1658,7 @@ export class FilesExplorerPanel extends Component {
 			this.wordSortWarmSignature = '';
 			this.wordSortRetrySignature = '';
 			this.lastWordSortComplete = false;
-			if (this.sortBy === 'words') this._warmWordCountSort();
+			if (this._usesWordSort()) this._warmWordCountSort();
 			return;
 		}
 		if (this.sortBy === 'words') {
@@ -1582,6 +1669,10 @@ export class FilesExplorerPanel extends Component {
 				this._patchVisibleWordCounts(new Set(change.paths ?? []));
 				return;
 			}
+			this._scheduleStatsRefresh();
+			return;
+		}
+		if (this._usesWordSort()) {
 			this._scheduleStatsRefresh();
 			return;
 		}
@@ -1598,7 +1689,7 @@ export class FilesExplorerPanel extends Component {
 			this.statsRefreshTimer = null;
 			const changedPaths = new Set(this.pendingStatsPaths);
 			this.pendingStatsPaths.clear();
-			if (this.sortBy === 'words') this._render();
+			if (this._usesWordSort()) this._render();
 			else this._patchVisibleWordCounts(changedPaths);
 		}, 60);
 	}

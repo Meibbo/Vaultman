@@ -10,7 +10,6 @@ import type { RevealNodeOptions } from '../../services/routerFloatingToc';
 import {
 	normalizeNodeTypeFilters,
 	sameNodeTypeFilters,
-	type NodeTypeFilterInput,
 } from '../../logic/logicNodeTypeFilters';
 
 export interface PanelPluginCtx {
@@ -33,6 +32,16 @@ import type { TreeNode, TagMeta } from '../../types/typeTree';
 import type { MenuCtx } from '../../types/typeCMenu';
 import { translate } from '../../i18n/index';
 import { normalizeExplorerSortBy } from '../../logic/logicSort';
+import {
+	activeScopeSort,
+	normalizeExplorerSortState,
+	sameExplorerSortState,
+	sortAllWithDrill,
+} from '../../logic/logicScopedSort';
+import type {
+	ExplorerSortState,
+	ScopeSort,
+} from '../../types/typeUI';
 import {
 	findParentId,
 	indexLevel,
@@ -75,9 +84,7 @@ export class TagsExplorerPanel extends Component {
 	private searchTerm = '';
 	private searchMode: 'all' | 'leaf' = 'all';
 	private editingId: string | null = null;
-	private sortBy: string = 'name';
-	private sortDir: 'asc' | 'desc' = 'asc';
-	private sortChildLevel = false;
+	private sortState = normalizeExplorerSortState('tags', null);
 	private nodeTypeFilters: string[] = [];
 	private viewMode: 'tree' | 'grid' | 'table' = 'tree';
 	private visibleCells = new Set<string>(['icon', 'text', 'count', 'nested']);
@@ -165,25 +172,18 @@ export class TagsExplorerPanel extends Component {
 		this._render();
 	}
 
-	setSortBy(
-		sortBy: string,
-		direction: 'asc' | 'desc',
-		childLevel = false,
-		nodeTypeFilter: NodeTypeFilterInput = null,
-	): void {
-		const normalizedSortBy = normalizeExplorerSortBy(sortBy);
-		const nextNodeTypeFilters = normalizeNodeTypeFilters(nodeTypeFilter);
+	setSortState(state: ExplorerSortState): void {
+		const normalizedState = normalizeExplorerSortState('tags', state);
+		const nextNodeTypeFilters = normalizeNodeTypeFilters(
+			normalizedState.nodeTypeFilters ?? normalizedState.nodeTypeFilter,
+		);
 		if (
-			this.sortBy === normalizedSortBy &&
-			this.sortDir === direction &&
-			this.sortChildLevel === childLevel &&
+			sameExplorerSortState(this.sortState, normalizedState) &&
 			sameNodeTypeFilters(this.nodeTypeFilters, nextNodeTypeFilters)
 		) {
 			return;
 		}
-		this.sortBy = normalizedSortBy;
-		this.sortDir = direction;
-		this.sortChildLevel = childLevel;
+		this.sortState = normalizedState;
 		this.nodeTypeFilters = nextNodeTypeFilters;
 		this._render();
 	}
@@ -243,49 +243,53 @@ export class TagsExplorerPanel extends Component {
 		this._render();
 	}
 
-	private _sortNodes(
-		nodes: TreeNode<TagMeta>[],
+	private _compareNodes(
+		a: TreeNode<TagMeta>,
+		b: TreeNode<TagMeta>,
+		sort: ScopeSort,
 		timeIndex: Map<string, number> | null,
-	): TreeNode<TagMeta>[] {
-		const dir = this.sortDir === 'asc' ? 1 : -1;
-		const normalizedSortBy = normalizeExplorerSortBy(this.sortBy);
+	): number {
+		const dir = sort.direction === 'asc' ? 1 : -1;
+		const normalizedSortBy = normalizeExplorerSortBy(sort.sortBy);
 		if (
 			(normalizedSortBy === 'mtime' || normalizedSortBy === 'ctime') &&
 			timeIndex
 		) {
-			return [...nodes].sort(
-				(a, b) =>
-					dir *
-					((timeIndex.get(a.meta.tagPath) ?? 0) -
-						(timeIndex.get(b.meta.tagPath) ?? 0)),
+			return (
+				dir *
+				((timeIndex.get(a.meta.tagPath) ?? 0) -
+					(timeIndex.get(b.meta.tagPath) ?? 0))
 			);
 		}
-		return [...nodes].sort((a, b) => {
-			if (normalizedSortBy === 'count')
-				return dir * ((a.count ?? 0) - (b.count ?? 0));
-			if (normalizedSortBy === 'sub')
-				return dir * ((a.children?.length ?? 0) - (b.children?.length ?? 0));
-			return dir * a.label.localeCompare(b.label);
-		});
+		if (normalizedSortBy === 'count')
+			return dir * ((a.count ?? 0) - (b.count ?? 0));
+		if (normalizedSortBy === 'sub')
+			return dir * ((a.children?.length ?? 0) - (b.children?.length ?? 0));
+		return dir * a.label.localeCompare(b.label);
 	}
 
 	private _applySort(nodes: TreeNode<TagMeta>[]): TreeNode<TagMeta>[] {
-		const normalizedSortBy = normalizeExplorerSortBy(this.sortBy);
-		const timeIndex =
-			normalizedSortBy === 'mtime' || normalizedSortBy === 'ctime'
-				? this._buildTagTimeIndex(normalizedSortBy)
+		const allSort = activeScopeSort('tags', this.sortState, 'all');
+		const drillSort = activeScopeSort('tags', this.sortState, 'drill');
+		const allSortBy = normalizeExplorerSortBy(allSort.sortBy);
+		const drillSortBy = normalizeExplorerSortBy(drillSort.sortBy);
+		const allTimeIndex =
+			allSortBy === 'mtime' || allSortBy === 'ctime'
+				? this._buildTagTimeIndex(allSortBy)
 				: null;
-		if (!this.sortChildLevel) {
-			return this._sortNodes(nodes, timeIndex).map((node) => ({
-				...node,
-				children: node.children ? [...node.children] : [],
-			}));
-		}
+		const drillTimeIndex =
+			drillSortBy === 'mtime' || drillSortBy === 'ctime'
+				? allSortBy === drillSortBy && allTimeIndex
+					? allTimeIndex
+					: this._buildTagTimeIndex(drillSortBy)
+				: null;
 
-		return nodes.map((node) => ({
-			...node,
-			children: node.children ? this._sortNodes(node.children, timeIndex) : [],
-		}));
+		return sortAllWithDrill(
+			nodes,
+			(a, b) => this._compareNodes(a, b, allSort, allTimeIndex),
+			(a, b) => this._compareNodes(a, b, drillSort, drillTimeIndex),
+			this.sortState.drillNodeId,
+		);
 	}
 
 	private _buildTagTimeIndex(sortBy: DateSortId): Map<string, number> {
@@ -369,7 +373,7 @@ export class TagsExplorerPanel extends Component {
 
 	isIndexableSort(): boolean {
 		return ['name', 'path', 'ext'].includes(
-			normalizeExplorerSortBy(this.sortBy),
+			normalizeExplorerSortBy(activeScopeSort('tags', this.sortState).sortBy),
 		);
 	}
 
@@ -385,6 +389,10 @@ export class TagsExplorerPanel extends Component {
 	scopeRootForNode(id: string): string | null {
 		if (this.viewMode !== 'tree') return null;
 		return findParentId(this._lastRenderTree, id);
+	}
+
+	hasSortNode(id: string): boolean {
+		return this._findNode(id, this._lastRenderTree) !== null;
 	}
 
 	expandNodeById(id: string): void {

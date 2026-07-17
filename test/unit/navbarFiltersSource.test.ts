@@ -97,7 +97,9 @@ describe('minimal filters header source guards', () => {
 	it('keeps dock-off menu labels reactive and exposes Files grouping by extension', () => {
 		expect(navbarFiltersSource).toContain('getFileTypeOptions');
 		expect(navbarFiltersSource).toContain('nodeTypeOptionsForActiveTab');
-		expect(navbarFiltersSource).toContain('normalizedState.nodeTypeFilters');
+		expect(navbarFiltersSource).toContain(
+			'nodeTypeFilterPatch(nodeTypeFiltersForState(normalized))',
+		);
 		expect(navbarFiltersSource).toContain(
 			'`${action.label}${countLabel}${warningLabel}`',
 		);
@@ -107,13 +109,24 @@ describe('minimal filters header source guards', () => {
 	});
 
 	it('exposes Files Parents First as a sort preference separate from node type filters', () => {
-		expect(navbarFiltersSource).toContain('parentsFirst: true');
-		expect(navbarFiltersSource).toContain('normalizedState.parentsFirst');
 		expect(navbarFiltersSource).toContain(
-			'left.parentsFirst === right.parentsFirst',
+			'const parentsFirst = current.parentsFirst ?? true;',
 		);
+		expect(navbarFiltersSource).toContain(
+			'fileList?.setSortState(normalizedState)',
+		);
+		expect(navbarFiltersSource).toContain('sameExplorerSortState(left, right)');
 		expect(navbarFiltersSource).toContain("translate('sort.parents_first')");
 		expect(navbarFiltersSource).toContain("setIcon('lucide-folder-tree')");
+	});
+
+	it('persists and applies full scoped sort state instead of the legacy child-level shape', () => {
+		expect(navbarFiltersSource).toContain(
+			"normalizeExplorerSortState(tab, state",
+		);
+		expect(navbarFiltersSource).toContain('activeScopeSort(tab, sort)');
+		expect(navbarFiltersSource).toContain('sorts: { ...sortState.sorts }');
+		expect(navbarFiltersSource).not.toContain('childLevel');
 	});
 
 	it('condenses only the minimal Files toolbar to tabs, view, sort, search, tools', () => {

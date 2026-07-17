@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { Menu } from 'obsidian';
+	import { Menu, Notice } from 'obsidian';
 	import { untrack } from 'svelte';
 	import { translate } from '../../i18n/index';
 	import SortPopup from './popupSort.svelte';
@@ -7,13 +7,20 @@
 	import type { FilesExplorerPanel } from '../containers/explorerFiles';
 	import type { PropsExplorerPanel } from '../containers/explorerProps';
 	import type { TagsExplorerPanel } from '../containers/explorerTags';
-	import type { ExplorerSortState, ExplorerViewMode } from '../../types/typeUI';
+	import type {
+		ExplorerSortState,
+		ExplorerViewMode,
+		SortScopeKey,
+	} from '../../types/typeUI';
 	import type { SavedLayout, SavedViewConfig } from '../../types/typeSettings';
 	import { showInputModal } from '../../utils/inputModal';
+	import { DEFAULT_EXPLORER_SORT_DIR } from '../../logic/logicSort';
 	import {
-		DEFAULT_EXPLORER_SORT_DIR,
-		normalizeExplorerSortBy,
-	} from '../../logic/logicSort';
+		activeScopeSort,
+		normalizeExplorerSortState,
+		replaceActiveScopeSort,
+		sameExplorerSortState,
+	} from '../../logic/logicScopedSort';
 	import {
 		isViewModeSelectableForDataSurface,
 		panelViewModeForDataSurface,
@@ -23,9 +30,9 @@
 	import {
 		nodeTypeFilterPatch,
 		nodeTypeFiltersForState,
-		sameNodeTypeFilters,
 		toggleNodeTypeFilter,
 	} from '../../logic/logicNodeTypeFilters';
+	import { LongPressGesture } from '../../utils/longPressGesture';
 
 	type FiltersTab = 'props' | 'files' | 'tags';
 	type HeaderTabOption = { id: string; label: string; icon: string };
@@ -158,25 +165,9 @@
 	);
 
 	const DEFAULT_SORT_STATE: Record<FiltersTab, ExplorerSortState> = {
-		props: {
-			sortBy: 'name',
-			direction: 'asc',
-			childLevel: false,
-			nodeTypeFilter: null,
-		},
-		tags: {
-			sortBy: 'name',
-			direction: 'asc',
-			childLevel: false,
-			nodeTypeFilter: null,
-		},
-		files: {
-			sortBy: 'name',
-			direction: 'asc',
-			childLevel: false,
-			nodeTypeFilter: null,
-			parentsFirst: true,
-		},
+		props: normalizeExplorerSortState('props', null),
+		tags: normalizeExplorerSortState('tags', null),
+		files: normalizeExplorerSortState('files', null),
 	};
 	const DEFAULT_VISIBLE_CELLS: Record<FiltersTab, string[]> = {
 		props: ['icon', 'text', 'count', 'nested'],
@@ -321,13 +312,22 @@
 		tags: { ...DEFAULT_SORT_STATE.tags },
 		files: { ...DEFAULT_SORT_STATE.files },
 	});
+	const appliedSortStateByTab: Record<FiltersTab, ExplorerSortState> = {
+		props: { ...DEFAULT_SORT_STATE.props },
+		tags: { ...DEFAULT_SORT_STATE.tags },
+		files: { ...DEFAULT_SORT_STATE.files },
+	};
 	const LAYOUT_TABS: FiltersTab[] = ['files', 'props', 'tags'];
 	// A short, caveman-ish summary of what each explorer holds in this layout.
 	function buildLayoutSummary(): string {
 		return LAYOUT_TABS.map((tab) => {
-			const sort = sortStateByTab[tab] ?? DEFAULT_SORT_STATE[tab];
-			const arrow = sort.direction === 'desc' ? '↓' : '↑';
-			return `${tab} ${viewModeByTab[tab]}·${sort.sortBy}${arrow}`;
+			const sort = normalizeSortState(
+				tab,
+				sortStateByTab[tab] ?? DEFAULT_SORT_STATE[tab],
+			);
+			const activeSort = activeScopeSort(tab, sort);
+			const arrow = activeSort.direction === 'desc' ? '↓' : '↑';
+			return `${tab} ${viewModeByTab[tab]}·${activeSort.sortBy}${arrow}`;
 		}).join(' · ');
 	}
 	function saveLayout(name: string) {
@@ -335,10 +335,20 @@
 		if (!trimmed) return;
 		const config: Record<string, SavedViewConfig> = {};
 		for (const tab of LAYOUT_TABS) {
+			const sortState = normalizeSortState(
+				tab,
+				sortStateByTab[tab] ?? DEFAULT_SORT_STATE[tab],
+			);
 			config[tab] = {
 				viewMode: viewModeByTab[tab],
 				visibleCells: [...(visibleCellsByTab[tab] ?? [])],
-				sortState: { ...sortStateByTab[tab] },
+				sortState: {
+					...sortState,
+					sorts: { ...sortState.sorts },
+					...(sortState.nodeTypeFilters
+						? { nodeTypeFilters: [...sortState.nodeTypeFilters] }
+						: {}),
+				},
 			};
 		}
 		onSaveLayout?.({ name: trimmed, summary: buildLayoutSummary(), config });
@@ -352,16 +362,22 @@
 			if (!saved) continue;
 			nextView[tab] = saved.viewMode as ExplorerViewMode;
 			nextCells[tab] = [...saved.visibleCells];
-			nextSort[tab] = { ...saved.sortState };
+			nextSort[tab] = normalizeSortState(tab, saved.sortState);
 		}
 		viewModeByTab = nextView;
 		visibleCellsByTab = nextCells;
 		sortStateByTab = nextSort;
+		for (const tab of LAYOUT_TABS) {
+			applyViewMode(tab, nextView[tab]);
+			applyVisibleCells(tab, nextCells[tab]);
+			applySortState(tab, nextSort[tab]);
+		}
 	}
 	let addModeActive = $state(false);
 	let searchExpanded = $state(false);
 	let searchToggleActivationPending = false;
 	let navbarEl = $state<HTMLElement | null>(null);
+	let drillPickCleanup: (() => void) | null = null;
 	let expansionRefresh = $state(0);
 	const headerActionClass = $derived(
 		minimalStyle ? 'clickable-icon nav-action-button' : 'vaultman-nav-fab',
@@ -542,30 +558,17 @@
 	}
 
 	function applySortState(tab: FiltersTab, state: ExplorerSortState) {
-		const normalizedState = normalizeSortState(state);
-		if (tab === 'files')
-			fileList?.setSortBy(
-				normalizedState.sortBy,
-				normalizedState.direction,
-				normalizedState.childLevel,
-				normalizedState.nodeTypeFilters,
-				normalizedState.parentsFirst,
-			);
+		const normalizedState = normalizeSortState(tab, state, true);
+		if (!sameSortState(state, normalizedState)) {
+			sortStateByTab = { ...sortStateByTab, [tab]: normalizedState };
+		}
+		appliedSortStateByTab[tab] = normalizedState;
+		if (tab === 'files') fileList?.setSortState(normalizedState);
 		if (tab === 'props') {
-			propExplorer?.setSortBy(
-				normalizedState.sortBy,
-				normalizedState.direction,
-				normalizedState.childLevel,
-				normalizedState.nodeTypeFilters,
-			);
+			propExplorer?.setSortState(normalizedState);
 		}
 		if (tab === 'tags') {
-			tagsExplorer?.setSortBy(
-				normalizedState.sortBy,
-				normalizedState.direction,
-				normalizedState.childLevel,
-				normalizedState.nodeTypeFilters,
-			);
+			tagsExplorer?.setSortState(normalizedState);
 		}
 	}
 
@@ -592,9 +595,33 @@
 	}
 
 	function handleSortChange(state: ExplorerSortState) {
-		const normalizedState = normalizeSortState(state);
+		const normalizedState = normalizeSortState(activeTab, state);
 		sortStateByTab = { ...sortStateByTab, [activeTab]: normalizedState };
 		applySortState(activeTab, normalizedState);
+		onViewFiltersChanged?.();
+	}
+
+	function handleScopeChangeForTab(tab: FiltersTab, state: ExplorerSortState) {
+		const normalizedState = normalizeSortState(tab, state);
+		sortStateByTab = { ...sortStateByTab, [tab]: normalizedState };
+		onViewFiltersChanged?.();
+	}
+
+	function handleScopeChange(state: ExplorerSortState) {
+		handleScopeChangeForTab(activeTab, state);
+	}
+
+	function handleFilterChange(state: ExplorerSortState) {
+		const normalizedState = normalizeSortState(activeTab, state);
+		const appliedState = appliedSortStateByTab[activeTab];
+		sortStateByTab = { ...sortStateByTab, [activeTab]: normalizedState };
+		applySortState(activeTab, {
+			...normalizedState,
+			sorts: appliedState.sorts,
+			activeScope: appliedState.activeScope,
+			drillNodeId: appliedState.drillNodeId,
+			parentsFirst: appliedState.parentsFirst,
+		});
 		onViewFiltersChanged?.();
 	}
 
@@ -602,23 +629,17 @@
 		left: ExplorerSortState,
 		right: ExplorerSortState,
 	): boolean {
-		return (
-			left.sortBy === right.sortBy &&
-			left.direction === right.direction &&
-			left.childLevel === right.childLevel &&
-			sameNodeTypeFilters(
-				nodeTypeFiltersForState(left),
-				nodeTypeFiltersForState(right),
-			) &&
-			left.parentsFirst === right.parentsFirst
-		);
+		return sameExplorerSortState(left, right);
 	}
 
 	function handleExternalFilesSortState(state: ExplorerSortState) {
-		const normalizedState = normalizeSortState(state);
+		const normalizedState = normalizeSortState('files', state);
+		if (sameSortState(appliedSortStateByTab.files, normalizedState)) return;
+		appliedSortStateByTab.files = normalizedState;
 		const currentByTab = untrack(() => ({
 			...sortStateByTab,
 			files: normalizeSortState(
+				'files',
 				sortStateByTab.files ?? DEFAULT_SORT_STATE.files,
 			),
 		}));
@@ -810,26 +831,153 @@
 
 	function nextSortState(id: string): ExplorerSortState {
 		const current = normalizeSortState(
+			activeTab,
 			sortStateByTab[activeTab] ?? DEFAULT_SORT_STATE[activeTab],
 		);
+		const activeSort = activeScopeSort(activeTab, current);
 		const direction =
-			current.sortBy === id
-				? current.direction === 'asc'
+			activeSort.sortBy === id
+				? activeSort.direction === 'asc'
 					? 'desc'
 					: 'asc'
 				: (DEFAULT_DIR[id] ?? 'asc');
-		return { ...current, sortBy: id, direction };
+		return replaceActiveScopeSort(activeTab, current, {
+			sortBy: id,
+			direction,
+		});
 	}
 
-	function normalizeSortState(state: ExplorerSortState): ExplorerSortState {
-		const sortBy = normalizeExplorerSortBy(state.sortBy);
+	function normalizeSortState(
+		tab: FiltersTab,
+		state: ExplorerSortState,
+		validateDrill = false,
+	): ExplorerSortState {
+		const normalized = normalizeExplorerSortState(tab, state, {
+			...(validateDrill && tab === 'files' && fileList
+				? { isValidDrillNode: (id: string) => fileList.hasSortNode(id) }
+				: {}),
+			...(validateDrill && tab === 'tags' && tagsExplorer
+				? { isValidDrillNode: (id: string) => tagsExplorer.hasSortNode(id) }
+				: {}),
+		});
 		return {
-			...state,
-			...nodeTypeFilterPatch(nodeTypeFiltersForState(state)),
-			sortBy,
-			direction: state.direction ?? DEFAULT_DIR[sortBy] ?? 'asc',
-			parentsFirst: state.parentsFirst ?? true,
+			...normalized,
+			...nodeTypeFilterPatch(nodeTypeFiltersForState(normalized)),
 		};
+	}
+
+	function stopDrillPick() {
+		drillPickCleanup?.();
+		drillPickCleanup = null;
+	}
+
+	function beginDrillPick(tab: FiltersTab) {
+		if (tab === 'props') return;
+		stopDrillPick();
+		const pane =
+			navbarEl?.closest<HTMLElement>('.vaultman-filters-tab-pane.is-active') ??
+			document.querySelector<HTMLElement>(
+				'.vaultman-filters-tab-pane.is-active',
+			);
+		if (!pane) return;
+
+		const gesture = new LongPressGesture();
+		const suppressEvent = (event: Event) => {
+			event.preventDefault();
+			event.stopImmediatePropagation();
+		};
+		const suppressNextClick = () => {
+			const suppressPickedActivation = (event: Event) => suppressEvent(event);
+			pane.addEventListener('click', suppressPickedActivation, {
+				capture: true,
+				once: true,
+			});
+			window.setTimeout(
+				() => pane.removeEventListener('click', suppressPickedActivation, true),
+				650,
+			);
+		};
+		const onPointerDown = (event: PointerEvent) => {
+			const target =
+				event.target instanceof Element
+					? event.target.closest<HTMLElement>('[data-id]')
+					: null;
+			const nodeId = target?.dataset.id;
+			if (!nodeId) return;
+			suppressEvent(event);
+			gesture.start(event, () => {
+				const current = normalizeSortState(
+					tab,
+					untrack(() => sortStateByTab[tab] ?? DEFAULT_SORT_STATE[tab]),
+				);
+				handleScopeChangeForTab(tab, {
+					...current,
+					activeScope: 'drill',
+					drillNodeId: nodeId,
+				});
+				suppressNextClick();
+				stopDrillPick();
+			});
+		};
+		const onPointerMove = (event: PointerEvent) => {
+			if (!gesture.isTrackingPointer()) return;
+			suppressEvent(event);
+			gesture.move(event);
+		};
+		const onPointerEnd = (event: PointerEvent) => {
+			if (!gesture.isTrackingPointer()) return;
+			suppressEvent(event);
+			gesture.end(event.pointerId);
+		};
+		const timeout = window.setTimeout(stopDrillPick, 8000);
+		pane.addEventListener('pointerdown', onPointerDown, true);
+		pane.addEventListener('pointermove', onPointerMove, true);
+		pane.addEventListener('pointerup', onPointerEnd, true);
+		pane.addEventListener('pointercancel', onPointerEnd, true);
+		pane.addEventListener('pointerleave', onPointerEnd, true);
+		pane.addEventListener('click', suppressEvent, true);
+		drillPickCleanup = () => {
+			window.clearTimeout(timeout);
+			gesture.cancel();
+			pane.removeEventListener('pointerdown', onPointerDown, true);
+			pane.removeEventListener('pointermove', onPointerMove, true);
+			pane.removeEventListener('pointerup', onPointerEnd, true);
+			pane.removeEventListener('pointercancel', onPointerEnd, true);
+			pane.removeEventListener('pointerleave', onPointerEnd, true);
+			pane.removeEventListener('click', suppressEvent, true);
+		};
+		new Notice(translate('sort.level.pick_hint'));
+	}
+
+	function sortLevelOptions(
+		tab: FiltersTab,
+	): Array<{ scope: SortScopeKey; label: string; icon: string }> {
+		if (tab === 'props') {
+			return [
+				{
+					scope: 'properties',
+					label: translate('sort.level.properties'),
+					icon: 'lucide-list-tree',
+				},
+				{
+					scope: 'values',
+					label: translate('sort.level.values'),
+					icon: 'lucide-list-collapse',
+				},
+			];
+		}
+		return [
+			{
+				scope: 'all',
+				label: translate('sort.level.all'),
+				icon: 'lucide-layers',
+			},
+			{
+				scope: 'drill',
+				label: translate('sort.level.drill'),
+				icon: 'lucide-mouse-pointer-click',
+			},
+		];
 	}
 
 	function nodeTypeOptionsForActiveTab(): NodeTypeOption[] {
@@ -849,16 +997,18 @@
 	function openNativeSortMenu(event: MouseEvent) {
 		const menu = new Menu();
 		const current = normalizeSortState(
+			activeTab,
 			sortStateByTab[activeTab] ?? DEFAULT_SORT_STATE[activeTab],
 		);
+		const activeSort = activeScopeSort(activeTab, current);
 
 		for (const option of SORT_OPTIONS[activeTab]) {
 			menu.addItem((item) => {
-				const isActive = current.sortBy === option.id;
+				const isActive = activeSort.sortBy === option.id;
 				item
 					.setTitle(
 						`${translate(option.labelKey)}${
-							isActive ? (current.direction === 'asc' ? ' ↑' : ' ↓') : ''
+							isActive ? (activeSort.direction === 'asc' ? ' ↑' : ' ↓') : ''
 						}`,
 					)
 					.setIcon(option.icon)
@@ -881,26 +1031,33 @@
 			});
 		}
 
-		if (activeTab !== 'files') {
-			menu.addSeparator();
-			menu.addItem((item) => {
-				item
-					.setTitle(
-						activeTab === 'props'
-							? current.childLevel
-								? translate('sort.vertcol.sort_props')
-								: translate('sort.vertcol.sort_values')
-							: translate('sort.vertcol.node_level'),
-					)
-					.setIcon(
-						activeTab === 'props' ? 'lucide-list-tree' : 'lucide-network',
-					)
-					.setChecked(current.childLevel)
-					.onClick(() =>
-						handleSortChange({ ...current, childLevel: !current.childLevel }),
-					);
-			});
-		}
+		menu.addSeparator();
+		menu.addItem((item) => {
+			item.setTitle(translate('sort.level.title')).setIcon('lucide-list-tree');
+			const sub = (
+				item as typeof item & { setSubmenu: () => Menu }
+			).setSubmenu();
+			for (const option of sortLevelOptions(activeTab)) {
+				sub.addItem((subItem) =>
+					subItem
+						.setTitle(option.label)
+						.setIcon(option.icon)
+						.setChecked(current.activeScope === option.scope)
+						.onClick(() => {
+							if (option.scope === 'drill') {
+								beginDrillPick(activeTab);
+								return;
+							}
+							stopDrillPick();
+							handleScopeChange({
+								...current,
+								activeScope: option.scope,
+								...(activeTab === 'props' ? {} : { drillNodeId: null }),
+							});
+						}),
+				);
+			}
+		});
 
 		menu.addSeparator();
 		const selectedNodeTypes = nodeTypeFiltersForState(current);
@@ -926,7 +1083,7 @@
 						.setIcon(option.icon)
 						.setChecked(isActive)
 						.onClick(() =>
-							handleSortChange({
+							handleFilterChange({
 								...current,
 								...nodeTypeFilterPatch(
 									toggleNodeTypeFilter(selectedNodeTypes, option.id),
@@ -1004,10 +1161,16 @@
 	});
 
 	$effect(() => {
+		return () => stopDrillPick();
+	});
+
+	$effect(() => {
 		const tab = activeTab;
 		const viewMode = viewModeByTab[tab] ?? 'tree';
 		const cells = visibleCellsByTab[tab] ?? DEFAULT_VISIBLE_CELLS[tab];
-		const sortState = sortStateByTab[tab] ?? DEFAULT_SORT_STATE[tab];
+		const sortState = untrack(
+			() => sortStateByTab[tab] ?? DEFAULT_SORT_STATE[tab],
+		);
 		if (tab === 'files' && fileList) {
 			applyViewMode(tab, viewMode);
 			applyVisibleCells(tab, cells);
@@ -1304,6 +1467,9 @@
 					{activeTab}
 					onClose={closeHeaderPopup}
 					onSortChange={handleSortChange}
+					onFilterChange={handleFilterChange}
+					onScopeChange={handleScopeChange}
+					onRequestDrillPick={() => beginDrillPick(activeTab)}
 					initialSortState={sortStateByTab[activeTab]}
 					{icon}
 				/>
