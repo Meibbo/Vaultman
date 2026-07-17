@@ -6191,11 +6191,10 @@ button.vaultman-content-scope-hint:focus-visible {
    Overlay inside .vaultman-pages-viewport (position:relative). Wrapper strip
    ignores pointer events so the explorer stays clickable; buttons re-enable. */
 .vaultman-pages-viewport {
-	--vaultman-toc-reserved-lane-size: 36px;
-	--vaultman-toc-scrollbar-offset: 12px;
+	--vaultman-toc-reserved-lane-size: 22px;
 }
 .is-mobile .vaultman-pages-viewport {
-	--vaultman-toc-reserved-lane-size: 42px;
+	--vaultman-toc-reserved-lane-size: 26px;
 }
 .vaultman-pages-viewport--toc-lane-right
 	:is(
@@ -6230,10 +6229,6 @@ button.vaultman-content-scope-hint:focus-visible {
 	box-sizing: border-box;
 	padding-inline-start: var(--vaultman-toc-reserved-lane-size);
 	scroll-padding-inline-start: var(--vaultman-toc-reserved-lane-size);
-}
-.vaultman-pages-viewport--toc-lane-right
-	.vaultman-floating-toc-wrap.pos-right {
-	right: calc(var(--vaultman-toc-scrollbar-offset) + 2px);
 }
 .vaultman-floating-toc-wrap {
 	position: absolute;

@@ -148,7 +148,6 @@ export class FilesExplorerPanel extends Component {
 	}
 
 	onload(): void {
-		this.containerEl.addClass('nav-files-container');
 		const svc = this.plugin.contextMenuService;
 
 		svc.registerAction({
@@ -480,7 +479,6 @@ export class FilesExplorerPanel extends Component {
 			this._handleRootFileDragOver,
 		);
 		this.containerEl.removeEventListener('drop', this._handleRootFileDrop);
-		this.containerEl.removeClass('nav-files-container');
 		this.tableView?.destroy();
 		this.gridView?.destroy();
 		this.treeView?.destroy();

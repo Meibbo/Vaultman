@@ -94,7 +94,12 @@ describe('Floating TOC source and panel contracts', () => {
 		);
 		expect(frameSource).toContain('vaultman-pages-viewport--toc-lane-right');
 		expect(frameSource).toContain('vaultman-pages-viewport--toc-lane-left');
-		expect(stylesSource).toContain('--vaultman-toc-reserved-lane-size: 36px');
+		expect(stylesSource).toContain('--vaultman-toc-reserved-lane-size: 22px');
+		expect(stylesSource).toContain('--vaultman-toc-reserved-lane-size: 26px');
+		expect(stylesSource).not.toContain(
+			'right: calc(var(--vaultman-toc-scrollbar-offset) + 2px)',
+		);
+		expect(stylesSource).not.toContain('--vaultman-toc-scrollbar-offset');
 		expect(stylesSource).toContain(
 			'padding-inline-end: var(--vaultman-toc-reserved-lane-size)',
 		);

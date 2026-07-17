@@ -17,10 +17,10 @@ describe('Files Iconic integration source guards', () => {
 		expect(treeSource).toContain('renderIconValue(iconSpan');
 	});
 
-	it('exposes a persistent node-kind scope and core CSS marker', () => {
+	it('exposes a persistent node-kind scope without inheriting the core container', () => {
 		expect(settingsSource).toContain("addOption('folders'");
 		expect(settingsSource).toContain("addOption('custom'");
-		expect(filesExplorerSource).toContain("addClass('nav-files-container')");
+		expect(filesExplorerSource).not.toContain('nav-files-container');
 		expect(filesExplorerSource).toContain('normalizeFilesIconScope');
 	});
 });
