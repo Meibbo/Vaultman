@@ -1367,3 +1367,16 @@ broader "append-only status writes" is parked as **S-12** in
   se cubre (BT3-010, no ejecutado); scrollbars custom > lane quedan HITL. Testing
   visual/UI/Obsidian/mobile delistado; build sincronizó artefactos estándar a plugin-dev.
 - Next: BT3-002 Sort level per-scope; BT3-006 permanece serializado detrás.
+
+## 2026-07-17 (cont.) — codex-gpt5-bt3 · implement · BT3-002
+
+- `ee7bc0f2 feat(explorer): add scoped sort levels`: estado v2 per-scope, migración y
+  round-trip; Props Properties/Values; Tags/Files All+Drill; Files parents-first/interleave;
+  native/popup/i18n y long-press `data-id` integrados.
+- D5 preservado también en el caso adversarial scope-pendiente + cambio de filtro: el
+  filtro se aplica con la proyección de sort efectiva previa, sin activar el scope recién
+  seleccionado. Guard RED/GREEN añadido.
+- Gates finales: focal 7/71; full unit 93/485; check 0/0; ESLint, Prettier, build,
+  diff-check y autofixer `issues:[]` verdes. Visual/UI/Obsidian/mobile delistado.
+- Adversarial: cubiertos legacy/orphans/deep trees/selectores/click residual; no se
+  inventaron métricas agregadas de folder. Next serial: BT3-008.
