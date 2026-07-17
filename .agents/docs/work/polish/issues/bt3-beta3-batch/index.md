@@ -5,6 +5,8 @@ status: active
 parent: "[[docs/work/polish/index|polish]]"
 created: 2026-07-17T09:25:00
 created_by: claude-fable-5
+updated: 2026-07-17T11:21:20
+updated_by: codex-gpt-5
 tags:
   - agent/issues
   - initiative/polish
@@ -20,13 +22,13 @@ juicio visual = dev. Base `dev` @ `5e5fa1df` (beta.2); rama `v12/bt3`.
 
 | Issue | Título | Modo | Estado |
 |---|---|---|---|
-| [[001-files-padding|BT3-001]] | Quitar `nav-files-container` (padding Files) | AFK micro | pending |
+| [[001-files-padding|BT3-001]] | Quitar `nav-files-container` (padding Files) | AFK micro | completed (`03fe92bc`) |
 | [[002-sort-level|BT3-002]] | Sort level per-scope + parents-first interleave | AFK | pending |
 | [[003-addons-parity|BT3-003]] | Snippets/Plugins scene-precedent parity | AFK | pending |
 | [[004-addon-cells|BT3-004]] | Addon cells: toggle nativo + gear config | AFK | pending |
 | [[005-settings-ia|BT3-005]] | Settings IA: renames, defaults, blur gate | AFK | pending |
 | [[006-menus|BT3-006]] | Tabs cmenu + view cmenu + In mode | AFK | pending |
-| [[007-rail-lane|BT3-007]] | Rail lane = ancho track | AFK micro | pending |
+| [[007-rail-lane|BT3-007]] | Rail lane = ancho track | AFK micro | completed (`03fe92bc`) |
 | [[008-tab-labels-minimal|BT3-008]] | Tab labels en minimal + responsive searchbox | AFK | pending |
 | [[009-iconic-props-tags|BT3-009]] | Iconic change-icon en Props/Tags | AFK + research interno | pending |
 | [[010-rainbow-research|BT3-010]] | Research compat snippet rainbow | research only | pending |

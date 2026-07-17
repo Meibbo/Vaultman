@@ -1349,3 +1349,21 @@ broader "append-only status writes" is parked as **S-12** in
   worktree de C:/tmp (el archivo sí existe en sandbox).
 - Sin código de producto tocado; sandbox docs-only. Próximo: dev revisa spec/issues
   → arranque BT3-001/007 (micros) en rama `v12/bt3`.
+
+## 2026-07-17 (cont.) — codex-gpt5-bt3 · implement · BT3-001 + BT3-007
+
+- Boot completo en room actual; `task_034` claimado con scopes `.agents/docs/current`,
+  `.agents/docs/work/polish` y `.agents/docs/sessions`. Worktree
+  `C:/tmp/vaultman-release-beta2-final2`, rama `v12/bt3`; preservado commit concurrente
+  del dev `14e87dc7` (README + icono wrench) y ejecutado encima.
+- `03fe92bc fix(explorer): remove files inset and tighten index lane`: retirado
+  `nav-files-container` de load/unload; lane TOC `22px` desktop / `26px` mobile; eliminado
+  shift derecho a 14px y su variable muerta.
+- TDD: RED observado para ausencia de clase y tamaños/shift CSS; GREEN focal 3 files / 43
+  tests. Full unit integrada 92 files / 473 tests; check 0/0; ESLint dirigido, Stylelint,
+  build y diff-check verdes. El primer full unit destapó un guard stale que exigía la
+  clase nativa; alineado con D1 y segundo full verde.
+- Adversarial: la compatibilidad de themes/snippets que dependan del contenedor nativo no
+  se cubre (BT3-010, no ejecutado); scrollbars custom > lane quedan HITL. Testing
+  visual/UI/Obsidian/mobile delistado; build sincronizó artefactos estándar a plugin-dev.
+- Next: BT3-002 Sort level per-scope; BT3-006 permanece serializado detrás.
