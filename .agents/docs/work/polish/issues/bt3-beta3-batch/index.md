@@ -5,7 +5,7 @@ status: active
 parent: "[[docs/work/polish/index|polish]]"
 created: 2026-07-17T09:25:00
 created_by: claude-fable-5
-updated: 2026-07-17T14:40:00-05:00
+updated: 2026-07-17T15:03:00-05:00
 updated_by: codex-gpt-5
 tags:
   - agent/issues
@@ -30,7 +30,7 @@ juicio visual = dev. Base `dev` @ `5e5fa1df` (beta.2); rama `v12/bt3`.
 | [[006-menus|BT3-006]] | Tabs cmenu + view cmenu + In mode | AFK | pending |
 | [[007-rail-lane|BT3-007]] | Rail lane = ancho track | AFK micro | completed (`03fe92bc`) |
 | [[008-tab-labels-minimal|BT3-008]] | Tab labels en minimal + responsive searchbox | AFK | completed (`46243479`) |
-| [[009-iconic-props-tags|BT3-009]] | Iconic change-icon en Props/Tags | AFK + research interno | pending |
+| [[009-iconic-props-tags|BT3-009]] | Iconic change-icon en Props/Tags | AFK + research interno | completed (`194a7306`) |
 | [[010-rainbow-research|BT3-010]] | Research compat snippet rainbow | research only | pending |
 
 Orden serial recomendado: 001 · 007 → 002 → 008 → 003 → 004 → 009 → 005 → 006.

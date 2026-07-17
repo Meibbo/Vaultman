@@ -1421,3 +1421,16 @@ broader "append-only status writes" is parked as **S-12** in
 - Adversarial añadió lock por add-on contra doble click físico/concurrencia, disabled
   pending, fallback native, ARIA y registry object/array. Visual/copy/escala exacta
   quedan HITL. Next serial: BT3-009.
+
+## 2026-07-17 (cont.) — codex-gpt5-bt3 · implement · BT3-009
+
+- `194a7306 feat(iconic): integrate property and tag icons`: resolución live con
+  fallback persistido para properties/tags, adapter picker capability-gated, acciones
+  Props/Tags y refresh descartable. i18n inglés/español incluido.
+- Iconic real `1.1.9` confirma datos/getters/savers/managers, pero mantiene el picker
+  privado; el item queda oculto en esa versión conforme al fallback locked (sin stub).
+- TDD: RED 5 fallos esperados; GREEN focal 15/15. Full unit 96/508; check 0/0; ESLint,
+  build y diff-check verdes. Autofixer/Stylelint N/A (sin Svelte/CSS).
+- Adversarial: fallback ante getters que lanzan, clave `#tag`, disabled/absent picker,
+  aislamiento y disposer de subscribers, y saver async cubiertos. Visual/Obsidian
+  queda HITL. Next serial: BT3-005.
