@@ -41,4 +41,9 @@ describe('release CLI safety contract', () => {
 		expect(releaseSource).toContain('Fetching remote tags');
 		expect(releaseSource).toContain('Checking GitHub release state');
 	});
+
+	it('uses the release query as the auth check without the non-TTY gh auth hang', () => {
+		expect(releaseSource).not.toContain("['auth', 'status']");
+		expect(releaseSource).toContain('release not found');
+	});
 });

@@ -164,12 +164,15 @@ function ensureNoForbiddenPublicPaths(branch) {
 }
 
 function ensureGitHubState(version, tags) {
-	run('gh', ['auth', 'status'], { capture: true });
 	const release = run(
 		'gh',
 		['release', 'view', version, '--json', 'tagName,isPrerelease,url'],
 		{ capture: true, allowFailure: true },
 	);
+	const releaseError = `${release.stderr ?? ''}`.trim();
+	if (release.status !== 0 && !releaseError.toLowerCase().includes('release not found')) {
+		throw new Error(`GitHub release check failed: ${releaseError || `exit ${release.status}`}`);
+	}
 	if (release.status === 0 || tags.includes(version)) {
 		const detail = release.status === 0 ? release.stdout.trim() : 'tag exists without release';
 		throw new Error(`Release ${version} already exists or is interrupted: ${detail}`);
