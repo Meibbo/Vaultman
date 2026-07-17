@@ -458,6 +458,14 @@
 		filtersActiveTab = tab;
 	}
 
+	function activateNodeContentSearch(query: string) {
+		contentFind = query;
+		contentIsRegex = false;
+		contentRegexError = '';
+		contentPreviewOpen = true;
+		switchFiltersTab('content');
+	}
+
 	function setExplorerSearch(value: string) {
 		filtersSearchByTab = {
 			...filtersSearchByTab,
@@ -748,6 +756,7 @@
 			headerActions={contentHeaderActions}
 			activeSectionTab={filtersActiveTab}
 			onSectionTabChange={switchFiltersTab}
+			onContentSearch={activateNodeContentSearch}
 			onFiltersSearchChange={setExplorerSearch}
 			showExplorerControls={isExplorerControlTab}
 			{expansionRevision}

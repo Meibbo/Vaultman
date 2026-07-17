@@ -29,6 +29,12 @@
 		viewModesForDataSurface,
 	} from '../../logic/logicExplorerViewModes';
 	import {
+		DEFAULT_INTERACTION_MODE,
+		interactionModesForTab,
+		normalizeInteractionMode,
+		type InteractionMode,
+	} from '../../logic/logicInteractionMode';
+	import {
 		shouldCondenseFilesToolbar,
 		shouldShowMinimalSearchInput,
 	} from '../../logic/logicResponsiveLayout';
@@ -90,6 +96,7 @@
 		onSectionTabChange,
 		onFiltersSearchChange,
 		onViewFiltersChanged,
+		onContentSearch,
 		showExplorerControls = true,
 		expansionRevision = 0,
 		floatingTocEnabled = false,
@@ -122,6 +129,7 @@
 		onSectionTabChange?: (tab: string) => void;
 		onFiltersSearchChange?: (value: string) => void;
 		onViewFiltersChanged?: () => void;
+		onContentSearch?: (query: string) => void;
 		showExplorerControls?: boolean;
 		expansionRevision?: number;
 		floatingTocEnabled?: boolean;
@@ -372,6 +380,9 @@
 		snippets: 'tree',
 		plugins: 'tree',
 	});
+	let interactionModeByTab = $state<Record<CoreFiltersTab, InteractionMode>>({
+		...DEFAULT_INTERACTION_MODE,
+	});
 	let visibleCellsByTab = $state<Record<FiltersTab, string[]>>({
 		props: [...DEFAULT_VISIBLE_CELLS.props],
 		tags: [...DEFAULT_VISIBLE_CELLS.tags],
@@ -400,6 +411,9 @@
 		'snippets',
 		'plugins',
 	];
+	function isCoreFiltersTab(tab: FiltersTab): tab is CoreFiltersTab {
+		return tab === 'files' || tab === 'props' || tab === 'tags';
+	}
 	// A short, caveman-ish summary of what each explorer holds in this layout.
 	function buildLayoutSummary(): string {
 		return LAYOUT_TABS.map((tab) => {
@@ -424,6 +438,9 @@
 			config[tab] = {
 				viewMode: viewModeByTab[tab],
 				visibleCells: [...(visibleCellsByTab[tab] ?? [])],
+				...(isCoreFiltersTab(tab)
+					? { interactionMode: interactionModeByTab[tab] }
+					: {}),
 				sortState: {
 					...sortState,
 					sorts: { ...sortState.sorts },
@@ -439,23 +456,33 @@
 		const nextView = { ...viewModeByTab };
 		const nextCells = { ...visibleCellsByTab };
 		const nextSort = { ...sortStateByTab };
+		const nextInteraction = { ...interactionModeByTab };
 		for (const tab of LAYOUT_TABS) {
 			const saved = layout.config[tab];
 			if (!saved) continue;
 			nextView[tab] = saved.viewMode as ExplorerViewMode;
 			nextCells[tab] = [...saved.visibleCells];
 			nextSort[tab] = normalizeSortState(tab, saved.sortState);
+			if (isCoreFiltersTab(tab)) {
+				nextInteraction[tab] = normalizeInteractionMode(
+					tab,
+					saved.interactionMode,
+				);
+			}
 		}
 		viewModeByTab = nextView;
 		visibleCellsByTab = nextCells;
 		sortStateByTab = nextSort;
+		interactionModeByTab = nextInteraction;
 		for (const tab of LAYOUT_TABS) {
 			applyViewMode(tab, nextView[tab]);
 			applyVisibleCells(tab, nextCells[tab]);
 			applySortState(tab, nextSort[tab]);
+			if (isCoreFiltersTab(tab)) {
+				applyInteractionMode(tab, nextInteraction[tab]);
+			}
 		}
 	}
-	let addModeActive = $state(false);
 	let searchExpanded = $state(false);
 	let searchToggleActivationPending = false;
 	let navbarEl = $state<HTMLElement | null>(null);
@@ -694,6 +721,35 @@
 		if (tab === 'plugins') pluginsExplorer?.setVisibleCells(cellSet);
 	}
 
+	function applyInteractionMode(tab: CoreFiltersTab, mode: InteractionMode) {
+		const normalized = normalizeInteractionMode(tab, mode);
+		if (tab === 'files') fileList?.setInteractionMode(normalized);
+		if (tab === 'props') {
+			propExplorer?.setInteractionMode(normalized, onContentSearch);
+		}
+		if (tab === 'tags') {
+			tagsExplorer?.setInteractionMode(normalized, onContentSearch);
+		}
+	}
+
+	function selectInteractionMode(tab: CoreFiltersTab, mode: InteractionMode) {
+		const normalized = normalizeInteractionMode(tab, mode);
+		interactionModeByTab = {
+			...interactionModeByTab,
+			[tab]: normalized,
+		};
+		applyInteractionMode(tab, normalized);
+		onViewFiltersChanged?.();
+	}
+
+	function orderedCellIds(tab: FiltersTab): string[] {
+		return Object.keys(CELL_LABELS[tab]).sort((left, right) => {
+			if (left === 'nested') return -1;
+			if (right === 'nested') return 1;
+			return 0;
+		});
+	}
+
 	function handleSortChange(state: ExplorerSortState) {
 		const normalizedState = normalizeSortState(activeTab, state);
 		sortStateByTab = { ...sortStateByTab, [activeTab]: normalizedState };
@@ -801,6 +857,77 @@
 				)
 			: viewModesForDataSurface(activeTab);
 
+		// Saved layouts first; the creation action is deliberately last.
+		if (onSaveLayout) {
+			menu.addItem((item) => {
+				item
+					.setTitle(translate('viewmenu.layouts'))
+					.setIcon('lucide-layout-template');
+				const sub = (
+					item as typeof item & { setSubmenu: () => Menu }
+				).setSubmenu();
+				if (savedLayouts.length > 0) {
+					for (const layout of savedLayouts) {
+						sub.addItem((s) =>
+							s
+								.setTitle(layout.name)
+								.setIcon('lucide-layout-template')
+								.onClick(() => loadLayout(layout)),
+						);
+					}
+					sub.addSeparator();
+				}
+				sub.addItem((s) =>
+					s
+						.setTitle(translate('viewmenu.save_layout'))
+						.setIcon('lucide-save')
+						.onClick(() => void promptSaveLayout()),
+				);
+			});
+		}
+
+		if (isCoreFiltersTab(activeTab)) {
+			if (onSaveLayout) menu.addSeparator();
+			menu.addItem((item) => {
+				item
+					.setTitle(translate('viewmenu.in_mode'))
+					.setIcon('lucide-mouse-pointer-click');
+				const sub = (
+					item as typeof item & { setSubmenu: () => Menu }
+				).setSubmenu();
+				for (const mode of interactionModesForTab(activeTab)) {
+					sub.addItem((subItem) =>
+						subItem
+							.setTitle(translate(`viewmenu.in_mode.${mode}`))
+							.setIcon(
+								mode === 'open'
+									? 'lucide-folder-open'
+									: mode === 'filter'
+										? 'lucide-list-filter'
+										: mode === 'add'
+											? 'lucide-plus'
+											: 'lucide-mouse-pointer-2',
+							)
+							.setChecked(interactionModeByTab[activeTab] === mode)
+							.onClick(() => selectInteractionMode(activeTab, mode)),
+					);
+				}
+			});
+		}
+
+		menu.addSeparator();
+		for (const id of orderedCellIds(activeTab)) {
+			menu.addItem((item) => {
+				item
+					.setTitle(translate(CELL_LABELS[activeTab][id]))
+					.setIcon(CELL_ICONS[id] ?? 'lucide-circle')
+					.setChecked(cells.has(id))
+					.onClick(() => toggleVisibleCell(id));
+			});
+		}
+
+		// Rendering engines are the final section.
+		menu.addSeparator();
 		for (const option of minimalNativeViewModes) {
 			menu.addItem((item) => {
 				item
@@ -813,63 +940,18 @@
 				}
 			});
 		}
-
-		// Config — gear submenu: save layout + saved layouts, between engines/cells.
-		if (onSaveLayout) {
-			menu.addSeparator();
-			menu.addItem((item) => {
-				item.setTitle(translate('viewmenu.config')).setIcon('lucide-settings');
-				const sub = (
-					item as typeof item & { setSubmenu: () => Menu }
-				).setSubmenu();
-				sub.addItem((s) =>
-					s
-						.setTitle(translate('viewmenu.save_layout'))
-						.setIcon('lucide-save')
-						.onClick(() => void promptSaveLayout()),
-				);
-				if (savedLayouts.length > 0) {
-					sub.addSeparator();
-					for (const layout of savedLayouts) {
-						sub.addItem((s) =>
-							s
-								.setTitle(layout.name)
-								.setIcon('lucide-layout-template')
-								.onClick(() => loadLayout(layout)),
-						);
-					}
-				}
-			});
-		}
-
-		menu.addSeparator();
-		for (const id of Object.keys(CELL_LABELS[activeTab])) {
-			menu.addItem((item) => {
-				item
-					.setTitle(translate(CELL_LABELS[activeTab][id]))
-					.setIcon(CELL_ICONS[id] ?? 'lucide-circle')
-					.setChecked(cells.has(id))
-					.onClick(() => toggleVisibleCell(id));
-			});
-		}
-
-		menu.addSeparator();
-		menu.addItem((item) => {
-			item
-				.setTitle(translate('viewmode.add_mode'))
-				.setIcon('lucide-plus')
-				.setChecked(addModeActive)
-				.onClick(() => {
-					addModeActive = !addModeActive;
-					handleAddModeChange(addModeActive);
-				});
-		});
 		menu.showAtMouseEvent(event);
 	}
 
 	function openNativeTabsMenu(event: MouseEvent) {
 		const menu = new Menu();
-		for (const option of tabOptions) {
+		const primaryTabOptions = tabOptions.filter(
+			(option) => option.id !== 'snippets' && option.id !== 'plugins',
+		);
+		const addonTabOptions = tabOptions.filter(
+			(option) => option.id === 'snippets' || option.id === 'plugins',
+		);
+		const renderTabOption = (option: HeaderTabOption) => {
 			menu.addItem((item) => {
 				item
 					.setTitle(option.label)
@@ -877,7 +959,8 @@
 					.setChecked(option.id === activeSectionTab)
 					.onClick(() => onSectionTabChange?.(option.id));
 			});
-		}
+		};
+		for (const option of primaryTabOptions) renderTabOption(option);
 		const renderTabAction = (action: HeaderMenuAction) => {
 			menu.addItem((item) => {
 				const isCountedLauncher =
@@ -899,9 +982,9 @@
 			menu.addSeparator();
 			for (const action of launcherActions) renderTabAction(action);
 		}
-		// Floating index on/off — below the queue node.
+		// Floating index is its own section below Filters + Queue.
 		if (onToggleFloatingToc) {
-			if (showDock || launcherActions.length === 0) menu.addSeparator();
+			menu.addSeparator();
 			menu.addItem((item) => {
 				item
 					.setTitle(translate('floating_toc.menu'))
@@ -910,11 +993,12 @@
 					.onClick(() => onToggleFloatingToc?.());
 			});
 		}
-		// Statistics — below its own divider.
-		if (!showDock && statisticsAction) {
+		// Statistics and add-on explorers share the next section.
+		if ((!showDock && statisticsAction) || addonTabOptions.length > 0) {
 			menu.addSeparator();
-			renderTabAction(statisticsAction);
 		}
+		if (!showDock && statisticsAction) renderTabAction(statisticsAction);
+		for (const option of addonTabOptions) renderTabOption(option);
 		// Toolbar visibility — its own section at the end of the tabs menu.
 		if (onToggleToolbar) {
 			menu.addSeparator();
@@ -1282,6 +1366,9 @@
 		const tab = activeTab;
 		const viewMode = viewModeByTab[tab] ?? 'tree';
 		const cells = visibleCellsByTab[tab] ?? DEFAULT_VISIBLE_CELLS[tab];
+		const interactionMode = isCoreFiltersTab(tab)
+			? interactionModeByTab[tab]
+			: undefined;
 		const sortState = untrack(
 			() => sortStateByTab[tab] ?? DEFAULT_SORT_STATE[tab],
 		);
@@ -1289,16 +1376,19 @@
 			applyViewMode(tab, viewMode);
 			applyVisibleCells(tab, cells);
 			applySortState(tab, sortState);
+			if (interactionMode) applyInteractionMode(tab, interactionMode);
 		}
 		if (tab === 'props' && propExplorer) {
 			applyViewMode(tab, viewMode);
 			applyVisibleCells(tab, cells);
 			applySortState(tab, sortState);
+			if (interactionMode) applyInteractionMode(tab, interactionMode);
 		}
 		if (tab === 'tags' && tagsExplorer) {
 			applyViewMode(tab, viewMode);
 			applyVisibleCells(tab, cells);
 			applySortState(tab, sortState);
+			if (interactionMode) applyInteractionMode(tab, interactionMode);
 		}
 		if (tab === 'snippets' && snippetsExplorer) {
 			applyViewMode(tab, viewMode);
@@ -1311,12 +1401,6 @@
 			applySortState(tab, sortState);
 		}
 	});
-
-	function handleAddModeChange(active: boolean) {
-		propExplorer?.setAddMode(active);
-		fileList?.setAddMode(active);
-		tagsExplorer?.setAddMode(active);
-	}
 </script>
 
 {#snippet searchControl(variant: SearchControlVariant)}
@@ -1613,7 +1697,13 @@
 					onClose={closeHeaderPopup}
 					onViewModeChange={handleViewModeChange}
 					onPillsChange={handlePillsChange}
-					onAddModeChange={handleAddModeChange}
+					onAddModeChange={(active) => {
+						if (!isCoreFiltersTab(activeTab)) return;
+						selectInteractionMode(
+							activeTab,
+							active ? 'add' : DEFAULT_INTERACTION_MODE[activeTab],
+						);
+					}}
 					initialViewMode={viewModeByTab[activeTab]}
 					initialPills={visibleCellsByTab[activeTab]}
 					{addOpCount}

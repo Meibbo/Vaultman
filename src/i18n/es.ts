@@ -278,9 +278,14 @@ export const es: Record<string, string> = {
 	'floating_toc.aria': 'Índice del explorer',
 	'floating_toc.menu': 'Índice flotante',
 	'viewmenu.toolbar': 'Barra de herramientas',
-	'viewmenu.config': 'Config',
+	'viewmenu.layouts': 'Diseños',
 	'viewmenu.save_layout': 'Guardar layout',
 	'viewmenu.saved_config_notice': 'Layout guardado',
+	'viewmenu.in_mode': 'En modo',
+	'viewmenu.in_mode.open': 'Abrir',
+	'viewmenu.in_mode.add': 'Agregar',
+	'viewmenu.in_mode.select': 'Seleccionar',
+	'viewmenu.in_mode.filter': 'Filtrar',
 	'floating_toc.files':
 		'Indexando archivos — toca para indexar carpetas, mantén para elegir alcance',
 	'floating_toc.folders':

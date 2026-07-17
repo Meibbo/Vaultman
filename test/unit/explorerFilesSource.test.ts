@@ -141,15 +141,16 @@ describe('FilesExplorerPanel source guards', () => {
 		expect(explorerFilesSource).toContain('workspace.openPopoutLeaf()');
 	});
 
-	it('uses Obsidian core modifier routing for file clicks while preserving add mode', () => {
+	it('uses Obsidian core modifier routing across the interaction modes', () => {
 		expect(explorerFilesSource).toContain('Keymap.isModEvent(event)');
 		expect(explorerFilesSource).toContain(
 			'this.plugin.app.workspace.getLeaf(paneType)',
 		);
 		expect(explorerFilesSource).toContain(
-			'fileSelectionGesture(event, this.addMode)',
+			"fileSelectionGesture(event, action === 'add')",
 		);
-		expect(explorerFilesSource).toContain('if (this.addMode)');
+		expect(explorerFilesSource).toContain("if (action === 'add')");
+		expect(explorerFilesSource).toContain("if (action === 'select'");
 		expect(explorerFilesSource).toMatch(
 			/onFileClick: \(file: TFile, event\) =>\s+this\._handleFileClick\(file, event\)/,
 		);

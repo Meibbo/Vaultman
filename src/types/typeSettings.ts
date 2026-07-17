@@ -4,6 +4,7 @@ import type { MenuHideRule } from './typeCMenu';
 import type { QueueTemplate } from './typeOps';
 import type { BadgeCancelClickMode } from '../utils/badgeInteraction';
 import type { ExplorerSortState } from './typeUI';
+import type { InteractionMode } from '../logic/logicInteractionMode';
 
 export type Language = 'auto' | 'en' | 'es';
 
@@ -12,6 +13,7 @@ export interface SavedViewConfig {
 	viewMode: string;
 	visibleCells: string[];
 	sortState: ExplorerSortState;
+	interactionMode?: InteractionMode;
 }
 
 /** A named explorer layout: per-tab configs + a short human summary. */

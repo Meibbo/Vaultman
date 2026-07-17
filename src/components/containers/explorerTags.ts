@@ -1,5 +1,5 @@
 // src/components/TagsExplorerPanel.ts
-import { Component, App, Notice, setIcon } from 'obsidian';
+import { Component, App, Keymap, Notice, setIcon } from 'obsidian';
 import { TagsLogic } from '../../logic/logicTags';
 import { FilterService } from '../../services/serviceFilter';
 import { IconicService } from '../../services/serviceIcons';
@@ -57,6 +57,11 @@ import {
 	groupRootHierarchy,
 } from '../../logic/logicExplorerHierarchy';
 import { collectExpandableSubtreeIds } from '../../logic/logicTreeExpansion';
+import {
+	normalizeInteractionMode,
+	resolveInteractionAction,
+	type InteractionMode,
+} from '../../logic/logicInteractionMode';
 import {
 	readVaultmanDragPayload,
 	setVaultmanDragPayload,
@@ -174,10 +179,15 @@ export class TagsExplorerPanel extends Component {
 		super.onunload();
 	}
 
-	private addMode = false;
+	private interactionMode: InteractionMode = 'filter';
+	private onContentSearch?: (query: string) => void;
 
-	setAddMode(active: boolean): void {
-		this.addMode = active;
+	setInteractionMode(
+		mode: InteractionMode,
+		onContentSearch?: (query: string) => void,
+	): void {
+		this.interactionMode = normalizeInteractionMode('tags', mode);
+		this.onContentSearch = onContentSearch;
 	}
 
 	private readonly _handleStateChange = () => this._render();
@@ -508,10 +518,10 @@ export class TagsExplorerPanel extends Component {
 				},
 				onRecursiveExpand: (id: string) =>
 					this._expandSubtree(id, nodesWithIcons),
-				onRowClick: (id: string) => {
+				onRowClick: (id: string, event) => {
 					const node = this._findNode(id, tree);
 					if (!node) return;
-					this._handleNodeClick(node);
+					this._handleNodeClick(node, event);
 				},
 				onContextMenu: (id: string, event: MouseEvent) => {
 					const node = this._findNode(id, tree);
@@ -578,36 +588,10 @@ export class TagsExplorerPanel extends Component {
 			},
 			onRecursiveExpand: (id: string) =>
 				this._expandSubtree(id, nodesWithIcons),
-			onRowClick: (id: string) => {
+			onRowClick: (id: string, event) => {
 				const node = this._findNode(id, tree);
 				if (!node) return;
-				const meta = node.meta;
-
-				// ADD MODE: queue add-tag operation instead of toggling filter
-				if (this.addMode) {
-					this.plugin.queueService.addOrRun({
-						type: 'tag',
-						tag: meta.tagPath,
-						action: 'add',
-						details: `Add tag "#${meta.tagPath}"`,
-						files: this.plugin.filterService.filteredFiles,
-						customLogic: true,
-						logicFunc: (_file, fm) => {
-							const raw: unknown = fm.tags;
-							const existing: string[] = Array.isArray(raw)
-								? (raw as unknown[]).map((v) => String(v))
-								: typeof raw === 'string'
-									? [raw]
-									: [];
-							if (existing.includes(meta.tagPath)) return null;
-							fm.tags = [...existing, meta.tagPath];
-							return fm;
-						},
-					});
-					return;
-				}
-
-				this._toggleTagFilter(meta.tagPath);
+				this._handleNodeClick(node, event);
 			},
 			onContextMenu: (id: string, e: MouseEvent) => {
 				const node = this._findNode(id, tree);
@@ -665,9 +649,36 @@ export class TagsExplorerPanel extends Component {
 		});
 	}
 
-	private _handleNodeClick(node: TreeNode<TagMeta>): void {
+	private _handleNodeClick(
+		node: TreeNode<TagMeta>,
+		event?: MouseEvent | KeyboardEvent,
+	): void {
 		const meta = node.meta;
-		if (this.addMode) {
+		const action = resolveInteractionAction(
+			'tags',
+			this.interactionMode,
+			Boolean(Keymap.isModEvent(event)),
+		);
+
+		if (action === 'content-search') {
+			if (this.onContentSearch) {
+				this.onContentSearch(`#${meta.tagPath}`);
+			} else if (node.children?.length) {
+				this._toggleExpanded(node.id);
+				void this._render();
+			}
+			return;
+		}
+
+		if (action === 'expand') {
+			if (node.children?.length) {
+				this._toggleExpanded(node.id);
+				void this._render();
+			}
+			return;
+		}
+
+		if (action === 'add') {
 			this.plugin.queueService.addOrRun({
 				type: 'tag',
 				tag: meta.tagPath,
@@ -771,7 +782,9 @@ export class TagsExplorerPanel extends Component {
 			}
 			this._renderGridBadges(card, node);
 
-			card.addEventListener('click', () => this._handleNodeClick(node));
+			card.addEventListener('click', (event) =>
+				this._handleNodeClick(node, event),
+			);
 			card.addEventListener('dragstart', (event) =>
 				setVaultmanDragPayload(
 					event,
@@ -794,7 +807,7 @@ export class TagsExplorerPanel extends Component {
 			card.addEventListener('keydown', (event) => {
 				if (event.key === 'Enter' || event.key === ' ') {
 					event.preventDefault();
-					this._handleNodeClick(node);
+					this._handleNodeClick(node, event);
 				}
 			});
 			card.addEventListener('contextmenu', (event) => {
@@ -1081,7 +1094,7 @@ export class TagsExplorerPanel extends Component {
 	createFromSearch(term: string): void {
 		const tagPath = term.trim().replace(/^#/, '').replace(/\s+/g, '-');
 		if (!tagPath) {
-			this.addMode = true;
+			this.interactionMode = 'add';
 			new Notice('Select a tag to stage it');
 			return;
 		}

@@ -10,8 +10,9 @@ describe('Files explorer multi-selection source contracts', () => {
 		expect(explorerFilesSource).toContain('fileSelectionGesture');
 		expect(explorerFilesSource).toContain('updateFileSelection');
 		expect(explorerFilesSource).toContain(
-			'const selectionGesture = fileSelectionGesture(event, this.addMode);',
+			"let selectionGesture = fileSelectionGesture(event, action === 'add');",
 		);
+		expect(explorerFilesSource).toContain("selectionGesture = 'toggle';");
 		expect(explorerFilesSource).toContain(
 			'const paneType = Keymap.isModEvent(event);',
 		);

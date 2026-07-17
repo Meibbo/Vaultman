@@ -1,5 +1,11 @@
 // src/components/PropsExplorerPanel.ts
-import { Component, Notice, prepareSimpleSearch, setIcon } from 'obsidian';
+import {
+	Component,
+	Keymap,
+	Notice,
+	prepareSimpleSearch,
+	setIcon,
+} from 'obsidian';
 import { PropsLogic } from '../../logic/logicProps';
 import type { FilterService } from '../../services/serviceFilter';
 import type { IconicService } from '../../services/serviceIcons';
@@ -64,6 +70,11 @@ import {
 } from '../../logic/logicIndexGroups';
 import { flattenTreeToPathLabels } from '../../logic/logicExplorerHierarchy';
 import { collectExpandableSubtreeIds } from '../../logic/logicTreeExpansion';
+import {
+	normalizeInteractionMode,
+	resolveInteractionAction,
+	type InteractionMode,
+} from '../../logic/logicInteractionMode';
 import { parsePropertyValue } from '../../logic/propertyValueCoercion';
 import {
 	readVaultmanDragPayload,
@@ -345,10 +356,15 @@ export class PropsExplorerPanel extends Component {
 		super.onunload();
 	}
 
-	private addMode = false;
+	private interactionMode: InteractionMode = 'filter';
+	private onContentSearch?: (query: string) => void;
 
-	setAddMode(active: boolean): void {
-		this.addMode = active;
+	setInteractionMode(
+		mode: InteractionMode,
+		onContentSearch?: (query: string) => void,
+	): void {
+		this.interactionMode = normalizeInteractionMode('props', mode);
+		this.onContentSearch = onContentSearch;
 	}
 
 	private readonly _handleStateChange = () => this._render();
@@ -467,7 +483,7 @@ export class PropsExplorerPanel extends Component {
 		const propName = term.trim();
 		void category;
 		if (!propName) {
-			this.addMode = true;
+			this.interactionMode = 'add';
 			new Notice('Select a property to stage it');
 			return;
 		}
@@ -526,10 +542,36 @@ export class PropsExplorerPanel extends Component {
 	private _handleNodeClick(
 		node: TreeNode<PropMeta>,
 		activeFilterIds: Set<string>,
+		event?: MouseEvent | KeyboardEvent,
 	): void {
 		const meta = node.meta;
+		const action = resolveInteractionAction(
+			'props',
+			this.interactionMode,
+			Boolean(Keymap.isModEvent(event)),
+		);
 
-		if (this.addMode && !meta.isValueNode) {
+		if (action === 'content-search') {
+			if (this.onContentSearch) {
+				this.onContentSearch(
+					meta.isValueNode ? (meta.rawValue ?? node.label) : meta.propName,
+				);
+			} else if (node.children?.length) {
+				this._toggleExpanded(node.id);
+				void this._render();
+			}
+			return;
+		}
+
+		if (action === 'expand') {
+			if (node.children?.length) {
+				this._toggleExpanded(node.id);
+				void this._render();
+			}
+			return;
+		}
+
+		if (action === 'add' && !meta.isValueNode) {
 			this.plugin.queueService.addOrRun({
 				type: 'property',
 				property: meta.propName,
@@ -795,10 +837,10 @@ export class PropsExplorerPanel extends Component {
 				},
 				onRecursiveExpand: (id: string) =>
 					this._expandSubtree(id, nodesWithIcons),
-				onRowClick: (id: string) => {
+				onRowClick: (id: string, event) => {
 					const node = this._findNode(id, tree);
 					if (!node) return;
-					this._handleNodeClick(node, activeFilterIds);
+					this._handleNodeClick(node, activeFilterIds, event);
 				},
 				onContextMenu: (id: string, event: MouseEvent) => {
 					const node = this._findNode(id, tree);
@@ -842,10 +884,10 @@ export class PropsExplorerPanel extends Component {
 			},
 			onRecursiveExpand: (id: string) =>
 				this._expandSubtree(id, nodesWithIcons),
-			onRowClick: (id: string) => {
+			onRowClick: (id: string, event) => {
 				const node = this._findNode(id, tree);
 				if (!node) return;
-				this._handleNodeClick(node, activeFilterIds);
+				this._handleNodeClick(node, activeFilterIds, event);
 			},
 			onContextMenu: (id: string, e: MouseEvent) => {
 				const node = this._findNode(id, tree);
@@ -1139,8 +1181,8 @@ export class PropsExplorerPanel extends Component {
 			}
 			this._renderGridBadges(card, node);
 
-			card.addEventListener('click', () =>
-				this._handleNodeClick(node, activeFilterIds),
+			card.addEventListener('click', (event) =>
+				this._handleNodeClick(node, activeFilterIds, event),
 			);
 			card.addEventListener('dragstart', (event) =>
 				this._setPropDragPayload(node, activeFilterIds, event),
@@ -1154,7 +1196,7 @@ export class PropsExplorerPanel extends Component {
 			card.addEventListener('keydown', (event) => {
 				if (event.key === 'Enter' || event.key === ' ') {
 					event.preventDefault();
-					this._handleNodeClick(node, activeFilterIds);
+					this._handleNodeClick(node, activeFilterIds, event);
 				}
 			});
 			card.addEventListener('contextmenu', (event) => {

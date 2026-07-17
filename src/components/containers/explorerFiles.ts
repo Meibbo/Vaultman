@@ -76,6 +76,11 @@ import {
 	updateFileSelection,
 } from '../../logic/logicFileSelection';
 import {
+	normalizeInteractionMode,
+	resolveInteractionAction,
+	type InteractionMode,
+} from '../../logic/logicInteractionMode';
+import {
 	readVaultmanDragPayload,
 	setVaultmanDragPayload,
 	type VaultmanDragNodePayload,
@@ -115,7 +120,7 @@ export class FilesExplorerPanel extends Component {
 	private sortState = normalizeExplorerSortState('files', null);
 	private nodeTypeFilters: string[] = [];
 	private parentsFirst = true;
-	private addMode = false;
+	private interactionMode: InteractionMode = 'open';
 	private selectedFilePaths = new Set<string>();
 	private selectionAnchorPath: string | null = null;
 	private visibleCells = new Set<string>(['name', 'ext', 'count', 'nested']);
@@ -491,8 +496,8 @@ export class FilesExplorerPanel extends Component {
 		super.onunload();
 	}
 
-	setAddMode(active: boolean): void {
-		this.addMode = active;
+	setInteractionMode(mode: InteractionMode): void {
+		this.interactionMode = normalizeInteractionMode('files', mode);
 	}
 
 	setViewMode(mode: FilesViewMode): void {
@@ -912,7 +917,15 @@ export class FilesExplorerPanel extends Component {
 		file: TFile,
 		event?: MouseEvent | KeyboardEvent,
 	): void {
-		const selectionGesture = fileSelectionGesture(event, this.addMode);
+		const action = resolveInteractionAction(
+			'files',
+			this.interactionMode,
+			false,
+		);
+		let selectionGesture = fileSelectionGesture(event, action === 'add');
+		if (action === 'select' && !event?.shiftKey) {
+			selectionGesture = 'toggle';
+		}
 		const selection = updateFileSelection(
 			{
 				selectedPaths: this.selectedFilePaths,
@@ -926,7 +939,7 @@ export class FilesExplorerPanel extends Component {
 			this._applyFileSelection(selection);
 			return;
 		}
-		if (this.addMode) {
+		if (action === 'add') {
 			const selected = this.getSelectedFiles();
 			const targets =
 				selected.length > 0
@@ -1329,7 +1342,10 @@ export class FilesExplorerPanel extends Component {
 	}
 
 	private _setFileNodeDragPayload(
-		nodePayload: Extract<VaultmanDragNodePayload, { kind: 'file' | 'folder' }>,
+		nodePayload: Extract<
+			VaultmanDragNodePayload,
+			{ kind: 'file' | 'folder' }
+		>,
 		event: DragEvent,
 	): void {
 		const payload =
@@ -1344,10 +1360,7 @@ export class FilesExplorerPanel extends Component {
 	}
 
 	private _selectedFileDragPayload(
-		nodePayload: Extract<
-			VaultmanDragNodePayload,
-			{ kind: 'file' | 'folder' }
-		>,
+		nodePayload: Extract<VaultmanDragNodePayload, { kind: 'file' | 'folder' }>,
 	):
 		| (VaultmanDragNodePayload & { selection: VaultmanDragNodePayload[] })
 		| null {

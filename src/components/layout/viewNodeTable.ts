@@ -39,7 +39,7 @@ export interface NodeTableViewOptions<TMeta = unknown> {
 	warningIds?: Set<string>;
 	onToggle: (id: string) => void;
 	onRecursiveExpand?: (id: string) => void;
-	onRowClick: (id: string) => void;
+	onRowClick: (id: string, event?: MouseEvent | KeyboardEvent) => void;
 	onContextMenu: (id: string, event: MouseEvent) => void;
 	onBadgeDoubleClick?: (queueIndex: number) => void;
 	badgeCancelClickMode?: BadgeCancelClickMode;
@@ -393,7 +393,7 @@ export class NodeTableView<TMeta = unknown> {
 				event.stopPropagation();
 				return;
 			}
-			opts.onRowClick(node.id);
+			opts.onRowClick(node.id, event);
 		};
 		row.ondragstart = (event) => {
 			this.recursiveExpandGesture.cancel();
@@ -411,7 +411,7 @@ export class NodeTableView<TMeta = unknown> {
 		row.onkeydown = (event) => {
 			if (event.key !== 'Enter' && event.key !== ' ') return;
 			event.preventDefault();
-			opts.onRowClick(node.id);
+			opts.onRowClick(node.id, event);
 		};
 		row.oncontextmenu = (event) => {
 			event.preventDefault();
