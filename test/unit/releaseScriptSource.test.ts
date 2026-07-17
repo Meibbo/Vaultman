@@ -59,6 +59,6 @@ describe('release CLI safety contract', () => {
 	});
 
 	it('keeps checked-out Svelte files compatible with the Prettier gate', () => {
-		expect(attributesSource).toContain('*.svelte text eol=lf');
+		expect(attributesSource).toContain('* text=auto eol=lf');
 	});
 });
