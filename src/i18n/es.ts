@@ -5,6 +5,7 @@ export const es: Record<string, string> = {
 		'Editor masivo de propiedades y herramienta de gestión de vault',
 	'plugin.open': 'Abrir Vaultman',
 	'common.cancel': 'Cancelar',
+	'iconic.change_icon': 'Cambiar ícono',
 
 	// Sections
 	'section.filters': 'Filtros',

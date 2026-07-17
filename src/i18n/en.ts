@@ -7,6 +7,7 @@ export const en: Record<string, string> = {
 	'plugin.description': 'Bulk property editor and vault management tool',
 	'plugin.open': 'Open Vaultman',
 	'common.cancel': 'Cancel',
+	'iconic.change_icon': 'Change icon',
 
 	// Sections
 	'section.filters': 'Filters',

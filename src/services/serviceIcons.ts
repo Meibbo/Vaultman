@@ -12,12 +12,32 @@ interface IconicData {
 }
 
 interface IconicRuntimeItem extends IconEntry {
+	id?: string;
+	name?: string;
+	category?: string;
 	iconDefault?: string | null;
 	items?: IconicRuntimeItem[] | null;
 }
 
 interface IconicRuntimePlugin {
 	getFileItem?: (path: string) => IconicRuntimeItem | null;
+	getPropertyItem?: (name: string) => IconicRuntimeItem | null;
+	getTagItem?: (path: string) => IconicRuntimeItem | null;
+	openIconPicker?: (
+		item: IconicRuntimeItem,
+		callback: (icon: string | null, color: string | null) => void,
+	) => unknown;
+	savePropertyIcon?: (
+		item: IconicRuntimeItem,
+		icon: string | null,
+		color: string | null,
+	) => unknown;
+	saveTagIcon?: (
+		item: IconicRuntimeItem,
+		icon: string | null,
+		color: string | null,
+	) => unknown;
+	refreshManagers?: (...kinds: Array<'property' | 'tag'>) => unknown;
 	ruleManager?: {
 		checkRuling?: (
 			kind: 'file' | 'folder',
@@ -45,6 +65,7 @@ export class IconicService extends Component {
 	private loaded = false;
 	private enabled: boolean;
 	private _onLoadedCallbacks: Array<() => void> = [];
+	private _onChangedCallbacks = new Set<() => void>();
 
 	constructor(app: App, enabled = true) {
 		super();
@@ -63,6 +84,12 @@ export class IconicService extends Component {
 		} else {
 			this._onLoadedCallbacks.push(cb);
 		}
+	}
+
+	/** Subscribe to live Iconic changes exposed through this adapter. */
+	onChanged(cb: () => void): () => void {
+		this._onChangedCallbacks.add(cb);
+		return () => this._onChangedCallbacks.delete(cb);
 	}
 
 	private async loadIcons(): Promise<void> {
@@ -99,29 +126,89 @@ export class IconicService extends Component {
 	}
 
 	/** Get custom icon for a property name. Returns null if not set. */
-	getIcon(propName: string): { icon: string; color?: string } | null {
+	getIcon(propName: string): IconicResolvedIcon | null {
 		if (!this.enabled) return null;
-		const entry = this.propertyIcons.get(propName);
-		if (!entry?.icon) return null;
-		return {
-			icon: entry.icon,
-			...(entry.color ? { color: entry.color } : {}),
-		};
+		const runtime = this.runtimePlugin();
+		if (runtime?.getPropertyItem) {
+			try {
+				const resolved = this.normalizedIcon(runtime.getPropertyItem(propName));
+				if (resolved) return resolved;
+			} catch {
+				// Runtime APIs are optional/private; persisted data remains the fallback.
+			}
+		}
+		return this.normalizedIcon(this.propertyIcons.get(propName));
 	}
 
 	/** Get custom icon for a tag path (without #). Returns null if not set. */
-	getTagIcon(tagPath: string): { icon: string; color?: string } | null {
+	getTagIcon(tagPath: string): IconicResolvedIcon | null {
 		if (!this.enabled) return null;
-		const entry = this.tagIcons.get(tagPath) ?? this.tagIcons.get(`#${tagPath}`);
-		if (!entry?.icon) return null;
-		return {
-			icon: entry.icon,
-			...(entry.color ? { color: entry.color } : {}),
-		};
+		const runtime = this.runtimePlugin();
+		if (runtime?.getTagItem) {
+			try {
+				const resolved = this.normalizedIcon(
+					this.runtimeTagItem(runtime, tagPath),
+				);
+				if (resolved) return resolved;
+			} catch {
+				// Runtime APIs are optional/private; persisted data remains the fallback.
+			}
+		}
+		return this.normalizedIcon(
+			this.tagIcons.get(tagPath) ?? this.tagIcons.get(`#${tagPath}`),
+		);
 	}
 
 	setEnabled(enabled: boolean): void {
+		if (this.enabled === enabled) return;
 		this.enabled = enabled;
+		this.notifyChanged();
+	}
+
+	canChangePropertyIcon(): boolean {
+		const runtime = this.runtimePlugin();
+		return (
+			this.enabled &&
+			typeof runtime?.getPropertyItem === 'function' &&
+			typeof runtime.openIconPicker === 'function' &&
+			typeof runtime.savePropertyIcon === 'function'
+		);
+	}
+
+	canChangeTagIcon(): boolean {
+		const runtime = this.runtimePlugin();
+		return (
+			this.enabled &&
+			typeof runtime?.getTagItem === 'function' &&
+			typeof runtime.openIconPicker === 'function' &&
+			typeof runtime.saveTagIcon === 'function'
+		);
+	}
+
+	openPropertyIconPicker(propName: string): boolean {
+		if (!this.canChangePropertyIcon()) return false;
+		const runtime = this.runtimePlugin();
+		if (!runtime?.getPropertyItem) return false;
+		try {
+			const item = runtime.getPropertyItem(propName);
+			if (!item) return false;
+			return this.openRuntimePicker(runtime, 'property', propName, item);
+		} catch {
+			return false;
+		}
+	}
+
+	openTagIconPicker(tagPath: string): boolean {
+		if (!this.canChangeTagIcon()) return false;
+		const runtime = this.runtimePlugin();
+		if (!runtime?.getTagItem) return false;
+		try {
+			const item = this.runtimeTagItem(runtime, tagPath);
+			if (!item) return false;
+			return this.openRuntimePicker(runtime, 'tag', tagPath, item);
+		} catch {
+			return false;
+		}
 	}
 
 	/** Resolve a direct or rule-driven Iconic file/folder icon. */
@@ -157,6 +244,56 @@ export class IconicService extends Component {
 		const candidate = plugins?.iconic;
 		if (!candidate || typeof candidate !== 'object') return null;
 		return candidate as IconicRuntimePlugin;
+	}
+
+	private runtimeTagItem(
+		runtime: IconicRuntimePlugin,
+		tagPath: string,
+	): IconicRuntimeItem | null {
+		if (!runtime.getTagItem) return null;
+		return runtime.getTagItem(tagPath) ?? runtime.getTagItem(`#${tagPath}`);
+	}
+
+	private openRuntimePicker(
+		runtime: IconicRuntimePlugin,
+		kind: 'property' | 'tag',
+		key: string,
+		item: IconicRuntimeItem,
+	): boolean {
+		if (!runtime.openIconPicker) return false;
+		try {
+			runtime.openIconPicker(item, (icon, color) => {
+				item.icon = icon;
+				item.color = color;
+				const cache = kind === 'property' ? this.propertyIcons : this.tagIcons;
+				cache.set(key, { icon, color });
+				try {
+					const save =
+						kind === 'property'
+							? runtime.savePropertyIcon
+							: runtime.saveTagIcon;
+					const saveResult = save?.call(runtime, item, icon, color);
+					void Promise.resolve(saveResult).catch(() => undefined);
+					runtime.refreshManagers?.(kind);
+				} catch {
+					// Keep Vaultman's live view coherent even if an optional API disappears.
+				}
+				this.notifyChanged();
+			});
+			return true;
+		} catch {
+			return false;
+		}
+	}
+
+	private notifyChanged(): void {
+		for (const cb of this._onChangedCallbacks) {
+			try {
+				cb();
+			} catch {
+				// A stale consumer must not block refreshes for the remaining panels.
+			}
+		}
 	}
 
 	private normalizedIcon(

@@ -114,6 +114,21 @@ export class PropsExplorerPanel extends Component {
 
 		// Property actions
 		svc.registerAction({
+			id: 'prop.iconic-change',
+			nodeTypes: ['prop'],
+			surfaces: ['panel'],
+			label: translate('iconic.change_icon'),
+			icon: 'lucide-image-plus',
+			section: 'Icon',
+			when: (ctx) =>
+				!(ctx.node.meta as PropMeta).isValueNode &&
+				this.plugin.iconicService?.canChangePropertyIcon() === true,
+			run: (ctx) => {
+				this.plugin.iconicService?.openPropertyIconPicker(ctx.node.label);
+			},
+		});
+
+		svc.registerAction({
 			id: 'prop.rename',
 			nodeTypes: ['prop'],
 			surfaces: ['panel'],
@@ -310,6 +325,10 @@ export class PropsExplorerPanel extends Component {
 		);
 		// Re-render after Iconic finishes loading
 		this.plugin.iconicService?.onLoaded(() => this._render());
+		const unsubscribeIconic = this.plugin.iconicService?.onChanged(() =>
+			this._render(),
+		);
+		if (unsubscribeIconic) this.register(unsubscribeIconic);
 
 		// Re-render dynamically when filters or queues change
 		this.plugin.filterService.on('changed', this._handleStateChange);

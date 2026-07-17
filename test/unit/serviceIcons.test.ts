@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 
 import { IconicService } from '../../src/services/serviceIcons';
 import mainSource from '../../src/main.ts?raw';
@@ -123,5 +123,172 @@ describe('IconicService add-on gate', () => {
 			icon: 'lucide-flame',
 			color: '#f00',
 		});
+	});
+
+	it('prefers live property and tag items over persisted Iconic data', async () => {
+		const app = fakeApp({
+			propertyIcons: { status: { icon: 'lucide-database' } },
+			tagIcons: { project: { icon: 'lucide-folder' } },
+		}) as ReturnType<typeof fakeApp> & {
+			plugins: { plugins: Record<string, unknown> };
+		};
+		app.plugins = {
+			plugins: {
+				iconic: {
+					getPropertyItem: () => ({
+						icon: 'lucide-circle-check',
+						color: '#0f0',
+					}),
+					getTagItem: () => ({ icon: 'lucide-kanban', color: '#00f' }),
+				},
+			},
+		};
+		const service = new IconicService(app as never);
+		await load(service);
+
+		expect(service.getIcon('status')).toEqual({
+			icon: 'lucide-circle-check',
+			color: '#0f0',
+		});
+		expect(service.getTagIcon('project')).toEqual({
+			icon: 'lucide-kanban',
+			color: '#00f',
+		});
+	});
+
+	it('opens and refreshes only when an explicit runtime picker is available', async () => {
+		const propertyItem = {
+			id: 'status',
+			name: 'status',
+			category: 'property',
+			icon: null as string | null,
+			color: null as string | null,
+		};
+		const tagItem = {
+			id: 'project',
+			name: '#project',
+			category: 'tag',
+			icon: null as string | null,
+			color: null as string | null,
+		};
+		const openIconPicker = vi.fn(
+			(
+				_item: unknown,
+				_callback: (icon: string | null, color: string | null) => void,
+			) => undefined,
+		);
+		const savePropertyIcon = vi.fn();
+		const saveTagIcon = vi.fn();
+		const refreshManagers = vi.fn();
+		const app = fakeApp({}) as ReturnType<typeof fakeApp> & {
+			plugins: { plugins: Record<string, unknown> };
+		};
+		app.plugins = {
+			plugins: {
+				iconic: {
+					getPropertyItem: () => propertyItem,
+					getTagItem: () => tagItem,
+					openIconPicker,
+					savePropertyIcon,
+					saveTagIcon,
+					refreshManagers,
+				},
+			},
+		};
+		const service = new IconicService(app as never);
+		const changed = vi.fn();
+		service.onChanged(changed);
+		await load(service);
+
+		expect(service.canChangePropertyIcon()).toBe(true);
+		expect(service.canChangeTagIcon()).toBe(true);
+		expect(service.openPropertyIconPicker('status')).toBe(true);
+		expect(openIconPicker).toHaveBeenCalledWith(
+			propertyItem,
+			expect.any(Function),
+		);
+
+		const pickerCallback = openIconPicker.mock.calls[0]?.[1];
+		pickerCallback?.('lucide-zap', '#ff0');
+		expect(savePropertyIcon).toHaveBeenCalledWith(
+			propertyItem,
+			'lucide-zap',
+			'#ff0',
+		);
+		expect(refreshManagers).toHaveBeenCalledWith('property');
+		expect(service.getIcon('status')).toEqual({
+			icon: 'lucide-zap',
+			color: '#ff0',
+		});
+		expect(changed).toHaveBeenCalled();
+
+		service.setEnabled(false);
+		expect(service.canChangePropertyIcon()).toBe(false);
+		expect(service.openTagIconPicker('project')).toBe(false);
+	});
+
+	it('does not advertise change-icon without a callable picker', async () => {
+		const app = fakeApp({}) as ReturnType<typeof fakeApp> & {
+			plugins: { plugins: Record<string, unknown> };
+		};
+		app.plugins = {
+			plugins: {
+				iconic: {
+					getPropertyItem: () => ({ id: 'status' }),
+					savePropertyIcon: () => {},
+				},
+			},
+		};
+		const service = new IconicService(app as never);
+		await load(service);
+
+		expect(service.canChangePropertyIcon()).toBe(false);
+		expect(service.openPropertyIconPicker('status')).toBe(false);
+	});
+
+	it('falls back to persisted icons when optional runtime getters fail', async () => {
+		const app = fakeApp({
+			propertyIcons: { status: { icon: 'lucide-database' } },
+			tagIcons: { '#project': { icon: 'lucide-folder' } },
+		}) as ReturnType<typeof fakeApp> & {
+			plugins: { plugins: Record<string, unknown> };
+		};
+		app.plugins = {
+			plugins: {
+				iconic: {
+					getPropertyItem: () => {
+						throw new Error('private API changed');
+					},
+					getTagItem: () => {
+						throw new Error('private API changed');
+					},
+				},
+			},
+		};
+		const service = new IconicService(app as never);
+		await load(service);
+
+		expect(service.getIcon('status')).toEqual({ icon: 'lucide-database' });
+		expect(service.getTagIcon('project')).toEqual({ icon: 'lucide-folder' });
+	});
+
+	it('isolates change subscribers and supports disposal', async () => {
+		const service = new IconicService(fakeApp({}) as never);
+		const first = vi.fn(() => {
+			throw new Error('stale panel');
+		});
+		const second = vi.fn();
+		service.onChanged(first);
+		const disposeSecond = service.onChanged(second);
+		await load(service);
+
+		expect(() => service.setEnabled(false)).not.toThrow();
+		expect(first).toHaveBeenCalledOnce();
+		expect(second).toHaveBeenCalledOnce();
+
+		disposeSecond();
+		service.setEnabled(true);
+		expect(first).toHaveBeenCalledTimes(2);
+		expect(second).toHaveBeenCalledOnce();
 	});
 });

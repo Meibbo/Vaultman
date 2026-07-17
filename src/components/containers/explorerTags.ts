@@ -101,6 +101,19 @@ export class TagsExplorerPanel extends Component {
 	onload(): void {
 		// Register context menu actions through the service
 		const svc = this.plugin.contextMenuService;
+		svc.registerAction({
+			id: 'tag.iconic-change',
+			nodeTypes: ['tag'],
+			surfaces: ['panel'],
+			label: translate('iconic.change_icon'),
+			icon: 'lucide-image-plus',
+			section: 'Icon',
+			when: () => this.plugin.iconicService?.canChangeTagIcon() === true,
+			run: (ctx: MenuCtx) => {
+				const meta = ctx.node.meta as TagMeta;
+				this.plugin.iconicService?.openTagIconPicker(meta.tagPath);
+			},
+		});
 
 		svc.registerAction({
 			id: 'tag.rename',
@@ -134,6 +147,10 @@ export class TagsExplorerPanel extends Component {
 		);
 		// Re-render after Iconic finishes loading
 		this.plugin.iconicService?.onLoaded(() => this._render());
+		const unsubscribeIconic = this.plugin.iconicService?.onChanged(() =>
+			this._render(),
+		);
+		if (unsubscribeIconic) this.register(unsubscribeIconic);
 
 		// Re-render dynamically when filters or queues change
 		this.plugin.filterService.on('changed', this._handleStateChange);
