@@ -518,4 +518,106 @@ describe('UnifiedTreeView behavior', () => {
 			behavior: 'smooth',
 		});
 	});
+
+	it('renders an Obsidian-native toggle cell and handles one click', async () => {
+		const { UnifiedTreeView } =
+			await import('../../src/components/layout/viewTree');
+		const tinyContainer = new TinyElement('div');
+		const onCellClick = vi.fn();
+		const view = new UnifiedTreeView(tinyContainer as unknown as HTMLElement);
+		view.render({
+			nodes: [
+				{
+					id: 'plugin:alpha',
+					label: 'Alpha',
+					depth: 0,
+					meta: {},
+					cells: [
+						{
+							id: 'state',
+							kind: 'toggle',
+							enabled: true,
+							style: 'native',
+							label: 'Enabled',
+						},
+					],
+				},
+			],
+			expandedIds: new Set<string>(),
+			visibleCells: new Set(['text', 'state']),
+			onToggle: () => {},
+			onRowClick: () => {},
+			onCellClick,
+			onContextMenu: () => {},
+		});
+
+		const toggle = tinyContainer.querySelector('.checkbox-container');
+		const input = tinyContainer.querySelector('.vaultman-addon-toggle-input');
+		expect({
+			tag: toggle?.tagName,
+			classes: toggle?.className,
+			inputTag: input?.tagName,
+			inputType: input?.getAttribute('type'),
+		}).toMatchInlineSnapshot(`
+			{
+			  "classes": "checkbox-container vaultman-addon-toggle-cell is-enabled",
+			  "inputTag": "input",
+			  "inputType": "checkbox",
+			  "tag": "div",
+			}
+		`);
+
+		const preventDefault = vi.fn();
+		const stopPropagation = vi.fn();
+		toggle?.onclick?.({
+			preventDefault,
+			stopPropagation,
+		} as unknown as MouseEvent);
+		expect(preventDefault).toHaveBeenCalledOnce();
+		expect(stopPropagation).toHaveBeenCalledOnce();
+		expect(onCellClick).toHaveBeenCalledWith(
+			'plugin:alpha',
+			'state',
+			expect.anything(),
+		);
+	});
+
+	it('re-renders a toggle cell from native to badge style in place', async () => {
+		const { UnifiedTreeView } =
+			await import('../../src/components/layout/viewTree');
+		const tinyContainer = new TinyElement('div');
+		const view = new UnifiedTreeView(
+			tinyContainer as unknown as HTMLElement,
+		);
+		const options = {
+			expandedIds: new Set<string>(),
+			visibleCells: new Set(['text', 'state']),
+			onToggle: () => {},
+			onRowClick: () => {},
+			onCellClick: () => {},
+			onContextMenu: () => {},
+		};
+		const node = (style: 'native' | 'badge'): TreeNode => ({
+			id: 'snippet:cards',
+			label: 'Cards',
+			depth: 0,
+			meta: {},
+			cells: [
+				{
+					id: 'state',
+					kind: 'toggle',
+					enabled: true,
+					style,
+					label: 'Enabled',
+				},
+			],
+		});
+
+		view.render({ ...options, nodes: [node('native')] });
+		expect(tinyContainer.querySelector('.checkbox-container')).not.toBeNull();
+
+		view.render({ ...options, nodes: [node('badge')] });
+		expect(tinyContainer.querySelector('.checkbox-container')).toBeNull();
+		expect(tinyContainer.querySelector('.vaultman-addon-cell')).not.toBeNull();
+	});
 });

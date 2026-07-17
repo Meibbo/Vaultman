@@ -10,6 +10,8 @@ import popupSortSource from '../../src/components/layout/popupSort.svelte?raw';
 import popupViewSource from '../../src/components/layout/popupView.svelte?raw';
 import typeUiSource from '../../src/types/typeUI.ts?raw';
 import menuTypesSource from '../../src/types/typeCMenu.ts?raw';
+import settingsTypesSource from '../../src/types/typeSettings.ts?raw';
+import settingsSource from '../../src/VaultmanSettings.ts?raw';
 
 describe('Snippets and Plugins explorer tabs source guards', () => {
 	it('registers both lazy-mounted tabs in the frame and Data page', () => {
@@ -72,5 +74,22 @@ describe('Snippets and Plugins explorer tabs source guards', () => {
 		expect(popupViewSource).toContain("id: 'updated'");
 		expect(popupViewSource).toContain("id: 'config'");
 		expect(navbarFiltersSource).toContain('supportsExpansion');
+	});
+
+	it('uses one-click cells with a hot native/badge setting and no row double-click', () => {
+		for (const source of [snippetsPanelSource, pluginsPanelSource]) {
+			expect(source).not.toContain('onRowDoubleClick');
+			expect(source).toContain('onCellClick');
+			expect(source).toContain('setCellStyle(');
+			expect(source).toContain('pendingToggleIds');
+		}
+		expect(pluginsPanelSource).toContain('settingsTabIds.has(entry.pluginId)');
+		expect(settingsTypesSource).toContain(
+			"export type AddonCellStyle = 'native' | 'badge'",
+		);
+		expect(settingsTypesSource).toContain('addonCellStyle: AddonCellStyle');
+		expect(settingsTypesSource).toContain("addonCellStyle: 'native'");
+		expect(settingsSource).toContain('settings.addon_cell_style');
+		expect(pageFiltersSource).toContain('setCellStyle(addonCellStyle)');
 	});
 });

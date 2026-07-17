@@ -1,6 +1,6 @@
 // src/components/UnifiedTreeView.ts
 import { Platform, setIcon, setTooltip } from 'obsidian';
-import type { TreeNode } from '../../types/typeTree';
+import type { TreeNode, TreeNodeCell } from '../../types/typeTree';
 import { resolvePresentedActiveFilterIds } from '../../logic/logicActiveFilterBubbling';
 import {
 	explorerDensityProfile,
@@ -30,6 +30,7 @@ export interface TreeViewOptions {
 	onRecursiveExpand?: (id: string) => void;
 	onRowClick: (id: string, event?: MouseEvent) => void;
 	onRowDoubleClick?: (id: string, event: MouseEvent) => void;
+	onCellClick?: (id: string, cellId: string, event: MouseEvent) => void;
 	onRowHover?: (id: string, row: HTMLElement) => void;
 	onContextMenu: (id: string, e: MouseEvent) => void;
 	activeFilterIds?: Set<string>;
@@ -354,6 +355,27 @@ export class UnifiedTreeView {
 				].join(':'),
 			)
 			.join('|');
+		const cells = (node.cells ?? [])
+			.map((cell) =>
+				cell.kind === 'toggle'
+					? [
+							cell.id,
+							cell.kind,
+							cell.enabled ? '1' : '0',
+							cell.style,
+							cell.label,
+							cell.disabled ? '1' : '0',
+						].join(':')
+					: [
+							cell.id,
+							cell.kind,
+							cell.icon,
+							cell.label,
+							cell.disabled ? '1' : '0',
+							cell.appearance ?? 'button',
+						].join(':'),
+			)
+			.join('|');
 		return [
 			`markup:${this._markupVersion}`,
 			node.id,
@@ -375,6 +397,7 @@ export class UnifiedTreeView {
 			opts.editingId === node.id ? '1' : '0',
 			visibleCells,
 			badges,
+			cells,
 		].join('\u001f');
 	}
 
@@ -535,6 +558,9 @@ export class UnifiedTreeView {
 			? visibleCells.has('ctime') || visibleCells.has('installed')
 			: false;
 		const showWords = visibleCells ? visibleCells.has('words') : false;
+		const nodeCells = (node.cells ?? []).filter(
+			(cell) => !visibleCells || visibleCells.has(cell.id),
+		);
 
 		const row =
 			this.rowEls.get(node.id) ??
@@ -698,7 +724,8 @@ export class UnifiedTreeView {
 			(showCtime && node.ctimeText) ||
 			(showWords && node.wordCountText) ||
 			(showCount && node.count != null && node.count > 0) ||
-			(node.badges && node.badges.length > 0)
+			(node.badges && node.badges.length > 0) ||
+			nodeCells.length > 0
 		) {
 			const badgeZone = row.createDiv({ cls: 'vaultman-tree-badge-zone' });
 
@@ -719,6 +746,10 @@ export class UnifiedTreeView {
 					cls: 'vaultman-tree-words nav-file-tag',
 					text: node.wordCountText,
 				});
+			}
+
+			for (const cell of nodeCells) {
+				this.renderNodeCell(badgeZone, node.id, cell, opts);
 			}
 
 			// Priority: Operations/Conflicts badges first
@@ -765,6 +796,80 @@ export class UnifiedTreeView {
 		}
 
 		return row;
+	}
+
+	private renderNodeCell(
+		parent: HTMLElement,
+		nodeId: string,
+		cell: TreeNodeCell,
+		opts: TreeViewOptions,
+	): void {
+		const handleClick = (element: HTMLElement) => {
+			element.onclick = (event) => {
+				event.preventDefault();
+				event.stopPropagation();
+				if (!cell.disabled) opts.onCellClick?.(nodeId, cell.id, event);
+			};
+		};
+
+		if (cell.kind === 'toggle' && cell.style === 'native') {
+			const toggleEl = parent.createDiv({
+				cls: 'checkbox-container vaultman-addon-toggle-cell',
+			});
+			toggleEl.toggleClass('is-enabled', cell.enabled);
+			toggleEl.toggleClass('is-disabled', cell.disabled === true);
+			toggleEl.setAttribute('aria-label', cell.label);
+			setTooltip(toggleEl, cell.label);
+			const input = toggleEl.createEl('input', {
+				cls: 'vaultman-addon-toggle-input',
+			});
+			input.setAttribute('type', 'checkbox');
+			input.setAttribute('tabindex', '0');
+			input.setAttribute('aria-label', cell.label);
+			input.checked = cell.enabled;
+			input.disabled = cell.disabled === true;
+			handleClick(toggleEl);
+			return;
+		}
+
+		if (cell.kind === 'toggle' || cell.appearance === 'badge') {
+			const badgeEl = parent.createSpan({
+				cls: 'vaultman-badge vaultman-addon-cell',
+			});
+			badgeEl.addClass('is-solid');
+			badgeEl.addClass(
+				cell.kind === 'toggle'
+					? cell.enabled
+						? 'vaultman-badge--success'
+						: 'vaultman-badge--faint'
+					: 'vaultman-badge--warning',
+			);
+			const iconEl = badgeEl.createSpan({ cls: 'vaultman-badge-icon' });
+			setIcon(
+				iconEl,
+				cell.kind === 'toggle'
+					? cell.enabled
+						? 'lucide-toggle-right'
+						: 'lucide-toggle-left'
+					: cell.icon,
+			);
+			setTooltip(badgeEl, cell.label);
+			if (!cell.disabled) {
+				badgeEl.addClass('is-clickable');
+				handleClick(badgeEl);
+			}
+			return;
+		}
+
+		const actionEl = parent.createEl('button', {
+			cls: 'clickable-icon vaultman-addon-action-cell',
+		});
+		actionEl.setAttribute('type', 'button');
+		actionEl.setAttribute('aria-label', cell.label);
+		actionEl.disabled = cell.disabled === true;
+		setIcon(actionEl, cell.icon);
+		setTooltip(actionEl, cell.label);
+		handleClick(actionEl);
 	}
 
 	private _handleRowDragOver(

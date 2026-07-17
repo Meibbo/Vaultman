@@ -35,13 +35,9 @@ export const DEFAULT_FILES_HOVER_INFO: FilesHoverInfoField[] = [
 	'words',
 ];
 
-export const FILES_ICON_SCOPES = [
-	'all',
-	'files',
-	'folders',
-	'custom',
-] as const;
+export const FILES_ICON_SCOPES = ['all', 'files', 'folders', 'custom'] as const;
 export type FilesIconScope = (typeof FILES_ICON_SCOPES)[number];
+export type AddonCellStyle = 'native' | 'badge';
 
 export interface VaultmanSettings {
 	language: Language;
@@ -94,6 +90,8 @@ export interface VaultmanSettings {
 	minimalStyle: boolean;
 	/** Use colored badge icons instead of the default monotone badge style */
 	coloredBadges: boolean;
+	/** Render add-on enabled state as an Obsidian toggle or compact badge. */
+	addonCellStyle: AddonCellStyle;
 	/** Allow Vaultman explorers to consume icons configured by Iconic */
 	iconicEnabled: boolean;
 	/** File explorer node kinds that may render their icon cell */
@@ -207,6 +205,7 @@ export const DEFAULT_SETTINGS: VaultmanSettings = {
 	filtersShowTabLabels: true,
 	minimalStyle: true,
 	coloredBadges: false,
+	addonCellStyle: 'native',
 	iconicEnabled: true,
 	filesIconScope: 'all',
 	badgeCancelClickMode: 'double',

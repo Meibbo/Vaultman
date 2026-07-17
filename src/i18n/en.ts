@@ -167,6 +167,11 @@ export const en: Record<string, string> = {
 	'settings.badge_colors': 'Colored badges',
 	'settings.badge_colors.desc':
 		'Use colored badge icons across Files, Tags, and Properties. Disabled keeps badges monotone.',
+	'settings.addon_cell_style': 'Add-on state cell',
+	'settings.addon_cell_style.desc':
+		'Choose the enabled-state control shown in Snippets and Plugins.',
+	'settings.addon_cell_style.native': 'Native toggle',
+	'settings.addon_cell_style.badge': 'Badge',
 	'settings.badge_cancel_click': 'Cancel badge interaction',
 	'settings.badge_cancel_click.desc':
 		'Choose whether operation badges are canceled with a double-click or single-click.',
@@ -538,6 +543,7 @@ export const en: Record<string, string> = {
 		'Community plugin controls are unavailable in this Obsidian version',
 	'addons.plugins.failed': 'Could not update the community plugin',
 	'addons.plugins.self_protected': 'Vaultman cannot disable itself',
+	'addons.open_settings': 'Open plugin settings',
 	'addons.installed': 'Installed',
 	'addons.updated': 'Updated',
 	'addons.version': 'Version',

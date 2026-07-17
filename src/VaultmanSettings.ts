@@ -345,6 +345,21 @@ export class VaultmanSettingsTab extends PluginSettingTab {
 			);
 
 		new Setting(containerEl)
+			.setName(translate('settings.addon_cell_style'))
+			.setDesc(translate('settings.addon_cell_style.desc'))
+			.addDropdown((dropdown) =>
+				dropdown
+					.addOption('native', translate('settings.addon_cell_style.native'))
+					.addOption('badge', translate('settings.addon_cell_style.badge'))
+					.setValue(this.plugin.settings.addonCellStyle)
+					.onChange(async (value) => {
+						if (value !== 'native' && value !== 'badge') return;
+						this.plugin.settings.addonCellStyle = value;
+						await this.plugin.saveSettings();
+					}),
+			);
+
+		new Setting(containerEl)
 			.setName(translate('settings.show_toolbar'))
 			.setDesc(translate('settings.show_toolbar.desc'))
 			.addToggle((toggle) =>

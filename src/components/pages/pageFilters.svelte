@@ -260,6 +260,14 @@
 		void settingsRevision;
 		return plugin.settings.minimalStyle;
 	});
+	const addonCellStyle = $derived.by(() => {
+		void settingsRevision;
+		return plugin.settings.addonCellStyle;
+	});
+	$effect(() => {
+		snippetsExplorer?.setCellStyle(addonCellStyle);
+		pluginsExplorer?.setCellStyle(addonCellStyle);
+	});
 	const filterTabOptions = $derived.by(() => {
 		void settingsRevision;
 		return [

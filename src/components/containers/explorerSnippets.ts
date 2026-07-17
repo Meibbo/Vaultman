@@ -3,6 +3,7 @@ import type { VaultmanPlugin } from '../../main';
 import { translate } from '../../i18n/index';
 import type { SnippetMeta, TreeNode } from '../../types/typeTree';
 import type { ExplorerSortState, ExplorerViewMode } from '../../types/typeUI';
+import type { AddonCellStyle } from '../../types/typeSettings';
 import type { FloatingTocExpansionChange } from '../../services/routerFloatingToc';
 import type { IndexNodeRef } from '../../logic/logicIndexGroups';
 import {
@@ -23,6 +24,7 @@ import {
 } from '../../logic/logicScopedSort';
 import { isFloatingTocSortIndexable } from '../../logic/logicFloatingTocAvailability';
 import { UnifiedTreeView } from '../layout/viewTree';
+import { normalizeAddonCellStyle } from '../../logic/logicAddonCells';
 
 export class SnippetsExplorerPanel
 	extends Component
@@ -39,11 +41,14 @@ export class SnippetsExplorerPanel
 	private emptyEl: HTMLElement | null = null;
 	private destroyed = false;
 	private refreshRevision = 0;
+	private cellStyle: AddonCellStyle;
+	private readonly pendingToggleIds = new Set<string>();
 
 	constructor(containerEl: HTMLElement, plugin: VaultmanPlugin) {
 		super();
 		this.containerEl = containerEl;
 		this.plugin = plugin;
+		this.cellStyle = normalizeAddonCellStyle(plugin.settings.addonCellStyle);
 	}
 
 	onload(): void {
@@ -99,6 +104,13 @@ export class SnippetsExplorerPanel
 		// The scene-precedent port is operationally flat/tree-only in beta.3.
 	}
 
+	setCellStyle(style: AddonCellStyle): void {
+		const next = normalizeAddonCellStyle(style);
+		if (this.cellStyle === next) return;
+		this.cellStyle = next;
+		this.rebuildNodes();
+	}
+
 	private rebuildNodes(): void {
 		const filtered = filterAddonEntries(
 			this.entries,
@@ -116,20 +128,18 @@ export class SnippetsExplorerPanel
 			ctimeText: formatAddonTimestamp(entry.installedTime),
 			mtimeText: formatAddonTimestamp(entry.updatedTime),
 			depth: 0,
-			badges: this.visibleCells.has('state')
-				? [
-						{
-							icon: entry.enabled
-								? 'lucide-toggle-right'
-								: 'lucide-toggle-left',
-							text: translate(
-								entry.enabled ? 'addons.enabled' : 'addons.disabled',
-							),
-							color: entry.enabled ? 'success' : 'faint',
-							solid: true,
-						},
-					]
-				: [],
+			cells: [
+				{
+					id: 'state',
+					kind: 'toggle',
+					enabled: entry.enabled,
+					style: this.cellStyle,
+					label: translate(
+						entry.enabled ? 'addons.enabled' : 'addons.disabled',
+					),
+					disabled: this.pendingToggleIds.has(entry.name),
+				},
+			],
 			meta: entry,
 			coreCls: 'tree-item-self nav-file-title tappable is-clickable',
 		}));
@@ -146,7 +156,8 @@ export class SnippetsExplorerPanel
 			expandedIds: new Set<string>(),
 			onToggle: () => {},
 			onRowClick: () => {},
-			onRowDoubleClick: (id) => {
+			onCellClick: (id, cellId) => {
+				if (cellId !== 'state') return;
 				const node = this.findNode(id);
 				if (node) void this.toggle(node.meta);
 			},
@@ -239,6 +250,9 @@ export class SnippetsExplorerPanel
 	}
 
 	private async toggle(meta: SnippetMeta): Promise<void> {
+		if (this.pendingToggleIds.has(meta.name)) return;
+		this.pendingToggleIds.add(meta.name);
+		this.rebuildNodes();
 		try {
 			const changed = await setCssSnippetEnabled(
 				this.plugin.app,
@@ -253,6 +267,9 @@ export class SnippetsExplorerPanel
 		} catch (error) {
 			new Notice(translate('addons.snippets.failed'));
 			console.error('Vaultman CSS snippet toggle failed', error);
+		} finally {
+			this.pendingToggleIds.delete(meta.name);
+			if (!this.destroyed) this.rebuildNodes();
 		}
 	}
 }

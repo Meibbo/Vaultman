@@ -1,8 +1,9 @@
 import { Component, Menu, Notice, setTooltip } from 'obsidian';
 import type { VaultmanPlugin } from '../../main';
 import { translate } from '../../i18n/index';
-import type { PluginMeta, TreeNode } from '../../types/typeTree';
+import type { PluginMeta, TreeNode, TreeNodeCell } from '../../types/typeTree';
 import type { ExplorerSortState, ExplorerViewMode } from '../../types/typeUI';
+import type { AddonCellStyle } from '../../types/typeSettings';
 import type { FloatingTocExpansionChange } from '../../services/routerFloatingToc';
 import type { IndexNodeRef } from '../../logic/logicIndexGroups';
 import {
@@ -23,6 +24,11 @@ import {
 } from '../../logic/logicScopedSort';
 import { isFloatingTocSortIndexable } from '../../logic/logicFloatingTocAvailability';
 import { UnifiedTreeView } from '../layout/viewTree';
+import {
+	normalizeAddonCellStyle,
+	openPluginSettings,
+	pluginSettingTabIds,
+} from '../../logic/logicAddonCells';
 
 export class PluginsExplorerPanel
 	extends Component
@@ -39,11 +45,14 @@ export class PluginsExplorerPanel
 	private emptyEl: HTMLElement | null = null;
 	private destroyed = false;
 	private refreshRevision = 0;
+	private cellStyle: AddonCellStyle;
+	private readonly pendingToggleIds = new Set<string>();
 
 	constructor(containerEl: HTMLElement, plugin: VaultmanPlugin) {
 		super();
 		this.containerEl = containerEl;
 		this.plugin = plugin;
+		this.cellStyle = normalizeAddonCellStyle(plugin.settings.addonCellStyle);
 	}
 
 	onload(): void {
@@ -103,6 +112,13 @@ export class PluginsExplorerPanel
 		// The scene-precedent port is operationally flat/tree-only in beta.3.
 	}
 
+	setCellStyle(style: AddonCellStyle): void {
+		const next = normalizeAddonCellStyle(style);
+		if (this.cellStyle === next) return;
+		this.cellStyle = next;
+		this.rebuildNodes();
+	}
+
 	private rebuildNodes(): void {
 		const filtered = filterAddonEntries(
 			this.entries,
@@ -116,10 +132,40 @@ export class PluginsExplorerPanel
 			filtered,
 			activeScopeSort('plugins', this.sortState),
 		);
+		const settingsTabIds = pluginSettingTabIds(this.plugin.app);
 		this.nodes = entries.map((entry) => {
 			const meta: PluginMeta = {
 				...entry,
 			};
+			const cells: TreeNodeCell[] = [
+				meta.isVaultman
+					? {
+							id: 'state',
+							kind: 'action',
+							icon: 'lucide-shield',
+							label: translate('addons.plugins.self_protected'),
+							disabled: true,
+							appearance: 'badge',
+						}
+					: {
+							id: 'state',
+							kind: 'toggle',
+							enabled: entry.enabled,
+							style: this.cellStyle,
+							label: translate(
+								entry.enabled ? 'addons.enabled' : 'addons.disabled',
+							),
+							disabled: this.pendingToggleIds.has(entry.pluginId),
+						},
+			];
+			if (settingsTabIds.has(entry.pluginId)) {
+				cells.push({
+					id: 'config',
+					kind: 'action',
+					icon: 'lucide-settings',
+					label: translate('addons.open_settings'),
+				});
+			}
 			return {
 				id: `plugin:${entry.pluginId}`,
 				label: entry.name,
@@ -128,30 +174,7 @@ export class PluginsExplorerPanel
 				ctimeText: formatAddonTimestamp(entry.installedTime),
 				mtimeText: formatAddonTimestamp(entry.updatedTime),
 				depth: 0,
-				badges: this.visibleCells.has('state')
-					? [
-							{
-								icon: meta.isVaultman
-									? 'lucide-shield'
-									: entry.enabled
-										? 'lucide-toggle-right'
-										: 'lucide-toggle-left',
-								text: translate(
-									meta.isVaultman
-										? 'addons.plugins.self_protected'
-										: entry.enabled
-											? 'addons.enabled'
-											: 'addons.disabled',
-								),
-								color: meta.isVaultman
-									? 'warning'
-									: entry.enabled
-										? 'success'
-										: 'faint',
-								solid: true,
-							},
-						]
-					: [],
+				cells,
 				meta,
 				coreCls: 'tree-item-self nav-file-title tappable is-clickable',
 			};
@@ -169,9 +192,13 @@ export class PluginsExplorerPanel
 			expandedIds: new Set<string>(),
 			onToggle: () => {},
 			onRowClick: () => {},
-			onRowDoubleClick: (id) => {
+			onCellClick: (id, cellId) => {
 				const node = this.findNode(id);
-				if (node) void this.toggle(node.meta);
+				if (!node) return;
+				if (cellId === 'state') void this.toggle(node.meta);
+				if (cellId === 'config') {
+					openPluginSettings(this.plugin.app, node.meta.pluginId);
+				}
 			},
 			onRowHover: (id, row) => {
 				const node = this.findNode(id);
@@ -277,6 +304,9 @@ export class PluginsExplorerPanel
 			new Notice(translate('addons.plugins.self_protected'));
 			return;
 		}
+		if (this.pendingToggleIds.has(meta.pluginId)) return;
+		this.pendingToggleIds.add(meta.pluginId);
+		this.rebuildNodes();
 		try {
 			const changed = await setCommunityPluginEnabled(
 				this.plugin.app,
@@ -291,6 +321,9 @@ export class PluginsExplorerPanel
 		} catch (error) {
 			new Notice(translate('addons.plugins.failed'));
 			console.error('Vaultman community plugin toggle failed', error);
+		} finally {
+			this.pendingToggleIds.delete(meta.pluginId);
+			if (!this.destroyed) this.rebuildNodes();
 		}
 	}
 }

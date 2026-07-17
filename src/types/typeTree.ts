@@ -1,5 +1,6 @@
 // src/types/tree.ts
 import type { TFile, TFolder } from 'obsidian';
+import type { AddonCellStyle } from './typeSettings';
 
 export interface NodeBadge {
 	text?: string;
@@ -22,6 +23,24 @@ export interface NodeBadge {
 	queueIndex?: number;
 }
 
+export type TreeNodeCell =
+	| {
+			id: string;
+			kind: 'toggle';
+			enabled: boolean;
+			style: AddonCellStyle;
+			label: string;
+			disabled?: boolean;
+	  }
+	| {
+			id: string;
+			kind: 'action';
+			icon: string;
+			label: string;
+			disabled?: boolean;
+			appearance?: 'button' | 'badge';
+	  };
+
 export interface TreeNode<TMeta = unknown> {
 	id: string;
 	label: string;
@@ -34,6 +53,7 @@ export interface TreeNode<TMeta = unknown> {
 	wordCountText?: string;
 	count?: number;
 	badges?: NodeBadge[];
+	cells?: TreeNodeCell[];
 	children?: TreeNode<TMeta>[];
 	depth: number;
 	meta: TMeta;

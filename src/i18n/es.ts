@@ -164,6 +164,11 @@ export const es: Record<string, string> = {
 	'settings.badge_colors': 'Badges con color',
 	'settings.badge_colors.desc':
 		'Usa iconos de badge con color en Files, Tags y Properties. Desactivado mantiene badges monotonos.',
+	'settings.addon_cell_style': 'Cell de estado de add-ons',
+	'settings.addon_cell_style.desc':
+		'Elige el control de activación mostrado en Snippets y Plugins.',
+	'settings.addon_cell_style.native': 'Toggle nativo',
+	'settings.addon_cell_style.badge': 'Badge',
 	'settings.badge_cancel_click': 'Interaccion para cancelar badges',
 	'settings.badge_cancel_click.desc':
 		'Elige si los badges de operaciones se cancelan con doble click o click simple.',
@@ -495,6 +500,7 @@ export const es: Record<string, string> = {
 		'Los controles de plugins no están disponibles en esta versión de Obsidian',
 	'addons.plugins.failed': 'No se pudo actualizar el plugin',
 	'addons.plugins.self_protected': 'Vaultman no puede desactivarse a sí mismo',
+	'addons.open_settings': 'Abrir settings del plugin',
 	'addons.installed': 'Instalado',
 	'addons.updated': 'Actualizado',
 	'addons.version': 'Versión',

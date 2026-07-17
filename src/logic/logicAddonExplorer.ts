@@ -4,6 +4,7 @@ import type {
 	ScopeSort,
 } from '../types/typeUI';
 import type { FloatingTocPanel } from '../services/routerFloatingToc';
+import type { AddonCellStyle } from '../types/typeSettings';
 
 export interface AddonEntryProjection {
 	name: string;
@@ -17,6 +18,7 @@ export interface AddonExplorerPanelPort extends FloatingTocPanel {
 	setSortState(state: ExplorerSortState): void;
 	setVisibleCells(cells: Set<string>): void;
 	setViewMode(mode: ExplorerViewMode): void;
+	setCellStyle(style: AddonCellStyle): void;
 }
 
 export function sortAddonEntries<T extends AddonEntryProjection>(
