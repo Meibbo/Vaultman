@@ -33,7 +33,7 @@
 		'files-table': [
 			{ id: 'icon', labelKey: 'viewmode.pill.icon', defaultOn: true },
 			{ id: 'name', labelKey: 'viewmode.pill.name', defaultOn: true },
-			{ id: 'count', labelKey: 'viewmode.pill.prop_count', defaultOn: true },
+			{ id: 'count', labelKey: 'viewmode.pill.prop_count', defaultOn: false },
 			{ id: 'ext', labelKey: 'viewmode.pill.ext', defaultOn: true },
 			{ id: 'words', labelKey: 'viewmode.pill.words', defaultOn: false },
 			{ id: 'mtime', labelKey: 'viewmode.pill.mtime', defaultOn: false },
@@ -43,7 +43,7 @@
 		'files-grid': [
 			{ id: 'icon', labelKey: 'viewmode.pill.icon', defaultOn: true },
 			{ id: 'name', labelKey: 'viewmode.pill.name', defaultOn: true },
-			{ id: 'count', labelKey: 'viewmode.pill.prop_count', defaultOn: true },
+			{ id: 'count', labelKey: 'viewmode.pill.prop_count', defaultOn: false },
 			{ id: 'ext', labelKey: 'viewmode.pill.ext', defaultOn: true },
 			{ id: 'words', labelKey: 'viewmode.pill.words', defaultOn: false },
 			{ id: 'mtime', labelKey: 'viewmode.pill.mtime', defaultOn: false },
@@ -53,7 +53,7 @@
 		'files-tree': [
 			{ id: 'icon', labelKey: 'viewmode.pill.icon', defaultOn: true },
 			{ id: 'name', labelKey: 'viewmode.pill.name', defaultOn: true },
-			{ id: 'count', labelKey: 'viewmode.pill.prop_count', defaultOn: true },
+			{ id: 'count', labelKey: 'viewmode.pill.prop_count', defaultOn: false },
 			{ id: 'ext', labelKey: 'viewmode.pill.ext', defaultOn: true },
 			{ id: 'words', labelKey: 'viewmode.pill.words', defaultOn: false },
 			{ id: 'mtime', labelKey: 'viewmode.pill.mtime', defaultOn: false },

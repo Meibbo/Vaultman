@@ -15,7 +15,7 @@ describe('Files prop count label source guards', () => {
 		expect(esSource).toContain("'files.col.props': 'Props'");
 
 		expect(popupViewSource).toContain(
-			"{ id: 'count', labelKey: 'viewmode.pill.prop_count', defaultOn: true }",
+			"{ id: 'count', labelKey: 'viewmode.pill.prop_count', defaultOn: false }",
 		);
 		expect(navbarFiltersSource).toContain(
 			"count: 'viewmode.pill.prop_count'",

@@ -193,7 +193,7 @@
 	const DEFAULT_VISIBLE_CELLS: Record<FiltersTab, string[]> = {
 		props: ['icon', 'text', 'count', 'nested'],
 		tags: ['icon', 'text', 'count', 'nested'],
-		files: ['name', 'ext', 'count', 'nested'],
+		files: ['name', 'ext', 'nested'],
 		snippets: ['icon', 'text', 'state'],
 		plugins: ['icon', 'text', 'state', 'config'],
 	};

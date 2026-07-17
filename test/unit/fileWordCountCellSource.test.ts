@@ -20,7 +20,7 @@ describe('Files word count cell source guards', () => {
 		expect(navbarFiltersSource).toContain("words: 'viewmode.pill.words'");
 		expect(navbarFiltersSource).toContain("words: 'lucide-text'");
 		expect(navbarFiltersSource).toContain(
-			"files: ['name', 'ext', 'count', 'nested']",
+			"files: ['name', 'ext', 'nested']",
 		);
 	});
 

@@ -145,12 +145,10 @@ export const es: Record<string, string> = {
 	'result.no_changes': 'No hay cambios que aplicar',
 
 	// Settings
-	'settings.language': 'Idioma',
-	'settings.language.desc': 'Idioma de la interfaz',
 	'settings.background_blur': 'Intensidad de desenfoque del fondo',
 	'settings.background_blur.desc':
 		'Controla el desenfoque de cristal en la barra inferior y los popups.',
-	'settings.style_config': 'Style Config',
+	'settings.style_config': 'Ajustes de diseño',
 	'settings.style_preset': 'Preset de estilo',
 	'settings.style_preset.desc':
 		'Minimal usa controles compactos nativos de Obsidian; Experimental usa los controles decorados de Vaultman.',
@@ -162,7 +160,7 @@ export const es: Record<string, string> = {
 	'settings.search_highlights': 'Highlights de busqueda en explorers',
 	'settings.search_highlights.desc':
 		'Resalta filas de explorers que coinciden con la busqueda actual.',
-	'settings.badge_colors': 'Badges con color',
+	'settings.badge_colors': 'Badges de celda con color',
 	'settings.badge_colors.desc':
 		'Usa iconos de badge con color en Files, Tags y Properties. Desactivado mantiene badges monotonos.',
 	'settings.addon_cell_style': 'Cell de estado de add-ons',
@@ -181,6 +179,9 @@ export const es: Record<string, string> = {
 	'settings.toolbar_tools_menu': 'Condensar herramientas de Files',
 	'settings.toolbar_tools_menu.desc':
 		'Reemplaza Auto-revelar y Expandir/Colapsar por un menú Tools nativo para mantener cinco nodos en la barra de Files.',
+	'settings.toolbar': 'Barra de herramientas',
+	'settings.toolbar.desc':
+		'Configura etiquetas y controles de la barra del explorador.',
 	'settings.files_hover_info': 'Información hover de Files',
 	'settings.files_hover_info.desc':
 		'Elige qué metadata cacheada y estadísticas de lectura aparecen al mantener el cursor sobre un nodo de Files.',
@@ -220,7 +221,7 @@ export const es: Record<string, string> = {
 	'settings.default_type.desc': 'Tipo por defecto para nuevas propiedades',
 	'settings.templates': 'Plantillas de filtros',
 	'settings.templates.desc': 'Gestionar plantillas de filtros guardadas',
-	'settings.saved_view_config': 'View Config',
+	'settings.saved_view_config': 'Diseños',
 	'settings.saved_view_config.desc': 'Tabs guardados',
 	'settings.saved_view_config.empty':
 		'Sin config de vista guardada. Usa "Guardar config de vista" en el menú de vista para recordar opciones y orden por tab.',
@@ -229,7 +230,7 @@ export const es: Record<string, string> = {
 	'settings.floating_toc.desc':
 		'Configura el índice del explorer y el comportamiento Niagara.',
 	'settings.configure': 'Configurar',
-	'settings.back_to_style_config': 'Volver a Configuración de estilo',
+	'settings.back_to_layout_settings': 'Volver a Ajustes de diseño',
 	'settings.floating_toc_enable': 'Activar TOC flotante',
 	'settings.floating_toc_enable.desc':
 		'Muestra un índice flotante de primeras letras sobre los explorers de Files, Props y Tags.',

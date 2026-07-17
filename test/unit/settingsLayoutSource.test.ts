@@ -37,24 +37,27 @@ describe('Vaultman Settings layout', () => {
 		expect(styleConfigIndex).toBeGreaterThan(viewConfigBodyIndex);
 	});
 
-	it('places the Files tools toggle immediately after Show toolbar', () => {
-		const showToolbarIndex = settingsSource.indexOf(
+	it('places the Files tools toggle immediately after Show toolbar in its sub-page', () => {
+		const toolbarStart = settingsSource.indexOf(
+			'private displayToolbarPage(containerEl: HTMLElement)',
+		);
+		const toolbarEnd = settingsSource.indexOf(
+			'private displayFilesHoverPage(containerEl: HTMLElement)',
+		);
+		const toolbarSource = settingsSource.slice(toolbarStart, toolbarEnd);
+		const showToolbarIndex = toolbarSource.indexOf(
 			"translate('settings.show_toolbar')",
 		);
-		const toolsIndex = settingsSource.indexOf(
+		const toolsIndex = toolbarSource.indexOf(
 			"translate('settings.toolbar_tools_menu')",
-		);
-		const showDockIndex = settingsSource.indexOf(
-			"translate('settings.show_dock')",
 		);
 
 		expect(toolsIndex).toBeGreaterThan(showToolbarIndex);
-		expect(toolsIndex).toBeLessThan(showDockIndex);
 	});
 
-	it('routes Floating TOC to an internal Style Config page on Obsidian 1.12', () => {
+	it('routes Floating TOC to an internal Layout Settings page on Obsidian 1.12', () => {
 		expect(settingsSource).toContain(
-			"private page: 'root' | 'floating-toc' | 'files-hover' = 'root'",
+			"private page: 'root' | 'toolbar' | 'floating-toc' | 'files-hover' = 'root'",
 		);
 		expect(settingsSource).toContain("if (this.page === 'floating-toc')");
 		expect(settingsSource).toContain(
@@ -81,7 +84,7 @@ describe('Vaultman Settings layout', () => {
 
 		const subpageSource = settingsSource.slice(subpageStart);
 		expect(subpageSource).toContain(
-			"translate('settings.back_to_style_config')",
+			"translate('settings.back_to_layout_settings')",
 		);
 		expect(subpageSource).toContain(
 			"translate('settings.floating_toc_enable')",

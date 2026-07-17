@@ -3,14 +3,13 @@ import {
 	FILES_HOVER_INFO_FIELDS,
 	type FilesIconScope,
 	type iVaultmanPlugin,
-	type Language,
 	type VaultmanSettings,
 } from './types/typeSettings';
-import { translate, setLanguage } from './i18n/index';
+import { translate } from './i18n/index';
 
 export class VaultmanSettingsTab extends PluginSettingTab {
 	private plugin: iVaultmanPlugin;
-	private page: 'root' | 'floating-toc' | 'files-hover' = 'root';
+	private page: 'root' | 'toolbar' | 'floating-toc' | 'files-hover' = 'root';
 
 	constructor(app: App, plugin: iVaultmanPlugin) {
 		super(app, plugin);
@@ -20,6 +19,10 @@ export class VaultmanSettingsTab extends PluginSettingTab {
 	display(): void {
 		const { containerEl } = this;
 		containerEl.empty();
+		if (this.page === 'toolbar') {
+			this.displayToolbarPage(containerEl);
+			return;
+		}
 		if (this.page === 'floating-toc') {
 			this.displayFloatingTocPage(containerEl);
 			return;
@@ -28,21 +31,6 @@ export class VaultmanSettingsTab extends PluginSettingTab {
 			this.displayFilesHoverPage(containerEl);
 			return;
 		}
-
-		new Setting(containerEl)
-			.setName(translate('settings.language'))
-			.setDesc(translate('settings.language.desc'))
-			.addDropdown((dropdown) =>
-				dropdown
-					.addOptions({ auto: 'Auto', en: 'English', es: 'Español' })
-					.setValue(this.plugin.settings.language)
-					.onChange(async (value) => {
-						this.plugin.settings.language = value as Language;
-						setLanguage(value as Language);
-						await this.plugin.saveSettings();
-						this.display();
-					}),
-			);
 
 		new Setting(containerEl)
 			.setName(translate('settings.open_mode'))
@@ -290,35 +278,27 @@ export class VaultmanSettingsTab extends PluginSettingTab {
 					.onChange(async (value) => {
 						this.plugin.settings.minimalStyle = value === 'minimal';
 						await this.plugin.saveSettings();
-					}),
-			);
-
-		new Setting(containerEl)
-			.setName(translate('settings.background_blur'))
-			.setDesc(translate('settings.background_blur.desc'))
-			.addSlider((slider) =>
-				slider
-					.setLimits(0, 100, 1)
-					.setValue(this.plugin.settings.glassBlurIntensity ?? 60)
-					.setDynamicTooltip()
-					.onChange(async (value) => {
-						this.plugin.settings.glassBlurIntensity = value;
-						await this.plugin.saveSettings();
 						this.plugin.updateGlassBlur();
+						this.display();
 					}),
 			);
 
-		new Setting(containerEl)
-			.setName(translate('settings.filters_show_tab_labels'))
-			.setDesc(translate('settings.filters_show_tab_labels.desc'))
-			.addToggle((toggle) =>
-				toggle
-					.setValue(this.plugin.settings.filtersShowTabLabels)
-					.onChange(async (value) => {
-						this.plugin.settings.filtersShowTabLabels = value;
-						await this.plugin.saveSettings();
-					}),
-			);
+		if (!this.plugin.settings.minimalStyle) {
+			new Setting(containerEl)
+				.setName(translate('settings.background_blur'))
+				.setDesc(translate('settings.background_blur.desc'))
+				.addSlider((slider) =>
+					slider
+						.setLimits(0, 100, 1)
+						.setValue(this.plugin.settings.glassBlurIntensity ?? 60)
+						.setDynamicTooltip()
+						.onChange(async (value) => {
+							this.plugin.settings.glassBlurIntensity = value;
+							await this.plugin.saveSettings();
+							this.plugin.updateGlassBlur();
+						}),
+				);
+		}
 
 		new Setting(containerEl)
 			.setName(translate('settings.search_highlights'))
@@ -360,27 +340,13 @@ export class VaultmanSettingsTab extends PluginSettingTab {
 			);
 
 		new Setting(containerEl)
-			.setName(translate('settings.show_toolbar'))
-			.setDesc(translate('settings.show_toolbar.desc'))
-			.addToggle((toggle) =>
-				toggle
-					.setValue(this.plugin.settings.showToolbar !== false)
-					.onChange(async (value) => {
-						this.plugin.settings.showToolbar = value;
-						await this.plugin.saveSettings();
-					}),
-			);
-
-		new Setting(containerEl)
-			.setName(translate('settings.toolbar_tools_menu'))
-			.setDesc(translate('settings.toolbar_tools_menu.desc'))
-			.addToggle((toggle) =>
-				toggle
-					.setValue(this.plugin.settings.toolbarToolsMenu === true)
-					.onChange(async (value) => {
-						this.plugin.settings.toolbarToolsMenu = value;
-						await this.plugin.saveSettings();
-					}),
+			.setName(translate('settings.toolbar'))
+			.setDesc(translate('settings.toolbar.desc'))
+			.addButton((button) =>
+				button.setButtonText(translate('settings.configure')).onClick(() => {
+					this.page = 'toolbar';
+					this.display();
+				}),
 			);
 
 		new Setting(containerEl)
@@ -463,13 +429,68 @@ export class VaultmanSettingsTab extends PluginSettingTab {
 			);
 	}
 
-	private displayFilesHoverPage(containerEl: HTMLElement): void {
+	private displayToolbarPage(containerEl: HTMLElement): void {
 		new Setting(containerEl)
-			.setName(translate('settings.back_to_style_config'))
+			.setName(translate('settings.back_to_layout_settings'))
 			.addButton((button) =>
 				button
 					.setIcon('lucide-arrow-left')
-					.setTooltip(translate('settings.back_to_style_config'))
+					.setTooltip(translate('settings.back_to_layout_settings'))
+					.onClick(() => {
+						this.page = 'root';
+						this.display();
+					}),
+			);
+
+		new Setting(containerEl)
+			.setName(translate('settings.toolbar'))
+			.setDesc(translate('settings.toolbar.desc'))
+			.setHeading();
+
+		new Setting(containerEl)
+			.setName(translate('settings.filters_show_tab_labels'))
+			.setDesc(translate('settings.filters_show_tab_labels.desc'))
+			.addToggle((toggle) =>
+				toggle
+					.setValue(this.plugin.settings.filtersShowTabLabels)
+					.onChange(async (value) => {
+						this.plugin.settings.filtersShowTabLabels = value;
+						await this.plugin.saveSettings();
+					}),
+			);
+
+		new Setting(containerEl)
+			.setName(translate('settings.show_toolbar'))
+			.setDesc(translate('settings.show_toolbar.desc'))
+			.addToggle((toggle) =>
+				toggle
+					.setValue(this.plugin.settings.showToolbar !== false)
+					.onChange(async (value) => {
+						this.plugin.settings.showToolbar = value;
+						await this.plugin.saveSettings();
+					}),
+			);
+
+		new Setting(containerEl)
+			.setName(translate('settings.toolbar_tools_menu'))
+			.setDesc(translate('settings.toolbar_tools_menu.desc'))
+			.addToggle((toggle) =>
+				toggle
+					.setValue(this.plugin.settings.toolbarToolsMenu === true)
+					.onChange(async (value) => {
+						this.plugin.settings.toolbarToolsMenu = value;
+						await this.plugin.saveSettings();
+					}),
+			);
+	}
+
+	private displayFilesHoverPage(containerEl: HTMLElement): void {
+		new Setting(containerEl)
+			.setName(translate('settings.back_to_layout_settings'))
+			.addButton((button) =>
+				button
+					.setIcon('lucide-arrow-left')
+					.setTooltip(translate('settings.back_to_layout_settings'))
 					.onClick(() => {
 						this.page = 'root';
 						this.display();
@@ -507,11 +528,11 @@ export class VaultmanSettingsTab extends PluginSettingTab {
 
 	private displayFloatingTocPage(containerEl: HTMLElement): void {
 		new Setting(containerEl)
-			.setName(translate('settings.back_to_style_config'))
+			.setName(translate('settings.back_to_layout_settings'))
 			.addButton((button) =>
 				button
 					.setIcon('lucide-arrow-left')
-					.setTooltip(translate('settings.back_to_style_config'))
+					.setTooltip(translate('settings.back_to_layout_settings'))
 					.onClick(() => {
 						this.page = 'root';
 						this.display();

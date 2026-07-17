@@ -148,12 +148,10 @@ export const en: Record<string, string> = {
 	'result.no_changes': 'No changes to apply',
 
 	// Settings
-	'settings.language': 'Language',
-	'settings.language.desc': 'Interface language',
 	'settings.background_blur': 'Background blur intensity',
 	'settings.background_blur.desc':
 		'Controls the glass blur on the bottom bar and popups.',
-	'settings.style_config': 'Style Config',
+	'settings.style_config': 'Layout Settings',
 	'settings.style_preset': 'Style preset',
 	'settings.style_preset.desc':
 		'Minimal uses compact Obsidian-native controls; Experimental uses the decorated Vaultman controls.',
@@ -165,7 +163,7 @@ export const en: Record<string, string> = {
 	'settings.search_highlights': 'Explorer search highlights',
 	'settings.search_highlights.desc':
 		'Highlight explorer rows that match the current search.',
-	'settings.badge_colors': 'Colored badges',
+	'settings.badge_colors': 'Colored cell badges',
 	'settings.badge_colors.desc':
 		'Use colored badge icons across Files, Tags, and Properties. Disabled keeps badges monotone.',
 	'settings.addon_cell_style': 'Add-on state cell',
@@ -184,6 +182,8 @@ export const en: Record<string, string> = {
 	'settings.toolbar_tools_menu': 'Condense Files tools',
 	'settings.toolbar_tools_menu.desc':
 		'Replace Auto-reveal and Expand/Collapse with one native Tools menu so the Files toolbar stays at five nodes.',
+	'settings.toolbar': 'Toolbar',
+	'settings.toolbar.desc': 'Configure labels and explorer toolbar controls.',
 	'settings.files_hover_info': 'Files hover info',
 	'settings.files_hover_info.desc':
 		'Choose which cached metadata and reading statistics appear when hovering a Files node.',
@@ -223,7 +223,7 @@ export const en: Record<string, string> = {
 	'settings.default_type.desc': 'Default type for new properties',
 	'settings.templates': 'Filter templates',
 	'settings.templates.desc': 'Manage saved filter templates',
-	'settings.saved_view_config': 'View Config',
+	'settings.saved_view_config': 'Layouts',
 	'settings.saved_view_config.desc': 'Saved tabs',
 	'settings.saved_view_config.empty':
 		'No saved view config. Use "Save view config" in the view menu to remember view options and sorts per tab.',
@@ -232,7 +232,7 @@ export const en: Record<string, string> = {
 	'settings.floating_toc.desc':
 		'Configure the explorer index and Niagara behavior.',
 	'settings.configure': 'Configure',
-	'settings.back_to_style_config': 'Back to Style Config',
+	'settings.back_to_layout_settings': 'Back to Layout Settings',
 	'settings.floating_toc_enable': 'Enable floating TOC',
 	'settings.floating_toc_enable.desc':
 		'Show a floating first-letter index over the Files, Props, and Tags explorers.',

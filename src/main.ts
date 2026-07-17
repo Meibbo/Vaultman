@@ -33,6 +33,7 @@ import {
 	CURRENT_UPDATES_VERSION,
 	shouldShowUpdates,
 } from './logic/logicUpdateNotice';
+import { applyGlassBlurSetting } from './logic/logicGlassBlur';
 
 export class VaultmanPlugin extends Plugin {
 	settings!: VaultmanSettings;
@@ -449,9 +450,7 @@ export class VaultmanPlugin extends Plugin {
 	}
 
 	updateGlassBlur(): void {
-		const intensity: number = this.settings.glassBlurIntensity ?? 60;
-		const px = (intensity / 100) * 20;
-		activeDocument.body.style.setProperty('--vaultman-glass-blur', `${px}px`);
+		applyGlassBlurSetting(activeDocument.body.style, this.settings);
 	}
 
 	async activateView(): Promise<void> {

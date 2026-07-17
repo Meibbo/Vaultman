@@ -77,7 +77,7 @@ describe('minimal filters header source guards', () => {
 			"tags: ['icon', 'text', 'count', 'nested']",
 		);
 		expect(navbarFiltersSource).toContain(
-			"files: ['name', 'ext', 'count', 'nested']",
+			"files: ['name', 'ext', 'nested']",
 		);
 		expect(navbarFiltersSource).toContain("mtime: 'viewmode.pill.mtime'");
 		expect(navbarFiltersSource).toContain("nested: 'viewmode.pill.nested'");
@@ -88,7 +88,7 @@ describe('minimal filters header source guards', () => {
 
 	it('keeps Files date cells opt-in and represents path mode as Nested off', () => {
 		expect(navbarFiltersSource).toContain(
-			"files: ['name', 'ext', 'count', 'nested']",
+			"files: ['name', 'ext', 'nested']",
 		);
 		expect(popupViewSource).toContain(
 			"{ id: 'mtime', labelKey: 'viewmode.pill.mtime', defaultOn: false }",
