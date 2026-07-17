@@ -1318,3 +1318,34 @@ broader "append-only status writes" is parked as **S-12** in
   línea alpha pueden coexistir sin compararse contra un máximo global ni mezclar notas.
 - Detalle completo: [[docs/sessions/2026-07-17-codex-gpt5-release-beta2]]. Sin testing
   visual/UI/Obsidian/mobile; las ediciones concurrentes ajenas quedaron preservadas.
+
+## 2026-07-17 — claude-fable-5 · review+plan · beta.3 batch spec + issue-set BT3
+
+- **Review beta.2 con dev** (worktree `C:/tmp/vaultman-release-beta2-final2` =
+  `origin/dev` @ `5e5fa1df`): 3 Explore agents read-only + verificación coordinador.
+  Diagnósticos: padding Files = `nav-files-container` nativo añadido en
+  `explorerFiles.ts:151` (beta.2, sin consumidor); sort props/values-tags = NO
+  regresión sino modelo single-sort+`childLevel` de siempre (beta.2 solo renombró
+  label); tab labels inerte en minimal (solo alimenta NavbarTabs experimental);
+  rail lane 36px vs track 18px.
+- **Grill cerrado (D1-D20)** en 2 rondas: submenú "Sort level" per-scope (tags
+  All/drill · props Properties/Values · files ParentsFirst+All/drill) + fix
+  interleave parents-first-off + memoria persistente en saved layouts; "In mode"
+  (Open/Add/Select files · Open/Filter/Add props-tags) reemplaza ADD mode; renames
+  settings (Layout Settings/Layouts/Colored cell badges); idioma fuera de UI; blur
+  gate runtime minimal=0; addons scene-precedent parity + toggle nativo default +
+  gear config (oculto sin settings-tab); tiempos por adapter.stat; cell files
+  `count`→"Props" y fuera del default; tabs cmenu reorder; Iconic change-icon
+  props/tags; research rainbow-snippet compat (cli+web-lab). popupView parity =
+  DEFER refactor.
+- **Docs nuevos:** spec
+  [[docs/work/polish/specs/2026-07-17-v1-2-beta3-batch/index|beta.3 batch]] (+shard
+  01 sort-level) + issue-set
+  [[docs/work/polish/issues/bt3-beta3-batch/index|BT3-001..010]] con Mermaid de
+  dependencias. Orden recomendado: 001·007 → 002 → 008 → 003 → 004 → 009 → 005 →
+  006; 010 paralelo read-only; 002∦006 (ambos `navbarFilters.svelte`).
+- **Room:** task_033 claimed + scope `docs/current+docs/work/polish+docs/sessions`.
+  Nota entorno: mi primer intento de leer session-log falló por cwd heredado del
+  worktree de C:/tmp (el archivo sí existe en sandbox).
+- Sin código de producto tocado; sandbox docs-only. Próximo: dev revisa spec/issues
+  → arranque BT3-001/007 (micros) en rama `v12/bt3`.

@@ -31,6 +31,22 @@ Compact route index after archiving the oversized current status:
 - Active initiative: [[docs/work/hardening/index|Hardening]].
 - **Pendientes consolidados (dev-facing)**: [[docs/current/pendientes|pendientes]] —
   HITL · Codex · spine · researches · infra (creado 2026-07-09, mantener al cerrar/abrir ítems).
+- **LATEST (2026-07-17, claude-fable-5):** **beta.3 batch PLANIFICADO** — review de
+  beta.2 (`origin/dev` @ `5e5fa1df`) con dev + grill D1-D20 cerrado. Diagnósticos
+  clave: padding Files = `nav-files-container` añadido en beta.2 sin consumidor;
+  sort por nivel NUNCA existió (single sort + `childLevel` redirector; beta.2 solo
+  renombró label) → diseño nuevo "Sort level" per-scope persistente; tab labels
+  inerte en minimal; rail lane 36px vs track 18px. Nuevos: "In mode"
+  (Open/Add/Select · Open/Filter/Add) sustituye ADD mode; addons scene-precedent
+  parity + toggle nativo + gear; settings IA renames + blur gate minimal=0; Iconic
+  change-icon props/tags; research rainbow-snippet. Ruta:
+  [[docs/work/polish/specs/2026-07-17-v1-2-beta3-batch/index|spec beta.3]] +
+  [[docs/work/polish/issues/bt3-beta3-batch/index|BT3-001..010]]. Sin código; docs
+  local-only. Next: review dev → BT3-001/007 en rama `v12/bt3`. Detalle: session-log
+  2026-07-17.
+- **LATEST (2026-07-17, codex-gpt-5):** `1.2.0-beta.2` publicado desde `dev`
+  @ `5e5fa1df` + CLI release multicanal (`pnpm release`). Detalle: session-log
+  2026-07-17 + [[docs/sessions/2026-07-17-codex-gpt5-release-beta2]].
 - **LATEST (2026-07-15, codex-gpt-5):** batch correctivo **v1.2.0-beta.1 Floating
   TOC FTC-007→009 completado** en `C:/tmp/vaultman-v12-ftc001`, rama `v12/ftc-001`:
   `409b15ed` lifecycle/collapse/Soft Scroll · `d9eb4cf0` toolbar Tools + Settings IA ·
