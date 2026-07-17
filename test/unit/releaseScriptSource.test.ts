@@ -6,7 +6,7 @@ import releaseSource from '../../scripts/release.mjs?raw';
 
 describe('release CLI safety contract', () => {
 	it('exposes the multichannel release command and keeps the version lifecycle valid', () => {
-		const packageJson = JSON.parse(packageSource as string) as {
+		const packageJson = JSON.parse(packageSource) as {
 			scripts: Record<string, string>;
 		};
 		expect(packageJson.scripts.release).toBe('node scripts/release.mjs');
