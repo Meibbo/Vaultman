@@ -72,15 +72,16 @@ function output(command, args) {
 }
 
 function parseArguments(argv) {
-	const flags = new Set(argv.filter((argument) => FLAGS.has(argument)));
-	const unknownFlags = argv.filter(
+	const normalized = argv.filter((argument) => argument !== '--');
+	const flags = new Set(normalized.filter((argument) => FLAGS.has(argument)));
+	const unknownFlags = normalized.filter(
 		(argument) => argument.startsWith('--') && !FLAGS.has(argument),
 	);
 	if (unknownFlags.length > 0) {
 		throw new Error(`Unknown release option(s): ${unknownFlags.join(', ')}`);
 	}
 	return {
-		request: argv.filter((argument) => !argument.startsWith('--')),
+		request: normalized.filter((argument) => !argument.startsWith('--')),
 		dryRun: flags.has('--dry-run'),
 		prepareOnly: flags.has('--prepare-only'),
 		yes: flags.has('--yes'),

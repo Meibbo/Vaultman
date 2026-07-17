@@ -46,4 +46,8 @@ describe('release CLI safety contract', () => {
 		expect(releaseSource).not.toContain("['auth', 'status']");
 		expect(releaseSource).toContain('release not found');
 	});
+
+	it('accepts the literal separator forwarded by pnpm 11', () => {
+		expect(releaseSource).toContain("argument !== '--'");
+	});
 });
