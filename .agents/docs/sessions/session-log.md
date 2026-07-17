@@ -1406,3 +1406,18 @@ broader "append-only status writes" is parked as **S-12** in
 - Adversarial: cubiertos refresh stale/unload-remount, config dir custom, metadata/stat
   faltante, nombres duplicados, lazy mount, sort no indexable y self-protection. Visual,
   copy, cells default y Obsidian/mobile siguen HITL/delistados. Next serial: BT3-004.
+
+## 2026-07-17 (cont.) — codex-gpt5-bt3 · implement · BT3-004
+
+- `d98d28e4 feat(addons): add native state cells`: toggle nativo Obsidian default,
+  fallback badge configurable en Layout Settings, one-click state cell y gear sólo para
+  plugins con settings tab registrado. `onRowDoubleClick` retirado; cmenu preservado.
+- Runtime interno verificado contra BRAT instalado (`setting.pluginTabs`, `open()`,
+  `openTabById(id)`) y encapsulado en adapter tipado. Vaultman conserva shield y guard
+  de acción.
+- TDD: RED de registry/DOM/source, GREEN focal 3/16; snapshot native y hot native→badge.
+  Full unit 95/501; check 0/0; ESLint, Prettier, Stylelint, build, diff-check y autofixer
+  `issues:[]` verdes.
+- Adversarial añadió lock por add-on contra doble click físico/concurrencia, disabled
+  pending, fallback native, ARIA y registry object/array. Visual/copy/escala exacta
+  quedan HITL. Next serial: BT3-009.
