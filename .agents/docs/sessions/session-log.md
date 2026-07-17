@@ -1465,3 +1465,19 @@ broader "append-only status writes" is parked as **S-12** in
   Obsidian/mobile (delistada).
 - Batch BT3-001→009 cerrado en `v12/bt3` @ `7ba6a3c9`; BT3-010 no ejecutado por
   exclusión explícita. Sin push/merge/tag/FF. Next: HITL dev + decisión de integración.
+
+## 2026-07-17 (cont.) — codex-gpt5-bt3-close · handoff · aceptación revocada
+
+- El dev reportó que el batch beta.3 generado por Codex introdujo errores nuevos e
+  implementó incorrectamente varias solicitudes. La afirmación anterior de cierre se
+  conserva como historial de gates, pero queda revocada como señal de readiness.
+- Estado comprobado: `v12/bt3` limpio @ `7ba6a3c9`; ocho commits sobre `dev`
+  @ `14e87dc7`; versiones aún `1.2.0-beta.2`; remoto sólo beta.1/beta.2; sin push,
+  merge, tag o release beta.3.
+- Dossier creado:
+  [[docs/work/polish/issues/bt3-beta3-batch/011-beta3-regressions-beta4|BT3-011]].
+  No se inventó el inventario de fallos: Claude debe capturarlo del dev, reproducir
+  cada punto y preparar corrective beta.4 con aceptación HITL explícita.
+- Publicación beta.3, si el dev la quiere como artefacto conocido, queda documentada
+  como pre-release con warning y dry-run obligatorio. Este cierre no ejecutó release,
+  integración ni cambios de producto.

@@ -1,11 +1,11 @@
 ---
 title: BT3 — v1.2.0-beta.3 batch (issue-set)
 type: issue-index
-status: active
+status: needs-review
 parent: "[[docs/work/polish/index|polish]]"
 created: 2026-07-17T09:25:00
 created_by: claude-fable-5
-updated: 2026-07-17T16:04:00-05:00
+updated: 2026-07-17T16:49:17
 updated_by: codex-gpt-5
 tags:
   - agent/issues
@@ -27,18 +27,20 @@ juicio visual = dev. Base `dev` @ `5e5fa1df` (beta.2); rama `v12/bt3`.
 | [[003-addons-parity|BT3-003]] | Snippets/Plugins scene-precedent parity | AFK | completed (`5414a0f0`) |
 | [[004-addon-cells|BT3-004]] | Addon cells: toggle nativo + gear config | AFK | completed (`d98d28e4`) |
 | [[005-settings-ia|BT3-005]] | Settings IA: renames, defaults, blur gate | AFK | completed (`d5001eb0`) |
-| [[006-menus|BT3-006]] | Tabs cmenu + view cmenu + In mode | AFK | completed (`7ba6a3c9`) |
+| [[006-menus|BT3-006]] | Tabs cmenu + view cmenu + In mode | AFK | implemented, acceptance revoked (`7ba6a3c9`; see 011) |
 | [[007-rail-lane|BT3-007]] | Rail lane = ancho track | AFK micro | completed (`03fe92bc`) |
 | [[008-tab-labels-minimal|BT3-008]] | Tab labels en minimal + responsive searchbox | AFK | completed (`46243479`) |
 | [[009-iconic-props-tags|BT3-009]] | Iconic change-icon en Props/Tags | AFK + research interno | completed (`194a7306`) |
 | [[010-rainbow-research|BT3-010]] | Research compat snippet rainbow | research only | pending |
+| [[011-beta3-regressions-beta4|BT3-011]] | Regresiones beta.3 + corrective beta.4 | triage/HITL | pending — dev report |
 
 Orden serial recomendado: 001 · 007 → 002 → 008 → 003 → 004 → 009 → 005 → 006.
 010 paralelo (read-only). 002 y 006 comparten `navbarFilters.svelte` — NO en paralelo.
 
-Implementación autorizada BT3-001→009 completa en `v12/bt3`; HEAD de producto
-`7ba6a3c9`. BT3-010 sigue pendiente y no fue ejecutado porque requiere pedido explícito
-del dev.
+Implementación BT3-001→009 existe en `v12/bt3`, HEAD `7ba6a3c9`, pero su aceptación
+queda revocada por regresiones y solicitudes mal implementadas reportadas por el dev.
+Ver [[011-beta3-regressions-beta4|BT3-011]]. Beta.3 aún no está publicada; beta.4 es la
+ruta correctiva. BT3-010 sigue pendiente y separado.
 
 ## Reglas comunes
 

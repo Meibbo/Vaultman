@@ -5,7 +5,7 @@ status: active
 parent: "[[docs/work/pkm-ai/index|pkm-ai]]"
 archive_source: docs/archive/pkm-ai/active-docs/2026-05-11T080321-current-handoff.md
 created: 2026-05-04T01:36:20
-updated: 2026-07-17T16:04:00-05:00
+updated: 2026-07-17T16:49:17
 tags:
   - agent/current
 created_by: dec
@@ -17,26 +17,25 @@ updated_by: codex-gpt-5
 Compact handoff after archiving the oversized current handoff:
 [[docs/archive/pkm-ai/active-docs/2026-05-11T080321-current-handoff|2026-05-11 handoff archive]].
 
-## NEXT AGENT START HERE — beta.3 BT3-001→009 implementado (2026-07-17)
+## NEXT AGENT START HERE — beta.3 rechazada; preparar corrective beta.4 (2026-07-17)
 
-**Estado:** batch aprobado D1-D20 implementado en
-`C:/tmp/vaultman-release-beta2-final2`, rama `v12/bt3`, HEAD code-only
-`7ba6a3c9`. Commits: `03fe92bc` (001+007) → `ee7bc0f2` (002) → `46243479`
-(008) → `5414a0f0` (003) → `d98d28e4` (004) → `194a7306` (009) →
-`d5001eb0` (005) → `7ba6a3c9` (006). Issue-set:
-[[docs/work/polish/issues/bt3-beta3-batch/index|BT3 beta.3]].
+**Estado:** el dev reportó que BT3-001→009 generó errores nuevos e implementó
+incorrectamente varias solicitudes. La aceptación queda revocada. No asumir que gates
+verdes equivalen a corrección funcional ni que BT3-006 es el único origen. Dossier:
+[[docs/work/polish/issues/bt3-beta3-batch/011-beta3-regressions-beta4|BT3-011]].
 
-**Gate integrado final:** 100 unit files / 524 tests; `pnpm run check` 0/0;
-ESLint, Prettier `format:check`, build y diff-check verdes; Svelte autofixer
-`issues:[]`. Visual/UI/Obsidian/mobile permanece delistado y lo valida el dev.
+**Candidato exacto:** `C:/tmp/vaultman-release-beta2-final2`, rama limpia `v12/bt3`,
+HEAD `7ba6a3c9`; ocho commits sobre `dev` @ `14e87dc7`. Versiones siguen en beta.2;
+no existe tag/release beta.3. Sin push/merge/tag/PR.
 
-**Estado de integración:** sin push, merge, tag, FF a `dev` ni PR. Los commits de
-producto no contienen `.agents/`; cada slice tiene su commit docs local-only en
-`sandbox`. El dev decide validación manual, integración y distribución.
+**Si el dev publica beta.3:** hacerlo sólo como pre-release conocida, desde `dev` tras
+FF-only de `v12/bt3`; primero `pnpm release -- 1.2.0-beta.3 --dry-run`, luego
+`pnpm release -- 1.2.0-beta.3 --yes` si la revisión es intencionalmente aprobada.
 
-**Exclusión explícita:** BT3-010 rainbow research sigue pending y NO fue ejecutado;
-requiere pedido explícito del dev. Box-select/feel/copy visual son HITL o refactor,
-no pendientes AFK de este batch.
+**Claude / beta.4:** pedir primero la lista concreta de errores y desvíos; reproducir y
+añadir tests por punto; auditar D1-D20 completo; validar Obsidian, settings upgrade,
+clean install y mobile real según aplique; publicar `1.2.0-beta.4` sólo con aceptación
+HITL explícita. BT3-010 permanece separado.
 
 ## NEXT AGENT START HERE — v1.2.0-beta.1 corrective batch landed (2026-07-15)
 

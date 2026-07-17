@@ -5,7 +5,7 @@ status: active
 parent: "[[docs/work/pkm-ai/index|pkm-ai]]"
 archive_source: docs/archive/pkm-ai/active-docs/2026-05-11T080321-current-status.md
 created: 2026-05-04T01:36:20
-updated: 2026-07-17T16:04:00-05:00
+updated: 2026-07-17T16:49:17
 tags:
   - agent/current
 created_by: dec
@@ -31,15 +31,13 @@ Compact route index after archiving the oversized current status:
 - Active initiative: [[docs/work/hardening/index|Hardening]].
 - **Pendientes consolidados (dev-facing)**: [[docs/current/pendientes|pendientes]] —
   HITL · Codex · spine · researches · infra (creado 2026-07-09, mantener al cerrar/abrir ítems).
-- **LATEST (2026-07-17, codex-gpt-5):** **beta.3 batch BT3-001→009 implementado**
-  en `C:/tmp/vaultman-release-beta2-final2`, rama `v12/bt3`, HEAD `7ba6a3c9`.
-  Secuencia code-only: `03fe92bc` · `ee7bc0f2` · `46243479` · `5414a0f0` ·
-  `d98d28e4` · `194a7306` · `d5001eb0` · `7ba6a3c9`. Gate integrado final:
-  full unit 100 archivos / 524 tests, check 0/0, ESLint, Prettier, build y
-  diff-check verdes; autofixer `issues:[]`. Sin push/merge/tag/FF. BT3-010 no se
-  ejecutó (research-only, requiere pedido explícito). Ruta:
-  [[docs/work/polish/issues/bt3-beta3-batch/index|BT3 beta.3]]. Next: validación
-  HITL del dev y decisión de integración/distribución.
+- **LATEST (2026-07-17, dev report): beta.3 NO aceptada.** El dev reportó errores
+  nuevos y varias solicitudes mal implementadas en BT3-001→009. Los gates previos
+  quedan como evidencia técnica, no de aceptación funcional. Candidato local limpio:
+  `v12/bt3` @ `7ba6a3c9`; beta.3 aún no está publicada ni versionada/taggeada. Ruta:
+  [[docs/work/polish/issues/bt3-beta3-batch/011-beta3-regressions-beta4|BT3-011]].
+  Next: si el dev quiere fijar beta.3 como pre-release conocida, publicar con warning;
+  luego Claude hace triage completa y corrective `1.2.0-beta.4` con aceptación HITL.
 - **LATEST (2026-07-17, codex-gpt-5):** `1.2.0-beta.2` publicado desde `dev`
   @ `5e5fa1df` + CLI release multicanal (`pnpm release`). Detalle: session-log
   2026-07-17 + [[docs/sessions/2026-07-17-codex-gpt5-release-beta2]].

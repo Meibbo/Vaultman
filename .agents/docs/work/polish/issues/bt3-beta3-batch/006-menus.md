@@ -1,11 +1,11 @@
 ---
 title: BT3-006 — Tabs cmenu + view cmenu + In mode
 type: issue
-status: completed
+status: implemented-unaccepted
 parent: "[[docs/work/polish/issues/bt3-beta3-batch/index|BT3 index]]"
 created: 2026-07-17T09:25:00
 created_by: claude-fable-5
-updated: 2026-07-17T16:04:00-05:00
+updated: 2026-07-17T16:49:17
 updated_by: codex-gpt-5
 tags: [agent/issue, initiative/polish]
 ---
@@ -68,6 +68,13 @@ Reemplaza `addModeActive` global (L361, `handleAddModeChange` L1028-1032:
 ## Resultado de implementación
 
 Completado en `7ba6a3c9` (`feat(explorer): add per-tab interaction modes`).
+
+> [!danger] Aceptación revocada por el dev
+> El 2026-07-17 el dev reportó errores nuevos y varias solicitudes implementadas de
+> forma incorrecta en el batch. Esta sección conserva lo que el agente creyó haber
+> implementado y sus gates, pero ya no constituye evidencia de corrección funcional.
+> La triage y corrective beta.4 se registran en
+> [[011-beta3-regressions-beta4|BT3-011]].
 
 - Los menús nativos cumplen el orden D12/D14: tabs primarios, launchers, Floating
   TOC, Statistics+Snippets+Plugins y Toolbar; View queda Layouts → In mode → Cells
