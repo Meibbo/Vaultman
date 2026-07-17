@@ -6,7 +6,7 @@ import {
 	rmSync,
 	writeFileSync,
 } from 'node:fs';
-import { join, relative } from 'node:path';
+import { dirname, join, relative } from 'node:path';
 import { createInterface } from 'node:readline/promises';
 import process from 'node:process';
 
@@ -44,8 +44,7 @@ const RELEASE_FILES = [
 const REPOSITORY_URL = 'https://github.com/Meibbo/Vaultman';
 
 function executable(name) {
-	if (process.platform !== 'win32') return name;
-	return name === 'corepack' ? 'corepack.cmd' : name;
+	return name;
 }
 
 function run(command, args, options = {}) {
@@ -272,7 +271,25 @@ function isAlreadyPrepared(target) {
 }
 
 function runGates() {
-	for (const args of GATES) run('corepack', ['pnpm', ...args]);
+	for (const args of GATES) runPnpm(args);
+}
+
+function runPnpm(args) {
+	if (process.platform !== 'win32') {
+		run('corepack', ['pnpm', ...args]);
+		return;
+	}
+	const corepackCli = join(
+		dirname(process.execPath),
+		'node_modules',
+		'corepack',
+		'dist',
+		'corepack.js',
+	);
+	if (!existsSync(corepackCli)) {
+		throw new Error(`Cannot locate the Corepack CLI at ${corepackCli}.`);
+	}
+	run(process.execPath, [corepackCli, 'pnpm', ...args]);
 }
 
 function createReleaseCommit(target, fragments) {

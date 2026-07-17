@@ -50,4 +50,10 @@ describe('release CLI safety contract', () => {
 	it('accepts the literal separator forwarded by pnpm 11', () => {
 		expect(releaseSource).toContain("argument !== '--'");
 	});
+
+	it('runs Corepack through node on Windows without invoking a batch shell', () => {
+		expect(releaseSource).toContain('process.execPath');
+		expect(releaseSource).toContain('corepack.js');
+		expect(releaseSource).not.toContain('corepack.cmd');
+	});
 });
