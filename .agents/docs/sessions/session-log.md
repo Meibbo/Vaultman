@@ -1481,3 +1481,14 @@ broader "append-only status writes" is parked as **S-12** in
 - Publicación beta.3, si el dev la quiere como artefacto conocido, queda documentada
   como pre-release con warning y dry-run obligatorio. Este cierre no ejecutó release,
   integración ni cambios de producto.
+
+## 2026-07-17 (cont.) — codex-gpt5-bt3-tag-help · release guidance
+
+- Verificado en `.github/workflows/release.yml`: empujar un tag semver como
+  `1.2.0-beta.3` dispara el workflow y crea/actualiza automáticamente el GitHub Release;
+  el guion hace que se publique como pre-release y `latest=false`.
+- No etiquetar directamente `7ba6a3c9`: `package.json` y `manifest.json` aún declaran
+  `1.2.0-beta.2`. Hace falta primero un commit manual de preparación beta.3 con
+  CHANGELOG, RELEASE_NOTES, manifest, package y versions alineados.
+- Un tag sólo local no publica nada. Un tag remoto sin GitHub Release no es posible con
+  el workflow actual sin deshabilitar/cambiar el trigger, opción no recomendada.
