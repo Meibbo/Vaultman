@@ -14,7 +14,9 @@ describe('explorer setter source guards', () => {
 		);
 		expect(filesSource).toContain('this.sortBy === normalizedSortBy');
 		expect(filesSource).toContain('this.sortDir === direction');
-		expect(filesSource).toContain('this.nodeTypeFilter === nodeTypeFilter');
+		expect(filesSource).toContain(
+			'sameNodeTypeFilters(this.nodeTypeFilters, nextNodeTypeFilters)',
+		);
 		expect(filesSource).toContain('this.parentsFirst === parentsFirst');
 		expect(filesSource).toContain(
 			'if (this.searchName === name && this.searchFolder === folder) return;',
@@ -29,7 +31,9 @@ describe('explorer setter source guards', () => {
 		expect(propsSource).toContain('if (this.viewMode === mode) return;');
 		expect(propsSource).toContain('if (sameStringSet(this.visibleCells, cells)) return;');
 		expect(propsSource).toContain('this.sortChildLevel === childLevel');
-		expect(propsSource).toContain('this.nodeTypeFilter === nodeTypeFilter');
+		expect(propsSource).toContain(
+			'sameNodeTypeFilters(this.nodeTypeFilters, nextNodeTypeFilters)',
+		);
 	});
 
 	it('keeps repeated Tags explorer setter calls from re-rendering', () => {
@@ -40,6 +44,8 @@ describe('explorer setter source guards', () => {
 		expect(tagsSource).toContain('if (this.viewMode === mode) return;');
 		expect(tagsSource).toContain('if (sameStringSet(this.visibleCells, cells)) return;');
 		expect(tagsSource).toContain('this.sortChildLevel === childLevel');
-		expect(tagsSource).toContain('this.nodeTypeFilter === nodeTypeFilter');
+		expect(tagsSource).toContain(
+			'sameNodeTypeFilters(this.nodeTypeFilters, nextNodeTypeFilters)',
+		);
 	});
 });

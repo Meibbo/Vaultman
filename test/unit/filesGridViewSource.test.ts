@@ -11,4 +11,10 @@ describe('Files grid view source guards', () => {
 		expect(filesGridSource).toContain('onDragStart');
 		expect(filesGridSource).toContain('getSelectedFiles');
 	});
+
+	it('forwards selection and core open gestures to the panel policy', () => {
+		expect(filesGridSource).toContain('this.callbacks.onFileClick(file, event)');
+		expect(filesGridSource).toContain('card.onauxclick = (event) =>');
+		expect(filesGridSource).toContain('if (event.button !== 1) return;');
+	});
 });

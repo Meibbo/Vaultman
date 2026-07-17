@@ -7,6 +7,11 @@ import type { ContextMenuService } from '../../services/serviceContextMenu';
 import { OperationQueueService } from '../../services/serviceOperationQueue';
 import type { StatisticsCacheService } from '../../services/serviceStatisticsCache';
 import type { RevealNodeOptions } from '../../services/routerFloatingToc';
+import {
+	normalizeNodeTypeFilters,
+	sameNodeTypeFilters,
+	type NodeTypeFilterInput,
+} from '../../logic/logicNodeTypeFilters';
 
 export interface PanelPluginCtx {
 	app: import('obsidian').App;
@@ -49,6 +54,7 @@ import {
 	type IndexNodeRef,
 } from '../../logic/logicIndexGroups';
 import { flattenTreeToPathLabels } from '../../logic/logicExplorerHierarchy';
+import { collectExpandableSubtreeIds } from '../../logic/logicTreeExpansion';
 import { parsePropertyValue } from '../../logic/propertyValueCoercion';
 import {
 	readVaultmanDragPayload,
@@ -84,7 +90,7 @@ export class PropsExplorerPanel extends Component {
 	private sortDir: 'asc' | 'desc' = 'asc';
 	private searchMode = 0;
 	private sortChildLevel = false;
-	private nodeTypeFilter: string | null = null;
+	private nodeTypeFilters: string[] = [];
 	private visibleCells = new Set<string>(['icon', 'text', 'count', 'nested']);
 	private onExpansionChange?: () => void;
 
@@ -378,21 +384,22 @@ export class PropsExplorerPanel extends Component {
 		sortBy: string,
 		direction: 'asc' | 'desc',
 		childLevel = false,
-		nodeTypeFilter: string | null = null,
+		nodeTypeFilter: NodeTypeFilterInput = null,
 	): void {
 		const normalizedSortBy = normalizeExplorerSortBy(sortBy);
+		const nextNodeTypeFilters = normalizeNodeTypeFilters(nodeTypeFilter);
 		if (
 			this.sortBy === normalizedSortBy &&
 			this.sortDir === direction &&
 			this.sortChildLevel === childLevel &&
-			this.nodeTypeFilter === nodeTypeFilter
+			sameNodeTypeFilters(this.nodeTypeFilters, nextNodeTypeFilters)
 		) {
 			return;
 		}
 		this.sortBy = normalizedSortBy;
 		this.sortDir = direction;
 		this.sortChildLevel = childLevel;
-		this.nodeTypeFilter = nodeTypeFilter;
+		this.nodeTypeFilters = nextNodeTypeFilters;
 		this._render();
 	}
 
@@ -413,8 +420,8 @@ export class PropsExplorerPanel extends Component {
 	expandAll(): void {
 		if (!this._nestedEnabled()) return;
 		let tree = this.logic.getTree();
-		if (this.nodeTypeFilter) {
-			tree = this._filterByType(tree, this.nodeTypeFilter);
+		if (this.nodeTypeFilters.length > 0) {
+			tree = this._filterByTypes(tree, this.nodeTypeFilters);
 		}
 		if (this.searchTerm) {
 			tree = this.logic.filterTree(tree, this.searchTerm, this.searchMode);
@@ -716,8 +723,8 @@ export class PropsExplorerPanel extends Component {
 		const searchHighlightsEnabled =
 			this.plugin.settings?.explorerSearchHighlights === true;
 
-		if (this.nodeTypeFilter) {
-			tree = this._filterByType(tree, this.nodeTypeFilter);
+		if (this.nodeTypeFilters.length > 0) {
+			tree = this._filterByTypes(tree, this.nodeTypeFilters);
 		}
 		if (this.searchTerm) {
 			tree = this.logic.filterTree(tree, this.searchTerm, this.searchMode);
@@ -765,6 +772,8 @@ export class PropsExplorerPanel extends Component {
 					this._toggleExpanded(id);
 					void this._render();
 				},
+				onRecursiveExpand: (id: string) =>
+					this._expandSubtree(id, nodesWithIcons),
 				onRowClick: (id: string) => {
 					const node = this._findNode(id, tree);
 					if (!node) return;
@@ -810,6 +819,8 @@ export class PropsExplorerPanel extends Component {
 				this._toggleExpanded(id);
 				void this._render();
 			},
+			onRecursiveExpand: (id: string) =>
+				this._expandSubtree(id, nodesWithIcons),
 			onRowClick: (id: string) => {
 				const node = this._findNode(id, tree);
 				if (!node) return;
@@ -854,8 +865,8 @@ export class PropsExplorerPanel extends Component {
 
 	private _expandSearchMatches(): void {
 		let tree = this.logic.getTree();
-		if (this.nodeTypeFilter) {
-			tree = this._filterByType(tree, this.nodeTypeFilter);
+		if (this.nodeTypeFilters.length > 0) {
+			tree = this._filterByTypes(tree, this.nodeTypeFilters);
 		}
 		tree = this.logic.filterTree(tree, this.searchTerm, this.searchMode);
 		for (const id of this.logic.expansionIdsForSearchMatches(
@@ -877,18 +888,33 @@ export class PropsExplorerPanel extends Component {
 		);
 	}
 
+	private _expandSubtree(id: string, nodes: TreeNode<PropMeta>[]): void {
+		const root = this._findNode(id, nodes);
+		if (!root) return;
+		let changed = false;
+		for (const expandableId of collectExpandableSubtreeIds(root)) {
+			if (this.expandedIds.has(expandableId)) continue;
+			this.expandedIds.add(expandableId);
+			changed = true;
+		}
+		if (!changed) return;
+		this._notifyExpansionChanged();
+		void this._render();
+	}
+
 	private _notifyExpansionChanged(change?: FloatingTocExpansionChange): void {
 		this.onExpansionChange?.();
 		if (change) this.onIndexChanged?.(change);
 	}
 
-	private _filterByType(
+	private _filterByTypes(
 		nodes: TreeNode<PropMeta>[],
-		nodeTypeFilter: string,
+		nodeTypeFilters: readonly string[],
 	): TreeNode<PropMeta>[] {
+		const selectedTypes = new Set(nodeTypeFilters);
 		return nodes.filter((node) => {
 			if (node.meta.isValueNode) return false;
-			return this._effectivePropType(node.meta) === nodeTypeFilter;
+			return selectedTypes.has(this._effectivePropType(node.meta));
 		});
 	}
 
@@ -1025,8 +1051,8 @@ export class PropsExplorerPanel extends Component {
 		const warningIds = new Set<string>();
 		const searchHighlightsEnabled =
 			this.plugin.settings?.explorerSearchHighlights === true;
-		if (this.nodeTypeFilter) {
-			tree = this._filterByType(tree, this.nodeTypeFilter);
+		if (this.nodeTypeFilters.length > 0) {
+			tree = this._filterByTypes(tree, this.nodeTypeFilters);
 		}
 		if (this.searchTerm) {
 			tree = this.logic.filterTree(tree, this.searchTerm, this.searchMode);
@@ -1385,6 +1411,7 @@ export class PropsExplorerPanel extends Component {
 				...node,
 				cls: currentCls,
 				icon: (iconic?.icon ?? defaultIcon) || undefined,
+				iconColor: iconic?.color || undefined,
 				typeText: !meta.isValueNode ? this._effectivePropType(meta) : undefined,
 				badges: badges,
 				children: resolvedChildren,

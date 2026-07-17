@@ -9,7 +9,9 @@ import mainSource from '../../src/main.ts?raw';
 describe('search focus command source guards', () => {
 	it('registers Obsidian commands without custom hotkey settings', () => {
 		expect(mainSource).toContain("id: 'focus-content-search'");
-		expect(mainSource).toContain("name: translate('command.focus_content_search')");
+		expect(mainSource).toContain(
+			"name: translate('command.focus_content_search')",
+		);
 		expect(mainSource).toContain("id: 'focus-active-explorer-search'");
 		expect(mainSource).toContain(
 			"name: translate('command.focus_active_explorer_search')",
@@ -30,7 +32,9 @@ describe('search focus command source guards', () => {
 
 	it('bridges frame host methods to exported Svelte focus handlers', () => {
 		expect(frameHostSource).toContain('type VaultmanFrameSvelteApi');
-		expect(frameHostSource).toContain('focusContentSearch?(): Promise<void> | void;');
+		expect(frameHostSource).toContain(
+			'focusContentSearch?(): Promise<void> | void;',
+		);
 		expect(frameHostSource).toContain(
 			'focusActiveExplorerSearch?(): Promise<void> | void;',
 		);
@@ -51,9 +55,10 @@ describe('search focus command source guards', () => {
 		expect(frameSource).toContain(
 			'export async function focusActiveExplorerSearch(): Promise<void>',
 		);
-		expect(frameSource).toContain(
-			"filtersActiveTab === 'content' ? 'props' : filtersActiveTab",
-		);
+		expect(frameSource).toContain("filtersActiveTab === 'files'");
+		expect(frameSource).toContain("filtersActiveTab === 'props'");
+		expect(frameSource).toContain("filtersActiveTab === 'tags'");
+		expect(frameSource).toContain(": 'props';");
 		expect(frameSource).toContain(
 			'.vaultman-page[data-page="filters"] .vaultman-navbar-filters .vaultman-filters-search-input',
 		);
@@ -65,11 +70,11 @@ describe('search focus command source guards', () => {
 		expect(frameSource).toContain(
 			"new Notice(translate('command.focus_search_unavailable'))",
 		);
-		expect(enSource).toContain(
-			"'command.focus_search_unavailable': 'No Vaultman search field is available.'",
+		expect(enSource).toMatch(
+			/'command\.focus_search_unavailable':\s*'No Vaultman search field is available\.'/,
 		);
-		expect(esSource).toContain(
-			"'command.focus_search_unavailable': 'No hay un campo de busqueda de Vaultman disponible.'",
+		expect(esSource).toMatch(
+			/'command\.focus_search_unavailable':\s*'No hay un campo de busqueda de Vaultman disponible\.'/,
 		);
 	});
 });

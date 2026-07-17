@@ -26,13 +26,13 @@ describe('minimal filters header source guards', () => {
 		expect(navbarFiltersSource).toContain('{#if showSearchInput}');
 		expect(navbarFiltersSource).toContain('function toggleSearch()');
 		expect(navbarFiltersSource).toContain('function focusVisibleSearchInput()');
-		expect(navbarFiltersSource).toContain('function markSearchToggleActivation()');
+		expect(navbarFiltersSource).toContain(
+			'function markSearchToggleActivation()',
+		);
 		expect(navbarFiltersSource).toContain('function isSearchToggleTarget');
 		expect(navbarFiltersSource).toContain('vaultman-filters-phone-search-row');
 		expect(navbarFiltersSource).toContain('aria-pressed={searchExpanded}');
-		expect(navbarFiltersSource).toContain(
-			'data-vaultman-search-toggle="true"',
-		);
+		expect(navbarFiltersSource).toContain('data-vaultman-search-toggle="true"');
 		expect(navbarFiltersSource).toContain(
 			'searchToggleActivationPending || isSearchToggleTarget(nextTarget)',
 		);
@@ -97,7 +97,7 @@ describe('minimal filters header source guards', () => {
 	it('keeps dock-off menu labels reactive and exposes Files grouping by extension', () => {
 		expect(navbarFiltersSource).toContain('getFileTypeOptions');
 		expect(navbarFiltersSource).toContain('nodeTypeOptionsForActiveTab');
-		expect(navbarFiltersSource).toContain('normalizedState.nodeTypeFilter');
+		expect(navbarFiltersSource).toContain('normalizedState.nodeTypeFilters');
 		expect(navbarFiltersSource).toContain(
 			'`${action.label}${countLabel}${warningLabel}`',
 		);
@@ -109,15 +109,24 @@ describe('minimal filters header source guards', () => {
 	it('exposes Files Parents First as a sort preference separate from node type filters', () => {
 		expect(navbarFiltersSource).toContain('parentsFirst: true');
 		expect(navbarFiltersSource).toContain('normalizedState.parentsFirst');
-		expect(navbarFiltersSource).toContain('left.parentsFirst === right.parentsFirst');
+		expect(navbarFiltersSource).toContain(
+			'left.parentsFirst === right.parentsFirst',
+		);
 		expect(navbarFiltersSource).toContain("translate('sort.parents_first')");
 		expect(navbarFiltersSource).toContain("setIcon('lucide-folder-tree')");
 	});
 
 	it('condenses only the minimal Files toolbar to tabs, view, sort, search, tools', () => {
 		expect(navbarFiltersSource).toContain('toolbarToolsMenu = false');
-		expect(navbarFiltersSource).toContain('const compactFilesTools = $derived(');
-		expect(navbarFiltersSource).toContain("activeSectionTab === 'files'");
+		expect(navbarFiltersSource).toContain('frameWidth = 0');
+		expect(navbarFiltersSource).toContain('shouldCondenseFilesToolbar({');
+		expect(navbarFiltersSource).toContain('manual: toolbarToolsMenu');
+		expect(navbarFiltersSource).toContain(
+			'const compactFilesTools = $derived(',
+		);
+		expect(navbarFiltersSource).toContain(
+			"activeTab === 'files' && !compactFilesTools",
+		);
 		expect(navbarFiltersSource).toContain('!compactFilesTools');
 
 		const actionsSource = navbarFiltersSource.slice(

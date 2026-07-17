@@ -53,7 +53,9 @@ function cloneSnapshot(snapshot: StatisticsSnapshot): StatisticsSnapshot {
 }
 
 function isStringArray(value: unknown): value is string[] {
-	return Array.isArray(value) && value.every((item) => typeof item === 'string');
+	return (
+		Array.isArray(value) && value.every((item) => typeof item === 'string')
+	);
 }
 
 function normalizeFileStats(value: unknown): CachedFileStats | null {
@@ -70,6 +72,8 @@ function normalizeFileStats(value: unknown): CachedFileStats | null {
 	return cloneFileStats({
 		...(candidate as CachedFileStats),
 		ctime: typeof candidate.ctime === 'number' ? candidate.ctime : 0,
+		characters:
+			typeof candidate.characters === 'number' ? candidate.characters : -1,
 	});
 }
 
@@ -302,7 +306,9 @@ class IndexedDBStatisticsCacheStorage implements StatisticsCacheStorage {
 			const request = store.delete(key);
 			request.onsuccess = () => resolve();
 			request.onerror = () => {
-				reject(request.error ?? new Error(`Failed to delete from ${storeName}`));
+				reject(
+					request.error ?? new Error(`Failed to delete from ${storeName}`),
+				);
 			};
 		});
 	}

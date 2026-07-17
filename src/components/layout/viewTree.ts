@@ -1,6 +1,11 @@
 // src/components/UnifiedTreeView.ts
-import { setIcon, setTooltip } from 'obsidian';
+import { Platform, setIcon, setTooltip } from 'obsidian';
 import type { TreeNode } from '../../types/typeTree';
+import { resolvePresentedActiveFilterIds } from '../../logic/logicActiveFilterBubbling';
+import {
+	explorerDensityProfile,
+	usesMobileExplorerDensity,
+} from '../../logic/logicResponsiveLayout';
 import { vaultmanPerfMonitor } from '../../utils/performanceMonitor';
 import {
 	buildVirtualTreeWindow,
@@ -12,14 +17,23 @@ import {
 	normalizeBadgeCancelClickMode,
 	type BadgeCancelClickMode,
 } from '../../utils/badgeInteraction';
+import {
+	bindLongPressGesture,
+	LongPressGesture,
+} from '../../utils/longPressGesture';
+import { renderIconValue } from '../../utils/renderIconValue';
 
 export interface TreeViewOptions {
 	nodes: TreeNode[];
 	expandedIds: Set<string>;
 	onToggle: (id: string) => void;
-	onRowClick: (id: string) => void;
+	onRecursiveExpand?: (id: string) => void;
+	onRowClick: (id: string, event?: MouseEvent) => void;
+	onRowDoubleClick?: (id: string, event: MouseEvent) => void;
+	onRowHover?: (id: string, row: HTMLElement) => void;
 	onContextMenu: (id: string, e: MouseEvent) => void;
 	activeFilterIds?: Set<string>;
+	selectedIds?: Set<string>;
 	searchHighlightIds?: Set<string>;
 	warningIds?: Set<string>;
 	editingId?: string | null;
@@ -55,9 +69,8 @@ export class UnifiedTreeView {
 	private _contentEl: HTMLElement | null = null;
 	private _rows: TreeNode[] = [];
 	private _indexById = new Map<string, number>();
-	private readonly _rowHeight = 28;
-	private readonly _mobileCoreRowHeight = 37;
 	private readonly _overscan = 24;
+	private readonly _recursiveExpandGesture = new LongPressGesture();
 	private readonly _onScroll = () => {
 		if (this._hasVisibleRenderedRows()) {
 			this._scheduleWindowRender();
@@ -72,6 +85,17 @@ export class UnifiedTreeView {
 	}
 
 	render(opts: TreeViewOptions): void {
+		this._recursiveExpandGesture.cancel();
+		if (opts.activeFilterIds) {
+			const presentedActiveFilterIds = resolvePresentedActiveFilterIds(
+				opts.nodes,
+				opts.expandedIds,
+				opts.activeFilterIds,
+			);
+			if (presentedActiveFilterIds !== opts.activeFilterIds) {
+				opts = { ...opts, activeFilterIds: presentedActiveFilterIds };
+			}
+		}
 		this._opts = opts;
 		this.containerEl.dataset.vaultmanTreeOwner = this._ownerId;
 		this.containerEl.toggleClass(
@@ -126,6 +150,7 @@ export class UnifiedTreeView {
 	}
 
 	destroy(): void {
+		this._recursiveExpandGesture.cancel();
 		if (this._pendingRaf !== null) {
 			cancelAnimationFrame(this._pendingRaf);
 			this._pendingRaf = null;
@@ -336,6 +361,7 @@ export class UnifiedTreeView {
 			node.depth,
 			node.cls ?? '',
 			node.icon ?? '',
+			node.iconColor ?? '',
 			node.typeText ?? '',
 			node.mtimeText ?? '',
 			node.ctimeText ?? '',
@@ -389,15 +415,18 @@ export class UnifiedTreeView {
 		showCaret,
 		isExpanded,
 		isHighlighted,
+		isSelected,
 	}: {
 		row: HTMLElement;
 		hasChildren: boolean;
 		showCaret: boolean;
 		isExpanded: boolean;
 		isHighlighted: boolean;
+		isSelected: boolean;
 	}): void {
 		row.toggleClass('mod-collapsible', showCaret);
 		row.toggleClass('vaultman-search-highlight', isHighlighted);
+		row.toggleClass('is-selected', isSelected);
 		const toggleEl = row.querySelector<HTMLElement>('.collapse-icon');
 		if (!toggleEl) return;
 		toggleEl.toggleClass('is-collapsed', showCaret && !isExpanded);
@@ -411,15 +440,12 @@ export class UnifiedTreeView {
 	}
 
 	private rowHeight(): number {
-		const isPhone = activeDocument.body.classList.contains('is-phone');
-		const isVaultmanDrawer = Boolean(
-			this.containerEl.closest(
-				'.workspace-drawer .workspace-leaf-content[data-type="vaultman-frame"]',
-			),
+		const body = activeDocument.body;
+		const isMobile = usesMobileExplorerDensity(
+			Platform.isMobile,
+			body.classList,
 		);
-		return isPhone && isVaultmanDrawer
-			? this._mobileCoreRowHeight
-			: this._rowHeight;
+		return explorerDensityProfile(isMobile).treeRowHeight;
 	}
 
 	private applyCoreRowClasses(row: HTMLElement, node: TreeNode): void {
@@ -492,6 +518,7 @@ export class UnifiedTreeView {
 		const isWarning = opts.warningIds?.has(node.id) ?? false;
 		const isEditing = opts.editingId === node.id;
 		const isHighlighted = opts.searchHighlightIds?.has(node.id) ?? false;
+		const isSelected = opts.selectedIds?.has(node.id) ?? false;
 		const visibleCells = opts.visibleCells;
 		const showIcon = visibleCells ? visibleCells.has('icon') : true;
 		const showLabel = visibleCells
@@ -513,14 +540,47 @@ export class UnifiedTreeView {
 		this.applyDataPath(row, node);
 		row.draggable = Boolean(opts.onDragStart);
 		row.style.setProperty('--depth', String(node.depth));
-		row.onclick = () => opts.onRowClick(node.id);
+		bindLongPressGesture(
+			row,
+			this._recursiveExpandGesture,
+			hasChildren && opts.onRecursiveExpand
+				? () => opts.onRecursiveExpand?.(node.id)
+				: undefined,
+		);
+		row.onclick = (event) => {
+			if (this._recursiveExpandGesture.isActivationSuppressed()) {
+				event.preventDefault();
+				event.stopPropagation();
+				return;
+			}
+			opts.onRowClick(node.id, event);
+		};
+		row.ondblclick = opts.onRowDoubleClick
+			? (event) => {
+					if (this._recursiveExpandGesture.isActivationSuppressed()) {
+						event.preventDefault();
+						event.stopPropagation();
+						return;
+					}
+					opts.onRowDoubleClick?.(node.id, event);
+				}
+			: null;
+		row.onpointerenter = () => opts.onRowHover?.(node.id, row);
+		row.onauxclick = (event) => {
+			if (event.button !== 1) return;
+			event.preventDefault();
+			opts.onRowClick(node.id, event);
+		};
 		row.ondragstart = (event) => {
+			this._recursiveExpandGesture.cancel();
 			row.addClass('is-being-dragged');
 			opts.onDragStart?.(node.id, event);
 		};
 		row.ondragend = () => row.removeClass('is-being-dragged');
-		row.ondragover = (event) => this._handleRowDragOver(row, node.id, event, opts);
-		row.ondragenter = (event) => this._handleRowDragOver(row, node.id, event, opts);
+		row.ondragover = (event) =>
+			this._handleRowDragOver(row, node.id, event, opts);
+		row.ondragenter = (event) =>
+			this._handleRowDragOver(row, node.id, event, opts);
 		row.ondragleave = () => row.removeClass('is-being-dragged-over');
 		row.ondrop = (event) => {
 			row.removeClass('is-being-dragged-over');
@@ -529,6 +589,12 @@ export class UnifiedTreeView {
 		row.oncontextmenu = (e) => {
 			e.preventDefault();
 			e.stopPropagation();
+			if (
+				this._recursiveExpandGesture.isTrackingPointer() ||
+				this._recursiveExpandGesture.isActivationSuppressed()
+			) {
+				return;
+			}
 			opts.onContextMenu(node.id, e);
 		};
 		this.applyRowTitle(row, node);
@@ -540,6 +606,7 @@ export class UnifiedTreeView {
 				showCaret,
 				isExpanded,
 				isHighlighted,
+				isSelected,
 			});
 			return row;
 		}
@@ -564,6 +631,10 @@ export class UnifiedTreeView {
 			if (hasChildren) {
 				toggleEl.addEventListener('click', (e) => {
 					e.stopPropagation();
+					if (this._recursiveExpandGesture.isActivationSuppressed()) {
+						e.preventDefault();
+						return;
+					}
 					opts.onToggle(node.id);
 				});
 			} else {
@@ -577,12 +648,13 @@ export class UnifiedTreeView {
 			showCaret,
 			isExpanded,
 			isHighlighted,
+			isSelected,
 		});
 
 		// Icon
 		if (node.icon && showIcon) {
 			const iconSpan = row.createSpan({ cls: 'vaultman-tree-icon' });
-			setIcon(iconSpan, node.icon);
+			renderIconValue(iconSpan, node.icon, node.iconColor);
 		}
 
 		// Label / Input

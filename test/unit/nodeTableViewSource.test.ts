@@ -47,4 +47,14 @@ describe('NodeTableView source guards', () => {
 		expect(nodeTableSource).toContain('clampNodeTableColumnWidth');
 		expect(nodeTableSource).toContain('onpointerdown');
 	});
+
+	it('projects hidden active filters onto collapsed parent cells', () => {
+		expect(nodeTableSource).toContain('resolvePresentedActiveFilterIds');
+		expect(nodeTableSource).toContain(
+			'const presentedActiveFilterIds = resolvePresentedActiveFilterIds(',
+		);
+		expect(nodeTableSource).toContain(
+			'opts = { ...opts, activeFilterIds: presentedActiveFilterIds }',
+		);
+	});
 });

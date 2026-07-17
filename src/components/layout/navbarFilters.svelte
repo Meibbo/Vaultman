@@ -19,6 +19,13 @@
 		panelViewModeForDataSurface,
 		viewModesForDataSurface,
 	} from '../../logic/logicExplorerViewModes';
+	import { shouldCondenseFilesToolbar } from '../../logic/logicResponsiveLayout';
+	import {
+		nodeTypeFilterPatch,
+		nodeTypeFiltersForState,
+		sameNodeTypeFilters,
+		toggleNodeTypeFilter,
+	} from '../../logic/logicNodeTypeFilters';
 
 	type FiltersTab = 'props' | 'files' | 'tags';
 	type HeaderTabOption = { id: string; label: string; icon: string };
@@ -71,6 +78,7 @@
 		floatingTocEnabled = false,
 		onToggleFloatingToc,
 		toolbarToolsMenu = false,
+		frameWidth = 0,
 		onToggleToolbar,
 		toolbarShown = true,
 		savedLayouts = [],
@@ -100,6 +108,7 @@
 		floatingTocEnabled?: boolean;
 		onToggleFloatingToc?: () => void;
 		toolbarToolsMenu?: boolean;
+		frameWidth?: number;
 		onToggleToolbar?: () => void;
 		toolbarShown?: boolean;
 		savedLayouts?: SavedLayout[];
@@ -248,6 +257,7 @@
 		files: [
 			{ id: 'name', icon: 'lucide-a-large-small', labelKey: 'sort.by.name' },
 			{ id: 'count', icon: 'lucide-hash', labelKey: 'sort.by.props' },
+			{ id: 'words', icon: 'lucide-text', labelKey: 'sort.by.words' },
 			{ id: 'ext', icon: 'lucide-file-type', labelKey: 'sort.by.ext' },
 			{
 				id: 'mtime',
@@ -374,7 +384,12 @@
 		hasExpandedNodes ? 'lucide-chevrons-down-up' : 'lucide-chevrons-up-down',
 	);
 	const compactFilesTools = $derived(
-		minimalStyle && toolbarToolsMenu && activeSectionTab === 'files',
+		shouldCondenseFilesToolbar({
+			activeSectionTab,
+			frameWidth,
+			manual: toolbarToolsMenu,
+			minimalStyle,
+		}),
 	);
 	const showSearchInput = $derived(!minimalStyle || searchExpanded);
 	const currentTabsOption = $derived(
@@ -533,7 +548,7 @@
 				normalizedState.sortBy,
 				normalizedState.direction,
 				normalizedState.childLevel,
-				normalizedState.nodeTypeFilter,
+				normalizedState.nodeTypeFilters,
 				normalizedState.parentsFirst,
 			);
 		if (tab === 'props') {
@@ -541,7 +556,7 @@
 				normalizedState.sortBy,
 				normalizedState.direction,
 				normalizedState.childLevel,
-				normalizedState.nodeTypeFilter,
+				normalizedState.nodeTypeFilters,
 			);
 		}
 		if (tab === 'tags') {
@@ -549,7 +564,7 @@
 				normalizedState.sortBy,
 				normalizedState.direction,
 				normalizedState.childLevel,
-				normalizedState.nodeTypeFilter,
+				normalizedState.nodeTypeFilters,
 			);
 		}
 	}
@@ -591,7 +606,10 @@
 			left.sortBy === right.sortBy &&
 			left.direction === right.direction &&
 			left.childLevel === right.childLevel &&
-			left.nodeTypeFilter === right.nodeTypeFilter &&
+			sameNodeTypeFilters(
+				nodeTypeFiltersForState(left),
+				nodeTypeFiltersForState(right),
+			) &&
 			left.parentsFirst === right.parentsFirst
 		);
 	}
@@ -807,6 +825,7 @@
 		const sortBy = normalizeExplorerSortBy(state.sortBy);
 		return {
 			...state,
+			...nodeTypeFilterPatch(nodeTypeFiltersForState(state)),
 			sortBy,
 			direction: state.direction ?? DEFAULT_DIR[sortBy] ?? 'asc',
 			parentsFirst: state.parentsFirst ?? true,
@@ -868,7 +887,9 @@
 				item
 					.setTitle(
 						activeTab === 'props'
-							? translate('sort.vertcol.props_values')
+							? current.childLevel
+								? translate('sort.vertcol.sort_props')
+								: translate('sort.vertcol.sort_values')
 							: translate('sort.vertcol.node_level'),
 					)
 					.setIcon(
@@ -882,27 +903,39 @@
 		}
 
 		menu.addSeparator();
-		for (const option of nodeTypeOptionsForActiveTab()) {
-			const isAll = option.id === 'all';
-			const isActive = isAll
-				? current.nodeTypeFilter === null
-				: current.nodeTypeFilter === option.id;
-			menu.addItem((item) => {
-				item
-					.setTitle(nodeTypeOptionTitle(option))
-					.setIcon(option.icon)
-					.setChecked(isActive)
-					.onClick(() =>
-						handleSortChange({
-							...current,
-							nodeTypeFilter:
-								isAll || current.nodeTypeFilter === option.id
-									? null
-									: option.id,
-						}),
-					);
-			});
-		}
+		const selectedNodeTypes = nodeTypeFiltersForState(current);
+		menu.addItem((item) => {
+			item
+				.setTitle(
+					`${translate('explorer.sort.type')}${
+						selectedNodeTypes.length > 0 ? ` (${selectedNodeTypes.length})` : ''
+					}`,
+				)
+				.setIcon('lucide-list-filter');
+			const sub = (
+				item as typeof item & { setSubmenu: () => Menu }
+			).setSubmenu();
+			for (const option of nodeTypeOptionsForActiveTab()) {
+				const isAll = option.id === 'all';
+				const isActive = isAll
+					? selectedNodeTypes.length === 0
+					: selectedNodeTypes.includes(option.id);
+				sub.addItem((subItem) =>
+					subItem
+						.setTitle(nodeTypeOptionTitle(option))
+						.setIcon(option.icon)
+						.setChecked(isActive)
+						.onClick(() =>
+							handleSortChange({
+								...current,
+								...nodeTypeFilterPatch(
+									toggleNodeTypeFilter(selectedNodeTypes, option.id),
+								),
+							}),
+						),
+				);
+			}
+		});
 
 		menu.showAtMouseEvent(event);
 	}

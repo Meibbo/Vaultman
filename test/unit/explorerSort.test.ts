@@ -2,6 +2,7 @@ import type { TFile, TFolder, Vault } from 'obsidian';
 import { describe, expect, it } from 'vitest';
 
 import {
+	changedItemsRemainOrdered,
 	compareFilesForExplorer,
 	normalizeExplorerSortBy,
 } from '../../src/logic/logicSort';
@@ -68,5 +69,47 @@ describe('explorer sort helpers', () => {
 				'desc',
 			),
 		).toBeGreaterThan(0);
+	});
+
+	it('sorts files by cached word count with a stable path tie-breaker', () => {
+		const short = makeFile('Notes/z-short.md', { ctime: 1, mtime: 1 });
+		const longA = makeFile('Notes/a-long.md', { ctime: 1, mtime: 1 });
+		const longB = makeFile('Notes/b-long.md', { ctime: 1, mtime: 1 });
+		const words = new Map<TFile, number>([
+			[short, 10],
+			[longA, 200],
+			[longB, 200],
+		]);
+		const sorted = [short, longB, longA].sort((a, b) =>
+			compareFilesForExplorer(a, b, 'words', 'desc', {
+				wordCountForFile: (file) => words.get(file),
+			}),
+		);
+
+		expect(sorted.map((file) => file.path)).toEqual([
+			'Notes/a-long.md',
+			'Notes/b-long.md',
+			'Notes/z-short.md',
+		]);
+	});
+
+	it('detects whether refreshed sort keys cross an existing neighbor', () => {
+		const items = [
+			{ id: 'a', words: 30 },
+			{ id: 'b', words: 20 },
+			{ id: 'c', words: 10 },
+		];
+		const compare = (a: (typeof items)[number], b: (typeof items)[number]) =>
+			b.words - a.words || a.id.localeCompare(b.id);
+
+		items[1].words = 25;
+		expect(
+			changedItemsRemainOrdered(items, ['b'], (item) => item.id, compare),
+		).toBe(true);
+
+		items[1].words = 5;
+		expect(
+			changedItemsRemainOrdered(items, ['b'], (item) => item.id, compare),
+		).toBe(false);
 	});
 });

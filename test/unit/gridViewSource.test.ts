@@ -51,4 +51,31 @@ describe('GridView source guards', () => {
 		expect(gridViewSource).toContain('clampFileTableColumnWidth');
 		expect(gridViewSource).toContain('onpointerdown');
 	});
+
+	it('delegates header sort changes to the Files panel with canonical defaults', () => {
+		expect(gridViewSource).toContain(
+			'onSortChange?: (column: SortColumn, direction: SortDirection) => void',
+		);
+		expect(gridViewSource).toContain('DEFAULT_EXPLORER_SORT_DIR[col]');
+		expect(gridViewSource).toContain(
+			'this.callbacks.onSortChange(this.sortColumn, this.sortDirection)',
+		);
+		expect(gridViewSource).not.toContain(
+			"this.sortColumn = col;\n\t\t\t\tthis.sortDirection = 'asc';",
+		);
+	});
+
+	it('forwards modifier and middle-click events from file names', () => {
+		expect(gridViewSource).toContain(
+			'onFileClick: (file: TFile, event?: MouseEvent | KeyboardEvent) => void',
+		);
+		expect(gridViewSource).toContain(
+			"nameEl.addEventListener('click', (event) =>",
+		);
+		expect(gridViewSource).toContain(
+			"nameEl.addEventListener('auxclick', (event) =>",
+		);
+		expect(gridViewSource).toContain('if (event.button !== 1) return;');
+		expect(gridViewSource).toContain('this.callbacks.onFileClick(file, event)');
+	});
 });

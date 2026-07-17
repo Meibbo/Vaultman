@@ -6,6 +6,7 @@ export type ExplorerFileSortBy =
 	| 'count'
 	| 'ext'
 	| 'path'
+	| 'words'
 	| 'mtime'
 	| 'ctime';
 
@@ -16,12 +17,15 @@ export interface ExplorerFileTimes {
 
 export interface ExplorerFileSortOptions {
 	countForFile?: (file: TFile) => number;
+	wordCountForFile?: (file: TFile) => number | null | undefined;
 	getFileTimes?: (file: TFile) => ExplorerFileTimes;
 }
 
 export const DEFAULT_EXPLORER_SORT_DIR: Record<string, ExplorerSortDirection> = {
 	name: 'asc',
 	count: 'desc',
+	props: 'desc',
+	words: 'desc',
 	mtime: 'desc',
 	ctime: 'desc',
 	sub: 'desc',
@@ -65,9 +69,33 @@ export function compareFilesForExplorer(
 			fileTimeForExplorer(b, normalizedSortBy, options.getFileTimes);
 	} else if (normalizedSortBy === 'count') {
 		result = (options.countForFile?.(a) ?? 0) - (options.countForFile?.(b) ?? 0);
+	} else if (normalizedSortBy === 'words') {
+		result =
+			(options.wordCountForFile?.(a) ?? 0) -
+			(options.wordCountForFile?.(b) ?? 0);
 	} else {
 		result = a.basename.localeCompare(b.basename, undefined, numericLocale);
 	}
 
 	return result === 0 ? a.path.localeCompare(b.path, undefined, numericLocale) : dir * result;
+}
+
+export function changedItemsRemainOrdered<T>(
+	items: readonly T[],
+	changedIds: readonly string[],
+	getId: (item: T) => string,
+	compare: (a: T, b: T) => number,
+): boolean {
+	const indexById = new Map<string, number>();
+	items.forEach((item, index) => indexById.set(getId(item), index));
+	for (const id of changedIds) {
+		const index = indexById.get(id);
+		if (index === undefined) continue;
+		const current = items[index];
+		const previous = items[index - 1];
+		const next = items[index + 1];
+		if (previous !== undefined && compare(previous, current) > 0) return false;
+		if (next !== undefined && compare(current, next) > 0) return false;
+	}
+	return true;
 }

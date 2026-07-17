@@ -175,6 +175,14 @@ export const es: Record<string, string> = {
 	'settings.toolbar_tools_menu': 'Condensar herramientas de Files',
 	'settings.toolbar_tools_menu.desc':
 		'Reemplaza Auto-revelar y Expandir/Colapsar por un menú Tools nativo para mantener cinco nodos en la barra de Files.',
+	'settings.files_hover_info': 'Información hover de Files',
+	'settings.files_hover_info.desc':
+		'Elige qué metadata cacheada y estadísticas de lectura aparecen al mantener el cursor sobre un nodo de Files.',
+	'settings.files_hover_info.path': 'Ruta',
+	'settings.files_hover_info.modified': 'Modificado',
+	'settings.files_hover_info.created': 'Creado',
+	'settings.files_hover_info.words': 'Palabras',
+	'settings.files_hover_info.characters': 'Caracteres',
 	'settings.show_dock': 'Mostrar dock inferior',
 	'settings.show_dock.desc':
 		'Muestra el dock inferior. Al desactivarlo, Filtros y Cola quedan en el menú de tabs de Datos.',
@@ -187,6 +195,18 @@ export const es: Record<string, string> = {
 	'settings.bulk_operation_warning_threshold': 'Umbral de aviso en cola',
 	'settings.bulk_operation_warning_threshold.desc':
 		'Muestra avisos en la cola cuando una operación afecta más archivos que este límite.',
+	'settings.addons': 'Complementos',
+	'settings.addons.iconic': 'Iconic',
+	'settings.addons.iconic.desc':
+		'Usa en los explorers de Vaultman los íconos configurados por el plugin comunitario Iconic.',
+	'settings.addons.iconic.files_scope': 'Alcance de íconos en Files',
+	'settings.addons.iconic.files_scope.desc':
+		'Elige qué nodos de Files pueden mostrar la celda de ícono. Personalizados muestra solo los nodos configurados en Iconic.',
+	'settings.icon_scope.all': 'Archivos y carpetas',
+	'settings.icon_scope.files': 'Solo archivos',
+	'settings.icon_scope.folders': 'Solo carpetas',
+	'settings.icon_scope.custom': 'Solo personalizados de Iconic',
+	'settings.developer_tools': 'Herramientas de desarrollo',
 	'settings.performance_monitor': 'Monitor de rendimiento',
 	'settings.performance_monitor.desc':
 		'Muestra el monitor flotante de FPS, long tasks, memoria y acciones.',
@@ -200,6 +220,10 @@ export const es: Record<string, string> = {
 		'Sin config de vista guardada. Usa "Guardar config de vista" en el menú de vista para recordar opciones y orden por tab.',
 	'settings.saved_view_config.clear': 'Limpiar',
 	'settings.floating_toc': 'TOC flotante',
+	'settings.floating_toc.desc':
+		'Configura el índice del explorer y el comportamiento Niagara.',
+	'settings.configure': 'Configurar',
+	'settings.back_to_style_config': 'Volver a Configuración de estilo',
 	'settings.floating_toc_enable': 'Activar TOC flotante',
 	'settings.floating_toc_enable.desc':
 		'Muestra un índice flotante de primeras letras sobre los explorers de Files, Props y Tags.',
@@ -214,6 +238,9 @@ export const es: Record<string, string> = {
 	'settings.toc_position.left': 'Izquierda',
 	'settings.toc_position.top': 'Arriba',
 	'settings.toc_position.bottom': 'Abajo',
+	'settings.toc_reserved_lane': 'Reservar espacio para el índice',
+	'settings.toc_reserved_lane.desc':
+		'Coloca el índice vertical entre las celdas del explorer y el scrollbar, sin superponer ninguno. Los rails superior e inferior permanecen como overlay.',
 	'settings.toc_glyph_mode': 'Modo de glifo',
 	'settings.toc_glyph_mode.letter': 'Primera letra',
 	'settings.toc_glyph_mode.name': 'Nombre completo',
@@ -255,6 +282,8 @@ export const es: Record<string, string> = {
 	'floating_toc.drill': 'Indexar el nivel de un nodo',
 	'floating_toc.close': 'Cerrar índice',
 	'floating_toc.back': 'Volver un nivel',
+	'floating_toc.incompatible_sort':
+		'El índice requiere un orden textual (nombre, ruta o extensión) en el explorer activo.',
 	'settings.queue_templates.desc':
 		'Gestionar presets guardados de operaciones preparadas',
 
@@ -264,8 +293,22 @@ export const es: Record<string, string> = {
 	'command.open_sidebar': 'Abrir barra lateral de Vaultman',
 	'command.apply_queue': 'Aplicar operaciones pendientes',
 	'command.focus_content_search': 'Enfocar busqueda de contenido',
-	'command.focus_active_explorer_search': 'Enfocar busqueda del explorador activo',
-	'command.focus_search_unavailable': 'No hay un campo de busqueda de Vaultman disponible.',
+	'command.focus_active_explorer_search':
+		'Enfocar busqueda del explorador activo',
+	'command.focus_search_unavailable':
+		'No hay un campo de busqueda de Vaultman disponible.',
+	'command.open_updates': 'Abrir novedades de Vaultman',
+	'updates.title': 'Novedades de Vaultman · {version}',
+	'updates.intro': 'Cambios de esta beta:',
+	'updates.clean_filters':
+		'“Clean Selection” ahora es “Clean Filters”: limpia los filtros activos, no los archivos seleccionados.',
+	'updates.floating_toc':
+		'Se reforzaron la navegación del TOC flotante, la densidad responsiva y la barra estrecha.',
+	'updates.files_explorer':
+		'Files incorpora expansión recursiva por pulsación, gestos core, metadatos de palabras/caracteres y menús más completos.',
+	'updates.addons':
+		'Add-ons ahora incluye integración con Iconic y explorers de Snippets y Plugins.',
+	'updates.close': 'Entendido',
 
 	// Toolbar
 	'toolbar.filters': 'Filtros',
@@ -371,6 +414,7 @@ export const es: Record<string, string> = {
 	'file.ctx.open_tab': 'Abrir en nueva pestaña',
 	'file.ctx.open_right': 'Abrir a la derecha',
 	'file.ctx.open_window': 'Abrir en nueva ventana',
+	'file.ctx.make_copy': 'Crear una copia',
 	'folder.ctx.new_note': 'Nueva nota',
 	'folder.ctx.new_folder': 'Nueva carpeta',
 	'folder.ctx.new_canvas': 'Nuevo canvas',
@@ -436,6 +480,21 @@ export const es: Record<string, string> = {
 	'filter.tab.props': 'Props',
 	'filter.tab.files': 'Archivos',
 	'filter.tab.content': 'Contenido',
+	'filter.tab.snippets': 'Snippets',
+	'filter.tab.plugins': 'Plugins',
+	'addons.enabled': 'Activado',
+	'addons.disabled': 'Desactivado',
+	'addons.enable': 'Activar',
+	'addons.disable': 'Desactivar',
+	'addons.snippets.empty': 'No se encontraron snippets CSS',
+	'addons.snippets.unavailable':
+		'Los controles de snippets CSS no están disponibles en esta versión de Obsidian',
+	'addons.snippets.failed': 'No se pudo actualizar el snippet CSS',
+	'addons.plugins.empty': 'No se encontraron plugins comunitarios',
+	'addons.plugins.unavailable':
+		'Los controles de plugins no están disponibles en esta versión de Obsidian',
+	'addons.plugins.failed': 'No se pudo actualizar el plugin',
+	'addons.plugins.self_protected': 'Vaultman no puede desactivarse a sí mismo',
 	'filters.active': 'Filtros activos',
 	'filters.active_zero': 'Los filtros activos no devuelven archivos',
 	'settings.filters_show_tab_labels': 'Mostrar labels en tabs',
@@ -451,7 +510,7 @@ export const es: Record<string, string> = {
 	'settings.context_menu.more_options': 'Mostrar en menú de más opciones',
 	'settings.context_menu.more_options.desc':
 		'Agrega acciones de Vaultman al menú de más opciones de archivos.',
-	'context_menu.clean_selection': 'Limpiar seleccion',
+	'context_menu.clean_filters': 'Limpiar filtros',
 	'nav.filters': 'Datos',
 	'nav.ops': 'Archivos',
 	'nav.statistics': 'Estadísticas',
@@ -510,7 +569,8 @@ export const es: Record<string, string> = {
 	'filters.popup.rule.enable': 'Activar filtro',
 	'filters.popup.rule.delete': 'Eliminar filtro',
 	'filters.view_state.files_type': 'Tipo en vista Files',
-	'filters.view_state.files_type_desc': 'La vista Files esta limitada a archivos {type}.',
+	'filters.view_state.files_type_desc':
+		'La vista Files esta limitada a archivos {type}.',
 	'filters.bases.menu': 'Importar/exportar filtros de Bases',
 	'filters.bases.import': 'Importar',
 	'filters.bases.export': 'Exportar filtros activos a Base',
@@ -526,6 +586,7 @@ export const es: Record<string, string> = {
 	'sort.by.name': 'Nombre',
 	'sort.by.count': 'Cantidad',
 	'sort.by.props': 'Props',
+	'sort.by.words': 'Palabras',
 	'sort.by.date': 'Fecha',
 	'sort.by.modified': 'Modificación',
 	'sort.by.created': 'Creación',
@@ -536,11 +597,16 @@ export const es: Record<string, string> = {
 	'sort.by.columns': 'Columnas',
 	'sort.parents_first': 'Parents First',
 	'sort.close': 'Cerrar orden',
-	'sort.vertcol.by_values': 'Ordenando por valores — clic para ordenar por props',
-	'sort.vertcol.by_props': 'Ordenando por props — clic para ordenar por valores',
-	'sort.vertcol.by_nested': 'Mostrando tags anidados — clic para mostrar solo raíz',
+	'sort.vertcol.by_values':
+		'Ordenando por valores — clic para ordenar por props',
+	'sort.vertcol.by_props':
+		'Ordenando por props — clic para ordenar por valores',
+	'sort.vertcol.by_nested':
+		'Mostrando tags anidados — clic para mostrar solo raíz',
 	'sort.vertcol.by_root': 'Mostrando tags raíz — clic para mostrar anidados',
 	'sort.vertcol.props_values': 'Alternar props / valores',
+	'sort.vertcol.sort_props': 'Ordenar props',
+	'sort.vertcol.sort_values': 'Ordenar valores',
 	'sort.vertcol.node_level': 'Alternar nivel de nodos',
 	'sort.vertcol.direct_toggle': 'Alternar dirección',
 	'sort.vertcol.scope_drawer': 'Abrir filtro de tipo',

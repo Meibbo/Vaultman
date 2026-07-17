@@ -85,6 +85,42 @@ describe('Floating TOC source and panel contracts', () => {
 		expect(frameSource).toContain('panel.isIndexableSort()');
 	});
 
+	it('keeps the reserved vertical lane opt-in and excludes horizontal rails', () => {
+		expect(DEFAULT_SETTINGS.tocReservedLane).toBe(false);
+		expect(settingsSource).toContain("translate('settings.toc_reserved_lane')");
+		expect(frameSource).toContain('tocReservedLanePosition');
+		expect(frameSource).toContain(
+			"position === 'right' || position === 'left'",
+		);
+		expect(frameSource).toContain('vaultman-pages-viewport--toc-lane-right');
+		expect(frameSource).toContain('vaultman-pages-viewport--toc-lane-left');
+		expect(stylesSource).toContain('--vaultman-toc-reserved-lane-size: 36px');
+		expect(stylesSource).toContain(
+			'padding-inline-end: var(--vaultman-toc-reserved-lane-size)',
+		);
+		expect(stylesSource).toContain(
+			'padding-inline-start: var(--vaultman-toc-reserved-lane-size)',
+		);
+	});
+
+	it('rejects incompatible toolbar activation before persisting the index state', () => {
+		const toggleSource = frameSource.match(
+			/function toggleFloatingToc\(\) \{([\s\S]*?)\n\t\}\n\tconst floatingTocNiagara/,
+		)?.[1];
+		expect(toggleSource).toBeDefined();
+		expect(toggleSource).toContain('resolveFloatingTocToggle(');
+		expect(toggleSource).toContain(
+			"decision.rejection === 'incompatible-sort'",
+		);
+		expect(toggleSource).toContain(
+			"new Notice(translate('floating_toc.incompatible_sort'))",
+		);
+		expect(toggleSource).toContain('decision.nextEnabled');
+		expect(toggleSource!.indexOf('return;')).toBeLessThan(
+			toggleSource!.indexOf('void plugin.saveData(plugin.settings);'),
+		);
+	});
+
 	it('derives groups from the active panel at the current scope', () => {
 		expect(frameSource).toContain('buildIndexGroups(');
 		expect(frameSource).toContain('getIndexNodes(tocRootId)');
@@ -140,8 +176,10 @@ describe('Floating TOC source and panel contracts', () => {
 		expect(floatingTocSource).toContain('handleActionClick(');
 	});
 
-	it('uses a reversible signed track shift with no monotonic high-water mark', () => {
-		expect(floatingTocSource).toContain('niagaraTrackShift(');
+	it('threads the current rail shift through bidirectional reversal hysteresis', () => {
+		expect(floatingTocSource).toMatch(
+			/niagaraTrackShift\(\s*constrainedAlong,\s*firstCenter,\s*lastCenter,\s*shift,?\s*\)/,
+		);
 		expect(floatingTocSource).not.toContain('shiftHWM');
 	});
 

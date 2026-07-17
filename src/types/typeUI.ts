@@ -51,6 +51,9 @@ export interface ExplorerSortState {
 	sortBy: string;
 	direction: ExplorerSortDirection;
 	childLevel: boolean;
+	/** Legacy single selection; retained when exactly one type is selected. */
 	nodeTypeFilter: string | null;
+	/** Multi-selection form. Missing means load nodeTypeFilter for compatibility. */
+	nodeTypeFilters?: string[];
 	parentsFirst?: boolean;
 }

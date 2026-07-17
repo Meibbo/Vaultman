@@ -1,5 +1,12 @@
 // src/components/FilesExplorerPanel.ts
-import { Component, Notice, TFile, TFolder } from 'obsidian';
+import {
+	Component,
+	Keymap,
+	Notice,
+	setTooltip,
+	TFile,
+	TFolder,
+} from 'obsidian';
 import type { VaultmanPlugin } from '../../main';
 import { FilesLogic } from '../../logic/logicsFiles';
 import { FilesGridView } from '../layout/viewFilesGrid';
@@ -9,7 +16,19 @@ import type { TreeNode, FileMeta, NodeBadge } from '../../types/typeTree';
 import type { MenuCtx } from '../../types/typeCMenu';
 import type { FilterNode } from '../../types/typeFilter';
 import type { ExplorerSortState } from '../../types/typeUI';
+import {
+	DEFAULT_FILES_HOVER_INFO,
+	FILES_HOVER_INFO_FIELDS,
+	type FilesHoverInfoField,
+} from '../../types/typeSettings';
+import {
+	nodeTypeFilterPatch,
+	normalizeNodeTypeFilters,
+	sameNodeTypeFilters,
+	type NodeTypeFilterInput,
+} from '../../logic/logicNodeTypeFilters';
 import type { RevealNodeOptions } from '../../services/routerFloatingToc';
+import type { StatisticsCacheChange } from '../../services/serviceStatisticsCache';
 import { FileRenameModal } from '../../modals/modalFileRename';
 import { FileMoveModal } from '../../modals/modalFileMove';
 import { PropertyManagerModal } from '../../modals/modalPropertyManager';
@@ -17,6 +36,7 @@ import { DELETE_FILE, MOVE_FILE } from '../../types/typeOps';
 import { translate } from '../../i18n/index';
 import { showInputModal } from '../../utils/inputModal';
 import {
+	changedItemsRemainOrdered,
 	compareFilesForExplorer,
 	normalizeExplorerSortBy,
 } from '../../logic/logicSort';
@@ -31,11 +51,32 @@ import {
 	movedParentPathForFolderFile,
 } from '../../logic/logicFolderQueue';
 import {
+	buildFolderCopyPlan,
+	copyFileBinary,
+	fileCopyPath,
+	nextAvailableVaultPath,
+} from '../../logic/logicFileCopy';
+import {
+	buildFileHoverInfo,
+	filesHoverNeedsStatistics,
+} from '../../logic/logicFileHoverInfo';
+import { collectExpandableSubtreeIds } from '../../logic/logicTreeExpansion';
+import {
+	normalizeFilesIconScope,
+	resolveScopedFileIcon,
+	type ResolvedExplorerIcon,
+} from '../../logic/logicFileIcons';
+import {
+	fileSelectionGesture,
+	updateFileSelection,
+} from '../../logic/logicFileSelection';
+import {
 	readVaultmanDragPayload,
 	setVaultmanDragPayload,
 	type VaultmanDragNodePayload,
 	withActiveFilterDragSelection,
 } from '../../utils/dragPayload';
+import { flattenVisibleTree } from '../../utils/treeVirtualization';
 
 export type FilesViewMode = 'grid' | 'table' | 'tree';
 
@@ -66,14 +107,23 @@ export class FilesExplorerPanel extends Component {
 	private _totalCount = 0;
 	private sortBy: string = 'name';
 	private sortDir: 'asc' | 'desc' = 'asc';
-	private nodeTypeFilter: string | null = null;
+	private nodeTypeFilters: string[] = [];
 	private parentsFirst = true;
 	private addMode = false;
+	private selectedFilePaths = new Set<string>();
+	private selectionAnchorPath: string | null = null;
 	private visibleCells = new Set<string>(['name', 'ext', 'count', 'nested']);
 	private searchName = '';
 	private searchFolder = '';
 	private refreshTimer: number | null = null;
 	private statsRefreshTimer: number | null = null;
+	private pendingStatsPaths = new Set<string>();
+	private pendingHoverStats = new Map<string, Set<HTMLElement>>();
+	private wordSortWarmSignature = '';
+	private wordSortWarmup: Promise<void> = Promise.resolve();
+	private wordSortRetrySignature = '';
+	private lastWordSortOrder: TFile[] = [];
+	private lastWordSortComplete = false;
 	private activeRevealPath: string | null = null;
 	private sparseAutoExpandSignature = '';
 	/** Last rendered hierarchy — feeds the floating TOC (index/scope drill). */
@@ -98,6 +148,7 @@ export class FilesExplorerPanel extends Component {
 	}
 
 	onload(): void {
+		this.containerEl.addClass('nav-files-container');
 		const svc = this.plugin.contextMenuService;
 
 		svc.registerAction({
@@ -135,7 +186,8 @@ export class FilesExplorerPanel extends Component {
 			run: async (ctx: MenuCtx) => {
 				const meta = ctx.node.meta as FileMeta;
 				if (!meta.file) return;
-				const workspace = this.plugin.app.workspace as typeof this.plugin.app.workspace & {
+				const workspace = this.plugin.app
+					.workspace as typeof this.plugin.app.workspace & {
 					openPopoutLeaf(): import('obsidian').WorkspaceLeaf;
 				};
 				const leaf = workspace.openPopoutLeaf();
@@ -192,6 +244,19 @@ export class FilesExplorerPanel extends Component {
 				new FileMoveModal(this.plugin.app, [meta.file], (change) =>
 					this.plugin.queueService.addOrRun(change),
 				).open();
+			},
+		});
+
+		svc.registerAction({
+			id: 'file.make_copy',
+			nodeTypes: ['file'],
+			surfaces: ['panel'],
+			label: translate('file.ctx.make_copy'),
+			icon: 'lucide-copy',
+			run: async (ctx: MenuCtx) => {
+				const meta = ctx.node.meta as FileMeta;
+				if (!meta.file) return;
+				await this._copyFile(meta.file);
 			},
 		});
 
@@ -388,6 +453,7 @@ export class FilesExplorerPanel extends Component {
 		);
 		this.plugin.queueService.on('changed', this._handleQueueChange);
 		this.plugin.statisticsCache.on('changed', this._handleStatsChange);
+		this.plugin.iconicService?.onLoaded(() => this._render());
 		this.containerEl.addEventListener('dragover', this._handleRootFileDragOver);
 		this.containerEl.addEventListener('drop', this._handleRootFileDrop);
 
@@ -405,6 +471,8 @@ export class FilesExplorerPanel extends Component {
 			window.clearTimeout(this.statsRefreshTimer);
 			this.statsRefreshTimer = null;
 		}
+		this.pendingStatsPaths.clear();
+		this.pendingHoverStats.clear();
 		this.plugin.queueService.off('changed', this._handleQueueChange);
 		this.plugin.statisticsCache.off('changed', this._handleStatsChange);
 		this.containerEl.removeEventListener(
@@ -412,6 +480,7 @@ export class FilesExplorerPanel extends Component {
 			this._handleRootFileDragOver,
 		);
 		this.containerEl.removeEventListener('drop', this._handleRootFileDrop);
+		this.containerEl.removeClass('nav-files-container');
 		this.tableView?.destroy();
 		this.gridView?.destroy();
 		this.treeView?.destroy();
@@ -456,26 +525,29 @@ export class FilesExplorerPanel extends Component {
 		sortBy: string,
 		direction: 'asc' | 'desc',
 		_childLevel = false,
-		nodeTypeFilter: string | null = null,
+		nodeTypeFilter: NodeTypeFilterInput = null,
 		parentsFirst = true,
 	): void {
 		const normalizedSortBy = normalizeExplorerSortBy(sortBy);
+		const nextNodeTypeFilters = normalizeNodeTypeFilters(nodeTypeFilter);
 		if (
 			this.sortBy === normalizedSortBy &&
 			this.sortDir === direction &&
-			this.nodeTypeFilter === nodeTypeFilter &&
+			sameNodeTypeFilters(this.nodeTypeFilters, nextNodeTypeFilters) &&
 			this.parentsFirst === parentsFirst
 		) {
 			return;
 		}
 		this.sortBy = normalizedSortBy;
 		this.sortDir = direction;
-		this.nodeTypeFilter = nodeTypeFilter;
+		this.nodeTypeFilters = nextNodeTypeFilters;
 		this.parentsFirst = parentsFirst;
+		if (normalizedSortBy === 'words') this._warmWordCountSort();
 		if (this.viewMode === 'table' && this.tableView) {
 			const COL_MAP: Record<string, import('../layout/viewGrid').SortColumn> = {
 				name: 'name',
 				count: 'props',
+				words: 'words',
 				ext: 'ext',
 				mtime: 'mtime',
 				ctime: 'ctime',
@@ -491,18 +563,20 @@ export class FilesExplorerPanel extends Component {
 	}
 
 	getActiveTypeFilter(): FilesTypeFilterState | null {
-		if (!this.nodeTypeFilter) return null;
-		const option = this.getFileTypeOptions().find(
-			(candidate) => candidate.id === this.nodeTypeFilter,
+		if (this.nodeTypeFilters.length === 0) return null;
+		const options = new Map(
+			this.getFileTypeOptions().map((option) => [option.id, option]),
 		);
 		return {
-			id: this.nodeTypeFilter,
-			label: option?.label ?? this._fileTypeLabel(this.nodeTypeFilter),
+			id: this.nodeTypeFilters.join('\u001f'),
+			label: this.nodeTypeFilters
+				.map((id) => options.get(id)?.label ?? this._fileTypeLabel(id))
+				.join(', '),
 		};
 	}
 
 	hasViewFilters(): boolean {
-		return Boolean(this.nodeTypeFilter);
+		return this.nodeTypeFilters.length > 0;
 	}
 
 	getVisibleFileCount(): number {
@@ -517,7 +591,7 @@ export class FilesExplorerPanel extends Component {
 	}
 
 	clearNodeTypeFilter(): void {
-		if (!this.nodeTypeFilter) return;
+		if (this.nodeTypeFilters.length === 0) return;
 		this.setSortBy(this.sortBy, this.sortDir, false, null, this.parentsFirst);
 	}
 
@@ -617,6 +691,8 @@ export class FilesExplorerPanel extends Component {
 				getWordCount: (file: TFile) =>
 					this.plugin.statisticsCache.getFileWordCount(file),
 				getBadges: (file: TFile) => this._badgesForFile(file),
+				getFileIcon: (file: TFile, defaultIcon: string) =>
+					this._resolveFileIcon(file.path, false, defaultIcon),
 				onContextMenu: (file: TFile, e: MouseEvent) =>
 					this._openFileContextMenu(file, e),
 				onSelectionChange: (selected: Set<string>) => {
@@ -625,15 +701,27 @@ export class FilesExplorerPanel extends Component {
 					);
 					if (this.onSelectionChange) this.onSelectionChange(selected.size);
 				},
-				onFileClick: (file: TFile) => this._handleFileClick(file),
+				onFileClick: (file: TFile, event) => this._handleFileClick(file, event),
+				onFileHover: (file: TFile, element: HTMLElement) =>
+					this._handleFileHover(file, element),
+				onSortChange: (column, direction) =>
+					this.setSortBy(
+						column === 'props' ? 'count' : column,
+						direction,
+						false,
+						this.nodeTypeFilters,
+						this.parentsFirst,
+					),
 				onDragStart: (file: TFile, event: DragEvent) =>
 					this._setFileDragPayload(file, event),
 			});
 			this.tableView.setVisibleCells(this.visibleCells);
+			this.tableView.setSelectedPaths(this.selectedFilePaths);
 			this.tableView.setActivePath(this.activeRevealPath);
 			const COL_MAP: Record<string, import('../layout/viewGrid').SortColumn> = {
 				name: 'name',
 				count: 'props',
+				words: 'words',
 				ext: 'ext',
 				mtime: 'mtime',
 				ctime: 'ctime',
@@ -653,10 +741,14 @@ export class FilesExplorerPanel extends Component {
 					);
 					if (this.onSelectionChange) this.onSelectionChange(selected.size);
 				},
-				onFileClick: (file: TFile) => this._handleFileClick(file),
+				onFileClick: (file: TFile, event) => this._handleFileClick(file, event),
+				onFileHover: (file: TFile, element: HTMLElement) =>
+					this._handleFileHover(file, element),
 				onDragStart: (file: TFile, event: DragEvent) =>
 					this._setFileDragPayload(file, event),
 				getBadges: (file: TFile) => this._badgesForFile(file),
+				getFileIcon: (file: TFile, defaultIcon: string) =>
+					this._resolveFileIcon(file.path, false, defaultIcon),
 				getPropCount: (file: TFile) => this._propCountForFile(file),
 				getFileTimes: (file: TFile) =>
 					this.plugin.statisticsCache.getFileTimes(file),
@@ -664,6 +756,7 @@ export class FilesExplorerPanel extends Component {
 					this.plugin.statisticsCache.getFileWordCount(file),
 			});
 			this.gridView.setVisibleCells(this.visibleCells);
+			this.gridView.setSelectedPaths(this.selectedFilePaths);
 			this.gridView.setActivePath(this.activeRevealPath);
 		} else {
 			this.treeView = new UnifiedTreeView(this.containerEl);
@@ -674,15 +767,18 @@ export class FilesExplorerPanel extends Component {
 		return [...files].sort((a, b) =>
 			compareFilesForExplorer(a, b, this.sortBy, this.sortDir, {
 				countForFile: (file) => this._propCountForFile(file),
+				wordCountForFile: (file) =>
+					this.plugin.statisticsCache.getFileWordCount(file) ?? 0,
 				getFileTimes: (file) => this.plugin.statisticsCache.getFileTimes(file),
 			}),
 		);
 	}
 
 	private _filesForDisplay(): TFile[] {
-		if (!this.nodeTypeFilter) return this._currentFiles;
-		return this._currentFiles.filter(
-			(file) => this._fileTypeId(file) === this.nodeTypeFilter,
+		if (this.nodeTypeFilters.length === 0) return this._currentFiles;
+		const selectedTypes = new Set(this.nodeTypeFilters);
+		return this._currentFiles.filter((file) =>
+			selectedTypes.has(this._fileTypeId(file)),
 		);
 	}
 
@@ -744,7 +840,24 @@ export class FilesExplorerPanel extends Component {
 		);
 	}
 
-	private _handleFileClick(file: TFile): void {
+	private _handleFileClick(
+		file: TFile,
+		event?: MouseEvent | KeyboardEvent,
+	): void {
+		const selectionGesture = fileSelectionGesture(event, this.addMode);
+		const selection = updateFileSelection(
+			{
+				selectedPaths: this.selectedFilePaths,
+				anchorPath: this.selectionAnchorPath,
+			},
+			this._orderedVisibleFilePaths(),
+			file.path,
+			selectionGesture,
+		);
+		if (selectionGesture !== 'open') {
+			this._applyFileSelection(selection);
+			return;
+		}
 		if (this.addMode) {
 			const selected = this.getSelectedFiles();
 			const targets =
@@ -761,7 +874,9 @@ export class FilesExplorerPanel extends Component {
 			).open();
 			return;
 		}
-		void this.plugin.app.workspace.openLinkText(file.path, '', false);
+		if (this.selectedFilePaths.size > 0) this._applyFileSelection(selection);
+		const paneType = Keymap.isModEvent(event);
+		void this.plugin.app.workspace.getLeaf(paneType).openFile(file);
 	}
 
 	private _setFileDragPayload(file: TFile, event: DragEvent): void {
@@ -851,24 +966,31 @@ export class FilesExplorerPanel extends Component {
 	private _render(): void {
 		if (this._shouldShowEmptyFilteredState()) {
 			this._renderEmptyFilteredState();
+			this._rememberWordSortOrder([]);
 			this._setIndexRoots([], []);
 			return;
 		}
 		const displayFiles = this._filesForDisplay();
+		if (this.sortBy === 'words') this._warmWordCountSort(displayFiles);
 		if (this.viewMode === 'table' && this.tableView) {
+			this.tableView.setSelectedPaths(this.selectedFilePaths);
 			this.tableView.setActivePath(this.activeRevealPath);
 			this.tableView.render(displayFiles, this._totalCount);
+			const sortedTableFiles = [...this.tableView.getDisplayedFiles()];
+			this._rememberWordSortOrder(sortedTableFiles);
 			this._setIndexRoots(
 				[],
-				this.tableView.getDisplayedFiles().map((file) => ({
+				sortedTableFiles.map((file) => ({
 					id: file.path,
 					label: file.basename,
 				})),
 			);
 		} else if (this.viewMode === 'grid' && this.gridView) {
+			this.gridView.setSelectedPaths(this.selectedFilePaths);
 			this.gridView.setActivePath(this.activeRevealPath);
 			const sortedGridFiles = this._sortFiles(displayFiles);
 			this.gridView.render(sortedGridFiles);
+			this._rememberWordSortOrder(sortedGridFiles);
 			this._setIndexRoots(
 				[],
 				sortedGridFiles.map((file) => ({
@@ -878,6 +1000,7 @@ export class FilesExplorerPanel extends Component {
 			);
 		} else if (this.viewMode === 'tree' && this.treeView) {
 			const sortedFiles = this._sortFiles(displayFiles);
+			this._rememberWordSortOrder(sortedFiles);
 			const rebaseFolderPaths = this._activeFolderFilterPaths();
 			const renderTree = this._nestedEnabled()
 				? this.logic.buildFileTree(sortedFiles, this._foldersForCurrentView(), {
@@ -903,41 +1026,37 @@ export class FilesExplorerPanel extends Component {
 				}
 			};
 			applyFolderIcons(renderTree, this.expandedIds);
+			this._decorateTreeWithIcons(renderTree);
 			this._setIndexRoots(renderTree, []);
 			this.treeView.render({
 				nodes: renderTree,
 				expandedIds: this.expandedIds,
 				visibleCells: this.visibleCells,
+				selectedIds: this.selectedFilePaths,
 				onToggle: (id: string) => {
 					this._toggleExpanded(id);
 					this._render();
 				},
-				onRowClick: (id: string) => {
+				onRecursiveExpand: (id: string) =>
+					this._expandSubtree(id, renderTree),
+				onRowClick: (id: string, event?: MouseEvent) => {
 					const node = this._findNode(id, renderTree);
 					if (!node) return;
 					const meta = node.meta;
 					if (meta.isFolder) {
+						if (event?.button === 1) return;
 						if (!this._nestedEnabled()) return;
 						this._toggleExpanded(id);
 						this._render();
 						return;
 					}
 					if (!meta.isFolder && meta.file) {
-						if (this.addMode) {
-							new PropertyManagerModal(
-								this.plugin.app,
-								this.plugin.propertyIndex,
-								[meta.file],
-								(change) => this.plugin.queueService.addOrRun(change),
-							).open();
-							return;
-						}
-						void this.plugin.app.workspace.openLinkText(
-							meta.file.path,
-							'',
-							false,
-						);
+						this._handleFileClick(meta.file, event);
 					}
+				},
+				onRowHover: (id: string, row: HTMLElement) => {
+					const node = this._findNode(id, renderTree);
+					if (node?.meta.file) this._handleFileHover(node.meta.file, row);
 				},
 				onContextMenu: (id: string, e: MouseEvent) => {
 					const node = this._findNode(id, renderTree);
@@ -1019,7 +1138,9 @@ export class FilesExplorerPanel extends Component {
 		if (!payload) return;
 		event.preventDefault();
 		if (event.dataTransfer) event.dataTransfer.dropEffect = 'move';
-		this.plugin.showDragActionGuide(this._fileDropGuide(payload, targetFolderPath));
+		this.plugin.showDragActionGuide(
+			this._fileDropGuide(payload, targetFolderPath),
+		);
 	}
 
 	private _handleFileDrop(
@@ -1036,7 +1157,9 @@ export class FilesExplorerPanel extends Component {
 		void this._moveDraggedNodesIntoFolder(payload, targetFolderPath);
 	}
 
-	private _fileDropTargetFolderPath(targetNode: TreeNode<FileMeta>): string | null {
+	private _fileDropTargetFolderPath(
+		targetNode: TreeNode<FileMeta>,
+	): string | null {
 		if (targetNode.meta.isFolder) return targetNode.meta.folderPath;
 		if (targetNode.depth === 0) return '';
 		return null;
@@ -1072,7 +1195,9 @@ export class FilesExplorerPanel extends Component {
 	}
 
 	private async _moveDraggedNodesIntoFolder(
-		payload: VaultmanDragNodePayload & { selection?: VaultmanDragNodePayload[] },
+		payload: VaultmanDragNodePayload & {
+			selection?: VaultmanDragNodePayload[];
+		},
 		targetFolderPath: string,
 	): Promise<void> {
 		const nodes = this._fileDragNodes(payload);
@@ -1102,13 +1227,17 @@ export class FilesExplorerPanel extends Component {
 	}
 
 	private _dragNodes(
-		payload: VaultmanDragNodePayload & { selection?: VaultmanDragNodePayload[] },
+		payload: VaultmanDragNodePayload & {
+			selection?: VaultmanDragNodePayload[];
+		},
 	): VaultmanDragNodePayload[] {
 		return payload.selection?.length ? payload.selection : [payload];
 	}
 
 	private _fileDragNodes(
-		payload: VaultmanDragNodePayload & { selection?: VaultmanDragNodePayload[] },
+		payload: VaultmanDragNodePayload & {
+			selection?: VaultmanDragNodePayload[];
+		},
 	): Array<Extract<VaultmanDragNodePayload, { kind: 'file' | 'folder' }>> {
 		return this._dragNodes(payload).filter(
 			(
@@ -1124,24 +1253,56 @@ export class FilesExplorerPanel extends Component {
 		nodePayload: Extract<VaultmanDragNodePayload, { kind: 'file' | 'folder' }>,
 		event: DragEvent,
 	): void {
-		const payload = withActiveFilterDragSelection(
-			nodePayload,
-			this.plugin.filterService.activeFilter,
-			'files',
-		);
+		const payload =
+			this._selectedFileDragPayload(nodePayload) ??
+			withActiveFilterDragSelection(
+				nodePayload,
+				this.plugin.filterService.activeFilter,
+				'files',
+			);
 		setVaultmanDragPayload(event, payload);
 		this._setNativeFileDragPayload(event, payload);
 	}
 
+	private _selectedFileDragPayload(
+		nodePayload: Extract<
+			VaultmanDragNodePayload,
+			{ kind: 'file' | 'folder' }
+		>,
+	):
+		| (VaultmanDragNodePayload & { selection: VaultmanDragNodePayload[] })
+		| null {
+		if (
+			nodePayload.kind !== 'file' ||
+			!this.selectedFilePaths.has(nodePayload.path) ||
+			this.selectedFilePaths.size <= 1
+		) {
+			return null;
+		}
+		const selection = this._orderedVisibleFilePaths()
+			.filter((selectedPath) => this.selectedFilePaths.has(selectedPath))
+			.map((selectedPath) => ({
+				kind: 'file' as const,
+				path: selectedPath,
+			}));
+		return selection.length > 1 ? { ...nodePayload, selection } : null;
+	}
+
 	private _setNativeFileDragPayload(
 		event: DragEvent,
-		payload: VaultmanDragNodePayload & { selection?: VaultmanDragNodePayload[] },
+		payload: VaultmanDragNodePayload & {
+			selection?: VaultmanDragNodePayload[];
+		},
 	): void {
 		const dragManager = (
 			this.plugin.app as unknown as {
 				dragManager?: {
 					draggable?: unknown;
-					dragFile?: (event: DragEvent, file: TFile, source?: string) => unknown;
+					dragFile?: (
+						event: DragEvent,
+						file: TFile,
+						source?: string,
+					) => unknown;
 					dragFiles?: (
 						event: DragEvent,
 						files: Array<TFile | TFolder>,
@@ -1153,8 +1314,9 @@ export class FilesExplorerPanel extends Component {
 		if (!dragManager) return;
 		const entries = this._fileDragNodes(payload)
 			.map((node) => this.plugin.app.vault.getAbstractFileByPath(node.path))
-			.filter((entry): entry is TFile | TFolder =>
-				entry instanceof TFile || entry instanceof TFolder,
+			.filter(
+				(entry): entry is TFile | TFolder =>
+					entry instanceof TFile || entry instanceof TFolder,
 			);
 		if (entries.length === 0) return;
 		const draggable =
@@ -1165,12 +1327,16 @@ export class FilesExplorerPanel extends Component {
 	}
 
 	private _fileDropGuide(
-		payload: VaultmanDragNodePayload & { selection?: VaultmanDragNodePayload[] },
+		payload: VaultmanDragNodePayload & {
+			selection?: VaultmanDragNodePayload[];
+		},
 		targetFolderPath: string,
 	): string {
 		const nodes = this._fileDragNodes(payload);
 		const subject =
-			nodes.length === 1 ? `"${this._dragNodeName(nodes[0])}"` : `${nodes.length} items`;
+			nodes.length === 1
+				? `"${this._dragNodeName(nodes[0])}"`
+				: `${nodes.length} items`;
 		const target = targetFolderPath ? `"${targetFolderPath}"` : 'vault root';
 		return `Move ${subject} to ${target}`;
 	}
@@ -1194,6 +1360,75 @@ export class FilesExplorerPanel extends Component {
 		);
 	}
 
+	private _expandSubtree(id: string, nodes: TreeNode<FileMeta>[]): void {
+		const root = this._findNode(id, nodes);
+		if (!root) return;
+		let changed = false;
+		for (const expandableId of collectExpandableSubtreeIds(root)) {
+			if (this.expandedIds.has(expandableId)) continue;
+			this.expandedIds.add(expandableId);
+			changed = true;
+		}
+		if (!changed) return;
+		this._notifyExpansionChanged();
+		this._render();
+	}
+
+	private _warmWordCountSort(files = this._filesForDisplay()): void {
+		if (this.sortBy !== 'words') return;
+		const signature = this.plugin.statisticsCache.signatureFor(files);
+		if (signature === this.wordSortWarmSignature) return;
+		this.wordSortWarmSignature = signature;
+		this.wordSortWarmup = this.wordSortWarmup
+			.then(() => this.plugin.statisticsCache.ensureFileStats(files))
+			.then(() => {
+				if (this.wordSortRetrySignature === signature) {
+					this.wordSortRetrySignature = '';
+				}
+			})
+			.catch((error) => {
+				if (this.wordSortWarmSignature === signature) {
+					this.wordSortWarmSignature = '';
+				}
+				if (
+					this.sortBy === 'words' &&
+					this.wordSortRetrySignature !== signature
+				) {
+					this.wordSortRetrySignature = signature;
+					this._scheduleStatsRefresh();
+				}
+				console.error('Vaultman word-count sort failed', error);
+			});
+	}
+
+	private _rememberWordSortOrder(files: readonly TFile[]): void {
+		if (this.sortBy !== 'words') {
+			this.lastWordSortOrder = [];
+			this.lastWordSortComplete = false;
+			return;
+		}
+		this.lastWordSortOrder = [...files];
+		this.lastWordSortComplete = files.every(
+			(file) =>
+				file.extension !== 'md' ||
+				this.plugin.statisticsCache.getFileWordCount(file) !== null,
+		);
+	}
+
+	private _wordSortNeedsReorder(paths: readonly string[]): boolean {
+		if (!this.lastWordSortComplete || paths.length === 0) return true;
+		return !changedItemsRemainOrdered(
+			this.lastWordSortOrder,
+			paths,
+			(file) => file.path,
+			(a, b) =>
+				compareFilesForExplorer(a, b, 'words', this.sortDir, {
+					wordCountForFile: (file) =>
+						this.plugin.statisticsCache.getFileWordCount(file),
+				}),
+		);
+	}
+
 	private _notifyExpansionChanged(change?: FloatingTocExpansionChange): void {
 		this.onExpansionChange?.();
 		if (change) this.onIndexChanged?.(change);
@@ -1204,7 +1439,7 @@ export class FilesExplorerPanel extends Component {
 			sortBy: this.sortBy,
 			direction: this.sortDir,
 			childLevel: false,
-			nodeTypeFilter: this.nodeTypeFilter,
+			...nodeTypeFilterPatch(this.nodeTypeFilters),
 			parentsFirst: this.parentsFirst,
 		};
 	}
@@ -1225,6 +1460,32 @@ export class FilesExplorerPanel extends Component {
 
 	private _nestedEnabled(): boolean {
 		return this.visibleCells.has('nested');
+	}
+
+	private _resolveFileIcon(
+		path: string,
+		isFolder: boolean,
+		defaultIcon: string,
+	): ResolvedExplorerIcon | null {
+		return resolveScopedFileIcon(
+			normalizeFilesIconScope(this.plugin.settings.filesIconScope),
+			isFolder,
+			defaultIcon,
+			this.plugin.iconicService?.getFileIcon(path, isFolder) ?? null,
+		);
+	}
+
+	private _decorateTreeWithIcons(nodes: TreeNode<FileMeta>[]): void {
+		for (const node of nodes) {
+			const resolved = this._resolveFileIcon(
+				node.meta.file?.path ?? node.meta.folderPath,
+				node.meta.isFolder,
+				node.icon ?? (node.meta.isFolder ? 'lucide-folder' : 'lucide-file'),
+			);
+			node.icon = resolved?.icon;
+			node.iconColor = resolved?.color;
+			if (node.children?.length) this._decorateTreeWithIcons(node.children);
+		}
 	}
 
 	private _decorateTreeWithActiveReveal(nodes: TreeNode<FileMeta>[]): void {
@@ -1304,33 +1565,67 @@ export class FilesExplorerPanel extends Component {
 	// near-real time. Only relevant when the Words cell is visible. We avoid a
 	// full _render() here on purpose: rebuilding the whole tree per edit was the
 	// typing-FPS regression (see issue p112-word-count-realtime-perf).
-	private readonly _handleStatsChange = (): void => {
+	private readonly _handleStatsChange = (
+		change: StatisticsCacheChange,
+	): void => {
+		if (change.kind === 'invalidated') return;
+		if (change.kind === 'cleared') {
+			this.wordSortWarmSignature = '';
+			this.wordSortRetrySignature = '';
+			this.lastWordSortComplete = false;
+			if (this.sortBy === 'words') this._warmWordCountSort();
+			return;
+		}
+		if (this.sortBy === 'words') {
+			if (
+				change.kind === 'file-stats-refreshed' &&
+				!this._wordSortNeedsReorder(change.paths ?? [])
+			) {
+				this._patchVisibleWordCounts(new Set(change.paths ?? []));
+				return;
+			}
+			this._scheduleStatsRefresh();
+			return;
+		}
 		if (!this.visibleCells.has('words')) return;
+		this._scheduleStatsRefresh(change.paths);
+	};
+
+	private _scheduleStatsRefresh(paths: readonly string[] = []): void {
+		for (const path of paths) this.pendingStatsPaths.add(path);
 		if (this.statsRefreshTimer !== null) {
 			window.clearTimeout(this.statsRefreshTimer);
 		}
 		this.statsRefreshTimer = window.setTimeout(() => {
 			this.statsRefreshTimer = null;
-			this._patchVisibleWordCounts();
+			const changedPaths = new Set(this.pendingStatsPaths);
+			this.pendingStatsPaths.clear();
+			if (this.sortBy === 'words') this._render();
+			else this._patchVisibleWordCounts(changedPaths);
 		}, 60);
-	};
+	}
 
-	private _patchVisibleWordCounts(): void {
+	private _patchVisibleWordCounts(paths = new Set<string>()): void {
 		if (!this.visibleCells.has('words')) return;
-		// Tree mode owns the lightweight per-row patch. Table/grid are not the
-		// typing hot path; fall back to their normal render.
-		if (this.viewMode !== 'tree') {
-			this._render();
-			return;
-		}
-		const rows = this.containerEl.querySelectorAll<HTMLElement>(
-			'.vaultman-tree-row[data-path]',
-		);
+		const rowSelector =
+			this.viewMode === 'tree'
+				? '.vaultman-tree-row[data-path]'
+				: this.viewMode === 'table'
+					? '.vaultman-file-table-row[data-path]'
+					: '.vaultman-files-grid-card[data-path]';
+		const cellSelector =
+			this.viewMode === 'tree'
+				? '.vaultman-tree-words'
+				: this.viewMode === 'table'
+					? '.vaultman-file-words'
+					: '.vaultman-files-grid-card-words';
+		const rows = this.containerEl.querySelectorAll<HTMLElement>(rowSelector);
 		for (const row of Array.from(rows)) {
-			const cell = row.querySelector<HTMLElement>('.vaultman-tree-words');
-			if (!cell) continue;
 			const path = row.dataset.path;
 			if (!path) continue;
+			if (paths.size > 0 && !paths.has(path)) continue;
+			const cell = row.querySelector<HTMLElement>(cellSelector);
+			if (!cell) continue;
 			const file = this.plugin.app.vault.getAbstractFileByPath(path);
 			if (!(file instanceof TFile)) continue;
 			const wordCount = this.plugin.statisticsCache.getFileWordCount(file);
@@ -1399,6 +1694,95 @@ export class FilesExplorerPanel extends Component {
 		return new Date(time).toLocaleDateString();
 	}
 
+	private _filesHoverFields(): FilesHoverInfoField[] {
+		const configured = this.plugin.settings.filesHoverInfo;
+		if (!Array.isArray(configured)) return [...DEFAULT_FILES_HOVER_INFO];
+		const validFields = new Set<string>(FILES_HOVER_INFO_FIELDS);
+		return configured.filter(
+			(field): field is FilesHoverInfoField =>
+				typeof field === 'string' && validFields.has(field),
+		);
+	}
+
+	private _fileHoverText(
+		file: TFile,
+		fields: readonly FilesHoverInfoField[] = this._filesHoverFields(),
+	): string {
+		const times = this.plugin.statisticsCache.getFileTimes(file);
+		return buildFileHoverInfo(
+			fields,
+			{
+				path: file.path,
+				modified: this._formatDateCell(times.mtime) ?? null,
+				created: this._formatDateCell(times.ctime) ?? null,
+				words: this.plugin.statisticsCache.getFileWordCount(file),
+				characters: this.plugin.statisticsCache.getFileCharacterCount(file),
+			},
+			{
+				path: translate('settings.files_hover_info.path'),
+				modified: translate('settings.files_hover_info.modified'),
+				created: translate('settings.files_hover_info.created'),
+				words: translate('settings.files_hover_info.words'),
+				characters: translate('settings.files_hover_info.characters'),
+			},
+		);
+	}
+
+	private _applyFileHoverTooltip(
+		file: TFile,
+		element: HTMLElement,
+		fields: readonly FilesHoverInfoField[],
+	): void {
+		element.removeAttribute('title');
+		setTooltip(element, this._fileHoverText(file, fields));
+	}
+
+	private _handleFileHover(file: TFile, element: HTMLElement): void {
+		const fields = this._filesHoverFields();
+		this._applyFileHoverTooltip(file, element, fields);
+		if (file.extension !== 'md' || !filesHoverNeedsStatistics(fields)) return;
+
+		const missingWords =
+			fields.includes('words') &&
+			this.plugin.statisticsCache.getFileWordCount(file) === null;
+		const missingCharacters =
+			fields.includes('characters') &&
+			this.plugin.statisticsCache.getFileCharacterCount(file) === null;
+		if (!missingWords && !missingCharacters) return;
+
+		const waitingElements = this.pendingHoverStats.get(file.path);
+		if (waitingElements) {
+			waitingElements.add(element);
+			return;
+		}
+
+		this.pendingHoverStats.set(file.path, new Set([element]));
+		void this.plugin.statisticsCache
+			.ensureFileStats([file])
+			.then(() => {
+				for (const waitingElement of this.pendingHoverStats.get(file.path) ??
+					[]) {
+					if (
+						waitingElement.isConnected &&
+						waitingElement.dataset.path === file.path
+					) {
+						this._applyFileHoverTooltip(
+							file,
+							waitingElement,
+							this._filesHoverFields(),
+						);
+					}
+				}
+			})
+			.catch((error: unknown) => {
+				console.warn(
+					`Vaultman could not load hover stats for ${file.path}`,
+					error,
+				);
+			})
+			.finally(() => this.pendingHoverStats.delete(file.path));
+	}
+
 	private _findNode(
 		id: string,
 		nodes: TreeNode<FileMeta>[],
@@ -1414,11 +1798,41 @@ export class FilesExplorerPanel extends Component {
 	}
 
 	getSelectedFiles(): TFile[] {
-		if (this.viewMode === 'table')
-			return this.tableView?.getSelectedFiles() ?? [];
-		if (this.viewMode === 'grid')
-			return this.gridView?.getSelectedFiles() ?? [];
-		return [];
+		return this._orderedVisibleFilePaths()
+			.filter((path) => this.selectedFilePaths.has(path))
+			.map((path) => this.plugin.app.vault.getAbstractFileByPath(path))
+			.filter((file): file is TFile => file instanceof TFile);
+	}
+
+	private _orderedVisibleFilePaths(): string[] {
+		if (this.viewMode === 'tree') {
+			return (
+				flattenVisibleTree(
+					this._lastRenderTree,
+					this.expandedIds,
+				) as TreeNode<FileMeta>[]
+			)
+				.map((node) => node.meta.file)
+				.filter((file): file is TFile => file instanceof TFile)
+				.map((file) => file.path);
+		}
+		return this._lastFlatFiles.map((file) => file.id);
+	}
+
+	private _applyFileSelection({
+		selectedPaths,
+		anchorPath,
+	}: {
+		selectedPaths: Set<string>;
+		anchorPath: string | null;
+	}): void {
+		this.selectedFilePaths = selectedPaths;
+		this.selectionAnchorPath = anchorPath;
+		this.tableView?.setSelectedPaths(selectedPaths);
+		this.gridView?.setSelectedPaths(selectedPaths);
+		this.plugin.filterService.setSelectedFiles(this.getSelectedFiles());
+		this.onSelectionChange?.(selectedPaths.size);
+		if (this.viewMode === 'tree') this._render();
 	}
 
 	private _shouldShowEmptyFilteredState(): boolean {
@@ -1501,24 +1915,48 @@ export class FilesExplorerPanel extends Component {
 		new Notice(`Created ${path}`);
 	}
 
+	private async _copyFile(file: TFile): Promise<void> {
+		const copy = await this._copyFileToPath(
+			file,
+			this._fileCopyPath(file.path),
+		);
+		this.plugin.filterService.applyFilters();
+		this._refreshFromFilterService();
+		new Notice(`Copied ${file.path} to ${copy.path}`);
+	}
+
+	private async _copyFileToPath(
+		file: TFile,
+		targetPath: string,
+	): Promise<TFile> {
+		return await copyFileBinary(this.plugin.app.vault, file, targetPath);
+	}
+
 	private async _copyFolder(folder: TFolder): Promise<void> {
 		const targetRoot = this._uniquePath(this._folderCopyPath(folder.path));
-		await this._ensureFolderExists(targetRoot);
-		const nestedFolders = this._allVaultFolders()
-			.filter((candidate) => candidate.path.startsWith(`${folder.path}/`))
-			.sort((a, b) => a.path.localeCompare(b.path));
-		for (const nestedFolder of nestedFolders) {
-			const relative = nestedFolder.path.slice(folder.path.length + 1);
-			await this._ensureFolderExists(this._joinPath(targetRoot, relative));
-		}
-		for (const file of this._filesInsideFolder(folder)) {
-			const relative = file.path.slice(folder.path.length + 1);
-			const targetPath = this._joinPath(targetRoot, relative);
-			await this._ensureFolderExists(this._parentPath(targetPath));
-			await this.plugin.app.vault.create(
-				this._uniquePath(targetPath),
-				await this.plugin.app.vault.read(file),
-			);
+		const plan = buildFolderCopyPlan(
+			folder.path,
+			targetRoot,
+			this._allVaultFolders().map((candidate) => candidate.path),
+			this._filesInsideFolder(folder),
+		);
+		let targetCreated = false;
+		try {
+			await this._ensureFolderExists(targetRoot);
+			targetCreated = true;
+			for (const folderPath of plan.folderPaths) {
+				await this._ensureFolderExists(folderPath);
+			}
+			for (const { file, targetPath } of plan.files) {
+				await this._ensureFolderExists(this._parentPath(targetPath));
+				await this._copyFileToPath(file, targetPath);
+			}
+		} catch (error) {
+			const detail = error instanceof Error ? ` ${error.message}` : '';
+			const state = targetCreated
+				? `Partial copy retained at "${targetRoot}".`
+				: `Could not create copy at "${targetRoot}".`;
+			throw new Error(`${state}${detail}`);
 		}
 		this.plugin.filterService.applyFilters();
 		this._refreshFromFilterService();
@@ -1630,13 +2068,17 @@ export class FilesExplorerPanel extends Component {
 	private _hasActiveConstraints(): boolean {
 		return (
 			this.plugin.filterService.activeFilter.children.length > 0 ||
-			Boolean(this.searchName || this.searchFolder || this.nodeTypeFilter)
+			Boolean(
+				this.searchName || this.searchFolder || this.nodeTypeFilters.length > 0,
+			)
 		);
 	}
 
 	private _hasNarrowingConstraintsBeyondFolderScopes(): boolean {
 		return (
-			Boolean(this.searchName || this.searchFolder || this.nodeTypeFilter) ||
+			Boolean(
+				this.searchName || this.searchFolder || this.nodeTypeFilters.length > 0,
+			) ||
 			this._hasEnabledNonFolderIncludeFilter(
 				this.plugin.filterService.activeFilter,
 			)
@@ -1733,20 +2175,9 @@ export class FilesExplorerPanel extends Component {
 	}
 
 	private _uniquePath(path: string): string {
-		const slashIndex = path.lastIndexOf('/');
-		const dir = slashIndex >= 0 ? `${path.slice(0, slashIndex)}/` : '';
-		const name = slashIndex >= 0 ? path.slice(slashIndex + 1) : path;
-		const dotIndex = name.lastIndexOf('.');
-		const hasExtension = dotIndex > 0;
-		const base = `${dir}${hasExtension ? name.slice(0, dotIndex) : name}`;
-		const dot = hasExtension ? name.slice(dotIndex) : '';
-		let candidate = path;
-		let counter = 1;
-		while (this.plugin.app.vault.getAbstractFileByPath(candidate)) {
-			candidate = `${base} ${counter}${dot}`;
-			counter += 1;
-		}
-		return candidate;
+		return nextAvailableVaultPath(path, (candidate) =>
+			Boolean(this.plugin.app.vault.getAbstractFileByPath(candidate)),
+		);
 	}
 
 	private _folderCopyPath(path: string): string {
@@ -1754,6 +2185,10 @@ export class FilesExplorerPanel extends Component {
 		const dir = slashIndex >= 0 ? `${path.slice(0, slashIndex)}/` : '';
 		const name = slashIndex >= 0 ? path.slice(slashIndex + 1) : path;
 		return `${dir}${name} copy`;
+	}
+
+	private _fileCopyPath(path: string): string {
+		return fileCopyPath(path);
 	}
 
 	private async _ensureFolderExists(path: string): Promise<void> {

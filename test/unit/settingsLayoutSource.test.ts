@@ -46,6 +46,80 @@ describe('Vaultman Settings layout', () => {
 		expect(toolsIndex).toBeLessThan(showDockIndex);
 	});
 
+	it('routes Floating TOC to an internal Style Config page on Obsidian 1.12', () => {
+		expect(settingsSource).toContain(
+			"private page: 'root' | 'floating-toc' | 'files-hover' = 'root'",
+		);
+		expect(settingsSource).toContain("if (this.page === 'floating-toc')");
+		expect(settingsSource).toContain(
+			'this.displayFloatingTocPage(containerEl)',
+		);
+
+		const displayStart = settingsSource.indexOf('display(): void');
+		const subpageStart = settingsSource.indexOf(
+			'private displayFloatingTocPage(containerEl: HTMLElement)',
+		);
+		const rootSource = settingsSource.slice(displayStart, subpageStart);
+		const styleIndex = rootSource.indexOf("translate('settings.style_config')");
+		const tocLinkIndex = rootSource.indexOf(
+			"translate('settings.floating_toc')",
+		);
+		const developerIndex = rootSource.indexOf(
+			"translate('settings.developer_tools')",
+		);
+		expect(tocLinkIndex).toBeGreaterThan(styleIndex);
+		expect(tocLinkIndex).toBeLessThan(developerIndex);
+		expect(rootSource).not.toContain(
+			"translate('settings.floating_toc_enable')",
+		);
+
+		const subpageSource = settingsSource.slice(subpageStart);
+		expect(subpageSource).toContain(
+			"translate('settings.back_to_style_config')",
+		);
+		expect(subpageSource).toContain(
+			"translate('settings.floating_toc_enable')",
+		);
+		expect(subpageSource).toContain("this.page = 'root'");
+	});
+
+	it('places Performance monitor in its own Developer Tools section', () => {
+		const developerIndex = settingsSource.indexOf(
+			"translate('settings.developer_tools')",
+		);
+		const monitorIndex = settingsSource.indexOf(
+			"translate('settings.performance_monitor')",
+		);
+		expect(developerIndex).toBeGreaterThan(-1);
+		expect(monitorIndex).toBeGreaterThan(developerIndex);
+		expect(en['settings.developer_tools']).toBe('Developer Tools');
+		expect(es['settings.developer_tools']).toBe('Herramientas de desarrollo');
+	});
+
+	it('places the compatibility-preserving Iconic toggle in Add-ons', () => {
+		const addonsIndex = settingsSource.indexOf("translate('settings.addons')");
+		const iconicIndex = settingsSource.indexOf(
+			"translate('settings.addons.iconic')",
+		);
+		const developerIndex = settingsSource.indexOf(
+			"translate('settings.developer_tools')",
+		);
+
+		expect(addonsIndex).toBeGreaterThan(-1);
+		expect(iconicIndex).toBeGreaterThan(addonsIndex);
+		expect(iconicIndex).toBeLessThan(developerIndex);
+		expect(settingsSource).toContain(
+			'.setValue(this.plugin.settings.iconicEnabled !== false)',
+		);
+		expect(settingsSource).toContain(
+			'this.plugin.iconicService?.setEnabled(value)',
+		);
+		expect(en['settings.addons']).toBe('Add-ons');
+		expect(es['settings.addons']).toBe('Complementos');
+		expect(en['settings.addons.iconic']).toBe('Iconic');
+		expect(es['settings.addons.iconic']).toBe('Iconic');
+	});
+
 	it('renames the Niagara join option as an action-track operation', () => {
 		expect(en['settings.toc_niagara_nodes']).toBe('Join action nodes to slide');
 		expect(es['settings.toc_niagara_nodes']).toBe(

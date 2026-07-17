@@ -6,6 +6,8 @@
 	import FiltersPropsTab from './tabProps.svelte';
 	import FilesTab from './tabFiles.svelte';
 	import TabContent from './tabContent.svelte';
+	import SnippetsTab from './tabSnippets.svelte';
+	import PluginsTab from './tabPlugins.svelte';
 	import NavbarTabs from '../layout/navbarTabs.svelte';
 	import NavbarFilters from '../layout/navbarFilters.svelte';
 	import type { FilesExplorerPanel } from '../containers/explorerFiles';
@@ -25,7 +27,13 @@
 		type ContentSortDirection,
 	} from '../../logic/logicContentPreview';
 
-	type FiltersTab = 'files' | 'props' | 'tags' | 'content';
+	type FiltersTab =
+		| 'files'
+		| 'props'
+		| 'tags'
+		| 'content'
+		| 'snippets'
+		| 'plugins';
 	type SearchTab = 'props' | 'files' | 'tags';
 	type HeaderMenuAction = {
 		id: 'filters' | 'queue' | 'statistics';
@@ -96,6 +104,7 @@
 		tagsExplorer = $bindable(),
 		propExplorer = $bindable(),
 		settingsRevision = 0,
+		frameWidth = 0,
 		getSelectedFiles,
 		filteredCount,
 		filterRuleCount = 0,
@@ -129,6 +138,7 @@
 		tagsExplorer: TagsExplorerPanel | null;
 		propExplorer: PropsExplorerPanel | undefined;
 		settingsRevision?: number;
+		frameWidth?: number;
 		getSelectedFiles: () => TFile[];
 		filteredCount: number;
 		filterRuleCount?: number;
@@ -172,6 +182,8 @@
 		props: filtersActiveTab === 'props',
 		tags: filtersActiveTab === 'tags',
 		content: filtersActiveTab === 'content',
+		snippets: filtersActiveTab === 'snippets',
+		plugins: filtersActiveTab === 'plugins',
 	});
 
 	function createNativeSearchAdapter(): NativeSearchAdapter {
@@ -180,8 +192,12 @@
 
 	const nativeSearchAdapter = createNativeSearchAdapter();
 
-	const explorerActiveTab = $derived(
-		filtersActiveTab === 'content' ? 'props' : filtersActiveTab,
+	const explorerActiveTab = $derived<SearchTab>(
+		filtersActiveTab === 'files'
+			? 'files'
+			: filtersActiveTab === 'tags'
+				? 'tags'
+				: 'props',
 	);
 	const explorerSearchTab = $derived<SearchTab>(
 		filtersActiveTab === 'files'
@@ -191,6 +207,11 @@
 				: 'props',
 	);
 	const filtersSearch = $derived(filtersSearchByTab[explorerSearchTab] ?? '');
+	const isExplorerControlTab = $derived(
+		filtersActiveTab === 'files' ||
+			filtersActiveTab === 'props' ||
+			filtersActiveTab === 'tags',
+	);
 	const showTabLabels = $derived.by(() => {
 		void settingsRevision;
 		return plugin.settings.filtersShowTabLabels;
@@ -253,6 +274,16 @@
 				id: 'content',
 				label: translate('filter.tab.content'),
 				icon: 'lucide-file-search',
+			},
+			{
+				id: 'snippets',
+				label: translate('filter.tab.snippets'),
+				icon: 'lucide-file-code',
+			},
+			{
+				id: 'plugins',
+				label: translate('filter.tab.plugins'),
+				icon: 'lucide-plug',
 			},
 		];
 	});
@@ -668,7 +699,7 @@
 	/>
 {/if}
 
-{#if filtersActiveTab !== 'content' || minimalStyle}
+{#if isExplorerControlTab || minimalStyle}
 	<!-- svelte-ignore a11y_no_static_element_interactions -->
 	<div
 		class="vaultman-toolbar-slot"
@@ -692,12 +723,13 @@
 			activeSectionTab={filtersActiveTab}
 			onSectionTabChange={(tab) => switchFiltersTab(tab as FiltersTab)}
 			onFiltersSearchChange={setExplorerSearch}
-			showExplorerControls={filtersActiveTab !== 'content'}
+			showExplorerControls={isExplorerControlTab}
 			{expansionRevision}
 			{onViewFiltersChanged}
 			{floatingTocEnabled}
 			{onToggleFloatingToc}
 			{toolbarToolsMenu}
+			{frameWidth}
 			onToggleToolbar={toggleToolbar}
 			{savedLayouts}
 			onSaveLayout={saveLayout}
@@ -783,6 +815,24 @@
 				{openContentMatch}
 				{onOpenFilters}
 			/>
+		</div>
+	{/if}
+	{#if visitedTabs.snippets || filtersActiveTab === 'snippets'}
+		<div
+			class="vaultman-filters-tab-pane"
+			class:is-active={filtersActiveTab === 'snippets'}
+			aria-hidden={filtersActiveTab !== 'snippets'}
+		>
+			<SnippetsTab {plugin} active={filtersActiveTab === 'snippets'} />
+		</div>
+	{/if}
+	{#if visitedTabs.plugins || filtersActiveTab === 'plugins'}
+		<div
+			class="vaultman-filters-tab-pane"
+			class:is-active={filtersActiveTab === 'plugins'}
+			aria-hidden={filtersActiveTab !== 'plugins'}
+		>
+			<PluginsTab {plugin} active={filtersActiveTab === 'plugins'} />
 		</div>
 	{/if}
 </div>

@@ -26,6 +26,7 @@ export interface TreeNode<TMeta = unknown> {
 	id: string;
 	label: string;
 	icon?: string;
+	iconColor?: string;
 	showCaret?: boolean;
 	typeText?: string;
 	mtimeText?: string;
@@ -57,4 +58,21 @@ export interface FileMeta {
 	folder?: TFolder | null;
 	isFolder: boolean;
 	folderPath: string;
+}
+
+export interface SnippetMeta {
+	name: string;
+	enabled: boolean;
+}
+
+export interface PluginMeta {
+	pluginId: string;
+	name: string;
+	enabled: boolean;
+	loaded: boolean;
+	version?: string;
+	author?: string;
+	description?: string;
+	isDesktopOnly?: boolean;
+	isVaultman: boolean;
 }

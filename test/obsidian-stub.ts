@@ -15,6 +15,10 @@ export class TFolder {
 	name = '';
 }
 
+export const Platform = {
+	isMobile: false,
+};
+
 export class Component {
 	load(): void {}
 	unload(): void {}

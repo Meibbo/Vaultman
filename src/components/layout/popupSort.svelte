@@ -6,6 +6,11 @@
 		DEFAULT_EXPLORER_SORT_DIR,
 		normalizeExplorerSortBy,
 	} from '../../logic/logicSort';
+	import {
+		nodeTypeFilterPatch,
+		nodeTypeFiltersForState,
+		toggleNodeTypeFilter,
+	} from '../../logic/logicNodeTypeFilters';
 
 	type FiltersTab = 'props' | 'files' | 'tags';
 
@@ -65,6 +70,7 @@
 				labelKey: 'sort.by.name',
 			},
 			{ id: 'count', iconName: 'lucide-hash', labelKey: 'sort.by.props' },
+			{ id: 'words', iconName: 'lucide-text', labelKey: 'sort.by.words' },
 			{ id: 'ext', iconName: 'lucide-file-type', labelKey: 'sort.by.ext' },
 			{
 				id: 'mtime',
@@ -153,8 +159,10 @@
 	let vertTopActive = $state(
 		untrack(() => initialSortState?.childLevel ?? false),
 	);
-	let nodeTypeFilter = $state<string | null>(
-		untrack(() => initialSortState?.nodeTypeFilter ?? null),
+	let nodeTypeFilters = $state<string[]>(
+		untrack(() =>
+			initialSortState ? nodeTypeFiltersForState(initialSortState) : [],
+		),
 	);
 	let parentsFirst = $state(
 		untrack(() => initialSortState?.parentsFirst ?? true),
@@ -168,7 +176,9 @@
 		sortDir = initialSortState?.direction ?? DEFAULT_DIR[sortBy] ?? 'asc';
 		drawerOpen = false;
 		vertTopActive = initialSortState?.childLevel ?? false;
-		nodeTypeFilter = initialSortState?.nodeTypeFilter ?? null;
+		nodeTypeFilters = initialSortState
+			? nodeTypeFiltersForState(initialSortState)
+			: [];
 		parentsFirst = initialSortState?.parentsFirst ?? true;
 	});
 
@@ -177,7 +187,7 @@
 			sortBy,
 			direction: sortDir,
 			childLevel: vertTopActive,
-			nodeTypeFilter,
+			...nodeTypeFilterPatch(nodeTypeFilters),
 			parentsFirst,
 		});
 	}
@@ -207,11 +217,7 @@
 	}
 
 	function selectNodeTypeFilter(id: string) {
-		if (id === 'all') {
-			nodeTypeFilter = null;
-		} else {
-			nodeTypeFilter = nodeTypeFilter === id ? null : id;
-		}
+		nodeTypeFilters = toggleNodeTypeFilter(nodeTypeFilters, id);
 		emitSortChange();
 	}
 
@@ -270,8 +276,8 @@
 				{#each DRAWER_OPTIONS[activeTab] as opt (opt.id)}
 					<button
 						class="vaultman-sort-drawer-item"
-						class:is-active={nodeTypeFilter === opt.id ||
-							(opt.id === 'all' && nodeTypeFilter === null)}
+						class:is-active={nodeTypeFilters.includes(opt.id) ||
+							(opt.id === 'all' && nodeTypeFilters.length === 0)}
 						aria-label={translate(opt.labelKey)}
 						title={translate(opt.labelKey)}
 						onclick={() => selectNodeTypeFilter(opt.id)}

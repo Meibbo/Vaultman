@@ -1,15 +1,30 @@
 <script lang="ts">
 	import { translate } from '../../i18n/index';
 
-	type FiltersTab = 'files' | 'props' | 'tags' | 'content';
+	type FiltersTab =
+		| 'files'
+		| 'props'
+		| 'tags'
+		| 'content'
+		| 'snippets'
+		| 'plugins';
 
 	const TAB_ICONS: Record<FiltersTab, string> = {
 		files: 'lucide-folder',
 		tags: 'lucide-tag',
 		props: 'lucide-archive',
 		content: 'lucide-file-search',
+		snippets: 'lucide-file-code',
+		plugins: 'lucide-plug',
 	};
-	const FILTER_TABS: FiltersTab[] = ['files', 'props', 'tags', 'content'];
+	const FILTER_TABS: FiltersTab[] = [
+		'files',
+		'props',
+		'tags',
+		'content',
+		'snippets',
+		'plugins',
+	];
 
 	let {
 		activeTab,

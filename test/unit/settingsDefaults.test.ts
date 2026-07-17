@@ -31,7 +31,24 @@ describe('Vaultman default settings', () => {
 		expect(DEFAULT_SETTINGS.tocSoftScroll).toBe(false);
 	});
 
+	it('keeps the floating TOC reserved lane opt-in', () => {
+		expect(DEFAULT_SETTINGS.tocReservedLane).toBe(false);
+	});
+
 	it('keeps the condensed Files tools menu opt-in', () => {
 		expect(DEFAULT_SETTINGS.toolbarToolsMenu).toBe(false);
+	});
+
+	it('preserves the existing Files hover information by default', () => {
+		expect(DEFAULT_SETTINGS.filesHoverInfo).toEqual([
+			'modified',
+			'created',
+			'words',
+		]);
+	});
+
+	it('keeps the existing Iconic integration enabled by default', () => {
+		expect(DEFAULT_SETTINGS.iconicEnabled).toBe(true);
+		expect(DEFAULT_SETTINGS.filesIconScope).toBe('all');
 	});
 });

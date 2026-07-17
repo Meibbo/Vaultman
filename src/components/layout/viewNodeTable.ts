@@ -1,4 +1,4 @@
-import { setIcon } from 'obsidian';
+import { Platform, setIcon } from 'obsidian';
 import { translate } from '../../i18n/index';
 import {
 	clampNodeTableColumnWidth,
@@ -9,14 +9,25 @@ import {
 	type NodeTableSurface,
 } from '../../logic/logicNodeTableLayout';
 import type { TreeNode } from '../../types/typeTree';
+import { resolvePresentedActiveFilterIds } from '../../logic/logicActiveFilterBubbling';
 import { buildVirtualTableWindow } from '../../utils/tableVirtualization';
 import { vaultmanPerfMonitor } from '../../utils/performanceMonitor';
+import { elementContentWidth } from '../../utils/elementDimensions';
 import { flattenVisibleTree } from '../../utils/treeVirtualization';
+import {
+	explorerDensityProfile,
+	usesMobileExplorerDensity,
+} from '../../logic/logicResponsiveLayout';
 import {
 	attachBadgeCancelInteraction,
 	normalizeBadgeCancelClickMode,
 	type BadgeCancelClickMode,
 } from '../../utils/badgeInteraction';
+import {
+	bindLongPressGesture,
+	LongPressGesture,
+} from '../../utils/longPressGesture';
+import { renderIconValue } from '../../utils/renderIconValue';
 
 export interface NodeTableViewOptions<TMeta = unknown> {
 	surface: NodeTableSurface;
@@ -27,6 +38,7 @@ export interface NodeTableViewOptions<TMeta = unknown> {
 	searchHighlightIds?: Set<string>;
 	warningIds?: Set<string>;
 	onToggle: (id: string) => void;
+	onRecursiveExpand?: (id: string) => void;
 	onRowClick: (id: string) => void;
 	onContextMenu: (id: string, event: MouseEvent) => void;
 	onBadgeDoubleClick?: (queueIndex: number) => void;
@@ -48,8 +60,8 @@ export class NodeTableView<TMeta = unknown> {
 	private pendingRaf: number | null = null;
 	private pendingScrollTimer: number | null = null;
 	private columnWidths: NodeTableColumnWidths = {};
-	private readonly rowHeight = 30;
 	private readonly overscan = 12;
+	private readonly recursiveExpandGesture = new LongPressGesture();
 	private readonly onScroll = () => {
 		this._syncHeaderScroll();
 		this.scheduleWindowRender();
@@ -59,7 +71,27 @@ export class NodeTableView<TMeta = unknown> {
 		this.containerEl = containerEl;
 	}
 
+	private get rowHeight(): number {
+		const body = this.containerEl.ownerDocument.body;
+		const isMobile = usesMobileExplorerDensity(
+			Platform.isMobile,
+			body.classList,
+		);
+		return explorerDensityProfile(isMobile).tableRowHeight;
+	}
+
 	render(opts: NodeTableViewOptions<TMeta>): void {
+		this.recursiveExpandGesture.cancel();
+		if (opts.activeFilterIds) {
+			const presentedActiveFilterIds = resolvePresentedActiveFilterIds(
+				opts.nodes as TreeNode[],
+				opts.expandedIds,
+				opts.activeFilterIds,
+			);
+			if (presentedActiveFilterIds !== opts.activeFilterIds) {
+				opts = { ...opts, activeFilterIds: presentedActiveFilterIds };
+			}
+		}
 		this.opts = opts;
 		this.rows = flattenVisibleTree(
 			opts.nodes as TreeNode[],
@@ -74,6 +106,7 @@ export class NodeTableView<TMeta = unknown> {
 	}
 
 	destroy(): void {
+		this.recursiveExpandGesture.cancel();
 		this.cancelScheduledRender();
 		this.listEl?.removeEventListener('scroll', this.onScroll);
 		this.containerEl.removeClass('vaultman-node-table-root');
@@ -161,10 +194,10 @@ export class NodeTableView<TMeta = unknown> {
 	}
 
 	private surfaceWidth(layout: NodeTableLayout): number {
-		return Math.max(layout.totalWidth,
-			this.listEl?.clientWidth ?? 0,
-			this.containerEl.clientWidth,
-		);
+		const viewportWidth = this.listEl
+			? elementContentWidth(this.listEl)
+			: this.containerEl.clientWidth;
+		return Math.max(layout.totalWidth, viewportWidth);
 	}
 
 	private _positionCell(cell: HTMLElement, column: NodeTableColumn): void {
@@ -312,6 +345,7 @@ export class NodeTableView<TMeta = unknown> {
 			node.depth,
 			node.cls ?? '',
 			node.icon ?? '',
+			node.iconColor ?? '',
 			node.typeText ?? '',
 			node.count ?? '',
 			node.children?.length ?? 0,
@@ -346,8 +380,23 @@ export class NodeTableView<TMeta = unknown> {
 		row.style.height = `${this.rowHeight}px`;
 		row.style.width = `${this.surfaceWidth(layout)}px`;
 		row.style.setProperty('--depth', String(node.depth));
-		row.onclick = () => opts.onRowClick(node.id);
+		bindLongPressGesture(
+			row,
+			this.recursiveExpandGesture,
+			node.children?.length && opts.onRecursiveExpand
+				? () => opts.onRecursiveExpand?.(node.id)
+				: undefined,
+		);
+		row.onclick = (event) => {
+			if (this.recursiveExpandGesture.isActivationSuppressed()) {
+				event.preventDefault();
+				event.stopPropagation();
+				return;
+			}
+			opts.onRowClick(node.id);
+		};
 		row.ondragstart = (event) => {
+			this.recursiveExpandGesture.cancel();
 			row.addClass('is-being-dragged');
 			opts.onDragStart?.(node.id, event);
 		};
@@ -367,6 +416,12 @@ export class NodeTableView<TMeta = unknown> {
 		row.oncontextmenu = (event) => {
 			event.preventDefault();
 			event.stopPropagation();
+			if (
+				this.recursiveExpandGesture.isTrackingPointer() ||
+				this.recursiveExpandGesture.isActivationSuppressed()
+			) {
+				return;
+			}
 			opts.onContextMenu(node.id, event);
 		};
 		const isHighlighted = opts.searchHighlightIds?.has(node.id) ?? false;
@@ -450,6 +505,10 @@ export class NodeTableView<TMeta = unknown> {
 			if (hasChildren) {
 				toggle.addEventListener('click', (event) => {
 					event.stopPropagation();
+					if (this.recursiveExpandGesture.isActivationSuppressed()) {
+						event.preventDefault();
+						return;
+					}
 					opts.onToggle(node.id);
 				});
 			} else {
@@ -458,7 +517,7 @@ export class NodeTableView<TMeta = unknown> {
 		}
 		if (node.icon) {
 			const iconEl = cell.createSpan({ cls: 'vaultman-node-table-icon' });
-			setIcon(iconEl, node.icon);
+			renderIconValue(iconEl, node.icon, node.iconColor);
 		}
 	}
 

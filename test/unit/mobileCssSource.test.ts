@@ -87,9 +87,22 @@ describe('mobile CSS source guards', () => {
 	});
 
 	it('keeps mobile tree row CSS height aligned with the fixed virtual row model', () => {
+		expect(stylesSource).toContain(
+			'.is-mobile .workspace-leaf-content[data-type="vaultman-frame"]',
+		);
 		expect(stylesSource).toContain('.vaultman-tree-row.tree-item-self');
 		expect(stylesSource).toContain('height: 37px');
 		expect(stylesSource).not.toContain('height: 36.7969px');
+	});
+
+	it('enlarges explorer table, grid, and floating index nodes on mobile surfaces', () => {
+		expect(stylesSource).toContain('.vaultman-files-table-header-row');
+		expect(stylesSource).toContain('.vaultman-node-table-header-row');
+		expect(stylesSource).toContain('--bases-table-row-height: 37px');
+		expect(stylesSource).toContain('.vaultman-files-grid-card');
+		expect(stylesSource).toContain('.vaultman-floating-toc-item');
+		expect(stylesSource).toContain('flex: 0 0 20px');
+		expect(stylesSource).toContain('flex-basis: 24px');
 	});
 
 	it('keeps Content and Statistics buttons transparent in their resting state', () => {

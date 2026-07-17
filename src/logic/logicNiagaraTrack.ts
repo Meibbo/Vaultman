@@ -59,20 +59,22 @@ export function niagaraTrackShift(
 	pointerPosition: number,
 	firstNodeCenter: number,
 	lastNodeCenter: number,
+	currentShift = 0,
 ): number {
 	if (
 		!Number.isFinite(pointerPosition) ||
 		!Number.isFinite(firstNodeCenter) ||
-		!Number.isFinite(lastNodeCenter)
+		!Number.isFinite(lastNodeCenter) ||
+		!Number.isFinite(currentShift)
 	) {
 		return 0;
 	}
 
-	const start = Math.min(firstNodeCenter, lastNodeCenter);
-	const end = Math.max(firstNodeCenter, lastNodeCenter);
-	if (pointerPosition < start) return pointerPosition - start;
-	if (pointerPosition > end) return pointerPosition - end;
-	return 0;
+	const start = Math.min(firstNodeCenter, lastNodeCenter) + currentShift;
+	const end = Math.max(firstNodeCenter, lastNodeCenter) + currentShift;
+	if (pointerPosition < start) return currentShift + pointerPosition - start;
+	if (pointerPosition > end) return currentShift + pointerPosition - end;
+	return currentShift;
 }
 
 export function niagaraClampToFrame(

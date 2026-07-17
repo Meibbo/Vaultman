@@ -82,10 +82,35 @@ describe('Niagara track math', () => {
 		expect(niagaraClampToFrame(0, 992, 8)).toBe(8);
 	});
 
-	it('reverses immediately without retaining a high-water mark', () => {
-		expect(niagaraTrackShift(235, 100, 200)).toBe(35);
-		expect(niagaraTrackShift(150, 100, 200)).toBe(0);
-		expect(niagaraTrackShift(75, 100, 200)).toBe(-25);
+	it('holds a downward rail shift while the pointer scrubs back through the track', () => {
+		const shiftedDown = niagaraTrackShift(235, 100, 200, 0);
+		expect(shiftedDown).toBe(35);
+		expect(niagaraTrackShift(220, 100, 200, shiftedDown)).toBe(35);
+		expect(niagaraTrackShift(150, 100, 200, shiftedDown)).toBe(35);
+		expect(niagaraTrackShift(135, 100, 200, shiftedDown)).toBe(35);
+	});
+
+	it('resumes upward rail-follow only after crossing the opposite shifted edge', () => {
+		const shiftedDown = niagaraTrackShift(235, 100, 200, 0);
+		expect(niagaraTrackShift(125, 100, 200, shiftedDown)).toBe(25);
+		expect(niagaraTrackShift(75, 100, 200, 0)).toBe(-25);
+	});
+
+	it('supports repeated direction reversals in one held gesture', () => {
+		let currentShift = niagaraTrackShift(235, 100, 200, 0);
+		expect(currentShift).toBe(35);
+
+		currentShift = niagaraTrackShift(125, 100, 200, currentShift);
+		expect(currentShift).toBe(25);
+		currentShift = niagaraTrackShift(75, 100, 200, currentShift);
+		expect(currentShift).toBe(-25);
+
+		currentShift = niagaraTrackShift(90, 100, 200, currentShift);
+		expect(currentShift).toBe(-25);
+		currentShift = niagaraTrackShift(185, 100, 200, currentShift);
+		expect(currentShift).toBe(-15);
+		currentShift = niagaraTrackShift(220, 100, 200, currentShift);
+		expect(currentShift).toBe(20);
 	});
 
 	it('maps joined actions separately from navigable groups', () => {

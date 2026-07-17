@@ -18,6 +18,7 @@
 		buildIndexGroups,
 		scopeAfterExpansionChange,
 	} from './logic/logicIndexGroups';
+	import { resolveFloatingTocToggle } from './logic/logicFloatingTocAvailability';
 	import PerformanceHud from './components/layout/performanceHud.svelte';
 	import { QueueListComponent } from './components/componentQueueList';
 	import { QueueIslandComponent } from './components/layout/islandQueue';
@@ -86,8 +87,16 @@
 		floatingTocEnabled = plugin.settings.floatingTocEnabled === true;
 	});
 	function toggleFloatingToc() {
-		floatingTocEnabled = !floatingTocEnabled;
-		plugin.settings.floatingTocEnabled = floatingTocEnabled;
+		const decision = resolveFloatingTocToggle(
+			floatingTocEnabled,
+			activeFloatingTocPanel()?.isIndexableSort() === true,
+		);
+		if (decision.rejection === 'incompatible-sort') {
+			new Notice(translate('floating_toc.incompatible_sort'));
+			return;
+		}
+		floatingTocEnabled = decision.nextEnabled;
+		plugin.settings.floatingTocEnabled = decision.nextEnabled;
 		void plugin.saveData(plugin.settings);
 	}
 	const floatingTocNiagara = $derived.by(() => {
@@ -281,7 +290,11 @@
 
 	export async function focusActiveExplorerSearch(): Promise<void> {
 		const tab: StatisticsDataTab =
-			filtersActiveTab === 'content' ? 'props' : filtersActiveTab;
+			filtersActiveTab === 'files' ||
+			filtersActiveTab === 'props' ||
+			filtersActiveTab === 'tags'
+				? filtersActiveTab
+				: 'props';
 		navigateToDataTab(tab);
 		const explorerSearchSelectors = [
 			'.vaultman-page[data-page="filters"] .vaultman-navbar-filters .vaultman-filters-search-input',
@@ -442,6 +455,7 @@
 	// ─── Responsive bottom nav ────────────────────────────────────────────────
 	const NAV_COLLAPSE_THRESHOLD = 220; // px — below this width the nav collapses
 	let navCollapsed = $state(false);
+	let frameWidth = $state(0);
 	let navEl: HTMLElement | null = null;
 	let viewRootEl: HTMLElement | null = null;
 	let navExpandTimer: ReturnType<typeof setTimeout> | null = null;
@@ -466,10 +480,12 @@
 		viewRootEl = target;
 		const ro = new ResizeObserver((entries) => {
 			const w = entries[0]?.contentRect.width ?? target.offsetWidth;
+			frameWidth = w;
 			navCollapsed = w < NAV_COLLAPSE_THRESHOLD;
 		});
 		ro.observe(target);
-		navCollapsed = target.offsetWidth < NAV_COLLAPSE_THRESHOLD;
+		frameWidth = target.offsetWidth;
+		navCollapsed = frameWidth < NAV_COLLAPSE_THRESHOLD;
 		return {
 			destroy() {
 				ro.disconnect();
@@ -551,7 +567,13 @@
 	let tagsExplorer = $state<TagsExplorerPanel | null>(null);
 
 	// ─── Filters page state ──────────────────────────────────────────────────
-	type FiltersTab = 'files' | 'tags' | 'props' | 'content';
+	type FiltersTab =
+		| 'files'
+		| 'tags'
+		| 'props'
+		| 'content'
+		| 'snippets'
+		| 'plugins';
 	type SearchTab = 'tags' | 'props' | 'files';
 	let filtersActiveTab = $state<FiltersTab>('files');
 
@@ -643,6 +665,20 @@
 		void explorerRenderRevision;
 		const panel = activeFloatingTocPanel();
 		return !!panel && panel.isIndexableSort();
+	});
+	const floatingTocVisible = $derived(
+		floatingTocEnabled &&
+			activePage === 'filters' &&
+			filtersActiveTab !== 'content' &&
+			tocAvailable,
+	);
+	const tocReservedLanePosition = $derived.by(() => {
+		void settingsRevision;
+		if (!floatingTocVisible || plugin.settings.tocReservedLane !== true) {
+			return null;
+		}
+		const position = plugin.settings.tocPosition ?? 'right';
+		return position === 'right' || position === 'left' ? position : null;
 	});
 	const tocKindToggle = $derived.by(() => {
 		void settingsRevision;
@@ -815,7 +851,7 @@
 
 	function applyExplorerSearch() {
 		const tab = filtersActiveTab;
-		if (tab === 'content') return;
+		if (tab !== 'files' && tab !== 'props' && tab !== 'tags') return;
 		const term = filtersSearchByTab[tab] ?? '';
 		const catMode = filtersSearchCategory[tab] ?? 0;
 
@@ -1098,6 +1134,10 @@
 <div
 	class="vaultman-pages-viewport"
 	class:vaultman-pages-viewport--dock-off={!showDock}
+	class:vaultman-pages-viewport--toc-lane-right={tocReservedLanePosition ===
+		'right'}
+	class:vaultman-pages-viewport--toc-lane-left={tocReservedLanePosition ===
+		'left'}
 	class:vaultman-badges-colored={coloredBadges}
 	use:bindViewport
 	use:bindViewRoot
@@ -1119,6 +1159,7 @@
 					{:else if pageId === 'filters'}
 						<FiltersPage
 							{plugin}
+							{frameWidth}
 							bind:filtersActiveTab
 							bind:filtersSearchByTab
 							bind:filtersSearchCategory
@@ -1185,10 +1226,7 @@
 
 	<!-- ─── Floating TOC rail — overlays the filters page (FTC-001/002) ───────── -->
 	<FloatingToc
-		visible={floatingTocEnabled &&
-			activePage === 'filters' &&
-			filtersActiveTab !== 'content' &&
-			tocAvailable}
+		visible={floatingTocVisible}
 		groups={tocGroups}
 		kind={tocKind}
 		kindToggle={tocKindToggle}

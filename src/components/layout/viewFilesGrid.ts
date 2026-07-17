@@ -1,16 +1,28 @@
-import { setIcon, type TFile } from 'obsidian';
+import { Platform, setIcon, type TFile } from 'obsidian';
 import { formatFileTableName } from '../../logic/logicTableLayout';
 import type { ExplorerFileTimes } from '../../logic/logicSort';
 import type { NodeBadge } from '../../types/typeTree';
 import { buildVirtualGridWindow } from '../../utils/gridVirtualization';
 import { vaultmanPerfMonitor } from '../../utils/performanceMonitor';
+import { elementContentWidth } from '../../utils/elementDimensions';
+import {
+	explorerDensityProfile,
+	usesMobileExplorerDensity,
+} from '../../logic/logicResponsiveLayout';
+import type { ResolvedExplorerIcon } from '../../logic/logicFileIcons';
+import { renderIconValue } from '../../utils/renderIconValue';
 
 export interface FilesGridViewCallbacks {
 	onContextMenu: (file: TFile, event: MouseEvent) => void;
 	onSelectionChange: (selected: Set<string>) => void;
-	onFileClick: (file: TFile) => void;
+	onFileClick: (file: TFile, event?: MouseEvent | KeyboardEvent) => void;
+	onFileHover?: (file: TFile, element: HTMLElement) => void;
 	onDragStart?: (file: TFile, event: DragEvent) => void;
 	getBadges?: (file: TFile) => NodeBadge[];
+	getFileIcon?: (
+		file: TFile,
+		defaultIcon: string,
+	) => ResolvedExplorerIcon | null;
 	getPropCount?: (file: TFile) => number;
 	getFileTimes?: (file: TFile) => ExplorerFileTimes;
 	getWordCount?: (file: TFile) => number | null;
@@ -30,15 +42,30 @@ export class FilesGridView {
 	private activePath: string | null = null;
 	private pendingRaf: number | null = null;
 	private pendingScrollTimer: number | null = null;
-	private readonly minCardWidth = 112;
 	private readonly gap = 8;
-	private readonly rowHeight = 92;
 	private readonly overscanRows = 4;
 	private readonly onScroll = () => this.scheduleWindowRender();
 
 	constructor(containerEl: HTMLElement, callbacks: FilesGridViewCallbacks) {
 		this.containerEl = containerEl;
 		this.callbacks = callbacks;
+	}
+
+	private get densityProfile() {
+		const body = this.containerEl.ownerDocument.body;
+		const isMobile = usesMobileExplorerDensity(
+			Platform.isMobile,
+			body.classList,
+		);
+		return explorerDensityProfile(isMobile);
+	}
+
+	private get minCardWidth(): number {
+		return this.densityProfile.gridMinCardWidth;
+	}
+
+	private get rowHeight(): number {
+		return this.densityProfile.gridRowHeight;
 	}
 
 	render(files: TFile[]): void {
@@ -69,6 +96,17 @@ export class FilesGridView {
 
 	setActivePath(path: string | null): void {
 		this.activePath = path;
+	}
+
+	setSelectedPaths(paths: ReadonlySet<string>): void {
+		if (
+			this.selectedFiles.size === paths.size &&
+			[...paths].every((path) => this.selectedFiles.has(path))
+		) {
+			return;
+		}
+		this.selectedFiles = new Set(paths);
+		this.renderWindow();
 	}
 
 	getSelectedFiles(): TFile[] {
@@ -122,7 +160,9 @@ export class FilesGridView {
 	private metrics(): { columnCount: number; cardWidth: number } {
 		const width = Math.max(
 			this.minCardWidth,
-			this.scrollEl?.clientWidth ?? this.containerEl.clientWidth,
+			this.scrollEl
+				? elementContentWidth(this.scrollEl)
+				: this.containerEl.clientWidth,
 		);
 		const columnCount = Math.max(
 			1,
@@ -220,10 +260,15 @@ export class FilesGridView {
 		const wordCount = showWords
 			? (this.callbacks.getWordCount?.(file) ?? null)
 			: null;
+		const resolvedIcon = this.visibleCells.has('icon')
+			? this.resolvedIconForFile(file)
+			: null;
 		const signature = [
 			file.path,
 			file.name,
 			file.extension,
+			resolvedIcon?.icon ?? '',
+			resolvedIcon?.color ?? '',
 			times.mtime,
 			times.ctime,
 			this.activePath === file.path ? '1' : '0',
@@ -253,22 +298,24 @@ export class FilesGridView {
 		card.style.top = `${position.top + this.gap}px`;
 		card.style.left = `${position.left}px`;
 		card.style.width = `${position.width}px`;
+		card.onpointerenter = () => this.callbacks.onFileHover?.(file, card);
 		card.oncontextmenu = (event) => {
 			event.preventDefault();
 			this.callbacks.onContextMenu(file, event);
 		};
 		card.ondragstart = (event) => this.callbacks.onDragStart?.(file, event);
 		card.onclick = (event) => {
-			if (event.ctrlKey || event.metaKey) {
-				this.toggleSelection(file.path);
-				return;
-			}
-			this.callbacks.onFileClick(file);
+			this.callbacks.onFileClick(file, event);
+		};
+		card.onauxclick = (event) => {
+			if (event.button !== 1) return;
+			event.preventDefault();
+			this.callbacks.onFileClick(file, event);
 		};
 		card.onkeydown = (event) => {
 			if (event.key !== 'Enter' && event.key !== ' ') return;
 			event.preventDefault();
-			this.callbacks.onFileClick(file);
+			this.callbacks.onFileClick(file, event);
 		};
 		if (card.dataset.renderSignature === signature) return;
 		card.empty();
@@ -280,9 +327,9 @@ export class FilesGridView {
 		card.toggleClass('is-selected', this.selectedFiles.has(file.path));
 		card.toggleClass('is-active', this.activePath === file.path);
 
-		if (this.visibleCells.has('icon')) {
+		if (this.visibleCells.has('icon') && resolvedIcon) {
 			const iconEl = card.createDiv({ cls: 'vaultman-files-grid-card-icon' });
-			setIcon(iconEl, this.iconForFile(file));
+			renderIconValue(iconEl, resolvedIcon.icon, resolvedIcon.color);
 		}
 		if (this.visibleCells.has('name')) {
 			card.createDiv({
@@ -345,13 +392,6 @@ export class FilesGridView {
 		}
 	}
 
-	private toggleSelection(path: string): void {
-		if (this.selectedFiles.has(path)) this.selectedFiles.delete(path);
-		else this.selectedFiles.add(path);
-		this.callbacks.onSelectionChange(new Set(this.selectedFiles));
-		this.renderWindow();
-	}
-
 	private visibleExtension(file: TFile): string {
 		return file.extension === 'md' || file.extension === 'markdown'
 			? ''
@@ -365,5 +405,11 @@ export class FilesGridView {
 			return 'lucide-image';
 		if (['pdf'].includes(file.extension)) return 'lucide-file-text';
 		return 'lucide-file';
+	}
+
+	private resolvedIconForFile(file: TFile): ResolvedExplorerIcon | null {
+		const defaultIcon = this.iconForFile(file);
+		if (!this.callbacks.getFileIcon) return { icon: defaultIcon };
+		return this.callbacks.getFileIcon(file, defaultIcon);
 	}
 }

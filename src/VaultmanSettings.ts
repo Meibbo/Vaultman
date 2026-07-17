@@ -1,13 +1,16 @@
 import { PluginSettingTab, Setting, type App } from 'obsidian';
-import type {
-	iVaultmanPlugin,
-	Language,
-	VaultmanSettings,
+import {
+	FILES_HOVER_INFO_FIELDS,
+	type FilesIconScope,
+	type iVaultmanPlugin,
+	type Language,
+	type VaultmanSettings,
 } from './types/typeSettings';
 import { translate, setLanguage } from './i18n/index';
 
 export class VaultmanSettingsTab extends PluginSettingTab {
 	private plugin: iVaultmanPlugin;
+	private page: 'root' | 'floating-toc' | 'files-hover' = 'root';
 
 	constructor(app: App, plugin: iVaultmanPlugin) {
 		super(app, plugin);
@@ -17,6 +20,14 @@ export class VaultmanSettingsTab extends PluginSettingTab {
 	display(): void {
 		const { containerEl } = this;
 		containerEl.empty();
+		if (this.page === 'floating-toc') {
+			this.displayFloatingTocPage(containerEl);
+			return;
+		}
+		if (this.page === 'files-hover') {
+			this.displayFilesHoverPage(containerEl);
+			return;
+		}
 
 		new Setting(containerEl)
 			.setName(translate('settings.language'))
@@ -125,18 +136,6 @@ export class VaultmanSettingsTab extends PluginSettingTab {
 					.setDynamicTooltip()
 					.onChange(async (value) => {
 						this.plugin.settings.bulkOperationWarningThreshold = value;
-						await this.plugin.saveSettings();
-					}),
-			);
-
-		new Setting(containerEl)
-			.setName(translate('settings.performance_monitor'))
-			.setDesc(translate('settings.performance_monitor.desc'))
-			.addToggle((toggle) =>
-				toggle
-					.setValue(this.plugin.settings.performanceHudEnabled)
-					.onChange(async (value) => {
-						this.plugin.settings.performanceHudEnabled = value;
 						await this.plugin.saveSettings();
 					}),
 			);
@@ -382,6 +381,129 @@ export class VaultmanSettingsTab extends PluginSettingTab {
 			);
 
 		new Setting(containerEl)
+			.setName(translate('settings.files_hover_info'))
+			.setDesc(translate('settings.files_hover_info.desc'))
+			.addButton((button) =>
+				button.setButtonText(translate('settings.configure')).onClick(() => {
+					this.page = 'files-hover';
+					this.display();
+				}),
+			);
+
+		new Setting(containerEl)
+			.setName(translate('settings.floating_toc'))
+			.setDesc(translate('settings.floating_toc.desc'))
+			.addButton((button) =>
+				button.setButtonText(translate('settings.configure')).onClick(() => {
+					this.page = 'floating-toc';
+					this.display();
+				}),
+			);
+
+		new Setting(containerEl).setName(translate('settings.addons')).setHeading();
+
+		new Setting(containerEl)
+			.setName(translate('settings.addons.iconic'))
+			.setDesc(translate('settings.addons.iconic.desc'))
+			.addToggle((toggle) =>
+				toggle
+					.setValue(this.plugin.settings.iconicEnabled !== false)
+					.onChange(async (value) => {
+						this.plugin.settings.iconicEnabled = value;
+						this.plugin.iconicService?.setEnabled(value);
+						await this.plugin.saveSettings();
+					}),
+			);
+
+		new Setting(containerEl)
+			.setName(translate('settings.addons.iconic.files_scope'))
+			.setDesc(translate('settings.addons.iconic.files_scope.desc'))
+			.addDropdown((dropdown) =>
+				dropdown
+					.addOption('all', translate('settings.icon_scope.all'))
+					.addOption('files', translate('settings.icon_scope.files'))
+					.addOption('folders', translate('settings.icon_scope.folders'))
+					.addOption('custom', translate('settings.icon_scope.custom'))
+					.setValue(this.plugin.settings.filesIconScope ?? 'all')
+					.onChange(async (value) => {
+						this.plugin.settings.filesIconScope = value as FilesIconScope;
+						await this.plugin.saveSettings();
+					}),
+			);
+
+		new Setting(containerEl)
+			.setName(translate('settings.developer_tools'))
+			.setHeading();
+
+		new Setting(containerEl)
+			.setName(translate('settings.performance_monitor'))
+			.setDesc(translate('settings.performance_monitor.desc'))
+			.addToggle((toggle) =>
+				toggle
+					.setValue(this.plugin.settings.performanceHudEnabled)
+					.onChange(async (value) => {
+						this.plugin.settings.performanceHudEnabled = value;
+						await this.plugin.saveSettings();
+					}),
+			);
+	}
+
+	private displayFilesHoverPage(containerEl: HTMLElement): void {
+		new Setting(containerEl)
+			.setName(translate('settings.back_to_style_config'))
+			.addButton((button) =>
+				button
+					.setIcon('lucide-arrow-left')
+					.setTooltip(translate('settings.back_to_style_config'))
+					.onClick(() => {
+						this.page = 'root';
+						this.display();
+					}),
+			);
+
+		new Setting(containerEl)
+			.setName(translate('settings.files_hover_info'))
+			.setDesc(translate('settings.files_hover_info.desc'))
+			.setHeading();
+
+		for (const field of FILES_HOVER_INFO_FIELDS) {
+			new Setting(containerEl)
+				.setName(translate(`settings.files_hover_info.${field}`))
+				.addToggle((toggle) =>
+					toggle
+						.setValue(
+							(this.plugin.settings.filesHoverInfo ?? []).includes(field),
+						)
+						.onChange(async (value) => {
+							const selected = new Set(
+								this.plugin.settings.filesHoverInfo ?? [],
+							);
+							if (value) selected.add(field);
+							else selected.delete(field);
+							this.plugin.settings.filesHoverInfo =
+								FILES_HOVER_INFO_FIELDS.filter((candidate) =>
+									selected.has(candidate),
+								);
+							await this.plugin.saveSettings();
+						}),
+				);
+		}
+	}
+
+	private displayFloatingTocPage(containerEl: HTMLElement): void {
+		new Setting(containerEl)
+			.setName(translate('settings.back_to_style_config'))
+			.addButton((button) =>
+				button
+					.setIcon('lucide-arrow-left')
+					.setTooltip(translate('settings.back_to_style_config'))
+					.onClick(() => {
+						this.page = 'root';
+						this.display();
+					}),
+			);
+
+		new Setting(containerEl)
 			.setName(translate('settings.floating_toc'))
 			.setHeading();
 
@@ -435,6 +557,14 @@ export class VaultmanSettingsTab extends PluginSettingTab {
 					.onChange((v) =>
 						setToc({ tocPosition: v as VaultmanSettings['tocPosition'] }),
 					),
+			);
+		new Setting(containerEl)
+			.setName(translate('settings.toc_reserved_lane'))
+			.setDesc(translate('settings.toc_reserved_lane.desc'))
+			.addToggle((t) =>
+				t
+					.setValue(this.plugin.settings.tocReservedLane === true)
+					.onChange((v) => setToc({ tocReservedLane: v })),
 			);
 		new Setting(containerEl)
 			.setName(translate('settings.toc_glyph_mode'))

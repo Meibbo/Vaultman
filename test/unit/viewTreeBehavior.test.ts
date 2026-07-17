@@ -47,12 +47,14 @@ class TinyElement {
 	readonly children: TinyElement[] = [];
 	readonly dataset: Record<string, string> = {};
 	readonly attributes = new Map<string, string>();
-	readonly style: Record<string, string | ((name: string, value: string) => void)> =
-		{
-			setProperty: (name: string, value: string) => {
-				this.style[name] = value;
-			},
-		};
+	readonly style: Record<
+		string,
+		string | ((name: string, value: string) => void)
+	> = {
+		setProperty: (name: string, value: string) => {
+			this.style[name] = value;
+		},
+	};
 	readonly classList = new TinyClassList();
 	parentElement: TinyElement | null = null;
 	textContent = '';
@@ -62,6 +64,7 @@ class TinyElement {
 	lastScrollToOptions: ScrollToOptions | undefined;
 	draggable = false;
 	onclick: ((event: MouseEvent) => void) | null = null;
+	onauxclick: ((event: MouseEvent) => void) | null = null;
 	ondragstart: ((event: DragEvent) => void) | null = null;
 	ondragend: ((event: DragEvent) => void) | null = null;
 	ondragover: ((event: DragEvent) => void) | null = null;
@@ -199,6 +202,7 @@ class TinyElement {
 }
 
 vi.mock('obsidian', () => ({
+	Platform: { isMobile: false },
 	setIcon: (el: TinyElement, icon: string) => {
 		el.createEl('svg', { cls: `svg-icon ${icon}` });
 	},
@@ -227,9 +231,8 @@ describe('UnifiedTreeView behavior', () => {
 	});
 
 	it('updates the native collapse caret in place so Obsidian can animate it', async () => {
-		const { UnifiedTreeView } = await import(
-			'../../src/components/layout/viewTree'
-		);
+		const { UnifiedTreeView } =
+			await import('../../src/components/layout/viewTree');
 		const root: TreeNode = {
 			id: 'folder:Projects',
 			label: 'Projects',
@@ -276,9 +279,8 @@ describe('UnifiedTreeView behavior', () => {
 	});
 
 	it('keeps Obsidian collapsible styling on the row and the collapse icon', async () => {
-		const { UnifiedTreeView } = await import(
-			'../../src/components/layout/viewTree'
-		);
+		const { UnifiedTreeView } =
+			await import('../../src/components/layout/viewTree');
 		const container = new TinyElement('div') as unknown as HTMLElement;
 		const view = new UnifiedTreeView(container);
 
@@ -337,9 +339,8 @@ describe('UnifiedTreeView behavior', () => {
 			},
 			cancelAnimationFrame: () => {},
 		});
-		const { UnifiedTreeView } = await import(
-			'../../src/components/layout/viewTree'
-		);
+		const { UnifiedTreeView } =
+			await import('../../src/components/layout/viewTree');
 		const root: TreeNode = {
 			id: 'folder:Projects',
 			label: 'Projects',
@@ -389,10 +390,86 @@ describe('UnifiedTreeView behavior', () => {
 		).toBe(false);
 	});
 
-	it('passes smooth behavior to a rendered row', async () => {
-		const { UnifiedTreeView } = await import(
-			'../../src/components/layout/viewTree'
+	it('bubbles a hidden child filter highlight only while its parent is collapsed', async () => {
+		const { UnifiedTreeView } =
+			await import('../../src/components/layout/viewTree');
+		const root: TreeNode = {
+			id: 'prop:status',
+			label: 'status',
+			depth: 0,
+			meta: {},
+			children: [
+				{
+					id: 'prop:status::done',
+					label: 'done',
+					depth: 1,
+					meta: {},
+				},
+			],
+		};
+		const container = new TinyElement('div') as unknown as HTMLElement;
+		const view = new UnifiedTreeView(container);
+		const baseOptions = {
+			nodes: [root],
+			activeFilterIds: new Set(['prop:status::done']),
+			onToggle: () => {},
+			onRowClick: () => {},
+			onContextMenu: () => {},
+		};
+
+		view.render({ ...baseOptions, expandedIds: new Set<string>() });
+		const collapsedRow = container.querySelector(
+			'.vaultman-tree-row',
+		) as unknown as TinyElement | null;
+		expect(collapsedRow?.classList.contains('is-active-filter')).toBe(true);
+
+		view.render({
+			...baseOptions,
+			expandedIds: new Set<string>(['prop:status']),
+		});
+		const expandedParentRow = container.querySelector(
+			'.vaultman-tree-row',
+		) as unknown as TinyElement | null;
+		expect(expandedParentRow?.classList.contains('is-active-filter')).toBe(
+			false,
 		);
+	});
+
+	it('forwards modifier and middle-click mouse events to row consumers', async () => {
+		const { UnifiedTreeView } =
+			await import('../../src/components/layout/viewTree');
+		const container = new TinyElement('div') as unknown as HTMLElement;
+		const view = new UnifiedTreeView(container);
+		const received: MouseEvent[] = [];
+		view.render({
+			nodes: [{ id: 'alpha.md', label: 'Alpha', depth: 0, meta: {} }],
+			expandedIds: new Set<string>(),
+			onToggle: () => {},
+			onRowClick: (_id, event) => {
+				if (event) received.push(event);
+			},
+			onContextMenu: () => {},
+		});
+		const row = container.querySelector(
+			'.vaultman-tree-row',
+		) as unknown as TinyElement | null;
+		const modifierEvent = { ctrlKey: true, button: 0 } as MouseEvent;
+		const preventDefault = vi.fn();
+		const middleEvent = {
+			button: 1,
+			preventDefault,
+		} as unknown as MouseEvent;
+
+		row?.onclick?.(modifierEvent);
+		row?.onauxclick?.(middleEvent);
+
+		expect(received).toEqual([modifierEvent, middleEvent]);
+		expect(preventDefault).toHaveBeenCalledOnce();
+	});
+
+	it('passes smooth behavior to a rendered row', async () => {
+		const { UnifiedTreeView } =
+			await import('../../src/components/layout/viewTree');
 		const container = new TinyElement('div') as unknown as HTMLElement;
 		const view = new UnifiedTreeView(container);
 		view.render({
@@ -416,9 +493,8 @@ describe('UnifiedTreeView behavior', () => {
 	});
 
 	it('uses smooth scrolling when the target row is outside the virtual window', async () => {
-		const { UnifiedTreeView } = await import(
-			'../../src/components/layout/viewTree'
-		);
+		const { UnifiedTreeView } =
+			await import('../../src/components/layout/viewTree');
 		const tinyContainer = new TinyElement('div');
 		tinyContainer.clientHeight = 28;
 		const view = new UnifiedTreeView(tinyContainer as unknown as HTMLElement);

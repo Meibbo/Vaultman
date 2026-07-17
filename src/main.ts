@@ -28,6 +28,11 @@ import {
 	tagTextForDrop,
 } from './utils/dragEditorDrop';
 import { createPerfProbe } from './dev/perfProbe';
+import { UpdatesModal } from './modals/modalUpdates';
+import {
+	CURRENT_UPDATES_VERSION,
+	shouldShowUpdates,
+} from './logic/logicUpdateNotice';
 
 export class VaultmanPlugin extends Plugin {
 	settings!: VaultmanSettings;
@@ -54,7 +59,10 @@ export class VaultmanPlugin extends Plugin {
 		this.propertyIndex = new PropertyIndexService(this.app);
 		this.filterService = new FilterService(this.app);
 		this.queueService = new OperationQueueService(this.app, this.settings);
-		this.iconicService = new IconicService(this.app);
+		this.iconicService = new IconicService(
+			this.app,
+			this.settings.iconicEnabled !== false,
+		);
 		this.propertyTypeService = new PropertyTypeService(this.app);
 		this.contextMenuService = new ContextMenuService(this);
 		this.statisticsCache = new StatisticsCacheService(this.app);
@@ -91,6 +99,7 @@ export class VaultmanPlugin extends Plugin {
 		});
 
 		this.registerView(VAULTMAN_FRAME_TYPE, (leaf) => new VaultmanFrame(leaf, this));
+		this.app.workspace.onLayoutReady(() => this.showUpdatesIfNeeded());
 
 		this.addCommand({
 			id: 'apply-queue',
@@ -110,6 +119,12 @@ export class VaultmanPlugin extends Plugin {
 			callback: () => {
 				void this.activateView();
 			},
+		});
+
+		this.addCommand({
+			id: 'open-updates',
+			name: translate('command.open_updates'),
+			callback: () => this.openUpdates(),
 		});
 
 		this.addCommand({
@@ -367,6 +382,7 @@ export class VaultmanPlugin extends Plugin {
 		await this.loadSettings();
 		setLanguage(this.settings.language);
 		this.queueService?.setBypassOperations(this.settings.bypassOperations);
+		this.iconicService?.setEnabled(this.settings.iconicEnabled !== false);
 		this.updateGlassBlur();
 		this.notifySettingsChanged();
 	}
@@ -395,6 +411,24 @@ export class VaultmanPlugin extends Plugin {
 		// background (the in-memory settings are already the source of truth).
 		this.notifySettingsChanged();
 		await this.saveData(this.settings);
+	}
+
+	private showUpdatesIfNeeded(): void {
+		if (
+			!shouldShowUpdates(
+				this.settings.lastSeenUpdatesVersion,
+				CURRENT_UPDATES_VERSION,
+			)
+		) {
+			return;
+		}
+		this.settings.lastSeenUpdatesVersion = CURRENT_UPDATES_VERSION;
+		void this.saveData(this.settings);
+		this.openUpdates();
+	}
+
+	private openUpdates(): void {
+		new UpdatesModal(this.app, CURRENT_UPDATES_VERSION).open();
 	}
 
 	onSettingsChange(listener: () => void): () => void {

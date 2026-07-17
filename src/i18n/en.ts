@@ -178,6 +178,14 @@ export const en: Record<string, string> = {
 	'settings.toolbar_tools_menu': 'Condense Files tools',
 	'settings.toolbar_tools_menu.desc':
 		'Replace Auto-reveal and Expand/Collapse with one native Tools menu so the Files toolbar stays at five nodes.',
+	'settings.files_hover_info': 'Files hover info',
+	'settings.files_hover_info.desc':
+		'Choose which cached metadata and reading statistics appear when hovering a Files node.',
+	'settings.files_hover_info.path': 'Path',
+	'settings.files_hover_info.modified': 'Modified',
+	'settings.files_hover_info.created': 'Created',
+	'settings.files_hover_info.words': 'Words',
+	'settings.files_hover_info.characters': 'Characters',
 	'settings.show_dock': 'Show bottom dock',
 	'settings.show_dock.desc':
 		'Show the bottom dock. When disabled, Filters and Queue stay in the Data tab menu.',
@@ -190,6 +198,18 @@ export const en: Record<string, string> = {
 	'settings.bulk_operation_warning_threshold': 'Queue warning threshold',
 	'settings.bulk_operation_warning_threshold.desc':
 		'Show queue warnings when an operation targets more than this many files.',
+	'settings.addons': 'Add-ons',
+	'settings.addons.iconic': 'Iconic',
+	'settings.addons.iconic.desc':
+		'Use icons configured by the Iconic community plugin in Vaultman explorers.',
+	'settings.addons.iconic.files_scope': 'Files icon scope',
+	'settings.addons.iconic.files_scope.desc':
+		'Choose which Files nodes may show the icon cell. Custom only shows nodes explicitly styled by Iconic.',
+	'settings.icon_scope.all': 'Files and folders',
+	'settings.icon_scope.files': 'Files only',
+	'settings.icon_scope.folders': 'Folders only',
+	'settings.icon_scope.custom': 'Iconic custom only',
+	'settings.developer_tools': 'Developer Tools',
 	'settings.performance_monitor': 'Performance monitor',
 	'settings.performance_monitor.desc':
 		'Show the floating live FPS, long-task, memory, and action monitor.',
@@ -203,6 +223,10 @@ export const en: Record<string, string> = {
 		'No saved view config. Use "Save view config" in the view menu to remember view options and sorts per tab.',
 	'settings.saved_view_config.clear': 'Clear',
 	'settings.floating_toc': 'Floating TOC',
+	'settings.floating_toc.desc':
+		'Configure the explorer index and Niagara behavior.',
+	'settings.configure': 'Configure',
+	'settings.back_to_style_config': 'Back to Style Config',
 	'settings.floating_toc_enable': 'Enable floating TOC',
 	'settings.floating_toc_enable.desc':
 		'Show a floating first-letter index over the Files, Props, and Tags explorers.',
@@ -217,6 +241,9 @@ export const en: Record<string, string> = {
 	'settings.toc_position.left': 'Left',
 	'settings.toc_position.top': 'Top',
 	'settings.toc_position.bottom': 'Bottom',
+	'settings.toc_reserved_lane': 'Reserve index lane',
+	'settings.toc_reserved_lane.desc':
+		'Keep a vertical index between explorer cells and the scrollbar instead of overlaying either one. Top and bottom rails remain overlays.',
 	'settings.toc_glyph_mode': 'Glyph mode',
 	'settings.toc_glyph_mode.letter': 'First letter',
 	'settings.toc_glyph_mode.name': 'Full name',
@@ -256,6 +283,8 @@ export const en: Record<string, string> = {
 	'floating_toc.drill': "Index a node's level",
 	'floating_toc.close': 'Close index',
 	'floating_toc.back': 'Back one level',
+	'floating_toc.incompatible_sort':
+		'The index requires a text-based sort (name, path, or extension) in the active explorer.',
 	'settings.queue_templates.desc': 'Manage saved staged operation presets',
 
 	// Main view
@@ -266,6 +295,18 @@ export const en: Record<string, string> = {
 	'command.focus_content_search': 'Focus Content search',
 	'command.focus_active_explorer_search': 'Focus active explorer search',
 	'command.focus_search_unavailable': 'No Vaultman search field is available.',
+	'command.open_updates': 'Open Vaultman updates',
+	'updates.title': 'Vaultman Updates · {version}',
+	'updates.intro': 'What changed in this beta:',
+	'updates.clean_filters':
+		'“Clean Selection” is now “Clean Filters”; it clears active filters, not selected files.',
+	'updates.floating_toc':
+		'Floating TOC navigation, responsive density, and narrow toolbar behavior were hardened.',
+	'updates.files_explorer':
+		'Files gained recursive hold-to-expand, core open gestures, word/character metadata, and stronger menus.',
+	'updates.addons':
+		'Add-ons now include Iconic integration plus Snippets and Plugins explorers.',
+	'updates.close': 'Got it',
 
 	// Toolbar
 	'toolbar.filters': 'Filters',
@@ -366,6 +407,7 @@ export const en: Record<string, string> = {
 	'file.ctx.open_tab': 'Open in new tab',
 	'file.ctx.open_right': 'Open to the right',
 	'file.ctx.open_window': 'Open in new window',
+	'file.ctx.make_copy': 'Make a copy',
 	'folder.ctx.new_note': 'New note',
 	'folder.ctx.new_folder': 'New folder',
 	'folder.ctx.new_canvas': 'New canvas',
@@ -465,7 +507,7 @@ export const en: Record<string, string> = {
 	'settings.context_menu.more_options': 'Show in more-options menu',
 	'settings.context_menu.more_options.desc':
 		'Add Vaultman actions to Obsidian more-options file menus.',
-	'context_menu.clean_selection': 'Clean selection',
+	'context_menu.clean_filters': 'Clean filters',
 	'settings.page_order': 'Sidebar page order',
 	'settings.page_order.desc': 'Choose the order of the three sidebar pages',
 	'settings.page_order.pos': 'Position {n}',
@@ -481,6 +523,21 @@ export const en: Record<string, string> = {
 	'filter.tab.props': 'Props',
 	'filter.tab.files': 'Files',
 	'filter.tab.content': 'Content',
+	'filter.tab.snippets': 'Snippets',
+	'filter.tab.plugins': 'Plugins',
+	'addons.enabled': 'Enabled',
+	'addons.disabled': 'Disabled',
+	'addons.enable': 'Enable',
+	'addons.disable': 'Disable',
+	'addons.snippets.empty': 'No CSS snippets found',
+	'addons.snippets.unavailable':
+		'CSS snippet controls are unavailable in this Obsidian version',
+	'addons.snippets.failed': 'Could not update the CSS snippet',
+	'addons.plugins.empty': 'No community plugins found',
+	'addons.plugins.unavailable':
+		'Community plugin controls are unavailable in this Obsidian version',
+	'addons.plugins.failed': 'Could not update the community plugin',
+	'addons.plugins.self_protected': 'Vaultman cannot disable itself',
 	'nav.view_mode': 'View mode',
 	'nav.search_files': 'Search files',
 	'view.mode.list': 'All files',
@@ -546,7 +603,8 @@ export const en: Record<string, string> = {
 	'content.toggle_regex': 'Regular expression',
 	'content.toggle_replace': 'Show replace field',
 	'content.scope_hint_selected': 'Scope: {count} selected file(s)',
-	'content.scope_hint_filtered': 'Scope: {count}/{total} files - {filters} filter(s)',
+	'content.scope_hint_filtered':
+		'Scope: {count}/{total} files - {filters} filter(s)',
 	'content.scope_hint_searching':
 		'Searching {count}/{total} files - {filters} filter(s)',
 	'content.with_active_filters': 'with active filters',
@@ -598,7 +656,8 @@ export const en: Record<string, string> = {
 	'filters.popup.rule.disable': 'Disable filter',
 	'filters.popup.rule.delete': 'Remove filter',
 	'filters.view_state.files_type': 'Files view type',
-	'filters.view_state.files_type_desc': 'Files view is limited to {type} files.',
+	'filters.view_state.files_type_desc':
+		'Files view is limited to {type} files.',
 	'filters.bases.menu': 'Import/export Bases filters',
 	'filters.bases.import': 'Import',
 	'filters.bases.export': 'Export active filters to Base',
@@ -645,6 +704,7 @@ export const en: Record<string, string> = {
 	'sort.by.name': 'Name',
 	'sort.by.count': 'Count',
 	'sort.by.props': 'Props',
+	'sort.by.words': 'Words',
 	'sort.by.date': 'Date',
 	'sort.by.modified': 'Modified time',
 	'sort.by.created': 'Created time',
@@ -665,6 +725,8 @@ export const en: Record<string, string> = {
 	'sort.vertcol.by_nested': 'Showing nested tags — click to show root only',
 	'sort.vertcol.by_root': 'Showing root tags — click to show nested',
 	'sort.vertcol.props_values': 'Toggle Props / Values',
+	'sort.vertcol.sort_props': 'Sort props',
+	'sort.vertcol.sort_values': 'Sort values',
 	'sort.vertcol.node_level': 'Toggle node level',
 	'sort.vertcol.direct_toggle': 'Toggle direct',
 	'sort.vertcol.scope_drawer': 'Open scope drawer',

@@ -161,7 +161,7 @@
 	let activeIdx = $state(-1);
 	let perp = $state(0); // perpendicular pull toward the finger
 	let perpOver = $state(0); // rail-follow overshoot past the frame edge
-	let shift = $state(0); // reversible signed rail-follow displacement
+	let shift = $state(0); // bidirectional rail-follow displacement with reversal hysteresis
 	let glowX = $state(0);
 	let glowY = $state(0);
 	let engaged = $state(false); // wave follows after a hold / deliberate move
@@ -276,7 +276,7 @@
 					(horizontal ? hostRect.right : hostRect.bottom) - 8,
 				)
 			: along;
-		shift = niagaraTrackShift(constrainedAlong, firstCenter, lastCenter);
+		shift = niagaraTrackShift(constrainedAlong, firstCenter, lastCenter, shift);
 	}
 	function handleAt(cx: number, cy: number): void {
 		const rail = railEl;

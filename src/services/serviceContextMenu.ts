@@ -12,6 +12,8 @@ import type { ActionDef, MenuCtx, MenuHideRule } from '../types/typeCMenu';
 import type { FileMeta } from '../types/typeTree';
 import { translate } from '../i18n/index';
 
+const FILE_EXPLORER_CONTEXT_SOURCE = 'file-explorer-context-menu';
+
 export interface ContextMenuPluginCtx extends Component {
 	app: App;
 	settings: {
@@ -46,7 +48,7 @@ export class ContextMenuService extends Component {
 			id: 'filters.clear-selection',
 			nodeTypes: ['file', 'folder', 'tag', 'prop', 'value'],
 			surfaces: ['panel'],
-			label: translate('context_menu.clean_selection'),
+			label: translate('context_menu.clean_filters'),
 			icon: 'lucide-eraser',
 			section: 'filters',
 			when: (ctx) =>
@@ -112,6 +114,17 @@ export class ContextMenuService extends Component {
 		this._registry.push(def);
 	}
 
+	private _runAction(def: ActionDef, ctx: MenuCtx): void {
+		void Promise.resolve()
+			.then(() => def.run(ctx))
+			.catch((error) => {
+				const detail =
+					error instanceof Error && error.message ? `: ${error.message}` : '';
+				new Notice(`Vaultman: action "${def.id}" failed${detail}`);
+				console.error(error);
+			});
+	}
+
 	openPanelMenu(ctx: MenuCtx, event: MouseEvent): void {
 		const menu = new Menu();
 		const nativeTarget = this._getNativeMenuTarget(ctx);
@@ -127,7 +140,12 @@ export class ContextMenuService extends Component {
 							source: string,
 						): void;
 					}
-				).trigger('file-menu', menu, nativeTarget, 'file-explorer');
+				).trigger(
+					'file-menu',
+					menu,
+					nativeTarget,
+					FILE_EXPLORER_CONTEXT_SOURCE,
+				);
 			} finally {
 				this.suppressWorkspaceInjection = false;
 			}
@@ -184,14 +202,7 @@ export class ContextMenuService extends Component {
 					typeof def.label === 'function' ? def.label(ctx) : def.label;
 				item.setTitle(label);
 				if (def.icon) item.setIcon(def.icon);
-				item.onClick(() => {
-					try {
-						void def.run(ctx);
-					} catch (err) {
-						new Notice(`Vaultman: action "${def.id}" failed`);
-						console.error(err);
-					}
-				});
+				item.onClick(() => this._runAction(def, ctx));
 			});
 		}
 		menu.showAtMouseEvent(event);
@@ -294,14 +305,7 @@ export class ContextMenuService extends Component {
 					typeof def.label === 'function' ? def.label(ctx) : def.label;
 				item.setTitle(label);
 				if (def.icon) item.setIcon(def.icon);
-				item.onClick(() => {
-					try {
-						void def.run(ctx);
-					} catch (err) {
-						new Notice(`Vaultman: action "${def.id}" failed`);
-						console.error(err);
-					}
-				});
+				item.onClick(() => this._runAction(def, ctx));
 			});
 		}
 	}

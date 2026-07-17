@@ -25,6 +25,28 @@ export interface SavedLayout {
 	config: Record<string, SavedViewConfig>;
 }
 
+export const FILES_HOVER_INFO_FIELDS = [
+	'path',
+	'modified',
+	'created',
+	'words',
+	'characters',
+] as const;
+export type FilesHoverInfoField = (typeof FILES_HOVER_INFO_FIELDS)[number];
+export const DEFAULT_FILES_HOVER_INFO: FilesHoverInfoField[] = [
+	'modified',
+	'created',
+	'words',
+];
+
+export const FILES_ICON_SCOPES = [
+	'all',
+	'files',
+	'folders',
+	'custom',
+] as const;
+export type FilesIconScope = (typeof FILES_ICON_SCOPES)[number];
+
 export interface VaultmanSettings {
 	language: Language;
 	defaultPropertyType: string;
@@ -32,6 +54,8 @@ export interface VaultmanSettings {
 	queueTemplates: QueueTemplate[];
 	/** Path to the active session .md file (empty = no session) */
 	sessionFilePath: string;
+	/** Plugin version whose Updates welcome was last acknowledged */
+	lastSeenUpdatesVersion: string;
 	/** Ctrl+click on property/value opens Obsidian core search */
 	explorerCtrlClickSearch: boolean;
 	/** Show pending queue changes in the explorer tree */
@@ -74,6 +98,10 @@ export interface VaultmanSettings {
 	minimalStyle: boolean;
 	/** Use colored badge icons instead of the default monotone badge style */
 	coloredBadges: boolean;
+	/** Allow Vaultman explorers to consume icons configured by Iconic */
+	iconicEnabled: boolean;
+	/** File explorer node kinds that may render their icon cell */
+	filesIconScope: FilesIconScope;
 	/** Interaction required to cancel an operation badge */
 	badgeCancelClickMode: BadgeCancelClickMode;
 	/** Show the bottom dock; when false, Filters and Queue move into the Data tab menu. */
@@ -88,6 +116,8 @@ export interface VaultmanSettings {
 	floatingTocPlainStyle: boolean;
 	/** Rail edge: right (default) / left / top / bottom */
 	tocPosition: 'right' | 'left' | 'top' | 'bottom';
+	/** Reserve a lane between vertical explorer content and its scrollbar */
+	tocReservedLane: boolean;
 	/** Glyph mode: first letter or full name */
 	tocGlyphMode: 'letter' | 'name';
 	/** Name cell visibility while scrubbing: off / selected / scrub / always */
@@ -104,6 +134,8 @@ export interface VaultmanSettings {
 	tocSoftScroll: boolean;
 	/** Condense Files auto-reveal and expansion into one native Tools menu */
 	toolbarToolsMenu: boolean;
+	/** Ordered fields shown in the native Files node hover tooltip */
+	filesHoverInfo: FilesHoverInfoField[];
 	/** Show the explorer toolbar (tabs / view / sort / search header) */
 	showToolbar: boolean;
 	/** Named saved explorer layouts (view options + sorts per tab) */
@@ -147,6 +179,9 @@ export interface iVaultmanPlugin extends Plugin {
 	queueService?: {
 		setBypassOperations(enabled: boolean): void;
 	};
+	iconicService?: {
+		setEnabled(enabled: boolean): void;
+	};
 }
 
 export const DEFAULT_SETTINGS: VaultmanSettings = {
@@ -155,6 +190,7 @@ export const DEFAULT_SETTINGS: VaultmanSettings = {
 	filterTemplates: [],
 	queueTemplates: [],
 	sessionFilePath: '',
+	lastSeenUpdatesVersion: '',
 	explorerCtrlClickSearch: true,
 	explorerShowQueuePreview: true,
 	explorerContentSearch: true,
@@ -175,6 +211,8 @@ export const DEFAULT_SETTINGS: VaultmanSettings = {
 	filtersShowTabLabels: true,
 	minimalStyle: true,
 	coloredBadges: false,
+	iconicEnabled: true,
+	filesIconScope: 'all',
 	badgeCancelClickMode: 'double',
 	showDock: false,
 	floatingTocEnabled: false,
@@ -182,6 +220,7 @@ export const DEFAULT_SETTINGS: VaultmanSettings = {
 	floatingTocNiagaraNodes: false,
 	floatingTocPlainStyle: false,
 	tocPosition: 'right',
+	tocReservedLane: false,
 	tocGlyphMode: 'letter',
 	tocLabelMode: 'scrub',
 	tocReveal: 'all',
@@ -190,6 +229,7 @@ export const DEFAULT_SETTINGS: VaultmanSettings = {
 	tocNamePill: false,
 	tocSoftScroll: false,
 	toolbarToolsMenu: false,
+	filesHoverInfo: [...DEFAULT_FILES_HOVER_INFO],
 	showToolbar: true,
 	bypassOperations: false,
 	suppressBulkOperationWarning: false,

@@ -15,6 +15,8 @@ export interface CachedFileStats {
 	size: number;
 	links: number;
 	words: number;
+	/** Unicode code points in the Markdown body, excluding YAML frontmatter. */
+	characters: number;
 	props: string[];
 	values: string[];
 	tags: string[];
@@ -44,6 +46,11 @@ export interface StatisticsComputeOptions {
 export interface StatisticsCacheServiceOptions {
 	storage?: StatisticsStorageOption;
 	storageKey?: string;
+}
+
+export interface StatisticsCacheChange {
+	kind: 'invalidated' | 'file-stats-refreshed' | 'hydrated' | 'cleared';
+	paths?: string[];
 }
 
 export class StatisticsCacheService extends Component {
@@ -144,28 +151,39 @@ export class StatisticsCacheService extends Component {
 		this.fileStatsCache.set(path, stats);
 		this.staleFileStatsCache.delete(path);
 		void this.persistFileStats(stats);
-		this.events.trigger('changed');
+		this.invalidateAggregates({ kind: 'file-stats-refreshed', paths: [path] });
 	}
 
 	private async computeFileStats(file: TFile): Promise<CachedFileStats> {
 		const content =
 			file.extension === 'md' ? await this.app.vault.cachedRead(file) : null;
+		const body = content === null ? null : this.withoutFrontmatter(content);
 		return {
 			path: file.path,
 			ctime: file.stat.ctime,
 			mtime: file.stat.mtime,
 			size: file.stat.size,
-			words: content !== null ? this.countWords(content) : 0,
+			words: body !== null ? this.countWords(body) : 0,
+			characters: body !== null ? this.countCharacters(body) : 0,
 			...this.collectFileMetadata(file),
 		};
 	}
 
-	on(name: 'changed', callback: () => void): void {
-		this.events.on(name, callback);
+	on(name: 'changed', callback: (change: StatisticsCacheChange) => void): void {
+		this.events.on(
+			name,
+			callback as unknown as (...data: unknown[]) => unknown,
+		);
 	}
 
-	off(name: 'changed', callback: () => void): void {
-		this.events.off(name, callback);
+	off(
+		name: 'changed',
+		callback: (change: StatisticsCacheChange) => void,
+	): void {
+		this.events.off(
+			name,
+			callback as unknown as (...data: unknown[]) => unknown,
+		);
 	}
 
 	signatureFor(files: TFile[]): string {
@@ -187,13 +205,13 @@ export class StatisticsCacheService extends Component {
 		const cached = this.fileStatsCache.get(file.path);
 		if (cached) this.staleFileStatsCache.set(file.path, cached);
 		this.fileStatsCache.delete(file.path);
-		this.invalidateAggregates();
+		this.invalidateAggregates({ kind: 'invalidated', paths: [file.path] });
 	}
 
 	deleteCachedPath(path: string): void {
 		this.fileStatsCache.delete(path);
 		this.staleFileStatsCache.delete(path);
-		this.invalidateAggregates();
+		this.invalidateAggregates({ kind: 'invalidated', paths: [path] });
 		void this.deletePersistedPath(path);
 	}
 
@@ -201,7 +219,7 @@ export class StatisticsCacheService extends Component {
 		this.fileStatsCache.clear();
 		this.staleFileStatsCache.clear();
 		this.scopeStatsCache.clear();
-		this.invalidateAggregates();
+		this.invalidateAggregates({ kind: 'cleared' });
 		void this.storage?.clear();
 	}
 
@@ -214,8 +232,10 @@ export class StatisticsCacheService extends Component {
 			try {
 				await this.storage?.initialize();
 				const persisted = await this.storage?.load();
+				const hydratedPaths: string[] = [];
 				for (const stats of persisted?.fileStats ?? []) {
 					this.fileStatsCache.set(stats.path, stats);
+					hydratedPaths.push(stats.path);
 				}
 				for (const { signature, snapshot } of persisted?.snapshots ?? []) {
 					const scope = this.scopeFromSnapshotKey(signature);
@@ -226,6 +246,15 @@ export class StatisticsCacheService extends Component {
 					}
 				}
 				this.storageInitialized = true;
+				if (
+					hydratedPaths.length > 0 ||
+					(persisted?.snapshots.length ?? 0) > 0
+				) {
+					this.events.trigger('changed', {
+						kind: 'hydrated',
+						paths: hydratedPaths,
+					} satisfies StatisticsCacheChange);
+				}
 			} catch (error) {
 				console.warn(
 					'[Vaultman] Statistics persistent cache unavailable; using memory cache',
@@ -245,7 +274,9 @@ export class StatisticsCacheService extends Component {
 		return this.snapshotForDisplay(snapshot);
 	}
 
-	getLastGoodSnapshotForScope(scope: StatisticsScope): StatisticsSnapshot | null {
+	getLastGoodSnapshotForScope(
+		scope: StatisticsScope,
+	): StatisticsSnapshot | null {
 		const snapshot = this.scopeStatsCache.get(scope);
 		return this.snapshotForDisplay(snapshot);
 	}
@@ -269,6 +300,55 @@ export class StatisticsCacheService extends Component {
 		const cached = this.fileStatsCache.get(file.path);
 		if (this.isFreshCachedStats(file, cached)) return cached.words;
 		return this.staleFileStatsCache.get(file.path)?.words ?? null;
+	}
+
+	getFileCharacterCount(file: TFile): number | null {
+		if (file.extension !== 'md') return null;
+		const cached = this.fileStatsCache.get(file.path);
+		if (this.isFreshCachedStats(file, cached) && cached.characters >= 0) {
+			return cached.characters;
+		}
+		const stale = this.staleFileStatsCache.get(file.path)?.characters;
+		return stale !== undefined && stale >= 0 ? stale : null;
+	}
+
+	/** Populate fresh file-level stats needed by explorer cells and sort modes. */
+	async ensureFileStats(files: TFile[]): Promise<void> {
+		await this.initializeStorage();
+		const changedPaths: string[] = [];
+		const failedPaths: string[] = [];
+		for (let index = 0; index < files.length; index += 1) {
+			const file = files[index];
+			const cached = this.fileStatsCache.get(file.path);
+			if (this.isFreshCachedStats(file, cached) && cached.characters >= 0) {
+				continue;
+			}
+
+			try {
+				const stats = await this.computeFileStats(file);
+				this.fileStatsCache.set(file.path, stats);
+				this.staleFileStatsCache.delete(file.path);
+				void this.persistFileStats(stats);
+				changedPaths.push(file.path);
+			} catch {
+				failedPaths.push(file.path);
+			}
+
+			if ((index + 1) % 25 === 0) {
+				await new Promise((resolve) => window.setTimeout(resolve, 0));
+			}
+		}
+		if (changedPaths.length > 0) {
+			this.invalidateAggregates({
+				kind: 'file-stats-refreshed',
+				paths: changedPaths,
+			});
+		}
+		if (failedPaths.length > 0) {
+			throw new Error(
+				`Failed to read statistics for ${failedPaths.join(', ')}`,
+			);
+		}
 	}
 
 	private snapshotForDisplay(
@@ -380,9 +460,9 @@ export class StatisticsCacheService extends Component {
 		return snapshot;
 	}
 
-	private invalidateAggregates(): void {
+	private invalidateAggregates(change: StatisticsCacheChange): void {
 		this.aggregateStatsCache.clear();
-		this.events.trigger('changed');
+		this.events.trigger('changed', change);
 	}
 
 	private async persistFileStats(stats: CachedFileStats): Promise<void> {
@@ -410,14 +490,29 @@ export class StatisticsCacheService extends Component {
 		// Match Obsidian's word counter: count runs of Unicode letters/numbers
 		// (handles accented Spanish text) instead of whitespace-separated tokens,
 		// which previously counted Markdown punctuation (-, [ ], #, >) as words.
-		const withoutFrontmatter = content.replace(/^---[\s\S]*?---\s*/, '');
-		const words = withoutFrontmatter.match(/[\p{L}\p{N}]+/gu);
+		const words = content.match(/[\p{L}\p{N}]+/gu);
 		return words?.length ?? 0;
+	}
+
+	private countCharacters(content: string): number {
+		let characters = 0;
+		for (let index = 0; index < content.length; characters += 1) {
+			const codePoint = content.codePointAt(index);
+			index += codePoint !== undefined && codePoint > 0xffff ? 2 : 1;
+		}
+		return characters;
+	}
+
+	private withoutFrontmatter(content: string): string {
+		return content.replace(/^---[\s\S]*?---\s*/, '');
 	}
 
 	private collectFileMetadata(
 		file: TFile,
-	): Omit<CachedFileStats, 'path' | 'ctime' | 'mtime' | 'size' | 'words'> {
+	): Omit<
+		CachedFileStats,
+		'path' | 'ctime' | 'mtime' | 'size' | 'words' | 'characters'
+	> {
 		const props = new Set<string>();
 		const values = new Set<string>();
 		const tags = new Set<string>();

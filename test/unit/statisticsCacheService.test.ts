@@ -1,7 +1,10 @@
 import type { App, CachedMetadata, TFile, TFolder, Vault } from 'obsidian';
 import { describe, expect, it } from 'vitest';
 
-import { StatisticsCacheService } from '../../src/services/serviceStatisticsCache';
+import {
+	StatisticsCacheService,
+	type StatisticsCacheChange,
+} from '../../src/services/serviceStatisticsCache';
 
 const vault = {} as Vault;
 
@@ -23,7 +26,9 @@ function makeFile(path: string, mtime = 1, size = 10, ctime = 0): TFile {
 		basename: dot === -1 ? name : name.slice(0, dot),
 		extension: dot === -1 ? '' : name.slice(dot + 1),
 		name,
-		parent: makeFolder(path.includes('/') ? path.split('/').slice(0, -1).join('/') : '/'),
+		parent: makeFolder(
+			path.includes('/') ? path.split('/').slice(0, -1).join('/') : '/',
+		),
 		path,
 		stat: { ctime, mtime, size },
 		vault,
@@ -138,6 +143,59 @@ describe('StatisticsCacheService', () => {
 		expect(readCounter.count).toBe(1);
 	});
 
+	it('counts and caches Unicode characters from the Markdown body', async () => {
+		const readCounter = { count: 0 };
+		const file = makeFile('Notes/a.md');
+		const service = new StatisticsCacheService(
+			makeApp(readCounter, {
+				'Notes/a.md': '---\nstatus: draft\n---\nA🙂 b',
+			}),
+		);
+
+		expect(service.getFileCharacterCount(file)).toBeNull();
+		await service.ensureFileStats([file]);
+		expect(service.getFileWordCount(file)).toBe(2);
+		expect(service.getFileCharacterCount(file)).toBe(4);
+		expect(readCounter.count).toBe(1);
+
+		await service.ensureFileStats([file]);
+		expect(readCounter.count).toBe(1);
+	});
+
+	it('announces persistent hydration so explorer consumers can refresh', async () => {
+		const readCounter = { count: 0 };
+		const file = makeFile('Notes/a.md');
+		const storage = new Map<string, unknown>([
+			[
+				'hydration:file:Notes/a.md',
+				{
+					path: file.path,
+					ctime: file.stat.ctime,
+					mtime: file.stat.mtime,
+					size: file.stat.size,
+					links: 0,
+					words: 7,
+					props: [],
+					values: [],
+					tags: [],
+				},
+			],
+		]);
+		const service = new StatisticsCacheService(makeApp(readCounter), {
+			storage,
+			storageKey: 'hydration',
+		});
+		const changes: StatisticsCacheChange[] = [];
+		service.on('changed', (change) => changes.push(change));
+
+		await service.initializeStorage();
+
+		expect(service.getFileWordCount(file)).toBe(7);
+		expect(service.getFileCharacterCount(file)).toBeNull();
+		expect(changes).toEqual([{ kind: 'hydrated', paths: ['Notes/a.md'] }]);
+		expect(readCounter.count).toBe(0);
+	});
+
 	it('persists created and modified timestamps in file-level cache records', async () => {
 		const readCounter = { count: 0 };
 		const file = makeFile('Notes/a.md', 200, 10, 100);
@@ -240,6 +298,100 @@ describe('StatisticsCacheService', () => {
 
 		expect(service.getFileWordCount(first)).toBe(3);
 		expect(readCounter.count).toBe(2);
+	});
+
+	it('warms file word counts for explorer sorting without computing a snapshot', async () => {
+		const readCounter = { count: 0 };
+		const first = makeFile('Notes/a.md');
+		const second = makeFile('Notes/b.md');
+		const service = new StatisticsCacheService(
+			makeApp(readCounter, {
+				'Notes/a.md': 'one two three four',
+				'Notes/b.md': 'one two',
+			}),
+		);
+
+		await service.ensureFileStats([first, second]);
+
+		expect(service.getFileWordCount(first)).toBe(4);
+		expect(service.getFileWordCount(second)).toBe(2);
+		expect(readCounter.count).toBe(2);
+
+		await service.ensureFileStats([first, second]);
+		expect(readCounter.count).toBe(2);
+	});
+
+	it('distinguishes cheap invalidation from refreshed file statistics', async () => {
+		const readCounter = { count: 0 };
+		const first = makeFile('Notes/a.md');
+		const second = makeFile('Notes/b.md');
+		const service = new StatisticsCacheService(makeApp(readCounter));
+		const changes: StatisticsCacheChange[] = [];
+		service.on('changed', (change) => changes.push(change));
+
+		for (let index = 0; index < 100; index += 1) {
+			service.invalidateFile(first);
+		}
+
+		expect(readCounter.count).toBe(0);
+		expect(changes).toHaveLength(100);
+		expect(changes.every((change) => change.kind === 'invalidated')).toBe(true);
+
+		changes.length = 0;
+		await service.ensureFileStats([first, second]);
+
+		expect(readCounter.count).toBe(2);
+		expect(changes).toEqual([
+			{
+				kind: 'file-stats-refreshed',
+				paths: ['Notes/a.md', 'Notes/b.md'],
+			},
+		]);
+	});
+
+	it('keeps warming later files when one read fails and retries the failure', async () => {
+		const readCounter = { count: 0 };
+		const first = makeFile('Notes/a.md');
+		const flaky = makeFile('Notes/b.md');
+		const third = makeFile('Notes/c.md');
+		const app = makeApp(readCounter);
+		let failOnce = true;
+		Object.assign(app.vault, {
+			cachedRead: async (file: TFile) => {
+				readCounter.count += 1;
+				if (file.path === flaky.path && failOnce) {
+					failOnce = false;
+					throw new Error('temporary read failure');
+				}
+				if (file.path === first.path) return 'one';
+				if (file.path === flaky.path) return 'one two';
+				return 'one two three';
+			},
+		});
+		const service = new StatisticsCacheService(app);
+		const changes: StatisticsCacheChange[] = [];
+		service.on('changed', (change) => changes.push(change));
+
+		await expect(
+			service.ensureFileStats([first, flaky, third]),
+		).rejects.toThrow('Notes/b.md');
+		expect(service.getFileWordCount(first)).toBe(1);
+		expect(service.getFileWordCount(flaky)).toBeNull();
+		expect(service.getFileWordCount(third)).toBe(3);
+		expect(changes).toEqual([
+			{
+				kind: 'file-stats-refreshed',
+				paths: ['Notes/a.md', 'Notes/c.md'],
+			},
+		]);
+
+		await service.ensureFileStats([first, flaky, third]);
+		expect(service.getFileWordCount(flaky)).toBe(2);
+		expect(readCounter.count).toBe(4);
+		expect(changes.at(-1)).toEqual({
+			kind: 'file-stats-refreshed',
+			paths: ['Notes/b.md'],
+		});
 	});
 
 	it('keeps last-known file word counts after modify invalidation until refresh completes', async () => {

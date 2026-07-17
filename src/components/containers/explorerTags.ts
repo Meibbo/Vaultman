@@ -7,6 +7,11 @@ import { ContextMenuService } from '../../services/serviceContextMenu';
 import { OperationQueueService } from '../../services/serviceOperationQueue';
 import type { StatisticsCacheService } from '../../services/serviceStatisticsCache';
 import type { RevealNodeOptions } from '../../services/routerFloatingToc';
+import {
+	normalizeNodeTypeFilters,
+	sameNodeTypeFilters,
+	type NodeTypeFilterInput,
+} from '../../logic/logicNodeTypeFilters';
 
 export interface PanelPluginCtx {
 	app: App;
@@ -42,6 +47,7 @@ import {
 	flattenTreeToPathLabels,
 	groupRootHierarchy,
 } from '../../logic/logicExplorerHierarchy';
+import { collectExpandableSubtreeIds } from '../../logic/logicTreeExpansion';
 import {
 	readVaultmanDragPayload,
 	setVaultmanDragPayload,
@@ -72,7 +78,7 @@ export class TagsExplorerPanel extends Component {
 	private sortBy: string = 'name';
 	private sortDir: 'asc' | 'desc' = 'asc';
 	private sortChildLevel = false;
-	private nodeTypeFilter: string | null = null;
+	private nodeTypeFilters: string[] = [];
 	private viewMode: 'tree' | 'grid' | 'table' = 'tree';
 	private visibleCells = new Set<string>(['icon', 'text', 'count', 'nested']);
 	private onExpansionChange?: () => void;
@@ -163,21 +169,22 @@ export class TagsExplorerPanel extends Component {
 		sortBy: string,
 		direction: 'asc' | 'desc',
 		childLevel = false,
-		nodeTypeFilter: string | null = null,
+		nodeTypeFilter: NodeTypeFilterInput = null,
 	): void {
 		const normalizedSortBy = normalizeExplorerSortBy(sortBy);
+		const nextNodeTypeFilters = normalizeNodeTypeFilters(nodeTypeFilter);
 		if (
 			this.sortBy === normalizedSortBy &&
 			this.sortDir === direction &&
 			this.sortChildLevel === childLevel &&
-			this.nodeTypeFilter === nodeTypeFilter
+			sameNodeTypeFilters(this.nodeTypeFilters, nextNodeTypeFilters)
 		) {
 			return;
 		}
 		this.sortBy = normalizedSortBy;
 		this.sortDir = direction;
 		this.sortChildLevel = childLevel;
-		this.nodeTypeFilter = nodeTypeFilter;
+		this.nodeTypeFilters = nextNodeTypeFilters;
 		this._render();
 	}
 
@@ -219,8 +226,8 @@ export class TagsExplorerPanel extends Component {
 		if (this.searchMode === 'leaf') {
 			tree = this._collectLeaves(tree);
 		}
-		if (this.nodeTypeFilter) {
-			tree = this._filterByNodeType(tree, this.nodeTypeFilter);
+		if (this.nodeTypeFilters.length > 0) {
+			tree = this._filterByNodeTypes(tree, this.nodeTypeFilters);
 		}
 		if (this.searchTerm) {
 			tree = this.logic.filterTree(tree, this.searchTerm);
@@ -329,6 +336,20 @@ export class TagsExplorerPanel extends Component {
 		);
 	}
 
+	private _expandSubtree(id: string, nodes: TreeNode<TagMeta>[]): void {
+		const root = this._findNode(id, nodes);
+		if (!root) return;
+		let changed = false;
+		for (const expandableId of collectExpandableSubtreeIds(root)) {
+			if (this.expandedIds.has(expandableId)) continue;
+			this.expandedIds.add(expandableId);
+			changed = true;
+		}
+		if (!changed) return;
+		this._notifyExpansionChanged();
+		void this._render();
+	}
+
 	private _notifyExpansionChanged(change?: FloatingTocExpansionChange): void {
 		this.onExpansionChange?.();
 		if (change) this.onIndexChanged?.(change);
@@ -393,8 +414,8 @@ export class TagsExplorerPanel extends Component {
 		if (this.searchMode === 'leaf') {
 			tree = this._collectLeaves(tree);
 		}
-		if (this.nodeTypeFilter) {
-			tree = this._filterByNodeType(tree, this.nodeTypeFilter);
+		if (this.nodeTypeFilters.length > 0) {
+			tree = this._filterByNodeTypes(tree, this.nodeTypeFilters);
 		}
 		if (this.searchTerm) {
 			tree = this.logic.filterTree(tree, this.searchTerm);
@@ -460,6 +481,8 @@ export class TagsExplorerPanel extends Component {
 					this._toggleExpanded(id);
 					void this._render();
 				},
+				onRecursiveExpand: (id: string) =>
+					this._expandSubtree(id, nodesWithIcons),
 				onRowClick: (id: string) => {
 					const node = this._findNode(id, tree);
 					if (!node) return;
@@ -528,6 +551,8 @@ export class TagsExplorerPanel extends Component {
 				this._toggleExpanded(id);
 				void this._render();
 			},
+			onRecursiveExpand: (id: string) =>
+				this._expandSubtree(id, nodesWithIcons),
 			onRowClick: (id: string) => {
 				const node = this._findNode(id, tree);
 				if (!node) return;
@@ -958,12 +983,13 @@ export class TagsExplorerPanel extends Component {
 				}
 			}
 
+			const iconic = this.plugin.iconicService?.getTagIcon(meta.tagPath);
+
 			return {
 				...node,
 				cls: cls,
-				icon:
-					this.plugin.iconicService?.getTagIcon(meta.tagPath)?.icon ??
-					'lucide-tag',
+				icon: iconic?.icon ?? 'lucide-tag',
+				iconColor: iconic?.color || undefined,
 				badges: badges,
 				children: resolvedChildren,
 			};
@@ -1074,12 +1100,16 @@ export class TagsExplorerPanel extends Component {
 		return groupRootHierarchy(nodes, 'nested');
 	}
 
-	private _filterByNodeType(
+	private _filterByNodeTypes(
 		nodes: TreeNode<TagMeta>[],
-		nodeTypeFilter: string,
+		nodeTypeFilters: readonly string[],
 	): TreeNode<TagMeta>[] {
-		if (nodeTypeFilter === 'simple') return groupRootHierarchy(nodes, 'simple');
-		if (nodeTypeFilter === 'nested') return this._collectNested(nodes);
+		const selectedTypes = new Set(nodeTypeFilters);
+		const includeSimple = selectedTypes.has('simple');
+		const includeNested = selectedTypes.has('nested');
+		if (includeSimple && !includeNested)
+			return groupRootHierarchy(nodes, 'simple');
+		if (includeNested && !includeSimple) return this._collectNested(nodes);
 		return nodes;
 	}
 

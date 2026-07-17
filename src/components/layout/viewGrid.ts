@@ -1,10 +1,11 @@
 // src/components/GridView.ts
-import { setIcon, type App, type TFile } from 'obsidian';
+import { Platform, setIcon, type App, type TFile } from 'obsidian';
 import { translate } from '../../i18n/index';
 import { buildVirtualTableWindow } from '../../utils/tableVirtualization';
 import type { NodeBadge } from '../../types/typeTree';
 import {
 	compareFilesForExplorer,
+	DEFAULT_EXPLORER_SORT_DIR,
 	normalizeExplorerSortBy,
 	type ExplorerFileTimes,
 } from '../../logic/logicSort';
@@ -17,17 +18,37 @@ import {
 	type FileTableLayout,
 } from '../../logic/logicTableLayout';
 import { vaultmanPerfMonitor } from '../../utils/performanceMonitor';
+import { elementContentWidth } from '../../utils/elementDimensions';
+import {
+	explorerDensityProfile,
+	usesMobileExplorerDensity,
+} from '../../logic/logicResponsiveLayout';
+import type { ResolvedExplorerIcon } from '../../logic/logicFileIcons';
+import { renderIconValue } from '../../utils/renderIconValue';
 
-export type SortColumn = 'name' | 'props' | 'path' | 'mtime' | 'ctime' | 'ext';
+export type SortColumn =
+	| 'name'
+	| 'props'
+	| 'words'
+	| 'path'
+	| 'mtime'
+	| 'ctime'
+	| 'ext';
 export type SortDirection = 'asc' | 'desc';
 
 export interface GridViewCallbacks {
 	getFileTimes?: (file: TFile) => ExplorerFileTimes;
 	getWordCount?: (file: TFile) => number | null;
 	getBadges?: (file: TFile) => NodeBadge[];
+	getFileIcon?: (
+		file: TFile,
+		defaultIcon: string,
+	) => ResolvedExplorerIcon | null;
 	onContextMenu: (file: TFile, e: MouseEvent) => void;
 	onSelectionChange: (selected: Set<string>) => void;
-	onFileClick: (file: TFile) => void;
+	onFileClick: (file: TFile, event?: MouseEvent | KeyboardEvent) => void;
+	onFileHover?: (file: TFile, element: HTMLElement) => void;
+	onSortChange?: (column: SortColumn, direction: SortDirection) => void;
 	onDragStart?: (file: TFile, event: DragEvent) => void;
 }
 
@@ -50,7 +71,6 @@ export class GridView {
 	private pendingScrollTimer: number | null = null;
 	private totalCount = 0;
 	private columnWidths: FileTableColumnWidths = {};
-	private readonly rowHeight = 30;
 	private readonly overscan = 8;
 	private visibleCells = new Set<string>(['name', 'ext', 'path']);
 	private readonly onScroll = () => {
@@ -66,6 +86,15 @@ export class GridView {
 		this.containerEl = containerEl;
 		this.app = app;
 		this.callbacks = callbacks;
+	}
+
+	private get rowHeight(): number {
+		const body = this.containerEl.ownerDocument.body;
+		const isMobile = usesMobileExplorerDensity(
+			Platform.isMobile,
+			body.classList,
+		);
+		return explorerDensityProfile(isMobile).tableRowHeight;
 	}
 
 	render(files: TFile[], totalCount: number): void {
@@ -227,9 +256,13 @@ export class GridView {
 				this.sortDirection = this.sortDirection === 'asc' ? 'desc' : 'asc';
 			} else {
 				this.sortColumn = col;
-				this.sortDirection = 'asc';
+				this.sortDirection = DEFAULT_EXPLORER_SORT_DIR[col] ?? 'asc';
 			}
-			this.render(files, total);
+			if (this.callbacks.onSortChange) {
+				this.callbacks.onSortChange(this.sortColumn, this.sortDirection);
+			} else {
+				this.render(files, total);
+			}
 		};
 		btn.addEventListener('click', updateSort);
 		btn.addEventListener('keydown', (event) => {
@@ -252,6 +285,18 @@ export class GridView {
 
 	setActivePath(path: string | null): void {
 		this.activePath = path;
+	}
+
+	setSelectedPaths(paths: ReadonlySet<string>): void {
+		if (
+			this.selectedFiles.size === paths.size &&
+			[...paths].every((path) => this.selectedFiles.has(path))
+		) {
+			return;
+		}
+		this.selectedFiles.clear();
+		for (const path of paths) this.selectedFiles.add(path);
+		this._renderWindow();
 	}
 
 	private _layout(): FileTableLayout {
@@ -319,10 +364,10 @@ export class GridView {
 	}
 
 	private surfaceWidth(layout: FileTableLayout): number {
-		return Math.max(layout.totalWidth,
-			this.listEl?.clientWidth ?? 0,
-			this.containerEl.clientWidth,
-		);
+		const viewportWidth = this.listEl
+			? elementContentWidth(this.listEl)
+			: this.containerEl.clientWidth;
+		return Math.max(layout.totalWidth, viewportWidth);
 	}
 
 	private _positionCell(cell: HTMLElement, column: FileTableColumn): void {
@@ -405,6 +450,7 @@ export class GridView {
 		wordCount: number | null,
 		badges: NodeBadge[],
 	): string {
+		const resolvedIcon = this._resolvedFileIcon(file);
 		const columns = layout.columns
 			.map(
 				(column) =>
@@ -415,6 +461,8 @@ export class GridView {
 			file.path,
 			file.name,
 			file.extension,
+			resolvedIcon?.icon ?? '',
+			resolvedIcon?.color ?? '',
 			file.parent?.path ?? '',
 			file.stat.ctime,
 			file.stat.mtime,
@@ -435,6 +483,7 @@ export class GridView {
 				.join('|'),
 			this.sortColumn,
 			this.activePath === file.path ? '1' : '0',
+			this.selectedFiles.has(file.path) ? '1' : '0',
 			columns,
 		].join('\u001f');
 	}
@@ -475,6 +524,7 @@ export class GridView {
 		row.style.top = `${top}px`;
 		row.style.height = `${this.rowHeight}px`;
 		row.style.width = `${this.surfaceWidth(layout)}px`;
+		row.onpointerenter = () => this.callbacks.onFileHover?.(file, row);
 		row.oncontextmenu = (event) => {
 			event.preventDefault();
 			this.callbacks.onContextMenu(file, event);
@@ -486,6 +536,7 @@ export class GridView {
 		row.empty();
 		row.className = 'bases-tr vaultman-file-row vaultman-file-table-row';
 		row.dataset.renderSignature = signature;
+		row.toggleClass('is-selected', this.selectedFiles.has(file.path));
 
 		for (const column of layout.columns) {
 			if (column.id === 'icon') {
@@ -538,13 +589,19 @@ export class GridView {
 	): void {
 		const cell = row.createDiv({ cls: 'bases-td' });
 		this._positionCell(cell, column);
+		const resolvedIcon = this._resolvedFileIcon(file);
+		if (!resolvedIcon) return;
 		const iconEl = cell.createSpan({
 			cls: 'bases-table-cell vaultman-file-icon',
 		});
-		setIcon(
-			iconEl,
-			file.extension === 'base' ? 'lucide-database' : 'lucide-file',
-		);
+		renderIconValue(iconEl, resolvedIcon.icon, resolvedIcon.color);
+	}
+
+	private _resolvedFileIcon(file: TFile): ResolvedExplorerIcon | null {
+		const defaultIcon =
+			file.extension === 'base' ? 'lucide-database' : 'lucide-file';
+		if (!this.callbacks.getFileIcon) return { icon: defaultIcon };
+		return this.callbacks.getFileIcon(file, defaultIcon);
 	}
 
 	private _renderNameCell(
@@ -577,7 +634,14 @@ export class GridView {
 			}
 		}
 		this.renderBadges(cell, badges);
-		nameEl.addEventListener('click', () => this.callbacks.onFileClick(file));
+		nameEl.addEventListener('click', (event) =>
+			this.callbacks.onFileClick(file, event),
+		);
+		nameEl.addEventListener('auxclick', (event) => {
+			if (event.button !== 1) return;
+			event.preventDefault();
+			this.callbacks.onFileClick(file, event);
+		});
 	}
 
 	private renderBadges(parent: HTMLElement, badges: NodeBadge[]): void {
@@ -647,6 +711,7 @@ export class GridView {
 							this.app.metadataCache.getFileCache(file)?.frontmatter ?? {};
 						return Object.keys(fm).filter((k) => k !== 'position').length;
 					},
+					wordCountForFile: this.callbacks.getWordCount,
 					getFileTimes: this.callbacks.getFileTimes,
 				},
 			),

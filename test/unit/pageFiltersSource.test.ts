@@ -68,5 +68,7 @@ describe('pageFilters tab switching source guard', () => {
 			'plugin.settings.toolbarToolsMenu === true',
 		);
 		expect(pageFiltersSource).toContain('{toolbarToolsMenu}');
+		expect(pageFiltersSource).toContain('frameWidth = 0');
+		expect(pageFiltersSource).toContain('{frameWidth}');
 	});
 });
