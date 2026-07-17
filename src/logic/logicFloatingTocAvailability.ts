@@ -5,6 +5,14 @@ export interface FloatingTocToggleDecision {
 	rejection: FloatingTocToggleRejection;
 }
 
+export function isFloatingTocSortIndexable(
+	tab: 'files' | 'props' | 'tags' | 'snippets' | 'plugins',
+	sortBy: string,
+): boolean {
+	if (tab === 'snippets' || tab === 'plugins') return sortBy === 'name';
+	return sortBy === 'name' || sortBy === 'path' || sortBy === 'ext';
+}
+
 export function resolveFloatingTocToggle(
 	currentEnabled: boolean,
 	indexableSort: boolean,

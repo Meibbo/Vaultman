@@ -1,7 +1,11 @@
 <script lang="ts">
 	import { untrack } from 'svelte';
 	import { translate } from '../../i18n/index';
-	import type { ExplorerSortState, SortScopeKey } from '../../types/typeUI';
+	import type {
+		ExplorerSortState,
+		ExplorerTabId,
+		SortScopeKey,
+	} from '../../types/typeUI';
 	import { DEFAULT_EXPLORER_SORT_DIR } from '../../logic/logicSort';
 	import {
 		activeScopeSort,
@@ -14,7 +18,7 @@
 		toggleNodeTypeFilter,
 	} from '../../logic/logicNodeTypeFilters';
 
-	type FiltersTab = 'props' | 'files' | 'tags';
+	type FiltersTab = ExplorerTabId;
 
 	type SortOption = {
 		id: string;
@@ -88,6 +92,40 @@
 				id: 'path',
 				iconName: 'lucide-route',
 				labelKey: 'sort.by.path',
+			},
+		],
+		snippets: [
+			{
+				id: 'name',
+				iconName: 'lucide-a-large-small',
+				labelKey: 'sort.by.name',
+			},
+			{
+				id: 'installed',
+				iconName: 'lucide-calendar-plus',
+				labelKey: 'sort.by.installed',
+			},
+			{
+				id: 'updated',
+				iconName: 'lucide-calendar-clock',
+				labelKey: 'sort.by.updated',
+			},
+		],
+		plugins: [
+			{
+				id: 'name',
+				iconName: 'lucide-a-large-small',
+				labelKey: 'sort.by.name',
+			},
+			{
+				id: 'installed',
+				iconName: 'lucide-calendar-plus',
+				labelKey: 'sort.by.installed',
+			},
+			{
+				id: 'updated',
+				iconName: 'lucide-calendar-clock',
+				labelKey: 'sort.by.updated',
 			},
 		],
 	};
@@ -190,18 +228,20 @@
 						labelKey: 'sort.level.values',
 					},
 				]
-			: [
-					{
-						scope: 'all',
-						iconName: 'lucide-layers',
-						labelKey: 'sort.level.all',
-					},
-					{
-						scope: 'drill',
-						iconName: 'lucide-mouse-pointer-click',
-						labelKey: 'sort.level.drill',
-					},
-				],
+			: activeTab === 'files' || activeTab === 'tags'
+				? [
+						{
+							scope: 'all',
+							iconName: 'lucide-layers',
+							labelKey: 'sort.level.all',
+						},
+						{
+							scope: 'drill',
+							iconName: 'lucide-mouse-pointer-click',
+							labelKey: 'sort.level.drill',
+						},
+					]
+				: [],
 	);
 
 	// Reset per-tab state when the active tab changes.
@@ -296,67 +336,73 @@
 
 <div class="vaultman-sort-popup">
 	<!-- Vert-col: absolute, floats left over tab content -->
-	<div class="vaultman-sort-vertcol">
-		<div
-			class="vaultman-sort-vertcol-btn"
-			class:is-active={levelDrawerOpen}
-			aria-label={translate('sort.level.title')}
-			title={translate('sort.level.title')}
-			onclick={toggleLevelDrawer}
-			onkeydown={(e: KeyboardEvent) => {
-				if (e.key === 'Enter' || e.key === ' ') toggleLevelDrawer();
-			}}
-			role="button"
-			tabindex="0"
-			use:icon={vertTopIcon}
-		></div>
-		{#if levelDrawerOpen}
-			<div class="vaultman-sort-vertcol-drawer">
-				{#each levelOptions as opt (opt.scope)}
-					<button
-						class="vaultman-sort-drawer-item"
-						class:is-active={sortState.activeScope === opt.scope}
-						aria-label={translate(opt.labelKey)}
-						title={translate(opt.labelKey)}
-						onclick={() => selectScope(opt.scope)}
-						use:icon={opt.iconName}
-					></button>
-				{/each}
-			</div>
-		{/if}
-		<div
-			class="vaultman-sort-vertcol-btn"
-			class:is-active={activeTab === 'files' ? parentsFirst : drawerOpen}
-			aria-label={activeTab === 'files'
-				? translate('sort.parents_first')
-				: translate('sort.vertcol.scope_drawer')}
-			onclick={toggleDrawer}
-			onkeydown={(e: KeyboardEvent) => {
-				if (e.key === 'Enter' || e.key === ' ') toggleDrawer();
-			}}
-			role="button"
-			tabindex="0"
-			use:icon={vertBotIcon}
-		></div>
-		{#if drawerOpen && activeTab !== 'files'}
-			<div class="vaultman-sort-vertcol-drawer">
-				{#each DRAWER_OPTIONS[activeTab] as opt (opt.id)}
-					<button
-						class="vaultman-sort-drawer-item"
-						class:is-active={nodeTypeFilters.includes(opt.id) ||
-							(opt.id === 'all' && nodeTypeFilters.length === 0)}
-						aria-label={translate(opt.labelKey)}
-						title={translate(opt.labelKey)}
-						onclick={() => selectNodeTypeFilter(opt.id)}
-						use:icon={opt.iconName}
-					></button>
-				{/each}
-			</div>
-		{/if}
-	</div>
+	{#if activeTab === 'props' || activeTab === 'files' || activeTab === 'tags'}
+		<div class="vaultman-sort-vertcol">
+			<div
+				class="vaultman-sort-vertcol-btn"
+				class:is-active={levelDrawerOpen}
+				aria-label={translate('sort.level.title')}
+				title={translate('sort.level.title')}
+				onclick={toggleLevelDrawer}
+				onkeydown={(e: KeyboardEvent) => {
+					if (e.key === 'Enter' || e.key === ' ') toggleLevelDrawer();
+				}}
+				role="button"
+				tabindex="0"
+				use:icon={vertTopIcon}
+			></div>
+			{#if levelDrawerOpen}
+				<div class="vaultman-sort-vertcol-drawer">
+					{#each levelOptions as opt (opt.scope)}
+						<button
+							class="vaultman-sort-drawer-item"
+							class:is-active={sortState.activeScope === opt.scope}
+							aria-label={translate(opt.labelKey)}
+							title={translate(opt.labelKey)}
+							onclick={() => selectScope(opt.scope)}
+							use:icon={opt.iconName}
+						></button>
+					{/each}
+				</div>
+			{/if}
+			<div
+				class="vaultman-sort-vertcol-btn"
+				class:is-active={activeTab === 'files' ? parentsFirst : drawerOpen}
+				aria-label={activeTab === 'files'
+					? translate('sort.parents_first')
+					: translate('sort.vertcol.scope_drawer')}
+				onclick={toggleDrawer}
+				onkeydown={(e: KeyboardEvent) => {
+					if (e.key === 'Enter' || e.key === ' ') toggleDrawer();
+				}}
+				role="button"
+				tabindex="0"
+				use:icon={vertBotIcon}
+			></div>
+			{#if drawerOpen && (activeTab === 'props' || activeTab === 'tags')}
+				<div class="vaultman-sort-vertcol-drawer">
+					{#each DRAWER_OPTIONS[activeTab] as opt (opt.id)}
+						<button
+							class="vaultman-sort-drawer-item"
+							class:is-active={nodeTypeFilters.includes(opt.id) ||
+								(opt.id === 'all' && nodeTypeFilters.length === 0)}
+							aria-label={translate(opt.labelKey)}
+							title={translate(opt.labelKey)}
+							onclick={() => selectNodeTypeFilter(opt.id)}
+							use:icon={opt.iconName}
+						></button>
+					{/each}
+				</div>
+			{/if}
+		</div>
+	{/if}
 
 	<!-- Main content panel: row 1 + row 2 -->
-	<div class="vaultman-sort-main">
+	<div
+		class="vaultman-sort-main"
+		class:vaultman-sort-main--flat={activeTab === 'snippets' ||
+			activeTab === 'plugins'}
+	>
 		<!-- Row 1: sort controls + close -->
 		<div class="vaultman-sort-row vaultman-sort-row-controls">
 			{#each SORT_OPTIONS[activeTab] as opt (opt.id)}

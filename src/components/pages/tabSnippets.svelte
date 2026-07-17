@@ -5,20 +5,27 @@
 	let {
 		plugin,
 		active = false,
+		searchTerm = '',
+		panel = $bindable(),
 	}: {
 		plugin: VaultmanPlugin;
 		active?: boolean;
+		searchTerm?: string;
+		panel?: SnippetsExplorerPanel;
 	} = $props();
-
-	let panel: SnippetsExplorerPanel | undefined;
 
 	$effect(() => {
 		if (active && panel) void panel.refresh();
 	});
 
+	$effect(() => {
+		panel?.setSearchTerm(searchTerm);
+	});
+
 	function initSnippetsPanel(el: HTMLElement) {
 		panel = new SnippetsExplorerPanel(el, plugin);
 		panel.load();
+		panel.setSearchTerm(searchTerm);
 		return {
 			destroy() {
 				panel?.unload();

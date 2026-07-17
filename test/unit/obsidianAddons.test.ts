@@ -14,6 +14,7 @@ describe('Obsidian add-on adapters', () => {
 				snippets: ['zeta.css', 'alpha', 'alpha'],
 				enabledSnippets: new Set(['folder/alpha.css']),
 			},
+			vault: { configDir: 'vault-config', adapter: {} },
 		} as never;
 
 		await expect(listCssSnippetEntries(app)).resolves.toEqual([
@@ -42,6 +43,27 @@ describe('Obsidian add-on adapters', () => {
 		expect(list).toHaveBeenCalledWith(`${configDir}/snippets`);
 	});
 
+	it('loads snippet installed and updated times from the CSS file stat', async () => {
+		const stat = vi.fn(async () => ({ ctime: 10, mtime: 20 }));
+		const app = {
+			customCss: { snippets: ['cards'] },
+			vault: {
+				configDir: 'vault-config',
+				adapter: { stat },
+			},
+		} as never;
+
+		await expect(listCssSnippetEntries(app)).resolves.toEqual([
+			{
+				name: 'cards',
+				enabled: false,
+				installedTime: 10,
+				updatedTime: 20,
+			},
+		]);
+		expect(stat).toHaveBeenCalledWith('vault-config/snippets/cards.css');
+	});
+
 	it('toggles snippets through the compatible internal API surface', async () => {
 		const setCssEnabledStatus = vi.fn(async () => {});
 		const requestLoadSnippets = vi.fn(async () => {});
@@ -68,11 +90,20 @@ describe('Obsidian add-on adapters', () => {
 				enablePluginAndSave,
 				disablePluginAndSave,
 			},
+			vault: { configDir: 'vault-config', adapter: {} },
 		} as never;
 
-		expect(listCommunityPluginEntries(app)).toEqual([
-			expect.objectContaining({ pluginId: 'alpha', enabled: true, loaded: true }),
-			expect.objectContaining({ pluginId: 'zeta', enabled: false, loaded: false }),
+		await expect(listCommunityPluginEntries(app)).resolves.toEqual([
+			expect.objectContaining({
+				pluginId: 'alpha',
+				enabled: true,
+				loaded: true,
+			}),
+			expect.objectContaining({
+				pluginId: 'zeta',
+				enabled: false,
+				loaded: false,
+			}),
 		]);
 		await expect(setCommunityPluginEnabled(app, 'zeta', true)).resolves.toBe(
 			true,
@@ -82,5 +113,29 @@ describe('Obsidian add-on adapters', () => {
 		);
 		expect(enablePluginAndSave).toHaveBeenCalledWith('zeta');
 		expect(disablePluginAndSave).toHaveBeenCalledWith('alpha');
+	});
+
+	it('loads plugin installed and updated times from each manifest stat', async () => {
+		const stat = vi.fn(async () => ({ ctime: 30, mtime: 40 }));
+		const app = {
+			plugins: {
+				manifests: { alpha: { id: 'alpha', name: 'Alpha' } },
+			},
+			vault: {
+				configDir: 'vault-config',
+				adapter: { stat },
+			},
+		} as never;
+
+		await expect(listCommunityPluginEntries(app)).resolves.toEqual([
+			expect.objectContaining({
+				pluginId: 'alpha',
+				installedTime: 30,
+				updatedTime: 40,
+			}),
+		]);
+		expect(stat).toHaveBeenCalledWith(
+			'vault-config/plugins/alpha/manifest.json',
+		);
 	});
 });

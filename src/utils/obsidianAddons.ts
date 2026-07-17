@@ -5,7 +5,10 @@ type MaybePromise<T> = T | Promise<T>;
 interface ObsidianCustomCss {
 	snippets?: string[];
 	enabledSnippets?: Set<string>;
-	setCssEnabledStatus?: (snippet: string, enabled: boolean) => MaybePromise<void>;
+	setCssEnabledStatus?: (
+		snippet: string,
+		enabled: boolean,
+	) => MaybePromise<void>;
 	getSnippetsFolder?: () => string;
 	requestLoadSnippets?: () => MaybePromise<void>;
 }
@@ -37,6 +40,8 @@ interface ExtendedApp extends App {
 export interface CssSnippetEntry {
 	name: string;
 	enabled: boolean;
+	installedTime?: number;
+	updatedTime?: number;
 }
 
 export interface CommunityPluginEntry {
@@ -48,6 +53,38 @@ export interface CommunityPluginEntry {
 	isDesktopOnly?: boolean;
 	enabled: boolean;
 	loaded: boolean;
+	installedTime?: number;
+	updatedTime?: number;
+}
+
+interface AddonFileTimes {
+	installedTime?: number;
+	updatedTime?: number;
+}
+
+const addonTimeCache = new WeakMap<
+	object,
+	Map<string, Promise<AddonFileTimes>>
+>();
+
+function addonTimes(app: App, path: string): Promise<AddonFileTimes> {
+	let appCache = addonTimeCache.get(app);
+	if (!appCache) {
+		appCache = new Map();
+		addonTimeCache.set(app, appCache);
+	}
+	const cached = appCache.get(path);
+	if (cached) return cached;
+	const pending = (async () => {
+		try {
+			const stat = await app.vault?.adapter?.stat?.(path);
+			return stat ? { installedTime: stat.ctime, updatedTime: stat.mtime } : {};
+		} catch {
+			return {};
+		}
+	})();
+	appCache.set(path, pending);
+	return pending;
 }
 
 function extendedApp(app: App): ExtendedApp {
@@ -56,7 +93,10 @@ function extendedApp(app: App): ExtendedApp {
 
 function normalizeSnippetName(value: string): string {
 	const normalizedPath = value.trim().replace(/\\/g, '/');
-	return (normalizedPath.split('/').pop() ?? normalizedPath).replace(/\.css$/i, '');
+	return (normalizedPath.split('/').pop() ?? normalizedPath).replace(
+		/\.css$/i,
+		'',
+	);
 }
 
 export async function listCssSnippetEntries(
@@ -69,7 +109,9 @@ export async function listCssSnippetEntries(
 			customCss?.getSnippetsFolder?.() ?? `${app.vault.configDir}/snippets`;
 		try {
 			const listed = await app.vault.adapter.list(folder);
-			names = listed.files.filter((path) => path.toLowerCase().endsWith('.css'));
+			names = listed.files.filter((path) =>
+				path.toLowerCase().endsWith('.css'),
+			);
 		} catch {
 			names = [];
 		}
@@ -78,9 +120,17 @@ export async function listCssSnippetEntries(
 	const enabled = new Set(
 		[...(customCss?.enabledSnippets ?? [])].map(normalizeSnippetName),
 	);
-	return [...new Set(names.map(normalizeSnippetName).filter(Boolean))]
-		.sort((a, b) => a.localeCompare(b))
-		.map((name) => ({ name, enabled: enabled.has(name) }));
+	const folder =
+		customCss?.getSnippetsFolder?.() ?? `${app.vault.configDir}/snippets`;
+	return Promise.all(
+		[...new Set(names.map(normalizeSnippetName).filter(Boolean))]
+			.sort((a, b) => a.localeCompare(b))
+			.map(async (name) => ({
+				name,
+				enabled: enabled.has(name),
+				...(await addonTimes(app, `${folder}/${name}.css`)),
+			})),
+	);
 }
 
 export async function setCssSnippetEnabled(
@@ -95,27 +145,36 @@ export async function setCssSnippetEnabled(
 	return true;
 }
 
-export function listCommunityPluginEntries(app: App): CommunityPluginEntry[] {
+export async function listCommunityPluginEntries(
+	app: App,
+): Promise<CommunityPluginEntry[]> {
 	const manager = extendedApp(app).plugins;
 	const manifests = manager?.manifests ?? {};
 	const enabled = manager?.enabledPlugins ?? new Set<string>();
 	const runtime = manager?.plugins ?? {};
-	return Object.values(manifests)
-		.filter((manifest) => Boolean(manifest.id && manifest.name))
-		.map((manifest) => ({
-			pluginId: manifest.id,
-			name: manifest.name,
-			version: manifest.version,
-			author: manifest.author,
-			description: manifest.description,
-			isDesktopOnly: manifest.isDesktopOnly,
-			enabled: enabled.has(manifest.id),
-			loaded: runtime[manifest.id]?._loaded ?? false,
-		}))
-		.sort(
-			(a, b) =>
-				a.name.localeCompare(b.name) || a.pluginId.localeCompare(b.pluginId),
-		);
+	const configDir = app.vault.configDir;
+	const entries = await Promise.all(
+		Object.values(manifests)
+			.filter((manifest) => Boolean(manifest.id && manifest.name))
+			.map(async (manifest) => ({
+				pluginId: manifest.id,
+				name: manifest.name,
+				version: manifest.version,
+				author: manifest.author,
+				description: manifest.description,
+				isDesktopOnly: manifest.isDesktopOnly,
+				enabled: enabled.has(manifest.id),
+				loaded: runtime[manifest.id]?._loaded ?? false,
+				...(await addonTimes(
+					app,
+					`${configDir}/plugins/${manifest.id}/manifest.json`,
+				)),
+			})),
+	);
+	return entries.sort(
+		(a, b) =>
+			a.name.localeCompare(b.name) || a.pluginId.localeCompare(b.pluginId),
+	);
 }
 
 export async function setCommunityPluginEnabled(

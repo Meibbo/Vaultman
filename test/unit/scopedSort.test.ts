@@ -67,6 +67,21 @@ describe('scoped explorer sort state', () => {
 		});
 	});
 
+	it('uses one flat All scope for add-on explorers', () => {
+		for (const tab of ['snippets', 'plugins'] as const) {
+			const state = normalizeExplorerSortState(tab, null);
+			expect(state).toEqual({
+				sorts: {},
+				activeScope: 'all',
+				nodeTypeFilter: null,
+			});
+			expect(activeScopeSort(tab, state)).toEqual({
+				sortBy: 'name',
+				direction: 'asc',
+			});
+		}
+	});
+
 	it('falls an orphaned drill scope back to All', () => {
 		const saved = {
 			sorts: {
@@ -180,12 +195,7 @@ describe('scoped tree ordering', () => {
 			byLabel('desc'),
 			'tag:#zeta',
 		);
-		const reset = sortAllWithDrill(
-			tree,
-			byLabel('asc'),
-			byLabel('desc'),
-			null,
-		);
+		const reset = sortAllWithDrill(tree, byLabel('asc'), byLabel('desc'), null);
 
 		expect(drilled.map((node) => node.label)).toEqual(['alpha', 'zeta']);
 		expect(drilled[1].children?.map((node) => node.label)).toEqual([

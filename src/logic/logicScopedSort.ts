@@ -12,13 +12,21 @@ const SCOPES_BY_TAB: Record<ExplorerTabId, readonly SortScopeKey[]> = {
 	props: ['properties', 'values'],
 	files: ['all', 'drill'],
 	tags: ['all', 'drill'],
+	snippets: ['all'],
+	plugins: ['all'],
 };
 
 const DEFAULT_SCOPE_BY_TAB: Record<ExplorerTabId, SortScopeKey> = {
 	props: 'properties',
 	files: 'all',
 	tags: 'all',
+	snippets: 'all',
+	plugins: 'all',
 };
+
+function isHierarchicalTab(tab: ExplorerTabId): boolean {
+	return tab === 'files' || tab === 'tags';
+}
 
 interface NormalizeSortOptions {
 	isValidDrillNode?: (id: string) => boolean;
@@ -48,7 +56,7 @@ function defaultState(tab: ExplorerTabId): ExplorerSortState {
 	return {
 		sorts: {},
 		activeScope: DEFAULT_SCOPE_BY_TAB[tab],
-		...(tab === 'props' ? {} : { drillNodeId: null }),
+		...(isHierarchicalTab(tab) ? { drillNodeId: null } : {}),
 		nodeTypeFilter: null,
 		...(tab === 'files' ? { parentsFirst: true } : {}),
 	};
@@ -124,14 +132,12 @@ export function normalizeExplorerSortState(
 	return {
 		sorts,
 		activeScope,
-		...(tab === 'props' ? {} : { drillNodeId }),
+		...(isHierarchicalTab(tab) ? { drillNodeId } : {}),
 		...nodeFilters,
 		...(tab === 'files'
 			? {
 					parentsFirst:
-						typeof value.parentsFirst === 'boolean'
-							? value.parentsFirst
-							: true,
+						typeof value.parentsFirst === 'boolean' ? value.parentsFirst : true,
 				}
 			: {}),
 	};
@@ -191,11 +197,13 @@ export function sortTwoLevel<T extends { children?: T[] }>(
 	compareProperties: (a: T, b: T) => number,
 	compareValues: (a: T, b: T) => number,
 ): T[] {
-	return [...nodes].sort(compareProperties).map((node) =>
-		node.children?.length
-			? { ...node, children: [...node.children].sort(compareValues) }
-			: node,
-	);
+	return [...nodes]
+		.sort(compareProperties)
+		.map((node) =>
+			node.children?.length
+				? { ...node, children: [...node.children].sort(compareValues) }
+				: node,
+		);
 }
 
 export function sortAllWithDrill<T extends SortableTreeNode<T>>(
@@ -207,11 +215,13 @@ export function sortAllWithDrill<T extends SortableTreeNode<T>>(
 	const sortLevel = (siblings: readonly T[], parentId: string | null): T[] => {
 		const compare =
 			drillNodeId && parentId === drillNodeId ? compareDrill : compareAll;
-		return [...siblings].sort(compare).map((node) =>
-			node.children?.length
-				? { ...node, children: sortLevel(node.children, node.id) }
-				: node,
-		);
+		return [...siblings]
+			.sort(compare)
+			.map((node) =>
+				node.children?.length
+					? { ...node, children: sortLevel(node.children, node.id) }
+					: node,
+			);
 	};
 
 	return sortLevel(nodes, null);

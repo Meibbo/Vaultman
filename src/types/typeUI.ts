@@ -43,7 +43,7 @@ export interface FabDef {
 	warningCount?: number;
 }
 
-export type ExplorerTabId = 'props' | 'files' | 'tags';
+export type ExplorerTabId = 'props' | 'files' | 'tags' | 'snippets' | 'plugins';
 export type ExplorerViewMode = 'tree' | 'table' | 'dnd' | 'grid' | 'cards';
 export type ExplorerSortDirection = 'asc' | 'desc';
 export type SortScopeKey = 'all' | 'drill' | 'properties' | 'values';

@@ -5,6 +5,8 @@
 	import type { FilesExplorerPanel } from './components/containers/explorerFiles';
 	import type { PropsExplorerPanel } from './components/containers/explorerProps';
 	import type { TagsExplorerPanel } from './components/containers/explorerTags';
+	import type { SnippetsExplorerPanel } from './components/containers/explorerSnippets';
+	import type { PluginsExplorerPanel } from './components/containers/explorerPlugins';
 	import StatisticsPage from './components/pages/pageStatistics.svelte';
 	import FiltersPage from './components/pages/pageFilters.svelte';
 	import BottomNav from './components/layout/navbarPillFab.svelte';
@@ -565,6 +567,8 @@
 	let queueList: QueueListComponent | undefined;
 	let propExplorer = $state<PropsExplorerPanel | undefined>(undefined);
 	let tagsExplorer = $state<TagsExplorerPanel | null>(null);
+	let snippetsExplorer = $state<SnippetsExplorerPanel | undefined>(undefined);
+	let pluginsExplorer = $state<PluginsExplorerPanel | undefined>(undefined);
 
 	// ─── Filters page state ──────────────────────────────────────────────────
 	type FiltersTab =
@@ -574,7 +578,7 @@
 		| 'content'
 		| 'snippets'
 		| 'plugins';
-	type SearchTab = 'tags' | 'props' | 'files';
+	type SearchTab = Exclude<FiltersTab, 'content'>;
 	let filtersActiveTab = $state<FiltersTab>('files');
 
 	// ─── Floating TOC (FTC-001/002 + toggle/scope-drill) ──────────────────────
@@ -612,6 +616,10 @@
 				return propExplorer ?? null;
 			case 'tags':
 				return tagsExplorer ?? null;
+			case 'snippets':
+				return snippetsExplorer ?? null;
+			case 'plugins':
+				return pluginsExplorer ?? null;
 			default:
 				return null;
 		}
@@ -635,6 +643,8 @@
 			{ panelId: 'files', panel: fileList },
 			{ panelId: 'props', panel: propExplorer },
 			{ panelId: 'tags', panel: tagsExplorer },
+			{ panelId: 'snippets', panel: snippetsExplorer },
+			{ panelId: 'plugins', panel: pluginsExplorer },
 		];
 		const bindings: Array<{
 			panel: FloatingTocPanel;
@@ -826,11 +836,15 @@
 		tags: '',
 		props: '',
 		files: '',
+		snippets: '',
+		plugins: '',
 	});
 	let filtersSearchCategory = $state<Record<SearchTab, number>>({
 		tags: 0,
 		props: 0,
 		files: 0,
+		snippets: 0,
+		plugins: 0,
 	});
 	let lastFilesSearchTerm = '';
 
@@ -851,7 +865,7 @@
 
 	function applyExplorerSearch() {
 		const tab = filtersActiveTab;
-		if (tab !== 'files' && tab !== 'props' && tab !== 'tags') return;
+		if (tab === 'content') return;
 		const term = filtersSearchByTab[tab] ?? '';
 		const catMode = filtersSearchCategory[tab] ?? 0;
 
@@ -870,6 +884,12 @@
 				} else {
 					plugin.filterService.setFileSearchRule('file_folder', term);
 				}
+				break;
+			case 'snippets':
+				snippetsExplorer?.setSearchTerm(term);
+				break;
+			case 'plugins':
+				pluginsExplorer?.setSearchTerm(term);
 				break;
 		}
 	}
@@ -1167,6 +1187,8 @@
 							bind:selectedCount
 							bind:tagsExplorer
 							bind:propExplorer
+							bind:snippetsExplorer
+							bind:pluginsExplorer
 							{settingsRevision}
 							{floatingTocEnabled}
 							onToggleFloatingToc={toggleFloatingToc}

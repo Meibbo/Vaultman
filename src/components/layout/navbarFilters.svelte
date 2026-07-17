@@ -8,10 +8,12 @@
 	import type { PropsExplorerPanel } from '../containers/explorerProps';
 	import type { TagsExplorerPanel } from '../containers/explorerTags';
 	import type {
+		ExplorerTabId,
 		ExplorerSortState,
 		ExplorerViewMode,
 		SortScopeKey,
 	} from '../../types/typeUI';
+	import type { AddonExplorerPanelPort } from '../../logic/logicAddonExplorer';
 	import type { SavedLayout, SavedViewConfig } from '../../types/typeSettings';
 	import { showInputModal } from '../../utils/inputModal';
 	import { DEFAULT_EXPLORER_SORT_DIR } from '../../logic/logicSort';
@@ -37,7 +39,10 @@
 	} from '../../logic/logicNodeTypeFilters';
 	import { LongPressGesture } from '../../utils/longPressGesture';
 
-	type FiltersTab = 'props' | 'files' | 'tags';
+	type FiltersTab = ExplorerTabId;
+	type CoreFiltersTab = 'props' | 'files' | 'tags';
+	type SearchCategoryState = Record<CoreFiltersTab, number> &
+		Partial<Record<Exclude<FiltersTab, CoreFiltersTab>, number>>;
 	type HeaderTabOption = { id: string; label: string; icon: string };
 	type HeaderMenuAction = {
 		id: 'filters' | 'queue' | 'statistics';
@@ -72,6 +77,8 @@
 		tagsExplorer,
 		propExplorer,
 		fileList,
+		snippetsExplorer,
+		pluginsExplorer,
 		icon,
 		addOpCount = 0,
 		minimalStyle = true,
@@ -98,10 +105,12 @@
 	}: {
 		activeTab: FiltersTab;
 		filtersSearch: string;
-		filtersSearchCategory: Record<FiltersTab, number>;
+		filtersSearchCategory: SearchCategoryState;
 		tagsExplorer: TagsExplorerPanel | null | undefined;
 		propExplorer: PropsExplorerPanel | undefined;
 		fileList: FilesExplorerPanel | undefined;
+		snippetsExplorer?: AddonExplorerPanelPort;
+		pluginsExplorer?: AddonExplorerPanelPort;
 		icon: (node: HTMLElement, name: string) => { update(n: string): void };
 		addOpCount?: number;
 		minimalStyle?: boolean;
@@ -133,12 +142,14 @@
 		if (name) saveLayout(name);
 	}
 
-	const CATEGORY_ICONS: Record<FiltersTab, [string, string]> = {
+	const CATEGORY_ICONS: Record<FiltersTab, string[]> = {
 		props: ['lucide-search', 'lucide-tag'],
 		tags: ['lucide-hash', 'lucide-git-branch'],
 		files: ['lucide-file', 'lucide-folder'],
+		snippets: ['lucide-file-code'],
+		plugins: ['lucide-plug'],
 	};
-	const CATEGORY_LABELS: Record<FiltersTab, [string, string]> = {
+	const CATEGORY_LABELS: Record<FiltersTab, string[]> = {
 		props: [
 			translate('filter.category.all_props'),
 			translate('filter.category.prop_names'),
@@ -151,6 +162,8 @@
 			translate('filter.category.files'),
 			translate('filter.category.folders'),
 		],
+		snippets: [translate('filter.tab.snippets')],
+		plugins: [translate('filter.tab.plugins')],
 	};
 
 	const currentCategoryIcon = $derived(
@@ -166,16 +179,23 @@
 				? 'lucide-tag'
 				: 'lucide-plus',
 	);
+	const canCreateSearchTarget = $derived(
+		activeTab === 'files' || activeTab === 'props' || activeTab === 'tags',
+	);
 
 	const DEFAULT_SORT_STATE: Record<FiltersTab, ExplorerSortState> = {
 		props: normalizeExplorerSortState('props', null),
 		tags: normalizeExplorerSortState('tags', null),
 		files: normalizeExplorerSortState('files', null),
+		snippets: normalizeExplorerSortState('snippets', null),
+		plugins: normalizeExplorerSortState('plugins', null),
 	};
 	const DEFAULT_VISIBLE_CELLS: Record<FiltersTab, string[]> = {
 		props: ['icon', 'text', 'count', 'nested'],
 		tags: ['icon', 'text', 'count', 'nested'],
 		files: ['name', 'ext', 'count', 'nested'],
+		snippets: ['icon', 'text', 'state'],
+		plugins: ['icon', 'text', 'state', 'config'],
 	};
 	const CELL_LABELS: Record<FiltersTab, Record<string, string>> = {
 		props: {
@@ -201,6 +221,21 @@
 			ctime: 'viewmode.pill.ctime',
 			nested: 'viewmode.pill.nested',
 		},
+		snippets: {
+			icon: 'viewmode.pill.icon',
+			text: 'viewmode.pill.text',
+			state: 'viewmode.pill.state',
+			installed: 'viewmode.pill.installed',
+			updated: 'viewmode.pill.updated',
+		},
+		plugins: {
+			icon: 'viewmode.pill.icon',
+			text: 'viewmode.pill.text',
+			state: 'viewmode.pill.state',
+			config: 'viewmode.pill.config',
+			installed: 'viewmode.pill.installed',
+			updated: 'viewmode.pill.updated',
+		},
 	};
 	const CELL_ICONS: Record<string, string> = {
 		icon: 'lucide-image',
@@ -213,6 +248,10 @@
 		nested: 'lucide-git-branch',
 		mtime: 'lucide-calendar-clock',
 		ctime: 'lucide-calendar-plus',
+		state: 'lucide-toggle-right',
+		config: 'lucide-settings',
+		installed: 'lucide-calendar-plus',
+		updated: 'lucide-calendar-clock',
 	};
 	const SORT_OPTIONS: Record<
 		FiltersTab,
@@ -265,6 +304,32 @@
 			},
 			{ id: 'path', icon: 'lucide-route', labelKey: 'sort.by.path' },
 		],
+		snippets: [
+			{ id: 'name', icon: 'lucide-a-large-small', labelKey: 'sort.by.name' },
+			{
+				id: 'installed',
+				icon: 'lucide-calendar-plus',
+				labelKey: 'sort.by.installed',
+			},
+			{
+				id: 'updated',
+				icon: 'lucide-calendar-clock',
+				labelKey: 'sort.by.updated',
+			},
+		],
+		plugins: [
+			{ id: 'name', icon: 'lucide-a-large-small', labelKey: 'sort.by.name' },
+			{
+				id: 'installed',
+				icon: 'lucide-calendar-plus',
+				labelKey: 'sort.by.installed',
+			},
+			{
+				id: 'updated',
+				icon: 'lucide-calendar-clock',
+				labelKey: 'sort.by.updated',
+			},
+		],
 	};
 	const NODE_TYPE_OPTIONS: Record<'props' | 'tags', NodeTypeOption[]> = {
 		props: [
@@ -304,23 +369,37 @@
 		props: 'tree',
 		tags: 'tree',
 		files: 'tree',
+		snippets: 'tree',
+		plugins: 'tree',
 	});
 	let visibleCellsByTab = $state<Record<FiltersTab, string[]>>({
 		props: [...DEFAULT_VISIBLE_CELLS.props],
 		tags: [...DEFAULT_VISIBLE_CELLS.tags],
 		files: [...DEFAULT_VISIBLE_CELLS.files],
+		snippets: [...DEFAULT_VISIBLE_CELLS.snippets],
+		plugins: [...DEFAULT_VISIBLE_CELLS.plugins],
 	});
 	let sortStateByTab = $state<Record<FiltersTab, ExplorerSortState>>({
 		props: { ...DEFAULT_SORT_STATE.props },
 		tags: { ...DEFAULT_SORT_STATE.tags },
 		files: { ...DEFAULT_SORT_STATE.files },
+		snippets: { ...DEFAULT_SORT_STATE.snippets },
+		plugins: { ...DEFAULT_SORT_STATE.plugins },
 	});
 	const appliedSortStateByTab: Record<FiltersTab, ExplorerSortState> = {
 		props: { ...DEFAULT_SORT_STATE.props },
 		tags: { ...DEFAULT_SORT_STATE.tags },
 		files: { ...DEFAULT_SORT_STATE.files },
+		snippets: { ...DEFAULT_SORT_STATE.snippets },
+		plugins: { ...DEFAULT_SORT_STATE.plugins },
 	};
-	const LAYOUT_TABS: FiltersTab[] = ['files', 'props', 'tags'];
+	const LAYOUT_TABS: FiltersTab[] = [
+		'files',
+		'props',
+		'tags',
+		'snippets',
+		'plugins',
+	];
 	// A short, caveman-ish summary of what each explorer holds in this layout.
 	function buildLayoutSummary(): string {
 		return LAYOUT_TABS.map((tab) => {
@@ -392,8 +471,12 @@
 		void filtersSearchCategory[activeTab];
 		if (activeTab === 'files') return fileList?.hasExpandedNodes() ?? false;
 		if (activeTab === 'props') return propExplorer?.hasExpandedNodes() ?? false;
-		return tagsExplorer?.hasExpandedNodes() ?? false;
+		if (activeTab === 'tags') return tagsExplorer?.hasExpandedNodes() ?? false;
+		return false;
 	});
+	const supportsExpansion = $derived(
+		activeTab === 'files' || activeTab === 'props' || activeTab === 'tags',
+	);
 	const expansionLabel = $derived(
 		hasExpandedNodes
 			? translate('filter.collapse_all')
@@ -474,7 +557,9 @@
 
 	function cycleSearchCategory() {
 		const tab = activeTab;
-		filtersSearchCategory[tab] = filtersSearchCategory[tab] === 0 ? 1 : 0;
+		const count = CATEGORY_ICONS[tab].length;
+		filtersSearchCategory[tab] =
+			((filtersSearchCategory[tab] ?? 0) + 1) % Math.max(1, count);
 		filtersSearchCategory = { ...filtersSearchCategory };
 	}
 
@@ -563,7 +648,7 @@
 			);
 			return;
 		}
-		tagsExplorer?.createFromSearch(filtersSearch);
+		if (tab === 'tags') tagsExplorer?.createFromSearch(filtersSearch);
 	}
 
 	function applySortState(tab: FiltersTab, state: ExplorerSortState) {
@@ -579,6 +664,8 @@
 		if (tab === 'tags') {
 			tagsExplorer?.setSortState(normalizedState);
 		}
+		if (tab === 'snippets') snippetsExplorer?.setSortState(normalizedState);
+		if (tab === 'plugins') pluginsExplorer?.setSortState(normalizedState);
 	}
 
 	function applyViewMode(tab: FiltersTab, mode: ExplorerViewMode) {
@@ -594,6 +681,8 @@
 		}
 		if (tab === 'props') propExplorer?.setViewMode(effectiveMode);
 		if (tab === 'tags') tagsExplorer?.setViewMode(effectiveMode);
+		if (tab === 'snippets') snippetsExplorer?.setViewMode(effectiveMode);
+		if (tab === 'plugins') pluginsExplorer?.setViewMode(effectiveMode);
 	}
 
 	function applyVisibleCells(tab: FiltersTab, cells: string[]) {
@@ -601,6 +690,8 @@
 		if (tab === 'files') fileList?.setVisibleCells(cellSet);
 		if (tab === 'props') propExplorer?.setVisibleCells(cellSet);
 		if (tab === 'tags') tagsExplorer?.setVisibleCells(cellSet);
+		if (tab === 'snippets') snippetsExplorer?.setVisibleCells(cellSet);
+		if (tab === 'plugins') pluginsExplorer?.setVisibleCells(cellSet);
 	}
 
 	function handleSortChange(state: ExplorerSortState) {
@@ -881,7 +972,7 @@
 	}
 
 	function beginDrillPick(tab: FiltersTab) {
-		if (tab === 'props') return;
+		if (tab === 'props' || tab === 'snippets' || tab === 'plugins') return;
 		stopDrillPick();
 		const pane =
 			navbarEl?.closest<HTMLElement>('.vaultman-filters-tab-pane.is-active') ??
@@ -975,6 +1066,7 @@
 				},
 			];
 		}
+		if (tab === 'snippets' || tab === 'plugins') return [];
 		return [
 			{
 				scope: 'all',
@@ -996,7 +1088,10 @@
 				...(fileList?.getFileTypeOptions() ?? []),
 			];
 		}
-		return NODE_TYPE_OPTIONS[activeTab];
+		if (activeTab === 'props' || activeTab === 'tags') {
+			return NODE_TYPE_OPTIONS[activeTab];
+		}
+		return [];
 	}
 
 	function nodeTypeOptionTitle(option: NodeTypeOption): string {
@@ -1040,68 +1135,78 @@
 			});
 		}
 
-		menu.addSeparator();
-		menu.addItem((item) => {
-			item.setTitle(translate('sort.level.title')).setIcon('lucide-list-tree');
-			const sub = (
-				item as typeof item & { setSubmenu: () => Menu }
-			).setSubmenu();
-			for (const option of sortLevelOptions(activeTab)) {
-				sub.addItem((subItem) =>
-					subItem
-						.setTitle(option.label)
-						.setIcon(option.icon)
-						.setChecked(current.activeScope === option.scope)
-						.onClick(() => {
-							if (option.scope === 'drill') {
-								beginDrillPick(activeTab);
-								return;
-							}
-							stopDrillPick();
-							handleScopeChange({
-								...current,
-								activeScope: option.scope,
-								...(activeTab === 'props' ? {} : { drillNodeId: null }),
-							});
-						}),
-				);
-			}
-		});
-
-		menu.addSeparator();
-		const selectedNodeTypes = nodeTypeFiltersForState(current);
-		menu.addItem((item) => {
-			item
-				.setTitle(
-					`${translate('explorer.sort.type')}${
-						selectedNodeTypes.length > 0 ? ` (${selectedNodeTypes.length})` : ''
-					}`,
-				)
-				.setIcon('lucide-list-filter');
-			const sub = (
-				item as typeof item & { setSubmenu: () => Menu }
-			).setSubmenu();
-			for (const option of nodeTypeOptionsForActiveTab()) {
-				const isAll = option.id === 'all';
-				const isActive = isAll
-					? selectedNodeTypes.length === 0
-					: selectedNodeTypes.includes(option.id);
-				sub.addItem((subItem) =>
-					subItem
-						.setTitle(nodeTypeOptionTitle(option))
-						.setIcon(option.icon)
-						.setChecked(isActive)
-						.onClick(() =>
-							handleFilterChange({
-								...current,
-								...nodeTypeFilterPatch(
-									toggleNodeTypeFilter(selectedNodeTypes, option.id),
-								),
+		const levelOptions = sortLevelOptions(activeTab);
+		if (levelOptions.length > 0) {
+			menu.addSeparator();
+			menu.addItem((item) => {
+				item
+					.setTitle(translate('sort.level.title'))
+					.setIcon('lucide-list-tree');
+				const sub = (
+					item as typeof item & { setSubmenu: () => Menu }
+				).setSubmenu();
+				for (const option of levelOptions) {
+					sub.addItem((subItem) =>
+						subItem
+							.setTitle(option.label)
+							.setIcon(option.icon)
+							.setChecked(current.activeScope === option.scope)
+							.onClick(() => {
+								if (option.scope === 'drill') {
+									beginDrillPick(activeTab);
+									return;
+								}
+								stopDrillPick();
+								handleScopeChange({
+									...current,
+									activeScope: option.scope,
+									...(activeTab === 'props' ? {} : { drillNodeId: null }),
+								});
 							}),
-						),
-				);
-			}
-		});
+					);
+				}
+			});
+		}
+
+		const nodeTypeOptions = nodeTypeOptionsForActiveTab();
+		if (nodeTypeOptions.length > 0) {
+			menu.addSeparator();
+			const selectedNodeTypes = nodeTypeFiltersForState(current);
+			menu.addItem((item) => {
+				item
+					.setTitle(
+						`${translate('explorer.sort.type')}${
+							selectedNodeTypes.length > 0
+								? ` (${selectedNodeTypes.length})`
+								: ''
+						}`,
+					)
+					.setIcon('lucide-list-filter');
+				const sub = (
+					item as typeof item & { setSubmenu: () => Menu }
+				).setSubmenu();
+				for (const option of nodeTypeOptions) {
+					const isAll = option.id === 'all';
+					const isActive = isAll
+						? selectedNodeTypes.length === 0
+						: selectedNodeTypes.includes(option.id);
+					sub.addItem((subItem) =>
+						subItem
+							.setTitle(nodeTypeOptionTitle(option))
+							.setIcon(option.icon)
+							.setChecked(isActive)
+							.onClick(() =>
+								handleFilterChange({
+									...current,
+									...nodeTypeFilterPatch(
+										toggleNodeTypeFilter(selectedNodeTypes, option.id),
+									),
+								}),
+							),
+					);
+				}
+			});
+		}
 
 		menu.showAtMouseEvent(event);
 	}
@@ -1195,6 +1300,16 @@
 			applyVisibleCells(tab, cells);
 			applySortState(tab, sortState);
 		}
+		if (tab === 'snippets' && snippetsExplorer) {
+			applyViewMode(tab, viewMode);
+			applyVisibleCells(tab, cells);
+			applySortState(tab, sortState);
+		}
+		if (tab === 'plugins' && pluginsExplorer) {
+			applyViewMode(tab, viewMode);
+			applyVisibleCells(tab, cells);
+			applySortState(tab, sortState);
+		}
 	});
 
 	function handleAddModeChange(active: boolean) {
@@ -1232,21 +1347,25 @@
 				}}
 			></button>
 		{/if}
-		<button
-			class="vaultman-filters-search-mode"
-			aria-label={CATEGORY_LABELS[activeTab]?.[
-				filtersSearchCategory[activeTab] ?? 0
-			] ?? translate('filter.search_mode')}
-			use:icon={currentCategoryIcon}
-			onclick={cycleSearchCategory}
-		></button>
-		<button
-			class="vaultman-filters-search-create"
-			aria-label={translate('filter.create')}
-			title={minimalStyle ? undefined : translate('filter.create')}
-			use:icon={currentCreateIcon}
-			onclick={createSearchTarget}
-		></button>
+		{#if CATEGORY_ICONS[activeTab].length > 1}
+			<button
+				class="vaultman-filters-search-mode"
+				aria-label={CATEGORY_LABELS[activeTab]?.[
+					filtersSearchCategory[activeTab] ?? 0
+				] ?? translate('filter.search_mode')}
+				use:icon={currentCategoryIcon}
+				onclick={cycleSearchCategory}
+			></button>
+		{/if}
+		{#if canCreateSearchTarget}
+			<button
+				class="vaultman-filters-search-create"
+				aria-label={translate('filter.create')}
+				title={minimalStyle ? undefined : translate('filter.create')}
+				use:icon={currentCreateIcon}
+				onclick={createSearchTarget}
+			></button>
+		{/if}
 	</div>
 {/snippet}
 
@@ -1429,7 +1548,7 @@
 								use:icon={'lucide-gallery-vertical'}
 							></div>
 						{/if}
-						{#if compactFilesTools}
+						{#if supportsExpansion && compactFilesTools}
 							<div
 								class={headerActionClass}
 								role="button"
@@ -1446,7 +1565,7 @@
 								}}
 								use:icon={'lucide-tools-case'}
 							></div>
-						{:else}
+						{:else if supportsExpansion}
 							<div
 								class={headerActionClass}
 								role="button"

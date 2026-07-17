@@ -63,6 +63,8 @@ export interface FileMeta {
 export interface SnippetMeta {
 	name: string;
 	enabled: boolean;
+	installedTime?: number;
+	updatedTime?: number;
 }
 
 export interface PluginMeta {
@@ -75,4 +77,6 @@ export interface PluginMeta {
 	description?: string;
 	isDesktopOnly?: boolean;
 	isVaultman: boolean;
+	installedTime?: number;
+	updatedTime?: number;
 }

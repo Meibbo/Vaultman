@@ -13,6 +13,8 @@
 	import type { FilesExplorerPanel } from '../containers/explorerFiles';
 	import type { PropsExplorerPanel } from '../containers/explorerProps';
 	import type { TagsExplorerPanel } from '../containers/explorerTags';
+	import type { SnippetsExplorerPanel } from '../containers/explorerSnippets';
+	import type { PluginsExplorerPanel } from '../containers/explorerPlugins';
 	import type { ContentPreviewResult } from '../../types/typeUI';
 	import type { SavedLayout } from '../../types/typeSettings';
 	import {
@@ -34,7 +36,7 @@
 		| 'content'
 		| 'snippets'
 		| 'plugins';
-	type SearchTab = 'props' | 'files' | 'tags';
+	type SearchTab = Exclude<FiltersTab, 'content'>;
 	type HeaderMenuAction = {
 		id: 'filters' | 'queue' | 'statistics';
 		label: string;
@@ -97,12 +99,26 @@
 	let {
 		plugin,
 		filtersActiveTab = $bindable('files'),
-		filtersSearchByTab = $bindable({ props: '', tags: '', files: '' }),
-		filtersSearchCategory = $bindable({ tags: 0, props: 0, files: 0 }),
+		filtersSearchByTab = $bindable({
+			props: '',
+			tags: '',
+			files: '',
+			snippets: '',
+			plugins: '',
+		}),
+		filtersSearchCategory = $bindable({
+			tags: 0,
+			props: 0,
+			files: 0,
+			snippets: 0,
+			plugins: 0,
+		}),
 		fileList = $bindable(),
 		selectedCount = $bindable(0),
 		tagsExplorer = $bindable(),
 		propExplorer = $bindable(),
+		snippetsExplorer = $bindable(),
+		pluginsExplorer = $bindable(),
 		settingsRevision = 0,
 		frameWidth = 0,
 		getSelectedFiles,
@@ -137,6 +153,8 @@
 		selectedCount: number;
 		tagsExplorer: TagsExplorerPanel | null;
 		propExplorer: PropsExplorerPanel | undefined;
+		snippetsExplorer: SnippetsExplorerPanel | undefined;
+		pluginsExplorer: PluginsExplorerPanel | undefined;
 		settingsRevision?: number;
 		frameWidth?: number;
 		getSelectedFiles: () => TFile[];
@@ -193,25 +211,11 @@
 	const nativeSearchAdapter = createNativeSearchAdapter();
 
 	const explorerActiveTab = $derived<SearchTab>(
-		filtersActiveTab === 'files'
-			? 'files'
-			: filtersActiveTab === 'tags'
-				? 'tags'
-				: 'props',
+		filtersActiveTab === 'content' ? 'props' : filtersActiveTab,
 	);
-	const explorerSearchTab = $derived<SearchTab>(
-		filtersActiveTab === 'files'
-			? 'files'
-			: filtersActiveTab === 'tags'
-				? 'tags'
-				: 'props',
-	);
+	const explorerSearchTab = $derived<SearchTab>(explorerActiveTab);
 	const filtersSearch = $derived(filtersSearchByTab[explorerSearchTab] ?? '');
-	const isExplorerControlTab = $derived(
-		filtersActiveTab === 'files' ||
-			filtersActiveTab === 'props' ||
-			filtersActiveTab === 'tags',
-	);
+	const isExplorerControlTab = $derived(filtersActiveTab !== 'content');
 	const showTabLabels = $derived.by(() => {
 		void settingsRevision;
 		return plugin.settings.filtersShowTabLabels;
@@ -427,7 +431,19 @@
 		visitedTabs = { ...visitedTabs, [tab]: true };
 	}
 
-	function switchFiltersTab(tab: FiltersTab) {
+	function isFiltersTab(tab: string): tab is FiltersTab {
+		return (
+			tab === 'files' ||
+			tab === 'props' ||
+			tab === 'tags' ||
+			tab === 'content' ||
+			tab === 'snippets' ||
+			tab === 'plugins'
+		);
+	}
+
+	function switchFiltersTab(tab: string) {
+		if (!isFiltersTab(tab)) return;
 		ensureActiveTabVisited(filtersActiveTab);
 		ensureActiveTabVisited(tab);
 		if (filtersActiveTab === tab) return;
@@ -714,6 +730,8 @@
 			{tagsExplorer}
 			{propExplorer}
 			{fileList}
+			{snippetsExplorer}
+			{pluginsExplorer}
 			{addOpCount}
 			{minimalStyle}
 			{showDock}
@@ -721,7 +739,7 @@
 			{tabMenuActions}
 			headerActions={contentHeaderActions}
 			activeSectionTab={filtersActiveTab}
-			onSectionTabChange={(tab) => switchFiltersTab(tab as FiltersTab)}
+			onSectionTabChange={switchFiltersTab}
 			onFiltersSearchChange={setExplorerSearch}
 			showExplorerControls={isExplorerControlTab}
 			{expansionRevision}
@@ -823,7 +841,12 @@
 			class:is-active={filtersActiveTab === 'snippets'}
 			aria-hidden={filtersActiveTab !== 'snippets'}
 		>
-			<SnippetsTab {plugin} active={filtersActiveTab === 'snippets'} />
+			<SnippetsTab
+				{plugin}
+				active={filtersActiveTab === 'snippets'}
+				searchTerm={filtersSearchByTab.snippets}
+				bind:panel={snippetsExplorer}
+			/>
 		</div>
 	{/if}
 	{#if visitedTabs.plugins || filtersActiveTab === 'plugins'}
@@ -832,7 +855,12 @@
 			class:is-active={filtersActiveTab === 'plugins'}
 			aria-hidden={filtersActiveTab !== 'plugins'}
 		>
-			<PluginsTab {plugin} active={filtersActiveTab === 'plugins'} />
+			<PluginsTab
+				{plugin}
+				active={filtersActiveTab === 'plugins'}
+				searchTerm={filtersSearchByTab.plugins}
+				bind:panel={pluginsExplorer}
+			/>
 		</div>
 	{/if}
 </div>

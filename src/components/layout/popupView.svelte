@@ -1,13 +1,13 @@
 <script lang="ts">
 	import { translate } from '../../i18n/index';
 	import { untrack } from 'svelte';
-	import type { ExplorerViewMode } from '../../types/typeUI';
+	import type { ExplorerTabId, ExplorerViewMode } from '../../types/typeUI';
 	import {
 		isViewModeSelectableForDataSurface,
 		viewModesForDataSurface,
 	} from '../../logic/logicExplorerViewModes';
 
-	type FiltersTab = 'props' | 'files' | 'tags';
+	type FiltersTab = ExplorerTabId;
 	type ViewMode = ExplorerViewMode;
 
 	type PillDef = {
@@ -59,6 +59,37 @@
 			{ id: 'mtime', labelKey: 'viewmode.pill.mtime', defaultOn: false },
 			{ id: 'ctime', labelKey: 'viewmode.pill.ctime', defaultOn: false },
 			{ id: 'nested', labelKey: 'viewmode.pill.nested', defaultOn: true },
+		],
+		snippets: [
+			{ id: 'icon', labelKey: 'viewmode.pill.icon', defaultOn: true },
+			{ id: 'text', labelKey: 'viewmode.pill.text', defaultOn: true },
+			{ id: 'state', labelKey: 'viewmode.pill.state', defaultOn: true },
+			{
+				id: 'installed',
+				labelKey: 'viewmode.pill.installed',
+				defaultOn: false,
+			},
+			{
+				id: 'updated',
+				labelKey: 'viewmode.pill.updated',
+				defaultOn: false,
+			},
+		],
+		plugins: [
+			{ id: 'icon', labelKey: 'viewmode.pill.icon', defaultOn: true },
+			{ id: 'text', labelKey: 'viewmode.pill.text', defaultOn: true },
+			{ id: 'state', labelKey: 'viewmode.pill.state', defaultOn: true },
+			{ id: 'config', labelKey: 'viewmode.pill.config', defaultOn: true },
+			{
+				id: 'installed',
+				labelKey: 'viewmode.pill.installed',
+				defaultOn: false,
+			},
+			{
+				id: 'updated',
+				labelKey: 'viewmode.pill.updated',
+				defaultOn: false,
+			},
 		],
 	};
 
@@ -177,23 +208,25 @@
 			tabindex="0"
 			use:icon={'lucide-chevron-left'}
 		></div>
-		<!-- ADD mode FAB -->
-		<div
-			class="vaultman-nav-fab"
-			class:is-add-active={addMode}
-			role="button"
-			tabindex="0"
-			aria-label={translate('viewmode.add_mode')}
-			onclick={toggleAddMode}
-			onkeydown={(e: KeyboardEvent) => {
-				if (e.key === 'Enter' || e.key === ' ') toggleAddMode();
-			}}
-			use:icon={'lucide-plus'}
-		>
-			{#if addOpCount && addOpCount > 0}
-				<span class="vaultman-fab-badge">{addOpCount}</span>
-			{/if}
-		</div>
+		{#if activeTab !== 'snippets' && activeTab !== 'plugins'}
+			<!-- ADD mode FAB -->
+			<div
+				class="vaultman-nav-fab"
+				class:is-add-active={addMode}
+				role="button"
+				tabindex="0"
+				aria-label={translate('viewmode.add_mode')}
+				onclick={toggleAddMode}
+				onkeydown={(e: KeyboardEvent) => {
+					if (e.key === 'Enter' || e.key === ' ') toggleAddMode();
+				}}
+				use:icon={'lucide-plus'}
+			>
+				{#if addOpCount && addOpCount > 0}
+					<span class="vaultman-fab-badge">{addOpCount}</span>
+				{/if}
+			</div>
+		{/if}
 		<!-- Pills (horizontal scroll, no scrollbar) -->
 		<div class="vaultman-viewmode-pills">
 			{#each currentPillDefs as pill (pill.id)}

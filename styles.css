@@ -6011,6 +6011,10 @@ button.vaultman-content-scope-hint:focus-visible {
   padding-left: 40px; /* leave room for vert-col */
 }
 
+.vaultman-sort-main--flat {
+  padding-left: 0;
+}
+
 .vaultman-sort-row {
   display: flex;
   align-items: center;

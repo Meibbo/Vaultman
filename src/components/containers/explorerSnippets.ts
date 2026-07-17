@@ -2,19 +2,43 @@ import { Component, Menu, Notice, setTooltip } from 'obsidian';
 import type { VaultmanPlugin } from '../../main';
 import { translate } from '../../i18n/index';
 import type { SnippetMeta, TreeNode } from '../../types/typeTree';
+import type { ExplorerSortState, ExplorerViewMode } from '../../types/typeUI';
+import type { FloatingTocExpansionChange } from '../../services/routerFloatingToc';
+import type { IndexNodeRef } from '../../logic/logicIndexGroups';
 import {
 	listCssSnippetEntries,
 	setCssSnippetEnabled,
 } from '../../utils/obsidianAddons';
+import {
+	buildAddonHoverInfo,
+	filterAddonEntries,
+	formatAddonTimestamp,
+	sortAddonEntries,
+	type AddonExplorerPanelPort,
+} from '../../logic/logicAddonExplorer';
+import {
+	activeScopeSort,
+	normalizeExplorerSortState,
+	sameExplorerSortState,
+} from '../../logic/logicScopedSort';
+import { isFloatingTocSortIndexable } from '../../logic/logicFloatingTocAvailability';
 import { UnifiedTreeView } from '../layout/viewTree';
 
-export class SnippetsExplorerPanel extends Component {
+export class SnippetsExplorerPanel
+	extends Component
+	implements AddonExplorerPanelPort
+{
 	private readonly containerEl: HTMLElement;
 	private readonly plugin: VaultmanPlugin;
 	private treeView: UnifiedTreeView | null = null;
 	private nodes: TreeNode<SnippetMeta>[] = [];
+	private entries: SnippetMeta[] = [];
+	private searchTerm = '';
+	private sortState = normalizeExplorerSortState('snippets', null);
+	private visibleCells = new Set(['icon', 'text', 'state']);
 	private emptyEl: HTMLElement | null = null;
 	private destroyed = false;
+	private refreshRevision = 0;
 
 	constructor(containerEl: HTMLElement, plugin: VaultmanPlugin) {
 		super();
@@ -30,6 +54,7 @@ export class SnippetsExplorerPanel extends Component {
 
 	onunload(): void {
 		this.destroyed = true;
+		this.refreshRevision += 1;
 		this.treeView?.destroy();
 		this.treeView = null;
 		this.emptyEl?.remove();
@@ -38,25 +63,73 @@ export class SnippetsExplorerPanel extends Component {
 	}
 
 	async refresh(): Promise<void> {
+		const revision = ++this.refreshRevision;
 		const entries = await listCssSnippetEntries(this.plugin.app);
-		if (this.destroyed) return;
+		if (this.destroyed || revision !== this.refreshRevision) return;
+		this.entries = entries;
+		this.rebuildNodes();
+	}
+
+	setSearchTerm(term: string): void {
+		if (this.searchTerm === term) return;
+		this.searchTerm = term;
+		this.rebuildNodes();
+	}
+
+	setSortState(state: ExplorerSortState): void {
+		const normalized = normalizeExplorerSortState('snippets', state);
+		if (sameExplorerSortState(this.sortState, normalized)) return;
+		this.sortState = normalized;
+		this.rebuildNodes();
+	}
+
+	setVisibleCells(cells: Set<string>): void {
+		const next = new Set(cells);
+		if (
+			next.size === this.visibleCells.size &&
+			[...next].every((cell) => this.visibleCells.has(cell))
+		) {
+			return;
+		}
+		this.visibleCells = next;
+		this.rebuildNodes();
+	}
+
+	setViewMode(_mode: ExplorerViewMode): void {
+		// The scene-precedent port is operationally flat/tree-only in beta.3.
+	}
+
+	private rebuildNodes(): void {
+		const filtered = filterAddonEntries(
+			this.entries,
+			this.searchTerm,
+			(entry) => entry.name,
+		);
+		const entries = sortAddonEntries(
+			filtered,
+			activeScopeSort('snippets', this.sortState),
+		);
 		this.nodes = entries.map((entry) => ({
 			id: `snippet:${entry.name}`,
 			label: entry.name,
 			icon: 'lucide-file-code',
+			ctimeText: formatAddonTimestamp(entry.installedTime),
+			mtimeText: formatAddonTimestamp(entry.updatedTime),
 			depth: 0,
-			badges: [
-				{
-					icon: entry.enabled
-						? 'lucide-toggle-right'
-						: 'lucide-toggle-left',
-					text: translate(
-						entry.enabled ? 'addons.enabled' : 'addons.disabled',
-					),
-					color: entry.enabled ? 'success' : 'faint',
-					solid: true,
-				},
-			],
+			badges: this.visibleCells.has('state')
+				? [
+						{
+							icon: entry.enabled
+								? 'lucide-toggle-right'
+								: 'lucide-toggle-left',
+							text: translate(
+								entry.enabled ? 'addons.enabled' : 'addons.disabled',
+							),
+							color: entry.enabled ? 'success' : 'faint',
+							solid: true,
+						},
+					]
+				: [],
 			meta: entry,
 			coreCls: 'tree-item-self nav-file-title tappable is-clickable',
 		}));
@@ -69,6 +142,7 @@ export class SnippetsExplorerPanel extends Component {
 		this.emptyEl = null;
 		this.treeView.render({
 			nodes: this.nodes,
+			visibleCells: this.visibleCells,
 			expandedIds: new Set<string>(),
 			onToggle: () => {},
 			onRowClick: () => {},
@@ -85,6 +159,7 @@ export class SnippetsExplorerPanel extends Component {
 				if (node) this.openMenu(node.meta, event);
 			},
 		});
+		this.onIndexChanged?.();
 		if (this.nodes.length === 0) {
 			this.emptyEl = this.containerEl.createDiv({
 				cls: 'vaultman-files-empty-state',
@@ -98,7 +173,57 @@ export class SnippetsExplorerPanel extends Component {
 	}
 
 	private tooltip(meta: SnippetMeta): string {
-		return `${meta.name}\n${translate(meta.enabled ? 'addons.enabled' : 'addons.disabled')}`;
+		return buildAddonHoverInfo(
+			{
+				name: meta.name,
+				installed: formatAddonTimestamp(meta.installedTime),
+				updated: formatAddonTimestamp(meta.updatedTime),
+			},
+			{
+				installed: translate('addons.installed'),
+				updated: translate('addons.updated'),
+				version: translate('addons.version'),
+				author: translate('addons.author'),
+			},
+		);
+	}
+
+	onIndexChanged?: (change?: FloatingTocExpansionChange) => void;
+
+	getIndexNodes(rootId: string | null): IndexNodeRef[] {
+		if (rootId !== null) return [];
+		return this.nodes.map((node) => ({
+			id: node.id,
+			label: node.label,
+			isContainer: false,
+		}));
+	}
+
+	isIndexableSort(): boolean {
+		return isFloatingTocSortIndexable(
+			'snippets',
+			activeScopeSort('snippets', this.sortState).sortBy,
+		);
+	}
+
+	supportsKindToggle(): boolean {
+		return false;
+	}
+
+	supportsDrill(): boolean {
+		return false;
+	}
+
+	scopeRootForNode(_id: string): string | null {
+		return null;
+	}
+
+	expandNodeById(_id: string): void {}
+
+	revealNode(id: string, options?: { behavior?: ScrollBehavior }): boolean {
+		if (!this.findNode(id)) return false;
+		this.treeView?.scrollToId(id, 'center', options?.behavior ?? 'auto');
+		return true;
 	}
 
 	private openMenu(meta: SnippetMeta, event: MouseEvent): void {
@@ -106,9 +231,7 @@ export class SnippetsExplorerPanel extends Component {
 		new Menu()
 			.addItem((item) =>
 				item
-					.setTitle(
-						translate(next ? 'addons.enable' : 'addons.disable'),
-					)
+					.setTitle(translate(next ? 'addons.enable' : 'addons.disable'))
 					.setIcon(next ? 'lucide-toggle-right' : 'lucide-toggle-left')
 					.onClick(() => void this.toggle(meta)),
 			)

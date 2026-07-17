@@ -21,18 +21,21 @@ export interface ExplorerFileSortOptions {
 	getFileTimes?: (file: TFile) => ExplorerFileTimes;
 }
 
-export const DEFAULT_EXPLORER_SORT_DIR: Record<string, ExplorerSortDirection> = {
-	name: 'asc',
-	count: 'desc',
-	props: 'desc',
-	words: 'desc',
-	mtime: 'desc',
-	ctime: 'desc',
-	sub: 'desc',
-	columns: 'asc',
-	ext: 'asc',
-	path: 'asc',
-};
+export const DEFAULT_EXPLORER_SORT_DIR: Record<string, ExplorerSortDirection> =
+	{
+		name: 'asc',
+		count: 'desc',
+		props: 'desc',
+		words: 'desc',
+		mtime: 'desc',
+		ctime: 'desc',
+		sub: 'desc',
+		columns: 'asc',
+		ext: 'asc',
+		path: 'asc',
+		installed: 'desc',
+		updated: 'desc',
+	};
 
 export function normalizeExplorerSortBy(sortBy: string): string {
 	return sortBy === 'date' ? 'mtime' : sortBy;
@@ -60,7 +63,11 @@ export function compareFilesForExplorer(
 
 	const numericLocale = { numeric: true, sensitivity: 'base' } as const;
 	if (normalizedSortBy === 'path') {
-		result = (a.parent?.path ?? '').localeCompare(b.parent?.path ?? '', undefined, numericLocale);
+		result = (a.parent?.path ?? '').localeCompare(
+			b.parent?.path ?? '',
+			undefined,
+			numericLocale,
+		);
 	} else if (normalizedSortBy === 'ext') {
 		result = a.extension.localeCompare(b.extension, undefined, numericLocale);
 	} else if (normalizedSortBy === 'mtime' || normalizedSortBy === 'ctime') {
@@ -68,7 +75,8 @@ export function compareFilesForExplorer(
 			fileTimeForExplorer(a, normalizedSortBy, options.getFileTimes) -
 			fileTimeForExplorer(b, normalizedSortBy, options.getFileTimes);
 	} else if (normalizedSortBy === 'count') {
-		result = (options.countForFile?.(a) ?? 0) - (options.countForFile?.(b) ?? 0);
+		result =
+			(options.countForFile?.(a) ?? 0) - (options.countForFile?.(b) ?? 0);
 	} else if (normalizedSortBy === 'words') {
 		result =
 			(options.wordCountForFile?.(a) ?? 0) -
@@ -77,7 +85,9 @@ export function compareFilesForExplorer(
 		result = a.basename.localeCompare(b.basename, undefined, numericLocale);
 	}
 
-	return result === 0 ? a.path.localeCompare(b.path, undefined, numericLocale) : dir * result;
+	return result === 0
+		? a.path.localeCompare(b.path, undefined, numericLocale)
+		: dir * result;
 }
 
 export function changedItemsRemainOrdered<T>(

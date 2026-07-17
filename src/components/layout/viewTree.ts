@@ -528,8 +528,12 @@ export class UnifiedTreeView {
 		const showType = visibleCells
 			? visibleCells.has('type') || visibleCells.has('ext')
 			: false;
-		const showMtime = visibleCells ? visibleCells.has('mtime') : false;
-		const showCtime = visibleCells ? visibleCells.has('ctime') : false;
+		const showMtime = visibleCells
+			? visibleCells.has('mtime') || visibleCells.has('updated')
+			: false;
+		const showCtime = visibleCells
+			? visibleCells.has('ctime') || visibleCells.has('installed')
+			: false;
 		const showWords = visibleCells ? visibleCells.has('words') : false;
 
 		const row =

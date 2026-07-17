@@ -1,7 +1,7 @@
 import type { ExplorerViewMode } from '../types/typeUI';
 import type { StatisticsDataTab } from './logicStatisticsNavigation';
 
-export type DataExplorerSurface = StatisticsDataTab;
+export type DataExplorerSurface = StatisticsDataTab | 'snippets' | 'plugins';
 export type PanelViewMode = 'tree' | 'grid' | 'table';
 
 export interface ExplorerViewModeOption {
@@ -45,6 +45,9 @@ export function viewModesForDataSurface(
 	surface: DataExplorerSurface,
 ): ExplorerViewModeOption[] {
 	if (surface === 'content') return [];
+	if (surface === 'snippets' || surface === 'plugins') {
+		return [VIEW_MODE_DEFS.tree];
+	}
 	if (surface === 'files') {
 		return [
 			VIEW_MODE_DEFS.tree,

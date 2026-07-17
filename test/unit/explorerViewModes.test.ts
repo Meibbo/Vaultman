@@ -46,4 +46,14 @@ describe('explorer view mode availability', () => {
 		expect(viewModesForDataSurface('content')).toEqual([]);
 		expect(selectableViewModesForDataSurface('content')).toEqual([]);
 	});
+
+	it('keeps flat add-on adapters on their operational tree renderer', () => {
+		for (const surface of ['snippets', 'plugins'] as const) {
+			expect(viewModesForDataSurface(surface).map((mode) => mode.id)).toEqual([
+				'tree',
+			]);
+			expect(selectableViewModesForDataSurface(surface)).toEqual(['tree']);
+			expect(panelViewModeForDataSurface(surface, 'grid')).toBe('tree');
+		}
+	});
 });

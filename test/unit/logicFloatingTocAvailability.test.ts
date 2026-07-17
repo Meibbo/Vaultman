@@ -2,7 +2,10 @@ import { describe, expect, it } from 'vitest';
 
 import { en } from '../../src/i18n/en';
 import { es } from '../../src/i18n/es';
-import { resolveFloatingTocToggle } from '../../src/logic/logicFloatingTocAvailability';
+import {
+	isFloatingTocSortIndexable,
+	resolveFloatingTocToggle,
+} from '../../src/logic/logicFloatingTocAvailability';
 
 describe('resolveFloatingTocToggle', () => {
 	it('rejects enabling when the active panel sort is incompatible', () => {
@@ -33,5 +36,12 @@ describe('resolveFloatingTocToggle', () => {
 		expect(es['floating_toc.incompatible_sort']).toContain(
 			'nombre, ruta o extensión',
 		);
+	});
+
+	it('allows flat add-on rails only for their alphabetical projection', () => {
+		expect(isFloatingTocSortIndexable('snippets', 'name')).toBe(true);
+		expect(isFloatingTocSortIndexable('plugins', 'name')).toBe(true);
+		expect(isFloatingTocSortIndexable('snippets', 'installed')).toBe(false);
+		expect(isFloatingTocSortIndexable('plugins', 'updated')).toBe(false);
 	});
 });

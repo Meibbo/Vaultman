@@ -2,19 +2,43 @@ import { Component, Menu, Notice, setTooltip } from 'obsidian';
 import type { VaultmanPlugin } from '../../main';
 import { translate } from '../../i18n/index';
 import type { PluginMeta, TreeNode } from '../../types/typeTree';
+import type { ExplorerSortState, ExplorerViewMode } from '../../types/typeUI';
+import type { FloatingTocExpansionChange } from '../../services/routerFloatingToc';
+import type { IndexNodeRef } from '../../logic/logicIndexGroups';
 import {
 	listCommunityPluginEntries,
 	setCommunityPluginEnabled,
 } from '../../utils/obsidianAddons';
+import {
+	buildAddonHoverInfo,
+	filterAddonEntries,
+	formatAddonTimestamp,
+	sortAddonEntries,
+	type AddonExplorerPanelPort,
+} from '../../logic/logicAddonExplorer';
+import {
+	activeScopeSort,
+	normalizeExplorerSortState,
+	sameExplorerSortState,
+} from '../../logic/logicScopedSort';
+import { isFloatingTocSortIndexable } from '../../logic/logicFloatingTocAvailability';
 import { UnifiedTreeView } from '../layout/viewTree';
 
-export class PluginsExplorerPanel extends Component {
+export class PluginsExplorerPanel
+	extends Component
+	implements AddonExplorerPanelPort
+{
 	private readonly containerEl: HTMLElement;
 	private readonly plugin: VaultmanPlugin;
 	private treeView: UnifiedTreeView | null = null;
 	private nodes: TreeNode<PluginMeta>[] = [];
+	private entries: PluginMeta[] = [];
+	private searchTerm = '';
+	private sortState = normalizeExplorerSortState('plugins', null);
+	private visibleCells = new Set(['icon', 'text', 'state', 'config']);
 	private emptyEl: HTMLElement | null = null;
 	private destroyed = false;
+	private refreshRevision = 0;
 
 	constructor(containerEl: HTMLElement, plugin: VaultmanPlugin) {
 		super();
@@ -30,6 +54,7 @@ export class PluginsExplorerPanel extends Component {
 
 	onunload(): void {
 		this.destroyed = true;
+		this.refreshRevision += 1;
 		this.treeView?.destroy();
 		this.treeView = null;
 		this.emptyEl?.remove();
@@ -38,45 +63,100 @@ export class PluginsExplorerPanel extends Component {
 	}
 
 	async refresh(): Promise<void> {
+		const revision = ++this.refreshRevision;
 		const manifestId = this.plugin.manifest.id;
-		this.nodes = listCommunityPluginEntries(this.plugin.app).map((entry) => {
+		const entries = await listCommunityPluginEntries(this.plugin.app);
+		if (this.destroyed || revision !== this.refreshRevision) return;
+		this.entries = entries.map((entry) => ({
+			...entry,
+			isVaultman: entry.pluginId === manifestId,
+		}));
+		this.rebuildNodes();
+	}
+
+	setSearchTerm(term: string): void {
+		if (this.searchTerm === term) return;
+		this.searchTerm = term;
+		this.rebuildNodes();
+	}
+
+	setSortState(state: ExplorerSortState): void {
+		const normalized = normalizeExplorerSortState('plugins', state);
+		if (sameExplorerSortState(this.sortState, normalized)) return;
+		this.sortState = normalized;
+		this.rebuildNodes();
+	}
+
+	setVisibleCells(cells: Set<string>): void {
+		const next = new Set(cells);
+		if (
+			next.size === this.visibleCells.size &&
+			[...next].every((cell) => this.visibleCells.has(cell))
+		) {
+			return;
+		}
+		this.visibleCells = next;
+		this.rebuildNodes();
+	}
+
+	setViewMode(_mode: ExplorerViewMode): void {
+		// The scene-precedent port is operationally flat/tree-only in beta.3.
+	}
+
+	private rebuildNodes(): void {
+		const filtered = filterAddonEntries(
+			this.entries,
+			this.searchTerm,
+			(entry) =>
+				[entry.name, entry.version, entry.author, entry.description]
+					.filter(Boolean)
+					.join(' '),
+		);
+		const entries = sortAddonEntries(
+			filtered,
+			activeScopeSort('plugins', this.sortState),
+		);
+		this.nodes = entries.map((entry) => {
 			const meta: PluginMeta = {
 				...entry,
-				isVaultman: entry.pluginId === manifestId,
 			};
 			return {
 				id: `plugin:${entry.pluginId}`,
 				label: entry.name,
 				icon: 'lucide-plug',
 				typeText: entry.version,
+				ctimeText: formatAddonTimestamp(entry.installedTime),
+				mtimeText: formatAddonTimestamp(entry.updatedTime),
 				depth: 0,
-				badges: [
-					{
-						icon: meta.isVaultman
-							? 'lucide-shield'
-							: entry.enabled
-								? 'lucide-toggle-right'
-								: 'lucide-toggle-left',
-						text: translate(
-							meta.isVaultman
-								? 'addons.plugins.self_protected'
-								: entry.enabled
-									? 'addons.enabled'
-									: 'addons.disabled',
-						),
-						color: meta.isVaultman
-							? 'warning'
-							: entry.enabled
-								? 'success'
-								: 'faint',
-						solid: true,
-					},
-				],
+				badges: this.visibleCells.has('state')
+					? [
+							{
+								icon: meta.isVaultman
+									? 'lucide-shield'
+									: entry.enabled
+										? 'lucide-toggle-right'
+										: 'lucide-toggle-left',
+								text: translate(
+									meta.isVaultman
+										? 'addons.plugins.self_protected'
+										: entry.enabled
+											? 'addons.enabled'
+											: 'addons.disabled',
+								),
+								color: meta.isVaultman
+									? 'warning'
+									: entry.enabled
+										? 'success'
+										: 'faint',
+								solid: true,
+							},
+						]
+					: [],
 				meta,
 				coreCls: 'tree-item-self nav-file-title tappable is-clickable',
 			};
 		});
-		if (!this.destroyed) this.render();
+		this.render();
 	}
 
 	private render(): void {
@@ -85,6 +165,7 @@ export class PluginsExplorerPanel extends Component {
 		this.emptyEl = null;
 		this.treeView.render({
 			nodes: this.nodes,
+			visibleCells: this.visibleCells,
 			expandedIds: new Set<string>(),
 			onToggle: () => {},
 			onRowClick: () => {},
@@ -101,6 +182,7 @@ export class PluginsExplorerPanel extends Component {
 				if (node) this.openMenu(node.meta, event);
 			},
 		});
+		this.onIndexChanged?.();
 		if (this.nodes.length === 0) {
 			this.emptyEl = this.containerEl.createDiv({
 				cls: 'vaultman-files-empty-state',
@@ -114,21 +196,59 @@ export class PluginsExplorerPanel extends Component {
 	}
 
 	private tooltip(meta: PluginMeta): string {
-		return [
-			meta.name,
-			meta.version ? `v${meta.version}` : '',
-			meta.author ?? '',
-			meta.description ?? '',
-			translate(
-				meta.isVaultman
-					? 'addons.plugins.self_protected'
-					: meta.enabled
-						? 'addons.enabled'
-						: 'addons.disabled',
-			),
-		]
-			.filter(Boolean)
-			.join('\n');
+		return buildAddonHoverInfo(
+			{
+				name: meta.name,
+				installed: formatAddonTimestamp(meta.installedTime),
+				updated: formatAddonTimestamp(meta.updatedTime),
+				version: meta.version,
+				author: meta.author,
+			},
+			{
+				installed: translate('addons.installed'),
+				updated: translate('addons.updated'),
+				version: translate('addons.version'),
+				author: translate('addons.author'),
+			},
+		);
+	}
+
+	onIndexChanged?: (change?: FloatingTocExpansionChange) => void;
+
+	getIndexNodes(rootId: string | null): IndexNodeRef[] {
+		if (rootId !== null) return [];
+		return this.nodes.map((node) => ({
+			id: node.id,
+			label: node.label,
+			isContainer: false,
+		}));
+	}
+
+	isIndexableSort(): boolean {
+		return isFloatingTocSortIndexable(
+			'plugins',
+			activeScopeSort('plugins', this.sortState).sortBy,
+		);
+	}
+
+	supportsKindToggle(): boolean {
+		return false;
+	}
+
+	supportsDrill(): boolean {
+		return false;
+	}
+
+	scopeRootForNode(_id: string): string | null {
+		return null;
+	}
+
+	expandNodeById(_id: string): void {}
+
+	revealNode(id: string, options?: { behavior?: ScrollBehavior }): boolean {
+		if (!this.findNode(id)) return false;
+		this.treeView?.scrollToId(id, 'center', options?.behavior ?? 'auto');
+		return true;
 	}
 
 	private openMenu(meta: PluginMeta, event: MouseEvent): void {
@@ -144,9 +264,7 @@ export class PluginsExplorerPanel extends Component {
 			const next = !meta.enabled;
 			menu.addItem((item) =>
 				item
-					.setTitle(
-						translate(next ? 'addons.enable' : 'addons.disable'),
-					)
+					.setTitle(translate(next ? 'addons.enable' : 'addons.disable'))
 					.setIcon(next ? 'lucide-toggle-right' : 'lucide-toggle-left')
 					.onClick(() => void this.toggle(meta)),
 			);
