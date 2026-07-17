@@ -1,10 +1,12 @@
 ---
 title: BT3-003 — Snippets/Plugins scene-precedent parity
 type: issue
-status: pending
+status: completed
 parent: "[[docs/work/polish/issues/bt3-beta3-batch/index|BT3 index]]"
 created: 2026-07-17T09:25:00
 created_by: claude-fable-5
+updated: 2026-07-17T14:14:30-05:00
+updated_by: codex-gpt-5
 tags: [agent/issue, initiative/polish]
 ---
 
@@ -44,3 +46,48 @@ sobre-abstraer.
 - Gates estándar + autofixer en `.svelte` tocados.
 
 **HITL dev:** copy de labels + juicio visual de cells default.
+
+## Cierre de implementación — 2026-07-17
+
+Commit code-only: `5414a0f0 feat(addons): add explorer toolbar parity` sobre
+`v12/bt3`.
+
+- Añadidos `snippets` y `plugins` al contrato compartido `ExplorerTabId`, al estado
+  de búsqueda/sort/view por tab, layouts guardados y wiring lazy
+  Frame → Page → panel. Los consumers de header ajenos a Data conservan sus tabs
+  string mediante una frontera tipada y el Data page valida el union sin casts.
+- Creado `logicAddonExplorer.ts`: comparator puro para Name/Installed/Updated,
+  búsqueda pura, shape común de hover y `AddonExplorerPanelPort` shape-twin del
+  `FloatingTocPanel`. Los dos panels siguen siendo adapters explícitos; no se creó
+  una superclase anticipada.
+- `obsidianAddons.ts` obtiene `ctime`/`mtime` vía `Vault#configDir` y
+  `adapter.stat` para cada snippet CSS y `manifest.json`, con cache `WeakMap` por
+  `App`/path durante la sesión. Tiempos faltantes permanecen opcionales y se
+  ordenan al final en ambas direcciones.
+- Los panels exponen búsqueda, sort, view tree-only, cells configurables y TOC
+  plano. Snippets: icon/text/state/installed/updated. Plugins añade config como
+  contrato para [[004-addon-cells|BT3-004]]. Hover incluye nombre y tiempos; plugins
+  agrega version/author. No se añadió expand-all, drill ni create/ADD mode.
+- El menú sort ofrece sólo Name/Installed/Updated en addons, sin columna vertical
+  jerárquica. El menú view conserva únicamente Tree. Labels nuevos entraron en
+  `en.ts` y `es.ts`.
+- Adversarial C2: añadido token monotónico `refreshRevision` a ambos adapters para
+  impedir que un refresh antiguo sobrescriba uno nuevo o reaparezca tras
+  `onunload`→`onload`. Self-protection de Vaultman sigue en menú, doble clic y
+  acción; sort no-name desactiva indexación TOC; ids de plugin siguen desambiguando
+  nombres duplicados.
+
+### Evidencia AFK
+
+- RED/GREEN focal: 6 files / 31 tests; hardening de refresh observado RED y luego
+  GREEN en source guard.
+- `pnpm run check`: 0 errors / 0 warnings.
+- Autofixer Svelte: `issues:[]` en `VaultmanFrame.svelte`, `navbarFilters.svelte`,
+  `popupSort.svelte`, `popupView.svelte`, `pageFilters.svelte`, `tabPlugins.svelte`
+  y `tabSnippets.svelte`.
+- ESLint, Prettier, Stylelint y `git diff --check`: verdes. ESLint detectó durante
+  el slice el fallback hardcodeado de `.obsidian`; se eliminó y el test usa una
+  config dir no estándar.
+- Build production: verde; suite unitaria integrada: 94 files / 496 tests.
+- Visual/UI/Obsidian/mobile: delistado por el batch; copy, densidad y cells default
+  permanecen HITL del dev. La acción/config gear visible se completa en BT3-004.

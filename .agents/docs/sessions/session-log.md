@@ -1391,3 +1391,18 @@ broader "append-only status writes" is parked as **S-12** in
   autofixer `issues:[]` verdes. Stylelint N/A; visual/mobile/Obsidian delistado.
 - Adversarial: boundary/width 0/label off/experimental/search cerrado cubiertos; ancho de
   traducciones y feel exacto quedan HITL. Next serial: BT3-003.
+
+## 2026-07-17 (cont.) — codex-gpt5-bt3 · implement · BT3-003
+
+- `5414a0f0 feat(addons): add explorer toolbar parity`: Snippets/Plugins integrados al
+  toolbar completo con search/sort/layout/cells/tree-only y Floating TOC plano mediante
+  provider puro + adapters explícitos + `AddonExplorerPanelPort` tipado.
+- Stats Installed/Updated salen de `Vault#configDir` + `adapter.stat` sobre CSS/manifest,
+  con cache por sesión y valores ausentes al final. Hover incluye tiempos y metadata de
+  plugin; i18n en inglés/español. Config permanece contrato de cell para BT3-004.
+- TDD focal 6/31; hardening adicional RED/GREEN para carrera de refresh con revisión
+  monotónica. Full unit 94/496; check 0/0; ESLint, Prettier, Stylelint, build, diff-check
+  y autofixer `issues:[]` en los siete Svelte tocados.
+- Adversarial: cubiertos refresh stale/unload-remount, config dir custom, metadata/stat
+  faltante, nombres duplicados, lazy mount, sort no indexable y self-protection. Visual,
+  copy, cells default y Obsidian/mobile siguen HITL/delistados. Next serial: BT3-004.

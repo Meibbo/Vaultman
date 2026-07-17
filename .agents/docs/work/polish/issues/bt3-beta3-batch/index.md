@@ -5,7 +5,7 @@ status: active
 parent: "[[docs/work/polish/index|polish]]"
 created: 2026-07-17T09:25:00
 created_by: claude-fable-5
-updated: 2026-07-17T13:25:04
+updated: 2026-07-17T14:14:30-05:00
 updated_by: codex-gpt-5
 tags:
   - agent/issues
@@ -24,7 +24,7 @@ juicio visual = dev. Base `dev` @ `5e5fa1df` (beta.2); rama `v12/bt3`.
 |---|---|---|---|
 | [[001-files-padding|BT3-001]] | Quitar `nav-files-container` (padding Files) | AFK micro | completed (`03fe92bc`) |
 | [[002-sort-level|BT3-002]] | Sort level per-scope + parents-first interleave | AFK | completed (`ee7bc0f2`) |
-| [[003-addons-parity|BT3-003]] | Snippets/Plugins scene-precedent parity | AFK | pending |
+| [[003-addons-parity|BT3-003]] | Snippets/Plugins scene-precedent parity | AFK | completed (`5414a0f0`) |
 | [[004-addon-cells|BT3-004]] | Addon cells: toggle nativo + gear config | AFK | pending |
 | [[005-settings-ia|BT3-005]] | Settings IA: renames, defaults, blur gate | AFK | pending |
 | [[006-menus|BT3-006]] | Tabs cmenu + view cmenu + In mode | AFK | pending |
