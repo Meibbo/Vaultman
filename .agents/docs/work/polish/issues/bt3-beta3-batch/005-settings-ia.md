@@ -1,10 +1,12 @@
 ---
 title: BT3-005 — Settings IA: renames, defaults, blur gate
 type: issue
-status: pending
+status: completed
 parent: "[[docs/work/polish/issues/bt3-beta3-batch/index|BT3 index]]"
 created: 2026-07-17T09:25:00
 created_by: claude-fable-5
+updated: 2026-07-17T15:23:00-05:00
+updated_by: codex-gpt-5
 tags: [agent/issue, initiative/polish]
 ---
 
@@ -44,3 +46,37 @@ Todo sobre `VaultmanSettings.ts` (orden = secuencia literal de `new Setting(...)
 - Unit: defaults nuevos (`DEFAULT_VISIBLE_CELLS.files` sin `count`).
 - i18n en+es sincronizados; keys viejos retirados sin huérfanos (grep).
 - Gates estándar.
+
+## Implementación cerrada — 2026-07-17
+
+Commit de código pushable: `d5001eb0 feat(settings): reorganize layout controls`.
+
+### Cambio
+
+- Renames EN/ES: Layout Settings, Layouts y Colored cell badges.
+- El selector Language y sus dos claves de traducción salen de Settings; el contrato
+  persistido `language: 'auto'` y `setLanguage(this.settings.language)` en startup y
+  external reload permanecen intactos.
+- Nueva sub-page Toolbar bajo Layout Settings con, exclusivamente, Show tab labels,
+  Show toolbar y Condense Files tools. Add-on state cell permanece inline en Layout
+  Settings. Files hover y Floating TOC usan el back-link renombrado.
+- El slider de blur solo se renderiza en Experimental. `applyGlassBlurSetting` fuerza
+  `0px` en Minimal sin mutar `glassBlurIntensity`; Experimental conserva el mapping y
+  fallback 60. Cambiar preset refresca CSS y el sub-render.
+- Files conserva el cell/sort visible como Props, pero el default nuevo pasa a
+  `['name','ext','nested']`; los tres defaults internos de popup marcan Props off. Un
+  `initialPills` persistido sigue ganando y no se migra.
+
+### Verificación y C2
+
+- RED: 8 fallos de IA/defaults y unit de blur por módulo inexistente.
+- GREEN focal final: 6 archivos, 31 tests.
+- `pnpm run check`: 0 errores / 0 warnings.
+- ESLint, `format:check`, build y `git diff --check`: verdes.
+- Autofixer Svelte: `issues:[]` en `navbarFilters.svelte` y `popupView.svelte` para los
+  módulos de constantes modificados. Stylelint N/A (sin CSS).
+- Full unit: 98 archivos, 515 tests.
+- Adversarial automatizado: intensidad guardada no muta; fallback experimental 60;
+  runtime language intacto; preset refresca CSS/UI; Props permanece seleccionable;
+  `initialPills` preserva usuarios existentes y solo cambian defaults nuevos.
+- Visual/Obsidian permanece HITL/delistado por el batch. Next serial: BT3-006.

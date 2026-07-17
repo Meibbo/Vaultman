@@ -5,7 +5,7 @@ status: active
 parent: "[[docs/work/polish/index|polish]]"
 created: 2026-07-17T09:25:00
 created_by: claude-fable-5
-updated: 2026-07-17T15:03:00-05:00
+updated: 2026-07-17T15:23:00-05:00
 updated_by: codex-gpt-5
 tags:
   - agent/issues
@@ -26,7 +26,7 @@ juicio visual = dev. Base `dev` @ `5e5fa1df` (beta.2); rama `v12/bt3`.
 | [[002-sort-level|BT3-002]] | Sort level per-scope + parents-first interleave | AFK | completed (`ee7bc0f2`) |
 | [[003-addons-parity|BT3-003]] | Snippets/Plugins scene-precedent parity | AFK | completed (`5414a0f0`) |
 | [[004-addon-cells|BT3-004]] | Addon cells: toggle nativo + gear config | AFK | completed (`d98d28e4`) |
-| [[005-settings-ia|BT3-005]] | Settings IA: renames, defaults, blur gate | AFK | pending |
+| [[005-settings-ia|BT3-005]] | Settings IA: renames, defaults, blur gate | AFK | completed (`d5001eb0`) |
 | [[006-menus|BT3-006]] | Tabs cmenu + view cmenu + In mode | AFK | pending |
 | [[007-rail-lane|BT3-007]] | Rail lane = ancho track | AFK micro | completed (`03fe92bc`) |
 | [[008-tab-labels-minimal|BT3-008]] | Tab labels en minimal + responsive searchbox | AFK | completed (`46243479`) |

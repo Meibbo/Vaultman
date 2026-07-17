@@ -1434,3 +1434,16 @@ broader "append-only status writes" is parked as **S-12** in
 - Adversarial: fallback ante getters que lanzan, clave `#tag`, disabled/absent picker,
   aislamiento y disposer de subscribers, y saver async cubiertos. Visual/Obsidian
   queda HITL. Next serial: BT3-005.
+
+## 2026-07-17 (cont.) — codex-gpt5-bt3 · implement · BT3-005
+
+- `d5001eb0 feat(settings): reorganize layout controls`: IA renombrada, Toolbar
+  sub-page, Language fuera de UI, blur preset-aware y Props off en defaults nuevos de
+  Files sin migrar `initialPills` persistido.
+- Persistencia/runtime conservados: `language: auto`, `setLanguage(...)`, blur 60 y
+  selección explícita de Props siguen disponibles.
+- TDD: RED 8 fallos de IA/defaults + helper ausente; GREEN focal 31/31. Full unit
+  98/515; check 0/0; ESLint, format:check, build y diff-check verdes; autofixer
+  `issues:[]` en los dos Svelte; Stylelint N/A.
+- Adversarial cubrió intensidad no mutada, fallback 60, refresh al cambiar preset,
+  idioma runtime y persisted cells. Visual/Obsidian queda HITL. Next: BT3-006.
