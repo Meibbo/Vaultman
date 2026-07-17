@@ -5,7 +5,7 @@ status: active
 parent: "[[docs/work/pkm-ai/index|pkm-ai]]"
 archive_source: docs/archive/pkm-ai/active-docs/2026-05-11T080321-current-status.md
 created: 2026-05-04T01:36:20
-updated: 2026-07-15T07:05:00
+updated: 2026-07-17T16:04:00-05:00
 tags:
   - agent/current
 created_by: dec
@@ -31,19 +31,15 @@ Compact route index after archiving the oversized current status:
 - Active initiative: [[docs/work/hardening/index|Hardening]].
 - **Pendientes consolidados (dev-facing)**: [[docs/current/pendientes|pendientes]] —
   HITL · Codex · spine · researches · infra (creado 2026-07-09, mantener al cerrar/abrir ítems).
-- **LATEST (2026-07-17, claude-fable-5):** **beta.3 batch PLANIFICADO** — review de
-  beta.2 (`origin/dev` @ `5e5fa1df`) con dev + grill D1-D20 cerrado. Diagnósticos
-  clave: padding Files = `nav-files-container` añadido en beta.2 sin consumidor;
-  sort por nivel NUNCA existió (single sort + `childLevel` redirector; beta.2 solo
-  renombró label) → diseño nuevo "Sort level" per-scope persistente; tab labels
-  inerte en minimal; rail lane 36px vs track 18px. Nuevos: "In mode"
-  (Open/Add/Select · Open/Filter/Add) sustituye ADD mode; addons scene-precedent
-  parity + toggle nativo + gear; settings IA renames + blur gate minimal=0; Iconic
-  change-icon props/tags; research rainbow-snippet. Ruta:
-  [[docs/work/polish/specs/2026-07-17-v1-2-beta3-batch/index|spec beta.3]] +
-  [[docs/work/polish/issues/bt3-beta3-batch/index|BT3-001..010]]. Sin código; docs
-  local-only. Next: review dev → BT3-001/007 en rama `v12/bt3`. Detalle: session-log
-  2026-07-17.
+- **LATEST (2026-07-17, codex-gpt-5):** **beta.3 batch BT3-001→009 implementado**
+  en `C:/tmp/vaultman-release-beta2-final2`, rama `v12/bt3`, HEAD `7ba6a3c9`.
+  Secuencia code-only: `03fe92bc` · `ee7bc0f2` · `46243479` · `5414a0f0` ·
+  `d98d28e4` · `194a7306` · `d5001eb0` · `7ba6a3c9`. Gate integrado final:
+  full unit 100 archivos / 524 tests, check 0/0, ESLint, Prettier, build y
+  diff-check verdes; autofixer `issues:[]`. Sin push/merge/tag/FF. BT3-010 no se
+  ejecutó (research-only, requiere pedido explícito). Ruta:
+  [[docs/work/polish/issues/bt3-beta3-batch/index|BT3 beta.3]]. Next: validación
+  HITL del dev y decisión de integración/distribución.
 - **LATEST (2026-07-17, codex-gpt-5):** `1.2.0-beta.2` publicado desde `dev`
   @ `5e5fa1df` + CLI release multicanal (`pnpm release`). Detalle: session-log
   2026-07-17 + [[docs/sessions/2026-07-17-codex-gpt5-release-beta2]].

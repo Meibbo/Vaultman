@@ -5,7 +5,7 @@ status: active
 parent: "[[docs/work/polish/index|polish]]"
 created: 2026-07-17T09:25:00
 created_by: claude-fable-5
-updated: 2026-07-17T15:23:00-05:00
+updated: 2026-07-17T16:04:00-05:00
 updated_by: codex-gpt-5
 tags:
   - agent/issues
@@ -27,7 +27,7 @@ juicio visual = dev. Base `dev` @ `5e5fa1df` (beta.2); rama `v12/bt3`.
 | [[003-addons-parity|BT3-003]] | Snippets/Plugins scene-precedent parity | AFK | completed (`5414a0f0`) |
 | [[004-addon-cells|BT3-004]] | Addon cells: toggle nativo + gear config | AFK | completed (`d98d28e4`) |
 | [[005-settings-ia|BT3-005]] | Settings IA: renames, defaults, blur gate | AFK | completed (`d5001eb0`) |
-| [[006-menus|BT3-006]] | Tabs cmenu + view cmenu + In mode | AFK | pending |
+| [[006-menus|BT3-006]] | Tabs cmenu + view cmenu + In mode | AFK | completed (`7ba6a3c9`) |
 | [[007-rail-lane|BT3-007]] | Rail lane = ancho track | AFK micro | completed (`03fe92bc`) |
 | [[008-tab-labels-minimal|BT3-008]] | Tab labels en minimal + responsive searchbox | AFK | completed (`46243479`) |
 | [[009-iconic-props-tags|BT3-009]] | Iconic change-icon en Props/Tags | AFK + research interno | completed (`194a7306`) |
@@ -35,6 +35,10 @@ juicio visual = dev. Base `dev` @ `5e5fa1df` (beta.2); rama `v12/bt3`.
 
 Orden serial recomendado: 001 · 007 → 002 → 008 → 003 → 004 → 009 → 005 → 006.
 010 paralelo (read-only). 002 y 006 comparten `navbarFilters.svelte` — NO en paralelo.
+
+Implementación autorizada BT3-001→009 completa en `v12/bt3`; HEAD de producto
+`7ba6a3c9`. BT3-010 sigue pendiente y no fue ejecutado porque requiere pedido explícito
+del dev.
 
 ## Reglas comunes
 

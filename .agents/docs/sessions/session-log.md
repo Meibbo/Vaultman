@@ -1447,3 +1447,21 @@ broader "append-only status writes" is parked as **S-12** in
   `issues:[]` en los dos Svelte; Stylelint N/A.
 - Adversarial cubrió intensidad no mutada, fallback 60, refresh al cambiar preset,
   idioma runtime y persisted cells. Visual/Obsidian queda HITL. Next: BT3-006.
+
+## 2026-07-17 (cont.) — codex-gpt5-bt3 · implement · BT3-006 + cierre batch
+
+- `7ba6a3c9 feat(explorer): add per-tab interaction modes`: Tabs cmenu reordenado;
+  View cmenu Layouts→In mode→Cells→engines; modos per-tab Files Open/Add/Select y
+  Props/Tags Open/Filter/Add; persistencia aditiva en layouts; Ctrl/Cmd+Open enruta a
+  Content; table preserva eventos; i18n en/es. Eliminados estado ADD global y setters
+  legacy; popupView diferido conserva ADD mediante adapter al estado nuevo.
+- TDD: RED de módulo/guards ausentes; GREEN focal ampliado 4/30. El primer full unit
+  encontró dos source-guards heredados de `this.addMode`; migrados al contrato de
+  actions. Full final 100 archivos / 524 tests. Check 0/0, ESLint, Prettier, build y
+  diff-check verdes; autofixer Svelte 5 completo `issues:[]`; Stylelint N/A.
+- C2: layouts stale normalizan defaults, callback Content ausente degrada a expand,
+  eventos table no rompen consumidores y popup legacy no pierde ADD. Fuera de scope:
+  box-select, add-ons futuros distintos de Snippets/Plugins y toda validación visual,
+  Obsidian/mobile (delistada).
+- Batch BT3-001→009 cerrado en `v12/bt3` @ `7ba6a3c9`; BT3-010 no ejecutado por
+  exclusión explícita. Sin push/merge/tag/FF. Next: HITL dev + decisión de integración.

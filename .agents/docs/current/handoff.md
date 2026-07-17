@@ -5,7 +5,7 @@ status: active
 parent: "[[docs/work/pkm-ai/index|pkm-ai]]"
 archive_source: docs/archive/pkm-ai/active-docs/2026-05-11T080321-current-handoff.md
 created: 2026-05-04T01:36:20
-updated: 2026-07-15T07:05:00
+updated: 2026-07-17T16:04:00-05:00
 tags:
   - agent/current
 created_by: dec
@@ -17,38 +17,26 @@ updated_by: codex-gpt-5
 Compact handoff after archiving the oversized current handoff:
 [[docs/archive/pkm-ai/active-docs/2026-05-11T080321-current-handoff|2026-05-11 handoff archive]].
 
-## NEXT AGENT START HERE — beta.3 batch spec+issues listos (2026-07-17)
+## NEXT AGENT START HERE — beta.3 BT3-001→009 implementado (2026-07-17)
 
-**Estado:** `1.2.0-beta.2` publicada (`origin/dev` = `5e5fa1df`; prerelease GitHub
-verde, ver session-log codex 2026-07-17). Review de beta.2 con el dev cerró grill
-D1-D20 y dejó el batch beta.3 especificado, SIN código aún.
+**Estado:** batch aprobado D1-D20 implementado en
+`C:/tmp/vaultman-release-beta2-final2`, rama `v12/bt3`, HEAD code-only
+`7ba6a3c9`. Commits: `03fe92bc` (001+007) → `ee7bc0f2` (002) → `46243479`
+(008) → `5414a0f0` (003) → `d98d28e4` (004) → `194a7306` (009) →
+`d5001eb0` (005) → `7ba6a3c9` (006). Issue-set:
+[[docs/work/polish/issues/bt3-beta3-batch/index|BT3 beta.3]].
 
-**Lee en orden:**
-1. [[docs/work/polish/specs/2026-07-17-v1-2-beta3-batch/index|Spec beta.3 batch]]
-   (D1-D20 + Mermaid + adversarial pass).
-2. [[docs/work/polish/specs/2026-07-17-v1-2-beta3-batch/01-sort-level|Shard 01 Sort level]]
-   (diseño del issue gordo BT3-002 — leer ENTERO antes de tocar sort).
-3. [[docs/work/polish/issues/bt3-beta3-batch/index|Issue-set BT3-001..010]].
+**Gate integrado final:** 100 unit files / 524 tests; `pnpm run check` 0/0;
+ESLint, Prettier `format:check`, build y diff-check verdes; Svelte autofixer
+`issues:[]`. Visual/UI/Obsidian/mobile permanece delistado y lo valida el dev.
 
-**Esenciales:** worktree `C:/tmp/vaultman-release-beta2-final2` = `dev` limpio; rama
-de trabajo `v12/bt3` (crear al arrancar); orden 001·007 (micros) → 002 → 008 → 003 →
-004 → 009 → 005 → 006; BT3-010 = research-only paralelo (rainbow snippet compat,
-cli+web-lab). **002 y 006 no van en paralelo** (ambos reescriben zonas de
-`navbarFilters.svelte`). Gates por issue = policy 2026-07-14/15 (RED/GREEN focal ·
-check 0/0 · autofixer · lint/stylelint · build · full unit al integrar; testing
-visual/Obsidian/mobile DELISTADO para agentes). Two-commit código/docs; `.agents`
-jamás en pushes.
+**Estado de integración:** sin push, merge, tag, FF a `dev` ni PR. Los commits de
+producto no contienen `.agents/`; cada slice tiene su commit docs local-only en
+`sandbox`. El dev decide validación manual, integración y distribución.
 
-**Diagnósticos ya verificados (no re-derivar):** padding Files =
-`explorerFiles.ts:151` `nav-files-container`; sort per-nivel no existe (single
-`sortBy` + `childLevel` redirector — `typeUI.ts:50-59`, `_applySort`
-props:981-998/tags:272-289); tab labels solo alimenta NavbarTabs experimental;
-rail lane var 36px vs track 18px; ADD mode = `addModeActive` global →
-`setAddMode` en 3 explorers; files cell `count` ya mapea a `'props'` interno
-(explorerFiles:549,723); IconicService solo cubre files hoy.
-
-**Room:** task_033 (`Beta.3 batch spec+issues docs`) claimed por claude-fable-5 con
-scope `docs/current+docs/work/polish+docs/sessions` — release/re-claim al retomar.
+**Exclusión explícita:** BT3-010 rainbow research sigue pending y NO fue ejecutado;
+requiere pedido explícito del dev. Box-select/feel/copy visual son HITL o refactor,
+no pendientes AFK de este batch.
 
 ## NEXT AGENT START HERE — v1.2.0-beta.1 corrective batch landed (2026-07-15)
 
