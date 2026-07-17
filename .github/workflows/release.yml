@@ -86,26 +86,14 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          notes_file="$(mktemp)"
-          cat > "${notes_file}" <<EOF
-          ${GITHUB_REF_NAME} release candidate built from the verified Vaultman release line.
-
-          Included assets:
-          - main.js
-          - manifest.json
-          - styles.css
-
-          Verify provenance with:
-          gh attestation verify main.js -R ${GITHUB_REPOSITORY}
-          gh attestation verify styles.css -R ${GITHUB_REPOSITORY}
-          EOF
+          test -s RELEASE_NOTES.md
           release_flags=()
           if [[ "${GITHUB_REF_NAME}" == *-* ]]; then
             release_flags+=(--prerelease --latest=false)
           fi
           if gh release view "${GITHUB_REF_NAME}" >/dev/null 2>&1; then
             gh release upload "${GITHUB_REF_NAME}" dist/release/main.js dist/release/manifest.json dist/release/styles.css --clobber
-            gh release edit "${GITHUB_REF_NAME}" --title "${GITHUB_REF_NAME}" --notes-file "${notes_file}" "${release_flags[@]}"
+            gh release edit "${GITHUB_REF_NAME}" --title "${GITHUB_REF_NAME}" --notes-file RELEASE_NOTES.md "${release_flags[@]}"
           else
-            gh release create "${GITHUB_REF_NAME}" dist/release/main.js dist/release/manifest.json dist/release/styles.css --verify-tag --title "${GITHUB_REF_NAME}" --notes-file "${notes_file}" "${release_flags[@]}"
+            gh release create "${GITHUB_REF_NAME}" dist/release/main.js dist/release/manifest.json dist/release/styles.css --verify-tag --title "${GITHUB_REF_NAME}" --notes-file RELEASE_NOTES.md "${release_flags[@]}"
           fi
