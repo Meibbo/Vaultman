@@ -27,3 +27,8 @@ declare module '*.mjs?raw' {
 	const source: string;
 	export default source;
 }
+
+declare module '*.gitattributes?raw' {
+	const source: string;
+	export default source;
+}

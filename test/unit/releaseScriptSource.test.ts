@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 
 import packageSource from '../../package.json?raw';
 import workflowSource from '../../.github/workflows/release.yml?raw';
+import attributesSource from '../../.gitattributes?raw';
 import releaseSource from '../../scripts/release.mjs?raw';
 
 describe('release CLI safety contract', () => {
@@ -55,5 +56,9 @@ describe('release CLI safety contract', () => {
 		expect(releaseSource).toContain('process.execPath');
 		expect(releaseSource).toContain('corepack.js');
 		expect(releaseSource).not.toContain('corepack.cmd');
+	});
+
+	it('keeps checked-out Svelte files compatible with the Prettier gate', () => {
+		expect(attributesSource).toContain('*.svelte text eol=lf');
 	});
 });
