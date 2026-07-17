@@ -1380,3 +1380,14 @@ broader "append-only status writes" is parked as **S-12** in
   diff-check y autofixer `issues:[]` verdes. Visual/UI/Obsidian/mobile delistado.
 - Adversarial: cubiertos legacy/orphans/deep trees/selectores/click residual; no se
   inventaron métricas agregadas de folder. Next serial: BT3-008.
+
+## 2026-07-17 (cont.) — codex-gpt5-bt3 · implement · BT3-008
+
+- `46243479 fix(filters): honor tab labels in minimal header`: el setting de tab labels
+  gobierna todos los tabs del botón minimal, con TODO pre-refactor explícito.
+- Responsive puro: tools se condensan bajo 220px y el searchbox etiquetado se oculta bajo
+  200px sin mutar búsqueda; matriz width×label RED/GREEN.
+- Gates: focal 2/15; full unit 93/486; check 0/0; ESLint, Prettier, build, diff-check y
+  autofixer `issues:[]` verdes. Stylelint N/A; visual/mobile/Obsidian delistado.
+- Adversarial: boundary/width 0/label off/experimental/search cerrado cubiertos; ancho de
+  traducciones y feel exacto quedan HITL. Next serial: BT3-003.
