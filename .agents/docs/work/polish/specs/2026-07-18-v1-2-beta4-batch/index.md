@@ -43,7 +43,7 @@ inspección del dev via obsidian-cli: `start of the road` (beta.2 activa) y
 | D34 | Settings: "show dock" baja DEBAJO de "style-preset". Sección "context menus" → sub-page al FINAL de Layout Settings. Sub-page nueva "Explorer" bajo Layout Settings: add-on state cell · colored badge · cancel badge interaction · explorer search highlights. |
 | D35 | Iconic addons: "change icon" también para snippets y plugins. Plugins además EMITEN iconos propios (ribbon/registrados, como el `lucide-vault` de Vaultman en main.ts) → fetch como icono default del nodo. Auditar lo que `194a7306` entregó realmente en props/tags (reporte dev: incompleto). |
 | D36 | Feature: cell + sort + hover_info "remaining inline tasks" (conteo de tasks `- [ ]` sin marcar por archivo). |
-| D37 | Feature: files node-cmenu configurable — sub-page en Layout Settings estilo hover-info + drag-and-drop para orden, show/hide por opción y dividers agregables. |
+| D37 | Feature: files node-cmenu configurable — sub-page en Layout Settings estilo hover-info + drag-and-drop para orden, show/hide por opción y dividers agregables. **El sub-page de hover-info TAMBIÉN gana DnD de orden** (lock dev 2026-07-18). |
 
 ## §UX — Niagara tap vs scrub (crítica adversarial, D25)
 
@@ -55,6 +55,8 @@ siente roto (long-press estándar = 400-500ms iOS/Android). Diseño intent-based
   vertical > ~8px con el pointer abajo (intención de arrastre).
 - **Tap** (< 450ms y < 8px): jump al nodo, rail estático.
 - pointer-leave/cancel resetea. Umbrales como constantes ajustables (HITL dev).
+
+**ACEPTADA por el dev 2026-07-18** (450ms / 8px, intent-based; descarta timer 800ms).
 
 ## Triage → issues
 

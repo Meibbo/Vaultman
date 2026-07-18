@@ -67,6 +67,8 @@ El cmenu de nodos files está desorganizado. Sub-page nueva en Layout Settings
 opción, ORDEN por drag-and-drop y dividers agregables. Persistencia por id
 estable (merge por id contra el catálogo de acciones — opciones futuras aparecen
 al final, nunca rompen el guardado). Render del cmenu respeta la config.
+**Además (lock dev 2026-07-18): el sub-page hover-info existente gana el mismo DnD
+de orden** (los fields se reordenan igual que las opciones del cmenu).
 **DoD:** unit de merge/orden/persistencia + guard del render respetando config;
 DnD con util existente si aplica; gates estándar. **HITL dev:** orden default
 sugerido.

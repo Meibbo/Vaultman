@@ -1518,3 +1518,32 @@ broader "append-only status writes" is parked as **S-12** in
   vs 800ms del dev) — decisión final HITL.
 - Room: task_033 sigue mía; scope docs re-usado. Próximo: ejecutar BT4 en rama
   `v12/bt4` (002 hang primero).
+
+## 2026-07-18 — claude-fable-5 · implement · BT4 arranque + BT3-010 research
+
+- **Locks dev:** niagara intent-based 450ms/8px aceptado · DnD de orden en AMBOS
+  (cmenu files nuevo + hover-info existente) · BT3-010 go · BT4 go. Docs amendadas.
+- **BT4-003 ✅ + BT4-001 ✅** en `v12/bt4` @ `736a9e62` (code-only, TDD):
+  003 = shift del rail restaurado contra lane compacto (`right:14px` = scrollbar
+  12 + gap 2; guard de codex actualizado al contrato D23; la geometría cierra
+  porque el scrollbar consume su ancho propio del scroller). 001 = causa real:
+  `shouldShowMinimalSearchInput` suprimía el input AÚN expandido (label+narrow)
+  = search inalcanzable, y el condense ignoraba el ancho del label → nuevo
+  `shouldHideTabLabelForSearch` (label cede mientras search abierto) +
+  `LABELED_TOOLBAR_EXTRA_WIDTH=80` sobre intent (sin feedback loop). Gates:
+  focal verde · full unit 100f/525t · check 0/0 · build · stylelint · scorecard
+  17. Desviación anotada: autofixer MCP exige code inline (archivo 1700 líneas) —
+  omitido; diff Svelte = 20 líneas de $derived.
+- **BT4-002 (hang tags) in-progress:** panel+servicio leídos completos; loop NO
+  hallado estáticamente. Defecto REAL confirmado: `IconicService.onLoaded`
+  callbacks sin cleanup (retienen panel tras unload; se acumulan si loadIcons
+  falla) — fix candidato del LEAK, no confirmado como el hang. Repro montado en
+  unit env no viable (environment node, stub createEl vacío). Siguiente paso =
+  Estrategia D del skill: preguntas binarias al dev (¿cuelga con Iconic off? ¿con
+  vault chico? ¿view tree vs table?) antes de bisect vivo.
+- **BT3-010 ✅ research** (Explore agent + verificación):
+  [[docs/work/polish/research/2026-07-18-native-css-compat/index|native-css-compat]]
+  — snippet 100% inerte hoy (coloreado posicional sobre DOM anidado que no
+  existe); recomendación = opt-in "Rainbow folders" con bucket data-derived +
+  reuso de la paleta del snippet; JAMÁS re-adoptar `.nav-files-container` sin
+  padding:0. Pende aprobación dev del mecanismo (c) para issue de implementación.
