@@ -19,7 +19,7 @@ describe('BT3 settings information architecture source guards', () => {
 		expect(rootSource).not.toContain("translate('settings.language')");
 		expect(en['settings.style_config']).toBe('Layout Settings');
 		expect(es['settings.style_config']).toBe('Ajustes de diseño');
-		expect(en['settings.saved_view_config']).toBe('Layouts');
+		expect(en['settings.saved_view_config']).toBe('View configs');
 		expect(es['settings.saved_view_config']).toBe('Diseños');
 		expect(en['settings.badge_colors']).toBe('Colored cell badges');
 		expect(es['settings.badge_colors']).toBe('Badges de celda con color');

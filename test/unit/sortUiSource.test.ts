@@ -35,7 +35,7 @@ describe('explorer sort UI source', () => {
 		expect(popupSource).toContain('activeScope');
 		expect(popupSource).toContain('selectScope(');
 		expect(popupSource).toContain("translate('sort.level.title')");
-		expect(en['sort.level.title']).toBe('Sort level');
+		expect(en['sort.level.title']).toBe('By level');
 		expect(es['sort.level.title']).toBe('Nivel de orden');
 		expect('sort.vertcol.sort_props' in en).toBe(false);
 		expect('sort.vertcol.sort_values' in en).toBe(false);
