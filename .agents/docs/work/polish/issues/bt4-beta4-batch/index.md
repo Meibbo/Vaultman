@@ -29,7 +29,7 @@ shards: [[01-regressions|01 regresiones]] · [[02-bugs|02 bugs]] ·
 | BT4-006 | Plugin toggle cell stale ante cambios externos | 02 | ✅ `f199ed64` (firma + poll visible + css-change) |
 | BT4-007 | Orden cells plugins: config antes de toggle | 02 | ✅ `8ace5549` |
 | BT4-008 | Content search solo .md + sin freeze | 02 | ✅ `82f254ca` (allowlist md + pending tras debounce) |
-| BT4-009 | By level sort (redesign, shard 01 del spec) | 03 | CORE ✅ `be97b4a9` (bug L1 drill-stale + renames) · UI restructure pendiente |
+| BT4-009 | By level sort (redesign, shard 01 del spec) | 03 | ✅ fase 2 `e82efc53` (grupo D29 + fixed folders + drill click/dashed/label-6 + inline D32 + sync D31 + contextual D33). Residual: paridad popupSort (experimental) pendiente tipo D20; toolbar de tags no refleja scope externo del sync D31 (files sí) |
 | BT4-010 | Settings IA: dock, context menus, Explorer page | 03 | pending |
 | BT4-011 | Iconic addons + iconos emitidos por plugins | 03 | pending |
 | BT4-012 | Cell+sort+hover "remaining inline tasks" | 03 | pending |

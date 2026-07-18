@@ -1696,3 +1696,28 @@ broader "append-only status writes" is parked as **S-12** in
 - Lección (¡tercera del mismo tipo!): en geometría UI, verificar QUÉ elemento
   se mide (offsetParent/closest) vale más que la fórmula; unit tests de la
   matemática no cubren el binding del DOM.
+
+## 2026-07-18 — claude-fable-5 · implement · BT4-009 fase 2 COMPLETA
+
+- **`e82efc53`** (code-only; gates 101f/552t · check 0/0 · build · scorecard 17 ·
+  sync plugin-dev): grupo **By level** = Nested (movido desde cells del view
+  menu) → Folders first → Fixed folders (default ON, visible solo con FF; OFF =
+  el sort ordena también los folders del level) → divider → **Scope: <6chars…>**
+  (label dinámico del parent drilleado) → All levels. Motor: `fixedFolders` en
+  `ExplorerSortState`/`BuildFileTreeOptions` (default estable name-asc). Drill
+  pick = twin del index: **un click simple** sobre cualquier fila elige su NIVEL
+  (`scopeRootForNode` → parent; click en L1 → All), marco **dashed**
+  (`.vaultman-sort-pick-mode`), sin long-press. Presentación **inline por
+  defecto** (`sortLevelInline`, submenú opt-out, D32). Options contextuales
+  ocultas (`isSortOptionVisible`: path+nested, sub+values, D33). **D31**:
+  `tocDrillSyncsSort` (default off) — drill del índice aplica
+  `applyExternalSortScope` al panel activo; cerrar índice → scope default.
+  i18n: parents_first → "Folders first"; pick_hint a click.
+- Incidente de proceso: mis writes Python voltearon EOL de 15 archivos
+  (LF↔CRLF) rompiendo guards multiline — normalizados contra HEAD antes del
+  commit (diff final 380 líneas reales). Guard drill long-press reescrito al
+  contrato click.
+- **Residuales BT4-009** (anotados en el índice): paridad popupSort
+  (experimental) = divergencia temporal tipo D20; toolbar de tags no refleja el
+  scope aplicado por el sync D31 (files sí, vía sortStateChangeHandler); matriz
+  del shard cubierta en sus ejes principales, no exhaustiva.
