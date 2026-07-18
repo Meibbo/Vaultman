@@ -75,6 +75,36 @@ export class IconicService extends Component {
 
 	onload(): void {
 		void this.loadIcons();
+		// Iconic edits (its own UI, core menus, pickers) rewrite data.json but
+		// emit no event we can hear; poll the file's mtime cheaply and reload +
+		// notify on change so explorers refresh without a plugin restart
+		// (BT4-024, all providers go through this service).
+		this.registerInterval(
+			window.setInterval(() => void this._syncExternalData(), 2500),
+		);
+	}
+
+	private _dataFileMtime = 0;
+
+	private _dataFilePath(): string {
+		return `${this.app.vault.configDir}/plugins/iconic/data.json`;
+	}
+
+	private async _syncExternalData(): Promise<void> {
+		if (!this.enabled) return;
+		let mtime = 0;
+		try {
+			const stat = await this.app.vault.adapter.stat(this._dataFilePath());
+			mtime = stat?.mtime ?? 0;
+		} catch {
+			return;
+		}
+		if (!mtime || mtime === this._dataFileMtime) return;
+		const isFirstObservation = this._dataFileMtime === 0;
+		this._dataFileMtime = mtime;
+		if (isFirstObservation) return;
+		await this.loadIcons();
+		this.notifyChanged();
 	}
 
 	/** Register a callback to fire once after icons are loaded. Fires immediately if already loaded. */

@@ -388,3 +388,35 @@ describe('IconicService deferred runtime resolution (BT4-002)', () => {
 		expect(dropped).not.toHaveBeenCalled();
 	});
 });
+
+describe('external Iconic data watch (BT4-024)', () => {
+	it('reloads and notifies when data.json changes on disk', async () => {
+		let payload = { tagIcons: { project: { icon: 'lucide-folder' } } };
+		let mtime = 100;
+		const app = {
+			vault: {
+				configDir: 'cfg',
+				adapter: {
+					read: async () => JSON.stringify(payload),
+					stat: async () => ({ mtime }),
+				},
+			},
+		};
+		const service = new IconicService(app as never);
+		await load(service);
+		const changed = vi.fn();
+		service.onChanged(changed);
+		const sync = (
+			service as unknown as { _syncExternalData(): Promise<void> }
+		)._syncExternalData.bind(service);
+
+		await sync(); // first observation: baseline only
+		expect(changed).not.toHaveBeenCalled();
+
+		payload = { tagIcons: { project: { icon: 'lucide-flame' } } };
+		mtime = 200;
+		await sync();
+		expect(changed).toHaveBeenCalledTimes(1);
+		expect(service.getTagIcon('project')).toEqual({ icon: 'lucide-flame' });
+	});
+});
