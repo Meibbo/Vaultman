@@ -9,7 +9,13 @@ import { translate } from './i18n/index';
 
 export class VaultmanSettingsTab extends PluginSettingTab {
 	private plugin: iVaultmanPlugin;
-	private page: 'root' | 'toolbar' | 'floating-toc' | 'files-hover' = 'root';
+	private page:
+		| 'root'
+		| 'toolbar'
+		| 'floating-toc'
+		| 'files-hover'
+		| 'explorer'
+		| 'context-menus' = 'root';
 
 	constructor(app: App, plugin: iVaultmanPlugin) {
 		super(app, plugin);
@@ -29,6 +35,14 @@ export class VaultmanSettingsTab extends PluginSettingTab {
 		}
 		if (this.page === 'files-hover') {
 			this.displayFilesHoverPage(containerEl);
+			return;
+		}
+		if (this.page === 'explorer') {
+			this.displayExplorerPage(containerEl);
+			return;
+		}
+		if (this.page === 'context-menus') {
+			this.displayContextMenusPage(containerEl);
 			return;
 		}
 
@@ -75,21 +89,6 @@ export class VaultmanSettingsTab extends PluginSettingTab {
 			);
 
 		new Setting(containerEl)
-			.setName(translate('settings.badge_cancel_click'))
-			.setDesc(translate('settings.badge_cancel_click.desc'))
-			.addDropdown((dropdown) =>
-				dropdown
-					.addOption('double', translate('settings.badge_cancel_click.double'))
-					.addOption('single', translate('settings.badge_cancel_click.single'))
-					.setValue(this.plugin.settings.badgeCancelClickMode)
-					.onChange(async (value) => {
-						this.plugin.settings.badgeCancelClickMode =
-							value === 'single' ? 'single' : 'double';
-						await this.plugin.saveSettings();
-					}),
-			);
-
-		new Setting(containerEl)
 			.setName(translate('settings.bypass_operations'))
 			.setDesc(translate('settings.bypass_operations.desc'))
 			.addToggle((toggle) =>
@@ -124,46 +123,6 @@ export class VaultmanSettingsTab extends PluginSettingTab {
 					.setDynamicTooltip()
 					.onChange(async (value) => {
 						this.plugin.settings.bulkOperationWarningThreshold = value;
-						await this.plugin.saveSettings();
-					}),
-			);
-
-		new Setting(containerEl)
-			.setName(translate('settings.context_menu'))
-			.setHeading();
-
-		new Setting(containerEl)
-			.setName(translate('settings.context_menu.file_menu'))
-			.setDesc(translate('settings.context_menu.file_menu.desc'))
-			.addToggle((toggle) =>
-				toggle
-					.setValue(this.plugin.settings.contextMenuShowInFileMenu)
-					.onChange(async (value) => {
-						this.plugin.settings.contextMenuShowInFileMenu = value;
-						await this.plugin.saveSettings();
-					}),
-			);
-
-		new Setting(containerEl)
-			.setName(translate('settings.context_menu.editor_menu'))
-			.setDesc(translate('settings.context_menu.editor_menu.desc'))
-			.addToggle((toggle) =>
-				toggle
-					.setValue(this.plugin.settings.contextMenuShowInEditorMenu)
-					.onChange(async (value) => {
-						this.plugin.settings.contextMenuShowInEditorMenu = value;
-						await this.plugin.saveSettings();
-					}),
-			);
-
-		new Setting(containerEl)
-			.setName(translate('settings.context_menu.more_options'))
-			.setDesc(translate('settings.context_menu.more_options.desc'))
-			.addToggle((toggle) =>
-				toggle
-					.setValue(this.plugin.settings.contextMenuShowInMoreOptions)
-					.onChange(async (value) => {
-						this.plugin.settings.contextMenuShowInMoreOptions = value;
 						await this.plugin.saveSettings();
 					}),
 			);
@@ -283,6 +242,18 @@ export class VaultmanSettingsTab extends PluginSettingTab {
 					}),
 			);
 
+		new Setting(containerEl)
+			.setName(translate('settings.show_dock'))
+			.setDesc(translate('settings.show_dock.desc'))
+			.addToggle((toggle) =>
+				toggle
+					.setValue(this.plugin.settings.showDock)
+					.onChange(async (value) => {
+						this.plugin.settings.showDock = value;
+						await this.plugin.saveSettings();
+					}),
+			);
+
 		if (!this.plugin.settings.minimalStyle) {
 			new Setting(containerEl)
 				.setName(translate('settings.background_blur'))
@@ -301,45 +272,6 @@ export class VaultmanSettingsTab extends PluginSettingTab {
 		}
 
 		new Setting(containerEl)
-			.setName(translate('settings.search_highlights'))
-			.setDesc(translate('settings.search_highlights.desc'))
-			.addToggle((toggle) =>
-				toggle
-					.setValue(this.plugin.settings.explorerSearchHighlights)
-					.onChange(async (value) => {
-						this.plugin.settings.explorerSearchHighlights = value;
-						await this.plugin.saveSettings();
-					}),
-			);
-
-		new Setting(containerEl)
-			.setName(translate('settings.badge_colors'))
-			.setDesc(translate('settings.badge_colors.desc'))
-			.addToggle((toggle) =>
-				toggle
-					.setValue(this.plugin.settings.coloredBadges)
-					.onChange(async (value) => {
-						this.plugin.settings.coloredBadges = value;
-						await this.plugin.saveSettings();
-					}),
-			);
-
-		new Setting(containerEl)
-			.setName(translate('settings.addon_cell_style'))
-			.setDesc(translate('settings.addon_cell_style.desc'))
-			.addDropdown((dropdown) =>
-				dropdown
-					.addOption('native', translate('settings.addon_cell_style.native'))
-					.addOption('badge', translate('settings.addon_cell_style.badge'))
-					.setValue(this.plugin.settings.addonCellStyle)
-					.onChange(async (value) => {
-						if (value !== 'native' && value !== 'badge') return;
-						this.plugin.settings.addonCellStyle = value;
-						await this.plugin.saveSettings();
-					}),
-			);
-
-		new Setting(containerEl)
 			.setName(translate('settings.toolbar'))
 			.setDesc(translate('settings.toolbar.desc'))
 			.addButton((button) =>
@@ -347,18 +279,6 @@ export class VaultmanSettingsTab extends PluginSettingTab {
 					this.page = 'toolbar';
 					this.display();
 				}),
-			);
-
-		new Setting(containerEl)
-			.setName(translate('settings.show_dock'))
-			.setDesc(translate('settings.show_dock.desc'))
-			.addToggle((toggle) =>
-				toggle
-					.setValue(this.plugin.settings.showDock)
-					.onChange(async (value) => {
-						this.plugin.settings.showDock = value;
-						await this.plugin.saveSettings();
-					}),
 			);
 
 		new Setting(containerEl)
@@ -377,6 +297,26 @@ export class VaultmanSettingsTab extends PluginSettingTab {
 			.addButton((button) =>
 				button.setButtonText(translate('settings.configure')).onClick(() => {
 					this.page = 'floating-toc';
+					this.display();
+				}),
+			);
+
+		new Setting(containerEl)
+			.setName(translate('settings.explorer_page'))
+			.setDesc(translate('settings.explorer_page.desc'))
+			.addButton((button) =>
+				button.setButtonText(translate('settings.configure')).onClick(() => {
+					this.page = 'explorer';
+					this.display();
+				}),
+			);
+
+		new Setting(containerEl)
+			.setName(translate('settings.context_menu'))
+			.setDesc(translate('settings.context_menu.page_desc'))
+			.addButton((button) =>
+				button.setButtonText(translate('settings.configure')).onClick(() => {
+					this.page = 'context-menus';
 					this.display();
 				}),
 			);
@@ -493,6 +433,135 @@ export class VaultmanSettingsTab extends PluginSettingTab {
 			);
 					}),
 			);
+	}
+
+	private displayExplorerPage(containerEl: HTMLElement): void {
+		new Setting(containerEl)
+			.setName(translate('settings.back_to_layout_settings'))
+			.addButton((button) =>
+				button
+					.setIcon('lucide-arrow-left')
+					.setTooltip(translate('settings.back_to_layout_settings'))
+					.onClick(() => {
+						this.page = 'root';
+						this.display();
+					}),
+			);
+
+		new Setting(containerEl)
+			.setName(translate('settings.explorer_page'))
+			.setHeading();
+
+		new Setting(containerEl)
+			.setName(translate('settings.addon_cell_style'))
+			.setDesc(translate('settings.addon_cell_style.desc'))
+			.addDropdown((dropdown) =>
+				dropdown
+					.addOption('native', translate('settings.addon_cell_style.native'))
+					.addOption('badge', translate('settings.addon_cell_style.badge'))
+					.setValue(this.plugin.settings.addonCellStyle)
+					.onChange(async (value) => {
+						if (value !== 'native' && value !== 'badge') return;
+						this.plugin.settings.addonCellStyle = value;
+						await this.plugin.saveSettings();
+					}),
+			);
+
+		new Setting(containerEl)
+			.setName(translate('settings.badge_colors'))
+			.setDesc(translate('settings.badge_colors.desc'))
+			.addToggle((toggle) =>
+				toggle
+					.setValue(this.plugin.settings.coloredBadges)
+					.onChange(async (value) => {
+						this.plugin.settings.coloredBadges = value;
+						await this.plugin.saveSettings();
+					}),
+			);
+
+		new Setting(containerEl)
+			.setName(translate('settings.badge_cancel_click'))
+			.setDesc(translate('settings.badge_cancel_click.desc'))
+			.addDropdown((dropdown) =>
+				dropdown
+					.addOption('double', translate('settings.badge_cancel_click.double'))
+					.addOption('single', translate('settings.badge_cancel_click.single'))
+					.setValue(this.plugin.settings.badgeCancelClickMode)
+					.onChange(async (value) => {
+						this.plugin.settings.badgeCancelClickMode =
+							value === 'single' ? 'single' : 'double';
+						await this.plugin.saveSettings();
+					}),
+			);
+
+		new Setting(containerEl)
+			.setName(translate('settings.search_highlights'))
+			.setDesc(translate('settings.search_highlights.desc'))
+			.addToggle((toggle) =>
+				toggle
+					.setValue(this.plugin.settings.explorerSearchHighlights)
+					.onChange(async (value) => {
+						this.plugin.settings.explorerSearchHighlights = value;
+						await this.plugin.saveSettings();
+					}),
+			);
+
+	}
+
+	private displayContextMenusPage(containerEl: HTMLElement): void {
+		new Setting(containerEl)
+			.setName(translate('settings.back_to_layout_settings'))
+			.addButton((button) =>
+				button
+					.setIcon('lucide-arrow-left')
+					.setTooltip(translate('settings.back_to_layout_settings'))
+					.onClick(() => {
+						this.page = 'root';
+						this.display();
+					}),
+			);
+
+		new Setting(containerEl)
+			.setName(translate('settings.context_menu'))
+			.setHeading();
+
+
+		new Setting(containerEl)
+			.setName(translate('settings.context_menu.file_menu'))
+			.setDesc(translate('settings.context_menu.file_menu.desc'))
+			.addToggle((toggle) =>
+				toggle
+					.setValue(this.plugin.settings.contextMenuShowInFileMenu)
+					.onChange(async (value) => {
+						this.plugin.settings.contextMenuShowInFileMenu = value;
+						await this.plugin.saveSettings();
+					}),
+			);
+
+		new Setting(containerEl)
+			.setName(translate('settings.context_menu.editor_menu'))
+			.setDesc(translate('settings.context_menu.editor_menu.desc'))
+			.addToggle((toggle) =>
+				toggle
+					.setValue(this.plugin.settings.contextMenuShowInEditorMenu)
+					.onChange(async (value) => {
+						this.plugin.settings.contextMenuShowInEditorMenu = value;
+						await this.plugin.saveSettings();
+					}),
+			);
+
+		new Setting(containerEl)
+			.setName(translate('settings.context_menu.more_options'))
+			.setDesc(translate('settings.context_menu.more_options.desc'))
+			.addToggle((toggle) =>
+				toggle
+					.setValue(this.plugin.settings.contextMenuShowInMoreOptions)
+					.onChange(async (value) => {
+						this.plugin.settings.contextMenuShowInMoreOptions = value;
+						await this.plugin.saveSettings();
+					}),
+			);
+
 	}
 
 	private displayFilesHoverPage(containerEl: HTMLElement): void {

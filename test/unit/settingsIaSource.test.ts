@@ -30,8 +30,8 @@ describe('BT3 settings information architecture source guards', () => {
 	});
 
 	it('routes the three toolbar controls into one Layout Settings sub-page', () => {
-		expect(settingsSource).toContain(
-			"private page: 'root' | 'toolbar' | 'floating-toc' | 'files-hover' = 'root'",
+		expect(settingsSource).toMatch(
+			/private page:[\s\S]*?'explorer'[\s\S]*?'context-menus' = 'root'/,
 		);
 		expect(settingsSource).toContain("if (this.page === 'toolbar')");
 		expect(settingsSource).toContain('this.displayToolbarPage(containerEl)');
@@ -97,5 +97,55 @@ describe('BT3 settings information architecture source guards', () => {
 		expect(popupViewSource).toContain(
 			'initialPills\n\t\t\t\t? new Set(initialPills)',
 		);
+	});
+});
+
+describe('BT4-010 settings IA (D34)', () => {
+	it('moves show dock directly under the style preset', () => {
+		const preset = settingsSource.indexOf("translate('settings.style_preset')");
+		const dock = settingsSource.indexOf("translate('settings.show_dock')");
+		const blur = settingsSource.indexOf(
+			"translate('settings.background_blur')",
+		);
+		expect(preset).toBeGreaterThan(-1);
+		expect(dock).toBeGreaterThan(preset);
+		expect(dock).toBeLessThan(blur);
+	});
+
+	it('groups explorer cells/badges/highlights into the Explorer sub-page', () => {
+		const page = settingsSource.slice(
+			settingsSource.indexOf('displayExplorerPage(containerEl: HTMLElement)'),
+			settingsSource.indexOf(
+				'displayContextMenusPage(containerEl: HTMLElement)',
+			),
+		);
+		for (const key of [
+			"settings.addon_cell_style'",
+			"settings.badge_colors'",
+			"settings.badge_cancel_click'",
+			"settings.search_highlights'",
+		]) {
+			expect(page).toContain(key);
+		}
+	});
+
+	it('turns the context-menu section into a trailing Layout Settings sub-page', () => {
+		const page = settingsSource.slice(
+			settingsSource.indexOf(
+				'displayContextMenusPage(containerEl: HTMLElement)',
+			),
+		);
+		expect(page).toContain("settings.context_menu.file_menu'");
+		expect(page).toContain("settings.context_menu.editor_menu'");
+		expect(page).toContain("settings.context_menu.more_options'");
+		// The Explorer/Context menus launch buttons close the Layout section.
+		const explorerBtn = settingsSource.indexOf(
+			"translate('settings.explorer_page')",
+		);
+		const addonsHeading = settingsSource.indexOf(
+			"translate('settings.addons')",
+		);
+		expect(explorerBtn).toBeGreaterThan(-1);
+		expect(explorerBtn).toBeLessThan(addonsHeading);
 	});
 });

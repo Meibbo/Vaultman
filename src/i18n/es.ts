@@ -149,6 +149,11 @@ export const es: Record<string, string> = {
 	'settings.background_blur.desc':
 		'Controla el desenfoque de cristal en la barra inferior y los popups.',
 	'settings.style_config': 'Ajustes de diseño',
+	'settings.explorer_page': 'Explorer',
+	'settings.explorer_page.desc':
+		'Cells, badges y comportamiento de resaltado de los explorers.',
+	'settings.context_menu.page_desc':
+		'Dónde aparecen los items de Vaultman en los menús contextuales.',
 	'settings.style_preset': 'Preset de estilo',
 	'settings.style_preset.desc':
 		'Minimal usa controles compactos nativos de Obsidian; Experimental usa los controles decorados de Vaultman.',

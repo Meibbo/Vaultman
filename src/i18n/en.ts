@@ -152,6 +152,11 @@ export const en: Record<string, string> = {
 	'settings.background_blur.desc':
 		'Controls the glass blur on the bottom bar and popups.',
 	'settings.style_config': 'Layout Settings',
+	'settings.explorer_page': 'Explorer',
+	'settings.explorer_page.desc':
+		'Cells, badges and highlight behavior for the explorers.',
+	'settings.context_menu.page_desc':
+		'Where Vaultman items appear in workspace context menus.',
 	'settings.style_preset': 'Style preset',
 	'settings.style_preset.desc':
 		'Minimal uses compact Obsidian-native controls; Experimental uses the decorated Vaultman controls.',

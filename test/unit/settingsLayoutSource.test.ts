@@ -56,8 +56,8 @@ describe('Vaultman Settings layout', () => {
 	});
 
 	it('routes Floating TOC to an internal Layout Settings page on Obsidian 1.12', () => {
-		expect(settingsSource).toContain(
-			"private page: 'root' | 'toolbar' | 'floating-toc' | 'files-hover' = 'root'",
+		expect(settingsSource).toMatch(
+			/private page:[\s\S]*?'explorer'[\s\S]*?'context-menus' = 'root'/,
 		);
 		expect(settingsSource).toContain("if (this.page === 'floating-toc')");
 		expect(settingsSource).toContain(
