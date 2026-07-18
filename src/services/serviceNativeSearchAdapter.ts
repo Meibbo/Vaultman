@@ -84,22 +84,6 @@ function buildSnippet(
 	};
 }
 
-function mergeSearchOffsets(
-	left: SearchOffset[],
-	right: SearchOffset[],
-): SearchOffset[] {
-	const seen = new Set<string>();
-	const merged: SearchOffset[] = [];
-	for (const [start, end] of [...left, ...right]) {
-		const key = `${start}:${end}`;
-		if (seen.has(key)) continue;
-		seen.add(key);
-		merged.push([start, end]);
-	}
-	merged.sort((a, b) => a[0] - b[0] || a[1] - b[1]);
-	return merged;
-}
-
 function countInputOffsets(inputs: NativeSearchInput[]): number {
 	return inputs.reduce((sum, input) => sum + input.offsets.length, 0);
 }
@@ -330,14 +314,10 @@ export class NativeSearchAdapter {
 				options.caseSensitive,
 			);
 			if (offsets.length > 0) {
-				const existing = inputsByPath.get(file.path);
-				inputsByPath.set(file.path, {
-					file,
-					content,
-					offsets: existing
-						? mergeSearchOffsets(existing.offsets, offsets)
-						: offsets,
-				});
+				// Local offsets over the raw file are authoritative: native
+				// snapshots use their own content basis, so merging the two
+				// coordinate systems duplicated the same match (BT4-019).
+				inputsByPath.set(file.path, { file, content, offsets });
 			}
 			if (emitPartial && index % LOCAL_UPDATE_INTERVAL === 0) {
 				options.onUpdate(

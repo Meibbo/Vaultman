@@ -434,3 +434,48 @@ describe('Native search adapter helpers', () => {
 		});
 	});
 });
+
+describe('local offsets are authoritative for scanned files (BT4-019)', () => {
+	it('does not duplicate a match when native offsets use a different basis', async () => {
+		vi.stubGlobal('window', { setTimeout });
+		const file = makeFile('notes/frase.md');
+		const view = {
+			dom: {
+				getFiles: () => [file],
+				// Native snapshot computed over ITS OWN content basis: the same
+				// single occurrence, but at a different offset than the raw file.
+				getResult: () => ({
+					content: 'te quiero mucho',
+					result: { content: [[0, 15]] as [number, number][] },
+				}),
+			},
+			setQuery: vi.fn(),
+			startSearch: vi.fn(),
+			setMatchingCase: vi.fn(),
+		};
+		const adapter = new NativeSearchAdapter({
+			vault: {
+				// Raw file: frontmatter shifts the only occurrence.
+				cachedRead: async () => '---\nx: 1\n---\nte quiero mucho',
+			},
+			workspace: {
+				getLeavesOfType: () => [{ view }],
+			},
+		} as never);
+		const updates: ReturnType<typeof buildNativeSearchPreview>[] = [];
+
+		await adapter.search({
+			query: 'te quiero mucho',
+			isRegex: false,
+			caseSensitive: false,
+			scopeFiles: [file],
+			onUpdate: (result) => updates.push(result),
+		});
+
+		expect(updates.at(-1)).toMatchObject({
+			totalMatches: 1,
+			isLoading: false,
+		});
+		expect(updates.at(-1)?.files[0].matchCount).toBe(1);
+	});
+});
