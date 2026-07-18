@@ -2,6 +2,8 @@ import { describe, expect, it } from 'vitest';
 
 import {
 	niagaraActionOrder,
+	niagaraClampOverdrive,
+	niagaraClampShiftToRoom,
 	niagaraClampToFrame,
 	niagaraGaussian,
 	niagaraNodeTransform,
@@ -144,5 +146,23 @@ describe('Niagara track math', () => {
 		expect(shouldSuppressNiagaraClick(true, false, 'action')).toBe(true);
 		expect(shouldSuppressNiagaraClick(false, true, 'action')).toBe(true);
 		expect(shouldSuppressNiagaraClick(false, false, null)).toBe(false);
+	});
+});
+
+describe('frame containment clamps (BT4-017)', () => {
+	it('bounds overdrive to non-negative room', () => {
+		expect(niagaraClampOverdrive(30, 50)).toBe(30);
+		expect(niagaraClampOverdrive(80, 50)).toBe(50);
+		expect(niagaraClampOverdrive(80, -10)).toBe(0);
+		expect(niagaraClampOverdrive(-5, 50)).toBe(0);
+		expect(niagaraClampOverdrive(Number.NaN, 50)).toBe(0);
+	});
+
+	it('clamps the along shift into the remaining room', () => {
+		expect(niagaraClampShiftToRoom(120, -40, 60)).toBe(60);
+		expect(niagaraClampShiftToRoom(-120, -40, 60)).toBe(-40);
+		expect(niagaraClampShiftToRoom(10, -40, 60)).toBe(10);
+		expect(niagaraClampShiftToRoom(10, 60, -40)).toBe(10);
+		expect(niagaraClampShiftToRoom(Number.NaN, -40, 60)).toBe(0);
 	});
 });

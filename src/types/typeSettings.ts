@@ -128,6 +128,7 @@ export interface VaultmanSettings {
 	tocNamePill: boolean;
 	/** Smoothly scroll the explorer while scrubbing the floating TOC */
 	tocSoftScroll: boolean;
+	tocMonotonicSlide: boolean;
 	/** Condense Files auto-reveal and expansion into one native Tools menu */
 	toolbarToolsMenu: boolean;
 	/** Ordered fields shown in the native Files node hover tooltip */
@@ -225,6 +226,7 @@ export const DEFAULT_SETTINGS: VaultmanSettings = {
 	tocNameOrder: 'down',
 	tocNamePill: false,
 	tocSoftScroll: false,
+	tocMonotonicSlide: false,
 	toolbarToolsMenu: false,
 	filesHoverInfo: [...DEFAULT_FILES_HOVER_INFO],
 	showToolbar: true,

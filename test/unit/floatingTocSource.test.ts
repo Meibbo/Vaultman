@@ -274,3 +274,25 @@ describe('niagara tap vs scrub intent (BT4-005 / D25)', () => {
 		expect(floatingTocSource).toContain('if (engaged) updateTrackShift');
 	});
 });
+
+describe('niagara frame containment + one-way slide (BT4-017 / D41-D43)', () => {
+	it('bounds overdrive and along-shift to the frame room', () => {
+		expect(logicNiagaraSource).toContain('export function niagaraClampOverdrive');
+		expect(logicNiagaraSource).toContain(
+			'export function niagaraClampShiftToRoom',
+		);
+		expect(floatingTocSource).toContain('niagaraClampOverdrive(raw - cap');
+		expect(floatingTocSource).toContain('niagaraClampShiftToRoom(');
+	});
+
+	it('offers the proto one-way slide as an opt-in Floating Index setting', () => {
+		expect(DEFAULT_SETTINGS.tocMonotonicSlide).toBe(false);
+		expect(settingsSource).toContain(
+			"translate('settings.toc_monotonic_slide')",
+		);
+		expect(floatingTocSource).toContain(
+			"opts.monotonicSlide === true ? Math.max(shift, next) : next",
+		);
+		expect(frameSource).toContain('monotonicSlide: s.tocMonotonicSlide === true');
+	});
+});

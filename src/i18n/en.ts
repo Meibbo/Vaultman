@@ -228,7 +228,7 @@ export const en: Record<string, string> = {
 	'settings.saved_view_config.empty':
 		'No saved view config. Use "Save view config" in the view menu to remember view options and sorts per tab.',
 	'settings.saved_view_config.clear': 'Clear',
-	'settings.floating_toc': 'Floating TOC',
+	'settings.floating_toc': 'Floating Index',
 	'settings.floating_toc.desc':
 		'Configure the explorer index and Niagara behavior.',
 	'settings.configure': 'Configure',
@@ -274,6 +274,9 @@ export const en: Record<string, string> = {
 	'settings.toc_soft_scroll': 'Soft scroll',
 	'settings.toc_soft_scroll.desc':
 		'Smoothly slide the explorer between index groups while scrubbing.',
+	'settings.toc_monotonic_slide': 'One-way rail slide',
+	'settings.toc_monotonic_slide.desc':
+		'While scrubbing, the rail only advances and holds its furthest position until release (prototype behavior).',
 	'settings.toc_niagara_nodes': 'Join action nodes to slide',
 	'settings.toc_niagara_nodes.desc':
 		'Place action controls and indexed nodes on the same Niagara scrub track.',

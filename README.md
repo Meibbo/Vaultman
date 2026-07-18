@@ -166,7 +166,7 @@ etc.
 This plugin has adapters for the following plugins:
 
 - Bases
-- Iconic
+- [Iconic](https://github.com/gfxholo/iconic)
 
 This project has the following workflow:
 
@@ -193,8 +193,9 @@ The following open-source tools were used:
 
 ### Known Issues
 
-It will be available for public scrutine the current status and backlogs to already acknowledged bugs, issues and development direction.
+It is available for public scrutine the current status and backlogs to already acknowledged bugs, issues and development direction.
 
+For ideas and bug reports you can open issues until I find a better communication channel for feedback (like having a Discord thread in the Obsidian Members Group or anything else).
 ### Development
 
 I'll be working on the branches: **Main**, **Dev** and **Sandbox** (my favourite), any issue/suggestion/pull request is welcome!
@@ -212,8 +213,6 @@ pnpm build:plugin
 ## Contribution
 
 There's not still a well stablished contribution discipline for this repository. Please, for now, pull requests won't be reviewed nor accepted unless there's a previous communication.
-
-For ideas and bug reports you can open issues until I find a better communication channel for feedback (like having a Discord thread in the Obsidian Members Group or anything else).
 
 ## License
 
