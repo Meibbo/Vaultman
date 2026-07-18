@@ -617,7 +617,7 @@ export const es: Record<string, string> = {
 	'sort.by.sub': 'Subelementos',
 	'sort.by.subtags': 'Subetiquetas',
 	'sort.by.columns': 'Columnas',
-	'sort.parents_first': 'Parents First',
+	'sort.parents_first': 'Folders first',
 	'sort.close': 'Cerrar orden',
 	'sort.vertcol.by_values':
 		'Ordenando por valores — clic para ordenar por props',
@@ -628,6 +628,14 @@ export const es: Record<string, string> = {
 	'sort.vertcol.by_root': 'Mostrando tags raíz — clic para mostrar anidados',
 	'sort.vertcol.props_values': 'Alternar props / valores',
 	'sort.level.title': 'Por nivel',
+	'sort.level.nested': 'Anidado',
+	'sort.level.fixed_folders': 'Carpetas fijas',
+	'settings.sort_level_inline': 'Opciones By level en línea',
+	'settings.sort_level_inline.desc':
+		'Muestra las opciones By level directamente en el menú de orden en vez de un submenú.',
+	'settings.toc_drill_sync': 'El drill del índice define el scope del sort',
+	'settings.toc_drill_sync.desc':
+		'El scope drill del índice flotante también selecciona el scope del sort; cerrar el índice restaura el scope por defecto.',
 	'sort.level.properties': 'Propiedades',
 	'sort.level.values': 'Valores',
 	'sort.level.all': 'Todos los niveles',

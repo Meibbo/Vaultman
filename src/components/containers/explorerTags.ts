@@ -434,6 +434,22 @@ export class TagsExplorerPanel extends Component {
 		return this._findNode(id, this._lastRenderTree) !== null;
 	}
 
+	/** D31: the floating index drill can drive the sort scope. */
+	applyExternalSortScope(drillNodeId: string | null): void {
+		const next = normalizeExplorerSortState('tags', {
+			...this.sortState,
+			activeScope: drillNodeId ? 'drill' : 'all',
+			drillNodeId,
+		});
+		if (sameExplorerSortState(this.sortState, next)) return;
+		this.sortState = next;
+		this._render();
+	}
+
+	sortNodeLabel(id: string): string | null {
+		return this._findNode(id, this._lastRenderTree)?.label ?? null;
+	}
+
 	expandNodeById(id: string): void {
 		if (this.viewMode !== 'tree' || this.expandedIds.has(id)) return;
 		this.expandedIds.add(id);

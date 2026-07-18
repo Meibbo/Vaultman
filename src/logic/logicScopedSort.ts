@@ -58,7 +58,7 @@ function defaultState(tab: ExplorerTabId): ExplorerSortState {
 		activeScope: DEFAULT_SCOPE_BY_TAB[tab],
 		...(isHierarchicalTab(tab) ? { drillNodeId: null } : {}),
 		nodeTypeFilter: null,
-		...(tab === 'files' ? { parentsFirst: true } : {}),
+		...(tab === 'files' ? { parentsFirst: true, fixedFolders: true } : {}),
 	};
 }
 
@@ -97,6 +97,11 @@ export function normalizeExplorerSortState(
 			...(tab === 'files' && typeof value.parentsFirst === 'boolean'
 				? { parentsFirst: value.parentsFirst }
 				: {}),
+			...(tab === 'files' && typeof value.fixedFolders === 'boolean'
+				? { fixedFolders: value.fixedFolders }
+				: tab === 'files'
+					? { fixedFolders: true }
+					: {}),
 		};
 	}
 
@@ -138,6 +143,8 @@ export function normalizeExplorerSortState(
 			? {
 					parentsFirst:
 						typeof value.parentsFirst === 'boolean' ? value.parentsFirst : true,
+					fixedFolders:
+						typeof value.fixedFolders === 'boolean' ? value.fixedFolders : true,
 				}
 			: {}),
 	};
@@ -174,7 +181,8 @@ export function sameSortProjection(
 ): boolean {
 	return (
 		JSON.stringify(a.sorts) === JSON.stringify(b.sorts) &&
-		a.parentsFirst === b.parentsFirst
+		a.parentsFirst === b.parentsFirst &&
+		a.fixedFolders === b.fixedFolders
 	);
 }
 
@@ -225,4 +233,28 @@ export function sortAllWithDrill<T extends SortableTreeNode<T>>(
 	};
 
 	return sortLevel(nodes, null);
+}
+
+
+/** D33: options that make no sense in the current context disappear.
+ * - 'path' is meaningless while the tree is nested.
+ * - 'sub' (sub-element count) is meaningless for prop VALUES (no children).
+ */
+export function isSortOptionVisible(
+	optionId: string,
+	context: {
+		tab: ExplorerTabId;
+		nestedActive: boolean;
+		activeScope: SortScopeKey;
+	},
+): boolean {
+	if (optionId === 'path' && context.nestedActive) return false;
+	if (
+		optionId === 'sub' &&
+		context.tab === 'props' &&
+		context.activeScope === 'values'
+	) {
+		return false;
+	}
+	return true;
 }

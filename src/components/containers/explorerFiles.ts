@@ -1015,6 +1015,23 @@ export class FilesExplorerPanel extends Component {
 		return this._findNode(id, this._lastRenderTree) !== null;
 	}
 
+	/** D31: the floating index drill can drive the sort scope. */
+	applyExternalSortScope(drillNodeId: string | null): void {
+		const next = normalizeExplorerSortState('files', {
+			...this.sortState,
+			activeScope: drillNodeId ? 'drill' : 'all',
+			drillNodeId,
+		});
+		if (sameExplorerSortState(this.sortState, next)) return;
+		this.sortState = next;
+		this.onSortStateChange?.(this._sortState());
+		this._render();
+	}
+
+	sortNodeLabel(id: string): string | null {
+		return this._findNode(id, this._lastRenderTree)?.label ?? null;
+	}
+
 	/** Expand a node so the scope-drill can reveal its children. */
 	expandNodeById(id: string): void {
 		if (this.viewMode !== 'tree' || this.expandedIds.has(id)) return;
@@ -1092,6 +1109,7 @@ export class FilesExplorerPanel extends Component {
 				? this.logic.buildFileTree(sortedFiles, this._foldersForCurrentView(), {
 						rebaseFolderPaths,
 						parentsFirst: this.parentsFirst,
+						fixedFolders: this.sortState.fixedFolders !== false,
 						sorts: {
 							all: activeScopeSort('files', this.sortState, 'all'),
 							drill: activeScopeSort('files', this.sortState, 'drill'),

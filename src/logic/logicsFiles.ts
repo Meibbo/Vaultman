@@ -39,6 +39,7 @@ interface FolderRebaseInfo {
 export interface BuildFileTreeOptions {
 	rebaseFolderPaths?: string[];
 	parentsFirst?: boolean;
+	fixedFolders?: boolean;
 	sorts?: Partial<Record<'all' | 'drill', ScopeSort>>;
 	drillNodeId?: string | null;
 	compareNodes?: (
@@ -110,6 +111,7 @@ export class FilesLogic {
 			options.rebaseFolderPaths ?? [],
 		);
 		const parentsFirst = options.parentsFirst ?? true;
+		const fixedFolders = options.fixedFolders ?? true;
 
 		const resolveFolder = (folderPath: string): TFolder | null => {
 			const vault = this.app.vault as
@@ -182,10 +184,13 @@ export class FilesLogic {
 			}
 
 			if (parentsFirst) {
+				// Fixed folders (D29, default): hoisted folders keep a stable
+				// name order immune to the chosen sort; disabling it lets the
+				// level's sort order the folders too.
 				const folders = nodes
 					.filter((node) => node.meta?.isFolder)
 					.sort((a, b) =>
-						options.compareNodes && scopeSort
+						!fixedFolders && options.compareNodes && scopeSort
 							? options.compareNodes(a, b, scopeSort)
 							: a.label.localeCompare(b.label, undefined, numericLocale),
 					);

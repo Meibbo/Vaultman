@@ -126,6 +126,20 @@
 			stretch: s.tocStretch === true,
 		};
 	});
+	const tocDrillSyncsSort = $derived.by(() => {
+		void settingsRevision;
+		return plugin.settings.tocDrillSyncsSort === true;
+	});
+	// D31: the index drill drives the sort scope of the active explorer; when
+	// the index closes (or sync is off), the sort returns to its default scope.
+	$effect(() => {
+		if (!tocDrillSyncsSort) return;
+		const rootId = floatingTocEnabled ? tocRootId : null;
+		const panel = activeFloatingTocPanel() as {
+			applyExternalSortScope?: (id: string | null) => void;
+		} | null;
+		panel?.applyExternalSortScope?.(rootId || null);
+	});
 	const performanceHudEnabled = $derived.by(() => {
 		void settingsRevision;
 		return plugin.settings.performanceHudEnabled;

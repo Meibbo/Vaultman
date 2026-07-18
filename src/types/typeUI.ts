@@ -62,4 +62,6 @@ export interface ExplorerSortState {
 	/** Multi-selection form. Missing means load nodeTypeFilter for compatibility. */
 	nodeTypeFilters?: string[];
 	parentsFirst?: boolean;
+	/** Files: folders-first keeps a stable name order, immune to the sort */
+	fixedFolders?: boolean;
 }

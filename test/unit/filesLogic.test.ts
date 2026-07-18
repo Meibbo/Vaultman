@@ -395,8 +395,23 @@ describe('All-scope sort covers L1 root (BT4-009 repro)', () => {
 		) =>
 			(sort.direction === 'asc' ? 1 : -1) * a.label.localeCompare(b.label);
 
+		// Default fixed folders (D29): hoisted folders keep name order even
+		// under a desc sort; files still follow the sort.
+		const fixedDesc = logic.buildFileTree(files, [], {
+			parentsFirst: true,
+			sorts: { all: { sortBy: 'name', direction: 'desc' } },
+			compareNodes: compare,
+		});
+		expect(fixedDesc.map((node) => node.label)).toEqual([
+			'alpha',
+			'zeta',
+			'mid',
+			'aaa',
+		]);
+
 		const desc = logic.buildFileTree(files, [], {
 			parentsFirst: true,
+			fixedFolders: false,
 			sorts: { all: { sortBy: 'name', direction: 'desc' } },
 			compareNodes: compare,
 		});

@@ -130,6 +130,10 @@ export interface VaultmanSettings {
 	tocSoftScroll: boolean;
 	/** Anchor the rail body: the scrub bell stretches instead of sliding */
 	tocStretch: boolean;
+	/** Floating index drill also drives the sort scope (reset on index close) */
+	tocDrillSyncsSort: boolean;
+	/** Show By level options inline in the sort menu instead of a submenu */
+	sortLevelInline: boolean;
 	/** Condense Files auto-reveal and expansion into one native Tools menu */
 	toolbarToolsMenu: boolean;
 	/** Ordered fields shown in the native Files node hover tooltip */
@@ -228,6 +232,8 @@ export const DEFAULT_SETTINGS: VaultmanSettings = {
 	tocNamePill: false,
 	tocSoftScroll: false,
 	tocStretch: false,
+	tocDrillSyncsSort: false,
+	sortLevelInline: true,
 	toolbarToolsMenu: false,
 	filesHoverInfo: [...DEFAULT_FILES_HOVER_INFO],
 	showToolbar: true,

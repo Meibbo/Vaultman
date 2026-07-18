@@ -2,8 +2,10 @@ import { describe, expect, it } from 'vitest';
 
 import {
 	activeScopeSort,
+	isSortOptionVisible,
 	normalizeExplorerSortState,
 	replaceActiveScopeSort,
+	sameExplorerSortState,
 	sameSortProjection,
 	sortAllWithDrill,
 	sortTwoLevel,
@@ -206,5 +208,60 @@ describe('scoped tree ordering', () => {
 			'alpha',
 			'zulu',
 		]);
+	});
+});
+
+describe('By level phase 2 (BT4-009 / D29+D33)', () => {
+	it('defaults and normalizes fixedFolders for files only', () => {
+		const files = normalizeExplorerSortState('files', null);
+		expect(files.fixedFolders).toBe(true);
+		expect(files.parentsFirst).toBe(true);
+		const kept = normalizeExplorerSortState('files', {
+			...files,
+			fixedFolders: false,
+		});
+		expect(kept.fixedFolders).toBe(false);
+		expect(
+			sameExplorerSortState(files, { ...files, fixedFolders: false }),
+		).toBe(false);
+		expect(normalizeExplorerSortState('tags', null).fixedFolders).toBeUndefined();
+	});
+
+	it('hides contextually meaningless sort options', () => {
+		expect(
+			isSortOptionVisible('path', {
+				tab: 'files',
+				nestedActive: true,
+				activeScope: 'all',
+			}),
+		).toBe(false);
+		expect(
+			isSortOptionVisible('path', {
+				tab: 'files',
+				nestedActive: false,
+				activeScope: 'all',
+			}),
+		).toBe(true);
+		expect(
+			isSortOptionVisible('sub', {
+				tab: 'props',
+				nestedActive: true,
+				activeScope: 'values',
+			}),
+		).toBe(false);
+		expect(
+			isSortOptionVisible('sub', {
+				tab: 'props',
+				nestedActive: true,
+				activeScope: 'properties',
+			}),
+		).toBe(true);
+		expect(
+			isSortOptionVisible('name', {
+				tab: 'files',
+				nestedActive: true,
+				activeScope: 'all',
+			}),
+		).toBe(true);
 	});
 });

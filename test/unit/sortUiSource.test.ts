@@ -5,6 +5,8 @@ import { es } from '../../src/i18n/es';
 import navbarSource from '../../src/components/layout/navbarFilters.svelte?raw';
 import popupSource from '../../src/components/layout/popupSort.svelte?raw';
 import filesSource from '../../src/components/containers/explorerFiles.ts?raw';
+import frameSource from '../../src/VaultmanFrame.svelte?raw';
+import { DEFAULT_SETTINGS } from '../../src/types/typeSettings';
 
 describe('explorer sort UI source', () => {
 	it('exposes modified and created time instead of the ambiguous date sort', () => {
@@ -43,10 +45,16 @@ describe('explorer sort UI source', () => {
 		expect('sort.vertcol.sort_values' in es).toBe(false);
 	});
 
-	it('captures a drill target by long press without applying a sort immediately', () => {
-		expect(navbarSource).toContain('new LongPressGesture()');
+	it('captures a drill level with one click in dashed pick mode (BT4-009/D29)', () => {
+		expect(navbarSource).not.toContain('new LongPressGesture()');
 		expect(navbarSource).toContain("closest<HTMLElement>('[data-id]')");
-		expect(navbarSource).toContain('handleScopeChangeForTab(tab, {');
+		// Picking a row selects its LEVEL: the parent scope, like the index drill.
+		expect(navbarSource).toContain('panel?.scopeRootForNode(nodeId)');
+		expect(navbarSource).toContain("classList.add('vaultman-sort-pick-mode')");
+		expect(navbarSource).toContain(
+			"classList.remove('vaultman-sort-pick-mode')",
+		);
+		expect(navbarSource).toContain('handleScopeChangeForTab(');
 		const start = navbarSource.indexOf('function handleScopeChangeForTab(');
 		const end = navbarSource.indexOf('\n\tfunction ', start + 1);
 		const handler = navbarSource.slice(start, end);
@@ -101,5 +109,49 @@ describe('explorer sort UI source', () => {
 		);
 		expect(en['sort.by.words']).toBe('Words');
 		expect(es['sort.by.words']).toBe('Palabras');
+	});
+});
+
+describe('By level phase 2 source guards (BT4-009 / D29-D33)', () => {
+	it('groups Nested, Folders first and Fixed folders ahead of the scope radios', () => {
+		const group = navbarSource.slice(
+			navbarSource.indexOf('function addByLevelItems('),
+			navbarSource.indexOf('function sortLevelOptions('),
+		);
+		const nested = group.indexOf("translate('sort.level.nested')");
+		const folders = group.indexOf("translate('sort.parents_first')");
+		const fixed = group.indexOf("translate('sort.level.fixed_folders')");
+		expect(nested).toBeGreaterThan(-1);
+		expect(folders).toBeGreaterThan(nested);
+		expect(fixed).toBeGreaterThan(folders);
+		// Fixed folders only shows while Folders first is on.
+		expect(group).toContain('if (parentsFirst) {');
+		// Scope: drill precedes All levels (D29 order).
+		const levels = navbarSource.slice(
+			navbarSource.indexOf('function sortLevelOptions('),
+			navbarSource.indexOf('function nodeTypeOptionsForActiveTab('),
+		);
+		expect(levels.indexOf("scope: 'drill'")).toBeLessThan(
+			levels.indexOf("scope: 'all'"),
+		);
+	});
+
+	it('moves Nested out of the view-menu cells and renders inline by default', () => {
+		expect(navbarSource).toContain("(cellId) => cellId !== 'nested'");
+		expect(navbarSource).toContain('sortLevelInline = true');
+		expect(navbarSource).toContain('addByLevelItems(menu, activeTab, current)');
+		expect(DEFAULT_SETTINGS.sortLevelInline).toBe(true);
+	});
+
+	it('hides contextual options and shows the six-char drill scope label', () => {
+		expect(navbarSource).toContain('isSortOptionVisible(option.id, {');
+		expect(navbarSource).toContain('drillScopeTitle(tab, current)');
+		expect(navbarSource).toContain('chars.slice(0, 6)');
+	});
+
+	it('lets the floating index drill drive the sort scope behind its setting', () => {
+		expect(DEFAULT_SETTINGS.tocDrillSyncsSort).toBe(false);
+		expect(frameSource).toContain('applyExternalSortScope');
+		expect(filesSource).toContain('applyExternalSortScope(drillNodeId: string | null)');
 	});
 });

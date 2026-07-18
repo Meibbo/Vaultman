@@ -228,6 +228,10 @@
 		void settingsRevision;
 		return plugin.settings.showToolbar !== false;
 	});
+	const sortLevelInline = $derived.by(() => {
+		void settingsRevision;
+		return plugin.settings.sortLevelInline !== false;
+	});
 	const toolbarToolsMenu = $derived.by(() => {
 		void settingsRevision;
 		return plugin.settings.toolbarToolsMenu === true;
@@ -767,6 +771,7 @@
 			{floatingTocEnabled}
 			{onToggleFloatingToc}
 			{toolbarToolsMenu}
+			{sortLevelInline}
 			{frameWidth}
 			onToggleToolbar={toggleToolbar}
 			{savedLayouts}

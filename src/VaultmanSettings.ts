@@ -480,6 +480,17 @@ export class VaultmanSettingsTab extends PluginSettingTab {
 					.onChange(async (value) => {
 						this.plugin.settings.toolbarToolsMenu = value;
 						await this.plugin.saveSettings();
+		new Setting(containerEl)
+			.setName(translate('settings.sort_level_inline'))
+			.setDesc(translate('settings.sort_level_inline.desc'))
+			.addToggle((t) =>
+				t
+					.setValue(this.plugin.settings.sortLevelInline !== false)
+					.onChange(async (v) => {
+						this.plugin.settings.sortLevelInline = v;
+						await this.plugin.saveSettings();
+					}),
+			);
 					}),
 			);
 	}
@@ -630,6 +641,14 @@ export class VaultmanSettingsTab extends PluginSettingTab {
 				t
 					.setValue(this.plugin.settings.tocStretch === true)
 					.onChange((v) => setToc({ tocStretch: v })),
+			);
+		new Setting(containerEl)
+			.setName(translate('settings.toc_drill_sync'))
+			.setDesc(translate('settings.toc_drill_sync.desc'))
+			.addToggle((t) =>
+				t
+					.setValue(this.plugin.settings.tocDrillSyncsSort === true)
+					.onChange((v) => setToc({ tocDrillSyncsSort: v })),
 			);
 		new Setting(containerEl)
 			.setName(translate('settings.toc_niagara_nodes'))

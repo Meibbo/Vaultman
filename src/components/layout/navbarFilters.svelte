@@ -19,6 +19,7 @@
 	import { DEFAULT_EXPLORER_SORT_DIR } from '../../logic/logicSort';
 	import {
 		activeScopeSort,
+		isSortOptionVisible,
 		normalizeExplorerSortState,
 		replaceActiveScopeSort,
 		sameExplorerSortState,
@@ -44,7 +45,6 @@
 		nodeTypeFiltersForState,
 		toggleNodeTypeFilter,
 	} from '../../logic/logicNodeTypeFilters';
-	import { LongPressGesture } from '../../utils/longPressGesture';
 
 	type FiltersTab = ExplorerTabId;
 	type CoreFiltersTab = 'props' | 'files' | 'tags';
@@ -110,6 +110,7 @@
 		onSaveLayout,
 		app,
 		showTabLabels = true,
+		sortLevelInline = true,
 	}: {
 		activeTab: FiltersTab;
 		filtersSearch: string;
@@ -143,6 +144,7 @@
 		onSaveLayout?: (layout: SavedLayout) => void;
 		app?: import('obsidian').App;
 		showTabLabels?: boolean;
+		sortLevelInline?: boolean;
 	} = $props();
 
 	async function promptSaveLayout() {
@@ -926,7 +928,10 @@
 		}
 
 		menu.addSeparator();
-		for (const id of orderedCellIds(activeTab)) {
+		// 'Nested' moved into the sort menu's By level group (D29).
+		for (const id of orderedCellIds(activeTab).filter(
+			(cellId) => cellId !== 'nested',
+		)) {
 			menu.addItem((item) => {
 				item
 					.setTitle(translate(CELL_LABELS[activeTab][id]))
@@ -1066,7 +1071,7 @@
 	}
 
 	function beginDrillPick(tab: FiltersTab) {
-		if (tab === 'props' || tab === 'snippets' || tab === 'plugins') return;
+		if (tab !== 'files' && tab !== 'tags') return;
 		stopDrillPick();
 		const pane =
 			navbarEl?.closest<HTMLElement>('.vaultman-filters-tab-pane.is-active') ??
@@ -1074,24 +1079,15 @@
 				'.vaultman-filters-tab-pane.is-active',
 			);
 		if (!pane) return;
-
-		const gesture = new LongPressGesture();
+		// D29 drill UX (twin of the floating-index pick): a dashed frame marks
+		// pick mode and ONE simple click on any row selects that row's LEVEL
+		// (its parent scope). Re-open Scope / choose All levels to change it.
+		pane.classList.add('vaultman-sort-pick-mode');
 		const suppressEvent = (event: Event) => {
 			event.preventDefault();
 			event.stopImmediatePropagation();
 		};
-		const suppressNextClick = () => {
-			const suppressPickedActivation = (event: Event) => suppressEvent(event);
-			pane.addEventListener('click', suppressPickedActivation, {
-				capture: true,
-				once: true,
-			});
-			window.setTimeout(
-				() => pane.removeEventListener('click', suppressPickedActivation, true),
-				650,
-			);
-		};
-		const onPointerDown = (event: PointerEvent) => {
+		const onPick = (event: PointerEvent) => {
 			const target =
 				event.target instanceof Element
 					? event.target.closest<HTMLElement>('[data-id]')
@@ -1099,48 +1095,134 @@
 			const nodeId = target?.dataset.id;
 			if (!nodeId) return;
 			suppressEvent(event);
-			gesture.start(event, () => {
-				const current = normalizeSortState(
-					tab,
-					untrack(() => sortStateByTab[tab] ?? DEFAULT_SORT_STATE[tab]),
-				);
-				handleScopeChangeForTab(tab, {
-					...current,
-					activeScope: 'drill',
-					drillNodeId: nodeId,
-				});
-				suppressNextClick();
-				stopDrillPick();
-			});
-		};
-		const onPointerMove = (event: PointerEvent) => {
-			if (!gesture.isTrackingPointer()) return;
-			suppressEvent(event);
-			gesture.move(event);
-		};
-		const onPointerEnd = (event: PointerEvent) => {
-			if (!gesture.isTrackingPointer()) return;
-			suppressEvent(event);
-			gesture.end(event.pointerId);
+			const panel = tab === 'files' ? fileList : tagsExplorer;
+			const parentId = panel?.scopeRootForNode(nodeId) ?? null;
+			const current = normalizeSortState(
+				tab,
+				untrack(() => sortStateByTab[tab] ?? DEFAULT_SORT_STATE[tab]),
+			);
+			handleScopeChangeForTab(
+				tab,
+				parentId
+					? { ...current, activeScope: 'drill', drillNodeId: parentId }
+					: { ...current, activeScope: 'all', drillNodeId: null },
+			);
+			stopDrillPick();
 		};
 		const timeout = window.setTimeout(stopDrillPick, 8000);
-		pane.addEventListener('pointerdown', onPointerDown, true);
-		pane.addEventListener('pointermove', onPointerMove, true);
-		pane.addEventListener('pointerup', onPointerEnd, true);
-		pane.addEventListener('pointercancel', onPointerEnd, true);
-		pane.addEventListener('pointerleave', onPointerEnd, true);
+		pane.addEventListener('pointerdown', onPick, true);
 		pane.addEventListener('click', suppressEvent, true);
 		drillPickCleanup = () => {
 			window.clearTimeout(timeout);
-			gesture.cancel();
-			pane.removeEventListener('pointerdown', onPointerDown, true);
-			pane.removeEventListener('pointermove', onPointerMove, true);
-			pane.removeEventListener('pointerup', onPointerEnd, true);
-			pane.removeEventListener('pointercancel', onPointerEnd, true);
-			pane.removeEventListener('pointerleave', onPointerEnd, true);
-			pane.removeEventListener('click', suppressEvent, true);
+			pane.classList.remove('vaultman-sort-pick-mode');
+			pane.removeEventListener('pointerdown', onPick, true);
+			// Let the click that completed the pick stay suppressed.
+			window.setTimeout(
+				() => pane.removeEventListener('click', suppressEvent, true),
+				400,
+			);
 		};
 		new Notice(translate('sort.level.pick_hint'));
+	}
+
+	function supportsByLevel(tab: FiltersTab): boolean {
+		return tab === 'files' || tab === 'props' || tab === 'tags';
+	}
+
+	function nestedActiveFor(tab: FiltersTab): boolean {
+		return (visibleCellsByTab[tab] ?? DEFAULT_VISIBLE_CELLS[tab]).includes(
+			'nested',
+		);
+	}
+
+	function toggleNestedFor(tab: FiltersTab) {
+		const cells = visibleCellsByTab[tab] ?? DEFAULT_VISIBLE_CELLS[tab];
+		const next = cells.includes('nested')
+			? cells.filter((cell) => cell !== 'nested')
+			: [...cells, 'nested'];
+		visibleCellsByTab = { ...visibleCellsByTab, [tab]: next };
+		applyVisibleCells(tab, next);
+		onViewFiltersChanged?.();
+	}
+
+	function drillScopeTitle(
+		tab: FiltersTab,
+		current: ExplorerSortState,
+	): string {
+		const base = translate('sort.level.drill');
+		if (current.activeScope !== 'drill' || !current.drillNodeId) return base;
+		const panel =
+			tab === 'files' ? fileList : tab === 'tags' ? tagsExplorer : null;
+		const label = panel?.sortNodeLabel(current.drillNodeId) ?? '';
+		if (!label) return base;
+		const chars = [...label];
+		const short =
+			chars.slice(0, 6).join('') + (chars.length > 6 ? '…' : '');
+		return base.replace(/drill\s*$/i, short);
+	}
+
+	function addByLevelItems(
+		menu: Menu,
+		tab: FiltersTab,
+		current: ExplorerSortState,
+	) {
+		// D29 order: Nested -> Folders first -> Fixed folders -> sep -> Scope -> All.
+		menu.addItem((item) =>
+			item
+				.setTitle(translate('sort.level.nested'))
+				.setIcon('lucide-list-tree')
+				.setChecked(nestedActiveFor(tab))
+				.onClick(() => toggleNestedFor(tab)),
+		);
+		if (tab === 'files') {
+			const parentsFirst = current.parentsFirst ?? true;
+			menu.addItem((item) =>
+				item
+					.setTitle(translate('sort.parents_first'))
+					.setIcon('lucide-folder-tree')
+					.setChecked(parentsFirst)
+					.onClick(() =>
+						handleSortChange({ ...current, parentsFirst: !parentsFirst }),
+					),
+			);
+			if (parentsFirst) {
+				const fixedFolders = current.fixedFolders !== false;
+				menu.addItem((item) =>
+					item
+						.setTitle(translate('sort.level.fixed_folders'))
+						.setIcon('lucide-folder-lock')
+						.setChecked(fixedFolders)
+						.onClick(() =>
+							handleSortChange({ ...current, fixedFolders: !fixedFolders }),
+						),
+				);
+			}
+		}
+		menu.addSeparator();
+		for (const option of sortLevelOptions(tab)) {
+			menu.addItem((item) =>
+				item
+					.setTitle(
+						option.scope === 'drill'
+							? drillScopeTitle(tab, current)
+							: option.label,
+					)
+					.setIcon(option.icon)
+					.setChecked(current.activeScope === option.scope)
+					.onClick(() => {
+						if (option.scope === 'drill') {
+							beginDrillPick(tab);
+							return;
+						}
+						stopDrillPick();
+						handleScopeChange({
+							...current,
+							activeScope: option.scope,
+							...(tab === 'props' ? {} : { drillNodeId: null }),
+						});
+					}),
+			);
+		}
 	}
 
 	function sortLevelOptions(
@@ -1163,14 +1245,14 @@
 		if (tab === 'snippets' || tab === 'plugins') return [];
 		return [
 			{
-				scope: 'all',
-				label: translate('sort.level.all'),
-				icon: 'lucide-layers',
-			},
-			{
 				scope: 'drill',
 				label: translate('sort.level.drill'),
 				icon: 'lucide-mouse-pointer-click',
+			},
+			{
+				scope: 'all',
+				label: translate('sort.level.all'),
+				icon: 'lucide-layers',
 			},
 		];
 	}
@@ -1200,7 +1282,17 @@
 		);
 		const activeSort = activeScopeSort(activeTab, current);
 
+		const nestedActive = nestedActiveFor(activeTab);
 		for (const option of SORT_OPTIONS[activeTab]) {
+			if (
+				!isSortOptionVisible(option.id, {
+					tab: activeTab,
+					nestedActive,
+					activeScope: current.activeScope,
+				})
+			) {
+				continue;
+			}
 			menu.addItem((item) => {
 				const isActive = activeSort.sortBy === option.id;
 				item
@@ -1215,51 +1307,21 @@
 			});
 		}
 
-		if (activeTab === 'files') {
+		if (supportsByLevel(activeTab)) {
 			menu.addSeparator();
-			menu.addItem((item) => {
-				const parentsFirst = current.parentsFirst ?? true;
-				item
-					.setTitle(translate('sort.parents_first'))
-					.setIcon('lucide-folder-tree')
-					.setChecked(parentsFirst)
-					.onClick(() =>
-						handleSortChange({ ...current, parentsFirst: !parentsFirst }),
-					);
-			});
-		}
-
-		const levelOptions = sortLevelOptions(activeTab);
-		if (levelOptions.length > 0) {
-			menu.addSeparator();
-			menu.addItem((item) => {
-				item
-					.setTitle(translate('sort.level.title'))
-					.setIcon('lucide-list-tree');
-				const sub = (
-					item as typeof item & { setSubmenu: () => Menu }
-				).setSubmenu();
-				for (const option of levelOptions) {
-					sub.addItem((subItem) =>
-						subItem
-							.setTitle(option.label)
-							.setIcon(option.icon)
-							.setChecked(current.activeScope === option.scope)
-							.onClick(() => {
-								if (option.scope === 'drill') {
-									beginDrillPick(activeTab);
-									return;
-								}
-								stopDrillPick();
-								handleScopeChange({
-									...current,
-									activeScope: option.scope,
-									...(activeTab === 'props' ? {} : { drillNodeId: null }),
-								});
-							}),
-					);
-				}
-			});
+			if (sortLevelInline) {
+				addByLevelItems(menu, activeTab, current);
+			} else {
+				menu.addItem((item) => {
+					item
+						.setTitle(translate('sort.level.title'))
+						.setIcon('lucide-list-tree');
+					const sub = (
+						item as typeof item & { setSubmenu: () => Menu }
+					).setSubmenu();
+					addByLevelItems(sub, activeTab, current);
+				});
+			}
 		}
 
 		const nodeTypeOptions = nodeTypeOptionsForActiveTab();
