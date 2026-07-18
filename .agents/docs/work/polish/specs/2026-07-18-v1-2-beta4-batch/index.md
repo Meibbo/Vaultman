@@ -45,6 +45,15 @@ inspección del dev via obsidian-cli: `start of the road` (beta.2 activa) y
 | D36 | Feature: cell + sort + hover_info "remaining inline tasks" (conteo de tasks `- [ ]` sin marcar por archivo). |
 | D37 | Feature: files node-cmenu configurable — sub-page en Layout Settings estilo hover-info + drag-and-drop para orden, show/hide por opción y dividers agregables. **El sub-page de hover-info TAMBIÉN gana DnD de orden** (lock dev 2026-07-18). |
 
+## Adenda dev 2026-07-18 (D38-D41)
+
+| # | Decisión |
+|---|---|
+| D38 | Rainbow folders opt-in APROBADO (research BT3-010 mecanismo (c)) → issue BT4-014. |
+| D39 | Nuevo option "Exclude file" en el files explorer (cmenu de nodo; oculta el archivo del explorer; lista editable en settings) → BT4-015. |
+| D40 | El estado del floating index (on/off, kind y scope/drill) se guarda y restaura con el view-config (SavedViewConfig) → BT4-016. |
+| D41 | Niagara deformación: la implementación actual pierde edge cases que el proto YA resolvía (rail nunca sale horizontalmente del frame; la curva ensancha mucho más ANTES de arrastrar el rail horizontalmente, con tope en el min-width del frame; + inventario exhaustivo por research contra proto-v12) → research + BT4-017. |
+
 ## §UX — Niagara tap vs scrub (crítica adversarial, D25)
 
 Propuesta dev: timer 0.8s. Contra-propuesta (estándar de plataforma): 800ms se

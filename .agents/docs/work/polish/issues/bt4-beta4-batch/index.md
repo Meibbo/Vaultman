@@ -25,8 +25,8 @@ shards: [[01-regressions|01 regresiones]] · [[02-bugs|02 bugs]] ·
 | BT4-002 | Tags explorer hang + memory leak (regresión) | 01 | ✅ código `6bd77613` — retest dev pendiente (reload + Iconic on) |
 | BT4-003 | Rail no se mueve al lane reservado (regresión) | 01 | ✅ `736a9e62` (shift 14px restaurado) |
 | BT4-004 | Addon index reveal al top + unificar seam | 02 | ✅ `8ace5549` |
-| BT4-005 | Niagara tap vs scrub (intent threshold) | 02 | pending |
-| BT4-006 | Plugin toggle cell stale ante cambios externos | 02 | pending |
+| BT4-005 | Niagara tap vs scrub (intent threshold) | 02 | ✅ `62429f1a` (450ms/8px + gate deform/slide) |
+| BT4-006 | Plugin toggle cell stale ante cambios externos | 02 | ✅ `f199ed64` (firma + poll visible + css-change) |
 | BT4-007 | Orden cells plugins: config antes de toggle | 02 | ✅ `8ace5549` |
 | BT4-008 | Content search solo .md + sin freeze | 02 | pending |
 | BT4-009 | By level sort (redesign, shard 01 del spec) | 03 | pending |
@@ -34,6 +34,10 @@ shards: [[01-regressions|01 regresiones]] · [[02-bugs|02 bugs]] ·
 | BT4-011 | Iconic addons + iconos emitidos por plugins | 03 | pending |
 | BT4-012 | Cell+sort+hover "remaining inline tasks" | 03 | pending |
 | BT4-013 | Files cmenu configurable (DnD + dividers) | 03 | pending |
+| BT4-014 | Rainbow folders opt-in (research BT3-010 mecanismo c, D38) | 03 | pending |
+| BT4-015 | Option "Exclude file" en files explorer (D39) | 03 | pending |
+| BT4-016 | Floating index state+scope en view-config (D40) | 03 | pending |
+| BT4-017 | Niagara: edge cases del proto (D41) | 02 | research ✅ → impl pende decisión HWM |
 
 Orden recomendado: 002 → 001 → 003 → 008 → 004 → 006 → 007 → 005 → 009 → 011 →
 010 → 012 → 013. **001 y 009 comparten `navbarFilters.svelte`: serial.**

@@ -1567,3 +1567,24 @@ broader "append-only status writes" is parked as **S-12** in
   de implementación (BT4-014) desde el research.
 - Queue restante: 006 cell stale · 008 content search .md+debounce · 005 niagara
   450/8 · 009 By level · 010-013 · BT4-014 rainbow.
+
+## 2026-07-18 — claude-fable-5 · implement · BT4-005/006 + research Niagara + D38-D41
+
+- **Adenda dev D38-D41** registrada en spec: rainbow opt-in aprobado (BT4-014) ·
+  "Exclude file" files explorer (BT4-015) · floating index state+scope en
+  view-config (BT4-016) · Niagara edge cases proto (BT4-017).
+- **BT4-006 ✅ `f199ed64`**: firmas sync baratas (`communityPluginStateSignature`/
+  `cssSnippetStateSignature`, sin FS) + poll 2.5s solo-visible (`registerInterval`
+  + `isShown`) + `css-change` para snippets; refresh solo con delta real.
+- **BT4-005 ✅ `62429f1a`**: root cause del tap-deforma = `activeIdx` +
+  `updateTrackShift` corrían SIN gate de engage en `handleAt`; ahora deform/slide
+  requieren intent (hold 450ms u 8px, constantes exportadas D25); tap sigue
+  saltando.
+- **Research BT4-017 ✅**:
+  [[docs/work/polish/research/2026-07-18-niagara-proto-edge-cases/index|niagara proto edge cases]]
+  — 23 casos inventariados; gaps reales: perpOver SIN TOPE (el gate
+  `.vm-monitor-screen` del proto no se portó) + falta room-cap del eje along;
+  ⚠ decisión dev pendiente: HWM monotónico (proto) vs hysteresis reversible
+  (FTC-009, lockeada por tests). Plan mínimo = 2 caps puros.
+- Gates por commit: check 0/0 · full unit 535 · build · scorecard 17 · sync
+  plugin-dev. Queue: 008 → 017(caps) → 009 → 010-016.
