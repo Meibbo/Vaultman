@@ -5,6 +5,8 @@
 	import {
 		niagaraActionOrder,
 		niagaraClampToFrame,
+		NIAGARA_ENGAGE_HOLD_MS,
+		NIAGARA_ENGAGE_MOVE_PX,
 		niagaraNodeTransform,
 		niagaraTrackShift,
 		niagaraTrackTarget,
@@ -313,12 +315,13 @@
 					? 0
 					: rect.height
 				: cy - rect.top;
-			updateTrackShift(cx, cy, hostRect);
+			// A quick tap must not slide or deform the rail (D25).
+			if (engaged) updateTrackShift(cx, cy, hostRect);
 		}
 
 		const index = indexFromPointer(cx, cy);
 		if (index < 0) return;
-		if (index !== activeIdx) {
+		if (engaged && index !== activeIdx) {
 			activeIdx = index;
 			if (navigator.vibrate) navigator.vibrate(3);
 		}
@@ -340,7 +343,7 @@
 		ev.preventDefault();
 		const distance =
 			Math.abs(ev.clientX - downAt.x) + Math.abs(ev.clientY - downAt.y);
-		if (!engaged && distance > 6) {
+		if (!engaged && distance > NIAGARA_ENGAGE_MOVE_PX) {
 			engaged = true;
 			gestureMoved = true;
 			clearHoldTimer();
@@ -396,7 +399,7 @@
 			holdTimer = null;
 			engaged = true;
 			handleAt(downAt.x, downAt.y);
-		}, 150);
+		}, NIAGARA_ENGAGE_HOLD_MS);
 		handleAt(ev.clientX, ev.clientY);
 		window.addEventListener('pointermove', onPointerMove);
 		window.addEventListener('pointerup', endScrub);

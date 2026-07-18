@@ -1,3 +1,8 @@
+/** Scrub-intent thresholds (D25): a quick tap must jump without deforming
+ * the rail; deformation engages on press-hold or deliberate movement. */
+export const NIAGARA_ENGAGE_HOLD_MS = 450;
+export const NIAGARA_ENGAGE_MOVE_PX = 8;
+
 export interface NiagaraNodeTransform {
 	scale: number;
 	perpendicular: number;

@@ -9,6 +9,7 @@ import propsExplorerSource from '../../src/components/containers/explorerProps.t
 import { TagsExplorerPanel } from '../../src/components/containers/explorerTags';
 import tagsExplorerSource from '../../src/components/containers/explorerTags.ts?raw';
 import floatingTocSource from '../../src/components/layout/floatingToc.svelte?raw';
+import logicNiagaraSource from '../../src/logic/logicNiagaraTrack.ts?raw';
 import filesGridSource from '../../src/components/layout/viewFilesGrid.ts?raw';
 import gridSource from '../../src/components/layout/viewGrid.ts?raw';
 import routerSource from '../../src/services/routerFloatingToc.ts?raw';
@@ -252,5 +253,24 @@ describe('Floating TOC source and panel contracts', () => {
 		expect(stylesSource).toMatch(
 			/\.vaultman-floating-toc-toggle,[\s\S]*?\{[\s\S]*?background:\s*var\(--background-modifier-hover\);/,
 		);
+	});
+});
+
+describe('niagara tap vs scrub intent (BT4-005 / D25)', () => {
+	it('uses the locked intent thresholds instead of magic numbers', () => {
+		expect(logicNiagaraSource).toContain(
+			'export const NIAGARA_ENGAGE_HOLD_MS = 450',
+		);
+		expect(logicNiagaraSource).toContain(
+			'export const NIAGARA_ENGAGE_MOVE_PX = 8',
+		);
+		expect(floatingTocSource).toContain('NIAGARA_ENGAGE_HOLD_MS');
+		expect(floatingTocSource).toContain('NIAGARA_ENGAGE_MOVE_PX');
+		expect(floatingTocSource).not.toMatch(/\}, 150\);/);
+	});
+
+	it('keeps a quick tap free of deformation and slide', () => {
+		expect(floatingTocSource).toContain('if (engaged && index !== activeIdx)');
+		expect(floatingTocSource).toContain('if (engaged) updateTrackShift');
 	});
 });
