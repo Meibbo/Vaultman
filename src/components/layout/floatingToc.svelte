@@ -7,8 +7,6 @@
 		niagaraClampToFrame,
 		NIAGARA_ENGAGE_HOLD_MS,
 		NIAGARA_ENGAGE_MOVE_PX,
-		niagaraClampOverdrive,
-		niagaraClampShiftToRoom,
 		niagaraNodeTransform,
 		niagaraTrackShift,
 		niagaraTrackTarget,
@@ -26,9 +24,6 @@
 		glow: boolean;
 		nameOrder: 'down' | 'up' | 'flat';
 		namePill: boolean;
-		/** D42: proto-style one-way slide — hold the furthest position while
-		 * scrubbing; reversible hysteresis (FTC-009) stays the default. */
-		monotonicSlide?: boolean;
 	}
 
 	export type FloatingTocActionId = NiagaraActionId;
@@ -283,27 +278,7 @@
 					(horizontal ? hostRect.right : hostRect.bottom) - 8,
 				)
 			: along;
-		let next = niagaraTrackShift(
-			constrainedAlong,
-			firstCenter,
-			lastCenter,
-			shift,
-		);
-		if (hostRect) {
-			// D41: the rail body itself may never leave the frame on the
-			// scroll axis (proto `room` cap, 8px inset).
-			const firstNearBase =
-				(horizontal ? firstRect.left : firstRect.top) - shift - firstSpread;
-			const lastFarBase =
-				(horizontal ? lastRect.right : lastRect.bottom) - shift - lastSpread;
-			next = niagaraClampShiftToRoom(
-				next,
-				(horizontal ? hostRect.left : hostRect.top) + 8 - firstNearBase,
-				(horizontal ? hostRect.right : hostRect.bottom) - 8 - lastFarBase,
-			);
-		}
-		// D42: optional proto-style one-way slide holds the furthest position.
-		shift = opts.monotonicSlide === true ? Math.max(shift, next) : next;
+		shift = niagaraTrackShift(constrainedAlong, firstCenter, lastCenter, shift);
 	}
 	function handleAt(cx: number, cy: number): void {
 		const rail = railEl;
@@ -326,18 +301,7 @@
 				);
 				const raw = Math.max(0, pull);
 				pull = Math.min(raw, cap);
-				// D41: bound the overdrive so dragging far past the frame edge
-				// cannot translate the rail body out of the frame (the proto's
-				// preview monitor bounded this implicitly).
-				const perpRoom =
-					opts.position === 'right'
-						? rect.left - hostRect.left - 8
-						: opts.position === 'left'
-							? hostRect.right - rect.right - 8
-							: opts.position === 'top'
-								? hostRect.bottom - rect.bottom - 8
-								: rect.top - hostRect.top - 8;
-				over = niagaraClampOverdrive(raw - cap, perpRoom);
+				over = Math.max(0, raw - cap);
 			}
 			perpOver = engaged ? over : 0;
 			perp = engaged ? Math.max(0, pull) : 0;

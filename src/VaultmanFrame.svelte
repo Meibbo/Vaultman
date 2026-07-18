@@ -123,7 +123,6 @@
 			glow: false,
 			nameOrder: 'flat' as const,
 			namePill: false,
-			monotonicSlide: s.tocMonotonicSlide === true,
 		};
 	});
 	const performanceHudEnabled = $derived.by(() => {

@@ -82,33 +82,6 @@ export function niagaraTrackShift(
 	return currentShift;
 }
 
-/** Clamp the perpendicular overdrive so the rail body never leaves the
- * frame (D41 case 1 — the proto bounded this implicitly via its preview
- * monitor frame; the port must bound it explicitly). */
-export function niagaraClampOverdrive(over: number, room: number): number {
-	if (!Number.isFinite(over) || !Number.isFinite(room)) return 0;
-	return Math.max(0, Math.min(over, Math.max(0, room)));
-}
-
-/** Clamp an along-axis shift to the room left inside the frame
- * (D41 case 2 — mirror of the proto's `room` cap). */
-export function niagaraClampShiftToRoom(
-	shift: number,
-	minShift: number,
-	maxShift: number,
-): number {
-	if (
-		!Number.isFinite(shift) ||
-		!Number.isFinite(minShift) ||
-		!Number.isFinite(maxShift)
-	) {
-		return 0;
-	}
-	const lo = Math.min(minShift, maxShift);
-	const hi = Math.max(minShift, maxShift);
-	return Math.min(hi, Math.max(lo, shift));
-}
-
 export function niagaraClampToFrame(
 	pointerPosition: number,
 	frameStart: number,

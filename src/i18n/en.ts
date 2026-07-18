@@ -274,9 +274,6 @@ export const en: Record<string, string> = {
 	'settings.toc_soft_scroll': 'Soft scroll',
 	'settings.toc_soft_scroll.desc':
 		'Smoothly slide the explorer between index groups while scrubbing.',
-	'settings.toc_monotonic_slide': 'One-way rail slide',
-	'settings.toc_monotonic_slide.desc':
-		'While scrubbing, the rail only advances and holds its furthest position until release (prototype behavior).',
 	'settings.toc_niagara_nodes': 'Join action nodes to slide',
 	'settings.toc_niagara_nodes.desc':
 		'Place action controls and indexed nodes on the same Niagara scrub track.',
