@@ -123,6 +123,7 @@
 			glow: false,
 			nameOrder: 'flat' as const,
 			namePill: false,
+			stretch: s.tocStretch === true,
 		};
 	});
 	const performanceHudEnabled = $derived.by(() => {

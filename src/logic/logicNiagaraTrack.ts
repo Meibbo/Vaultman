@@ -92,6 +92,25 @@ export function niagaraClampOverdrive(over: number, room: number): number {
 	return Math.max(0, Math.min(over, Math.max(0, room)));
 }
 
+/** Split the raw perpendicular pull into bell amplitude and rail-body
+ * displacement (D45 stretch): displacement mode keeps the proto split
+ * (bell up to `cap`, excess drags the body, walled by `room`); stretch
+ * mode anchors the body and lets the bell absorb the excess up to the
+ * same wall — the viscous/plasticine feel. */
+export function niagaraPullSplit(
+	raw: number,
+	cap: number,
+	room: number,
+	stretch: boolean,
+): { pull: number; over: number } {
+	const safeRaw =
+		Number.isFinite(raw) && raw > 0 ? raw : 0;
+	const safeCap = Number.isFinite(cap) && cap > 0 ? cap : 0;
+	const excess = niagaraClampOverdrive(safeRaw - safeCap, room);
+	if (stretch) return { pull: Math.min(safeRaw, safeCap + excess), over: 0 };
+	return { pull: Math.min(safeRaw, safeCap), over: excess };
+}
+
 export function niagaraClampToFrame(
 	pointerPosition: number,
 	frameStart: number,

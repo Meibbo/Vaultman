@@ -272,6 +272,9 @@ export const es: Record<string, string> = {
 	'settings.toc_soft_scroll': 'Desplazamiento suave',
 	'settings.toc_soft_scroll.desc':
 		'Desliza suavemente el explorer entre grupos del índice durante el scrub.',
+	'settings.toc_stretch': 'Estirar en vez de deslizar',
+	'settings.toc_stretch.desc':
+		'Ancla el rail en su sitio: arrastrar estira la campana como plastilina en vez de desplazar el rail por el frame.',
 	'settings.toc_niagara_nodes': 'Unir acciones al deslizamiento',
 	'settings.toc_niagara_nodes.desc':
 		'Coloca los controles de acción y los nodos indexados en el mismo track Niagara.',

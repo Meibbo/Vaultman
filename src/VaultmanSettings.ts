@@ -624,6 +624,14 @@ export class VaultmanSettingsTab extends PluginSettingTab {
 					.onChange((v) => setToc({ tocSoftScroll: v })),
 			);
 		new Setting(containerEl)
+			.setName(translate('settings.toc_stretch'))
+			.setDesc(translate('settings.toc_stretch.desc'))
+			.addToggle((t) =>
+				t
+					.setValue(this.plugin.settings.tocStretch === true)
+					.onChange((v) => setToc({ tocStretch: v })),
+			);
+		new Setting(containerEl)
 			.setName(translate('settings.toc_niagara_nodes'))
 			.setDesc(translate('settings.toc_niagara_nodes.desc'))
 			.addToggle((t) =>

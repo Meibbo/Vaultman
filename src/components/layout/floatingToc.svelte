@@ -4,8 +4,8 @@
 	import type { IndexGroup } from '../../logic/logicIndexGroups';
 	import {
 		niagaraActionOrder,
-		niagaraClampOverdrive,
 		niagaraClampToFrame,
+		niagaraPullSplit,
 		NIAGARA_ENGAGE_HOLD_MS,
 		NIAGARA_ENGAGE_MOVE_PX,
 		niagaraNodeTransform,
@@ -25,6 +25,8 @@
 		glow: boolean;
 		nameOrder: 'down' | 'up' | 'flat';
 		namePill: boolean;
+		/** D45: anchor the rail body and stretch the bell instead of sliding. */
+		stretch?: boolean;
 	}
 
 	export type FloatingTocActionId = NiagaraActionId;
@@ -291,7 +293,15 @@
 			else if (opts.position === 'top') pull = cy - rect.top;
 			else pull = rect.bottom - cy;
 
-			const host = rail.offsetParent ?? rail.parentElement;
+			// The HOST is the pages viewport (the real explorer frame). The
+			// nav's offsetParent is the thin rail wrap, whose rect made the
+			// widen cap collapse to the 40px floor AND walled the body at ~0px
+			// (the "rail can't move" regression).
+			const host =
+				rail.closest<HTMLElement>('.vaultman-pages-viewport') ??
+				(rail.offsetParent instanceof HTMLElement
+					? rail.offsetParent
+					: rail.parentElement);
 			let hostRect: DOMRect | null = null;
 			let over = 0;
 			if (host instanceof HTMLElement) {
@@ -301,7 +311,6 @@
 					(horizontal ? hostRect.height : hostRect.width) - 54,
 				);
 				const raw = Math.max(0, pull);
-				pull = Math.min(raw, cap);
 				// The far-side wall (D44): the rail body may displace freely in
 				// its one allowed direction but stops at the frame's 8px inset.
 				const perpRoom =
@@ -312,7 +321,14 @@
 							: opts.position === 'top'
 								? hostRect.bottom - rect.bottom - 8
 								: rect.top - hostRect.top - 8;
-				over = niagaraClampOverdrive(raw - cap, perpRoom);
+				const split = niagaraPullSplit(
+					raw,
+					cap,
+					perpRoom,
+					opts.stretch === true,
+				);
+				pull = split.pull;
+				over = split.over;
 			}
 			perpOver = engaged ? over : 0;
 			perp = engaged ? Math.max(0, pull) : 0;

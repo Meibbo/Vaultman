@@ -6,6 +6,7 @@ import {
 	niagaraClampToFrame,
 	niagaraGaussian,
 	niagaraNodeTransform,
+	niagaraPullSplit,
 	niagaraSigma,
 	niagaraTrackShift,
 	niagaraTrackTarget,
@@ -156,5 +157,39 @@ describe('perpendicular far-side wall (BT4-017 v13 room idiom)', () => {
 		expect(niagaraClampOverdrive(50, -12)).toBe(0);
 		expect(niagaraClampOverdrive(-5, 100)).toBe(0);
 		expect(niagaraClampOverdrive(Number.NaN, 100)).toBe(0);
+	});
+});
+
+describe('pull split: displacement vs stretch (D45)', () => {
+	it('splits bell and body in displacement mode, walled by the room', () => {
+		expect(niagaraPullSplit(30, 40, 200, false)).toEqual({
+			pull: 30,
+			over: 0,
+		});
+		expect(niagaraPullSplit(100, 40, 200, false)).toEqual({
+			pull: 40,
+			over: 60,
+		});
+		expect(niagaraPullSplit(400, 40, 200, false)).toEqual({
+			pull: 40,
+			over: 200,
+		});
+		expect(niagaraPullSplit(100, 40, 0, false)).toEqual({ pull: 40, over: 0 });
+	});
+
+	it('anchors the body and stretches the bell to the same wall in stretch mode', () => {
+		expect(niagaraPullSplit(100, 40, 200, true)).toEqual({
+			pull: 100,
+			over: 0,
+		});
+		expect(niagaraPullSplit(400, 40, 200, true)).toEqual({
+			pull: 240,
+			over: 0,
+		});
+		expect(niagaraPullSplit(400, 40, 0, true)).toEqual({ pull: 40, over: 0 });
+		expect(niagaraPullSplit(Number.NaN, 40, 200, true)).toEqual({
+			pull: 0,
+			over: 0,
+		});
 	});
 });

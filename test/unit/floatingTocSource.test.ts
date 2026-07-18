@@ -117,7 +117,7 @@ describe('Floating TOC source and panel contracts', () => {
 
 	it('rejects incompatible toolbar activation before persisting the index state', () => {
 		const toggleSource = frameSource.match(
-			/function toggleFloatingToc\(\) \{([\s\S]*?)\n\t\}\n\tconst floatingTocNiagara/,
+			/function toggleFloatingToc\(\) \{([\s\S]*?)\r?\n\t\}\r?\n\tconst floatingTocNiagara/,
 		)?.[1];
 		expect(toggleSource).toBeDefined();
 		expect(toggleSource).toContain('resolveFloatingTocToggle(');
@@ -277,7 +277,12 @@ describe('niagara tap vs scrub intent (BT4-005 / D25)', () => {
 
 describe('perpendicular wall only — v13 canon (BT4-017 redo / D44-D45)', () => {
 	it('caps the overdrive against the host room without re-adding the withdrawn pieces', () => {
-		expect(floatingTocSource).toContain('niagaraClampOverdrive(raw - cap');
+		expect(floatingTocSource).toContain('niagaraPullSplit(');
+		// The host must be the pages viewport, not the thin rail wrap whose
+		// rect froze the displacement and capped the bell at the 40px floor.
+		expect(floatingTocSource).toContain(
+			"rail.closest<HTMLElement>('.vaultman-pages-viewport')",
+		);
 		expect(floatingTocSource).not.toContain('niagaraClampShiftToRoom');
 		expect(floatingTocSource).not.toContain('monotonicSlide');
 	});
