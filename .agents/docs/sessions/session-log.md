@@ -1738,3 +1738,30 @@ broader "append-only status writes" is parked as **S-12** in
   Gates: 101f/555t · check 0/0 · build · scorecard 17 · sync plugin-dev.
 - Queue restante: 022/024 (bugs calientes de refresh) → 023 → 011 → 018 →
   012/013 → 014/015/016 → 021.
+
+## 2026-07-18 — claude-fable-5 · implement · BT4-022/024/023/011/018 (5 issues)
+
+- **022 ✅ `038b1278`**: panes ocultos miden clientHeight 0 → ventana virtual
+  vacía al volver; `refreshViewport()` público en los 5 paneles + rAF al activar
+  tab en pageFilters.
+- **024 ✅ `09ae0859`+`8f054966`**: watch de mtime del data.json de Iconic
+  (2.5s, registerInterval) → reload + invalidate + notify; guard `window` para
+  env de tests (14 rojos se colaron a un commit por el chain — corregidos en el
+  follow-up inmediato, suite verde).
+- **023 ✅ `d9443386`+`7d6bf1c9`**: root cause por inspección RUNTIME viva
+  (obsidian-cli eval): Iconic no expone `openIconPicker`; sus managers
+  (`tagIconManager`/`propertyIconManager`) exponen `onContextMenu(path, event)`
+  que abre su menú/picker real. Gates y pickers re-ruteados + `MenuCtx.event`
+  plumbing + rename "Custom icons only". data.json shape verificado
+  (fileIcons/tagIcons/propertyIcons/ribbonIcons ✓ parser correcto).
+- **011 ✅ `3b95a9ae`**: ribbon items = `pluginId:Title` (verificado CLI) →
+  icono emitido como default del nodo plugin, override `ribbonIcons` de Iconic
+  encima, `lucide-plug` fallback; Change icon en cmenu de plugins vía
+  `ribbonIconManager.onContextMenu`. Snippets sin item-kind en Iconic → as-is.
+- **018 ✅ `7da6426d`**: action pause/play en toolbar Content; pausa congela el
+  scan (parciales→filtro efectivo via setContentSearchRule, isLoading off →
+  replace desbloqueado); resume re-corre; clear resetea.
+- Gates por commit · sync plugin-dev · **CLI `plugin:reload` ejecutado tras cada
+  sync** (nuevo paso pedido por dev, funciona: "Reloaded: vaultman").
+- Restantes BT4: 012 · 013 · 014 · 015 · 016 · 021 (+ residuales 009: popup
+  parity, tags-toolbar sync D31).
