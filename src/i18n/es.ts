@@ -633,6 +633,8 @@ export const es: Record<string, string> = {
 	'sort.vertcol.by_root': 'Mostrando tags raíz — clic para mostrar anidados',
 	'sort.vertcol.props_values': 'Alternar props / valores',
 	'sort.level.title': 'Por nivel',
+	'content.pause_search': 'Pausar búsqueda',
+	'content.resume_search': 'Reanudar búsqueda',
 	'sort.level.nested': 'Anidado',
 	'sort.level.fixed_folders': 'Carpetas fijas',
 	'settings.sort_level_inline': 'Opciones By level en línea',

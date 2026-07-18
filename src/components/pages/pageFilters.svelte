@@ -186,6 +186,7 @@
 	let contentReplace = $state('');
 	let contentCaseSensitive = $state(false);
 	let contentIsRegex = $state(false);
+	let contentSearchPaused = $state(false);
 	let contentPreviewResult = $state<ContentPreviewResult | null>(null);
 	let contentPreviewOpen = $state(true);
 	let contentRegexError = $state('');
@@ -424,6 +425,17 @@
 		filtersActiveTab === 'content'
 			? [
 					{
+						id: 'content-pause',
+						label: contentSearchPaused
+							? translate('content.resume_search')
+							: translate('content.pause_search'),
+						icon: contentSearchPaused ? 'lucide-play' : 'lucide-pause',
+						disabled: !contentFind,
+						onClick: () => {
+							contentSearchPaused = !contentSearchPaused;
+						},
+					},
+					{
 						id: 'content-sort',
 						label: translate('filter.sort_btn'),
 						icon: 'lucide-arrow-up-down',
@@ -657,6 +669,7 @@
 		if (!find) {
 			contentPreviewResult = null;
 			contentRegexError = '';
+			contentSearchPaused = false;
 			collapsedContentFilePaths = [];
 			plugin.filterService.setContentSearchRule('', []);
 			onContentFilterChanged?.();
@@ -664,6 +677,21 @@
 		}
 		if (!validateContentSearch()) {
 			plugin.filterService.setContentSearchRule('', []);
+			onContentFilterChanged?.();
+			return;
+		}
+		const paused = contentSearchPaused;
+		if (paused) {
+			// BT4-018: freeze the scan where it stands — the partial matches
+			// become the effective files filter, the loading state clears, and
+			// replace unlocks. Resuming re-runs the full search.
+			const frozen = contentPreviewResult;
+			if (frozen?.isLoading) {
+				contentPreviewResult = { ...frozen, isLoading: false };
+			}
+			const matched =
+				frozen?.matchedFiles ?? frozen?.files.map((entry) => entry.file) ?? [];
+			plugin.filterService.setContentSearchRule(find, matched);
 			onContentFilterChanged?.();
 			return;
 		}

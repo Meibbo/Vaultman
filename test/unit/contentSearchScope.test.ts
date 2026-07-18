@@ -52,3 +52,19 @@ describe('preview refresh after edits (BT4-020)', () => {
 		expect(frameSource).toContain('plugin.app.vault.offref(vaultModifyRef)');
 	});
 });
+
+describe('pause/resume content search (BT4-018 / D46)', () => {
+	it('freezes partial matches into the filter and unlocks replace while paused', () => {
+		expect(pageFiltersSource).toContain("id: 'content-pause'");
+		expect(pageFiltersSource).toContain('contentSearchPaused = !contentSearchPaused;');
+		const pauseIndex = pageFiltersSource.indexOf('if (paused) {');
+		const timerIndex = pageFiltersSource.indexOf(
+			'const timer = window.setTimeout(() => {',
+		);
+		expect(pauseIndex).toBeGreaterThan(-1);
+		expect(pauseIndex).toBeLessThan(timerIndex);
+		const branch = pageFiltersSource.slice(pauseIndex, timerIndex);
+		expect(branch).toContain('isLoading: false');
+		expect(branch).toContain('setContentSearchRule(find, matched)');
+	});
+});

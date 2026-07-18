@@ -752,6 +752,8 @@ export const en: Record<string, string> = {
 	'sort.vertcol.by_root': 'Showing root tags — click to show nested',
 	'sort.vertcol.props_values': 'Toggle Props / Values',
 	'sort.level.title': 'By level',
+	'content.pause_search': 'Pause search',
+	'content.resume_search': 'Resume search',
 	'sort.level.nested': 'Nested',
 	'sort.level.fixed_folders': 'Fixed folders',
 	'settings.sort_level_inline': 'Inline By level options',
