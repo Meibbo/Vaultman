@@ -1634,3 +1634,21 @@ broader "append-only status writes" is parked as **S-12** in
   17 · sync plugin-dev. Nota de proceso: dos commits intermedios entraron con
   2 guards rojos por chain mal cortado (grep no-fallante); corregido en
   `0d6da61a` con suite verde completa — los 3 commits quedan en historia.
+
+## 2026-07-18 — claude-fable-5 · fix · BT4-017 REVERT (canon v13) + D44-D47
+
+- **BT4-017 revertido `8c264c1d`** por reporte dev: research/impl se basó en
+  proto-v12 pero el canon vivo = **proto v13** (error de canon del coordinador —
+  la memoria/docs decían v12); en la práctica los clamps rompieron el
+  desplazamiento libre del rail en vez de añadir la pared faltante. Estado
+  correcto actual: desplazamiento libre direccional OK; FALTA la pared del lado
+  de desplazamiento. Revert selectivo: D43 (rename Floating Index) conservado;
+  option one-way slide RETIRADA (D45); README del dev (barrido por `add -A` en
+  247b4b1d) preservado. Gates verdes 101f/540t + sync. Research v13 lanzado
+  (Explore background).
+- **BT4-008 feedback dev**: "mucho mejor" + 3 sub-issues nuevos D46/D47 →
+  BT4-018 (pause/resume + replace enable) · BT4-019 (conteo 3-vs-1 vs core) ·
+  BT4-020 (refresh tras replace).
+- Lección de proceso (repetida): verificar canon del proto ANTES de research
+  (v13 > v12); `add -A` barrió edits ajenos del dev al commit — staging
+  selectivo en adelante.

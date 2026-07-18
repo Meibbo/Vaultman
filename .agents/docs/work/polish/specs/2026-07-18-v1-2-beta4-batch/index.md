@@ -56,6 +56,15 @@ inspección del dev via obsidian-cli: `start of the road` (beta.2 activa) y
 | D43 | Rename del sub-page de settings "Floating TOC" → **"Floating Index"** (i18n + heading + botón). |
 | D41 | Niagara deformación: la implementación actual pierde edge cases que el proto YA resolvía (rail nunca sale horizontalmente del frame; la curva ensancha mucho más ANTES de arrastrar el rail horizontalmente, con tope en el min-width del frame; + inventario exhaustivo por research contra proto-v12) → research + BT4-017. |
 
+## Adenda dev 2026-07-18 bis (D44-D47)
+
+| # | Decisión |
+|---|---|
+| D44 | BT4-017 REVERTIDO (`8c264c1d`): el research usó proto-v12 pero el canon vivo es **proto v13** (`Downloads/vaultman/Vaultman Prototype v13.html`); los clamps v12 rompieron el desplazamiento libre. Redo desde research v13. El desplazamiento libre direccional actual es CORRECTO; falta solo la "pared" del lado hacia el que se desplaza. |
+| D45 | Option one-way slide (ex D42) RETIRADA. Idea futura anotada (no-issue aún): toggle = rail SIN desplazamiento horizontal que se ESTIRA (campana desde el centro, feel viscoso/plastilina). |
+| D46 | Content search: action node pausar/reanudar en el toolbar de Content — pausar corta el scan, quita la animación de carga, hace efectivo el filtro de files con los matches parciales y habilita replace (BT4-018). |
+| D47 | Content search: paridad de conteo con core search (frase exacta "te quiero mucho": core=1, nuestro=3 — investigar matcher, BT4-019) + refresh del explorer tras replace que elimina el texto (core sí refresca, BT4-020). |
+
 ## §UX — Niagara tap vs scrub (crítica adversarial, D25)
 
 Propuesta dev: timer 0.8s. Contra-propuesta (estándar de plataforma): 800ms se

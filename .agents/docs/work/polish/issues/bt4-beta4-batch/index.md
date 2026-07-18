@@ -37,7 +37,10 @@ shards: [[01-regressions|01 regresiones]] · [[02-bugs|02 bugs]] ·
 | BT4-014 | Rainbow folders opt-in (research BT3-010 mecanismo c, D38) | 03 | pending |
 | BT4-015 | Option "Exclude file" en files explorer (D39) | 03 | pending |
 | BT4-016 | Floating index state+scope en view-config (D40) | 03 | pending |
-| BT4-017 | Niagara: caps proto + HWM option + rename Floating Index (D41/D42/D43) | 02 | ✅ `247b4b1d` |
+| BT4-017 | Niagara: pared de desplazamiento según frame (proto v13) | 02 | REVERTED `8c264c1d` (base v12 errónea; D42 retirada; D43 conservada) → redo con research v13 |
+| BT4-018 | Content search: action pausar/reanudar (aplica filtro parcial + habilita replace) | 02 | pending |
+| BT4-019 | Content search: conteo de resultados ≠ core search (3 vs 1) | 02 | pending |
+| BT4-020 | Content search: refresh tras operación replace | 02 | pending |
 
 Orden recomendado: 002 → 001 → 003 → 008 → 004 → 006 → 007 → 005 → 009 → 011 →
 010 → 012 → 013. **001 y 009 comparten `navbarFilters.svelte`: serial.**
