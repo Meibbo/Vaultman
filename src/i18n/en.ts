@@ -223,7 +223,7 @@ export const en: Record<string, string> = {
 	'settings.default_type.desc': 'Default type for new properties',
 	'settings.templates': 'Filter templates',
 	'settings.templates.desc': 'Manage saved filter templates',
-	'settings.saved_view_config': 'Layouts',
+	'settings.saved_view_config': 'View configs',
 	'settings.saved_view_config.desc': 'Saved tabs',
 	'settings.saved_view_config.empty':
 		'No saved view config. Use "Save view config" in the view menu to remember view options and sorts per tab.',
@@ -746,7 +746,7 @@ export const en: Record<string, string> = {
 	'sort.vertcol.by_nested': 'Showing nested tags — click to show root only',
 	'sort.vertcol.by_root': 'Showing root tags — click to show nested',
 	'sort.vertcol.props_values': 'Toggle Props / Values',
-	'sort.level.title': 'Sort level',
+	'sort.level.title': 'By level',
 	'sort.level.properties': 'Properties',
 	'sort.level.values': 'Values',
 	'sort.level.all': 'All levels',

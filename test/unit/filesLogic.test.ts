@@ -375,3 +375,76 @@ describe('FilesLogic.buildFileTree', () => {
 		expect(nodes.every((node) => node.showCaret === false)).toBe(true);
 	});
 });
+
+describe('All-scope sort covers L1 root (BT4-009 repro)', () => {
+	it('re-orders root folders and files when the all-scope direction flips', () => {
+		const logic = new FilesLogic({
+			vault: {},
+			metadataCache: { getFileCache: () => null },
+		} as unknown as App);
+		const files = [
+			makeFile('alpha/one.md'),
+			makeFile('zeta/two.md'),
+			makeFile('mid.md'),
+			makeFile('aaa.md'),
+		];
+		const compare = (
+			a: { label: string },
+			b: { label: string },
+			sort: { sortBy: string; direction: 'asc' | 'desc' },
+		) =>
+			(sort.direction === 'asc' ? 1 : -1) * a.label.localeCompare(b.label);
+
+		const desc = logic.buildFileTree(files, [], {
+			parentsFirst: true,
+			sorts: { all: { sortBy: 'name', direction: 'desc' } },
+			compareNodes: compare,
+		});
+		expect(desc.map((node) => node.label)).toEqual([
+			'zeta',
+			'alpha',
+			'mid',
+			'aaa',
+		]);
+
+		const asc = logic.buildFileTree(files, [], {
+			parentsFirst: true,
+			sorts: { all: { sortBy: 'name', direction: 'asc' } },
+			compareNodes: compare,
+		});
+		expect(asc.map((node) => node.label)).toEqual([
+			'alpha',
+			'zeta',
+			'aaa',
+			'mid',
+		]);
+	});
+});
+
+describe('stale drill sort must not capture the root level (BT4-009)', () => {
+	it('sorts L1 by the all-scope even when a drill sort lingers with no target', () => {
+		const logic = new FilesLogic({
+			vault: {},
+			metadataCache: { getFileCache: () => null },
+		} as unknown as App);
+		const files = [makeFile('bbb.md'), makeFile('aaa.md'), makeFile('ccc.md')];
+		const compare = (
+			a: { label: string },
+			b: { label: string },
+			sort: { sortBy: string; direction: 'asc' | 'desc' },
+		) =>
+			(sort.direction === 'asc' ? 1 : -1) * a.label.localeCompare(b.label);
+
+		const tree = logic.buildFileTree(files, [], {
+			parentsFirst: true,
+			// drill sort left behind by an abandoned drill; no target node.
+			sorts: {
+				all: { sortBy: 'name', direction: 'asc' },
+				drill: { sortBy: 'name', direction: 'desc' },
+			},
+			drillNodeId: null,
+			compareNodes: compare,
+		});
+		expect(tree.map((node) => node.label)).toEqual(['aaa', 'bbb', 'ccc']);
+	});
+});

@@ -170,8 +170,11 @@ export class FilesLogic {
 			nodes: TreeNode<FileMeta>[],
 			parentId: string | null = null,
 		): TreeNode<FileMeta>[] => {
+			// A null parentId (the root level) must never match a null/absent
+			// drill target — that let a lingering drill sort capture L1 while
+			// every other level followed the all-scope sort (BT4-009).
 			const scopeSort =
-				parentId === options.drillNodeId
+				parentId !== null && parentId === options.drillNodeId
 					? (options.sorts?.drill ?? options.sorts?.all)
 					: options.sorts?.all;
 			if (options.compareNodes && scopeSort) {

@@ -221,7 +221,7 @@ export const es: Record<string, string> = {
 	'settings.default_type.desc': 'Tipo por defecto para nuevas propiedades',
 	'settings.templates': 'Plantillas de filtros',
 	'settings.templates.desc': 'Gestionar plantillas de filtros guardadas',
-	'settings.saved_view_config': 'Diseños',
+	'settings.saved_view_config': 'View configs',
 	'settings.saved_view_config.desc': 'Tabs guardados',
 	'settings.saved_view_config.empty':
 		'Sin config de vista guardada. Usa "Guardar config de vista" en el menú de vista para recordar opciones y orden por tab.',
@@ -627,7 +627,7 @@ export const es: Record<string, string> = {
 		'Mostrando tags anidados — clic para mostrar solo raíz',
 	'sort.vertcol.by_root': 'Mostrando tags raíz — clic para mostrar anidados',
 	'sort.vertcol.props_values': 'Alternar props / valores',
-	'sort.level.title': 'Nivel de orden',
+	'sort.level.title': 'Por nivel',
 	'sort.level.properties': 'Propiedades',
 	'sort.level.values': 'Valores',
 	'sort.level.all': 'Todos los niveles',
