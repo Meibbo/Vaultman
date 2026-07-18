@@ -2,7 +2,7 @@
 	"author": "Meibbo",
 	"license": "Apache-2.0",
 	"name": "vaultman",
-	"version": "1.2.0-beta.2",
+	"version": "1.2.0-beta.3",
 	"description": "Files, content and frontmatter explorer like Bases with scoped queued changes list.",
 	"main": "main.js",
 	"type": "module",
