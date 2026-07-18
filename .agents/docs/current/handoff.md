@@ -17,6 +17,34 @@ updated_by: codex-gpt-5
 Compact handoff after archiving the oversized current handoff:
 [[docs/archive/pkm-ai/active-docs/2026-05-11T080321-current-handoff|2026-05-11 handoff archive]].
 
+## NEXT AGENT START HERE — beta.3 publicada; ejecutar beta.4 BT4 (2026-07-18)
+
+**Estado:** `1.2.0-beta.3` PUBLICADA por orden del dev (aun con regresiones
+conocidas): `origin/dev` = `fa48b96a` = tag `1.2.0-beta.3`
+(https://github.com/Meibbo/Vaultman/releases/tag/1.2.0-beta.3). Preflight completo
+verde; en el camino se corrigió el guard scorecard stale (`fa48b96a`, blur refactor).
+El batch correctivo beta.4 está ESPECIFICADO con triage completo del reporte dev
+(D21-D37); supersede la sección de abajo (2026-07-17) y su link muerto BT3-011.
+
+**Lee en orden:**
+1. [[docs/work/polish/specs/2026-07-18-v1-2-beta4-batch/index|Spec beta.4]]
+   (D21-D37 + §UX niagara + Mermaid + adversarial).
+2. [[docs/work/polish/specs/2026-07-18-v1-2-beta4-batch/01-by-level-sort|Shard 01
+   By level sort]] (BT4-009 — ENTERO antes de tocar sort).
+3. [[docs/work/polish/issues/bt4-beta4-batch/index|Issue-set BT4-001..013]]
+   (+ shards 01-regressions/02-bugs/03-redesign-ia-features).
+
+**Esenciales:** rama `v12/bt4` desde `fa48b96a` en el worktree
+`C:/tmp/vaultman-release-beta2-final2`. Regresiones (BT4-001..003) con skill
+`vm-regression-resolver` — oráculo beta.2 `5e5fa1df`, rango culpable
+`03fe92bc..7ba6a3c9`; anclas ya identificadas: tags hang sospechoso `194a7306`
+(iconic `onChanged→_render` en explorerTags L84-87) · rail→lane causa `03fe92bc`
+(regla shift eliminada; re-introducir con lane compacto 22/26px) · toolbar
+tool-case = bisect en `navbarFilters.svelte`. Orden: 002 → 001 → 003 → 008 →
+004/006/007 → 005 → 009 → 011 → 010 → 012 → 013; 001∦009 (navbarFilters). Vaults
+de inspección: `start of the road` (beta.2) · `plugin-dev` (beta.3). Gates policy
+sin cambio; testing visual delistado; two-commit; sin push/tag sin el dev.
+
 ## NEXT AGENT START HERE — beta.3 rechazada; preparar corrective beta.4 (2026-07-17)
 
 **Estado:** el dev reportó que BT3-001→009 generó errores nuevos e implementó

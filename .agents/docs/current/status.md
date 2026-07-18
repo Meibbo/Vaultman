@@ -31,6 +31,21 @@ Compact route index after archiving the oversized current status:
 - Active initiative: [[docs/work/hardening/index|Hardening]].
 - **Pendientes consolidados (dev-facing)**: [[docs/current/pendientes|pendientes]] —
   HITL · Codex · spine · researches · infra (creado 2026-07-09, mantener al cerrar/abrir ítems).
+- **LATEST (2026-07-18, claude-fable-5):** **`1.2.0-beta.3` PUBLICADA (orden dev) +
+  beta.4 planificada.** Release: dev FF a `7ba6a3c9` (BT3-001..009 de codex) +
+  `fa48b96a` fix guard scorecard stale (blur refactor `logicGlassBlur`) →
+  `pnpm release beta 1.2` verde (verify+audit+attest, workflow OK):
+  https://github.com/Meibbo/Vaultman/releases/tag/1.2.0-beta.3. **Beta.4** (triage
+  del reporte dev; supersede el placeholder BT3-011 que era link muerto) =
+  3 regresiones (toolbar tool-case · tags hang/leak, sospechoso `194a7306` iconic
+  onChanged→render · rail no entra al lane, causa `03fe92bc`) + 5 bugs (reveal
+  addons al medio · niagara tap deforma · toggle cell stale · orden cells plugins ·
+  content search escanea mp4 + freeze en input) + redesign **By level sort** +
+  settings IA + iconic addons/iconos emitidos + inline tasks + files cmenu
+  configurable. **D21-D37 locked.** Ruta:
+  [[docs/work/polish/specs/2026-07-18-v1-2-beta4-batch/index|spec beta.4]] +
+  [[docs/work/polish/issues/bt4-beta4-batch/index|BT4-001..013]] (regresiones con
+  vm-regression-resolver, oráculo beta.2 `5e5fa1df`). Detalle: session-log 2026-07-18.
 - **LATEST (2026-07-17, dev report): beta.3 NO aceptada.** El dev reportó errores
   nuevos y varias solicitudes mal implementadas en BT3-001→009. Los gates previos
   quedan como evidencia técnica, no de aceptación funcional. Candidato local limpio:

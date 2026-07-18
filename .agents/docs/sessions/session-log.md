@@ -1492,3 +1492,29 @@ broader "append-only status writes" is parked as **S-12** in
   CHANGELOG, RELEASE_NOTES, manifest, package y versions alineados.
 - Un tag sólo local no publica nada. Un tag remoto sin GitHub Release no es posible con
   el workflow actual sin deshabilitar/cambiar el trigger, opción no recomendada.
+
+## 2026-07-18 — claude-fable-5 · release+plan · beta.3 publicada + BT4 triage
+
+- **Release `1.2.0-beta.3`** (orden dev, con regresiones conocidas): FF `dev` a
+  `7ba6a3c9` (BT3-001..009 codex, code-only, cero `.agents`) + commit dev
+  `14e87dc7` (readme/wrench). Preflight 1º intento ROJO: guard scorecard
+  literal-string stale tras refactor `logicGlassBlur` (main.ts sí usa
+  `activeDocument` L453) → fix guard `fa48b96a` → `pnpm release beta 1.2 --yes`
+  verde completo (verify · 100f/524t · scorecard 17 · audit · attest · workflow):
+  https://github.com/Meibbo/Vaultman/releases/tag/1.2.0-beta.3.
+- **Triage beta.4 (reporte dev, D21-D37):** 3 regresiones + 5 bugs + By level sort
+  redesign + IA settings + iconic addons + 2 features. Anclas verificadas en diff:
+  tags hang/leak sospechoso `194a7306` (`iconicService.onChanged(() =>
+  this._render())` en explorerTags L84-87); rail→lane causa conocida `03fe92bc`
+  (regla shift borrada — recomendación errónea del coordinador en el handoff a
+  codex, corregir re-introduciendo shift con lane 22/26px); toolbar tool-case →
+  bisect navbarFilters (`5414a0f0`/`46243479`); logicResponsiveLayout limpio.
+- **Docs:** [[docs/work/polish/specs/2026-07-18-v1-2-beta4-batch/index|spec beta.4]]
+  (+shard 01 By level) + [[docs/work/polish/issues/bt4-beta4-batch/index|BT4-001..013]]
+  (shards 01/02/03). BT3 index: 002-009 marcados completed con hashes + forwards a
+  BT4; BT3-010 sigue pending. Status/handoff actualizados (el placeholder BT3-011
+  del entry 2026-07-17 era link muerto — superseded por BT4).
+- Niagara tap: contra-propuesta UX registrada en spec §UX (450ms/8px intent-based
+  vs 800ms del dev) — decisión final HITL.
+- Room: task_033 sigue mía; scope docs re-usado. Próximo: ejecutar BT4 en rama
+  `v12/bt4` (002 hang primero).
