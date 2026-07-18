@@ -32,7 +32,12 @@ interface ObsidianCommunityPluginManager {
 	disablePlugin?: (id: string) => MaybePromise<void>;
 }
 
+interface RibbonHost {
+	items?: Array<{ id?: string; icon?: string }>;
+}
+
 interface ExtendedApp extends App {
+	workspace: App['workspace'] & { leftRibbon?: RibbonHost };
 	customCss?: ObsidianCustomCss;
 	plugins?: ObsidianCommunityPluginManager;
 }
@@ -219,4 +224,20 @@ export async function setCommunityPluginEnabled(
 	if (!disable) return false;
 	await disable.call(manager, id);
 	return true;
+}
+
+/** First ribbon action a plugin registered (`pluginId:Title`): its icon is
+ * the icon the plugin "emits" (D35), e.g. Vaultman's lucide-vault. */
+export function pluginRibbonItem(
+	app: App,
+	pluginId: string,
+): { id: string; icon: string } | null {
+	const items = extendedApp(app).workspace?.leftRibbon?.items ?? [];
+	for (const item of items) {
+		if (!item?.id || !item.icon) continue;
+		if (item.id.startsWith(`${pluginId}:`)) {
+			return { id: item.id, icon: item.icon };
+		}
+	}
+	return null;
 }

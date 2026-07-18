@@ -9,6 +9,7 @@ import type { IndexNodeRef } from '../../logic/logicIndexGroups';
 import {
 	communityPluginStateSignature,
 	listCommunityPluginEntries,
+	pluginRibbonItem,
 	setCommunityPluginEnabled,
 } from '../../utils/obsidianAddons';
 import {
@@ -192,10 +193,17 @@ export class PluginsExplorerPanel
 							disabled: this.pendingToggleIds.has(entry.pluginId),
 						},
 			);
+			// D35 precedence: Iconic ribbon override > plugin-emitted ribbon
+			// icon > generic plug.
+			const ribbon = pluginRibbonItem(this.plugin.app, entry.pluginId);
+			const override = ribbon
+				? this.plugin.iconicService?.getRibbonIcon(ribbon.id)
+				: null;
 			return {
 				id: `plugin:${entry.pluginId}`,
 				label: entry.name,
-				icon: 'lucide-plug',
+				icon: override?.icon ?? ribbon?.icon ?? 'lucide-plug',
+				iconColor: override?.color,
 				typeText: entry.version,
 				ctimeText: formatAddonTimestamp(entry.installedTime),
 				mtimeText: formatAddonTimestamp(entry.updatedTime),
@@ -306,6 +314,17 @@ export class PluginsExplorerPanel
 
 	private openMenu(meta: PluginMeta, event: MouseEvent): void {
 		const menu = new Menu();
+		const ribbon = pluginRibbonItem(this.plugin.app, meta.pluginId);
+		if (ribbon && this.plugin.iconicService?.canChangeRibbonIcon()) {
+			menu.addItem((item) =>
+				item
+					.setTitle(translate('iconic.change_icon'))
+					.setIcon('lucide-image-plus')
+					.onClick(() => {
+						this.plugin.iconicService?.openRibbonIconMenu(ribbon.id, event);
+					}),
+			);
+		}
 		if (meta.isVaultman) {
 			menu.addItem((item) =>
 				item

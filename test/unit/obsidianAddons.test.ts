@@ -5,6 +5,7 @@ import {
 	cssSnippetStateSignature,
 	listCommunityPluginEntries,
 	listCssSnippetEntries,
+	pluginRibbonItem,
 	setCommunityPluginEnabled,
 	setCssSnippetEnabled,
 } from '../../src/utils/obsidianAddons';
@@ -180,5 +181,27 @@ describe('external state signatures (BT4-006)', () => {
 		expect(before).toContain('spacing:0');
 		expect(after).toContain('rainbow:0');
 		expect(before).not.toBe(after);
+	});
+});
+
+describe('plugin-emitted ribbon icons (BT4-011 / D35)', () => {
+	it('finds the first ribbon action a plugin registered', () => {
+		const app = {
+			workspace: {
+				leftRibbon: {
+					items: [
+						{ id: 'other:Something', icon: 'lucide-x' },
+						{ id: 'vaultman:Open Vaultman', icon: 'lucide-vault' },
+						{ id: 'vaultman:Second', icon: 'lucide-2' },
+					],
+				},
+			},
+			vault: { configDir: '.obsidian' },
+		};
+		expect(pluginRibbonItem(app as never, 'vaultman')).toEqual({
+			id: 'vaultman:Open Vaultman',
+			icon: 'lucide-vault',
+		});
+		expect(pluginRibbonItem(app as never, 'missing')).toBeNull();
 	});
 });

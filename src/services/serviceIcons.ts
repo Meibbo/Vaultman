@@ -9,6 +9,7 @@ interface IconicData {
 	fileIcons?: Record<string, IconEntry>;
 	propertyIcons?: Record<string, IconEntry>;
 	tagIcons?: Record<string, IconEntry>;
+	ribbonIcons?: Record<string, IconEntry>;
 }
 
 interface IconicRuntimeItem extends IconEntry {
@@ -44,6 +45,9 @@ interface IconicRuntimePlugin {
 	propertyIconManager?: {
 		onContextMenu?: (name: string, event?: MouseEvent) => unknown;
 	};
+	ribbonIconManager?: {
+		onContextMenu?: (itemId: string, event?: MouseEvent) => unknown;
+	};
 	ruleManager?: {
 		checkRuling?: (
 			kind: 'file' | 'folder',
@@ -68,6 +72,7 @@ export class IconicService extends Component {
 	private fileIcons = new Map<string, IconEntry>();
 	private propertyIcons = new Map<string, IconEntry>();
 	private tagIcons = new Map<string, IconEntry>();
+	private ribbonIcons = new Map<string, IconEntry>();
 	private loaded = false;
 	private enabled: boolean;
 	private _onLoadedCallbacks: Array<() => void> = [];
@@ -215,6 +220,7 @@ export class IconicService extends Component {
 			this.fileIcons.clear();
 			this.propertyIcons.clear();
 			this.tagIcons.clear();
+			this.ribbonIcons.clear();
 			if (data.fileIcons) {
 				for (const [path, entry] of Object.entries(data.fileIcons)) {
 					this.fileIcons.set(path, entry);
@@ -228,6 +234,11 @@ export class IconicService extends Component {
 			if (data.tagIcons) {
 				for (const [name, entry] of Object.entries(data.tagIcons)) {
 					this.tagIcons.set(name, entry);
+				}
+			}
+			if (data.ribbonIcons) {
+				for (const [id, entry] of Object.entries(data.ribbonIcons)) {
+					this.ribbonIcons.set(id, entry);
 				}
 			}
 			this.loaded = true;
@@ -277,6 +288,30 @@ export class IconicService extends Component {
 		this.enabled = enabled;
 		this._invalidateResolved();
 		this.notifyChanged();
+	}
+
+	/** Persisted Iconic override for a ribbon action (plugin-emitted icon). */
+	getRibbonIcon(itemId: string): IconicResolvedIcon | null {
+		if (!this.enabled) return null;
+		return this.normalizedIcon(this.ribbonIcons.get(itemId));
+	}
+
+	canChangeRibbonIcon(): boolean {
+		const runtime = this.runtimePlugin();
+		return (
+			this.enabled &&
+			typeof runtime?.ribbonIconManager?.onContextMenu === 'function'
+		);
+	}
+
+	openRibbonIconMenu(itemId: string, event?: MouseEvent): boolean {
+		if (!this.canChangeRibbonIcon()) return false;
+		try {
+			this.runtimePlugin()?.ribbonIconManager?.onContextMenu?.(itemId, event);
+			return true;
+		} catch {
+			return false;
+		}
 	}
 
 	canChangePropertyIcon(): boolean {
