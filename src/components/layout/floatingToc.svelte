@@ -4,6 +4,7 @@
 	import type { IndexGroup } from '../../logic/logicIndexGroups';
 	import {
 		niagaraActionOrder,
+		niagaraClampOverdrive,
 		niagaraClampToFrame,
 		NIAGARA_ENGAGE_HOLD_MS,
 		NIAGARA_ENGAGE_MOVE_PX,
@@ -301,7 +302,17 @@
 				);
 				const raw = Math.max(0, pull);
 				pull = Math.min(raw, cap);
-				over = Math.max(0, raw - cap);
+				// The far-side wall (D44): the rail body may displace freely in
+				// its one allowed direction but stops at the frame's 8px inset.
+				const perpRoom =
+					opts.position === 'right'
+						? rect.left - hostRect.left - 8
+						: opts.position === 'left'
+							? hostRect.right - rect.right - 8
+							: opts.position === 'top'
+								? hostRect.bottom - rect.bottom - 8
+								: rect.top - hostRect.top - 8;
+				over = niagaraClampOverdrive(raw - cap, perpRoom);
 			}
 			perpOver = engaged ? over : 0;
 			perp = engaged ? Math.max(0, pull) : 0;

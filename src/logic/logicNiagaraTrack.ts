@@ -82,6 +82,16 @@ export function niagaraTrackShift(
 	return currentShift;
 }
 
+/** Far-side wall for the perpendicular rail displacement (BT4-017/D44).
+ * Derived from proto-v13's frame-room idiom (explorer.jsx L165-167:
+ * `want = max(0, min(raw, room))` with the 8px frame inset); v13 itself
+ * bounds `perpOver` only via its demo monitor frame, so the plugin must
+ * clamp it explicitly against the real host. */
+export function niagaraClampOverdrive(over: number, room: number): number {
+	if (!Number.isFinite(over) || !Number.isFinite(room)) return 0;
+	return Math.max(0, Math.min(over, Math.max(0, room)));
+}
+
 export function niagaraClampToFrame(
 	pointerPosition: number,
 	frameStart: number,

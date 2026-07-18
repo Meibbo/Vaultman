@@ -274,3 +274,11 @@ describe('niagara tap vs scrub intent (BT4-005 / D25)', () => {
 		expect(floatingTocSource).toContain('if (engaged) updateTrackShift');
 	});
 });
+
+describe('perpendicular wall only — v13 canon (BT4-017 redo / D44-D45)', () => {
+	it('caps the overdrive against the host room without re-adding the withdrawn pieces', () => {
+		expect(floatingTocSource).toContain('niagaraClampOverdrive(raw - cap');
+		expect(floatingTocSource).not.toContain('niagaraClampShiftToRoom');
+		expect(floatingTocSource).not.toContain('monotonicSlide');
+	});
+});

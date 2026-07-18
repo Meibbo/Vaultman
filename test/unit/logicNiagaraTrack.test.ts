@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 
 import {
 	niagaraActionOrder,
+	niagaraClampOverdrive,
 	niagaraClampToFrame,
 	niagaraGaussian,
 	niagaraNodeTransform,
@@ -144,5 +145,16 @@ describe('Niagara track math', () => {
 		expect(shouldSuppressNiagaraClick(true, false, 'action')).toBe(true);
 		expect(shouldSuppressNiagaraClick(false, true, 'action')).toBe(true);
 		expect(shouldSuppressNiagaraClick(false, false, null)).toBe(false);
+	});
+});
+
+describe('perpendicular far-side wall (BT4-017 v13 room idiom)', () => {
+	it('lets the rail displace freely until the frame room runs out', () => {
+		expect(niagaraClampOverdrive(30, 200)).toBe(30);
+		expect(niagaraClampOverdrive(250, 200)).toBe(200);
+		expect(niagaraClampOverdrive(50, 0)).toBe(0);
+		expect(niagaraClampOverdrive(50, -12)).toBe(0);
+		expect(niagaraClampOverdrive(-5, 100)).toBe(0);
+		expect(niagaraClampOverdrive(Number.NaN, 100)).toBe(0);
 	});
 });
