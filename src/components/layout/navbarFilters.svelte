@@ -36,6 +36,7 @@
 	} from '../../logic/logicInteractionMode';
 	import {
 		shouldCondenseFilesToolbar,
+		shouldHideTabLabelForSearch,
 		shouldShowMinimalSearchInput,
 	} from '../../logic/logicResponsiveLayout';
 	import {
@@ -512,14 +513,6 @@
 	const expansionIcon = $derived(
 		hasExpandedNodes ? 'lucide-chevrons-down-up' : 'lucide-chevrons-up-down',
 	);
-	const compactFilesTools = $derived(
-		shouldCondenseFilesToolbar({
-			activeSectionTab,
-			frameWidth,
-			manual: toolbarToolsMenu,
-			minimalStyle,
-		}),
-	);
 	const currentTabsOption = $derived(
 		tabOptions.find((option) => option.id === activeSectionTab) ??
 			tabOptions[0] ??
@@ -533,11 +526,28 @@
 			? `${translate('filter.tabs_btn')}: ${currentTabsOption.label}`
 			: translate('filter.tabs_btn'),
 	);
-	const showTabsButtonLabel = $derived(
-		minimalStyle && currentTabsOption !== null && showTabLabels !== false,
-	);
 	// TODO(refactor): remove this pre-scene bridge once the sandbox header owns
 	// tab labels and responsive sacrifices as one layout contract.
+	const tabLabelIntended = $derived(
+		minimalStyle && currentTabsOption !== null && showTabLabels !== false,
+	);
+	const tabLabelYieldsToSearch = $derived(
+		shouldHideTabLabelForSearch({ frameWidth, minimalStyle, searchExpanded }),
+	);
+	const showTabsButtonLabel = $derived(
+		tabLabelIntended && !tabLabelYieldsToSearch,
+	);
+	// Condense keys off label INTENT, not the yielded state, so opening the
+	// search cannot flip the toolbar in and out of its condensed form.
+	const compactFilesTools = $derived(
+		shouldCondenseFilesToolbar({
+			activeSectionTab,
+			frameWidth,
+			manual: toolbarToolsMenu,
+			minimalStyle,
+			tabLabelVisible: tabLabelIntended,
+		}),
+	);
 	const showSearchInput = $derived(
 		shouldShowMinimalSearchInput({
 			frameWidth,

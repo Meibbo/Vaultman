@@ -7,6 +7,7 @@ export interface ExplorerDensityProfile {
 
 export const NARROW_FILES_TOOLBAR_WIDTH = 220;
 export const NARROW_LABELED_SEARCH_WIDTH = 200;
+export const LABELED_TOOLBAR_EXTRA_WIDTH = 80;
 
 const DESKTOP_EXPLORER_DENSITY: ExplorerDensityProfile = {
 	treeRowHeight: 28,
@@ -44,24 +45,24 @@ export function shouldCondenseFilesToolbar({
 	frameWidth,
 	manual,
 	minimalStyle,
+	tabLabelVisible = false,
 }: {
 	activeSectionTab: string;
 	frameWidth: number;
 	manual: boolean;
 	minimalStyle: boolean;
+	tabLabelVisible?: boolean;
 }): boolean {
 	if (!minimalStyle || activeSectionTab !== 'files') return false;
-	return (
-		manual ||
-		(frameWidth > 0 && frameWidth < NARROW_FILES_TOOLBAR_WIDTH)
-	);
+	const threshold =
+		NARROW_FILES_TOOLBAR_WIDTH +
+		(tabLabelVisible ? LABELED_TOOLBAR_EXTRA_WIDTH : 0);
+	return manual || (frameWidth > 0 && frameWidth < threshold);
 }
 
 export function shouldShowMinimalSearchInput({
-	frameWidth,
 	minimalStyle,
 	searchExpanded,
-	tabLabelVisible,
 }: {
 	frameWidth: number;
 	minimalStyle: boolean;
@@ -69,10 +70,20 @@ export function shouldShowMinimalSearchInput({
 	tabLabelVisible: boolean;
 }): boolean {
 	if (!minimalStyle) return true;
-	if (!searchExpanded) return false;
-	return !(
-		tabLabelVisible &&
-		frameWidth > 0 &&
-		frameWidth < NARROW_LABELED_SEARCH_WIDTH
-	);
+	return searchExpanded;
+}
+
+/** While the expanded search and the tab label cannot both fit, the label
+ * yields — hiding the search instead left it unreachable (BT4-001). */
+export function shouldHideTabLabelForSearch({
+	frameWidth,
+	minimalStyle,
+	searchExpanded,
+}: {
+	frameWidth: number;
+	minimalStyle: boolean;
+	searchExpanded: boolean;
+}): boolean {
+	if (!minimalStyle || !searchExpanded) return false;
+	return frameWidth > 0 && frameWidth < NARROW_LABELED_SEARCH_WIDTH;
 }

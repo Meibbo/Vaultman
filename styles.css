@@ -6255,6 +6255,13 @@ button.vaultman-content-scope-hint:focus-visible {
 	padding-inline-start: var(--vaultman-toc-reserved-lane-size);
 	scroll-padding-inline-start: var(--vaultman-toc-reserved-lane-size);
 }
+/* D23: a reserved right lane moves the rail off the scrollbar into the
+   gutter (scrollbar ~12px + 2px gap); the scroller's own scrollbar width
+   plus the compact lane keeps rail and cells from overlapping. */
+.vaultman-pages-viewport--toc-lane-right
+	.vaultman-floating-toc-wrap.pos-right {
+	right: 14px;
+}
 .vaultman-floating-toc-wrap {
 	position: absolute;
 	top: 48px;

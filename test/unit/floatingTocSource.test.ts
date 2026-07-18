@@ -100,6 +100,12 @@ describe('Floating TOC source and panel contracts', () => {
 			'right: calc(var(--vaultman-toc-scrollbar-offset) + 2px)',
 		);
 		expect(stylesSource).not.toContain('--vaultman-toc-scrollbar-offset');
+		// D23 (BT4-003): with a right lane reserved, the rail moves off the
+		// scrollbar into the reserved gutter (scrollbar ~12px + 2px gap).
+		const laneShiftRule = stylesSource.match(
+			/\.vaultman-pages-viewport--toc-lane-right\s*\n?\s*\.vaultman-floating-toc-wrap\.pos-right\s*\{\s*right:\s*14px;\s*\}/,
+		);
+		expect(laneShiftRule).not.toBeNull();
 		expect(stylesSource).toContain(
 			'padding-inline-end: var(--vaultman-toc-reserved-lane-size)',
 		);
