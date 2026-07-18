@@ -93,3 +93,22 @@ describe('Snippets and Plugins explorer tabs source guards', () => {
 		expect(pageFiltersSource).toContain('setCellStyle(addonCellStyle)');
 	});
 });
+
+describe('addon explorer reveal parity (BT4-004)', () => {
+	it('aligns revealed nodes to the top of the frame like every other explorer', () => {
+		for (const source of [snippetsPanelSource, pluginsPanelSource]) {
+			expect(source).toContain("scrollToId(id, 'start'");
+			expect(source).not.toContain("scrollToId(id, 'center'");
+		}
+	});
+});
+
+describe('plugin cell order (BT4-007)', () => {
+	it('keeps the config cell before the state toggle so the toggle stays rightmost', () => {
+		const configIndex = pluginsPanelSource.indexOf("id: 'config'");
+		const stateIndex = pluginsPanelSource.indexOf("id: 'state'");
+		expect(configIndex).toBeGreaterThan(-1);
+		expect(stateIndex).toBeGreaterThan(-1);
+		expect(configIndex).toBeLessThan(stateIndex);
+	});
+});

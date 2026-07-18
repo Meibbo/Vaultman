@@ -137,7 +137,17 @@ export class PluginsExplorerPanel
 			const meta: PluginMeta = {
 				...entry,
 			};
-			const cells: TreeNodeCell[] = [
+			// The state toggle always sits rightmost (D27); config goes before it.
+			const cells: TreeNodeCell[] = [];
+			if (settingsTabIds.has(entry.pluginId)) {
+				cells.push({
+					id: 'config',
+					kind: 'action',
+					icon: 'lucide-settings',
+					label: translate('addons.open_settings'),
+				});
+			}
+			cells.push(
 				meta.isVaultman
 					? {
 							id: 'state',
@@ -157,15 +167,7 @@ export class PluginsExplorerPanel
 							),
 							disabled: this.pendingToggleIds.has(entry.pluginId),
 						},
-			];
-			if (settingsTabIds.has(entry.pluginId)) {
-				cells.push({
-					id: 'config',
-					kind: 'action',
-					icon: 'lucide-settings',
-					label: translate('addons.open_settings'),
-				});
-			}
+			);
 			return {
 				id: `plugin:${entry.pluginId}`,
 				label: entry.name,
@@ -274,7 +276,7 @@ export class PluginsExplorerPanel
 
 	revealNode(id: string, options?: { behavior?: ScrollBehavior }): boolean {
 		if (!this.findNode(id)) return false;
-		this.treeView?.scrollToId(id, 'center', options?.behavior ?? 'auto');
+		this.treeView?.scrollToId(id, 'start', options?.behavior ?? 'auto');
 		return true;
 	}
 

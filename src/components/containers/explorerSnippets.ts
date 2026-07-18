@@ -233,7 +233,7 @@ export class SnippetsExplorerPanel
 
 	revealNode(id: string, options?: { behavior?: ScrollBehavior }): boolean {
 		if (!this.findNode(id)) return false;
-		this.treeView?.scrollToId(id, 'center', options?.behavior ?? 'auto');
+		this.treeView?.scrollToId(id, 'start', options?.behavior ?? 'auto');
 		return true;
 	}
 
