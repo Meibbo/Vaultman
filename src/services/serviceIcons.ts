@@ -79,9 +79,11 @@ export class IconicService extends Component {
 		// emit no event we can hear; poll the file's mtime cheaply and reload +
 		// notify on change so explorers refresh without a plugin restart
 		// (BT4-024, all providers go through this service).
-		this.registerInterval(
-			window.setInterval(() => void this._syncExternalData(), 2500),
-		);
+		if (typeof window !== 'undefined') {
+			this.registerInterval(
+				window.setInterval(() => void this._syncExternalData(), 2500),
+			);
+		}
 	}
 
 	private _dataFileMtime = 0;
