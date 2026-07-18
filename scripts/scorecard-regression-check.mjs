@@ -32,7 +32,7 @@ const checks = [
 		file: 'src/main.ts',
 		name: 'main uses activeDocument instead of document',
 		test: (text) =>
-			text.includes('activeDocument.body.style.setProperty') &&
+			text.includes('applyGlassBlurSetting(activeDocument.body.style') &&
 			!text.includes('document.body.style.setProperty'),
 	},
 	{
