@@ -87,6 +87,11 @@ export class PluginsExplorerPanel
 		super.onunload();
 	}
 
+	/** BT4-022: hidden panes measure 0; re-render on activation. */
+	refreshViewport(): void {
+		this.render();
+	}
+
 	async refresh(): Promise<void> {
 		const revision = ++this.refreshRevision;
 		const manifestId = this.plugin.manifest.id;

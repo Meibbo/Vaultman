@@ -210,6 +210,19 @@
 
 	const nativeSearchAdapter = createNativeSearchAdapter();
 
+	// BT4-022: panes keep their panels mounted but hidden (height 0), so the
+	// virtual window empties; re-render the activated panel next frame.
+	$effect(() => {
+		const tab = filtersActiveTab;
+		window.requestAnimationFrame(() => {
+			if (tab === 'files') fileList?.refreshViewport();
+			else if (tab === 'props') propExplorer?.refreshViewport();
+			else if (tab === 'tags') tagsExplorer?.refreshViewport();
+			else if (tab === 'snippets') snippetsExplorer?.refreshViewport();
+			else if (tab === 'plugins') pluginsExplorer?.refreshViewport();
+		});
+	});
+
 	const explorerActiveTab = $derived<SearchTab>(
 		filtersActiveTab === 'content' ? 'props' : filtersActiveTab,
 	);

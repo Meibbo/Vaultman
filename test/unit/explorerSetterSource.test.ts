@@ -3,6 +3,9 @@ import { describe, expect, it } from 'vitest';
 import filesSource from '../../src/components/containers/explorerFiles.ts?raw';
 import propsSource from '../../src/components/containers/explorerProps.ts?raw';
 import tagsSource from '../../src/components/containers/explorerTags.ts?raw';
+import snippetsSource from '../../src/components/containers/explorerSnippets.ts?raw';
+import pluginsSource from '../../src/components/containers/explorerPlugins.ts?raw';
+import pageFiltersSource from '../../src/components/pages/pageFilters.svelte?raw';
 
 describe('explorer setter source guards', () => {
 	it('keeps repeated Files explorer setter calls from re-rendering', () => {
@@ -62,5 +65,21 @@ describe('explorer setter source guards', () => {
 		);
 		expect(tagsSource).not.toContain('sortChildLevel');
 		expect(tagsSource).not.toContain('childLevel');
+	});
+});
+
+describe('pane reactivation re-render (BT4-022)', () => {
+	it('exposes refreshViewport on every explorer panel and wires activation', () => {
+		for (const source of [
+			filesSource,
+			propsSource,
+			tagsSource,
+			snippetsSource,
+			pluginsSource,
+		]) {
+			expect(source).toContain('refreshViewport(): void {');
+		}
+		expect(pageFiltersSource).toContain('refreshViewport()');
+		expect(pageFiltersSource).toContain('window.requestAnimationFrame(() => {');
 	});
 });

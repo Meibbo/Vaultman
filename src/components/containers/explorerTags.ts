@@ -430,6 +430,12 @@ export class TagsExplorerPanel extends Component {
 		return findParentId(this._lastRenderTree, id);
 	}
 
+	/** Re-render after the pane becomes visible again: the virtual window
+	 * measures clientHeight, which is 0 while hidden (BT4-022). */
+	refreshViewport(): void {
+		this._render();
+	}
+
 	hasSortNode(id: string): boolean {
 		return this._findNode(id, this._lastRenderTree) !== null;
 	}

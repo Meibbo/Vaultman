@@ -759,6 +759,12 @@ export class PropsExplorerPanel extends Component {
 		return this.viewMode === 'tree';
 	}
 
+	/** Re-render after the pane becomes visible again: the virtual window
+	 * measures clientHeight, which is 0 while hidden (BT4-022). */
+	refreshViewport(): void {
+		this._render();
+	}
+
 	scopeRootForNode(id: string): string | null {
 		if (this.viewMode !== 'tree') return null;
 		return findParentId(this._lastRenderTree, id);

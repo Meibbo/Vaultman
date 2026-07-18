@@ -88,6 +88,11 @@ export class SnippetsExplorerPanel
 		super.onunload();
 	}
 
+	/** BT4-022: hidden panes measure 0; re-render on activation. */
+	refreshViewport(): void {
+		this.render();
+	}
+
 	async refresh(): Promise<void> {
 		const revision = ++this.refreshRevision;
 		this._lastExternalSignature = cssSnippetStateSignature(this.plugin.app);
