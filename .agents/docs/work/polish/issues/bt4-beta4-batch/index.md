@@ -22,12 +22,12 @@ shards: [[01-regressions|01 regresiones]] · [[02-bugs|02 bugs]] ·
 | Issue | Título | Grupo | Estado |
 |---|---|---|---|
 | BT4-001 | Toolbar tool-case collapse (regresión) | 01 | ✅ `736a9e62` (search yield + threshold label-aware) |
-| BT4-002 | Tags explorer hang + memory leak (regresión) | 01 | in-progress (leak `onLoaded` hallado; hang pende repro dev) |
+| BT4-002 | Tags explorer hang + memory leak (regresión) | 01 | ✅ código `6bd77613` — retest dev pendiente (reload + Iconic on) |
 | BT4-003 | Rail no se mueve al lane reservado (regresión) | 01 | ✅ `736a9e62` (shift 14px restaurado) |
-| BT4-004 | Addon index reveal al top + unificar seam | 02 | pending |
+| BT4-004 | Addon index reveal al top + unificar seam | 02 | ✅ `8ace5549` |
 | BT4-005 | Niagara tap vs scrub (intent threshold) | 02 | pending |
 | BT4-006 | Plugin toggle cell stale ante cambios externos | 02 | pending |
-| BT4-007 | Orden cells plugins: config antes de toggle | 02 | pending |
+| BT4-007 | Orden cells plugins: config antes de toggle | 02 | ✅ `8ace5549` |
 | BT4-008 | Content search solo .md + sin freeze | 02 | pending |
 | BT4-009 | By level sort (redesign, shard 01 del spec) | 03 | pending |
 | BT4-010 | Settings IA: dock, context menus, Explorer page | 03 | pending |

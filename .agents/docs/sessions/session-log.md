@@ -1547,3 +1547,23 @@ broader "append-only status writes" is parked as **S-12** in
   existe); recomendación = opt-in "Rainbow folders" con bucket data-derived +
   reuso de la paleta del snippet; JAMÁS re-adoptar `.nav-files-container` sin
   padding:0. Pende aprobación dev del mecanismo (c) para issue de implementación.
+
+## 2026-07-18 — claude-fable-5 · implement · BT4-002/004/007 landed
+
+- **BT4-002 ✅ código `6bd77613`** (root cause confirmado por repro dev: Iconic ON
+  cuelga, OFF no): cada render consultaba el runtime de Iconic POR NODO
+  (evaluación de reglas por query) × renders múltiples de boot; + leak real de
+  `onLoaded` sin cleanup reteniendo paneles. Fix: memo por render-burst en
+  IconicService (self-clear al siguiente macrotask — ediciones vivas de Iconic
+  siguen surtiendo), `onLoaded` retorna unsubscribe, y files/props/tags registran
+  ambas suscripciones + coalescen renders por burst (queueMicrotask). Tests:
+  memo runtime 1×/burst + re-query post-burst · misses memoizados · unsubscribe.
+  **Retest dev pendiente**: reload-without-saving + Iconic on (build ya sync a
+  plugin-dev).
+- **BT4-004 ✅ + BT4-007 ✅ `8ace5549`**: addons revealNode `'center'→'start'`
+  (paridad contrato) + config cell antes del toggle (toggle extremo derecho, D27).
+- Gates por commit: focal RED/GREEN · check 0/0 · full unit 530 · build ·
+  scorecard 17 · sync plugin-dev. Rainbow opt-in APROBADO por dev → falta issue
+  de implementación (BT4-014) desde el research.
+- Queue restante: 006 cell stale · 008 content search .md+debounce · 005 niagara
+  450/8 · 009 By level · 010-013 · BT4-014 rainbow.
