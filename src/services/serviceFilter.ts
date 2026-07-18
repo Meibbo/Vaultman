@@ -705,7 +705,7 @@ export class FilterService extends Component {
 		};
 	}
 
-	private hasEnabledContentSearchRule(): boolean {
+	hasEnabledContentSearchRule(): boolean {
 		const rule = this.findRootRuleById(CONTENT_SEARCH_RULE_ID);
 		return rule?.filterType === 'content_search' && rule.enabled !== false;
 	}

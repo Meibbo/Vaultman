@@ -6,6 +6,7 @@ import {
 } from '../../src/logic/logicContentSearch';
 import adapterSource from '../../src/services/serviceNativeSearchAdapter.ts?raw';
 import pageFiltersSource from '../../src/components/pages/pageFilters.svelte?raw';
+import frameSource from '../../src/VaultmanFrame.svelte?raw';
 
 describe('content search scope + input responsiveness (BT4-008 / D28)', () => {
 	it('only scans allowlisted text formats', () => {
@@ -40,5 +41,14 @@ describe('content search scope + input responsiveness (BT4-008 / D28)', () => {
 		);
 		expect(timerIndex).toBeGreaterThan(-1);
 		expect(pendingIndex).toBeGreaterThan(timerIndex);
+	});
+});
+
+describe('preview refresh after edits (BT4-020)', () => {
+	it('re-keys the content search when the vault changes mid-search', () => {
+		expect(frameSource).toContain("plugin.app.vault.on('modify', onVaultModified)");
+		expect(frameSource).toContain('hasEnabledContentSearchRule()');
+		expect(frameSource).toContain(':edit:${contentEditRevision}');
+		expect(frameSource).toContain('plugin.app.vault.offref(vaultModifyRef)');
 	});
 });

@@ -519,6 +519,10 @@
 	let filterRuleCount = $state(0);
 	let viewFilterRevision = $state(0);
 	let contentSearchScopeRevision = $state('');
+	// Bumped (debounced) on vault edits while a content search is active, so
+	// the preview re-runs after replace operations remove matches (BT4-020).
+	let contentEditRevision = $state(0);
+	let contentEditDebounce: number | null = null;
 	let filtersClearRevision = $state(0);
 	const addOpCount = $derived(
 		plugin.queueService.queue.filter((op) => op.action === 'add').length,
@@ -550,7 +554,7 @@
 		queuedCount = plugin.queueService.queue.length;
 		queueWarningCount = countQueueWarnings();
 		filterRuleCount = countFilterLeaves(plugin.filterService.activeFilter);
-		const nextContentSearchScopeRevision = `${plugin.filterService.getContentSearchScopeSignature()}:view:${viewFilterRevision}`;
+		const nextContentSearchScopeRevision = `${plugin.filterService.getContentSearchScopeSignature()}:view:${viewFilterRevision}:edit:${contentEditRevision}`;
 		if (nextContentSearchScopeRevision !== contentSearchScopeRevision) {
 			contentSearchScopeRevision = nextContentSearchScopeRevision;
 		}
@@ -1128,6 +1132,18 @@
 			queueIsland?.render();
 		};
 
+		const onVaultModified = () => {
+			if (!plugin.filterService.hasEnabledContentSearchRule()) return;
+			if (contentEditDebounce !== null)
+				window.clearTimeout(contentEditDebounce);
+			contentEditDebounce = window.setTimeout(() => {
+				contentEditDebounce = null;
+				contentEditRevision += 1;
+				updateStats();
+			}, 400);
+		};
+		const vaultModifyRef = plugin.app.vault.on('modify', onVaultModified);
+
 		plugin.filterService.on('changed', onFilterChanged);
 		plugin.queueService.on('changed', onQueueChanged);
 
@@ -1145,6 +1161,9 @@
 			plugin.filterService.off('changed', onFilterChanged);
 			plugin.queueService.off('changed', onQueueChanged);
 			plugin.app.metadataCache.off('resolved', onVaultResolved);
+			plugin.app.vault.offref(vaultModifyRef);
+			if (contentEditDebounce !== null)
+				window.clearTimeout(contentEditDebounce);
 		};
 	});
 </script>
