@@ -52,6 +52,8 @@ inspección del dev via obsidian-cli: `start of the road` (beta.2 activa) y
 | D38 | Rainbow folders opt-in APROBADO (research BT3-010 mecanismo (c)) → issue BT4-014. |
 | D39 | Nuevo option "Exclude file" en el files explorer (cmenu de nodo; oculta el archivo del explorer; lista editable en settings) → BT4-015. |
 | D40 | El estado del floating index (on/off, kind y scope/drill) se guarda y restaura con el view-config (SavedViewConfig) → BT4-016. |
+| D42 | Slide del rail: HWM monotónico (proto) entra como OPTION en settings → Layout Settings → Floating Index; el reversible (FTC-009) sigue siendo el default. |
+| D43 | Rename del sub-page de settings "Floating TOC" → **"Floating Index"** (i18n + heading + botón). |
 | D41 | Niagara deformación: la implementación actual pierde edge cases que el proto YA resolvía (rail nunca sale horizontalmente del frame; la curva ensancha mucho más ANTES de arrastrar el rail horizontalmente, con tope en el min-width del frame; + inventario exhaustivo por research contra proto-v12) → research + BT4-017. |
 
 ## §UX — Niagara tap vs scrub (crítica adversarial, D25)

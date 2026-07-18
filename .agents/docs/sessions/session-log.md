@@ -1588,3 +1588,22 @@ broader "append-only status writes" is parked as **S-12** in
   (FTC-009, lockeada por tests). Plan mínimo = 2 caps puros.
 - Gates por commit: check 0/0 · full unit 535 · build · scorecard 17 · sync
   plugin-dev. Queue: 008 → 017(caps) → 009 → 010-016.
+
+## 2026-07-18 — claude-fable-5 · implement · BT4-002 round 2 + D42/D43
+
+- **BT4-002 round 2 `5f571932`** (retest dev del round 1 FALLÓ: primer open +
+  cada re-render colgaba con Iconic on): el burst-memo seguía pagando
+  N×runtime (checkRuling = evaluación de reglas, nuevo en beta.3) en cada render
+  fresco porque los paneles resuelven iconos sobre el árbol COMPLETO
+  (`_resolveIcons`/`_decorateTreeWithIcons`), no solo filas visibles. Rediseño:
+  render lee SOLO data.json persistida (cache persistente, sync barato); el
+  runtime drena en background por slices de 8ms y publica UN notifyChanged
+  coalesced solo si mejoró algún icono; invalidación en loadIcons/setEnabled/
+  picker-save. Tests re-contratados (deferred): render sin runtime · upgrade
+  background + notify 1× · misses sin notify · precedencia runtime>persistido
+  tras settle. Gates: 100f/535t · check 0/0 · build · scorecard 17 · sync
+  plugin-dev. **Retest dev pendiente.**
+- **Locks nuevos:** D42 = HWM monotónico como OPTION (Layout Settings →
+  Floating Index; default sigue reversible FTC-009) · D43 = rename sub-page
+  "Floating TOC" → "Floating Index". Entran en BT4-017 impl (caps perpOver +
+  room-cap + option + rename).

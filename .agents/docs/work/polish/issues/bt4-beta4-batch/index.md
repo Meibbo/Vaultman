@@ -22,7 +22,7 @@ shards: [[01-regressions|01 regresiones]] · [[02-bugs|02 bugs]] ·
 | Issue | Título | Grupo | Estado |
 |---|---|---|---|
 | BT4-001 | Toolbar tool-case collapse (regresión) | 01 | ✅ `736a9e62` (search yield + threshold label-aware) |
-| BT4-002 | Tags explorer hang + memory leak (regresión) | 01 | ✅ código `6bd77613` — retest dev pendiente (reload + Iconic on) |
+| BT4-002 | Tags explorer hang + memory leak (regresión) | 01 | round 2 `5f571932` (runtime fuera del render path) — retest dev |
 | BT4-003 | Rail no se mueve al lane reservado (regresión) | 01 | ✅ `736a9e62` (shift 14px restaurado) |
 | BT4-004 | Addon index reveal al top + unificar seam | 02 | ✅ `8ace5549` |
 | BT4-005 | Niagara tap vs scrub (intent threshold) | 02 | ✅ `62429f1a` (450ms/8px + gate deform/slide) |
@@ -37,7 +37,7 @@ shards: [[01-regressions|01 regresiones]] · [[02-bugs|02 bugs]] ·
 | BT4-014 | Rainbow folders opt-in (research BT3-010 mecanismo c, D38) | 03 | pending |
 | BT4-015 | Option "Exclude file" en files explorer (D39) | 03 | pending |
 | BT4-016 | Floating index state+scope en view-config (D40) | 03 | pending |
-| BT4-017 | Niagara: edge cases del proto (D41) | 02 | research ✅ → impl pende decisión HWM |
+| BT4-017 | Niagara: caps proto + HWM option + rename Floating Index (D41/D42/D43) | 02 | research ✅ → impl next |
 
 Orden recomendado: 002 → 001 → 003 → 008 → 004 → 006 → 007 → 005 → 009 → 011 →
 010 → 012 → 013. **001 y 009 comparten `navbarFilters.svelte`: serial.**
