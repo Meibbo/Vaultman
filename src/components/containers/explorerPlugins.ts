@@ -7,6 +7,7 @@ import type { AddonCellStyle } from '../../types/typeSettings';
 import type { FloatingTocExpansionChange } from '../../services/routerFloatingToc';
 import type { IndexNodeRef } from '../../logic/logicIndexGroups';
 import {
+	communityPluginStateSignature,
 	listCommunityPluginEntries,
 	setCommunityPluginEnabled,
 } from '../../utils/obsidianAddons';
@@ -59,6 +60,21 @@ export class PluginsExplorerPanel
 		this.destroyed = false;
 		this.treeView = new UnifiedTreeView(this.containerEl);
 		void this.refresh();
+		// Core Settings toggles emit no event; poll a cheap signature while the
+		// panel is visible and refresh only on a real delta (BT4-006).
+		this.registerInterval(
+			window.setInterval(() => this._syncExternalState(), 2500),
+		);
+	}
+
+	private _lastExternalSignature = '';
+
+	private _syncExternalState(): void {
+		if (this.destroyed || !this.containerEl.isShown()) return;
+		const signature = communityPluginStateSignature(this.plugin.app);
+		if (signature === this._lastExternalSignature) return;
+		this._lastExternalSignature = signature;
+		void this.refresh();
 	}
 
 	onunload(): void {
@@ -74,6 +90,9 @@ export class PluginsExplorerPanel
 	async refresh(): Promise<void> {
 		const revision = ++this.refreshRevision;
 		const manifestId = this.plugin.manifest.id;
+		this._lastExternalSignature = communityPluginStateSignature(
+			this.plugin.app,
+		);
 		const entries = await listCommunityPluginEntries(this.plugin.app);
 		if (this.destroyed || revision !== this.refreshRevision) return;
 		this.entries = entries.map((entry) => ({

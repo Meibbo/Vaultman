@@ -1,6 +1,8 @@
 import { describe, expect, it, vi } from 'vitest';
 
 import {
+	communityPluginStateSignature,
+	cssSnippetStateSignature,
 	listCommunityPluginEntries,
 	listCssSnippetEntries,
 	setCommunityPluginEnabled,
@@ -137,5 +139,46 @@ describe('Obsidian add-on adapters', () => {
 		expect(stat).toHaveBeenCalledWith(
 			'vault-config/plugins/alpha/manifest.json',
 		);
+	});
+});
+
+describe('external state signatures (BT4-006)', () => {
+	it('captures plugin id/enabled membership without touching the filesystem', () => {
+		const app = {
+			plugins: {
+				manifests: {
+					alpha: { id: 'alpha', name: 'Alpha' },
+					beta: { id: 'beta', name: 'Beta' },
+				},
+				enabledPlugins: new Set(['beta']),
+			},
+			vault: { configDir: '.obsidian' },
+		};
+		const before = communityPluginStateSignature(app as never);
+		app.plugins.enabledPlugins.add('alpha');
+		const after = communityPluginStateSignature(app as never);
+
+		expect(before).toContain('alpha:0');
+		expect(before).toContain('beta:1');
+		expect(after).toContain('alpha:1');
+		expect(before).not.toBe(after);
+	});
+
+	it('captures snippet name/enabled membership', () => {
+		const app = {
+			customCss: {
+				snippets: ['rainbow', 'spacing'],
+				enabledSnippets: new Set(['rainbow']),
+			},
+			vault: { configDir: '.obsidian' },
+		};
+		const before = cssSnippetStateSignature(app as never);
+		app.customCss.enabledSnippets.delete('rainbow');
+		const after = cssSnippetStateSignature(app as never);
+
+		expect(before).toContain('rainbow:1');
+		expect(before).toContain('spacing:0');
+		expect(after).toContain('rainbow:0');
+		expect(before).not.toBe(after);
 	});
 });

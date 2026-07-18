@@ -99,6 +99,31 @@ function normalizeSnippetName(value: string): string {
 	);
 }
 
+/** Cheap synchronous membership+state fingerprint (no filesystem access) so
+ * panels can poll for changes made outside Vaultman, e.g. core Settings
+ * (BT4-006), and only run a full refresh on a real delta. */
+export function communityPluginStateSignature(app: App): string {
+	const manager = extendedApp(app).plugins;
+	const manifests = manager?.manifests ?? {};
+	const enabled = manager?.enabledPlugins ?? new Set<string>();
+	return Object.keys(manifests)
+		.sort()
+		.map((id) => `${id}:${enabled.has(id) ? 1 : 0}`)
+		.join('|');
+}
+
+export function cssSnippetStateSignature(app: App): string {
+	const customCss = extendedApp(app).customCss;
+	const names = (customCss?.snippets ?? []).map(normalizeSnippetName);
+	const enabled = new Set(
+		[...(customCss?.enabledSnippets ?? [])].map(normalizeSnippetName),
+	);
+	return [...names]
+		.sort()
+		.map((name) => `${name}:${enabled.has(name) ? 1 : 0}`)
+		.join('|');
+}
+
 export async function listCssSnippetEntries(
 	app: App,
 ): Promise<CssSnippetEntry[]> {

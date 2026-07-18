@@ -7,6 +7,7 @@ import type { AddonCellStyle } from '../../types/typeSettings';
 import type { FloatingTocExpansionChange } from '../../services/routerFloatingToc';
 import type { IndexNodeRef } from '../../logic/logicIndexGroups';
 import {
+	cssSnippetStateSignature,
 	listCssSnippetEntries,
 	setCssSnippetEnabled,
 } from '../../utils/obsidianAddons';
@@ -55,6 +56,26 @@ export class SnippetsExplorerPanel
 		this.destroyed = false;
 		this.treeView = new UnifiedTreeView(this.containerEl);
 		void this.refresh();
+		// Snippet toggles made in core Settings surface as css-change; the poll
+		// is the fallback for silent state changes (BT4-006).
+		this.registerEvent(
+			this.plugin.app.workspace.on('css-change', () => {
+				void this.refresh();
+			}),
+		);
+		this.registerInterval(
+			window.setInterval(() => this._syncExternalState(), 2500),
+		);
+	}
+
+	private _lastExternalSignature = '';
+
+	private _syncExternalState(): void {
+		if (this.destroyed || !this.containerEl.isShown()) return;
+		const signature = cssSnippetStateSignature(this.plugin.app);
+		if (signature === this._lastExternalSignature) return;
+		this._lastExternalSignature = signature;
+		void this.refresh();
 	}
 
 	onunload(): void {
@@ -69,6 +90,7 @@ export class SnippetsExplorerPanel
 
 	async refresh(): Promise<void> {
 		const revision = ++this.refreshRevision;
+		this._lastExternalSignature = cssSnippetStateSignature(this.plugin.app);
 		const entries = await listCssSnippetEntries(this.plugin.app);
 		if (this.destroyed || revision !== this.refreshRevision) return;
 		this.entries = entries;

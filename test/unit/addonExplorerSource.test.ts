@@ -112,3 +112,15 @@ describe('plugin cell order (BT4-007)', () => {
 		expect(configIndex).toBeLessThan(stateIndex);
 	});
 });
+
+describe('external addon state sync (BT4-006)', () => {
+	it('polls a cheap visible-only signature and reacts to css-change', () => {
+		for (const source of [snippetsPanelSource, pluginsPanelSource]) {
+			expect(source).toContain('registerInterval');
+			expect(source).toContain('containerEl.isShown()');
+			expect(source).toContain('StateSignature(');
+			expect(source).toContain('_lastExternalSignature');
+		}
+		expect(snippetsPanelSource).toContain("workspace.on('css-change'");
+	});
+});
