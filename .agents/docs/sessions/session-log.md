@@ -1721,3 +1721,20 @@ broader "append-only status writes" is parked as **S-12** in
   (experimental) = divergencia temporal tipo D20; toolbar de tags no refleja el
   scope aplicado por el sync D31 (files sí, vía sortStateChangeHandler); matriz
   del shard cubierta en sus ejes principales, no exhaustiva.
+
+## 2026-07-18 — claude-fable-5 · implement · BT4-010 + registro 021-024
+
+- **Issues nuevos del dev registrados** en el índice BT4: 021 (color de glyphs
+  del index: vars+variable_rainbow, modo estático/siempre) · 022 (explorers
+  VACÍOS al volver de otro tab hasta scroll — falta re-render on-activate,
+  todos los explorers) · 023 ("iconic custom only"→"custom icons only" roto +
+  cmenus props/tags sin change-icon/fetched; absorbe audit BT4-011) · 024
+  (cambios de icono via Iconic no re-renderizan hasta reiniciar plugin —
+  invalidación externa del cache/data.json watch; revisar todos los providers).
+- **BT4-010 ✅ `bccd7750`**: show dock directo bajo style preset; sección
+  Context menus → sub-page al final de Layout Settings; sub-page nueva
+  **Explorer** (addon state cell · colored badges · badge cancel interaction ·
+  search highlights) — union de páginas ampliada, guards de orden nuevos.
+  Gates: 101f/555t · check 0/0 · build · scorecard 17 · sync plugin-dev.
+- Queue restante: 022/024 (bugs calientes de refresh) → 023 → 011 → 018 →
+  012/013 → 014/015/016 → 021.
