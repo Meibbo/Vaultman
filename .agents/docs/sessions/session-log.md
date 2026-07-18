@@ -1673,3 +1673,26 @@ broader "append-only status writes" is parked as **S-12** in
   replace. `hasEnabledContentSearchRule` ahora público.
 - Gates por commit: check 0/0 · full unit 101f/544t · build · scorecard 17 ·
   sync plugin-dev. Queue: BT4-018 (pause/resume) → BT4-009 fase 2 → 010-016.
+
+## 2026-07-18 — claude-fable-5 · fix · BT4-017 root cause real + stretch (D45)
+
+- **Reclamo dev**: rail seguía sin moverse libremente + campana inferior a
+  beta.2 + faltó la opción stretch. **Root cause REAL `86512e06`**: `handleAt`
+  resolvía el host con `rail.offsetParent` = el WRAP del rail (~30px), no el
+  `.vaultman-pages-viewport`. Con ese rect: `perpRoom≈0` (mi pared congelaba el
+  desplazamiento — dos veces, v12 y v13, porque validé la matemática con units
+  pero nunca la FUENTE de la geometría) y `cap=max(40,30−54)=40` (la campana
+  SIEMPRE estuvo clavada al floor de 40px — ni beta.2 ensanchaba como el proto;
+  beta.2 solo se sentía bien porque el over era ilimitado). Fix: host =
+  `closest('.vaultman-pages-viewport')` → campana ensancha hasta frame−54 y el
+  rail se desplaza libre hasta la pared de 8px.
+- **Stretch (D45) implementado** — malinterpreté "el one-way se va, quítalo"
+  como descartar el slot; el dev quería el reemplazo: `tocStretch` (default
+  off) en Floating Index — cuerpo anclado, la campana absorbe el pull como
+  plastilina hasta la misma pared (`niagaraPullSplit` puro + tests de ambos
+  modos).
+- Guard viejo del toggle hecho CRLF-tolerante (regex `\r?\n`). Gates: 101f/546t
+  · check 0/0 · build · scorecard 17 · sync plugin-dev.
+- Lección (¡tercera del mismo tipo!): en geometría UI, verificar QUÉ elemento
+  se mide (offsetParent/closest) vale más que la fórmula; unit tests de la
+  matemática no cubren el binding del DOM.

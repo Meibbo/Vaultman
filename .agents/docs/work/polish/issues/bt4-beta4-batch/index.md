@@ -37,7 +37,7 @@ shards: [[01-regressions|01 regresiones]] · [[02-bugs|02 bugs]] ·
 | BT4-014 | Rainbow folders opt-in (research BT3-010 mecanismo c, D38) | 03 | pending |
 | BT4-015 | Option "Exclude file" en files explorer (D39) | 03 | pending |
 | BT4-016 | Floating index state+scope en view-config (D40) | 03 | pending |
-| BT4-017 | Niagara: pared de desplazamiento según frame (proto v13) | 02 | ✅ redo `4cf7937c` (pared perp via idiom room v13; along ya estaba bien) |
+| BT4-017 | Niagara: pared de desplazamiento según frame (proto v13) | 02 | ✅✅ `86512e06` — root cause REAL: host medía el wrap de 30px (offsetParent), no el viewport → room≈0 congelaba el rail y cap clavado en 40px; + stretch mode D45 (`tocStretch`) |
 | BT4-018 | Content search: action pausar/reanudar (aplica filtro parcial + habilita replace) | 02 | pending |
 | BT4-019 | Content search: conteo de resultados ≠ core search (3 vs 1) | 02 | ✅ `a0e1e3f1` (offsets locales autoritativos) |
 | BT4-020 | Content search: refresh tras replace | 02 | ✅ `be2cce4a` (vault modify re-keys, debounce 400ms) |
