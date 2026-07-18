@@ -1607,3 +1607,30 @@ broader "append-only status writes" is parked as **S-12** in
   Floating Index; default sigue reversible FTC-009) · D43 = rename sub-page
   "Floating TOC" → "Floating Index". Entran en BT4-017 impl (caps perpOver +
   room-cap + option + rename).
+
+## 2026-07-18 — claude-fable-5 · implement · BT4-017/008/009-core landed
+
+- **BT4-002 CERRADO** (retest dev: "funciona excelente").
+- **BT4-017 ✅ `247b4b1d`**: caps de contención (perpOver acotado al room del
+  frame + room-cap del eje along, helpers puros `niagaraClampOverdrive`/
+  `niagaraClampShiftToRoom`, inset 8px) + option D42 `tocMonotonicSlide`
+  (default off, HWM proto opt-in) + D43 rename settings sub-page → "Floating
+  Index"/"Índice flotante".
+- **BT4-008 ✅ `82f254ca`**: `logicContentSearch.ts` allowlist (`md`) — el scan
+  saltaba a cachedRead de mp4/binarios; `setContentSearchPending` (re-run
+  síncrono del pipeline entero) movido DENTRO del debounce de 250ms → typing
+  sin freeze.
+- **BT4-009 CORE ✅ `be97b4a9` (+`b0f68d57`/`0d6da61a` guards)**: root cause del
+  "All no ordena L1" = `sortTree` matcheaba `parentId === drillNodeId` con ambos
+  null → un drill sort huérfano capturaba L1 mientras el resto seguía All; fix
+  `parentId !== null &&`. RED empírico primero (harness necesitó stub
+  metadataCache). Renames D29/D30: "Sort level"→"By level"/"Por nivel";
+  settings "Layouts"→"View configs". **Pendiente de BT4-009**: restructure UI
+  D29/D31-D33 (nested al grupo By level · folders first + fixed folders ·
+  inline-por-default · drill click-simple + border dashed + label 6 chars ·
+  sync index-drill · options contextuales) — próximo slice, serial con
+  navbarFilters.
+- Gate final: **101 files / 544 tests 0 fail** · check 0/0 · build · scorecard
+  17 · sync plugin-dev. Nota de proceso: dos commits intermedios entraron con
+  2 guards rojos por chain mal cortado (grep no-fallante); corregido en
+  `0d6da61a` con suite verde completa — los 3 commits quedan en historia.
