@@ -135,7 +135,10 @@ export class PropsExplorerPanel extends Component {
 				!(ctx.node.meta as PropMeta).isValueNode &&
 				this.plugin.iconicService?.canChangePropertyIcon() === true,
 			run: (ctx) => {
-				this.plugin.iconicService?.openPropertyIconPicker(ctx.node.label);
+				this.plugin.iconicService?.openPropertyIconPicker(
+					ctx.node.label,
+					ctx.event,
+				);
 			},
 		});
 

@@ -116,7 +116,7 @@ export class TagsExplorerPanel extends Component {
 			when: () => this.plugin.iconicService?.canChangeTagIcon() === true,
 			run: (ctx: MenuCtx) => {
 				const meta = ctx.node.meta as TagMeta;
-				this.plugin.iconicService?.openTagIconPicker(meta.tagPath);
+				this.plugin.iconicService?.openTagIconPicker(meta.tagPath, ctx.event);
 			},
 		});
 

@@ -126,6 +126,7 @@ export class ContextMenuService extends Component {
 	}
 
 	openPanelMenu(ctx: MenuCtx, event: MouseEvent): void {
+		ctx.event = event;
 		const menu = new Menu();
 		const nativeTarget = this._getNativeMenuTarget(ctx);
 		if (nativeTarget) {

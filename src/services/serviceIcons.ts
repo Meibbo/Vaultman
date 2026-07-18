@@ -38,6 +38,12 @@ interface IconicRuntimePlugin {
 		color: string | null,
 	) => unknown;
 	refreshManagers?: (...kinds: Array<'property' | 'tag'>) => unknown;
+	tagIconManager?: {
+		onContextMenu?: (tagPath: string, event?: MouseEvent) => unknown;
+	};
+	propertyIconManager?: {
+		onContextMenu?: (name: string, event?: MouseEvent) => unknown;
+	};
 	ruleManager?: {
 		checkRuling?: (
 			kind: 'file' | 'folder',
@@ -275,11 +281,14 @@ export class IconicService extends Component {
 
 	canChangePropertyIcon(): boolean {
 		const runtime = this.runtimePlugin();
+		// Iconic exposes no public picker; its per-kind managers' onContextMenu
+		// opens the real change-icon menu/picker (verified live, BT4-023).
 		return (
 			this.enabled &&
-			typeof runtime?.getPropertyItem === 'function' &&
-			typeof runtime.openIconPicker === 'function' &&
-			typeof runtime.savePropertyIcon === 'function'
+			(typeof runtime?.propertyIconManager?.onContextMenu === 'function' ||
+				(typeof runtime?.getPropertyItem === 'function' &&
+					typeof runtime.openIconPicker === 'function' &&
+					typeof runtime.savePropertyIcon === 'function'))
 		);
 	}
 
@@ -287,17 +296,22 @@ export class IconicService extends Component {
 		const runtime = this.runtimePlugin();
 		return (
 			this.enabled &&
-			typeof runtime?.getTagItem === 'function' &&
-			typeof runtime.openIconPicker === 'function' &&
-			typeof runtime.saveTagIcon === 'function'
+			(typeof runtime?.tagIconManager?.onContextMenu === 'function' ||
+				(typeof runtime?.getTagItem === 'function' &&
+					typeof runtime.openIconPicker === 'function' &&
+					typeof runtime.saveTagIcon === 'function'))
 		);
 	}
 
-	openPropertyIconPicker(propName: string): boolean {
+	openPropertyIconPicker(propName: string, event?: MouseEvent): boolean {
 		if (!this.canChangePropertyIcon()) return false;
 		const runtime = this.runtimePlugin();
-		if (!runtime?.getPropertyItem) return false;
 		try {
+			if (runtime?.propertyIconManager?.onContextMenu) {
+				runtime.propertyIconManager.onContextMenu(propName, event);
+				return true;
+			}
+			if (!runtime?.getPropertyItem) return false;
 			const item = runtime.getPropertyItem(propName);
 			if (!item) return false;
 			return this.openRuntimePicker(runtime, 'property', propName, item);
@@ -306,11 +320,15 @@ export class IconicService extends Component {
 		}
 	}
 
-	openTagIconPicker(tagPath: string): boolean {
+	openTagIconPicker(tagPath: string, event?: MouseEvent): boolean {
 		if (!this.canChangeTagIcon()) return false;
 		const runtime = this.runtimePlugin();
-		if (!runtime?.getTagItem) return false;
 		try {
+			if (runtime?.tagIconManager?.onContextMenu) {
+				runtime.tagIconManager.onContextMenu(tagPath, event);
+				return true;
+			}
+			if (!runtime?.getTagItem) return false;
 			const item = this.runtimeTagItem(runtime, tagPath);
 			if (!item) return false;
 			return this.openRuntimePicker(runtime, 'tag', tagPath, item);

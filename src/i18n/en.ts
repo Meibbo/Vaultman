@@ -219,7 +219,7 @@ export const en: Record<string, string> = {
 	'settings.icon_scope.all': 'Files and folders',
 	'settings.icon_scope.files': 'Files only',
 	'settings.icon_scope.folders': 'Folders only',
-	'settings.icon_scope.custom': 'Iconic custom only',
+	'settings.icon_scope.custom': 'Custom icons only',
 	'settings.developer_tools': 'Developer Tools',
 	'settings.performance_monitor': 'Performance monitor',
 	'settings.performance_monitor.desc':

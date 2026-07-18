@@ -217,7 +217,7 @@ export const es: Record<string, string> = {
 	'settings.icon_scope.all': 'Archivos y carpetas',
 	'settings.icon_scope.files': 'Solo archivos',
 	'settings.icon_scope.folders': 'Solo carpetas',
-	'settings.icon_scope.custom': 'Solo personalizados de Iconic',
+	'settings.icon_scope.custom': 'Solo iconos personalizados',
 	'settings.developer_tools': 'Herramientas de desarrollo',
 	'settings.performance_monitor': 'Monitor de rendimiento',
 	'settings.performance_monitor.desc':
