@@ -292,3 +292,75 @@ describe('IconicService add-on gate', () => {
 		expect(second).toHaveBeenCalledOnce();
 	});
 });
+
+describe('IconicService render-burst safety (BT4-002)', () => {
+	it('memoizes runtime lookups within a render burst and re-queries after it', async () => {
+		const getTagItem = vi.fn(() => ({ icon: 'lucide-kanban', color: '#00f' }));
+		const getPropertyItem = vi.fn(() => ({
+			icon: 'lucide-circle-check',
+			color: '#0f0',
+		}));
+		const getFileItem = vi.fn(() => ({ icon: 'lucide-star', color: null }));
+		const app = fakeApp({}) as ReturnType<typeof fakeApp> & {
+			plugins: { plugins: Record<string, unknown> };
+		};
+		app.plugins = {
+			plugins: { iconic: { getTagItem, getPropertyItem, getFileItem } },
+		};
+		const service = new IconicService(app as never);
+		await load(service);
+
+		service.getTagIcon('project');
+		service.getTagIcon('project');
+		service.getIcon('status');
+		service.getIcon('status');
+		service.getFileIcon('Notes/Alpha.md', false);
+		service.getFileIcon('Notes/Alpha.md', false);
+		expect(getTagItem).toHaveBeenCalledTimes(1);
+		expect(getPropertyItem).toHaveBeenCalledTimes(1);
+		expect(getFileItem).toHaveBeenCalledTimes(1);
+
+		await new Promise((resolve) => setTimeout(resolve, 0));
+		service.getTagIcon('project');
+		expect(getTagItem).toHaveBeenCalledTimes(2);
+	});
+
+	it('memoizes runtime misses too, without leaking them across bursts', async () => {
+		const getTagItem = vi.fn(() => null);
+		const app = fakeApp({}) as ReturnType<typeof fakeApp> & {
+			plugins: { plugins: Record<string, unknown> };
+		};
+		app.plugins = { plugins: { iconic: { getTagItem } } };
+		const service = new IconicService(app as never);
+		await load(service);
+
+		expect(service.getTagIcon('missing')).toBeNull();
+		expect(service.getTagIcon('missing')).toBeNull();
+		// path + '#path' fallback both probed once for a miss
+		expect(getTagItem).toHaveBeenCalledTimes(2);
+	});
+
+	it('lets a consumer unsubscribe a pending onLoaded callback', async () => {
+		const failingApp = {
+			vault: {
+				configDir: 'custom-config',
+				adapter: {
+					read: async () => {
+						throw new Error('no iconic data');
+					},
+				},
+			},
+		};
+		const service = new IconicService(failingApp as never);
+		const kept = vi.fn();
+		const dropped = vi.fn();
+		service.onLoaded(kept);
+		const unsubscribe = service.onLoaded(dropped);
+		unsubscribe();
+		service.onload();
+		await new Promise((resolve) => setTimeout(resolve, 0));
+
+		expect(kept).toHaveBeenCalledTimes(1);
+		expect(dropped).not.toHaveBeenCalled();
+	});
+});

@@ -150,12 +150,14 @@ export class TagsExplorerPanel extends Component {
 				this._render();
 			}),
 		);
-		// Re-render after Iconic finishes loading
-		this.plugin.iconicService?.onLoaded(() => this._render());
-		const unsubscribeIconic = this.plugin.iconicService?.onChanged(() =>
-			this._render(),
-		);
-		if (unsubscribeIconic) this.register(unsubscribeIconic);
+		// Re-render after Iconic loads/changes; both are registered for cleanup
+		// and coalesced — un-registered onLoaded retained unloaded panels and
+		// per-event renders froze large vaults (BT4-002).
+		const iconic = this.plugin.iconicService;
+		if (iconic) {
+			this.register(iconic.onLoaded(this._scheduleIconicRender));
+			this.register(iconic.onChanged(this._scheduleIconicRender));
+		}
 
 		// Re-render dynamically when filters or queues change
 		this.plugin.filterService.on('changed', this._handleStateChange);
@@ -191,6 +193,16 @@ export class TagsExplorerPanel extends Component {
 	}
 
 	private readonly _handleStateChange = () => this._render();
+
+	private _iconicRenderQueued = false;
+	private readonly _scheduleIconicRender = () => {
+		if (this._iconicRenderQueued) return;
+		this._iconicRenderQueued = true;
+		queueMicrotask(() => {
+			this._iconicRenderQueued = false;
+			this._render();
+		});
+	};
 
 	setSearchTerm(term: string, mode: 'all' | 'leaf' = 'all'): void {
 		if (this.searchTerm === term && this.searchMode === mode) return;

@@ -78,12 +78,42 @@ export class IconicService extends Component {
 	}
 
 	/** Register a callback to fire once after icons are loaded. Fires immediately if already loaded. */
-	onLoaded(cb: () => void): void {
+	onLoaded(cb: () => void): () => void {
 		if (this.loaded) {
 			cb();
-		} else {
-			this._onLoadedCallbacks.push(cb);
+			return () => {};
 		}
+		this._onLoadedCallbacks.push(cb);
+		return () => {
+			this._onLoadedCallbacks = this._onLoadedCallbacks.filter(
+				(pending) => pending !== cb,
+			);
+		};
+	}
+
+	/** One resolution per icon per render burst: explorer renders ask per node
+	 * and Iconic's runtime may evaluate rules per query, which froze large
+	 * vaults (BT4-002). The memo self-clears on the next macrotask so live
+	 * Iconic edits still surface. */
+	private _burstCache = new Map<string, IconicResolvedIcon | null>();
+	private _burstClearScheduled = false;
+
+	private _burstMemo(
+		key: string,
+		resolve: () => IconicResolvedIcon | null,
+	): IconicResolvedIcon | null {
+		const cached = this._burstCache.get(key);
+		if (cached !== undefined || this._burstCache.has(key)) return cached ?? null;
+		const value = resolve();
+		this._burstCache.set(key, value);
+		if (!this._burstClearScheduled) {
+			this._burstClearScheduled = true;
+			setTimeout(() => {
+				this._burstCache.clear();
+				this._burstClearScheduled = false;
+			}, 0);
+		}
+		return value;
 	}
 
 	/** Subscribe to live Iconic changes exposed through this adapter. */
@@ -128,35 +158,41 @@ export class IconicService extends Component {
 	/** Get custom icon for a property name. Returns null if not set. */
 	getIcon(propName: string): IconicResolvedIcon | null {
 		if (!this.enabled) return null;
-		const runtime = this.runtimePlugin();
-		if (runtime?.getPropertyItem) {
-			try {
-				const resolved = this.normalizedIcon(runtime.getPropertyItem(propName));
-				if (resolved) return resolved;
-			} catch {
-				// Runtime APIs are optional/private; persisted data remains the fallback.
+		return this._burstMemo(`prop:${propName}`, () => {
+			const runtime = this.runtimePlugin();
+			if (runtime?.getPropertyItem) {
+				try {
+					const resolved = this.normalizedIcon(
+						runtime.getPropertyItem(propName),
+					);
+					if (resolved) return resolved;
+				} catch {
+					// Runtime APIs are optional/private; persisted data remains the fallback.
+				}
 			}
-		}
-		return this.normalizedIcon(this.propertyIcons.get(propName));
+			return this.normalizedIcon(this.propertyIcons.get(propName));
+		});
 	}
 
 	/** Get custom icon for a tag path (without #). Returns null if not set. */
 	getTagIcon(tagPath: string): IconicResolvedIcon | null {
 		if (!this.enabled) return null;
-		const runtime = this.runtimePlugin();
-		if (runtime?.getTagItem) {
-			try {
-				const resolved = this.normalizedIcon(
-					this.runtimeTagItem(runtime, tagPath),
-				);
-				if (resolved) return resolved;
-			} catch {
-				// Runtime APIs are optional/private; persisted data remains the fallback.
+		return this._burstMemo(`tag:${tagPath}`, () => {
+			const runtime = this.runtimePlugin();
+			if (runtime?.getTagItem) {
+				try {
+					const resolved = this.normalizedIcon(
+						this.runtimeTagItem(runtime, tagPath),
+					);
+					if (resolved) return resolved;
+				} catch {
+					// Runtime APIs are optional/private; persisted data remains the fallback.
+				}
 			}
-		}
-		return this.normalizedIcon(
-			this.tagIcons.get(tagPath) ?? this.tagIcons.get(`#${tagPath}`),
-		);
+			return this.normalizedIcon(
+				this.tagIcons.get(tagPath) ?? this.tagIcons.get(`#${tagPath}`),
+			);
+		});
 	}
 
 	setEnabled(enabled: boolean): void {
@@ -214,21 +250,23 @@ export class IconicService extends Component {
 	/** Resolve a direct or rule-driven Iconic file/folder icon. */
 	getFileIcon(path: string, isFolder: boolean): IconicResolvedIcon | null {
 		if (!this.enabled) return null;
-		const runtime = this.runtimePlugin();
-		if (runtime) {
-			try {
-				const item = runtime.getFileItem?.(path) ?? null;
-				const ruling = runtime.ruleManager?.checkRuling?.(
-					isFolder ? 'folder' : 'file',
-					path,
-				);
-				const resolved = this.normalizedIcon(ruling ?? item);
-				if (resolved) return resolved;
-			} catch {
-				// Runtime APIs are optional/private; persisted data remains the fallback.
+		return this._burstMemo(`file:${isFolder ? 'd' : 'f'}:${path}`, () => {
+			const runtime = this.runtimePlugin();
+			if (runtime) {
+				try {
+					const item = runtime.getFileItem?.(path) ?? null;
+					const ruling = runtime.ruleManager?.checkRuling?.(
+						isFolder ? 'folder' : 'file',
+						path,
+					);
+					const resolved = this.normalizedIcon(ruling ?? item);
+					if (resolved) return resolved;
+				} catch {
+					// Runtime APIs are optional/private; persisted data remains the fallback.
+				}
 			}
-		}
-		return this.normalizedIcon(this.fileIcons.get(path));
+			return this.normalizedIcon(this.fileIcons.get(path));
+		});
 	}
 
 	isEnabled(): boolean {

@@ -463,7 +463,8 @@ export class FilesExplorerPanel extends Component {
 		);
 		this.plugin.queueService.on('changed', this._handleQueueChange);
 		this.plugin.statisticsCache.on('changed', this._handleStatsChange);
-		this.plugin.iconicService?.onLoaded(() => this._render());
+		const iconic = this.plugin.iconicService;
+		if (iconic) this.register(iconic.onLoaded(this._scheduleIconicRender));
 		this.containerEl.addEventListener('dragover', this._handleRootFileDragOver);
 		this.containerEl.addEventListener('drop', this._handleRootFileDrop);
 
@@ -1653,6 +1654,16 @@ export class FilesExplorerPanel extends Component {
 		});
 		return badges;
 	}
+
+	private _iconicRenderQueued = false;
+	private readonly _scheduleIconicRender = () => {
+		if (this._iconicRenderQueued) return;
+		this._iconicRenderQueued = true;
+		queueMicrotask(() => {
+			this._iconicRenderQueued = false;
+			this._render();
+		});
+	};
 
 	private readonly _handleQueueChange = (): void => {
 		this._render();

@@ -334,12 +334,13 @@ export class PropsExplorerPanel extends Component {
 				this._render();
 			}),
 		);
-		// Re-render after Iconic finishes loading
-		this.plugin.iconicService?.onLoaded(() => this._render());
-		const unsubscribeIconic = this.plugin.iconicService?.onChanged(() =>
-			this._render(),
-		);
-		if (unsubscribeIconic) this.register(unsubscribeIconic);
+		// Re-render after Iconic loads/changes; both are registered for cleanup
+		// and coalesced (BT4-002 twin of the tags panel fix).
+		const iconic = this.plugin.iconicService;
+		if (iconic) {
+			this.register(iconic.onLoaded(this._scheduleIconicRender));
+			this.register(iconic.onChanged(this._scheduleIconicRender));
+		}
 
 		// Re-render dynamically when filters or queues change
 		this.plugin.filterService.on('changed', this._handleStateChange);
@@ -368,6 +369,16 @@ export class PropsExplorerPanel extends Component {
 	}
 
 	private readonly _handleStateChange = () => this._render();
+
+	private _iconicRenderQueued = false;
+	private readonly _scheduleIconicRender = () => {
+		if (this._iconicRenderQueued) return;
+		this._iconicRenderQueued = true;
+		queueMicrotask(() => {
+			this._iconicRenderQueued = false;
+			this._render();
+		});
+	};
 
 	private _getFilesWithProp(propName: string): import('obsidian').TFile[] {
 		return this.plugin.app.vault
