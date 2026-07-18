@@ -7,10 +7,11 @@ describe('Iconic Props/Tags context-menu parity source guards', () => {
 	it('registers only callable Iconic picker actions for root property and tag nodes', () => {
 		expect(propsSource).toContain("id: 'prop.iconic-change'");
 		expect(propsSource).toContain('canChangePropertyIcon()');
-		expect(propsSource).toContain('openPropertyIconPicker(ctx.node.label)');
+		expect(propsSource).toContain('openPropertyIconPicker(');
+		expect(propsSource).toContain('ctx.event,');
 		expect(tagsSource).toContain("id: 'tag.iconic-change'");
 		expect(tagsSource).toContain('canChangeTagIcon()');
-		expect(tagsSource).toContain('openTagIconPicker(meta.tagPath)');
+		expect(tagsSource).toContain('openTagIconPicker(meta.tagPath, ctx.event)');
 	});
 
 	it('subscribes both panels to Iconic runtime changes with cleanup and coalescing (BT4-002)', () => {
