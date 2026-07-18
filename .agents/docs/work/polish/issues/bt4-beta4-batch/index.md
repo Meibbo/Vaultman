@@ -37,10 +37,10 @@ shards: [[01-regressions|01 regresiones]] · [[02-bugs|02 bugs]] ·
 | BT4-014 | Rainbow folders opt-in (research BT3-010 mecanismo c, D38) | 03 | pending |
 | BT4-015 | Option "Exclude file" en files explorer (D39) | 03 | pending |
 | BT4-016 | Floating index state+scope en view-config (D40) | 03 | pending |
-| BT4-017 | Niagara: pared de desplazamiento según frame (proto v13) | 02 | REVERTED `8c264c1d` (base v12 errónea; D42 retirada; D43 conservada) → redo con research v13 |
+| BT4-017 | Niagara: pared de desplazamiento según frame (proto v13) | 02 | ✅ redo `4cf7937c` (pared perp via idiom room v13; along ya estaba bien) |
 | BT4-018 | Content search: action pausar/reanudar (aplica filtro parcial + habilita replace) | 02 | pending |
-| BT4-019 | Content search: conteo de resultados ≠ core search (3 vs 1) | 02 | pending |
-| BT4-020 | Content search: refresh tras operación replace | 02 | pending |
+| BT4-019 | Content search: conteo de resultados ≠ core search (3 vs 1) | 02 | ✅ `a0e1e3f1` (offsets locales autoritativos) |
+| BT4-020 | Content search: refresh tras replace | 02 | ✅ `be2cce4a` (vault modify re-keys, debounce 400ms) |
 
 Orden recomendado: 002 → 001 → 003 → 008 → 004 → 006 → 007 → 005 → 009 → 011 →
 010 → 012 → 013. **001 y 009 comparten `navbarFilters.svelte`: serial.**

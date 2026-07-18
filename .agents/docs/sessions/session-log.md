@@ -1652,3 +1652,24 @@ broader "append-only status writes" is parked as **S-12** in
 - Lección de proceso (repetida): verificar canon del proto ANTES de research
   (v13 > v12); `add -A` barrió edits ajenos del dev al commit — staging
   selectivo en adelante.
+
+## 2026-07-18 — claude-fable-5 · implement · BT4-017 redo (v13) + 019/020
+
+- **Research v13 ✅** (Explore): HTML v13 carga `proto-v13/` (no self-contained).
+  Único delta rail v12→v13 = pared bidireccional del eje along — que el plugin YA
+  tiene; el doble-clamp along del fix revertido era lo que rompía el slide. La
+  pared perpendicular no existe en ningún proto → derivada del idiom room v13.
+  Addendum en el research doc.
+- **BT4-017 redo ✅ `4cf7937c`**: `niagaraClampOverdrive` + `perpRoom` (inset
+  8px) — desplazamiento libre direccional intacto, tope en el borde del frame.
+  Guards: sin `niagaraClampShiftToRoom` ni `monotonicSlide` (retirados).
+- **BT4-019 ✅ `a0e1e3f1`**: causa del 3-vs-1 = merge de DOS sistemas de
+  coordenadas (offsets del view nativo sobre su propio content vs scan local
+  sobre raw) — dedupe por key fallaba. Offsets locales ahora autoritativos por
+  archivo (replace, no merge); `mergeSearchOffsets` eliminado. RED repro con
+  frontmatter desplazando el offset.
+- **BT4-020 ✅ `be2cce4a`**: vault `modify` (debounce 400ms, solo con content
+  rule activa) re-keys `contentSearchScopeRevision` → preview se re-corre tras
+  replace. `hasEnabledContentSearchRule` ahora público.
+- Gates por commit: check 0/0 · full unit 101f/544t · build · scorecard 17 ·
+  sync plugin-dev. Queue: BT4-018 (pause/resume) → BT4-009 fase 2 → 010-016.

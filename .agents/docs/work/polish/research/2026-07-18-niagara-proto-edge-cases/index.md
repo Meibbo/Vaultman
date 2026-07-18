@@ -60,3 +60,15 @@ D25, supersede el 150/6 del proto).
 
 Nota BT4-005 (`62429f1a`): tap ya no deforma/slide — `activeIdx` y
 `updateTrackShift` gated a `engaged`; thresholds 450ms/8px.
+
+## Addendum 2026-07-18 — canon v13 (supersede parcial de este doc)
+
+Research v13 (`proto-v13/explorer.jsx` — el HTML v13 NO es self-contained, carga
+la carpeta hermana): **único delta rail v12→v13 = pared bidireccional del eje
+along** (`firstN` + roomUp con HWM negativo, L161/169-173). El plugin YA contiene
+el eje along vía `niagaraClampToFrame` (reversible por decisión D42-retirada).
+La pared perpendicular NO existe en ningún proto (el monitor de demo la acotaba);
+se derivó del idiom room de v13 (`want=max(0,min(raw,room))`, inset 8px) →
+`niagaraClampOverdrive` + `perpRoom` en `4cf7937c`. El doble-clamp del eje along
+del fix revertido (`247b4b1d`) era el culpable de romper el slide libre. Los
+demás "edge cases sospechados" NO existen en v13 (diff completo limpio).
