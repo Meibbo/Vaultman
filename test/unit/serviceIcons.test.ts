@@ -119,6 +119,14 @@ describe('IconicService add-on gate', () => {
 		const service = new IconicService(app as never);
 		await load(service);
 
+		// Render pass answers from persisted data; the runtime ruling lands
+		// after the background pump (BT4-002).
+		expect(service.getFileIcon('Notes/Alpha.md', false)).toEqual({
+			icon: 'lucide-star',
+		});
+		for (let i = 0; i < 6; i += 1) {
+			await new Promise((resolve) => setTimeout(resolve, 0));
+		}
 		expect(service.getFileIcon('Notes/Alpha.md', false)).toEqual({
 			icon: 'lucide-flame',
 			color: '#f00',
@@ -146,6 +154,11 @@ describe('IconicService add-on gate', () => {
 		const service = new IconicService(app as never);
 		await load(service);
 
+		service.getIcon('status');
+		service.getTagIcon('project');
+		for (let i = 0; i < 6; i += 1) {
+			await new Promise((resolve) => setTimeout(resolve, 0));
+		}
 		expect(service.getIcon('status')).toEqual({
 			icon: 'lucide-circle-check',
 			color: '#0f0',
@@ -293,39 +306,45 @@ describe('IconicService add-on gate', () => {
 	});
 });
 
-describe('IconicService render-burst safety (BT4-002)', () => {
-	it('memoizes runtime lookups within a render burst and re-queries after it', async () => {
+describe('IconicService deferred runtime resolution (BT4-002)', () => {
+	const settle = async () => {
+		for (let i = 0; i < 6; i += 1) {
+			await new Promise((resolve) => setTimeout(resolve, 0));
+		}
+	};
+
+	it('keeps render passes off the runtime and upgrades the cache in background', async () => {
 		const getTagItem = vi.fn(() => ({ icon: 'lucide-kanban', color: '#00f' }));
-		const getPropertyItem = vi.fn(() => ({
-			icon: 'lucide-circle-check',
-			color: '#0f0',
-		}));
-		const getFileItem = vi.fn(() => ({ icon: 'lucide-star', color: null }));
-		const app = fakeApp({}) as ReturnType<typeof fakeApp> & {
+		const app = fakeApp({
+			tagIcons: { project: { icon: 'lucide-folder' } },
+		}) as ReturnType<typeof fakeApp> & {
 			plugins: { plugins: Record<string, unknown> };
 		};
-		app.plugins = {
-			plugins: { iconic: { getTagItem, getPropertyItem, getFileItem } },
-		};
+		app.plugins = { plugins: { iconic: { getTagItem } } };
 		const service = new IconicService(app as never);
 		await load(service);
+		const changed = vi.fn();
+		service.onChanged(changed);
 
-		service.getTagIcon('project');
-		service.getTagIcon('project');
-		service.getIcon('status');
-		service.getIcon('status');
-		service.getFileIcon('Notes/Alpha.md', false);
-		service.getFileIcon('Notes/Alpha.md', false);
-		expect(getTagItem).toHaveBeenCalledTimes(1);
-		expect(getPropertyItem).toHaveBeenCalledTimes(1);
-		expect(getFileItem).toHaveBeenCalledTimes(1);
+		// Render pass: persisted answer, zero synchronous runtime work.
+		expect(service.getTagIcon('project')).toEqual({
+			icon: 'lucide-folder',
+		});
+		expect(getTagItem).not.toHaveBeenCalled();
 
-		await new Promise((resolve) => setTimeout(resolve, 0));
-		service.getTagIcon('project');
-		expect(getTagItem).toHaveBeenCalledTimes(2);
+		await settle();
+		// Background pump upgraded the cache and notified exactly once.
+		expect(getTagItem).toHaveBeenCalled();
+		expect(changed).toHaveBeenCalledTimes(1);
+		const callsAfterPump = getTagItem.mock.calls.length;
+		expect(service.getTagIcon('project')).toEqual({
+			icon: 'lucide-kanban',
+			color: '#00f',
+		});
+		expect(getTagItem.mock.calls.length).toBe(callsAfterPump);
 	});
 
-	it('memoizes runtime misses too, without leaking them across bursts', async () => {
+	it('resolves runtime misses once without notifying', async () => {
 		const getTagItem = vi.fn(() => null);
 		const app = fakeApp({}) as ReturnType<typeof fakeApp> & {
 			plugins: { plugins: Record<string, unknown> };
@@ -333,11 +352,16 @@ describe('IconicService render-burst safety (BT4-002)', () => {
 		app.plugins = { plugins: { iconic: { getTagItem } } };
 		const service = new IconicService(app as never);
 		await load(service);
+		const changed = vi.fn();
+		service.onChanged(changed);
 
 		expect(service.getTagIcon('missing')).toBeNull();
+		await settle();
+		expect(changed).not.toHaveBeenCalled();
+		const callsAfterPump = getTagItem.mock.calls.length;
 		expect(service.getTagIcon('missing')).toBeNull();
-		// path + '#path' fallback both probed once for a miss
-		expect(getTagItem).toHaveBeenCalledTimes(2);
+		await settle();
+		expect(getTagItem.mock.calls.length).toBe(callsAfterPump);
 	});
 
 	it('lets a consumer unsubscribe a pending onLoaded callback', async () => {

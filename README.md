@@ -2,9 +2,11 @@
 
 ![GitHub manifest version](https://img.shields.io/github/manifest-json/v/meibbo/vaultman?color=white&label=version&logo=github&logoColor=white&style=for-the-badge)![License](https://img.shields.io/github/license/Meibbo/vaultman?color=white&label=license&style=for-the-badge)[![GitHub stars](https://img.shields.io/github/stars/Meibbo/vaultman?style=for-the-badge&color=white)](https://github.com/Meibbo/vaultman/stargazers)[![GitHub open issues](https://img.shields.io/github/issues/Meibbo/vaultman?style=for-the-badge&color=white&logo=git&logoColor=white)](https://github.com/Meibbo/vaultman/issues)![Obsidian](https://img.shields.io/badge/required-%E2%89%A51.12.0-white?style=for-the-badge&logo=obsidian)
 
-The Symbiont Manager. This plugin aims to expand your Obsidian Core plugins, adding functionality and flexibility to the data and metadata explorers you already know.
+> The Symbiont Manager, morphs and adapts to your needs. 
 
-Each explorer shows its data in a node/cells based structure. Where you can choose different layouts, show/hide details or sort and group data to visualize the same information from another perspective.
+This plugin aims to expand your Obsidian Core plugins, adding functionality and flexibility to the data and metadata explorers you already know.
+
+Each explorer shows its data in a node/cells based structure. Where you can choose different layouts, show/hide details or sort and group data to visualize the same information from different dperspectives.
 
 You can navigate, apply filters to your files, tags, properties or content and select what you want to change, queue batch operations and then apply everything at once.
 
@@ -50,7 +52,9 @@ I'm also releasing experimental versions for those who want to check the project
 
 ### Statistics
 
-[Watch more detailed plugin info](https://www.moritzjung.dev/obsidian-stats/plugins/vaultman) || [Search for similar plugins](https://plugins.semiautonomous.org/plugin/vaultman)![Obsidian Downloads](https://img.shields.io/badge/dynamic/json?logo=obsidian&color=%23ffffff&label=downloads&query=%24%5B%22vaultman%22%5D.downloads&url=https%3A%2F%2Fraw.githubusercontent.com%2Fobsidianmd%2Fobsidian-releases%2Fmaster%2Fcommunity-plugin-stats.json&style=for-the-badge)![Total Downloads](https://img.shields.io/github/downloads/Meibbo/vaultman/total?color=white&label=Total%20Downloads&style=for-the-badge)![Stable version](https://img.shields.io/github/v/release/meibbo/vaultman?color=white&label=latest%20stable&logo=github&logoColor=white&style=for-the-badge)[![Stable downloads](https://img.shields.io/github/downloads/meibbo/vaultman/latest/main.js?color=white&label=downloads&style=for-the-badge)](https://github.com/meibbo/vaultman/releases)![Pre-release version](https://img.shields.io/github/v/release/meibbo/vaultman?include_prereleases&sort=semver&color=white&label=latest%20pre-release&style=for-the-badge&logo=github&logoColor=white)[![Pre-release downloads](https://img.shields.io/github/downloads-pre/meibbo/vaultman/latest/main.js?color=white&label=downloads&style=for-the-badge)](https://github.com/meibbo/vaultman/releases)
+[Watch more detailed plugin info](https://www.moritzjung.dev/obsidian-stats/plugins/vaultman) || [Search for similar plugins](https://plugins.semiautonomous.org/plugin/vaultman)
+
+![Obsidian Downloads](https://img.shields.io/badge/dynamic/json?logo=obsidian&color=%23ffffff&label=downloads&query=%24%5B%22vaultman%22%5D.downloads&url=https%3A%2F%2Fraw.githubusercontent.com%2Fobsidianmd%2Fobsidian-releases%2Fmaster%2Fcommunity-plugin-stats.json&style=for-the-badge)![Total Downloads](https://img.shields.io/github/downloads/Meibbo/vaultman/total?color=white&label=Total%20Downloads&style=for-the-badge)![Stable version](https://img.shields.io/github/v/release/meibbo/vaultman?color=white&label=latest%20stable&logo=github&logoColor=white&style=for-the-badge)[![Stable downloads](https://img.shields.io/github/downloads/meibbo/vaultman/latest/main.js?color=white&label=downloads&style=for-the-badge)](https://github.com/meibbo/vaultman/releases)![Pre-release version](https://img.shields.io/github/v/release/meibbo/vaultman?include_prereleases&sort=semver&color=white&label=latest%20pre-release&style=for-the-badge&logo=github&logoColor=white)[![Pre-release downloads](https://img.shields.io/github/downloads-pre/meibbo/vaultman/latest/main.js?color=white&label=downloads&style=for-the-badge)](https://github.com/meibbo/vaultman/releases)
 
 ## Features
 
@@ -66,11 +70,11 @@ Compatibility and adapters with other plugins are being added to help you decide
 
 - **Files**: Files and folders of your vault, affecting the amount of elements showed based on your active filters.
 
-- **Tags**: Gives you power to arrenge your tags and set them in the frontmatter of your notes.
+- **Tags**: Gives you power to arrange your tags and set them in the frontmatter of your notes.
 
-- **Content**
-- **Snippets**
-- **Plugins**
+- **Content**: (WIP) Provides functionality to scope by content of your notes. 
+- **Snippets**: Quickly activate/deactivate snippets from your vault.  
+- **Plugins**: Quickly activate/deactivate or config your installed plugins.
 
 ### Explorer panels
 
@@ -113,7 +117,7 @@ They are generic hierarchies that adapts to any data provider configured to show
 Every selected node will apear in the **Active filters island**, where you can strategically add logical groups _and/or/none_ (WIP), supress filters, clear all, or even select templates of filters to scope down the exact nodes you wanted to edit.
 ![]()
 
-> This versions only scopes the files tab from selected properties, tags or content. _Showing content or metadata from selected files will be added soon._
+> This versions only scopes the files tab from selected properties, tags or content.
 
   </tr>
 </table>

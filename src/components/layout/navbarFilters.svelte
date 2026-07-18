@@ -1657,7 +1657,7 @@
 										);
 									}
 								}}
-								use:icon={'lucide-tools-case'}
+								use:icon={'lucide-tool-case'}
 							></div>
 						{:else if supportsExpansion}
 							<div
