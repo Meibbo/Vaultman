@@ -1,5 +1,6 @@
 import type { App, TFile, WorkspaceLeaf } from 'obsidian';
 import type { ContentPreviewResult, ContentSnippet } from '../types/typeUI';
+import { isContentSearchableFile } from '../logic/logicContentSearch';
 
 type SearchOffset = [number, number];
 
@@ -315,6 +316,7 @@ export class NativeSearchAdapter {
 		for (let index = 0; index < options.scopeFiles.length; index += 1) {
 			if (run !== this.activeRun) return [...inputsByPath.values()];
 			const file = options.scopeFiles[index];
+			if (!isContentSearchableFile(file)) continue;
 			let content = '';
 			try {
 				content = await this.app.vault.cachedRead(file);

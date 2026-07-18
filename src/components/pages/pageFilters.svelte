@@ -650,8 +650,6 @@
 			onContentFilterChanged?.();
 			return;
 		}
-		plugin.filterService.setContentSearchPending(find);
-		onContentFilterChanged?.();
 		contentPreviewResult = {
 			totalMatches: 0,
 			files: [],
@@ -661,6 +659,11 @@
 		contentPreviewOpen = true;
 		collapsedContentFilePaths = [];
 		const timer = window.setTimeout(() => {
+			// Deferred with the scan: setContentSearchPending re-runs the whole
+			// filter pipeline synchronously, which froze typing when it fired
+			// per keystroke (BT4-008).
+			plugin.filterService.setContentSearchPending(find);
+			onContentFilterChanged?.();
 			void nativeSearchAdapter
 				.search({
 					query: find,
