@@ -1249,8 +1249,8 @@
 							{settingsRevision}
 							{floatingTocEnabled}
 							onToggleFloatingToc={toggleFloatingToc}
-			getFloatingTocState={getFloatingTocState}
-			applyFloatingTocState={applyFloatingTocState}
+							{getFloatingTocState}
+							{applyFloatingTocState}
 							getSelectedFiles={() =>
 								fileList?.getSelectedFiles() ??
 								plugin.filterService.selectedFiles}

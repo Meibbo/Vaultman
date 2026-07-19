@@ -199,7 +199,9 @@ export class IconicService extends Component {
 	private _scheduleRuntimePump(): void {
 		if (this._runtimePumpScheduled) return;
 		this._runtimePumpScheduled = true;
-		setTimeout(() => {
+		const timerHost =
+			this.app.workspace?.containerEl?.ownerDocument.defaultView ?? activeWindow;
+		timerHost.setTimeout(() => {
 			this._runtimePumpScheduled = false;
 			this._pumpRuntimeQueue();
 		}, 0);

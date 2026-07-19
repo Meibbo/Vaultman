@@ -1,7 +1,20 @@
-import { describe, expect, it, vi } from 'vitest';
+import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 
 import { IconicService } from '../../src/services/serviceIcons';
 import mainSource from '../../src/main.ts?raw';
+
+const testSetTimeout = (callback: () => void): number => {
+	void Promise.resolve().then(callback);
+	return 0;
+};
+
+beforeAll(() => {
+	vi.stubGlobal('activeWindow', { setTimeout: testSetTimeout });
+});
+
+afterAll(() => {
+	vi.unstubAllGlobals();
+});
 
 function fakeApp(data: unknown) {
 	return {
@@ -125,7 +138,7 @@ describe('IconicService add-on gate', () => {
 			icon: 'lucide-star',
 		});
 		for (let i = 0; i < 6; i += 1) {
-			await new Promise((resolve) => setTimeout(resolve, 0));
+			await new Promise<void>((resolve) => testSetTimeout(resolve));
 		}
 		expect(service.getFileIcon('Notes/Alpha.md', false)).toEqual({
 			icon: 'lucide-flame',
@@ -157,7 +170,7 @@ describe('IconicService add-on gate', () => {
 		service.getIcon('status');
 		service.getTagIcon('project');
 		for (let i = 0; i < 6; i += 1) {
-			await new Promise((resolve) => setTimeout(resolve, 0));
+			await new Promise<void>((resolve) => testSetTimeout(resolve));
 		}
 		expect(service.getIcon('status')).toEqual({
 			icon: 'lucide-circle-check',
@@ -309,7 +322,7 @@ describe('IconicService add-on gate', () => {
 describe('IconicService deferred runtime resolution (BT4-002)', () => {
 	const settle = async () => {
 		for (let i = 0; i < 6; i += 1) {
-			await new Promise((resolve) => setTimeout(resolve, 0));
+			await new Promise<void>((resolve) => testSetTimeout(resolve));
 		}
 	};
 
@@ -382,7 +395,7 @@ describe('IconicService deferred runtime resolution (BT4-002)', () => {
 		const unsubscribe = service.onLoaded(dropped);
 		unsubscribe();
 		service.onload();
-		await new Promise((resolve) => setTimeout(resolve, 0));
+		await new Promise<void>((resolve) => testSetTimeout(resolve));
 
 		expect(kept).toHaveBeenCalledTimes(1);
 		expect(dropped).not.toHaveBeenCalled();
@@ -442,7 +455,7 @@ describe('raw-event driven external sync (BT4-030)', () => {
 		};
 		const service = new IconicService(app as never);
 		service.onload();
-		await new Promise((resolve) => setTimeout(resolve, 0));
+		await new Promise<void>((resolve) => testSetTimeout(resolve));
 		expect(rawHandler).not.toBeNull();
 
 		// Baseline observation.
@@ -455,7 +468,7 @@ describe('raw-event driven external sync (BT4-030)', () => {
 		payload = { tagIcons: { project: { icon: 'lucide-flame' } } };
 		mtime = 200;
 		rawHandler!('cfg/plugins/iconic/data.json');
-		await new Promise((resolve) => setTimeout(resolve, 0));
+		for (let turn = 0; turn < 6; turn += 1) await Promise.resolve();
 		expect(changed).toHaveBeenCalledTimes(1);
 		expect(service.getTagIcon('project')).toEqual({ icon: 'lucide-flame' });
 	});

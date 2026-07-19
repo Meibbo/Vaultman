@@ -153,7 +153,7 @@ describe('external state signatures (BT4-006)', () => {
 				},
 				enabledPlugins: new Set(['beta']),
 			},
-			vault: { configDir: '.obsidian' },
+			vault: { configDir: 'vault-config' },
 		};
 		const before = communityPluginStateSignature(app as never);
 		app.plugins.enabledPlugins.add('alpha');
@@ -171,7 +171,7 @@ describe('external state signatures (BT4-006)', () => {
 				snippets: ['rainbow', 'spacing'],
 				enabledSnippets: new Set(['rainbow']),
 			},
-			vault: { configDir: '.obsidian' },
+			vault: { configDir: 'vault-config' },
 		};
 		const before = cssSnippetStateSignature(app as never);
 		app.customCss.enabledSnippets.delete('rainbow');
@@ -196,7 +196,7 @@ describe('plugin-emitted ribbon icons (BT4-011 / D35)', () => {
 					],
 				},
 			},
-			vault: { configDir: '.obsidian' },
+			vault: { configDir: 'vault-config' },
 		};
 		expect(pluginRibbonItem(app as never, 'vaultman')).toEqual({
 			id: 'vaultman:Open Vaultman',

@@ -1162,8 +1162,7 @@
 		const label = panel?.sortNodeLabel(current.drillNodeId) ?? '';
 		if (!label) return base;
 		const chars = [...label];
-		const short =
-			chars.slice(0, 6).join('') + (chars.length > 6 ? '…' : '');
+		const short = chars.slice(0, 6).join('') + (chars.length > 6 ? '…' : '');
 		return base.replace(/drill\s*$/i, short);
 	}
 

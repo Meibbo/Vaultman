@@ -467,9 +467,7 @@
 			return '';
 		}
 		if (color === 'rainbow') {
-			const hue = Math.round(
-				(groupIndex * 360) / Math.max(1, groups.length),
-			);
+			const hue = Math.round((groupIndex * 360) / Math.max(1, groups.length));
 			return `color: hsl(${hue} 70% 60%);`;
 		}
 		if (color === 'accent') return 'color: var(--interactive-accent);';
