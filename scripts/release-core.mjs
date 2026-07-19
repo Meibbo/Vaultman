@@ -305,7 +305,7 @@ export function renderReleaseNotes(fragments, version) {
 		parseVersion(version).channel === 'alpha'
 			? '> **Warning:** This alpha is extremely unstable and demonstrative. It has no migration guarantee and may be discarded or replaced.\n\n'
 			: '';
-	return `# ${version}\n\n${warning}${sections.join('\n\n')}\n`;
+	return `${warning}${sections.join('\n\n')}\n`;
 }
 
 export function insertChangelogRelease(

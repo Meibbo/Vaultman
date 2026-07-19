@@ -185,7 +185,8 @@ describe('release-note fragments', () => {
 			'1.3.0-beta.1',
 		);
 
-		expect(notes).toContain('# 1.3.0-beta.1');
+		expect(notes).not.toContain('# 1.3.0-beta.1');
+		expect(notes).toMatch(/^## Added/u);
 		expect(notes.indexOf('## Added')).toBeLessThan(notes.indexOf('## Fixed'));
 		expect(notes).toContain('- Added plugin explorer.');
 	});
