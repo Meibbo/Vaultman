@@ -508,6 +508,18 @@ export class VaultmanSettingsTab extends PluginSettingTab {
 
 
 		new Setting(containerEl)
+			.setName(translate('settings.rainbow_folders'))
+			.setDesc(translate('settings.rainbow_folders.desc'))
+			.addToggle((toggle) =>
+				toggle
+					.setValue(this.plugin.settings.explorerRainbowFolders === true)
+					.onChange(async (value) => {
+						this.plugin.settings.explorerRainbowFolders = value;
+						await this.plugin.saveSettings();
+					}),
+			);
+
+		new Setting(containerEl)
 			.setName(translate('settings.excluded_files'))
 			.setDesc(translate('settings.excluded_files.desc'))
 			.setHeading();

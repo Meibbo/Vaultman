@@ -1159,6 +1159,7 @@ export class FilesExplorerPanel extends Component {
 				: this.logic.buildFlatFileNodes(sortedFiles, { rebaseFolderPaths });
 			if (this._nestedEnabled()) this._autoExpandSparseTopLevel(renderTree);
 			this._decorateTreeWithFileTimes(renderTree);
+			this._decorateTreeWithRainbow(renderTree);
 			this._decorateTreeWithQueue(renderTree);
 			this._decorateTreeWithActiveReveal(renderTree);
 			const applyFolderIcons = (
@@ -1628,6 +1629,47 @@ export class FilesExplorerPanel extends Component {
 			defaultIcon,
 			this.plugin.iconicService?.getFileIcon(path, isFolder) ?? null,
 		);
+	}
+
+	/** BT4-014 (research mechanism c): each top-level folder subtree gets a
+	 * rainbow bucket. The value prefers the community snippet's palette vars
+	 * with a built-in hex fallback, and rides an inline --folder-color so the
+	 * coloring is virtualization-proof (never nth-child, never
+	 * nav-files-container). */
+	private static readonly RAINBOW_FALLBACK = [
+		'#ef4444',
+		'#f97316',
+		'#eab308',
+		'#22c55e',
+		'#14b8a6',
+		'#06b6d4',
+		'#3b82f6',
+		'#8b5cf6',
+		'#d946ef',
+		'#ec4899',
+	];
+
+	private _decorateTreeWithRainbow(nodes: TreeNode<FileMeta>[]): void {
+		const enabled = this.plugin.settings.explorerRainbowFolders === true;
+		this.containerEl.classList.toggle('vaultman-rainbow-folders', enabled);
+		if (!enabled) return;
+		let bucket = 0;
+		const paint = (subtree: TreeNode<FileMeta>[], color: string) => {
+			for (const node of subtree) {
+				if (node.meta.isFolder) node.folderColor = color;
+				if (node.children?.length) paint(node.children, color);
+			}
+		};
+		for (const node of nodes) {
+			if (!node.meta.isFolder) continue;
+			const index = (bucket % 10) + 1;
+			const fallback =
+				FilesExplorerPanel.RAINBOW_FALLBACK[bucket % 10] ?? '#ef4444';
+			const color = `var(--color-rainbow-${index}, ${fallback})`;
+			node.folderColor = color;
+			if (node.children?.length) paint(node.children, color);
+			bucket += 1;
+		}
 	}
 
 	private _decorateTreeWithIcons(nodes: TreeNode<FileMeta>[]): void {

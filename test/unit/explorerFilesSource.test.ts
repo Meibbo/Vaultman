@@ -232,3 +232,17 @@ describe('exclude file (BT4-015 / D39)', () => {
 		expect(display).toContain('!excluded.has(file.path)');
 	});
 });
+
+describe('rainbow folders (BT4-014 / D38)', () => {
+	it('paints top-level buckets with snippet vars and hex fallbacks', () => {
+		expect(explorerFilesSource).toContain('_decorateTreeWithRainbow');
+		expect(explorerFilesSource).toContain(
+			'var(--color-rainbow-${index}, ${fallback})',
+		);
+		expect(explorerFilesSource).toContain(
+			"classList.toggle('vaultman-rainbow-folders', enabled)",
+		);
+		// The regression lesson: never re-adopt nav-files-container for this.
+		expect(explorerFilesSource).not.toContain('nav-files-container');
+	});
+});

@@ -149,6 +149,9 @@ export const es: Record<string, string> = {
 	'settings.background_blur.desc':
 		'Controla el desenfoque de cristal en la barra inferior y los popups.',
 	'settings.style_config': 'Ajustes de diseño',
+	'settings.rainbow_folders': 'Carpetas arcoíris',
+	'settings.rainbow_folders.desc':
+		'Colorea cada subárbol de carpeta de primer nivel en el árbol de files; usa la paleta del snippet fancyfile-explorer-rainbow si está instalado.',
 	'settings.toc_glyph_color': 'Color de glyphs',
 	'settings.toc_glyph_color.desc':
 		'Color de los glyphs del índice flotante.',

@@ -152,6 +152,9 @@ export const en: Record<string, string> = {
 	'settings.background_blur.desc':
 		'Controls the glass blur on the bottom bar and popups.',
 	'settings.style_config': 'Layout Settings',
+	'settings.rainbow_folders': 'Rainbow folders',
+	'settings.rainbow_folders.desc':
+		'Color each top-level folder subtree in the files tree; picks up the fancyfile-explorer-rainbow snippet palette when installed.',
 	'settings.toc_glyph_color': 'Glyph color',
 	'settings.toc_glyph_color.desc':
 		'Color for the floating index glyphs.',

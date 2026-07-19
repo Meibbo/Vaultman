@@ -378,6 +378,7 @@ export class UnifiedTreeView {
 			.join('|');
 		return [
 			`markup:${this._markupVersion}`,
+			node.folderColor ?? '',
 			node.id,
 			node.label,
 			node.depth,
@@ -571,6 +572,11 @@ export class UnifiedTreeView {
 		this.applyDataPath(row, node);
 		row.draggable = Boolean(opts.onDragStart);
 		row.style.setProperty('--depth', String(node.depth));
+		if (node.folderColor) {
+			row.style.setProperty('--folder-color', node.folderColor);
+		} else {
+			row.style.removeProperty('--folder-color');
+		}
 		bindLongPressGesture(
 			row,
 			this._recursiveExpandGesture,

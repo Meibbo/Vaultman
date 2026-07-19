@@ -160,6 +160,8 @@ export interface VaultmanSettings {
 	sortLevelInline: boolean;
 	/** File paths hidden from the files explorer (D39 Exclude file) */
 	excludedFilePaths: string[];
+	/** Rainbow folder colors in the files tree (snippet-compatible, D38) */
+	explorerRainbowFolders: boolean;
 	/** Condense Files auto-reveal and expansion into one native Tools menu */
 	toolbarToolsMenu: boolean;
 	/** Ordered fields shown in the native Files node hover tooltip */
@@ -263,6 +265,7 @@ export const DEFAULT_SETTINGS: VaultmanSettings = {
 	tocDrillSyncsSort: false,
 	sortLevelInline: true,
 	excludedFilePaths: [],
+	explorerRainbowFolders: false,
 	toolbarToolsMenu: false,
 	filesHoverInfo: [...DEFAULT_FILES_HOVER_INFO],
 	showToolbar: true,
