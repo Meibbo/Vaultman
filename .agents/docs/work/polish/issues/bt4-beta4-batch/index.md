@@ -37,7 +37,7 @@ shards: [[01-regressions|01 regresiones]] · [[02-bugs|02 bugs]] ·
 | BT4-014 | Rainbow folders opt-in (research BT3-010 mecanismo c, D38) | 03 | pending |
 | BT4-015 | Option "Exclude file" en files explorer (D39) | 03 | pending |
 | BT4-016 | Floating index state+scope en view-config (D40) | 03 | pending |
-| BT4-021 | Color de glyphs del floating index (vars + variable_rainbow; modo solo-estático vs siempre) | 03 | pending |
+| BT4-021 | Color de glyphs | 03 | ✅ `7c471e15` (dropdown vars+accent+rainbow · modo static/always) |
 | BT4-022 | Explorers vacíos al volver de tab | 02 | ✅ `038b1278` (refreshViewport() en 5 paneles + rAF on-activate) |
 | BT4-023 | Custom icons only + change-icon props/tags | 02 | ✅ `d9443386` — gate exigía `openIconPicker` inexistente; ahora managers `onContextMenu(path,event)` (verificado runtime vivo) + rename; scope custom: re-verificar tras 024 |
 | BT4-024 | Refresh externo de Iconic | 02 | ✅ `09ae0859`+`8f054966` (watch mtime data.json 2.5s → reload+invalidate+notify; cubre todos los providers vía el service) |
