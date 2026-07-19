@@ -12,6 +12,7 @@ const labels: Record<FilesHoverInfoField, string> = {
 	created: 'Created',
 	words: 'Words',
 	characters: 'Characters',
+	tasks: 'Tasks',
 };
 
 describe('Files hover info', () => {
@@ -25,6 +26,7 @@ describe('Files hover info', () => {
 					created: 'Yesterday',
 					words: 12,
 					characters: 48,
+					tasks: 3,
 				},
 				labels,
 			),
@@ -41,6 +43,7 @@ describe('Files hover info', () => {
 					created: 'Yesterday',
 					words: null,
 					characters: null,
+					tasks: null,
 				},
 				labels,
 			),

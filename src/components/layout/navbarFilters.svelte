@@ -230,6 +230,7 @@
 			count: 'viewmode.pill.prop_count',
 			ext: 'viewmode.pill.ext',
 			words: 'viewmode.pill.words',
+			tasks: 'viewmode.pill.tasks',
 			mtime: 'viewmode.pill.mtime',
 			ctime: 'viewmode.pill.ctime',
 			nested: 'viewmode.pill.nested',
@@ -304,6 +305,7 @@
 			{ id: 'name', icon: 'lucide-a-large-small', labelKey: 'sort.by.name' },
 			{ id: 'count', icon: 'lucide-hash', labelKey: 'sort.by.props' },
 			{ id: 'words', icon: 'lucide-text', labelKey: 'sort.by.words' },
+			{ id: 'tasks', icon: 'lucide-square-check', labelKey: 'sort.by.tasks' },
 			{ id: 'ext', icon: 'lucide-file-type', labelKey: 'sort.by.ext' },
 			{
 				id: 'mtime',

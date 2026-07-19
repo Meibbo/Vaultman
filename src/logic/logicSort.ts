@@ -7,6 +7,7 @@ export type ExplorerFileSortBy =
 	| 'ext'
 	| 'path'
 	| 'words'
+	| 'tasks'
 	| 'mtime'
 	| 'ctime';
 
@@ -18,6 +19,7 @@ export interface ExplorerFileTimes {
 export interface ExplorerFileSortOptions {
 	countForFile?: (file: TFile) => number;
 	wordCountForFile?: (file: TFile) => number | null | undefined;
+	taskCountForFile?: (file: TFile) => number | null | undefined;
 	getFileTimes?: (file: TFile) => ExplorerFileTimes;
 }
 
@@ -81,6 +83,10 @@ export function compareFilesForExplorer(
 		result =
 			(options.wordCountForFile?.(a) ?? 0) -
 			(options.wordCountForFile?.(b) ?? 0);
+	} else if (normalizedSortBy === 'tasks') {
+		result =
+			(options.taskCountForFile?.(a) ?? 0) -
+			(options.taskCountForFile?.(b) ?? 0);
 	} else {
 		result = a.basename.localeCompare(b.basename, undefined, numericLocale);
 	}

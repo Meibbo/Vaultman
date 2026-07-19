@@ -558,6 +558,7 @@ export class UnifiedTreeView {
 			? visibleCells.has('ctime') || visibleCells.has('installed')
 			: false;
 		const showWords = visibleCells ? visibleCells.has('words') : false;
+		const showTasks = visibleCells ? visibleCells.has('tasks') : false;
 		const nodeCells = (node.cells ?? []).filter(
 			(cell) => !visibleCells || visibleCells.has(cell.id),
 		);
@@ -745,6 +746,12 @@ export class UnifiedTreeView {
 				badgeZone.createSpan({
 					cls: 'vaultman-tree-words nav-file-tag',
 					text: node.wordCountText,
+				});
+			}
+			if (showTasks && node.tasksText) {
+				badgeZone.createSpan({
+					cls: 'vaultman-tree-tasks nav-file-tag',
+					text: node.tasksText,
 				});
 			}
 

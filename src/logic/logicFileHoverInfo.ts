@@ -6,6 +6,7 @@ export interface FileHoverInfoData {
 	created: string | null;
 	words: number | null;
 	characters: number | null;
+	tasks: number | null;
 }
 
 export function buildFileHoverInfo(
@@ -25,5 +26,9 @@ export function buildFileHoverInfo(
 export function filesHoverNeedsStatistics(
 	fields: readonly FilesHoverInfoField[],
 ): boolean {
-	return fields.includes('words') || fields.includes('characters');
+	return (
+		fields.includes('words') ||
+		fields.includes('characters') ||
+		fields.includes('tasks')
+	);
 }

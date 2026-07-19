@@ -37,6 +37,7 @@ export const FILES_HOVER_INFO_FIELDS = [
 	'created',
 	'words',
 	'characters',
+	'tasks',
 ] as const;
 export type FilesHoverInfoField = (typeof FILES_HOVER_INFO_FIELDS)[number];
 export const DEFAULT_FILES_HOVER_INFO: FilesHoverInfoField[] = [

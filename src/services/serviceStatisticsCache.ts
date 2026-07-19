@@ -17,6 +17,8 @@ export interface CachedFileStats {
 	words: number;
 	/** Unicode code points in the Markdown body, excluding YAML frontmatter. */
 	characters: number;
+	/** Unchecked inline tasks (- [ ]) in the Markdown body (BT4-012). */
+	tasks?: number;
 	props: string[];
 	values: string[];
 	tags: string[];
@@ -165,6 +167,7 @@ export class StatisticsCacheService extends Component {
 			size: file.stat.size,
 			words: body !== null ? this.countWords(body) : 0,
 			characters: body !== null ? this.countCharacters(body) : 0,
+			tasks: body !== null ? this.countRemainingTasks(body) : 0,
 			...this.collectFileMetadata(file),
 		};
 	}
@@ -293,6 +296,16 @@ export class StatisticsCacheService extends Component {
 			ctime: file.stat.ctime,
 			mtime: file.stat.mtime,
 		};
+	}
+
+	getFileRemainingTasks(file: TFile): number | null {
+		if (file.extension !== 'md') return null;
+		const cached = this.fileStatsCache.get(file.path);
+		if (this.isFreshCachedStats(file, cached) && typeof cached.tasks === 'number') {
+			return cached.tasks;
+		}
+		const stale = this.staleFileStatsCache.get(file.path);
+		return typeof stale?.tasks === 'number' ? stale.tasks : null;
 	}
 
 	getFileWordCount(file: TFile): number | null {
@@ -492,6 +505,12 @@ export class StatisticsCacheService extends Component {
 		// which previously counted Markdown punctuation (-, [ ], #, >) as words.
 		const words = content.match(/[\p{L}\p{N}]+/gu);
 		return words?.length ?? 0;
+	}
+
+	/** Count unchecked task list items. Known limitation: fenced code blocks
+	 * are not excluded (documented in BT4-012). */
+	private countRemainingTasks(content: string): number {
+		return (content.match(/^\s*[-*+]\s+\[ \]/gm) ?? []).length;
 	}
 
 	private countCharacters(content: string): number {

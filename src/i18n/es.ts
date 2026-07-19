@@ -149,6 +149,9 @@ export const es: Record<string, string> = {
 	'settings.background_blur.desc':
 		'Controla el desenfoque de cristal en la barra inferior y los popups.',
 	'settings.style_config': 'Ajustes de diseño',
+	'settings.files_hover_info.tasks': 'Tareas pendientes',
+	'sort.by.tasks': 'Tareas pendientes',
+	'viewmode.pill.tasks': 'Tareas',
 	'file.ctx.exclude': 'Excluir archivo',
 	'settings.excluded_files': 'Archivos excluidos',
 	'settings.excluded_files.desc':

@@ -51,6 +51,7 @@ export interface TreeNode<TMeta = unknown> {
 	mtimeText?: string;
 	ctimeText?: string;
 	wordCountText?: string;
+	tasksText?: string;
 	count?: number;
 	badges?: NodeBadge[];
 	cells?: TreeNodeCell[];

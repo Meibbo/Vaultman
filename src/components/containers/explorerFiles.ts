@@ -804,6 +804,8 @@ export class FilesExplorerPanel extends Component {
 				countForFile: (file) => this._propCountForFile(file),
 				wordCountForFile: (file) =>
 					this.plugin.statisticsCache.getFileWordCount(file) ?? 0,
+				taskCountForFile: (file) =>
+					this.plugin.statisticsCache.getFileRemainingTasks(file) ?? 0,
 				getFileTimes: (file) => this.plugin.statisticsCache.getFileTimes(file),
 			}),
 		);
@@ -824,6 +826,8 @@ export class FilesExplorerPanel extends Component {
 					countForFile: (file) => this._propCountForFile(file),
 					wordCountForFile: (file) =>
 						this.plugin.statisticsCache.getFileWordCount(file) ?? 0,
+					taskCountForFile: (file) =>
+						this.plugin.statisticsCache.getFileRemainingTasks(file) ?? 0,
 					getFileTimes: (file) =>
 						this.plugin.statisticsCache.getFileTimes(file),
 				},
@@ -840,6 +844,12 @@ export class FilesExplorerPanel extends Component {
 					? (this.plugin.statisticsCache.getFileWordCount(node.meta.file) ?? 0)
 					: 0;
 			}
+			if (sortBy === 'tasks') {
+				return node.meta.file
+					? (this.plugin.statisticsCache.getFileRemainingTasks(node.meta.file) ??
+							0)
+					: 0;
+			}
 			if (sortBy === 'mtime' || sortBy === 'ctime') {
 				return node.meta.file
 					? this.plugin.statisticsCache.getFileTimes(node.meta.file)[sortBy]
@@ -847,7 +857,7 @@ export class FilesExplorerPanel extends Component {
 			}
 			return 0;
 		};
-		if (['count', 'sub', 'words', 'mtime', 'ctime'].includes(sortBy)) {
+		if (['count', 'sub', 'words', 'tasks', 'mtime', 'ctime'].includes(sortBy)) {
 			return dir * (numberValue(a) - numberValue(b));
 		}
 
@@ -1839,6 +1849,10 @@ export class FilesExplorerPanel extends Component {
 				node.ctimeText = this._formatDateCell(times.ctime);
 				node.wordCountText =
 					wordCount === null ? undefined : this._formatWordCountCell(wordCount);
+				const tasks = this.plugin.statisticsCache.getFileRemainingTasks(
+					node.meta.file,
+				);
+				node.tasksText = tasks === null || tasks === 0 ? undefined : String(tasks);
 			}
 			if (node.children?.length) this._decorateTreeWithFileTimes(node.children);
 		}
@@ -1876,6 +1890,7 @@ export class FilesExplorerPanel extends Component {
 				created: this._formatDateCell(times.ctime) ?? null,
 				words: this.plugin.statisticsCache.getFileWordCount(file),
 				characters: this.plugin.statisticsCache.getFileCharacterCount(file),
+				tasks: this.plugin.statisticsCache.getFileRemainingTasks(file),
 			},
 			{
 				path: translate('settings.files_hover_info.path'),
@@ -1883,6 +1898,7 @@ export class FilesExplorerPanel extends Component {
 				created: translate('settings.files_hover_info.created'),
 				words: translate('settings.files_hover_info.words'),
 				characters: translate('settings.files_hover_info.characters'),
+				tasks: translate('settings.files_hover_info.tasks'),
 			},
 		);
 	}
