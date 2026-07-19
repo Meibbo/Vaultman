@@ -506,6 +506,31 @@ export class VaultmanSettingsTab extends PluginSettingTab {
 					}),
 			);
 
+
+		new Setting(containerEl)
+			.setName(translate('settings.excluded_files'))
+			.setDesc(translate('settings.excluded_files.desc'))
+			.setHeading();
+		const excluded = this.plugin.settings.excludedFilePaths ?? [];
+		if (excluded.length === 0) {
+			new Setting(containerEl).setName(
+				translate('settings.excluded_files.empty'),
+			);
+		}
+		for (const path of excluded) {
+			new Setting(containerEl).setName(path).addExtraButton((button) =>
+				button
+					.setIcon('lucide-x')
+					.setTooltip(translate('settings.excluded_files.remove'))
+					.onClick(async () => {
+						this.plugin.settings.excludedFilePaths = (
+							this.plugin.settings.excludedFilePaths ?? []
+						).filter((entry) => entry !== path);
+						await this.plugin.saveSettings();
+						this.display();
+					}),
+			);
+		}
 	}
 
 	private displayContextMenusPage(containerEl: HTMLElement): void {

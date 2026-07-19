@@ -220,3 +220,15 @@ describe('FilesExplorerPanel source guards', () => {
 		expect(explorerFilesSource).toContain('this._scheduleStatsRefresh();');
 	});
 });
+
+describe('exclude file (BT4-015 / D39)', () => {
+	it('filters excluded paths from display and offers the cmenu action', () => {
+		expect(explorerFilesSource).toContain("id: 'file.exclude'");
+		expect(explorerFilesSource).toContain('excludedFilePaths');
+		const display = explorerFilesSource.slice(
+			explorerFilesSource.indexOf('private _filesForDisplay()'),
+			explorerFilesSource.indexOf('private _fileTypeId('),
+		);
+		expect(display).toContain('!excluded.has(file.path)');
+	});
+});

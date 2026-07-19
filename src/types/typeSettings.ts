@@ -134,6 +134,8 @@ export interface VaultmanSettings {
 	tocDrillSyncsSort: boolean;
 	/** Show By level options inline in the sort menu instead of a submenu */
 	sortLevelInline: boolean;
+	/** File paths hidden from the files explorer (D39 Exclude file) */
+	excludedFilePaths: string[];
 	/** Condense Files auto-reveal and expansion into one native Tools menu */
 	toolbarToolsMenu: boolean;
 	/** Ordered fields shown in the native Files node hover tooltip */
@@ -234,6 +236,7 @@ export const DEFAULT_SETTINGS: VaultmanSettings = {
 	tocStretch: false,
 	tocDrillSyncsSort: false,
 	sortLevelInline: true,
+	excludedFilePaths: [],
 	toolbarToolsMenu: false,
 	filesHoverInfo: [...DEFAULT_FILES_HOVER_INFO],
 	showToolbar: true,

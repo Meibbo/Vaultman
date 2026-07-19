@@ -162,6 +162,25 @@ export class FilesExplorerPanel extends Component {
 		const svc = this.plugin.contextMenuService;
 
 		svc.registerAction({
+			id: 'file.exclude',
+			nodeTypes: ['file'],
+			surfaces: ['panel'],
+			label: translate('file.ctx.exclude'),
+			icon: 'lucide-eye-off',
+			run: async (ctx: MenuCtx) => {
+				const meta = ctx.node.meta as FileMeta;
+				const path = meta.file?.path;
+				if (!path) return;
+				const current = this.plugin.settings.excludedFilePaths ?? [];
+				if (!current.includes(path)) {
+					this.plugin.settings.excludedFilePaths = [...current, path];
+					await this.plugin.saveSettings();
+				}
+				this._render();
+			},
+		});
+
+		svc.registerAction({
 			id: 'file.open_tab',
 			nodeTypes: ['file'],
 			surfaces: ['panel'],
@@ -849,11 +868,14 @@ export class FilesExplorerPanel extends Component {
 	}
 
 	private _filesForDisplay(): TFile[] {
-		if (this.nodeTypeFilters.length === 0) return this._currentFiles;
+		const excluded = new Set(this.plugin.settings.excludedFilePaths ?? []);
+		const files =
+			excluded.size === 0
+				? this._currentFiles
+				: this._currentFiles.filter((file) => !excluded.has(file.path));
+		if (this.nodeTypeFilters.length === 0) return files;
 		const selectedTypes = new Set(this.nodeTypeFilters);
-		return this._currentFiles.filter((file) =>
-			selectedTypes.has(this._fileTypeId(file)),
-		);
+		return files.filter((file) => selectedTypes.has(this._fileTypeId(file)));
 	}
 
 	private _fileTypeId(file: TFile): string {

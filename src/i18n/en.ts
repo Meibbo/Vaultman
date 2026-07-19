@@ -152,6 +152,12 @@ export const en: Record<string, string> = {
 	'settings.background_blur.desc':
 		'Controls the glass blur on the bottom bar and popups.',
 	'settings.style_config': 'Layout Settings',
+	'file.ctx.exclude': 'Exclude file',
+	'settings.excluded_files': 'Excluded files',
+	'settings.excluded_files.desc':
+		'Files hidden from the files explorer via Exclude file.',
+	'settings.excluded_files.empty': 'No excluded files.',
+	'settings.excluded_files.remove': 'Show again',
 	'settings.explorer_page': 'Explorer',
 	'settings.explorer_page.desc':
 		'Cells, badges and highlight behavior for the explorers.',

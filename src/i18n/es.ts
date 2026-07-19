@@ -149,6 +149,12 @@ export const es: Record<string, string> = {
 	'settings.background_blur.desc':
 		'Controla el desenfoque de cristal en la barra inferior y los popups.',
 	'settings.style_config': 'Ajustes de diseño',
+	'file.ctx.exclude': 'Excluir archivo',
+	'settings.excluded_files': 'Archivos excluidos',
+	'settings.excluded_files.desc':
+		'Archivos ocultos del files explorer vía Excluir archivo.',
+	'settings.excluded_files.empty': 'Sin archivos excluidos.',
+	'settings.excluded_files.remove': 'Mostrar de nuevo',
 	'settings.explorer_page': 'Explorer',
 	'settings.explorer_page.desc':
 		'Cells, badges y comportamiento de resaltado de los explorers.',
