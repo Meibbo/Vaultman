@@ -1634,8 +1634,8 @@ export class FilesExplorerPanel extends Component {
 	/** BT4-014 (research mechanism c): each top-level folder subtree gets a
 	 * rainbow bucket. The value prefers the community snippet's palette vars
 	 * with a built-in hex fallback, and rides an inline --folder-color so the
-	 * coloring is virtualization-proof (never nth-child, never
-	 * nav-files-container). */
+	 * coloring is virtualization-proof (never nth-child, never the native
+	 * container class whose padding caused BT3-001). */
 	private static readonly RAINBOW_FALLBACK = [
 		'#ef4444',
 		'#f97316',

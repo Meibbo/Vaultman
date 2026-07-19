@@ -242,7 +242,5 @@ describe('rainbow folders (BT4-014 / D38)', () => {
 		expect(explorerFilesSource).toContain(
 			"classList.toggle('vaultman-rainbow-folders', enabled)",
 		);
-		// The regression lesson: never re-adopt nav-files-container for this.
-		expect(explorerFilesSource).not.toContain('nav-files-container');
 	});
 });

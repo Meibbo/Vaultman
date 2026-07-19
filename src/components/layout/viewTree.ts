@@ -575,7 +575,7 @@ export class UnifiedTreeView {
 		if (node.folderColor) {
 			row.style.setProperty('--folder-color', node.folderColor);
 		} else {
-			row.style.removeProperty('--folder-color');
+			row.style.removeProperty?.('--folder-color');
 		}
 		bindLongPressGesture(
 			row,
