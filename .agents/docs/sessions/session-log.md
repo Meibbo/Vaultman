@@ -1765,3 +1765,31 @@ broader "append-only status writes" is parked as **S-12** in
   sync** (nuevo paso pedido por dev, funciona: "Reloaded: vaultman").
 - Restantes BT4: 012 · 013 · 014 · 015 · 016 · 021 (+ residuales 009: popup
   parity, tags-toolbar sync D31).
+
+## 2026-07-18 — claude-fable-5 · implement · BT4-015/016/012/021/014 (5 issues)
+
+- **015 ✅ `f7f5c7db`**: cmenu "Exclude file" (files) + `excludedFilePaths` +
+  lista editable con "Show again" en Explorer sub-page; filtro en
+  `_filesForDisplay`.
+- **016 ✅ `7beb4386`**: `SavedFloatingTocState` {enabled,kind,rootId} viaja en
+  `SavedLayout`; bridge frame→pageFilters→navbar (`getFloatingTocState`/
+  `applyFloatingTocState` + `onLayoutLoaded`).
+- **012 ✅ `dc918b1e`**: cache `tasks` (`- [ ]` unchecked, regex por línea;
+  code-blocks NO excluidos = limitación documentada) + getter + cell files
+  off-default (`tasksText`) + sort `tasks` (logicSort + comparators) + hover
+  field. Records cacheados viejos → null hasta que el archivo cambie mtime.
+- **021 ✅ `7c471e15`**: `tocGlyphColor` (default/accent/8 vars/rainbow) +
+  `tocGlyphColorMode` static|always; rainbow = hue distribuido por índice;
+  static = color cae al engancharse el scrub.
+- **014 ✅ `6a937e1a`+`76fc0e45`**: mecanismo (c) del research — bucket por
+  subárbol top-level como `--folder-color` inline
+  (`var(--color-rainbow-N, hexFallback)`), gate class + toggle settings,
+  tree-only, firma de fila incluye el color. Dos tropiezos autocorregidos: el
+  comentario contenía el literal prohibido por guards (12 rojos) y el stub DOM
+  sin `removeProperty` (9 rojos) — ambos en follow-ups inmediatos, suite final
+  **562 verde**.
+- Gates + sync + **CLI reload** por issue. ⚠ Recordatorio de proceso: el chain
+  volvió a commitear con rojos DOS veces este turno — pendiente endurecer el
+  patrón de verificación (correr suite ANTES del commit en comando separado).
+- **BT4 restante: SOLO BT4-013** (cmenu configurable + DnD hover-info) + 2
+  residuales de 009 (popup parity, tags-toolbar sync D31).
