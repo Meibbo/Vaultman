@@ -44,8 +44,10 @@ la cola canónica para implementación nueva.
    apuntan a contenido mutable de `dev` o `main`.
 7. La colorización nativa de Vaultman será opt-in y compartirá una paleta semántica entre
    Floating Index y Explorer: default, faint, accent, custom y rainbow pastel.
-8. Snippets y Plugins tendrán sort `State` sobre el booleano/cell id existente `state`,
-   usando Name como desempate determinista; la primera dirección se confirma en triage.
+8. Snippets y Plugins tendrán sort `State` sobre el booleano/cell id existente `state`;
+   Props y Tags tendrán sort `Type` sobre, respectivamente, el tipo efectivo de propiedad y
+   la clasificación estructural simple/nested. Todos usan Name como desempate determinista;
+   la dirección inicial y el orden canónico de categorías se confirman en triage.
 9. La fluidez del editor es un gate P0: ningún trabajo de una leaf Vaultman abierta puede
    introducir stalls periódicos mientras el usuario escribe en otra nota.
 
@@ -73,7 +75,7 @@ la cola canónica para implementación nueva.
 | [[017-collapsed-badge-bubbling|BT5-017]] | Badge bubbling visible solo colapsado | P2 | AFK | BT4-035 | — |
 | [[018-files-context-menu-config|BT5-018]] | Context menu Files configurable | P2 | HITL | BT4-013 | — |
 | [[019-addon-icon-registry-picker|BT5-019]] | Registro/picker propio de iconos addon | P2 | AFK | residual BT4-030 | — |
-| [[029-addon-state-sort|BT5-029]] | State sort para Snippets y Plugins | P2 | AFK | nuevo | — |
+| [[029-addon-state-sort|BT5-029]] | State sort en addons + Type sort en Props/Tags | P2 | AFK | nuevo | — |
 | [[020-view-config-payload-preview|BT5-020]] | Preview completo del payload de View configs | P2 | AFK | BT4-034 | — |
 | [[021-toolbar-overflow-strategy|BT5-021]] | Overflow toolbar: condensed o scroll horizontal | P2 | AFK | nuevo D5 | — |
 | [[022-create-actions-placement|BT5-022]] | Create File/Folder: searchbox o toolbar | P2 | AFK | nuevo | — |

@@ -1960,3 +1960,12 @@ broader "append-only status writes" is parked as **S-12** in
   OK; 30 issues/30 IDs; `diff --check` OK; índice 1056 docs/1001 retrieval; consultas cortas
   recuperan BT5-029/030, mientras consultas largas siguen sin explicar zero-result. Sin
   código de producto, Obsidian, push, tag ni merge; dirty ajeno preservado.
+
+## 2026-07-19 — codex-gpt5-root — BT5-029 Type sort extension
+
+- Aclarado `HITL` al dev como aceptación/decisión humana dentro del loop.
+- BT5-029 amplía `State` para Snippets/Plugins con `Type` para Props/Tags. Props usa el tipo
+  efectivo ya mostrado y excluye value nodes; Tags usa una clave total simple/nested con
+  precedencia nested para nodos con hijos, sin inferir procedencia inline/frontmatter.
+- Actualizados issue e índice BT5; revisión adversarial preserva jerarquía y evita sorts sin
+  clave semántica. Doc health focal y `diff --check` OK. Sin código, Obsidian ni push.
