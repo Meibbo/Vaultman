@@ -1969,3 +1969,18 @@ broader "append-only status writes" is parked as **S-12** in
   precedencia nested para nodos con hijos, sin inferir procedencia inline/frontmatter.
 - Actualizados issue e índice BT5; revisión adversarial preserva jerarquía y evita sorts sin
   clave semántica. Doc health focal y `diff --check` OK. Sin código, Obsidian ni push.
+
+## 2026-07-19 — codex-gpt5-root · review · audit Claude BT5 next-10
+
+- Confirmado que ningún issue del lote `030+006-013+028` llegó a cierre: rama
+  `codex/bt5-next-10` conserva HEAD `14de6fbb`, task_043 sigue `todo` sin claim ni
+  outcome y no existe commit posterior. Claude dejó cinco shards de plan untracked en
+  sandbox y tres archivos parciales de producto, todos preservados sin stage.
+- El parcial solo aborda hipótesis de BT5-030: `serviceFilter.ts` modificado y nuevos
+  `logicDeferredRefresh.ts`/`explorerIdleWork.test.ts`. No existe aún el harness ni la
+  matriz A/B exigida antes del fix. Gate focal fresco: 1 file, 17 tests; 3 pass y 14 fail
+  (scheduler `window` en Node, productores aún intactos y source guards rojos).
+- No había proceso pnpm/Vitest/Node ligado al worktree; últimos writes 15:41-15:43 y
+  heartbeat Claude 15:10. Recomendación de takeover: preservar/auditar el parcial;
+  030 primero como diagnosis HITL, luego 006/007/008/028, 009, 010 y finalmente
+  011/012/013 bloqueados por 010. Sin cambios de producto, Obsidian, push o merge.
