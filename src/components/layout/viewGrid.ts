@@ -5,8 +5,9 @@ import { buildVirtualTableWindow } from '../../utils/tableVirtualization';
 import type { NodeBadge } from '../../types/typeTree';
 import {
 	compareFilesForExplorer,
-	DEFAULT_EXPLORER_SORT_DIR,
+	nextExplorerSortDirection,
 	normalizeExplorerSortBy,
+	sortDirectionIcon,
 	type ExplorerFileTimes,
 } from '../../logic/logicSort';
 import {
@@ -30,6 +31,7 @@ export type SortColumn =
 	| 'name'
 	| 'props'
 	| 'words'
+	| 'tasks'
 	| 'path'
 	| 'mtime'
 	| 'ctime'
@@ -39,6 +41,7 @@ export type SortDirection = 'asc' | 'desc';
 export interface GridViewCallbacks {
 	getFileTimes?: (file: TFile) => ExplorerFileTimes;
 	getWordCount?: (file: TFile) => number | null;
+	getTaskCount?: (file: TFile) => number | null;
 	getBadges?: (file: TFile) => NodeBadge[];
 	getFileIcon?: (
 		file: TFile,
@@ -246,18 +249,15 @@ export class GridView {
 		);
 		const sortIcon = btn.createSpan({ cls: 'bases-table-header-sort' });
 		if (isActive) {
-			setIcon(
-				sortIcon,
-				this.sortDirection === 'asc' ? 'lucide-arrow-up' : 'lucide-arrow-down',
-			);
+			setIcon(sortIcon, sortDirectionIcon(this.sortDirection));
 		}
 		const updateSort = () => {
-			if (this.sortColumn === col) {
-				this.sortDirection = this.sortDirection === 'asc' ? 'desc' : 'asc';
-			} else {
-				this.sortColumn = col;
-				this.sortDirection = DEFAULT_EXPLORER_SORT_DIR[col] ?? 'asc';
-			}
+			this.sortDirection = nextExplorerSortDirection(
+				this.sortColumn,
+				this.sortDirection,
+				col,
+			);
+			this.sortColumn = col;
 			if (this.callbacks.onSortChange) {
 				this.callbacks.onSortChange(this.sortColumn, this.sortDirection);
 			} else {
@@ -712,6 +712,7 @@ export class GridView {
 						return Object.keys(fm).filter((k) => k !== 'position').length;
 					},
 					wordCountForFile: this.callbacks.getWordCount,
+					taskCountForFile: this.callbacks.getTaskCount,
 					getFileTimes: this.callbacks.getFileTimes,
 				},
 			),

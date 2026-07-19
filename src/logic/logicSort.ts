@@ -29,6 +29,7 @@ export const DEFAULT_EXPLORER_SORT_DIR: Record<string, ExplorerSortDirection> =
 		count: 'desc',
 		props: 'desc',
 		words: 'desc',
+		tasks: 'desc',
 		mtime: 'desc',
 		ctime: 'desc',
 		sub: 'desc',
@@ -38,6 +39,30 @@ export const DEFAULT_EXPLORER_SORT_DIR: Record<string, ExplorerSortDirection> =
 		installed: 'desc',
 		updated: 'desc',
 	};
+
+export function nextExplorerSortDirection(
+	activeSortBy: string,
+	activeDirection: ExplorerSortDirection,
+	nextSortBy: string,
+): ExplorerSortDirection {
+	if (activeSortBy === nextSortBy) {
+		return activeDirection === 'asc' ? 'desc' : 'asc';
+	}
+	return DEFAULT_EXPLORER_SORT_DIR[nextSortBy] ?? 'asc';
+}
+
+/** Physical flow: ascending values increase downward; descending increase upward. */
+export function sortDirectionGlyph(
+	direction: ExplorerSortDirection,
+): '↓' | '↑' {
+	return direction === 'asc' ? '↓' : '↑';
+}
+
+export function sortDirectionIcon(
+	direction: ExplorerSortDirection,
+): 'lucide-arrow-down' | 'lucide-arrow-up' {
+	return direction === 'asc' ? 'lucide-arrow-down' : 'lucide-arrow-up';
+}
 
 export function normalizeExplorerSortBy(sortBy: string): string {
 	return sortBy === 'date' ? 'mtime' : sortBy;
@@ -65,11 +90,7 @@ export function compareFilesForExplorer(
 
 	const numericLocale = { numeric: true, sensitivity: 'base' } as const;
 	if (normalizedSortBy === 'path') {
-		result = (a.parent?.path ?? '').localeCompare(
-			b.parent?.path ?? '',
-			undefined,
-			numericLocale,
-		);
+		result = a.path.localeCompare(b.path, undefined, numericLocale);
 	} else if (normalizedSortBy === 'ext') {
 		result = a.extension.localeCompare(b.extension, undefined, numericLocale);
 	} else if (normalizedSortBy === 'mtime' || normalizedSortBy === 'ctime') {
@@ -88,7 +109,7 @@ export function compareFilesForExplorer(
 			(options.taskCountForFile?.(a) ?? 0) -
 			(options.taskCountForFile?.(b) ?? 0);
 	} else {
-		result = a.basename.localeCompare(b.basename, undefined, numericLocale);
+		result = a.name.localeCompare(b.name, undefined, numericLocale);
 	}
 
 	return result === 0

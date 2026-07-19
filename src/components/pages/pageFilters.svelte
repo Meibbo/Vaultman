@@ -28,6 +28,8 @@
 		type ContentSortBy,
 		type ContentSortDirection,
 	} from '../../logic/logicContentPreview';
+	import { refreshExplorerViewport } from '../../logic/logicExplorerViewportActivation';
+	import { sortDirectionGlyph } from '../../logic/logicSort';
 
 	type FiltersTab =
 		| 'files'
@@ -222,11 +224,13 @@
 	$effect(() => {
 		const tab = filtersActiveTab;
 		window.requestAnimationFrame(() => {
-			if (tab === 'files') fileList?.refreshViewport();
-			else if (tab === 'props') propExplorer?.refreshViewport();
-			else if (tab === 'tags') tagsExplorer?.refreshViewport();
-			else if (tab === 'snippets') snippetsExplorer?.refreshViewport();
-			else if (tab === 'plugins') pluginsExplorer?.refreshViewport();
+			refreshExplorerViewport(tab, {
+				files: fileList,
+				props: propExplorer,
+				tags: tagsExplorer,
+				snippets: snippetsExplorer,
+				plugins: pluginsExplorer,
+			});
 		});
 	});
 
@@ -527,7 +531,7 @@
 				item
 					.setTitle(
 						`${translate(option.labelKey)}${
-							isActive ? (contentSortDirection === 'asc' ? ' ↑' : ' ↓') : ''
+							isActive ? ` ${sortDirectionGlyph(contentSortDirection)}` : ''
 						}`,
 					)
 					.setIcon(option.icon)

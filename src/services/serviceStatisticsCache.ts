@@ -1,5 +1,6 @@
 import { Component, Events, TFile, type App } from 'obsidian';
 import { vaultmanPerfMonitor } from '../utils/performanceMonitor';
+import { prioritizeStatisticsFiles } from '../logic/logicStatisticsPriority';
 import {
 	createStatisticsCacheStorage,
 	type StatisticsCacheStorage,
@@ -48,6 +49,13 @@ export interface StatisticsComputeOptions {
 export interface StatisticsCacheServiceOptions {
 	storage?: StatisticsStorageOption;
 	storageKey?: string;
+}
+
+export interface EnsureFileStatsOptions {
+	/** Paths currently rendered by an explorer, in viewport order. */
+	priorityPaths?: Iterable<string>;
+	/** Cooperative cancellation; already-computed records remain reusable. */
+	shouldContinue?: () => boolean;
 }
 
 export interface StatisticsCacheChange {
@@ -301,11 +309,14 @@ export class StatisticsCacheService extends Component {
 	getFileRemainingTasks(file: TFile): number | null {
 		if (file.extension !== 'md') return null;
 		const cached = this.fileStatsCache.get(file.path);
-		if (this.isFreshCachedStats(file, cached) && typeof cached.tasks === 'number') {
+		if (
+			this.isFreshCachedStats(file, cached) &&
+			this.isValidNonNegativeNumber(cached.tasks)
+		) {
 			return cached.tasks;
 		}
 		const stale = this.staleFileStatsCache.get(file.path);
-		return typeof stale?.tasks === 'number' ? stale.tasks : null;
+		return this.isValidNonNegativeNumber(stale?.tasks) ? stale.tasks : null;
 	}
 
 	getFileWordCount(file: TFile): number | null {
@@ -326,42 +337,102 @@ export class StatisticsCacheService extends Component {
 	}
 
 	/** Populate fresh file-level stats needed by explorer cells and sort modes. */
-	async ensureFileStats(files: TFile[]): Promise<void> {
+	async ensureFileStats(
+		files: TFile[],
+		options: EnsureFileStatsOptions = {},
+	): Promise<boolean> {
 		await this.initializeStorage();
-		const changedPaths: string[] = [];
+		const startedAt = performance.now();
+		const priorityPaths = [...(options.priorityPaths ?? [])];
+		const priorityPathSet = new Set(priorityPaths);
+		const orderedFiles = prioritizeStatisticsFiles(files, priorityPaths);
+		let priorityFileCount = 0;
+		while (
+			priorityFileCount < orderedFiles.length &&
+			priorityPathSet.has(orderedFiles[priorityFileCount].path)
+		) {
+			priorityFileCount += 1;
+		}
+		let changedPaths: string[] = [];
+		let persistence: Promise<void>[] = [];
 		const failedPaths: string[] = [];
-		for (let index = 0; index < files.length; index += 1) {
-			const file = files[index];
+		let completed = true;
+		let refreshedCount = 0;
+		let priorityRefreshedCount = 0;
+		const flushChangedPaths = async (): Promise<void> => {
+			if (changedPaths.length > 0) {
+				this.invalidateAggregates({
+					kind: 'file-stats-refreshed',
+					paths: changedPaths,
+				});
+				changedPaths = [];
+			}
+			if (persistence.length > 0) {
+				await Promise.allSettled(persistence);
+				persistence = [];
+			}
+		};
+
+		for (let index = 0; index < orderedFiles.length; index += 1) {
+			if (options.shouldContinue && !options.shouldContinue()) {
+				completed = false;
+				break;
+			}
+			const file = orderedFiles[index];
 			const cached = this.fileStatsCache.get(file.path);
-			if (this.isFreshCachedStats(file, cached) && cached.characters >= 0) {
-				continue;
+			if (!this.isCompleteFreshCachedStats(file, cached)) {
+				try {
+					const stats = await this.computeFileStats(file);
+					this.fileStatsCache.set(file.path, stats);
+					this.staleFileStatsCache.delete(file.path);
+					persistence.push(this.persistFileStats(stats));
+					changedPaths.push(file.path);
+					refreshedCount += 1;
+					if (index < priorityFileCount) priorityRefreshedCount += 1;
+				} catch {
+					failedPaths.push(file.path);
+					completed = false;
+				}
 			}
 
-			try {
-				const stats = await this.computeFileStats(file);
-				this.fileStatsCache.set(file.path, stats);
-				this.staleFileStatsCache.delete(file.path);
-				void this.persistFileStats(stats);
-				changedPaths.push(file.path);
-			} catch {
-				failedPaths.push(file.path);
+			const completedPriorityBatch =
+				index + 1 === priorityFileCount && priorityFileCount > 0;
+			if (completedPriorityBatch || changedPaths.length >= 100) {
+				await flushChangedPaths();
+				if (completedPriorityBatch) {
+					vaultmanPerfMonitor.record(
+						'statistics.ensure.visible',
+						performance.now() - startedAt,
+						{
+							priorityFiles: priorityFileCount,
+							refreshed: priorityRefreshedCount,
+						},
+					);
+				}
 			}
 
 			if ((index + 1) % 25 === 0) {
 				await new Promise((resolve) => window.setTimeout(resolve, 0));
 			}
 		}
-		if (changedPaths.length > 0) {
-			this.invalidateAggregates({
-				kind: 'file-stats-refreshed',
-				paths: changedPaths,
-			});
-		}
+		await flushChangedPaths();
+		vaultmanPerfMonitor.record(
+			'statistics.ensure.total',
+			performance.now() - startedAt,
+			{
+				completed,
+				failed: failedPaths.length,
+				files: orderedFiles.length,
+				priorityFiles: priorityFileCount,
+				refreshed: refreshedCount,
+			},
+		);
 		if (failedPaths.length > 0) {
 			throw new Error(
 				`Failed to read statistics for ${failedPaths.join(', ')}`,
 			);
 		}
+		return completed;
 	}
 
 	private snapshotForDisplay(
@@ -406,11 +477,12 @@ export class StatisticsCacheService extends Component {
 		await vaultmanPerfMonitor.measureAsync(
 			'statistics.compute',
 			async () => {
-				for (let index = 0; index < files.length; index += 1) {
+				const orderedFiles = prioritizeStatisticsFiles(files);
+				for (let index = 0; index < orderedFiles.length; index += 1) {
 					if (shouldContinue && !shouldContinue()) return;
-					const file = files[index];
+					const file = orderedFiles[index];
 					let fileStats = this.fileStatsCache.get(file.path);
-					if (this.isFreshCachedStats(file, fileStats)) {
+					if (this.isCompleteFreshCachedStats(file, fileStats)) {
 						this.staleFileStatsCache.delete(file.path);
 						cacheHits += 1;
 					} else {
@@ -581,6 +653,21 @@ export class StatisticsCacheService extends Component {
 			cached.mtime === file.stat.mtime &&
 			cached.size === file.stat.size
 		);
+	}
+
+	private isCompleteFreshCachedStats(
+		file: TFile,
+		cached: CachedFileStats | undefined,
+	): cached is CachedFileStats & { tasks: number } {
+		return (
+			this.isFreshCachedStats(file, cached) &&
+			this.isValidNonNegativeNumber(cached.characters) &&
+			this.isValidNonNegativeNumber(cached.tasks)
+		);
+	}
+
+	private isValidNonNegativeNumber(value: unknown): value is number {
+		return typeof value === 'number' && Number.isFinite(value) && value >= 0;
 	}
 
 	private hashString(seed: number, value: string): number {

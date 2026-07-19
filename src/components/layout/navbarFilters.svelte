@@ -16,7 +16,10 @@
 	import type { AddonExplorerPanelPort } from '../../logic/logicAddonExplorer';
 	import type { SavedLayout, SavedViewConfig } from '../../types/typeSettings';
 	import { showInputModal } from '../../utils/inputModal';
-	import { DEFAULT_EXPLORER_SORT_DIR } from '../../logic/logicSort';
+	import {
+		nextExplorerSortDirection,
+		sortDirectionGlyph,
+	} from '../../logic/logicSort';
 	import {
 		activeScopeSort,
 		isSortOptionVisible,
@@ -377,7 +380,6 @@
 			{ id: 'simple', icon: 'lucide-tag', labelKey: 'sort.type.simple' },
 		],
 	};
-	const DEFAULT_DIR = DEFAULT_EXPLORER_SORT_DIR;
 
 	let headerMode = $state<HeaderMode>('header');
 	let headerExitDir = $state<'left' | 'right'>('right');
@@ -430,7 +432,7 @@
 				sortStateByTab[tab] ?? DEFAULT_SORT_STATE[tab],
 			);
 			const activeSort = activeScopeSort(tab, sort);
-			const arrow = activeSort.direction === 'desc' ? '↓' : '↑';
+			const arrow = sortDirectionGlyph(activeSort.direction);
 			return `${tab} ${viewModeByTab[tab]}·${activeSort.sortBy}${arrow}`;
 		}).join(' · ');
 	}
@@ -1040,12 +1042,11 @@
 			sortStateByTab[activeTab] ?? DEFAULT_SORT_STATE[activeTab],
 		);
 		const activeSort = activeScopeSort(activeTab, current);
-		const direction =
-			activeSort.sortBy === id
-				? activeSort.direction === 'asc'
-					? 'desc'
-					: 'asc'
-				: (DEFAULT_DIR[id] ?? 'asc');
+		const direction = nextExplorerSortDirection(
+			activeSort.sortBy,
+			activeSort.direction,
+			id,
+		);
 		return replaceActiveScopeSort(activeTab, current, {
 			sortBy: id,
 			direction,
@@ -1303,7 +1304,7 @@
 				item
 					.setTitle(
 						`${translate(option.labelKey)}${
-							isActive ? (activeSort.direction === 'asc' ? ' ↑' : ' ↓') : ''
+							isActive ? ` ${sortDirectionGlyph(activeSort.direction)}` : ''
 						}`,
 					)
 					.setIcon(option.icon)

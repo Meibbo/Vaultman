@@ -171,7 +171,7 @@ describe('FilesExplorerPanel source guards', () => {
 		expect(explorerFilesSource).toContain('parentsFirst: this.parentsFirst,');
 	});
 
-	it('keeps Words sorting owned by the panel across Table mounts and header clicks', () => {
+	it('keeps statistics sorting owned by the panel across Table mounts and header clicks', () => {
 		expect(explorerFilesSource).toContain("words: 'words'");
 		expect(explorerFilesSource).toContain(
 			'onSortChange: (column, direction) =>',
@@ -179,45 +179,59 @@ describe('FilesExplorerPanel source guards', () => {
 		expect(explorerFilesSource).toContain(
 			"column === 'props' ? 'count' : column",
 		);
-		expect(explorerFilesSource).toContain(
-			'if (this._usesWordSort()) this._warmWordCountSort();',
-		);
+		expect(explorerFilesSource).toContain('this._warmStatisticsCache()');
 	});
 
-	it('ignores cache invalidations and only reorders when refreshed keys cross neighbors', () => {
+	it('prioritizes visible statistics and only reorders when refreshed keys cross neighbors', () => {
 		expect(explorerFilesSource).toContain(
 			"if (change.kind === 'invalidated') return;",
 		);
+		expect(explorerFilesSource).toContain('this._needsStatisticsWarmup()');
+		expect(explorerFilesSource).toContain('this.statisticsWarmup = this.statisticsWarmup');
+		expect(explorerFilesSource).toContain('.ensureFileStats(files, {');
 		expect(explorerFilesSource).toContain(
-			'if (this._usesWordSort()) this._warmWordCountSort(displayFiles);',
+			'priorityPaths: this._visibleRenderedFilePaths()',
 		);
-		expect(explorerFilesSource).toContain(
-			'this.wordSortWarmup = this.wordSortWarmup',
-		);
-		expect(explorerFilesSource).toContain(
-			'.then(() => this.plugin.statisticsCache.ensureFileStats(files))',
-		);
-		expect(explorerFilesSource).toContain(
-			'this.wordSortWarmSignature === signature',
-		);
+		expect(explorerFilesSource).toContain('this._usesStatisticsSort()');
 		expect(explorerFilesSource).toContain('changedItemsRemainOrdered(');
 		expect(explorerFilesSource).toContain(
-			'!this._wordSortNeedsReorder(change.paths ?? [])',
+			'!this._statisticsSortNeedsReorder(change.paths ?? [])',
 		);
 		expect(explorerFilesSource).toContain(
-			'this._patchVisibleWordCounts(new Set(change.paths ?? []))',
+			'this._patchVisibleStatisticsCells(new Set(change.paths ?? []))',
 		);
-		expect(explorerFilesSource).toContain("this.wordSortWarmSignature = '';");
+		expect(explorerFilesSource).toContain("this.statisticsWarmSignature = '';");
 		expect(explorerFilesSource).not.toContain(
 			'if (sortingByWords) this._render();',
 		);
 		const patchCellsBlock = explorerFilesSource.match(
-			/private _patchVisibleWordCounts[\s\S]*?\n\tprivate readonly _handleActiveFileChange/,
+			/private _patchVisibleStatisticsCells[\s\S]*?\n\tprivate readonly _handleActiveFileChange/,
 		)?.[0];
 		expect(patchCellsBlock).toContain('.vaultman-file-words');
 		expect(patchCellsBlock).toContain('.vaultman-files-grid-card-words');
-		expect(patchCellsBlock).not.toContain('this._render();');
+		expect(patchCellsBlock).toContain("this.visibleCells.has('tasks')");
+		expect(patchCellsBlock).toContain('this._render();');
 		expect(explorerFilesSource).toContain('this._scheduleStatsRefresh();');
+		expect(explorerFilesSource).toContain("fields.includes('tasks')");
+	});
+
+	it('captures virtual rows after the current Files view has rendered', () => {
+		const renderBlock = explorerFilesSource.match(
+			/private _render\(\): void \{[\s\S]*?\n\tprivate _handleFileDragOver/,
+		)?.[0];
+		expect(renderBlock).toBeDefined();
+		const warmIndex = renderBlock?.lastIndexOf(
+			'this._warmStatisticsCache(displayFiles)',
+		);
+		expect(warmIndex).toBeGreaterThan(
+			renderBlock?.indexOf('this.tableView.render(displayFiles') ?? -1,
+		);
+		expect(warmIndex).toBeGreaterThan(
+			renderBlock?.indexOf('this.gridView.render(sortedGridFiles)') ?? -1,
+		);
+		expect(warmIndex).toBeGreaterThan(
+			renderBlock?.indexOf('this.treeView.render({') ?? -1,
+		);
 	});
 });
 

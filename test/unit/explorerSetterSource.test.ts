@@ -79,7 +79,7 @@ describe('pane reactivation re-render (BT4-022)', () => {
 		]) {
 			expect(source).toContain('refreshViewport(): void {');
 		}
-		expect(pageFiltersSource).toContain('refreshViewport()');
+		expect(pageFiltersSource).toContain('refreshExplorerViewport(tab, {');
 		expect(pageFiltersSource).toContain('window.requestAnimationFrame(() => {');
 	});
 });

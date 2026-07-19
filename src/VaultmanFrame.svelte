@@ -34,6 +34,7 @@
 	import { resolveDockPageOrder } from './logic/logicNavigation';
 	import type { StatisticsDataTab } from './logic/logicStatisticsNavigation';
 	import { countQueuedOperationWarnings } from './logic/logicQueueWarnings';
+	import { refreshExplorerViewport } from './logic/logicExplorerViewportActivation';
 	import { attachBasesMultiSelectOperations } from './utils/basesMultiSelectOperations';
 
 	// ─── Props ────────────────────────────────────────────────────────────────
@@ -348,6 +349,16 @@
 			if (expanded) focused = await focusFrameInput(explorerSearchSelectors);
 		}
 		if (!focused) notifyFocusUnavailable();
+	}
+
+	export function refreshActiveExplorerViewport(): boolean {
+		return refreshExplorerViewport(filtersActiveTab, {
+			files: fileList,
+			props: propExplorer,
+			tags: tagsExplorer,
+			snippets: snippetsExplorer,
+			plugins: pluginsExplorer,
+		});
 	}
 
 	function onContainerTransitionEnd(e: TransitionEvent) {
@@ -1141,7 +1152,6 @@
 	onMount(() => {
 		const unsubscribeSettings = plugin.onSettingsChange(() => {
 			settingsRevision += 1;
-			pageRenderKey += 1;
 		});
 		const detachBasesMultiSelectOperations =
 			attachBasesMultiSelectOperations(plugin);
@@ -1231,6 +1241,7 @@
 						<StatisticsPage
 							{plugin}
 							active={activePage === pageId}
+							{settingsRevision}
 							onNavigateToDataTab={navigateToDataTab}
 						/>
 					{:else if pageId === 'filters'}
@@ -1324,36 +1335,34 @@
 	/>
 
 	{#if showDock}
-		{#key settingsRevision}
-			<BottomNav
-				{pageOrder}
-				{activePage}
-				{pageLabels}
-				{pageIcons}
-				{leftFab}
-				{rightFab}
-				{minimalStyle}
-				{queueIslandOpen}
-				{filtersIslandOpen}
-				{navCollapsed}
-				isIslandOpen={queueIslandOpen || filtersIslandOpen}
-				bind:isReordering
-				{reorderTargetIdx}
-				bind:pillEl
-				{selectedCount}
-				filterRuleCount={displayedFilterRuleCount}
-				filterResultCount={displayedFilteredCount}
-				{queuedCount}
-				{queueWarningCount}
-				{bindNav}
-				{onCollapsedNavClick}
-				{onNavIconPointerDown}
-				{onPillPointerMove}
-				{onPillPointerUp}
-				{exitReorder}
-				{navigateTo}
-				{icon}
-			/>
-		{/key}
+		<BottomNav
+			{pageOrder}
+			{activePage}
+			{pageLabels}
+			{pageIcons}
+			{leftFab}
+			{rightFab}
+			{minimalStyle}
+			{queueIslandOpen}
+			{filtersIslandOpen}
+			{navCollapsed}
+			isIslandOpen={queueIslandOpen || filtersIslandOpen}
+			bind:isReordering
+			{reorderTargetIdx}
+			bind:pillEl
+			{selectedCount}
+			filterRuleCount={displayedFilterRuleCount}
+			filterResultCount={displayedFilteredCount}
+			{queuedCount}
+			{queueWarningCount}
+			{bindNav}
+			{onCollapsedNavClick}
+			{onNavIconPointerDown}
+			{onPillPointerMove}
+			{onPillPointerUp}
+			{exitReorder}
+			{navigateTo}
+			{icon}
+		/>
 	{/if}
 </div>

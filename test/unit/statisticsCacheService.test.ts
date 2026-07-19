@@ -5,6 +5,7 @@ import {
 	StatisticsCacheService,
 	type StatisticsCacheChange,
 } from '../../src/services/serviceStatisticsCache';
+import { vaultmanPerfMonitor } from '../../src/utils/performanceMonitor';
 
 const vault = {} as Vault;
 
@@ -160,6 +161,190 @@ describe('StatisticsCacheService', () => {
 
 		await service.ensureFileStats([file]);
 		expect(readCounter.count).toBe(1);
+	});
+
+	it('migrates a fresh legacy cache record that has no remaining-task count', async () => {
+		const readCounter = { count: 0 };
+		const file = makeFile('Notes/legacy.md', 20, 40, 10);
+		const storage = new Map<string, unknown>([
+			[
+				'legacy:file:Notes/legacy.md',
+				{
+					path: file.path,
+					ctime: file.stat.ctime,
+					mtime: file.stat.mtime,
+					size: file.stat.size,
+					links: 0,
+					words: 3,
+					characters: 20,
+					props: [],
+					values: [],
+					tags: [],
+				},
+			],
+		]);
+		const service = new StatisticsCacheService(
+			makeApp(readCounter, {
+				'Notes/legacy.md': '- [ ] first\n- [x] done\n- [ ] second',
+			}),
+			{ storage, storageKey: 'legacy' },
+		);
+
+		await service.initializeStorage();
+		expect(service.getFileRemainingTasks(file)).toBeNull();
+
+		await service.ensureFileStats([file]);
+
+		expect(service.getFileRemainingTasks(file)).toBe(2);
+		expect(readCounter.count).toBe(1);
+		expect(storage.get('legacy:file:Notes/legacy.md')).toMatchObject({
+			tasks: 2,
+		});
+	});
+
+	it('rejects malformed persisted remaining-task counts before migrating them', async () => {
+		const readCounter = { count: 0 };
+		const file = makeFile('Notes/malformed-tasks.md', 20, 40, 10);
+		const storage = new Map<string, unknown>([
+			[
+				'malformed-tasks:file:Notes/malformed-tasks.md',
+				{
+					path: file.path,
+					ctime: file.stat.ctime,
+					mtime: file.stat.mtime,
+					size: file.stat.size,
+					links: 0,
+					words: 3,
+					characters: 20,
+					tasks: -1,
+					props: [],
+					values: [],
+					tags: [],
+				},
+			],
+		]);
+		const service = new StatisticsCacheService(
+			makeApp(readCounter, {
+				'Notes/malformed-tasks.md': '- [ ] remaining',
+			}),
+			{ storage, storageKey: 'malformed-tasks' },
+		);
+
+		await service.initializeStorage();
+		expect(service.getFileRemainingTasks(file)).toBeNull();
+
+		await service.ensureFileStats([file]);
+
+		expect(service.getFileRemainingTasks(file)).toBe(1);
+		expect(readCounter.count).toBe(1);
+		expect(storage.get('malformed-tasks:file:Notes/malformed-tasks.md')).toMatchObject({
+			tasks: 1,
+		});
+	});
+
+	it('hydrates persisted remaining-task counts without rereading the file', async () => {
+		const readCounter = { count: 0 };
+		const file = makeFile('Notes/tasks.md');
+		const storage = new Map<string, unknown>();
+		const app = makeApp(readCounter, {
+			'Notes/tasks.md': '- [ ] first\n- [ ] second',
+		});
+		const firstService = new StatisticsCacheService(app, {
+			storage,
+			storageKey: 'tasks-round-trip',
+		});
+
+		await firstService.ensureFileStats([file]);
+		const secondService = new StatisticsCacheService(app, {
+			storage,
+			storageKey: 'tasks-round-trip',
+		});
+		await secondService.initializeStorage();
+
+		expect(secondService.getFileRemainingTasks(file)).toBe(2);
+		expect(readCounter.count).toBe(1);
+	});
+
+	it('reads visible files before the remaining files ordered by mtime', async () => {
+		const readCounter = { count: 0 };
+		const visible = makeFile('Notes/visible.md', 1);
+		const newest = makeFile('Notes/newest.md', 300);
+		const older = makeFile('Notes/older.md', 200);
+		const reads: string[] = [];
+		const app = makeApp(readCounter);
+		Object.assign(app.vault, {
+			cachedRead: async (file: TFile) => {
+				readCounter.count += 1;
+				reads.push(file.path);
+				return '- [ ] task';
+			},
+		});
+		const service = new StatisticsCacheService(app);
+
+		await service.ensureFileStats([older, visible, newest], {
+			priorityPaths: [visible.path],
+		});
+
+		expect(reads).toEqual([visible.path, newest.path, older.path]);
+	});
+
+	it('records time-to-visible and total progress for live-vault benchmarks', async () => {
+		vaultmanPerfMonitor.clear();
+		const readCounter = { count: 0 };
+		const visible = makeFile('Notes/visible.md', 1);
+		const remaining = makeFile('Notes/remaining.md', 2);
+		const service = new StatisticsCacheService(makeApp(readCounter));
+
+		await service.ensureFileStats([remaining, visible], {
+			priorityPaths: [visible.path],
+		});
+
+		const entries = vaultmanPerfMonitor.recent();
+		expect(
+			entries.find((entry) => entry.label === 'statistics.ensure.visible')
+				?.detail,
+		).toMatchObject({ priorityFiles: 1, refreshed: 1 });
+		expect(
+			entries.find((entry) => entry.label === 'statistics.ensure.total')?.detail,
+		).toMatchObject({
+			completed: true,
+			files: 2,
+			priorityFiles: 1,
+			refreshed: 2,
+		});
+	});
+
+	it('cancels cooperatively and resumes old files without rereading progress', async () => {
+		const readCounter = { count: 0 };
+		const newest = makeFile('Notes/newest.md', 300);
+		const middle = makeFile('Notes/middle.md', 200);
+		const oldest = makeFile('Notes/oldest.md', 100);
+		const reads: string[] = [];
+		const app = makeApp(readCounter);
+		Object.assign(app.vault, {
+			cachedRead: async (file: TFile) => {
+				readCounter.count += 1;
+				reads.push(file.path);
+				return '- [ ] task';
+			},
+		});
+		const service = new StatisticsCacheService(app);
+
+		const firstPassCompleted = await service.ensureFileStats(
+			[oldest, newest, middle],
+			{ shouldContinue: () => readCounter.count < 2 },
+		);
+		expect(firstPassCompleted).toBe(false);
+		expect(reads).toEqual([newest.path, middle.path]);
+
+		const resumedCompleted = await service.ensureFileStats([
+			oldest,
+			newest,
+			middle,
+		]);
+		expect(resumedCompleted).toBe(true);
+		expect(reads).toEqual([newest.path, middle.path, oldest.path]);
+		expect(service.getFileRemainingTasks(oldest)).toBe(1);
 	});
 
 	it('announces persistent hydration so explorer consumers can refresh', async () => {

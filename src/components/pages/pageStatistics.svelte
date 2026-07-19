@@ -20,12 +20,18 @@
 	let {
 		plugin,
 		active = false,
+		settingsRevision = 0,
 		onNavigateToDataTab,
 	}: {
 		plugin: VaultmanPlugin;
 		active?: boolean;
+		settingsRevision?: number;
 		onNavigateToDataTab?: (tab: StatisticsDataTab) => void;
 	} = $props();
+	const minimalStyle = $derived.by(() => {
+		void settingsRevision;
+		return plugin.settings.minimalStyle;
+	});
 
 	type Scope = StatisticsScope;
 	let scope = $state<Scope>('vault');
@@ -264,7 +270,7 @@
 		propExplorer={undefined}
 		fileList={undefined}
 		icon={iconAction}
-		minimalStyle={plugin.settings.minimalStyle}
+		{minimalStyle}
 		showDock={false}
 		tabOptions={statsTabOptions}
 		activeSectionTab="statistics"

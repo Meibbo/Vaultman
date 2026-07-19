@@ -12,12 +12,12 @@ describe('Vaultman Settings layout', () => {
 		expect(typeSettingsSource).not.toContain('childLevel: boolean;');
 	});
 
-	it('renames Action Presets to Operations Presets in both languages', () => {
-		expect(en['queue.template.templates']).toBe('Operations Presets');
+	it('uses the current operation-template labels in both languages', () => {
+		expect(en['queue.template.templates']).toBe('Operation Sets');
 		expect(es['queue.template.templates']).toBe('Presets de operaciones');
 	});
 
-	it('places View Config after Operations Presets and before Style Config', () => {
+	it('places View Config after Operation Sets and before Style Config', () => {
 		const operationsIndex = settingsSource.indexOf(
 			"translate('queue.template.templates')",
 		);

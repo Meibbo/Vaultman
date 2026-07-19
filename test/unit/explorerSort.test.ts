@@ -4,7 +4,11 @@ import { describe, expect, it } from 'vitest';
 import {
 	changedItemsRemainOrdered,
 	compareFilesForExplorer,
+	DEFAULT_EXPLORER_SORT_DIR,
+	nextExplorerSortDirection,
 	normalizeExplorerSortBy,
+	sortDirectionGlyph,
+	sortDirectionIcon,
 } from '../../src/logic/logicSort';
 
 const vault = {} as Vault;
@@ -38,6 +42,19 @@ function makeFile(
 }
 
 describe('explorer sort helpers', () => {
+	it('defaults Remaining Tasks to descending, then toggles to ascending', () => {
+		expect(DEFAULT_EXPLORER_SORT_DIR.tasks).toBe('desc');
+		expect(nextExplorerSortDirection('name', 'asc', 'tasks')).toBe('desc');
+		expect(nextExplorerSortDirection('tasks', 'desc', 'tasks')).toBe('asc');
+	});
+
+	it('maps semantic direction to the physical flow shown in every UI', () => {
+		expect(sortDirectionGlyph('asc')).toBe('↓');
+		expect(sortDirectionIcon('asc')).toBe('lucide-arrow-down');
+		expect(sortDirectionGlyph('desc')).toBe('↑');
+		expect(sortDirectionIcon('desc')).toBe('lucide-arrow-up');
+	});
+
 	it('migrates the legacy date sort id to modified time', () => {
 		expect(normalizeExplorerSortBy('date')).toBe('mtime');
 		expect(normalizeExplorerSortBy('ctime')).toBe('ctime');
@@ -91,6 +108,24 @@ describe('explorer sort helpers', () => {
 			'Notes/b-long.md',
 			'Notes/z-short.md',
 		]);
+	});
+
+	it('sorts Name by file.name and Path by the complete file.path', () => {
+		const txt = makeFile('A/note.txt', { ctime: 1, mtime: 1 });
+		const markdown = makeFile('Z/note.md', { ctime: 1, mtime: 1 });
+		const rootFile = makeFile('z.md', { ctime: 1, mtime: 1 });
+		const nestedFile = makeFile('A/a.md', { ctime: 1, mtime: 1 });
+
+		expect(
+			[txt, markdown]
+				.sort((a, b) => compareFilesForExplorer(a, b, 'name', 'asc'))
+				.map((file) => file.path),
+		).toEqual(['Z/note.md', 'A/note.txt']);
+		expect(
+			[rootFile, nestedFile]
+				.sort((a, b) => compareFilesForExplorer(a, b, 'path', 'asc'))
+				.map((file) => file.path),
+		).toEqual(['A/a.md', 'z.md']);
 	});
 
 	it('detects whether refreshed sort keys cross an existing neighbor', () => {

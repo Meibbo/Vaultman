@@ -130,11 +130,11 @@ export class FilesExplorerPanel extends Component {
 	private statsRefreshTimer: number | null = null;
 	private pendingStatsPaths = new Set<string>();
 	private pendingHoverStats = new Map<string, Set<HTMLElement>>();
-	private wordSortWarmSignature = '';
-	private wordSortWarmup: Promise<void> = Promise.resolve();
-	private wordSortRetrySignature = '';
-	private lastWordSortOrder: TFile[] = [];
-	private lastWordSortComplete = false;
+	private statisticsWarmSignature = '';
+	private statisticsWarmup: Promise<void> = Promise.resolve();
+	private statisticsRetrySignature = '';
+	private lastStatisticsSortOrder: TFile[] = [];
+	private lastStatisticsSortComplete = false;
 	private activeRevealPath: string | null = null;
 	private sparseAutoExpandSignature = '';
 	/** Last rendered hierarchy — feeds the floating TOC (index/scope drill). */
@@ -493,6 +493,7 @@ export class FilesExplorerPanel extends Component {
 	}
 
 	onunload(): void {
+		this.statisticsWarmSignature = '';
 		if (this.refreshTimer !== null) {
 			window.clearTimeout(this.refreshTimer);
 			this.refreshTimer = null;
@@ -532,6 +533,7 @@ export class FilesExplorerPanel extends Component {
 		this.visibleCells = new Set(cells);
 		this.tableView?.setVisibleCells(this.visibleCells);
 		this.gridView?.setVisibleCells(this.visibleCells);
+		if (!this._needsStatisticsWarmup()) this.statisticsWarmSignature = '';
 		this._render();
 	}
 
@@ -568,12 +570,13 @@ export class FilesExplorerPanel extends Component {
 		this.sortDir = activeSort.direction;
 		this.nodeTypeFilters = nextNodeTypeFilters;
 		this.parentsFirst = normalizedState.parentsFirst !== false;
-		if (this._usesWordSort()) this._warmWordCountSort();
+		if (!this._needsStatisticsWarmup()) this.statisticsWarmSignature = '';
 		if (this.viewMode === 'table' && this.tableView) {
 			const COL_MAP: Record<string, import('../layout/viewGrid').SortColumn> = {
 				name: 'name',
 				count: 'props',
 				words: 'words',
+				tasks: 'tasks',
 				ext: 'ext',
 				mtime: 'mtime',
 				ctime: 'ctime',
@@ -726,6 +729,8 @@ export class FilesExplorerPanel extends Component {
 					this.plugin.statisticsCache.getFileTimes(file),
 				getWordCount: (file: TFile) =>
 					this.plugin.statisticsCache.getFileWordCount(file),
+				getTaskCount: (file: TFile) =>
+					this.plugin.statisticsCache.getFileRemainingTasks(file),
 				getBadges: (file: TFile) => this._badgesForFile(file),
 				getFileIcon: (file: TFile, defaultIcon: string) =>
 					this._resolveFileIcon(file.path, false, defaultIcon),
@@ -757,6 +762,7 @@ export class FilesExplorerPanel extends Component {
 				name: 'name',
 				count: 'props',
 				words: 'words',
+				tasks: 'tasks',
 				ext: 'ext',
 				mtime: 'mtime',
 				ctime: 'ctime',
@@ -866,7 +872,7 @@ export class FilesExplorerPanel extends Component {
 			if (sortBy === 'path') {
 				return node.meta.file?.path ?? node.meta.folderPath;
 			}
-			return node.label;
+			return node.meta.file?.name ?? node.label;
 		};
 		return (
 			dir *
@@ -1107,18 +1113,17 @@ export class FilesExplorerPanel extends Component {
 	private _render(): void {
 		if (this._shouldShowEmptyFilteredState()) {
 			this._renderEmptyFilteredState();
-			this._rememberWordSortOrder([]);
+			this._rememberStatisticsSortOrder([]);
 			this._setIndexRoots([], []);
 			return;
 		}
 		const displayFiles = this._filesForDisplay();
-		if (this._usesWordSort()) this._warmWordCountSort(displayFiles);
 		if (this.viewMode === 'table' && this.tableView) {
 			this.tableView.setSelectedPaths(this.selectedFilePaths);
 			this.tableView.setActivePath(this.activeRevealPath);
 			this.tableView.render(displayFiles, this._totalCount);
 			const sortedTableFiles = [...this.tableView.getDisplayedFiles()];
-			this._rememberWordSortOrder(sortedTableFiles);
+			this._rememberStatisticsSortOrder(sortedTableFiles);
 			this._setIndexRoots(
 				[],
 				sortedTableFiles.map((file) => ({
@@ -1131,7 +1136,7 @@ export class FilesExplorerPanel extends Component {
 			this.gridView.setActivePath(this.activeRevealPath);
 			const sortedGridFiles = this._sortFiles(displayFiles);
 			this.gridView.render(sortedGridFiles);
-			this._rememberWordSortOrder(sortedGridFiles);
+			this._rememberStatisticsSortOrder(sortedGridFiles);
 			this._setIndexRoots(
 				[],
 				sortedGridFiles.map((file) => ({
@@ -1141,7 +1146,7 @@ export class FilesExplorerPanel extends Component {
 			);
 		} else if (this.viewMode === 'tree' && this.treeView) {
 			const sortedFiles = this._sortFiles(displayFiles);
-			this._rememberWordSortOrder(sortedFiles);
+			this._rememberStatisticsSortOrder(sortedFiles);
 			const rebaseFolderPaths = this._activeFolderFilterPaths();
 			const renderTree = this._nestedEnabled()
 				? this.logic.buildFileTree(sortedFiles, this._foldersForCurrentView(), {
@@ -1275,6 +1280,9 @@ export class FilesExplorerPanel extends Component {
 				},
 				badgeCancelClickMode: this.plugin.settings.badgeCancelClickMode,
 			});
+		}
+		if (this._needsStatisticsWarmup()) {
+			this._warmStatisticsCache(displayFiles);
 		}
 	}
 
@@ -1524,65 +1532,101 @@ export class FilesExplorerPanel extends Component {
 		this._render();
 	}
 
-	private _warmWordCountSort(files = this._filesForDisplay()): void {
-		if (!this._usesWordSort()) return;
+	private _warmStatisticsCache(files = this._filesForDisplay()): void {
+		if (!this._needsStatisticsWarmup()) return;
 		const signature = this.plugin.statisticsCache.signatureFor(files);
-		if (signature === this.wordSortWarmSignature) return;
-		this.wordSortWarmSignature = signature;
-		this.wordSortWarmup = this.wordSortWarmup
-			.then(() => this.plugin.statisticsCache.ensureFileStats(files))
-			.then(() => {
-				if (this.wordSortRetrySignature === signature) {
-					this.wordSortRetrySignature = '';
+		if (signature === this.statisticsWarmSignature) return;
+		this.statisticsWarmSignature = signature;
+		this.statisticsWarmup = this.statisticsWarmup
+			.then(async () => {
+				const completed = await this.plugin.statisticsCache.ensureFileStats(files, {
+					priorityPaths: this._visibleRenderedFilePaths(),
+					shouldContinue: () =>
+						this.statisticsWarmSignature === signature &&
+						this._needsStatisticsWarmup(),
+				});
+				if (!completed && this.statisticsWarmSignature === signature) {
+					this.statisticsWarmSignature = '';
+				}
+				if (this.statisticsRetrySignature === signature) {
+					this.statisticsRetrySignature = '';
 				}
 			})
 			.catch((error) => {
-				if (this.wordSortWarmSignature === signature) {
-					this.wordSortWarmSignature = '';
+				if (this.statisticsWarmSignature === signature) {
+					this.statisticsWarmSignature = '';
 				}
 				if (
-					this._usesWordSort() &&
-					this.wordSortRetrySignature !== signature
+					this._needsStatisticsWarmup() &&
+					this.statisticsRetrySignature !== signature
 				) {
-					this.wordSortRetrySignature = signature;
+					this.statisticsRetrySignature = signature;
 					this._scheduleStatsRefresh();
 				}
-				console.error('Vaultman word-count sort failed', error);
+				console.error('Vaultman explorer statistics warmup failed', error);
 			});
 	}
 
-	private _usesWordSort(): boolean {
-		return Object.values(this.sortState.sorts).some(
-			(sort) => sort?.sortBy === 'words',
+	private _needsStatisticsWarmup(): boolean {
+		return (
+			this.visibleCells.has('words') ||
+			this.visibleCells.has('tasks') ||
+			this._usesStatisticsSort()
 		);
 	}
 
-	private _rememberWordSortOrder(files: readonly TFile[]): void {
-		if (this.sortBy !== 'words') {
-			this.lastWordSortOrder = [];
-			this.lastWordSortComplete = false;
+	private _usesStatisticsSort(): boolean {
+		return Object.values(this.sortState.sorts).some(
+			(sort) => sort?.sortBy === 'words' || sort?.sortBy === 'tasks',
+		);
+	}
+
+	private _rememberStatisticsSortOrder(files: readonly TFile[]): void {
+		if (this.sortBy !== 'words' && this.sortBy !== 'tasks') {
+			this.lastStatisticsSortOrder = [];
+			this.lastStatisticsSortComplete = false;
 			return;
 		}
-		this.lastWordSortOrder = [...files];
-		this.lastWordSortComplete = files.every(
+		this.lastStatisticsSortOrder = [...files];
+		this.lastStatisticsSortComplete = files.every(
 			(file) =>
 				file.extension !== 'md' ||
-				this.plugin.statisticsCache.getFileWordCount(file) !== null,
+				(this.sortBy === 'words'
+					? this.plugin.statisticsCache.getFileWordCount(file)
+					: this.plugin.statisticsCache.getFileRemainingTasks(file)) !== null,
 		);
 	}
 
-	private _wordSortNeedsReorder(paths: readonly string[]): boolean {
-		if (!this.lastWordSortComplete || paths.length === 0) return true;
+	private _statisticsSortNeedsReorder(paths: readonly string[]): boolean {
+		if (!this.lastStatisticsSortComplete || paths.length === 0) return true;
 		return !changedItemsRemainOrdered(
-			this.lastWordSortOrder,
+			this.lastStatisticsSortOrder,
 			paths,
 			(file) => file.path,
 			(a, b) =>
-				compareFilesForExplorer(a, b, 'words', this.sortDir, {
+				compareFilesForExplorer(a, b, this.sortBy, this.sortDir, {
 					wordCountForFile: (file) =>
 						this.plugin.statisticsCache.getFileWordCount(file),
+					taskCountForFile: (file) =>
+						this.plugin.statisticsCache.getFileRemainingTasks(file),
 				}),
 		);
+	}
+
+	private _visibleRenderedFilePaths(): string[] {
+		const rowSelector =
+			this.viewMode === 'tree'
+				? '.vaultman-tree-row[data-path]'
+				: this.viewMode === 'table'
+					? '.vaultman-file-table-row[data-path]'
+					: '.vaultman-files-grid-card[data-path]';
+		const paths = new Set<string>();
+		for (const row of Array.from(
+			this.containerEl.querySelectorAll<HTMLElement>(rowSelector),
+		)) {
+			if (row.dataset.path) paths.add(row.dataset.path);
+		}
+		return [...paths];
 	}
 
 	private _notifyExpansionChanged(change?: FloatingTocExpansionChange): void {
@@ -1767,38 +1811,37 @@ export class FilesExplorerPanel extends Component {
 		this._render();
 	};
 
-	// The statistics cache refreshes a modified file's word count in the
-	// background; patch the Words cell in place so it tracks the change in
-	// near-real time. Only relevant when the Words cell is visible. We avoid a
-	// full _render() here on purpose: rebuilding the whole tree per edit was the
-	// typing-FPS regression (see issue p112-word-count-realtime-perf).
+	// Patch the cheap Words cell in place. Tasks can transition from no badge to
+	// a badge, so that cell takes the normal virtualized render path instead.
 	private readonly _handleStatsChange = (
 		change: StatisticsCacheChange,
 	): void => {
 		if (change.kind === 'invalidated') return;
 		if (change.kind === 'cleared') {
-			this.wordSortWarmSignature = '';
-			this.wordSortRetrySignature = '';
-			this.lastWordSortComplete = false;
-			if (this._usesWordSort()) this._warmWordCountSort();
+			this.statisticsWarmSignature = '';
+			this.statisticsRetrySignature = '';
+			this.lastStatisticsSortComplete = false;
+			if (this._needsStatisticsWarmup()) this._warmStatisticsCache();
 			return;
 		}
-		if (this.sortBy === 'words') {
+		if (this.sortBy === 'words' || this.sortBy === 'tasks') {
 			if (
 				change.kind === 'file-stats-refreshed' &&
-				!this._wordSortNeedsReorder(change.paths ?? [])
+				!this._statisticsSortNeedsReorder(change.paths ?? [])
 			) {
-				this._patchVisibleWordCounts(new Set(change.paths ?? []));
+				this._patchVisibleStatisticsCells(new Set(change.paths ?? []));
 				return;
 			}
 			this._scheduleStatsRefresh();
 			return;
 		}
-		if (this._usesWordSort()) {
+		if (this._usesStatisticsSort()) {
 			this._scheduleStatsRefresh();
 			return;
 		}
-		if (!this.visibleCells.has('words')) return;
+		if (!this.visibleCells.has('words') && !this.visibleCells.has('tasks')) {
+			return;
+		}
 		this._scheduleStatsRefresh(change.paths);
 	};
 
@@ -1811,12 +1854,23 @@ export class FilesExplorerPanel extends Component {
 			this.statsRefreshTimer = null;
 			const changedPaths = new Set(this.pendingStatsPaths);
 			this.pendingStatsPaths.clear();
-			if (this._usesWordSort()) this._render();
-			else this._patchVisibleWordCounts(changedPaths);
+			if (
+				this._usesStatisticsSort() ||
+				this.visibleCells.has('tasks') ||
+				this.statisticsRetrySignature
+			) {
+				this._render();
+			} else {
+				this._patchVisibleStatisticsCells(changedPaths);
+			}
 		}, 60);
 	}
 
-	private _patchVisibleWordCounts(paths = new Set<string>()): void {
+	private _patchVisibleStatisticsCells(paths = new Set<string>()): void {
+		if (this.visibleCells.has('tasks')) {
+			this._render();
+			return;
+		}
 		if (!this.visibleCells.has('words')) return;
 		const rowSelector =
 			this.viewMode === 'tree'
@@ -1965,7 +2019,10 @@ export class FilesExplorerPanel extends Component {
 		const missingCharacters =
 			fields.includes('characters') &&
 			this.plugin.statisticsCache.getFileCharacterCount(file) === null;
-		if (!missingWords && !missingCharacters) return;
+		const missingTasks =
+			fields.includes('tasks') &&
+			this.plugin.statisticsCache.getFileRemainingTasks(file) === null;
+		if (!missingWords && !missingCharacters && !missingTasks) return;
 
 		const waitingElements = this.pendingHoverStats.get(file.path);
 		if (waitingElements) {

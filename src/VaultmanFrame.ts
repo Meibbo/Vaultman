@@ -3,12 +3,14 @@ import type { VaultmanPlugin } from './main';
 import { mount, unmount } from 'svelte';
 import VaultmanFrameSvelte from './VaultmanFrame.svelte';
 import { translate } from './i18n/index';
+import { isSameWorkspaceLeaf } from './logic/logicExplorerViewportActivation';
 
 export const VAULTMAN_FRAME_TYPE = 'vaultman-frame';
 
 type VaultmanFrameSvelteApi = ReturnType<typeof mount> & {
 	focusContentSearch?(): Promise<void> | void;
 	focusActiveExplorerSearch?(): Promise<void> | void;
+	refreshActiveExplorerViewport?(): boolean | void;
 };
 
 /**
@@ -17,10 +19,19 @@ type VaultmanFrameSvelteApi = ReturnType<typeof mount> & {
 export class VaultmanFrame extends ItemView {
 	private plugin: VaultmanPlugin;
 	private svelteApp: VaultmanFrameSvelteApi | null = null;
+	private viewportRefreshFrame: number | null = null;
+	private viewportRefreshWindow: Window | null = null;
 
 	constructor(leaf: WorkspaceLeaf, plugin: VaultmanPlugin) {
 		super(leaf);
 		this.plugin = plugin;
+		this.registerEvent(
+			this.app.workspace.on('active-leaf-change', (activeLeaf) => {
+				if (isSameWorkspaceLeaf(activeLeaf, this.leaf)) {
+					this.scheduleViewportRefresh();
+				}
+			}),
+		);
 	}
 
 	getViewType(): string { return VAULTMAN_FRAME_TYPE; }
@@ -36,9 +47,11 @@ export class VaultmanFrame extends ItemView {
 			target: contentEl,
 			props: { plugin: this.plugin },
 		}) as VaultmanFrameSvelteApi;
+		this.scheduleViewportRefresh();
 	}
 
 	async onClose(): Promise<void> {
+		this.cancelViewportRefresh();
 		if (this.svelteApp) {
 			await unmount(this.svelteApp);
 			this.svelteApp = null;
@@ -52,5 +65,36 @@ export class VaultmanFrame extends ItemView {
 
 	async focusActiveExplorerSearch(): Promise<void> {
 		await this.svelteApp?.focusActiveExplorerSearch?.();
+	}
+
+	onResize(): void {
+		this.scheduleViewportRefresh();
+	}
+
+	private scheduleViewportRefresh(): void {
+		if (this.viewportRefreshFrame !== null) return;
+
+		const ownerWindow = this.contentEl.ownerDocument.defaultView;
+		if (!ownerWindow) {
+			this.svelteApp?.refreshActiveExplorerViewport?.();
+			return;
+		}
+
+		this.viewportRefreshWindow = ownerWindow;
+		this.viewportRefreshFrame = ownerWindow.requestAnimationFrame(() => {
+			this.viewportRefreshFrame = null;
+			this.viewportRefreshWindow = null;
+			this.svelteApp?.refreshActiveExplorerViewport?.();
+		});
+	}
+
+	private cancelViewportRefresh(): void {
+		if (this.viewportRefreshFrame !== null && this.viewportRefreshWindow) {
+			this.viewportRefreshWindow.cancelAnimationFrame(
+				this.viewportRefreshFrame,
+			);
+		}
+		this.viewportRefreshFrame = null;
+		this.viewportRefreshWindow = null;
 	}
 }

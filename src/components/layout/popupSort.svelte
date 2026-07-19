@@ -6,7 +6,11 @@
 		ExplorerTabId,
 		SortScopeKey,
 	} from '../../types/typeUI';
-	import { DEFAULT_EXPLORER_SORT_DIR } from '../../logic/logicSort';
+	import {
+		nextExplorerSortDirection,
+		sortDirectionGlyph,
+		sortDirectionIcon,
+	} from '../../logic/logicSort';
 	import {
 		activeScopeSort,
 		normalizeExplorerSortState,
@@ -77,6 +81,11 @@
 			},
 			{ id: 'count', iconName: 'lucide-hash', labelKey: 'sort.by.props' },
 			{ id: 'words', iconName: 'lucide-text', labelKey: 'sort.by.words' },
+			{
+				id: 'tasks',
+				iconName: 'lucide-square-check',
+				labelKey: 'sort.by.tasks',
+			},
 			{ id: 'ext', iconName: 'lucide-file-type', labelKey: 'sort.by.ext' },
 			{
 				id: 'mtime',
@@ -210,7 +219,6 @@
 	let parentsFirst = $state(
 		untrack(() => initialSortState?.parentsFirst ?? true),
 	);
-	const DEFAULT_DIR = DEFAULT_EXPLORER_SORT_DIR;
 	const activeSort = $derived(activeScopeSort(activeTab, sortState));
 	const levelOptions = $derived<
 		Array<{ scope: SortScopeKey; iconName: string; labelKey: string }>
@@ -275,12 +283,11 @@
 	}
 
 	function selectSort(id: string) {
-		const direction =
-			activeSort.sortBy === id
-				? activeSort.direction === 'asc'
-					? 'desc'
-					: 'asc'
-				: (DEFAULT_DIR[id] ?? 'asc');
+		const direction = nextExplorerSortDirection(
+			activeSort.sortBy,
+			activeSort.direction,
+			id,
+		);
 		sortState = replaceActiveScopeSort(activeTab, sortState, {
 			sortBy: id,
 			direction,
@@ -411,9 +418,7 @@
 					class:is-accent={activeSort.sortBy === opt.id}
 					aria-label={translate(opt.labelKey) +
 						(activeSort.sortBy === opt.id
-							? activeSort.direction === 'asc'
-								? ' ↑'
-								: ' ↓'
+							? ` ${sortDirectionGlyph(activeSort.direction)}`
 							: '')}
 					onclick={() => selectSort(opt.id)}
 					onkeydown={(e: KeyboardEvent) => {
@@ -426,9 +431,7 @@
 					{#if activeSort.sortBy === opt.id}
 						<span
 							class="vaultman-sort-dir"
-							use:icon={activeSort.direction === 'asc'
-								? 'lucide-arrow-up'
-								: 'lucide-arrow-down'}
+							use:icon={sortDirectionIcon(activeSort.direction)}
 						></span>
 					{/if}
 				</div>

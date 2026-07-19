@@ -56,7 +56,7 @@ describe('GridView source guards', () => {
 		expect(gridViewSource).toContain(
 			'onSortChange?: (column: SortColumn, direction: SortDirection) => void',
 		);
-		expect(gridViewSource).toContain('DEFAULT_EXPLORER_SORT_DIR[col]');
+		expect(gridViewSource).toContain('nextExplorerSortDirection(');
 		expect(gridViewSource).toContain(
 			'this.callbacks.onSortChange(this.sortColumn, this.sortDirection)',
 		);

@@ -4,6 +4,8 @@ import { en } from '../../src/i18n/en';
 import { es } from '../../src/i18n/es';
 import navbarSource from '../../src/components/layout/navbarFilters.svelte?raw';
 import popupSource from '../../src/components/layout/popupSort.svelte?raw';
+import pageFiltersSource from '../../src/components/pages/pageFilters.svelte?raw';
+import viewGridSource from '../../src/components/layout/viewGrid.ts?raw';
 import filesSource from '../../src/components/containers/explorerFiles.ts?raw';
 import frameSource from '../../src/VaultmanFrame.svelte?raw';
 import { DEFAULT_SETTINGS } from '../../src/types/typeSettings';
@@ -70,6 +72,16 @@ describe('explorer sort UI source', () => {
 		expect(popupSource).toContain("labelKey: 'sort.by.props'");
 	});
 
+	it('uses one physical direction policy on popup, native menu, table and Content', () => {
+		expect(popupSource).toContain('sortDirectionIcon(activeSort.direction)');
+		expect(popupSource).toContain('sortDirectionGlyph(activeSort.direction)');
+		expect(navbarSource).toContain('sortDirectionGlyph(activeSort.direction)');
+		expect(viewGridSource).toContain('sortDirectionIcon(this.sortDirection)');
+		expect(pageFiltersSource).toContain(
+			'sortDirectionGlyph(contentSortDirection)',
+		);
+	});
+
 	it('moves node types into an L2 native submenu and keeps multiselect state', () => {
 		expect(navbarSource).toContain("translate('explorer.sort.type')");
 		expect(navbarSource).toContain('setSubmenu: () => Menu');
@@ -88,27 +100,42 @@ describe('explorer sort UI source', () => {
 		expect(navbarSource).toContain('onFilterChange={handleFilterChange}');
 	});
 
-	it('offers Files word-count sorting and warms persisted stats on demand', () => {
+	it('offers Files statistics sorting and warms persisted stats on demand', () => {
 		for (const source of [navbarSource, popupSource]) {
 			expect(source).toContain("id: 'words'");
 			expect(source).toContain("labelKey: 'sort.by.words'");
+			expect(source).toContain("id: 'tasks'");
+			expect(source).toContain("labelKey: 'sort.by.tasks'");
 		}
-		expect(filesSource).toContain(
-			'if (this._usesWordSort()) this._warmWordCountSort();',
-		);
+		expect(filesSource).toContain('this._warmStatisticsCache()');
 		expect(filesSource).toMatch(
-			/_warmWordCountSort\(files = this\._filesForDisplay\(\)\)/,
+			/_warmStatisticsCache\(files = this\._filesForDisplay\(\)\)/,
 		);
-		expect(filesSource).toContain('private _usesWordSort(): boolean');
+		expect(filesSource).toContain('private _usesStatisticsSort(): boolean');
 		expect(filesSource).toMatch(
-			/Object\.values\(this\.sortState\.sorts\)\.some\([\s\S]{0,80}sort\?\.sortBy === 'words'/,
+			/Object\.values\(this\.sortState\.sorts\)\.some\([\s\S]{0,120}sort\?\.sortBy === 'tasks'/,
 		);
-		expect(filesSource).toContain('.ensureFileStats(files)');
+		expect(filesSource).toContain('.ensureFileStats(files, {');
 		expect(filesSource).toContain(
 			'wordCountForFile: (file) =>\n\t\t\t\t\tthis.plugin.statisticsCache.getFileWordCount(file) ?? 0',
 		);
+		expect(filesSource).toContain('node.meta.file?.name ?? node.label');
 		expect(en['sort.by.words']).toBe('Words');
 		expect(es['sort.by.words']).toBe('Palabras');
+	});
+
+	it('keeps Remaining Tasks sorting wired when Files uses Table view', () => {
+		expect(viewGridSource).toContain("| 'tasks'");
+		expect(viewGridSource).toContain(
+			'getTaskCount?: (file: TFile) => number | null',
+		);
+		expect(viewGridSource).toContain(
+			'taskCountForFile: this.callbacks.getTaskCount',
+		);
+		expect(filesSource.match(/tasks:\s*'tasks'/g)).toHaveLength(2);
+		expect(filesSource).toContain(
+			'getTaskCount: (file: TFile) =>\n\t\t\t\t\tthis.plugin.statisticsCache.getFileRemainingTasks(file)',
+		);
 	});
 });
 
