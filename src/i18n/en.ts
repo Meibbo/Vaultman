@@ -339,15 +339,16 @@ export const en: Record<string, string> = {
 	'command.focus_search_unavailable': 'No Vaultman search field is available.',
 	'command.open_updates': 'Open Vaultman updates',
 	'updates.title': 'Vaultman Updates · {version}',
-	'updates.intro': 'What changed in this beta:',
-	'updates.clean_filters':
-		'“Clean Selection” is now “Clean Filters”; it clears active filters, not selected files.',
-	'updates.floating_toc':
-		'Floating TOC navigation, responsive density, and narrow toolbar behavior were hardened.',
-	'updates.files_explorer':
-		'Files gained recursive hold-to-expand, core open gestures, word/character metadata, and stronger menus.',
-	'updates.addons':
-		'Add-ons now include Iconic integration plus Snippets and Plugins explorers.',
+	'updates.notice': 'Vaultman {version} is ready. See the highlights.',
+	'updates.intro':
+		'Read a short, visual overview of this release. The full technical changelog is linked from the bulletin.',
+	'updates.view_bulletin': "What's new",
+	'updates.copy_url': 'Copy bulletin link',
+	'updates.url_copied': 'Bulletin link copied.',
+	'updates.open_failed':
+		'Could not open the bulletin. Use the Vaultman updates command to retry or copy its link.',
+	'updates.copy_failed': 'Could not copy the bulletin link.',
+	'updates.dismiss': 'Not now',
 	'updates.close': 'Got it',
 
 	// Toolbar

@@ -8,10 +8,12 @@ import {
 	parseVersion,
 	previousVersionForRelease,
 	renderReleaseNotes,
+	releaseBulletinAnchor,
 	resolveReleaseRequest,
 	resolveVersion,
 	selectChangeFragments,
 	updateChangelogLinks,
+	validateReleaseBulletin,
 	validateExplicitVersion,
 } from '../../scripts/release-core.mjs';
 
@@ -255,5 +257,91 @@ describe('release-note fragments', () => {
 		expect(result.packageJson.version).toBe('1.2.0-beta.2');
 		expect(result.manifest.version).toBe('1.2.0-beta.2');
 		expect(result.versions['1.2.0-beta.2']).toBe('1.12.0');
+	});
+});
+
+describe('tag-pinned release bulletin', () => {
+	const version = '1.3.0-beta.2';
+	const anchor = 'v1-3-0-beta-2';
+	const changelog = [
+		'# Changelog',
+		'',
+		'## [1.3.0-beta.2] - 2026-07-20',
+		'',
+		'### Added',
+		'',
+		'- A reviewed change.',
+	].join('\n');
+	const bulletin = [
+		'# What is new in Vaultman',
+		'',
+		`<a id="${anchor}"></a>`,
+		`## ${version} — Faster daily work`,
+		'<!-- reviewed: true -->',
+		'',
+		'- **Faster:** visible explorer rows settle first.',
+		'',
+		'![Explorer preview](../img/feature.png)',
+		'',
+		'[Full changelog](../CHANGELOG.md#130-beta2---2026-07-20)',
+		'',
+		'<a id="v1-3-0-beta-1"></a>',
+		'## 1.3.0-beta.1',
+	].join('\n');
+
+	it('shares the plugin anchor policy and returns relative targets for preflight', () => {
+		expect(releaseBulletinAnchor(version)).toBe(anchor);
+		expect(
+			validateReleaseBulletin({ bulletin, changelog, version }),
+		).toMatchObject({
+			anchor,
+			relativeTargets: [
+				'../img/feature.png',
+				'../CHANGELOG.md#130-beta2---2026-07-20',
+			],
+		});
+	});
+
+	it('requires explicit editorial review and a same-version changelog link', () => {
+		expect(() =>
+			validateReleaseBulletin({
+				bulletin: bulletin.replace('<!-- reviewed: true -->', ''),
+				changelog,
+				version,
+			}),
+		).toThrow('reviewed');
+		expect(() =>
+			validateReleaseBulletin({
+				bulletin: bulletin.replace('../CHANGELOG.md#', '../README.md#'),
+				changelog,
+				version,
+			}),
+		).toThrow('CHANGELOG');
+	});
+
+	it('rejects a changelog link whose fragment does not match the release heading', () => {
+		expect(() =>
+			validateReleaseBulletin({
+				bulletin: bulletin.replace(
+					'130-beta2---2026-07-20',
+					'wrong-release-anchor',
+				),
+				changelog,
+				version,
+			}),
+		).toThrow('exact CHANGELOG anchor');
+	});
+
+	it('rejects mutable-branch GitHub media in the target section', () => {
+		expect(() =>
+			validateReleaseBulletin({
+				bulletin: bulletin.replace(
+					'../img/feature.png',
+					'https://github.com/Meibbo/Vaultman/blob/dev/img/feature.png',
+				),
+				changelog,
+				version,
+			}),
+		).toThrow('mutable branch');
 	});
 });

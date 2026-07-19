@@ -6,7 +6,7 @@ import {
 	rmSync,
 	writeFileSync,
 } from 'node:fs';
-import { dirname, join, relative } from 'node:path';
+import { dirname, isAbsolute, join, relative, resolve } from 'node:path';
 import { createInterface } from 'node:readline/promises';
 import process from 'node:process';
 
@@ -15,10 +15,12 @@ import {
 	insertChangelogRelease,
 	parseChangeFragment,
 	previousVersionForRelease,
+	releaseBulletinAnchor,
 	renderReleaseNotes,
 	resolveReleaseRequest,
 	selectChangeFragments,
 	updateChangelogLinks,
+	validateReleaseBulletin,
 } from './release-core.mjs';
 
 const FLAGS = new Set(['--dry-run', '--prepare-only', '--yes']);
@@ -40,8 +42,10 @@ const RELEASE_FILES = [
 	'versions.json',
 	'CHANGELOG.md',
 	'RELEASE_NOTES.md',
+	'docs/whats-new.md',
 ];
 const REPOSITORY_URL = 'https://github.com/Meibbo/Vaultman';
+const BULLETIN_PATH = 'docs/whats-new.md';
 
 function executable(name) {
 	return name;
@@ -219,6 +223,61 @@ async function confirmRelease(options) {
 	}
 }
 
+function changelogForRelease(target, releaseNotes, tags) {
+	const previousVersion = previousVersionForRelease(target.version, tags);
+	let changelog = insertChangelogRelease(
+		readFileSync('CHANGELOG.md', 'utf8'),
+		target.version,
+		new Date().toISOString().slice(0, 10),
+		releaseNotes,
+	);
+	changelog = updateChangelogLinks(changelog, {
+		version: target.version,
+		previousVersion,
+		repositoryUrl: REPOSITORY_URL,
+	});
+	return changelog;
+}
+
+function ensureReleaseBulletinTargets(target, changelog) {
+	if (!existsSync(BULLETIN_PATH)) {
+		throw new Error(`Release bulletin is missing: ${BULLETIN_PATH}`);
+	}
+	const validation = validateReleaseBulletin({
+		bulletin: readFileSync(BULLETIN_PATH, 'utf8'),
+		changelog,
+		version: target.version,
+	});
+	const repositoryRoot = resolve(process.cwd());
+	for (const targetReference of validation.relativeTargets) {
+		const encodedPath = targetReference.split(/[?#]/u, 1)[0];
+		let decodedPath;
+		try {
+			decodedPath = decodeURIComponent(encodedPath);
+		} catch {
+			throw new Error(
+				`Release bulletin has an invalid encoded target: ${targetReference}`,
+			);
+		}
+		const targetPath = resolve(dirname(BULLETIN_PATH), decodedPath);
+		const repositoryRelative = relative(repositoryRoot, targetPath);
+		if (
+			repositoryRelative.startsWith('..') ||
+			isAbsolute(repositoryRelative)
+		) {
+			throw new Error(
+				`Release bulletin target escapes the repository: ${targetReference}`,
+			);
+		}
+		if (!existsSync(targetPath)) {
+			throw new Error(
+				`Release bulletin target does not exist: ${targetReference}`,
+			);
+		}
+	}
+	return validation;
+}
+
 function prepareMetadata(target, fragments, tags) {
 	const packageJson = readJson('package.json');
 	const manifest = readJson('manifest.json');
@@ -234,18 +293,7 @@ function prepareMetadata(target, fragments, tags) {
 		version: target.version,
 	});
 	const releaseNotes = renderReleaseNotes(fragments, target.version);
-	const previousVersion = previousVersionForRelease(target.version, tags);
-	let changelog = insertChangelogRelease(
-		readFileSync('CHANGELOG.md', 'utf8'),
-		target.version,
-		new Date().toISOString().slice(0, 10),
-		releaseNotes,
-	);
-	changelog = updateChangelogLinks(changelog, {
-		version: target.version,
-		previousVersion,
-		repositoryUrl: REPOSITORY_URL,
-	});
+	const changelog = changelogForRelease(target, releaseNotes, tags);
 
 	writeJson('package.json', metadata.packageJson);
 	writeJson('manifest.json', metadata.manifest);
@@ -351,7 +399,27 @@ function verifyPublishedRelease(target) {
 	if (missing.length > 0) {
 		throw new Error(`GitHub release is missing assets: ${missing.join(', ')}`);
 	}
+	verifyPublishedBulletin(target);
 	console.log(`Published ${target.version}: ${release.url}`);
+}
+
+function verifyPublishedBulletin(target) {
+	const record = JSON.parse(
+		output('gh', [
+			'api',
+			`repos/Meibbo/Vaultman/contents/${BULLETIN_PATH}?ref=${encodeURIComponent(target.version)}`,
+		]),
+	);
+	const source = Buffer.from(
+		String(record.content ?? '').replace(/\s/gu, ''),
+		'base64',
+	).toString('utf8');
+	const anchor = releaseBulletinAnchor(target.version);
+	if (!record.download_url || !source.includes(`<a id="${anchor}"></a>`)) {
+		throw new Error(
+			`Published bulletin URL or anchor is unavailable for ${target.version}.`,
+		);
+	}
 }
 
 async function main() {
@@ -375,6 +443,11 @@ async function main() {
 	const fragments = selectChangeFragments(loadFragments(), target.line);
 	const releaseNotes = renderReleaseNotes(fragments, target.version);
 	const alreadyPrepared = isAlreadyPrepared(target);
+	const candidateChangelog = alreadyPrepared
+		? readFileSync('CHANGELOG.md', 'utf8')
+		: changelogForRelease(target, releaseNotes, tags);
+	console.log('Checking release bulletin...');
+	ensureReleaseBulletinTargets(target, candidateChangelog);
 	printPlan(target, releaseNotes, options);
 	if (alreadyPrepared) console.log('\nThis release is already prepared; publication can resume.');
 	await confirmRelease(options);

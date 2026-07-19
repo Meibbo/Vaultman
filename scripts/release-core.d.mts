@@ -35,6 +35,12 @@ export interface ManifestMetadata extends Record<string, unknown> {
 }
 
 export function parseVersion(version: string): ParsedVersion;
+export function releaseBulletinAnchor(version: string): string;
+export function validateReleaseBulletin(input: {
+	bulletin: string;
+	changelog: string;
+	version: string;
+}): { anchor: string; relativeTargets: string[] };
 export function branchForChannel(
 	channel: ReleaseChannel,
 ): 'sandbox' | 'dev' | 'main';

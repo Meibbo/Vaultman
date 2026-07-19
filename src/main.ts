@@ -1,4 +1,4 @@
-import { MarkdownView, Plugin, TFile, WorkspaceLeaf } from 'obsidian';
+import { MarkdownView, Notice, Plugin, TFile, WorkspaceLeaf } from 'obsidian';
 import type { VaultmanSettings } from './types/typeSettings';
 import { DEFAULT_SETTINGS } from './types/typeSettings';
 import { PropertyIndexService } from './services/servicePropertyIndex';
@@ -30,7 +30,7 @@ import {
 import { createPerfProbe } from './dev/perfProbe';
 import { UpdatesModal } from './modals/modalUpdates';
 import {
-	CURRENT_UPDATES_VERSION,
+	openUpdatesBulletin,
 	shouldShowUpdates,
 } from './logic/logicUpdateNotice';
 import { applyGlassBlurSetting } from './logic/logicGlassBlur';
@@ -415,21 +415,49 @@ export class VaultmanPlugin extends Plugin {
 	}
 
 	private showUpdatesIfNeeded(): void {
+		const currentVersion = this.manifest.version;
 		if (
 			!shouldShowUpdates(
 				this.settings.lastSeenUpdatesVersion,
-				CURRENT_UPDATES_VERSION,
+				currentVersion,
 			)
 		) {
 			return;
 		}
-		this.settings.lastSeenUpdatesVersion = CURRENT_UPDATES_VERSION;
+		this.settings.lastSeenUpdatesVersion = currentVersion;
 		void this.saveData(this.settings);
-		this.openUpdates();
+		this.showUpdatesNotice(currentVersion);
 	}
 
 	private openUpdates(): void {
-		new UpdatesModal(this.app, CURRENT_UPDATES_VERSION).open();
+		new UpdatesModal(this.app, this.manifest.version).open();
+	}
+
+	private showUpdatesNotice(version: string): void {
+		const fragment = activeDocument.createDocumentFragment();
+		const message = activeDocument.createElement('div');
+		message.textContent = translate('updates.notice', { version });
+		fragment.appendChild(message);
+
+		const bulletinButton = activeDocument.createElement('button');
+		bulletinButton.className = 'mod-cta';
+		bulletinButton.textContent = translate('updates.view_bulletin');
+		fragment.appendChild(bulletinButton);
+
+		const dismissButton = activeDocument.createElement('button');
+		dismissButton.textContent = translate('updates.dismiss');
+		fragment.appendChild(dismissButton);
+
+		const notice = new Notice(fragment, 0);
+		bulletinButton.addEventListener('click', () => {
+			try {
+				openUpdatesBulletin(version);
+				notice.hide();
+			} catch {
+				new Notice(translate('updates.open_failed'));
+			}
+		});
+		dismissButton.addEventListener('click', () => notice.hide());
 	}
 
 	onSettingsChange(listener: () => void): () => void {

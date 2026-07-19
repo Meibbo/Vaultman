@@ -32,6 +32,127 @@ export function parseVersion(version) {
 	};
 }
 
+export function releaseBulletinAnchor(version) {
+	const parsed = parseVersion(version.trim());
+	return `v${parsed.raw.toLowerCase().replace(/[^a-z0-9]+/gu, '-')}`;
+}
+
+function escapeRegExp(value) {
+	return value.replace(/[.*+?^${}()|[\]\\]/gu, '\\$&');
+}
+
+function githubHeadingAnchor(heading) {
+	return heading
+		.trim()
+		.toLowerCase()
+		.replace(/[^\p{L}\p{N}\s-]/gu, '')
+		.replace(/\s/gu, '-');
+}
+
+function bulletinSection(bulletin, version) {
+	const anchor = releaseBulletinAnchor(version);
+	const markerPattern = new RegExp(
+		`<a\\s+id=["']${escapeRegExp(anchor)}["']\\s*><\\/a>`,
+		'iu',
+	);
+	const marker = markerPattern.exec(bulletin);
+	if (!marker) {
+		throw new Error(
+			`Release bulletin is missing the exact anchor ${anchor} for ${version}.`,
+		);
+	}
+	const afterMarker = bulletin.slice((marker.index ?? 0) + marker[0].length);
+	const nextMarker = /<a\s+id=["'][^"']+["']\s*><\/a>/iu.exec(afterMarker);
+	return {
+		anchor,
+		section:
+			nextMarker === null
+				? afterMarker
+				: afterMarker.slice(0, nextMarker.index),
+	};
+}
+
+function isMutableGithubMediaTarget(target) {
+	return (
+		/^https:\/\/github\.com\/Meibbo\/Vaultman\/(?:blob|raw)\/(?:main|dev|sandbox)(?:\/|$)/iu.test(
+			target,
+		) ||
+		/^https:\/\/raw\.githubusercontent\.com\/Meibbo\/Vaultman\/(?:main|dev|sandbox)(?:\/|$)/iu.test(
+			target,
+		)
+	);
+}
+
+export function validateReleaseBulletin({ bulletin, changelog, version }) {
+	const { anchor, section } = bulletinSection(bulletin, version);
+	const headingPattern = new RegExp(
+		`^##\\s+${escapeRegExp(version)}(?:\\s|$)`,
+		'mu',
+	);
+	if (!headingPattern.test(section)) {
+		throw new Error(`Release bulletin anchor ${anchor} has no ${version} heading.`);
+	}
+	if (!/<!--\s*reviewed:\s*true\s*-->/iu.test(section)) {
+		throw new Error(
+			`Release bulletin section ${version} must declare <!-- reviewed: true -->.`,
+		);
+	}
+	const changelogHeading = new RegExp(
+		`^##\\s+(\\[${escapeRegExp(version)}\\](?:\\s+-\\s+[^\\r\\n]+)?)\\s*$`,
+		'mu',
+	).exec(changelog)?.[1];
+	if (!changelogHeading) {
+		throw new Error(`CHANGELOG is missing the target release ${version}.`);
+	}
+	const expectedChangelogTarget = `../CHANGELOG.md#${githubHeadingAnchor(changelogHeading)}`;
+
+	const relativeTargets = [];
+	const markdownTargetPattern =
+		/(!?)\[([^\]]*)\]\(([^)\s]+)(?:\s+["'][^"']*["'])?\)/gu;
+	for (const match of section.matchAll(markdownTargetPattern)) {
+		const isImage = match[1] === '!';
+		const alt = match[2].trim();
+		const target = match[3].trim();
+		if (isImage && !alt) {
+			throw new Error(`Release bulletin ${version} has an image without alt text.`);
+		}
+		if (/^https?:\/\//iu.test(target)) {
+			if (isImage && isMutableGithubMediaTarget(target)) {
+				throw new Error(
+					`Release bulletin ${version} uses GitHub media from a mutable branch: ${target}`,
+				);
+			}
+			continue;
+		}
+		if (target.startsWith('#') || /^(?:mailto|obsidian):/iu.test(target)) {
+			continue;
+		}
+		if (target.startsWith('/')) {
+			throw new Error(
+				`Release bulletin ${version} target must be repository-relative: ${target}`,
+			);
+		}
+		relativeTargets.push(target);
+	}
+
+	if (
+		!relativeTargets.some((target) =>
+			/^\.\.\/CHANGELOG\.md#[^\s]+$/u.test(target),
+		)
+	) {
+		throw new Error(
+			`Release bulletin ${version} must link to ../CHANGELOG.md#<release-anchor>.`,
+		);
+	}
+	if (!relativeTargets.includes(expectedChangelogTarget)) {
+		throw new Error(
+			`Release bulletin ${version} must use the exact CHANGELOG anchor ${expectedChangelogTarget}.`,
+		);
+	}
+
+	return { anchor, relativeTargets };
+}
+
 export function branchForChannel(channel) {
 	const branch = CHANNEL_BRANCHES[channel];
 	if (!branch) {

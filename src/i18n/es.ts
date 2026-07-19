@@ -342,15 +342,16 @@ export const es: Record<string, string> = {
 		'No hay un campo de busqueda de Vaultman disponible.',
 	'command.open_updates': 'Abrir novedades de Vaultman',
 	'updates.title': 'Novedades de Vaultman · {version}',
-	'updates.intro': 'Cambios de esta beta:',
-	'updates.clean_filters':
-		'“Clean Selection” ahora es “Clean Filters”: limpia los filtros activos, no los archivos seleccionados.',
-	'updates.floating_toc':
-		'Se reforzaron la navegación del TOC flotante, la densidad responsiva y la barra estrecha.',
-	'updates.files_explorer':
-		'Files incorpora expansión recursiva por pulsación, gestos core, metadatos de palabras/caracteres y menús más completos.',
-	'updates.addons':
-		'Add-ons ahora incluye integración con Iconic y explorers de Snippets y Plugins.',
+	'updates.notice': 'Vaultman {version} está listo. Descubre lo más importante.',
+	'updates.intro':
+		'Consulta una presentación breve y visual de esta versión. El boletín enlaza al changelog técnico completo.',
+	'updates.view_bulletin': 'Ver novedades',
+	'updates.copy_url': 'Copiar enlace del boletín',
+	'updates.url_copied': 'Enlace del boletín copiado.',
+	'updates.open_failed':
+		'No se pudo abrir el boletín. Usa el comando de novedades de Vaultman para reintentar o copiar su enlace.',
+	'updates.copy_failed': 'No se pudo copiar el enlace del boletín.',
+	'updates.dismiss': 'Ahora no',
 	'updates.close': 'Entendido',
 
 	// Toolbar

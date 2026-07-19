@@ -1,12 +1,9 @@
-import { Modal } from 'obsidian';
+import { Modal, Notice } from 'obsidian';
 import { translate } from '../i18n/index';
-
-const UPDATE_ITEMS = [
-	'updates.clean_filters',
-	'updates.floating_toc',
-	'updates.files_explorer',
-	'updates.addons',
-] as const;
+import {
+	openUpdatesBulletin,
+	updatesUrlForVersion,
+} from '../logic/logicUpdateNotice';
 
 export class UpdatesModal extends Modal {
 	constructor(
@@ -21,15 +18,44 @@ export class UpdatesModal extends Modal {
 		this.titleEl.setText(translate('updates.title', { version: this.version }));
 		this.contentEl.empty();
 		this.contentEl.createEl('p', { text: translate('updates.intro') });
-		const list = this.contentEl.createEl('ul');
-		for (const key of UPDATE_ITEMS) {
-			list.createEl('li', { text: translate(key) });
-		}
-		const closeButton = this.contentEl.createEl('button', {
+
+		const actions = this.contentEl.createDiv({
+			cls: 'modal-button-container',
+		});
+		const bulletinButton = actions.createEl('button', {
 			cls: 'mod-cta',
+			text: translate('updates.view_bulletin'),
+		});
+		bulletinButton.addEventListener('click', () => {
+			try {
+				openUpdatesBulletin(this.version);
+			} catch {
+				new Notice(translate('updates.open_failed'));
+			}
+		});
+
+		const copyButton = actions.createEl('button', {
+			text: translate('updates.copy_url'),
+		});
+		copyButton.addEventListener('click', () => {
+			void this.copyBulletinUrl();
+		});
+
+		const closeButton = this.contentEl.createEl('button', {
 			text: translate('updates.close'),
 		});
 		closeButton.addEventListener('click', () => this.close());
+	}
+
+	private async copyBulletinUrl(): Promise<void> {
+		try {
+			await activeWindow.navigator.clipboard.writeText(
+				updatesUrlForVersion(this.version),
+			);
+			new Notice(translate('updates.url_copied'));
+		} catch {
+			new Notice(translate('updates.copy_failed'));
+		}
 	}
 
 	onClose(): void {
