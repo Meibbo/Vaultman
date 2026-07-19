@@ -108,6 +108,7 @@
 		toolbarShown = true,
 		savedLayouts = [],
 		onSaveLayout,
+		onLayoutLoaded,
 		app,
 		showTabLabels = true,
 		sortLevelInline = true,
@@ -142,6 +143,7 @@
 		toolbarShown?: boolean;
 		savedLayouts?: SavedLayout[];
 		onSaveLayout?: (layout: SavedLayout) => void;
+		onLayoutLoaded?: (layout: SavedLayout) => void;
 		app?: import('obsidian').App;
 		showTabLabels?: boolean;
 		sortLevelInline?: boolean;
@@ -485,6 +487,7 @@
 				applyInteractionMode(tab, nextInteraction[tab]);
 			}
 		}
+		onLayoutLoaded?.(layout);
 	}
 	let searchExpanded = $state(false);
 	let searchToggleActivationPending = false;

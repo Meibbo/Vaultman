@@ -88,6 +88,27 @@
 		void settingsRevision;
 		floatingTocEnabled = plugin.settings.floatingTocEnabled === true;
 	});
+	// D40: the floating index (on/off, kind, scope) rides in saved layouts.
+	function getFloatingTocState() {
+		return {
+			enabled: floatingTocEnabled,
+			kind: tocKind,
+			rootId: tocRootId,
+		};
+	}
+	function applyFloatingTocState(state?: {
+		enabled: boolean;
+		kind: 'files' | 'folders';
+		rootId: string | null;
+	}) {
+		if (!state) return;
+		floatingTocEnabled = state.enabled === true;
+		plugin.settings.floatingTocEnabled = floatingTocEnabled;
+		void plugin.saveData(plugin.settings);
+		tocKind = state.kind === 'files' ? 'files' : 'folders';
+		tocRootId = state.rootId || null;
+	}
+
 	function toggleFloatingToc() {
 		const decision = resolveFloatingTocToggle(
 			floatingTocEnabled,
@@ -1226,6 +1247,8 @@
 							{settingsRevision}
 							{floatingTocEnabled}
 							onToggleFloatingToc={toggleFloatingToc}
+			getFloatingTocState={getFloatingTocState}
+			applyFloatingTocState={applyFloatingTocState}
 							getSelectedFiles={() =>
 								fileList?.getSelectedFiles() ??
 								plugin.filterService.selectedFiles}

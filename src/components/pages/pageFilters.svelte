@@ -143,6 +143,8 @@
 		expansionRevision = 0,
 		floatingTocEnabled = false,
 		onToggleFloatingToc,
+		getFloatingTocState,
+		applyFloatingTocState,
 		icon,
 	}: {
 		plugin: VaultmanPlugin;
@@ -179,6 +181,10 @@
 		expansionRevision?: number;
 		floatingTocEnabled?: boolean;
 		onToggleFloatingToc?: () => void;
+		getFloatingTocState?: () => import('../../types/typeSettings').SavedFloatingTocState;
+		applyFloatingTocState?: (
+			state?: import('../../types/typeSettings').SavedFloatingTocState,
+		) => void;
 		icon: (el: HTMLElement, name: string) => any;
 	} = $props();
 
@@ -265,6 +271,7 @@
 		savedLayouts = plugin.settings.savedLayouts ?? [];
 	});
 	function saveLayout(layout: SavedLayout) {
+		layout.floatingToc = getFloatingTocState?.();
 		const next = [
 			...savedLayouts.filter((entry) => entry.name !== layout.name),
 			layout,
@@ -817,6 +824,7 @@
 			onToggleToolbar={toggleToolbar}
 			{savedLayouts}
 			onSaveLayout={saveLayout}
+			onLayoutLoaded={(layout) => applyFloatingTocState?.(layout.floatingToc)}
 			toolbarShown={showToolbar}
 			app={plugin.app}
 			{showTabLabels}

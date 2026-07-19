@@ -287,3 +287,11 @@ describe('perpendicular wall only — v13 canon (BT4-017 redo / D44-D45)', () =>
 		expect(floatingTocSource).not.toContain('monotonicSlide');
 	});
 });
+
+describe('layouts carry the floating index (BT4-016 / D40)', () => {
+	it('saves and restores enabled/kind/root scope through saved layouts', () => {
+		expect(frameSource).toContain('function getFloatingTocState()');
+		expect(frameSource).toContain('function applyFloatingTocState(');
+		expect(frameSource).toContain('rootId: tocRootId');
+	});
+});

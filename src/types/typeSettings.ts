@@ -16,11 +16,19 @@ export interface SavedViewConfig {
 	interactionMode?: InteractionMode;
 }
 
+/** Floating index state captured with a layout (D40). */
+export interface SavedFloatingTocState {
+	enabled: boolean;
+	kind: 'files' | 'folders';
+	rootId: string | null;
+}
+
 /** A named explorer layout: per-tab configs + a short human summary. */
 export interface SavedLayout {
 	name: string;
 	summary: string;
 	config: Record<string, SavedViewConfig>;
+	floatingToc?: SavedFloatingTocState;
 }
 
 export const FILES_HOVER_INFO_FIELDS = [
