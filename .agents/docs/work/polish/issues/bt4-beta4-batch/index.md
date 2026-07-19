@@ -41,6 +41,16 @@ shards: [[01-regressions|01 regresiones]] · [[02-bugs|02 bugs]] ·
 | BT4-022 | Explorers vacíos al volver de tab | 02 | ✅ `038b1278` (refreshViewport() en 5 paneles + rAF on-activate) |
 | BT4-023 | Custom icons only + change-icon props/tags | 02 | ✅ `d9443386` — gate exigía `openIconPicker` inexistente; ahora managers `onContextMenu(path,event)` (verificado runtime vivo) + rename; scope custom: re-verificar tras 024 |
 | BT4-024 | Refresh externo de Iconic | 02 | ✅ `09ae0859`+`8f054966` (watch mtime data.json 2.5s → reload+invalidate+notify; cubre todos los providers vía el service) |
+| BT4-025 | Hover info: toggle de label + TODOS los cells presentes/futuros (registro compartido de cells) | 03 | pending |
+| BT4-026 | Option: icon cell en el slot del caret | 03 | pending |
+| BT4-027 | Rework exclusión: files = FILTRO (como exclude-folder, por nodo, cualquier explorer); no-files = settings especiales | 03 | pending (rework de 015) |
+| BT4-028 | Toggle toolbar/dock (settings que re-renderizan) rompe algo — repro pendiente de detallar con dev | 02 | pending (frase cortada en el reporte; confirmar síntoma) |
+| BT4-029 | Engine "grid" → rename "cards" + box ajustado al contenido cuando no hay cells activos (no reservar espacio) | 03 | pending |
+| BT4-030 | Iconic round 3: watch 024 NO funciona (testing via obsidian-cli) · change-icon ribbon en plugins = doble cmenu y target equivocado → QUITAR; registro PROPIO de iconos para snippets/plugins (no existen en Iconic) con picker | 02 | pending |
+| BT4-031 | cell tasks no renderiza salvo que words/props esté activo (gate del badgeZone) | 02 | pending |
+| BT4-032 | Card "Tasks" en Statistics con los 3 scopes | 03 | pending |
+| BT4-033 | Icono del option tasks en viewmode → checkbox (círculo actual ilegible) | 02 | pending |
+| BT4-034 | Botón "view" en view configs / filter templates / operation presets: lista completa de lo que cargará (index, cells, by-level, sorts…) — no description, segundo botón | 03 | pending |
 | BT4-017 | Niagara: pared de desplazamiento según frame (proto v13) | 02 | ✅✅ `86512e06` — root cause REAL: host medía el wrap de 30px (offsetParent), no el viewport → room≈0 congelaba el rail y cap clavado en 40px; + stretch mode D45 (`tocStretch`) |
 | BT4-018 | Content search: pausar/reanudar | 02 | ✅ `7da6426d` (freeze parcial→filtro efectivo, quita loading, habilita replace; resume re-corre) |
 | BT4-019 | Content search: conteo de resultados ≠ core search (3 vs 1) | 02 | ✅ `a0e1e3f1` (offsets locales autoritativos) |
