@@ -1793,3 +1793,25 @@ broader "append-only status writes" is parked as **S-12** in
   patrón de verificación (correr suite ANTES del commit en comando separado).
 - **BT4 restante: SOLO BT4-013** (cmenu configurable + DnD hover-info) + 2
   residuales de 009 (popup parity, tags-toolbar sync D31).
+
+## 2026-07-18 — claude-fable-5 · fix · BT4-030 watch (root cause real) + 031/033
+
+- **Registrados BT4-025..034** (10 nuevos del dev). 028 quedó con frase cortada
+  en el reporte — pedir síntoma exacto al dev.
+- **031/033 ✅ `7dc846b5`**: tasks entra al gate de creación del badgeZone (solo
+  renderizaba si otro cell lo abría) + pill icon checkbox.
+- **BT4-030 watch ✅ `31657f56` — diagnóstico VIVO por obsidian-cli** (como pidió
+  el dev): (1) interval de 024 correcto pero **Electron background throttling
+  congela TODOS los timers del renderer** — control `setInterval` crudo = 0
+  ticks; (2) primer intento de fix (debounce) usó `window.setTimeout` = mismo
+  freeze; (3) trigger correcto = **`app.vault.on('raw')`** — dispara para
+  `.obsidian/plugins/iconic/data.json` incluso en background (verificado: 4
+  eventos por write). Final: raw event → sync directo con `_syncInFlight` +
+  baseline sembrado en load (la primera edición externa ya no se traga).
+  **Probado end-to-end vivo**: write externo → mapa del servicio actualizado
+  <2s (tres rondas, incluida primera-tras-reload).
+- **Doble cmenu ribbon QUITADO** de plugins (abría el menú de Iconic encima del
+  nuestro y apuntaba al ribbon action). La mitad pendiente de 030 = registro
+  PROPIO de iconos snippets/plugins + change-icon con picker (feature).
+- Lección: en Electron, cualquier watcher por timer muere en background; usar
+  eventos FS/workspace. Gates verdes 563 · sync · reload CLI en cada paso.

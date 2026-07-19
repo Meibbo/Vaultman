@@ -46,10 +46,10 @@ shards: [[01-regressions|01 regresiones]] · [[02-bugs|02 bugs]] ·
 | BT4-027 | Rework exclusión: files = FILTRO (como exclude-folder, por nodo, cualquier explorer); no-files = settings especiales | 03 | pending (rework de 015) |
 | BT4-028 | Toggle toolbar/dock (settings que re-renderizan) rompe algo — repro pendiente de detallar con dev | 02 | pending (frase cortada en el reporte; confirmar síntoma) |
 | BT4-029 | Engine "grid" → rename "cards" + box ajustado al contenido cuando no hay cells activos (no reservar espacio) | 03 | pending |
-| BT4-030 | Iconic round 3: watch 024 NO funciona (testing via obsidian-cli) · change-icon ribbon en plugins = doble cmenu y target equivocado → QUITAR; registro PROPIO de iconos para snippets/plugins (no existen en Iconic) con picker | 02 | pending |
-| BT4-031 | cell tasks no renderiza salvo que words/props esté activo (gate del badgeZone) | 02 | pending |
+| BT4-030 | Iconic round 3 | 02 | watch ✅ `31657f56` (root cause: throttling congela timers; trigger real = vault `raw` event, PROBADO vivo <2s) · doble-cmenu ribbon QUITADO · PENDIENTE: registro propio snippets/plugins + picker |
+| BT4-031 | tasks cell solo | 02 | ✅ `7dc846b5` (tasks entra al gate del badgeZone) |
 | BT4-032 | Card "Tasks" en Statistics con los 3 scopes | 03 | pending |
-| BT4-033 | Icono del option tasks en viewmode → checkbox (círculo actual ilegible) | 02 | pending |
+| BT4-033 | Icono tasks pill | 02 | ✅ `7dc846b5` (lucide-square-check-big) |
 | BT4-034 | Botón "view" en view configs / filter templates / operation presets: lista completa de lo que cargará (index, cells, by-level, sorts…) — no description, segundo botón | 03 | pending |
 | BT4-017 | Niagara: pared de desplazamiento según frame (proto v13) | 02 | ✅✅ `86512e06` — root cause REAL: host medía el wrap de 30px (offsetParent), no el viewport → room≈0 congelaba el rail y cap clavado en 40px; + stretch mode D45 (`tocStretch`) |
 | BT4-018 | Content search: pausar/reanudar | 02 | ✅ `7da6426d` (freeze parcial→filtro efectivo, quita loading, habilita replace; resume re-corre) |
