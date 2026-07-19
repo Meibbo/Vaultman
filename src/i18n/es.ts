@@ -149,6 +149,17 @@ export const es: Record<string, string> = {
 	'settings.background_blur.desc':
 		'Controla el desenfoque de cristal en la barra inferior y los popups.',
 	'settings.style_config': 'Ajustes de diseño',
+	'settings.toc_glyph_color': 'Color de glyphs',
+	'settings.toc_glyph_color.desc':
+		'Color de los glyphs del índice flotante.',
+	'settings.toc_glyph_color.default': 'Por defecto',
+	'settings.toc_glyph_color.accent': 'Acento',
+	'settings.toc_glyph_color.rainbow': 'Arcoíris',
+	'settings.toc_glyph_color_mode': 'Modo del color de glyphs',
+	'settings.toc_glyph_color_mode.desc':
+		'Aplicar el color solo con el rail estático, o en todo momento.',
+	'settings.toc_glyph_color_mode.static': 'Solo estático',
+	'settings.toc_glyph_color_mode.always': 'Siempre',
 	'settings.files_hover_info.tasks': 'Tareas pendientes',
 	'sort.by.tasks': 'Tareas pendientes',
 	'viewmode.pill.tasks': 'Tareas',

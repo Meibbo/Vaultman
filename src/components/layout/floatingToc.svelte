@@ -27,6 +27,10 @@
 		namePill: boolean;
 		/** D45: anchor the rail body and stretch the bell instead of sliding. */
 		stretch?: boolean;
+		/** BT4-021: glyph color (Obsidian color vars or rainbow). */
+		glyphColor?: string;
+		/** BT4-021: color applies only while static, or always. */
+		glyphColorMode?: 'static' | 'always';
 	}
 
 	export type FloatingTocActionId = NiagaraActionId;
@@ -453,6 +457,25 @@
 	}
 
 	// ─── Exact proto Niagara wave ───────────────────────────────────────────────
+	// BT4-021: glyph color. 'static' mode drops the color the moment the rail
+	// reacts (scrub engaged or displaced); 'always' keeps it.
+	const railStatic = $derived(!scrubbing || !engaged);
+	function glyphColorStyle(groupIndex: number): string {
+		const color = opts.glyphColor ?? 'default';
+		if (color === 'default') return '';
+		if ((opts.glyphColorMode ?? 'static') === 'static' && !railStatic) {
+			return '';
+		}
+		if (color === 'rainbow') {
+			const hue = Math.round(
+				(groupIndex * 360) / Math.max(1, groups.length),
+			);
+			return `color: hsl(${hue} 70% 60%);`;
+		}
+		if (color === 'accent') return 'color: var(--interactive-accent);';
+		return `color: var(--color-${color});`;
+	}
+
 	function entryTransform(index: number): string {
 		if (!niagara || !scrubbing || activeIdx < 0) return '';
 		const transform = niagaraNodeTransform(
@@ -565,7 +588,7 @@
 						aria-label={group.label}
 						use:tooltip={group.label}
 						use:registerTrackEntry={trackIndex}
-						style={entryTransform(trackIndex)}
+						style="{entryTransform(trackIndex)}{glyphColorStyle(i)}"
 						onclick={(event) => handleGroupClick(event, i)}
 					>
 						{#if opts.glyphMode === 'name'}

@@ -737,6 +737,48 @@ export class VaultmanSettingsTab extends PluginSettingTab {
 					.onChange((v) => setToc({ tocStretch: v })),
 			);
 		new Setting(containerEl)
+			.setName(translate('settings.toc_glyph_color'))
+			.setDesc(translate('settings.toc_glyph_color.desc'))
+			.addDropdown((dropdown) =>
+				dropdown
+					.addOptions({
+						default: translate('settings.toc_glyph_color.default'),
+						accent: translate('settings.toc_glyph_color.accent'),
+						red: 'Red',
+						orange: 'Orange',
+						yellow: 'Yellow',
+						green: 'Green',
+						cyan: 'Cyan',
+						blue: 'Blue',
+						purple: 'Purple',
+						pink: 'Pink',
+						rainbow: translate('settings.toc_glyph_color.rainbow'),
+					})
+					.setValue(this.plugin.settings.tocGlyphColor ?? 'default')
+					.onChange((v) =>
+						setToc({
+							tocGlyphColor:
+								v as import('../src/types/typeSettings').VaultmanSettings['tocGlyphColor'],
+						}),
+					),
+			);
+		new Setting(containerEl)
+			.setName(translate('settings.toc_glyph_color_mode'))
+			.setDesc(translate('settings.toc_glyph_color_mode.desc'))
+			.addDropdown((dropdown) =>
+				dropdown
+					.addOptions({
+						static: translate('settings.toc_glyph_color_mode.static'),
+						always: translate('settings.toc_glyph_color_mode.always'),
+					})
+					.setValue(this.plugin.settings.tocGlyphColorMode ?? 'static')
+					.onChange((v) =>
+						setToc({
+							tocGlyphColorMode: v === 'always' ? 'always' : 'static',
+						}),
+					),
+			);
+		new Setting(containerEl)
 			.setName(translate('settings.toc_drill_sync'))
 			.setDesc(translate('settings.toc_drill_sync.desc'))
 			.addToggle((t) =>

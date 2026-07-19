@@ -145,6 +145,8 @@
 			nameOrder: 'flat' as const,
 			namePill: false,
 			stretch: s.tocStretch === true,
+			glyphColor: s.tocGlyphColor ?? 'default',
+			glyphColorMode: s.tocGlyphColorMode ?? 'static',
 		};
 	});
 	const tocDrillSyncsSort = $derived.by(() => {

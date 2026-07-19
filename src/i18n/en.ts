@@ -152,6 +152,17 @@ export const en: Record<string, string> = {
 	'settings.background_blur.desc':
 		'Controls the glass blur on the bottom bar and popups.',
 	'settings.style_config': 'Layout Settings',
+	'settings.toc_glyph_color': 'Glyph color',
+	'settings.toc_glyph_color.desc':
+		'Color for the floating index glyphs.',
+	'settings.toc_glyph_color.default': 'Default',
+	'settings.toc_glyph_color.accent': 'Accent',
+	'settings.toc_glyph_color.rainbow': 'Rainbow',
+	'settings.toc_glyph_color_mode': 'Glyph color mode',
+	'settings.toc_glyph_color_mode.desc':
+		'Apply the color only while the rail is static, or at all times.',
+	'settings.toc_glyph_color_mode.static': 'Only while static',
+	'settings.toc_glyph_color_mode.always': 'Always',
 	'settings.files_hover_info.tasks': 'Remaining tasks',
 	'sort.by.tasks': 'Remaining tasks',
 	'viewmode.pill.tasks': 'Tasks',

@@ -139,6 +139,21 @@ export interface VaultmanSettings {
 	tocSoftScroll: boolean;
 	/** Anchor the rail body: the scrub bell stretches instead of sliding */
 	tocStretch: boolean;
+	/** Glyph color for the floating index (Obsidian color vars or rainbow) */
+	tocGlyphColor:
+		| 'default'
+		| 'accent'
+		| 'red'
+		| 'orange'
+		| 'yellow'
+		| 'green'
+		| 'cyan'
+		| 'blue'
+		| 'purple'
+		| 'pink'
+		| 'rainbow';
+	/** Apply the glyph color only while the rail is static, or always */
+	tocGlyphColorMode: 'static' | 'always';
 	/** Floating index drill also drives the sort scope (reset on index close) */
 	tocDrillSyncsSort: boolean;
 	/** Show By level options inline in the sort menu instead of a submenu */
@@ -243,6 +258,8 @@ export const DEFAULT_SETTINGS: VaultmanSettings = {
 	tocNamePill: false,
 	tocSoftScroll: false,
 	tocStretch: false,
+	tocGlyphColor: 'default',
+	tocGlyphColorMode: 'static',
 	tocDrillSyncsSort: false,
 	sortLevelInline: true,
 	excludedFilePaths: [],
