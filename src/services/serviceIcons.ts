@@ -95,7 +95,27 @@ export class IconicService extends Component {
 				window.setInterval(() => void this._syncExternalData(), 2500),
 			);
 		}
+		// The interval freezes under Electron background throttling (verified
+		// live: 0 ticks while the window is hidden), so the real trigger is the
+		// vault adapter's raw FS event, which fires for config-dir paths even
+		// in the background. The interval stays as a resume fallback.
+		const rawVault = this.app.vault as import('obsidian').Vault & {
+			on?: (
+				name: 'raw',
+				callback: (path: string) => void,
+			) => import('obsidian').EventRef;
+		};
+		const rawRef = rawVault.on?.('raw', (path: string) => {
+			if (path !== this._dataFilePath()) return;
+			// No window timers here: they freeze under background throttling
+			// (the very bug this replaces). The mtime guard plus an in-flight
+			// flag already coalesce the event bursts.
+			void this._syncExternalData();
+		});
+		if (rawRef) this.registerEvent(rawRef);
 	}
+
+	private _syncInFlight = false;
 
 	private _dataFileMtime = 0;
 
@@ -104,7 +124,16 @@ export class IconicService extends Component {
 	}
 
 	private async _syncExternalData(): Promise<void> {
-		if (!this.enabled) return;
+		if (!this.enabled || this._syncInFlight) return;
+		this._syncInFlight = true;
+		try {
+			await this._syncExternalDataInner();
+		} finally {
+			this._syncInFlight = false;
+		}
+	}
+
+	private async _syncExternalDataInner(): Promise<void> {
 		let mtime = 0;
 		try {
 			const stat = await this.app.vault.adapter.stat(this._dataFilePath());
@@ -113,9 +142,7 @@ export class IconicService extends Component {
 			return;
 		}
 		if (!mtime || mtime === this._dataFileMtime) return;
-		const isFirstObservation = this._dataFileMtime === 0;
 		this._dataFileMtime = mtime;
-		if (isFirstObservation) return;
 		await this.loadIcons();
 		this.notifyChanged();
 	}
@@ -243,6 +270,14 @@ export class IconicService extends Component {
 			}
 			this.loaded = true;
 			this._invalidateResolved();
+			// Seed the external-watch baseline at load so the FIRST outside
+			// edit is never mistaken for the initial observation.
+			try {
+				const stat = await this.app.vault.adapter.stat(this._dataFilePath());
+				if (stat?.mtime) this._dataFileMtime = stat.mtime;
+			} catch {
+				// Baseline stays as-is; the next sync will settle it.
+			}
 		} catch {
 			this.loaded = false;
 		} finally {

@@ -314,17 +314,6 @@ export class PluginsExplorerPanel
 
 	private openMenu(meta: PluginMeta, event: MouseEvent): void {
 		const menu = new Menu();
-		const ribbon = pluginRibbonItem(this.plugin.app, meta.pluginId);
-		if (ribbon && this.plugin.iconicService?.canChangeRibbonIcon()) {
-			menu.addItem((item) =>
-				item
-					.setTitle(translate('iconic.change_icon'))
-					.setIcon('lucide-image-plus')
-					.onClick(() => {
-						this.plugin.iconicService?.openRibbonIconMenu(ribbon.id, event);
-					}),
-			);
-		}
 		if (meta.isVaultman) {
 			menu.addItem((item) =>
 				item

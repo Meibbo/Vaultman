@@ -410,12 +410,52 @@ describe('external Iconic data watch (BT4-024)', () => {
 			service as unknown as { _syncExternalData(): Promise<void> }
 		)._syncExternalData.bind(service);
 
-		await sync(); // first observation: baseline only
+		// Baseline was seeded at load; an unchanged mtime is a no-op.
+		await sync();
 		expect(changed).not.toHaveBeenCalled();
 
 		payload = { tagIcons: { project: { icon: 'lucide-flame' } } };
 		mtime = 200;
 		await sync();
+		expect(changed).toHaveBeenCalledTimes(1);
+		expect(service.getTagIcon('project')).toEqual({ icon: 'lucide-flame' });
+	});
+});
+
+describe('raw-event driven external sync (BT4-030)', () => {
+	it('subscribes to the vault raw event for the iconic data path', async () => {
+		let rawHandler: ((path: string) => void) | null = null;
+		let payload = { tagIcons: { project: { icon: 'lucide-folder' } } };
+		let mtime = 100;
+		const app = {
+			vault: {
+				configDir: 'cfg',
+				adapter: {
+					read: async () => JSON.stringify(payload),
+					stat: async () => ({ mtime }),
+				},
+				on: (name: string, cb: (path: string) => void) => {
+					if (name === 'raw') rawHandler = cb;
+					return { unref: () => {} };
+				},
+			},
+		};
+		const service = new IconicService(app as never);
+		service.onload();
+		await new Promise((resolve) => setTimeout(resolve, 0));
+		expect(rawHandler).not.toBeNull();
+
+		// Baseline observation.
+		await (
+			service as unknown as { _syncExternalData(): Promise<void> }
+		)._syncExternalData();
+
+		const changed = vi.fn();
+		service.onChanged(changed);
+		payload = { tagIcons: { project: { icon: 'lucide-flame' } } };
+		mtime = 200;
+		rawHandler!('cfg/plugins/iconic/data.json');
+		await new Promise((resolve) => setTimeout(resolve, 0));
 		expect(changed).toHaveBeenCalledTimes(1);
 		expect(service.getTagIcon('project')).toEqual({ icon: 'lucide-flame' });
 	});
