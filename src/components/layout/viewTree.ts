@@ -730,6 +730,7 @@ export class UnifiedTreeView {
 			(showMtime && node.mtimeText) ||
 			(showCtime && node.ctimeText) ||
 			(showWords && node.wordCountText) ||
+			(showTasks && node.tasksText) ||
 			(showCount && node.count != null && node.count > 0) ||
 			(node.badges && node.badges.length > 0) ||
 			nodeCells.length > 0

@@ -266,6 +266,7 @@
 		config: 'lucide-settings',
 		installed: 'lucide-calendar-plus',
 		updated: 'lucide-calendar-clock',
+		tasks: 'lucide-square-check-big',
 	};
 	const SORT_OPTIONS: Record<
 		FiltersTab,
