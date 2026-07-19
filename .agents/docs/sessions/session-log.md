@@ -1815,3 +1815,14 @@ broader "append-only status writes" is parked as **S-12** in
   PROPIO de iconos snippets/plugins + change-icon con picker (feature).
 - Lección: en Electron, cualquier watcher por timer muere en background; usar
   eventos FS/workspace. Gates verdes 563 · sync · reload CLI en cada paso.
+
+## 2026-07-18 — claude-fable-5 · handoff · CORTE beta.4 → release codex
+
+- **028 aclarado**: toggle toolbar/dock **cuelga la app entera** (hang total) —
+  prioridad del siguiente patch. **035/036 registrados** (badge bubbling círculo
+  active solo-colapsado · flechas de sort con semántica flujo-de-lista).
+- **Corte dev**: no se trabaja más en este batch; todo pending → siguiente
+  patch. Codex hace el update release (`1.2.0-beta.4`). Handoff actualizado con
+  runbook + estado exacto.
+- Estado final rama `v12/bt4`: gates verdes (563/0), sync+reload verificados.
+  Room: scope docs liberado, task_033 released, agente fuera.

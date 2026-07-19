@@ -44,20 +44,25 @@ shards: [[01-regressions|01 regresiones]] · [[02-bugs|02 bugs]] ·
 | BT4-025 | Hover info: toggle de label + TODOS los cells presentes/futuros (registro compartido de cells) | 03 | pending |
 | BT4-026 | Option: icon cell en el slot del caret | 03 | pending |
 | BT4-027 | Rework exclusión: files = FILTRO (como exclude-folder, por nodo, cualquier explorer); no-files = settings especiales | 03 | pending (rework de 015) |
-| BT4-028 | Toggle toolbar/dock (settings que re-renderizan) rompe algo — repro pendiente de detallar con dev | 02 | pending (frase cortada en el reporte; confirmar síntoma) |
+| BT4-028 | Toggle toolbar/dock (settings que fuerzan re-render) **CUELGA LA APP ENTERA** | 02 | pending → SIGUIENTE PATCH (prioridad alta: hang) |
 | BT4-029 | Engine "grid" → rename "cards" + box ajustado al contenido cuando no hay cells activos (no reservar espacio) | 03 | pending |
 | BT4-030 | Iconic round 3 | 02 | watch ✅ `31657f56` (root cause: throttling congela timers; trigger real = vault `raw` event, PROBADO vivo <2s) · doble-cmenu ribbon QUITADO · PENDIENTE: registro propio snippets/plugins + picker |
 | BT4-031 | tasks cell solo | 02 | ✅ `7dc846b5` (tasks entra al gate del badgeZone) |
 | BT4-032 | Card "Tasks" en Statistics con los 3 scopes | 03 | pending |
 | BT4-033 | Icono tasks pill | 02 | ✅ `7dc846b5` (lucide-square-check-big) |
 | BT4-034 | Botón "view" en view configs / filter templates / operation presets: lista completa de lo que cargará (index, cells, by-level, sorts…) — no description, segundo botón | 03 | pending |
+| BT4-035 | Highlight badge bubbling: cell badge en el parent = círculo pequeño color active, visible SOLO colapsado (oculto extendido) | 03 | pending → siguiente patch |
+| BT4-036 | Flechas de sort al revés (ej. name A→Z apunta arriba; semántica dev = flecha indica flujo de la lista, A arriba→Z abajo = flecha abajo); auditar todas | 02 | pending → siguiente patch |
 | BT4-017 | Niagara: pared de desplazamiento según frame (proto v13) | 02 | ✅✅ `86512e06` — root cause REAL: host medía el wrap de 30px (offsetParent), no el viewport → room≈0 congelaba el rail y cap clavado en 40px; + stretch mode D45 (`tocStretch`) |
 | BT4-018 | Content search: pausar/reanudar | 02 | ✅ `7da6426d` (freeze parcial→filtro efectivo, quita loading, habilita replace; resume re-corre) |
 | BT4-019 | Content search: conteo de resultados ≠ core search (3 vs 1) | 02 | ✅ `a0e1e3f1` (offsets locales autoritativos) |
 | BT4-020 | Content search: refresh tras replace | 02 | ✅ `be2cce4a` (vault modify re-keys, debounce 400ms) |
 
-Orden recomendado: 002 → 001 → 003 → 008 → 004 → 006 → 007 → 005 → 009 → 011 →
-010 → 012 → 013. **001 y 009 comparten `navbarFilters.svelte`: serial.**
+**CORTE DEV 2026-07-18: el batch beta.4 queda CERRADO aquí.** Todo `pending`
+(013 · 025-029 · mitad-registro de 030 · 032 · 034 · 035 · 036 + residuales 009)
+pasa al SIGUIENTE PATCH. Codex ejecuta el update release (runbook
+[[docs/architecture/policies/release|policy release]]: FF `dev` → `v12/bt4`,
+`pnpm release beta 1.2` → `1.2.0-beta.4`).
 
 ## Reglas comunes
 

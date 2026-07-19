@@ -17,6 +17,25 @@ updated_by: codex-gpt-5
 Compact handoff after archiving the oversized current handoff:
 [[docs/archive/pkm-ai/active-docs/2026-05-11T080321-current-handoff|2026-05-11 handoff archive]].
 
+## NEXT AGENT START HERE — beta.4 LISTA para release (2026-07-18, corte dev)
+
+**Para codex (orden del dev): ejecutar el update release de `1.2.0-beta.4`.**
+
+- Worktree `C:/tmp/vaultman-release-beta2-final2`, rama **`v12/bt4`** (code-only,
+  cero `.agents`), apilada sobre `dev`=`fa48b96a` (beta.3). Working tree limpio.
+- Runbook: FF `dev` → tip de `v12/bt4` → `pnpm release beta 1.2` (resuelve
+  `1.2.0-beta.4`; preflight corre verify completo). Precedente beta.3 en
+  session-log 2026-07-18.
+- Gate al corte: **full unit 101 files / 563 tests 0 fail · check 0/0 · build ·
+  scorecard 17 · stylelint**; sync plugin-dev + `obsidian vault=plugin-dev
+  plugin:reload id=vaultman` verificados en cada slice.
+- Cerrados en beta.4: BT4-001..012, 014..024 (menos 013), 031, 033, y la mitad
+  watch de 030 (root cause throttling → vault `raw` event, probado vivo).
+- **Siguiente patch** (NO trabajar ahora, orden dev):
+  [[docs/work/polish/issues/bt4-beta4-batch/index|índice BT4]] filas pending —
+  028 (hang al toggle toolbar/dock, PRIORIDAD) · 013 · 025-027 · 029 · 030-registro
+  propio · 032 · 034 · 035 · 036 + residuales 009.
+
 ## NEXT AGENT START HERE — beta.3 publicada; ejecutar beta.4 BT4 (2026-07-18)
 
 **Estado:** `1.2.0-beta.3` PUBLICADA por orden del dev (aun con regresiones
