@@ -5,7 +5,7 @@ status: active
 lifecycle: active
 parent: "[[docs/work/polish/index|polish]]"
 created: 2026-07-19T08:02:57
-updated: 2026-07-19T12:43:51
+updated: 2026-07-19T13:38:07
 created_by: codex-gpt-5
 updated_by: codex-gpt-5
 tags:
@@ -44,6 +44,10 @@ la cola canónica para implementación nueva.
    apuntan a contenido mutable de `dev` o `main`.
 7. La colorización nativa de Vaultman será opt-in y compartirá una paleta semántica entre
    Floating Index y Explorer: default, faint, accent, custom y rainbow pastel.
+8. Snippets y Plugins tendrán sort `State` sobre el booleano/cell id existente `state`,
+   usando Name como desempate determinista; la primera dirección se confirma en triage.
+9. La fluidez del editor es un gate P0: ningún trabajo de una leaf Vaultman abierta puede
+   introducir stalls periódicos mientras el usuario escribe en otra nota.
 
 ## Orden canónico
 
@@ -52,6 +56,7 @@ la cola canónica para implementación nueva.
 | [[001-settings-rerender-hang|BT5-001]] | Hang por settings toolbar/dock/auto-reveal | P0 | AFK | BT4-028 | — |
 | [[002-workspace-leaf-reactivation-matrix|BT5-002]] | Explorer vacío al reactivar leaf: matriz de alcance | P0 | HITL | BT4-022 reabierto | — |
 | [[003-remaining-tasks-availability-pipeline|BT5-003]] | Remaining tasks: migración, hidratación y prioridad | P0 | AFK | regresión BT4-012 | — |
+| [[030-editor-typing-micro-stalls|BT5-030]] | Micro-cuelgues al escribir con una leaf Vaultman abierta | P0 | HITL | bug/regresión nuevo | — |
 | [[004-release-bulletin|BT5-004]] | Aviso in-app y boletín público acumulativo | P1 gate | HITL | nuevo | — |
 | [[005-sort-direction-semantics|BT5-005]] | Semántica global de sort arrows y defaults | P1 | AFK | BT4-036 + D4 | — |
 | [[006-contextual-expansion-action|BT5-006]] | Collapse/expand contextual a nested | P1 | AFK | nuevo | — |
@@ -68,6 +73,7 @@ la cola canónica para implementación nueva.
 | [[017-collapsed-badge-bubbling|BT5-017]] | Badge bubbling visible solo colapsado | P2 | AFK | BT4-035 | — |
 | [[018-files-context-menu-config|BT5-018]] | Context menu Files configurable | P2 | HITL | BT4-013 | — |
 | [[019-addon-icon-registry-picker|BT5-019]] | Registro/picker propio de iconos addon | P2 | AFK | residual BT4-030 | — |
+| [[029-addon-state-sort|BT5-029]] | State sort para Snippets y Plugins | P2 | AFK | nuevo | — |
 | [[020-view-config-payload-preview|BT5-020]] | Preview completo del payload de View configs | P2 | AFK | BT4-034 | — |
 | [[021-toolbar-overflow-strategy|BT5-021]] | Overflow toolbar: condensed o scroll horizontal | P2 | AFK | nuevo D5 | — |
 | [[022-create-actions-placement|BT5-022]] | Create File/Folder: searchbox o toolbar | P2 | AFK | nuevo | — |
@@ -92,7 +98,8 @@ Detalle técnico y gates: [[docs/work/polish/plans/2026-07-19-bt5-001-005/02-out
 
 ## Release gates
 
-- BT5-001, 002 y 003 bloquean cualquier candidato por hang, viewport vacío o datos stale.
+- BT5-001, 002, 003 y 030 bloquean cualquier candidato por hang, viewport vacío, datos
+  stale o degradación de la escritura de notas.
 - BT5-004 bloquea la publicación, no necesariamente el trabajo paralelo: cada target debe
   tener sección+anchor revisados en el boletín público, enlace al changelog y targets
   relativos válidos, aunque un hotfix use una sola línea breve.

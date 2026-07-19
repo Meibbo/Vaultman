@@ -5,7 +5,7 @@ status: active
 lifecycle: active
 parent: "[[docs/work/polish/index|Polish]]"
 created: 2026-07-19T10:32:00
-updated: 2026-07-19T12:43:51
+updated: 2026-07-19T13:38:07
 created_by: codex-gpt-5
 updated_by: codex-gpt-5
 tags: [agent/plan, initiative/polish, release/bt5]
@@ -21,6 +21,7 @@ must not be edited in the `sandbox` checkout and no additional worktree is creat
 
 - [[docs/work/polish/plans/2026-07-19-bt5-001-005/01-implementation-plan|Executable plan and adversarial pass]]
 - [[docs/work/polish/plans/2026-07-19-bt5-001-005/02-outcome-verification|Outcome, runtime evidence and remaining HITL]]
+- [[docs/work/polish/plans/2026-07-19-bt5-001-005/03-process-retrospective|Process retrospective and automation proposal]]
 
 ## Current checkpoint
 
@@ -30,3 +31,6 @@ must not be edited in the `sandbox` checkout and no additional worktree is creat
   green and scorecard 17/17. Final artifacts match `plugin-dev` byte-for-byte.
 - BT5-001 and BT5-005 are completed. BT5-002/003/004 retain only explicit HITL/release
   gates described in the outcome shard.
+- The retrospective separates unavoidable engineering work from coordination/tooling waste
+  and recommends a fail-closed session envelope, safe Obsidian launcher, structured gate
+  runner and named runtime scenarios before the next mixed multi-issue batch.
