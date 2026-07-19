@@ -57,7 +57,7 @@ I'm also releasing experimental versions for those who want to check the project
 ![Obsidian Downloads](https://img.shields.io/badge/dynamic/json?logo=obsidian&color=%23ffffff&label=downloads&query=%24%5B%22vaultman%22%5D.downloads&url=https%3A%2F%2Fraw.githubusercontent.com%2Fobsidianmd%2Fobsidian-releases%2Fmaster%2Fcommunity-plugin-stats.json&style=for-the-badge)![Total Downloads](https://img.shields.io/github/downloads/Meibbo/vaultman/total?color=white&label=Total%20Downloads&style=for-the-badge)![Stable version](https://img.shields.io/github/v/release/meibbo/vaultman?color=white&label=latest%20stable&logo=github&logoColor=white&style=for-the-badge)[![Stable downloads](https://img.shields.io/github/downloads/meibbo/vaultman/latest/main.js?color=white&label=downloads&style=for-the-badge)](https://github.com/meibbo/vaultman/releases)![Pre-release version](https://img.shields.io/github/v/release/meibbo/vaultman?include_prereleases&sort=semver&color=white&label=latest%20pre-release&style=for-the-badge&logo=github&logoColor=white)[![Pre-release downloads](https://img.shields.io/github/downloads-pre/meibbo/vaultman/latest/main.js?color=white&label=downloads&style=for-the-badge)](https://github.com/meibbo/vaultman/releases)
 
 ## Features
-
+![alt text](img/vm-systems-representation.svg)
 The main interface lives in the sidebar, with a toolbar that lets you choose its content depending of what you want to edit or visualize.
 
 You can make granular configurations to your experience from the extense number of options available on the plugin settings panel.
@@ -137,23 +137,24 @@ Modular panels designed to assist first hand your explorers navigation, order, l
 - **Floating Index**: First-letter rail on explorer edge. Scrub fast through long lists.
 
 ### Configuration
-
+![Node Composition](image.png)
 #### Style presets
 
 - Minimal
 - Experimental
 
-#### Explorer layouts
+#### View configs
+Each view has its own configuration options that can be customized to the user's preference.
 
-##### Engines
+As engines we actually have: Tree, table and grid.
 
-- tree
-- table
-- grid
+Every provider will have its own cell configuration and sort options to display its data.
 
-##### Cells
 
-etc.
+
+#### Filter templates
+
+#### Operation sets
 
 > (_this section is under maintenance_)
 

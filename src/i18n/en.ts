@@ -109,10 +109,10 @@ export const en: Record<string, string> = {
 	// Queue island
 	'queue.island.pending': 'pending changes',
 	'queue.island.empty': 'Queue is empty',
-	'queue.template.templates': 'Operations Presets',
-	'queue.template.save': 'Save action preset',
+	'queue.template.templates': 'Operation Sets',
+	'queue.template.save': 'Save operation set',
 	'queue.template.no_serializable':
-		'No queue operations can be saved as an action preset',
+		'No queue operations can be saved as an operation set',
 	'queue.template.bulk_title': 'Large operation target',
 	'queue.template.bulk_desc':
 		'This action preset will stage {count} of {total} files from {source}. Review the queue before applying.',
@@ -327,7 +327,7 @@ export const en: Record<string, string> = {
 	'floating_toc.back': 'Back one level',
 	'floating_toc.incompatible_sort':
 		'The index requires a text-based sort (name, path, or extension) in the active explorer.',
-	'settings.queue_templates.desc': 'Manage saved staged operation presets',
+	'settings.queue_templates.desc': 'Manage saved staged operation sets',
 
 	// Main view
 	'view.main.title': 'Vaultman',
