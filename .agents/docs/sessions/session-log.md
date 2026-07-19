@@ -1826,3 +1826,25 @@ broader "append-only status writes" is parked as **S-12** in
   runbook + estado exacto.
 - Estado final rama `v12/bt4`: gates verdes (563/0), sync+reload verificados.
   Room: scope docs liberado, task_033 released, agente fuera.
+
+## 2026-07-18 — codex-gpt5-root · release · `1.2.0-beta.4`
+
+- Preflight reprodujo tres bloqueos reales: archivo basura untracked en el worktree,
+  10 errores del nuevo ESLint Obsidian y `RELEASE_NOTES.md`/fragments todavía en
+  beta.3. El archivo untracked se eliminó por orden explícita del dev.
+- Fix técnico `f46bd03b`: timers diferidos de Iconic usan la ventana del workspace
+  o `activeWindow` (popout-safe), tests Node usan scheduler explícito, stubs usan
+  `vault.configDir` neutral y los tres `.svelte` beta.4 quedaron formateados.
+- Curación release `81419906`: 14 fragments revisados cubren features/fixes reales
+  beta.4; `renderReleaseNotes` ya no imprime `# <version>` redundante (CHANGELOG
+  conserva su heading propio). Tests de automatización 25/25.
+- Dry-run canónico `pnpm release -- beta 1.2 --dry-run` resolvió exactamente
+  `1.2.0-beta.4`, branch `dev`, notas acumulativas correctas, sin mutaciones.
+- Publicación ejecutada con `pnpm release -- beta 1.2 --yes`: `dev` FF desde
+  `v12/bt4`, commit release `f22ae806`, push `dev`, tag `1.2.0-beta.4`, workflow
+  Release `29671245720` verde y prerelease publicada:
+  https://github.com/Meibbo/Vaultman/releases/tag/1.2.0-beta.4.
+- Evidencia fresca local + CI: 101 unit files / 563 tests, svelte-check 0/0,
+  ESLint, Prettier, Stylelint, build plugin, scorecard 17, audit producción sin
+  vulnerabilidades. GitHub verificó `main.js`, `manifest.json`, `styles.css`;
+  tag, `origin/dev` y HEAD coinciden en `f22ae806`.

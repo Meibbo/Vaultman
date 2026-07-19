@@ -5,11 +5,11 @@ status: active
 parent: "[[docs/work/pkm-ai/index|pkm-ai]]"
 archive_source: docs/archive/pkm-ai/active-docs/2026-05-11T080321-current-handoff.md
 created: 2026-05-04T01:36:20
-updated: 2026-07-17T16:49:17
+updated: 2026-07-18T22:12:00
 tags:
   - agent/current
 created_by: dec
-updated_by: codex-gpt-5
+updated_by: codex-gpt5-root
 ---
 
 # Current Handoff
@@ -17,18 +17,20 @@ updated_by: codex-gpt-5
 Compact handoff after archiving the oversized current handoff:
 [[docs/archive/pkm-ai/active-docs/2026-05-11T080321-current-handoff|2026-05-11 handoff archive]].
 
-## NEXT AGENT START HERE — beta.4 LISTA para release (2026-07-18, corte dev)
+## NEXT AGENT START HERE — beta.4 PUBLICADA (2026-07-18)
 
-**Para codex (orden del dev): ejecutar el update release de `1.2.0-beta.4`.**
+**`1.2.0-beta.4` ya fue publicada; no repetir el release.**
 
-- Worktree `C:/tmp/vaultman-release-beta2-final2`, rama **`v12/bt4`** (code-only,
-  cero `.agents`), apilada sobre `dev`=`fa48b96a` (beta.3). Working tree limpio.
-- Runbook: FF `dev` → tip de `v12/bt4` → `pnpm release beta 1.2` (resuelve
-  `1.2.0-beta.4`; preflight corre verify completo). Precedente beta.3 en
-  session-log 2026-07-18.
-- Gate al corte: **full unit 101 files / 563 tests 0 fail · check 0/0 · build ·
-  scorecard 17 · stylelint**; sync plugin-dev + `obsidian vault=plugin-dev
-  plugin:reload id=vaultman` verificados en cada slice.
+- `dev` + tag `1.2.0-beta.4` + GitHub release = `f22ae806` (`chore(release):
+  prepare 1.2.0-beta.4`). Release:
+  https://github.com/Meibbo/Vaultman/releases/tag/1.2.0-beta.4.
+- Workflow `29671245720` completado verde: verify **101 files / 563 tests**,
+  check 0/0, lint, format, stylelint, build, scorecard 17, audit producción,
+  attest, upload y publish. Assets: `main.js`, `manifest.json`, `styles.css`.
+- Preflight fixes antes del release: `f46bd03b` (timers popout-safe, stubs
+  configDir, formato beta.4) + `81419906` (fragments reales beta.4 + release
+  notes sin header redundante). Worktree `C:/tmp/vaultman-release-beta2-final2`
+  quedó en `dev`, limpio y sincronizado con `origin/dev`.
 - Cerrados en beta.4: BT4-001..012, 014..024 (menos 013), 031, 033, y la mitad
   watch de 030 (root cause throttling → vault `raw` event, probado vivo).
 - **Siguiente patch** (NO trabajar ahora, orden dev):
