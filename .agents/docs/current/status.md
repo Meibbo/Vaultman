@@ -5,11 +5,11 @@ status: active
 parent: "[[docs/work/pkm-ai/index|pkm-ai]]"
 archive_source: docs/archive/pkm-ai/active-docs/2026-05-11T080321-current-status.md
 created: 2026-05-04T01:36:20
-updated: 2026-07-18T22:12:00
+updated: 2026-07-19T08:02:57
 tags:
   - agent/current
 created_by: dec
-updated_by: codex-gpt5-root
+updated_by: codex-gpt-5
 ---
 
 # Current Status
@@ -38,7 +38,8 @@ Compact route index after archiving the oversized current status:
   Assets verificados: `main.js`, `manifest.json`, `styles.css`; GitHub prerelease,
   no draft: https://github.com/Meibbo/Vaultman/releases/tag/1.2.0-beta.4.
   Las notas acumulan fragments beta.4 revisados y ya no duplican el header de versión.
-  Siguiente patch: pendientes declarados en el índice BT4 (prioridad BT4-028 hang).
+  Siguiente tren canónico: [[docs/work/polish/issues/bt5-next-release/index|BT5-001..024]]
+  (destino beta.5 vs stable pendiente; P0 = hang, leaf vacío y tasks availability).
 - **LATEST (2026-07-18, claude-fable-5):** **`1.2.0-beta.3` PUBLICADA (orden dev) +
   beta.4 planificada.** Release: dev FF a `7ba6a3c9` (BT3-001..009 de codex) +
   `fa48b96a` fix guard scorecard stale (blur refactor `logicGlassBlur`) →

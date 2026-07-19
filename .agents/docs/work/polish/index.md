@@ -4,7 +4,8 @@ type: initiative-index
 status: active
 parent: "[[docs/work/pkm-ai/index|pkm-ai]]"
 created: 2026-05-04T01:44:46
-updated: 2026-05-17T11:49:10
+updated: 2026-07-19T08:02:57
+updated_by: codex-gpt-5
 tags:
   - agent/work
   - initiative/polish
@@ -23,6 +24,8 @@ and non-blocking UX improvements.
 
 ## Active Specs
 
+- **[[docs/work/polish/issues/bt5-next-release/index|BT5 next 1.2 release train]]**
+  — 24 tracer issues post-beta.4; destino beta.5 vs stable pendiente de decisión.
 - **[[docs/work/polish/specs/2026-07-14-v1-2-floating-toc/index|v1.2 Floating TOC]]**
   (port Niagara Index proto-v12 → línea 1.x; release `1.2.0` con betas BRAT) + issue-set
   [[docs/work/polish/issues/ftc-floating-toc/index|FTC-001..006]].

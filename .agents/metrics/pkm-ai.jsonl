@@ -246,3 +246,17 @@
 {"ts":"2026-07-10T12:55:32","event":"health_failed","path":".agents/docs","detail":"107 failures"}
 {"ts":"2026-07-10T12:57:59","event":"health_failed","path":".agents/docs","detail":"107 failures"}
 {"ts":"2026-07-10T12:58:51","event":"health_failed","path":".agents/docs","detail":"107 failures"}
+{"ts":"2026-07-17T21:56:28","event":"health_failed","path":".agents/docs","detail":"4 failures"}
+{"ts":"2026-07-17T21:57:12","event":"health_passed","path":".agents/docs","detail":"0 warnings"}
+{"ts":"2026-07-19T13:14:39","event":"health_failed","path":".agents/docs","detail":"5 failures"}
+{"ts":"2026-07-19T13:15:17","event":"health_passed","path":".agents/docs","detail":"0 warnings"}
+{"ts":"2026-07-19T13:20:04","event":"health_passed","path":".agents/docs","detail":"0 warnings"}
+{"ts":"2026-07-19T13:25:00","event":"health_passed","path":".agents/docs","detail":"0 warnings"}
+{"ts":"2026-07-19T13:27:21","event":"health_passed","path":".agents/docs","detail":"0 warnings"}
+{"ts":"2026-07-19T14:00:24","event":"health_passed","path":".agents/docs","detail":"0 warnings"}
+{"ts":"2026-07-19T14:03:05","event":"health_passed","path":".agents/docs","detail":"0 warnings"}
+{"ts":"2026-07-19T14:04:14","event":"health_passed","path":".agents/docs","detail":"0 warnings"}
+{"ts":"2026-07-19T17:47:26","event":"health_failed","path":".agents/docs","detail":"9 failures"}
+{"ts":"2026-07-19T17:48:35","event":"health_passed","path":".agents/docs","detail":"0 warnings"}
+{"ts":"2026-07-19T18:41:57","event":"health_passed","path":".agents/docs","detail":"0 warnings"}
+{"ts":"2026-07-19T18:45:20","event":"health_passed","path":".agents/docs","detail":"0 warnings"}

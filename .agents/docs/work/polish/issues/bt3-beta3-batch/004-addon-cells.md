@@ -1,5 +1,5 @@
 ---
-title: BT3-004 — Addon cells: toggle nativo + gear config
+title: "BT3-004 — Addon cells: toggle nativo + gear config"
 type: issue
 status: pending
 parent: "[[docs/work/polish/issues/bt3-beta3-batch/index|BT3 index]]"

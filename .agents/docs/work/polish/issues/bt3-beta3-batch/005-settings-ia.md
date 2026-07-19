@@ -1,5 +1,5 @@
 ---
-title: BT3-005 — Settings IA: renames, defaults, blur gate
+title: "BT3-005 — Settings IA: renames, defaults, blur gate"
 type: issue
 status: pending
 parent: "[[docs/work/polish/issues/bt3-beta3-batch/index|BT3 index]]"

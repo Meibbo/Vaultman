@@ -5,11 +5,11 @@ status: active
 parent: "[[docs/work/pkm-ai/index|pkm-ai]]"
 archive_source: docs/archive/pkm-ai/active-docs/2026-05-11T080321-current-handoff.md
 created: 2026-05-04T01:36:20
-updated: 2026-07-18T22:12:00
+updated: 2026-07-19T08:02:57
 tags:
   - agent/current
 created_by: dec
-updated_by: codex-gpt5-root
+updated_by: codex-gpt-5
 ---
 
 # Current Handoff
@@ -33,10 +33,10 @@ Compact handoff after archiving the oversized current handoff:
   quedó en `dev`, limpio y sincronizado con `origin/dev`.
 - Cerrados en beta.4: BT4-001..012, 014..024 (menos 013), 031, 033, y la mitad
   watch de 030 (root cause throttling → vault `raw` event, probado vivo).
-- **Siguiente patch** (NO trabajar ahora, orden dev):
-  [[docs/work/polish/issues/bt4-beta4-batch/index|índice BT4]] filas pending —
-  028 (hang al toggle toolbar/dock, PRIORIDAD) · 013 · 025-027 · 029 · 030-registro
-  propio · 032 · 034 · 035 · 036 + residuales 009.
+- **Siguiente tren autorizado para backlog:**
+  [[docs/work/polish/issues/bt5-next-release/index|BT5-001..024]], renumerado por
+  prioridad/dependencias. Destino de publicación aún `1.2.0-beta.5` vs `1.2.0`
+  stable. BT4 queda histórico; P0 BT5 = 001 hang · 002 leaf vacío · 003 tasks.
 
 ## NEXT AGENT START HERE — beta.3 publicada; ejecutar beta.4 BT4 (2026-07-18)
 

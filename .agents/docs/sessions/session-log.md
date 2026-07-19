@@ -1848,3 +1848,115 @@ broader "append-only status writes" is parked as **S-12** in
   ESLint, Prettier, Stylelint, build plugin, scorecard 17, audit producción sin
   vulnerabilidades. GitHub verificó `main.js`, `manifest.json`, `styles.css`;
   tag, `origin/dev` y HEAD coinciden en `f22ae806`.
+
+## 2026-07-19 — codex-gpt5-root · triage/diagnose · post-beta.4
+
+- Reconciliación: el ledger/tablero BT4 conserva estados obsoletos para 012/014/015/016;
+  el session-log y sus commits confirman que sí cerraron. Carry real al siguiente tren:
+  residual 009, 013, 025-030 (030 parcial), 032 y 034-036.
+- El nuevo repro de explorer vacío reabre BT4-022: su fix observa el tab interno de
+  Vaultman, no la reactivación del `WorkspaceLeaf`; diagnóstico provisional pendiente de
+  RED/runtime al implementar.
+- Remaining tasks, verificado en código e IndexedDB vivo de `Start of The Road`: `tasks`
+  comparte el record persistido con las demás estadísticas, pero records legacy sin ese
+  campo pasan el freshness gate y la notificación `changed` solo repinta `words`. Probe:
+  3,286 Markdown, 2,729 records actuales sin `tasks`, 2,990 persistidos sin `tasks`.
+  El scan es secuencial en orden de entrada; propuesta: visible-first, luego mtime desc,
+  con backfill time-sliced y garantía de progreso.
+- El modal in-app sigue cableado a `1.2.0-beta.2` y cuatro items beta.2; release automation
+  no lo valida/genera. Propuesta: una sola fuente curada por fragments + preflight que
+  aborte si la payload/version del welcome no coincide con el target.
+- Pase adversarial: no importar el ActionNode 2.0 a 1.2; IDs de comandos desaparecidos
+  deben degradar de forma visible; prioridad de mtime no puede causar starvation; el modo
+  activation queda opt-in y debe preservar layouts fixed existentes.
+- Baseline focal sin cambios: 3 archivos / 43 tests verdes; no existe cobertura de tasks
+  en esos tests. Issue-set release-neutral `V12-NEXT` bosquejado; publicación espera que
+  el dev defina semántica de Path y apruebe el desglose.
+
+## 2026-07-19 — codex-gpt5-root · update/backlog · BT5 publicado localmente
+
+- El dev aprobó el desglose con cambios: D1 debe probar una matriz y demostrar alcance;
+  D2 debe ser boletín breve/editable con media opcional y changelog anexo; D4 se fusiona
+  con el audit de flechas; D5 oculta solo la acción expansion y añade overflow
+  `condensed menu | horizontal scroll`; Path muestra `file.path`, Name sort=`file.name`
+  y Path sort=`file.path`.
+- Creado [[docs/work/polish/issues/bt5-next-release/index|BT5-001..024]], target estable
+  entre beta.5 y stable. Orden: P0 hang/leaf/tasks; release bulletin gate; correctness;
+  shared cell registry; features de cells/layout/cmenu/icons; toolbar/commands.
+- BT4-009 residual se dividió en popup parity y tags scope sync; hover-info DnD pasó al
+  registro shared cells. El índice BT4 quedó closed/superseded con mapa old→BT5 y estados
+  históricos 012/014/015/016 corregidos desde los commits del session-log.
+- D2 compara hybrid curated (recomendado), fragments-only y link-only; además gatea
+  delivery auto/prompt/manual (prompt no bloqueante recomendado) y media embedded/remote/
+  extra-assets. No hay opt-out silencioso: todo target lleva boletín, incluso hotfix breve.
+- Pase adversarial añadió: no starvation stats, no ActionNode 2.0 en 1.2, affordance para
+  scroll horizontal, command actions solo explícitas/manuales y storage Last opened local
+  path+timestamp.
+- Verificación fresca: doc-health focal OK; frontmatter de status/handoff/session-log OK;
+  diff-check exit 0; 24 issue files/24 ids únicos; wikilinks OK; todos los shards <=88 líneas.
+  `index-docs.ts` no pudo regenerar el índice global por YAML roto preexistente en BT3-004
+  (`title` con colon sin quotes), fuera de scope. Sin código, commit, push o tag. Untracked
+  ajeno `img/vm-systems-representation.svg` apareció durante el turno y quedó intacto.
+
+## 2026-07-19 — codex-gpt5-root · update/backlog · BT5-004 público + índice reparado
+
+- BT5-004 quedó reformulado como aviso no bloqueante que abre, solo por acción explícita,
+  un boletín público acumulativo propuesto en `docs/whats-new.md`; el plugin no empaqueta
+  ni descarga cuerpo o media. El documento queda newest-first, con anchor por versión,
+  imágenes relativas al repo y changelog técnico como anexo.
+- Pase adversarial registrado: pérdida de lectura offline y continuidad in-app, GitHub o
+  `openExternal` indisponible, crecimiento del documento, anchor rot y allowlist HTTPS.
+  Stable recibe síntesis editorial desde la stable anterior, no concatenación de betas.
+- Gate HITL restante: URL fijada al tag (reproducible, recomendada) vs rama del canal
+  (corregible post-release, pero mutable). Landing/GitHub Pages se descartó por complejidad.
+- La causa YAML era un patrón repetido: colon+espacio dentro de un scalar `title` sin
+  quotes. Se entrecomillaron únicamente BT3-004 y BT3-005; no apareció otro match igual.
+- Verificación fresca: doc-health focal OK; `index-docs.ts` indexó 1,046 documentos y el
+  retrieval semántico 991 (862 embeddings reutilizados); `query-docs.ts` recuperó BT5-004;
+  `git diff --check` exit 0. Se mantuvo branch `sandbox`; README, `docs/` público y el SVG
+  ajeno no se tocaron. Sin código, commit, push o tag.
+
+## 2026-07-19 — codex-gpt5-root · implement · BT5-001..005
+
+- En el worktree instalado `C:/tmp/vaultman-release-beta2-final2` se preservó el checkpoint
+  del dev `1bedd4ce`, se creó la rama `codex/bt5-001-005` y se commiteó producto en dos
+  unidades: `c60e3bc7` (lifecycle/settings/statistics/sort) y `14de6fbb` (boletín y policy
+  de release). El worktree quedó limpio; no hubo push, tag, merge ni worktree adicional.
+- BT5-001 y 005 quedaron completed. BT5-002 conserva matriz visual sidebar/popout/view
+  modes HITL; BT5-003 conserva benchmark del vault grande HITL; BT5-004 conserva revisión
+  editorial y check post-tag. Resultado completo en
+  `plans/2026-07-19-bt5-001-005/02-outcome-verification.md`.
+- Gate fresco `pnpm run verify`: ESLint, TS/Svelte 0/0, format, stylelint, build, 105 test
+  files/594 tests y scorecard 17/17 verdes. Build final sincronizado solo a `plugin-dev`;
+  SHA-256 de main/manifest/styles idénticos y reload sin errores.
+- Smokes explícitos `vault=plugin-dev`: 18 toggles + Auto-reveal sin remount/listener leak;
+  main leaf focused/unfocused volvió con 45 filas sin scroll; 10 stats visibles en 416.5 ms
+  y 85 totales en 10,329.5 ms con orden exacto y persistencia 85/85; modal beta.4 correcto.
+- `test:integrity` no se reejecutó: su global setup usa un vault registrado arbitrario como
+  transporte IPC. El intento anterior se detuvo al resolver `vault-cms`; desde la instrucción
+  del dev, ningún comando Obsidian omitió `vault=plugin-dev` ni probó otro vault.
+- Memoria BT5 focal validada con `check-doc-health.ts` y `git diff --check`: OK. El resto del
+  sandbox dirty y el SVG ajeno permanecieron intactos.
+
+## 2026-07-19 — codex-gpt5-root · review/update · retrospectiva BT5 + 029/030
+
+- Evaluación crítica source-backed del batch BT5-001..005 registrada en
+  `plans/2026-07-19-bt5-001-005/03-process-retrospective.md`. Veredicto: los cinco IDs
+  cruzaron cinco seams reales, pero hubo overhead evitable. Evidencia dura del cierre:
+  462.1 s de gates/build útiles y al menos 369 s perdidos en tres intentos opacos que
+  dejaron Vitest descendants; además, el contrato worktree/vault no estaba machine-readable.
+- Prioridad de automatización: (P0) session envelope/preflight fail-closed, launcher Obsidian
+  que exige `plugin-dev`, gate runner con lock/PID-tree/timings y runtime scenarios nombrados;
+  (P1) ruta startup compacta, index/query diagnostics, graph hygiene y gate matrix por issue.
+  Estimación explícita, no garantía: batch comparable 40-50 min y 35-50% menos tokens sin
+  retirar el full final gate ni aceptación HITL.
+- Añadido BT5-029: sort option `State` compartido por Snippets/Plugins sobre el cell id
+  real `state`; enabled-first queda recomendado hasta triage, Name es tie-break.
+- Añadido BT5-030 P0/HITL: micro-cuelgues al escribir cuando Vaultman se reactiva con una
+  leaf abierta. La matriz A/B debe atribuir el productor antes del fix; polls 2500 ms de
+  Snippets/Plugins/Iconic, statistics modify y metadata renders son hipótesis, no causas.
+  Es release blocker y todo runtime modificado queda restringido a `vault=plugin-dev`.
+- Commit local-only `8cd450f6` contiene exactamente 5 archivos canónicos. Doc health focal
+  OK; 30 issues/30 IDs; `diff --check` OK; índice 1056 docs/1001 retrieval; consultas cortas
+  recuperan BT5-029/030, mientras consultas largas siguen sin explicar zero-result. Sin
+  código de producto, Obsidian, push, tag ni merge; dirty ajeno preservado.
