@@ -33,6 +33,8 @@ export interface StatisticsSnapshot {
 	tags: number;
 	links: number;
 	words: number;
+	/** BT5-014: sum of unchecked inline tasks across the scoped files. */
+	tasks: number;
 	cacheHits: number;
 	filesRead: number;
 	durationMs: number;
@@ -470,6 +472,7 @@ export class StatisticsCacheService extends Component {
 		let filesRead = 0;
 		let totalLinks = 0;
 		let totalWords = 0;
+		let totalTasks = 0;
 		const props = new Set<string>();
 		const values = new Set<string>();
 		const tags = new Set<string>();
@@ -495,6 +498,7 @@ export class StatisticsCacheService extends Component {
 
 					totalLinks += fileStats.links;
 					totalWords += fileStats.words;
+					totalTasks += fileStats.tasks ?? 0;
 					for (const prop of fileStats.props) props.add(prop);
 					for (const value of fileStats.values) values.add(value);
 					for (const tag of fileStats.tags) tags.add(tag);
@@ -513,6 +517,7 @@ export class StatisticsCacheService extends Component {
 								tags,
 								totalLinks,
 								totalWords,
+								totalTasks,
 								cacheHits,
 								filesRead,
 								started,
@@ -532,6 +537,7 @@ export class StatisticsCacheService extends Component {
 			tags,
 			totalLinks,
 			totalWords,
+			totalTasks,
 			cacheHits,
 			filesRead,
 			started,
@@ -711,6 +717,7 @@ export class StatisticsCacheService extends Component {
 		tags,
 		totalLinks,
 		totalWords,
+		totalTasks,
 		cacheHits,
 		filesRead,
 		started,
@@ -722,6 +729,7 @@ export class StatisticsCacheService extends Component {
 		tags: Set<string>;
 		totalLinks: number;
 		totalWords: number;
+		totalTasks: number;
 		cacheHits: number;
 		filesRead: number;
 		started: number;
@@ -734,6 +742,7 @@ export class StatisticsCacheService extends Component {
 			tags: tags.size,
 			links: totalLinks,
 			words: totalWords,
+			tasks: totalTasks,
 			cacheHits,
 			filesRead,
 			durationMs: performance.now() - started,

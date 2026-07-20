@@ -5,7 +5,8 @@ export type StatisticsNavigationCard =
 	| 'props'
 	| 'values'
 	| 'tags'
-	| 'words';
+	| 'words'
+	| 'tasks';
 
 const STATISTICS_CARD_TAB: Record<StatisticsNavigationCard, StatisticsDataTab> =
 	{
@@ -15,6 +16,7 @@ const STATISTICS_CARD_TAB: Record<StatisticsNavigationCard, StatisticsDataTab> =
 		values: 'props',
 		tags: 'tags',
 		words: 'content',
+		tasks: 'content',
 	};
 
 export function dataTabForStatisticsCard(

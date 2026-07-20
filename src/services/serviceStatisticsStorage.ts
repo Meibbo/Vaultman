@@ -95,7 +95,12 @@ function normalizeSnapshot(value: unknown): StatisticsSnapshot | null {
 	for (const key of numericKeys) {
 		if (typeof candidate[key] !== 'number') return null;
 	}
-	return cloneSnapshot(candidate as StatisticsSnapshot);
+	return cloneSnapshot({
+		...(candidate as StatisticsSnapshot),
+		// BT5-014: old persisted snapshots predate the tasks total; default it
+		// to 0 instead of rejecting the whole snapshot.
+		tasks: typeof candidate.tasks === 'number' ? candidate.tasks : 0,
+	});
 }
 
 class MapStatisticsCacheStorage implements StatisticsCacheStorage {

@@ -778,6 +778,7 @@ export const es: Record<string, string> = {
 	'stats.tags': 'Etiquetas',
 	'stats.addons': 'Add-ons',
 	'stats.total_links': 'Links totales',
+	'stats.remaining_tasks': 'Tareas pendientes',
 	'stats.word_count': 'Conteo de palabras',
 	'stats.reconciling': 'Reconciliando',
 	'viewmode.add_mode': 'Modo AGREGAR',

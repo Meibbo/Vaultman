@@ -51,6 +51,7 @@
 		tags: 0,
 		links: 0,
 		words: 0,
+		tasks: 0,
 		cacheHits: 0,
 		filesRead: 0,
 		durationMs: 0,
@@ -190,6 +191,13 @@
 			icon: 'lucide-type',
 			value: statsSnapshot.words,
 			color: 'var(--color-cyan)',
+		},
+		{
+			id: 'tasks' as StatisticsNavigationCard,
+			label: translate('stats.remaining_tasks'),
+			icon: 'lucide-square-check-big',
+			value: statsSnapshot.tasks,
+			color: 'var(--color-yellow)',
 		},
 	]);
 
