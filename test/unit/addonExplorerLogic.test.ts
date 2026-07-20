@@ -7,9 +7,9 @@ import {
 } from '../../src/logic/logicAddonExplorer';
 
 const entries = [
-	{ name: 'Zeta', installedTime: 10, updatedTime: 40 },
-	{ name: 'Alpha', installedTime: 30, updatedTime: 20 },
-	{ name: 'Missing' },
+	{ name: 'Zeta', enabled: false, installedTime: 10, updatedTime: 40 },
+	{ name: 'Alpha', enabled: true, installedTime: 30, updatedTime: 20 },
+	{ name: 'Missing', enabled: false },
 ];
 
 describe('add-on explorer pure projection', () => {
@@ -41,6 +41,34 @@ describe('add-on explorer pure projection', () => {
 		expect(filterAddonEntries(entries, '  ', (entry) => entry.name)).toEqual(
 			entries,
 		);
+	});
+
+	it('sorts confirmed add-on state descending first and keeps natural Name ties', () => {
+		const stateEntries = [
+			{ name: 'Plugin 10', enabled: false },
+			{ name: 'Vaultman', enabled: false, isVaultman: true },
+			{ name: 'Plugin 2', enabled: true },
+			{ name: 'Plugin 1', enabled: true },
+		];
+
+		expect(
+			sortAddonEntries(stateEntries, {
+				sortBy: 'state',
+				direction: 'desc',
+			}).map((entry) => entry.name),
+		).toEqual(['Plugin 1', 'Plugin 2', 'Plugin 10', 'Vaultman']);
+		expect(
+			sortAddonEntries(stateEntries, {
+				sortBy: 'state',
+				direction: 'asc',
+			}).map((entry) => entry.name),
+		).toEqual(['Plugin 10', 'Vaultman', 'Plugin 1', 'Plugin 2']);
+		expect(stateEntries.map((entry) => entry.enabled)).toEqual([
+			false,
+			false,
+			true,
+			true,
+		]);
 	});
 
 	it('builds labeled hover lines while omitting unavailable metadata', () => {

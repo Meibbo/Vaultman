@@ -1,16 +1,15 @@
 import { describe, expect, it } from 'vitest';
 
 import {
+	classifyTagStructure,
+	compareTagStructure,
 	flattenTreeToPathLabels,
 	groupRootHierarchy,
+	TAG_STRUCTURE_ORDER,
 } from '../../src/logic/logicExplorerHierarchy';
 import type { TreeNode } from '../../src/types/typeTree';
 
-function node(
-	id: string,
-	label: string,
-	children: TreeNode[] = [],
-): TreeNode {
+function node(id: string, label: string, children: TreeNode[] = []): TreeNode {
 	return {
 		id,
 		label,
@@ -84,10 +83,39 @@ describe('explorer hierarchy projections', () => {
 		expect(nested[1].children?.[0].children?.[0].id).toBe(
 			'projects/vaultman/release',
 		);
-		expect(all.map((item) => item.id)).toEqual([
-			'daily',
-			'people',
-			'projects',
-		]);
+		expect(all.map((item) => item.id)).toEqual(['daily', 'people', 'projects']);
+	});
+
+	it('shares one structural classifier between filtering and Type sorting', () => {
+		const directParent = {
+			...node('work', 'work', [node('work/tasks', 'tasks')]),
+			count: 2,
+		};
+		const simple = node('daily', 'daily');
+
+		expect(TAG_STRUCTURE_ORDER).toEqual(['nested', 'simple']);
+		expect(classifyTagStructure(directParent)).toBe('nested');
+		expect(classifyTagStructure(simple)).toBe('simple');
+		expect(groupRootHierarchy([directParent], 'simple')).toHaveLength(1);
+	});
+
+	it('sorts sibling tag structures canonically with natural Name ties', () => {
+		const nodes = [
+			node('simple-10', 'Tag 10'),
+			node('nested-10', 'Group 10', [node('nested-10/child', 'child')]),
+			node('simple-2', 'Tag 2'),
+			node('nested-2', 'Group 2', [node('nested-2/child', 'child')]),
+		];
+
+		expect(
+			[...nodes]
+				.sort((a, b) => compareTagStructure(a, b, 'asc'))
+				.map((item) => item.label),
+		).toEqual(['Group 2', 'Group 10', 'Tag 2', 'Tag 10']);
+		expect(
+			[...nodes]
+				.sort((a, b) => compareTagStructure(a, b, 'desc'))
+				.map((item) => item.label),
+		).toEqual(['Tag 2', 'Tag 10', 'Group 2', 'Group 10']);
 	});
 });

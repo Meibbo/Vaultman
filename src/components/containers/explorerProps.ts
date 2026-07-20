@@ -47,6 +47,7 @@ import {
 	normalizeBadgeCancelClickMode,
 } from '../../utils/badgeInteraction';
 import {
+	comparePropTypes,
 	resolveNativePropType,
 	TYPE_ICON_MAP,
 	toNativePropType,
@@ -59,10 +60,7 @@ import {
 	sameExplorerSortState,
 	sortTwoLevel,
 } from '../../logic/logicScopedSort';
-import type {
-	ExplorerSortState,
-	ScopeSort,
-} from '../../types/typeUI';
+import type { ExplorerSortState, ScopeSort } from '../../types/typeUI';
 import {
 	findParentId,
 	indexLevel,
@@ -235,7 +233,11 @@ export class PropsExplorerPanel extends Component {
 			},
 			run: (ctx) => {
 				const meta = ctx.node.meta as PropMeta;
-				return this._setCheckboxValue(meta.propName, meta.rawValue ?? '', false);
+				return this._setCheckboxValue(
+					meta.propName,
+					meta.rawValue ?? '',
+					false,
+				);
 			},
 		});
 
@@ -756,9 +758,7 @@ export class PropsExplorerPanel extends Component {
 
 	isIndexableSort(): boolean {
 		return ['name', 'path', 'ext'].includes(
-			normalizeExplorerSortBy(
-				activeScopeSort('props', this.sortState).sortBy,
-			),
+			normalizeExplorerSortBy(activeScopeSort('props', this.sortState).sortBy),
 		);
 	}
 
@@ -1051,6 +1051,7 @@ export class PropsExplorerPanel extends Component {
 		b: TreeNode<PropMeta>,
 		sort: ScopeSort,
 		timeIndex: PropTimeIndex | null,
+		typeIndex: Map<string, string> | null = null,
 	): number {
 		const dir = sort.direction === 'asc' ? 1 : -1;
 		const normalizedSortBy = normalizeExplorerSortBy(sort.sortBy);
@@ -1068,6 +1069,15 @@ export class PropsExplorerPanel extends Component {
 			return dir * ((a.count ?? 0) - (b.count ?? 0));
 		if (normalizedSortBy === 'sub')
 			return dir * ((a.children?.length ?? 0) - (b.children?.length ?? 0));
+		if (normalizedSortBy === 'type') {
+			return comparePropTypes(
+				typeIndex?.get(a.id) ?? this._effectivePropType(a.meta),
+				typeIndex?.get(b.id) ?? this._effectivePropType(b.meta),
+				sort.direction,
+				a.label,
+				b.label,
+			);
+		}
 		return dir * a.label.localeCompare(b.label);
 	}
 
@@ -1090,11 +1100,23 @@ export class PropsExplorerPanel extends Component {
 					? propertiesTimeIndex
 					: this._buildPropTimeIndex(valuesSortBy)
 				: null;
+		const propertiesTypeIndex =
+			propertiesSortBy === 'type'
+				? new Map(
+						nodes.map((node) => [node.id, this._effectivePropType(node.meta)]),
+					)
+				: null;
 
 		return sortTwoLevel(
 			nodes,
 			(a, b) =>
-				this._compareNodes(a, b, propertiesSort, propertiesTimeIndex),
+				this._compareNodes(
+					a,
+					b,
+					propertiesSort,
+					propertiesTimeIndex,
+					propertiesTypeIndex,
+				),
 			(a, b) => this._compareNodes(a, b, valuesSort, valuesTimeIndex),
 		);
 	}
@@ -1273,7 +1295,9 @@ export class PropsExplorerPanel extends Component {
 	}
 
 	private async _copyDraggedValueToProperty(
-		payload: VaultmanDragNodePayload & { selection?: VaultmanDragNodePayload[] },
+		payload: VaultmanDragNodePayload & {
+			selection?: VaultmanDragNodePayload[];
+		},
 		targetPropName: string,
 	): Promise<void> {
 		const valueNodes = this._dragValueNodes(payload).filter(
@@ -1308,7 +1332,9 @@ export class PropsExplorerPanel extends Component {
 	}
 
 	private _dragValueNodes(
-		payload: VaultmanDragNodePayload & { selection?: VaultmanDragNodePayload[] },
+		payload: VaultmanDragNodePayload & {
+			selection?: VaultmanDragNodePayload[];
+		},
 	): Array<Extract<VaultmanDragNodePayload, { kind: 'property-value' }>> {
 		const nodes = payload.selection?.length ? payload.selection : [payload];
 		return nodes.filter(

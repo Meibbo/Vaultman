@@ -34,7 +34,9 @@ function makeFile(
 		basename: dot === -1 ? name : name.slice(0, dot),
 		extension: dot === -1 ? '' : name.slice(dot + 1),
 		name,
-		parent: makeFolder(path.includes('/') ? path.split('/').slice(0, -1).join('/') : '/'),
+		parent: makeFolder(
+			path.includes('/') ? path.split('/').slice(0, -1).join('/') : '/',
+		),
 		path,
 		stat: { ctime: stat.ctime, mtime: stat.mtime, size: stat.size ?? 0 },
 		vault,
@@ -46,6 +48,11 @@ describe('explorer sort helpers', () => {
 		expect(DEFAULT_EXPLORER_SORT_DIR.tasks).toBe('desc');
 		expect(nextExplorerSortDirection('name', 'asc', 'tasks')).toBe('desc');
 		expect(nextExplorerSortDirection('tasks', 'desc', 'tasks')).toBe('asc');
+	});
+
+	it('defaults semantic State and Type sorts to their meaningful directions', () => {
+		expect(DEFAULT_EXPLORER_SORT_DIR.state).toBe('desc');
+		expect(DEFAULT_EXPLORER_SORT_DIR.type).toBe('asc');
 	});
 
 	it('maps semantic direction to the physical flow shown in every UI', () => {

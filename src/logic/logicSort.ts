@@ -38,6 +38,8 @@ export const DEFAULT_EXPLORER_SORT_DIR: Record<string, ExplorerSortDirection> =
 		path: 'asc',
 		installed: 'desc',
 		updated: 'desc',
+		state: 'desc',
+		type: 'asc',
 	};
 
 export function nextExplorerSortDirection(

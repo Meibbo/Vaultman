@@ -2,6 +2,8 @@ import { describe, expect, it } from 'vitest';
 
 import navbarSource from '../../src/components/layout/navbarFilters.svelte?raw';
 import popupSource from '../../src/components/layout/popupSort.svelte?raw';
+import propsSource from '../../src/components/containers/explorerProps.ts?raw';
+import tagsSource from '../../src/components/containers/explorerTags.ts?raw';
 import {
 	byLevelModel,
 	NODE_TYPE_MENU_OPTIONS,
@@ -103,8 +105,34 @@ describe('BT5-007 shared sort menu model', () => {
 				true,
 			).map((option) => option.id),
 		).not.toContain('sub');
+		expect(
+			visibleSortOptions(
+				'props',
+				stateFor('props', { activeScope: 'values' }),
+				true,
+			).map((option) => option.id),
+		).not.toContain('type');
 		expect(SORT_MENU_OPTIONS.files.map((option) => option.id)).toContain(
 			'tasks',
+		);
+		expect(SORT_MENU_OPTIONS.props.map((option) => option.id)).toContain(
+			'type',
+		);
+		expect(SORT_MENU_OPTIONS.tags.map((option) => option.id)).toContain('type');
+		expect(SORT_MENU_OPTIONS.snippets.map((option) => option.id)).toContain(
+			'state',
+		);
+		expect(SORT_MENU_OPTIONS.plugins.map((option) => option.id)).toContain(
+			'state',
+		);
+		expect(SORT_MENU_OPTIONS.files.map((option) => option.id)).not.toContain(
+			'state',
+		);
+		expect(SORT_MENU_OPTIONS.files.map((option) => option.id)).not.toContain(
+			'type',
+		);
+		expect(NODE_TYPE_MENU_OPTIONS.props.map((option) => option.id)).toContain(
+			'datetime',
 		);
 		expect(NODE_TYPE_MENU_OPTIONS.tags.map((option) => option.id)).toEqual([
 			'all',
@@ -128,5 +156,12 @@ describe('BT5-007 shared sort menu model', () => {
 		expect(navbarSource).toContain(
 			'onNestedToggle={() => toggleNestedFor(activeTab)}',
 		);
+	});
+
+	it('wires semantic Type comparators into Props and sibling-preserving Tags sort', () => {
+		expect(propsSource).toContain('comparePropTypes(');
+		expect(propsSource).toContain('this._effectivePropType(node.meta)');
+		expect(tagsSource).toContain('compareTagStructure(');
+		expect(tagsSource).toContain('sortAllWithDrill(');
 	});
 });

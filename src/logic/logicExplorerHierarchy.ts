@@ -1,10 +1,43 @@
 import type { TreeNode } from '../types/typeTree';
 
 export type RootHierarchyGroup = 'all' | 'nested' | 'simple';
+export type TagStructure = Exclude<RootHierarchyGroup, 'all'>;
 
-export function cloneTree<TMeta>(
-	nodes: TreeNode<TMeta>[],
-): TreeNode<TMeta>[] {
+export const TAG_STRUCTURE_ORDER = ['nested', 'simple'] as const;
+
+export function classifyTagStructure(node: {
+	children?: readonly unknown[];
+}): TagStructure {
+	return node.children?.length ? 'nested' : 'simple';
+}
+
+export function matchesRootHierarchy(
+	node: { children?: readonly unknown[]; count?: number },
+	group: RootHierarchyGroup,
+): boolean {
+	if (group === 'all') return true;
+	if (group === 'nested') return classifyTagStructure(node) === 'nested';
+	return classifyTagStructure(node) === 'simple' || (node.count ?? 0) > 0;
+}
+
+export function compareTagStructure(
+	left: { children?: readonly unknown[]; label: string },
+	right: { children?: readonly unknown[]; label: string },
+	direction: 'asc' | 'desc',
+): number {
+	const leftRank = TAG_STRUCTURE_ORDER.indexOf(classifyTagStructure(left));
+	const rightRank = TAG_STRUCTURE_ORDER.indexOf(classifyTagStructure(right));
+	const rankDifference = leftRank - rightRank;
+	if (rankDifference !== 0) {
+		return direction === 'asc' ? rankDifference : -rankDifference;
+	}
+	return left.label.localeCompare(right.label, undefined, {
+		numeric: true,
+		sensitivity: 'base',
+	});
+}
+
+export function cloneTree<TMeta>(nodes: TreeNode<TMeta>[]): TreeNode<TMeta>[] {
 	return nodes.map((node) => ({
 		...node,
 		children: node.children ? cloneTree(node.children) : [],
@@ -18,7 +51,7 @@ export function groupRootHierarchy<TMeta>(
 	if (group === 'all') return cloneTree(nodes);
 	if (group === 'nested') {
 		return nodes
-			.filter((node) => Boolean(node.children?.length))
+			.filter((node) => matchesRootHierarchy(node, group))
 			.map((node) => ({
 				...node,
 				children: node.children ? cloneTree(node.children) : [],
@@ -26,7 +59,7 @@ export function groupRootHierarchy<TMeta>(
 	}
 	// simple: keep leaves + parents that have direct occurrences (count > 0)
 	return nodes
-		.filter((node) => !node.children?.length || (node.count ?? 0) > 0)
+		.filter((node) => matchesRootHierarchy(node, group))
 		.map((node) => ({ ...node, children: [] }));
 }
 

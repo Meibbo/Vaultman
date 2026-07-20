@@ -128,6 +128,46 @@ describe('scoped explorer sort state', () => {
 		).toEqual(state);
 	});
 
+	it('round-trips semantic sorts and sanitizes Type from Props values', () => {
+		const snippets = normalizeExplorerSortState('snippets', {
+			sorts: { all: { sortBy: 'state', direction: 'desc' } },
+			activeScope: 'all',
+			nodeTypeFilter: null,
+		});
+		const properties = normalizeExplorerSortState('props', {
+			sorts: {
+				properties: { sortBy: 'type', direction: 'asc' },
+				values: { sortBy: 'type', direction: 'desc' },
+			},
+			activeScope: 'properties',
+			nodeTypeFilter: null,
+		});
+		const tags = normalizeExplorerSortState('tags', {
+			sorts: { all: { sortBy: 'type', direction: 'desc' } },
+			activeScope: 'all',
+			drillNodeId: null,
+			nodeTypeFilter: null,
+		});
+
+		expect(snippets.sorts.all).toEqual({
+			sortBy: 'state',
+			direction: 'desc',
+		});
+		expect(properties.sorts.properties).toEqual({
+			sortBy: 'type',
+			direction: 'asc',
+		});
+		expect(properties.sorts.values).toBeUndefined();
+		expect(activeScopeSort('props', properties, 'values')).toEqual({
+			sortBy: 'name',
+			direction: 'asc',
+		});
+		expect(tags.sorts.all).toEqual({
+			sortBy: 'type',
+			direction: 'desc',
+		});
+	});
+
 	it('changes only the active scope sort and ignores scope selection in the render projection', () => {
 		const base = normalizeExplorerSortState('tags', {
 			sorts: {
@@ -224,7 +264,9 @@ describe('By level phase 2 (BT4-009 / D29+D33)', () => {
 		expect(
 			sameExplorerSortState(files, { ...files, fixedFolders: false }),
 		).toBe(false);
-		expect(normalizeExplorerSortState('tags', null).fixedFolders).toBeUndefined();
+		expect(
+			normalizeExplorerSortState('tags', null).fixedFolders,
+		).toBeUndefined();
 	});
 
 	it('hides contextually meaningless sort options', () => {
@@ -256,6 +298,13 @@ describe('By level phase 2 (BT4-009 / D29+D33)', () => {
 				activeScope: 'properties',
 			}),
 		).toBe(true);
+		expect(
+			isSortOptionVisible('type', {
+				tab: 'props',
+				nestedActive: true,
+				activeScope: 'values',
+			}),
+		).toBe(false);
 		expect(
 			isSortOptionVisible('name', {
 				tab: 'files',

@@ -52,6 +52,7 @@ import {
 	normalizeBadgeCancelClickMode,
 } from '../../utils/badgeInteraction';
 import {
+	compareTagStructure,
 	flattenTreeToPathLabels,
 	groupRootHierarchy,
 } from '../../logic/logicExplorerHierarchy';
@@ -326,6 +327,9 @@ export class TagsExplorerPanel extends Component {
 			return dir * ((a.count ?? 0) - (b.count ?? 0));
 		if (normalizedSortBy === 'sub')
 			return dir * ((a.children?.length ?? 0) - (b.children?.length ?? 0));
+		if (normalizedSortBy === 'type') {
+			return compareTagStructure(a, b, sort.direction);
+		}
 		return dir * a.label.localeCompare(b.label);
 	}
 

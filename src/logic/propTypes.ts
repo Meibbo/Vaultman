@@ -11,6 +11,43 @@ export const TYPE_ICON_MAP: Record<string, string> = {
 	cssclasses: 'lucide-palette',
 };
 
+export const PROP_TYPE_ORDER = [
+	'tags',
+	'list',
+	'text',
+	'number',
+	'date',
+	'datetime',
+	'checkbox',
+	'aliases',
+	'cssclasses',
+	'unknown',
+] as const;
+
+const PROP_TYPE_RANK = new Map<string, number>(
+	PROP_TYPE_ORDER.map((type, index) => [type, index]),
+);
+
+export function comparePropTypes(
+	leftType: string,
+	rightType: string,
+	direction: 'asc' | 'desc',
+	leftName: string,
+	rightName: string,
+): number {
+	const unknownRank = PROP_TYPE_ORDER.length;
+	const rankDifference =
+		(PROP_TYPE_RANK.get(leftType) ?? unknownRank) -
+		(PROP_TYPE_RANK.get(rightType) ?? unknownRank);
+	if (rankDifference !== 0) {
+		return direction === 'asc' ? rankDifference : -rankDifference;
+	}
+	return leftName.localeCompare(rightName, undefined, {
+		numeric: true,
+		sensitivity: 'base',
+	});
+}
+
 export interface NativePropWidget {
 	widget?: unknown;
 	type?: unknown;
@@ -22,15 +59,21 @@ export interface NativePropWidget {
 export interface MetadataTypeManagerLike {
 	getWidget?(propName: string): NativePropWidget | string | undefined | null;
 	getAssignedWidget?(propName: string): string | undefined | null;
-	getTypeInfo?(propName: string): {
-		expected?: NativePropWidget | string;
-		inferred?: NativePropWidget | string;
-	} | undefined | null;
-	getPropertyInfo?(propName: string): {
-		widget?: NativePropWidget | string;
-		type?: NativePropWidget | string;
-		icon?: string;
-	} | undefined | null;
+	getTypeInfo?(propName: string):
+		| {
+				expected?: NativePropWidget | string;
+				inferred?: NativePropWidget | string;
+		  }
+		| undefined
+		| null;
+	getPropertyInfo?(propName: string):
+		| {
+				widget?: NativePropWidget | string;
+				type?: NativePropWidget | string;
+				icon?: string;
+		  }
+		| undefined
+		| null;
 }
 
 export interface ResolvedPropType {
@@ -47,7 +90,10 @@ function objectTypeName(value: object): string {
 	return 'unknown';
 }
 
-export function normalizePropType(propType: unknown, propName?: string): string {
+export function normalizePropType(
+	propType: unknown,
+	propName?: string,
+): string {
 	const normalizedName = propName?.toLowerCase();
 	if (normalizedName === 'tags') return 'tags';
 	if (normalizedName === 'aliases') return 'aliases';

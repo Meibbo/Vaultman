@@ -4,6 +4,8 @@ import type {
 	SortScopeKey,
 } from '../types/typeUI';
 import { isSortOptionVisible } from './logicScopedSort';
+import { PROP_TYPE_ORDER, TYPE_ICON_MAP } from './propTypes';
+import { TAG_STRUCTURE_ORDER } from './logicExplorerHierarchy';
 
 export interface SortMenuOption {
 	id: string;
@@ -27,6 +29,7 @@ export const SORT_MENU_OPTIONS: Record<
 	readonly SortMenuOption[]
 > = {
 	props: [
+		{ id: 'type', icon: 'lucide-shapes', labelKey: 'sort.by.type' },
 		{ id: 'count', icon: 'lucide-hash', labelKey: 'sort.by.count' },
 		{ id: 'name', icon: 'lucide-a-large-small', labelKey: 'sort.by.name' },
 		{
@@ -42,6 +45,7 @@ export const SORT_MENU_OPTIONS: Record<
 		{ id: 'sub', icon: 'lucide-indent', labelKey: 'sort.by.sub' },
 	],
 	tags: [
+		{ id: 'type', icon: 'lucide-shapes', labelKey: 'sort.by.type' },
 		{ id: 'count', icon: 'lucide-hash', labelKey: 'sort.by.count' },
 		{ id: 'name', icon: 'lucide-a-large-small', labelKey: 'sort.by.name' },
 		{
@@ -75,6 +79,7 @@ export const SORT_MENU_OPTIONS: Record<
 		{ id: 'path', icon: 'lucide-route', labelKey: 'sort.by.path' },
 	],
 	snippets: [
+		{ id: 'state', icon: 'lucide-toggle-right', labelKey: 'sort.by.state' },
 		{ id: 'name', icon: 'lucide-a-large-small', labelKey: 'sort.by.name' },
 		{
 			id: 'installed',
@@ -88,6 +93,7 @@ export const SORT_MENU_OPTIONS: Record<
 		},
 	],
 	plugins: [
+		{ id: 'state', icon: 'lucide-toggle-right', labelKey: 'sort.by.state' },
 		{ id: 'name', icon: 'lucide-a-large-small', labelKey: 'sort.by.name' },
 		{
 			id: 'installed',
@@ -107,32 +113,19 @@ export const NODE_TYPE_MENU_OPTIONS: Record<
 	readonly BuiltInNodeTypeMenuOption[]
 > = {
 	props: [
-		{ id: 'tags', icon: 'lucide-tags', labelKey: 'sort.type.tags' },
-		{ id: 'list', icon: 'lucide-list', labelKey: 'sort.type.list' },
-		{ id: 'text', icon: 'lucide-text', labelKey: 'sort.type.text' },
-		{ id: 'number', icon: 'lucide-binary', labelKey: 'sort.type.number' },
-		{ id: 'date', icon: 'lucide-calendar', labelKey: 'sort.type.date' },
-		{
-			id: 'checkbox',
-			icon: 'lucide-check-square',
-			labelKey: 'sort.type.checkbox',
-		},
-		{ id: 'aliases', icon: 'lucide-forward', labelKey: 'sort.type.aliases' },
-		{
-			id: 'cssclasses',
-			icon: 'lucide-palette',
-			labelKey: 'sort.type.cssclasses',
-		},
-		{
-			id: 'unknown',
-			icon: 'lucide-file-question',
-			labelKey: 'sort.type.unknown',
-		},
+		...PROP_TYPE_ORDER.map((id) => ({
+			id,
+			icon: TYPE_ICON_MAP[id],
+			labelKey: `sort.type.${id}`,
+		})),
 	],
 	tags: [
 		{ id: 'all', icon: 'lucide-tags', labelKey: 'sort.type.all' },
-		{ id: 'nested', icon: 'lucide-git-branch', labelKey: 'sort.type.nested' },
-		{ id: 'simple', icon: 'lucide-tag', labelKey: 'sort.type.simple' },
+		...TAG_STRUCTURE_ORDER.map((id) => ({
+			id,
+			icon: id === 'nested' ? 'lucide-git-branch' : 'lucide-tag',
+			labelKey: `sort.type.${id}`,
+		})),
 	],
 };
 

@@ -117,7 +117,12 @@ export function normalizeExplorerSortState(
 	const sorts: Partial<Record<SortScopeKey, ScopeSort>> = {};
 	for (const scope of allowedScopes) {
 		const sort = normalizeScopeSort(value.sorts[scope]);
-		if (sort) sorts[scope] = sort;
+		if (
+			sort &&
+			!(tab === 'props' && scope === 'values' && sort.sortBy === 'type')
+		) {
+			sorts[scope] = sort;
+		}
 	}
 
 	let activeScope = value.activeScope as SortScopeKey;
@@ -235,7 +240,6 @@ export function sortAllWithDrill<T extends SortableTreeNode<T>>(
 	return sortLevel(nodes, null);
 }
 
-
 /** D33: options that make no sense in the current context disappear.
  * - 'path' is meaningless while the tree is nested.
  * - 'sub' (sub-element count) is meaningless for prop VALUES (no children).
@@ -250,7 +254,7 @@ export function isSortOptionVisible(
 ): boolean {
 	if (optionId === 'path' && context.nestedActive) return false;
 	if (
-		optionId === 'sub' &&
+		(optionId === 'sub' || optionId === 'type') &&
 		context.tab === 'props' &&
 		context.activeScope === 'values'
 	) {

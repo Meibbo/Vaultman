@@ -1,6 +1,11 @@
 import { describe, expect, it } from 'vitest';
 
-import { resolveNativePropType, toNativePropType } from '../../src/logic/propTypes';
+import {
+	comparePropTypes,
+	PROP_TYPE_ORDER,
+	resolveNativePropType,
+	toNativePropType,
+} from '../../src/logic/propTypes';
 
 describe('resolveNativePropType', () => {
 	it('uses Obsidian typeInfo before getWidget unknown results', () => {
@@ -59,5 +64,29 @@ describe('resolveNativePropType', () => {
 	it('maps display list type to Obsidian native multitext widget id', () => {
 		expect(toNativePropType('list')).toBe('multitext');
 		expect(toNativePropType('text')).toBe('text');
+	});
+
+	it('sorts effective types by a locale-independent category order', () => {
+		expect(PROP_TYPE_ORDER).toEqual([
+			'tags',
+			'list',
+			'text',
+			'number',
+			'date',
+			'datetime',
+			'checkbox',
+			'aliases',
+			'cssclasses',
+			'unknown',
+		]);
+		expect(
+			comparePropTypes('text', 'date', 'asc', 'Zulu', 'Alpha'),
+		).toBeLessThan(0);
+		expect(
+			comparePropTypes('text', 'date', 'desc', 'Zulu', 'Alpha'),
+		).toBeGreaterThan(0);
+		expect(
+			comparePropTypes('text', 'text', 'asc', 'Property 10', 'Property 2'),
+		).toBeGreaterThan(0);
 	});
 });

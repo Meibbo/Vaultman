@@ -8,6 +8,7 @@ import type { AddonCellStyle } from '../types/typeSettings';
 
 export interface AddonEntryProjection {
 	name: string;
+	enabled: boolean;
 	installedTime?: number;
 	updatedTime?: number;
 }
@@ -28,6 +29,9 @@ export function sortAddonEntries<T extends AddonEntryProjection>(
 	const direction = sort.direction === 'asc' ? 1 : -1;
 	const numeric = { numeric: true, sensitivity: 'base' } as const;
 	return [...entries].sort((a, b) => {
+		if (sort.sortBy === 'state' && a.enabled !== b.enabled) {
+			return direction * (Number(a.enabled) - Number(b.enabled));
+		}
 		if (sort.sortBy === 'installed' || sort.sortBy === 'updated') {
 			const field =
 				sort.sortBy === 'installed' ? 'installedTime' : 'updatedTime';

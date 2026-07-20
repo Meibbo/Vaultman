@@ -70,6 +70,7 @@ describe('Snippets and Plugins explorer tabs source guards', () => {
 		for (const tab of ['snippets', 'plugins'] as const) {
 			expect(SORT_MENU_OPTIONS[tab]).toEqual(
 				expect.arrayContaining([
+					expect.objectContaining({ labelKey: 'sort.by.state' }),
 					expect.objectContaining({ labelKey: 'sort.by.installed' }),
 					expect.objectContaining({ labelKey: 'sort.by.updated' }),
 				]),
@@ -90,6 +91,9 @@ describe('Snippets and Plugins explorer tabs source guards', () => {
 			expect(source).toContain('onCellClick');
 			expect(source).toContain('setCellStyle(');
 			expect(source).toContain('pendingToggleIds');
+			expect(source).toContain('sortAddonEntries(');
+			expect(source).toContain('disabled: this.pendingToggleIds.has(');
+			expect(source).not.toMatch(/meta\.enabled\s*=/);
 		}
 		expect(pluginsPanelSource).toContain('settingsTabIds.has(entry.pluginId)');
 		expect(settingsTypesSource).toContain(
