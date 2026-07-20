@@ -215,7 +215,13 @@ export interface iVaultmanPlugin extends Plugin {
 	};
 	/** BT5-018: the live action catalog the Files menu sub-page configures. */
 	contextMenuService: {
-		panelActionCatalog(): { id: string; label: string; icon?: string }[];
+		panelActionCatalog(): {
+			id: string;
+			label: string;
+			icon?: string;
+			native?: boolean;
+			submenu?: boolean;
+		}[];
 	};
 }
 

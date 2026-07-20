@@ -13,6 +13,7 @@ import type { FileMeta } from '../types/typeTree';
 import { translate } from '../i18n/index';
 import {
 	mergeFilesMenuLayout,
+	nativePanelActionId,
 	projectFilesMenu,
 	type FilesMenuItem,
 } from '../logic/logicFilesContextMenu';
@@ -126,8 +127,17 @@ export class ContextMenuService extends Component {
 	 * Registration order is the fallback rank for anything the default order
 	 * does not name.
 	 */
-	panelActionCatalog(): { id: string; label: string; icon?: string }[] {
-		return this._registry
+	panelActionCatalog(): {
+		id: string;
+		label: string;
+		icon?: string;
+		native?: boolean;
+		submenu?: boolean;
+	}[] {
+		// Intercepted items (Core Files, other plugins) render at the top of the
+		// real menu, so they lead the catalog too.
+		const native = this._probeNativePanelEntries();
+		const own = this._registry
 			.filter(
 				(def) =>
 					def.surfaces.includes('panel') &&
@@ -138,6 +148,75 @@ export class ContextMenuService extends Component {
 				label: typeof def.label === 'function' ? def.id : def.label,
 				...(def.icon ? { icon: def.icon } : {}),
 			}));
+		return [...native, ...own];
+	}
+
+	/**
+	 * BT5-018: the intercepted items the panel menu shows but Vaultman does not
+	 * own — Core Files entries and anything other plugins inject, including the
+	 * parent menus they open (submenus are parent nodes). Discovered by
+	 * triggering the same event the live menu uses against probe targets and
+	 * reading the resulting titles, so the settings list can never drift from
+	 * what the menu actually shows. Best-effort: any failure yields none.
+	 */
+	private _probeNativePanelEntries(): {
+		id: string;
+		label: string;
+		native: true;
+		submenu?: boolean;
+	}[] {
+		try {
+			const vault = this.plugin.app.vault as unknown as {
+				getFiles?(): TFile[];
+				getRoot?(): TFolder | null;
+			};
+			const targets: (TFile | TFolder)[] = [];
+			const firstFile = vault.getFiles?.()[0];
+			if (firstFile) targets.push(firstFile);
+			const root = vault.getRoot?.();
+			if (root) targets.push(root);
+
+			const found = new Map<
+				string,
+				{ id: string; label: string; native: true; submenu?: boolean }
+			>();
+			for (const target of targets) {
+				const menu = new Menu();
+				this.suppressWorkspaceInjection = true;
+				try {
+					(
+						this.plugin.app.workspace as unknown as {
+							trigger(
+								name: 'file-menu',
+								menu: Menu,
+								file: TFile | TFolder,
+								source: string,
+							): void;
+						}
+					).trigger('file-menu', menu, target, FILE_EXPLORER_CONTEXT_SOURCE);
+				} finally {
+					this.suppressWorkspaceInjection = false;
+				}
+				const items =
+					(menu as unknown as { items?: MenuItem[] }).items ?? [];
+				for (const item of items) {
+					const meta = item as unknown as { title?: string; submenu?: unknown };
+					const label = String(meta.title ?? '').trim();
+					if (!label) continue; // separators
+					const id = nativePanelActionId(label);
+					if (found.has(id)) continue;
+					found.set(id, {
+						id,
+						label,
+						native: true,
+						...(meta.submenu ? { submenu: true } : {}),
+					});
+				}
+			}
+			return [...found.values()];
+		} catch {
+			return [];
+		}
 	}
 
 	private _filesMenuLayout(): FilesMenuItem[] {
@@ -184,6 +263,7 @@ export class ContextMenuService extends Component {
 				this.suppressWorkspaceInjection = false;
 			}
 			if (ctx.nodeType === 'file') this._removeNativeFileMoveActions(menu);
+			this._hideConfiguredNativeItems(menu);
 		}
 
 		const applicable = this._registry.filter(
@@ -244,6 +324,39 @@ export class ContextMenuService extends Component {
 			});
 		}
 		menu.showAtMouseEvent(event);
+	}
+
+	/**
+	 * BT5-018: a native item the saved layout marks hidden is spliced out of the
+	 * live menu, the same in-place edit the hide rules already use. Ordering of
+	 * intercepted items is left to the trigger — reordering native MenuItem
+	 * instances across the Vaultman boundary is deferred pending runtime design.
+	 */
+	private _hideConfiguredNativeItems(menu: Menu): void {
+		const hidden = new Set(
+			this._filesMenuLayout()
+				.filter(
+					(item): item is Extract<FilesMenuItem, { kind: 'action' }> =>
+						item.kind === 'action' && !item.visible,
+				)
+				.map((item) => item.id),
+		);
+		if (hidden.size === 0) return;
+		try {
+			const items = (menu as unknown as { items?: MenuItem[] }).items;
+			if (!Array.isArray(items)) return;
+			for (let index = items.length - 1; index >= 0; index--) {
+				const title = String(
+					(items[index] as unknown as { title?: string }).title ?? '',
+				).trim();
+				if (title && hidden.has(nativePanelActionId(title))) {
+					items.splice(index, 1);
+				}
+			}
+		} catch {
+			// A hidden native item that could not be removed simply stays; the
+			// menu never breaks over a projection detail.
+		}
 	}
 
 	private _removeNativeFileMoveActions(menu: Menu): void {

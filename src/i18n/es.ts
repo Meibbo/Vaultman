@@ -252,6 +252,7 @@ export const es: Record<string, string> = {
 		'Añadir submenú',
 	'settings.files_context_menu.submenu_name':
 		'Submenú',
+	'settings.files_context_menu.intercepted': 'Item interceptado: se puede mostrar u ocultar',
 	'settings.files_context_menu.divider':
 		'Separador',
 	'settings.files_context_menu.submenu':

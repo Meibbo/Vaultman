@@ -48,6 +48,25 @@ export const FILES_MENU_DEFAULT_ORDER: readonly string[] = [
 	'folder.delete',
 ];
 
+/**
+ * BT5-018: an intercepted item (Core Files, another plugin) has no stable id,
+ * only a title. We key it by a slug of that title — the same title-based
+ * identity Vaultman already uses for its context-menu hide rules — prefixed so
+ * it can never collide with a real action id.
+ */
+export function nativePanelActionId(title: string): string {
+	const slug = title
+		.toLowerCase()
+		.trim()
+		.replace(/[^a-z0-9]+/g, '-')
+		.replace(/^-+|-+$/g, '');
+	return `native:${slug}`;
+}
+
+export function isNativePanelActionId(id: string): boolean {
+	return id.startsWith('native:');
+}
+
 export function dividerId(index: number): string {
 	return `divider:${index}`;
 }
@@ -86,9 +105,19 @@ export function defaultFilesMenuLayout(
 		if (!known.has(entry)) continue;
 		items.push({ kind: 'action', id: entry, visible: true });
 	}
-	// Anything the registry offers that the default order never named.
+	// Intercepted items render at the top of the real menu, so they lead the
+	// default layout too, in discovery order, ahead of Vaultman's own actions.
+	const nativeIds = catalogIds.filter((id) => isNativePanelActionId(id));
+	items.unshift(
+		...nativeIds.map(
+			(id): FilesMenuItem => ({ kind: 'action', id, visible: true }),
+		),
+	);
+	// Anything else the registry offers that the default order never named.
 	for (const id of catalogIds) {
-		if (FILES_MENU_DEFAULT_ORDER.includes(id)) continue;
+		if (FILES_MENU_DEFAULT_ORDER.includes(id) || isNativePanelActionId(id)) {
+			continue;
+		}
 		items.push({ kind: 'action', id, visible: true });
 	}
 	return normalizeFilesMenuLayout(items);
@@ -139,8 +168,17 @@ export function mergeFilesMenuLayout(
 		merged.push(item);
 	}
 
+	// A newly discovered intercepted item leads the menu in discovery order,
+	// where the real menu renders it; a new Vaultman action lands at its
+	// canonical rank. Both are inserted by id, never appended blindly.
 	const missing = catalogIds.filter((id) => !seen.has(id));
+	let nativeInsertAt = 0;
 	for (const id of missing) {
+		if (isNativePanelActionId(id)) {
+			merged.splice(nativeInsertAt, 0, { kind: 'action', id, visible: true });
+			nativeInsertAt += 1;
+			continue;
+		}
 		const rank = FILES_MENU_DEFAULT_ORDER.indexOf(id);
 		const insertAt =
 			rank < 0

@@ -386,16 +386,6 @@ export class VaultmanSettingsTab extends PluginSettingTab {
 			);
 
 		new Setting(containerEl)
-			.setName(translate('settings.files_context_menu'))
-			.setDesc(translate('settings.files_context_menu.desc'))
-			.addButton((button) =>
-				button.setButtonText(translate('settings.configure')).onClick(() => {
-					this.page = 'files-context-menu';
-					this.display();
-				}),
-			);
-
-		new Setting(containerEl)
 			.setName(translate('settings.context_menu'))
 			.setDesc(translate('settings.context_menu.page_desc'))
 			.addButton((button) =>
@@ -670,6 +660,18 @@ export class VaultmanSettingsTab extends PluginSettingTab {
 			.setName(translate('settings.context_menu'))
 			.setHeading();
 
+		// BT5-018: the Files node menu is one more context menu, so it belongs
+		// inside this page rather than beside it in the settings root.
+		new Setting(containerEl)
+			.setName(translate('settings.files_context_menu'))
+			.setDesc(translate('settings.files_context_menu.desc'))
+			.addButton((button) =>
+				button.setButtonText(translate('settings.configure')).onClick(() => {
+					this.page = 'files-context-menu';
+					this.display();
+				}),
+			);
+
 		new Setting(containerEl)
 			.setName(translate('settings.context_menu.file_menu'))
 			.setDesc(translate('settings.context_menu.file_menu.desc'))
@@ -802,13 +804,14 @@ export class VaultmanSettingsTab extends PluginSettingTab {
 	 */
 	private displayFilesContextMenuPage(containerEl: HTMLElement): void {
 		new Setting(containerEl)
-			.setName(translate('settings.back_to_layout_settings'))
+			.setName(translate('settings.context_menu'))
 			.addButton((button) =>
 				button
 					.setIcon('lucide-arrow-left')
-					.setTooltip(translate('settings.back_to_layout_settings'))
+					.setTooltip(translate('settings.context_menu'))
 					.onClick(() => {
-						this.page = 'root';
+						// Back to the page that owns it, not to the root.
+						this.page = 'context-menus';
 						this.display();
 					}),
 			);
@@ -867,9 +870,13 @@ export class VaultmanSettingsTab extends PluginSettingTab {
 			(item): item is Extract<FilesMenuItem, { kind: 'submenu' }> =>
 				item.kind === 'submenu',
 		);
+		const nativeIds = new Set(
+			catalog.filter((entry) => entry.native).map((entry) => entry.id),
+		);
 		let draggedId: string | null = null;
 
 		for (const item of layout) {
+			const isNative = item.kind === 'action' && nativeIds.has(item.id);
 			const setting = new Setting(containerEl);
 			if (item.kind === 'divider') {
 				setting.setName(translate('settings.files_context_menu.divider'));
@@ -878,28 +885,37 @@ export class VaultmanSettingsTab extends PluginSettingTab {
 				setting.setDesc(translate('settings.files_context_menu.submenu'));
 			} else {
 				setting.setName(labels.get(item.id) ?? item.id);
-				setting.setDesc(item.id);
+				// Intercepted items can only be shown or hidden — Vaultman does not
+				// own their order or their handler, so they carry no grip.
+				setting.setDesc(
+					isNative
+						? translate('settings.files_context_menu.intercepted')
+						: item.id,
+				);
 			}
 
-			setting.addExtraButton((button) => {
-				button.setIcon('lucide-grip-vertical').setTooltip(item.id);
-				button.extraSettingsEl.draggable = true;
-				button.extraSettingsEl.addEventListener(
-					'dragstart',
-					(event: DragEvent) => {
-						draggedId = item.id;
-						if (event.dataTransfer) {
-							event.dataTransfer.effectAllowed = 'move';
-							event.dataTransfer.setData('text/plain', item.id);
-						}
-					},
-				);
-				button.extraSettingsEl.addEventListener('dragend', () => {
-					draggedId = null;
+			// Only items Vaultman controls are draggable; native items are not.
+			if (!isNative) {
+				setting.addExtraButton((button) => {
+					button.setIcon('lucide-grip-vertical').setTooltip(item.id);
+					button.extraSettingsEl.draggable = true;
+					button.extraSettingsEl.addEventListener(
+						'dragstart',
+						(event: DragEvent) => {
+							draggedId = item.id;
+							if (event.dataTransfer) {
+								event.dataTransfer.effectAllowed = 'move';
+								event.dataTransfer.setData('text/plain', item.id);
+							}
+						},
+					);
+					button.extraSettingsEl.addEventListener('dragend', () => {
+						draggedId = null;
+					});
 				});
-			});
+			}
 
-			if (item.kind === 'action' && submenuChoices.length > 0) {
+			if (item.kind === 'action' && !isNative && submenuChoices.length > 0) {
 				setting.addDropdown((dropdown) => {
 					dropdown.addOption(
 						'',

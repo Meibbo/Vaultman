@@ -2,6 +2,8 @@ import { describe, expect, it } from 'vitest';
 
 import {
 	FILES_MENU_DEFAULT_ORDER,
+	isNativePanelActionId,
+	nativePanelActionId,
 	addFilesMenuDivider,
 	addFilesMenuSubmenu,
 	defaultFilesMenuLayout,
@@ -184,10 +186,59 @@ describe('BT5-018 Files context menu configuration', () => {
 		]);
 	});
 
+	it('derives a stable, collision-proof id for an intercepted item', () => {
+		expect(nativePanelActionId('Open in new tab')).toBe(
+			'native:open-in-new-tab',
+		);
+		expect(nativePanelActionId('  Rename…  ')).toBe('native:rename');
+		expect(isNativePanelActionId('native:rename')).toBe(true);
+		expect(isNativePanelActionId('file.rename')).toBe(false);
+	});
+
+	it('leads the default layout with intercepted items, in discovery order', () => {
+		const nativeA = nativePanelActionId('Open in new tab');
+		const nativeB = nativePanelActionId('Reveal in navigation');
+		const layout = defaultFilesMenuLayout([nativeA, nativeB, ...CATALOG]);
+		const ids = actionIds(layout);
+		expect(ids.slice(0, 2)).toEqual([nativeA, nativeB]);
+		// A Vaultman action still follows in its Core-Files position.
+		expect(ids.indexOf('file.open_tab')).toBeGreaterThan(1);
+	});
+
+	it('merges a newly intercepted item to the front, not the tail', () => {
+		const known = nativePanelActionId('Rename');
+		const fresh = nativePanelActionId('Pin to top');
+		const saved: FilesMenuItem[] = [
+			{ kind: 'action', id: known, visible: true },
+			{ kind: 'action', id: 'file.delete', visible: true },
+		];
+		const merged = mergeFilesMenuLayout(saved, [
+			known,
+			fresh,
+			'file.delete',
+		]);
+		expect(actionIds(merged)[0]).toBe(fresh);
+	});
+
 	it('renders the real panel menu through the saved projection', () => {
 		expect(contextMenuSource).toContain('projectFilesMenu(');
 		expect(contextMenuSource).toContain('mergeFilesMenuLayout(');
 		expect(contextMenuSource).toContain('panelActionCatalog()');
+	});
+
+	it('lists intercepted items and applies their saved visibility live', () => {
+		// The settings list must include intercepted + parent-menu entries.
+		expect(contextMenuSource).toContain('_probeNativePanelEntries()');
+		expect(contextMenuSource).toContain("trigger('file-menu'");
+		expect(contextMenuSource).toContain('meta.submenu ? { submenu: true }');
+		// The live menu hides an intercepted item the layout marks hidden.
+		expect(contextMenuSource).toContain('_hideConfiguredNativeItems(menu)');
+		expect(contextMenuSource).toContain('nativePanelActionId(title)');
+		// Native rows in the settings page carry no drag grip.
+		expect(settingsSource).toContain('if (!isNative) {');
+		expect(settingsSource).toContain(
+			"settings.files_context_menu.intercepted",
+		);
 	});
 
 	it('exposes the sub-page with reset and both creators', () => {
