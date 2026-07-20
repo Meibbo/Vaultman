@@ -546,7 +546,9 @@ export class GridView {
 			parent.createDiv({
 				cls: 'bases-tr vaultman-file-row vaultman-file-table-row',
 			});
-		parent.appendChild(row);
+		// Same guard as viewTree: rows are recycled and absolutely placed, so a
+		// redundant re-parent only serves to cancel a click or hover in flight.
+		if (row.parentElement !== parent) parent.appendChild(row);
 		this.rowEls.set(file.path, row);
 		row.dataset.path = file.path;
 		row.draggable = Boolean(this.callbacks.onDragStart);

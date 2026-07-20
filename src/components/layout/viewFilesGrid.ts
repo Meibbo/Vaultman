@@ -384,7 +384,9 @@ export class FilesGridView {
 		const card =
 			this.rowEls.get(file.path) ??
 			this.contentEl.createDiv({ cls: 'vaultman-files-grid-card' });
-		this.contentEl.appendChild(card);
+		// Same guard as viewTree: rows are recycled and absolutely placed, so a
+		// redundant re-parent only serves to cancel a click or hover in flight.
+		if (card.parentElement !== this.contentEl) this.contentEl.appendChild(card);
 		this.rowEls.set(file.path, card);
 		card.dataset.path = file.path;
 		card.draggable = Boolean(this.callbacks.onDragStart);

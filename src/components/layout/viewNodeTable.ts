@@ -378,7 +378,9 @@ export class NodeTableView<TMeta = unknown> {
 			this.tbodyEl.createDiv({
 				cls: 'bases-tr vaultman-node-table-row',
 			});
-		this.tbodyEl.appendChild(row);
+		// Same guard as viewTree: rows are recycled and absolutely placed, so a
+		// redundant re-parent only serves to cancel a click or hover in flight.
+		if (row.parentElement !== this.tbodyEl) this.tbodyEl.appendChild(row);
 		this.rowEls.set(node.id, row);
 		row.dataset.id = node.id;
 		row.draggable = Boolean(opts.onDragStart);

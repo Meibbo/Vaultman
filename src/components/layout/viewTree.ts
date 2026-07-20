@@ -686,7 +686,13 @@ export class UnifiedTreeView {
 		const row =
 			this.rowEls.get(node.id) ??
 			parent.createDiv({ cls: 'vaultman-tree-row' });
-		parent.appendChild(row);
+		// Rows are absolutely positioned, so document order is irrelevant and a
+		// re-parent buys nothing. It costs, though: appendChild on an already
+		// mounted element detaches and re-attaches it, and doing that between
+		// mousedown and mouseup cancels the click. That is why the first click
+		// on an explorer whose leaf was not yet active did nothing — activating
+		// the leaf scheduled a viewport refresh that churned the row mid-press.
+		if (row.parentElement !== parent) parent.appendChild(row);
 		row.dataset.id = node.id;
 		this.applyDataPath(row, node);
 		row.draggable = Boolean(opts.onDragStart);
