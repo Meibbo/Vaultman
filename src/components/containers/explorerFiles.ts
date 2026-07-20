@@ -2134,6 +2134,15 @@ export class FilesExplorerPanel extends Component {
 
 	private readonly _handleActiveFileChange = (file: TFile | null): void => {
 		this._syncActiveFilePath(file ?? undefined);
+		// BT5-013: Last opened is a recency order, so opening a file changes it
+		// immediately — the note has to jump to the top the way a browser
+		// history does. The microtask defers past the plugin's own file-open
+		// listener, so the timestamp is already recorded when we re-sort, with
+		// no dependency on listener registration order.
+		if (normalizeExplorerSortBy(this.sortBy) !== 'opened') return;
+		queueMicrotask(() => {
+			if (this.containerEl.isConnected) this._render();
+		});
 	};
 
 	private _syncActiveFilePath(

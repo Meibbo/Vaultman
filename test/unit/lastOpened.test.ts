@@ -171,3 +171,26 @@ describe('BT5-013 last opened record', () => {
 		expect(explorerFilesSource).toContain('openedText');
 	});
 });
+
+describe('BT5-013 last opened is a live recency order', () => {
+	it('re-sorts Files the moment a file is opened', () => {
+		// A recency order is stale the instant it is not refreshed: opening a
+		// note must move it to the top the way a browser history does.
+		expect(explorerFilesSource).toContain(
+			"if (normalizeExplorerSortBy(this.sortBy) !== 'opened') return;",
+		);
+		expect(explorerFilesSource).toContain('queueMicrotask(() => {');
+	});
+
+	it('does not re-sort while another order is active', () => {
+		// The guard returns before scheduling, so no other sort pays for it.
+		const handler = explorerFilesSource.slice(
+			explorerFilesSource.indexOf('_handleActiveFileChange = '),
+			explorerFilesSource.indexOf('private _syncActiveFilePath('),
+		);
+		expect(handler).toContain('this._syncActiveFilePath(');
+		expect(handler.indexOf("!== 'opened') return;")).toBeLessThan(
+			handler.indexOf('queueMicrotask('),
+		);
+	});
+});

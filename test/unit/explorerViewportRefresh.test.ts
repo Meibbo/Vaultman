@@ -75,7 +75,18 @@ describe('BT5-030 cached viewport activation', () => {
 		)?.[0] ?? '';
 		expect(handler).not.toBe('');
 		expect(handler).toContain('this._syncActiveFilePath');
-		expect(handler).not.toContain('this._render()');
+		// BT5-013 carves out one narrow exception: Last opened is a recency
+		// order, so it is wrong the instant it is not refreshed. Every other
+		// sort keeps BT5-030's contract — no render on file-open, which is what
+		// removed the typing micro-stalls. The guard therefore pins the
+		// condition, not the absence of a render.
+		expect(handler).toContain(
+			"if (normalizeExplorerSortBy(this.sortBy) !== 'opened') return;",
+		);
+		const renderIndex = handler.indexOf('this._render()');
+		expect(renderIndex).toBeGreaterThan(
+			handler.indexOf("!== 'opened') return;"),
+		);
 		expect(filesPanelSource).toContain('this.treeView?.setActiveId(nextPath)');
 		expect(filesPanelSource).not.toContain('_decorateTreeWithActiveReveal');
 	});
