@@ -101,7 +101,8 @@
 	function pillsKey(tab: FiltersTab, view: ViewMode): string {
 		if (tab === 'files') {
 			if (view === 'table') return 'files-table';
-			if (view === 'grid') return 'files-grid';
+			// BT5-016: Cards is the user mode; 'grid' only as legacy input.
+			if (view === 'cards' || view === 'grid') return 'files-grid';
 			return 'files-tree';
 		}
 		return tab;

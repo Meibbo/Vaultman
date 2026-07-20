@@ -813,7 +813,6 @@ export const en: Record<string, string> = {
 	'viewmode.search_cols': 'Search property columns',
 	'viewmode.mode.tree': 'Tree',
 	'viewmode.mode.dnd': 'Drag & Drop list',
-	'viewmode.mode.grid': 'Grid',
 	'viewmode.mode.table': 'Table',
 	'viewmode.mode.cards': 'Cards',
 	'viewmode.pill.icon': 'Icon',

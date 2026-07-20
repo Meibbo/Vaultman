@@ -27,6 +27,7 @@
 	} from '../../logic/logicScopedSort';
 	import {
 		isViewModeSelectableForDataSurface,
+		normalizeExplorerViewMode,
 		panelViewModeForDataSurface,
 		viewModesForDataSurface,
 	} from '../../logic/logicExplorerViewModes';
@@ -359,7 +360,8 @@
 		for (const tab of LAYOUT_TABS) {
 			const saved = layout.config[tab];
 			if (!saved) continue;
-			nextView[tab] = saved.viewMode as ExplorerViewMode;
+			// BT5-016: legacy saved 'grid' loads as Cards.
+			nextView[tab] = normalizeExplorerViewMode(saved.viewMode, tab);
 			nextCells[tab] = [...saved.visibleCells];
 			nextSort[tab] = normalizeSortState(tab, saved.sortState);
 			if (isCoreFiltersTab(tab)) {
@@ -783,7 +785,7 @@
 
 		const minimalNativeViewModes = minimalStyle
 			? viewModesForDataSurface(activeTab).filter(
-					(option) => option.id !== 'dnd' && option.id !== 'cards',
+					(option) => option.id !== 'dnd',
 				)
 			: viewModesForDataSurface(activeTab);
 

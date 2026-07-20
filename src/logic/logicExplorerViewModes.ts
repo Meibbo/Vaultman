@@ -22,10 +22,12 @@ const VIEW_MODE_DEFS: Record<ExplorerViewMode, ExplorerViewModeOption> = {
 		icon: 'lucide-table-2',
 		labelKey: 'viewmode.mode.table',
 	},
+	// BT5-016: the user-facing card engine is Cards; 'grid' survives only as a
+	// legacy persisted value normalized below.
 	grid: {
 		id: 'grid',
 		icon: 'lucide-layout-grid',
-		labelKey: 'viewmode.mode.grid',
+		labelKey: 'viewmode.mode.cards',
 	},
 	dnd: {
 		id: 'dnd',
@@ -35,11 +37,33 @@ const VIEW_MODE_DEFS: Record<ExplorerViewMode, ExplorerViewModeOption> = {
 	},
 	cards: {
 		id: 'cards',
-		icon: 'lucide-layout-panel-top',
+		icon: 'lucide-layout-grid',
 		labelKey: 'viewmode.mode.cards',
-		locked: true,
 	},
 };
+
+/**
+ * Map persisted/legacy values onto the current user-facing mode ids
+ * (BT5-016: saved `grid` loads as Cards). Unknown values fall back to tree;
+ * passing a surface additionally clamps to what that surface offers.
+ */
+export function normalizeExplorerViewMode(
+	value: unknown,
+	surface?: DataExplorerSurface,
+): ExplorerViewMode {
+	const mapped: ExplorerViewMode =
+		value === 'grid' || value === 'cards'
+			? 'cards'
+			: value === 'table' || value === 'dnd' || value === 'tree'
+				? value
+				: 'tree';
+	if (surface !== undefined) {
+		return isViewModeSelectableForDataSurface(surface, mapped)
+			? mapped
+			: 'tree';
+	}
+	return mapped === 'dnd' ? 'tree' : mapped;
+}
 
 export function viewModesForDataSurface(
 	surface: DataExplorerSurface,
@@ -52,17 +76,15 @@ export function viewModesForDataSurface(
 		return [
 			VIEW_MODE_DEFS.tree,
 			VIEW_MODE_DEFS.table,
-			VIEW_MODE_DEFS.grid,
-			VIEW_MODE_DEFS.dnd,
 			VIEW_MODE_DEFS.cards,
+			VIEW_MODE_DEFS.dnd,
 		];
 	}
 	return [
 		VIEW_MODE_DEFS.tree,
-		VIEW_MODE_DEFS.grid,
+		VIEW_MODE_DEFS.cards,
 		VIEW_MODE_DEFS.table,
 		VIEW_MODE_DEFS.dnd,
-		VIEW_MODE_DEFS.cards,
 	];
 }
 
@@ -85,12 +107,13 @@ export function panelViewModeForDataSurface(
 	surface: DataExplorerSurface,
 	mode: ExplorerViewMode,
 ): PanelViewMode {
-	if (!isViewModeSelectableForDataSurface(surface, mode)) return 'tree';
-	if (surface === 'files' && mode === 'table') return 'table';
-	if (surface === 'files' && mode === 'grid') return 'grid';
-	if ((surface === 'props' || surface === 'tags') && mode === 'grid')
+	// Legacy persisted 'grid' behaves as Cards (BT5-016).
+	const normalized = normalizeExplorerViewMode(mode, surface);
+	if (surface === 'files' && normalized === 'table') return 'table';
+	if (surface === 'files' && normalized === 'cards') return 'grid';
+	if ((surface === 'props' || surface === 'tags') && normalized === 'cards')
 		return 'grid';
-	if ((surface === 'props' || surface === 'tags') && mode === 'table')
+	if ((surface === 'props' || surface === 'tags') && normalized === 'table')
 		return 'table';
 	return 'tree';
 }

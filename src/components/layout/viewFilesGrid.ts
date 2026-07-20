@@ -7,6 +7,8 @@ import { vaultmanPerfMonitor } from '../../utils/performanceMonitor';
 import { elementContentWidth } from '../../utils/elementDimensions';
 import {
 	explorerDensityProfile,
+	gridRowHeightFor,
+	hasGridMetaCells,
 	usesMobileExplorerDensity,
 } from '../../logic/logicResponsiveLayout';
 import type { ResolvedExplorerIcon } from '../../logic/logicFileIcons';
@@ -64,8 +66,14 @@ export class FilesGridView {
 		return this.densityProfile.gridMinCardWidth;
 	}
 
+	private get hasMetaCells(): boolean {
+		return hasGridMetaCells(this.visibleCells);
+	}
+
 	private get rowHeight(): number {
-		return this.densityProfile.gridRowHeight;
+		// BT5-016: without active meta cells the card collapses, and the
+		// virtual row shrinks by the same extent (no overlap, no dead space).
+		return gridRowHeightFor(this.densityProfile, this.hasMetaCells);
 	}
 
 	render(files: TFile[]): void {
@@ -326,6 +334,9 @@ export class FilesGridView {
 		card.setAttribute('aria-label', file.path);
 		card.toggleClass('is-selected', this.selectedFiles.has(file.path));
 		card.toggleClass('is-active', this.activePath === file.path);
+		// BT5-016: no active meta cells → the card keeps only its content
+		// height instead of reserving the empty metadata box.
+		card.toggleClass('vaultman-files-grid-card--compact', !this.hasMetaCells);
 
 		if (this.visibleCells.has('icon') && resolvedIcon) {
 			const iconEl = card.createDiv({ cls: 'vaultman-files-grid-card-icon' });
@@ -337,30 +348,32 @@ export class FilesGridView {
 				text: formatFileTableName(file),
 			});
 		}
-		const metaRow = card.createDiv({ cls: 'vaultman-files-grid-card-meta' });
-		if (this.visibleCells.has('ext') && this.visibleExtension(file)) {
-			metaRow.createSpan({
-				cls: 'nav-file-tag vaultman-files-grid-card-ext',
-				text: this.visibleExtension(file),
-			});
-		}
-		if (this.visibleCells.has('count') && propCount > 0) {
-			metaRow.createSpan({
-				cls: 'vaultman-tree-count',
-				text: String(propCount),
-			});
-		}
-		if (showWords && wordCount !== null) {
-			metaRow.createSpan({
-				cls: 'nav-file-tag vaultman-files-grid-card-words',
-				text: String(wordCount),
-			});
-		}
-		if (this.visibleCells.has('mtime')) {
-			this.renderDateCell(metaRow, times.mtime);
-		}
-		if (this.visibleCells.has('ctime')) {
-			this.renderDateCell(metaRow, times.ctime);
+		if (this.hasMetaCells) {
+			const metaRow = card.createDiv({ cls: 'vaultman-files-grid-card-meta' });
+			if (this.visibleCells.has('ext') && this.visibleExtension(file)) {
+				metaRow.createSpan({
+					cls: 'nav-file-tag vaultman-files-grid-card-ext',
+					text: this.visibleExtension(file),
+				});
+			}
+			if (this.visibleCells.has('count') && propCount > 0) {
+				metaRow.createSpan({
+					cls: 'vaultman-tree-count',
+					text: String(propCount),
+				});
+			}
+			if (showWords && wordCount !== null) {
+				metaRow.createSpan({
+					cls: 'nav-file-tag vaultman-files-grid-card-words',
+					text: String(wordCount),
+				});
+			}
+			if (this.visibleCells.has('mtime')) {
+				this.renderDateCell(metaRow, times.mtime);
+			}
+			if (this.visibleCells.has('ctime')) {
+				this.renderDateCell(metaRow, times.ctime);
+			}
 		}
 		this.renderBadges(card, badges);
 	}

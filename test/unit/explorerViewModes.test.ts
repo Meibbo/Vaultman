@@ -7,33 +7,32 @@ import {
 } from '../../src/logic/logicExplorerViewModes';
 
 describe('explorer view mode availability', () => {
-	it('exposes Files table as the repaired table renderer without pretending it is grid', () => {
+	it('exposes Files table as the repaired table renderer alongside Cards', () => {
 		const filesModes = viewModesForDataSurface('files');
 
 		expect(filesModes.map((mode) => [mode.id, mode.locked ?? false])).toEqual([
 			['tree', false],
 			['table', false],
-			['grid', false],
+			['cards', false],
 			['dnd', true],
-			['cards', true],
 		]);
 		expect(selectableViewModesForDataSurface('files')).toEqual([
 			'tree',
 			'table',
-			'grid',
+			'cards',
 		]);
 		expect(panelViewModeForDataSurface('files', 'table')).toBe('table');
-		expect(panelViewModeForDataSurface('files', 'grid')).toBe('grid');
+		expect(panelViewModeForDataSurface('files', 'cards')).toBe('grid');
 	});
 
 	it('exposes Props and Tags table after the generic node table renderer is available', () => {
 		for (const surface of ['props', 'tags'] as const) {
 			expect(selectableViewModesForDataSurface(surface)).toEqual([
 				'tree',
-				'grid',
+				'cards',
 				'table',
 			]);
-			expect(panelViewModeForDataSurface(surface, 'grid')).toBe('grid');
+			expect(panelViewModeForDataSurface(surface, 'cards')).toBe('grid');
 			expect(panelViewModeForDataSurface(surface, 'table')).toBe('table');
 			expect(
 				viewModesForDataSurface(surface).find((mode) => mode.id === 'table')

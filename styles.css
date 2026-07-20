@@ -3265,6 +3265,12 @@ body.vaultman-bases-column-separators table th {
   overflow: hidden;
 }
 
+/* BT5-016: without active meta cells the card collapses to its content
+   height instead of reserving the empty metadata box (82px - 20px). */
+.vaultman-files-grid-card--compact {
+  height: 62px;
+}
+
 .vaultman-files-grid-card:hover {
   background: var(--background-modifier-hover);
   color: var(--text-normal);
@@ -5450,6 +5456,11 @@ button.vaultman-content-scope-hint:focus-visible {
 .is-mobile .workspace-leaf-content[data-type="vaultman-frame"] .vaultman-files-grid-card {
   height: 102px;
   padding-block: 12px 10px;
+}
+
+/* BT5-016 compact variant on mobile (102px - 20px). */
+.is-mobile .workspace-leaf-content[data-type="vaultman-frame"] .vaultman-files-grid-card--compact {
+  height: 82px;
 }
 
 .is-mobile .workspace-leaf-content[data-type="vaultman-frame"] .vaultman-files-grid-card-icon svg {

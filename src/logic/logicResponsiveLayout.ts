@@ -29,6 +29,36 @@ export function explorerDensityProfile(
 	return isMobile ? MOBILE_EXPLORER_DENSITY : DESKTOP_EXPLORER_DENSITY;
 }
 
+/** Cells that render inside the files card metadata row (BT5-016). */
+export const GRID_META_CELL_IDS = [
+	'ext',
+	'count',
+	'words',
+	'mtime',
+	'ctime',
+] as const;
+
+/** Vertical extent the card metadata row occupies (meta min-height + gap). */
+export const GRID_META_ROW_EXTENT = 20;
+
+export function hasGridMetaCells(visibleCells: ReadonlySet<string>): boolean {
+	return GRID_META_CELL_IDS.some((cell) => visibleCells.has(cell));
+}
+
+/**
+ * BT5-016: a card without active meta cells collapses to its content height
+ * instead of reserving the empty metadata box, and the virtual row height
+ * shrinks by the same extent so cards never overlap.
+ */
+export function gridRowHeightFor(
+	profile: ExplorerDensityProfile,
+	hasMetaCells: boolean,
+): number {
+	return hasMetaCells
+		? profile.gridRowHeight
+		: profile.gridRowHeight - GRID_META_ROW_EXTENT;
+}
+
 export function usesMobileExplorerDensity(
 	platformIsMobile: boolean,
 	bodyClasses: Pick<DOMTokenList, 'contains'>,

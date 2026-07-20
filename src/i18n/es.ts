@@ -690,7 +690,6 @@ export const es: Record<string, string> = {
 	'viewmode.close': 'Cerrar modo de vista',
 	'viewmode.mode.tree': 'Árbol',
 	'viewmode.mode.dnd': 'Drag & Drop',
-	'viewmode.mode.grid': 'Grid',
 	'viewmode.mode.table': 'Tabla',
 	'viewmode.mode.cards': 'Cards',
 	'viewmode.pill.icon': 'Icono',
