@@ -1197,7 +1197,10 @@ export class FilesExplorerPanel extends Component {
 						compareNodes: (a, b, sort) =>
 							this._compareFileTreeNodes(a, b, sort),
 					})
-				: this.logic.buildFlatFileNodes(sortedFiles, { rebaseFolderPaths });
+				: this.logic.buildFlatFileNodes(sortedFiles, {
+						rebaseFolderPaths,
+						labelMode: this._pathLabelActive() ? 'path' : 'name',
+					});
 			if (this._nestedEnabled()) this._autoExpandSparseTopLevel(renderTree);
 			this._decorateTreeWithFileTimes(renderTree);
 			this._decorateTreeWithRainbow(renderTree);
@@ -1738,6 +1741,15 @@ export class FilesExplorerPanel extends Component {
 
 	private _nestedEnabled(): boolean {
 		return this.visibleCells.has('nested');
+	}
+
+	/**
+	 * BT5-012: Path is an alternative projection of the label, not a second
+	 * textual column, and folder rows already spell the hierarchy out — so it
+	 * only applies while Nested is off.
+	 */
+	private _pathLabelActive(): boolean {
+		return !this._nestedEnabled() && this.visibleCells.has('path');
 	}
 
 	private _resolveFileIcon(

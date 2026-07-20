@@ -25,6 +25,12 @@ export interface ExplorerCellDef {
 	supports: readonly ExplorerCellSupport[];
 	sortId?: string;
 	hoverId?: string;
+	/**
+	 * BT5-012: cells that only make sense while another cell is off. Path is a
+	 * projection of the label, so it is meaningless while Nested already spells
+	 * the hierarchy out with folder rows.
+	 */
+	requiresCellsOff?: readonly string[];
 }
 
 export type FileHoverInfoId = string;
@@ -46,6 +52,7 @@ export interface ExplorerCellRegistry {
 	viewMenuCells(
 		explorer: ExplorerTabId,
 		viewMode?: ExplorerViewMode,
+		activeCells?: Iterable<string>,
 	): ExplorerCellDef[];
 	defaultVisibleCells(
 		explorer: ExplorerTabId,
@@ -144,6 +151,7 @@ export const EXPLORER_CELL_DEFS: readonly ExplorerCellDef[] = [
 		icon: 'lucide-route',
 		sortId: 'path',
 		hoverId: 'path',
+		requiresCellsOff: ['nested'],
 		supports: [
 			{
 				explorer: 'files',
@@ -506,6 +514,18 @@ function isHoverCompatible(
 	);
 }
 
+/**
+ * BT5-012: a cell is unavailable while any cell it excludes is switched on.
+ * The stored selection is never edited — only the projection hides it — so
+ * turning the blocking cell back off restores the previous choice intact.
+ */
+export function cellAvailable(
+	definition: ExplorerCellDef,
+	activeCells: ReadonlySet<string>,
+): boolean {
+	return !definition.requiresCellsOff?.some((id) => activeCells.has(id));
+}
+
 export function createExplorerCellRegistry(
 	definitions: readonly ExplorerCellDef[],
 ): ExplorerCellRegistry {
@@ -577,13 +597,18 @@ export function createExplorerCellRegistry(
 				)
 				.map(({ definition }) => definition);
 		},
-		viewMenuCells(explorer, viewMode) {
+		viewMenuCells(explorer, viewMode, activeCells) {
+			// Without a context the caller cannot tell whether a projection is
+			// applicable, so projections stay out — the pre-BT5-012 behaviour.
+			const active = activeCells ? new Set(activeCells) : undefined;
 			return registry
 				.cellsForExplorer(explorer, viewMode)
 				.filter(
 					(definition) =>
 						definition.role !== 'topology' &&
-						definition.role !== 'label-projection',
+						(active
+							? cellAvailable(definition, active)
+							: definition.role !== 'label-projection'),
 				);
 		},
 		defaultVisibleCells(explorer, viewMode) {
@@ -686,8 +711,9 @@ export function cellsForExplorer(
 export function viewMenuCells(
 	explorer: ExplorerTabId,
 	viewMode?: ExplorerViewMode,
+	activeCells?: Iterable<string>,
 ): ExplorerCellDef[] {
-	return REGISTRY.viewMenuCells(explorer, viewMode);
+	return REGISTRY.viewMenuCells(explorer, viewMode, activeCells);
 }
 
 /**
@@ -718,11 +744,17 @@ export function resolveCellRenderOrder(
 	);
 	// Unavailable ids are dropped from the projection only; the stored array
 	// keeps them, so a cell hidden by context leaves no gap and loses no place.
-	const active = REGISTRY.normalizeVisibleCellIds(
+	const stored = REGISTRY.normalizeVisibleCellIds(
 		explorer,
 		visibleCells,
 		options.viewMode,
 	);
+	// BT5-012: an excluded projection leaves the row but keeps its stored place.
+	const storedSet = new Set(stored);
+	const active = stored.filter((id) => {
+		const definition = REGISTRY.cellDef(id);
+		return !definition || cellAvailable(definition, storedSet);
+	});
 	if (options.byActivation) return active;
 	return [...active].sort(
 		(left, right) => (rankById.get(left) ?? 0) - (rankById.get(right) ?? 0),
@@ -744,7 +776,11 @@ export function cellMenuOrder(
 	visibleCells: readonly string[],
 	options: CellOrderOptions,
 ): CellMenuEntry[] {
-	const menuCells = REGISTRY.viewMenuCells(explorer, options.viewMode);
+	const menuCells = REGISTRY.viewMenuCells(
+		explorer,
+		options.viewMode,
+		REGISTRY.normalizeVisibleCellIds(explorer, visibleCells, options.viewMode),
+	);
 	const byId = new Map(
 		menuCells.map((definition) => [definition.id, definition]),
 	);

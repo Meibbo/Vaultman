@@ -82,7 +82,11 @@ describe('minimal filters header source guards', () => {
 		// BT5-011: the navbar projects through cellMenuOrder; the view popup
 		// still reads viewMenuCells directly.
 		expect(navbarFiltersSource).toContain('cellMenuOrder(');
-		expect(popupViewSource).toContain('viewMenuCells(activeTab, activeView)');
+		// BT5-012: Path mode is now a registry-gated projection, so the popup
+		// passes its active pills into viewMenuCells.
+		expect(popupViewSource).toContain(
+			'viewMenuCells(activeTab, activeView, activePills)',
+		);
 		expect(navbarFiltersSource).not.toContain('const CELL_LABELS');
 		expect(navbarFiltersSource).not.toContain('const CELL_ICONS');
 	});

@@ -365,11 +365,19 @@ describe('FilesLogic.buildFileTree', () => {
 			'alpha/middle.md',
 			'beta/oldest.md',
 		]);
+		// BT5-012: the default projection is the file name alone. The folder
+		// prefix now belongs to the opt-in Path projection, which this guard
+		// pins next to it so the two never collapse back into one hybrid.
 		expect(nodes.map((node) => node.label)).toEqual([
-			'zeta/newest',
-			'alpha/middle',
-			'beta/oldest',
+			'newest.md',
+			'middle.md',
+			'oldest.md',
 		]);
+		expect(
+			logic
+				.buildFlatFileNodes([newest, middle, oldest], { labelMode: 'path' })
+				.map((node) => node.label),
+		).toEqual(['zeta/newest.md', 'alpha/middle.md', 'beta/oldest.md']);
 		expect(nodes.every((node) => !node.meta.isFolder)).toBe(true);
 		expect(nodes.every((node) => node.depth === 0)).toBe(true);
 		expect(nodes.every((node) => node.showCaret === false)).toBe(true);

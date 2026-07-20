@@ -217,7 +217,11 @@ describe('shared registry consumer guards', () => {
 		expect(navbarSource).toContain('cellMenuOrder(');
 		expect(navbarSource).not.toContain('const CELL_LABELS');
 		expect(navbarSource).not.toContain('const CELL_ICONS');
-		expect(popupSource).toContain('viewMenuCells(activeTab, activeView)');
+		// BT5-012: the popup now feeds its own selection in so the registry can
+		// hide projections that the active cells exclude.
+		expect(popupSource).toContain(
+			'viewMenuCells(activeTab, activeView, activePills)',
+		);
 		expect(popupSource).not.toContain('const PILLS');
 	});
 

@@ -64,7 +64,7 @@
 	});
 
 	const currentPillDefs = $derived(
-		viewMenuCells(activeTab, activeView).map((definition) => ({
+		viewMenuCells(activeTab, activeView, activePills).map((definition) => ({
 			id: definition.id,
 			labelKey: cellLabelKey(definition, activeTab, activeView),
 		})),

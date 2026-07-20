@@ -42,6 +42,12 @@ export interface BuildFileTreeOptions {
 	fixedFolders?: boolean;
 	sorts?: Partial<Record<'all' | 'drill', ScopeSort>>;
 	drillNodeId?: string | null;
+	/**
+	 * BT5-012: which projection the flat label carries. `path` replaces the
+	 * label instead of adding a column, so a duplicated filename in another
+	 * folder stays distinguishable without a second textual cell.
+	 */
+	labelMode?: 'name' | 'path';
 	compareNodes?: (
 		a: TreeNode<FileMeta>,
 		b: TreeNode<FileMeta>,
@@ -76,13 +82,13 @@ export class FilesLogic {
 			const rebaseInfo = rebaseFolderInfo(folderPath, rebaseFolderPaths);
 			if (!rebaseInfo) return [];
 
-			const labelPrefix = rebaseInfo.visualPath
-				? `${rebaseInfo.visualPath}/`
-				: '';
 			return [
 				{
 					id: file.path,
-					label: `${labelPrefix}${file.basename}`,
+					// BT5-012: the two projections are the file's own fields. The
+					// old folder-relative hybrid was neither, so a flat list is now
+					// genuinely flat until Path is switched on.
+					label: options.labelMode === 'path' ? file.path : file.name,
 					icon: this.iconForExtension(file.extension),
 					showCaret: false,
 					depth: 0,
