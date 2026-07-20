@@ -5,6 +5,10 @@ import type { QueueTemplate } from './typeOps';
 import type { BadgeCancelClickMode } from '../utils/badgeInteraction';
 import type { ExplorerSortState } from './typeUI';
 import type { InteractionMode } from '../logic/logicInteractionMode';
+import {
+	DEFAULT_FILES_HOVER_INFO,
+	type FileHoverInfoId,
+} from '../logic/logicCellRegistry';
 
 export type Language = 'auto' | 'en' | 'es';
 
@@ -30,21 +34,6 @@ export interface SavedLayout {
 	config: Record<string, SavedViewConfig>;
 	floatingToc?: SavedFloatingTocState;
 }
-
-export const FILES_HOVER_INFO_FIELDS = [
-	'path',
-	'modified',
-	'created',
-	'words',
-	'characters',
-	'tasks',
-] as const;
-export type FilesHoverInfoField = (typeof FILES_HOVER_INFO_FIELDS)[number];
-export const DEFAULT_FILES_HOVER_INFO: FilesHoverInfoField[] = [
-	'modified',
-	'created',
-	'words',
-];
 
 export const FILES_ICON_SCOPES = ['all', 'files', 'folders', 'custom'] as const;
 export type FilesIconScope = (typeof FILES_ICON_SCOPES)[number];
@@ -165,7 +154,9 @@ export interface VaultmanSettings {
 	/** Condense Files auto-reveal and expansion into one native Tools menu */
 	toolbarToolsMenu: boolean;
 	/** Ordered fields shown in the native Files node hover tooltip */
-	filesHoverInfo: FilesHoverInfoField[];
+	filesHoverInfo: FileHoverInfoId[];
+	/** Independent display order for every available Files hover entry */
+	filesHoverInfoOrder?: FileHoverInfoId[];
 	/** Show the explorer toolbar (tabs / view / sort / search header) */
 	showToolbar: boolean;
 	/** Named saved explorer layouts (view options + sorts per tab) */

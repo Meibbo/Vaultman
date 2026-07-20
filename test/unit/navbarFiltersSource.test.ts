@@ -53,7 +53,9 @@ describe('minimal filters header source guards', () => {
 		expect(navbarFiltersSource).not.toContain('vaultman-minimal-search-row');
 		expect(navbarFiltersSource).not.toContain('isPhoneMode');
 		expect(navbarFiltersSource).toContain('shouldShowMinimalSearchInput({');
-		expect(navbarFiltersSource).toContain('tabLabelVisible: showTabsButtonLabel');
+		expect(navbarFiltersSource).toContain(
+			'tabLabelVisible: showTabsButtonLabel',
+		);
 	});
 
 	it('renders caller-provided header actions immediately after the tabs button', () => {
@@ -70,35 +72,19 @@ describe('minimal filters header source guards', () => {
 	});
 
 	it('keeps Nested enabled by default across Files, Props, and Tags view controls', () => {
-		expect(navbarFiltersSource).toContain(
-			"props: ['icon', 'text', 'count', 'nested']",
-		);
-		expect(navbarFiltersSource).toContain(
-			"tags: ['icon', 'text', 'count', 'nested']",
-		);
-		expect(navbarFiltersSource).toContain(
-			"files: ['name', 'ext', 'nested']",
-		);
-		expect(navbarFiltersSource).toContain("mtime: 'viewmode.pill.mtime'");
-		expect(navbarFiltersSource).toContain("nested: 'viewmode.pill.nested'");
-		expect(popupViewSource).toContain(
-			"{ id: 'nested', labelKey: 'viewmode.pill.nested', defaultOn: true }",
-		);
+		expect(navbarFiltersSource).toContain('defaultVisibleCells');
+		expect(popupViewSource).toContain('defaultVisibleCells');
+		expect(navbarFiltersSource).not.toContain('const DEFAULT_VISIBLE_CELLS');
+		expect(popupViewSource).not.toContain('const PILLS');
 	});
 
 	it('keeps Files date cells opt-in and represents path mode as Nested off', () => {
 		expect(navbarFiltersSource).toContain(
-			"files: ['name', 'ext', 'nested']",
+			'viewMenuCells(activeTab, activeView)',
 		);
-		expect(popupViewSource).toContain(
-			"{ id: 'mtime', labelKey: 'viewmode.pill.mtime', defaultOn: false }",
-		);
-		expect(popupViewSource).toContain(
-			"{ id: 'nested', labelKey: 'viewmode.pill.nested', defaultOn: true }",
-		);
-		expect(navbarFiltersSource).not.toContain("path: 'viewmode.pill.path'");
-		expect(navbarFiltersSource).not.toContain("path: 'lucide-route'");
-		expect(popupViewSource).not.toContain("id: 'path'");
+		expect(popupViewSource).toContain('viewMenuCells(activeTab, activeView)');
+		expect(navbarFiltersSource).not.toContain('const CELL_LABELS');
+		expect(navbarFiltersSource).not.toContain('const CELL_ICONS');
 	});
 
 	it('keeps dock-off menu labels reactive and exposes Files grouping by extension', () => {
@@ -130,7 +116,7 @@ describe('minimal filters header source guards', () => {
 
 	it('persists and applies full scoped sort state instead of the legacy child-level shape', () => {
 		expect(navbarFiltersSource).toContain(
-			"normalizeExplorerSortState(tab, state",
+			'normalizeExplorerSortState(tab, state',
 		);
 		expect(navbarFiltersSource).toContain('activeScopeSort(tab, sort)');
 		expect(navbarFiltersSource).toContain('sorts: { ...sortState.sorts }');

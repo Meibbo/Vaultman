@@ -41,10 +41,11 @@ describe('Vaultman default settings', () => {
 
 	it('preserves the existing Files hover information by default', () => {
 		expect(DEFAULT_SETTINGS.filesHoverInfo).toEqual([
-			'modified',
-			'created',
+			'mtime',
+			'ctime',
 			'words',
 		]);
+		expect(DEFAULT_SETTINGS.filesHoverInfoOrder).toBeUndefined();
 	});
 
 	it('keeps the existing Iconic integration enabled by default', () => {

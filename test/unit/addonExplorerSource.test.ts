@@ -13,6 +13,7 @@ import menuTypesSource from '../../src/types/typeCMenu.ts?raw';
 import settingsTypesSource from '../../src/types/typeSettings.ts?raw';
 import settingsSource from '../../src/VaultmanSettings.ts?raw';
 import { SORT_MENU_OPTIONS } from '../../src/logic/logicSortMenu';
+import { cellsForExplorer } from '../../src/logic/logicCellRegistry';
 import { expansionActionAvailable } from '../../src/logic/logicTreeExpansion';
 
 describe('Snippets and Plugins explorer tabs source guards', () => {
@@ -77,10 +78,21 @@ describe('Snippets and Plugins explorer tabs source guards', () => {
 			);
 			expect(expansionActionAvailable(tab, ['nested'])).toBe(false);
 		}
-		expect(popupViewSource).toContain("id: 'state'");
-		expect(popupViewSource).toContain("id: 'installed'");
-		expect(popupViewSource).toContain("id: 'updated'");
-		expect(popupViewSource).toContain("id: 'config'");
+		// BT5-010: the configurable cells moved from popupView's local map to
+		// the shared registry, so the guard asks the registry itself.
+		for (const tab of ['snippets', 'plugins'] as const) {
+			const cellIds = cellsForExplorer(tab, 'tree').map((cell) => cell.id);
+			expect(cellIds).toEqual(
+				expect.arrayContaining(['state', 'installed', 'updated']),
+			);
+		}
+		// The popup must read the shared registry, not a local pill map.
+		expect(popupViewSource).toContain('logicCellRegistry');
+		expect(popupViewSource).toContain('viewMenuCells');
+		// The plugins-only config cell is registered centrally too.
+		expect(cellsForExplorer('plugins', 'tree').map((cell) => cell.id)).toContain(
+			'config',
+		);
 		expect(navbarFiltersSource).toContain('expansionActionAvailable(');
 		expect(popupSortSource).toContain('visibleSortOptions(');
 	});

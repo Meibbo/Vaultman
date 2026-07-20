@@ -182,8 +182,7 @@ export const en: Record<string, string> = {
 	'settings.rainbow_folders.desc':
 		'Color each top-level folder subtree in the files tree; picks up the fancyfile-explorer-rainbow snippet palette when installed.',
 	'settings.toc_glyph_color': 'Glyph color',
-	'settings.toc_glyph_color.desc':
-		'Color for the floating index glyphs.',
+	'settings.toc_glyph_color.desc': 'Color for the floating index glyphs.',
 	'settings.toc_glyph_color.default': 'Default',
 	'settings.toc_glyph_color.accent': 'Accent',
 	'settings.toc_glyph_color.rainbow': 'Rainbow',
@@ -242,6 +241,7 @@ export const en: Record<string, string> = {
 	'settings.files_hover_info.desc':
 		'Choose which cached metadata and reading statistics appear when hovering a Files node.',
 	'settings.files_hover_info.path': 'Path',
+	'settings.files_hover_info.label': 'Label',
 	'settings.files_hover_info.modified': 'Modified',
 	'settings.files_hover_info.created': 'Created',
 	'settings.files_hover_info.words': 'Words',

@@ -38,7 +38,10 @@ describe('Files hover info source guards', () => {
 
 	it('keeps the settings page and legacy IndexedDB records compatible', () => {
 		expect(settingsSource).toContain("this.page = 'files-hover'");
-		expect(settingsSource).toContain('FILES_HOVER_INFO_FIELDS');
+		// BT5-010: the hover field list now comes from the shared cell
+		// registry instead of a settings-local constant.
+		expect(settingsSource).toContain('fileHoverEntries()');
+		expect(settingsSource).not.toContain('FILES_HOVER_INFO_FIELDS');
 		expect(statisticsCacheSource).toContain(
 			'getFileCharacterCount(file: TFile)',
 		);

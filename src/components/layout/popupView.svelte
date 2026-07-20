@@ -6,106 +6,18 @@
 		isViewModeSelectableForDataSurface,
 		viewModesForDataSurface,
 	} from '../../logic/logicExplorerViewModes';
+	import {
+		cellLabelKey,
+		defaultVisibleCells,
+		isIdentityCell,
+		viewMenuCells,
+	} from '../../logic/logicCellRegistry';
 
 	type FiltersTab = ExplorerTabId;
 	type ViewMode = ExplorerViewMode;
 
-	type PillDef = {
-		id: string;
-		labelKey: string;
-		defaultOn: boolean;
-	};
-
-	// Pills for each combination of tab × view (files splits by view mode).
-	const PILLS: Record<string, PillDef[]> = {
-		tags: [
-			{ id: 'icon', labelKey: 'viewmode.pill.icon', defaultOn: true },
-			{ id: 'text', labelKey: 'viewmode.pill.text', defaultOn: true },
-			{ id: 'count', labelKey: 'viewmode.pill.count', defaultOn: true },
-			{ id: 'nested', labelKey: 'viewmode.pill.nested', defaultOn: true },
-		],
-		props: [
-			{ id: 'icon', labelKey: 'viewmode.pill.icon', defaultOn: true },
-			{ id: 'text', labelKey: 'viewmode.pill.text', defaultOn: true },
-			{ id: 'count', labelKey: 'viewmode.pill.count', defaultOn: true },
-			{ id: 'nested', labelKey: 'viewmode.pill.nested', defaultOn: true },
-		],
-		'files-table': [
-			{ id: 'icon', labelKey: 'viewmode.pill.icon', defaultOn: true },
-			{ id: 'name', labelKey: 'viewmode.pill.name', defaultOn: true },
-			{ id: 'count', labelKey: 'viewmode.pill.prop_count', defaultOn: false },
-			{ id: 'ext', labelKey: 'viewmode.pill.ext', defaultOn: true },
-			{ id: 'words', labelKey: 'viewmode.pill.words', defaultOn: false },
-			{ id: 'mtime', labelKey: 'viewmode.pill.mtime', defaultOn: false },
-			{ id: 'ctime', labelKey: 'viewmode.pill.ctime', defaultOn: false },
-			{ id: 'nested', labelKey: 'viewmode.pill.nested', defaultOn: true },
-		],
-		'files-grid': [
-			{ id: 'icon', labelKey: 'viewmode.pill.icon', defaultOn: true },
-			{ id: 'name', labelKey: 'viewmode.pill.name', defaultOn: true },
-			{ id: 'count', labelKey: 'viewmode.pill.prop_count', defaultOn: false },
-			{ id: 'ext', labelKey: 'viewmode.pill.ext', defaultOn: true },
-			{ id: 'words', labelKey: 'viewmode.pill.words', defaultOn: false },
-			{ id: 'mtime', labelKey: 'viewmode.pill.mtime', defaultOn: false },
-			{ id: 'ctime', labelKey: 'viewmode.pill.ctime', defaultOn: false },
-			{ id: 'nested', labelKey: 'viewmode.pill.nested', defaultOn: true },
-		],
-		'files-tree': [
-			{ id: 'icon', labelKey: 'viewmode.pill.icon', defaultOn: true },
-			{ id: 'name', labelKey: 'viewmode.pill.name', defaultOn: true },
-			{ id: 'count', labelKey: 'viewmode.pill.prop_count', defaultOn: false },
-			{ id: 'ext', labelKey: 'viewmode.pill.ext', defaultOn: true },
-			{ id: 'words', labelKey: 'viewmode.pill.words', defaultOn: false },
-			{ id: 'mtime', labelKey: 'viewmode.pill.mtime', defaultOn: false },
-			{ id: 'ctime', labelKey: 'viewmode.pill.ctime', defaultOn: false },
-			{ id: 'nested', labelKey: 'viewmode.pill.nested', defaultOn: true },
-		],
-		snippets: [
-			{ id: 'icon', labelKey: 'viewmode.pill.icon', defaultOn: true },
-			{ id: 'text', labelKey: 'viewmode.pill.text', defaultOn: true },
-			{ id: 'state', labelKey: 'viewmode.pill.state', defaultOn: true },
-			{
-				id: 'installed',
-				labelKey: 'viewmode.pill.installed',
-				defaultOn: false,
-			},
-			{
-				id: 'updated',
-				labelKey: 'viewmode.pill.updated',
-				defaultOn: false,
-			},
-		],
-		plugins: [
-			{ id: 'icon', labelKey: 'viewmode.pill.icon', defaultOn: true },
-			{ id: 'text', labelKey: 'viewmode.pill.text', defaultOn: true },
-			{ id: 'state', labelKey: 'viewmode.pill.state', defaultOn: true },
-			{ id: 'config', labelKey: 'viewmode.pill.config', defaultOn: true },
-			{
-				id: 'installed',
-				labelKey: 'viewmode.pill.installed',
-				defaultOn: false,
-			},
-			{
-				id: 'updated',
-				labelKey: 'viewmode.pill.updated',
-				defaultOn: false,
-			},
-		],
-	};
-
-	function defaultPills(key: string): Set<string> {
-		const defs = PILLS[key] ?? [];
-		return new Set(defs.filter((p) => p.defaultOn).map((p) => p.id));
-	}
-
-	function pillsKey(tab: FiltersTab, view: ViewMode): string {
-		if (tab === 'files') {
-			if (view === 'table') return 'files-table';
-			// BT5-016: Cards is the user mode; 'grid' only as legacy input.
-			if (view === 'cards' || view === 'grid') return 'files-grid';
-			return 'files-tree';
-		}
-		return tab;
+	function defaultPills(tab: FiltersTab, view: ViewMode): Set<string> {
+		return new Set(defaultVisibleCells(tab, view));
 	}
 
 	let {
@@ -135,7 +47,7 @@
 		untrack(() =>
 			initialPills
 				? new Set(initialPills)
-				: defaultPills(pillsKey(activeTab, initialViewMode)),
+				: defaultPills(activeTab, initialViewMode),
 		),
 	);
 
@@ -147,34 +59,36 @@
 			activeView = initialViewMode;
 			activePills = initialPills
 				? new Set(initialPills)
-				: defaultPills(pillsKey(activeTab, initialViewMode));
+				: defaultPills(activeTab, initialViewMode);
 		}
 	});
 
-	const currentPillKey = $derived(pillsKey(activeTab, activeView));
-	const currentPillDefs = $derived(PILLS[currentPillKey] ?? []);
+	const currentPillDefs = $derived(
+		viewMenuCells(activeTab, activeView).map((definition) => ({
+			id: definition.id,
+			labelKey: cellLabelKey(definition, activeTab, activeView),
+		})),
+	);
 	const currentViewModes = $derived(viewModesForDataSurface(activeTab));
 
 	function selectView(v: ViewMode) {
 		if (activeView === v) return;
 		if (!isViewModeSelectableForDataSurface(activeTab, v)) return;
 		activeView = v;
-		activePills = defaultPills(pillsKey(activeTab, v));
+		activePills = defaultPills(activeTab, v);
 		onViewModeChange?.(v);
 		onPillsChange?.(Array.from(activePills));
-	}
-
-	function isIdentityPill(id: string): boolean {
-		return id === 'icon' || id === 'text' || id === 'name';
 	}
 
 	function togglePill(id: string) {
 		const next = new Set(activePills);
 		if (next.has(id)) {
 			if (
-				isIdentityPill(id) &&
+				isIdentityCell(activeTab, id, activeView) &&
 				![...next].some(
-					(candidate) => candidate !== id && isIdentityPill(candidate),
+					(candidate) =>
+						candidate !== id &&
+						isIdentityCell(activeTab, candidate, activeView),
 				)
 			) {
 				return;

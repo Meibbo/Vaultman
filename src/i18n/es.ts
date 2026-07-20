@@ -180,8 +180,7 @@ export const es: Record<string, string> = {
 	'settings.rainbow_folders.desc':
 		'Colorea cada subárbol de carpeta de primer nivel en el árbol de files; usa la paleta del snippet fancyfile-explorer-rainbow si está instalado.',
 	'settings.toc_glyph_color': 'Color de glyphs',
-	'settings.toc_glyph_color.desc':
-		'Color de los glyphs del índice flotante.',
+	'settings.toc_glyph_color.desc': 'Color de los glyphs del índice flotante.',
 	'settings.toc_glyph_color.default': 'Por defecto',
 	'settings.toc_glyph_color.accent': 'Acento',
 	'settings.toc_glyph_color.rainbow': 'Arcoíris',
@@ -241,6 +240,7 @@ export const es: Record<string, string> = {
 	'settings.files_hover_info.desc':
 		'Elige qué metadata cacheada y estadísticas de lectura aparecen al mantener el cursor sobre un nodo de Files.',
 	'settings.files_hover_info.path': 'Ruta',
+	'settings.files_hover_info.label': 'Etiqueta',
 	'settings.files_hover_info.modified': 'Modificado',
 	'settings.files_hover_info.created': 'Creado',
 	'settings.files_hover_info.words': 'Palabras',
@@ -369,7 +369,8 @@ export const es: Record<string, string> = {
 		'No hay un campo de busqueda de Vaultman disponible.',
 	'command.open_updates': 'Abrir novedades de Vaultman',
 	'updates.title': 'Novedades de Vaultman · {version}',
-	'updates.notice': 'Vaultman {version} está listo. Descubre lo más importante.',
+	'updates.notice':
+		'Vaultman {version} está listo. Descubre lo más importante.',
 	'updates.intro':
 		'Consulta una presentación breve y visual de esta versión. El boletín enlaza al changelog técnico completo.',
 	'updates.view_bulletin': 'Ver novedades',

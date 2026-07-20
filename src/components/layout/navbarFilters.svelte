@@ -55,6 +55,15 @@
 		visibleSortOptions,
 		type NodeTypeMenuOption,
 	} from '../../logic/logicSortMenu';
+	import {
+		cellIcon,
+		cellLabelKey,
+		cellsForExplorer,
+		defaultVisibleCells,
+		isIdentityCell,
+		normalizeVisibleCellIds,
+		viewMenuCells,
+	} from '../../logic/logicCellRegistry';
 
 	type FiltersTab = ExplorerTabId;
 	type CoreFiltersTab = 'props' | 'files' | 'tags';
@@ -206,71 +215,6 @@
 		snippets: normalizeExplorerSortState('snippets', null),
 		plugins: normalizeExplorerSortState('plugins', null),
 	};
-	const DEFAULT_VISIBLE_CELLS: Record<FiltersTab, string[]> = {
-		props: ['icon', 'text', 'count', 'nested'],
-		tags: ['icon', 'text', 'count', 'nested'],
-		files: ['name', 'ext', 'nested'],
-		snippets: ['icon', 'text', 'state'],
-		plugins: ['icon', 'text', 'state', 'config'],
-	};
-	const CELL_LABELS: Record<FiltersTab, Record<string, string>> = {
-		props: {
-			icon: 'viewmode.pill.icon',
-			text: 'viewmode.pill.text',
-			count: 'viewmode.pill.count',
-			type: 'viewmode.pill.type',
-			nested: 'viewmode.pill.nested',
-		},
-		tags: {
-			icon: 'viewmode.pill.icon',
-			text: 'viewmode.pill.text',
-			count: 'viewmode.pill.count',
-			nested: 'viewmode.pill.nested',
-		},
-		files: {
-			icon: 'viewmode.pill.icon',
-			name: 'viewmode.pill.name',
-			count: 'viewmode.pill.prop_count',
-			ext: 'viewmode.pill.ext',
-			words: 'viewmode.pill.words',
-			tasks: 'viewmode.pill.tasks',
-			mtime: 'viewmode.pill.mtime',
-			ctime: 'viewmode.pill.ctime',
-			nested: 'viewmode.pill.nested',
-		},
-		snippets: {
-			icon: 'viewmode.pill.icon',
-			text: 'viewmode.pill.text',
-			state: 'viewmode.pill.state',
-			installed: 'viewmode.pill.installed',
-			updated: 'viewmode.pill.updated',
-		},
-		plugins: {
-			icon: 'viewmode.pill.icon',
-			text: 'viewmode.pill.text',
-			state: 'viewmode.pill.state',
-			config: 'viewmode.pill.config',
-			installed: 'viewmode.pill.installed',
-			updated: 'viewmode.pill.updated',
-		},
-	};
-	const CELL_ICONS: Record<string, string> = {
-		icon: 'lucide-image',
-		text: 'lucide-text',
-		name: 'lucide-file-text',
-		count: 'lucide-hash',
-		words: 'lucide-text',
-		ext: 'lucide-file-type',
-		type: 'lucide-list-filter',
-		nested: 'lucide-git-branch',
-		mtime: 'lucide-calendar-clock',
-		ctime: 'lucide-calendar-plus',
-		state: 'lucide-toggle-right',
-		config: 'lucide-settings',
-		installed: 'lucide-calendar-plus',
-		updated: 'lucide-calendar-clock',
-		tasks: 'lucide-square-check-big',
-	};
 	let headerMode = $state<HeaderMode>('header');
 	let headerExitDir = $state<'left' | 'right'>('right');
 	let viewModeByTab = $state<Record<FiltersTab, ExplorerViewMode>>({
@@ -284,11 +228,11 @@
 		...DEFAULT_INTERACTION_MODE,
 	});
 	let visibleCellsByTab = $state<Record<FiltersTab, string[]>>({
-		props: [...DEFAULT_VISIBLE_CELLS.props],
-		tags: [...DEFAULT_VISIBLE_CELLS.tags],
-		files: [...DEFAULT_VISIBLE_CELLS.files],
-		snippets: [...DEFAULT_VISIBLE_CELLS.snippets],
-		plugins: [...DEFAULT_VISIBLE_CELLS.plugins],
+		props: defaultVisibleCells('props', 'tree'),
+		tags: defaultVisibleCells('tags', 'tree'),
+		files: defaultVisibleCells('files', 'tree'),
+		snippets: defaultVisibleCells('snippets', 'tree'),
+		plugins: defaultVisibleCells('plugins', 'tree'),
 	});
 	let sortStateByTab = $state<Record<FiltersTab, ExplorerSortState>>({
 		props: { ...DEFAULT_SORT_STATE.props },
@@ -362,7 +306,11 @@
 			if (!saved) continue;
 			// BT5-016: legacy saved 'grid' loads as Cards.
 			nextView[tab] = normalizeExplorerViewMode(saved.viewMode, tab);
-			nextCells[tab] = [...saved.visibleCells];
+			nextCells[tab] = normalizeVisibleCellIds(
+				tab,
+				saved.visibleCells,
+				nextView[tab],
+			);
 			nextSort[tab] = normalizeSortState(tab, saved.sortState);
 			if (isCoreFiltersTab(tab)) {
 				nextInteraction[tab] = normalizeInteractionMode(
@@ -406,7 +354,8 @@
 	const expansionActionAvailableForActiveTab = $derived(
 		expansionActionAvailable(
 			activeTab,
-			visibleCellsByTab[activeTab] ?? DEFAULT_VISIBLE_CELLS[activeTab],
+			visibleCellsByTab[activeTab] ??
+				defaultVisibleCells(activeTab, viewModeByTab[activeTab]),
 		),
 	);
 	const expansionLabel = $derived(
@@ -656,14 +605,6 @@
 		onViewFiltersChanged?.();
 	}
 
-	function orderedCellIds(tab: FiltersTab): string[] {
-		return Object.keys(CELL_LABELS[tab]).sort((left, right) => {
-			if (left === 'nested') return -1;
-			if (right === 'nested') return 1;
-			return 0;
-		});
-	}
-
 	function handleSortChange(state: ExplorerSortState) {
 		const normalizedState = normalizeSortState(activeTab, state);
 		sortStateByTab = { ...sortStateByTab, [activeTab]: normalizedState };
@@ -749,21 +690,27 @@
 		applyVisibleCells(activeTab, cells);
 	}
 
-	function canToggleIdentity(cells: Set<string>, id: string): boolean {
-		const identityCells =
-			activeTab === 'files' ? ['icon', 'name'] : ['icon', 'text'];
-		if (!identityCells.includes(id) || !cells.has(id)) return true;
-		return identityCells.some(
-			(candidate) => candidate !== id && cells.has(candidate),
+	function canToggleIdentity(
+		cells: Set<string>,
+		id: string,
+		viewMode: ExplorerViewMode,
+	): boolean {
+		if (!isIdentityCell(activeTab, id, viewMode) || !cells.has(id)) return true;
+		return cellsForExplorer(activeTab, viewMode).some(
+			(candidate) =>
+				candidate.id !== id &&
+				candidate.role === 'identity' &&
+				cells.has(candidate.id),
 		);
 	}
 
 	function toggleVisibleCell(id: string) {
+		const viewMode = viewModeByTab[activeTab] ?? 'tree';
 		const cells = new Set(
-			visibleCellsByTab[activeTab] ?? DEFAULT_VISIBLE_CELLS[activeTab],
+			visibleCellsByTab[activeTab] ?? defaultVisibleCells(activeTab, viewMode),
 		);
 		if (cells.has(id)) {
-			if (!canToggleIdentity(cells, id)) return;
+			if (!canToggleIdentity(cells, id, viewMode)) return;
 			cells.delete(id);
 		} else {
 			cells.add(id);
@@ -780,7 +727,8 @@
 		const menu = new Menu();
 		const activeView = viewModeByTab[activeTab] ?? 'tree';
 		const cells = new Set(
-			visibleCellsByTab[activeTab] ?? DEFAULT_VISIBLE_CELLS[activeTab],
+			visibleCellsByTab[activeTab] ??
+				defaultVisibleCells(activeTab, activeView),
 		);
 
 		const minimalNativeViewModes = minimalStyle
@@ -848,16 +796,14 @@
 		}
 
 		menu.addSeparator();
-		// 'Nested' moved into the sort menu's By level group (D29).
-		for (const id of orderedCellIds(activeTab).filter(
-			(cellId) => cellId !== 'nested',
-		)) {
+		// 'Nested' stays in the sort menu's By level group (D29).
+		for (const definition of viewMenuCells(activeTab, activeView)) {
 			menu.addItem((item) => {
 				item
-					.setTitle(translate(CELL_LABELS[activeTab][id]))
-					.setIcon(CELL_ICONS[id] ?? 'lucide-circle')
-					.setChecked(cells.has(id))
-					.onClick(() => toggleVisibleCell(id));
+					.setTitle(translate(cellLabelKey(definition, activeTab, activeView)))
+					.setIcon(cellIcon(definition, activeTab, activeView))
+					.setChecked(cells.has(definition.id))
+					.onClick(() => toggleVisibleCell(definition.id));
 			});
 		}
 
@@ -1045,13 +991,14 @@
 	}
 
 	function nestedActiveFor(tab: FiltersTab): boolean {
-		return (visibleCellsByTab[tab] ?? DEFAULT_VISIBLE_CELLS[tab]).includes(
-			'nested',
-		);
+		return (
+			visibleCellsByTab[tab] ?? defaultVisibleCells(tab, viewModeByTab[tab])
+		).includes('nested');
 	}
 
 	function toggleNestedFor(tab: FiltersTab) {
-		const cells = visibleCellsByTab[tab] ?? DEFAULT_VISIBLE_CELLS[tab];
+		const cells =
+			visibleCellsByTab[tab] ?? defaultVisibleCells(tab, viewModeByTab[tab]);
 		const next = cells.includes('nested')
 			? cells.filter((cell) => cell !== 'nested')
 			: [...cells, 'nested'];
@@ -1305,7 +1252,7 @@
 	$effect(() => {
 		const tab = activeTab;
 		const viewMode = viewModeByTab[tab] ?? 'tree';
-		const cells = visibleCellsByTab[tab] ?? DEFAULT_VISIBLE_CELLS[tab];
+		const cells = visibleCellsByTab[tab] ?? defaultVisibleCells(tab, viewMode);
 		const interactionMode = isCoreFiltersTab(tab)
 			? interactionModeByTab[tab]
 			: undefined;

@@ -1,10 +1,16 @@
 import { PluginSettingTab, Setting, type App } from 'obsidian';
 import {
-	FILES_HOVER_INFO_FIELDS,
 	type FilesIconScope,
 	type iVaultmanPlugin,
 	type VaultmanSettings,
 } from './types/typeSettings';
+import {
+	fileHoverEntries,
+	mergeFileHoverOrder,
+	normalizeFileHoverEnabled,
+	reorderFileHoverEntries,
+	type FileHoverInfoId,
+} from './logic/logicCellRegistry';
 import { translate } from './i18n/index';
 import { PayloadPreviewModal } from './modals/modalPayloadPreview';
 import {
@@ -668,27 +674,73 @@ export class VaultmanSettingsTab extends PluginSettingTab {
 			.setDesc(translate('settings.files_hover_info.desc'))
 			.setHeading();
 
-		for (const field of FILES_HOVER_INFO_FIELDS) {
-			new Setting(containerEl)
-				.setName(translate(`settings.files_hover_info.${field}`))
+		const entries = new Map(
+			fileHoverEntries().map((entry) => [entry.id, entry]),
+		);
+		const order = mergeFileHoverOrder(this.plugin.settings.filesHoverInfoOrder);
+		const enabled = new Set(
+			normalizeFileHoverEnabled(this.plugin.settings.filesHoverInfo),
+		);
+		let draggedId: FileHoverInfoId | null = null;
+
+		for (const id of order) {
+			const entry = entries.get(id);
+			if (!entry) continue;
+			const setting = new Setting(containerEl).setName(
+				translate(entry.labelKey),
+			);
+			setting
+				.addExtraButton((button) => {
+					button
+						.setIcon('lucide-grip-vertical')
+						.setTooltip(translate(entry.labelKey));
+					button.extraSettingsEl.draggable = true;
+					button.extraSettingsEl.addEventListener(
+						'dragstart',
+						(event: DragEvent) => {
+							draggedId = entry.id;
+							if (event.dataTransfer) {
+								event.dataTransfer.effectAllowed = 'move';
+								event.dataTransfer.setData('text/plain', entry.id);
+							}
+						},
+					);
+					button.extraSettingsEl.addEventListener('dragend', () => {
+						draggedId = null;
+					});
+				})
 				.addToggle((toggle) =>
-					toggle
-						.setValue(
-							(this.plugin.settings.filesHoverInfo ?? []).includes(field),
-						)
-						.onChange(async (value) => {
-							const selected = new Set(
-								this.plugin.settings.filesHoverInfo ?? [],
-							);
-							if (value) selected.add(field);
-							else selected.delete(field);
-							this.plugin.settings.filesHoverInfo =
-								FILES_HOVER_INFO_FIELDS.filter((candidate) =>
-									selected.has(candidate),
-								);
-							await this.plugin.saveSettings();
-						}),
+					toggle.setValue(enabled.has(entry.id)).onChange(async (value) => {
+						const selected = new Set(
+							normalizeFileHoverEnabled(this.plugin.settings.filesHoverInfo),
+						);
+						if (value) selected.add(entry.id);
+						else selected.delete(entry.id);
+						this.plugin.settings.filesHoverInfo = order.filter((candidate) =>
+							selected.has(candidate),
+						);
+						await this.plugin.saveSettings();
+					}),
 				);
+
+			setting.settingEl.addEventListener('dragover', (event: DragEvent) => {
+				if (!draggedId) return;
+				event.preventDefault();
+				if (event.dataTransfer) event.dataTransfer.dropEffect = 'move';
+			});
+			setting.settingEl.addEventListener('drop', (event: DragEvent) => {
+				event.preventDefault();
+				const movedId =
+					draggedId ?? event.dataTransfer?.getData('text/plain') ?? null;
+				draggedId = null;
+				if (!movedId) return;
+				const nextOrder = reorderFileHoverEntries(order, movedId, entry.id);
+				if (nextOrder.every((candidate, index) => candidate === order[index])) {
+					return;
+				}
+				this.plugin.settings.filesHoverInfoOrder = nextOrder;
+				void this.plugin.saveSettings().then(() => this.display());
+			});
 		}
 	}
 

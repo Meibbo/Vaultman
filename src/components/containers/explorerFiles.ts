@@ -27,10 +27,10 @@ import type { MenuCtx } from '../../types/typeCMenu';
 import type { FilterNode } from '../../types/typeFilter';
 import type { ExplorerSortState, ScopeSort } from '../../types/typeUI';
 import {
-	DEFAULT_FILES_HOVER_INFO,
-	FILES_HOVER_INFO_FIELDS,
-	type FilesHoverInfoField,
-} from '../../types/typeSettings';
+	fileHoverEntries,
+	resolveFileHoverEntries,
+	type FileHoverInfoId,
+} from '../../logic/logicCellRegistry';
 import {
 	nodeTypeFilterPatch,
 	normalizeNodeTypeFilters,
@@ -493,10 +493,7 @@ export class FilesExplorerPanel extends Component {
 			this.plugin.app.vault.on('rename', this._scheduleRefresh),
 		);
 		this.registerEvent(
-			this.plugin.app.metadataCache.on(
-				'changed',
-				this._handleMetadataChange,
-			),
+			this.plugin.app.metadataCache.on('changed', this._handleMetadataChange),
 		);
 		this.registerEvent(
 			this.plugin.app.workspace.on('file-open', this._handleActiveFileChange),
@@ -691,8 +688,7 @@ export class FilesExplorerPanel extends Component {
 					drill: activeScopeSort('files', this.sortState, 'drill'),
 				},
 				drillNodeId: this.sortState.drillNodeId,
-				compareNodes: (a, b, sort) =>
-					this._compareFileTreeNodes(a, b, sort),
+				compareNodes: (a, b, sort) => this._compareFileTreeNodes(a, b, sort),
 			},
 		);
 		const walk = (nodes: TreeNode<FileMeta>[]) => {
@@ -880,8 +876,9 @@ export class FilesExplorerPanel extends Component {
 			}
 			if (sortBy === 'tasks') {
 				return node.meta.file
-					? (this.plugin.statisticsCache.getFileRemainingTasks(node.meta.file) ??
-							0)
+					? (this.plugin.statisticsCache.getFileRemainingTasks(
+							node.meta.file,
+						) ?? 0)
 					: 0;
 			}
 			if (sortBy === 'mtime' || sortBy === 'ctime') {
@@ -1230,8 +1227,7 @@ export class FilesExplorerPanel extends Component {
 					this._toggleExpanded(id);
 					this._refreshTreeExpansion(id, [id]);
 				},
-				onRecursiveExpand: (id: string) =>
-					this._expandSubtree(id, renderTree),
+				onRecursiveExpand: (id: string) => this._expandSubtree(id, renderTree),
 				onRowClick: (id: string, event?: MouseEvent) => {
 					const node = this._findNode(id, renderTree);
 					if (!node) return;
@@ -1446,10 +1442,7 @@ export class FilesExplorerPanel extends Component {
 	}
 
 	private _setFileNodeDragPayload(
-		nodePayload: Extract<
-			VaultmanDragNodePayload,
-			{ kind: 'file' | 'folder' }
-		>,
+		nodePayload: Extract<VaultmanDragNodePayload, { kind: 'file' | 'folder' }>,
 		event: DragEvent,
 	): void {
 		const payload =
@@ -1601,12 +1594,15 @@ export class FilesExplorerPanel extends Component {
 		this.statisticsWarmSignature = signature;
 		this.statisticsWarmup = this.statisticsWarmup
 			.then(async () => {
-				const completed = await this.plugin.statisticsCache.ensureFileStats(files, {
-					priorityPaths: this._visibleRenderedFilePaths(),
-					shouldContinue: () =>
-						this.statisticsWarmSignature === signature &&
-						this._needsStatisticsWarmup(),
-				});
+				const completed = await this.plugin.statisticsCache.ensureFileStats(
+					files,
+					{
+						priorityPaths: this._visibleRenderedFilePaths(),
+						shouldContinue: () =>
+							this.statisticsWarmSignature === signature &&
+							this._needsStatisticsWarmup(),
+					},
+				);
 				if (!completed && this.statisticsWarmSignature === signature) {
 					this.statisticsWarmSignature = '';
 				}
@@ -1966,10 +1962,7 @@ export class FilesExplorerPanel extends Component {
 			this.statsRefreshTimer = null;
 			const changedPaths = new Set(this.pendingStatsPaths);
 			this.pendingStatsPaths.clear();
-			if (
-				this._usesStatisticsSort() ||
-				this.statisticsRetrySignature
-			) {
+			if (this._usesStatisticsSort() || this.statisticsRetrySignature) {
 				this._render();
 			} else {
 				this._patchVisibleStatisticsCells(changedPaths);
@@ -1979,7 +1972,8 @@ export class FilesExplorerPanel extends Component {
 
 	private _patchVisibleStatisticsCells(paths = new Set<string>()): void {
 		const patchWords = this.visibleCells.has('words');
-		const patchTasks = this.visibleCells.has('tasks') && this.viewMode === 'tree';
+		const patchTasks =
+			this.visibleCells.has('tasks') && this.viewMode === 'tree';
 		if (!patchWords && !patchTasks) return;
 		if (this.viewMode === 'tree') {
 			this._patchCachedStatisticsNodes(paths, patchWords, patchTasks);
@@ -2124,7 +2118,8 @@ export class FilesExplorerPanel extends Component {
 				const tasks = this.plugin.statisticsCache.getFileRemainingTasks(
 					node.meta.file,
 				);
-				node.tasksText = tasks === null || tasks === 0 ? undefined : String(tasks);
+				node.tasksText =
+					tasks === null || tasks === 0 ? undefined : String(tasks);
 			}
 			if (node.children?.length) this._decorateTreeWithFileTimes(node.children);
 		}
@@ -2139,46 +2134,45 @@ export class FilesExplorerPanel extends Component {
 		return new Date(time).toLocaleDateString();
 	}
 
-	private _filesHoverFields(): FilesHoverInfoField[] {
-		const configured = this.plugin.settings.filesHoverInfo;
-		if (!Array.isArray(configured)) return [...DEFAULT_FILES_HOVER_INFO];
-		const validFields = new Set<string>(FILES_HOVER_INFO_FIELDS);
-		return configured.filter(
-			(field): field is FilesHoverInfoField =>
-				typeof field === 'string' && validFields.has(field),
-		);
+	private _filesHoverFields(): FileHoverInfoId[] {
+		return resolveFileHoverEntries(
+			this.plugin.settings.filesHoverInfo,
+			this.plugin.settings.filesHoverInfoOrder,
+		).map((entry) => entry.id);
 	}
 
 	private _fileHoverText(
 		file: TFile,
-		fields: readonly FilesHoverInfoField[] = this._filesHoverFields(),
+		fields: readonly FileHoverInfoId[] = this._filesHoverFields(),
 	): string {
 		const times = this.plugin.statisticsCache.getFileTimes(file);
+		const labels = Object.fromEntries(
+			fileHoverEntries().map((entry) => [entry.id, translate(entry.labelKey)]),
+		) as Record<FileHoverInfoId, string>;
 		return buildFileHoverInfo(
 			fields,
 			{
+				label:
+					file.extension === 'md' || file.extension === 'markdown'
+						? file.basename
+						: file.name,
 				path: file.path,
-				modified: this._formatDateCell(times.mtime) ?? null,
-				created: this._formatDateCell(times.ctime) ?? null,
+				mtime: this._formatDateCell(times.mtime) ?? null,
+				ctime: this._formatDateCell(times.ctime) ?? null,
+				ext: file.extension,
 				words: this.plugin.statisticsCache.getFileWordCount(file),
 				characters: this.plugin.statisticsCache.getFileCharacterCount(file),
 				tasks: this.plugin.statisticsCache.getFileRemainingTasks(file),
+				count: this._propCountForFile(file),
 			},
-			{
-				path: translate('settings.files_hover_info.path'),
-				modified: translate('settings.files_hover_info.modified'),
-				created: translate('settings.files_hover_info.created'),
-				words: translate('settings.files_hover_info.words'),
-				characters: translate('settings.files_hover_info.characters'),
-				tasks: translate('settings.files_hover_info.tasks'),
-			},
+			labels,
 		);
 	}
 
 	private _applyFileHoverTooltip(
 		file: TFile,
 		element: HTMLElement,
-		fields: readonly FilesHoverInfoField[],
+		fields: readonly FileHoverInfoId[],
 	): void {
 		element.removeAttribute('title');
 		setTooltip(element, this._fileHoverText(file, fields));
