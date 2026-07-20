@@ -76,6 +76,7 @@ export const SORT_MENU_OPTIONS: Record<
 			icon: 'lucide-calendar-plus',
 			labelKey: 'sort.by.created',
 		},
+		{ id: 'opened', icon: 'lucide-history', labelKey: 'sort.by.opened' },
 		{ id: 'path', icon: 'lucide-route', labelKey: 'sort.by.path' },
 	],
 	snippets: [

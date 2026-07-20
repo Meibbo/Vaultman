@@ -9,6 +9,7 @@ export interface FileHoverInfoData {
 	path: string;
 	mtime: string | null;
 	ctime: string | null;
+	opened: string | null;
 	ext: string;
 	words: number | null;
 	characters: number | null;

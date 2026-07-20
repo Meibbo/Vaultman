@@ -838,6 +838,8 @@ export class FilesExplorerPanel extends Component {
 				taskCountForFile: (file) =>
 					this.plugin.statisticsCache.getFileRemainingTasks(file) ?? 0,
 				getFileTimes: (file) => this.plugin.statisticsCache.getFileTimes(file),
+				lastOpenedForFile: (file) =>
+					this.plugin.lastOpenedService.getLastOpened(file),
 			}),
 		);
 	}
@@ -861,6 +863,8 @@ export class FilesExplorerPanel extends Component {
 						this.plugin.statisticsCache.getFileRemainingTasks(file) ?? 0,
 					getFileTimes: (file) =>
 						this.plugin.statisticsCache.getFileTimes(file),
+					lastOpenedForFile: (file) =>
+						this.plugin.lastOpenedService.getLastOpened(file),
 				},
 			);
 		}
@@ -1678,6 +1682,8 @@ export class FilesExplorerPanel extends Component {
 						this.plugin.statisticsCache.getFileWordCount(file),
 					taskCountForFile: (file) =>
 						this.plugin.statisticsCache.getFileRemainingTasks(file),
+					lastOpenedForFile: (file) =>
+						this.plugin.lastOpenedService.getLastOpened(file),
 				}),
 		);
 	}
@@ -2139,6 +2145,7 @@ export class FilesExplorerPanel extends Component {
 				);
 				node.mtimeText = this._formatDateCell(times.mtime);
 				node.ctimeText = this._formatDateCell(times.ctime);
+				node.openedText = this._formatOpenedCell(node.meta.file);
 				node.wordCountText =
 					wordCount === null ? undefined : this._formatWordCountCell(wordCount);
 				const tasks = this.plugin.statisticsCache.getFileRemainingTasks(
@@ -2153,6 +2160,12 @@ export class FilesExplorerPanel extends Component {
 
 	private _formatWordCountCell(wordCount: number): string {
 		return String(wordCount);
+	}
+
+	/** BT5-013: never-opened files stay blank instead of showing a fake epoch. */
+	private _formatOpenedCell(file: TFile): string | undefined {
+		const openedAt = this.plugin.lastOpenedService.getLastOpened(file);
+		return openedAt === null ? undefined : this._formatDateCell(openedAt);
 	}
 
 	private _formatDateCell(time: number): string | undefined {
@@ -2183,6 +2196,7 @@ export class FilesExplorerPanel extends Component {
 						? file.basename
 						: file.name,
 				path: file.path,
+				opened: this._formatOpenedCell(file) ?? null,
 				mtime: this._formatDateCell(times.mtime) ?? null,
 				ctime: this._formatDateCell(times.ctime) ?? null,
 				ext: file.extension,

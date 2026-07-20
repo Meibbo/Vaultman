@@ -58,6 +58,8 @@ export interface TreeNode<TMeta = unknown> {
 	typeText?: string;
 	mtimeText?: string;
 	ctimeText?: string;
+	/** BT5-013: formatted last-opened instant; absent when never opened. */
+	openedText?: string;
 	wordCountText?: string;
 	tasksText?: string;
 	/** BT4-014: rainbow bucket color value for folder rows. */

@@ -498,6 +498,7 @@ export class UnifiedTreeView {
 			node.typeText ?? '',
 			node.mtimeText ?? '',
 			node.ctimeText ?? '',
+			node.openedText ?? '',
 			node.wordCountText ?? '',
 			node.coreCls ?? '',
 			node.count ?? '',
@@ -669,6 +670,7 @@ export class UnifiedTreeView {
 		const showCtime = visibleCells
 			? visibleCells.has('ctime') || visibleCells.has('installed')
 			: false;
+		const showOpened = visibleCells ? visibleCells.has('opened') : false;
 		const showWords = visibleCells ? visibleCells.has('words') : false;
 		const showTasks = visibleCells ? visibleCells.has('tasks') : false;
 		const nodeCells = (node.cells ?? []).filter(
@@ -855,6 +857,7 @@ export class UnifiedTreeView {
 			updated: (parent) => emitDate(parent, showMtime ? node.mtimeText : ''),
 			ctime: (parent) => emitDate(parent, showCtime ? node.ctimeText : ''),
 			installed: (parent) => emitDate(parent, showCtime ? node.ctimeText : ''),
+			opened: (parent) => emitDate(parent, showOpened ? node.openedText : ''),
 			words: emitWords,
 			tasks: emitTasks,
 			count: emitCount,
@@ -912,6 +915,7 @@ export class UnifiedTreeView {
 		if (
 			(showMtime && node.mtimeText) ||
 			(showCtime && node.ctimeText) ||
+			(showOpened && node.openedText) ||
 			(showWords && node.wordCountText) ||
 			(showTasks && node.tasksText) ||
 			(showCount && node.count != null && node.count > 0) ||
@@ -924,6 +928,7 @@ export class UnifiedTreeView {
 			if (!usesActivationOrder) {
 				emitDate(badgeZone, showMtime ? node.mtimeText : '');
 				emitDate(badgeZone, showCtime ? node.ctimeText : '');
+				emitDate(badgeZone, showOpened ? node.openedText : '');
 				emitWords(badgeZone);
 				emitTasks(badgeZone);
 			}

@@ -9,6 +9,7 @@ import { IconicService } from './services/serviceIcons';
 import { PropertyTypeService } from './services/servicePropertyType';
 import { ContextMenuService } from './services/serviceContextMenu';
 import { StatisticsCacheService } from './services/serviceStatisticsCache';
+import { LastOpenedService } from './services/serviceLastOpened';
 import { VaultmanSettingsTab } from './VaultmanSettings';
 import { setLanguage, translate } from './i18n/index';
 import {
@@ -47,6 +48,7 @@ export class VaultmanPlugin extends Plugin {
 	propertyTypeService!: PropertyTypeService;
 	contextMenuService!: ContextMenuService;
 	statisticsCache!: StatisticsCacheService;
+	lastOpenedService!: LastOpenedService;
 
 	// Native status bar element
 	private statusBarEl!: HTMLElement;
@@ -67,6 +69,7 @@ export class VaultmanPlugin extends Plugin {
 		this.propertyTypeService = new PropertyTypeService(this.app);
 		this.contextMenuService = new ContextMenuService(this);
 		this.statisticsCache = new StatisticsCacheService(this.app);
+		this.lastOpenedService = new LastOpenedService(this.app, this.manifest.id);
 
 		this.addChild(this.propertyIndex);
 		this.addChild(this.filterService);
@@ -75,6 +78,7 @@ export class VaultmanPlugin extends Plugin {
 		this.addChild(this.propertyTypeService);
 		this.addChild(this.contextMenuService);
 		this.addChild(this.statisticsCache);
+		this.addChild(this.lastOpenedService);
 
 		const perfProbe = createPerfProbe({
 			now: () => activeWindow.performance.now(),
@@ -90,6 +94,24 @@ export class VaultmanPlugin extends Plugin {
 			this.app.metadataCache.on('resolved', () => {
 				this.filterService.scheduleMetadataRefresh();
 			})
+		);
+
+		// BT5-013: `file-open` fires on a real activation only — hover previews
+		// never reach it, so previewing a note cannot age it to "just opened".
+		this.registerEvent(
+			this.app.workspace.on('file-open', (file) => {
+				this.lastOpenedService.handleFileOpen(file);
+			}),
+		);
+		this.registerEvent(
+			this.app.vault.on('rename', (file, oldPath) => {
+				this.lastOpenedService.handleRename(file.path, oldPath);
+			}),
+		);
+		this.registerEvent(
+			this.app.vault.on('delete', (file) => {
+				this.lastOpenedService.handleDelete(file.path);
+			}),
 		);
 
 		this.statusBarEl = this.addStatusBarItem();

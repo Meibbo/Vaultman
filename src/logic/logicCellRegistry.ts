@@ -299,6 +299,34 @@ export const EXPLORER_CELL_DEFS: readonly ExplorerCellDef[] = [
 		],
 	},
 	{
+		id: 'opened',
+		role: 'value',
+		labelKey: 'viewmode.pill.opened',
+		icon: 'lucide-history',
+		sortId: 'opened',
+		hoverId: 'opened',
+		supports: [
+			{
+				explorer: 'files',
+				viewModes: FILE_TREE_MODES,
+				fixedRank: 55,
+				defaultOn: false,
+			},
+			{
+				explorer: 'files',
+				viewModes: ['table'],
+				fixedRank: 75,
+				defaultOn: false,
+			},
+			{
+				explorer: 'files',
+				viewModes: FILE_CARD_MODES,
+				fixedRank: 75,
+				defaultOn: false,
+			},
+		],
+	},
+	{
 		id: 'words',
 		role: 'value',
 		labelKey: 'viewmode.pill.words',
@@ -440,6 +468,13 @@ const FILE_HOVER_ENTRY_OVERRIDES: readonly FileHoverEntry[] = [
 		icon: 'lucide-calendar-plus',
 		defaultOn: true,
 		rank: 50,
+	},
+	{
+		id: 'opened',
+		labelKey: 'settings.files_hover_info.opened',
+		icon: 'lucide-history',
+		defaultOn: false,
+		rank: 55,
 	},
 	{
 		id: 'words',

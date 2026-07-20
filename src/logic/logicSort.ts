@@ -1,5 +1,7 @@
 import type { TFile } from 'obsidian';
 
+import { compareLastOpenedValues } from './logicLastOpened';
+
 export type ExplorerSortDirection = 'asc' | 'desc';
 export type ExplorerFileSortBy =
 	| 'name'
@@ -9,7 +11,8 @@ export type ExplorerFileSortBy =
 	| 'words'
 	| 'tasks'
 	| 'mtime'
-	| 'ctime';
+	| 'ctime'
+	| 'opened';
 
 export interface ExplorerFileTimes {
 	ctime: number;
@@ -21,6 +24,8 @@ export interface ExplorerFileSortOptions {
 	wordCountForFile?: (file: TFile) => number | null | undefined;
 	taskCountForFile?: (file: TFile) => number | null | undefined;
 	getFileTimes?: (file: TFile) => ExplorerFileTimes;
+	/** BT5-013: null means the file was never opened. */
+	lastOpenedForFile?: (file: TFile) => number | null;
 }
 
 export const DEFAULT_EXPLORER_SORT_DIR: Record<string, ExplorerSortDirection> =
@@ -32,6 +37,7 @@ export const DEFAULT_EXPLORER_SORT_DIR: Record<string, ExplorerSortDirection> =
 		tasks: 'desc',
 		mtime: 'desc',
 		ctime: 'desc',
+		opened: 'desc',
 		sub: 'desc',
 		columns: 'asc',
 		ext: 'asc',
@@ -99,6 +105,11 @@ export function compareFilesForExplorer(
 		result =
 			fileTimeForExplorer(a, normalizedSortBy, options.getFileTimes) -
 			fileTimeForExplorer(b, normalizedSortBy, options.getFileTimes);
+	} else if (normalizedSortBy === 'opened') {
+		result = compareLastOpenedValues(
+			options.lastOpenedForFile?.(a) ?? null,
+			options.lastOpenedForFile?.(b) ?? null,
+		);
 	} else if (normalizedSortBy === 'count') {
 		result =
 			(options.countForFile?.(a) ?? 0) - (options.countForFile?.(b) ?? 0);
