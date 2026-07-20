@@ -9,7 +9,7 @@ source_ids:
   - BT4-013
 parent: "[[docs/work/polish/issues/bt5-next-release/index|BT5]]"
 created: 2026-07-19T08:02:57
-updated: 2026-07-20T16:30:00
+updated: 2026-07-20T18:25:00
 created_by: codex-gpt-5
 updated_by: claude-opus-4-8
 tags: [agent/issue, initiative/polish, release/bt5]
@@ -69,3 +69,22 @@ Detalle: [[docs/work/polish/plans/2026-07-19-bt5-next-10/06-bt5-012-013-015-018-
 
 **Gate HITL abierto:** el dev revisa la UI cuando la vea funcionando y corrige el
 orden default, tal como pidió. No se bloqueó esperando aprobación previa.
+
+## Corrección 2026-07-20 (tarde)
+
+**Commit `b4f0815a`.** Dos correcciones del dev sobre el cierre de `a188d672`:
+
+1. La sub-page de Files cmenu ahora vive **dentro** de la página de context menus
+   existente, no como entrada hermana; su botón de volver regresa allí.
+2. El catálogo listaba solo el registry propio. Ahora hace un probe del menú real
+   (dispara `file-menu` contra un archivo y la raíz, lee títulos) y lista los items
+   **interceptados** (Core Files, otros plugins) y los **menús padre**, con id
+   estable = slug del título. Encabezan el layout por defecto; show/hide en vivo
+   por splice; sin grip (Vaultman no posee su orden ni su handler).
+
+**Diferido:** reordenar items nativos cruzando la frontera con los de Vaultman
+(requiere reconstruir MenuItem sin acceso a su onClick).
+
+Gate verde (final 854 tests). Detalle: [[docs/work/polish/plans/2026-07-19-bt5-next-10/07-dev-corrections-and-interaction-fixes|shard 07]].
+
+**Gate HITL abierto:** el dev revisa la UI y el orden default cuando la vea.

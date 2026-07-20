@@ -9,7 +9,7 @@ source_ids:
   - BT4-026
 parent: "[[docs/work/polish/issues/bt5-next-release/index|BT5]]"
 created: 2026-07-19T08:02:57
-updated: 2026-07-20T16:30:00
+updated: 2026-07-20T18:25:00
 created_by: codex-gpt-5
 updated_by: claude-opus-4-8
 tags: [agent/issue, initiative/polish, release/bt5]
@@ -59,5 +59,22 @@ queda intacta. Llega a las cinco superficies de árbol; table y cards no dibujan
 caret y quedan declaradas no aplicables.
 
 Detalle: [[docs/work/polish/plans/2026-07-19-bt5-next-10/06-bt5-012-013-015-018-031-032|shard 06]].
+
+Pendiente: smoke de runtime.
+
+## Corrección 2026-07-20 (tarde) — rehecho
+
+**Commit `dad3ef32`.** La primera implementación (`d396c3f0`, shard 06) estaba mal
+y no servía: movía el icono al elemento del caret solo en nodos que reservan caret
+y no pueden expandir — un caso que no causa el problema que reportó el dev.
+
+Intención real: la fila es flex, un icono añade ancho y empuja el label; un
+hermano sin icono queda más a la izquierda (visible en "custom icons only"). Ahora
+una fila que renderiza icono y no reserva caret saca el icono del flujo flex hacia
+la columna del caret vía CSS (`position: absolute`), así todos los labels caen en
+la misma x. Filas con caret intactas. Gate verde 123→ (final 854). Guard
+reescrito.
+
+Detalle: [[docs/work/polish/plans/2026-07-19-bt5-next-10/07-dev-corrections-and-interaction-fixes|shard 07]].
 
 Pendiente: smoke de runtime.

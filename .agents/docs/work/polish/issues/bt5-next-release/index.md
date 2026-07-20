@@ -5,7 +5,7 @@ status: active
 lifecycle: active
 parent: "[[docs/work/polish/index|polish]]"
 created: 2026-07-19T08:02:57
-updated: 2026-07-20T16:30:00
+updated: 2026-07-20T18:25:00
 created_by: codex-gpt-5
 updated_by: claude-opus-4-8
 tags:
@@ -113,12 +113,20 @@ la cola canónica para implementación nueva.
 | BT5-018 | ⏳ pending HITL | `a188d672` sub-page con DnD, dividers y submenús; merge por id contra el registry vivo. **Falta la revisión de UI del dev** |
 | BT5-031 | ✅ completed | `9cd1e3ac` Files escucha también `iconic.onChanged`, reutilizando el coalescer existente |
 | BT5-032 | ✅ completed | `577789c2` la vista deja de redactar tooltips; el builder del panel es el único dueño. Props/Tags/Content quedan sin hover |
+| BT5-009 | ✅ completed | `0a71532f` exclude file por el pipeline (`file_exclude`), sección de settings quitada; ahora session-scoped |
+| BT5-015 | ✅ corregido | `dad3ef32` rehecho: el icono sale del flujo flex a la columna del caret, labels alineados (la versión `d396c3f0` no servía) |
+| BT5-018 | ⏳ pending HITL | `b4f0815a` sub-page anidada en context menus + items interceptados y menús padre listados; reorden nativo diferido |
+| BUG click | ✅ completed | `4a61d419` el re-render redundante ya no se come el primer click (4 superficies) |
+| BUG tooltip | ✅ completed | `eb8ad91d` tooltip armado en render, no en pointerenter; setting renombrado a Tooltip |
+| BUG last-opened | ✅ completed | `102bb0b6` Last opened se reordena en vivo al abrir un archivo |
 
 Detalle técnico y gates: [[docs/work/polish/plans/2026-07-19-bt5-001-005/02-outcome-verification|BT5-001..005 outcome]].
 Continuación 006/007/008/028 y diagnóstico diferido 030:
 [[docs/work/polish/plans/2026-07-19-bt5-next-10/index|BT5 next-10 plan]].
 Cierre de 012/013/015/018/031/032:
 [[docs/work/polish/plans/2026-07-19-bt5-next-10/06-bt5-012-013-015-018-031-032|shard 06]].
+Correcciones del dev + 3 bugs + 015 rehecho + 018 + 009:
+[[docs/work/polish/plans/2026-07-19-bt5-next-10/07-dev-corrections-and-interaction-fixes|shard 07]].
 
 ## Release gates
 
