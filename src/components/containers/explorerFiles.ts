@@ -502,7 +502,13 @@ export class FilesExplorerPanel extends Component {
 		this.plugin.queueService.on('changed', this._handleQueueChange);
 		this.plugin.statisticsCache.on('changed', this._handleStatsChange);
 		const iconic = this.plugin.iconicService;
-		if (iconic) this.register(iconic.onLoaded(this._scheduleIconicRender));
+		if (iconic) {
+			// BT5-031: `onLoaded` fires once, so Files was the only explorer that
+			// never repainted after an icon changed. Both subscriptions share the
+			// existing microtask coalescer, so a burst is still a single render.
+			this.register(iconic.onLoaded(this._scheduleIconicRender));
+			this.register(iconic.onChanged(this._scheduleIconicRender));
+		}
 		this.containerEl.addEventListener('dragover', this._handleRootFileDragOver);
 		this.containerEl.addEventListener('drop', this._handleRootFileDrop);
 
