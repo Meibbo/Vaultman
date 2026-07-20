@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { onDestroy } from 'svelte';
+	import { onDestroy, onMount } from 'svelte';
 	import { MarkdownView, Menu, Notice, TFile } from 'obsidian';
 	import type { VaultmanPlugin } from '../../main';
 	import FiltersTagsTab from './tabTags.svelte';
@@ -30,6 +30,7 @@
 	} from '../../logic/logicContentPreview';
 	import { refreshExplorerViewport } from '../../logic/logicExplorerViewportActivation';
 	import { sortDirectionGlyph } from '../../logic/logicSort';
+	import { observeActiveContentFile } from '../../logic/logicContentActiveFile';
 
 	type FiltersTab =
 		| 'files'
@@ -202,6 +203,7 @@
 	let contentSortDirection = $state<ContentSortDirection>('desc');
 	let collapsedContentFilePaths = $state<string[]>([]);
 	let activeContentRevealPath = $state<string | null>(null);
+	let activeContentFilePath = $state<string | null>(null);
 	let contentRevealRevision = $state(0);
 	let lastClearFiltersRevision = $state<number | null>(null);
 	let visitedTabs = $state<Record<FiltersTab, boolean>>({
@@ -218,6 +220,30 @@
 	}
 
 	const nativeSearchAdapter = createNativeSearchAdapter();
+
+	onMount(() => {
+		const { workspace, vault } = plugin.app;
+		return observeActiveContentFile(
+			{
+				current: () => workspace.getActiveFile(),
+				onFileOpen: (listener) => {
+					const ref = workspace.on('file-open', listener);
+					return () => workspace.offref(ref);
+				},
+				onRename: (listener) => {
+					const ref = vault.on('rename', listener);
+					return () => vault.offref(ref);
+				},
+				onDelete: (listener) => {
+					const ref = vault.on('delete', listener);
+					return () => vault.offref(ref);
+				},
+			},
+			(path) => {
+				activeContentFilePath = path;
+			},
+		);
+	});
 
 	// BT4-022: panes keep their panels mounted but hidden (height 0), so the
 	// virtual window empties; re-render the activated panel next frame.
@@ -903,6 +929,7 @@
 				{contentPreviewFileCount}
 				{contentHasActiveNonContentFilters}
 				{activeContentRevealPath}
+				{activeContentFilePath}
 				{contentRevealRevision}
 				{sortedContentFiles}
 				{isContentFileExpanded}

@@ -14,6 +14,7 @@
 		contentPreviewFileCount,
 		contentHasActiveNonContentFilters,
 		activeContentRevealPath,
+		activeContentFilePath,
 		contentRevealRevision,
 		sortedContentFiles,
 		isContentFileExpanded,
@@ -32,6 +33,7 @@
 		contentPreviewFileCount: number;
 		contentHasActiveNonContentFilters: boolean;
 		activeContentRevealPath: string | null;
+		activeContentFilePath: string | null;
 		contentRevealRevision: number;
 		sortedContentFiles: ContentPreviewResult['files'];
 		isContentFileExpanded: (filePath: string) => boolean;
@@ -228,7 +230,7 @@
 				{#each sortedContentFiles as fileResult (fileResult.file.path)}
 					<div
 						class="tree-item search-result"
-						class:is-active={activeContentRevealPath === fileResult.file.path}
+						class:is-active={activeContentFilePath === fileResult.file.path}
 						data-vm-content-path={fileResult.file.path}
 						tabindex="-1"
 					>
