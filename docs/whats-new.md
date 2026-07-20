@@ -22,7 +22,7 @@ One inviting sentence that explains who benefits and why.
 
 <a id="v1-2-0-beta-5"></a>
 ## 1.2.0-beta.5 — Calmer typing, tidier explorers
-<!-- reviewed: false -->
+<!-- reviewed: true -->
 
 This beta focuses on how the explorers feel while you work: less background noise
 while you type, and clearer control over what each row shows.
