@@ -38,7 +38,7 @@ describe('BT3 native menu and interaction-mode source guards', () => {
 		const menu = functionSlice(navbarSource, 'openNativeViewMenu');
 		const layouts = menu.indexOf("translate('viewmenu.layouts')");
 		const inMode = menu.indexOf("translate('viewmenu.in_mode')");
-		const cells = menu.indexOf('orderedCellIds(activeTab)');
+		const cells = menu.indexOf('viewMenuCells(activeTab, activeView)');
 		const engines = menu.indexOf(
 			'for (const option of minimalNativeViewModes)',
 		);

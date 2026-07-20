@@ -15,6 +15,7 @@ import {
 	visibleSortOptions,
 } from '../../src/logic/logicSortMenu';
 import { normalizeExplorerSortState } from '../../src/logic/logicScopedSort';
+import { viewMenuCells } from '../../src/logic/logicCellRegistry';
 
 describe('explorer sort UI source', () => {
 	it('exposes modified and created time instead of the ambiguous date sort', () => {
@@ -23,8 +24,7 @@ describe('explorer sort UI source', () => {
 		expect(options.some((option) => option.id === 'ctime')).toBe(true);
 		expect(
 			options.some(
-				(option) =>
-					option.id === 'date' && option.labelKey === 'sort.by.date',
+				(option) => option.id === 'date' && option.labelKey === 'sort.by.date',
 			),
 		).toBe(false);
 	});
@@ -96,12 +96,10 @@ describe('explorer sort UI source', () => {
 
 	it('labels Files count sort as Props without renaming generic count sorts', () => {
 		expect(
-			SORT_MENU_OPTIONS.files.find((option) => option.id === 'count')
-				?.labelKey,
+			SORT_MENU_OPTIONS.files.find((option) => option.id === 'count')?.labelKey,
 		).toBe('sort.by.props');
 		expect(
-			SORT_MENU_OPTIONS.props.find((option) => option.id === 'count')
-				?.labelKey,
+			SORT_MENU_OPTIONS.props.find((option) => option.id === 'count')?.labelKey,
 		).toBe('sort.by.count');
 	});
 
@@ -125,7 +123,9 @@ describe('explorer sort UI source', () => {
 	});
 
 	it('applies node filters without applying a newly selected sort scope', () => {
-		expect(popupSource).toContain('onFilterChange?: (state: ExplorerSortState) => void;');
+		expect(popupSource).toContain(
+			'onFilterChange?: (state: ExplorerSortState) => void;',
+		);
 		expect(popupSource).toContain('onFilterChange?.(sortState);');
 		expect(navbarSource).toContain('function handleFilterChange(');
 		expect(navbarSource).toContain('sorts: appliedState.sorts');
@@ -148,7 +148,7 @@ describe('explorer sort UI source', () => {
 		expect(filesSource).toMatch(
 			/Object\.values\(this\.sortState\.sorts\)\.some\([\s\S]{0,120}sort\?\.sortBy === 'tasks'/,
 		);
-		expect(filesSource).toContain('.ensureFileStats(files, {');
+		expect(filesSource).toMatch(/\.ensureFileStats\(\s*files,\s*\{/);
 		expect(filesSource).toContain(
 			'wordCountForFile: (file) =>\n\t\t\t\t\tthis.plugin.statisticsCache.getFileWordCount(file) ?? 0',
 		);
@@ -207,7 +207,12 @@ describe('By level phase 2 source guards (BT4-009 / D29-D33)', () => {
 	});
 
 	it('moves Nested out of the view-menu cells and renders inline by default', () => {
-		expect(navbarSource).toContain("(cellId) => cellId !== 'nested'");
+		// BT5-010: the registry decides which cells reach the view menu, so
+		// Nested is excluded there by role instead of by an inline filter.
+		expect(navbarSource).toContain('viewMenuCells(activeTab, activeView)');
+		expect(viewMenuCells('files', 'tree').map((cell) => cell.id)).not.toContain(
+			'nested',
+		);
 		expect(navbarSource).toContain('sortLevelInline = true');
 		expect(navbarSource).toContain('addByLevelItems(menu, activeTab, current)');
 		expect(DEFAULT_SETTINGS.sortLevelInline).toBe(true);
@@ -229,6 +234,8 @@ describe('By level phase 2 source guards (BT4-009 / D29-D33)', () => {
 	it('lets the floating index drill drive the sort scope behind its setting', () => {
 		expect(DEFAULT_SETTINGS.tocDrillSyncsSort).toBe(false);
 		expect(frameSource).toContain('applyExternalSortScope');
-		expect(filesSource).toContain('applyExternalSortScope(drillNodeId: string | null)');
+		expect(filesSource).toContain(
+			'applyExternalSortScope(drillNodeId: string | null)',
+		);
 	});
 });

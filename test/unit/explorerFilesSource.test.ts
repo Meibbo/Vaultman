@@ -187,8 +187,10 @@ describe('FilesExplorerPanel source guards', () => {
 			"if (change.kind === 'invalidated') return;",
 		);
 		expect(explorerFilesSource).toContain('this._needsStatisticsWarmup()');
-		expect(explorerFilesSource).toContain('this.statisticsWarmup = this.statisticsWarmup');
-		expect(explorerFilesSource).toContain('.ensureFileStats(files, {');
+		expect(explorerFilesSource).toContain(
+			'this.statisticsWarmup = this.statisticsWarmup',
+		);
+		expect(explorerFilesSource).toMatch(/\.ensureFileStats\(\s*files,\s*\{/);
 		expect(explorerFilesSource).toContain(
 			'priorityPaths: this._visibleRenderedFilePaths()',
 		);
@@ -211,7 +213,9 @@ describe('FilesExplorerPanel source guards', () => {
 		expect(patchCellsBlock).toContain('.vaultman-files-grid-card-words');
 		expect(patchCellsBlock).toContain("this.visibleCells.has('tasks')");
 		expect(patchCellsBlock).toContain('.vaultman-tree-tasks');
-		expect(patchCellsBlock).toContain("cls: 'vaultman-tree-words nav-file-tag'");
+		expect(patchCellsBlock).toContain(
+			"cls: 'vaultman-tree-words nav-file-tag'",
+		);
 		expect(patchCellsBlock).toContain('getFileRemainingTasks(file)');
 		expect(patchCellsBlock).toContain('this._patchCachedStatisticsNodes(');
 		expect(patchCellsBlock).toContain('node.tasksText =');

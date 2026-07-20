@@ -1,5 +1,5 @@
+// eslint-disable-next-line import/no-nodejs-modules -- source guard reads the root CSS file in Vitest's Node environment.
 import { readFileSync } from 'node:fs';
-import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 
 import {
@@ -16,8 +16,17 @@ import {
 import filesGridSource from '../../src/components/layout/viewFilesGrid.ts?raw';
 import navbarSource from '../../src/components/layout/navbarFilters.svelte?raw';
 import popupViewSource from '../../src/components/layout/popupView.svelte?raw';
+import {
+	cellsForExplorer,
+	defaultVisibleCells,
+} from '../../src/logic/logicCellRegistry';
 import enSource from '../../src/i18n/en.ts?raw';
 import esSource from '../../src/i18n/es.ts?raw';
+
+const stylesSource = readFileSync(
+	new URL('../../styles.css', import.meta.url),
+	'utf8',
+);
 
 describe('BT5-016 Cards view mode rename', () => {
 	it('normalizes persisted legacy grid to cards and rejects invalid values', () => {
@@ -87,8 +96,17 @@ describe('BT5-016 Cards view mode rename', () => {
 		expect(navbarSource).not.toMatch(/saved\.viewMode as ExplorerViewMode/);
 	});
 
-	it('view popup keys files pills off the cards mode', () => {
-		expect(popupViewSource).toMatch(/view === 'cards'.*files-grid/s);
+	it('cells resolve identically for cards and for legacy grid', () => {
+		// BT5-010 moved pill selection into the registry; BT5-016's rule that a
+		// persisted 'grid' behaves as Cards must survive that move.
+		expect(defaultVisibleCells('files', 'cards')).toEqual(
+			defaultVisibleCells('files', 'grid'),
+		);
+		expect(cellsForExplorer('files', 'cards').map((cell) => cell.id)).toEqual(
+			cellsForExplorer('files', 'grid').map((cell) => cell.id),
+		);
+		// And the popup asks the registry rather than keeping its own map.
+		expect(popupViewSource).toContain('logicCellRegistry');
 	});
 });
 
@@ -168,10 +186,6 @@ describe('BT5-016 repair: stable window and measurable wrapping', () => {
 	});
 
 	it('lets cards grow naturally and wraps the metadata row', () => {
-		const stylesSource = readFileSync(
-			join(__dirname, '..', '..', 'styles.css'),
-			'utf8',
-		);
 		const cardBlock = stylesSource.match(
 			/\.vaultman-files-grid-card \{[^}]+\}/,
 		)?.[0];

@@ -9,19 +9,31 @@ import tableLayoutSource from '../../src/logic/logicTableLayout.ts?raw';
 import statisticsCacheSourceRaw from '../../src/services/serviceStatisticsCache.ts?raw';
 import treeSource from '../../src/components/layout/viewTree.ts?raw';
 import typeTreeSource from '../../src/types/typeTree.ts?raw';
+import {
+	cellIcon,
+	cellsForExplorer,
+	defaultVisibleCells,
+} from '../../src/logic/logicCellRegistry';
 
 const statisticsCacheSource = statisticsCacheSourceRaw.replace(/\r\n/g, '\n');
 
 describe('Files word count cell source guards', () => {
 	it('keeps word count cells opt-in in the Files visible-cell controls', () => {
-		expect(popupViewSource).toContain("{ id: 'words'");
-		expect(popupViewSource).toContain("labelKey: 'viewmode.pill.words'");
-		expect(popupViewSource).toContain("defaultOn: false");
-		expect(navbarFiltersSource).toContain("words: 'viewmode.pill.words'");
-		expect(navbarFiltersSource).toContain("words: 'lucide-text'");
-		expect(navbarFiltersSource).toContain(
-			"files: ['name', 'ext', 'nested']",
+		// BT5-010: the cell now lives in the shared registry, not in the popup.
+		const words = cellsForExplorer('files', 'tree').find(
+			(cell) => cell.id === 'words',
 		);
+		expect(words).toBeDefined();
+		expect(words?.labelKey).toBe('viewmode.pill.words');
+		expect(defaultVisibleCells('files', 'tree')).not.toContain('words');
+		// The navbar reads the same registry entry instead of its own map.
+		expect(navbarFiltersSource).toContain('logicCellRegistry');
+		expect(cellIcon(words!, 'files', 'tree')).toBe('lucide-text');
+		expect(defaultVisibleCells('files', 'tree')).toEqual([
+			'name',
+			'ext',
+			'nested',
+		]);
 	});
 
 	it('renders Files word count from cache-only callbacks in every Files view', () => {
@@ -37,8 +49,12 @@ describe('Files word count cell source guards', () => {
 		expect(explorerFilesSource).toContain(
 			'this.plugin.statisticsCache.getFileWordCount(file)',
 		);
-		expect(gridViewSource).toContain('getWordCount?: (file: TFile) => number | null');
-		expect(filesGridSource).toContain('getWordCount?: (file: TFile) => number | null');
+		expect(gridViewSource).toContain(
+			'getWordCount?: (file: TFile) => number | null',
+		);
+		expect(filesGridSource).toContain(
+			'getWordCount?: (file: TFile) => number | null',
+		);
 		expect(treeSource).toContain('node.wordCountText');
 		expect(typeTreeSource).toContain('wordCountText?: string');
 	});

@@ -8,6 +8,11 @@ import { en } from '../../src/i18n/en';
 import { es } from '../../src/i18n/es';
 import { DEFAULT_SETTINGS } from '../../src/types/typeSettings';
 import { SORT_MENU_OPTIONS } from '../../src/logic/logicSortMenu';
+import {
+	cellLabelKey,
+	cellsForExplorer,
+	defaultVisibleCells,
+} from '../../src/logic/logicCellRegistry';
 
 describe('BT3 settings information architecture source guards', () => {
 	it('removes language from UI and exposes the locked heading copy', () => {
@@ -87,20 +92,35 @@ describe('BT3 settings information architecture source guards', () => {
 	});
 
 	it('keeps Props available but off by default for new Files layouts', () => {
-		expect(navbarFiltersSource).toContain("files: ['name', 'ext', 'nested']");
-		expect(navbarFiltersSource).toContain("count: 'viewmode.pill.prop_count'");
+		// BT5-010: Files defaults come from the shared registry.
+		expect(defaultVisibleCells('files', 'tree')).toEqual([
+			'name',
+			'ext',
+			'nested',
+		]);
 		expect(
-			SORT_MENU_OPTIONS.files.find((option) => option.id === 'count')
-				?.labelKey,
-		).toBe('sort.by.props');
-		expect(
-			popupViewSource.match(
-				/\{ id: 'count', labelKey: 'viewmode\.pill\.prop_count', defaultOn: false \}/g,
+			cellLabelKey(
+				cellsForExplorer('files', 'tree').find((cell) => cell.id === 'count')!,
+				'files',
+				'tree',
 			),
-		).toHaveLength(3);
-		expect(popupViewSource).toContain(
-			'initialPills\n\t\t\t\t? new Set(initialPills)',
-		);
+		).toBe('viewmode.pill.prop_count');
+		expect(
+			SORT_MENU_OPTIONS.files.find((option) => option.id === 'count')?.labelKey,
+		).toBe('sort.by.props');
+		// BT5-010: the popup no longer repeats the cell once per Files view
+		// mode; the registry answers for every one of them.
+		for (const viewMode of ['tree', 'table', 'cards'] as const) {
+			const count = cellsForExplorer('files', viewMode).find(
+				(cell) => cell.id === 'count',
+			);
+			expect(count).toBeDefined();
+			expect(cellLabelKey(count!, 'files', viewMode)).toBe(
+				'viewmode.pill.prop_count',
+			);
+			expect(defaultVisibleCells('files', viewMode)).not.toContain('count');
+		}
+		expect(popupViewSource).toContain('initialPills');
 	});
 });
 
