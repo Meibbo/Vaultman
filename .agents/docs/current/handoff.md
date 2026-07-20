@@ -17,6 +17,47 @@ updated_by: codex-gpt-5
 Compact handoff after archiving the oversized current handoff:
 [[docs/archive/pkm-ai/active-docs/2026-05-11T080321-current-handoff|2026-05-11 handoff archive]].
 
+## NEXT AGENT START HERE — beta.5 PUBLICADA; siguen 5 issues (2026-07-20)
+
+**`1.2.0-beta.5` ya está publicada; no repetir el release.**
+https://github.com/Meibbo/Vaultman/releases/tag/1.2.0-beta.5 · `dev` = tag = `ebf625d9`.
+
+**Estado del entorno**
+- Producto: `C:/tmp/vaultman-release-beta2-final2`, rama **`codex/bt5-next-10`** (HEAD
+  `ea498975`), worktree limpio, sincronizada con `dev`. NO crear branch/worktree.
+- `stash@{0}` = WIP histórico de BT5-030. **NO TOCAR.**
+- Sin push/tag/merge/PR sin orden del dev. Staging siempre por paths explícitos.
+- `.agents` = commits locales, jamás push. Obsidian solo con `vault=plugin-dev`.
+- Gate final: `pnpm run verify` (hoy **789 tests**, scorecard 17/17). Leer la SALIDA
+  del gate, no el exit code de una tubería con `tail`.
+
+**Cerrado en esta tanda:** BT5-010 (`f2e4f8c3`), BT5-019 (`d0928260`), BT5-011
+(`bf0e455c` + `ea498975`), más 016/017/020/029/030 de antes. **BT5-030 lo validó el
+dev en runtime**: sin micro-cuelgues, gate HITL cerrado.
+
+**TU TRABAJO — los 5 issues, en este orden:**
+1. **BT5-012** Path visible en Files plano — cell `path` ya existe en el registry con
+   `role: 'label-projection'`; falta la proyección real del label y los guards.
+2. **BT5-013** Last opened persistente — servicio nuevo + cell + sort desc.
+3. **BT5-015** Icon en el slot del caret.
+4. **BT5-018** Context menu de Files configurable. **Decisión del dev ya tomada:**
+   base = orden del context menu de **Core Files**; UI = como settings de hover-info
+   (lista DnD) **más submenús y dividers**. Él revisa cuando lo vea.
+5. **BT5-031 + BT5-032** (nuevos, reportados por el dev tras probar beta.5). Ambos
+   traen la causa ya localizada en el issue file; son baratos y de alto valor.
+
+**Contexto imprescindible antes de tocar código**
+- Lee [[docs/work/polish/plans/2026-07-19-bt5-next-10/05-beta5-release-and-takeover|shard 05]]:
+  decisiones del dev, errores cometidos y el hallazgo de `cellLabelKey`.
+- El **registro de cells** (`src/logic/logicCellRegistry.ts`) es ahora la fuente única
+  de cells, hover y orden. 012/013/015 se registran ahí, no en mapas por superficie.
+- `cellsForExplorer()` da el `labelKey` BASE; el override por explorer sale de
+  `cellLabelKey(def, explorer, viewMode)`.
+- Los source guards fijan símbolos reales. Si un refactor mueve algo, **re-apunta el
+  guard, no lo borres**.
+
+**Coordinación:** `codex-gpt5` cerró su presencia; task_048 es del owner principal.
+
 ## NEXT AGENT START HERE — beta.4 PUBLICADA (2026-07-18)
 
 **`1.2.0-beta.4` ya fue publicada; no repetir el release.**

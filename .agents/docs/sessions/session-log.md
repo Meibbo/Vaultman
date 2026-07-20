@@ -2023,3 +2023,28 @@ broader "append-only status writes" is parked as **S-12** in
 - BT5-027 queda diferido: no hay API pública que preserve la identidad del leaf; la ruta
   privada 1.12.7 es no tipada, no atómica y no cubre con seguridad minAppVersion/mobile.
 - No se cambió rama/worktree/stash, no se ejecutó Obsidian CLI, y no hubo push/tag/merge/PR.
+
+## 2026-07-20 — claude-fable-5 · implement/release · takeover, BT5-010/019/011 y beta.5
+
+- Tomé ownership principal por decisión del dev (handoff de `codex-gpt5`, task_048).
+  Antes de eso cerré BT5-016 (3 commits, con dos correctivos tras sus reviews) y
+  BT5-017, cuyo contenido codex commiteó en `eed4e8a3` corrigiendo un fallo real mío:
+  mi `_applyBubbleDots` solo corría en rebuild completo, así que el toggle de
+  expansión seguía pasando por `_render` y no cumplía "sin full-tree scan".
+- Cerrados como owner: BT5-010 `f2e4f8c3`, BT5-019 `d0928260`, BT5-011 `bf0e455c` +
+  `ea498975`. Verify final 789 tests / scorecard 17/17.
+- **`1.2.0-beta.5` publicada** con autorización explícita del dev y boletín aprobado
+  por él antes del tag: `dev` = `ebf625d9` = tag, CI verde entera, pre-release con los
+  tres assets. El dev la probó en dispositivo real y confirmó que los micro-cuelgues
+  de BT5-030 desaparecieron: gate HITL cerrado, índice corregido.
+- Dos errores propios registrados en el shard 05 para que no se repitan: commiteé
+  BT5-010 sin correr la suite completa (9 guards rotos, reparados en `fc709d33` sin
+  borrar ninguno), y di por bueno un `verify` que había fallado porque leí el exit
+  code de un `tail` en vez de la salida del gate (`143ff2e5`).
+- Decisiones del dev: BT5-011 = opción B (todo cell es hermano del row en modo
+  activación, aceptando recorte en el borde del frame); BT5-018 = base orden de Core
+  Files con UI tipo hover-info más submenús y dividers.
+- Issues nuevos del dev con causa ya localizada en source: BT5-031 (Files solo
+  escucha `onLoaded`, no `onChanged`) y BT5-032 (`viewTree.rowTitle()` reaplica un
+  tooltip genérico hardcoded que tapa al configurable).
+- Quedan para el siguiente agente: 012 → 013 → 015 → 018 → 031/032.

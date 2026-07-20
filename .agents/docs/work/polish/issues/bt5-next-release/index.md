@@ -99,7 +99,16 @@ la cola canónica para implementación nueva.
 | BT5-007 | completed | `f1dbe2f5`; navbar y popup comparten modelo/orden/visibilidad de sort + By level |
 | BT5-008 | completed | `f1dbe2f5`; sync externo Tags sin ping-pong, cubre lazy mount y remount tras Content |
 | BT5-028 | completed | `017d8049`; active-file separado de reveal, con open/rename/delete/cleanup ejecutables |
-| BT5-030 | deferred por el dev | diagnóstico parcial atribuye cargas a Tags/Props/PropertyIndex/filters/Iconic; WIP aislado en `stash@{0}`, sin fix |
+| BT5-030 | ✅ completed | `149effc6` render diferido (`logicDeferredExplorerRender`); **validado por el dev en runtime 2026-07-20**: sin micro-cuelgues al escribir, "performance mejor que nunca". Gate HITL cerrado |
+| BT5-010 | ✅ completed | `f2e4f8c3` registro central de cells + orden de hover; guards realineados en `fc709d33`/`143ff2e5` |
+| BT5-011 | ✅ completed | `bf0e455c` modelo compartido + `ea498975` renderer (opción B elegida por el dev: todo cell es hermano del row en modo activación) |
+| BT5-016 | ✅ completed | `374cc59c` + `6e78432d` + `29fcef24` Grid→Cards y altura natural con anclaje estable |
+| BT5-017 | ✅ completed | `eed4e8a3` dot de actividad en padre colapsado |
+| BT5-019 | ✅ completed | `d0928260` registro propio de iconos addon + picker FuzzySuggestModal |
+| BT5-020 | ✅ completed | `79cdf33b` preview de payload de configs guardadas |
+| BT5-029 | ✅ completed | `e0157424` sorts semánticos State/Type |
+| BT5-031 | 🆕 needs-triage | icono no refresca en Files; causa localizada: solo escucha `onLoaded`, no `onChanged` |
+| BT5-032 | 🆕 needs-triage | dos tooltips por nodo; gana el genérico de `viewTree.rowTitle()` sobre el configurable |
 
 Detalle técnico y gates: [[docs/work/polish/plans/2026-07-19-bt5-001-005/02-outcome-verification|BT5-001..005 outcome]].
 Continuación 006/007/008/028 y diagnóstico diferido 030:
