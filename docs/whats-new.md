@@ -20,6 +20,28 @@ One inviting sentence that explains who benefits and why.
 [Full changelog](../CHANGELOG.md#exact-github-anchor-for-this-release)
 -->
 
+<a id="v1-2-0-beta-5"></a>
+## 1.2.0-beta.5 — Calmer typing, tidier explorers
+<!-- reviewed: false -->
+
+This beta focuses on how the explorers feel while you work: less background noise
+while you type, and clearer control over what each row shows.
+
+- **Typing stays smooth:** Explorers that sit in a hidden tab no longer rebuild
+  themselves while you write in a note; the work waits until you look at them again.
+- **Rows show what you choose:** Cell options, hover details and their order now come
+  from one place, so Files can add a Label line, reorder hover fields, and keep your
+  choices when a layout is saved.
+- **Your own icons for snippets and plugins:** Pick any icon for a snippet or a
+  community plugin from a searchable list, and reset it whenever you like. This works
+  with or without the Iconic plugin installed.
+- **Cards, honestly named:** The card engine is now called Cards, and a card without
+  extra fields shrinks to fit instead of leaving an empty gap.
+- **See activity you can't see:** A collapsed folder shows a small colored dot when
+  something inside it has a pending operation, and hides it again once you expand.
+
+[Full changelog](../CHANGELOG.md#120-beta5---2026-07-20)
+
 <a id="v1-2-0-beta-4"></a>
 ## 1.2.0-beta.4 — More capable explorers, less friction
 <!-- reviewed: true -->
