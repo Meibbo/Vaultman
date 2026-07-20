@@ -5,11 +5,11 @@ status: active
 parent: "[[docs/work/pkm-ai/index|pkm-ai]]"
 archive_source: docs/archive/pkm-ai/active-docs/2026-05-11T080321-current-handoff.md
 created: 2026-05-04T01:36:20
-updated: 2026-07-19T08:02:57
+updated: 2026-07-20T17:40:00
 tags:
   - agent/current
 created_by: dec
-updated_by: codex-gpt-5
+updated_by: claude-opus-4-8
 ---
 
 # Current Handoff
@@ -17,7 +17,77 @@ updated_by: codex-gpt-5
 Compact handoff after archiving the oversized current handoff:
 [[docs/archive/pkm-ai/active-docs/2026-05-11T080321-current-handoff|2026-05-11 handoff archive]].
 
-## NEXT AGENT START HERE — beta.5 PUBLICADA; siguen 5 issues (2026-07-20)
+## NEXT AGENT START HERE — BT5 012/013/015/018/031/032 cerrados; quedan correcciones del dev (2026-07-20, tarde)
+
+**`1.2.0-beta.5` sigue siendo la última publicada; no repetir el release.**
+`dev` = tag = `ebf625d9`.
+
+**Estado del entorno**
+- Producto: `C:/tmp/vaultman-release-beta2-final2`, rama **`codex/bt5-next-10`**,
+  HEAD **`102bb0b6`**, worktree limpio. NO crear branch/worktree.
+- `stash@{0}` = WIP histórico de BT5-030. **NO TOCAR.**
+- Sin push/tag/merge/PR sin orden del dev. Staging siempre por paths explícitos.
+- `.agents` = commits locales, jamás push. Obsidian solo con `vault=plugin-dev`.
+- Gate: `pnpm run verify` (hoy **843 tests / 128 files**, scorecard 17/17). Leer la
+  SALIDA del gate, no el exit code de una tubería con `tail`.
+- **codebase-memory-mcp: el parámetro es `project`, NO `project_path`.** Con el
+  nombre correcto (`C-tmp-vaultman-release-beta2-final2`) funciona. Un shard
+  anterior afirmó que estaba roto: era un error de invocación. Pendiente real: el
+  índice sirve líneas desfasadas y `mode='full'` falla; `fast`/`moderate` responden
+  ok pero no re-extraen. Necesita reinicio del server MCP y re-index.
+
+**Cerrado en esta tanda (9 commits sobre `ea498975`)**
+
+| Commit | Qué |
+|---|---|
+| `7c2f5928` | BT5-012 label plano = `file.name` / `file.path` |
+| `843da5ab` | BT5-013 Last opened: store, cell, hover, sort |
+| `d396c3f0` | BT5-015 icono en el slot del caret (**mal hecho, ver abajo**) |
+| `9cd1e3ac` | BT5-031 Files repinta con `iconic.onChanged` |
+| `577789c2` | BT5-032 un solo dueño de tooltip por fila |
+| `a188d672` | BT5-018 context menu de Files configurable |
+| `4a61d419` | fix: el re-render redundante se comía el primer click |
+| `eb8ad91d` | fix: tooltip armado antes de que llegue el puntero |
+| `102bb0b6` | fix: Last opened se reordena en vivo |
+
+Source record completo:
+[[docs/work/polish/plans/2026-07-19-bt5-next-10/06-bt5-012-013-015-018-031-032|shard 06]].
+
+**TU TRABAJO — correcciones pedidas por el dev, en este orden**
+
+1. **BT5-015 está MAL Y HAY QUE REHACERLO.** Lo implementé como "nodo que reserva
+   caret pero no puede expandir" (`showCaret && !hasChildren`). La intención real
+   del dev es otra: **el icono reclama el espacio del caret solo en los nodos que
+   están renderizando el cell Icon**, para que TODOS los `cell_label` queden
+   alineados. Los nodos sin icono (sin custom, o con la celda apagada) se
+   comportan como hasta ahora. Síntoma que hay que eliminar: con "custom icons
+   only", los nodos que sí tienen icono empujan su label a la derecha y rompen la
+   alineación con los que no. Revisar el layout/CSS de la fila, no solo el DOM.
+2. **BT5-018 — dos correcciones del dev.**
+   - La sub-page de Files cmenu debe vivir **dentro** del otro menú de context
+     menus que ya existe en la misma sección de settings, no como entrada hermana.
+   - El catálogo **no está mostrando todas las opciones**: faltan los nodos/menús
+     que aparecen en el cmenu real, incluidos **los interceptados** (los items
+     nativos de Core/otros plugins que Vaultman inyecta o filtra) y los **menús
+     padre**, que técnicamente son parent nodes y deben poder configurarse igual.
+     Hoy `panelActionCatalog()` solo expone el registry propio de Vaultman.
+3. **BT5-009 — adelantar** (exclusión de files como filtro por nodo) y **quitar su
+   sección de settings**.
+4. Después, seguir con los **próximos 5 issues** de la cola BT5.
+
+**Contexto imprescindible antes de tocar código**
+- `src/logic/logicCellRegistry.ts` es la fuente única de cells, hover y orden.
+- `cellsForExplorer()` da el `labelKey` BASE; el override por explorer sale de
+  `cellLabelKey(def, explorer, viewMode)`.
+- Los source guards fijan símbolos reales. Si un refactor mueve algo, **re-apunta
+  el guard, no lo borres**. En esta tanda se re-apuntaron 11.
+- **Guard sensible:** `explorerViewportRefresh.test.ts` protege BT5-030 (los
+  micro-cuelgues al escribir, P0 validado por el dev). Prohíbe render en
+  `file-open` salvo la excepción explícita del sort `opened`. No lo relajes más.
+- **Smoke de runtime nunca ejecutado** en ninguno de los 6 issues ni en los 3
+  fixes. Todo está verificado por gates, no por observación en Obsidian.
+
+## Histórico — beta.5 PUBLICADA; los 5 issues de esa tanda (2026-07-20)
 
 **`1.2.0-beta.5` ya está publicada; no repetir el release.**
 https://github.com/Meibbo/Vaultman/releases/tag/1.2.0-beta.5 · `dev` = tag = `ebf625d9`.
