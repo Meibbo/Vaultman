@@ -9,6 +9,7 @@ import {
 	DEFAULT_FILES_HOVER_INFO,
 	type FileHoverInfoId,
 } from '../logic/logicCellRegistry';
+import type { AddonIconOverrides } from '../logic/logicAddonIcons';
 
 export type Language = 'auto' | 'en' | 'es';
 
@@ -157,6 +158,8 @@ export interface VaultmanSettings {
 	filesHoverInfo: FileHoverInfoId[];
 	/** Independent display order for every available Files hover entry */
 	filesHoverInfoOrder?: FileHoverInfoId[];
+	/** Custom icons chosen in Vaultman for snippet/plugin nodes (BT5-019) */
+	addonIconOverrides: AddonIconOverrides;
 	/** Show the explorer toolbar (tabs / view / sort / search header) */
 	showToolbar: boolean;
 	/** Named saved explorer layouts (view options + sorts per tab) */
@@ -259,6 +262,7 @@ export const DEFAULT_SETTINGS: VaultmanSettings = {
 	explorerRainbowFolders: false,
 	toolbarToolsMenu: false,
 	filesHoverInfo: [...DEFAULT_FILES_HOVER_INFO],
+	addonIconOverrides: {},
 	showToolbar: true,
 	bypassOperations: false,
 	suppressBulkOperationWarning: false,

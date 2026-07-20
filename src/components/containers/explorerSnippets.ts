@@ -12,6 +12,15 @@ import {
 	setCssSnippetEnabled,
 } from '../../utils/obsidianAddons';
 import {
+	clearAddonIconOverride,
+	getAddonIconOverride,
+	readAddonIconOverrides,
+	resolveAddonIcon,
+	setAddonIconOverride,
+	writeAddonIconOverrides,
+} from '../../logic/logicAddonIcons';
+import { openAddonIconPicker } from '../../modals/modalAddonIconPicker';
+import {
 	buildAddonHoverInfo,
 	filterAddonEntries,
 	formatAddonTimestamp,
@@ -66,7 +75,26 @@ export class SnippetsExplorerPanel
 		this.registerInterval(
 			window.setInterval(() => this._syncExternalState(), 2500),
 		);
+		// BT5-019: Iconic never resolves snippets, but its adapter also fires
+		// when the icon library itself changes; repaint through that existing
+		// event (no new timer) and release the subscription on unload.
+		const iconic = this.plugin.iconicService;
+		if (iconic) {
+			this.register(iconic.onChanged(this._scheduleIconRebuild));
+		}
 	}
+
+	private _iconRebuildScheduled = false;
+
+	/** Coalesce bursts of external icon changes into one rebuild. */
+	private readonly _scheduleIconRebuild = (): void => {
+		if (this.destroyed || this._iconRebuildScheduled) return;
+		this._iconRebuildScheduled = true;
+		window.setTimeout(() => {
+			this._iconRebuildScheduled = false;
+			if (!this.destroyed) this.rebuildNodes();
+		}, 0);
+	};
 
 	private _lastExternalSignature = '';
 
@@ -149,10 +177,21 @@ export class SnippetsExplorerPanel
 			filtered,
 			activeScopeSort('snippets', this.sortState),
 		);
+		// Read the override map once per rebuild, not once per row.
+		const overrides = readAddonIconOverrides(this.plugin.settings);
 		this.nodes = entries.map((entry) => ({
 			id: `snippet:${entry.name}`,
 			label: entry.name,
-			icon: 'lucide-file-code',
+			// BT5-019: Iconic has no snippet item-kind and a snippet emits no
+			// icon of its own, so the chain here is override > fallback. The
+			// shared resolver still owns the decision.
+			icon: resolveAddonIcon({
+				override: getAddonIconOverride(overrides, 'snippet', entry.name),
+				iconic: null,
+				emitted: null,
+				fallback: 'lucide-file-code',
+			}).icon,
+			iconColor: getAddonIconOverride(overrides, 'snippet', entry.name)?.color,
 			ctimeText: formatAddonTimestamp(entry.installedTime),
 			mtimeText: formatAddonTimestamp(entry.updatedTime),
 			depth: 0,
@@ -265,9 +304,42 @@ export class SnippetsExplorerPanel
 		return true;
 	}
 
+	private openIconPicker(meta: SnippetMeta): void {
+		const overrides = readAddonIconOverrides(this.plugin.settings);
+		openAddonIconPicker({
+			app: this.plugin.app,
+			name: meta.name,
+			hasOverride:
+				getAddonIconOverride(overrides, 'snippet', meta.name) !== null,
+			onPick: (icon) =>
+				this.persistOverrides(
+					setAddonIconOverride(overrides, 'snippet', meta.name, { icon }),
+				),
+			onReset: () =>
+				this.persistOverrides(
+					clearAddonIconOverride(overrides, 'snippet', meta.name),
+				),
+		});
+	}
+
+	/** One save per human action; the rebuild repaints from the new store. */
+	private async persistOverrides(
+		store: ReturnType<typeof readAddonIconOverrides>,
+	): Promise<void> {
+		writeAddonIconOverrides(this.plugin.settings, store);
+		await this.plugin.saveSettings();
+		if (!this.destroyed) this.rebuildNodes();
+	}
+
 	private openMenu(meta: SnippetMeta, event: MouseEvent): void {
 		const next = !meta.enabled;
 		new Menu()
+			.addItem((item) =>
+				item
+					.setTitle(translate('addon.icon.change'))
+					.setIcon('lucide-image')
+					.onClick(() => this.openIconPicker(meta)),
+			)
 			.addItem((item) =>
 				item
 					.setTitle(translate(next ? 'addons.enable' : 'addons.disable'))

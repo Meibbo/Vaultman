@@ -13,6 +13,15 @@ import {
 	setCommunityPluginEnabled,
 } from '../../utils/obsidianAddons';
 import {
+	clearAddonIconOverride,
+	getAddonIconOverride,
+	readAddonIconOverrides,
+	resolveAddonIcon,
+	setAddonIconOverride,
+	writeAddonIconOverrides,
+} from '../../logic/logicAddonIcons';
+import { openAddonIconPicker } from '../../modals/modalAddonIconPicker';
+import {
 	buildAddonHoverInfo,
 	filterAddonEntries,
 	formatAddonTimestamp,
@@ -66,7 +75,25 @@ export class PluginsExplorerPanel
 		this.registerInterval(
 			window.setInterval(() => this._syncExternalState(), 2500),
 		);
+		// BT5-019: external icon edits repaint through the existing adapter
+		// event — no new timer — and the subscription is released on unload.
+		const iconic = this.plugin.iconicService;
+		if (iconic) {
+			this.register(iconic.onChanged(this._scheduleIconRebuild));
+		}
 	}
+
+	private _iconRebuildScheduled = false;
+
+	/** Coalesce bursts of external icon changes into one rebuild. */
+	private readonly _scheduleIconRebuild = (): void => {
+		if (this.destroyed || this._iconRebuildScheduled) return;
+		this._iconRebuildScheduled = true;
+		window.setTimeout(() => {
+			this._iconRebuildScheduled = false;
+			if (!this.destroyed) this.rebuildNodes();
+		}, 0);
+	};
 
 	private _lastExternalSignature = '';
 
@@ -159,6 +186,8 @@ export class PluginsExplorerPanel
 			activeScopeSort('plugins', this.sortState),
 		);
 		const settingsTabIds = pluginSettingTabIds(this.plugin.app);
+		// Read the override map once per rebuild, not once per row.
+		const overrides = readAddonIconOverrides(this.plugin.settings);
 		this.nodes = entries.map((entry) => {
 			const meta: PluginMeta = {
 				...entry,
@@ -194,17 +223,22 @@ export class PluginsExplorerPanel
 							disabled: this.pendingToggleIds.has(entry.pluginId),
 						},
 			);
-			// D35 precedence: Iconic ribbon override > plugin-emitted ribbon
-			// icon > generic plug.
+			// BT5-019 precedence: Vaultman override > Iconic ribbon > plugin
+			// emitted ribbon icon > generic plug (supersedes D35).
 			const ribbon = pluginRibbonItem(this.plugin.app, entry.pluginId);
-			const override = ribbon
-				? this.plugin.iconicService?.getRibbonIcon(ribbon.id)
-				: null;
+			const resolved = resolveAddonIcon({
+				override: getAddonIconOverride(overrides, 'plugin', entry.pluginId),
+				iconic: ribbon
+					? this.plugin.iconicService?.getRibbonIcon(ribbon.id)
+					: null,
+				emitted: ribbon,
+				fallback: 'lucide-plug',
+			});
 			return {
 				id: `plugin:${entry.pluginId}`,
 				label: entry.name,
-				icon: override?.icon ?? ribbon?.icon ?? 'lucide-plug',
-				iconColor: override?.color,
+				icon: resolved.icon,
+				iconColor: resolved.color,
 				typeText: entry.version,
 				ctimeText: formatAddonTimestamp(entry.installedTime),
 				mtimeText: formatAddonTimestamp(entry.updatedTime),
@@ -313,8 +347,49 @@ export class PluginsExplorerPanel
 		return true;
 	}
 
+	/**
+	 * BT5-019: changing the icon is cosmetic, so it stays available even for
+	 * Vaultman itself — the self-protection only covers state/destructive acts.
+	 */
+	private addIconMenuItems(menu: Menu, meta: PluginMeta): void {
+		menu.addItem((item) =>
+			item
+				.setTitle(translate('addon.icon.change'))
+				.setIcon('lucide-image')
+				.onClick(() => this.openIconPicker(meta)),
+		);
+	}
+
+	private openIconPicker(meta: PluginMeta): void {
+		const overrides = readAddonIconOverrides(this.plugin.settings);
+		openAddonIconPicker({
+			app: this.plugin.app,
+			name: meta.name,
+			hasOverride:
+				getAddonIconOverride(overrides, 'plugin', meta.pluginId) !== null,
+			onPick: (icon) =>
+				this.persistOverrides(
+					setAddonIconOverride(overrides, 'plugin', meta.pluginId, { icon }),
+				),
+			onReset: () =>
+				this.persistOverrides(
+					clearAddonIconOverride(overrides, 'plugin', meta.pluginId),
+				),
+		});
+	}
+
+	/** One save per human action; the rebuild repaints from the new store. */
+	private async persistOverrides(
+		store: ReturnType<typeof readAddonIconOverrides>,
+	): Promise<void> {
+		writeAddonIconOverrides(this.plugin.settings, store);
+		await this.plugin.saveSettings();
+		if (!this.destroyed) this.rebuildNodes();
+	}
+
 	private openMenu(meta: PluginMeta, event: MouseEvent): void {
 		const menu = new Menu();
+		this.addIconMenuItems(menu, meta);
 		if (meta.isVaultman) {
 			menu.addItem((item) =>
 				item
