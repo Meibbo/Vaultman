@@ -9,6 +9,7 @@ export type FilterType =
 	| 'folder_exclude'
 	| 'file_name'
 	| 'file_name_exclude'
+	| 'file_exclude'   // excludes one exact file path (BT5-009)
 	| 'file_folder'    // matches folder path only (not filename)
 	| 'content_search' // transient content-search result set
 	| 'has_tag';       // matches files with a specific tag

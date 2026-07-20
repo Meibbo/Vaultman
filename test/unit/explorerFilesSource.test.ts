@@ -272,15 +272,18 @@ describe('FilesExplorerPanel source guards', () => {
 	});
 });
 
-describe('exclude file (BT4-015 / D39)', () => {
-	it('filters excluded paths from display and offers the cmenu action', () => {
+describe('exclude file (BT5-009, was BT4-015 / D39)', () => {
+	it('excludes through the filter pipeline, not a parallel render list', () => {
 		expect(explorerFilesSource).toContain("id: 'file.exclude'");
-		expect(explorerFilesSource).toContain('excludedFilePaths');
+		// BT5-009: the exclude action adds a filter node; the render path no
+		// longer carries its own excluded-paths pass.
+		expect(explorerFilesSource).toContain("filterType: 'file_exclude'");
 		const display = explorerFilesSource.slice(
 			explorerFilesSource.indexOf('private _filesForDisplay()'),
 			explorerFilesSource.indexOf('private _fileTypeId('),
 		);
-		expect(display).toContain('!excluded.has(file.path)');
+		expect(display).not.toContain('excluded.has(file.path)');
+		expect(display).not.toContain('excludedFilePaths');
 	});
 });
 

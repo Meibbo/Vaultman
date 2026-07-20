@@ -193,11 +193,6 @@ export const es: Record<string, string> = {
 	'sort.by.tasks': 'Tareas pendientes',
 	'viewmode.pill.tasks': 'Tareas',
 	'file.ctx.exclude': 'Excluir archivo',
-	'settings.excluded_files': 'Archivos excluidos',
-	'settings.excluded_files.desc':
-		'Archivos ocultos del files explorer vía Excluir archivo.',
-	'settings.excluded_files.empty': 'Sin archivos excluidos.',
-	'settings.excluded_files.remove': 'Mostrar de nuevo',
 	'settings.explorer_page': 'Explorer',
 	'settings.explorer_page.desc':
 		'Cells, badges y comportamiento de resaltado de los explorers.',

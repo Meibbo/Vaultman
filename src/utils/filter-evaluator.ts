@@ -145,6 +145,12 @@ function matchesFile(
 			return !file.path.toLowerCase().includes(folder.toLowerCase());
 		}
 
+		case 'file_exclude': {
+			// BT5-009: exact path only, so a same-named file elsewhere and a
+			// path that merely has this one as a prefix both stay visible.
+			return file.path !== (rule.values[0] ?? '');
+		}
+
 		case 'file_name': {
 			const term = rule.values[0] ?? '';
 			return matchesFileName(file, term);

@@ -195,11 +195,6 @@ export const en: Record<string, string> = {
 	'sort.by.tasks': 'Remaining tasks',
 	'viewmode.pill.tasks': 'Tasks',
 	'file.ctx.exclude': 'Exclude file',
-	'settings.excluded_files': 'Excluded files',
-	'settings.excluded_files.desc':
-		'Files hidden from the files explorer via Exclude file.',
-	'settings.excluded_files.empty': 'No excluded files.',
-	'settings.excluded_files.remove': 'Show again',
 	'settings.explorer_page': 'Explorer',
 	'settings.explorer_page.desc':
 		'Cells, badges and highlight behavior for the explorers.',

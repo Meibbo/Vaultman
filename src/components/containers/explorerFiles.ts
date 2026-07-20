@@ -87,6 +87,12 @@ import {
 	updateFileSelection,
 } from '../../logic/logicFileSelection';
 import {
+	isFileExcluded,
+	migrateExcludedPathsToFilter,
+	purgeFilterPath,
+	renameFilterPath,
+} from '../../logic/logicExclusionFilter';
+import {
 	normalizeInteractionMode,
 	resolveInteractionAction,
 	type InteractionMode,
@@ -183,16 +189,22 @@ export class FilesExplorerPanel extends Component {
 			surfaces: ['panel'],
 			label: translate('file.ctx.exclude'),
 			icon: 'lucide-eye-off',
-			run: async (ctx: MenuCtx) => {
+			run: (ctx: MenuCtx) => {
 				const meta = ctx.node.meta as FileMeta;
 				const path = meta.file?.path;
 				if (!path) return;
-				const current = this.plugin.settings.excludedFilePaths ?? [];
-				if (!current.includes(path)) {
-					this.plugin.settings.excludedFilePaths = [...current, path];
-					await this.plugin.saveSettings();
+				// BT5-009: exclusion is a filter node now, so it hides through the
+				// pipeline and shows again by removing its chip — coherent with
+				// exclude-folder — instead of a parallel list applied in render.
+				if (isFileExcluded(this.plugin.filterService.activeFilter, path)) {
+					return;
 				}
-				this._render();
+				this.plugin.filterService.addNode({
+					type: 'rule',
+					filterType: 'file_exclude',
+					property: '',
+					values: [path],
+				});
 			},
 		});
 
@@ -488,10 +500,29 @@ export class FilesExplorerPanel extends Component {
 			this.plugin.app.vault.on('create', this._scheduleRefresh),
 		);
 		this.registerEvent(
-			this.plugin.app.vault.on('delete', this._scheduleRefresh),
+			this.plugin.app.vault.on('delete', (file) => {
+				// BT5-009: a deleted file drops its exclusion so it leaves no
+				// orphan path in the filter tree.
+				if (purgeFilterPath(this.plugin.filterService.activeFilter, file.path)) {
+					this.plugin.filterService.applyFilters();
+				}
+				this._scheduleRefresh();
+			}),
 		);
 		this.registerEvent(
-			this.plugin.app.vault.on('rename', this._scheduleRefresh),
+			this.plugin.app.vault.on('rename', (file, oldPath) => {
+				// BT5-009: a rename carries the exclusion to the new path.
+				if (
+					renameFilterPath(
+						this.plugin.filterService.activeFilter,
+						oldPath,
+						file.path,
+					)
+				) {
+					this.plugin.filterService.applyFilters();
+				}
+				this._scheduleRefresh();
+			}),
 		);
 		this.registerEvent(
 			this.plugin.app.metadataCache.on('changed', this._handleMetadataChange),
@@ -512,9 +543,27 @@ export class FilesExplorerPanel extends Component {
 		this.containerEl.addEventListener('dragover', this._handleRootFileDragOver);
 		this.containerEl.addEventListener('drop', this._handleRootFileDrop);
 
+		this._migrateLegacyExclusions();
 		this._mountView();
 		this._syncActiveFilePath();
 		this._render();
+	}
+
+	/**
+	 * BT5-009: one-time move of the old persisted `excludedFilePaths` list into
+	 * the filter pipeline. After this the filter tree owns exclusion, so the
+	 * setting is cleared and never written again.
+	 */
+	private _migrateLegacyExclusions(): void {
+		const legacy = this.plugin.settings.excludedFilePaths ?? [];
+		if (legacy.length === 0) return;
+		const changed = migrateExcludedPathsToFilter(
+			legacy,
+			this.plugin.filterService.activeFilter,
+		);
+		this.plugin.settings.excludedFilePaths = [];
+		void this.plugin.saveSettings();
+		if (changed) this.plugin.filterService.applyFilters();
 	}
 
 	onunload(): void {
@@ -920,11 +969,9 @@ export class FilesExplorerPanel extends Component {
 	}
 
 	private _filesForDisplay(): TFile[] {
-		const excluded = new Set(this.plugin.settings.excludedFilePaths ?? []);
-		const files =
-			excluded.size === 0
-				? this._currentFiles
-				: this._currentFiles.filter((file) => !excluded.has(file.path));
+		// BT5-009: exclusion already ran through the filter pipeline upstream, so
+		// there is no parallel excluded-paths pass here.
+		const files = this._currentFiles;
 		if (this.nodeTypeFilters.length === 0) return files;
 		const selectedTypes = new Set(this.nodeTypeFilters);
 		return files.filter((file) => selectedTypes.has(this._fileTypeId(file)));

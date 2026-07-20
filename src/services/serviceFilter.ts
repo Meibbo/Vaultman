@@ -465,6 +465,10 @@ export class FilterService extends Component {
 						label = node.values[0] ?? '';
 						warning = this.warningForFolderRule();
 						break;
+					case 'file_exclude':
+						rule = 'Exclude file';
+						label = node.values[0] ?? '';
+						break;
 					default:
 						rule = node.filterType;
 						label = node.property || (node.values[0] ?? '');
