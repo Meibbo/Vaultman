@@ -46,6 +46,28 @@ export function hasGridMetaCells(visibleCells: ReadonlySet<string>): boolean {
 }
 
 /**
+ * Worst-case sample content per active meta cell, used to measure the real
+ * (wrapped) card height for the current cell configuration (BT5-016 repair).
+ * Samples are deliberately as wide as realistic values get so the measured
+ * row slot is never shorter than an actual card.
+ */
+const GRID_META_SAMPLE_BY_CELL: Record<string, string> = {
+	ext: 'markdown',
+	count: '999',
+	words: '99999',
+	mtime: new Date(2026, 11, 29).toLocaleDateString(),
+	ctime: new Date(2026, 11, 29).toLocaleDateString(),
+};
+
+export function gridMetaSampleValues(
+	visibleCells: ReadonlySet<string>,
+): string[] {
+	return GRID_META_CELL_IDS.filter((cell) => visibleCells.has(cell)).map(
+		(cell) => GRID_META_SAMPLE_BY_CELL[cell],
+	);
+}
+
+/**
  * BT5-016: a card without active meta cells collapses to its content height
  * instead of reserving the empty metadata box, and the virtual row height
  * shrinks by the same extent so cards never overlap.

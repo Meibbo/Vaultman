@@ -7,6 +7,7 @@ import { vaultmanPerfMonitor } from '../../utils/performanceMonitor';
 import { elementContentWidth } from '../../utils/elementDimensions';
 import {
 	explorerDensityProfile,
+	gridMetaSampleValues,
 	gridRowHeightFor,
 	hasGridMetaCells,
 	usesMobileExplorerDensity,
@@ -44,6 +45,9 @@ export class FilesGridView {
 	private activePath: string | null = null;
 	private pendingRaf: number | null = null;
 	private pendingScrollTimer: number | null = null;
+	private measuredRowHeight: number | null = null;
+	private measureSignature = '';
+	private lastRowHeight: number | null = null;
 	private readonly gap = 8;
 	private readonly overscanRows = 4;
 	private readonly onScroll = () => this.scheduleWindowRender();
@@ -71,9 +75,63 @@ export class FilesGridView {
 	}
 
 	private get rowHeight(): number {
-		// BT5-016: without active meta cells the card collapses, and the
-		// virtual row shrinks by the same extent (no overlap, no dead space).
-		return gridRowHeightFor(this.densityProfile, this.hasMetaCells);
+		// BT5-016: cards grow/shrink with their content (compact without meta
+		// cells, wrapped meta rows with many). The probe measurement is the
+		// authoritative slot; the density estimate is the pre-measure fallback.
+		return (
+			this.measuredRowHeight ??
+			gridRowHeightFor(this.densityProfile, this.hasMetaCells)
+		);
+	}
+
+	/**
+	 * Measure the real card height for the current cell configuration by
+	 * rendering one hidden probe card with worst-case content (BT5-016). This
+	 * keeps the uniform virtual slot in sync with wrapped metadata rows on any
+	 * card width/density instead of trusting a fixed constant.
+	 */
+	private measureCardRowHeight(cardWidth: number): void {
+		if (!this.contentEl) return;
+		const profile = this.densityProfile;
+		const samples = gridMetaSampleValues(this.visibleCells);
+		const signature = [
+			cardWidth,
+			profile.gridRowHeight,
+			this.visibleCells.has('icon') ? '1' : '0',
+			this.visibleCells.has('name') ? '1' : '0',
+			samples.join(','),
+		].join('|');
+		if (signature === this.measureSignature) return;
+
+		const probe = this.contentEl.createDiv({
+			cls: 'vaultman-files-grid-card vaultman-files-grid-card-probe',
+		});
+		probe.toggleClass('vaultman-files-grid-card--compact', !this.hasMetaCells);
+		probe.style.width = `${cardWidth}px`;
+		probe.style.visibility = 'hidden';
+		probe.style.top = '0px';
+		probe.style.left = '0px';
+		if (this.visibleCells.has('icon')) {
+			const iconEl = probe.createDiv({ cls: 'vaultman-files-grid-card-icon' });
+			iconEl.style.height = `${profile.gridRowHeight >= 100 ? 22 : 18}px`;
+		}
+		if (this.visibleCells.has('name')) {
+			probe.createDiv({
+				cls: 'vaultman-files-grid-card-name',
+				text: 'Sample',
+			});
+		}
+		if (samples.length > 0) {
+			const metaRow = probe.createDiv({ cls: 'vaultman-files-grid-card-meta' });
+			for (const sample of samples) {
+				metaRow.createSpan({ cls: 'nav-file-tag', text: sample });
+			}
+		}
+		const measured = probe.offsetHeight;
+		probe.remove();
+		if (!measured) return;
+		this.measureSignature = signature;
+		this.measuredRowHeight = measured + this.gap;
 	}
 
 	render(files: TFile[]): void {
@@ -96,6 +154,9 @@ export class FilesGridView {
 		this.files = [];
 		this.rowEls.clear();
 		this.selectedFiles.clear();
+		this.measuredRowHeight = null;
+		this.measureSignature = '';
+		this.lastRowHeight = null;
 	}
 
 	setVisibleCells(cells: Set<string>): void {
@@ -119,6 +180,12 @@ export class FilesGridView {
 
 	getSelectedFiles(): TFile[] {
 		return this.files.filter((file) => this.selectedFiles.has(file.path));
+	}
+
+	/** Re-project after a hidden pane becomes visible (hidden probes measure 0). */
+	refreshViewport(): void {
+		this.measureSignature = '';
+		this.renderWindow();
 	}
 
 	scrollToPath(path: string, behavior: ScrollBehavior = 'auto'): void {
@@ -187,11 +254,21 @@ export class FilesGridView {
 		if (!this.scrollEl || !this.spacerEl || !this.contentEl) return;
 		const started = performance.now();
 		const metrics = this.metrics();
+		this.measureCardRowHeight(metrics.cardWidth);
+		const rowHeight = this.rowHeight;
+		// BT5-016 repair: when the slot height changes (meta cells toggled),
+		// keep the first visible row anchored instead of replaying a stale
+		// scrollTop against the new geometry (blank window near the bottom).
+		if (this.lastRowHeight !== null && this.lastRowHeight !== rowHeight) {
+			const firstRow = Math.floor(this.scrollEl.scrollTop / this.lastRowHeight);
+			this.scrollEl.scrollTop = Math.max(0, firstRow * rowHeight);
+		}
+		this.lastRowHeight = rowHeight;
 		const projection = buildVirtualGridWindow({
 			rows: this.files,
 			scrollTop: this.scrollEl.scrollTop,
 			viewportHeight: this.scrollEl.clientHeight,
-			rowHeight: this.rowHeight,
+			rowHeight,
 			columnCount: metrics.columnCount,
 			overscanRows: this.overscanRows,
 		});

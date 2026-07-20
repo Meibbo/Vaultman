@@ -146,7 +146,7 @@ Modular panels designed to assist first hand your explorers navigation, order, l
 #### View configs
 Each view has its own configuration options that can be customized to the user's preference.
 
-As engines we actually have: Tree, table and grid.
+As engines we actually have: Tree, Table and Cards.
 
 Every provider will have its own cell configuration and sort options to display its data.
 

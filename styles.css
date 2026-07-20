@@ -3248,13 +3248,17 @@ body.vaultman-bases-column-separators table th {
   position: relative;
 }
 
+/* BT5-016: cards take their natural content height — compact without meta
+   cells, taller when the metadata row wraps. The virtual slot follows via a
+   measured probe card, so no fixed height here. */
 .vaultman-files-grid-card {
   position: absolute;
   display: flex;
   flex-direction: column;
   align-items: center;
   gap: 4px;
-  height: 82px;
+  height: auto;
+  min-height: 52px;
   min-width: 0;
   padding: 8px 22px 6px 6px;
   border: 1px solid var(--background-modifier-border);
@@ -3263,12 +3267,6 @@ body.vaultman-bases-column-separators table th {
   color: var(--text-muted);
   cursor: pointer;
   overflow: hidden;
-}
-
-/* BT5-016: without active meta cells the card collapses to its content
-   height instead of reserving the empty metadata box (82px - 20px). */
-.vaultman-files-grid-card--compact {
-  height: 62px;
 }
 
 .vaultman-files-grid-card:hover {
@@ -3315,6 +3313,8 @@ body.vaultman-bases-column-separators table th {
   gap: 4px;
   min-height: 16px;
   max-width: 100%;
+  /* BT5-016: many meta cells wrap into extra lines instead of clipping. */
+  flex-wrap: wrap;
 }
 
 .vaultman-files-grid-card-ext {
@@ -5454,13 +5454,8 @@ button.vaultman-content-scope-hint:focus-visible {
 }
 
 .is-mobile .workspace-leaf-content[data-type="vaultman-frame"] .vaultman-files-grid-card {
-  height: 102px;
+  min-height: 68px;
   padding-block: 12px 10px;
-}
-
-/* BT5-016 compact variant on mobile (102px - 20px). */
-.is-mobile .workspace-leaf-content[data-type="vaultman-frame"] .vaultman-files-grid-card--compact {
-  height: 82px;
 }
 
 .is-mobile .workspace-leaf-content[data-type="vaultman-frame"] .vaultman-files-grid-card-icon svg {

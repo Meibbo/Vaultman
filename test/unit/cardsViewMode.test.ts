@@ -1,3 +1,5 @@
+import { readFileSync } from 'node:fs';
+import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 
 import {
@@ -116,6 +118,70 @@ describe('BT5-016 natural card height without active meta cells', () => {
 		// The meta row must not be created unconditionally anymore.
 		expect(filesGridSource).not.toMatch(
 			/const metaRow = card\.createDiv\(\{ cls: 'vaultman-files-grid-card-meta' \}\);\n\t\tif \(this\.visibleCells\.has\('ext'\)/,
+		);
+	});
+});
+
+describe('BT5-016 repair: stable window and measurable wrapping', () => {
+	it('clamps out-of-range scrollTop instead of producing a blank window', async () => {
+		const { buildVirtualGridWindow } =
+			await import('../../src/utils/gridVirtualization');
+		const rows = Array.from({ length: 100 }, (_, index) => index);
+		// Old bottom position measured with rowHeight 92 (100*92 - 300 viewport)
+		// replayed against the shrunken rowHeight 72 (total 7200).
+		const projection = buildVirtualGridWindow({
+			rows,
+			scrollTop: 8900,
+			viewportHeight: 300,
+			rowHeight: 72,
+			columnCount: 1,
+			overscanRows: 2,
+		});
+		expect(projection.visibleRows.length).toBeGreaterThan(0);
+		expect(projection.endRow).toBe(99);
+		expect(projection.startRow).toBeLessThanOrEqual(projection.endRow);
+		expect(projection.visibleRows.some((item) => item.index === 99)).toBe(true);
+	});
+
+	it('re-anchors the scroll position when the row height changes', () => {
+		expect(filesGridSource).toMatch(/lastRowHeight/);
+		expect(filesGridSource).toMatch(/scrollTop\s*=/);
+	});
+
+	it('measures the real card height per cell configuration', () => {
+		expect(filesGridSource).toMatch(/measureCardRowHeight|measuredRowHeight/);
+		expect(filesGridSource).toMatch(/vaultman-files-grid-card-probe/);
+		expect(filesGridSource).toMatch(/gridMetaSampleValues/);
+	});
+
+	it('provides worst-case meta samples for every active meta cell', async () => {
+		const { gridMetaSampleValues } =
+			await import('../../src/logic/logicResponsiveLayout');
+		expect(gridMetaSampleValues(new Set(['icon', 'name']))).toEqual([]);
+		const samples = gridMetaSampleValues(
+			new Set(['ext', 'count', 'words', 'mtime', 'ctime']),
+		);
+		expect(samples).toHaveLength(5);
+		for (const sample of samples) {
+			expect(sample.length).toBeGreaterThan(0);
+		}
+	});
+
+	it('lets cards grow naturally and wraps the metadata row', () => {
+		const stylesSource = readFileSync(
+			join(__dirname, '..', '..', 'styles.css'),
+			'utf8',
+		);
+		const cardBlock = stylesSource.match(
+			/\.vaultman-files-grid-card \{[^}]+\}/,
+		)?.[0];
+		expect(cardBlock).toBeDefined();
+		expect(cardBlock).not.toMatch(/\bheight: 82px/);
+		const metaBlocks =
+			stylesSource.match(/\.vaultman-files-grid-card-meta \{[^}]+\}/g) ?? [];
+		expect(metaBlocks.length).toBeGreaterThan(0);
+		expect(metaBlocks.some((block) => /flex-wrap: wrap/.test(block))).toBe(
+			true,
 		);
 	});
 });

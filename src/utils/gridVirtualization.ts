@@ -38,13 +38,19 @@ export function buildVirtualGridWindow<T>({
 		return { visibleRows: [], totalHeight: 0, startRow: 0, endRow: 0 };
 	}
 
+	// BT5-016: a shrinking rowHeight can leave the caller's scrollTop beyond
+	// the new content extent for one frame; clamp so the window is never empty
+	// while rows exist (the DOM scroll position catches up on its own).
+	const maxScrollTop = Math.max(0, totalHeight - viewportHeight);
+	const safeScrollTop = Math.min(Math.max(0, scrollTop), maxScrollTop);
+
 	const startRow = Math.max(
 		0,
-		Math.floor(scrollTop / safeRowHeight) - overscanRows,
+		Math.floor(safeScrollTop / safeRowHeight) - overscanRows,
 	);
 	const endRow = Math.min(
 		rowCount - 1,
-		Math.ceil((scrollTop + viewportHeight) / safeRowHeight) + overscanRows,
+		Math.ceil((safeScrollTop + viewportHeight) / safeRowHeight) + overscanRows,
 	);
 	const visibleRows: VirtualGridItem<T>[] = [];
 	for (let rowNumber = startRow; rowNumber <= endRow; rowNumber += 1) {
