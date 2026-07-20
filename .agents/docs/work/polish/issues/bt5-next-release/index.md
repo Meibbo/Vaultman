@@ -5,9 +5,9 @@ status: active
 lifecycle: active
 parent: "[[docs/work/polish/index|polish]]"
 created: 2026-07-19T08:02:57
-updated: 2026-07-19T19:44:42
+updated: 2026-07-20T16:30:00
 created_by: codex-gpt-5
-updated_by: codex-gpt-5
+updated_by: claude-opus-4-8
 tags:
   - agent/issues
   - initiative/polish
@@ -107,12 +107,18 @@ la cola canónica para implementación nueva.
 | BT5-019 | ✅ completed | `d0928260` registro propio de iconos addon + picker FuzzySuggestModal |
 | BT5-020 | ✅ completed | `79cdf33b` preview de payload de configs guardadas |
 | BT5-029 | ✅ completed | `e0157424` sorts semánticos State/Type |
-| BT5-031 | 🆕 needs-triage | icono no refresca en Files; causa localizada: solo escucha `onLoaded`, no `onChanged` |
-| BT5-032 | 🆕 needs-triage | dos tooltips por nodo; gana el genérico de `viewTree.rowTitle()` sobre el configurable |
+| BT5-012 | ✅ completed | `7c2f5928` proyección del label plano: `file.name` / `file.path`, gate `requiresCellsOff: ['nested']` en el registry |
+| BT5-013 | ✅ completed | `843da5ab` store `last-opened.json` coalescido fuera de settings + cell, hover y sort desc |
+| BT5-015 | ✅ completed | `d396c3f0` icono en el slot del caret que ninguna expansión usa; caret y aria intactos en nodos expandibles |
+| BT5-018 | ⏳ pending HITL | `a188d672` sub-page con DnD, dividers y submenús; merge por id contra el registry vivo. **Falta la revisión de UI del dev** |
+| BT5-031 | ✅ completed | `9cd1e3ac` Files escucha también `iconic.onChanged`, reutilizando el coalescer existente |
+| BT5-032 | ✅ completed | `577789c2` la vista deja de redactar tooltips; el builder del panel es el único dueño. Props/Tags/Content quedan sin hover |
 
 Detalle técnico y gates: [[docs/work/polish/plans/2026-07-19-bt5-001-005/02-outcome-verification|BT5-001..005 outcome]].
 Continuación 006/007/008/028 y diagnóstico diferido 030:
 [[docs/work/polish/plans/2026-07-19-bt5-next-10/index|BT5 next-10 plan]].
+Cierre de 012/013/015/018/031/032:
+[[docs/work/polish/plans/2026-07-19-bt5-next-10/06-bt5-012-013-015-018-031-032|shard 06]].
 
 ## Release gates
 

@@ -1,16 +1,16 @@
 ---
 title: BT5-031 — Cambiar icono no tiene efecto inmediato en Files explorer
 type: issue
-status: needs-triage
+status: completed
 lifecycle: active
 priority: P2
 execution: AFK
 parent: "[[docs/work/polish/issues/bt5-next-release/index|BT5]]"
 created: 2026-07-20T15:05:00
-updated: 2026-07-20T15:05:00
+updated: 2026-07-20T16:30:00
 created_by: claude-fable-5
-updated_by: claude-fable-5
-tags: [agent/issue, triage/needs-triage, initiative/polish, release/bt5, icons]
+updated_by: claude-opus-4-8
+tags: [agent/issue, initiative/polish, release/bt5, icons]
 ---
 
 # BT5-031 — Cambiar icono no tiene efecto inmediato en Files explorer
@@ -42,11 +42,11 @@ picker y las ediciones externas de `data.json`). Files nunca lo escucha.
 
 ## Acceptance criteria
 
-- [ ] Files se suscribe al mismo evento de cambio que el resto de explorers y libera la suscripción en unload.
-- [ ] Cambiar un icono desde cualquier superficie repinta Files sin reload ni cambio de tab.
-- [ ] El repintado es coalescido: una ráfaga de cambios produce un solo rebuild, sin timers nuevos.
-- [ ] Se conserva `onLoaded` para la primera carga; no se duplica el render inicial.
-- [ ] Regresión cubre: override propio de Vaultman, edición externa de `data.json` y Iconic ausente/desactivado.
+- [x] Files se suscribe al mismo evento de cambio que el resto de explorers y libera la suscripción en unload.
+- [x] Cambiar un icono desde cualquier superficie repinta Files sin reload ni cambio de tab.
+- [x] El repintado es coalescido: una ráfaga de cambios produce un solo rebuild, sin timers nuevos.
+- [x] Se conserva `onLoaded` para la primera carga; no se duplica el render inicial.
+- [x] Regresión cubre: override propio de Vaultman, edición externa de `data.json` y Iconic ausente/desactivado.
 
 ## Notes
 
@@ -56,3 +56,23 @@ coalescer como el `_scheduleIconRebuild` introducido en BT5-019 para los add-ons
 ## Blocked by
 
 None — can start immediately.
+
+## Outcome 2026-07-20
+
+**Commit `9cd1e3ac`.** Gate verde: 124 files / 816 tests, svelte-check 0/0,
+scorecard 17/17. Test focal `test/unit/filesIconLiveRefresh.test.ts`.
+
+Causa confirmada tal como quedó diagnosticada. `explorerFiles` escucha ahora
+también `iconic.onChanged` —el evento de todos los cambios posteriores, incluida
+la escritura del propio picker y una edición externa de `data.json` de Iconic—
+además de conservar `onLoaded` para la primera carga.
+
+Ambas suscripciones reutilizan el coalescer de microtask que ya existía, así que
+una ráfaga sigue siendo un solo render y no se introduce ningún timer nuevo;
+ambos unsubscribe van por `this.register`, así que se liberan en unload. El bloque
+entero sigue guardado por `if (iconic)`, así que Iconic ausente o desactivado no
+cambia nada.
+
+Detalle: [[docs/work/polish/plans/2026-07-19-bt5-next-10/06-bt5-012-013-015-018-031-032|shard 06]].
+
+Pendiente: smoke de runtime (cambiar un icono y ver Files repintar sin reload).
