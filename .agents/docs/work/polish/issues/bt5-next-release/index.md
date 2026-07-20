@@ -5,7 +5,7 @@ status: active
 lifecycle: active
 parent: "[[docs/work/polish/index|polish]]"
 created: 2026-07-19T08:02:57
-updated: 2026-07-19T13:38:07
+updated: 2026-07-19T19:44:42
 created_by: codex-gpt-5
 updated_by: codex-gpt-5
 tags:
@@ -95,13 +95,21 @@ la cola canónica para implementación nueva.
 | BT5-003 | pending HITL | `c60e3bc7`; cache/prioridad/persistencia verdes en `plugin-dev`; falta benchmark del vault grande por instrucción del dev |
 | BT5-004 | pending release HITL | `14de6fbb`; implementación/preflight verdes; falta aprobar copy y verificar el tag publicado |
 | BT5-005 | completed | `c60e3bc7`; defaults, flechas, Name/Path y adaptador Table cubiertos |
+| BT5-006 | completed | `f1dbe2f5`; expansión disponible solo con `nested`, sin retirar Tools/Auto-reveal/overflow |
+| BT5-007 | completed | `f1dbe2f5`; navbar y popup comparten modelo/orden/visibilidad de sort + By level |
+| BT5-008 | completed | `f1dbe2f5`; sync externo Tags sin ping-pong, cubre lazy mount y remount tras Content |
+| BT5-028 | completed | `017d8049`; active-file separado de reveal, con open/rename/delete/cleanup ejecutables |
+| BT5-030 | deferred por el dev | diagnóstico parcial atribuye cargas a Tags/Props/PropertyIndex/filters/Iconic; WIP aislado en `stash@{0}`, sin fix |
 
 Detalle técnico y gates: [[docs/work/polish/plans/2026-07-19-bt5-001-005/02-outcome-verification|BT5-001..005 outcome]].
+Continuación 006/007/008/028 y diagnóstico diferido 030:
+[[docs/work/polish/plans/2026-07-19-bt5-next-10/index|BT5 next-10 plan]].
 
 ## Release gates
 
 - BT5-001, 002, 003 y 030 bloquean cualquier candidato por hang, viewport vacío, datos
-  stale o degradación de la escritura de notas.
+  stale o degradación de la escritura de notas. Diferir 030 detiene su implementación,
+  pero no equivale a demostrar que la regresión desapareció ni levanta el gate.
 - BT5-004 bloquea la publicación, no necesariamente el trabajo paralelo: cada target debe
   tener sección+anchor revisados en el boletín público, enlace al changelog y targets
   relativos válidos, aunque un hotfix use una sola línea breve.

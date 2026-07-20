@@ -1984,3 +1984,27 @@ broader "append-only status writes" is parked as **S-12** in
   heartbeat Claude 15:10. Recomendación de takeover: preservar/auditar el parcial;
   030 primero como diagnosis HITL, luego 006/007/008/028, 009, 010 y finalmente
   011/012/013 bloqueados por 010. Sin cambios de producto, Obsidian, push o merge.
+
+## 2026-07-19 — codex-gpt5 · implement · BT5-006/007/008/028; 030 deferred
+
+- Por instrucción del dev se difirió BT5-030 tras diagnóstico parcial. Perfil runtime en
+  `plugin-dev`: Tags `metadataCache.resolved` ~958 ms max/~4.58 s total en 5 ciclos; Props
+  `changed` ~217 ms max/~967 ms total; PropertyIndex ~65–88 ms, filters ~113–135 ms e
+  Iconic ~120–162 ms por ciclo. Bypass Tags redujo el máximo ~1.2 s→~230 ms y Tags+Props
+  dejó p95 ~19.6 ms/p99 ~64.5 ms. Falta baseline disabled; no se afirmó causa completa ni
+  fix. WIP de Claude preservado en `stash@{0}` (`wip: defer BT5-030 diagnosis`).
+- BT5-006/007/008 aterrizaron en producto como `f1dbe2f5`: expansión contextual a nested;
+  modelo compartido de sort/By level para navbar+popup; sync bidireccional Tags. El handshake
+  distingue panel lazy de navbar remontado y cubre View config pre-mount + Tags→Content→Tags.
+- BT5-028 aterrizó como `017d8049`: Content usa active-file independiente del reveal/scroll
+  y observa open/rename/delete/null con deduplicación y cleanup simétrico. Harness ejecuta
+  el lifecycle completo; una revisión independiente terminó READY sin hallazgos pendientes.
+- Gate final `pnpm run verify` exit 0: lint, format, stylelint, build; Svelte 0/0; 109 files,
+  615 tests; scorecard 17/17. Build sincronizado solo a `plugin-dev`; SHA-256 coincide para
+  main/manifest/styles; reload pasó y `dev:errors` quedó limpio. Autofixer Svelte agotó
+  timeout dos veces; no se reintentó tras gates autoritativos verdes.
+- Rama producto `codex/bt5-next-10` limpia, sin push/tag/merge. Plan sigue activo con próximo
+  orden BT5-009→010→011/012/013; `.agents` permanece local-only en `sandbox`.
+- Doc health focal OK; índice actualizado a 1061 docs/1006 retrieval. Las consultas cortas
+  recuperan BT5-008 como completed y BT5-030 como deferred; la consulta larga multi-término
+  aún devuelve cero, comportamiento de retrieval ya conocido y no ocultado.

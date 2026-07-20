@@ -1,16 +1,16 @@
 ---
 title: BT5-030 — Micro-cuelgues al escribir con una leaf Vaultman abierta
 type: issue
-status: needs-triage
-lifecycle: active
+status: deferred
+lifecycle: deferred
 priority: P0
 execution: HITL
 parent: "[[docs/work/polish/issues/bt5-next-release/index|BT5]]"
 created: 2026-07-19T13:38:07
-updated: 2026-07-19T13:38:07
+updated: 2026-07-19T19:44:42
 created_by: codex-gpt-5
-updated_by: codex-gpt-5
-tags: [agent/issue, triage/needs-triage, initiative/polish, release/bt5, regression, performance, editor]
+updated_by: codex-gpt5
+tags: [agent/issue, initiative/polish, release/bt5, regression, performance, editor]
 ---
 
 # BT5-030 — Micro-cuelgues al escribir con una leaf Vaultman abierta
@@ -68,3 +68,21 @@ por source inspection, todavía **no causas demostradas**:
 None. Es un release blocker independiente. Puede reutilizar instrumentación de
 [[003-remaining-tasks-availability-pipeline|BT5-003]], pero no debe esperar al benchmark
 del vault grande ni asumir que comparte root cause.
+
+## Diagnóstico parcial y decisión de diferir (2026-07-19)
+
+El dev pidió diferir el fix y continuar con 006/007/008/028. Antes de detener el slice, el
+profiler de `plugin-dev` sí aisló productores concretos durante ciclos de metadata:
+
+- handler `metadataCache.resolved` de Tags: máximo ~958 ms y ~4.58 s acumulados en 5 ciclos;
+- handler `changed` de Props: máximo ~217 ms y ~967 ms acumulados;
+- rebuild de PropertyIndex: ~65–88 ms por ciclo;
+- `FilterService.applyFilters`: ~113–135 ms por ciclo;
+- `Iconic.refreshIcons` de tercero: ~120–162 ms por ciclo.
+
+Al puentear solo Tags, el long task máximo bajó de ~1.2 s a ~230 ms; al puentear Tags+Props,
+la muestra quedó alrededor de p95 19.6 ms y p99 64.5 ms. Esto demuestra trabajo pesado
+correlacionado, pero no completa el baseline disabled ni autoriza aún un fix: el issue sigue
+sin resolver y conserva sus acceptance criteria. El WIP parcial de Claude quedó aislado,
+sin aplicarse al producto, en `stash@{0}` de `codex/bt5-next-10` con mensaje
+`wip: defer BT5-030 diagnosis`.
