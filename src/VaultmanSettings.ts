@@ -6,6 +6,12 @@ import {
 	type VaultmanSettings,
 } from './types/typeSettings';
 import { translate } from './i18n/index';
+import { PayloadPreviewModal } from './modals/modalPayloadPreview';
+import {
+	buildFilterTemplatePreview,
+	buildQueueTemplatePreview,
+	buildSavedLayoutPreview,
+} from './logic/logicPayloadPreview';
 
 export class VaultmanSettingsTab extends PluginSettingTab {
 	private plugin: iVaultmanPlugin;
@@ -143,6 +149,21 @@ export class VaultmanSettingsTab extends PluginSettingTab {
 					.setDesc(`${template.root.children.length} filters`)
 					.addButton((button) =>
 						button
+							.setButtonText(translate('payload_preview.view'))
+							.setTooltip(
+								translate('payload_preview.view_aria', {
+									name: template.name,
+								}),
+							)
+							.onClick(() =>
+								new PayloadPreviewModal(
+									this.app,
+									buildFilterTemplatePreview(template),
+								).open(),
+							),
+					)
+					.addButton((button) =>
+						button
 							.setButtonText(translate('filter.template.delete'))
 							.setWarning()
 							.onClick(async () => {
@@ -171,6 +192,21 @@ export class VaultmanSettingsTab extends PluginSettingTab {
 				new Setting(containerEl)
 					.setName(template.name)
 					.setDesc(`${template.changes.length} operations`)
+					.addButton((button) =>
+						button
+							.setButtonText(translate('payload_preview.view'))
+							.setTooltip(
+								translate('payload_preview.view_aria', {
+									name: template.name,
+								}),
+							)
+							.onClick(() =>
+								new PayloadPreviewModal(
+									this.app,
+									buildQueueTemplatePreview(template),
+								).open(),
+							),
+					)
 					.addButton((button) =>
 						button
 							.setButtonText(translate('filter.template.delete'))
@@ -202,6 +238,21 @@ export class VaultmanSettingsTab extends PluginSettingTab {
 				new Setting(containerEl)
 					.setName(layout.name)
 					.setDesc(layout.summary)
+					.addButton((button) =>
+						button
+							.setButtonText(translate('payload_preview.view'))
+							.setTooltip(
+								translate('payload_preview.view_aria', {
+									name: layout.name,
+								}),
+							)
+							.onClick(() =>
+								new PayloadPreviewModal(
+									this.app,
+									buildSavedLayoutPreview(layout),
+								).open(),
+							),
+					)
 					.addButton((button) =>
 						button
 							.setButtonText(translate('settings.saved_view_config.clear'))
@@ -420,17 +471,18 @@ export class VaultmanSettingsTab extends PluginSettingTab {
 					.onChange(async (value) => {
 						this.plugin.settings.toolbarToolsMenu = value;
 						await this.plugin.saveSettings();
+					}),
+			);
+
 		new Setting(containerEl)
 			.setName(translate('settings.sort_level_inline'))
 			.setDesc(translate('settings.sort_level_inline.desc'))
-			.addToggle((t) =>
-				t
+			.addToggle((toggle) =>
+				toggle
 					.setValue(this.plugin.settings.sortLevelInline !== false)
-					.onChange(async (v) => {
-						this.plugin.settings.sortLevelInline = v;
+					.onChange(async (value) => {
+						this.plugin.settings.sortLevelInline = value;
 						await this.plugin.saveSettings();
-					}),
-			);
 					}),
 			);
 	}
@@ -506,7 +558,6 @@ export class VaultmanSettingsTab extends PluginSettingTab {
 					}),
 			);
 
-
 		new Setting(containerEl)
 			.setName(translate('settings.rainbow_folders'))
 			.setDesc(translate('settings.rainbow_folders.desc'))
@@ -562,7 +613,6 @@ export class VaultmanSettingsTab extends PluginSettingTab {
 			.setName(translate('settings.context_menu'))
 			.setHeading();
 
-
 		new Setting(containerEl)
 			.setName(translate('settings.context_menu.file_menu'))
 			.setDesc(translate('settings.context_menu.file_menu.desc'))
@@ -598,7 +648,6 @@ export class VaultmanSettingsTab extends PluginSettingTab {
 						await this.plugin.saveSettings();
 					}),
 			);
-
 	}
 
 	private displayFilesHoverPage(containerEl: HTMLElement): void {

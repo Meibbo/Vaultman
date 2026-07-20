@@ -55,6 +55,33 @@ describe('Vaultman Settings layout', () => {
 		expect(toolsIndex).toBeGreaterThan(showToolbarIndex);
 	});
 
+	it('renders the inline-sort setting independently from the tools toggle callback', () => {
+		const toolbarStart = settingsSource.indexOf(
+			'private displayToolbarPage(containerEl: HTMLElement)',
+		);
+		const toolbarEnd = settingsSource.indexOf(
+			'private displayExplorerPage(containerEl: HTMLElement)',
+		);
+		const toolbarSource = settingsSource.slice(toolbarStart, toolbarEnd);
+		const toolsIndex = toolbarSource.indexOf(
+			"translate('settings.toolbar_tools_menu')",
+		);
+		const inlineSortIndex = toolbarSource.indexOf(
+			"translate('settings.sort_level_inline')",
+		);
+		const inlineSortSettingIndex = toolbarSource.lastIndexOf(
+			'new Setting(containerEl)',
+			inlineSortIndex,
+		);
+		const toolsBlock = toolbarSource.slice(toolsIndex, inlineSortSettingIndex);
+
+		expect(inlineSortIndex).toBeGreaterThan(toolsIndex);
+		expect(inlineSortSettingIndex).toBeGreaterThan(toolsIndex);
+		expect(toolsBlock.trimEnd()).toMatch(
+			/await this\.plugin\.saveSettings\(\);\s*}\),\s*\);$/,
+		);
+	});
+
 	it('routes Floating TOC to an internal Layout Settings page on Obsidian 1.12', () => {
 		expect(settingsSource).toMatch(
 			/private page:[\s\S]*?'explorer'[\s\S]*?'context-menus' = 'root'/,
