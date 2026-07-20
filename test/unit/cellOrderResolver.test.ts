@@ -7,6 +7,8 @@ import {
 } from '../../src/logic/logicCellRegistry';
 import { DEFAULT_SETTINGS } from '../../src/types/typeSettings';
 import navbarSource from '../../src/components/layout/navbarFilters.svelte?raw';
+import viewTreeSource from '../../src/components/layout/viewTree.ts?raw';
+import filesSource from '../../src/components/containers/explorerFiles.ts?raw';
 
 describe('BT5-011 render order follows activation only when asked', () => {
 	it('keeps the canonical fixed order while the setting is off', () => {
@@ -164,5 +166,30 @@ describe('BT5-011 wiring', () => {
 		// cells (icon/label) is a row-layout decision still open with the dev,
 		// so only the shared model has landed.
 		expect(navbarSource).toMatch(/cellMenuOrder|resolveCellRenderOrder/);
+	});
+});
+
+describe('BT5-011 renderer wiring (option B: every cell is a row sibling)', () => {
+	it('the Files panel only sends an order while the setting is on', () => {
+		expect(filesSource).toMatch(/orderCellsByActivation !== true/);
+		expect(filesSource).toMatch(/resolveCellRenderOrder\('files'/);
+		expect(filesSource).toMatch(
+			/cellRenderOrder: this\._activationCellOrder\(\)/,
+		);
+	});
+
+	it('the tree emits cells in that order and leaves the default row alone', () => {
+		expect(viewTreeSource).toMatch(/cellRenderOrder/);
+		expect(viewTreeSource).toMatch(/usesActivationOrder/);
+		// Classic markup stays gated behind the same flag.
+		expect(viewTreeSource).toMatch(
+			/!usesActivationOrder && node\.icon && showIcon/,
+		);
+		// Recycled virtual rows must repaint when the order changes.
+		expect(viewTreeSource).toMatch(/cellOrder = opts\.cellRenderOrder\?\.join/);
+	});
+
+	it('an alias pair never emits the label twice', () => {
+		expect(viewTreeSource).toMatch(/emitted\.has\(emit\)/);
 	});
 });

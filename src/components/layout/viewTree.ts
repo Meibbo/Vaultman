@@ -51,6 +51,12 @@ export interface TreeViewOptions {
 	onDrop?: (id: string, event: DragEvent) => void;
 	visibleCells?: Set<string>;
 	/**
+	 * BT5-011: when present, value/identity cells are emitted as siblings in
+	 * exactly this order instead of the structural default. Absent (the
+	 * default) keeps the classic row markup untouched.
+	 */
+	cellRenderOrder?: readonly string[];
+	/**
 	 * BT5-017: accessible description for the collapsed-activity dot. The view
 	 * stays i18n-agnostic, so the panel supplies the localized text.
 	 */
@@ -309,11 +315,7 @@ export class UnifiedTreeView {
 		const insertedNodes = this._opts.expandedIds.has(root.id)
 			? flattenVisibleTree(root.children ?? [], this._opts.expandedIds)
 			: [];
-		this._rows.splice(
-			firstChildIndex,
-			removedNodes.length,
-			...insertedNodes,
-		);
+		this._rows.splice(firstChildIndex, removedNodes.length, ...insertedNodes);
 
 		for (const node of removedNodes) this._indexById.delete(node.id);
 		// Only the changed suffix can move. Do not rebuild the complete index.
@@ -443,6 +445,7 @@ export class UnifiedTreeView {
 	}
 
 	private rowSignature(node: TreeNode, opts: TreeViewOptions): string {
+		const cellOrder = opts.cellRenderOrder?.join('>') ?? '';
 		const visibleCells = opts.visibleCells
 			? Array.from(opts.visibleCells).sort().join(',')
 			: 'default';
@@ -504,6 +507,7 @@ export class UnifiedTreeView {
 			opts.warningIds?.has(node.id) ? '1' : '0',
 			opts.editingId === node.id ? '1' : '0',
 			visibleCells,
+			cellOrder,
 			badges,
 			cells,
 		].join('\u001f');
@@ -797,8 +801,83 @@ export class UnifiedTreeView {
 			isSelected,
 		});
 
+		// BT5-011: one emitter per cell so the activation path and the classic
+		// path build byte-identical markup, only in a different order.
+		const emitIcon = (parent: HTMLElement): void => {
+			if (!node.icon || !showIcon) return;
+			const iconSpan = parent.createSpan({ cls: 'vaultman-tree-icon' });
+			renderIconValue(iconSpan, node.icon, node.iconColor);
+		};
+		const emitLabel = (parent: HTMLElement): void => {
+			if (!showLabel) return;
+			parent.createSpan({ cls: 'vaultman-tree-label', text: node.label });
+		};
+		const emitType = (parent: HTMLElement): void => {
+			if (!showType || !node.typeText) return;
+			parent.createSpan({
+				cls: 'vaultman-tree-type nav-file-tag',
+				text: node.typeText,
+			});
+		};
+		const emitDate = (parent: HTMLElement, text?: string): void => {
+			if (!text) return;
+			parent.createSpan({ cls: 'vaultman-tree-date nav-file-tag', text });
+		};
+		const emitWords = (parent: HTMLElement): void => {
+			if (!showWords || !node.wordCountText) return;
+			parent.createSpan({
+				cls: 'vaultman-tree-words nav-file-tag',
+				text: node.wordCountText,
+			});
+		};
+		const emitTasks = (parent: HTMLElement): void => {
+			if (!showTasks || !node.tasksText) return;
+			parent.createSpan({
+				cls: 'vaultman-tree-tasks nav-file-tag',
+				text: node.tasksText,
+			});
+		};
+		const emitCount = (parent: HTMLElement): void => {
+			if (!showCount || node.count == null || node.count <= 0) return;
+			parent.createSpan({
+				cls: 'vaultman-tree-count',
+				text: String(node.count),
+			});
+		};
+		const cellEmitters: Record<string, (parent: HTMLElement) => void> = {
+			icon: emitIcon,
+			name: emitLabel,
+			text: emitLabel,
+			path: emitLabel,
+			type: emitType,
+			ext: emitType,
+			mtime: (parent) => emitDate(parent, showMtime ? node.mtimeText : ''),
+			updated: (parent) => emitDate(parent, showMtime ? node.mtimeText : ''),
+			ctime: (parent) => emitDate(parent, showCtime ? node.ctimeText : ''),
+			installed: (parent) => emitDate(parent, showCtime ? node.ctimeText : ''),
+			words: emitWords,
+			tasks: emitTasks,
+			count: emitCount,
+		};
+		// Activation mode lays every configurable cell out as a row sibling, so
+		// the label can genuinely sit after a value cell. It stays the flexible
+		// element wherever it lands; overflowing cells clip like any toolbar.
+		const activationOrder = opts.cellRenderOrder;
+		const usesActivationOrder = Boolean(activationOrder?.length) && !isEditing;
+		if (usesActivationOrder) {
+			row.addClass('vaultman-tree-row--activation-order');
+			const emitted = new Set<(parent: HTMLElement) => void>();
+			for (const cellId of activationOrder ?? []) {
+				const emit = cellEmitters[cellId];
+				// Aliases (name/text/path) share one emitter; never emit twice.
+				if (!emit || emitted.has(emit)) continue;
+				emitted.add(emit);
+				emit(row);
+			}
+		}
+
 		// Icon
-		if (node.icon && showIcon) {
+		if (!usesActivationOrder && node.icon && showIcon) {
 			const iconSpan = row.createSpan({ cls: 'vaultman-tree-icon' });
 			renderIconValue(iconSpan, node.icon, node.iconColor);
 		}
@@ -823,16 +902,11 @@ export class UnifiedTreeView {
 					opts.onCancelRename?.();
 				}
 			});
-		} else if (showLabel) {
+		} else if (showLabel && !usesActivationOrder) {
 			row.createSpan({ cls: 'vaultman-tree-label', text: node.label });
 		}
 
-		if (showType && node.typeText) {
-			row.createSpan({
-				cls: 'vaultman-tree-type nav-file-tag',
-				text: node.typeText,
-			});
-		}
+		if (!usesActivationOrder) emitType(row);
 
 		// Multi-zone Badges container
 		if (
@@ -847,29 +921,11 @@ export class UnifiedTreeView {
 		) {
 			const badgeZone = row.createDiv({ cls: 'vaultman-tree-badge-zone' });
 
-			if (showMtime && node.mtimeText) {
-				badgeZone.createSpan({
-					cls: 'vaultman-tree-date nav-file-tag',
-					text: node.mtimeText,
-				});
-			}
-			if (showCtime && node.ctimeText) {
-				badgeZone.createSpan({
-					cls: 'vaultman-tree-date nav-file-tag',
-					text: node.ctimeText,
-				});
-			}
-			if (showWords && node.wordCountText) {
-				badgeZone.createSpan({
-					cls: 'vaultman-tree-words nav-file-tag',
-					text: node.wordCountText,
-				});
-			}
-			if (showTasks && node.tasksText) {
-				badgeZone.createSpan({
-					cls: 'vaultman-tree-tasks nav-file-tag',
-					text: node.tasksText,
-				});
+			if (!usesActivationOrder) {
+				emitDate(badgeZone, showMtime ? node.mtimeText : '');
+				emitDate(badgeZone, showCtime ? node.ctimeText : '');
+				emitWords(badgeZone);
+				emitTasks(badgeZone);
 			}
 
 			for (const cell of nodeCells) {
@@ -925,12 +981,7 @@ export class UnifiedTreeView {
 			}
 
 			// Frequency counter second
-			if (showCount && node.count != null && node.count > 0) {
-				badgeZone.createSpan({
-					cls: 'vaultman-tree-count',
-					text: String(node.count),
-				});
-			}
+			if (!usesActivationOrder) emitCount(badgeZone);
 		}
 
 		return row;

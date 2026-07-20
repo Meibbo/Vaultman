@@ -18,6 +18,7 @@ import type {
 	NodeBadge,
 	NodeBubbleDot,
 } from '../../types/typeTree';
+import { resolveCellRenderOrder } from '../../logic/logicCellRegistry';
 import {
 	applyBubbleDots,
 	buildBubbleIndex,
@@ -1221,6 +1222,7 @@ export class FilesExplorerPanel extends Component {
 				nodes: renderTree,
 				expandedIds: this.expandedIds,
 				visibleCells: this.visibleCells,
+				cellRenderOrder: this._activationCellOrder(),
 				bubbleDotLabel: (dot: NodeBubbleDot) => this._bubbleDotLabel(dot),
 				selectedIds: this.selectedFilePaths,
 				onToggle: (id: string) => {
@@ -1720,6 +1722,18 @@ export class FilesExplorerPanel extends Component {
 			hasViewFilters: () => this.hasViewFilters(),
 			clearViewFilters: () => this.clearNodeTypeFilter(),
 		};
+	}
+
+	/**
+	 * BT5-011: only hand the view an explicit order while the setting is on;
+	 * otherwise the row keeps its structural default.
+	 */
+	private _activationCellOrder(): string[] | undefined {
+		if (this.plugin.settings.orderCellsByActivation !== true) return undefined;
+		return resolveCellRenderOrder('files', [...this.visibleCells], {
+			byActivation: true,
+			viewMode: this.viewMode === 'grid' ? 'cards' : this.viewMode,
+		});
 	}
 
 	private _nestedEnabled(): boolean {

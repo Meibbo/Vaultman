@@ -5018,7 +5018,22 @@ button.vaultman-content-scope-hint:focus-visible {
   text-overflow: ellipsis;
 }
 
-.vaultman-tree-icon+.vaultman-tree-label {
+.vaultman-tree-icon+/* BT5-011: in activation order every configurable cell is a row sibling.
+   The label keeps flex:1 wherever it lands, and cells that no longer fit
+   clip at the frame edge rather than pushing the row wider. */
+.vaultman-tree-row--activation-order {
+  overflow: hidden;
+}
+
+.vaultman-tree-row--activation-order > * {
+  flex-shrink: 0;
+}
+
+.vaultman-tree-row--activation-order > .vaultman-tree-label {
+  flex-shrink: 1;
+}
+
+.vaultman-tree-label {
   margin-left: 2px;
 }
 
