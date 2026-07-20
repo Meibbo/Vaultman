@@ -262,7 +262,7 @@ export const es: Record<string, string> = {
 		'Eliminar',
 	'settings.files_context_menu.reset':
 		'Restaurar el orden por defecto',
-	'settings.files_hover_info': 'Información hover de Files',
+	'settings.files_hover_info': 'Tooltip de Files',
 	'settings.files_hover_info.desc':
 		'Elige qué metadata cacheada y estadísticas de lectura aparecen al mantener el cursor sobre un nodo de Files.',
 	'settings.files_hover_info.path': 'Ruta',

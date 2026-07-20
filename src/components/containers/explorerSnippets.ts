@@ -229,6 +229,7 @@ export class SnippetsExplorerPanel
 				const node = this.findNode(id);
 				if (node) void this.toggle(node.meta);
 			},
+			rowTooltip: (node) => this.tooltip(node.meta as SnippetMeta),
 			onRowHover: (id, row) => {
 				const node = this.findNode(id);
 				if (node) setTooltip(row, this.tooltip(node.meta));

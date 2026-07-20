@@ -15,9 +15,13 @@ describe('BT5-032 one tooltip owner per row', () => {
 		expect(viewTreeSource).not.toContain('private rowTitle(');
 	});
 
-	it('leaves the row without a tooltip until the configured owner sets one', () => {
-		expect(viewTreeSource).toContain('private clearRowTooltip(');
-		expect(viewTreeSource).toContain("setTooltip(row, '')");
+	it('applies exactly what the configured owner supplies, or nothing', () => {
+		// BT5-034 moved this to render time so the tooltip is armed before the
+		// pointer arrives; a panel that configures none still yields ''.
+		expect(viewTreeSource).toContain('private applyRowTooltip(');
+		expect(viewTreeSource).toContain(
+			"this.applyRowTooltip(row, opts.rowTooltip?.(node) ?? '')",
+		);
 	});
 
 	it('never leaves the native title attribute behind', () => {

@@ -270,6 +270,7 @@ export class PluginsExplorerPanel
 					openPluginSettings(this.plugin.app, node.meta.pluginId);
 				}
 			},
+			rowTooltip: (node) => this.tooltip(node.meta as PluginMeta),
 			onRowHover: (id, row) => {
 				const node = this.findNode(id);
 				if (node) setTooltip(row, this.tooltip(node.meta));

@@ -62,6 +62,13 @@ export interface TreeViewOptions {
 	 */
 	bubbleDotLabel?: (dot: NodeBubbleDot) => string;
 	/**
+	 * BT5-032/034: the panel's configured tooltip text for a row. The view
+	 * still authors nothing — it only asks, and applies whatever it gets, at
+	 * render time so the tooltip is armed before the pointer arrives. A panel
+	 * that configures no tooltip omits this and its rows show none.
+	 */
+	rowTooltip?: (node: TreeNode) => string;
+	/**
 	 * BT5-015: when a node reserves a caret slot it cannot use, put its icon
 	 * there instead of leaving a dimmed placeholder plus a separate icon.
 	 * Expandable nodes are untouched — their caret keeps its affordance.
@@ -528,10 +535,10 @@ export class UnifiedTreeView {
 	 * recycled row — and leaves the content to the panel's configured hover
 	 * builder. An explorer with no builder therefore shows nothing.
 	 */
-	private clearRowTooltip(row: HTMLElement): void {
+	private applyRowTooltip(row: HTMLElement, text: string): void {
 		// Obsidian's native tooltip, not the browser `title` (which double-renders).
 		row.removeAttribute('title');
-		setTooltip(row, '');
+		setTooltip(row, text);
 	}
 
 	private nodeDataPath(node: TreeNode): string | null {
@@ -765,9 +772,9 @@ export class UnifiedTreeView {
 			}
 			opts.onContextMenu(node.id, e);
 		};
-		this.clearRowTooltip(row);
-		// A row repainted under the pointer gets its configured tooltip back at
-		// once, so scroll recycling never strands it without one.
+		this.applyRowTooltip(row, opts.rowTooltip?.(node) ?? '');
+		// A row repainted under the pointer also re-runs the hover hook, so any
+		// lazily loaded value (word counts, tasks) upgrades the text in place.
 		if (this._hoveredRowId === node.id) opts.onRowHover?.(node.id, row);
 		const signature = this.rowSignature(node, opts);
 		if (row.dataset.renderSignature === signature) {

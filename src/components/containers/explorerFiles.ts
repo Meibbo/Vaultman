@@ -1259,6 +1259,10 @@ export class FilesExplorerPanel extends Component {
 						this._handleFileClick(meta.file, event);
 					}
 				},
+				rowTooltip: (node) => {
+					const file = (node.meta as Partial<FileMeta> | undefined)?.file;
+					return file ? this._fileHoverText(file) : '';
+				},
 				onRowHover: (id: string, row: HTMLElement) => {
 					const node = this._findNode(id, renderTree);
 					if (node?.meta.file) this._handleFileHover(node.meta.file, row);

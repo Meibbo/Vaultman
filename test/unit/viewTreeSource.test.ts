@@ -27,7 +27,7 @@ describe('UnifiedTreeView source guards', () => {
 		expect(treeSource).not.toContain('private rowTitle');
 		expect(treeSource).not.toContain('Last modified:');
 		expect(treeSource).not.toContain('Created at:');
-		expect(treeSource).toContain('private clearRowTooltip(');
+		expect(treeSource).toContain('private applyRowTooltip(');
 		expect(treeSource).toContain('setTooltip(row');
 	});
 
