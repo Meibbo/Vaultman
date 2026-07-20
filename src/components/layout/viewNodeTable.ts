@@ -105,6 +105,12 @@ export class NodeTableView<TMeta = unknown> {
 		this._renderWindow();
 	}
 
+	/** Re-measure only the cached table window after its pane becomes visible. */
+	refreshViewport(): void {
+		this.cancelScheduledRender();
+		this._renderWindow();
+	}
+
 	destroy(): void {
 		this.recursiveExpandGesture.cancel();
 		this.cancelScheduledRender();

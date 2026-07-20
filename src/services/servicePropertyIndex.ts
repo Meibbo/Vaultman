@@ -16,13 +16,16 @@ export class PropertyIndexService extends Component {
 
 	private app: App;
 
-	/** Per-file property tracking for incremental removal */
-	private fileProperties: Map<string, Set<string>> = new Map();
+	/** Per-file property/value contributions for incremental replacement. */
+	private fileProperties: Map<string, Map<string, Set<string>>> = new Map();
+	private propertyReferenceCounts: Map<string, number> = new Map();
+	private valueReferenceCounts: Map<string, Map<string, number>> = new Map();
 
 	/** Debounce timer for batching metadata changes */
 	private metadataTimer: number | null = null;
 	private pendingFiles: Set<string> = new Set();
 	private readonly METADATA_DEBOUNCE_MS = 50;
+	private hasHandledInitialResolve = false;
 
 	constructor(app: App) {
 		super();
@@ -30,6 +33,7 @@ export class PropertyIndexService extends Component {
 	}
 
 	onload(): void {
+		this.hasHandledInitialResolve = false;
 		// Build index immediately (cache may already be resolved)
 		this.rebuild();
 
@@ -37,6 +41,8 @@ export class PropertyIndexService extends Component {
 		// (handles large vaults where cache isn't ready during onload)
 		this.registerEvent(
 			this.app.metadataCache.on('resolved', () => {
+				if (this.hasHandledInitialResolve) return;
+				this.hasHandledInitialResolve = true;
 				this.rebuild();
 			})
 		);
@@ -62,6 +68,15 @@ export class PropertyIndexService extends Component {
 				this.fileCount = this.app.vault.getMarkdownFiles().length;
 			})
 		);
+
+		this.registerEvent(
+			this.app.vault.on(
+				'rename',
+				(file: TAbstractFile, oldPath: string) => {
+					this.renameFile(file, oldPath);
+				},
+			),
+		);
 	}
 
 	onunload(): void {
@@ -75,6 +90,8 @@ export class PropertyIndexService extends Component {
 	rebuild(): void {
 		this.index.clear();
 		this.fileProperties.clear();
+		this.propertyReferenceCounts.clear();
+		this.valueReferenceCounts.clear();
 		const files = this.app.vault.getMarkdownFiles();
 		this.fileCount = files.length;
 
@@ -123,8 +140,8 @@ export class PropertyIndexService extends Component {
 
 	/** Index a single file's frontmatter, replacing any previous contribution */
 	private indexFile(path: string, cache: CachedMetadata | null): void {
-		// Track which properties this file contributes
-		const props = new Set<string>();
+		this.removeFileContributions(path);
+		const props = new Map<string, Set<string>>();
 		this.fileProperties.set(path, props);
 
 		const fm = cache?.frontmatter;
@@ -133,22 +150,79 @@ export class PropertyIndexService extends Component {
 		for (const [key, value] of Object.entries(fm)) {
 			if (key === 'position') continue;
 
-			props.add(key);
+			const contributedValues = new Set<string>();
+			this.addValues(contributedValues, value);
+			props.set(key, contributedValues);
+			this.propertyReferenceCounts.set(
+				key,
+				(this.propertyReferenceCounts.get(key) ?? 0) + 1,
+			);
 			if (!this.index.has(key)) {
 				this.index.set(key, new Set());
 			}
+			if (!this.valueReferenceCounts.has(key)) {
+				this.valueReferenceCounts.set(key, new Map());
+			}
 			const values = this.index.get(key)!;
-			this.addValues(values, value);
+			const referenceCounts = this.valueReferenceCounts.get(key)!;
+			for (const contributedValue of contributedValues) {
+				values.add(contributedValue);
+				referenceCounts.set(
+					contributedValue,
+					(referenceCounts.get(contributedValue) ?? 0) + 1,
+				);
+			}
 		}
 	}
 
 	/** Remove a file's contributions from the index */
 	private removeFile(path: string): void {
-		this.fileProperties.delete(path);
+		if (!this.removeFileContributions(path)) return;
 		this.fileCount = Math.max(0, this.fileCount - 1);
-		// Note: we don't remove values from the index since other files may
-		// contribute the same values. The index grows monotonically between
-		// full rebuilds, which is acceptable for autocomplete/suggestion use.
+	}
+
+	private renameFile(file: TAbstractFile, oldPath: string): void {
+		if (!this.removeFileContributions(oldPath)) return;
+		const renamedFile = this.app.vault.getFileByPath(file.path);
+		if (!renamedFile) return;
+		this.indexFile(
+			renamedFile.path,
+			this.app.metadataCache.getFileCache(renamedFile),
+		);
+	}
+
+	private removeFileContributions(path: string): boolean {
+		const properties = this.fileProperties.get(path);
+		if (!properties) return false;
+		this.fileProperties.delete(path);
+
+		for (const [property, values] of properties) {
+			const propertyReferences =
+				(this.propertyReferenceCounts.get(property) ?? 0) - 1;
+			if (propertyReferences <= 0) {
+				this.propertyReferenceCounts.delete(property);
+				this.valueReferenceCounts.delete(property);
+				this.index.delete(property);
+				continue;
+			}
+			this.propertyReferenceCounts.set(property, propertyReferences);
+
+			const referenceCounts = this.valueReferenceCounts.get(property);
+			const indexedValues = this.index.get(property);
+			for (const value of values) {
+				const references = (referenceCounts?.get(value) ?? 0) - 1;
+				if (references <= 0) {
+					referenceCounts?.delete(value);
+					indexedValues?.delete(value);
+				} else {
+					referenceCounts?.set(value, references);
+				}
+			}
+			if (referenceCounts?.size === 0) {
+				this.valueReferenceCounts.delete(property);
+			}
+		}
+		return true;
 	}
 
 	private addValues(target: Set<string>, value: unknown): void {

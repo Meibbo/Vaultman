@@ -7,6 +7,7 @@ import {
 	setIcon,
 } from 'obsidian';
 import { PropsLogic } from '../../logic/logicProps';
+import { DeferredExplorerRender } from '../../logic/logicDeferredExplorerRender';
 import type { FilterService } from '../../services/serviceFilter';
 import type { IconicService } from '../../services/serviceIcons';
 import type { ContextMenuService } from '../../services/serviceContextMenu';
@@ -111,6 +112,7 @@ export class PropsExplorerPanel extends Component {
 	private nodeTypeFilters: string[] = [];
 	private visibleCells = new Set<string>(['icon', 'text', 'count', 'nested']);
 	private onExpansionChange?: () => void;
+	private readonly deferredRender = new DeferredExplorerRender();
 
 	constructor(containerEl: HTMLElement, plugin: PanelPluginCtx) {
 		super();
@@ -334,7 +336,7 @@ export class PropsExplorerPanel extends Component {
 		this.registerEvent(
 			this.plugin.app.metadataCache.on('changed', () => {
 				this.logic.invalidate();
-				this._render();
+				this._deferRender();
 			}),
 		);
 		// Re-render after Iconic loads/changes; both are registered for cleanup
@@ -353,6 +355,7 @@ export class PropsExplorerPanel extends Component {
 	}
 
 	onunload(): void {
+		this.deferredRender.dispose();
 		this.plugin.filterService.off('changed', this._handleStateChange);
 		this.plugin.queueService.off('changed', this._handleStateChange);
 		this.view.destroy();
@@ -371,7 +374,13 @@ export class PropsExplorerPanel extends Component {
 		this.onContentSearch = onContentSearch;
 	}
 
-	private readonly _handleStateChange = () => this._render();
+	private readonly _handleStateChange = () => this._deferRender();
+
+	private _deferRender(): void {
+		this.deferredRender.invalidate(this.containerEl.isShown(), () =>
+			this._render(),
+		);
+	}
 
 	private _iconicRenderQueued = false;
 	private readonly _scheduleIconicRender = () => {
@@ -379,7 +388,7 @@ export class PropsExplorerPanel extends Component {
 		this._iconicRenderQueued = true;
 		queueMicrotask(() => {
 			this._iconicRenderQueued = false;
-			this._render();
+			this._deferRender();
 		});
 	};
 
@@ -762,10 +771,11 @@ export class PropsExplorerPanel extends Component {
 		return this.viewMode === 'tree';
 	}
 
-	/** Re-render after the pane becomes visible again: the virtual window
-	 * measures clientHeight, which is 0 while hidden (BT4-022). */
+	/** Re-measure the cached virtual window after a hidden pane becomes visible. */
 	refreshViewport(): void {
-		this._render();
+		if (this.viewMode === 'tree') this.view.refreshViewport();
+		else this.tableView?.refreshViewport();
+		this.deferredRender.activate(() => this._render());
 	}
 
 	scopeRootForNode(id: string): string | null {
@@ -795,6 +805,7 @@ export class PropsExplorerPanel extends Component {
 	}
 
 	private _render(): void {
+		this.deferredRender.satisfy();
 		if (this.viewMode === 'grid') {
 			this._renderGrid();
 			return;

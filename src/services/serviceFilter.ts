@@ -4,6 +4,7 @@ import type {
 	FilterNode,
 	FilterRule,
 	FilterTemplate,
+	FilterType,
 } from '../types/typeFilter';
 import { evalNode } from '../utils/filter-evaluator';
 import { vaultmanPerfMonitor } from '../utils/performanceMonitor';
@@ -15,6 +16,13 @@ const FILE_SEARCH_RULE_IDS: Record<FileSearchRuleType, string> = {
 	file_folder: 'vaultman-search-file-folder',
 };
 const CONTENT_SEARCH_RULE_ID = 'vaultman-search-content';
+const METADATA_FILTER_TYPES = new Set<FilterType>([
+	'has_property',
+	'missing_property',
+	'specific_value',
+	'multiple_values',
+	'has_tag',
+]);
 
 /**
  * Manages the active filter tree and computes the filtered file set.
@@ -56,6 +64,8 @@ export class FilterService extends Component {
 	private contentSearchPaths: Set<string> | null = null;
 	private sortCacheRevision = 0;
 	private stateSignature = '';
+	private metadataRefreshTimer: number | null = null;
+	private readonly METADATA_REFRESH_DELAY_MS = 100;
 
 	constructor(app: App) {
 		super();
@@ -69,9 +79,31 @@ export class FilterService extends Component {
 		};
 		this.registerEvent(this.app.vault.on('create', clearSortCache));
 		this.registerEvent(this.app.vault.on('delete', clearSortCache));
-		this.registerEvent(this.app.vault.on('modify', clearSortCache));
 		this.registerEvent(this.app.vault.on('rename', clearSortCache));
+		this.registerEvent(
+			this.app.metadataCache.on('changed', () => {
+				this.scheduleMetadataRefresh();
+			}),
+		);
 		this.applyFilters();
+	}
+
+	onunload(): void {
+		if (this.metadataRefreshTimer !== null) {
+			window.clearTimeout(this.metadataRefreshTimer);
+			this.metadataRefreshTimer = null;
+		}
+	}
+
+	scheduleMetadataRefresh(): void {
+		if (!this.hasEnabledMetadataFilter()) return;
+		if (this.metadataRefreshTimer !== null) {
+			window.clearTimeout(this.metadataRefreshTimer);
+		}
+		this.metadataRefreshTimer = window.setTimeout(() => {
+			this.metadataRefreshTimer = null;
+			if (this.hasEnabledMetadataFilter()) this.applyFilters();
+		}, this.METADATA_REFRESH_DELAY_MS);
 	}
 
 	on(name: 'changed', callback: () => void): void {
@@ -708,6 +740,12 @@ export class FilterService extends Component {
 	hasEnabledContentSearchRule(): boolean {
 		const rule = this.findRootRuleById(CONTENT_SEARCH_RULE_ID);
 		return rule?.filterType === 'content_search' && rule.enabled !== false;
+	}
+
+	private hasEnabledMetadataFilter(node: FilterNode = this.activeFilter): boolean {
+		if (node.enabled === false) return false;
+		if (node.type === 'rule') return METADATA_FILTER_TYPES.has(node.filterType);
+		return node.children.some((child) => this.hasEnabledMetadataFilter(child));
 	}
 
 	private samePathSet(

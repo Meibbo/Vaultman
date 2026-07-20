@@ -70,6 +70,7 @@ export class UnifiedTreeView {
 	private _contentEl: HTMLElement | null = null;
 	private _rows: TreeNode[] = [];
 	private _indexById = new Map<string, number>();
+	private _activeId: string | null = null;
 	private readonly _overscan = 24;
 	private readonly _recursiveExpandGesture = new LongPressGesture();
 	private readonly _onScroll = () => {
@@ -148,6 +149,22 @@ export class UnifiedTreeView {
 			rows: this._rows.length,
 			visibleRows: this.rowEls.size,
 		});
+	}
+
+	/** Re-measure only the cached virtual window after a hidden pane is shown. */
+	refreshViewport(): void {
+		this._cancelWindowRender();
+		this._renderWindow();
+		this._flushPendingScroll();
+	}
+
+	/** Mutate the active file highlight without rebuilding the tree model. */
+	setActiveId(id: string | null): void {
+		if (this._activeId === id) return;
+		const previousId = this._activeId;
+		this._activeId = id;
+		if (previousId) this.rowEls.get(previousId)?.removeClass('is-active');
+		if (id) this.rowEls.get(id)?.addClass('is-active');
 	}
 
 	destroy(): void {
@@ -645,6 +662,7 @@ export class UnifiedTreeView {
 				isHighlighted,
 				isSelected,
 			});
+			row.toggleClass('is-active', this._activeId === node.id);
 			return row;
 		}
 		row.empty();
@@ -654,6 +672,7 @@ export class UnifiedTreeView {
 		if (typeof node.cls === 'string' && node.cls.trim()) {
 			for (const c of node.cls.trim().split(/\s+/)) row.addClass(c);
 		}
+		row.toggleClass('is-active', this._activeId === node.id);
 		if (isActive) row.addClass('is-active-filter');
 		if (isWarning) row.addClass('vaultman-badge-warning');
 		if (isEditing) row.addClass('is-editing');

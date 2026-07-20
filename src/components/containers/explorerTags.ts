@@ -1,6 +1,7 @@
 // src/components/TagsExplorerPanel.ts
 import { Component, App, Keymap, Notice, setIcon } from 'obsidian';
 import { TagsLogic } from '../../logic/logicTags';
+import { DeferredExplorerRender } from '../../logic/logicDeferredExplorerRender';
 import { FilterService } from '../../services/serviceFilter';
 import { IconicService } from '../../services/serviceIcons';
 import { ContextMenuService } from '../../services/serviceContextMenu';
@@ -94,6 +95,7 @@ export class TagsExplorerPanel extends Component {
 	private onExpansionChange?: () => void;
 	private onSortStateChange?: (state: ExplorerSortState) => void;
 	private hasConnectedSortStateHandler = false;
+	private readonly deferredRender = new DeferredExplorerRender();
 
 	constructor(containerEl: HTMLElement, plugin: PanelPluginCtx) {
 		super();
@@ -147,7 +149,7 @@ export class TagsExplorerPanel extends Component {
 		this.registerEvent(
 			this.plugin.app.metadataCache.on('resolved', () => {
 				this.logic.invalidate();
-				this._render();
+				this._deferRender();
 			}),
 		);
 		// Re-render after Iconic loads/changes; both are registered for cleanup
@@ -169,6 +171,7 @@ export class TagsExplorerPanel extends Component {
 	}
 
 	onunload(): void {
+		this.deferredRender.dispose();
 		this.plugin.filterService.off('changed', this._handleStateChange);
 		this.plugin.queueService.off('changed', this._handleStateChange);
 		this.containerEl.removeEventListener(
@@ -192,7 +195,13 @@ export class TagsExplorerPanel extends Component {
 		this.onContentSearch = onContentSearch;
 	}
 
-	private readonly _handleStateChange = () => this._render();
+	private readonly _handleStateChange = () => this._deferRender();
+
+	private _deferRender(): void {
+		this.deferredRender.invalidate(this.containerEl.isShown(), () =>
+			this._render(),
+		);
+	}
 
 	private _iconicRenderQueued = false;
 	private readonly _scheduleIconicRender = () => {
@@ -200,7 +209,7 @@ export class TagsExplorerPanel extends Component {
 		this._iconicRenderQueued = true;
 		queueMicrotask(() => {
 			this._iconicRenderQueued = false;
-			this._render();
+			this._deferRender();
 		});
 	};
 
@@ -443,10 +452,11 @@ export class TagsExplorerPanel extends Component {
 		return findParentId(this._lastRenderTree, id);
 	}
 
-	/** Re-render after the pane becomes visible again: the virtual window
-	 * measures clientHeight, which is 0 while hidden (BT4-022). */
+	/** Re-measure the cached virtual window after a hidden pane becomes visible. */
 	refreshViewport(): void {
-		this._render();
+		if (this.viewMode === 'tree') this.view.refreshViewport();
+		else this.tableView?.refreshViewport();
+		this.deferredRender.activate(() => this._render());
 	}
 
 	hasSortNode(id: string): boolean {
@@ -501,6 +511,7 @@ export class TagsExplorerPanel extends Component {
 	}
 
 	private _render(): void {
+		this.deferredRender.satisfy();
 		let tree = this.logic.getTree();
 
 		if (this.searchMode === 'leaf') {

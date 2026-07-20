@@ -88,7 +88,7 @@ export class VaultmanPlugin extends Plugin {
 
 		this.registerEvent(
 			this.app.metadataCache.on('resolved', () => {
-				this.filterService.applyFilters();
+				this.filterService.scheduleMetadataRefresh();
 			})
 		);
 

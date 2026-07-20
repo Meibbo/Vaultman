@@ -127,8 +127,11 @@ export class FilesExplorerPanel extends Component {
 	private searchName = '';
 	private searchFolder = '';
 	private refreshTimer: number | null = null;
+	private metadataRefreshTimer: number | null = null;
 	private statsRefreshTimer: number | null = null;
+	private pendingMetadataPaths = new Set<string>();
 	private pendingStatsPaths = new Set<string>();
+	private propertyCountCache = new Map<string, number>();
 	private pendingHoverStats = new Map<string, Set<HTMLElement>>();
 	private statisticsWarmSignature = '';
 	private statisticsWarmup: Promise<void> = Promise.resolve();
@@ -478,6 +481,12 @@ export class FilesExplorerPanel extends Component {
 			this.plugin.app.vault.on('rename', this._scheduleRefresh),
 		);
 		this.registerEvent(
+			this.plugin.app.metadataCache.on(
+				'changed',
+				this._handleMetadataChange,
+			),
+		);
+		this.registerEvent(
 			this.plugin.app.workspace.on('file-open', this._handleActiveFileChange),
 		);
 		this.plugin.queueService.on('changed', this._handleQueueChange);
@@ -502,7 +511,13 @@ export class FilesExplorerPanel extends Component {
 			window.clearTimeout(this.statsRefreshTimer);
 			this.statsRefreshTimer = null;
 		}
+		if (this.metadataRefreshTimer !== null) {
+			window.clearTimeout(this.metadataRefreshTimer);
+			this.metadataRefreshTimer = null;
+		}
+		this.pendingMetadataPaths.clear();
 		this.pendingStatsPaths.clear();
+		this.propertyCountCache.clear();
 		this.pendingHoverStats.clear();
 		this.plugin.queueService.off('changed', this._handleQueueChange);
 		this.plugin.statisticsCache.off('changed', this._handleStatsChange);
@@ -801,6 +816,7 @@ export class FilesExplorerPanel extends Component {
 			this.gridView.setActivePath(this.activeRevealPath);
 		} else {
 			this.treeView = new UnifiedTreeView(this.containerEl);
+			this.treeView.setActiveId(this.activeRevealPath);
 		}
 	}
 
@@ -923,6 +939,12 @@ export class FilesExplorerPanel extends Component {
 	}
 
 	private _propCountForFile(file: TFile): number {
+		const count = this._readPropertyCount(file);
+		this.propertyCountCache.set(file.path, count);
+		return count;
+	}
+
+	private _readPropertyCount(file: TFile): number {
 		return Object.keys(
 			this.plugin.app.metadataCache.getFileCache(file)?.frontmatter ?? {},
 		).filter((key) => key !== 'position').length;
@@ -965,12 +987,14 @@ export class FilesExplorerPanel extends Component {
 		if (action === 'select' && !event?.shiftKey) {
 			selectionGesture = 'toggle';
 		}
+		const orderedPaths =
+			selectionGesture === 'range' ? this._orderedVisibleFilePaths() : [];
 		const selection = updateFileSelection(
 			{
 				selectedPaths: this.selectedFilePaths,
 				anchorPath: this.selectionAnchorPath,
 			},
-			this._orderedVisibleFilePaths(),
+			orderedPaths,
 			file.path,
 			selectionGesture,
 		);
@@ -1049,10 +1073,12 @@ export class FilesExplorerPanel extends Component {
 		return findParentId(this._lastRenderTree, id);
 	}
 
-	/** Re-render after the pane becomes visible again: the virtual window
-	 * measures clientHeight, which is 0 while hidden (BT4-022). */
+	/** Re-measure the cached virtual window after a hidden pane becomes visible. */
 	refreshViewport(): void {
-		this._render();
+		this.tableView?.refreshViewport();
+		this.gridView?.refreshViewport();
+		this.treeView?.refreshViewport();
+		if (this.pendingMetadataPaths.size > 0) this._scheduleMetadataRefresh();
 	}
 
 	hasSortNode(id: string): boolean {
@@ -1166,7 +1192,6 @@ export class FilesExplorerPanel extends Component {
 			this._decorateTreeWithFileTimes(renderTree);
 			this._decorateTreeWithRainbow(renderTree);
 			this._decorateTreeWithQueue(renderTree);
-			this._decorateTreeWithActiveReveal(renderTree);
 			const applyFolderIcons = (
 				nodes: TreeNode<FileMeta>[],
 				expanded: Set<string>,
@@ -1581,6 +1606,12 @@ export class FilesExplorerPanel extends Component {
 		);
 	}
 
+	private _usesPropertyCountSort(): boolean {
+		return Object.values(this.sortState.sorts).some(
+			(sort) => sort?.sortBy === 'count',
+		);
+	}
+
 	private _rememberStatisticsSortOrder(files: readonly TFile[]): void {
 		if (this.sortBy !== 'words' && this.sortBy !== 'tasks') {
 			this.lastStatisticsSortOrder = [];
@@ -1729,17 +1760,6 @@ export class FilesExplorerPanel extends Component {
 		}
 	}
 
-	private _decorateTreeWithActiveReveal(nodes: TreeNode<FileMeta>[]): void {
-		for (const node of nodes) {
-			if (node.meta.file?.path === this.activeRevealPath) {
-				node.cls =
-					`${node.cls ?? ''} tree-item-self nav-file-title tappable is-clickable is-active`.trim();
-			}
-			if (node.children?.length)
-				this._decorateTreeWithActiveReveal(node.children);
-		}
-	}
-
 	private _decorateTreeWithQueue(nodes: TreeNode<FileMeta>[]): void {
 		const decorateNode = (node: TreeNode<FileMeta>): NodeBadge[] => {
 			const childBadges = node.children?.flatMap(decorateNode) ?? [];
@@ -1811,8 +1831,51 @@ export class FilesExplorerPanel extends Component {
 		this._render();
 	};
 
-	// Patch the cheap Words cell in place. Tasks can transition from no badge to
-	// a badge, so that cell takes the normal virtualized render path instead.
+	private readonly _handleMetadataChange = (file: TFile): void => {
+		if (!this.visibleCells.has('count') && !this._usesPropertyCountSort()) {
+			return;
+		}
+		const nextCount = this._readPropertyCount(file);
+		const previousCount = this.propertyCountCache.get(file.path);
+		if (previousCount === nextCount) return;
+		this.propertyCountCache.set(file.path, nextCount);
+		this.pendingMetadataPaths.add(file.path);
+		this._scheduleMetadataRefresh();
+	};
+
+	private _scheduleMetadataRefresh(): void {
+		if (!this.containerEl.isShown()) return;
+		if (this.metadataRefreshTimer !== null) {
+			window.clearTimeout(this.metadataRefreshTimer);
+		}
+		this.metadataRefreshTimer = window.setTimeout(() => {
+			this.metadataRefreshTimer = null;
+			if (!this.containerEl.isShown()) return;
+			const changedPaths = new Set(this.pendingMetadataPaths);
+			this.pendingMetadataPaths.clear();
+			if (this._usesPropertyCountSort()) {
+				this._render();
+				return;
+			}
+			this._patchCachedPropertyCounts(changedPaths);
+			this.tableView?.refreshViewport();
+			this.gridView?.refreshViewport();
+			this.treeView?.refreshViewport();
+		}, 160);
+	}
+
+	private _patchCachedPropertyCounts(paths: ReadonlySet<string>): void {
+		for (const path of paths) {
+			const node = this._findNode(path, this._lastRenderTree);
+			if (!node?.meta.file) continue;
+			node.count =
+				this.propertyCountCache.get(path) ??
+				this._propCountForFile(node.meta.file);
+		}
+	}
+
+	// Patch statistics cells in place. Full model renders are reserved for sorts
+	// whose order can actually change; Tasks may add/remove its badge dynamically.
 	private readonly _handleStatsChange = (
 		change: StatisticsCacheChange,
 	): void => {
@@ -1856,7 +1919,6 @@ export class FilesExplorerPanel extends Component {
 			this.pendingStatsPaths.clear();
 			if (
 				this._usesStatisticsSort() ||
-				this.visibleCells.has('tasks') ||
 				this.statisticsRetrySignature
 			) {
 				this._render();
@@ -1867,18 +1929,19 @@ export class FilesExplorerPanel extends Component {
 	}
 
 	private _patchVisibleStatisticsCells(paths = new Set<string>()): void {
-		if (this.visibleCells.has('tasks')) {
-			this._render();
-			return;
+		const patchWords = this.visibleCells.has('words');
+		const patchTasks = this.visibleCells.has('tasks') && this.viewMode === 'tree';
+		if (!patchWords && !patchTasks) return;
+		if (this.viewMode === 'tree') {
+			this._patchCachedStatisticsNodes(paths, patchWords, patchTasks);
 		}
-		if (!this.visibleCells.has('words')) return;
 		const rowSelector =
 			this.viewMode === 'tree'
 				? '.vaultman-tree-row[data-path]'
 				: this.viewMode === 'table'
 					? '.vaultman-file-table-row[data-path]'
 					: '.vaultman-files-grid-card[data-path]';
-		const cellSelector =
+		const wordsCellSelector =
 			this.viewMode === 'tree'
 				? '.vaultman-tree-words'
 				: this.viewMode === 'table'
@@ -1889,20 +1952,102 @@ export class FilesExplorerPanel extends Component {
 			const path = row.dataset.path;
 			if (!path) continue;
 			if (paths.size > 0 && !paths.has(path)) continue;
-			const cell = row.querySelector<HTMLElement>(cellSelector);
-			if (!cell) continue;
 			const file = this.plugin.app.vault.getAbstractFileByPath(path);
 			if (!(file instanceof TFile)) continue;
-			const wordCount = this.plugin.statisticsCache.getFileWordCount(file);
-			if (wordCount === null) continue;
-			const text = this._formatWordCountCell(wordCount);
-			if (cell.textContent !== text) cell.textContent = text;
+
+			if (patchWords) {
+				let cell = row.querySelector<HTMLElement>(wordsCellSelector);
+				const wordCount = this.plugin.statisticsCache.getFileWordCount(file);
+				if (wordCount !== null) {
+					if (!cell && this.viewMode === 'tree') {
+						let badgeZone = row.querySelector<HTMLElement>(
+							'.vaultman-tree-badge-zone',
+						);
+						if (!badgeZone) {
+							badgeZone = row.createDiv({ cls: 'vaultman-tree-badge-zone' });
+						}
+						cell = badgeZone.createSpan({
+							cls: 'vaultman-tree-words nav-file-tag',
+						});
+						const laterCell = badgeZone.querySelector<HTMLElement>(
+							'.vaultman-tree-tasks, .vaultman-addon-cell, .vaultman-addon-toggle-cell, .vaultman-badge, .vaultman-tree-count',
+						);
+						if (laterCell) badgeZone.insertBefore(cell, laterCell);
+					}
+					const text = this._formatWordCountCell(wordCount);
+					if (cell && cell.textContent !== text) cell.textContent = text;
+				}
+			}
+
+			if (!patchTasks) continue;
+			const remainingTasks =
+				this.plugin.statisticsCache.getFileRemainingTasks(file);
+			if (remainingTasks === null) continue;
+			let taskCell = row.querySelector<HTMLElement>('.vaultman-tree-tasks');
+			if (remainingTasks === 0) {
+				taskCell?.remove();
+				const badgeZone = row.querySelector<HTMLElement>(
+					'.vaultman-tree-badge-zone',
+				);
+				if (badgeZone?.childElementCount === 0) badgeZone.remove();
+				continue;
+			}
+
+			let badgeZone = row.querySelector<HTMLElement>(
+				'.vaultman-tree-badge-zone',
+			);
+			if (!badgeZone) {
+				badgeZone = row.createDiv({ cls: 'vaultman-tree-badge-zone' });
+			}
+			if (!taskCell) {
+				taskCell = badgeZone.createSpan({
+					cls: 'vaultman-tree-tasks nav-file-tag',
+				});
+				const laterCell = badgeZone.querySelector<HTMLElement>(
+					'.vaultman-addon-cell, .vaultman-addon-toggle-cell, .vaultman-badge, .vaultman-tree-count',
+				);
+				if (laterCell) badgeZone.insertBefore(taskCell, laterCell);
+			}
+			const text = String(remainingTasks);
+			if (taskCell.textContent !== text) taskCell.textContent = text;
 		}
+	}
+
+	private _patchCachedStatisticsNodes(
+		paths: ReadonlySet<string>,
+		patchWords: boolean,
+		patchTasks: boolean,
+	): void {
+		const patchNode = (node: TreeNode<FileMeta>): void => {
+			const file = node.meta.file;
+			if (!file) return;
+			if (patchWords) {
+				const wordCount = this.plugin.statisticsCache.getFileWordCount(file);
+				if (wordCount !== null) {
+					node.wordCountText = this._formatWordCountCell(wordCount);
+				}
+			}
+			if (patchTasks) {
+				const remainingTasks =
+					this.plugin.statisticsCache.getFileRemainingTasks(file);
+				if (remainingTasks !== null) {
+					node.tasksText =
+						remainingTasks === 0 ? undefined : String(remainingTasks);
+				}
+			}
+		};
+
+		const visit = (nodes: TreeNode<FileMeta>[]): void => {
+			for (const node of nodes) {
+				if (paths.size === 0 || paths.has(node.id)) patchNode(node);
+				if (node.children?.length) visit(node.children);
+			}
+		};
+		visit(this._lastRenderTree);
 	}
 
 	private readonly _handleActiveFileChange = (file: TFile | null): void => {
 		this._syncActiveFilePath(file ?? undefined);
-		this._render();
 	};
 
 	private _syncActiveFilePath(
@@ -1913,6 +2058,7 @@ export class FilesExplorerPanel extends Component {
 		this.activeRevealPath = nextPath;
 		this.tableView?.setActivePath(nextPath);
 		this.gridView?.setActivePath(nextPath);
+		this.treeView?.setActiveId(nextPath);
 	}
 
 	private _dedupeInheritedBadges(badges: NodeBadge[]): NodeBadge[] {

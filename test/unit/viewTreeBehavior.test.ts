@@ -191,6 +191,11 @@ class TinyElement {
 		return this.find((el) => el.classList.contains(className));
 	}
 
+	findByDataId(id: string): TinyElement | null {
+		if (this.dataset.id === id) return this;
+		return this.find((el) => el.dataset.id === id);
+	}
+
 	private find(predicate: (el: TinyElement) => boolean): TinyElement | null {
 		for (const child of this.children) {
 			if (predicate(child)) return child;
@@ -619,5 +624,72 @@ describe('UnifiedTreeView behavior', () => {
 		view.render({ ...options, nodes: [node('badge')] });
 		expect(tinyContainer.querySelector('.checkbox-container')).toBeNull();
 		expect(tinyContainer.querySelector('.vaultman-addon-cell')).not.toBeNull();
+	});
+
+	it('updates the active file row in place and preserves it across viewport refreshes', async () => {
+		const { UnifiedTreeView } =
+			await import('../../src/components/layout/viewTree');
+		const tinyContainer = new TinyElement('div');
+		const view = new UnifiedTreeView(
+			tinyContainer as unknown as HTMLElement,
+		);
+		view.render({
+			nodes: [
+				{ id: 'Notes/Alpha.md', label: 'Alpha', depth: 0, meta: {} },
+				{ id: 'Notes/Beta.md', label: 'Beta', depth: 0, meta: {} },
+			],
+			expandedIds: new Set<string>(),
+			onToggle: () => {},
+			onRowClick: () => {},
+			onContextMenu: () => {},
+		});
+
+		const alpha = tinyContainer.findByDataId('Notes/Alpha.md');
+		const beta = tinyContainer.findByDataId('Notes/Beta.md');
+		expect(alpha).not.toBeNull();
+		expect(beta).not.toBeNull();
+
+		view.setActiveId('Notes/Alpha.md');
+		expect(alpha?.classList.contains('is-active')).toBe(true);
+		expect(beta?.classList.contains('is-active')).toBe(false);
+
+		view.setActiveId('Notes/Beta.md');
+		expect(alpha?.classList.contains('is-active')).toBe(false);
+		expect(beta?.classList.contains('is-active')).toBe(true);
+
+		view.refreshViewport();
+		expect(tinyContainer.findByDataId('Notes/Alpha.md')).toBe(alpha);
+		expect(tinyContainer.findByDataId('Notes/Beta.md')).toBe(beta);
+		expect(beta?.classList.contains('is-active')).toBe(true);
+	});
+
+	it('applies a stored active id when its virtual row becomes visible later', async () => {
+		const { UnifiedTreeView } =
+			await import('../../src/components/layout/viewTree');
+		const tinyContainer = new TinyElement('div');
+		tinyContainer.clientHeight = 28;
+		const view = new UnifiedTreeView(
+			tinyContainer as unknown as HTMLElement,
+		);
+		view.render({
+			nodes: Array.from({ length: 100 }, (_, index) => ({
+				id: `note-${index}.md`,
+				label: `Note ${index}`,
+				depth: 0,
+				meta: {},
+			})),
+			expandedIds: new Set<string>(),
+			onToggle: () => {},
+			onRowClick: () => {},
+			onContextMenu: () => {},
+		});
+
+		view.setActiveId('note-99.md');
+		expect(tinyContainer.findByDataId('note-99.md')).toBeNull();
+
+		view.scrollToId('note-99.md', 'end', 'auto');
+		const active = tinyContainer.findByDataId('note-99.md');
+		expect(active).not.toBeNull();
+		expect(active?.classList.contains('is-active')).toBe(true);
 	});
 });

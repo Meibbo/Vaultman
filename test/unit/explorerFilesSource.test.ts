@@ -210,9 +210,42 @@ describe('FilesExplorerPanel source guards', () => {
 		expect(patchCellsBlock).toContain('.vaultman-file-words');
 		expect(patchCellsBlock).toContain('.vaultman-files-grid-card-words');
 		expect(patchCellsBlock).toContain("this.visibleCells.has('tasks')");
-		expect(patchCellsBlock).toContain('this._render();');
+		expect(patchCellsBlock).toContain('.vaultman-tree-tasks');
+		expect(patchCellsBlock).toContain("cls: 'vaultman-tree-words nav-file-tag'");
+		expect(patchCellsBlock).toContain('getFileRemainingTasks(file)');
+		expect(patchCellsBlock).toContain('this._patchCachedStatisticsNodes(');
+		expect(patchCellsBlock).toContain('node.tasksText =');
+		expect(patchCellsBlock).toContain('node.wordCountText =');
+		expect(patchCellsBlock).not.toContain('this._findNode(');
+		expect(patchCellsBlock).not.toContain('this._render();');
+		const scheduleBlock = explorerFilesSource.match(
+			/private _scheduleStatsRefresh[\s\S]*?\n\tprivate _patchVisibleStatisticsCells/,
+		)?.[0];
+		expect(scheduleBlock).not.toContain("this.visibleCells.has('tasks') ||");
 		expect(explorerFilesSource).toContain('this._scheduleStatsRefresh();');
 		expect(explorerFilesSource).toContain("fields.includes('tasks')");
+	});
+
+	it('does not flatten the full visible tree for a normal file-open click', () => {
+		const clickBlock = explorerFilesSource.match(
+			/private _handleFileClick[\s\S]*?\n\tprivate _handleFileDragOver/,
+		)?.[0];
+		expect(clickBlock).toContain("selectionGesture === 'range'");
+		expect(clickBlock).toContain('this._orderedVisibleFilePaths()');
+	});
+
+	it('refreshes property counts only when metadata changes their value', () => {
+		expect(explorerFilesSource).toMatch(
+			/metadataCache\.on\(\s*'changed',\s*this\._handleMetadataChange/,
+		);
+		expect(explorerFilesSource).toContain(
+			'if (previousCount === nextCount) return;',
+		);
+		expect(explorerFilesSource).toContain('this._usesPropertyCountSort()');
+		expect(explorerFilesSource).toContain(
+			'this._patchCachedPropertyCounts(changedPaths);',
+		);
+		expect(explorerFilesSource).toContain('this.treeView?.refreshViewport()');
 	});
 
 	it('captures virtual rows after the current Files view has rendered', () => {

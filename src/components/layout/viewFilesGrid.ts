@@ -161,7 +161,16 @@ export class FilesGridView {
 	}
 
 	setActivePath(path: string | null): void {
+		if (this.activePath === path) return;
+		const previousPath = this.activePath;
 		this.activePath = path;
+		this.setRenderedPathActive(previousPath, false);
+		this.setRenderedPathActive(path, true);
+	}
+
+	private setRenderedPathActive(path: string | null, active: boolean): void {
+		if (!path) return;
+		this.rowEls.get(path)?.toggleClass('is-active', active);
 	}
 
 	setSelectedPaths(paths: ReadonlySet<string>): void {
@@ -181,6 +190,7 @@ export class FilesGridView {
 
 	/** Re-project after a hidden pane becomes visible (hidden probes measure 0). */
 	refreshViewport(): void {
+		this.cancelScheduledRender();
 		this.measureSignature = '';
 		this.renderWindow();
 	}
@@ -355,7 +365,6 @@ export class FilesGridView {
 			resolvedIcon?.color ?? '',
 			times.mtime,
 			times.ctime,
-			this.activePath === file.path ? '1' : '0',
 			this.selectedFiles.has(file.path) ? '1' : '0',
 			Array.from(this.visibleCells).sort().join(','),
 			propCount,

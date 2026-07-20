@@ -38,6 +38,14 @@ export type SortColumn =
 	| 'ext';
 export type SortDirection = 'asc' | 'desc';
 
+const ACTIVE_FILE_CLASSES = [
+	'tree-item-self',
+	'nav-file-title',
+	'tappable',
+	'is-clickable',
+	'is-active',
+] as const;
+
 export interface GridViewCallbacks {
 	getFileTimes?: (file: TFile) => ExplorerFileTimes;
 	getWordCount?: (file: TFile) => number | null;
@@ -114,6 +122,13 @@ export class GridView {
 			this.tbodyEl.style.height = `${this.displayedFiles.length * this.rowHeight}px`;
 		}
 		this.cancelScheduledRender();
+		this._renderWindow();
+	}
+
+	/** Re-measure only the cached table window after its pane becomes visible. */
+	refreshViewport(): void {
+		this.cancelScheduledRender();
+		this._syncHeaderScroll();
 		this._renderWindow();
 	}
 
@@ -284,7 +299,22 @@ export class GridView {
 	}
 
 	setActivePath(path: string | null): void {
+		if (this.activePath === path) return;
+		const previousPath = this.activePath;
 		this.activePath = path;
+		this.setRenderedPathActive(previousPath, false);
+		this.setRenderedPathActive(path, true);
+	}
+
+	private setRenderedPathActive(path: string | null, active: boolean): void {
+		if (!path) return;
+		const nameEl = this.rowEls
+			.get(path)
+			?.querySelector<HTMLElement>('.vaultman-file-name');
+		if (!nameEl) return;
+		for (const className of ACTIVE_FILE_CLASSES) {
+			nameEl.toggleClass(className, active);
+		}
 	}
 
 	setSelectedPaths(paths: ReadonlySet<string>): void {
@@ -482,7 +512,6 @@ export class GridView {
 				)
 				.join('|'),
 			this.sortColumn,
-			this.activePath === file.path ? '1' : '0',
 			this.selectedFiles.has(file.path) ? '1' : '0',
 			columns,
 		].join('\u001f');
@@ -623,13 +652,7 @@ export class GridView {
 			this.callbacks.onDragStart?.(file, event),
 		);
 		if (file.path === this.activePath) {
-			for (const className of [
-				'tree-item-self',
-				'nav-file-title',
-				'tappable',
-				'is-clickable',
-				'is-active',
-			]) {
+			for (const className of ACTIVE_FILE_CLASSES) {
 				nameEl.addClass(className);
 			}
 		}

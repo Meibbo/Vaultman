@@ -90,7 +90,8 @@ export class SnippetsExplorerPanel
 
 	/** BT4-022: hidden panes measure 0; re-render on activation. */
 	refreshViewport(): void {
-		this.render();
+		this.treeView?.refreshViewport();
+		this._syncExternalState();
 	}
 
 	async refresh(): Promise<void> {

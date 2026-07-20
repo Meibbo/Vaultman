@@ -1169,9 +1169,6 @@
 				lastFilesSearchTerm = '';
 			}
 		};
-		const onVaultResolved = () => {
-			refreshFiles();
-		};
 		const onQueueChanged = () => {
 			refreshQueue();
 			if (plugin.queueService.isEmpty && queueIslandOpen) {
@@ -1198,9 +1195,6 @@
 		refreshFiles();
 		refreshQueue();
 
-		// Re-render file list + prop browser when vault finishes indexing
-		plugin.app.metadataCache.on('resolved', onVaultResolved);
-
 		return () => {
 			clearLauncherTimers();
 			stopTocPick();
@@ -1208,7 +1202,6 @@
 			unsubscribeSettings();
 			plugin.filterService.off('changed', onFilterChanged);
 			plugin.queueService.off('changed', onQueueChanged);
-			plugin.app.metadataCache.off('resolved', onVaultResolved);
 			plugin.app.vault.offref(vaultModifyRef);
 			if (contentEditDebounce !== null)
 				window.clearTimeout(contentEditDebounce);
