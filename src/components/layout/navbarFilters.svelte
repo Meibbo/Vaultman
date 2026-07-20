@@ -58,11 +58,11 @@
 	import {
 		cellIcon,
 		cellLabelKey,
+		cellMenuOrder,
 		cellsForExplorer,
 		defaultVisibleCells,
 		isIdentityCell,
 		normalizeVisibleCellIds,
-		viewMenuCells,
 	} from '../../logic/logicCellRegistry';
 
 	type FiltersTab = ExplorerTabId;
@@ -124,6 +124,7 @@
 		app,
 		showTabLabels = true,
 		sortLevelInline = true,
+		orderCellsByActivation = false,
 	}: {
 		activeTab: FiltersTab;
 		filtersSearch: string;
@@ -159,6 +160,7 @@
 		app?: import('obsidian').App;
 		showTabLabels?: boolean;
 		sortLevelInline?: boolean;
+		orderCellsByActivation?: boolean;
 	} = $props();
 
 	async function promptSaveLayout() {
@@ -726,11 +728,6 @@
 	function openNativeViewMenu(event: MouseEvent) {
 		const menu = new Menu();
 		const activeView = viewModeByTab[activeTab] ?? 'tree';
-		const cells = new Set(
-			visibleCellsByTab[activeTab] ??
-				defaultVisibleCells(activeTab, activeView),
-		);
-
 		const minimalNativeViewModes = minimalStyle
 			? viewModesForDataSurface(activeTab).filter(
 					(option) => option.id !== 'dnd',
@@ -797,13 +794,22 @@
 
 		menu.addSeparator();
 		// 'Nested' stays in the sort menu's By level group (D29).
-		for (const definition of viewMenuCells(activeTab, activeView)) {
+		// BT5-011: the menu mirrors the row — active cells in render order
+		// first, then the rest at their canonical rank.
+		for (const entry of cellMenuOrder(
+			activeTab,
+			visibleCellsByTab[activeTab] ??
+				defaultVisibleCells(activeTab, activeView),
+			{ byActivation: orderCellsByActivation, viewMode: activeView },
+		)) {
 			menu.addItem((item) => {
 				item
-					.setTitle(translate(cellLabelKey(definition, activeTab, activeView)))
-					.setIcon(cellIcon(definition, activeTab, activeView))
-					.setChecked(cells.has(definition.id))
-					.onClick(() => toggleVisibleCell(definition.id));
+					.setTitle(
+						translate(cellLabelKey(entry.definition, activeTab, activeView)),
+					)
+					.setIcon(cellIcon(entry.definition, activeTab, activeView))
+					.setChecked(entry.active)
+					.onClick(() => toggleVisibleCell(entry.id));
 			});
 		}
 

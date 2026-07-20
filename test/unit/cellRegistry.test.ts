@@ -212,7 +212,9 @@ describe('Files hover registry projection', () => {
 
 describe('shared registry consumer guards', () => {
 	it('keeps both view menus on the registry instead of local maps', () => {
-		expect(navbarSource).toContain('viewMenuCells(activeTab, activeView)');
+		// BT5-011: the navbar now reads cellMenuOrder, which wraps viewMenuCells
+		// and adds the activation projection.
+		expect(navbarSource).toContain('cellMenuOrder(');
 		expect(navbarSource).not.toContain('const CELL_LABELS');
 		expect(navbarSource).not.toContain('const CELL_ICONS');
 		expect(popupSource).toContain('viewMenuCells(activeTab, activeView)');

@@ -690,6 +690,118 @@ export function viewMenuCells(
 	return REGISTRY.viewMenuCells(explorer, viewMode);
 }
 
+/**
+ * BT5-011: how a surface should lay its cells out.
+ *
+ * The persisted `visibleCells` array IS the activation history — cells are
+ * appended as they are switched on — so both modes read the same storage and
+ * flipping the setting never loses it.
+ */
+export interface CellOrderOptions {
+	byActivation: boolean;
+	viewMode?: ExplorerViewMode;
+}
+
+/** Ids that this surface can actually show, in the requested order. */
+export function resolveCellRenderOrder(
+	explorer: ExplorerTabId,
+	visibleCells: readonly string[],
+	options: CellOrderOptions,
+): string[] {
+	const available = REGISTRY.cellsForExplorer(explorer, options.viewMode);
+	const rankById = new Map(
+		available.map((definition) => [
+			definition.id,
+			supportFor(definition, explorer, options.viewMode)?.fixedRank ??
+				Number.MAX_SAFE_INTEGER,
+		]),
+	);
+	// Unavailable ids are dropped from the projection only; the stored array
+	// keeps them, so a cell hidden by context leaves no gap and loses no place.
+	const active = REGISTRY.normalizeVisibleCellIds(
+		explorer,
+		visibleCells,
+		options.viewMode,
+	);
+	if (options.byActivation) return active;
+	return [...active].sort(
+		(left, right) => (rankById.get(left) ?? 0) - (rankById.get(right) ?? 0),
+	);
+}
+
+export interface CellMenuEntry {
+	id: string;
+	definition: ExplorerCellDef;
+	active: boolean;
+}
+
+/**
+ * Menu projection: active cells first in render order, then the rest at their
+ * canonical rank, so the menu reads like the row it configures.
+ */
+export function cellMenuOrder(
+	explorer: ExplorerTabId,
+	visibleCells: readonly string[],
+	options: CellOrderOptions,
+): CellMenuEntry[] {
+	const menuCells = REGISTRY.viewMenuCells(explorer, options.viewMode);
+	const byId = new Map(
+		menuCells.map((definition) => [definition.id, definition]),
+	);
+	const rendered = resolveCellRenderOrder(
+		explorer,
+		visibleCells,
+		options,
+	).filter((id) => byId.has(id));
+	const activeIds = new Set(rendered);
+
+	const entries: CellMenuEntry[] = rendered.map((id) => ({
+		id,
+		definition: byId.get(id)!,
+		active: true,
+	}));
+	for (const definition of menuCells) {
+		if (activeIds.has(definition.id)) continue;
+		entries.push({ id: definition.id, definition, active: false });
+	}
+	return options.byActivation
+		? entries
+		: menuCells.map((definition) => ({
+				id: definition.id,
+				definition,
+				active: activeIds.has(definition.id),
+			}));
+}
+
+/**
+ * Sort options follow the position of the cell they read, so the two menus
+ * agree. A sort with no cell keeps its declared order instead of drifting.
+ */
+export function sortMenuOrder<TOption extends { id: string }>(
+	explorer: ExplorerTabId,
+	options: readonly TOption[],
+	visibleCells: readonly string[],
+	orderOptions: CellOrderOptions,
+): TOption[] {
+	const rendered = resolveCellRenderOrder(explorer, visibleCells, orderOptions);
+	const positionBySortId = new Map<string, number>();
+	rendered.forEach((cellId, index) => {
+		const sortId = REGISTRY.cellDef(cellId)?.sortId;
+		if (sortId && !positionBySortId.has(sortId)) {
+			positionBySortId.set(sortId, index);
+		}
+	});
+	// Cell-less sorts sit after every cell-backed one, in declaration order.
+	const tailBase = rendered.length;
+	return [...options].sort((left, right) => {
+		const leftPos =
+			positionBySortId.get(left.id) ?? tailBase + options.indexOf(left);
+		const rightPos =
+			positionBySortId.get(right.id) ?? tailBase + options.indexOf(right);
+		return leftPos - rightPos;
+	});
+}
+
 export function defaultVisibleCells(
 	explorer: ExplorerTabId,
 	viewMode?: ExplorerViewMode,

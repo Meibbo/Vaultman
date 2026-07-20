@@ -526,6 +526,18 @@ export class VaultmanSettingsTab extends PluginSettingTab {
 			);
 
 		new Setting(containerEl)
+			.setName(translate('settings.order_cells_by_activation'))
+			.setDesc(translate('settings.order_cells_by_activation.desc'))
+			.addToggle((toggle) =>
+				toggle
+					.setValue(this.plugin.settings.orderCellsByActivation === true)
+					.onChange(async (value) => {
+						this.plugin.settings.orderCellsByActivation = value;
+						await this.plugin.saveSettings();
+					}),
+			);
+
+		new Setting(containerEl)
 			.setName(translate('settings.badge_colors'))
 			.setDesc(translate('settings.badge_colors.desc'))
 			.addToggle((toggle) =>

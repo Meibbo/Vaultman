@@ -214,6 +214,9 @@ export const es: Record<string, string> = {
 	'settings.search_highlights': 'Highlights de busqueda en explorers',
 	'settings.search_highlights.desc':
 		'Resalta filas de explorers que coinciden con la busqueda actual.',
+	'settings.order_cells_by_activation': 'Ordenar celdas por activación',
+	'settings.order_cells_by_activation.desc':
+		'Muestra las celdas en el orden en que las activas en vez de un orden fijo.',
 	'settings.badge_colors': 'Badges de celda con color',
 	'settings.badge_colors.desc':
 		'Usa iconos de badge con color en Files, Tags y Properties. Desactivado mantiene badges monotonos.',

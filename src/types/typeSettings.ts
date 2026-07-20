@@ -160,6 +160,8 @@ export interface VaultmanSettings {
 	filesHoverInfoOrder?: FileHoverInfoId[];
 	/** Custom icons chosen in Vaultman for snippet/plugin nodes (BT5-019) */
 	addonIconOverrides: AddonIconOverrides;
+	/** Render cells in the order they were switched on instead of a fixed rank */
+	orderCellsByActivation: boolean;
 	/** Show the explorer toolbar (tabs / view / sort / search header) */
 	showToolbar: boolean;
 	/** Named saved explorer layouts (view options + sorts per tab) */
@@ -263,6 +265,7 @@ export const DEFAULT_SETTINGS: VaultmanSettings = {
 	toolbarToolsMenu: false,
 	filesHoverInfo: [...DEFAULT_FILES_HOVER_INFO],
 	addonIconOverrides: {},
+	orderCellsByActivation: false,
 	showToolbar: true,
 	bypassOperations: false,
 	suppressBulkOperationWarning: false,

@@ -79,9 +79,9 @@ describe('minimal filters header source guards', () => {
 	});
 
 	it('keeps Files date cells opt-in and represents path mode as Nested off', () => {
-		expect(navbarFiltersSource).toContain(
-			'viewMenuCells(activeTab, activeView)',
-		);
+		// BT5-011: the navbar projects through cellMenuOrder; the view popup
+		// still reads viewMenuCells directly.
+		expect(navbarFiltersSource).toContain('cellMenuOrder(');
 		expect(popupViewSource).toContain('viewMenuCells(activeTab, activeView)');
 		expect(navbarFiltersSource).not.toContain('const CELL_LABELS');
 		expect(navbarFiltersSource).not.toContain('const CELL_ICONS');

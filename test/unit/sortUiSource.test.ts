@@ -209,7 +209,9 @@ describe('By level phase 2 source guards (BT4-009 / D29-D33)', () => {
 	it('moves Nested out of the view-menu cells and renders inline by default', () => {
 		// BT5-010: the registry decides which cells reach the view menu, so
 		// Nested is excluded there by role instead of by an inline filter.
-		expect(navbarSource).toContain('viewMenuCells(activeTab, activeView)');
+		// BT5-011: the navbar now reads cellMenuOrder, which wraps viewMenuCells
+		// and adds the activation projection.
+		expect(navbarSource).toContain('cellMenuOrder(');
 		expect(viewMenuCells('files', 'tree').map((cell) => cell.id)).not.toContain(
 			'nested',
 		);

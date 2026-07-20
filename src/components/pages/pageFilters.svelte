@@ -278,6 +278,10 @@
 		void settingsRevision;
 		return plugin.settings.showToolbar !== false;
 	});
+	const orderCellsByActivation = $derived.by(() => {
+		void settingsRevision;
+		return plugin.settings.orderCellsByActivation === true;
+	});
 	const sortLevelInline = $derived.by(() => {
 		void settingsRevision;
 		return plugin.settings.sortLevelInline !== false;
@@ -850,6 +854,7 @@
 			{onToggleFloatingToc}
 			{toolbarToolsMenu}
 			{sortLevelInline}
+			{orderCellsByActivation}
 			{frameWidth}
 			onToggleToolbar={toggleToolbar}
 			{savedLayouts}

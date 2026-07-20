@@ -216,6 +216,9 @@ export const en: Record<string, string> = {
 	'settings.search_highlights': 'Explorer search highlights',
 	'settings.search_highlights.desc':
 		'Highlight explorer rows that match the current search.',
+	'settings.order_cells_by_activation': 'Order cells by activation',
+	'settings.order_cells_by_activation.desc':
+		'Render cells in the order you switch them on instead of a fixed order.',
 	'settings.badge_colors': 'Colored cell badges',
 	'settings.badge_colors.desc':
 		'Use colored badge icons across Files, Tags, and Properties. Disabled keeps badges monotone.',
