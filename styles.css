@@ -5537,11 +5537,20 @@ button.vaultman-content-scope-hint:focus-visible {
   opacity: 0.22;
 }
 
-/* BT5-015: the slot carries the node icon, so it is no longer a dimmed
-   placeholder. It stays pointer-events:none, so it never becomes a control. */
-.vaultman-tree-toggle--empty.vaultman-tree-toggle--icon {
-  opacity: 1;
-  color: inherit;
+/* BT5-015: a row that renders an icon but reserves no caret lifts the icon out
+   of the flex line and into the caret column, so its label lands at the same x
+   as a sibling that has no icon. Purely presentational: the icon keeps its
+   place in the DOM and its normal semantics. */
+.vaultman-tree-row--icon-in-caret > .vaultman-tree-icon {
+  position: absolute;
+  inset-inline-start: calc(
+    var(--vaultman-tree-row-padding-start) + var(--depth, 0) *
+      var(--vaultman-tree-indent-unit) - var(--vaultman-tree-caret-offset)
+  );
+  width: var(--vaultman-tree-caret-size);
+  min-width: var(--vaultman-tree-caret-size);
+  justify-content: center;
+  pointer-events: none;
 }
 
 .vaultman-tree-icon {

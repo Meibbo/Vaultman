@@ -803,22 +803,26 @@ export class UnifiedTreeView {
 
 		this.rowEls.set(node.id, row);
 
-		// BT5-015: a childless node still reserves the caret column, so the icon
-		// can occupy it instead of the dimmed placeholder. Table and cards render
-		// no caret at all and are therefore not applicable.
+		// BT5-015: the row is a flex line, so an icon ADDS width and shifts the
+		// label. Siblings that carry no icon therefore sit further left — the
+		// misalignment the option exists to remove. When it is on, a row that
+		// renders an icon and reserves no caret takes the icon out of flow into
+		// the caret column, so every label lands at the same x. Rows with a
+		// caret keep today's geometry (the caret already owns that column), and
+		// table and cards render no caret at all: not applicable.
 		const iconFillsCaretSlot =
 			opts.iconInCaretSlot === true &&
-			showCaret &&
-			!hasChildren &&
 			showIcon &&
-			Boolean(node.icon);
+			Boolean(node.icon) &&
+			!showCaret;
+		row.toggleClass('vaultman-tree-row--icon-in-caret', iconFillsCaretSlot);
 
 		if (showCaret) {
 			const toggleEl = row.createDiv({
 				cls: 'vaultman-tree-toggle tree-item-icon collapse-icon',
 			});
+			setIcon(toggleEl, 'right-triangle');
 			if (hasChildren) {
-				setIcon(toggleEl, 'right-triangle');
 				toggleEl.addEventListener('click', (e) => {
 					e.stopPropagation();
 					if (this._recursiveExpandGesture.isActivationSuppressed()) {
@@ -828,15 +832,7 @@ export class UnifiedTreeView {
 					opts.onToggle(node.id);
 				});
 			} else {
-				// Still `--empty`: no hit target, and applyMutableRowState keeps it
-				// aria-hidden, so the icon never reads as an expansion control.
 				toggleEl.addClass('vaultman-tree-toggle--empty');
-				if (iconFillsCaretSlot && node.icon) {
-					toggleEl.addClass('vaultman-tree-toggle--icon');
-					renderIconValue(toggleEl, node.icon, node.iconColor);
-				} else {
-					setIcon(toggleEl, 'right-triangle');
-				}
 			}
 		}
 
@@ -852,7 +848,7 @@ export class UnifiedTreeView {
 		// BT5-011: one emitter per cell so the activation path and the classic
 		// path build byte-identical markup, only in a different order.
 		const emitIcon = (parent: HTMLElement): void => {
-			if (!node.icon || !showIcon || iconFillsCaretSlot) return;
+			if (!node.icon || !showIcon) return;
 			const iconSpan = parent.createSpan({ cls: 'vaultman-tree-icon' });
 			renderIconValue(iconSpan, node.icon, node.iconColor);
 		};
@@ -926,7 +922,7 @@ export class UnifiedTreeView {
 		}
 
 		// Icon
-		if (!usesActivationOrder && node.icon && showIcon && !iconFillsCaretSlot) {
+		if (!usesActivationOrder && node.icon && showIcon) {
 			const iconSpan = row.createSpan({ cls: 'vaultman-tree-icon' });
 			renderIconValue(iconSpan, node.icon, node.iconColor);
 		}
