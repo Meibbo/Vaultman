@@ -41,12 +41,20 @@ export type TreeNodeCell =
 			appearance?: 'button' | 'badge';
 	  };
 
+/** BT5-017: activity projected from descendants hidden by a collapsed node. */
+export interface NodeBubbleDot {
+	color: NonNullable<NodeBadge['color']>;
+	sourceCount: number;
+}
+
 export interface TreeNode<TMeta = unknown> {
 	id: string;
 	label: string;
 	icon?: string;
 	iconColor?: string;
 	showCaret?: boolean;
+	/** Present only while the node is collapsed and hides active descendants. */
+	bubbleDot?: NodeBubbleDot;
 	typeText?: string;
 	mtimeText?: string;
 	ctimeText?: string;

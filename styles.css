@@ -5864,6 +5864,49 @@ button.vaultman-content-scope-hint:focus-visible {
   flex-shrink: 0;
 }
 
+/* BT5-017: collapsed-activity dot. Descriptive only — never a pointer target,
+   and it exists in the DOM only while a collapsed node hides activity. */
+.vaultman-tree-bubble-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  background-color: var(--vaultman-bubble-dot-color, var(--color-accent));
+  pointer-events: none;
+}
+
+.vaultman-tree-bubble-dot--error,
+.vaultman-tree-bubble-dot--red {
+  --vaultman-bubble-dot-color: var(--color-red);
+}
+
+.vaultman-tree-bubble-dot--warning,
+.vaultman-tree-bubble-dot--orange {
+  --vaultman-bubble-dot-color: var(--color-orange);
+}
+
+.vaultman-tree-bubble-dot--accent {
+  --vaultman-bubble-dot-color: var(--color-accent);
+}
+
+.vaultman-tree-bubble-dot--purple {
+  --vaultman-bubble-dot-color: var(--color-purple);
+}
+
+.vaultman-tree-bubble-dot--blue,
+.vaultman-tree-bubble-dot--info {
+  --vaultman-bubble-dot-color: var(--color-blue);
+}
+
+.vaultman-tree-bubble-dot--green,
+.vaultman-tree-bubble-dot--success {
+  --vaultman-bubble-dot-color: var(--color-green);
+}
+
+.vaultman-tree-bubble-dot--faint {
+  --vaultman-bubble-dot-color: var(--text-faint);
+}
+
 .vaultman-addon-toggle-cell {
   flex-shrink: 0;
   margin-inline: 2px 0;

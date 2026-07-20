@@ -12,7 +12,17 @@ import { FilesLogic } from '../../logic/logicsFiles';
 import { FilesGridView } from '../layout/viewFilesGrid';
 import { GridView as FilesTableView } from '../layout/viewGrid';
 import { UnifiedTreeView } from '../layout/viewTree';
-import type { TreeNode, FileMeta, NodeBadge } from '../../types/typeTree';
+import type {
+	TreeNode,
+	FileMeta,
+	NodeBadge,
+	NodeBubbleDot,
+} from '../../types/typeTree';
+import {
+	applyBubbleDots,
+	buildBubbleIndex,
+	type BubbleIndex,
+} from '../../logic/logicBadgeBubbling';
 import type { MenuCtx } from '../../types/typeCMenu';
 import type { FilterNode } from '../../types/typeFilter';
 import type { ExplorerSortState, ScopeSort } from '../../types/typeUI';
@@ -111,6 +121,8 @@ export class FilesExplorerPanel extends Component {
 	private gridView: FilesGridView | null = null;
 	private treeView: UnifiedTreeView | null = null;
 	private expandedIds = new Set<string>();
+	/** BT5-017: descendant-activity index, rebuilt with the projection only. */
+	private bubbleIndex: BubbleIndex<FileMeta> | null = null;
 	private viewMode: FilesViewMode = 'tree';
 	private _sourceFiles: TFile[] = [];
 	private _currentFiles: TFile[] = [];
@@ -1107,7 +1119,7 @@ export class FilesExplorerPanel extends Component {
 		if (this.viewMode !== 'tree' || this.expandedIds.has(id)) return;
 		this.expandedIds.add(id);
 		this._notifyExpansionChanged();
-		this._render();
+		this._refreshTreeExpansion(id, [id]);
 	}
 
 	/** Floating TOC reveal port (FTC-002): scroll to a node by id/path. */
@@ -1212,10 +1224,11 @@ export class FilesExplorerPanel extends Component {
 				nodes: renderTree,
 				expandedIds: this.expandedIds,
 				visibleCells: this.visibleCells,
+				bubbleDotLabel: (dot: NodeBubbleDot) => this._bubbleDotLabel(dot),
 				selectedIds: this.selectedFilePaths,
 				onToggle: (id: string) => {
 					this._toggleExpanded(id);
-					this._render();
+					this._refreshTreeExpansion(id, [id]);
 				},
 				onRecursiveExpand: (id: string) =>
 					this._expandSubtree(id, renderTree),
@@ -1227,7 +1240,7 @@ export class FilesExplorerPanel extends Component {
 						if (event?.button === 1) return;
 						if (!this._nestedEnabled()) return;
 						this._toggleExpanded(id);
-						this._render();
+						this._refreshTreeExpansion(id, [id]);
 						return;
 					}
 					if (!meta.isFolder && meta.file) {
@@ -1546,15 +1559,39 @@ export class FilesExplorerPanel extends Component {
 	private _expandSubtree(id: string, nodes: TreeNode<FileMeta>[]): void {
 		const root = this._findNode(id, nodes);
 		if (!root) return;
-		let changed = false;
+		const changedIds: string[] = [];
 		for (const expandableId of collectExpandableSubtreeIds(root)) {
 			if (this.expandedIds.has(expandableId)) continue;
 			this.expandedIds.add(expandableId);
-			changed = true;
+			changedIds.push(expandableId);
 		}
-		if (!changed) return;
+		if (changedIds.length === 0) return;
 		this._notifyExpansionChanged();
-		this._render();
+		this._refreshTreeExpansion(id, changedIds);
+	}
+
+	private _refreshTreeExpansion(
+		rootId: string,
+		changedFolderIds: readonly string[],
+	): void {
+		this._applyBubbleDots();
+		for (const id of changedFolderIds) this._refreshFolderIcon(id);
+		this.treeView?.updateExpansion(rootId, this.expandedIds);
+	}
+
+	private _refreshFolderIcon(id: string): void {
+		const node = this.bubbleIndex?.nodesById.get(id);
+		if (!node?.meta.isFolder) return;
+		const defaultIcon = this.expandedIds.has(id)
+			? 'lucide-folder-open'
+			: 'lucide-folder';
+		const resolved = this._resolveFileIcon(
+			node.meta.folderPath,
+			true,
+			defaultIcon,
+		);
+		node.icon = resolved?.icon;
+		node.iconColor = resolved?.color;
 	}
 
 	private _warmStatisticsCache(files = this._filesForDisplay()): void {
@@ -1761,23 +1798,35 @@ export class FilesExplorerPanel extends Component {
 	}
 
 	private _decorateTreeWithQueue(nodes: TreeNode<FileMeta>[]): void {
-		const decorateNode = (node: TreeNode<FileMeta>): NodeBadge[] => {
-			const childBadges = node.children?.flatMap(decorateNode) ?? [];
-			if (node.meta.file) {
-				const badges = this._badgesForFile(node.meta.file);
-				node.badges = badges;
-				if (badges.some((badge) => badge.color === 'red')) {
-					node.cls = `${node.cls ?? ''} is-deleted-file`.trim();
-				}
-				return badges;
+		const decorateNode = (node: TreeNode<FileMeta>): void => {
+			for (const child of node.children ?? []) decorateNode(child);
+			if (!node.meta.file) return;
+			const badges = this._badgesForFile(node.meta.file);
+			node.badges = badges;
+			if (badges.some((badge) => badge.color === 'red')) {
+				node.cls = `${node.cls ?? ''} is-deleted-file`.trim();
 			}
-			const inherited = this._dedupeInheritedBadges(childBadges);
-			if (inherited.length > 0) {
-				node.badges = inherited;
-			}
-			return inherited;
 		};
 		for (const node of nodes) decorateNode(node);
+		// BT5-017: parents no longer copy their descendants' badges. Activity
+		// hidden by a collapse is projected as one dot instead, so expanding
+		// the parent removes it (the real badge is visible again).
+		this.bubbleIndex = buildBubbleIndex(nodes);
+		this._applyBubbleDots();
+	}
+
+	/**
+	 * Re-project the cached activity index onto the current expansion state.
+	 * Touches only the nodes that carry activity, never the whole tree
+	 * (BT5-017 acceptance: no full-tree scan per frame).
+	 */
+	private _applyBubbleDots(): void {
+		if (!this.bubbleIndex) return;
+		applyBubbleDots(this.bubbleIndex, this.expandedIds);
+	}
+
+	private _bubbleDotLabel(dot: NodeBubbleDot): string {
+		return translate('files.bubble_dot', { count: String(dot.sourceCount) });
 	}
 
 	private _badgesForFile(file: TFile): NodeBadge[] {
@@ -2059,25 +2108,6 @@ export class FilesExplorerPanel extends Component {
 		this.tableView?.setActivePath(nextPath);
 		this.gridView?.setActivePath(nextPath);
 		this.treeView?.setActiveId(nextPath);
-	}
-
-	private _dedupeInheritedBadges(badges: NodeBadge[]): NodeBadge[] {
-		const seen = new Set<string>();
-		const inherited: NodeBadge[] = [];
-		for (const badge of badges) {
-			if (!badge.solid) continue;
-			const key = `${badge.icon}:${badge.color}`;
-			if (seen.has(key)) continue;
-			seen.add(key);
-			inherited.push({
-				text: badge.text,
-				icon: badge.icon,
-				color: badge.color,
-				solid: badge.solid,
-				isInherited: true,
-			});
-		}
-		return inherited;
 	}
 
 	private _decorateTreeWithFileTimes(nodes: TreeNode<FileMeta>[]): void {

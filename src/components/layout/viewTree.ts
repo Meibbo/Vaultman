@@ -1,6 +1,10 @@
 // src/components/UnifiedTreeView.ts
 import { Platform, setIcon, setTooltip } from 'obsidian';
-import type { TreeNode, TreeNodeCell } from '../../types/typeTree';
+import type {
+	NodeBubbleDot,
+	TreeNode,
+	TreeNodeCell,
+} from '../../types/typeTree';
 import { resolvePresentedActiveFilterIds } from '../../logic/logicActiveFilterBubbling';
 import {
 	explorerDensityProfile,
@@ -46,6 +50,11 @@ export interface TreeViewOptions {
 	onDragOver?: (id: string, event: DragEvent) => void;
 	onDrop?: (id: string, event: DragEvent) => void;
 	visibleCells?: Set<string>;
+	/**
+	 * BT5-017: accessible description for the collapsed-activity dot. The view
+	 * stays i18n-agnostic, so the panel supplies the localized text.
+	 */
+	bubbleDotLabel?: (dot: NodeBubbleDot) => string;
 }
 
 export class UnifiedTreeView {
@@ -199,6 +208,47 @@ export class UnifiedTreeView {
 		this._hasRenderedExpandedState = false;
 	}
 
+	/**
+	 * Re-project one expansion boundary from the cached tree. Unlike render(),
+	 * this never flattens the complete root model: it replaces only the changed
+	 * node's visible descendants and repaints the current virtual window.
+	 */
+	updateExpansion(rootId: string, expandedIds: Set<string>): void {
+		if (!this._opts || !this._contentEl) return;
+		this._recursiveExpandGesture.cancel();
+		this._opts = { ...this._opts, expandedIds };
+		this._markStructureAnimationIfNeeded(expandedIds);
+		this._cancelWindowRender();
+
+		const modelStarted = performance.now();
+		const delta = this._replaceVisibleDescendants(rootId);
+		if (!delta) return;
+
+		const rowHeight = this.rowHeight();
+		if (this._spacerEl) {
+			this._spacerEl.style.height = `${this._rows.length * rowHeight}px`;
+		}
+		this.containerEl.scrollTop = Math.min(
+			this.containerEl.scrollTop,
+			Math.max(
+				0,
+				this._rows.length * rowHeight - this.containerEl.clientHeight,
+			),
+		);
+		vaultmanPerfMonitor.record(
+			'tree.model.expansion',
+			performance.now() - modelStarted,
+			{
+				rows: this._rows.length,
+				removedRows: delta.removed,
+				insertedRows: delta.inserted,
+			},
+		);
+
+		this._renderWindow();
+		this._flushPendingScroll();
+	}
+
 	/** Toggle visibility of rows matching/not matching filtered IDs — no DOM rebuild */
 	updateVisibility(visibleIds: Set<string>): void {
 		for (const [id, el] of this.rowEls) {
@@ -236,6 +286,42 @@ export class UnifiedTreeView {
 			if (!indexById.has(row.id)) indexById.set(row.id, index);
 		});
 		return indexById;
+	}
+
+	private _replaceVisibleDescendants(
+		rootId: string,
+	): { removed: number; inserted: number } | null {
+		if (!this._opts) return null;
+		const rootIndex = this._indexById.get(rootId);
+		if (rootIndex === undefined) return null;
+		const root = this._rows[rootIndex];
+		if (!root) return null;
+
+		const firstChildIndex = rootIndex + 1;
+		let afterSubtreeIndex = firstChildIndex;
+		while (
+			afterSubtreeIndex < this._rows.length &&
+			this._rows[afterSubtreeIndex].depth > root.depth
+		) {
+			afterSubtreeIndex += 1;
+		}
+		const removedNodes = this._rows.slice(firstChildIndex, afterSubtreeIndex);
+		const insertedNodes = this._opts.expandedIds.has(root.id)
+			? flattenVisibleTree(root.children ?? [], this._opts.expandedIds)
+			: [];
+		this._rows.splice(
+			firstChildIndex,
+			removedNodes.length,
+			...insertedNodes,
+		);
+
+		for (const node of removedNodes) this._indexById.delete(node.id);
+		// Only the changed suffix can move. Do not rebuild the complete index.
+		for (let index = firstChildIndex; index < this._rows.length; index += 1) {
+			const node = this._rows[index];
+			if (node) this._indexById.set(node.id, index);
+		}
+		return { removed: removedNodes.length, inserted: insertedNodes.length };
 	}
 
 	private _markStructureAnimationIfNeeded(expandedIds: Set<string>): void {
@@ -393,9 +479,13 @@ export class UnifiedTreeView {
 						].join(':'),
 			)
 			.join('|');
+		const bubbleDot = node.bubbleDot
+			? `${node.bubbleDot.color}:${node.bubbleDot.sourceCount}`
+			: '';
 		return [
 			`markup:${this._markupVersion}`,
 			node.folderColor ?? '',
+			bubbleDot,
 			node.id,
 			node.label,
 			node.depth,
@@ -752,7 +842,8 @@ export class UnifiedTreeView {
 			(showTasks && node.tasksText) ||
 			(showCount && node.count != null && node.count > 0) ||
 			(node.badges && node.badges.length > 0) ||
-			nodeCells.length > 0
+			nodeCells.length > 0 ||
+			node.bubbleDot
 		) {
 			const badgeZone = row.createDiv({ cls: 'vaultman-tree-badge-zone' });
 
@@ -783,6 +874,20 @@ export class UnifiedTreeView {
 
 			for (const cell of nodeCells) {
 				this.renderNodeCell(badgeZone, node.id, cell, opts);
+			}
+
+			// BT5-017: one small dot standing in for activity hidden by the
+			// collapse. Purely descriptive — never a target, never focusable.
+			if (node.bubbleDot) {
+				const dotEl = badgeZone.createSpan({
+					cls: `vaultman-tree-bubble-dot vaultman-tree-bubble-dot--${node.bubbleDot.color}`,
+				});
+				const description = opts.bubbleDotLabel?.(node.bubbleDot);
+				if (description) {
+					setTooltip(dotEl, description);
+					dotEl.setAttribute('role', 'img');
+					dotEl.setAttribute('aria-label', description);
+				}
 			}
 
 			// Priority: Operations/Conflicts badges first
