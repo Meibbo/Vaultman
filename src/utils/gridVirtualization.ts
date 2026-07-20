@@ -22,6 +22,50 @@ export interface VirtualGridWindow<T> {
 	endRow: number;
 }
 
+export interface AnchoredGridWindowInput<T> extends VirtualGridWindowInput<T> {
+	/** Row height the current scrollTop was produced under (null on first run). */
+	previousRowHeight: number | null;
+}
+
+export interface AnchoredGridWindow<T> {
+	/** New content extent. MUST be applied to the spacer BEFORE scrollTop. */
+	spacerHeight: number;
+	/** Anchored scroll position, clamped against the NEW geometry. */
+	scrollTop: number;
+	window: VirtualGridWindow<T>;
+}
+
+/**
+ * BT5-016: when the uniform slot height changes (meta cells toggled), keep the
+ * first visible row anchored under the new geometry. The caller must grow the
+ * spacer to `spacerHeight` before assigning `scrollTop`, otherwise the browser
+ * clamps the target against the old, shorter content and the anchor is lost.
+ */
+export function buildAnchoredGridWindow<T>(
+	input: AnchoredGridWindowInput<T>,
+): AnchoredGridWindow<T> {
+	const { previousRowHeight, ...windowInput } = input;
+	const safeColumnCount = Math.max(1, Math.floor(input.columnCount));
+	const safeRowHeight = Math.max(1, input.rowHeight);
+	const rowCount = Math.ceil(input.rows.length / safeColumnCount);
+	const spacerHeight = rowCount * safeRowHeight;
+	const maxScrollTop = Math.max(0, spacerHeight - input.viewportHeight);
+
+	const anchoredTarget =
+		previousRowHeight !== null &&
+		previousRowHeight > 0 &&
+		previousRowHeight !== safeRowHeight
+			? Math.floor(input.scrollTop / previousRowHeight) * safeRowHeight
+			: input.scrollTop;
+	const scrollTop = Math.min(Math.max(0, anchoredTarget), maxScrollTop);
+
+	return {
+		spacerHeight,
+		scrollTop,
+		window: buildVirtualGridWindow({ ...windowInput, scrollTop }),
+	};
+}
+
 export function buildVirtualGridWindow<T>({
 	rows,
 	scrollTop,

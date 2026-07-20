@@ -3248,6 +3248,14 @@ body.vaultman-bases-column-separators table th {
   position: relative;
 }
 
+/* BT5-016: hidden worst-case probe card used to measure the real slot
+   height for the current cell configuration. */
+.vaultman-files-grid-card-probe {
+  top: 0;
+  left: 0;
+  visibility: hidden;
+}
+
 /* BT5-016: cards take their natural content height — compact without meta
    cells, taller when the metadata row wraps. The virtual slot follows via a
    measured probe card, so no fixed height here. */

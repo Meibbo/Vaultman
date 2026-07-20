@@ -2,7 +2,7 @@ import { Platform, setIcon, type TFile } from 'obsidian';
 import { formatFileTableName } from '../../logic/logicTableLayout';
 import type { ExplorerFileTimes } from '../../logic/logicSort';
 import type { NodeBadge } from '../../types/typeTree';
-import { buildVirtualGridWindow } from '../../utils/gridVirtualization';
+import { buildAnchoredGridWindow } from '../../utils/gridVirtualization';
 import { vaultmanPerfMonitor } from '../../utils/performanceMonitor';
 import { elementContentWidth } from '../../utils/elementDimensions';
 import {
@@ -108,9 +108,6 @@ export class FilesGridView {
 		});
 		probe.toggleClass('vaultman-files-grid-card--compact', !this.hasMetaCells);
 		probe.style.width = `${cardWidth}px`;
-		probe.style.visibility = 'hidden';
-		probe.style.top = '0px';
-		probe.style.left = '0px';
 		if (this.visibleCells.has('icon')) {
 			const iconEl = probe.createDiv({ cls: 'vaultman-files-grid-card-icon' });
 			iconEl.style.height = `${profile.gridRowHeight >= 100 ? 22 : 18}px`;
@@ -257,22 +254,24 @@ export class FilesGridView {
 		this.measureCardRowHeight(metrics.cardWidth);
 		const rowHeight = this.rowHeight;
 		// BT5-016 repair: when the slot height changes (meta cells toggled),
-		// keep the first visible row anchored instead of replaying a stale
-		// scrollTop against the new geometry (blank window near the bottom).
-		if (this.lastRowHeight !== null && this.lastRowHeight !== rowHeight) {
-			const firstRow = Math.floor(this.scrollEl.scrollTop / this.lastRowHeight);
-			this.scrollEl.scrollTop = Math.max(0, firstRow * rowHeight);
-		}
-		this.lastRowHeight = rowHeight;
-		const projection = buildVirtualGridWindow({
+		// keep the first visible row anchored under the new geometry. The
+		// spacer MUST grow before the anchored scrollTop is applied, otherwise
+		// the browser clamps the target against the old, shorter content.
+		const anchored = buildAnchoredGridWindow({
 			rows: this.files,
 			scrollTop: this.scrollEl.scrollTop,
+			previousRowHeight: this.lastRowHeight,
 			viewportHeight: this.scrollEl.clientHeight,
 			rowHeight,
 			columnCount: metrics.columnCount,
 			overscanRows: this.overscanRows,
 		});
-		this.spacerEl.style.height = `${projection.totalHeight}px`;
+		this.lastRowHeight = rowHeight;
+		this.spacerEl.style.height = `${anchored.spacerHeight}px`;
+		if (this.scrollEl.scrollTop !== anchored.scrollTop) {
+			this.scrollEl.scrollTop = anchored.scrollTop;
+		}
+		const projection = anchored.window;
 		const visiblePaths = new Set(
 			projection.visibleRows.map((row) => row.row.path),
 		);
