@@ -2008,3 +2008,18 @@ broader "append-only status writes" is parked as **S-12** in
 - Doc health focal OK; índice actualizado a 1061 docs/1006 retrieval. Las consultas cortas
   recuperan BT5-008 como completed y BT5-030 como deferred; la consulta larga multi-término
   aún devuelve cero, comportamiento de retrieval ya conocido y no ocultado.
+
+## 2026-07-20 — codex-gpt5 · handoff · BT5 ownership to Claude Fable
+
+- Por solicitud del dev se detuvo toda implementación y se transfirió el ownership a
+  `claude-fable-5` mediante mailbox inmediato; fuente completa:
+  [[docs/sessions/2026-07-20-codex-gpt5|session handoff]].
+- Producto permanece en `C:\tmp\vaultman-release-beta2-final2`, branch fija
+  `codex/bt5-next-10`, HEAD `2fe074d0`, con BT5-010 y BT5-019 intencionalmente sucios y sin
+  stage. El handoff separa sus paths, gates y commits para impedir mezcla o pérdida.
+- BT5-010 quedó casi cerrado: 33/33 antes de la auditoría ext/count; falta repetir el gate
+  posterior, actualizar un source guard, lint/review y commit explícito. BT5-019 conserva
+  findings obligatorios sobre precedencia Iconic, known-icon, picker e i18n.
+- BT5-027 queda diferido: no hay API pública que preserve la identidad del leaf; la ruta
+  privada 1.12.7 es no tipada, no atómica y no cubre con seguridad minAppVersion/mobile.
+- No se cambió rama/worktree/stash, no se ejecutó Obsidian CLI, y no hubo push/tag/merge/PR.
