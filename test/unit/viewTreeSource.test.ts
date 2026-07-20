@@ -20,10 +20,14 @@ describe('UnifiedTreeView source guards', () => {
 		expect(treeSource).toContain('row.dataset.renderSignature = signature');
 	});
 
-	it('adds hover titles for file modified and created dates', () => {
-		expect(treeSource).toContain('private rowTitle');
-		expect(treeSource).toContain('Last modified:');
-		expect(treeSource).toContain('Created at:');
+	it('leaves row tooltip content to the panel that configures it', () => {
+		// BT5-032 replaced the view's own hardcoded English title (Last
+		// modified / Created at / Words) with a clear-only contract: the view
+		// guarantees a clean slate, the panel's hover builder owns the text.
+		expect(treeSource).not.toContain('private rowTitle');
+		expect(treeSource).not.toContain('Last modified:');
+		expect(treeSource).not.toContain('Created at:');
+		expect(treeSource).toContain('private clearRowTooltip(');
 		expect(treeSource).toContain('setTooltip(row');
 	});
 

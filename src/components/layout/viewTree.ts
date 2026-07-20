@@ -73,6 +73,7 @@ export class UnifiedTreeView {
 	private containerEl: HTMLElement;
 	private rowEls = new Map<string, HTMLElement>();
 	private _pendingRaf: number | null = null;
+	private _hoveredRowId: string | null = null;
 	private _pendingScrollTimer: number | null = null;
 	private _opts: TreeViewOptions | null = null;
 	private readonly _ownerId = `vaultman-tree-${Math.random()
@@ -521,18 +522,16 @@ export class UnifiedTreeView {
 		].join('\u001f');
 	}
 
-	private rowTitle(node: TreeNode): string | null {
-		const parts: string[] = [];
-		if (node.mtimeText) parts.push(`Last modified: ${node.mtimeText}`);
-		if (node.ctimeText) parts.push(`Created at: ${node.ctimeText}`);
-		if (node.wordCountText) parts.push(`Words: ${node.wordCountText}`);
-		return parts.length > 0 ? parts.join('\n') : null;
-	}
-
-	private applyRowTitle(row: HTMLElement, node: TreeNode): void {
+	/**
+	 * BT5-032: the view owns no tooltip text. It only guarantees the row starts
+	 * each repaint with none — no hardcoded English, no stale text left on a
+	 * recycled row — and leaves the content to the panel's configured hover
+	 * builder. An explorer with no builder therefore shows nothing.
+	 */
+	private clearRowTooltip(row: HTMLElement): void {
 		// Obsidian's native tooltip, not the browser `title` (which double-renders).
 		row.removeAttribute('title');
-		setTooltip(row, this.rowTitle(node) ?? '');
+		setTooltip(row, '');
 	}
 
 	private nodeDataPath(node: TreeNode): string | null {
@@ -722,7 +721,13 @@ export class UnifiedTreeView {
 					opts.onRowDoubleClick?.(node.id, event);
 				}
 			: null;
-		row.onpointerenter = () => opts.onRowHover?.(node.id, row);
+		row.onpointerenter = () => {
+			this._hoveredRowId = node.id;
+			opts.onRowHover?.(node.id, row);
+		};
+		row.onpointerleave = () => {
+			if (this._hoveredRowId === node.id) this._hoveredRowId = null;
+		};
 		row.onauxclick = (event) => {
 			if (event.button !== 1) return;
 			event.preventDefault();
@@ -754,7 +759,10 @@ export class UnifiedTreeView {
 			}
 			opts.onContextMenu(node.id, e);
 		};
-		this.applyRowTitle(row, node);
+		this.clearRowTooltip(row);
+		// A row repainted under the pointer gets its configured tooltip back at
+		// once, so scroll recycling never strands it without one.
+		if (this._hoveredRowId === node.id) opts.onRowHover?.(node.id, row);
 		const signature = this.rowSignature(node, opts);
 		if (row.dataset.renderSignature === signature) {
 			this.applyMutableRowState({
