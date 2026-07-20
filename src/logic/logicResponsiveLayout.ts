@@ -92,20 +92,34 @@ export function usesMobileExplorerDensity(
 	);
 }
 
+/** BT5-021: how the Files toolbar handles more action nodes than fit. */
+export type ToolbarOverflowStrategy = 'condensed' | 'scroll';
+
+export function toolbarUsesHorizontalScroll(
+	strategy: ToolbarOverflowStrategy,
+): boolean {
+	return strategy === 'scroll';
+}
+
 export function shouldCondenseFilesToolbar({
 	activeSectionTab,
 	frameWidth,
 	manual,
 	minimalStyle,
 	tabLabelVisible = false,
+	overflowStrategy = 'condensed',
 }: {
 	activeSectionTab: string;
 	frameWidth: number;
 	manual: boolean;
 	minimalStyle: boolean;
 	tabLabelVisible?: boolean;
+	overflowStrategy?: ToolbarOverflowStrategy;
 }): boolean {
 	if (!minimalStyle || activeSectionTab !== 'files') return false;
+	// BT5-021: horizontal scroll keeps every node on the bar, so neither the
+	// width threshold nor the manual force moves anything into the Tools menu.
+	if (overflowStrategy === 'scroll') return false;
 	const threshold =
 		NARROW_FILES_TOOLBAR_WIDTH +
 		(tabLabelVisible ? LABELED_TOOLBAR_EXTRA_WIDTH : 0);

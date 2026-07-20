@@ -231,6 +231,14 @@ export const es: Record<string, string> = {
 	'settings.show_toolbar': 'Mostrar barra de herramientas',
 	'settings.show_toolbar.desc':
 		'Muestra la barra del explorer (tabs, vista, orden, búsqueda). Actívala desde el menú de vista; restáurala aquí cuando esté oculta.',
+	'settings.toolbar_overflow':
+		'Overflow del toolbar',
+	'settings.toolbar_overflow.desc':
+		'Cómo maneja el toolbar de Files más acciones de las que caben: condensar los extras en el menú Herramientas, o mantener cada acción en una sola línea con scroll horizontal.',
+	'settings.toolbar_overflow.condensed':
+		'Menú condensado',
+	'settings.toolbar_overflow.scroll':
+		'Scroll horizontal',
 	'settings.toolbar_tools_menu': 'Condensar herramientas de Files',
 	'settings.toolbar_tools_menu.desc':
 		'Reemplaza Auto-revelar y Expandir/Colapsar por un menú Tools nativo para mantener cinco nodos en la barra de Files.',

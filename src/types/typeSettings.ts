@@ -155,6 +155,8 @@ export interface VaultmanSettings {
 	explorerRainbowFolders: boolean;
 	/** Condense Files auto-reveal and expansion into one native Tools menu */
 	toolbarToolsMenu: boolean;
+	/** BT5-021: how the Files toolbar overflows: condensed menu or horizontal scroll */
+	toolbarOverflowStrategy: import('../logic/logicResponsiveLayout').ToolbarOverflowStrategy;
 	/** Ordered fields shown in the native Files node hover tooltip */
 	filesHoverInfo: FileHoverInfoId[];
 	/** Independent display order for every available Files hover entry */
@@ -278,6 +280,7 @@ export const DEFAULT_SETTINGS: VaultmanSettings = {
 	excludedFilePaths: [],
 	explorerRainbowFolders: false,
 	toolbarToolsMenu: false,
+	toolbarOverflowStrategy: 'condensed',
 	filesHoverInfo: [...DEFAULT_FILES_HOVER_INFO],
 	addonIconOverrides: {},
 	orderCellsByActivation: false,

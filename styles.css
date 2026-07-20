@@ -2884,6 +2884,41 @@ body.vaultman-bases-column-separators table th {
   background: transparent;
 }
 
+/* BT5-021: horizontal-scroll overflow. Every action node stays on one line;
+   the bar scrolls instead of moving nodes into the Tools menu. A right-edge
+   fade hints that more actions exist off-screen, and focusing an off-screen
+   node scrolls it into view. */
+.vaultman-filters-actions--scroll {
+  position: relative;
+  justify-content: flex-start;
+  flex-wrap: nowrap;
+  overflow-x: auto;
+  overflow-y: hidden;
+  scrollbar-width: thin;
+  scroll-behavior: smooth;
+}
+
+.vaultman-filters-actions--scroll > * {
+  flex: 0 0 auto;
+  scroll-margin-inline: 12px;
+}
+
+.vaultman-filters-actions--scroll::after {
+  content: '';
+  position: sticky;
+  inset-inline-end: 0;
+  flex: 0 0 auto;
+  align-self: stretch;
+  width: 16px;
+  margin-inline-start: -16px;
+  pointer-events: none;
+  background: linear-gradient(
+    to right,
+    transparent,
+    var(--background-secondary)
+  );
+}
+
 .is-phone .workspace-drawer .workspace-leaf-content[data-type="vaultman-frame"] .vaultman-filters-header--minimal.nav-header {
   display: block;
   min-height: 0;

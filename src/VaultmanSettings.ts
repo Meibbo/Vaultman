@@ -486,6 +486,27 @@ export class VaultmanSettingsTab extends PluginSettingTab {
 			);
 
 		new Setting(containerEl)
+			.setName(translate('settings.toolbar_overflow'))
+			.setDesc(translate('settings.toolbar_overflow.desc'))
+			.addDropdown((dropdown) =>
+				dropdown
+					.addOptions({
+						condensed: translate('settings.toolbar_overflow.condensed'),
+						scroll: translate('settings.toolbar_overflow.scroll'),
+					})
+					.setValue(
+						this.plugin.settings.toolbarOverflowStrategy === 'scroll'
+							? 'scroll'
+							: 'condensed',
+					)
+					.onChange(async (value) => {
+						this.plugin.settings.toolbarOverflowStrategy =
+							value === 'scroll' ? 'scroll' : 'condensed';
+						await this.plugin.saveSettings();
+					}),
+			);
+
+		new Setting(containerEl)
 			.setName(translate('settings.toolbar_tools_menu'))
 			.setDesc(translate('settings.toolbar_tools_menu.desc'))
 			.addToggle((toggle) =>

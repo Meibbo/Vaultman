@@ -41,6 +41,8 @@
 		shouldCondenseFilesToolbar,
 		shouldHideTabLabelForSearch,
 		shouldShowMinimalSearchInput,
+		toolbarUsesHorizontalScroll,
+		type ToolbarOverflowStrategy,
 	} from '../../logic/logicResponsiveLayout';
 	import {
 		nodeTypeFilterPatch,
@@ -115,6 +117,7 @@
 		floatingTocEnabled = false,
 		onToggleFloatingToc,
 		toolbarToolsMenu = false,
+		toolbarOverflowStrategy = 'condensed' as ToolbarOverflowStrategy,
 		frameWidth = 0,
 		onToggleToolbar,
 		toolbarShown = true,
@@ -151,6 +154,7 @@
 		floatingTocEnabled?: boolean;
 		onToggleFloatingToc?: () => void;
 		toolbarToolsMenu?: boolean;
+		toolbarOverflowStrategy?: ToolbarOverflowStrategy;
 		frameWidth?: number;
 		onToggleToolbar?: () => void;
 		toolbarShown?: boolean;
@@ -401,7 +405,15 @@
 			manual: toolbarToolsMenu,
 			minimalStyle,
 			tabLabelVisible: tabLabelIntended,
+			overflowStrategy: toolbarOverflowStrategy,
 		}),
+	);
+	// BT5-021: in scroll mode the action bar is one horizontally scrollable line
+	// with an overflow hint, instead of moving nodes into the Tools menu.
+	const toolbarScroll = $derived(
+		minimalStyle &&
+			activeSectionTab === 'files' &&
+			toolbarUsesHorizontalScroll(toolbarOverflowStrategy),
 	);
 	const showSearchInput = $derived(
 		shouldShowMinimalSearchInput({
@@ -1365,6 +1377,7 @@
 				<div
 					class="vaultman-filters-actions"
 					class:nav-buttons-container={minimalStyle}
+					class:vaultman-filters-actions--scroll={toolbarScroll}
 				>
 					{#if minimalStyle && tabOptions.length > 0}
 						<div

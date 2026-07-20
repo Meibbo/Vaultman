@@ -290,6 +290,12 @@
 		void settingsRevision;
 		return plugin.settings.toolbarToolsMenu === true;
 	});
+	const toolbarOverflowStrategy = $derived.by(() => {
+		void settingsRevision;
+		return plugin.settings.toolbarOverflowStrategy === 'scroll'
+			? 'scroll'
+			: 'condensed';
+	});
 	// When hidden, the toolbar slides out of the frame and peeks back on hover of
 	// the top edge, so it can be re-enabled from its own tabs menu.
 	let toolbarPeek = $state(false);
@@ -853,6 +859,7 @@
 			{floatingTocEnabled}
 			{onToggleFloatingToc}
 			{toolbarToolsMenu}
+			{toolbarOverflowStrategy}
 			{sortLevelInline}
 			{orderCellsByActivation}
 			{frameWidth}

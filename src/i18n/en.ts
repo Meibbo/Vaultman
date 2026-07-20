@@ -233,6 +233,14 @@ export const en: Record<string, string> = {
 	'settings.show_toolbar': 'Show toolbar',
 	'settings.show_toolbar.desc':
 		'Show the explorer header toolbar (tabs, view, sort, search). Toggle it from the view menu; restore it here when hidden.',
+	'settings.toolbar_overflow':
+		'Toolbar overflow',
+	'settings.toolbar_overflow.desc':
+		'How the Files toolbar handles more actions than fit: condense the extras into the Tools menu, or keep every action on one horizontally scrollable line.',
+	'settings.toolbar_overflow.condensed':
+		'Condensed menu',
+	'settings.toolbar_overflow.scroll':
+		'Horizontal scroll',
 	'settings.toolbar_tools_menu': 'Condense Files tools',
 	'settings.toolbar_tools_menu.desc':
 		'Replace Auto-reveal and Expand/Collapse with one native Tools menu so the Files toolbar stays at five nodes.',
