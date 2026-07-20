@@ -3,7 +3,6 @@ import { describe, expect, it } from 'vitest';
 import explorerFilesSource from '../../src/components/containers/explorerFiles.ts?raw';
 import gridViewSource from '../../src/components/layout/viewGrid.ts?raw';
 import filesGridSource from '../../src/components/layout/viewFilesGrid.ts?raw';
-import popupViewSource from '../../src/components/layout/popupView.svelte?raw';
 import navbarFiltersSource from '../../src/components/layout/navbarFilters.svelte?raw';
 import tableLayoutSource from '../../src/logic/logicTableLayout.ts?raw';
 import statisticsCacheSourceRaw from '../../src/services/serviceStatisticsCache.ts?raw';

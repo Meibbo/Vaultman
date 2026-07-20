@@ -2,7 +2,6 @@ import { describe, expect, it } from 'vitest';
 
 import settingsSource from '../../src/VaultmanSettings.ts?raw';
 import mainSource from '../../src/main.ts?raw';
-import navbarFiltersSource from '../../src/components/layout/navbarFilters.svelte?raw';
 import popupViewSource from '../../src/components/layout/popupView.svelte?raw';
 import { en } from '../../src/i18n/en';
 import { es } from '../../src/i18n/es';
