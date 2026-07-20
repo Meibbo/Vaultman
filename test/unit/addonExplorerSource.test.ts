@@ -12,6 +12,8 @@ import typeUiSource from '../../src/types/typeUI.ts?raw';
 import menuTypesSource from '../../src/types/typeCMenu.ts?raw';
 import settingsTypesSource from '../../src/types/typeSettings.ts?raw';
 import settingsSource from '../../src/VaultmanSettings.ts?raw';
+import { SORT_MENU_OPTIONS } from '../../src/logic/logicSortMenu';
+import { expansionActionAvailable } from '../../src/logic/logicTreeExpansion';
 
 describe('Snippets and Plugins explorer tabs source guards', () => {
 	it('registers both lazy-mounted tabs in the frame and Data page', () => {
@@ -65,15 +67,21 @@ describe('Snippets and Plugins explorer tabs source guards', () => {
 	});
 
 	it('offers add-on-specific sorts and configurable cells without expand-all', () => {
-		for (const source of [navbarFiltersSource, popupSortSource]) {
-			expect(source).toContain("labelKey: 'sort.by.installed'");
-			expect(source).toContain("labelKey: 'sort.by.updated'");
+		for (const tab of ['snippets', 'plugins'] as const) {
+			expect(SORT_MENU_OPTIONS[tab]).toEqual(
+				expect.arrayContaining([
+					expect.objectContaining({ labelKey: 'sort.by.installed' }),
+					expect.objectContaining({ labelKey: 'sort.by.updated' }),
+				]),
+			);
+			expect(expansionActionAvailable(tab, ['nested'])).toBe(false);
 		}
 		expect(popupViewSource).toContain("id: 'state'");
 		expect(popupViewSource).toContain("id: 'installed'");
 		expect(popupViewSource).toContain("id: 'updated'");
 		expect(popupViewSource).toContain("id: 'config'");
-		expect(navbarFiltersSource).toContain('supportsExpansion');
+		expect(navbarFiltersSource).toContain('expansionActionAvailable(');
+		expect(popupSortSource).toContain('visibleSortOptions(');
 	});
 
 	it('uses one-click cells with a hot native/badge setting and no row double-click', () => {

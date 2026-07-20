@@ -21,168 +21,14 @@
 		nodeTypeFiltersForState,
 		toggleNodeTypeFilter,
 	} from '../../logic/logicNodeTypeFilters';
+	import {
+		byLevelModel,
+		NODE_TYPE_MENU_OPTIONS,
+		visibleSortOptions,
+		type ByLevelMenuItem,
+	} from '../../logic/logicSortMenu';
 
 	type FiltersTab = ExplorerTabId;
-
-	type SortOption = {
-		id: string;
-		iconName: string;
-		labelKey: string;
-	};
-
-	const SORT_OPTIONS: Record<FiltersTab, SortOption[]> = {
-		props: [
-			{ id: 'count', iconName: 'lucide-hash', labelKey: 'sort.by.count' },
-			{
-				id: 'name',
-				iconName: 'lucide-a-large-small',
-				labelKey: 'sort.by.name',
-			},
-			{
-				id: 'mtime',
-				iconName: 'lucide-calendar-clock',
-				labelKey: 'sort.by.modified',
-			},
-			{
-				id: 'ctime',
-				iconName: 'lucide-calendar-plus',
-				labelKey: 'sort.by.created',
-			},
-			{ id: 'sub', iconName: 'lucide-indent', labelKey: 'sort.by.sub' },
-		],
-		tags: [
-			{ id: 'count', iconName: 'lucide-hash', labelKey: 'sort.by.count' },
-			{
-				id: 'name',
-				iconName: 'lucide-a-large-small',
-				labelKey: 'sort.by.name',
-			},
-			{
-				id: 'mtime',
-				iconName: 'lucide-calendar-clock',
-				labelKey: 'sort.by.modified',
-			},
-			{
-				id: 'ctime',
-				iconName: 'lucide-calendar-plus',
-				labelKey: 'sort.by.created',
-			},
-			{
-				id: 'sub',
-				iconName: 'lucide-indent',
-				labelKey: 'sort.by.subtags',
-			},
-		],
-		files: [
-			{
-				id: 'name',
-				iconName: 'lucide-a-large-small',
-				labelKey: 'sort.by.name',
-			},
-			{ id: 'count', iconName: 'lucide-hash', labelKey: 'sort.by.props' },
-			{ id: 'words', iconName: 'lucide-text', labelKey: 'sort.by.words' },
-			{
-				id: 'tasks',
-				iconName: 'lucide-square-check',
-				labelKey: 'sort.by.tasks',
-			},
-			{ id: 'ext', iconName: 'lucide-file-type', labelKey: 'sort.by.ext' },
-			{
-				id: 'mtime',
-				iconName: 'lucide-calendar-clock',
-				labelKey: 'sort.by.modified',
-			},
-			{
-				id: 'ctime',
-				iconName: 'lucide-calendar-plus',
-				labelKey: 'sort.by.created',
-			},
-			{
-				id: 'path',
-				iconName: 'lucide-route',
-				labelKey: 'sort.by.path',
-			},
-		],
-		snippets: [
-			{
-				id: 'name',
-				iconName: 'lucide-a-large-small',
-				labelKey: 'sort.by.name',
-			},
-			{
-				id: 'installed',
-				iconName: 'lucide-calendar-plus',
-				labelKey: 'sort.by.installed',
-			},
-			{
-				id: 'updated',
-				iconName: 'lucide-calendar-clock',
-				labelKey: 'sort.by.updated',
-			},
-		],
-		plugins: [
-			{
-				id: 'name',
-				iconName: 'lucide-a-large-small',
-				labelKey: 'sort.by.name',
-			},
-			{
-				id: 'installed',
-				iconName: 'lucide-calendar-plus',
-				labelKey: 'sort.by.installed',
-			},
-			{
-				id: 'updated',
-				iconName: 'lucide-calendar-clock',
-				labelKey: 'sort.by.updated',
-			},
-		],
-	};
-
-	type DrawerOption = {
-		id: string;
-		iconName: string;
-		labelKey: string;
-	};
-
-	const DRAWER_OPTIONS: Record<'props' | 'tags', DrawerOption[]> = {
-		props: [
-			{ id: 'tags', iconName: 'lucide-tags', labelKey: 'sort.type.tags' },
-			{ id: 'list', iconName: 'lucide-list', labelKey: 'sort.type.list' },
-			{ id: 'text', iconName: 'lucide-text', labelKey: 'sort.type.text' },
-			{ id: 'number', iconName: 'lucide-binary', labelKey: 'sort.type.number' },
-			{ id: 'date', iconName: 'lucide-calendar', labelKey: 'sort.type.date' },
-			{
-				id: 'checkbox',
-				iconName: 'lucide-check-square',
-				labelKey: 'sort.type.checkbox',
-			},
-			{
-				id: 'aliases',
-				iconName: 'lucide-forward',
-				labelKey: 'sort.type.aliases',
-			},
-			{
-				id: 'cssclasses',
-				iconName: 'lucide-palette',
-				labelKey: 'sort.type.cssclasses',
-			},
-			{
-				id: 'unknown',
-				iconName: 'lucide-file-question',
-				labelKey: 'sort.type.unknown',
-			},
-		],
-		tags: [
-			{ id: 'all', iconName: 'lucide-tags', labelKey: 'sort.type.all' },
-			{
-				id: 'nested',
-				iconName: 'lucide-git-branch',
-				labelKey: 'sort.type.nested',
-			},
-			{ id: 'simple', iconName: 'lucide-tag', labelKey: 'sort.type.simple' },
-		],
-	};
 
 	let {
 		activeTab,
@@ -191,7 +37,9 @@
 		onFilterChange,
 		onScopeChange,
 		onRequestDrillPick,
+		onNestedToggle,
 		initialSortState,
+		nestedActive = false,
 		icon,
 	}: {
 		activeTab: FiltersTab;
@@ -200,7 +48,9 @@
 		onFilterChange?: (state: ExplorerSortState) => void;
 		onScopeChange?: (state: ExplorerSortState) => void;
 		onRequestDrillPick?: () => void;
+		onNestedToggle?: () => void;
 		initialSortState?: ExplorerSortState;
+		nestedActive?: boolean;
 		icon: (node: HTMLElement, name: string) => { update(n: string): void };
 	} = $props();
 
@@ -216,59 +66,32 @@
 			initialSortState ? nodeTypeFiltersForState(initialSortState) : [],
 		),
 	);
-	let parentsFirst = $state(
-		untrack(() => initialSortState?.parentsFirst ?? true),
-	);
 	const activeSort = $derived(activeScopeSort(activeTab, sortState));
-	const levelOptions = $derived<
-		Array<{ scope: SortScopeKey; iconName: string; labelKey: string }>
-	>(
-		activeTab === 'props'
-			? [
-					{
-						scope: 'properties',
-						iconName: 'lucide-list-tree',
-						labelKey: 'sort.level.properties',
-					},
-					{
-						scope: 'values',
-						iconName: 'lucide-list-collapse',
-						labelKey: 'sort.level.values',
-					},
-				]
-			: activeTab === 'files' || activeTab === 'tags'
-				? [
-						{
-							scope: 'all',
-							iconName: 'lucide-layers',
-							labelKey: 'sort.level.all',
-						},
-						{
-							scope: 'drill',
-							iconName: 'lucide-mouse-pointer-click',
-							labelKey: 'sort.level.drill',
-						},
-					]
-				: [],
+	const levelModel = $derived(byLevelModel(activeTab, sortState, nestedActive));
+	const visibleSortOptionsForActiveTab = $derived(
+		visibleSortOptions(activeTab, sortState, nestedActive),
 	);
 
-	// Reset per-tab state when the active tab changes.
+	// Close transient drawers only when switching explorer surfaces.
 	$effect(() => {
 		void activeTab;
-		sortState = normalizeExplorerSortState(activeTab, initialSortState ?? null);
 		drawerOpen = false;
 		levelDrawerOpen = false;
+	});
+
+	// Keep an open popup in sync with native menus and restored layouts.
+	$effect(() => {
+		void initialSortState;
+		sortState = normalizeExplorerSortState(activeTab, initialSortState ?? null);
 		nodeTypeFilters = initialSortState
 			? nodeTypeFiltersForState(initialSortState)
 			: [];
-		parentsFirst = initialSortState?.parentsFirst ?? true;
 	});
 
 	function emitSortChange() {
 		sortState = {
 			...sortState,
 			...nodeTypeFilterPatch(nodeTypeFilters),
-			parentsFirst,
 		};
 		onSortChange?.(sortState);
 	}
@@ -277,7 +100,6 @@
 		sortState = {
 			...sortState,
 			...nodeTypeFilterPatch(nodeTypeFilters),
-			parentsFirst,
 		};
 		onFilterChange?.(sortState);
 	}
@@ -306,7 +128,6 @@
 			activeScope: scope,
 			...(activeTab === 'props' ? {} : { drillNodeId: null }),
 			...nodeTypeFilterPatch(nodeTypeFilters),
-			parentsFirst,
 		};
 		levelDrawerOpen = false;
 		onScopeChange?.(sortState);
@@ -319,8 +140,7 @@
 
 	function toggleDrawer() {
 		if (activeTab === 'files') {
-			parentsFirst = !parentsFirst;
-			emitSortChange();
+			toggleParentsFirst();
 			return;
 		}
 		drawerOpen = !drawerOpen;
@@ -330,6 +150,33 @@
 	function selectNodeTypeFilter(id: string) {
 		nodeTypeFilters = toggleNodeTypeFilter(nodeTypeFilters, id);
 		emitFilterChange();
+	}
+
+	function toggleParentsFirst() {
+		sortState = {
+			...sortState,
+			parentsFirst: !(sortState.parentsFirst ?? true),
+		};
+		emitSortChange();
+	}
+
+	function toggleFixedFolders() {
+		sortState = {
+			...sortState,
+			fixedFolders: sortState.fixedFolders === false,
+		};
+		emitSortChange();
+	}
+
+	function activateByLevelItem(item: ByLevelMenuItem) {
+		if (item.kind === 'separator') return;
+		if (item.kind === 'scope') {
+			selectScope(item.scope);
+			return;
+		}
+		if (item.id === 'nested') onNestedToggle?.();
+		if (item.id === 'parentsFirst') toggleParentsFirst();
+		if (item.id === 'fixedFolders') toggleFixedFolders();
 	}
 
 	const vertTopIcon = $derived(
@@ -358,23 +205,32 @@
 				tabindex="0"
 				use:icon={vertTopIcon}
 			></div>
-			{#if levelDrawerOpen}
+			{#if levelDrawerOpen && levelModel}
 				<div class="vaultman-sort-vertcol-drawer">
-					{#each levelOptions as opt (opt.scope)}
-						<button
-							class="vaultman-sort-drawer-item"
-							class:is-active={sortState.activeScope === opt.scope}
-							aria-label={translate(opt.labelKey)}
-							title={translate(opt.labelKey)}
-							onclick={() => selectScope(opt.scope)}
-							use:icon={opt.iconName}
-						></button>
+					{#each levelModel.items as opt (opt.id)}
+						{#if opt.kind === 'separator'}
+							<div
+								class="vaultman-sort-drawer-separator"
+								role="separator"
+							></div>
+						{:else}
+							<button
+								class="vaultman-sort-drawer-item"
+								class:is-active={opt.checked}
+								aria-label={translate(opt.labelKey)}
+								title={translate(opt.labelKey)}
+								onclick={() => activateByLevelItem(opt)}
+								use:icon={opt.icon}
+							></button>
+						{/if}
 					{/each}
 				</div>
 			{/if}
 			<div
 				class="vaultman-sort-vertcol-btn"
-				class:is-active={activeTab === 'files' ? parentsFirst : drawerOpen}
+				class:is-active={activeTab === 'files'
+					? (sortState.parentsFirst ?? true)
+					: drawerOpen}
 				aria-label={activeTab === 'files'
 					? translate('sort.parents_first')
 					: translate('sort.vertcol.scope_drawer')}
@@ -388,7 +244,7 @@
 			></div>
 			{#if drawerOpen && (activeTab === 'props' || activeTab === 'tags')}
 				<div class="vaultman-sort-vertcol-drawer">
-					{#each DRAWER_OPTIONS[activeTab] as opt (opt.id)}
+					{#each NODE_TYPE_MENU_OPTIONS[activeTab] as opt (opt.id)}
 						<button
 							class="vaultman-sort-drawer-item"
 							class:is-active={nodeTypeFilters.includes(opt.id) ||
@@ -396,7 +252,7 @@
 							aria-label={translate(opt.labelKey)}
 							title={translate(opt.labelKey)}
 							onclick={() => selectNodeTypeFilter(opt.id)}
-							use:icon={opt.iconName}
+							use:icon={opt.icon}
 						></button>
 					{/each}
 				</div>
@@ -412,7 +268,7 @@
 	>
 		<!-- Row 1: sort controls + close -->
 		<div class="vaultman-sort-row vaultman-sort-row-controls">
-			{#each SORT_OPTIONS[activeTab] as opt (opt.id)}
+			{#each visibleSortOptionsForActiveTab as opt (opt.id)}
 				<div
 					class="vaultman-squircle vaultman-sort-option"
 					class:is-accent={activeSort.sortBy === opt.id}
@@ -427,7 +283,7 @@
 					role="button"
 					tabindex="0"
 				>
-					<span class="vaultman-squircle-icon" use:icon={opt.iconName}></span>
+					<span class="vaultman-squircle-icon" use:icon={opt.icon}></span>
 					{#if activeSort.sortBy === opt.id}
 						<span
 							class="vaultman-sort-dir"

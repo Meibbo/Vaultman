@@ -6005,6 +6005,12 @@ button.vaultman-content-scope-hint:focus-visible {
   background: transparent;
   cursor: pointer;
 }
+.vaultman-sort-drawer-separator {
+  grid-column: 1 / -1;
+  height: 1px;
+  margin: 1px 0;
+  background: var(--background-modifier-border);
+}
 .vaultman-sort-drawer-item:hover,
 .vaultman-sort-drawer-item.is-active {
   background: var(--background-modifier-hover);

@@ -8,6 +8,7 @@ import { OperationQueueService } from '../../services/serviceOperationQueue';
 import type { StatisticsCacheService } from '../../services/serviceStatisticsCache';
 import type { RevealNodeOptions } from '../../services/routerFloatingToc';
 import {
+	nodeTypeFilterPatch,
 	normalizeNodeTypeFilters,
 	sameNodeTypeFilters,
 } from '../../logic/logicNodeTypeFilters';
@@ -38,10 +39,7 @@ import {
 	sameExplorerSortState,
 	sortAllWithDrill,
 } from '../../logic/logicScopedSort';
-import type {
-	ExplorerSortState,
-	ScopeSort,
-} from '../../types/typeUI';
+import type { ExplorerSortState, ScopeSort } from '../../types/typeUI';
 import {
 	findParentId,
 	indexLevel,
@@ -94,6 +92,8 @@ export class TagsExplorerPanel extends Component {
 	private viewMode: 'tree' | 'grid' | 'table' = 'tree';
 	private visibleCells = new Set<string>(['icon', 'text', 'count', 'nested']);
 	private onExpansionChange?: () => void;
+	private onSortStateChange?: (state: ExplorerSortState) => void;
+	private hasConnectedSortStateHandler = false;
 
 	constructor(containerEl: HTMLElement, plugin: PanelPluginCtx) {
 		super();
@@ -225,6 +225,19 @@ export class TagsExplorerPanel extends Component {
 		this.sortState = normalizedState;
 		this.nodeTypeFilters = nextNodeTypeFilters;
 		this._render();
+	}
+
+	setSortStateChangeHandler(
+		handler?: (state: ExplorerSortState) => void,
+	): void {
+		if (!handler) {
+			this.onSortStateChange = undefined;
+			return;
+		}
+		const reconnecting = this.hasConnectedSortStateHandler;
+		this.hasConnectedSortStateHandler = true;
+		this.onSortStateChange = handler;
+		if (reconnecting) handler(this._sortState());
 	}
 
 	setViewMode(mode: 'tree' | 'grid' | 'table'): void {
@@ -449,6 +462,7 @@ export class TagsExplorerPanel extends Component {
 		});
 		if (sameExplorerSortState(this.sortState, next)) return;
 		this.sortState = next;
+		this.onSortStateChange?.(this._sortState());
 		this._render();
 	}
 
@@ -475,6 +489,15 @@ export class TagsExplorerPanel extends Component {
 	private _setIndexRoots(tree: TreeNode<TagMeta>[]): void {
 		this._lastRenderTree = tree;
 		this.onIndexChanged?.();
+	}
+
+	private _sortState(): ExplorerSortState {
+		return {
+			...this.sortState,
+			sorts: this.sortState.sorts,
+			drillNodeId: this.sortState.drillNodeId,
+			...nodeTypeFilterPatch(this.nodeTypeFilters),
+		};
 	}
 
 	private _render(): void {
@@ -865,8 +888,7 @@ export class TagsExplorerPanel extends Component {
 		const payload = readVaultmanDragPayload(event);
 		if (!payload) return;
 		const tagPaths = this._dragTagPaths(payload);
-		if (!tagPaths.some((path) => path !== targetNode.meta.tagPath))
-			return;
+		if (!tagPaths.some((path) => path !== targetNode.meta.tagPath)) return;
 		event.preventDefault();
 		if (event.dataTransfer) event.dataTransfer.dropEffect = 'move';
 		this.plugin.showDragActionGuide?.(
@@ -926,7 +948,9 @@ export class TagsExplorerPanel extends Component {
 	}
 
 	private async _nestDraggedTags(
-		payload: VaultmanDragNodePayload & { selection?: VaultmanDragNodePayload[] },
+		payload: VaultmanDragNodePayload & {
+			selection?: VaultmanDragNodePayload[];
+		},
 		targetTagPath: string,
 	): Promise<void> {
 		const tagPaths = this._dragTagPaths(payload);
@@ -941,12 +965,15 @@ export class TagsExplorerPanel extends Component {
 	}
 
 	private _dragTagPaths(
-		payload: VaultmanDragNodePayload & { selection?: VaultmanDragNodePayload[] },
+		payload: VaultmanDragNodePayload & {
+			selection?: VaultmanDragNodePayload[];
+		},
 	): string[] {
 		const nodes = payload.selection?.length ? payload.selection : [payload];
 		return nodes
-			.filter((node): node is Extract<VaultmanDragNodePayload, { kind: 'tag' }> =>
-				node.kind === 'tag',
+			.filter(
+				(node): node is Extract<VaultmanDragNodePayload, { kind: 'tag' }> =>
+					node.kind === 'tag',
 			)
 			.map((node) => node.tagPath);
 	}
@@ -1229,5 +1256,4 @@ export class TagsExplorerPanel extends Component {
 			);
 		});
 	}
-
 }

@@ -11,7 +11,6 @@
 		ExplorerTabId,
 		ExplorerSortState,
 		ExplorerViewMode,
-		SortScopeKey,
 	} from '../../types/typeUI';
 	import type { AddonExplorerPanelPort } from '../../logic/logicAddonExplorer';
 	import type { SavedLayout, SavedViewConfig } from '../../types/typeSettings';
@@ -22,7 +21,6 @@
 	} from '../../logic/logicSort';
 	import {
 		activeScopeSort,
-		isSortOptionVisible,
 		normalizeExplorerSortState,
 		replaceActiveScopeSort,
 		sameExplorerSortState,
@@ -48,6 +46,14 @@
 		nodeTypeFiltersForState,
 		toggleNodeTypeFilter,
 	} from '../../logic/logicNodeTypeFilters';
+	import { expansionActionAvailable } from '../../logic/logicTreeExpansion';
+	import {
+		byLevelModel,
+		NODE_TYPE_MENU_OPTIONS,
+		supportsByLevel,
+		visibleSortOptions,
+		type NodeTypeMenuOption,
+	} from '../../logic/logicSortMenu';
 
 	type FiltersTab = ExplorerTabId;
 	type CoreFiltersTab = 'props' | 'files' | 'tags';
@@ -73,13 +79,6 @@
 	};
 	type HeaderMode = 'header' | 'sort' | 'viewmode';
 	type SearchControlVariant = 'inline' | 'phone';
-	type NodeTypeOption = {
-		id: string;
-		icon: string;
-		label?: string;
-		labelKey?: string;
-	};
-
 	let {
 		activeTab,
 		filtersSearch = $bindable(''),
@@ -271,116 +270,6 @@
 		updated: 'lucide-calendar-clock',
 		tasks: 'lucide-square-check-big',
 	};
-	const SORT_OPTIONS: Record<
-		FiltersTab,
-		Array<{ id: string; icon: string; labelKey: string }>
-	> = {
-		props: [
-			{ id: 'count', icon: 'lucide-hash', labelKey: 'sort.by.count' },
-			{ id: 'name', icon: 'lucide-a-large-small', labelKey: 'sort.by.name' },
-			{
-				id: 'mtime',
-				icon: 'lucide-calendar-clock',
-				labelKey: 'sort.by.modified',
-			},
-			{
-				id: 'ctime',
-				icon: 'lucide-calendar-plus',
-				labelKey: 'sort.by.created',
-			},
-			{ id: 'sub', icon: 'lucide-indent', labelKey: 'sort.by.sub' },
-		],
-		tags: [
-			{ id: 'count', icon: 'lucide-hash', labelKey: 'sort.by.count' },
-			{ id: 'name', icon: 'lucide-a-large-small', labelKey: 'sort.by.name' },
-			{
-				id: 'mtime',
-				icon: 'lucide-calendar-clock',
-				labelKey: 'sort.by.modified',
-			},
-			{
-				id: 'ctime',
-				icon: 'lucide-calendar-plus',
-				labelKey: 'sort.by.created',
-			},
-			{ id: 'sub', icon: 'lucide-indent', labelKey: 'sort.by.subtags' },
-		],
-		files: [
-			{ id: 'name', icon: 'lucide-a-large-small', labelKey: 'sort.by.name' },
-			{ id: 'count', icon: 'lucide-hash', labelKey: 'sort.by.props' },
-			{ id: 'words', icon: 'lucide-text', labelKey: 'sort.by.words' },
-			{ id: 'tasks', icon: 'lucide-square-check', labelKey: 'sort.by.tasks' },
-			{ id: 'ext', icon: 'lucide-file-type', labelKey: 'sort.by.ext' },
-			{
-				id: 'mtime',
-				icon: 'lucide-calendar-clock',
-				labelKey: 'sort.by.modified',
-			},
-			{
-				id: 'ctime',
-				icon: 'lucide-calendar-plus',
-				labelKey: 'sort.by.created',
-			},
-			{ id: 'path', icon: 'lucide-route', labelKey: 'sort.by.path' },
-		],
-		snippets: [
-			{ id: 'name', icon: 'lucide-a-large-small', labelKey: 'sort.by.name' },
-			{
-				id: 'installed',
-				icon: 'lucide-calendar-plus',
-				labelKey: 'sort.by.installed',
-			},
-			{
-				id: 'updated',
-				icon: 'lucide-calendar-clock',
-				labelKey: 'sort.by.updated',
-			},
-		],
-		plugins: [
-			{ id: 'name', icon: 'lucide-a-large-small', labelKey: 'sort.by.name' },
-			{
-				id: 'installed',
-				icon: 'lucide-calendar-plus',
-				labelKey: 'sort.by.installed',
-			},
-			{
-				id: 'updated',
-				icon: 'lucide-calendar-clock',
-				labelKey: 'sort.by.updated',
-			},
-		],
-	};
-	const NODE_TYPE_OPTIONS: Record<'props' | 'tags', NodeTypeOption[]> = {
-		props: [
-			{ id: 'tags', icon: 'lucide-tags', labelKey: 'sort.type.tags' },
-			{ id: 'list', icon: 'lucide-list', labelKey: 'sort.type.list' },
-			{ id: 'text', icon: 'lucide-text', labelKey: 'sort.type.text' },
-			{ id: 'number', icon: 'lucide-binary', labelKey: 'sort.type.number' },
-			{ id: 'date', icon: 'lucide-calendar', labelKey: 'sort.type.date' },
-			{
-				id: 'checkbox',
-				icon: 'lucide-check-square',
-				labelKey: 'sort.type.checkbox',
-			},
-			{ id: 'aliases', icon: 'lucide-forward', labelKey: 'sort.type.aliases' },
-			{
-				id: 'cssclasses',
-				icon: 'lucide-palette',
-				labelKey: 'sort.type.cssclasses',
-			},
-			{
-				id: 'unknown',
-				icon: 'lucide-file-question',
-				labelKey: 'sort.type.unknown',
-			},
-		],
-		tags: [
-			{ id: 'all', icon: 'lucide-tags', labelKey: 'sort.type.all' },
-			{ id: 'nested', icon: 'lucide-git-branch', labelKey: 'sort.type.nested' },
-			{ id: 'simple', icon: 'lucide-tag', labelKey: 'sort.type.simple' },
-		],
-	};
-
 	let headerMode = $state<HeaderMode>('header');
 	let headerExitDir = $state<'left' | 'right'>('right');
 	let viewModeByTab = $state<Record<FiltersTab, ExplorerViewMode>>({
@@ -512,8 +401,11 @@
 		if (activeTab === 'tags') return tagsExplorer?.hasExpandedNodes() ?? false;
 		return false;
 	});
-	const supportsExpansion = $derived(
-		activeTab === 'files' || activeTab === 'props' || activeTab === 'tags',
+	const expansionActionAvailableForActiveTab = $derived(
+		expansionActionAvailable(
+			activeTab,
+			visibleCellsByTab[activeTab] ?? DEFAULT_VISIBLE_CELLS[activeTab],
+		),
 	);
 	const expansionLabel = $derived(
 		hasExpandedNodes
@@ -826,6 +718,24 @@
 		};
 	}
 
+	function handleExternalTagsSortState(state: ExplorerSortState) {
+		const normalizedState = normalizeSortState('tags', state);
+		if (sameSortState(appliedSortStateByTab.tags, normalizedState)) return;
+		appliedSortStateByTab.tags = normalizedState;
+		const currentByTab = untrack(() => ({
+			...sortStateByTab,
+			tags: normalizeSortState(
+				'tags',
+				sortStateByTab.tags ?? DEFAULT_SORT_STATE.tags,
+			),
+		}));
+		if (sameSortState(currentByTab.tags, normalizedState)) return;
+		sortStateByTab = {
+			...currentByTab,
+			tags: normalizedState,
+		};
+	}
+
 	function handleViewModeChange(mode: ExplorerViewMode) {
 		if (!isViewModeSelectableForDataSurface(activeTab, mode)) return;
 		viewModeByTab = { ...viewModeByTab, [activeTab]: mode };
@@ -1132,10 +1042,6 @@
 		new Notice(translate('sort.level.pick_hint'));
 	}
 
-	function supportsByLevel(tab: FiltersTab): boolean {
-		return tab === 'files' || tab === 'props' || tab === 'tags';
-	}
-
 	function nestedActiveFor(tab: FiltersTab): boolean {
 		return (visibleCellsByTab[tab] ?? DEFAULT_VISIBLE_CELLS[tab]).includes(
 			'nested',
@@ -1172,50 +1078,40 @@
 		tab: FiltersTab,
 		current: ExplorerSortState,
 	) {
-		// D29 order: Nested -> Folders first -> Fixed folders -> sep -> Scope -> All.
-		menu.addItem((item) =>
-			item
-				.setTitle(translate('sort.level.nested'))
-				.setIcon('lucide-list-tree')
-				.setChecked(nestedActiveFor(tab))
-				.onClick(() => toggleNestedFor(tab)),
-		);
-		if (tab === 'files') {
-			const parentsFirst = current.parentsFirst ?? true;
-			menu.addItem((item) =>
-				item
-					.setTitle(translate('sort.parents_first'))
-					.setIcon('lucide-folder-tree')
-					.setChecked(parentsFirst)
-					.onClick(() =>
-						handleSortChange({ ...current, parentsFirst: !parentsFirst }),
-					),
-			);
-			if (parentsFirst) {
-				const fixedFolders = current.fixedFolders !== false;
-				menu.addItem((item) =>
-					item
-						.setTitle(translate('sort.level.fixed_folders'))
-						.setIcon('lucide-folder-lock')
-						.setChecked(fixedFolders)
-						.onClick(() =>
-							handleSortChange({ ...current, fixedFolders: !fixedFolders }),
-						),
-				);
+		const model = byLevelModel(tab, current, nestedActiveFor(tab));
+		if (!model) return;
+
+		for (const option of model.items) {
+			if (option.kind === 'separator') {
+				menu.addSeparator();
+				continue;
 			}
-		}
-		menu.addSeparator();
-		for (const option of sortLevelOptions(tab)) {
 			menu.addItem((item) =>
 				item
 					.setTitle(
-						option.scope === 'drill'
+						option.kind === 'scope' && option.scope === 'drill'
 							? drillScopeTitle(tab, current)
-							: option.label,
+							: translate(option.labelKey),
 					)
 					.setIcon(option.icon)
-					.setChecked(current.activeScope === option.scope)
+					.setChecked(option.checked)
 					.onClick(() => {
+						if (option.kind === 'toggle') {
+							if (option.id === 'nested') toggleNestedFor(tab);
+							if (option.id === 'parentsFirst') {
+								handleSortChange({
+									...current,
+									parentsFirst: !option.checked,
+								});
+							}
+							if (option.id === 'fixedFolders') {
+								handleSortChange({
+									...current,
+									fixedFolders: !option.checked,
+								});
+							}
+							return;
+						}
 						if (option.scope === 'drill') {
 							beginDrillPick(tab);
 							return;
@@ -1231,39 +1127,7 @@
 		}
 	}
 
-	function sortLevelOptions(
-		tab: FiltersTab,
-	): Array<{ scope: SortScopeKey; label: string; icon: string }> {
-		if (tab === 'props') {
-			return [
-				{
-					scope: 'properties',
-					label: translate('sort.level.properties'),
-					icon: 'lucide-list-tree',
-				},
-				{
-					scope: 'values',
-					label: translate('sort.level.values'),
-					icon: 'lucide-list-collapse',
-				},
-			];
-		}
-		if (tab === 'snippets' || tab === 'plugins') return [];
-		return [
-			{
-				scope: 'drill',
-				label: translate('sort.level.drill'),
-				icon: 'lucide-mouse-pointer-click',
-			},
-			{
-				scope: 'all',
-				label: translate('sort.level.all'),
-				icon: 'lucide-layers',
-			},
-		];
-	}
-
-	function nodeTypeOptionsForActiveTab(): NodeTypeOption[] {
+	function nodeTypeOptionsForActiveTab(): readonly NodeTypeMenuOption[] {
 		if (activeTab === 'files') {
 			return [
 				{ id: 'all', icon: 'lucide-files', labelKey: 'sort.type.all' },
@@ -1271,12 +1135,12 @@
 			];
 		}
 		if (activeTab === 'props' || activeTab === 'tags') {
-			return NODE_TYPE_OPTIONS[activeTab];
+			return NODE_TYPE_MENU_OPTIONS[activeTab];
 		}
 		return [];
 	}
 
-	function nodeTypeOptionTitle(option: NodeTypeOption): string {
+	function nodeTypeOptionTitle(option: NodeTypeMenuOption): string {
 		return option.label ?? translate(option.labelKey ?? '');
 	}
 
@@ -1289,16 +1153,7 @@
 		const activeSort = activeScopeSort(activeTab, current);
 
 		const nestedActive = nestedActiveFor(activeTab);
-		for (const option of SORT_OPTIONS[activeTab]) {
-			if (
-				!isSortOptionVisible(option.id, {
-					tab: activeTab,
-					nestedActive,
-					activeScope: current.activeScope,
-				})
-			) {
-				continue;
-			}
+		for (const option of visibleSortOptions(activeTab, current, nestedActive)) {
 			menu.addItem((item) => {
 				const isActive = activeSort.sortBy === option.id;
 				item
@@ -1401,12 +1256,14 @@
 				.setIcon('lucide-gallery-vertical')
 				.onClick(() => fileList?.autoRevealActiveFile()),
 		);
-		menu.addItem((item) =>
-			item
-				.setTitle(expansionLabel)
-				.setIcon(expansionIcon)
-				.onClick(toggleExplorerExpansion),
-		);
+		if (expansionActionAvailableForActiveTab) {
+			menu.addItem((item) =>
+				item
+					.setTitle(expansionLabel)
+					.setIcon(expansionIcon)
+					.onClick(toggleExplorerExpansion),
+			);
+		}
 		menu.showAtMouseEvent(event);
 	}
 
@@ -1430,9 +1287,12 @@
 
 	$effect(() => {
 		const currentFileList = fileList;
+		const currentTagsExplorer = tagsExplorer;
 		currentFileList?.setSortStateChangeHandler(handleExternalFilesSortState);
+		currentTagsExplorer?.setSortStateChangeHandler(handleExternalTagsSortState);
 		return () => {
 			currentFileList?.setSortStateChangeHandler(undefined);
+			currentTagsExplorer?.setSortStateChangeHandler(undefined);
 		};
 	});
 
@@ -1710,7 +1570,7 @@
 								use:icon={'lucide-gallery-vertical'}
 							></div>
 						{/if}
-						{#if supportsExpansion && compactFilesTools}
+						{#if activeTab === 'files' && compactFilesTools}
 							<div
 								class={headerActionClass}
 								role="button"
@@ -1727,7 +1587,7 @@
 								}}
 								use:icon={'lucide-tool-case'}
 							></div>
-						{:else if supportsExpansion}
+						{:else if expansionActionAvailableForActiveTab}
 							<div
 								class={headerActionClass}
 								role="button"
@@ -1761,6 +1621,8 @@
 					onScopeChange={handleScopeChange}
 					onRequestDrillPick={() => beginDrillPick(activeTab)}
 					initialSortState={sortStateByTab[activeTab]}
+					nestedActive={nestedActiveFor(activeTab)}
+					onNestedToggle={() => toggleNestedFor(activeTab)}
 					{icon}
 				/>
 			</div>

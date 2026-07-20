@@ -7,6 +7,7 @@ import popupViewSource from '../../src/components/layout/popupView.svelte?raw';
 import { en } from '../../src/i18n/en';
 import { es } from '../../src/i18n/es';
 import { DEFAULT_SETTINGS } from '../../src/types/typeSettings';
+import { SORT_MENU_OPTIONS } from '../../src/logic/logicSortMenu';
 
 describe('BT3 settings information architecture source guards', () => {
 	it('removes language from UI and exposes the locked heading copy', () => {
@@ -88,7 +89,10 @@ describe('BT3 settings information architecture source guards', () => {
 	it('keeps Props available but off by default for new Files layouts', () => {
 		expect(navbarFiltersSource).toContain("files: ['name', 'ext', 'nested']");
 		expect(navbarFiltersSource).toContain("count: 'viewmode.pill.prop_count'");
-		expect(navbarFiltersSource).toContain("labelKey: 'sort.by.props'");
+		expect(
+			SORT_MENU_OPTIONS.files.find((option) => option.id === 'count')
+				?.labelKey,
+		).toBe('sort.by.props');
 		expect(
 			popupViewSource.match(
 				/\{ id: 'count', labelKey: 'viewmode\.pill\.prop_count', defaultOn: false \}/g,

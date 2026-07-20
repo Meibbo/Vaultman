@@ -9,33 +9,60 @@ import viewGridSource from '../../src/components/layout/viewGrid.ts?raw';
 import filesSource from '../../src/components/containers/explorerFiles.ts?raw';
 import frameSource from '../../src/VaultmanFrame.svelte?raw';
 import { DEFAULT_SETTINGS } from '../../src/types/typeSettings';
+import {
+	byLevelModel,
+	SORT_MENU_OPTIONS,
+	visibleSortOptions,
+} from '../../src/logic/logicSortMenu';
+import { normalizeExplorerSortState } from '../../src/logic/logicScopedSort';
 
 describe('explorer sort UI source', () => {
 	it('exposes modified and created time instead of the ambiguous date sort', () => {
-		for (const source of [navbarSource, popupSource]) {
-			expect(source).toContain("id: 'mtime'");
-			expect(source).toContain("id: 'ctime'");
-			expect(source).not.toMatch(
-				/\{\s*id:\s*'date'[\s\S]{0,100}labelKey:\s*'sort\.by\.date'/,
-			);
-		}
+		const options = Object.values(SORT_MENU_OPTIONS).flat();
+		expect(options.some((option) => option.id === 'mtime')).toBe(true);
+		expect(options.some((option) => option.id === 'ctime')).toBe(true);
+		expect(
+			options.some(
+				(option) =>
+					option.id === 'date' && option.labelKey === 'sort.by.date',
+			),
+		).toBe(false);
 	});
 
 	it('transports Files Parents First through native and popup sort controls', () => {
-		expect(navbarSource).toContain(
-			'const parentsFirst = current.parentsFirst ?? true;',
+		const model = byLevelModel(
+			'files',
+			normalizeExplorerSortState('files', null),
+			true,
 		);
-		expect(navbarSource).toContain("translate('sort.parents_first')");
-		expect(popupSource).toContain('parentsFirst');
-		expect(popupSource).toContain("translate('sort.parents_first')");
+		expect(model?.items.map((item) => item.id)).toContain('parentsFirst');
+		expect(navbarSource).toContain("option.id === 'parentsFirst'");
+		expect(popupSource).toContain("item.id === 'parentsFirst'");
 	});
 
 	it('offers explicit per-tab sort levels in native and popup controls', () => {
 		expect(navbarSource).toContain("translate('sort.level.title')");
-		expect(navbarSource).toContain("translate('sort.level.properties')");
-		expect(navbarSource).toContain("translate('sort.level.values')");
-		expect(navbarSource).toContain("translate('sort.level.all')");
-		expect(navbarSource).toContain("translate('sort.level.drill')");
+		expect(
+			byLevelModel(
+				'props',
+				normalizeExplorerSortState('props', null),
+				true,
+			)?.items.map((item) => item.id),
+		).toEqual(['nested', 'scope-separator', 'properties', 'values']);
+		expect(
+			byLevelModel(
+				'files',
+				normalizeExplorerSortState('files', null),
+				true,
+			)?.items.map((item) => item.id),
+		).toEqual([
+			'nested',
+			'parentsFirst',
+			'fixedFolders',
+			'scope-separator',
+			'drill',
+			'all',
+		]);
 		expect(popupSource).toContain('activeScope');
 		expect(popupSource).toContain('selectScope(');
 		expect(popupSource).toContain("translate('sort.level.title')");
@@ -68,8 +95,14 @@ describe('explorer sort UI source', () => {
 	});
 
 	it('labels Files count sort as Props without renaming generic count sorts', () => {
-		expect(navbarSource).toContain("labelKey: 'sort.by.props'");
-		expect(popupSource).toContain("labelKey: 'sort.by.props'");
+		expect(
+			SORT_MENU_OPTIONS.files.find((option) => option.id === 'count')
+				?.labelKey,
+		).toBe('sort.by.props');
+		expect(
+			SORT_MENU_OPTIONS.props.find((option) => option.id === 'count')
+				?.labelKey,
+		).toBe('sort.by.count');
 	});
 
 	it('uses one physical direction policy on popup, native menu, table and Content', () => {
@@ -101,12 +134,12 @@ describe('explorer sort UI source', () => {
 	});
 
 	it('offers Files statistics sorting and warms persisted stats on demand', () => {
-		for (const source of [navbarSource, popupSource]) {
-			expect(source).toContain("id: 'words'");
-			expect(source).toContain("labelKey: 'sort.by.words'");
-			expect(source).toContain("id: 'tasks'");
-			expect(source).toContain("labelKey: 'sort.by.tasks'");
-		}
+		expect(SORT_MENU_OPTIONS.files).toEqual(
+			expect.arrayContaining([
+				expect.objectContaining({ id: 'words', labelKey: 'sort.by.words' }),
+				expect.objectContaining({ id: 'tasks', labelKey: 'sort.by.tasks' }),
+			]),
+		);
 		expect(filesSource).toContain('this._warmStatisticsCache()');
 		expect(filesSource).toMatch(
 			/_warmStatisticsCache\(files = this\._filesForDisplay\(\)\)/,
@@ -141,25 +174,35 @@ describe('explorer sort UI source', () => {
 
 describe('By level phase 2 source guards (BT4-009 / D29-D33)', () => {
 	it('groups Nested, Folders first and Fixed folders ahead of the scope radios', () => {
-		const group = navbarSource.slice(
-			navbarSource.indexOf('function addByLevelItems('),
-			navbarSource.indexOf('function sortLevelOptions('),
+		const enabled = byLevelModel(
+			'files',
+			normalizeExplorerSortState('files', {
+				sorts: { all: { sortBy: 'name', direction: 'asc' } },
+				activeScope: 'all',
+				nodeTypeFilter: null,
+				parentsFirst: true,
+				fixedFolders: true,
+			}),
+			true,
 		);
-		const nested = group.indexOf("translate('sort.level.nested')");
-		const folders = group.indexOf("translate('sort.parents_first')");
-		const fixed = group.indexOf("translate('sort.level.fixed_folders')");
-		expect(nested).toBeGreaterThan(-1);
-		expect(folders).toBeGreaterThan(nested);
-		expect(fixed).toBeGreaterThan(folders);
-		// Fixed folders only shows while Folders first is on.
-		expect(group).toContain('if (parentsFirst) {');
-		// Scope: drill precedes All levels (D29 order).
-		const levels = navbarSource.slice(
-			navbarSource.indexOf('function sortLevelOptions('),
-			navbarSource.indexOf('function nodeTypeOptionsForActiveTab('),
+		expect(enabled?.items.map((item) => item.id)).toEqual([
+			'nested',
+			'parentsFirst',
+			'fixedFolders',
+			'scope-separator',
+			'drill',
+			'all',
+		]);
+		const disabled = byLevelModel(
+			'files',
+			{
+				...normalizeExplorerSortState('files', null),
+				parentsFirst: false,
+			},
+			true,
 		);
-		expect(levels.indexOf("scope: 'drill'")).toBeLessThan(
-			levels.indexOf("scope: 'all'"),
+		expect(disabled?.items.map((item) => item.id)).not.toContain(
+			'fixedFolders',
 		);
 	});
 
@@ -171,7 +214,14 @@ describe('By level phase 2 source guards (BT4-009 / D29-D33)', () => {
 	});
 
 	it('hides contextual options and shows the six-char drill scope label', () => {
-		expect(navbarSource).toContain('isSortOptionVisible(option.id, {');
+		expect(
+			visibleSortOptions(
+				'files',
+				normalizeExplorerSortState('files', null),
+				true,
+			).map((option) => option.id),
+		).not.toContain('path');
+		expect(navbarSource).toContain('visibleSortOptions(');
 		expect(navbarSource).toContain('drillScopeTitle(tab, current)');
 		expect(navbarSource).toContain('chars.slice(0, 6)');
 	});

@@ -117,14 +117,15 @@ describe('minimal filters header source guards', () => {
 
 	it('exposes Files Parents First as a sort preference separate from node type filters', () => {
 		expect(navbarFiltersSource).toContain(
-			'const parentsFirst = current.parentsFirst ?? true;',
+			'byLevelModel(tab, current, nestedActiveFor(tab))',
 		);
+		expect(navbarFiltersSource).toContain("option.id === 'parentsFirst'");
 		expect(navbarFiltersSource).toContain(
 			'fileList?.setSortState(normalizedState)',
 		);
 		expect(navbarFiltersSource).toContain('sameExplorerSortState(left, right)');
-		expect(navbarFiltersSource).toContain("translate('sort.parents_first')");
-		expect(navbarFiltersSource).toContain("setIcon('lucide-folder-tree')");
+		expect(navbarFiltersSource).toContain('translate(option.labelKey)');
+		expect(navbarFiltersSource).toContain('.setIcon(option.icon)');
 	});
 
 	it('persists and applies full scoped sort state instead of the legacy child-level shape', () => {

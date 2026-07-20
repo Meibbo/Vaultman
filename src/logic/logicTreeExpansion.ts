@@ -1,3 +1,4 @@
+import type { ExplorerTabId } from '../types/typeUI';
 import type { TreeNode } from '../types/typeTree';
 
 /** Return every expandable node in a subtree, including the pressed root. */
@@ -13,4 +14,14 @@ export function collectExpandableSubtreeIds(root: TreeNode): string[] {
 		}
 	}
 	return expandableIds;
+}
+
+export function expansionActionAvailable(
+	tab: ExplorerTabId,
+	visibleCells: readonly string[] | undefined,
+): boolean {
+	return (
+		(tab === 'files' || tab === 'props' || tab === 'tags') &&
+		visibleCells?.includes('nested') === true
+	);
 }
