@@ -242,6 +242,26 @@ export const es: Record<string, string> = {
 	'settings.toolbar': 'Barra de herramientas',
 	'settings.toolbar.desc':
 		'Configura etiquetas y controles de la barra del explorador.',
+	'settings.files_context_menu':
+		'Menú contextual de Files',
+	'settings.files_context_menu.desc':
+		'Elige qué acciones muestra el menú contextual de los nodos de Files, en qué orden, y agrúpalas con separadores y submenús.',
+	'settings.files_context_menu.add_divider':
+		'Añadir separador',
+	'settings.files_context_menu.add_submenu':
+		'Añadir submenú',
+	'settings.files_context_menu.submenu_name':
+		'Submenú',
+	'settings.files_context_menu.divider':
+		'Separador',
+	'settings.files_context_menu.submenu':
+		'Submenú: asigna acciones con el selector',
+	'settings.files_context_menu.no_submenu':
+		'Nivel principal',
+	'settings.files_context_menu.remove':
+		'Eliminar',
+	'settings.files_context_menu.reset':
+		'Restaurar el orden por defecto',
 	'settings.files_hover_info': 'Información hover de Files',
 	'settings.files_hover_info.desc':
 		'Elige qué metadata cacheada y estadísticas de lectura aparecen al mantener el cursor sobre un nodo de Files.',

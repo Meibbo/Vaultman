@@ -243,6 +243,26 @@ export const en: Record<string, string> = {
 		'Replace Auto-reveal and Expand/Collapse with one native Tools menu so the Files toolbar stays at five nodes.',
 	'settings.toolbar': 'Toolbar',
 	'settings.toolbar.desc': 'Configure labels and explorer toolbar controls.',
+	'settings.files_context_menu':
+		'Files context menu',
+	'settings.files_context_menu.desc':
+		'Choose which actions the Files node context menu shows, in which order, and group them with dividers and submenus.',
+	'settings.files_context_menu.add_divider':
+		'Add a divider',
+	'settings.files_context_menu.add_submenu':
+		'Add a submenu',
+	'settings.files_context_menu.submenu_name':
+		'Submenu',
+	'settings.files_context_menu.divider':
+		'Divider',
+	'settings.files_context_menu.submenu':
+		'Submenu — drop actions into it with the selector',
+	'settings.files_context_menu.no_submenu':
+		'Top level',
+	'settings.files_context_menu.remove':
+		'Remove',
+	'settings.files_context_menu.reset':
+		'Restore the default order',
 	'settings.files_hover_info': 'Files hover info',
 	'settings.files_hover_info.desc':
 		'Choose which cached metadata and reading statistics appear when hovering a Files node.',

@@ -11,6 +11,18 @@ import {
 	reorderFileHoverEntries,
 	type FileHoverInfoId,
 } from './logic/logicCellRegistry';
+import {
+	addFilesMenuDivider,
+	addFilesMenuSubmenu,
+	defaultFilesMenuLayout,
+	mergeFilesMenuLayout,
+	normalizeFilesMenuLayout,
+	removeFilesMenuItem,
+	reorderFilesMenuItems,
+	setFilesMenuParent,
+	setFilesMenuVisibility,
+	type FilesMenuItem,
+} from './logic/logicFilesContextMenu';
 import { translate } from './i18n/index';
 import { PayloadPreviewModal } from './modals/modalPayloadPreview';
 import {
@@ -27,6 +39,7 @@ export class VaultmanSettingsTab extends PluginSettingTab {
 		| 'floating-toc'
 		| 'files-hover'
 		| 'explorer'
+		| 'files-context-menu'
 		| 'context-menus' = 'root';
 
 	constructor(app: App, plugin: iVaultmanPlugin) {
@@ -51,6 +64,10 @@ export class VaultmanSettingsTab extends PluginSettingTab {
 		}
 		if (this.page === 'explorer') {
 			this.displayExplorerPage(containerEl);
+			return;
+		}
+		if (this.page === 'files-context-menu') {
+			this.displayFilesContextMenuPage(containerEl);
 			return;
 		}
 		if (this.page === 'context-menus') {
@@ -364,6 +381,16 @@ export class VaultmanSettingsTab extends PluginSettingTab {
 			.addButton((button) =>
 				button.setButtonText(translate('settings.configure')).onClick(() => {
 					this.page = 'explorer';
+					this.display();
+				}),
+			);
+
+		new Setting(containerEl)
+			.setName(translate('settings.files_context_menu'))
+			.setDesc(translate('settings.files_context_menu.desc'))
+			.addButton((button) =>
+				button.setButtonText(translate('settings.configure')).onClick(() => {
+					this.page = 'files-context-menu';
 					this.display();
 				}),
 			);
@@ -764,6 +791,159 @@ export class VaultmanSettingsTab extends PluginSettingTab {
 				}
 				this.plugin.settings.filesHoverInfoOrder = nextOrder;
 				void this.plugin.saveSettings().then(() => this.display());
+			});
+		}
+	}
+
+	/**
+	 * BT5-018: the Files node context menu, configured like the hover-info
+	 * list — drag to reorder, toggle to show or hide — plus dividers and
+	 * submenus the user can create. Everything is stored by action id.
+	 */
+	private displayFilesContextMenuPage(containerEl: HTMLElement): void {
+		new Setting(containerEl)
+			.setName(translate('settings.back_to_layout_settings'))
+			.addButton((button) =>
+				button
+					.setIcon('lucide-arrow-left')
+					.setTooltip(translate('settings.back_to_layout_settings'))
+					.onClick(() => {
+						this.page = 'root';
+						this.display();
+					}),
+			);
+
+		new Setting(containerEl)
+			.setName(translate('settings.files_context_menu'))
+			.setDesc(translate('settings.files_context_menu.desc'))
+			.setHeading();
+
+		const catalog = this.plugin.contextMenuService.panelActionCatalog();
+		const labels = new Map(catalog.map((entry) => [entry.id, entry.label]));
+		const layout = mergeFilesMenuLayout(
+			this.plugin.settings.filesContextMenuLayout,
+			catalog.map((entry) => entry.id),
+		);
+
+		const persist = async (next: FilesMenuItem[]): Promise<void> => {
+			this.plugin.settings.filesContextMenuLayout =
+				normalizeFilesMenuLayout(next);
+			await this.plugin.saveSettings();
+			this.display();
+		};
+
+		new Setting(containerEl)
+			.addButton((button) =>
+				button
+					.setIcon('lucide-minus')
+					.setTooltip(translate('settings.files_context_menu.add_divider'))
+					.onClick(() => void persist(addFilesMenuDivider(layout))),
+			)
+			.addButton((button) =>
+				button
+					.setIcon('lucide-chevron-right')
+					.setTooltip(translate('settings.files_context_menu.add_submenu'))
+					.onClick(() =>
+						void persist(
+							addFilesMenuSubmenu(
+								layout,
+								translate('settings.files_context_menu.submenu_name'),
+							),
+						),
+					),
+			)
+			.addButton((button) =>
+				button
+					.setIcon('lucide-rotate-ccw')
+					.setTooltip(translate('settings.files_context_menu.reset'))
+					.onClick(() =>
+						void persist(
+							defaultFilesMenuLayout(catalog.map((entry) => entry.id)),
+						),
+					),
+			);
+
+		const submenuChoices = layout.filter(
+			(item): item is Extract<FilesMenuItem, { kind: 'submenu' }> =>
+				item.kind === 'submenu',
+		);
+		let draggedId: string | null = null;
+
+		for (const item of layout) {
+			const setting = new Setting(containerEl);
+			if (item.kind === 'divider') {
+				setting.setName(translate('settings.files_context_menu.divider'));
+			} else if (item.kind === 'submenu') {
+				setting.setName(item.label);
+				setting.setDesc(translate('settings.files_context_menu.submenu'));
+			} else {
+				setting.setName(labels.get(item.id) ?? item.id);
+				setting.setDesc(item.id);
+			}
+
+			setting.addExtraButton((button) => {
+				button.setIcon('lucide-grip-vertical').setTooltip(item.id);
+				button.extraSettingsEl.draggable = true;
+				button.extraSettingsEl.addEventListener(
+					'dragstart',
+					(event: DragEvent) => {
+						draggedId = item.id;
+						if (event.dataTransfer) {
+							event.dataTransfer.effectAllowed = 'move';
+							event.dataTransfer.setData('text/plain', item.id);
+						}
+					},
+				);
+				button.extraSettingsEl.addEventListener('dragend', () => {
+					draggedId = null;
+				});
+			});
+
+			if (item.kind === 'action' && submenuChoices.length > 0) {
+				setting.addDropdown((dropdown) => {
+					dropdown.addOption(
+						'',
+						translate('settings.files_context_menu.no_submenu'),
+					);
+					for (const submenu of submenuChoices) {
+						dropdown.addOption(submenu.id, submenu.label);
+					}
+					dropdown.setValue(item.parent ?? '');
+					dropdown.onChange((value) =>
+						void persist(setFilesMenuParent(layout, item.id, value || null)),
+					);
+				});
+			}
+
+			if (item.kind === 'action') {
+				setting.addToggle((toggle) =>
+					toggle
+						.setValue(item.visible)
+						.onChange((value) =>
+							void persist(setFilesMenuVisibility(layout, item.id, value)),
+						),
+				);
+			} else {
+				setting.addExtraButton((button) =>
+					button
+						.setIcon('lucide-trash-2')
+						.setTooltip(translate('settings.files_context_menu.remove'))
+						.onClick(() => void persist(removeFilesMenuItem(layout, item.id))),
+				);
+			}
+
+			setting.settingEl.addEventListener('dragover', (event: DragEvent) => {
+				if (!draggedId) return;
+				event.preventDefault();
+				if (event.dataTransfer) event.dataTransfer.dropEffect = 'move';
+			});
+			setting.settingEl.addEventListener('drop', (event: DragEvent) => {
+				event.preventDefault();
+				const movedId =
+					draggedId ?? event.dataTransfer?.getData('text/plain') ?? null;
+				draggedId = null;
+				if (!movedId || movedId === item.id) return;
+				void persist(reorderFilesMenuItems(layout, movedId, item.id));
 			});
 		}
 	}

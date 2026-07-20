@@ -11,6 +11,11 @@ import {
 import type { ActionDef, MenuCtx, MenuHideRule } from '../types/typeCMenu';
 import type { FileMeta } from '../types/typeTree';
 import { translate } from '../i18n/index';
+import {
+	mergeFilesMenuLayout,
+	projectFilesMenu,
+	type FilesMenuItem,
+} from '../logic/logicFilesContextMenu';
 
 const FILE_EXPLORER_CONTEXT_SOURCE = 'file-explorer-context-menu';
 
@@ -22,6 +27,7 @@ export interface ContextMenuPluginCtx extends Component {
 		contextMenuShowInFileMenu: boolean;
 		contextMenuShowInEditorMenu: boolean;
 		contextMenuHideRules: MenuHideRule[];
+		filesContextMenuLayout?: FilesMenuItem[];
 	};
 	filterService?: {
 		activeFilter: { children: unknown[] };
@@ -114,6 +120,33 @@ export class ContextMenuService extends Component {
 		this._registry.push(def);
 	}
 
+	/**
+	 * BT5-018: every action the Files panel menu could ever show, so the
+	 * settings page lists the live registry instead of a hand-kept copy.
+	 * Registration order is the fallback rank for anything the default order
+	 * does not name.
+	 */
+	panelActionCatalog(): { id: string; label: string; icon?: string }[] {
+		return this._registry
+			.filter(
+				(def) =>
+					def.surfaces.includes('panel') &&
+					(def.nodeTypes.includes('file') || def.nodeTypes.includes('folder')),
+			)
+			.map((def) => ({
+				id: def.id,
+				label: typeof def.label === 'function' ? def.id : def.label,
+				...(def.icon ? { icon: def.icon } : {}),
+			}));
+	}
+
+	private _filesMenuLayout(): FilesMenuItem[] {
+		return mergeFilesMenuLayout(
+			this.plugin.settings.filesContextMenuLayout,
+			this.panelActionCatalog().map((entry) => entry.id),
+		);
+	}
+
 	private _runAction(def: ActionDef, ctx: MenuCtx): void {
 		void Promise.resolve()
 			.then(() => def.run(ctx))
@@ -164,37 +197,41 @@ export class ContextMenuService extends Component {
 			menu.addSeparator();
 		}
 
+		// BT5-018: the saved projection decides order, visibility, dividers and
+		// submenus. `when` has already filtered what this node can offer, so the
+		// projection collapses the dividers around whatever dropped out.
+		const byId = new Map(applicable.map((def) => [def.id, def]));
 		const submenus = new Map<string, Menu>();
-		let currentSection: string | undefined = undefined;
 
-		for (const def of applicable) {
-			if (def.separatorBefore) {
+		for (const step of projectFilesMenu(this._filesMenuLayout(), [
+			...byId.keys(),
+		])) {
+			if (step.kind === 'divider') {
 				menu.addSeparator();
-				currentSection = undefined;
+				continue;
 			}
-			if (def.section && def.section !== currentSection) {
-				menu.addSeparator();
-				currentSection = def.section;
-			}
+			const def = byId.get(step.id);
+			if (!def) continue;
 
 			let targetMenu = menu;
-			if (def.submenu) {
-				const sm = submenus.get(def.submenu);
+			const submenuLabel = step.submenu ?? def.submenu;
+			if (submenuLabel) {
+				const sm = submenus.get(submenuLabel);
 				if (sm) {
 					targetMenu = sm;
 				} else {
 					const icon =
-						def.submenu === 'Convert'
+						submenuLabel === 'Convert'
 							? 'lucide-arrow-right-left'
 							: 'lucide-chevron-right';
 					menu.addItem((i: MenuItem) => {
-						i.setTitle(def.submenu!).setIcon(icon);
+						i.setTitle(submenuLabel).setIcon(icon);
 						// Internal API for submenus in modern Obsidian
 						targetMenu =
 							(i as unknown as { setSubmenu: () => Menu }).setSubmenu() ||
 							new Menu();
 					});
-					submenus.set(def.submenu, targetMenu);
+					submenus.set(submenuLabel, targetMenu);
 				}
 			}
 

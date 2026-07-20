@@ -10,6 +10,7 @@ import {
 	type FileHoverInfoId,
 } from '../logic/logicCellRegistry';
 import type { AddonIconOverrides } from '../logic/logicAddonIcons';
+import type { FilesMenuItem } from '../logic/logicFilesContextMenu';
 
 export type Language = 'auto' | 'en' | 'es';
 
@@ -164,6 +165,8 @@ export interface VaultmanSettings {
 	orderCellsByActivation: boolean;
 	/** BT5-015: put the node icon in the caret slot when nothing can expand */
 	iconInCaretSlot: boolean;
+	/** BT5-018: configured Files node context menu (order, visibility, dividers) */
+	filesContextMenuLayout: FilesMenuItem[];
 	/** Show the explorer toolbar (tabs / view / sort / search header) */
 	showToolbar: boolean;
 	/** Named saved explorer layouts (view options + sorts per tab) */
@@ -209,6 +212,10 @@ export interface iVaultmanPlugin extends Plugin {
 	};
 	iconicService?: {
 		setEnabled(enabled: boolean): void;
+	};
+	/** BT5-018: the live action catalog the Files menu sub-page configures. */
+	contextMenuService: {
+		panelActionCatalog(): { id: string; label: string; icon?: string }[];
 	};
 }
 
@@ -269,6 +276,7 @@ export const DEFAULT_SETTINGS: VaultmanSettings = {
 	addonIconOverrides: {},
 	orderCellsByActivation: false,
 	iconInCaretSlot: false,
+	filesContextMenuLayout: [],
 	showToolbar: true,
 	bypassOperations: false,
 	suppressBulkOperationWarning: false,
