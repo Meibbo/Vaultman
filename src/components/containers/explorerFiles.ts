@@ -1229,6 +1229,7 @@ export class FilesExplorerPanel extends Component {
 				nodes: renderTree,
 				expandedIds: this.expandedIds,
 				visibleCells: this.visibleCells,
+				iconInCaretSlot: this.plugin.settings.iconInCaretSlot === true,
 				cellRenderOrder: this._activationCellOrder(),
 				bubbleDotLabel: (dot: NodeBubbleDot) => this._bubbleDotLabel(dot),
 				selectedIds: this.selectedFilePaths,

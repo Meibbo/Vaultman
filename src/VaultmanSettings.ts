@@ -538,6 +538,18 @@ export class VaultmanSettingsTab extends PluginSettingTab {
 			);
 
 		new Setting(containerEl)
+			.setName(translate('settings.icon_in_caret_slot'))
+			.setDesc(translate('settings.icon_in_caret_slot.desc'))
+			.addToggle((toggle) =>
+				toggle
+					.setValue(this.plugin.settings.iconInCaretSlot === true)
+					.onChange(async (value) => {
+						this.plugin.settings.iconInCaretSlot = value;
+						await this.plugin.saveSettings();
+					}),
+			);
+
+		new Setting(containerEl)
 			.setName(translate('settings.badge_colors'))
 			.setDesc(translate('settings.badge_colors.desc'))
 			.addToggle((toggle) =>

@@ -220,6 +220,7 @@ export class SnippetsExplorerPanel
 		this.treeView.render({
 			nodes: this.nodes,
 			visibleCells: this.visibleCells,
+			iconInCaretSlot: this.plugin.settings.iconInCaretSlot === true,
 			expandedIds: new Set<string>(),
 			onToggle: () => {},
 			onRowClick: () => {},

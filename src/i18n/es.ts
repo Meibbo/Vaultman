@@ -214,6 +214,9 @@ export const es: Record<string, string> = {
 	'settings.search_highlights': 'Highlights de busqueda en explorers',
 	'settings.search_highlights.desc':
 		'Resalta filas de explorers que coinciden con la busqueda actual.',
+	'settings.icon_in_caret_slot': 'Icono en el hueco del caret',
+	'settings.icon_in_caret_slot.desc':
+		'Los nodos que no pueden expandirse muestran su icono en el espacio del caret y recuperan ancho. Los nodos expandibles conservan su caret.',
 	'settings.order_cells_by_activation': 'Ordenar celdas por activación',
 	'settings.order_cells_by_activation.desc':
 		'Muestra las celdas en el orden en que las activas en vez de un orden fijo.',

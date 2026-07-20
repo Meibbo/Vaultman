@@ -29,6 +29,8 @@ export interface PanelPluginCtx {
 		minimalStyle: boolean;
 		badgeCancelClickMode?: import('../../utils/badgeInteraction').BadgeCancelClickMode;
 		explorerSearchHighlights?: boolean;
+		/** BT5-015 */
+		iconInCaretSlot?: boolean;
 	};
 	statisticsCache?: Pick<StatisticsCacheService, 'getFileTimes'>;
 	showDragActionGuide?: (text: string) => void;
@@ -906,6 +908,7 @@ export class PropsExplorerPanel extends Component {
 			nodes: nodesWithIcons,
 			expandedIds: this.expandedIds,
 			visibleCells: this.visibleCells,
+			iconInCaretSlot: this.plugin.settings?.iconInCaretSlot === true,
 			activeFilterIds,
 			warningIds,
 			searchHighlightIds: highlightIds,

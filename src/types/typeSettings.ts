@@ -162,6 +162,8 @@ export interface VaultmanSettings {
 	addonIconOverrides: AddonIconOverrides;
 	/** Render cells in the order they were switched on instead of a fixed rank */
 	orderCellsByActivation: boolean;
+	/** BT5-015: put the node icon in the caret slot when nothing can expand */
+	iconInCaretSlot: boolean;
 	/** Show the explorer toolbar (tabs / view / sort / search header) */
 	showToolbar: boolean;
 	/** Named saved explorer layouts (view options + sorts per tab) */
@@ -266,6 +268,7 @@ export const DEFAULT_SETTINGS: VaultmanSettings = {
 	filesHoverInfo: [...DEFAULT_FILES_HOVER_INFO],
 	addonIconOverrides: {},
 	orderCellsByActivation: false,
+	iconInCaretSlot: false,
 	showToolbar: true,
 	bypassOperations: false,
 	suppressBulkOperationWarning: false,

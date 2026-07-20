@@ -23,6 +23,8 @@ export interface PanelPluginCtx {
 	settings?: {
 		badgeCancelClickMode?: import('../../utils/badgeInteraction').BadgeCancelClickMode;
 		explorerSearchHighlights?: boolean;
+		/** BT5-015 */
+		iconInCaretSlot?: boolean;
 	};
 	statisticsCache?: Pick<StatisticsCacheService, 'getFileTimes'>;
 	showDragActionGuide?: (text: string) => void;
@@ -641,6 +643,7 @@ export class TagsExplorerPanel extends Component {
 			nodes: nodesWithIcons,
 			expandedIds: this.expandedIds,
 			visibleCells: this.visibleCells,
+			iconInCaretSlot: this.plugin.settings?.iconInCaretSlot === true,
 			activeFilterIds,
 			searchHighlightIds: highlightIds,
 			editingId: this.editingId,

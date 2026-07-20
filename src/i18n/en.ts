@@ -216,6 +216,9 @@ export const en: Record<string, string> = {
 	'settings.search_highlights': 'Explorer search highlights',
 	'settings.search_highlights.desc':
 		'Highlight explorer rows that match the current search.',
+	'settings.icon_in_caret_slot': 'Icon in the caret slot',
+	'settings.icon_in_caret_slot.desc':
+		'Nodes that cannot expand show their icon in the space the caret would take, reclaiming horizontal room. Expandable nodes keep their caret.',
 	'settings.order_cells_by_activation': 'Order cells by activation',
 	'settings.order_cells_by_activation.desc':
 		'Render cells in the order you switch them on instead of a fixed order.',
