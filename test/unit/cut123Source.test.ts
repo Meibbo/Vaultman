@@ -32,10 +32,10 @@ describe('cuts 1-3 source guards', () => {
 		expect(navbarPillFabSource).toContain('e.preventDefault();');
 	});
 
-	it('hides DnD and Cards from the minimal native view menu', () => {
+	it('hides locked DnD but keeps selectable Cards in the minimal native view menu', () => {
 		expect(navbarFiltersSource).toContain('minimalNativeViewModes');
 		expect(navbarFiltersSource).toContain("option.id !== 'dnd'");
-		expect(navbarFiltersSource).toContain("option.id !== 'cards'");
+		expect(navbarFiltersSource).not.toContain("option.id !== 'cards'");
 	});
 
 	it('wires drag payloads through all explorer renderers', () => {
