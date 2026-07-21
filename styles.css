@@ -5985,6 +5985,24 @@ button.vaultman-content-scope-hint:focus-visible {
   --vaultman-bubble-dot-color: var(--text-faint);
 }
 
+/* BT5-038: the active-filter-descendant dot uses the accent so it reads like
+   the filter highlight it stands in for, without decorating the whole row. */
+.vaultman-tree-bubble-dot--filter {
+  --vaultman-bubble-dot-color: var(--interactive-accent);
+}
+
+/* Table rows flag the same case with a small trailing accent dot. */
+.vaultman-node-table-filter-dot .vaultman-node-table-col-name::after {
+  content: '';
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  margin-inline-start: 6px;
+  border-radius: 50%;
+  vertical-align: middle;
+  background: var(--interactive-accent);
+}
+
 .vaultman-addon-toggle-cell {
   flex-shrink: 0;
   margin-inline: 2px 0;

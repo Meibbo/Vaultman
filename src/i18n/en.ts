@@ -683,6 +683,7 @@ export const en: Record<string, string> = {
 	'nav.statistics': 'Statistics',
 	'filter.tab.tags': 'Tags',
 	'filter.tab.props': 'Props',
+	'filter.active_descendant': 'Hidden active filter',
 	'filter.tab.files': 'Files',
 	'filter.tab.content': 'Content',
 	'filter.tab.snippets': 'Snippets',

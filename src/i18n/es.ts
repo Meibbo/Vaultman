@@ -643,6 +643,7 @@ export const es: Record<string, string> = {
 	'header.queue_badge': '{count} pendientes',
 	'filter.tab.tags': 'Etiquetas',
 	'filter.tab.props': 'Props',
+	'filter.active_descendant': 'Filtro activo oculto',
 	'filter.tab.files': 'Archivos',
 	'filter.tab.content': 'Contenido',
 	'filter.tab.snippets': 'Snippets',

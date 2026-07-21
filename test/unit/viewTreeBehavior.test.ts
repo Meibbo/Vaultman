@@ -395,7 +395,7 @@ describe('UnifiedTreeView behavior', () => {
 		).toBe(false);
 	});
 
-	it('bubbles a hidden child filter highlight only while its parent is collapsed', async () => {
+	it('dots a collapsed parent hiding an active filter instead of decorating it', async () => {
 		const { UnifiedTreeView } =
 			await import('../../src/components/layout/viewTree');
 		const root: TreeNode = {
@@ -422,11 +422,16 @@ describe('UnifiedTreeView behavior', () => {
 			onContextMenu: () => {},
 		};
 
+		// BT5-038: collapsed, the parent hides an active filter — it gets a dot,
+		// never the filter decoration itself.
 		view.render({ ...baseOptions, expandedIds: new Set<string>() });
 		const collapsedRow = container.querySelector(
 			'.vaultman-tree-row',
 		) as unknown as TinyElement | null;
-		expect(collapsedRow?.classList.contains('is-active-filter')).toBe(true);
+		expect(collapsedRow?.classList.contains('is-active-filter')).toBe(false);
+		expect(
+			container.querySelector('.vaultman-tree-bubble-dot--filter'),
+		).not.toBeNull();
 
 		view.render({
 			...baseOptions,
@@ -438,6 +443,11 @@ describe('UnifiedTreeView behavior', () => {
 		expect(expandedParentRow?.classList.contains('is-active-filter')).toBe(
 			false,
 		);
+		// Expanded, the child is visible and carries the real decoration; the
+		// parent no longer needs the dot.
+		expect(
+			container.querySelector('.vaultman-tree-bubble-dot--filter'),
+		).toBeNull();
 	});
 
 	it('forwards modifier and middle-click mouse events to row consumers', async () => {

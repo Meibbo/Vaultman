@@ -380,7 +380,9 @@ describe('BT5-017 wiring guards', () => {
 		// Rendered behind a guard: no node without activity creates DOM.
 		expect(viewTreeSource).toMatch(/if \(node\.bubbleDot\) \{/);
 		// A bubble-only folder must still create the badge zone that owns the dot.
-		expect(viewTreeSource).toMatch(/\|\|\s*node\.bubbleDot\s*\)\s*\{/);
+		// BT5-038 added the active-filter dot to the same gate.
+		expect(viewTreeSource).toMatch(/node\.bubbleDot\s*\|\|/);
+		expect(viewTreeSource).toMatch(/hasFilterBubbleDot\s*\)\s*\{/);
 		// Reused virtual rows must repaint when the dot appears/changes color.
 		expect(viewTreeSource).toMatch(
 			/node\.bubbleDot\.color\}:\$\{node\.bubbleDot\.sourceCount/,

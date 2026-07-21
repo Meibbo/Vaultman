@@ -5,7 +5,9 @@ import type {
 	TreeNode,
 	TreeNodeCell,
 } from '../../types/typeTree';
-import { resolvePresentedActiveFilterIds } from '../../logic/logicActiveFilterBubbling';
+import { resolveActiveFilterPresentation } from '../../logic/logicActiveFilterBubbling';
+
+const EMPTY_ID_SET: ReadonlySet<string> = new Set();
 import {
 	explorerDensityProfile,
 	usesMobileExplorerDensity,
@@ -61,6 +63,8 @@ export interface TreeViewOptions {
 	 * stays i18n-agnostic, so the panel supplies the localized text.
 	 */
 	bubbleDotLabel?: (dot: NodeBubbleDot) => string;
+	/** BT5-038: localized label for the active-filter-descendant dot. */
+	filterBubbleLabel?: string;
 	/**
 	 * BT5-032/034: the panel's configured tooltip text for a row. The view
 	 * still authors nothing — it only asks, and applies whatever it gets, at
@@ -80,6 +84,7 @@ export class UnifiedTreeView {
 	private containerEl: HTMLElement;
 	private rowEls = new Map<string, HTMLElement>();
 	private _pendingRaf: number | null = null;
+	private _filterBubbleIds: ReadonlySet<string> = EMPTY_ID_SET;
 	private _hoveredRowId: string | null = null;
 	private _pendingScrollTimer: number | null = null;
 	private _opts: TreeViewOptions | null = null;
@@ -118,14 +123,16 @@ export class UnifiedTreeView {
 	render(opts: TreeViewOptions): void {
 		this._recursiveExpandGesture.cancel();
 		if (opts.activeFilterIds) {
-			const presentedActiveFilterIds = resolvePresentedActiveFilterIds(
+			// BT5-038: exact filters keep the decoration; a collapsed ancestor
+			// that only hides one gets a dot, so it no longer looks like a filter.
+			const { bubbled } = resolveActiveFilterPresentation(
 				opts.nodes,
 				opts.expandedIds,
 				opts.activeFilterIds,
 			);
-			if (presentedActiveFilterIds !== opts.activeFilterIds) {
-				opts = { ...opts, activeFilterIds: presentedActiveFilterIds };
-			}
+			this._filterBubbleIds = bubbled;
+		} else {
+			this._filterBubbleIds = EMPTY_ID_SET;
 		}
 		this._opts = opts;
 		this.containerEl.dataset.vaultmanTreeOwner = this._ownerId;
@@ -519,6 +526,7 @@ export class UnifiedTreeView {
 			node.children?.length ?? 0,
 			node.showCaret ? '1' : '0',
 			opts.activeFilterIds?.has(node.id) ? '1' : '0',
+			this._filterBubbleIds.has(node.id) ? '1' : '0',
 			opts.warningIds?.has(node.id) ? '1' : '0',
 			opts.editingId === node.id ? '1' : '0',
 			visibleCells,
@@ -664,6 +672,9 @@ export class UnifiedTreeView {
 		const showCaret = hasChildren || Boolean(node.showCaret);
 		const isExpanded = opts.expandedIds.has(node.id);
 		const isActive = opts.activeFilterIds?.has(node.id) ?? false;
+		// BT5-038: a collapsed parent that only HIDES an active filter shows a
+		// dot, not the filter decoration itself.
+		const hasFilterBubbleDot = this._filterBubbleIds.has(node.id);
 		const isWarning = opts.warningIds?.has(node.id) ?? false;
 		const isEditing = opts.editingId === node.id;
 		const isHighlighted = opts.searchHighlightIds?.has(node.id) ?? false;
@@ -963,7 +974,8 @@ export class UnifiedTreeView {
 			(showCount && node.count != null && node.count > 0) ||
 			(node.badges && node.badges.length > 0) ||
 			nodeCells.length > 0 ||
-			node.bubbleDot
+			node.bubbleDot ||
+			hasFilterBubbleDot
 		) {
 			const badgeZone = row.createDiv({ cls: 'vaultman-tree-badge-zone' });
 
@@ -990,6 +1002,21 @@ export class UnifiedTreeView {
 					setTooltip(dotEl, description);
 					dotEl.setAttribute('role', 'img');
 					dotEl.setAttribute('aria-label', description);
+				}
+			}
+
+			// BT5-038: a collapsed parent that hides an active filter (props/tags
+			// cell_highlight) gets its own dot, so it signals the hidden filter
+			// without wearing the filter decoration itself.
+			if (hasFilterBubbleDot) {
+				const dotEl = badgeZone.createSpan({
+					cls: 'vaultman-tree-bubble-dot vaultman-tree-bubble-dot--filter',
+				});
+				// The view stays i18n-agnostic: the panel supplies the label.
+				if (opts.filterBubbleLabel) {
+					dotEl.setAttribute('role', 'img');
+					dotEl.setAttribute('aria-label', opts.filterBubbleLabel);
+					setTooltip(dotEl, opts.filterBubbleLabel);
 				}
 			}
 

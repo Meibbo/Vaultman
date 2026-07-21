@@ -908,6 +908,7 @@ export class PropsExplorerPanel extends Component {
 			nodes: nodesWithIcons,
 			expandedIds: this.expandedIds,
 			visibleCells: this.visibleCells,
+			filterBubbleLabel: translate('filter.active_descendant'),
 			iconInCaretSlot: this.plugin.settings?.iconInCaretSlot === true,
 			activeFilterIds,
 			warningIds,

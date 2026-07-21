@@ -9,7 +9,7 @@ import {
 	type NodeTableSurface,
 } from '../../logic/logicNodeTableLayout';
 import type { TreeNode } from '../../types/typeTree';
-import { resolvePresentedActiveFilterIds } from '../../logic/logicActiveFilterBubbling';
+import { resolveActiveFilterPresentation } from '../../logic/logicActiveFilterBubbling';
 import { buildVirtualTableWindow } from '../../utils/tableVirtualization';
 import { vaultmanPerfMonitor } from '../../utils/performanceMonitor';
 import { elementContentWidth } from '../../utils/elementDimensions';
@@ -57,6 +57,7 @@ export class NodeTableView<TMeta = unknown> {
 	private opts: NodeTableViewOptions<TMeta> | null = null;
 	private rows: TreeNode<TMeta>[] = [];
 	private rowEls = new Map<string, HTMLElement>();
+	private _filterBubbleIds: ReadonlySet<string> = new Set();
 	private pendingRaf: number | null = null;
 	private pendingScrollTimer: number | null = null;
 	private columnWidths: NodeTableColumnWidths = {};
@@ -83,14 +84,15 @@ export class NodeTableView<TMeta = unknown> {
 	render(opts: NodeTableViewOptions<TMeta>): void {
 		this.recursiveExpandGesture.cancel();
 		if (opts.activeFilterIds) {
-			const presentedActiveFilterIds = resolvePresentedActiveFilterIds(
+			// BT5-038: only the exact filters keep the decoration; a collapsed
+			// ancestor no longer inherits it (it is signalled separately).
+			this._filterBubbleIds = resolveActiveFilterPresentation(
 				opts.nodes as TreeNode[],
 				opts.expandedIds,
 				opts.activeFilterIds,
-			);
-			if (presentedActiveFilterIds !== opts.activeFilterIds) {
-				opts = { ...opts, activeFilterIds: presentedActiveFilterIds };
-			}
+			).bubbled;
+		} else {
+			this._filterBubbleIds = new Set();
 		}
 		this.opts = opts;
 		this.rows = flattenVisibleTree(
@@ -358,6 +360,7 @@ export class NodeTableView<TMeta = unknown> {
 			node.showCaret ? '1' : '0',
 			opts.expandedIds.has(node.id) ? '1' : '0',
 			opts.activeFilterIds?.has(node.id) ? '1' : '0',
+			this._filterBubbleIds.has(node.id) ? '1' : '0',
 			opts.warningIds?.has(node.id) ? '1' : '0',
 			visibleCells,
 			columns,
@@ -448,6 +451,12 @@ export class NodeTableView<TMeta = unknown> {
 		row.toggleClass(
 			'is-active-filter',
 			opts.activeFilterIds?.has(node.id) ?? false,
+		);
+		// BT5-038: a collapsed parent hiding an active filter is flagged with a
+		// dot class, not the filter decoration.
+		row.toggleClass(
+			'vaultman-node-table-filter-dot',
+			this._filterBubbleIds.has(node.id),
 		);
 		row.toggleClass(
 			'vaultman-badge-warning',

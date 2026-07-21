@@ -48,12 +48,13 @@ describe('NodeTableView source guards', () => {
 		expect(nodeTableSource).toContain('onpointerdown');
 	});
 
-	it('projects hidden active filters onto collapsed parent cells', () => {
-		expect(nodeTableSource).toContain('resolvePresentedActiveFilterIds');
-		expect(nodeTableSource).toContain(
-			'const presentedActiveFilterIds = resolvePresentedActiveFilterIds(',
-		);
-		expect(nodeTableSource).toContain(
+	it('dots collapsed parents of active filters instead of decorating them', () => {
+		// BT5-038: the exact filters keep is-active-filter; a collapsed ancestor
+		// only gets a dot class, so it no longer inherits the decoration.
+		expect(nodeTableSource).toContain('resolveActiveFilterPresentation');
+		expect(nodeTableSource).toContain('this._filterBubbleIds =');
+		expect(nodeTableSource).toContain('vaultman-node-table-filter-dot');
+		expect(nodeTableSource).not.toContain(
 			'opts = { ...opts, activeFilterIds: presentedActiveFilterIds }',
 		);
 	});
