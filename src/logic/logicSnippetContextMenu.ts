@@ -4,6 +4,7 @@ import { translate } from '../i18n/index';
 import { openAddonIconPicker } from '../modals/modalAddonIconPicker';
 import { readAddonIconOverrides, getAddonIconOverride, setAddonIconOverride, clearAddonIconOverride, writeAddonIconOverrides } from './logicAddonIcons';
 import { ConfirmModal } from '../modals/modalConfirm';
+import { FileRenameModal } from '../modals/modalFileRename';
 import { setCssSnippetEnabled } from '../utils/obsidianAddons';
 import type { SnippetMeta } from '../types/typeTree';
 import type { App } from 'obsidian';
@@ -106,12 +107,41 @@ export function registerSnippetActions(plugin: VaultmanPlugin): void {
 			const meta = ctx.node?.meta as SnippetMeta | undefined;
 			return !!meta?.name;
 		},
-		run: async (ctx: MenuCtx) => {
+		run: (ctx: MenuCtx) => {
 			const meta = ctx.node?.meta as SnippetMeta | undefined;
 			if (!meta || !meta.name) return;
 			const app = plugin.app as InternalApp;
 			const path = app.customCss?.getSnippetPath(meta.name);
 			if (!path) return;
+
+			const fakeFile = {
+				name: `${meta.name}.css`,
+				basename: meta.name,
+				extension: 'css',
+				path: path,
+			} as unknown as import('obsidian').TFile;
+
+			new FileRenameModal(
+				plugin.app,
+				plugin.propertyIndex,
+				[fakeFile],
+				(change) => {
+					// Extract the new name from the PendingChange's logicFunc
+					const updates = change.logicFunc?.(fakeFile, {}) ?? {};
+					const newName = updates['_RENAME_FILE']; // RENAME_FILE
+					if (typeof newName === 'string') {
+						const newPath = path.replace(`${meta.name}.css`, newName);
+						app.vault.adapter
+							.rename(path, newPath)
+							.then(() => {
+								app.customCss?.requestLoadSnippets?.();
+							})
+							.catch((error: unknown) => {
+								console.error('Failed to rename snippet', error);
+							});
+					}
+				}
+			).open();
 		},
 	});
 
