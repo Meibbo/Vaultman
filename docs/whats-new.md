@@ -20,6 +20,34 @@ One inviting sentence that explains who benefits and why.
 [Full changelog](../CHANGELOG.md#exact-github-anchor-for-this-release)
 -->
 
+<a id="v1-2-0-beta-6"></a>
+## 1.2.0-beta.6 — More to configure, fewer papercuts
+<!-- reviewed: true -->
+
+This beta puts more of the explorers under your control and clears out a batch of
+small interaction bugs.
+
+- **Configure every node menu:** Files, Properties, Tags, Content, Snippets and
+  Plugins each have their own context menu you can reorder, hide, and group with
+  dividers and submenus — and the Files menu can also list the items other plugins
+  add.
+- **Shape the toolbar:** Choose whether extra actions condense into a menu or stay
+  on one horizontally scrollable line, move Create File/Folder onto the toolbar, and
+  add your own Obsidian commands as toolbar buttons — Create File can even run a
+  command you pick.
+- **Know your files better:** A new Last opened time drives an optional cell and a
+  "most recent first" sort, and Statistics gains Remaining tasks and Opened today
+  cards. In the flat Files list, a Path cell shows the full path.
+- **Color and compose:** One shared glyph-color palette (default, faint, accent,
+  custom, rainbow) covers the Floating Index and the Explorer, and two ready-made
+  View Compositions (Basic list and Preview) are there to start from or delete.
+- **Fewer papercuts:** The first click on an inactive explorer works, tooltips show
+  on the first hover, Files repaints the moment an icon changes, and a collapsed
+  folder that hides an active filter shows a small dot instead of looking like a
+  filter itself.
+
+[Full changelog](../CHANGELOG.md#120-beta6---2026-07-21)
+
 <a id="v1-2-0-beta-5"></a>
 ## 1.2.0-beta.5 — Calmer typing, tidier explorers
 <!-- reviewed: true -->
