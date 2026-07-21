@@ -432,22 +432,6 @@ export class VaultmanSettingsTab extends PluginSettingTab {
 			);
 
 		new Setting(containerEl)
-			.setName(translate('settings.addons.iconic.files_scope'))
-			.setDesc(translate('settings.addons.iconic.files_scope.desc'))
-			.addDropdown((dropdown) =>
-				dropdown
-					.addOption('all', translate('settings.icon_scope.all'))
-					.addOption('files', translate('settings.icon_scope.files'))
-					.addOption('folders', translate('settings.icon_scope.folders'))
-					.addOption('custom', translate('settings.icon_scope.custom'))
-					.setValue(this.plugin.settings.filesIconScope ?? 'all')
-					.onChange(async (value) => {
-						this.plugin.settings.filesIconScope = value as FilesIconScope;
-						await this.plugin.saveSettings();
-					}),
-			);
-
-		new Setting(containerEl)
 			.setName(translate('settings.developer_tools'))
 			.setHeading();
 
@@ -713,6 +697,23 @@ export class VaultmanSettingsTab extends PluginSettingTab {
 		new Setting(containerEl)
 			.setName(translate('settings.explorer_page'))
 			.setHeading();
+
+		// BT5-033: node icon scope lives in the Explorer menu now (was in Add-ons).
+		new Setting(containerEl)
+			.setName(translate('settings.node_icon_scope'))
+			.setDesc(translate('settings.node_icon_scope.desc'))
+			.addDropdown((dropdown) =>
+				dropdown
+					.addOption('all', translate('settings.icon_scope.all'))
+					.addOption('files', translate('settings.icon_scope.files'))
+					.addOption('folders', translate('settings.icon_scope.folders'))
+					.addOption('custom', translate('settings.icon_scope.custom'))
+					.setValue(this.plugin.settings.filesIconScope ?? 'all')
+					.onChange(async (value) => {
+						this.plugin.settings.filesIconScope = value as FilesIconScope;
+						await this.plugin.saveSettings();
+					}),
+			);
 
 		new Setting(containerEl)
 			.setName(translate('settings.addon_cell_style'))

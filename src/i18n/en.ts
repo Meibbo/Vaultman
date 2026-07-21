@@ -366,6 +366,9 @@ export const en: Record<string, string> = {
 	'settings.addons.iconic.files_scope': 'Files icon scope',
 	'settings.addons.iconic.files_scope.desc':
 		'Choose which Files nodes may show the icon cell. Custom only shows nodes explicitly styled by Iconic.',
+	'settings.node_icon_scope': 'Node icon scope',
+	'settings.node_icon_scope.desc':
+		'Which explorer nodes may show an icon: files and folders, files only, folders only, or only nodes with a custom icon.',
 	'settings.icon_scope.all': 'Files and folders',
 	'settings.icon_scope.files': 'Files only',
 	'settings.icon_scope.folders': 'Folders only',

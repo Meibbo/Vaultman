@@ -365,6 +365,9 @@ export const es: Record<string, string> = {
 	'settings.addons.iconic.files_scope': 'Alcance de íconos en Files',
 	'settings.addons.iconic.files_scope.desc':
 		'Elige qué nodos de Files pueden mostrar la celda de ícono. Personalizados muestra solo los nodos configurados en Iconic.',
+	'settings.node_icon_scope': 'Alcance de icono de nodo',
+	'settings.node_icon_scope.desc':
+		'Qué nodos del explorer pueden mostrar icono: files y folders, solo files, solo folders, o solo nodos con icono personalizado.',
 	'settings.icon_scope.all': 'Archivos y carpetas',
 	'settings.icon_scope.files': 'Solo archivos',
 	'settings.icon_scope.folders': 'Solo carpetas',
