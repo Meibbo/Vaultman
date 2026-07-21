@@ -5,7 +5,7 @@ status: active
 parent: "[[docs/work/pkm-ai/index|pkm-ai]]"
 archive_source: docs/archive/pkm-ai/active-docs/2026-05-11T080321-current-handoff.md
 created: 2026-05-04T01:36:20
-updated: 2026-07-21T01:30:00
+updated: 2026-07-21T08:10:00
 tags:
   - agent/current
 created_by: dec
@@ -24,23 +24,30 @@ https://github.com/Meibbo/Vaultman/releases/tag/1.2.0-beta.6 · `origin/dev` = t
 `fefdde48` (`chore(release): prepare 1.2.0-beta.6`). CI verde entera (verify 904
 tests, security:audit, build:plugin, attest, upload, publish). Pre-release.
 
-**Rama de trabajo:** `codex/bt5-next-10` FF a `fefdde48` (= dev, incluye el release
-commit). Worktree `C:/tmp/vaultman-release-beta2-final2` limpio. `stash@{0}` intacto.
+**Rama de trabajo:** `codex/bt5-next-10`, worktree `C:/tmp/vaultman-release-beta2-final2`
+limpio. **HEAD `b4b625f7`** = 4 commits AFK sobre beta.6 (`fefdde48`), sin push.
+`stash@{0}` intacto.
 
 **Orden actual del dev:** resolver **todos los P2 restantes** de forma AFK con
 libertad de smoke testing, dejar el **preflight de v1.2.0 stable SIN publicar**
-(esperar su visto bueno). Bubbledot: NO quitar BT5-017; añadir un option para
-intercambiar entre (A) un solo dot indicativo de que los childs tienen algún estado
-(filter u operation pendiente) y (B) el dot de filter como badge junto al resto de
-badges de operation (el dev sospecha que se borraron los operation badges por
-malentendido — verificar).
+(esperar su visto bueno).
+
+**Cerrado AFK después de beta.6 (batch 2026-07-21, shard 11):**
+- **BT5-042** (`ff083b91`) — bubbledot: toggle `collapsedFolderBadges` dot↔badges de
+  descendientes. **BT5-017 conservado** por instrucción del dev (la opción B era lo
+  pedido: badges de operation junto al dot de filtro). Gate 909 tests.
+- **BT5-034** (`2bdea929`) — island de filtros clampa su max-height al alto del frame.
+- **BT5-033 slice-1** (`3353cd88`) — Node icon scope renombrado + movido a Explorer.
+- **BT5-040** (`b4b625f7`) — folder totals recursivos (words/props/tasks; fechas fuera).
 
 **Pendientes reales (todo P2, ningún bloqueador de código para v1.2.0):**
-- BT5-018 (revisión UI del dev), BT5-026, BT5-027, BT5-033, BT5-034, BT5-035,
-  BT5-036 (resto: content/snippets/plugins actions), BT5-039, BT5-040 (sin fechas),
-  BT5-041. Detalle e índice: [[docs/work/polish/issues/bt5-next-release/index|BT5]].
-- Gates HITL de release (v1.2.0): BT5-002 (matriz visual), BT5-003 (benchmark vault
+- **Código AFK:** BT5-036 (resto: content/snippets/plugins actions), BT5-035, BT5-039,
+  BT5-041. **BT5-033-core = GRILL-GATED** (compositions capturan showDock/showToolbar/
+  etc — el dev debe fijar el límite composition vs. global antes de codear).
+- **HITL del dev:** BT5-018 (revisión UI, código listo `b4f0815a`), BT5-026, BT5-027.
+- **Gates HITL de release (v1.2.0):** BT5-002 (matriz visual), BT5-003 (benchmark vault
   grande), BT5-004 (boletín + tag) — validaciones del dev, no código.
+- Detalle e índice: [[docs/work/polish/issues/bt5-next-release/index|BT5]].
 
 Shards previos 06–10 en `docs/work/polish/plans/2026-07-19-bt5-next-10/`.
 

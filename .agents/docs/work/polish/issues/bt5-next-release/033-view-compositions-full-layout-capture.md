@@ -1,13 +1,13 @@
 ---
 title: BT5-033 — View Compositions capturan todo el estado del Layout
 type: issue
-status: needs-triage
+status: in-progress
 lifecycle: active
 priority: P2
 execution: AFK
 parent: "[[docs/work/polish/issues/bt5-next-release/index|BT5]]"
 created: 2026-07-20T22:05:00
-updated: 2026-07-20T22:05:00
+updated: 2026-07-21T08:00:00
 created_by: claude-opus-4-8
 updated_by: claude-opus-4-8
 tags: [agent/issue, triage/needs-triage, initiative/polish, release/bt5, compositions]
@@ -58,6 +58,18 @@ Depende de decidir el límite composition vs. global; conviene grill con el dev
 antes de fijar la lista. El seeding de defaults (Basic list / Preview) ya existe
 y deberá regenerarse para incluir el bloque nuevo.
 
+## Progreso 2026-07-21 (primer slice)
+
+**Commit `3353cd88`.** Hecho solo el criterio de `filesIconScope`: renombrado a
+**Node icon scope** y movido de Add-ons a **Layout Configuration → Explorer**. Key y
+valores sin cambio → configs viejas siguen. Detalle:
+[[docs/work/polish/plans/2026-07-19-bt5-next-10/11-post-beta6-bubbledot-island-iconscope-folder-totals|shard 11]].
+
+**Pendiente (el grueso, GRILL-GATED):** que `SavedLayout` capture showDock,
+showToolbar y el resto de opciones de Layout Configuration. Hay que **grill con el
+dev** para clasificar cada opción como composition-scoped vs. global-permanent antes
+de codear — no se hace AFK.
+
 ## Blocked by
 
-None — can start immediately.
+Grill con el dev (límite composition vs. global) para el resto del scope.

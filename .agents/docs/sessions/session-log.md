@@ -2048,3 +2048,23 @@ broader "append-only status writes" is parked as **S-12** in
   escucha `onLoaded`, no `onChanged`) y BT5-032 (`viewTree.rowTitle()` reaplica un
   tooltip genérico hardcoded que tapa al configurable).
 - Quedan para el siguiente agente: 012 → 013 → 015 → 018 → 031/032.
+
+## 2026-07-21 — claude-opus-4-8 · implement · post-beta.6 AFK batch + cierre de deuda docs
+
+- Contexto: el agente anterior publicó `1.2.0-beta.6` (`fefdde48`) y siguió trabajando,
+  pero se cortó por contexto **redactando los docs** del último issue. El código quedó
+  commiteado en el worktree; los docs (040/042) sin commitear y sin outcomes en el index.
+- **Reconstrucción del corte:** worktree `C:/tmp/vaultman-release-beta2-final2`, rama
+  `codex/bt5-next-10`, **4 commits sobre beta.6**: `ff083b91` (BT5-042 bubbledot toggle),
+  `2bdea929` (BT5-034 island clamp), `3353cd88` (BT5-033 slice-1 node icon scope),
+  `b4b625f7` (BT5-040 folder totals). Worktree limpio, sin push.
+- **Verify re-corrido sobre HEAD `b4b625f7`** (el commit de 040 no tenía gate propio):
+  eslint limpio · svelte-check 0/0 (1115 files) · prettier ok · stylelint ok · build ok ·
+  **test:unit 140 files / 915 tests** · scorecard 17/17. VERDE.
+- **Deuda de docs cerrada:** shard 11 creado; 040→completed, 034→completed, 033→in-progress
+  (slice-1), 042 confirmado completed; tabla del index + status.md LATEST + handoff top +
+  frontmatter actualizados.
+- **Smoke de runtime NO ejecutado** (todo por gates). BT5-034 necesita smoke en split
+  pequeño; BT5-033-core necesita grill con el dev antes de codear.
+- Siguiente (código AFK): BT5-036 (resto), 035, 039, 041. Preflight v1.2.0 stable sin
+  publicar por orden del dev.

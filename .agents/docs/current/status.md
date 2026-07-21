@@ -5,11 +5,11 @@ status: active
 parent: "[[docs/work/pkm-ai/index|pkm-ai]]"
 archive_source: docs/archive/pkm-ai/active-docs/2026-05-11T080321-current-status.md
 created: 2026-05-04T01:36:20
-updated: 2026-07-19T08:02:57
+updated: 2026-07-21T08:10:00
 tags:
   - agent/current
 created_by: dec
-updated_by: codex-gpt-5
+updated_by: claude-opus-4-8
 ---
 
 # Current Status
@@ -31,6 +31,17 @@ Compact route index after archiving the oversized current status:
 - Active initiative: [[docs/work/hardening/index|Hardening]].
 - **Pendientes consolidados (dev-facing)**: [[docs/current/pendientes|pendientes]] —
   HITL · Codex · spine · researches · infra (creado 2026-07-09, mantener al cerrar/abrir ítems).
+- **LATEST (2026-07-21, claude-opus-4-8): `1.2.0-beta.6` PUBLICADA + batch AFK post-beta.6.**
+  Release: https://github.com/Meibbo/Vaultman/releases/tag/1.2.0-beta.6 · `origin/dev` = tag =
+  `fefdde48`. Worktree `C:/tmp/vaultman-release-beta2-final2`, rama `codex/bt5-next-10`,
+  HEAD **`b4b625f7`** (4 commits sobre beta.6, worktree limpio, sin push). Cerrados AFK
+  después de beta.6: **BT5-042** (`ff083b91` toggle folder colapsado dot↔badges, gate 909),
+  **BT5-034** (`2bdea929` island clamp al frame), **BT5-033 slice-1** (`3353cd88` Node icon
+  scope rename/move), **BT5-040** (`b4b625f7` folder totals recursivos). Registro:
+  [[docs/work/polish/plans/2026-07-19-bt5-next-10/11-post-beta6-bubbledot-island-iconscope-folder-totals|shard 11]].
+  Backlog código AFK restante: **036 (resto), 035, 039, 041** + **033-core (grill-gated)**.
+  HITL dev: **018, 026, 027** + gates release **002/003/004**. Preflight v1.2.0 stable **sin
+  publicar** por orden del dev. Índice: [[docs/work/polish/issues/bt5-next-release/index|BT5]].
 - **LATEST (2026-07-18, codex-gpt5-root): `1.2.0-beta.4` PUBLICADA.** `dev`,
   tag y release apuntan a `f22ae806`; workflow Release `29671245720` verde
   (verify 101 files/563 tests · check 0/0 · lint/format/stylelint/build ·

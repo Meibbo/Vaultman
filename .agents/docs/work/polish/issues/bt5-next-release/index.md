@@ -5,7 +5,7 @@ status: active
 lifecycle: active
 parent: "[[docs/work/polish/index|polish]]"
 created: 2026-07-19T08:02:57
-updated: 2026-07-21T00:30:00
+updated: 2026-07-21T08:00:00
 created_by: codex-gpt-5
 updated_by: claude-opus-4-8
 tags:
@@ -128,16 +128,17 @@ la cola canónica para implementación nueva.
 | Renames | ✅ completed | `1b3031b2` View config→View Compositions, Layout Settings→Layout Configuration |
 | Sort menu | ✅ completed | `e86cd6f4` sin opciones de folder en table/cards ni con nested off |
 | Compositions | ✅ completed | `1b3031b2` seed borrable de Basic list + Preview |
-| BT5-033 | 🆕 needs-triage | compositions deben guardar showDock/showToolbar/etc. + `filesIconScope`→node icon scope en Explorer menu |
-| BT5-034 | 🆕 needs-triage | island de filtros no se ajusta al alto del frame; oculta entradas en split pequeño |
+| BT5-033 | ⏳ in-progress | `3353cd88` Node icon scope renombrado/movido a Explorer; **grueso (compositions capturan showDock/showToolbar/etc) GRILL-GATED** |
+| BT5-034 | ✅ completed | `2bdea929` islands inferiores clampan su max-height a `--vaultman-frame-height`; smoke split pequeño pendiente del dev |
 | BT5-035 | 🆕 needs-triage | option `Condense tabs` (on=tab menu, off=tabbar experimental) + cmenus config granular por menú |
 | BT5-036 | ⏳ in-progress | `0f9fba74` cmenus por kind (regresión props/tags cerrada) + sección por kind; faltan content/snippets/plugins actions |
 | BT5-037 | ✅ completed | `871a837e` statistics toolbar igual a los demás + card Opened today |
 | BT5-038 | ✅ completed | `6e64f28b` padre colapsado con filtro oculto recibe un dot, no la decoración; files intacto |
 | Content link | ✅ completed | `0f9fba74` "with active filters" pasa a link en el header, no botón por nodo |
 | BT5-039 | 🆕 needs-triage | reorder de nodos del toolbar + overflow real + "Fixed amount of nodes" + nueva sección |
-| BT5-040 | 🆕 needs-triage | folders muestran cells agregados (suma recursiva de sus childs) |
+| BT5-040 | ✅ completed | `b4b625f7` folders muestran total recursivo de cells contables (words/props/tasks); fechas excluidas; default off |
 | BT5-041 | 🆕 needs-triage | cell_badge como cell configurable + separado en table + sort por badges bidimensional |
+| BT5-042 | ✅ completed | `ff083b91` toggle folder colapsado dot↔badges de descendientes; BT5-017 conservado; gate 909 tests |
 
 Detalle técnico y gates: [[docs/work/polish/plans/2026-07-19-bt5-001-005/02-outcome-verification|BT5-001..005 outcome]].
 Continuación 006/007/008/028 y diagnóstico diferido 030:
@@ -152,6 +153,8 @@ Renames + sort-menu + compositions + glyph (025) + issues 033/034/035:
 [[docs/work/polish/plans/2026-07-19-bt5-next-10/09-renames-sortmenu-compositions-glyph|shard 09]].
 Regresión cmenus + content + statistics + badge bubbling + issues 036/039/040/041:
 [[docs/work/polish/plans/2026-07-19-bt5-next-10/10-cmenu-regression-content-statistics-bubbling|shard 10]].
+Post-beta.6 (042 bubbledot toggle · 034 island clamp · 033 node icon scope · 040 folder totals):
+[[docs/work/polish/plans/2026-07-19-bt5-next-10/11-post-beta6-bubbledot-island-iconscope-folder-totals|shard 11]].
 
 ## Release gates
 
