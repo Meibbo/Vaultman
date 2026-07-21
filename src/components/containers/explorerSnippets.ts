@@ -1,4 +1,4 @@
-import { Component, Menu, Notice, setTooltip } from 'obsidian';
+import { Component, Notice, setTooltip } from 'obsidian';
 import type { VaultmanPlugin } from '../../main';
 import { translate } from '../../i18n/index';
 import type { SnippetMeta, TreeNode } from '../../types/typeTree';
@@ -12,14 +12,10 @@ import {
 	setCssSnippetEnabled,
 } from '../../utils/obsidianAddons';
 import {
-	clearAddonIconOverride,
 	getAddonIconOverride,
 	readAddonIconOverrides,
 	resolveAddonIcon,
-	setAddonIconOverride,
-	writeAddonIconOverrides,
 } from '../../logic/logicAddonIcons';
-import { openAddonIconPicker } from '../../modals/modalAddonIconPicker';
 import {
 	buildAddonHoverInfo,
 	filterAddonEntries,
@@ -306,49 +302,16 @@ export class SnippetsExplorerPanel
 		return true;
 	}
 
-	private openIconPicker(meta: SnippetMeta): void {
-		const overrides = readAddonIconOverrides(this.plugin.settings);
-		openAddonIconPicker({
-			app: this.plugin.app,
-			name: meta.name,
-			hasOverride:
-				getAddonIconOverride(overrides, 'snippet', meta.name) !== null,
-			onPick: (icon) =>
-				this.persistOverrides(
-					setAddonIconOverride(overrides, 'snippet', meta.name, { icon }),
-				),
-			onReset: () =>
-				this.persistOverrides(
-					clearAddonIconOverride(overrides, 'snippet', meta.name),
-				),
-		});
-	}
-
-	/** One save per human action; the rebuild repaints from the new store. */
-	private async persistOverrides(
-		store: ReturnType<typeof readAddonIconOverrides>,
-	): Promise<void> {
-		writeAddonIconOverrides(this.plugin.settings, store);
-		await this.plugin.saveSettings();
-		if (!this.destroyed) this.rebuildNodes();
-	}
 
 	private openMenu(meta: SnippetMeta, event: MouseEvent): void {
-		const next = !meta.enabled;
-		new Menu()
-			.addItem((item) =>
-				item
-					.setTitle(translate('addon.icon.change'))
-					.setIcon('lucide-image')
-					.onClick(() => this.openIconPicker(meta)),
-			)
-			.addItem((item) =>
-				item
-					.setTitle(translate(next ? 'addons.enable' : 'addons.disable'))
-					.setIcon(next ? 'lucide-toggle-right' : 'lucide-toggle-left')
-					.onClick(() => void this.toggle(meta)),
-			)
-			.showAtMouseEvent(event);
+		this.plugin.contextMenuService.openPanelMenu(
+			{
+				nodeType: 'snippet',
+				node: { id: meta.name, label: meta.name, meta, depth: 0 },
+				surface: 'panel',
+			},
+			event,
+		);
 	}
 
 	private async toggle(meta: SnippetMeta): Promise<void> {

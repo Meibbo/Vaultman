@@ -15,6 +15,8 @@ import {
 import pickerSource from '../../src/modals/modalAddonIconPicker.ts?raw';
 import snippetsSource from '../../src/components/containers/explorerSnippets.ts?raw';
 import pluginsSource from '../../src/components/containers/explorerPlugins.ts?raw';
+import snippetsLogicSource from '../../src/logic/logicSnippetContextMenu.ts?raw';
+import pluginsLogicSource from '../../src/logic/logicPluginContextMenu.ts?raw';
 import logicSource from '../../src/logic/logicAddonIcons.ts?raw';
 import enSource from '../../src/i18n/en.ts?raw';
 import esSource from '../../src/i18n/es.ts?raw';
@@ -434,9 +436,9 @@ describe('BT5-019 persistence port (provisional settings seam)', () => {
 });
 
 describe('BT5-019 panel wiring guards', () => {
-	for (const [name, source] of [
-		['snippets', snippetsSource],
-		['plugins', pluginsSource],
+	for (const [name, source, logicSource] of [
+		['snippets', snippetsSource, snippetsLogicSource],
+		['plugins', pluginsSource, pluginsLogicSource],
 	] as const) {
 		it(`${name}: resolves icons through the shared precedence chain`, () => {
 			expect(source).toMatch(/resolveAddonIcon/);
@@ -444,14 +446,14 @@ describe('BT5-019 panel wiring guards', () => {
 		});
 
 		it(`${name}: offers Change icon in the context menu and can reset`, () => {
-			expect(source).toMatch(/addon\.icon\.change/);
-			expect(source).toMatch(/openAddonIconPicker/);
-			expect(source).toMatch(/clearAddonIconOverride/);
+			expect(logicSource).toMatch(/addon\.icon\.change/);
+			expect(logicSource).toMatch(/openAddonIconPicker/);
+			expect(logicSource).toMatch(/clearAddonIconOverride/);
 		});
 
 		it(`${name}: persists through one saveSettings per human action`, () => {
-			expect(source).toMatch(/writeAddonIconOverrides/);
-			expect(source).toMatch(/saveSettings\(\)/);
+			expect(logicSource).toMatch(/writeAddonIconOverrides/);
+			expect(logicSource).toMatch(/saveSettings\(\)/);
 		});
 
 		it(`${name}: subscribes to Iconic changes with cleanup and no new polling`, () => {
@@ -464,11 +466,11 @@ describe('BT5-019 panel wiring guards', () => {
 
 	it('plugins: keeps the Vaultman self-protection on state, not on the icon', () => {
 		// Change icon is cosmetic and must stay available for Vaultman itself.
-		const protectedIndex = pluginsSource.indexOf('self_protected');
-		const changeIconIndex = pluginsSource.indexOf('addon.icon.change');
+		const protectedIndex = pluginsLogicSource.indexOf('self_protected');
+		const changeIconIndex = pluginsLogicSource.indexOf('addon.icon.change');
 		expect(protectedIndex).toBeGreaterThan(-1);
 		expect(changeIconIndex).toBeGreaterThan(-1);
-		expect(pluginsSource).toMatch(/isVaultman/);
+		expect(pluginsLogicSource).toMatch(/isVaultman/);
 	});
 });
 

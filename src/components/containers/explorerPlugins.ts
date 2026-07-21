@@ -1,4 +1,4 @@
-import { Component, Menu, Notice, setTooltip } from 'obsidian';
+import { Component, Notice, setTooltip } from 'obsidian';
 import type { VaultmanPlugin } from '../../main';
 import { translate } from '../../i18n/index';
 import type { PluginMeta, TreeNode, TreeNodeCell } from '../../types/typeTree';
@@ -13,14 +13,10 @@ import {
 	setCommunityPluginEnabled,
 } from '../../utils/obsidianAddons';
 import {
-	clearAddonIconOverride,
 	getAddonIconOverride,
 	readAddonIconOverrides,
 	resolveAddonIcon,
-	setAddonIconOverride,
-	writeAddonIconOverrides,
 } from '../../logic/logicAddonIcons';
-import { openAddonIconPicker } from '../../modals/modalAddonIconPicker';
 import {
 	buildAddonHoverInfo,
 	filterAddonEntries,
@@ -349,66 +345,16 @@ export class PluginsExplorerPanel
 		return true;
 	}
 
-	/**
-	 * BT5-019: changing the icon is cosmetic, so it stays available even for
-	 * Vaultman itself — the self-protection only covers state/destructive acts.
-	 */
-	private addIconMenuItems(menu: Menu, meta: PluginMeta): void {
-		menu.addItem((item) =>
-			item
-				.setTitle(translate('addon.icon.change'))
-				.setIcon('lucide-image')
-				.onClick(() => this.openIconPicker(meta)),
-		);
-	}
-
-	private openIconPicker(meta: PluginMeta): void {
-		const overrides = readAddonIconOverrides(this.plugin.settings);
-		openAddonIconPicker({
-			app: this.plugin.app,
-			name: meta.name,
-			hasOverride:
-				getAddonIconOverride(overrides, 'plugin', meta.pluginId) !== null,
-			onPick: (icon) =>
-				this.persistOverrides(
-					setAddonIconOverride(overrides, 'plugin', meta.pluginId, { icon }),
-				),
-			onReset: () =>
-				this.persistOverrides(
-					clearAddonIconOverride(overrides, 'plugin', meta.pluginId),
-				),
-		});
-	}
-
-	/** One save per human action; the rebuild repaints from the new store. */
-	private async persistOverrides(
-		store: ReturnType<typeof readAddonIconOverrides>,
-	): Promise<void> {
-		writeAddonIconOverrides(this.plugin.settings, store);
-		await this.plugin.saveSettings();
-		if (!this.destroyed) this.rebuildNodes();
-	}
 
 	private openMenu(meta: PluginMeta, event: MouseEvent): void {
-		const menu = new Menu();
-		this.addIconMenuItems(menu, meta);
-		if (meta.isVaultman) {
-			menu.addItem((item) =>
-				item
-					.setTitle(translate('addons.plugins.self_protected'))
-					.setIcon('lucide-shield')
-					.setDisabled(true),
-			);
-		} else {
-			const next = !meta.enabled;
-			menu.addItem((item) =>
-				item
-					.setTitle(translate(next ? 'addons.enable' : 'addons.disable'))
-					.setIcon(next ? 'lucide-toggle-right' : 'lucide-toggle-left')
-					.onClick(() => void this.toggle(meta)),
-			);
-		}
-		menu.showAtMouseEvent(event);
+		this.plugin.contextMenuService.openPanelMenu(
+			{
+				nodeType: 'plugin',
+				node: { id: meta.pluginId, label: meta.name, meta, depth: 0 },
+				surface: 'panel',
+			},
+			event,
+		);
 	}
 
 	private async toggle(meta: PluginMeta): Promise<void> {

@@ -256,6 +256,18 @@ export class OperationQueueService extends Component {
 			this.reportQueuePolicy(stats);
 			return;
 		}
+		
+		if (change.type === 'file_delete' && !this.isFolderDeleteChange(change) && change.files.length > 0) {
+			const fm = this.app.fileManager as unknown as {
+				promptForFileDeletion?(file: TFile): void;
+				promptForDeletion?(file: TFile): void;
+			};
+			for (const file of change.files) {
+				(fm.promptForFileDeletion ?? fm.promptForDeletion)?.(file);
+			}
+			return;
+		}
+
 		void this.runNow(change);
 	}
 
