@@ -22,10 +22,11 @@ describe('BT3 settings information architecture source guards', () => {
 		const rootSource = settingsSource.slice(rootStart, rootEnd);
 
 		expect(rootSource).not.toContain("translate('settings.language')");
-		expect(en['settings.style_config']).toBe('Layout Settings');
-		expect(es['settings.style_config']).toBe('Ajustes de diseño');
-		expect(en['settings.saved_view_config']).toBe('View configs');
-		expect(es['settings.saved_view_config']).toBe('View configs');
+		// Renamed to Layout Configuration (dev request 2026-07-20).
+		expect(en['settings.style_config']).toBe('Layout Configuration');
+		expect(es['settings.style_config']).toBe('Configuración de Layout');
+		expect(en['settings.saved_view_config']).toBe('View Compositions');
+		expect(es['settings.saved_view_config']).toBe('Composiciones de vista');
 		expect(en['settings.badge_colors']).toBe('Colored cell badges');
 		expect(es['settings.badge_colors']).toBe('Badges de celda con color');
 		expect(en).not.toHaveProperty('settings.language');

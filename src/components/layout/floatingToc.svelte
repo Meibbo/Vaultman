@@ -1,6 +1,11 @@
 <script lang="ts">
 	import { setIcon, setTooltip } from 'obsidian';
 	import { translate } from '../../i18n/index';
+	import {
+		normalizeGlyphColorChoice,
+		rainbowGlyphColor,
+		resolveGlyphColorCss,
+	} from '../../logic/logicGlyphColor';
 	import type { IndexGroup } from '../../logic/logicIndexGroups';
 	import {
 		niagaraActionOrder,
@@ -27,8 +32,10 @@
 		namePill: boolean;
 		/** D45: anchor the rail body and stretch the bell instead of sliding. */
 		stretch?: boolean;
-		/** BT4-021: glyph color (Obsidian color vars or rainbow). */
+		/** BT5-025: shared glyph color choice. */
 		glyphColor?: string;
+		/** BT5-025: persisted hex when glyphColor is 'custom'. */
+		glyphCustomColor?: string;
 		/** BT4-021: color applies only while static, or always. */
 		glyphColorMode?: 'static' | 'always';
 	}
@@ -461,17 +468,18 @@
 	// reacts (scrub engaged or displaced); 'always' keeps it.
 	const railStatic = $derived(!scrubbing || !engaged);
 	function glyphColorStyle(groupIndex: number): string {
-		const color = opts.glyphColor ?? 'default';
-		if (color === 'default') return '';
+		const choice = normalizeGlyphColorChoice(
+			opts.glyphColor ?? 'default',
+		).choice;
+		if (choice === 'default') return '';
 		if ((opts.glyphColorMode ?? 'static') === 'static' && !railStatic) {
 			return '';
 		}
-		if (color === 'rainbow') {
-			const hue = Math.round((groupIndex * 360) / Math.max(1, groups.length));
-			return `color: hsl(${hue} 70% 60%);`;
+		if (choice === 'rainbow') {
+			return `color: ${rainbowGlyphColor(groupIndex, Math.max(1, groups.length))};`;
 		}
-		if (color === 'accent') return 'color: var(--interactive-accent);';
-		return `color: var(--color-${color});`;
+		const css = resolveGlyphColorCss(choice, opts.glyphCustomColor ?? '');
+		return css ? `color: ${css};` : '';
 	}
 
 	function entryTransform(index: number): string {

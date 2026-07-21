@@ -35,6 +35,8 @@ import {
 	shouldShowUpdates,
 } from './logic/logicUpdateNotice';
 import { applyGlassBlurSetting } from './logic/logicGlassBlur';
+import { seedDefaultViewCompositions } from './logic/logicViewCompositions';
+import { normalizeGlyphColorChoice } from './logic/logicGlyphColor';
 
 export class VaultmanPlugin extends Plugin {
 	settings!: VaultmanSettings;
@@ -425,6 +427,30 @@ export class VaultmanPlugin extends Plugin {
 				this.settings.filtersShowTabLabels = true;
 			}
 			this.settings.filtersTabLabelsMigrated = true;
+			await this.saveData(this.settings);
+		}
+
+		// BT5: seed the default View Compositions once. Deleting them sticks
+		// because the flag is only ever set, never cleared.
+		if (saved.viewCompositionsSeeded !== true) {
+			this.settings.savedLayouts = seedDefaultViewCompositions(
+				this.settings.savedLayouts,
+			);
+			this.settings.viewCompositionsSeeded = true;
+			await this.saveData(this.settings);
+		}
+
+		// BT5-025: a legacy individual glyph color (red/blue/…) folds into the
+		// shared palette as `custom` with its documented hex.
+		const migratedGlyph = normalizeGlyphColorChoice(saved.tocGlyphColor);
+		if (
+			saved.tocGlyphColor !== undefined &&
+			migratedGlyph.choice !== saved.tocGlyphColor
+		) {
+			this.settings.tocGlyphColor = migratedGlyph.choice;
+			if (migratedGlyph.migratedCustom) {
+				this.settings.tocGlyphCustomColor = migratedGlyph.migratedCustom;
+			}
 			await this.saveData(this.settings);
 		}
 	}

@@ -33,6 +33,12 @@ import {
 	resolveCommandActions,
 } from './logic/logicCommandActions';
 import { listObsidianCommands } from './utils/obsidianCommands';
+import {
+	GLYPH_COLOR_CHOICES,
+	normalizeGlyphColorScope,
+	normalizeGlyphCustomColor,
+	type GlyphColorChoice,
+} from './logic/logicGlyphColor';
 import { openCommandPicker } from './modals/modalCommandPicker';
 import { translate } from './i18n/index';
 import { PayloadPreviewModal } from './modals/modalPayloadPreview';
@@ -782,17 +788,66 @@ export class VaultmanSettingsTab extends PluginSettingTab {
 					}),
 			);
 
+		// BT5-025: the Explorer glyph color uses the shared palette. The legacy
+		// Rainbow folders toggle is gone from the UI; its setting/code stay for
+		// deferred snippet parity.
 		new Setting(containerEl)
-			.setName(translate('settings.rainbow_folders'))
-			.setDesc(translate('settings.rainbow_folders.desc'))
-			.addToggle((toggle) =>
-				toggle
-					.setValue(this.plugin.settings.explorerRainbowFolders === true)
-					.onChange(async (value) => {
-						this.plugin.settings.explorerRainbowFolders = value;
+			.setName(translate('settings.explorer_glyph_color'))
+			.setDesc(translate('settings.explorer_glyph_color.desc'))
+			.addDropdown((dropdown) =>
+				dropdown
+					.addOptions(
+						Object.fromEntries(
+							GLYPH_COLOR_CHOICES.map((choice) => [
+								choice,
+								translate(`settings.glyph_color.${choice}`),
+							]),
+						),
+					)
+					.setValue(this.plugin.settings.explorerGlyphColor ?? 'default')
+					.onChange(async (v) => {
+						this.plugin.settings.explorerGlyphColor = v as GlyphColorChoice;
 						await this.plugin.saveSettings();
+						this.display();
 					}),
 			);
+		if (this.plugin.settings.explorerGlyphColor === 'custom') {
+			new Setting(containerEl)
+				.setName(translate('settings.glyph_color.custom_pick'))
+				.addColorPicker((picker) =>
+					picker
+						.setValue(
+							normalizeGlyphCustomColor(
+								this.plugin.settings.explorerGlyphCustomColor,
+							),
+						)
+						.onChange(async (v) => {
+							this.plugin.settings.explorerGlyphCustomColor = v;
+							await this.plugin.saveSettings();
+						}),
+				);
+		}
+		if (this.plugin.settings.explorerGlyphColor !== 'default') {
+			new Setting(containerEl)
+				.setName(translate('settings.explorer_glyph_scope'))
+				.setDesc(translate('settings.explorer_glyph_scope.desc'))
+				.addDropdown((dropdown) =>
+					dropdown
+						.addOptions({
+							folders: translate('settings.explorer_glyph_scope.folders'),
+							files: translate('settings.explorer_glyph_scope.files'),
+							both: translate('settings.explorer_glyph_scope.both'),
+						})
+						.setValue(
+							normalizeGlyphColorScope(this.plugin.settings.explorerGlyphScope),
+						)
+						.onChange(async (v) => {
+							this.plugin.settings.explorerGlyphScope =
+								normalizeGlyphColorScope(v);
+							await this.plugin.saveSettings();
+						}),
+				);
+		}
 
 		// BT5-009: file exclusion is a filter node now, restored by removing its
 		// chip like exclude-folder, so it no longer has a settings section.
@@ -1224,32 +1279,35 @@ export class VaultmanSettingsTab extends PluginSettingTab {
 					.setValue(this.plugin.settings.tocStretch === true)
 					.onChange((v) => setToc({ tocStretch: v })),
 			);
+		const glyphColorOptions = Object.fromEntries(
+			GLYPH_COLOR_CHOICES.map((choice) => [
+				choice,
+				translate(`settings.glyph_color.${choice}`),
+			]),
+		);
 		new Setting(containerEl)
 			.setName(translate('settings.toc_glyph_color'))
 			.setDesc(translate('settings.toc_glyph_color.desc'))
 			.addDropdown((dropdown) =>
 				dropdown
-					.addOptions({
-						default: translate('settings.toc_glyph_color.default'),
-						accent: translate('settings.toc_glyph_color.accent'),
-						red: 'Red',
-						orange: 'Orange',
-						yellow: 'Yellow',
-						green: 'Green',
-						cyan: 'Cyan',
-						blue: 'Blue',
-						purple: 'Purple',
-						pink: 'Pink',
-						rainbow: translate('settings.toc_glyph_color.rainbow'),
-					})
+					.addOptions(glyphColorOptions)
 					.setValue(this.plugin.settings.tocGlyphColor ?? 'default')
-					.onChange((v) =>
-						setToc({
-							tocGlyphColor:
-								v as import('../src/types/typeSettings').VaultmanSettings['tocGlyphColor'],
-						}),
-					),
+					.onChange((v) => {
+						void setToc({ tocGlyphColor: v as GlyphColorChoice });
+						this.display();
+					}),
 			);
+		if (this.plugin.settings.tocGlyphColor === 'custom') {
+			new Setting(containerEl)
+				.setName(translate('settings.glyph_color.custom_pick'))
+				.addColorPicker((picker) =>
+					picker
+						.setValue(
+							normalizeGlyphCustomColor(this.plugin.settings.tocGlyphCustomColor),
+						)
+						.onChange((v) => setToc({ tocGlyphCustomColor: v })),
+				);
+		}
 		new Setting(containerEl)
 			.setName(translate('settings.toc_glyph_color_mode'))
 			.setDesc(translate('settings.toc_glyph_color_mode.desc'))

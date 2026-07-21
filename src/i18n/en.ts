@@ -177,10 +177,36 @@ export const en: Record<string, string> = {
 	'settings.background_blur': 'Background blur intensity',
 	'settings.background_blur.desc':
 		'Controls the glass blur on the bottom bar and popups.',
-	'settings.style_config': 'Layout Settings',
+	'settings.style_config': 'Layout Configuration',
 	'settings.rainbow_folders': 'Rainbow folders',
 	'settings.rainbow_folders.desc':
 		'Color each top-level folder subtree in the files tree; picks up the fancyfile-explorer-rainbow snippet palette when installed.',
+	'settings.glyph_color.default':
+		'Default',
+	'settings.glyph_color.faint':
+		'Faint',
+	'settings.glyph_color.accent':
+		'Accent',
+	'settings.glyph_color.custom':
+		'Custom',
+	'settings.glyph_color.rainbow':
+		'Rainbow',
+	'settings.glyph_color.custom_pick':
+		'Custom color',
+	'settings.explorer_glyph_color':
+		'Explorer glyph color',
+	'settings.explorer_glyph_color.desc':
+		'Color the explorer node glyphs from the shared palette. Default leaves them uncolored.',
+	'settings.explorer_glyph_scope':
+		'Glyph color scope',
+	'settings.explorer_glyph_scope.desc':
+		'Which nodes the glyph color applies to.',
+	'settings.explorer_glyph_scope.folders':
+		'Folders',
+	'settings.explorer_glyph_scope.files':
+		'Files',
+	'settings.explorer_glyph_scope.both':
+		'Both',
 	'settings.toc_glyph_color': 'Glyph color',
 	'settings.toc_glyph_color.desc': 'Color for the floating index glyphs.',
 	'settings.toc_glyph_color.default': 'Default',
@@ -338,16 +364,16 @@ export const en: Record<string, string> = {
 	'settings.default_type.desc': 'Default type for new properties',
 	'settings.templates': 'Filter templates',
 	'settings.templates.desc': 'Manage saved filter templates',
-	'settings.saved_view_config': 'View configs',
-	'settings.saved_view_config.desc': 'Saved tabs',
+	'settings.saved_view_config': 'View Compositions',
+	'settings.saved_view_config.desc': 'Saved view compositions',
 	'settings.saved_view_config.empty':
-		'No saved view config. Use "Save view config" in the view menu to remember view options and sorts per tab.',
+		'No saved view composition. Use "Save view composition" in the view menu to remember view options and sorts per tab.',
 	'settings.saved_view_config.clear': 'Clear',
 	'settings.floating_toc': 'Floating Index',
 	'settings.floating_toc.desc':
 		'Configure the explorer index and Niagara behavior.',
 	'settings.configure': 'Configure',
-	'settings.back_to_layout_settings': 'Back to Layout Settings',
+	'settings.back_to_layout_settings': 'Back to Layout Configuration',
 	'settings.floating_toc_enable': 'Enable floating TOC',
 	'settings.floating_toc_enable.desc':
 		'Show a floating first-letter index over the Files, Props, and Tags explorers.',
@@ -398,9 +424,9 @@ export const en: Record<string, string> = {
 	'floating_toc.aria': 'Explorer index',
 	'floating_toc.menu': 'Index',
 	'viewmenu.toolbar': 'Toolbar',
-	'viewmenu.layouts': 'Layouts',
-	'viewmenu.save_layout': 'Save layout',
-	'viewmenu.saved_config_notice': 'Layout saved',
+	'viewmenu.layouts': 'View Compositions',
+	'viewmenu.save_layout': 'Save view composition',
+	'viewmenu.saved_config_notice': 'View composition saved',
 	'viewmenu.in_mode': 'In mode',
 	'viewmenu.in_mode.open': 'Open',
 	'viewmenu.in_mode.add': 'Add',

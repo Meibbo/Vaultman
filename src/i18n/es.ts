@@ -175,10 +175,36 @@ export const es: Record<string, string> = {
 	'settings.background_blur': 'Intensidad de desenfoque del fondo',
 	'settings.background_blur.desc':
 		'Controla el desenfoque de cristal en la barra inferior y los popups.',
-	'settings.style_config': 'Ajustes de diseño',
+	'settings.style_config': 'Configuración de Layout',
 	'settings.rainbow_folders': 'Carpetas arcoíris',
 	'settings.rainbow_folders.desc':
 		'Colorea cada subárbol de carpeta de primer nivel en el árbol de files; usa la paleta del snippet fancyfile-explorer-rainbow si está instalado.',
+	'settings.glyph_color.default':
+		'Predeterminado',
+	'settings.glyph_color.faint':
+		'Tenue',
+	'settings.glyph_color.accent':
+		'Acento',
+	'settings.glyph_color.custom':
+		'Personalizado',
+	'settings.glyph_color.rainbow':
+		'Arcoíris',
+	'settings.glyph_color.custom_pick':
+		'Color personalizado',
+	'settings.explorer_glyph_color':
+		'Color de glyph del explorer',
+	'settings.explorer_glyph_color.desc':
+		'Colorea los glyphs de los nodos del explorer con la paleta compartida. Predeterminado los deja sin color.',
+	'settings.explorer_glyph_scope':
+		'Alcance del color de glyph',
+	'settings.explorer_glyph_scope.desc':
+		'A qué nodos se aplica el color de glyph.',
+	'settings.explorer_glyph_scope.folders':
+		'Carpetas',
+	'settings.explorer_glyph_scope.files':
+		'Archivos',
+	'settings.explorer_glyph_scope.both':
+		'Ambos',
 	'settings.toc_glyph_color': 'Color de glyphs',
 	'settings.toc_glyph_color.desc': 'Color de los glyphs del índice flotante.',
 	'settings.toc_glyph_color.default': 'Por defecto',
@@ -337,16 +363,16 @@ export const es: Record<string, string> = {
 	'settings.default_type.desc': 'Tipo por defecto para nuevas propiedades',
 	'settings.templates': 'Plantillas de filtros',
 	'settings.templates.desc': 'Gestionar plantillas de filtros guardadas',
-	'settings.saved_view_config': 'View configs',
-	'settings.saved_view_config.desc': 'Tabs guardados',
+	'settings.saved_view_config': 'Composiciones de vista',
+	'settings.saved_view_config.desc': 'Composiciones de vista guardadas',
 	'settings.saved_view_config.empty':
-		'Sin config de vista guardada. Usa "Guardar config de vista" en el menú de vista para recordar opciones y orden por tab.',
+		'Sin composición de vista guardada. Usa "Guardar composición de vista" en el menú de vista para recordar opciones y orden por tab.',
 	'settings.saved_view_config.clear': 'Limpiar',
 	'settings.floating_toc': 'Índice flotante',
 	'settings.floating_toc.desc':
 		'Configura el índice del explorer y el comportamiento Niagara.',
 	'settings.configure': 'Configurar',
-	'settings.back_to_layout_settings': 'Volver a Ajustes de diseño',
+	'settings.back_to_layout_settings': 'Volver a Configuración de Layout',
 	'settings.floating_toc_enable': 'Activar TOC flotante',
 	'settings.floating_toc_enable.desc':
 		'Muestra un índice flotante de primeras letras sobre los explorers de Files, Props y Tags.',
@@ -397,9 +423,9 @@ export const es: Record<string, string> = {
 	'floating_toc.aria': 'Índice del explorer',
 	'floating_toc.menu': 'Índice flotante',
 	'viewmenu.toolbar': 'Barra de herramientas',
-	'viewmenu.layouts': 'Diseños',
-	'viewmenu.save_layout': 'Guardar layout',
-	'viewmenu.saved_config_notice': 'Layout guardado',
+	'viewmenu.layouts': 'Composiciones de vista',
+	'viewmenu.save_layout': 'Guardar composición de vista',
+	'viewmenu.saved_config_notice': 'Composición de vista guardada',
 	'viewmenu.in_mode': 'En modo',
 	'viewmenu.in_mode.open': 'Abrir',
 	'viewmenu.in_mode.add': 'Agregar',

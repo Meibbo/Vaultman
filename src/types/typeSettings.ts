@@ -130,21 +130,18 @@ export interface VaultmanSettings {
 	tocSoftScroll: boolean;
 	/** Anchor the rail body: the scrub bell stretches instead of sliding */
 	tocStretch: boolean;
-	/** Glyph color for the floating index (Obsidian color vars or rainbow) */
-	tocGlyphColor:
-		| 'default'
-		| 'accent'
-		| 'red'
-		| 'orange'
-		| 'yellow'
-		| 'green'
-		| 'cyan'
-		| 'blue'
-		| 'purple'
-		| 'pink'
-		| 'rainbow';
+	/** BT5-025: shared glyph-color choice for the floating index. */
+	tocGlyphColor: import('../logic/logicGlyphColor').GlyphColorChoice;
+	/** BT5-025: persisted hex used when tocGlyphColor is 'custom'. */
+	tocGlyphCustomColor: string;
 	/** Apply the glyph color only while the rail is static, or always */
 	tocGlyphColorMode: 'static' | 'always';
+	/** BT5-025: shared glyph-color choice for the Explorer (default = opt-out). */
+	explorerGlyphColor: import('../logic/logicGlyphColor').GlyphColorChoice;
+	/** BT5-025: persisted hex used when explorerGlyphColor is 'custom'. */
+	explorerGlyphCustomColor: string;
+	/** BT5-025: which Explorer nodes the glyph color applies to. */
+	explorerGlyphScope: import('../logic/logicGlyphColor').GlyphColorScope;
 	/** Floating index drill also drives the sort scope (reset on index close) */
 	tocDrillSyncsSort: boolean;
 	/** Show By level options inline in the sort menu instead of a submenu */
@@ -189,6 +186,8 @@ export interface VaultmanSettings {
 	performanceHudEnabled: boolean;
 	/** Internal one-shot migration marker for the Iter.12 tab label default */
 	filtersTabLabelsMigrated?: boolean;
+	/** BT5: default View Compositions have been seeded once */
+	viewCompositionsSeeded?: boolean;
 	/** Property grid render mode */
 	gridRenderMode?: 'plain' | 'chunk' | 'all';
 	/** Columns that allow inline editing in the grid */
@@ -280,7 +279,11 @@ export const DEFAULT_SETTINGS: VaultmanSettings = {
 	tocSoftScroll: false,
 	tocStretch: false,
 	tocGlyphColor: 'default',
+	tocGlyphCustomColor: '#7c3aed',
 	tocGlyphColorMode: 'static',
+	explorerGlyphColor: 'default',
+	explorerGlyphCustomColor: '#7c3aed',
+	explorerGlyphScope: 'folders',
 	tocDrillSyncsSort: false,
 	sortLevelInline: true,
 	excludedFilePaths: [],
@@ -301,6 +304,7 @@ export const DEFAULT_SETTINGS: VaultmanSettings = {
 	bulkOperationWarningThreshold: 400,
 	performanceHudEnabled: false,
 	filtersTabLabelsMigrated: true,
+	viewCompositionsSeeded: false,
 	glassBlurIntensity: 60,
 	contextMenuShowInFileMenu: true,
 	contextMenuShowInEditorMenu: true,

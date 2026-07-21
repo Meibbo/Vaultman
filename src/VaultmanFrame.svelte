@@ -147,6 +147,7 @@
 			namePill: false,
 			stretch: s.tocStretch === true,
 			glyphColor: s.tocGlyphColor ?? 'default',
+			glyphCustomColor: s.tocGlyphCustomColor ?? '',
 			glyphColorMode: s.tocGlyphColorMode ?? 'static',
 		};
 	});
