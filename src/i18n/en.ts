@@ -233,6 +233,18 @@ export const en: Record<string, string> = {
 	'settings.show_toolbar': 'Show toolbar',
 	'settings.show_toolbar.desc':
 		'Show the explorer header toolbar (tabs, view, sort, search). Toggle it from the view menu; restore it here when hidden.',
+	'command.picker.search':
+		'Search commands…',
+	'command.picker.empty':
+		'No matching command.',
+	'command.picker.default':
+		'Vaultman default',
+	'command.missing':
+		'Command "{id}" is not available; used the Vaultman default instead.',
+	'settings.create_file_command':
+		'Create File action',
+	'settings.create_file_command.desc':
+		'What the Create File action runs: the Vaultman built-in note creation, or a chosen Obsidian command.',
 	'settings.toolbar_overflow':
 		'Toolbar overflow',
 	'settings.toolbar_overflow.desc':

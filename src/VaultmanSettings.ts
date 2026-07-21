@@ -23,6 +23,12 @@ import {
 	setFilesMenuVisibility,
 	type FilesMenuItem,
 } from './logic/logicFilesContextMenu';
+import {
+	isVaultmanDefault,
+	resolveCommandAction,
+} from './logic/logicCommandActions';
+import { listObsidianCommands } from './utils/obsidianCommands';
+import { openCommandPicker } from './modals/modalCommandPicker';
 import { translate } from './i18n/index';
 import { PayloadPreviewModal } from './modals/modalPayloadPreview';
 import {
@@ -516,6 +522,34 @@ export class VaultmanSettingsTab extends PluginSettingTab {
 						this.plugin.settings.toolbarToolsMenu = value;
 						await this.plugin.saveSettings();
 					}),
+			);
+
+		// BT5-023: Create File binding — Vaultman built-in or an Obsidian command.
+		const createBinding = this.plugin.settings.createFileCommand;
+		const createBindingLabel = isVaultmanDefault(createBinding)
+			? translate('command.picker.default')
+			: resolveCommandAction(
+					listObsidianCommands(this.plugin.app),
+					createBinding,
+				).label;
+		new Setting(containerEl)
+			.setName(translate('settings.create_file_command'))
+			.setDesc(translate('settings.create_file_command.desc'))
+			.addButton((button) =>
+				button.setButtonText(createBindingLabel).onClick(() => {
+					openCommandPicker({
+						app: this.plugin.app,
+						title: translate('settings.create_file_command'),
+						includeDefault: true,
+						onPick: async (id) => {
+							this.plugin.settings.createFileCommand = isVaultmanDefault(id)
+								? ''
+								: id;
+							await this.plugin.saveSettings();
+							this.display();
+						},
+					});
+				}),
 			);
 
 		new Setting(containerEl)

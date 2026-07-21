@@ -92,6 +92,11 @@ import {
 	purgeFilterPath,
 	renameFilterPath,
 } from '../../logic/logicExclusionFilter';
+import { isVaultmanDefault } from '../../logic/logicCommandActions';
+import {
+	executeObsidianCommand,
+	obsidianCommandExists,
+} from '../../utils/obsidianCommands';
 import {
 	normalizeInteractionMode,
 	resolveInteractionAction,
@@ -790,6 +795,19 @@ export class FilesExplorerPanel extends Component {
 		if (category === 1) {
 			await this._createFolder(term);
 			return;
+		}
+		// BT5-023: Create File may be bound to an Obsidian command, resolved by
+		// id at invoke time. A missing/disabled command never fails silently:
+		// it warns and falls back to the built-in note creation.
+		const binding = this.plugin.settings.createFileCommand;
+		if (!isVaultmanDefault(binding)) {
+			if (obsidianCommandExists(this.plugin.app, binding)) {
+				executeObsidianCommand(this.plugin.app, binding);
+				return;
+			}
+			new Notice(
+				translate('command.missing').replace('{id}', binding),
+			);
 		}
 		await this._createNote(term);
 	}

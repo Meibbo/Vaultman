@@ -231,6 +231,18 @@ export const es: Record<string, string> = {
 	'settings.show_toolbar': 'Mostrar barra de herramientas',
 	'settings.show_toolbar.desc':
 		'Muestra la barra del explorer (tabs, vista, orden, búsqueda). Actívala desde el menú de vista; restáurala aquí cuando esté oculta.',
+	'command.picker.search':
+		'Buscar comandos…',
+	'command.picker.empty':
+		'Ningún comando coincide.',
+	'command.picker.default':
+		'Predeterminado de Vaultman',
+	'command.missing':
+		'El comando "{id}" no está disponible; se usó el predeterminado de Vaultman.',
+	'settings.create_file_command':
+		'Acción Crear archivo',
+	'settings.create_file_command.desc':
+		'Qué ejecuta la acción Crear archivo: la creación de nota integrada de Vaultman, o un comando de Obsidian elegido.',
 	'settings.toolbar_overflow':
 		'Overflow del toolbar',
 	'settings.toolbar_overflow.desc':

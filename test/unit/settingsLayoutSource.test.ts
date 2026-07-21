@@ -69,16 +69,21 @@ describe('Vaultman Settings layout', () => {
 		const inlineSortIndex = toolbarSource.indexOf(
 			"translate('settings.sort_level_inline')",
 		);
-		const inlineSortSettingIndex = toolbarSource.lastIndexOf(
+		// BT5-023 inserts the Create File binding between the tools toggle and
+		// the inline-sort setting, so the tools block ends at the NEXT setting,
+		// not at the inline-sort one.
+		const nextSettingIndex = toolbarSource.indexOf(
 			'new Setting(containerEl)',
-			inlineSortIndex,
+			toolsIndex,
 		);
-		const toolsBlock = toolbarSource.slice(toolsIndex, inlineSortSettingIndex);
+		const toolsBlock = toolbarSource.slice(toolsIndex, nextSettingIndex);
 
 		expect(inlineSortIndex).toBeGreaterThan(toolsIndex);
-		expect(inlineSortSettingIndex).toBeGreaterThan(toolsIndex);
-		expect(toolsBlock.trimEnd()).toMatch(
-			/await this\.plugin\.saveSettings\(\);\s*}\),\s*\);$/,
+		expect(nextSettingIndex).toBeGreaterThan(toolsIndex);
+		// The tools toggle owns a fully closed onChange callback, independent of
+		// whatever setting is declared next.
+		expect(toolsBlock).toMatch(
+			/await this\.plugin\.saveSettings\(\);\s*}\),\s*\);/,
 		);
 	});
 

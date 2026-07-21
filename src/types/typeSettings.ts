@@ -157,6 +157,10 @@ export interface VaultmanSettings {
 	toolbarToolsMenu: boolean;
 	/** BT5-021: how the Files toolbar overflows: condensed menu or horizontal scroll */
 	toolbarOverflowStrategy: import('../logic/logicResponsiveLayout').ToolbarOverflowStrategy;
+	/** BT5-023: command Create File runs; '' or sentinel = Vaultman built-in */
+	createFileCommand: string;
+	/** BT5-024: ordered Obsidian command ids projected as toolbar action nodes */
+	toolbarCommandActions: string[];
 	/** Ordered fields shown in the native Files node hover tooltip */
 	filesHoverInfo: FileHoverInfoId[];
 	/** Independent display order for every available Files hover entry */
@@ -281,6 +285,8 @@ export const DEFAULT_SETTINGS: VaultmanSettings = {
 	explorerRainbowFolders: false,
 	toolbarToolsMenu: false,
 	toolbarOverflowStrategy: 'condensed',
+	createFileCommand: '',
+	toolbarCommandActions: [],
 	filesHoverInfo: [...DEFAULT_FILES_HOVER_INFO],
 	addonIconOverrides: {},
 	orderCellsByActivation: false,
