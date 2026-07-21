@@ -131,7 +131,7 @@ la cola canónica para implementación nueva.
 | BT5-033 | ⏳ in-progress | `3353cd88` Node icon scope renombrado/movido a Explorer; **grueso (compositions capturan showDock/showToolbar/etc) GRILL-GATED** |
 | BT5-034 | ✅ completed | `2bdea929` islands inferiores clampan su max-height a `--vaultman-frame-height`; smoke split pequeño pendiente del dev |
 | BT5-035 | 🆕 needs-triage | option `Condense tabs` (on=tab menu, off=tabbar experimental) + cmenus config granular por menú |
-| BT5-036 | ⏳ in-progress | `0f9fba74` cmenus por kind (regresión props/tags cerrada) + sección por kind; faltan content/snippets/plugins actions |
+| BT5-036 | ⏳ in-progress | `0f9fba74` cmenus por kind + `e0945039` content rename/delete (prompts nativos, configurable, smoked); snippet/plugin **BLOCKED** (Obsidian no ofrece confirm nativo — decisión del dev) |
 | BT5-037 | ✅ completed | `871a837e` statistics toolbar igual a los demás + card Opened today |
 | BT5-038 | ✅ completed | `6e64f28b` padre colapsado con filtro oculto recibe un dot, no la decoración; files intacto |
 | Content link | ✅ completed | `0f9fba74` "with active filters" pasa a link en el header, no botón por nodo |

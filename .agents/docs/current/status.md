@@ -34,14 +34,18 @@ Compact route index after archiving the oversized current status:
 - **LATEST (2026-07-21, claude-opus-4-8): `1.2.0-beta.6` PUBLICADA + batch AFK post-beta.6.**
   Release: https://github.com/Meibbo/Vaultman/releases/tag/1.2.0-beta.6 · `origin/dev` = tag =
   `fefdde48`. Worktree `C:/tmp/vaultman-release-beta2-final2`, rama `codex/bt5-next-10`,
-  HEAD **`b4b625f7`** (4 commits sobre beta.6, worktree limpio, sin push). Cerrados AFK
+  HEAD **`e0945039`** (5 commits sobre beta.6, worktree limpio, sin push). Cerrados AFK
   después de beta.6: **BT5-042** (`ff083b91` toggle folder colapsado dot↔badges, gate 909),
   **BT5-034** (`2bdea929` island clamp al frame), **BT5-033 slice-1** (`3353cd88` Node icon
-  scope rename/move), **BT5-040** (`b4b625f7` folder totals recursivos). Registro:
-  [[docs/work/polish/plans/2026-07-19-bt5-next-10/11-post-beta6-bubbledot-island-iconscope-folder-totals|shard 11]].
-  Backlog código AFK restante: **036 (resto), 035, 039, 041** + **033-core (grill-gated)**.
-  HITL dev: **018, 026, 027** + gates release **002/003/004**. Preflight v1.2.0 stable **sin
-  publicar** por orden del dev. Índice: [[docs/work/polish/issues/bt5-next-release/index|BT5]].
+  scope rename/move), **BT5-040** (`b4b625f7` folder totals recursivos), **BT5-036 slice
+  content** (`e0945039` content Rename/Delete vía prompts nativos, configurable, smoked;
+  141 files/919 tests). Registro:
+  [[docs/work/polish/plans/2026-07-19-bt5-next-10/11-post-beta6-bubbledot-island-iconscope-folder-totals|shard 11]]
+  + [[docs/work/polish/plans/2026-07-19-bt5-next-10/12-bt5-036-content-slice-and-native-confirm-blocker|shard 12]].
+  **⚠ BLOCKER dev:** BT5-036 resto (snippet-delete/plugin-uninstall) sin modal nativo en
+  Obsidian → necesita decisión. Backlog código AFK restante: **035, 039, 041** +
+  **033-core (grill-gated)**. HITL dev: **018, 026, 027** + gates release **002/003/004**.
+  Preflight v1.2.0 stable **sin publicar**. Índice: [[docs/work/polish/issues/bt5-next-release/index|BT5]].
 - **LATEST (2026-07-18, codex-gpt5-root): `1.2.0-beta.4` PUBLICADA.** `dev`,
   tag y release apuntan a `f22ae806`; workflow Release `29671245720` verde
   (verify 101 files/563 tests · check 0/0 · lint/format/stylelint/build ·

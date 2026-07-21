@@ -2068,3 +2068,21 @@ broader "append-only status writes" is parked as **S-12** in
   pequeño; BT5-033-core necesita grill con el dev antes de codear.
 - Siguiente (código AFK): BT5-036 (resto), 035, 039, 041. Preflight v1.2.0 stable sin
   publicar por orden del dev.
+
+## 2026-07-21 (cont.) — claude-opus-4-8 · implement · BT5-036 slice content + blocker
+
+- Decisión del dev: procesar los P2 restantes **uno a uno + smoke**; destructivos con
+  el **modal nativo de Obsidian** (no inventar). Bridge `plugin-dev` vivo → smoke viable.
+- **BT5-036 slice content LISTO — `e0945039`** (worktree HEAD, 5º commit sobre beta.6).
+  `logicContentContextMenu.ts` registra `content.rename`/`content.delete` vía
+  `fileManager.promptForFileRename`/`promptForFileDeletion` (confirm nativo core);
+  `main.ts` los registra una vez; `tabContent.svelte`+`pageFilters.svelte` cablean el
+  cmenu por `openPanelMenu({nodeType:'content'})`. Configurable en su sección.
+  Verify **141 files / 919 tests**, scorecard 17/17. **Smoked** en plugin-dev.
+- **BLOCKER descubierto por sondeo:** snippet-delete y plugin-uninstall **no tienen
+  modal de confirmación nativo** en Obsidian (`uninstallPlugin` no confirma; snippets =
+  config-dir, no TFiles). Como el dev pidió "no inventes uno", quedan bloqueados
+  esperando su decisión (opciones A/B/C en el issue 036; recomiendo A = superficie
+  nativa de settings). Shard 12.
+- Restante código AFK: **035, 039, 041**. 033-core grill-gated. Sigo con 035 si hay
+  contexto; si no, checkpoint limpio.

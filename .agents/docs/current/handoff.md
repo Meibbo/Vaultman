@@ -25,25 +25,31 @@ https://github.com/Meibbo/Vaultman/releases/tag/1.2.0-beta.6 · `origin/dev` = t
 tests, security:audit, build:plugin, attest, upload, publish). Pre-release.
 
 **Rama de trabajo:** `codex/bt5-next-10`, worktree `C:/tmp/vaultman-release-beta2-final2`
-limpio. **HEAD `b4b625f7`** = 4 commits AFK sobre beta.6 (`fefdde48`), sin push.
+limpio. **HEAD `e0945039`** = 5 commits AFK sobre beta.6 (`fefdde48`), sin push.
 `stash@{0}` intacto.
 
-**Orden actual del dev:** resolver **todos los P2 restantes** de forma AFK con
-libertad de smoke testing, dejar el **preflight de v1.2.0 stable SIN publicar**
-(esperar su visto bueno).
+**Orden actual del dev:** resolver **todos los P2 restantes** de forma AFK (uno a uno
++ smoke), destructivos con el modal nativo de Obsidian (no inventar), dejar el
+**preflight de v1.2.0 stable SIN publicar** (esperar su visto bueno).
 
-**Cerrado AFK después de beta.6 (batch 2026-07-21, shard 11):**
-- **BT5-042** (`ff083b91`) — bubbledot: toggle `collapsedFolderBadges` dot↔badges de
-  descendientes. **BT5-017 conservado** por instrucción del dev (la opción B era lo
-  pedido: badges de operation junto al dot de filtro). Gate 909 tests.
+**Cerrado AFK después de beta.6 (batch 2026-07-21, shards 11-12):**
+- **BT5-042** (`ff083b91`) — bubbledot: toggle `collapsedFolderBadges` dot↔badges. **BT5-017 conservado.**
 - **BT5-034** (`2bdea929`) — island de filtros clampa su max-height al alto del frame.
 - **BT5-033 slice-1** (`3353cd88`) — Node icon scope renombrado + movido a Explorer.
 - **BT5-040** (`b4b625f7`) — folder totals recursivos (words/props/tasks; fechas fuera).
+- **BT5-036 slice content** (`e0945039`) — content nodes: Rename/Delete vía prompts
+  nativos de Obsidian, configurable, **smoked**. Verify 141 files / 919 tests.
+
+**⚠ BLOCKER que necesita tu decisión (BT5-036 resto):** snippet-delete y
+plugin-uninstall **NO tienen modal de confirmación nativo** en Obsidian
+(`uninstallPlugin` no confirma; snippets = config-dir, no TFiles). Pediste "usa el
+nativo, no inventes". Opciones en [[docs/work/polish/issues/bt5-next-release/036-node-menu-actions-and-config|BT5-036]]
+(recomiendo A: abrir la superficie nativa de settings donde el user ejecuta el destroy).
 
 **Pendientes reales (todo P2, ningún bloqueador de código para v1.2.0):**
-- **Código AFK:** BT5-036 (resto: content/snippets/plugins actions), BT5-035, BT5-039,
-  BT5-041. **BT5-033-core = GRILL-GATED** (compositions capturan showDock/showToolbar/
-  etc — el dev debe fijar el límite composition vs. global antes de codear).
+- **Código AFK:** BT5-035, BT5-039, BT5-041. **BT5-036 resto = BLOCKED** (arriba).
+  **BT5-033-core = GRILL-GATED** (compositions capturan showDock/showToolbar/etc —
+  fijar límite composition vs. global antes de codear).
 - **HITL del dev:** BT5-018 (revisión UI, código listo `b4f0815a`), BT5-026, BT5-027.
 - **Gates HITL de release (v1.2.0):** BT5-002 (matriz visual), BT5-003 (benchmark vault
   grande), BT5-004 (boletín + tag) — validaciones del dev, no código.
