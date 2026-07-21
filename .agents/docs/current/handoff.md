@@ -5,7 +5,7 @@ status: active
 parent: "[[docs/work/pkm-ai/index|pkm-ai]]"
 archive_source: docs/archive/pkm-ai/active-docs/2026-05-11T080321-current-handoff.md
 created: 2026-05-04T01:36:20
-updated: 2026-07-20T17:40:00
+updated: 2026-07-21T01:30:00
 tags:
   - agent/current
 created_by: dec
@@ -16,6 +16,33 @@ updated_by: claude-opus-4-8
 
 Compact handoff after archiving the oversized current handoff:
 [[docs/archive/pkm-ai/active-docs/2026-05-11T080321-current-handoff|2026-05-11 handoff archive]].
+
+## NEXT AGENT START HERE — 1.2.0-beta.6 PUBLICADA; resolviendo P2 hacia v1.2.0 (2026-07-21)
+
+**`1.2.0-beta.6` PUBLICADA** por orden explícita del dev:
+https://github.com/Meibbo/Vaultman/releases/tag/1.2.0-beta.6 · `origin/dev` = tag =
+`fefdde48` (`chore(release): prepare 1.2.0-beta.6`). CI verde entera (verify 904
+tests, security:audit, build:plugin, attest, upload, publish). Pre-release.
+
+**Rama de trabajo:** `codex/bt5-next-10` FF a `fefdde48` (= dev, incluye el release
+commit). Worktree `C:/tmp/vaultman-release-beta2-final2` limpio. `stash@{0}` intacto.
+
+**Orden actual del dev:** resolver **todos los P2 restantes** de forma AFK con
+libertad de smoke testing, dejar el **preflight de v1.2.0 stable SIN publicar**
+(esperar su visto bueno). Bubbledot: NO quitar BT5-017; añadir un option para
+intercambiar entre (A) un solo dot indicativo de que los childs tienen algún estado
+(filter u operation pendiente) y (B) el dot de filter como badge junto al resto de
+badges de operation (el dev sospecha que se borraron los operation badges por
+malentendido — verificar).
+
+**Pendientes reales (todo P2, ningún bloqueador de código para v1.2.0):**
+- BT5-018 (revisión UI del dev), BT5-026, BT5-027, BT5-033, BT5-034, BT5-035,
+  BT5-036 (resto: content/snippets/plugins actions), BT5-039, BT5-040 (sin fechas),
+  BT5-041. Detalle e índice: [[docs/work/polish/issues/bt5-next-release/index|BT5]].
+- Gates HITL de release (v1.2.0): BT5-002 (matriz visual), BT5-003 (benchmark vault
+  grande), BT5-004 (boletín + tag) — validaciones del dev, no código.
+
+Shards previos 06–10 en `docs/work/polish/plans/2026-07-19-bt5-next-10/`.
 
 ## NEXT AGENT START HERE — BT5 012/013/015/018/031/032 cerrados; quedan correcciones del dev (2026-07-20, tarde)
 
