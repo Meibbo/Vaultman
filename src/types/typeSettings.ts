@@ -172,6 +172,13 @@ export interface VaultmanSettings {
 	iconInCaretSlot: boolean;
 	/** BT5-018: configured Files node context menu (order, visibility, dividers) */
 	filesContextMenuLayout: FilesMenuItem[];
+	/** BT5-036: configured layouts for the other node context menus, by kind. */
+	contextMenuLayouts?: Partial<
+		Record<
+			import('../logic/logicFilesContextMenu').PanelMenuKind,
+			FilesMenuItem[]
+		>
+	>;
 	/** Show the explorer toolbar (tabs / view / sort / search header) */
 	showToolbar: boolean;
 	/** Named saved explorer layouts (view options + sorts per tab) */
@@ -220,9 +227,11 @@ export interface iVaultmanPlugin extends Plugin {
 	iconicService?: {
 		setEnabled(enabled: boolean): void;
 	};
-	/** BT5-018: the live action catalog the Files menu sub-page configures. */
+	/** BT5-018/036: the live action catalog each menu sub-page configures. */
 	contextMenuService: {
-		panelActionCatalog(): {
+		panelActionCatalog(
+			kind?: import('../logic/logicFilesContextMenu').PanelMenuKind,
+		): {
 			id: string;
 			label: string;
 			icon?: string;

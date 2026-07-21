@@ -64,6 +64,18 @@ describe('Page filters Content source guards', () => {
 		);
 	});
 
+	it('shows the active-filters hint only in the header, as link text', () => {
+		// Regression: it had become a button repeated on every content node.
+		expect(tabContentSource).toContain('vaultman-content-filter-link');
+		expect(tabContentSource).not.toContain('vaultman-content-filter-context');
+		// The link lives next to the match/file count in the preview header, and
+		// the per-node file title no longer carries it.
+		const perNode = tabContentSource.slice(
+			tabContentSource.indexOf('{fileResult.file.path}'),
+		);
+		expect(perNode).not.toContain("translate('content.with_active_filters')");
+	});
+
 	it('does not render the old Content scope hint row', () => {
 		expect(tabContentSource).not.toContain('contentScopeHint');
 		expect(tabContentSource).not.toContain('vaultman-content-scope-hint');

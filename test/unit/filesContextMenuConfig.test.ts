@@ -223,7 +223,8 @@ describe('BT5-018 Files context menu configuration', () => {
 	it('renders the real panel menu through the saved projection', () => {
 		expect(contextMenuSource).toContain('projectFilesMenu(');
 		expect(contextMenuSource).toContain('mergeFilesMenuLayout(');
-		expect(contextMenuSource).toContain('panelActionCatalog()');
+		// BT5-036: the catalog is now per menu kind.
+		expect(contextMenuSource).toContain('panelActionCatalog(kind)');
 	});
 
 	it('lists intercepted items and applies their saved visibility live', () => {

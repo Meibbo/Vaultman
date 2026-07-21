@@ -14,6 +14,48 @@ export type FilesMenuItem =
 	| { kind: 'divider'; id: string }
 	| { kind: 'submenu'; id: string; label: string };
 
+/**
+ * BT5-036: the node context menus Vaultman configures, one per explorer surface
+ * that opens a panel menu. `files` keeps the intercepted-item behaviour of
+ * BT5-018; the others are plain registry menus. Each has its own saved layout
+ * and its own settings section.
+ */
+export type PanelMenuKind =
+	| 'files'
+	| 'props'
+	| 'tags'
+	| 'content'
+	| 'snippets'
+	| 'plugins';
+
+export const PANEL_MENU_KINDS: readonly PanelMenuKind[] = [
+	'files',
+	'props',
+	'tags',
+	'content',
+	'snippets',
+	'plugins',
+];
+
+/** The menu a given node type belongs to. */
+export function panelMenuKindForNodeType(nodeType: string): PanelMenuKind {
+	switch (nodeType) {
+		case 'prop':
+		case 'value':
+			return 'props';
+		case 'tag':
+			return 'tags';
+		case 'snippet':
+			return 'snippets';
+		case 'plugin':
+			return 'plugins';
+		case 'content':
+			return 'content';
+		default:
+			return 'files';
+	}
+}
+
 export const DIVIDER_MARK = '---';
 
 /**

@@ -302,6 +302,12 @@ export const en: Record<string, string> = {
 		'Replace Auto-reveal and Expand/Collapse with one native Tools menu so the Files toolbar stays at five nodes.',
 	'settings.toolbar': 'Toolbar',
 	'settings.toolbar.desc': 'Configure labels and explorer toolbar controls.',
+	'settings.context_menu_kind.files': 'Files node menu',
+	'settings.context_menu_kind.props': 'Properties node menu',
+	'settings.context_menu_kind.tags': 'Tags node menu',
+	'settings.context_menu_kind.content': 'Content node menu',
+	'settings.context_menu_kind.snippets': 'Snippets node menu',
+	'settings.context_menu_kind.plugins': 'Plugins node menu',
 	'settings.files_context_menu':
 		'Files context menu',
 	'settings.files_context_menu.desc':

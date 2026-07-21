@@ -14,8 +14,10 @@ import { translate } from '../i18n/index';
 import {
 	mergeFilesMenuLayout,
 	nativePanelActionId,
+	panelMenuKindForNodeType,
 	projectFilesMenu,
 	type FilesMenuItem,
+	type PanelMenuKind,
 } from '../logic/logicFilesContextMenu';
 
 const FILE_EXPLORER_CONTEXT_SOURCE = 'file-explorer-context-menu';
@@ -29,6 +31,7 @@ export interface ContextMenuPluginCtx extends Component {
 		contextMenuShowInEditorMenu: boolean;
 		contextMenuHideRules: MenuHideRule[];
 		filesContextMenuLayout?: FilesMenuItem[];
+		contextMenuLayouts?: Partial<Record<PanelMenuKind, FilesMenuItem[]>>;
 	};
 	filterService?: {
 		activeFilter: { children: unknown[] };
@@ -127,27 +130,51 @@ export class ContextMenuService extends Component {
 	 * Registration order is the fallback rank for anything the default order
 	 * does not name.
 	 */
-	panelActionCatalog(): {
+	/** BT5-036: the node types that feed each configurable menu kind. */
+	private _nodeTypesForKind(kind: PanelMenuKind): MenuCtx['nodeType'][] {
+		switch (kind) {
+			case 'props':
+				return ['prop', 'value'];
+			case 'tags':
+				return ['tag'];
+			case 'snippets':
+				return ['snippet'];
+			case 'plugins':
+				return ['plugin'];
+			case 'content':
+				return ['content'];
+			default:
+				return ['file', 'folder'];
+		}
+	}
+
+	/**
+	 * BT5-018/036: every action a given panel menu could show, so its settings
+	 * section lists the live registry instead of a hand-kept copy. Only the
+	 * Files menu also probes the intercepted Core/plugin items.
+	 */
+	panelActionCatalog(kind: PanelMenuKind = 'files'): {
 		id: string;
 		label: string;
 		icon?: string;
 		native?: boolean;
 		submenu?: boolean;
 	}[] {
-		// Intercepted items (Core Files, other plugins) render at the top of the
-		// real menu, so they lead the catalog too.
-		const native = this._probeNativePanelEntries();
+		const nodeTypes = this._nodeTypesForKind(kind);
 		const own = this._registry
 			.filter(
 				(def) =>
 					def.surfaces.includes('panel') &&
-					(def.nodeTypes.includes('file') || def.nodeTypes.includes('folder')),
+					def.nodeTypes.some((type) => nodeTypes.includes(type)),
 			)
 			.map((def) => ({
 				id: def.id,
 				label: typeof def.label === 'function' ? def.id : def.label,
 				...(def.icon ? { icon: def.icon } : {}),
 			}));
+		// Intercepted items (Core Files, other plugins) render at the top of the
+		// real Files menu, so they lead the Files catalog too.
+		const native = kind === 'files' ? this._probeNativePanelEntries() : [];
 		return [...native, ...own];
 	}
 
@@ -219,10 +246,16 @@ export class ContextMenuService extends Component {
 		}
 	}
 
-	private _filesMenuLayout(): FilesMenuItem[] {
+	private _savedLayoutFor(kind: PanelMenuKind): unknown {
+		if (kind === 'files') return this.plugin.settings.filesContextMenuLayout;
+		return this.plugin.settings.contextMenuLayouts?.[kind];
+	}
+
+	/** BT5-036: the projected layout for a given menu kind. */
+	menuLayoutFor(kind: PanelMenuKind): FilesMenuItem[] {
 		return mergeFilesMenuLayout(
-			this.plugin.settings.filesContextMenuLayout,
-			this.panelActionCatalog().map((entry) => entry.id),
+			this._savedLayoutFor(kind),
+			this.panelActionCatalog(kind).map((entry) => entry.id),
 		);
 	}
 
@@ -277,13 +310,16 @@ export class ContextMenuService extends Component {
 			menu.addSeparator();
 		}
 
-		// BT5-018: the saved projection decides order, visibility, dividers and
-		// submenus. `when` has already filtered what this node can offer, so the
-		// projection collapses the dividers around whatever dropped out.
+		// BT5-018/036: the saved projection for THIS node's menu kind decides
+		// order, visibility, dividers and submenus. `when` has already filtered
+		// what this node can offer, so the projection collapses the dividers
+		// around whatever dropped out. Routing per kind is what stopped the Files
+		// layout from swallowing the props/tags/… menus (BT5-036 regression).
+		const kind = panelMenuKindForNodeType(ctx.nodeType);
 		const byId = new Map(applicable.map((def) => [def.id, def]));
 		const submenus = new Map<string, Menu>();
 
-		for (const step of projectFilesMenu(this._filesMenuLayout(), [
+		for (const step of projectFilesMenu(this.menuLayoutFor(kind), [
 			...byId.keys(),
 		])) {
 			if (step.kind === 'divider') {
@@ -334,7 +370,7 @@ export class ContextMenuService extends Component {
 	 */
 	private _hideConfiguredNativeItems(menu: Menu): void {
 		const hidden = new Set(
-			this._filesMenuLayout()
+			this.menuLayoutFor('files')
 				.filter(
 					(item): item is Extract<FilesMenuItem, { kind: 'action' }> =>
 						item.kind === 'action' && !item.visible,

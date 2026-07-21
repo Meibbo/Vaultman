@@ -12,6 +12,7 @@ import {
 	type FileHoverInfoId,
 } from './logic/logicCellRegistry';
 import {
+	PANEL_MENU_KINDS,
 	addFilesMenuDivider,
 	addFilesMenuSubmenu,
 	defaultFilesMenuLayout,
@@ -22,6 +23,7 @@ import {
 	setFilesMenuParent,
 	setFilesMenuVisibility,
 	type FilesMenuItem,
+	type PanelMenuKind,
 } from './logic/logicFilesContextMenu';
 import {
 	addCommandId,
@@ -58,6 +60,8 @@ export class VaultmanSettingsTab extends PluginSettingTab {
 		| 'explorer'
 		| 'files-context-menu'
 		| 'context-menus' = 'root';
+	/** BT5-036: which node menu the shared context-menu sub-page configures. */
+	private contextMenuKind: PanelMenuKind = 'files';
 
 	constructor(app: App, plugin: iVaultmanPlugin) {
 		super(app, plugin);
@@ -870,17 +874,20 @@ export class VaultmanSettingsTab extends PluginSettingTab {
 			.setName(translate('settings.context_menu'))
 			.setHeading();
 
-		// BT5-018: the Files node menu is one more context menu, so it belongs
-		// inside this page rather than beside it in the settings root.
-		new Setting(containerEl)
-			.setName(translate('settings.files_context_menu'))
-			.setDesc(translate('settings.files_context_menu.desc'))
-			.addButton((button) =>
-				button.setButtonText(translate('settings.configure')).onClick(() => {
-					this.page = 'files-context-menu';
-					this.display();
-				}),
-			);
+		// BT5-018/036: every node context menu is configurable here, one row per
+		// explorer surface, sharing the same sub-page.
+		for (const kind of PANEL_MENU_KINDS) {
+			new Setting(containerEl)
+				.setName(translate(`settings.context_menu_kind.${kind}`))
+				.setDesc(translate('settings.files_context_menu.desc'))
+				.addButton((button) =>
+					button.setButtonText(translate('settings.configure')).onClick(() => {
+						this.contextMenuKind = kind;
+						this.page = 'files-context-menu';
+						this.display();
+					}),
+				);
+		}
 
 		new Setting(containerEl)
 			.setName(translate('settings.context_menu.file_menu'))
@@ -1026,21 +1033,33 @@ export class VaultmanSettingsTab extends PluginSettingTab {
 					}),
 			);
 
+		const kind = this.contextMenuKind;
 		new Setting(containerEl)
-			.setName(translate('settings.files_context_menu'))
+			.setName(translate(`settings.context_menu_kind.${kind}`))
 			.setDesc(translate('settings.files_context_menu.desc'))
 			.setHeading();
 
-		const catalog = this.plugin.contextMenuService.panelActionCatalog();
+		const catalog = this.plugin.contextMenuService.panelActionCatalog(kind);
 		const labels = new Map(catalog.map((entry) => [entry.id, entry.label]));
+		const savedLayout =
+			kind === 'files'
+				? this.plugin.settings.filesContextMenuLayout
+				: this.plugin.settings.contextMenuLayouts?.[kind];
 		const layout = mergeFilesMenuLayout(
-			this.plugin.settings.filesContextMenuLayout,
+			savedLayout,
 			catalog.map((entry) => entry.id),
 		);
 
 		const persist = async (next: FilesMenuItem[]): Promise<void> => {
-			this.plugin.settings.filesContextMenuLayout =
-				normalizeFilesMenuLayout(next);
+			const normalized = normalizeFilesMenuLayout(next);
+			if (kind === 'files') {
+				this.plugin.settings.filesContextMenuLayout = normalized;
+			} else {
+				this.plugin.settings.contextMenuLayouts = {
+					...this.plugin.settings.contextMenuLayouts,
+					[kind]: normalized,
+				};
+			}
 			await this.plugin.saveSettings();
 			this.display();
 		};

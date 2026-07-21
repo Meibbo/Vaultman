@@ -301,6 +301,12 @@ export const es: Record<string, string> = {
 	'settings.toolbar': 'Barra de herramientas',
 	'settings.toolbar.desc':
 		'Configura etiquetas y controles de la barra del explorador.',
+	'settings.context_menu_kind.files': 'Menú de nodos Files',
+	'settings.context_menu_kind.props': 'Menú de nodos Properties',
+	'settings.context_menu_kind.tags': 'Menú de nodos Tags',
+	'settings.context_menu_kind.content': 'Menú de nodos Content',
+	'settings.context_menu_kind.snippets': 'Menú de nodos Snippets',
+	'settings.context_menu_kind.plugins': 'Menú de nodos Plugins',
 	'settings.files_context_menu':
 		'Menú contextual de Files',
 	'settings.files_context_menu.desc':

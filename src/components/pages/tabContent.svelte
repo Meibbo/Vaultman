@@ -220,7 +220,25 @@
 					<span class="tree-item-inner-text"
 						>{translate('content.preview_count')
 							.replace('{matches}', String(contentPreviewResult.totalMatches))
-							.replace('{files}', String(contentPreviewFileCount))}</span
+							.replace(
+								'{files}',
+								String(contentPreviewFileCount),
+							)}{#if contentHasActiveNonContentFilters}<span
+								class="vaultman-content-filter-link"
+								role="button"
+								tabindex="0"
+								onclick={(e: MouseEvent) => {
+									e.stopPropagation();
+									onOpenFilters?.();
+								}}
+								onkeydown={(e: KeyboardEvent) => {
+									if (e.key === 'Enter' || e.key === ' ') {
+										e.preventDefault();
+										e.stopPropagation();
+										onOpenFilters?.();
+									}
+								}}>{' '}{translate('content.with_active_filters')}</span
+							>{/if}</span
 					>
 				{/if}
 			</span>
@@ -255,14 +273,6 @@
 							<div class="tree-item-inner">
 								<div class="tree-item-inner-text">
 									{fileResult.file.path}
-									{#if contentHasActiveNonContentFilters}
-										<button
-											type="button"
-											class="vaultman-content-filter-context"
-											onclick={() => onOpenFilters?.()}
-											>{translate('content.with_active_filters')}</button
-										>
-									{/if}
 								</div>
 							</div>
 							<div class="tree-item-flair-outer">

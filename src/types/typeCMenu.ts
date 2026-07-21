@@ -10,7 +10,8 @@ export interface MenuCtx {
 		| 'value'
 		| 'folder'
 		| 'snippet'
-		| 'plugin';
+		| 'plugin'
+		| 'content';
 	node: TreeNode<unknown>;
 	surface: 'panel' | 'file-menu' | 'editor-menu' | 'more-options';
 	/** Originating pointer event (panel menus); lets actions position follow-up UI. */

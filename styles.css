@@ -4249,6 +4249,18 @@ button.vaultman-content-scope-hint:focus-visible {
   user-select: none;
 }
 
+/* Header-only, link-style: no button chrome, just clickable accent text. */
+.vaultman-content-filter-link {
+  color: var(--text-accent);
+  cursor: pointer;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.vaultman-content-filter-link:hover {
+  color: var(--text-accent-hover);
+}
+
 .vaultman-preview-chevron {
   color: var(--text-muted);
   font-size: 10px;
