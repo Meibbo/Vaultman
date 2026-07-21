@@ -8,6 +8,7 @@ import { VaultmanFrame, VAULTMAN_FRAME_TYPE } from './VaultmanFrame';
 import { IconicService } from './services/serviceIcons';
 import { PropertyTypeService } from './services/servicePropertyType';
 import { ContextMenuService } from './services/serviceContextMenu';
+import { registerContentActions } from './logic/logicContentContextMenu';
 import { StatisticsCacheService } from './services/serviceStatisticsCache';
 import { LastOpenedService } from './services/serviceLastOpened';
 import { VaultmanSettingsTab } from './VaultmanSettings';
@@ -81,6 +82,10 @@ export class VaultmanPlugin extends Plugin {
 		this.addChild(this.contextMenuService);
 		this.addChild(this.statisticsCache);
 		this.addChild(this.lastOpenedService);
+
+		// BT5-036: content nodes are files; register their Rename/Delete panel
+		// actions once so the Content menu kind is populated and configurable.
+		registerContentActions(this);
 
 		const perfProbe = createPerfProbe({
 			now: () => activeWindow.performance.now(),

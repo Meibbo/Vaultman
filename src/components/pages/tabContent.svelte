@@ -22,6 +22,7 @@
 		queueContentReplace,
 		openContentMatch,
 		onOpenFilters,
+		onContentContextMenu,
 	}: {
 		contentFind: string;
 		contentReplace: string;
@@ -41,6 +42,8 @@
 		queueContentReplace: () => void;
 		openContentMatch: (file: TFile, line: number, ch: number) => Promise<void>;
 		onOpenFilters?: () => void;
+		/** BT5-036: open the configurable Content node menu (Rename/Delete). */
+		onContentContextMenu?: (file: TFile, event: MouseEvent) => void;
 	} = $props();
 
 	let contentReplaceOpen = $state(false);
@@ -258,6 +261,11 @@
 							tabindex="0"
 							onclick={() => {
 								toggleContentFile(fileResult.file.path);
+							}}
+							oncontextmenu={(e: MouseEvent) => {
+								if (!onContentContextMenu) return;
+								e.preventDefault();
+								onContentContextMenu(fileResult.file, e);
 							}}
 							onkeydown={(e: KeyboardEvent) => {
 								if (e.key === 'Enter' || e.key === ' ') {

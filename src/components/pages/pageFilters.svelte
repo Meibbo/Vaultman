@@ -36,6 +36,7 @@
 	import { refreshExplorerViewport } from '../../logic/logicExplorerViewportActivation';
 	import { sortDirectionGlyph } from '../../logic/logicSort';
 	import { observeActiveContentFile } from '../../logic/logicContentActiveFile';
+	import { contentMenuNode } from '../../logic/logicContentContextMenu';
 
 	type FiltersTab =
 		| 'files'
@@ -660,6 +661,18 @@
 		);
 	}
 
+	function openContentContextMenu(file: TFile, event: MouseEvent): void {
+		plugin.contextMenuService.openPanelMenu(
+			{
+				nodeType: 'content',
+				node: contentMenuNode(file),
+				surface: 'panel',
+				file,
+			},
+			event,
+		);
+	}
+
 	async function openContentMatch(file: TFile, line: number, ch: number) {
 		await plugin.app.workspace.openLinkText(file.path, '', false);
 		const view = plugin.app.workspace.getActiveViewOfType(MarkdownView);
@@ -970,6 +983,7 @@
 				{queueContentReplace}
 				{openContentMatch}
 				{onOpenFilters}
+				onContentContextMenu={openContentContextMenu}
 			/>
 		</div>
 	{/if}
