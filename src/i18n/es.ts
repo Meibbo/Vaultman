@@ -365,6 +365,9 @@ export const es: Record<string, string> = {
 	'settings.addons.iconic.files_scope': 'Alcance de íconos en Files',
 	'settings.addons.iconic.files_scope.desc':
 		'Elige qué nodos de Files pueden mostrar la celda de ícono. Personalizados muestra solo los nodos configurados en Iconic.',
+	'settings.folder_aggregate_cells': 'Totales de cell por folder',
+	'settings.folder_aggregate_cells.desc':
+		'Los folders del árbol de Files muestran la suma recursiva de los cells de conteo de sus files (propiedades, palabras, tareas), incluyendo los totales de sus subfolders.',
 	'settings.node_icon_scope': 'Alcance de icono de nodo',
 	'settings.node_icon_scope.desc':
 		'Qué nodos del explorer pueden mostrar icono: files y folders, solo files, solo folders, o solo nodos con icono personalizado.',

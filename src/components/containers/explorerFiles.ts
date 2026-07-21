@@ -25,6 +25,7 @@ import {
 	collectDescendantBadges,
 	type BubbleIndex,
 } from '../../logic/logicBadgeBubbling';
+import { aggregateFolderCells } from '../../logic/logicFolderAggregates';
 import type { MenuCtx } from '../../types/typeCMenu';
 import type { FilterNode } from '../../types/typeFilter';
 import type { ExplorerSortState, ScopeSort } from '../../types/typeUI';
@@ -2311,6 +2312,40 @@ export class FilesExplorerPanel extends Component {
 			}
 			if (node.children?.length) this._decorateTreeWithFileTimes(node.children);
 		}
+		// BT5-040: after files carry their own values, fold them up so folders
+		// show the recursive sum of props, words and tasks of everything inside.
+		this._decorateFoldersWithAggregates(nodes);
+	}
+
+	private _decorateFoldersWithAggregates(nodes: TreeNode<FileMeta>[]): void {
+		if (this.plugin.settings.folderAggregateCells !== true) return;
+		const totals = aggregateFolderCells(
+			nodes,
+			(node) => ({
+				count: node.meta.file ? this._propCountForFile(node.meta.file) : 0,
+				words: node.meta.file
+					? (this.plugin.statisticsCache.getFileWordCount(node.meta.file) ?? 0)
+					: 0,
+				tasks: node.meta.file
+					? (this.plugin.statisticsCache.getFileRemainingTasks(node.meta.file) ??
+						0)
+					: 0,
+			}),
+			(node) => node.meta.isFolder,
+		);
+		const apply = (subtree: TreeNode<FileMeta>[]): void => {
+			for (const node of subtree) {
+				const total = node.meta.isFolder ? totals.get(node.id) : undefined;
+				if (total) {
+					node.count = total.count > 0 ? total.count : undefined;
+					node.wordCountText =
+						total.words > 0 ? this._formatWordCountCell(total.words) : undefined;
+					node.tasksText = total.tasks > 0 ? String(total.tasks) : undefined;
+				}
+				if (node.children?.length) apply(node.children);
+			}
+		};
+		apply(nodes);
 	}
 
 	private _formatWordCountCell(wordCount: number): string {

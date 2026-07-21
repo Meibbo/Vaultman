@@ -152,6 +152,8 @@ export interface VaultmanSettings {
 	explorerRainbowFolders: boolean;
 	/** BT5-042: collapsed folder shows one bubble dot or the descendants' badges */
 	collapsedFolderBadges: 'dot' | 'badges';
+	/** BT5-040: folders show the recursive sum of countable cells of their files */
+	folderAggregateCells: boolean;
 	/** Condense Files auto-reveal and expansion into one native Tools menu */
 	toolbarToolsMenu: boolean;
 	/** BT5-021: how the Files toolbar overflows: condensed menu or horizontal scroll */
@@ -300,6 +302,7 @@ export const DEFAULT_SETTINGS: VaultmanSettings = {
 	excludedFilePaths: [],
 	explorerRainbowFolders: false,
 	collapsedFolderBadges: 'dot',
+	folderAggregateCells: false,
 	toolbarToolsMenu: false,
 	toolbarOverflowStrategy: 'condensed',
 	createFileCommand: '',

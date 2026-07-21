@@ -698,6 +698,19 @@ export class VaultmanSettingsTab extends PluginSettingTab {
 			.setName(translate('settings.explorer_page'))
 			.setHeading();
 
+		// BT5-040: folders can show the recursive sum of their files' cells.
+		new Setting(containerEl)
+			.setName(translate('settings.folder_aggregate_cells'))
+			.setDesc(translate('settings.folder_aggregate_cells.desc'))
+			.addToggle((toggle) =>
+				toggle
+					.setValue(this.plugin.settings.folderAggregateCells === true)
+					.onChange(async (value) => {
+						this.plugin.settings.folderAggregateCells = value;
+						await this.plugin.saveSettings();
+					}),
+			);
+
 		// BT5-033: node icon scope lives in the Explorer menu now (was in Add-ons).
 		new Setting(containerEl)
 			.setName(translate('settings.node_icon_scope'))
