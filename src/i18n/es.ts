@@ -241,6 +241,14 @@ export const es: Record<string, string> = {
 	'settings.order_cells_by_activation': 'Ordenar celdas por activación',
 	'settings.order_cells_by_activation.desc':
 		'Muestra las celdas en el orden en que las activas en vez de un orden fijo.',
+	'settings.collapsed_folder_badges':
+		'Actividad de folder colapsado',
+	'settings.collapsed_folder_badges.desc':
+		'Cómo un folder colapsado muestra el estado que oculta: un dot de que sus childs tienen actividad (una operación pendiente o un filtro activo), o los badges propios de los descendientes junto al dot de filtro.',
+	'settings.collapsed_folder_badges.dot':
+		'Un dot indicativo',
+	'settings.collapsed_folder_badges.badges':
+		'Badges de descendientes',
 	'settings.badge_colors': 'Badges de celda con color',
 	'settings.badge_colors.desc':
 		'Usa iconos de badge con color en Files, Tags y Properties. Desactivado mantiene badges monotonos.',

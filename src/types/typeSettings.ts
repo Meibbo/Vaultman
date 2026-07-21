@@ -150,6 +150,8 @@ export interface VaultmanSettings {
 	excludedFilePaths: string[];
 	/** Rainbow folder colors in the files tree (snippet-compatible, D38) */
 	explorerRainbowFolders: boolean;
+	/** BT5-042: collapsed folder shows one bubble dot or the descendants' badges */
+	collapsedFolderBadges: 'dot' | 'badges';
 	/** Condense Files auto-reveal and expansion into one native Tools menu */
 	toolbarToolsMenu: boolean;
 	/** BT5-021: how the Files toolbar overflows: condensed menu or horizontal scroll */
@@ -297,6 +299,7 @@ export const DEFAULT_SETTINGS: VaultmanSettings = {
 	sortLevelInline: true,
 	excludedFilePaths: [],
 	explorerRainbowFolders: false,
+	collapsedFolderBadges: 'dot',
 	toolbarToolsMenu: false,
 	toolbarOverflowStrategy: 'condensed',
 	createFileCommand: '',

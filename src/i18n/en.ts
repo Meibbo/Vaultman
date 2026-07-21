@@ -243,6 +243,14 @@ export const en: Record<string, string> = {
 	'settings.order_cells_by_activation': 'Order cells by activation',
 	'settings.order_cells_by_activation.desc':
 		'Render cells in the order you switch them on instead of a fixed order.',
+	'settings.collapsed_folder_badges':
+		'Collapsed folder activity',
+	'settings.collapsed_folder_badges.desc':
+		"How a collapsed folder shows the state hidden inside it: one dot that its children have activity (a pending operation or an active filter), or the descendants' own badges alongside the filter dot.",
+	'settings.collapsed_folder_badges.dot':
+		'One indicator dot',
+	'settings.collapsed_folder_badges.badges':
+		'Descendant badges',
 	'settings.badge_colors': 'Colored cell badges',
 	'settings.badge_colors.desc':
 		'Use colored badge icons across Files, Tags, and Properties. Disabled keeps badges monotone.',

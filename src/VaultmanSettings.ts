@@ -765,6 +765,28 @@ export class VaultmanSettingsTab extends PluginSettingTab {
 					}),
 			);
 
+		// BT5-042: how a collapsed folder shows the state hidden inside it.
+		new Setting(containerEl)
+			.setName(translate('settings.collapsed_folder_badges'))
+			.setDesc(translate('settings.collapsed_folder_badges.desc'))
+			.addDropdown((dropdown) =>
+				dropdown
+					.addOptions({
+						dot: translate('settings.collapsed_folder_badges.dot'),
+						badges: translate('settings.collapsed_folder_badges.badges'),
+					})
+					.setValue(
+						this.plugin.settings.collapsedFolderBadges === 'badges'
+							? 'badges'
+							: 'dot',
+					)
+					.onChange(async (value) => {
+						this.plugin.settings.collapsedFolderBadges =
+							value === 'badges' ? 'badges' : 'dot';
+						await this.plugin.saveSettings();
+					}),
+			);
+
 		new Setting(containerEl)
 			.setName(translate('settings.badge_cancel_click'))
 			.setDesc(translate('settings.badge_cancel_click.desc'))

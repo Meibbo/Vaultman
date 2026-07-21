@@ -147,3 +147,50 @@ export function resolveCollapsedBubbleDots<TMeta = unknown>(
 ): Map<string, BubbleDot> {
 	return bubbleDotsForExpansion(buildBubbleIndex(nodes), expandedIds);
 }
+
+function badgeKey(badge: NodeBadge): string {
+	return [
+		badge.text ?? '',
+		badge.icon ?? '',
+		badge.color ?? '',
+		badge.solid ? '1' : '0',
+	].join('');
+}
+
+/**
+ * BT5-042: the "detailed" collapsed mode. Instead of one dot, a collapsed
+ * parent shows its descendants' own badges (deduped, marked inherited) so the
+ * user can read exactly what is hidden. This is the opt-in alternative to the
+ * single bubble dot; the dot mode stays the default.
+ */
+export function collectDescendantBadges<TMeta = unknown>(
+	nodes: readonly TreeNode<TMeta>[],
+	expandedIds: ReadonlySet<string>,
+): Map<string, NodeBadge[]> {
+	const result = new Map<string, NodeBadge[]>();
+
+	const gather = (node: TreeNode<TMeta>): NodeBadge[] => {
+		const own: NodeBadge[] = [];
+		for (const child of node.children ?? []) {
+			const childOwn = (child.badges ?? []).filter(
+				(badge) => !badge.isInherited,
+			);
+			own.push(...childOwn, ...gather(child));
+		}
+		if (own.length > 0 && !expandedIds.has(node.id)) {
+			const seen = new Set<string>();
+			const deduped: NodeBadge[] = [];
+			for (const badge of own) {
+				const key = badgeKey(badge);
+				if (seen.has(key)) continue;
+				seen.add(key);
+				deduped.push({ ...badge, isInherited: true, queueIndex: undefined });
+			}
+			result.set(node.id, deduped);
+		}
+		return own;
+	};
+
+	for (const node of nodes) gather(node);
+	return result;
+}

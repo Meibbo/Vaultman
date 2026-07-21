@@ -22,6 +22,7 @@ import { resolveCellRenderOrder } from '../../logic/logicCellRegistry';
 import {
 	applyBubbleDots,
 	buildBubbleIndex,
+	collectDescendantBadges,
 	type BubbleIndex,
 } from '../../logic/logicBadgeBubbling';
 import type { MenuCtx } from '../../types/typeCMenu';
@@ -172,6 +173,7 @@ export class FilesExplorerPanel extends Component {
 	private sparseAutoExpandSignature = '';
 	/** Last rendered hierarchy — feeds the floating TOC (index/scope drill). */
 	private _lastRenderTree: TreeNode<FileMeta>[] = [];
+	private _bubbleTree: TreeNode<FileMeta>[] = [];
 	private _lastFlatFiles: { id: string; label: string }[] = [];
 	onIndexChanged?: (change?: FloatingTocExpansionChange) => void;
 
@@ -1960,8 +1962,15 @@ export class FilesExplorerPanel extends Component {
 		// BT5-017: parents no longer copy their descendants' badges. Activity
 		// hidden by a collapse is projected as one dot instead, so expanding
 		// the parent removes it (the real badge is visible again).
+		// BT5-042: unless the dev opts into the detailed mode, where the
+		// descendants' own badges bubble onto the collapsed parent.
 		this.bubbleIndex = buildBubbleIndex(nodes);
+		this._bubbleTree = nodes;
 		this._applyBubbleDots();
+	}
+
+	private _collapsedBadgesMode(): boolean {
+		return this.plugin.settings.collapsedFolderBadges === 'badges';
 	}
 
 	/**
@@ -1971,6 +1980,22 @@ export class FilesExplorerPanel extends Component {
 	 */
 	private _applyBubbleDots(): void {
 		if (!this.bubbleIndex) return;
+		if (this._collapsedBadgesMode()) {
+			// Detailed mode: bubble the descendants' own badges instead of a dot.
+			const inherited = collectDescendantBadges(
+				this._bubbleTree,
+				this.expandedIds,
+			);
+			for (const node of this.bubbleIndex.carriers.values()) {
+				delete node.bubbleDot;
+			}
+			for (const [id, node] of this.bubbleIndex.nodesById) {
+				const own = (node.badges ?? []).filter((badge) => !badge.isInherited);
+				const bubbled = inherited.get(id) ?? [];
+				node.badges = bubbled.length > 0 ? [...own, ...bubbled] : own;
+			}
+			return;
+		}
 		applyBubbleDots(this.bubbleIndex, this.expandedIds);
 	}
 
