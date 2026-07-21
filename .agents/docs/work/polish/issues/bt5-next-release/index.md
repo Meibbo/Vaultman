@@ -5,7 +5,7 @@ status: active
 lifecycle: active
 parent: "[[docs/work/polish/index|polish]]"
 created: 2026-07-19T08:02:57
-updated: 2026-07-20T22:10:00
+updated: 2026-07-21T00:30:00
 created_by: codex-gpt-5
 updated_by: claude-opus-4-8
 tags:
@@ -131,6 +131,13 @@ la cola canónica para implementación nueva.
 | BT5-033 | 🆕 needs-triage | compositions deben guardar showDock/showToolbar/etc. + `filesIconScope`→node icon scope en Explorer menu |
 | BT5-034 | 🆕 needs-triage | island de filtros no se ajusta al alto del frame; oculta entradas en split pequeño |
 | BT5-035 | 🆕 needs-triage | option `Condense tabs` (on=tab menu, off=tabbar experimental) + cmenus config granular por menú |
+| BT5-036 | ⏳ in-progress | `0f9fba74` cmenus por kind (regresión props/tags cerrada) + sección por kind; faltan content/snippets/plugins actions |
+| BT5-037 | ✅ completed | `871a837e` statistics toolbar igual a los demás + card Opened today |
+| BT5-038 | ✅ completed | `6e64f28b` padre colapsado con filtro oculto recibe un dot, no la decoración; files intacto |
+| Content link | ✅ completed | `0f9fba74` "with active filters" pasa a link en el header, no botón por nodo |
+| BT5-039 | 🆕 needs-triage | reorder de nodos del toolbar + overflow real + "Fixed amount of nodes" + nueva sección |
+| BT5-040 | 🆕 needs-triage | folders muestran cells agregados (suma recursiva de sus childs) |
+| BT5-041 | 🆕 needs-triage | cell_badge como cell configurable + separado en table + sort por badges bidimensional |
 
 Detalle técnico y gates: [[docs/work/polish/plans/2026-07-19-bt5-001-005/02-outcome-verification|BT5-001..005 outcome]].
 Continuación 006/007/008/028 y diagnóstico diferido 030:
@@ -143,6 +150,8 @@ Próximos 5 (014/021/022/023/024):
 [[docs/work/polish/plans/2026-07-19-bt5-next-10/08-bt5-014-021-022-023-024|shard 08]].
 Renames + sort-menu + compositions + glyph (025) + issues 033/034/035:
 [[docs/work/polish/plans/2026-07-19-bt5-next-10/09-renames-sortmenu-compositions-glyph|shard 09]].
+Regresión cmenus + content + statistics + badge bubbling + issues 036/039/040/041:
+[[docs/work/polish/plans/2026-07-19-bt5-next-10/10-cmenu-regression-content-statistics-bubbling|shard 10]].
 
 ## Release gates
 
