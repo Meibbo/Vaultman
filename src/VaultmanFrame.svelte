@@ -530,14 +530,23 @@
 		const target =
 			(el.closest('.vaultman-view') as HTMLElement) ?? el.parentElement ?? el;
 		viewRootEl = target;
+		const applyFrameHeight = (height: number) => {
+			// BT5-034: expose the frame's own height so bottom islands clamp to
+			// it and stay scrollable in a short vertical split, instead of 60vh
+			// of the whole window overflowing past the frame edge.
+			target.style.setProperty('--vaultman-frame-height', `${height}px`);
+		};
 		const ro = new ResizeObserver((entries) => {
-			const w = entries[0]?.contentRect.width ?? target.offsetWidth;
+			const rect = entries[0]?.contentRect;
+			const w = rect?.width ?? target.offsetWidth;
 			frameWidth = w;
 			navCollapsed = w < NAV_COLLAPSE_THRESHOLD;
+			applyFrameHeight(rect?.height ?? target.offsetHeight);
 		});
 		ro.observe(target);
 		frameWidth = target.offsetWidth;
 		navCollapsed = frameWidth < NAV_COLLAPSE_THRESHOLD;
+		applyFrameHeight(target.offsetHeight);
 		return {
 			destroy() {
 				ro.disconnect();
