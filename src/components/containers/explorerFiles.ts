@@ -94,6 +94,12 @@ import {
 } from '../../logic/logicExclusionFilter';
 import { isVaultmanDefault } from '../../logic/logicCommandActions';
 import {
+	normalizeGlyphColorChoice,
+	normalizeGlyphColorScope,
+	rainbowGlyphColor,
+	resolveGlyphColorCss,
+} from '../../logic/logicGlyphColor';
+import {
 	executeObsidianCommand,
 	obsidianCommandExists,
 } from '../../utils/obsidianCommands';
@@ -1889,16 +1895,55 @@ export class FilesExplorerPanel extends Component {
 	}
 
 	private _decorateTreeWithIcons(nodes: TreeNode<FileMeta>[]): void {
-		for (const node of nodes) {
-			const resolved = this._resolveFileIcon(
-				node.meta.file?.path ?? node.meta.folderPath,
-				node.meta.isFolder,
-				node.icon ?? (node.meta.isFolder ? 'lucide-folder' : 'lucide-file'),
-			);
-			node.icon = resolved?.icon;
-			node.iconColor = resolved?.color;
-			if (node.children?.length) this._decorateTreeWithIcons(node.children);
-		}
+		let rainbowBucket = 0;
+		const walk = (subtree: TreeNode<FileMeta>[]): void => {
+			for (const node of subtree) {
+				const resolved = this._resolveFileIcon(
+					node.meta.file?.path ?? node.meta.folderPath,
+					node.meta.isFolder,
+					node.icon ?? (node.meta.isFolder ? 'lucide-folder' : 'lucide-file'),
+				);
+				node.icon = resolved?.icon;
+				// BT5-025: the shared Explorer glyph color overrides the icon color
+				// when set and the node is in scope; an explicit Iconic color still
+				// wins, so a per-node choice is never silently replaced.
+				const glyph = this._explorerGlyphColorFor(
+					node.meta.isFolder,
+					rainbowBucket,
+				);
+				if (glyph && node.meta.isFolder) rainbowBucket += 1;
+				node.iconColor = resolved?.color ?? glyph ?? undefined;
+				if (node.children?.length) walk(node.children);
+			}
+		};
+		walk(nodes);
+	}
+
+	/**
+	 * BT5-025: the resolved Explorer glyph color for a node, or null when the
+	 * feature is off or the node is out of the configured scope.
+	 */
+	private _explorerGlyphColorFor(
+		isFolder: boolean,
+		rainbowIndex: number,
+	): string | null {
+		const choice = normalizeGlyphColorChoice(
+			this.plugin.settings.explorerGlyphColor,
+		).choice;
+		if (choice === 'default') return null;
+		const scope = normalizeGlyphColorScope(this.plugin.settings.explorerGlyphScope);
+		const inScope =
+			scope === 'both' ||
+			(scope === 'folders' && isFolder) ||
+			(scope === 'files' && !isFolder);
+		if (!inScope) return null;
+		if (choice === 'rainbow') return rainbowGlyphColor(rainbowIndex, 8);
+		return (
+			resolveGlyphColorCss(
+				choice,
+				this.plugin.settings.explorerGlyphCustomColor,
+			) || null
+		);
 	}
 
 	private _decorateTreeWithQueue(nodes: TreeNode<FileMeta>[]): void {

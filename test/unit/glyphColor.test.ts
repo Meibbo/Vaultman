@@ -11,6 +11,7 @@ import {
 import floatingTocSource from '../../src/components/layout/floatingToc.svelte?raw';
 import settingsSource from '../../src/VaultmanSettings.ts?raw';
 import mainSource from '../../src/main.ts?raw';
+import explorerFilesSource from '../../src/components/containers/explorerFiles.ts?raw';
 
 describe('BT5-025 shared glyph color palette', () => {
 	it('exposes exactly the five shared choices', () => {
@@ -77,5 +78,12 @@ describe('BT5-025 shared glyph color palette', () => {
 
 	it('migrates the legacy glyph color once on load', () => {
 		expect(mainSource).toContain('normalizeGlyphColorChoice(');
+	});
+
+	it('colors explorer glyphs by scope but never over an Iconic color', () => {
+		expect(explorerFilesSource).toContain('_explorerGlyphColorFor(');
+		// An explicit resolved (Iconic) color takes precedence over the glyph.
+		expect(explorerFilesSource).toContain('resolved?.color ?? glyph ?? undefined');
+		expect(explorerFilesSource).toContain('this.plugin.settings.explorerGlyphScope');
 	});
 });
