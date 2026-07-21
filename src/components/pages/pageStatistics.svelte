@@ -149,6 +149,11 @@
 		tags: statsSnapshot.tags,
 	});
 
+	const openedTodayCount = $derived.by(() => {
+		void statsRevision;
+		return plugin.lastOpenedService.openedTodayCount();
+	});
+
 	const statCards = $derived([
 		{
 			id: 'folders' as StatisticsNavigationCard,
@@ -199,6 +204,15 @@
 			value: statsSnapshot.tasks,
 			color: 'var(--color-yellow)',
 		},
+		{
+			id: 'opened-today' as StatisticsNavigationCard,
+			label: translate('stats.opened_today'),
+			icon: 'lucide-history',
+			// BT5-037: a usage metric, not a vault-content count — it reads the
+			// last-opened store directly and ignores the scope pills.
+			value: openedTodayCount,
+			color: 'var(--color-pink)',
+		},
 	]);
 
 	const scopeOptions: {
@@ -227,19 +241,24 @@
 		},
 	];
 
+	// Match the explorer toolbar exactly (same labels + icons); statistics can
+	// only navigate to the four data surfaces, so it lists just those.
 	const statsTabOptions = $derived([
-		{ id: 'files', label: translate('nav.files'), icon: 'lucide-folder-tree' },
-		{ id: 'props', label: translate('nav.filters'), icon: 'lucide-archive' },
-		{ id: 'tags', label: translate('filter.tab.tags'), icon: 'lucide-tags' },
+		{
+			id: 'files',
+			label: translate('filter.tab.files'),
+			icon: 'lucide-folder',
+		},
+		{
+			id: 'props',
+			label: translate('filter.tab.props'),
+			icon: 'lucide-archive',
+		},
+		{ id: 'tags', label: translate('filter.tab.tags'), icon: 'lucide-tag' },
 		{
 			id: 'content',
 			label: translate('filter.tab.content'),
-			icon: 'lucide-search',
-		},
-		{
-			id: 'statistics',
-			label: translate('nav.statistics'),
-			icon: 'lucide-bar-chart-2',
+			icon: 'lucide-file-search',
 		},
 	]);
 

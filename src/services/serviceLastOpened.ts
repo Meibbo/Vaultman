@@ -1,9 +1,11 @@
 import { Component, TFile, type App } from 'obsidian';
 
 import {
+	countOpenedSince,
 	lastOpenedAt,
 	normalizeLastOpenedRecord,
 	pruneMissingPaths,
+	startOfDay,
 	withDeletedPath,
 	withFileOpened,
 	withRenamedPath,
@@ -74,6 +76,11 @@ export class LastOpenedService extends Component {
 
 	getLastOpened(file: TFile): number | null {
 		return lastOpenedAt(this.record, file.path);
+	}
+
+	/** BT5-037: how many files were last opened today (local midnight). */
+	openedTodayCount(now: number = Date.now()): number {
+		return countOpenedSince(this.record, startOfDay(now));
 	}
 
 	/**

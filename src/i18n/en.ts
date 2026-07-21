@@ -976,6 +976,7 @@ export const en: Record<string, string> = {
 	'stats.tags': 'Tags',
 	'stats.addons': 'Add-ons',
 	'stats.total_links': 'Total Links',
+	'stats.opened_today': 'Opened today',
 	'stats.remaining_tasks': 'Remaining tasks',
 	'stats.word_count': 'Word Count',
 	'stats.reconciling': 'Reconciling',

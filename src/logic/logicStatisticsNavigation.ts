@@ -6,7 +6,8 @@ export type StatisticsNavigationCard =
 	| 'values'
 	| 'tags'
 	| 'words'
-	| 'tasks';
+	| 'tasks'
+	| 'opened-today';
 
 const STATISTICS_CARD_TAB: Record<StatisticsNavigationCard, StatisticsDataTab> =
 	{
@@ -17,6 +18,7 @@ const STATISTICS_CARD_TAB: Record<StatisticsNavigationCard, StatisticsDataTab> =
 		tags: 'tags',
 		words: 'content',
 		tasks: 'content',
+		'opened-today': 'files',
 	};
 
 export function dataTabForStatisticsCard(

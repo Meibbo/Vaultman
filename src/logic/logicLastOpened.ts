@@ -96,3 +96,22 @@ export function compareLastOpenedValues(
 ): number {
 	return (left ?? 0) - (right ?? 0);
 }
+
+/** How many files were last opened at or after `sinceMs`. */
+export function countOpenedSince(
+	record: LastOpenedRecord,
+	sinceMs: number,
+): number {
+	let count = 0;
+	for (const timestamp of Object.values(record)) {
+		if (isValidTimestamp(timestamp) && timestamp >= sinceMs) count += 1;
+	}
+	return count;
+}
+
+/** Local midnight for the day containing `at` (defaults to now). */
+export function startOfDay(at: number = Date.now()): number {
+	const date = new Date(at);
+	date.setHours(0, 0, 0, 0);
+	return date.getTime();
+}
