@@ -5,7 +5,7 @@ status: active
 lifecycle: active
 parent: "[[docs/work/polish/index|polish]]"
 created: 2026-07-19T08:02:57
-updated: 2026-07-20T19:20:00
+updated: 2026-07-20T22:10:00
 created_by: codex-gpt-5
 updated_by: claude-opus-4-8
 tags:
@@ -124,6 +124,13 @@ la cola canónica para implementación nueva.
 | BT5-022 | ✅ completed | `546c376d` placement de Create File/Folder (searchbox/toolbar), sin duplicar |
 | BT5-023 | ✅ completed | `3973ed29` Create File enlazable a comando de Obsidian; resolver + fallback seguro |
 | BT5-024 | ✅ completed | `546c376d` comandos de Obsidian como nodos de toolbar (add/remove/reorder, disabled reparable) |
+| BT5-025 | ✅ completed | `1b3031b2`+`beb545e3` paleta glyph compartida default/faint/accent/custom/rainbow; Floating Index + Explorer scope; rainbow-folders fuera de UI |
+| Renames | ✅ completed | `1b3031b2` View config→View Compositions, Layout Settings→Layout Configuration |
+| Sort menu | ✅ completed | `e86cd6f4` sin opciones de folder en table/cards ni con nested off |
+| Compositions | ✅ completed | `1b3031b2` seed borrable de Basic list + Preview |
+| BT5-033 | 🆕 needs-triage | compositions deben guardar showDock/showToolbar/etc. + `filesIconScope`→node icon scope en Explorer menu |
+| BT5-034 | 🆕 needs-triage | island de filtros no se ajusta al alto del frame; oculta entradas en split pequeño |
+| BT5-035 | 🆕 needs-triage | option `Condense tabs` (on=tab menu, off=tabbar experimental) + cmenus config granular por menú |
 
 Detalle técnico y gates: [[docs/work/polish/plans/2026-07-19-bt5-001-005/02-outcome-verification|BT5-001..005 outcome]].
 Continuación 006/007/008/028 y diagnóstico diferido 030:
@@ -134,6 +141,8 @@ Correcciones del dev + 3 bugs + 015 rehecho + 018 + 009:
 [[docs/work/polish/plans/2026-07-19-bt5-next-10/07-dev-corrections-and-interaction-fixes|shard 07]].
 Próximos 5 (014/021/022/023/024):
 [[docs/work/polish/plans/2026-07-19-bt5-next-10/08-bt5-014-021-022-023-024|shard 08]].
+Renames + sort-menu + compositions + glyph (025) + issues 033/034/035:
+[[docs/work/polish/plans/2026-07-19-bt5-next-10/09-renames-sortmenu-compositions-glyph|shard 09]].
 
 ## Release gates
 
