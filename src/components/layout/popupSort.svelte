@@ -40,6 +40,7 @@
 		onNestedToggle,
 		initialSortState,
 		nestedActive = false,
+		treeCapable = true,
 		icon,
 	}: {
 		activeTab: FiltersTab;
@@ -51,6 +52,7 @@
 		onNestedToggle?: () => void;
 		initialSortState?: ExplorerSortState;
 		nestedActive?: boolean;
+		treeCapable?: boolean;
 		icon: (node: HTMLElement, name: string) => { update(n: string): void };
 	} = $props();
 
@@ -67,7 +69,9 @@
 		),
 	);
 	const activeSort = $derived(activeScopeSort(activeTab, sortState));
-	const levelModel = $derived(byLevelModel(activeTab, sortState, nestedActive));
+	const levelModel = $derived(
+		byLevelModel(activeTab, sortState, nestedActive, treeCapable),
+	);
 	const visibleSortOptionsForActiveTab = $derived(
 		visibleSortOptions(activeTab, sortState, nestedActive),
 	);

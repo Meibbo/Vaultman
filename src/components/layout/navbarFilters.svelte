@@ -26,6 +26,7 @@
 		sameExplorerSortState,
 	} from '../../logic/logicScopedSort';
 	import {
+		isHierarchicalViewMode,
 		isViewModeSelectableForDataSurface,
 		normalizeExplorerViewMode,
 		panelViewModeForDataSurface,
@@ -1018,7 +1019,15 @@
 		new Notice(translate('sort.level.pick_hint'));
 	}
 
+	function treeCapableFor(tab: FiltersTab): boolean {
+		return isHierarchicalViewMode(viewModeByTab[tab] ?? 'tree');
+	}
+
 	function nestedActiveFor(tab: FiltersTab): boolean {
+		// Nesting only means anything in a tree-family view; table and cards are
+		// flat, so their sort menu treats nested as off (no folder options, path
+		// sort available).
+		if (!treeCapableFor(tab)) return false;
 		return (
 			visibleCellsByTab[tab] ?? defaultVisibleCells(tab, viewModeByTab[tab])
 		).includes('nested');
@@ -1055,7 +1064,12 @@
 		tab: FiltersTab,
 		current: ExplorerSortState,
 	) {
-		const model = byLevelModel(tab, current, nestedActiveFor(tab));
+		const model = byLevelModel(
+			tab,
+			current,
+			nestedActiveFor(tab),
+			treeCapableFor(tab),
+		);
 		if (!model) return;
 
 		for (const option of model.items) {
@@ -1668,6 +1682,7 @@
 					onRequestDrillPick={() => beginDrillPick(activeTab)}
 					initialSortState={sortStateByTab[activeTab]}
 					nestedActive={nestedActiveFor(activeTab)}
+					treeCapable={treeCapableFor(activeTab)}
 					onNestedToggle={() => toggleNestedFor(activeTab)}
 					{icon}
 				/>

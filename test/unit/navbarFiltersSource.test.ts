@@ -106,9 +106,10 @@ describe('minimal filters header source guards', () => {
 	});
 
 	it('exposes Files Parents First as a sort preference separate from node type filters', () => {
-		expect(navbarFiltersSource).toContain(
-			'byLevelModel(tab, current, nestedActiveFor(tab))',
-		);
+		// Sort menu cleanup: byLevelModel now receives treeCapableFor(tab) so the
+		// folder options vanish in flat (table/cards) views.
+		expect(navbarFiltersSource).toContain('nestedActiveFor(tab)');
+		expect(navbarFiltersSource).toContain('treeCapableFor(tab)');
 		expect(navbarFiltersSource).toContain("option.id === 'parentsFirst'");
 		expect(navbarFiltersSource).toContain(
 			'fileList?.setSortState(normalizedState)',

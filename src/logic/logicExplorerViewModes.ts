@@ -4,6 +4,15 @@ import type { StatisticsDataTab } from './logicStatisticsNavigation';
 export type DataExplorerSurface = StatisticsDataTab | 'snippets' | 'plugins';
 export type PanelViewMode = 'tree' | 'grid' | 'table';
 
+/**
+ * Only tree-family modes render a real hierarchy; table and cards are always
+ * flat. Folder/By-level sort options therefore only apply here — table and
+ * cards have no folders to order (BT5 sort-menu cleanup).
+ */
+export function isHierarchicalViewMode(viewMode: ExplorerViewMode): boolean {
+	return viewMode === 'tree' || viewMode === 'dnd';
+}
+
 export interface ExplorerViewModeOption {
 	id: ExplorerViewMode;
 	icon: string;

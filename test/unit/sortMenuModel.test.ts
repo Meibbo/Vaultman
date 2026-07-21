@@ -45,7 +45,7 @@ describe('BT5-007 shared sort menu model', () => {
 		const foldersMixed = byLevelModel(
 			'files',
 			stateFor('files', { parentsFirst: false, fixedFolders: true }),
-			false,
+			true,
 		);
 		expect(foldersMixed?.items.map((item) => item.id)).toEqual([
 			'nested',
@@ -56,11 +56,25 @@ describe('BT5-007 shared sort menu model', () => {
 		]);
 	});
 
+	it('drops the folder options when nesting is off or the view is flat', () => {
+		// Nested off: only the Nested toggle survives — folders-first, all levels
+		// and scope have no single-level meaning.
+		expect(
+			byLevelModel('files', stateFor('files'), false)?.items.map((i) => i.id),
+		).toEqual(['nested']);
+		expect(
+			byLevelModel('tags', stateFor('tags'), false)?.items.map((i) => i.id),
+		).toEqual(['nested']);
+		// A flat view (table/cards) has no By-level group at all.
+		expect(byLevelModel('files', stateFor('files'), true, false)).toBeNull();
+		expect(byLevelModel('files', stateFor('files'), false, false)).toBeNull();
+	});
+
 	it('projects the same contextual scope order for Props and Tags', () => {
 		const props = byLevelModel(
 			'props',
 			stateFor('props', { activeScope: 'values' }),
-			false,
+			true,
 		);
 		expect(props?.items.map((item) => item.id)).toEqual([
 			'nested',

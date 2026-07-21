@@ -211,8 +211,13 @@ export function byLevelModel(
 	tab: ExplorerTabId,
 	state: ExplorerSortState,
 	nestedActive: boolean,
+	// A flat view (table/cards) has no hierarchy, so the By-level group has
+	// nothing to order. Callers pass false for those view modes and the whole
+	// group disappears. Defaults true so existing callers keep the tree shape.
+	treeCapable = true,
 ): ByLevelMenuModel | null {
 	if (!supportsByLevel(tab)) return null;
+	if (!treeCapable) return null;
 
 	const items: ByLevelMenuItem[] = [
 		{
@@ -223,6 +228,11 @@ export function byLevelModel(
 			checked: nestedActive,
 		},
 	];
+
+	// With nesting off the view is a single flat level, so folders-first,
+	// fixed-folders and the level scopes have nothing to act on: only the
+	// Nested toggle (to turn hierarchy back on) stays.
+	if (!nestedActive) return { items };
 
 	if (tab === 'files') {
 		const parentsFirst = state.parentsFirst ?? true;
