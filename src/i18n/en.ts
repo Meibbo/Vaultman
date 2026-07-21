@@ -241,6 +241,24 @@ export const en: Record<string, string> = {
 		'Vaultman default',
 	'command.missing':
 		'Command "{id}" is not available; used the Vaultman default instead.',
+	'command.unavailable':
+		'Command "{id}" is not available (retired or disabled plugin).',
+	'settings.create_actions_placement':
+		'Create actions placement',
+	'settings.create_actions_placement.desc':
+		'Whether Create File and Create Folder live on the search box or as toolbar action nodes.',
+	'settings.create_actions_placement.searchbox':
+		'Search box',
+	'settings.create_actions_placement.toolbar':
+		'Toolbar',
+	'settings.toolbar_commands':
+		'Toolbar commands',
+	'settings.toolbar_commands.desc':
+		'Obsidian commands shown as Files toolbar action nodes. The toolbar runs a command immediately when you activate it.',
+	'settings.toolbar_commands.add':
+		'Add a command',
+	'settings.toolbar_commands.remove':
+		'Remove',
 	'settings.create_file_command':
 		'Create File action',
 	'settings.create_file_command.desc':

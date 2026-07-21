@@ -24,8 +24,13 @@ import {
 	type FilesMenuItem,
 } from './logic/logicFilesContextMenu';
 import {
+	addCommandId,
 	isVaultmanDefault,
+	normalizeCommandIds,
+	removeCommandId,
+	reorderCommandIds,
 	resolveCommandAction,
+	resolveCommandActions,
 } from './logic/logicCommandActions';
 import { listObsidianCommands } from './utils/obsidianCommands';
 import { openCommandPicker } from './modals/modalCommandPicker';
@@ -552,6 +557,30 @@ export class VaultmanSettingsTab extends PluginSettingTab {
 				}),
 			);
 
+		// BT5-022: where the built-in Create File/Folder actions live.
+		new Setting(containerEl)
+			.setName(translate('settings.create_actions_placement'))
+			.setDesc(translate('settings.create_actions_placement.desc'))
+			.addDropdown((dropdown) =>
+				dropdown
+					.addOptions({
+						searchbox: translate('settings.create_actions_placement.searchbox'),
+						toolbar: translate('settings.create_actions_placement.toolbar'),
+					})
+					.setValue(
+						this.plugin.settings.createActionsPlacement === 'toolbar'
+							? 'toolbar'
+							: 'searchbox',
+					)
+					.onChange(async (value) => {
+						this.plugin.settings.createActionsPlacement =
+							value === 'toolbar' ? 'toolbar' : 'searchbox';
+						await this.plugin.saveSettings();
+					}),
+			);
+
+		this.renderToolbarCommandActions(containerEl);
+
 		new Setting(containerEl)
 			.setName(translate('settings.sort_level_inline'))
 			.setDesc(translate('settings.sort_level_inline.desc'))
@@ -563,6 +592,99 @@ export class VaultmanSettingsTab extends PluginSettingTab {
 						await this.plugin.saveSettings();
 					}),
 			);
+	}
+
+	/**
+	 * BT5-024: an ordered list of Obsidian commands the Files toolbar renders as
+	 * action nodes. Persisted by command id; add is explicit, order is drag, and
+	 * a retired command stays as a repairable disabled entry with a warning.
+	 */
+	private renderToolbarCommandActions(containerEl: HTMLElement): void {
+		new Setting(containerEl)
+			.setName(translate('settings.toolbar_commands'))
+			.setDesc(translate('settings.toolbar_commands.desc'))
+			.addButton((button) =>
+				button
+					.setIcon('lucide-plus')
+					.setTooltip(translate('settings.toolbar_commands.add'))
+					.onClick(() => {
+						openCommandPicker({
+							app: this.plugin.app,
+							title: translate('settings.toolbar_commands.add'),
+							onPick: async (id) => {
+								this.plugin.settings.toolbarCommandActions = addCommandId(
+									this.plugin.settings.toolbarCommandActions ?? [],
+									id,
+								);
+								await this.plugin.saveSettings();
+								this.display();
+							},
+						});
+					}),
+			);
+
+		const ids = normalizeCommandIds(
+			this.plugin.settings.toolbarCommandActions ?? [],
+		);
+		const resolved = resolveCommandActions(
+			listObsidianCommands(this.plugin.app),
+			ids,
+		);
+		let draggedId: string | null = null;
+
+		const persist = async (next: string[]): Promise<void> => {
+			this.plugin.settings.toolbarCommandActions = next;
+			await this.plugin.saveSettings();
+			this.display();
+		};
+
+		for (const action of resolved) {
+			const setting = new Setting(containerEl).setName(action.label);
+			if (!action.available) {
+				setting.setDesc(
+					translate('command.unavailable').replace('{id}', action.id),
+				);
+				setting.settingEl.addClass('mod-warning');
+			} else {
+				setting.setDesc(action.id);
+			}
+			setting.addExtraButton((button) => {
+				button.setIcon('lucide-grip-vertical').setTooltip(action.id);
+				button.extraSettingsEl.draggable = true;
+				button.extraSettingsEl.addEventListener(
+					'dragstart',
+					(event: DragEvent) => {
+						draggedId = action.id;
+						if (event.dataTransfer) {
+							event.dataTransfer.effectAllowed = 'move';
+							event.dataTransfer.setData('text/plain', action.id);
+						}
+					},
+				);
+				button.extraSettingsEl.addEventListener('dragend', () => {
+					draggedId = null;
+				});
+			});
+			setting.addExtraButton((button) =>
+				button
+					.setIcon('lucide-trash-2')
+					.setTooltip(translate('settings.toolbar_commands.remove'))
+					.onClick(() => void persist(removeCommandId(ids, action.id))),
+			);
+			setting.settingEl.addEventListener('dragover', (event: DragEvent) => {
+				if (!draggedId) return;
+				event.preventDefault();
+				if (event.dataTransfer) event.dataTransfer.dropEffect = 'move';
+			});
+			setting.settingEl.addEventListener('drop', (event: DragEvent) => {
+				event.preventDefault();
+				const movedId =
+					draggedId ?? event.dataTransfer?.getData('text/plain') ?? null;
+				draggedId = null;
+				if (!movedId || movedId === action.id) return;
+				void persist(reorderCommandIds(ids, movedId, action.id));
+			});
+		}
 	}
 
 	private displayExplorerPage(containerEl: HTMLElement): void {

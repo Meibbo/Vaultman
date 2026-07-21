@@ -239,6 +239,24 @@ export const es: Record<string, string> = {
 		'Predeterminado de Vaultman',
 	'command.missing':
 		'El comando "{id}" no está disponible; se usó el predeterminado de Vaultman.',
+	'command.unavailable':
+		'El comando "{id}" no está disponible (retirado o plugin deshabilitado).',
+	'settings.create_actions_placement':
+		'Ubicación de acciones Crear',
+	'settings.create_actions_placement.desc':
+		'Si Crear archivo y Crear carpeta viven en la caja de búsqueda o como nodos de acción del toolbar.',
+	'settings.create_actions_placement.searchbox':
+		'Caja de búsqueda',
+	'settings.create_actions_placement.toolbar':
+		'Toolbar',
+	'settings.toolbar_commands':
+		'Comandos del toolbar',
+	'settings.toolbar_commands.desc':
+		'Comandos de Obsidian mostrados como nodos de acción del toolbar de Files. El toolbar ejecuta el comando de inmediato al activarlo.',
+	'settings.toolbar_commands.add':
+		'Añadir comando',
+	'settings.toolbar_commands.remove':
+		'Eliminar',
 	'settings.create_file_command':
 		'Acción Crear archivo',
 	'settings.create_file_command.desc':

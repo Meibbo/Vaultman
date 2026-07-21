@@ -2,6 +2,11 @@
 	import { onDestroy, onMount } from 'svelte';
 	import { MarkdownView, Menu, Notice, TFile } from 'obsidian';
 	import type { VaultmanPlugin } from '../../main';
+	import { resolveCommandActions } from '../../logic/logicCommandActions';
+	import {
+		executeObsidianCommand,
+		listObsidianCommands,
+	} from '../../utils/obsidianCommands';
 	import FiltersTagsTab from './tabTags.svelte';
 	import FiltersPropsTab from './tabProps.svelte';
 	import FilesTab from './tabFiles.svelte';
@@ -295,6 +300,19 @@
 		return plugin.settings.toolbarOverflowStrategy === 'scroll'
 			? 'scroll'
 			: 'condensed';
+	});
+	const createActionsPlacement = $derived.by(() => {
+		void settingsRevision;
+		return plugin.settings.createActionsPlacement === 'toolbar'
+			? 'toolbar'
+			: 'searchbox';
+	});
+	const commandActions = $derived.by(() => {
+		void settingsRevision;
+		return resolveCommandActions(
+			listObsidianCommands(plugin.app),
+			plugin.settings.toolbarCommandActions ?? [],
+		);
 	});
 	// When hidden, the toolbar slides out of the frame and peeks back on hover of
 	// the top edge, so it can be re-enabled from its own tabs menu.
@@ -860,6 +878,9 @@
 			{onToggleFloatingToc}
 			{toolbarToolsMenu}
 			{toolbarOverflowStrategy}
+			{createActionsPlacement}
+			{commandActions}
+			onRunCommand={(id) => executeObsidianCommand(plugin.app, id)}
 			{sortLevelInline}
 			{orderCellsByActivation}
 			{frameWidth}

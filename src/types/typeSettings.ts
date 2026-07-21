@@ -161,6 +161,8 @@ export interface VaultmanSettings {
 	createFileCommand: string;
 	/** BT5-024: ordered Obsidian command ids projected as toolbar action nodes */
 	toolbarCommandActions: string[];
+	/** BT5-022: where the built-in Create File/Folder actions live */
+	createActionsPlacement: 'searchbox' | 'toolbar';
 	/** Ordered fields shown in the native Files node hover tooltip */
 	filesHoverInfo: FileHoverInfoId[];
 	/** Independent display order for every available Files hover entry */
@@ -287,6 +289,7 @@ export const DEFAULT_SETTINGS: VaultmanSettings = {
 	toolbarOverflowStrategy: 'condensed',
 	createFileCommand: '',
 	toolbarCommandActions: [],
+	createActionsPlacement: 'searchbox',
 	filesHoverInfo: [...DEFAULT_FILES_HOVER_INFO],
 	addonIconOverrides: {},
 	orderCellsByActivation: false,

@@ -128,6 +128,9 @@
 		showTabLabels = true,
 		sortLevelInline = true,
 		orderCellsByActivation = false,
+		commandActions = [],
+		onRunCommand,
+		createActionsPlacement = 'searchbox',
 	}: {
 		activeTab: FiltersTab;
 		filtersSearch: string;
@@ -165,6 +168,9 @@
 		showTabLabels?: boolean;
 		sortLevelInline?: boolean;
 		orderCellsByActivation?: boolean;
+		commandActions?: import('../../logic/logicCommandActions').ResolvedCommandAction[];
+		onRunCommand?: (id: string) => void;
+		createActionsPlacement?: 'searchbox' | 'toolbar';
 	} = $props();
 
 	async function promptSaveLayout() {
@@ -211,7 +217,11 @@
 				: 'lucide-plus',
 	);
 	const canCreateSearchTarget = $derived(
-		activeTab === 'files' || activeTab === 'props' || activeTab === 'tags',
+		// BT5-022: with Create moved to the toolbar, the Files searchbox no longer
+		// carries its own create button; Props and Tags keep theirs.
+		(activeTab === 'files' && createActionsPlacement !== 'toolbar') ||
+			activeTab === 'props' ||
+			activeTab === 'tags',
 	);
 
 	const DEFAULT_SORT_STATE: Record<FiltersTab, ExplorerSortState> = {
@@ -1572,6 +1582,74 @@
 								use:icon={expansionIcon}
 							></div>
 						{/if}
+						{#if activeTab === 'files' && createActionsPlacement === 'toolbar'}
+							<!-- BT5-022: built-in Create File/Folder as toolbar nodes. -->
+							<div
+								class={headerActionClass}
+								role="button"
+								tabindex="0"
+								aria-label={translate('folder.ctx.new_note')}
+								title={minimalStyle
+									? undefined
+									: translate('folder.ctx.new_note')}
+								onclick={() =>
+									void fileList?.createFromSearch(0, filtersSearch)}
+								onkeydown={(e: KeyboardEvent) => {
+									if (e.key === 'Enter' || e.key === ' ') {
+										e.preventDefault();
+										void fileList?.createFromSearch(0, filtersSearch);
+									}
+								}}
+								use:icon={'lucide-file-plus'}
+							></div>
+							<div
+								class={headerActionClass}
+								role="button"
+								tabindex="0"
+								aria-label={translate('folder.ctx.new_folder')}
+								title={minimalStyle
+									? undefined
+									: translate('folder.ctx.new_folder')}
+								onclick={() =>
+									void fileList?.createFromSearch(1, filtersSearch)}
+								onkeydown={(e: KeyboardEvent) => {
+									if (e.key === 'Enter' || e.key === ' ') {
+										e.preventDefault();
+										void fileList?.createFromSearch(1, filtersSearch);
+									}
+								}}
+								use:icon={'lucide-folder-plus'}
+							></div>
+						{/if}
+						{#each commandActions as command (command.id)}
+							<!-- BT5-024: Obsidian commands projected as toolbar nodes. -->
+							<div
+								class={headerActionClass}
+								class:is-disabled={!command.available}
+								role="button"
+								tabindex="0"
+								aria-label={command.label}
+								title={command.available
+									? command.label
+									: translate('command.unavailable').replace(
+											'{id}',
+											command.id,
+										)}
+								onclick={() => {
+									if (command.available) onRunCommand?.(command.id);
+								}}
+								onkeydown={(e: KeyboardEvent) => {
+									if (
+										command.available &&
+										(e.key === 'Enter' || e.key === ' ')
+									) {
+										e.preventDefault();
+										onRunCommand?.(command.id);
+									}
+								}}
+								use:icon={command.icon ?? 'lucide-terminal'}
+							></div>
+						{/each}
 					{/if}
 				</div>
 			</div>
