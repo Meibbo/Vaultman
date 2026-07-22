@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { mount, onMount, tick, unmount, untrack } from 'svelte';
-	import { Notice, setIcon, type TFile } from 'obsidian';
+	import { Notice, Platform, setIcon, type TFile } from 'obsidian';
 	import type { VaultmanPlugin } from './main';
 	import type { FilesExplorerPanel } from './components/containers/explorerFiles';
 	import type { PropsExplorerPanel } from './components/containers/explorerProps';
@@ -21,6 +21,7 @@
 		scopeAfterExpansionChange,
 	} from './logic/logicIndexGroups';
 	import { resolveFloatingTocToggle } from './logic/logicFloatingTocAvailability';
+	import { resolveFloatingTocLaneLayout } from './logic/logicFloatingTocLane';
 	import PerformanceHud from './components/layout/performanceHud.svelte';
 	import { QueueListComponent } from './components/componentQueueList';
 	import { QueueIslandComponent } from './components/layout/islandQueue';
@@ -773,23 +774,16 @@
 			filtersActiveTab !== 'content' &&
 			tocAvailable,
 	);
-	const tocReservedLanePosition = $derived.by(() => {
+	const tocLaneLayout = $derived.by(() => {
 		void settingsRevision;
-		if (
-			!floatingTocVisible ||
-			(plugin.settings.tocReservedLane !== true &&
-				plugin.settings.tocHideExplorerScrollbar !== true)
-		) {
-			return null;
-		}
-		const position = plugin.settings.tocPosition ?? 'right';
-		return position === 'right' || position === 'left' ? position : null;
-	});
-	const hideExplorerScrollbarForToc = $derived.by(() => {
-		void settingsRevision;
-		return (
-			floatingTocVisible && plugin.settings.tocHideExplorerScrollbar === true
-		);
+		return resolveFloatingTocLaneLayout({
+			visible: floatingTocVisible,
+			position: plugin.settings.tocPosition ?? 'right',
+			hideScrollbar: plugin.settings.tocHideExplorerScrollbar === true,
+			reserveLane: plugin.settings.tocReservedLane === true,
+			plainStyle: plugin.settings.floatingTocPlainStyle === true,
+			mobile: Platform.isMobile,
+		});
 	});
 	const tocKindToggle = $derived.by(() => {
 		void settingsRevision;
@@ -1266,11 +1260,15 @@
 <div
 	class="vaultman-pages-viewport"
 	class:vaultman-pages-viewport--dock-off={!showDock}
-	class:vaultman-pages-viewport--toc-lane-right={tocReservedLanePosition ===
+	class:vaultman-pages-viewport--toc-gutter-right={tocLaneLayout.gutterPosition ===
 		'right'}
-	class:vaultman-pages-viewport--toc-lane-left={tocReservedLanePosition ===
+	class:vaultman-pages-viewport--toc-gutter-left={tocLaneLayout.gutterPosition ===
 		'left'}
-	class:vaultman-pages-viewport--toc-hide-scrollbar={hideExplorerScrollbarForToc}
+	class:vaultman-pages-viewport--toc-explicit-lane-right={tocLaneLayout.reserveExplicitLane &&
+		tocLaneLayout.gutterPosition === 'right'}
+	class:vaultman-pages-viewport--toc-hide-scrollbar={tocLaneLayout.hideScrollbar}
+	style:--vaultman-toc-content-gutter={`${tocLaneLayout.contentGutterPx}px`}
+	style:--vaultman-toc-rail-scrollbar-offset={`${tocLaneLayout.railScrollbarOffsetPx}px`}
 	class:vaultman-badges-colored={coloredBadges}
 	use:bindViewport
 	use:bindViewRoot

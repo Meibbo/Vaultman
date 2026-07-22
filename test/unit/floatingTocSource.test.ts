@@ -86,32 +86,37 @@ describe('Floating TOC source and panel contracts', () => {
 		expect(frameSource).toContain('panel.isIndexableSort()');
 	});
 
-	it('keeps the reserved vertical lane opt-in and excludes horizontal rails', () => {
+	it('projects hidden-scrollbar gutter separately from the explicit lane', () => {
 		expect(DEFAULT_SETTINGS.tocReservedLane).toBe(false);
 		expect(settingsSource).toContain("translate('settings.toc_reserved_lane')");
-		expect(frameSource).toContain('tocReservedLanePosition');
+		expect(settingsSource).toContain(
+			"this.plugin.settings.tocHideExplorerScrollbar !== true",
+		);
+		expect(frameSource).toContain('resolveFloatingTocLaneLayout');
+		expect(frameSource).toContain('vaultman-pages-viewport--toc-gutter-right');
+		expect(frameSource).toContain('vaultman-pages-viewport--toc-gutter-left');
 		expect(frameSource).toContain(
-			"position === 'right' || position === 'left'",
+			'vaultman-pages-viewport--toc-explicit-lane-right',
 		);
-		expect(frameSource).toContain('vaultman-pages-viewport--toc-lane-right');
-		expect(frameSource).toContain('vaultman-pages-viewport--toc-lane-left');
-		expect(stylesSource).toContain('--vaultman-toc-reserved-lane-size: 22px');
-		expect(stylesSource).toContain('--vaultman-toc-reserved-lane-size: 26px');
-		expect(stylesSource).not.toContain(
-			'right: calc(var(--vaultman-toc-scrollbar-offset) + 2px)',
-		);
-		expect(stylesSource).not.toContain('--vaultman-toc-scrollbar-offset');
-		// D23 (BT4-003): with a right lane reserved, the rail moves off the
-		// scrollbar into the reserved gutter (scrollbar ~12px + 2px gap).
-		const laneShiftRule = stylesSource.match(
-			/\.vaultman-pages-viewport--toc-lane-right\s*\n?\s*\.vaultman-floating-toc-wrap\.pos-right\s*\{\s*right:\s*14px;\s*\}/,
-		);
-		expect(laneShiftRule).not.toBeNull();
+		expect(frameSource).toContain('vaultman-pages-viewport--toc-hide-scrollbar');
+		expect(frameSource).toContain('--vaultman-toc-content-gutter');
+		expect(frameSource).toContain('--vaultman-toc-rail-scrollbar-offset');
+		expect(stylesSource).not.toContain('--vaultman-toc-reserved-lane-size');
+		expect(stylesSource).not.toMatch(/right:\s*14px/);
 		expect(stylesSource).toContain(
-			'padding-inline-end: var(--vaultman-toc-reserved-lane-size)',
+			'--vaultman-toc-rail-edge-offset: 2px',
 		);
 		expect(stylesSource).toContain(
-			'padding-inline-start: var(--vaultman-toc-reserved-lane-size)',
+			'--vaultman-toc-rail-edge-offset: 4px',
+		);
+		expect(stylesSource).toContain(
+			'var(--vaultman-toc-rail-scrollbar-offset)',
+		);
+		expect(stylesSource).toContain(
+			'padding-inline-end: var(--vaultman-toc-content-gutter)',
+		);
+		expect(stylesSource).toContain(
+			'padding-inline-start: var(--vaultman-toc-content-gutter)',
 		);
 	});
 

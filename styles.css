@@ -6437,12 +6437,12 @@ button.vaultman-content-scope-hint:focus-visible {
    Overlay inside .vaultman-pages-viewport (position:relative). Wrapper strip
    ignores pointer events so the explorer stays clickable; buttons re-enable. */
 .vaultman-pages-viewport {
-	--vaultman-toc-reserved-lane-size: 22px;
+	--vaultman-toc-rail-edge-offset: 2px;
 }
 .is-mobile .vaultman-pages-viewport {
-	--vaultman-toc-reserved-lane-size: 26px;
+	--vaultman-toc-rail-edge-offset: 4px;
 }
-.vaultman-pages-viewport--toc-lane-right
+.vaultman-pages-viewport--toc-gutter-right
 	:is(
 		.vaultman-tree-virtual-viewport,
 		.vaultman-files-table,
@@ -6456,10 +6456,10 @@ button.vaultman-content-scope-hint:focus-visible {
 		)
 	) {
 	box-sizing: border-box;
-	padding-inline-end: var(--vaultman-toc-reserved-lane-size);
-	scroll-padding-inline-end: var(--vaultman-toc-reserved-lane-size);
+	padding-inline-end: var(--vaultman-toc-content-gutter);
+	scroll-padding-inline-end: var(--vaultman-toc-content-gutter);
 }
-.vaultman-pages-viewport--toc-lane-left
+.vaultman-pages-viewport--toc-gutter-left
 	:is(
 		.vaultman-tree-virtual-viewport,
 		.vaultman-files-table,
@@ -6473,21 +6473,24 @@ button.vaultman-content-scope-hint:focus-visible {
 		)
 	) {
 	box-sizing: border-box;
-	padding-inline-start: var(--vaultman-toc-reserved-lane-size);
-	scroll-padding-inline-start: var(--vaultman-toc-reserved-lane-size);
+	padding-inline-start: var(--vaultman-toc-content-gutter);
+	scroll-padding-inline-start: var(--vaultman-toc-content-gutter);
 }
-/* D23: a reserved right lane moves the rail off the scrollbar into the
-   gutter (scrollbar ~12px + 2px gap); the scroller's own scrollbar width
-   plus the compact lane keeps rail and cells from overlapping. */
-.vaultman-pages-viewport--toc-lane-right
+/* An explicit right lane moves the rail off a visible classic scrollbar.
+   Hide-scrollbar keeps the rail at its overlay edge and only reserves one
+   content gutter, so the two modes never add their footprints together. */
+.vaultman-pages-viewport--toc-explicit-lane-right
 	.vaultman-floating-toc-wrap.pos-right {
-	right: 14px;
+	right: calc(
+		var(--vaultman-toc-rail-edge-offset) +
+			var(--vaultman-toc-rail-scrollbar-offset)
+	);
 }
 .vaultman-floating-toc-wrap {
 	position: absolute;
 	top: 48px;
 	bottom: calc(var(--vaultman-nav-height, 64px) + 8px);
-	right: 2px;
+	right: var(--vaultman-toc-rail-edge-offset);
 	z-index: 12;
 	display: flex;
 	align-items: center;
@@ -6662,21 +6665,21 @@ button.vaultman-content-scope-hint:focus-visible {
 /* Rail position variants. */
 .vaultman-floating-toc-wrap.pos-left {
 	right: auto;
-	left: 2px;
+	left: var(--vaultman-toc-rail-edge-offset);
 }
 .vaultman-floating-toc-wrap.pos-top {
 	top: 4px;
 	bottom: auto;
-	left: 4px;
-	right: 4px;
+	left: var(--vaultman-toc-rail-edge-offset);
+	right: var(--vaultman-toc-rail-edge-offset);
 	align-items: flex-start;
 	justify-content: center;
 }
 .vaultman-floating-toc-wrap.pos-bottom {
 	top: auto;
 	bottom: calc(var(--vaultman-nav-height, 64px) + 8px);
-	left: 4px;
-	right: 4px;
+	left: var(--vaultman-toc-rail-edge-offset);
+	right: var(--vaultman-toc-rail-edge-offset);
 	align-items: flex-end;
 	justify-content: center;
 }
@@ -6777,7 +6780,6 @@ button.vaultman-content-scope-hint:focus-visible {
 	.workspace-leaf-content[data-type='vaultman-frame']
 	.vaultman-floating-toc-wrap {
 	top: 44px;
-	right: 4px;
 }
 .is-mobile
 	.workspace-leaf-content[data-type='vaultman-frame']
@@ -6787,8 +6789,6 @@ button.vaultman-content-scope-hint:focus-visible {
 	.workspace-leaf-content[data-type='vaultman-frame']
 	.vaultman-floating-toc-wrap.pos-bottom {
 	top: auto;
-	left: 4px;
-	right: 4px;
 }
 .is-mobile
 	.workspace-leaf-content[data-type='vaultman-frame']
