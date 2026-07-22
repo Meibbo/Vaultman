@@ -21,6 +21,7 @@ export const en: Record<string, string> = {
 	'filter.multiple_values': 'Not value',
 	'filter.folder': 'In folder',
 	'filter.folder_exclude': 'Not folder',
+	'filter.file_name': 'Has name',
 	'filter.file_name_exclude': 'Not name',
 	'filter.text_contains': 'Has text',
 	'filter.text_not_contains': 'Not text',

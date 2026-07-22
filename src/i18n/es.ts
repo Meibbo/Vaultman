@@ -13,16 +13,16 @@ export const es: Record<string, string> = {
 	'section.operations': 'Operaciones',
 
 	// Filter types
-	'filter.has_property': 'Tiene propiedad',
+	'filter.has_property': 'Con propiedad',
 	'filter.missing_property': 'Sin propiedad',
-	'filter.specific_value': 'Valor específico',
-	'filter.multiple_values': 'Valores múltiples',
+	'filter.specific_value': 'Con valor',
+	'filter.multiple_values': 'Sin valor',
 	'filter.folder': 'En carpeta',
-	'filter.folder_exclude': 'Excluir carpeta',
-	'filter.file_name': 'Nombre contiene',
-	'filter.file_name_exclude': 'Nombre de archivo excluye',
-	'filter.text_contains': 'Texto contiene',
-	'filter.text_not_contains': 'Texto no contiene',
+	'filter.folder_exclude': 'Sin carpeta',
+	'filter.file_name': 'Con nombre',
+	'filter.file_name_exclude': 'Sin nombre',
+	'filter.text_contains': 'Con texto',
+	'filter.text_not_contains': 'Sin texto',
 
 	// Filter logic
 	'filter.logic.all': 'TODOS (AND)',
