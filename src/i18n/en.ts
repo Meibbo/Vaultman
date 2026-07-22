@@ -590,6 +590,8 @@ export const en: Record<string, string> = {
 	'file.ctx.open_right': 'Open to the right',
 	'file.ctx.open_window': 'Open in new window',
 	'snippet.open_default_app': 'Open in default app',
+	'snippet.reveal_system_explorer': 'Show in system explorer',
+	'snippet.reveal_finder': 'Reveal in Finder',
 	'file.ctx.make_copy': 'Make a copy',
 	'folder.ctx.new_note': 'New note',
 	'folder.ctx.new_folder': 'New folder',

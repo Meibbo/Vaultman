@@ -58,6 +58,14 @@ export function panelMenuKindForNodeType(nodeType: string): PanelMenuKind {
 
 export const DIVIDER_MARK = '---';
 
+const LEGACY_PANEL_ACTION_IDS: Readonly<Record<string, string>> = {
+	'snippet.see-details': 'snippet.reveal',
+};
+
+export function canonicalPanelActionId(id: string): string {
+	return LEGACY_PANEL_ACTION_IDS[id] ?? id;
+}
+
 /**
  * The dev-approved default: the order of Obsidian's Core Files context menu,
  * with Vaultman's own actions folded into the section they belong to. A new
@@ -203,7 +211,11 @@ export function mergeFilesMenuLayout(
 	const seen = new Set<string>();
 	const merged: FilesMenuItem[] = [];
 	for (const raw of saved) {
-		const item = readSavedItem(raw);
+		const read = readSavedItem(raw);
+		const item =
+			read?.kind === 'action'
+				? { ...read, id: canonicalPanelActionId(read.id) }
+				: read;
 		if (!item || seen.has(item.id)) continue;
 		if (item.kind === 'action' && !known.has(item.id)) continue;
 		seen.add(item.id);

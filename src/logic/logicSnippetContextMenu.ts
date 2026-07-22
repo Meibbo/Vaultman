@@ -15,13 +15,19 @@ import { cssSnippetPath, setCssSnippetEnabled } from '../utils/obsidianAddons';
 import type { SnippetMeta } from '../types/typeTree';
 import type { App } from 'obsidian';
 import { buildSnippetRenameChange } from './logicSnippetOperations';
+import {
+	canRevealInSystemExplorer,
+	REVEAL_IN_SYSTEM_EXPLORER_ICON,
+	revealInSystemExplorer,
+	SNIPPET_REVEAL_ACTION_ID,
+	systemExplorerRevealLabel,
+} from './logicSystemExplorer';
 
 interface InternalApp extends App {
 	customCss?: {
 		getSnippetPath(name: string): string;
 		requestLoadSnippets?(): void;
 	};
-	showInFolder?(path: string): void;
 	vault: App['vault'] & {
 		adapter: {
 			remove(path: string): Promise<void>;
@@ -134,23 +140,22 @@ export function registerSnippetActions(plugin: VaultmanPlugin): void {
 	});
 
 	svc.registerAction({
-		id: 'snippet.see-details',
+		id: SNIPPET_REVEAL_ACTION_ID,
 		nodeTypes: ['snippet'],
 		surfaces: ['panel'],
-		label: () => 'Reveal in system explorer',
-		icon: 'lucide-folder-open',
+		label: systemExplorerRevealLabel(),
+		icon: REVEAL_IN_SYSTEM_EXPLORER_ICON,
 		when: (ctx: MenuCtx) => {
 			const meta = ctx.node?.meta as SnippetMeta | undefined;
-			return !!meta?.name;
+			return !!meta?.name && canRevealInSystemExplorer(plugin.app);
 		},
 		run: (ctx: MenuCtx) => {
 			const meta = ctx.node?.meta as SnippetMeta | undefined;
 			if (!meta || !meta.name) return;
-			const app = plugin.app as InternalApp;
-			const path = app.customCss?.getSnippetPath(meta.name);
-			if (path && app.showInFolder) {
-				app.showInFolder(path);
-			}
+			revealInSystemExplorer(
+				plugin.app,
+				cssSnippetPath(plugin.app, meta.name),
+			);
 		},
 	});
 
