@@ -8,6 +8,11 @@ import {
 } from 'obsidian';
 import { PropsLogic } from '../../logic/logicProps';
 import { DeferredExplorerRender } from '../../logic/logicDeferredExplorerRender';
+import {
+	DeferredFilterClickCoordinator,
+	filterStateToPolarity,
+	type FilterPolarity,
+} from '../../logic/logicFilterPolarity';
 import type { FilterService } from '../../services/serviceFilter';
 import type { IconicService } from '../../services/serviceIcons';
 import type { ContextMenuService } from '../../services/serviceContextMenu';
@@ -90,6 +95,14 @@ type PropTimeIndex = {
 	props: Map<string, number>;
 	values: Map<string, number>;
 };
+type PropFilterTarget = {
+	propName: string;
+	value: string | undefined;
+};
+type KeyedPropFilterTarget = {
+	key: string;
+	target: PropFilterTarget;
+};
 
 function sameStringSet(a: Set<string>, b: Set<string>): boolean {
 	if (a.size !== b.size) return false;
@@ -114,6 +127,7 @@ export class PropsExplorerPanel extends Component {
 	private visibleCells = new Set<string>(['icon', 'text', 'count', 'nested']);
 	private onExpansionChange?: () => void;
 	private readonly deferredRender = new DeferredExplorerRender();
+	private readonly filterClicks: DeferredFilterClickCoordinator<PropFilterTarget>;
 
 	constructor(containerEl: HTMLElement, plugin: PanelPluginCtx) {
 		super();
@@ -121,6 +135,14 @@ export class PropsExplorerPanel extends Component {
 		this.plugin = plugin;
 		this.logic = new PropsLogic(plugin.app);
 		this.view = new UnifiedTreeView(this.containerEl);
+		this.filterClicks = new DeferredFilterClickCoordinator({
+			onEffect: (target: PropFilterTarget, polarity: FilterPolarity) =>
+				this.plugin.filterService.setPropertyNodePolarity(
+					target.propName,
+					target.value,
+					polarity,
+				),
+		});
 	}
 
 	onload(): void {
@@ -135,21 +157,13 @@ export class PropsExplorerPanel extends Component {
 			icon: 'lucide-filter',
 			run: (ctx) => {
 				const meta = ctx.node.meta as PropMeta;
-				if (meta.isValueNode) {
-					this.plugin.filterService.addNode({
-						type: 'rule',
-						filterType: 'specific_value',
-						property: meta.propName,
-						values: [meta.rawValue ?? meta.propName],
-					});
-				} else {
-					this.plugin.filterService.addNode({
-						type: 'rule',
-						filterType: 'has_property',
-						property: meta.propName,
-						values: [],
-					});
-				}
+				const filterTarget = this._propFilterTarget(meta);
+				this.filterClicks.cancel(filterTarget.key);
+				this.plugin.filterService.setPropertyNodePolarity(
+					filterTarget.target.propName,
+					filterTarget.target.value,
+					'inclusive',
+				);
 			},
 		});
 
@@ -161,21 +175,13 @@ export class PropsExplorerPanel extends Component {
 			icon: 'lucide-filter-x',
 			run: (ctx) => {
 				const meta = ctx.node.meta as PropMeta;
-				if (meta.isValueNode) {
-					this.plugin.filterService.addNode({
-						type: 'rule',
-						filterType: 'not_specific_value',
-						property: meta.propName,
-						values: [meta.rawValue ?? meta.propName],
-					});
-				} else {
-					this.plugin.filterService.addNode({
-						type: 'rule',
-						filterType: 'missing_property',
-						property: meta.propName,
-						values: [],
-					});
-				}
+				const filterTarget = this._propFilterTarget(meta);
+				this.filterClicks.cancel(filterTarget.key);
+				this.plugin.filterService.setPropertyNodePolarity(
+					filterTarget.target.propName,
+					filterTarget.target.value,
+					'exclusive',
+				);
 			},
 		});
 
@@ -458,6 +464,7 @@ export class PropsExplorerPanel extends Component {
 
 	onunload(): void {
 		this.deferredRender.dispose();
+		this.filterClicks.dispose();
 		this.plugin.filterService.off('changed', this._handleStateChange);
 		this.plugin.queueService.off('changed', this._handleStateChange);
 		this.view.destroy();
@@ -682,7 +689,6 @@ export class PropsExplorerPanel extends Component {
 
 	private _handleNodeClick(
 		node: TreeNode<PropMeta>,
-		activeFilterIds: Set<string>,
 		event?: MouseEvent | KeyboardEvent,
 	): void {
 		const meta = node.meta;
@@ -738,57 +744,28 @@ export class PropsExplorerPanel extends Component {
 		);
 		if (isPropDeleted) return;
 
-		const filterId = meta.isValueNode
-			? `${meta.propName}::${meta.rawValue}`
-			: meta.propName;
 		const filterState = this.plugin.filterService.getFilterState(
 			meta.isValueNode ? 'value' : 'prop',
 			meta.propName,
 			meta.rawValue,
 		);
-		const isDoubleClick = event instanceof MouseEvent && event.detail >= 2;
-		if (isDoubleClick) {
-			this.plugin.filterService.removeNodeByProperty(
-				meta.propName,
-				meta.isValueNode ? (meta.rawValue ?? '') : undefined,
-			);
-			void this.plugin.filterService.addNode({
-				type: 'rule',
-				filterType: meta.isValueNode
-					? 'not_specific_value'
-					: 'missing_property',
-				property: meta.propName,
-				values: meta.isValueNode ? [meta.rawValue ?? ''] : [],
-			});
-			return;
-		}
-		if (filterState !== 'none' || activeFilterIds.has(filterId)) {
-			if (meta.isValueNode) {
-				void this.plugin.filterService.removeNodeByProperty(
-					meta.propName,
-					meta.rawValue ?? '',
-				);
-			} else {
-				void this.plugin.filterService.removeNodeByProperty(meta.propName);
-			}
-			return;
-		}
+		const filterTarget = this._propFilterTarget(meta);
+		this.filterClicks.click(
+			filterTarget.key,
+			filterTarget.target,
+			filterStateToPolarity(filterState),
+		);
+	}
 
-		if (meta.isValueNode) {
-			void this.plugin.filterService.addNode({
-				type: 'rule',
-				filterType: 'specific_value',
-				property: meta.propName,
-				values: [meta.rawValue ?? ''],
-			});
-		} else {
-			void this.plugin.filterService.addNode({
-				type: 'rule',
-				filterType: 'has_property',
-				property: meta.propName,
-				values: [],
-			});
-		}
+	private _propFilterTarget(meta: PropMeta): KeyedPropFilterTarget {
+		const value = meta.isValueNode ? (meta.rawValue ?? '') : undefined;
+		return {
+			key:
+				value === undefined
+					? `prop:${meta.propName}`
+					: `value:${JSON.stringify([meta.propName, value])}`,
+			target: { propName: meta.propName, value },
+		};
 	}
 
 	private _openNodeMenu(node: TreeNode<PropMeta>, e: MouseEvent): void {
@@ -1011,7 +988,7 @@ export class PropsExplorerPanel extends Component {
 				onRowClick: (id: string, event) => {
 					const node = this._findNode(id, tree);
 					if (!node) return;
-					this._handleNodeClick(node, activeFilterIds, event);
+					this._handleNodeClick(node, event);
 				},
 				onContextMenu: (id: string, event: MouseEvent) => {
 					const node = this._findNode(id, tree);
@@ -1065,7 +1042,7 @@ export class PropsExplorerPanel extends Component {
 			onRowClick: (id: string, event) => {
 				const node = this._findNode(id, tree);
 				if (!node) return;
-				this._handleNodeClick(node, activeFilterIds, event);
+				this._handleNodeClick(node, event);
 			},
 			onContextMenu: (id: string, e: MouseEvent) => {
 				const node = this._findNode(id, tree);
@@ -1404,7 +1381,7 @@ export class PropsExplorerPanel extends Component {
 			this._renderGridBadges(card, node);
 
 			card.addEventListener('click', (event) =>
-				this._handleNodeClick(node, activeFilterIds, event),
+				this._handleNodeClick(node, event),
 			);
 			card.addEventListener('dragstart', (event) =>
 				this._setPropDragPayload(node, activeFilterIds, event),
@@ -1418,7 +1395,7 @@ export class PropsExplorerPanel extends Component {
 			card.addEventListener('keydown', (event) => {
 				if (event.key === 'Enter' || event.key === ' ') {
 					event.preventDefault();
-					this._handleNodeClick(node, activeFilterIds, event);
+					this._handleNodeClick(node, event);
 				}
 			});
 			card.addEventListener('contextmenu', (event) => {

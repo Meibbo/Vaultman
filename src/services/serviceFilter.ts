@@ -7,6 +7,7 @@ import type {
 	FilterType,
 } from '../types/typeFilter';
 import { translate } from '../i18n/index';
+import type { FilterPolarity } from '../logic/logicFilterPolarity';
 import { evalNode } from '../utils/filter-evaluator';
 import { vaultmanPerfMonitor } from '../utils/performanceMonitor';
 
@@ -21,8 +22,10 @@ const METADATA_FILTER_TYPES = new Set<FilterType>([
 	'has_property',
 	'missing_property',
 	'specific_value',
+	'not_specific_value',
 	'multiple_values',
 	'has_tag',
+	'not_has_tag',
 ]);
 
 /**
@@ -197,67 +200,94 @@ export class FilterService extends Component {
 		}
 	}
 
-	/** Toggle-helper: remove rule matching property/optional value */
-	removeNodeByProperty(propName: string, value?: string): void {
-		const walkAndRemove = (group: FilterGroup): boolean => {
-			const idx = group.children.findIndex((node) => {
-				if (node.type === 'rule') {
-					if (value !== undefined) {
-						return (
-							node.filterType === 'specific_value' &&
-							node.property === propName &&
-							node.values?.includes(value)
-						);
-					} else {
-						return (
-							node.filterType === 'has_property' && node.property === propName
-						);
-					}
-				}
-				return false;
-			});
-
-			if (idx !== -1) {
-				group.children.splice(idx, 1);
-				return true;
+	private removeRulesMatching(
+		group: FilterGroup,
+		matches: (rule: FilterRule) => boolean,
+	): boolean {
+		let changed = false;
+		for (let index = group.children.length - 1; index >= 0; index -= 1) {
+			const node = group.children[index];
+			if (!node) continue;
+			if (node.type === 'group') {
+				changed = this.removeRulesMatching(node, matches) || changed;
+			} else if (matches(node)) {
+				group.children.splice(index, 1);
+				changed = true;
 			}
-
-			for (const child of group.children) {
-				if (child.type === 'group' && walkAndRemove(child)) return true;
-			}
-			return false;
-		};
-
-		if (walkAndRemove(this.activeFilter)) {
-			this.applyFilters();
 		}
+		return changed;
 	}
 
-	/** Toggle-helper: remove rule matching tag value */
-	removeNodeByTag(tagId: string): void {
-		const walkAndRemove = (group: FilterGroup): boolean => {
-			const idx = group.children.findIndex((node) => {
-				return (
-					node.type === 'rule' &&
-					node.filterType === 'has_tag' &&
-					node.values?.includes(tagId)
-				);
+	/** Replace both possible property polarities and publish one filter change. */
+	setPropertyNodePolarity(
+		propName: string,
+		value: string | undefined,
+		next: FilterPolarity,
+	): void {
+		const isValue = value !== undefined;
+		const matchingTypes = isValue
+			? new Set<FilterType>(['specific_value', 'not_specific_value'])
+			: new Set<FilterType>(['has_property', 'missing_property']);
+		let changed = this.removeRulesMatching(this.activeFilter, (rule) => {
+			if (!matchingTypes.has(rule.filterType) || rule.property !== propName) {
+				return false;
+			}
+			return !isValue || rule.values.includes(value);
+		});
+
+		if (next !== 'none') {
+			this.activeFilter.children.push({
+				type: 'rule',
+				filterType: isValue
+					? next === 'inclusive'
+						? 'specific_value'
+						: 'not_specific_value'
+					: next === 'inclusive'
+						? 'has_property'
+						: 'missing_property',
+				property: propName,
+				values: isValue ? [value] : [],
+				id: Math.random().toString(36).substring(2, 11),
+				enabled: true,
 			});
-
-			if (idx !== -1) {
-				group.children.splice(idx, 1);
-				return true;
-			}
-
-			for (const child of group.children) {
-				if (child.type === 'group' && walkAndRemove(child)) return true;
-			}
-			return false;
-		};
-
-		if (walkAndRemove(this.activeFilter)) {
-			this.applyFilters();
+			changed = true;
 		}
+
+		if (changed) this.applyFilters();
+	}
+
+	/** Toggle-helper: remove either rule polarity matching property/optional value. */
+	removeNodeByProperty(propName: string, value?: string): void {
+		this.setPropertyNodePolarity(propName, value, 'none');
+	}
+
+	/** Replace both possible tag polarities and publish one filter change. */
+	setTagNodePolarity(tagId: string, next: FilterPolarity): void {
+		let changed = this.removeRulesMatching(
+			this.activeFilter,
+			(rule) =>
+				(rule.filterType === 'has_tag' || rule.filterType === 'not_has_tag') &&
+				rule.values.includes(tagId),
+		);
+
+		if (next !== 'none') {
+			this.activeFilter.children.push({
+				type: 'rule',
+				filterType: next === 'inclusive' ? 'has_tag' : 'not_has_tag',
+				property: '',
+				values: [tagId],
+				id: Math.random().toString(36).substring(2, 11),
+				enabled: true,
+			});
+			changed = true;
+		}
+
+		if (changed) this.applyFilters();
+	}
+
+	/** Toggle-helper: remove either rule polarity matching tag value. */
+	removeNodeByTag(tagId: string): void {
+		this.setTagNodePolarity(tagId, 'none');
 	}
 
 	/** Set file name and folder search terms. Pass empty strings to clear. */

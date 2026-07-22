@@ -2,6 +2,11 @@
 import { Component, App, Keymap, Notice, setIcon } from 'obsidian';
 import { TagsLogic } from '../../logic/logicTags';
 import { DeferredExplorerRender } from '../../logic/logicDeferredExplorerRender';
+import {
+	DeferredFilterClickCoordinator,
+	filterStateToPolarity,
+	type FilterPolarity,
+} from '../../logic/logicFilterPolarity';
 import { FilterService } from '../../services/serviceFilter';
 import { IconicService } from '../../services/serviceIcons';
 import { ContextMenuService } from '../../services/serviceContextMenu';
@@ -99,6 +104,7 @@ export class TagsExplorerPanel extends Component {
 	private onSortStateChange?: (state: ExplorerSortState) => void;
 	private hasConnectedSortStateHandler = false;
 	private readonly deferredRender = new DeferredExplorerRender();
+	private readonly filterClicks: DeferredFilterClickCoordinator<string>;
 
 	constructor(containerEl: HTMLElement, plugin: PanelPluginCtx) {
 		super();
@@ -106,6 +112,10 @@ export class TagsExplorerPanel extends Component {
 		this.logic = new TagsLogic(plugin.app);
 		this.containerEl = containerEl;
 		this.view = new UnifiedTreeView(containerEl);
+		this.filterClicks = new DeferredFilterClickCoordinator({
+			onEffect: (tagId: string, polarity: FilterPolarity) =>
+				this.plugin.filterService.setTagNodePolarity(tagId, polarity),
+		});
 	}
 
 	onload(): void {
@@ -119,12 +129,11 @@ export class TagsExplorerPanel extends Component {
 			icon: 'lucide-filter',
 			run: (ctx: MenuCtx) => {
 				const meta = ctx.node.meta as TagMeta;
-				this.plugin.filterService.addNode({
-					type: 'rule',
-					filterType: 'has_tag',
-					property: '',
-					values: [`#${meta.tagPath}`],
-				});
+				this.filterClicks.cancel(`#${meta.tagPath}`);
+				this.plugin.filterService.setTagNodePolarity(
+					`#${meta.tagPath}`,
+					'inclusive',
+				);
 			},
 		});
 
@@ -136,12 +145,11 @@ export class TagsExplorerPanel extends Component {
 			icon: 'lucide-filter-x',
 			run: (ctx: MenuCtx) => {
 				const meta = ctx.node.meta as TagMeta;
-				this.plugin.filterService.addNode({
-					type: 'rule',
-					filterType: 'not_has_tag',
-					property: '',
-					values: [`#${meta.tagPath}`],
-				});
+				this.filterClicks.cancel(`#${meta.tagPath}`);
+				this.plugin.filterService.setTagNodePolarity(
+					`#${meta.tagPath}`,
+					'exclusive',
+				);
 			},
 		});
 
@@ -209,6 +217,7 @@ export class TagsExplorerPanel extends Component {
 
 	onunload(): void {
 		this.deferredRender.dispose();
+		this.filterClicks.dispose();
 		this.plugin.filterService.off('changed', this._handleStateChange);
 		this.plugin.queueService.off('changed', this._handleStateChange);
 		this.containerEl.removeEventListener(
@@ -571,7 +580,10 @@ export class TagsExplorerPanel extends Component {
 		const activeFilterIds = new Set<string>();
 		const excludedFilterIds = new Set<string>();
 		for (const node of this._flattenTree(tree)) {
-			const state = this.plugin.filterService.getFilterState('tag', `#${node.meta.tagPath}`);
+			const state = this.plugin.filterService.getFilterState(
+				'tag',
+				`#${node.meta.tagPath}`,
+			);
 			if (state === 'included') activeFilterIds.add(node.id);
 			else if (state === 'excluded') excludedFilterIds.add(node.id);
 		}
@@ -606,7 +618,12 @@ export class TagsExplorerPanel extends Component {
 		this._setIndexRoots(nodesWithIcons);
 
 		if (this.viewMode === 'grid') {
-			this._renderGrid(nodesWithIcons, activeFilterIds, excludedFilterIds, highlightIds);
+			this._renderGrid(
+				nodesWithIcons,
+				activeFilterIds,
+				excludedFilterIds,
+				highlightIds,
+			);
 			return;
 		}
 
@@ -747,32 +764,6 @@ export class TagsExplorerPanel extends Component {
 		});
 	}
 
-	private _toggleTagFilter(tagPath: string, exclude = false): void {
-		const tagId = `#${tagPath}`;
-		const state = this.plugin.filterService.getFilterState('tag', tagId);
-		if (exclude) {
-			this.plugin.filterService.removeNodeByTag(tagId);
-			void this.plugin.filterService.addNode({
-				type: 'rule',
-				filterType: 'not_has_tag',
-				property: '',
-				values: [tagId],
-			});
-			return;
-		}
-		if (state !== 'none') {
-			void this.plugin.filterService.removeNodeByTag(tagId);
-			return;
-		}
-
-		void this.plugin.filterService.addNode({
-			type: 'rule',
-			filterType: 'has_tag',
-			property: '',
-			values: [tagId],
-		});
-	}
-
 	private _handleNodeClick(
 		node: TreeNode<TagMeta>,
 		event?: MouseEvent | KeyboardEvent,
@@ -824,10 +815,9 @@ export class TagsExplorerPanel extends Component {
 			});
 			return;
 		}
-		this._toggleTagFilter(
-			meta.tagPath,
-			event instanceof MouseEvent && event.detail >= 2,
-		);
+		const tagId = `#${meta.tagPath}`;
+		const filterState = this.plugin.filterService.getFilterState('tag', tagId);
+		this.filterClicks.click(tagId, tagId, filterStateToPolarity(filterState));
 	}
 
 	private _renderGridBadges(

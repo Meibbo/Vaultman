@@ -686,8 +686,9 @@ export class UnifiedTreeView {
 		const isExcluded = opts.excludedFilterIds?.has(node.id) ?? false;
 		// BT5-038: a collapsed parent that only HIDES an active filter shows a
 		// dot, not the filter decoration itself.
-		const hasExcludedFilterBubbleDot =
-			this._excludedFilterBubbleIds.has(node.id);
+		const hasExcludedFilterBubbleDot = this._excludedFilterBubbleIds.has(
+			node.id,
+		);
 		const hasFilterBubbleDot =
 			this._filterBubbleIds.has(node.id) || hasExcludedFilterBubbleDot;
 		const isWarning = opts.warningIds?.has(node.id) ?? false;
@@ -727,6 +728,9 @@ export class UnifiedTreeView {
 		// the leaf scheduled a viewport refresh that churned the row mid-press.
 		if (row.parentElement !== parent) parent.appendChild(row);
 		row.dataset.id = node.id;
+		row.setAttribute('role', 'button');
+		row.setAttribute('aria-label', node.label);
+		row.tabIndex = 0;
 		this.applyDataPath(row, node);
 		row.draggable = Boolean(opts.onDragStart);
 		row.style.setProperty('--depth', String(node.depth));
@@ -749,6 +753,12 @@ export class UnifiedTreeView {
 				return;
 			}
 			opts.onRowClick(node.id, event);
+		};
+		row.onkeydown = (event) => {
+			if (event.target !== row) return;
+			if (event.key !== 'Enter' && event.key !== ' ') return;
+			event.preventDefault();
+			opts.onRowClick(node.id, event as unknown as MouseEvent);
 		};
 		row.ondblclick = opts.onRowDoubleClick
 			? (event) => {
@@ -983,11 +993,11 @@ export class UnifiedTreeView {
 			if (opts.renderLabel?.(row, node)) {
 				// Custom renderer emitted the complete label cell.
 			} else {
-			const label = row.createSpan({
-				cls: 'vaultman-tree-label',
-				text: node.label,
-			});
-			if (node.labelColor) label.style.color = node.labelColor;
+				const label = row.createSpan({
+					cls: 'vaultman-tree-label',
+					text: node.label,
+				});
+				if (node.labelColor) label.style.color = node.labelColor;
 			}
 		}
 

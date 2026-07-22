@@ -6861,8 +6861,7 @@ button.vaultman-content-scope-hint:focus-visible {
 .vaultman-prop-card.is-excluded-filter,
 .vaultman-tag-card.is-excluded-filter,
 .vaultman-node-table-row.is-excluded-filter,
-.vm-tree-row-surface.is-excluded-filter,
-.is-excluded-filter .vm-tree-row-surface {
+.vaultman-tree-row.is-excluded-filter {
 	background-color: color-mix(in srgb, var(--text-normal) 8%, transparent);
 	border-color: var(--text-normal);
 	color: var(--text-normal);
@@ -6873,8 +6872,7 @@ button.vaultman-content-scope-hint:focus-visible {
 .vaultman-prop-card.is-excluded-filter:hover,
 .vaultman-tag-card.is-excluded-filter:hover,
 .vaultman-node-table-row.is-excluded-filter:hover,
-.vm-tree-row-surface.is-excluded-filter:hover,
-.is-excluded-filter:hover .vm-tree-row-surface {
+.vaultman-tree-row.is-excluded-filter:hover {
 	background-color: color-mix(in srgb, var(--text-normal) 12%, transparent);
 }
 

@@ -44,8 +44,10 @@ const metadataFilterTypes: FilterType[] = [
 	'has_property',
 	'missing_property',
 	'specific_value',
+	'not_specific_value',
 	'multiple_values',
 	'has_tag',
+	'not_has_tag',
 ];
 
 describe('FilterService metadata refresh backpressure', () => {

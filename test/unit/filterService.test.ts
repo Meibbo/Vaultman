@@ -55,6 +55,63 @@ function makeApp(
 }
 
 describe('FilterService vault-wide Files filtering', () => {
+	it('removes either polarity for property, value, and tag nodes', () => {
+		const service = new FilterService(makeApp([], [], {}));
+		service.addNode({
+			type: 'rule',
+			filterType: 'missing_property',
+			property: 'status',
+			values: [],
+		});
+		service.addNode({
+			type: 'rule',
+			filterType: 'not_specific_value',
+			property: 'priority',
+			values: ['low'],
+		});
+		service.addNode({
+			type: 'rule',
+			filterType: 'not_has_tag',
+			property: '',
+			values: ['#archive'],
+		});
+
+		service.removeNodeByProperty('status');
+		service.removeNodeByProperty('priority', 'low');
+		service.removeNodeByTag('#archive');
+
+		expect(service.getFilterState('prop', 'status')).toBe('none');
+		expect(service.getFilterState('value', 'priority', 'low')).toBe('none');
+		expect(service.getFilterState('tag', '#archive')).toBe('none');
+		expect(service.activeFilter.children).toHaveLength(0);
+	});
+
+	it('replaces polarity atomically and emits one changed event', () => {
+		const service = new FilterService(makeApp([], [], {}));
+		const changed = vi.fn();
+		service.on('changed', changed);
+
+		service.setPropertyNodePolarity('status', undefined, 'inclusive');
+		changed.mockClear();
+		service.setPropertyNodePolarity('status', undefined, 'exclusive');
+
+		expect(changed).toHaveBeenCalledTimes(1);
+		expect(service.getFilterState('prop', 'status')).toBe('excluded');
+		expect(service.activeFilter.children).toEqual([
+			expect.objectContaining({
+				type: 'rule',
+				filterType: 'missing_property',
+				property: 'status',
+				values: [],
+			}),
+		]);
+
+		changed.mockClear();
+		service.setTagNodePolarity('#archive', 'exclusive');
+		expect(changed).toHaveBeenCalledTimes(1);
+		expect(service.getFilterState('tag', '#archive')).toBe('excluded');
+	});
+
 	it('reports inclusive and exclusive node state for props, values, and tags', () => {
 		const service = new FilterService(makeApp([], [], {}));
 		service.addNode({
