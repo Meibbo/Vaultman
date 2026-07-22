@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { setIcon, TFile } from 'obsidian';
+	import { Menu, setIcon, TFile } from 'obsidian';
 	import { translate } from '../../i18n/index';
 	import type { VaultmanPlugin } from '../../main';
 	import type {
@@ -22,11 +22,15 @@
 		active = false,
 		settingsRevision = 0,
 		onNavigateToDataTab,
+		toolbarShown = true,
+		onToggleToolbar,
 	}: {
 		plugin: VaultmanPlugin;
 		active?: boolean;
 		settingsRevision?: number;
 		onNavigateToDataTab?: (tab: StatisticsDataTab) => void;
+		toolbarShown?: boolean;
+		onToggleToolbar?: () => void;
 	} = $props();
 	const minimalStyle = $derived.by(() => {
 		void settingsRevision;
@@ -219,31 +223,32 @@
 		id: Scope;
 		label: string;
 		icon: string;
-		color: string;
 	}[] = [
 		{
 			id: 'vault',
 			label: translate('scope.all'),
 			icon: 'lucide-database',
-			color: 'var(--color-blue)',
 		},
 		{
 			id: 'filtered',
 			label: translate('scope.filtered'),
 			icon: 'lucide-filter',
-			color: 'var(--color-green)',
 		},
 		{
 			id: 'selected',
 			label: translate('scope.selected'),
 			icon: 'lucide-check-square',
-			color: 'var(--color-orange)',
 		},
 	];
 
 	// Match the explorer toolbar exactly (same labels + icons); statistics can
 	// only navigate to the four data surfaces, so it lists just those.
 	const statsTabOptions = $derived([
+		{
+			id: 'statistics',
+			label: translate('nav.statistics'),
+			icon: 'lucide-chart-column',
+		},
 		{
 			id: 'files',
 			label: translate('filter.tab.files'),
@@ -259,6 +264,41 @@
 			id: 'content',
 			label: translate('filter.tab.content'),
 			icon: 'lucide-file-search',
+		},
+		{
+			id: 'snippets',
+			label: translate('filter.tab.snippets'),
+			icon: 'lucide-file-code-2',
+		},
+		{
+			id: 'plugins',
+			label: translate('filter.tab.plugins'),
+			icon: 'lucide-plug',
+		},
+	]);
+
+	function openScopeMenu(event: MouseEvent): void {
+		const menu = new Menu();
+		for (const option of scopeOptions) {
+			menu.addItem((item) =>
+				item
+					.setTitle(option.label)
+					.setIcon(option.icon)
+					.setChecked(scope === option.id)
+					.onClick(() => (scope = option.id)),
+			);
+		}
+		menu.showAtMouseEvent(event);
+	}
+
+	const statisticsHeaderActions = $derived([
+		{
+			id: 'statistics-scope',
+			label: translate('settings.operation_scope'),
+			icon:
+				scopeOptions.find((option) => option.id === scope)?.icon ??
+				'lucide-database',
+			onClick: openScopeMenu,
 		},
 	]);
 
@@ -281,7 +321,9 @@
 			tab === 'files' ||
 			tab === 'props' ||
 			tab === 'tags' ||
-			tab === 'content'
+			tab === 'content' ||
+			tab === 'snippets' ||
+			tab === 'plugins'
 		) {
 			onNavigateToDataTab?.(tab as StatisticsDataTab);
 		}
@@ -289,21 +331,38 @@
 </script>
 
 <div class="vaultman-statistics-page" class:is-reconciling={statsReconciling}>
-	<NavbarFilters
-		activeTab="files"
-		bind:filtersSearch={headerSearch}
-		bind:filtersSearchCategory={headerSearchCategory}
-		tagsExplorer={undefined}
-		propExplorer={undefined}
-		fileList={undefined}
-		icon={iconAction}
-		{minimalStyle}
-		showDock={false}
-		tabOptions={statsTabOptions}
-		activeSectionTab="statistics"
-		onSectionTabChange={navigateFromHeader}
-		showExplorerControls={false}
-	/>
+	{#if toolbarShown}
+		<NavbarFilters
+			activeTab="files"
+			bind:filtersSearch={headerSearch}
+			bind:filtersSearchCategory={headerSearchCategory}
+			tagsExplorer={undefined}
+			propExplorer={undefined}
+			fileList={undefined}
+			icon={iconAction}
+			{minimalStyle}
+			showDock={false}
+			tabOptions={statsTabOptions}
+			activeSectionTab="statistics"
+			onSectionTabChange={navigateFromHeader}
+			showExplorerControls={false}
+			headerActions={statisticsHeaderActions}
+			{toolbarShown}
+			{onToggleToolbar}
+		/>
+	{/if}
+	{#if !toolbarShown}
+		<div
+			class="vaultman-toolbar-peek"
+			role="button"
+			tabindex="0"
+			aria-label={translate('viewmenu.toolbar')}
+			onclick={() => onToggleToolbar?.()}
+			onkeydown={(event) => {
+				if (event.key === 'Enter' || event.key === ' ') onToggleToolbar?.();
+			}}
+		></div>
+	{/if}
 	<div class="vaultman-stat-cards-grid">
 		{#each statCards as card (card.icon)}
 			<button
@@ -322,22 +381,6 @@
 				</div>
 			</button>
 		{/each}
-	</div>
-	<div class="vaultman-stat-header">
-		<div class="vaultman-stat-scope-pills">
-			{#each scopeOptions as opt (opt.id)}
-				<button
-					class="clickable-icon vaultman-stat-scope-pill"
-					class:is-active={scope === opt.id}
-					style="--scope-color: {opt.color}"
-					onclick={() => (scope = opt.id)}
-					aria-label={opt.label}
-				>
-					<span class="vaultman-pill-icon" use:iconAction={opt.icon}></span>
-					<span class="vaultman-pill-label">{opt.label}</span>
-				</button>
-			{/each}
-		</div>
 	</div>
 	<div class="vaultman-stat-meta-island">
 		{#if statsReconciling}

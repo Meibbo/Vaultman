@@ -3,6 +3,7 @@ import type { TFile } from 'obsidian';
 import type VaultmanPlugin from '../main';
 import type { MenuCtx } from '../types/typeCMenu';
 import type { TreeNode } from '../types/typeTree';
+import { translate } from '../i18n/index';
 
 /**
  * BT5-036: Content search nodes are real files, so their panel menu offers
@@ -27,6 +28,22 @@ export function contentMenuNode(file: TFile): TreeNode<{ file: TFile }> {
 export function registerContentActions(plugin: VaultmanPlugin): void {
 	const svc = plugin.contextMenuService;
 	const fm = plugin.app.fileManager as unknown as NativeFileManager;
+
+	svc.registerAction({
+		id: 'content.change-icon',
+		nodeTypes: ['content'],
+		surfaces: ['panel'],
+		label: () => translate('iconic.change_icon'),
+		icon: 'lucide-image-plus',
+		section: 'Icon',
+		when: (ctx: MenuCtx) =>
+			!!ctx.file && plugin.iconicService?.canChangeFileIcon() === true,
+		run: (ctx: MenuCtx) => {
+			if (ctx.file) {
+				plugin.iconicService?.openFileIconPicker(ctx.file.path, ctx.event);
+			}
+		},
+	});
 
 	svc.registerAction({
 		id: 'content.rename',

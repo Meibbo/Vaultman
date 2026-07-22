@@ -6,6 +6,7 @@ import type {
 	FilterTemplate,
 	FilterType,
 } from '../types/typeFilter';
+import { translate } from '../i18n/index';
 import { evalNode } from '../utils/filter-evaluator';
 import { vaultmanPerfMonitor } from '../utils/performanceMonitor';
 
@@ -318,12 +319,11 @@ export class FilterService extends Component {
 	 * applyFilters read file contents. The expensive search runs in the Content
 	 * tab; this service only intersects with the matched file paths.
 	 */
-	setContentSearchPending(value: string): void {
+	setContentSearchPending(value: string, exclude: boolean = false): void {
 		const term = value.trim();
 		let changed = false;
-
 		if (!term) {
-			this.setContentSearchRule('', []);
+			this.setContentSearchRule('', [], false);
 			return;
 		}
 
@@ -332,11 +332,15 @@ export class FilterService extends Component {
 			changed = true;
 		}
 
-		changed = this.upsertContentSearchRootRule(term) || changed;
+		changed = this.upsertContentSearchRootRule(term, exclude) || changed;
 		if (changed) this.applyFilters();
 	}
 
-	setContentSearchRule(value: string, files: TFile[]): void {
+	setContentSearchRule(
+		value: string,
+		files: TFile[],
+		exclude: boolean = false,
+	): void {
 		const term = value.trim();
 		let changed = false;
 
@@ -353,7 +357,7 @@ export class FilterService extends Component {
 			changed = true;
 		}
 
-		changed = this.upsertContentSearchRootRule(term) || changed;
+		changed = this.upsertContentSearchRootRule(term, exclude) || changed;
 		if (changed) this.applyFilters();
 	}
 
@@ -409,14 +413,14 @@ export class FilterService extends Component {
 			warning?: string;
 			enabled: boolean;
 		}[] = [];
-		const walk = (node: FilterNode) => {
+		const walk = (node: FilterNode, isExcluded: boolean = false) => {
 			if (node.type === 'rule') {
 				let rule = '';
 				let label = '';
 				let warning: string | undefined;
 				switch (node.filterType) {
 					case 'has_property':
-						rule = 'Has property';
+						rule = translate('filter.has_property');
 						label = node.property;
 						break;
 					case 'missing_property':
@@ -427,9 +431,21 @@ export class FilterService extends Component {
 						rule = node.property;
 						label = node.values[0] ?? '';
 						break;
+					case 'not_specific_value':
+						rule = `Not ${node.property}`;
+						label = node.values[0] ?? '';
+						break;
 					case 'has_tag':
 						rule = 'Has tag';
-						label = node.values[0] ?? '';
+						label = node.values[0]?.startsWith('#')
+							? node.values[0]
+							: `#${node.values[0] ?? ''}`;
+						break;
+					case 'not_has_tag':
+						rule = 'Not';
+						label = node.values[0]?.startsWith('#')
+							? node.values[0]
+							: `#${node.values[0] ?? ''}`;
 						break;
 					case 'file_name': {
 						const extension = extensionFilterLabel(node.values[0] ?? '');
@@ -452,7 +468,11 @@ export class FilterService extends Component {
 						warning = this.warningForFolderRule();
 						break;
 					case 'content_search':
-						rule = 'Content contains';
+						rule = translate('filter.text_contains');
+						label = node.values[0] ?? '';
+						break;
+					case 'content_search_exclude':
+						rule = translate('filter.text_not_contains');
 						label = node.values[0] ?? '';
 						break;
 					case 'folder':
@@ -473,6 +493,7 @@ export class FilterService extends Component {
 						rule = node.filterType;
 						label = node.property || (node.values[0] ?? '');
 				}
+				if (isExcluded) rule = `Not ${rule}`;
 				rules.push({
 					id: node.id!,
 					rule,
@@ -482,7 +503,9 @@ export class FilterService extends Component {
 					enabled: node.enabled !== false,
 				});
 			} else {
-				node.children.forEach(walk);
+				node.children.forEach((c) =>
+					walk(c, isExcluded || node.logic === 'none'),
+				);
 			}
 		};
 		walk(this.activeFilter);
@@ -529,6 +552,64 @@ export class FilterService extends Component {
 			if (id === CONTENT_SEARCH_RULE_ID) this.contentSearchPaths = null;
 			this.applyFilters();
 		}
+	}
+
+	getFilterState(
+		type: 'tag' | 'prop' | 'value',
+		property: string,
+		value?: string,
+	): 'included' | 'excluded' | 'none' {
+		let state: 'included' | 'excluded' | 'none' = 'none';
+		const walk = (node: FilterNode, isExcluded = false) => {
+			if (node.type === 'rule') {
+				let matched = false;
+				if (
+					type === 'tag' &&
+					node.filterType === 'has_tag' &&
+					node.values.includes(property)
+				)
+					matched = true;
+				else if (
+					type === 'tag' &&
+					node.filterType === 'not_has_tag' &&
+					node.values.includes(property)
+				) {
+					matched = true;
+					isExcluded = true;
+				} else if (
+					type === 'prop' &&
+					(node.filterType === 'has_property' ||
+						node.filterType === 'missing_property') &&
+					node.property === property
+				) {
+					matched = true;
+					if (node.filterType === 'missing_property') isExcluded = true;
+				} else if (
+					type === 'value' &&
+					node.filterType === 'specific_value' &&
+					node.property === property &&
+					node.values[0] === value
+				)
+					matched = true;
+				else if (
+					type === 'value' &&
+					node.filterType === 'not_specific_value' &&
+					node.property === property &&
+					node.values[0] === value
+				) {
+					matched = true;
+					isExcluded = true;
+				}
+
+				if (matched) state = isExcluded ? 'excluded' : 'included';
+			} else {
+				node.children.forEach((c) =>
+					walk(c, isExcluded || node.logic === 'none'),
+				);
+			}
+		};
+		walk(this.activeFilter);
+		return state;
 	}
 
 	/** Returns true if the tag is already in the active filter tree */
@@ -743,10 +824,16 @@ export class FilterService extends Component {
 
 	hasEnabledContentSearchRule(): boolean {
 		const rule = this.findRootRuleById(CONTENT_SEARCH_RULE_ID);
-		return rule?.filterType === 'content_search' && rule.enabled !== false;
+		return (
+			(rule?.filterType === 'content_search' ||
+				rule?.filterType === 'content_search_exclude') &&
+			rule.enabled !== false
+		);
 	}
 
-	private hasEnabledMetadataFilter(node: FilterNode = this.activeFilter): boolean {
+	private hasEnabledMetadataFilter(
+		node: FilterNode = this.activeFilter,
+	): boolean {
 		if (node.enabled === false) return false;
 		if (node.type === 'rule') return METADATA_FILTER_TYPES.has(node.filterType);
 		return node.children.some((child) => this.hasEnabledMetadataFilter(child));
@@ -771,17 +858,21 @@ export class FilterService extends Component {
 		);
 	}
 
-	private upsertContentSearchRootRule(term: string): boolean {
+	private upsertContentSearchRootRule(
+		term: string,
+		exclude: boolean = false,
+	): boolean {
 		const existing = this.findRootRuleById(CONTENT_SEARCH_RULE_ID);
+		const targetType = exclude ? 'content_search_exclude' : 'content_search';
 		if (existing) {
 			if (
-				existing.filterType === 'content_search' &&
+				existing.filterType === targetType &&
 				existing.values[0] === term &&
 				existing.enabled !== false
 			) {
 				return false;
 			}
-			existing.filterType = 'content_search';
+			existing.filterType = targetType;
 			existing.property = '';
 			existing.values = [term];
 			existing.enabled = true;
@@ -790,7 +881,7 @@ export class FilterService extends Component {
 
 		this.activeFilter.children.push({
 			type: 'rule',
-			filterType: 'content_search',
+			filterType: targetType,
 			property: '',
 			values: [term],
 			id: CONTENT_SEARCH_RULE_ID,

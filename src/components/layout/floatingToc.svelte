@@ -467,7 +467,7 @@
 	// BT4-021: glyph color. 'static' mode drops the color the moment the rail
 	// reacts (scrub engaged or displaced); 'always' keeps it.
 	const railStatic = $derived(!scrubbing || !engaged);
-	function glyphColorStyle(groupIndex: number): string {
+	function glyphColorStyle(groupIndex: number, total = groups.length): string {
 		const choice = normalizeGlyphColorChoice(
 			opts.glyphColor ?? 'default',
 		).choice;
@@ -476,7 +476,7 @@
 			return '';
 		}
 		if (choice === 'rainbow') {
-			return `color: ${rainbowGlyphColor(groupIndex, Math.max(1, groups.length))};`;
+			return `color: ${rainbowGlyphColor(groupIndex, Math.max(1, total))};`;
 		}
 		const css = resolveGlyphColorCss(choice, opts.glyphCustomColor ?? '');
 		return css ? `color: ${css};` : '';
@@ -531,7 +531,10 @@
 		aria-label={actionTitle(actionId)}
 		use:tooltip={actionTitle(actionId)}
 		use:registerTrackEntry={trackIndex}
-		style={trackIndex >= 0 ? entryTransform(trackIndex) : ''}
+		style={`${trackIndex >= 0 ? entryTransform(trackIndex) : ''}${glyphColorStyle(
+			Math.max(0, trackIndex),
+			trackEntryCount,
+		)}`}
 		onclick={(event) => handleActionClick(event, actionId)}
 	>
 		<span

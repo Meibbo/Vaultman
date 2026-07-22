@@ -20,7 +20,9 @@ export const es: Record<string, string> = {
 	'filter.folder': 'En carpeta',
 	'filter.folder_exclude': 'Excluir carpeta',
 	'filter.file_name': 'Nombre contiene',
-	'filter.file_name_exclude': 'Nombre excluye',
+	'filter.file_name_exclude': 'Nombre de archivo excluye',
+	'filter.text_contains': 'Texto contiene',
+	'filter.text_not_contains': 'Texto no contiene',
 
 	// Filter logic
 	'filter.logic.all': 'TODOS (AND)',
@@ -303,6 +305,7 @@ export const es: Record<string, string> = {
 		'Menú condensado',
 	'settings.toolbar_overflow.scroll':
 		'Scroll horizontal',
+	'settings.toolbar_overflow.wrap': 'Varias filas',
 	'settings.toolbar_tools_menu': 'Condensar herramientas de Files',
 	'settings.toolbar_tools_menu.desc':
 		'Reemplaza Auto-revelar y Expandir/Colapsar por un menú Tools nativo para mantener cinco nodos en la barra de Files.',
@@ -312,7 +315,7 @@ export const es: Record<string, string> = {
 	'settings.context_menu_kind.files': 'Menú de nodos Files',
 	'settings.context_menu_kind.props': 'Menú de nodos Properties',
 	'settings.context_menu_kind.tags': 'Menú de nodos Tags',
-	'settings.context_menu_kind.content': 'Menú de nodos Content',
+	'settings.context_menu_kind.content': 'Menú de nodos de Texto',
 	'settings.context_menu_kind.snippets': 'Menú de nodos Snippets',
 	'settings.context_menu_kind.plugins': 'Menú de nodos Plugins',
 	'settings.files_context_menu':
@@ -410,6 +413,9 @@ export const es: Record<string, string> = {
 	'settings.toc_reserved_lane': 'Reservar espacio para el índice',
 	'settings.toc_reserved_lane.desc':
 		'Coloca el índice vertical entre las celdas del explorer y el scrollbar, sin superponer ninguno. Los rails superior e inferior permanecen como overlay.',
+	'settings.toc_hide_explorer_scrollbar': 'Ocultar barra del explorador',
+	'settings.toc_hide_explorer_scrollbar.desc':
+		'Oculta la barra del explorador activo mientras su índice flotante esté visible.',
 	'settings.toc_glyph_mode': 'Modo de glifo',
 	'settings.toc_glyph_mode.letter': 'Primera letra',
 	'settings.toc_glyph_mode.name': 'Nombre completo',
@@ -469,7 +475,7 @@ export const es: Record<string, string> = {
 	'command.open_main': 'Abrir Vaultman (vista completa)',
 	'command.open_sidebar': 'Abrir barra lateral de Vaultman',
 	'command.apply_queue': 'Aplicar operaciones pendientes',
-	'command.focus_content_search': 'Enfocar busqueda de contenido',
+	'command.focus_content_search': 'Enfocar búsqueda de Texto',
 	'command.focus_active_explorer_search':
 		'Enfocar busqueda del explorador activo',
 	'command.focus_search_unavailable':
@@ -590,9 +596,12 @@ export const es: Record<string, string> = {
 	'explorer.ctx.uppercase': 'MAYÚSCULAS',
 	'explorer.ctx.lowercase': 'minúsculas',
 	'explorer.ctx.capitalize': 'Primera Letra Mayúscula',
+	'explorer.ctx.filter_include': 'Agregar como filtro',
+	'explorer.ctx.filter_exclude': 'Excluir como filtro',
 	'file.ctx.open_tab': 'Abrir en nueva pestaña',
 	'file.ctx.open_right': 'Abrir a la derecha',
 	'file.ctx.open_window': 'Abrir en nueva ventana',
+	'snippet.open_default_app': 'Abrir en la aplicación predeterminada',
 	'file.ctx.make_copy': 'Crear una copia',
 	'folder.ctx.new_note': 'Nueva nota',
 	'folder.ctx.new_folder': 'Nueva carpeta',
@@ -629,9 +638,9 @@ export const es: Record<string, string> = {
 	'settings.queue_preview': 'Vista previa de cola en explorador',
 	'settings.queue_preview.desc':
 		'Muestra cambios pendientes de la cola en el explorador de propiedades',
-	'settings.content_search': 'Búsqueda de contenido',
+	'settings.content_search': 'Búsqueda de texto en árbol',
 	'settings.content_search.desc':
-		'Habilita búsqueda en contenido de archivos en el file tree',
+		'Habilitar búsqueda de texto dentro de archivos en el árbol de archivos',
 	'settings.operation_scope': 'Alcance de operaciones',
 	'settings.operation_scope.desc':
 		'Alcance por defecto para operaciones del explorador',
@@ -644,7 +653,8 @@ export const es: Record<string, string> = {
 		'Qué se abre al hacer click en el icono de Vaultman',
 	'settings.open_mode.sidebar': 'Sidebar',
 	'settings.open_mode.main': 'Vista principal',
-	'settings.open_mode.both': 'Ambas',
+	'settings.open_mode.new_instance': 'Nueva instancia',
+	'settings.open_mode.both': 'Nueva instancia',
 
 	// File list (extended)
 	'files.content_search': 'Buscar en contenido...',
@@ -659,7 +669,7 @@ export const es: Record<string, string> = {
 	'filter.tab.props': 'Props',
 	'filter.active_descendant': 'Filtro activo oculto',
 	'filter.tab.files': 'Archivos',
-	'filter.tab.content': 'Contenido',
+	'filter.tab.content': 'Texto',
 	'filter.tab.snippets': 'Snippets',
 	'filter.tab.plugins': 'Plugins',
 	'addon.icon.title': 'Cambiar ícono — {name}',
@@ -714,6 +724,10 @@ export const es: Record<string, string> = {
 	'ops.tab.templates': 'Plantillas',
 	'ops.tab.move': 'Mover',
 	'ops.move.coming_soon': 'Próximamente',
+	'ops.tab.content_short': 'Texto',
+	'ops.tabs.props': 'Propiedades',
+	'ops.tabs.tags': 'Etiquetas',
+	'ops.tabs.content': 'Texto',
 
 	// Layout settings
 	'settings.ops_position': 'Posición del panel de operaciones',
@@ -884,13 +898,12 @@ export const es: Record<string, string> = {
 	'content.queue_no_matches': 'No hay coincidencias de contenido para encolar',
 	'content.preview_count': '{matches} coincidencias en {files} archivo(s)',
 	'content.preview_more': '{count} archivo(s) mas',
-	'content.no_matches': 'Sin coincidencias',
+	'content.no_matches': 'Se encontraron 0 resultados',
 	'content.invalid_regex': 'Expresion regular invalida',
 	'content.reveal_no_active_file': 'No hay un archivo Markdown activo',
 	'content.reveal_not_in_results':
 		'El archivo activo esta fuera de los resultados de Content',
-	'content.landing_title': 'Búsqueda de contenido',
-	'content.landing_desc':
-		'Escribe un término para buscar en el alcance actual.',
-	'content.empty_desc': 'Prueba otro término o ajusta los filtros activos.',
+	'content.landing_title': 'Búsqueda de texto',
+	'content.landing_desc': 'Escribe un término para explorar el alcance actual.',
+	'content.empty_desc': 'Prueba otro término o ajusta los filtros actuales.',
 };

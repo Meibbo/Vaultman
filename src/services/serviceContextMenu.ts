@@ -356,6 +356,11 @@ export class ContextMenuService extends Component {
 					typeof def.label === 'function' ? def.label(ctx) : def.label;
 				item.setTitle(label);
 				if (def.icon) item.setIcon(def.icon);
+				if (def.checked !== undefined) {
+					item.setChecked(
+						typeof def.checked === 'function' ? def.checked(ctx) : def.checked,
+					);
+				}
 				item.onClick(() => this._runAction(def, ctx));
 			});
 		}
@@ -492,6 +497,11 @@ export class ContextMenuService extends Component {
 					typeof def.label === 'function' ? def.label(ctx) : def.label;
 				item.setTitle(label);
 				if (def.icon) item.setIcon(def.icon);
+				if (def.checked !== undefined) {
+					item.setChecked(
+						typeof def.checked === 'function' ? def.checked(ctx) : def.checked,
+					);
+				}
 				item.onClick(() => this._runAction(def, ctx));
 			});
 		}

@@ -193,6 +193,7 @@ export async function listCommunityPluginEntries(
 				author: manifest.author,
 				description: manifest.description,
 				isDesktopOnly: manifest.isDesktopOnly,
+				isVaultman: manifest.id === 'vaultman',
 				enabled: enabled.has(manifest.id),
 				loaded: runtime[manifest.id]?._loaded ?? false,
 				...(await addonTimes(

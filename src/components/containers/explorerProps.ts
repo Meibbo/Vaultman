@@ -77,6 +77,7 @@ import {
 	type InteractionMode,
 } from '../../logic/logicInteractionMode';
 import { parsePropertyValue } from '../../logic/propertyValueCoercion';
+import { renderPropertyValue } from '../../utils/renderPropertyValue';
 import {
 	readVaultmanDragPayload,
 	setVaultmanDragPayload,
@@ -127,6 +128,58 @@ export class PropsExplorerPanel extends Component {
 
 		// Property actions
 		svc.registerAction({
+			id: 'prop.filter_include',
+			nodeTypes: ['prop', 'value'],
+			surfaces: ['panel'],
+			label: translate('explorer.ctx.filter_include'),
+			icon: 'lucide-filter',
+			run: (ctx) => {
+				const meta = ctx.node.meta as PropMeta;
+				if (meta.isValueNode) {
+					this.plugin.filterService.addNode({
+						type: 'rule',
+						filterType: 'specific_value',
+						property: meta.propName,
+						values: [meta.rawValue ?? meta.propName],
+					});
+				} else {
+					this.plugin.filterService.addNode({
+						type: 'rule',
+						filterType: 'has_property',
+						property: meta.propName,
+						values: [],
+					});
+				}
+			},
+		});
+
+		svc.registerAction({
+			id: 'prop.filter_exclude',
+			nodeTypes: ['prop', 'value'],
+			surfaces: ['panel'],
+			label: translate('explorer.ctx.filter_exclude'),
+			icon: 'lucide-filter-x',
+			run: (ctx) => {
+				const meta = ctx.node.meta as PropMeta;
+				if (meta.isValueNode) {
+					this.plugin.filterService.addNode({
+						type: 'rule',
+						filterType: 'not_specific_value',
+						property: meta.propName,
+						values: [meta.rawValue ?? meta.propName],
+					});
+				} else {
+					this.plugin.filterService.addNode({
+						type: 'rule',
+						filterType: 'missing_property',
+						property: meta.propName,
+						values: [],
+					});
+				}
+			},
+		});
+
+		svc.registerAction({
 			id: 'prop.iconic-change',
 			nodeTypes: ['prop'],
 			surfaces: ['panel'],
@@ -138,7 +191,7 @@ export class PropsExplorerPanel extends Component {
 				this.plugin.iconicService?.canChangePropertyIcon() === true,
 			run: (ctx) => {
 				this.plugin.iconicService?.openPropertyIconPicker(
-					ctx.node.label,
+					(ctx.node.meta as PropMeta).propName,
 					ctx.event,
 				);
 			},
@@ -165,16 +218,33 @@ export class PropsExplorerPanel extends Component {
 		});
 
 		// Change type actions
-		const types = ['text', 'number', 'checkbox', 'date', 'list'] as const;
+		const types = [
+			'text',
+			'number',
+			'checkbox',
+			'date',
+			'datetime',
+			'list',
+		] as const;
+		const typeLabels: Record<(typeof types)[number], string> = {
+			text: 'Text',
+			number: 'Number',
+			checkbox: 'Checkbox',
+			date: 'Date',
+			datetime: 'Date & Time',
+			list: 'List',
+		};
 		types.forEach((type) => {
 			svc.registerAction({
 				id: `prop.type-${type}`,
 				nodeTypes: ['prop'],
 				surfaces: ['panel'],
-				label: type.charAt(0).toUpperCase() + type.slice(1),
+				label: typeLabels[type],
 				icon: TYPE_ICON_MAP[type],
 				submenu: 'Change type',
 				when: (ctx) => !(ctx.node.meta as PropMeta).isValueNode,
+				checked: (ctx) =>
+					this._effectivePropType(ctx.node.meta as PropMeta) === type,
 				run: (ctx) => this._changePropType(ctx.node.label, type),
 			});
 		});
@@ -247,7 +317,7 @@ export class PropsExplorerPanel extends Component {
 			id: 'value.case-lower',
 			nodeTypes: ['value'],
 			surfaces: ['panel'],
-			label: 'Lowercase',
+			label: 'lowercase',
 			icon: 'lucide-case-lower',
 			submenu: 'Convert',
 			section: 'Text',
@@ -274,7 +344,7 @@ export class PropsExplorerPanel extends Component {
 			id: 'value.case-upper',
 			nodeTypes: ['value'],
 			surfaces: ['panel'],
-			label: 'Uppercase',
+			label: 'UPPERCASE',
 			icon: 'lucide-case-upper',
 			submenu: 'Convert',
 			section: 'Text',
@@ -301,7 +371,7 @@ export class PropsExplorerPanel extends Component {
 			id: 'value.case-title',
 			nodeTypes: ['value'],
 			surfaces: ['panel'],
-			label: 'Title case',
+			label: 'Titlecase',
 			icon: 'lucide-type',
 			submenu: 'Convert',
 			section: 'Text',
@@ -320,6 +390,34 @@ export class PropsExplorerPanel extends Component {
 					meta.rawValue ?? '',
 					(v) => v.charAt(0).toUpperCase() + v.slice(1).toLowerCase(),
 					'title case',
+				);
+			},
+		});
+
+		svc.registerAction({
+			id: 'value.convert-wikilink',
+			nodeTypes: ['value'],
+			surfaces: ['panel'],
+			label: 'Wikilink',
+			icon: 'lucide-link',
+			submenu: 'Convert',
+			section: 'Text',
+			when: (ctx) => {
+				const meta = ctx.node.meta as PropMeta;
+				return (
+					meta.isValueNode &&
+					!meta.isTypeIncompatible &&
+					(meta.propType === 'text' || meta.propType === 'list') &&
+					!/^\[\[.*\]\]$/.test(meta.rawValue?.trim() ?? '')
+				);
+			},
+			run: (ctx) => {
+				const meta = ctx.node.meta as PropMeta;
+				return this._convertValue(
+					meta.propName,
+					meta.rawValue ?? '',
+					(value) => `[[${value}]]`,
+					'wikilink',
 				);
 			},
 		});
@@ -545,25 +643,41 @@ export class PropsExplorerPanel extends Component {
 		return null;
 	}
 
-	private _activeFilterIds(): Set<string> {
-		const activeFilterIds = new Set<string>();
+	private _activeFilterIds(): { active: Set<string>; excluded: Set<string> } {
+		const active = new Set<string>();
+		const excluded = new Set<string>();
 
-		const walkFilter = (node: import('../../types/typeFilter').FilterNode) => {
+		const walkFilter = (
+			node: import('../../types/typeFilter').FilterNode,
+			isExcluded = false,
+		) => {
 			if (node.type === 'rule' && node.property) {
-				if (node.filterType === 'has_property') {
-					activeFilterIds.add(node.property);
-				} else if (node.filterType === 'specific_value') {
-					node.values?.forEach((v) =>
-						activeFilterIds.add(`${node.property}::${v}`),
-					);
+				const isNodeExcluded =
+					isExcluded ||
+					node.filterType === 'missing_property' ||
+					node.filterType === 'not_specific_value';
+				const targetSet = isNodeExcluded ? excluded : active;
+
+				if (
+					node.filterType === 'has_property' ||
+					node.filterType === 'missing_property'
+				) {
+					targetSet.add(node.property);
+				} else if (
+					node.filterType === 'specific_value' ||
+					node.filterType === 'not_specific_value'
+				) {
+					node.values?.forEach((v) => targetSet.add(`${node.property}::${v}`));
 				}
 			} else if (node.type === 'group') {
-				node.children.forEach(walkFilter);
+				node.children.forEach((c) =>
+					walkFilter(c, isExcluded || node.logic === 'none'),
+				);
 			}
 		};
 
 		walkFilter(this.plugin.filterService.activeFilter);
-		return activeFilterIds;
+		return { active, excluded };
 	}
 
 	private _handleNodeClick(
@@ -627,7 +741,28 @@ export class PropsExplorerPanel extends Component {
 		const filterId = meta.isValueNode
 			? `${meta.propName}::${meta.rawValue}`
 			: meta.propName;
-		if (activeFilterIds.has(filterId)) {
+		const filterState = this.plugin.filterService.getFilterState(
+			meta.isValueNode ? 'value' : 'prop',
+			meta.propName,
+			meta.rawValue,
+		);
+		const isDoubleClick = event instanceof MouseEvent && event.detail >= 2;
+		if (isDoubleClick) {
+			this.plugin.filterService.removeNodeByProperty(
+				meta.propName,
+				meta.isValueNode ? (meta.rawValue ?? '') : undefined,
+			);
+			void this.plugin.filterService.addNode({
+				type: 'rule',
+				filterType: meta.isValueNode
+					? 'not_specific_value'
+					: 'missing_property',
+				property: meta.propName,
+				values: meta.isValueNode ? [meta.rawValue ?? ''] : [],
+			});
+			return;
+		}
+		if (filterState !== 'none' || activeFilterIds.has(filterId)) {
 			if (meta.isValueNode) {
 				void this.plugin.filterService.removeNodeByProperty(
 					meta.propName,
@@ -813,7 +948,9 @@ export class PropsExplorerPanel extends Component {
 			return;
 		}
 		let tree = this.logic.getTree();
-		const activeFilterIds = this._activeFilterIds();
+		const filterSets = this._activeFilterIds();
+		const activeFilterIds = filterSets.active;
+		const excludedFilterIds = filterSets.excluded;
 		const highlightIds = new Set<string>();
 		const warningIds = new Set<string>();
 		const searchHighlightsEnabled =
@@ -862,6 +999,7 @@ export class PropsExplorerPanel extends Component {
 				expandedIds: this.expandedIds,
 				visibleCells: this.visibleCells,
 				activeFilterIds,
+				excludedFilterIds,
 				warningIds,
 				searchHighlightIds: highlightIds,
 				onToggle: (id: string) => {
@@ -900,6 +1038,8 @@ export class PropsExplorerPanel extends Component {
 					void this._render();
 				},
 				badgeCancelClickMode: this.plugin.settings?.badgeCancelClickMode,
+				renderLabel: (container, node) =>
+					this._renderPropertyValueLabel(container, node),
 			});
 			return;
 		}
@@ -909,8 +1049,11 @@ export class PropsExplorerPanel extends Component {
 			expandedIds: this.expandedIds,
 			visibleCells: this.visibleCells,
 			filterBubbleLabel: translate('filter.active_descendant'),
+			renderLabel: (container, node) =>
+				this._renderPropertyValueLabel(container, node as TreeNode<PropMeta>),
 			iconInCaretSlot: this.plugin.settings?.iconInCaretSlot === true,
 			activeFilterIds,
+			excludedFilterIds,
 			warningIds,
 			searchHighlightIds: highlightIds,
 			onToggle: (id: string) => {
@@ -950,6 +1093,23 @@ export class PropsExplorerPanel extends Component {
 			},
 			badgeCancelClickMode: this.plugin.settings?.badgeCancelClickMode,
 		});
+	}
+
+	private _renderPropertyValueLabel(
+		container: HTMLElement,
+		node: TreeNode<PropMeta>,
+	): boolean {
+		if (!node.meta.isValueNode) return false;
+		const label = container.createSpan({
+			cls: 'bases-rendered-value vaultman-tree-label vaultman-property-value-cell',
+		});
+		renderPropertyValue(
+			label,
+			node.meta.rawValue ?? node.label,
+			node.meta.propType ?? 'text',
+			this.plugin.app,
+		);
+		return true;
 	}
 
 	private _expandAll(nodes: TreeNode<PropMeta>[]): void {
@@ -1174,7 +1334,9 @@ export class PropsExplorerPanel extends Component {
 	private _renderGrid(): void {
 		this.containerEl.empty();
 		let tree = this.logic.getTree();
-		const activeFilterIds = this._activeFilterIds();
+		const filterSets = this._activeFilterIds();
+		const activeFilterIds = filterSets.active;
+		const excludedFilterIds = filterSets.excluded;
 		const highlightIds = new Set<string>();
 		const warningIds = new Set<string>();
 		const searchHighlightsEnabled =
@@ -1216,6 +1378,7 @@ export class PropsExplorerPanel extends Component {
 				for (const c of node.cls.trim().split(/\s+/)) card.addClass(c);
 			}
 			card.toggleClass('is-active-filter', activeFilterIds.has(node.id));
+			card.toggleClass('is-excluded-filter', excludedFilterIds.has(node.id));
 			card.toggleClass('vaultman-badge-warning', warningIds.has(node.id));
 			card.toggleClass('vaultman-search-highlight', highlightIds.has(node.id));
 			card.setAttribute('role', 'button');
@@ -1228,7 +1391,9 @@ export class PropsExplorerPanel extends Component {
 				setIcon(iconEl, node.icon ?? this._effectivePropIcon(node.meta));
 			}
 			if (this.visibleCells.has('text')) {
-				card.createDiv({ cls: 'vaultman-prop-card-name', text: node.label });
+				const name = card.createDiv({ cls: 'vaultman-prop-card-name' });
+				if (!this._renderPropertyValueLabel(name, node))
+					name.setText(node.label);
 			}
 			if (this.visibleCells.has('type')) {
 				card.createDiv({

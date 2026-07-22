@@ -35,6 +35,7 @@ export interface NodeTableViewOptions<TMeta = unknown> {
 	expandedIds: Set<string>;
 	visibleCells: Set<string>;
 	activeFilterIds?: Set<string>;
+	excludedFilterIds?: Set<string>;
 	searchHighlightIds?: Set<string>;
 	warningIds?: Set<string>;
 	onToggle: (id: string) => void;
@@ -46,6 +47,7 @@ export interface NodeTableViewOptions<TMeta = unknown> {
 	onDragStart?: (id: string, event: DragEvent) => void;
 	onDragOver?: (id: string, event: DragEvent) => void;
 	onDrop?: (id: string, event: DragEvent) => void;
+	renderLabel?: (container: HTMLElement, node: TreeNode<TMeta>) => boolean;
 }
 
 export class NodeTableView<TMeta = unknown> {
@@ -58,6 +60,7 @@ export class NodeTableView<TMeta = unknown> {
 	private rows: TreeNode<TMeta>[] = [];
 	private rowEls = new Map<string, HTMLElement>();
 	private _filterBubbleIds: ReadonlySet<string> = new Set();
+	private _excludedFilterBubbleIds: ReadonlySet<string> = new Set();
 	private pendingRaf: number | null = null;
 	private pendingScrollTimer: number | null = null;
 	private columnWidths: NodeTableColumnWidths = {};
@@ -94,6 +97,13 @@ export class NodeTableView<TMeta = unknown> {
 		} else {
 			this._filterBubbleIds = new Set();
 		}
+		this._excludedFilterBubbleIds = opts.excludedFilterIds
+			? resolveActiveFilterPresentation(
+					opts.nodes as TreeNode[],
+					opts.expandedIds,
+					opts.excludedFilterIds,
+				).bubbled
+			: new Set();
 		this.opts = opts;
 		this.rows = flattenVisibleTree(
 			opts.nodes as TreeNode[],
@@ -360,6 +370,7 @@ export class NodeTableView<TMeta = unknown> {
 			node.showCaret ? '1' : '0',
 			opts.expandedIds.has(node.id) ? '1' : '0',
 			opts.activeFilterIds?.has(node.id) ? '1' : '0',
+			opts.excludedFilterIds?.has(node.id) ? '1' : '0',
 			this._filterBubbleIds.has(node.id) ? '1' : '0',
 			opts.warningIds?.has(node.id) ? '1' : '0',
 			visibleCells,
@@ -412,8 +423,10 @@ export class NodeTableView<TMeta = unknown> {
 			opts.onDragStart?.(node.id, event);
 		};
 		row.ondragend = () => row.removeClass('is-being-dragged');
-		row.ondragover = (event) => this._handleRowDragOver(row, node.id, event, opts);
-		row.ondragenter = (event) => this._handleRowDragOver(row, node.id, event, opts);
+		row.ondragover = (event) =>
+			this._handleRowDragOver(row, node.id, event, opts);
+		row.ondragenter = (event) =>
+			this._handleRowDragOver(row, node.id, event, opts);
 		row.ondragleave = () => row.removeClass('is-being-dragged-over');
 		row.ondrop = (event) => {
 			row.removeClass('is-being-dragged-over');
@@ -452,20 +465,26 @@ export class NodeTableView<TMeta = unknown> {
 			'is-active-filter',
 			opts.activeFilterIds?.has(node.id) ?? false,
 		);
+		row.toggleClass(
+			'is-excluded-filter',
+			opts.excludedFilterIds?.has(node.id) ?? false,
+		);
 		// BT5-038: a collapsed parent hiding an active filter is flagged with a
 		// dot class, not the filter decoration.
 		row.toggleClass(
 			'vaultman-node-table-filter-dot',
-			this._filterBubbleIds.has(node.id),
+			this._filterBubbleIds.has(node.id) ||
+				this._excludedFilterBubbleIds.has(node.id),
+		);
+		row.toggleClass(
+			'vaultman-node-table-filter-dot--excluded',
+			this._excludedFilterBubbleIds.has(node.id),
 		);
 		row.toggleClass(
 			'vaultman-badge-warning',
 			opts.warningIds?.has(node.id) ?? false,
 		);
-		row.toggleClass(
-			'vaultman-search-highlight',
-			isHighlighted,
-		);
+		row.toggleClass('vaultman-search-highlight', isHighlighted);
 
 		for (const column of layout.columns) {
 			this._renderCell(row, node, column, opts);
@@ -487,10 +506,12 @@ export class NodeTableView<TMeta = unknown> {
 			return;
 		}
 		if (column.id === 'text') {
-			cell.createSpan({
+			if (opts.renderLabel?.(cell, node)) return;
+			const label = cell.createSpan({
 				cls: 'bases-table-cell bases-rendered-value vaultman-node-table-label',
 				text: node.label,
 			});
+			if (node.labelColor) label.style.color = node.labelColor;
 			return;
 		}
 		if (column.id === 'type') {

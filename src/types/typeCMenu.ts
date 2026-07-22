@@ -27,6 +27,7 @@ export interface ActionDef {
 	surfaces: MenuCtx['surface'][];
 	label: string | ((ctx: MenuCtx) => string);
 	icon?: string;
+	checked?: boolean | ((ctx: MenuCtx) => boolean);
 	submenu?: string;
 	section?: string;
 	separatorBefore?: boolean;

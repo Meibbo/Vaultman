@@ -249,12 +249,15 @@ describe('IconicService add-on gate', () => {
 		expect(changed).toHaveBeenCalled();
 
 		service.setEnabled(false);
-		expect(service.canChangePropertyIcon()).toBe(false);
-		expect(service.openTagIconPicker('project')).toBe(false);
+		// Disabling Iconic must retain Vaultman's own picker as a fallback.
+		expect(service.canChangePropertyIcon()).toBe(true);
+		expect(service.openTagIconPicker('project')).toBe(true);
 	});
 
-	it('does not advertise change-icon without a callable picker', async () => {
-		const app = fakeApp({}) as ReturnType<typeof fakeApp> & {
+	it('advertises change-icon and falls back to Vaultman picker when Iconic lacks runtime picker', async () => {
+		const app = fakeApp({
+			propertyIcons: { status: { icon: 'circle-check' } },
+		}) as ReturnType<typeof fakeApp> & {
 			plugins: { plugins: Record<string, unknown> };
 		};
 		app.plugins = {
@@ -268,8 +271,29 @@ describe('IconicService add-on gate', () => {
 		const service = new IconicService(app as never);
 		await load(service);
 
-		expect(service.canChangePropertyIcon()).toBe(false);
-		expect(service.openPropertyIconPicker('status')).toBe(false);
+		expect(service.canChangePropertyIcon()).toBe(true);
+		expect(service.openPropertyIconPicker('status')).toBe(true);
+	});
+
+	it('resolves persisted Vaultman fallbacks while Iconic is disabled', async () => {
+		const settings = {
+			addonIconOverrides: {
+				'property:status': { icon: 'lucide-circle-check', color: '#0f0' },
+				'tag:project': { icon: 'lucide-hash' },
+				'file:Notes%2FPlan.md': { icon: 'lucide-file-heart' },
+			},
+		};
+		const service = new IconicService(fakeApp({}) as never, false, settings);
+		await load(service);
+
+		expect(service.getIcon('status')).toEqual({
+			icon: 'lucide-circle-check',
+			color: '#0f0',
+		});
+		expect(service.getTagIcon('project')).toEqual({ icon: 'lucide-hash' });
+		expect(service.getFileIcon('Notes/Plan.md', false)).toEqual({
+			icon: 'lucide-file-heart',
+		});
 	});
 
 	it('falls back to persisted icons when optional runtime getters fail', async () => {

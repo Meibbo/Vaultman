@@ -1,8 +1,8 @@
 # <a href="https://community.obsidian.md/plugins/vaultman"><img src="./img/vaultman_icon.png" width="64" alt="vaultman"></a> VaultMan
 
-![GitHub manifest version](https://img.shields.io/github/manifest-json/v/meibbo/vaultman?color=white&label=version&logo=github&logoColor=white&style=for-the-badge)![License](https://img.shields.io/github/license/Meibbo/vaultman?color=white&label=license&style=for-the-badge)[![GitHub stars](https://img.shields.io/github/stars/Meibbo/vaultman?style=for-the-badge&color=white)](https://github.com/Meibbo/vaultman/stargazers)[![GitHub open issues](https://img.shields.io/github/issues/Meibbo/vaultman?style=for-the-badge&color=white&logo=git&logoColor=white)](https://github.com/Meibbo/vaultman/issues)![Obsidian](https://img.shields.io/badge/required-%E2%89%A51.12.0-white?style=for-the-badge&logo=obsidian)
+[![GitHub open issues](https://img.shields.io/github/issues/Meibbo/vaultman?style=for-the-badge&color=white&logo=git&logoColor=white)](https://github.com/Meibbo/vaultman/issues)![License](https://img.shields.io/github/license/Meibbo/vaultman?color=white&label=license&style=for-the-badge)[![GitHub stars](https://img.shields.io/github/stars/Meibbo/vaultman?style=for-the-badge&color=white)](https://github.com/Meibbo/vaultman/stargazers)![Obsidian](https://img.shields.io/badge/required-%E2%89%A51.12.0-white?style=for-the-badge&logo=obsidian)
 
-> The Symbiont Manager, morphs and adapts to your needs. 
+> The Symbiont Manager, morphs and adapts your workspace to your needs.
 
 This plugin aims to expand your Obsidian Core plugins, adding functionality and flexibility to the data and metadata explorers you already know.
 
@@ -57,7 +57,7 @@ I'm also releasing experimental versions for those who want to check the project
 ![Obsidian Downloads](https://img.shields.io/badge/dynamic/json?logo=obsidian&color=%23ffffff&label=downloads&query=%24%5B%22vaultman%22%5D.downloads&url=https%3A%2F%2Fraw.githubusercontent.com%2Fobsidianmd%2Fobsidian-releases%2Fmaster%2Fcommunity-plugin-stats.json&style=for-the-badge)![Total Downloads](https://img.shields.io/github/downloads/Meibbo/vaultman/total?color=white&label=Total%20Downloads&style=for-the-badge)![Stable version](https://img.shields.io/github/v/release/meibbo/vaultman?color=white&label=latest%20stable&logo=github&logoColor=white&style=for-the-badge)[![Stable downloads](https://img.shields.io/github/downloads/meibbo/vaultman/latest/main.js?color=white&label=downloads&style=for-the-badge)](https://github.com/meibbo/vaultman/releases)![Pre-release version](https://img.shields.io/github/v/release/meibbo/vaultman?include_prereleases&sort=semver&color=white&label=latest%20pre-release&style=for-the-badge&logo=github&logoColor=white)[![Pre-release downloads](https://img.shields.io/github/downloads-pre/meibbo/vaultman/latest/main.js?color=white&label=downloads&style=for-the-badge)](https://github.com/meibbo/vaultman/releases)
 
 ## Features
-![alt text](img/vm-systems-representation.svg)
+
 The main interface lives in the sidebar, with a toolbar that lets you choose its content depending of what you want to edit or visualize.
 
 You can make granular configurations to your experience from the extense number of options available on the plugin settings panel.
@@ -150,8 +150,6 @@ As engines we actually have: Tree, Table and Cards.
 
 Every provider will have its own cell configuration and sort options to display its data.
 
-
-
 #### Filter templates
 
 #### Operation sets
@@ -197,6 +195,7 @@ The following open-source tools were used:
 It is available for public scrutine the current status and backlogs to already acknowledged bugs, issues and development direction.
 
 For ideas and bug reports you can open issues until I find a better communication channel for feedback (like having a Discord thread in the Obsidian Members Group or anything else).
+
 ### Development
 
 I'll be working on the branches: **Main**, **Dev** and **Sandbox** (my favourite), any issue/suggestion/pull request is welcome!
@@ -213,7 +212,7 @@ pnpm build:plugin
 
 ## Contribution
 
-There's not still a well stablished contribution discipline for this repository. Please, for now, pull requests won't be reviewed nor accepted unless there's a previous communication.
+I haven't stablished yet a contribution discipline for this repository. Sorry, for now, pull requests won't be reviewed nor accepted unless previous communication and acceptance.
 
 ## License
 

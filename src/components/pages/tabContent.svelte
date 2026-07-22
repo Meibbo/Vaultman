@@ -8,6 +8,7 @@
 		contentReplace = $bindable(),
 		contentCaseSensitive = $bindable(),
 		contentIsRegex = $bindable(),
+		contentIsExclusion = $bindable(),
 		contentPreviewResult = $bindable(),
 		contentPreviewOpen = $bindable(),
 		contentRegexError,
@@ -28,6 +29,7 @@
 		contentReplace: string;
 		contentCaseSensitive: boolean;
 		contentIsRegex: boolean;
+		contentIsExclusion: boolean;
 		contentPreviewResult: ContentPreviewResult | null;
 		contentPreviewOpen: boolean;
 		contentRegexError: string;
@@ -100,6 +102,22 @@
 			></button>
 		{/if}
 	</div>
+	<button
+		class="clickable-icon vaultman-icon-toggle"
+		class:is-active={contentIsExclusion}
+		aria-label={contentIsExclusion
+			? translate('filter.text_not_contains')
+			: translate('filter.text_contains')}
+		title={contentIsExclusion
+			? translate('filter.text_not_contains')
+			: translate('filter.text_contains')}
+		onclick={() => {
+			contentIsExclusion = !contentIsExclusion;
+		}}
+		use:iconAction={contentIsExclusion
+			? 'lucide-file-minus'
+			: 'lucide-file-text'}
+	></button>
 	<button
 		class="clickable-icon vaultman-icon-toggle"
 		class:is-active={contentCaseSensitive}

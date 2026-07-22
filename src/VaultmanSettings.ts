@@ -104,14 +104,18 @@ export class VaultmanSettingsTab extends PluginSettingTab {
 					.addOptions({
 						sidebar: translate('settings.open_mode.sidebar'),
 						main: translate('settings.open_mode.main'),
-						both: translate('settings.open_mode.both'),
+						new_instance: translate('settings.open_mode.new_instance'),
 					})
-					.setValue(this.plugin.settings.openMode)
+					.setValue(
+						this.plugin.settings.openMode === 'both'
+							? 'new_instance'
+							: this.plugin.settings.openMode,
+					)
 					.onChange(async (value) => {
 						this.plugin.settings.openMode = value as
 							| 'sidebar'
 							| 'main'
-							| 'both';
+							| 'new_instance';
 						await this.plugin.saveSettings();
 					}),
 			);
@@ -498,15 +502,14 @@ export class VaultmanSettingsTab extends PluginSettingTab {
 					.addOptions({
 						condensed: translate('settings.toolbar_overflow.condensed'),
 						scroll: translate('settings.toolbar_overflow.scroll'),
+						wrap: translate('settings.toolbar_overflow.wrap'),
 					})
-					.setValue(
-						this.plugin.settings.toolbarOverflowStrategy === 'scroll'
-							? 'scroll'
-							: 'condensed',
-					)
+					.setValue(this.plugin.settings.toolbarOverflowStrategy)
 					.onChange(async (value) => {
 						this.plugin.settings.toolbarOverflowStrategy =
-							value === 'scroll' ? 'scroll' : 'condensed';
+							value === 'scroll' || value === 'wrap'
+								? value
+								: 'condensed';
 						await this.plugin.saveSettings();
 					}),
 			);
@@ -1298,13 +1301,28 @@ export class VaultmanSettingsTab extends PluginSettingTab {
 					),
 			);
 		new Setting(containerEl)
-			.setName(translate('settings.toc_reserved_lane'))
-			.setDesc(translate('settings.toc_reserved_lane.desc'))
+			.setName(translate('settings.toc_hide_explorer_scrollbar'))
+			.setDesc(translate('settings.toc_hide_explorer_scrollbar.desc'))
 			.addToggle((t) =>
 				t
-					.setValue(this.plugin.settings.tocReservedLane === true)
-					.onChange((v) => setToc({ tocReservedLane: v })),
+					.setValue(
+						this.plugin.settings.tocHideExplorerScrollbar === true,
+					)
+					.onChange(async (v) => {
+						await setToc({ tocHideExplorerScrollbar: v });
+						this.display();
+					}),
 			);
+		if (this.plugin.settings.tocHideExplorerScrollbar !== true) {
+			new Setting(containerEl)
+				.setName(translate('settings.toc_reserved_lane'))
+				.setDesc(translate('settings.toc_reserved_lane.desc'))
+				.addToggle((t) =>
+					t
+						.setValue(this.plugin.settings.tocReservedLane === true)
+						.onChange((v) => setToc({ tocReservedLane: v })),
+				);
+		}
 		new Setting(containerEl)
 			.setName(translate('settings.toc_glyph_mode'))
 			.addDropdown((d) =>

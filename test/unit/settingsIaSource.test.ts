@@ -25,7 +25,7 @@ describe('BT3 settings information architecture source guards', () => {
 		// Renamed to Layout Configuration (dev request 2026-07-20).
 		expect(en['settings.style_config']).toBe('Layout Configuration');
 		expect(es['settings.style_config']).toBe('Configuración de Layout');
-		expect(en['settings.saved_view_config']).toBe('View Compositions');
+		expect(en['settings.saved_view_config']).toBe('Saved compositions');
 		expect(es['settings.saved_view_config']).toBe('Composiciones de vista');
 		expect(en['settings.badge_colors']).toBe('Colored cell badges');
 		expect(es['settings.badge_colors']).toBe('Badges de celda con color');

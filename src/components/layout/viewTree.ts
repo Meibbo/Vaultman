@@ -40,6 +40,7 @@ export interface TreeViewOptions {
 	onRowHover?: (id: string, row: HTMLElement) => void;
 	onContextMenu: (id: string, e: MouseEvent) => void;
 	activeFilterIds?: Set<string>;
+	excludedFilterIds?: Set<string>;
 	selectedIds?: Set<string>;
 	searchHighlightIds?: Set<string>;
 	warningIds?: Set<string>;
@@ -72,6 +73,7 @@ export interface TreeViewOptions {
 	 * that configures no tooltip omits this and its rows show none.
 	 */
 	rowTooltip?: (node: TreeNode) => string;
+	renderLabel?: (container: HTMLElement, node: TreeNode) => boolean;
 	/**
 	 * BT5-015: when a node reserves a caret slot it cannot use, put its icon
 	 * there instead of leaving a dimmed placeholder plus a separate icon.
@@ -85,6 +87,7 @@ export class UnifiedTreeView {
 	private rowEls = new Map<string, HTMLElement>();
 	private _pendingRaf: number | null = null;
 	private _filterBubbleIds: ReadonlySet<string> = EMPTY_ID_SET;
+	private _excludedFilterBubbleIds: ReadonlySet<string> = EMPTY_ID_SET;
 	private _hoveredRowId: string | null = null;
 	private _pendingScrollTimer: number | null = null;
 	private _opts: TreeViewOptions | null = null;
@@ -134,6 +137,13 @@ export class UnifiedTreeView {
 		} else {
 			this._filterBubbleIds = EMPTY_ID_SET;
 		}
+		this._excludedFilterBubbleIds = opts.excludedFilterIds
+			? resolveActiveFilterPresentation(
+					opts.nodes,
+					opts.expandedIds,
+					opts.excludedFilterIds,
+				).bubbled
+			: EMPTY_ID_SET;
 		this._opts = opts;
 		this.containerEl.dataset.vaultmanTreeOwner = this._ownerId;
 		this.containerEl.toggleClass(
@@ -526,6 +536,7 @@ export class UnifiedTreeView {
 			node.children?.length ?? 0,
 			node.showCaret ? '1' : '0',
 			opts.activeFilterIds?.has(node.id) ? '1' : '0',
+			opts.excludedFilterIds?.has(node.id) ? '1' : '0',
 			this._filterBubbleIds.has(node.id) ? '1' : '0',
 			opts.warningIds?.has(node.id) ? '1' : '0',
 			opts.editingId === node.id ? '1' : '0',
@@ -672,9 +683,13 @@ export class UnifiedTreeView {
 		const showCaret = hasChildren || Boolean(node.showCaret);
 		const isExpanded = opts.expandedIds.has(node.id);
 		const isActive = opts.activeFilterIds?.has(node.id) ?? false;
+		const isExcluded = opts.excludedFilterIds?.has(node.id) ?? false;
 		// BT5-038: a collapsed parent that only HIDES an active filter shows a
 		// dot, not the filter decoration itself.
-		const hasFilterBubbleDot = this._filterBubbleIds.has(node.id);
+		const hasExcludedFilterBubbleDot =
+			this._excludedFilterBubbleIds.has(node.id);
+		const hasFilterBubbleDot =
+			this._filterBubbleIds.has(node.id) || hasExcludedFilterBubbleDot;
 		const isWarning = opts.warningIds?.has(node.id) ?? false;
 		const isEditing = opts.editingId === node.id;
 		const isHighlighted = opts.searchHighlightIds?.has(node.id) ?? false;
@@ -809,6 +824,7 @@ export class UnifiedTreeView {
 		}
 		row.toggleClass('is-active', this._activeId === node.id);
 		if (isActive) row.addClass('is-active-filter');
+		if (isExcluded) row.addClass('is-excluded-filter');
 		if (isWarning) row.addClass('vaultman-badge-warning');
 		if (isEditing) row.addClass('is-editing');
 
@@ -865,7 +881,12 @@ export class UnifiedTreeView {
 		};
 		const emitLabel = (parent: HTMLElement): void => {
 			if (!showLabel) return;
-			parent.createSpan({ cls: 'vaultman-tree-label', text: node.label });
+			if (opts.renderLabel?.(parent, node)) return;
+			const label = parent.createSpan({
+				cls: 'vaultman-tree-label',
+				text: node.label,
+			});
+			if (node.labelColor) label.style.color = node.labelColor;
 		};
 		const emitType = (parent: HTMLElement): void => {
 			if (!showType || !node.typeText) return;
@@ -959,7 +980,15 @@ export class UnifiedTreeView {
 				}
 			});
 		} else if (showLabel && !usesActivationOrder) {
-			row.createSpan({ cls: 'vaultman-tree-label', text: node.label });
+			if (opts.renderLabel?.(row, node)) {
+				// Custom renderer emitted the complete label cell.
+			} else {
+			const label = row.createSpan({
+				cls: 'vaultman-tree-label',
+				text: node.label,
+			});
+			if (node.labelColor) label.style.color = node.labelColor;
+			}
 		}
 
 		if (!usesActivationOrder) emitType(row);
@@ -1010,7 +1039,11 @@ export class UnifiedTreeView {
 			// without wearing the filter decoration itself.
 			if (hasFilterBubbleDot) {
 				const dotEl = badgeZone.createSpan({
-					cls: 'vaultman-tree-bubble-dot vaultman-tree-bubble-dot--filter',
+					cls: `vaultman-tree-bubble-dot ${
+						hasExcludedFilterBubbleDot
+							? 'vaultman-tree-bubble-dot--filter-excluded'
+							: 'vaultman-tree-bubble-dot--filter'
+					}`,
 				});
 				// The view stays i18n-agnostic: the panel supplies the label.
 				if (opts.filterBubbleLabel) {

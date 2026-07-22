@@ -52,6 +52,7 @@ export interface TreeNode<TMeta = unknown> {
 	label: string;
 	icon?: string;
 	iconColor?: string;
+	labelColor?: string;
 	showCaret?: boolean;
 	/** Present only while the node is collapsed and hides active descendants. */
 	bubbleDot?: NodeBubbleDot;

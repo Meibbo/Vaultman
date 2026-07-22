@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { onDestroy, onMount } from 'svelte';
+	import { onDestroy, onMount, untrack } from 'svelte';
 	import { MarkdownView, Menu, Notice, TFile } from 'obsidian';
 	import type { VaultmanPlugin } from '../../main';
 	import { resolveCommandActions } from '../../logic/logicCommandActions';
@@ -155,6 +155,8 @@
 		getFloatingTocState,
 		applyFloatingTocState,
 		icon,
+		initialShowToolbar = null,
+		onShowToolbarChange,
 	}: {
 		plugin: VaultmanPlugin;
 		filtersActiveTab: FiltersTab;
@@ -195,12 +197,19 @@
 			state?: import('../../types/typeSettings').SavedFloatingTocState,
 		) => void;
 		icon: (el: HTMLElement, name: string) => any;
+		initialShowToolbar?: boolean | null;
+		onShowToolbarChange?: (val: boolean) => void;
 	} = $props();
+
+	export function setShowToolbar(val: boolean): void {
+		localShowToolbar = val;
+	}
 
 	let contentFind = $state('');
 	let contentReplace = $state('');
 	let contentCaseSensitive = $state(false);
 	let contentIsRegex = $state(false);
+	let contentIsExclusion = $state(false);
 	let contentSearchPaused = $state(false);
 	let contentPreviewResult = $state<ContentPreviewResult | null>(null);
 	let contentPreviewOpen = $state(true);
@@ -280,8 +289,12 @@
 		void settingsRevision;
 		return plugin.settings.explorerOperationScope;
 	});
+	let localShowToolbar = $state<boolean | null>(
+		untrack(() => initialShowToolbar ?? null),
+	);
 	const showToolbar = $derived.by(() => {
 		void settingsRevision;
+		if (localShowToolbar !== null) return localShowToolbar;
 		return plugin.settings.showToolbar !== false;
 	});
 	const orderCellsByActivation = $derived.by(() => {
@@ -298,8 +311,9 @@
 	});
 	const toolbarOverflowStrategy = $derived.by(() => {
 		void settingsRevision;
-		return plugin.settings.toolbarOverflowStrategy === 'scroll'
-			? 'scroll'
+		const strategy = plugin.settings.toolbarOverflowStrategy;
+		return strategy === 'scroll' || strategy === 'wrap'
+			? strategy
 			: 'condensed';
 	});
 	const createActionsPlacement = $derived.by(() => {
@@ -319,8 +333,8 @@
 	// the top edge, so it can be re-enabled from its own tabs menu.
 	let toolbarPeek = $state(false);
 	function toggleToolbar() {
-		plugin.settings.showToolbar = plugin.settings.showToolbar === false;
-		void plugin.saveSettings();
+		localShowToolbar = !showToolbar;
+		onShowToolbarChange?.(localShowToolbar);
 	}
 	// Local mirror so a save updates the submenu list immediately (quiet persist,
 	// no page remount); synced from settings for external changes (delete).
@@ -717,6 +731,7 @@
 		contentPreviewResult = null;
 		contentPreviewOpen = true;
 		contentRegexError = '';
+		contentIsExclusion = false;
 		collapsedContentFilePaths = [];
 		activeContentRevealPath = null;
 		plugin.filterService.setContentSearchRule('', []);
@@ -740,6 +755,7 @@
 		const find = contentFind;
 		const caseSensitive = contentCaseSensitive;
 		const isRegex = contentIsRegex;
+		const isExclusion = contentIsExclusion;
 		const files = contentSearchScopeFiles();
 
 		if (tab !== 'content') return;
@@ -754,7 +770,7 @@
 			return;
 		}
 		if (!validateContentSearch()) {
-			plugin.filterService.setContentSearchRule('', []);
+			plugin.filterService.setContentSearchRule('', [], false);
 			onContentFilterChanged?.();
 			return;
 		}
@@ -769,7 +785,11 @@
 			}
 			const matched =
 				frozen?.matchedFiles ?? frozen?.files.map((entry) => entry.file) ?? [];
-			plugin.filterService.setContentSearchRule(find, matched);
+			if (isExclusion) {
+				plugin.filterService.setContentSearchRule(find, matched, true);
+			} else {
+				plugin.filterService.setContentSearchRule(find, matched);
+			}
 			onContentFilterChanged?.();
 			return;
 		}
@@ -785,7 +805,11 @@
 			// Deferred with the scan: setContentSearchPending re-runs the whole
 			// filter pipeline synchronously, which froze typing when it fired
 			// per keystroke (BT4-008).
-			plugin.filterService.setContentSearchPending(find);
+			if (isExclusion) {
+				plugin.filterService.setContentSearchPending(find, true);
+			} else {
+				plugin.filterService.setContentSearchPending(find);
+			}
 			onContentFilterChanged?.();
 			void nativeSearchAdapter
 				.search({
@@ -797,10 +821,13 @@
 						contentPreviewResult = result;
 						contentPreviewOpen = true;
 						if (!result.isLoading) {
-							plugin.filterService.setContentSearchRule(
-								find,
-								result.matchedFiles ?? result.files.map((entry) => entry.file),
-							);
+							const matched =
+								result.matchedFiles ?? result.files.map((entry) => entry.file);
+							if (isExclusion) {
+								plugin.filterService.setContentSearchRule(find, matched, true);
+							} else {
+								plugin.filterService.setContentSearchRule(find, matched);
+							}
 							onContentFilterChanged?.();
 						}
 					},
@@ -969,6 +996,7 @@
 				bind:contentReplace
 				bind:contentCaseSensitive
 				bind:contentIsRegex
+				bind:contentIsExclusion
 				bind:contentPreviewResult
 				bind:contentPreviewOpen
 				{contentRegexError}

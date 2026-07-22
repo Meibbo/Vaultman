@@ -21,18 +21,28 @@ describe('explorer drag and drop source guards', () => {
 		expect(dragEditorDropSource).toContain(
 			'.cm-content, .cm-line, .cm-editor, .cm-scroller',
 		);
-		expect(mainSource).toContain("activeDocument.addEventListener('dragover'");
+		expect(mainSource).toMatch(
+			/activeDocument\.addEventListener\(\s*'dragover'/,
+		);
 		expect(mainSource).toContain('private readonly handleVaultmanDragOver');
-		expect(mainSource).toContain('this.markdownViewFromDropTarget(event.target)');
-		expect(mainSource).toContain("this.app.workspace.getLeavesOfType('markdown')");
+		expect(mainSource).toContain(
+			'this.markdownViewFromDropTarget(event.target)',
+		);
+		expect(mainSource).toContain(
+			"this.app.workspace.getLeavesOfType('markdown')",
+		);
 		expect(mainSource).toContain(
 			'const file = view?.file ?? this.app.workspace.getActiveFile()',
 		);
 	});
 
 	it('wires internal drop callbacks through node table rows', () => {
-		expect(nodeTableSource).toContain('onDragOver?: (id: string, event: DragEvent)');
-		expect(nodeTableSource).toContain('onDrop?: (id: string, event: DragEvent)');
+		expect(nodeTableSource).toContain(
+			'onDragOver?: (id: string, event: DragEvent)',
+		);
+		expect(nodeTableSource).toContain(
+			'onDrop?: (id: string, event: DragEvent)',
+		);
 		expect(nodeTableSource).toContain('row.ondragover = (event) =>');
 		expect(nodeTableSource).toContain('row.ondrop = (event) =>');
 	});
@@ -54,9 +64,13 @@ describe('explorer drag and drop source guards', () => {
 		expect(filesSource).toContain("if (targetNode.depth === 0) return ''");
 		expect(filesSource).toContain('this._moveDraggedNodesIntoFolder');
 		expect(filesSource).toContain('fileManager.renameFile');
-		expect(filesSource).toContain("targetFolderPath.startsWith(`${source.path}/`)");
+		expect(filesSource).toContain(
+			'targetFolderPath.startsWith(`${source.path}/`)',
+		);
 		expect(filesSource).toContain('private readonly _handleRootFileDrop');
-		expect(filesSource).toContain("void this._moveDraggedNodesIntoFolder(payload, '')");
+		expect(filesSource).toContain(
+			"void this._moveDraggedNodesIntoFolder(payload, '')",
+		);
 		expect(filesSource).toContain(
 			"dragManager.dragFile?.(event, entries[0], 'vaultman')",
 		);
@@ -70,14 +84,18 @@ describe('explorer drag and drop source guards', () => {
 		expect(propsSource).not.toContain('String(raw) === value');
 		expect(tagsSource).toContain('private _handleTagDrop');
 		expect(tagsSource).toContain('this._nestDraggedTags');
-		expect(tagsSource).toContain("targetTagPath.startsWith(`${tagPath}/`)");
+		expect(tagsSource).toContain('targetTagPath.startsWith(`${tagPath}/`)');
 		expect(tagsSource).toContain('private readonly _handleRootTagDrop');
 		expect(tagsSource).toContain("void this._nestDraggedTags(payload, '')");
-		expect(tagsSource).toContain('targetTagPath ? `${targetTagPath}/${leaf}` : leaf');
+		expect(tagsSource).toContain(
+			'targetTagPath ? `${targetTagPath}/${leaf}` : leaf',
+		);
 	});
 
 	it('keeps dock-off islands at the frame bottom', () => {
-		expect(frameSource).toContain('class:vaultman-pages-viewport--dock-off={!showDock}');
+		expect(frameSource).toContain(
+			'class:vaultman-pages-viewport--dock-off={!showDock}',
+		);
 		expect(stylesSource).toContain(
 			'.vaultman-pages-viewport--dock-off .vaultman-queue-island-wrap',
 		);

@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { mount, onMount, tick, unmount } from 'svelte';
+	import { mount, onMount, tick, unmount, untrack } from 'svelte';
 	import { Notice, setIcon, type TFile } from 'obsidian';
 	import type { VaultmanPlugin } from './main';
 	import type { FilesExplorerPanel } from './components/containers/explorerFiles';
@@ -39,7 +39,35 @@
 
 	// ─── Props ────────────────────────────────────────────────────────────────
 
-	let { plugin }: { plugin: VaultmanPlugin } = $props();
+	interface Props {
+		plugin: VaultmanPlugin;
+		initialShowToolbar?: boolean | null;
+		onShowToolbarChange?: (val: boolean) => void;
+	}
+	let {
+		plugin,
+		initialShowToolbar = null,
+		onShowToolbarChange,
+	}: Props = $props();
+	let frameShowToolbar = $state(
+		untrack(() => initialShowToolbar ?? plugin.settings.showToolbar !== false),
+	);
+
+	function handleShowToolbarChange(value: boolean): void {
+		frameShowToolbar = value;
+		onShowToolbarChange?.(value);
+	}
+
+	export function setShowToolbar(val: boolean): void {
+		frameShowToolbar = val;
+		if (filtersPageRef) {
+			filtersPageRef.setShowToolbar?.(val);
+		}
+	}
+
+	type FiltersPageApi = {
+		setShowToolbar?(value: boolean): void;
+	};
 
 	// ─── Page navigation ──────────────────────────────────────────────────────
 
@@ -747,11 +775,21 @@
 	);
 	const tocReservedLanePosition = $derived.by(() => {
 		void settingsRevision;
-		if (!floatingTocVisible || plugin.settings.tocReservedLane !== true) {
+		if (
+			!floatingTocVisible ||
+			(plugin.settings.tocReservedLane !== true &&
+				plugin.settings.tocHideExplorerScrollbar !== true)
+		) {
 			return null;
 		}
 		const position = plugin.settings.tocPosition ?? 'right';
 		return position === 'right' || position === 'left' ? position : null;
+	});
+	const hideExplorerScrollbarForToc = $derived.by(() => {
+		void settingsRevision;
+		return (
+			floatingTocVisible && plugin.settings.tocHideExplorerScrollbar === true
+		);
 	});
 	const tocKindToggle = $derived.by(() => {
 		void settingsRevision;
@@ -1109,6 +1147,10 @@
 		updateStats();
 	}
 
+	// ─── Child references ──────────────────────────────────────────────────────
+
+	let filtersPageRef = $state<FiltersPageApi | null>(null);
+
 	// ─── Refresh ─────────────────────────────────────────────────────────────
 
 	function refreshFiles() {
@@ -1228,6 +1270,7 @@
 		'right'}
 	class:vaultman-pages-viewport--toc-lane-left={tocReservedLanePosition ===
 		'left'}
+	class:vaultman-pages-viewport--toc-hide-scrollbar={hideExplorerScrollbarForToc}
 	class:vaultman-badges-colored={coloredBadges}
 	use:bindViewport
 	use:bindViewRoot
@@ -1246,6 +1289,8 @@
 							active={activePage === pageId}
 							{settingsRevision}
 							onNavigateToDataTab={navigateToDataTab}
+							toolbarShown={frameShowToolbar}
+							onToggleToolbar={() => handleShowToolbarChange(!frameShowToolbar)}
 						/>
 					{:else if pageId === 'filters'}
 						<FiltersPage
@@ -1289,6 +1334,9 @@
 							expansionRevision={displayedFilterRuleCount +
 								displayedFilteredCount}
 							{icon}
+							initialShowToolbar={frameShowToolbar}
+							onShowToolbarChange={handleShowToolbarChange}
+							bind:this={filtersPageRef}
 						/>
 					{/if}
 				{/key}

@@ -2,7 +2,13 @@ import type VaultmanPlugin from '../main';
 import type { MenuCtx } from '../types/typeCMenu';
 import { translate } from '../i18n/index';
 import { openAddonIconPicker } from '../modals/modalAddonIconPicker';
-import { readAddonIconOverrides, getAddonIconOverride, setAddonIconOverride, clearAddonIconOverride, writeAddonIconOverrides } from './logicAddonIcons';
+import {
+	clearAddonIconOverride,
+	getAddonIconOverride,
+	readAddonIconOverrides,
+	setAddonIconOverride,
+	writeAddonIconOverrides,
+} from './logicAddonIcons';
 import { ConfirmModal } from '../modals/modalConfirm';
 import { FileRenameModal } from '../modals/modalFileRename';
 import { setCssSnippetEnabled } from '../utils/obsidianAddons';
@@ -20,6 +26,7 @@ interface InternalApp extends App {
 			remove(path: string): Promise<void>;
 		};
 	};
+	openWithDefaultApp?(path: string): void;
 }
 
 export function registerSnippetActions(plugin: VaultmanPlugin): void {
@@ -39,19 +46,68 @@ export function registerSnippetActions(plugin: VaultmanPlugin): void {
 			const meta = ctx.node?.meta as SnippetMeta | undefined;
 			if (!meta || !meta.name) return;
 			const overrides = readAddonIconOverrides(plugin.settings);
+			const current = getAddonIconOverride(overrides, 'snippet', meta.name);
+			if (
+				plugin.iconicService?.openSnippetIconPicker(
+					meta.name,
+					ctx.event,
+					current,
+					(icon, color) => {
+						writeAddonIconOverrides(
+							plugin.settings,
+							icon
+								? setAddonIconOverride(overrides, 'snippet', meta.name, {
+										icon,
+										...(color ? { color } : {}),
+									})
+								: clearAddonIconOverride(overrides, 'snippet', meta.name),
+						);
+						void plugin.saveSettings();
+					},
+				)
+			) return;
 			openAddonIconPicker({
 				app: plugin.app,
 				name: meta.name,
-				hasOverride: getAddonIconOverride(overrides, 'snippet', meta.name) !== null,
+				hasOverride:
+					getAddonIconOverride(overrides, 'snippet', meta.name) !== null,
 				onPick: async (icon) => {
-					writeAddonIconOverrides(plugin.settings, setAddonIconOverride(overrides, 'snippet', meta.name, { icon }));
+					writeAddonIconOverrides(
+						plugin.settings,
+						setAddonIconOverride(overrides, 'snippet', meta.name, { icon }),
+					);
 					await plugin.saveSettings();
 				},
 				onReset: async () => {
-					writeAddonIconOverrides(plugin.settings, clearAddonIconOverride(overrides, 'snippet', meta.name));
+					writeAddonIconOverrides(
+						plugin.settings,
+						clearAddonIconOverride(overrides, 'snippet', meta.name),
+					);
 					await plugin.saveSettings();
 				},
 			});
+		},
+	});
+
+	svc.registerAction({
+		id: 'snippet.open-default-app',
+		nodeTypes: ['snippet'],
+		surfaces: ['panel'],
+		label: () => translate('snippet.open_default_app'),
+		icon: 'lucide-external-link',
+		when: (ctx: MenuCtx) => {
+			const meta = ctx.node?.meta as SnippetMeta | undefined;
+			const app = plugin.app as InternalApp;
+			return !!meta?.name && !!app.customCss?.getSnippetPath && !!app.openWithDefaultApp;
+		},
+		run: (ctx: MenuCtx) => {
+			const meta = ctx.node?.meta as SnippetMeta | undefined;
+			if (!meta || !meta.name) return;
+			const app = plugin.app as InternalApp;
+			const snippetPath = app.customCss?.getSnippetPath(meta.name);
+			if (snippetPath && app.openWithDefaultApp) {
+				app.openWithDefaultApp(snippetPath);
+			}
 		},
 	});
 

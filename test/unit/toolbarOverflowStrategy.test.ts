@@ -4,9 +4,46 @@ import { describe, expect, it } from 'vitest';
 
 import { DEFAULT_SETTINGS } from '../../src/types/typeSettings';
 import {
+	condensedToolbarHiddenCount,
 	shouldCondenseFilesToolbar,
 	toolbarUsesHorizontalScroll,
 } from '../../src/logic/logicResponsiveLayout';
+
+describe('progressive condensed toolbar', () => {
+	it('removes the two rightmost nodes first, then one per narrower slot', () => {
+		expect(
+			condensedToolbarHiddenCount({
+				frameWidth: 360,
+				nodeCount: 10,
+				tabLabelVisible: false,
+			}),
+		).toBe(2);
+		expect(
+			condensedToolbarHiddenCount({
+				frameWidth: 288,
+				nodeCount: 10,
+				tabLabelVisible: false,
+			}),
+		).toBe(4);
+	});
+
+	it('keeps the requested minimum including the Tools node', () => {
+		expect(
+			condensedToolbarHiddenCount({
+				frameWidth: 100,
+				nodeCount: 10,
+				tabLabelVisible: true,
+			}),
+		).toBe(7);
+		expect(
+			condensedToolbarHiddenCount({
+				frameWidth: 100,
+				nodeCount: 10,
+				tabLabelVisible: false,
+			}),
+		).toBe(6);
+	});
+});
 import navbarSource from '../../src/components/layout/navbarFilters.svelte?raw';
 import settingsSource from '../../src/VaultmanSettings.ts?raw';
 import enSource from '../../src/i18n/en.ts?raw';
@@ -63,18 +100,30 @@ describe('BT5-021 toolbar overflow strategy', () => {
 		expect(toolbarUsesHorizontalScroll('condensed')).toBe(false);
 	});
 
-	it('marks the toolbar as a single scrollable line and hints overflow', () => {
+	it('marks the toolbar as a centered scrollable line without a scrollbar', () => {
 		expect(navbarSource).toContain('toolbarUsesHorizontalScroll(');
 		expect(navbarSource).toContain(
-			"class:vaultman-filters-actions--scroll={toolbarScroll}",
+			'class:vaultman-filters-actions--scroll={toolbarScroll}',
 		);
 		expect(stylesSource).toContain('.vaultman-filters-actions--scroll');
 		expect(stylesSource).toContain('overflow-x: auto');
 		expect(stylesSource).toContain('flex-wrap: nowrap');
+		expect(stylesSource).toContain('scrollbar-width: none');
+		expect(stylesSource).toContain(
+			'.vaultman-filters-actions--scroll::-webkit-scrollbar',
+		);
 		// An accessible overflow hint (edge fade) is part of the feature.
 		expect(stylesSource).toContain('vaultman-filters-actions--scroll::after');
 		// Focus brings an off-screen action into view.
 		expect(stylesSource).toContain('scroll-margin');
+	});
+
+	it('delegates wrap to the natural multi-line flex layout', () => {
+		expect(navbarSource).toContain(
+			'class:vaultman-filters-actions--wrap={toolbarWrap}',
+		);
+		expect(stylesSource).toContain('.vaultman-filters-actions--wrap');
+		expect(stylesSource).toContain('flex-wrap: wrap');
 	});
 
 	it('exposes the strategy selector in settings', () => {

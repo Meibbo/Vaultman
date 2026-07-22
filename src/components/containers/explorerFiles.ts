@@ -198,6 +198,22 @@ export class FilesExplorerPanel extends Component {
 		const svc = this.plugin.contextMenuService;
 
 		svc.registerAction({
+			id: 'file.iconic-change',
+			nodeTypes: ['file', 'folder'],
+			surfaces: ['panel'],
+			label: translate('iconic.change_icon'),
+			icon: 'lucide-image-plus',
+			section: 'Icon',
+			when: () => this.plugin.iconicService?.canChangeFileIcon() === true,
+			run: (ctx: MenuCtx) => {
+				const meta = ctx.node.meta as FileMeta;
+				const path = meta.file?.path ?? meta.folder?.path ?? meta.folderPath;
+				if (!path) return;
+				this.plugin.iconicService?.openFileIconPicker(path, ctx.event);
+			},
+		});
+
+		svc.registerAction({
 			id: 'file.exclude',
 			nodeTypes: ['file'],
 			surfaces: ['panel'],
@@ -517,7 +533,9 @@ export class FilesExplorerPanel extends Component {
 			this.plugin.app.vault.on('delete', (file) => {
 				// BT5-009: a deleted file drops its exclusion so it leaves no
 				// orphan path in the filter tree.
-				if (purgeFilterPath(this.plugin.filterService.activeFilter, file.path)) {
+				if (
+					purgeFilterPath(this.plugin.filterService.activeFilter, file.path)
+				) {
 					this.plugin.filterService.applyFilters();
 				}
 				this._scheduleRefresh();
@@ -814,9 +832,7 @@ export class FilesExplorerPanel extends Component {
 				executeObsidianCommand(this.plugin.app, binding);
 				return;
 			}
-			new Notice(
-				translate('command.missing').replace('{id}', binding),
-			);
+			new Notice(translate('command.missing').replace('{id}', binding));
 		}
 		await this._createNote(term);
 	}
@@ -1916,6 +1932,7 @@ export class FilesExplorerPanel extends Component {
 				);
 				if (glyph && node.meta.isFolder) rainbowBucket += 1;
 				node.iconColor = resolved?.color ?? glyph ?? undefined;
+				node.labelColor = glyph ?? undefined;
 				if (node.children?.length) walk(node.children);
 			}
 		};
@@ -1934,7 +1951,9 @@ export class FilesExplorerPanel extends Component {
 			this.plugin.settings.explorerGlyphColor,
 		).choice;
 		if (choice === 'default') return null;
-		const scope = normalizeGlyphColorScope(this.plugin.settings.explorerGlyphScope);
+		const scope = normalizeGlyphColorScope(
+			this.plugin.settings.explorerGlyphScope,
+		);
 		const inScope =
 			scope === 'both' ||
 			(scope === 'folders' && isFolder) ||
@@ -2327,8 +2346,9 @@ export class FilesExplorerPanel extends Component {
 					? (this.plugin.statisticsCache.getFileWordCount(node.meta.file) ?? 0)
 					: 0,
 				tasks: node.meta.file
-					? (this.plugin.statisticsCache.getFileRemainingTasks(node.meta.file) ??
-						0)
+					? (this.plugin.statisticsCache.getFileRemainingTasks(
+							node.meta.file,
+						) ?? 0)
 					: 0,
 			}),
 			(node) => node.meta.isFolder,
@@ -2339,7 +2359,9 @@ export class FilesExplorerPanel extends Component {
 				if (total) {
 					node.count = total.count > 0 ? total.count : undefined;
 					node.wordCountText =
-						total.words > 0 ? this._formatWordCountCell(total.words) : undefined;
+						total.words > 0
+							? this._formatWordCountCell(total.words)
+							: undefined;
 					node.tasksText = total.tasks > 0 ? String(total.tasks) : undefined;
 				}
 				if (node.children?.length) apply(node.children);

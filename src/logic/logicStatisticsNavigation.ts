@@ -1,4 +1,10 @@
-export type StatisticsDataTab = 'files' | 'props' | 'tags' | 'content';
+export type StatisticsDataTab =
+	| 'files'
+	| 'props'
+	| 'tags'
+	| 'content'
+	| 'snippets'
+	| 'plugins';
 export type StatisticsNavigationCard =
 	| 'folders'
 	| 'files'

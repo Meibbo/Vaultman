@@ -112,6 +112,40 @@ export class TagsExplorerPanel extends Component {
 		// Register context menu actions through the service
 		const svc = this.plugin.contextMenuService;
 		svc.registerAction({
+			id: 'tag.filter_include',
+			nodeTypes: ['tag'],
+			surfaces: ['panel'],
+			label: translate('explorer.ctx.filter_include'),
+			icon: 'lucide-filter',
+			run: (ctx: MenuCtx) => {
+				const meta = ctx.node.meta as TagMeta;
+				this.plugin.filterService.addNode({
+					type: 'rule',
+					filterType: 'has_tag',
+					property: '',
+					values: [`#${meta.tagPath}`],
+				});
+			},
+		});
+
+		svc.registerAction({
+			id: 'tag.filter_exclude',
+			nodeTypes: ['tag'],
+			surfaces: ['panel'],
+			label: translate('explorer.ctx.filter_exclude'),
+			icon: 'lucide-filter-x',
+			run: (ctx: MenuCtx) => {
+				const meta = ctx.node.meta as TagMeta;
+				this.plugin.filterService.addNode({
+					type: 'rule',
+					filterType: 'not_has_tag',
+					property: '',
+					values: [`#${meta.tagPath}`],
+				});
+			},
+		});
+
+		svc.registerAction({
 			id: 'tag.iconic-change',
 			nodeTypes: ['tag'],
 			surfaces: ['panel'],
@@ -535,10 +569,11 @@ export class TagsExplorerPanel extends Component {
 			this.plugin.settings?.explorerSearchHighlights === true;
 
 		const activeFilterIds = new Set<string>();
+		const excludedFilterIds = new Set<string>();
 		for (const node of this._flattenTree(tree)) {
-			if (this.plugin.filterService.hasTagFilter(`#${node.meta.tagPath}`)) {
-				activeFilterIds.add(node.id);
-			}
+			const state = this.plugin.filterService.getFilterState('tag', `#${node.meta.tagPath}`);
+			if (state === 'included') activeFilterIds.add(node.id);
+			else if (state === 'excluded') excludedFilterIds.add(node.id);
 		}
 
 		// For highlighting search text specifically on matching nodes
@@ -571,7 +606,7 @@ export class TagsExplorerPanel extends Component {
 		this._setIndexRoots(nodesWithIcons);
 
 		if (this.viewMode === 'grid') {
-			this._renderGrid(nodesWithIcons, activeFilterIds, highlightIds);
+			this._renderGrid(nodesWithIcons, activeFilterIds, excludedFilterIds, highlightIds);
 			return;
 		}
 
@@ -585,6 +620,7 @@ export class TagsExplorerPanel extends Component {
 				expandedIds: this.expandedIds,
 				visibleCells: this.visibleCells,
 				activeFilterIds,
+				excludedFilterIds,
 				searchHighlightIds: highlightIds,
 				onToggle: (id: string) => {
 					this._toggleExpanded(id);
@@ -646,6 +682,7 @@ export class TagsExplorerPanel extends Component {
 			filterBubbleLabel: translate('filter.active_descendant'),
 			iconInCaretSlot: this.plugin.settings?.iconInCaretSlot === true,
 			activeFilterIds,
+			excludedFilterIds,
 			searchHighlightIds: highlightIds,
 			editingId: this.editingId,
 			onRename: (id, newLabel) => {
@@ -710,9 +747,20 @@ export class TagsExplorerPanel extends Component {
 		});
 	}
 
-	private _toggleTagFilter(tagPath: string): void {
+	private _toggleTagFilter(tagPath: string, exclude = false): void {
 		const tagId = `#${tagPath}`;
-		if (this.plugin.filterService.hasTagFilter(tagId)) {
+		const state = this.plugin.filterService.getFilterState('tag', tagId);
+		if (exclude) {
+			this.plugin.filterService.removeNodeByTag(tagId);
+			void this.plugin.filterService.addNode({
+				type: 'rule',
+				filterType: 'not_has_tag',
+				property: '',
+				values: [tagId],
+			});
+			return;
+		}
+		if (state !== 'none') {
 			void this.plugin.filterService.removeNodeByTag(tagId);
 			return;
 		}
@@ -776,7 +824,10 @@ export class TagsExplorerPanel extends Component {
 			});
 			return;
 		}
-		this._toggleTagFilter(meta.tagPath);
+		this._toggleTagFilter(
+			meta.tagPath,
+			event instanceof MouseEvent && event.detail >= 2,
+		);
 	}
 
 	private _renderGridBadges(
@@ -825,6 +876,7 @@ export class TagsExplorerPanel extends Component {
 	private _renderGrid(
 		tree: TreeNode<TagMeta>[],
 		activeFilterIds: Set<string>,
+		excludedFilterIds: Set<string>,
 		highlightIds: Set<string>,
 	): void {
 		this.containerEl.empty();
@@ -837,6 +889,7 @@ export class TagsExplorerPanel extends Component {
 				for (const c of node.cls.trim().split(/\s+/)) card.addClass(c);
 			}
 			card.toggleClass('is-active-filter', activeFilterIds.has(node.id));
+			card.toggleClass('is-excluded-filter', excludedFilterIds.has(node.id));
 			card.toggleClass('vaultman-search-highlight', highlightIds.has(node.id));
 			card.setAttribute('role', 'button');
 			card.draggable = true;

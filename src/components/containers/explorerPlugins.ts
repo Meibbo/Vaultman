@@ -198,27 +198,16 @@ export class PluginsExplorerPanel
 					label: translate('addons.open_settings'),
 				});
 			}
-			cells.push(
-				meta.isVaultman
-					? {
-							id: 'state',
-							kind: 'action',
-							icon: 'lucide-shield',
-							label: translate('addons.plugins.self_protected'),
-							disabled: true,
-							appearance: 'badge',
-						}
-					: {
-							id: 'state',
-							kind: 'toggle',
-							enabled: entry.enabled,
-							style: this.cellStyle,
-							label: translate(
-								entry.enabled ? 'addons.enabled' : 'addons.disabled',
-							),
-							disabled: this.pendingToggleIds.has(entry.pluginId),
-						},
-			);
+			cells.push({
+				id: 'state',
+				kind: 'toggle',
+				enabled: entry.enabled,
+				style: this.cellStyle,
+				label: translate(
+					entry.enabled ? 'addons.enabled' : 'addons.disabled',
+				),
+				disabled: this.pendingToggleIds.has(entry.pluginId),
+			});
 			// BT5-019 precedence: Vaultman override > Iconic ribbon > plugin
 			// emitted ribbon icon > generic plug (supersedes D35).
 			const ribbon = pluginRibbonItem(this.plugin.app, entry.pluginId);

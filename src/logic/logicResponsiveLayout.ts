@@ -93,12 +93,38 @@ export function usesMobileExplorerDensity(
 }
 
 /** BT5-021: how the Files toolbar handles more action nodes than fit. */
-export type ToolbarOverflowStrategy = 'condensed' | 'scroll';
+export type ToolbarOverflowStrategy = 'condensed' | 'scroll' | 'wrap';
 
 export function toolbarUsesHorizontalScroll(
 	strategy: ToolbarOverflowStrategy,
 ): boolean {
 	return strategy === 'scroll';
+}
+
+export function condensedToolbarHiddenCount({
+	frameWidth,
+	nodeCount,
+	tabLabelVisible,
+	manual = false,
+}: {
+	frameWidth: number;
+	nodeCount: number;
+	tabLabelVisible: boolean;
+	manual?: boolean;
+}): number {
+	if (nodeCount <= 0 || (!manual && frameWidth <= 0)) return 0;
+	const minimumVisible = tabLabelVisible ? 4 : 5;
+	const labelWidth = tabLabelVisible ? LABELED_TOOLBAR_EXTRA_WIDTH : 0;
+	const capacity = manual
+		? minimumVisible
+		: Math.max(minimumVisible, Math.floor((frameWidth - 12 - labelWidth) / 36));
+	if (!manual && nodeCount <= capacity) return 0;
+	// The Tools node consumes one slot. The first condensation removes the two
+	// rightmost actions; narrower widths then peel one more action at a time.
+	return Math.min(
+		Math.max(0, nodeCount - (minimumVisible - 1)),
+		Math.max(2, nodeCount - capacity + 1),
+	);
 }
 
 export function shouldCondenseFilesToolbar({
@@ -119,7 +145,7 @@ export function shouldCondenseFilesToolbar({
 	if (!minimalStyle || activeSectionTab !== 'files') return false;
 	// BT5-021: horizontal scroll keeps every node on the bar, so neither the
 	// width threshold nor the manual force moves anything into the Tools menu.
-	if (overflowStrategy === 'scroll') return false;
+	if (overflowStrategy !== 'condensed') return false;
 	const threshold =
 		NARROW_FILES_TOOLBAR_WIDTH +
 		(tabLabelVisible ? LABELED_TOOLBAR_EXTRA_WIDTH : 0);

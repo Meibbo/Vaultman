@@ -1,4 +1,12 @@
 import { Component, type App } from 'obsidian';
+import {
+	clearAddonIconOverride,
+	getAddonIconOverride,
+	readAddonIconOverrides,
+	setAddonIconOverride,
+	writeAddonIconOverrides,
+	type AddonIconKind,
+} from '../logic/logicAddonIcons';
 
 interface IconEntry {
 	icon?: string | null;
@@ -38,7 +46,12 @@ interface IconicRuntimePlugin {
 		icon: string | null,
 		color: string | null,
 	) => unknown;
-	refreshManagers?: (...kinds: Array<'property' | 'tag'>) => unknown;
+	saveFileIcon?: (
+		item: IconicRuntimeItem,
+		icon: string | null,
+		color: string | null,
+	) => unknown;
+	refreshManagers?: (...kinds: Array<'property' | 'tag' | 'file'>) => unknown;
 	tagIconManager?: {
 		onContextMenu?: (tagPath: string, event?: MouseEvent) => unknown;
 	};
@@ -47,6 +60,15 @@ interface IconicRuntimePlugin {
 	};
 	ribbonIconManager?: {
 		onContextMenu?: (itemId: string, event?: MouseEvent) => unknown;
+	};
+	pluginIconManager?: {
+		onContextMenu?: (pluginId: string, event?: MouseEvent) => unknown;
+	};
+	snippetIconManager?: {
+		onContextMenu?: (snippetId: string, event?: MouseEvent) => unknown;
+	};
+	fileIconManager?: {
+		onContextMenu?: (path: string, event?: MouseEvent) => unknown;
 	};
 	ruleManager?: {
 		checkRuling?: (
@@ -75,13 +97,22 @@ export class IconicService extends Component {
 	private ribbonIcons = new Map<string, IconEntry>();
 	private loaded = false;
 	private enabled: boolean;
+	private fallbackSettings?: unknown;
+	private saveFallbackSettings?: () => Promise<void>;
 	private _onLoadedCallbacks: Array<() => void> = [];
 	private _onChangedCallbacks = new Set<() => void>();
 
-	constructor(app: App, enabled = true) {
+	constructor(
+		app: App,
+		enabled = true,
+		fallbackSettings?: unknown,
+		saveFallbackSettings?: () => Promise<void>,
+	) {
 		super();
 		this.app = app;
 		this.enabled = enabled;
+		this.fallbackSettings = fallbackSettings;
+		this.saveFallbackSettings = saveFallbackSettings;
 	}
 
 	onload(): void {
@@ -200,7 +231,8 @@ export class IconicService extends Component {
 		if (this._runtimePumpScheduled) return;
 		this._runtimePumpScheduled = true;
 		const timerHost =
-			this.app.workspace?.containerEl?.ownerDocument.defaultView ?? activeWindow;
+			this.app.workspace?.containerEl?.ownerDocument.defaultView ??
+			activeWindow;
 		timerHost.setTimeout(() => {
 			this._runtimePumpScheduled = false;
 			this._pumpRuntimeQueue();
@@ -291,6 +323,8 @@ export class IconicService extends Component {
 
 	/** Get custom icon for a property name. Returns null if not set. */
 	getIcon(propName: string): IconicResolvedIcon | null {
+		const fallback = this.fallbackIcon('property', propName);
+		if (fallback) return fallback;
 		if (!this.enabled) return null;
 		return this._resolveDeferred(
 			`prop:${propName}`,
@@ -305,6 +339,8 @@ export class IconicService extends Component {
 
 	/** Get custom icon for a tag path (without #). Returns null if not set. */
 	getTagIcon(tagPath: string): IconicResolvedIcon | null {
+		const fallback = this.fallbackIcon('tag', tagPath);
+		if (fallback) return fallback;
 		if (!this.enabled) return null;
 		return this._resolveDeferred(
 			`tag:${tagPath}`,
@@ -352,65 +388,103 @@ export class IconicService extends Component {
 	}
 
 	canChangePropertyIcon(): boolean {
-		const runtime = this.runtimePlugin();
-		// Iconic exposes no public picker; its per-kind managers' onContextMenu
-		// opens the real change-icon menu/picker (verified live, BT4-023).
-		return (
-			this.enabled &&
-			(typeof runtime?.propertyIconManager?.onContextMenu === 'function' ||
-				(typeof runtime?.getPropertyItem === 'function' &&
-					typeof runtime.openIconPicker === 'function' &&
-					typeof runtime.savePropertyIcon === 'function'))
-		);
+		return true;
 	}
 
 	canChangeTagIcon(): boolean {
-		const runtime = this.runtimePlugin();
-		return (
-			this.enabled &&
-			(typeof runtime?.tagIconManager?.onContextMenu === 'function' ||
-				(typeof runtime?.getTagItem === 'function' &&
-					typeof runtime.openIconPicker === 'function' &&
-					typeof runtime.saveTagIcon === 'function'))
+		return true;
+	}
+
+	canChangeFileIcon(): boolean {
+		return true;
+	}
+
+	openPropertyIconPicker(propName: string, _event?: MouseEvent): boolean {
+		if (!this.canChangePropertyIcon()) return false;
+		const runtime = this.enabled ? this.runtimePlugin() : null;
+		try {
+			if (runtime?.openIconPicker) {
+				const item = runtime.getPropertyItem?.(propName);
+				if (!item) throw new Error('Iconic property item unavailable');
+				if (this.openRuntimePicker(runtime, 'property', propName, item)) {
+					return true;
+				}
+			}
+		} catch {
+			// Fallback below
+		}
+		return this.openFallbackPicker('property', propName);
+	}
+
+	openTagIconPicker(tagPath: string, _event?: MouseEvent): boolean {
+		if (!this.canChangeTagIcon()) return false;
+		const runtime = this.enabled ? this.runtimePlugin() : null;
+		try {
+			if (runtime?.openIconPicker) {
+				const item = this.runtimeTagItem(runtime, tagPath);
+				if (!item) throw new Error('Iconic tag item unavailable');
+				if (this.openRuntimePicker(runtime, 'tag', tagPath, item)) {
+					return true;
+				}
+			}
+		} catch {
+			// Fallback below
+		}
+		return this.openFallbackPicker('tag', tagPath);
+	}
+
+	openFileIconPicker(filePath: string, _event?: MouseEvent): boolean {
+		if (!this.canChangeFileIcon()) return false;
+		const runtime = this.enabled ? this.runtimePlugin() : null;
+		try {
+			if (runtime?.openIconPicker) {
+				const item = runtime.getFileItem?.(filePath);
+				if (!item) throw new Error('Iconic file item unavailable');
+				if (this.openRuntimePicker(runtime, 'file', filePath, item)) {
+					return true;
+				}
+			}
+		} catch {
+			// Fallback below
+		}
+		return this.openFallbackPicker('file', filePath);
+	}
+
+	canChangeSnippetIcon(): boolean {
+		return this.enabled;
+	}
+
+	openSnippetIconPicker(
+		snippetId: string,
+		_event?: MouseEvent,
+		current?: IconicResolvedIcon | null,
+		onChange?: (icon: string | null, color: string | null) => void,
+	): boolean {
+		return this.openVirtualRuntimePicker(
+			'snippet',
+			snippetId,
+			current,
+			onChange,
 		);
 	}
 
-	openPropertyIconPicker(propName: string, event?: MouseEvent): boolean {
-		if (!this.canChangePropertyIcon()) return false;
-		const runtime = this.runtimePlugin();
-		try {
-			if (runtime?.propertyIconManager?.onContextMenu) {
-				runtime.propertyIconManager.onContextMenu(propName, event);
-				return true;
-			}
-			if (!runtime?.getPropertyItem) return false;
-			const item = runtime.getPropertyItem(propName);
-			if (!item) return false;
-			return this.openRuntimePicker(runtime, 'property', propName, item);
-		} catch {
-			return false;
-		}
+	canChangePluginIcon(): boolean {
+		return this.enabled;
 	}
 
-	openTagIconPicker(tagPath: string, event?: MouseEvent): boolean {
-		if (!this.canChangeTagIcon()) return false;
-		const runtime = this.runtimePlugin();
-		try {
-			if (runtime?.tagIconManager?.onContextMenu) {
-				runtime.tagIconManager.onContextMenu(tagPath, event);
-				return true;
-			}
-			if (!runtime?.getTagItem) return false;
-			const item = this.runtimeTagItem(runtime, tagPath);
-			if (!item) return false;
-			return this.openRuntimePicker(runtime, 'tag', tagPath, item);
-		} catch {
-			return false;
-		}
+	openPluginIconPicker(
+		pluginId: string,
+		_event?: MouseEvent,
+		current?: IconicResolvedIcon | null,
+		onChange?: (icon: string | null, color: string | null) => void,
+	): boolean {
+		return this.openVirtualRuntimePicker('plugin', pluginId, current, onChange);
 	}
 
 	/** Resolve a direct or rule-driven Iconic file/folder icon. */
 	getFileIcon(path: string, isFolder: boolean): IconicResolvedIcon | null {
+		const fallback = this.fallbackIcon('file', path);
+		if (fallback) return fallback;
 		if (!this.enabled) return null;
 		return this._resolveDeferred(
 			`file:${isFolder ? 'd' : 'f'}:${path}`,
@@ -453,7 +527,7 @@ export class IconicService extends Component {
 
 	private openRuntimePicker(
 		runtime: IconicRuntimePlugin,
-		kind: 'property' | 'tag',
+		kind: 'property' | 'tag' | 'file',
 		key: string,
 		item: IconicRuntimeItem,
 	): boolean {
@@ -462,14 +536,21 @@ export class IconicService extends Component {
 			runtime.openIconPicker(item, (icon, color) => {
 				item.icon = icon;
 				item.color = color;
-				const cache = kind === 'property' ? this.propertyIcons : this.tagIcons;
+				const cache =
+					kind === 'property'
+						? this.propertyIcons
+						: kind === 'tag'
+							? this.tagIcons
+							: this.fileIcons;
 				cache.set(key, { icon, color });
 				this._invalidateResolved();
 				try {
 					const save =
 						kind === 'property'
 							? runtime.savePropertyIcon
-							: runtime.saveTagIcon;
+							: kind === 'tag'
+								? runtime.saveTagIcon
+								: runtime.saveFileIcon;
 					const saveResult = save?.call(runtime, item, icon, color);
 					void Promise.resolve(saveResult).catch(() => undefined);
 					runtime.refreshManagers?.(kind);
@@ -482,6 +563,85 @@ export class IconicService extends Component {
 		} catch {
 			return false;
 		}
+	}
+
+	private openVirtualRuntimePicker(
+		kind: 'plugin' | 'snippet',
+		id: string,
+		current?: IconicResolvedIcon | null,
+		onChange?: (icon: string | null, color: string | null) => void,
+	): boolean {
+		if (!this.enabled) return false;
+		const runtime = this.runtimePlugin();
+		if (!runtime?.openIconPicker) return false;
+		const item: IconicRuntimeItem = {
+			id,
+			name: id,
+			category: kind,
+			icon: current?.icon ?? null,
+			color: current?.color ?? null,
+		};
+		try {
+			runtime.openIconPicker(item, (icon, color) => {
+				onChange?.(icon, color);
+				this.notifyChanged();
+			});
+			return true;
+		} catch {
+			return false;
+		}
+	}
+
+	private openFallbackPicker(
+		kind: 'property' | 'tag' | 'file',
+		key: string,
+	): boolean {
+		const displayName =
+			kind === 'tag'
+				? `#${key.replace(/^#/, '')}`
+				: kind === 'file'
+					? (key.split('/').pop() ?? key)
+					: key;
+		const store = readAddonIconOverrides(this.fallbackSettings);
+		void import('../modals/modalAddonIconPicker').then(
+			({ openAddonIconPicker }) => {
+				openAddonIconPicker({
+					app: this.app,
+					name: displayName,
+					hasOverride: getAddonIconOverride(store, kind, key) !== null,
+					onPick: (icon) => {
+						writeAddonIconOverrides(
+							this.fallbackSettings,
+							setAddonIconOverride(store, kind, key, { icon }),
+						);
+						this._invalidateResolved();
+						this.notifyChanged();
+						void this.saveFallbackSettings?.();
+					},
+					onReset: () => {
+						writeAddonIconOverrides(
+							this.fallbackSettings,
+							clearAddonIconOverride(store, kind, key),
+						);
+						this._invalidateResolved();
+						this.notifyChanged();
+						void this.saveFallbackSettings?.();
+					},
+				});
+			},
+		);
+		return true;
+	}
+
+	private fallbackIcon(
+		kind: Extract<AddonIconKind, 'property' | 'tag' | 'file'>,
+		key: string,
+	): IconicResolvedIcon | null {
+		return getAddonIconOverride(
+			readAddonIconOverrides(this.fallbackSettings),
+			kind,
+			key,
+		);
 	}
 
 	private notifyChanged(): void {

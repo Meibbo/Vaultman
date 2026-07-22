@@ -12,7 +12,10 @@ export type FilterType =
 	| 'file_exclude'   // excludes one exact file path (BT5-009)
 	| 'file_folder'    // matches folder path only (not filename)
 	| 'content_search' // transient content-search result set
-	| 'has_tag';       // matches files with a specific tag
+	| 'content_search_exclude' // transient content-search exclusion
+	| 'has_tag'        // matches files with a specific tag
+	| 'not_has_tag'
+	| 'not_specific_value';
 
 export type GroupLogic = 'all' | 'any' | 'none';
 

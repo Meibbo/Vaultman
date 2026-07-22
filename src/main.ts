@@ -70,6 +70,8 @@ export class VaultmanPlugin extends Plugin {
 		this.iconicService = new IconicService(
 			this.app,
 			this.settings.iconicEnabled !== false,
+			this.settings,
+			() => this.saveSettings(),
 		);
 		this.propertyTypeService = new PropertyTypeService(this.app);
 		this.contextMenuService = new ContextMenuService(this);
@@ -104,7 +106,7 @@ export class VaultmanPlugin extends Plugin {
 		this.registerEvent(
 			this.app.metadataCache.on('resolved', () => {
 				this.filterService.scheduleMetadataRefresh();
-			})
+			}),
 		);
 
 		// BT5-013: `file-open` fires on a real activation only — hover previews
@@ -132,7 +134,10 @@ export class VaultmanPlugin extends Plugin {
 			void this.activateView();
 		});
 
-		this.registerView(VAULTMAN_FRAME_TYPE, (leaf) => new VaultmanFrame(leaf, this));
+		this.registerView(
+			VAULTMAN_FRAME_TYPE,
+			(leaf) => new VaultmanFrame(leaf, this),
+		);
 		this.app.workspace.onLayoutReady(() => this.showUpdatesIfNeeded());
 
 		this.addCommand({
@@ -178,8 +183,16 @@ export class VaultmanPlugin extends Plugin {
 		});
 
 		activeDocument.addEventListener('drop', this.handleVaultmanDrop, true);
-		activeDocument.addEventListener('dragover', this.handleVaultmanDragOver, true);
-		activeDocument.addEventListener('dragend', this.handleVaultmanDragEnd, true);
+		activeDocument.addEventListener(
+			'dragover',
+			this.handleVaultmanDragOver,
+			true,
+		);
+		activeDocument.addEventListener(
+			'dragend',
+			this.handleVaultmanDragEnd,
+			true,
+		);
 		this.register(() =>
 			activeDocument.removeEventListener('drop', this.handleVaultmanDrop, true),
 		);
@@ -265,7 +278,9 @@ export class VaultmanPlugin extends Plugin {
 			event.preventDefault();
 			event.stopPropagation();
 			if (event.dataTransfer) event.dataTransfer.dropEffect = 'copy';
-			this.showDragActionGuide(`Append ${tagNodes.length === 1 ? 'tag' : 'tags'}`);
+			this.showDragActionGuide(
+				`Append ${tagNodes.length === 1 ? 'tag' : 'tags'}`,
+			);
 		}
 	};
 
@@ -399,7 +414,9 @@ export class VaultmanPlugin extends Plugin {
 
 	private fileTabDropAction(payload: VaultmanDragPayload): string {
 		const count = this.fileDragNodes(payload).length;
-		return count === 1 ? 'Open file in new tab' : `Open ${count} files in new tabs`;
+		return count === 1
+			? 'Open file in new tab'
+			: `Open ${count} files in new tabs`;
 	}
 
 	private propertyDropAction(nodes: VaultmanDragNodePayload[]): string {
@@ -423,7 +440,10 @@ export class VaultmanPlugin extends Plugin {
 
 	async loadSettings(): Promise<void> {
 		const saved = ((await this.loadData()) ?? {}) as Partial<VaultmanSettings>;
-		const hasSavedTabLabelPref = Object.prototype.hasOwnProperty.call(saved, 'filtersShowTabLabels');
+		const hasSavedTabLabelPref = Object.prototype.hasOwnProperty.call(
+			saved,
+			'filtersShowTabLabels',
+		);
 		const needsTabLabelMigration = saved.filtersTabLabelsMigrated !== true;
 
 		this.settings = {
@@ -474,10 +494,7 @@ export class VaultmanPlugin extends Plugin {
 	private showUpdatesIfNeeded(): void {
 		const currentVersion = this.manifest.version;
 		if (
-			!shouldShowUpdates(
-				this.settings.lastSeenUpdatesVersion,
-				currentVersion,
-			)
+			!shouldShowUpdates(this.settings.lastSeenUpdatesVersion, currentVersion)
 		) {
 			return;
 		}
@@ -539,36 +556,43 @@ export class VaultmanPlugin extends Plugin {
 	}
 
 	async activateView(): Promise<void> {
-		const { openMode } = this.settings;
-
-		if (openMode === 'sidebar' || openMode === 'both') {
-			await this.openView('sidebar');
-		}
-		if (openMode === 'main' || openMode === 'both') {
-			await this.openView('main');
-		}
-	}
-
-	async openView(mode: 'sidebar' | 'main'): Promise<void> {
+		const rawMode = this.settings.openMode as string;
+		const mode = rawMode === 'both' ? 'new_instance' : rawMode;
 		const { workspace } = this.app;
-		let leaf: WorkspaceLeaf | null = workspace.getLeavesOfType(VAULTMAN_FRAME_TYPE)[0];
+		const existingLeaves = workspace.getLeavesOfType(VAULTMAN_FRAME_TYPE);
 
-		if (!leaf) {
-			if (mode === 'sidebar') {
-				leaf = workspace.getLeftLeaf(false) || workspace.getRightLeaf(false);
-			} else {
-				leaf = workspace.getLeaf('tab');
-			}
-
+		if (mode === 'new_instance') {
+			const leaf = workspace.getLeaf('tab');
 			if (leaf) {
 				await leaf.setViewState({
 					type: VAULTMAN_FRAME_TYPE,
 					active: true,
 				});
+				void workspace.revealLeaf(leaf);
 			}
+			return;
+		}
+
+		// 'sidebar' or 'main': toggle behavior (close if open, open if closed)
+		if (existingLeaves.length > 0) {
+			for (const leaf of existingLeaves) {
+				leaf.detach();
+			}
+			return;
+		}
+
+		let leaf: WorkspaceLeaf | null = null;
+		if (mode === 'sidebar') {
+			leaf = workspace.getLeftLeaf(false) || workspace.getRightLeaf(false);
+		} else {
+			leaf = workspace.getLeaf('tab');
 		}
 
 		if (leaf) {
+			await leaf.setViewState({
+				type: VAULTMAN_FRAME_TYPE,
+				active: true,
+			});
 			void workspace.revealLeaf(leaf);
 		}
 	}

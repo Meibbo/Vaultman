@@ -13,12 +13,9 @@ describe('BT5-006 contextual expand/collapse availability', () => {
 		['tags', ['count'], false],
 		['snippets', ['nested'], false],
 		['plugins', ['nested'], false],
-	] as const)(
-		'tab=%s cells=%j => %s',
-		(tab, cells, expected) => {
-			expect(expansionActionAvailable(tab, cells)).toBe(expected);
-		},
-	);
+	] as const)('tab=%s cells=%j => %s', (tab, cells, expected) => {
+		expect(expansionActionAvailable(tab, cells)).toBe(expected);
+	});
 
 	it('keeps the compact Files Tools entry while gating only expansion', () => {
 		expect(navbarSource).toContain('expansionActionAvailable(');
@@ -30,15 +27,12 @@ describe('BT5-006 contextual expand/collapse availability', () => {
 		const toolsEnd = navbarSource.indexOf('\n\tfunction ', toolsStart + 1);
 		const toolsSource = navbarSource.slice(toolsStart, toolsEnd);
 		expect(toolsSource).toContain("translate('filter.auto_reveal')");
-		expect(toolsSource).toContain(
-			'if (expansionActionAvailableForActiveTab)',
-		);
+		expect(toolsSource).toContain('expansionActionAvailableForActiveTab &&');
+		expect(toolsSource).toContain('toolbarNodeHidden(toolbarExpansionIndex)');
 
+		expect(navbarSource).toContain('{#if compactFilesTools}');
 		expect(navbarSource).toContain(
-			"{#if activeTab === 'files' && compactFilesTools}",
-		);
-		expect(navbarSource).toContain(
-			'{:else if expansionActionAvailableForActiveTab}',
+			'{#if expansionActionAvailableForActiveTab && toolbarNodeVisible(toolbarExpansionIndex)}',
 		);
 	});
 });

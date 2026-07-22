@@ -39,7 +39,7 @@
 		type InteractionMode,
 	} from '../../logic/logicInteractionMode';
 	import {
-		shouldCondenseFilesToolbar,
+		condensedToolbarHiddenCount,
 		shouldHideTabLabelForSearch,
 		shouldShowMinimalSearchInput,
 		toolbarUsesHorizontalScroll,
@@ -407,24 +407,57 @@
 	const showTabsButtonLabel = $derived(
 		tabLabelIntended && !tabLabelYieldsToSearch,
 	);
+	const toolbarTabsCount = $derived(
+		minimalStyle && tabOptions.length > 0 ? 1 : 0,
+	);
+	const toolbarViewIndex = $derived(toolbarTabsCount + headerActions.length);
+	const toolbarSortIndex = $derived(toolbarViewIndex + 1);
+	const toolbarSearchIndex = $derived(toolbarSortIndex + 1);
+	const toolbarRevealIndex = $derived(toolbarSearchIndex + 1);
+	const toolbarExpansionIndex = $derived(toolbarRevealIndex + 1);
+	const toolbarCreateIndex = $derived(
+		toolbarExpansionIndex + (expansionActionAvailableForActiveTab ? 1 : 0),
+	);
+	const toolbarCommandIndex = $derived(
+		toolbarCreateIndex +
+			(activeTab === 'files' && createActionsPlacement === 'toolbar' ? 2 : 0),
+	);
+	const toolbarNodeCount = $derived(
+		showExplorerControls
+			? toolbarCommandIndex + commandActions.length
+			: toolbarTabsCount + headerActions.length,
+	);
+	const autoCondensedHiddenCount = $derived(
+		minimalStyle &&
+			activeSectionTab === 'files' &&
+			toolbarOverflowStrategy === 'condensed'
+			? condensedToolbarHiddenCount({
+					frameWidth,
+					nodeCount: toolbarNodeCount,
+					tabLabelVisible: tabLabelIntended,
+					manual: toolbarToolsMenu,
+				})
+			: 0,
+	);
+	const toolbarVisibleLimit = $derived(
+		toolbarNodeCount - autoCondensedHiddenCount,
+	);
+	const toolbarNodeVisible = (index: number): boolean =>
+		autoCondensedHiddenCount === 0 || index < toolbarVisibleLimit;
+	const toolbarNodeHidden = (index: number): boolean =>
+		autoCondensedHiddenCount > 0 && index >= toolbarVisibleLimit;
 	// Condense keys off label INTENT, not the yielded state, so opening the
 	// search cannot flip the toolbar in and out of its condensed form.
-	const compactFilesTools = $derived(
-		shouldCondenseFilesToolbar({
-			activeSectionTab,
-			frameWidth,
-			manual: toolbarToolsMenu,
-			minimalStyle,
-			tabLabelVisible: tabLabelIntended,
-			overflowStrategy: toolbarOverflowStrategy,
-		}),
-	);
+	const compactFilesTools = $derived(autoCondensedHiddenCount > 0);
 	// BT5-021: in scroll mode the action bar is one horizontally scrollable line
 	// with an overflow hint, instead of moving nodes into the Tools menu.
 	const toolbarScroll = $derived(
 		minimalStyle &&
 			activeSectionTab === 'files' &&
 			toolbarUsesHorizontalScroll(toolbarOverflowStrategy),
+	);
+	const toolbarWrap = $derived(
+		minimalStyle && toolbarOverflowStrategy === 'wrap',
 	);
 	const showSearchInput = $derived(
 		shouldShowMinimalSearchInput({
@@ -1241,19 +1274,92 @@
 
 	function openToolsMenu(event: MouseEvent) {
 		const menu = new Menu();
-		menu.addItem((item) =>
-			item
-				.setTitle(translate('filter.auto_reveal'))
-				.setIcon('lucide-gallery-vertical')
-				.onClick(() => fileList?.autoRevealActiveFile()),
-		);
-		if (expansionActionAvailableForActiveTab) {
+		for (const [index, action] of headerActions.entries()) {
+			if (!toolbarNodeHidden(toolbarTabsCount + index)) continue;
+			menu.addItem((item) =>
+				item
+					.setTitle(action.label)
+					.setIcon(action.icon)
+					.setDisabled(action.disabled === true)
+					.onClick(() => action.onClick(event)),
+			);
+		}
+		if (toolbarNodeHidden(toolbarViewIndex)) {
+			menu.addItem((item) =>
+				item
+					.setTitle(translate('filter.viewmode_btn'))
+					.setIcon('lucide-layout-list')
+					.onClick(() => openNativeViewMenu(event)),
+			);
+		}
+		if (toolbarNodeHidden(toolbarSortIndex)) {
+			menu.addItem((item) =>
+				item
+					.setTitle(translate('filter.sort_btn'))
+					.setIcon('lucide-arrow-up-down')
+					.onClick(() => openNativeSortMenu(event)),
+			);
+		}
+		if (toolbarNodeHidden(toolbarSearchIndex)) {
+			menu.addItem((item) =>
+				item
+					.setTitle(translate('explorer.btn.search'))
+					.setIcon('lucide-search')
+					.onClick(expandSearch),
+			);
+		}
+		if (toolbarNodeHidden(toolbarRevealIndex)) {
+			menu.addItem((item) =>
+				item
+					.setTitle(translate('filter.auto_reveal'))
+					.setIcon('lucide-gallery-vertical')
+					.onClick(() => fileList?.autoRevealActiveFile()),
+			);
+		}
+		if (
+			expansionActionAvailableForActiveTab &&
+			toolbarNodeHidden(toolbarExpansionIndex)
+		) {
 			menu.addItem((item) =>
 				item
 					.setTitle(expansionLabel)
 					.setIcon(expansionIcon)
 					.onClick(toggleExplorerExpansion),
 			);
+		}
+		if (
+			activeTab === 'files' &&
+			createActionsPlacement === 'toolbar' &&
+			toolbarNodeHidden(toolbarCreateIndex)
+		) {
+			menu.addItem((item) =>
+				item
+					.setTitle(translate('folder.ctx.new_note'))
+					.setIcon('lucide-file-plus')
+					.onClick(() => void fileList?.createFromSearch(0, filtersSearch)),
+			);
+		}
+		if (
+			activeTab === 'files' &&
+			createActionsPlacement === 'toolbar' &&
+			toolbarNodeHidden(toolbarCreateIndex + 1)
+		) {
+			menu.addItem((item) =>
+				item
+					.setTitle(translate('folder.ctx.new_folder'))
+					.setIcon('lucide-folder-plus')
+					.onClick(() => void fileList?.createFromSearch(1, filtersSearch)),
+			);
+		}
+		for (const [index, command] of commandActions.entries()) {
+			if (!toolbarNodeHidden(toolbarCommandIndex + index)) continue;
+			menu.addItem((item) => {
+				item
+					.setTitle(command.label)
+					.setIcon(command.icon ?? 'lucide-terminal')
+					.setDisabled(!command.available)
+					.onClick(() => onRunCommand?.(command.id));
+			});
 		}
 		menu.showAtMouseEvent(event);
 	}
@@ -1402,6 +1508,7 @@
 					class="vaultman-filters-actions"
 					class:nav-buttons-container={minimalStyle}
 					class:vaultman-filters-actions--scroll={toolbarScroll}
+					class:vaultman-filters-actions--wrap={toolbarWrap}
 				>
 					{#if minimalStyle && tabOptions.length > 0}
 						<div
@@ -1433,73 +1540,79 @@
 							{/if}
 						</div>
 					{/if}
-					{#each headerActions as action (action.id)}
-						<div
-							class={headerActionClass}
-							class:is-disabled={action.disabled}
-							role="button"
-							tabindex={action.disabled ? -1 : 0}
-							aria-label={action.label}
-							aria-disabled={action.disabled ? 'true' : undefined}
-							title={minimalStyle ? undefined : action.label}
-							onclick={(event: MouseEvent) => {
-								if (action.disabled) return;
-								action.onClick(event);
-							}}
-							onkeydown={(e: KeyboardEvent) => {
-								if (action.disabled) return;
-								if (e.key === 'Enter' || e.key === ' ') {
-									e.preventDefault();
-									action.onClick(
-										menuEventFromElement(e.currentTarget as HTMLElement),
-									);
-								}
-							}}
-							use:icon={action.icon}
-						></div>
+					{#each headerActions as action, actionIndex (action.id)}
+						{#if toolbarNodeVisible(toolbarTabsCount + actionIndex)}
+							<div
+								class={headerActionClass}
+								class:is-disabled={action.disabled}
+								role="button"
+								tabindex={action.disabled ? -1 : 0}
+								aria-label={action.label}
+								aria-disabled={action.disabled ? 'true' : undefined}
+								title={minimalStyle ? undefined : action.label}
+								onclick={(event: MouseEvent) => {
+									if (action.disabled) return;
+									action.onClick(event);
+								}}
+								onkeydown={(e: KeyboardEvent) => {
+									if (action.disabled) return;
+									if (e.key === 'Enter' || e.key === ' ') {
+										e.preventDefault();
+										action.onClick(
+											menuEventFromElement(e.currentTarget as HTMLElement),
+										);
+									}
+								}}
+								use:icon={action.icon}
+							></div>
+						{/if}
 					{/each}
 					{#if showExplorerControls}
-						<div
-							class={headerActionClass}
-							role="button"
-							tabindex="0"
-							aria-label={translate('filter.viewmode_btn')}
-							title={minimalStyle
-								? undefined
-								: translate('filter.viewmode_btn')}
-							onclick={(event: MouseEvent) => openViewModePopup(event)}
-							onkeydown={(e: KeyboardEvent) => {
-								if (e.key === 'Enter' || e.key === ' ') {
-									e.preventDefault();
-									openViewModePopup(
-										minimalStyle
-											? menuEventFromElement(e.currentTarget as HTMLElement)
-											: undefined,
-									);
-								}
-							}}
-							use:icon={'lucide-layout-list'}
-						></div>
-						<div
-							class={headerActionClass}
-							role="button"
-							tabindex="0"
-							aria-label={translate('filter.sort_btn')}
-							title={minimalStyle ? undefined : translate('filter.sort_btn')}
-							onclick={(event: MouseEvent) => openSortPopup(event)}
-							onkeydown={(e: KeyboardEvent) => {
-								if (e.key === 'Enter' || e.key === ' ') {
-									e.preventDefault();
-									openSortPopup(
-										minimalStyle
-											? menuEventFromElement(e.currentTarget as HTMLElement)
-											: undefined,
-									);
-								}
-							}}
-							use:icon={'lucide-arrow-up-down'}
-						></div>
-						{#if minimalStyle}
+						{#if toolbarNodeVisible(toolbarViewIndex)}
+							<div
+								class={headerActionClass}
+								role="button"
+								tabindex="0"
+								aria-label={translate('filter.viewmode_btn')}
+								title={minimalStyle
+									? undefined
+									: translate('filter.viewmode_btn')}
+								onclick={(event: MouseEvent) => openViewModePopup(event)}
+								onkeydown={(e: KeyboardEvent) => {
+									if (e.key === 'Enter' || e.key === ' ') {
+										e.preventDefault();
+										openViewModePopup(
+											minimalStyle
+												? menuEventFromElement(e.currentTarget as HTMLElement)
+												: undefined,
+										);
+									}
+								}}
+								use:icon={'lucide-layout-list'}
+							></div>
+						{/if}
+						{#if toolbarNodeVisible(toolbarSortIndex)}
+							<div
+								class={headerActionClass}
+								role="button"
+								tabindex="0"
+								aria-label={translate('filter.sort_btn')}
+								title={minimalStyle ? undefined : translate('filter.sort_btn')}
+								onclick={(event: MouseEvent) => openSortPopup(event)}
+								onkeydown={(e: KeyboardEvent) => {
+									if (e.key === 'Enter' || e.key === ' ') {
+										e.preventDefault();
+										openSortPopup(
+											minimalStyle
+												? menuEventFromElement(e.currentTarget as HTMLElement)
+												: undefined,
+										);
+									}
+								}}
+								use:icon={'lucide-arrow-up-down'}
+							></div>
+						{/if}
+						{#if minimalStyle && toolbarNodeVisible(toolbarSearchIndex)}
 							<div
 								class={headerActionClass}
 								class:is-active={searchExpanded || filtersSearch.length > 0}
@@ -1543,7 +1656,7 @@
 								use:icon={'lucide-search'}
 							></div>
 						{/if}
-						{#if activeTab === 'files' && !compactFilesTools}
+						{#if activeTab === 'files' && toolbarNodeVisible(toolbarRevealIndex)}
 							<div
 								class={headerActionClass}
 								role="button"
@@ -1562,24 +1675,7 @@
 								use:icon={'lucide-gallery-vertical'}
 							></div>
 						{/if}
-						{#if activeTab === 'files' && compactFilesTools}
-							<div
-								class={headerActionClass}
-								role="button"
-								tabindex="0"
-								aria-label={translate('filter.tools')}
-								onclick={(event: MouseEvent) => openToolsMenu(event)}
-								onkeydown={(e: KeyboardEvent) => {
-									if (e.key === 'Enter' || e.key === ' ') {
-										e.preventDefault();
-										openToolsMenu(
-											menuEventFromElement(e.currentTarget as HTMLElement),
-										);
-									}
-								}}
-								use:icon={'lucide-tool-case'}
-							></div>
-						{:else if expansionActionAvailableForActiveTab}
+						{#if expansionActionAvailableForActiveTab && toolbarNodeVisible(toolbarExpansionIndex)}
 							<div
 								class={headerActionClass}
 								role="button"
@@ -1598,72 +1694,96 @@
 						{/if}
 						{#if activeTab === 'files' && createActionsPlacement === 'toolbar'}
 							<!-- BT5-022: built-in Create File/Folder as toolbar nodes. -->
+							{#if toolbarNodeVisible(toolbarCreateIndex)}
+								<div
+									class={headerActionClass}
+									role="button"
+									tabindex="0"
+									aria-label={translate('folder.ctx.new_note')}
+									title={minimalStyle
+										? undefined
+										: translate('folder.ctx.new_note')}
+									onclick={() =>
+										void fileList?.createFromSearch(0, filtersSearch)}
+									onkeydown={(e: KeyboardEvent) => {
+										if (e.key === 'Enter' || e.key === ' ') {
+											e.preventDefault();
+											void fileList?.createFromSearch(0, filtersSearch);
+										}
+									}}
+									use:icon={'lucide-file-plus'}
+								></div>
+							{/if}
+							{#if toolbarNodeVisible(toolbarCreateIndex + 1)}
+								<div
+									class={headerActionClass}
+									role="button"
+									tabindex="0"
+									aria-label={translate('folder.ctx.new_folder')}
+									title={minimalStyle
+										? undefined
+										: translate('folder.ctx.new_folder')}
+									onclick={() =>
+										void fileList?.createFromSearch(1, filtersSearch)}
+									onkeydown={(e: KeyboardEvent) => {
+										if (e.key === 'Enter' || e.key === ' ') {
+											e.preventDefault();
+											void fileList?.createFromSearch(1, filtersSearch);
+										}
+									}}
+									use:icon={'lucide-folder-plus'}
+								></div>
+							{/if}
+						{/if}
+						{#each commandActions as command, commandIndex (command.id)}
+							{#if toolbarNodeVisible(toolbarCommandIndex + commandIndex)}
+								<!-- BT5-024: Obsidian commands projected as toolbar nodes. -->
+								<div
+									class={headerActionClass}
+									class:is-disabled={!command.available}
+									role="button"
+									tabindex="0"
+									aria-label={command.label}
+									title={command.available
+										? command.label
+										: translate('command.unavailable').replace(
+												'{id}',
+												command.id,
+											)}
+									onclick={() => {
+										if (command.available) onRunCommand?.(command.id);
+									}}
+									onkeydown={(e: KeyboardEvent) => {
+										if (
+											command.available &&
+											(e.key === 'Enter' || e.key === ' ')
+										) {
+											e.preventDefault();
+											onRunCommand?.(command.id);
+										}
+									}}
+									use:icon={command.icon ?? 'lucide-terminal'}
+								></div>
+							{/if}
+						{/each}
+						{#if compactFilesTools}
 							<div
 								class={headerActionClass}
 								role="button"
 								tabindex="0"
-								aria-label={translate('folder.ctx.new_note')}
-								title={minimalStyle
-									? undefined
-									: translate('folder.ctx.new_note')}
-								onclick={() =>
-									void fileList?.createFromSearch(0, filtersSearch)}
+								aria-label={translate('filter.tools')}
+								onclick={(event: MouseEvent) => openToolsMenu(event)}
 								onkeydown={(e: KeyboardEvent) => {
 									if (e.key === 'Enter' || e.key === ' ') {
 										e.preventDefault();
-										void fileList?.createFromSearch(0, filtersSearch);
+										openToolsMenu(
+											menuEventFromElement(e.currentTarget as HTMLElement),
+										);
 									}
 								}}
-								use:icon={'lucide-file-plus'}
-							></div>
-							<div
-								class={headerActionClass}
-								role="button"
-								tabindex="0"
-								aria-label={translate('folder.ctx.new_folder')}
-								title={minimalStyle
-									? undefined
-									: translate('folder.ctx.new_folder')}
-								onclick={() =>
-									void fileList?.createFromSearch(1, filtersSearch)}
-								onkeydown={(e: KeyboardEvent) => {
-									if (e.key === 'Enter' || e.key === ' ') {
-										e.preventDefault();
-										void fileList?.createFromSearch(1, filtersSearch);
-									}
-								}}
-								use:icon={'lucide-folder-plus'}
+								use:icon={'lucide-tool-case'}
 							></div>
 						{/if}
-						{#each commandActions as command (command.id)}
-							<!-- BT5-024: Obsidian commands projected as toolbar nodes. -->
-							<div
-								class={headerActionClass}
-								class:is-disabled={!command.available}
-								role="button"
-								tabindex="0"
-								aria-label={command.label}
-								title={command.available
-									? command.label
-									: translate('command.unavailable').replace(
-											'{id}',
-											command.id,
-										)}
-								onclick={() => {
-									if (command.available) onRunCommand?.(command.id);
-								}}
-								onkeydown={(e: KeyboardEvent) => {
-									if (
-										command.available &&
-										(e.key === 'Enter' || e.key === ' ')
-									) {
-										e.preventDefault();
-										onRunCommand?.(command.id);
-									}
-								}}
-								use:icon={command.icon ?? 'lucide-terminal'}
-							></div>
-						{/each}
 					{/if}
 				</div>
 			</div>

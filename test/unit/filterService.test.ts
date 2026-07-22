@@ -55,6 +55,32 @@ function makeApp(
 }
 
 describe('FilterService vault-wide Files filtering', () => {
+	it('reports inclusive and exclusive node state for props, values, and tags', () => {
+		const service = new FilterService(makeApp([], [], {}));
+		service.addNode({
+			type: 'rule',
+			filterType: 'has_property',
+			property: 'status',
+			values: [],
+		});
+		service.addNode({
+			type: 'rule',
+			filterType: 'not_specific_value',
+			property: 'priority',
+			values: ['low'],
+		});
+		service.addNode({
+			type: 'rule',
+			filterType: 'not_has_tag',
+			property: '',
+			values: ['#archive'],
+		});
+
+		expect(service.getFilterState('prop', 'status')).toBe('included');
+		expect(service.getFilterState('value', 'priority', 'low')).toBe('excluded');
+		expect(service.getFilterState('tag', '#archive')).toBe('excluded');
+		expect(service.getFilterState('prop', 'missing')).toBe('none');
+	});
 	it('keeps metadata filters markdown-scoped while Files can filter non-markdown extensions', () => {
 		const md = makeFile('Data/Projects.md');
 		const base = makeFile('Data/Projects.base');
@@ -135,7 +161,7 @@ describe('FilterService vault-wide Files filtering', () => {
 		expect(
 			service.getFlatRules().map((rule) => [rule.rule, rule.label]),
 		).toEqual([
-			['Has property', 'Birthday'],
+			['Has prop', 'Birthday'],
 			['Has tag', '#person'],
 		]);
 	});
@@ -204,8 +230,8 @@ describe('FilterService vault-wide Files filtering', () => {
 		expect(
 			service.getFlatRules().map((rule) => [rule.rule, rule.label]),
 		).toEqual([
-			['Has property', 'Birthday'],
-			['Content contains', 'birthday'],
+			['Has prop', 'Birthday'],
+			['Has text', 'birthday'],
 		]);
 	});
 
@@ -271,7 +297,7 @@ describe('FilterService vault-wide Files filtering', () => {
 			service.getFlatRules().map((rule) => [rule.rule, rule.label]),
 		).toEqual([
 			['project', 'alpha'],
-			['Content contains', 'newes'],
+			['Has text', 'newes'],
 		]);
 
 		service.setContentSearchRule('newes', [note]);
@@ -309,8 +335,8 @@ describe('FilterService vault-wide Files filtering', () => {
 				.filteredVaultFilesForFolderScopes(activeFolders)
 				.map((file) => file.path),
 		).toEqual(['Areas/Home/list.md', 'Areas/Work/todo.md']);
-		expect(
-			service.filteredVaultFiles.map((file) => file.path),
-		).not.toContain('Archive/old.md');
+		expect(service.filteredVaultFiles.map((file) => file.path)).not.toContain(
+			'Archive/old.md',
+		);
 	});
 });

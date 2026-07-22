@@ -1,4 +1,4 @@
-import { ItemView, type WorkspaceLeaf } from 'obsidian';
+import { ItemView, type ViewStateResult, type WorkspaceLeaf } from 'obsidian';
 import type { VaultmanPlugin } from './main';
 import { mount, unmount } from 'svelte';
 import VaultmanFrameSvelte from './VaultmanFrame.svelte';
@@ -11,6 +11,7 @@ type VaultmanFrameSvelteApi = ReturnType<typeof mount> & {
 	focusContentSearch?(): Promise<void> | void;
 	focusActiveExplorerSearch?(): Promise<void> | void;
 	refreshActiveExplorerViewport?(): boolean | void;
+	setShowToolbar?(value: boolean): void;
 };
 
 /**
@@ -21,6 +22,7 @@ export class VaultmanFrame extends ItemView {
 	private svelteApp: VaultmanFrameSvelteApi | null = null;
 	private viewportRefreshFrame: number | null = null;
 	private viewportRefreshWindow: Window | null = null;
+	private _showToolbar: boolean | null = null;
 
 	constructor(leaf: WorkspaceLeaf, plugin: VaultmanPlugin) {
 		super(leaf);
@@ -34,9 +36,32 @@ export class VaultmanFrame extends ItemView {
 		);
 	}
 
-	getViewType(): string { return VAULTMAN_FRAME_TYPE; }
-	getDisplayText(): string { return translate('plugin.frame_name'); }
-	getIcon(): string { return 'lucide-vault'; }
+	getViewType(): string {
+		return VAULTMAN_FRAME_TYPE;
+	}
+	getDisplayText(): string {
+		return translate('plugin.frame_name');
+	}
+	getIcon(): string {
+		return 'lucide-vault';
+	}
+
+	getState(): Record<string, unknown> {
+		return { showToolbar: this._showToolbar };
+	}
+
+	async setState(state: unknown, result: ViewStateResult): Promise<void> {
+		if (
+			typeof state === 'object' &&
+			state !== null &&
+			'showToolbar' in state &&
+			typeof state.showToolbar === 'boolean'
+		) {
+			this._showToolbar = state.showToolbar;
+			this.svelteApp?.setShowToolbar?.(state.showToolbar);
+		}
+		return super.setState(state, result);
+	}
 
 	async onOpen(): Promise<void> {
 		const { contentEl } = this;
@@ -45,7 +70,14 @@ export class VaultmanFrame extends ItemView {
 
 		this.svelteApp = mount(VaultmanFrameSvelte, {
 			target: contentEl,
-			props: { plugin: this.plugin },
+			props: {
+				plugin: this.plugin,
+				initialShowToolbar: this._showToolbar,
+				onShowToolbarChange: (val: boolean) => {
+					this._showToolbar = val;
+					this.app.workspace.requestSaveLayout();
+				},
+			},
 		}) as VaultmanFrameSvelteApi;
 		this.scheduleViewportRefresh();
 	}

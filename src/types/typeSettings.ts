@@ -77,7 +77,7 @@ export interface VaultmanSettings {
 	/** Show column separators in .base table */
 	basesShowColumnSeparators: boolean;
 	/** What to open when the ribbon icon is clicked: sidebar only, main view only, or both */
-	openMode: 'sidebar' | 'main' | 'both';
+	openMode: 'sidebar' | 'main' | 'new_instance' | 'both';
 	/** Order of pages in the sidebar bottom nav (page IDs: 'filters', 'statistics') */
 	pageOrder: string[];
 	/** Glassmorphism blur intensity for bottom bar and popups (0–100, maps to 0–20px) */
@@ -114,6 +114,8 @@ export interface VaultmanSettings {
 	tocPosition: 'right' | 'left' | 'top' | 'bottom';
 	/** Reserve a lane between vertical explorer content and its scrollbar */
 	tocReservedLane: boolean;
+	/** Hide only the active explorer's scrollbar while its floating index is visible. */
+	tocHideExplorerScrollbar: boolean;
 	/** Glyph mode: first letter or full name */
 	tocGlyphMode: 'letter' | 'name';
 	/** Name cell visibility while scrubbing: off / selected / scrub / always */
@@ -283,6 +285,7 @@ export const DEFAULT_SETTINGS: VaultmanSettings = {
 	floatingTocPlainStyle: false,
 	tocPosition: 'right',
 	tocReservedLane: false,
+	tocHideExplorerScrollbar: false,
 	tocGlyphMode: 'letter',
 	tocLabelMode: 'scrub',
 	tocReveal: 'all',

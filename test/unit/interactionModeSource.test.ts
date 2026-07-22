@@ -80,8 +80,7 @@ describe('BT3 native menu and interaction-mode source guards', () => {
 	});
 
 	it('adds synchronized labels for the native submenu', () => {
-		// Renamed to View Compositions (dev request 2026-07-20).
-		expect(en['viewmenu.layouts']).toBe('View Compositions');
+		expect(en['viewmenu.layouts']).toBe('Layout');
 		expect(es['viewmenu.layouts']).toBe('Composiciones de vista');
 		expect(en['viewmenu.in_mode']).toBe('In mode');
 		expect(es['viewmenu.in_mode']).toBe('En modo');

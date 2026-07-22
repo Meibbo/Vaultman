@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 
 import propsSource from '../../src/components/containers/explorerProps.ts?raw';
 import tagsSource from '../../src/components/containers/explorerTags.ts?raw';
+import filesSource from '../../src/components/containers/explorerFiles.ts?raw';
 
 describe('Iconic Props/Tags context-menu parity source guards', () => {
 	it('registers only callable Iconic picker actions for root property and tag nodes', () => {
@@ -12,6 +13,14 @@ describe('Iconic Props/Tags context-menu parity source guards', () => {
 		expect(tagsSource).toContain("id: 'tag.iconic-change'");
 		expect(tagsSource).toContain('canChangeTagIcon()');
 		expect(tagsSource).toContain('openTagIconPicker(meta.tagPath, ctx.event)');
+	});
+
+	it('keeps the Vaultman fallback available for file and folder nodes', () => {
+		expect(filesSource).toContain("nodeTypes: ['file', 'folder']");
+		expect(filesSource).toContain('canChangeFileIcon()');
+		expect(filesSource).toContain(
+			'meta.file?.path ?? meta.folder?.path ?? meta.folderPath',
+		);
 	});
 
 	it('subscribes both panels to Iconic runtime changes with cleanup and coalescing (BT4-002)', () => {

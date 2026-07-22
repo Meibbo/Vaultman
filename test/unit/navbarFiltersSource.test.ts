@@ -128,18 +128,16 @@ describe('minimal filters header source guards', () => {
 		expect(navbarFiltersSource).not.toContain('childLevel');
 	});
 
-	it('condenses only the minimal Files toolbar to tabs, view, sort, search, tools', () => {
+	it('condenses the ordered Files action suffix into Tools progressively', () => {
 		expect(navbarFiltersSource).toContain('toolbarToolsMenu = false');
 		expect(navbarFiltersSource).toContain('frameWidth = 0');
-		expect(navbarFiltersSource).toContain('shouldCondenseFilesToolbar({');
+		expect(navbarFiltersSource).toContain('condensedToolbarHiddenCount({');
 		expect(navbarFiltersSource).toContain('manual: toolbarToolsMenu');
+		expect(navbarFiltersSource).toContain('toolbarNodeVisible(');
+		expect(navbarFiltersSource).toContain('toolbarNodeHidden(');
 		expect(navbarFiltersSource).toContain(
-			'const compactFilesTools = $derived(',
+			'const compactFilesTools = $derived(autoCondensedHiddenCount > 0)',
 		);
-		expect(navbarFiltersSource).toContain(
-			"activeTab === 'files' && !compactFilesTools",
-		);
-		expect(navbarFiltersSource).toContain('!compactFilesTools');
 
 		const actionsSource = navbarFiltersSource.slice(
 			navbarFiltersSource.indexOf('class="vaultman-filters-actions"'),

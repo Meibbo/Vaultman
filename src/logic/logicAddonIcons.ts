@@ -11,7 +11,7 @@
  * supplies the persisted blob and the icon-existence probe.
  */
 
-export type AddonIconKind = 'plugin' | 'snippet';
+export type AddonIconKind = 'plugin' | 'snippet' | 'file' | 'property' | 'tag';
 
 export interface AddonIconValue {
 	icon?: string;
@@ -31,7 +31,13 @@ export interface ResolvedAddonIcon {
 /** Persisted shape: canonical key -> override. */
 export type AddonIconOverrides = Record<string, AddonIconOverride>;
 
-const KINDS: readonly AddonIconKind[] = ['plugin', 'snippet'];
+const KINDS: readonly AddonIconKind[] = [
+	'plugin',
+	'snippet',
+	'file',
+	'property',
+	'tag',
+];
 
 /**
  * Stable identity per kind.

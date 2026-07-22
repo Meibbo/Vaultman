@@ -4,7 +4,13 @@ import { translate } from '../i18n/index';
 import { ConfirmModal } from '../modals/modalConfirm';
 import { setCommunityPluginEnabled } from '../utils/obsidianAddons';
 import { openAddonIconPicker } from '../modals/modalAddonIconPicker';
-import { readAddonIconOverrides, getAddonIconOverride, setAddonIconOverride, clearAddonIconOverride, writeAddonIconOverrides } from './logicAddonIcons';
+import {
+	clearAddonIconOverride,
+	getAddonIconOverride,
+	readAddonIconOverrides,
+	setAddonIconOverride,
+	writeAddonIconOverrides,
+} from './logicAddonIcons';
 import type { PluginMeta } from '../types/typeTree';
 import type { App } from 'obsidian';
 
@@ -31,33 +37,51 @@ export function registerPluginActions(plugin: VaultmanPlugin): void {
 			const meta = ctx.node?.meta as PluginMeta | undefined;
 			if (!meta || !meta.pluginId) return;
 			const overrides = readAddonIconOverrides(plugin.settings);
+			const current = getAddonIconOverride(
+				overrides,
+				'plugin',
+				meta.pluginId,
+			);
+			if (
+				plugin.iconicService?.openPluginIconPicker(
+					meta.pluginId,
+					ctx.event,
+					current,
+					(icon, color) => {
+						writeAddonIconOverrides(
+							plugin.settings,
+							icon
+								? setAddonIconOverride(overrides, 'plugin', meta.pluginId, {
+										icon,
+										...(color ? { color } : {}),
+									})
+								: clearAddonIconOverride(overrides, 'plugin', meta.pluginId),
+						);
+						void plugin.saveSettings();
+					},
+				)
+			) return;
 			openAddonIconPicker({
 				app: plugin.app,
 				name: meta.name,
-				hasOverride: getAddonIconOverride(overrides, 'plugin', meta.pluginId) !== null,
+				hasOverride:
+					getAddonIconOverride(overrides, 'plugin', meta.pluginId) !== null,
 				onPick: async (icon) => {
-					writeAddonIconOverrides(plugin.settings, setAddonIconOverride(overrides, 'plugin', meta.pluginId, { icon }));
+					writeAddonIconOverrides(
+						plugin.settings,
+						setAddonIconOverride(overrides, 'plugin', meta.pluginId, { icon }),
+					);
 					await plugin.saveSettings();
 				},
 				onReset: async () => {
-					writeAddonIconOverrides(plugin.settings, clearAddonIconOverride(overrides, 'plugin', meta.pluginId));
+					writeAddonIconOverrides(
+						plugin.settings,
+						clearAddonIconOverride(overrides, 'plugin', meta.pluginId),
+					);
 					await plugin.saveSettings();
 				},
 			});
 		},
-	});
-
-	svc.registerAction({
-		id: 'plugin.self_protected',
-		nodeTypes: ['plugin'],
-		surfaces: ['panel'],
-		label: () => translate('addons.plugins.self_protected'),
-		icon: 'lucide-shield',
-		when: (ctx: MenuCtx) => {
-			const meta = ctx.node?.meta as PluginMeta | undefined;
-			return !!meta?.isVaultman;
-		},
-		run: () => {},
 	});
 
 	svc.registerAction({
@@ -72,7 +96,7 @@ export function registerPluginActions(plugin: VaultmanPlugin): void {
 		icon: 'lucide-power',
 		when: (ctx: MenuCtx) => {
 			const meta = ctx.node?.meta as PluginMeta | undefined;
-			return !!meta?.pluginId && !meta.isVaultman;
+			return !!meta?.pluginId;
 		},
 		run: async (ctx: MenuCtx) => {
 			const meta = ctx.node?.meta as PluginMeta | undefined;

@@ -354,9 +354,10 @@ export class FilesGridView {
 		const wordCount = showWords
 			? (this.callbacks.getWordCount?.(file) ?? null)
 			: null;
-		const resolvedIcon = this.visibleCells.has('icon')
-			? this.resolvedIconForFile(file)
-			: null;
+		const resolvedIcon =
+			this.visibleCells.has('icon') || this.visibleCells.has('name')
+				? this.resolvedIconForFile(file)
+				: null;
 		const signature = [
 			file.path,
 			file.name,
@@ -430,10 +431,11 @@ export class FilesGridView {
 			renderIconValue(iconEl, resolvedIcon.icon, resolvedIcon.color);
 		}
 		if (this.visibleCells.has('name')) {
-			card.createDiv({
+			const name = card.createDiv({
 				cls: 'vaultman-files-grid-card-name',
 				text: formatFileTableName(file),
 			});
+			if (resolvedIcon?.color) name.style.color = resolvedIcon.color;
 		}
 		if (this.hasMetaCells) {
 			const metaRow = card.createDiv({ cls: 'vaultman-files-grid-card-meta' });

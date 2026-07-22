@@ -128,6 +128,13 @@ function matchesFile(
 			return matchValue(val, target);
 		}
 
+		case 'not_specific_value': {
+			if (!(rule.property in fm)) return true;
+			const val: unknown = fm[rule.property];
+			const target = rule.values[0] ?? '';
+			return !matchValue(val, target);
+		}
+
 		case 'multiple_values': {
 			if (!(rule.property in fm)) return false;
 			const val: unknown = fm[rule.property];
@@ -176,6 +183,13 @@ function matchesFile(
 			if (!tagTarget) return false;
 			const allTags = getAllTags(meta ?? {}) ?? [];
 			return allTags.some((tag) => tagMatchesFilter(tag, tagTarget));
+		}
+
+		case 'not_has_tag': {
+			const tagTarget = normalizeTagName(rule.values[0] ?? '');
+			if (!tagTarget) return true;
+			const allTags = getAllTags(meta ?? {}) ?? [];
+			return !allTags.some((tag) => tagMatchesFilter(tag, tagTarget));
 		}
 
 		default:
