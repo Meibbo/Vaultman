@@ -690,7 +690,6 @@ export const es: Record<string, string> = {
 	'addons.plugins.unavailable':
 		'Los controles de plugins no están disponibles en esta versión de Obsidian',
 	'addons.plugins.failed': 'No se pudo actualizar el plugin',
-	'addons.plugins.self_protected': 'Vaultman no puede desactivarse a sí mismo',
 	'addons.open_settings': 'Abrir settings del plugin',
 	'addons.installed': 'Instalado',
 	'addons.updated': 'Actualizado',

@@ -32,11 +32,10 @@ describe('Snippets and Plugins explorer tabs source guards', () => {
 		expect(navbarTabsSource).toContain("'plugins'");
 	});
 
-	it('exposes safe toggle actions without allowing Vaultman to disable itself', () => {
+	it('exposes safe toggle actions while allowing Vaultman to disable itself', () => {
 		expect(snippetsPanelSource).toContain('setCssSnippetEnabled');
-		expect(pluginsPanelSource).toContain('setCommunityPluginEnabled');
-		expect(pluginsPanelSource).toContain('meta.isVaultman');
-		expect(pluginsPanelSource).toContain('addons.plugins.self_protected');
+		expect(pluginsPanelSource).toContain('toggleCommunityPlugin');
+		expect(pluginsPanelSource).not.toContain('addons.plugins.self_protected');
 		expect(menuTypesSource).toContain("| 'snippet'");
 		expect(menuTypesSource).toContain("| 'plugin'");
 	});

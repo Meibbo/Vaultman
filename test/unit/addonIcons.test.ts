@@ -467,10 +467,9 @@ describe('BT5-019 panel wiring guards', () => {
 	it('plugins: allows Vaultman to disable itself but never uninstall itself', () => {
 		expect(pluginsLogicSource).not.toContain('self_protected');
 		expect(pluginsLogicSource).toContain("id: 'plugin.toggle'");
-		expect(pluginsLogicSource).toContain('return !!meta?.pluginId;');
-		expect(pluginsLogicSource).toContain(
-			'return !!meta?.pluginId && !meta.isVaultman;',
-		);
+		expect(pluginsLogicSource).toContain('canToggleCommunityPlugin(meta)');
+		expect(pluginsLogicSource).toContain('canUninstallCommunityPlugin(meta)');
+		expect(pluginsLogicSource).toContain('toggleCommunityPlugin(plugin.app, meta)');
 		expect(pluginsLogicSource).toContain('addon.icon.change');
 	});
 });

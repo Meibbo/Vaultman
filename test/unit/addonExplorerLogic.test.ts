@@ -1,10 +1,15 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 
 import {
 	buildAddonHoverInfo,
 	filterAddonEntries,
 	sortAddonEntries,
 } from '../../src/logic/logicAddonExplorer';
+import {
+	canToggleCommunityPlugin,
+	canUninstallCommunityPlugin,
+	toggleCommunityPlugin,
+} from '../../src/logic/logicAddonCells';
 
 const entries = [
 	{ name: 'Zeta', enabled: false, installedTime: 10, updatedTime: 40 },
@@ -13,6 +18,26 @@ const entries = [
 ];
 
 describe('add-on explorer pure projection', () => {
+	it('allows Vaultman to self-disable but never to uninstall itself', async () => {
+		const disablePluginAndSave = vi.fn(async () => {});
+		const app = { plugins: { disablePluginAndSave } };
+		const vaultman = {
+			pluginId: 'vaultman',
+			name: 'Vaultman',
+			enabled: true,
+			loaded: true,
+			isVaultman: true,
+		};
+
+		expect(canToggleCommunityPlugin(vaultman)).toBe(true);
+		expect(canUninstallCommunityPlugin(vaultman)).toBe(false);
+		await expect(toggleCommunityPlugin(app as never, vaultman)).resolves.toBe(
+			true,
+		);
+		expect(disablePluginAndSave).toHaveBeenCalledTimes(1);
+		expect(disablePluginAndSave).toHaveBeenCalledWith('vaultman');
+	});
+
 	it('sorts name and optional installed/updated timestamps deterministically', () => {
 		expect(
 			sortAddonEntries(entries, { sortBy: 'name', direction: 'asc' }).map(

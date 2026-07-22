@@ -1,5 +1,7 @@
 import type { App } from 'obsidian';
 import type { AddonCellStyle } from '../types/typeSettings';
+import type { PluginMeta } from '../types/typeTree';
+import { setCommunityPluginEnabled } from '../utils/obsidianAddons';
 
 interface RuntimePluginSettingTab {
 	id?: string;
@@ -24,6 +26,22 @@ function runtimeSettings(app: App): RuntimeSettingManager | undefined {
 
 export function normalizeAddonCellStyle(value: unknown): AddonCellStyle {
 	return value === 'badge' ? 'badge' : 'native';
+}
+
+export function canToggleCommunityPlugin(meta: PluginMeta): boolean {
+	return meta.pluginId.length > 0;
+}
+
+export function canUninstallCommunityPlugin(meta: PluginMeta): boolean {
+	return canToggleCommunityPlugin(meta) && !meta.isVaultman;
+}
+
+export async function toggleCommunityPlugin(
+	app: App,
+	meta: PluginMeta,
+): Promise<boolean> {
+	if (!canToggleCommunityPlugin(meta)) return false;
+	return setCommunityPluginEnabled(app, meta.pluginId, !meta.enabled);
 }
 
 export function pluginSettingTabIds(app: App): Set<string> {

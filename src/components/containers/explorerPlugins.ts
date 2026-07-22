@@ -10,7 +10,6 @@ import {
 	communityPluginStateSignature,
 	listCommunityPluginEntries,
 	pluginRibbonItem,
-	setCommunityPluginEnabled,
 } from '../../utils/obsidianAddons';
 import {
 	getAddonIconOverride,
@@ -35,6 +34,7 @@ import {
 	normalizeAddonCellStyle,
 	openPluginSettings,
 	pluginSettingTabIds,
+	toggleCommunityPlugin,
 } from '../../logic/logicAddonCells';
 
 export class PluginsExplorerPanel
@@ -347,30 +347,24 @@ export class PluginsExplorerPanel
 	}
 
 	private async toggle(meta: PluginMeta): Promise<void> {
-		if (meta.isVaultman) {
-			new Notice(translate('addons.plugins.self_protected'));
-			return;
-		}
 		if (this.pendingToggleIds.has(meta.pluginId)) return;
 		this.pendingToggleIds.add(meta.pluginId);
 		this.rebuildNodes();
+		let callerWillUnload = false;
 		try {
-			const changed = await setCommunityPluginEnabled(
-				this.plugin.app,
-				meta.pluginId,
-				!meta.enabled,
-			);
+			const changed = await toggleCommunityPlugin(this.plugin.app, meta);
 			if (!changed) {
 				new Notice(translate('addons.plugins.unavailable'));
 				return;
 			}
-			await this.refresh();
+			callerWillUnload = meta.isVaultman && meta.enabled;
+			if (!callerWillUnload && !this.destroyed) await this.refresh();
 		} catch (error) {
 			new Notice(translate('addons.plugins.failed'));
 			console.error('Vaultman community plugin toggle failed', error);
 		} finally {
 			this.pendingToggleIds.delete(meta.pluginId);
-			if (!this.destroyed) this.rebuildNodes();
+			if (!callerWillUnload && !this.destroyed) this.rebuildNodes();
 		}
 	}
 }

@@ -728,7 +728,6 @@ export const en: Record<string, string> = {
 	'addons.plugins.unavailable':
 		'Community plugin controls are unavailable in this Obsidian version',
 	'addons.plugins.failed': 'Could not update the community plugin',
-	'addons.plugins.self_protected': 'Vaultman cannot disable itself',
 	'addons.open_settings': 'Open plugin settings',
 	'addons.installed': 'Installed',
 	'addons.updated': 'Updated',

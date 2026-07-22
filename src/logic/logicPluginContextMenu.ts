@@ -2,7 +2,6 @@ import type VaultmanPlugin from '../main';
 import type { MenuCtx } from '../types/typeCMenu';
 import { translate } from '../i18n/index';
 import { ConfirmModal } from '../modals/modalConfirm';
-import { setCommunityPluginEnabled } from '../utils/obsidianAddons';
 import { openAddonIconPicker } from '../modals/modalAddonIconPicker';
 import {
 	clearAddonIconOverride,
@@ -11,6 +10,11 @@ import {
 	setAddonIconOverride,
 	writeAddonIconOverrides,
 } from './logicAddonIcons';
+import {
+	canToggleCommunityPlugin,
+	canUninstallCommunityPlugin,
+	toggleCommunityPlugin,
+} from './logicAddonCells';
 import type { PluginMeta } from '../types/typeTree';
 import type { App } from 'obsidian';
 
@@ -96,12 +100,12 @@ export function registerPluginActions(plugin: VaultmanPlugin): void {
 		icon: 'lucide-power',
 		when: (ctx: MenuCtx) => {
 			const meta = ctx.node?.meta as PluginMeta | undefined;
-			return !!meta?.pluginId;
+			return meta ? canToggleCommunityPlugin(meta) : false;
 		},
 		run: async (ctx: MenuCtx) => {
 			const meta = ctx.node?.meta as PluginMeta | undefined;
-			if (!meta || !meta.pluginId) return;
-			await setCommunityPluginEnabled(plugin.app, meta.pluginId, !meta.enabled);
+			if (!meta) return;
+			await toggleCommunityPlugin(plugin.app, meta);
 		},
 	});
 
@@ -113,11 +117,11 @@ export function registerPluginActions(plugin: VaultmanPlugin): void {
 		icon: 'lucide-trash-2',
 		when: (ctx: MenuCtx) => {
 			const meta = ctx.node?.meta as PluginMeta | undefined;
-			return !!meta?.pluginId && !meta.isVaultman;
+			return meta ? canUninstallCommunityPlugin(meta) : false;
 		},
 		run: (ctx: MenuCtx) => {
 			const meta = ctx.node?.meta as PluginMeta | undefined;
-			if (!meta || !meta.pluginId) return;
+			if (!meta || !canUninstallCommunityPlugin(meta)) return;
 			const app = plugin.app as InternalApp;
 
 			new ConfirmModal(plugin.app, {
