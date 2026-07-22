@@ -17,6 +17,11 @@ tags:
 
 # BT5 — next 1.2 release train
 
+> **Final stable corrective batch (approved 2026-07-22):**
+> [[docs/work/polish/issues/bt5-final-stable-audit/index|BT5-043…060]]. This
+> issue-set audits and corrects incomplete outcomes from the implementation at
+> `b56b9a78`; existing BT5 records remain as historical provenance.
+
 `BT5` es el identificador estable del tren de trabajo posterior a `1.2.0-beta.4`.
 El artefacto final sigue abierto entre `1.2.0-beta.5` y `1.2.0` stable; cambiar el
 canal no renumera estos issues. Por el volumen de cambios de persistencia, lifecycle

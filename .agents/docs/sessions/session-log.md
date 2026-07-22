@@ -2086,3 +2086,127 @@ broader "append-only status writes" is parked as **S-12** in
   nativa de settings). Shard 12.
 - Restante código AFK: **035, 039, 041**. 033-core grill-gated. Sigo con 035 si hay
   contexto; si no, checkpoint limpio.
+
+## 2026-07-22 — codex-gpt5-root · review/update · auditoría forense de prompts pre-release
+
+- Worktree auditado: `C:/tmp/vaultman-release-beta2-final2`, rama
+  `codex/bt5-next-10`, HEAD `b56b9a78`; producto no modificado por este agente.
+- El usuario reentregó los tres prompts originales después de detectar que los
+  descubrimientos aún no estaban persistidos. Se capturaron **literalmente**, junto
+  con auditoría, evidencia, mapping de issues, diseño, adversarial pass y próximos
+  pasos en [[2026-07-22-codex-gpt5-root|shard de sesión]].
+- Gate actual objetivamente rojo: dirty ajeno en
+  `src/logic/logicResponsiveLayout.ts` elimina `scroll`; `pnpm run check` falla y
+  suite focal da 101 tests / 1 fallo (`toolbarUsesHorizontalScroll`).
+- `b56b9a78` mezcla 47 archivos (~+1897/-540) sin plan/items y deja regresiones en
+  Iconic, i18n filters, toolbar overflow y property-value parity; otros requisitos
+  están correctos o parciales. Se reconciliaron BT5-019/021/025/035/039 y los
+  completions sin issue file BT5-037/038.
+- Estado de pausa: diseño recomendado por 12 vertical slices y adversarial pass
+  listos; pendiente aprobación del dev antes de publicar/editar issues o tocar
+  producto. Task room `task_050`.
+
+## 2026-07-22 (cont.) — codex-gpt5-root · correcciones composicionales del dev
+
+- El dev corrigió la primera auditoría antes de aprobarla. Mensaje literal, deltas,
+  evidencia de fuente y nueva propuesta preservados en
+  [[2026-07-22-codex-gpt5-root|shard de sesión]].
+- Confirmado: `explorerPlugins.toggle()` sigue bloqueando self-disable y contradice
+  `plugin.toggle`; hide-scrollbar reutiliza Reserve lane y crea doble gutter; helpers
+  de remove sólo borran filtros inclusivos; CSS Tree exclusive usa una clase antigua;
+  la cell `format` no existe.
+- Requisito Text no estaba en los tres prompts entregados ni en un issue literal:
+  mover Has/Hasn't text del body al toolbar del provider entre Pause/Resume y Sort.
+- El toolbar duplicado ya estaba diagnosticado en research 2026-05-17; la propuesta
+  ahora exige host universal + providers + overflow compartido.
+- Efecto: desglose provisional pasa de 12 a **16 slices finos**. Glyph folders se
+  limita a Tree; top-edge usa beta.5 + último commit como oráculos. Pendiente que el
+  dev valide granularidad/dependencias; sin issues publicados ni producto editado.
+
+## 2026-07-22 (cont. 2) — codex-gpt5-root · action_cells y rename modal
+
+- El dev aclaró que Navbar es un `panelWidget`; Wikilink ya funciona, pero
+  checkbox/date/datetime requieren contrato observado en web-lab y edición interactiva.
+- Checkbox y date/datetime se modelan como `action_cells`: selección/commit produce
+  `PropertyChange` vía queue/bypass, proyección optimista y `badge_rename`; Daily Note es
+  navegación separada. El pase adversarial añadió replace/cancel del intent pendiente para
+  evitar conflictos y doble write.
+- Regresión rename confirmada: `e0945039` creó `content.rename` usando
+  `promptForFileRename`, saltándose `FileRenameModal`, queue y badge. El oráculo bueno es
+  la ruta `file.rename`/`FileRenameModal` existente desde al menos `2793c899`.
+- Caller audit: Files/Bases usan modal rico + queue; Content usa prompt nativo; Snippets
+  usa modal rico pero ejecuta `adapter.rename` directo; folder/prop/value usan el genérico
+  `showInputModal` y requieren clasificación, no reemplazo mecánico.
+- Desglose consolidado: **18 slices provisionales**; detalle completo y prompts literales
+  en [[2026-07-22-codex-gpt5-root|shard de sesión]]. Sin producto ni issues publicados;
+  pendiente aprobación del dev.
+
+## 2026-07-22 (cont. 3) — codex-gpt5-root · implementation checkpoint BT5-060
+
+- Publicado y validado el plan shardeado en
+  [[../work/polish/plans/2026-07-22-bt5-final-stable-audit/index|BT5 final stable plan]].
+- Implementado `BT5-060` en commit product-only `45c86373`: Content vuelve al modal rico y
+  queue; target individual usa basename literal; Snippet rename se ejecuta sólo por queue;
+  Content/Snippets proyectan badge cancelable.
+- Evidencia: focal 45/45; full unit 932/933. Único rojo = baseline overflow previamente
+  atribuido al diff no committeado de `logicResponsiveLayout.ts`. Issue sigue in-progress
+  hasta smoke visual/HITL. Detalle completo en el shard de sesión.
+
+## 2026-07-22 (cont. 4) — codex-gpt5-root · implementation checkpoint BT5-049
+
+- Product commit `1c689ef1`: `fix(plugins): allow Vaultman self-disable`.
+- Replaced the stale state-cell self-protection with one shared lifecycle policy/operation used
+  by Plugins cell and context menu; Vaultman remains uninstall-protected in visibility and run.
+- Successful self-disable performs no UI work after the manager call, tolerating immediate
+  plugin teardown; unsuccessful paths still clear pending state.
+- Automated gates: 82/82 focused tests plus ESLint/format/diff green. Type-check contains only
+  the three known toolbar-overflow baseline diagnostics from preserved foreign worktree dirt.
+- [[../work/polish/issues/bt5-final-stable-audit/049-vaultman-self-disable-toggle|BT5-049]]
+  remains `in-progress` pending controlled disable/manual re-enable HITL.
+
+## 2026-07-22 (cont. 5) — codex-gpt5-root · completed BT5-050
+
+- Product commit `70d36f56`: canonical localized Snippet Reveal with the actual intercepted
+  Files icon (`lucide-arrow-up-right`), platform capability gate, and custom-config path.
+- Saved `snippet.see-details` layouts migrate to `snippet.reveal` preserving order/visibility;
+  Open in default app stays separate.
+- Verification: dedicated 3/3 and related 86/86 tests plus ESLint/diff green. Global type-check
+  is unchanged at the three preserved toolbar-overflow baseline diagnostics.
+- [[../work/polish/issues/bt5-final-stable-audit/050-snippet-reveal-canonical-action|BT5-050]]
+  is completed AFK and retained in the final integrated smoke matrix.
+
+## 2026-07-22 (cont. 6) — codex-gpt5-root · implementation checkpoint BT5-051
+
+- Product commit `3fb23d17`: Hide scrollbar and explicit Reserve now project independent
+  gutter/rail-offset state; Hide produces exactly one footprint and never shifts the rail.
+- Added measured desktop/mobile plain/pill footprints plus a shared 2/4 px rail edge that also
+  repairs mobile left/right cascade precedence.
+- Verification: pure 7/7, related 49/49, Stylelint/Svelte format/diff and official autofixer
+  green. Global Svelte check is unchanged except for five known foreign overflow diagnostics.
+- [[../work/polish/issues/bt5-final-stable-audit/051-hide-scrollbar-single-footprint|BT5-051]]
+  remains `in-progress` for recorded live DOM geometry smoke.
+
+## 2026-07-22 (cont. 7) — codex-gpt5-root · completed BT5-052
+
+- Product commit `a9c8fdc9`: restored missing `filter.file_name = Has name`, the raw-key source
+  left by `b56b9a78`, and aligned Spanish polarity copy to the concise `Con/Sin` catalog.
+- Filter ids and serialization did not change. New tests lock ten bilingual keys and their Add
+  Filter/Text consumers; related 15/15 plus ESLint/diff green.
+- [[../work/polish/issues/bt5-final-stable-audit/052-filter-i18n-copy-restore|BT5-052]]
+  is completed AFK.
+
+## 2026-07-22 (cont. 8) — codex-gpt5-root · implementation checkpoint BT5-053
+
+- Product commit `cde64206`: filter polarity now has one deferred gesture coordinator and one
+  atomic service mutation route shared by Props/Tags clicks and context menus.
+- Single click writes inclusive after 250 ms; fast double-click writes only exclusive; slow
+  second click and the next click on either polarity remove normally. Timers are teardown-safe,
+  keys survive repaints, and short removal tombstones are bounded.
+- Negative filters now remove correctly, invalidate on metadata changes, and render through
+  current Tree/Table/Cards classes. Tree gained Enter/Space activation; dead
+  `.vm-tree-row-surface` CSS was replaced with `.vaultman-tree-row`.
+- Verification: focused 41/41; full unit 957/958, with only the preserved foreign toolbar
+  failure; ESLint, Stylelint, format and diff checks green. Global types remain at the same
+  three foreign toolbar diagnostics.
+- [[../work/polish/issues/bt5-final-stable-audit/053-filter-polarity-interaction|BT5-053]]
+  remains `in-progress` only for recorded live Tree/Table/Cards, theme and touch/pointer HITL.
