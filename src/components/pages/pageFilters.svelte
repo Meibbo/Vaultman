@@ -37,6 +37,7 @@
 	import { sortDirectionGlyph } from '../../logic/logicSort';
 	import { observeActiveContentFile } from '../../logic/logicContentActiveFile';
 	import { contentMenuNode } from '../../logic/logicContentContextMenu';
+	import { queuedRenameBadgeForPath } from '../../logic/logicRenameBadges';
 
 	type FiltersTab =
 		| 'files'
@@ -687,6 +688,15 @@
 		);
 	}
 
+	function queuedRenameBadge(filePath: string) {
+		void queuedCount;
+		return queuedRenameBadgeForPath(plugin.queueService.queue, filePath);
+	}
+
+	function cancelQueuedRename(queueIndex: number): void {
+		plugin.queueService.remove(queueIndex);
+	}
+
 	async function openContentMatch(file: TFile, line: number, ch: number) {
 		await plugin.app.workspace.openLinkText(file.path, '', false);
 		const view = plugin.app.workspace.getActiveViewOfType(MarkdownView);
@@ -1011,6 +1021,9 @@
 				{queueContentReplace}
 				{openContentMatch}
 				{onOpenFilters}
+				{queuedRenameBadge}
+				{cancelQueuedRename}
+				badgeCancelClickMode={plugin.settings.badgeCancelClickMode}
 				onContentContextMenu={openContentContextMenu}
 			/>
 		</div>

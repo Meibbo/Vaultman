@@ -10,6 +10,7 @@ interface ObsidianCustomCss {
 		enabled: boolean,
 	) => MaybePromise<void>;
 	getSnippetsFolder?: () => string;
+	getSnippetPath?: (snippet: string) => string;
 	requestLoadSnippets?: () => MaybePromise<void>;
 }
 
@@ -96,6 +97,14 @@ function extendedApp(app: App): ExtendedApp {
 	return app as ExtendedApp;
 }
 
+export function cssSnippetPath(app: App, name: string): string {
+	const customCss = extendedApp(app).customCss;
+	return (
+		customCss?.getSnippetPath?.(name) ??
+		`${customCss?.getSnippetsFolder?.() ?? `${app.vault.configDir}/snippets`}/${normalizeSnippetName(name)}.css`
+	);
+}
+
 function normalizeSnippetName(value: string): string {
 	const normalizedPath = value.trim().replace(/\\/g, '/');
 	return (normalizedPath.split('/').pop() ?? normalizedPath).replace(
@@ -150,15 +159,13 @@ export async function listCssSnippetEntries(
 	const enabled = new Set(
 		[...(customCss?.enabledSnippets ?? [])].map(normalizeSnippetName),
 	);
-	const folder =
-		customCss?.getSnippetsFolder?.() ?? `${app.vault.configDir}/snippets`;
 	return Promise.all(
 		[...new Set(names.map(normalizeSnippetName).filter(Boolean))]
 			.sort((a, b) => a.localeCompare(b))
 			.map(async (name) => ({
 				name,
 				enabled: enabled.has(name),
-				...(await addonTimes(app, `${folder}/${name}.css`)),
+				...(await addonTimes(app, cssSnippetPath(app, name))),
 			})),
 	);
 }

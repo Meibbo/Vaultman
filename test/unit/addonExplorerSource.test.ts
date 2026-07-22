@@ -116,6 +116,13 @@ describe('Snippets and Plugins explorer tabs source guards', () => {
 		expect(settingsSource).toContain('settings.addon_cell_style');
 		expect(pageFiltersSource).toContain('setCellStyle(addonCellStyle)');
 	});
+
+	it('projects queued snippet renames as cancellable row badges', () => {
+		expect(snippetsPanelSource).toContain('queuedRenameBadgeForPath');
+		expect(snippetsPanelSource).toContain("queueService.on('changed'");
+		expect(snippetsPanelSource).toContain('onBadgeDoubleClick');
+		expect(snippetsPanelSource).toContain('badgeCancelClickMode');
+	});
 });
 
 describe('addon explorer reveal parity (BT4-004)', () => {

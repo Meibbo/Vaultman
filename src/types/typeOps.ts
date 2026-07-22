@@ -64,6 +64,14 @@ export interface FileChange extends BaseChange {
 	targetFolder?: string;
 }
 
+/** Rename of a CSS snippet stored in the config directory, outside the vault. */
+export interface SnippetRenameChange extends BaseChange {
+	type: 'snippet_rename';
+	action: 'rename';
+	sourcePath: string;
+	targetPath: string;
+}
+
 /** Template application operation */
 export interface TemplateChange extends BaseChange {
 	type: 'template';
@@ -77,7 +85,7 @@ export interface TagChange extends BaseChange {
 	action: 'rename' | 'delete' | 'add';
 }
 
-export type PendingChange = PropertyChange | ContentChange | FileChange | TemplateChange | TagChange;
+export type PendingChange = PropertyChange | ContentChange | FileChange | SnippetRenameChange | TemplateChange | TagChange;
 
 export type QueueTemplateChange =
 	| {

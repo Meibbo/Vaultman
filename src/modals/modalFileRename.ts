@@ -6,6 +6,11 @@ import { PropertySuggest } from '../utils/autocomplete';
 import { translate } from '../i18n/index';
 
 type QueueCallback = (change: PendingChange) => void;
+type RenameChangeBuilder = (file: TFile, newName: string) => PendingChange;
+
+export interface FileRenameModalOptions {
+	buildChange?: RenameChangeBuilder;
+}
 
 export type RenameTargetFile = Pick<TFile, 'name' | 'basename' | 'extension'>;
 export type FileRenameValidationIssue =
@@ -16,6 +21,27 @@ export type FileRenameValidationIssue =
 export interface FileRenameTargetResult {
 	newName: string;
 	issues: FileRenameValidationIssue[];
+}
+
+export function initialFileRenamePattern(
+	files: readonly RenameTargetFile[],
+): string {
+	return files.length === 1 ? files[0].basename : '{basename}';
+}
+
+export function buildFileRenameChange(
+	file: TFile,
+	newName: string,
+): PendingChange {
+	return {
+		type: 'file_rename',
+		action: 'rename',
+		newName,
+		details: `${file.name} → ${newName}`,
+		files: [file],
+		logicFunc: () => ({ [RENAME_FILE]: newName }),
+		customLogic: true,
+	};
 }
 
 interface FileRenamePreview extends FileRenameTargetResult {
@@ -121,20 +147,24 @@ export class FileRenameModal extends Modal {
 	private propertyIndex: PropertyIndexService;
 	private targetFiles: TFile[];
 	private onQueue: QueueCallback;
+	private buildChange: RenameChangeBuilder;
 
-	private pattern = '{basename}';
+	private pattern: string;
 	private previewEl: HTMLElement | null = null;
 
 	constructor(
 		app: App,
 		propertyIndex: PropertyIndexService,
 		targetFiles: TFile[],
-		onQueue: QueueCallback
+		onQueue: QueueCallback,
+		options: FileRenameModalOptions = {},
 	) {
 		super(app);
 		this.propertyIndex = propertyIndex;
 		this.targetFiles = targetFiles;
 		this.onQueue = onQueue;
+		this.pattern = initialFileRenamePattern(targetFiles);
+		this.buildChange = options.buildChange ?? buildFileRenameChange;
 	}
 
 	onOpen(): void {
@@ -265,15 +295,7 @@ export class FileRenameModal extends Modal {
 		for (const { file, newName } of renames) {
 			if (newName === file.name) continue;
 
-			const change: PendingChange = {
-				type: 'file_rename',
-				action: 'rename',
-				details: `${file.name} → ${newName}`,
-				files: [file],
-				logicFunc: () => ({ [RENAME_FILE]: newName }),
-				customLogic: true,
-			};
-			this.onQueue(change);
+			this.onQueue(this.buildChange(file, newName));
 		}
 	}
 

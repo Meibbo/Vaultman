@@ -8,6 +8,7 @@ import type { FloatingTocExpansionChange } from '../../services/routerFloatingTo
 import type { IndexNodeRef } from '../../logic/logicIndexGroups';
 import {
 	cssSnippetStateSignature,
+	cssSnippetPath,
 	listCssSnippetEntries,
 	setCssSnippetEnabled,
 } from '../../utils/obsidianAddons';
@@ -31,6 +32,7 @@ import {
 import { isFloatingTocSortIndexable } from '../../logic/logicFloatingTocAvailability';
 import { UnifiedTreeView } from '../layout/viewTree';
 import { normalizeAddonCellStyle } from '../../logic/logicAddonCells';
+import { queuedRenameBadgeForPath } from '../../logic/logicRenameBadges';
 
 export class SnippetsExplorerPanel
 	extends Component
@@ -78,7 +80,15 @@ export class SnippetsExplorerPanel
 		if (iconic) {
 			this.register(iconic.onChanged(this._scheduleIconRebuild));
 		}
+		this.plugin.queueService.on('changed', this._handleQueueChange);
+		this.register(() =>
+			this.plugin.queueService.off('changed', this._handleQueueChange),
+		);
 	}
+
+	private readonly _handleQueueChange = (): void => {
+		if (!this.destroyed) this.rebuildNodes();
+	};
 
 	private _iconRebuildScheduled = false;
 
@@ -163,6 +173,14 @@ export class SnippetsExplorerPanel
 		this.rebuildNodes();
 	}
 
+	private renameBadges(name: string) {
+		const badge = queuedRenameBadgeForPath(
+			this.plugin.queueService.queue,
+			cssSnippetPath(this.plugin.app, name),
+		);
+		return badge ? [badge] : undefined;
+	}
+
 	private rebuildNodes(): void {
 		const filtered = filterAddonEntries(
 			this.entries,
@@ -190,6 +208,7 @@ export class SnippetsExplorerPanel
 			iconColor: getAddonIconOverride(overrides, 'snippet', entry.name)?.color,
 			ctimeText: formatAddonTimestamp(entry.installedTime),
 			mtimeText: formatAddonTimestamp(entry.updatedTime),
+			badges: this.renameBadges(entry.name),
 			depth: 0,
 			cells: [
 				{
@@ -234,6 +253,10 @@ export class SnippetsExplorerPanel
 				const node = this.findNode(id);
 				if (node) this.openMenu(node.meta, event);
 			},
+			onBadgeDoubleClick: (queueIndex) => {
+				this.plugin.queueService.remove(queueIndex);
+			},
+			badgeCancelClickMode: this.plugin.settings.badgeCancelClickMode,
 		});
 		this.onIndexChanged?.();
 		if (this.nodes.length === 0) {

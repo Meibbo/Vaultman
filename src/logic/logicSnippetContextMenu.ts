@@ -11,9 +11,10 @@ import {
 } from './logicAddonIcons';
 import { ConfirmModal } from '../modals/modalConfirm';
 import { FileRenameModal } from '../modals/modalFileRename';
-import { setCssSnippetEnabled } from '../utils/obsidianAddons';
+import { cssSnippetPath, setCssSnippetEnabled } from '../utils/obsidianAddons';
 import type { SnippetMeta } from '../types/typeTree';
 import type { App } from 'obsidian';
+import { buildSnippetRenameChange } from './logicSnippetOperations';
 
 interface InternalApp extends App {
 	customCss?: {
@@ -166,9 +167,7 @@ export function registerSnippetActions(plugin: VaultmanPlugin): void {
 		run: (ctx: MenuCtx) => {
 			const meta = ctx.node?.meta as SnippetMeta | undefined;
 			if (!meta || !meta.name) return;
-			const app = plugin.app as InternalApp;
-			const path = app.customCss?.getSnippetPath(meta.name);
-			if (!path) return;
+			const path = cssSnippetPath(plugin.app, meta.name);
 
 			const fakeFile = {
 				name: `${meta.name}.css`,
@@ -181,22 +180,8 @@ export function registerSnippetActions(plugin: VaultmanPlugin): void {
 				plugin.app,
 				plugin.propertyIndex,
 				[fakeFile],
-				(change) => {
-					// Extract the new name from the PendingChange's logicFunc
-					const updates = change.logicFunc?.(fakeFile, {}) ?? {};
-					const newName = updates['_RENAME_FILE']; // RENAME_FILE
-					if (typeof newName === 'string') {
-						const newPath = path.replace(`${meta.name}.css`, newName);
-						app.vault.adapter
-							.rename(path, newPath)
-							.then(() => {
-								app.customCss?.requestLoadSnippets?.();
-							})
-							.catch((error: unknown) => {
-								console.error('Failed to rename snippet', error);
-							});
-					}
-				}
+				(change) => plugin.queueService.addOrRun(change),
+				{ buildChange: buildSnippetRenameChange },
 			).open();
 		},
 	});
@@ -215,8 +200,7 @@ export function registerSnippetActions(plugin: VaultmanPlugin): void {
 			const meta = ctx.node?.meta as SnippetMeta | undefined;
 			if (!meta || !meta.name) return;
 			const app = plugin.app as InternalApp;
-			const path = app.customCss?.getSnippetPath(meta.name);
-			if (!path) return;
+			const path = cssSnippetPath(plugin.app, meta.name);
 
 			const performDelete = async () => {
 				await app.vault.adapter.remove(path);

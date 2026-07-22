@@ -8,6 +8,7 @@ import filesGridSource from '../../src/components/layout/viewFilesGrid.ts?raw';
 import {
 	formatFileRenameTarget,
 	formatFileRenameTargetName,
+	initialFileRenamePattern,
 	type RenameTargetFile,
 } from '../../src/modals/modalFileRename';
 import {
@@ -29,6 +30,18 @@ function targetFile(
 }
 
 describe('file operation presentation', () => {
+	it('starts a single-file rename with its literal basename and bulk rename with a placeholder', () => {
+		expect(
+			initialFileRenamePattern([targetFile('pepito.md', 'pepito', 'md')]),
+		).toBe('pepito');
+		expect(
+			initialFileRenamePattern([
+				targetFile('one.md', 'one', 'md'),
+				targetFile('two.md', 'two', 'md'),
+			]),
+		).toBe('{basename}');
+	});
+
 	it('preserves file extensions when rename patterns omit an explicit extension', () => {
 		expect(
 			formatFileRenameTargetName(

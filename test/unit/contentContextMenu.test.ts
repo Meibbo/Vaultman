@@ -45,14 +45,16 @@ describe('BT5-036 content node actions', () => {
 		}
 	});
 
-	it('routes both actions through the native Obsidian prompts', () => {
+	it('opens the rich queued rename flow while keeping native deletion', () => {
 		const { plugin, registry, promptForFileRename, promptForFileDeletion } =
 			fakePlugin();
-		registerContentActions(plugin);
+		const openRename = vi.fn();
+		registerContentActions(plugin, openRename);
 		const ctx = ctxFor('Notes/Alpha.md');
 		void registry.find((d) => d.id === 'content.rename')?.run(ctx);
 		void registry.find((d) => d.id === 'content.delete')?.run(ctx);
-		expect(promptForFileRename).toHaveBeenCalledWith(ctx.file);
+		expect(openRename).toHaveBeenCalledWith(plugin, [ctx.file]);
+		expect(promptForFileRename).not.toHaveBeenCalled();
 		expect(promptForFileDeletion).toHaveBeenCalledWith(ctx.file);
 	});
 
@@ -74,5 +76,8 @@ describe('BT5-036 content node actions', () => {
 		expect(pageFiltersSource).toContain("nodeType: 'content'");
 		// Actions are registered once at plugin load.
 		expect(mainSource).toContain('registerContentActions(this)');
+		expect(pageFiltersSource).toContain('queuedRenameBadgeForPath');
+		expect(tabContentSource).toContain('queuedRenameBadge');
+		expect(tabContentSource).toContain('cancelQueuedRename');
 	});
 });

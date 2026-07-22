@@ -10,6 +10,9 @@ interface InternalApp extends App {
 	metadataTypeManager?: {
 		setType(propName: string, type: string): Promise<void> | void;
 	};
+	customCss?: {
+		requestLoadSnippets?(): Promise<void> | void;
+	};
 }
 
 interface OperationQueueOptions {
@@ -108,6 +111,9 @@ function operationPayload(change: PendingChange): string {
 	if (change.type === 'file_rename') {
 		return stableValue(change.newName ?? change.details);
 	}
+	if (change.type === 'snippet_rename') {
+		return stableValue(change.targetPath);
+	}
 	if (change.type === 'file_move') {
 		return stableValue(change.targetFolder ?? change.details);
 	}
@@ -166,7 +172,7 @@ function tagActionsConflict(
 
 function fileActionsConflict(a: PendingChange, b: PendingChange): boolean {
 	if (a.type === 'file_delete' || b.type === 'file_delete') return true;
-	const fileActions = new Set(['file_rename', 'file_move']);
+	const fileActions = new Set(['file_rename', 'file_move', 'snippet_rename']);
 	if (!fileActions.has(a.type) || !fileActions.has(b.type)) return false;
 	return operationIdentity(a) !== operationIdentity(b);
 }
@@ -502,6 +508,11 @@ export class OperationQueueService extends Component {
 
 	private async applyChange(file: TFile, change: PendingChange): Promise<void> {
 		let specialUpdates: Record<string, unknown> | null = null;
+		if (change.type === 'snippet_rename') {
+			await this.app.vault.adapter.rename(change.sourcePath, change.targetPath);
+			await this.internalApp.customCss?.requestLoadSnippets?.();
+			return;
+		}
 
 		if (this.isFileSystemChange(change)) {
 			const updates = change.logicFunc(file, {});
@@ -549,6 +560,7 @@ export class OperationQueueService extends Component {
 	private isFileSystemChange(change: PendingChange): boolean {
 		return (
 			change.type === 'file_rename' ||
+			change.type === 'snippet_rename' ||
 			change.type === 'file_move' ||
 			change.type === 'file_delete' ||
 			change.type === 'content_replace' ||

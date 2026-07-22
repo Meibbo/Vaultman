@@ -2,6 +2,8 @@
 	import { setIcon, type TFile } from 'obsidian';
 	import { translate } from '../../i18n/index';
 	import type { ContentPreviewResult } from '../../types/typeUI';
+	import type { NodeBadge } from '../../types/typeTree';
+	import type { BadgeCancelClickMode } from '../../utils/badgeInteraction';
 
 	let {
 		contentFind = $bindable(),
@@ -23,6 +25,9 @@
 		queueContentReplace,
 		openContentMatch,
 		onOpenFilters,
+		queuedRenameBadge,
+		cancelQueuedRename,
+		badgeCancelClickMode,
 		onContentContextMenu,
 	}: {
 		contentFind: string;
@@ -44,6 +49,9 @@
 		queueContentReplace: () => void;
 		openContentMatch: (file: TFile, line: number, ch: number) => Promise<void>;
 		onOpenFilters?: () => void;
+		queuedRenameBadge: (filePath: string) => NodeBadge | undefined;
+		cancelQueuedRename: (queueIndex: number) => void;
+		badgeCancelClickMode: BadgeCancelClickMode;
 		/** BT5-036: open the configurable Content node menu (Rename/Delete). */
 		onContentContextMenu?: (file: TFile, event: MouseEvent) => void;
 	} = $props();
@@ -69,6 +77,30 @@
 				setIcon(el, newName);
 			},
 		};
+	}
+
+	function handleRenameBadgeClick(
+		event: MouseEvent,
+		badge: NodeBadge,
+		double: boolean,
+	): void {
+		event.stopPropagation();
+		const shouldCancel = double
+			? badgeCancelClickMode === 'double'
+			: badgeCancelClickMode === 'single';
+		if (shouldCancel && badge.queueIndex !== undefined) {
+			cancelQueuedRename(badge.queueIndex);
+		}
+	}
+
+	function handleRenameBadgeKeydown(
+		event: KeyboardEvent,
+		badge: NodeBadge,
+	): void {
+		if (event.key !== 'Enter' && event.key !== ' ') return;
+		event.preventDefault();
+		event.stopPropagation();
+		if (badge.queueIndex !== undefined) cancelQueuedRename(badge.queueIndex);
 	}
 </script>
 
@@ -267,6 +299,7 @@
 		{#if contentPreviewOpen && contentPreviewResult.totalMatches > 0}
 			<div class="search-results-children" bind:this={contentResultsEl}>
 				{#each sortedContentFiles as fileResult (fileResult.file.path)}
+					{@const pendingRename = queuedRenameBadge(fileResult.file.path)}
 					<div
 						class="tree-item search-result"
 						class:is-active={activeContentFilePath === fileResult.file.path}
@@ -302,6 +335,27 @@
 								</div>
 							</div>
 							<div class="tree-item-flair-outer">
+								{#if pendingRename}
+									<span
+										class="vaultman-badge vaultman-badge--blue is-undoable"
+										role="button"
+										tabindex="0"
+										aria-label={pendingRename.text}
+										title={pendingRename.text}
+										onclick={(event) =>
+											handleRenameBadgeClick(event, pendingRename, false)}
+										ondblclick={(event) =>
+											handleRenameBadgeClick(event, pendingRename, true)}
+										onkeydown={(event) =>
+											handleRenameBadgeKeydown(event, pendingRename)}
+									>
+										<span
+											class="vaultman-badge-icon"
+											aria-hidden="true"
+											use:iconAction={pendingRename.icon ?? 'lucide-pencil'}
+										></span>
+									</span>
+								{/if}
 								<span class="tree-item-flair">{fileResult.matchCount}</span>
 							</div>
 						</div>
