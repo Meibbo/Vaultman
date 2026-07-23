@@ -125,15 +125,19 @@ describe('BT3 settings information architecture source guards', () => {
 });
 
 describe('BT4-010 settings IA (D34)', () => {
-	it('moves show dock directly under the style preset', () => {
-		const preset = settingsSource.indexOf("translate('settings.style_preset')");
+	it('leads Layout Configuration with the Node Dock widget, ahead of the style preset', () => {
+		// v1.2.0 relabel/reorg: the dock ("Widget: Node Dock") now sits directly
+		// under the Layout Configuration heading, above the style preset.
+		const layout = settingsSource.indexOf("translate('settings.style_config')");
 		const dock = settingsSource.indexOf("translate('settings.show_dock')");
+		const preset = settingsSource.indexOf("translate('settings.style_preset')");
 		const blur = settingsSource.indexOf(
 			"translate('settings.background_blur')",
 		);
-		expect(preset).toBeGreaterThan(-1);
-		expect(dock).toBeGreaterThan(preset);
-		expect(dock).toBeLessThan(blur);
+		expect(layout).toBeGreaterThan(-1);
+		expect(dock).toBeGreaterThan(layout);
+		expect(dock).toBeLessThan(preset);
+		expect(preset).toBeLessThan(blur);
 	});
 
 	it('groups explorer cells/badges/highlights into the Explorer sub-page', () => {
