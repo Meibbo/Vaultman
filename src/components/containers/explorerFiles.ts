@@ -56,6 +56,7 @@ import {
 	moveNodeToSiblingEdge,
 	recencyEdgeForDirection,
 } from '../../logic/logicTreeNodeMove';
+import { bubbleMaxToFolders } from '../../logic/logicLastOpened';
 import {
 	activeScopeSort,
 	normalizeExplorerSortState,
@@ -185,6 +186,11 @@ export class FilesExplorerPanel extends Component {
 	 */
 	private _treeRenderOpts: Parameters<UnifiedTreeView['render']>[0] | null =
 		null;
+	/**
+	 * BT5-090: folder -> newest descendant mtime, the tie-break for the recency
+	 * sort. Rebuilt from the display set each render, before the comparator runs.
+	 */
+	private _folderMaxMtime: ReadonlyMap<string, number> = new Map();
 	private _lastFlatFiles: { id: string; label: string }[] = [];
 	onIndexChanged?: (change?: FloatingTocExpansionChange) => void;
 
@@ -999,10 +1005,36 @@ export class FilesExplorerPanel extends Component {
 					? this.plugin.statisticsCache.getFileTimes(node.meta.file)[sortBy]
 					: 0;
 			}
+			if (sortBy === 'opened') {
+				// BT5-090: a folder's recency is the newest open beneath it, so
+				// opening a nested file floats its whole branch. Without this a
+				// folder fell through to the name comparison below and drifted to
+				// a nonsensical position while the sort claimed to be by recency.
+				return node.meta.file
+					? (this.plugin.lastOpenedService.getLastOpened(node.meta.file) ?? 0)
+					: (this.plugin.lastOpenedService.getFolderLastOpened(
+							node.meta.folderPath,
+						) ?? 0);
+			}
 			return 0;
 		};
-		if (['count', 'sub', 'words', 'tasks', 'mtime', 'ctime'].includes(sortBy)) {
-			return dir * (numberValue(a) - numberValue(b));
+		if (
+			['count', 'sub', 'words', 'tasks', 'mtime', 'ctime', 'opened'].includes(
+				sortBy,
+			)
+		) {
+			const diff = numberValue(a) - numberValue(b);
+			// BT5-090: recency ties are common — every never-opened node is 0 —
+			// so fall back to modification time, not the alphabet. A folder's
+			// mtime mirrors its recency: the newest modification beneath it.
+			if (diff === 0 && sortBy === 'opened') {
+				const mtimeOf = (node: TreeNode<FileMeta>): number =>
+					node.meta.file
+						? this.plugin.statisticsCache.getFileTimes(node.meta.file).mtime
+						: (this._folderMaxMtime.get(node.meta.folderPath) ?? 0);
+				return dir * (mtimeOf(a) - mtimeOf(b));
+			}
+			return dir * diff;
 		}
 
 		const stringValue = (node: TreeNode<FileMeta>): string => {
@@ -1293,6 +1325,14 @@ export class FilesExplorerPanel extends Component {
 		} else if (this.viewMode === 'tree' && this.treeView) {
 			const sortedFiles = this._sortFiles(displayFiles);
 			this._rememberStatisticsSortOrder(sortedFiles);
+			// BT5-090: the folder mtime tie-break for the recency sort. Built
+			// before buildFileTree so the node comparator can read it.
+			this._folderMaxMtime = bubbleMaxToFolders(
+				displayFiles.map((file) => [
+					file.path,
+					this.plugin.statisticsCache.getFileTimes(file).mtime,
+				]),
+			);
 			const rebaseFolderPaths = this._activeFolderFilterPaths();
 			const renderTree = this._nestedEnabled()
 				? this.logic.buildFileTree(sortedFiles, this._foldersForCurrentView(), {

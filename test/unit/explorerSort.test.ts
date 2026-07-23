@@ -95,6 +95,26 @@ describe('explorer sort helpers', () => {
 		).toBeGreaterThan(0);
 	});
 
+	it('breaks a Last opened tie by modification time, not the alphabet', () => {
+		// Both files were never opened, so recency ties at 0. The newer mtime
+		// should win under desc, ahead of an alphabetical fallback.
+		const newerMod = makeFile('Notes/a-file.md', { ctime: 1, mtime: 500 });
+		const olderMod = makeFile('Notes/z-file.md', { ctime: 1, mtime: 100 });
+		expect(
+			compareFilesForExplorer(newerMod, olderMod, 'opened', 'desc', {
+				lastOpenedForFile: () => null,
+			}),
+		).toBeLessThan(0);
+		// With both mtimes equal it finally falls to path, staying deterministic.
+		const sameA = makeFile('Notes/a.md', { ctime: 1, mtime: 100 });
+		const sameB = makeFile('Notes/b.md', { ctime: 1, mtime: 100 });
+		expect(
+			compareFilesForExplorer(sameA, sameB, 'opened', 'desc', {
+				lastOpenedForFile: () => null,
+			}),
+		).toBeLessThan(0);
+	});
+
 	it('sorts files by cached word count with a stable path tie-breaker', () => {
 		const short = makeFile('Notes/z-short.md', { ctime: 1, mtime: 1 });
 		const longA = makeFile('Notes/a-long.md', { ctime: 1, mtime: 1 });

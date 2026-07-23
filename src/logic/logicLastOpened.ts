@@ -109,6 +109,54 @@ export function countOpenedSince(
 	return count;
 }
 
+/**
+ * BT5-090: recency for every folder, as the newest open of any file beneath
+ * it. Opening `a/b/c.md` ages the folders `a` and `a/b`, so a recency sort can
+ * float the branch that owns the just-opened file — a folder's "last opened"
+ * is the most recent of its descendants.
+ *
+ * One pass over the opened files, bubbling each timestamp up its ancestor
+ * chain, so the whole map costs O(entries x depth) rather than a scan per
+ * folder. A folder with no opened descendant is simply absent, which reads as
+ * "never opened" the same way an unopened file does.
+ */
+export function bubbleMaxToFolders(
+	pairs: Iterable<readonly [string, number]>,
+): Map<string, number> {
+	const folders = new Map<string, number>();
+	for (const [path, value] of pairs) {
+		if (!isValidTimestamp(value)) continue;
+		let slash = path.lastIndexOf('/');
+		while (slash > 0) {
+			const folder = path.slice(0, slash);
+			const current = folders.get(folder);
+			if (current === undefined || value > current) {
+				folders.set(folder, value);
+			} else {
+				// An ancestor already holds a newer or equal descendant, so every
+				// folder above it does too: stop climbing.
+				break;
+			}
+			slash = folder.lastIndexOf('/');
+		}
+	}
+	return folders;
+}
+
+export function buildFolderRecency(
+	record: LastOpenedRecord,
+): ReadonlyMap<string, number> {
+	return bubbleMaxToFolders(Object.entries(record));
+}
+
+export function folderRecencyAt(
+	folders: ReadonlyMap<string, number>,
+	folderPath: string,
+): number | null {
+	const timestamp = folders.get(folderPath);
+	return isValidTimestamp(timestamp) ? timestamp : null;
+}
+
 /** Local midnight for the day containing `at` (defaults to now). */
 export function startOfDay(at: number = Date.now()): number {
 	const date = new Date(at);

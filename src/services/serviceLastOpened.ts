@@ -1,7 +1,9 @@
 import { Component, TFile, type App } from 'obsidian';
 
 import {
+	buildFolderRecency,
 	countOpenedSince,
+	folderRecencyAt,
 	lastOpenedAt,
 	normalizeLastOpenedRecord,
 	pruneMissingPaths,
@@ -28,6 +30,8 @@ export class LastOpenedService extends Component {
 	private loaded = false;
 	private dirty = false;
 	private flushTimer: number | null = null;
+	/** BT5-090: folder recency, rebuilt lazily after the record changes. */
+	private folderRecency: ReadonlyMap<string, number> | null = null;
 
 	constructor(
 		private readonly app: App,
@@ -60,6 +64,7 @@ export class LastOpenedService extends Component {
 			this.record = {};
 		}
 		this.loaded = true;
+		this.folderRecency = null;
 		this._pruneAgainstVault();
 	}
 
@@ -76,6 +81,17 @@ export class LastOpenedService extends Component {
 
 	getLastOpened(file: TFile): number | null {
 		return lastOpenedAt(this.record, file.path);
+	}
+
+	/**
+	 * BT5-090: the newest open of any file beneath `folderPath`, or null when
+	 * nothing under it was ever opened. Built once per record change.
+	 */
+	getFolderLastOpened(folderPath: string): number | null {
+		if (!this.folderRecency) {
+			this.folderRecency = buildFolderRecency(this.record);
+		}
+		return folderRecencyAt(this.folderRecency, folderPath);
 	}
 
 	/** BT5-037: how many files were last opened today (local midnight). */
@@ -111,6 +127,8 @@ export class LastOpenedService extends Component {
 
 	private _markDirty(): void {
 		this.dirty = true;
+		// The record changed, so the derived folder map is stale.
+		this.folderRecency = null;
 		this._scheduleFlush();
 	}
 

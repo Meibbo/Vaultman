@@ -110,6 +110,13 @@ export function compareFilesForExplorer(
 			options.lastOpenedForFile?.(a) ?? null,
 			options.lastOpenedForFile?.(b) ?? null,
 		);
+		if (result === 0) {
+			// BT5-090: every never-opened file ties at 0, so fall back to how
+			// recently it was modified rather than to the alphabet.
+			result =
+				fileTimeForExplorer(a, 'mtime', options.getFileTimes) -
+				fileTimeForExplorer(b, 'mtime', options.getFileTimes);
+		}
 	} else if (normalizedSortBy === 'count') {
 		result =
 			(options.countForFile?.(a) ?? 0) - (options.countForFile?.(b) ?? 0);
