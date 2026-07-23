@@ -589,6 +589,9 @@ export const en: Record<string, string> = {
 	'explorer.ctx.filter_include': 'Add as filter',
 	'explorer.ctx.filter_exclude': 'Exclude as filter',
 	'explorer.ctx.tag.coming_soon': 'More options coming soon',
+	'tags.invalid_name': 'That is not a valid tag name',
+	'tags.invalid_name.spaces':
+		'Tag names cannot contain spaces. Use "-", "_" or "/" instead.',
 	'explorer.cards.back': 'All files',
 	'file.ctx.open_tab': 'Open in new tab',
 	'file.ctx.open_right': 'Open to the right',
@@ -809,6 +812,8 @@ export const en: Record<string, string> = {
 	'content.scope_hint_searching':
 		'Searching {count}/{total} files - {filters} filter(s)',
 	'content.with_active_filters': 'with active filters',
+	'content.with_excluded': 'with {count} excluded',
+	'queue.details.replace': 'Replace',
 	'content.preview': 'Preview',
 	'content.queue_replace': 'Queue replace',
 	'content.queue_no_matches': 'No content matches to queue',

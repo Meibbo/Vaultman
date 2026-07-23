@@ -58,7 +58,8 @@ describe('Page filters Content source guards', () => {
 		);
 		expect(tabContentSource).toContain('contentPreviewFileCount');
 		expect(tabContentSource).toContain('contentHasActiveNonContentFilters');
-		expect(tabContentSource).toContain("translate('content.with_active_filters')");
+		// BT5-086: the link now reports how many files the filters excluded.
+		expect(tabContentSource).toContain("translate('content.with_excluded')");
 		expect(tabContentSource).not.toContain(
 			'contentPreviewResult.files.length +',
 		);
@@ -73,7 +74,7 @@ describe('Page filters Content source guards', () => {
 		const perNode = tabContentSource.slice(
 			tabContentSource.indexOf('{fileResult.file.path}'),
 		);
-		expect(perNode).not.toContain("translate('content.with_active_filters')");
+		expect(perNode).not.toContain("translate('content.with_excluded')");
 	});
 
 	it('does not render the old Content scope hint row', () => {

@@ -4269,15 +4269,18 @@ button.vaultman-content-scope-hint:focus-visible {
 }
 
 /* Header-only, link-style: no button chrome, just clickable accent text. */
+/* BT5-086: exclusion reads as primary text, not accent. Accent is reserved
+   for inclusive state across the explorers, so an exclusion count wearing it
+   claimed a meaning it does not have. */
 .vaultman-content-filter-link {
-  color: var(--text-accent);
+  color: var(--text-normal);
   cursor: pointer;
   text-decoration: underline;
   text-underline-offset: 2px;
 }
 
 .vaultman-content-filter-link:hover {
-  color: var(--text-accent-hover);
+  color: var(--text-accent);
 }
 
 .vaultman-preview-chevron {

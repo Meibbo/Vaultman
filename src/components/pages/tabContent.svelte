@@ -16,6 +16,7 @@
 		contentRegexError,
 		contentPreviewFileCount,
 		contentHasActiveNonContentFilters,
+		contentExcludedFileCount,
 		activeContentRevealPath,
 		activeContentFilePath,
 		contentRevealRevision,
@@ -40,6 +41,7 @@
 		contentRegexError: string;
 		contentPreviewFileCount: number;
 		contentHasActiveNonContentFilters: boolean;
+		contentExcludedFileCount: number;
 		activeContentRevealPath: string | null;
 		activeContentFilePath: string | null;
 		contentRevealRevision: number;
@@ -290,7 +292,11 @@
 										e.stopPropagation();
 										onOpenFilters?.();
 									}
-								}}>{' '}{translate('content.with_active_filters')}</span
+								}}
+								>{' '}{translate('content.with_excluded').replace(
+									'{count}',
+									String(contentExcludedFileCount),
+								)}</span
 							>{/if}</span
 					>
 				{/if}

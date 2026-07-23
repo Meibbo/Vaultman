@@ -485,6 +485,16 @@
 		const contentFilterCount = contentScopeSummary.hasContentQuery ? 1 : 0;
 		return contentScopeSummary.filterCount - contentFilterCount > 0;
 	});
+	// BT5-086: how many files the non-content filters removed from the scope.
+	const contentExcludedFileCount = $derived(
+		Math.max(
+			0,
+			(contentScopeSummary.baseFileCount ?? 0) -
+				(contentScopeSummary.resultFileCount ??
+					contentScopeSummary.baseFileCount ??
+					0),
+		),
+	);
 	const sortedContentFiles = $derived(
 		sortContentPreviewFiles(
 			contentPreviewResult?.files ?? [],
@@ -865,7 +875,9 @@
 		plugin.queueService.addOrRun({
 			type: 'content_replace',
 			action: 'find_replace_content',
-			details: `${contentFind} → ${contentReplace}`,
+			// BT5-085: the queue row showed only `find → replace`, which read as a
+			// value pair with no verb. Every other operation names itself.
+			details: `${translate('queue.details.replace')} ${contentFind} → ${contentReplace}`,
 			files: [...files],
 			find: contentFind,
 			replace: contentReplace,
@@ -1012,6 +1024,7 @@
 				{contentRegexError}
 				{contentPreviewFileCount}
 				{contentHasActiveNonContentFilters}
+				{contentExcludedFileCount}
 				{activeContentRevealPath}
 				{activeContentFilePath}
 				{contentRevealRevision}

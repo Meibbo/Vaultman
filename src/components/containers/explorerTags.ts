@@ -1,6 +1,7 @@
 // src/components/TagsExplorerPanel.ts
 import { Component, App, Keymap, Notice, setIcon } from 'obsidian';
 import { TagsLogic } from '../../logic/logicTags';
+import { tagNameProblemKey, validateTagName } from '../../logic/logicTagName';
 import { DeferredExplorerRender } from '../../logic/logicDeferredExplorerRender';
 import {
 	DeferredFilterClickCoordinator,
@@ -703,8 +704,16 @@ export class TagsExplorerPanel extends Component {
 			searchHighlightIds: highlightIds,
 			editingId: this.editingId,
 			onRename: (id, newLabel) => {
+				// BT5-077: a rejected name keeps the inline editor open, so the
+				// typed text can be corrected instead of being discarded.
+				const check = validateTagName(newLabel);
+				if (!check.valid || !check.name) {
+					new Notice(translate(tagNameProblemKey(check.reason ?? 'invalid_char')));
+					void this._render();
+					return;
+				}
 				const node = this._findNode(id, tree);
-				if (node) void this._renameTag(node.meta.tagPath, newLabel);
+				if (node) void this._renameTag(node.meta.tagPath, check.name);
 				this.editingId = null;
 				void this._render();
 			},
@@ -1159,6 +1168,11 @@ export class TagsExplorerPanel extends Component {
 
 	private async _renameTag(tagPath: string, newName: string): Promise<void> {
 		if (!newName || newName === tagPath) return;
+		// Defense in depth: drag-to-nest builds a path programmatically and does
+		// not pass through the inline editor's check.
+		const check = validateTagName(newName);
+		if (!check.valid || !check.name) return;
+		newName = check.name;
 		this.plugin.queueService.addOrRun({
 			type: 'tag',
 			tag: tagPath,

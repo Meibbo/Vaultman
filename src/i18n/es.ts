@@ -599,6 +599,9 @@ export const es: Record<string, string> = {
 	'explorer.ctx.titlecase': 'Tipo título',
 	'explorer.ctx.plain_text': 'Texto plano',
 	'explorer.ctx.capitalize': 'Primera Letra Mayúscula',
+	'tags.invalid_name': 'Ese nombre de tag no es válido',
+	'tags.invalid_name.spaces':
+		'Los tags no admiten espacios. Usa "-", "_" o "/" en su lugar.',
 	'explorer.ctx.filter_include': 'Agregar como filtro',
 	'explorer.ctx.filter_exclude': 'Excluir como filtro',
 	'file.ctx.open_tab': 'Abrir en nueva pestaña',
@@ -897,6 +900,8 @@ export const es: Record<string, string> = {
 	'content.scope_hint_searching':
 		'Buscando {count}/{total} archivos - {filters} filtro(s)',
 	'content.with_active_filters': 'con filtros activos',
+	'content.with_excluded': 'con {count} excluidos',
+	'queue.details.replace': 'Reemplazar',
 	'content.preview': 'Vista previa',
 	'content.queue_replace': 'Encolar reemplazo',
 	'content.queue_no_matches': 'No hay coincidencias de contenido para encolar',
