@@ -23,6 +23,33 @@ export interface NodeMoveResult<TMeta = unknown> {
 
 export type SiblingEdge = 'start' | 'end';
 
+export interface SiblingEdgeOptions<TMeta = unknown> {
+	/**
+	 * Groups siblings that may be reordered against each other. With
+	 * `parentsFirst`, folders occupy the head of every sibling group and files
+	 * the tail, so a file's "start" is the first file index, not index 0.
+	 * Without this, moving a file to index 0 pushes it above the folders and
+	 * the level only repairs itself on the next full render.
+	 */
+	partitionOf?: (node: TreeNode<TMeta>) => unknown;
+}
+
+/** The index range siblings sharing `partition` currently occupy. */
+function partitionBounds<TMeta>(
+	items: TreeNode<TMeta>[],
+	partition: unknown,
+	partitionOf: (node: TreeNode<TMeta>) => unknown,
+): { first: number; last: number } {
+	let first = -1;
+	let last = -1;
+	for (let i = 0; i < items.length; i += 1) {
+		if (partitionOf(items[i]) !== partition) continue;
+		if (first < 0) first = i;
+		last = i;
+	}
+	return { first, last };
+}
+
 function moveWithin<TMeta>(
 	items: TreeNode<TMeta>[],
 	from: number,
@@ -76,12 +103,37 @@ export function moveNodeToSiblingEdge<TMeta = unknown>(
 	nodes: TreeNode<TMeta>[],
 	id: string,
 	edge: SiblingEdge,
+	options: SiblingEdgeOptions<TMeta> = {},
 ): NodeMoveResult<TMeta> {
-	return moveNodeWithinSiblings(
-		nodes,
-		id,
-		edge === 'start' ? 0 : Number.MAX_SAFE_INTEGER,
-	);
+	const { partitionOf } = options;
+	if (!partitionOf) {
+		return moveNodeWithinSiblings(
+			nodes,
+			id,
+			edge === 'start' ? 0 : Number.MAX_SAFE_INTEGER,
+		);
+	}
+
+	const index = nodes.findIndex((node) => node.id === id);
+	if (index >= 0) {
+		const bounds = partitionBounds(nodes, partitionOf(nodes[index]), partitionOf);
+		const target = edge === 'start' ? bounds.first : bounds.last;
+		if (target < 0 || target === index) return { changed: false, nodes };
+		return { changed: true, nodes: moveWithin(nodes, index, target) };
+	}
+
+	for (let i = 0; i < nodes.length; i += 1) {
+		const node = nodes[i];
+		const children = node.children;
+		if (!children?.length) continue;
+		const result = moveNodeToSiblingEdge(children, id, edge, options);
+		if (!result.changed) continue;
+		const nextNodes = nodes.slice();
+		nextNodes[i] = { ...node, children: result.nodes };
+		return { changed: true, nodes: nextNodes };
+	}
+
+	return { changed: false, nodes };
 }
 
 /** Which edge a freshly-touched node belongs at for a given direction. */

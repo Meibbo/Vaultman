@@ -81,3 +81,79 @@ describe('BT5-089 single-node tree moves', () => {
 		expect(recencyEdgeForDirection('asc')).toBe('end');
 	});
 });
+
+describe('BT5-089 partitioned sibling groups', () => {
+	// With `parentsFirst`, folders hold the head of every sibling group. A file
+	// moving to "start" belongs at the first file index; sending it to index 0
+	// puts it above the folders, and the level only repairs itself on the next
+	// full render.
+	const partitionOf = (n: TreeNode) => Boolean(n.children);
+	const mixed = (): TreeNode[] => [
+		node('folderA', [node('x')]),
+		node('folderB', [node('y')]),
+		node('one'),
+		node('two'),
+		node('three'),
+	];
+
+	it('keeps a file below the folders when moving to the start', () => {
+		const result = moveNodeToSiblingEdge(mixed(), 'three', 'start', {
+			partitionOf,
+		});
+		expect(result.changed).toBe(true);
+		expect(result.nodes.map((n) => n.id)).toEqual([
+			'folderA',
+			'folderB',
+			'three',
+			'one',
+			'two',
+		]);
+	});
+
+	it('keeps a file above nothing when moving to the end', () => {
+		const result = moveNodeToSiblingEdge(mixed(), 'one', 'end', {
+			partitionOf,
+		});
+		expect(result.nodes.map((n) => n.id)).toEqual([
+			'folderA',
+			'folderB',
+			'two',
+			'three',
+			'one',
+		]);
+	});
+
+	it('reports no change when the file already leads its own partition', () => {
+		const nodes = mixed();
+		const result = moveNodeToSiblingEdge(nodes, 'one', 'start', {
+			partitionOf,
+		});
+		expect(result.changed).toBe(false);
+		expect(result.nodes).toBe(nodes);
+	});
+
+	it('moves a folder within the folder partition, never into the files', () => {
+		const result = moveNodeToSiblingEdge(mixed(), 'folderB', 'start', {
+			partitionOf,
+		});
+		expect(result.nodes.map((n) => n.id)).toEqual([
+			'folderB',
+			'folderA',
+			'one',
+			'two',
+			'three',
+		]);
+	});
+
+	it('partitions each nested level independently', () => {
+		const nested: TreeNode[] = [
+			node('root', [node('sub', [node('z')]), node('p'), node('q')]),
+		];
+		const result = moveNodeToSiblingEdge(nested, 'q', 'start', { partitionOf });
+		expect(result.nodes[0].children?.map((n) => n.id)).toEqual([
+			'sub',
+			'q',
+			'p',
+		]);
+	});
+});

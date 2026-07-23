@@ -2309,13 +2309,19 @@ export class FilesExplorerPanel extends Component {
 		queueMicrotask(() => {
 			if (!this.containerEl.isConnected) return;
 			// BT5-089: the new timestamp is the maximum, so the file moves to
-			// one edge of its sibling group and no other pair changes order.
+			// one edge of its own partition and no other pair changes order.
 			// Rebuilding the model for that made every tab switch stutter.
-			if (file && this.treeView && this._treeRenderOpts) {
+			//
+			// The shortcut is only taken when it provably lands where a full
+			// re-sort would: folders must be a fixed head partition, or the
+			// level's real order depends on comparisons this move does not
+			// perform. Anything else falls through to the honest rebuild.
+			if (file && this.treeView && this._treeRenderOpts && this._canMoveOnOpen()) {
 				const result = moveNodeToSiblingEdge(
 					this._treeRenderOpts.nodes as TreeNode<FileMeta>[],
 					file.path,
 					recencyEdgeForDirection(this.sortDir),
+					{ partitionOf: (node) => node.meta.isFolder === true },
 				);
 				// Re-opening the file already at the edge, or bouncing between
 				// the top two, changes nothing and must cost nothing.
@@ -2325,10 +2331,25 @@ export class FilesExplorerPanel extends Component {
 				this.treeView.render(this._treeRenderOpts);
 				return;
 			}
-			// Table and Cards have no equivalent projection yet.
+			// Table and Cards have no equivalent projection yet, and neither do
+			// the layouts the shortcut cannot reproduce.
 			this._render();
 		});
 	};
+
+	/**
+	 * BT5-089: whether moving the opened file to its partition edge lands
+	 * exactly where a full re-sort would.
+	 *
+	 * It does when folders lead every sibling group and hold a fixed order:
+	 * the folder partition cannot react to the new timestamp, and inside the
+	 * file partition the opened file is the new extreme. If folders are
+	 * interleaved with files, or are themselves sorted by recency, then
+	 * ancestors can move too and only a real re-sort is correct.
+	 */
+	private _canMoveOnOpen(): boolean {
+		return this.parentsFirst && this.sortState.fixedFolders !== false;
+	}
 
 	private _syncActiveFilePath(
 		file = this.plugin.app.workspace.getActiveFile(),
