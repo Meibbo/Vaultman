@@ -67,6 +67,10 @@ export class FilterService extends Component {
 	>();
 	private contentSearchPaths: Set<string> | null = null;
 	private sortCacheRevision = 0;
+	/** BT5-088: the whole vault in basename order, rebuilt only when it changes. */
+	private fullOrderRevision = -1;
+	private fullMarkdownOrder: TFile[] = [];
+	private fullVaultOrder: TFile[] = [];
 	private stateSignature = '';
 	private metadataRefreshTimer: number | null = null;
 	private readonly METADATA_REFRESH_DELAY_MS = 100;
@@ -697,25 +701,43 @@ export class FilterService extends Component {
 		return walk(this.activeFilter);
 	}
 
+	/**
+	 * BT5-088: the whole vault in basename order, shared by every apply until a
+	 * create/rename/delete bumps `sortCacheRevision`. Building it once turns each
+	 * filter apply from a subset re-sort into a linear scan of this order.
+	 */
+	private _ensureFullBasenameOrder(): void {
+		if (this.fullOrderRevision === this.sortCacheRevision) return;
+		const byBasename = (a: TFile, b: TFile) =>
+			this.collator.compare(a.basename, b.basename);
+		this.fullMarkdownOrder = [...this.app.vault.getMarkdownFiles()].sort(
+			byBasename,
+		);
+		this.fullVaultOrder = [...this.app.vault.getFiles()].sort(byBasename);
+		this.fullOrderRevision = this.sortCacheRevision;
+	}
+
+	/** The matched files in `order`'s sequence, without re-sorting. */
+	private _orderedSubset(order: TFile[], matches: TFile[]): TFile[] {
+		if (matches.length >= order.length) return [...order];
+		const keep = new Set(matches.map((file) => file.path));
+		return order.filter((file) => keep.has(file.path));
+	}
+
 	/** Recompute filtered files from the active filter tree + search fields */
 	applyFilters(): void {
 		vaultmanPerfMonitor.measure(
 			'filter.applyFilters',
 			() => {
-				const markdownFiles = this.app.vault.getMarkdownFiles();
 				const vaultFiles = this.app.vault.getFiles();
 				const metadataFilter = this.filterWithoutContentSearch();
-				const hasTreeFilters =
-					metadataFilter.children.length > 0 ||
-					this.hasEnabledContentSearchRule();
-				const hasLegacySearch = !!(this._searchName || this._searchFolder);
 
-				const markdownMatches = this.applyLegacySearch(
-					this.applyContentSearch(
-						metadataFilter.children.length > 0
-							? this.applyActiveTree(markdownFiles, metadataFilter)
-							: markdownFiles,
-					),
+				// BT5-088: every filter stage is per-file, so the markdown result
+				// is exactly the vault result intersected with the markdown paths.
+				// Running the whole pipeline once over the vault and deriving the
+				// markdown subset halves the evaluation that ran it twice.
+				const markdownPaths = new Set(
+					this.app.vault.getMarkdownFiles().map((file) => file.path),
 				);
 				const vaultMatches = this.applyLegacySearch(
 					this.applyContentSearch(
@@ -724,15 +746,25 @@ export class FilterService extends Component {
 							: vaultFiles,
 					),
 				);
+				const markdownMatches = vaultMatches.filter((file) =>
+					markdownPaths.has(file.path),
+				);
 
-				const nextFilteredFiles =
-					hasTreeFilters || hasLegacySearch
-						? this.sortFiles(markdownMatches)
-						: this.sortFiles(markdownMatches, 'all-markdown');
-				const nextFilteredVaultFiles =
-					hasTreeFilters || hasLegacySearch
-						? this.sortFiles(vaultMatches)
-						: this.sortFiles(vaultMatches, 'all-vault');
+				// BT5-088: the result is always basename order, and a subset keeps
+				// its parent's order. Sorting the whole vault once (cached) and
+				// filtering that order is O(n) per apply, instead of the
+				// O(m log m) collator sort that re-sorted the subset every time —
+				// which is why removing a filter or adding an exclusion, both large
+				// results, felt slower than a narrowing include.
+				this._ensureFullBasenameOrder();
+				const nextFilteredFiles = this._orderedSubset(
+					this.fullMarkdownOrder,
+					markdownMatches,
+				);
+				const nextFilteredVaultFiles = this._orderedSubset(
+					this.fullVaultOrder,
+					vaultMatches,
+				);
 
 				const nextStateSignature = this.filterStateSignature();
 				const resultsChanged =

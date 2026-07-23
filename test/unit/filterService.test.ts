@@ -55,6 +55,42 @@ function makeApp(
 }
 
 describe('FilterService vault-wide Files filtering', () => {
+	it('keeps basename order when deriving a filtered subset (BT5-088)', () => {
+		const files = [
+			makeFile('notes/zebra.md'),
+			makeFile('notes/apple.md'),
+			makeFile('notes/mango.md'),
+			makeFile('notes/apple-pie.md'),
+		];
+		const service = new FilterService(
+			makeApp(files, files, {
+				'notes/zebra.md': { keep: true },
+				'notes/mango.md': { keep: true },
+			}),
+		);
+		service.addNode({
+			type: 'rule',
+			filterType: 'has_property',
+			property: 'keep',
+			values: [],
+		});
+
+		// The derived order must equal a direct basename sort of the subset.
+		expect(service.filteredFiles.map((f) => f.basename)).toEqual([
+			'mango',
+			'zebra',
+		]);
+
+		// Removing the filter returns the whole vault, still in basename order.
+		service.clearFilters();
+		expect(service.filteredFiles.map((f) => f.basename)).toEqual([
+			'apple',
+			'apple-pie',
+			'mango',
+			'zebra',
+		]);
+	});
+
 	it('removes either polarity for property, value, and tag nodes', () => {
 		const service = new FilterService(makeApp([], [], {}));
 		service.addNode({
