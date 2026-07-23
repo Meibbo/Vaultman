@@ -1,15 +1,16 @@
 ---
 title: BT5-049 — Vaultman self-disable from Plugins cell and action
 type: issue
-status: in-progress
+status: completed
 lifecycle: active
 priority: P0
 execution: HITL
 parent: "[[docs/work/polish/issues/bt5-final-stable-audit/index|BT5 final stable audit]]"
 created: 2026-07-22T13:05:00
-updated: 2026-07-22T14:12:00
+updated: 2026-07-23T02:10:00
 created_by: codex-gpt5-root
-updated_by: codex-gpt5-root
+updated_by: claude-opus-4-8-audit
+resolved_by: 1c689ef1
 tags: [agent/issue, triage/in-progress, initiative/polish, release/1.2.0, plugins, lifecycle]
 ---
 
@@ -55,3 +56,7 @@ None — can start immediately.
   foreign `logicResponsiveLayout.ts` worktree edit.
 - Remaining gate: controlled `plugin-dev` self-disable followed by manual re-enable in Core
   Settings. The issue remains `in-progress` until that destructive/HITL check is witnessed.
+
+## Outcome (2026-07-23)
+
+HITL confirmed by the dev: the Plugins cell toggle disables Vaultman without the warning, uninstall stays blocked, manual re-enable works. Completed.

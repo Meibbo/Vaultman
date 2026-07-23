@@ -1,15 +1,16 @@
 ---
 title: BT5-060 — Restore rich queued rename for individual nodes
 type: issue
-status: in-progress
+status: completed
 lifecycle: active
 priority: P0
 execution: AFK
 parent: "[[docs/work/polish/issues/bt5-final-stable-audit/index|BT5 final stable audit]]"
 created: 2026-07-22T13:05:00
-updated: 2026-07-22T14:05:00
+updated: 2026-07-23T02:10:00
 created_by: codex-gpt5-root
-updated_by: codex-gpt5-root
+updated_by: claude-opus-4-8-audit
+resolved_by: 45c86373
 tags: [agent/issue, triage/in-progress, initiative/polish, release/1.2.0, operations, regression]
 ---
 
@@ -65,3 +66,7 @@ None — can start immediately.
 
 - Dev/runtime smoke in Obsidian: initial input, preview, queue badge, cancellation and Apply
   for Content and Snippet. Keep status `in-progress` until that visible behavior is accepted.
+
+## Outcome (2026-07-23)
+
+HITL: Content/Snippets/Files rename open the rich queued modal. The dev asked to extend the rich modal to folders/props/values and to make inline rename the default for single nodes; both are new scope in [[../v1-2-1-polish/index|the 1.2.1 backlog]], not regressions of this slice.

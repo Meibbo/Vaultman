@@ -2210,3 +2210,89 @@ broader "append-only status writes" is parked as **S-12** in
   three foreign toolbar diagnostics.
 - [[../work/polish/issues/bt5-final-stable-audit/053-filter-polarity-interaction|BT5-053]]
   remains `in-progress` only for recorded live Tree/Table/Cards, theme and touch/pointer HITL.
+
+## 2026-07-22 (cont. 9) — claude-opus-4-8-audit · landed BT5-054 + HITL smoke prep
+
+- Took over from `codex-gpt5-root`, which stopped mid-slice on BT5-054 without a commit,
+  a session-log entry or an issue status change. Its uncommitted edits were intact and its
+  focused tests were already green (9/9).
+- Product commit `d764b424`: `feat(properties): complete localized type and conversion menus`.
+  Change type/Convert now come from `EDITABLE_PROP_TYPE_OPTIONS` and
+  `PROPERTY_VALUE_CONVERSION_OPTIONS`; `ActionDef.submenuIcon` retires the `'Convert'` label
+  comparison in `serviceContextMenu`, which would have broken on translation.
+- Repaired the one red left behind: `nodeContextMenuKinds.test.ts` still asserted the English
+  literal `submenu: 'Change type'` against source the slice had moved to `translate(...)`.
+- The dev's temporary toolbar-overflow patch (commenting out `scroll` in
+  `logicResponsiveLayout`, `VaultmanSettings`, `navbarFilters` and the overflow test) was
+  reverted with the dev's consent after backing it up to
+  `scratchpad/dev-toolbar-overflow-temp-patch.patch`. It had left `pageFilters.svelte:316`
+  comparing against a member no longer in the union, so `tsc` failed and `pnpm run build`
+  could not run at all. Toolbar overflow is back to its committed `cde64206` behavior and
+  stays owned by BT5-045.
+- First fully green tree since before that dirt: `pnpm run check` 0 errors/0 warnings,
+  full unit 965/965 across 148/148 files, `pnpm run build` synced to `plugin-dev`.
+- [[../work/polish/issues/bt5-final-stable-audit/054-property-menu-types-and-conversions|BT5-054]]
+  is `in-progress`, not completed: six criteria are covered by tests, but "pending conversions
+  project the correct operation badge and are cancelable" is runtime-only and joins the smoke
+  matrix with 049/051/053/060.
+- Dev decisions recorded this session: prompt-4 becomes 14 new slices (BT5-061..075) plus
+  amendments to BT5-055 and BT5-058; BT5-063 (per-node delete rescue) and BT5-075 (queue
+  persistence) are deferred out of v1.2.0; execution order is hardest-first
+  (Navbar -> ChangeIcon -> decoration contract -> cheap/isolated). Issue files are NOT
+  published yet, pending one explicit dev approval.
+- Verified while sizing prompt-4: `OperationQueueService` has no `saveData`/`loadData`, so the
+  operation queue does not survive a plugin reload today. This blocks BT5-063 and is why
+  BT5-075 exists.
+
+## 2026-07-23 (cont. 10) — claude-opus-4-8-audit · v1.2.0 close, issues published, release staged
+
+Continued the pre-stable pass. Landed the dev's smoke-reported fixes, published the
+issue records, and staged the 1.2.0 release material. No tag/push performed — the dev
+gates that.
+
+### Shipped this session (product commits)
+- BT5-054 `d764b424` + `fea7c9c3`: localized property type/conversion menus; Convert
+  made bidirectional (linked value keeps case ops + gains Plain-text inverse; Titlecase
+  stops duplicating lowercase for links).
+- BT5-051 `efdf4796`: Top/Bottom index positions withheld from the picker (deferred).
+- BT5-065 `cf9ba359`: Layout Configuration first; new-vault defaults (no tab labels,
+  single-click cancel).
+- BT5-067 `7ef2e69d`: focus commands stop closing Vaultman (idempotent `ensureVaultmanFrame`).
+- BT5-077/085/086 `d4cf0d0f`: tag-name validation repairs the frontmatter soft-lock;
+  queue "Replace" label; Text "with N excluded" in primary text.
+- BT5-091 `aeb1df1d`: inline rename editor takes the row height.
+- BT5-089 `d8367255` + `ced1c078`: single-node tree-move API; Last opened no longer
+  rebuilds on tab switch; folder-partition correction.
+- BT5-090 `404c33b4`: folder recency (max descendant open) + mtime tie-break; fixes the
+  "stress vault first" report.
+- BT5-088 `e1097b66`: filter apply evaluates once and derives the filtered order in
+  O(n). P2/order only — the dominant differential-render cost (P3) is deferred to 1.2.1.
+
+### Verification
+- Full unit 1002/1002 across 153 files; `pnpm run check` 0/0; ESLint, Stylelint, Prettier
+  clean; `pnpm run build` synced to plugin-dev throughout. HITL confirmed by the dev for
+  049/051/053/054/060/067/077/089/090.
+
+### Docs published (this workspace, local-only)
+- Issue files 065/067/077/085/086/088/089/090/091 under
+  [[../work/polish/issues/bt5-final-stable-audit/index]]; amended 049/051/053/054/060.
+- New backlog [[../work/polish/issues/v1-2-1-polish/index]] with the deferred large work
+  (Navbar 043–048, decoration contract, Text explorer, tags inline/frontmatter, P3
+  differential render, updates modal, commands, and the no-version rescue/queue-persistence).
+
+### Release staged (product repo, pushable)
+- `1160eaa5`: 9 `changes/1.2/stable-*.md` fragments + a What's new `v1-2-0` bulletin entry.
+  `pnpm run release 1.2.0` assembles CHANGELOG/RELEASE_NOTES and bumps the version; the
+  fragment system aggregates the whole 1.2 line for the stable.
+
+### Open items for the dev
+- Uncommitted `src/types/typeSettings.ts`: `openMode` default changed `sidebar` →
+  `new_instance`. This is the dev's own edit; left uncommitted per the agent-doc/foreign-
+  change boundary. Decide whether it ships in 1.2.0.
+- Awaiting the dev's "corrections" or "proceed" before running the release.
+
+### CodeGraph MCP note
+- Added `.cbmignore` (gitignored) excluding `main.js`; a clean reindex of
+  `C-tmp-vaultman-release-beta2-final2` dropped the duplicated bundle symbols
+  (5050→3469 nodes). Binary is 0.8.1, which lacks the `auto_watch` watcher, so the index
+  is refreshed by manual reindex after each slice.

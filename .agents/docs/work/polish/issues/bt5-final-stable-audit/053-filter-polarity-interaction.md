@@ -1,15 +1,16 @@
 ---
 title: BT5-053 — Inclusive/exclusive/remove filter polarity
 type: issue
-status: in-progress
+status: completed
 lifecycle: active
 priority: P0
 execution: HITL
 parent: "[[docs/work/polish/issues/bt5-final-stable-audit/index|BT5 final stable audit]]"
 created: 2026-07-22T13:05:00
-updated: 2026-07-22T15:38:00
+updated: 2026-07-23T02:10:00
 created_by: codex-gpt5-root
-updated_by: codex-gpt5-root
+updated_by: claude-opus-4-8-audit
+resolved_by: cde64206
 tags: [agent/issue, triage/in-progress, initiative/polish, release/1.2.0, filters, interaction]
 ---
 
@@ -81,3 +82,7 @@ None — can start immediately.
   the delay, fast double-click, slow pair, removal of either polarity, keyboard Enter/Space,
   and touch/pointer synthesis. Confirm the persistent primary-colored exclusive highlight and
   distinct collapsed-parent dot under the active theme.
+
+## Outcome (2026-07-23)
+
+HITL confirmed by the dev: inclusive/exclusive/remove polarity works across engines. The exclusive bubbledot re-render and status/operation badge coexistence are a separate follow-up in [[../v1-2-1-polish/index|the 1.2.1 backlog]].

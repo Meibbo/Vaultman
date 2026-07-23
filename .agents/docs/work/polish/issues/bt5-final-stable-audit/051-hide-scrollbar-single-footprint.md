@@ -1,15 +1,16 @@
 ---
 title: BT5-051 — Hide scrollbar with one index footprint
 type: issue
-status: in-progress
+status: deferred
 lifecycle: active
 priority: P0
 execution: HITL
 parent: "[[docs/work/polish/issues/bt5-final-stable-audit/index|BT5 final stable audit]]"
 created: 2026-07-22T13:05:00
-updated: 2026-07-22T14:48:00
+updated: 2026-07-23T02:10:00
 created_by: codex-gpt5-root
-updated_by: codex-gpt5-root
+updated_by: claude-opus-4-8-audit
+resolved_by: 3fb23d17
 tags: [agent/issue, triage/in-progress, initiative/polish, release/1.2.0, frame, scrollbar, index]
 ---
 
@@ -58,3 +59,7 @@ None — can start immediately.
   toolbar-overflow diagnostics from the preserved foreign worktree edit.
 - Remaining gate: record live DOM geometry for hidden/classic and overlay scrollbars at both
   sides, plain/pill and min/wide frame. Issue stays `in-progress` until that HITL evidence.
+
+## Outcome (2026-07-23) — deferred
+
+The single-footprint behavior shipped in 3fb23d17. During HITL the dev found the Top/Bottom index positions work but not to the wanted standard, so those two options were withheld from the picker (efdf4796) without touching the union or persisted value. The slice is deferred out of v1.2.0; restoring Top/Bottom is one branch to delete.
