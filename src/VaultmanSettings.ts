@@ -1285,17 +1285,26 @@ export class VaultmanSettingsTab extends PluginSettingTab {
 					.setValue(this.plugin.settings.floatingTocPlainStyle === true)
 					.onChange((v) => setToc({ floatingTocPlainStyle: v })),
 			);
+		const tocPosition = this.plugin.settings.tocPosition ?? 'right';
+		// BT5-051 is deferred: Top/Bottom work but not to the standard the dev
+		// wants, so they are withheld from the picker instead of removed. The
+		// union and the persisted value are untouched, and someone already on
+		// Top/Bottom keeps seeing their choice so they can move off it.
+		const tocPositionOptions: Record<string, string> = {
+			right: translate('settings.toc_position.right'),
+			left: translate('settings.toc_position.left'),
+		};
+		if (tocPosition === 'top' || tocPosition === 'bottom') {
+			tocPositionOptions[tocPosition] = translate(
+				`settings.toc_position.${tocPosition}`,
+			);
+		}
 		new Setting(containerEl)
 			.setName(translate('settings.toc_position'))
 			.addDropdown((d) =>
 				d
-					.addOptions({
-						right: translate('settings.toc_position.right'),
-						left: translate('settings.toc_position.left'),
-						top: translate('settings.toc_position.top'),
-						bottom: translate('settings.toc_position.bottom'),
-					})
-					.setValue(this.plugin.settings.tocPosition ?? 'right')
+					.addOptions(tocPositionOptions)
+					.setValue(tocPosition)
 					.onChange((v) =>
 						setToc({ tocPosition: v as VaultmanSettings['tocPosition'] }),
 					),
