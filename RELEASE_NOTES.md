@@ -30,6 +30,9 @@
 - Made explorer rows, floating-index nodes, tool condensation, and the optional index gutter respond to frame size and display density.
 - Moved the performance HUD into Developer Tools and renamed Clean Selection to Clean Filters.
 - Moved node-type sort controls into a second-level menu, enabled multi-selection, and renamed property/value sorting for clarity.
+- Made applying a filter evaluate the vault once and derive the filtered order in linear time instead of re-sorting the subset on every change.
+- Changed the default open mode for new vaults to open Vaultman in its own tab instead of the sidebar; existing vaults keep their saved choice.
+- Made Layout Configuration the first settings section, and set new vaults to default to the compact preset without tab labels and to single-click badge cancel; existing vaults keep their saved values.
 
 ## Fixed
 
@@ -46,3 +49,10 @@
 - Fixed Iconic overrides and plugin-provided file menu actions not propagating consistently to Vaultman file nodes.
 - Fixed Niagara upward movement and reverse-direction dragging so the gesture scrubs through the opposite node range before moving the rail again.
 - Fixed explorer and floating-index controls appearing disproportionately small on high-density mobile displays.
+- Fixed the Content preview reading "with active filters" in accent; it now reports "with N excluded" in primary text, and a staged content replace is labeled "Replace" in the queue.
+- Fixed the Properties Convert submenu disappearing on a value that was already a wikilink; it now keeps the case conversions and offers a Plain text inverse, and Titlecase no longer duplicates lowercase for linked values.
+- Fixed the focus commands closing Vaultman when it was already open in sidebar or main mode; only the explicit Open command toggles now.
+- Fixed the inline rename editor spilling out of its row and covering the neighbouring cells; it now takes the row height.
+- Fixed the Last opened sort ordering folders alphabetically instead of by the newest note opened beneath them, and made recency ties fall back to modification time so a folder no longer drifts to the top for no reason.
+- Fixed switching tabs stuttering while the Last opened sort was active by reordering only the opened note instead of rebuilding the whole tree.
+- Fixed renaming a tag to a name with spaces or other invalid characters writing the broken name into every file's frontmatter, which left the tag unreachable until reload; invalid names are now rejected with the inline editor kept open.
