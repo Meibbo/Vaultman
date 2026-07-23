@@ -74,6 +74,8 @@ export class FilterService extends Component {
 	private stateSignature = '';
 	private metadataRefreshTimer: number | null = null;
 	private readonly METADATA_REFRESH_DELAY_MS = 100;
+	/** BT5-092: coalesces a burst of vault create/delete/rename into one recompute. */
+	private structureRefreshTimer: number | null = null;
 
 	constructor(app: App) {
 		super();
@@ -81,13 +83,20 @@ export class FilterService extends Component {
 	}
 
 	onload(): void {
-		const clearSortCache = () => {
+		// BT5-092: a created/deleted/renamed file changes the universe the filter
+		// runs over, so the cached result must be recomputed — not just the sort
+		// cache cleared. Without this, a deleted file lingered in
+		// `filteredVaultFiles` and the Files explorer kept rendering its node even
+		// though the file was gone, unless an active folder filter happened to
+		// force a fresh read. Debounced so a bulk delete recomputes once.
+		const onVaultStructureChange = () => {
 			this.sortCacheRevision += 1;
 			this.sortedFilesCache.clear();
+			this.scheduleStructureRefresh();
 		};
-		this.registerEvent(this.app.vault.on('create', clearSortCache));
-		this.registerEvent(this.app.vault.on('delete', clearSortCache));
-		this.registerEvent(this.app.vault.on('rename', clearSortCache));
+		this.registerEvent(this.app.vault.on('create', onVaultStructureChange));
+		this.registerEvent(this.app.vault.on('delete', onVaultStructureChange));
+		this.registerEvent(this.app.vault.on('rename', onVaultStructureChange));
 		this.registerEvent(
 			this.app.metadataCache.on('changed', () => {
 				this.scheduleMetadataRefresh();
@@ -101,6 +110,25 @@ export class FilterService extends Component {
 			window.clearTimeout(this.metadataRefreshTimer);
 			this.metadataRefreshTimer = null;
 		}
+		if (this.structureRefreshTimer !== null) {
+			window.clearTimeout(this.structureRefreshTimer);
+			this.structureRefreshTimer = null;
+		}
+	}
+
+	/**
+	 * BT5-092: recompute the filtered set after the vault gains or loses a file.
+	 * Unlike the metadata refresh this always runs, because the file universe
+	 * changed even when no metadata filter is active.
+	 */
+	scheduleStructureRefresh(): void {
+		if (this.structureRefreshTimer !== null) {
+			window.clearTimeout(this.structureRefreshTimer);
+		}
+		this.structureRefreshTimer = window.setTimeout(() => {
+			this.structureRefreshTimer = null;
+			this.applyFilters();
+		}, this.METADATA_REFRESH_DELAY_MS);
 	}
 
 	scheduleMetadataRefresh(): void {
