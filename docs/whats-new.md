@@ -20,6 +20,29 @@ One inviting sentence that explains who benefits and why.
 [Full changelog](../CHANGELOG.md#exact-github-anchor-for-this-release)
 -->
 
+<a id="v1-2-0"></a>
+## 1.2.0 — More to configure, fewer papercuts
+<!-- reviewed: true -->
+
+The first stable of the 1.2 line. It brings everything from the 1.2.0 betas —
+configurable node menus, a shapeable toolbar, richer file info and statistics, a
+shared glyph-color palette, and ready-made View Compositions — and finishes with
+a round of stabilization.
+
+- **Everything from the betas:** Per-node context menus you can reorder and
+  group, a toolbar you can condense or scroll and fill with your own commands,
+  a Last opened time with its own cell and sort, a Path cell, Remaining tasks and
+  Opened today cards, and one shared glyph-color palette for the Index and
+  Explorer.
+- **Smarter Last opened:** Folders now sort by the newest note opened inside
+  them, recency ties fall back to modification time, and switching tabs no longer
+  stutters.
+- **Fewer papercuts:** Renaming a tag can't corrupt your frontmatter, focus
+  commands stop closing Vaultman, the Properties Convert menu works both ways, a
+  deleted file's node no longer lingers, and the inline rename box stays in its row.
+
+[Full changelog](../CHANGELOG.md#120---2026-07-23)
+
 <a id="v1-2-0-beta-7"></a>
 ## 1.2.0-beta.7 — Stabilizing toward 1.2.0
 <!-- reviewed: true -->
