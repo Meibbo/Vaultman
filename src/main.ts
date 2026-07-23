@@ -37,6 +37,10 @@ import {
 	openUpdatesBulletin,
 	shouldShowUpdates,
 } from './logic/logicUpdateNotice';
+import {
+	normalizeOpenMode,
+	shouldToggleCloseFrame,
+} from './logic/logicFrameActivation';
 import { applyGlassBlurSetting } from './logic/logicGlassBlur';
 import { seedDefaultViewCompositions } from './logic/logicViewCompositions';
 import { normalizeGlyphColorChoice } from './logic/logicGlyphColor';
@@ -229,10 +233,8 @@ export class VaultmanPlugin extends Plugin {
 	}
 
 	private async vaultmanFrameForCommand(): Promise<VaultmanFrame | null> {
-		await this.activateView();
-		const leaf = this.app.workspace.getLeavesOfType(VAULTMAN_FRAME_TYPE)[0];
+		const leaf = await this.ensureVaultmanFrame();
 		if (!leaf) return null;
-		await this.app.workspace.revealLeaf(leaf);
 		const view = leaf.view;
 		return view instanceof VaultmanFrame ? view : null;
 	}
@@ -555,46 +557,53 @@ export class VaultmanPlugin extends Plugin {
 		applyGlassBlurSetting(activeDocument.body.style, this.settings);
 	}
 
-	async activateView(): Promise<void> {
-		const rawMode = this.settings.openMode as string;
-		const mode = rawMode === 'both' ? 'new_instance' : rawMode;
+	/** Open a frame and reveal it. Never closes one. */
+	private async openVaultmanView(): Promise<WorkspaceLeaf | null> {
 		const { workspace } = this.app;
-		const existingLeaves = workspace.getLeavesOfType(VAULTMAN_FRAME_TYPE);
+		const mode = normalizeOpenMode(this.settings.openMode as string);
+		const leaf =
+			mode === 'sidebar'
+				? workspace.getLeftLeaf(false) || workspace.getRightLeaf(false)
+				: workspace.getLeaf('tab');
+		if (!leaf) return null;
+		await leaf.setViewState({ type: VAULTMAN_FRAME_TYPE, active: true });
+		void workspace.revealLeaf(leaf);
+		return leaf;
+	}
 
-		if (mode === 'new_instance') {
-			const leaf = workspace.getLeaf('tab');
-			if (leaf) {
-				await leaf.setViewState({
-					type: VAULTMAN_FRAME_TYPE,
-					active: true,
-				});
-				void workspace.revealLeaf(leaf);
-			}
+	/**
+	 * The explicit `Open Vaultman` command: a toggle in sidebar/main mode,
+	 * always an extra frame in new_instance mode.
+	 */
+	async activateView(): Promise<void> {
+		const existingLeaves = this.app.workspace.getLeavesOfType(
+			VAULTMAN_FRAME_TYPE,
+		);
+		if (
+			shouldToggleCloseFrame(
+				this.settings.openMode as string,
+				existingLeaves.length,
+			)
+		) {
+			for (const leaf of existingLeaves) leaf.detach();
 			return;
 		}
+		await this.openVaultmanView();
+	}
 
-		// 'sidebar' or 'main': toggle behavior (close if open, open if closed)
-		if (existingLeaves.length > 0) {
-			for (const leaf of existingLeaves) {
-				leaf.detach();
-			}
-			return;
+	/**
+	 * BT5-067: the idempotent route for every command that needs a frame to act
+	 * on. Reveals an existing frame, opens one when there is none, and never
+	 * detaches — going through `activateView` here is what made the focus
+	 * commands close Vaultman instead of focusing it.
+	 */
+	async ensureVaultmanFrame(): Promise<WorkspaceLeaf | null> {
+		const existing = this.app.workspace.getLeavesOfType(VAULTMAN_FRAME_TYPE)[0];
+		if (existing) {
+			await this.app.workspace.revealLeaf(existing);
+			return existing;
 		}
-
-		let leaf: WorkspaceLeaf | null = null;
-		if (mode === 'sidebar') {
-			leaf = workspace.getLeftLeaf(false) || workspace.getRightLeaf(false);
-		} else {
-			leaf = workspace.getLeaf('tab');
-		}
-
-		if (leaf) {
-			await leaf.setViewState({
-				type: VAULTMAN_FRAME_TYPE,
-				active: true,
-			});
-			void workspace.revealLeaf(leaf);
-		}
+		return this.openVaultmanView();
 	}
 }
 

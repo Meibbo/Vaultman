@@ -23,7 +23,11 @@ describe('search focus command source guards', () => {
 
 	it('opens or reveals Vaultman before routing command focus to the mounted frame', () => {
 		expect(mainSource).toContain('private async vaultmanFrameForCommand()');
-		expect(mainSource).toContain('await this.activateView();');
+		// BT5-067: this used to require `await this.activateView()`, which is the
+		// toggle. With Vaultman already open the toggle detaches every frame, so
+		// the focus commands closed it and then had nothing to focus. The guard
+		// now requires the idempotent route instead of enshrining that bug.
+		expect(mainSource).toContain('await this.ensureVaultmanFrame();');
 		expect(mainSource).toContain('getLeavesOfType(VAULTMAN_FRAME_TYPE)');
 		expect(mainSource).toContain('view instanceof VaultmanFrame');
 		expect(mainSource).toContain('await view.focusContentSearch();');
