@@ -22,6 +22,9 @@ main.js
 styles.css
 data.json
 settings.local.json
+
+#  & local agent tooling (never ships to main)
+.cbmignore
 .DS_Store
 .env
 .log

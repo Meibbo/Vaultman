@@ -5658,14 +5658,19 @@ button.vaultman-content-scope-hint:focus-visible {
   color: inherit;
 }
 
+/* The inline editor takes the row's own height instead of imposing a 20px
+   box. The fixed height plus the negative vertical margin made it spill out
+   of the row and cover the cells beside it, and the vertical padding made
+   the rectangle taller than the node it replaces. */
 .vaultman-tree-input {
   flex: 1;
+  min-width: 0;
+  box-sizing: border-box;
+  align-self: stretch;
   background: var(--background-primary);
   border: 1px solid var(--color-accent);
   border-radius: 4px;
-  padding: 1px 4px;
-  margin: -2px 0;
-  height: 20px;
+  padding: 0 4px;
   font-size: inherit;
   color: var(--text-normal);
   font-family: inherit;
