@@ -17,7 +17,9 @@ describe('Vaultman Settings layout', () => {
 		expect(es['queue.template.templates']).toBe('Presets de operaciones');
 	});
 
-	it('places View Config after Operation Sets and before Style Config', () => {
+	// BT5-065: Layout Configuration moved ahead of the templates/sets/saved
+	// sections, so it is now the first heading rather than the last.
+	it('places View Config after Operation Sets, with Layout Config ahead of them', () => {
 		const operationsIndex = settingsSource.indexOf(
 			"translate('queue.template.templates')",
 		);
@@ -34,7 +36,8 @@ describe('Vaultman Settings layout', () => {
 		expect(operationsIndex).toBeGreaterThan(-1);
 		expect(viewConfigIndex).toBeGreaterThan(operationsIndex);
 		expect(viewConfigBodyIndex).toBeGreaterThan(viewConfigIndex);
-		expect(styleConfigIndex).toBeGreaterThan(viewConfigBodyIndex);
+		expect(styleConfigIndex).toBeGreaterThan(-1);
+		expect(styleConfigIndex).toBeLessThan(operationsIndex);
 	});
 
 	it('places the Files tools toggle immediately after Show toolbar in its sub-page', () => {

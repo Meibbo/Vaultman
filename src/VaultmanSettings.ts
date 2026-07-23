@@ -182,6 +182,110 @@ export class VaultmanSettingsTab extends PluginSettingTab {
 			);
 
 		new Setting(containerEl)
+			.setName(translate('settings.style_config'))
+			.setHeading();
+
+		new Setting(containerEl)
+			.setName(translate('settings.style_preset'))
+			.setDesc(translate('settings.style_preset.desc'))
+			.addDropdown((dropdown) =>
+				dropdown
+					.addOption('minimal', translate('settings.style_preset.minimal'))
+					.addOption(
+						'experimental',
+						translate('settings.style_preset.experimental'),
+					)
+					.setValue(
+						this.plugin.settings.minimalStyle ? 'minimal' : 'experimental',
+					)
+					.onChange(async (value) => {
+						this.plugin.settings.minimalStyle = value === 'minimal';
+						await this.plugin.saveSettings();
+						this.plugin.updateGlassBlur();
+						this.display();
+					}),
+			);
+
+		new Setting(containerEl)
+			.setName(translate('settings.show_dock'))
+			.setDesc(translate('settings.show_dock.desc'))
+			.addToggle((toggle) =>
+				toggle
+					.setValue(this.plugin.settings.showDock)
+					.onChange(async (value) => {
+						this.plugin.settings.showDock = value;
+						await this.plugin.saveSettings();
+					}),
+			);
+
+		if (!this.plugin.settings.minimalStyle) {
+			new Setting(containerEl)
+				.setName(translate('settings.background_blur'))
+				.setDesc(translate('settings.background_blur.desc'))
+				.addSlider((slider) =>
+					slider
+						.setLimits(0, 100, 1)
+						.setValue(this.plugin.settings.glassBlurIntensity ?? 60)
+						.setDynamicTooltip()
+						.onChange(async (value) => {
+							this.plugin.settings.glassBlurIntensity = value;
+							await this.plugin.saveSettings();
+							this.plugin.updateGlassBlur();
+						}),
+				);
+		}
+
+		new Setting(containerEl)
+			.setName(translate('settings.toolbar'))
+			.setDesc(translate('settings.toolbar.desc'))
+			.addButton((button) =>
+				button.setButtonText(translate('settings.configure')).onClick(() => {
+					this.page = 'toolbar';
+					this.display();
+				}),
+			);
+
+		new Setting(containerEl)
+			.setName(translate('settings.files_hover_info'))
+			.setDesc(translate('settings.files_hover_info.desc'))
+			.addButton((button) =>
+				button.setButtonText(translate('settings.configure')).onClick(() => {
+					this.page = 'files-hover';
+					this.display();
+				}),
+			);
+
+		new Setting(containerEl)
+			.setName(translate('settings.floating_toc'))
+			.setDesc(translate('settings.floating_toc.desc'))
+			.addButton((button) =>
+				button.setButtonText(translate('settings.configure')).onClick(() => {
+					this.page = 'floating-toc';
+					this.display();
+				}),
+			);
+
+		new Setting(containerEl)
+			.setName(translate('settings.explorer_page'))
+			.setDesc(translate('settings.explorer_page.desc'))
+			.addButton((button) =>
+				button.setButtonText(translate('settings.configure')).onClick(() => {
+					this.page = 'explorer';
+					this.display();
+				}),
+			);
+
+		new Setting(containerEl)
+			.setName(translate('settings.context_menu'))
+			.setDesc(translate('settings.context_menu.page_desc'))
+			.addButton((button) =>
+				button.setButtonText(translate('settings.configure')).onClick(() => {
+					this.page = 'context-menus';
+					this.display();
+				}),
+			);
+
+		new Setting(containerEl)
 			.setName(translate('settings.templates'))
 			.setHeading();
 
@@ -315,110 +419,6 @@ export class VaultmanSettingsTab extends PluginSettingTab {
 					);
 			}
 		}
-
-		new Setting(containerEl)
-			.setName(translate('settings.style_config'))
-			.setHeading();
-
-		new Setting(containerEl)
-			.setName(translate('settings.style_preset'))
-			.setDesc(translate('settings.style_preset.desc'))
-			.addDropdown((dropdown) =>
-				dropdown
-					.addOption('minimal', translate('settings.style_preset.minimal'))
-					.addOption(
-						'experimental',
-						translate('settings.style_preset.experimental'),
-					)
-					.setValue(
-						this.plugin.settings.minimalStyle ? 'minimal' : 'experimental',
-					)
-					.onChange(async (value) => {
-						this.plugin.settings.minimalStyle = value === 'minimal';
-						await this.plugin.saveSettings();
-						this.plugin.updateGlassBlur();
-						this.display();
-					}),
-			);
-
-		new Setting(containerEl)
-			.setName(translate('settings.show_dock'))
-			.setDesc(translate('settings.show_dock.desc'))
-			.addToggle((toggle) =>
-				toggle
-					.setValue(this.plugin.settings.showDock)
-					.onChange(async (value) => {
-						this.plugin.settings.showDock = value;
-						await this.plugin.saveSettings();
-					}),
-			);
-
-		if (!this.plugin.settings.minimalStyle) {
-			new Setting(containerEl)
-				.setName(translate('settings.background_blur'))
-				.setDesc(translate('settings.background_blur.desc'))
-				.addSlider((slider) =>
-					slider
-						.setLimits(0, 100, 1)
-						.setValue(this.plugin.settings.glassBlurIntensity ?? 60)
-						.setDynamicTooltip()
-						.onChange(async (value) => {
-							this.plugin.settings.glassBlurIntensity = value;
-							await this.plugin.saveSettings();
-							this.plugin.updateGlassBlur();
-						}),
-				);
-		}
-
-		new Setting(containerEl)
-			.setName(translate('settings.toolbar'))
-			.setDesc(translate('settings.toolbar.desc'))
-			.addButton((button) =>
-				button.setButtonText(translate('settings.configure')).onClick(() => {
-					this.page = 'toolbar';
-					this.display();
-				}),
-			);
-
-		new Setting(containerEl)
-			.setName(translate('settings.files_hover_info'))
-			.setDesc(translate('settings.files_hover_info.desc'))
-			.addButton((button) =>
-				button.setButtonText(translate('settings.configure')).onClick(() => {
-					this.page = 'files-hover';
-					this.display();
-				}),
-			);
-
-		new Setting(containerEl)
-			.setName(translate('settings.floating_toc'))
-			.setDesc(translate('settings.floating_toc.desc'))
-			.addButton((button) =>
-				button.setButtonText(translate('settings.configure')).onClick(() => {
-					this.page = 'floating-toc';
-					this.display();
-				}),
-			);
-
-		new Setting(containerEl)
-			.setName(translate('settings.explorer_page'))
-			.setDesc(translate('settings.explorer_page.desc'))
-			.addButton((button) =>
-				button.setButtonText(translate('settings.configure')).onClick(() => {
-					this.page = 'explorer';
-					this.display();
-				}),
-			);
-
-		new Setting(containerEl)
-			.setName(translate('settings.context_menu'))
-			.setDesc(translate('settings.context_menu.page_desc'))
-			.addButton((button) =>
-				button.setButtonText(translate('settings.configure')).onClick(() => {
-					this.page = 'context-menus';
-					this.display();
-				}),
-			);
 
 		new Setting(containerEl).setName(translate('settings.addons')).setHeading();
 

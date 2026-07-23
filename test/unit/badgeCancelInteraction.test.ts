@@ -14,8 +14,11 @@ import {
 } from '../../src/utils/badgeInteraction';
 
 describe('badge cancel interaction setting', () => {
-	it('preserves double-click cancel as the default', () => {
-		expect(DEFAULT_SETTINGS.badgeCancelClickMode).toBe('double');
+	it('defaults to single-click cancel and still normalizes a missing value', () => {
+		// BT5-065: cancelling a staged operation is reversible, so a new vault
+		// gets the single click. `normalizeBadgeCancelClickMode` keeps its own
+		// fallback, which is about repairing corrupt data, not about the default.
+		expect(DEFAULT_SETTINGS.badgeCancelClickMode).toBe('single');
 		expect(normalizeBadgeCancelClickMode(undefined)).toBe('double');
 		expect(badgeCancelInteractionEvent('double')).toBe('dblclick');
 	});

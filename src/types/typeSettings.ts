@@ -271,13 +271,18 @@ export const DEFAULT_SETTINGS: VaultmanSettings = {
 	pageOrder: ['filters', 'statistics'],
 	separatePanes: false,
 	viewMode: 'list',
-	filtersShowTabLabels: true,
+	// BT5-065: the default preset is the compact one, and it reads better
+	// without tab labels. An existing vault is unaffected: the one-time label
+	// migration keys off a saved value, not off this default.
+	filtersShowTabLabels: false,
 	minimalStyle: true,
 	coloredBadges: false,
 	addonCellStyle: 'native',
 	iconicEnabled: true,
 	filesIconScope: 'all',
-	badgeCancelClickMode: 'double',
+	// BT5-065: cancelling a staged operation is reversible, so it does not need
+	// the friction of a double click.
+	badgeCancelClickMode: 'single',
 	showDock: false,
 	floatingTocEnabled: false,
 	floatingTocNiagara: false,
