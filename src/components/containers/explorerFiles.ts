@@ -53,6 +53,10 @@ import {
 	normalizeExplorerSortBy,
 } from '../../logic/logicSort';
 import {
+	moveNodeToSiblingEdge,
+	recencyEdgeForDirection,
+} from '../../logic/logicTreeNodeMove';
+import {
 	activeScopeSort,
 	normalizeExplorerSortState,
 	replaceActiveScopeSort,
@@ -175,6 +179,12 @@ export class FilesExplorerPanel extends Component {
 	/** Last rendered hierarchy — feeds the floating TOC (index/scope drill). */
 	private _lastRenderTree: TreeNode<FileMeta>[] = [];
 	private _bubbleTree: TreeNode<FileMeta>[] = [];
+	/**
+	 * BT5-089: the options the Tree view was last rendered with, so a
+	 * single-node reorder can re-project without rebuilding the model.
+	 */
+	private _treeRenderOpts: Parameters<UnifiedTreeView['render']>[0] | null =
+		null;
 	private _lastFlatFiles: { id: string; label: string }[] = [];
 	onIndexChanged?: (change?: FloatingTocExpansionChange) => void;
 
@@ -1321,7 +1331,7 @@ export class FilesExplorerPanel extends Component {
 			applyFolderIcons(renderTree, this.expandedIds);
 			this._decorateTreeWithIcons(renderTree);
 			this._setIndexRoots(renderTree, []);
-			this.treeView.render({
+			this._treeRenderOpts = {
 				nodes: renderTree,
 				expandedIds: this.expandedIds,
 				visibleCells: this.visibleCells,
@@ -1423,7 +1433,8 @@ export class FilesExplorerPanel extends Component {
 					this._render();
 				},
 				badgeCancelClickMode: this.plugin.settings.badgeCancelClickMode,
-			});
+			};
+			this.treeView.render(this._treeRenderOpts);
 		}
 		if (this._needsStatisticsWarmup()) {
 			this._warmStatisticsCache(displayFiles);
@@ -2296,7 +2307,26 @@ export class FilesExplorerPanel extends Component {
 		// no dependency on listener registration order.
 		if (normalizeExplorerSortBy(this.sortBy) !== 'opened') return;
 		queueMicrotask(() => {
-			if (this.containerEl.isConnected) this._render();
+			if (!this.containerEl.isConnected) return;
+			// BT5-089: the new timestamp is the maximum, so the file moves to
+			// one edge of its sibling group and no other pair changes order.
+			// Rebuilding the model for that made every tab switch stutter.
+			if (file && this.treeView && this._treeRenderOpts) {
+				const result = moveNodeToSiblingEdge(
+					this._treeRenderOpts.nodes as TreeNode<FileMeta>[],
+					file.path,
+					recencyEdgeForDirection(this.sortDir),
+				);
+				// Re-opening the file already at the edge, or bouncing between
+				// the top two, changes nothing and must cost nothing.
+				if (!result.changed) return;
+				this._bubbleTree = result.nodes;
+				this._treeRenderOpts = { ...this._treeRenderOpts, nodes: result.nodes };
+				this.treeView.render(this._treeRenderOpts);
+				return;
+			}
+			// Table and Cards have no equivalent projection yet.
+			this._render();
 		});
 	};
 
