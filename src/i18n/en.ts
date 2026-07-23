@@ -405,7 +405,7 @@ export const en: Record<string, string> = {
 		'Drag along the index to magnify glyphs and scrub between groups. Off keeps the index static.',
 	'settings.toc_plain_style': 'Plain rail style',
 	'settings.toc_plain_style.desc':
-		'Bare glyphs with transparent control nodes (no boxes), like the prototype.',
+		'Bare glyphs with transparent control nodes (no boxes)',
 	'settings.toc_position': 'Rail position',
 	'settings.toc_position.right': 'Right',
 	'settings.toc_position.left': 'Left',
