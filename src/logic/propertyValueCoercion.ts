@@ -1,6 +1,128 @@
 import type { PropertyType } from '../types/typeOps';
 
-const FALSEY_CHECKBOX_VALUES = new Set(['false', '0', 'no', 'none', 'null', '']);
+const FALSEY_CHECKBOX_VALUES = new Set([
+	'false',
+	'0',
+	'no',
+	'none',
+	'null',
+	'',
+]);
+
+export type PropertyValueConversionId =
+	| 'lowercase'
+	| 'uppercase'
+	| 'titlecase'
+	| 'wikilink';
+
+export interface PropertyValueConversionOption {
+	id: PropertyValueConversionId;
+	actionId: string;
+	labelKey: string;
+	icon: string;
+}
+
+export const PROPERTY_VALUE_CONVERSION_OPTIONS: readonly PropertyValueConversionOption[] =
+	[
+		{
+			id: 'lowercase',
+			actionId: 'value.case-lower',
+			labelKey: 'explorer.ctx.lowercase',
+			icon: 'lucide-case-lower',
+		},
+		{
+			id: 'uppercase',
+			actionId: 'value.case-upper',
+			labelKey: 'explorer.ctx.uppercase',
+			icon: 'lucide-case-upper',
+		},
+		{
+			id: 'titlecase',
+			actionId: 'value.case-title',
+			labelKey: 'explorer.ctx.titlecase',
+			icon: 'lucide-type',
+		},
+		{
+			id: 'wikilink',
+			actionId: 'value.convert-wikilink',
+			labelKey: 'explorer.ctx.wikilink',
+			icon: 'lucide-link',
+		},
+	];
+
+function isFullWikilink(value: string): boolean {
+	const trimmed = value.trim();
+	return (
+		trimmed.length > 4 &&
+		trimmed.startsWith('[[') &&
+		trimmed.endsWith(']]')
+	);
+}
+
+export function convertPropertyValue(
+	raw: string,
+	conversion: PropertyValueConversionId,
+): string {
+	switch (conversion) {
+		case 'lowercase':
+			return raw.toLowerCase();
+		case 'uppercase':
+			return raw.toUpperCase();
+		case 'titlecase':
+			return raw
+				.toLowerCase()
+				.replace(
+					/(^|[\s\-_./])(\p{L})/gu,
+					(_match, prefix: string, letter: string) =>
+						`${prefix}${letter.toUpperCase()}`,
+				);
+		case 'wikilink': {
+			const value = raw.trim();
+			if (!value || isFullWikilink(value)) return raw;
+			return `[[${value}]]`;
+		}
+	}
+}
+
+export function availablePropertyValueConversions(
+	propType: string | undefined,
+	raw: string,
+	isTypeIncompatible = false,
+): PropertyValueConversionOption[] {
+	const normalizedType = propType === 'multitext' ? 'list' : propType;
+	if (
+		isTypeIncompatible ||
+		(normalizedType !== 'text' && normalizedType !== 'list') ||
+		!raw.trim() ||
+		isFullWikilink(raw)
+	) {
+		return [];
+	}
+	return PROPERTY_VALUE_CONVERSION_OPTIONS.filter(
+		(option) => convertPropertyValue(raw, option.id) !== raw,
+	);
+}
+
+export function replaceMatchingPropertyValue(
+	currentValue: unknown,
+	oldValue: string,
+	newValue: unknown,
+): { changed: boolean; value: unknown } {
+	if (Array.isArray(currentValue)) {
+		const values: unknown[] = currentValue;
+		let changed = false;
+		const value = values.map((item) => {
+			if (String(item) !== oldValue) return item;
+			changed = true;
+			return newValue;
+		});
+		return { changed, value: changed ? value : currentValue };
+	}
+	if (String(currentValue) === oldValue) {
+		return { changed: true, value: newValue };
+	}
+	return { changed: false, value: currentValue };
+}
 
 export function parsePropertyValue(raw: string, type: PropertyType): unknown {
 	switch (type) {

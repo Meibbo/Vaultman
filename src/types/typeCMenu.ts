@@ -29,6 +29,7 @@ export interface ActionDef {
 	icon?: string;
 	checked?: boolean | ((ctx: MenuCtx) => boolean);
 	submenu?: string;
+	submenuIcon?: string;
 	section?: string;
 	separatorBefore?: boolean;
 	when?: (ctx: MenuCtx) => boolean;

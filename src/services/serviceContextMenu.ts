@@ -336,10 +336,7 @@ export class ContextMenuService extends Component {
 				if (sm) {
 					targetMenu = sm;
 				} else {
-					const icon =
-						submenuLabel === 'Convert'
-							? 'lucide-arrow-right-left'
-							: 'lucide-chevron-right';
+					const icon = def.submenuIcon ?? 'lucide-chevron-right';
 					menu.addItem((i: MenuItem) => {
 						i.setTitle(submenuLabel).setIcon(icon);
 						// Internal API for submenus in modern Obsidian

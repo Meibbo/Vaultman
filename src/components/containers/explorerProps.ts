@@ -55,8 +55,8 @@ import {
 } from '../../utils/badgeInteraction';
 import {
 	comparePropTypes,
+	EDITABLE_PROP_TYPE_OPTIONS,
 	resolveNativePropType,
-	TYPE_ICON_MAP,
 	toNativePropType,
 	type MetadataTypeManagerLike,
 } from '../../logic/propTypes';
@@ -81,7 +81,14 @@ import {
 	resolveInteractionAction,
 	type InteractionMode,
 } from '../../logic/logicInteractionMode';
-import { parsePropertyValue } from '../../logic/propertyValueCoercion';
+import {
+	availablePropertyValueConversions,
+	convertPropertyValue,
+	parsePropertyValue,
+	PROPERTY_VALUE_CONVERSION_OPTIONS,
+	replaceMatchingPropertyValue,
+	type PropertyValueConversionId,
+} from '../../logic/propertyValueCoercion';
 import { renderPropertyValue } from '../../utils/renderPropertyValue';
 import {
 	readVaultmanDragPayload,
@@ -224,36 +231,24 @@ export class PropsExplorerPanel extends Component {
 		});
 
 		// Change type actions
-		const types = [
-			'text',
-			'number',
-			'checkbox',
-			'date',
-			'datetime',
-			'list',
-		] as const;
-		const typeLabels: Record<(typeof types)[number], string> = {
-			text: 'Text',
-			number: 'Number',
-			checkbox: 'Checkbox',
-			date: 'Date',
-			datetime: 'Date & Time',
-			list: 'List',
-		};
-		types.forEach((type) => {
+		for (const option of EDITABLE_PROP_TYPE_OPTIONS) {
 			svc.registerAction({
-				id: `prop.type-${type}`,
+				id: `prop.type-${option.type}`,
 				nodeTypes: ['prop'],
 				surfaces: ['panel'],
-				label: typeLabels[type],
-				icon: TYPE_ICON_MAP[type],
-				submenu: 'Change type',
+				label: translate(option.labelKey),
+				icon: option.icon,
+				submenu: translate('explorer.ctx.change_type'),
 				when: (ctx) => !(ctx.node.meta as PropMeta).isValueNode,
 				checked: (ctx) =>
-					this._effectivePropType(ctx.node.meta as PropMeta) === type,
-				run: (ctx) => this._changePropType(ctx.node.label, type),
+					this._effectivePropType(ctx.node.meta as PropMeta) === option.type,
+				run: (ctx) => {
+					const meta = ctx.node.meta as PropMeta;
+					if (this._effectivePropType(meta) === option.type) return;
+					return this._changePropType(meta.propName, option.type);
+				},
 			});
-		});
+		}
 
 		// Value actions
 		svc.registerAction({
@@ -319,114 +314,35 @@ export class PropsExplorerPanel extends Component {
 			},
 		});
 
-		svc.registerAction({
-			id: 'value.case-lower',
-			nodeTypes: ['value'],
-			surfaces: ['panel'],
-			label: 'lowercase',
-			icon: 'lucide-case-lower',
-			submenu: 'Convert',
-			section: 'Text',
-			when: (ctx) => {
-				const meta = ctx.node.meta as PropMeta;
-				return (
-					meta.isValueNode &&
-					!meta.isTypeIncompatible &&
-					meta.propType === 'text'
-				);
-			},
-			run: (ctx) => {
-				const meta = ctx.node.meta as PropMeta;
-				return this._convertValue(
-					meta.propName,
-					meta.rawValue ?? '',
-					(v) => v.toLowerCase(),
-					'lowercase',
-				);
-			},
-		});
-
-		svc.registerAction({
-			id: 'value.case-upper',
-			nodeTypes: ['value'],
-			surfaces: ['panel'],
-			label: 'UPPERCASE',
-			icon: 'lucide-case-upper',
-			submenu: 'Convert',
-			section: 'Text',
-			when: (ctx) => {
-				const meta = ctx.node.meta as PropMeta;
-				return (
-					meta.isValueNode &&
-					!meta.isTypeIncompatible &&
-					meta.propType === 'text'
-				);
-			},
-			run: (ctx) => {
-				const meta = ctx.node.meta as PropMeta;
-				return this._convertValue(
-					meta.propName,
-					meta.rawValue ?? '',
-					(v) => v.toUpperCase(),
-					'uppercase',
-				);
-			},
-		});
-
-		svc.registerAction({
-			id: 'value.case-title',
-			nodeTypes: ['value'],
-			surfaces: ['panel'],
-			label: 'Titlecase',
-			icon: 'lucide-type',
-			submenu: 'Convert',
-			section: 'Text',
-			when: (ctx) => {
-				const meta = ctx.node.meta as PropMeta;
-				return (
-					meta.isValueNode &&
-					!meta.isTypeIncompatible &&
-					meta.propType === 'text'
-				);
-			},
-			run: (ctx) => {
-				const meta = ctx.node.meta as PropMeta;
-				return this._convertValue(
-					meta.propName,
-					meta.rawValue ?? '',
-					(v) => v.charAt(0).toUpperCase() + v.slice(1).toLowerCase(),
-					'title case',
-				);
-			},
-		});
-
-		svc.registerAction({
-			id: 'value.convert-wikilink',
-			nodeTypes: ['value'],
-			surfaces: ['panel'],
-			label: 'Wikilink',
-			icon: 'lucide-link',
-			submenu: 'Convert',
-			section: 'Text',
-			when: (ctx) => {
-				const meta = ctx.node.meta as PropMeta;
-				return (
-					meta.isValueNode &&
-					!meta.isTypeIncompatible &&
-					(meta.propType === 'text' || meta.propType === 'list') &&
-					!/^\[\[.*\]\]$/.test(meta.rawValue?.trim() ?? '')
-				);
-			},
-			run: (ctx) => {
-				const meta = ctx.node.meta as PropMeta;
-				return this._convertValue(
-					meta.propName,
-					meta.rawValue ?? '',
-					(value) => `[[${value}]]`,
-					'wikilink',
-				);
-			},
-		});
+		for (const option of PROPERTY_VALUE_CONVERSION_OPTIONS) {
+			svc.registerAction({
+				id: option.actionId,
+				nodeTypes: ['value'],
+				surfaces: ['panel'],
+				label: translate(option.labelKey),
+				icon: option.icon,
+				submenu: translate('explorer.ctx.convert'),
+				submenuIcon: 'lucide-arrow-right-left',
+				section: 'Text',
+				when: (ctx) => {
+					const meta = ctx.node.meta as PropMeta;
+					return availablePropertyValueConversions(
+						meta.propType,
+						meta.rawValue ?? '',
+						meta.isTypeIncompatible,
+					).some((candidate) => candidate.id === option.id);
+				},
+				run: (ctx) => {
+					const meta = ctx.node.meta as PropMeta;
+					return this._convertValue(
+						meta.propName,
+						meta.rawValue ?? '',
+						option.id,
+						translate(option.labelKey),
+					);
+				},
+			});
+		}
 
 		svc.registerAction({
 			id: 'value.delete',
@@ -1801,15 +1717,12 @@ export class PropsExplorerPanel extends Component {
 	private async _convertValue(
 		propName: string,
 		oldValue: string,
-		transform: (v: string) => string,
+		conversion: PropertyValueConversionId,
 		details: string,
 	): Promise<void> {
-		await this._replaceValueInVault(
-			propName,
-			oldValue,
-			transform(oldValue),
-			details,
-		);
+		const newValue = convertPropertyValue(oldValue, conversion);
+		if (newValue === oldValue) return;
+		await this._replaceValueInVault(propName, oldValue, newValue, details);
 	}
 
 	private async _setCheckboxValue(
@@ -1831,6 +1744,7 @@ export class PropsExplorerPanel extends Component {
 		newValue: unknown,
 		label?: string,
 	): Promise<void> {
+		if (String(newValue) === oldValue) return;
 		const files = this._getFilesWithValue(propName, oldValue);
 		this.plugin.queueService.addOrRun({
 			type: 'property',
@@ -1845,22 +1759,14 @@ export class PropsExplorerPanel extends Component {
 			customLogic: true,
 			logicFunc: (_file, fm) => {
 				if (!(propName in fm)) return null;
-				const val = fm[propName];
-				let changed = false;
-				if (Array.isArray(val)) {
-					const newArr = (val as unknown[]).map((v) => {
-						if (String(v) === oldValue) {
-							changed = true;
-							return newValue;
-						}
-						return v;
-					});
-					if (changed) fm[propName] = newArr;
-				} else if (String(val) === oldValue) {
-					fm[propName] = newValue;
-					changed = true;
-				}
-				return changed ? fm : null;
+				const replacement = replaceMatchingPropertyValue(
+					fm[propName],
+					oldValue,
+					newValue,
+				);
+				if (!replacement.changed) return null;
+				fm[propName] = replacement.value;
+				return fm;
 			},
 		});
 	}

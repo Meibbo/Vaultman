@@ -37,7 +37,7 @@ describe('BT5-036 per-kind node context menus', () => {
 		// These still register — the fix restores them by routing, not re-adding.
 		expect(propsSource).toContain("id: 'prop.rename'");
 		expect(propsSource).toContain("id: 'prop.delete'");
-		expect(propsSource).toContain("submenu: 'Change type'");
+		expect(propsSource).toContain("submenu: translate('explorer.ctx.change_type')");
 		expect(tagsSource).toContain("id: 'tag.rename'");
 		expect(tagsSource).toContain("id: 'tag.delete'");
 	});

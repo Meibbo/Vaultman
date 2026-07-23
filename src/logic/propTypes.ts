@@ -11,6 +11,37 @@ export const TYPE_ICON_MAP: Record<string, string> = {
 	cssclasses: 'lucide-palette',
 };
 
+export type EditablePropType =
+	| 'text'
+	| 'number'
+	| 'checkbox'
+	| 'date'
+	| 'datetime'
+	| 'list';
+
+export interface EditablePropTypeOption {
+	type: EditablePropType;
+	labelKey: string;
+	icon: string;
+}
+
+export const EDITABLE_PROP_TYPE_OPTIONS: readonly EditablePropTypeOption[] = [
+	{ type: 'text', labelKey: 'prop.type.text', icon: TYPE_ICON_MAP.text },
+	{ type: 'number', labelKey: 'prop.type.number', icon: TYPE_ICON_MAP.number },
+	{
+		type: 'checkbox',
+		labelKey: 'prop.type.checkbox',
+		icon: TYPE_ICON_MAP.checkbox,
+	},
+	{ type: 'date', labelKey: 'prop.type.date', icon: TYPE_ICON_MAP.date },
+	{
+		type: 'datetime',
+		labelKey: 'prop.type.datetime',
+		icon: TYPE_ICON_MAP.datetime,
+	},
+	{ type: 'list', labelKey: 'prop.type.list', icon: TYPE_ICON_MAP.list },
+];
+
 export const PROP_TYPE_ORDER = [
 	'tags',
 	'list',
@@ -110,6 +141,9 @@ export function normalizePropType(
 	if (normalizedType === 'boolean') return 'checkbox';
 	if (normalizedType === 'numeric') return 'number';
 	if (normalizedType === 'multitext') return 'list';
+	if (normalizedType === 'date-time' || normalizedType === 'date_time') {
+		return 'datetime';
+	}
 	if (normalizedType === 'list') return 'list';
 	if (normalizedType in TYPE_ICON_MAP) return normalizedType;
 	return 'unknown';

@@ -568,6 +568,7 @@ export const en: Record<string, string> = {
 	// Explorer context menu — properties
 	'explorer.ctx.rename': 'Rename',
 	'explorer.ctx.type': 'Property type',
+	'explorer.ctx.change_type': 'Change type',
 	'explorer.ctx.delete_prop': 'Delete property',
 	'explorer.ctx.add_value': 'Add value',
 
@@ -577,11 +578,12 @@ export const en: Record<string, string> = {
 	'explorer.ctx.delete_value': 'Delete value',
 
 	// Explorer convert submenu
-	'explorer.ctx.wikilink': 'To [[wikilink]]',
+	'explorer.ctx.wikilink': 'Wikilink',
 	'explorer.ctx.wikilink_alias': 'To [[note|alias]]',
 	'explorer.ctx.md_link': 'To [alias](note)',
 	'explorer.ctx.uppercase': 'UPPERCASE',
 	'explorer.ctx.lowercase': 'lowercase',
+	'explorer.ctx.titlecase': 'Titlecase',
 	'explorer.ctx.capitalize': 'First Letter Case',
 	'explorer.ctx.filter_include': 'Add as filter',
 	'explorer.ctx.filter_exclude': 'Exclude as filter',

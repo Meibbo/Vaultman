@@ -28,8 +28,8 @@ describe('Props explorer context-menu source guards', () => {
 		);
 		expect(propertyManagerSource).not.toContain('private parseValue');
 		expect(propertyManagerSource).not.toContain('private convertType');
-		expect(propsExplorerSource).toContain(
-			"import { parsePropertyValue } from '../../logic/propertyValueCoercion';",
+		expect(propsExplorerSource).toMatch(
+			/import\s*\{[^}]*parsePropertyValue[^}]*\}\s*from '\.\.\/\.\.\/logic\/propertyValueCoercion';/s,
 		);
 	});
 });
