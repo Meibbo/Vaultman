@@ -597,6 +597,7 @@ export const es: Record<string, string> = {
 	'explorer.ctx.uppercase': 'MAYÚSCULAS',
 	'explorer.ctx.lowercase': 'minúsculas',
 	'explorer.ctx.titlecase': 'Tipo título',
+	'explorer.ctx.plain_text': 'Texto plano',
 	'explorer.ctx.capitalize': 'Primera Letra Mayúscula',
 	'explorer.ctx.filter_include': 'Agregar como filtro',
 	'explorer.ctx.filter_exclude': 'Excluir como filtro',

@@ -50,6 +50,7 @@ describe('BT5-054 property context-menu model', () => {
 			'explorer.ctx.uppercase',
 			'explorer.ctx.titlecase',
 			'explorer.ctx.wikilink',
+			'explorer.ctx.plain_text',
 		]);
 		expect(en['explorer.ctx.change_type']).toBe('Change type');
 		expect(en['explorer.ctx.convert']).toBe('Convert');
@@ -57,6 +58,8 @@ describe('BT5-054 property context-menu model', () => {
 		expect(en['explorer.ctx.uppercase']).toBe('UPPERCASE');
 		expect(en['explorer.ctx.titlecase']).toBe('Titlecase');
 		expect(en['explorer.ctx.wikilink']).toBe('Wikilink');
+		expect(en['explorer.ctx.plain_text']).toBe('Plain text');
+		expect(es['explorer.ctx.plain_text']).toBe('Texto plano');
 		expect(es['explorer.ctx.change_type']).toBe('Cambiar tipo');
 		expect(es['explorer.ctx.convert']).toBe('Convertir');
 	});
@@ -77,9 +80,14 @@ describe('BT5-054 property context-menu model', () => {
 				(option) => option.id,
 			),
 		).toEqual(['lowercase', 'uppercase', 'wikilink']);
-		expect(availablePropertyValueConversions('text', '[[Release]]')).toEqual(
-			[],
-		);
+		// Convert is bidirectional: an already-linked value keeps the case
+		// conversions, which apply to its name, and gains the inverse option.
+		// It must never collapse to an empty, and therefore hidden, submenu.
+		expect(
+			availablePropertyValueConversions('text', '[[Release]]').map(
+				(option) => option.id,
+			),
+		).toEqual(['lowercase', 'uppercase', 'plain']);
 		expect(availablePropertyValueConversions('text', '')).toEqual([]);
 		expect(availablePropertyValueConversions('checkbox', 'true')).toEqual([]);
 		expect(availablePropertyValueConversions('text', 'Release', true)).toEqual(
@@ -100,6 +108,13 @@ describe('BT5-054 property context-menu model', () => {
 		expect(convertPropertyValue(' Release ', 'wikilink')).toBe('[[Release]]');
 		expect(convertPropertyValue('[[Release]]', 'wikilink')).toBe('[[Release]]');
 		expect(convertPropertyValue('   ', 'wikilink')).toBe('   ');
+		expect(convertPropertyValue('[[Release]]', 'plain')).toBe('Release');
+		expect(convertPropertyValue('Release', 'plain')).toBe('Release');
+		// Unwrapping is lossless, so an aliased link round-trips.
+		expect(convertPropertyValue('[[note|alias]]', 'plain')).toBe('note|alias');
+		expect(convertPropertyValue('[[Release]]', 'lowercase')).toBe(
+			'[[release]]',
+		);
 	});
 
 	it('replaces represented scalar/list values without degrading other members', () => {

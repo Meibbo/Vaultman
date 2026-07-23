@@ -13,7 +13,8 @@ export type PropertyValueConversionId =
 	| 'lowercase'
 	| 'uppercase'
 	| 'titlecase'
-	| 'wikilink';
+	| 'wikilink'
+	| 'plain';
 
 export interface PropertyValueConversionOption {
 	id: PropertyValueConversionId;
@@ -48,6 +49,12 @@ export const PROPERTY_VALUE_CONVERSION_OPTIONS: readonly PropertyValueConversion
 			labelKey: 'explorer.ctx.wikilink',
 			icon: 'lucide-link',
 		},
+		{
+			id: 'plain',
+			actionId: 'value.convert-plain',
+			labelKey: 'explorer.ctx.plain_text',
+			icon: 'lucide-unlink',
+		},
 	];
 
 function isFullWikilink(value: string): boolean {
@@ -71,8 +78,11 @@ export function convertPropertyValue(
 		case 'titlecase':
 			return raw
 				.toLowerCase()
+				// Brackets and parens open a word too, otherwise `[[release]]`
+				// would come back unchanged and Titlecase would be a duplicate
+				// of lowercase for every linked value.
 				.replace(
-					/(^|[\s\-_./])(\p{L})/gu,
+					/(^|[\s\-_./[(])(\p{L})/gu,
 					(_match, prefix: string, letter: string) =>
 						`${prefix}${letter.toUpperCase()}`,
 				);
@@ -80,6 +90,14 @@ export function convertPropertyValue(
 			const value = raw.trim();
 			if (!value || isFullWikilink(value)) return raw;
 			return `[[${value}]]`;
+		}
+		// The inverse of `wikilink`: Convert takes a text/list value into a link
+		// and back out again. Unwrapping keeps the inner text verbatim, so
+		// `[[note|alias]]` round-trips instead of silently losing its alias.
+		case 'plain': {
+			const value = raw.trim();
+			if (!isFullWikilink(value)) return raw;
+			return value.slice(2, -2);
 		}
 	}
 }
@@ -93,11 +111,13 @@ export function availablePropertyValueConversions(
 	if (
 		isTypeIncompatible ||
 		(normalizedType !== 'text' && normalizedType !== 'list') ||
-		!raw.trim() ||
-		isFullWikilink(raw)
+		!raw.trim()
 	) {
 		return [];
 	}
+	// An already-linked value used to bail here, which hid the whole Convert
+	// submenu. Convert is bidirectional, so a wikilink still offers the case
+	// conversions (they apply to its name) and the inverse `plain` option.
 	return PROPERTY_VALUE_CONVERSION_OPTIONS.filter(
 		(option) => convertPropertyValue(raw, option.id) !== raw,
 	);
