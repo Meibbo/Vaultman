@@ -223,9 +223,9 @@ export const en: Record<string, string> = {
 	'sort.by.tasks': 'Remaining tasks',
 	'viewmode.pill.tasks': 'Tasks',
 	'file.ctx.exclude': 'Exclude file',
-	'settings.explorer_page': 'Explorer',
+	'settings.explorer_page': 'Panel Explorer',
 	'settings.explorer_page.desc':
-		'Cells, badges and highlight behavior for the explorers.',
+		'Customize globally your explorers. Tweak cells, badges and highlight behavior.',
 	'settings.context_menu.page_desc':
 		'Where Vaultman items appear in workspace context menus.',
 	'settings.style_preset': 'Style preset',
@@ -311,8 +311,8 @@ export const en: Record<string, string> = {
 	'settings.toolbar_tools_menu': 'Condense Files tools',
 	'settings.toolbar_tools_menu.desc':
 		'Replace Auto-reveal and Expand/Collapse with one native Tools menu so the Files toolbar stays at five nodes.',
-	'settings.toolbar': 'Toolbar',
-	'settings.toolbar.desc': 'Configure labels and explorer toolbar controls.',
+	'settings.toolbar': 'Widget: Toolbar',
+	'settings.toolbar.desc': 'Configure how this navbar and its buttons behaves. Or add custom commands here.',
 	'settings.context_menu_kind.files': 'Files node menu',
 	'settings.context_menu_kind.props': 'Properties node menu',
 	'settings.context_menu_kind.tags': 'Tags node menu',
@@ -350,9 +350,9 @@ export const en: Record<string, string> = {
 	'settings.files_hover_info.opened': 'Last opened',
 	'settings.files_hover_info.words': 'Words',
 	'settings.files_hover_info.characters': 'Characters',
-	'settings.show_dock': 'Show bottom dock',
+	'settings.show_dock': 'Widget: Node Dock',
 	'settings.show_dock.desc':
-		'Show the bottom dock. When disabled, Filters and Queue stay in the Data tab menu.',
+		'When enabled, Statistics, Filters and Queue will separate from the Tab menu.',
 	'settings.bypass_operations': 'Bypass operations',
 	'settings.bypass_operations.desc':
 		'Run operations immediately instead of staging them in the queue.',
@@ -392,9 +392,9 @@ export const en: Record<string, string> = {
 	'settings.saved_view_config.empty':
 		'No saved view composition. Use "Save layout" in the view menu to remember view options and sorts per tab.',
 	'settings.saved_view_config.clear': 'Clear',
-	'settings.floating_toc': 'Floating Index',
+	'settings.floating_toc': 'Widget: Floating Index',
 	'settings.floating_toc.desc':
-		'Configure the explorer index and Niagara behavior.',
+		'Customize the explorer index and Niagara behavior.',
 	'settings.configure': 'Configure',
 	'settings.back_to_layout_settings': 'Back to Layout Configuration',
 	'settings.floating_toc_enable': 'Enable floating TOC',
@@ -683,9 +683,9 @@ export const en: Record<string, string> = {
 
 	// View mode settings
 	'settings.view_section': 'View',
-	'settings.open_mode': 'Default view',
+	'settings.open_mode': 'Where to Open Vaultman',
 	'settings.open_mode.desc':
-		'What to open when clicking the Vaultman ribbon icon',
+		'Select what the "Open Vaultman" command and ribbon icon does, selecting "Sidebar|Main leaf" will create one instance and close it if you invoke the command again',
 	'settings.open_mode.sidebar': 'Sidebar',
 	'settings.open_mode.main': 'Main leaf (full-width)',
 	'settings.open_mode.new_instance': 'New instance',

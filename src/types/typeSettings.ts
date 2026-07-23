@@ -324,7 +324,7 @@ export const DEFAULT_SETTINGS: VaultmanSettings = {
 	showToolbar: true,
 	bypassOperations: false,
 	suppressBulkOperationWarning: false,
-	bulkOperationWarningThreshold: 400,
+	bulkOperationWarningThreshold: 200,
 	performanceHudEnabled: false,
 	filtersTabLabelsMigrated: true,
 	viewCompositionsSeeded: false,
