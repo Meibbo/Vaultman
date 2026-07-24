@@ -1,3 +1,4 @@
+/* eslint-disable obsidianmd/prefer-window-timers -- this test stubs window.setTimeout itself */
 import type { App, CachedMetadata, TFile, TFolder, Vault } from 'obsidian';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -69,10 +70,8 @@ describe('BT5-092 filtered set follows vault deletions', () => {
 		// advanceTimersByTime drives the debounce. Typed as a function to avoid
 		// the implied-eval lint on a bare setTimeout.
 		vi.stubGlobal('window', {
-			// eslint-disable-next-line obsidianmd/prefer-window-timers -- stubbing window itself
 			setTimeout: (handler: () => void, timeout?: number) =>
 				setTimeout(handler, timeout),
-			// eslint-disable-next-line obsidianmd/prefer-window-timers -- stubbing window itself
 			clearTimeout: (id?: number) => clearTimeout(id),
 		});
 	});
