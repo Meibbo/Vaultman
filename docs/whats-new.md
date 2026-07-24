@@ -41,7 +41,7 @@ a round of stabilization.
   commands stop closing Vaultman, the Properties Convert menu works both ways, a
   deleted file's node no longer lingers, and the inline rename box stays in its row.
 
-[Full changelog](../CHANGELOG.md#120---2026-07-23)
+[Full changelog](../CHANGELOG.md#120---2026-07-24)
 
 <a id="v1-2-0-beta-7"></a>
 ## 1.2.0-beta.7 — Stabilizing toward 1.2.0
