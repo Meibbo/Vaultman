@@ -33,6 +33,7 @@
 - Made applying a filter evaluate the vault once and derive the filtered order in linear time instead of re-sorting the subset on every change.
 - Changed the default open mode for new vaults to open Vaultman in its own tab instead of the sidebar; existing vaults keep their saved choice.
 - Made Layout Configuration the first settings section, and set new vaults to default to the compact preset without tab labels and to single-click badge cancel; existing vaults keep their saved values.
+- Reorganized and relabeled the settings: the Layout Configuration entries use a Widget: naming scheme, the open-mode and Explorer controls were retitled with clearer descriptions, and the bulk-operation warning now defaults to 200 files.
 
 ## Fixed
 
@@ -51,6 +52,7 @@
 - Fixed explorer and floating-index controls appearing disproportionately small on high-density mobile displays.
 - Fixed the Content preview reading "with active filters" in accent; it now reports "with N excluded" in primary text, and a staged content replace is labeled "Replace" in the queue.
 - Fixed the Properties Convert submenu disappearing on a value that was already a wikilink; it now keeps the case conversions and offers a Plain text inverse, and Titlecase no longer duplicates lowercase for linked values.
+- Fixed a deleted file's node lingering in the Files explorer after the file was already gone, and newly created files not appearing until another refresh, by recomputing the filtered set whenever the vault gains or loses a file.
 - Fixed the focus commands closing Vaultman when it was already open in sidebar or main mode; only the explicit Open command toggles now.
 - Fixed the inline rename editor spilling out of its row and covering the neighbouring cells; it now takes the row height.
 - Fixed the Last opened sort ordering folders alphabetically instead of by the newest note opened beneath them, and made recency ties fall back to modification time so a folder no longer drifts to the top for no reason.
