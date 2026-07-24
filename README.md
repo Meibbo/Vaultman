@@ -2,6 +2,8 @@
 
 [![GitHub open issues](https://img.shields.io/github/issues/Meibbo/vaultman?style=for-the-badge&color=white&logo=git&logoColor=white)](https://github.com/Meibbo/vaultman/issues)![License](https://img.shields.io/github/license/Meibbo/vaultman?color=white&label=license&style=for-the-badge)[![GitHub stars](https://img.shields.io/github/stars/Meibbo/vaultman?style=for-the-badge&color=white)](https://github.com/Meibbo/vaultman/stargazers)![Obsidian](https://img.shields.io/badge/required-%E2%89%A51.12.0-white?style=for-the-badge&logo=obsidian)
 
+![vm-update-v1_2_0](./img/vm-update-v1_2_0.gif)
+
 > The Symbiont Manager, morphs and adapts your workspace to your needs.
 
 This plugin aims to expand your Obsidian Core plugins, adding functionality and flexibility to the data and metadata explorers you already know.
@@ -62,9 +64,10 @@ The main interface lives in the sidebar, with a toolbar that lets you choose its
 
 You can make granular configurations to your experience from the extense number of options available on the plugin settings panel.
 
-Compatibility and adapters with other plugins are being added to help you decide which functionality would you want to be expanded and which doesn't need to be duplicated on your workflow.
+Compatibility and adapters with other plugins are being added to help you decide which functionality would you want to be expanded without duplicating your workflow.
 
 ### Providers
+All this data is extracted from Obsidian core-plugins and their API and have distinctive co-interaction within vm-systems.
 
 - **Properties**: Every property and value in your vault, built from the Obsidian frontmatter index to manage your notes metadata.
 
@@ -72,8 +75,10 @@ Compatibility and adapters with other plugins are being added to help you decide
 
 - **Tags**: Gives you power to arrange your tags and set them in the frontmatter of your notes.
 
-- **Content**: (WIP) Provides functionality to scope by content of your notes. 
+- **Text**: Provides a scope option based on the content of your notes. 
+
 - **Snippets**: Quickly activate/deactivate snippets from your vault.  
+
 - **Plugins**: Quickly activate/deactivate or config your installed plugins.
 
 ### Explorer panels
