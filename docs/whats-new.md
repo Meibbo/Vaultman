@@ -21,12 +21,12 @@ One inviting sentence that explains who benefits and why.
 -->
 
 <a id="v1-2-0"></a>
-## 1.2.0 — More to configure, fewer papercuts
+## 1.2.0 | More to configure, more to try, better to use
 <!-- reviewed: true -->
 
-The first stable of the 1.2 line. It brings everything from the 1.2.0 betas —
+The first stable of the 1.2 line. It brings everything from the 1.2.0 betas:
 configurable node menus, a shapeable toolbar, richer file info and statistics, a
-shared glyph-color palette, and ready-made View Compositions — and finishes with
+shared glyph-color palette, and ready-made View Compositions, and finishes with
 a round of stabilization.
 
 - **Everything from the betas:** Per-node context menus you can reorder and
@@ -44,7 +44,7 @@ a round of stabilization.
 [Full changelog](../CHANGELOG.md#120---2026-07-24)
 
 <a id="v1-2-0-beta-7"></a>
-## 1.2.0-beta.7 — Stabilizing toward 1.2.0
+## 1.2.0-beta.7 | Stabilizing toward 1.2.0
 <!-- reviewed: true -->
 
 The last beta before the 1.2.0 stable: a round of fixes for the papercuts found
@@ -62,7 +62,7 @@ while testing beta.6.
 [Full changelog](../CHANGELOG.md#120-beta7---2026-07-23)
 
 <a id="v1-2-0-beta-6"></a>
-## 1.2.0-beta.6 — More to configure, fewer papercuts
+## 1.2.0-beta.6 | More to configure, fewer papercuts
 <!-- reviewed: true -->
 
 This beta puts more of the explorers under your control and clears out a batch of
@@ -90,7 +90,7 @@ small interaction bugs.
 [Full changelog](../CHANGELOG.md#120-beta6---2026-07-21)
 
 <a id="v1-2-0-beta-5"></a>
-## 1.2.0-beta.5 — Calmer typing, tidier explorers
+## 1.2.0-beta.5 | Calmer typing, tidier explorers
 <!-- reviewed: true -->
 
 This beta focuses on how the explorers feel while you work: less background noise
@@ -112,7 +112,7 @@ while you type, and clearer control over what each row shows.
 [Full changelog](../CHANGELOG.md#120-beta5---2026-07-20)
 
 <a id="v1-2-0-beta-4"></a>
-## 1.2.0-beta.4 — More capable explorers, less friction
+## 1.2.0-beta.4 | More capable explorers, less friction
 <!-- reviewed: true -->
 
 This beta makes Vaultman's explorer workspace quicker to navigate and more useful for
