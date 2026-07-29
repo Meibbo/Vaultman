@@ -112,8 +112,7 @@ tocan (el caret ya posee esa columna). Guard reescrito.
 
 ## BT5-018 — dos correcciones del dev (`b4f0815a`)
 
-1. **La sub-page ahora vive dentro** de la página de context menus existente, no
-   como entrada hermana en el root; su botón de volver regresa allí.
+1. **La sub-page ahora vive dentro** de la página de context menus existente, no como entrada hermana en el root; su botón de volver regresa allí.
 2. **El catálogo listaba solo el registry propio.** Ahora también hace un probe
    del menú real: dispara el mismo evento `file-menu` contra un archivo de prueba
    y la raíz del vault, lee los títulos resultantes y los lista con un id estable

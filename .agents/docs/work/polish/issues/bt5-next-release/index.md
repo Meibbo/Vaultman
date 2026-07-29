@@ -58,92 +58,92 @@ la cola canónica para implementación nueva.
 
 ## Orden canónico
 
-| Issue | Título | Pri. | Tipo | Origen | Bloqueado por |
-|---|---|---:|---|---|---|
-| [[001-settings-rerender-hang|BT5-001]] | Hang por settings toolbar/dock/auto-reveal | P0 | AFK | BT4-028 | — |
-| [[002-workspace-leaf-reactivation-matrix|BT5-002]] | Explorer vacío al reactivar leaf: matriz de alcance | P0 | HITL | BT4-022 reabierto | — |
-| [[003-remaining-tasks-availability-pipeline|BT5-003]] | Remaining tasks: migración, hidratación y prioridad | P0 | AFK | regresión BT4-012 | — |
-| [[030-editor-typing-micro-stalls|BT5-030]] | Micro-cuelgues al escribir con una leaf Vaultman abierta | P0 | HITL | bug/regresión nuevo | — |
-| [[004-release-bulletin|BT5-004]] | Aviso in-app y boletín público acumulativo | P1 gate | HITL | nuevo | — |
-| [[005-sort-direction-semantics|BT5-005]] | Semántica global de sort arrows y defaults | P1 | AFK | BT4-036 + D4 | — |
-| [[006-contextual-expansion-action|BT5-006]] | Collapse/expand contextual a nested | P1 | AFK | nuevo | — |
-| [[007-popup-sort-parity|BT5-007]] | Paridad popupSort para By level | P1 | AFK | residual BT4-009 | — |
-| [[008-tags-scope-toolbar-sync|BT5-008]] | Tags toolbar refleja scope externo | P1 | AFK | residual BT4-009 | — |
-| [[009-exclusion-filter-rework|BT5-009]] | Exclusión de files como filtro por nodo | P1 | AFK | BT4-027 | — |
-| [[010-shared-cell-registry-hover-info|BT5-010]] | Registro compartido de cells + hover-info | P1 | AFK | BT4-025 + parte BT4-013 | — |
-| [[011-cell-activation-order|BT5-011]] | Cells por activación + menús por posición | P2 | AFK | nuevo | BT5-010 |
-| [[012-flat-path-cell|BT5-012]] | Path visible en Files plano | P2 | AFK | nuevo | BT5-010 |
-| [[013-last-opened-cell-sort|BT5-013]] | Last opened persistente: cell + sort | P2 | AFK | nuevo | BT5-010 |
-| [[014-tasks-statistics-card|BT5-014]] | Card Tasks en Statistics | P2 | AFK | BT4-032 | BT5-003 |
-| [[015-icon-in-caret-slot|BT5-015]] | Icon cell en slot del caret | P2 | AFK | BT4-026 | BT5-010 |
-| [[016-grid-to-cards-natural-height|BT5-016]] | Grid→Cards + box de altura natural | P2 | AFK | BT4-029 | — |
-| [[017-collapsed-badge-bubbling|BT5-017]] | Badge bubbling visible solo colapsado | P2 | AFK | BT4-035 | — |
-| [[018-files-context-menu-config|BT5-018]] | Context menu Files configurable | P2 | HITL | BT4-013 | — |
-| [[019-addon-icon-registry-picker|BT5-019]] | Registro/picker propio de iconos addon | P2 | AFK | residual BT4-030 | — |
-| [[029-addon-state-sort|BT5-029]] | State sort en addons + Type sort en Props/Tags | P2 | AFK | nuevo | — |
-| [[020-view-config-payload-preview|BT5-020]] | Preview completo del payload de View configs | P2 | AFK | BT4-034 | — |
-| [[021-toolbar-overflow-strategy|BT5-021]] | Overflow toolbar: condensed o scroll horizontal | P2 | AFK | nuevo D5 | — |
-| [[022-create-actions-placement|BT5-022]] | Create File/Folder: searchbox o toolbar | P2 | AFK | nuevo | — |
-| [[023-create-file-command-binding|BT5-023]] | Create File enlazable a comando Obsidian | P2 | AFK | nuevo | — |
-| [[024-custom-command-toolbar-actions|BT5-024]] | Comandos Obsidian como acciones de toolbar | P2 | AFK | nuevo | BT5-023 |
-| [[025-native-glyph-color-system|BT5-025]] | Sistema nativo de Glyph color para Index y Explorer | P2 | AFK | residual BT4-021 + D38 | — |
-| [[026-file-node-cell-glyph-color-override|BT5-026]] | Override de Glyph color por nodo o cell | P2 | HITL | nuevo | BT5-018, BT5-025 |
-| [[027-move-current-tab-workspace-region|BT5-027]] | Mover tab actual entre main leaf y sidebars | P2 | HITL | nuevo | — |
-| [[028-content-active-file-highlight|BT5-028]] | Highlight de archivo activo en Content Explorer | P1 | AFK | bug nuevo | — |
+| Issue                                         | Título    |                                                     Pri. | Tipo    | Origen | Bloqueado por           |                  |
+| --------------------------------------------- | --------- | -------------------------------------------------------: | ------- | ------ | ----------------------- | ---------------- |
+| [[001-settings-rerender-hang]]                | BT5-001   |               Hang por settings toolbar/dock/auto-reveal | P0      | AFK    | BT4-028                 | —                |
+| [[002-workspace-leaf-reactivation-matrix]]    | BT5-002]] |      Explorer vacío al reactivar leaf: matriz de alcance | P0      | HITL   | BT4-022 reabierto       | —                |
+| [[003-remaining-tasks-availability-pipeline]] | BT5-003]] |      Remaining tasks: migración, hidratación y prioridad | P0      | AFK    | regresión BT4-012       | —                |
+| [[030-editor-typing-micro-stalls]]            | BT5-030]] | Micro-cuelgues al escribir con una leaf Vaultman abierta | P0      | HITL   | bug/regresión nuevo     | —                |
+| [[004-release-bulletin]]                      | BT5-004]] |               Aviso in-app y boletín público acumulativo | P1 gate | HITL   | nuevo                   | —                |
+| [[005-sort-direction-semantics]]              | BT5-005]] |               Semántica global de sort arrows y defaults | P1      | AFK    | BT4-036 + D4            | —                |
+| [[006-contextual-expansion-action]]           | BT5-006]] |                      Collapse/expand contextual a nested | P1      | AFK    | nuevo                   | —                |
+| [[007-popup-sort-parity]]                     | BT5-007]] |                          Paridad popupSort para By level | P1      | AFK    | residual BT4-009        | —                |
+| [[008-tags-scope-toolbar-sync]]               | BT5-008]] |                       Tags toolbar refleja scope externo | P1      | AFK    | residual BT4-009        | —                |
+| [[009-exclusion-filter-rework]]               | BT5-009]] |                  Exclusión de files como filtro por nodo | P1      | AFK    | BT4-027                 | —                |
+| [[010-shared-cell-registry-hover-info]]       | BT5-010]] |                Registro compartido de cells + hover-info | P1      | AFK    | BT4-025 + parte BT4-013 | —                |
+| [[011-cell-activation-order]]                 | BT5-011]] |                Cells por activación + menús por posición | P2      | AFK    | nuevo                   | BT5-010          |
+| [[012-flat-path-cell]]                        | BT5-012]] |                              Path visible en Files plano | P2      | AFK    | nuevo                   | BT5-010          |
+| [[013-last-opened-cell-sort]]                 | BT5-013]] |                     Last opened persistente: cell + sort | P2      | AFK    | nuevo                   | BT5-010          |
+| [[014-tasks-statistics-card]]                 | BT5-014]] |                                 Card Tasks en Statistics | P2      | AFK    | BT4-032                 | BT5-003          |
+| [[015-icon-in-caret-slot]]                    | BT5-015]] |                              Icon cell en slot del caret | P2      | AFK    | BT4-026                 | BT5-010          |
+| [[016-grid-to-cards-natural-height]]          | BT5-016]] |                       Grid→Cards + box de altura natural | P2      | AFK    | BT4-029                 | —                |
+| [[017-collapsed-badge-bubbling]]              | BT5-017]] |                    Badge bubbling visible solo colapsado | P2      | AFK    | BT4-035                 | —                |
+| [[018-files-context-menu-config]]             | BT5-018]] |                          Context menu Files configurable | P2      | HITL   | BT4-013                 | —                |
+| [[019-addon-icon-registry-picker]]            | BT5-019]] |                   Registro/picker propio de iconos addon | P2      | AFK    | residual BT4-030        | —                |
+| [[029-addon-state-sort]]                      | BT5-029]] |           State sort en addons + Type sort en Props/Tags | P2      | AFK    | nuevo                   | —                |
+| [[020-view-config-payload-preview]]           | BT5-020]] |             Preview completo del payload de View configs | P2      | AFK    | BT4-034                 | —                |
+| [[021-toolbar-overflow-strategy]]             | BT5-021]] |          Overflow toolbar: condensed o scroll horizontal | P2      | AFK    | nuevo D5                | —                |
+| [[022-create-actions-placement]]              | BT5-022]] |                  Create File/Folder: searchbox o toolbar | P2      | AFK    | nuevo                   | —                |
+| [[023-create-file-command-binding]]           | BT5-023]] |                 Create File enlazable a comando Obsidian | P2      | AFK    | nuevo                   | —                |
+| [[024-custom-command-toolbar-actions]]        | BT5-024]] |               Comandos Obsidian como acciones de toolbar | P2      | AFK    | nuevo                   | BT5-023          |
+| [[025-native-glyph-color-system]]             | BT5-025]] |      Sistema nativo de Glyph color para Index y Explorer | P2      | AFK    | residual BT4-021 + D38  | —                |
+| [[026-file-node-cell-glyph-color-override]]   | BT5-026]] |                  Override de Glyph color por nodo o cell | P2      | HITL   | nuevo                   | BT5-018, BT5-025 |
+| [[027-move-current-tab-workspace-region]]     | BT5-027]] |              Mover tab actual entre main leaf y sidebars | P2      | HITL   | nuevo                   | —                |
+| [[028-content-active-file-highlight]]         | BT5-028]] |          Highlight de archivo activo en Content Explorer | P1      | AFK    | bug nuevo               | —                |
 
 ## Estado de implementación 2026-07-19
 
-| Issue           | Estado               | Evidencia principal                                                                                                                                                                         |
-| --------------- | -------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| BT5-001         | completed            | `c60e3bc7`; smoke `plugin-dev` 18 toggles + Auto-reveal, root/listeners estables                                                                                                            |
-| BT5-002         | pending HITL         | `c60e3bc7`; escenario main leaf focused/unfocused verde; falta matriz visual completa                                                                                                       |
-| BT5-003         | pending HITL         | `c60e3bc7`; cache/prioridad/persistencia verdes en `plugin-dev`; falta benchmark del vault grande por instrucción del dev                                                                   |
-| BT5-004         | pending release HITL | `14de6fbb`; implementación/preflight verdes; falta aprobar copy y verificar el tag publicado                                                                                                |
-| BT5-005         | completed            | `c60e3bc7`; defaults, flechas, Name/Path y adaptador Table cubiertos                                                                                                                        |
-| BT5-006         | completed            | `f1dbe2f5`; expansión disponible solo con `nested`, sin retirar Tools/Auto-reveal/overflow                                                                                                  |
-| BT5-007         | completed            | `f1dbe2f5`; navbar y popup comparten modelo/orden/visibilidad de sort + By level                                                                                                            |
-| BT5-008         | completed            | `f1dbe2f5`; sync externo Tags sin ping-pong, cubre lazy mount y remount tras Content                                                                                                        |
-| BT5-028         | completed            | `017d8049`; active-file separado de reveal, con open/rename/delete/cleanup ejecutables                                                                                                      |
-| BT5-030         | ✅ completed          | `149effc6` render diferido (`logicDeferredExplorerRender`); **validado por el dev en runtime 2026-07-20**: sin micro-cuelgues al escribir, "performance mejor que nunca". Gate HITL cerrado |
-| BT5-010         | ✅ completed          | `f2e4f8c3` registro central de cells + orden de hover; guards realineados en `fc709d33`/`143ff2e5`                                                                                          |
-| BT5-011         | ✅ completed          | `bf0e455c` modelo compartido + `ea498975` renderer (opción B elegida por el dev: todo cell es hermano del row en modo activación)                                                           |
-| BT5-016         | ✅ completed          | `374cc59c` + `6e78432d` + `29fcef24` Grid→Cards y altura natural con anclaje estable                                                                                                        |
-| BT5-017         | ✅ completed          | `eed4e8a3` dot de actividad en padre colapsado                                                                                                                                              |
-| BT5-019         | ✅ completed          | `d0928260` registro propio de iconos addon + picker FuzzySuggestModal                                                                                                                       |
-| BT5-020         | ✅ completed          | `79cdf33b` preview de payload de configs guardadas                                                                                                                                          |
-| BT5-029         | ✅ completed          | `e0157424` sorts semánticos State/Type                                                                                                                                                      |
-| BT5-012         | ✅ completed          | `7c2f5928` proyección del label plano: `file.name` / `file.path`, gate `requiresCellsOff: ['nested']` en el registry                                                                        |
-| BT5-013         | ✅ completed          | `843da5ab` store `last-opened.json` coalescido fuera de settings + cell, hover y sort desc                                                                                                  |
-| BT5-015         | ✅ completed          | `d396c3f0` icono en el slot del caret que ninguna expansión usa; caret y aria intactos en nodos expandibles                                                                                 |
-| BT5-018         | ⏳ pending HITL       | `a188d672` sub-page con DnD, dividers y submenús; merge por id contra el registry vivo. **Falta la revisión de UI del dev**                                                                 |
-| BT5-031         | ✅ completed          | `9cd1e3ac` Files escucha también `iconic.onChanged`, reutilizando el coalescer existente                                                                                                    |
-| BT5-032         | ✅ completed          | `577789c2` la vista deja de redactar tooltips; el builder del panel es el único dueño. Props/Tags/Content quedan sin hover                                                                  |
-| BT5-009         | ✅ completed          | `0a71532f` exclude file por el pipeline (`file_exclude`), sección de settings quitada; ahora session-scoped                                                                                 |
-| BT5-015         | ✅ corregido          | `dad3ef32` rehecho: el icono sale del flujo flex a la columna del caret, labels alineados (la versión `d396c3f0` no servía)                                                                 |
-| BT5-018         | ⏳ pending HITL       | `b4f0815a` sub-page anidada en context menus + items interceptados y menús padre listados; reorden nativo diferido                                                                          |
-| BUG click       | ✅ completed          | `4a61d419` el re-render redundante ya no se come el primer click (4 superficies)                                                                                                            |
-| BUG tooltip     | ✅ completed          | `eb8ad91d` tooltip armado en render, no en pointerenter; setting renombrado a Tooltip                                                                                                       |
-| BUG last-opened | ✅ completed          | `102bb0b6` Last opened se reordena en vivo al abrir un archivo                                                                                                                              |
-| BT5-014 | ✅ completed | `8efd427e` card Remaining tasks: suma cacheada en el snapshot, 3 scopes, sin rescan |
-| BT5-021 | ✅ completed | `57739ac5` overflow del toolbar: enum condensed/scroll, fade de overflow, scroll-margin |
-| BT5-022 | ✅ completed | `546c376d` placement de Create File/Folder (searchbox/toolbar), sin duplicar |
-| BT5-023 | ✅ completed | `3973ed29` Create File enlazable a comando de Obsidian; resolver + fallback seguro |
-| BT5-024 | ✅ completed | `546c376d` comandos de Obsidian como nodos de toolbar (add/remove/reorder, disabled reparable) |
-| BT5-025 | ✅ completed | `1b3031b2`+`beb545e3` paleta glyph compartida default/faint/accent/custom/rainbow; Floating Index + Explorer scope; rainbow-folders fuera de UI |
-| Renames | ✅ completed | `1b3031b2` View config→View Compositions, Layout Settings→Layout Configuration |
-| Sort menu | ✅ completed | `e86cd6f4` sin opciones de folder en table/cards ni con nested off |
-| Compositions | ✅ completed | `1b3031b2` seed borrable de Basic list + Preview |
-| BT5-033 | ⏳ in-progress | `3353cd88` Node icon scope renombrado/movido a Explorer; **grueso (compositions capturan showDock/showToolbar/etc) GRILL-GATED** |
-| BT5-034 | ✅ completed | `2bdea929` islands inferiores clampan su max-height a `--vaultman-frame-height`; smoke split pequeño pendiente del dev |
-| BT5-035 | 🆕 needs-triage | option `Condense tabs` (on=tab menu, off=tabbar experimental) + cmenus config granular por menú |
-| BT5-036 | ⏳ in-progress | `0f9fba74` cmenus por kind + `e0945039` content rename/delete (prompts nativos, configurable, smoked); snippet/plugin **BLOCKED** (Obsidian no ofrece confirm nativo — decisión del dev) |
-| BT5-037 | ✅ completed | `871a837e` statistics toolbar igual a los demás + card Opened today |
-| BT5-038 | ✅ completed | `6e64f28b` padre colapsado con filtro oculto recibe un dot, no la decoración; files intacto |
-| Content link | ✅ completed | `0f9fba74` "with active filters" pasa a link en el header, no botón por nodo |
-| BT5-039 | 🆕 needs-triage | reorder de nodos del toolbar + overflow real + "Fixed amount of nodes" + nueva sección |
-| BT5-040 | ✅ completed | `b4b625f7` folders muestran total recursivo de cells contables (words/props/tasks); fechas excluidas; default off |
-| BT5-041 | 🆕 needs-triage | cell_badge como cell configurable + separado en table + sort por badges bidimensional |
-| BT5-042 | ✅ completed | `ff083b91` toggle folder colapsado dot↔badges de descendientes; BT5-017 conservado; gate 909 tests |
+| Issue           | Estado          | Evidencia principal                                                                                                                                                                         |
+| --------------- | --------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| BT5-001         | completed       | `c60e3bc7`; smoke `plugin-dev` 18 toggles + Auto-reveal, root/listeners estables                                                                                                            |
+| BT5-002         | ✅ completed     | Validado y aceptado por el dev (HITL)                                                                                                                                                       |
+| BT5-003         | ✅ completed     | Validado y aceptado por el dev (HITL)                                                                                                                                                       |
+| BT5-004         | ✅ completed     | Validado y aceptado por el dev (HITL)                                                                                                                                                       |
+| BT5-005         | completed       | `c60e3bc7`; defaults, flechas, Name/Path y adaptador Table cubiertos                                                                                                                        |
+| BT5-006         | completed       | `f1dbe2f5`; expansión disponible solo con `nested`, sin retirar Tools/Auto-reveal/overflow                                                                                                  |
+| BT5-007         | completed       | `f1dbe2f5`; navbar y popup comparten modelo/orden/visibilidad de sort + By level                                                                                                            |
+| BT5-008         | completed       | `f1dbe2f5`; sync externo Tags sin ping-pong, cubre lazy mount y remount tras Content                                                                                                        |
+| BT5-028         | completed       | `017d8049`; active-file separado de reveal, con open/rename/delete/cleanup ejecutables                                                                                                      |
+| BT5-030         | ✅ completed     | `149effc6` render diferido (`logicDeferredExplorerRender`); **validado por el dev en runtime 2026-07-20**: sin micro-cuelgues al escribir, "performance mejor que nunca". Gate HITL cerrado |
+| BT5-010         | ✅ completed     | `f2e4f8c3` registro central de cells + orden de hover; guards realineados en `fc709d33`/`143ff2e5`                                                                                          |
+| BT5-011         | ✅ completed     | `bf0e455c` modelo compartido + `ea498975` renderer (opción B elegida por el dev: todo cell es hermano del row en modo activación)                                                           |
+| BT5-016         | ✅ completed     | `374cc59c` + `6e78432d` + `29fcef24` Grid→Cards y altura natural con anclaje estable                                                                                                        |
+| BT5-017         | ✅ completed     | `eed4e8a3` dot de actividad en padre colapsado                                                                                                                                              |
+| BT5-019         | ✅ completed     | `d0928260` registro propio de iconos addon + picker FuzzySuggestModal                                                                                                                       |
+| BT5-020         | ✅ completed     | `79cdf33b` preview de payload de configs guardadas                                                                                                                                          |
+| BT5-029         | ✅ completed     | `e0157424` sorts semánticos State/Type                                                                                                                                                      |
+| BT5-012         | ✅ completed     | `7c2f5928` proyección del label plano: `file.name` / `file.path`, gate `requiresCellsOff: ['nested']` en el registry                                                                        |
+| BT5-013         | ✅ completed     | `843da5ab` store `last-opened.json` coalescido fuera de settings + cell, hover y sort desc                                                                                                  |
+| BT5-015         | ✅ completed     | `d396c3f0` icono en el slot del caret que ninguna expansión usa; caret y aria intactos en nodos expandibles                                                                                 |
+| BT5-018         | ✅ completed     | `a188d672` sub-page con DnD, dividers y submenús. Validado y aceptado por el dev (HITL)                                                                                                     |
+| BT5-031         | ✅ completed     | `9cd1e3ac` Files escucha también `iconic.onChanged`, reutilizando el coalescer existente                                                                                                    |
+| BT5-032         | ✅ completed     | `577789c2` la vista deja de redactar tooltips; el builder del panel es el único dueño. Props/Tags/Content quedan sin hover                                                                  |
+| BT5-009         | ✅ completed     | `0a71532f` exclude file por el pipeline (`file_exclude`), sección de settings quitada; ahora session-scoped                                                                                 |
+| BT5-015         | ✅ corregido     | `dad3ef32` rehecho: el icono sale del flujo flex a la columna del caret, labels alineados (la versión `d396c3f0` no servía)                                                                 |
+| BT5-018         | ✅ completed     | `b4f0815a` sub-page anidada en context menus. Validado y aceptado por el dev (HITL)                                                                                                         |
+| BUG click       | ✅ completed     | `4a61d419` el re-render redundante ya no se come el primer click (4 superficies)                                                                                                            |
+| BUG tooltip     | ✅ completed     | `eb8ad91d` tooltip armado en render, no en pointerenter; setting renombrado a Tooltip                                                                                                       |
+| BUG last-opened | ✅ completed     | `102bb0b6` Last opened se reordena en vivo al abrir un archivo                                                                                                                              |
+| BT5-014         | ✅ completed     | `8efd427e` card Remaining tasks: suma cacheada en el snapshot, 3 scopes, sin rescan                                                                                                         |
+| BT5-021         | ✅ completed     | `57739ac5` overflow del toolbar: enum condensed/scroll, fade de overflow, scroll-margin                                                                                                     |
+| BT5-022         | ✅ completed     | `546c376d` placement de Create File/Folder (searchbox/toolbar), sin duplicar                                                                                                                |
+| BT5-023         | ✅ completed     | `3973ed29` Create File enlazable a comando de Obsidian; resolver + fallback seguro                                                                                                          |
+| BT5-024         | ✅ completed     | `546c376d` comandos de Obsidian como nodos de toolbar (add/remove/reorder, disabled reparable)                                                                                              |
+| BT5-025         | ✅ completed     | `1b3031b2`+`beb545e3` paleta glyph compartida default/faint/accent/custom/rainbow; Floating Index + Explorer scope; rainbow-folders fuera de UI                                             |
+| Renames         | ✅ completed     | `1b3031b2` View config→View Compositions, Layout Settings→Layout Configuration                                                                                                              |
+| Sort menu       | ✅ completed     | `e86cd6f4` sin opciones de folder en table/cards ni con nested off                                                                                                                          |
+| Compositions    | ✅ completed     | `1b3031b2` seed borrable de Basic list + Preview                                                                                                                                            |
+| BT5-033         | ⏳ in-progress   | `3353cd88` Node icon scope renombrado/movido a Explorer; **grueso (compositions capturan showDock/showToolbar/etc) GRILL-GATED**                                                            |
+| BT5-034         | ✅ completed     | `2bdea929` islands inferiores clampan su max-height a `--vaultman-frame-height`; smoke split pequeño pendiente del dev                                                                      |
+| BT5-035         | 🆕 needs-triage | option `Condense tabs` (on=tab menu, off=tabbar experimental) + cmenus config granular por menú                                                                                             |
+| BT5-036         | ⏳ in-progress   | `0f9fba74` cmenus por kind + `e0945039` content rename/delete (prompts nativos, configurable, smoked); snippet/plugin **BLOCKED** (Obsidian no ofrece confirm nativo — decisión del dev)    |
+| BT5-037         | ✅ completed     | `871a837e` statistics toolbar igual a los demás + card Opened today                                                                                                                         |
+| BT5-038         | ✅ completed     | `6e64f28b` padre colapsado con filtro oculto recibe un dot, no la decoración; files intacto                                                                                                 |
+| Content link    | ✅ completed     | `0f9fba74` "with active filters" pasa a link en el header, no botón por nodo                                                                                                                |
+| BT5-039         | 🆕 needs-triage | reorder de nodos del toolbar + overflow real + "Fixed amount of nodes" + nueva sección                                                                                                      |
+| BT5-040         | ✅ completed     | `b4b625f7` folders muestran total recursivo de cells contables (words/props/tasks); fechas excluidas; default off                                                                           |
+| BT5-041         | 🆕 needs-triage | cell_badge como cell configurable + separado en table + sort por badges bidimensional                                                                                                       |
+| BT5-042         | ✅ completed     | `ff083b91` toggle folder colapsado dot↔badges de descendientes; BT5-017 conservado; gate 909 tests                                                                                          |
 
 Detalle técnico y gates: [[docs/work/polish/plans/2026-07-19-bt5-001-005/02-outcome-verification|BT5-001..005 outcome]].
 Continuación 006/007/008/028 y diagnóstico diferido 030:
