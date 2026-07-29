@@ -65,7 +65,10 @@ export function validateFrontmatter(frontmatter, filePath) {
   const timestampPattern = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(Z|[+-]\d{2}:?\d{2})$/;
   const parentPattern = /^\[\[[^|\]]+\|[^\]]+\]\]$/;
 
-  for (const key of ["created", "updated"]) {
+  // `dateCreated`/`dateUpdated` is the vault-wide norm (2026-07-29, dev): it matches the global
+  // properties the dev uses across their Obsidian notes. `created`/`updated` stay accepted so the
+  // ~1030 not-yet-migrated docs keep validating.
+  for (const key of ["created", "updated", "dateCreated", "dateUpdated"]) {
     const value = frontmatter[key];
     if (typeof value === "string" && timestampPattern.test(value)) {
       failures.push({ code: "timestamp-offset", path: filePath, detail: `${key}: ${value}` });
@@ -105,8 +108,11 @@ export function buildDocEntry(filePath, frontmatter) {
     id: frontmatter.id ?? "",
     parent: frontmatter.parent ?? "",
     tags: normalizeTags(frontmatter.tags),
-    created: frontmatter.created ?? "",
-    updated: frontmatter.updated ?? "",
+    // Index field names stay `created`/`updated` so --since/--until, stale-active, and the
+    // retrieval channel keep one internal contract; only the frontmatter READ accepts both the
+    // `dateCreated`/`dateUpdated` vault norm and the legacy keys.
+    created: frontmatter.dateCreated ?? frontmatter.created ?? "",
+    updated: frontmatter.dateUpdated ?? frontmatter.updated ?? "",
     updated_by: frontmatter.updated_by ?? "",
   };
 }

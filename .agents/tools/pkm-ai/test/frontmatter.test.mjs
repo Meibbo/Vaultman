@@ -102,3 +102,36 @@ test("filterEntries matches search words across punctuation and connector words"
 
   assert.equal(rows.length, 1);
 });
+
+test("buildDocEntry reads the dateCreated/dateUpdated vault norm", () => {
+  const entry = buildDocEntry(".agents/docs/architecture/policies/docs.md", {
+    title: "Docs policy",
+    dateCreated: "2026-05-04T01:36:20",
+    dateUpdated: "2026-06-05T00:00:00",
+  });
+
+  assert.equal(entry.created, "2026-05-04T01:36:20");
+  assert.equal(entry.updated, "2026-06-05T00:00:00");
+});
+
+test("buildDocEntry still reads the legacy created/updated keys", () => {
+  const entry = buildDocEntry(".agents/docs/legacy.md", {
+    created: "2026-01-01T00:00:00",
+    updated: "2026-01-02T00:00:00",
+  });
+
+  assert.equal(entry.created, "2026-01-01T00:00:00");
+  assert.equal(entry.updated, "2026-01-02T00:00:00");
+});
+
+test("validateFrontmatter flags timezone offsets on the dateUpdated norm", () => {
+  const failures = validateFrontmatter(
+    { dateUpdated: "2026-06-05T00:00:00Z" },
+    ".agents/docs/architecture/policies/docs.md",
+  );
+
+  assert.deepEqual(
+    failures.map((failure) => failure.code),
+    ["timestamp-offset"],
+  );
+});

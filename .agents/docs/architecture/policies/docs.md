@@ -3,8 +3,8 @@ title: Docs policy
 type: policy
 status: active
 parent: "[[docs/work/pkm-ai/specs/2026-05-04-orchestration-refresh/index|pkm-ai]]"
-created: 2026-05-04T01:36:20
-updated: 2026-06-05T00:00:00
+dateCreated: 2026-05-04T01:36:20
+dateUpdated: 2026-06-05T00:00:00
 updated_by: claude-opus-4-8
 tags:
   - agent/policy
