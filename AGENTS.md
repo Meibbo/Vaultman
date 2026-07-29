@@ -19,8 +19,16 @@ Zero-context agents execute this BEFORE any work. Not advisory. Detail:
    Working fallback: Node 24 runs the `.ts` tools natively — `node .agents/tools/pkm-ai/agent-room.ts ...`
    (verified by claude-fable-5 and antigravity). If both fail, report in session-log instead of skipping
    presence registration.)
-2. **Retrieval-first** — query the index for the top-k relevant docs; do NOT read the whole tree:
-   `npx tsx .agents/tools/pkm-ai/query-docs.ts <topic>`. (Lifecycle-ranked once S6 lands; ADR 0002/0006.)
+2. **Retrieval-first** — query the index; do NOT read or grep the tree file-by-file. Pick the mode by
+   question shape:
+   - **Topic / relevance** ("what's related to X"): `query-docs.ts <topic>` — top-k, lifecycle-ranked
+     (ADR 0002/0006).
+   - **Inventory / status** ("which issues are open", "what changed since X", "list every spec of Y"):
+     `query-docs.ts --open|--closed|--status|--lifecycle|--parent|--since|--tag [folder-substr]` — a
+     predicate query returns the **complete** matching set, which top-k ranking does not. Example:
+     `query-docs.ts --parent <issue-set> --open --type issue`. Never answer an inventory question by
+     reading or grepping files. The index warns on stderr when stale; `--refresh` rebuilds it.
+     (Full rationale: docs/work/pkm-ai/items/2026-07-28-retrieval-discovery-audit.)
 3. **Route docs** — `current/status.md` + `current/handoff.md` are route indexes ONLY; read the latest
    `docs/sessions/session-log.md` entry. **Also read your unread room mailbox**
    (`agent-room.ts mailbox read --agent <id>`) — the dev leaves out-of-band notices there

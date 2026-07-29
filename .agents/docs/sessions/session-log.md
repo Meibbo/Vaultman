@@ -2329,3 +2329,41 @@ gates that.
   hasta recibir una orden explícita posterior.
 - **git:** sólo esta entrada de sesión; sin cambios de producto, skill, policy, push,
   tag, merge o commit.
+
+## 2026-07-29 — codex-gpt5-20260729 · research · federación directa de proveedores
+
+- **summary:** Evaluada adversarialmente la propuesta de implementar LangGraph,
+  CrewAI, Letta, AutoGen y GBrain y convertir PKM-AI en puente, en vez de limitarse
+  a absorber sus patrones. Se compararon tres topologías y se verificaron
+  capacidades, protocolos, licencias, runtimes locales y estado vivo de PKM-AI.
+- **verdict:** Viable sólo como federación de capacidades acotadas bajo una única
+  autoridad PKM-AI; rechazada la federación de cinco motores soberanos. Recomendado
+  un proveedor activo por slot, A2A para tareas, MCP para herramientas/datos,
+  adapters reemplazables, saga/receipts e incorporación gradual.
+- **key findings:** AutoGen está en maintenance mode y remite a Microsoft Agent
+  Framework; LangGraph library y Agent Server tienen fronteras operativas/licencia
+  distintas; CrewAI y Letta consumen MCP pero no deben asumirse servidores A2A
+  simétricos; GBrain compite como reemplazo/consolidación del retrieval, no como
+  tercer índice. El `agent-room` actual es advisory, no el control plane federado
+  final: el snapshot mostró `task_053 status=done` conservando un claim hasta que
+  venciera.
+- **parallel state:** Claude cerró durante la investigación `0b94393e`
+  (`query-docs` F1-F5) y `86c5e8f9` (embedding incremental, cobertura semántica
+  100%). Ese baseline es central al benchmark de GBrain y evita compararlo contra
+  el estado defectuoso anterior.
+- **artifacts:** [[docs/work/pkm-ai/research/2026-07-29-provider-federation-bridge-analysis/index|direct provider federation behind PKM-AI]]
+  y cuatro shards de evidencia, alternativas, fallos adversariales y readiness.
+- **verification:** `git diff --check` limpio; doc-health focal OK con un WARN
+  soft: `02-architecture-options.md` tiene 227 líneas y queda a decisión del dev
+  si se divide, sin pérdida de detalle. `index-docs` indexó 1144 documentos,
+  reutilizó 1083 embeddings y generó 6; los smokes `query-docs --strict`
+  estructurado y semántico devolvieron el nuevo expediente primero y cobertura
+  `1089/1089` (100%). Un check separado confirmó deuda preexistente:
+  `docs/sessions/session-log.md` tiene 2367 líneas y rebasa el hard cap; no se
+  reestructuró fuera del alcance de esta investigación.
+- **next-action:** El dev decide si fija la arquitectura recomendada (capability
+  federation aplicada standards-first) y autoriza un diseño/P0; no se instaló
+  ningún proveedor ni se creó/modificó la skill.
+- **git:** documentación local `.agents/` y dos eventos de health generados en
+  `.agents/metrics/pkm-ai.jsonl`; sin commit, push, tag, merge ni cambios de
+  producto.
