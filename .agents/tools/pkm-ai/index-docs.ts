@@ -2,7 +2,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import { buildIndex, CACHE_PATH } from "./lib/frontmatter.mjs";
-import { buildRetrievalIndex, RETRIEVAL_CACHE_PATH } from "./lib/retrieval.mjs";
+import { buildRetrievalIndex, countPendingEmbeddings, embedPendingDocs, RETRIEVAL_CACHE_PATH } from "./lib/retrieval.mjs";
 
 interface DocEntry {
   [key: string]: unknown;
@@ -22,12 +22,20 @@ interface CachedRetrievalIndex {
 }
 
 if (process.argv.includes("--help") || process.argv.includes("-h")) {
-  console.log(`Usage: node .agents/tools/pkm-ai/index-docs.ts
+  console.log(`Usage: node .agents/tools/pkm-ai/index-docs.ts [--no-embed] [--embed-limit N]
 
-Builds .agents/cache/search-index.json from .agents/docs Markdown frontmatter.`);
+Builds .agents/cache/search-index.json from .agents/docs Markdown frontmatter, then the
+retrieval index. Changed docs are re-embedded with the local transformers.js provider so
+semantic coverage stays current (2026-07-28 audit F5); the model loads only when there is
+something to embed, so a no-op rebuild pays no embedding cost.
+
+  --no-embed        skip embedding (fast; leaves changed docs without a vector).
+  --embed-limit N   embed at most N changed docs this run (resumable for large deltas).`);
   process.exit(0);
 }
 
+const noEmbed = process.argv.includes("--no-embed");
+const embedLimit = parseEmbedLimit(process.argv.slice(2));
 const root = process.cwd();
 const entries: DocEntry[] = buildIndex(root, { excludeArchiveRaw: false, excludeTemplates: true });
 const outputPath = path.join(root, CACHE_PATH);
@@ -71,11 +79,35 @@ if (reusedEmbeddings > 0) {
   retrievalIndex.embedDims = cachedRetrieval?.embedDims;
 }
 
+// Embed docs whose content changed (new or edited since the last embed) so semantic coverage keeps
+// up with the corpus. The transformers model is loaded lazily — only when there is a delta — so a
+// no-op rebuild stays fast. --no-embed opts out entirely (F5: the dev-authorized runtime cost).
+let embeddedNow = 0;
+const pending = countPendingEmbeddings(retrievalIndex);
+if (!noEmbed && pending > 0) {
+  const { TransformersEmbeddingProvider } = await import("./retrieval/transformers-provider.mjs");
+  const provider = new TransformersEmbeddingProvider();
+  const tally = await embedPendingDocs(root, retrievalIndex, provider, { limit: embedLimit });
+  embeddedNow = tally.embedded;
+}
+
 fs.mkdirSync(path.dirname(retrievalPath), { recursive: true });
 fs.writeFileSync(retrievalPath, `${JSON.stringify(retrievalIndex, null, 2)}\n`);
+const embedNote = noEmbed
+  ? `, ${pending} unembedded (--no-embed)`
+  : embeddedNow > 0
+    ? `, ${embeddedNow} embedded`
+    : "";
 console.log(
-  `retrieval-indexed ${retrievalIndex.docs.length} docs (${reusedEmbeddings} embeddings reused) -> ${RETRIEVAL_CACHE_PATH}`,
+  `retrieval-indexed ${retrievalIndex.docs.length} docs (${reusedEmbeddings} embeddings reused${embedNote}) -> ${RETRIEVAL_CACHE_PATH}`,
 );
+
+function parseEmbedLimit(argv: string[]): number | undefined {
+  const flag = argv.indexOf("--embed-limit");
+  if (flag === -1) return undefined;
+  const value = Number.parseInt(argv[flag + 1] ?? "", 10);
+  return Number.isInteger(value) && value > 0 ? value : undefined;
+}
 
 function readCachedRetrievalIndex(retrievalPath: string): CachedRetrievalIndex | undefined {
   if (!fs.existsSync(retrievalPath)) return undefined;

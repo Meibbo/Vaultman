@@ -66,6 +66,49 @@ export function embeddingCoverage(index) {
   return { embedded, total, ratio: total === 0 ? 0 : embedded / total };
 }
 
+// Embed docs that need it, in place, and report the tally. A doc is embedded when it has no vector
+// or its stored embedHash no longer matches contentHash (embed-on-change); unchanged docs are skipped
+// and missing files are dropped. Provider is the ADR 0006 contract { id, dims, embed(texts) }, so a
+// stub embeds without a model download. Shared by embed-docs (standalone) and index-docs (chained).
+export async function embedPendingDocs(root, index, provider, options = {}) {
+  const { limit } = options;
+  const docs = Array.isArray(index?.docs) ? index.docs : [];
+  let embedded = 0;
+  let skipped = 0;
+  for (const doc of docs) {
+    if (limit !== undefined && embedded >= limit) break;
+    if (Array.isArray(doc.vector) && doc.vector.length > 0 && doc.embedHash === doc.contentHash) {
+      skipped += 1;
+      continue;
+    }
+    const abs = `${root}/${doc.path}`;
+    if (!fs.existsSync(abs)) {
+      skipped += 1;
+      continue;
+    }
+    const parsed = parseMarkdown(fs.readFileSync(abs, "utf8"));
+    const title = String(parsed.frontmatter?.title ?? doc.title ?? doc.path);
+    const text = `${title}\n${parsed.body}`.slice(0, 8000);
+    const [vector] = await provider.embed([text]);
+    doc.vector = vector;
+    doc.embedHash = doc.contentHash;
+    doc.embedModel = provider.id;
+    embedded += 1;
+  }
+  if (embedded > 0) {
+    index.embedModel = provider.id;
+    index.embedDims = provider.dims;
+  }
+  return { embedded, skipped };
+}
+
+// How many docs would embedPendingDocs touch — lets a caller skip loading a heavy provider entirely
+// when nothing changed (index-docs stays fast on a no-op rebuild).
+export function countPendingEmbeddings(index) {
+  const docs = Array.isArray(index?.docs) ? index.docs : [];
+  return docs.filter((doc) => !(Array.isArray(doc.vector) && doc.vector.length > 0 && doc.embedHash === doc.contentHash)).length;
+}
+
 export function loadRetrievalIndex(root = process.cwd()) {
   const cachePath = `${root}/${RETRIEVAL_CACHE_PATH}`;
   if (fs.existsSync(cachePath)) {

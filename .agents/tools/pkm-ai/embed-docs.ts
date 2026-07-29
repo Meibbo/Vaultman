@@ -1,8 +1,7 @@
 #!/usr/bin/env node
 import fs from "node:fs";
 import path from "node:path";
-import { parseMarkdown } from "./lib/frontmatter.mjs";
-import { loadRetrievalIndex, RETRIEVAL_CACHE_PATH } from "./lib/retrieval.mjs";
+import { embedPendingDocs, loadRetrievalIndex, RETRIEVAL_CACHE_PATH } from "./lib/retrieval.mjs";
 import { TransformersEmbeddingProvider } from "./retrieval/transformers-provider.mjs";
 
 interface IndexedDoc {
@@ -39,32 +38,7 @@ const root = process.cwd();
 const index = loadRetrievalIndex(root) as RetrievalIndex;
 const provider = new TransformersEmbeddingProvider();
 
-let embedded = 0;
-let skipped = 0;
-
-for (const doc of index.docs) {
-  if (limit !== undefined && embedded >= limit) break;
-  if (Array.isArray(doc.vector) && doc.embedHash === doc.contentHash) {
-    skipped += 1;
-    continue;
-  }
-  const abs = path.join(root, doc.path);
-  if (!fs.existsSync(abs)) {
-    skipped += 1;
-    continue;
-  }
-  const parsed = parseMarkdown(fs.readFileSync(abs, "utf8"));
-  const title = String((parsed.frontmatter as Record<string, unknown>).title ?? doc.title ?? doc.path);
-  const text = `${title}\n${parsed.body}`.slice(0, 8000);
-  const [vector] = await provider.embed([text]);
-  doc.vector = vector;
-  doc.embedHash = doc.contentHash;
-  doc.embedModel = provider.id;
-  embedded += 1;
-}
-
-index.embedModel = provider.id;
-index.embedDims = provider.dims;
+const { embedded, skipped } = await embedPendingDocs(root, index, provider, { limit });
 
 const outputPath = path.join(root, RETRIEVAL_CACHE_PATH);
 fs.mkdirSync(path.dirname(outputPath), { recursive: true });

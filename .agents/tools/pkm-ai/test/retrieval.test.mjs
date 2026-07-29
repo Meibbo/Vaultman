@@ -32,7 +32,9 @@ test("index-docs reconciles cached embeddings by content hash", () => {
   writeDoc(root, "work/pkm-ai/renamed.md", "Renamed", "active", "Stable content survives a path move.");
   writeDoc(root, "work/pkm-ai/changed.md", "Changed", "active", "Original content must be re-embedded after edits.");
 
-  let result = run(root, indexDocsPath, []);
+  // --no-embed isolates the contentHash reconcile logic from the chained embedder (F5): a moved doc
+  // reuses its vector, an edited doc drops it. Embedding itself is covered by the embedPendingDocs unit tests.
+  let result = run(root, indexDocsPath, ["--no-embed"]);
   assert.equal(result.status, 0, result.stderr);
 
   const indexPath = path.join(root, ".agents", "cache", "retrieval-index.json");
@@ -51,7 +53,7 @@ test("index-docs reconciles cached embeddings by content hash", () => {
   fs.renameSync(renamedSource, renamedTarget);
   writeDoc(root, "work/pkm-ai/changed.md", "Changed", "active", "Edited content now requires a fresh vector.");
 
-  result = run(root, indexDocsPath, []);
+  result = run(root, indexDocsPath, ["--no-embed"]);
   assert.equal(result.status, 0, result.stderr);
 
   const rebuilt = JSON.parse(fs.readFileSync(indexPath, "utf8"));
@@ -110,6 +112,65 @@ test("embeddingCoverage reports the embedded fraction of an index", async () => 
     embeddingCoverage({ docs: [{ vector: [0.1, 0.2] }, { vector: [] }, {}, { vector: [0.3] }] }),
     { embedded: 2, total: 4, ratio: 0.5 },
   );
+});
+
+test("countPendingEmbeddings counts docs missing or with a stale vector", async () => {
+  const { countPendingEmbeddings } = await import("../lib/retrieval.mjs");
+
+  const index = {
+    docs: [
+      { contentHash: "a", embedHash: "a", vector: [0.1] }, // fresh -> skip
+      { contentHash: "b", embedHash: "old", vector: [0.2] }, // stale hash -> pending
+      { contentHash: "c" }, // no vector -> pending
+    ],
+  };
+  assert.equal(countPendingEmbeddings(index), 2);
+});
+
+test("embedPendingDocs embeds only changed docs and leaves fresh ones untouched", async () => {
+  const { embedPendingDocs } = await import("../lib/retrieval.mjs");
+  const root = makeRoot();
+  writeDoc(root, "work/pkm-ai/fresh.md", "Fresh", "active", "already embedded body");
+  writeDoc(root, "work/pkm-ai/changed.md", "Changed", "active", "new body needing a vector");
+
+  const index = {
+    docs: [
+      { path: ".agents/docs/work/pkm-ai/fresh.md", contentHash: "h1", embedHash: "h1", vector: [9, 9] },
+      { path: ".agents/docs/work/pkm-ai/changed.md", contentHash: "h2", embedHash: "old", vector: undefined },
+      { path: ".agents/docs/work/pkm-ai/gone.md", contentHash: "h3" }, // missing file -> skipped
+    ],
+  };
+
+  // Stub provider: deterministic, no model download.
+  const calls = [];
+  const provider = { id: "stub", dims: 2, embed: async (texts) => { calls.push(...texts); return texts.map(() => [1, 2]); } };
+
+  const tally = await embedPendingDocs(root, index, provider);
+
+  assert.deepEqual(tally, { embedded: 1, skipped: 2 });
+  assert.deepEqual(index.docs[0].vector, [9, 9], "fresh doc untouched");
+  assert.deepEqual(index.docs[1].vector, [1, 2], "changed doc embedded");
+  assert.equal(index.docs[1].embedHash, "h2", "embedHash advanced to contentHash");
+  assert.equal(calls.length, 1, "provider called once, only for the changed doc");
+});
+
+test("embedPendingDocs honours --limit style caps", async () => {
+  const { embedPendingDocs } = await import("../lib/retrieval.mjs");
+  const root = makeRoot();
+  writeDoc(root, "work/pkm-ai/a.md", "A", "active", "body a");
+  writeDoc(root, "work/pkm-ai/b.md", "B", "active", "body b");
+
+  const index = {
+    docs: [
+      { path: ".agents/docs/work/pkm-ai/a.md", contentHash: "ha" },
+      { path: ".agents/docs/work/pkm-ai/b.md", contentHash: "hb" },
+    ],
+  };
+  const provider = { id: "stub", dims: 2, embed: async (texts) => texts.map(() => [0, 0]) };
+
+  const tally = await embedPendingDocs(root, index, provider, { limit: 1 });
+
+  assert.equal(tally.embedded, 1, "stopped at the limit");
 });
 
 function makeRoot() {
