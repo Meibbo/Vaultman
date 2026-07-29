@@ -55,6 +55,17 @@ export function buildRetrievalIndex(root = process.cwd(), options = {}) {
   return { generated_at: new Date().toISOString(), docs };
 }
 
+// What fraction of the index is actually embedded. `--semantic`/`--hybrid` silently ignore
+// docs without a vector, so a query over the newest work can return a confident, empty-of-that-work
+// answer (2026-07-28 audit R3: 0 of 45 docs in the newest issue-set were embedded). Callers print
+// this so the blindness is never invisible.
+export function embeddingCoverage(index) {
+  const docs = Array.isArray(index?.docs) ? index.docs : [];
+  const embedded = docs.filter((doc) => Array.isArray(doc.vector) && doc.vector.length > 0).length;
+  const total = docs.length;
+  return { embedded, total, ratio: total === 0 ? 0 : embedded / total };
+}
+
 export function loadRetrievalIndex(root = process.cwd()) {
   const cachePath = `${root}/${RETRIEVAL_CACHE_PATH}`;
   if (fs.existsSync(cachePath)) {

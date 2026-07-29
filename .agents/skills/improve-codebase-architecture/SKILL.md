@@ -33,7 +33,7 @@ This skill is _informed_ by the project's domain model. The domain language give
 ### 1. Explore
 
 Read the project's domain glossary and any ADRs in the area you're touching first.
-- You MUST use `.agents/tools/pkm-ai/traverse-graph.mjs` to understand file dependencies before moving or refactoring code.
+- You MUST use `.agents/tools/pkm-ai/traverse-graph.ts` to understand file dependencies before moving or refactoring code.
 
 Then use the Agent tool with `subagent_type=Explore` to walk the codebase. Don't follow rigid heuristics — explore organically and note where you experience friction:
 

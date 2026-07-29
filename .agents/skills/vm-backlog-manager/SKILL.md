@@ -29,6 +29,6 @@ Read only the policy and target area needed:
 Use project scripts after item edits when indexes need repair:
 
 - `.agents/tools/pkm-ai/update-indexes.mjs`
-- `.agents/tools/pkm-ai/query-docs.mjs`
+- `.agents/tools/pkm-ai/query-docs.ts`
 
 If a script has unclear behavior, inspect its source before running it. Verify frontmatter, line limits, and generated indexes relevant to the touched files.

@@ -24,7 +24,7 @@ Prefer these docs before broader search:
 - `.agents/docs/work/pkm-ai/specs/2026-05-04-orchestration-refresh/`
 - `.agents/docs/work/pkm-ai/plans/2026-05-04-orchestration-refresh/`
 
-Use `.agents/tools/pkm-ai/query-docs.mjs` when a direct source is not obvious.
+Use `.agents/tools/pkm-ai/query-docs.ts` when a direct source is not obvious.
 
 ## Teaching Style
 

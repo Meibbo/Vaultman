@@ -102,6 +102,16 @@ test("query-docs --rank builds the index in-memory when no retrieval-index.json 
   assert.ok(ranked.some((r) => r.path.endsWith("alpha.md")), "in-memory fallback returned nothing");
 });
 
+test("embeddingCoverage reports the embedded fraction of an index", async () => {
+  const { embeddingCoverage } = await import("../lib/retrieval.mjs");
+
+  assert.deepEqual(embeddingCoverage({ docs: [] }), { embedded: 0, total: 0, ratio: 0 });
+  assert.deepEqual(
+    embeddingCoverage({ docs: [{ vector: [0.1, 0.2] }, { vector: [] }, {}, { vector: [0.3] }] }),
+    { embedded: 2, total: 4, ratio: 0.5 },
+  );
+});
+
 function makeRoot() {
   return fs.mkdtempSync(path.join(os.tmpdir(), "pkm-ai-retrieval-"));
 }

@@ -24,17 +24,17 @@ tags:
   or destructive edits without explicit user approval.
 - Use `tools/pkm-ai/archive-active-doc.mjs` before substantial rewrites
   of active current docs, specs, plans, or policies that remove source detail.
-- Use `tools/pkm-ai/record-metric.mjs` or tool-integrated metrics for
+- Use `tools/pkm-ai/record-metric.ts` or tool-integrated metrics for
   evidence-bearing workflow events: `glossary_checked`, `glossary_miss`,
   `archive_created`, `line_limit_sharded`, `health_failed`, and `health_passed`.
 - Status and handoff claims should cite recent metric evidence when the claim is
   about applied process, health, archives, glossary checks, or sharding.
-- Use `tools/pkm-ai/query-docs.mjs --glossary <term>` as the fast
+- Use `tools/pkm-ai/query-docs.ts --glossary <term>` as the fast
   glossary gate before explaining unfamiliar project/domain terms.
-- Use `tools/pkm-ai/manage-tasks.mjs --complete-objective <slug>` to mark
+- Use `tools/pkm-ai/manage-tasks.ts --complete-objective <slug>` to mark
   objective-level plan tasks mechanically before the final manual status or
   handoff edit.
-- Use `tools/pkm-ai/manage-tasks.mjs --list-objectives --json` or
+- Use `tools/pkm-ai/manage-tasks.ts --list-objectives --json` or
   `--get-objective <slug> --json` to retrieve objective task states without
   manually reading the whole plan.
 

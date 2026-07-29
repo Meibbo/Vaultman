@@ -140,6 +140,7 @@ for (const file of listMarkdownFiles(root, ".agents/docs", { excludeArchive: tru
     warnings.push(...validateGlossaryCandidates(markdown.frontmatter, rel, glossaryTerms));
     warnings.push(...validateSummarySource(markdown.frontmatter, text, rel));
     warnings.push(...validateStaleActive(markdown.frontmatter, rel, options.now, options.staleActiveDays));
+    warnings.push(...validateToolPaths(root, text, rel));
   } catch (error) {
     failures.push({ code: "frontmatter-parse", path: rel, detail: (error as Error).message });
   }
@@ -538,6 +539,33 @@ function validateStaleActive(frontmatter: any, rel: string, now: string, staleAc
   const ageDays = ageMs / 86400000;
   if (ageDays <= staleActiveDays) return [];
   return [{ code: "stale-active", path: rel, detail: `lifecycle:active untouched ${Math.floor(ageDays)}d (> ${staleActiveDays}d) — review or demote` }];
+}
+
+// Routing surfaces are the docs an agent is expected to OBEY (policies, the start router).
+// Only these get the tool-path check, so historical sessions/specs/ADRs that legitimately
+// quote old `.mjs` commands do not flood the report. Guards against D2 (2026-07-28 audit):
+// the tools migrated `.mjs` -> `.ts`, and a stale routing path makes an agent run a
+// non-existent command and silently fall back to grep.
+function isRoutingSurface(rel: string): boolean {
+  return rel.startsWith(".agents/docs/architecture/policies/") || rel === ".agents/docs/start.md";
+}
+
+function validateToolPaths(root: string, text: string, rel: string): HealthIssue[] {
+  if (!isRoutingSurface(rel)) return [];
+  const issues: HealthIssue[] = [];
+  const seen = new Set<string>();
+  for (const match of text.matchAll(/tools\/pkm-ai\/([\w-]+)\.(mjs|ts)/g)) {
+    const ref = `${match[1]}.${match[2]}`;
+    if (seen.has(ref)) continue;
+    seen.add(ref);
+    if (fs.existsSync(path.join(root, ".agents", "tools", "pkm-ai", ref))) continue;
+    const alt = match[2] === "mjs" ? `${match[1]}.ts` : `${match[1]}.mjs`;
+    const hint = fs.existsSync(path.join(root, ".agents", "tools", "pkm-ai", alt))
+      ? ` — did you mean ${alt}?`
+      : "";
+    issues.push({ code: "tool-path-missing", path: rel, detail: `tools/pkm-ai/${ref} does not resolve${hint}` });
+  }
+  return issues;
 }
 
 function validateGlossaryCandidates(frontmatter: any, rel: string, terms: Set<string>): HealthIssue[] {

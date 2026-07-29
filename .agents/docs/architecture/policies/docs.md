@@ -29,7 +29,7 @@ tags:
   original chat.
 
 - Line-limit tiers (navigation/sharding triggers, never an instruction to remove
-  detail). Enforced by `tools/pkm-ai/check-doc-health.mjs`:
+  detail). Enforced by `tools/pkm-ai/check-doc-health.ts`:
     - **<= 200 lines**: clean.
     - **201-300 (soft range, limit .. limit+100)**: health emits a `line-limit-soft`
       WARN, not a failure. The agent must alert the dev to the oversized shard and let
@@ -98,7 +98,7 @@ tags:
   handoff.
 - Before answering about an unfamiliar domain term, consult
   `docs/architecture/glossary.md` or
-  `tools/pkm-ai/query-docs.mjs --glossary <term>`.
+  `tools/pkm-ai/query-docs.ts --glossary <term>`.
 - If a term is missing from the glossary, say it is not in the glossary and
   propose adding it or marking it as an external/test term.
 - New docs that intentionally introduce glossary candidates should list them in
@@ -115,11 +115,47 @@ tags:
   source record (+ the agent-room registry), surfaced on query — not inlined into the active surfaces.
 - **Supersede / archive:** move `superseded`/`archived` material out via
   `tools/pkm-ai/archive-active-doc.mjs` (archive-first) and link it — never delete (706-file-deletion risk).
-- **Stale-active curation:** `check-doc-health.mjs --stale-active-days N` (default 30) WARNs when a
+- **Stale-active curation:** `check-doc-health.ts --stale-active-days N` (default 30) WARNs when a
   `lifecycle:active` doc is untouched past N days, so a recurring curation pass can demote it to
   `deferred`/`superseded`/`archived`. The pass is curation, not deletion.
 - **Retrieval coupling:** rank weights lifecycle (`active` > `deferred` > `superseded`) so queries surface
   live material first (ties PKM-AI ADR 0003 + the retrieval channel, S6).
+
+## Status Vocabulary (query-side normalization, 2026-07-28)
+
+The corpus spells each workflow state several ways — a census on 2026-07-28 found
+**31 distinct `status` values**, with "closed" written six ways. `status` stays
+free-form; `query-docs.ts` normalizes at query time so exact-match filters stop
+lying by omission. Canonical groups (code: `lib/frontmatter.mjs`):
+
+- **closed** — `completed` · `complete` · `done` · `closed` · `released` · `passed`.
+- **inactive** — `archived` · `superseded` · `historical`. Matched by neither
+  `--open` nor `--closed`.
+- **open** — everything else with a value, plus any unrecognized spelling.
+  Unrecognized values are counted as open and **reported on stderr**, so
+  vocabulary drift surfaces instead of silently dropping docs.
+
+Use `--open` / `--closed` rather than guessing a spelling. When adding a new
+`status` value, add it to the matching group in the same commit.
+
+Full analysis and remaining work:
+[[docs/work/pkm-ai/items/2026-07-28-retrieval-discovery-audit/index|retrieval and discovery audit]].
+
+## Retrieval Rule (2026-07-28)
+
+Inventory and status questions over `.agents/docs` — "which items are open",
+"what changed since X", "list every spec of initiative Y" — are answered by
+querying the index, never by reading or grepping files one by one:
+
+```
+node .agents/tools/pkm-ai/query-docs.ts --open --tag initiative/polish
+node .agents/tools/pkm-ai/query-docs.ts --status needs-triage bt5-final-stable-audit
+```
+
+Free-text terms match `id`, `title`, `type`, `status`, `initiative` **and
+`path`**, so a folder name filters by location. The index warns on stderr when it
+is stale; `--refresh` rebuilds it. If a documented tool path does not exist,
+report it instead of silently falling back to grep.
 
 ## Read When
 

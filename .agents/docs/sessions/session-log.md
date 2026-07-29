@@ -2296,3 +2296,36 @@ gates that.
   `C-tmp-vaultman-release-beta2-final2` dropped the duplicated bundle symbols
   (5050→3469 nodes). Binary is 0.8.1, which lacks the `auto_watch` watcher, so the index
   is refreshed by manual reindex after each slice.
+
+## 2026-07-24 10:18 -0500 — [antigravity-gemini] [research]
+- summary: Adversarial critique of Vaultman README against Dataview, Omnisearch, and Make.md
+- key landings: Created 2026-07-24-readme-critique.md in publish initiative
+- next-action: Await dev review of the critique
+- artifacts: [[docs/work/publish/research/2026-07-24-readme-critique|2026-07-24-readme-critique.md]]
+- git: uncommitted
+
+## 2026-07-28 — codex-gpt5-20260728 · research · estrategia anti-compactación pre-v1.2.0
+
+- **summary:** Reconstruida de forma read-only la estrategia usada por
+  `codex-gpt5-root` el 2026-07-22 antes de `1.2.0` estable. El rollout local prueba
+  cinco compactaciones de contexto; después de la primera intervención del dev, el
+  agente convirtió la sesión en memoria durable y reanudable.
+- **key findings:** El patrón fue híbrido: shard de sesión append-only con prompts
+  literales y evidencia; issues verticales con aceptación/dependencias; plan
+  ejecutable shardeado con baseline, stop-conditions y gates; commits product-only
+  por slice; checkpoint local-only `7bb8823b` con 39 archivos/3331 líneas; y
+  verificación explícita del worktree inmediatamente después de cada compactación.
+  El siguiente Claude retomó BT5-054 desde tests 9/9 y el plan ya escrito, sin tener
+  que reconstruir intención.
+- **limitations:** El método nació sólo después de que el dev detectó la primera
+  compactación sin memoria externa; el shard terminó en 711 líneas; y Codex acabó
+  BT5-054 sin commit/session checkpoint actualizado. Claude tuvo que cerrar ese
+  último borde, aunque no adivinar el diseño.
+- **artifacts:** [[docs/sessions/2026-07-22-codex-gpt5-root|audit shard]] ·
+  [[docs/sessions/session-log|session log]] · local rollout
+  `C:/Users/vic_A/.codex/sessions/2026/07/22/rollout-2026-07-22T11-10-42-019f8a97-e364-7442-9b4a-bf1a5fda0c2f.jsonl`
+  · docs checkpoint `7bb8823b`.
+- **next-action:** Presentar la investigación al dev. No crear ni modificar una skill
+  hasta recibir una orden explícita posterior.
+- **git:** sólo esta entrada de sesión; sin cambios de producto, skill, policy, push,
+  tag, merge o commit.

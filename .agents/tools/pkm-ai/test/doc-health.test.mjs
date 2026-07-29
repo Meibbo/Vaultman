@@ -382,6 +382,64 @@ tags:
 `;
 }
 
+test("check-doc-health warns when a routing policy cites a tool path that does not resolve", () => {
+  const root = makeTempRoot();
+  // A real tool file exists as .ts; the policy points at the migrated-away .mjs name.
+  writeFile(path.join(root, ".agents", "tools", "pkm-ai", "query-docs.ts"), "// tool\n");
+  writeFile(
+    path.join(root, ".agents", "docs", "architecture", "policies", "tools.md"),
+    `---
+title: Tools policy
+type: policy
+status: active
+parent: "[[.agents/docs/work/pkm-ai/index|pkm-ai]]"
+created: 2026-05-04T01:00:00
+updated: 2026-05-04T16:22:00
+tags:
+  - agent/policy
+---
+
+# Tools Policy
+
+- Use \`tools/pkm-ai/query-docs.mjs --glossary <term>\` as the glossary gate.
+`,
+  );
+
+  const result = spawnSync(process.execPath, [toolPath], { cwd: root, encoding: "utf8" });
+
+  assert.equal(result.status, 0);
+  assert.match(result.stdout, /WARN\ttool-path-missing/);
+  assert.match(result.stdout, /query-docs\.mjs/);
+});
+
+test("check-doc-health accepts a routing policy that cites the real .ts tool path", () => {
+  const root = makeTempRoot();
+  writeFile(path.join(root, ".agents", "tools", "pkm-ai", "query-docs.ts"), "// tool\n");
+  writeFile(
+    path.join(root, ".agents", "docs", "architecture", "policies", "tools.md"),
+    `---
+title: Tools policy
+type: policy
+status: active
+parent: "[[.agents/docs/work/pkm-ai/index|pkm-ai]]"
+created: 2026-05-04T01:00:00
+updated: 2026-05-04T16:22:00
+tags:
+  - agent/policy
+---
+
+# Tools Policy
+
+- Use \`tools/pkm-ai/query-docs.ts --glossary <term>\` as the glossary gate.
+`,
+  );
+
+  const result = spawnSync(process.execPath, [toolPath], { cwd: root, encoding: "utf8" });
+
+  assert.equal(result.status, 0);
+  assert.doesNotMatch(result.stdout, /tool-path-missing/);
+});
+
 function makeTempRoot() {
   return fs.mkdtempSync(path.join(os.tmpdir(), "pkm-ai-health-"));
 }
