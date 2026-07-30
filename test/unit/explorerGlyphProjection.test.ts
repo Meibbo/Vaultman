@@ -77,10 +77,10 @@ describe('U121-010 Files Tree glyph projection', () => {
 
 		panel._decorateTreeWithIcons([rootFile, firstFolder, secondFolder]);
 
-		expect(rootFile.labelColor).toContain('--color-rainbow-10');
-		expect(firstFolder.labelColor).toContain('--color-rainbow-1');
+		expect(rootFile.labelColor).toBe('hsl(342, 60%, 40%)');
+		expect(firstFolder.labelColor).toBe('hsl(18, 60%, 40%)');
 		expect(childFile.labelColor).toBe(firstFolder.labelColor);
-		expect(secondFolder.labelColor).toContain('--color-rainbow-2');
+		expect(secondFolder.labelColor).toBe('hsl(54, 60%, 40%)');
 	});
 
 	it('carries a branch color through an out-of-scope folder to scoped files', () => {
@@ -100,7 +100,28 @@ describe('U121-010 Files Tree glyph projection', () => {
 		panel._decorateTreeWithIcons([folder]);
 
 		expect(folder.labelColor).toBeUndefined();
-		expect(childFile.labelColor).toContain('--color-rainbow-10');
+		expect(childFile.labelColor).toBe('hsl(342, 60%, 40%)');
+	});
+
+	it('inherits the pastel rainbow color through the whole root branch', () => {
+		const childFile: TestNode = {
+			meta: {
+				isFolder: false,
+				folderPath: 'Projects',
+				file: { path: 'Projects/Child.md' },
+			},
+		};
+		const folder: TestNode = {
+			meta: { isFolder: true, folderPath: 'Projects' },
+			children: [childFile],
+		};
+		const panel = makePanel('both');
+		panel.plugin.settings.explorerGlyphColor = 'rainbow-pastel';
+
+		panel._decorateTreeWithIcons([folder]);
+
+		expect(folder.labelColor).toBe('hsl(324, 100%, 83%)');
+		expect(childFile.labelColor).toBe(folder.labelColor);
 	});
 
 	it('preserves the glyph fallback on expansion while Iconic still wins', () => {

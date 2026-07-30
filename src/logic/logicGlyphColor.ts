@@ -1,6 +1,6 @@
 /**
  * BT5-025: one shared glyph-color palette for the Floating Index and the
- * Explorer. The selector exposes only these five choices; the individual
+ * Explorer. The shared selector exposes these six choices; the individual
  * Obsidian color vars are gone from the UI and fold into `custom`.
  */
 export type GlyphColorChoice =
@@ -8,7 +8,8 @@ export type GlyphColorChoice =
 	| 'faint'
 	| 'accent'
 	| 'custom'
-	| 'rainbow';
+	| 'rainbow'
+	| 'rainbow-pastel';
 
 export const GLYPH_COLOR_CHOICES: readonly GlyphColorChoice[] = [
 	'default',
@@ -16,6 +17,7 @@ export const GLYPH_COLOR_CHOICES: readonly GlyphColorChoice[] = [
 	'accent',
 	'custom',
 	'rainbow',
+	'rainbow-pastel',
 ];
 
 /** Obsidian's documented default hex for each retired color var (migration). */
@@ -30,33 +32,32 @@ const LEGACY_COLOR_HEX: Readonly<Record<string, string>> = {
 	pink: '#d53984',
 };
 
-/**
- * Pastel rainbow tones from the reference folders-rainbow snippet, so rainbow
- * does not depend on the snippet being installed. Prefers the snippet's CSS
- * vars with a built-in hex fallback.
- */
-const RAINBOW_PASTEL_FALLBACK = [
-	'#f7a4a4',
-	'#f7c8a4',
-	'#f7e6a4',
-	'#b8e6b8',
-	'#a4dede',
-	'#a4c4f7',
-	'#c4a4f7',
-	'#f7a4e6',
-];
+/** Exact dark/strong tones from the reference rainbow snippet. */
+const RAINBOW_STRONG = [
+	'hsl(18, 60%, 40%)',
+	'hsl(54, 60%, 40%)',
+	'hsl(90, 60%, 40%)',
+	'hsl(126, 60%, 40%)',
+	'hsl(162, 60%, 40%)',
+	'hsl(198, 60%, 40%)',
+	'hsl(234, 60%, 40%)',
+	'hsl(270, 60%, 40%)',
+	'hsl(306, 60%, 40%)',
+	'hsl(342, 60%, 40%)',
+] as const;
 
-const EXPLORER_RAINBOW_FALLBACK = [
-	'#ef4444',
-	'#f97316',
-	'#eab308',
-	'#22c55e',
-	'#14b8a6',
-	'#06b6d4',
-	'#3b82f6',
-	'#8b5cf6',
-	'#d946ef',
-	'#ec4899',
+/** Exact light/pastel tones from the reference rainbow snippet. */
+const RAINBOW_PASTEL = [
+	'hsl(0, 100%, 84%)',
+	'hsl(33, 100%, 82%)',
+	'hsl(62, 100%, 86%)',
+	'hsl(110, 100%, 87%)',
+	'hsl(193, 100%, 79%)',
+	'hsl(217, 100%, 81%)',
+	'hsl(249, 100%, 85%)',
+	'hsl(270, 100%, 87%)',
+	'hsl(300, 100%, 89%)',
+	'hsl(324, 100%, 83%)',
 ] as const;
 
 const DEFAULT_CUSTOM_COLOR = '#7c3aed';
@@ -105,17 +106,32 @@ export function normalizeGlyphColorChoice(value: unknown): {
 	return { choice: 'default' };
 }
 
-export function rainbowGlyphColor(index: number, total: number): string {
-	const count = RAINBOW_PASTEL_FALLBACK.length;
-	const slot = ((index % count) + count) % count;
-	const varIndex = (((index % total) + total) % total) % count;
-	return `var(--color-rainbow-${varIndex + 1}, ${RAINBOW_PASTEL_FALLBACK[slot]})`;
+function paletteColor(
+	palette: readonly string[],
+	index: number,
+): string {
+	const slot = ((index % palette.length) + palette.length) % palette.length;
+	return palette[slot] ?? palette[0] ?? '';
+}
+
+export function rainbowGlyphColor(index: number, _total: number): string {
+	return paletteColor(RAINBOW_STRONG, index);
+}
+
+export function pastelRainbowGlyphColor(index: number, _total: number): string {
+	return paletteColor(RAINBOW_PASTEL, index);
 }
 
 export function explorerRainbowGlyphColor(position: number): string {
-	const count = EXPLORER_RAINBOW_FALLBACK.length;
+	const count = RAINBOW_STRONG.length;
 	const slot = (((position + count - 1) % count) + count) % count;
-	return `var(--color-rainbow-${slot + 1}, ${EXPLORER_RAINBOW_FALLBACK[slot]})`;
+	return paletteColor(RAINBOW_STRONG, slot);
+}
+
+export function explorerPastelRainbowGlyphColor(position: number): string {
+	const count = RAINBOW_PASTEL.length;
+	const slot = (((position + count - 1) % count) + count) % count;
+	return paletteColor(RAINBOW_PASTEL, slot);
 }
 
 export function resolveExplorerGlyphColor({
@@ -133,6 +149,9 @@ export function resolveExplorerGlyphColor({
 	if (!inScope || choice === 'default') return null;
 	if (choice === 'rainbow') {
 		return inheritedRainbowColor ?? explorerRainbowGlyphColor(position);
+	}
+	if (choice === 'rainbow-pastel') {
+		return inheritedRainbowColor ?? explorerPastelRainbowGlyphColor(position);
 	}
 	return resolveGlyphColorCss(choice, customColor) || null;
 }
@@ -163,6 +182,7 @@ export function resolveGlyphColorCss(
 		case 'custom':
 			return normalizeGlyphCustomColor(customColor);
 		case 'rainbow':
+		case 'rainbow-pastel':
 		case 'default':
 		default:
 			return '';

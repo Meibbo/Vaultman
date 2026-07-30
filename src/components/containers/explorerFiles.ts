@@ -101,6 +101,7 @@ import {
 } from '../../logic/logicExclusionFilter';
 import { isVaultmanDefault } from '../../logic/logicCommandActions';
 import {
+	explorerPastelRainbowGlyphColor,
 	explorerRainbowGlyphColor,
 	normalizeGlyphColorChoice,
 	normalizeGlyphColorScope,
@@ -198,6 +199,7 @@ export class FilesExplorerPanel extends Component {
 	private onSelectionChange?: (count: number) => void;
 	private onExpansionChange?: () => void;
 	private onSortStateChange?: (state: ExplorerSortState) => void;
+	private _glyphSettingsSignature = '';
 
 	constructor(
 		containerEl: HTMLElement,
@@ -581,6 +583,10 @@ export class FilesExplorerPanel extends Component {
 		);
 		this.plugin.queueService.on('changed', this._handleQueueChange);
 		this.plugin.statisticsCache.on('changed', this._handleStatsChange);
+		this._glyphSettingsSignature = this._currentGlyphSettingsSignature();
+		this.register(
+			this.plugin.onSettingsChange(this._handleGlyphSettingsChange),
+		);
 		const iconic = this.plugin.iconicService;
 		if (iconic) {
 			// BT5-031: `onLoaded` fires once, so Files was the only explorer that
@@ -1974,10 +1980,11 @@ export class FilesExplorerPanel extends Component {
 	}
 
 	private _decorateTreeWithIcons(nodes: TreeNode<FileMeta>[]): void {
-		const rainbow =
-			normalizeGlyphColorChoice(
-				this.plugin.settings.explorerGlyphColor,
-			).choice === 'rainbow';
+		const choice = normalizeGlyphColorChoice(
+			this.plugin.settings.explorerGlyphColor,
+		).choice;
+		const positionalRainbow =
+			choice === 'rainbow' || choice === 'rainbow-pastel';
 		const walk = (
 			subtree: TreeNode<FileMeta>[],
 			inheritedRainbowColor?: string,
@@ -1989,9 +1996,11 @@ export class FilesExplorerPanel extends Component {
 					node.icon ?? (node.meta.isFolder ? 'lucide-folder' : 'lucide-file'),
 				);
 				node.icon = resolved?.icon;
-				const branchColor = rainbow
+				const branchColor = positionalRainbow
 					? (inheritedRainbowColor ??
-						explorerRainbowGlyphColor(position))
+						(choice === 'rainbow'
+							? explorerRainbowGlyphColor(position)
+							: explorerPastelRainbowGlyphColor(position)))
 					: undefined;
 				const glyphColor = this._explorerGlyphColorFor(
 					node.meta.isFolder,
@@ -2126,6 +2135,21 @@ export class FilesExplorerPanel extends Component {
 	}
 
 	private _iconicRenderQueued = false;
+	private _currentGlyphSettingsSignature(): string {
+		return [
+			this.plugin.settings.explorerGlyphColor,
+			this.plugin.settings.explorerGlyphCustomColor,
+			this.plugin.settings.explorerGlyphScope,
+		].join('\u001f');
+	}
+
+	private readonly _handleGlyphSettingsChange = (): void => {
+		const next = this._currentGlyphSettingsSignature();
+		if (next === this._glyphSettingsSignature) return;
+		this._glyphSettingsSignature = next;
+		this._scheduleIconicRender();
+	};
+
 	private readonly _scheduleIconicRender = () => {
 		if (this._iconicRenderQueued) return;
 		this._iconicRenderQueued = true;

@@ -6,6 +6,7 @@ import {
 	normalizeGlyphColorChoice,
 	normalizeGlyphColorScope,
 	normalizeGlyphCustomColor,
+	pastelRainbowGlyphColor,
 	rainbowGlyphColor,
 	resolveExplorerGlyphColor,
 	resolveExplorerGlyphDecoration,
@@ -17,14 +18,16 @@ import mainSource from '../../src/main.ts?raw';
 import explorerFilesSource from '../../src/components/containers/explorerFiles.ts?raw';
 
 describe('BT5-025 shared glyph color palette', () => {
-	it('exposes exactly the five shared choices', () => {
+	it('exposes the same strong and pastel choices to both panels', () => {
 		expect(GLYPH_COLOR_CHOICES).toEqual([
 			'default',
 			'faint',
 			'accent',
 			'custom',
 			'rainbow',
+			'rainbow-pastel',
 		]);
+		expect(settingsSource).not.toContain('EXPLORER_GLYPH_COLOR_CHOICES');
 	});
 
 	it('resolves faint and accent to semantic vars, never a copied hex', () => {
@@ -34,6 +37,7 @@ describe('BT5-025 shared glyph color palette', () => {
 		);
 		expect(resolveGlyphColorCss('default', '#fff')).toBe('');
 		expect(resolveGlyphColorCss('rainbow', '#fff')).toBe('');
+		expect(resolveGlyphColorCss('rainbow-pastel', '#fff')).toBe('');
 	});
 
 	it('resolves custom to a validated hex with a safe fallback', () => {
@@ -48,14 +52,18 @@ describe('BT5-025 shared glyph color palette', () => {
 			migratedCustom: '#086ddd',
 		});
 		expect(normalizeGlyphColorChoice('rainbow')).toEqual({ choice: 'rainbow' });
+		expect(normalizeGlyphColorChoice('rainbow-pastel')).toEqual({
+			choice: 'rainbow-pastel',
+		});
 		expect(normalizeGlyphColorChoice('faint')).toEqual({ choice: 'faint' });
 		expect(normalizeGlyphColorChoice('garbage')).toEqual({ choice: 'default' });
 	});
 
-	it('rainbow prefers the snippet var with a pastel fallback', () => {
-		const color = rainbowGlyphColor(0, 8);
-		expect(color).toContain('var(--color-rainbow-1');
-		expect(color).toMatch(/#[0-9a-f]{6}/i);
+	it('uses the ten-tone strong snippet palette for shared rainbow', () => {
+		expect(rainbowGlyphColor(0, 10)).toBe('hsl(18, 60%, 40%)');
+		expect(rainbowGlyphColor(9, 10)).toBe('hsl(342, 60%, 40%)');
+		expect(pastelRainbowGlyphColor(0, 10)).toBe('hsl(0, 100%, 84%)');
+		expect(pastelRainbowGlyphColor(9, 10)).toBe('hsl(324, 100%, 83%)');
 	});
 
 	it('normalizes the explorer scope', () => {
@@ -65,11 +73,30 @@ describe('BT5-025 shared glyph color palette', () => {
 	});
 
 	it('maps Explorer rainbow positions to the ten-slot snippet order', () => {
-		expect(explorerRainbowGlyphColor(0)).toContain('--color-rainbow-10');
-		expect(explorerRainbowGlyphColor(1)).toContain('--color-rainbow-1');
-		expect(explorerRainbowGlyphColor(9)).toContain('--color-rainbow-9');
-		expect(explorerRainbowGlyphColor(10)).toContain('--color-rainbow-10');
-		expect(explorerRainbowGlyphColor(-1)).toContain('--color-rainbow-9');
+		expect(explorerRainbowGlyphColor(0)).toBe('hsl(342, 60%, 40%)');
+		expect(explorerRainbowGlyphColor(1)).toBe('hsl(18, 60%, 40%)');
+		expect(explorerRainbowGlyphColor(9)).toBe('hsl(306, 60%, 40%)');
+		expect(explorerRainbowGlyphColor(10)).toBe('hsl(342, 60%, 40%)');
+		expect(explorerRainbowGlyphColor(-1)).toBe('hsl(306, 60%, 40%)');
+	});
+
+	it('maps Explorer pastel rainbow to all ten original snippet tones', () => {
+		const first = resolveExplorerGlyphColor({
+			choice: 'rainbow-pastel',
+			customColor: '#123456',
+			scope: 'both',
+			kind: 'folder',
+			position: 0,
+		});
+		const second = resolveExplorerGlyphColor({
+			choice: 'rainbow-pastel',
+			customColor: '#123456',
+			scope: 'both',
+			kind: 'folder',
+			position: 1,
+		});
+		expect(first).toBe('hsl(324, 100%, 83%)');
+		expect(second).toBe('hsl(0, 100%, 84%)');
 	});
 
 	it('applies Explorer glyph color only inside the configured scope', () => {
@@ -136,6 +163,8 @@ describe('BT5-025 shared glyph color palette', () => {
 	it('the floating index consumes the shared resolver', () => {
 		expect(floatingTocSource).toContain('resolveGlyphColorCss(');
 		expect(floatingTocSource).toContain('rainbowGlyphColor(');
+		expect(floatingTocSource).toContain("choice === 'rainbow-pastel'");
+		expect(floatingTocSource).toContain('pastelRainbowGlyphColor(');
 		// The individual color vars are gone from the glyph style path.
 		expect(floatingTocSource).not.toContain('var(--color-${color})');
 	});

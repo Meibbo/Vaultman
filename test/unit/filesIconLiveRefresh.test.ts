@@ -56,3 +56,15 @@ describe('BT5-031 Files repaints on live icon changes', () => {
 		expect(explorerFilesSource).toContain('if (iconic) {');
 	});
 });
+
+describe('U121-010 Files repaints on live glyph setting changes', () => {
+	it('subscribes through the panel lifecycle and ignores unrelated settings', () => {
+		expect(explorerFilesSource).toContain(
+			'this.plugin.onSettingsChange(this._handleGlyphSettingsChange)',
+		);
+		expect(explorerFilesSource).toContain(
+			'if (next === this._glyphSettingsSignature) return;',
+		);
+		expect(explorerFilesSource).toContain('this._scheduleIconicRender();');
+	});
+});

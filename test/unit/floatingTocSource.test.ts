@@ -186,6 +186,15 @@ describe('Floating TOC source and panel contracts', () => {
 		expect(floatingTocSource).toContain('niagaraNodeTransform(');
 	});
 
+	it('keeps Niagara transform and always-on glyph color as separate declarations', () => {
+		expect(floatingTocSource).toContain(
+			'scale(${transform.scale});`',
+		);
+		expect(floatingTocSource).toContain(
+			"(opts.glyphColorMode ?? 'static') === 'static'",
+		);
+	});
+
 	it('keeps scrubbed actions inert and navigates only when the nearest group changes', () => {
 		expect(floatingTocSource).toContain("target.kind === 'group'");
 		expect(floatingTocSource).toContain('groupIndex !== lastJumpedGroupIndex');

@@ -191,6 +191,8 @@ export const es: Record<string, string> = {
 		'Personalizado',
 	'settings.glyph_color.rainbow':
 		'Arcoíris',
+	'settings.glyph_color.rainbow-pastel':
+		'Arcoíris pastel',
 	'settings.glyph_color.custom_pick':
 		'Color personalizado',
 	'settings.explorer_glyph_color':

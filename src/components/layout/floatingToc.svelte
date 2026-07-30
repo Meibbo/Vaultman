@@ -3,6 +3,7 @@
 	import { translate } from '../../i18n/index';
 	import {
 		normalizeGlyphColorChoice,
+		pastelRainbowGlyphColor,
 		rainbowGlyphColor,
 		resolveGlyphColorCss,
 	} from '../../logic/logicGlyphColor';
@@ -478,6 +479,9 @@
 		if (choice === 'rainbow') {
 			return `color: ${rainbowGlyphColor(groupIndex, Math.max(1, total))};`;
 		}
+		if (choice === 'rainbow-pastel') {
+			return `color: ${pastelRainbowGlyphColor(groupIndex, Math.max(1, total))};`;
+		}
 		const css = resolveGlyphColorCss(choice, opts.glyphCustomColor ?? '');
 		return css ? `color: ${css};` : '';
 	}
@@ -491,8 +495,8 @@
 			perp,
 		);
 		return horizontal
-			? `transform: translate(${transform.spread}px, ${transform.perpendicular}px) scale(${transform.scale})`
-			: `transform: translate(${transform.perpendicular}px, ${transform.spread}px) scale(${transform.scale})`;
+			? `transform: translate(${transform.spread}px, ${transform.perpendicular}px) scale(${transform.scale});`
+			: `transform: translate(${transform.perpendicular}px, ${transform.spread}px) scale(${transform.scale});`;
 	}
 
 	const revealR = $derived(NIA_REVEAL[opts.reveal] ?? NIA_REVEAL.all);

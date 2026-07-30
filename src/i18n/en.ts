@@ -193,6 +193,8 @@ export const en: Record<string, string> = {
 		'Custom',
 	'settings.glyph_color.rainbow':
 		'Rainbow',
+	'settings.glyph_color.rainbow-pastel':
+		'Pastel rainbow',
 	'settings.glyph_color.custom_pick':
 		'Custom color',
 	'settings.explorer_glyph_color':
