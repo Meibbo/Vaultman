@@ -56,8 +56,7 @@ knowledge/
   pkm-ai-manual/
 ```
 
-`knowledge` is descriptive. It summarizes sources, APIs, research, and guidance
-without making project rules.
+`knowledge` is descriptive. It summarizes sources, APIs, research, and guidance without making project rules.
 
 Research notes keep citations:
 
@@ -67,17 +66,12 @@ verified_at:
 expires_at:
 ```
 
-`expires_at` is a review date. It does not delete a note. After that date,
-agents should verify the source again before relying on it for current APIs,
-tooling, prices, releases, or other unstable facts.
+`expires_at` is a review date. It does not delete a note. After that date, agents should verify the source again before relying on it for current APIs, tooling, prices, releases, or other unstable facts.
 
 ## Manual
 
-The PKM-AI manual is a living developer guide with beginner, intermediate,
-advanced, and pro sections. Old behavior is archived, not kept active.
+The PKM-AI manual is a living developer guide with beginner, intermediate, advanced, and pro sections. Old behavior is archived, not kept active.
 
 ## Recovery
 
-Items may have optional attempts. Attempts record meaningful approaches and
-outcomes. Reverting meaningful agent work requires user choice between native
-undo, Git history, or an agent patch.
+Items may have optional attempts. Attempts record meaningful approaches and outcomes. Reverting meaningful agent work requires user choice between native undo, Git history, or an agent patch.

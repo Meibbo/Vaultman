@@ -40,8 +40,7 @@ export default {
 };
 ```
 
-This is intentionally narrow: it lints `styles.css`, not Svelte component style
-blocks.
+This is intentionally narrow: it lints `styles.css`, not Svelte component style blocks.
 
 - [ ] **Step 2: Ensure package scripts call stylelint**
 
@@ -55,8 +54,7 @@ Confirm `verify` contains `pnpm run stylelint`.
 
 - [ ] **Step 3: Extend Scorecard scan for gate scripts**
 
-In `scripts/scorecard-regression-check.mjs`, add this check after the release
-title check:
+In `scripts/scorecard-regression-check.mjs`, add this check after the release title check:
 
 ```js
 {

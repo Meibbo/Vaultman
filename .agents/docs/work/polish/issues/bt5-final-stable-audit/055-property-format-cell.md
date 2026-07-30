@@ -21,10 +21,7 @@ tags: [agent/issue, triage/needs-triage, initiative/polish, release/1.2.0, prope
 
 ## What to build
 
-Register a `format` cell for the Properties provider. When active, value labels
-use typed formatting; when inactive, raw serialized text is shown. Preserve the
-working Wikilink rendering/navigation seam and make the setting flow through view
-configurations, activation order and all supported engines.
+Register a `format` cell for the Properties provider. When active, value labels use typed formatting; when inactive, raw serialized text is shown. Preserve the working Wikilink rendering/navigation seam and make the setting flow through view configurations, activation order and all supported engines.
 
 ## Acceptance criteria
 

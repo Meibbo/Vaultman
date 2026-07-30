@@ -14,11 +14,7 @@ tags:
 
 ## Evaluation Lens
 
-The relevant question is not "which library scrolls fast in a demo?" The
-question is which approach can keep Vaultman responsive when the visible
-surface is a node explorer with several view modes, variable content, media,
-selection, keyboard reveal, drag/drop, sticky affordances, and future complex
-cards.
+The relevant question is not "which library scrolls fast in a demo?" The question is which approach can keep Vaultman responsive when the visible surface is a node explorer with several view modes, variable content, media, selection, keyboard reveal, drag/drop, sticky affordances, and future complex cards.
 
 Each candidate is judged by:
 
@@ -68,6 +64,4 @@ Each candidate is judged by:
 
 ## Non-Decision
 
-Do not adopt any candidate solely because a demo feels faster. The adoption
-gate is a shared harness: same 50k/100k fixture, same top/middle/bottom burst,
-same media descriptors, same blank-frame detector, same `plugin-dev` runtime.
+Do not adopt any candidate solely because a demo feels faster. The adoption gate is a shared harness: same 50k/100k fixture, same top/middle/bottom burst, same media descriptors, same blank-frame detector, same `plugin-dev` runtime.

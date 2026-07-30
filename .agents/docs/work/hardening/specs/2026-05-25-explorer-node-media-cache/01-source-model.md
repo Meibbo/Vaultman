@@ -15,13 +15,11 @@ tags:
 
 ## Media Source Kinds
 
-The media index must normalize all supported image origins into one descriptor
-contract.
+The media index must normalize all supported image origins into one descriptor contract.
 
 ### 1. Image File Node
 
-A node whose backing file is itself an image should use that file as its media
-source.
+A node whose backing file is itself an image should use that file as its media source.
 
 Supported initial extensions:
 
@@ -43,8 +41,7 @@ Deferred types require explicit decoder support before inclusion.
 
 ### 2. Node-Note Property
 
-A markdown-backed node can specify a cover image through configurable property
-names. Default order:
+A markdown-backed node can specify a cover image through configurable property names. Default order:
 
 1. `cover`
 2. `image`
@@ -62,8 +59,7 @@ Supported property values:
 
 ### 3. First Document Image
 
-If configured, the index can scan the markdown body and use the first resolvable
-image reference:
+If configured, the index can scan the markdown body and use the first resolvable image reference:
 
 - `![[imagen.png]]`
 - `![[imagen.png|300]]`
@@ -71,8 +67,7 @@ image reference:
 - `![alt](https://example.com/image.png)`
 - simple HTML `<img src="...">` if the parser can extract it safely.
 
-This source is lower priority than explicit properties because it is an
-inference, not author intent.
+This source is lower priority than explicit properties because it is an inference, not author intent.
 
 ### 4. Remote Direct Image URL
 
@@ -96,8 +91,7 @@ A URL can point to a page that contains the image. Resolution order:
 2. Twitter card image metadata.
 3. first safe `<img>` candidate that passes size/type filters.
 
-Remote page extraction must be opt-in and must obey the network policy in
-[[04-settings-security-and-privacy]].
+Remote page extraction must be opt-in and must obey the network policy in [[04-settings-security-and-privacy]].
 
 ## Source Precedence
 
@@ -138,8 +132,7 @@ export interface NodeMediaSourceDescriptor {
 }
 ```
 
-This descriptor is not the thumbnail. It is the stable explanation of where the
-thumbnail should come from.
+This descriptor is not the thumbnail. It is the stable explanation of where the thumbnail should come from.
 
 ## Failure Semantics
 
@@ -154,6 +147,5 @@ Failures must be indexed explicitly:
 - decode failed;
 - SVG rejected by safety policy.
 
-Rows render without media when failures occur. Failure state must not block row
-text, selection, or scrolling.
+Rows render without media when failures occur. Failure state must not block row text, selection, or scrolling.
 

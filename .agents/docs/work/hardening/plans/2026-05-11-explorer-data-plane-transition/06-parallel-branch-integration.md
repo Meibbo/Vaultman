@@ -19,9 +19,7 @@ updated_by: codex
 
 ## Scope
 
-Integrated four completed branches into the canonical `claude/explorer`
-worktree at
-`C:\Users\vic_A\Desktop\vaultman\.claude\worktrees\jovial-wilson-f81c67`.
+Integrated four completed branches into the canonical `claude/explorer` worktree at `C:\Users\vic_A\Desktop\vaultman\.claude\worktrees\jovial-wilson-f81c67`.
 
 Base guard passed before integration:
 
@@ -40,33 +38,22 @@ The root `sandbox` worktree was not used. No push was performed.
 | `codex/t4-fnr-vmpopover` | `e0f01deccc6d03c44c75ac41b89877f30b831f2c` | `bc5a151b909483287a250a73a09923592319ad5b` |
 | `codex/t4-addons-dashboard` | `b1af97bde4e1c8fca80947f485deb2628b84b1ce` | `d4c4225f7ce5d2e2e2b393e01e3eb63dc355b71a` |
 
-The intermediate branches `codex/t4-w1-a1-fnr`, `codex/t4-w1-a2-dnd`, and
-`codex/t4-w1-a3-addons` were clean but had no diff against `claude/explorer`,
-so they were treated as already absorbed intermediate branches.
+The intermediate branches `codex/t4-w1-a1-fnr`, `codex/t4-w1-a2-dnd`, and `codex/t4-w1-a3-addons` were clean but had no diff against `claude/explorer`, so they were treated as already absorbed intermediate branches.
 
 ## Conflict Resolution
 
 - EDP-010 merged cleanly.
-- T3 conflicted only in `.agents/docs/current/status.md` and
-  `.agents/docs/current/handoff.md`; both compact indexes were resolved to keep
-  EDP-010 and T3 notes.
-- T4 FnR conflicted only in the same current-doc indexes; the resolution kept
-  EDP-010, T3, and FnR notes.
-- T4 dashboard/add-ons conflicted in the current-doc indexes and
-  `src/components/frame/frameVaultman.svelte`.
+- T3 conflicted only in `.agents/docs/current/status.md` and `.agents/docs/current/handoff.md`; both compact indexes were resolved to keep EDP-010 and T3 notes.
+- T4 FnR conflicted only in the same current-doc indexes; the resolution kept EDP-010, T3, and FnR notes.
+- T4 dashboard/add-ons conflicted in the current-doc indexes and `src/components/frame/frameVaultman.svelte`.
 - `frameVaultman.svelte` resolution preserved both T3 and T4 intents:
-  - T3 `openDiffViewHook` still closes islands/popups, navigates to `ops`,
-    sets `toolsActiveTab = 'file_diff'`, and applies the frame transform.
-  - `OperationsPage` is bound to `toolsActiveTab` in both the normal page strip
-    and the dashboard `dashboardExplorer` snippet.
-  - T4 dashboard mode keeps `Dashboard3Column`, `dashboardFilters`,
-    `dashboardExplorer`, `dashboardAddons`, and the frame-local
-    `AddonsIslandService`.
+  - T3 `openDiffViewHook` still closes islands/popups, navigates to `ops`, sets `toolsActiveTab = 'file_diff'`, and applies the frame transform.
+  - `OperationsPage` is bound to `toolsActiveTab` in both the normal page strip and the dashboard `dashboardExplorer` snippet.
+  - T4 dashboard mode keeps `Dashboard3Column`, `dashboardFilters`, `dashboardExplorer`, `dashboardAddons`, and the frame-local `AddonsIslandService`.
 
 ## Verification
 
-All commands below ran on the integrated `claude/explorer` head
-`d4c4225f7ce5d2e2e2b393e01e3eb63dc355b71a`.
+All commands below ran on the integrated `claude/explorer` head `d4c4225f7ce5d2e2e2b393e01e3eb63dc355b71a`.
 
 - EDP-010 focused unit:
   `pnpm exec vitest run --project unit --config vitest.config.ts test/unit/services/serviceSelection.test.ts test/unit/services/serviceViews.test.ts`
@@ -75,20 +62,13 @@ All commands below ran on the integrated `claude/explorer` head
   `pnpm exec vitest run --project component --config vitest.config.ts test/component/panelExplorerSelection.test.ts --fileParallelism=false`
   - Passed: 1 file / 39 tests.
 - T3/T4 focused unit:
-  `serviceCommandsRegistration`, `serviceFnRIsland`, `serviceFnRPropSet`,
-  `serviceFnR`, `serviceFnRTemplate`, `serviceFnRTokenAllowlist`,
-  `serviceFnRDateParser`, and `serviceAddonsIsland`.
+  `serviceCommandsRegistration`, `serviceFnRIsland`, `serviceFnRPropSet`, `serviceFnR`, `serviceFnRTemplate`, `serviceFnRTokenAllowlist`, `serviceFnRDateParser`, and `serviceAddonsIsland`.
   - Passed: 8 files / 87 tests.
 - T3/T4 focused component:
-  `pageToolsDiff`, `viewDiffNavbar`, `viewDiffChains`, `vmPopoverIsland`,
-  `toolbarClickWeights`, `toolbarMenuPlacement`, `dashboard3Column`,
-  `addonsMarkdownPane`, `frameDashboardAddons`, `frameFaintMultiWindow`, and
-  `pageFiltersChooseMode`.
+  `pageToolsDiff`, `viewDiffNavbar`, `viewDiffChains`, `vmPopoverIsland`, `toolbarClickWeights`, `toolbarMenuPlacement`, `dashboard3Column`, `addonsMarkdownPane`, `frameDashboardAddons`, `frameFaintMultiWindow`, and `pageFiltersChooseMode`.
   - Passed: 11 files / 38 tests.
 - EDP regression unit gate:
-  `svarRemovalContract`, `serviceExplorerRowInput`, `serviceViewTableAdapter`,
-  `serviceExplorerLayers`, `serviceExplorerDataPlane`, `logicExplorerSnapshot`,
-  and `serviceOverlayProjection`.
+  `svarRemovalContract`, `serviceExplorerRowInput`, `serviceViewTableAdapter`, `serviceExplorerLayers`, `serviceExplorerDataPlane`, `logicExplorerSnapshot`, and `serviceOverlayProjection`.
   - Passed: 7 files / 39 tests.
 - Component row/reveal/selection gate:
   - Passed: 14 files / 121 tests.
@@ -96,10 +76,7 @@ All commands below ran on the integrated `claude/explorer` head
   - Passed: 4 files / 39 tests.
 - `npx @sveltejs/mcp svelte-autofixer`:
   - `Dashboard3Column.svelte` and `pageTools.svelte`: no issues or suggestions.
-  - `frameVaultman.svelte`: direct path read reports an unlocated parser issue,
-    but a normalized read of the same content reports no blocking issues and
-    only broad pre-existing suggestions. `svelte-check` below is authoritative
-    for the repo parse/type state.
+  - `frameVaultman.svelte`: direct path read reports an unlocated parser issue, but a normalized read of the same content reports no blocking issues and only broad pre-existing suggestions. `svelte-check` below is authoritative for the repo parse/type state.
 - `pnpm exec svelte-check --tsconfig ./tsconfig.json --threshold error --output human`
   - Passed: 0 errors / 0 warnings.
 - `pnpm run lint:full`
@@ -115,15 +92,10 @@ All commands below ran on the integrated `claude/explorer` head
 
 - Final stabilization full-suite was intentionally not run in this phase.
 - Known performance-threshold residuals remain deferred to final stabilization:
-  `test/unit/performance/stress.test.ts` and
-  `test/component/viewTableStress.test.ts`.
-- Live Obsidian smoke was not rerun here. Previous T3 source record says
-  `plugin-dev` had Vaultman disabled / command reload unavailable.
-- Remaining T4 follow-ups after this integration: frame-level native-click
-  wiring, real adopted-block queue staging, Quick Switcher, and FAB polish.
+  `test/unit/performance/stress.test.ts` and `test/component/viewTableStress.test.ts`.
+- Live Obsidian smoke was not rerun here. Previous T3 source record says `plugin-dev` had Vaultman disabled / command reload unavailable.
+- Remaining T4 follow-ups after this integration: frame-level native-click wiring, real adopted-block queue staging, Quick Switcher, and FAB polish.
 
 ## Next Action
 
-Run the final stabilization gate from the EDP worker contract. That is the
-phase that should diagnose the known performance residuals and rerun live
-`plugin-dev` smoke.
+Run the final stabilization gate from the EDP worker contract. That is the phase that should diagnose the known performance residuals and rerun live `plugin-dev` smoke.

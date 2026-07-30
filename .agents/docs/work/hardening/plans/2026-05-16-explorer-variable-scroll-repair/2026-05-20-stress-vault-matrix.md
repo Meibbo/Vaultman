@@ -18,18 +18,12 @@ updated_by: codex
 
 ## Scope
 
-This record continues the 0-A.S follow-up after runner-level view switching,
-percentile/histogram reporting, and `--vault=<name>` support. It captures the
-first explicit large-vault pass against a registered Obsidian stress vault and
-the recovery steps after the 100k vault exceeded the current CLI/live runtime
-readiness envelope.
+This record continues the 0-A.S follow-up after runner-level view switching, percentile/histogram reporting, and `--vault=<name>` support. It captures the first explicit large-vault pass against a registered Obsidian stress vault and the recovery steps after the 100k vault exceeded the current CLI/live runtime readiness envelope.
 
 ## Harness Correction Before Matrix
 
-The first 50k attempt was invalid because the runner/probe selected the first
-matching scroll container in the DOM, including inactive Explorer tab surfaces.
-That meant some runs measured Properties/root/topology rows instead of the
-active Files tab.
+The first 50k attempt was invalid because the runner/probe selected the first matching scroll container in the DOM, including inactive Explorer tab surfaces.
+That meant some runs measured Properties/root/topology rows instead of the active Files tab.
 
 Code changes made before the valid 50k matrix:
 
@@ -38,28 +32,20 @@ Code changes made before the valid 50k matrix:
   - Switches Explorer to the Files tab before checking or switching the view.
   - Uses active-tab-aware scroll-target presence checks.
 - `src/dev/perfProbe.ts`
-  - Chooses the active matching scroll container when inactive `.vm-tab-content`
-    nodes remain mounted.
+  - Chooses the active matching scroll container when inactive `.vm-tab-content` nodes remain mounted.
   - Falls back to usable geometry only after excluding inactive tab content.
 - Tests:
-  - `perfProbeDom.test.ts` covers inactive matching scroll containers and
-    event-loop delay percentiles/histogram.
-  - `explorerScrollSmokeScript.test.ts` covers `--vault`, `--surface`, view
-    switching, active target checks, and printed delay histogram fields.
+  - `perfProbeDom.test.ts` covers inactive matching scroll containers and event-loop delay percentiles/histogram.
+  - `explorerScrollSmokeScript.test.ts` covers `--vault`, `--surface`, view switching, active target checks, and printed delay histogram fields.
 
 TDD evidence:
 
 - RED:
-  - `pnpm vitest run test/component/perfProbeDom.test.ts --testNamePattern "targets the active explorer tab"`
-    failed by selecting `props-row` from the inactive tab.
-  - `pnpm vitest run test/unit/scripts/explorerScrollSmokeScript.test.ts`
-    failed on missing `--surface=current|files` and related surface-switching
-    hooks.
+  - `pnpm vitest run test/component/perfProbeDom.test.ts --testNamePattern "targets the active explorer tab"` failed by selecting `props-row` from the inactive tab.
+  - `pnpm vitest run test/unit/scripts/explorerScrollSmokeScript.test.ts` failed on missing `--surface=current|files` and related surface-switching hooks.
 - GREEN:
-  - `pnpm vitest run test/component/perfProbeDom.test.ts --testNamePattern "targets the active explorer tab"`
-    passed, 1 test / 22 skipped.
-  - `pnpm vitest run test/unit/scripts/explorerScrollSmokeScript.test.ts`
-    passed.
+  - `pnpm vitest run test/component/perfProbeDom.test.ts --testNamePattern "targets the active explorer tab"` passed, 1 test / 22 skipped.
+  - `pnpm vitest run test/unit/scripts/explorerScrollSmokeScript.test.ts` passed.
 
 ## Stress Vault Setup
 
@@ -70,15 +56,11 @@ TDD evidence:
   `C:\Users\vic_A\AppData\Roaming\obsidian\obsidian.json`.
 - Registry backup made before adding the stress vault:
   `C:\Users\vic_A\AppData\Roaming\obsidian\obsidian.json.vaultman-stress-backup-20260520192758.json`.
-- `vaultman` was enabled in the stress vault and build artifacts were synced to
-  `test/vaults/stress-vault/.obsidian/plugins/vaultman`.
-- The generated Markdown corpus lives under ignored path
-  `test/vaults/stress-vault`; local count after the 100k generation:
+- `vaultman` was enabled in the stress vault and build artifacts were synced to `test/vaults/stress-vault/.obsidian/plugins/vaultman`.
+- The generated Markdown corpus lives under ignored path `test/vaults/stress-vault`; local count after the 100k generation:
   `100000` Markdown files.
 
-The existing generator helper was not used because the stress vault already had
-an `.obsidian` directory. The corpus was generated with inline Node so plugin
-state was preserved.
+The existing generator helper was not used because the stress vault already had an `.obsidian` directory. The corpus was generated with inline Node so plugin state was preserved.
 
 ## 50k Files Matrix
 
@@ -88,10 +70,7 @@ Command shape:
 node scripts/run-explorer-scroll-smoke.mjs --vault=stress-vault --surface=files --view=<view> --jumps=50 --visual-delay-ms=0 --no-build --no-overlay
 ```
 
-All valid 50k runs ended with no captured Obsidian dev errors and zero blank
-frames. Tree/List/Table measured the active Files surface across the full file
-population. Grid/Cards only measured the collapsed topology surface because the
-hierarchy was not expanded.
+All valid 50k runs ended with no captured Obsidian dev errors and zero blank frames. Tree/List/Table measured the active Files surface across the full file population. Grid/Cards only measured the collapsed topology surface because the hierarchy was not expanded.
 
 | View | Surface validity | Result | Sample row range | Blank frames | Blank >100 ms | Blank >250 ms | Max blank | Max viewport gap | Max delay | p95 delay | p99 delay | Delay histogram | LoAF | Long task | Dev errors |
 | --- | --- | --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | --- | --- | --- | --- |
@@ -103,65 +82,38 @@ hierarchy was not expanded.
 
 ## Grid/Cards Expansion Attempt
 
-Grid/Cards cannot be treated as full 50k row stress from the table above. The
-runner successfully switched to the Files surface and the Grid view, but the
-visible rows stayed at the collapsed root/topology level.
+Grid/Cards cannot be treated as full 50k row stress from the table above. The runner successfully switched to the Files surface and the Grid view, but the visible rows stayed at the collapsed root/topology level.
 
-An exploratory live click of the Grid `Expand all` button on the 50k vault did
-not return within approximately 90 seconds. Obsidian was recovered afterward;
-`dev:errors` returned no captured errors, and the Grid view still reported only
-root-level rows. Treat this as a pressure datum and a harness gap, not as a
-completed Grid/Cards large-row matrix.
+An exploratory live click of the Grid `Expand all` button on the 50k vault did not return within approximately 90 seconds. Obsidian was recovered afterward;
+`dev:errors` returned no captured errors, and the Grid view still reported only root-level rows. Treat this as a pressure datum and a harness gap, not as a completed Grid/Cards large-row matrix.
 
 ## 100k Attempt
 
-The second generation pass added another 50,000 Markdown files, bringing the
-ignored local corpus to `100000` Markdown files. The live runtime did not become
-ready enough for an explicit scroll matrix:
+The second generation pass added another 50,000 Markdown files, bringing the ignored local corpus to `100000` Markdown files. The live runtime did not become ready enough for an explicit scroll matrix:
 
 - `obsidian vault=stress-vault reload` timed out after about 34 seconds.
-- An 8-minute polling loop for `app.vault.getFiles().length` /
-  `app.vault.getMarkdownFiles().length` did not return a ready count.
-- `obsidian restart` and later `obsidian version` became unresponsive while the
-  stress vault was marked open.
-- After removing the stress vault `open` flag from `obsidian.json`, Obsidian
-  started again and `obsidian vault=plugin-dev eval code="1+1"` returned `=> 2`.
-- A fresh bounded 100k viability check
-  `obsidian vault=stress-vault eval code="JSON.stringify({name: app.vault.getName(), files: app.vault.getFiles().length, markdown: app.vault.getMarkdownFiles().length})"`
-  timed out after 5 minutes.
-- Recovery required closing Obsidian. Graceful close timed out, so the hung
-  Obsidian processes were force-stopped; the stress vault `open` flag was
-  removed again; `plugin-dev` eval recovered afterward.
+- An 8-minute polling loop for `app.vault.getFiles().length` / `app.vault.getMarkdownFiles().length` did not return a ready count.
+- `obsidian restart` and later `obsidian version` became unresponsive while the stress vault was marked open.
+- After removing the stress vault `open` flag from `obsidian.json`, Obsidian started again and `obsidian vault=plugin-dev eval code="1+1"` returned `=> 2`.
+- A fresh bounded 100k viability check `obsidian vault=stress-vault eval code="JSON.stringify({name: app.vault.getName(), files: app.vault.getFiles().length, markdown: app.vault.getMarkdownFiles().length})"` timed out after 5 minutes.
+- Recovery required closing Obsidian. Graceful close timed out, so the hung Obsidian processes were force-stopped; the stress vault `open` flag was removed again; `plugin-dev` eval recovered afterward.
 
-Conclusion: the 100k live scroll matrix is blocked by Obsidian CLI/runtime
-startup/indexing readiness, not by a completed Vaultman scroll failure. The
-next 100k slice needs an explicit large-vault launch/index readiness harness or
-a separate cold-start/indexing performance track before scroll-burst results
-can be trusted.
+Conclusion: the 100k live scroll matrix is blocked by Obsidian CLI/runtime startup/indexing readiness, not by a completed Vaultman scroll failure. The next 100k slice needs an explicit large-vault launch/index readiness harness or a separate cold-start/indexing performance track before scroll-burst results can be trusted.
 
 ## Verification After Code Changes
 
 Fresh local gate after the surface/active-target correction:
 
-- `pnpm vitest run test/component/perfProbeDom.test.ts test/unit/dev/perfProbe.test.ts test/unit/scripts/explorerScrollSmokeScript.test.ts`
-  passed, 3 files / 33 tests.
+- `pnpm vitest run test/component/perfProbeDom.test.ts test/unit/dev/perfProbe.test.ts test/unit/scripts/explorerScrollSmokeScript.test.ts` passed, 3 files / 33 tests.
 - `pnpm run check` passed with 0 errors / 0 warnings.
 - `pnpm run lint` passed with 0 warnings / 0 errors.
-- `pnpm run build` passed and synced artifacts to repo root, `dist/build`,
-  `plugin-dev`, and the stress vault.
+- `pnpm run build` passed and synced artifacts to repo root, `dist/build`, `plugin-dev`, and the stress vault.
 - `git diff --check` passed with LF-to-CRLF working-copy warnings only.
 
 ## Decisions And Next Work
 
 - Do not claim full 50k/100k parity from this pass.
-- The valid 50k Files matrix proves no blank-frame regression for Tree/List/Table
-  at large scale, but it also shows sustained event-loop pressure in Tree/List
-  and max-only outliers in Table.
-- Grid/Cards need a real expanded-hierarchy large-row harness before their
-  large-vault scroll behavior can be judged.
-- 100k needs a separate readiness gate before rerunning scroll bursts; otherwise
-  the CLI timeout measures Obsidian startup/indexing saturation rather than the
-  Explorer renderer.
-- Add fine-grained timing marks next around Tree visible-row work, List row
-  projection, and Grid expansion/render readiness. Do not spend those marks on
-  100k scroll bursts until the vault readiness problem is isolated.
+- The valid 50k Files matrix proves no blank-frame regression for Tree/List/Table at large scale, but it also shows sustained event-loop pressure in Tree/List and max-only outliers in Table.
+- Grid/Cards need a real expanded-hierarchy large-row harness before their large-vault scroll behavior can be judged.
+- 100k needs a separate readiness gate before rerunning scroll bursts; otherwise the CLI timeout measures Obsidian startup/indexing saturation rather than the Explorer renderer.
+- Add fine-grained timing marks next around Tree visible-row work, List row projection, and Grid expansion/render readiness. Do not spend those marks on 100k scroll bursts until the vault readiness problem is isolated.

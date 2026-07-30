@@ -2,26 +2,14 @@
 
 ## Routing Rules
 
-- Use MCP graph tools first for TS symbol lookup, internal imports, code
-  snippets, callers/callees, complexity, and impact analysis. Evidence:
-  [02-mcp-and-pkm-ai.md](02-mcp-and-pkm-ai.md) and
-  [04-code-and-style-coverage.md](04-code-and-style-coverage.md).
-- Use MCP graph tools for Svelte file-level imports and component surfaces, but
-  verify runtime calls and template semantics with Svelte-specific tools or
-  textual scans. Evidence: the `createExplorerScrollGeometry` missed trace in
-  [04-code-and-style-coverage.md](04-code-and-style-coverage.md).
-- Use PKM-AI textual retrieval for docs and decision retrieval while semantic
-  vectors are unpopulated. Evidence: [02-mcp-and-pkm-ai.md](02-mcp-and-pkm-ai.md).
-- Use PKM-AI semantic retrieval only after the document recovery gate and
-  embedding rebuild. Evidence: `0` vectors and failed semantic query in
-  [02-mcp-and-pkm-ai.md](02-mcp-and-pkm-ai.md).
-- Use Obsidian File Recovery only after producing a read-only restore candidate
-  list. Evidence: File Recovery is available in `Start of The Road`, but this
-  audit did not inspect or restore snapshots.
-- Use textual scans for CSS/SCSS selectors, UnoCSS classes, dynamic class
-  construction, package literals, and config usage. Evidence:
-  [04-code-and-style-coverage.md](04-code-and-style-coverage.md) and
-  [05-library-usage.md](05-library-usage.md).
+- Use MCP graph tools first for TS symbol lookup, internal imports, code snippets, callers/callees, complexity, and impact analysis. Evidence:
+  [02-mcp-and-pkm-ai.md](02-mcp-and-pkm-ai.md) and [04-code-and-style-coverage.md](04-code-and-style-coverage.md).
+- Use MCP graph tools for Svelte file-level imports and component surfaces, but verify runtime calls and template semantics with Svelte-specific tools or textual scans. Evidence: the `createExplorerScrollGeometry` missed trace in [04-code-and-style-coverage.md](04-code-and-style-coverage.md).
+- Use PKM-AI textual retrieval for docs and decision retrieval while semantic vectors are unpopulated. Evidence: [02-mcp-and-pkm-ai.md](02-mcp-and-pkm-ai.md).
+- Use PKM-AI semantic retrieval only after the document recovery gate and embedding rebuild. Evidence: `0` vectors and failed semantic query in [02-mcp-and-pkm-ai.md](02-mcp-and-pkm-ai.md).
+- Use Obsidian File Recovery only after producing a read-only restore candidate list. Evidence: File Recovery is available in `Start of The Road`, but this audit did not inspect or restore snapshots.
+- Use textual scans for CSS/SCSS selectors, UnoCSS classes, dynamic class construction, package literals, and config usage. Evidence:
+  [04-code-and-style-coverage.md](04-code-and-style-coverage.md) and [05-library-usage.md](05-library-usage.md).
 - Use MCP HTTP UI for human visual inspection, not as canonical evidence.
 
 ## Next Actions
@@ -49,6 +37,5 @@ Start with the most operationally risky evidence:
 - Do not run `node .agents/tools/pkm-ai/embed-docs.ts` before recovery review.
 - Do not bulk restore from Git or Obsidian without an approved path list.
 - Do not remove dependencies based on this audit alone.
-- Do not treat Svelte call tracing as complete until the MCP indexer proves it
-  can resolve calls inside `.svelte` scripts/templates.
+- Do not treat Svelte call tracing as complete until the MCP indexer proves it can resolve calls inside `.svelte` scripts/templates.
 - Do not use the MCP UI as the only source for an architectural claim.

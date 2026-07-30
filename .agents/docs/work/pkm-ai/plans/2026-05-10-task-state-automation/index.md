@@ -19,16 +19,11 @@ updated_by: codex
 > superpowers:executing-plans to implement this plan task-by-task. Steps use
 > checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Let agents mark objective-level plan tasks mechanically before the
-final manual status or handoff edit.
+**Goal:** Let agents mark objective-level plan tasks mechanically before the final manual status or handoff edit.
 
-**Architecture:** Extend the existing `manage-tasks.mjs` tool instead of
-creating a second task runner. Use Obsidian Tasks-compatible Markdown task
-lines and optional emoji metadata while keeping current docs/manual summaries
-under human control.
+**Architecture:** Extend the existing `manage-tasks.mjs` tool instead of creating a second task runner. Use Obsidian Tasks-compatible Markdown task lines and optional emoji metadata while keeping current docs/manual summaries under human control.
 
-**Tech Stack:** Node ESM CLI scripts, Node test runner, Obsidian Markdown, and
-the Tasks emoji task format.
+**Tech Stack:** Node ESM CLI scripts, Node test runner, Obsidian Markdown, and the Tasks emoji task format.
 
 ---
 
@@ -63,8 +58,7 @@ node .agents/tools/pkm-ai/manage-tasks.mjs `
   --close-when-all-done
 ```
 
-Run updates for the same file sequentially. The script is designed as a
-single-file mechanical state update, not as a concurrent writer.
+Run updates for the same file sequentially. The script is designed as a single-file mechanical state update, not as a concurrent writer.
 
 Supported task-state options:
 

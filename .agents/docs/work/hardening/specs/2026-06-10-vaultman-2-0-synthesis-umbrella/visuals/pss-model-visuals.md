@@ -15,8 +15,7 @@ tags:
 
 # PSS — Modelo en discusión (grill 2026-06-10, EN CURSO)
 
-Snapshot visual del PSS grill. NO es decisión final: registra el estado de la
-conversación dev ↔ agente. Fuente de las decisiones cerradas:
+Snapshot visual del PSS grill. NO es decisión final: registra el estado de la conversación dev ↔ agente. Fuente de las decisiones cerradas:
 [[../01-locked-decisions-grill|shard 01]] (se actualizará al cerrar el grill).
 
 ## Sources
@@ -29,9 +28,7 @@ conversación dev ↔ agente. Fuente de las decisiones cerradas:
 
 ## Modelo: authoring tipado (B) + resolución en cascada (C)
 
-Decisión del dev (2026-06-10): B con la razón de C — facetas tipadas para autoría y
-validación; la RESOLUCIÓN entre scopes es una cascada de overrides (el más específico
-gana), como CSS. "C dentro de B".
+Decisión del dev (2026-06-10): B con la razón de C — facetas tipadas para autoría y validación; la RESOLUCIÓN entre scopes es una cascada de overrides (el más específico gana), como CSS. "C dentro de B".
 
 ```mermaid
 flowchart LR
@@ -66,10 +63,7 @@ flowchart LR
 
 ## Pipeline de estilo (bits-ui headless + pseudo-snippets)
 
-Requisito del dev: componentes/primitives se comportan como bits-ui (mínimo o cero
-estilo propio); TODO el estilo = pseudo-snippets (CSS exportable a snippets reales del
-usuario) → se preserva el lenguaje de diseño de Obsidian y se evita que agentes IA
-generen UI fuera de lenguaje.
+Requisito del dev: componentes/primitives se comportan como bits-ui (mínimo o cero estilo propio); TODO el estilo = pseudo-snippets (CSS exportable a snippets reales del usuario) → se preserva el lenguaje de diseño de Obsidian y se evita que agentes IA generen UI fuera de lenguaje.
 
 ```mermaid
 flowchart LR

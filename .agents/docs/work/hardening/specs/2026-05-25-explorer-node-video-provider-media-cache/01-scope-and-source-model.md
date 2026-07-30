@@ -16,8 +16,7 @@ tags:
 
 ## Hard Boundary
 
-Do not support `vid` codeblocks. The feature belongs to node media resolution,
-not Markdown syntax extension.
+Do not support `vid` codeblocks. The feature belongs to node media resolution, not Markdown syntax extension.
 
 Allowed note scanning:
 
@@ -59,8 +58,7 @@ export interface NodeVideoMediaPrimary {
 ```
 
 Only one `NodeMediaPrimary` is active per node. A list/tree can still mix rows:
-one node may render an image in the media slot and another may render a video
-poster in the same slot.
+one node may render an image in the media slot and another may render a video poster in the same slot.
 
 ## Source Kinds
 
@@ -112,8 +110,7 @@ When enabled, the resolver can scan the body for first resolvable media:
 - local video embed;
 - Markdown image link;
 - direct remote image/video URL;
-- provider URL if it appears as a normal link/embed and provider resolution is
-  enabled.
+- provider URL if it appears as a normal link/embed and provider resolution is enabled.
 
 This source is lower priority than explicit properties because it is inferred.
 It must not parse custom `vid` codeblocks.
@@ -126,6 +123,5 @@ It must not parse custom `vid` codeblocks.
 4. Provider/generic metadata fallback for a property or document URL.
 5. No media.
 
-Direct URL and provider URL are source forms inside property/body discovery, not
-separate visual elements.
+Direct URL and provider URL are source forms inside property/body discovery, not separate visual elements.
 

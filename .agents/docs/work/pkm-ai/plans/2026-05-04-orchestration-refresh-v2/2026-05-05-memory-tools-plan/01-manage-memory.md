@@ -49,8 +49,7 @@ if (action === 'archive') {
 
 - [ ] **Step 2: Run to verify it works**
 
-Run: `node tools/pkm-ai/manage-memory.mjs archive "Test summary" "Test content"`
-Expected: Prints `Archived to docs/archive/archive-[timestamp].md` and creates the file.
+Run: `node tools/pkm-ai/manage-memory.mjs archive "Test summary" "Test content"` Expected: Prints `Archived to docs/archive/archive-[timestamp].md` and creates the file.
 
 - [ ] **Step 3: Commit**
 

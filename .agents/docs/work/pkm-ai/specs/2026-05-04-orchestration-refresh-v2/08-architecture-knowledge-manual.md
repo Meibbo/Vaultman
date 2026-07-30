@@ -29,20 +29,17 @@ Files include:
 
 ## Decisions
 
-Decisions explain why a rule exists. They should not become live instruction
-unless converted into a policy.
+Decisions explain why a rule exists. They should not become live instruction unless converted into a policy.
 
 ## Knowledge
 
-Knowledge is descriptive. It records what external docs, APIs, papers, or tools
-say. Knowledge notes include citations and freshness fields.
+Knowledge is descriptive. It records what external docs, APIs, papers, or tools say. Knowledge notes include citations and freshness fields.
 
 `expires_at` means review after this date. It does not mean delete.
 
 ## Manual
 
-The PKM-AI manual teaches the developer. It should help sessions improve because
-both agent and developer understand the system better over time.
+The PKM-AI manual teaches the developer. It should help sessions improve because both agent and developer understand the system better over time.
 
 Manual levels:
 

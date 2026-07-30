@@ -27,8 +27,7 @@ The old values are legacy compatibility only:
 - `any` -> `or`
 - `none` -> `not`
 
-All new UI, tests, import output, templates, and service logic should use
-`and | or | not`.
+All new UI, tests, import output, templates, and service logic should use `and | or | not`.
 
 The filter evaluator semantics remain:
 
@@ -43,11 +42,9 @@ Minimum mapping for this slice:
 - Bases object filter `and` -> Vaultman group `and`.
 - Bases object filter `or` -> Vaultman group `or`.
 - Bases object filter `not` -> Vaultman group `not`.
-- Safe equality/property/tag/file predicates may convert into existing rule
-  types where the current evaluator already supports them.
+- Safe equality/property/tag/file predicates may convert into existing rule types where the current evaluator already supports them.
 
-Unsupported expressions are not applied as active filters yet. They are kept in
-the import report with:
+Unsupported expressions are not applied as active filters yet. They are kept in the import report with:
 
 - original expression.
 - source file/block/view.
@@ -61,8 +58,7 @@ Convertible rules can expand in later slices.
 Create a dedicated Bases interop boundary, expected modules:
 
 - `typeBasesInterop.ts`
-- `serviceBasesInterop.ts` or pure parser/import modules under `src/services`
-  and `src/utils`.
+- `serviceBasesInterop.ts` or pure parser/import modules under `src/services` and `src/utils`.
 
 Inputs:
 
@@ -94,10 +90,6 @@ Minimum coverage:
 
 ## Open Risks
 
-- Markdown fenced `bases` discovery can be expensive on large vaults; the first
-  slice should reuse existing retrieval/indexing instead of adding a second full
-  vault scan path.
-- Direct conversion to current `FilterRule` remains lossy; report visibility is
-  required before export or broad rule mapping.
-- Renaming `GroupLogic` touches many tests and settings/templates. A normalizer
-  is required to keep old saved filters functional.
+- Markdown fenced `bases` discovery can be expensive on large vaults; the first slice should reuse existing retrieval/indexing instead of adding a second full vault scan path.
+- Direct conversion to current `FilterRule` remains lossy; report visibility is required before export or broad rule mapping.
+- Renaming `GroupLogic` touches many tests and settings/templates. A normalizer is required to keep old saved filters functional.

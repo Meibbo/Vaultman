@@ -19,8 +19,7 @@ updated_by: codex
 
 User shorthand: `ejecuta ola 1 agente c`.
 
-Resolved alias: Cut 4 service-only DnD/groups residuals from
-[[dispatch-shortcuts|Parallel dispatch shortcuts]].
+Resolved alias: Cut 4 service-only DnD/groups residuals from [[dispatch-shortcuts|Parallel dispatch shortcuts]].
 
 Owned files for this slice:
 
@@ -29,30 +28,19 @@ Owned files for this slice:
 - `src/services/serviceGroups.ts`
 - their unit tests
 
-No Svelte views/components, tree/grid/list DnD markup, Queue presentation files,
-or `serviceGroups` production code were changed.
+No Svelte views/components, tree/grid/list DnD markup, Queue presentation files, or `serviceGroups` production code were changed.
 
 ## Finding
 
-The confirmed service-level gap was in `serviceDnd` accepted-operation
-resolution. A drop target declaring `accepts: ['reorder']` could still accept an
-`inside` drop position through the generic accepted-operation fallback. That
-made ambiguous `@dnd-kit/svelte` drops capable of emitting a semantic reorder
-result without a before/after edge.
+The confirmed service-level gap was in `serviceDnd` accepted-operation resolution. A drop target declaring `accepts: ['reorder']` could still accept an `inside` drop position through the generic accepted-operation fallback. That made ambiguous `@dnd-kit/svelte` drops capable of emitting a semantic reorder result without a before/after edge.
 
-This was service-level, not UI wiring, so it fit Agent C scope. UI wiring for
-real `DragDropProvider`, `createDraggable`, and `createDroppable` remains Agent
-F scope after Agent B.
+This was service-level, not UI wiring, so it fit Agent C scope. UI wiring for real `DragDropProvider`, `createDraggable`, and `createDroppable` remains Agent F scope after Agent B.
 
 ## Implementation
 
-- Added red-green unit coverage in `serviceDnd` for rejecting `inside` drops
-  when the target only supports `reorder`.
-- Added red-green adapter coverage proving an ambiguous `@dnd-kit/svelte` drop
-  without edge position does not emit `onDropResult`.
-- Changed `preferredAcceptedOperation` so accepted operations return `null`
-  when no operation is compatible with the drop position, while preserving
-  explicit layout operations, `move`, and `apply-template`.
+- Added red-green unit coverage in `serviceDnd` for rejecting `inside` drops when the target only supports `reorder`.
+- Added red-green adapter coverage proving an ambiguous `@dnd-kit/svelte` drop without edge position does not emit `onDropResult`.
+- Changed `preferredAcceptedOperation` so accepted operations return `null` when no operation is compatible with the drop position, while preserving explicit layout operations, `move`, and `apply-template`.
 
 ## Verification
 
@@ -68,13 +56,10 @@ F scope after Agent B.
 - Agent C full unit gate:
   `pnpm exec vp test run --project unit --config vitest.config.ts test/unit/services/serviceDnd.test.ts test/unit/services/serviceDndSvelteAdapter.test.ts test/unit/services/serviceGroups.test.ts --fileParallelism=false`:
   pass, 21/21.
-- First `pnpm run check`: failed on a concurrently dirty `NodeSelectionSnapshot`
-  `selected` property mismatch in `serviceSelection.svelte.ts`.
+- First `pnpm run check`: failed on a concurrently dirty `NodeSelectionSnapshot` `selected` property mismatch in `serviceSelection.svelte.ts`.
 - Repeated `pnpm run check`: pass, `svelte-check found 0 errors and 0 warnings`.
 - `git diff --check`: pass with LF/CRLF warnings only from the dirty worktree.
 
 ## Follow-Up
 
-Agent F should preserve the contract that `reorder` requires a before/after
-edge. If a DnD target only has an `inside` position, it must advertise a
-compatible operation such as `move`, not rely on fallback reorder behavior.
+Agent F should preserve the contract that `reorder` requires a before/after edge. If a DnD target only has an `inside` position, it must advertise a compatible operation such as `move`, not rely on fallback reorder behavior.

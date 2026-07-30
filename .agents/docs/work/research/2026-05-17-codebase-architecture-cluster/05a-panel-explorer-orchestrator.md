@@ -20,10 +20,7 @@ source:
 
 ## Main Container
 
-`panelExplorer.svelte` receives the active provider, selected view mode, search
-state, sort state, add mode, scope toggles, selected files, visible fields, node
-expansion commands, and plugin services from the page/tab layer. It is the first
-place where page state becomes concrete explorer rows.
+`panelExplorer.svelte` receives the active provider, selected view mode, search state, sort state, add mode, scope toggles, selected files, visible fields, node expansion commands, and plugin services from the page/tab layer. It is the first place where page state becomes concrete explorer rows.
 
 | Responsibility | Evidence |
 |---|---|
@@ -58,18 +55,11 @@ flowchart TD
 
 ## Important Runtime Edges
 
-- The files provider is special: when `provider.id === "files"` and the
-  provider exposes `getSnapshot`, `PanelExplorer` publishes an explorer data
-  plane snapshot.
-- Table view is adapter-backed: `PanelExplorer` derives table rows from tree
-  nodes and table columns from `nodeTableColumnsForProvider(provider.id,
-  visibleFields)`.
-- Grid view carries extra hierarchy state: current grid parent, path, back and
-  forward stacks, and folder/inline hierarchy mode from settings.
-- Selection is pruned against visible node IDs, so provider refreshes cannot
-  keep stale selected nodes alive.
-- Context menu calls include selected nodes, which lets provider actions operate
-  on the current multi-selection when available.
+- The files provider is special: when `provider.id === "files"` and the provider exposes `getSnapshot`, `PanelExplorer` publishes an explorer data plane snapshot.
+- Table view is adapter-backed: `PanelExplorer` derives table rows from tree nodes and table columns from `nodeTableColumnsForProvider(provider.id, visibleFields)`.
+- Grid view carries extra hierarchy state: current grid parent, path, back and forward stacks, and folder/inline hierarchy mode from settings.
+- Selection is pruned against visible node IDs, so provider refreshes cannot keep stale selected nodes alive.
+- Context menu calls include selected nodes, which lets provider actions operate on the current multi-selection when available.
 
 ## Auxiliary Containers
 
@@ -83,9 +73,6 @@ flowchart TD
 
 ## Risk Notes
 
-- `PanelExplorer` has high coordination load. Changing provider contracts or
-  projection services without checking all view modes risks cross-view breakage.
-- The files provider snapshot path is conditional and easy to bypass. Any data
-  plane refactor must keep the `files` provider publication path explicit.
-- Queue and active-filter containers reuse `ViewNodeList`; list-view changes can
-  affect popup surfaces, not just the main explorer.
+- `PanelExplorer` has high coordination load. Changing provider contracts or projection services without checking all view modes risks cross-view breakage.
+- The files provider snapshot path is conditional and easy to bypass. Any data plane refactor must keep the `files` provider publication path explicit.
+- Queue and active-filter containers reuse `ViewNodeList`; list-view changes can affect popup surfaces, not just the main explorer.

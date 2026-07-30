@@ -16,16 +16,12 @@ Post-catch-up: cómo arrancar v1.2.0 + qué docs actualizar + handoff a writing-
 **Por qué A.R primero**:
 
 1. **Resuelve el dolor inmediato** reportado por el usuario al inicio del brainstorm:
-   caret roto + keyboard nav roto + selection inconsistente + expand-all no funciona en
-   algunos views + cmenu diverge entre views. A.R unifica todo.
+   caret roto + keyboard nav roto + selection inconsistente + expand-all no funciona en algunos views + cmenu diverge entre views. A.R unifica todo.
 2. **Es prereq de V.D** (View Decomposition). N.R primitive embeds A.R action contract.
-3. **Es prereq de B.P** (Bases Parity). Unified cmenu + selection contract necesario para
-   Bases vocab.
-4. **Es independiente de K.B** en v1.4.0 — A.R row-keyboard contract delega a K.B's row
-   context cuando K.B llega.
+3. **Es prereq de B.P** (Bases Parity). Unified cmenu + selection contract necesario para Bases vocab.
+4. **Es independiente de K.B** en v1.4.0 — A.R row-keyboard contract delega a K.B's row context cuando K.B llega.
 5. **Scope contained**: 8-12 commits, ~6-10 sessions. Auditeable per PR.
-6. **T.G basis puede arrancar paralelo en TDD red-green**: write invariant tests (ARIA tree
-   pattern, caret hit-target, selection parity, keyboard parity) primero, A.R los hace verde.
+6. **T.G basis puede arrancar paralelo en TDD red-green**: write invariant tests (ARIA tree pattern, caret hit-target, selection parity, keyboard parity) primero, A.R los hace verde.
 
 ## A.R spec preview (no es el spec final — solo orientation)
 
@@ -34,10 +30,8 @@ A.R detail spec se escribe en sesión siguiente. Path propuesto:
 
 **Scope preview**:
 - New `src/services/serviceKeyboardNav.ts` (full WAI-ARIA Tree View pattern)
-- New `src/services/serviceRowAction.ts` (Melt UI–style builder pattern: `getCaretProps`,
-  `getRowProps`, `getKeyboardHandlers`)
-- Normalize ViewHost contract (`(id, MouseEvent)` único — drop `(row, SelectModifiers)`
-  ViewNodeList variant)
+- New `src/services/serviceRowAction.ts` (Melt UI–style builder pattern: `getCaretProps`, `getRowProps`, `getKeyboardHandlers`)
+- Normalize ViewHost contract (`(id, MouseEvent)` único — drop `(row, SelectModifiers)` ViewNodeList variant)
 - Fix `viewTree.svelte:974-978` caret leaf placeholder
 - Fix WCAG 2.5.8 caret hit-target (≥ 24×24 CSS px) — full row-width clickable area to caret
 - Standard 10-item cmenu (Open/Rename/Move/Tag/Prop/Duplicate/Queue/Delete) routed via A.R
@@ -67,8 +61,7 @@ A.R detail spec se escribe en sesión siguiente. Path propuesto:
 Path: `.agents/docs/work/roadmap-overview.md` (10457 bytes, single file currently)
 
 Updates needed:
-- Add new rows en la tabla "Sub-systems UI / layout (after Phase 0)" o sección nueva
-  "Sub-systems Explorer Merge (post brainstorm 2026-05-19)" para los 11 nuevos:
+- Add new rows en la tabla "Sub-systems UI / layout (after Phase 0)" o sección nueva "Sub-systems Explorer Merge (post brainstorm 2026-05-19)" para los 11 nuevos:
   N.R, A.R, V.D, P.D, T.G, 0-A.S (already exists sibling track), K.B, API, I.E, B.P, C.D, R.D
 - Add column "First release" con v1.2.0 / v1.3.0 / ... / v2.0.0 mapping per sub-system
 - Add link a esta umbrella desde "Adjacent docs"
@@ -134,9 +127,7 @@ Agentes β, γ, δ pueden arrancar paralelo con α una vez que A.R spec se aprue
 
 Per R.D (Release Discipline) cross-cutting:
 
-- **1.1.0 catch-up**: complete. Main reconciled, release-please installed, bare tag `1.1.0`,
-  release assets published. Ver
-  [[docs/work/hardening/plans/2026-05-20-release-1-1-0-catch-up|Release 1.1.0 catch-up]].
+- **1.1.0 catch-up**: complete. Main reconciled, release-please installed, bare tag `1.1.0`, release assets published. Ver [[docs/work/hardening/plans/2026-05-20-release-1-1-0-catch-up|Release 1.1.0 catch-up]].
 - **During v1.2.0 sprint**: `[Unreleased]` section accumulating en CHANGELOG.md cada commit
 - **v1.2.0 release**: release-please release PR + bare tag + manifest + versions + release.yml assets
 - **GitHub Release**: published by release.yml with SBOM, checksums and notes

@@ -2,8 +2,7 @@
 
 Subscribe to navigator events to react to user actions.
 
-Tag strings in events use canonical form (no `#` prefix, lowercase path) for real tags. Some tag events may also use
-aggregate tag collection ids (`'__tagged__'` or `'__untagged__'`). Property node ids use canonical lowercase node ids.
+Tag strings in events use canonical form (no `#` prefix, lowercase path) for real tags. Some tag events may also use aggregate tag collection ids (`'__tagged__'` or `'__untagged__'`). Property node ids use canonical lowercase node ids.
 
 | Event                  | Payload                                         | Description                  |
 | ---------------------- | ----------------------------------------------- | ---------------------------- |
@@ -129,8 +128,7 @@ The type definitions provide:
 - **Readonly return types** (selected files arrays, pinned map)
 - **Menu extension context types** (file, folder, tag, and property menus)
 
-**Note**: These type checks are compile-time only. At runtime, the API is permissive and accepts any values (see Runtime
-Behavior sections for each API).
+**Note**: These type checks are compile-time only. At runtime, the API is permissive and accepts any values (see Runtime Behavior sections for each API).
 
 ## Changelog
 

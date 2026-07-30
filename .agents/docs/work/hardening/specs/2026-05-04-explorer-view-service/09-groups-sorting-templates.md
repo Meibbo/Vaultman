@@ -16,9 +16,7 @@ tags:
 
 Groups should be semantic parent structures in the render model.
 
-Because groups are being added to every view mode, all views should treat their render model as hierarchical even when the projection looks flat. See
-[[docs/work/hardening/specs/2026-05-04-explorer-view-service/13-hierarchical-badge-bubbling|Hierarchical badge bubbling]]
-for shared descendant-layer behavior.
+Because groups are being added to every view mode, all views should treat their render model as hierarchical even when the projection looks flat. See [[docs/work/hardening/specs/2026-05-04-explorer-view-service/13-hierarchical-badge-bubbling|Hierarchical badge bubbling]] for shared descendant-layer behavior.
 
 Group kinds:
 
@@ -65,9 +63,7 @@ Groups can be rendered as:
 - bands in grid;
 - grouped rows in table.
 
-Views may choose different visual affordances for hierarchy depth, but they
-must not discard child layer data just because the current projection is not a
-tree.
+Views may choose different visual affordances for hierarchy depth, but they must not discard child layer data just because the current projection is not a tree.
 
 ## Manual Groups
 
@@ -83,8 +79,7 @@ Needed behavior:
 - persist group membership;
 - show group as parent node or section depending on view.
 
-Manual groups are not the same as filter groups. Filter groups express logical
-conditions. Manual groups express user organization.
+Manual groups are not the same as filter groups. Filter groups express logical conditions. Manual groups express user organization.
 
 ## Sorting
 
@@ -102,8 +97,7 @@ Sort kinds:
 - grouped order;
 - custom template order.
 
-`serviceSorting.ts` can remain as helper, but `serviceViews` should own the
-current sort state per explorer/view.
+`serviceSorting.ts` can remain as helper, but `serviceViews` should own the current sort state per explorer/view.
 
 ## Manual Sorting
 
@@ -170,8 +164,7 @@ Obsidian Bases uses view definitions with:
 - order;
 - summaries.
 
-Vaultman does not need to fully mimic `.base` storage at first, but the view
-model should not block future Bases-compatible import/export.
+Vaultman does not need to fully mimic `.base` storage at first, but the view model should not block future Bases-compatible import/export.
 
 Potential mapping:
 
@@ -195,5 +188,4 @@ Examples:
 - pending add/set/rename only;
 - ready-to-execute checklist.
 
-The current disabled marks button in `explorerQueue.svelte` should eventually
-open or apply these templates.
+The current disabled marks button in `explorerQueue.svelte` should eventually open or apply these templates.

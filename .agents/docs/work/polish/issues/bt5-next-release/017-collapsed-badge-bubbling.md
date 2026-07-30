@@ -23,9 +23,7 @@ tags: [agent/issue, triage/needs-triage, initiative/polish, release/bt5]
 
 ## What to build
 
-Cuando un descendiente oculto por colapso contiene un badge/cell activo, proyectar en el
-parent un círculo pequeño del color activo. El indicador existe solo mientras el parent
-está colapsado; al expandirlo desaparece porque el origen vuelve a ser visible.
+Cuando un descendiente oculto por colapso contiene un badge/cell activo, proyectar en el parent un círculo pequeño del color activo. El indicador existe solo mientras el parent está colapsado; al expandirlo desaparece porque el origen vuelve a ser visible.
 
 ## Acceptance criteria
 

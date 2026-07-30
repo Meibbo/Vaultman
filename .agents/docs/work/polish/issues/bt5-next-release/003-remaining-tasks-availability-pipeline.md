@@ -19,16 +19,11 @@ tags: [agent/issue, initiative/polish, release/bt5, performance]
 
 ## Parent
 
-[[docs/work/polish/issues/bt5-next-release/index|BT5 next release train]]. Regresión de
-la entrega BT4-012.
+[[docs/work/polish/issues/bt5-next-release/index|BT5 next release train]]. Regresión de la entrega BT4-012.
 
 ## What to build
 
-Hacer que Remaining tasks esté disponible de forma correcta y progresiva desde caché,
-incluidos records legacy sin `tasks`. El mismo tracer debe: detectar incompletitud de
-schema, backfillear sin freeze, repintar cells visibles cuando hidrata IndexedDB y
-priorizar Files visibles antes del resto por `mtime` descendente, garantizando que los
-archivos viejos también terminen.
+Hacer que Remaining tasks esté disponible de forma correcta y progresiva desde caché, incluidos records legacy sin `tasks`. El mismo tracer debe: detectar incompletitud de schema, backfillear sin freeze, repintar cells visibles cuando hidrata IndexedDB y priorizar Files visibles antes del resto por `mtime` descendente, garantizando que los archivos viejos también terminen.
 
 ## Acceptance criteria
 
@@ -47,14 +42,6 @@ None — can start immediately.
 
 ## Implementation checkpoint
 
-Implementado y commiteado en `c60e3bc7`. Los records legacy incompletos o con counts
-malformados se recomputan; `tasks` persiste junto a words/characters; la cola usa visibles
-en orden DOM y después `mtime desc + path`, con lotes, yield, cancelación, reanudación y
-métricas `statistics.ensure.visible/total`.
+Implementado y commiteado en `c60e3bc7`. Los records legacy incompletos o con counts malformados se recomputan; `tasks` persiste junto a words/characters; la cola usa visibles en orden DOM y después `mtime desc + path`, con lotes, yield, cancelación, reanudación y métricas `statistics.ensure.visible/total`.
 
-Medición controlada del build en `plugin-dev`: 10 prioritarios visibles en 416.5 ms y 85
-files totales en 10,329.5 ms; el orden computado coincidió exactamente con el esperado,
-85/85 records quedaron completos en memoria e IndexedDB y un fixture real con una tarea
-devolvió `1` antes y después de recargar el plugin. Tras reload se hidrataron 88 records
-con `tasks`. No se ejecutó el build modificado en `Start of The Road`: el dev restringió
-todo runtime testing a `plugin-dev`, así que el benchmark final en el vault grande queda HITL.
+Medición controlada del build en `plugin-dev`: 10 prioritarios visibles en 416.5 ms y 85 files totales en 10,329.5 ms; el orden computado coincidió exactamente con el esperado, 85/85 records quedaron completos en memoria e IndexedDB y un fixture real con una tarea devolvió `1` antes y después de recargar el plugin. Tras reload se hidrataron 88 records con `tasks`. No se ejecutó el build modificado en `Start of The Road`: el dev restringió todo runtime testing a `plugin-dev`, así que el benchmark final en el vault grande queda HITL.

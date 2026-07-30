@@ -272,9 +272,7 @@ In markup, replace the existing `class:nav-file={useNativeDom}` patterns with:
 </div>
 ```
 
-(`stateClassesFor` is a helper inside the component that invokes
-`stateModEmissions(vocab, rowStateBooleans)` and turns the returned array
-into `class:foo={true}` directives or a single space-joined class attr.)
+(`stateClassesFor` is a helper inside the component that invokes `stateModEmissions(vocab, rowStateBooleans)` and turns the returned array into `class:foo={true}` directives or a single space-joined class attr.)
 
 - [ ] **Step 7: Run table test**
 
@@ -286,8 +284,7 @@ Expected: PASS — 4 cases green.
 
 - [ ] **Step 8: Repeat for ViewNodeCards (Bases cards vocab + cover slot)**
 
-Create `test/component/views/ViewNodeCards.NativeClassEmission.test.ts` with
-assertions:
+Create `test/component/views/ViewNodeCards.NativeClassEmission.test.ts` with assertions:
 - `bases-cards-item` on card root when `useNativeDom=true`
 - `bases-cards-property mod-title` on primary label
 - `bases-cards-property` on every field wrapper
@@ -295,8 +292,7 @@ assertions:
 - No native classes when `useNativeDom=false`
 
 Update `ViewNodeCards.svelte` to consume vocab + use `stateModEmissions`.
-Cover image element receives `{vocab?.coverImage ?? ''}`. The existing
-`{#if mask.media && row.mediaDescriptor}` guard from C6 stays in place;
+Cover image element receives `{vocab?.coverImage ?? ''}`. The existing `{#if mask.media && row.mediaDescriptor}` guard from C6 stays in place;
 the inner element gets the class added.
 
 Run test, expect PASS.
@@ -307,11 +303,7 @@ Create `test/component/views/ViewNodeGrid.NativeClassEmission.test.ts`:
 - No `.bases-*` or `.nav-file` regardless of `useNativeDom` value
 - `.vm-node-grid-tile` always present
 
-Update `ViewNodeGrid.svelte`: remove the existing `class:nav-file={useNativeDom}`
-and `class:nav-file-title={useNativeDom}` (they are no longer correct per
-the honest-hybrid rule for grid). Keep `vm-node-grid-tile` and
-`vm-node-grid-label`. State mods still emitted via `stateModEmissions`
-with `vocab=null`.
+Update `ViewNodeGrid.svelte`: remove the existing `class:nav-file={useNativeDom}` and `class:nav-file-title={useNativeDom}` (they are no longer correct per the honest-hybrid rule for grid). Keep `vm-node-grid-tile` and `vm-node-grid-label`. State mods still emitted via `stateModEmissions` with `vocab=null`.
 
 Run test, expect PASS.
 
@@ -321,9 +313,7 @@ Create `test/component/views/ViewNodeList.NativeClassEmission.test.ts`:
 - No native classes regardless of `useNativeDom`
 - `.vm-view-list-row` always present
 
-Update `ViewNodeList.svelte`: confirm it does not emit native classes (per
-inventory, it already doesn't). Add the vocab/state-mod helper call for
-uniformity (returns no native classes for list).
+Update `ViewNodeList.svelte`: confirm it does not emit native classes (per inventory, it already doesn't). Add the vocab/state-mod helper call for uniformity (returns no native classes for list).
 
 Run test, expect PASS.
 
@@ -336,8 +326,7 @@ Create `test/component/views/viewTree.NativeClassEmission.test.ts`:
 - `collapse-icon` on toggle when row is collapsible
 - No native classes when `useNativeDom=false`
 
-Update `viewTree.svelte`: replace hardcoded `class:tree-item={useNativeDom}`
-literals with the contract-driven lookup. String values stay the same.
+Update `viewTree.svelte`: replace hardcoded `class:tree-item={useNativeDom}` literals with the contract-driven lookup. String values stay the same.
 
 Run test, expect PASS.
 
@@ -370,8 +359,7 @@ obsidian vault=plugin-dev eval code="document.querySelector('.bases-cards-item')
 obsidian vault=plugin-dev dev:errors
 ```
 
-Expected: `bases-tr`, `bases-cards-item`, `tree-item-self` all present
-under native preset for their respective views. `No errors captured.`
+Expected: `bases-tr`, `bases-cards-item`, `tree-item-self` all present under native preset for their respective views. `No errors captured.`
 
 - [ ] **Step 14: Commit**
 
@@ -397,19 +385,12 @@ vm-* classes always emit; native classes additive when useNativeDom=true."
 
 - 4 helper unit tests + 5 view component tests pass.
 - `pnpm verify` baseline preserved.
-- Live smoke: native vocab present under native preset for tree/table/cards,
-  absent for list/grid.
+- Live smoke: native vocab present under native preset for tree/table/cards, absent for list/grid.
 
 ## Risk R2 monitoring
 
-After the swap, theme CSS that previously targeted `.nav-file` on
-table/cards rows no longer applies. Visual smoke confirms vm-* fallback
-styling fills the gap. If a previously-relied-on Obsidian theme rule
-left a visible hole (e.g., padding, hover state), add an equivalent
-`vm-*` rule in `src/styles/_views.scss` (or wherever per-view styles
-live) and document in the commit message.
+After the swap, theme CSS that previously targeted `.nav-file` on table/cards rows no longer applies. Visual smoke confirms vm-* fallback styling fills the gap. If a previously-relied-on Obsidian theme rule left a visible hole (e.g., padding, hover state), add an equivalent `vm-*` rule in `src/styles/_views.scss` (or wherever per-view styles live) and document in the commit message.
 
 ## Rollback
 
-`git revert <commit>` reverts emission changes. View components fall back
-to their pre-C8 hardcoded class emission.
+`git revert <commit>` reverts emission changes. View components fall back to their pre-C8 hardcoded class emission.

@@ -24,8 +24,7 @@ User-reported: when scrolling, node elements (icon/label/detail/badges) hide and
 
 - [x] **Step 1: Invoke systematic-debugging skill** (REQUIRED)
 
-The implementing agent must invoke the `superpowers:systematic-debugging`
-skill BEFORE any code change. This step is non-skippable.
+The implementing agent must invoke the `superpowers:systematic-debugging` skill BEFORE any code change. This step is non-skippable.
 
 - [x] **Step 2: Reproduce phase**
 
@@ -48,61 +47,42 @@ obsidian vault=plugin-dev eval code="(function(){const c=document.querySelector(
 ```
 
 If reproduction succeeds, capture:
-- Which view modes exhibit the flicker (likely Table, Grid, Cards per
-  the scroll-idle deferral pass; possibly all).
-- Frame timing when elements disappear (use Chrome DevTools Performance
-  recording).
-- Whether the flicker only occurs during ACTIVE scroll or also briefly
-  after scroll stops.
+- Which view modes exhibit the flicker (likely Table, Grid, Cards per the scroll-idle deferral pass; possibly all).
+- Frame timing when elements disappear (use Chrome DevTools Performance recording).
+- Whether the flicker only occurs during ACTIVE scroll or also briefly after scroll stops.
 
-If reproduction fails, the synthetic smoke harness does not exercise the
-user-observed scenario. Mark this as a known limitation, document in
-commit message, and move on with the assertion-only patch (which is
-still useful as a regression guard).
+If reproduction fails, the synthetic smoke harness does not exercise the user-observed scenario. Mark this as a known limitation, document in commit message, and move on with the assertion-only patch (which is still useful as a regression guard).
 
 - [x] **Step 3: Locate phase**
 
 Inspect, in priority order:
 
-1. `src/services/serviceExplorerScrollGeometry.ts` — does the geometry
-   coordinator suspend any render flag during active scroll?
-2. `src/services/serviceNodeRowMeasure.ts` — does row measurement defer
-   children render? Check for any `if (isActivelyScrolling) return earlyEmpty`
-   pattern.
-3. `src/services/serviceNodeRowStyle.ts` — style application gate; does
-   it return null/empty during scroll?
-4. View components' scroll-idle guardrails added during the 2026-05-16
-   variable-scroll-repair pass. Search:
+1. `src/services/serviceExplorerScrollGeometry.ts` — does the geometry coordinator suspend any render flag during active scroll?
+2. `src/services/serviceNodeRowMeasure.ts` — does row measurement defer children render? Check for any `if (isActivelyScrolling) return earlyEmpty` pattern.
+3. `src/services/serviceNodeRowStyle.ts` — style application gate; does it return null/empty during scroll?
+4. View components' scroll-idle guardrails added during the 2026-05-16 variable-scroll-repair pass. Search:
    ```
    pnpm exec rg "scroll-idle|scrollIdle|isActivelyScrolling|deferUntilIdle" src/
    ```
 
-For each candidate, read the relevant code and form a hypothesis: "if X
-is the cause, when X is bypassed/changed, the flicker stops".
+For each candidate, read the relevant code and form a hypothesis: "if X is the cause, when X is bypassed/changed, the flicker stops".
 
-Test each hypothesis MINIMALLY (e.g., temporarily disable the candidate
-in a scratch branch) and observe whether the flicker disappears. The
-first hypothesis that eliminates the flicker is the root cause.
+Test each hypothesis MINIMALLY (e.g., temporarily disable the candidate in a scratch branch) and observe whether the flicker disappears. The first hypothesis that eliminates the flicker is the root cause.
 
 - [x] **Step 4: Diagnose decision**
 
-If the root cause is in the scroll-idle deferral pass (R-protected
-investment): **escalate to user** before patching. Possible safe
-alternatives:
+If the root cause is in the scroll-idle deferral pass (R-protected investment): **escalate to user** before patching. Possible safe alternatives:
 
 - Defer ONLY the virtualizer resizing, not the children render.
-- Render row container WITH children synchronously at row mount; only
-  defer subsequent measurement.
+- Render row container WITH children synchronously at row mount; only defer subsequent measurement.
 - Cache the last-known children DOM snapshot when entering active scroll;
   reuse it instead of returning empty.
 
-If the root cause is elsewhere (a non-deferral render gate that returns
-early for cosmetic reasons): patch directly without escalation.
+If the root cause is elsewhere (a non-deferral render gate that returns early for cosmetic reasons): patch directly without escalation.
 
 - [x] **Step 5: Write failing test for the flicker assertion**
 
-Either extend `scripts/run-explorer-scroll-smoke.mjs` with a frame-level
-assertion, or add `test/integration/scroll-flicker.test.ts`:
+Either extend `scripts/run-explorer-scroll-smoke.mjs` with a frame-level assertion, or add `test/integration/scroll-flicker.test.ts`:
 
 ```typescript
 import { describe, expect, it } from 'vitest';
@@ -116,9 +96,7 @@ describe('scroll-flicker assertion', () => {
 });
 ```
 
-Refine the assertion's exact shape based on what `src/dev/perfProbe.ts`
-exposes. If the harness today only reports `blankFrames=0` style aggregate
-metrics, extend it minimally to report per-row child presence.
+Refine the assertion's exact shape based on what `src/dev/perfProbe.ts` exposes. If the harness today only reports `blankFrames=0` style aggregate metrics, extend it minimally to report per-row child presence.
 
 - [x] **Step 6: Run failing test to confirm flicker reproduces in test**
 
@@ -126,14 +104,12 @@ metrics, extend it minimally to report per-row child presence.
 pnpm smoke:scroll -- --view=cards --jumps=100 --strict-flicker
 ```
 
-(Add `--strict-flicker` flag to the runner.) If the test does not
-reproduce the flicker in the synthetic harness, log this and move on.
+(Add `--strict-flicker` flag to the runner.) If the test does not reproduce the flicker in the synthetic harness, log this and move on.
 Manual repro in plugin-dev is the alternative gate.
 
 - [x] **Step 7: Apply the patch**
 
-Based on Step 3-4 diagnosis, modify the single relevant file. Patch
-must NOT touch:
+Based on Step 3-4 diagnosis, modify the single relevant file. Patch must NOT touch:
 - `serviceDnd`, `serviceManualDnd`, dnd-kit
 - The bindable / context distribution chain in ViewHost
 - The mask service or contract
@@ -150,8 +126,7 @@ pnpm smoke:scroll -- --view=grid --jumps=100 --strict-flicker
 pnpm smoke:scroll -- --view=list --jumps=100 --strict-flicker
 ```
 
-Expected per view: no flicker frames detected. Existing perf gates
-preserved (blankFrames=0, maxBlank=0ms).
+Expected per view: no flicker frames detected. Existing perf gates preserved (blankFrames=0, maxBlank=0ms).
 
 - [x] **Step 9: Visual smoke on plugin-dev**
 
@@ -200,29 +175,16 @@ Verification:
 
 ## Closeout note
 
-Closed on 2026-05-20 as part of the 0-A C12/C13 gate. Production scroll-render changes were already
-present in the branch by the time of closeout; this pass hardened the live smoke harness with
-`--strict-flicker`, configurable `strictIdleMs`, visible row range reporting, and abort/overlay
-cleanup support, then verified Tree/List/Table/Grid/Cards under strict and non-strict live
-`plugin-dev` runs. Full command output and per-view numbers are preserved in
-[[baseline-log|0-A baseline log]].
+Closed on 2026-05-20 as part of the 0-A C12/C13 gate. Production scroll-render changes were already present in the branch by the time of closeout; this pass hardened the live smoke harness with `--strict-flicker`, configurable `strictIdleMs`, visible row range reporting, and abort/overlay cleanup support, then verified Tree/List/Table/Grid/Cards under strict and non-strict live `plugin-dev` runs. Full command output and per-view numbers are preserved in [[baseline-log|0-A baseline log]].
 
 ## Risk R4 escalation
 
-If during Step 3 the root cause is identified as the scroll-idle deferral
-mechanism added by the 2026-05-16 variable-scroll-repair pass: PAUSE and
-escalate to user before patching. Present the alternatives from Step 4
-and let user decide which trade-off to take.
+If during Step 3 the root cause is identified as the scroll-idle deferral mechanism added by the 2026-05-16 variable-scroll-repair pass: PAUSE and escalate to user before patching. Present the alternatives from Step 4 and let user decide which trade-off to take.
 
 ## Limitation
 
-If the synthetic smoke harness cannot reproduce the flicker (because
-jump-cheat does not exercise real user scroll patterns), the strict
-assertion still serves as a regression guard for whatever the harness
-CAN exercise. Comprehensive adversarial scroll coverage is owned by
-Sub-system 0-A.S, not this commit.
+If the synthetic smoke harness cannot reproduce the flicker (because jump-cheat does not exercise real user scroll patterns), the strict assertion still serves as a regression guard for whatever the harness CAN exercise. Comprehensive adversarial scroll coverage is owned by Sub-system 0-A.S, not this commit.
 
 ## Rollback
 
-`git revert <commit>` reverts the patch and the strict assertion. The
-flicker returns; the prior 11 commits are unaffected.
+`git revert <commit>` reverts the patch and the strict assertion. The flicker returns; the prior 11 commits are unaffected.

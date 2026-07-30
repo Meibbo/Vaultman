@@ -69,23 +69,15 @@ flowchart TD
 
 ## Service Roles
 
-- `serviceExplorerProjection.ts` converts row inputs into stable rows,
-  `visibleIds`, ID/index maps, media descriptors, and projection metadata.
-- `serviceExplorerRowInput.ts` converts snapshot rows, tree nodes, and view rows
-  into a shared `ExplorerRowInput` shape and resolves reveal indexes.
-- `serviceViewTableAdapter.ts` chooses table columns by provider ID and visible
-  field overrides, then adapts trees into table rows.
-- `serviceExplorerScrollGeometry.ts` provides fixed and variable geometry
-  coordinators. Variable geometry uses measured row sizes and prefix indexing
-  so Grid/Table/Cards can reveal rows without all-row fallback scans.
+- `serviceExplorerProjection.ts` converts row inputs into stable rows, `visibleIds`, ID/index maps, media descriptors, and projection metadata.
+- `serviceExplorerRowInput.ts` converts snapshot rows, tree nodes, and view rows into a shared `ExplorerRowInput` shape and resolves reveal indexes.
+- `serviceViewTableAdapter.ts` chooses table columns by provider ID and visible field overrides, then adapts trees into table rows.
+- `serviceExplorerScrollGeometry.ts` provides fixed and variable geometry coordinators. Variable geometry uses measured row sizes and prefix indexing so Grid/Table/Cards can reveal rows without all-row fallback scans.
 
 ## View Risk Notes
 
-- `ViewNodeList` is shared by main List mode and popup containers. List changes
-  can affect queue and active-filter popups.
+- `ViewNodeList` is shared by main List mode and popup containers. List changes can affect queue and active-filter popups.
 - Grid/Table/Cards depend on variable measurement and scroll-idle guardrails.
   Refactors should keep zero-blank live smoke coverage in those modes.
-- Markmap is still a view component, but phase 04 evidence showed it is not a
-  selectable mode in the current view menu.
-- Badge helper changes affect every rendered explorer view because badges are
-  normalized before row-level interactions fire.
+- Markmap is still a view component, but phase 04 evidence showed it is not a selectable mode in the current view menu.
+- Badge helper changes affect every rendered explorer view because badges are normalized before row-level interactions fire.

@@ -17,15 +17,11 @@ tags:
 > or `executing-plans` to implement this plan task-by-task. Steps use checkbox
 > syntax for tracking.
 
-**Goal:** Build the PKM-AI agent workspace under `` and migrate old
-agent docs out of active public docs.
+**Goal:** Build the PKM-AI agent workspace under `` and migrate old agent docs out of active public docs.
 
-**Architecture:** Markdown/frontmatter remains canonical. TypeScript/Node
-scripts perform deterministic indexing and checks. Skills wrap repeated
-workflows but do not own the source of truth.
+**Architecture:** Markdown/frontmatter remains canonical. TypeScript/Node scripts perform deterministic indexing and checks. Skills wrap repeated workflows but do not own the source of truth.
 
-**Tech Stack:** Obsidian Markdown, YAML frontmatter, JSON Canvas, Obsidian
-Bases, TypeScript/Node scripts, PowerShell commands.
+**Tech Stack:** Obsidian Markdown, YAML frontmatter, JSON Canvas, Obsidian Bases, TypeScript/Node scripts, PowerShell commands.
 
 ---
 

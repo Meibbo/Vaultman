@@ -18,21 +18,14 @@ tags:
 
 ## Context
 
-`.agents/tools/pkm-ai/` has 19 `.mjs` scripts, several large + complex (`agent-room.mjs` 37 KB,
-`manage-tasks.mjs` 18.8 KB, `check-doc-health.mjs` 16 KB, `split-shard.mjs` 11 KB). No type safety →
-agent-authored edits break silently. The orchestration upgrade adds more (registry query, retrieval/graph,
-versioning) — complexity will grow. gbrain + pi (the reference tools) are TypeScript. We want types WITHOUT
-adding a build step or a new runtime.
+`.agents/tools/pkm-ai/` has 19 `.mjs` scripts, several large + complex (`agent-room.mjs` 37 KB, `manage-tasks.mjs` 18.8 KB, `check-doc-health.mjs` 16 KB, `split-shard.mjs` 11 KB). No type safety → agent-authored edits break silently. The orchestration upgrade adds more (registry query, retrieval/graph, versioning) — complexity will grow. gbrain + pi (the reference tools) are TypeScript. We want types WITHOUT adding a build step or a new runtime.
 
 ## Decision
 
-Migrate `.mjs` → `.ts`, run via **Node native type-stripping** (verified: Node **v24.15** runs `node x.ts`
-directly; supported Node ≥ 22.18). **No build, no Bun, no tsx.**
+Migrate `.mjs` → `.ts`, run via **Node native type-stripping** (verified: Node **v24.15** runs `node x.ts` directly; supported Node ≥ 22.18). **No build, no Bun, no tsx.**
 
-- **Constraint: erasable types only** — type annotations, `interface`, `type`, `import type`. NO enums,
-  namespaces, parameter-properties, or other non-erasable constructs (use `tsconfig` `erasableSyntaxOnly`).
-- **Phased:** high-value/complex first (`agent-room` · `manage-tasks` · `check-doc-health` · `split-shard` ·
-  `update-frontmatter`); trivial < 1 KB scripts last/optional.
+- **Constraint: erasable types only** — type annotations, `interface`, `type`, `import type`. NO enums, namespaces, parameter-properties, or other non-erasable constructs (use `tsconfig` `erasableSyntaxOnly`).
+- **Phased:** high-value/complex first (`agent-room` · `manage-tasks` · `check-doc-health` · `split-shard` · `update-frontmatter`); trivial < 1 KB scripts last/optional.
 - Add `tsconfig.json` (strict, `erasableSyntaxOnly`, `allowImportingTsExtensions`, `module: nodenext`);
   keep `"type": "module"`; pin `engines.node >= 22.18`. Agents/CI invoke `node <script>.ts`.
 
@@ -40,9 +33,7 @@ directly; supported Node ≥ 22.18). **No build, no Bun, no tsx.**
 
 - Type safety + editor/agent assistance on the most error-prone scripts; aligns with gbrain/pi for borrowing.
 - Zero build artifacts, zero new runtime dependency (Node-native).
-- Cost: requires Node ≥ 22.18 (have v24.15 ✓); erasable-only discipline; `.ts` relative imports need explicit
-  extensions. Risk: very old Node environments can't run — mitigated by `engines` pin + the AI-files-only scope
-  (these scripts never ship to `main`).
+- Cost: requires Node ≥ 22.18 (have v24.15 ✓); erasable-only discipline; `.ts` relative imports need explicit extensions. Risk: very old Node environments can't run — mitigated by `engines` pin + the AI-files-only scope (these scripts never ship to `main`).
 
 ## Alternatives considered
 

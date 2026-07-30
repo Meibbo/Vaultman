@@ -20,15 +20,13 @@ Read-only Explore research 2026-06-04. Feeds spec S6 + ADR 0006. Default = local
 ## Local embedders (free, zero network)
 
 - **transformers.js** (`@xenova/transformers`, MIT, in-Node ONNX, **no daemon**) — **DEFAULT**.
-  `all-MiniLM-L6-v2` 22 MB / **384-dim** (~<100 ms/doc after a 30–60 s first-load; 200–400 MB RAM); alts
-  `nomic-embed-text` 768, `bge-small-en` 384. ★★★★★ (proven in Smart Connections + Copilot, 10k+ users).
+  `all-MiniLM-L6-v2` 22 MB / **384-dim** (~<100 ms/doc after a 30–60 s first-load; 200–400 MB RAM); alts `nomic-embed-text` 768, `bge-small-en` 384. ★★★★★ (proven in Smart Connections + Copilot, 10k+ users).
 - **Ollama** (local daemon, free, GPU accel) — `nomic-embed-text` 768 / `mxbai-embed-large` 1024. ★★★★☆ optional/scale.
 - node-llama-cpp = skip (LLM-focused, heavy). LM Studio = dev-only (GUI, not headless).
 
 ## Hosted free-tier + PRIVACY
 
-- **Google Gemini** `text-embedding-004` free (≈60 rpm, ~100k tok/day, 768-dim): **🚩 DATA-TRAINING RISK** —
-  ToS "may be used to improve services." NOT for private vaults; public-safe content only.
+- **Google Gemini** `text-embedding-004` free (≈60 rpm, ~100k tok/day, 768-dim): **🚩 DATA-TRAINING RISK** — ToS "may be used to improve services." NOT for private vaults; public-safe content only.
 - **OpenAI** `text-embedding-3-small`: NO free tier (trial credits only); but explicit no-training policy.
 - **Cohere** 100 calls/month (useless); Jina/Mistral/Voyage = no usable free tier.
 - → free hosted exists, but Gemini's = privacy-risky for a PRIVATE vault (ties MD-K1). **Local = safe default.**
@@ -36,9 +34,7 @@ Read-only Explore research 2026-06-04. Feeds spec S6 + ADR 0006. Default = local
 ## What the dev's plugins teach (Smart Connections, Copilot)
 
 - DEFAULT = **local transformers.js** (all-MiniLM 384); OpenAI/Ollama opt-in.
-- Vector store = **flat JSON** (`.obsidian/smart-connections/embeddings.json`), **regenerable, NOT synced**,
-  in-memory cosine. Lessons: local-default non-negotiable · store regenerable + device-local · flat JSON is
-  enough at 1k–10k · hosted strictly opt-in.
+- Vector store = **flat JSON** (`.obsidian/smart-connections/embeddings.json`), **regenerable, NOT synced**, in-memory cosine. Lessons: local-default non-negotiable · store regenerable + device-local · flat JSON is enough at 1k–10k · hosted strictly opt-in.
 
 ## Vector stores (Node/local)
 
@@ -60,8 +56,7 @@ interface EmbeddingConfig { provider: "local-transformers"|"local-ollama"|"googl
   endpoint?; vectorStore: "orama"|"flat-json"|"sqlite-vec"|"hnswlib"; storePath?; enableFallback?: boolean }
 ```
 
-- **DEFAULT** = `local-transformers` (all-MiniLM-L6-v2) + `orama` (or `flat-json`), `storePath` device-local,
-  `enableFallback: true`. Fallback chain: configured → on hosted fail/quota → revert local; **never force paid**.
+- **DEFAULT** = `local-transformers` (all-MiniLM-L6-v2) + `orama` (or `flat-json`), `storePath` device-local, `enableFallback: true`. Fallback chain: configured → on hosted fail/quota → revert local; **never force paid**.
 - Embed **on doc-change** (content-hash); soft-delete on git rm.
 
 ## Sources

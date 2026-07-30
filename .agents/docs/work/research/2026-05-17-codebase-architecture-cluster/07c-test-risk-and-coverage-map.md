@@ -47,19 +47,12 @@ flowchart LR
 
 ## Regression Strategy
 
-1. For service or pure contract changes, start with focused unit tests under the
-   matching `test/unit/services`, `test/unit/logic`, `test/unit/utils`, or
-   `test/unit/types` folder.
-2. For mounted UI behavior, run the specific `test/component` file first, then
-   the component project if the surface uses shared view or toolbar primitives.
-3. For plugin lifecycle, vault writes, or Obsidian internals, run integration or
-   live smoke explicitly because `verify` is not enough.
-4. For scroll, run both focused geometry/component tests and the live scroll
-   smoke harness because jank and blanking have separate failure modes.
+1. For service or pure contract changes, start with focused unit tests under the matching `test/unit/services`, `test/unit/logic`, `test/unit/utils`, or `test/unit/types` folder.
+2. For mounted UI behavior, run the specific `test/component` file first, then the component project if the surface uses shared view or toolbar primitives.
+3. For plugin lifecycle, vault writes, or Obsidian internals, run integration or live smoke explicitly because `verify` is not enough.
+4. For scroll, run both focused geometry/component tests and the live scroll smoke harness because jank and blanking have separate failure modes.
 
 ## Phase 08 Handoff
 
-The next phase should map `scripts/`, `.github/workflows/`, release assets,
-security audit/SBOM scripts, build sync, smoke runners, and generated artifacts.
-Phase 07 shows those are not just tooling: they decide what `verify`, release,
-live smoke, integration, e2e, security, and generated outputs actually mean.
+The next phase should map `scripts/`, `.github/workflows/`, release assets, security audit/SBOM scripts, build sync, smoke runners, and generated artifacts.
+Phase 07 shows those are not just tooling: they decide what `verify`, release, live smoke, integration, e2e, security, and generated outputs actually mean.

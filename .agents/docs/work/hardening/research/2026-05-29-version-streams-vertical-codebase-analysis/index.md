@@ -17,28 +17,20 @@ tags:
 
 # Version Streams Vertical Codebase Analysis
 
-This record answers the user request for an ultra-detailed, sharded, source-backed
-analysis of the differences between Vaultman's version streams, in theory and in
-practice, with vertical codebase analysis of the product systems those streams
-cover.
+This record answers the user request for an ultra-detailed, sharded, source-backed analysis of the differences between Vaultman's version streams, in theory and in practice, with vertical codebase analysis of the product systems those streams cover.
 
-The user explicitly requested pauses between shards. This index is the manifest
-and coverage ledger. Each shard must be substantial; the full set must exceed
-1000 lines and contain five or more shards unless the source evidence shows that
-more shards are needed.
+The user explicitly requested pauses between shards. This index is the manifest and coverage ledger. Each shard must be substantial; the full set must exceed 1000 lines and contain five or more shards unless the source evidence shows that more shards are needed.
 
 ## Scope
 
-- Analyze version streams as defined by current Vaultman docs and by actual Git,
-  tag, metadata, source-tree, and proto-folder state.
+- Analyze version streams as defined by current Vaultman docs and by actual Git, tag, metadata, source-tree, and proto-folder state.
 - Name the main differences between the streams honestly, separating:
   - theory: intended role and flow;
   - practice: what exists in the current repository and local design material;
   - mismatch: places where theory and practice are not aligned.
 - Cover product systems, product architecture, and design-adjacent material.
 - Exclude test and tooling deep dives by user request.
-- Use tests/tooling only as contextual evidence when release-stream docs mention
-  them; do not analyze them as product systems.
+- Use tests/tooling only as contextual evidence when release-stream docs mention them; do not analyze them as product systems.
 - Preserve detail in shards instead of compressing into an abstract summary.
 - Mark unread or pending source areas explicitly.
 
@@ -50,9 +42,7 @@ This record uses `vm-vertical-codebase-analysis` rules:
 - Do not analyze files as read unless they were actually inspected.
 - Keep a coverage table.
 - Split large analysis into shards.
-- For Svelte code, use the Svelte skills and treat Svelte 5 runes, effects,
-  derived state, props, subscriptions, and view boundaries as first-class
-  architecture evidence.
+- For Svelte code, use the Svelte skills and treat Svelte 5 runes, effects, derived state, props, subscriptions, and view boundaries as first-class architecture evidence.
 
 ## Current Evidence Snapshot
 
@@ -66,29 +56,16 @@ Captured during this session:
 - `origin/main` manifest reports `1.0.1`.
 - Tag `1.1.0` manifest reports `1.1.0`.
 - Tag `1.0.0` manifest reports `1.0.0`.
-- No local or remote branch matching `dev`, `beta`, or `nightly` was found by
-  branch-name search.
-- `C:\Users\vic_A\Downloads\vaultman` exists and contains proto versions
-  `proto`, `proto-v2`, `proto-v3`, `proto-v4`, `proto-v5`, `proto-v6`,
-  `proto-v7`, HTML prototypes, shared `components`, and screenshots.
-- `C:\Users\vic_A\Downloads\Vaultman (1)` does not exist in this local machine,
-  even though older docs cite it as the proto-v5 path.
+- No local or remote branch matching `dev`, `beta`, or `nightly` was found by branch-name search.
+- `C:\Users\vic_A\Downloads\vaultman` exists and contains proto versions `proto`, `proto-v2`, `proto-v3`, `proto-v4`, `proto-v5`, `proto-v6`, `proto-v7`, HTML prototypes, shared `components`, and screenshots.
+- `C:\Users\vic_A\Downloads\Vaultman (1)` does not exist in this local machine, even though older docs cite it as the proto-v5 path.
 - The user confirmed `proto-v7` is the latest and canonical proto design stream.
-- `Vaultman Prototype v7.html` loads `proto-v7/data.jsx`, `proto/icons.jsx`,
-  `proto-v7/control-island.jsx`, `proto-v7/popups.jsx`,
-  `proto-v7/search-island.jsx`, `proto-v7/stack-island.jsx`,
-  `proto-v7/views.jsx`, `proto-v7/explorer.jsx`, `proto-v7/pages.jsx`,
-  `proto-v7/nautilus.jsx`, `proto-v7/sidebar.jsx`, `proto-v7/desktop.jsx`,
-  and `proto-v7/app.jsx`.
-- Local `proto-v7/control-island.jsx` and `proto-v7/app.jsx` are now present and
-  read; the earlier missing-file caveat in shard 04 has been corrected.
+- `Vaultman Prototype v7.html` loads `proto-v7/data.jsx`, `proto/icons.jsx`, `proto-v7/control-island.jsx`, `proto-v7/popups.jsx`, `proto-v7/search-island.jsx`, `proto-v7/stack-island.jsx`, `proto-v7/views.jsx`, `proto-v7/explorer.jsx`, `proto-v7/pages.jsx`, `proto-v7/nautilus.jsx`, `proto-v7/sidebar.jsx`, `proto-v7/desktop.jsx`, and `proto-v7/app.jsx`.
+- Local `proto-v7/control-island.jsx` and `proto-v7/app.jsx` are now present and read; the earlier missing-file caveat in shard 04 has been corrected.
 
 ## Product Source Size Snapshot
 
-This is product-source inventory only, excluding tests/spec files. It includes
-`src/dev/perfProbe.ts` in the raw count because it is under `src/`; later shards
-will exclude it from product-system interpretation unless a runtime product
-surface depends on it directly.
+This is product-source inventory only, excluding tests/spec files. It includes `src/dev/perfProbe.ts` in the raw count because it is under `src/`; later shards will exclude it from product-system interpretation unless a runtime product surface depends on it directly.
 
 | Ref | Product `src` files | Product `src` LOC | Components | Services | Providers | Types |
 |---|---:|---:|---:|---:|---:|---:|
@@ -97,9 +74,7 @@ surface depends on it directly.
 | `sandbox` | 271 | 43411 | 83 | 72 | 7 | 24 |
 
 Immediate implication: the practical stream gap is not a small prerelease delta.
-The current canary/beta-ish line has roughly 4.4x the product-source LOC of the
-stable `origin/main` line and far more system surfaces. That supports the
-project's own "reconstruction" framing.
+The current canary/beta-ish line has roughly 4.4x the product-source LOC of the stable `origin/main` line and far more system surfaces. That supports the project's own "reconstruction" framing.
 
 ## Shard Contract
 
@@ -123,8 +98,7 @@ Each shard must include:
 | 05 | System-by-system stream delta matrix | pending | Explorer, Filters, Queue/Ops, FnR, Layout/Surface, Theme/Style, API/Interop, Bases/NN, mobile, storage |
 | 06 | Promotion and reconciliation spec | pending | what must move upward, what must be retranslated, what must not be merged, practical stream-control gaps |
 
-Shard count may expand if the system-by-system read needs separate shards for
-Explorer/DataPlane, Surface/Layout, and Design/Theme.
+Shard count may expand if the system-by-system read needs separate shards for Explorer/DataPlane, Surface/Layout, and Design/Theme.
 
 ## Coverage Ledger
 
@@ -156,27 +130,17 @@ Explorer/DataPlane, Surface/Layout, and Design/Theme.
   - what remains pending;
   - whether the next shard should proceed unchanged.
 - Do not silently compress later shards to short summaries.
-- Do not update `status.md` or `handoff.md` until the user approves continuing
-  or closing this research pass, unless the user explicitly asks for current
-  indexes to be updated.
+- Do not update `status.md` or `handoff.md` until the user approves continuing or closing this research pass, unless the user explicitly asks for current indexes to be updated.
 
 ## Immediate Answer, Before Full Shards
 
 The major stream differences are already clear:
 
 1. `goal` is the architecture/spec anchor, not code.
-2. `proto design` is v7-canonical design/prototype material in a different
-   toolchain, not a mergeable code stream; the local v7 artifact now includes
-   the referenced `proto-v7/app.jsx` and `proto-v7/control-island.jsx` scripts.
-3. `sandbox` is the current canary stream in theory and the actual active
-   workspace in practice.
-4. `dev` is supposed to be beta/nightly in theory, but no branch with that name
-   is currently visible locally/remotely.
-5. `main` is stable in theory and `origin/main` is practically the `1.0.1`
-   stable line, while tag `1.1.0` records the mis-release line that was later
-   relabeled conceptually as prerelease.
+2. `proto design` is v7-canonical design/prototype material in a different toolchain, not a mergeable code stream; the local v7 artifact now includes the referenced `proto-v7/app.jsx` and `proto-v7/control-island.jsx` scripts.
+3. `sandbox` is the current canary stream in theory and the actual active workspace in practice.
+4. `dev` is supposed to be beta/nightly in theory, but no branch with that name is currently visible locally/remotely.
+5. `main` is stable in theory and `origin/main` is practically the `1.0.1` stable line, while tag `1.1.0` records the mis-release line that was later relabeled conceptually as prerelease.
 
-The biggest practical mismatch is that `sandbox` metadata says
-`1.1.0-beta.1` while current stream theory says `sandbox` is canary, not beta.
-That is not just naming polish: prerelease labels affect user update behavior,
-BRAT/release expectations, and how agents should promote or quarantine work.
+The biggest practical mismatch is that `sandbox` metadata says `1.1.0-beta.1` while current stream theory says `sandbox` is canary, not beta.
+That is not just naming polish: prerelease labels affect user update behavior, BRAT/release expectations, and how agents should promote or quarantine work.

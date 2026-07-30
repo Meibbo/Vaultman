@@ -6,11 +6,7 @@ parent: "[[2026-05-18-explorer-sub-system-0-a-native-dom-parity/index]]"
 
 # 07 — Native-class emission rules per view
 
-Per-view emission logic. Data-driven from
-`explorerViewContract(viewMode).nativeDomEmission[mountContext]`
-(declared in `02-extended-view-feature-contract.md`). View
-components stop hard-coding native class strings; they look them
-up from the contract.
+Per-view emission logic. Data-driven from `explorerViewContract(viewMode).nativeDomEmission[mountContext]` (declared in `02-extended-view-feature-contract.md`). View components stop hard-coding native class strings; they look them up from the contract.
 
 ## Emission rule master
 
@@ -36,11 +32,7 @@ For each view component, on each row:
   //     cellWrapper, coverImage, headerCell
 ```
 
-Always emit `vm-*` classes regardless of preset. Emit native
-classes additively when `preset.useNativeDom === true`. This
-preserves all existing SCSS rules in `src/styles/_views.scss`
-and friends while letting Obsidian theme rules apply via the
-native classes.
+Always emit `vm-*` classes regardless of preset. Emit native classes additively when `preset.useNativeDom === true`. This preserves all existing SCSS rules in `src/styles/_views.scss` and friends while letting Obsidian theme rules apply via the native classes.
 
 ## State-mod emission
 
@@ -73,9 +65,7 @@ function stateModEmissions(
 }
 ```
 
-Lives in `src/services/serviceNodeClassEmission.ts` (new, small
-helper module) or inlined in view components depending on impl
-preference. Spec assumes a small shared helper for testability.
+Lives in `src/services/serviceNodeClassEmission.ts` (new, small helper module) or inlined in view components depending on impl preference. Spec assumes a small shared helper for testability.
 
 ## Per-view emission table (panel context)
 
@@ -87,9 +77,7 @@ preference. Spec assumes a small shared helper for testability.
 | ViewNodeGrid | `vm-node-grid-tile` | none | `vm-node-grid-label` | none | (n/a) | (n/a) | (n/a) | (none — vm-only) |
 | ViewNodeCards | `vm-node-card` | `bases-cards-item` | `vm-node-card-field is-title` | `bases-cards-property mod-title` | `bases-cards-property` (on `.vm-node-card-field`) | `bases-cards-cover` (on `.vm-node-card-cover`) | (n/a) | is-active, is-selected, is-focused, has-active-menu, is-being-dragged, is-being-dragged-over |
 
-In-editor context applies the same table with the
-`rowStateMods` reduced to `['is-active', 'is-selected', 'is-focused']`
-(no DnD by default; future in-editor renderer can opt in).
+In-editor context applies the same table with the `rowStateMods` reduced to `['is-active', 'is-selected', 'is-focused']` (no DnD by default; future in-editor renderer can opt in).
 
 ## Media slot (cards-specific)
 
@@ -102,20 +90,11 @@ In-editor context applies the same table with the
 {/if}
 ```
 
-`bases-cards-cover` only applies in cards. Tree / list / table /
-grid do not have a media slot in 0-A. If `mask.media === true`
-and `row.mediaDescriptor` exists for those views, they may render
-an inline thumbnail using `vm-node-<view>-media` — but Obsidian
-provides no native analog and the cover-image native class stays
-exclusive to cards.
+`bases-cards-cover` only applies in cards. Tree / list / table / grid do not have a media slot in 0-A. If `mask.media === true` and `row.mediaDescriptor` exists for those views, they may render an inline thumbnail using `vm-node-<view>-media` — but Obsidian provides no native analog and the cover-image native class stays exclusive to cards.
 
 ## DnD universal class emission
 
-Imported from `UNIVERSAL_DND_VOCAB`. View components inspect their
-own `isDragSource` / `isDropTarget` booleans (sourced from
-`serviceDnd` / `serviceManualDnd` per current behavior, unchanged
-by 0-A) and apply the native class string when `useNativeDom` is
-true, the vm class string when false.
+Imported from `UNIVERSAL_DND_VOCAB`. View components inspect their own `isDragSource` / `isDropTarget` booleans (sourced from `serviceDnd` / `serviceManualDnd` per current behavior, unchanged by 0-A) and apply the native class string when `useNativeDom` is true, the vm class string when false.
 
 ```typescript
 // inside the row component
@@ -134,9 +113,7 @@ const dropClass = $derived(
 );
 ```
 
-The `drop-indicator` element (rendered above/below the target row
-during DnD) lives at the view container level, not per-row. When
-emitted, the element receives the universal class:
+The `drop-indicator` element (rendered above/below the target row during DnD) lives at the view container level, not per-row. When emitted, the element receives the universal class:
 
 ```svelte
 {#if dropIndicatorY != null}
@@ -147,11 +124,7 @@ emitted, the element receives the universal class:
 {/if}
 ```
 
-`body.is-grabbing` and `.drag-ghost` ghost element rendering are
-managed today by `serviceDnd` / `serviceManualDnd`. 0-A does not
-change that behavior. If those services emit `is-dnd-dragging`
-on body today and we want native `is-grabbing` instead, this is a
-fast-follow tagged `ghost-element-native` in `11-risks-and-followups.md`.
+`body.is-grabbing` and `.drag-ghost` ghost element rendering are managed today by `serviceDnd` / `serviceManualDnd`. 0-A does not change that behavior. If those services emit `is-dnd-dragging` on body today and we want native `is-grabbing` instead, this is a fast-follow tagged `ghost-element-native` in `11-risks-and-followups.md`.
 
 ## C8 + C9 verification gates
 
@@ -188,32 +161,15 @@ test('dnd-kit library is NOT modified in C8 or C9');
 
 ## Pre-existing emission audit
 
-The 5 view components today already emit some native classes
-conditional on `themeService?.useNativeDom ?? false` (per the
-inventory in the brainstorm research). C8 standardizes the
-emission so every per-view template reads from the contract
-literals rather than hard-coding the strings. Expected diffs:
+The 5 view components today already emit some native classes conditional on `themeService?.useNativeDom ?? false` (per the inventory in the brainstorm research). C8 standardizes the emission so every per-view template reads from the contract literals rather than hard-coding the strings. Expected diffs:
 
 - **viewTree.svelte**: `class:tree-item={useNativeDom}` etc.
-  become `class:tree-item={vocab?.rowRoot === 'tree-item'}` —
-  or simpler, drive emission through the helper. Mostly a
-  refactor of where strings come from, not what they are.
-- **ViewNodeTable.svelte**: today emits `.nav-file` +
-  `.nav-file-title`. **C8 changes these to `.bases-tr` +
-  `.bases-table-cell` + adds `.bases-td` + `.bases-table-header`**.
+  become `class:tree-item={vocab?.rowRoot === 'tree-item'}` — or simpler, drive emission through the helper. Mostly a refactor of where strings come from, not what they are.
+- **ViewNodeTable.svelte**: today emits `.nav-file` + `.nav-file-title`. **C8 changes these to `.bases-tr` + `.bases-table-cell` + adds `.bases-td` + `.bases-table-header`**.
   Visual smoke verifies no regression.
-- **ViewNodeCards.svelte**: today emits `.nav-file` +
-  `.nav-file-title`. **C8 changes these to `.bases-cards-item` +
-  `.bases-cards-property mod-title` + adds `.bases-cards-property`
+- **ViewNodeCards.svelte**: today emits `.nav-file` + `.nav-file-title`. **C8 changes these to `.bases-cards-item` + `.bases-cards-property mod-title` + adds `.bases-cards-property`
   + `.bases-cards-cover`**.
-- **ViewNodeGrid.svelte**: today emits `.nav-file` +
-  `.nav-file-title`. **C8 drops these to none (vm-only)** per
-  honest-hybrid rule — Bases has no grid analog and inventing
-  pseudo-native names is rejected.
-- **ViewNodeList.svelte**: no native classes today. C8 confirms
-  this is intentional and matches the contract.
+- **ViewNodeGrid.svelte**: today emits `.nav-file` + `.nav-file-title`. **C8 drops these to none (vm-only)** per honest-hybrid rule — Bases has no grid analog and inventing pseudo-native names is rejected.
+- **ViewNodeList.svelte**: no native classes today. C8 confirms this is intentional and matches the contract.
 
-This is a behavior-relevant change because Obsidian theme CSS
-that previously styled `.nav-file` on table/grid/cards rows will
-no longer apply. Risk R2 in `11-risks-and-followups.md` covers
-mitigation (visual smoke + vm-* fallback styling).
+This is a behavior-relevant change because Obsidian theme CSS that previously styled `.nav-file` on table/grid/cards rows will no longer apply. Risk R2 in `11-risks-and-followups.md` covers mitigation (visual smoke + vm-* fallback styling).

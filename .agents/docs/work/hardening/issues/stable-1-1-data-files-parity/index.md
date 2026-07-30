@@ -85,13 +85,10 @@ graph TD
 ## Closure - 2026-06-07T22:15:10
 
 All local SDF issues in this tracker are closed for the `1.1.0-beta.2` release-gate wave.
-Product implementation was committed in the main-derived worktree as
-`9150c90 feat(data): close explorer parity wave`.
+Product implementation was committed in the main-derived worktree as `9150c90 feat(data): close explorer parity wave`.
 
 Residual work intentionally moved outside this tracker:
 
-- full Core Search 1000+ result virtualization parity, snippet context expansion controls,
-  copy-results/bookmark actions, and exact `obsiman` count reconciliation;
+- full Core Search 1000+ result virtualization parity, snippet context expansion controls, copy-results/bookmark actions, and exact `obsiman` count reconciliation;
 - full Content table renderer parity after the Core Search-compatible result-list surface is stable;
-- further indexed or batched filter-performance work if plugin-dev testing still shows rapid-click FPS
-  degradation.
+- further indexed or batched filter-performance work if plugin-dev testing still shows rapid-click FPS degradation.

@@ -24,8 +24,7 @@ When rebuilding active docs:
 
 ## Normalization Scope
 
-Normalize agent docs into `docs`. Do not move product code outputs or
-explicit public docs unless the user asks.
+Normalize agent docs into `docs`. Do not move product code outputs or explicit public docs unless the user asks.
 
 ## Superpowers Output
 
@@ -38,6 +37,5 @@ If a plugin creates giant files in its own folder:
 
 ## Public Docs
 
-The developer selects what belongs in `docs`. Agents should not infer that
-agent memory belongs in public docs.
+The developer selects what belongs in `docs`. Agents should not infer that agent memory belongs in public docs.
 

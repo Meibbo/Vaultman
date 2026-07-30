@@ -16,11 +16,7 @@ tags:
 
 # 01 — Cell-variety abanico
 
-Dev-requested survey before fixing the `NodeRow` boundary: read the FULL range of
-explorer cells across the three streams so the primitive's slot contract is designed
-against the whole variety, not just the tree cell. Method: coordinator read the 5
-sandbox platform-view cells at full fidelity + 3 read-only Explore agents
-(sandbox Data/Stats · stable `hotfix/1.0.2-css-scorecard` + `dev` · proto v12).
+Dev-requested survey before fixing the `NodeRow` boundary: read the FULL range of explorer cells across the three streams so the primitive's slot contract is designed against the whole variety, not just the tree cell. Method: coordinator read the 5 sandbox platform-view cells at full fidelity + 3 read-only Explore agents (sandbox Data/Stats · stable `hotfix/1.0.2-css-scorecard` + `dev` · proto v12).
 
 ## Sandbox platform-view cells (read directly)
 
@@ -32,8 +28,7 @@ sandbox platform-view cells at full fidelity + 3 read-only Explore agents
 | ViewNodeGrid (`nodeTile`) | Svelte `{@render}` | inline-toggle (opt) | ✓ (+placeholder) | +prefix | grid fields (count field) | — | direct + hover | count field | — |
 | ViewNodeCards | Svelte `{#each}` | — | ✓ (+placeholder) | title field | title/meta fields | **`vm-node-card-cover`** | direct | (count field) | — |
 
-Key: the `vm-badge` atom is **duplicated verbatim** in tree/table/grid/cards; the
-leading affordance varies per view → both confirm A1 (content cell + affordance slot).
+Key: the `vm-badge` atom is **duplicated verbatim** in tree/table/grid/cards; the leading affordance varies per view → both confirm A1 (content cell + affordance slot).
 
 ## Cross-stream slot union + classification
 
@@ -56,30 +51,17 @@ leading affordance varies per view → both confirm A1 (content cell + affordanc
 
 ## Dev corrections (2026-06-15)
 
-- **StatCard / Statistics page is NOT an explorer** — it is its own **MyWorkspace
-  panel** (D9: panels/surfaces/scenes), not a Symbiont Explorer cell. Excluded from
-  the NodeRow abanico entirely (earlier draft over-reached by listing it as a cell).
-- **"Word count" = per-NODE metric cell** (the explorer row's numeric cell), which
-  **codex is building on the stable `1.1.x` / `1.1.0-beta` line right now**. It is the
-  NodeRow `metric` slot (contract anticipated; wired at Files-cell adoption, reconciled
-  with codex's work). NOT the Statistics word-count stat.
+- **StatCard / Statistics page is NOT an explorer** — it is its own **MyWorkspace panel** (D9: panels/surfaces/scenes), not a Symbiont Explorer cell. Excluded from the NodeRow abanico entirely (earlier draft over-reached by listing it as a cell).
+- **"Word count" = per-NODE metric cell** (the explorer row's numeric cell), which **codex is building on the stable `1.1.x` / `1.1.0-beta` line right now**. It is the NodeRow `metric` slot (contract anticipated; wired at Files-cell adoption, reconciled with codex's work). NOT the Statistics word-count stat.
 
 ## Proto v12 richness to anticipate (merge input, not canonical)
 
 Proto cells (React/JSX, `explorer.jsx` / `nautilus.jsx` / `stack-island.jsx`) add:
-media thumbnail (`vm-cell-media`, shape-aware) · multi-line content snippet
-(`vm-cell-content`) · depth/level chips · meta pills · inline-edit + suggestions menu ·
-sticky-parent tracking · DnD position hints · draggable cell-slot reorder (DEFER) ·
-Niagara magnify index rail + marquee (RESHAPE → separate primitives, not the cell).
-The `metric / media / contentSnippet / trailing` NodeRow slots + the `leading` snippet
-cover the structural variety; power-user choreography (cell reorder, index rail) stays
-out of the cell.
+media thumbnail (`vm-cell-media`, shape-aware) · multi-line content snippet (`vm-cell-content`) · depth/level chips · meta pills · inline-edit + suggestions menu · sticky-parent tracking · DnD position hints · draggable cell-slot reorder (DEFER) · Niagara magnify index rail + marquee (RESHAPE → separate primitives, not the cell).
+The `metric / media / contentSnippet / trailing` NodeRow slots + the `leading` snippet cover the structural variety; power-user choreography (cell reorder, index rail) stays out of the cell.
 
 ## Verification ledger
 
-- Package/stack facts cross-checked vs the frontend-stack research
-  [[docs/work/hardening/research/2026-06-15-frontend-stack-deep-research/index|ledger]].
-- Stable cells read via `git show hotfix/1.0.2-css-scorecard:…` and `dev` (`bea07c7`) —
-  no worktree tree-walk. Word-count `words` column confirmed on `dev` (commit `c95cefa`),
-  NOT on `hotfix`; sandbox lacks it.
+- Package/stack facts cross-checked vs the frontend-stack research [[docs/work/hardening/research/2026-06-15-frontend-stack-deep-research/index|ledger]].
+- Stable cells read via `git show hotfix/1.0.2-css-scorecard:…` and `dev` (`bea07c7`) — no worktree tree-walk. Word-count `words` column confirmed on `dev` (commit `c95cefa`), NOT on `hotfix`; sandbox lacks it.
 - StatCard-as-panel classification anchored in D9 (umbrella shard 01).

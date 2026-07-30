@@ -21,10 +21,7 @@ tags: [agent/issue, initiative/polish, release/1.2.0, snippets, context-menu]
 
 ## What to build
 
-Keep a single Reveal in system explorer action for Snippets, with the same
-localized label, semantic icon and action identity as the intercepted Files
-equivalent. Remove duplicate or non-localized variants without conflating Reveal
-with Open in default app.
+Keep a single Reveal in system explorer action for Snippets, with the same localized label, semantic icon and action identity as the intercepted Files equivalent. Remove duplicate or non-localized variants without conflating Reveal with Open in default app.
 
 ## Acceptance criteria
 
@@ -42,16 +39,9 @@ None — can start immediately.
 ## Completion evidence — 2026-07-22
 
 - Product commit: `70d36f56 fix(snippets): canonicalize reveal action`.
-- The installed Obsidian `obsidian.asar` was inspected read-only: its intercepted Files
-  action uses `lucide-arrow-up-right`, Windows/Linux “Show in system explorer”, and a
-  Finder-specific macOS label. Vaultman now mirrors that contract through
-  `logicSystemExplorer`.
-- The registered label is a translated string rather than a context-free function, so both
-  the live menu and Settings catalog render copy instead of the action id.
-- `snippet.see-details` migrates to `snippet.reveal` during layout merge, preserving saved
-  order and visibility; Open in default app remains a distinct action.
-- The capability gate hides Reveal where `showInFolder` is unavailable, while path resolution
-  uses `cssSnippetPath` and therefore honors a non-default `configDir`.
+- The installed Obsidian `obsidian.asar` was inspected read-only: its intercepted Files action uses `lucide-arrow-up-right`, Windows/Linux “Show in system explorer”, and a Finder-specific macOS label. Vaultman now mirrors that contract through `logicSystemExplorer`.
+- The registered label is a translated string rather than a context-free function, so both the live menu and Settings catalog render copy instead of the action id.
+- `snippet.see-details` migrates to `snippet.reveal` during layout merge, preserving saved order and visibility; Open in default app remains a distinct action.
+- The capability gate hides Reveal where `showInFolder` is unavailable, while path resolution uses `cssSnippetPath` and therefore honors a non-default `configDir`.
 - Verification: 86/86 related tests green; dedicated behavior/config suite 3/3 green;
-  changed-path ESLint and `git diff --check` green. Global type-check retains only the three
-  previously attributed overflow diagnostics in the preserved foreign worktree edit.
+  changed-path ESLint and `git diff --check` green. Global type-check retains only the three previously attributed overflow diagnostics in the preserved foreign worktree edit.

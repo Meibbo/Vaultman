@@ -17,8 +17,7 @@ updated_by: codex
 
 ## Purpose
 
-Add a generic sort-view toggle that collapses all expanded parent nodes when any
-parent is expanded, and expands all parent nodes when none are expanded.
+Add a generic sort-view toggle that collapses all expanded parent nodes when any parent is expanded, and expands all parent nodes when none are expanded.
 
 ## Files
 
@@ -32,77 +31,54 @@ parent is expanded, and expands all parent nodes when none are expanded.
 - Modify styles if needed: `src/styles/popup/_sort-popup.scss`
 - Test: `test/component/panelExplorerSelection.test.ts`
 - Test: new or existing navbar/sort popup component test if available
-- Test service if changed: `test/unit/services/serviceViews.test.ts` or
-  `test/unit/services/serviceViewsZombie.test.ts`
+- Test service if changed: `test/unit/services/serviceViews.test.ts` or `test/unit/services/serviceViewsZombie.test.ts`
 
 ## Architecture Decision
 
-The button lives in `overlaySortMenu.svelte`, but the expansion state currently
-lives in `panelExplorer.svelte`. Do not hardcode provider ids in the sort menu.
+The button lives in `overlaySortMenu.svelte`, but the expansion state currently lives in `panelExplorer.svelte`. Do not hardcode provider ids in the sort menu.
 Use one of these implementation shapes:
 
-1. **Preferred for this cut:** add a generic expansion command bridge from the
-   active page into `NavbarExplorer`, then into `SortPopup`.
-   - `PanelExplorer` exposes expansion summary and commands through bindable
-     props or callbacks owned by the page.
-   - `NavbarExplorer` passes `canExpandCollapseNodes`, `hasExpandedParents`,
-     `onToggleAllExpandedParents` to `SortPopup`.
+1. **Preferred for this cut:** add a generic expansion command bridge from the active page into `NavbarExplorer`, then into `SortPopup`.
+   - `PanelExplorer` exposes expansion summary and commands through bindable props or callbacks owned by the page.
+   - `NavbarExplorer` passes `canExpandCollapseNodes`, `hasExpandedParents`, `onToggleAllExpandedParents` to `SortPopup`.
    - This is the least invasive if only the active filter page needs the control.
 
-2. **Preferred if expansion will be shared broadly:** promote expansion into
-   `ViewService`.
-   - Add `expandedSnapshot(explorerId)`, `setExpanded(explorerId, ids)`,
-     `expandMany(explorerId, ids)`, `collapseAll(explorerId)`.
-   - `PanelExplorer` reads manual expansion from the service and still merges
-     auto-expanded ids with manual collapsed ids.
+2. **Preferred if expansion will be shared broadly:** promote expansion into `ViewService`.
+   - Add `expandedSnapshot(explorerId)`, `setExpanded(explorerId, ids)`, `expandMany(explorerId, ids)`, `collapseAll(explorerId)`.
+   - `PanelExplorer` reads manual expansion from the service and still merges auto-expanded ids with manual collapsed ids.
    - `SortPopup` receives only generic command props, not the service itself.
 
-Do not create a second expansion service unless `ViewService`'s existing
-expanded storage proves incompatible.
+Do not create a second expansion service unless `ViewService`'s existing expanded storage proves incompatible.
 
 ## Parent Id Collection
 
 - Add or reuse a helper that collects every node id with `children.length > 0`.
 - The helper must walk all provider tree nodes, not just visible nodes.
-- Auto-expanded ids caused by search must not permanently expand all nodes when
-  the toggle is used.
-- Manual collapse must override auto expansion as it does today through
-  `resolveExpandedIds`.
+- Auto-expanded ids caused by search must not permanently expand all nodes when the toggle is used.
+- Manual collapse must override auto expansion as it does today through `resolveExpandedIds`.
 
 ## Button Semantics
 
-- Label when any parent is expanded: English `Collapse all`, Spanish
-  `Colapsar todo`.
-- Label when no parent is expanded: English `Expand all`, Spanish
-  `Expandir todo`.
-- Icon when collapse action is next: `lucide-chevrons-up` or
-  `lucide-minimize-2`.
-- Icon when expand action is next: `lucide-chevrons-down` or
-  `lucide-expand`.
+- Label when any parent is expanded: English `Collapse all`, Spanish `Colapsar todo`.
+- Label when no parent is expanded: English `Expand all`, Spanish `Expandir todo`.
+- Icon when collapse action is next: `lucide-chevrons-up` or `lucide-minimize-2`.
+- Icon when expand action is next: `lucide-chevrons-down` or `lucide-expand`.
 - Disabled or hidden when current explorer has zero parent nodes.
-- The button must be generic and work for files, tags, props, and Bases import
-  providers.
+- The button must be generic and work for files, tags, props, and Bases import providers.
 
 ## TDD Steps
 
-- [x] Add a panel component test that renders a tree with two parent nodes,
-  invokes the generic collapse-all command, and asserts both children disappear.
+- [x] Add a panel component test that renders a tree with two parent nodes, invokes the generic collapse-all command, and asserts both children disappear.
 
-- [x] Add a panel component test that invokes expand-all and asserts all parent
-  rows expose `aria-expanded="true"` and all child rows are present.
+- [x] Add a panel component test that invokes expand-all and asserts all parent rows expose `aria-expanded="true"` and all child rows are present.
 
-- [x] Add a component test for `SortPopup` or `NavbarExplorer` that verifies the
-  button label/icon flips from expand-all to collapse-all based on
-  `hasExpandedParents`.
+- [x] Add a component test for `SortPopup` or `NavbarExplorer` that verifies the button label/icon flips from expand-all to collapse-all based on `hasExpandedParents`.
 
-- [x] Add a component test that verifies the sort popup button calls the generic
-  callback and does not change sort state.
+- [x] Add a component test that verifies the sort popup button calls the generic callback and does not change sort state.
 
-- [x] Implement parent-id collection and expand/collapse-all helpers in
-  `panelExplorer.svelte` or `ViewService`, according to the chosen architecture.
+- [x] Implement parent-id collection and expand/collapse-all helpers in `panelExplorer.svelte` or `ViewService`, according to the chosen architecture.
 
-- [x] Pass expansion state and command props from the active page through
-  `NavbarExplorer` to `SortPopup`.
+- [x] Pass expansion state and command props from the active page through `NavbarExplorer` to `SortPopup`.
 
 - [x] Add i18n keys:
   - `sort.expand_all_nodes`
@@ -123,5 +99,4 @@ expanded storage proves incompatible.
 - Toggle collapses all expanded parent nodes when any are expanded.
 - Toggle expands all parent nodes when none are expanded.
 - It works generically for whichever explorer provider is active.
-- It does not mutate sorting, operation scope, file selected-only mode, or search
-  state.
+- It does not mutate sorting, operation scope, file selected-only mode, or search state.

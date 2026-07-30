@@ -12,8 +12,7 @@ tags:
 
 # v1 Stable
 
-Use this route for release readiness, merge sequencing, version checks, and
-decisions about what is allowed into `main`.
+Use this route for release readiness, merge sequencing, version checks, and decisions about what is allowed into `main`.
 
 ## Start Here
 

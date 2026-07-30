@@ -21,10 +21,7 @@ tags: [agent/issue, triage/needs-triage, initiative/polish, release/bt5, workspa
 
 ## What to build
 
-Añadir una action y command de Obsidian para mover el tab/leaf actual entre el área main y
-los sidebars sin recrear su view state. La action ofrece destinos explícitos compatibles
-con el workspace actual; el command no debe elegir un sidebar arbitrario ni mover un leaf
-pinneado/incompatible silenciosamente.
+Añadir una action y command de Obsidian para mover el tab/leaf actual entre el área main y los sidebars sin recrear su view state. La action ofrece destinos explícitos compatibles con el workspace actual; el command no debe elegir un sidebar arbitrario ni mover un leaf pinneado/incompatible silenciosamente.
 
 ## Acceptance criteria
 
@@ -37,5 +34,4 @@ pinneado/incompatible silenciosamente.
 
 ## Blocked by
 
-None. HITL: fijar si Command Palette expone un selector único o comandos por destino según
-las capacidades reales de la API de Workspace.
+None. HITL: fijar si Command Palette expone un selector único o comandos por destino según las capacidades reales de la API de Workspace.

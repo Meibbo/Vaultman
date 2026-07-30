@@ -31,8 +31,7 @@ Recommended service split:
   - remains the record/blob storage boundary;
   - gains a persistent store implementation if one does not exist.
 - `serviceNodeMediaProjection.ts`
-  - attaches `ExplorerMediaRecord` descriptors to `ExplorerRowInput` or view
-    projections without loading blobs.
+  - attaches `ExplorerMediaRecord` descriptors to `ExplorerRowInput` or view projections without loading blobs.
 
 ## Two-Level Cache
 
@@ -64,15 +63,11 @@ Blobs hold low-resolution thumbnail bytes:
 - intrinsic thumbnail dimensions;
 - animation metadata when applicable.
 
-This level should be byte-budgeted and LRU-managed. Existing
-`ExplorerMediaCacheService` already has an in-memory LRU. The implementation
-should add or use a persistent store so the plugin does not regenerate the same
-thumbnails on every launch.
+This level should be byte-budgeted and LRU-managed. Existing `ExplorerMediaCacheService` already has an in-memory LRU. The implementation should add or use a persistent store so the plugin does not regenerate the same thumbnails on every launch.
 
 ## Projection Rule
 
-Explorer projections may carry descriptors and media records, never decoded
-image elements and never full-size bytes.
+Explorer projections may carry descriptors and media records, never decoded image elements and never full-size bytes.
 
 Allowed in row/projection:
 
@@ -104,8 +99,7 @@ virtual row ids
   -> NodeMediaSlot receives object URL/blob URL
 ```
 
-The cache can index descriptors for many nodes, but blob hydration must be
-visible-range aware. Full-tree preloading is not allowed in the scroll path.
+The cache can index descriptors for many nodes, but blob hydration must be visible-range aware. Full-tree preloading is not allowed in the scroll path.
 
 ## Invalidation
 
@@ -120,8 +114,7 @@ Invalidate media records when any of these change:
 - remote cache TTL expiry;
 - remote `ETag` / `Last-Modified` changes.
 
-Do not delete old blobs synchronously during render. Mark records stale and let
-the queue refresh them.
+Do not delete old blobs synchronously during render. Mark records stale and let the queue refresh them.
 
 ## Queue Priorities
 
@@ -133,8 +126,7 @@ Priority order:
 4. idle prefetch for recently visited folder/list context;
 5. background maintenance.
 
-Queue workers must yield between jobs and should not process large decode work
-while the user is actively scrolling.
+Queue workers must yield between jobs and should not process large decode work while the user is actively scrolling.
 
 ## Object URL Lifecycle
 

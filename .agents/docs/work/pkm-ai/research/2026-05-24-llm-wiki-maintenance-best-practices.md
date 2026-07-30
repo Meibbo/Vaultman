@@ -17,27 +17,17 @@ updated_by: codex
 
 # LLM Wiki Maintenance Best Practices
 
-Research update for maintaining Vaultman PKM-AI as an LLM-readable local
-knowledge system: Markdown/Obsidian source records, route indexes, agent
-instructions, search tooling, and verification loops.
+Research update for maintaining Vaultman PKM-AI as an LLM-readable local knowledge system: Markdown/Obsidian source records, route indexes, agent instructions, search tooling, and verification loops.
 
 ## Verdict
 
-PKM-AI should use a **compiled wiki + route-index + retrieval** architecture,
-not a pure RAG dump and not a giant all-loaded instruction file.
+PKM-AI should use a **compiled wiki + route-index + retrieval** architecture, not a pure RAG dump and not a giant all-loaded instruction file.
 
-- **Karpathy's LLM Wiki pattern** is the closest public pattern: immutable raw
-  sources, an LLM-maintained Markdown wiki, and a schema file such as
-  `AGENTS.md` or `CLAUDE.md` that defines workflows.
-- **Nate Herk's AI OS pattern** is useful as practitioner guidance: organize
-  context, connections, capabilities, and cadence; route reusable procedures
-  into skills; keep a hot cache; convert failures into durable docs.
+- **Karpathy's LLM Wiki pattern** is the closest public pattern: immutable raw sources, an LLM-maintained Markdown wiki, and a schema file such as `AGENTS.md` or `CLAUDE.md` that defines workflows.
+- **Nate Herk's AI OS pattern** is useful as practitioner guidance: organize context, connections, capabilities, and cadence; route reusable procedures into skills; keep a hot cache; convert failures into durable docs.
 - **Anthropic/OpenAI agent guidance** converges on the same operational rule:
-  context is finite; keep always-loaded files compact and specific; retrieve
-  high-signal detail just in time; verify work with explicit tests or checks.
-- **Modern RAG practice** remains useful below the wiki layer: hybrid search,
-  reranking, query rewriting, and graph/global-local retrieval are retrieval
-  tools, not substitutes for curated source records.
+  context is finite; keep always-loaded files compact and specific; retrieve high-signal detail just in time; verify work with explicit tests or checks.
+- **Modern RAG practice** remains useful below the wiki layer: hybrid search, reranking, query rewriting, and graph/global-local retrieval are retrieval tools, not substitutes for curated source records.
 
 ## Evidence Ledger
 
@@ -60,12 +50,9 @@ not a pure RAG dump and not a giant all-loaded instruction file.
 
 ## Corrections To Prior Note
 
-- No reliable source was found for a Google DeepMind paper named "Attention
-  Allocation Routing in Massive-Context Windows." Do not cite it.
-- No reliable source was found tying Nate Herk to a canonical "intent drift"
-  theory. Cite Herk for AI OS/folders/skills/hot-cache/cadence only.
-- Do not cite "Karpathy says X" unless the claim is in his public gist, talk,
-  or another linked primary source.
+- No reliable source was found for a Google DeepMind paper named "Attention Allocation Routing in Massive-Context Windows." Do not cite it.
+- No reliable source was found tying Nate Herk to a canonical "intent drift" theory. Cite Herk for AI OS/folders/skills/hot-cache/cadence only.
+- Do not cite "Karpathy says X" unless the claim is in his public gist, talk, or another linked primary source.
 - Avoid model-name examples as durable docs. Models and context windows change;
   PKM-AI should document stable workflows and verification requirements.
 
@@ -82,42 +69,27 @@ not a pure RAG dump and not a giant all-loaded instruction file.
 
 ## Operating Norms
 
-1. **Source-first writing.** Every research claim needs a URL/path, date, source
-   type, and confidence. Separate primary-source facts from inferred project
-   guidance.
-2. **Compiled knowledge beats chat history.** Useful answers, decisions, and
-   reconciliations should become source records or linked shards, not disappear
-   into conversation.
-3. **Routers stay small.** Startup files contain only rules, route map, current
-   state, blockers, and next action. They link to the full record.
+1. **Source-first writing.** Every research claim needs a URL/path, date, source type, and confidence. Separate primary-source facts from inferred project guidance.
+2. **Compiled knowledge beats chat history.** Useful answers, decisions, and reconciliations should become source records or linked shards, not disappear into conversation.
+3. **Routers stay small.** Startup files contain only rules, route map, current state, blockers, and next action. They link to the full record.
 4. **No lossy compaction.** If a source record grows, shard it with an index.
    Do not summarize away API names, function signatures, commands, or rationale.
-5. **Contradictions are first-class.** When new evidence conflicts with older
-   docs, mark the old claim as superseded and link the newer source.
-6. **Skills own repeatable procedure.** If an agent repeats a workflow or makes
-   the same mistake twice, update a skill or policy instead of relying on chat.
-7. **Retrieval is measured.** Before adding vector/RAG complexity, build a small
-   gold set of project questions and check whether current local search finds
-   the right source.
-8. **Security stays outside memory.** Secrets go to `.env`/local settings, not
-   chat or committed docs. External tool credentials need least privilege.
-9. **Agent drift is handled by anchors.** Specs define invariants; plans define
-   gates; tests/health scripts verify them. Handoffs point to evidence.
+5. **Contradictions are first-class.** When new evidence conflicts with older docs, mark the old claim as superseded and link the newer source.
+6. **Skills own repeatable procedure.** If an agent repeats a workflow or makes the same mistake twice, update a skill or policy instead of relying on chat.
+7. **Retrieval is measured.** Before adding vector/RAG complexity, build a small gold set of project questions and check whether current local search finds the right source.
+8. **Security stays outside memory.** Secrets go to `.env`/local settings, not chat or committed docs. External tool credentials need least privilege.
+9. **Agent drift is handled by anchors.** Specs define invariants; plans define gates; tests/health scripts verify them. Handoffs point to evidence.
 
 ## Ingest Workflow
 
 Use this when adding a source, research note, transcript, or external doc:
 
-1. Capture source metadata: URL/path, author/org, published date, accessed date,
-   source type, and confidence.
+1. Capture source metadata: URL/path, author/org, published date, accessed date, source type, and confidence.
 2. Extract only source-backed claims. Mark speculation as `inference`.
-3. Reconcile with existing notes: update affected pages, flag contradictions,
-   and preserve superseded claims with replacement links.
-4. Update index/navigation: initiative index or local manifest only; avoid
-   spraying the same summary into many files.
+3. Reconcile with existing notes: update affected pages, flag contradictions, and preserve superseded claims with replacement links.
+4. Update index/navigation: initiative index or local manifest only; avoid spraying the same summary into many files.
 5. Append or update a source ledger section in the research note.
-6. Run verification: frontmatter parse, link/path checks, line count, and a
-   targeted search query proving the source is discoverable.
+6. Run verification: frontmatter parse, link/path checks, line count, and a targeted search query proving the source is discoverable.
 
 ## Maintenance Cadence
 
@@ -131,19 +103,10 @@ Use this when adding a source, research note, transcript, or external doc:
 ## Practical Backlog
 
 - Add this research note to [[docs/work/pkm-ai/index|PKM-AI index]].
-- Extend doc health checks with: source ledger presence for research notes,
-  external-link list, orphan-page report, stale `updated` dates, and route-index
-  line count.
-- Add a retrieval gold set for `query-docs.mjs`: roadmap phase, branch policy,
-  current hardening task, docs sharding policy, and Obsidian CLI vault rule.
-- Consider a future `docs/current/hot.md` only if `status.md`/`handoff.md` cannot
-  stay compact without losing route clarity.
+- Extend doc health checks with: source ledger presence for research notes, external-link list, orphan-page report, stale `updated` dates, and route-index line count.
+- Add a retrieval gold set for `query-docs.mjs`: roadmap phase, branch policy, current hardening task, docs sharding policy, and Obsidian CLI vault rule.
+- Consider a future `docs/current/hot.md` only if `status.md`/`handoff.md` cannot stay compact without losing route clarity.
 
 ## Recommendation
 
-Use **LLM Wiki as the durable knowledge architecture** and **RAG as a retrieval
-subsystem**. In Vaultman terms: source records and shards are the wiki, current
-docs are the hot route cache, skills are executable SOP memory, and search/RAG is
-only the lookup layer. The maintenance standard is not "more context"; it is
-source-backed context, routed into the smallest file that can safely hold it,
-with explicit verification that the next agent can find and trust it.
+Use **LLM Wiki as the durable knowledge architecture** and **RAG as a retrieval subsystem**. In Vaultman terms: source records and shards are the wiki, current docs are the hot route cache, skills are executable SOP memory, and search/RAG is only the lookup layer. The maintenance standard is not "more context"; it is source-backed context, routed into the smallest file that can safely hold it, with explicit verification that the next agent can find and trust it.

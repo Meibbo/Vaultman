@@ -12,8 +12,7 @@ tags:
 
 # Structural Taxonomy
 
-Use these terms in the next specs, plans, and issues. They are codebase terms,
-not UI labels.
+Use these terms in the next specs, plans, and issues. They are codebase terms, not UI labels.
 
 ## Module Roles
 
@@ -65,8 +64,7 @@ Control invalidation changes interaction state:
 - box selection in progress;
 - drag/drop state.
 
-Media cache invalidation changes derived visual content without changing
-structural rows:
+Media cache invalidation changes derived visual content without changing structural rows:
 
 - cached explorer thumbnails or previews become ready/stale/error;
 - media source mtime, hash, selected reference, or dimensions change;
@@ -88,8 +86,7 @@ Move out of provider adapters:
 - per-node `ViewService` decoration calls;
 - queue badge construction;
 - active-filter visual state;
-- generic search/sort/hidden projection when it can be represented by snapshot
-  inputs;
+- generic search/sort/hidden projection when it can be represented by snapshot inputs;
 - direct metadata reads used only for display facts;
 - inherited badge bubbling.
 
@@ -101,8 +98,7 @@ Every structural snapshot should be able to answer:
 - which node ids exist;
 - which row ids are visible in order;
 - how to find a row by node id;
-- how to find a node by file path, tag path, or property/value key when
-  available;
+- how to find a node by file path, tag path, or property/value key when available;
 - which rows are structural parents of other rows;
 - which rows are eligible for provider actions;
 - which rows are virtualizer targets;
@@ -115,6 +111,4 @@ Every structural snapshot should be able to answer:
 - Keep `NodeSelectionService` as selection authority.
 - Keep current view adapters working while data-plane snapshots are introduced.
 - Do not reopen table/cards/grid feature scope in the first data-plane slice.
-- Do not introduce IndexedDB for structural snapshots. A media/derived-content
-  cache database is allowed only as a separate slice with key/status records,
-  blob storage, and file/node-level subscriptions.
+- Do not introduce IndexedDB for structural snapshots. A media/derived-content cache database is allowed only as a separate slice with key/status records, blob storage, and file/node-level subscriptions.

@@ -21,8 +21,7 @@ updated_by: codex
 
 ## Summary
 
-Implemented the first PKM-AI `agent-room` CLI as a repo-local durable
-coordination layer.
+Implemented the first PKM-AI `agent-room` CLI as a repo-local durable coordination layer.
 
 Created:
 
@@ -135,8 +134,6 @@ Observed result after adding the comfort layer: 6/6 tests passed.
 - The `dashboard` command is a compact terminal view, not a full TUI.
 - The `handoff` command emits Markdown but does not edit current handoff docs.
 - `--json` emits machine-readable output without decorative prose.
-- Objective sync delegates to `manage-tasks.mjs` instead of parsing Markdown
-  directly.
-- Scope path claims are normalized relative to the workspace and reject paths
-  outside the workspace.
+- Objective sync delegates to `manage-tasks.mjs` instead of parsing Markdown directly.
+- Scope path claims are normalized relative to the workspace and reject paths outside the workspace.
 - Stale agents are computed at read time from heartbeat timestamps.

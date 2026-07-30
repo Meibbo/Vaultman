@@ -14,12 +14,9 @@ tags:
 
 ## Central Rule
 
-`serviceViews` produces semantic layers. Views decide how those layers are
-presented.
+`serviceViews` produces semantic layers. Views decide how those layers are presented.
 
-The service should not produce HTML. It should not produce final CSS classes
-except stable state tokens when needed for compatibility. It should produce
-meaningful data:
+The service should not produce HTML. It should not produce final CSS classes except stable state tokens when needed for compatibility. It should produce meaningful data:
 
 - selected;
 - focused;
@@ -132,11 +129,9 @@ They should avoid embedding:
 - Svelte components;
 - active event objects;
 - mutable plugin services;
-- methods that close over provider internals unless explicitly marked as action
-  callbacks.
+- methods that close over provider internals unless explicitly marked as action callbacks.
 
-Stable render models make testing easier and allow each view to be verified
-without mounting the whole plugin.
+Stable render models make testing easier and allow each view to be verified without mounting the whole plugin.
 
 ## Progressive Migration
 
@@ -149,11 +144,9 @@ Start with a vertical slice:
 - one semantic layer set;
 - tests around render model behavior.
 
-Queue and active filters are good early candidates because they already use
-indexes and compact lists.
+Queue and active filters are good early candidates because they already use indexes and compact lists.
 
-Props/tags/files are good next candidates because they currently contain the
-decoration and badge logic that needs to move.
+Props/tags/files are good next candidates because they currently contain the decoration and badge logic that needs to move.
 
 ## Compatibility
 
@@ -163,8 +156,7 @@ During migration:
 - keep overlay queue and active filters working;
 - keep `panelExplorer.svelte` working;
 - add adapters rather than deleting behavior prematurely;
-- retire `viewGrid.svelte` only after `viewTable` or `viewList` covers its
-  current user-facing behavior.
+- retire `viewGrid.svelte` only after `viewTable` or `viewList` covers its current user-facing behavior.
 
 ## Testability
 

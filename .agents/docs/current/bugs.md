@@ -11,8 +11,7 @@ tags:
 
 # Current Bugs
 
-Bug items only. Canonical records live under
-`docs/work/<initiative>/items/`.
+Bug items only. Canonical records live under `docs/work/<initiative>/items/`.
 
 ## Items
 

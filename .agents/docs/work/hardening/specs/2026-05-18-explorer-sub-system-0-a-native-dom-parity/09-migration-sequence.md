@@ -6,11 +6,7 @@ parent: "[[2026-05-18-explorer-sub-system-0-a-native-dom-parity/index]]"
 
 # 09 — Migration sequence
 
-Vertical-slice 12 commits, TDD red→green per commit. Each commit
-independently verifiable. C12 (flicker fix) runs LAST so it does
-not block the contract work — and because its root cause is
-unknown today, requiring a systematic-debugging phase before any
-patch.
+Vertical-slice 12 commits, TDD red→green per commit. Each commit independently verifiable. C12 (flicker fix) runs LAST so it does not block the contract work — and because its root cause is unknown today, requiring a systematic-debugging phase before any patch.
 
 ## Commit table
 
@@ -37,28 +33,19 @@ C1 ──┬──> C2 ──> C3 ──> C4 ──> C5 ──┬──> C6 ─�
      └────────────────────────────> C7 ───────┘
 ```
 
-- C7 depends on C3 (viewHost service) and C1 (contract). Can run
-  in parallel with C6 if implementer wishes.
-- C8 depends on C6 (mask wiring in views) because emission helper
-  reads mask + preset; cleaner if mask wiring lands first.
+- C7 depends on C3 (viewHost service) and C1 (contract). Can run in parallel with C6 if implementer wishes.
+- C8 depends on C6 (mask wiring in views) because emission helper reads mask + preset; cleaner if mask wiring lands first.
 - C12 depends on C11 only for the smoke harness assertion add;
   can otherwise start anytime after C8.
 
 ## Rollback boundaries
 
-- **Before C5**: panelExplorer untouched. ViewHost, services,
-  context keys exist as unconsumed modules. Rollback = revert C1-C4
-  cleanly.
-- **Before C6**: ViewHost mounted by panelExplorer but views
-  don't gate on mask yet. Mask exists but has no UI effect.
+- **Before C5**: panelExplorer untouched. ViewHost, services, context keys exist as unconsumed modules. Rollback = revert C1-C4 cleanly.
+- **Before C6**: ViewHost mounted by panelExplorer but views don't gate on mask yet. Mask exists but has no UI effect.
 - **Before C7**: overlayViewMenu still hardcodes view-mode list;
-  `btnNodeElementsVisibility` submenu absent. preset.viewModes
-  filter not enforced.
-- **Before C8**: native-class emission is still hardcoded in
-  view components (existing behavior pre-0-A). Mask works; class
-  vocab not data-driven yet.
-- **Before C12**: contract + wiring + native vocab + DnD all
-  working. Flicker bug remains as it does today.
+  `btnNodeElementsVisibility` submenu absent. preset.viewModes filter not enforced.
+- **Before C8**: native-class emission is still hardcoded in view components (existing behavior pre-0-A). Mask works; class vocab not data-driven yet.
+- **Before C12**: contract + wiring + native vocab + DnD all working. Flicker bug remains as it does today.
 
 ## TDD discipline per commit
 
@@ -70,39 +57,26 @@ Each commit follows red→green:
 4. Run `pnpm verify` locally; all gates green.
 5. Commit.
 
-Verification gates per commit listed in
-`10-verification-matrix.md`.
+Verification gates per commit listed in `10-verification-matrix.md`.
 
 ## Branch hygiene
 
-- Work on `sandbox` branch (current canonical) or a feature
-  branch created from `sandbox`.
+- Work on `sandbox` branch (current canonical) or a feature branch created from `sandbox`.
 - Each commit lands its own focused diff; no batch commits.
-- No merges to `main` from this branch (AGENTS.md policy: zero
-  AI files on `main`).
-- If pre-commit hooks fail, fix the underlying issue and create
-  a NEW commit; never amend.
-- If a commit lands a regression discovered later, revert in a
-  new commit rather than rewriting history.
+- No merges to `main` from this branch (AGENTS.md policy: zero AI files on `main`).
+- If pre-commit hooks fail, fix the underlying issue and create a NEW commit; never amend.
+- If a commit lands a regression discovered later, revert in a new commit rather than rewriting history.
 
 ## Estimated effort
 
-- C1-C4 (foundation modules): 1-2 sessions each, ≈4-8 sessions
-  total.
-- C5 (panelExplorer extraction): 1-2 sessions; the larger risk
-  due to surface area.
-- C6 (view component mask consumption): 1 session per view
-  approximately, or 1 batch session if tackled together
-  (recommendation: per-view sub-commits inside C6 commit if
-  diffs are large).
+- C1-C4 (foundation modules): 1-2 sessions each, ≈4-8 sessions total.
+- C5 (panelExplorer extraction): 1-2 sessions; the larger risk due to surface area.
+- C6 (view component mask consumption): 1 session per view approximately, or 1 batch session if tackled together (recommendation: per-view sub-commits inside C6 commit if diffs are large).
 - C7 (overlayViewMenu + rename): 1 session.
-- C8 (native-class emission audit): 1-2 sessions (visual
-  inspection across 5 views × 2 presets).
+- C8 (native-class emission audit): 1-2 sessions (visual inspection across 5 views × 2 presets).
 - C9 (DnD vocab): 1 session.
 - C10 (docs + types): 1 session.
 - C11 (verification consolidation): 1 session.
-- C12 (flicker fix): unknown; could be 1-3 sessions depending
-  on root cause complexity.
+- C12 (flicker fix): unknown; could be 1-3 sessions depending on root cause complexity.
 
-Total: ≈14-20 sessions worth of focused work. Calendar time
-depends on agent throughput.
+Total: ≈14-20 sessions worth of focused work. Calendar time depends on agent throughput.

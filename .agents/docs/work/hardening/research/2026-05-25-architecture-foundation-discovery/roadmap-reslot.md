@@ -15,25 +15,17 @@ tags:
 
 # Roadmap Reslot Proposal
 
-PROPOSED restructure from the foundation brainstorm. Canonical roadmap stays
-[[docs/work/roadmap-overview|roadmap-overview]]; this proposes how to reslot it.
+PROPOSED restructure from the foundation brainstorm. Canonical roadmap stays [[docs/work/roadmap-overview|roadmap-overview]]; this proposes how to reslot it.
 The Q11 principle is LOCKED; the specific placement is a draft for review.
 
-**Supersession note (2026-05-28):** branch/channel text here is historical. Active publish
-discipline is `main=stable`, `dev=beta/nightly`, `sandbox=canary` per
-[[docs/work/hardening/research/2026-05-27-version-streams-distillation/index|version-streams]].
+**Supersession note (2026-05-28):** branch/channel text here is historical. Active publish discipline is `main=stable`, `dev=beta/nightly`, `sandbox=canary` per [[docs/work/hardening/research/2026-05-27-version-streams-distillation/index|version-streams]].
 
-**Hardened (2026-05-26):** the live, dispatch-ready action order is
-[[docs/work/hardening/research/2026-05-25-architecture-foundation-discovery/roadmap-dispatch|roadmap-dispatch]]
-(DAG + Now/Next/Later + cost-of-unblock priority + task contracts). This file keeps the
-dependency graph + change-type table as background.
+**Hardened (2026-05-26):** the live, dispatch-ready action order is [[docs/work/hardening/research/2026-05-25-architecture-foundation-discovery/roadmap-dispatch|roadmap-dispatch]] (DAG + Now/Next/Later + cost-of-unblock priority + task contracts). This file keeps the dependency graph + change-type table as background.
 
 ## Principle (Q11, LOCKED)
 
-- Classify each item by **change-type**: patch (fix) · minor (feat/refactor) ·
-  major (breaking).
-- Order = **dependency-driven + dynamic**. Version numbers are assigned late, at
-  cut time, by what is actually stable — not fixed `v1.2.0…v2.0.0` slots.
+- Classify each item by **change-type**: patch (fix) · minor (feat/refactor) · major (breaking).
+- Order = **dependency-driven + dynamic**. Version numbers are assigned late, at cut time, by what is actually stable — not fixed `v1.2.0…v2.0.0` slots.
 - Channels: active mapping is **`main` = stable · `dev` = beta/nightly · `sandbox` = canary**.
   The [[docs/work/publish/index|publish]] initiative owns the channel mechanics.
 

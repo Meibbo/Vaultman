@@ -42,8 +42,7 @@ updated_by: opus
 
 - [ ] **Step 1: Add setting key to `VaultmanSettings`**
 
-Append to `VaultmanSettings` (after `layoutTheme` block in
-`src/types/typeSettings.ts`):
+Append to `VaultmanSettings` (after `layoutTheme` block in `src/types/typeSettings.ts`):
 
 ```ts
 	/** Render the search affordance inline in the toolbar primitives row,
@@ -54,8 +53,7 @@ Append to `VaultmanSettings` (after `layoutTheme` block in
 
 - [ ] **Step 2: Seed default**
 
-Locate `DEFAULT_SETTINGS` (typically in `src/main.ts`). Add the new key
-beside the other layout-related defaults:
+Locate `DEFAULT_SETTINGS` (typically in `src/main.ts`). Add the new key beside the other layout-related defaults:
 
 ```ts
 toolbarSearchMode: 'island',
@@ -148,14 +146,11 @@ describe('FrameOverlayController search island', () => {
 pnpm run test:unit -- --reporter=verbose test/unit/services/frameOverlaysSearchIsland.test.ts
 ```
 
-Expected: FAIL — `openSearchIsland`, `closeSearchIsland`,
-`toggleSearchIsland` do not exist.
+Expected: FAIL — `openSearchIsland`, `closeSearchIsland`, `toggleSearchIsland` do not exist.
 
 - [ ] **Step 3: Add the three methods to `FrameOverlayController`**
 
-Edit `src/components/frame/frameOverlays.svelte.ts`. Add a third
-component reference parameter (or accept an options bag). Minimal
-diff approach: extend the constructor with an optional fourth arg.
+Edit `src/components/frame/frameOverlays.svelte.ts`. Add a third component reference parameter (or accept an options bag). Minimal diff approach: extend the constructor with an optional fourth arg.
 
 Constructor:
 
@@ -210,8 +205,7 @@ closeSearchIsland(): void {
 }
 ```
 
-Update the `installFrameOverlayCommandHooks` type to also accept
-`toggleSearchIsland` (no behavior change yet, just shape):
+Update the `installFrameOverlayCommandHooks` type to also accept `toggleSearchIsland` (no behavior change yet, just shape):
 
 ```ts
 overlays: Pick<
@@ -220,14 +214,11 @@ overlays: Pick<
 >,
 ```
 
-(The `installFrameOverlayCommandHooks` body does not need to wire the
-new command hook yet — Task 1.4 plumbs the Toolbar's open path.)
+(The `installFrameOverlayCommandHooks` body does not need to wire the new command hook yet — Task 1.4 plumbs the Toolbar's open path.)
 
 - [ ] **Step 3b: Update `frameVaultman.svelte` call site to the new constructor shape**
 
-The signature is now `(plugin, queueComponent, activeFiltersComponent, options?)`,
-so the existing 4th positional arg (`onImportBases`) must move into the
-options bag.
+The signature is now `(plugin, queueComponent, activeFiltersComponent, options?)`, so the existing 4th positional arg (`onImportBases`) must move into the options bag.
 
 Find the existing controller construction (around line 101):
 
@@ -251,8 +242,7 @@ overlays: new FrameOverlayController(
 ),
 ```
 
-(If the existing call site does not pass any 4th arg, just leave it
-positional — the empty options object is implicit.)
+(If the existing call site does not pass any 4th arg, just leave it positional — the empty options object is implicit.)
 
 - [ ] **Step 4: Re-run test**
 
@@ -276,9 +266,7 @@ git commit -m "feat(overlays): register search-island id alongside queue/filters
 - Modify: `src/components/frame/frameVaultman.svelte`
 
 Goal: surgically remove `overlays.closeQueueIsland(); overlays.closeFiltersIsland();`
-pairs that fire as a side effect of *opening search* or focus changes
-within the explorer route. Keep pairs that fire on **route exit**
-(navigating away from the explorer to another page).
+pairs that fire as a side effect of *opening search* or focus changes within the explorer route. Keep pairs that fire on **route exit** (navigating away from the explorer to another page).
 
 - [ ] **Step 1: Enumerate every call site**
 
@@ -288,8 +276,7 @@ Run:
 grep -n "closeQueueIsland\|closeFiltersIsland" src/components/frame/frameVaultman.svelte
 ```
 
-For each line number returned, open the file at that range and annotate
-its caller with a one-line comment classifying it:
+For each line number returned, open the file at that range and annotate its caller with a one-line comment classifying it:
 
 ```
 // EXCLUSION REASON: route-exit | search-open | focus-change | mode-toggle | settings-write
@@ -297,17 +284,14 @@ its caller with a one-line comment classifying it:
 
 - [ ] **Step 2: Remove search-open and focus-change exclusions**
 
-For every call site classified as `search-open` or `focus-change`,
-delete the two consecutive lines:
+For every call site classified as `search-open` or `focus-change`, delete the two consecutive lines:
 
 ```svelte
 overlays.closeQueueIsland();
 overlays.closeFiltersIsland();
 ```
 
-Keep `route-exit` and `settings-write` sites untouched. Keep
-`mode-toggle` sites for now (Spec 2 may need them; we revisit during
-Task 2.x if they get in the way).
+Keep `route-exit` and `settings-write` sites untouched. Keep `mode-toggle` sites for now (Spec 2 may need them; we revisit during Task 2.x if they get in the way).
 
 - [ ] **Step 3: Build to confirm the file still parses**
 
@@ -315,8 +299,7 @@ Task 2.x if they get in the way).
 pnpm run check
 ```
 
-Expected: no Svelte parse errors. Unused-import warnings (if any) are
-acceptable to address inline.
+Expected: no Svelte parse errors. Unused-import warnings (if any) are acceptable to address inline.
 
 - [ ] **Step 4: Run component tests as smoke**
 
@@ -324,10 +307,8 @@ acceptable to address inline.
 pnpm run test:component -- test/component/searchboxIsland.test.ts test/component/navbarPillFabBadges.test.ts
 ```
 
-Expected: PASS. If any test fails because it relied on the closure
-behavior, capture the failure in a comment on the test and either:
-(a) update the test to assert the new coexistence behavior, or
-(b) restore the closure if the test reveals a missed exclusion class.
+Expected: PASS. If any test fails because it relied on the closure behavior, capture the failure in a comment on the test and either:
+(a) update the test to assert the new coexistence behavior, or (b) restore the closure if the test reveals a missed exclusion class.
 
 - [ ] **Step 5: Commit**
 
@@ -415,13 +396,11 @@ describe('Toolbar search island coexistence', () => {
 pnpm run test:component -- test/component/searchIslandCoexistence.test.ts
 ```
 
-Expected: FAIL — `data-test="toolbar-search-toggle"` button is not yet
-exposing the new behavior; `overlayState` prop is unknown.
+Expected: FAIL — `data-test="toolbar-search-toggle"` button is not yet exposing the new behavior; `overlayState` prop is unknown.
 
 - [ ] **Step 3: Accept `overlayState` and `toolbarSearchMode` props in Toolbar**
 
-In `src/components/layout/Toolbar.svelte`, add to the `$props()`
-destructure (after `fieldDefinitions = []`):
+In `src/components/layout/Toolbar.svelte`, add to the `$props()` destructure (after `fieldDefinitions = []`):
 
 ```ts
 overlayState,
@@ -437,8 +416,7 @@ toolbarSearchMode?: 'island' | 'inline';
 
 - [ ] **Step 4: Replace local `searchIslandOpen` toggle to use overlay state**
 
-In the existing `toggleSearchIsland()` function (currently around
-line 235), replace its body with:
+In the existing `toggleSearchIsland()` function (currently around line 235), replace its body with:
 
 ```ts
 function toggleSearchIsland() {
@@ -471,11 +449,9 @@ function toggleSearchIsland() {
 }
 ```
 
-Keep `searchIslandOpen` as a derived mirror so the template stays
-reactive when `overlayState` is undefined:
+Keep `searchIslandOpen` as a derived mirror so the template stays reactive when `overlayState` is undefined:
 
-Add near other `$derived` blocks (right after the `historyItems`
-derivation):
+Add near other `$derived` blocks (right after the `historyItems` derivation):
 
 ```ts
 $effect(() => {
@@ -486,8 +462,7 @@ $effect(() => {
 
 - [ ] **Step 5: Expose `data-test="toolbar-search-toggle"` on the search button**
 
-Locate the existing search toggle button (around line 730) and add
-the attribute:
+Locate the existing search toggle button (around line 730) and add the attribute:
 
 ```svelte
 <button
@@ -499,8 +474,7 @@ the attribute:
 
 - [ ] **Step 6: Pipe `overlayState` and `toolbarSearchMode` through from `frameVaultman.svelte`**
 
-In `frameVaultman.svelte`, find the `<Toolbar ... />` call site (or
-wherever Toolbar is rendered) and add:
+In `frameVaultman.svelte`, find the `<Toolbar ... />` call site (or wherever Toolbar is rendered) and add:
 
 ```svelte
 overlayState={plugin.overlayState}
@@ -527,8 +501,7 @@ git commit -m "feat(toolbar): route search island through overlay state"
 **Files:**
 
 - Modify: `src/components/layout/Toolbar.svelte`
-- Modify: `src/styles/components/_toolbar.scss` (or whichever partial owns the
-  current header layout — discover via `git grep "vm-toolbar"`).
+- Modify: `src/styles/components/_toolbar.scss` (or whichever partial owns the current header layout — discover via `git grep "vm-toolbar"`).
 - Create: `test/component/toolbarSearchInlineVariant.test.ts`
 
 - [ ] **Step 1: Write the failing test**
@@ -610,9 +583,7 @@ Expected: FAIL — neither variant nor expand element exists.
 
 - [ ] **Step 3: Render the inline variant in `Toolbar.svelte`**
 
-Locate the toolbar primitives row (search around line 670–740). Wrap
-the search toggle button in a conditional block. Pseudocode in the
-right shape — copy as-is:
+Locate the toolbar primitives row (search around line 670–740). Wrap the search toggle button in a conditional block. Pseudocode in the right shape — copy as-is:
 
 ```svelte
 {#if toolbarSearchMode === 'inline'}
@@ -639,13 +610,11 @@ right shape — copy as-is:
 {/if}
 ```
 
-Replace the comment placeholder above with the **actual existing search
-toggle button block** preserved verbatim. Do not re-author it.
+Replace the comment placeholder above with the **actual existing search toggle button block** preserved verbatim. Do not re-author it.
 
 - [ ] **Step 4: Add SCSS rules**
 
-In `src/styles/components/_toolbar.scss` (or the partial that owns
-toolbar primitives — confirm via `git grep "vm-toolbar"`), append:
+In `src/styles/components/_toolbar.scss` (or the partial that owns toolbar primitives — confirm via `git grep "vm-toolbar"`), append:
 
 ```scss
 .vm-toolbar-inline-search {
@@ -695,8 +664,7 @@ toolbar primitives — confirm via `git grep "vm-toolbar"`), append:
 
 - [ ] **Step 5: Add i18n key**
 
-Locate the i18n source files referenced by `translate(...)` (look in
-`src/index/i18n/`). For each language file, add:
+Locate the i18n source files referenced by `translate(...)` (look in `src/index/i18n/`). For each language file, add:
 
 ```ts
 'toolbar.search.expand': 'Expand search',
@@ -731,13 +699,11 @@ git commit -m "feat(toolbar): render inline search variant gated by toolbarSearc
 sed -n '1,80p' src/components/settings/SettingsUI.svelte
 ```
 
-Identify the segmented-control / toggle pattern used elsewhere (e.g.,
-for `layoutTheme`, `openMode`). Match that pattern for the new control.
+Identify the segmented-control / toggle pattern used elsewhere (e.g., for `layoutTheme`, `openMode`). Match that pattern for the new control.
 
 - [ ] **Step 2: Add the segmented control**
 
-Inside the appropriate settings section (group with other layout-related
-toggles), add:
+Inside the appropriate settings section (group with other layout-related toggles), add:
 
 ```svelte
 <div class="vm-settings-row">
@@ -796,8 +762,7 @@ pnpm run test:component
 pnpm run build:plugin
 ```
 
-Expected: all clean except known performance residuals
-(`stress.test.ts`, `viewTableStress.test.ts`).
+Expected: all clean except known performance residuals (`stress.test.ts`, `viewTableStress.test.ts`).
 
 - [ ] **Step 2: Commit any auto-formatter touch-ups**
 

@@ -18,19 +18,13 @@ tags:
 
 ## Context
 
-ADR 0002 makes the View a pure renderer, but virtualization, scroll, measurement,
-resizing, and dnd are intrinsically DOM-coupled and cannot live in a DOM-free layer.
+ADR 0002 makes the View a pure renderer, but virtualization, scroll, measurement, resizing, and dnd are intrinsically DOM-coupled and cannot live in a DOM-free layer.
 Today `viewTree` reimplements all of this inline (a driver of the 1051 ms p99).
 
 ## Decision (proposed)
 
-Two layers. **Data-plane (Logic, DOM-free):** the render-projection — visible order,
-indices (`idToIndex`), grouping, cell-placement, decoration descriptors, applied
-size-marks. **Render-runtime (View-side, SHARED across engines):** virtualizer
-(tanstack-virtual), scroll element/state, measurement (pretext), node-resizer
-(emits durable size-marks), table runtime (tanstack-table), dnd interaction (dnd-kit).
-The node-resizer never mutates a node directly; it emits a size-mark that flows back
-through the data-plane.
+Two layers. **Data-plane (Logic, DOM-free):** the render-projection — visible order, indices (`idToIndex`), grouping, cell-placement, decoration descriptors, applied size-marks. **Render-runtime (View-side, SHARED across engines):** virtualizer (tanstack-virtual), scroll element/state, measurement (pretext), node-resizer (emits durable size-marks), table runtime (tanstack-table), dnd interaction (dnd-kit).
+The node-resizer never mutates a node directly; it emits a size-mark that flows back through the data-plane.
 
 ## Consequences
 

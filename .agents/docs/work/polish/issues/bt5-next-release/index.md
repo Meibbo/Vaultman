@@ -23,38 +23,24 @@ tags:
 > `b56b9a78`; existing BT5 records remain as historical provenance.
 
 `BT5` es el identificador estable del tren de trabajo posterior a `1.2.0-beta.4`.
-El artefacto final sigue abierto entre `1.2.0-beta.5` y `1.2.0` stable; cambiar el
-canal no renumera estos issues. Por el volumen de cambios de persistencia, lifecycle
-y toolbar, la recomendación técnica no vinculante es publicar primero beta.5.
+El artefacto final sigue abierto entre `1.2.0-beta.5` y `1.2.0` stable; cambiar el canal no renumera estos issues. Por el volumen de cambios de persistencia, lifecycle y toolbar, la recomendación técnica no vinculante es publicar primero beta.5.
 
-Origen: pendientes migrados de
-[[docs/work/polish/issues/bt4-beta4-batch/index|BT4]] + reporte y decisiones del dev
-del 2026-07-19. Los IDs BT4 permanecen como trazabilidad histórica; este índice es
-la cola canónica para implementación nueva.
+Origen: pendientes migrados de [[docs/work/polish/issues/bt4-beta4-batch/index|BT4]] + reporte y decisiones del dev del 2026-07-19. Los IDs BT4 permanecen como trazabilidad histórica; este índice es la cola canónica para implementación nueva.
 
 ## Decisiones fijadas
 
-1. El vacío al reactivar Vaultman se diagnostica con una matriz de superficies y
-   transiciones antes de fijar el alcance; no se asume que solo exista en Files/main leaf.
-2. El mensaje de novedades será un aviso no bloqueante que enlaza a un boletín público
-   acumulativo, newest-first y editable en `docs/whats-new.md`; el changelog completo queda
-   como anexo y el release no empaqueta cuerpo ni media del boletín.
-3. La corrección de primera dirección de Remaining tasks pertenece al audit global de
-   flechas/direcciones, no a un issue separado.
-4. `nested=off` oculta solamente la acción Collapse/expand all. El mecanismo de overflow
-   del toolbar sigue funcionando y gana estrategia `condensed menu | horizontal scroll`.
+1. El vacío al reactivar Vaultman se diagnostica con una matriz de superficies y transiciones antes de fijar el alcance; no se asume que solo exista en Files/main leaf.
+2. El mensaje de novedades será un aviso no bloqueante que enlaza a un boletín público acumulativo, newest-first y editable en `docs/whats-new.md`; el changelog completo queda como anexo y el release no empaqueta cuerpo ni media del boletín.
+3. La corrección de primera dirección de Remaining tasks pertenece al audit global de flechas/direcciones, no a un issue separado.
+4. `nested=off` oculta solamente la acción Collapse/expand all. El mecanismo de overflow del toolbar sigue funcionando y gana estrategia `condensed menu | horizontal scroll`.
 5. En plano, el cell option `Path` hace visible `file.path` —incluido el filename—;
    sort `Name` compara `file.name` y sort `Path` compara `file.path`, como conceptos distintos.
-6. El boletín se abre mediante URL fijada al tag instalado; las releases antiguas nunca
-   apuntan a contenido mutable de `dev` o `main`.
-7. La colorización nativa de Vaultman será opt-in y compartirá una paleta semántica entre
-   Floating Index y Explorer: default, faint, accent, custom y rainbow pastel.
+6. El boletín se abre mediante URL fijada al tag instalado; las releases antiguas nunca apuntan a contenido mutable de `dev` o `main`.
+7. La colorización nativa de Vaultman será opt-in y compartirá una paleta semántica entre Floating Index y Explorer: default, faint, accent, custom y rainbow pastel.
 8. Snippets y Plugins tendrán sort `State` sobre el booleano/cell id existente `state`;
-   Props y Tags tendrán sort `Type` sobre, respectivamente, el tipo efectivo de propiedad y
-   la clasificación estructural simple/nested. Todos usan Name como desempate determinista;
+   Props y Tags tendrán sort `Type` sobre, respectivamente, el tipo efectivo de propiedad y la clasificación estructural simple/nested. Todos usan Name como desempate determinista;
    la dirección inicial y el orden canónico de categorías se confirman en triage.
-9. La fluidez del editor es un gate P0: ningún trabajo de una leaf Vaultman abierta puede
-   introducir stalls periódicos mientras el usuario escribe en otra nota.
+9. La fluidez del editor es un gate P0: ningún trabajo de una leaf Vaultman abierta puede introducir stalls periódicos mientras el usuario escribe en otra nota.
 
 ## Orden canónico
 
@@ -163,25 +149,16 @@ Post-beta.6 (042 bubbledot toggle · 034 island clamp · 033 node icon scope · 
 
 ## Release gates
 
-- BT5-001, 002, 003 y 030 bloquean cualquier candidato por hang, viewport vacío, datos
-  stale o degradación de la escritura de notas. Diferir 030 detiene su implementación,
-  pero no equivale a demostrar que la regresión desapareció ni levanta el gate.
-- BT5-004 bloquea la publicación, no necesariamente el trabajo paralelo: cada target debe
-  tener sección+anchor revisados en el boletín público, enlace al changelog y targets
-  relativos válidos, aunque un hotfix use una sola línea breve.
-- Si el destino es stable, ejecutar soak real de upgrade, instalación limpia y mobile
-  después de los P0; no convertir el nombre `BT5` en evidencia de aceptación.
-- Los P2 forman parte del tren solicitado, pero cada issue sigue siendo un tracer bullet
-  verificable y no autoriza un refactor horizontal masivo.
+- BT5-001, 002, 003 y 030 bloquean cualquier candidato por hang, viewport vacío, datos stale o degradación de la escritura de notas. Diferir 030 detiene su implementación, pero no equivale a demostrar que la regresión desapareció ni levanta el gate.
+- BT5-004 bloquea la publicación, no necesariamente el trabajo paralelo: cada target debe tener sección+anchor revisados en el boletín público, enlace al changelog y targets relativos válidos, aunque un hotfix use una sola línea breve.
+- Si el destino es stable, ejecutar soak real de upgrade, instalación limpia y mobile después de los P0; no convertir el nombre `BT5` en evidencia de aceptación.
+- Los P2 forman parte del tren solicitado, pero cada issue sigue siendo un tracer bullet verificable y no autoriza un refactor horizontal masivo.
 
 ## Límites deliberados
 
 - `Last opened` guarda el último timestamp por archivo, no una cronología completa de eventos.
-- El aviso no renderiza el boletín ni el changelog técnico dentro de Vaultman y no hace
-  tráfico de red hasta que el usuario abre explícitamente el documento público.
+- El aviso no renderiza el boletín ni el changelog técnico dentro de Vaultman y no hace tráfico de red hasta que el usuario abre explícitamente el documento público.
 - La línea 1.2 no importa la maquinaria ActionNode 2.0; usa un shape local compatible y pequeño.
 - La priorización por mtime de estadísticas no puede impedir que archivos viejos progresen.
-- Horizontal scroll pierde parte de la descubribilidad del menú único; debe mostrar una
-  pista de overflow. Los comandos custom se añaden explícitamente y nunca se autoejecutan.
-- Un cell no recibe un segundo menú superpuesto: el handler único del row deriva el target
-  desde el hit-test/cell id y ofrece acciones explícitas de nodo o cell.
+- Horizontal scroll pierde parte de la descubribilidad del menú único; debe mostrar una pista de overflow. Los comandos custom se añaden explícitamente y nunca se autoejecutan.
+- Un cell no recibe un segundo menú superpuesto: el handler único del row deriva el target desde el hit-test/cell id y ofrece acciones explícitas de nodo o cell.

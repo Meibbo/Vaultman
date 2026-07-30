@@ -56,8 +56,7 @@ updated_by: codex
 - Keep media render off by default in every view.
 - Avoid tree/list-only platform APIs.
 - Commit after each task or small coherent group.
-- If a task uncovers unrelated visual polish, record it as follow-up instead of
-  bundling it into this pass.
+- If a task uncovers unrelated visual polish, record it as follow-up instead of bundling it into this pass.
 
 ## File Map
 
@@ -92,9 +91,7 @@ updated_by: codex
 
 ## Completion Snapshot
 
-Completed on branch `claude/explorer` through Task 20, then repaired after
-review found the missing Notebook Navigator comparison gate and lingering
-Markmap menu exposure.
+Completed on branch `claude/explorer` through Task 20, then repaired after review found the missing Notebook Navigator comparison gate and lingering Markmap menu exposure.
 
 Key verification record:
 [[perf-baseline|Explorer View Platform perf baseline]].
@@ -114,28 +111,16 @@ Final task commits:
 Final local gates:
 
 - `pnpm check`: passed, 0 Svelte errors / 0 warnings.
-- `pnpm run build`: passed and synced plugin build artifacts to
-  `plugin-dev`.
-- `pnpm verify`: passed with unit `135` files / `821` tests and component
-  `69` files / `372` tests. Lint emitted 8 warnings in pre-existing unrelated
-  files, with 0 errors.
+- `pnpm run build`: passed and synced plugin build artifacts to `plugin-dev`.
+- `pnpm verify`: passed with unit `135` files / `821` tests and component `69` files / `372` tests. Lint emitted 8 warnings in pre-existing unrelated files, with 0 errors.
 - `git diff --check`: passed.
-- Live Obsidian CLI target confirmed with
-  `obsidian eval code="app.vault.getName()" vault=plugin-dev` returning
-  `plugin-dev`.
+- Live Obsidian CLI target confirmed with `obsidian eval code="app.vault.getName()" vault=plugin-dev` returning `plugin-dev`.
 - `obsidian dev:errors vault=plugin-dev`: `No errors captured.`
 
 Post-review repair gates:
 
-- Notebook Navigator original focused tests passed: 4 files / 19 tests with
-  Node 24.15.0.
-- New Notebook Navigator comparison bridge passed and enforces Vaultman 50K
-  projection faster than the comparable Notebook Navigator list bridge.
-- Logged bridge medians: Notebook Navigator list `61.1534 ms`; Vaultman
-  projection `26.9575 ms`; Notebook Navigator lookups `0.7050 ms`; Vaultman
-  lookups `0.1517 ms`.
-- View menu live smoke in `plugin-dev` exposes only `Tree`, `List`, `Table`,
-  `Grid`, and `Cards`; `Markmap` is absent.
-- `pnpm verify`: passed with unit `136` files / `824` tests and component
-  `69` files / `372` tests. Lint emitted 8 pre-existing warnings, with 0
-  errors.
+- Notebook Navigator original focused tests passed: 4 files / 19 tests with Node 24.15.0.
+- New Notebook Navigator comparison bridge passed and enforces Vaultman 50K projection faster than the comparable Notebook Navigator list bridge.
+- Logged bridge medians: Notebook Navigator list `61.1534 ms`; Vaultman projection `26.9575 ms`; Notebook Navigator lookups `0.7050 ms`; Vaultman lookups `0.1517 ms`.
+- View menu live smoke in `plugin-dev` exposes only `Tree`, `List`, `Table`, `Grid`, and `Cards`; `Markmap` is absent.
+- `pnpm verify`: passed with unit `136` files / `824` tests and component `69` files / `372` tests. Lint emitted 8 pre-existing warnings, with 0 errors.

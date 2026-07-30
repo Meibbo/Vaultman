@@ -18,8 +18,7 @@ updated_by: codex
 
 ## Purpose
 
-Route `viewMode === 'table'` through `ViewNodeTable` and keep all selection,
-context menu, and provider activation behavior aligned with tree/grid.
+Route `viewMode === 'table'` through `ViewNodeTable` and keep all selection, context menu, and provider activation behavior aligned with tree/grid.
 
 ## Files
 
@@ -76,8 +75,7 @@ it('table context menu receives same-type selected nodes', () => {
 Modify `test/component/panelExplorerEmpty.test.ts`:
 
 - remove `table` from the unsupported fallback `it.each`;
-- add a table empty test that expects `No items` and `.vm-node-table` absence
-  when provider tree is empty;
+- add a table empty test that expects `No items` and `.vm-node-table` absence when provider tree is empty;
 - keep `cards` and `list` fallback tests unchanged.
 
 - [ ] **Step 2: Run panel tests and confirm failure**
@@ -161,8 +159,7 @@ function handleTableSelectAll(ids: string[], e: Event) {
 }
 ```
 
-Add `.vm-table-container` beside tree/grid/fallback container styles with the
-same flex, min-height, height, and overflow constraints as `.vm-grid-container`.
+Add `.vm-table-container` beside tree/grid/fallback container styles with the same flex, min-height, height, and overflow constraints as `.vm-grid-container`.
 
 - [ ] **Step 5: Run panel tests until they pass**
 

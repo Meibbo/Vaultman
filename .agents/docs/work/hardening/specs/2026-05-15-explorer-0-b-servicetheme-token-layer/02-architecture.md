@@ -14,20 +14,14 @@ tags:
 
 ## Single deep module — Ousterhout shape
 
-0-B replaces the current two-service split with one runes class —
-`ThemeService` in `src/services/serviceTheme.svelte.ts` — holding:
+0-B replaces the current two-service split with one runes class — `ThemeService` in `src/services/serviceTheme.svelte.ts` — holding:
 
-- complete theme state (active preset id, custom preset registry, legacy
-  orthogonal axes);
-- a small public read surface (`activePreset`, `useNativeDom`,
-  `rootClasses`, `availablePresets`);
-- a focused write surface (`setPreset`, `registerCustomPreset`,
-  `unregisterCustomPreset`, `updateCustomPreset`);
-- private internals (settings normalization, runtime `<style>` injection
-  for custom presets, css-id sanitization, built-in resolution).
+- complete theme state (active preset id, custom preset registry, legacy orthogonal axes);
+- a small public read surface (`activePreset`, `useNativeDom`, `rootClasses`, `availablePresets`);
+- a focused write surface (`setPreset`, `registerCustomPreset`, `unregisterCustomPreset`, `updateCustomPreset`);
+- private internals (settings normalization, runtime `<style>` injection for custom presets, css-id sanitization, built-in resolution).
 
-The depth is in the implementation, not in the file count. Consumers
-import one module, read 1-2 fields, and never reach for internals.
+The depth is in the implementation, not in the file count. Consumers import one module, read 1-2 fields, and never reach for internals.
 
 ```text
 ┌─ ThemeService (src/services/serviceTheme.svelte.ts) ──────────────────┐
@@ -174,35 +168,27 @@ import one module, read 1-2 fields, and never reach for internals.
 
 ## Why one component, not three
 
-An alternative decomposition (the brainstorm's earlier Approach 2) would
-split this into:
+An alternative decomposition (the brainstorm's earlier Approach 2) would split this into:
 
 - `serviceTheme.svelte.ts` — runes state only.
 - `serviceThemeRegistry.svelte.ts` — built-in + custom preset registry.
 - `serviceThemeTokens.ts` — token defaults, normalizers, sanitization.
 
-That split optimizes for module-level SOLID and "one job per file." It
-trades navigational simplicity for an artificial seam between things that
-are read together. The post-0-H architecture handoff explicitly cautions
-against this trade-off:
+That split optimizes for module-level SOLID and "one job per file." It trades navigational simplicity for an artificial seam between things that are read together. The post-0-H architecture handoff explicitly cautions against this trade-off:
 
 > Do not force SOLID as a checklist. Use deeper modules with small
 > interfaces and high leverage.
 
 The data and operations co-locate naturally:
 
-- `activePreset` reads from `activePresetId` + `customPresets` + built-in
-  constants in one derivation;
+- `activePreset` reads from `activePresetId` + `customPresets` + built-in constants in one derivation;
 - `setPreset(id)` validates against `availablePresets` which is built-in
   + custom;
-- `registerCustomPreset(p)` mutates `customPresets` then triggers
-  `#syncCustomStyles()` which reads the same `customPresets` array.
+- `registerCustomPreset(p)` mutates `customPresets` then triggers `#syncCustomStyles()` which reads the same `customPresets` array.
 
-In a three-module split each of these is a cross-module call. In the
-single-module shape each is a self-contained method or getter.
+In a three-module split each of these is a cross-module call. In the single-module shape each is a self-contained method or getter.
 
-If the class grows past ~300 LOC (it should land near 100), splitting
-later is cheap: extract methods to private modules, keep the public API.
+If the class grows past ~300 LOC (it should land near 100), splitting later is cheap: extract methods to private modules, keep the public API.
 Pre-splitting is premature.
 
 ## Net file diff
@@ -230,7 +216,4 @@ Pre-splitting is premature.
 | `test/component/frameVaultmanRootClasses.test.ts` | NEW. ~3-4 tests. |
 | `test/component/settingsUI.test.ts` | MODIFIED. `updateGlassBlur` mock + related tests removed. |
 
-Net (counted from table above): 8 new files (4 spec/doc + 4 test), 11
-modified files, 2 deleted files. Type contract and test files account
-for the majority of net new lines. The `architecture.canvas` JSON
-Canvas at the spec root is an additional doc artifact (not in the table).
+Net (counted from table above): 8 new files (4 spec/doc + 4 test), 11 modified files, 2 deleted files. Type contract and test files account for the majority of net new lines. The `architecture.canvas` JSON Canvas at the spec root is an additional doc artifact (not in the table).

@@ -22,8 +22,7 @@ Modify `src/components/layout/overlays/layoutOverlay.svelte`:
 - Replace manual `role="dialog"` root with `VmDialog`.
 - Use `plugin.themeService` for portal target.
 - Keep existing child popup components and close callbacks.
-- Preserve `.vm-popup-overlay`, `.vm-popup-content`, and `.vm-popup-island`
-  classes so SCSS remains valid.
+- Preserve `.vm-popup-overlay`, `.vm-popup-content`, and `.vm-popup-island` classes so SCSS remains valid.
 
 Verification:
 

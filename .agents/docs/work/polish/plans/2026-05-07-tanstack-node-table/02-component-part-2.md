@@ -40,20 +40,16 @@ interface Props<TNode extends NodeBase = NodeBase> {
 
 Implementation requirements:
 
-- import `createTable`, `getCoreRowModel`, `getSortedRowModel`,
-  `functionalUpdate`, and `type SortingState` from `@tanstack/table-core`;
+- import `createTable`, `getCoreRowModel`, `getSortedRowModel`, `functionalUpdate`, and `type SortingState` from `@tanstack/table-core`;
 - import `createVirtualizer` from `@tanstack/svelte-virtual`;
 - derive `rowSelection` from `selectedIds`;
 - set `getRowId: (row) => row.id`;
 - use `buildNodeTableColumnDefs(columns)`;
-- render root `.vm-node-table` with `role="grid"` and
-  `aria-multiselectable="true"`;
+- render root `.vm-node-table` with `role="grid"` and `aria-multiselectable="true"`;
 - render header buttons with `data-vm-table-header={header.column.id}`;
-- render body rows with `data-id={row.id}`, `role="row"`, `aria-selected`,
-  `is-selected`, `is-focused`, and `is-active-node`;
+- render body rows with `data-id={row.id}`, `role="row"`, `aria-selected`, `is-selected`, `is-focused`, and `is-active-node`;
 - render cells with `role="gridcell"` and `data-vm-table-cell`;
-- call parent callbacks for row click, primary action, row keydown, and context
-  menu;
+- call parent callbacks for row click, primary action, row keydown, and context menu;
 - keep row virtualization local to the component.
 
 - [ ] **Step 5: Run Svelte autofixer on the component**
@@ -64,8 +60,7 @@ Run:
 npx @sveltejs/mcp svelte-autofixer .\src\components\views\ViewNodeTable.svelte --svelte-version 5
 ```
 
-Expected: no blocking Svelte 5 issues remain. Apply any concrete fixes before
-continuing.
+Expected: no blocking Svelte 5 issues remain. Apply any concrete fixes before continuing.
 
 - [ ] **Step 6: Run the component test until it passes**
 

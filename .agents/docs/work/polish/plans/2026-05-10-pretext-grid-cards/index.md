@@ -25,18 +25,11 @@ updated_by: codex
 > behavior change and run Svelte autofixer before finalizing any Svelte
 > component.
 
-**Goal:** Add a persistent, field-configurable `cards` explorer mode whose node
-heights are bucketed from Pretext-measured label, detail, and provider metadata.
+**Goal:** Add a persistent, field-configurable `cards` explorer mode whose node heights are bucketed from Pretext-measured label, detail, and provider metadata.
 
-**Architecture:** Keep current `grid` behavior intact, make view-menu field
-pills a persisted provider/view contract, wrap Pretext behind a pure service,
-then render cards through a new Svelte component that shares node selection and
-virtualizer patterns with `ViewNodeGrid`. Defer `dnd-kit`, node resize handles,
-and multiline tables.
+**Architecture:** Keep current `grid` behavior intact, make view-menu field pills a persisted provider/view contract, wrap Pretext behind a pure service, then render cards through a new Svelte component that shares node selection and virtualizer patterns with `ViewNodeGrid`. Defer `dnd-kit`, node resize handles, and multiline tables.
 
-**Tech Stack:** TypeScript, Svelte 5 runes, `@chenglou/pretext`,
-`@tanstack/svelte-virtual`, Vitest unit/component tests, SCSS partials,
-existing `NodeSelectionService`, existing Vaultman settings persistence.
+**Tech Stack:** TypeScript, Svelte 5 runes, `@chenglou/pretext`, `@tanstack/svelte-virtual`, Vitest unit/component tests, SCSS partials, existing `NodeSelectionService`, existing Vaultman settings persistence.
 
 ---
 
@@ -52,49 +45,30 @@ existing `NodeSelectionService`, existing Vaultman settings persistence.
 ## Execution Rules
 
 - Do not change current `grid` behavior while making `cards` real.
-- Do not implement `dnd-kit`, resize handles, or multiline table rows in this
-  slice.
-- Do not let Pretext know about `VaultmanSettings`; field visibility normalizes
-  settings, card layout consumes normalized fields.
-- Do not call `plugin.saveSettings()` on mount. Persist only explicit user pill
-  changes.
+- Do not implement `dnd-kit`, resize handles, or multiline table rows in this slice.
+- Do not let Pretext know about `VaultmanSettings`; field visibility normalizes settings, card layout consumes normalized fields.
+- Do not call `plugin.saveSettings()` on mount. Persist only explicit user pill changes.
 - Do not commit unless the active user explicitly asks for commits.
 - Keep `main` free of AI workflow files.
 
 ## File Map
 
-- Modify `package.json` and `pnpm-lock.yaml`: add runtime dependency
-  `@chenglou/pretext`.
-- Modify `src/types/typeSettings.ts`: add `viewFieldVisibility?: Record<string, string[]>`
-  and default `{}`.
-- Create `src/services/serviceNodeFieldVisibility.ts`: provider/view field
-  definitions, settings normalization, identity repair, and persistence helpers.
+- Modify `package.json` and `pnpm-lock.yaml`: add runtime dependency `@chenglou/pretext`.
+- Modify `src/types/typeSettings.ts`: add `viewFieldVisibility?: Record<string, string[]>` and default `{}`.
+- Create `src/services/serviceNodeFieldVisibility.ts`: provider/view field definitions, settings normalization, identity repair, and persistence helpers.
 - Create `test/unit/services/serviceNodeFieldVisibility.test.ts`.
-- Create `src/services/serviceTextMeasure.ts`: Pretext wrapper, cache keys,
-  fallback engine, and line-height layout helper.
+- Create `src/services/serviceTextMeasure.ts`: Pretext wrapper, cache keys, fallback engine, and line-height layout helper.
 - Create `test/unit/services/serviceTextMeasure.test.ts`.
-- Create `src/services/serviceNodeCardLayout.ts`: node-to-card field extraction,
-  card text budgets, bucketed height selection, and row layout helpers.
+- Create `src/services/serviceNodeCardLayout.ts`: node-to-card field extraction, card text budgets, bucketed height selection, and row layout helpers.
 - Create `test/unit/services/serviceNodeCardLayout.test.ts`.
-- Modify `src/components/layout/overlays/overlayViewMenu.svelte`: consume field
-  definitions and visible fields from props, remove disconnected local pill state,
-  and hide `dnd` until it has an implementation.
-- Modify `src/components/layout/navbarExplorer.svelte`: pass field definitions
-  and visible fields into the overlay.
-- Modify `src/components/pages/pageFilters.svelte`: derive and persist active
-  visible fields by provider/view, and pass provider-specific visible fields to
-  each tab.
-- Modify `src/components/pages/tabFiles.svelte`,
-  `src/components/pages/tabProps.svelte`, `src/components/pages/tabTags.svelte`,
-  and `src/components/pages/tabContent.svelte`: forward `visibleFields`.
-- Modify `src/components/containers/panelExplorer.svelte`: route `cards` to a
-  new component, compute card nodes, and include cards in visible id logic.
+- Modify `src/components/layout/overlays/overlayViewMenu.svelte`: consume field definitions and visible fields from props, remove disconnected local pill state, and hide `dnd` until it has an implementation.
+- Modify `src/components/layout/navbarExplorer.svelte`: pass field definitions and visible fields into the overlay.
+- Modify `src/components/pages/pageFilters.svelte`: derive and persist active visible fields by provider/view, and pass provider-specific visible fields to each tab.
+- Modify `src/components/pages/tabFiles.svelte`, `src/components/pages/tabProps.svelte`, `src/components/pages/tabTags.svelte`, and `src/components/pages/tabContent.svelte`: forward `visibleFields`.
+- Modify `src/components/containers/panelExplorer.svelte`: route `cards` to a new component, compute card nodes, and include cards in visible id logic.
 - Create `src/components/views/ViewNodeCards.svelte`: virtualized cards mode.
 - Create `src/styles/data/_cards.scss` and modify `src/main.scss`.
-- Modify `test/component/overlayViewMenu.test.ts`,
-  `test/component/panelExplorerEmpty.test.ts`,
-  `test/component/panelExplorerSelection.test.ts`, and
-  `test/component/virtualizerItemKeys.test.ts`.
+- Modify `test/component/overlayViewMenu.test.ts`, `test/component/panelExplorerEmpty.test.ts`, `test/component/panelExplorerSelection.test.ts`, and `test/component/virtualizerItemKeys.test.ts`.
 - Create `test/component/viewNodeCards.test.ts`.
 
 ## Task Order
@@ -108,25 +82,16 @@ existing `NodeSelectionService`, existing Vaultman settings persistence.
 
 ## Post-Plan Follow-Up
 
-- [[docs/work/polish/plans/2026-05-10-pretext-grid-cards/07-css-font-snapshot|CSS font snapshot follow-up result]] -
-  done. This supersedes the first-slice fixed local card style snapshot with a
-  rendered CSS snapshot service and keeps the fixed values only as fallback.
+- [[docs/work/polish/plans/2026-05-10-pretext-grid-cards/07-css-font-snapshot|CSS font snapshot follow-up result]] - done. This supersedes the first-slice fixed local card style snapshot with a rendered CSS snapshot service and keeps the fixed values only as fallback.
 
 ## Completion
 
-Completed on 2026-05-10T02:37:32; CSS font snapshot follow-up completed on
-2026-05-10T04:17:31. The implementation status and verification evidence live in
-[[docs/work/polish/specs/2026-05-10-pretext-grid-cards/index|Pretext grid cards hybrid layout]]
-and the Task 5/6/7 result records.
+Completed on 2026-05-10T02:37:32; CSS font snapshot follow-up completed on 2026-05-10T04:17:31. The implementation status and verification evidence live in [[docs/work/polish/specs/2026-05-10-pretext-grid-cards/index|Pretext grid cards hybrid layout]] and the Task 5/6/7 result records.
 
 ## Stop Conditions
 
-- Stop if `@chenglou/pretext` types do not expose `prepare` and `layout` as
-  documented by the official README.
+- Stop if `@chenglou/pretext` types do not expose `prepare` and `layout` as documented by the official README.
 - Stop if a card route requires changing `NodeSelectionService` semantics.
-- Stop if cards cannot preserve row/tile selection, context menu, and keyboard
-  behavior already covered by grid tests.
-- Stop if field visibility persistence causes settings writes during component
-  mount.
-- Stop if Svelte autofixer reports unresolved component issues after the cards
-  component or overlay edits.
+- Stop if cards cannot preserve row/tile selection, context menu, and keyboard behavior already covered by grid tests.
+- Stop if field visibility persistence causes settings writes during component mount.
+- Stop if Svelte autofixer reports unresolved component issues after the cards component or overlay edits.

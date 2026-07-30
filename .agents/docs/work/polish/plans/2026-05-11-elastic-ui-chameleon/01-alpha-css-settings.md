@@ -17,8 +17,7 @@ updated_by: codex
 
 ## Task A5: Add Elastic CSS Variables
 
-Create `src/styles/_elastic.scss` and import it from `src/main.scss` after
-tokens and before component SCSS:
+Create `src/styles/_elastic.scss` and import it from `src/main.scss` after tokens and before component SCSS:
 
 ```scss
 .vm-root {
@@ -57,13 +56,11 @@ pnpm exec vp test run --project unit --config vitest.config.ts test/unit/styles/
 pnpm run build:plugin
 ```
 
-Expected: style tests find `.vm-root`, `.is-vm-unfocused`, and
-`--vm-accent`; build exits 0.
+Expected: style tests find `.vm-root`, `.is-vm-unfocused`, and `--vm-accent`; build exits 0.
 
 ## Task A6: Settings UI Controls
 
-Add controls to `src/components/settings/SettingsUI.svelte` using existing
-`Dropdown` and `Toggle` primitives:
+Add controls to `src/components/settings/SettingsUI.svelte` using existing `Dropdown` and `Toggle` primitives:
 
 ```svelte
 <Dropdown
@@ -87,8 +84,7 @@ After persistence, call:
 plugin.themeService?.applySettings(s.elasticUi);
 ```
 
-Also add identity, Faint Mode, and reduced motion controls with the same
-immutable assignment shape:
+Also add identity, Faint Mode, and reduced motion controls with the same immutable assignment shape:
 
 ```ts
 s.elasticUi = { ...s.elasticUi, identity: value as VaultmanUiIdentity };
@@ -103,5 +99,4 @@ pnpm exec vp test run --project component --config vitest.config.ts test/compone
 pnpm run check
 ```
 
-Expected: changing mode writes `plugin.settings.elasticUi.mode`, calls
-`saveSettings()`, and updates root classes through `themeService`.
+Expected: changing mode writes `plugin.settings.elasticUi.mode`, calls `saveSettings()`, and updates root classes through `themeService`.

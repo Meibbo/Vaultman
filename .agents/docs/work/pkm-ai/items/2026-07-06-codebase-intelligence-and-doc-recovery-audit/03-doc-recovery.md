@@ -31,9 +31,7 @@ Top groups from the cache-missing set:
 | `work/hardening/issues` | 12 |
 | `work/pkm-ai/research` | 9 |
 
-Interpretation: the PKM-AI cache remembers substantially more documentation
-than the local tree currently contains. This is strong evidence that rebuilding
-retrieval or embeddings now would bake in a reduced corpus.
+Interpretation: the PKM-AI cache remembers substantially more documentation than the local tree currently contains. This is strong evidence that rebuilding retrieval or embeddings now would bake in a reduced corpus.
 
 ## Git Deleted-Path Evidence
 
@@ -57,9 +55,7 @@ Largest deleted groups include:
 | `work/hardening/research` | 16 |
 | `superpowers/specs/2026-05-10-shadcn-tailwind-transition` | 15 |
 
-Interpretation: Git can likely recover many historical paths, but history alone
-does not decide which deletions were intentional migration versus accidental
-loss. Human review is required.
+Interpretation: Git can likely recover many historical paths, but history alone does not decide which deletions were intentional migration versus accidental loss. Human review is required.
 
 ## Current Working Tree Deletions
 
@@ -84,9 +80,7 @@ Top current deletion groups:
 | `work/hardening/index.md` | 1 |
 | `work/hardening/visuals` | 1 |
 
-Interpretation: this is the highest-risk signal. These are not only old Git
-history entries; they are active worktree deletions. This audit intentionally
-does not revert them.
+Interpretation: this is the highest-risk signal. These are not only old Git history entries; they are active worktree deletions. This audit intentionally does not revert them.
 
 ## Current Route Reference Check
 
@@ -109,11 +103,9 @@ Missing referenced paths:
 - `.agents/docs/work/hardening/research/2026-06-15-lupa-filters-providers-queues-noncanonical/index.md`
 - `.agents/docs/work/pkm-ai/CHANGELOG.md`
 
-Interpretation: some missing docs are still referenced by current navigation or
-session material, which raises their restore priority.
+Interpretation: some missing docs are still referenced by current navigation or session material, which raises their restore priority.
 
-Recovery outcome (2026-07-10): the Notebook Navigator API source is restored at
-`.agents/docs/work/hardening/research/2026-06-15-notebook-navigator-api-lupa-addon/sources/api-reference.md`;
+Recovery outcome (2026-07-10): the Notebook Navigator API source is restored at `.agents/docs/work/hardening/research/2026-06-15-notebook-navigator-api-lupa-addon/sources/api-reference.md`;
 the root path above remains absent intentionally after topology normalization.
 
 ## Obsidian File Recovery Access
@@ -130,9 +122,7 @@ Observed:
 {"vault":"Start of The Road","recoveryPlugin":["file-recovery"]}
 ```
 
-Interpretation: Obsidian is focused on `Start of The Road`, and File Recovery is
-available as an internal plugin. The audit did not inspect individual snapshots
-or restore any files.
+Interpretation: Obsidian is focused on `Start of The Road`, and File Recovery is available as an internal plugin. The audit did not inspect individual snapshots or restore any files.
 
 ## Restore Decision Queue
 

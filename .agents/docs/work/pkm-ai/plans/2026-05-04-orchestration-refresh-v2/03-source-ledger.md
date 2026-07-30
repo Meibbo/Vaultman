@@ -14,13 +14,11 @@ tags:
 
 ## Task
 
-Create a richer decision/source ledger so future agents can reconstruct the chat
-decisions from docs.
+Create a richer decision/source ledger so future agents can reconstruct the chat decisions from docs.
 
 ## Steps
 
-- [ ] Create decision shards under `architecture/decisions/` for branch policy,
-  line limits, routing, backlog IDs, and skills.
+- [ ] Create decision shards under `architecture/decisions/` for branch policy, line limits, routing, backlog IDs, and skills.
 - [ ] Link each decision from matching policies.
 - [ ] Add `supersedes` or `related` fields where V2 replaces V1 wording.
 - [ ] Preserve references to raw migration archive when old docs informed a rule.

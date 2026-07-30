@@ -24,13 +24,7 @@ updated_by: codex
 
 ## Scope
 
-T1 owns the visual foundation. It installs and configures UnoCSS, lands
-DaisyUI semantic shortcuts safely (no Tailwind preflight), converts the
-current `serviceTheme.ts` to a runes-backed `serviceTheme.svelte.ts`,
-introduces Multi-Identity (`native` / `bases` / `outline` / `bookmarks`)
-and Faint Mode, surfaces the controls in Settings, and arbitrates the
-`.vm-root` class set. All other threads consume T1's `serviceTheme` runes
-and `typeElasticUi.ts` types.
+T1 owns the visual foundation. It installs and configures UnoCSS, lands DaisyUI semantic shortcuts safely (no Tailwind preflight), converts the current `serviceTheme.ts` to a runes-backed `serviceTheme.svelte.ts`, introduces Multi-Identity (`native` / `bases` / `outline` / `bookmarks`) and Faint Mode, surfaces the controls in Settings, and arbitrates the `.vm-root` class set. All other threads consume T1's `serviceTheme` runes and `typeElasticUi.ts` types.
 
 ## Files
 
@@ -53,9 +47,7 @@ and `typeElasticUi.ts` types.
 - Create: `test/component/settingsElasticUi.test.ts`
 - Create: `test/component/snippetMimicry.test.ts`
 
-Read-only (must not edit from T1): all files under `src/services/serviceDiff*`,
-`src/services/serviceQueue*`, `src/services/serviceDnd*`, the `View*` and
-`view*` Svelte components, `src/providers/*`.
+Read-only (must not edit from T1): all files under `src/services/serviceDiff*`, `src/services/serviceQueue*`, `src/services/serviceDnd*`, the `View*` and `view*` Svelte components, `src/providers/*`.
 
 ## Source Specs Consumed
 
@@ -63,16 +55,12 @@ Read-only (must not edit from T1): all files under `src/services/serviceDiff*`,
 - 05 Elastic UI Architecture (mode contract).
 - 06 Multi-Identity Theme Logic (identity + Faint Mode + CSS variables).
 - 10 Visual Polish (Faint Mode synchronization, reduced motion).
-- Chameleon plan `00-contracts-and-gates` (consumed: `typeElasticUi.ts`,
-  `normalizeElasticUiSettings`, gates).
+- Chameleon plan `00-contracts-and-gates` (consumed: `typeElasticUi.ts`, `normalizeElasticUiSettings`, gates).
 
 ## Dependencies
 
-- **Before T1 starts:** Run chameleon plan `00-contracts-and-gates` to
-  materialize `src/types/typeElasticUi.ts` and the `elasticUi` settings
-  slot. T1 task 1.0 verifies this.
-- **After T1 ships task 1.5 (root arbitration):** T2, T3, T4 may consume
-  `serviceTheme` runes.
+- **Before T1 starts:** Run chameleon plan `00-contracts-and-gates` to materialize `src/types/typeElasticUi.ts` and the `elasticUi` settings slot. T1 task 1.0 verifies this.
+- **After T1 ships task 1.5 (root arbitration):** T2, T3, T4 may consume `serviceTheme` runes.
 
 ---
 
@@ -89,8 +77,7 @@ Read-only (must not edit from T1): all files under `src/services/serviceDiff*`,
 node -e "const {existsSync}=require('node:fs'); process.exit(existsSync('src/types/typeElasticUi.ts')?0:1)"
 ```
 
-Expected: exit code `0`. If exit is `1`, halt T1 and run the chameleon
-plan's `00-contracts-and-gates` first.
+Expected: exit code `0`. If exit is `1`, halt T1 and run the chameleon plan's `00-contracts-and-gates` first.
 
 - [ ] **Step 2 — Re-run the existing Chameleon contract tests**
 
@@ -103,9 +90,7 @@ Expected: all tests pass.
 - [ ] **Step 3 — Snapshot the relevant exports**
 
 Read `src/types/typeElasticUi.ts` and confirm these names exist:
-`VaultmanUiMode`, `VaultmanUiIdentity`, `ElasticUiSettings`,
-`DEFAULT_ELASTIC_UI_SETTINGS`, `normalizeElasticUiSettings`. Add any
-missing field to T1's handoff blockers section before proceeding.
+`VaultmanUiMode`, `VaultmanUiIdentity`, `ElasticUiSettings`, `DEFAULT_ELASTIC_UI_SETTINGS`, `normalizeElasticUiSettings`. Add any missing field to T1's handoff blockers section before proceeding.
 
 ---
 
@@ -166,9 +151,7 @@ In `package.json` `devDependencies`, add (preserve alphabetical order):
 "@unocss/vite": "^66.0.0"
 ```
 
-Run `pnpm install`. If the workspace pnpm lockfile churns on unrelated
-entries, do **not** revert those changes; the worktree intentionally
-isolates installs.
+Run `pnpm install`. If the workspace pnpm lockfile churns on unrelated entries, do **not** revert those changes; the worktree intentionally isolates installs.
 
 - [ ] **Step 4 — Create `uno.config.ts`**
 
@@ -209,9 +192,7 @@ export default defineConfig({
 });
 ```
 
-The Daisy semantic surface arrives as **shortcuts** (`vm-btn-squircle`,
-`vm-card`, etc.) rather than via `presetDaisy` because DaisyUI 5 requires
-Tailwind 4 preflight, which is disqualified by the global preflight gate.
+The Daisy semantic surface arrives as **shortcuts** (`vm-btn-squircle`, `vm-card`, etc.) rather than via `presetDaisy` because DaisyUI 5 requires Tailwind 4 preflight, which is disqualified by the global preflight gate.
 
 - [ ] **Step 5 — Wire `unocss` into `vite.config.ts`**
 
@@ -229,9 +210,7 @@ UnoCSS({ configFile: './uno.config.ts' }),
 
 - [ ] **Step 6 — Import Uno CSS bundle in plugin entry**
 
-In `src/pluginEntry.ts`, add `import 'uno.css';` as the **first** import,
-above the existing `import './main.scss';`. Order matters: SCSS must win
-on specificity overlaps.
+In `src/pluginEntry.ts`, add `import 'uno.css';` as the **first** import, above the existing `import './main.scss';`. Order matters: SCSS must win on specificity overlaps.
 
 - [ ] **Step 7 — Run the preflight gate test**
 
@@ -338,8 +317,7 @@ describe('snippet mimicry — Thin + native identity', () => {
 });
 ```
 
-The `testFixture` prop is a development-only escape hatch that pre-seeds
-the frame with deterministic sample data; T1 step 1.5 implements it.
+The `testFixture` prop is a development-only escape hatch that pre-seeds the frame with deterministic sample data; T1 step 1.5 implements it.
 
 - [ ] **Step 3 — Run the test to verify it fails**
 
@@ -351,13 +329,7 @@ Expected: FAIL (frame does not yet emit mirror classes).
 
 - [ ] **Step 4 — Confirm shortcuts cover the needed mirrors**
 
-Re-read `uno.config.ts` shortcuts and confirm coverage for each mirror
-class. If any of `nav-file`, `nav-file-title`, `nav-folder`, `tree-item`,
-`tree-item-self`, `tree-item-inner`, `metadata-container`,
-`metadata-property`, `metadata-property-key` is missing, add a shortcut
-that re-emits the native class. Native classes are pass-through (Obsidian
-itself defines them); shortcuts exist so we can map them to other utility
-combos as Thick mode grows.
+Re-read `uno.config.ts` shortcuts and confirm coverage for each mirror class. If any of `nav-file`, `nav-file-title`, `nav-folder`, `tree-item`, `tree-item-self`, `tree-item-inner`, `metadata-container`, `metadata-property`, `metadata-property-key` is missing, add a shortcut that re-emits the native class. Native classes are pass-through (Obsidian itself defines them); shortcuts exist so we can map them to other utility combos as Thick mode grows.
 
 (The test still fails after this step — implementation lands in 1.5.)
 
@@ -514,8 +486,7 @@ Expected: PASS, 5/5.
 - [ ] **Step 1 — Confirm `ElasticUiSettings` shape**
 
 Read `src/types/typeElasticUi.ts`. Confirm the field set:
-`mode`, `identity`, `faintModeEnabled`, `reducedMotion`. If
-`foulDetection` is missing, extend it:
+`mode`, `identity`, `faintModeEnabled`, `reducedMotion`. If `foulDetection` is missing, extend it:
 
 ```ts
 export interface ElasticUiSettings {
@@ -599,9 +570,7 @@ Expected: FAIL — missing data attributes.
 
 - [ ] **Step 4 — Add the Elastic UI section to `SettingsUI.svelte`**
 
-In the existing settings layout, insert a new section. Use polymorphic
-snippets so the controls render natively in Thin mode and styled in
-Thick:
+In the existing settings layout, insert a new section. Use polymorphic snippets so the controls render natively in Thin mode and styled in Thick:
 
 ```svelte
 <script lang="ts">
@@ -669,10 +638,7 @@ Thick:
 </section>
 ```
 
-Append the 7 missing i18n keys (`settings.elastic_ui.*`) to the locale
-files under `src/index/i18n/locales/`. Use English for the canonical
-locale; copy English to all locales as a placeholder so the keys resolve
-during smoke tests (translators can revise later).
+Append the 7 missing i18n keys (`settings.elastic_ui.*`) to the locale files under `src/index/i18n/locales/`. Use English for the canonical locale; copy English to all locales as a placeholder so the keys resolve during smoke tests (translators can revise later).
 
 - [ ] **Step 5 — Re-run the test**
 
@@ -693,8 +659,7 @@ Expected: PASS, 2/2.
 
 - [ ] **Step 1 — Write the failing root-arbitration component test**
 
-Append to `test/component/settingsElasticUi.test.ts` or create
-`test/component/frameRootClasses.test.ts`:
+Append to `test/component/settingsElasticUi.test.ts` or create `test/component/frameRootClasses.test.ts`:
 
 ```ts
 import { mount, unmount } from 'svelte';
@@ -750,8 +715,7 @@ Expected: FAIL.
 
 - [ ] **Step 3 — Implement root arbitration**
 
-In `frameVaultman.svelte`, replace the existing body class management
-with a `class:` directive that consumes `themeService.rootClasses`:
+In `frameVaultman.svelte`, replace the existing body class management with a `class:` directive that consumes `themeService.rootClasses`:
 
 ```svelte
 <script lang="ts">
@@ -791,9 +755,7 @@ with a `class:` directive that consumes `themeService.rootClasses`:
 
 In `src/main.ts` (or wherever `applyVaultmanTheme(activeDocument.body, ...)`
 is invoked), remove the call. Theme classes now live on `.vm-root`.
-Delete `src/services/serviceTheme.ts` (legacy file) and update imports
-to `serviceTheme.svelte` where applicable. `svelte-check` will report
-all sites that need updating.
+Delete `src/services/serviceTheme.ts` (legacy file) and update imports to `serviceTheme.svelte` where applicable. `svelte-check` will report all sites that need updating.
 
 - [ ] **Step 5 — Re-run the suite**
 
@@ -904,8 +866,7 @@ Expected: FAIL — file missing.
 
 - [ ] **Step 4 — Hook into the SCSS root entry**
 
-In `src/main.scss`, after the existing `@use './styles/tokens';` line,
-add:
+In `src/main.scss`, after the existing `@use './styles/tokens';` line, add:
 
 ```scss
 @use './styles/elastic';
@@ -913,11 +874,7 @@ add:
 
 - [ ] **Step 5 — Sweep components**
 
-Run a grep over `src/styles/` and `src/components/` for direct
-`var(--text-accent)` usage. Replace with `var(--vm-accent)` so Faint
-Mode reaches all surfaces. Use `Edit` with `replace_all` on each file
-that has it; do not bulk-replace across `src/` blindly — review each
-file before changing.
+Run a grep over `src/styles/` and `src/components/` for direct `var(--text-accent)` usage. Replace with `var(--vm-accent)` so Faint Mode reaches all surfaces. Use `Edit` with `replace_all` on each file that has it; do not bulk-replace across `src/` blindly — review each file before changing.
 
 - [ ] **Step 6 — Re-run tests + build**
 
@@ -943,35 +900,18 @@ Expected: PASS, 4/4. Build exits 0.
 pnpm exec vp test run --project component --config vitest.config.ts test/component/snippetMimicry.test.ts --fileParallelism=false
 ```
 
-Expected: PASS, 3/3. If any case fails, the failing class is missing
-from the frame in Thin + that identity. Fix by ensuring the relevant
-view emits `nav-file-title` / `tree-item-self` / `metadata-property`
-when `themeService.useNativeDom === true` — those emissions live in
-T2-owned views, so coordinate by leaving a checklist line in
-`docs/work/polish/plans/2026-05-11-ui-modernization-vertical-threads/02-thread-engine-views.md`
-Task 2.3 if the gap is in a view file. T1 only adds the class on
-container-level surfaces (`frameVaultman.svelte`).
+Expected: PASS, 3/3. If any case fails, the failing class is missing from the frame in Thin + that identity. Fix by ensuring the relevant view emits `nav-file-title` / `tree-item-self` / `metadata-property` when `themeService.useNativeDom === true` — those emissions live in T2-owned views, so coordinate by leaving a checklist line in `docs/work/polish/plans/2026-05-11-ui-modernization-vertical-threads/02-thread-engine-views.md` Task 2.3 if the gap is in a view file. T1 only adds the class on container-level surfaces (`frameVaultman.svelte`).
 
 Execution note, 2026-05-11T03:53:32:
 
-- Created `test/component/snippetMimicry.test.ts` because the planned smoke
-  file was absent.
+- Created `test/component/snippetMimicry.test.ts` because the planned smoke file was absent.
 - RED:
-  `pnpm exec vp test run --project component --config vitest.config.ts test/component/snippetMimicry.test.ts --fileParallelism=false`
-  failed 3/3 because `PanelExplorer` did not pass `plugin.themeService` into
-  the view components and `ViewNodeTable` did not emit metadata mirror classes.
-- GREEN: the same command passed 3/3 after wiring `themeService` through
-  `PanelExplorer` to tree/grid/cards/table and adding table metadata mirror
-  classes.
-- The smoke validates actual fixture CSS for `nav-file-title` and
-  `metadata-property`; for `tree-item-self`, JSDOM does not expand the
-  `outline` shorthand reliably, so the smoke verifies selector coverage plus
-  emitted DOM class.
+  `pnpm exec vp test run --project component --config vitest.config.ts test/component/snippetMimicry.test.ts --fileParallelism=false` failed 3/3 because `PanelExplorer` did not pass `plugin.themeService` into the view components and `ViewNodeTable` did not emit metadata mirror classes.
+- GREEN: the same command passed 3/3 after wiring `themeService` through `PanelExplorer` to tree/grid/cards/table and adding table metadata mirror classes.
+- The smoke validates actual fixture CSS for `nav-file-title` and `metadata-property`; for `tree-item-self`, JSDOM does not expand the `outline` shorthand reliably, so the smoke verifies selector coverage plus emitted DOM class.
 - Focused regression gate:
-  `pnpm exec vp test run --project component --config vitest.config.ts test/component/snippetMimicry.test.ts test/component/viewNodeMirrorClasses.test.ts test/component/panelExplorerSelection.test.ts test/component/viewTableSelection.test.ts test/component/viewTableStress.test.ts --fileParallelism=false`
-  passed 5 files / 50 tests.
-- Svelte autofixer returned `issues: []` for `panelExplorer.svelte` and
-  `ViewNodeTable.svelte`.
+  `pnpm exec vp test run --project component --config vitest.config.ts test/component/snippetMimicry.test.ts test/component/viewNodeMirrorClasses.test.ts test/component/panelExplorerSelection.test.ts test/component/viewTableSelection.test.ts test/component/viewTableStress.test.ts --fileParallelism=false` passed 5 files / 50 tests.
+- Svelte autofixer returned `issues: []` for `panelExplorer.svelte` and `ViewNodeTable.svelte`.
 
 ---
 
@@ -979,11 +919,8 @@ Execution note, 2026-05-11T03:53:32:
 
 **Files:**
 
-- Modify: `src/components/frame/frameVaultman.svelte` (only if 1.5 left
-  the focus listeners scoped to the main window)
-- Verify: `src/components/frame/DetachedTabHost.svelte` mounts the same
-  `ThemeService` instance and registers its own focus listeners on its
-  own `activeWindow`
+- Modify: `src/components/frame/frameVaultman.svelte` (only if 1.5 left the focus listeners scoped to the main window)
+- Verify: `src/components/frame/DetachedTabHost.svelte` mounts the same `ThemeService` instance and registers its own focus listeners on its own `activeWindow`
 
 - [x] **Step 1 — Write a multi-window failing test**
 
@@ -1027,39 +964,21 @@ describe('Faint Mode in pop-out windows', () => {
 
 - [x] **Step 2 — Run + implement**
 
-If the test fails because the frame defaults `activeWindow` to the global
-`window`, route the prop through to the focus listeners and initial
-`hasFocus()` call. Confirm `DetachedTabHost.svelte` passes its own
-`activeWindow` prop (it should already, per the detachable plan recently
-merged — see status snapshot — but verify).
+If the test fails because the frame defaults `activeWindow` to the global `window`, route the prop through to the focus listeners and initial `hasFocus()` call. Confirm `DetachedTabHost.svelte` passes its own `activeWindow` prop (it should already, per the detachable plan recently merged — see status snapshot — but verify).
 
 Expected on rerun: PASS.
 
 Execution note, 2026-05-11T04:31:26:
 
-- Subagent attempted T1.8 but stopped with an invalid RED caused by first
-  writing the test outside the requested worktree. Controller completed the
-  test loop in the Claude worktree.
+- Subagent attempted T1.8 but stopped with an invalid RED caused by first writing the test outside the requested worktree. Controller completed the test loop in the Claude worktree.
 - Created `test/component/frameFaintMultiWindow.test.ts`.
-- Initial run exposed a fixture issue (`overlayState.stack` missing); after
-  fixing the test mock, RED was valid:
-  `pnpm exec vp test run --project component --config vitest.config.ts test/component/frameFaintMultiWindow.test.ts --fileParallelism=false`
-  failed 1/1 because `.vm-faint` stayed false when the supplied
-  frame-local `activeWindow.document.hasFocus()` returned false.
-- GREEN: the same command passed 1/1 after `frameVaultman.svelte` accepted an
-  optional `activeWindow` prop and used it for focus/blur listeners plus the
-  initial `hasFocus()` read.
+- Initial run exposed a fixture issue (`overlayState.stack` missing); after fixing the test mock, RED was valid:
+  `pnpm exec vp test run --project component --config vitest.config.ts test/component/frameFaintMultiWindow.test.ts --fileParallelism=false` failed 1/1 because `.vm-faint` stayed false when the supplied frame-local `activeWindow.document.hasFocus()` returned false.
+- GREEN: the same command passed 1/1 after `frameVaultman.svelte` accepted an optional `activeWindow` prop and used it for focus/blur listeners plus the initial `hasFocus()` read.
 - Focused component gate:
-  `pnpm exec vp test run --project component --config vitest.config.ts test/component/frameFaintMultiWindow.test.ts test/component/snippetMimicry.test.ts test/component/viewNodeMirrorClasses.test.ts --fileParallelism=false`
-  passed 3 files / 7 tests.
-- Svelte validation: the targeted changed `frameVaultman` script snippet
-  returned `issues: []` from the Svelte autofixer tool. The full-file CLI
-  autofixer still reports an unrelated parser diagnostic on this legacy
-  component (`',' expected` with no line/column), so `pnpm run check` remains
-  the authoritative full-file compiler gate.
-- `DetachedTabHost.svelte` currently does not route an `activeWindow` prop into
-  a nested frame; it mounts detached tab contents directly. No production edit
-  was made there.
+  `pnpm exec vp test run --project component --config vitest.config.ts test/component/frameFaintMultiWindow.test.ts test/component/snippetMimicry.test.ts test/component/viewNodeMirrorClasses.test.ts --fileParallelism=false` passed 3 files / 7 tests.
+- Svelte validation: the targeted changed `frameVaultman` script snippet returned `issues: []` from the Svelte autofixer tool. The full-file CLI autofixer still reports an unrelated parser diagnostic on this legacy component (`',' expected` with no line/column), so `pnpm run check` remains the authoritative full-file compiler gate.
+- `DetachedTabHost.svelte` currently does not route an `activeWindow` prop into a nested frame; it mounts detached tab contents directly. No production edit was made there.
 
 ---
 
@@ -1076,17 +995,11 @@ obsidian vault=plugin-dev eval code="(() => !!activeDocument.querySelector('.vm-
 obsidian vault=plugin-dev dev:errors
 ```
 
-Expected: all tests pass, `svelte-check` exits 0, `build:plugin` exits 0,
-plugin reload succeeds, eval returns `true`, no Vaultman stack in dev
-errors. Fallback if `vault=plugin-dev` is rejected by the local CLI:
+Expected: all tests pass, `svelte-check` exits 0, `build:plugin` exits 0, plugin reload succeeds, eval returns `true`, no Vaultman stack in dev errors. Fallback if `vault=plugin-dev` is rejected by the local CLI:
 re-run without the vault prefix and record the fallback in the handoff.
 
 ## Handoff Notes
 
-- Record any class-mirror gap found in 1.7 as a checklist line in
-  `02-thread-engine-views.md` Task 2.3 so T2 picks it up.
-- If `_elastic.scss` variable sweep in 1.6 step 5 found a third-party
-  Vaultman view still hardcoding `var(--text-accent)`, list the file in
-  the handoff so other threads do not regress it.
-- Confirm `git status --short` shows only files this thread owns before
-  finishing.
+- Record any class-mirror gap found in 1.7 as a checklist line in `02-thread-engine-views.md` Task 2.3 so T2 picks it up.
+- If `_elastic.scss` variable sweep in 1.6 step 5 found a third-party Vaultman view still hardcoding `var(--text-accent)`, list the file in the handoff so other threads do not regress it.
+- Confirm `git status --short` shows only files this thread owns before finishing.

@@ -22,9 +22,7 @@ tags: [agent/issue, triage/completed, initiative/polish, release/1.2.0, queue, i
 
 ## What to build
 
-A staged content replace showed only `find → destination`, a value pair with
-no verb, while every other operation names itself. Prefix it with a localized
-"Replace".
+A staged content replace showed only `find → destination`, a value pair with no verb, while every other operation names itself. Prefix it with a localized "Replace".
 
 ## Acceptance criteria
 

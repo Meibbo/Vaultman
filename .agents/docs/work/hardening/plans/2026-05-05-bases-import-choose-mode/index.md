@@ -60,5 +60,4 @@ tags:
 
 ## Execution Order
 
-Use TDD per shard. Do not start UI integration until filter logic, Bases service,
-and target discovery tests pass.
+Use TDD per shard. Do not start UI integration until filter logic, Bases service, and target discovery tests pass.

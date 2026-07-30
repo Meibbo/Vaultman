@@ -12,8 +12,7 @@ tags:
 
 # PKM-AI
 
-Use this route for agent orchestration, docs routing, skills, tools, archives,
-backlog structure, and branch hygiene for AI workflow files.
+Use this route for agent orchestration, docs routing, skills, tools, archives, backlog structure, and branch hygiene for AI workflow files.
 
 ## Current Work
 
@@ -38,8 +37,7 @@ backlog structure, and branch hygiene for AI workflow files.
 - Research: [[docs/work/pkm-ai/research/2026-05-11-pi-crew-runtime-spike|pi-crew-runtime-spike]]
 - Research: [[docs/work/pkm-ai/research/2026-05-24-llm-wiki-maintenance-best-practices|llm-wiki-maintenance-best-practices]]
 - Item: [[docs/work/pkm-ai/items/vm-0002-current-docs-as-route-indexes|current docs as route indexes]]
-- Audit: [[docs/work/pkm-ai/items/2026-07-28-retrieval-discovery-audit/index|retrieval and discovery audit]]
-  — why agents miss `query-docs`, stale-cache and status-vocabulary defects, F1–F5 fix plan.
+- Audit: [[docs/work/pkm-ai/items/2026-07-28-retrieval-discovery-audit/index|retrieval and discovery audit]] — why agents miss `query-docs`, stale-cache and status-vocabulary defects, F1–F5 fix plan.
 - Migration archive: [[docs/archive/pkm-ai/migration-2026-05-04/index|migration-2026-05-04]]
 
 ## Agent Control Plane

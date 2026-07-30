@@ -17,10 +17,8 @@ tags:
 
 ## Purpose
 
-These profiles define how Vaultman agents choose sources before answering,
-editing, or verifying. They separate route selection from retrieval mechanics:
-the route profile decides what kind of work this is, while the retrieval
-profile decides which tools and source strictness apply.
+These profiles define how Vaultman agents choose sources before answering, editing, or verifying. They separate route selection from retrieval mechanics:
+the route profile decides what kind of work this is, while the retrieval profile decides which tools and source strictness apply.
 
 ## Route Profiles
 
@@ -50,19 +48,10 @@ profile decides which tools and source strictness apply.
 
 ## Tool Choice Rules
 
-- Use `rg` or `rg --files` first for local text and file discovery; fall back
-  to PowerShell search only when `rg` is unavailable or fails.
-- Use `query-docs.mjs` when frontmatter, document type, status, initiative,
-  tag, parent link, or glossary routing matters.
-- Use official docs or primary repositories for unstable framework, API,
-  package, or platform facts before coding against them.
-- Use Defuddle-style extraction for user-provided URLs or noisy web pages when
-  the goal is to read content rather than inspect visual layout.
-- Use web search for current external facts only when local sources cannot
-  answer, freshness matters, or the user explicitly asks to look it up.
-- Use `code-index.mjs` when import/export/dependent evidence or Svelte
-  component script props/events matter; treat regex-only PKM-AI code tools as
-  heuristic orientation unless their output is confirmed by direct source reads
-  or deeper structured analysis.
-- Record source gaps, stale indexes, unavailable connectors, and unverified
-  current facts in the relevant source record, not only in chat.
+- Use `rg` or `rg --files` first for local text and file discovery; fall back to PowerShell search only when `rg` is unavailable or fails.
+- Use `query-docs.mjs` when frontmatter, document type, status, initiative, tag, parent link, or glossary routing matters.
+- Use official docs or primary repositories for unstable framework, API, package, or platform facts before coding against them.
+- Use Defuddle-style extraction for user-provided URLs or noisy web pages when the goal is to read content rather than inspect visual layout.
+- Use web search for current external facts only when local sources cannot answer, freshness matters, or the user explicitly asks to look it up.
+- Use `code-index.mjs` when import/export/dependent evidence or Svelte component script props/events matter; treat regex-only PKM-AI code tools as heuristic orientation unless their output is confirmed by direct source reads or deeper structured analysis.
+- Record source gaps, stale indexes, unavailable connectors, and unverified current facts in the relevant source record, not only in chat.

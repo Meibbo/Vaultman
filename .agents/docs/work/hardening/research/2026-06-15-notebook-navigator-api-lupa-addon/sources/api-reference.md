@@ -15,9 +15,7 @@ tags:
 
 # Notebook Navigator API Reference Snapshot
 
-Recovered upstream source split at existing section boundaries to satisfy the
-Agent Docs hard line cap. Source detail is preserved; only cross-shard table of
-contents links were adjusted.
+Recovered upstream source split at existing section boundaries to satisfy the Agent Docs hard line cap. Source detail is preserved; only cross-shard table of contents links were adjusted.
 
 - [[docs/work/hardening/research/2026-06-15-notebook-navigator-api-lupa-addon/sources/api-reference/01-foundation-metadata|01 - Foundation and metadata]]
 - [[docs/work/hardening/research/2026-06-15-notebook-navigator-api-lupa-addon/sources/api-reference/02-pins-navigation|02 - Pins and navigation]]

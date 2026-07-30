@@ -15,14 +15,11 @@ tags:
 
 # Síntesis transversal del Function-Union Ledger (clusters 01-08, ~595 filas)
 
-Cierre de Fase B. Este shard NO repite filas: consolida los patrones que cruzan clusters,
-el inventario CONTRADICE completo, los duales internos de sandbox que gatean N1/N2, y las
-decisiones que Fase C-lite (specs de wave 1) debe consumir o escalar al dev.
+Cierre de Fase B. Este shard NO repite filas: consolida los patrones que cruzan clusters, el inventario CONTRADICE completo, los duales internos de sandbox que gatean N1/N2, y las decisiones que Fase C-lite (specs de wave 1) debe consumir o escalar al dev.
 
 ## 1. Tesis central (confirmada en 8/8 clusters)
 
-**Stable 1.1.1 = policy + comportamiento correcto sin arquitectura. Sandbox = arquitectura
-sin policy. Proto v12 = vocabulario/canon visual sin runtime. La 2.0 une los tres por capa:**
+**Stable 1.1.1 = policy + comportamiento correcto sin arquitectura. Sandbox = arquitectura sin policy. Proto v12 = vocabulario/canon visual sin runtime. La 2.0 une los tres por capa:**
 
 | Capa | Fuente canónica | Evidencia transversal |
 |---|---|---|
@@ -30,15 +27,11 @@ sin policy. Proto v12 = vocabulario/canon visual sin runtime. La 2.0 une los tre
 | Arquitectura / contratos / servicios | **sandbox** | providers + data plane + índices (01) · view contract + TanStack (02) · FilterService rune + FnR island (03) · VFS/transaction chains (04) · detach + tabRegistry (05) · ServiceAPI + diagnostics (08) |
 | Vocabulario / diseño / canon polish | **proto v12** | engines + scoped views (02) · islands/Scenes (03/05) · ContextMenuV2 action set (07) · resolver de iconos (06) · shell móvil (08) |
 
-**Regla de evidencia (aplicar siempre):** el delta-matrix se escribió contra 1.0.1 y
-**subestima sistemáticamente a stable 1.1.1** — los clusters 01/02/03/04/07/08 corrigieron
-celdas SOLO-SANDBOX que en realidad son COMPARTIDA/ADOPT-stable. Ante cualquier celda
-dudosa: `git show 1.1.1:<path>` manda sobre cualquier doc de research.
+**Regla de evidencia (aplicar siempre):** el delta-matrix se escribió contra 1.0.1 y **subestima sistemáticamente a stable 1.1.1** — los clusters 01/02/03/04/07/08 corrigieron celdas SOLO-SANDBOX que en realidad son COMPARTIDA/ADOPT-stable. Ante cualquier celda dudosa: `git show 1.1.1:<path>` manda sobre cualquier doc de research.
 
 ## 2. Inventario CONTRADICE consolidado (16 conflictos, por cluster de origen)
 
-Conflictos REALES entre streams que la 2.0 debe resolver explícitamente; ninguno se
-resuelve en silencio. Orden ≈ urgencia para wave 1.
+Conflictos REALES entre streams que la 2.0 debe resolver explícitamente; ninguno se resuelve en silencio. Orden ≈ urgencia para wave 1.
 
 | # | Conflicto | Streams | Cluster | Resolución propuesta / estado |
 |---|---|---|---|---|
@@ -61,65 +54,41 @@ resuelve en silencio. Orden ≈ urgencia para wave 1.
 
 ## 3. Duales internos de sandbox (gates N1/N2 — reconciliar ANTES de promover)
 
-No son conflictos entre streams: son caminos paralelos DENTRO de sandbox que el propio
-ledger marca DO_NOT_PROMOTE_AS_IS.
+No son conflictos entre streams: son caminos paralelos DENTRO de sandbox que el propio ledger marca DO_NOT_PROMOTE_AS_IS.
 
-1. **Mutable transactions vs `VfsChain` inmutable** + dos diffs espejo
-   (`serviceDiff`/`serviceDiffSnapshot`) — N1 gate, cluster 04. Prerequisito de cualquier
-   promoción de queue.
-2. **Snapshot opt-in dual**: solo files publica snapshots; props/tags/content en fallback
-   recursivo — cluster 01 (riesgo §010).
+1. **Mutable transactions vs `VfsChain` inmutable** + dos diffs espejo (`serviceDiff`/`serviceDiffSnapshot`) — N1 gate, cluster 04. Prerequisito de cualquier promoción de queue.
+2. **Snapshot opt-in dual**: solo files publica snapshots; props/tags/content en fallback recursivo — cluster 01 (riesgo §010).
 3. **Cuatro caminos DnD**: core · alias-aware · dnd-kit · manual — cluster 07. Dato clave:
-   stable logra equivalencia funcional con UN camino + 3 utils puros
-   (dragPayload/dragFrontmatter/dragEditorDrop) → candidato a simplificar la
-   reconciliación hacia un solo camino.
-4. **Dos caminos de native binding**: NativeSurfaceBindingService vs click interceptor
-   viejo — cluster 07.
-5. **Naming de engines sin reconciliar**: glossary Linear/Geometry/Table/Canvas vs v12
-   lineal/grid/matrix/canvas vs view-modes planos de sandbox — cluster 02; `matrix` (v12)
-   no existe en glossary (chart/form huérfanos → ¿Table transpose o engine nuevo? DEFER N4).
+   stable logra equivalencia funcional con UN camino + 3 utils puros (dragPayload/dragFrontmatter/dragEditorDrop) → candidato a simplificar la reconciliación hacia un solo camino.
+4. **Dos caminos de native binding**: NativeSurfaceBindingService vs click interceptor viejo — cluster 07.
+5. **Naming de engines sin reconciliar**: glossary Linear/Geometry/Table/Canvas vs v12 lineal/grid/matrix/canvas vs view-modes planos de sandbox — cluster 02; `matrix` (v12) no existe en glossary (chart/form huérfanos → ¿Table transpose o engine nuevo? DEFER N4).
 
 ## 4. Gaps SOLO-PROTO (diseño puro — riesgo de implementación alto)
 
 - **Resolver de iconos / packs / picker / overrides** (06): ningún stream lo tiene;
   sandbox solo Iconic bridge + DecorationManager. Todo el subsistema = RESHAPE desde cero.
-- **Cuarteto evento→binding→ActionNode→Operation (NIB)** (07): diseño del grill; ningún
-  stream lo implementa.
-- **Window globals + DOM-query como modelo del proto** (02): `__vmSelMode` etc. + hit-test
-  `[data-node-id]` incompatibles con runtime virtualizado — RESHAPE obligatorio en
-  cualquier adopción de UI proto.
-- **Scoped views**: la UI del proto promete más de lo que sus renderers implementan (solo
-  TreeRows resuelve overrides) — el runtime necesita capability matrix explícita (02).
+- **Cuarteto evento→binding→ActionNode→Operation (NIB)** (07): diseño del grill; ningún stream lo implementa.
+- **Window globals + DOM-query como modelo del proto** (02): `__vmSelMode` etc. + hit-test `[data-node-id]` incompatibles con runtime virtualizado — RESHAPE obligatorio en cualquier adopción de UI proto.
+- **Scoped views**: la UI del proto promete más de lo que sus renderers implementan (solo TreeRows resuelve overrides) — el runtime necesita capability matrix explícita (02).
 
 ## 5. Bloques SOLO-SANDBOX (adopción directa con policy de stable encima)
 
 - ServiceAPI completo (read/plan/enqueue/risk/rollback/scope) — cluster 08, 8 filas.
 - Diagnostics de producto (PerfMeter por comando, OpsLogService, harness runner) — 08.
-- Bases interop lado read (parse YAML, conversión filtros, preview) — 08; pendiente matriz
-  de cobertura de expresiones; lado mutable del híbrido ADR 0009 no existe en nadie.
+- Bases interop lado read (parse YAML, conversión filtros, preview) — 08; pendiente matriz de cobertura de expresiones; lado mutable del híbrido ADR 0009 no existe en nadie.
 - Data plane / providers / índices / view contract — 01/02.
 - Detach de leaves + tabRegistry (8 tabs) — 05; compat móvil sin validar.
 
 ## 6. Gap transversal: mobile
 
-Los 3 streams declaran `isDesktopOnly:false`; ninguno lo prueba (05/07/08). is-phone sin
-código ni doc; hover-only/detach sin validación móvil; único avance real = navbar móvil de
-stable (`d99a493`). **Encaja como criterio de aceptación del spec PlatformAdapter de
-wave 1**: o el gate pasa, o `isDesktopOnly:true`, o subset de features por plataforma.
+Los 3 streams declaran `isDesktopOnly:false`; ninguno lo prueba (05/07/08). is-phone sin código ni doc; hover-only/detach sin validación móvil; único avance real = navbar móvil de stable (`d99a493`). **Encaja como criterio de aceptación del spec PlatformAdapter de wave 1**: o el gate pasa, o `isDesktopOnly:true`, o subset de features por plataforma.
 
 ## 7. Implicaciones directas para Fase C-lite (specs de wave 1: Q4 ∥ PlatformAdapter ∥ tracer)
 
-- **Spec Q4 (queue)** consume: hallazgo central 04 (policy stable + arquitectura sandbox),
-  C-5/C-6/C-7, dual mutable/VFS (§3.1), frontera D-PSS-5 (queue protege vault; config =
-  undo/snapshot), bypass/addOrRun de stable como política por defecto.
-- **Spec PlatformAdapter** consume: §6 mobile gate completo, is-phone gap, touch como input
-  class del NIB (07), detach-en-móvil DEFER, ADR 0004.
-- **Spec tracer (ViewConfig + cascade)** consume: view contract sandbox (02), C-12
-  orientation MAP, capability matrix de scoped views (§4), C-13 (heredar fix SDF-014),
-  facetas×cascada del PSS (D-PSS-2), naming de engines (resolver en el spec, no antes).
-- **Transversal a los 3 specs**: estrategia de clases 4+3 (C-9 resuelto), test de
-  aceptación `legacy-1.1` = catálogo de smokes 1.1.x (08, Tabla 9), labels `2.0.0-alpha.N`
-  (C-15).
+- **Spec Q4 (queue)** consume: hallazgo central 04 (policy stable + arquitectura sandbox), C-5/C-6/C-7, dual mutable/VFS (§3.1), frontera D-PSS-5 (queue protege vault; config = undo/snapshot), bypass/addOrRun de stable como política por defecto.
+- **Spec PlatformAdapter** consume: §6 mobile gate completo, is-phone gap, touch como input class del NIB (07), detach-en-móvil DEFER, ADR 0004.
+- **Spec tracer (ViewConfig + cascade)** consume: view contract sandbox (02), C-12 orientation MAP, capability matrix de scoped views (§4), C-13 (heredar fix SDF-014), facetas×cascada del PSS (D-PSS-2), naming de engines (resolver en el spec, no antes).
+- **Transversal a los 3 specs**: estrategia de clases 4+3 (C-9 resuelto), test de aceptación `legacy-1.1` = catálogo de smokes 1.1.x (08, Tabla 9), labels `2.0.0-alpha.N` (C-15).
 
 ## 8. Decisiones abiertas que requieren al dev (no resolubles por agentes)
 
@@ -141,19 +110,12 @@ wave 1**: o el gate pasa, o `isDesktopOnly:true`, o subset de features por plata
 
 ## 9. Verificaciones puntuales pendientes (baratas, alta señal)
 
-- ⚠️ **Adapter Core Bases multi-select**: SDF-016 lo declara landed; cluster 07 no lo
-  halló en `1.1.1:` ni en sandbox. Verificación dirigida (nombre/archivo distinto,
-  post-tag, o doc sobre-declaró).
+- ⚠️ **Adapter Core Bases multi-select**: SDF-016 lo declara landed; cluster 07 no lo halló en `1.1.1:` ni en sandbox. Verificación dirigida (nombre/archivo distinto, post-tag, o doc sobre-declaró).
 - `indexActiveFilters.ts` no hallado por grep en sandbox (03) — ¿renombre?
-- `serviceMark.ts` no existe como servicio (06) — el "god-object" del parking-lot puede
-  ser legacy; confirmar antes del spec de marks.
+- `serviceMark.ts` no existe como servicio (06) — el "god-object" del parking-lot puede ser legacy; confirmar antes del spec de marks.
 - Drift `unocss-preset-theme`: 0-B spec lo prescribe, `uno.config.ts` no lo incluye (06).
-- `getAbstractFileByPath` unsafe-argument en `1.1.1:explorerFiles.ts:784/856` — coincide
-  con el backlog scorecard 2026-06-09 (fix en la línea 1.1.x, no en 2.0).
+- `getAbstractFileByPath` unsafe-argument en `1.1.1:explorerFiles.ts:784/856` — coincide con el backlog scorecard 2026-06-09 (fix en la línea 1.1.x, no en 2.0).
 
 ## Estado
 
-Fase B COMPLETA (8/8 clusters + síntesis). Next: **Fase C-lite** — specs de wave 1
-(Q4 ∥ PlatformAdapter ∥ tracer ViewConfig+cascade) consumiendo §7, gateadas por las
-decisiones dev de §8 que cada spec necesite; las que no gatean wave 1 (4/5/6) pueden
-resolverse durante la wave.
+Fase B COMPLETA (8/8 clusters + síntesis). Next: **Fase C-lite** — specs de wave 1 (Q4 ∥ PlatformAdapter ∥ tracer ViewConfig+cascade) consumiendo §7, gateadas por las decisiones dev de §8 que cada spec necesite; las que no gatean wave 1 (4/5/6) pueden resolverse durante la wave.

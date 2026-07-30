@@ -17,15 +17,11 @@ tags: [agent/issue, initiative/polish, release/bt5, regression, performance, edi
 
 ## Parent
 
-[[docs/work/polish/issues/bt5-next-release/index|BT5 next release train]]. Regresión P0
-reportada por el dev el 2026-07-19.
+[[docs/work/polish/issues/bt5-next-release/index|BT5 next release train]]. Regresión P0 reportada por el dev el 2026-07-19.
 
 ## Reported behavior
 
-Después de reactivar el plugin Vaultman mientras su tab/leaf permanece abierto, reaparecen
-micro-cuelgues esporádicos al escribir en una nota cualquiera. Al desactivar Vaultman la
-experiencia vuelve a ser fluida. El bug degrada la interacción primaria de Obsidian y bloquea
-beta.5/stable aunque el explorer parezca funcional.
+Después de reactivar el plugin Vaultman mientras su tab/leaf permanece abierto, reaparecen micro-cuelgues esporádicos al escribir en una nota cualquiera. Al desactivar Vaultman la experiencia vuelve a ser fluida. El bug degrada la interacción primaria de Obsidian y bloquea beta.5/stable aunque el explorer parezca funcional.
 
 ## Diagnosis contract before fixing
 
@@ -40,8 +36,7 @@ No atribuirlo por intuición a Remaining tasks, al virtualizer o a un timer. Med
 7. nota sin autosave/modificación de vault versus ciclo real modify/metadata/save.
 
 Instrumentar input-to-next-paint, event-loop delay, long tasks y marcas de trabajo Vaultman.
-Correlacionar cada spike con productor y stack antes de cambiar código. Candidatos confirmados
-por source inspection, todavía **no causas demostradas**:
+Correlacionar cada spike con productor y stack antes de cambiar código. Candidatos confirmados por source inspection, todavía **no causas demostradas**:
 
 - polling cada 2500 ms en Snippets Explorer y Plugins Explorer;
 - polling/fallback de Iconic;
@@ -65,14 +60,11 @@ por source inspection, todavía **no causas demostradas**:
 
 ## Blocked by
 
-None. Es un release blocker independiente. Puede reutilizar instrumentación de
-[[003-remaining-tasks-availability-pipeline|BT5-003]], pero no debe esperar al benchmark
-del vault grande ni asumir que comparte root cause.
+None. Es un release blocker independiente. Puede reutilizar instrumentación de [[003-remaining-tasks-availability-pipeline|BT5-003]], pero no debe esperar al benchmark del vault grande ni asumir que comparte root cause.
 
 ## Diagnóstico parcial y decisión de diferir (2026-07-19)
 
-El dev pidió diferir el fix y continuar con 006/007/008/028. Antes de detener el slice, el
-profiler de `plugin-dev` sí aisló productores concretos durante ciclos de metadata:
+El dev pidió diferir el fix y continuar con 006/007/008/028. Antes de detener el slice, el profiler de `plugin-dev` sí aisló productores concretos durante ciclos de metadata:
 
 - handler `metadataCache.resolved` de Tags: máximo ~958 ms y ~4.58 s acumulados en 5 ciclos;
 - handler `changed` de Props: máximo ~217 ms y ~967 ms acumulados;
@@ -80,9 +72,4 @@ profiler de `plugin-dev` sí aisló productores concretos durante ciclos de meta
 - `FilterService.applyFilters`: ~113–135 ms por ciclo;
 - `Iconic.refreshIcons` de tercero: ~120–162 ms por ciclo.
 
-Al puentear solo Tags, el long task máximo bajó de ~1.2 s a ~230 ms; al puentear Tags+Props,
-la muestra quedó alrededor de p95 19.6 ms y p99 64.5 ms. Esto demuestra trabajo pesado
-correlacionado, pero no completa el baseline disabled ni autoriza aún un fix: el issue sigue
-sin resolver y conserva sus acceptance criteria. El WIP parcial de Claude quedó aislado,
-sin aplicarse al producto, en `stash@{0}` de `codex/bt5-next-10` con mensaje
-`wip: defer BT5-030 diagnosis`.
+Al puentear solo Tags, el long task máximo bajó de ~1.2 s a ~230 ms; al puentear Tags+Props, la muestra quedó alrededor de p95 19.6 ms y p99 64.5 ms. Esto demuestra trabajo pesado correlacionado, pero no completa el baseline disabled ni autoriza aún un fix: el issue sigue sin resolver y conserva sus acceptance criteria. El WIP parcial de Claude quedó aislado, sin aplicarse al producto, en `stash@{0}` de `codex/bt5-next-10` con mensaje `wip: defer BT5-030 diagnosis`.

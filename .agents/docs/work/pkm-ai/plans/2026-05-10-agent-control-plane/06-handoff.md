@@ -17,8 +17,7 @@ tags:
 
 ## Resume State
 
-User asked to continue with subagents, then asked for this handoff before the
-execution completed. Do not assume the plan is finished.
+User asked to continue with subagents, then asked for this handoff before the execution completed. Do not assume the plan is finished.
 
 Active plan:
 [[docs/work/pkm-ai/plans/2026-05-10-agent-control-plane/index|Agent Control Plane Implementation Plan]].
@@ -47,8 +46,7 @@ Verification evidence from worker:
 
 - residual file line count: 52;
 - trailing whitespace scan: no matches;
-- filtered doc health showed global `doc health: FAIL (46)` and no
-  `residual-classification` path failure.
+- filtered doc health showed global `doc health: FAIL (46)` and no `residual-classification` path failure.
 
 ### Task 2 - Verification Matrix
 
@@ -63,16 +61,13 @@ Also updated:
 Quality findings resolved:
 
 - The new matrix shard is linked from the parent spec index.
-- `Evidence record path` cells route to the active initiative source record
-  verification section or shard instead of only
-  `items/<item>/verification.md`.
+- `Evidence record path` cells route to the active initiative source record verification section or shard instead of only `items/<item>/verification.md`.
 
 Verification:
 
 - line counts: spec index 68, matrix shard 36, plan slice 124;
 - trailing whitespace scan on touched Task 2 files returned no matches;
-- filtered doc health still shows global `doc health: FAIL (50)`, with no
-  `agent-control-plane` or `verification-matrix` path failure.
+- filtered doc health still shows global `doc health: FAIL (50)`, with no `agent-control-plane` or `verification-matrix` path failure.
 
 ### Task 3 - Route And Retrieval Profiles
 
@@ -89,21 +84,17 @@ Also updated:
 Notes:
 
 - The shard defines route profiles, retrieval profiles, and tool choice rules.
-- `index-docs.mjs` was blocked by three pre-existing YAML title parse errors
-  in vertical-analysis research notes; the repair only quoted titles with `:`
+- `index-docs.mjs` was blocked by three pre-existing YAML title parse errors in vertical-analysis research notes; the repair only quoted titles with `:`
   and removed trailing whitespace from those touched files.
-- `query-docs` now tokenizes search words across punctuation/connectors so
-  `"route retrieval profiles"` finds `route and retrieval profiles`.
+- `query-docs` now tokenizes search words across punctuation/connectors so `"route retrieval profiles"` finds `route and retrieval profiles`.
 
 Verification:
 
 - RED focused frontmatter test failed on the new tokenized search expectation.
 - GREEN focused frontmatter test passed; full PKM-AI tool tests passed 14/14.
 - `index-docs.mjs` indexed 331 docs.
-- `query-docs.mjs "route retrieval profiles"` finds the plan slice and spec
-  shard.
-- filtered doc health still shows global `doc health: FAIL (47)`, with no
-  `route-retrieval` or `frontmatter-parse` path failure.
+- `query-docs.mjs "route retrieval profiles"` finds the plan slice and spec shard.
+- filtered doc health still shows global `doc health: FAIL (47)`, with no `route-retrieval` or `frontmatter-parse` path failure.
 
 ### Task 4 - Tool Contracts
 
@@ -118,10 +109,8 @@ Also updated:
 
 Verification:
 
-- filtered doc health still shows global `doc health: FAIL (47)`, with no
-  `tool-contracts` or `tools.md` path-specific failure;
-- trailing whitespace scan on `tools.md` and `06-tool-contracts.md` returned no
-  matches;
+- filtered doc health still shows global `doc health: FAIL (47)`, with no `tool-contracts` or `tools.md` path-specific failure;
+- trailing whitespace scan on `tools.md` and `06-tool-contracts.md` returned no matches;
 - scoped `git diff --check` returned no path errors, only CRLF warnings.
 
 ### Task 5 - Verification And Close
@@ -138,9 +127,7 @@ Verification:
 
 - all control-plane spec/plan Markdown files are under 200 lines;
 - banned-token and trailing-whitespace checks returned no output;
-- filtered doc health still shows global `doc health: FAIL (47)`, with no new
-  control-plane, residual-classification, route-retrieval, or tool-contracts
-  path failure.
+- filtered doc health still shows global `doc health: FAIL (47)`, with no new control-plane, residual-classification, route-retrieval, or tool-contracts path failure.
 
 ## In Progress
 
@@ -148,22 +135,14 @@ None.
 
 ## Open Subagent Status
 
-All subagents used so far were closed before this handoff. No agent thread
-should be assumed active.
+All subagents used so far were closed before this handoff. No agent thread should be assumed active.
 
 ## Current Git Scope
 
-Relevant changed/untracked paths are the control-plane plan/spec records,
-[[docs/work/pkm-ai/index|PKM-AI index]],
-[[docs/architecture/policies/tools|Tools policy]], the tokenized
-`query-docs` matcher/test, and three vertical-analysis research notes repaired
-only for YAML title parsing and trailing whitespace.
+Relevant changed/untracked paths are the control-plane plan/spec records, [[docs/work/pkm-ai/index|PKM-AI index]], [[docs/architecture/policies/tools|Tools policy]], the tokenized `query-docs` matcher/test, and three vertical-analysis research notes repaired only for YAML title parsing and trailing whitespace.
 
-There are other unrelated dirty files in the wider worktree. Do not revert
-changes you did not make.
+There are other unrelated dirty files in the wider worktree. Do not revert changes you did not make.
 
 ## Next Exact Step
 
-This Agent Control Plane slice is closed. Next plans are listed in the plan
-index: queue contract repair, selected/visible scope verification,
-`serviceAPI` read/plan/enqueue design, and TypeScript AST code-index work.
+This Agent Control Plane slice is closed. Next plans are listed in the plan index: queue contract repair, selected/visible scope verification, `serviceAPI` read/plan/enqueue design, and TypeScript AST code-index work.

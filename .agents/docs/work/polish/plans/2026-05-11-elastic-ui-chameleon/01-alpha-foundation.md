@@ -17,9 +17,7 @@ updated_by: codex
 
 ## Ownership
 
-ALPHA owns style configuration, theme state, root classes, settings schema, and
-SCSS bridge files. It must not edit virtualized view internals, overlay behavior,
-or DnD semantics except to consume the shared Elastic UI types.
+ALPHA owns style configuration, theme state, root classes, settings schema, and SCSS bridge files. It must not edit virtualized view internals, overlay behavior, or DnD semantics except to consume the shared Elastic UI types.
 
 ## Files
 
@@ -48,15 +46,10 @@ or DnD semantics except to consume the shared Elastic UI types.
 ## Local Contract
 
 - UnoCSS must be scoped to generated utilities and shortcuts. No reset/preflight.
-- `src/pluginEntry.ts` imports `uno.css` before `main.scss` so Vaultman SCSS can
-  keep final say where specificity overlaps.
-- `serviceTheme` owns `.vm-root`, mode classes, identity classes,
-  `is-vm-unfocused`, and `vm-reduced-motion`.
-- Faint Mode is root-scoped. New code must not add more direct body-level faint
-  toggles.
-- DaisyUI is gated. If direct DaisyUI cannot be integrated without Tailwind
-  preflight or global reset risk, ALPHA implements Daisy-style semantic
-  shortcuts through UnoCSS.
+- `src/pluginEntry.ts` imports `uno.css` before `main.scss` so Vaultman SCSS can keep final say where specificity overlaps.
+- `serviceTheme` owns `.vm-root`, mode classes, identity classes, `is-vm-unfocused`, and `vm-reduced-motion`.
+- Faint Mode is root-scoped. New code must not add more direct body-level faint toggles.
+- DaisyUI is gated. If direct DaisyUI cannot be integrated without Tailwind preflight or global reset risk, ALPHA implements Daisy-style semantic shortcuts through UnoCSS.
 
 ## Shard Verification
 
@@ -73,5 +66,4 @@ obsidian vault=plugin-dev eval code="(() => !!activeDocument.querySelector('.vm-
 obsidian vault=plugin-dev dev:errors
 ```
 
-Expected: tests pass, check/build exit 0, eval returns `true`, and Obsidian
-error capture contains no Vaultman stack.
+Expected: tests pass, check/build exit 0, eval returns `true`, and Obsidian error capture contains no Vaultman stack.

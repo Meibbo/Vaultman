@@ -22,10 +22,7 @@ Corrective successor to [[../bt5-next-release/025-native-glyph-color-system|BT5-
 
 ## What to build
 
-Apply the selected glyph color to Floating Index action nodes when they join the
-rail, and to `cell_name` for folder rows in Files Tree. Do not invent folder
-projection for Table/Cards, which currently contain no folders. Preserve Iconic
-explicit-color precedence and existing scope rules.
+Apply the selected glyph color to Floating Index action nodes when they join the rail, and to `cell_name` for folder rows in Files Tree. Do not invent folder projection for Table/Cards, which currently contain no folders. Preserve Iconic explicit-color precedence and existing scope rules.
 
 ## Acceptance criteria
 

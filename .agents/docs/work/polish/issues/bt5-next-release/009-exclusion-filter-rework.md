@@ -20,14 +20,11 @@ tags: [agent/issue, initiative/polish, release/bt5]
 
 ## Parent
 
-[[docs/work/polish/issues/bt5-next-release/index|BT5 next release train]]. Migra BT4-027,
-que reabre el alcance de BT4-015.
+[[docs/work/polish/issues/bt5-next-release/index|BT5 next release train]]. Migra BT4-027, que reabre el alcance de BT4-015.
 
 ## What to build
 
-Convertir la exclusión de files en un filtro composable por nodo, disponible en cualquier
-explorer donde aparezca ese file y coherente con exclude-folder. Las exclusiones de nodos
-no-file permanecen como settings especiales de su dominio; no forzar una abstracción falsa.
+Convertir la exclusión de files en un filtro composable por nodo, disponible en cualquier explorer donde aparezca ese file y coherente con exclude-folder. Las exclusiones de nodos no-file permanecen como settings especiales de su dominio; no forzar una abstracción falsa.
 
 ## Acceptance criteria
 
@@ -44,20 +41,13 @@ None — can start immediately.
 
 ## Outcome 2026-07-20 (tarde)
 
-**Commit `0a71532f`.** Gate verde: 129 files / 854 tests, svelte-check 0/0,
-scorecard 17/17. Test focal `test/unit/fileExcludeFilter.test.ts`.
+**Commit `0a71532f`.** Gate verde: 129 files / 854 tests, svelte-check 0/0, scorecard 17/17. Test focal `test/unit/fileExcludeFilter.test.ts`.
 
-Exclude file pasa a ser el filtro de nodo `file_exclude` (path exacto), coherente
-con exclude-folder: el file desaparece por el pipeline y se muestra de nuevo
-quitando su chip. La acción añade un nodo de filtro en vez de escribir settings;
+Exclude file pasa a ser el filtro de nodo `file_exclude` (path exacto), coherente con exclude-folder: el file desaparece por el pipeline y se muestra de nuevo quitando su chip. La acción añade un nodo de filtro en vez de escribir settings;
 `_filesForDisplay` ya no tiene pasada propia; **la sección de settings se quitó**.
-Migración one-time de `excludedFilePaths` al filtro en el primer load con limpieza
-del setting. Rename lleva la exclusión al nuevo path (incluida carpeta padre),
-delete la purga.
+Migración one-time de `excludedFilePaths` al filtro en el primer load con limpieza del setting. Rename lleva la exclusión al nuevo path (incluida carpeta padre), delete la purga.
 
-**Cambio de comportamiento declarado:** la exclusión es ahora session-scoped como
-exclude-folder, no persistida entre reinicios. Lectura coherente de la AC; el dev
-puede vetarlo si quería persistencia.
+**Cambio de comportamiento declarado:** la exclusión es ahora session-scoped como exclude-folder, no persistida entre reinicios. Lectura coherente de la AC; el dev puede vetarlo si quería persistencia.
 
 Detalle: [[docs/work/polish/plans/2026-07-19-bt5-next-10/07-dev-corrections-and-interaction-fixes|shard 07]].
 

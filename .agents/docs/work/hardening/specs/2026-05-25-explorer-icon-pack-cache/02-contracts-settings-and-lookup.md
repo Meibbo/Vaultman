@@ -34,8 +34,7 @@ export interface IconAssetDescriptor {
 }
 ```
 
-String icon names remain supported as shorthand for current Obsidian/Lucide
-behavior.
+String icon names remain supported as shorthand for current Obsidian/Lucide behavior.
 
 ## Lookup Order
 
@@ -62,8 +61,7 @@ The registry should support groups such as:
 - provider;
 - badge.
 
-Group lookup allows semantic requests like `group=filetype name=image-png` to
-map to the right pack asset without hardcoding file names in views.
+Group lookup allows semantic requests like `group=filetype name=image-png` to map to the right pack asset without hardcoding file names in views.
 
 ## Settings
 

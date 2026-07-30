@@ -16,17 +16,13 @@ tags:
 # DnD Library Findings
 
 Read-only recon (R-DND-C, 2026-05-27) for the Selection/Dnd scope-generic axons locked in the model.
-Feeds — when paired with R-DND-A (Obsidian DnD internals + hover-editor pattern, still running) — the
-full DnD synthesis + the PlatformAdapter design for foreign-target drops. Library lock parked as S-10
-in `pending-decisions` until the dev confirms after both research threads land.
+Feeds — when paired with R-DND-A (Obsidian DnD internals + hover-editor pattern, still running) — the full DnD synthesis + the PlatformAdapter design for foreign-target drops. Library lock parked as S-10 in `pending-decisions` until the dev confirms after both research threads land.
 
 ## 1. Library pick — `dnd-kit-svelte` (HanielU)
 
 Community Svelte port of the React `dnd-kit` with full feature parity. Source:
 [github.com/hanielu/dnd-kit-svelte](https://github.com/hanielu/dnd-kit-svelte) · demo:
-[dnd-kit-svelte.vercel.app](https://dnd-kit-svelte.vercel.app/). ~329 ⭐, 18 releases (v0.1.6 Feb 2026),
-active maintenance. **Svelte 5 compatible** (works with runes via function-reactive `.current` getters
-and the `{@attach}` directive).
+[dnd-kit-svelte.vercel.app](https://dnd-kit-svelte.vercel.app/). ~329 ⭐, 18 releases (v0.1.6 Feb 2026), active maintenance. **Svelte 5 compatible** (works with runes via function-reactive `.current` getters and the `{@attach}` directive).
 
 ### Alternatives weighed (and why rejected)
 
@@ -42,18 +38,14 @@ and the `{@attach}` directive).
 ### Provider + context
 
 - **`DndContext`** — wraps draggables/droppables; manages collision, autoscroll, drag overlay.
-  Props: `collisionDetection` (default `rectIntersection`), `autoScroll`, `sensors[]`, `modifiers[]`,
-  `accessibility`, `onDragStart` / `onDragOver` / `onDragEnd` / `onDragCancel`. Multiple nested
-  `DndContext` supported with `id` isolation.
+  Props: `collisionDetection` (default `rectIntersection`), `autoScroll`, `sensors[]`, `modifiers[]`, `accessibility`, `onDragStart` / `onDragOver` / `onDragEnd` / `onDragCancel`. Multiple nested `DndContext` supported with `id` isolation.
 
 ### Primitives
 
-- **`createDraggable(id, options)`** — exposes `draggableNode`, `isDragging`, `isOverlay`, `listeners`,
-  `attributes`, `transform`. Options: `disabled`, `handle`, `data` (payload), `attributes`.
+- **`createDraggable(id, options)`** — exposes `draggableNode`, `isDragging`, `isOverlay`, `listeners`, `attributes`, `transform`. Options: `disabled`, `handle`, `data` (payload), `attributes`.
 - **`createDroppable(id, options)`** — exposes `dropZoneNode`, `isOver`, `listeners`, `attributes`.
   Options: `disabled`, `data` (match logic), `type` (collision filter).
-- **`createSortable(id, options)`** — draggable + droppable for reorderable lists. Options: `index`,
-  `animateLayoutChanges`, `transition`. Handles `onOver` / `onMove` / `onActivate` internally.
+- **`createSortable(id, options)`** — draggable + droppable for reorderable lists. Options: `index`, `animateLayoutChanges`, `transition`. Handles `onOver` / `onMove` / `onActivate` internally.
 - **`DragOverlay`** component — renders the drag preview above DOM, prevents reflow. Props:
   `dropAnimation`, `modifiers`, `zIndex`, `style` callback.
 
@@ -61,35 +53,25 @@ and the `{@attach}` directive).
 
 - **Pointer** (default) — unifies mouse + touch via `pointerdown`/`move`/`up`.
   `activationConstraint: { distance, delay, tolerance }`.
-- **Keyboard** (default) — Space/Enter pick, arrows move, Escape cancel; screen-reader announcements
-  via ARIA live regions.
-- **Touch** — explicit touch sensor (subsumed by Pointer on modern browsers); `activationConstraint`
-  for long-press (delay + tolerance).
-- **Custom sensors** — extend `Sensor` abstract class; `bind()` to call `manager.actions.setDragSource()`
-  / `start()` / `move()` / `end()` / `cancel()`. Used for VM's future `InputBindingNode` adapter.
+- **Keyboard** (default) — Space/Enter pick, arrows move, Escape cancel; screen-reader announcements via ARIA live regions.
+- **Touch** — explicit touch sensor (subsumed by Pointer on modern browsers); `activationConstraint` for long-press (delay + tolerance).
+- **Custom sensors** — extend `Sensor` abstract class; `bind()` to call `manager.actions.setDragSource()` / `start()` / `move()` / `end()` / `cancel()`. Used for VM's future `InputBindingNode` adapter.
 
 ### Modifiers
 
-`restrictToVerticalAxis` · `restrictToHorizontalAxis` · `restrictToWindowEdges` · `snapToGrid(size, { round? })`
-· `snapToGuidelines`. Custom: pass `(movementDelta, args) => adjustedDelta` to `DndContext.modifiers[]`,
-evaluated per frame.
+`restrictToVerticalAxis` · `restrictToHorizontalAxis` · `restrictToWindowEdges` · `snapToGrid(size, { round? })` · `snapToGuidelines`. Custom: pass `(movementDelta, args) => adjustedDelta` to `DndContext.modifiers[]`, evaluated per frame.
 
 ### Collision detection
 
-`rectIntersection` (default, AABB overlap) · `closestCenter` (distance to center; best for grids and
-recursive trees) · `pointerWithin` (cursor in bounds) · `custom (args) => Collision[]`. Droppable zones
-declare `data: { sortableContext: { items, strategy } }` for context-aware drops.
+`rectIntersection` (default, AABB overlap) · `closestCenter` (distance to center; best for grids and recursive trees) · `pointerWithin` (cursor in bounds) · `custom (args) => Collision[]`. Droppable zones declare `data: { sortableContext: { items, strategy } }` for context-aware drops.
 
 ### Accessibility
 
-ARIA auto-management (`aria-roledescription`, `aria-describedby`, `aria-live="polite"` announcements
-via the `Announcements` API). Keyboard defaults match dnd-kit React. Customizable via
-`DndContext.accessibility.announcements`.
+ARIA auto-management (`aria-roledescription`, `aria-describedby`, `aria-live="polite"` announcements via the `Announcements` API). Keyboard defaults match dnd-kit React. Customizable via `DndContext.accessibility.announcements`.
 
 ### Extension surface
 
-Plugins via custom `Transform` implementations · sortable strategies (`AnimateLayoutChanges`
-CSS-transition vs transform; custom `SortingStrategy`) · nested-context isolation by `id`.
+Plugins via custom `Transform` implementations · sortable strategies (`AnimateLayoutChanges` CSS-transition vs transform; custom `SortingStrategy`) · nested-context isolation by `id`.
 
 ## 3. VM integration patterns (concrete maps to locked model)
 
@@ -115,9 +97,7 @@ CSS-transition vs transform; custom `SortingStrategy`) · nested-context isolati
 </DndContext>
 ```
 
-The `data.sourcePayload` produced by `PanelHandle.produceDragPayload()` (locked) and the
-`data.target` declared by each droppable (`PanelHandle` · editor-drop caret · leaf-drop) feed the
-stateless `InteractionPolicy(sourcePayload, target) → Operation | reject` (LOCKED). One pipeline.
+The `data.sourcePayload` produced by `PanelHandle.produceDragPayload()` (locked) and the `data.target` declared by each droppable (`PanelHandle` · editor-drop caret · leaf-drop) feed the stateless `InteractionPolicy(sourcePayload, target) → Operation | reject` (LOCKED). One pipeline.
 
 ### B. FilterGroup predicate-tree DnD (recursive reparenting)
 
@@ -139,8 +119,7 @@ stateless `InteractionPolicy(sourcePayload, target) → Operation | reject` (LOC
 </ul>
 ```
 
-`closestCenter` picks the target group + insertion index automatically — matches the proto's
-`stack-island.jsx` reparenting model + the locked recursive FilterGroup (predicate tree, Bases-shaped).
+`closestCenter` picks the target group + insertion index automatically — matches the proto's `stack-island.jsx` reparenting model + the locked recursive FilterGroup (predicate tree, Bases-shaped).
 `createSortable` animates reordering within and across groups.
 
 ### C. Scene tile-tree DnD at workspace scope
@@ -156,13 +135,11 @@ stateless `InteractionPolicy(sourcePayload, target) → Operation | reject` (LOC
 </DndContext>
 ```
 
-Matches the locked Scene tile-tree model (recursive h/v splits inside one surface; tiles host a Panel
-or a `ForeignEmbed`). Nested `DndContext` allowed but a single root context suffices for our tree depth.
+Matches the locked Scene tile-tree model (recursive h/v splits inside one surface; tiles host a Panel or a `ForeignEmbed`). Nested `DndContext` allowed but a single root context suffices for our tree depth.
 
 ### D. Foreign-target drops via PlatformAdapter (ADR 0004)
 
-**Honest gap:** `dnd-kit-svelte` drop targets are DOM elements *inside* the Svelte tree. Obsidian's
-`EditorView` (CodeMirror 6) and other plugins' leaves are EXTERNAL to ours. The pattern:
+**Honest gap:** `dnd-kit-svelte` drop targets are DOM elements *inside* the Svelte tree. Obsidian's `EditorView` (CodeMirror 6) and other plugins' leaves are EXTERNAL to ours. The pattern:
 
 ```svelte
 <script>
@@ -181,15 +158,11 @@ or a `ForeignEmbed`). Nested `DndContext` allowed but a single root context suff
 ```
 
 This is exactly the PlatformAdapter shape from ADR 0004 — one adapter per foreign-target class, probe
-+ fallback + `serviceUnload` revert. R-DND-A's hover-editor `WorkspaceLeaf`-patch findings should
-inform the final adapter shape.
++ fallback + `serviceUnload` revert. R-DND-A's hover-editor `WorkspaceLeaf`-patch findings should inform the final adapter shape.
 
 ### E. Mobile / touch
 
-`activationConstraint: { delay: 200, tolerance: 5 }` on the Pointer sensor prevents accidental drag
-during scroll. For true long-press-to-drag UX on mobile, either a **custom Touch sensor (~150 LOC)** or
-a **`@neodrag/svelte` fallback** for touch-only contexts. Confirms the locked input-router model: each
-input device feeds the same dispatch via its own sensor.
+`activationConstraint: { delay: 200, tolerance: 5 }` on the Pointer sensor prevents accidental drag during scroll. For true long-press-to-drag UX on mobile, either a **custom Touch sensor (~150 LOC)** or a **`@neodrag/svelte` fallback** for touch-only contexts. Confirms the locked input-router model: each input device feeds the same dispatch via its own sensor.
 
 ## 4. Gaps + workarounds
 
@@ -207,25 +180,17 @@ None block MVP.
 
 ## 5. Implications + open decisions
 
-- **PROPOSED library lock**: `dnd-kit-svelte` (HanielU port). Parked as **S-10** in `pending-decisions`
-  awaiting (a) R-DND-A's Obsidian/hover-editor findings to confirm the foreign-drop adapter shape and
-  (b) the dev's explicit lock.
-- Selection / Dnd scope-generic axons → one `DndContext` per scope (panel · workspace). The
-  recursive FilterGroup / tile-tree / foreign-drop patterns above all coexist under that model.
+- **PROPOSED library lock**: `dnd-kit-svelte` (HanielU port). Parked as **S-10** in `pending-decisions` awaiting (a) R-DND-A's Obsidian/hover-editor findings to confirm the foreign-drop adapter shape and (b) the dev's explicit lock.
+- Selection / Dnd scope-generic axons → one `DndContext` per scope (panel · workspace). The recursive FilterGroup / tile-tree / foreign-drop patterns above all coexist under that model.
 - The `InteractionPolicy` (locked, stateless) becomes the `onDragEnd` callback's body — clean fit.
-- The locked `PanelHandle.produceDragPayload()` / `acceptsDrop(intent)` map directly to
-  `createDraggable.data.sourcePayload` / `createDroppable.data.target`.
+- The locked `PanelHandle.produceDragPayload()` / `acceptsDrop(intent)` map directly to `createDraggable.data.sourcePayload` / `createDroppable.data.target`.
 - Mobile is solvable with `activationConstraint`; revisit if real-device testing surfaces issues.
 - Add `dnd-kit-svelte` to `tooling-libraries.md` as the **selected** target (was "candidate").
 
 ## Sources
 
-- github.com/hanielu/dnd-kit-svelte (port) · dnd-kit-svelte.vercel.app (demo) · dndkit.com (React docs,
-  semantics map) · docs.dndkit.com/guides/accessibility · github.com/isaacHagoel/svelte-dnd-action
-  (alternative weighed) · github.com/thisuxhq/sveltednd (alternative weighed) · github.com/PuruVJ/neodrag
-  (fallback option).
+- github.com/hanielu/dnd-kit-svelte (port) · dnd-kit-svelte.vercel.app (demo) · dndkit.com (React docs, semantics map) · docs.dndkit.com/guides/accessibility · github.com/isaacHagoel/svelte-dnd-action (alternative weighed) · github.com/thisuxhq/sveltednd (alternative weighed) · github.com/PuruVJ/neodrag (fallback option).
 
 ## Status
 
-R-DND-C complete. Pairs with R-DND-A (Obsidian internals + hover-editor, still running) for the full
-DnD synthesis. Library lock = PROPOSED → S-10 in `pending-decisions`.
+R-DND-C complete. Pairs with R-DND-A (Obsidian internals + hover-editor, still running) for the full DnD synthesis. Library lock = PROPOSED → S-10 in `pending-decisions`.

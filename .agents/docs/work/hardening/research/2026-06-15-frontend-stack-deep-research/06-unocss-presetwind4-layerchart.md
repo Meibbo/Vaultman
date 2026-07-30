@@ -17,20 +17,15 @@ tags:
 
 ## UnoCSS — ALREADY WIRED (corrects tooling-libraries "research pending")
 
-`uno.config.ts` (verified) + `@unocss/vite` plugin + deps `unocss`/`@unocss/vite` 66.6.8 +
-`unocss-preset-theme` 0.14.1. Current config:
+`uno.config.ts` (verified) + `@unocss/vite` plugin + deps `unocss`/`@unocss/vite` 66.6.8 + `unocss-preset-theme` 0.14.1. Current config:
 - `presetWind3({ preflight: false })` — Tailwind-v3 utilities, **reset disabled** (protects Obsidian styles).
 - `presetAttributify()` + `presetIcons({warn:false})`.
-- `presetTheme({prefix:'--vm', theme:{native,vaultman}, selectors:{native:'.vm-theme-native', vaultman:'.vm-theme-vaultman'}})`
-  — two presets' tokens (row-height/icon-size/popup-blur…) as `--vm-*` vars.
+- `presetTheme({prefix:'--vm', theme:{native,vaultman}, selectors:{native:'.vm-theme-native', vaultman:'.vm-theme-vaultman'}})` — two presets' tokens (row-height/icon-size/popup-blur…) as `--vm-*` vars.
 - `safelist`: `vm-root`, `vm-mode-*`, `vm-id-*`, `obsidian-mimic-*`, `vm-theme-*`.
 - `shortcuts`: `obsidian-mimic-file-layout`, `vm-btn-squircle`, `vm-card`, `vm-btn-primary` (utility bridges;
   partial adoption — most components still use SCSS).
 
-**Layered style model (the architecture):** Obsidian CSS vars → UnoCSS utilities (layout/spacing) →
-structural SCSS (`.vm-*` component classes, complex state/animation) → `data-vm-*` (semantic hooks for JS +
-community snippets; verified: NO SCSS currently selects on `[data-vm-*]`, so they're pure hooks). Utility-first
-fits layout; structural SCSS keeps component encapsulation + animations. This hybrid is sound — keep it.
+**Layered style model (the architecture):** Obsidian CSS vars → UnoCSS utilities (layout/spacing) → structural SCSS (`.vm-*` component classes, complex state/animation) → `data-vm-*` (semantic hooks for JS + community snippets; verified: NO SCSS currently selects on `[data-vm-*]`, so they're pure hooks). Utility-first fits layout; structural SCSS keeps component encapsulation + animations. This hybrid is sound — keep it.
 
 ## presetWind4 — IT EXISTS (corrects the agent's stale-cutoff "doesn't exist")
 
@@ -42,24 +37,18 @@ fits layout; structural SCSS keeps component encapsulation + animations. This hy
 
 ### D-FE-3 — migration Wind3 → Wind4
 
-Viable now. Plan: swap `presetWind3` → `presetWind4`, **pilot behind a visual diff** (the team's tooling
-discipline). Watch: (a) keep `preflight:false` / confirm Wind4's reset story doesn't leak into Obsidian;
+Viable now. Plan: swap `presetWind3` → `presetWind4`, **pilot behind a visual diff** (the team's tooling discipline). Watch: (a) keep `preflight:false` / confirm Wind4's reset story doesn't leak into Obsidian;
 (b) re-check the `obsidian-mimic-*-layout` + `vm-btn-*` shortcuts still resolve under Wind4 token keys;
-(c) oklch values vs Obsidian's themed colors — we reference Obsidian vars in shortcuts (`var(--interactive-accent)`),
-so color-model change is low-risk there. Defer only if the visual diff surfaces regressions.
+(c) oklch values vs Obsidian's themed colors — we reference Obsidian vars in shortcuts (`var(--interactive-accent)`), so color-model change is low-risk there. Defer only if the visual diff surfaces regressions.
 
 ## LayerChart — NOT installed; dashboard candidate (R-CHARTS / S-23)
 
-Composable Svelte 5 charts on D3 (high-level `BarChart`/`LineChart`/`PieChart` + low-level marks/scales/
-interactions). Svelte-5-ready ($bindable/$derived/snippets). Needs D3 (~50–60KB) + ~18KB; optional design-system
-CSS (shadcn/daisy/Tailwind4) — **not Obsidian-aware**, so map `--chart-*` to Obsidian vars + scope under `.vm-root`.
+Composable Svelte 5 charts on D3 (high-level `BarChart`/`LineChart`/`PieChart` + low-level marks/scales/ interactions). Svelte-5-ready ($bindable/$derived/snippets). Needs D3 (~50–60KB) + ~18KB; optional design-system CSS (shadcn/daisy/Tailwind4) — **not Obsidian-aware**, so map `--chart-*` to Obsidian vars + scope under `.vm-root`.
 We have `FrameDashboardShell.svelte` / `Dashboard3Column.svelte` shells but no charting lib.
 
 ### D-FE-5 — defer + pilot
 
-Defer to a single dashboard panel pilot (vault-stats) when N3 dashboard work starts: theme-map to Obsidian
-vars, lazy-load (dynamic import) to keep it off the default bundle. Re-verify the LayerChart Svelte-5 API +
-llms.txt at pilot time.
+Defer to a single dashboard panel pilot (vault-stats) when N3 dashboard work starts: theme-map to Obsidian vars, lazy-load (dynamic import) to keep it off the default bundle. Re-verify the LayerChart Svelte-5 API + llms.txt at pilot time.
 
 ## Recommendations
 

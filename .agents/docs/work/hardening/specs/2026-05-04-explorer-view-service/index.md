@@ -14,13 +14,11 @@ tags:
 # Explorer View Service Spec
 
 This spec defines a service-owned view architecture for Vaultman explorers.
-It preserves the full design conversation instead of compressing it into a
-single short note.
+It preserves the full design conversation instead of compressing it into a single short note.
 
 ## Decision Summary
 
-- Build `serviceViews.svelte.ts` as the owner of explorer view state and render
-  models.
+- Build `serviceViews.svelte.ts` as the owner of explorer view state and render models.
 - Views receive semantic layers; they do not query plugin services directly.
 - Each view projects the same layers in its own visual form.
 - Replace the current failed `viewGrid.svelte` table attempt.
@@ -50,16 +48,13 @@ single short note.
 
 - Do not implement the whole system in one change.
 - Do not use the current `viewGrid.svelte` API as the table foundation.
-- Do not couple views back to `queueService`, `filterService`,
-  `DecorationManager`, `App`, or explorer providers.
-- Do not expose Obsidian internal Bases APIs unless they are verified and
-  routed through a documented integration boundary.
+- Do not couple views back to `queueService`, `filterService`, `DecorationManager`, `App`, or explorer providers.
+- Do not expose Obsidian internal Bases APIs unless they are verified and routed through a documented integration boundary.
 
 ## Source Notes
 
 - Current queue and active filters explorers self-render their popup lists.
 - Current `viewGrid.svelte` is file-specific and table-like, not a true grid.
-- Current `DecorationManager` handles icons and query highlights, but queue,
-  filters, bubbling, and marks are still distributed across explorers/views.
+- Current `DecorationManager` handles icons and query highlights, but queue, filters, bubbling, and marks are still distributed across explorers/views.
 - Obsidian Bases official docs distinguish table, cards, list, and map views.
 - Windows list-view taxonomy distinguishes icon/tile views from details/table.

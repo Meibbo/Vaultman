@@ -27,11 +27,7 @@ glossary_candidates:
 
 # Toolbar Coexistence, F&R Two-Input, Recent Searches, Merge Stack
 
-This spec captures the polish-layer redesign requested on 2026-05-13 against
-the Vaultman Prototype v4 reference bundle
-(`api.anthropic.com/v1/design/h/P3FMDSieqCGmM4o9EEAqhw`). The reference
-prototypes are React mockups; implementation is Svelte against the current
-codebase on `claude/explorer`.
+This spec captures the polish-layer redesign requested on 2026-05-13 against the Vaultman Prototype v4 reference bundle (`api.anthropic.com/v1/design/h/P3FMDSieqCGmM4o9EEAqhw`). The reference prototypes are React mockups; implementation is Svelte against the current codebase on `claude/explorer`.
 
 ## Source Trigger
 
@@ -49,11 +45,7 @@ User message (chat3.md → Vaultman Prototype v4 handoff):
 
 ## Approved Direction
 
-Three coordinated specs ship sequentially under this index. Each spec is
-independently mergeable. A fourth spec — the WYSIWYG theme builder where
-toolbar primitives behave like homescreen widgets — is deferred and will
-carry its own brainstorm + spec; it will absorb the settings introduced
-here.
+Three coordinated specs ship sequentially under this index. Each spec is independently mergeable. A fourth spec — the WYSIWYG theme builder where toolbar primitives behave like homescreen widgets — is deferred and will carry its own brainstorm + spec; it will absorb the settings introduced here.
 
 | Decision     | Choice                                                                 |
 | ------------ | ---------------------------------------------------------------------- |
@@ -74,25 +66,19 @@ here.
 
 ## Out of Scope (Deferred → Spec 4 brainstorm)
 
-- WYSIWYG theme builder UI (drag-and-drop primitive arrangement, snap grid,
-  persistence schema, theme presets, reset, undo).
+- WYSIWYG theme builder UI (drag-and-drop primitive arrangement, snap grid, persistence schema, theme presets, reset, undo).
 - DnD reordering of toolbar primitives.
 - Promotion of the settings introduced here into the theme builder panel.
 - Theme preview surface.
 
 ## Cross-Cutting Concerns
 
-- **Tests:** every shard ships its own focused unit + component tests. No
-  shared snapshot fixtures across shards.
+- **Tests:** every shard ships its own focused unit + component tests. No shared snapshot fixtures across shards.
 - **Z-index discipline:** any new overlay uses `$vm-z-index-island` (50);
   popups stay at `$vm-z-index-popup` (100). No new ad-hoc values.
-- **Settings migration:** new keys added to `typeSettings.ts` with safe
-  defaults so existing installations boot without manual migration.
-- **i18n:** new copy ("Recent searches", "Rename → new ...", arrow tooltips)
-  goes through `translate(...)` so theme builder copy stays portable.
-- **A11y:** stepper, F&R pill, and arrow-nav header expose
-  `aria-label`/`aria-controls`/`aria-pressed` per existing conventions in
-  `Toolbar.svelte`.
+- **Settings migration:** new keys added to `typeSettings.ts` with safe defaults so existing installations boot without manual migration.
+- **i18n:** new copy ("Recent searches", "Rename → new ...", arrow tooltips) goes through `translate(...)` so theme builder copy stays portable.
+- **A11y:** stepper, F&R pill, and arrow-nav header expose `aria-label`/`aria-controls`/`aria-pressed` per existing conventions in `Toolbar.svelte`.
 
 ## Decisions Log
 
@@ -106,15 +92,8 @@ here.
 
 ## References
 
-- Design bundle: `api.anthropic.com/v1/design/h/P3FMDSieqCGmM4o9EEAqhw`
-  (Vaultman Prototype v4) — gzipped tar with `proto-v4/{app,search-island,
-  stack-island,pages,popups,sidebar,data,desktop}.jsx` and `chats/chat{1..3}.md`.
+- Design bundle: `api.anthropic.com/v1/design/h/P3FMDSieqCGmM4o9EEAqhw` (Vaultman Prototype v4) — gzipped tar with `proto-v4/{app,search-island, stack-island,pages,popups,sidebar,data,desktop}.jsx` and `chats/chat{1..3}.md`.
 - Current implementation entry points:
-  [[Toolbar.svelte|src/components/layout/Toolbar.svelte]],
-  [[frameVaultman.svelte|src/components/frame/frameVaultman.svelte]],
-  [[frameOverlays.svelte.ts|src/components/frame/frameOverlays.svelte.ts]],
-  [[serviceFnRIsland.svelte.ts|src/services/serviceFnRIsland.svelte.ts]],
-  [[_islands.scss|src/styles/popup/_islands.scss]],
-  [[_v3-nav.scss|src/styles/nav/_v3-nav.scss]].
+  [[Toolbar.svelte|src/components/layout/Toolbar.svelte]], [[frameVaultman.svelte|src/components/frame/frameVaultman.svelte]], [[frameOverlays.svelte.ts|src/components/frame/frameOverlays.svelte.ts]], [[serviceFnRIsland.svelte.ts|src/services/serviceFnRIsland.svelte.ts]], [[_islands.scss|src/styles/popup/_islands.scss]], [[_v3-nav.scss|src/styles/nav/_v3-nav.scss]].
 - Related prior work:
   [[docs/work/polish/plans/2026-05-11-ui-modernization-vertical-threads/04-thread-ecosystem-interception|T4 Ecosystem & Interception]] (FnR + vmPopover integration).

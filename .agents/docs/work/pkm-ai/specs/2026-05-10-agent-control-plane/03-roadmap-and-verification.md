@@ -17,8 +17,7 @@ tags:
 
 ## Phase 1 - Residual Audit
 
-Create one source record that classifies every recurring caveat currently
-visible in status, handoff, health output, and recent source records.
+Create one source record that classifies every recurring caveat currently visible in status, handoff, health output, and recent source records.
 
 Required classifications:
 
@@ -65,10 +64,8 @@ Tool improvements:
 
 Acceptance:
 
-- agents can ask "what should I read for this task" and get a ranked local
-  source list;
-- false-authority output from shallow regex scripts is either labelled
-  "heuristic" or replaced.
+- agents can ask "what should I read for this task" and get a ranked local source list;
+- false-authority output from shallow regex scripts is either labelled "heuristic" or replaced.
 
 ## Phase 3 - Verification Matrix
 
@@ -101,8 +98,7 @@ Acceptance:
 
 - future plans cite the matrix instead of inventing verification from scratch;
 - Svelte/Vite commands are marked sequential where needed;
-- UI/runtime changes cannot close without mounted or Obsidian evidence unless a
-  source record explains why unavailable.
+- UI/runtime changes cannot close without mounted or Obsidian evidence unless a source record explains why unavailable.
 
 ## Phase 4 - PKM-AI Tool Deepening
 
@@ -119,8 +115,7 @@ Keep:
 
 Deepen or relabel:
 
-- `traverse-graph.mjs` because regex imports are not enough for architecture
-  claims;
+- `traverse-graph.mjs` because regex imports are not enough for architecture claims;
 - `analyze-code.mjs` because export regex is only an orientation heuristic.
 
 Possible new Modules:
@@ -133,14 +128,12 @@ Possible new Modules:
 Acceptance:
 
 - each script has a clear Interface and documented confidence level;
-- metrics record health, retrieval, sharding, and residual classification
-  events;
+- metrics record health, retrieval, sharding, and residual classification events;
 - current docs link to generated evidence, not command transcripts.
 
 ## Phase 5 - Agent Operation API
 
-After Phases 1-4, promote the programmable interface spec into an
-implementation plan.
+After Phases 1-4, promote the programmable interface spec into an implementation plan.
 
 Required preconditions:
 
@@ -153,8 +146,7 @@ Acceptance:
 
 - the first `serviceAPI` slice exposes read/plan/enqueue only;
 - no direct destructive mutation is available;
-- every API response includes counts, affected paths or nodes, validation
-  errors, and rollback limits.
+- every API response includes counts, affected paths or nodes, validation errors, and rollback limits.
 
 ## Non-Goals
 
@@ -166,10 +158,8 @@ Acceptance:
 
 ## Success Criteria
 
-- Agents spend less time re-reading broad docs and more time reading targeted
-  source records.
+- Agents spend less time re-reading broad docs and more time reading targeted source records.
 - Every repeated caveat has a durable state.
 - Plans become shorter because verification is centralized.
 - Shallow tooling stops producing authoritative-looking weak evidence.
-- The eventual `serviceAPI` starts from supervised queue semantics, not direct
-  mutation.
+- The eventual `serviceAPI` starts from supervised queue semantics, not direct mutation.

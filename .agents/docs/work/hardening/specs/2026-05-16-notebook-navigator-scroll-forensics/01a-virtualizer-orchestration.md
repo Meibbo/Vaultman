@@ -15,9 +15,7 @@ tags:
 
 ## 1. Virtualizer Contract
 
-Notebook Navigator uses `@tanstack/react-virtual` `^3.13.24`. Vaultman uses
-`@tanstack/svelte-virtual` `3.13.24`, so the engine family is aligned. The
-difference is the surrounding contract.
+Notebook Navigator uses `@tanstack/react-virtual` `^3.13.24`. Vaultman uses `@tanstack/svelte-virtual` `3.13.24`, so the engine family is aligned. The difference is the surrounding contract.
 
 Notebook Navigator list pane:
 
@@ -27,8 +25,7 @@ Notebook Navigator list pane:
 - `getScrollElement` returns `scrollContainerRef.current`.
 - `overscan` is the shared `OVERSCAN` constant, currently `10`.
 - `useScrollendEvent: true` is enabled.
-- `scrollMargin`, `scrollPaddingStart`, and `scrollPaddingEnd` are explicitly
-  wired so scroll math accounts for overlay chrome.
+- `scrollMargin`, `scrollPaddingStart`, and `scrollPaddingEnd` are explicitly wired so scroll math accounts for overlay chrome.
 
 Notebook Navigator navigation pane:
 
@@ -46,15 +43,11 @@ The rendered DOM shape is stable:
 - Navigation rows use `transform: translateY(...)`.
 - Rendering iterates `rowVirtualizer.getVirtualItems()`.
 
-Critical point: `ListPaneVirtualContent.tsx` does not contain a fallback that
-renders all `listItems` if `getVirtualItems()` is empty. If virtual items are
-empty, only empty virtual content renders. The recovery strategy is to keep the
-virtualizer ready and measured, not to devirtualize.
+Critical point: `ListPaneVirtualContent.tsx` does not contain a fallback that renders all `listItems` if `getVirtualItems()` is empty. If virtual items are empty, only empty virtual content renders. The recovery strategy is to keep the virtualizer ready and measured, not to devirtualize.
 
 ## 2. Scroll Readiness Gate
 
-Notebook Navigator refuses to execute scroll commands until the scroll container
-is visible and has non-zero dimensions.
+Notebook Navigator refuses to execute scroll commands until the scroll container is visible and has non-zero dimensions.
 
 List pane:
 
@@ -67,23 +60,18 @@ List pane:
 Navigation pane:
 
 - The same readiness concept exists in `useNavigationPaneScroll.ts`.
-- This prevents TanStack calls while the pane is hidden or has a zero-sized
-  parent.
+- This prevents TanStack calls while the pane is hidden or has a zero-sized parent.
 
-This matters for blank-list failures: a scroll call issued against a zero-sized
-or stale virtualizer can produce no virtual rows for a visible frame. Notebook
-Navigator treats readiness as a precondition for executing the scroll.
+This matters for blank-list failures: a scroll call issued against a zero-sized or stale virtualizer can produce no virtual rows for a visible frame. Notebook Navigator treats readiness as a precondition for executing the scroll.
 
 ## 3. Path-To-Index Maps And Version Gates
 
-Notebook Navigator stores an intent to reveal a path, then resolves the path to
-an index at execution time.
+Notebook Navigator stores an intent to reveal a path, then resolves the path to an index at execution time.
 
 List pane:
 
 - `filePathToIndex` maps file paths to current row indices.
-- `areFilePathIndexMapsEqual` prevents version churn when a new `Map` object has
-  the same contents.
+- `areFilePathIndexMapsEqual` prevents version churn when a new `Map` object has the same contents.
 - `indexVersionRef` increments only when effective mapping changes.
 - `pendingScrollRef` can carry `minIndexVersion`.
 - Pending scrolls wait until `indexVersionRef.current >= minIndexVersion`.
@@ -91,13 +79,10 @@ List pane:
 Navigation pane:
 
 - `pathToIndex` maps normalized folder/tag/property paths to indices.
-- `areNavigationPathIndexMapsEqual` keeps `indexVersion` tied to content changes,
-  not object identity.
-- `measurementSignature` detects row layout changes that require `measure()`
-  without necessarily incrementing the path map version.
+- `areNavigationPathIndexMapsEqual` keeps `indexVersion` tied to content changes, not object identity.
+- `measurementSignature` detects row layout changes that require `measure()` without necessarily incrementing the path map version.
 
-The core trick is late binding: "selected path X" is resolved into "current
-index Y" only after the list/tree rebuild that makes Y meaningful.
+The core trick is late binding: "selected path X" is resolved into "current index Y" only after the list/tree rebuild that makes Y meaningful.
 
 ## 4. Intent Queue Instead Of Raw Effects
 
@@ -123,8 +108,7 @@ List pane reasons:
 - folder-navigation: 3
 - reveal: 4
 
-Higher-priority pending requests replace lower-priority ones. This coalesces
-rapid scroll causes instead of executing every intermediate request.
+Higher-priority pending requests replace lower-priority ones. This coalesces rapid scroll causes instead of executing every intermediate request.
 
 Navigation pane intents:
 
@@ -135,14 +119,11 @@ Navigation pane intents:
 - `external`
 - `mobile-visibility`
 
-During hidden-item visibility toggles, Notebook Navigator explicitly gates stale
-selection scrolls and allows only the visibility-toggle intent to execute with
-the next tree version. That prevents "right path, wrong old index" jumps.
+During hidden-item visibility toggles, Notebook Navigator explicitly gates stale selection scrolls and allows only the visibility-toggle intent to execute with the next tree version. That prevents "right path, wrong old index" jumps.
 
 ## 5. Alignment And Smooth Scroll Policy
 
-Notebook Navigator mostly uses `behavior: auto` through TanStack. It does not
-animate large Explorer jumps.
+Notebook Navigator mostly uses `behavior: auto` through TanStack. It does not animate large Explorer jumps.
 
 List alignment:
 
@@ -157,8 +138,7 @@ Navigation alignment:
 - visibility/mobile/reveal/external: `auto`.
 - default: `center`.
 
-The only smooth path found is a mobile header "scroll to top" tap. That path is
-not used for large list/tree jumps.
+The only smooth path found is a mobile header "scroll to top" tap. That path is not used for large list/tree jumps.
 
 ## 6. Safe Post-Adjustment
 
@@ -168,6 +148,5 @@ After `scrollToIndex`, Notebook Navigator performs a tiny safety adjustment:
 - schedule `ensureIndexNotCovered(index)` for up to three animation frames;
 - adjust `scrollTop` only if sticky headers or bottom padding cover the row.
 
-This is not stepping through intermediate rows. It is a bounded overlay
-correction for the final target.
+This is not stepping through intermediate rows. It is a bounded overlay correction for the final target.
 

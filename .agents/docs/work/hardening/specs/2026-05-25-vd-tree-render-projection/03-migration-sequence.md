@@ -13,8 +13,7 @@ tags:
 
 # Migration Sequence
 
-Use TDD for behavior and focused performance probes for cost. Keep commits
-small enough that a failed stress run can be bisected.
+Use TDD for behavior and focused performance probes for cost. Keep commits small enough that a failed stress run can be bisected.
 
 ## Task 1: Unit-Test The Projection Builder
 
@@ -72,14 +71,10 @@ Files:
 
 Steps:
 
-1. Keep `treeRowInputs` creation from `snapshot.rows` initially. This is still
-   useful as the row lookup source.
-2. Create `treeRenderProjection` from `treeRowInputs` plus
-   `snapshot.visibleIds`.
+1. Keep `treeRowInputs` creation from `snapshot.rows` initially. This is still useful as the row lookup source.
+2. Create `treeRenderProjection` from `treeRowInputs` plus `snapshot.visibleIds`.
 3. Pass `treeRenderProjection` to `ViewHost`.
-4. Preserve `treeProjection` during the first commit if Grid/Cards still use
-   the generic projection prop. Confirm `ViewHost` sends the new projection only
-   to Tree.
+4. Preserve `treeProjection` during the first commit if Grid/Cards still use the generic projection prop. Confirm `ViewHost` sends the new projection only to Tree.
 5. Add perf counts for `structuralRowCount` and `visibleRowCount`.
 
 Focused tests:
@@ -101,10 +96,8 @@ Steps:
 1. Verify the Files Tree route receives `renderProjection`.
 2. Keep legacy `flatProjectionRows` only for non-Files test consumers if needed.
 3. If no consumer remains, delete `flatProjectionRows`.
-4. If a consumer remains, rename the helper or guard it with a comment saying it
-   is legacy fallback only and must not be used by Files Tree.
-5. Ensure `viewTree.flatten` perf mark no longer fires for the Files Tree route
-   during the stress matrix.
+4. If a consumer remains, rename the helper or guard it with a comment saying it is legacy fallback only and must not be used by Files Tree.
+5. Ensure `viewTree.flatten` perf mark no longer fires for the Files Tree route during the stress matrix.
 
 Focused tests:
 
@@ -113,9 +106,7 @@ pnpm vitest run test/component/viewTreeScrollFallback.test.ts
 pnpm vitest run test/component/viewTreeGridRowInputContract.test.ts
 ```
 
-If `viewTreeGridRowInputContract.test.ts` asserts the old "projection rows are
-already visible" semantics, update the test to assert the new
-`TreeRenderProjection` contract explicitly.
+If `viewTreeGridRowInputContract.test.ts` asserts the old "projection rows are already visible" semantics, update the test to assert the new `TreeRenderProjection` contract explicitly.
 
 ## Task 5: Verify Sticky And Reveal Parity
 
@@ -144,9 +135,7 @@ pnpm vitest run test/component/panelExplorerBadgeCollision.test.ts
 
 Files:
 
-- Update the active implementation record under
-  `.agents/docs/work/hardening/plans/2026-05-16-explorer-variable-scroll-repair/`
-  or create a V.D implementation record if the user asks for a separate plan.
+- Update the active implementation record under `.agents/docs/work/hardening/plans/2026-05-16-explorer-variable-scroll-repair/` or create a V.D implementation record if the user asks for a separate plan.
 
 Required command family:
 
@@ -159,16 +148,13 @@ pnpm vitest run test/unit/services/serviceTreeRenderProjection.test.ts
 
 Required live/stress evidence:
 
-- 50k Tree/List Files matrix with the same runner options used in the existing
-  2026-05-20 stress-vault record.
-- Include Tree `structuralRowCount`, `visibleRowCount`, `maxDelay`, `p95`,
-  `p99`, blank frames, and final `dev:errors`.
+- 50k Tree/List Files matrix with the same runner options used in the existing 2026-05-20 stress-vault record.
+- Include Tree `structuralRowCount`, `visibleRowCount`, `maxDelay`, `p95`, `p99`, blank frames, and final `dev:errors`.
 - Include List as control.
 
 Acceptance:
 
 - Tree zero blank frames.
 - List zero blank frames.
-- Tree p99 under `150 ms` or a written explanation with raw timing marks that
-  identifies the remaining top hotspot.
+- Tree p99 under `150 ms` or a written explanation with raw timing marks that identifies the remaining top hotspot.
 

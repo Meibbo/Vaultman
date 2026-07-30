@@ -38,18 +38,15 @@ Attach descriptors to projections and hydrate visible blobs only.
 
 ### Slice 3: Remote Direct Images
 
-Add opt-in remote direct image fetching with domain policy, size caps, timeout,
-TTL, and cache fingerprints.
+Add opt-in remote direct image fetching with domain policy, size caps, timeout, TTL, and cache fingerprints.
 
 ### Slice 4: Remote Page Extraction
 
-Add opt-in page extraction through OpenGraph/Twitter metadata and safe image
-candidate filtering.
+Add opt-in page extraction through OpenGraph/Twitter metadata and safe image candidate filtering.
 
 ### Slice 5: Animated Thumbnails
 
-Add animated GIF thumbnails as an explicit opt-in. Keep static first frame as
-default.
+Add animated GIF thumbnails as an explicit opt-in. Keep static first frame as default.
 
 ## Unit Tests
 
@@ -80,10 +77,8 @@ Required areas:
 
 Required checks:
 
-- enabling media descriptors does not increase Tree projection p99 beyond the
-  V.D baseline by more than an agreed threshold;
-- scrolling a large image-heavy folder does not synchronously decode full-size
-  images;
+- enabling media descriptors does not increase Tree projection p99 beyond the V.D baseline by more than an agreed threshold;
+- scrolling a large image-heavy folder does not synchronously decode full-size images;
 - thumbnail queue yields while scrolling;
 - cache hit path is bounded and does not touch full source files.
 

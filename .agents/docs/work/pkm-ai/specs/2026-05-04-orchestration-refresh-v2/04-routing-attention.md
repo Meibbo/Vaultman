@@ -14,8 +14,7 @@ tags:
 
 ## Problem
 
-Indexes can become internal Google: many links, little guidance, high token
-cost. The solution is not more indexes. The solution is routed attention.
+Indexes can become internal Google: many links, little guidance, high token cost. The solution is not more indexes. The solution is routed attention.
 
 ## Startup Path
 

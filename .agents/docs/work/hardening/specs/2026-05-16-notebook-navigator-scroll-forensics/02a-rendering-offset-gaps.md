@@ -32,10 +32,8 @@ const renderedRows = $derived.by(() => {
 });
 ```
 
-This is the exact class of fallback Notebook Navigator avoids. For a large
-dataset, a transient empty virtualizer result can materialize all card rows.
-That can block the main thread and produce a blank visible list while Svelte
-reconciles a huge render set.
+This is the exact class of fallback Notebook Navigator avoids. For a large dataset, a transient empty virtualizer result can materialize all card rows.
+That can block the main thread and produce a blank visible list while Svelte reconciles a huge render set.
 
 Required change:
 
@@ -46,23 +44,18 @@ Required change:
 
 `ViewNodeGrid.svelte` fallback:
 
-- first loop scans from index 0 until it finds the first row whose bottom
-  crosses `scrollTop`;
-- second loop walks all rows while checking whether each is in the render
-  window.
+- first loop scans from index 0 until it finds the first row whose bottom crosses `scrollTop`;
+- second loop walks all rows while checking whether each is in the render window.
 
 That makes the fallback O(total rows), even though it only returns visible rows.
-Repeated jumps near the bottom of a 50k set repeatedly traverse almost the whole
-array.
+Repeated jumps near the bottom of a 50k set repeatedly traverse almost the whole array.
 
 Notebook Navigator avoids this for fixed nav/list rows by direct index math.
-For variable-height grid rows, Vaultman needs a prefix-sum/height-map strategy
-or a bounded approximation that does not scan from zero on every fallback.
+For variable-height grid rows, Vaultman needs a prefix-sum/height-map strategy or a bounded approximation that does not scan from zero on every fallback.
 
 Required change:
 
-- variable-height fallbacks must use a prefix offset model with binary search,
-  or a fixed bucket approximation that is later corrected by TanStack.
+- variable-height fallbacks must use a prefix offset model with binary search, or a fixed bucket approximation that is later corrected by TanStack.
 - repeated jumps near the bottom must not walk every prior row.
 
 ## Gap 3: Cards Scroll-To-Row Uses O(n) Prefix Sum
@@ -75,9 +68,7 @@ const rowTop = cardRows
     .reduce((top, item) => top + item.height + CARD_GAP, CARD_GAP);
 ```
 
-That is O(rowIndex) per reveal. It is not necessarily the direct cause of
-manual scrollbar blanking, but it is the same anti-pattern that fails under
-rapid repeated deep jumps.
+That is O(rowIndex) per reveal. It is not necessarily the direct cause of manual scrollbar blanking, but it is the same anti-pattern that fails under rapid repeated deep jumps.
 
 Required change:
 
@@ -99,9 +90,7 @@ function tableRowTopFromMap(measuredRows, rowIndex) {
 }
 ```
 
-The table fallback returns only top rows rather than all rows, but row-top
-calculation is still O(rowIndex). Repeated reveal or deep measured-row
-fallbacks can accumulate expensive work.
+The table fallback returns only top rows rather than all rows, but row-top calculation is still O(rowIndex). Repeated reveal or deep measured-row fallbacks can accumulate expensive work.
 
 Required change:
 
@@ -111,12 +100,9 @@ Required change:
 
 ## Gap 5: Fallbacks Are Rendering Strategy, Not Last-Frame Retention
 
-Notebook Navigator does not devirtualize when virtual rows are empty. Vaultman
-uses fallbacks to hide TanStack readiness gaps. A bounded fallback is acceptable
-as an emergency guard, but the invariant should be:
+Notebook Navigator does not devirtualize when virtual rows are empty. Vaultman uses fallbacks to hide TanStack readiness gaps. A bounded fallback is acceptable as an emergency guard, but the invariant should be:
 
-- keep the last non-empty visible range while the new virtualizer range is not
-  ready, or
+- keep the last non-empty visible range while the new virtualizer range is not ready, or
 - compute a bounded range from scrollTop without scanning total rows.
 
 What must not happen:
@@ -125,7 +111,5 @@ What must not happen:
 - return all rows;
 - run O(total rows) work during the scroll event.
 
-The current blank-list symptom after many jumps is consistent with a starvation
-window where scroll events queue state changes faster than visible rows can be
-computed/reconciled.
+The current blank-list symptom after many jumps is consistent with a starvation window where scroll events queue state changes faster than visible rows can be computed/reconciled.
 

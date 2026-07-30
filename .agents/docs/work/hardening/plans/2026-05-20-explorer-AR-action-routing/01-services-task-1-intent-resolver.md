@@ -4,9 +4,7 @@
 - Create: `src/types/typeActionRouting.ts`
 - Test: `test/unit/services/actionRouting.intent.test.ts`
 
-Depende de `serviceMouse` exports: `NodeMouseAction` (`'select'|'filter'|'open'|'node-note'|'delete'`),
-`NodeMouseActionConfig` (`{primary,secondary,tertiary}`), `DEFAULT_NODE_MOUSE_ACTIONS`
-(primary `'filter'`, secondary `'open'`, tertiary `'delete'`) — verificados en serviceMouse.ts.
+Depende de `serviceMouse` exports: `NodeMouseAction` (`'select'|'filter'|'open'|'node-note'|'delete'`), `NodeMouseActionConfig` (`{primary,secondary,tertiary}`), `DEFAULT_NODE_MOUSE_ACTIONS` (primary `'filter'`, secondary `'open'`, tertiary `'delete'`) — verificados en serviceMouse.ts.
 
 - [x] **Step 1: Write the failing test**
 
@@ -67,8 +65,7 @@ describe('resolveActionIntent', () => {
 
 - [x] **Step 2: Run test to verify it fails**
 
-Run: `pnpm vitest run test/unit/services/actionRouting.intent.test.ts`
-Expected: FAIL — `Cannot find module '../../../src/types/typeActionRouting'`.
+Run: `pnpm vitest run test/unit/services/actionRouting.intent.test.ts` Expected: FAIL — `Cannot find module '../../../src/types/typeActionRouting'`.
 
 - [x] **Step 3: Write minimal implementation**
 
@@ -143,8 +140,7 @@ export function resolveActionIntent(
 
 - [x] **Step 4: Run test to verify it passes**
 
-Run: `pnpm vitest run test/unit/services/actionRouting.intent.test.ts`
-Expected: PASS (7 assertions).
+Run: `pnpm vitest run test/unit/services/actionRouting.intent.test.ts` Expected: PASS (7 assertions).
 
 - [x] **Step 5: Commit**
 

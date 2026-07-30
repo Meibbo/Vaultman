@@ -98,34 +98,19 @@ Source issue:
 
 Change:
 
-- Added probe timings for `explorerDataPlane.snapshot.create`,
-  `explorerDataPlane.snapshot.lookupMaps`, `explorerDataPlane.layers.batch`,
-  `explorerDataPlane.reveal.lookup`, and `panelExplorer.refresh.total`.
+- Added probe timings for `explorerDataPlane.snapshot.create`, `explorerDataPlane.snapshot.lookupMaps`, `explorerDataPlane.layers.batch`, `explorerDataPlane.reveal.lookup`, and `panelExplorer.refresh.total`.
 - Added Files structural counters:
-  `explorerDataPlane.files.structure.rebuild` and
-  `explorerDataPlane.files.structure.cacheHit`.
-- Kept `panelExplorer.getTree`, `panelExplorer.bubbleHiddenTreeBadges`,
-  `viewTree.flatten`, and `viewService.getModel` labels intact for comparison
-  with the 2026-05-05 baseline above.
+  `explorerDataPlane.files.structure.rebuild` and `explorerDataPlane.files.structure.cacheHit`.
+- Kept `panelExplorer.getTree`, `panelExplorer.bubbleHiddenTreeBadges`, `viewTree.flatten`, and `viewService.getModel` labels intact for comparison with the 2026-05-05 baseline above.
 
 Automated probe evidence:
 
-- `logicExplorerSnapshot.test.ts` verifies snapshot creation and lookup-map
-  timing labels on Files-like trees.
-- `serviceExplorerLayers.test.ts` verifies one batched layer timing with queue
-  and filter totals.
-- `explorerFiles.test.ts` verifies a queue-only operation refresh records one
-  structural rebuild before the queue change and one structural cache hit after
-  the queue change.
-- `panelExplorerEmpty.test.ts` verifies total panel refresh timing through the
-  mounted Files panel path without rebuilding snapshots locally.
-- `viewTreeScrollFallback.test.ts` verifies reveal lookup timing when the
-  snapshot row map resolves the target id.
+- `logicExplorerSnapshot.test.ts` verifies snapshot creation and lookup-map timing labels on Files-like trees.
+- `serviceExplorerLayers.test.ts` verifies one batched layer timing with queue and filter totals.
+- `explorerFiles.test.ts` verifies a queue-only operation refresh records one structural rebuild before the queue change and one structural cache hit after the queue change.
+- `panelExplorerEmpty.test.ts` verifies total panel refresh timing through the mounted Files panel path without rebuilding snapshots locally.
+- `viewTreeScrollFallback.test.ts` verifies reveal lookup timing when the snapshot row map resolves the target id.
 
 Architectural note:
 
-- The earlier `sandbox` attempt expected `panelExplorer.svelte` to rebuild
-  snapshots locally. That was rejected during reconciliation because EDP-003
-  made `ExplorerDataPlaneService` the canonical snapshot store. Snapshot create
-  and lookup-map probes belong to `logicExplorerSnapshot`; panel refresh timing
-  stays separate.
+- The earlier `sandbox` attempt expected `panelExplorer.svelte` to rebuild snapshots locally. That was rejected during reconciliation because EDP-003 made `ExplorerDataPlaneService` the canonical snapshot store. Snapshot create and lookup-map probes belong to `logicExplorerSnapshot`; panel refresh timing stays separate.

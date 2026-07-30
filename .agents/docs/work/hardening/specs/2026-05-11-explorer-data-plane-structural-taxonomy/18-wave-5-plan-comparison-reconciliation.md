@@ -16,22 +16,16 @@ updated_by: codex
 
 # Wave 5 Plan Comparison And Reconciliation
 
-Wave 5 compares the Explorer Data Plane Wave 4 specs against current PRDs,
-plans, implementation records, and backlog cuts before issue publication.
+Wave 5 compares the Explorer Data Plane Wave 4 specs against current PRDs, plans, implementation records, and backlog cuts before issue publication.
 
 ## Takeaway
 
-Use the existing Explorer Data Plane Transition PRD as the parent source of
-truth. Publish no new broad PRD unless the user wants a tracker-level parent.
+Use the existing Explorer Data Plane Transition PRD as the parent source of truth. Publish no new broad PRD unless the user wants a tracker-level parent.
 Create issues only after approval of the issue candidates in shard 19.
 
-The first implementation issue should be Files-first snapshot/data-plane
-foundation. Existing table, cards, selection, badge, performance, and scroll
-work are inputs or compatibility constraints, not work to redo.
+The first implementation issue should be Files-first snapshot/data-plane foundation. Existing table, cards, selection, badge, performance, and scroll work are inputs or compatibility constraints, not work to redo.
 
-The cached-image decision changes only the persistence boundary: structural
-snapshots remain memory-first, while a separate media/derived-content cache DB
-is now issue-ready as a follow-up once row identity is stable.
+The cached-image decision changes only the persistence boundary: structural snapshots remain memory-first, while a separate media/derived-content cache DB is now issue-ready as a follow-up once row identity is stable.
 
 ## Evidence Ledger
 
@@ -55,21 +49,13 @@ is now issue-ready as a follow-up once row identity is stable.
 
 ## Conflict Decisions
 
-- Old Explorer View Service wording that selection may belong to `serviceViews`
-  is superseded. Current rule: `NodeSelectionService` is authoritative.
-- Old `serviceViews` list-first migration order is stale. Queue/list work can
-  remain historical; data-plane issues should start with Files snapshots.
-- Backlog Cut 15 active-filter/bubbling verification is absorbed by the overlay
-  and perf gates. Do not create a duplicate loose verification issue.
+- Old Explorer View Service wording that selection may belong to `serviceViews` is superseded. Current rule: `NodeSelectionService` is authoritative.
+- Old `serviceViews` list-first migration order is stale. Queue/list work can remain historical; data-plane issues should start with Files snapshots.
+- Backlog Cut 15 active-filter/bubbling verification is absorbed by the overlay and perf gates. Do not create a duplicate loose verification issue.
 - Cut 18 performance verification is absorbed by the data-plane perf gate.
-- Provider/API module relocation from Cut 6 is compatible but not required for
-  the first data-plane issue. Do not combine relocation with snapshot work.
-- Table/cards/grid enhancements stay in Polish. Data-plane adapter work may
-  feed those views, but must not add new table/cards features.
-- The old blanket deferral of IndexedDB is narrowed. Persistent structural
-  snapshot storage remains deferred; media/derived-content cache storage is a
-  valid follow-up because cached explorer images are rebuildable blobs, not row
-  structure.
+- Provider/API module relocation from Cut 6 is compatible but not required for the first data-plane issue. Do not combine relocation with snapshot work.
+- Table/cards/grid enhancements stay in Polish. Data-plane adapter work may feed those views, but must not add new table/cards features.
+- The old blanket deferral of IndexedDB is narrowed. Persistent structural snapshot storage remains deferred; media/derived-content cache storage is a valid follow-up because cached explorer images are rebuildable blobs, not row structure.
 
 ## Source Of Truth Updates Needed
 
@@ -77,12 +63,10 @@ Before publishing tracker issues:
 
 - Add a supersession note to the Explorer View Service interaction shard:
   selection is owned by `NodeSelectionService`, not `serviceViews`.
-- Mark `serviceViews` implementation plan as historical/partially completed if
-  future agents keep treating its active status as executable.
+- Mark `serviceViews` implementation plan as historical/partially completed if future agents keep treating its active status as executable.
 - Link Wave 5 issue candidates from the structural taxonomy index.
 - Decide issue tracker target. `CLAUDE.md` exists, but `docs/agents/` does not;
-  actual tracker publication should run the setup workflow or get an explicit
-  local/GitHub issue target from the user.
+  actual tracker publication should run the setup workflow or get an explicit local/GitHub issue target from the user.
 
 ## Approved Architecture Baseline For Issues
 
@@ -93,10 +77,8 @@ Before publishing tracker issues:
 - Revision-aware reveal-by-id.
 - `NodeSelectionService` remains selection source of truth.
 - Adapter-local virtualizers remain adapter-local.
-- Persistent structural storage and generic row-level subscriptions remain
-  deferred.
-- Media/derived-content cache DB and file/node-level media subscriptions are
-  accepted as a separate follow-up slice.
+- Persistent structural storage and generic row-level subscriptions remain deferred.
+- Media/derived-content cache DB and file/node-level media subscriptions are accepted as a separate follow-up slice.
 
 ## Not Issue-Ready
 

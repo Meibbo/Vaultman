@@ -13,8 +13,7 @@ visuals:
 
 # Phase 07 - Tests Architecture Layer
 
-This phase maps the test architecture that verifies the runtime, service,
-component, provider, logic, and style layers already mapped in phases 01-06.
+This phase maps the test architecture that verifies the runtime, service, component, provider, logic, and style layers already mapped in phases 01-06.
 
 ## Test Projects
 
@@ -26,9 +25,7 @@ component, provider, logic, and style layers already mapped in phases 01-06.
 
 ## Verification Script Boundary
 
-`package.json` defines `verify` as lint, check, build, unit tests, and component
-tests. Integration tests are separate under `test:integrity`, and e2e is
-separate under `test:e2e`.
+`package.json` defines `verify` as lint, check, build, unit tests, and component tests. Integration tests are separate under `test:integrity`, and e2e is separate under `test:e2e`.
 
 ```mermaid
 flowchart TD
@@ -62,8 +59,7 @@ flowchart TD
 ## Key Conclusion
 
 Tests are strongest around the phase 06 service layer and phase 05 view layer.
-The integration project exists but is outside `verify`, so live Obsidian
-confidence depends on explicit `test:integrity`, e2e, or smoke commands.
+The integration project exists but is outside `verify`, so live Obsidian confidence depends on explicit `test:integrity`, e2e, or smoke commands.
 
 ## Shards
 
@@ -78,6 +74,4 @@ confidence depends on explicit `test:integrity`, e2e, or smoke commands.
 
 ## Next Layer
 
-Phase 08 should map `scripts/`, CI, release, security, generated artifacts, and
-runtime build outputs because phase 07 shows scripts outside `verify` still
-carry smoke, e2e, audit, SBOM, build sync, and release behavior.
+Phase 08 should map `scripts/`, CI, release, security, generated artifacts, and runtime build outputs because phase 07 shows scripts outside `verify` still carry smoke, e2e, audit, SBOM, build sync, and release behavior.

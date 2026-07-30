@@ -14,8 +14,7 @@ tags:
 
 ## Slice Decision
 
-The user selected interactions as a second slice after the service-owned view
-direction.
+The user selected interactions as a second slice after the service-owned view direction.
 
 This means:
 
@@ -58,9 +57,7 @@ Focus should be semantic:
 - focused group;
 - focused action.
 
-DOM focus and semantic focus are related but not identical. The render model
-should define semantic focus. The view should map it to tabindex and actual DOM
-focus where necessary.
+DOM focus and semantic focus are related but not identical. The render model should define semantic focus. The view should map it to tabindex and actual DOM focus where necessary.
 
 ## Keyboard Navigation
 
@@ -165,11 +162,9 @@ Virtualization has two layers:
 - generic window math;
 - view-specific layout projection.
 
-`Virtualizer<T>` can remain generic. `serviceViews` should decide which item
-array is virtualized and expose visible windows when useful.
+`Virtualizer<T>` can remain generic. `serviceViews` should decide which item array is virtualized and expose visible windows when useful.
 
-Tree can keep `TreeVirtualizer` behavior, but flattening should be part of the
-tree render model builder, not arbitrary view logic.
+Tree can keep `TreeVirtualizer` behavior, but flattening should be part of the tree render model builder, not arbitrary view logic.
 
 Table may need row virtualization first and column virtualization later.
 

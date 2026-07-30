@@ -31,18 +31,13 @@ updated_by: codex
 
 ## What To Build
 
-Introduce the Files-first `ExplorerDataPlane` foundation: typed snapshot
-contracts, a pure snapshot builder, and a Svelte service that publishes
-immutable structural snapshots while preserving current `TreeNode` compatibility.
+Introduce the Files-first `ExplorerDataPlane` foundation: typed snapshot contracts, a pure snapshot builder, and a Svelte service that publishes immutable structural snapshots while preserving current `TreeNode` compatibility.
 
 ## Acceptance Criteria
 
-- [ ] `typeExplorerDataPlane`, pure snapshot builder, and data-plane service
-      exist with unit tests.
-- [ ] Files provider exposes undecorated structural source while `getTree()`
-      and action hooks remain compatible.
-- [ ] Snapshot tests cover rows, maps, visible ids, parent links, path/folder
-      lookup, revision replacement, and subscriptions.
+- [ ] `typeExplorerDataPlane`, pure snapshot builder, and data-plane service exist with unit tests.
+- [ ] Files provider exposes undecorated structural source while `getTree()` and action hooks remain compatible.
+- [ ] Snapshot tests cover rows, maps, visible ids, parent links, path/folder lookup, revision replacement, and subscriptions.
 
 ## Blocked By
 
@@ -50,5 +45,4 @@ immutable structural snapshots while preserving current `TreeNode` compatibility
 
 ## Verification
 
-- Run focused unit tests for snapshot construction and service revision
-  behavior.
+- Run focused unit tests for snapshot construction and service revision behavior.

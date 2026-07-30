@@ -162,8 +162,7 @@ node --test "test/*.test.mjs"
 Pop-Location
 ```
 
-Expected: no test files yet or empty test run behavior. If Node errors because the glob has no matches,
-continue after Task 2 creates tests.
+Expected: no test files yet or empty test run behavior. If Node errors because the glob has no matches, continue after Task 2 creates tests.
 
 ### Task 2: Risk Policy, Command Preview, And Alert Tests
 
@@ -275,5 +274,4 @@ Pop-Location
 
 Expected: PASS.
 
-Continue in [[01-backend-contracts-part-2|backend contracts part 2]] for command previews,
-alert derivation, combined verification, and the backend-contract commit.
+Continue in [[01-backend-contracts-part-2|backend contracts part 2]] for command previews, alert derivation, combined verification, and the backend-contract commit.

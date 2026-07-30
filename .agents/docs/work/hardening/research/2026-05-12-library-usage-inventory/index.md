@@ -18,17 +18,13 @@ updated_by: codex
 
 ## Scope
 
-This research record captures the dependency inventory requested by the user
-after Explorer UI work. It maps direct `package.json` dependencies to the
-Vaultman modules, components, tests, and tooling configuration that use them.
+This research record captures the dependency inventory requested by the user after Explorer UI work. It maps direct `package.json` dependencies to the Vaultman modules, components, tests, and tooling configuration that use them.
 
 The inventory is based on:
 
 - `package.json` direct dependencies and dev dependencies.
-- Import/require/dynamic-import scans across `src/`, `test/`, `scripts/`,
-  `codeql/`, and root configuration files.
-- Targeted searches for package names that can be used indirectly by config
-  rather than by normal TypeScript imports.
+- Import/require/dynamic-import scans across `src/`, `test/`, `scripts/`, `codeql/`, and root configuration files.
+- Targeted searches for package names that can be used indirectly by config rather than by normal TypeScript imports.
 
 No product code was changed for this inventory.
 
@@ -81,6 +77,4 @@ Potential audit targets from this scan:
 - `type-fest`
 - `jiti`
 
-This is not a removal recommendation. These packages need focused audit checks
-because some tooling is loaded indirectly through config strings, CLI adapters,
-or plugin resolution.
+This is not a removal recommendation. These packages need focused audit checks because some tooling is loaded indirectly through config strings, CLI adapters, or plugin resolution.

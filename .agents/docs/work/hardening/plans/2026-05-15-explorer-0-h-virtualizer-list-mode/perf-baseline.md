@@ -13,10 +13,7 @@ tags:
 
 # 0-H PerfProbe Baseline And Live Snapshot
 
-Captured: 2026-05-15T04:26:25.6569760-05:00
-Branch: `claude/explorer`
-Head: `e8795a1`
-Workspace: `C:\Users\vic_A\Desktop\vaultman\.claude\worktrees\jovial-wilson-f81c67`
+Captured: 2026-05-15T04:26:25.6569760-05:00 Branch: `claude/explorer` Head: `e8795a1` Workspace: `C:\Users\vic_A\Desktop\vaultman\.claude\worktrees\jovial-wilson-f81c67`
 
 ## Coverage Audit
 
@@ -84,10 +81,7 @@ Aggregate local smoke numbers from the rerun:
 
 ## Post-Migration Measurement
 
-Captured: 2026-05-15T05:54:46.3976156-05:00
-Branch: `claude/explorer`
-Head: `3a2603e` after Task 5
-Workspace: `C:\Users\vic_A\Desktop\vaultman\.claude\worktrees\jovial-wilson-f81c67`
+Captured: 2026-05-15T05:54:46.3976156-05:00 Branch: `claude/explorer` Head: `3a2603e` after Task 5 Workspace: `C:\Users\vic_A\Desktop\vaultman\.claude\worktrees\jovial-wilson-f81c67`
 
 Command:
 
@@ -119,15 +113,9 @@ Additional Task 6 verification added:
 
 ## Post-Audit Live Obsidian PerfProbe Snapshot
 
-Captured: 2026-05-15T07:56:18.5576161-05:00
-Branch: `claude/explorer`
-Head: `e24d773` before this documentation update
-Vault: `plugin-dev`
-Workspace: `C:\Users\vic_A\Desktop\vaultman\.claude\worktrees\jovial-wilson-f81c67`
+Captured: 2026-05-15T07:56:18.5576161-05:00 Branch: `claude/explorer` Head: `e24d773` before this documentation update Vault: `plugin-dev` Workspace: `C:\Users\vic_A\Desktop\vaultman\.claude\worktrees\jovial-wilson-f81c67`
 
-The earlier 0-H pass incorrectly stopped at the jsdom smoke harness. The
-Obsidian CLI can run the plugin's global perf probe inside `plugin-dev` after
-the plugin is enabled and reloaded.
+The earlier 0-H pass incorrectly stopped at the jsdom smoke harness. The Obsidian CLI can run the plugin's global perf probe inside `plugin-dev` after the plugin is enabled and reloaded.
 
 Preparation commands:
 
@@ -177,11 +165,6 @@ Cleanup results:
 
 Remaining limitation:
 
-- This live CLI run provides real Obsidian wall-clock deltas from
-  `startedAt`/`endedAt`.
-- It still does not provide jank-frame counts or heap usage because the current
-  `PerfProbeSnapshot` shape has no fields for those metrics.
-- There is no pre-migration live Obsidian snapshot for `e8795a1`, so this
-  post-audit live run cannot prove a numeric before/after threshold. It does,
-  however, replace the earlier incorrect assumption that Obsidian CLI could not
-  run the probe.
+- This live CLI run provides real Obsidian wall-clock deltas from `startedAt`/`endedAt`.
+- It still does not provide jank-frame counts or heap usage because the current `PerfProbeSnapshot` shape has no fields for those metrics.
+- There is no pre-migration live Obsidian snapshot for `e8795a1`, so this post-audit live run cannot prove a numeric before/after threshold. It does, however, replace the earlier incorrect assumption that Obsidian CLI could not run the probe.

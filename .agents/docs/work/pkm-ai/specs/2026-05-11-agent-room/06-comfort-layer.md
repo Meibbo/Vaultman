@@ -21,9 +21,7 @@ updated_by: codex
 
 ## Purpose
 
-Make the durable room contract usable from memory during active work without
-forcing agents to type the full script path or repeatedly look up the latest
-run id.
+Make the durable room contract usable from memory during active work without forcing agents to type the full script path or repeatedly look up the latest run id.
 
 ## Wrapper
 
@@ -45,8 +43,7 @@ Run from `.agents/tools/pkm-ai` for `npm run room`.
 
 ## Latest Run Resolution
 
-Read commands resolve the latest run when `--run` is omitted. Explicit
-`--run latest` and `--run current` are equivalent.
+Read commands resolve the latest run when `--run` is omitted. Explicit `--run latest` and `--run current` are equivalent.
 
 This applies to:
 
@@ -55,8 +52,7 @@ This applies to:
 - `handoff`
 - `mailbox read`
 
-Mutating task, scope, mailbox-send, and agent commands should still pass an
-explicit run id during real use so the action is auditable.
+Mutating task, scope, mailbox-send, and agent commands should still pass an explicit run id during real use so the action is auditable.
 
 ## Dashboard
 
@@ -80,8 +76,7 @@ Unread: 0
 node .agents/tools/pkm-ai/agent-room.mjs handoff
 ```
 
-`handoff` prints Markdown only. It does not write to
-`.agents/docs/current/handoff.md` automatically.
+`handoff` prints Markdown only. It does not write to `.agents/docs/current/handoff.md` automatically.
 
 Expected shape:
 

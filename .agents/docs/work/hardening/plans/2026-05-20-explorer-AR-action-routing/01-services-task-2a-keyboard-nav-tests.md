@@ -4,9 +4,7 @@
 - Create: `src/services/serviceKeyboardNav.ts`
 - Test: `test/unit/services/keyboardNav.test.ts`
 
-Servicio puro: `handleKeydown(focusedId, e)` despacha a callbacks de `ctx`. Paridad con
-`panelExplorer.handleRowKeydown` (632-704) + gaps nuevos (Home/End, type-ahead). Planar vertical mueve
-±`columns` repitiendo `moveFocus(±1)` (mismo call que el panel hoy → paridad exacta).
+Servicio puro: `handleKeydown(focusedId, e)` despacha a callbacks de `ctx`. Paridad con `panelExplorer.handleRowKeydown` (632-704) + gaps nuevos (Home/End, type-ahead). Planar vertical mueve ±`columns` repitiendo `moveFocus(±1)` (mismo call que el panel hoy → paridad exacta).
 
 - [x] **Step 1: Write the failing test**
 
@@ -110,5 +108,4 @@ describe('serviceKeyboardNav (planar-drill)', () => {
 
 - [x] **Step 2: Run test to verify it fails**
 
-Run: `pnpm vitest run test/unit/services/keyboardNav.test.ts`
-Expected: FAIL — `Cannot find module '../../../src/services/serviceKeyboardNav'`.
+Run: `pnpm vitest run test/unit/services/keyboardNav.test.ts` Expected: FAIL — `Cannot find module '../../../src/services/serviceKeyboardNav'`.

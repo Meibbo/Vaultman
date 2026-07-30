@@ -18,8 +18,7 @@ updated: 2026-05-20T17:15:00-05:00
   `expandAllParents`/`collapseAllParents` 830-836)
 - Test: `test/component/expandAllParity.test.ts`
 
-Hoy `hasExpansionSurface = viewMode === 'tree' || 'grid'` (137) gatea por viewMode → list/table/cards
-nunca expanden aunque los datos tengan hijos. Cambiar a gate por datos.
+Hoy `hasExpansionSurface = viewMode === 'tree' || 'grid'` (137) gatea por viewMode → list/table/cards nunca expanden aunque los datos tengan hijos. Cambiar a gate por datos.
 
 - [x] **Step 1: Write the failing test**
 
@@ -42,8 +41,7 @@ describe('expand/collapse-all is data-gated, not viewMode-gated', () => {
 });
 ```
 
-(Completar el montaje con el helper exacto de `panelExplorerSelection.test.ts`; la aserción central es
-`visibleNodeIds`/`expandedIds` tras el comando, independiente de `viewMode`.)
+(Completar el montaje con el helper exacto de `panelExplorerSelection.test.ts`; la aserción central es `visibleNodeIds`/`expandedIds` tras el comando, independiente de `viewMode`.)
 
 - [x] **Step 2: Run → FAIL** (`pnpm vitest run test/component/expandAllParity.test.ts`) — list no expande.
 
@@ -53,9 +51,7 @@ describe('expand/collapse-all is data-gated, not viewMode-gated', () => {
 - const hasExpansionSurface = $derived(viewMode === 'tree' || viewMode === 'grid');
 + const hasExpandableRows = $derived(collectExpandableNodeIds(nodes).length > 0);
 ```
-Reemplazar usos de `hasExpansionSurface` (139, 151, 154) por `hasExpandableRows`. `expandableNodeIds`
-se colecta siempre que haya filas expandibles (no solo tree/grid). El effect de `nodeExpansionCommand`
-(390-397) ya llama `expandAllParents`/`collapseAllParents`, ahora activo en cualquier view con jerarquía.
+Reemplazar usos de `hasExpansionSurface` (139, 151, 154) por `hasExpandableRows`. `expandableNodeIds` se colecta siempre que haya filas expandibles (no solo tree/grid). El effect de `nodeExpansionCommand` (390-397) ya llama `expandAllParents`/`collapseAllParents`, ahora activo en cualquier view con jerarquía.
 En grid `inline`, rutear al set correcto (mirroring `toggleExpand` 810-812):
 
 ```ts
@@ -81,10 +77,7 @@ Actual verification:
 - `pnpm run lint` — PASS, 0 errors / 0 warnings.
 - `git diff --check` — PASS, CRLF working-copy warnings only.
 
-Implementation note: `panelExplorer` now derives `expandableNodeIds` from the data tree regardless of
-view mode, then gates `autoExpandedIds` and `hasExpandedParents` from `hasExpandableRows`. This keeps
-flat providers as no-op while allowing list/table/cards selection/keyboard visibility semantics to see
-expanded hierarchical ids.
+Implementation note: `panelExplorer` now derives `expandableNodeIds` from the data tree regardless of view mode, then gates `autoExpandedIds` and `hasExpandedParents` from `hasExpandableRows`. This keeps flat providers as no-op while allowing list/table/cards selection/keyboard visibility semantics to see expanded hierarchical ids.
 
 - [x] **Step 5: Commit** `feat(A.R): data-gate expand/collapse-all across all views`.
 
@@ -99,9 +92,7 @@ Actual commit: `feat(A.R): data-gate expand/collapse-all across views`.
 - Modify (si diverge): `src/components/containers/panelExplorer.svelte` (`handleContextMenu` 588-596)
 - Test: extend `test/unit/services/serviceCMenu.test.ts` + `test/component/cmenuTriggerParity.test.ts`
 
-El trigger ya quedó unificado tras Task 5/6 (todos los views → `oncontextmenu` del spread →
-`onContextMenu(id,e)` → `handleContextMenu`). Aquí: (1) verificar paridad del trigger en los 5 views,
-(2) verificar/registrar el standard set por provider, (3) reconciliar los dos paths de apertura.
+El trigger ya quedó unificado tras Task 5/6 (todos los views → `oncontextmenu` del spread → `onContextMenu(id,e)` → `handleContextMenu`). Aquí: (1) verificar paridad del trigger en los 5 views, (2) verificar/registrar el standard set por provider, (3) reconciliar los dos paths de apertura.
 
 - [x] **Step 1: Write the failing/parity tests**
 
@@ -125,16 +116,9 @@ import { ContextMenuService } from '../../../src/services/serviceCMenu';
 
 - [x] **Step 3: Verify + register missing + reconcile path**
 
-  - **Standard set**: leer los `registerAction({...})` reales de los 6 providers. Conocidos en
-    `explorerFiles.ts`: `file.rename` (Rename), `file.delete` (Delete), `file.set` (Set (append link)),
-    `file.move` (Move file), `folder.filter`. El brief nombra 8 (Open/Rename/Move/Tag/Prop/Duplicate/
-    Queue/Delete). Registrar los faltantes (ej. `file.open` "Open", `file.duplicate`, `node.queue`,
-    `node.tag`, `node.prop`) en el provider correspondiente con su `nodeTypes`/`surfaces`/`run`. NO
-    reconstruir el registry.
+  - **Standard set**: leer los `registerAction({...})` reales de los 6 providers. Conocidos en `explorerFiles.ts`: `file.rename` (Rename), `file.delete` (Delete), `file.set` (Set (append link)), `file.move` (Move file), `folder.filter`. El brief nombra 8 (Open/Rename/Move/Tag/Prop/Duplicate/ Queue/Delete). Registrar los faltantes (ej. `file.open` "Open", `file.duplicate`, `node.queue`, `node.tag`, `node.prop`) en el provider correspondiente con su `nodeTypes`/`surfaces`/`run`. NO reconstruir el registry.
   - **Reconciliar paths**: `handleContextMenu` (588-596) llama `provider.handleContextMenu(node, e, ...)`
-    — confirmar si internamente usa `ContextMenuService.openPanelMenu` (registry) o construye su propio
-    menú. Si construye uno propio divergente, redirigirlo a `openPanelMenu` para un único path. Si ya
-    delega al registry, no-op (solo documentar).
+    — confirmar si internamente usa `ContextMenuService.openPanelMenu` (registry) o construye su propio menú. Si construye uno propio divergente, redirigirlo a `openPanelMenu` para un único path. Si ya delega al registry, no-op (solo documentar).
 
 - [x] **Step 4: Run → PASS.** `pnpm vitest run test/unit/services/serviceCMenu.test.ts test/component/cmenuTriggerParity.test.ts test/component/cmenuSetAction.test.ts`.
 
@@ -146,10 +130,7 @@ Actual verification:
 - `pnpm run lint` — PASS, 0 errors / 0 warnings.
 - `git diff --check` — PASS, CRLF working-copy warnings only.
 
-Implementation note: The five view triggers now have a consolidated parity test. `explorerFiles`
-registers `file.open` for `panel` and `file-menu`, using the same workspace `openLinkText(file.path,
-'', false)` path as file secondary activation. Existing provider `handleContextMenu` methods already
-route through `ContextMenuService.openPanelMenu`; no registry rebuild was needed.
+Implementation note: The five view triggers now have a consolidated parity test. `explorerFiles` registers `file.open` for `panel` and `file-menu`, using the same workspace `openLinkText(file.path, '', false)` path as file secondary activation. Existing provider `handleContextMenu` methods already route through `ContextMenuService.openPanelMenu`; no registry rebuild was needed.
 
 - [x] **Step 5: Commit** `refactor(A.R): unify context-menu trigger across views + verify standard action set`.
 

@@ -21,8 +21,7 @@ Observed:
 
 Classification: strong for TypeScript structural discovery.
 
-Use MCP first for TS symbols, definitions, snippets, internal imports, and
-impact analysis.
+Use MCP first for TS symbols, definitions, snippets, internal imports, and impact analysis.
 
 ## Svelte Coverage
 
@@ -55,8 +54,7 @@ High-import Svelte surfaces:
 | `src/components/frame/FrameDashboardShell.svelte` | 16 |
 | `src/components/views/ViewNodeCards.svelte` | 16 |
 
-Classification: partial. MCP is useful for Svelte file/import surface, but not
-complete for Svelte runtime semantics.
+Classification: partial. MCP is useful for Svelte file/import surface, but not complete for Svelte runtime semantics.
 
 ## Missed Svelte Semantic Trace
 
@@ -83,9 +81,7 @@ Observed callers:
 - `src/components/views/viewTree.svelte:360`
 - `src/components/views/ViewNodeList.svelte:189`
 
-Interpretation: MCP sees enough Svelte for imports, but this trace proves that
-calls inside Svelte scripts can be missed. Use Svelte MCP/autofixer or targeted
-literal scans when call/template semantics matter.
+Interpretation: MCP sees enough Svelte for imports, but this trace proves that calls inside Svelte scripts can be missed. Use Svelte MCP/autofixer or targeted literal scans when call/template semantics matter.
 
 ## Styling Strata
 
@@ -107,8 +103,7 @@ Classification: mixed styling architecture.
 
 This matches the known branch reality:
 
-- `stable` is expected to have styling concentrated as pure CSS in
-  `styles.css`.
+- `stable` is expected to have styling concentrated as pure CSS in `styles.css`.
 - `sandbox` still has a majority of real SCSS.
 - UnoCSS migration is already planned in the PKM-AI goal stream.
 
@@ -123,23 +118,17 @@ rg -n "uno|UnoCSS|virtual:uno\.css|presetWind3|presetIcons|unocss-preset-theme|@
 Observed:
 
 - `vite.config.ts` imports `@unocss/vite` and registers `UnoCSS({ configFile: './uno.config.ts' })`.
-- `uno.config.ts` imports `presetAttributify`, `presetIcons`, `presetWind3`,
-  and `unocss-preset-theme`.
+- `uno.config.ts` imports `presetAttributify`, `presetIcons`, `presetWind3`, and `unocss-preset-theme`.
 - `uno.config.ts` uses `presetWind3({ preflight: false })`.
 - `src/pluginEntry.ts` imports `virtual:uno.css`.
 - `src/svelte.d.ts` declares module `virtual:uno.css`.
-- `test/unit/build/unoPreflightGate.test.ts` verifies UnoCSS preset and
-  preflight assumptions.
+- `test/unit/build/unoPreflightGate.test.ts` verifies UnoCSS preset and preflight assumptions.
 
-Interpretation: UnoCSS is active as build/runtime CSS infrastructure, but class
-ownership still requires selector/class scanning. The MCP graph does not model
-CSS selector provenance.
+Interpretation: UnoCSS is active as build/runtime CSS infrastructure, but class ownership still requires selector/class scanning. The MCP graph does not model CSS selector provenance.
 
 ## Migration Implications
 
-- Keep Obsidian shell/global integration styles global until selectors are
-  proven component-local.
+- Keep Obsidian shell/global integration styles global until selectors are proven component-local.
 - Use CSS custom properties for runtime theme tokens.
-- Convert repeated utility-like SCSS groups into UnoCSS shortcuts only after
-  checking dynamic class construction and safelist needs.
+- Convert repeated utility-like SCSS groups into UnoCSS shortcuts only after checking dynamic class construction and safelist needs.
 - Treat SCSS removal as a follow-up migration project, not part of this audit.

@@ -17,24 +17,15 @@ tags:
 
 # PKM-AI Retrieval And Discovery Audit
 
-Adversarial pass requested by the dev on 2026-07-28 after a status question
-("which BT5 issues stayed open after the last stable release") was answered by
-reading frontmatter file-by-file instead of querying the existing tooling. The
-dev had to name the tool explicitly. This audit asks why, and what else the
-tooling silently fails to cover.
+Adversarial pass requested by the dev on 2026-07-28 after a status question ("which BT5 issues stayed open after the last stable release") was answered by reading frontmatter file-by-file instead of querying the existing tooling. The dev had to name the tool explicitly. This audit asks why, and what else the tooling silently fails to cover.
 
-Every finding below is backed by a command run against the live repo or by a
-cited source line. No inferred behavior.
+Every finding below is backed by a command run against the live repo or by a cited source line. No inferred behavior.
 
 ## Shards
 
-- [01-discovery-gaps.md](01-discovery-gaps.md) — why an agent does not reach for
-  the tool (findings D1–D4).
-- [02-index-corpus-and-embeddings.md](02-index-corpus-and-embeddings.md) — the
-  two indexes, their divergent corpora, embedding coverage, staleness
-  (findings R1–R5).
-- [03-schema-and-vocabulary.md](03-schema-and-vocabulary.md) — status vocabulary,
-  unindexed fields, missing operators (findings S1–S6).
+- [01-discovery-gaps.md](01-discovery-gaps.md) — why an agent does not reach for the tool (findings D1–D4).
+- [02-index-corpus-and-embeddings.md](02-index-corpus-and-embeddings.md) — the two indexes, their divergent corpora, embedding coverage, staleness (findings R1–R5).
+- [03-schema-and-vocabulary.md](03-schema-and-vocabulary.md) — status vocabulary, unindexed fields, missing operators (findings S1–S6).
 - [04-fix-plan.md](04-fix-plan.md) — ordered remediation with acceptance criteria.
 
 ## Executive Matrix
@@ -61,31 +52,18 @@ cited source line. No inferred behavior.
 
 The tooling is not underpowered; it is **undiscoverable and unguarded**.
 
-Two failures compound. First, nothing in the startup path tells an agent that
-inventory and status questions have a query path — the bootloader advertises
-only topic search, and the one hook that does impose a discovery protocol
-advertises a different system entirely. Second, when the tool *is* used, it has
-no integrity guard: a stale cache and an unnormalized `status` vocabulary both
-return confident, wrong answers with no error signal.
+Two failures compound. First, nothing in the startup path tells an agent that inventory and status questions have a query path — the bootloader advertises only topic search, and the one hook that does impose a discovery protocol advertises a different system entirely. Second, when the tool *is* used, it has no integrity guard: a stale cache and an unnormalized `status` vocabulary both return confident, wrong answers with no error signal.
 
-R5 and S1 are the dangerous pair. Every other finding costs tokens; those two
-cost correctness.
+R5 and S1 are the dangerous pair. Every other finding costs tokens; those two cost correctness.
 
 ## Live Proof Of R5
 
-During this session the index reported 1129 docs while 971 of them had already
-been moved off disk by the Google Drive client. `query-docs` kept answering from
-the stale cache without a single warning. The stale-index failure mode is not
-theoretical — it was reproduced in the same hour the finding was written.
+During this session the index reported 1129 docs while 971 of them had already been moved off disk by the Google Drive client. `query-docs` kept answering from the stale cache without a single warning. The stale-index failure mode is not theoretical — it was reproduced in the same hour the finding was written.
 
-The doc-loss incident itself is recorded separately in
-[[docs/architecture/operational-watch-list|operational-watch-list]] territory; this
-audit only claims the retrieval consequence.
+The doc-loss incident itself is recorded separately in [[docs/architecture/operational-watch-list|operational-watch-list]] territory; this audit only claims the retrieval consequence.
 
 ## Antecedent
 
-The 2026-07-06 audit already recorded PKM-AI semantic retrieval as unpopulated
-(`0` vectors) and gated embedding rebuild on doc recovery:
+The 2026-07-06 audit already recorded PKM-AI semantic retrieval as unpopulated (`0` vectors) and gated embedding rebuild on doc recovery:
 [[docs/work/pkm-ai/items/2026-07-06-codebase-intelligence-and-doc-recovery-audit/index|codebase intelligence and doc recovery audit]].
-That gate was partially lifted (862 vectors now exist) but never completed, which
-is why R3 reads the way it does.
+That gate was partially lifted (862 vectors now exist) but never completed, which is why R3 reads the way it does.

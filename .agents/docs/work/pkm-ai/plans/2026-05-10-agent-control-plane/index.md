@@ -20,19 +20,11 @@ tags:
 > subagent-driven-development only if the user explicitly authorizes parallel
 > agents and the write scopes remain disjoint.
 
-**Goal:** Build the first operational slice of the Agent Control Plane so
-future Vaultman agents classify residuals, choose retrieval tools, and verify
-work through one shared workflow contract.
+**Goal:** Build the first operational slice of the Agent Control Plane so future Vaultman agents classify residuals, choose retrieval tools, and verify work through one shared workflow contract.
 
-**Architecture:** This plan is documentation-first and tool-contract-first. It
-adds source records that define residual classification, retrieval profiles,
-and verification matrix rules, then updates PKM-AI routing so agents can find
-and use them. It does not implement product `serviceAPI`; that remains blocked
-on queue/scope verification.
+**Architecture:** This plan is documentation-first and tool-contract-first. It adds source records that define residual classification, retrieval profiles, and verification matrix rules, then updates PKM-AI routing so agents can find and use them. It does not implement product `serviceAPI`; that remains blocked on queue/scope verification.
 
-**Tech Stack:** Obsidian Markdown under `.agents/docs`, PKM-AI scripts under
-`.agents/tools/pkm-ai`, existing Node/Vitest tool tests, and existing
-Vaultman package verification commands.
+**Tech Stack:** Obsidian Markdown under `.agents/docs`, PKM-AI scripts under `.agents/tools/pkm-ai`, existing Node/Vitest tool tests, and existing Vaultman package verification commands.
 
 ---
 
@@ -74,9 +66,7 @@ It does not implement:
   [[docs/work/pkm-ai/plans/2026-05-10-agent-control-plane/06-handoff|06 Handoff]]
 - Modify: [[docs/work/pkm-ai/index|PKM-AI index]]
 - Optional later code files, only after this plan is accepted:
-  `.agents/tools/pkm-ai/verify-matrix.mjs`,
-  `.agents/tools/pkm-ai/residuals-audit.mjs`,
-  `.agents/tools/pkm-ai/code-index.mjs`.
+  `.agents/tools/pkm-ai/verify-matrix.mjs`, `.agents/tools/pkm-ai/residuals-audit.mjs`, `.agents/tools/pkm-ai/code-index.mjs`.
 
 ## Execution Order
 
@@ -93,20 +83,14 @@ It does not implement:
 ## Next Plans
 
 - Queue contract repair:
-  [[docs/work/pkm-ai/plans/2026-05-10-queue-contract-repair/index|queue-contract-repair-plan]]
-  reconnects stale queue `pending` drift before agent-facing operation APIs.
+  [[docs/work/pkm-ai/plans/2026-05-10-queue-contract-repair/index|queue-contract-repair-plan]] reconnects stale queue `pending` drift before agent-facing operation APIs.
 - Selected/visible scope verification:
-  [[docs/work/pkm-ai/plans/2026-05-10-selected-visible-scope-verification/index|selected-visible-scope-verification-plan]]
-  proves visible explorer scope, selected node scope, and queued operation
-  scope agree before automation expands.
-- `serviceAPI` read/plan/enqueue design: expose supervised read/plan/enqueue
-  only after queue and scope preconditions are verified:
+  [[docs/work/pkm-ai/plans/2026-05-10-selected-visible-scope-verification/index|selected-visible-scope-verification-plan]] proves visible explorer scope, selected node scope, and queued operation scope agree before automation expands.
+- `serviceAPI` read/plan/enqueue design: expose supervised read/plan/enqueue only after queue and scope preconditions are verified:
   [[docs/work/pkm-ai/plans/2026-05-10-service-api-read-plan-enqueue/index|service-api-read-plan-enqueue-plan]].
-- TypeScript AST code-index implementation: replace regex-only architecture
-  orientation where dependency, export, and call-site confidence matters:
+- TypeScript AST code-index implementation: replace regex-only architecture orientation where dependency, export, and call-site confidence matters:
   [[docs/work/pkm-ai/plans/2026-05-10-typescript-ast-code-index/index|typescript-ast-code-index-plan]].
-- Svelte code-index extraction: add component prop/event interface evidence
-  on top of the TypeScript AST code index:
+- Svelte code-index extraction: add component prop/event interface evidence on top of the TypeScript AST code index:
   [[docs/work/pkm-ai/plans/2026-05-10-svelte-code-index-extraction/index|svelte-code-index-extraction-plan]].
 
 ## Stop Conditions
@@ -115,5 +99,4 @@ It does not implement:
 - Stop before building `serviceAPI`.
 - Stop if doc health reports a new failure under this plan's paths.
 - Stop if any current-doc rewrite would remove detail without archive source.
-- Stop if the user asks to execute with parallel agents; that requires an
-  explicit subagent execution decision first.
+- Stop if the user asks to execute with parallel agents; that requires an explicit subagent execution decision first.

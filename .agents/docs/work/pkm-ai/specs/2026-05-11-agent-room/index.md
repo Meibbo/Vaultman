@@ -18,13 +18,10 @@ tags:
 
 ## Purpose
 
-Define a repo-local coordination room for parallel Vaultman agents. The room
-lets agents see active runs, claim tasks and scopes, publish heartbeats, send
-messages, and inspect stale or conflicting work before editing.
+Define a repo-local coordination room for parallel Vaultman agents. The room lets agents see active runs, claim tasks and scopes, publish heartbeats, send messages, and inspect stale or conflicting work before editing.
 
 This spec implements the user's requested direction after the Pi-crew spike:
-validate Pi-crew first, then build the PKM-AI contract instead of adopting
-Pi-crew wholesale.
+validate Pi-crew first, then build the PKM-AI contract instead of adopting Pi-crew wholesale.
 
 ## Source Inputs
 
@@ -38,12 +35,9 @@ Pi-crew wholesale.
 ## Design Thesis
 
 PKM-AI needs a durable coordination layer, not another Markdown handoff file.
-Markdown remains the human-readable record; `agent-room` is the machine-readable
-live state and message bus agents consult before and during work.
+Markdown remains the human-readable record; `agent-room` is the machine-readable live state and message bus agents consult before and during work.
 
-The first implementation should be a TypeScript or JavaScript CLI/API script
-that writes JSON and JSONL under `.agents/state`. A dashboard or chat UI can be
-added after the file contract is stable.
+The first implementation should be a TypeScript or JavaScript CLI/API script that writes JSON and JSONL under `.agents/state`. A dashboard or chat UI can be added after the file contract is stable.
 
 ## Shards
 
@@ -70,28 +64,21 @@ Comfort layer is also implemented:
 
 - Do not make Pi-crew a required runtime dependency.
 - Do not spawn agents from `agent-room` in the first version.
-- Do not auto-edit product code, commit, merge, clean worktrees, or delete dirty
-  state.
-- Do not replace `.agents/docs/current/status.md` or
-  `.agents/docs/current/handoff.md`; keep those as compact human route indexes.
+- Do not auto-edit product code, commit, merge, clean worktrees, or delete dirty state.
+- Do not replace `.agents/docs/current/status.md` or `.agents/docs/current/handoff.md`; keep those as compact human route indexes.
 - Do not rely on multiple agents manually editing the same Markdown table.
 
 ## Core Concepts
 
 `run`: One coordinated user request or work wave.
 
-`agent`: One concrete agent session participating in a run. The owner id should
-be explicit, for example `codex-main`, `codex-worker-a`, `claude-reviewer`, or
-`gemini-scout`.
+`agent`: One concrete agent session participating in a run. The owner id should be explicit, for example `codex-main`, `codex-worker-a`, `claude-reviewer`, or `gemini-scout`.
 
-`task`: One independently grabbable unit of work. It can mirror an objective
-from `manage-tasks.mjs`, a plan task, or an ad-hoc run task.
+`task`: One independently grabbable unit of work. It can mirror an objective from `manage-tasks.mjs`, a plan task, or an ad-hoc run task.
 
-`scope`: A file, folder, route, doc shard, test file, or semantic area an agent
-intends to touch.
+`scope`: A file, folder, route, doc shard, test file, or semantic area an agent intends to touch.
 
-`claim`: A leased owner/token record that grants temporary authority over a
-task or scope.
+`claim`: A leased owner/token record that grants temporary authority over a task or scope.
 
 `heartbeat`: A recent liveness record for an agent or task.
 
@@ -99,8 +86,7 @@ task or scope.
 
 ## Minimal State Root
 
-Use `.agents/state` so AI workflow state stays under the branch-permitted AI
-files area and remains excluded from `main` by branch policy.
+Use `.agents/state` so AI workflow state stays under the branch-permitted AI files area and remains excluded from `main` by branch policy.
 
 ```text
 .agents/state/
@@ -130,9 +116,7 @@ Task statuses:
 todo, in-progress, waiting, blocked, question, done, failed, cancelled, skipped
 ```
 
-The task vocabulary intentionally preserves PKM-AI's existing objective states
-from `manage-tasks.mjs` while borrowing Pi-crew's distinction between
-`waiting`, terminal failure, cancellation, and skip states.
+The task vocabulary intentionally preserves PKM-AI's existing objective states from `manage-tasks.mjs` while borrowing Pi-crew's distinction between `waiting`, terminal failure, cancellation, and skip states.
 
 ## First Version Acceptance
 
@@ -140,16 +124,14 @@ The first implementation is acceptable when these are true:
 
 1. An agent can create or resume a run without manually editing Markdown.
 2. An agent can claim a task and move it to `in-progress`.
-3. A second agent can see the active claim before touching the same task or
-   scope.
+3. A second agent can see the active claim before touching the same task or scope.
 4. An agent can claim one or more scopes such as files or folders.
 5. Conflicting active scope claims are detected and reported.
 6. Agents can send run-level and task-level messages.
 7. Agents can acknowledge messages.
 8. Heartbeats mark stale agents without deleting their claims automatically.
 9. `agent-room status --json` gives the current room state in one command.
-10. `manage-tasks.mjs` objective state can be read and optionally updated from
-    `agent-room` task transitions.
+10. `manage-tasks.mjs` objective state can be read and optionally updated from `agent-room` task transitions.
 
 ## Recommended Sequence
 
@@ -163,10 +145,6 @@ The first implementation is acceptable when these are true:
 
 ## Open Decisions
 
-- TypeScript versus JavaScript implementation. JavaScript fits current
-  `.agents/tools/pkm-ai/*.mjs`; TypeScript gives stronger schemas if the repo's
-  agent tooling starts compiling TS.
-- Whether `scope` claims should be path-only in v1 or include semantic scopes
-  like `route:pkm-ai` and `module:view-grid`.
-- Whether stale claim takeover requires explicit `--force` or a two-step
-  `request-takeover` mailbox flow. The safer v1 default is explicit `--force`.
+- TypeScript versus JavaScript implementation. JavaScript fits current `.agents/tools/pkm-ai/*.mjs`; TypeScript gives stronger schemas if the repo's agent tooling starts compiling TS.
+- Whether `scope` claims should be path-only in v1 or include semantic scopes like `route:pkm-ai` and `module:view-grid`.
+- Whether stale claim takeover requires explicit `--force` or a two-step `request-takeover` mailbox flow. The safer v1 default is explicit `--force`.

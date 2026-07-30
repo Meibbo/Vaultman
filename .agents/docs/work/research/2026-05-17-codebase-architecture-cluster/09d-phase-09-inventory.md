@@ -97,8 +97,5 @@ updated_by: codex
 
 ## Test Surfaces
 
-- Index/unit suites: files, props, tags, operations, active filters, content,
-  plugins, snippets, Bases import targets, `createNodeIndex`, `utilPropIndex`.
-- UI suites: `SettingsUI`, `settingsLeafToggle`, `PrimitiveFab`,
-  navbar FAB badges/click weights, add-ons pane, dashboard, delete conflict
-  modal, badge collision/hover behavior.
+- Index/unit suites: files, props, tags, operations, active filters, content, plugins, snippets, Bases import targets, `createNodeIndex`, `utilPropIndex`.
+- UI suites: `SettingsUI`, `settingsLeafToggle`, `PrimitiveFab`, navbar FAB badges/click weights, add-ons pane, dashboard, delete conflict modal, badge collision/hover behavior.

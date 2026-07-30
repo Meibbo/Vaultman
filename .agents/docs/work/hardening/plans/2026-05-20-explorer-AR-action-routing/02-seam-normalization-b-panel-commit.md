@@ -1,10 +1,6 @@
 - [x] **Step 3c: panelExplorer — build controller, delete bridges**
 
-Add near the other service wiring (imports + setup). Reuses existing panel fns confirmed at the cited
-lines: `visibleNodeIds()` (889), `selectionService`, `commitSelection` (856), `revealNode` (1076),
-`toggleExpand` (810), `expandNode`/`collapseNode` (820/825), `findNodeById` (797), `findNodePath`
-(used at 939), `handleSecondaryAction` (522), `handleTableSelectAll` (846), `navigateGridTo` (909),
-`navigateGridUp` (937), `currentGridParentId`, `gridExpandedIds`, `gridHierarchyMode`, `nodeMouseActions`.
+Add near the other service wiring (imports + setup). Reuses existing panel fns confirmed at the cited lines: `visibleNodeIds()` (889), `selectionService`, `commitSelection` (856), `revealNode` (1076), `toggleExpand` (810), `expandNode`/`collapseNode` (820/825), `findNodeById` (797), `findNodePath` (used at 939), `handleSecondaryAction` (522), `handleTableSelectAll` (846), `navigateGridTo` (909), `navigateGridUp` (937), `currentGridParentId`, `gridExpandedIds`, `gridHierarchyMode`, `nodeMouseActions`.
 
 ```ts
 import { createKeyboardNav, type KeyboardNavController, type NavTopology } from '../../services/serviceKeyboardNav';
@@ -88,12 +84,7 @@ function handleRowKeydown(id: string, e: KeyboardEvent) {
   keyboardNav.handleKeydown(focused, e);
 }
 ```
-Delete the now-unused inline helpers if no longer referenced: `handleTreeArrowLeft`/`handleTreeArrowRight`,
-`handleGridNavigationKeydown`, `handleInlineGridExpansionKeydown`, `handlePageNavigation` (their behavior
-now lives in `keyboardNav` + `drill`). Delete the list bridges: `handleListSelect` (598-603),
-`handleListActivate` (605-607), `handleListFocus` (609-612), `handleListContextMenu` (614-616),
-`mouseEventFromListModifiers` (618-630). Delete the mount props `onSelect`/`onActivate`/`onFocus`/
-`onListContextMenu` (1292-1295).
+Delete the now-unused inline helpers if no longer referenced: `handleTreeArrowLeft`/`handleTreeArrowRight`, `handleGridNavigationKeydown`, `handleInlineGridExpansionKeydown`, `handlePageNavigation` (their behavior now lives in `keyboardNav` + `drill`). Delete the list bridges: `handleListSelect` (598-603), `handleListActivate` (605-607), `handleListFocus` (609-612), `handleListContextMenu` (614-616), `mouseEventFromListModifiers` (618-630). Delete the mount props `onSelect`/`onActivate`/`onFocus`/ `onListContextMenu` (1292-1295).
 
 - [x] **Step 4: Run tests to verify pass**
 

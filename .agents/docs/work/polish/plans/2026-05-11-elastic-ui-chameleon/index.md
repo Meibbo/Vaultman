@@ -27,23 +27,12 @@ glossary_candidates:
 > Steps use checkbox (`- [ ]`) syntax for tracking. Do not commit unless the
 > user explicitly asks.
 
-**Goal:** Transition Vaultman from a fixed handmade UI into a mode-aware
-Chameleon UI that can mimic Obsidian Core Explorer, Bases, and Outline surfaces
-while preserving community CSS snippet compatibility.
+**Goal:** Transition Vaultman from a fixed handmade UI into a mode-aware Chameleon UI that can mimic Obsidian Core Explorer, Bases, and Outline surfaces while preserving community CSS snippet compatibility.
 
 **Architecture:** Four independent execution shards own disjoint surfaces:
-ALPHA owns style/theming/configuration, BETA owns virtualized node surfaces,
-GAMMA owns headless overlays and multi-window portal safety, and DELTA owns
-mouse/DnD/i18n/native DOM interception. The shared contract is a polymorphic
-component model: every ported component must select Thin, Balanced, or Thick
-markup through `serviceTheme` and must preserve native Obsidian class names in
-Thin mode.
+ALPHA owns style/theming/configuration, BETA owns virtualized node surfaces, GAMMA owns headless overlays and multi-window portal safety, and DELTA owns mouse/DnD/i18n/native DOM interception. The shared contract is a polymorphic component model: every ported component must select Thin, Balanced, or Thick markup through `serviceTheme` and must preserve native Obsidian class names in Thin mode.
 
-**Tech Stack:** Svelte 5 runes and snippets, UnoCSS shortcuts/icons, DaisyUI
-semantic class layer where compatible, Bits UI v1 headless primitives,
-PretextJS through the existing `serviceTextMeasure`, current
-`@dnd-kit/svelte@0.4.0` adapter unless the dependency gate explicitly approves
-the requested `@thisux/sveltednd` reversal.
+**Tech Stack:** Svelte 5 runes and snippets, UnoCSS shortcuts/icons, DaisyUI semantic class layer where compatible, Bits UI v1 headless primitives, PretextJS through the existing `serviceTextMeasure`, current `@dnd-kit/svelte@0.4.0` adapter unless the dependency gate explicitly approves the requested `@thisux/sveltednd` reversal.
 
 ---
 
@@ -95,38 +84,20 @@ Current code anchors inspected:
 
 External references verified from official documentation during planning:
 
-- Svelte 5 docs for `.svelte.ts`, `$state`, `$derived`, `$props`, snippets,
-  `{@render}`, class arrays/objects, `style:`, `<svelte:window>`, and
-  `<svelte:document>`.
+- Svelte 5 docs for `.svelte.ts`, `$state`, `$derived`, `$props`, snippets, `{@render}`, class arrays/objects, `style:`, `<svelte:window>`, and `<svelte:document>`.
 - Bits UI docs index and component/portal references.
-- DaisyUI docs index: DaisyUI 5 is Tailwind CSS 4 oriented; this plan treats it
-  as a semantic class layer and requires an ALPHA dependency gate before any
-  Tailwind plugin import enters the Obsidian build.
-- UnoCSS official config references for shortcuts, Vite plugin integration,
-  and preflight control.
+- DaisyUI docs index: DaisyUI 5 is Tailwind CSS 4 oriented; this plan treats it as a semantic class layer and requires an ALPHA dependency gate before any Tailwind plugin import enters the Obsidian build.
+- UnoCSS official config references for shortcuts, Vite plugin integration, and preflight control.
 
 ## Non-Negotiable Gates
 
-- Thin mode must emit Obsidian-native mirror classes: `nav-file`,
-  `nav-file-title`, `nav-folder`, `tree-item`, `tree-item-self`,
-  `tree-item-inner`, `metadata-container`, `metadata-property`, and
-  `metadata-property-key` where the surface is mimicking the corresponding
-  Obsidian core UI.
-- Tailwind or Uno reset/preflight must remain disabled. Vaultman must not reset
-  Obsidian global element styles.
-- Bits UI portals must resolve to the current Vaultman root in the current
-  window, not to the main-window `document.body`.
-- `serviceTheme` owns `.vm-root` classes and variables. New components read
-  theme state; they do not mutate `activeDocument.body` directly.
-- Alias logic remains canonical in `serviceNodeBinding.ts`: tag `#name`,
-  snippet `$name`, plugin `%id`, property `[name]`, folder/value/template clean
-  labels.
-- The current branch uses `@dnd-kit/svelte@0.4.0`. The user prompt requested
-  `@thisux/sveltednd`, but current handoff says the old `@thisux/sveltednd`
-  package should stay removed. DELTA must resolve this as an explicit dependency
-  decision before editing package dependencies.
-- All work must preserve unrelated dirty files. Inspect `git status --short`
-  before each shard starts and before each shard hands off.
+- Thin mode must emit Obsidian-native mirror classes: `nav-file`, `nav-file-title`, `nav-folder`, `tree-item`, `tree-item-self`, `tree-item-inner`, `metadata-container`, `metadata-property`, and `metadata-property-key` where the surface is mimicking the corresponding Obsidian core UI.
+- Tailwind or Uno reset/preflight must remain disabled. Vaultman must not reset Obsidian global element styles.
+- Bits UI portals must resolve to the current Vaultman root in the current window, not to the main-window `document.body`.
+- `serviceTheme` owns `.vm-root` classes and variables. New components read theme state; they do not mutate `activeDocument.body` directly.
+- Alias logic remains canonical in `serviceNodeBinding.ts`: tag `#name`, snippet `$name`, plugin `%id`, property `[name]`, folder/value/template clean labels.
+- The current branch uses `@dnd-kit/svelte@0.4.0`. The user prompt requested `@thisux/sveltednd`, but current handoff says the old `@thisux/sveltednd` package should stay removed. DELTA must resolve this as an explicit dependency decision before editing package dependencies.
+- All work must preserve unrelated dirty files. Inspect `git status --short` before each shard starts and before each shard hands off.
 
 ## Shards
 
@@ -140,15 +111,11 @@ External references verified from official documentation during planning:
 
 ## Parallel Ownership
 
-ALPHA writes configuration, style, theme service, settings schema, and root
-classes. BETA writes virtualized view code and text measurement adapters. GAMMA
-writes overlay wrappers and Bits UI portal integration. DELTA writes mouse/DnD, native-surface interception, alias expansion, and i18n helpers. THREAD 3 owns VFS immutability and the interactive diff review UI. No shard may
-edit another shard's files without adding a merge note in its shard file.
+ALPHA writes configuration, style, theme service, settings schema, and root classes. BETA writes virtualized view code and text measurement adapters. GAMMA writes overlay wrappers and Bits UI portal integration. DELTA writes mouse/DnD, native-surface interception, alias expansion, and i18n helpers. THREAD 3 owns VFS immutability and the interactive diff review UI. No shard may edit another shard's files without adding a merge note in its shard file.
 
 ## Execution Order
 
-1. Run `00-contracts-and-gates` first. It creates the shared types and resolves
-   the DnD dependency gate.
+1. Run `00-contracts-and-gates` first. It creates the shared types and resolves the DnD dependency gate.
 2. Run ALPHA and GAMMA in parallel after gate types exist.
 3. Run Thread 3 (VFS-Review) in parallel once Shard ALPHA defines theme tokens.
 4. Run BETA in parallel after ALPHA exposes mode-aware classes and theme tokens.
@@ -169,8 +136,4 @@ obsidian vault=plugin-dev command id=vaultman:open
 obsidian vault=plugin-dev dev:errors
 ```
 
-Expected: `svelte-check found 0 errors and 0 warnings`, focused Vitest files
-pass, build exits 0, plugin reload succeeds, Vaultman opens, and Obsidian error
-capture contains no Vaultman stack. If this local Obsidian CLI rejects the
-`vault=plugin-dev` form, rerun the equivalent command without the vault prefix
-and record the fallback in the shard handoff.
+Expected: `svelte-check found 0 errors and 0 warnings`, focused Vitest files pass, build exits 0, plugin reload succeeds, Vaultman opens, and Obsidian error capture contains no Vaultman stack. If this local Obsidian CLI rejects the `vault=plugin-dev` form, rerun the equivalent command without the vault prefix and record the fallback in the shard handoff.

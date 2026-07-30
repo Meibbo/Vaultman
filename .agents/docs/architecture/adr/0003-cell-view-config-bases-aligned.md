@@ -19,18 +19,14 @@ tags:
 ## Context
 
 Node elements (label, detail, badges, table columns) are positioned ad hoc per view.
-Bases parity/symbiosis is a first-class goal; if the cell/placement model is designed
-arbitrarily, Bases IN/OUT becomes a large later refactor — the exact churn we must avoid.
+Bases parity/symbiosis is a first-class goal; if the cell/placement model is designed arbitrarily, Bases IN/OUT becomes a large later refactor — the exact churn we must avoid.
 
 ## Decision
 
 - **Cell** = a universal element = `source` ({in|cross}-provider field, incl.
   note-preview) + `semantic role`. The cell does not own its position.
-- **view-config** maps `semantic role → slot/position/order` per engine+mode, is
-  user-editable in the LayoutBuilder, and is a **superset of the Bases view-def**.
-- Renderers emit `bases-*` DOM under the "native" preset (OUT); a translator maps a
-  Bases view-def/results into our engines (IN). Confirmed: `registerBasesView` exists
-  and the `bases-*` classes exist in `app.css`.
+- **view-config** maps `semantic role → slot/position/order` per engine+mode, is user-editable in the LayoutBuilder, and is a **superset of the Bases view-def**.
+- Renderers emit `bases-*` DOM under the "native" preset (OUT); a translator maps a Bases view-def/results into our engines (IN). Confirmed: `registerBasesView` exists and the `bases-*` classes exist in `app.css`.
 
 ## Consequences
 

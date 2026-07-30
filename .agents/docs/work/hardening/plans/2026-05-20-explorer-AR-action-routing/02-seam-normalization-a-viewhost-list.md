@@ -6,10 +6,8 @@
 - Modify: `src/components/views/ViewNodeList.svelte` (delete Contract B 39-43/51-53/230-269; emit Contract A)
 - Test: `test/component/selectionContractParity.test.ts`
 
-El builder (`serviceRowAction`) **no se inyecta por context**: cada view lo crea desde sus propias
-props en Task 6, así los component tests standalone (que montan el view directo) siguen funcionando.
-En esta task el panel solo crea el `KeyboardNavController` (lo consume vía
-`onRowKeydown={handleRowKeydown}`, ya presente en el mount, 1287) y ViewNodeList pasa a Contract A.
+El builder (`serviceRowAction`) **no se inyecta por context**: cada view lo crea desde sus propias props en Task 6, así los component tests standalone (que montan el view directo) siguen funcionando.
+En esta task el panel solo crea el `KeyboardNavController` (lo consume vía `onRowKeydown={handleRowKeydown}`, ya presente en el mount, 1287) y ViewNodeList pasa a Contract A.
 
 - [x] **Step 1: Write the failing test (list emits the same contract as tree)**
 
@@ -48,13 +46,11 @@ describe('ViewNodeList emits (id, MouseEvent) Contract A', () => {
 });
 ```
 
-(Confirm `rowInputFromTreeNode` signature against `serviceExplorerRowInput.ts`; adjust the second arg
-if it takes options rather than depth.)
+(Confirm `rowInputFromTreeNode` signature against `serviceExplorerRowInput.ts`; adjust the second arg if it takes options rather than depth.)
 
 - [x] **Step 2: Run test to verify it fails**
 
-Run: `pnpm vitest run test/component/selectionContractParity.test.ts`
-Expected: FAIL — ViewNodeList has no `onRowClick` prop yet (still `onSelect`).
+Run: `pnpm vitest run test/component/selectionContractParity.test.ts` Expected: FAIL — ViewNodeList has no `onRowClick` prop yet (still `onSelect`).
 
 - [x] **Step 3a: ViewHost — delete Contract B**
 
@@ -88,8 +84,7 @@ Delete `handleListContextMenu` (139-141). In the list block (174-186) replace th
 
 - [x] **Step 3b: ViewNodeList — emit Contract A**
 
-Delete `SelectModifiers` (39-43), `onSelect`/`onActivate`/`onFocus` props (51-53), `handleSelect`
-(230-237), inline `handleKeydown` (239-269). Add to `Props`:
+Delete `SelectModifiers` (39-43), `onSelect`/`onActivate`/`onFocus` props (51-53), `handleSelect` (230-237), inline `handleKeydown` (239-269). Add to `Props`:
 ```ts
   onRowClick?: (id: string, e: MouseEvent) => void;
   onRowKeydown?: (id: string, e: KeyboardEvent) => void;

@@ -15,8 +15,7 @@ tags:
 
 ## Required Repro: Repeated Jump Burst With Blank Detection
 
-The current perfProbe scenarios are single-action final-state probes. The bug is
-reported after many jumps. The live repro must model a burst.
+The current perfProbe scenarios are single-action final-state probes. The bug is reported after many jumps. The live repro must model a burst.
 
 Required sequence:
 
@@ -45,8 +44,7 @@ Required sequence:
 Blank means:
 
 - row count is zero while dataset count is non-zero and scroller rect is visible;
-- or row text content is absent for the virtual viewport while skeleton/loading
-  is not expected;
+- or row text content is absent for the virtual viewport while skeleton/loading is not expected;
 - or `getVirtualItems()`/fallback returns rows but DOM row text is not painted.
 
 ## Required Live Commands
@@ -68,10 +66,7 @@ pnpm exec vitest run --project unit test/unit/services/serviceScroll.test.ts
 pnpm exec vitest run --project component test/component/viewTreeScrollFallback.test.ts
 ```
 
-The final suite must include new tests for cards/grid/table fallbacks and the
-plugin-dev burst-scroll probe. The exact test filenames should be chosen during
-implementation, but they must be named clearly enough that future agents do not
-mistake a pure CPU bridge for the live scroll acceptance test.
+The final suite must include new tests for cards/grid/table fallbacks and the plugin-dev burst-scroll probe. The exact test filenames should be chosen during implementation, but they must be named clearly enough that future agents do not mistake a pure CPU bridge for the live scroll acceptance test.
 
 ## Notebook Navigator Comparison Standard
 
@@ -80,8 +75,7 @@ Do not accept "Vaultman is faster" from one median CPU bridge alone.
 Acceptance requires both:
 
 - Vaultman does no more work than NN on comparable scroll math/build paths; and
-- Vaultman has no visible blank window under the live plugin-dev burst-scroll
-  repro.
+- Vaultman has no visible blank window under the live plugin-dev burst-scroll repro.
 
 The bridge should keep importing NN source where useful:
 
@@ -90,6 +84,5 @@ The bridge should keep importing NN source where useful:
 - `flattenFolderTree`;
 - `listPaneMeasurements` invariants if we add equivalent measurement contracts.
 
-But the bridge must not pretend to test what it does not mount. Its label should
-say builder/math bridge, not final scroll parity.
+But the bridge must not pretend to test what it does not mount. Its label should say builder/math bridge, not final scroll parity.
 

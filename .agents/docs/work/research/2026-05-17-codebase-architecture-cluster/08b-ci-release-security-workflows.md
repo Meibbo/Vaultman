@@ -21,13 +21,11 @@ updated_by: codex
 
 `.github/workflows/ci.yml` is the broad pull/push gate for active branches.
 
-- Runs on pushes to `main`, `hardening`, `hardening-tests`,
-  `hardening-audit`, and `hardening-refactor`.
+- Runs on pushes to `main`, `hardening`, `hardening-tests`, `hardening-audit`, and `hardening-refactor`.
 - Runs on pull requests targeting `main` or `hardening`.
 - Uses Node 24 through the Vite+ setup path.
 - Installs dependencies through `vp install`.
-- Runs `vp run security:audit`, `vp run lint`, `vp run check`,
-  `vp run build`, and `vp run test:cover`.
+- Runs `vp run security:audit`, `vp run lint`, `vp run check`, `vp run build`, and `vp run test:cover`.
 - Uploads `coverage/` as a CI artifact.
 
 ## Release
@@ -47,8 +45,7 @@ updated_by: codex
 
 ## CodeQL
 
-`.github/workflows/codeql.yml` covers both standard CodeQL suites and Vaultman
-custom query tests.
+`.github/workflows/codeql.yml` covers both standard CodeQL suites and Vaultman custom query tests.
 
 - Uses `.github/codeql/codeql-config.yml`.
 - Includes `security-extended` and `security-and-quality`.
@@ -64,11 +61,9 @@ Vaultman custom queries currently cover:
 
 ## Scorecard And Dependabot
 
-`.github/workflows/scorecard.yml` runs OpenSSF Scorecard weekly and on pushes to
-`main` and `hardening`, then uploads SARIF.
+`.github/workflows/scorecard.yml` runs OpenSSF Scorecard weekly and on pushes to `main` and `hardening`, then uploads SARIF.
 
-`.github/dependabot.yml` schedules weekly update checks for npm and GitHub
-Actions, with dependency/security labels and a limit of five open pull requests.
+`.github/dependabot.yml` schedules weekly update checks for npm and GitHub Actions, with dependency/security labels and a limit of five open pull requests.
 
 ## Security Topology
 

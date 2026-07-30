@@ -35,10 +35,7 @@ Outputs:
 
 ### Depth Target
 
-The Interface should hide routing complexity. An agent should not need to
-manually rediscover whether a task belongs in hardening, polish, research,
-pkm-ai, draft, or archive. The Module should return the next few documents to
-read and the target source-record location.
+The Interface should hide routing complexity. An agent should not need to manually rediscover whether a task belongs in hardening, polish, research, pkm-ai, draft, or archive. The Module should return the next few documents to read and the target source-record location.
 
 ### Current Adapters
 
@@ -71,10 +68,7 @@ Outputs:
 
 ### Depth Target
 
-The Interface should produce high-quality sources without making the agent
-manually choose every tool. The Implementation may use `rg`, `query-docs`,
-MCP/resources, Defuddle for URLs, official docs, web search, or package docs,
-but callers should ask for evidence by intent.
+The Interface should produce high-quality sources without making the agent manually choose every tool. The Implementation may use `rg`, `query-docs`, MCP/resources, Defuddle for URLs, official docs, web search, or package docs, but callers should ask for evidence by intent.
 
 ### Existing Adapters
 
@@ -120,16 +114,14 @@ It should turn residuals into source records that future agents can inspect.
 
 ### Needed Improvement
 
-Create a residual audit record and a small checklist that every verification
-section must satisfy before claiming completion.
+Create a residual audit record and a small checklist that every verification section must satisfy before claiming completion.
 
 ## Module 4 - Verification Contract Module
 
 ### Interface
 
 Inputs:
-- change type: docs, Svelte UI, service logic, queue/file ops, performance,
-  package/dependency, Obsidian runtime, CodeQL guardrail, agent tooling;
+- change type: docs, Svelte UI, service logic, queue/file ops, performance, package/dependency, Obsidian runtime, CodeQL guardrail, agent tooling;
 - touched files;
 - user-facing risk;
 - known transient/toolchain constraints.
@@ -143,9 +135,7 @@ Outputs:
 
 ### Depth Target
 
-The Interface should remove guesswork. A Svelte runtime fix should automatically
-require mounted component or Obsidian smoke evidence. A docs-only change should
-not require product build unless it changes executable tooling.
+The Interface should remove guesswork. A Svelte runtime fix should automatically require mounted component or Obsidian smoke evidence. A docs-only change should not require product build unless it changes executable tooling.
 
 ### Existing Adapters
 
@@ -162,8 +152,7 @@ not require product build unless it changes executable tooling.
 
 ### Needed Improvement
 
-Add an explicit matrix to PKM-AI docs and make plans cite it instead of
-rewriting verification logic each time.
+Add an explicit matrix to PKM-AI docs and make plans cite it instead of rewriting verification logic each time.
 
 ## Module 5 - Agent Operation Module
 
@@ -184,10 +173,8 @@ Outputs:
 
 ### Depth Target
 
-This is the future `serviceAPI` direction. It should be queued and
-user-supervised. It must not allow direct destructive vault mutation.
+This is the future `serviceAPI` direction. It should be queued and user-supervised. It must not allow direct destructive vault mutation.
 
 ### Dependency
 
-Do not implement this before queue contract drift and verification-led explorer
-scope checks are resolved or explicitly accepted.
+Do not implement this before queue contract drift and verification-led explorer scope checks are resolved or explicitly accepted.

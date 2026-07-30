@@ -17,9 +17,7 @@ updated_by: codex
 
 ## Ownership
 
-GAMMA owns Bits UI integration, accessible overlay wrappers, and multi-window
-portal safety. It must not alter table/grid virtualizer behavior or node alias
-resolution except through wrapper props.
+GAMMA owns Bits UI integration, accessible overlay wrappers, and multi-window portal safety. It must not alter table/grid virtualizer behavior or node alias resolution except through wrapper props.
 
 ## Files
 
@@ -55,5 +53,4 @@ obsidian vault=plugin-dev eval code="(() => Array.from(activeDocument.querySelec
 obsidian vault=plugin-dev dev:errors
 ```
 
-Expected: tests pass, overlays stay inside `.vm-root`, and no Vaultman error is
-captured.
+Expected: tests pass, overlays stay inside `.vm-root`, and no Vaultman error is captured.

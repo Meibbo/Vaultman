@@ -13,8 +13,7 @@ tags: [agent/plan, initiative/polish, release/bt5]
 
 # BT5 next-10 implementation plan
 
-Ejecuta exactamente: BT5-030 (P0), BT5-006/007/008/009/010/028 (P1), BT5-011/012/013
-(P2, gated por 010). Excluidos: BT5-014 (bloqueado por benchmark HITL de 003);
+Ejecuta exactamente: BT5-030 (P0), BT5-006/007/008/009/010/028 (P1), BT5-011/012/013 (P2, gated por 010). Excluidos: BT5-014 (bloqueado por benchmark HITL de 003);
 BT5-002/003/004 conservan sus estados HITL.
 
 ## Session envelope (fail-closed)
@@ -31,33 +30,24 @@ BT5-002/003/004 conservan sus estados HITL.
 
 ## Slices (orden de ejecución)
 
-1. **S1 BT5-030** — diagnóstico matriz A/B → atribución → fix → regresión. Shard
-   [[01-envelope-and-bt5-030|01]]. Si no hay repro objetivo: documentar, dejar
-   pendiente/HITL, continuar (release sigue bloqueado).
-2. **S2 correctness P1** — 006 (expansión gated a nested) · 007 (popupSort By level)
-   · 008 (tags scope sync) · 028 (Content active highlight). Shard [[02-p1-slices|02]].
+1. **S1 BT5-030** — diagnóstico matriz A/B → atribución → fix → regresión. Shard [[01-envelope-and-bt5-030|01]]. Si no hay repro objetivo: documentar, dejar pendiente/HITL, continuar (release sigue bloqueado).
+2. **S2 correctness P1** — 006 (expansión gated a nested) · 007 (popupSort By level) · 008 (tags scope sync) · 028 (Content active highlight). Shard [[02-p1-slices|02]].
 3. **S3 BT5-009** — exclusión de files al pipeline de FilterService. Shard 02.
-4. **S4 BT5-010** — registro compartido de cells + hover-info. Shard
-   [[03-registry-slices|03]].
+4. **S4 BT5-010** — registro compartido de cells + hover-info. Shard [[03-registry-slices|03]].
 5. **S5 consumers** — 011 (activación) → 012 (Path plano) → 013 (Last opened).
    Shard 03.
-6. **S6 cierre** — un `pnpm run verify` limpio · build · SHA-256 vs plugin-dev ·
-   smokes runtime · dev:errors · docs/commits. Shard [[04-verification-adversarial|04]].
+6. **S6 cierre** — un `pnpm run verify` limpio · build · SHA-256 vs plugin-dev · smokes runtime · dev:errors · docs/commits. Shard [[04-verification-adversarial|04]].
 
-Cada slice: test focal RED → implementación mínima → focal GREEN → autofixer Svelte
-si tocó `.svelte`. Commits de producto por seam; `.agents` local-only aparte.
+Cada slice: test focal RED → implementación mínima → focal GREEN → autofixer Svelte si tocó `.svelte`. Commits de producto por seam; `.agents` local-only aparte.
 
 ## Progreso 2026-07-19
 
-- **S1 / BT5-030: deferred por decisión del dev.** El profiler atribuyó long tasks a los
-  handlers de Tags y Props, con trabajo adicional de PropertyIndex, FilterService e Iconic;
-  falta el baseline disabled y no se aplicó fix. El parcial quedó aislado en `stash@{0}` de
-  la rama de producto y el issue conserva su gate sin resolver.
+- **S1 / BT5-030: deferred por decisión del dev.** El profiler atribuyó long tasks a los handlers de Tags y Props, con trabajo adicional de PropertyIndex, FilterService e Iconic;
+  falta el baseline disabled y no se aplicó fix. El parcial quedó aislado en `stash@{0}` de la rama de producto y el issue conserva su gate sin resolver.
 - **S2 completado.** BT5-006/007/008 aterrizaron en `f1dbe2f5`; BT5-028 en `017d8049`.
   Una revisión independiente encontró y cerró dos órdenes de inicialización de Tags:
   View config antes del lazy mount y remount del navbar en Tags→Content→Tags.
-- **Verificación final:** `pnpm run verify` exit 0; Svelte 0 errores/0 warnings; 109 archivos,
-  615 tests; scorecard 17/17. `pnpm run build` sincronizó exclusivamente a `plugin-dev`;
+- **Verificación final:** `pnpm run verify` exit 0; Svelte 0 errores/0 warnings; 109 archivos, 615 tests; scorecard 17/17. `pnpm run build` sincronizó exclusivamente a `plugin-dev`;
   SHA-256 de `main.js`, `manifest.json` y `styles.css` coincide con `dist/build`;
   `plugin:reload id=vaultman` pasó y `dev:errors` devolvió `No errors captured`.
 - El autofixer oficial de Svelte agotó timeout en dos intentos sin producir diagnóstico;

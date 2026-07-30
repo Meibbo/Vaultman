@@ -11,8 +11,7 @@ tags:
 
 # Current Regressions
 
-Regression items only. Canonical records live under
-`docs/work/<initiative>/items/`.
+Regression items only. Canonical records live under `docs/work/<initiative>/items/`.
 
 ## Items
 

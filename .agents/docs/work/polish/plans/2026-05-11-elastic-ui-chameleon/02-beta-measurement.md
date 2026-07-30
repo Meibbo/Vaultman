@@ -68,15 +68,11 @@ Verification:
 pnpm exec vp test run --project unit --config vitest.config.ts test/unit/services/serviceNodeRowMeasure.test.ts --fileParallelism=false
 ```
 
-Expected: repeated same id/revision/width uses cache; changing width or revision
-recomputes; returned height never drops below `minHeight`.
+Expected: repeated same id/revision/width uses cache; changing width or revision recomputes; returned height never drops below `minHeight`.
 
 ## Task B5: Pretext And Fallback Policy
 
-`serviceTextMeasure.ts` already uses `@chenglou/pretext` through `prepare` and
-`layout`. BETA must not import Pretext directly into views. Views receive
-`TextMeasureService` or `NodeRowMeasureService` props. Tests may inject
-`fallbackTextMeasureEngine`.
+`serviceTextMeasure.ts` already uses `@chenglou/pretext` through `prepare` and `layout`. BETA must not import Pretext directly into views. Views receive `TextMeasureService` or `NodeRowMeasureService` props. Tests may inject `fallbackTextMeasureEngine`.
 
 Verification:
 

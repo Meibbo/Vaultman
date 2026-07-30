@@ -35,16 +35,14 @@ Vaultman needs three action channels:
 
 ## Required Context Menu Coverage
 
-Not every node type has every action. The menu should expose only valid actions
-for each node type and selected set.
+Not every node type has every action. The menu should expose only valid actions for each node type and selected set.
 
 Files:
 
 - rename selected files through FnR handoff;
 - delete selected files through queue;
 - move selected files when supported;
-- open focused/target file as a direct action, not necessarily as a batch
-  context-menu action;
+- open focused/target file as a direct action, not necessarily as a batch context-menu action;
 - send selected files to selected-files filter when appropriate.
 
 Tags:
@@ -73,8 +71,7 @@ Values:
 
 ## Sending Selection To Filters
 
-The selection service should not know filter semantics. Providers should expose
-selection-aware actions that can consume `selectedNodes`.
+The selection service should not know filter semantics. Providers should expose selection-aware actions that can consume `selectedNodes`.
 
 Potential action names:
 
@@ -85,28 +82,22 @@ Potential action names:
 - `queue.delete-selected`;
 - `fnr.rename-selected`.
 
-These can appear in context menus first. A later toolbar or add-mode toggle can
-promote the most common ones.
+These can appear in context menus first. A later toolbar or add-mode toggle can promote the most common ones.
 
 ## Add Mode
 
-Add mode should stay a mode, but it should not be the only way to add selected
-nodes.
+Add mode should stay a mode, but it should not be the only way to add selected nodes.
 
 Recommended behavior:
 
-- when add mode is active, direct label/quick-action add still queues the add
-  operation;
+- when add mode is active, direct label/quick-action add still queues the add operation;
 - context menu should include add actions for selected compatible nodes;
 - quick-action badges must stop propagation and not alter selection;
-- selected set can be used to queue batch add operations when the node type
-  supports it.
+- selected set can be used to queue batch add operations when the node type supports it.
 
 ## Provider Contract
 
-Avoid making `panelExplorer.svelte` understand all domain actions. Providers
-already know node meta and queue/filter/FnR services. Keep the domain behavior
-there.
+Avoid making `panelExplorer.svelte` understand all domain actions. Providers already know node meta and queue/filter/FnR services. Keep the domain behavior there.
 
 The provider contract can grow a focused method later if needed:
 
@@ -115,6 +106,4 @@ handleNodePrimaryAction?(node: TreeNode<TMeta>, selectedNodes: TreeNode<TMeta>[]
 handleNodeSelectionAction?(nodes: TreeNode<TMeta>[], actionId: string): void;
 ```
 
-For the first slice, prefer using the existing `handleNodeClick`,
-`handleNodeSelection`, and `handleContextMenu` methods unless tests show the
-name collision is causing ambiguity.
+For the first slice, prefer using the existing `handleNodeClick`, `handleNodeSelection`, and `handleContextMenu` methods unless tests show the name collision is causing ambiguity.

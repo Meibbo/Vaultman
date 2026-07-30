@@ -18,14 +18,11 @@ tags: [agent/issue, triage/needs-triage, initiative/polish, release/1.2.0, navba
 ## Parent
 
 [[docs/work/polish/issues/bt5-final-stable-audit/index|BT5 final stable audit]].
-This requirement was not present in the three original prompts and is captured
-explicitly here rather than silently folded into another issue.
+This requirement was not present in the three original prompts and is captured explicitly here rather than silently folded into another issue.
 
 ## What to build
 
-Remove the Has/Hasn't text toggle from the Text explorer body and contribute it
-as a Text-provider action node between Pause/Resume search and Sort in the shared
-Navbar. It continues to control `contentIsExclusion` and uses localized state copy.
+Remove the Has/Hasn't text toggle from the Text explorer body and contribute it as a Text-provider action node between Pause/Resume search and Sort in the shared Navbar. It continues to control `contentIsExclusion` and uses localized state copy.
 
 ## Acceptance criteria
 

@@ -27,8 +27,7 @@ Preferred v1 path:
 .agents/tools/pkm-ai/agent-room.mjs
 ```
 
-Reason: existing PKM-AI automation already uses `.mjs` scripts under
-`.agents/tools/pkm-ai`, including `manage-tasks.mjs`.
+Reason: existing PKM-AI automation already uses `.mjs` scripts under `.agents/tools/pkm-ai`, including `manage-tasks.mjs`.
 
 Comfort wrapper:
 

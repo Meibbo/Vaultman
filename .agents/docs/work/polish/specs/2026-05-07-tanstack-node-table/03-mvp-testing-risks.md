@@ -24,14 +24,11 @@ The first `viewTable` ships as a dense read-only operational table:
 - virtualized body rows with `@tanstack/svelte-virtual`;
 - headers generated from table-core header groups;
 - sortable headers for sortable columns;
-- row click, modifier click, and shift range behavior consistent with
-  tree/grid selection;
+- row click, modifier click, and shift range behavior consistent with tree/grid selection;
 - basic keyboard movement by row and cell;
-- visible selected, focused, active-filter, pending, warning, and disabled
-  states;
+- visible selected, focused, active-filter, pending, warning, and disabled states;
 - context menu by row or cell using provider node context;
-- cells for text, number, date, tag, file, checkbox display, and badge-like
-  content;
+- cells for text, number, date, tag, file, checkbox display, and badge-like content;
 - empty state through existing `ViewEmptyLanding`;
 - no dependency on Obsidian `App` or raw `TFile` in the table component.
 
@@ -49,10 +46,7 @@ Out of scope for MVP:
 
 Use table/grid semantics intentionally, not copied from `viewGrid`.
 
-The table should expose a keyboard-reachable matrix with explicit selected and
-focused states. It should preserve the project cursor policy: broad data rows
-and cells are working surfaces, while explicit header buttons, sort controls,
-checkboxes, and compact actions can use pointer affordance.
+The table should expose a keyboard-reachable matrix with explicit selected and focused states. It should preserve the project cursor policy: broad data rows and cells are working surfaces, while explicit header buttons, sort controls, checkboxes, and compact actions can use pointer affordance.
 
 Initial keyboard scope:
 
@@ -66,15 +60,13 @@ Initial keyboard scope:
 
 Reserve `vm-table-*` classes for the table matrix.
 
-Do not reuse old grid debt names for table layout. The table should be dense,
-quiet, and scannable, matching Vaultman's operational UI direction:
+Do not reuse old grid debt names for table layout. The table should be dense, quiet, and scannable, matching Vaultman's operational UI direction:
 
 - sticky or stable header area if implementation cost is low;
 - fixed row height in MVP;
 - compact cell padding;
 - visible column separators only if configured or needed for readability;
-- distinct selected, focused, active-filter, pending, warning, and disabled
-  states.
+- distinct selected, focused, active-filter, pending, warning, and disabled states.
 
 ## Testing
 
@@ -82,10 +74,8 @@ Unit tests:
 
 - adapter maps row and column ids without index-based ids;
 - adapter builds sortable columns only when `ViewColumn.sortable` is true;
-- controlled selection converts `NodeSelectionSnapshot` to TanStack
-  `RowSelectionState`;
-- controlled selection converts TanStack row-selection updates back into
-  selection service commands without losing ids.
+- controlled selection converts `NodeSelectionSnapshot` to TanStack `RowSelectionState`;
+- controlled selection converts TanStack row-selection updates back into selection service commands without losing ids.
 
 Component tests:
 
@@ -107,27 +97,22 @@ Verification:
 ## Risks And Mitigations
 
 Risk: the table creates a second selection system.
-Mitigation: control TanStack row-selection state from `NodeSelectionService` and
-adapt all table selection changes back through service commands.
+Mitigation: control TanStack row-selection state from `NodeSelectionService` and adapt all table selection changes back through service commands.
 
 Risk: the Svelte 5 table adapter changes under us.
 Mitigation: use stable `@tanstack/table-core` and keep the adapter local.
 
 Risk: table scope becomes spreadsheet scope.
-Mitigation: MVP is read-only and explicitly defers editing, copy/paste, range
-selection, summaries, formulas, and persistent column layout.
+Mitigation: MVP is read-only and explicitly defers editing, copy/paste, range selection, summaries, formulas, and persistent column layout.
 
 Risk: old grid/table naming debt leaks into the new component.
-Mitigation: use `ViewNodeTable.svelte`, `serviceViewTableAdapter.ts`, and
-`vm-table-*` styles.
+Mitigation: use `ViewNodeTable.svelte`, `serviceViewTableAdapter.ts`, and `vm-table-*` styles.
 
 Risk: render-model contracts are not mature enough.
-Mitigation: allow a temporary provider-tree adapter if needed, but keep the
-public table adapter shaped around `ViewRow` and `ViewColumn`.
+Mitigation: allow a temporary provider-tree adapter if needed, but keep the public table adapter shaped around `ViewRow` and `ViewColumn`.
 
 ## Plan Gate
 
-Do not start implementation until this spec is reviewed. The next document
-should be an implementation plan under:
+Do not start implementation until this spec is reviewed. The next document should be an implementation plan under:
 
 `docs/work/polish/plans/2026-05-07-tanstack-node-table/`.

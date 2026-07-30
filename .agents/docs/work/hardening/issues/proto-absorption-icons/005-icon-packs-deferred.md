@@ -18,22 +18,12 @@ tags:
 
 ## Qué queda registrado
 
-Pack registry (lucide/adwaita/papirus/reversal/emoji) · remote packs por URL · import
-freedesktop (`index.theme`+SVGs, opendesktop) · almacén + caché de packs. Ledger 06
-tabla "Icon packs": SOLO-PROTO RESHAPE o `(sin evidencia)` DEFER; adwaita hardcoded en
-proto; sin caché de failed URLs.
+Pack registry (lucide/adwaita/papirus/reversal/emoji) · remote packs por URL · import freedesktop (`index.theme`+SVGs, opendesktop) · almacén + caché de packs. Ledger 06 tabla "Icon packs": SOLO-PROTO RESHAPE o `(sin evidencia)` DEFER; adwaita hardcoded en proto; sin caché de failed URLs.
 
 ## Por qué DEFER
 
-N4 en la pirámide (nada de N4 entra a gate 2.0.0 — solo flag) · requiere disciplina de
-tooling (assets/almacén/caché = decisión de librerías) · el umbrella lo tiene como open
-explícito (icon packs importables, lane C).
+N4 en la pirámide (nada de N4 entra a gate 2.0.0 — solo flag) · requiere disciplina de tooling (assets/almacén/caché = decisión de librerías) · el umbrella lo tiene como open explícito (icon packs importables, lane C).
 
 ## Al activarse
 
-Input directo = spec v5-era
-[[docs/work/hardening/specs/2026-05-25-explorer-icon-pack-cache/index|Explorer Icon Pack Cache]]
-(descriptor-model cacheable, 3 shards) — RE-VALIDAR contra el canon actual (D-PSS storage
-classes + asset-refs por id del V.D shard §PSS-export) antes de implementar. La cadena de
-resolución de PAI-001 ya reserva el slot `pack:` (PAI-002), así que activar packs NO
-reabre el resolver.
+Input directo = spec v5-era [[docs/work/hardening/specs/2026-05-25-explorer-icon-pack-cache/index|Explorer Icon Pack Cache]] (descriptor-model cacheable, 3 shards) — RE-VALIDAR contra el canon actual (D-PSS storage classes + asset-refs por id del V.D shard §PSS-export) antes de implementar. La cadena de resolución de PAI-001 ya reserva el slot `pack:` (PAI-002), así que activar packs NO reabre el resolver.

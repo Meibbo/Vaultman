@@ -15,14 +15,9 @@ tags:
 
 # S1 — Runtime-Startup Mandate (ADR 0004)
 
-**Goal:** Replace AGENTS.md's passive "Start Here" with a MANDATORY, numbered runtime-startup sequence that
-enforces presence (agent-room), retrieval-first, and the own/shared memory boundary — the visible priority
-hierarchy every zero-context agent runs. Docs/config change (not code) → structural verification, not unit TDD.
+**Goal:** Replace AGENTS.md's passive "Start Here" with a MANDATORY, numbered runtime-startup sequence that enforces presence (agent-room), retrieval-first, and the own/shared memory boundary — the visible priority hierarchy every zero-context agent runs. Docs/config change (not code) → structural verification, not unit TDD.
 
-**Note:** AGENTS.md is the load-bearing bootloader on `sandbox`. Execution applies the change as a
-**diff shown to the dev for approval first** (Task 2, Step 2). Uses only tools that exist today (agent-room
-smoke ✓, query-docs, session-log); version.json (S4) / coordination.md (S2) are referenced + degrade
-gracefully until those slices land.
+**Note:** AGENTS.md is the load-bearing bootloader on `sandbox`. Execution applies the change as a **diff shown to the dev for approval first** (Task 2, Step 2). Uses only tools that exist today (agent-room smoke ✓, query-docs, session-log); version.json (S4) / coordination.md (S2) are referenced + degrade gracefully until those slices land.
 
 ---
 
@@ -78,13 +73,11 @@ register presence (step 1).
 5. Read only the smallest relevant docs before editing.
 ```
 
-Replace with the full "## Runtime Startup" section from Task 1. (The old steps 1–3 are absorbed into new
-steps 1–3; step 4 → new step 5; step 5 → new step 2 "retrieval-first".)
+Replace with the full "## Runtime Startup" section from Task 1. (The old steps 1–3 are absorbed into new steps 1–3; step 4 → new step 5; step 5 → new step 2 "retrieval-first".)
 
 - [ ] **Step 2: GATE — show the dev the AGENTS.md diff and get explicit approval before saving.**
 
-- [ ] **Step 3: Keep AGENTS.md lean.** Leave Session Modes / Communication Policy / Size-And-Context /
-  Line Limits / Branch Policy / Project Rules sections unchanged.
+- [ ] **Step 3: Keep AGENTS.md lean.** Leave Session Modes / Communication Policy / Size-And-Context / Line Limits / Branch Policy / Project Rules sections unchanged.
 
 ---
 
@@ -104,14 +97,12 @@ steps 1–3; step 4 → new step 5; step 5 → new step 2 "retrieval-first".)
 
 - [ ] **Step 1: Structural check** — confirm the sequence + tool calls are present:
 
-Run (PowerShell): `Select-String -Path AGENTS.md -Pattern 'Runtime Startup','agent-room','scope claim','Retrieval-first','session-log'`
-Expected: matches for all five.
+Run (PowerShell): `Select-String -Path AGENTS.md -Pattern 'Runtime Startup','agent-room','scope claim','Retrieval-first','session-log'` Expected: matches for all five.
 
 - [ ] **Step 2: Leanness** — `(@(Get-Content AGENTS.md)).Count` → expected ≤ ~140 lines.
 
 - [ ] **Step 3: Fresh-agent dry-run** — execute step 1 as a new agent would:
-`node .agents/tools/pkm-ai/agent-room.mjs run start --agent s1-verify --now 2026-06-04T12:00:00 --json`
-then `... status --run latest --json` → expected `agents` contains `s1-verify`.
+`node .agents/tools/pkm-ai/agent-room.mjs run start --agent s1-verify --now 2026-06-04T12:00:00 --json` then `... status --run latest --json` → expected `agents` contains `s1-verify`.
 Cleanup: `Remove-Item -Recurse -Force .agents/state/runs/<that-runId>`.
 
 ---
@@ -126,16 +117,12 @@ git add -A
 git commit -m "feat(pkm-ai): orchestration upgrade — ADRs 0001-0006 + spec + plan + S1 runtime-startup mandate; onenote/companion megadump (CR-1/CR-2) + research + mind-routing audit"
 ```
 
-On `sandbox` (AI files allowed; NOT main). Whole-worktree per dev request → includes this session's PKM-AI
-work + S1 (AGENTS.md, start.md) + pre-existing dirty (`status.md`/`handoff.md`, `.vscode`, tooling
-`package.json`, metrics). Surface the `git status` to the dev before committing.
+On `sandbox` (AI files allowed; NOT main). Whole-worktree per dev request → includes this session's PKM-AI work + S1 (AGENTS.md, start.md) + pre-existing dirty (`status.md`/`handoff.md`, `.vscode`, tooling `package.json`, metrics). Surface the `git status` to the dev before committing.
 
 ## Open sub-decisions → S2 coordination
-- **DECIDED (dev 2026-06-04): cross-stream SHARED room** — state-root @ `git rev-parse --git-common-dir`
-  (shared by all worktrees); configurable for separate clones; agents tag `stream`/`worktree`. (ADR 0003.)
+- **DECIDED (dev 2026-06-04): cross-stream SHARED room** — state-root @ `git rev-parse --git-common-dir` (shared by all worktrees); configurable for separate clones; agents tag `stream`/`worktree`. (ADR 0003.)
 - S2 builds: agent-room `--state-root` resolution + atomic race-safe `ensure-run` (join-or-create, no double-room).
-- S1 mechanism unchanged (deterministic join-or-create); it resolves against the shared root once S2 wires it
-  (until then, per-worktree default).
+- S1 mechanism unchanged (deterministic join-or-create); it resolves against the shared root once S2 wires it (until then, per-worktree default).
 
 ---
 

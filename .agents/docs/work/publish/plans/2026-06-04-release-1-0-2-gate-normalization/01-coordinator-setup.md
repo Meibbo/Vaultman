@@ -54,9 +54,7 @@ Run:
 git -C "C:\Users\vic_A\Desktop\vaultman\.claude\worktrees\hotfix-1.0.2-css-scorecard" ls-files package.json package-lock.json pnpm-lock.yaml pnpm-workspace.yaml .node-version svelte.config.js stylelint.config.mjs .github/workflows/ci.yml .github/workflows/release.yml
 ```
 
-Expected: `package.json`, `package-lock.json`, `.github/workflows/ci.yml`, and
-`.github/workflows/release.yml` exist; pnpm/stylelint/svelte config files do not
-exist yet.
+Expected: `package.json`, `package-lock.json`, `.github/workflows/ci.yml`, and `.github/workflows/release.yml` exist; pnpm/stylelint/svelte config files do not exist yet.
 
 - [ ] **Step 4: Commit boundary**
 

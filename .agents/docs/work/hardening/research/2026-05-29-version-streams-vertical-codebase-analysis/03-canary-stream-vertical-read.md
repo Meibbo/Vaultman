@@ -1497,10 +1497,8 @@ flowchart LR
 - Provider classes mix data reading, UI action dispatch, and queue construction.
 - Some async queue adds can be fire-and-forget.
 - Product scope expanded into plugins/snippets without obvious release-tier separation.
-- FnR has a broad syntax surface where not every syntax can perform content
-  replacement.
-- Diff has both mutable and immutable VFS consumers, which is powerful but
-  transitional.
+- FnR has a broad syntax surface where not every syntax can perform content replacement.
+- Diff has both mutable and immutable VFS consumers, which is powerful but transitional.
 - Ops log is an in-memory diagnostic surface, not a persistent audit trail.
 
 ## 106. Honest canary maturity
@@ -1762,20 +1760,14 @@ flowchart LR
 
 ## 123. Second-pass additions - FnR, Diff, Ops Log, Badges
 
-This addendum records systems that were present in source but underweighted in
-the first pass. They do not change the main conclusion that canary is the
-architecture stream. They make that conclusion sharper: canary is not only more
-files and more UI. It also has concrete command, review, observability, and
-semantic overlay systems.
+This addendum records systems that were present in source but underweighted in the first pass. They do not change the main conclusion that canary is the architecture stream. They make that conclusion sharper: canary is not only more files and more UI. It also has concrete command, review, observability, and semantic overlay systems.
 
 ### FnR system
 
-`src/services/serviceFnR.ts`, `src/services/serviceFnRIsland.svelte.ts`, and
-`src/types/typeFnR.ts` show two related but distinct FnR layers:
+`src/services/serviceFnR.ts`, `src/services/serviceFnRIsland.svelte.ts`, and `src/types/typeFnR.ts` show two related but distinct FnR layers:
 
 - a typed state/building layer for content replacement and rename handoffs;
-- a rune-state toolbar island for command entry, token validation, regex
-  validation, mode switching, and dispatch.
+- a rune-state toolbar island for command entry, token validation, regex validation, mode switching, and dispatch.
 
 The syntax list is broader than stable:
 
@@ -1786,10 +1778,7 @@ The syntax list is broader than stable:
 - `dataview-dql`;
 - `ant-renamer`.
 
-The honest constraint is encoded in source: not every syntax can replace
-content. `obsidian-search`, `obsidian-bases`, and `dataview-dql` are discovery
-syntaxes in this service shape, while `plain`, `regex`, and `ant-renamer` can
-feed replacement.
+The honest constraint is encoded in source: not every syntax can replace content. `obsidian-search`, `obsidian-bases`, and `dataview-dql` are discovery syntaxes in this service shape, while `plain`, `regex`, and `ant-renamer` can feed replacement.
 
 The rename handoff layer covers:
 
@@ -1798,18 +1787,11 @@ The rename handoff layer covers:
 - tag rename;
 - file rename.
 
-The practical canary difference from stable is therefore not "canary has find
-and replace, stable does not". Stable has content find/replace. Canary turns
-find/replace into a cross-domain command substrate that can receive explorer
-handoffs and produce queued changes.
+The practical canary difference from stable is therefore not "canary has find and replace, stable does not". Stable has content find/replace. Canary turns find/replace into a cross-domain command substrate that can receive explorer handoffs and produce queued changes.
 
 ### FnR risk
 
-The risk is ownership split. `serviceFnR.ts` owns syntax options, rename handoff
-state, and queued change builders. `serviceFnRIsland.svelte.ts` owns the toolbar
-state, mode, token validation, regex validation, and dispatch payload. That is
-reasonable during canary integration, but promotion should document which layer
-is canonical for user intent:
+The risk is ownership split. `serviceFnR.ts` owns syntax options, rename handoff state, and queued change builders. `serviceFnRIsland.svelte.ts` owns the toolbar state, mode, token validation, regex validation, and dispatch payload. That is reasonable during canary integration, but promotion should document which layer is canonical for user intent:
 
 - syntax capability;
 - scope;
@@ -1818,14 +1800,11 @@ is canonical for user intent:
 - query validation;
 - resolved template payload.
 
-Without that contract, a future UI can accidentally accept a syntax that cannot
-perform the requested mutation.
+Without that contract, a future UI can accidentally accept a syntax that cannot perform the requested mutation.
 
 ### Diff system
 
-`src/services/serviceDiff.ts`, `src/services/serviceDiffSnapshot.ts`, and
-`src/components/views/viewDiff.svelte` show a fuller review system than the
-first pass described.
+`src/services/serviceDiff.ts`, `src/services/serviceDiffSnapshot.ts`, and `src/components/views/viewDiff.svelte` show a fuller review system than the first pass described.
 
 There are three practical diff modes:
 
@@ -1833,32 +1812,20 @@ There are three practical diff modes:
 - operation-focused diff for a selected queued operation;
 - snapshot-focused diff over immutable `VfsChain` snapshots.
 
-The shared shape is `FileDiff`: path/newPath, frontmatter before/after, body
-before/after, body change flag, and operation summaries. `viewDiff.svelte`
-selects the active diff source based on mode, then renders frontmatter deltas,
-line hunks, and optionally the full document.
+The shared shape is `FileDiff`: path/newPath, frontmatter before/after, body before/after, body change flag, and operation summaries. `viewDiff.svelte` selects the active diff source based on mode, then renders frontmatter deltas, line hunks, and optionally the full document.
 
-This is a meaningful canary upgrade over stable's modal queue preview. Stable's
-preview is useful and should be preserved, but canary has the foundation for a
-proper reusable review view.
+This is a meaningful canary upgrade over stable's modal queue preview. Stable's preview is useful and should be preserved, but canary has the foundation for a proper reusable review view.
 
 ### Diff risk
 
-The diff surface also confirms a transition seam. `serviceDiff.ts` reads mutable
-`VirtualFileState` transactions, while `serviceDiffSnapshot.ts` reads immutable
-`VfsChain` snapshots. They share `FileDiff`, but they do not share storage
-ownership.
+The diff surface also confirms a transition seam. `serviceDiff.ts` reads mutable `VirtualFileState` transactions, while `serviceDiffSnapshot.ts` reads immutable `VfsChain` snapshots. They share `FileDiff`, but they do not share storage ownership.
 
-That is a good canary bridge and a bad long-term ambiguity. Before promotion,
-the product should decide whether mutable transactions, immutable chains, or a
-documented two-layer model is the canonical review path.
+That is a good canary bridge and a bad long-term ambiguity. Before promotion, the product should decide whether mutable transactions, immutable chains, or a documented two-layer model is the canonical review path.
 
 ### Ops log system
 
-`src/services/serviceOpsLog.svelte.ts` and
-`src/components/pages/pageToolsOpsLog.svelte` define a bounded diagnostic log.
-It subscribes to `PerfMeter` records and queue change events, stores a ring
-buffer with default retention `1000`, and exposes filtering by kind and label.
+`src/services/serviceOpsLog.svelte.ts` and `src/components/pages/pageToolsOpsLog.svelte` define a bounded diagnostic log.
+It subscribes to `PerfMeter` records and queue change events, stores a ring buffer with default retention `1000`, and exposes filtering by kind and label.
 
 Kinds shown in the UI are:
 
@@ -1868,15 +1835,11 @@ Kinds shown in the UI are:
 - `service`;
 - `mark`.
 
-The practical value is high for canary: it gives product/development operators a
-visible way to inspect performance and queue lifecycle events without reading
-console output. The honest limitation is equally important: this is in-memory
-observability, not durable audit history.
+The practical value is high for canary: it gives product/development operators a visible way to inspect performance and queue lifecycle events without reading console output. The honest limitation is equally important: this is in-memory observability, not durable audit history.
 
 ### Badge system
 
-`src/badges/serviceBadge.ts` and `src/services/badgeRegistry.ts` define a small
-semantic badge taxonomy:
+`src/badges/serviceBadge.ts` and `src/services/badgeRegistry.ts` define a small semantic badge taxonomy:
 
 - `set`;
 - `rename`;
@@ -1885,14 +1848,9 @@ semantic badge taxonomy:
 - `filter`;
 - `node-note`.
 
-The service can describe badge icons/labels/order, decide hover badges, decide
-active badges, build FAB badges for queue/filter counts, map operation kinds to
-badge kinds, and detect the `delete-with-mutation` contradiction.
+The service can describe badge icons/labels/order, decide hover badges, decide active badges, build FAB badges for queue/filter counts, map operation kinds to badge kinds, and detect the `delete-with-mutation` contradiction.
 
-This matters because badges are not just decoration. They are the visible
-language by which canary communicates queued mutations, filters, and binding
-state on nodes. Stable had scattered count/diff/status indicators; canary has a
-named semantic overlay vocabulary.
+This matters because badges are not just decoration. They are the visible language by which canary communicates queued mutations, filters, and binding state on nodes. Stable had scattered count/diff/status indicators; canary has a named semantic overlay vocabulary.
 
 ### Addendum conclusion
 
@@ -1908,5 +1866,4 @@ The corresponding promotion questions are:
 - Which FnR layer owns canonical user intent?
 - Which VFS/diff path is canonical for review?
 - Should ops log remain diagnostic-only or become a persistent audit feature?
-- Are badge contradictions enforced only visually or also at queue execution
-  boundaries?
+- Are badge contradictions enforced only visually or also at queue execution boundaries?

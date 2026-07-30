@@ -13,12 +13,9 @@ tags:
 
 # Roadmap Overview
 
-Single navigation entry point for the Vaultman work routes. Lists every
-sub-system in the explorer-ui-vision spine + parallel tracks, marks
-documentation status, and tells future agents what is safe to pick up.
+Single navigation entry point for the Vaultman work routes. Lists every sub-system in the explorer-ui-vision spine + parallel tracks, marks documentation status, and tells future agents what is safe to pick up.
 
-This doc is **the roadmap**, not the source of truth. Each item links to
-its real spec / plan / backlog entry; this doc never duplicates content.
+This doc is **the roadmap**, not the source of truth. Each item links to its real spec / plan / backlog entry; this doc never duplicates content.
 When an item changes status, update the relevant column here.
 
 ## Status legend
@@ -31,8 +28,7 @@ When an item changes status, update the relevant column here.
 
 ## Phase 0 spine (Explorer foundation)
 
-Locked build order: `0-H → 0-B → O → 0-A → N`. Each unlocks consumers
-for the next.
+Locked build order: `0-H → 0-B → O → 0-A → N`. Each unlocks consumers for the next.
 
 | # | Item | Status | Doc |
 |---|---|---|---|
@@ -44,8 +40,7 @@ for the next.
 
 ## Sub-systems UI / layout (after Phase 0)
 
-Each depends on Phase 0 land (typically 0-B or O) for the preset
-consumption point to exist.
+Each depends on Phase 0 land (typically 0-B or O) for the preset consumption point to exist.
 
 | # | Item | Status | Bloqueador | Doc |
 |---|---|---|---|---|
@@ -69,8 +64,7 @@ consumption point to exist.
 
 ## Parallel tracks (NO en explorer-ui-vision)
 
-Trabajo activo independiente del spine de Explorer UI Vision. Un agente
-puede tomar cualquiera sin tocar Phase 0.
+Trabajo activo independiente del spine de Explorer UI Vision. Un agente puede tomar cualquiera sin tocar Phase 0.
 
 | Item | Status | Próximo paso documentado |
 |---|---|---|
@@ -86,26 +80,20 @@ puede tomar cualquiera sin tocar Phase 0.
 
 ## Dropped
 
-- **M — SCSS hygiene pass.** Sustituido por N (SCSS-to-UnoCSS); la
-  hygiene emerge como subproducto de la migración. Sin spec.
+- **M — SCSS hygiene pass.** Sustituido por N (SCSS-to-UnoCSS); la hygiene emerge como subproducto de la migración. Sin spec.
 
 ## Reslot (2026-05-26) — CONFIRMED; live order in the dispatch doc
 
-The 2026-05-26 foundation brainstorm reslotted the pipeline to a **dynamic,
-dependency-driven order** (Now/Next/Later, cost-of-unblock priority, beta/stable channels).
-**Live action order for multi-agent dispatch = [[docs/work/hardening/research/2026-05-25-architecture-foundation-discovery/roadmap-dispatch|roadmap-dispatch]]**
-(DAG + tiers + task contracts). Background: [[docs/work/hardening/research/2026-05-25-architecture-foundation-discovery/roadmap-reslot|roadmap-reslot]],
-[[docs/architecture/explorer-model/index|explorer-model]], [[docs/architecture/adr/README|ADRs]].
+The 2026-05-26 foundation brainstorm reslotted the pipeline to a **dynamic, dependency-driven order** (Now/Next/Later, cost-of-unblock priority, beta/stable channels).
+**Live action order for multi-agent dispatch = [[docs/work/hardening/research/2026-05-25-architecture-foundation-discovery/roadmap-dispatch|roadmap-dispatch]]** (DAG + tiers + task contracts). Background: [[docs/work/hardening/research/2026-05-25-architecture-foundation-discovery/roadmap-reslot|roadmap-reslot]], [[docs/architecture/explorer-model/index|explorer-model]], [[docs/architecture/adr/README|ADRs]].
 The fixed `v1.x` slots below are reference-only; version numbers attach at cut time.
 
 ## Explorer Merge (brainstorm 2026-05-19)
 
-Umbrella spec que ordena el merge proto-v5 ↔ producción + refactor SOLID de god-objects
-(panelExplorer 1329 LoC + 5 views 4377 LoC) + release pipeline. Detalle completo:
+Umbrella spec que ordena el merge proto-v5 ↔ producción + refactor SOLID de god-objects (panelExplorer 1329 LoC + 5 views 4377 LoC) + release pipeline. Detalle completo:
 [[docs/work/hardening/specs/2026-05-19-explorer-merge-umbrella/index|Explorer Merge Umbrella]].
 
-11 sub-systems NUEVOS. **IDs ad-hoc, NO canónicos** — reconciliar con numbering (1-12 / N / O / 0-X)
-al spec'ear cada uno.
+11 sub-systems NUEVOS. **IDs ad-hoc, NO canónicos** — reconciliar con numbering (1-12 / N / O / 0-X) al spec'ear cada uno.
 
 | ID ad-hoc | Nombre | First release | Status |
 |---|---|---|---|
@@ -122,9 +110,7 @@ al spec'ear cada uno.
 | C.D | Cross-provider Cell Data | v2.0.0 | 🔴 not spec'd |
 | R.D | Release Discipline (release-please + paths-filter + conventional commits) | x-cutting v1.1.0+ | 🔴 not spec'd |
 
-Release pipeline: `v1.1.0 Explorer Hardening → v1.2.0 Arch cleanup → v1.3.0 Keyboard+API →
-v1.4.0 Nautilus rewrites → v1.5.0 Theme Builder+Layout → v1.6.0 UnoCSS+bits-ui →
-v1.7.0 NN Interop → v2.0.0 Bases Parity BREAKING`.
+Release pipeline: `v1.1.0 Explorer Hardening → v1.2.0 Arch cleanup → v1.3.0 Keyboard+API → v1.4.0 Nautilus rewrites → v1.5.0 Theme Builder+Layout → v1.6.0 UnoCSS+bits-ui → v1.7.0 NN Interop → v2.0.0 Bases Parity BREAKING`.
 
 > Nota 2026-07-14: este pipeline v5-era quedó superseded por la umbrella 2.0 (D1/D4) y
 > los N.R/V.D/P.D etiquetados "v1.2.0" se ejecutan como waves 2.0 en sandbox. Con la
@@ -132,15 +118,12 @@ v1.7.0 NN Interop → v2.0.0 Bases Parity BREAKING`.
 > el v1.2.0 vigente = **Floating TOC** (iniciativa polish, base 1.1.6) —
 > [[docs/work/polish/specs/2026-07-14-v1-2-floating-toc/index|spec]].
 
-View mode merge: viewTree KEEP+sticky-fix · viewList=proto tiles · viewGrid=proto icons (Nautilus) ·
-viewTable=Bases parity · viewCards=Bases parity. **proto-v5 NO canónico** (merge, no replace).
-Sub-systems pre-existentes con merge layer: §5 (recent themes + dashboard3 redef) · §6 (layout) ·
-§8 (color) · §10 (Theme Builder + Adwata icons) · §12 (bits-ui + StackIsland) · §4-I (filter) · §2 (queue).
+View mode merge: viewTree KEEP+sticky-fix · viewList=proto tiles · viewGrid=proto icons (Nautilus) · viewTable=Bases parity · viewCards=Bases parity. **proto-v5 NO canónico** (merge, no replace).
+Sub-systems pre-existentes con merge layer: §5 (recent themes + dashboard3 redef) · §6 (layout) · §8 (color) · §10 (Theme Builder + Adwata icons) · §12 (bits-ui + StackIsland) · §4-I (filter) · §2 (queue).
 
 ## Agent dispatch reference
 
-Cuál agente puede arrancar cada item con qué pre-reads. Útil para
-delegar en paralelo mientras humanos hacen pulido visual / auditorías.
+Cuál agente puede arrancar cada item con qué pre-reads. Útil para delegar en paralelo mientras humanos hacen pulido visual / auditorías.
 
 | Agente | Item | Pre-reads suficientes para arrancar |
 |---|---|---|
@@ -161,35 +144,21 @@ delegar en paralelo mientras humanos hacen pulido visual / auditorías.
 
 ## How to use this doc
 
-- **Iniciando trabajo nuevo:** lee esta tabla → pick el item con status
-  🟡/🟠 que NO tiene bloqueador activo → abre su doc enlazado.
-- **Retomando trabajo:** chequea status de tu item; si pasó de 🟡 a 🟢,
-  abre la plan/impl en curso; si sigue en 🟡 sin avance, considera si
-  el bloqueador cambió.
-- **Acabando un item:** marca como ✅ en esta tabla y actualiza el
-  `updated:` frontmatter. No borres entradas — la historia importa.
-- **Capturando idea nueva:** si emerge un sub-system fuera del scope,
-  añade entrada en backlog `explorer-ui-vision` (si es del spine) o
-  crea su propio backlog folder (si es independiente). Linkea aquí.
+- **Iniciando trabajo nuevo:** lee esta tabla → pick el item con status 🟡/🟠 que NO tiene bloqueador activo → abre su doc enlazado.
+- **Retomando trabajo:** chequea status de tu item; si pasó de 🟡 a 🟢, abre la plan/impl en curso; si sigue en 🟡 sin avance, considera si el bloqueador cambió.
+- **Acabando un item:** marca como ✅ en esta tabla y actualiza el `updated:` frontmatter. No borres entradas — la historia importa.
+- **Capturando idea nueva:** si emerge un sub-system fuera del scope, añade entrada en backlog `explorer-ui-vision` (si es del spine) o crea su propio backlog folder (si es independiente). Linkea aquí.
 
 ## Adjacent docs
 
-- [[docs/work/hardening/index|hardening index]] — todos los specs/plans
-  activos.
+- [[docs/work/hardening/index|hardening index]] — todos los specs/plans activos.
 - [[docs/work/polish/index|polish index]] — UI/UX polish tracks.
 - [[docs/work/hardening/backlog/2026-05-15-explorer-ui-vision/index|Explorer UI Vision backlog]] — fuente canónica de items 1-12+N+O.
 - [[docs/current/status|current status]] — estado de la sesión activa.
-- [[docs/current/handoff|current handoff]] — punto de resumen para
-  próximo agente.
+- [[docs/current/handoff|current handoff]] — punto de resumen para próximo agente.
 
 ## Notes
 
-- Authored 2026-05-17 on `claude/explorer` branch (worktree
-  `jovial-wilson-f81c67`). Intent: copy to `sandbox` after the
-  `claude/explorer → sandbox` merge (sandbox was 116 commits behind
-  at authorship time).
-- Status legend uses 5 tiers; ⚠️ status reserved for blocked/at-risk
-  items (none currently).
-- The list is not exhaustive — small follow-up tasks live in their
-  initiative's backlog folder, not here. This doc lists strategic
-  sub-systems, not micro-tasks.
+- Authored 2026-05-17 on `claude/explorer` branch (worktree `jovial-wilson-f81c67`). Intent: copy to `sandbox` after the `claude/explorer → sandbox` merge (sandbox was 116 commits behind at authorship time).
+- Status legend uses 5 tiers; ⚠️ status reserved for blocked/at-risk items (none currently).
+- The list is not exhaustive — small follow-up tasks live in their initiative's backlog folder, not here. This doc lists strategic sub-systems, not micro-tasks.

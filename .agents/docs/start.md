@@ -24,8 +24,7 @@ Always read:
 - For large code files, use `tools/pkm-ai/analyze-code.mjs` instead of reading the whole file.
 - To archive long context, use `tools/pkm-ai/manage-memory.mjs archive`.
 
-Then choose the smallest route that fits the user's intent. A quick side
-question can be answered directly without changing mode.
+Then choose the smallest route that fits the user's intent. A quick side question can be answered directly without changing mode.
 
 ## Knowledge Surfaces (architecture cluster — 2026-05-28)
 
@@ -74,9 +73,7 @@ Micro commands do not edit files and should answer in 10 lines or fewer.
 
 ## Routes
 
-- inventory or status question ("which issues are open", "what changed since X",
-  "list every spec of initiative Y") -> `query-docs.ts --open/--closed/--status/--parent/--since/--tag`,
-  never a file-by-file sweep (see AGENTS.md step 2 + docs policy Retrieval Rule).
+- inventory or status question ("which issues are open", "what changed since X", "list every spec of initiative Y") -> `query-docs.ts --open/--closed/--status/--parent/--since/--tag`, never a file-by-file sweep (see AGENTS.md step 2 + docs policy Retrieval Rule).
 - bug or regression -> active backlog item, then relevant architecture policy.
 - new idea outside an initiative -> `work/draft`.
 - initiative work -> initiative `index.md`, then current spec or plan.

@@ -16,16 +16,12 @@ tags:
 
 # proto-v6 Sidebar Map
 
-From the read-only JSX deep-read of **proto design** (the rolling prototype stream). This map is
-the **snapshot at v6** (v7 ships 2026-05-28; docs refer to the STREAM as "proto design", not a
-pinned version — pin a snapshot id only when mapping). Sidebar-mode-visible only;
+From the read-only JSX deep-read of **proto design** (the rolling prototype stream). This map is the **snapshot at v6** (v7 ships 2026-05-28; docs refer to the STREAM as "proto design", not a pinned version — pin a snapshot id only when mapping). Sidebar-mode-visible only;
 big-picture/dashboard deferred. Decision verbs: ADOPT / RESHAPE / MAP / ADD / FIX / DROP / DEFER / SUPERSEDE.
 
 ## Central insight
 
-The proto's **islands ARE Scenes mounted on overlay / pop-up surfaces** — each island = a Scene
-backed by our logic (filters / queue / view-config / sort / FnR). Concretises the locked
-"filter-lists + queue become Scenes, mountable on any surface" + "islands = overlay-in-surface".
+The proto's **islands ARE Scenes mounted on overlay / pop-up surfaces** — each island = a Scene backed by our logic (filters / queue / view-config / sort / FnR). Concretises the locked "filter-lists + queue become Scenes, mountable on any surface" + "islands = overlay-in-surface".
 
 ## Map
 
@@ -44,16 +40,11 @@ backed by our logic (filters / queue / view-config / sort / FnR). Concretises th
 
 ## Near-term actionable (the only two that touch the NOW spine)
 
-- **FiltersIslandV4 → `logicProps` / `logicTags` extraction** (NOW): proto's AND/OR/NONE group +
-  subgroup + DnD model = the intended filter UX. Spec the extracted filter logic against this shape
+- **FiltersIslandV4 → `logicProps` / `logicTags` extraction** (NOW): proto's AND/OR/NONE group + subgroup + DnD model = the intended filter UX. Spec the extracted filter logic against this shape
   + `serviceGroup` (ContainerNodes).
-- **SearchIsland (FnR) → `logicFnR*` extraction** (NOW, row 6): proto's pinned-replace + advanced
-  toggles (case/word/regex/sep/next/all) + search|create modes + suggestions = the working FnR
-  island. Beta's FnR broke during a bits-ui attempt → extract `logicFnR*` pure, render against the
-  proto shape, avoid the bits-ui coupling that broke it.
+- **SearchIsland (FnR) → `logicFnR*` extraction** (NOW, row 6): proto's pinned-replace + advanced toggles (case/word/regex/sep/next/all) + search|create modes + suggestions = the working FnR island. Beta's FnR broke during a bits-ui attempt → extract `logicFnR*` pure, render against the proto shape, avoid the bits-ui coupling that broke it.
 
-Everything else (dock, ControlIsland, View/Sort islands, animations, tabs) = LATER (Surface
-foundation / Theme Builder / Style-Theme). Validates "islands = Scenes on overlay surfaces".
+Everything else (dock, ControlIsland, View/Sort islands, animations, tabs) = LATER (Surface foundation / Theme Builder / Style-Theme). Validates "islands = Scenes on overlay surfaces".
 
 ## Pass 2 — more sidebar pieces (2026-05-27)
 
@@ -66,32 +57,23 @@ foundation / Theme Builder / Style-Theme). Validates "islands = Scenes on overla
 | proto viewTiles = detailed alt to the flat compact list | Linear engine **new mode `tiles`** (detailed row) vs flat-list | RESHAPE → **ADD Linear `tiles` mode** | V.D engines/modes |
 | action/command input-binding shown as a node Cell (cmd+K primitive; cmenu shortcuts) | Cell (source = action binding) on ActionNode; `InputBindingNode` (DEFERRED) = editable map | **ADD** binding-as-Cell on ActionNodes | ActionNode + Cell; InputBinding DEFERRED |
 
-Model refinements surfaced (small, to fold later): Linear gains a `tiles` mode (update
-[[docs/architecture/explorer-model/02-render-and-data|02-render-and-data]]); ActionNode gains
-`opensOverlay?` + action-order-keyed animation + an optional binding Cell (refines ADR 0005);
+Model refinements surfaced (small, to fold later): Linear gains a `tiles` mode (update [[docs/architecture/explorer-model/02-render-and-data|02-render-and-data]]); ActionNode gains `opensOverlay?` + action-order-keyed animation + an optional binding Cell (refines ADR 0005);
 islands top/bottom = capability-profile behavior.
 
-**NEW OPEN**: do islands keep the sidebar top/bottom rule on a large surface (main-leaf
-desktop/tablet), or does LayoutBuilder / ThemeBuilder / WorkspaceMediator own placement there?
+**NEW OPEN**: do islands keep the sidebar top/bottom rule on a large surface (main-leaf desktop/tablet), or does LayoutBuilder / ThemeBuilder / WorkspaceMediator own placement there?
 
 ## Approach — enumerate only what NOT to extract
 
-proto is mostly adoptable → default = **RESHAPE each proto piece onto its axis at its roadmap
-slot**; explicitly list only the short stop-list:
+proto is mostly adoptable → default = **RESHAPE each proto piece onto its axis at its roadmap slot**; explicitly list only the short stop-list:
 
 - **DROP** (reject on merits): the 6 theme palettes (Obsidian handles themes).
-- **DEFER** (out of this pass's scope, may revisit): StatsPage, nautilus desktop icons,
-  big-picture / multi-column layout; `InputBindingNode` editable map (binding-as-Cell *display* is
-  fine now); Nav3D.
+- **DEFER** (out of this pass's scope, may revisit): StatsPage, nautilus desktop icons, big-picture / multi-column layout; `InputBindingNode` editable map (binding-as-Cell *display* is fine now); Nav3D.
 - **FIX** (wanted but half-done): the FnR island (beta's broke via bits-ui) → complete during `logicFnR*`.
 
 Everything else = RESHAPE/ADOPT onto Surface / View / Node / Logic / Style at its slot.
-**Foundation-first**: the mega-refactor (logic-extraction → N.R → V.D → P.D + Surface) is the base
-that absorbs all of it — proto features slot onto the axes, they are not copied wholesale.
+**Foundation-first**: the mega-refactor (logic-extraction → N.R → V.D → P.D + Surface) is the base that absorbs all of it — proto features slot onto the axes, they are not copied wholesale.
 
 ## Status
 
-Map + pass-2 captured. Feeds: (1) NOW logic-extraction specs (filters + FnR shapes); (2) the
-proto-v6 integration grill (islands-as-Scenes); (3) the style matrix (action-driven animation).
-Model refinements (Linear `tiles` mode · ActionNode `opensOverlay`/anim-by-order/binding-cell) +
-the islands-on-large-surface OPEN to fold when those sub-systems are spec'd.
+Map + pass-2 captured. Feeds: (1) NOW logic-extraction specs (filters + FnR shapes); (2) the proto-v6 integration grill (islands-as-Scenes); (3) the style matrix (action-driven animation).
+Model refinements (Linear `tiles` mode · ActionNode `opensOverlay`/anim-by-order/binding-cell) + the islands-on-large-surface OPEN to fold when those sub-systems are spec'd.

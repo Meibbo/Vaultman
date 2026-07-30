@@ -23,10 +23,8 @@ tags: [agent/issue, initiative/polish, release/bt5]
 
 ## What to build
 
-Reproducir y eliminar el feedback loop que cuelga la aplicación completa al cambiar
-settings que fuerzan re-render del frame: toolbar, dock y auto-reveal-current-file.
-Auditar cada toggle por separado y en secuencia; reparar el seam compartido, no añadir
-debounces ciegos que solo oculten el ciclo.
+Reproducir y eliminar el feedback loop que cuelga la aplicación completa al cambiar settings que fuerzan re-render del frame: toolbar, dock y auto-reveal-current-file.
+Auditar cada toggle por separado y en secuencia; reparar el seam compartido, no añadir debounces ciegos que solo oculten el ciclo.
 
 ## Acceptance criteria
 
@@ -39,15 +37,9 @@ debounces ciegos que solo oculten el ciclo.
 
 ## Outcome
 
-Completado en `c60e3bc7`. La causa fue el incremento indiscriminado de
-`pageRenderKey` por cada notificación de settings, sumado al `#key` de BottomNav. El
-frame ahora conserva sus panels/virtualizers y usa `settingsRevision` para los reads
-reactivos; `pageRenderKey` queda reservado al reorder real de páginas.
+Completado en `c60e3bc7`. La causa fue el incremento indiscriminado de `pageRenderKey` por cada notificación de settings, sumado al `#key` de BottomNav. El frame ahora conserva sus panels/virtualizers y usa `settingsRevision` para los reads reactivos; `pageRenderKey` queda reservado al reorder real de páginas.
 
-Smoke final en `plugin-dev`: 18 cambios secuenciales de `showToolbar`, `showDock` y
-`toolbarToolsMenu`, seguidos por Auto-reveal desde Tools. El root DOM conservó identidad,
-el listener set permaneció en 1, hubo filas visibles en cada paso, se restauraron los
-valores iniciales y no aparecieron errores de runtime.
+Smoke final en `plugin-dev`: 18 cambios secuenciales de `showToolbar`, `showDock` y `toolbarToolsMenu`, seguidos por Auto-reveal desde Tools. El root DOM conservó identidad, el listener set permaneció en 1, hubo filas visibles en cada paso, se restauraron los valores iniciales y no aparecieron errores de runtime.
 
 ## Blocked by
 

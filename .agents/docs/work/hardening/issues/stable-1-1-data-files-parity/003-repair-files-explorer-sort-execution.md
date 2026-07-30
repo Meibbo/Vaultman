@@ -27,8 +27,7 @@ updated_by: codex-gpt-5
 
 ## What To Build
 
-Repair Files explorer sort controls so every exposed sort option changes the rendered order in every
-supported Files view without breaking virtualization or scroll.
+Repair Files explorer sort controls so every exposed sort option changes the rendered order in every supported Files view without breaking virtualization or scroll.
 
 ## Acceptance Criteria
 
@@ -46,8 +45,7 @@ None - can start immediately.
 ## Verification
 
 - Focused RED/GREEN tests:
-  `pnpm exec vitest run --config vitest.unit.config.mts test/unit/explorerSort.test.ts test/unit/filesLogic.test.ts test/unit/statisticsCacheService.test.ts test/unit/sortUiSource.test.ts test/unit/explorerSetterSource.test.ts test/unit/statisticsScope.test.ts`
-  passed (`6` files / `22` tests).
+  `pnpm exec vitest run --config vitest.unit.config.mts test/unit/explorerSort.test.ts test/unit/filesLogic.test.ts test/unit/statisticsCacheService.test.ts test/unit/sortUiSource.test.ts test/unit/explorerSetterSource.test.ts test/unit/statisticsScope.test.ts` passed (`6` files / `22` tests).
 - `pnpm run check` passed with `0` Svelte diagnostics.
 - `pnpm run verify` passed (`24` unit files / `79` tests; scorecard `17` checks).
 - Build synced to `plugin-dev`; plugin reload/open passed; `dev:errors` returned `No errors captured`.

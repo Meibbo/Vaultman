@@ -119,8 +119,7 @@ Run:
 git diff --name-only -- src manifest.json versions.json package.json
 ```
 
-Expected: no output for `src/`, `manifest.json`, or `versions.json`. `package.json` at repo root should
-not be modified by this work.
+Expected: no output for `src/`, `manifest.json`, or `versions.json`. `package.json` at repo root should not be modified by this work.
 
 - [ ] **Step 5: Outside-MVP action scan**
 
@@ -130,8 +129,7 @@ Run:
 Select-String -Path .agents\tools\pkm-ai\room-ui\src\**\* -Pattern "--force|run.close|state.delete|git.run|build.run|release.run" -SimpleMatch
 ```
 
-Expected: no matches in UI action construction. If the terms appear only in tests that assert absence,
-record that explicitly in closeout.
+Expected: no matches in UI action construction. If the terms appear only in tests that assert absence, record that explicitly in closeout.
 
 ### Task 10: Documentation And Closeout
 
@@ -161,8 +159,7 @@ Run:
 node .agents\tools\pkm-ai\check-doc-health.ts --path .agents/docs/work/pkm-ai/plans/2026-06-06-agent-room-control-ui
 ```
 
-Expected: `doc health: OK`. Soft line-limit warnings are acceptable only if they preserve detail and
-remain below the hard cap.
+Expected: `doc health: OK`. Soft line-limit warnings are acceptable only if they preserve detail and remain below the hard cap.
 
 - [ ] **Step 4: Final commit**
 

@@ -23,8 +23,7 @@ glossary_candidates:
 
 # OneNote / Companion-Architecture Megadump
 
-Dev product dump, 2026-06-03. Captured lossless, triaged, NOT decided. This is a
-`work/draft` intake; promote to initiative only after the dev grills the forks below.
+Dev product dump, 2026-06-03. Captured lossless, triaged, NOT decided. This is a `work/draft` intake; promote to initiative only after the dev grills the forks below.
 
 ## Shards
 
@@ -41,23 +40,14 @@ Dev product dump, 2026-06-03. Captured lossless, triaged, NOT decided. This is a
 
 ## Conflict register (forks — dev decides, not agent)
 
-- **CR-1 Core vs companion split** (MD-A5/E2/F1/F3/F4/F6). Is VM a monolith or
-  thin core + companions? Gates theme-engine, layout-builder, online-fetch,
-  input-remap, operations. Dev leans thin-core; explicitly unsure how far. **Biggest fork.**
-- **CR-2 .scene format + name** (MD-F5/F7/G1/G2/G5). JSON+HTML vs svelte-like-no-precompiler
-  vs xhtml/yaml+json; `.scene` vs `.preset`; vs old `.vmscene`. Also: presets-as-files vs presets-as-companions.
-- **CR-3 css-class-per-NodeIdentity vs index-rebuild loss** (MD-B2). Identity change
-  breaks class mapping. Conflicts with S-26 (identity ≠ label; rebuild can lose occurrence).
-- **CR-4 manifest minAppVersion basis** (MD-C2). No real foundation today; lint-derived vs
-  manual changelog tracking — sharpened by incoming monkeypatch layer.
-- **CR-5 stable-update direction** (MD-C3). Forward layer-extraction/reconstruction vs
-  reverse downgrade-from-beta mega-refactor.
-- **CR-6 html-first vs md-first** (MD-A6/G3). md→html (write md, transform for components) vs
-  html→md realtime. Which is source of truth?
-- **CR-7 branch rename `sandbox`→`dev`** (MD-C1). CONTRADICTS 2026-05-27 version-streams
-  (main=stable / dev=beta / sandbox=canary). Reconcile with [[docs/work/hardening/research/2026-05-27-version-streams-distillation/index|version-streams]] before renaming.
-- **CR-8 strip all AI/docs from all branches** (MD-K1). Conflicts with current model where
-  dev/sandbox/hardening CARRY `.agents/`. Where do agent docs live if removed everywhere? Ties branch-policy + AI-file guard.
+- **CR-1 Core vs companion split** (MD-A5/E2/F1/F3/F4/F6). Is VM a monolith or thin core + companions? Gates theme-engine, layout-builder, online-fetch, input-remap, operations. Dev leans thin-core; explicitly unsure how far. **Biggest fork.**
+- **CR-2 .scene format + name** (MD-F5/F7/G1/G2/G5). JSON+HTML vs svelte-like-no-precompiler vs xhtml/yaml+json; `.scene` vs `.preset`; vs old `.vmscene`. Also: presets-as-files vs presets-as-companions.
+- **CR-3 css-class-per-NodeIdentity vs index-rebuild loss** (MD-B2). Identity change breaks class mapping. Conflicts with S-26 (identity ≠ label; rebuild can lose occurrence).
+- **CR-4 manifest minAppVersion basis** (MD-C2). No real foundation today; lint-derived vs manual changelog tracking — sharpened by incoming monkeypatch layer.
+- **CR-5 stable-update direction** (MD-C3). Forward layer-extraction/reconstruction vs reverse downgrade-from-beta mega-refactor.
+- **CR-6 html-first vs md-first** (MD-A6/G3). md→html (write md, transform for components) vs html→md realtime. Which is source of truth?
+- **CR-7 branch rename `sandbox`→`dev`** (MD-C1). CONTRADICTS 2026-05-27 version-streams (main=stable / dev=beta / sandbox=canary). Reconcile with [[docs/work/hardening/research/2026-05-27-version-streams-distillation/index|version-streams]] before renaming.
+- **CR-8 strip all AI/docs from all branches** (MD-K1). Conflicts with current model where dev/sandbox/hardening CARRY `.agents/`. Where do agent docs live if removed everywhere? Ties branch-policy + AI-file guard.
 
 ## Grill agenda (proposed order)
 
@@ -84,9 +74,7 @@ Decision-GATED (defer until grill resolves the fork):
 
 ## Dev-stated sequencing (honor before product brainstorm)
 
-MD-P3 + MD-P4: dev wants (1) PKM-AI interconnectivity + mind-routing verification, then
-(2) a docs cleanup/archive round, BEFORE product pre-brainstorm + decisions. Treat as a
-gate on starting the grills above unless dev reorders.
+MD-P3 + MD-P4: dev wants (1) PKM-AI interconnectivity + mind-routing verification, then (2) a docs cleanup/archive round, BEFORE product pre-brainstorm + decisions. Treat as a gate on starting the grills above unless dev reorders.
 
 ## Related architecture docs
 

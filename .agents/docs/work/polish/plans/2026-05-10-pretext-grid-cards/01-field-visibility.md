@@ -127,8 +127,7 @@ Run:
 pnpm exec vp test run --project unit --config vitest.config.ts test/unit/services/serviceNodeFieldVisibility.test.ts
 ```
 
-Expected: fail because `serviceNodeFieldVisibility.ts` does not exist and
-`viewFieldVisibility` is not part of `VaultmanSettings`.
+Expected: fail because `serviceNodeFieldVisibility.ts` does not exist and `viewFieldVisibility` is not part of `VaultmanSettings`.
 
 - [x] **Step 3: Add the settings field**
 
@@ -147,8 +146,7 @@ viewFieldVisibility: {},
 
 - [x] **Step 4: Implement `serviceNodeFieldVisibility.ts`**
 
-Create `src/services/serviceNodeFieldVisibility.ts` with these exported
-contracts:
+Create `src/services/serviceNodeFieldVisibility.ts` with these exported contracts:
 
 ```ts
 import type { ExplorerViewMode } from '../types/typeViews';

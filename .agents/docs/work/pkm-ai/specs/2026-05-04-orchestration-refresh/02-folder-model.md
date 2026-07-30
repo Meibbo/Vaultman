@@ -66,8 +66,7 @@ archive/
   pkm-ai/
 ```
 
-Each initiative archive may contain `history/`, `handoffs/`, `attempts/`,
-`conflicts/`, `superseded/`, and `raw/`.
+Each initiative archive may contain `history/`, `handoffs/`, `attempts/`, `conflicts/`, `superseded/`, and `raw/`.
 
 ## Sharding
 

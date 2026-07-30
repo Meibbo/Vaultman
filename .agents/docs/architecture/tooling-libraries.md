@@ -15,20 +15,16 @@ tags:
 
 # Tooling, Libraries & References
 
-Standing registry of what we use, what we're transitioning to, what was removed, and which tools live in
-which stream. Helps onboarding, transition planning, and the periodic "stability promotion" from `main`
-into `dev` + `sandbox` (a separate transition-agent owns the mechanic; this doc is the inventory).
+Standing registry of what we use, what we're transitioning to, what was removed, and which tools live in which stream. Helps onboarding, transition planning, and the periodic "stability promotion" from `main` into `dev` + `sandbox` (a separate transition-agent owns the mechanic; this doc is the inventory).
 
-Pair with: [[docs/architecture/dev-glossary|dev-glossary]] · [[docs/architecture/zoom-out-map|zoom-out-map]]
-· [[docs/architecture/operational-watch-list|operational-watch-list]] · [[docs/work/hardening/research/2026-05-27-version-streams-distillation/index|version-streams]].
+Pair with: [[docs/architecture/dev-glossary|dev-glossary]] · [[docs/architecture/zoom-out-map|zoom-out-map]] · [[docs/architecture/operational-watch-list|operational-watch-list]] · [[docs/work/hardening/research/2026-05-27-version-streams-distillation/index|version-streams]].
 
 ## Stream tier reminder
 
 - **stable** (`main`): conservative; must work. Adopts beta tooling only after promotion gate.
 - **beta / nightly** (`dev`): testing freedom; toward-stable; adopts canary tools when proven safe.
 - **canary** (`sandbox`): creative; tagged for extraction/reference back upstream; may break.
-- **proto design** (Claude-design, `Downloads/vaultman`): anything goes — visualization stream only,
-  NEVER merges code; the stack is irrelevant beyond translation reference.
+- **proto design** (Claude-design, `Downloads/vaultman`): anything goes — visualization stream only, NEVER merges code; the stack is irrelevant beyond translation reference.
 - **goal** (docs): no toolchain.
 
 ## Current stack (IN USE)
@@ -75,35 +71,24 @@ Pair with: [[docs/architecture/dev-glossary|dev-glossary]] · [[docs/architectur
 
 ## 2026-06-15 — Frontend stack deep-research corrections
 
-Source: [[docs/work/hardening/research/2026-06-15-frontend-stack-deep-research/index|Frontend Stack Deep Research]]
-(6 read-only Explore agents + coordinator verification — repo files + live web). Corrections to the tables above:
+Source: [[docs/work/hardening/research/2026-06-15-frontend-stack-deep-research/index|Frontend Stack Deep Research]] (6 read-only Explore agents + coordinator verification — repo files + live web). Corrections to the tables above:
 
 - **UnoCSS = IN USE, not "research pending".** `uno.config.ts` wired with `presetWind3({preflight:false})`
-  + `presetAttributify`/`presetIcons`/`unocss-preset-theme` (native/vaultman). Partial adoption (shortcuts
-  defined; most components still SCSS). Hybrid SCSS+UnoCSS is the standing architecture.
-- **presetWind4 EXISTS** (`@unocss/preset-wind4`, UnoCSS 66.1+; we are on 66.6.8). Wind3-compatible + oklch +
-  base/theme/properties layers + built-in remToPx. Migration Wind3→Wind4 viable; pilot behind a visual diff (D-FE-3).
+  + `presetAttributify`/`presetIcons`/`unocss-preset-theme` (native/vaultman). Partial adoption (shortcuts defined; most components still SCSS). Hybrid SCSS+UnoCSS is the standing architecture.
+- **presetWind4 EXISTS** (`@unocss/preset-wind4`, UnoCSS 66.1+; we are on 66.6.8). Wind3-compatible + oklch + base/theme/properties layers + built-in remToPx. Migration Wind3→Wind4 viable; pilot behind a visual diff (D-FE-3).
 - **dnd-kit: official `@dnd-kit/svelte` is IN USE** (`package.json` 0.4.0; `createDraggable/Droppable/Sortable`
-  + `{@attach x.attach}` + `DragDropProvider`). Likely **supersedes the HanielU `dnd-kit-svelte`** port selected
-  in R-DND-C / proposed lock S-10 — reconcile before locking (D-FE-2).
-- **bits-ui FnR breakage** = hypothesis: portal + `trapFocus` vs Obsidian editor focus; fix = `trapFocus:false`
-  in editor + portal scoped to activeDocument (`servicePortalResolver.ts`). Reproduce before trusting.
-- **render-tag identified** = Polotno html-in-canvas renderer (HTML/CSS → Canvas 2D); N4 canvas-engine candidate
-  only, NOT installed. **pretext** = IN USE (`serviceTextMeasure.ts`); add theme-change cache invalidation.
+  + `{@attach x.attach}` + `DragDropProvider`). Likely **supersedes the HanielU `dnd-kit-svelte`** port selected in R-DND-C / proposed lock S-10 — reconcile before locking (D-FE-2).
+- **bits-ui FnR breakage** = hypothesis: portal + `trapFocus` vs Obsidian editor focus; fix = `trapFocus:false` in editor + portal scoped to activeDocument (`servicePortalResolver.ts`). Reproduce before trusting.
+- **render-tag identified** = Polotno html-in-canvas renderer (HTML/CSS → Canvas 2D); N4 canvas-engine candidate only, NOT installed. **pretext** = IN USE (`serviceTextMeasure.ts`); add theme-change cache invalidation.
   **LayerChart** stays deferred (N3 dashboard pilot, Obsidian-theme-mapped, lazy-loaded).
 
 ## Stream-tier alignment for the transition
 
-- **Stable (`main`)**: minimal modernization until promoted. Current = `1.0.1` line. Adopts tooling
-  AFTER promotion gate.
-- **Beta (`dev`)**: target candidate stack lands here first. UnoCSS / Svelte-DnD / new bundle/test
-  changes pilot here.
+- **Stable (`main`)**: minimal modernization until promoted. Current = `1.0.1` line. Adopts tooling AFTER promotion gate.
+- **Beta (`dev`)**: target candidate stack lands here first. UnoCSS / Svelte-DnD / new bundle/test changes pilot here.
 - **Canary (`sandbox`)**: anything goes; tagged for extraction/reference back to beta.
-- **Proto design**: pure CSS / React / HTML — irrelevant to our stack (re-translation only; tooling
-  there does not constrain ours).
-- **Periodic "stability promotion"** (dev flagged 2026-05-27): rhythm pushing main's security / test /
-  release improvements INTO `dev` + `sandbox` on cadence so canary/beta don't drift behind on
-  fundamentals. To be scheduled by the transition-agent (publish initiative owns the mechanic).
+- **Proto design**: pure CSS / React / HTML — irrelevant to our stack (re-translation only; tooling there does not constrain ours).
+- **Periodic "stability promotion"** (dev flagged 2026-05-27): rhythm pushing main's security / test / release improvements INTO `dev` + `sandbox` on cadence so canary/beta don't drift behind on fundamentals. To be scheduled by the transition-agent (publish initiative owns the mechanic).
 
 ## Superseded / removed (running log)
 
@@ -121,14 +106,10 @@ Source: [[docs/work/hardening/research/2026-06-15-frontend-stack-deep-research/i
 ## Process
 
 - Append a row when a tool is added or removed (date + reason).
-- When proposing a target tool, dispatch a research thread → record under "Target / candidate" until
-  adopted, then move to "Current stack" + keep a row in "Superseded" if replacing something.
+- When proposing a target tool, dispatch a research thread → record under "Target / candidate" until adopted, then move to "Current stack" + keep a row in "Superseded" if replacing something.
 - Pair with the stream-tier alignment so the dev knows which stream a tool lives in.
-- Reconstruction watch (raised 2026-05-27): the gap between stable's tooling and beta's tooling is
-  abysmal; document each adoption with a transition note (impact, fallback, rollback). Pair with the
-  preview-prototype strategy ([[docs/architecture/pending-decisions|S-8]]).
+- Reconstruction watch (raised 2026-05-27): the gap between stable's tooling and beta's tooling is abysmal; document each adoption with a transition note (impact, fallback, rollback). Pair with the preview-prototype strategy ([[docs/architecture/pending-decisions|S-8]]).
 
 ## Status
 
-Created 2026-05-27 at dev request ("doc de todo el tooling, librerías y referencias"). Initial
-inventory; grow over time. Hand to the transition-agent for the periodic stability-promotion mechanic.
+Created 2026-05-27 at dev request ("doc de todo el tooling, librerías y referencias"). Initial inventory; grow over time. Hand to the transition-agent for the periodic stability-promotion mechanic.

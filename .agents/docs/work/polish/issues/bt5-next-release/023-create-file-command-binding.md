@@ -21,9 +21,7 @@ tags: [agent/issue, initiative/polish, release/bt5]
 
 ## What to build
 
-Permitir que el action node Create File ejecute `Vaultman default` o un comando elegido
-del registry de Obsidian. La elección se resuelve por command id al invocar y aplica tanto
-en searchbox como toolbar; no copiar callbacks ni labels internos del comando.
+Permitir que el action node Create File ejecute `Vaultman default` o un comando elegido del registry de Obsidian. La elección se resuelve por command id al invocar y aplica tanto en searchbox como toolbar; no copiar callbacks ni labels internos del comando.
 
 ## Acceptance criteria
 
@@ -42,9 +40,6 @@ None — can start immediately. Su resolver será reutilizado por BT5-024.
 
 **Commit `3973ed29`.** Gate verde. Test focal `test/unit/commandActions.test.ts`.
 Resolver puro `logicCommandActions` + accessor defensivo `utils/obsidianCommands`.
-Create File puede ejecutar un comando elegido, resuelto por id al invocar; ausente/
-deshabilitado avisa y cae al built-in. Selector buscable (FuzzySuggestModal) con
-Vaultman default primero; reset vuelve al built-in. Aplica desde cualquier
-placement. Detalle: [[docs/work/polish/plans/2026-07-19-bt5-next-10/08-bt5-014-021-022-023-024|shard 08]].
+Create File puede ejecutar un comando elegido, resuelto por id al invocar; ausente/ deshabilitado avisa y cae al built-in. Selector buscable (FuzzySuggestModal) con Vaultman default primero; reset vuelve al built-in. Aplica desde cualquier placement. Detalle: [[docs/work/polish/plans/2026-07-19-bt5-next-10/08-bt5-014-021-022-023-024|shard 08]].
 
 Pendiente: smoke de runtime.

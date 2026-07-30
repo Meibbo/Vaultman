@@ -17,9 +17,7 @@ updated_by: codex
 
 ## Ownership
 
-DELTA owns mouse grammar, DnD adapter decisions, native-surface interception,
-node-note alias expansion, and i18n attribute helpers. It must not alter ALPHA
-style setup, BETA measurement internals, or GAMMA portal wrappers.
+DELTA owns mouse grammar, DnD adapter decisions, native-surface interception, node-note alias expansion, and i18n attribute helpers. It must not alter ALPHA style setup, BETA measurement internals, or GAMMA portal wrappers.
 
 ## Files
 
@@ -32,8 +30,7 @@ style setup, BETA measurement internals, or GAMMA portal wrappers.
 - Modify: `src/index/i18n/es.ts`
 - Create: `src/services/serviceI18nAttrs.ts`
 - Create: `test/unit/services/serviceI18nAttrs.test.ts`
-- Modify or create tests for mouse, DnD, native surfaces, node binding, and
-  binding-note component routes.
+- Modify or create tests for mouse, DnD, native surfaces, node binding, and binding-note component routes.
 
 ## Shards
 
@@ -52,5 +49,4 @@ obsidian vault=plugin-dev eval code="(() => { const svc=app.plugins.plugins.vaul
 obsidian vault=plugin-dev dev:errors
 ```
 
-Expected: service/component tests pass, build exits 0, node binding service is
-available in Obsidian, and no Vaultman stack appears.
+Expected: service/component tests pass, build exits 0, node binding service is available in Obsidian, and no Vaultman stack appears.

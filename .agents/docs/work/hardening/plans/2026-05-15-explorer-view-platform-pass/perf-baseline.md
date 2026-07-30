@@ -16,9 +16,7 @@ updated_by: codex
 
 ## Task 17 Focused Gates
 
-Recorded on `2026-05-16T04:46:13.9320138-05:00` in worktree
-`C:\Users\vic_A\Desktop\vaultman\.claude\worktrees\jovial-wilson-f81c67`
-on branch `claude/explorer`.
+Recorded on `2026-05-16T04:46:13.9320138-05:00` in worktree `C:\Users\vic_A\Desktop\vaultman\.claude\worktrees\jovial-wilson-f81c67` on branch `claude/explorer`.
 
 Latest implementation commit before this record:
 `8056ef5` `refactor: add platform contracts to table grid cards`.
@@ -57,21 +55,14 @@ Result: passed.
 
 The focused unit gate covers the deterministic synthetic platform dataset:
 
-- `10_000` mixed files rows: `nodes`, `rowInputs`, `idToIndex`, media
-  descriptors, filtered ids, and selected ids are generated deterministically.
-- `50_000` mixed files rows: direct `idToIndex` and `indexToId` maps contain
-  `50_000` entries, row ids are unique, and media descriptors remain
-  descriptor-only.
-- `100_000` flat files rows: proof dataset builds `100_000` nodes,
-  `100_000` row inputs, and `100_000` lookup entries without decoded media
-  blobs.
-- Media hidden path: the baseline asserts no blob requests while the media
-  element is not visible.
+- `10_000` mixed files rows: `nodes`, `rowInputs`, `idToIndex`, media descriptors, filtered ids, and selected ids are generated deterministically.
+- `50_000` mixed files rows: direct `idToIndex` and `indexToId` maps contain `50_000` entries, row ids are unique, and media descriptors remain descriptor-only.
+- `100_000` flat files rows: proof dataset builds `100_000` nodes, `100_000` row inputs, and `100_000` lookup entries without decoded media blobs.
+- Media hidden path: the baseline asserts no blob requests while the media element is not visible.
 
 ## PerfProbe Snapshot Fields
 
-Task 17 is a focused local gate, not the live Obsidian perf probe. The component
-gate still exercises the revision-aware reveal path with an active `PerfProbe`.
+Task 17 is a focused local gate, not the live Obsidian perf probe. The component gate still exercises the revision-aware reveal path with an active `PerfProbe`.
 
 Covered in the focused gate:
 
@@ -83,12 +74,9 @@ Fields reserved for Task 19 live Obsidian scenarios:
 
 - `scenario`: scenario name returned by `window.__vaultmanPerfProbe.run(...)`.
 - `startedAt` and `endedAt`.
-- `counters["scenario.<name>"]` with `count`, `totalNodes`, `totalRows`,
-  `totalVisibleRows`, and `totalFiles`.
-- `timings["scenario.<name>.duration"]` with `count`, `totalMs`, `maxMs`,
-  `totalNodes`, `totalRows`, `totalVisibleRows`, and `totalFiles`.
-- `longFrameCount`, `maxLongFrameMs`, and `heapDeltaBytes` when available from
-  the live runtime.
+- `counters["scenario.<name>"]` with `count`, `totalNodes`, `totalRows`, `totalVisibleRows`, and `totalFiles`.
+- `timings["scenario.<name>.duration"]` with `count`, `totalMs`, `maxMs`, `totalNodes`, `totalRows`, `totalVisibleRows`, and `totalFiles`.
+- `longFrameCount`, `maxLongFrameMs`, and `heapDeltaBytes` when available from the live runtime.
 
 Task 19 should append the live snapshots for:
 
@@ -103,8 +91,7 @@ Task 19 should append the live snapshots for:
 
 ## Task 19 Live Obsidian PerfProbe
 
-Recorded on `2026-05-16T05:08:42.8385595-05:00` against the explicit Obsidian
-CLI target `vault=plugin-dev`.
+Recorded on `2026-05-16T05:08:42.8385595-05:00` against the explicit Obsidian CLI target `vault=plugin-dev`.
 
 Target confirmation:
 
@@ -156,14 +143,9 @@ The scenarios were executed sequentially with:
 
 Notes:
 
-- `longFrameCount`, `maxLongFrameMs`, and `heapDeltaBytes` are currently not
-  populated by the probe implementation and returned `null` for all live
-  scenarios.
-- `tree-filtered-highlight` also recorded
-  `counters["scenario.tree-filtered-highlight.matches"].count = 1`.
-- The live run used the current `plugin-dev` DOM after `vaultman:open`; probe
-  scenario counters carry the intended synthetic scale metadata for the tested
-  scenario names.
+- `longFrameCount`, `maxLongFrameMs`, and `heapDeltaBytes` are currently not populated by the probe implementation and returned `null` for all live scenarios.
+- `tree-filtered-highlight` also recorded `counters["scenario.tree-filtered-highlight.matches"].count = 1`.
+- The live run used the current `plugin-dev` DOM after `vaultman:open`; probe scenario counters carry the intended synthetic scale metadata for the tested scenario names.
 
 ### Error Capture
 

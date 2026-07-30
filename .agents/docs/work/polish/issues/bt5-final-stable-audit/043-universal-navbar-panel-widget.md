@@ -22,17 +22,13 @@ Corrects the page-owned toolbar architecture exposed by BT5-037/039.
 
 ## What to build
 
-Introduce one frame-owned Navbar, classified as a `panelWidget`, whose action
-nodes are contributed by the active provider. Preserve `Toolbar` as a settings
-and UX alias for v1.2.0, but remove ownership from Files, Statistics or any page.
-The host owns ordering, availability, overflow and focus semantics; providers
-only describe actions and invoke domain ports.
+Introduce one frame-owned Navbar, classified as a `panelWidget`, whose action nodes are contributed by the active provider. Preserve `Toolbar` as a settings and UX alias for v1.2.0, but remove ownership from Files, Statistics or any page.
+The host owns ordering, availability, overflow and focus semantics; providers only describe actions and invoke domain ports.
 
 ## Acceptance criteria
 
 - [ ] One Navbar host is mounted per Vaultman frame and survives provider switches.
-- [ ] A typed provider contribution contract supplies stable action ids, labels,
-      icons, order, availability and invocation.
+- [ ] A typed provider contribution contract supplies stable action ids, labels, icons, order, availability and invocation.
 - [ ] Providers cannot instantiate a second toolbar/navbar renderer.
 - [ ] Existing saved toolbar settings migrate without losing action ids or order.
 - [ ] The host exposes one focus/keyboard model and one overflow seam.

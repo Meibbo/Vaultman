@@ -24,17 +24,11 @@ glossary_candidates:
 > production change. Use systematic-debugging if a failure is not the expected
 > red.
 
-**Goal:** restore the tag and file context-menu paths so they stage queue-visible
-work instead of silently doing nothing or bypassing Vaultman's queue.
+**Goal:** restore the tag and file context-menu paths so they stage queue-visible work instead of silently doing nothing or bypassing Vaultman's queue.
 
-**Architecture:** move queue payload construction into small pure builders,
-reuse those builders from modals/providers, and add only the minimum queue
-contract needed for file deletion if the red test proves it is the broken file
-operation. Keep the CMenu service API unchanged.
+**Architecture:** move queue payload construction into small pure builders, reuse those builders from modals/providers, and add only the minimum queue contract needed for file deletion if the red test proves it is the broken file operation. Keep the CMenu service API unchanged.
 
-**Tech Stack:** TypeScript, Svelte 5 component wiring only if required by the
-rename handoff, Vitest unit tests, existing `OperationQueueService`,
-`IOperationsIndex`, and Obsidian `TFile` mocks.
+**Tech Stack:** TypeScript, Svelte 5 component wiring only if required by the rename handoff, Vitest unit tests, existing `OperationQueueService`, `IOperationsIndex`, and Obsidian `TFile` mocks.
 
 ## Source Records
 
@@ -54,22 +48,14 @@ rename handoff, Vitest unit tests, existing `OperationQueueService`,
 
 1. Write the red test for `tag.rename` through the registered CMenu action.
 2. Extract and use tag queue builders until tag rename/delete/add tests pass.
-3. Write the red tests for file rename/move builders and file delete queue
-   behavior.
-4. Extract file rename/move builders from the modals without changing the modal
-   UX.
-5. Add a minimal file delete queue operation only if the file delete red test
-   confirms the queue cannot represent the action today.
-6. Wire providers to the builders and keep direct Obsidian trash out of the
-   Vaultman operation path.
-7. Run the focused verification set, update current docs, then announce that
-   A0 is complete and name A1 as the next slice.
+3. Write the red tests for file rename/move builders and file delete queue behavior.
+4. Extract file rename/move builders from the modals without changing the modal UX.
+5. Add a minimal file delete queue operation only if the file delete red test confirms the queue cannot represent the action today.
+6. Wire providers to the builders and keep direct Obsidian trash out of the Vaultman operation path.
+7. Run the focused verification set, update current docs, then announce that A0 is complete and name A1 as the next slice.
 
 ## Stop Conditions
 
-- Stop and report if file deletion needs a destructive commit semantic that
-  cannot be represented safely in `OperationQueueService` without broad queue
-  redesign.
-- Stop and report if a required test must touch unrelated dirty files owned by
-  another in-progress change.
+- Stop and report if file deletion needs a destructive commit semantic that cannot be represented safely in `OperationQueueService` without broad queue redesign.
+- Stop and report if a required test must touch unrelated dirty files owned by another in-progress change.
 - Do not commit.

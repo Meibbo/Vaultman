@@ -18,8 +18,7 @@ visuals:
 # Phase 04 - Layout And Pages Layer
 
 This phase maps the component layer immediately below `src/components/frame/`.
-It explains how the frame's primitive state becomes visible navigation,
-toolbar controls, popups, page tabs, explorer panels, statistics, and tools.
+It explains how the frame's primitive state becomes visible navigation, toolbar controls, popups, page tabs, explorer panels, statistics, and tools.
 
 ## Files In This Phase
 
@@ -54,11 +53,7 @@ flowchart TD
 
 ## Key Conclusion
 
-The toolbar is not a frame-wide primitive yet. It is mounted by
-`pageFilters.svelte`, while `navbarDock.svelte` and `navbarTabs.svelte` are the
-generic navigation surfaces. This means the safe path for restoring the old
-navbar feel is presentation-first inside `Toolbar.svelte` plus its SCSS, while
-leaving `frameVaultman.svelte` and `pageFilters.svelte` state wiring intact.
+The toolbar is not a frame-wide primitive yet. It is mounted by `pageFilters.svelte`, while `navbarDock.svelte` and `navbarTabs.svelte` are the generic navigation surfaces. This means the safe path for restoring the old navbar feel is presentation-first inside `Toolbar.svelte` plus its SCSS, while leaving `frameVaultman.svelte` and `pageFilters.svelte` state wiring intact.
 
 ## Shards
 
@@ -72,7 +67,4 @@ leaving `frameVaultman.svelte` and `pageFilters.svelte` state wiring intact.
 
 ## Next Layer
 
-Phase 05 should map `src/components/containers/`, `src/providers/`, and
-`src/components/views/` together. Phase 04 shows that most page tabs delegate
-their actual explorer body to `PanelExplorer` plus provider classes, so those
-files are the next meaningful dependency layer.
+Phase 05 should map `src/components/containers/`, `src/providers/`, and `src/components/views/` together. Phase 04 shows that most page tabs delegate their actual explorer body to `PanelExplorer` plus provider classes, so those files are the next meaningful dependency layer.

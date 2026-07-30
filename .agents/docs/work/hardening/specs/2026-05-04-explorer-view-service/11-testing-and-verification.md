@@ -14,11 +14,9 @@ tags:
 
 ## Test Strategy
 
-Most behavior should be tested as TypeScript service/model tests before Svelte
-component tests.
+Most behavior should be tested as TypeScript service/model tests before Svelte component tests.
 
-Component tests should verify projection and accessibility surface, not
-business logic.
+Component tests should verify projection and accessibility surface, not business logic.
 
 ## Unit Tests
 

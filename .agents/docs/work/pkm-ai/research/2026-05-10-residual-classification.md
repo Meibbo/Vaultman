@@ -17,11 +17,8 @@ tags:
 
 ## Purpose
 
-This record gives recurring Vaultman agent caveats a durable classification so
-they do not end as loose "pre-existing" prose in chat, status, or handoff.
-Every residual must either block the current claim, move to a source/backlog
-record, become explicitly accepted noise, record an environment blocker, or
-stay marked as unproven with the next reproduction probe.
+This record gives recurring Vaultman agent caveats a durable classification so they do not end as loose "pre-existing" prose in chat, status, or handoff.
+Every residual must either block the current claim, move to a source/backlog record, become explicitly accepted noise, record an environment blocker, or stay marked as unproven with the next reproduction probe.
 
 ## Classifier
 
@@ -47,6 +44,4 @@ stay marked as unproven with the next reproduction probe.
 
 ## Operating Rule
 
-Do not use "pre-existing" as a terminal state. It is only a scope statement
-until this record or a linked backlog/source record classifies the residual and
-names the next proof or owner.
+Do not use "pre-existing" as a terminal state. It is only a scope statement until this record or a linked backlog/source record classifies the residual and names the next proof or owner.

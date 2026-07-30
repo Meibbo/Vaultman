@@ -70,7 +70,5 @@ flowchart LR
 
 - Component tests do not have a global component setup file in `vitest.config.ts`;
   individual tests must install globals or DOM polyfills they need.
-- `verify` deliberately excludes integration and e2e. A branch can pass `verify`
-  while still needing live Obsidian validation for plugin lifecycle or vault IO.
-- The Obsidian mock is broad and useful, but it is still a mock. Behavior using
-  undocumented Obsidian internals must be confirmed by integration or live smoke.
+- `verify` deliberately excludes integration and e2e. A branch can pass `verify` while still needing live Obsidian validation for plugin lifecycle or vault IO.
+- The Obsidian mock is broad and useful, but it is still a mock. Behavior using undocumented Obsidian internals must be confirmed by integration or live smoke.

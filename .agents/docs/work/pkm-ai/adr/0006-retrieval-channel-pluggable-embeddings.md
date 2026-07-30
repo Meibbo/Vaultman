@@ -19,32 +19,22 @@ tags:
 
 ## Context
 
-Spec S6's retrieval channel needs semantic vectors, but: (a) no paid API budget (free tiers ok), (b) the
-dev's vault is private/sensitive (MD-K1), (c) the dev wants a **switch**, not a rigid single pick. Research
-confirms free hosted tiers exist but Google's free embeddings carry a data-training ToS risk; the dev's own
-plugins (Smart Connections, Copilot) default to LOCAL.
+Spec S6's retrieval channel needs semantic vectors, but: (a) no paid API budget (free tiers ok), (b) the dev's vault is private/sensitive (MD-K1), (c) the dev wants a **switch**, not a rigid single pick. Research confirms free hosted tiers exist but Google's free embeddings carry a data-training ToS risk; the dev's own plugins (Smart Connections, Copilot) default to LOCAL.
 
 ## Decision
 
 Retrieval embeddings + vector store are **pluggable adapters behind a config switch**, defaulting to local.
 
-- **Interfaces:** `EmbeddingProvider { id, dims, embed(texts), getMetadata{dataPrivacy} }` +
-  `VectorStore { upsert, query, delete, rebuild, clear }` + `EmbeddingConfig { provider, model?, apiKey?,
-  endpoint?, vectorStore, storePath?, enableFallback }`.
-- **Default (zero-key, offline, private):** `local-transformers` = transformers.js `all-MiniLM-L6-v2`
-  (384-dim, MIT, in-Node, no daemon) + vector store **Orama** (MIT, no native deps, JSON snapshot) — or
-  `flat-json` + cosine for minimal deps.
+- **Interfaces:** `EmbeddingProvider { id, dims, embed(texts), getMetadata{dataPrivacy} }` + `VectorStore { upsert, query, delete, rebuild, clear }` + `EmbeddingConfig { provider, model?, apiKey?, endpoint?, vectorStore, storePath?, enableFallback }`.
+- **Default (zero-key, offline, private):** `local-transformers` = transformers.js `all-MiniLM-L6-v2` (384-dim, MIT, in-Node, no daemon) + vector store **Orama** (MIT, no native deps, JSON snapshot) — or `flat-json` + cosine for minimal deps.
 - **Swappable by config/env:** `local-ollama` (daemon, GPU) · `google-gemini` (free-tier) · paid — user opt-in.
 - **Fallback chain:** configured → on hosted fail/quota → **revert to local**; never force paid.
-- **Storage:** vector store + embedding cache = **device-local, regenerable, NOT synced** (sync-boundary,
-  watch-list §1); embed **on doc-change** (content-hash; soft-delete on git rm).
-- **Privacy guardrail:** `getMetadata().dataPrivacy` is surfaced; default LOCAL for the private vault; hosted
-  providers (esp. Google free = `training_risk`) only on explicit opt-in for public-safe content.
+- **Storage:** vector store + embedding cache = **device-local, regenerable, NOT synced** (sync-boundary, watch-list §1); embed **on doc-change** (content-hash; soft-delete on git rm).
+- **Privacy guardrail:** `getMetadata().dataPrivacy` is surfaced; default LOCAL for the private vault; hosted providers (esp. Google free = `training_risk`) only on explicit opt-in for public-safe content.
 
 ## Consequences
 
-- Zero-key / zero-cost / offline / private by default; swap to free-tier or paid anytime via config — no
-  rewrite (satisfies the dev's "switch" requirement + S-29 "wrap behind a contract").
+- Zero-key / zero-cost / offline / private by default; swap to free-tier or paid anytime via config — no rewrite (satisfies the dev's "switch" requirement + S-29 "wrap behind a contract").
 - Matches the proven Smart Connections / Copilot pattern; scales to ~10k docs in-memory.
 - Cost: transformers.js adds ~200–400 MB RAM + a 30–60 s first-load; new deps (transformers.js + Orama).
 

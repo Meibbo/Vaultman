@@ -17,24 +17,18 @@ updated_by: codex
 
 Source: <https://github.com/pjeby/tag-wrangler/blob/master/src/plugin.js>
 
-Tag Wrangler treats a tag page as a note whose `aliases` frontmatter includes
-the tag token. It builds two maps:
+Tag Wrangler treats a tag page as a note whose `aliases` frontmatter includes the tag token. It builds two maps:
 
 - `pageAliases: Map<TFile, string[]>`
 - `tagPages: Map<string, TFile[]>`
 
-The plugin scans `metadataCache.getCachedFiles()` after layout is ready, reads
-frontmatter aliases with `parseFrontMatterAliases`, keeps only aliases that pass
-`Tag.isTag`, canonicalizes them through `Tag.canonical`, and updates the maps.
+The plugin scans `metadataCache.getCachedFiles()` after layout is ready, reads frontmatter aliases with `parseFrontMatterAliases`, keeps only aliases that pass `Tag.isTag`, canonicalizes them through `Tag.canonical`, and updates the maps.
 It also listens to:
 
 - `metadataCache.on("changed", (file, data, cache) => updatePage(file, cache?.frontmatter))`
 - `vault.on("delete", file => updatePage(file))`
 
-It monkey-patches `metadataCache.getTags()` via `monkey-around` so tag pages can
-appear in the Tags view even when no note currently uses the tag. Vaultman
-should avoid this unless it later has a concrete need to mutate Obsidian's
-global tag count surface.
+It monkey-patches `metadataCache.getTags()` via `monkey-around` so tag pages can appear in the Tags view even when no note currently uses the tag. Vaultman should avoid this unless it later has a concrete need to mutate Obsidian's global tag count surface.
 
 Tag page creation writes a minimal alias block:
 
@@ -44,9 +38,7 @@ Aliases: [ "#tag" ]
 ---
 ```
 
-The exact casing differs from Vaultman's current `aliases` key, but Obsidian
-normalizes both. Vaultman should keep lowercase `aliases` for consistency with
-`serviceNodeBinding.ts`.
+The exact casing differs from Vaultman's current `aliases` key, but Obsidian normalizes both. Vaultman should keep lowercase `aliases` for consistency with `serviceNodeBinding.ts`.
 
 ## Native Tag Surfaces
 
@@ -59,28 +51,21 @@ Tag Wrangler registers a `TagPageUIHandler` for these native surfaces:
 | Properties tags | `.metadata-property[data-property-key="tags"] .multi-select-pill` | `.metadata-properties` |
 | Live editor tags | `span.cm-hashtag` | `.markdown-source-view` |
 
-The editor case is special: a tag can be split across adjacent CodeMirror
-tokens, so the handler joins adjacent `.cm-hashtag` spans before extracting the
-full tag text.
+The editor case is special: a tag can be split across adjacent CodeMirror tokens, so the handler joins adjacent `.cm-hashtag` spans before extracting the full tag text.
 
 ## Click and Hover Behaviour
 
-Open handling uses a capture listener on `document`. For editor tags it listens
-to `mousedown`; for other tag surfaces it listens to `click`.
+Open handling uses a capture listener on `document`. For editor tags it listens to `mousedown`; for other tag surfaces it listens to `click`.
 
 The important branch:
 
-- If neither Alt nor `Keymap.isModEvent(event)` is present, native behaviour is
-  allowed.
+- If neither Alt nor `Keymap.isModEvent(event)` is present, native behaviour is allowed.
 - If the tag has a tag page, it opens that file.
 - If no tag page exists, it asks whether to create one.
-- Only after handling does it call `event.preventDefault()` and
-  `event.stopImmediatePropagation()`.
+- Only after handling does it call `event.preventDefault()` and `event.stopImmediatePropagation()`.
 
-Alt opens in the current pane. Ctrl/Cmd-click and middle click use
-`Keymap.isModEvent(event)` and pass its return value to `workspace.getLeaf(...)`.
-In Obsidian this may represent a tab, split, or window target, not just a
-boolean.
+Alt opens in the current pane. Ctrl/Cmd-click and middle click use `Keymap.isModEvent(event)` and pass its return value to `workspace.getLeaf(...)`.
+In Obsidian this may represent a tab, split, or window target, not just a boolean.
 
 Hover preview uses:
 
@@ -111,6 +96,5 @@ The missing layer is a native DOM adapter:
 2. Resolve a `BindingNodeInput`.
 3. Call `NodeBindingService.bindOrCreate(input, openTarget?)`.
 4. Prevent native behaviour only after Vaultman has handled the click.
-5. Register hover handlers that resolve the binding file and trigger
-   `hover-link`.
+5. Register hover handlers that resolve the binding file and trigger `hover-link`.
 

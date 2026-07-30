@@ -24,31 +24,20 @@ updated_by: codex
 
 ### Generic Agent Frameworks
 
-LangGraph, AutoGen, CrewAI, and OpenAI Agents SDK provide multi-agent runtime
-patterns such as supervisors, handoffs, teams, group chats, sessions, and traces.
-They are useful architectural references, but they solve orchestration inside a
-runtime more than shared coordination between independent Codex, Claude, Gemini,
-or Antigravity sessions editing the same repository.
+LangGraph, AutoGen, CrewAI, and OpenAI Agents SDK provide multi-agent runtime patterns such as supervisors, handoffs, teams, group chats, sessions, and traces.
+They are useful architectural references, but they solve orchestration inside a runtime more than shared coordination between independent Codex, Claude, Gemini, or Antigravity sessions editing the same repository.
 
-They do not directly solve PKM-AI's most local problem: a repo-resident shared
-control plane that every agent can inspect before claiming a task or touching a
-file.
+They do not directly solve PKM-AI's most local problem: a repo-resident shared control plane that every agent can inspect before claiming a task or touching a file.
 
 ### Task And Issue Systems
 
-Task Master AI, GitHub Issues/Projects, and Linear cover task state,
-dependencies, assignees, comments, and workflow status. Task Master AI is the
-closest generic AI-dev task manager because it already offers CLI/MCP task
-workflows.
+Task Master AI, GitHub Issues/Projects, and Linear cover task state, dependencies, assignees, comments, and workflow status. Task Master AI is the closest generic AI-dev task manager because it already offers CLI/MCP task workflows.
 
-These systems are useful references or optional integrations, but they still do
-not fully cover local write-scope ownership, heartbeat, stale-agent cleanup, and
-agent mailbox semantics inside this repo.
+These systems are useful references or optional integrations, but they still do not fully cover local write-scope ownership, heartbeat, stale-agent cleanup, and agent mailbox semantics inside this repo.
 
 ### Pi Ecosystem
 
-The Pi ecosystem is much closer to the requested capability. The strongest
-package found is `pi-crew`, which advertises:
+The Pi ecosystem is much closer to the requested capability. The strongest package found is `pi-crew`, which advertises:
 
 - run manifests;
 - tasks;
@@ -63,43 +52,31 @@ package found is `pi-crew`, which advertises:
 
 Related Pi packages worth further inspection:
 
-- `pi-multiagent`: DAG-style multi-agent execution, roles, fan-in synthesis,
-  output contracts, and tool allowlists.
-- `@tintinweb/pi-subagents`: persistent subagents, lifecycle events, memory per
-  agent, and worktree isolation.
-- `multipi`: subagents, tmux-style visibility, web search, tool propagation, and
-  model routing.
-- `pi-memory` and `pi-total-recall`: persistent memory and local session search,
-  useful as complements but not full coordination layers.
-- `pi-messenger`, `agent-comms`, and `pi-messenger-swarm`: useful references
-  for rooms, members, channels, status, read receipts, task lifecycle, and
-  event-sourced communication.
+- `pi-multiagent`: DAG-style multi-agent execution, roles, fan-in synthesis, output contracts, and tool allowlists.
+- `@tintinweb/pi-subagents`: persistent subagents, lifecycle events, memory per agent, and worktree isolation.
+- `multipi`: subagents, tmux-style visibility, web search, tool propagation, and model routing.
+- `pi-memory` and `pi-total-recall`: persistent memory and local session search, useful as complements but not full coordination layers.
+- `pi-messenger`, `agent-comms`, and `pi-messenger-swarm`: useful references for rooms, members, channels, status, read receipts, task lifecycle, and event-sourced communication.
 
 ## Two Integration Directions
 
 ### Direction A - Implement PKM-AI On Top Of Pi-crew
 
-This means Pi-crew becomes the primary runtime/control plane. PKM-AI becomes a
-set of resources, workflows, policies, docs, and adapters that Pi-crew executes
-or coordinates.
+This means Pi-crew becomes the primary runtime/control plane. PKM-AI becomes a set of resources, workflows, policies, docs, and adapters that Pi-crew executes or coordinates.
 
 Benefits:
 
 - immediate access to a richer coordination model;
-- lower design burden because Pi-crew already has runs, tasks, events,
-  mailbox, heartbeat, claims, dashboard, worktree mode, retry, deadletter, and
-  metrics-like surfaces;
+- lower design burden because Pi-crew already has runs, tasks, events, mailbox, heartbeat, claims, dashboard, worktree mode, retry, deadletter, and metrics-like surfaces;
 - better fit if the user wants a Pi-first multi-agent runtime.
 
 Costs and risks:
 
 - Vaultman becomes Pi-first instead of Codex/Claude-neutral;
-- `.agents/docs`, skills, AGENTS.md policies, Obsidian Markdown records, and
-  `manage-tasks.mjs` would need adapters or migration paths;
+- `.agents/docs`, skills, AGENTS.md policies, Obsidian Markdown records, and `manage-tasks.mjs` would need adapters or migration paths;
 - package execution and supply-chain trust must be audited and pinned;
 - Windows, Obsidian, and branch hygiene behavior need validation;
-- future agents that do not run Pi may lose first-class access to coordination
-  state.
+- future agents that do not run Pi may lose first-class access to coordination state.
 
 Likely outcome:
 
@@ -109,9 +86,7 @@ Likely outcome:
 
 ### Direction B - Bring The Pi-crew Contract Into PKM-AI
 
-This means PKM-AI remains the repo-native control plane, and the next
-implementation copies the proven Pi-crew shape rather than inventing from
-scratch.
+This means PKM-AI remains the repo-native control plane, and the next implementation copies the proven Pi-crew shape rather than inventing from scratch.
 
 Candidate local state shape:
 
@@ -140,22 +115,17 @@ node .agents/tools/pkm-ai/agent-room.mjs done --run <runId> --objective <slug>
 Benefits:
 
 - keeps PKM-AI independent of any one agent runtime;
-- works for Codex, Claude, Gemini, Antigravity, and any tool that can call Node
-  or read/write local files;
-- preserves existing Obsidian docs, policies, handoff style, and task-state
-  automation;
-- allows `manage-tasks.mjs` to remain the source for Markdown objective state
-  while `agent-room.mjs` owns live coordination;
-- easier to keep AI workflow files off `main` because state remains under
-  `.agents/`.
+- works for Codex, Claude, Gemini, Antigravity, and any tool that can call Node or read/write local files;
+- preserves existing Obsidian docs, policies, handoff style, and task-state automation;
+- allows `manage-tasks.mjs` to remain the source for Markdown objective state while `agent-room.mjs` owns live coordination;
+- easier to keep AI workflow files off `main` because state remains under `.agents/`.
 
 Costs and risks:
 
 - more local implementation work;
 - requires careful atomic write or append semantics on Windows;
 - dashboard/app is a second slice unless the CLI proves insufficient;
-- a partial clone of Pi-crew could drift unless the contract is explicit and
-  documented.
+- a partial clone of Pi-crew could drift unless the contract is explicit and documented.
 
 Likely outcome:
 

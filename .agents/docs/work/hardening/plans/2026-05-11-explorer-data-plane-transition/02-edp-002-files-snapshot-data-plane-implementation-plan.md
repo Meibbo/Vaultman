@@ -212,8 +212,7 @@ getStructuralRevisions?(): ExplorerDataPlaneRevisions;
 
 - [ ] **Step 1.3: Verify type compilation**
 
-Run: `pnpm run check`
-Expected: pass with 0 errors / 0 warnings. The new file has no runtime imports yet, so no test or runtime path can break. If `svelte-check` flags an unused import in `typeExplorer.ts`, switch to `import type { ... }` form (already shown above) or inline-import.
+Run: `pnpm run check` Expected: pass with 0 errors / 0 warnings. The new file has no runtime imports yet, so no test or runtime path can break. If `svelte-check` flags an unused import in `typeExplorer.ts`, switch to `import type { ... }` form (already shown above) or inline-import.
 
 - [ ] **Step 1.4: Commit**
 
@@ -396,8 +395,7 @@ describe('buildExplorerSnapshot', () => {
 
 - [ ] **Step 2.2: Run the test to verify it fails**
 
-Run: `pnpm run test:unit -- test/unit/logic/logicExplorerSnapshot.test.ts`
-Expected: FAIL — `buildExplorerSnapshot` cannot be resolved (module not found at `src/logic/logicExplorerSnapshot`).
+Run: `pnpm run test:unit -- test/unit/logic/logicExplorerSnapshot.test.ts` Expected: FAIL — `buildExplorerSnapshot` cannot be resolved (module not found at `src/logic/logicExplorerSnapshot`).
 
 - [ ] **Step 2.3: Implement the pure builder**
 
@@ -490,8 +488,7 @@ export function buildExplorerSnapshot<TMeta = unknown>(
 
 - [ ] **Step 2.4: Run the test to verify it passes**
 
-Run: `pnpm run test:unit -- test/unit/logic/logicExplorerSnapshot.test.ts`
-Expected: PASS — all 8 cases green. If any case fails, fix the builder; do NOT relax test expectations.
+Run: `pnpm run test:unit -- test/unit/logic/logicExplorerSnapshot.test.ts` Expected: PASS — all 8 cases green. If any case fails, fix the builder; do NOT relax test expectations.
 
 - [ ] **Step 2.5: Commit**
 
@@ -618,8 +615,7 @@ describe('ExplorerDataPlaneService', () => {
 
 - [ ] **Step 3.2: Run the test to verify it fails**
 
-Run: `pnpm run test:unit -- test/unit/services/serviceExplorerDataPlane.test.ts`
-Expected: FAIL — `ExplorerDataPlaneService` module not found.
+Run: `pnpm run test:unit -- test/unit/services/serviceExplorerDataPlane.test.ts` Expected: FAIL — `ExplorerDataPlaneService` module not found.
 
 - [ ] **Step 3.3: Implement the service**
 
@@ -691,8 +687,7 @@ Note: this slice intentionally does NOT use `$state.raw`. The store is a plain M
 
 - [ ] **Step 3.4: Run the test to verify it passes**
 
-Run: `pnpm run test:unit -- test/unit/services/serviceExplorerDataPlane.test.ts`
-Expected: PASS — all 7 cases green.
+Run: `pnpm run test:unit -- test/unit/services/serviceExplorerDataPlane.test.ts` Expected: PASS — all 7 cases green.
 
 - [ ] **Step 3.5: Commit**
 
@@ -773,8 +768,7 @@ Ensure the test file imports `vi` from `vitest` and any missing types (`TreeNode
 
 - [ ] **Step 4.2: Run the test to verify it fails**
 
-Run: `pnpm run test:unit -- test/unit/components/explorerFiles.test.ts`
-Expected: FAIL — the four new cases fail because `getStructuralTree` and `getStructuralRevisions` are not defined on `ExplorerFiles`. Existing cases must remain green.
+Run: `pnpm run test:unit -- test/unit/components/explorerFiles.test.ts` Expected: FAIL — the four new cases fail because `getStructuralTree` and `getStructuralRevisions` are not defined on `ExplorerFiles`. Existing cases must remain green.
 
 - [ ] **Step 4.3: Refactor `explorerFiles.getTree()` and add structural source**
 
@@ -825,13 +819,11 @@ DO NOT change any other method body. `attachAdoptedChildren`, `_decorateTree`, a
 
 - [ ] **Step 4.4: Run the test to verify it passes**
 
-Run: `pnpm run test:unit -- test/unit/components/explorerFiles.test.ts`
-Expected: PASS — all original cases plus the four new structural-source cases green. If any original case (e.g., decoration-dependent assertions on `icon`/`highlights`/`cls` or hover-badge tests) fails, you broke the decorated path — re-verify that `getTree()` still calls `_decorateTree` after `buildStructuralTree`.
+Run: `pnpm run test:unit -- test/unit/components/explorerFiles.test.ts` Expected: PASS — all original cases plus the four new structural-source cases green. If any original case (e.g., decoration-dependent assertions on `icon`/`highlights`/`cls` or hover-badge tests) fails, you broke the decorated path — re-verify that `getTree()` still calls `_decorateTree` after `buildStructuralTree`.
 
 - [ ] **Step 4.5: Run the broader Files-provider regression group**
 
-Run: `pnpm run test:unit -- test/unit/components/explorerFiles.test.ts test/unit/logic/logicsFiles.test.ts test/unit/services/serviceFilesIndex.test.ts test/unit/services/createNodeIndex.test.ts test/unit/services/serviceSelection.test.ts test/unit/services/serviceViews.test.ts`
-Expected: PASS — all suites green. If `serviceViews.test.ts` regresses, you accidentally changed the `_decorateTree` callsite — revert.
+Run: `pnpm run test:unit -- test/unit/components/explorerFiles.test.ts test/unit/logic/logicsFiles.test.ts test/unit/services/serviceFilesIndex.test.ts test/unit/services/createNodeIndex.test.ts test/unit/services/serviceSelection.test.ts test/unit/services/serviceViews.test.ts` Expected: PASS — all suites green. If `serviceViews.test.ts` regresses, you accidentally changed the `_decorateTree` callsite — revert.
 
 - [ ] **Step 4.6: Commit**
 
@@ -874,11 +866,9 @@ Do NOT add subscription wiring or auto-publish yet. The panel will populate snap
 
 - [ ] **Step 5.3: Verify type compilation and unit tests**
 
-Run: `pnpm run check`
-Expected: PASS, 0 errors / 0 warnings.
+Run: `pnpm run check` Expected: PASS, 0 errors / 0 warnings.
 
-Run: `pnpm run test:unit -- test/unit/services/serviceExplorerDataPlane.test.ts test/unit/logic/logicExplorerSnapshot.test.ts`
-Expected: PASS — no regression.
+Run: `pnpm run test:unit -- test/unit/services/serviceExplorerDataPlane.test.ts test/unit/logic/logicExplorerSnapshot.test.ts` Expected: PASS — no regression.
 
 - [ ] **Step 5.4: Commit**
 
@@ -978,8 +968,7 @@ If the existing test file does not already mount `PanelExplorer` via a helper, u
 
 - [ ] **Step 6.2: Run the test to verify it fails**
 
-Run: `pnpm run test:component -- test/component/panelExplorerSelection.test.ts`
-Expected: FAIL — the three new cases fail because `panelExplorer.svelte` still uses the recursive `visibleNodeIds()` even when a snapshot is present.
+Run: `pnpm run test:component -- test/component/panelExplorerSelection.test.ts` Expected: FAIL — the three new cases fail because `panelExplorer.svelte` still uses the recursive `visibleNodeIds()` even when a snapshot is present.
 
 - [ ] **Step 6.3: Add the snapshot-aware branch in `panelExplorer.svelte`**
 
@@ -1022,13 +1011,11 @@ DO NOT change `viewTree.svelte`, `serviceScroll.ts`, `serviceSelection.svelte.ts
 
 - [ ] **Step 6.4: Run the test to verify it passes**
 
-Run: `pnpm run test:component -- test/component/panelExplorerSelection.test.ts`
-Expected: PASS — three new cases green AND all existing cases still green. If a non-files case regresses, double-check the `if (filesSnapshot)` guard.
+Run: `pnpm run test:component -- test/component/panelExplorerSelection.test.ts` Expected: PASS — three new cases green AND all existing cases still green. If a non-files case regresses, double-check the `if (filesSnapshot)` guard.
 
 - [ ] **Step 6.5: Run the broader panel/view regression group**
 
-Run: `pnpm run test:component -- test/component/panelExplorerSelection.test.ts test/component/panelExplorerEmpty.test.ts test/component/panelExplorerBadgeCollision.test.ts test/component/panelExplorerDeleteConflict.test.ts test/component/viewTreeSelection.test.ts test/component/viewTreeDecorations.test.ts test/component/viewTreeAdoptedNodes.test.ts test/component/viewTreeHoverBadges.test.ts test/component/viewTreeScrollFallback.test.ts test/component/reactiveExplorers.test.ts`
-Expected: PASS — all suites green.
+Run: `pnpm run test:component -- test/component/panelExplorerSelection.test.ts test/component/panelExplorerEmpty.test.ts test/component/panelExplorerBadgeCollision.test.ts test/component/panelExplorerDeleteConflict.test.ts test/component/viewTreeSelection.test.ts test/component/viewTreeDecorations.test.ts test/component/viewTreeAdoptedNodes.test.ts test/component/viewTreeHoverBadges.test.ts test/component/viewTreeScrollFallback.test.ts test/component/reactiveExplorers.test.ts` Expected: PASS — all suites green.
 
 - [ ] **Step 6.6: Commit**
 
@@ -1045,24 +1032,19 @@ git commit -m "feat(explorer): wire panelExplorer visibleNodeIds to files snapsh
 
 - [ ] **Step 7.1: Full unit suite**
 
-Run: `pnpm run test:unit`
-Expected: PASS — all files green. The new files add ≥1 test file each, so coverage thresholds in `vitest.config.ts:65-70` (lines 60 / functions 65 / branches 55 / statements 60) stay green. If coverage regresses on `src/logic/logicExplorerSnapshot.ts` or `src/services/serviceExplorerDataPlane.svelte.ts`, add additional cases mirroring the patterns in `test/unit/services/createNodeIndex.test.ts:9-66`.
+Run: `pnpm run test:unit` Expected: PASS — all files green. The new files add ≥1 test file each, so coverage thresholds in `vitest.config.ts:65-70` (lines 60 / functions 65 / branches 55 / statements 60) stay green. If coverage regresses on `src/logic/logicExplorerSnapshot.ts` or `src/services/serviceExplorerDataPlane.svelte.ts`, add additional cases mirroring the patterns in `test/unit/services/createNodeIndex.test.ts:9-66`.
 
 - [ ] **Step 7.2: Full component suite**
 
-Run: `pnpm run test:component`
-Expected: PASS — all files green.
+Run: `pnpm run test:component` Expected: PASS — all files green.
 
 - [ ] **Step 7.3: Static gates**
 
-Run: `pnpm run lint`
-Expected: PASS — no errors. If `eslint` flags an unused import on `ExplorerDataPlaneRevisions` in `typeExplorer.ts`, ensure the file uses `import type` for the type-only reference.
+Run: `pnpm run lint` Expected: PASS — no errors. If `eslint` flags an unused import on `ExplorerDataPlaneRevisions` in `typeExplorer.ts`, ensure the file uses `import type` for the type-only reference.
 
-Run: `pnpm run check`
-Expected: PASS — 0 errors / 0 warnings.
+Run: `pnpm run check` Expected: PASS — 0 errors / 0 warnings.
 
-Run: `pnpm run build:plugin`
-Expected: PASS — `tsc -noEmit -skipLibCheck` and `vp build` both succeed.
+Run: `pnpm run build:plugin` Expected: PASS — `tsc -noEmit -skipLibCheck` and `vp build` both succeed.
 
 - [ ] **Step 7.4: Svelte autofixer (mandatory per project policy)**
 
@@ -1076,8 +1058,7 @@ The new service is `.svelte.ts`, not `.svelte`, so autofixer does not apply.
 
 - [ ] **Step 7.5: Whitespace / line-ending guard**
 
-Run: `git diff --check`
-Expected: exit code 0 (CRLF conversion warnings on Windows are acceptable).
+Run: `git diff --check` Expected: exit code 0 (CRLF conversion warnings on Windows are acceptable).
 
 - [ ] **Step 7.6: Final commit (no code changes; only if any small fixups landed)**
 

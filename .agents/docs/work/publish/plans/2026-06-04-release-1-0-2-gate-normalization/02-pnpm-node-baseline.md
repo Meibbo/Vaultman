@@ -129,8 +129,7 @@ corepack prepare pnpm@11.1.2 --activate
 pnpm install --lockfile-only
 ```
 
-Expected: `pnpm-lock.yaml` is created and `package-lock.json` is no longer
-needed.
+Expected: `pnpm-lock.yaml` is created and `package-lock.json` is no longer needed.
 
 - [ ] **Step 8: Remove npm lockfile**
 
@@ -140,8 +139,7 @@ Run:
 Remove-Item -LiteralPath package-lock.json
 ```
 
-Expected: `git status --short package-lock.json pnpm-lock.yaml` shows
-`D package-lock.json` and `?? pnpm-lock.yaml`.
+Expected: `git status --short package-lock.json pnpm-lock.yaml` shows `D package-lock.json` and `?? pnpm-lock.yaml`.
 
 - [ ] **Step 9: Verify baseline install**
 

@@ -22,10 +22,7 @@ Corrective successor to [[../bt5-next-release/019-addon-icon-registry-picker|BT5
 
 ## What to build
 
-Define one `ChangeIcon` action and capability router for file, folder, property,
-tag, content, snippet and plugin targets. The router selects a registered picker
-adapter by capability and priority, then falls back to Vaultman's picker. Explorers
-must not register competing Iconic/fallback actions independently.
+Define one `ChangeIcon` action and capability router for file, folder, property, tag, content, snippet and plugin targets. The router selects a registered picker adapter by capability and priority, then falls back to Vaultman's picker. Explorers must not register competing Iconic/fallback actions independently.
 
 ## Acceptance criteria
 

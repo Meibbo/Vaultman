@@ -19,8 +19,7 @@ updated_by: codex
 
 If dependency gate keeps `@dnd-kit/svelte`:
 
-- Preserve `createDndKitDraggableInput`, `createDndKitDroppableInput`, and
-  `createDndKitProviderHandlers`.
+- Preserve `createDndKitDraggableInput`, `createDndKitDroppableInput`, and `createDndKitProviderHandlers`.
 - Add drag subject kind:
 
 ```ts
@@ -44,8 +43,7 @@ export type DndOperation = 'reorder' | 'move' | 'apply-template' | 'embed-block'
 If dependency gate approves `@thisux/sveltednd`, DELTA must:
 
 - Replace `@dnd-kit/svelte` imports in `serviceDndSvelteAdapter.ts`.
-- Preserve exported semantic functions under compatibility names or update all
-  call sites in the same shard.
+- Preserve exported semantic functions under compatibility names or update all call sites in the same shard.
 - Update tests to assert semantic `DndDropResult`, not library event shapes.
 
 Verification:
@@ -54,13 +52,11 @@ Verification:
 pnpm exec vp test run --project unit --config vitest.config.ts test/unit/services/serviceDnd.test.ts test/unit/services/serviceDndSvelteAdapter.test.ts --fileParallelism=false
 ```
 
-Expected: drag start, drag over, drag end, cancel, selected multi-drag, and
-outline block target tests pass.
+Expected: drag start, drag over, drag end, cancel, selected multi-drag, and outline block target tests pass.
 
 ## Task D7: Main View Snippet Orchestration Contract
 
-DELTA does not own layout implementation, but must preserve interaction events
-when Main View uses Svelte snippets:
+DELTA does not own layout implementation, but must preserve interaction events when Main View uses Svelte snippets:
 
 ```svelte
 {#snippet col1()}
@@ -84,9 +80,7 @@ when Main View uses Svelte snippets:
 {/snippet}
 ```
 
-All event handlers passed into these snippets must continue through
-`serviceMouse` and current keyboard handlers. Do not attach global listeners in
-snippet bodies.
+All event handlers passed into these snippets must continue through `serviceMouse` and current keyboard handlers. Do not attach global listeners in snippet bodies.
 
 Verification:
 
@@ -94,5 +88,4 @@ Verification:
 pnpm exec vp test run --project component --config vitest.config.ts test/component/framePages.test.ts test/component/frameOverlaysCommandHooks.test.ts test/component/navbarTabs.test.ts --fileParallelism=false
 ```
 
-Expected: page navigation, overlay hooks, and keyboard/mouse actions continue
-to pass after dashboard snippets are introduced by the owning layout shard.
+Expected: page navigation, overlay hooks, and keyboard/mouse actions continue to pass after dashboard snippets are introduced by the owning layout shard.

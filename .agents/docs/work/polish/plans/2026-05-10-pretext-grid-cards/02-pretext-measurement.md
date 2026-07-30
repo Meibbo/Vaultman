@@ -31,8 +31,7 @@ Run:
 pnpm add @chenglou/pretext
 ```
 
-Expected: `package.json` gains `@chenglou/pretext` under `dependencies`, and
-`pnpm-lock.yaml` is updated.
+Expected: `package.json` gains `@chenglou/pretext` under `dependencies`, and `pnpm-lock.yaml` is updated.
 
 - [x] **Step 2: Write failing text measurement tests**
 

@@ -18,16 +18,14 @@ updated_by: codex
 
 ## Purpose
 
-Prove the table cut is complete, keep docs compact, and leave a clear next
-action for follow-up table capabilities.
+Prove the table cut is complete, keep docs compact, and leave a clear next action for follow-up table capabilities.
 
 ## Files
 
 - Modify: `.agents/docs/work/polish/specs/2026-05-07-tanstack-node-table/index.md`
 - Modify: `.agents/docs/work/polish/index.md`
 - Modify: `.agents/docs/current/status.md`
-- Review: `package.json`, `pnpm-lock.yaml`, `styles.css`, and all touched
-  source/test files.
+- Review: `package.json`, `pnpm-lock.yaml`, `styles.css`, and all touched source/test files.
 
 ## Task 5: Full Verification
 
@@ -69,8 +67,7 @@ Run:
 pnpm run lint
 ```
 
-Expected: lint exits 0 errors. If warnings appear in unrelated files, record
-the exact files and do not edit unrelated code.
+Expected: lint exits 0 errors. If warnings appear in unrelated files, record the exact files and do not edit unrelated code.
 
 - [ ] **Step 5: Run build**
 
@@ -80,9 +77,7 @@ Run:
 pnpm run build
 ```
 
-Expected: build exits 0 and regenerates `styles.css`. If the known transient
-Svelte resolver issue appears, rerun once sequentially without code changes and
-record both outputs.
+Expected: build exits 0 and regenerates `styles.css`. If the known transient Svelte resolver issue appears, rerun once sequentially without code changes and record both outputs.
 
 - [ ] **Step 6: Run scoped whitespace verification**
 
@@ -92,13 +87,11 @@ Run:
 git diff --check -- package.json pnpm-lock.yaml src/services/serviceViewTableAdapter.ts src/components/views/ViewNodeTable.svelte src/components/containers/panelExplorer.svelte src/styles/data/_table.scss src/main.scss styles.css test/unit/services/serviceViewTableAdapter.test.ts test/component/viewTableSelection.test.ts test/component/panelExplorerSelection.test.ts test/component/panelExplorerEmpty.test.ts .agents/docs/work/polish .agents/docs/current/status.md
 ```
 
-Expected: exits 0. If unrelated whitespace failures appear outside this list,
-do not fix them in this cut.
+Expected: exits 0. If unrelated whitespace failures appear outside this list, do not fix them in this cut.
 
 - [ ] **Step 7: Update source records**
 
-Update the TanStack node table spec index status line with a compact completion
-note:
+Update the TanStack node table spec index status line with a compact completion note:
 
 ```markdown
 ## Implementation Status
@@ -106,8 +99,7 @@ note:
 - MVP table implementation completed and verified in the current worktree.
 ```
 
-Update `.agents/docs/work/polish/index.md` with an active plan link if it is not
-already present:
+Update `.agents/docs/work/polish/index.md` with an active plan link if it is not already present:
 
 ```markdown
 ## Active Plans
@@ -115,8 +107,7 @@ already present:
 - [[docs/work/polish/plans/2026-05-07-tanstack-node-table/index|TanStack node table implementation plan]]
 ```
 
-Update `.agents/docs/current/status.md` with one compact current-verification
-bullet and keep the file under 200 lines.
+Update `.agents/docs/current/status.md` with one compact current-verification bullet and keep the file under 200 lines.
 
 - [ ] **Step 8: Final git status review**
 
@@ -127,8 +118,7 @@ git status --short
 git diff --stat
 ```
 
-Expected: only planned files are modified or created. Do not commit unless the
-active user request explicitly allows commits.
+Expected: only planned files are modified or created. Do not commit unless the active user request explicitly allows commits.
 
 ## Post-MVP Follow-Ups
 

@@ -49,8 +49,7 @@ Detalle del orden en `navbarFilters.svelte`:
 | 2b | Category | `vaultman-filters-search-mode` | Icono dentro del search pill. |
 | 3 | Sort | `vaultman-nav-fab` | FAB circular accent a la derecha. |
 
-La composicion era clara porque el search era el centro del toolbar, no una
-superficie secundaria. Los dos comandos de borde eran FABs simetricos.
+La composicion era clara porque el search era el centro del toolbar, no una superficie secundaria. Los dos comandos de borde eran FABs simetricos.
 
 ## HEAD: Toolbar actual
 
@@ -85,9 +84,7 @@ Detalle del orden visible en `Toolbar.svelte`:
 | 5 | Node expansion | `vm-nav-icon-min` | Condicional, tambien en el cluster. |
 | Popover | Search/FnR body | `vm-toolbar-search-island` | Card absoluto con input, mode pill, category, flags, help, history y rename. |
 
-El toolbar actual tiene mas botones porque incorpora capacidades nuevas. El
-problema no es que existan mas primitives, sino que todas compiten en un grupo
-lateral mientras el search dejo de ser el centro visual.
+El toolbar actual tiene mas botones porque incorpora capacidades nuevas. El problema no es que existan mas primitives, sino que todas compiten en un grupo lateral mientras el search dejo de ser el centro visual.
 
 ## Comparacion de estilo
 
@@ -100,9 +97,7 @@ lateral mientras el search dejo de ser el centro visual.
 | Scan path | Ojo va directo al search. | Ojo debe encontrar el icono de search dentro de un grupo. |
 | Complejidad | Pocas primitives visibles. | Muchas primitives y modos; mas funcional pero menos claro. |
 
-La regla de diseno que se perdio: **el search debe ser el primitive central del
-toolbar de filtros**. Si el search pasa a ser una isla secundaria, el toolbar
-deja de sentirse como `navbarFilters` y se vuelve un menu de iconos.
+La regla de diseno que se perdio: **el search debe ser el primitive central del toolbar de filtros**. Si el search pasa a ser una isla secundaria, el toolbar deja de sentirse como `navbarFilters` y se vuelve un menu de iconos.
 
 ## Linea historial
 

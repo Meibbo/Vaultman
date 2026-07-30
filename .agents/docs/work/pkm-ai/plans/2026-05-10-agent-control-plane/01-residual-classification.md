@@ -17,8 +17,7 @@ tags:
 
 ## Task
 
-Create the residual classifier source record that prevents recurring caveats
-from ending as "pre-existing" prose in chat, status, or handoff.
+Create the residual classifier source record that prevents recurring caveats from ending as "pre-existing" prose in chat, status, or handoff.
 
 ## Files
 
@@ -37,8 +36,7 @@ from ending as "pre-existing" prose in chat, status, or handoff.
 
 - [x] **Step 1: Create the residual classification record**
 
-Write `.agents/docs/work/pkm-ai/research/2026-05-10-residual-classification.md`
-with frontmatter:
+Write `.agents/docs/work/pkm-ai/research/2026-05-10-residual-classification.md` with frontmatter:
 
 ```yaml
 ---

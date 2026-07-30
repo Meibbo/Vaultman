@@ -18,9 +18,7 @@ tags:
 # 02 — Node Distribution & Presentation Model
 
 Digitalización del whiteboard del dev "Explorer Panel Node Distribution" (2026-06-02).
-Design-input #2 de la umbrella (D7). Pertenece al dominio **Symbiont Explorer** (taxonomía
-de nodos/relaciones) con superficie en **WSA** (interacciones de presentación). Tras review
-del dev, promover como shard de `docs/architecture/explorer-model/`.
+Design-input #2 de la umbrella (D7). Pertenece al dominio **Symbiont Explorer** (taxonomía de nodos/relaciones) con superficie en **WSA** (interacciones de presentación). Tras review del dev, promover como shard de `docs/architecture/explorer-model/`.
 
 ## Definiciones (verbatim del whiteboard, normalizadas)
 
@@ -39,19 +37,14 @@ del dev, promover como shard de `docs/architecture/explorer-model/`.
 
 - **Pagination** = X|Y splits + **Z layers**.
 - **Pan** · **Zoom** · **Rotation** · **Selection** (box y lasso ya existen en sandbox + proto).
-- Estas son exactamente las del "Layout Design API" del megadump: WSA + UPV + Live
-  Redesign + paginate/layers/pan/zoom/rotate.
+- Estas son exactamente las del "Layout Design API" del megadump: WSA + UPV + Live Redesign + paginate/layers/pan/zoom/rotate.
 
 ## Layers (modelo Krita genérico)
 
 - En explorer: capas de nodos; desactivar capa oculta su contenido.
-- En editor (CodeMirror): desactivar capa oculta chunks de markdown escritos en esa
-  capa. Compatibilidad objetivo con Excalidraw (add-on candidato; ya es "markdown por
-  capas" — escribe su información así).
+- En editor (CodeMirror): desactivar capa oculta chunks de markdown escritos en esa capa. Compatibilidad objetivo con Excalidraw (add-on candidato; ya es "markdown por capas" — escribe su información así).
 - Clasificación (D7): layers explorer/floating = flag experimental en 2.0.0;
-  **editor-layers = post-2.0** (brainstorm + research propio: viabilidad CodeMirror
-  decorations, interop formato Excalidraw, seguridad de mutación por capa — requiere
-  queue/diff maduro).
+  **editor-layers = post-2.0** (brainstorm + research propio: viabilidad CodeMirror decorations, interop formato Excalidraw, seguridad de mutación por capa — requiere queue/diff maduro).
 
 ## Mapeo a la arquitectura
 
@@ -65,13 +58,10 @@ del dev, promover como shard de `docs/architecture/explorer-model/`.
 
 ## Notas laterales del whiteboard
 
-- "Helper Docs / real bookmarks" → candidato: provider de Bookmarks core. Registrar en
-  el ledger Fase B.
+- "Helper Docs / real bookmarks" → candidato: provider de Bookmarks core. Registrar en el ledger Fase B.
 
 ## Pendiente
 
 - Review del dev de esta digitalización contra la foto original.
 - Promoción a `docs/architecture/explorer-model/` (nuevo shard) tras review.
-- Resolver keying de identidad para coordinates/overrides (provider id · domain key ·
-  path · depth · parent id · occurrence id) — misma pregunta abierta que dejó el shard
-  04 §31 para parentViews.
+- Resolver keying de identidad para coordinates/overrides (provider id · domain key · path · depth · parent id · occurrence id) — misma pregunta abierta que dejó el shard 04 §31 para parentViews.

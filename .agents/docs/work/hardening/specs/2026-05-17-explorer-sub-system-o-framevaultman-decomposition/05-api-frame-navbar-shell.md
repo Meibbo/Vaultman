@@ -17,10 +17,7 @@ tags:
 
 `src/components/frame/FrameNavbarShell.svelte`
 
-Shell component that wraps `NavbarTabs` (conditional, top) +
-island backdrop + `PopupIsland` + `NavbarDock` (unconditional,
-bottom). Responsible for rendering the navigation surfaces of
-the frame; not responsible for any state ownership.
+Shell component that wraps `NavbarTabs` (conditional, top) + island backdrop + `PopupIsland` + `NavbarDock` (unconditional, bottom). Responsible for rendering the navigation surfaces of the frame; not responsible for any state ownership.
 
 ## Context consumption
 
@@ -32,11 +29,7 @@ import { FRAME_NAVIGATION_KEY, type FrameNavigationService }
 const nav = getContext<FrameNavigationService>(FRAME_NAVIGATION_KEY);
 ```
 
-Throws (via Svelte's getContext) if the key was not setContext-ed
-by an ancestor. In practice this is a programmer error: the only
-expected mount path is from `frameVaultman.svelte` which always
-calls `setContext(FRAME_NAVIGATION_KEY, nav)` early in its script
-body.
+Throws (via Svelte's getContext) if the key was not setContext-ed by an ancestor. In practice this is a programmer error: the only expected mount path is from `frameVaultman.svelte` which always calls `setContext(FRAME_NAVIGATION_KEY, nav)` early in its script body.
 
 ## Props
 
@@ -73,25 +66,12 @@ let {
 } = $props();
 ```
 
-**Total: 7 props.** Compact relative to today's inline 25+ inline
-derivations because most navigation state flows through the
-context-shared `nav` service. Each prop is a genuinely distinct
-concern:
+**Total: 7 props.** Compact relative to today's inline 25+ inline derivations because most navigation state flows through the context-shared `nav` service. Each prop is a genuinely distinct concern:
 
-- `plugin` is exposed for settings reads
-  (`islandDismissOnOutsideClick`, `mouseGestures.fab`) +
-  `overlayState`. Could be folded into `nav.plugin` but doing so
-  muddies the navigation service's role.
-- `filterRuleCount` / `queuedCount` are cross-shell counters
-  bound from FiltersPage, kept inline in frame per shard 03
-  rationale.
-- `layoutSettings` / `leftFab` / `rightFab` are derived in `nav`
-  but passed as props for explicit signature clarity (and to
-  insulate the shell from changes to `nav`'s internal
-  derivation names).
-- `overlays` is passed because the shell's island backdrop binds
-  to `overlays.isIslandOpen` and click handlers call
-  `overlays.closeQueueIsland()` / `overlays.closeFiltersIsland()`.
+- `plugin` is exposed for settings reads (`islandDismissOnOutsideClick`, `mouseGestures.fab`) + `overlayState`. Could be folded into `nav.plugin` but doing so muddies the navigation service's role.
+- `filterRuleCount` / `queuedCount` are cross-shell counters bound from FiltersPage, kept inline in frame per shard 03 rationale.
+- `layoutSettings` / `leftFab` / `rightFab` are derived in `nav` but passed as props for explicit signature clarity (and to insulate the shell from changes to `nav`'s internal derivation names).
+- `overlays` is passed because the shell's island backdrop binds to `overlays.isIslandOpen` and click handlers call `overlays.closeQueueIsland()` / `overlays.closeFiltersIsland()`.
 
 ## Render tree
 
@@ -152,59 +132,33 @@ concern:
 />
 ```
 
-**Note on `dockDrawerOpen`:** today the frame has
-`let dockDrawerOpen = $state(false)` and binds it into NavbarDock.
-In O, this state moves into `FrameNavReorderController` (which
-already owns reorder-related state) so the shell binds to
-`nav.navReorder.drawerOpen`. This is a minor change to
-`FrameNavReorderController` (adding `drawerOpen` $state + getter/
-setter), justified by colocation with related reorder/dock state.
+**Note on `dockDrawerOpen`:** today the frame has `let dockDrawerOpen = $state(false)` and binds it into NavbarDock.
+In O, this state moves into `FrameNavReorderController` (which already owns reorder-related state) so the shell binds to `nav.navReorder.drawerOpen`. This is a minor change to `FrameNavReorderController` (adding `drawerOpen` $state + getter/ setter), justified by colocation with related reorder/dock state.
 
 **Alternative:** keep `dockDrawerOpen` in frame, pass as prop.
 Adds prop count by 1.
 
-**Recommendation:** move to `FrameNavReorderController`. The
-reorder controller already owns dock-element-related state
-(`pillEl`, `navCollapsed`, `isReordering`); `drawerOpen` is a
-natural addition.
+**Recommendation:** move to `FrameNavReorderController`. The reorder controller already owns dock-element-related state (`pillEl`, `navCollapsed`, `isReordering`); `drawerOpen` is a natural addition.
 
 ## Behavior preservation
 
-The shell's render output is **byte-equivalent** to the existing
-`frameIslandAndDock` snippet content (lines 705-760 of
-`frameVaultman.svelte`) plus the top-`NavbarTabs` conditional
-(lines 765-774). Verification:
+The shell's render output is **byte-equivalent** to the existing `frameIslandAndDock` snippet content (lines 705-760 of `frameVaultman.svelte`) plus the top-`NavbarTabs` conditional (lines 765-774). Verification:
 
-- DOM snapshot test: mount frame pre-extraction in a representative
-  state (e.g., dockUsesFramePages=true, layoutSettings with both
-  top tabs visible, 3-page order), capture DOM. Mount frame
-  post-extraction in the same state, assert equality.
-- Visual smoke: live `plugin-dev` reload, toggle dock drawer,
-  reorder dock pages, navigate top tabs — verify identical
-  behavior.
+- DOM snapshot test: mount frame pre-extraction in a representative state (e.g., dockUsesFramePages=true, layoutSettings with both top tabs visible, 3-page order), capture DOM. Mount frame post-extraction in the same state, assert equality.
+- Visual smoke: live `plugin-dev` reload, toggle dock drawer, reorder dock pages, navigate top tabs — verify identical behavior.
 
 ## Future preset wiring (out of O scope)
 
-Sub-system 6 (Layout extension) will wire `preset.dock.visible` and
-`preset.tabs.visible`. The natural insertion point is **inside the
-shell**: wrap `<NavbarTabs>` in `{#if nav.tabsVisible}` and wrap
-the `<NavbarDock>` block in `{#if nav.dockVisible}`. The `nav`
-service derives `tabsVisible` / `dockVisible` from
-`plugin.themeService.activePreset.dock.visible` / `tabs.visible`.
+Sub-system 6 (Layout extension) will wire `preset.dock.visible` and `preset.tabs.visible`. The natural insertion point is **inside the shell**: wrap `<NavbarTabs>` in `{#if nav.tabsVisible}` and wrap the `<NavbarDock>` block in `{#if nav.dockVisible}`. The `nav` service derives `tabsVisible` / `dockVisible` from `plugin.themeService.activePreset.dock.visible` / `tabs.visible`.
 
 Sub-system 7 (Toolbar contract) will wire `preset.toolbar.buttons`.
-The natural insertion point is **inside NavbarDock** (downstream),
-but the source of the button list flows through the shell. The
-shell may need a `toolbarButtons` prop or pull from `nav.toolbarButtons`.
+The natural insertion point is **inside NavbarDock** (downstream), but the source of the button list flows through the shell. The shell may need a `toolbarButtons` prop or pull from `nav.toolbarButtons`.
 
-O leaves these seams in place but does **not** wire them. The
-shell's prop signature is fixed for O; future sub-systems
-add props as they need them.
+O leaves these seams in place but does **not** wire them. The shell's prop signature is fixed for O; future sub-systems add props as they need them.
 
 ## Removed from frame after Commit 3
 
-- The `frameIslandAndDock` snippet (deleted entirely; rendered
-  via `<FrameNavbarShell ... />` instead).
+- The `frameIslandAndDock` snippet (deleted entirely; rendered via `<FrameNavbarShell ... />` instead).
 - The top `NavbarTabs` conditional render (moves into shell).
 - The `dockDrawerOpen` $state (moves into `FrameNavReorderController`).
 
@@ -231,7 +185,4 @@ add props as they need them.
 />
 ```
 
-The shell mount is unconditional (both dashboard and pages-strip
-modes render the navbar). Two mount sites today (line 786 inside
-dashboard branch and line 841 inside pages branch) become one
-mount site outside the conditional after Commit 3.
+The shell mount is unconditional (both dashboard and pages-strip modes render the navbar). Two mount sites today (line 786 inside dashboard branch and line 841 inside pages branch) become one mount site outside the conditional after Commit 3.

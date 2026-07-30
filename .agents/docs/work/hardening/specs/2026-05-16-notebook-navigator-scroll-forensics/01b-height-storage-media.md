@@ -15,9 +15,7 @@ tags:
 
 ## 1. Deterministic Height Estimation
 
-Notebook Navigator's list rows can contain title, date, parent folder line,
-preview text, tags, properties, word-count/task pills, feature image, file
-extension thumbnail/badge, group headers, and spacers.
+Notebook Navigator's list rows can contain title, date, parent folder line, preview text, tags, properties, word-count/task pills, feature image, file extension thumbnail/badge, group headers, and spacers.
 
 Even with that variability, `estimateSize` remains synchronous. It reads:
 
@@ -60,8 +58,7 @@ List pane calls `rowVirtualizer.measure()` when:
 
 - storage becomes ready after cold boot;
 - `listLayoutSignature` changes;
-- content changes include height-affecting fields for rows currently present in
-  `filePathToIndex`.
+- content changes include height-affecting fields for rows currently present in `filePathToIndex`.
 
 Height-affecting fields are:
 
@@ -72,9 +69,7 @@ Height-affecting fields are:
 - `tags`;
 - `wordCount`.
 
-Non-height fields like task counts and frontmatter metadata changes are ignored
-by `isListRowHeightAffectingContentChange()` unless they change one of the
-height-relevant properties above.
+Non-height fields like task counts and frontmatter metadata changes are ignored by `isListRowHeightAffectingContentChange()` unless they change one of the height-relevant properties above.
 
 Navigation pane calls `measure()` when:
 
@@ -106,17 +101,12 @@ Main `FileData` includes row-height-affecting metadata:
 
 At runtime:
 
-- `IndexedDBStorage.getFile(path)` is synchronous because it reads the
-  `MemoryFileCache`.
+- `IndexedDBStorage.getFile(path)` is synchronous because it reads the `MemoryFileCache`.
 - preview strings are held in a bounded memory LRU.
 - feature image blobs use a separate blob store and memory LRU.
-- file previews/blobs can be loaded lazily, but the row already knows whether it
-  must reserve preview/image space.
+- file previews/blobs can be loaded lazily, but the row already knows whether it must reserve preview/image space.
 
-Why it matters: IndexedDB is not making scroll fast directly. It makes the
-height estimator and row renderer deterministic by keeping the necessary
-metadata in memory. Without that, scroll would need either async reads or DOM
-measurement to learn row sizes.
+Why it matters: IndexedDB is not making scroll fast directly. It makes the height estimator and row renderer deterministic by keeping the necessary metadata in memory. Without that, scroll would need either async reads or DOM measurement to learn row sizes.
 
 ## 4. Media, Images, And GIF-Capable Rows
 
@@ -141,15 +131,11 @@ It uses memoized values for:
 - ignores stale async blob results via an `isActive` flag;
 - throttles feature-image regeneration attempts.
 
-Images use normal browser loading. There is no explicit decode wait in the
-scroll path. Aspect ratio is computed after load:
+Images use normal browser loading. There is no explicit decode wait in the scroll path. Aspect ratio is computed after load:
 
 - if force-square is enabled, no natural aspect ratio work is needed;
 - otherwise `onLoad` reads natural dimensions and clamps to `16 / 9`;
-- if the image is already complete, aspect ratio is computed without forcing a
-  second decode.
+- if the image is already complete, aspect ratio is computed without forcing a second decode.
 
-Image/GIF load can change visual content, but the row's reserved height and
-thumbnail slot are known from cached metadata and CSS constraints. The list can
-scroll and paint text rows before blobs resolve.
+Image/GIF load can change visual content, but the row's reserved height and thumbnail slot are known from cached metadata and CSS constraints. The list can scroll and paint text rows before blobs resolve.
 

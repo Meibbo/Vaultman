@@ -12,9 +12,7 @@ tags:
 
 # Built-in Preset Values
 
-Two `as const` constants in `src/config/themePresetsBuiltin.ts`. Inmutable
-at compile time and at runtime. Custom presets reference these as their
-`extends` template origin.
+Two `as const` constants in `src/config/themePresetsBuiltin.ts`. Inmutable at compile time and at runtime. Custom presets reference these as their `extends` template origin.
 
 ## File contents
 
@@ -223,43 +221,29 @@ export const BUILT_IN_PRESETS = [PRESET_NATIVE, PRESET_VAULTMAN] as const;
 
 ## Notes on values
 
-- Density numbers (26/32 px row height, 14/16 px icon size) are educated
-  guesses. Tests assert valid CSS-length format and ordering invariants
-  (`PRESET_NATIVE.density.rowHeight < PRESET_VAULTMAN.density.rowHeight`
-  numerically) but do not pin specific pixels — those tune during
-  implementation against live `plugin-dev` visual inspection.
-- `toolbar.buttons: 'core'` is declare-only in 0-B. Which buttons map to
-  `'core'` vs `'full'` is defined by future Sub-system Toolbar contract;
+- Density numbers (26/32 px row height, 14/16 px icon size) are educated guesses. Tests assert valid CSS-length format and ordering invariants (`PRESET_NATIVE.density.rowHeight < PRESET_VAULTMAN.density.rowHeight` numerically) but do not pin specific pixels — those tune during implementation against live `plugin-dev` visual inspection.
+- `toolbar.buttons: 'core'` is declare-only in 0-B. Which buttons map to `'core'` vs `'full'` is defined by future Sub-system Toolbar contract;
   here we just lock the discriminator value.
-- `dock`/`tabs` `visible: false` are likewise declare-only in 0-B; the
-  dock and tabs remain visible at runtime until Sub-system Layout
-  extension wires the filter. This is documented in
-  [[docs/work/hardening/specs/2026-05-15-explorer-0-b-servicetheme-token-layer/07-consumer-wiring-scope|Sec 7]].
+- `dock`/`tabs` `visible: false` are likewise declare-only in 0-B; the dock and tabs remain visible at runtime until Sub-system Layout extension wires the filter. This is documented in [[docs/work/hardening/specs/2026-05-15-explorer-0-b-servicetheme-token-layer/07-consumer-wiring-scope|Sec 7]].
 
 ## User-visible behavior in 0-B with default settings
 
 Fresh install → `themePresetId = 'vaultman'`:
 
 - ⚠️ `useNativeDom = false` → views emit `.vm-*` classes only.
-  **Behavior change from pre-0-B**: pre-0-B fresh install had
-  `useNativeDom = true` via the legacy `mode || identity` formula;
+  **Behavior change from pre-0-B**: pre-0-B fresh install had `useNativeDom = true` via the legacy `mode || identity` formula;
   post-0-B has it `false` per `PRESET_VAULTMAN.useNativeDom`. Intentional:
-  install plugin → see plugin. See
-  [[docs/work/hardening/specs/2026-05-15-explorer-0-b-servicetheme-token-layer/09-risks-and-open-items|Sec 9 R7]].
-- ✅ Chrome `popupBgOpacity: 0.92` + `popupBackdropBlur: '4px'` → popups
-  semi-translucent with light blur.
+  install plugin → see plugin. See [[docs/work/hardening/specs/2026-05-15-explorer-0-b-servicetheme-token-layer/09-risks-and-open-items|Sec 9 R7]].
+- ✅ Chrome `popupBgOpacity: 0.92` + `popupBackdropBlur: '4px'` → popups semi-translucent with light blur.
 - ✅ Density `rowHeight: '32px'` → comfortable rows.
 - ⚠️ Dock visible (no behavior change vs today; consumer not wired).
 - ⚠️ Tabs visible (no behavior change vs today; consumer not wired).
 - ⚠️ All vm toolbar buttons visible (no behavior change).
-- ⚠️ 5 view modes in view menu (no behavior change; markmap already
-  excluded by 0-H).
+- ⚠️ 5 view modes in view menu (no behavior change; markmap already excluded by 0-H).
 
 User switches to `themePresetId = 'native'`:
 
-- ✅ `useNativeDom = true` → views emit `.nav-file`, `.tree-item`,
-  `.metadata-property`, etc. Community snippets/themes paint Vaultman
-  rows.
+- ✅ `useNativeDom = true` → views emit `.nav-file`, `.tree-item`, `.metadata-property`, etc. Community snippets/themes paint Vaultman rows.
 - ✅ Chrome opaque, no blur.
 - ✅ Density compact (26px rows, 14px icons).
 - ❌ Dock still visible (consumer not wired in 0-B).
@@ -267,6 +251,4 @@ User switches to `themePresetId = 'native'`:
 - ❌ vm toolbar buttons still visible.
 - ❌ 5 view modes still in menu (no filter via `preset.viewModes` yet).
 
-Partial disguise in 0-B is intentional. DOM emission + density + chrome
-land here; the structural/cosmetic cuts (dock/tabs/toolbar/viewMode
-filter) land in 0-A and subsequent sub-systems.
+Partial disguise in 0-B is intentional. DOM emission + density + chrome land here; the structural/cosmetic cuts (dock/tabs/toolbar/viewMode filter) land in 0-A and subsequent sub-systems.

@@ -14,8 +14,7 @@ tags:
 
 # Architecture Decision Records
 
-Nygard-style ADRs for the Explorer/Vaultman architecture, from the 2026-05-26
-foundation brainstorm. Model: [[docs/architecture/explorer-model/index|explorer-model]].
+Nygard-style ADRs for the Explorer/Vaultman architecture, from the 2026-05-26 foundation brainstorm. Model: [[docs/architecture/explorer-model/index|explorer-model]].
 Decision capture: [[docs/work/hardening/research/2026-05-25-architecture-foundation-discovery/decision-ledger|decision-ledger]].
 
 | ID | Title | Decision status |
@@ -32,10 +31,4 @@ Decision capture: [[docs/work/hardening/research/2026-05-25-architecture-foundat
 | 0010 | Storage tiering | RESERVED (pending S-1..S-5; not yet written) |
 | [[docs/architecture/adr/0011-modular-monolith-extraction-seams|0011]] | Modular monolith with plugin-parity extraction seams | Accepted |
 
-ADRs 0001–0005 and 0007–0009 are Accepted. 0006 remains as the historical beta/stable
-predecessor but its branch mapping is superseded by
-[[docs/work/hardening/research/2026-05-27-version-streams-distillation/index|version-streams]]
-(`main=stable`, `dev=beta/nightly`, `sandbox=canary`). 0007 and 0008 were promoted on
-2026-05-26 after grill confirmation; 0009 was accepted 2026-05-27 after the Bases ecosystem +
-extension-API research (see `bases-interop-findings` and `obsidian-extension-api-findings`). See
-the decision-ledger and decision-changelog.
+ADRs 0001–0005 and 0007–0009 are Accepted. 0006 remains as the historical beta/stable predecessor but its branch mapping is superseded by [[docs/work/hardening/research/2026-05-27-version-streams-distillation/index|version-streams]] (`main=stable`, `dev=beta/nightly`, `sandbox=canary`). 0007 and 0008 were promoted on 2026-05-26 after grill confirmation; 0009 was accepted 2026-05-27 after the Bases ecosystem + extension-API research (see `bases-interop-findings` and `obsidian-extension-api-findings`). See the decision-ledger and decision-changelog.

@@ -97,8 +97,7 @@ Run:
 pnpm run lint
 ```
 
-Expected: exit 0. If `eslint-plugin-obsidianmd@0.3.0` reports new release-risk
-violations, fix them in the smallest source file patch and rerun this command.
+Expected: exit 0. If `eslint-plugin-obsidianmd@0.3.0` reports new release-risk violations, fix them in the smallest source file patch and rerun this command.
 
 - [ ] **Step 6: Run svelte-check gate**
 
@@ -108,8 +107,7 @@ Run:
 pnpm run check
 ```
 
-Expected: exit 0. If failures come from missing Svelte preprocessing, verify
-Task 02 `svelte.config.js` is present before changing product code.
+Expected: exit 0. If failures come from missing Svelte preprocessing, verify Task 02 `svelte.config.js` is present before changing product code.
 
 - [ ] **Step 7: Run format check without rewriting**
 

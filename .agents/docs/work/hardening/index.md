@@ -13,8 +13,7 @@ tags:
 
 # Hardening
 
-Use this route for stabilization, regressions, CI, refactors, and release-blocking
-quality work before it reaches `main`.
+Use this route for stabilization, regressions, CI, refactors, and release-blocking quality work before it reaches `main`.
 
 ## Start Here
 

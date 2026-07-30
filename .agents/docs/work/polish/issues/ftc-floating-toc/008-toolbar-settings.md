@@ -13,9 +13,7 @@ tags: [agent/issue, initiative/polish, toolbar, settings, release/1.2.0-beta.1]
 
 ## Goal
 
-Keep the current Files toolbar at five visible nodes through an opt-in native Tools
-menu, and put the saved-view section beside the reusable operations presets it relates
-to.
+Keep the current Files toolbar at five visible nodes through an opt-in native Tools menu, and put the saved-view section beside the reusable operations presets it relates to.
 
 ## Scope
 
@@ -28,8 +26,7 @@ to.
 
 ## DoD — nonvisual
 
-- [x] Defaults, strings, source order, five-node projection, and menu order have
-      RED/GREEN tests.
+- [x] Defaults, strings, source order, five-node projection, and menu order have RED/GREEN tests.
 - [x] Menu keyboard path invokes the same construction as pointer click.
 - [x] Existing auto-reveal and expansion callbacks remain single-source.
 - [x] Svelte autofixer + focused tests + check/lint/build pass.
@@ -38,10 +35,8 @@ to.
 ## Implementation
 
 Landed code-only in `d9eb4cf0 feat(explorer): add condensed toolbar tools menu`.
-Integrated branch gates were re-run after FTC-009: full unit 70 files / 345 tests,
-TypeScript + Svelte 0/0, production bundle, ESLint, and Stylelint all passed.
+Integrated branch gates were re-run after FTC-009: full unit 70 files / 345 tests, TypeScript + Svelte 0/0, production bundle, ESLint, and Stylelint all passed.
 
 ## Non-goals
 
-Toolbar redesign for arbitrary widths · moving Props/Tags controls that already fit ·
-renaming stored queue templates.
+Toolbar redesign for arbitrary widths · moving Props/Tags controls that already fit · renaming stored queue templates.

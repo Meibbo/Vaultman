@@ -40,40 +40,29 @@ The model needs three separate concepts:
 Physical duplicates are NOT the same node by default:
 
 - `a/hola.md` and `b/hola.md` are two `FileNode` identities because the vault has two files.
-- They may be related by a duplicate/similarity detector later, but filesystem operations target each
-  path independently.
-- "Delete `b/hola.md`" deletes only that physical file. "Rename duplicate cluster" would be a separate
-  multi-target operation.
+- They may be related by a duplicate/similarity detector later, but filesystem operations target each path independently.
+- "Delete `b/hola.md`" deletes only that physical file. "Rename duplicate cluster" would be a separate multi-target operation.
 
 Virtual membership is different:
 
 - `a/chao.md` remains one physical `FileNode` identity.
-- `b -> a/chao.md` is a membership. `b` may be a physical folder node acting as a virtual parent
-  in this projection, or a synthetic/manual `ContainerNode`. The occurrence under `b` is not a file
-  copy.
+- `b -> a/chao.md` is a membership. `b` may be a physical folder node acting as a virtual parent in this projection, or a synthetic/manual `ContainerNode`. The occurrence under `b` is not a file copy.
 - "Remove from b" deletes the membership only.
-- "Move to b physically" changes the file path from `a/chao.md` to `b/chao.md` and should also reconcile
-  or remove the old virtual membership.
+- "Move to b physically" changes the file path from `a/chao.md` to `b/chao.md` and should also reconcile or remove the old virtual membership.
 - "Copy to b physically" creates a new `FileNode:path=b/chao.md`; it is no longer just membership.
 
 `Parent node` is a role; `ContainerNode` is a kind:
 
-- A **parent node** is any node that has children in the current projection. A folder `FileNode`, a
-  `TagNode`, a `PropNode`, a `ContainerNode`, or a playlist node can all act as parents.
+- A **parent node** is any node that has children in the current projection. A folder `FileNode`, a `TagNode`, a `PropNode`, a `ContainerNode`, or a playlist node can all act as parents.
 - A **ContainerNode** is a synthetic NodeKind whose main purpose is grouping/containment. Examples:
-  user-named manual container, serviceGroup group-by bucket, FilterGroup group, playlist, dashboard
-  section.
-- Therefore: every ContainerNode is usually a parent, but not every parent is a ContainerNode. A physical
-  folder is a real FileNode parent. A tag/prop/adopted header can also be a parent in an adopted-node
-  projection without becoming a ContainerNode.
+  user-named manual container, serviceGroup group-by bucket, FilterGroup group, playlist, dashboard section.
+- Therefore: every ContainerNode is usually a parent, but not every parent is a ContainerNode. A physical folder is a real FileNode parent. A tag/prop/adopted header can also be a parent in an adopted-node projection without becoming a ContainerNode.
 
 Metadata providers already imply this:
 
 - One file may appear under multiple tag nodes because `file --hasTag--> tag` memberships exist.
-- One file may appear under multiple property-value nodes because `file --hasPropValue--> value`
-  memberships exist.
-- Previously this was easy to treat as "scope filters" only. Once tags/props are navigable parents with
-  adopted children, the same identity/occurrence/membership problem becomes visible.
+- One file may appear under multiple property-value nodes because `file --hasPropValue--> value` memberships exist.
+- Previously this was easy to treat as "scope filters" only. Once tags/props are navigable parents with adopted children, the same identity/occurrence/membership problem becomes visible.
 
 Required UX:
 
@@ -108,8 +97,7 @@ NodeIdentity = {
 }
 ```
 
-The visible label is just a Cell / label resolver output. Multiple distinct identities may render the
-same label.
+The visible label is just a Cell / label resolver output. Multiple distinct identities may render the same label.
 
 ### Nested tag example
 
@@ -126,8 +114,7 @@ TagNode(provider=tags, canonicalId="#party/todo")
 ```
 
 If tag segments are rendered as parent/child nodes, the parent context is part of the canonical tag path.
-`todo` under `project` and `todo` under `party` are not the same node. Each can have its own node-note
-because node-note keys attach to `NodeIdentity`, not to `label`.
+`todo` under `project` and `todo` under `party` are not the same node. Each can have its own node-note because node-note keys attach to `NodeIdentity`, not to `label`.
 
 This also applies to prop/value trees:
 
@@ -152,8 +139,7 @@ FileNode(provider=files, canonicalId="a/tareas.md")
 FileNode(provider=files, canonicalId="b/tareas.md")
 ```
 
-If both appear inside one manual ContainerNode by user ordering, the ContainerNode has two occurrence
-rows whose labels collide but identities do not:
+If both appear inside one manual ContainerNode by user ordering, the ContainerNode has two occurrence rows whose labels collide but identities do not:
 
 ```text
 ManualContainerNode("Work list")
@@ -161,13 +147,9 @@ ManualContainerNode("Work list")
   occurrence -> FileNode("b/tareas.md"), label "tareas"
 ```
 
-The code routes selection, actions, node-note lookup, DnD, and destructive operations by identity /
-occurrence id, never by display text.
+The code routes selection, actions, node-note lookup, DnD, and destructive operations by identity / occurrence id, never by display text.
 
-Required UI rule: when sibling visible labels collide, Vaultman should surface a disambiguation cell or
-affordance by default (path breadcrumb, provider/kind chip, parent path, or canonical id tooltip), even if
-the user normally hides `path`. Hiding disambiguation is allowed only as a user/preset choice, not as the
-default for collision contexts.
+Required UI rule: when sibling visible labels collide, Vaultman should surface a disambiguation cell or affordance by default (path breadcrumb, provider/kind chip, parent path, or canonical id tooltip), even if the user normally hides `path`. Hiding disambiguation is allowed only as a user/preset choice, not as the default for collision contexts.
 
 ### Identity vs node-note
 
@@ -175,8 +157,7 @@ Node-notes must key from `NodeIdentity`, not display label:
 
 - `node-note(tags/#project/todo)` is separate from `node-note(tags/#party/todo)`.
 - `node-note(files/a/tareas.md)` is separate from `node-note(files/b/tareas.md)`.
-- If the user wants a shared note for "all todo-like labels", that is a separate synthetic/group node or
-  query result, not the default identity note.
+- If the user wants a shared note for "all todo-like labels", that is a separate synthetic/group node or query result, not the default identity note.
 
 ## Locked Decision — S-26 (2026-05-29)
 

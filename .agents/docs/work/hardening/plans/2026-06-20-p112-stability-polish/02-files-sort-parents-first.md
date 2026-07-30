@@ -166,8 +166,7 @@ files: {
 },
 ```
 
-Update `applySortState`, `sameSortState`, and `normalizeSortState` to carry `parentsFirst`. In Files native menu,
-insert a separator after order options and add:
+Update `applySortState`, `sameSortState`, and `normalizeSortState` to carry `parentsFirst`. In Files native menu, insert a separator after order options and add:
 
 ```ts
 if (activeTab === 'files') {

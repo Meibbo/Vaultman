@@ -32,31 +32,21 @@ updated_by: codex
 
 ## What To Build
 
-Create a media/derived-content cache database for cached explorer images and
-previews. Keep media metadata and blobs outside structural snapshots, and use
-narrow file/node-level media subscriptions for visible thumbnail updates.
+Create a media/derived-content cache database for cached explorer images and previews. Keep media metadata and blobs outside structural snapshots, and use narrow file/node-level media subscriptions for visible thumbnail updates.
 
 ## Acceptance Criteria
 
 - [x] Media cache records store status/key metadata separately from blobs.
-- [x] Blob reads validate the expected `mediaKey` before returning cached
-      content.
+- [x] Blob reads validate the expected `mediaKey` before returning cached content.
 - [x] A bounded in-memory blob LRU and lazy visible-row loading are tested.
-- [x] File/node-level media subscriptions update thumbnails without rebuilding
-      structural snapshots or `ViewService` layers.
-- [x] Implementation does not introduce persistent structural snapshot storage
-      or a generic row-level subscription system.
+- [x] File/node-level media subscriptions update thumbnails without rebuilding structural snapshots or `ViewService` layers.
+- [x] Implementation does not introduce persistent structural snapshot storage or a generic row-level subscription system.
 
 ## 2026-05-12 Reconciliation Note
 
-Wave 3 Agent C was mostly independent of the Wave 2 Files data-plane work, so
-it was ported as a service-level slice on top of `claude/explorer`. The
-reconciled implementation keeps media records and blobs outside structural
-snapshots, validates reads against the expected `mediaKey`, and limits
-subscriptions to file/node media targets.
+Wave 3 Agent C was mostly independent of the Wave 2 Files data-plane work, so it was ported as a service-level slice on top of `claude/explorer`. The reconciled implementation keeps media records and blobs outside structural snapshots, validates reads against the expected `mediaKey`, and limits subscriptions to file/node media targets.
 
-The in-memory store supports bounded read-through LRU behavior and lazy
-visible-row blob loading without adding row-level snapshot subscriptions.
+The in-memory store supports bounded read-through LRU behavior and lazy visible-row blob loading without adding row-level snapshot subscriptions.
 
 ## Blocked By
 

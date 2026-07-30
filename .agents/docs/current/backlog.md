@@ -11,8 +11,7 @@ tags:
 
 # Current Backlog
 
-All active backlog items. Canonical records live under
-`docs/work/<initiative>/items/`.
+All active backlog items. Canonical records live under `docs/work/<initiative>/items/`.
 
 ## Items
 
@@ -20,5 +19,4 @@ All active backlog items. Canonical records live under
 
 ## Shard Trigger
 
-Shard by initiative or status when this index approaches 150 lines or exceeds
-one screen of active work.
+Shard by initiative or status when this index approaches 150 lines or exceeds one screen of active work.

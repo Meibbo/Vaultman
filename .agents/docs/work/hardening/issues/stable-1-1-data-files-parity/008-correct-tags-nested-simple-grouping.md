@@ -28,8 +28,7 @@ updated_by: codex-gpt-5
 
 ## What To Build
 
-Correct Tags grouping so nested tags and simple tags represent different tag shapes instead of a
-nonfunctional or misleading grouping option.
+Correct Tags grouping so nested tags and simple tags represent different tag shapes instead of a nonfunctional or misleading grouping option.
 
 ## Acceptance Criteria
 
@@ -51,23 +50,16 @@ nonfunctional or misleading grouping option.
 
 ## Resolution - 2026-06-06
 
-Implemented in product worktree `hotfix/1.0.2-css-scorecard` as part of the
-SDF-007/SDF-008 wave.
+Implemented in product worktree `hotfix/1.0.2-css-scorecard` as part of the SDF-007/SDF-008 wave.
 
-- Replaced the old misleading Tags grouping path where `simple` collected all
-  leaf tags at any depth.
+- Replaced the old misleading Tags grouping path where `simple` collected all leaf tags at any depth.
 - `Simple tags` now returns only root/level-1 tags with no children.
-- `Nested tags` now returns only root/level-1 tags with children and preserves
-  the full descendant hierarchy below those roots.
+- `Nested tags` now returns only root/level-1 tags with children and preserves the full descendant hierarchy below those roots.
 - The grouping helper is pure and covered by mixed-tree unit tests.
 
 Verification evidence:
 
-- `test/unit/explorerHierarchy.test.ts` covers mixed simple/nested roots and
-  verifies that nested descendants are preserved.
-- `pnpm run verify` passed (`25` unit files / `82` tests; scorecard `17`
-  checks).
-- Runtime DOM smoke in `plugin-dev` confirmed `Nested tags` returned only roots
-  with carets (`allHaveCaret=true`) and `Simple tags` returned only root ids
-  without slash paths and without carets (`noSlashIds=true`, `noCarets=true`).
+- `test/unit/explorerHierarchy.test.ts` covers mixed simple/nested roots and verifies that nested descendants are preserved.
+- `pnpm run verify` passed (`25` unit files / `82` tests; scorecard `17` checks).
+- Runtime DOM smoke in `plugin-dev` confirmed `Nested tags` returned only roots with carets (`allHaveCaret=true`) and `Simple tags` returned only root ids without slash paths and without carets (`noSlashIds=true`, `noCarets=true`).
 - Final `obsidian vault=plugin-dev dev:errors` returned `No errors captured`.

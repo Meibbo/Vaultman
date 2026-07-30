@@ -26,23 +26,15 @@ updated_by: codex
 
 ## Steps
 
-- [ ] Add a failing unit test that imports the wished-for contract from
-  `typeViews.ts` and builds a list render model with one row, one badge layer,
-  one query highlight, and one semantic action.
-- [ ] Run the specific unit test and confirm it fails because `typeViews.ts`
-  does not exist.
+- [ ] Add a failing unit test that imports the wished-for contract from `typeViews.ts` and builds a list render model with one row, one badge layer, one query highlight, and one semantic action.
+- [ ] Run the specific unit test and confirm it fails because `typeViews.ts` does not exist.
 - [ ] Implement `typeViews.ts` with:
-  `ExplorerViewMode = 'tree' | 'table' | 'grid' | 'cards' | 'list'`,
-  `ViewLayers`, `ViewBadge`, `ViewHighlightLayers`, `ViewRow`, `ViewCell`,
-  `ViewColumn`, `ExplorerRenderModel`, `ExplorerViewInput`, `ViewAction`, and
-  `IViewService`.
-- [ ] Update `typeExplorer.ts` to import/re-export `ExplorerViewMode` from
-  `typeViews.ts` so existing providers move toward the canonical mode union.
+  `ExplorerViewMode = 'tree' | 'table' | 'grid' | 'cards' | 'list'`, `ViewLayers`, `ViewBadge`, `ViewHighlightLayers`, `ViewRow`, `ViewCell`, `ViewColumn`, `ExplorerRenderModel`, `ExplorerViewInput`, `ViewAction`, and `IViewService`.
+- [ ] Update `typeExplorer.ts` to import/re-export `ExplorerViewMode` from `typeViews.ts` so existing providers move toward the canonical mode union.
 - [ ] Run the unit test and confirm the contract compiles.
 
 ## Acceptance
 
 - No UI behavior changes.
 - Existing imports of `ExplorerViewMode` still compile.
-- The mode union includes `table` and `list`; old `masonry` is not part of the
-  new canonical view service contract.
+- The mode union includes `table` and `list`; old `masonry` is not part of the new canonical view service contract.

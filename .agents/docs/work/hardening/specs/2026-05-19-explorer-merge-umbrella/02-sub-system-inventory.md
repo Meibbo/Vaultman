@@ -9,21 +9,17 @@ updated: 2026-05-19T00:00:00
 
 # Sub-system Inventory
 
-Full descriptions de los **11 sub-systems NUEVOS** + **R.D cross-cutting** + comentarios sobre
-los 9 sub-systems pre-existentes (5, 6, 8, 10, 11, 12, 4-I, 2, N) que reciben merge layer.
+Full descriptions de los **11 sub-systems NUEVOS** + **R.D cross-cutting** + comentarios sobre los 9 sub-systems pre-existentes (5, 6, 8, 10, 11, 12, 4-I, 2, N) que reciben merge layer.
 
 ## NEW: N.R — NodeRow Primitive
 
 - **Goal**: extraer un Svelte 5 component compartido que carga la metáfora "row de nodo".
-  Embedded por todos los views (tree, list, table, grid, cards). Carries: icon slot, label
-  slot, badges slot, counters slot, cmenu trigger, hover state, drag handle, selection state,
-  focus state, expanded state.
+  Embedded por todos los views (tree, list, table, grid, cards). Carries: icon slot, label slot, badges slot, counters slot, cmenu trigger, hover state, drag handle, selection state, focus state, expanded state.
 - **Scope**:
   - New `src/components/primitives/NodeRow.svelte`
   - New `src/components/primitives/CaretButton.svelte` (WCAG 2.5.8 hit-target ≥ 24×24 CSS px)
   - Consumes context: `NodeElementMask` (from 0-A) + `RowActionContext` (from A.R)
-  - Exposes layout variant prop: `tree` (with indent + caret), `flat` (no indent), `cell`
-    (table cell content), `card` (vertical card body)
+  - Exposes layout variant prop: `tree` (with indent + caret), `flat` (no indent), `cell` (table cell content), `card` (vertical card body)
 - **Out-of-scope**: behaviors (those are A.R), data fetching, decomposition of views
 - **Depends on**: 0-A (NodeElementMask), A.R (action routing context shape)
 - **~Commits**: 6-8
@@ -31,34 +27,24 @@ los 9 sub-systems pre-existentes (5, 6, 8, 10, 11, 12, 4-I, 2, N) que reciben me
 
 ## NEW: A.R — Action Routing Contract
 
-- **Goal**: unificar caret click + keyboard nav + selection consumption + expand/collapse all +
-  context menu en TODOS los views/explorers/mount-contexts. Resolver la divergencia
-  `(id, MouseEvent)` vs `(row, SelectModifiers)` y los 3 contratos keyboard distintos.
+- **Goal**: unificar caret click + keyboard nav + selection consumption + expand/collapse all + context menu en TODOS los views/explorers/mount-contexts. Resolver la divergencia `(id, MouseEvent)` vs `(row, SelectModifiers)` y los 3 contratos keyboard distintos.
 - **Scope**:
-  - New `src/services/serviceKeyboardNav.ts` (gap actual; `serviceNavigation.svelte.ts` solo
-    cubre page/tab routing)
-  - New `src/services/serviceRowAction.ts` (builder pattern: `getCaretProps(id)`, `getRowProps(id)`,
-    `getKeyboardHandlers(id)` returning prop-bags spreaded onto markup, estilo Melt UI)
-  - Normalizar contract en ViewHost (`src/components/explorer/ViewHost.svelte:174-186` vs 144-173)
-    → single `(id, MouseEvent)` contract; `(row, SelectModifiers)` ViewNodeList variant migra
+  - New `src/services/serviceKeyboardNav.ts` (gap actual; `serviceNavigation.svelte.ts` solo cubre page/tab routing)
+  - New `src/services/serviceRowAction.ts` (builder pattern: `getCaretProps(id)`, `getRowProps(id)`, `getKeyboardHandlers(id)` returning prop-bags spreaded onto markup, estilo Melt UI)
+  - Normalizar contract en ViewHost (`src/components/explorer/ViewHost.svelte:174-186` vs 144-173) → single `(id, MouseEvent)` contract; `(row, SelectModifiers)` ViewNodeList variant migra
   - Fix viewTree caret leaf placeholder (`viewTree.svelte:974-978`) — placeholder no traga clicks
-  - WAI-ARIA Tree View pattern compliance: Right opens / Left closes / Up-Down nav / Home-End /
-    Enter activates / typing type-ahead
+  - WAI-ARIA Tree View pattern compliance: Right opens / Left closes / Up-Down nav / Home-End / Enter activates / typing type-ahead
   - Standard 10-item cmenu (Open/Rename/Move/Tag/Prop/Duplicate/Queue/Delete) routed via A.R
   - Expand/collapse all enabled for non-tree views via `nodeExpansionCommand` propagation
-- **Out-of-scope**: virtualization, scroll, decomposition of god-objects, NodeRow primitive
-  (es prereq pero se entrega en V.D / N.R)
+- **Out-of-scope**: virtualization, scroll, decomposition of god-objects, NodeRow primitive (es prereq pero se entrega en V.D / N.R)
 - **Depends on**: 0-A (close)
 - **~Commits**: 8-12
 - **First release**: v1.2.0 ← **FIRST DETAIL SPEC TARGET**
 
 ## NEW: V.D — View Decomposition
 
-- **Goal**: shrink 5 view god-objects (4377 LoC total) → thin shells delegating to services +
-  N.R primitive.
-- **Scope**: viewTree 1142 → ~250 LoC, ViewNodeList 464 → ~150, ViewNodeTable 858 → ~200,
-  ViewNodeGrid 1230 → ~250, ViewNodeCards 606 → ~200. Total: ~1050 LoC (vs 4377). Cada view
-  becomes "layout-around-NodeRow":
+- **Goal**: shrink 5 view god-objects (4377 LoC total) → thin shells delegating to services + N.R primitive.
+- **Scope**: viewTree 1142 → ~250 LoC, ViewNodeList 464 → ~150, ViewNodeTable 858 → ~200, ViewNodeGrid 1230 → ~250, ViewNodeCards 606 → ~200. Total: ~1050 LoC (vs 4377). Cada view becomes "layout-around-NodeRow":
   - viewTree: indent + caret + sticky-parents wrapper around NodeRow
   - ViewNodeList: flat wrapper around NodeRow
   - ViewNodeTable: column layout around NodeRow as cell-source
@@ -87,42 +73,29 @@ los 9 sub-systems pre-existentes (5, 6, 8, 10, 11, 12, 4-I, 2, N) que reciben me
 
 ## NEW: T.G — Test Invariant Gates anti-IA
 
-- **Goal**: prevenir regresiones cuando agentes IA tocan views/services. La causa raíz que el
-  usuario reporta ("ni los tests han evitado que se rompan estos componentes") es **intent drift**:
-  el comportamiento diverge del spec SIN que falle un test unitario. T.G ataca eso con
-  spec-anchored invariants + statistical gates, NO con más unit tests.
+- **Goal**: prevenir regresiones cuando agentes IA tocan views/services. La causa raíz que el usuario reporta ("ni los tests han evitado que se rompan estos componentes") es **intent drift**:
+  el comportamiento diverge del spec SIN que falle un test unitario. T.G ataca eso con spec-anchored invariants + statistical gates, NO con más unit tests.
 
 - **Tres tiers de test (pirámide)**:
-  1. **Vitest jsdom** — pure service logic (selection state machine, expand-collapse, type-ahead
-     buffer). Corre contra los `.svelte.ts` reales. Rápido. (Ya existe parcialmente: `test:cover`.)
-  2. **Vitest browser mode** (`@vitest/browser-playwright`) — component contracts contra el DOM
-     real que sirve obsidian-web-lab (mismo `app.js` + `app.css` que Electron). Cubre DOM emission,
-     CSS class presence, event wiring, layout math, virt counters. NO cubre plugin lifecycle /
-     settings persistence / workspace state (Electron-only — gate con `describe.skipIf(!process.versions.electron)`).
-  3. **wdio-obsidian-service** — E2E en Obsidian real (versioned download, sandboxed config,
-     Windows + CI). Para los casos que solo fallan con `app.js` real.
+  1. **Vitest jsdom** — pure service logic (selection state machine, expand-collapse, type-ahead buffer). Corre contra los `.svelte.ts` reales. Rápido. (Ya existe parcialmente: `test:cover`.)
+  2. **Vitest browser mode** (`@vitest/browser-playwright`) — component contracts contra el DOM real que sirve obsidian-web-lab (mismo `app.js` + `app.css` que Electron). Cubre DOM emission, CSS class presence, event wiring, layout math, virt counters. NO cubre plugin lifecycle / settings persistence / workspace state (Electron-only — gate con `describe.skipIf(!process.versions.electron)`).
+  3. **wdio-obsidian-service** — E2E en Obsidian real (versioned download, sandboxed config, Windows + CI). Para los casos que solo fallan con `app.js` real.
 
 - **Invariant suites (spec-anchored, cross-view — TODOS los views deben pasar)**:
-  - WAI-ARIA Tree View pattern compliance (Right opens / Left closes / Up-Down nav / Home-End /
-    Enter activates / type-ahead) — keyboard behaviors mandatorios
+  - WAI-ARIA Tree View pattern compliance (Right opens / Left closes / Up-Down nav / Home-End / Enter activates / type-ahead) — keyboard behaviors mandatorios
   - Caret hit-target snapshot (WCAG 2.5.8 ≥ 24×24 CSS px)
   - Selection contract parity (mismo `(id, MouseEvent)` en los 5 views × mount-contexts)
   - Keyboard nav parity (Arrows/Home/End/PageUp/Down/Enter/Space/typeahead idénticos)
   - Native-DOM emission snapshot vs Bases / Obsidian real (diff byte-for-byte contra DOM del web-lab)
-  - **Assert structural attrs** (`aria-expanded`, `aria-selected`, `aria-activedescendant`,
-    `data-row-key`) NO CSS classes — eso es lo que frena el drift de agentes
+  - **Assert structural attrs** (`aria-expanded`, `aria-selected`, `aria-activedescendant`, `data-row-key`) NO CSS classes — eso es lo que frena el drift de agentes
 
 - **Anti-drift statistical gates (research 2026-05-19)**:
-  - **AgentAssay-style**: cada invariant suite corre N=5 veces, aplica Wilson confidence intervals +
-    Fisher's exact test → gate pasa solo si el pass-rate es estadísticamente estable (maneja
-    non-determinismo de outputs de agentes)
-  - **CUSUM drift detection** entre iteraciones del pipeline: trackea pass-rate acumulado a través de
-    los sub-systems v1.2.0→v2.0.0; detecta intent-drift / loops / hallucinated tool calls antes de v2.0.0
+  - **AgentAssay-style**: cada invariant suite corre N=5 veces, aplica Wilson confidence intervals + Fisher's exact test → gate pasa solo si el pass-rate es estadísticamente estable (maneja non-determinismo de outputs de agentes)
+  - **CUSUM drift detection** entre iteraciones del pipeline: trackea pass-rate acumulado a través de los sub-systems v1.2.0→v2.0.0; detecta intent-drift / loops / hallucinated tool calls antes de v2.0.0
   - Mismo evaluator gatea CI y merge (no drift dev-time vs merge-time)
 
 - **Integración con CI existente** (`.github/workflows/ci.yml`):
-  - ci.yml actual NO incluye `sandbox` en trigger branches (`[main, hardening, hardening-*]`) →
-    los 180 commits de sandbox NUNCA pasaron CI. **T.G debe AGREGAR `sandbox` al trigger.**
+  - ci.yml actual NO incluye `sandbox` en trigger branches (`[main, hardening, hardening-*]`) → los 180 commits de sandbox NUNCA pasaron CI. **T.G debe AGREGAR `sandbox` al trigger.**
   - Agregar tiers como jobs: jsdom (existente `test:cover`), browser-mode (nuevo), wdio (nuevo)
   - `claude-code-action@v1` como neutral reviewer feeding severity al auto-merge matrix
 
@@ -134,8 +107,7 @@ los 9 sub-systems pre-existentes (5, 6, 8, 10, 11, 12, 4-I, 2, N) que reciben me
 
 ## EXISTING SIBLING: 0-A.S — Adversarial Scroll Harness + tree scroll fix
 
-- **Goal**: fix tree scroll triple-write race (`viewTree.svelte:420-441` — `scrollToIndex` +
-  `outerEl.scrollTop` + `dispatchEvent('scroll')`). Add burst harness con percentile/histogram.
+- **Goal**: fix tree scroll triple-write race (`viewTree.svelte:420-441` — `scrollToIndex` + `outerEl.scrollTop` + `dispatchEvent('scroll')`). Add burst harness con percentile/histogram.
 - **Scope**:
   - Single-write scroll path en viewTree (only `scrollToIndex`)
   - Normalize `consumedScrollTargetSerial` (currently duplicated 4× across views)
@@ -149,9 +121,7 @@ los 9 sub-systems pre-existentes (5, 6, 8, 10, 11, 12, 4-I, 2, N) que reciben me
 
 ## NEW: K.B — Keyboard + Hotkeys/Macros Provider
 
-- **Goal**: módulo aparte que se encarga de TODA la interacción del keyboard con el plugin
-  y con el resto del workspace. Más broad que A.R row-nav. Includes hotkey provider y macros
-  provider.
+- **Goal**: módulo aparte que se encarga de TODA la interacción del keyboard con el plugin y con el resto del workspace. Más broad que A.R row-nav. Includes hotkey provider y macros provider.
 - **Scope**:
   - New provider type `HotkeysProvider` para registrar hotkeys per-context
   - New provider type `MacrosProvider` para sequenceable actions
@@ -164,13 +134,11 @@ los 9 sub-systems pre-existentes (5, 6, 8, 10, 11, 12, 4-I, 2, N) que reciben me
 
 ## NEW: API — Vaultman public API `vaultman.v1`
 
-- **Goal**: estable public API surface para handshake cross-plugin. NN-shaped namespaces
-  para idiomatic Obsidian plugin authors.
+- **Goal**: estable public API surface para handshake cross-plugin. NN-shaped namespaces para idiomatic Obsidian plugin authors.
 - **Scope**:
   - `app.plugins.getPlugin("vaultman").api` exposed con `vaultman.v1` namespace versioned
   - 6 sub-namespaces: `navigation`, `metadata`, `selection`, `menus`, `events`, `themes`
-  - Events bus: `selection-changed`, `view-mode-changed`, `provider-changed`, `theme-changed`,
-    `layout-changed`, `nav-item-changed`
+  - Events bus: `selection-changed`, `view-mode-changed`, `provider-changed`, `theme-changed`, `layout-changed`, `nav-item-changed`
   - Types published como separate npm package `@vaultman/api` para consumers
   - Onload detection pattern (post-`onLayoutReady`)
 - **Out-of-scope**: render override hooks (NN doesn't expose them; defer to I.E)
@@ -180,8 +148,7 @@ los 9 sub-systems pre-existentes (5, 6, 8, 10, 11, 12, 4-I, 2, N) que reciben me
 
 ## NEW: I.E — NN Interop engine swap (direction B)
 
-- **Goal**: first cross-plugin compatibility step. Settings option para que Vaultman renderee
-  o que sus providers se inyecten en NN.
+- **Goal**: first cross-plugin compatibility step. Settings option para que Vaultman renderee o que sus providers se inyecten en NN.
 - **Scope**:
   - Setting `explorer.engine: 'vaultman' | 'notebook-navigator'` (default `'vaultman'`)
   - Direction B (Vaultman providers → NN explorer) — FIRST: NN's API estable hoy
@@ -197,12 +164,10 @@ los 9 sub-systems pre-existentes (5, 6, 8, 10, 11, 12, 4-I, 2, N) que reciben me
 
 ## NEW: B.P — Bases Parity (extiende 4-I)
 
-- **Goal**: full Bases plugin parity — namespaced property IDs, DOM vocabulary, `registerBasesView()`
-  inheritance del query pipeline, formula language hosting (no rebuild).
+- **Goal**: full Bases plugin parity — namespaced property IDs, DOM vocabulary, `registerBasesView()` inheritance del query pipeline, formula language hosting (no rebuild).
 - **Scope** ⚠️ BREAKING:
   - Property addressing: `prop:area` → `prop.note.area` (breaking)
-  - DOM vocab: emit `bases-tr`, `bases-table-cell`, `bases-td`, `bases-cards-item`,
-    `bases-cards-property mod-title`, `bases-cards-cover` cuando `preset.useNativeDom === true`
+  - DOM vocab: emit `bases-tr`, `bases-table-cell`, `bases-td`, `bases-cards-item`, `bases-cards-property mod-title`, `bases-cards-cover` cuando `preset.useNativeDom === true`
   - Implement `registerBasesView()` para Vaultman table view (inherit Bases pipeline)
   - `data-property="note.X"` attribute convention
   - viewTable rewrite per Bases (CSS classes + cell semantics)
@@ -215,8 +180,7 @@ los 9 sub-systems pre-existentes (5, 6, 8, 10, 11, 12, 4-I, 2, N) que reciben me
 
 ## NEW: C.D — Cross-provider Cell Data
 
-- **Goal**: cell semantics — la celda en (`row=file`, `column=prop:area`) debe yield el value
-  de esa property en ese file específico. Cross-provider lookup at cell level.
+- **Goal**: cell semantics — la celda en (`row=file`, `column=prop:area`) debe yield el value de esa property en ese file específico. Cross-provider lookup at cell level.
 - **Scope**:
   - Extend `ExplorerRowInput<NodeBase>` con cross-provider property lookup
   - `Cell.getValue(propertyId)` method aligned con Bases' `entry.getValue(propertyName)`
@@ -234,8 +198,7 @@ los 9 sub-systems pre-existentes (5, 6, 8, 10, 11, 12, 4-I, 2, N) que reciben me
   - `1.1.0` catch-up reconciled package/changelog through release-please
   - Bare SemVer tagging: `1.1.0`, `1.2.0`... via release-please (`include-v-in-tag: false`)
   - Push `sandbox → origin/sandbox` before release branch/PR when sandbox is the source
-  - Merge `sandbox → main` ÚNICAMENTE en releases, vía sanitized main/release-please pipeline
-    with AI-file guard (`.agents/`, `CLAUDE.md`, `AGENTS.md`, `.claude/`, `.codex/`)
+  - Merge `sandbox → main` ÚNICAMENTE en releases, vía sanitized main/release-please pipeline with AI-file guard (`.agents/`, `CLAUDE.md`, `AGENTS.md`, `.claude/`, `.codex/`)
   - manifest.json + versions.json bump (Obsidian community plugin distribution)
   - GitHub Release con notes desde CHANGELOG section
   - Per-release: pre-merge checklist + post-merge smoke en `plugin-dev`
@@ -286,8 +249,7 @@ los 9 sub-systems pre-existentes (5, 6, 8, 10, 11, 12, 4-I, 2, N) que reciben me
 
 ### 4-I — Bases-parity filter logical switching
 - Existing 🟠 (independent). En esta umbrella EXTENDED por B.P at v2.0.0:
-  - 4-I delivers: filter tree (groups AND/OR + subgroups + orphans) + 9-type OPERATORS +
-    FilterComposer (parseManualFilter)
+  - 4-I delivers: filter tree (groups AND/OR + subgroups + orphans) + 9-type OPERATORS + FilterComposer (parseManualFilter)
   - B.P (v2.0.0) extends con: namespaced property IDs + `bases-` DOM vocab + `registerBasesView`
 - First release: TBD pre-v2 (4-I baseline) → extended v2.0.0 (B.P)
 

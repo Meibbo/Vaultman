@@ -16,8 +16,7 @@ tags:
 
 Do not migrate everything in one commit.
 
-The architecture is broad enough to require vertical slices. Each slice should
-leave the plugin usable and verified.
+The architecture is broad enough to require vertical slices. Each slice should leave the plugin usable and verified.
 
 ## Slice 0: Contracts Only
 
@@ -100,8 +99,7 @@ Add tests for props/tags/files layer output without mounting views.
 
 Adapt `viewTree.svelte` to consume `ViewTreeRenderModel`.
 
-Move flattening and inherited badge bubbling out of view or into a dedicated
-tree projection helper.
+Move flattening and inherited badge bubbling out of view or into a dedicated tree projection helper.
 
 Keep `viewTree` as renderer:
 

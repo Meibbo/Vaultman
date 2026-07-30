@@ -22,9 +22,7 @@ tags: [agent/issue, triage/needs-triage, initiative/polish, release/1.2.0, prope
 ## What to build
 
 Render Boolean values as interactive checkbox `action_cells` in formatted mode.
-Intercept the edit intent before any native/core write, resolve every file
-represented by the value node and route through `queueService.addOrRun`. Stage mode
-shows the pending value plus `badge_rename`; bypass mode writes once immediately.
+Intercept the edit intent before any native/core write, resolve every file represented by the value node and route through `queueService.addOrRun`. Stage mode shows the pending value plus `badge_rename`; bypass mode writes once immediately.
 
 ## Acceptance criteria
 

@@ -18,22 +18,17 @@ updated_by: codex
 
 Continua desde [[docs/work/polish/plans/2026-05-10-pretext-grid-cards/02-pretext-measurement|Pretext measurement service]].
 
-			if (!prepared) {
-				prepared = engine.prepare(text, style.font, prepareOptions(style));
+			if (!prepared) { prepared = engine.prepare(text, style.font, prepareOptions(style));
 				preparedCache.set(key, prepared);
-			}
-			const layoutKey = `${key}\u0000${roundedWidth}`;
+			} const layoutKey = `${key}\u0000${roundedWidth}`;
 			const cached = layoutCache.get(layoutKey);
 			if (cached) return cached;
 			const result = engine.layout(prepared, roundedWidth, style.lineHeight);
 			layoutCache.set(layoutKey, result);
 			return result;
-		},
-		clear() {
-			preparedCache.clear();
+		}, clear() { preparedCache.clear();
 			layoutCache.clear();
-		},
-	};
+		}, };
 }
 ```
 

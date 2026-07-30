@@ -100,24 +100,16 @@ This request touches seven surfaces that would make Cut 2 too broad if handled i
 
 ### 2026-05-11 Task 5: Scrollable Compact Controls
 
-- Added `test/unit/styles/compactControlScroll.test.ts` for the SCSS style
-  harness. The test first failed on missing `vm-sort-row` scroll coverage, then
-  passed after the style fix.
-- Added a shared `horizontal-control-scroll` mixin with `max-width`,
-  `min-width: 0`, horizontal overflow, hidden scrollbars, and configurable
-  alignment.
+- Added `test/unit/styles/compactControlScroll.test.ts` for the SCSS style harness. The test first failed on missing `vm-sort-row` scroll coverage, then passed after the style fix.
+- Added a shared `horizontal-control-scroll` mixin with `max-width`, `min-width: 0`, horizontal overflow, hidden scrollbars, and configurable alignment.
 - Applied the mixin to compact horizontal control surfaces:
-  `.vm-popup-squircles`, queue/filter island squircle rows,
-  `.vm-squircle-row`, `.vm-viewmode-pills`, `.vm-sort-row`,
-  `.vm-stat-scope-pills`, `.vm-tab-bar`, and `.vm-nav-dock`.
-- Added fixed flex sizing to tab/squircle/stat pill children so options do not
-  shrink away instead of overflowing.
+  `.vm-popup-squircles`, queue/filter island squircle rows, `.vm-squircle-row`, `.vm-viewmode-pills`, `.vm-sort-row`, `.vm-stat-scope-pills`, `.vm-tab-bar`, and `.vm-nav-dock`.
+- Added fixed flex sizing to tab/squircle/stat pill children so options do not shrink away instead of overflowing.
 - `pnpm run build` initially exposed a pre-existing Sass compile blocker:
   `_badges.scss` referenced `$vm-radius-xs` without exporting that token.
   Added `$vm-radius-xs` in `src/styles/_tokens.scss` and rebuilt.
 - Refreshed tracked `styles.css` from the passing build.
-- No `.svelte` files were touched, so no Svelte autofixer run was required for
-  this slice.
+- No `.svelte` files were touched, so no Svelte autofixer run was required for this slice.
 
 Fresh verification:
 
@@ -126,35 +118,26 @@ Fresh verification:
 - `pnpm exec vp test run --project component --config vitest.config.ts test/component/navbarDock.test.ts test/component/navbarTabs.test.ts --fileParallelism=false`:
   pass, 8/8.
 - `pnpm run check`: pass, `svelte-check found 0 errors and 0 warnings`.
-- `pnpm run build`: pass; Vite built `styles.css` and `main.js`, then
-  `scripts/sync-test-build.mjs` synced build artifacts.
+- `pnpm run build`: pass; Vite built `styles.css` and `main.js`, then `scripts/sync-test-build.mjs` synced build artifacts.
 - `pnpm exec vp test run --project unit --config vitest.config.ts test/unit/styles/compactControlScroll.test.ts test/unit/styles/nodeDecorationStyles.test.ts --fileParallelism=false`:
   pass, 6/6.
 - `node .agents/tools/pkm-ai/check-doc-health.mjs`: fail on unrelated detachable/superpowers residuals.
 
 Manual UI note:
 
-- No live Obsidian narrow-frame smoke was run in this continuation. The slice
-  is covered by style assertions, nav component tests, `svelte-check`, and the
-  production build.
+- No live Obsidian narrow-frame smoke was run in this continuation. The slice is covered by style assertions, nav component tests, `svelte-check`, and the production build.
 
 - Next task was Facet 6, Queue explorer grouped parent/child presentation.
 
 ### 2026-05-11 Task 6: Queue Explorer Parent/Child Presentation
 
-- Added `src/services/serviceQueuePresentation.ts` with pure helpers for
-  action parent labels/icons and child object-kind labels.
-- `groupQueueChangesByAction` now uses the queue action label helper for parent
-  group labels while preserving stable `queue-action:<action>` ids.
+- Added `src/services/serviceQueuePresentation.ts` with pure helpers for action parent labels/icons and child object-kind labels.
+- `groupQueueChangesByAction` now uses the queue action label helper for parent group labels while preserving stable `queue-action:<action>` ids.
 - `explorerQueue.svelte` normalizes rows after `ViewService.getModel`:
   - queue parent rows get `is-queue-parent`, the action icon, and a count badge;
-  - queue child rows get `is-queue-child`, the simplified object-kind label,
-    no operation icon, no operation badge, and no pending/deleted state;
-  - child rows keep the semantic remove action, and group rows remain
-    non-removable.
-- `viewList.svelte` adds `is-counter-slot` on queue-child action wrappers and
-  `is-inline-cancel` on the child remove button without changing generic
-  `onAction` dispatch.
+  - queue child rows get `is-queue-child`, the simplified object-kind label, no operation icon, no operation badge, and no pending/deleted state;
+  - child rows keep the semantic remove action, and group rows remain non-removable.
+- `viewList.svelte` adds `is-counter-slot` on queue-child action wrappers and `is-inline-cancel` on the child remove button without changing generic `onAction` dispatch.
 - Popup SCSS removes child row decoration and styles inline cancel in the action slot.
 - `styles.css` was refreshed by the production build.
 
@@ -176,13 +159,9 @@ Fresh verification:
 - `pnpm run check`: pass, `svelte-check found 0 errors and 0 warnings`.
 - `pnpm exec vp test run --project unit --config vitest.config.ts test/unit/services/serviceGroups.test.ts test/unit/services/serviceQueuePresentation.test.ts --fileParallelism=false`:
   pass, 6/6.
-- `pnpm run build`: pass; Vite built `styles.css` and `main.js`, then
-  `scripts/sync-test-build.mjs` synced build artifacts.
-- `node .agents/tools/pkm-ai/check-doc-health.mjs`: fail with unrelated
-  residuals in the detachable workspace tabs spec and
-  `.agents/docs/superpowers`.
-- Manual UI note: no live Obsidian smoke was run for the Queue island; the
-  slice is covered by focused unit/component tests, Svelte check, and build.
+- `pnpm run build`: pass; Vite built `styles.css` and `main.js`, then `scripts/sync-test-build.mjs` synced build artifacts.
+- `node .agents/tools/pkm-ai/check-doc-health.mjs`: fail with unrelated residuals in the detachable workspace tabs spec and `.agents/docs/superpowers`.
+- Manual UI note: no live Obsidian smoke was run for the Queue island; the slice is covered by focused unit/component tests, Svelte check, and build.
 - Facet 7 final sweep is recorded in [[04-verification-and-handoff|Verification and handoff]].
 
 ## Expected Final Answer From Executing Agent

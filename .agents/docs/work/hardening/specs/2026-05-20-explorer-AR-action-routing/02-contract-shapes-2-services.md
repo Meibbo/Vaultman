@@ -49,8 +49,7 @@ export interface RowActionBuilder {
 export function createRowAction(ctx: RowActionContext): RowActionBuilder;
 ```
 
-Los views hacen `{...getRowProps(id)}` / `{...getCaretProps(id)}` sobre su markup existente. El builder
-es función pura (sin estado de componente) → testeable en jsdom (T.G Tier-1).
+Los views hacen `{...getRowProps(id)}` / `{...getCaretProps(id)}` sobre su markup existente. El builder es función pura (sin estado de componente) → testeable en jsdom (T.G Tier-1).
 
 ## 4. `serviceKeyboardNav` — state machine topology-aware
 
@@ -105,7 +104,5 @@ export function createKeyboardNav(ctx: KeyboardNavContext): KeyboardNavControlle
 | Ctrl/Cmd+A | `onSelectAll` | igual | igual |
 | type-ahead (a-z…) | match prefijo de `labelOf`, buffer con timeout | igual | igual |
 
-Type-ahead: buffer interno keyed por `explorerId`, reset por timeout (~500ms). Es el gap principal a
-construir (no existe hoy en ningún view). Home/End también es gap a nivel panel (hoy solo en
-ViewNodeList inline).
+Type-ahead: buffer interno keyed por `explorerId`, reset por timeout (~500ms). Es el gap principal a construir (no existe hoy en ningún view). Home/End también es gap a nivel panel (hoy solo en ViewNodeList inline).
 

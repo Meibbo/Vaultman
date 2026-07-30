@@ -15,8 +15,7 @@ tags:
 ## Canonical Rule
 
 Working memory can be rewritten. Source memory must be preserved before rewrite.
-When an agent replaces a long active doc, it must leave an archive trail to the
-raw source or sharded successor.
+When an agent replaces a long active doc, it must leave an archive trail to the raw source or sharded successor.
 
 ## Preservation Levels
 
@@ -33,8 +32,7 @@ If a doc contains old plans, handoffs, or memory, move it under:
 docs/archive/<initiative>/...
 ```
 
-If it is unclear whether the material is public, agent-facing, or historical,
-mark it `needs_dev_selection: true` instead of discarding it.
+If it is unclear whether the material is public, agent-facing, or historical, mark it `needs_dev_selection: true` instead of discarding it.
 
 ## Source Links
 
@@ -48,7 +46,5 @@ Every active summary that replaces a larger source must include at least one of:
 
 ## Recovery
 
-If the developer says "go back to the first approach," the agent should read
-attempt notes or archived raw docs before changing code or docs. It should not
-guess from a compressed summary.
+If the developer says "go back to the first approach," the agent should read attempt notes or archived raw docs before changing code or docs. It should not guess from a compressed summary.
 

@@ -41,9 +41,7 @@ Use the stable hotfix worktree unless the coordinator creates a successor:
 
 Branch: `hotfix/1.0.2-css-scorecard`
 
-Forbidden in this plan: push, tag, retag, merge, publish GitHub Release state,
-copy canary UI, migrate stable to Vite/Vite+, change license, change
-`minAppVersion` by guess, add AI workflow files to stable.
+Forbidden in this plan: push, tag, retag, merge, publish GitHub Release state, copy canary UI, migrate stable to Vite/Vite+, change license, change `minAppVersion` by guess, add AI workflow files to stable.
 
 ## File Ownership
 
@@ -62,24 +60,16 @@ copy canary UI, migrate stable to Vite/Vite+, change license, change
 
 1. Task 01.
 2. Task 02.
-3. Tasks 03, 04, 05, and 06 may run in parallel only if they use isolated
-   worktrees or return patches. In a single worktree, serialize shared
-   `package.json` edits through Task 02/03/04.
+3. Tasks 03, 04, 05, and 06 may run in parallel only if they use isolated worktrees or return patches. In a single worktree, serialize shared `package.json` edits through Task 02/03/04.
 4. Task 07 after package manager scripts are final.
 5. Task 08 last.
 
 ## Completion Rule
 
-Do not create a public `1.0.2` tag from this plan. Passing Task 08 means the
-branch is release-ready for maintainer review, not released.
+Do not create a public `1.0.2` tag from this plan. Passing Task 08 means the branch is release-ready for maintainer review, not released.
 
 ## Plan Self-Review
 
-- Spec coverage: Tasks 02-08 cover pnpm, Node 24, esbuild retention,
-  `svelte-check`, CI-blocking format, CI-blocking stylelint, Scorecard,
-  security, metadata, workflows, and final local/remote gates.
-- Placeholder scan: no `TBD`, `TODO`, "implement later", or "similar to" plan
-  steps remain.
-- Type and command consistency: all package-manager commands use `pnpm` after
-  Task 02; workflows use `pnpm install --frozen-lockfile`; release publishing is
-  explicitly excluded.
+- Spec coverage: Tasks 02-08 cover pnpm, Node 24, esbuild retention, `svelte-check`, CI-blocking format, CI-blocking stylelint, Scorecard, security, metadata, workflows, and final local/remote gates.
+- Placeholder scan: no `TBD`, `TODO`, "implement later", or "similar to" plan steps remain.
+- Type and command consistency: all package-manager commands use `pnpm` after Task 02; workflows use `pnpm install --frozen-lockfile`; release publishing is explicitly excluded.

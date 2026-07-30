@@ -6,10 +6,7 @@ parent: "[[2026-05-18-explorer-sub-system-0-a-native-dom-parity/index]]"
 
 # 07 — C7: Wire `overlayViewMenu` + rename `btnMultiSelection`
 
-`overlayViewMenu` reads viewHost from context, filters view modes by
-`preset.viewModes`, renders `btnNodeElementsVisibility` submenu when
-`multiSelectionAvailable`. Also: systemwide rename
-`btnMultiSelection` → `btnNodeElementsVisibility`.
+`overlayViewMenu` reads viewHost from context, filters view modes by `preset.viewModes`, renders `btnNodeElementsVisibility` submenu when `multiSelectionAvailable`. Also: systemwide rename `btnMultiSelection` → `btnNodeElementsVisibility`.
 
 **Files:**
 - Modify: `src/components/layout/overlays/overlayViewMenu.svelte`
@@ -27,8 +24,7 @@ Run:
 Select-String -Path src,test,.agents/docs -Pattern "btnMultiSelection" -SimpleMatch -Recurse | Out-File btn-rename-baseline.txt
 ```
 
-Verify the list matches what `baseline-log.md` captured in 00. Update if
-new callsites appeared since.
+Verify the list matches what `baseline-log.md` captured in 00. Update if new callsites appeared since.
 
 - [ ] **Step 2: Write failing test for viewModes filter + submenu visibility**
 
@@ -291,8 +287,7 @@ Replace the existing view-mode list with the context-driven version:
 </div>
 ```
 
-If the prior overlayViewMenu had additional UI elements (close button,
-header), preserve them around this block.
+If the prior overlayViewMenu had additional UI elements (close button, header), preserve them around this block.
 
 - [ ] **Step 6: Run focused test**
 
@@ -306,12 +301,8 @@ Expected: PASS — 7 cases green.
 
 Audit every callsite from `btn-rename-baseline.txt` (Step 1). For each:
 
-- **In `src/` and `test/`**: rename identifier in place. If the symbol
-  was a TypeScript field, ensure all references update. Run typecheck
-  after each file to catch missed callers.
-- **In `.agents/docs/`**: rename in place. If a doc explicitly references
-  the old name as historical context, preserve it with a `(renamed from
-  btnMultiSelection in 0-A)` annotation.
+- **In `src/` and `test/`**: rename identifier in place. If the symbol was a TypeScript field, ensure all references update. Run typecheck after each file to catch missed callers.
+- **In `.agents/docs/`**: rename in place. If a doc explicitly references the old name as historical context, preserve it with a `(renamed from btnMultiSelection in 0-A)` annotation.
 
 Run:
 
@@ -319,8 +310,7 @@ Run:
 Select-String -Path src,test,.agents/docs -Pattern "btnMultiSelection" -SimpleMatch -Recurse
 ```
 
-Expected post-rename: zero hits in `src/` and `test/`. Any remaining hits
-in `.agents/docs/` should be only as historical annotations.
+Expected post-rename: zero hits in `src/` and `test/`. Any remaining hits in `.agents/docs/` should be only as historical annotations.
 
 - [ ] **Step 8: Run `pnpm verify` + full lint**
 
@@ -369,12 +359,10 @@ multi-row selection)."
 ## Verification gates
 
 - 7 component tests pass.
-- Zero `btnMultiSelection` references in `src/` and `test/` (only
-  archeological annotations may remain in `.agents/docs/`).
+- Zero `btnMultiSelection` references in `src/` and `test/` (only archeological annotations may remain in `.agents/docs/`).
 - `pnpm verify` baseline preserved.
 - Live plugin-dev smoke shows expected menu visibility per preset.
 
 ## Rollback
 
-`git revert <commit>` reverts overlayViewMenu changes and rename. Service
-side + view consumers remain.
+`git revert <commit>` reverts overlayViewMenu changes and rename. Service side + view consumers remain.

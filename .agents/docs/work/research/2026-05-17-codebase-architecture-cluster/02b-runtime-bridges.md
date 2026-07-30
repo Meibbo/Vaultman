@@ -48,9 +48,7 @@ flowchart LR
   detachedHost --> tabRegistry["tabRegistry.ts"]
 ```
 
-`main.ts` never mounts `frameVaultman.svelte` directly. It registers an
-Obsidian view class. The view class owns Svelte mount/unmount. This keeps
-Obsidian workspace lifecycle separate from Svelte component lifecycle.
+`main.ts` never mounts `frameVaultman.svelte` directly. It registers an Obsidian view class. The view class owns Svelte mount/unmount. This keeps Obsidian workspace lifecycle separate from Svelte component lifecycle.
 
 ## Command Bridge Flow
 
@@ -67,9 +65,7 @@ flowchart TD
   toolbar["Toolbar.svelte via FiltersPage"] --> hooks
 ```
 
-The command bridge is deliberately callback-based. `main.ts` owns command
-registration, but frame/toolbar components populate hooks so commands can
-operate on the currently mounted UI without hard subscriptions.
+The command bridge is deliberately callback-based. `main.ts` owns command registration, but frame/toolbar components populate hooks so commands can operate on the currently mounted UI without hard subscriptions.
 
 ## Settings And Theme Bridge
 
@@ -86,22 +82,14 @@ flowchart LR
   settingsUi --> save
 ```
 
-Settings have three bridge points: static defaults, runtime normalization, and
-Svelte settings UI. Theme state also participates in persistence, so style
-maps should treat theme as runtime state rather than only SCSS.
+Settings have three bridge points: static defaults, runtime normalization, and Svelte settings UI. Theme state also participates in persistence, so style maps should treat theme as runtime state rather than only SCSS.
 
 ## Contracts Bridge
 
-`typeContracts.ts` is the cross-layer vocabulary that keeps providers,
-services, explorers, overlays, and operations from using component-specific
-types directly. It defines:
+`typeContracts.ts` is the cross-layer vocabulary that keeps providers, services, explorers, overlays, and operations from using component-specific types directly. It defines:
 
-- node interfaces for files, tags, props, content, queue changes, active
-  filters, snippets, plugins, templates, and Bases import targets;
-- index interfaces such as `IFilesIndex`, `ITagsIndex`, `IPropsIndex`,
-  `IContentIndex`, `IOperationsIndex`, and `IActiveFiltersIndex`;
-- service interfaces for filters, queue, decorations, routing, overlays, and
-  explorers.
+- node interfaces for files, tags, props, content, queue changes, active filters, snippets, plugins, templates, and Bases import targets;
+- index interfaces such as `IFilesIndex`, `ITagsIndex`, `IPropsIndex`, `IContentIndex`, `IOperationsIndex`, and `IActiveFiltersIndex`;
+- service interfaces for filters, queue, decorations, routing, overlays, and explorers.
 
-Later maps for providers/services should attach to these interfaces first,
-then to concrete implementations.
+Later maps for providers/services should attach to these interfaces first, then to concrete implementations.

@@ -54,8 +54,7 @@ Run:
 pnpm run verify
 ```
 
-Expected: exit 0, including lint, check, format, stylelint, build, and Scorecard
-scan.
+Expected: exit 0, including lint, check, format, stylelint, build, and Scorecard scan.
 
 - [ ] **Step 4: Verify release assets**
 
@@ -68,8 +67,7 @@ Test-Path styles.css
 Get-Item main.js, manifest.json, styles.css | Select-Object Name,Length
 ```
 
-Expected: all `Test-Path` calls return `True`; each asset length is greater
-than 0.
+Expected: all `Test-Path` calls return `True`; each asset length is greater than 0.
 
 - [ ] **Step 5: Verify no AI files in stable candidate**
 
@@ -89,8 +87,7 @@ Run:
 git tag --points-at HEAD
 ```
 
-Expected: no `1.0.2` tag unless the maintainer explicitly approved release
-tagging after this plan.
+Expected: no `1.0.2` tag unless the maintainer explicitly approved release tagging after this plan.
 
 - [ ] **Step 7: Check whitespace and status**
 
@@ -101,8 +98,7 @@ git diff --check
 git status --short --branch
 ```
 
-Expected: `git diff --check` exits 0. Status shows only intentional committed
-or uncommitted release-candidate changes.
+Expected: `git diff --check` exits 0. Status shows only intentional committed or uncommitted release-candidate changes.
 
 - [ ] **Step 8: Recheck GitHub remote gates before release**
 
@@ -114,9 +110,7 @@ gh api repos/Meibbo/Vaultman/code-scanning/alerts --paginate -q '[.[] | select(.
 gh pr list --repo Meibbo/Vaultman --state open --json number,title,headRefName,baseRefName,mergeStateStatus --limit 30
 ```
 
-Expected: Dependabot alerts count is `0`; CodeQL #64 should close only after
-GitHub analyzes the PR/default branch; Scorecard admin/maturity alerts may
-remain and must be listed separately.
+Expected: Dependabot alerts count is `0`; CodeQL #64 should close only after GitHub analyzes the PR/default branch; Scorecard admin/maturity alerts may remain and must be listed separately.
 
 - [ ] **Step 9: Commit verification record if docs are updated**
 

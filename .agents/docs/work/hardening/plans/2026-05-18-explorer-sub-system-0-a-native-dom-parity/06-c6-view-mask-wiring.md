@@ -126,8 +126,7 @@ Run:
 pnpm vitest run test/component/views/ViewNodeCards.NodeElementMask.test.ts
 ```
 
-Expected: FAIL — cards still renders cover/label/badges unconditionally
-or based on local conditions, not mask.
+Expected: FAIL — cards still renders cover/label/badges unconditionally or based on local conditions, not mask.
 
 - [ ] **Step 3: Update `ViewNodeCards.svelte` to consume mask**
 
@@ -149,8 +148,7 @@ const mask = $derived<NodeElementMask>(
 );
 ```
 
-(The fallback default is for tests / standalone renders that don't
-provide context.)
+(The fallback default is for tests / standalone renders that don't provide context.)
 
 In the card render template, gate per element:
 
@@ -186,8 +184,7 @@ In the card render template, gate per element:
 {/if}
 ```
 
-Locate each existing render block and add the appropriate `{#if mask.<kind>}`
-guard. Do NOT remove existing local conditions (e.g., `if (node.detail)`);
+Locate each existing render block and add the appropriate `{#if mask.<kind>}` guard. Do NOT remove existing local conditions (e.g., `if (node.detail)`);
 add the mask guard as an outer wrapper.
 
 - [ ] **Step 4: Run cards test to verify pass**
@@ -202,10 +199,8 @@ Expected: PASS — 4 cases green.
 
 - [ ] **Step 5: Repeat for viewTree.svelte (write test + wire mask + verify)**
 
-Create `test/component/views/viewTree.NodeElementMask.test.ts` with
-analogous tests for tree row icon, label, detail, badges gating.
-viewTree does NOT render media (no media slot on tree rows in any
-preset). Tree should still respect badge sub-kinds.
+Create `test/component/views/viewTree.NodeElementMask.test.ts` with analogous tests for tree row icon, label, detail, badges gating.
+viewTree does NOT render media (no media slot on tree rows in any preset). Tree should still respect badge sub-kinds.
 
 Update `viewTree.svelte` with the same mask import + gating pattern.
 
@@ -222,9 +217,7 @@ Run focused test, expect PASS.
 
 - [ ] **Step 7: Repeat for ViewNodeTable.svelte**
 
-ViewNodeTable has icon/label/detail/badges/actions but no media (rendered
-through cells). Mask gates the icon column, label cell content, detail
-cells, badge column, and action column.
+ViewNodeTable has icon/label/detail/badges/actions but no media (rendered through cells). Mask gates the icon column, label cell content, detail cells, badge column, and action column.
 
 Update `ViewNodeTable.svelte` with mask import + gating.
 
@@ -276,17 +269,12 @@ mask used when context absent (standalone renders, tests)."
 
 - 5 focused tests pass (one per view).
 - `pnpm verify` baseline preserved + new tests counted.
-- Visual smoke: each view shows full element set under vaultman preset
-  defaults.
+- Visual smoke: each view shows full element set under vaultman preset defaults.
 
 ## Risk
 
-- Default fallback mask (used when context is absent) may mask defects
-  in C7 wiring. The C7 commit verifies overlayViewMenu actually mutates
-  the mask via viewHost service. C7 tests fail if mask doesn't drive
-  re-render.
+- Default fallback mask (used when context is absent) may mask defects in C7 wiring. The C7 commit verifies overlayViewMenu actually mutates the mask via viewHost service. C7 tests fail if mask doesn't drive re-render.
 
 ## Rollback
 
-`git revert <commit>` reverts all 5 view edits. Mask is unused; the
-service + context keys remain available.
+`git revert <commit>` reverts all 5 view edits. Mask is unused; the service + context keys remain available.

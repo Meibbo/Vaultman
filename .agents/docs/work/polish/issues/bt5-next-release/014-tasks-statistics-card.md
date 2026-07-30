@@ -23,9 +23,7 @@ tags: [agent/issue, initiative/polish, release/bt5]
 
 ## What to build
 
-Añadir a Statistics una card Remaining tasks que consuma el cache reparado y respete
-los tres scopes existentes de la página. No volver a leer archivos ni mantener un contador
-paralelo; la card es una proyección agregada del servicio compartido.
+Añadir a Statistics una card Remaining tasks que consuma el cache reparado y respete los tres scopes existentes de la página. No volver a leer archivos ni mantener un contador paralelo; la card es una proyección agregada del servicio compartido.
 
 ## Acceptance criteria
 
@@ -41,10 +39,7 @@ paralelo; la card es una proyección agregada del servicio compartido.
 
 ## Outcome 2026-07-20 (tarde)
 
-**Commit `8efd427e`.** Gate verde (final 880 tests), scorecard 17/17. Test focal
-`test/unit/statisticsTasksCard.test.ts`. `computeSnapshot` suma el conteo de tareas
-cacheado por archivo a un total `tasks` del snapshot; la card lo proyecta, respeta
-los tres scopes sin rescan, hidrata progresivamente y se invalida por el pipeline.
+**Commit `8efd427e`.** Gate verde (final 880 tests), scorecard 17/17. Test focal `test/unit/statisticsTasksCard.test.ts`. `computeSnapshot` suma el conteo de tareas cacheado por archivo a un total `tasks` del snapshot; la card lo proyecta, respeta los tres scopes sin rescan, hidrata progresivamente y se invalida por el pipeline.
 Snapshots viejos default-ean `tasks` a 0. Detalle: [[docs/work/polish/plans/2026-07-19-bt5-next-10/08-bt5-014-021-022-023-024|shard 08]].
 
 Pendiente: smoke de runtime.

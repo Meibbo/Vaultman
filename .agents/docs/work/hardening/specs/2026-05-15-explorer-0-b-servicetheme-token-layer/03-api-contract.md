@@ -14,9 +14,7 @@ tags:
 
 ## ThemePreset type — exhaustive contract
 
-Every dimension a preset may eventually vary across is declared here, even
-the ones 0-B does not wire. Future sub-systems extend consumers, not the
-shape.
+Every dimension a preset may eventually vary across is declared here, even the ones 0-B does not wire. Future sub-systems extend consumers, not the shape.
 
 ```typescript
 // src/types/typeThemePreset.ts
@@ -204,24 +202,13 @@ export interface ThemePreset {
 
 ## Invariants
 
-1. `source === 'built-in'` presets are `as const` constants in code. They
-   are never serialized, persisted, or edited. Runtime register API
-   rejects attempts.
-2. `source === 'custom'` presets are persisted in
-   `data.json` under `elasticUi.customPresets[]`. They are fully editable
-   field-by-field by the user (manually today; via Theme Builder UI
-   later).
-3. `nodeElements.media === false` in every built-in preset (media
-   defaults off per view platform architecture handoff).
-4. `viewModes` never includes `'markmap'` in built-in presets (Map
-   deferred). Customs may include it once a future Map iteration ships
-   and re-enables it.
-5. `lockNodeElementVisibility === true` in `PRESET_NATIVE` (rigid
-   disguise). `false` in `PRESET_VAULTMAN`.
-6. Optional fields (`unload`, `colors`, `layout`, `workspaceId`,
-   `extends`) are undefined in built-ins.
-7. Built-in preset ids (`'native'`, `'vaultman'`) are reserved. Custom
-   presets MUST NOT use these ids; `registerCustomPreset` rejects.
+1. `source === 'built-in'` presets are `as const` constants in code. They are never serialized, persisted, or edited. Runtime register API rejects attempts.
+2. `source === 'custom'` presets are persisted in `data.json` under `elasticUi.customPresets[]`. They are fully editable field-by-field by the user (manually today; via Theme Builder UI later).
+3. `nodeElements.media === false` in every built-in preset (media defaults off per view platform architecture handoff).
+4. `viewModes` never includes `'markmap'` in built-in presets (Map deferred). Customs may include it once a future Map iteration ships and re-enables it.
+5. `lockNodeElementVisibility === true` in `PRESET_NATIVE` (rigid disguise). `false` in `PRESET_VAULTMAN`.
+6. Optional fields (`unload`, `colors`, `layout`, `workspaceId`, `extends`) are undefined in built-ins.
+7. Built-in preset ids (`'native'`, `'vaultman'`) are reserved. Custom presets MUST NOT use these ids; `registerCustomPreset` rejects.
 
 ## Type guards and normalizers
 
@@ -497,12 +484,8 @@ export class ThemeService {
 
 ## Public surface size
 
-- Reads: 6 getters (`activePreset`, `availablePresets`, `useNativeDom`,
-  `faintActive`, `useUtilities`, `rootClasses`).
-- Writes: 5 methods (`setPreset`, `registerCustomPreset`,
-  `unregisterCustomPreset`, `updateCustomPreset`, `hydrate`) plus
-  `dispose()` for unload cleanup.
+- Reads: 6 getters (`activePreset`, `availablePresets`, `useNativeDom`, `faintActive`, `useUtilities`, `rootClasses`).
+- Writes: 5 methods (`setPreset`, `registerCustomPreset`, `unregisterCustomPreset`, `updateCustomPreset`, `hydrate`) plus `dispose()` for unload cleanup.
 - Mutable runes state: 8 fields (4 new for 0-B, 4 preserved).
 
-This is the entire public API. Internals — including the runtime style
-element and CSS sanitization — are private fields/methods.
+This is the entire public API. Internals — including the runtime style element and CSS sanitization — are private fields/methods.

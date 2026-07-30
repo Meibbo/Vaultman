@@ -6,10 +6,7 @@ parent: "[[2026-05-18-explorer-sub-system-0-a-native-dom-parity/index]]"
 
 # 01 — C1: Extend `ExplorerViewFeatureContract`
 
-Add `NativeStateMod`, `NativeClassVocabulary`, `NativeDomEmission`,
-`UNIVERSAL_DND_VOCAB`, `ViewHostMountContext`, `NoteContextProvider`,
-`InEditorMountContract` types. Update per-view CONTRACTS literals with
-Bases vocab. No consumers wired yet.
+Add `NativeStateMod`, `NativeClassVocabulary`, `NativeDomEmission`, `UNIVERSAL_DND_VOCAB`, `ViewHostMountContext`, `NoteContextProvider`, `InEditorMountContract` types. Update per-view CONTRACTS literals with Bases vocab. No consumers wired yet.
 
 **Files:**
 - Modify: `src/services/serviceExplorerViewContract.ts` (add types, extend CONTRACTS)
@@ -118,8 +115,7 @@ Run:
 pnpm vitest run test/unit/services/serviceExplorerViewContract.test.ts
 ```
 
-Expected: FAIL with type errors (missing `nativeDomEmission` on contract,
-missing `NativeStateMod`, missing import of `UNIVERSAL_DND_VOCAB`).
+Expected: FAIL with type errors (missing `nativeDomEmission` on contract, missing `NativeStateMod`, missing import of `UNIVERSAL_DND_VOCAB`).
 
 - [ ] **Step 3: Create `src/types/typeViewHost.ts`**
 
@@ -187,8 +183,7 @@ export interface InEditorMountContract {
 
 - [ ] **Step 4: Extend `src/services/serviceExplorerViewContract.ts` with new types**
 
-Append after the existing `ExplorerViewFeatureFlags` and `ExplorerViewScaleContract`
-interfaces, before the `ExplorerViewFeatureContract` interface:
+Append after the existing `ExplorerViewFeatureFlags` and `ExplorerViewScaleContract` interfaces, before the `ExplorerViewFeatureContract` interface:
 
 ```typescript
 export type NativeStateMod =
@@ -222,8 +217,7 @@ export interface NativeDomEmission {
 }
 ```
 
-Then update the `ExplorerViewFeatureContract` interface to include
-`nativeDomEmission`:
+Then update the `ExplorerViewFeatureContract` interface to include `nativeDomEmission`:
 
 ```typescript
 export interface ExplorerViewFeatureContract {
@@ -237,8 +231,7 @@ export interface ExplorerViewFeatureContract {
 
 - [ ] **Step 5: Update CONTRACTS literals with Bases vocab**
 
-Replace the existing `const CONTRACTS: Record<...>` block with the
-literals from spec shard 02. Full body:
+Replace the existing `const CONTRACTS: Record<...>` block with the literals from spec shard 02. Full body:
 
 ```typescript
 const NULL_VOCAB: NativeClassVocabulary = {
@@ -391,9 +384,7 @@ Run:
 pnpm verify
 ```
 
-Expected: PASS — unit + component + lint all green. Type compile passes
-because the new fields are additive; no existing consumer requires
-`nativeDomEmission` yet (consumers wire in C6/C8).
+Expected: PASS — unit + component + lint all green. Type compile passes because the new fields are additive; no existing consumer requires `nativeDomEmission` yet (consumers wire in C6/C8).
 
 - [ ] **Step 8: Commit**
 
@@ -414,10 +405,8 @@ No consumers wired yet; this commit is type-only foundation."
 - New unit tests pass (9 cases).
 - `pnpm verify` baseline preserved.
 - Bundle size delta negligible (types only + literals).
-- Git diff scoped to: `src/services/serviceExplorerViewContract.ts`,
-  `src/types/typeViewHost.ts`, `test/unit/services/serviceExplorerViewContract.test.ts`.
+- Git diff scoped to: `src/services/serviceExplorerViewContract.ts`, `src/types/typeViewHost.ts`, `test/unit/services/serviceExplorerViewContract.test.ts`.
 
 ## Rollback
 
-`git revert <commit>` cleanly removes the additions. No consumers depend
-on them yet.
+`git revert <commit>` cleanly removes the additions. No consumers depend on them yet.

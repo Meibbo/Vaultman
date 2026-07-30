@@ -22,11 +22,7 @@ tags: [agent/issue, triage/in-progress, initiative/polish, release/1.2.0, frame,
 
 ## What to build
 
-When Hide explorer scrollbar is enabled, hide only the visual bar while keeping
-the content gutter that prevents explorer nodes from running underneath the
-Floating Index. Do not activate Reserve index lane or move the Index between
-content and scrollbar. Reserve lane remains an independent option and is hidden or
-inapplicable while Hide scrollbar supplies the required single footprint.
+When Hide explorer scrollbar is enabled, hide only the visual bar while keeping the content gutter that prevents explorer nodes from running underneath the Floating Index. Do not activate Reserve index lane or move the Index between content and scrollbar. Reserve lane remains an independent option and is hidden or inapplicable while Hide scrollbar supplies the required single footprint.
 
 ## Acceptance criteria
 
@@ -45,20 +41,13 @@ None — can start immediately.
 ## Implementation checkpoint — 2026-07-22
 
 - Product commit: `3fb23d17 fix(layout): preserve one hidden-scrollbar gutter`.
-- Root cause: `tocReservedLane || tocHideExplorerScrollbar` drove one shared lane class, so
-  Hide both padded content and applied Reserve's 14 px rail displacement.
-- New `resolveFloatingTocLaneLayout` independently projects scrollbar visibility, content
-  gutter, explicit-lane state and rail offset. Hide takes precedence over stale saved Reserve
-  state but the Settings option remains independently available when Hide is off.
-- Footprints derive from actual rail width + edge: desktop 20 px plain / 22 px pill; mobile
-  28 px plain / 30 px pill. The 2 px style difference stays intentionally small.
-- One 2/4 px edge variable now keeps right, left, top and bottom positioning coherent; it also
-  prevents the former mobile rule from overriding `pos-left` or explicit right offset.
+- Root cause: `tocReservedLane || tocHideExplorerScrollbar` drove one shared lane class, so Hide both padded content and applied Reserve's 14 px rail displacement.
+- New `resolveFloatingTocLaneLayout` independently projects scrollbar visibility, content gutter, explicit-lane state and rail offset. Hide takes precedence over stale saved Reserve state but the Settings option remains independently available when Hide is off.
+- Footprints derive from actual rail width + edge: desktop 20 px plain / 22 px pill; mobile 28 px plain / 30 px pill. The 2 px style difference stays intentionally small.
+- One 2/4 px edge variable now keeps right, left, top and bottom positioning coherent; it also prevents the former mobile rule from overriding `pos-left` or explicit right offset.
 - Verification: matrix 7/7, related 49/49, Stylelint, Svelte format and diff check green;
-  official Svelte autofixer reports zero issues. `svelte-check` contains only the five known
-  toolbar-overflow diagnostics from the preserved foreign worktree edit.
-- Remaining gate: record live DOM geometry for hidden/classic and overlay scrollbars at both
-  sides, plain/pill and min/wide frame. Issue stays `in-progress` until that HITL evidence.
+  official Svelte autofixer reports zero issues. `svelte-check` contains only the five known toolbar-overflow diagnostics from the preserved foreign worktree edit.
+- Remaining gate: record live DOM geometry for hidden/classic and overlay scrollbars at both sides, plain/pill and min/wide frame. Issue stays `in-progress` until that HITL evidence.
 
 ## Outcome (2026-07-23) — deferred
 

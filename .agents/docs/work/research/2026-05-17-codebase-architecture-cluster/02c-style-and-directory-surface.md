@@ -17,8 +17,7 @@ updated_by: codex
 
 ## `src/main.scss`
 
-`main.scss` is the style entry imported by `pluginEntry.ts`. It uses an ITCSS-
-like order:
+`main.scss` is the style entry imported by `pluginEntry.ts`. It uses an ITCSS- like order:
 
 | Layer | Imports |
 | --- | --- |
@@ -44,8 +43,7 @@ flowchart LR
   scss --> popups["islands/popups"]
 ```
 
-The style spine is broad. Later UI maps should attach component style concerns
-back to `main.scss` imports rather than treating SCSS files as unrelated.
+The style spine is broad. Later UI maps should attach component style concerns back to `main.scss` imports rather than treating SCSS files as unrelated.
 
 ## First-Level Directory Surface
 
@@ -81,19 +79,14 @@ flowchart TD
   components --> styles["main.scss -> styles/*"]
 ```
 
-The dominant pattern is a central plugin object that constructs services and
-indexes, then passes itself into Svelte frame/settings surfaces. Components can
-reach services through the plugin object or through props/hooks registered by
-the frame.
+The dominant pattern is a central plugin object that constructs services and indexes, then passes itself into Svelte frame/settings surfaces. Components can reach services through the plugin object or through props/hooks registered by the frame.
 
 ## Next Mapping Recommendation
 
 Continue with `src/components/` as Phase 3 only after pinning the frame trunk:
 
-1. Map `components/frame/` first: `frameVaultman.svelte`, frame controllers,
-   overlays, pages, search state, active filters, moves.
+1. Map `components/frame/` first: `frameVaultman.svelte`, frame controllers, overlays, pages, search state, active filters, moves.
 2. Then map `components/pages/` and `components/layout/`.
 3. Then map `components/containers/` and `components/views/`.
 
-This order matches runtime flow: plugin view -> frame shell -> pages/layout ->
-containers/views.
+This order matches runtime flow: plugin view -> frame shell -> pages/layout -> containers/views.

@@ -16,28 +16,17 @@ tags:
 
 # API Patterns And Repeated Membership
 
-Continuation from the dev's 2026-05-28 follow-up. This shard captures external provider/engine patterns,
-fetched storage, external actions, node-notes, and the first repeated-membership model. Later continuation
-shards carry the 2026-05-29 identity cases and `panelData` / primitive-adapter discussion.
+Continuation from the dev's 2026-05-28 follow-up. This shard captures external provider/engine patterns, fetched storage, external actions, node-notes, and the first repeated-membership model. Later continuation shards carry the 2026-05-29 identity cases and `panelData` / primitive-adapter discussion.
 
 ## Recommended Pattern Stack
 
-- **Ports and adapters / hexagonal architecture**: Vaultman core exposes ports (`ProviderPort`,
-  `IndexPort`, `EngineRendererPort`, `ActionPort`, `StoragePolicyPort`). External plugins adapt their
-  APIs into those ports. This preserves ADR 0002/0008 and prevents external code from reaching into
-  core internals.
-- **Registry + capability descriptors**: providers, indexes, actions, renderers, primitives, and Scene
-  templates register metadata: ids, capabilities, auth requirements, storage policy, mobile support,
-  offline behavior, and unload/revert hooks.
-- **Strategy pattern**: engines/renderers, grouping policies, label resolvers, search backends, and
-  action handlers are interchangeable strategies selected by config/preset.
-- **Command pattern**: `ActionNode` is the command descriptor; execution becomes `OperationNode` when it
-  mutates local vault state or external service state.
-- **Repository/cache-aside**: external fetched data is read through provider repositories; regenerated
-  indexes/caches live outside synced settings unless explicitly materialized into user-owned notes/files.
+- **Ports and adapters / hexagonal architecture**: Vaultman core exposes ports (`ProviderPort`, `IndexPort`, `EngineRendererPort`, `ActionPort`, `StoragePolicyPort`). External plugins adapt their APIs into those ports. This preserves ADR 0002/0008 and prevents external code from reaching into core internals.
+- **Registry + capability descriptors**: providers, indexes, actions, renderers, primitives, and Scene templates register metadata: ids, capabilities, auth requirements, storage policy, mobile support, offline behavior, and unload/revert hooks.
+- **Strategy pattern**: engines/renderers, grouping policies, label resolvers, search backends, and action handlers are interchangeable strategies selected by config/preset.
+- **Command pattern**: `ActionNode` is the command descriptor; execution becomes `OperationNode` when it mutates local vault state or external service state.
+- **Repository/cache-aside**: external fetched data is read through provider repositories; regenerated indexes/caches live outside synced settings unless explicitly materialized into user-owned notes/files.
 - **Declarative Scene graph**: pre-mounted Scenes are data: panels + primitives + bars + placement policy.
-  External plugins can propose templates, but Vaultman resolves them through capability profiles and
-  presets.
+  External plugins can propose templates, but Vaultman resolves them through capability profiles and presets.
 
 ## External Data Storage Model
 
@@ -53,8 +42,7 @@ Remote provider data should split by durability and privacy:
 | Indexes/search vectors | provider search index, relationship graph | IndexedDB by default | regenerable; maybe export/import later |
 | Scene/provider presets | grouping/view-config for a provider Scene | `.vmscene` / data.json depending scope | follows Storage ADR 0010 once locked |
 
-Remote providers need explicit capability declarations: auth scopes, rate limits, offline behavior,
-cache invalidation, side-effect actions, and privacy mode.
+Remote providers need explicit capability declarations: auth scopes, rate limits, offline behavior, cache invalidation, side-effect actions, and privacy mode.
 
 ## External Actions And Node-Notes
 
@@ -64,10 +52,7 @@ An external provider can offer special actions if they register as `ActionNode`s
 - remote action: like video, add to playlist, mark watched, save track, unfollow, etc.
 - hybrid action: create note + attach remote URL + mark remote item saved.
 
-Remote actions should still flow through the mutation pipeline as `RemoteOperationNode` or an
-OperationNode variant: preview when possible, execute with auth scope, track success/failure/retry,
-and expose offline/undo limitations honestly. Some remote APIs cannot undo; the Operation preview must
-state that.
+Remote actions should still flow through the mutation pipeline as `RemoteOperationNode` or an OperationNode variant: preview when possible, execute with auth scope, track success/failure/retry, and expose offline/undo limitations honestly. Some remote APIs cannot undo; the Operation preview must state that.
 
 External providers can also propose a Scene template:
 
@@ -89,11 +74,9 @@ Need a distinction:
 
 - **Node identity**: the actual entity (`SnippetNode:abc`, `VideoNode:yt123`, `FileNode:path.md`).
 - **Node occurrence / placement**: an entity appearing under a specific parent/container/context.
-- **Membership**: why the occurrence exists (`snippet belongs to a user-named manual
-  ContainerNode`, `song is in playlist X`, `file matches FilterGroup Y`).
+- **Membership**: why the occurrence exists (`snippet belongs to a user-named manual ContainerNode`, `song is in playlist X`, `file matches FilterGroup Y`).
 
-Example: user-named manual ContainerNodes for snippets. The user may call them anything; `pack` is not
-a canonical kind.
+Example: user-named manual ContainerNodes for snippets. The user may call them anything; `pack` is not a canonical kind.
 
 ```text
 User-named ContainerNode A
@@ -103,8 +86,7 @@ User-named ContainerNode B
   occurrence -> SnippetNode:callout-red
 ```
 
-The snippet is one identity with two occurrences. Selection, DnD, delete, rename, and action semantics
-must choose whether they target the identity or the membership:
+The snippet is one identity with two occurrences. Selection, DnD, delete, rename, and action semantics must choose whether they target the identity or the membership:
 
 - remove from the manual ContainerNode = delete membership only.
 - delete snippet = delete identity and all occurrences.

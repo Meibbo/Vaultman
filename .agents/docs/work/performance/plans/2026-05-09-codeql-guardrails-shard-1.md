@@ -36,36 +36,18 @@ Continua desde [[docs/work/performance/plans/2026-05-09-codeql-guardrails|CodeQL
 
 ## Verification
 
-- `& "C:\Users\vic_A\codeql-home\codeql\codeql.exe" query compile --additional-packs codeql\queries\javascript codeql\queries\javascript\vaultman\VirtualizerMissingItemKey.ql`
-  passed.
-- `& "C:\Users\vic_A\codeql-home\codeql\codeql.exe" test run --additional-packs codeql\queries\javascript codeql\tests\javascript\vaultman\virtualizer-missing-item-key --threads=0`
-  passed with 1 test.
-- `& "C:\Users\vic_A\codeql-home\codeql\codeql.exe" test run --additional-packs codeql\queries\javascript codeql\tests\javascript\vaultman\trailing-debounce-explorer-refresh --threads=0`
-  passed with 1 test.
-- `& "C:\Users\vic_A\codeql-home\codeql\codeql.exe" test run --additional-packs codeql\queries\javascript codeql\tests\javascript\vaultman\unbounded-vault-read-promise-all --threads=0`
-  passed with 1 test.
-- `& "C:\Users\vic_A\codeql-home\codeql\codeql.exe" query compile --additional-packs codeql\queries\javascript codeql\queries\javascript\vaultman\UnsafeDynamicCodePathHtml.ql`
-  passed.
-- `& "C:\Users\vic_A\codeql-home\codeql\codeql.exe" test run --additional-packs codeql\queries\javascript codeql\tests\javascript\vaultman\unsafe-dynamic-code-path-html --threads=0`
-  passed with 1 test.
-- `& "C:\Users\vic_A\codeql-home\codeql\codeql.exe" test run --additional-packs codeql\queries\javascript codeql\tests --threads=0`
-  passed with 4 tests.
+- `& "C:\Users\vic_A\codeql-home\codeql\codeql.exe" query compile --additional-packs codeql\queries\javascript codeql\queries\javascript\vaultman\VirtualizerMissingItemKey.ql` passed.
+- `& "C:\Users\vic_A\codeql-home\codeql\codeql.exe" test run --additional-packs codeql\queries\javascript codeql\tests\javascript\vaultman\virtualizer-missing-item-key --threads=0` passed with 1 test.
+- `& "C:\Users\vic_A\codeql-home\codeql\codeql.exe" test run --additional-packs codeql\queries\javascript codeql\tests\javascript\vaultman\trailing-debounce-explorer-refresh --threads=0` passed with 1 test.
+- `& "C:\Users\vic_A\codeql-home\codeql\codeql.exe" test run --additional-packs codeql\queries\javascript codeql\tests\javascript\vaultman\unbounded-vault-read-promise-all --threads=0` passed with 1 test.
+- `& "C:\Users\vic_A\codeql-home\codeql\codeql.exe" query compile --additional-packs codeql\queries\javascript codeql\queries\javascript\vaultman\UnsafeDynamicCodePathHtml.ql` passed.
+- `& "C:\Users\vic_A\codeql-home\codeql\codeql.exe" test run --additional-packs codeql\queries\javascript codeql\tests\javascript\vaultman\unsafe-dynamic-code-path-html --threads=0` passed with 1 test.
+- `& "C:\Users\vic_A\codeql-home\codeql\codeql.exe" test run --additional-packs codeql\queries\javascript codeql\tests --threads=0` passed with 4 tests.
 
-CodeQL on Windows repeatedly reported it could not clean up the generated
-`.testproj` directories after successful test runs. The generated
-`virtualizer-missing-item-key.testproj` and
-`trailing-debounce-explorer-refresh.testproj` and
-`unbounded-vault-read-promise-all.testproj` directories were removed manually
-after verifying their resolved paths stayed inside their query test fixture
-directories. The unsafe dynamic code/path/HTML test run also left a generated
-`.testproj` once; it was removed with the same path check after terminating
-leftover CodeQL/Java worker processes.
+CodeQL on Windows repeatedly reported it could not clean up the generated `.testproj` directories after successful test runs. The generated `virtualizer-missing-item-key.testproj` and `trailing-debounce-explorer-refresh.testproj` and `unbounded-vault-read-promise-all.testproj` directories were removed manually after verifying their resolved paths stayed inside their query test fixture directories. The unsafe dynamic code/path/HTML test run also left a generated `.testproj` once; it was removed with the same path check after terminating leftover CodeQL/Java worker processes.
 
 ## Remaining Performance Lane
 
 Recommended next slice:
 
-- Static guardrails are now in place for the researched performance/security
-  patterns. The runtime revision-gated explorer model caches slice was
-  implemented separately in
-  [[docs/work/performance/plans/2026-05-09-revision-gated-explorer-model-caches|Revision-gated explorer model caches]].
+- Static guardrails are now in place for the researched performance/security patterns. The runtime revision-gated explorer model caches slice was implemented separately in [[docs/work/performance/plans/2026-05-09-revision-gated-explorer-model-caches|Revision-gated explorer model caches]].

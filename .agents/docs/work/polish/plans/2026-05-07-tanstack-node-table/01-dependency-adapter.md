@@ -112,8 +112,7 @@ Run:
 pnpm exec vp test run --project unit --config vitest.config.ts test/unit/services/serviceViewTableAdapter.test.ts
 ```
 
-Expected: fail because `@tanstack/table-core` or
-`src/services/serviceViewTableAdapter.ts` is missing.
+Expected: fail because `@tanstack/table-core` or `src/services/serviceViewTableAdapter.ts` is missing.
 
 - [ ] **Step 3: Install TanStack Table Core**
 
@@ -123,5 +122,4 @@ Run:
 pnpm add -D @tanstack/table-core@8.21.3
 ```
 
-Expected: `package.json` and `pnpm-lock.yaml` change, and npm installs version
-`8.21.3`.
+Expected: `package.json` and `pnpm-lock.yaml` change, and npm installs version `8.21.3`.

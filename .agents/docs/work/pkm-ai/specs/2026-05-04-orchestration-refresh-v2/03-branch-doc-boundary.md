@@ -18,8 +18,7 @@ tags:
 - `hardening`: current AI-docs working branch during hardening/refactor/polish.
 - `dev`: later long-lived AI-docs branch.
 
-AI files include `AGENTS.md`, `CLAUDE.md`, ``, `.claude/`, caches, and
-agent-only generated docs.
+AI files include `AGENTS.md`, `CLAUDE.md`, ``, `.claude/`, caches, and agent-only generated docs.
 
 ## Docs Boundary
 
@@ -31,12 +30,9 @@ agent-only generated docs.
 ## Merge Implication
 
 Do not merge an AI-docs branch directly into `main` if it would carry AI files.
-Use a release path that explicitly excludes `.agents`, root bootloaders, and
-other AI-only files.
+Use a release path that explicitly excludes `.agents`, root bootloaders, and other AI-only files.
 
 ## Skill Tracking Scope
 
-For now, track only project skills named `vm-*`. Other local skills can remain
-available in the workspace but should not be made part of the repo unless a
-later health pass classifies and approves them.
+For now, track only project skills named `vm-*`. Other local skills can remain available in the workspace but should not be made part of the repo unless a later health pass classifies and approves them.
 

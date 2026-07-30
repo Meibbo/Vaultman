@@ -12,8 +12,7 @@ tags:
 
 # Research Sources
 
-These sources informed the design. During implementation, move durable notes to
-`knowledge/` with `source_url`, `verified_at`, and `expires_at`.
+These sources informed the design. During implementation, move durable notes to `knowledge/` with `source_url`, `verified_at`, and `expires_at`.
 
 ## Context And Agent Manifests
 

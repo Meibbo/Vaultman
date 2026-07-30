@@ -1,8 +1,6 @@
 # Core Search results research
 
-Date: 2026-05-09
-Mode: research
-Scope: determine whether Vaultman can reuse Obsidian core Search results or engine without visibly driving the Search pane.
+Date: 2026-05-09 Mode: research Scope: determine whether Vaultman can reuse Obsidian core Search results or engine without visibly driving the Search pane.
 
 ## User goal
 

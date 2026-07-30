@@ -24,63 +24,11 @@ source:
 
 ## Unit Service Files
 
-`serviceViews`, `serviceQueue`, `serviceFilter`, `serviceNativeSurfaceBinding`,
-`serviceThemeRunes`, `serviceCommandsRegistration`, `serviceBasesInterop`,
-`serviceViewTableAdapter`, `serviceExplorerRowInput`, `serviceFnR`,
-`serviceSelection`, `serviceDnd`, `serviceActiveFiltersIndex`,
-`serviceContentIndex`, `serviceExplorerMediaCache`, `serviceDndSvelteAdapter`,
-`serviceFnRTemplate`, `serviceOverlayProjection`, `serviceOperationsIndex`,
-`serviceAPI`, `serviceExplorerLayersBatch`, `serviceMouse`,
-`serviceExplorerMediaDescriptor`, `serviceQueuePresentation`,
-`serviceLeafDetach`, `serviceNodeBinding`, `serviceExplorerScrollGeometry`,
-`serviceScroll`, `serviceDndMoveBlock`, `serviceNodeCardLayout`,
-`serviceManualDnd`, `serviceQueueDeletePurge`, `serviceDiff`,
-`serviceFnRIsland`, `serviceOpsLog`, `serviceNodeFieldVisibility`,
-`serviceExplorerDataPlane`, `badgeRegistry`, `serviceExplorer`,
-`serviceLayoutDetach`, `serviceGroups`, `serviceFnRTokenAllowlist`,
-`serviceNativeClickIntercept`, `serviceDndAliasAware`, `serviceQueueChains`,
-`serviceQueueRace`, `serviceActiveFilterPresentation`, `serviceFnRDateParser`,
-`serviceNodeRowMeasure`, `serviceNodeRowStyle`, `serviceOperationScope`,
-`perfMeter`, `serviceCMenu`, `serviceDecorate`, `serviceExplorerProjection`,
-`serviceOverlayState`, `serviceFnRPropSet`, `servicePluginsIndex`,
-`serviceVfsChain`, `serviceNodeCardStyle`, `serviceTextMeasurePretext`,
-`createNodeIndex`, `serviceTextMeasure`, `serviceMessage`,
-`serviceDiffSnapshot`, `serviceQueueFragility`, `serviceExplorerLayers`,
-`serviceFileQueue`, `serviceTagQueue`, `servicePortalResolver`,
-`serviceLayoutElastic`, `serviceFoulDetection`, `serviceSnippetsIndex`,
-`serviceTagsIndex`, `serviceLayout`, `serviceExplorerViewContract`,
-`serviceIcons`, `frameOverlaysSearchIsland`, `svarRemovalContract`,
-`serviceAdoption`, `serviceViewSize`, `serviceNavigation`, `serviceSorting`,
-`serviceAliasTokens`, `serviceFilesIndex`, `serviceAddonsIsland`,
-`serviceViewsZombie`, `serviceCache`, `servicePropsIndex`.
+`serviceViews`, `serviceQueue`, `serviceFilter`, `serviceNativeSurfaceBinding`, `serviceThemeRunes`, `serviceCommandsRegistration`, `serviceBasesInterop`, `serviceViewTableAdapter`, `serviceExplorerRowInput`, `serviceFnR`, `serviceSelection`, `serviceDnd`, `serviceActiveFiltersIndex`, `serviceContentIndex`, `serviceExplorerMediaCache`, `serviceDndSvelteAdapter`, `serviceFnRTemplate`, `serviceOverlayProjection`, `serviceOperationsIndex`, `serviceAPI`, `serviceExplorerLayersBatch`, `serviceMouse`, `serviceExplorerMediaDescriptor`, `serviceQueuePresentation`, `serviceLeafDetach`, `serviceNodeBinding`, `serviceExplorerScrollGeometry`, `serviceScroll`, `serviceDndMoveBlock`, `serviceNodeCardLayout`, `serviceManualDnd`, `serviceQueueDeletePurge`, `serviceDiff`, `serviceFnRIsland`, `serviceOpsLog`, `serviceNodeFieldVisibility`, `serviceExplorerDataPlane`, `badgeRegistry`, `serviceExplorer`, `serviceLayoutDetach`, `serviceGroups`, `serviceFnRTokenAllowlist`, `serviceNativeClickIntercept`, `serviceDndAliasAware`, `serviceQueueChains`, `serviceQueueRace`, `serviceActiveFilterPresentation`, `serviceFnRDateParser`, `serviceNodeRowMeasure`, `serviceNodeRowStyle`, `serviceOperationScope`, `perfMeter`, `serviceCMenu`, `serviceDecorate`, `serviceExplorerProjection`, `serviceOverlayState`, `serviceFnRPropSet`, `servicePluginsIndex`, `serviceVfsChain`, `serviceNodeCardStyle`, `serviceTextMeasurePretext`, `createNodeIndex`, `serviceTextMeasure`, `serviceMessage`, `serviceDiffSnapshot`, `serviceQueueFragility`, `serviceExplorerLayers`, `serviceFileQueue`, `serviceTagQueue`, `servicePortalResolver`, `serviceLayoutElastic`, `serviceFoulDetection`, `serviceSnippetsIndex`, `serviceTagsIndex`, `serviceLayout`, `serviceExplorerViewContract`, `serviceIcons`, `frameOverlaysSearchIsland`, `svarRemovalContract`, `serviceAdoption`, `serviceViewSize`, `serviceNavigation`, `serviceSorting`, `serviceAliasTokens`, `serviceFilesIndex`, `serviceAddonsIsland`, `serviceViewsZombie`, `serviceCache`, `servicePropsIndex`.
 
 ## Component Files
 
-`ViewNodeList`, `addonsMarkdownPane`, `cmenuCreateBindingNote`,
-`cmenuSetAction`, `dashboard3Column`, `detachedTabHost`,
-`explorerContentSingleInput`, `frameDashboardAddons`, `frameFaintMultiWindow`,
-`frameVaultmanRootClasses`, `modalDeleteConflict`, `nativeClickInterceptor`,
-`navbarDock`, `navbarPillDoubleClickClear`, `navbarPillFabBadges`,
-`navbarQueueDoubleClickClear`, `navbarTabs`, `overlaySortMenu`,
-`overlayViewMenu`, `pageFiltersChooseMode`, `pageFiltersRenameHandoff`,
-`pageStatsNotePreview`, `pageToolsDiff`, `pageToolsLayout`,
-`pageToolsOpsLog`, `pageToolsPlugins`, `pageToolsSnippets`,
-`panelExplorerBadgeCollision`, `panelExplorerCrear`,
-`panelExplorerDeleteConflict`, `panelExplorerEmpty`, `panelExplorerSelection`,
-`perfProbeDom`, `popupIsland`, `primitiveFab`, `reactiveExplorers`,
-`searchboxIsland`, `searchboxIslandFlags`, `settingsLeafToggle`, `settingsUI`,
-`snippetMimicry`, `tabOutlinesRegistration`, `tabViewMenuDetach`,
-`themeServiceCustomStyleInjection`, `toolbarClickWeights`,
-`toolbarMenuPlacement`, `viewDiffChains`, `viewDiffNavbar`,
-`viewEmptyLanding`, `viewGridHoverBadges`, `viewGridSelection`,
-`viewMarkmap`, `viewNodeCards`, `viewNodeDelegation`,
-`viewNodeDynamicGeometry`, `viewNodeFieldVisibility`, `viewNodeMirrorClasses`,
-`viewNodeScrollJank`, `viewNodeSelectionGranularity`,
-`viewNodeTableHeightmap`, `viewNodeVariableScrollFallback`,
-`viewTableSelection`, `viewTableStress`, `viewTreeAdoptedNodes`,
-`viewTreeDecorations`, `viewTreeGridRowInputContract`, `viewTreeHoverBadges`,
-`viewTreeScrollFallback`, `viewTreeSelection`, `viewTreeVisualContract`,
-`virtualizerItemKeys`, `vmDialogPortal`, `vmPopoverIsland`.
+`ViewNodeList`, `addonsMarkdownPane`, `cmenuCreateBindingNote`, `cmenuSetAction`, `dashboard3Column`, `detachedTabHost`, `explorerContentSingleInput`, `frameDashboardAddons`, `frameFaintMultiWindow`, `frameVaultmanRootClasses`, `modalDeleteConflict`, `nativeClickInterceptor`, `navbarDock`, `navbarPillDoubleClickClear`, `navbarPillFabBadges`, `navbarQueueDoubleClickClear`, `navbarTabs`, `overlaySortMenu`, `overlayViewMenu`, `pageFiltersChooseMode`, `pageFiltersRenameHandoff`, `pageStatsNotePreview`, `pageToolsDiff`, `pageToolsLayout`, `pageToolsOpsLog`, `pageToolsPlugins`, `pageToolsSnippets`, `panelExplorerBadgeCollision`, `panelExplorerCrear`, `panelExplorerDeleteConflict`, `panelExplorerEmpty`, `panelExplorerSelection`, `perfProbeDom`, `popupIsland`, `primitiveFab`, `reactiveExplorers`, `searchboxIsland`, `searchboxIslandFlags`, `settingsLeafToggle`, `settingsUI`, `snippetMimicry`, `tabOutlinesRegistration`, `tabViewMenuDetach`, `themeServiceCustomStyleInjection`, `toolbarClickWeights`, `toolbarMenuPlacement`, `viewDiffChains`, `viewDiffNavbar`, `viewEmptyLanding`, `viewGridHoverBadges`, `viewGridSelection`, `viewMarkmap`, `viewNodeCards`, `viewNodeDelegation`, `viewNodeDynamicGeometry`, `viewNodeFieldVisibility`, `viewNodeMirrorClasses`, `viewNodeScrollJank`, `viewNodeSelectionGranularity`, `viewNodeTableHeightmap`, `viewNodeVariableScrollFallback`, `viewTableSelection`, `viewTableStress`, `viewTreeAdoptedNodes`, `viewTreeDecorations`, `viewTreeGridRowInputContract`, `viewTreeHoverBadges`, `viewTreeScrollFallback`, `viewTreeSelection`, `viewTreeVisualContract`, `virtualizerItemKeys`, `vmDialogPortal`, `vmPopoverIsland`.
 
 ## Other Test Groups
 

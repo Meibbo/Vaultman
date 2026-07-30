@@ -22,8 +22,7 @@ Modify `src/components/views/ViewNodeTable.svelte`:
 - Add prop `measure?: NodeRowMeasureService`.
 - Replace fixed `estimateSize` with row-height lookup.
 - Keep absolute positioning and `role="grid"` semantics.
-- Keep current `div` grid DOM in Thin/Balanced; gate Thick table styling
-  through classes only if Bits UI/shadcn table wrappers force real table DOM.
+- Keep current `div` grid DOM in Thin/Balanced; gate Thick table styling through classes only if Bits UI/shadcn table wrappers force real table DOM.
 
 Core snippet:
 
@@ -116,8 +115,7 @@ class={[
 ]}
 ```
 
-Keep `.vm-node-grid-inner` and `.vm-node-grid-tile` stable because existing
-tests and CSS target them.
+Keep `.vm-node-grid-inner` and `.vm-node-grid-tile` stable because existing tests and CSS target them.
 
 Verification:
 
@@ -125,5 +123,4 @@ Verification:
 pnpm exec vp test run --project component --config vitest.config.ts test/component/viewGridSelection.test.ts test/component/viewGridHoverBadges.test.ts --fileParallelism=false
 ```
 
-Expected: existing selection and hover badge behavior remains unchanged and
-native mirror classes are present.
+Expected: existing selection and hover badge behavior remains unchanged and native mirror classes are present.

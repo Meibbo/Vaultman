@@ -18,23 +18,13 @@ tags:
 
 ## Context
 
-Today a "page" is effectively a tab with subtabs + bars. The dev wants multitask/split
-and detachable tabs across leaves/sidebars; an earlier detach experiment failed because
-it re-mounted only fragments (tab name + topbars), not the full composition.
+Today a "page" is effectively a tab with subtabs + bars. The dev wants multitask/split and detachable tabs across leaves/sidebars; an earlier detach experiment failed because it re-mounted only fragments (tab name + topbars), not the full composition.
 
 ## Decision (proposed)
 
-`page` = an **editor-group** mounted on Obsidian's native `WorkspaceTabs`/`Split`
-(real leaves) + a thin **`layout-config`** mapping `leaf/split → scene + bars`. Not a
-single leaf (too atomic) and not the whole layout (too broad). A `tab` becomes a simple
-surface hosting a `Scene`; the old "subtabs" become an in-scene tab-switcher primitive.
+`page` = an **editor-group** mounted on Obsidian's native `WorkspaceTabs`/`Split` (real leaves) + a thin **`layout-config`** mapping `leaf/split → scene + bars`. Not a single leaf (too atomic) and not the whole layout (too broad). A `tab` becomes a simple surface hosting a `Scene`; the old "subtabs" become an in-scene tab-switcher primitive.
 
-**Complement — sub-surface split:** within a single surface, a **Scene tile-tree**
-(recursive h/v splits whose leaf tiles host a `Panel` or a `ForeignEmbed`) provides
-splitting that does not consume a leaf — including maximize-one-while-the-others-stay-split,
-which Obsidian's leaf model cannot do. Native split (this ADR) and the Scene tile-tree are
-the two complementary tiling levels; see
-[[docs/architecture/explorer-model/03-surfaces-and-interaction|03 surfaces + interaction]].
+**Complement — sub-surface split:** within a single surface, a **Scene tile-tree** (recursive h/v splits whose leaf tiles host a `Panel` or a `ForeignEmbed`) provides splitting that does not consume a leaf — including maximize-one-while-the-others-stay-split, which Obsidian's leaf model cannot do. Native split (this ADR) and the Scene tile-tree are the two complementary tiling levels; see [[docs/architecture/explorer-model/03-surfaces-and-interaction|03 surfaces + interaction]].
 
 ## Consequences
 

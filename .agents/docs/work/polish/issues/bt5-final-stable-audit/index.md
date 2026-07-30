@@ -13,10 +13,7 @@ tags: [agent/issues, triage/needs-triage, initiative/polish, release/1.2.0, rele
 
 # BT5 final stable audit — corrective slices for v1.2.0
 
-Corrective issue-set approved by the dev on 2026-07-22 after auditing the three
-original pre-release prompts against `codex/bt5-next-10` at `b56b9a78`. These
-issues do not rewrite the history of BT5-019/021/025/036/037/038/039: they link
-and correct the incomplete or misleading outcomes.
+Corrective issue-set approved by the dev on 2026-07-22 after auditing the three original pre-release prompts against `codex/bt5-next-10` at `b56b9a78`. These issues do not rewrite the history of BT5-019/021/025/036/037/038/039: they link and correct the incomplete or misleading outcomes.
 
 Full source, literal prompts, source evidence, Git forensics and adversarial pass:
 [[docs/sessions/2026-07-22-codex-gpt5-root|2026-07-22 audit shard]].
@@ -46,8 +43,7 @@ Full source, literal prompts, source evidence, Git forensics and adversarial pas
 
 ## Shipped in the v1.2.0 close (2026-07-23, claude-opus-4-8-audit)
 
-Bugs and regressions the dev reported while smoke-testing the beta, landed as
-the final v1.2.0 slices. `060` also completed after the takeover.
+Bugs and regressions the dev reported while smoke-testing the beta, landed as the final v1.2.0 slices. `060` also completed after the takeover.
 
 | Issue                                          | Title                                          | Status      | Commit               |
 | ---------------------------------------------- | ---------------------------------------------- | ----------- | -------------------- |
@@ -61,19 +57,12 @@ the final v1.2.0 slices. `060` also completed after the takeover.
 | [[091-inline-rename-editor-height]]            | Inline rename editor takes the row height      | completed   | aeb1df1d             |
 | [[088-filter-apply-performance]]               | Filter apply performance (P2 done; P3 → 1.2.1) | in-progress | e1097b66             |
 
-Deferred out of v1.2.0: [[051-hide-scrollbar-single-footprint|051]] (Top/Bottom
-positions withheld), and the whole [[../v1-2-1-polish/index|v1.2.1 polish backlog]]
-(Navbar 043–048, decoration contract, Text explorer, tags inline/frontmatter,
-differential render, and the rest).
+Deferred out of v1.2.0: [[051-hide-scrollbar-single-footprint|051]] (Top/Bottom positions withheld), and the whole [[../v1-2-1-polish/index|v1.2.1 polish backlog]] (Navbar 043–048, decoration contract, Text explorer, tags inline/frontmatter, differential render, and the rest).
 
 ## Release-quality contract
 
-- Every behavior change follows red/green/refactor and keeps a reproducible
-  regression test.
-- Each slice is independently reviewable and has a focused gate before the next
-  slice begins.
-- Cross-cutting UI slices include `plugin-dev` runtime evidence; HITL remains open
-  until the dev accepts the visible result.
+- Every behavior change follows red/green/refactor and keeps a reproducible regression test.
+- Each slice is independently reviewable and has a focused gate before the next slice begins.
+- Cross-cutting UI slices include `plugin-dev` runtime evidence; HITL remains open until the dev accepts the visible result.
 - No push, tag, merge or public release occurs without an explicit final order.
-- Final stable preflight includes upgrade, clean-install and mobile/desktop gates
-  applicable to the changed surfaces.
+- Final stable preflight includes upgrade, clean-install and mobile/desktop gates applicable to the changed surfaces.

@@ -173,13 +173,11 @@ describe('ThemeService runtime <style> injection', () => {
 
 - [ ] **Step 3: Run tests — expect FAIL**
 
-Run: `pnpm exec vitest run --project component --config vitest.config.ts test/component/themeServiceCustomStyleInjection.test.ts --fileParallelism=false`
-Expected: FAIL — no `<style>` element created, no `dispose()` method.
+Run: `pnpm exec vitest run --project component --config vitest.config.ts test/component/themeServiceCustomStyleInjection.test.ts --fileParallelism=false` Expected: FAIL — no `<style>` element created, no `dispose()` method.
 
 - [ ] **Step 4: Implement injection + sanitization + dispose**
 
-In `src/services/serviceTheme.svelte.ts`, add the private fields and
-methods at the bottom of the class (after `hydrate`):
+In `src/services/serviceTheme.svelte.ts`, add the private fields and methods at the bottom of the class (after `hydrate`):
 
 ```typescript
   // Runtime style injection — NEW in 0-B
@@ -289,18 +287,15 @@ Now wire calls. Modify the existing write methods and `hydrate`:
 
 - [ ] **Step 5: Run tests — expect PASS**
 
-Run: `pnpm exec vitest run --project component --config vitest.config.ts test/component/themeServiceCustomStyleInjection.test.ts --fileParallelism=false`
-Expected: PASS — all 10 tests green.
+Run: `pnpm exec vitest run --project component --config vitest.config.ts test/component/themeServiceCustomStyleInjection.test.ts --fileParallelism=false` Expected: PASS — all 10 tests green.
 
 Also re-run unit tests to verify nothing regressed:
 
-Run: `pnpm exec vitest run --project unit --config vitest.config.ts test/unit/services/serviceThemeRunes.test.ts test/unit/types/typeThemePreset.test.ts test/unit/config/themePresetsBuiltin.test.ts`
-Expected: PASS.
+Run: `pnpm exec vitest run --project unit --config vitest.config.ts test/unit/services/serviceThemeRunes.test.ts test/unit/types/typeThemePreset.test.ts test/unit/config/themePresetsBuiltin.test.ts` Expected: PASS.
 
 - [ ] **Step 6: `pnpm check`**
 
-Run: `pnpm check`
-Expected: 0 errors.
+Run: `pnpm check` Expected: 0 errors.
 
 - [ ] **Step 7: Commit**
 
@@ -332,5 +327,4 @@ EOF
 )"
 ```
 
-When Phase 4 is complete, proceed to
-[[docs/work/hardening/plans/2026-05-15-explorer-0-b-servicetheme-token-layer/phase-5-scss-migration|Phase 5]].
+When Phase 4 is complete, proceed to [[docs/work/hardening/plans/2026-05-15-explorer-0-b-servicetheme-token-layer/phase-5-scss-migration|Phase 5]].

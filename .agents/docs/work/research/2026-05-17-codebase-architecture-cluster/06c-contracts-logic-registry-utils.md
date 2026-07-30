@@ -21,11 +21,7 @@ source:
 | Runtime shells | `typeFrame`, `typeTabLeaf`, `typeTab`, `typeSettings`, `typeObsidian` | Frame view, detached leaf view, tab configs, plugin settings, Obsidian internals. |
 | Theme/Bases/adoption | `typeThemePreset`, `typeElasticUi`, `typeBasesInterop`, `typeAdoptedNode`, `typeCtxMenu` | Theme preset tokens, elastic UI settings, Bases import reports, adopted outline nodes, context menu actions. |
 
-`typeContracts.ts` is the broadest surface because it defines `INodeIndex`,
-domain node contracts, `IFilterService`, `IOperationQueue`, `IOverlayState`,
-`IRouter`, and `IExplorer`. `typeViews.ts` is the view-facing counterpart: it
-defines rows, columns, layers, capabilities, empty states, render models, and
-`IViewService`.
+`typeContracts.ts` is the broadest surface because it defines `INodeIndex`, domain node contracts, `IFilterService`, `IOperationQueue`, `IOverlayState`, `IRouter`, and `IExplorer`. `typeViews.ts` is the view-facing counterpart: it defines rows, columns, layers, capabilities, empty states, render models, and `IViewService`.
 
 ## Logic Layer
 
@@ -77,10 +73,6 @@ flowchart LR
 
 ## Risk Notes
 
-- `typeSettings.ts` has high blast radius because defaults connect toolbar,
-  layout, explorer, Bases, DnD, gestures, queue, independent leaves, and FnR.
-- `typeViews.ts` and `typeContracts.ts` should change only with adapter updates
-  in services/providers/views; they define the cross-layer vocabulary.
-- `logicKeyboard.ts`, `filter-evaluator.ts`, and `logicExplorerSnapshot.ts` are
-  good candidates for high-signal regression tests because they are pure and
-  sit under many UI behaviors.
+- `typeSettings.ts` has high blast radius because defaults connect toolbar, layout, explorer, Bases, DnD, gestures, queue, independent leaves, and FnR.
+- `typeViews.ts` and `typeContracts.ts` should change only with adapter updates in services/providers/views; they define the cross-layer vocabulary.
+- `logicKeyboard.ts`, `filter-evaluator.ts`, and `logicExplorerSnapshot.ts` are good candidates for high-signal regression tests because they are pure and sit under many UI behaviors.

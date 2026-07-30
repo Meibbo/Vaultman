@@ -125,14 +125,11 @@ Common view keys:
 - equality/inequality: `status != "done"`, `BudgetType == "Expense"`.
 - link values: `Category == ["[[Cuenta Bancaria]]"]`, `logType == link("Day")`.
 - file functions: `file.hasTag`, `file.inFolder`, `file.hasLink`.
-- path/string methods: `file.path.contains`, `file.path.startsWith`,
-  `file.folder.endsWith`.
+- path/string methods: `file.path.contains`, `file.path.startsWith`, `file.folder.endsWith`.
 - list methods: `contains`, `containsAny`, `isEmpty`, `filter`.
 - date functions: `date()`, `today()`, `now()`, `.format()`.
 - formula references: `formula.cover`, `formula.Moodcolor`.
-- `this` context: `this.file.name`, `this.file.folder`, `this.alias`,
-  `this.file.hasLink(file.file)`.
+- `this` context: `this.file.name`, `this.file.folder`, `this.alias`, `this.file.hasLink(file.file)`.
 - regex formula expressions.
 
-These fixtures prove import/export cannot rely only on current Vaultman
-`FilterRule`; an expression IR or raw-expression fallback is required.
+These fixtures prove import/export cannot rely only on current Vaultman `FilterRule`; an expression IR or raw-expression fallback is required.

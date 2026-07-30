@@ -73,10 +73,7 @@ git commit -m "feat(settings): add mergedStackIsland default off"
 
 - [ ] **Step 1: Pure cut-and-paste**
 
-Open `explorerActiveFilters.svelte` and identify the body markup (the
-`<ViewList .../>` and its supporting state). Move that markup verbatim
-into a new file `explorerActiveFiltersBody.svelte`, lifting its `$props()`
-so the parent passes `plugin` and `onImportBases`.
+Open `explorerActiveFilters.svelte` and identify the body markup (the `<ViewList .../>` and its supporting state). Move that markup verbatim into a new file `explorerActiveFiltersBody.svelte`, lifting its `$props()` so the parent passes `plugin` and `onImportBases`.
 
 `explorerActiveFiltersBody.svelte` skeleton:
 
@@ -142,8 +139,7 @@ Same procedure as Task 3.1 against `explorerQueue.svelte`.
 
 - [ ] **Step 1: Create the body file**
 
-`explorerQueueBody.svelte` receives `{ plugin }` and exposes the existing
-queue list rendering.
+`explorerQueueBody.svelte` receives `{ plugin }` and exposes the existing queue list rendering.
 
 - [ ] **Step 2: Rewrite the shell to compose body + squircles**
 
@@ -459,8 +455,7 @@ describe('FrameOverlayController merged stack mode', () => {
 pnpm run test:unit -- test/unit/services/frameOverlaysMergedMode.test.ts
 ```
 
-Expected: FAIL — merged-mode branches do not exist; `stackView` not on the
-controller; constructor signature mismatch.
+Expected: FAIL — merged-mode branches do not exist; `stackView` not on the controller; constructor signature mismatch.
 
 - [ ] **Step 3: Extend the constructor**
 
@@ -733,8 +728,7 @@ Expected: clean (modulo deferred perf tests).
 
 - [ ] **Step 2: Cross-spec smoke**
 
-Run the integrated suite to confirm shards 01 and 02 still pass with
-shard 03 changes:
+Run the integrated suite to confirm shards 01 and 02 still pass with shard 03 changes:
 
 ```bash
 pnpm run test:component -- test/component/searchIslandCoexistence.test.ts test/component/searchIslandFnRTwoInput.test.ts test/component/recentSearchesRowStepper.test.ts test/component/toolbarSearchInlineVariant.test.ts test/component/mergedStackIslandArrowNav.test.ts test/component/mergedStackIslandToggle.test.ts

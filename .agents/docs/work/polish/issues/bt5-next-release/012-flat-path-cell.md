@@ -21,10 +21,7 @@ tags: [agent/issue, initiative/polish, release/bt5]
 
 ## What to build
 
-Cuando Files usa `nested=off`, ofrecer cell option `Path` como proyección alternativa
-del label: apagado muestra `file.name`; encendido muestra `file.path`, que ya incluye el
-filename. No crea una segunda columna textual duplicada. Mantener sort Name y sort Path
-como criterios independientes, acercando el comportamiento al modelo de Bases de Obsidian.
+Cuando Files usa `nested=off`, ofrecer cell option `Path` como proyección alternativa del label: apagado muestra `file.name`; encendido muestra `file.path`, que ya incluye el filename. No crea una segunda columna textual duplicada. Mantener sort Name y sort Path como criterios independientes, acercando el comportamiento al modelo de Bases de Obsidian.
 
 ## Acceptance criteria
 
@@ -42,21 +39,12 @@ como criterios independientes, acercando el comportamiento al modelo de Bases de
 
 ## Outcome 2026-07-20
 
-**Commit `7c2f5928`.** Gate `pnpm run verify` verde: 121 files / 796 tests,
-svelte-check 0/0, scorecard 17/17. Test focal `test/unit/flatPathCell.test.ts`.
+**Commit `7c2f5928`.** Gate `pnpm run verify` verde: 121 files / 796 tests, svelte-check 0/0, scorecard 17/17. Test focal `test/unit/flatPathCell.test.ts`.
 
-Hallazgo que reorientó el issue: el modo plano ya producía una etiqueta híbrida
-`folder/basename`, que no era ni el nombre ni la ruta. Confirmada la decisión 5
-del índice BT5: `Path` off = `file.name` exacto, `Path` on = `file.path` exacto,
-ambas absolutas incluso con la vista rebasada por drill-in.
+Hallazgo que reorientó el issue: el modo plano ya producía una etiqueta híbrida `folder/basename`, que no era ni el nombre ni la ruta. Confirmada la decisión 5 del índice BT5: `Path` off = `file.name` exacto, `Path` on = `file.path` exacto, ambas absolutas incluso con la vista rebasada por drill-in.
 
-`path` se declara `requiresCellsOff: ['nested']` en el registry, así que el gate
-vive en un único sitio (`cellAvailable`) y sirve al menú y a la proyección de
-render. El array persistido nunca se reescribe: apagar Nested devuelve la
-elección previa intacta. Los sorts Name/Path ya eran independientes del label y
-`path` ya se ocultaba con nested on; ambos AC tienen ahora guard propio.
+`path` se declara `requiresCellsOff: ['nested']` en el registry, así que el gate vive en un único sitio (`cellAvailable`) y sirve al menú y a la proyección de render. El array persistido nunca se reescribe: apagar Nested devuelve la elección previa intacta. Los sorts Name/Path ya eran independientes del label y `path` ya se ocultaba con nested on; ambos AC tienen ahora guard propio.
 
 Detalle: [[docs/work/polish/plans/2026-07-19-bt5-next-10/06-bt5-012-013-015-018-031-032|shard 06]].
 
-Pendiente: smoke de runtime; decidir si el label plano en modo Name debe ocultar
-`.md` (hoy `file.name` lo incluye, el hover `label` no).
+Pendiente: smoke de runtime; decidir si el label plano en modo Name debe ocultar `.md` (hoy `file.name` lo incluye, el hover `label` no).

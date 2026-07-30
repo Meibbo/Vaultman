@@ -57,8 +57,7 @@ lines.slice(-5).forEach(l => console.log(l));
 
 - [ ] **Step 3: Verify the tools**
 
-Run: `node tools/pkm-ai/analyze-metrics.mjs`
-Expected: Prints total metrics and the last 5 events.
+Run: `node tools/pkm-ai/analyze-metrics.mjs` Expected: Prints total metrics and the last 5 events.
 
 - [ ] **Step 4: Commit**
 

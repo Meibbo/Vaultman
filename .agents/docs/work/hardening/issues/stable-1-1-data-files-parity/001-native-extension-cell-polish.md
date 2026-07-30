@@ -26,8 +26,7 @@ updated_by: codex-gpt-5
 
 ## What To Build
 
-Polish the Files extension/type cell so markdown files do not show `.md`, while non-markdown files
-show their extension using the same visual treatment as Obsidian core File Explorer tags.
+Polish the Files extension/type cell so markdown files do not show `.md`, while non-markdown files show their extension using the same visual treatment as Obsidian core File Explorer tags.
 
 ## Acceptance Criteria
 

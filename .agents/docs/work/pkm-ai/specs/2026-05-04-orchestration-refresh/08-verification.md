@@ -55,12 +55,9 @@ Optional metrics:
 - `tokens_used`
 - `context_window`
 
-Metrics are lightweight. Token and context values may be approximate, script
-estimated, or user supplied when the UI exposes data the agent cannot read.
+Metrics are lightweight. Token and context values may be approximate, script estimated, or user supplied when the UI exposes data the agent cannot read.
 Do not spend significant tokens measuring tokens.
 
 ## Citation Retention
 
-Research citations are kept in knowledge notes through `source_url`,
-`verified_at`, and `expires_at`. Research that is out of scope becomes a draft
-research item instead of active implementation scope.
+Research citations are kept in knowledge notes through `source_url`, `verified_at`, and `expires_at`. Research that is out of scope becomes a draft research item instead of active implementation scope.

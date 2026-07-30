@@ -16,8 +16,7 @@ updated_by: codex
 
 # Wave 4 Follow-Up Slices
 
-These slices should not run before the Files snapshot, batched layer, and
-panel/reveal compatibility specs are accepted or reconciled in Wave 5.
+These slices should not run before the Files snapshot, batched layer, and panel/reveal compatibility specs are accepted or reconciled in Wave 5.
 
 ## Slice A - Tags And Props Snapshots
 
@@ -28,19 +27,14 @@ Source shards:
 
 Scope:
 
-- Add Tags and Props data-plane source adapters after Files proves the
-  contract.
-- Preserve provider action hooks for filters, queue ops, FnR, binding notes,
-  context menus, and property/value scope.
-- Treat `operationsIndex.revision` and `activeFiltersIndex.revision` as
-  decorative unless visible rows are added or removed.
-- Resolve `indexProps` versus `PropertyIndexService` ownership before hardening
-  property snapshot semantics.
+- Add Tags and Props data-plane source adapters after Files proves the contract.
+- Preserve provider action hooks for filters, queue ops, FnR, binding notes, context menus, and property/value scope.
+- Treat `operationsIndex.revision` and `activeFiltersIndex.revision` as decorative unless visible rows are added or removed.
+- Resolve `indexProps` versus `PropertyIndexService` ownership before hardening property snapshot semantics.
 
 Acceptance:
 
-- Tags/Props structural snapshot tests cover ids, parent links, visible order,
-  search mode, sort target, property casing, object values, and value removal.
+- Tags/Props structural snapshot tests cover ids, parent links, visible order, search mode, sort target, property casing, object values, and value removal.
 - Existing `explorerTags` and `explorerProps` tests keep action behavior.
 
 ## Slice B - Overlay Projection Module
@@ -52,17 +46,13 @@ Source shards:
 
 Scope:
 
-- Extract queue/filter projection rules that are currently inside
-  `serviceViews.svelte.ts` only after batch parity is proven.
+- Extract queue/filter projection rules that are currently inside `serviceViews.svelte.ts` only after batch parity is proven.
 - Keep `ViewLayers` as output.
-- Keep queue popup presentation and active-filter list presentation as separate
-  projection seams.
+- Keep queue popup presentation and active-filter list presentation as separate projection seams.
 
 Acceptance:
 
-- Queue parent rows, child rows, remove `sourceId`, parent count badges, search
-  filters, selected-file groups, disabled rules, and reorder boundaries have
-  unit tests outside Svelte components.
+- Queue parent rows, child rows, remove `sourceId`, parent count badges, search filters, selected-file groups, disabled rules, and reorder boundaries have unit tests outside Svelte components.
 
 ## Slice C - Adapter Row Contract
 
@@ -73,17 +63,14 @@ Source shards:
 
 Scope:
 
-- Move tree/grid/table/cards toward snapshot-backed row inputs only after
-  Files tree reveal and selection are stable.
+- Move tree/grid/table/cards toward snapshot-backed row inputs only after Files tree reveal and selection are stable.
 - Keep `@tanstack/svelte-virtual` inside adapters.
 - Keep measurement services outside the data plane.
-- Keep SVAR as a compatibility adapter with side effects, not as the clean
-  contract model.
+- Keep SVAR as a compatibility adapter with side effects, not as the clean contract model.
 
 Acceptance:
 
-- Adapter tests prove stable item keys, callback ids, layer bridge output, and
-  reveal lookup behavior across tree/grid/table/cards.
+- Adapter tests prove stable item keys, callback ids, layer bridge output, and reveal lookup behavior across tree/grid/table/cards.
 
 ## Slice D - Selection Mirror Cleanup
 
@@ -94,15 +81,12 @@ Source shards:
 
 Scope:
 
-- Remove or explicitly deprecate `ViewService` selection/focus state after
-  snapshot-backed adapters consume `NodeSelectionService` projections.
-- Preserve `ViewService` row state output through a read adapter if legacy
-  callers still need `layers.state.selected` or `layers.state.focused`.
+- Remove or explicitly deprecate `ViewService` selection/focus state after snapshot-backed adapters consume `NodeSelectionService` projections.
+- Preserve `ViewService` row state output through a read adapter if legacy callers still need `layers.state.selected` or `layers.state.focused`.
 
 Acceptance:
 
-- A test proves no divergence between `NodeSelectionService` and any remaining
-  compatibility mirror.
+- A test proves no divergence between `NodeSelectionService` and any remaining compatibility mirror.
 
 ## Slice E - Performance Gate And Issue Prep
 
@@ -112,15 +96,13 @@ Source shard:
 
 Scope:
 
-- Add probe labels for snapshot creation, lookup-map creation, layer batching,
-  reveal lookup, and total panel refresh cost.
+- Add probe labels for snapshot creation, lookup-map creation, layer batching, reveal lookup, and total panel refresh cost.
 - Record before/after measurements for the Files-first implementation.
 - Prepare Wave 5 issue candidates only after plan reconciliation.
 
 Acceptance:
 
-- Perf probes show queue/filter-only changes avoid structural rebuilds or
-  document why they cannot yet.
+- Perf probes show queue/filter-only changes avoid structural rebuilds or document why they cannot yet.
 - Issue candidates trace back to Wave 4 specs and Wave 2 evidence.
 
 ## Slice F - Media Cache DB And File/Node Subscriptions
@@ -132,28 +114,19 @@ Source shards:
 
 Scope:
 
-- Add a media/derived-content cache database for cached explorer images,
-  previews, and future visual assets after the structural row identity contract
-  is proven.
+- Add a media/derived-content cache database for cached explorer images, previews, and future visual assets after the structural row identity contract is proven.
 - Keep structural snapshots memory-resident and source-rebuildable.
-- Store media status/key metadata separately from blobs. Main records should
-  carry `mediaStatus`, `mediaKey`, source mtime/hash, dimensions, generated
-  time, and error state; blobs should live in a separate store validated by
-  expected `mediaKey`.
-- Maintain a bounded in-memory LRU for blobs and avoid embedding blob data in
-  `ExplorerSnapshot` rows.
-- Expose file/node-level media subscriptions so visible rows can update
-  thumbnails without rebuilding structural rows or `ViewService` layers.
+- Store media status/key metadata separately from blobs. Main records should carry `mediaStatus`, `mediaKey`, source mtime/hash, dimensions, generated time, and error state; blobs should live in a separate store validated by expected `mediaKey`.
+- Maintain a bounded in-memory LRU for blobs and avoid embedding blob data in `ExplorerSnapshot` rows.
+- Expose file/node-level media subscriptions so visible rows can update thumbnails without rebuilding structural rows or `ViewService` layers.
 
 Acceptance:
 
-- Media cache docs and tests prove stale blobs are not returned when
-  `mediaKey` changes.
+- Media cache docs and tests prove stale blobs are not returned when `mediaKey` changes.
 - Visible row update tests cover status transitions:
   `unprocessed -> ready`, `ready -> stale`, `ready -> error`, and row removal.
 - A perf or memory check confirms blob cache limits and lazy loading behavior.
-- The media subscription API is explicitly narrower than a generic row-level
-  subscription system.
+- The media subscription API is explicitly narrower than a generic row-level subscription system.
 
 ## Defer Rules
 

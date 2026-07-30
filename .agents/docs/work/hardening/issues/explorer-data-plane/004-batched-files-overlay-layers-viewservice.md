@@ -31,30 +31,21 @@ updated_by: codex
 
 ## What To Build
 
-Replace Files per-node decoration calls with one batched `ViewService` layer
-path over snapshot rows, keeping `ViewLayers` canonical and `TreeNode`
-decoration as a compatibility bridge.
+Replace Files per-node decoration calls with one batched `ViewService` layer path over snapshot rows, keeping `ViewLayers` canonical and `TreeNode` decoration as a compatibility bridge.
 
 ## Acceptance Criteria
 
-- [x] Files data-plane path builds layer map from one batched `ViewService`
-      call.
-- [x] Queue/filter-only changes update layers without rebuilding structural
-      snapshot rows.
+- [x] Files data-plane path builds layer map from one batched `ViewService` call.
+- [x] Queue/filter-only changes update layers without rebuilding structural snapshot rows.
 - [x] Batch parity tests match current per-node decoration behavior.
 - [x] `ViewLayers` remains canonical and `TreeNode` decoration stays a bridge.
 
 ## 2026-05-12 Reconciliation Note
 
-Wave 3 Agent B targeted the older `sandbox` `FilesExplorerProvider` shape. The
-reconciled implementation keeps Wave 2's structural data-plane contract intact:
-structural trees are cached by source/filter/sort/index revisions, and queue or
-filter-only changes are applied through a batched layer bridge instead of
-rebuilding the Files structure.
+Wave 3 Agent B targeted the older `sandbox` `FilesExplorerProvider` shape. The reconciled implementation keeps Wave 2's structural data-plane contract intact:
+structural trees are cached by source/filter/sort/index revisions, and queue or filter-only changes are applied through a batched layer bridge instead of rebuilding the Files structure.
 
-`serviceExplorerLayers.ts` centralizes the compatibility bridge from
-`ViewLayers` to decorated `TreeNode` fields. `ViewService.getModel()` is called
-once per decorated tree build with the flattened node batch.
+`serviceExplorerLayers.ts` centralizes the compatibility bridge from `ViewLayers` to decorated `TreeNode` fields. `ViewService.getModel()` is called once per decorated tree build with the flattened node batch.
 
 ## Blocked By
 

@@ -19,8 +19,7 @@ tags:
 
 ## Option A — Five Co-Equal Engines
 
-PKM-AI routes work among LangGraph, CrewAI, Letta, AutoGen and GBrain while each
-retains its own tasks, memory, checkpoints and retries.
+PKM-AI routes work among LangGraph, CrewAI, Letta, AutoGen and GBrain while each retains its own tasks, memory, checkpoints and retries.
 
 ### Advantage
 
@@ -28,17 +27,14 @@ Maximum immediate exposure to each product's native capabilities.
 
 ### Failure
 
-There is no single answer to “who owns this task?”, “did this side effect
-happen?”, “which memory is current?” or “what should resume after a crash?”.
-PKM-AI becomes a sixth orchestrator that reconciles five incompatible internal
-models after the fact.
+There is no single answer to “who owns this task?”, “did this side effect happen?”, “which memory is current?” or “what should resume after a crash?”.
+PKM-AI becomes a sixth orchestrator that reconciles five incompatible internal models after the fact.
 
 **Verdict: reject outside an integration laboratory.**
 
 ## Option B — Capability Federation Under PKM-AI Authority
 
-PKM-AI owns policy, identities, claims, reconciliation and the cross-provider
-ledger. One provider at a time fills each capability slot:
+PKM-AI owns policy, identities, claims, reconciliation and the cross-provider ledger. One provider at a time fills each capability slot:
 
 - durable workflow;
 - specialist execution;
@@ -49,14 +45,11 @@ Other providers may observe in shadow mode but cannot mutate canonical state.
 
 ### Advantage
 
-Captures differentiated provider value while retaining one recovery story and
-one source of truth per field.
+Captures differentiated provider value while retaining one recovery story and one source of truth per field.
 
 ### Cost
 
-PKM-AI must implement a real control-plane contract: adapters, receipts,
-reconciliation, security policy, health/freshness and lifecycle management. This
-is materially more work than a thin skill wrapper.
+PKM-AI must implement a real control-plane contract: adapters, receipts, reconciliation, security policy, health/freshness and lifecycle management. This is materially more work than a thin skill wrapper.
 
 **Verdict: recommended target architecture.**
 
@@ -65,11 +58,8 @@ is materially more work than a thin skill wrapper.
 PKM-AI first implements provider-neutral A2A and MCP boundaries plus the ledger.
 Providers enter only through pilots and may be replaced.
 
-A2A 1.0 defines discovery, tasks, messages, artifacts, streaming and
-long-running agent collaboration
-([specification](https://github.com/a2aproject/A2A/blob/main/docs/specification.md)).
-MCP defines the agent-to-tool/data boundary
-([2026-07-28 specification](https://modelcontextprotocol.io/specification/2026-07-28)).
+A2A 1.0 defines discovery, tasks, messages, artifacts, streaming and long-running agent collaboration ([specification](https://github.com/a2aproject/A2A/blob/main/docs/specification.md)).
+MCP defines the agent-to-tool/data boundary ([2026-07-28 specification](https://modelcontextprotocol.io/specification/2026-07-28)).
 They are complementary, not substitutes.
 
 ### Advantage
@@ -78,20 +68,16 @@ Best reversibility and least vendor lock-in.
 
 ### Cost
 
-Native support is uneven. LangGraph Agent Server exposes A2A, but CrewAI,
-Letta, GBrain and legacy AutoGen cannot all be assumed to expose the same
-current protocol surface. Wrappers remain necessary.
+Native support is uneven. LangGraph Agent Server exposes A2A, but CrewAI, Letta, GBrain and legacy AutoGen cannot all be assumed to expose the same current protocol surface. Wrappers remain necessary.
 
-The 2026-07-28 MCP release is also a breaking protocol transition
-([release note](https://blog.modelcontextprotocol.io/posts/2026-07-28-release-candidate/)).
+The 2026-07-28 MCP release is also a breaking protocol transition ([release note](https://blog.modelcontextprotocol.io/posts/2026-07-28-release-candidate/)).
 Version negotiation and a compatibility floor are mandatory.
 
 **Verdict: use this as the implementation sequence for option B.**
 
 ## Comparative Score
 
-Scores are architectural judgment from 1 (poor) to 5 (strong). “Leverage”
-means access to provider-native capability; it is not vendor marketing.
+Scores are architectural judgment from 1 (poor) to 5 (strong). “Leverage” means access to provider-native capability; it is not vendor marketing.
 
 | Criterion | A: five peers | B: bounded federation | C: standards broker first |
 | --- | ---: | ---: | ---: |
@@ -124,8 +110,7 @@ data_locations[]
 retention_policy
 ```
 
-The bridge refuses an invocation when the required capability or protocol
-version is not declared.
+The bridge refuses an invocation when the required capability or protocol version is not declared.
 
 ### Source manifest
 
@@ -144,8 +129,7 @@ coverage
 freshness = fresh | stale | partial | unknown
 ```
 
-This extends the revised C2 projection manifest. A provider cannot translate
-`health=ready` into `fresh=true` without this evidence.
+This extends the revised C2 projection manifest. A provider cannot translate `health=ready` into `fresh=true` without this evidence.
 
 ### Cross-system task identity
 
@@ -181,8 +165,7 @@ Provider IDs are observations, never replacements for the PKM-AI task ID.
 7. Refresh/invalidate affected retrieval projections.
 8. Publish a compact agent-room event.
 
-This is an outbox/saga protocol. Do not attempt an atomic dual write across
-JSONL, Git, Postgres, PGLite and provider databases.
+This is an outbox/saga protocol. Do not attempt an atomic dual write across JSONL, Git, Postgres, PGLite and provider databases.
 
 ### Output trust boundary
 
@@ -196,8 +179,7 @@ Provider output enters as a quarantined artifact with:
 - cost, time and context budget;
 - explicit uncertainty and unsupported claims.
 
-Only deterministic verification or a human/agent review can promote it into a
-canonical document or completion transition.
+Only deterministic verification or a human/agent review can promote it into a canonical document or completion transition.
 
 ## Routing Rules
 
@@ -219,8 +201,7 @@ canonical document or completion transition.
 - Human approval remains in PKM-AI for destructive or external side effects.
 - Cap delegation depth and total task fan-out to prevent cyclic agent calls.
 - Treat retrieved/provider text as untrusted content, not control instructions.
-- Record data residency and propagate retention/deletion tombstones to every
-  projection and memory provider.
+- Record data residency and propagate retention/deletion tombstones to every projection and memory provider.
 - Pin adapter/protocol versions for every in-flight attempt.
 
 The bridge is a security boundary, not only a transport translator.

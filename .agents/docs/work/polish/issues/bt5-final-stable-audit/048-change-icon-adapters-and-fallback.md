@@ -21,11 +21,7 @@ tags: [agent/issue, triage/needs-triage, initiative/polish, release/1.2.0, icons
 
 ## What to build
 
-Implement Vaultman and Iconic adapters through the canonical router. Iconic must
-open with the target's current selection, return the chosen icon/color through an
-intercepted result and never duplicate Change icon in Props/Tags. Snippets and
-Plugins prefer a capable external picker but retain Vaultman fallback. With Iconic
-or the add-on disabled, Files/Props/Tags/Text still expose fallback Change icon.
+Implement Vaultman and Iconic adapters through the canonical router. Iconic must open with the target's current selection, return the chosen icon/color through an intercepted result and never duplicate Change icon in Props/Tags. Snippets and Plugins prefer a capable external picker but retain Vaultman fallback. With Iconic or the add-on disabled, Files/Props/Tags/Text still expose fallback Change icon.
 
 ## Acceptance criteria
 

@@ -21,8 +21,7 @@ updated_by: codex
 - Create: `src/types/typeElasticUi.ts`
 - Create: `test/unit/types/typeElasticUi.test.ts`
 - Create: `test/unit/services/serviceLayoutElastic.test.ts`
-- Read-only: `package.json`, `src/services/serviceDndSvelteAdapter.ts`,
-  `src/services/serviceNodeBinding.ts`, `src/services/serviceNativeSurfaceBinding.ts`
+- Read-only: `package.json`, `src/services/serviceDndSvelteAdapter.ts`, `src/services/serviceNodeBinding.ts`, `src/services/serviceNativeSurfaceBinding.ts`
 
 ## Shared Contract
 
@@ -78,9 +77,7 @@ function normalizeIdentity(value: unknown): VaultmanUiIdentity {
 this.settings.elasticUi = normalizeElasticUiSettings(saved.elasticUi);
 ```
 
-- [ ] Preserve existing `layoutTheme` for backward compatibility. Do not remove
-  `layoutTheme`, `faintAccentsWhenWorkspaceFocused`, or the existing layout
-  settings in this phase.
+- [ ] Preserve existing `layoutTheme` for backward compatibility. Do not remove `layoutTheme`, `faintAccentsWhenWorkspaceFocused`, or the existing layout settings in this phase.
 
 Verification:
 
@@ -88,14 +85,12 @@ Verification:
 pnpm exec vp test run --project unit --config vitest.config.ts test/unit/services/serviceLayoutElastic.test.ts --fileParallelism=false
 ```
 
-Expected: saved invalid mode falls back to `thin`; invalid identity falls back
-to `native`; booleans remain false unless explicitly `true`.
+Expected: saved invalid mode falls back to `thin`; invalid identity falls back to `native`; booleans remain false unless explicitly `true`.
 
 ## Layout Service Extension
 
 Extend `src/services/serviceLayout.ts` without turning it into a theme service.
-It should only normalize persisted layout and expose helpers for dashboard
-breakpoints:
+It should only normalize persisted layout and expose helpers for dashboard breakpoints:
 
 ```ts
 export type LayoutViewportKind = 'sidebar' | 'main-leaf';
@@ -117,13 +112,11 @@ Verification:
 pnpm exec vp test run --project unit --config vitest.config.ts test/unit/services/serviceLayoutElastic.test.ts --fileParallelism=false
 ```
 
-Expected: `main-leaf + width 800 + balanced` returns true; `sidebar`, `thin`,
-and width `799` return false.
+Expected: `main-leaf + width 800 + balanced` returns true; `sidebar`, `thin`, and width `799` return false.
 
 ## Polymorphic Component Contract
 
-Every mode-aware component must accept this minimum data shape, either directly
-or through `plugin.themeService`:
+Every mode-aware component must accept this minimum data shape, either directly or through `plugin.themeService`:
 
 ```ts
 export interface ElasticUiSurface {
@@ -138,11 +131,9 @@ export interface ElasticUiSurface {
 Rules:
 
 - Thin + native: flat Obsidian-like DOM and native mirror classes.
-- Thin + bases/outline/bookmarks: flat DOM with identity-specific mirror
-  classes where Obsidian has a nearby class vocabulary.
+- Thin + bases/outline/bookmarks: flat DOM with identity-specific mirror classes where Obsidian has a nearby class vocabulary.
 - Balanced: native root classes plus UnoCSS utility shortcuts.
-- Thick: DaisyUI semantic classes may be added, but native classes remain on
-  roots so snippets can still target Vaultman.
+- Thick: DaisyUI semantic classes may be added, but native classes remain on roots so snippets can still target Vaultman.
 
 ## DnD Dependency Gate
 
@@ -156,11 +147,8 @@ Current handoff says `@thisux/sveltednd` was removed and should stay removed.
 The prompt requests `@thisux/sveltednd`. Resolve before DELTA starts:
 
 - [ ] Search package docs and local package constraints.
-- [ ] If the architect confirms `@thisux/sveltednd`, DELTA owns dependency
-  reversal and must update `src/services/serviceDndSvelteAdapter.ts` and tests.
-- [ ] If no explicit confirmation exists, keep `@dnd-kit/svelte@0.4.0` and
-  implement the requested "native drag and drop" behavior through the existing
-  semantic `DndService` contract.
+- [ ] If the architect confirms `@thisux/sveltednd`, DELTA owns dependency reversal and must update `src/services/serviceDndSvelteAdapter.ts` and tests.
+- [ ] If no explicit confirmation exists, keep `@dnd-kit/svelte@0.4.0` and implement the requested "native drag and drop" behavior through the existing semantic `DndService` contract.
 
 Verification:
 
@@ -169,8 +157,7 @@ node -e "const p=require('./package.json'); console.log(p.dependencies['@dnd-kit
 pnpm exec vp test run --project unit --config vitest.config.ts test/unit/services/serviceDnd.test.ts test/unit/services/serviceDndSvelteAdapter.test.ts --fileParallelism=false
 ```
 
-Expected: exactly one Svelte DnD adapter package is active and the semantic DnD
-tests pass.
+Expected: exactly one Svelte DnD adapter package is active and the semantic DnD tests pass.
 
 ## Node Notes Contract
 
@@ -188,5 +175,4 @@ Verification:
 pnpm exec vp test run --project unit --config vitest.config.ts test/unit/services/serviceNodeBinding.test.ts --fileParallelism=false
 ```
 
-Expected: existing node binding tests pass and any new snippet/plugin cases use
-`$` and `%` aliases.
+Expected: existing node binding tests pass and any new snippet/plugin cases use `$` and `%` aliases.

@@ -13,9 +13,7 @@ tags:
 
 # PKM-AI Orchestration Refresh
 
-This sharded spec defines the agent documentation, routing, backlog, archive,
-skills, automation, and verification model for Vaultman branches that allow AI
-workflow files. It does not describe product-facing docs for `main`.
+This sharded spec defines the agent documentation, routing, backlog, archive, skills, automation, and verification model for Vaultman branches that allow AI workflow files. It does not describe product-facing docs for `main`.
 
 ## Source Of Truth
 
@@ -47,6 +45,5 @@ workflow files. It does not describe product-facing docs for `main`.
 
 ## Open Questions
 
-- Exact script implementation language and command names can be finalized in the
-  implementation plan.
+- Exact script implementation language and command names can be finalized in the implementation plan.
 - Exact initial backlog item list can be created during migration.

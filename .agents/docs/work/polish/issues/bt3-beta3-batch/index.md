@@ -15,9 +15,7 @@ tags:
 
 # BT3 — v1.2.0-beta.3 batch
 
-Issue-set del spec
-[[docs/work/polish/specs/2026-07-17-v1-2-beta3-batch/index|v1.2 beta.3 batch]]
-(decisiones D1-D20). Formato AFK/HITL (patrón PAI/FTC): DoD tool-checkable = AFK;
+Issue-set del spec [[docs/work/polish/specs/2026-07-17-v1-2-beta3-batch/index|v1.2 beta.3 batch]] (decisiones D1-D20). Formato AFK/HITL (patrón PAI/FTC): DoD tool-checkable = AFK;
 juicio visual = dev. Base `dev` @ `5e5fa1df` (beta.2); rama `v12/bt3`.
 
 | Issue | Título | Modo | Estado |
@@ -38,12 +36,9 @@ Orden serial recomendado: 001 · 007 → 002 → 008 → 003 → 004 → 009 →
 
 ## Reglas comunes
 
-- Worktree: `C:/tmp/vaultman-release-beta2-final2` (= `dev` limpio) o fresco en
-  `C:/tmp/vaultman-v12-bt3NNN`; rama `v12/bt3`. `pnpm install` primera vez.
-- Gates por issue: RED/GREEN focal · svelte-check 0/0 · autofixer `issues:[]` en
-  `.svelte` tocados · lint/stylelint según alcance · build · full unit al integrar.
+- Worktree: `C:/tmp/vaultman-release-beta2-final2` (= `dev` limpio) o fresco en `C:/tmp/vaultman-v12-bt3NNN`; rama `v12/bt3`. `pnpm install` primera vez.
+- Gates por issue: RED/GREEN focal · svelte-check 0/0 · autofixer `issues:[]` en `.svelte` tocados · lint/stylelint según alcance · build · full unit al integrar.
   **Testing visual/UI/Obsidian/mobile delistado para agentes** — lo valida el dev.
-- Two-commit: `feat/fix` código-only (pushable) + `docs:` local-only (`.agents/`
-  jamás en pushes).
+- Two-commit: `feat/fix` código-only (pushable) + `docs:` local-only (`.agents/` jamás en pushes).
 - Adversarial pass antes de cerrar cada slice (policy C2, AGENTS.md).
 - i18n: todo string nuevo entra en `en.ts` + `es.ts`.

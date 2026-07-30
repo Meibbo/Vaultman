@@ -40,105 +40,61 @@ Primary sources read for this synthesis:
 
 ## T1 - Memory And Source-Fidelity Failures
 
-**Pattern:** useful detail remains in chat, current docs, or compact summaries
-without enough source context to reconstruct the decision.
+**Pattern:** useful detail remains in chat, current docs, or compact summaries without enough source context to reconstruct the decision.
 
-**Evidence:** `architecture/system-improvements.md` names "sesgo
-conversacional"; `docs policy`, `context policy`, and VM-0002 all correct the
-same issue by making `current/status.md` and `current/handoff.md` route indexes
-instead of full memory stores. `glossary.md` explicitly defines lossy summary as
-a regression.
+**Evidence:** `architecture/system-improvements.md` names "sesgo conversacional"; `docs policy`, `context policy`, and VM-0002 all correct the same issue by making `current/status.md` and `current/handoff.md` route indexes instead of full memory stores. `glossary.md` explicitly defines lossy summary as a regression.
 
-**Current risk:** `current/status.md` and `current/handoff.md` are still large
-and carry many historic details. They are useful but brittle: an agent can miss
-the source record and treat an old line as current truth.
+**Current risk:** `current/status.md` and `current/handoff.md` are still large and carry many historic details. They are useful but brittle: an agent can miss the source record and treat an old line as current truth.
 
-**Countermeasure:** keep full records in initiative folders, link compactly from
-current docs, and add health checks for "short summary without source link."
+**Countermeasure:** keep full records in initiative folders, link compactly from current docs, and add health checks for "short summary without source link."
 
 ## T2 - Verification Illusions And Residual Normalization
 
-**Pattern:** agents mark work as green while leaving caveats as "pre-existing,"
-"unrelated," "deferred," or "known transient." Some caveats are valid; the
-failure is that they become permanent background noise instead of tracked items.
+**Pattern:** agents mark work as green while leaving caveats as "pre-existing," "unrelated," "deferred," or "known transient." Some caveats are valid; the failure is that they become permanent background noise instead of tracked items.
 
-**Evidence:** current handoff records a stale `serviceFnR.svelte` import-path
-error, a documented `pageFiltersRenameHandoff` failure, doc-health failures,
-and an unrelated full `git diff --check` trailing-whitespace failure. The
-multifacet verification shard records deferred live UI exercises. Agent Memory
-shows earlier verify gates with pre-existing lint warnings and later regressions
-that required live smoke to catch.
+**Evidence:** current handoff records a stale `serviceFnR.svelte` import-path error, a documented `pageFiltersRenameHandoff` failure, doc-health failures, and an unrelated full `git diff --check` trailing-whitespace failure. The multifacet verification shard records deferred live UI exercises. Agent Memory shows earlier verify gates with pre-existing lint warnings and later regressions that required live smoke to catch.
 
-**Current risk:** future agents can inherit "mostly green" as a norm and skip
-turning residuals into backlog items.
+**Current risk:** future agents can inherit "mostly green" as a norm and skip turning residuals into backlog items.
 
-**Countermeasure:** any recurring caveat gets one of three states: fixed now,
-canonical backlog item, or explicit accepted noise with owner and expiration.
+**Countermeasure:** any recurring caveat gets one of three states: fixed now, canonical backlog item, or explicit accepted noise with owner and expiration.
 
 ## T3 - Test-Shape Mismatch
 
 **Pattern:** tests exist but do not exercise the real failing surface.
 
-**Evidence:** ViewTree latency repair found a perf test measuring fake DOM
-instead of real `ViewTree`, a stress vault with no real markdown corpus, and an
-integration test sampling the wrong live Obsidian app. Earlier raw handoff
-explains that unit tests and `svelte-check` missed `effect_update_depth_exceeded`
-because real Svelte components were not mounted in a DOM lifecycle.
+**Evidence:** ViewTree latency repair found a perf test measuring fake DOM instead of real `ViewTree`, a stress vault with no real markdown corpus, and an integration test sampling the wrong live Obsidian app. Earlier raw handoff explains that unit tests and `svelte-check` missed `effect_update_depth_exceeded` because real Svelte components were not mounted in a DOM lifecycle.
 
-**Current risk:** agents can add tests and still miss runtime failures in
-Obsidian, Svelte mounting, virtualizers, or library wrappers.
+**Current risk:** agents can add tests and still miss runtime failures in Obsidian, Svelte mounting, virtualizers, or library wrappers.
 
-**Countermeasure:** for UI/runtime defects, require at least one mounted
-component test or Obsidian CLI smoke against the real route that failed.
+**Countermeasure:** for UI/runtime defects, require at least one mounted component test or Obsidian CLI smoke against the real route that failed.
 
 ## T4 - TDD And Scope-Discipline Breaks
 
-**Pattern:** agents implement before tests, backfill tests later, or expand a
-slice beyond the stated scope.
+**Pattern:** agents implement before tests, backfill tests later, or expand a slice beyond the stated scope.
 
-**Evidence:** current status explicitly records a TDD violation in a prior
-subagent's FnR templating/date-parser work. Many plans now repeat "write failing
-tests first," "do not migrate all at once," and "stop if..." because agents have
-shown pressure to broaden slices.
+**Evidence:** current status explicitly records a TDD violation in a prior subagent's FnR templating/date-parser work. Many plans now repeat "write failing tests first," "do not migrate all at once," and "stop if..." because agents have shown pressure to broaden slices.
 
-**Current risk:** backfilled tests describe what was built, not what should have
-been built, and broad refactors increase merge and regression cost.
+**Current risk:** backfilled tests describe what was built, not what should have been built, and broad refactors increase merge and regression cost.
 
-**Countermeasure:** enforce red/green evidence in source records. A task that
-adds behavior without red evidence should be treated as incomplete until the
-behavior is reproved or reworked.
+**Countermeasure:** enforce red/green evidence in source records. A task that adds behavior without red evidence should be treated as incomplete until the behavior is reproved or reworked.
 
 ## T5 - Svelte Reactivity And Lifecycle Failures
 
-**Pattern:** agents read reactive state inside effects or services that later
-write the same state, creating loops or hidden dependencies.
+**Pattern:** agents read reactive state inside effects or services that later write the same state, creating loops or hidden dependencies.
 
-**Evidence:** selection hang came from `panelExplorer.svelte` refresh effects
-tracking `ViewService` selection/focus reads; earlier raw handoff shows
-`SettingsUI` blanket autosave and `OverlayStateService` no-op writes causing
-runtime loops; popup island failures required live Svelte/Obsidian smoke.
+**Evidence:** selection hang came from `panelExplorer.svelte` refresh effects tracking `ViewService` selection/focus reads; earlier raw handoff shows `SettingsUI` blanket autosave and `OverlayStateService` no-op writes causing runtime loops; popup island failures required live Svelte/Obsidian smoke.
 
-**Current risk:** Svelte 5 runes make local code look pure while effect graphs
-cross service/view boundaries invisibly.
+**Current risk:** Svelte 5 runes make local code look pure while effect graphs cross service/view boundaries invisibly.
 
-**Countermeasure:** use `untrack` for provider refresh/mirroring boundaries,
-avoid blanket autosave effects, test no-op identity behavior, and prefer
-explicit event subscriptions over accidental reactive reads.
+**Countermeasure:** use `untrack` for provider refresh/mirroring boundaries, avoid blanket autosave effects, test no-op identity behavior, and prefer explicit event subscriptions over accidental reactive reads.
 
 ## T6 - Performance And Scale Regressions
 
 **Pattern:** correctness fixes introduce latency, DOM churn, or full-vault work.
 
-**Evidence:** a Gemini update added trailing-only 250 ms debounce and worsened
-visible explorer latency. Ecosystem research and CodeQL guardrails identify
-missing TanStack `getItemKey`, unbounded `Promise.all(files.map(vault.read))`,
-raw `setTimeout`/`debounce` refresh paths, unsafe dynamic code/path/HTML, and
-full-vault render work as repeatable regression shapes.
+**Evidence:** a Gemini update added trailing-only 250 ms debounce and worsened visible explorer latency. Ecosystem research and CodeQL guardrails identify missing TanStack `getItemKey`, unbounded `Promise.all(files.map(vault.read))`, raw `setTimeout`/`debounce` refresh paths, unsafe dynamic code/path/HTML, and full-vault render work as repeatable regression shapes.
 
-**Current risk:** agents optimize "less CPU" by delaying first paint, or fix
-data freshness by rebuilding too much.
+**Current risk:** agents optimize "less CPU" by delaying first paint, or fix data freshness by rebuilding too much.
 
-**Countermeasure:** guardrail static shapes with CodeQL, use immediate-first
-coalescing, revision-gated caches, durable virtualizer keys, and perf counters
-that separate model rebuilds, flattening, badge bubbling, and vault reads.
+**Countermeasure:** guardrail static shapes with CodeQL, use immediate-first coalescing, revision-gated caches, durable virtualizer keys, and perf counters that separate model rebuilds, flattening, badge bubbling, and vault reads.
 

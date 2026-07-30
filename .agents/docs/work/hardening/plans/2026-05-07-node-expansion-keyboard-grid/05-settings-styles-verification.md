@@ -18,14 +18,11 @@ updated_by: codex
 
 ## Purpose
 
-Make the changes durable: settings persist, labels exist in both languages,
-styles preserve hit targets and accessibility, and verification is run in the
-safe order for this repo.
+Make the changes durable: settings persist, labels exist in both languages, styles preserve hit targets and accessibility, and verification is run in the safe order for this repo.
 
 ## Settings Scope
 
-- Add `gridHierarchyMode?: 'folder' | 'inline'` to
-  `src/types/typeSettings.ts`.
+- Add `gridHierarchyMode?: 'folder' | 'inline'` to `src/types/typeSettings.ts`.
 - Add default `gridHierarchyMode: 'folder'` to `DEFAULT_SETTINGS`.
 - Add Settings UI control in the existing Grid section:
   - English label: `Grid hierarchy mode`
@@ -34,10 +31,8 @@ safe order for this repo.
     - `Folder navigation`
     - `Inline expansion`
 - Preserve current optional grid fields:
-  `gridRenderMode`, `gridEditableColumns`, `gridLivePreviewColumns`,
-  `gridColumns`, `gridRenderChunkSize`.
-- Update `settingsUI.test.ts` so mounting still does not mutate settings or call
-  `saveSettings`.
+  `gridRenderMode`, `gridEditableColumns`, `gridLivePreviewColumns`, `gridColumns`, `gridRenderChunkSize`.
+- Update `settingsUI.test.ts` so mounting still does not mutate settings or call `saveSettings`.
 
 ## Sort Toggle I18n Scope
 
@@ -58,8 +53,7 @@ safe order for this repo.
   - `.vm-selection-box` remains visual-only with `pointer-events: none`.
   - Badges stay above row visuals only where they are actual badge targets.
 - Sort popup:
-  - Add one compact icon button in the vertical or control row without pushing
-    existing sort pills out of their container.
+  - Add one compact icon button in the vertical or control row without pushing existing sort pills out of their container.
   - Button must have visible focus treatment and accessible label.
 - Grid folder mode:
   - Toolbar is dense and utilitarian, not card-like.
@@ -72,8 +66,7 @@ safe order for this repo.
 
 ## Verification Order
 
-Do not run Vite/Svelte verification commands in parallel because this repo has
-known transient resolver issues.
+Do not run Vite/Svelte verification commands in parallel because this repo has known transient resolver issues.
 
 Run narrow tests first:
 
@@ -102,45 +95,29 @@ Use Obsidian CLI smoke only after unit/component/build pass:
 - In tree mode, click parent chevrons near the icon gutter.
 - Drag a selection rectangle over rows, then immediately click a parent chevron.
 - Click direct and inherited badges.
-- Use `ArrowLeft` on child, `ArrowLeft` again on parent, and `ArrowRight` on
-  collapsed parent.
+- Use `ArrowLeft` on child, `ArrowLeft` again on parent, and `ArrowRight` on collapsed parent.
 - Open sort view and toggle expand-all/collapse-all.
-- Switch to grid folder mode and navigate into a parent, then Back, Forward, Up,
-  Refresh, and breadcrumb root.
-- Switch to inline mode if implemented and verify parent tile chevron expansion
-  with nested child grid.
+- Switch to grid folder mode and navigate into a parent, then Back, Forward, Up, Refresh, and breadcrumb root.
+- Switch to inline mode if implemented and verify parent tile chevron expansion with nested child grid.
 - Run `dev:errors` and analyze logs before declaring clean.
 
 ## Completion Notes
 
-- Inline mode is now implemented, not gated. The settings dropdown enables and
-  persists `Inline expansion`.
-- Scoped inline completion tests passed for `viewGridSelection`,
-  `panelExplorerSelection`, and `settingsUI` together with 36 tests after a
-  local Vite cache clear recovered the known transient resolver issue.
-- `pnpm run check` and `pnpm run lint` passed. `pnpm run build` failed once on
-  the known transient `svelte` resolver issue from `src/types/typeFrame.ts`,
-  then passed on immediate sequential rerun without code changes.
-- Scoped `git diff --check` passed for the inline implementation, style,
-  generated `styles.css`, and tests.
-- Obsidian CLI smoke reloaded and opened Vaultman with
-  `gridHierarchyMode: 'inline'`; after clearing an unrelated older
-  `notebook-navigator` error, `obsidian dev:errors` reported no captured errors.
+- Inline mode is now implemented, not gated. The settings dropdown enables and persists `Inline expansion`.
+- Scoped inline completion tests passed for `viewGridSelection`, `panelExplorerSelection`, and `settingsUI` together with 36 tests after a local Vite cache clear recovered the known transient resolver issue.
+- `pnpm run check` and `pnpm run lint` passed. `pnpm run build` failed once on the known transient `svelte` resolver issue from `src/types/typeFrame.ts`, then passed on immediate sequential rerun without code changes.
+- Scoped `git diff --check` passed for the inline implementation, style, generated `styles.css`, and tests.
+- Obsidian CLI smoke reloaded and opened Vaultman with `gridHierarchyMode: 'inline'`; after clearing an unrelated older `notebook-navigator` error, `obsidian dev:errors` reported no captured errors.
 
 ## Documentation Updates
 
-- Link this plan from `current/status.md` and `current/handoff.md` only as a
-  compact current-work pointer.
-- If implementation starts, create a research or execution record under
-  `.agents/docs/work/hardening/research/` or `.agents/docs/work/hardening/items/`
-  for observed hit-target evidence and Windows 11 parity notes.
+- Link this plan from `current/status.md` and `current/handoff.md` only as a compact current-work pointer.
+- If implementation starts, create a research or execution record under `.agents/docs/work/hardening/research/` or `.agents/docs/work/hardening/items/` for observed hit-target evidence and Windows 11 parity notes.
 - Do not move AI docs to `main`.
 
 ## Acceptance
 
 - Settings persist without mount-time mutation.
 - English and Spanish labels exist for all new controls.
-- Styles preserve distinct selection, focus, active, hover, badge, and chevron
-  states.
-- All narrow tests, broad checks, build, scoped diff check, and Obsidian smoke
-  pass before implementation is called complete.
+- Styles preserve distinct selection, focus, active, hover, badge, and chevron states.
+- All narrow tests, broad checks, build, scoped diff check, and Obsidian smoke pass before implementation is called complete.

@@ -29,9 +29,7 @@ updated_by: codex
 ```
 
 - [ ] Do not install Tailwind preflight.
-- [ ] Gate DaisyUI. Official DaisyUI 5 is Tailwind CSS 4 oriented. If ALPHA
-  chooses direct DaisyUI, document the exact integration. Otherwise implement
-  Daisy-style semantic classes as UnoCSS shortcuts named `vm-daisy-*`.
+- [ ] Gate DaisyUI. Official DaisyUI 5 is Tailwind CSS 4 oriented. If ALPHA chooses direct DaisyUI, document the exact integration. Otherwise implement Daisy-style semantic classes as UnoCSS shortcuts named `vm-daisy-*`.
 
 Verification:
 

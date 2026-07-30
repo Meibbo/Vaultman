@@ -23,8 +23,7 @@ No runtime behavior yet.
 
 - [ ] **Step 1: Create the type module skeleton**
 
-Create `src/types/typeThemePreset.ts` with the full type contract from
-[[docs/work/hardening/specs/2026-05-15-explorer-0-b-servicetheme-token-layer/03-api-contract|spec shard 03 §"ThemePreset type — exhaustive contract"]].
+Create `src/types/typeThemePreset.ts` with the full type contract from [[docs/work/hardening/specs/2026-05-15-explorer-0-b-servicetheme-token-layer/03-api-contract|spec shard 03 §"ThemePreset type — exhaustive contract"]].
 Include exactly:
 
 ```typescript
@@ -178,14 +177,11 @@ describe('isBuiltInPreset', () => {
 
 - [ ] **Step 3: Run tests to verify they pass**
 
-Run: `pnpm exec vitest run --project unit --config vitest.config.ts test/unit/types/typeThemePreset.test.ts`
-Expected: PASS — 2 tests pass.
+Run: `pnpm exec vitest run --project unit --config vitest.config.ts test/unit/types/typeThemePreset.test.ts` Expected: PASS — 2 tests pass.
 
 - [ ] **Step 4: `pnpm check`**
 
-Run: `pnpm check`
-Expected: 0 errors / 0 warnings (or no new errors beyond the existing
-8 lint warnings noted in baseline).
+Run: `pnpm check` Expected: 0 errors / 0 warnings (or no new errors beyond the existing 8 lint warnings noted in baseline).
 
 - [ ] **Step 5: Commit**
 
@@ -320,8 +316,7 @@ describe('normalizeCustomPreset', () => {
 
 - [ ] **Step 2: Run tests — verify they FAIL**
 
-Run: `pnpm exec vitest run --project unit --config vitest.config.ts test/unit/types/typeThemePreset.test.ts`
-Expected: FAIL — `normalizeCustomPreset is not a function` for all new tests.
+Run: `pnpm exec vitest run --project unit --config vitest.config.ts test/unit/types/typeThemePreset.test.ts` Expected: FAIL — `normalizeCustomPreset is not a function` for all new tests.
 
 - [ ] **Step 3: Implement `normalizeCustomPreset` in `src/types/typeThemePreset.ts`**
 
@@ -520,13 +515,11 @@ export function normalizeCustomPreset(raw: unknown): ThemePreset | null {
 
 - [ ] **Step 4: Run tests — expect PASS**
 
-Run: `pnpm exec vitest run --project unit --config vitest.config.ts test/unit/types/typeThemePreset.test.ts`
-Expected: PASS — all tests green.
+Run: `pnpm exec vitest run --project unit --config vitest.config.ts test/unit/types/typeThemePreset.test.ts` Expected: PASS — all tests green.
 
 - [ ] **Step 5: `pnpm check`**
 
-Run: `pnpm check`
-Expected: 0 errors.
+Run: `pnpm check` Expected: 0 errors.
 
 - [ ] **Step 6: Commit**
 
@@ -792,14 +785,11 @@ describe('cross-preset invariants', () => {
 
 - [ ] **Step 3: Run tests — expect PASS**
 
-Run: `pnpm exec vitest run --project unit --config vitest.config.ts test/unit/config/themePresetsBuiltin.test.ts`
-Expected: PASS — all tests green (built-ins already match the spec
-values from step 1).
+Run: `pnpm exec vitest run --project unit --config vitest.config.ts test/unit/config/themePresetsBuiltin.test.ts` Expected: PASS — all tests green (built-ins already match the spec values from step 1).
 
 - [ ] **Step 4: `pnpm check`**
 
-Run: `pnpm check`
-Expected: 0 errors.
+Run: `pnpm check` Expected: 0 errors.
 
 - [ ] **Step 5: Commit**
 
@@ -821,5 +811,4 @@ EOF
 )"
 ```
 
-When Phase 1 is complete, proceed to
-[[docs/work/hardening/plans/2026-05-15-explorer-0-b-servicetheme-token-layer/phase-2-settings-shape|Phase 2]].
+When Phase 1 is complete, proceed to [[docs/work/hardening/plans/2026-05-15-explorer-0-b-servicetheme-token-layer/phase-2-settings-shape|Phase 2]].

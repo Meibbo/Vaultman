@@ -19,12 +19,7 @@ tags:
 
 # Architecture Foundation Discovery
 
-Consolidated record of the parallel READ-ONLY research (2026-05-25/26) that widened
-the V.D brainstorm into a **foundation pass**. The user reframed V.D from a Tree-perf
-slice into a whole-system question: separate the core axes (**Surface ⟂ View ⟂ Node
-⟂ Logic**), make views mountable on many surfaces, interoperate with Bases +
-third-party plugins, restructure the roadmap to SemVer + a beta channel, and harden
-the agent/doc discipline to minimize replanning churn.
+Consolidated record of the parallel READ-ONLY research (2026-05-25/26) that widened the V.D brainstorm into a **foundation pass**. The user reframed V.D from a Tree-perf slice into a whole-system question: separate the core axes (**Surface ⟂ View ⟂ Node ⟂ Logic**), make views mountable on many surfaces, interoperate with Bases + third-party plugins, restructure the roadmap to SemVer + a beta channel, and harden the agent/doc discipline to minimize replanning churn.
 
 Companion records:
 - [[docs/work/hardening/specs/2026-05-25-vd-tree-render-projection/index|V.D Tree Render Projection]]
@@ -36,30 +31,18 @@ Companion records:
 
 ## Shards
 
-- [[docs/work/hardening/research/2026-05-25-architecture-foundation-discovery/decision-ledger|Decision Ledger]]
-  — locked / proposed / deferred decisions (faithful, status-tagged, source-linked).
-- [[docs/work/hardening/research/2026-05-25-architecture-foundation-discovery/research-streams|Research Streams]]
-  — raw findings (service web, surfaces/Bases, release/CI, plugin platform, PKM-AI,
-  reference-plugin mount patterns) + interop verdict table + reference-plugin repos.
-- [[docs/work/hardening/research/2026-05-25-architecture-foundation-discovery/roadmap-reslot|Roadmap Reslot Proposal]]
-  — change-type + dependency-driven dynamic order + beta/stable channels.
-- [[docs/work/hardening/research/2026-05-25-architecture-foundation-discovery/roadmap-dispatch|Roadmap Dispatch]]
-  — dispatch-ready dynamic action order (DAG + Now/Next/Later + cost-of-unblock + task
-  contracts), hardens the reslot. The live multi-agent action order.
-- [[docs/work/hardening/research/2026-05-25-architecture-foundation-discovery/open-inventory|Open Inventory + Iteration Review]]
-  — the single consolidated view: LOCKED this iteration + pending (carried + new). Start here for "what's the state".
-- [[docs/work/hardening/research/2026-05-25-architecture-foundation-discovery/decision-changelog|Decision Changelog]]
-  — audit trail of changed/superseded decisions (what → what + why).
+- [[docs/work/hardening/research/2026-05-25-architecture-foundation-discovery/decision-ledger|Decision Ledger]] — locked / proposed / deferred decisions (faithful, status-tagged, source-linked).
+- [[docs/work/hardening/research/2026-05-25-architecture-foundation-discovery/research-streams|Research Streams]] — raw findings (service web, surfaces/Bases, release/CI, plugin platform, PKM-AI, reference-plugin mount patterns) + interop verdict table + reference-plugin repos.
+- [[docs/work/hardening/research/2026-05-25-architecture-foundation-discovery/roadmap-reslot|Roadmap Reslot Proposal]] — change-type + dependency-driven dynamic order + beta/stable channels.
+- [[docs/work/hardening/research/2026-05-25-architecture-foundation-discovery/roadmap-dispatch|Roadmap Dispatch]] — dispatch-ready dynamic action order (DAG + Now/Next/Later + cost-of-unblock + task contracts), hardens the reslot. The live multi-agent action order.
+- [[docs/work/hardening/research/2026-05-25-architecture-foundation-discovery/open-inventory|Open Inventory + Iteration Review]] — the single consolidated view: LOCKED this iteration + pending (carried + new). Start here for "what's the state".
+- [[docs/work/hardening/research/2026-05-25-architecture-foundation-discovery/decision-changelog|Decision Changelog]] — audit trail of changed/superseded decisions (what → what + why).
 
-Durable model + ADRs (architecture/): [[docs/architecture/explorer-model/index|explorer-model]]
-(+ [[docs/architecture/explorer-model/visuals/model-map|visual map]]) · [[docs/architecture/adr/README|ADRs]].
+Durable model + ADRs (architecture/): [[docs/architecture/explorer-model/index|explorer-model]] (+ [[docs/architecture/explorer-model/visuals/model-map|visual map]]) · [[docs/architecture/adr/README|ADRs]].
 
 ## Refined model (8 dimensions)
 
-Core axes **Surface · View · Node · Logic** + cross-cutting **Navigation** (Logic
-sub-axis) **· Style/Theme · Process · Operations**. Durable model + taxonomy +
-per-axis responsibility map live in `architecture/` (explorer-model + glossary +
-ADRs — being written). See the Decision Ledger for the status of each decision.
+Core axes **Surface · View · Node · Logic** + cross-cutting **Navigation** (Logic sub-axis) **· Style/Theme · Process · Operations**. Durable model + taxonomy + per-axis responsibility map live in `architecture/` (explorer-model + glossary + ADRs — being written). See the Decision Ledger for the status of each decision.
 
 ## Open (gating) decisions
 

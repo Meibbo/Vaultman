@@ -22,16 +22,12 @@ tags:
 > checkbox (`- [ ]`) syntax for tracking. When editing `.svelte` files, also use the repo's Svelte
 > skills before edits and run the Svelte checks named in the relevant task.
 
-**Goal:** Build a local, mobile-ready web UI that lets the human coordinator supervise and operate the
-PKM-AI agent-room through guided actions backed by `agent-room.ts`.
+**Goal:** Build a local, mobile-ready web UI that lets the human coordinator supervise and operate the PKM-AI agent-room through guided actions backed by `agent-room.ts`.
 
-**Architecture:** Add a new PKM-AI tool under `.agents/tools/pkm-ai/room-ui/`. The backend is a native
-Node HTTP server that wraps `agent-room.ts` with structured arguments and passphrase-protected LAN mode.
-The frontend is a Svelte 5 single-page app with `Overview`, `Command`, and `Streams` modes; it treats
-room snapshots as display state only.
+**Architecture:** Add a new PKM-AI tool under `.agents/tools/pkm-ai/room-ui/`. The backend is a native Node HTTP server that wraps `agent-room.ts` with structured arguments and passphrase-protected LAN mode.
+The frontend is a Svelte 5 single-page app with `Overview`, `Command`, and `Streams` modes; it treats room snapshots as display state only.
 
-**Tech Stack:** Node 24 native TypeScript, Node `http`, Node test runner, Svelte 5, Vite, existing
-workspace dependencies, `agent-room.ts`.
+**Tech Stack:** Node 24 native TypeScript, Node `http`, Node test runner, Svelte 5, Vite, existing workspace dependencies, `agent-room.ts`.
 
 ---
 
@@ -113,16 +109,13 @@ Do not modify:
 ### Implemented Surface
 
 - New tool directory: `.agents/tools/pkm-ai/room-ui/`.
-- Parent scripts in `.agents/tools/pkm-ai/package.json`: `room-ui:build`, `room-ui:dev`,
-  `room-ui:dev:lan`, `room-ui:test`, `room-ui:typecheck`.
-- Backend: native Node HTTP server with `/api/status`, `/api/action`, static client serving,
-  local mode without auth, and LAN mode requiring `x-room-ui-passphrase`.
+- Parent scripts in `.agents/tools/pkm-ai/package.json`: `room-ui:build`, `room-ui:dev`, `room-ui:dev:lan`, `room-ui:test`, `room-ui:typecheck`.
+- Backend: native Node HTTP server with `/api/status`, `/api/action`, static client serving, local mode without auth, and LAN mode requiring `x-room-ui-passphrase`.
 - CLI wrapper: `agentRoomClient.ts` shells out to `agent-room.ts` with structured argv and no shell.
 - Safety gate: API rejects actions outside the MVP command shapes before delegating to `agent-room.ts`.
 - Frontend: Svelte 5 SPA with `Overview`, `Command`, and `Streams` modes; mobile bottom navigation;
   guided command forms; command preview; risk gates for fresh snapshot, dry-run review, and confirmation.
-- Build runner: `scripts/run-tool.mjs` resolves TypeScript directly and Vite through the installed
-  `@sveltejs/vite-plugin-svelte` peer layout, avoiding root product package changes.
+- Build runner: `scripts/run-tool.mjs` resolves TypeScript directly and Vite through the installed `@sveltejs/vite-plugin-svelte` peer layout, avoiding root product package changes.
 
 ### Verification
 
@@ -131,27 +124,17 @@ Do not modify:
 - `npm run room-ui:build` from `.agents/tools/pkm-ai`: PASS; Vite built `dist/client`.
 - Local HTTP smoke on `127.0.0.1:64110`: `/api/status` returned 200.
 - LAN HTTP smoke on `127.0.0.1:64111` with `--lan --passphrase test-secret`:
-  unauthenticated `/api/status` returned 401, authenticated `/api/status` returned 200,
-  and `/` returned 200.
+  unauthenticated `/api/status` returned 401, authenticated `/api/status` returned 200, and `/` returned 200.
 - Product guard: `git diff --name-only -- src manifest.json versions.json package.json` produced no output.
-- Outside-MVP scan: found outside-MVP terms only in the `riskPolicy.ts` deny-list, not in UI action
-  construction.
-- Full PKM-AI baseline: `node --test "test/*.test.mjs"` from `.agents/tools/pkm-ai` remains 58/64 pass
-  and 6 fail. These failures were observed before implementation and are outside this slice:
-  `query-docs --glossary` emits empty stdout instead of the expected glossary miss, and retrieval/rank
-  tests fail because `@xenova/transformers` is not resolvable from
-  `retrieval/transformers-provider.mjs`.
+- Outside-MVP scan: found outside-MVP terms only in the `riskPolicy.ts` deny-list, not in UI action construction.
+- Full PKM-AI baseline: `node --test "test/*.test.mjs"` from `.agents/tools/pkm-ai` remains 58/64 pass and 6 fail. These failures were observed before implementation and are outside this slice:
+  `query-docs --glossary` emits empty stdout instead of the expected glossary miss, and retrieval/rank tests fail because `@xenova/transformers` is not resolvable from `retrieval/transformers-provider.mjs`.
 
 ### Known Limitations
 
-- The Browser plugin was installed, but its required `node_repl/js` execution surface was not exposed
-  by tool discovery in this session. Local Playwright/Puppeteer packages were also unavailable, so no
-  browser screenshot was captured. Verification covered Svelte autofixer, build, typecheck, unit tests,
-  and HTTP local/LAN smoke.
-- LAN URLs depend on the host network interfaces printed at server startup. The phone must be on the same
-  reachable network segment and use the printed passphrase.
-- `task.status` requires the current claim token. The UI exposes the token field rather than bypassing
-  `agent-room.ts` claim enforcement.
+- The Browser plugin was installed, but its required `node_repl/js` execution surface was not exposed by tool discovery in this session. Local Playwright/Puppeteer packages were also unavailable, so no browser screenshot was captured. Verification covered Svelte autofixer, build, typecheck, unit tests, and HTTP local/LAN smoke.
+- LAN URLs depend on the host network interfaces printed at server startup. The phone must be on the same reachable network segment and use the printed passphrase.
+- `task.status` requires the current claim token. The UI exposes the token field rather than bypassing `agent-room.ts` claim enforcement.
 
 ### Next Action
 
@@ -162,5 +145,4 @@ npm run room-ui:dev
 npm run room-ui:dev:lan
 ```
 
-For phone access, run `room-ui:dev:lan`, open one of the printed LAN URLs from the phone browser, and
-enter the printed temporary passphrase.
+For phone access, run `room-ui:dev:lan`, open one of the printed LAN URLs from the phone browser, and enter the printed temporary passphrase.

@@ -22,8 +22,7 @@ tags:
 - Rename `future` to `draft`.
 - Use `VM-0001` four-digit item IDs.
 - Use priority words: `highest`, `high`, `normal`, `low`, `lowest`.
-- Use modes: `scout`, `research`, `teach`, `implement`, `review`,
-  `update`, `health`, `handoff`.
+- Use modes: `scout`, `research`, `teach`, `implement`, `review`, `update`, `health`, `handoff`.
 - Use `qq:` for quick questions.
 - Use `YYYY-MM-DDTHH:mm:ss` timestamps without timezone offsets.
 - Use one `parent` property with full-path wikilink and initiative alias.

@@ -19,9 +19,7 @@ glossary_candidates:
 
 # User-facing Recovery Wave A
 
-This spec captures the approved first wave for deferred hardening work. The
-goal is to restore user-visible operational workflows before continuing deeper
-interop, table, performance, or architecture work.
+This spec captures the approved first wave for deferred hardening work. The goal is to restore user-visible operational workflows before continuing deeper interop, table, performance, or architecture work.
 
 ## Approved Direction
 
@@ -34,10 +32,7 @@ Execution priority:
 3. Route tag/file rename into the same handoff model.
 4. Restore visible badges and quick actions for queue/filter state.
 
-The user explicitly added a completion constraint: do not finish this wave
-unless tag and file context-menu actions can send operations to the queue. This
-is required so a developer can test later rename slices through the real menu
-path.
+The user explicitly added a completion constraint: do not finish this wave unless tag and file context-menu actions can send operations to the queue. This is required so a developer can test later rename slices through the real menu path.
 
 ## Shards
 

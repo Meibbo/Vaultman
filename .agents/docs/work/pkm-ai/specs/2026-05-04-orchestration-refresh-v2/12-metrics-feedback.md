@@ -14,8 +14,7 @@ tags:
 
 ## Hint Versus Truth
 
-Fields like `task_size` are routing hints. Completion fields record what
-actually happened.
+Fields like `task_size` are routing hints. Completion fields record what actually happened.
 
 Examples:
 

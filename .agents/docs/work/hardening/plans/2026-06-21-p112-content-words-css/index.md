@@ -15,8 +15,7 @@ tags:
 
 # P112 Content/Words/CSS Fixes — Implementation Plan
 
-Branch: `p112-type-view-loop-fix` · Worktree: `hotfix-1.0.2-css-scorecard`
-Spec: [[docs/work/hardening/specs/2026-06-21-p112-content-words-css/index|spec]]
+Branch: `p112-type-view-loop-fix` · Worktree: `hotfix-1.0.2-css-scorecard` Spec: [[docs/work/hardening/specs/2026-06-21-p112-content-words-css/index|spec]]
 
 ```mermaid
 flowchart LR
@@ -95,10 +94,7 @@ const resultFileCount =
 - `.vaultman-content-search-container` = wraps the find input
 - `.vaultman-content-replace-container` = wraps the replace input (additional class on same element)
 
-**Strategy:** Both find and replace wrappers share `.vaultman-content-search-container` (which has
-`position: relative`). A single `::after` rule starting at `inset-inline-start: 30px` (= input
-`padding-inline-start`, where the placeholder text begins) gives both an underline that never covers the
-leading icon — satisfying both "add a border to find" and "replace border must not cover the icon" at once.
+**Strategy:** Both find and replace wrappers share `.vaultman-content-search-container` (which has `position: relative`). A single `::after` rule starting at `inset-inline-start: 30px` (= input `padding-inline-start`, where the placeholder text begins) gives both an underline that never covers the leading icon — satisfying both "add a border to find" and "replace border must not cover the icon" at once.
 A `:focus-within` variant accents the line.
 
 **Edit block added after `.vaultman-content-search-container .vaultman-content-input:focus` rule (~line 4020):**
@@ -193,13 +189,9 @@ private countWords(content: string): number {
 - 2025-W46.md: Obsidian 181 · `\S+` 237 (bug) · `[\p{L}\p{N}]+` 179
 - Unfolding the Napkin (accented prose): Obsidian 27 · `\w+` 25 · `[\p{L}\p{N}]+` **27 exact**
 
-`\w+` was rejected: it splits accented Spanish words (`Díaz`→`D`+`az`). Unicode pattern handles accents and matches
-Obsidian on prose.
+`\w+` was rejected: it splits accented Spanish words (`Díaz`→`D`+`az`). Unicode pattern handles accents and matches Obsidian on prose.
 
-**Test-safety:** `test/unit/statisticsCacheService.test.ts` uses clean ASCII prose (`'one two three'`=3, `'four five'`=2)
-→ Unicode pattern yields identical counts. `test/unit/fileWordCountCellSource.test.ts` source-guards still hold (the
-added `if (file.extension !== 'md')` line keeps `fileStatsCache.get`/`cached.words`, no `cachedRead`/`computeSnapshot`
-in the getter block).
+**Test-safety:** `test/unit/statisticsCacheService.test.ts` uses clean ASCII prose (`'one two three'`=3, `'four five'`=2) → Unicode pattern yields identical counts. `test/unit/fileWordCountCellSource.test.ts` source-guards still hold (the added `if (file.extension !== 'md')` line keeps `fileStatsCache.get`/`cached.words`, no `cachedRead`/`computeSnapshot` in the getter block).
 
 **Test gate:** `pnpm run test:unit` — check `statisticsCache` tests if any; `pnpm run check`.
 
@@ -258,9 +250,4 @@ T5 first (most isolated, no Svelte). T1 next (single line). T2 (Svelte, one cond
 `a59b82f` words · `09b46e9` filters · `0e38e24` content · `d4e896a` css.
 
 ### KNOWN-AJENO — pre-existing test failure (flagged, NOT fixed here)
-`test/unit/filesLogic.test.ts` › *"preserves caller-provided sibling folder order for nested sorted results"*
-expects `['beta','alpha']`, gets `['alpha','beta']`. **Proved pre-existing** by stashing all four edits and
-re-running on clean HEAD (still 1 failed / 13 passed). Introduced by commit `275147f fix(sort): natural numeric
-sort for files, folders, and filter service`, which made `buildFileTree` sort folders — directly contradicting
-this older test's assertion. Needs a test-vs-logic reconciliation (decide whether folder siblings keep caller
-order or sort), which is its own slice outside these six bugs.
+`test/unit/filesLogic.test.ts` › *"preserves caller-provided sibling folder order for nested sorted results"* expects `['beta','alpha']`, gets `['alpha','beta']`. **Proved pre-existing** by stashing all four edits and re-running on clean HEAD (still 1 failed / 13 passed). Introduced by commit `275147f fix(sort): natural numeric sort for files, folders, and filter service`, which made `buildFileTree` sort folders — directly contradicting this older test's assertion. Needs a test-vs-logic reconciliation (decide whether folder siblings keep caller order or sort), which is its own slice outside these six bugs.

@@ -17,8 +17,7 @@ updated_by: codex
 
 ## Feedback Loops First
 
-The implementation plan must start with characterization tests and probes. Code
-migration should not begin until the harness can expose regressions.
+The implementation plan must start with characterization tests and probes. Code migration should not begin until the harness can expose regressions.
 
 Required feedback loops:
 
@@ -42,8 +41,7 @@ The dataset harness should generate realistic Explorer shapes:
 - flat file lists;
 - deep folder hierarchies;
 - mixed folder/file trees;
-- provider rows for files/content/outline/props/tags/plugins/snippets where
-  feasible;
+- provider rows for files/content/outline/props/tags/plugins/snippets where feasible;
 - badges and action states;
 - filtered states;
 - selected states;
@@ -51,8 +49,7 @@ The dataset harness should generate realistic Explorer shapes:
 - property/tag density variance;
 - long labels and extension edge cases.
 
-The harness should be deterministic so perf results can be compared across
-commits and against Notebook Navigator where applicable.
+The harness should be deterministic so perf results can be compared across commits and against Notebook Navigator where applicable.
 
 ## Required Perf Scenarios
 
@@ -93,11 +90,9 @@ The pass is acceptable only if:
 - 10K is a release gate for tree/list and core platform paths;
 - 50K is a must-pass gate for core, tree, and list;
 - 100K proof benchmark runs without architectural collapse;
-- `table`, `grid`, and `cards` have platform contracts and 10K gates, plus
-  50K characterizing benchmarks;
+- `table`, `grid`, and `cards` have platform contracts and 10K gates, plus 50K characterizing benchmarks;
 - `viewTree` is migrated to shared projection/scroll/geometry contracts;
-- `viewTree` no longer acts as a god object for projection, scroll, selection,
-  visual state, and render wiring;
+- `viewTree` no longer acts as a god object for projection, scroll, selection, visual state, and render wiring;
 - tree box selection works;
 - selected rows are grey;
 - filtered rows use accent left border and translucent accent background;
@@ -112,6 +107,4 @@ The pass is acceptable only if:
 
 ## Review Gate
 
-After the implementation plan is written, each phase should have an explicit
-review checkpoint. The tree migration phase requires a visual contract review
-before performance-only work can be considered complete.
+After the implementation plan is written, each phase should have an explicit review checkpoint. The tree migration phase requires a visual contract review before performance-only work can be considered complete.

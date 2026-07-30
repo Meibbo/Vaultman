@@ -22,10 +22,7 @@ tags: [agent/issue, triage/in-progress, initiative/polish, release/1.2.0, plugin
 
 ## What to build
 
-Make the Plugins Explorer state cell and context-menu action invoke the same
-SASI capability for Vaultman. Vaultman may disable itself; it may never uninstall
-itself. Remove the stale self-protected warning from the toggle path and handle the
-fact that successful disable tears down the caller immediately.
+Make the Plugins Explorer state cell and context-menu action invoke the same SASI capability for Vaultman. Vaultman may disable itself; it may never uninstall itself. Remove the stale self-protected warning from the toggle path and handle the fact that successful disable tears down the caller immediately.
 
 ## Acceptance criteria
 
@@ -44,18 +41,13 @@ None — can start immediately.
 ## Implementation checkpoint — 2026-07-22
 
 - Product commit: `1c689ef1 fix(plugins): allow Vaultman self-disable`.
-- `logicAddonCells` now owns the shared toggle/uninstall policy and the single
-  `toggleCommunityPlugin` operation used by both the state cell and context menu.
-- A successful Vaultman disable suppresses all post-operation refresh/rebuild work because
-  Obsidian tears down the caller; failed operations still clear and repaint pending state.
-- The uninstall handler now re-checks the shared policy, so Vaultman remains protected even
-  if a caller bypasses menu visibility.
+- `logicAddonCells` now owns the shared toggle/uninstall policy and the single `toggleCommunityPlugin` operation used by both the state cell and context menu.
+- A successful Vaultman disable suppresses all post-operation refresh/rebuild work because Obsidian tears down the caller; failed operations still clear and repaint pending state.
+- The uninstall handler now re-checks the shared policy, so Vaultman remains protected even if a caller bypasses menu visibility.
 - The stale warning and its English/Spanish locale entries were removed.
 - Verification: 82/82 focused tests, changed-path ESLint, Svelte format and diff check green.
-  `pnpm run check` reports only the three pre-existing toolbar-overflow diagnostics from the
-  foreign `logicResponsiveLayout.ts` worktree edit.
-- Remaining gate: controlled `plugin-dev` self-disable followed by manual re-enable in Core
-  Settings. The issue remains `in-progress` until that destructive/HITL check is witnessed.
+  `pnpm run check` reports only the three pre-existing toolbar-overflow diagnostics from the foreign `logicResponsiveLayout.ts` worktree edit.
+- Remaining gate: controlled `plugin-dev` self-disable followed by manual re-enable in Core Settings. The issue remains `in-progress` until that destructive/HITL check is witnessed.
 
 ## Outcome (2026-07-23)
 

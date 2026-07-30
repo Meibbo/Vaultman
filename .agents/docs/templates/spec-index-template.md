@@ -21,5 +21,4 @@ tags:
 
 ## Shard Trigger
 
-Shard into dated folders when this index approaches 150 lines or mixes
-unrelated initiatives.
+Shard into dated folders when this index approaches 150 lines or mixes unrelated initiatives.

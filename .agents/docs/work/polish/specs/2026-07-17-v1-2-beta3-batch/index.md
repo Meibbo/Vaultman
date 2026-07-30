@@ -14,11 +14,9 @@ tags:
 # v1.2.0-beta.3 batch (spec)
 
 Base: `dev` @ `5e5fa1df` (= `origin/dev` = `1.2.0-beta.2`). Worktree de referencia:
-`C:/tmp/vaultman-release-beta2-final2` (checkout limpio de `dev`). Implementación en
-rama `v12/bt3` apilada sobre `dev`; FF/push los decide el dev.
+`C:/tmp/vaultman-release-beta2-final2` (checkout limpio de `dev`). Implementación en rama `v12/bt3` apilada sobre `dev`; FF/push los decide el dev.
 
-Origen: revisión manual del dev sobre beta.2 (2026-07-17, este chat). Diagnóstico
-previo verificado en código (3 Explore agents + verificación coordinador). Issue-set:
+Origen: revisión manual del dev sobre beta.2 (2026-07-17, este chat). Diagnóstico previo verificado en código (3 Explore agents + verificación coordinador). Issue-set:
 [[docs/work/polish/issues/bt3-beta3-batch/index|BT3-001..010]].
 
 ## Decisiones locked (grill 2026-07-17)
@@ -72,36 +70,20 @@ flowchart TB
   B001 -. lección padding .-> R010
 ```
 
-Serialización recomendada: BT3-001/007 (micro) → 002 → 008 → 003 → 004 → 009 →
-005 → 006. 010 corre paralelo en cualquier momento (read-only). 002 y 006 tocan
-ambos `navbarFilters.svelte` — no paralelizar entre sí.
+Serialización recomendada: BT3-001/007 (micro) → 002 → 008 → 003 → 004 → 009 → 005 → 006. 010 corre paralelo en cualquier momento (read-only). 002 y 006 tocan ambos `navbarFilters.svelte` — no paralelizar entre sí.
 
 ## Gates por issue (policy dev-lock 2026-07-14/15, sin cambio)
 
-RED/GREEN focal · svelte-check 0/0 · autofixer `issues:[]` en `.svelte` tocados ·
-lint/stylelint según alcance · build · full unit al integrar. Testing
-visual/UI/Obsidian/mobile **delistado para agentes** — validación manual del dev.
+RED/GREEN focal · svelte-check 0/0 · autofixer `issues:[]` en `.svelte` tocados · lint/stylelint según alcance · build · full unit al integrar. Testing visual/UI/Obsidian/mobile **delistado para agentes** — validación manual del dev.
 Two-commit: `feat/fix` código-only (pushable) + `docs:` local-only.
 
 ## Adversarial pass (C2)
 
-- **Migración sortState**: layouts guardados con shape legacy `{sortBy,direction,childLevel}`
-  deben migrar sin romper load; regla en shard 01 §Migración. Riesgo si un layout
-  guardado apunta a `drillNodeId` inexistente → fallback `All` (cubierto D2).
+- **Migración sortState**: layouts guardados con shape legacy `{sortBy,direction,childLevel}` deben migrar sin romper load; regla en shard 01 §Migración. Riesgo si un layout guardado apunta a `drillNodeId` inexistente → fallback `All` (cubierto D2).
 - **`In mode` Select (port sandbox)**: sandbox trae semántica selection (P.D slice 3:
-  `select-visible-active-explorer`/`clear-active-explorer-selection`) pero su runtime
-  difiere del stream dev — el port es semántico, no copy-paste. beta.2 ya trae
-  `logicFileSelection.ts` como base local. Riesgo de scope-creep: Select entra
-  mínimo (click=select/toggle, sin box-select). |
-- **Cell `count`→`Props` (files)**: `sort.by.count` es label compartido entre tabs —
-  el rename es files-only (label por tab), no global; verificado que el binding interno
-  ya usa `'props'` (explorerFiles L549/723).
-- **No cubierto adrede**: paridad popupView (D20) · box-select en Select mode ·
-  sub-efectos Niagara dormidos (backlog FTC) · perf virtualization (V.D sandbox).
+  `select-visible-active-explorer`/`clear-active-explorer-selection`) pero su runtime difiere del stream dev — el port es semántico, no copy-paste. beta.2 ya trae `logicFileSelection.ts` como base local. Riesgo de scope-creep: Select entra mínimo (click=select/toggle, sin box-select). |
+- **Cell `count`→`Props` (files)**: `sort.by.count` es label compartido entre tabs — el rename es files-only (label por tab), no global; verificado que el binding interno ya usa `'props'` (explorerFiles L549/723).
+- **No cubierto adrede**: paridad popupView (D20) · box-select en Select mode · sub-efectos Niagara dormidos (backlog FTC) · perf virtualization (V.D sandbox).
 - **Qué se pierde vs status quo**: double-click de addons (D6) muere como gesto;
-  el item ADD mode desaparece como toggle rápido de primer nivel (queda a 2 clicks
-  dentro de In mode) — aceptado por dev en D12/D13.
-- Nombres verificados contra código real (no memoria): `filtersShowTabLabels` ·
-  `toolbarToolsMenu` · `coloredBadges` · `glassBlurIntensity` · `tocReservedLane` ·
-  `addModeActive`/`setAddMode` · `DEFAULT_VISIBLE_CELLS` · `_propCountForFile` ·
-  `IconicService.getFileIcon` · `logicResponsiveLayout` · `longPressGesture`.
+  el item ADD mode desaparece como toggle rápido de primer nivel (queda a 2 clicks dentro de In mode) — aceptado por dev en D12/D13.
+- Nombres verificados contra código real (no memoria): `filtersShowTabLabels` · `toolbarToolsMenu` · `coloredBadges` · `glassBlurIntensity` · `tocReservedLane` · `addModeActive`/`setAddMode` · `DEFAULT_VISIBLE_CELLS` · `_propCountForFile` · `IconicService.getFileIcon` · `logicResponsiveLayout` · `longPressGesture`.

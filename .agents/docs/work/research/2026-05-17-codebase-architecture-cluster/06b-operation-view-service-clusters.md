@@ -23,10 +23,7 @@ source:
 
 ## Queue And Operation Cluster
 
-`OperationQueueService` stages `PendingChange` values into per-file virtual
-transactions. It exposes `pending`, `size`, `add`, `remove`, `clear`,
-`execute`, `processAll`, node-op bindings, conflict-aware delete requests, and
-immutable `VfsChain` helpers for diff/snapshot consumers.
+`OperationQueueService` stages `PendingChange` values into per-file virtual transactions. It exposes `pending`, `size`, `add`, `remove`, `clear`, `execute`, `processAll`, node-op bindings, conflict-aware delete requests, and immutable `VfsChain` helpers for diff/snapshot consumers.
 
 ```mermaid
 flowchart TD
@@ -40,19 +37,12 @@ flowchart TD
   execute --> vault["Obsidian file writes"]
 ```
 
-Supporting builders are split by domain: `serviceFileQueue`, `serviceTagQueue`,
-`serviceFnR`, `serviceFnRPropSet`, and `explorerAddOps` create queueable
-changes, while `serviceOperationScope` resolves selected/filtered/auto file
-scope before those changes are created.
+Supporting builders are split by domain: `serviceFileQueue`, `serviceTagQueue`, `serviceFnR`, `serviceFnRPropSet`, and `explorerAddOps` create queueable changes, while `serviceOperationScope` resolves selected/filtered/auto file scope before those changes are created.
 
 ## View And Explorer Cluster
 
-`ViewService` builds `ExplorerRenderModel` rows from nodes, decorations,
-selection snapshots, operation overlays, and active-filter overlays.
-`serviceExplorerProjection`, `serviceExplorerRowInput`, and
-`serviceViewTableAdapter` bridge provider trees/snapshots into concrete view
-rows. `serviceExplorerScrollGeometry` supplies fixed and variable reveal
-geometry for virtualized views.
+`ViewService` builds `ExplorerRenderModel` rows from nodes, decorations, selection snapshots, operation overlays, and active-filter overlays.
+`serviceExplorerProjection`, `serviceExplorerRowInput`, and `serviceViewTableAdapter` bridge provider trees/snapshots into concrete view rows. `serviceExplorerScrollGeometry` supplies fixed and variable reveal geometry for virtualized views.
 
 | Service | Consumed by | Role |
 |---|---|---|
@@ -67,17 +57,9 @@ geometry for virtualized views.
 
 ## Interaction And Measurement Cluster
 
-`serviceSelection` owns selection authority; `logicKeyboard` provides pure
-pointer, keyboard, and box-selection transitions. `serviceMouse` maps click and
-modifier grammar to node actions. `serviceDnd` is the generic drag/drop state
-machine; `serviceManualDnd` adapts explorer nodes to workspace payloads and
-manual reorder; `serviceDndSvelteAdapter` and `serviceDndAliasAware` adapt DnD
-payloads to UI/native alias surfaces.
+`serviceSelection` owns selection authority; `logicKeyboard` provides pure pointer, keyboard, and box-selection transitions. `serviceMouse` maps click and modifier grammar to node actions. `serviceDnd` is the generic drag/drop state machine; `serviceManualDnd` adapts explorer nodes to workspace payloads and manual reorder; `serviceDndSvelteAdapter` and `serviceDndAliasAware` adapt DnD payloads to UI/native alias surfaces.
 
-Measurement is separate: `serviceTextMeasure` wraps Pretext with prepared/layout
-caches, and row/card services derive stable row/card sizes from it. This is the
-service layer that protects Grid/Table/Cards from expensive all-row fallback
-measurement.
+Measurement is separate: `serviceTextMeasure` wraps Pretext with prepared/layout caches, and row/card services derive stable row/card sizes from it. This is the service layer that protects Grid/Table/Cards from expensive all-row fallback measurement.
 
 ## Diff, FnR, And Template Cluster
 
@@ -95,7 +77,5 @@ measurement.
 
 - Queue, view overlays, and provider decorations are tightly coupled by IDs.
   Stable IDs and queue bindings are more important than component-local state.
-- The view cluster is intentionally adapter-heavy. Refactors should preserve the
-  direction: provider data becomes row inputs/projections, then view models.
-- DnD and measurement services are shared by multiple surfaces. A change made
-  for Grid can affect tabs, manual reorder, queue/list popups, or cards.
+- The view cluster is intentionally adapter-heavy. Refactors should preserve the direction: provider data becomes row inputs/projections, then view models.
+- DnD and measurement services are shared by multiple surfaces. A change made for Grid can affect tabs, manual reorder, queue/list popups, or cards.

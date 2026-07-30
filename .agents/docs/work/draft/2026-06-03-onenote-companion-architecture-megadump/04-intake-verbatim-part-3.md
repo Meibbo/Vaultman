@@ -15,10 +15,7 @@ tags:
 
 # Megadump Intake — Verbatim Part 3 (second chunk, 2026-06-03)
 
-Dev sent a follow-up chunk: partly repeats part-2 (Layout Design API / Modular config / System
-Modules Library) but adds the **symbiont** post framing + refined SCENE-file readme + acronym
-expansions wanted for official docs. Captured lossless, fenced. New terms triaged in
-[[docs/work/draft/2026-06-03-onenote-companion-architecture-megadump/01-triage-classification|01-triage]] addendum.
+Dev sent a follow-up chunk: partly repeats part-2 (Layout Design API / Modular config / System Modules Library) but adds the **symbiont** post framing + refined SCENE-file readme + acronym expansions wanted for official docs. Captured lossless, fenced. New terms triaged in [[docs/work/draft/2026-06-03-onenote-companion-architecture-megadump/01-triage-classification|01-triage]] addendum.
 
 ```text
 #vaultman #description Ready to use bundled framework that flows seamlessly by default with the rest of your workspace themes, snippets and plugins.

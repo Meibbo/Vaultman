@@ -20,24 +20,19 @@ Feeds MD-A2 and the theme-scene provider pattern (MD-A3/A5).
 
 ## Architecture — multi-source detection
 
-Discovers callouts from 4 source kinds (`CalloutSource`): **built-in** (Obsidian native: note, info,
-tip, warning, danger, quote, …), **theme**, **snippet**, **custom** (plugin-managed). Each callout =
-`{ id, color:[r,g,b], icon, sources: CalloutSource[] }`. Auto-scans stylesheets; no manual registration.
+Discovers callouts from 4 source kinds (`CalloutSource`): **built-in** (Obsidian native: note, info, tip, warning, danger, quote, …), **theme**, **snippet**, **custom** (plugin-managed). Each callout = `{ id, color:[r,g,b], icon, sources: CalloutSource[] }`. Auto-scans stylesheets; no manual registration.
 
 ## CSS detection + handling
 
 - Parses selectors matching `.callout[data-callout="type-name"]`.
-- Reads CSS custom props inside: `--callout-color` (must be **RGB tuple** `r, g, b` — hex / `rgb()` /
-  named colors NOT supported) and `--callout-icon` (a **Lucide** icon name).
-- Inspects Obsidian's appearance system to know which theme + snippets are active, then scans their
-  stylesheets for the above. Source attribution tracked per callout.
+- Reads CSS custom props inside: `--callout-color` (must be **RGB tuple** `r, g, b` — hex / `rgb()` / named colors NOT supported) and `--callout-icon` (a **Lucide** icon name).
+- Inspects Obsidian's appearance system to know which theme + snippets are active, then scans their stylesheets for the above. Source attribution tracked per callout.
 - "Export Callouts as CSS" button emits user customizations as a snippet; user edits stored in plugin settings.
 - Graceful degradation: unparseable color/missing icon → defaults, no crash.
 
 ## Settings UI
 
-Management pane: browse callouts w/ live preview; color picker + dropdown; Lucide icon picker; rename
-custom callouts; create new; insert callout into note; export as CSS; mobile-adjusted layout.
+Management pane: browse callouts w/ live preview; color picker + dropdown; Lucide icon picker; rename custom callouts; create new; insert callout into note; export as CSS; mobile-adjusted layout.
 
 ## Public plugin API (`getApi`)
 
@@ -57,10 +52,7 @@ Owned handle (`getApi(this)`) = full access; unowned = limited.
 
 ## Applicability to Vaultman theme-scene (MD-A3/A5)
 
-Reusable pattern: **multi-source scan → CSS pattern-match → metadata extraction → unified typed UI →
-public + event API → export**. Source attribution (built-in vs theme vs snippet vs custom) lets us warn
-on overrides, detect conflicts, resolve precedence (user > theme > built-in). Lazy/on-demand parse keeps
-startup cheap. Immutable read-only data + `on("change")` is the model for a `getSceneAPI()` (bridge angle MD-F2).
+Reusable pattern: **multi-source scan → CSS pattern-match → metadata extraction → unified typed UI → public + event API → export**. Source attribution (built-in vs theme vs snippet vs custom) lets us warn on overrides, detect conflicts, resolve precedence (user > theme > built-in). Lazy/on-demand parse keeps startup cheap. Immutable read-only data + `on("change")` is the model for a `getSceneAPI()` (bridge angle MD-F2).
 
 ## Sources
 

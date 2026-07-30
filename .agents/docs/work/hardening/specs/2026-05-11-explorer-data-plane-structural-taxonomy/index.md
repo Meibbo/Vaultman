@@ -17,13 +17,9 @@ updated_by: codex
 
 # Explorer Data Plane Structural Taxonomy
 
-This source record turns the explorer data-plane reconnaissance waves into a
-codebase-facing taxonomy, vertical specs, and a wave/task ladder for the
-Explorer data-plane transition.
+This source record turns the explorer data-plane reconnaissance waves into a codebase-facing taxonomy, vertical specs, and a wave/task ladder for the Explorer data-plane transition.
 
-It does not replace the parent PRD. The parent PRD defines the product and
-architecture direction. This folder defines the codebase domains, ownership
-terms, and next multi-agent specification work needed before implementation.
+It does not replace the parent PRD. The parent PRD defines the product and architecture direction. This folder defines the codebase domains, ownership terms, and next multi-agent specification work needed before implementation.
 
 ## Scope
 
@@ -31,13 +27,10 @@ Included:
 
 - `panelExplorer` as the current surface coordinator.
 - Files, Tags, Props, Queue, and Active Filters explorer data paths.
-- `ViewService`, `NodeSelectionService`, scroll, virtualizer, badges, queue
-  overlays, and active-filter overlays.
+- `ViewService`, `NodeSelectionService`, scroll, virtualizer, badges, queue overlays, and active-filter overlays.
 - Tree, grid, table, cards, SVAR, and list view adapters.
-- Existing tests, performance probes, hardening specs, polish plans, and stale
-  plan conflicts that affect this transition.
-- Explorer media/derived-content cache requirements for cached images, previews,
-  and future per-node visual assets.
+- Existing tests, performance probes, hardening specs, polish plans, and stale plan conflicts that affect this transition.
+- Explorer media/derived-content cache requirements for cached images, previews, and future per-node visual assets.
 
 Excluded for now:
 
@@ -73,24 +66,17 @@ Excluded for now:
 Use a cleaner incremental architecture, not a shallow patch sequence:
 
 - first define the taxonomy and vertical codebase specs;
-- then reconcile the provisional Notebook Navigator comparison against those
-  vertical specs;
-- then write implementation specs with enough certainty to integrate structural
-  changes;
+- then reconcile the provisional Notebook Navigator comparison against those vertical specs;
+- then write implementation specs with enough certainty to integrate structural changes;
 - then compare against existing plans and PRDs before publishing issues.
-- keep structural snapshots memory-first while specifying a separate
-  media/derived-content cache database for cached explorer images.
+- keep structural snapshots memory-first while specifying a separate media/derived-content cache database for cached explorer images.
 
 ## Completion State
 
 - Reconnaissance wave: complete.
 - Structural/taxonomic synthesis: complete in this folder.
 - Detailed Wave 2 vertical specs: complete in shards 06 through 12.
-- Notebook Navigator React-to-Svelte research: initial pass complete in shard
-  05; conclusions must be revalidated against Wave 2 before Wave 4 specs.
+- Notebook Navigator React-to-Svelte research: initial pass complete in shard 05; conclusions must be revalidated against Wave 2 before Wave 4 specs.
 - Implementation specs: Wave 4 draft complete in shards 13 through 17.
-- Final issues/PRDs: Wave 5 draft candidates complete; publication pending
-  user approval and tracker target. Local Markdown issues are published at
-  [[docs/work/hardening/issues/explorer-data-plane/index|Explorer data plane local issues]].
-- Notebook Navigator current-branch comparison: captured in shard 20 with a
-  recommendation to prove Files snapshot publication as the next tracer bullet.
+- Final issues/PRDs: Wave 5 draft candidates complete; publication pending user approval and tracker target. Local Markdown issues are published at [[docs/work/hardening/issues/explorer-data-plane/index|Explorer data plane local issues]].
+- Notebook Navigator current-branch comparison: captured in shard 20 with a recommendation to prove Files snapshot publication as the next tracer bullet.

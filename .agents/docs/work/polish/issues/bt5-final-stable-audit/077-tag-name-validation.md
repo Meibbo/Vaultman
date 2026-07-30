@@ -22,11 +22,7 @@ tags: [agent/issue, triage/completed, initiative/polish, release/1.2.0, tags, da
 
 ## What to build
 
-Tag rename validated only that the name was non-empty and different. A name
-with a space was written verbatim into the frontmatter of every file with the
-tag; Obsidian stops parsing a tag at the first space, so the node could no
-longer be found by its own path and every later operation on it silently
-matched nothing until reload — while the frontmatter stayed wrong on disk.
+Tag rename validated only that the name was non-empty and different. A name with a space was written verbatim into the frontmatter of every file with the tag; Obsidian stops parsing a tag at the first space, so the node could no longer be found by its own path and every later operation on it silently matched nothing until reload — while the frontmatter stayed wrong on disk.
 
 ## Acceptance criteria
 
@@ -43,6 +39,4 @@ None.
 
 ## Outcome
 
-Resolved by `d4cf0d0f`. This corrupted real files, so it jumped the queue
-ahead of the Navbar work. Rename of inline-body tags (not frontmatter) is a
-separate defect — see [[../v1-2-1-polish/index|the 1.2.1 backlog]].
+Resolved by `d4cf0d0f`. This corrupted real files, so it jumped the queue ahead of the Navbar work. Rename of inline-body tags (not frontmatter) is a separate defect — see [[../v1-2-1-polish/index|the 1.2.1 backlog]].

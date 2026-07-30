@@ -74,10 +74,7 @@ At this phase, the root only reaches the first `src/` surface:
 
 ## Observations
 
-- Root config is coherent around Node 24, Vite+, Svelte 5, strict TS, Vitest,
-  WDIO, UnoCSS, and Obsidian plugin packaging.
-- `package.json` is the main root orchestrator. Most root files are either
-  direct inputs to its scripts or release metadata consumed by workflows.
+- Root config is coherent around Node 24, Vite+, Svelte 5, strict TS, Vitest, WDIO, UnoCSS, and Obsidian plugin packaging.
+- `package.json` is the main root orchestrator. Most root files are either direct inputs to its scripts or release metadata consumed by workflows.
 - `main.js` and `styles.css` are generated root artifacts, not source of truth.
-- `.agents/` is part of the agent workflow layer, not product runtime, but it
-  is intentionally present on this branch.
+- `.agents/` is part of the agent workflow layer, not product runtime, but it is intentionally present on this branch.

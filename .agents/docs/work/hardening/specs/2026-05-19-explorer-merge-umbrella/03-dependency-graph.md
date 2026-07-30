@@ -116,8 +116,7 @@ graph LR
 ## Per-edge rationale
 
 ### Phase 0 chain (locked)
-- `0-H → 0-B → O → 0-A`: locked en roadmap. 0-A close = prereq de TODO downstream porque
-  define ViewHost shell + NodeElementMask + View Feature Contract que el merge consume.
+- `0-H → 0-B → O → 0-A`: locked en roadmap. 0-A close = prereq de TODO downstream porque define ViewHost shell + NodeElementMask + View Feature Contract que el merge consume.
 
 ### v1.2.0 cluster (Explorer Hardening)
 - `0-A → A.R`: A.R consumes el View Feature Contract extendido por 0-A
@@ -136,14 +135,11 @@ graph LR
 
 ### v1.5.0 cluster (Nautilus rewrites)
 - `V.D → Nautilus`: views as shells permite swap del implementation interno sin tocar A.R
-- `Adwata sub-feature of 10`: Adwata SVG icons son sub-feature del Theme Builder (acceso via
-  Settings). Adwata standalone NO ships en v1.5.0 — solo Nautilus rewrites usan icons que el
-  Theme Builder gestionará en v1.6.0.
+- `Adwata sub-feature of 10`: Adwata SVG icons son sub-feature del Theme Builder (acceso via Settings). Adwata standalone NO ships en v1.5.0 — solo Nautilus rewrites usan icons que el Theme Builder gestionará en v1.6.0.
 
 ### v1.6.0 cluster (Theme Builder + Layout)
 - `0-A + 0-B → L5/L6`: 5 + 6 son consumers de la theme token layer (0-B) y del view-host (0-A)
-- `L5 + L6 → 10 (Theme Builder)`: Theme Builder access vía Settings refresh (5) y consumes
-  Layout extension primitives (6)
+- `L5 + L6 → 10 (Theme Builder)`: Theme Builder access vía Settings refresh (5) y consumes Layout extension primitives (6)
 - `8 parallel`: color governance es independent, can ship en v1.6.0 sin bloquear 10
 - `Nautilus parallel`: ya en v1.5.0, en v1.6.0 solo si extensions needed
 
@@ -157,8 +153,7 @@ graph LR
 ### v2.0.0 cluster (Bases Parity BREAKING)
 - `A.R + N.R → B.P`: B.P refactor viewTable + viewCards depende de behaviors unified + row primitive
 - `B.P → C.D`: cell data semantics depende de namespaced property IDs de B.P
-- ⚠️ BREAKING: property IDs `prop:area → prop.note.area` — requires migration shim para
-  user-saved bases/filters
+- ⚠️ BREAKING: property IDs `prop:area → prop.note.area` — requires migration shim para user-saved bases/filters
 
 ### Cross-cutting R.D
 - R.D gates every release. Each version bump requires:
@@ -199,13 +194,11 @@ Parallel opportunities:
 
 1. **A.R is THE critical bottleneck** — bloquea V.D, K.B, B.P, T.G. First detail spec target.
 2. **V.D 12-18 commits** — largest sub-system. Slice por view (viewTree → viewList → viewTable → viewGrid → viewCards) recomendado.
-3. **B.P breaking property IDs** — requires user-data migration shim. v2.0.0 release con
-   careful changelog + breaking notice.
+3. **B.P breaking property IDs** — requires user-data migration shim. v2.0.0 release con careful changelog + breaking notice.
 
 ## Parallel agent strategy
 
-Per AGENTS.md "agent dispatch reference" pattern: cada sub-system puede ser ejecutado por
-un agente IA dedicado con pre-reads suficientes. Sugerencia post-umbrella:
+Per AGENTS.md "agent dispatch reference" pattern: cada sub-system puede ser ejecutado por un agente IA dedicado con pre-reads suficientes. Sugerencia post-umbrella:
 
 - **Agente W — A.R**: spec + plan + impl (v1.2.0)
 - **Agente X — 0-A.S**: existing scroll repair + harness (paralelo con W)

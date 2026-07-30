@@ -16,18 +16,9 @@ tags:
 ## Single component, three consumers
 
 0-H introduces one new view component:
-`src/components/views/ViewNodeList.svelte`, produced by renaming and
-rewriting the existing `src/components/views/viewList.svelte`. The
-rewritten component consumes the EDP-009 row input contract and is backed
-by `@tanstack/svelte-virtual` with measured-height virtualization.
+`src/components/views/ViewNodeList.svelte`, produced by renaming and rewriting the existing `src/components/views/viewList.svelte`. The rewritten component consumes the EDP-009 row input contract and is backed by `@tanstack/svelte-virtual` with measured-height virtualization.
 
-The component is general enough to serve three call sites with different
-interaction models. **Callback presence is the switch**: when
-Explorer-mode callbacks (`onSelect`, `onFocus`, `onActivate`) are wired,
-the component renders as an interactive listbox; when only widget
-callbacks (`onAction`, `onReorder`) are wired, it renders as a static
-list with action buttons. There is no `mode` prop; behavior is determined
-by which callbacks the caller provides.
+The component is general enough to serve three call sites with different interaction models. **Callback presence is the switch**: when Explorer-mode callbacks (`onSelect`, `onFocus`, `onActivate`) are wired, the component renders as an interactive listbox; when only widget callbacks (`onAction`, `onReorder`) are wired, it renders as a static list with action buttons. There is no `mode` prop; behavior is determined by which callbacks the caller provides.
 
 ```text
 ┌─ ViewNodeList.svelte (rename + TanStack rewrite of viewList.svelte) ──┐
@@ -101,41 +92,17 @@ src/components/containers/explorerActiveFilters.svelte
 
 ## Why one component, not a primitive plus a wrapper
 
-An earlier architecture proposal was a primitive
-`ListVirtualScroll.svelte` plus a node-aware wrapper `ViewNodeList.svelte`,
-on the theory that "widget rows are not Explorer rows." Reading the
-current `viewList.svelte:1-216` invalidated that theory: both widget
-consumers already pass `ExplorerRenderModel<NodeBase>` with
-`ViewRow<NodeBase>` rows, with labels, details, icons, badges, actions,
-selection state, depth, and group/queue-child kinds. No non-node consumer
-exists.
+An earlier architecture proposal was a primitive `ListVirtualScroll.svelte` plus a node-aware wrapper `ViewNodeList.svelte`, on the theory that "widget rows are not Explorer rows." Reading the current `viewList.svelte:1-216` invalidated that theory: both widget consumers already pass `ExplorerRenderModel<NodeBase>` with `ViewRow<NodeBase>` rows, with labels, details, icons, badges, actions, selection state, depth, and group/queue-child kinds. No non-node consumer exists.
 
-The genuine distinction between the view-mode use and the widget uses is
-not item shape but **interaction richness** — which callbacks are wired,
-and whether the surface is selectable / keyboard-navigable. Opt-in
-callback presence cleanly captures that distinction without splitting the
-component. Widgets ignore `onSelect`/`onFocus`/`onActivate`; the `list`
-view mode ignores `onReorder` when its provider's `canReorder` capability
-is false. The component remains semantically focused on "render a
-virtualized list of `ExplorerRowInput` rows with optional row-level
-interactions."
+The genuine distinction between the view-mode use and the widget uses is not item shape but **interaction richness** — which callbacks are wired, and whether the surface is selectable / keyboard-navigable. Opt-in callback presence cleanly captures that distinction without splitting the component. Widgets ignore `onSelect`/`onFocus`/`onActivate`; the `list` view mode ignores `onReorder` when its provider's `canReorder` capability is false. The component remains semantically focused on "render a virtualized list of `ExplorerRowInput` rows with optional row-level interactions."
 
 ## Why `ExplorerRowInput`, not `ExplorerRenderModel`
 
-The four migrated views all consume `ExplorerRowInput<TMeta>` directly
-and use the EDP-009 helpers (`rowInputCallbackId`, `rowInputVirtualKey`,
-`resolveRowInputRevealIndex`) for identity, virtualization keying, and
-scroll-to-row. Consuming the same contract aligns `ViewNodeList` with the
-EDP-009 precedent and avoids creating a parallel "view-list-only" payload
-shape. Existing widget consumers continue to build
-`ExplorerRenderModel<NodeBase>` today; the migration steps in shard 05
-adapt their output via `rowInputFromViewRow` at the call-site boundary,
-so no consumer-side row-builder rewrite is required in 0-H.
+The four migrated views all consume `ExplorerRowInput<TMeta>` directly and use the EDP-009 helpers (`rowInputCallbackId`, `rowInputVirtualKey`, `resolveRowInputRevealIndex`) for identity, virtualization keying, and scroll-to-row. Consuming the same contract aligns `ViewNodeList` with the EDP-009 precedent and avoids creating a parallel "view-list-only" payload shape. Existing widget consumers continue to build `ExplorerRenderModel<NodeBase>` today; the migration steps in shard 05 adapt their output via `rowInputFromViewRow` at the call-site boundary, so no consumer-side row-builder rewrite is required in 0-H.
 
 ## Net diff
 
 - `+0` files net for the rename of `viewList.svelte` → `ViewNodeList.svelte`.
 - `-2` files deleted (`viewGrid.svelte`, `serviceVirtualizer.svelte.ts`).
 - Net virtualization codepaths: `2 → 1`.
-- Net view components consuming `ExplorerRowInput`: `4 → 5` (the four
-  G1/G2 migrated views plus `ViewNodeList`).
+- Net view components consuming `ExplorerRowInput`: `4 → 5` (the four G1/G2 migrated views plus `ViewNodeList`).

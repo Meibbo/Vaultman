@@ -15,11 +15,7 @@ tags:
 
 # Explorer Architecture Model
 
-Canonical structural model for Vaultman's Explorer and surfaces, from the
-2026-05-26 foundation brainstorm. Term definitions live in
-[[docs/architecture/glossary|glossary]]; per-decision status (LOCKED / PROPOSED /
-DEFERRED) lives in
-[[docs/work/hardening/research/2026-05-25-architecture-foundation-discovery/decision-ledger|Decision Ledger]].
+Canonical structural model for Vaultman's Explorer and surfaces, from the 2026-05-26 foundation brainstorm. Term definitions live in [[docs/architecture/glossary|glossary]]; per-decision status (LOCKED / PROPOSED / DEFERRED) lives in [[docs/work/hardening/research/2026-05-25-architecture-foundation-discovery/decision-ledger|Decision Ledger]].
 This doc states the structure; it does not restate decisions or term defs.
 
 ## The 8 dimensions
@@ -52,8 +48,7 @@ Cross-cutting:
 | Logic | selection/dnd/decorate/badge/fnr/group/keyboard/action-routing | Logic | `services/*` |
 
 `page` = PROPOSED editor-group on native Obsidian leaves/splits + `layout-config`.
-`bars` are an overlay layer owned by the page/surface; a Scene only *declares* the
-bars it wants, and the page-level LayoutModel resolver renders them per active Scene.
+`bars` are an overlay layer owned by the page/surface; a Scene only *declares* the bars it wants, and the page-level LayoutModel resolver renders them per active Scene.
 
 ## Data flow
 
@@ -67,27 +62,14 @@ Bases: IN = translate view-def/results -> our engines; OUT = registerBasesView +
 
 ## Shards
 
-- [[docs/architecture/explorer-model/01-responsibility-map|01 Responsibility map]]
-  — per-responsibility current→target owner (the Q16 grill artifact) + render ownership.
-- [[docs/architecture/explorer-model/02-render-and-data|02 Render + data]]
-  — engines × modes × orientation, NodeKinds, cell + view-config + Bases IN/OUT.
-- [[docs/architecture/explorer-model/03-surfaces-and-interaction|03 Surfaces + interaction]]
-  — Panel/Scene/Surface/Workspace tiers, tile-tree vs native split, `WorkspaceMediator` +
-  `InteractionPolicy` (editor as a drop target), active-context/scope, editor-as-Scene.
-- [[docs/architecture/explorer-model/04-panels-axons-mutation-layout|04 Panels / axons / mutation / layout]]
-  — panel kinds + per-kind host concerns, Selection/Dnd as scope-generic axons, input→action
-  routing, the unified mutation pipeline (Operations→preview→diff→chunk→commit), LayoutBuilder/profiles.
-- [[docs/architecture/explorer-model/05-view-canon|05 View Addressing Canon]]
-  — LIVING canon (grill 2026-06-17/18): engine × mode × orientation × direction ×
-  child_global_direction × viewScope + regime + cell-config plane. **SUPERSEDES-IN-PROGRESS** the
-  stale `orientation = h/v` model in shard 02 + glossary L129-130 + `typeViewConfig.ts`.
-  *(corregido 2026-07-09 al canon 05-view-canon/ADR 0012: ADR 0012 status is now Accepted and the
-  canon's NOW-tier is LOCKED, not merely "in progress" — glossary L129-131 and `typeViewConfig.ts`
-  are already re-modeled to this canon; only shard 02's engine table below remains the pre-canon
-  artifact, kept intentionally until it is archived per the canon's own Landing TODO.)*
+- [[docs/architecture/explorer-model/01-responsibility-map|01 Responsibility map]] — per-responsibility current→target owner (the Q16 grill artifact) + render ownership.
+- [[docs/architecture/explorer-model/02-render-and-data|02 Render + data]] — engines × modes × orientation, NodeKinds, cell + view-config + Bases IN/OUT.
+- [[docs/architecture/explorer-model/03-surfaces-and-interaction|03 Surfaces + interaction]] — Panel/Scene/Surface/Workspace tiers, tile-tree vs native split, `WorkspaceMediator` + `InteractionPolicy` (editor as a drop target), active-context/scope, editor-as-Scene.
+- [[docs/architecture/explorer-model/04-panels-axons-mutation-layout|04 Panels / axons / mutation / layout]] — panel kinds + per-kind host concerns, Selection/Dnd as scope-generic axons, input→action routing, the unified mutation pipeline (Operations→preview→diff→chunk→commit), LayoutBuilder/profiles.
+- [[docs/architecture/explorer-model/05-view-canon|05 View Addressing Canon]] — LIVING canon (grill 2026-06-17/18): engine × mode × orientation × direction × child_global_direction × viewScope + regime + cell-config plane. **SUPERSEDES-IN-PROGRESS** the stale `orientation = h/v` model in shard 02 + glossary L129-130 + `typeViewConfig.ts`.
+  *(corregido 2026-07-09 al canon 05-view-canon/ADR 0012: ADR 0012 status is now Accepted and the canon's NOW-tier is LOCKED, not merely "in progress" — glossary L129-131 and `typeViewConfig.ts` are already re-modeled to this canon; only shard 02's engine table below remains the pre-canon artifact, kept intentionally until it is archived per the canon's own Landing TODO.)*
 
 ## Status
 
-8-dimension model = LOCKED (Y4). Most structure LOCKED; `page=editor-group` (ADR 0007) and
-the 2-layer render ownership (ADR 0008) are now ACCEPTED (promoted 2026-05-26 after grill).
+8-dimension model = LOCKED (Y4). Most structure LOCKED; `page=editor-group` (ADR 0007) and the 2-layer render ownership (ADR 0008) are now ACCEPTED (promoted 2026-05-26 after grill).
 Navigation/Controls are DEFERRED. See the Decision Ledger for each item.

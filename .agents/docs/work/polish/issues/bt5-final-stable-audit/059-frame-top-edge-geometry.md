@@ -21,10 +21,7 @@ tags: [agent/issue, triage/needs-triage, initiative/polish, release/1.2.0, frame
 
 ## What to build
 
-Diagnose and remove the bar/padding/margin that pushes the Navbar and explorer
-down even when Navbar is hidden, preventing scrolled rows from clipping cleanly
-at the frame edge. Compare the beta.5 rendering and the geometry introduced by
-`b56b9a78`, then fix the actual owner instead of adding compensating negative margins.
+Diagnose and remove the bar/padding/margin that pushes the Navbar and explorer down even when Navbar is hidden, preventing scrolled rows from clipping cleanly at the frame edge. Compare the beta.5 rendering and the geometry introduced by `b56b9a78`, then fix the actual owner instead of adding compensating negative margins.
 
 ## Acceptance criteria
 

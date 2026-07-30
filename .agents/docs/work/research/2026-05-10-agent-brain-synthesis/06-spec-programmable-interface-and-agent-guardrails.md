@@ -12,10 +12,7 @@ parent: "[[work/research/2026-05-10-agent-brain-synthesis/index|Agent Brain Synt
 
 ## Problem
 
-The strongest archived product thesis was Vaultman as a supervised bulk-ops
-harness for AI agents. The current codebase has queue, filters, commands,
-views, and typed contracts, but it does not expose a stable programmable
-interface for agents.
+The strongest archived product thesis was Vaultman as a supervised bulk-ops harness for AI agents. The current codebase has queue, filters, commands, views, and typed contracts, but it does not expose a stable programmable interface for agents.
 
 Current evidence:
 
@@ -26,16 +23,14 @@ Current evidence:
 
 ## Goal
 
-Define a small, typed, user-supervised API that lets an agent prepare, inspect,
-and queue operations without bypassing Vaultman's review model.
+Define a small, typed, user-supervised API that lets an agent prepare, inspect, and queue operations without bypassing Vaultman's review model.
 
 ## Required Principles
 
 - Agent actions must route through existing queue/review surfaces.
 - No direct destructive vault mutation through the programmable API.
 - Every operation must have a previewable target set.
-- API responses should expose counts, affected paths, validation errors, and
-  rollback limits.
+- API responses should expose counts, affected paths, validation errors, and rollback limits.
 - The API should use current contracts before adding new abstractions.
 
 ## Candidate API Surface
@@ -73,25 +68,19 @@ and queue operations without bypassing Vaultman's review model.
 
 - Queue contract drift must be resolved or documented.
 - Explorer/filter selected scope must be verified.
-- File/grid operation parity should be clear enough that API operations do not
-  target unsupported UI paths.
-- Lifecycle/index ownership does not have to be complete, but API reads must
-  not depend on stale index state.
+- File/grid operation parity should be clear enough that API operations do not target unsupported UI paths.
+- Lifecycle/index ownership does not have to be complete, but API reads must not depend on stale index state.
 
 ## Superseded Notes
 
-- Old "programmatic API" references were broad. Current spec should start with
-  a narrow read/plan/enqueue API, not a full automation layer.
+- Old "programmatic API" references were broad. Current spec should start with a narrow read/plan/enqueue API, not a full automation layer.
 - Bases I/O text should wait until the basic queue-backed API proves useful.
-- Agent Guardrail Skill should be documented after the API contract exists, not
-  before.
+- Agent Guardrail Skill should be documented after the API contract exists, not before.
 
 ## Acceptance Criteria
 
 - A `serviceAPI` or equivalent module exposes a typed, test-covered contract.
-- API can enumerate active scope and create at least one queued non-destructive
-  operation.
+- API can enumerate active scope and create at least one queued non-destructive operation.
 - Destructive operation attempts require queue review and explicit user action.
 - Ambiguous scope returns an error, not a best guess.
-- Documentation includes examples for an agent preparing a bulk tag/property
-  operation without applying it directly.
+- Documentation includes examples for an agent preparing a bulk tag/property operation without applying it directly.

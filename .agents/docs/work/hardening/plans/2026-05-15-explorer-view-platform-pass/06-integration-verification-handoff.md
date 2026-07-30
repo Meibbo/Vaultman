@@ -35,8 +35,7 @@ Expected: pass.
 
 - [ ] **Step 3: Record results**
 
-Create `perf-baseline.md` with command, date, counts, and key perfProbe
-snapshot fields.
+Create `perf-baseline.md` with command, date, counts, and key perfProbe snapshot fields.
 
 - [ ] **Step 4: Commit**
 
@@ -49,23 +48,19 @@ Commit message: `test: verify explorer platform focused gates`.
 
 - [ ] **Step 1: Run Svelte check**
 
-Run: `pnpm check`
-Expected: 0 errors.
+Run: `pnpm check` Expected: 0 errors.
 
 - [ ] **Step 2: Run build**
 
-Run: `pnpm run build`
-Expected: pass and plugin bundle generated.
+Run: `pnpm run build` Expected: pass and plugin bundle generated.
 
 - [ ] **Step 3: Run full gate**
 
-Run: `pnpm verify`
-Expected: pass.
+Run: `pnpm verify` Expected: pass.
 
 - [ ] **Step 4: Run diff hygiene**
 
-Run: `git diff --check`
-Expected: no whitespace errors.
+Run: `git diff --check` Expected: no whitespace errors.
 
 ### Task 19: Live Obsidian CLI PerfProbe
 
@@ -74,8 +69,7 @@ Expected: no whitespace errors.
 
 - [ ] **Step 1: Sync and reload plugin-dev**
 
-Use the established Obsidian CLI workflow for `vault=plugin-dev`. Run commands
-sequentially.
+Use the established Obsidian CLI workflow for `vault=plugin-dev`. Run commands sequentially.
 
 - [ ] **Step 2: Execute scenarios**
 
@@ -92,8 +86,7 @@ Run live scenarios through `window.__vaultmanPerfProbe`:
 
 - [ ] **Step 3: Capture errors**
 
-Run `dev:errors` and record any captured error. A clean run is required before
-handoff.
+Run `dev:errors` and record any captured error. A clean run is required before handoff.
 
 - [ ] **Step 4: Commit**
 
@@ -112,8 +105,7 @@ Set plan status to active during execution and completed after all gates pass.
 
 - [ ] **Step 2: Update current docs**
 
-Keep current docs compact. Link the spec, plan, perf baseline, commits, and
-remaining residuals.
+Keep current docs compact. Link the spec, plan, perf baseline, commits, and remaining residuals.
 
 - [ ] **Step 3: Final sanity check**
 

@@ -80,8 +80,7 @@ Expected: fail because overlay props and field-service wiring are not present.
 In `src/components/layout/overlays/overlayViewMenu.svelte`:
 
 - import `toggleVisibleField` and `type NodeFieldDefinition`;
-- replace local `PILLS`, `defaultPills`, `pillsKey`, `activePills`, and
-  `currentPillDefs` with props;
+- replace local `PILLS`, `defaultPills`, `pillsKey`, `activePills`, and `currentPillDefs` with props;
 - remove `dnd` from `VIEW_MODES`;
 - add:
 
@@ -133,8 +132,7 @@ visibleFields = [],
 onVisibleFieldsChange,
 ```
 
-with matching types imported from `serviceNodeFieldVisibility`, then pass them
-to `<ViewModePopup>`.
+with matching types imported from `serviceNodeFieldVisibility`, then pass them to `<ViewModePopup>`.
 
 - [x] **Step 5: Own persistence in `pageFilters.svelte`**
 

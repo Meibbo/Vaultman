@@ -104,8 +104,7 @@ Verification:
 pnpm exec vp test run --project unit --config vitest.config.ts test/unit/services/serviceTheme.test.ts --fileParallelism=false
 ```
 
-Expected: binding a root adds `vm-root`; blur toggles `is-vm-unfocused` only
-when `faintModeEnabled` is true; `unbindRoot` removes root-specific classes.
+Expected: binding a root adds `vm-root`; blur toggles `is-vm-unfocused` only when `faintModeEnabled` is true; `unbindRoot` removes root-specific classes.
 
 ## Task A4: Bind ThemeService To Plugin Root
 

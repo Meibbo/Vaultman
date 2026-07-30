@@ -17,27 +17,15 @@ updated_by: codex
 
 ## Scope
 
-The user asked for comparative research on repositories and libraries in the
-same problem space as Vaultman, with emphasis on performance learnings for
-explorers and `viewTree`, plus CodeQL tests/queries worth adding because the
-repository already has CodeQL in CI.
+The user asked for comparative research on repositories and libraries in the same problem space as Vaultman, with emphasis on performance learnings for explorers and `viewTree`, plus CodeQL tests/queries worth adding because the repository already has CodeQL in CI.
 
 Local baseline observed on 2026-05-09:
 
-- `package.json` describes Vaultman as an Obsidian bulk data and metadata
-  editor, with Svelte 5, `@tanstack/svelte-virtual`, `@tanstack/table-core`,
-  Vitest, WDIO/Obsidian integration tooling, and existing unit/component
-  performance probes.
-- `.github/workflows/codeql.yml` already runs `github/codeql-action` v4 for
-  `javascript-typescript` with `security-extended,security-and-quality`.
-- CodeQL CLI is installed locally, but this PowerShell session did not inherit
-  it in `PATH`. Verified executable:
-  `C:\Users\vic_A\codeql-home\codeql\codeql.exe`, version 2.25.3. The
-  Antigravity CodeQL extension also has a bundled distribution at
-  `C:\Users\vic_A\AppData\Roaming\Antigravity\User\globalStorage\github.vscode-codeql\distribution1\codeql\codeql.exe`.
-- Hot local surfaces for this research are `src/components/views/viewTree.svelte`,
-  `src/services/serviceViews.svelte.ts`, `src/services/serviceFilter.svelte.ts`,
-  the explorer providers, and `test/unit/performance/stress.test.ts`.
+- `package.json` describes Vaultman as an Obsidian bulk data and metadata editor, with Svelte 5, `@tanstack/svelte-virtual`, `@tanstack/table-core`, Vitest, WDIO/Obsidian integration tooling, and existing unit/component performance probes.
+- `.github/workflows/codeql.yml` already runs `github/codeql-action` v4 for `javascript-typescript` with `security-extended,security-and-quality`.
+- CodeQL CLI is installed locally, but this PowerShell session did not inherit it in `PATH`. Verified executable:
+  `C:\Users\vic_A\codeql-home\codeql\codeql.exe`, version 2.25.3. The Antigravity CodeQL extension also has a bundled distribution at `C:\Users\vic_A\AppData\Roaming\Antigravity\User\globalStorage\github.vscode-codeql\distribution1\codeql\codeql.exe`.
+- Hot local surfaces for this research are `src/components/views/viewTree.svelte`, `src/services/serviceViews.svelte.ts`, `src/services/serviceFilter.svelte.ts`, the explorer providers, and `test/unit/performance/stress.test.ts`.
 
 ## Comparative Findings
 
@@ -55,59 +43,32 @@ Local baseline observed on 2026-05-09:
 
 ## Prioritized Performance Opportunities
 
-1. Add `getItemKey` to TanStack virtualizers in `viewTree`, `ViewNodeGrid`, and
-   `ViewNodeTable`, using durable node/row IDs. This is the most direct library
-   compliance gap in `viewTree`.
+1. Add `getItemKey` to TanStack virtualizers in `viewTree`, `ViewNodeGrid`, and `ViewNodeTable`, using durable node/row IDs. This is the most direct library compliance gap in `viewTree`.
 2. Introduce revisioned provider/index contracts:
-   `filesRevision`, `propsRevision`, `tagsRevision`, `contentRevision`,
-   `queueRevision`, and `filterRevision`. Cache render models by those revisions
-   instead of object identity alone.
-3. Split tree flattening from visual state. `viewTree.flatten` should depend on
-   tree nodes plus expanded-set revision, not hover badges, selection, focus, or
-   queue badge churn.
-4. Cache folder/prefix hierarchy in the files index. Full tree reconstruction
-   from all file paths should not be on the common render path.
-5. Use leading UI refresh plus trailing coalescing for responsiveness, but move
-   heavy metadata/index refresh to metadata-resolved/idle batches. More debounce
-   fixes CPU but reintroduces the latency regression the user noticed.
-6. Add persistent startup snapshots for props/tags/file hierarchy first. Content
-   indexing can follow if content search remains a bottleneck.
-7. Add exclusion settings for ignored folders/extensions/path regexes so big
-   generated or plugin folders never enter core explorer indexes.
-8. Make content search delta-indexed by path and mtime, with chunked async
-   indexing and top-N post-processing for snippets/highlights.
-9. Keep performance tests structural where possible. Wall-clock budgets are
-   useful as smoke alarms but should be coarse because CI machines vary.
-10. Extend `PerfMeter`/`perfProbe` labels around `viewService.getModel`,
-    `viewTree.flatten`, provider `getTree`, filter evaluation, content query,
-    and virtual scroll windows so regressions are attributable.
+   `filesRevision`, `propsRevision`, `tagsRevision`, `contentRevision`, `queueRevision`, and `filterRevision`. Cache render models by those revisions instead of object identity alone.
+3. Split tree flattening from visual state. `viewTree.flatten` should depend on tree nodes plus expanded-set revision, not hover badges, selection, focus, or queue badge churn.
+4. Cache folder/prefix hierarchy in the files index. Full tree reconstruction from all file paths should not be on the common render path.
+5. Use leading UI refresh plus trailing coalescing for responsiveness, but move heavy metadata/index refresh to metadata-resolved/idle batches. More debounce fixes CPU but reintroduces the latency regression the user noticed.
+6. Add persistent startup snapshots for props/tags/file hierarchy first. Content indexing can follow if content search remains a bottleneck.
+7. Add exclusion settings for ignored folders/extensions/path regexes so big generated or plugin folders never enter core explorer indexes.
+8. Make content search delta-indexed by path and mtime, with chunked async indexing and top-N post-processing for snippets/highlights.
+9. Keep performance tests structural where possible. Wall-clock budgets are useful as smoke alarms but should be coarse because CI machines vary.
+10. Extend `PerfMeter`/`perfProbe` labels around `viewService.getModel`, `viewTree.flatten`, provider `getTree`, filter evaluation, content query, and virtual scroll windows so regressions are attributable.
 
 ## Test Ideas For Runtime Performance
 
-- `viewTree` mounted virtual key test: expand/collapse a large tree and assert
-  virtual rows keep durable node keys instead of index keys.
-- `viewTree` flatten memo test: selection/focus/hover badge changes should not
-  increment `viewTree.flatten` when nodes and expanded revision are unchanged.
-- `ViewService` model cache test: unchanged provider/filter/queue revisions
-  return cached decoration indexes; changed selection should not force semantic
-  layer recomputation for every row.
-- Metadata burst test: many `metadataCache.changed` events produce one heavy
-  props/tags refresh after the resolved/idle boundary.
-- Files hierarchy delta test: create/rename/delete updates affected folder
-  branches without rebuilding all 10k file nodes.
-- Content search delta test: changing one file reindexes one path, not the whole
-  vault, and snippets are generated only for the top result window.
-- Persistent snapshot startup test: unchanged path/mtime/schema loads from cache
-  without vault reads; schema/settings change invalidates the snapshot.
-- Large-vault smoke budgets: keep broad elapsed assertions coarse, but assert
-  counts such as full-vault reads, model rebuilds, flatten calls, and index
-  refreshes precisely.
+- `viewTree` mounted virtual key test: expand/collapse a large tree and assert virtual rows keep durable node keys instead of index keys.
+- `viewTree` flatten memo test: selection/focus/hover badge changes should not increment `viewTree.flatten` when nodes and expanded revision are unchanged.
+- `ViewService` model cache test: unchanged provider/filter/queue revisions return cached decoration indexes; changed selection should not force semantic layer recomputation for every row.
+- Metadata burst test: many `metadataCache.changed` events produce one heavy props/tags refresh after the resolved/idle boundary.
+- Files hierarchy delta test: create/rename/delete updates affected folder branches without rebuilding all 10k file nodes.
+- Content search delta test: changing one file reindexes one path, not the whole vault, and snippets are generated only for the top result window.
+- Persistent snapshot startup test: unchanged path/mtime/schema loads from cache without vault reads; schema/settings change invalidates the snapshot.
+- Large-vault smoke budgets: keep broad elapsed assertions coarse, but assert counts such as full-vault reads, model rebuilds, flatten calls, and index refreshes precisely.
 
 ## CodeQL Guardrails
 
-CodeQL is not a latency benchmark runner. Its best use here is static regression
-prevention: catch code shapes that have repeatedly caused slow explorers, hidden
-async work, or unsafe user-input handling.
+CodeQL is not a latency benchmark runner. Its best use here is static regression prevention: catch code shapes that have repeatedly caused slow explorers, hidden async work, or unsafe user-input handling.
 
 Recommended custom queries:
 
@@ -150,15 +111,13 @@ codeql/
 Recommended workflow shape:
 
 - Keep the existing `security-extended` and `security-and-quality` suites.
-- Add `.github/codeql/codeql-config.yml` and reference it via
-  `github/codeql-action/init@v4` `config-file`.
+- Add `.github/codeql/codeql-config.yml` and reference it via `github/codeql-action/init@v4` `config-file`.
 - Put custom query paths in the config file with `queries: - uses: ./codeql/queries/...`.
 - Add a separate CI job for query tests. Local command verified path pattern:
   `& "C:\Users\vic_A\codeql-home\codeql\codeql.exe" test run codeql/tests --threads=0`.
   For interactive shells that do not resolve `codeql`, prepend the CLI folder:
   `$env:PATH = "C:\Users\vic_A\codeql-home\codeql;$env:PATH"`.
-- Use `.qlref` plus `.expected` files for each query test. CodeQL docs require
-  consistent base names between `.ql`, `.qlref`, and `.expected` files.
+- Use `.qlref` plus `.expected` files for each query test. CodeQL docs require consistent base names between `.ql`, `.qlref`, and `.expected` files.
 
 ## Source Links
 
@@ -179,8 +138,7 @@ Recommended workflow shape:
 - TanStack Virtual API:
   https://tanstack.com/virtual/latest/docs/api/virtualizer
 - Svelte `$state` and keyed each docs:
-  https://svelte.dev/docs/svelte/$state
-  https://svelte.dev/docs/svelte/each
+  https://svelte.dev/docs/svelte/$state https://svelte.dev/docs/svelte/each
 - MiniSearch API:
   https://lucaong.github.io/minisearch/classes/MiniSearch.MiniSearch.html
 - Dexie `bulkPut`:

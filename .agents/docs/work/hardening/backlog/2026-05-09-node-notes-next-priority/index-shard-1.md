@@ -20,28 +20,20 @@ Continua desde [[docs/work/hardening/backlog/2026-05-09-node-notes-next-priority
 
   the event.
 
-Why later: this touches private DOM selectors and needs live Obsidian smoke
-coverage.
+Why later: this touches private DOM selectors and needs live Obsidian smoke coverage.
 
 Outcome:
 
-- Added `NativeSurfaceBindingService` and wired it into `main.ts` after
-  `NodeBindingService`.
-- Native tag, metadata tag, CodeMirror hashtag, folder, and breadcrumb surfaces
-  now support Ctrl/Cmd/Alt/middle-click binding-note creation/opening.
-- Hover previews now use Obsidian's public `hover-link` trigger when a native
-  surface has exactly one matching binding note alias.
-- The adapter preserves native primary-click behavior and only suppresses the
-  event after Vaultman resolves and handles a supported surface.
+- Added `NativeSurfaceBindingService` and wired it into `main.ts` after `NodeBindingService`.
+- Native tag, metadata tag, CodeMirror hashtag, folder, and breadcrumb surfaces now support Ctrl/Cmd/Alt/middle-click binding-note creation/opening.
+- Hover previews now use Obsidian's public `hover-link` trigger when a native surface has exactly one matching binding note alias.
+- The adapter preserves native primary-click behavior and only suppresses the event after Vaultman resolves and handles a supported surface.
 
 Verification:
 
-- Focused native-surface plus node-binding unit suites passed with 2 files and
-  28 tests.
+- Focused native-surface plus node-binding unit suites passed with 2 files and 28 tests.
 - `pnpm run check`, `pnpm run lint`, and `pnpm run build` passed.
-- Obsidian CLI smoke passed in `plugin-dev`: enable/reload `vaultman`, open
-  Vaultman, inspect `dev:errors`, inspect error console after attaching the
-  debugger, and runtime eval confirming the native-surface service is loaded.
+- Obsidian CLI smoke passed in `plugin-dev`: enable/reload `vaultman`, open Vaultman, inspect `dev:errors`, inspect error console after attaching the debugger, and runtime eval confirming the native-surface service is loaded.
 - Full plan/result:
   [[docs/work/hardening/plans/2026-05-09-node-notes-nn4-native-surface-adapter/index|NN-4 native Obsidian surface adapter]].
 
@@ -50,9 +42,7 @@ Verification:
 Scope:
 
 - Prefer existing unit/component tests plus Obsidian CLI/CDP smoke.
-- Consider `obsidian-web` only as an isolated spike pinned to a commit, no real
-  vault data, no vendored code, and only after licensing/safety constraints are
-  accepted.
+- Consider `obsidian-web` only as an isolated spike pinned to a commit, no real vault data, no vendored code, and only after licensing/safety constraints are accepted.
 
 Why last: it is test infrastructure risk, not product behavior.
 
@@ -62,10 +52,8 @@ Why last: it is test infrastructure risk, not product behavior.
 2. NN-0 through NN-3.
 3. Backlog Cut 10: user-facing view-size control.
 4. Backlog Cut 11: cursor affordance and cheap hover pass.
-5. Backlog Cuts 12-15: release-blocking audits for explorer search,
-   queue/file/grid correctness, active highlighting, and badge bubbling.
-6. Backlog Cuts 16-18: rename decision, overlay behavior, performance
-   verification.
+5. Backlog Cuts 12-15: release-blocking audits for explorer search, queue/file/grid correctness, active highlighting, and badge bubbling.
+6. Backlog Cuts 16-18: rename decision, overlay behavior, performance verification.
 7. Backlog Cuts 19-24 and TanStack post-MVP table follow-ups.
 8. Backlog Cut 25 stays post-rc.1 holding work.
 

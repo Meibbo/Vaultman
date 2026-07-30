@@ -14,10 +14,7 @@ tags:
 
 # PKM-AI ADRs (sub-project scope)
 
-Decisions about the **agent-operations sub-project** (docs system + `.agents/tools/` tooling + agent
-workflow/discipline) — SEPARATE from the product-architecture ADRs at
-[[docs/architecture/adr/README|architecture/adr]] (those govern the Vaultman plugin). Kept apart so
-tooling decisions don't pollute product decisions. Nygard-style.
+Decisions about the **agent-operations sub-project** (docs system + `.agents/tools/` tooling + agent workflow/discipline) — SEPARATE from the product-architecture ADRs at [[docs/architecture/adr/README|architecture/adr]] (those govern the Vaultman plugin). Kept apart so tooling decisions don't pollute product decisions. Nygard-style.
 
 Note: wikilinks in the table escape the alias pipe as `\|` so the linter does not split cells.
 
@@ -30,5 +27,4 @@ Note: wikilinks in the table escape the alias pipe as `\|` so the linter does no
 | [[docs/work/pkm-ai/adr/0005-pkm-ai-versioning\|0005]] | PKM-AI versioning system | Accepted |
 | [[docs/work/pkm-ai/adr/0006-retrieval-channel-pluggable-embeddings\|0006]] | Retrieval channel: pluggable embeddings + vector store (default local) | Accepted |
 
-**Decisions 0001–0006 locked · agent-room smoke ✓ · spec ✓.** Next: **plan** (slice S1–S6 → plan-shards +
-tracer-bullet issues). Hub: [[docs/work/pkm-ai/items/2026-06-04-multi-agent-orchestration-upgrade|multi-agent orchestration upgrade]].
+**Decisions 0001–0006 locked · agent-room smoke ✓ · spec ✓.** Next: **plan** (slice S1–S6 → plan-shards + tracer-bullet issues). Hub: [[docs/work/pkm-ai/items/2026-06-04-multi-agent-orchestration-upgrade|multi-agent orchestration upgrade]].

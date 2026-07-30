@@ -17,8 +17,7 @@ tags:
 
 ### Slice 1: Descriptor Model
 
-Add icon descriptor types and compatibility helpers. Existing string icon names
-continue to work.
+Add icon descriptor types and compatibility helpers. Existing string icon names continue to work.
 
 ### Slice 2: Registry And Lucide Provider
 
@@ -26,19 +25,15 @@ Register current Obsidian/Lucide behavior behind the registry. No visual change.
 
 ### Slice 3: Iconic Provider
 
-Adapt `IconicService` into a provider so tag/property overrides use the same
-lookup path.
+Adapt `IconicService` into a provider so tag/property overrides use the same lookup path.
 
 ### Slice 4: Bundled Adwaita Provider
 
-Add a bundled Adwaita/GTK-style subset. Start with file/folder/image/status
-groups needed by Explorer. Do not add a massive full desktop theme unless the
-cache and package-size budget are approved.
+Add a bundled Adwaita/GTK-style subset. Start with file/folder/image/status groups needed by Explorer. Do not add a massive full desktop theme unless the cache and package-size budget are approved.
 
 ### Slice 5: View Adoption
 
-Adopt descriptors in row inputs/projections and view components one surface at
-a time.
+Adopt descriptors in row inputs/projections and view components one surface at a time.
 
 ## Tests
 

@@ -19,8 +19,7 @@ updated_by: codex
 
 ## Purpose
 
-Give table mode its own dense, readable, operational surface without leaking old
-`vm-grid-*` table debt into the new view.
+Give table mode its own dense, readable, operational surface without leaking old `vm-grid-*` table debt into the new view.
 
 ## Files
 

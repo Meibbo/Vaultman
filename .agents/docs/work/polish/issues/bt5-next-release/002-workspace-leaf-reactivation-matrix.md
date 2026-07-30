@@ -23,12 +23,8 @@ tags: [agent/issue, initiative/polish, release/bt5, regression]
 
 ## What to build
 
-Diagnosticar primero si la desaparición de nodos pertenece únicamente al escenario
-reportado —Files en un main leaf, abrir otro tab y volver— o a un lifecycle compartido.
-Construir una matriz mínima de ubicación, transición, explorer y view mode; solo después
-fijar el seam de activación/medición correcto. La hipótesis actual —el arreglo anterior
-observa el tab interno pero no la reactivación del `WorkspaceLeaf`— no se considera causa
-cerrada hasta obtener RED y controles negativos.
+Diagnosticar primero si la desaparición de nodos pertenece únicamente al escenario reportado —Files en un main leaf, abrir otro tab y volver— o a un lifecycle compartido.
+Construir una matriz mínima de ubicación, transición, explorer y view mode; solo después fijar el seam de activación/medición correcto. La hipótesis actual —el arreglo anterior observa el tab interno pero no la reactivación del `WorkspaceLeaf`— no se considera causa cerrada hasta obtener RED y controles negativos.
 
 ## Acceptance criteria
 
@@ -46,13 +42,7 @@ None — can start immediately.
 
 ## Implementation checkpoint
 
-Implementado y commiteado en `c60e3bc7`. El seam compartido escucha
-`active-leaf-change` por identidad exacta y `onResize`, coalesce a un RAF de la ventana
-propietaria y refresca únicamente el explorer interno activo. El helper cubre Files,
-Props, Tags, Snippets, Plugins, Content/no-op y panel aún no montado.
+Implementado y commiteado en `c60e3bc7`. El seam compartido escucha `active-leaf-change` por identidad exacta y `onResize`, coalesce a un RAF de la ventana propietaria y refresca únicamente el explorer interno activo. El helper cubre Files, Props, Tags, Snippets, Plugins, Content/no-op y panel aún no montado.
 
-Smoke automatizado-vivo en `plugin-dev`: un Vaultman temporal en main leaf mostró 45
-filas inicialmente y 45 al volver, tanto partiendo enfocado como ya desenfocado; el root
-no se remontó, no se hizo scroll, las leaves temporales se eliminaron y no hubo errores.
-Permanece HITL la matriz visual completa de sidebar/popout, todos los view modes,
-scroll/selection/expansion y controles negativos; por eso el issue no se marca completed.
+Smoke automatizado-vivo en `plugin-dev`: un Vaultman temporal en main leaf mostró 45 filas inicialmente y 45 al volver, tanto partiendo enfocado como ya desenfocado; el root no se remontó, no se hizo scroll, las leaves temporales se eliminaron y no hubo errores.
+Permanece HITL la matriz visual completa de sidebar/popout, todos los view modes, scroll/selection/expansion y controles negativos; por eso el issue no se marca completed.

@@ -33,12 +33,9 @@ updated_by: codex
 - State: merged.
 - Merged at: `2026-05-27T07:48:39Z`.
 - Merged by: `Meibbo`.
-- Merge commit on `main`: `8fac770481220ca7c43ff78a70d897a62dc136ec`
-  (`chore: release 1.0.1 from the stable 1.0.0 line`).
+- Merge commit on `main`: `8fac770481220ca7c43ff78a70d897a62dc136ec` (`chore: release 1.0.1 from the stable 1.0.0 line`).
 - Reason for PR branch split: GitHub rejected a direct PR from `release/1.0.1-from-1.0.0` because that branch has no history in common with current `main`. The mergeable PR branch starts from `origin/main` and restores the verified candidate tree.
-- Admin bypass rationale: repository ruleset required one approving review and
-  auto-merge was disabled. The PR was mergeable, required checks were passing,
-  and the user explicitly authorized the admin merge bypass.
+- Admin bypass rationale: repository ruleset required one approving review and auto-merge was disabled. The PR was mergeable, required checks were passing, and the user explicitly authorized the admin merge bypass.
 
 ## Commits
 
@@ -85,27 +82,21 @@ updated_by: codex
 
 ### Published release
 
-- Tag: `1.0.1` pushed to
-  `8fac770481220ca7c43ff78a70d897a62dc136ec`.
+- Tag: `1.0.1` pushed to `8fac770481220ca7c43ff78a70d897a62dc136ec`.
 - Release workflow run:
   <https://github.com/Meibbo/Vaultman/actions/runs/26526886518>
   - Event: push to tag `1.0.1`.
   - Conclusion: success.
-  - Gates passed: `npm ci`, `npm run verify`, `npm run security:audit`,
-    `npm run build:plugin`, asset preparation, artifact attestation, release
-    bundle upload, and GitHub Release publication.
+  - Gates passed: `npm ci`, `npm run verify`, `npm run security:audit`, `npm run build:plugin`, asset preparation, artifact attestation, release bundle upload, and GitHub Release publication.
 - GitHub Release: <https://github.com/Meibbo/Vaultman/releases/tag/1.0.1>
   - Name: `1.0.1`.
   - Published at: `2026-05-27T17:16:52Z`.
   - Draft: false.
   - Prerelease: false.
 - Published assets:
-  - `main.js` size `227208`, SHA256
-    `06A4B4879DACAC14BDDC90137F0C84073E0E3789A612FC074FD94BEE550EBC35`.
-  - `manifest.json` size `284`, SHA256
-    `6CCC9D97846B8563290136074F3DF8081071E8C384C6A3626BDE224D65CED3A5`.
-  - `styles.css` size `95169`, SHA256
-    `EEEF8075ECF9C7C7130322590C8CE03189AFEDE98B0A97299AB0F65896530AED`.
+  - `main.js` size `227208`, SHA256 `06A4B4879DACAC14BDDC90137F0C84073E0E3789A612FC074FD94BEE550EBC35`.
+  - `manifest.json` size `284`, SHA256 `6CCC9D97846B8563290136074F3DF8081071E8C384C6A3626BDE224D65CED3A5`.
+  - `styles.css` size `95169`, SHA256 `EEEF8075ECF9C7C7130322590C8CE03189AFEDE98B0A97299AB0F65896530AED`.
 - Downloaded `manifest.json` confirms:
   - `id`: `vaultman`
   - `name`: `Vaultman`
@@ -113,16 +104,12 @@ updated_by: codex
   - `minAppVersion`: `1.12.0`
   - `isDesktopOnly`: `false`
   - `description`: `Files, content and frontmatter explorer like Bases with scoped queued changes list.`
-- Attestation verification passed for `main.js`, `manifest.json`, and
-  `styles.css` with:
+- Attestation verification passed for `main.js`, `manifest.json`, and `styles.css` with:
   - predicate type: `https://slsa.dev/provenance/v1`
   - source repository: `https://github.com/Meibbo/Vaultman`
   - source ref: `refs/tags/1.0.1`
   - source SHA: `8fac770481220ca7c43ff78a70d897a62dc136ec`
-- Non-blocking release-run annotation: GitHub warns that one pinned action still
-  runs on Node.js 20. The run succeeded, but future workflow maintenance should
-  update pinned action SHAs or opt into Node.js 24 before GitHub removes Node.js
-  20 runner support.
+- Non-blocking release-run annotation: GitHub warns that one pinned action still runs on Node.js 20. The run succeeded, but future workflow maintenance should update pinned action SHAs or opt into Node.js 24 before GitHub removes Node.js 20 runner support.
 
 ### Release metadata correction
 
@@ -138,9 +125,7 @@ updated_by: codex
   - Draft: false
   - Prerelease: false
   - Latest: true, as reported by `gh release list`
-- Note: the `1.1.0` Git tag still exists as `1.1.0`; this operation changed
-  GitHub Release metadata only. A future true stable `1.1.0` would require an
-  explicit tag/release strategy decision.
+- Note: the `1.1.0` Git tag still exists as `1.1.0`; this operation changed GitHub Release metadata only. A future true stable `1.1.0` would require an explicit tag/release strategy decision.
 
 ## Scorecard fixes covered
 
@@ -170,8 +155,7 @@ The release candidate therefore treats `verify` plus `security:audit` as the rep
 - Created and pushed tag `1.0.1`.
 - Published GitHub Release `1.0.1`.
 - Verified release assets and artifact attestations.
-- Marked existing GitHub Release `1.1.0` as prerelease and renamed it
-  `1.1.0-beta.1`.
+- Marked existing GitHub Release `1.1.0` as prerelease and renamed it `1.1.0-beta.1`.
 - Renamed GitHub Release `1.0.1` to bare title `1.0.1`.
 
 ## Remaining not performed
@@ -183,10 +167,8 @@ The release candidate therefore treats `verify` plus `security:audit` as the rep
 
 After explicit user approval:
 
-1. Decide whether to preserve, delete, or otherwise handle the existing
-   `1.1.0` tag before any future stable `1.1.0` plan.
+1. Decide whether to preserve, delete, or otherwise handle the existing `1.1.0` tag before any future stable `1.1.0` plan.
 2. Clean up temporary release branches only if desired.
 3. Schedule the pinned-action Node.js 20 warning as workflow maintenance.
 
-The original pushed branch `release/1.0.1-from-1.0.0` remains as the verified
-source candidate but is not the mergeable PR branch.
+The original pushed branch `release/1.0.1-from-1.0.0` remains as the verified source candidate but is not the mergeable PR branch.

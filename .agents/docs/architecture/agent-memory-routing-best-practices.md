@@ -15,20 +15,14 @@ tags:
 
 # Agent Memory + Routing — Best Practices Recon
 
-Light read-only recon (2026-05-28) against current industry practice (2025–2026) for multi-agent AI dev
-workflows: knowledge-base structuring · cross-session memory · decision capture · coordination patterns.
+Light read-only recon (2026-05-28) against current industry practice (2025–2026) for multi-agent AI dev workflows: knowledge-base structuring · cross-session memory · decision capture · coordination patterns.
 Validates what we do well + surfaces specific gaps with priority + effort.
 
 ## What we already do well (validated by external sources)
 
-- **AGENTS.md bootloader → status / handoff → architecture cluster** — matches the emerging
-  bootloader-driven workflow pattern (FlowHunt 2026 · InfoWorld) + Anthropic's Managed Agents memory
-  pattern (status/handoff = navigation indexes <200 lines, link to detail).
-- **ADR discipline** — Nygard-style minimal (status / context / decision / consequences / alternatives /
-  references) matches AWS, Microsoft Azure Well-Architected, TechTarget. Rare-decisions criterion
-  (hard-to-reverse · surprising · trade-off) is canonical.
-- **Sharding strategy** — accept growth + shard with manifests vs compressing detail away. Sound for
-  long-context agents traversing dense decision spaces.
+- **AGENTS.md bootloader → status / handoff → architecture cluster** — matches the emerging bootloader-driven workflow pattern (FlowHunt 2026 · InfoWorld) + Anthropic's Managed Agents memory pattern (status/handoff = navigation indexes <200 lines, link to detail).
+- **ADR discipline** — Nygard-style minimal (status / context / decision / consequences / alternatives / references) matches AWS, Microsoft Azure Well-Architected, TechTarget. Rare-decisions criterion (hard-to-reverse · surprising · trade-off) is canonical.
+- **Sharding strategy** — accept growth + shard with manifests vs compressing detail away. Sound for long-context agents traversing dense decision spaces.
 - **CONTEXT-FORMAT.md + canonical + dev glossaries** — domain language formalization prevents agent drift.
 - **decision-changelog** — supersession audit trail (rare; teams usually overwrite silently).
 
@@ -47,10 +41,7 @@ Validates what we do well + surfaces specific gaps with priority + effort.
 
 ## Overengineering risk = minimal
 
-Sources flag overreach in formal DAG / task-queue orchestration when agents run sequentially. We do run
-sequentially (with read-only parallel research subagents); we should NOT bolt on heavyweight
-orchestration. The append-only journal pattern (P1 → S-12) is the only coordination upgrade that fits
-our cadence.
+Sources flag overreach in formal DAG / task-queue orchestration when agents run sequentially. We do run sequentially (with read-only parallel research subagents); we should NOT bolt on heavyweight orchestration. The append-only journal pattern (P1 → S-12) is the only coordination upgrade that fits our cadence.
 
 ## Action log — applied 2026-05-28 (this session)
 
@@ -77,5 +68,4 @@ our cadence.
 
 ## Status
 
-Recon captured. P0 done; P1 seeded + 1 parked; P2/P3 parked as S-13/S-14. Re-visit when (a) parallel
-agents become routine, (b) status churn outgrows append-only journaling, or (c) ADR count crosses ~25.
+Recon captured. P0 done; P1 seeded + 1 parked; P2/P3 parked as S-13/S-14. Re-visit when (a) parallel agents become routine, (b) status churn outgrows append-only journaling, or (c) ADR count crosses ~25.

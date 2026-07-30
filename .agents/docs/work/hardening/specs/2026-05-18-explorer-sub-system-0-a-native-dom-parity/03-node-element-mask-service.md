@@ -6,9 +6,7 @@ parent: "[[2026-05-18-explorer-sub-system-0-a-native-dom-parity/index]]"
 
 # 03 — Node Element Mask service
 
-Pure-function presentation service that derives a per-row visibility
-mask from the active preset and the user's runtime overrides
-(`btnNodeElementsVisibility` toggles held in `serviceViewHost`).
+Pure-function presentation service that derives a per-row visibility mask from the active preset and the user's runtime overrides (`btnNodeElementsVisibility` toggles held in `serviceViewHost`).
 
 ## Types
 
@@ -46,10 +44,7 @@ export type NodeElementOverrides = Partial<{
 export type ViewHostMountContext = 'panel' | 'in-editor';
 ```
 
-`NodeElementOverrides` is what `btnNodeElementsVisibility` mutates
-on the viewHost service. It is `Partial<>` because the user may
-have toggled only `media`; everything else falls through to the
-preset's default `nodeElements` values.
+`NodeElementOverrides` is what `btnNodeElementsVisibility` mutates on the viewHost service. It is `Partial<>` because the user may have toggled only `media`; everything else falls through to the preset's default `nodeElements` values.
 
 ## Service module
 
@@ -98,32 +93,18 @@ export function computeNodeElementMask(
 }
 ```
 
-Pure functions only. No closures, no `this`, no service deps. Each
-function deterministic for the same input.
+Pure functions only. No closures, no `this`, no service deps. Each function deterministic for the same input.
 
 ## Invariants
 
 **Hard invariants enforced by C2 unit tests:**
 
-1. **Lock priority.** When `preset.lockNodeElementVisibility === true`,
-   `computeNodeElementMask(preset, anyOverrides)` returns the same
-   value as `baseMaskFromPreset(preset)`. Overrides are ignored.
-2. **Media default-off.** Every built-in preset has
-   `nodeElements.media === false`. The mask reflects this absent
-   user override.
-3. **Determinism.** `computeNodeElementMask(p, o)` returns
-   structurally identical output for structurally identical input,
-   regardless of call history.
-4. **No mutation of inputs.** Neither `preset.nodeElements` nor
-   `overrides` is mutated. Returned mask is a fresh object with a
-   fresh `badges` sub-object.
-5. **Badge sub-merge correctness.** `mergeOverrides` merges
-   `badges` per sub-key, not as a whole-object replace. Partial
-   overrides on `badges.warnings` do not clobber other badge keys.
-6. **`null`/`undefined` overrides are equivalent.** Calling
-   `computeNodeElementMask(p, null)` and
-   `computeNodeElementMask(p, undefined as unknown as NodeElementOverrides)`
-   return identical output.
+1. **Lock priority.** When `preset.lockNodeElementVisibility === true`, `computeNodeElementMask(preset, anyOverrides)` returns the same value as `baseMaskFromPreset(preset)`. Overrides are ignored.
+2. **Media default-off.** Every built-in preset has `nodeElements.media === false`. The mask reflects this absent user override.
+3. **Determinism.** `computeNodeElementMask(p, o)` returns structurally identical output for structurally identical input, regardless of call history.
+4. **No mutation of inputs.** Neither `preset.nodeElements` nor `overrides` is mutated. Returned mask is a fresh object with a fresh `badges` sub-object.
+5. **Badge sub-merge correctness.** `mergeOverrides` merges `badges` per sub-key, not as a whole-object replace. Partial overrides on `badges.warnings` do not clobber other badge keys.
+6. **`null`/`undefined` overrides are equivalent.** Calling `computeNodeElementMask(p, null)` and `computeNodeElementMask(p, undefined as unknown as NodeElementOverrides)` return identical output.
 
 ## Test fixtures
 
@@ -191,13 +172,8 @@ readonly nodeElementMask = $derived<NodeElementMask>(
 
 - Module: `src/services/serviceNodeElementVisibility.ts`
 - Types: `src/types/typeViewHost.ts` (shared with viewHost service)
-- Owner: 0-A; future Theme Builder may extend with per-preset
-  override snapshots but the pure-function contract here stays.
+- Owner: 0-A; future Theme Builder may extend with per-preset override snapshots but the pure-function contract here stays.
 
 ## Open question — confirmed during implementation, not blocking
 
-- Whether `BadgeKindMask` should include future badge kinds
-  (e.g., `lockState`, `dirty`, `unread`) currently absent. Out of
-  scope unless EDP-009 / serviceBadge surfaces them in 0-A's
-  lifecycle. If they appear post-merge, additive change to the
-  mask is non-breaking.
+- Whether `BadgeKindMask` should include future badge kinds (e.g., `lockState`, `dirty`, `unread`) currently absent. Out of scope unless EDP-009 / serviceBadge surfaces them in 0-A's lifecycle. If they appear post-merge, additive change to the mask is non-breaking.

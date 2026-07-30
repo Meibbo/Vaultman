@@ -15,11 +15,7 @@ tags:
 
 # Research Inventory
 
-Standing registry of research threads — DONE (with output doc) and PENDING (with what it blocks) — so we
-stop re-running the same recon and always know what's outstanding. Companion to
-[[docs/architecture/zoom-out-map|zoom-out-map]] (subsystems) + the question-inventory idea. Candidate for a
-`vm-zoom-out` skill to auto-regenerate. Discipline: research subagents are **read-only (Explore)** — a
-general-purpose write agent once deleted 706 files; never give research write access.
+Standing registry of research threads — DONE (with output doc) and PENDING (with what it blocks) — so we stop re-running the same recon and always know what's outstanding. Companion to [[docs/architecture/zoom-out-map|zoom-out-map]] (subsystems) + the question-inventory idea. Candidate for a `vm-zoom-out` skill to auto-regenerate. Discipline: research subagents are **read-only (Explore)** — a general-purpose write agent once deleted 706 files; never give research write access.
 
 ## DONE (output recorded)
 
@@ -46,13 +42,7 @@ general-purpose write agent once deleted 706 files; never give research write ac
 
 ## 2026-06-15 — Frontend stack deep research (advances several codes)
 
-[[docs/work/hardening/research/2026-06-15-frontend-stack-deep-research/index|Frontend Stack Deep Research]]
-(6 read-only Explore agents + verification) advances: **virtua-vs-tanstack** (TanStack Virtual internals +
-shared-runtime orchestration — feeds V.D), **R-UNOCSS** (UnoCSS already wired; presetWind4 EXISTS → migration
-viable), **R-UI-PRIMITIVES / S-29** (bits-ui headless strategy + FnR-breakage hypothesis), **R-CHARTS / S-23**
-(LayerChart = defer to dashboard pilot), **R-DND-C** (deepened; official `@dnd-kit/svelte` likely supersedes the
-HanielU port — reconcile). Open verification flags carried in the research index ledger (#9/#11/#12). render-tag
-identified = Polotno html-in-canvas (N4 only).
+[[docs/work/hardening/research/2026-06-15-frontend-stack-deep-research/index|Frontend Stack Deep Research]] (6 read-only Explore agents + verification) advances: **virtua-vs-tanstack** (TanStack Virtual internals + shared-runtime orchestration — feeds V.D), **R-UNOCSS** (UnoCSS already wired; presetWind4 EXISTS → migration viable), **R-UI-PRIMITIVES / S-29** (bits-ui headless strategy + FnR-breakage hypothesis), **R-CHARTS / S-23** (LayerChart = defer to dashboard pilot), **R-DND-C** (deepened; official `@dnd-kit/svelte` likely supersedes the HanielU port — reconcile). Open verification flags carried in the research index ledger (#9/#11/#12). render-tag identified = Polotno html-in-canvas (N4 only).
 
 ## PENDING / BLOCKING (not started)
 
@@ -90,10 +80,8 @@ identified = Polotno html-in-canvas (N4 only).
 
 - Mark DONE → move the row up + link its output doc. Add new threads as they surface.
 - Prefer parallel read-only Explore agents; keep each prompt self-contained + bounded.
-- This doc + zoom-out-map + open-inventory together = the "where are we / what's open" surface
-  (ties to the [[docs/work/pkm-ai/items/2026-05-27-agent-memory-routing-upgrade|memory-routing upgrade]]).
+- This doc + zoom-out-map + open-inventory together = the "where are we / what's open" surface (ties to the [[docs/work/pkm-ai/items/2026-05-27-agent-memory-routing-upgrade|memory-routing upgrade]]).
 
 ## Status
 
-Created 2026-05-27 at dev request (stop repeating researches). Keep current. Two threads running
-(Dynamic Views + serviceMark); results fold into bases-interop-findings / a serviceMark decision.
+Created 2026-05-27 at dev request (stop repeating researches). Keep current. Two threads running (Dynamic Views + serviceMark); results fold into bases-interop-findings / a serviceMark decision.

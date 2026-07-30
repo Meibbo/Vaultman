@@ -40,8 +40,7 @@ Do not change selection behavior in this phase.
 4. Add or adjust SCSS for distinct states.
    - `.is-selected`: stronger selection fill or inset accent.
    - `.is-focused` or `.is-active-node`: faint transparent focus/active state.
-   - `.is-active-filter`: keep existing filter accent and make it coexist with
-     selected.
+   - `.is-active-filter`: keep existing filter accent and make it coexist with selected.
    - `.vm-selection-box`: crisp outline and transparent fill.
 
 5. Add reduced motion guard for any non-essential transform/opacity transition:

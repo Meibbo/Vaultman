@@ -16,8 +16,7 @@ updated_by: codex
 
 ## Projection Core
 
-Every provider should expose a shared Explorer projection instead of each view
-rebuilding hierarchy and state.
+Every provider should expose a shared Explorer projection instead of each view rebuilding hierarchy and state.
 
 Required projection facts:
 
@@ -39,8 +38,7 @@ Required projection facts:
 - decoration layer references;
 - media descriptor references.
 
-Projection must not contain decoded media blobs. It may carry descriptors and
-stable keys that let the lifecycle layer load visible media later.
+Projection must not contain decoded media blobs. It may carry descriptors and stable keys that let the lifecycle layer load visible media later.
 
 ## View Feature And Menu Contract
 
@@ -65,14 +63,11 @@ Each view declares support for:
 The view menu contract has two modes:
 
 - native Obsidian preset: node element visibility follows the preset;
-- custom/non-native preset: `btnNodeElementsVisibility` can show/hide granular node
-  elements.
+- custom/non-native preset: `btnNodeElementsVisibility` can show/hide granular node elements.
 
-The primary image/media slot is one granular node element. It defaults off in
-every view because nodes already have icons.
+The primary image/media slot is one granular node element. It defaults off in every view because nodes already have icons.
 
-Hidden elements should not do meaningful render work. Hiding the media element
-does not remove the media descriptor from projection.
+Hidden elements should not do meaningful render work. Hiding the media element does not remove the media descriptor from projection.
 
 ## Scroll And Geometry Coordinator
 
@@ -84,8 +79,7 @@ Required scroll intent concepts:
 - semantic target by path or domain key;
 - target by index;
 - top/offset target;
-- intent reason: keyboard, selection, reveal, provider switch, view switch,
-  filter/search change, restore, manual, stress jump;
+- intent reason: keyboard, selection, reveal, provider switch, view switch, filter/search change, restore, manual, stress jump;
 - priority;
 - cancellation when the user manually scrolls;
 - late index resolution;
@@ -104,8 +98,7 @@ Geometry responsibilities:
 
 ## Decoration And Media Layers
 
-Decoration layers should be built by revision and batch inputs, not by per-row
-hot-path calls into global services.
+Decoration layers should be built by revision and batch inputs, not by per-row hot-path calls into global services.
 
 Layer examples:
 
@@ -128,8 +121,7 @@ Media lifecycle rules:
 
 ## Render Anatomy Contract
 
-Svelte render snippets/tags can provide a shared node anatomy contract without
-forcing every view to use identical DOM.
+Svelte render snippets/tags can provide a shared node anatomy contract without forcing every view to use identical DOM.
 
 Node anatomy slots:
 
@@ -144,5 +136,4 @@ Node anatomy slots:
 - focus/selection/filter states;
 - loading/error placeholders.
 
-Render anatomy consumes projection and feature contracts. It does not own data
-projection, scroll, geometry, or lifecycle.
+Render anatomy consumes projection and feature contracts. It does not own data projection, scroll, geometry, or lifecycle.

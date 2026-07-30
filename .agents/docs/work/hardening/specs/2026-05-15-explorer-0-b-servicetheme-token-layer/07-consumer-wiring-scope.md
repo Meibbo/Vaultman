@@ -12,15 +12,13 @@ tags:
 
 # Consumer Wiring Scope
 
-Explicit table separating preset fields wired in 0-B (consumers read
-effectively) vs declare-only (field exists, no consumer reads yet).
+Explicit table separating preset fields wired in 0-B (consumers read effectively) vs declare-only (field exists, no consumer reads yet).
 
 ## Wired in 0-B
 
 ### `activePreset.useNativeDom`
 
-Consumers that already read it (no wiring changes; only the derivation
-source within `ThemeService` changes):
+Consumers that already read it (no wiring changes; only the derivation source within `ThemeService` changes):
 
 | File | Line | Code |
 |---|---|---|
@@ -46,33 +44,23 @@ get useNativeDom(): boolean {
 }
 ```
 
-The getter signature is preserved; view component consumers do not
-change. **However**, the default fresh-install behavior changes: pre-0-B
-defaults (`mode='thin'`, `identity='native'`) produced
-`useNativeDom = true`; post-0-B default (`themePresetId='vaultman'`)
-produces `useNativeDom = false` because `PRESET_VAULTMAN.useNativeDom`
-is `false`.
+The getter signature is preserved; view component consumers do not change. **However**, the default fresh-install behavior changes: pre-0-B defaults (`mode='thin'`, `identity='native'`) produced `useNativeDom = true`; post-0-B default (`themePresetId='vaultman'`) produces `useNativeDom = false` because `PRESET_VAULTMAN.useNativeDom` is `false`.
 
-This is the **intentional** "install plugin → see plugin" UX. The
-`native` preset is opt-in for users seeking core-equivalent disguise.
-Documented as accepted behavior change in
-[[docs/work/hardening/specs/2026-05-15-explorer-0-b-servicetheme-token-layer/09-risks-and-open-items|Sec 9 R7]].
+This is the **intentional** "install plugin → see plugin" UX. The `native` preset is opt-in for users seeking core-equivalent disguise.
+Documented as accepted behavior change in [[docs/work/hardening/specs/2026-05-15-explorer-0-b-servicetheme-token-layer/09-risks-and-open-items|Sec 9 R7]].
 
 ### `activePreset.chrome.*` — via CSS vars
 
-Consumer: `src/styles/popup/_islands.scss` after modifications in
-[[docs/work/hardening/specs/2026-05-15-explorer-0-b-servicetheme-token-layer/05-scss-and-dom-binding|Sec 5]].
+Consumer: `src/styles/popup/_islands.scss` after modifications in [[docs/work/hardening/specs/2026-05-15-explorer-0-b-servicetheme-token-layer/05-scss-and-dom-binding|Sec 5]].
 
-Reads `--vm-popup-bg-opacity`, `--vm-popup-backdrop-blur`,
-`--vm-popup-bg-tint` from the cascade. No TS code reads `chrome.*`
+Reads `--vm-popup-bg-opacity`, `--vm-popup-backdrop-blur`, `--vm-popup-bg-tint` from the cascade. No TS code reads `chrome.*`
 directly.
 
 ### `activePreset.density.*` — via CSS vars
 
 Consumers: `_virtual-list.scss`, `_tree.scss` after modifications.
 
-Read `--vm-row-height`, `--vm-row-padding-y`, `--vm-icon-size` from the
-cascade. No TS code reads `density.*` directly.
+Read `--vm-row-height`, `--vm-row-padding-y`, `--vm-icon-size` from the cascade. No TS code reads `density.*` directly.
 
 ### `activePreset.id` — via `rootClasses`
 
@@ -82,19 +70,15 @@ Consumer: `src/components/frame/frameVaultman.svelte:619`.
 const elasticRootClasses = $derived(plugin.themeService.rootClasses.join(' '));
 ```
 
-Already in place. The string array now contains an additional element
-(`vm-theme-{id}`) but the consumer is byte-identical.
+Already in place. The string array now contains an additional element (`vm-theme-{id}`) but the consumer is byte-identical.
 
 ### `preset.source` — via `registerCustomPreset` validation
 
-Used internally by `ThemeService.registerCustomPreset` to reject
-`source !== 'custom'` registrations. Test-asserted.
+Used internally by `ThemeService.registerCustomPreset` to reject `source !== 'custom'` registrations. Test-asserted.
 
 ## Declare-only in 0-B
 
-These fields exist in `ThemePreset`. They have values in built-ins. No
-runtime code consumes them in 0-B. Each row identifies the future
-sub-system that will wire the consumer.
+These fields exist in `ThemePreset`. They have values in built-ins. No runtime code consumes them in 0-B. Each row identifies the future sub-system that will wire the consumer.
 
 | Field | Future consumer | Sub-system |
 |---|---|---|
@@ -113,8 +97,7 @@ sub-system that will wire the consumer.
 
 ## User-visible behavior matrix
 
-For each combination of (active preset, wiring state), what does the user
-see?
+For each combination of (active preset, wiring state), what does the user see?
 
 ### Fresh install — default preset `vaultman`
 
@@ -143,12 +126,9 @@ see?
 | Node element visibility | STILL shows actions/details/badges (declare-only `nodeElements: {…}`). |
 | btnNodeElementsVisibility | STILL visible (declare-only `lockNodeElementVisibility: true`). |
 
-The disguise is **partial** in 0-B. The most user-facing parts (DOM, chrome,
-density) work; the structural cuts (dock/tabs/toolbar/viewMode/element
-visibility) require Sub-system 0-A and Layout/Toolbar extensions.
+The disguise is **partial** in 0-B. The most user-facing parts (DOM, chrome, density) work; the structural cuts (dock/tabs/toolbar/viewMode/element visibility) require Sub-system 0-A and Layout/Toolbar extensions.
 
-This is the intentional foundation→ladder shape. 0-B does not over-deliver
-to keep diff size manageable and 0-A's surface area predictable.
+This is the intentional foundation→ladder shape. 0-B does not over-deliver to keep diff size manageable and 0-A's surface area predictable.
 
 ## Dataflow diagram
 
@@ -194,17 +174,11 @@ to keep diff size manageable and 0-A's surface area predictable.
 
 ## Tests assert the wiring
 
-[[docs/work/hardening/specs/2026-05-15-explorer-0-b-servicetheme-token-layer/08-testing-strategy|Sec 8]]
-details. Quick summary of what is asserted:
+[[docs/work/hardening/specs/2026-05-15-explorer-0-b-servicetheme-token-layer/08-testing-strategy|Sec 8]] details. Quick summary of what is asserted:
 
-- `useNativeDom` returns `false` after `setPreset('vaultman')` and
-  `true` after `setPreset('native')`.
-- `rootClasses` contains `vm-theme-vaultman` after switching to vaultman,
-  and contains `vm-theme-native` (without vaultman) after switching to
-  native.
-- Custom preset registration injects a `<style data-vm-theme-presets="custom">`
-  element with the encoded id selector.
+- `useNativeDom` returns `false` after `setPreset('vaultman')` and `true` after `setPreset('native')`.
+- `rootClasses` contains `vm-theme-vaultman` after switching to vaultman, and contains `vm-theme-native` (without vaultman) after switching to native.
+- Custom preset registration injects a `<style data-vm-theme-presets="custom">` element with the encoded id selector.
 - Built-in preset constants are validated against invariants.
 
-No test asserts that the dock/tabs/toolbar/viewMode filter applies, since
-0-B does not wire those consumers.
+No test asserts that the dock/tabs/toolbar/viewMode filter applies, since 0-B does not wire those consumers.

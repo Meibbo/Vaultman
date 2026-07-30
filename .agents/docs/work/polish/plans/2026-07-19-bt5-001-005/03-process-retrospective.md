@@ -16,43 +16,23 @@ tags: [agent/retrospective, initiative/polish, release/bt5, automation]
 ## Verdict
 
 The 70-minute elapsed time reported by the dev is not explained by "five small issues".
-The batch crossed five different seams: settings/render lifecycle, workspace-leaf lifecycle,
-IndexedDB/statistics/performance, release automation/editorial content and shared sorting.
-BT5-003 alone was a medium persistence-and-performance slice. A safe target is therefore not
-ten minutes; it is to remove coordination, discovery and verification orchestration waste while
-preserving focal TDD, one clean final gate and explicit runtime evidence.
+The batch crossed five different seams: settings/render lifecycle, workspace-leaf lifecycle, IndexedDB/statistics/performance, release automation/editorial content and shared sorting.
+BT5-003 alone was a medium persistence-and-performance slice. A safe target is therefore not ten minutes; it is to remove coordination, discovery and verification orchestration waste while preserving focal TDD, one clean final gate and explicit runtime evidence.
 
-For a comparable batch, the realistic target after the P0 automation below is **40-50 minutes**
-under normal machine load, with **35-50% fewer model/tool tokens**. A 25-35 minute run is plausible
-only after reusable runtime scenarios exist and no new root-cause branch appears. Forcing that target
-before the harnesses exist would trade away regression detection rather than improve the process.
+For a comparable batch, the realistic target after the P0 automation below is **40-50 minutes** under normal machine load, with **35-50% fewer model/tool tokens**. A 25-35 minute run is plausible only after reusable runtime scenarios exist and no new root-cause branch appears. Forcing that target before the harnesses exist would trade away regression detection rather than improve the process.
 
 ## Evidence from this run
 
-- The final useful gates took 462.1 seconds: ESLint 121.1 s, TS/Svelte 48.3 s, format
-  12.9 s, Stylelint 12.2 s, production build 22.4 s, unit tests 206.4 s, scorecard
-  7.0 s and final sync build 31.8 s.
-- Before those useful gates, three wrapper attempts were cancelled after approximately 1, 64 and
-  304 seconds. The latter two left Vitest descendants running and required PID-level cleanup.
+- The final useful gates took 462.1 seconds: ESLint 121.1 s, TS/Svelte 48.3 s, format 12.9 s, Stylelint 12.2 s, production build 22.4 s, unit tests 206.4 s, scorecard 7.0 s and final sync build 31.8 s.
+- Before those useful gates, three wrapper attempts were cancelled after approximately 1, 64 and 304 seconds. The latter two left Vitest descendants running and required PID-level cleanup.
   Therefore at least 369 seconds of wall time were pure verification-orchestration waste.
-- Runtime acceptance used four bespoke Obsidian eval/smoke sequences. They produced valuable
-  evidence, but the scenarios were assembled and interpreted manually instead of returning one
-  stable JSON contract.
-- The initial execution contract was not machine-readable. The dev had to correct the worktree
-  boundary repeatedly: product code belonged in the already-installed worktree, `sandbox` was the
-  alpha/docs stream, and only `plugin-dev` could receive or execute modified artifacts.
-- The mandatory route documents are no longer compact: this review observed `status.md` at 779
-  lines and `handoff.md` at 1120 lines. Full startup reads consume large context before the task's
-  source record is reached.
-- Retrieval-first returned no document for combined BT5/process/performance queries even though the
-  BT5 records existed. After a full reindex, short queries (`State sort`, `micro-cuelgues`) recovered
-  the new issues while longer multi-topic forms still returned zero; matching/backoff is opaque.
-- The code graph was available and useful, but generated `main.js` symbols competed with `src/`
-  symbols until queries were narrowed. This is avoidable discovery noise.
+- Runtime acceptance used four bespoke Obsidian eval/smoke sequences. They produced valuable evidence, but the scenarios were assembled and interpreted manually instead of returning one stable JSON contract.
+- The initial execution contract was not machine-readable. The dev had to correct the worktree boundary repeatedly: product code belonged in the already-installed worktree, `sandbox` was the alpha/docs stream, and only `plugin-dev` could receive or execute modified artifacts.
+- The mandatory route documents are no longer compact: this review observed `status.md` at 779 lines and `handoff.md` at 1120 lines. Full startup reads consume large context before the task's source record is reached.
+- Retrieval-first returned no document for combined BT5/process/performance queries even though the BT5 records existed. After a full reindex, short queries (`State sort`, `micro-cuelgues`) recovered the new issues while longer multi-topic forms still returned zero; matching/backoff is opaque.
+- The code graph was available and useful, but generated `main.js` symbols competed with `src/` symbols until queries were narrowed. This is avoidable discovery noise.
 
-The timestamps above are direct command evidence. The remaining distribution inside the 70 minutes
-cannot be reconstructed exactly from Git commit timestamps, so this record does not invent a
-minute-by-minute allocation.
+The timestamps above are direct command evidence. The remaining distribution inside the 70 minutes cannot be reconstructed exactly from Git commit timestamps, so this record does not invent a minute-by-minute allocation.
 
 ## Where the process lost time and tokens
 
@@ -67,39 +47,29 @@ The agent began reasoning before one compact contract had locked:
 - issue IDs and acceptance gates;
 - actions requiring fresh dev authorization.
 
-Natural-language reminders were insufficient. The correction loop cost time, damaged trust and made
-otherwise safe commands risky.
+Natural-language reminders were insufficient. The correction loop cost time, damaged trust and made otherwise safe commands risky.
 
 ### 2. A heterogeneous batch was treated as one execution unit
 
-The five issues shared a release train but not one implementation seam. Discovery and acceptance were
-interleaved, so each new finding reopened the global mental model. The right unit for iteration was:
+The five issues shared a release train but not one implementation seam. Discovery and acceptance were interleaved, so each new finding reopened the global mental model. The right unit for iteration was:
 
 1. lifecycle/performance: BT5-001..003;
 2. release contract: BT5-004;
 3. sorting correctness: BT5-005.
 
-They may still land in one branch, but each slice needs its own affected-symbol map, focal tests and
-runtime scenario. Only the final clean gate should span all slices.
+They may still land in one branch, but each slice needs its own affected-symbol map, focal tests and runtime scenario. Only the final clean gate should span all slices.
 
 ### 3. `pnpm run verify` is a shell chain, not a resilient gate runner
 
-It does not stream a structured stage summary, enforce a single active run, own the complete Windows
-process tree or clean descendants after timeout. Retrying the opaque chain created overlapping Vitest
-runners. The eventual individual stages all passed; the lost time came from orchestration, not failures.
+It does not stream a structured stage summary, enforce a single active run, own the complete Windows process tree or clean descendants after timeout. Retrying the opaque chain created overlapping Vitest runners. The eventual individual stages all passed; the lost time came from orchestration, not failures.
 
 ### 4. Runtime evidence was high-value but handcrafted
 
-Settings transitions, leaf reactivation, statistics priority/persistence and the bulletin modal are
-repeatable product scenarios. Encoding them as one-off eval payloads spends tokens, makes quoting and
-timeouts fragile, and encourages accidental omission of `vault=plugin-dev`.
+Settings transitions, leaf reactivation, statistics priority/persistence and the bulletin modal are repeatable product scenarios. Encoding them as one-off eval payloads spends tokens, makes quoting and timeouts fragile, and encourages accidental omission of `vault=plugin-dev`.
 
 ### 5. Retrieval surfaces are too broad and query failure is opaque
 
-The bootloader correctly requires memory recovery, but current route files now contain years of
-history instead of compact links. Separately, a zero-result semantic query does not explain whether
-the cause is a stale index, strict term matching or ranking cutoff. The agent either reads thousands
-of lines or spends extra calls discovering which shorter query happens to work.
+The bootloader correctly requires memory recovery, but current route files now contain years of history instead of compact links. Separately, a zero-result semantic query does not explain whether the cause is a stale index, strict term matching or ranking cutoff. The agent either reads thousands of lines or spends extra calls discovering which shorter query happens to work.
 
 ## Automation proposal
 
@@ -140,18 +110,13 @@ pnpm docs:close --task task_041 --index-changed --health-changed
 
 - `verify:changed` or cached gates can miss cross-seam regressions. They are inner-loop tools only;
   the final clean full gate remains mandatory.
-- A hard `plugin-dev` allowlist would block intentional stress-vault work. The escape hatch must name
-  the target and require fresh dev authorization; it must never fall back to the focused vault.
-- Process-tree cleanup can kill unrelated work if ownership is inferred from executable name. The
-  runner must track spawned PIDs/job objects, not kill every `node` or `vitest` process.
+- A hard `plugin-dev` allowlist would block intentional stress-vault work. The escape hatch must name the target and require fresh dev authorization; it must never fall back to the focused vault.
+- Process-tree cleanup can kill unrelated work if ownership is inferred from executable name. The runner must track spawned PIDs/job objects, not kill every `node` or `vitest` process.
 - Auto-shrinking status/handoff risks the historical data loss already seen in this repository.
   Compaction must be archive-first and generated from linked source records.
-- A typing harness can perturb the very latency it measures. Capture A/B runs with identical probe
-  overhead and correlate measurements with Vaultman marks rather than relying only on global long tasks.
-- Parallel agents would help BT5-004 versus BT5-001..003 only with explicit dev approval and disjoint
-  scopes. They are not the first optimization; bad coordination would increase merge and context cost.
-- The new 2.5-second addon/Iconic polls are plausible candidates for periodic typing stalls, but changing
-  their interval without profiling could merely hide the symptom. BT5-030 requires attribution first.
+- A typing harness can perturb the very latency it measures. Capture A/B runs with identical probe overhead and correlate measurements with Vaultman marks rather than relying only on global long tasks.
+- Parallel agents would help BT5-004 versus BT5-001..003 only with explicit dev approval and disjoint scopes. They are not the first optimization; bad coordination would increase merge and context cost.
+- The new 2.5-second addon/Iconic polls are plausible candidates for periodic typing stalls, but changing their interval without profiling could merely hide the symptom. BT5-030 requires attribution first.
 
 ## What should remain human
 
@@ -164,6 +129,4 @@ pnpm docs:close --task task_041 --index-changed --health-changed
 ## Minimum investment before the next multi-issue batch
 
 Implement the session envelope/preflight, safe Obsidian launcher and structured gate runner first.
-If those three do not exist, limit one execution session to two or three coupled issues. Repeating a
-five-issue mixed batch with the current tooling will predictably spend the same time on coordination,
-manual smokes and opaque verification retries.
+If those three do not exist, limit one execution session to two or three coupled issues. Repeating a five-issue mixed batch with the current tooling will predictably spend the same time on coordination, manual smokes and opaque verification retries.

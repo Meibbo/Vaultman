@@ -198,26 +198,17 @@ void plugin.saveData(plugin.settings);
 
 ## Completion record — 2026-07-16
 
-Product work remains uncommitted in `C:\tmp\vaultman-v12-ftc001` on branch
-`v12/ftc-001`. The session expanded beyond the initial Floating TOC slice and
-completed the full beta.2 batch requested by the developer:
+Product work remains uncommitted in `C:\tmp\vaultman-v12-ftc001` on branch `v12/ftc-001`. The session expanded beyond the initial Floating TOC slice and completed the full beta.2 batch requested by the developer:
 
 - Bidirectional Niagara reversal hysteresis using the currently shifted track.
 - Incompatible-sort warning before explicitly enabling the Floating TOC.
-- Responsive explorer/rail density, automatic Files toolbar condensation, and
-  an optional reserved vertical rail lane.
-- Floating TOC settings subpage under Style Config; Add-ons/Iconic and
-  Developer Tools settings sections; Files hover-info settings subpage.
-- Props/Values menu labels, multiselect node-type grouping in an L2 submenu,
-  word-count sort, character counts, and persistent statistics-cache support.
+- Responsive explorer/rail density, automatic Files toolbar condensation, and an optional reserved vertical rail lane.
+- Floating TOC settings subpage under Style Config; Add-ons/Iconic and Developer Tools settings sections; Files hover-info settings subpage.
+- Props/Values menu labels, multiselect node-type grouping in an L2 submenu, word-count sort, character counts, and persistent statistics-cache support.
 - Active-filter highlight bubbling and long-press recursive tree expansion.
 - Snippets and Plugins explorer tabs.
-- Iconic custom file/folder/rule integration with compatibility-preserving
-  disabled/absent/error fallbacks and configurable Files icon scope.
-- Core-style Files gestures: Ctrl/Cmd and middle-click opening, Alt/Option
-  individual selection, Shift range selection, selected-file native drag
-  batches, binary-safe Make a copy, and canonical
-  `file-explorer-context-menu` third-party menu source.
+- Iconic custom file/folder/rule integration with compatibility-preserving disabled/absent/error fallbacks and configurable Files icon scope.
+- Core-style Files gestures: Ctrl/Cmd and middle-click opening, Alt/Option individual selection, Shift range selection, selected-file native drag batches, binary-safe Make a copy, and canonical `file-explorer-context-menu` third-party menu source.
 - Versioned Updates modal and `Clean Filters` rename.
 
 ### Verification evidence
@@ -231,24 +222,13 @@ completed the full beta.2 batch requested by the developer:
 - Vitest: 90 files passed; 447 tests passed.
 - Regression scorecard: 17 checks passed.
 - `git diff --check`: exit 0 (only expected LF/CRLF notices).
-- `main.js`, `styles.css`, and `manifest.json` SHA-256 hashes match between the
-  worktree and `C:\Users\vic_A\Desktop\plugin-dev\.obsidian\plugins\vaultman`.
+- `main.js`, `styles.css`, and `manifest.json` SHA-256 hashes match between the worktree and `C:\Users\vic_A\Desktop\plugin-dev\.obsidian\plugins\vaultman`.
 
 ### Deliberate boundaries and next action
 
-- No visual, screenshot, mobile-emulation, or live Obsidian interaction testing
-  was performed. The developer explicitly owns that validation.
-- Static compatibility targets Obsidian 1.12.3 typings. The exact nested DOM of
-  the core File Explorer and arbitrary snippets such as Fancy File Explorer
-  Rainbow cannot be reproduced fully without weakening Vaultman's flat virtual
-  rendering; only stable core classes/data-path hooks were added.
+- No visual, screenshot, mobile-emulation, or live Obsidian interaction testing was performed. The developer explicitly owns that validation.
+- Static compatibility targets Obsidian 1.12.3 typings. The exact nested DOM of the core File Explorer and arbitrary snippets such as Fancy File Explorer Rainbow cannot be reproduced fully without weakening Vaultman's flat virtual rendering; only stable core classes/data-path hooks were added.
 - Generic keyboard navigation and multi-file context-menu parity were not added;
-  the documented Alt/Option, Shift, open, menu-source, and native drag contracts
-  were prioritized.
-- Package and manifest intentionally remain `1.2.0-beta.1`. Do not bump, tag,
-  commit, push, or publish until the developer finishes visual beta testing and
-  explicitly requests the beta.2 release operation.
-- Room heartbeat/exit logging could not acquire
-  `.git/vaultman-room/locks/room_20260621_025201_8756df.lock` (`EPERM`), so the
-  shared `session-log.md` was deliberately left untouched rather than bypassing
-  coordination. This session shard is the authoritative handoff.
+  the documented Alt/Option, Shift, open, menu-source, and native drag contracts were prioritized.
+- Package and manifest intentionally remain `1.2.0-beta.1`. Do not bump, tag, commit, push, or publish until the developer finishes visual beta testing and explicitly requests the beta.2 release operation.
+- Room heartbeat/exit logging could not acquire `.git/vaultman-room/locks/room_20260621_025201_8756df.lock` (`EPERM`), so the shared `session-log.md` was deliberately left untouched rather than bypassing coordination. This session shard is the authoritative handoff.

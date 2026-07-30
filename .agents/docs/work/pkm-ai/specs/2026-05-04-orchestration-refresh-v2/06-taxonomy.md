@@ -29,8 +29,7 @@ tags:
 - `pkm-ai`: agent-docs system itself.
 - `draft`: incubator for ideas not yet promoted.
 
-`draft` is not mirrored as `archive/draft`. Discarded draft ideas go to
-`archive/discarded/`. Superseded real work goes under the real initiative.
+`draft` is not mirrored as `archive/draft`. Discarded draft ideas go to `archive/discarded/`. Superseded real work goes under the real initiative.
 
 ## Key Distinctions
 

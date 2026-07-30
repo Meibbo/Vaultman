@@ -46,31 +46,19 @@ src/components/frame/
 
 ## State-crossing principle — Context API with Symbol keys
 
-O introduces `setContext` / `getContext` as a new pattern in
-`src/components/`. Each runes service exports its Symbol key alongside
-the class. Frame instantiates the service and calls `setContext`.
+O introduces `setContext` / `getContext` as a new pattern in `src/components/`. Each runes service exports its Symbol key alongside the class. Frame instantiates the service and calls `setContext`.
 Shells call `getContext` at script-top.
 
 ### Why context (Option C+ from the brainstorm)
 
 The frame's component tree will grow. Future sub-systems anticipate:
 
-- **Theme Builder** (backlog #10) — mutates presets that the
-  navigation service derives from.
-- **Big Picture mode** — a new dashboard layout sibling that
-  consumes the same navigation state as the standard shell.
-- **Stacked tabs** (top + bottom navbars simultaneously) — two
-  `FrameNavbarShell` instances must auto-sync on `activeTab` and
-  `dockItems`. With context, both consume the same instance
-  automatically. With props, the instance has to be re-threaded.
-- **Cross-frame DOM-drag compatibility with Obsidian tabs** —
-  multiple consumers of the navigation state (drop indicators,
-  tab content host, dock).
+- **Theme Builder** (backlog #10) — mutates presets that the navigation service derives from.
+- **Big Picture mode** — a new dashboard layout sibling that consumes the same navigation state as the standard shell.
+- **Stacked tabs** (top + bottom navbars simultaneously) — two `FrameNavbarShell` instances must auto-sync on `activeTab` and `dockItems`. With context, both consume the same instance automatically. With props, the instance has to be re-threaded.
+- **Cross-frame DOM-drag compatibility with Obsidian tabs** — multiple consumers of the navigation state (drop indicators, tab content host, dock).
 
-A flat props pattern (the original Option A) is simpler today
-(4 shells, plain tree) but pays plumbing tax for each new
-consumer. Context pays the "new pattern" cost once in O and
-amortizes across every future frame sub-system.
+A flat props pattern (the original Option A) is simpler today (4 shells, plain tree) but pays plumbing tax for each new consumer. Context pays the "new pattern" cost once in O and amortizes across every future frame sub-system.
 
 ### Why Symbol keys instead of string keys
 
@@ -82,11 +70,8 @@ export const FRAME_NAVIGATION_KEY = Symbol('frame.navigation');
 Symbol keys:
 
 - Cannot collide accidentally with another module's string key.
-- Carry their typed declaration alongside the class — discovery
-  is "look at the file that exports the key."
-- Pair with the generic `setContext<T>(key, value)` /
-  `getContext<T>(key)` for type-safe access (Svelte 5 supports
-  this; consumers must explicitly type the generic).
+- Carry their typed declaration alongside the class — discovery is "look at the file that exports the key."
+- Pair with the generic `setContext<T>(key, value)` / `getContext<T>(key)` for type-safe access (Svelte 5 supports this; consumers must explicitly type the generic).
 
 ### Frame-level instantiation + registration
 
@@ -146,12 +131,7 @@ Symbol keys:
 </script>
 ```
 
-The construction order is **navigation → viewport → navReorder →
-popups** because `viewport` needs `nav.pageIndex` as a getter and
-`navReorder` needs `nav.pageOrder` accessors. `nav.attachViewport()`
-and `nav.attachNavReorder()` are late-binding setters that wire
-the references back into the service so `nav.viewport` and
-`nav.navReorder` are available.
+The construction order is **navigation → viewport → navReorder → popups** because `viewport` needs `nav.pageIndex` as a getter and `navReorder` needs `nav.pageOrder` accessors. `nav.attachViewport()` and `nav.attachNavReorder()` are late-binding setters that wire the references back into the service so `nav.viewport` and `nav.navReorder` are available.
 
 ### Shell-level consumption
 
@@ -179,9 +159,7 @@ the references back into the service so `nav.viewport` and
 />
 ```
 
-Shells access `nav.X` and `popups.X` directly in templates and
-script bodies. Reactivity flows through the runes-backed getters
-exposed by the service classes.
+Shells access `nav.X` and `popups.X` directly in templates and script bodies. Reactivity flows through the runes-backed getters exposed by the service classes.
 
 ## T3 + T4 routing
 
@@ -199,14 +177,9 @@ plugin.openDiffViewHook()      ──────▶   $effect-registered closur
                                                                               └─ viewport.applyPageTransform(true)
 ```
 
-Behavior is bit-for-bit equivalent to today's inline
-`openDiffView()`. The only structural change is the home of the
-function (service method) and the registration site (single
-3-line `$effect` in frame instead of inline function +
-registration `$effect`).
+Behavior is bit-for-bit equivalent to today's inline `openDiffView()`. The only structural change is the home of the function (service method) and the registration site (single 3-line `$effect` in frame instead of inline function + registration `$effect`).
 
-When the future in-editor diff renderer sub-system ships, it
-replaces the slot with its own implementation:
+When the future in-editor diff renderer sub-system ships, it replaces the slot with its own implementation:
 
 ```ts
 // future: in-editor diff sub-system
@@ -214,8 +187,7 @@ plugin.openDiffViewHook = () => openInEditorDiffPreview(currentFile);
 // nav.openDiffIntent() becomes orphaned or a fallback
 ```
 
-O does not anticipate this — the slot pattern is already the
-abstraction.
+O does not anticipate this — the slot pattern is already the abstraction.
 
 ### T4 — `OperationsPage` `bind:activeTab`
 
@@ -224,12 +196,7 @@ abstraction.
 <OperationsPage {plugin} {icon} bind:activeTab={nav.toolsActiveTab} />
 ```
 
-`nav.toolsActiveTab` is exposed as both a getter and a setter on
-`FrameNavigationService` so Svelte 5's `bind:` directive treats it
-as a writable reactive expression. If a project-level constraint
-prevents `bind:` from binding to a class getter/setter pair
-(verified in Commit 1; see risks shard), the fallback is the
-explicit prop + callback pair:
+`nav.toolsActiveTab` is exposed as both a getter and a setter on `FrameNavigationService` so Svelte 5's `bind:` directive treats it as a writable reactive expression. If a project-level constraint prevents `bind:` from binding to a class getter/setter pair (verified in Commit 1; see risks shard), the fallback is the explicit prop + callback pair:
 
 ```svelte
 <OperationsPage
@@ -239,9 +206,7 @@ explicit prop + callback pair:
 />
 ```
 
-The fallback requires no change to `OperationsPage` (it already
-accepts both `activeTab` prop and `onActiveTabChange` callback in
-Svelte 5 bind: desugar).
+The fallback requires no change to `OperationsPage` (it already accepts both `activeTab` prop and `onActiveTabChange` callback in Svelte 5 bind: desugar).
 
 ## Render tree post-O
 
@@ -291,24 +256,11 @@ frameVaultman.svelte
 
 ## Design constraints applied per Ousterhout
 
-The post-0-H architecture handoff prescribes "deep modules with
-small interfaces." O honors this:
+The post-0-H architecture handoff prescribes "deep modules with small interfaces." O honors this:
 
-- **`FrameNavigationService`** is a deep module: rich internal
-  state (5+ `$state`, 8+ derived getters, 7+ intent methods, 6+
-  surface derivations) behind a small interface (~25 public
-  members). External consumers (shells, frame, OperationsPage via
-  bind:) interact with it through that small surface.
-- **`FramePopupsState`** is a deep module: 4 popup concerns
-  internally; ~14 public members.
-- **`FrameNavbarShell`** is a deep component: NavbarDock +
-  NavbarTabs + island backdrop + PopupIsland behind a ~7-prop
-  interface (filterRuleCount, queuedCount, layoutSettings,
-  leftFab, rightFab, overlays, navReorder).
-- **`FrameDashboardShell`** is a deep component: viewport
-  measurement + Dashboard3Column + 3 snippets behind a ~20-prop
-  interface (because filters page state has 12 fields to thread).
+- **`FrameNavigationService`** is a deep module: rich internal state (5+ `$state`, 8+ derived getters, 7+ intent methods, 6+ surface derivations) behind a small interface (~25 public members). External consumers (shells, frame, OperationsPage via bind:) interact with it through that small surface.
+- **`FramePopupsState`** is a deep module: 4 popup concerns internally; ~14 public members.
+- **`FrameNavbarShell`** is a deep component: NavbarDock + NavbarTabs + island backdrop + PopupIsland behind a ~7-prop interface (filterRuleCount, queuedCount, layoutSettings, leftFab, rightFab, overlays, navReorder).
+- **`FrameDashboardShell`** is a deep component: viewport measurement + Dashboard3Column + 3 snippets behind a ~20-prop interface (because filters page state has 12 fields to thread).
 
-No module crosses 200 LOC as a single-concern file. If any
-exceeds 200 LOC during implementation, audit for further
-extraction.
+No module crosses 200 LOC as a single-concern file. If any exceeds 200 LOC during implementation, audit for further extraction.

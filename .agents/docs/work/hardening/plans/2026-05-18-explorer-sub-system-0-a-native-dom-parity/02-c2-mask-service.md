@@ -6,8 +6,7 @@ parent: "[[2026-05-18-explorer-sub-system-0-a-native-dom-parity/index]]"
 
 # 02 — C2: Add `serviceNodeElementVisibility`
 
-Pure-function service that derives `NodeElementMask` from
-`(preset, overrides)`. No consumers wired yet.
+Pure-function service that derives `NodeElementMask` from `(preset, overrides)`. No consumers wired yet.
 
 **Files:**
 - Create: `src/services/serviceNodeElementVisibility.ts`
@@ -238,8 +237,7 @@ sub-merge, never mutates inputs. No consumers wired yet."
 ## Verification gates
 
 - 10 new unit tests pass.
-- Pure functions: no closures, no service deps, no state. Each function
-  deterministic for same input.
+- Pure functions: no closures, no service deps, no state. Each function deterministic for same input.
 - `pnpm verify` baseline preserved.
 
 ## Rollback

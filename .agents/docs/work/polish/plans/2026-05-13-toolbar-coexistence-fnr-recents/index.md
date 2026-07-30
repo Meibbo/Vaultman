@@ -50,16 +50,11 @@ pnpm run test:component
 pnpm run build:plugin
 ```
 
-Expected: zero errors / zero failing tests. Performance regression tests
-(`test/unit/performance/stress.test.ts`,
-`test/component/viewTableStress.test.ts`) are known to be unstable; they
-remain deferred per the active hardening status.
+Expected: zero errors / zero failing tests. Performance regression tests (`test/unit/performance/stress.test.ts`, `test/component/viewTableStress.test.ts`) are known to be unstable; they remain deferred per the active hardening status.
 
 ## Settings Keys Introduced
 
-All four keys land in `src/types/typeSettings.ts` and surface in
-`src/components/settings/SettingsUI.svelte`. Defaults preserve current
-behavior so existing installations boot unchanged.
+All four keys land in `src/types/typeSettings.ts` and surface in `src/components/settings/SettingsUI.svelte`. Defaults preserve current behavior so existing installations boot unchanged.
 
 | Key                          | Type                  | Default   | Shard |
 | ---------------------------- | --------------------- | --------- | ----- |
@@ -70,11 +65,8 @@ behavior so existing installations boot unchanged.
 
 ## Branching & Commits
 
-- Work on this worktree's existing branch (`claude/busy-mahavira-4aaf98`)
-  unless redirected.
-- Commit after every step that produces a passing test or compiling
-  refactor. Conventional Commits: `feat(toolbar): ...`,
-  `test(toolbar): ...`, `refactor(overlays): ...`.
+- Work on this worktree's existing branch (`claude/busy-mahavira-4aaf98`) unless redirected.
+- Commit after every step that produces a passing test or compiling refactor. Conventional Commits: `feat(toolbar): ...`, `test(toolbar): ...`, `refactor(overlays): ...`.
 - Do not push, tag, or merge.
 - Do not amend prior commits.
 

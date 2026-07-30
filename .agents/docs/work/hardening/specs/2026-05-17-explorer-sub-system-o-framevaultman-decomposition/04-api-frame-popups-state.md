@@ -31,16 +31,10 @@ export class FramePopupsState {
 }
 ```
 
-- `plugin` — used for `plugin.settings`, `plugin.saveSettings()`,
-  `plugin.filterService`, `plugin.queueService`, `plugin.app`
-  (for `FolderSuggest`).
-- `overlays` — used for `overlays.closePopup()` after scope / move
-  popup actions.
+- `plugin` — used for `plugin.settings`, `plugin.saveSettings()`, `plugin.filterService`, `plugin.queueService`, `plugin.app` (for `FolderSuggest`).
+- `overlays` — used for `overlays.closePopup()` after scope / move popup actions.
 
-The popups class is **constructable in any order relative to
-`FrameNavigationService`** — they share `overlays` but neither
-references the other. Both are created in frame, both are
-`setContext`-ed, both are independently consumable.
+The popups class is **constructable in any order relative to `FrameNavigationService`** — they share `overlays` but neither references the other. Both are created in frame, both are `setContext`-ed, both are independently consumable.
 
 ## Scope popup
 
@@ -62,26 +56,18 @@ setFiltersOperationScope(value: OperationScope): void;
 //   - bound as the `onOperationScopeChange` callback for FiltersPage
 ```
 
-`scopeOptions` is a frozen array built once in the constructor; it
-references the i18n `translate(...)` calls from `index/i18n/lang`.
+`scopeOptions` is a frozen array built once in the constructor; it references the i18n `translate(...)` calls from `index/i18n/lang`.
 
-The current `filtersOperationScope` $state stays in frame (it's
-read by FiltersPage `bind:filtersOperationScope`); the popup
-service mutates it via the setter pair.
+The current `filtersOperationScope` $state stays in frame (it's read by FiltersPage `bind:filtersOperationScope`); the popup service mutates it via the setter pair.
 
 **Decision point — does `filtersOperationScope` move into popups?**
-It's both (a) the user's scope choice (popup concern) and (b) the
-filters page binding (downstream consumer's contract). Two shapes:
+It's both (a) the user's scope choice (popup concern) and (b) the filters page binding (downstream consumer's contract). Two shapes:
 
 - **A:** stays in frame `$state`, popups class mutates via setter.
   Simpler — matches today's structure.
-- **B:** moves into popups class as `popups.filtersOperationScope`
-  (get/set), FiltersPage binds to `popups.filtersOperationScope`.
+- **B:** moves into popups class as `popups.filtersOperationScope` (get/set), FiltersPage binds to `popups.filtersOperationScope`.
 
-**Recommendation:** A — keep `filtersOperationScope` in frame. The
-state is read more by FiltersPage than written by popups; moving
-it into popups creates an awkward situation where a "popups" class
-owns state that survives popup close.
+**Recommendation:** A — keep `filtersOperationScope` in frame. The state is read more by FiltersPage than written by popups; moving it into popups creates an awkward situation where a "popups" class owns state that survives popup close.
 
 ## Active filters popup
 
@@ -101,18 +87,14 @@ deleteFilterRule(rule: ActiveFilterRule): void;
 //   - emit a 'stats-dirty' signal so frame's updateStats() is called
 ```
 
-The `updateStats()` callback today is a frame function that
-updates the frame's counters. Popups need to trigger it on delete.
+The `updateStats()` callback today is a frame function that updates the frame's counters. Popups need to trigger it on delete.
 
 Two options:
 
-- **A:** popups class accepts an `onStatsDirty: () => void` callback
-  in its constructor; calls it from `deleteFilterRule`.
-- **B:** popups class emits an event (custom event dispatcher) and
-  frame subscribes.
+- **A:** popups class accepts an `onStatsDirty: () => void` callback in its constructor; calls it from `deleteFilterRule`.
+- **B:** popups class emits an event (custom event dispatcher) and frame subscribes.
 
-**Recommendation:** A — `onStatsDirty: () => void` callback. Simpler
-than introducing an event abstraction. Constructor:
+**Recommendation:** A — `onStatsDirty: () => void` callback. Simpler than introducing an event abstraction. Constructor:
 
 ```ts
 constructor(
@@ -132,20 +114,12 @@ get searchFolder(): string;
 set searchFolder(v: string);
 ```
 
-The current frame `$effect` that routes search to `fileList` and
-`plugin.filterService` cannot move into popups cleanly because it
-reads `fileList` (which lives in frame as a bound `$state`). Two
-shapes:
+The current frame `$effect` that routes search to `fileList` and `plugin.filterService` cannot move into popups cleanly because it reads `fileList` (which lives in frame as a bound `$state`). Two shapes:
 
-- **A:** popups owns `searchName` / `searchFolder` $state; the
-  routing $effect stays in frame and reads `popups.searchName` /
-  `popups.searchFolder`.
-- **B:** popups owns state AND the routing $effect; constructor
-  takes a `getFileList: () => explorerFiles | undefined` accessor.
+- **A:** popups owns `searchName` / `searchFolder` $state; the routing $effect stays in frame and reads `popups.searchName` / `popups.searchFolder`.
+- **B:** popups owns state AND the routing $effect; constructor takes a `getFileList: () => explorerFiles | undefined` accessor.
 
-**Recommendation:** A — state in popups, effect in frame. Symmetric
-with the filters-search routing decision in `FrameNavigationService`
-shard 03: effects that consume frame-only state stay in frame.
+**Recommendation:** A — state in popups, effect in frame. Symmetric with the filters-search routing decision in `FrameNavigationService` shard 03: effects that consume frame-only state stay in frame.
 
 ## Move popup
 
@@ -171,9 +145,7 @@ attachFolderSuggest(el: HTMLElement): { destroy(): void };
 //   - returns { destroy() { suggest.close(); } } per Svelte action contract
 ```
 
-`createMoveChanges` and `createMovePreviews` are existing helpers
-in `frameMoves.ts`. Popups imports them directly — they remain
-unchanged.
+`createMoveChanges` and `createMovePreviews` are existing helpers in `frameMoves.ts`. Popups imports them directly — they remain unchanged.
 
 ## Frame consumption pattern
 
@@ -228,8 +200,7 @@ Frame after Commit 2:
 />
 ```
 
-`PopupOverlay`'s prop signature is unchanged. Only the source of
-the values + handlers changes (popups class instead of inline).
+`PopupOverlay`'s prop signature is unchanged. Only the source of the values + handlers changes (popups class instead of inline).
 
 ## Removed from frame after Commit 2
 
@@ -241,6 +212,4 @@ the values + handlers changes (popups class instead of inline).
 - `moveTargetFiles` / `moveTargetFolder` / `movePreviews` state
 - `queueMoves` / `attachFolderSuggest` functions
 
-The `<PopupOverlay>` mount stays in frame because it's a render-tree
-sibling of `vm-view`. Threading shifts from inline values to
-`popups.X` accessors.
+The `<PopupOverlay>` mount stays in frame because it's a render-tree sibling of `vm-view`. Threading shifts from inline values to `popups.X` accessors.

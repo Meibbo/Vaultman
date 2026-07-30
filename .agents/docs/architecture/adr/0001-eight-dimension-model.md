@@ -18,18 +18,11 @@ tags:
 
 ## Context
 
-Explorer responsibilities are tangled across `panelExplorer` (1400 LOC), the views
-(4377 LOC), and god-providers (~13K LOC total). A pure 4-axis split
-(Surface/View/Node/Logic) left Navigation, Style/Theme, release/agent Process, and
-the queue/diff Operations domain without a clear home.
+Explorer responsibilities are tangled across `panelExplorer` (1400 LOC), the views (4377 LOC), and god-providers (~13K LOC total). A pure 4-axis split (Surface/View/Node/Logic) left Navigation, Style/Theme, release/agent Process, and the queue/diff Operations domain without a clear home.
 
 ## Decision
 
-Organize the system as **8 dimensions**: core orthogonal axes **Surface · View ·
-Node · Logic**, plus cross-cutting **Navigation** (a Logic sub-axis) **· Style/Theme
-· Process · Operations**. Every module maps to a primary dimension; Operations is a
-domain that spans the core axes. See
-[[docs/architecture/explorer-model/index|explorer-model]].
+Organize the system as **8 dimensions**: core orthogonal axes **Surface · View · Node · Logic**, plus cross-cutting **Navigation** (a Logic sub-axis) **· Style/Theme · Process · Operations**. Every module maps to a primary dimension; Operations is a domain that spans the core axes. See [[docs/architecture/explorer-model/index|explorer-model]].
 
 ## Consequences
 

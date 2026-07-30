@@ -31,14 +31,9 @@ Folder Notes uses two layers:
 
 ### File Explorer Folders
 
-The observer queries `.nav-folder-title-content`, then climbs to
-`.nav-folder-title` and reads `data-path`. It marks initialized elements through
-`folderTitle.dataset.initialized = "true"` and retries briefly when Obsidian has
-inserted the title text before the full folder node or `data-path`.
+The observer queries `.nav-folder-title-content`, then climbs to `.nav-folder-title` and reads `data-path`. It marks initialized elements through `folderTitle.dataset.initialized = "true"` and retries briefly when Obsidian has inserted the title text before the full folder node or `data-path`.
 
-Pointer hover on folder titles stores the active element and, if
-`Keymap.isModEvent(event)` is present and a folder note exists, triggers
-`hover-link`.
+Pointer hover on folder titles stores the active element and, if `Keymap.isModEvent(event)` is present and a folder note exists, triggers `hover-link`.
 
 Main click handling checks:
 
@@ -57,15 +52,9 @@ workspace.getLeaf(Keymap.isModEvent(evt) || setting).openFile(file);
 
 ### Breadcrumbs
 
-Breadcrumb setup queries `.view-header-title-container`, then finds
-`.view-header-title-parent`. It iterates child nodes, skips
-`.view-header-breadcrumb-separator`, reconstructs the folder path, adds
-`has-folder-note` and `data-path`, and attaches a capture click handler to the
-breadcrumb element.
+Breadcrumb setup queries `.view-header-title-container`, then finds `.view-header-title-parent`. It iterates child nodes, skips `.view-header-breadcrumb-separator`, reconstructs the folder path, adds `has-folder-note` and `data-path`, and attaches a capture click handler to the breadcrumb element.
 
-The handler prevents native behaviour only when it will open or create a folder
-note. If the folder is excluded or no folder-note action applies, it falls back
-to native click behaviour.
+The handler prevents native behaviour only when it will open or create a folder note. If the folder is excluded or no folder-note action applies, it falls back to native click behaviour.
 
 ### Vaultman Assimilation
 
@@ -76,13 +65,11 @@ For folder nodes and breadcrumbs, reuse the same pattern:
 - Add Vaultman-only classes/data flags, never replace Obsidian structure.
 - Capture `click` and `auxclick` on `document`.
 - Preserve collapse icon and whitespace semantics.
-- Delegate to `NodeBindingService` with `kind: "folder"` and label/path-derived
-  token rules.
+- Delegate to `NodeBindingService` with `kind: "folder"` and label/path-derived token rules.
 
 ## Obsidian Properties DOM
 
-The local installed Obsidian renderer was inspected through
-`resources/obsidian.asar`. The relevant CSS selectors were in `app.css`.
+The local installed Obsidian renderer was inspected through `resources/obsidian.asar`. The relevant CSS selectors were in `app.css`.
 
 Shared properties block:
 
@@ -117,12 +104,10 @@ All Properties tab:
 
 - `.workspace-leaf-content[data-type=all-properties] .view-content`
 
-Visible document properties are the same `.metadata-container`, hidden by
-default and displayed when the editor/preview has `show-properties`:
+Visible document properties are the same `.metadata-container`, hidden by default and displayed when the editor/preview has `show-properties`:
 
 - `.markdown-source-view.is-live-preview.show-properties .metadata-container:not(.mod-error)`
 - `.markdown-preview-view.show-properties .metadata-container`
 
-These are internal selectors. Treat them as runtime-probed selectors with smoke
-tests, not as a public API.
+These are internal selectors. Treat them as runtime-probed selectors with smoke tests, not as a public API.
 

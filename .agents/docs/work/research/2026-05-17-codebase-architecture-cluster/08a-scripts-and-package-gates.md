@@ -36,8 +36,7 @@ updated_by: codex
 - Reads Vite output from `dist/vite`.
 - Copies `main.js` and `styles.css` from `dist/vite`.
 - Copies `manifest.json` from the repo root.
-- Writes outputs to the repo root, `dist/build`, the live `plugin-dev` plugin
-  folder, and `test/vaults/stress-vault/.obsidian/plugins/vaultman`.
+- Writes outputs to the repo root, `dist/build`, the live `plugin-dev` plugin folder, and `test/vaults/stress-vault/.obsidian/plugins/vaultman`.
 - This means `pnpm run build` is also a local deployment command.
 
 ### `scripts/run-explorer-scroll-smoke.mjs`
@@ -49,8 +48,7 @@ updated_by: codex
 - Reloads the plugin unless `--no-reload` is passed.
 - Opens Vaultman unless `--no-open` is passed and the frame is already open.
 - Executes `window.__vaultmanPerfProbe.run(...)` through `obsidian eval`.
-- Fails when burst results report failure or when `obsidian dev:errors` returns
-  captured errors.
+- Fails when burst results report failure or when `obsidian dev:errors` returns captured errors.
 
 ### `scripts/security-audit.mjs`
 
@@ -68,17 +66,13 @@ updated_by: codex
 
 ### `scripts/no-mutable-vfs.mjs`
 
-- Provides a custom lint rule guarding `vfs.fm`, `vfs.body`, and mutating
-  operations on `vfs.ops`.
-- The unit suite `test/unit/lint/noMutableVfsRule.test.ts` binds this rule to a
-  regression contract.
+- Provides a custom lint rule guarding `vfs.fm`, `vfs.body`, and mutating operations on `vfs.ops`.
+- The unit suite `test/unit/lint/noMutableVfsRule.test.ts` binds this rule to a regression contract.
 
 ## Automation Meaning
 
-The package scripts are not just convenience commands. They encode the practical
-contract for each layer:
+The package scripts are not just convenience commands. They encode the practical contract for each layer:
 
 - Runtime source is valid when TypeScript, Svelte, lint, build, and tests pass.
 - Explorer scroll behavior is valid only when the live `plugin-dev` probe passes.
-- Release payloads are valid only after security audit, build, explicit staging,
-  SBOM generation, checksums, and attestations.
+- Release payloads are valid only after security audit, build, explicit staging, SBOM generation, checksums, and attestations.

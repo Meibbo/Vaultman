@@ -16,8 +16,7 @@ tags:
 
 # Part 3 - Frontend And Mobile
 
-Before editing `.svelte` files, use the repo Svelte skills required by AGENTS/skills. Then continue
-with this plan.
+Before editing `.svelte` files, use the repo Svelte skills required by AGENTS/skills. Then continue with this plan.
 
 ### Task 5: Frontend API And Preferences
 
@@ -195,8 +194,6 @@ Create `src/App.svelte` with this initial structure:
 
 - [ ] **Step 3: Create responsive styles**
 
-Continue in [[03-frontend-and-mobile-styles|frontend and mobile styles]] for CSS and the first
-frontend build check.
+Continue in [[03-frontend-and-mobile-styles|frontend and mobile styles]] for CSS and the first frontend build check.
 
-Continue in [[03-frontend-and-mobile-part-2|frontend and mobile part 2]] for guided forms,
-mobile command-sheet behavior, and the frontend-layer commit.
+Continue in [[03-frontend-and-mobile-part-2|frontend and mobile part 2]] for guided forms, mobile command-sheet behavior, and the frontend-layer commit.

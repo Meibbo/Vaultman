@@ -4,16 +4,10 @@
 - Create: `src/services/serviceRowAction.ts`
 - Test: `test/unit/services/rowAction.test.ts`
 
-Builder adaptador: produce prop-bags que llaman a los callbacks del `contract` (el panel los
-implementa) y lee estado vía getters. `id` recibido = el dispatch id que el view ya usa (== callbackId;
+Builder adaptador: produce prop-bags que llaman a los callbacks del `contract` (el panel los implementa) y lee estado vía getters. `id` recibido = el dispatch id que el view ya usa (== callbackId;
 == node id en tree/list). `data-row-key = id`.
 
-**Importante** (corrección de diseño): los views tree/table/grid YA tienen handlers de gesto de puntero
-ricos (doble-click → secondary, box-select, middle → tertiary, pointer-capture vía
-`MouseGestureService`) que YA emiten Contract A y están testeados (`viewTreeSelection.test.ts`). El
-builder por tanto **NO** provee `onclick`/`onauxclick` — el view conserva sus handlers de puntero. El
-builder estandariza solo: attrs estructurales (`role`/`tabindex`/`aria-*`/`data-row-key`) + `onkeydown`
-(delegación de teclado) + `oncontextmenu` + el caret (`getCaretProps`).
+**Importante** (corrección de diseño): los views tree/table/grid YA tienen handlers de gesto de puntero ricos (doble-click → secondary, box-select, middle → tertiary, pointer-capture vía `MouseGestureService`) que YA emiten Contract A y están testeados (`viewTreeSelection.test.ts`). El builder por tanto **NO** provee `onclick`/`onauxclick` — el view conserva sus handlers de puntero. El builder estandariza solo: attrs estructurales (`role`/`tabindex`/`aria-*`/`data-row-key`) + `onkeydown` (delegación de teclado) + `oncontextmenu` + el caret (`getCaretProps`).
 
 - [x] **Step 1: Write the failing test**
 
@@ -81,8 +75,7 @@ describe('createRowAction.getCaretProps', () => {
 
 - [x] **Step 2: Run test to verify it fails**
 
-Run: `pnpm vitest run test/unit/services/rowAction.test.ts`
-Expected: FAIL — `Cannot find module '../../../src/services/serviceRowAction'`.
+Run: `pnpm vitest run test/unit/services/rowAction.test.ts` Expected: FAIL — `Cannot find module '../../../src/services/serviceRowAction'`.
 
 - [x] **Step 3: Write minimal implementation**
 
@@ -162,8 +155,7 @@ export function createRowAction(ctx: RowActionContext): RowActionBuilder {
 
 - [x] **Step 4: Run test to verify it passes**
 
-Run: `pnpm vitest run test/unit/services/rowAction.test.ts`
-Expected: PASS.
+Run: `pnpm vitest run test/unit/services/rowAction.test.ts` Expected: PASS.
 
 - [x] **Step 5: Commit**
 

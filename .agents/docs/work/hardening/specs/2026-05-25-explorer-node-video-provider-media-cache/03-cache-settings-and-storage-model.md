@@ -42,8 +42,7 @@ Follow Notebook Navigator's split between visual size and generated pixel size:
 
 ### Local Cache Management
 
-- Show cache statistics: records, blobs, images, videos, provider posters,
-  animated previews, total estimated size.
+- Show cache statistics: records, blobs, images, videos, provider posters, animated previews, total estimated size.
 - Rebuild media cache button.
 - Clear media cache button.
 - Prune stale variants button.
@@ -59,8 +58,7 @@ Follow Notebook Navigator's split between visual size and generated pixel size:
 - Separate toggle for generic page extraction.
 - Max remote response bytes.
 - Request timeout and redirect limit.
-- Warning text that provider/generic thumbnail resolution contacts third-party
-  servers.
+- Warning text that provider/generic thumbnail resolution contacts third-party servers.
 
 ## Storage Model
 
@@ -117,9 +115,7 @@ quality=0.75 |
 providerQuality=maxres
 ```
 
-Changing thumbnail quality or size should produce a new variant key. Old variants
-may remain usable until pruned, allowing the UI to keep rendering while the
-background queue regenerates higher/lower quality assets.
+Changing thumbnail quality or size should produce a new variant key. Old variants may remain usable until pruned, allowing the UI to keep rendering while the background queue regenerates higher/lower quality assets.
 
 ## Sync Boundary
 
@@ -137,6 +133,5 @@ Device-local settings:
 - persistent cache byte budget;
 - memory LRU entry budget;
 - whether to download remote/provider thumbnails on this device;
-- cache TTL overrides if the user wants privacy/performance differences per
-  device.
+- cache TTL overrides if the user wants privacy/performance differences per device.
 

@@ -15,9 +15,7 @@ tags:
 
 # Megadump Intake — Verbatim Part 2
 
-Lossless capture (cont.). Readme/identity blocks + misc feature items. Fenced to
-keep wikilinks/tags inert. Classification in
-[[docs/work/draft/2026-06-03-onenote-companion-architecture-megadump/01-triage-classification|01-triage-classification]].
+Lossless capture (cont.). Readme/identity blocks + misc feature items. Fenced to keep wikilinks/tags inert. Classification in [[docs/work/draft/2026-06-03-onenote-companion-architecture-megadump/01-triage-classification|01-triage-classification]].
 
 ```text
 #vaultman #description Ready to use bundled framework that flows seamlessly by default with the rest of your workspace themes, snippets and plugins.

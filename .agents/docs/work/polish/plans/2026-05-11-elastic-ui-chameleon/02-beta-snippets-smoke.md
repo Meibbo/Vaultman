@@ -59,5 +59,4 @@ obsidian vault=plugin-dev eval code="window.__vaultmanPerfProbe.run('tree-scroll
 obsidian vault=plugin-dev dev:errors
 ```
 
-Expected: JSON result is returned, scroll does not freeze, and no Vaultman stack
-is captured.
+Expected: JSON result is returned, scroll does not freeze, and no Vaultman stack is captured.

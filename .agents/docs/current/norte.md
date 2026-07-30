@@ -33,20 +33,14 @@ Tesis por capas (ledger Fase B, 8/8 clusters):
 | Vocabulario / diseño / canon visual polish | **proto v12** (nunca mergea — se TRADUCE) |
 
 Iniciativa rectora: [[docs/work/hardening/specs/2026-06-10-vaultman-2-0-synthesis-umbrella/index|Synthesis Umbrella v2]].
-Dominios pilares: **Symbiont Explorer** (riqueza de explorers, ~N0-N2) y
-**MyWorkspace** (control del workspace UI, ~N1+N3).
+Dominios pilares: **Symbiont Explorer** (riqueza de explorers, ~N0-N2) y **MyWorkspace** (control del workspace UI, ~N1+N3).
 
 ## Dónde estamos HOY (2026-07-08)
 
-- **Fase D** (ejecución por waves). Fases A (alineación), B (ledger ~595 filas) y
-  C-lite (specs wave 1 + PSS grill D-PSS-1..10) están CERRADAS.
-- **Wave 1 spine:** Q4 ✅ · PA 1-5 ✅ · tracer ✅ · N.R ✅ · V.D ✅ · Thread B ✅ ·
-  shim/deps cleanup ✅ · **P.D tracer slices 1-3 ✅** (contracts + mediator + InputRouter +
-  selection ports; primer código N3/MyWorkspace).
+- **Fase D** (ejecución por waves). Fases A (alineación), B (ledger ~595 filas) y C-lite (specs wave 1 + PSS grill D-PSS-1..10) están CERRADAS.
+- **Wave 1 spine:** Q4 ✅ · PA 1-5 ✅ · tracer ✅ · N.R ✅ · V.D ✅ · Thread B ✅ · shim/deps cleanup ✅ · **P.D tracer slices 1-3 ✅** (contracts + mediator + InputRouter + selection ports; primer código N3/MyWorkspace).
 - **Spine: Q4 → N.R → V.D → Thread B → P.D ◀ AQUÍ (tracer ✅, ensanchamiento pendiente).**
-- sandbox local @ `9a56172` (`2.0.0-alpha.1`; `origin/sandbox` @ `18465c2`, push del resto
-  pendiente de dev). Gate integrado 2026-07-08: check 0/0 · **unit 178 files / 1303 tests
-  (0 flakes)** · build ✓; audit high/moderate = 0, 1 low dev residual (task_020).
+- sandbox local @ `9a56172` (`2.0.0-alpha.1`; `origin/sandbox` @ `18465c2`, push del resto pendiente de dev). Gate integrado 2026-07-08: check 0/0 · **unit 178 files / 1303 tests (0 flakes)** · build ✓; audit high/moderate = 0, 1 low dev residual (task_020).
 - Canon LOCKED: view-addressing ([[docs/architecture/explorer-model/05-view-canon|05-view-canon]] + ADR 0012).
 
 ```mermaid
@@ -76,47 +70,26 @@ flowchart LR
 
 ## Próximos gates (orden)
 
-1. ~~PAI-001~~ ✅ **done 2026-07-02** (`a38c731`): resolver v12 + tracer tree, paridad
-   probada, formato AFK/HITL VALIDADO. Bonus: reparó el build roto del baseline
-   (6 type-errors del upgrade de toolchain).
-2. ~~PAI-002 ∥ PAI-004~~ ✅ **done 2026-07-02** (`9c3ae29`): overrides con persistencia
-   PSS-shaped + rollout completo del resolver. Pendiente micro: smoke live al reabrir
-   Obsidian. **El subsistema de iconos AFK está COMPLETO** — queda PAI-003 (picker, HITL,
-   necesita al dev) y PAI-005 (packs, DEFER N4).
-3. ~~V.D 2a~~ ✅ + ~~2b table/grid/cards~~ ✅ **done 2026-07-05** (`398dfdb`): **ADOPCIÓN
-   GEOMETRY COMPLETA** — table+grid+cards las tres sobre el runtime compartido. Gates STRICT
-   PASS (blank=0 · flicker=0): table p99 17ms · grid p99 55ms · cards p99 153ms (⚠ cards
-   maxDelay 37s single outlier = watch-item, re-correr en idle). Resizers 1.1.6 (SDF-011) en
-   table. **NEXT = thread B** (ViewHost switchea `(engine,mode)` de ViewConfig resuelto, retira
-   enum flat `ExplorerViewMode`) → luego P.D (panel/scene, N3). Masonry diferido (no existe la vista).
+1. ~~PAI-001~~ ✅ **done 2026-07-02** (`a38c731`): resolver v12 + tracer tree, paridad probada, formato AFK/HITL VALIDADO. Bonus: reparó el build roto del baseline (6 type-errors del upgrade de toolchain).
+2. ~~PAI-002 ∥ PAI-004~~ ✅ **done 2026-07-02** (`9c3ae29`): overrides con persistencia PSS-shaped + rollout completo del resolver. Pendiente micro: smoke live al reabrir Obsidian. **El subsistema de iconos AFK está COMPLETO** — queda PAI-003 (picker, HITL, necesita al dev) y PAI-005 (packs, DEFER N4).
+3. ~~V.D 2a~~ ✅ + ~~2b table/grid/cards~~ ✅ **done 2026-07-05** (`398dfdb`): **ADOPCIÓN GEOMETRY COMPLETA** — table+grid+cards las tres sobre el runtime compartido. Gates STRICT PASS (blank=0 · flicker=0): table p99 17ms · grid p99 55ms · cards p99 153ms (⚠ cards maxDelay 37s single outlier = watch-item, re-correr en idle). Resizers 1.1.6 (SDF-011) en table. **NEXT = thread B** (ViewHost switchea `(engine,mode)` de ViewConfig resuelto, retira enum flat `ExplorerViewMode`) → luego P.D (panel/scene, N3). Masonry diferido (no existe la vista).
    En el camino: eslint full-repo reparado (verify entero verde) + PA slice 2 (Codex, aterrizada).
-4. ~~Thread B + PA-5 + glossary + shim + deps~~ ✅ **done 2026-07-06** (`7107b1a`): B2
-   `ViewHost` usa `(engine,mode)`; PA registry cableado; shims legacy removidos; deps high/moderate
-   cerradas, con 1 low dev residual (`diff` via `mocha`, major transitive).
-5. ~~P.D tracer slices 1-3~~ ✅ **done 2026-07-06/08** (`fcf895e`+`18465c2`+`0359780`, gate
-   integrado verde 178f/1303t): contracts + policy pura + mediator stateless + InputRouter
-   (focus/select-visible/clear-selection) + puertos files-tab, parity-first sin rewrite visual.
+4. ~~Thread B + PA-5 + glossary + shim + deps~~ ✅ **done 2026-07-06** (`7107b1a`): B2 `ViewHost` usa `(engine,mode)`; PA registry cableado; shims legacy removidos; deps high/moderate cerradas, con 1 low dev residual (`diff` via `mocha`, major transitive).
+5. ~~P.D tracer slices 1-3~~ ✅ **done 2026-07-06/08** (`fcf895e`+`18465c2`+`0359780`, gate integrado verde 178f/1303t): contracts + policy pura + mediator stateless + InputRouter (focus/select-visible/clear-selection) + puertos files-tab, parity-first sin rewrite visual.
    Plan: [[docs/work/hardening/plans/2026-07-06-pd-panel-scene-decomposition/index|P.D kickoff]].
    Nota: +2 comandos palette aditivos (gated) — juicio dev pendiente.
 6. **P.D ensanchamiento**: focus/reveal por node-id o bridge `ActionProvider -> ActionNode`;
-   grill corto ANTES si toca contrato contested. ∥ Codex: B3 enum flat (task_019) · deps
-   residual (task_020).
+   grill corto ANTES si toca contrato contested. ∥ Codex: B3 enum flat (task_019) · deps residual (task_020).
 7. P112 → sandbox con reconcile de `viewTreeBehavior`/`virtualScrollCssSource`.
 8. PAI-003 icon picker sigue HITL; requiere juicio visual del dev.
 
-**Canon raw proto**: `Downloads/vaultman/proto-vXX/` (v12 actual; `proto/` sin sufijo =
-STALE v7). El "vertical read v12" citado en docs viejos ES el shard v7 — deltas por
-sistema contra el raw al absorber.
+**Canon raw proto**: `Downloads/vaultman/proto-vXX/` (v12 actual; `proto/` sin sufijo = STALE v7). El "vertical read v12" citado en docs viejos ES el shard v7 — deltas por sistema contra el raw al absorber.
 
 ## Workflow vigente (decisión 2026-07-02, research-backed)
 
-**Absorption loop** por sistema proto: grill corto (solo decisiones contested, Fable) →
-ledger rows → issues verticales tracer-bullet etiquetados **AFK** (DoD tool-checkable:
-gates verdes; ejecutable sin dev, delegable a Sonnet/Codex) vs **HITL** (juicio
-visual/UX del dev en plugin-dev) → worktree `C:/tmp` → verify → FF → actualizar este norte.
-Evidencia y fuentes: session-log 2026-07-02. Regla anti-sobre-ingeniería: slice vertical
-delgado end-to-end primero, ensanchar solo con critical path funcionando; spec-delta por
-slice, nunca master-spec.
+**Absorption loop** por sistema proto: grill corto (solo decisiones contested, Fable) → ledger rows → issues verticales tracer-bullet etiquetados **AFK** (DoD tool-checkable:
+gates verdes; ejecutable sin dev, delegable a Sonnet/Codex) vs **HITL** (juicio visual/UX del dev en plugin-dev) → worktree `C:/tmp` → verify → FF → actualizar este norte.
+Evidencia y fuentes: session-log 2026-07-02. Regla anti-sobre-ingeniería: slice vertical delgado end-to-end primero, ensanchar solo con critical path funcionando; spec-delta por slice, nunca master-spec.
 
 ## Leyenda de códigos (los que siempre se olvidan)
 

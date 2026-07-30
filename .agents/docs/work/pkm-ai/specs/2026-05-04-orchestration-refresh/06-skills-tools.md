@@ -33,9 +33,7 @@ Scripts handle deterministic work. References load only when needed.
 
 ## Sub-Agents
 
-The main agent coordinates. Explorer sub-agents may help `scout:` and
-`research:`. Worker sub-agents may help `implement:` only with disjoint write
-scopes. Sub-agents do not update long-term memory directly.
+The main agent coordinates. Explorer sub-agents may help `scout:` and `research:`. Worker sub-agents may help `implement:` only with disjoint write scopes. Sub-agents do not update long-term memory directly.
 
 ## Automation
 
@@ -50,8 +48,7 @@ tools/pkm-ai/
   update-frontmatter.mjs
 ```
 
-`update-frontmatter.mjs` must be implemented before agents rely on `updated`
-as an accurate last-edit value.
+`update-frontmatter.mjs` must be implemented before agents rely on `updated` as an accurate last-edit value.
 
 ```text
 cache/
@@ -60,27 +57,18 @@ cache/
   doc-health.json
 ```
 
-Markdown/frontmatter is source of truth. Cache files are rebuildable. Scripts
-return compact route output; agents read full docs only when needed.
+Markdown/frontmatter is source of truth. Cache files are rebuildable. Scripts return compact route output; agents read full docs only when needed.
 
-Phase 2 may add structural code index scripts for imports, exports, tests, and
-Svelte component maps. Semantic/vector indexing is deferred.
+Phase 2 may add structural code index scripts for imports, exports, tests, and Svelte component maps. Semantic/vector indexing is deferred.
 
-Script language defaults to TypeScript/Node for project compatibility. Python
-is reserved for tasks where its libraries are clearly better, such as PDF,
-spreadsheet, statistical, or heavy text-processing work.
+Script language defaults to TypeScript/Node for project compatibility. Python is reserved for tasks where its libraries are clearly better, such as PDF, spreadsheet, statistical, or heavy text-processing work.
 
 ## Normalization
 
-Third-party skill doc output is normalized into `docs` on agent
-branches. This applies to agent docs only. Code outputs and intentionally public
-developer/user docs are not moved unless the user asks.
+Third-party skill doc output is normalized into `docs` on agent branches. This applies to agent docs only. Code outputs and intentionally public developer/user docs are not moved unless the user asks.
 
-Raw output is archived, links are updated, and no active file may exceed the
-line limit.
+Raw output is archived, links are updated, and no active file may exceed the line limit.
 
 ## Hooks Triggers And Toggles
 
-Persistent toggles, such as terse communication style, live in behavior or user
-preference docs and must include a deactivation phrase. Hooks are scripts or
-checks invoked by modes, not hidden per-message automation.
+Persistent toggles, such as terse communication style, live in behavior or user preference docs and must include a deactivation phrase. Hooks are scripts or checks invoked by modes, not hidden per-message automation.

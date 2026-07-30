@@ -17,8 +17,7 @@ tags:
 work/<initiative>/items/vm-0001-short-title.md
 ```
 
-IDs use a configurable project prefix and four digits. Vaultman starts with
-`VM-0001`; another project can use another prefix.
+IDs use a configurable project prefix and four digits. Vaultman starts with `VM-0001`; another project can use another prefix.
 
 ## Canonical Fields
 
@@ -40,11 +39,9 @@ created:
 updated:
 ```
 
-Types: `bug`, `regression`, `feature`, `refactor`, `docs`, `test`, `research`,
-`release`, `chore`, `question`, `conflict`.
+Types: `bug`, `regression`, `feature`, `refactor`, `docs`, `test`, `research`, `release`, `chore`, `question`, `conflict`.
 
-Statuses: `new`, `triaged`, `planned`, `in-progress`, `blocked`, `verify`,
-`done`, `wont-do`, `superseded`.
+Statuses: `new`, `triaged`, `planned`, `in-progress`, `blocked`, `verify`, `done`, `wont-do`, `superseded`.
 
 Priorities: `highest`, `high`, `normal`, `low`, `lowest`.
 
@@ -56,16 +53,12 @@ Priorities: `highest`, `high`, `normal`, `low`, `lowest`.
 - `current/conflicts.md`: conflict view.
 - `current/backlog.base`: Obsidian Base views.
 
-Indexes shard when they exceed the line limit. Base files are views, not the
-canonical record.
+Indexes shard when they exceed the line limit. Base files are views, not the canonical record.
 
 ## Conflicts
 
-Contradictions become `type: conflict` items. Working memory only links to the
-conflict count or index. Detail stays in item files. Resolved reports move to
-`archive/<initiative>/conflicts/`.
+Contradictions become `type: conflict` items. Working memory only links to the conflict count or index. Detail stays in item files. Resolved reports move to `archive/<initiative>/conflicts/`.
 
 ## Specs Are Not Items
 
-Specs, plans, policies, and research notes use their own frontmatter. Backlog
-item fields apply only to files under `work/<initiative>/items/`.
+Specs, plans, policies, and research notes use their own frontmatter. Backlog item fields apply only to files under `work/<initiative>/items/`.

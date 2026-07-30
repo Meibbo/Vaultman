@@ -15,13 +15,9 @@ tags:
 
 # 01 - Stream Taxonomy And Ground Truth
 
-This shard names the core differences between Vaultman's version streams and
-separates the intended model from the repository reality visible in this
-workspace.
+This shard names the core differences between Vaultman's version streams and separates the intended model from the repository reality visible in this workspace.
 
-This is not yet the per-system vertical analysis. It is the grounding layer that
-prevents later shards from saying "stable", "beta", "canary", or "proto" as if
-those labels were already aligned.
+This is not yet the per-system vertical analysis. It is the grounding layer that prevents later shards from saying "stable", "beta", "canary", or "proto" as if those labels were already aligned.
 
 ## Sources Read
 
@@ -44,8 +40,7 @@ those labels were already aligned.
 - `src/services/serviceExplorer.svelte.ts`
 - Git refs: `sandbox`, `origin/sandbox`, `origin/main`, `1.0.0`, `1.0.1`, `1.1.0`
 - Local proto folder listing: `C:\Users\vic_A\Downloads\vaultman`
-- User update on 2026-05-31: `proto-v7` is the latest/canonical proto design
-  stream for this research; `proto-v8` is expected but was not received/read.
+- User update on 2026-05-31: `proto-v7` is the latest/canonical proto design stream for this research; `proto-v8` is expected but was not received/read.
 
 ## Executive Difference Map
 
@@ -102,35 +97,27 @@ This is the practical map. It says:
 - the active code stream is `sandbox`;
 - stable is best represented by `origin/main` / `1.0.1`;
 - the intended `dev` stream was not found as a branch;
-- the `1.1.0` tag exists and carries stable-looking metadata even though docs
-  say that release line should be treated as prerelease/beta history;
-- proto exists locally and has advanced to user-confirmed canonical v7, while
-  older docs cite a different proto path that is missing;
-- proto-v8 has been mentioned as incoming but is not source-backed in this
-  research yet, so it must not be analyzed until supplied.
+- the `1.1.0` tag exists and carries stable-looking metadata even though docs say that release line should be treated as prerelease/beta history;
+- proto exists locally and has advanced to user-confirmed canonical v7, while older docs cite a different proto path that is missing;
+- proto-v8 has been mentioned as incoming but is not source-backed in this research yet, so it must not be analyzed until supplied.
 
 ## Difference 1 - Goal Is Not A Branch
 
 ### Theory
 
-The `goal` stream is the north-star architecture. It is the slowest-changing,
-most deliberate stream. It is where the desired target model is defined before
-the code catches up.
+The `goal` stream is the north-star architecture. It is the slowest-changing, most deliberate stream. It is where the desired target model is defined before the code catches up.
 
 The current goal layer includes:
 
 - the 8-dimension Explorer model;
-- ADRs for view purity, cell/view-config, PlatformAdapter, ActionNode,
-  channel split, page/editor-group, render ownership, and Bases interop;
-- system vocabulary such as Scene, Panel, Surface, Node, View, Logic,
-  Operations, Axon, WorkspaceMediator, and InteractionPolicy;
+- ADRs for view purity, cell/view-config, PlatformAdapter, ActionNode, channel split, page/editor-group, render ownership, and Bases interop;
+- system vocabulary such as Scene, Panel, Surface, Node, View, Logic, Operations, Axon, WorkspaceMediator, and InteractionPolicy;
 - the version-streams distillation itself;
 - the zoom-out map and operational watch list.
 
 ### Practice
 
-The goal stream is present as docs, not as runtime modules. For example,
-`explorer-model/index.md` defines the current target stack:
+The goal stream is present as docs, not as runtime modules. For example, `explorer-model/index.md` defines the current target stack:
 
 ```text
 provider (Node) -> snapshot -> render-projection (data-plane, DOM-free)
@@ -154,14 +141,11 @@ this.viewService = new ViewService({
 ```
 
 That snippet shows the current code is partway toward the goal vocabulary:
-indexes, data-plane service, and view service exist. But the goal model still
-describes more than the code currently guarantees.
+indexes, data-plane service, and view service exist. But the goal model still describes more than the code currently guarantees.
 
 ### Difference
 
-The goal stream is not a release candidate. It is a specification and decision
-ledger. Its job is not "what works today"; its job is "what should become true
-after reconstruction".
+The goal stream is not a release candidate. It is a specification and decision ledger. Its job is not "what works today"; its job is "what should become true after reconstruction".
 
 ### Product Implication
 
@@ -172,14 +156,12 @@ Agents must not treat goal docs as implemented product behavior. Later shards mu
 ### Theory
 
 The version-stream record defines proto as "Claude-design, jsx / own toolchain".
-The important design decision is that proto is never upstream code. It is an
-inspiration and mapping stream.
+The important design decision is that proto is never upstream code. It is an inspiration and mapping stream.
 
 The practical rule is:
 
 - pin a proto snapshot when mapping;
-- classify proto elements as adopt, reshape, map, add, fix, drop, defer, or
-  supersede;
+- classify proto elements as adopt, reshape, map, add, fix, drop, defer, or supersede;
 - re-translate into Svelte/Vaultman architecture;
 - do not merge proto code into product source.
 
@@ -209,36 +191,23 @@ The older umbrella spec cites:
 C:\Users\vic_A\Downloads\Vaultman (1)\
 ```
 
-That path is missing locally. So later proto analysis must use the current
-`Downloads/vaultman` path and treat older `Vaultman (1)` references as stale
-path evidence unless the user provides that folder.
+That path is missing locally. So later proto analysis must use the current `Downloads/vaultman` path and treat older `Vaultman (1)` references as stale path evidence unless the user provides that folder.
 
-Second-pass correction: the current proto stream for this research is not a
-generic "latest proto folder" guess. The user explicitly confirmed `proto-v7`
-as the latest and canonical proto design stream, and shard 04 later verified the
-v7 root/control files that were initially missing from the read. The user also
-said `proto-v8` is incoming, but no v8 source has been supplied or inspected, so
-v8 is a future input, not current evidence.
+Second-pass correction: the current proto stream for this research is not a generic "latest proto folder" guess. The user explicitly confirmed `proto-v7` as the latest and canonical proto design stream, and shard 04 later verified the v7 root/control files that were initially missing from the read. The user also said `proto-v8` is incoming, but no v8 source has been supplied or inspected, so v8 is a future input, not current evidence.
 
 ### Difference
 
-Proto differs from all code streams because it is design-adjacent and
-non-mergeable. Its value is visual/interaction research, not direct code
-history.
+Proto differs from all code streams because it is design-adjacent and non-mergeable. Its value is visual/interaction research, not direct code history.
 
 ### Product Implication
 
-Proto may be ahead of `sandbox` in visual polish but behind or irrelevant in
-runtime architecture. If a proto component recreates styles or behavior outside
-Vaultman's Svelte services, the adoption cost is translation plus integration,
-not a normal merge.
+Proto may be ahead of `sandbox` in visual polish but behind or irrelevant in runtime architecture. If a proto component recreates styles or behavior outside Vaultman's Svelte services, the adoption cost is translation plus integration, not a normal merge.
 
 ## Difference 3 - Canary Exists And Is The Current Workspace
 
 ### Theory
 
-Canary is `sandbox`. It is the creative stream, allowed to break, used as an
-extraction/reference stream. It should feed beta only through upward promotion.
+Canary is `sandbox`. It is the creative stream, allowed to break, used as an extraction/reference stream. It should feed beta only through upward promotion.
 
 ### Practice
 
@@ -263,13 +232,11 @@ sandbox product src: 271 files, 43411 LOC
 origin/main product src: 66 files, 9809 LOC
 ```
 
-So the canary line is not just a small branch. It is the large reconstructed
-working line.
+So the canary line is not just a small branch. It is the large reconstructed working line.
 
 ### Code Evidence
 
-`sandbox` contains frame-level orchestration with multiple current product
-systems wired through the plugin class:
+`sandbox` contains frame-level orchestration with multiple current product systems wired through the plugin class:
 
 ```ts
 // src/main.ts
@@ -310,8 +277,7 @@ This is canary-shaped product code: featureful, integrated, and broad. It also h
 
 ### Difference
 
-Canary is where most current product architecture exists, but it is not
-therefore stable. Its breadth is exactly why promotion needs discipline.
+Canary is where most current product architecture exists, but it is not therefore stable. Its breadth is exactly why promotion needs discipline.
 
 ### Product Implication
 
@@ -347,9 +313,7 @@ Branch search found no branch matching:
 *nightly*
 ```
 
-No local or remote `dev` branch appeared in the branch listing. That means the
-beta/nightly stream is currently a target discipline, not an actual branch
-available to this workspace.
+No local or remote `dev` branch appeared in the branch listing. That means the beta/nightly stream is currently a target discipline, not an actual branch available to this workspace.
 
 ### Difference
 
@@ -369,8 +333,7 @@ There is no actual middle quarantine branch to receive canary promotions before 
 
 ### Theory
 
-Stable is `main`. It must work. It protects installed users. It must contain no
-AI workflow files.
+Stable is `main`. It must work. It protects installed users. It must contain no AI workflow files.
 
 The stable line is intended to be the `1.0.0` continuation with careful patch release behavior. The publish initiative says `1.0.1` is shipped and remaining work includes beta-channel CI, 5-stream reconcile, mobile gate, and security.
 
@@ -424,8 +387,7 @@ Any stable-vs-canary comparison must name the ref used. Saying only "main" is to
 
 ### Theory
 
-Docs say `1.1.0` shipped regressions and should not be treated as stable
-end-user release material. The v1-stable relabel record says product metadata was changed from `1.1.0` to `1.1.0-beta.1`.
+Docs say `1.1.0` shipped regressions and should not be treated as stable end-user release material. The v1-stable relabel record says product metadata was changed from `1.1.0` to `1.1.0-beta.1`.
 
 ### Practice
 
@@ -461,8 +423,7 @@ But the tag remains:
 }
 ```
 
-The publish index says the GitHub Release `1.1.0` is titled
-`1.1.0-beta.1` and marked prerelease, while the Git tag remains `1.1.0`.
+The publish index says the GitHub Release `1.1.0` is titled `1.1.0-beta.1` and marked prerelease, while the Git tag remains `1.1.0`.
 
 ### Difference
 
@@ -498,8 +459,7 @@ The active branch is `sandbox`, and the active metadata says:
 1.1.0-beta.1
 ```
 
-There is no visible `dev` branch to own beta/nightly. So in practice, the
-canary branch is wearing a beta label.
+There is no visible `dev` branch to own beta/nightly. So in practice, the canary branch is wearing a beta label.
 
 ### Difference
 
@@ -565,10 +525,7 @@ choose product systems, isolate regressions, translate proto, preserve stable us
 | API/Interop    | stable promises should be conservative             | canary has pieces of Bases/import/native binding                | proto cannot define plugin API                            | beta should harden public contracts       |
 | Mobile         | stable manifest says mobile-capable                | canary has no obvious platform-gate proof yet                   | proto likely desktop/visual first                         | beta should catch mobile breakage         |
 
-This matrix is preliminary. Shards 02, 03, and 04 have since replaced the
-stable, canary, and proto rows with source-backed vertical reads. Shard 05
-remains pending and should convert the row-level differences into a
-system-by-system delta matrix.
+This matrix is preliminary. Shards 02, 03, and 04 have since replaced the stable, canary, and proto rows with source-backed vertical reads. Shard 05 remains pending and should convert the row-level differences into a system-by-system delta matrix.
 
 ## Read vs Pending
 
@@ -586,8 +543,7 @@ system-by-system delta matrix.
 ### Completed By Later Shards
 
 - Stable source read from `origin/main` is now covered in shard 02.
-- Current canary source read grouped by product systems is now covered in
-  shard 03, with a second-pass addendum for FnR, diff, ops log, and badges.
+- Current canary source read grouped by product systems is now covered in shard 03, with a second-pass addendum for FnR, diff, ops log, and badges.
 - Canonical proto-v7 file-level read is now covered in shard 04.
 
 ### Still Pending
@@ -602,19 +558,12 @@ system-by-system delta matrix.
 The principal differences are:
 
 1. `goal` is truth-by-design: it defines where Vaultman should land.
-2. `proto design` is truth-by-interface/visual-reference: `proto-v7` is the
-   current canonical input, useful but not mergeable; `proto-v8` is pending and
-   not yet evidence.
-3. `sandbox` is truth-by-current-code: the richest and most current product
-   source, but canary-grade.
-4. `dev` is truth-by-intent only right now: the beta/nightly concept exists,
-   but the branch was not visible in this workspace.
-5. `origin/main` / `1.0.1` is truth-by-release: stable, smaller, and meant to
-   protect users.
-6. `1.1.0` is truth-by-incident: a real tag and release line that the project
-   now treats as prerelease/beta history because it carried regressions.
-7. Current metadata is truth-by-compromise: `sandbox` says `1.1.0-beta.1` even
-   though current theory wants `sandbox` to be canary.
+2. `proto design` is truth-by-interface/visual-reference: `proto-v7` is the current canonical input, useful but not mergeable; `proto-v8` is pending and not yet evidence.
+3. `sandbox` is truth-by-current-code: the richest and most current product source, but canary-grade.
+4. `dev` is truth-by-intent only right now: the beta/nightly concept exists, but the branch was not visible in this workspace.
+5. `origin/main` / `1.0.1` is truth-by-release: stable, smaller, and meant to protect users.
+6. `1.1.0` is truth-by-incident: a real tag and release line that the project now treats as prerelease/beta history because it carried regressions.
+7. Current metadata is truth-by-compromise: `sandbox` says `1.1.0-beta.1` even though current theory wants `sandbox` to be canary.
 
 The honest practical name for the active codebase is therefore:
 
@@ -622,5 +571,4 @@ The honest practical name for the active codebase is therefore:
 sandbox canary code carrying beta metadata after the 1.1.0 mis-release repair.
 ```
 
-That phrase should remain visible until publish decides exact prerelease labels
-and materializes the beta/nightly stream.
+That phrase should remain visible until publish decides exact prerelease labels and materializes the beta/nightly stream.

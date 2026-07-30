@@ -17,8 +17,7 @@ Source inputs:
 - Official Bases syntax and functions docs checked on 2026-05-05.
 - Local API typings: `node_modules/obsidian/obsidian.d.ts`.
 - Local corpus: 25 `.base` files under `plugin-dev/+`.
-- Local Vaultman models: `typeFilter.ts`, `filter-evaluator.ts`,
-  `typeViews.ts`, `serviceFilter.svelte.ts`.
+- Local Vaultman models: `typeFilter.ts`, `filter-evaluator.ts`, `typeViews.ts`, `serviceFilter.svelte.ts`.
 
 ## Feature Matrix
 
@@ -76,34 +75,22 @@ Observed feature frequency across 25 files:
 View type counts:
 
 - Core-ish: `table` 45, `cards` 33, `list` 2.
-- TaskNotes: `tasknotesTaskList` 23, `tasknotesKanban` 10,
-  `tasknotesMiniCalendar` 10, `tasknotesCalendar` 5.
-- Dynamic/facet: `dynamic-views-masonry` 4, `facet-cards` 2,
-  `dynamic-views-grid` 1, `carousel` 1.
+- TaskNotes: `tasknotesTaskList` 23, `tasknotesKanban` 10, `tasknotesMiniCalendar` 10, `tasknotesCalendar` 5.
+- Dynamic/facet: `dynamic-views-masonry` 4, `facet-cards` 2, `dynamic-views-grid` 1, `carousel` 1.
 
 High-signal fixture notes:
 
-- `connect.base` is the main `this`/graph query fixture and has non-core
-  top-level `order`/`sort`.
-- `tasks.base`, `tasks-default.base`, and default TaskNotes bases are the main
-  list/date/recurrence fixtures.
-- `Journal.base` is the main formula/rendering fixture: regex, `html()`,
-  `image()`, formatting, dynamic/facet/card plugin configs.
-- `Finance.base` is the only summary fixture and also exercises link/list
-  filters and table sizing.
+- `connect.base` is the main `this`/graph query fixture and has non-core top-level `order`/`sort`.
+- `tasks.base`, `tasks-default.base`, and default TaskNotes bases are the main list/date/recurrence fixtures.
+- `Journal.base` is the main formula/rendering fixture: regex, `html()`, `image()`, formatting, dynamic/facet/card plugin configs.
+- `Finance.base` is the only summary fixture and also exercises link/list filters and table sizing.
 
 ## Compatibility Conclusions
 
-- A direct conversion to current `FilterRule` would lose too much. Import must
-  use a wider IR with raw expression leaves.
-- View import can be mostly lossless if unknown view keys are preserved, even
-  before Vaultman renders those custom views.
-- Expression evaluation should be incremental. First support obvious
-  property/file/tag/folder equality and containment; keep the rest visible as
-  unsupported advanced query chips.
-- Export must produce an `InteropReport` every time. Silent dropping is not
-  acceptable because the corpus contains many custom view fields and advanced
-  expressions.
+- A direct conversion to current `FilterRule` would lose too much. Import must use a wider IR with raw expression leaves.
+- View import can be mostly lossless if unknown view keys are preserved, even before Vaultman renders those custom views.
+- Expression evaluation should be incremental. First support obvious property/file/tag/folder equality and containment; keep the rest visible as unsupported advanced query chips.
+- Export must produce an `InteropReport` every time. Silent dropping is not acceptable because the corpus contains many custom view fields and advanced expressions.
 
 ## First Slice Recommendation
 

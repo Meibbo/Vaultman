@@ -26,9 +26,7 @@ Before editing `.svelte` files, use the repo Svelte skills required by AGENTS/sk
 
 - [ ] **Step 1: Add command preview state**
 
-In `App.svelte`, import and use `buildCommandPreview` and `classifyAction`. Add form state for task title,
-scope, message target, and message body. The guided command section must render command display text before
-the execute button.
+In `App.svelte`, import and use `buildCommandPreview` and `classifyAction`. Add form state for task title, scope, message target, and message body. The guided command section must render command display text before the execute button.
 
 - [ ] **Step 2: Add actions for MVP forms**
 
@@ -45,8 +43,7 @@ const allowedActions = [
 ];
 ```
 
-No UI control may create previews for `force`, `run.close`, `state.delete`, `git.run`, `build.run`, or
-`release.run`.
+No UI control may create previews for `force`, `run.close`, `state.delete`, `git.run`, `build.run`, or `release.run`.
 
 - [ ] **Step 3: Add mobile bottom sheet styling**
 

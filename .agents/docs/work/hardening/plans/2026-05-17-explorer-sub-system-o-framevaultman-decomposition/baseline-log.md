@@ -1,7 +1,6 @@
 # Sub-system O baseline log
 
-Captured: 2026-05-18T05:32:46.8389315-05:00
-Branch tip: sandbox @ 6de592d
+Captured: 2026-05-18T05:32:46.8389315-05:00 Branch tip: sandbox @ 6de592d
 
 ## LOC
 
@@ -9,10 +8,7 @@ Branch tip: sandbox @ 6de592d
 
 ## Live plugin-dev smoke
 
-Initial `obsidian` CLI call reported that Obsidian was not running. The
-Obsidian app was started for `plugin-dev`, `obsidian dev:errors vault=plugin-dev`
-then returned `No errors captured.`, and the baseline smoke sequence below was
-rerun against the live vault.
+Initial `obsidian` CLI call reported that Obsidian was not running. The Obsidian app was started for `plugin-dev`, `obsidian dev:errors vault=plugin-dev` then returned `No errors captured.`, and the baseline smoke sequence below was rerun against the live vault.
 
 ### plugin:reload
 

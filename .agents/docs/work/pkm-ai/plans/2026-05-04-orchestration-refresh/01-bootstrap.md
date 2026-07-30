@@ -44,8 +44,7 @@ Expected: no output.
 - Replace: `AGENTS.md`
 - Replace: `CLAUDE.md`
 
-- [ ] Write `AGENTS.md` under 200 lines. It must say: read
-`docs/start.md`, obey session modes, keep AI files off `main`.
+- [ ] Write `AGENTS.md` under 200 lines. It must say: read `docs/start.md`, obey session modes, keep AI files off `main`.
 
 - [ ] Write `CLAUDE.md` under 200 lines. It must redirect to `AGENTS.md`.
 
@@ -67,7 +66,5 @@ Expected: no output.
 - Create files under `docs/architecture/`.
 
 - [ ] Create `glossary.md`, `behavior.md`, `routing.md`.
-- [ ] Create policies: `context.md`, `git.md`, `code.md`, `docs.md`,
-`backlog.md`.
-- [ ] Each policy contains `Rules`, `Read when`, `Do not read when`,
-`Related decisions`, `Repair triggers`.
+- [ ] Create policies: `context.md`, `git.md`, `code.md`, `docs.md`, `backlog.md`.
+- [ ] Each policy contains `Rules`, `Read when`, `Do not read when`, `Related decisions`, `Repair triggers`.

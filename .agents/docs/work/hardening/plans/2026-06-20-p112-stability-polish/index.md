@@ -65,8 +65,7 @@ tags:
 
 ## Commit Policy
 
-Use one local product commit per task unless two adjacent tasks are implemented in the same small edit and pass the
-same focused gate. Do not push. Do not touch `main`. Do not write AI docs in the product worktree.
+Use one local product commit per task unless two adjacent tasks are implemented in the same small edit and pass the same focused gate. Do not push. Do not touch `main`. Do not write AI docs in the product worktree.
 
 ## Final Gate
 
@@ -87,6 +86,4 @@ obsidian vault=plugin-dev plugin:reload id=vaultman
 obsidian vault=plugin-dev dev:errors
 ```
 
-Targeted DOM checks should cover folder delete count/badge, Files sort menu `Parents First`, Content scope hint click,
-and search highlight default off. If any CLI command times out, report the timeout and do not fall back to the focused
-personal vault.
+Targeted DOM checks should cover folder delete count/badge, Files sort menu `Parents First`, Content scope hint click, and search highlight default off. If any CLI command times out, report the timeout and do not fall back to the focused personal vault.

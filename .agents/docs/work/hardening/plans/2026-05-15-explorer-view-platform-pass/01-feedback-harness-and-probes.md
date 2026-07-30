@@ -43,14 +43,11 @@ expect(dataset.activeFilterIds.has('node-7')).toBe(true);
 expect(dataset.mediaDescriptors.get('node-0')?.status).toBe('unprocessed');
 ```
 
-Run: `pnpm exec vitest run --project unit --config vitest.config.ts test/unit/performance/explorerPlatformSynthetic.test.ts --fileParallelism=false`
-Expected: fail because the helper does not exist.
+Run: `pnpm exec vitest run --project unit --config vitest.config.ts test/unit/performance/explorerPlatformSynthetic.test.ts --fileParallelism=false` Expected: fail because the helper does not exist.
 
 - [ ] **Step 2: Implement deterministic dataset helper**
 
-Create `createExplorerSyntheticDataset(options)` returning `nodes`,
-`rowInputs`, `idToIndex`, `indexToId`, `expandedIds`, `selectedIds`,
-`activeFilterIds`, `mediaDescriptors`, and `expectedVisibleIds`.
+Create `createExplorerSyntheticDataset(options)` returning `nodes`, `rowInputs`, `idToIndex`, `indexToId`, `expandedIds`, `selectedIds`, `activeFilterIds`, `mediaDescriptors`, and `expectedVisibleIds`.
 
 Required shapes:
 
@@ -63,8 +60,7 @@ Use stable ids: `node-${index}`. Use stable file paths:
 
 - [ ] **Step 3: Add 50K and 100K lightweight assertions**
 
-Assert that 50K and 100K datasets build row maps without duplicate ids and
-without media blobs.
+Assert that 50K and 100K datasets build row maps without duplicate ids and without media blobs.
 
 Run the same unit test command.
 Expected: pass.
@@ -101,18 +97,15 @@ Assert these scenario names can be run or reported:
 ]
 ```
 
-Run: `pnpm exec vitest run --project unit --config vitest.config.ts test/unit/dev/perfProbe.test.ts --fileParallelism=false`
-Expected: fail for unknown scenarios.
+Run: `pnpm exec vitest run --project unit --config vitest.config.ts test/unit/dev/perfProbe.test.ts --fileParallelism=false` Expected: fail for unknown scenarios.
 
 - [ ] **Step 2: Extend perfProbe scenario dispatch**
 
-Add scenario names with measurable counters/timings. Keep DOM-dependent actions
-guarded so unit tests can run without Obsidian.
+Add scenario names with measurable counters/timings. Keep DOM-dependent actions guarded so unit tests can run without Obsidian.
 
 - [ ] **Step 3: Add jank-ready snapshot fields**
 
-Extend snapshots with optional `longFrameCount`, `maxLongFrameMs`, and
-`heapDeltaBytes` fields. Existing callers can omit them.
+Extend snapshots with optional `longFrameCount`, `maxLongFrameMs`, and `heapDeltaBytes` fields. Existing callers can omit them.
 
 - [ ] **Step 4: Verify perfProbe tests**
 
@@ -132,8 +125,7 @@ Commit message: `test: add explorer platform perf scenarios`.
 
 - [ ] **Step 1: Add non-flaky timing assertions**
 
-Use operation counts and map invariants as hard assertions. Record timings but
-avoid strict millisecond thresholds in unit tests.
+Use operation counts and map invariants as hard assertions. Record timings but avoid strict millisecond thresholds in unit tests.
 
 Required assertions:
 

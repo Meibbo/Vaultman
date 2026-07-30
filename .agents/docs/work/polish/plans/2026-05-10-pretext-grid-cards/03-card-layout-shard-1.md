@@ -18,71 +18,44 @@ updated_by: codex
 
 Continua desde [[docs/work/polish/plans/2026-05-10-pretext-grid-cards/03-card-layout|Node card layout service]].
 
-export interface NodeCardLayout {
-	nodeId: string;
+export interface NodeCardLayout { nodeId: string;
 	fields: readonly NodeCardField[];
 	lineCount: number;
 	bucket: CardHeightBucket;
 	height: number;
 }
 
-export function cardFieldsForNode(
-	providerId: string,
-	node: TreeNode,
-	visibleFields: readonly string[],
-): NodeCardField[] {
-	const fields: NodeCardField[] = [];
-	for (const id of visibleFields) {
-		const text = fieldText(providerId, node, id);
+export function cardFieldsForNode( providerId: string, node: TreeNode, visibleFields: readonly string[], ): NodeCardField[] { const fields: NodeCardField[] = [];
+	for (const id of visibleFields) { const text = fieldText(providerId, node, id);
 		if (!text) continue;
 		fields.push({ id, text, kind: id === 'name' || id === 'text' ? 'title' : 'meta' });
-	}
-	return fields;
+	} return fields;
 }
 
-export function cardHeightBucketForLines(lineCount: number): CardHeightBucket {
-	if (lineCount <= 1) return 'compact';
+export function cardHeightBucketForLines(lineCount: number): CardHeightBucket { if (lineCount <= 1) return 'compact';
 	if (lineCount <= 3) return 'standard';
 	if (lineCount <= 5) return 'tall';
 	return 'expanded';
 }
 
-export function measureNodeCard({
-	providerId,
-	node,
-	visibleFields,
-	contentWidth,
-	style,
-	measure,
-}: {
-	providerId: string;
+export function measureNodeCard({ providerId, node, visibleFields, contentWidth, style, measure, }: { providerId: string;
 	node: TreeNode;
 	visibleFields: readonly string[];
 	contentWidth: number;
 	style: NodeCardMeasureStyle;
 	measure: TextMeasureService;
-}): NodeCardLayout {
-	const fields = cardFieldsForNode(providerId, node, visibleFields);
-	const lineCount = fields.reduce((total, field) => {
-		const textStyle = field.kind === 'title' ? style.title : style.meta;
+}): NodeCardLayout { const fields = cardFieldsForNode(providerId, node, visibleFields);
+	const lineCount = fields.reduce((total, field) => { const textStyle = field.kind === 'title' ? style.title : style.meta;
 		return total + measure.measure(field.text, textStyle, contentWidth).lineCount;
 	}, 0);
 	const bucket = cardHeightBucketForLines(lineCount);
-	return {
-		nodeId: node.id,
-		fields,
-		lineCount,
-		bucket,
-		height: CARD_HEIGHT_BUCKETS[bucket],
-	};
+	return { nodeId: node.id, fields, lineCount, bucket, height: CARD_HEIGHT_BUCKETS[bucket], };
 }
 
-export function rowHeightForCards(cards: readonly { height: number }[]): number {
-	return cards.reduce((height, card) => Math.max(height, card.height), CARD_HEIGHT_BUCKETS.compact);
+export function rowHeightForCards(cards: readonly { height: number }[]): number { return cards.reduce((height, card) => Math.max(height, card.height), CARD_HEIGHT_BUCKETS.compact);
 }
 
-function fieldText(providerId: string, node: TreeNode, id: string): string {
-	if (id === 'icon') return '';
+function fieldText(providerId: string, node: TreeNode, id: string): string { if (id === 'icon') return '';
 	if (id === 'text' || id === 'name') return node.label;
 	if (id === 'count') return node.countLabel ?? (node.count == null ? '' : String(node.count));
 	if (providerId === 'files') return fileFieldText(node, id);
@@ -92,8 +65,7 @@ function fieldText(providerId: string, node: TreeNode, id: string): string {
 	return '';
 }
 
-function fileFieldText(node: TreeNode, id: string): string {
-	const meta = node.meta as Partial<FileMeta> | undefined;
+function fileFieldText(node: TreeNode, id: string): string { const meta = node.meta as Partial<FileMeta> | undefined;
 	const file = meta?.file as { path?: string; extension?: string; stat?: { size?: number; mtime?: number } } | null;
 	if (id === 'path') return file?.path ?? meta?.folderPath ?? '';
 	if (id === 'ext') return file?.extension ?? '';
@@ -103,24 +75,21 @@ function fileFieldText(node: TreeNode, id: string): string {
 	return '';
 }
 
-function propFieldText(node: TreeNode, id: string): string {
-	const meta = node.meta as Partial<PropMeta> | undefined;
+function propFieldText(node: TreeNode, id: string): string { const meta = node.meta as Partial<PropMeta> | undefined;
 	if (id === 'type') return meta?.propType ?? '';
 	if (id === 'values') return meta?.rawValue ?? '';
 	if (id === 'date') return '';
 	return '';
 }
 
-function tagFieldText(node: TreeNode, id: string): string {
-	const meta = node.meta as Partial<TagMeta> | undefined;
+function tagFieldText(node: TreeNode, id: string): string { const meta = node.meta as Partial<TagMeta> | undefined;
 	if (id === 'files') return node.countLabel ?? (node.count == null ? '' : String(node.count));
 	if (id === 'nested') return meta?.tagPath ?? '';
 	if (id === 'date') return '';
 	return '';
 }
 
-function contentFieldText(node: TreeNode, id: string): string {
-	const meta = node.meta as Partial<ContentMeta> | undefined;
+function contentFieldText(node: TreeNode, id: string): string { const meta = node.meta as Partial<ContentMeta> | undefined;
 	if (id === 'path') return meta?.filePath ?? '';
 	if (id === 'text') return [meta?.before, meta?.match, meta?.after].filter(Boolean).join(' ');
 	if (id === 'date') return '';

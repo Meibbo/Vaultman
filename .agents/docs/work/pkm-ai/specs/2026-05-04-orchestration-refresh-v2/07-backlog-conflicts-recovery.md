@@ -25,15 +25,13 @@ The prefix belongs to the project. The type lives in frontmatter, not in the ID.
 
 ## Status And Priority
 
-Statuses: `new`, `triaged`, `planned`, `in-progress`, `blocked`, `verify`,
-`done`, `wont-do`, `superseded`.
+Statuses: `new`, `triaged`, `planned`, `in-progress`, `blocked`, `verify`, `done`, `wont-do`, `superseded`.
 
 Priorities: `highest`, `high`, `normal`, `low`, `lowest`.
 
 ## Conflicts
 
-Use `type: conflict` when docs disagree. Conflicts appear in backlog views but
-have a special workflow:
+Use `type: conflict` when docs disagree. Conflicts appear in backlog views but have a special workflow:
 
 1. detect
 2. identify authority
@@ -43,11 +41,9 @@ have a special workflow:
 
 ## Attempts
 
-Attempts are not items. They are approach records linked from an item. Use them
-when an approach meaningfully failed, was replaced, or may need recovery later.
+Attempts are not items. They are approach records linked from an item. Use them when an approach meaningfully failed, was replaced, or may need recovery later.
 
 ## Revert Policy
 
-For recent AI edits, ask whether to use native IDE/Codex undo, Git, or an agent
-patch. Do not enter panic recovery or revert unrelated work.
+For recent AI edits, ask whether to use native IDE/Codex undo, Git, or an agent patch. Do not enter panic recovery or revert unrelated work.
 

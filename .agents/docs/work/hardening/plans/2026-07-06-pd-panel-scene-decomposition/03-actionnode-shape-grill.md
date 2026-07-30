@@ -13,8 +13,7 @@ tags:
 
 # Mini-grill — shape canónica de ActionNode (D-NIB-7)
 
-Tabla comparativa contra las shapes hermanas REALES del repo (leídas 2026-07-10), y las
-preguntas Q-SH para el dev. La shape mínima de slice 1 es TreeNode-aligned + `requiredPorts`;
+Tabla comparativa contra las shapes hermanas REALES del repo (leídas 2026-07-10), y las preguntas Q-SH para el dev. La shape mínima de slice 1 es TreeNode-aligned + `requiredPorts`;
 esto decide la canónica.
 
 ## Tabla — shapes hermanas
@@ -31,28 +30,14 @@ esto decide la canónica.
 ## Q-SH (una a la vez con el dev)
 
 - **Q-SH-1 — ¿`ActionNode = TreeNode<ActionMeta>` o interfaz paralela?** REC:
-  `TreeNode<ActionMeta>` — ADR 0005 exige "mismo engine"; con el molde ganamos render, cells,
-  cascada (`children`), badges y selección sin código nuevo; `ActionProvider` queda un provider
-  100% normal.
-- **Q-SH-2 — ¿`effect: 'nav' | 'command'` explícito en `ActionMeta`?** REC: sí (D-NIB del
-  grill: no inferir del handler).
-- **Q-SH-3 — ¿handler como función en meta o `actionId` → registry?** REC: **registry**
-  (SASI-light): `ActionMeta.actionId + args?`; el callable vive en el registro. Razón dura:
-  CR-2 — `.vmscene` es DATA serializable/shareable y referencia acciones por id; una función
-  en la shape (patrón NodeBadge.onClick) mataría share-like-`.base` y los macros declarativos.
-- **Q-SH-4 — context-scoped actions**: ¿`getActionsFor(target)` como método opcional del
-  ActionProvider o extensión de `ProviderContract` global?** REC: opcional del ActionProvider
-  (no ensuciar el contrato global; los providers de DOMINIO ya declaran sus acciones por nodo
-  vía este camino cuando llegue el cmenu data-driven — casos: file-menu de terceros
-  interceptado por `fileMenuDelegationAdapter`, like-cell de W-001).
-- **Q-SH-5 — `requiredPorts?: ('selection'|'projection'|'expansion'|'reveal')[]`** para que el
-  `invoke()` genérico del WorkspaceActionRouter preserve unhandled-reasons tipadas. REC: sí,
-  unión extensible.
-- **Q-SH-6 — macros/composición**: opción anotada SIN lock — `MacroNode = ActionNode cuyos
-  children son action-refs (ids) ejecutados en secuencia` (favorece Q-SH-3 registry). DEFER a
-  su propio momento; la shape solo debe no cerrarle la puerta (children ya existe vía molde).
+  `TreeNode<ActionMeta>` — ADR 0005 exige "mismo engine"; con el molde ganamos render, cells, cascada (`children`), badges y selección sin código nuevo; `ActionProvider` queda un provider 100% normal.
+- **Q-SH-2 — ¿`effect: 'nav' | 'command'` explícito en `ActionMeta`?** REC: sí (D-NIB del grill: no inferir del handler).
+- **Q-SH-3 — ¿handler como función en meta o `actionId` → registry?** REC: **registry** (SASI-light): `ActionMeta.actionId + args?`; el callable vive en el registro. Razón dura:
+  CR-2 — `.vmscene` es DATA serializable/shareable y referencia acciones por id; una función en la shape (patrón NodeBadge.onClick) mataría share-like-`.base` y los macros declarativos.
+- **Q-SH-4 — context-scoped actions**: ¿`getActionsFor(target)` como método opcional del ActionProvider o extensión de `ProviderContract` global?** REC: opcional del ActionProvider (no ensuciar el contrato global; los providers de DOMINIO ya declaran sus acciones por nodo vía este camino cuando llegue el cmenu data-driven — casos: file-menu de terceros interceptado por `fileMenuDelegationAdapter`, like-cell de W-001).
+- **Q-SH-5 — `requiredPorts?: ('selection'|'projection'|'expansion'|'reveal')[]`** para que el `invoke()` genérico del WorkspaceActionRouter preserve unhandled-reasons tipadas. REC: sí, unión extensible.
+- **Q-SH-6 — macros/composición**: opción anotada SIN lock — `MacroNode = ActionNode cuyos children son action-refs (ids) ejecutados en secuencia` (favorece Q-SH-3 registry). DEFER a su propio momento; la shape solo debe no cerrarle la puerta (children ya existe vía molde).
 
 ## Estado
 
-Creado 2026-07-10 (dev pidió arrancar). Pendiente: respuestas dev Q-SH-1..5 → lock → la shape
-canónica entra a slice 1 (o slice 1.1 si slice 1 ya corrió con la mínima).
+Creado 2026-07-10 (dev pidió arrancar). Pendiente: respuestas dev Q-SH-1..5 → lock → la shape canónica entra a slice 1 (o slice 1.1 si slice 1 ya corrió con la mínima).

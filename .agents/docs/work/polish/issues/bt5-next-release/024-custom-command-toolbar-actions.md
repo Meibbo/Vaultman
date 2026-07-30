@@ -21,9 +21,7 @@ tags: [agent/issue, initiative/polish, release/bt5]
 
 ## What to build
 
-Añadir en Settings/Toolbar una lista ordenada de comandos de Obsidian que se proyecta
-como action nodes del toolbar. Reusar el resolver seguro de BT5-023 y metadata del command
-registry; soportar add/remove/reorder sin importar la arquitectura ActionNode 2.0.
+Añadir en Settings/Toolbar una lista ordenada de comandos de Obsidian que se proyecta como action nodes del toolbar. Reusar el resolver seguro de BT5-023 y metadata del command registry; soportar add/remove/reorder sin importar la arquitectura ActionNode 2.0.
 
 ## Acceptance criteria
 
@@ -44,12 +42,7 @@ registry; soportar add/remove/reorder sin importar la arquitectura ActionNode 2.
 
 ## Outcome 2026-07-20 (tarde)
 
-**Commit `546c376d`** (junto a 022). Gate verde. Test focal
-`test/unit/toolbarCommandsAndCreate.test.ts`. Lista ordenada de comandos de Obsidian
-como nodos del toolbar, reusando el resolver de BT5-023. Settings: add (picker) /
-remove / reorder (DnD) por id, default vacío, dedupe; cada nodo ejecuta el id con
-label/aria del registry; comando retirado = nodo disabled reparable con warning.
+**Commit `546c376d`** (junto a 022). Gate verde. Test focal `test/unit/toolbarCommandsAndCreate.test.ts`. Lista ordenada de comandos de Obsidian como nodos del toolbar, reusando el resolver de BT5-023. Settings: add (picker) / remove / reorder (DnD) por id, default vacío, dedupe; cada nodo ejecuta el id con label/aria del registry; comando retirado = nodo disabled reparable con warning.
 Monta sobre el overflow de BT5-021. Detalle: [[docs/work/polish/plans/2026-07-19-bt5-next-10/08-bt5-014-021-022-023-024|shard 08]].
 
-Pendiente: smoke; relocalización a Tools en condensed (diferido); sin parámetros/
-macros/auto-run (fuera de alcance por AC).
+Pendiente: smoke; relocalización a Tools en condensed (diferido); sin parámetros/ macros/auto-run (fuera de alcance por AC).

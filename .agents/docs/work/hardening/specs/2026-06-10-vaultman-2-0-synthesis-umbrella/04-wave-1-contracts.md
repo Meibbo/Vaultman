@@ -15,10 +15,8 @@ tags:
 
 # 04 — Wave 1 Task Contracts
 
-Wave 1 = N0 completo de la pirámide. Tres lanes según el template de dispatch del
-roadmap (worktree por agente, contexto angosto, sin archivos compartidos, verify gate).
-Cada lane requiere su propio SPEC→PLAN antes de implementar (no pre-spec'ear waves
-posteriores). Arranque gateado por: review del dev de esta umbrella + tag de respaldo.
+Wave 1 = N0 completo de la pirámide. Tres lanes según el template de dispatch del roadmap (worktree por agente, contexto angosto, sin archivos compartidos, verify gate).
+Cada lane requiere su propio SPEC→PLAN antes de implementar (no pre-spec'ear waves posteriores). Arranque gateado por: review del dev de esta umbrella + tag de respaldo.
 
 ## Lane A — Q4 logic-extraction (spine, serial)
 
@@ -100,6 +98,5 @@ priority: media-alta (de-riska la tesis de traducción; desbloquea specs de V.D)
   escalar solo si coordinación < 15%).
 - Validar no-overlap de archivos antes de lanzar (los 3 lanes no comparten archivos;
   si C necesita tocar ViewHost, coordinar con A).
-- Cada lane: commit local por slice verificado; aterrizaje a sandbox = PR/merge local
-  del worktree tras verify completo.
+- Cada lane: commit local por slice verificado; aterrizaje a sandbox = PR/merge local del worktree tras verify completo.
 - Metadata bump a `2.0.0-canary.1` ocurre en el PRIMER aterrizaje de wave 1 (D4).

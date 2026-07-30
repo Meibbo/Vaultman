@@ -13,8 +13,7 @@ tags: [agent/issue, initiative/polish, floating-toc, release/1.2.0-beta.1]
 
 ## Goal
 
-Make the Floating TOC lifecycle follow the explorer hierarchy and route a real optional
-smooth scroll through the virtualized reveal seam.
+Make the Floating TOC lifecycle follow the explorer hierarchy and route a real optional smooth scroll through the virtualized reveal seam.
 
 ## Scope
 
@@ -28,8 +27,7 @@ smooth scroll through the virtualized reveal seam.
 
 ## DoD — nonvisual
 
-- [x] Scope resolver RED/GREEN tests cover current root, ancestor, sibling, top level,
-      and no scope.
+- [x] Scope resolver RED/GREEN tests cover current root, ancestor, sibling, top level, and no scope.
 - [x] Three panels emit typed collapse events without changing expansion behavior.
 - [x] Close persists off and Back traverses one parent only.
 - [x] Router and virtualized view tests prove `auto`/`smooth` forwarding.
@@ -39,8 +37,7 @@ smooth scroll through the virtualized reveal seam.
 ## Implementation
 
 Landed code-only in `409b15ed fix(explorer): synchronize floating index lifecycle`.
-Integrated branch gates were re-run after FTC-009: full unit 70 files / 345 tests,
-TypeScript + Svelte 0/0, production bundle, ESLint, and Stylelint all passed.
+Integrated branch gates were re-run after FTC-009: full unit 70 files / 345 tests, TypeScript + Svelte 0/0, production bundle, ESLint, and Stylelint all passed.
 
 ## Non-goals
 

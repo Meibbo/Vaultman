@@ -29,8 +29,7 @@ tags:
 
 - [x] **Step 1: Write failing card component tests**
 
-Create `test/component/viewNodeCards.test.ts` with tests mirroring grid
-contracts:
+Create `test/component/viewNodeCards.test.ts` with tests mirroring grid contracts:
 
 ```ts
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -122,17 +121,14 @@ Expected: fail because `ViewNodeCards.svelte` does not exist.
 
 Create a Svelte 5 component based on `ViewNodeGrid.svelte` patterns:
 
-- props: `providerId`, `nodes`, `visibleFields`, `selectedIds`, `focusedId`,
-  `activeId`, `onCardClick`, `onSecondaryAction`, `onTertiaryAction`,
-  `onContextMenu`, `onCardKeydown`, `scrollTarget`, `mouseGestureConfig`, `icon`;
+- props: `providerId`, `nodes`, `visibleFields`, `selectedIds`, `focusedId`, `activeId`, `onCardClick`, `onSecondaryAction`, `onTertiaryAction`, `onContextMenu`, `onCardKeydown`, `scrollTarget`, `mouseGestureConfig`, `icon`;
 - use `createVirtualizer` with durable row keys;
 - compute columns from container width;
 - group nodes into rows;
 - use `createTextMeasureService()` and `measureNodeCard()` for row height;
 - use `estimateSize: (index) => rows[index]?.height ?? CARD_HEIGHT_BUCKETS.standard`;
 - render fields returned by `cardFieldsForNode`;
-- include `data-id`, `data-node-id`, `role="gridcell"`, `aria-selected`, and
-  state classes matching grid/table naming.
+- include `data-id`, `data-node-id`, `role="gridcell"`, `aria-selected`, and state classes matching grid/table naming.
 
 Use a local style snapshot for the first slice:
 
@@ -143,8 +139,7 @@ const CARD_MEASURE_STYLE = {
 };
 ```
 
-Superseded by the CSS font snapshot follow-up. These fixed values now live only
-as the fallback in `serviceNodeCardStyle.ts`.
+Superseded by the CSS font snapshot follow-up. These fixed values now live only as the fallback in `serviceNodeCardStyle.ts`.
 
 - [x] **Step 4: Add card SCSS**
 
@@ -164,8 +159,7 @@ Styles must:
 - keep card radius at or below existing `$vm-radius-s`;
 - preserve normal cursor on the broad card surface;
 - reserve stable icon space when icon is hidden or unavailable;
-- use restrained borders and selection/focus/active states consistent with
-  `_grid.scss` and `_table.scss`.
+- use restrained borders and selection/focus/active states consistent with `_grid.scss` and `_table.scss`.
 
 Modify `src/main.scss` to import the new partial next to other data styles.
 

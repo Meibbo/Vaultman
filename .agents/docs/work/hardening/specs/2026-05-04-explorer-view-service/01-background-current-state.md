@@ -14,26 +14,21 @@ tags:
 
 ## User Intent
 
-The goal is not merely to create a new generic explorer component. The deeper
-goal is to reconnect the view system after several hardening iterations left
-logic split across services, providers, and Svelte views.
+The goal is not merely to create a new generic explorer component. The deeper goal is to reconnect the view system after several hardening iterations left logic split across services, providers, and Svelte views.
 
 The desired result is a durable architecture where:
 
 - explorers provide domain data and domain actions;
 - services compute semantic state;
 - views render already-resolved models;
-- decorations, filters, queue state, marks, groups, sorting, keyboard
-  navigation, DnD, and templates share one coherent boundary.
+- decorations, filters, queue state, marks, groups, sorting, keyboard navigation, DnD, and templates share one coherent boundary.
 
 ## Current Pieces
 
 Existing useful pieces:
 
-- `IExplorer<TNode>`: contract for selection, expansion, search, and filtered
-  node state.
-- `ExplorerProvider<TMeta>`: current provider interface used by
-  `panelExplorer.svelte`.
+- `IExplorer<TNode>`: contract for selection, expansion, search, and filtered node state.
+- `ExplorerProvider<TMeta>`: current provider interface used by `panelExplorer.svelte`.
 - `DecorationManager`: current decoration service.
 - `Virtualizer<T>` and `TreeVirtualizer<TMeta>`: generic virtual window helpers.
 - `serviceSorting.ts`: generic path-based sort helper.
@@ -46,8 +41,7 @@ The pieces are useful, but they are not unified by a view service.
 ## Current Problems
 
 The current `panelExplorer.svelte` chooses `viewTree` or `viewGrid` directly.
-It passes explorer provider output into those views. For grid mode, it passes
-`TFile[]`, `App`, and file-specific callbacks.
+It passes explorer provider output into those views. For grid mode, it passes `TFile[]`, `App`, and file-specific callbacks.
 
 The current `viewGrid.svelte` is a failed table attempt:
 
@@ -59,8 +53,7 @@ The current `viewGrid.svelte` is a failed table attempt:
 - it is not the desired icon-grid;
 - it is not good enough to become `viewTable`.
 
-The current `viewTree.svelte` is closer to the desired renderer model, but it
-still owns too many presentation concepts:
+The current `viewTree.svelte` is closer to the desired renderer model, but it still owns too many presentation concepts:
 
 - badge rendering details;
 - double-click undo badge behavior;
@@ -68,8 +61,7 @@ still owns too many presentation concepts:
 - active/filter/warning CSS class decisions;
 - tree virtualization.
 
-Some of those presentation details belong in the view, but the semantic
-decisions that produce them should not.
+Some of those presentation details belong in the view, but the semantic decisions that produce them should not.
 
 ## Queue And Active Filters
 
@@ -92,8 +84,7 @@ Queue and active filters are not currently using `viewTree` or `viewGrid`.
 - describes each rule inline via `describeRule`;
 - owns buttons for clear, templates, close, and disabled placeholders.
 
-Both components are mounted through `FrameOverlayController` and
-`overlayState`, not through `panelExplorer.svelte`.
+Both components are mounted through `FrameOverlayController` and `overlayState`, not through `panelExplorer.svelte`.
 
 ## Decoration Split
 
@@ -110,8 +101,7 @@ But important visual state still lives elsewhere:
 - active filter highlights are not centrally connected;
 - bubbling badges from collapsed descendants is documented as a regression;
 - `viewTree` renders badge semantics directly;
-- active filter and warning state are props/classes instead of a normalized
-  render model.
+- active filter and warning state are props/classes instead of a normalized render model.
 
 ## Primary Architectural Smell
 
@@ -134,6 +124,5 @@ Views know too much about:
 - undo badge behavior;
 - virtual layout behavior.
 
-`serviceViews` exists to create one stable place where semantic view state is
-resolved before it reaches a renderer.
+`serviceViews` exists to create one stable place where semantic view state is resolved before it reaches a renderer.
 

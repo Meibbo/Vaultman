@@ -15,10 +15,7 @@ tags:
 
 # Decision Changelog
 
-Audit trail of decisions that CHANGED or were SUPERSEDED — what, when, why. Created 2026-05-27
-after the dev flagged that in-place overwrites were dropping the "why it changed" trail. Practice
-going forward: when a recorded decision changes, **add a row here** + update the source doc — do
-not silently overwrite.
+Audit trail of decisions that CHANGED or were SUPERSEDED — what, when, why. Created 2026-05-27 after the dev flagged that in-place overwrites were dropping the "why it changed" trail. Practice going forward: when a recorded decision changes, **add a row here** + update the source doc — do not silently overwrite.
 
 | Date | Decision | From → To | Why |
 |---|---|---|---|
@@ -41,6 +38,4 @@ not silently overwrite.
 
 ## Open meta-improvement
 
-PKM-AI memory management (working vs procedural/semantic) needs an upgrade — the dev reports
-info loss between chats + repeated "go read doc X" reminders. Candidate: a pkm-ai initiative
-item to make status/handoff + this changelog the reliable cross-session memory surface.
+PKM-AI memory management (working vs procedural/semantic) needs an upgrade — the dev reports info loss between chats + repeated "go read doc X" reminders. Candidate: a pkm-ai initiative item to make status/handoff + this changelog the reliable cross-session memory surface.

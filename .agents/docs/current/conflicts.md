@@ -11,8 +11,7 @@ tags:
 
 # Current Conflicts
 
-Conflict items only. Canonical records live under
-`docs/work/<initiative>/items/`.
+Conflict items only. Canonical records live under `docs/work/<initiative>/items/`.
 
 ## Items
 

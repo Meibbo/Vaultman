@@ -16,16 +16,14 @@ updated_by: codex
 
 # Wave A/B Claude Handoff
 
-This handoff is for Claude or another planning agent. Its job is to prepare the
-implementation plan for `EDP-002`. It must not implement product code.
+This handoff is for Claude or another planning agent. Its job is to prepare the implementation plan for `EDP-002`. It must not implement product code.
 
 ## Mission
 
 Prepare Vaultman to start the Explorer data-plane transition.
 
 - Wave A: dispatch read-only scout subagents over independent code domains.
-- Wave B: synthesize those reports into a detailed `EDP-002` implementation
-  plan.
+- Wave B: synthesize those reports into a detailed `EDP-002` implementation plan.
 - Wave C: leave implementation to Codex in a later session.
 
 ## Required Startup
@@ -57,8 +55,7 @@ Use skills equivalent to:
 - Do not revert unrelated dirty work.
 - Keep structural snapshots memory-first.
 - Do not put media cache DB work into `EDP-002`; that belongs to `EDP-007`.
-- Do not treat stale `serviceViews` plan wording as current authority when it
-  conflicts with `NodeSelectionService`.
+- Do not treat stale `serviceViews` plan wording as current authority when it conflicts with `NodeSelectionService`.
 
 Allowed writes:
 
@@ -68,9 +65,7 @@ Allowed writes:
 
 ## Wave A - Scout Dispatch
 
-Dispatch four read-only scouts. Each scout must cite files read, summarize
-current responsibilities, name risks, and propose exact files/tests the plan
-should touch. They must not edit files.
+Dispatch four read-only scouts. Each scout must cite files read, summarize current responsibilities, name risks, and propose exact files/tests the plan should touch. They must not edit files.
 
 ### Scout A1 - Files Source And Tree Contracts
 
@@ -85,10 +80,8 @@ Scope:
 Questions:
 
 - What is the current `TreeNode` shape and metadata expectation?
-- Where does Files currently mix source facts, search/sort/hidden projection,
-  adopted children, and decoration?
-- What exact source method or adapter should `EDP-002` add without breaking
-  `getTree()`?
+- Where does Files currently mix source facts, search/sort/hidden projection, adopted children, and decoration?
+- What exact source method or adapter should `EDP-002` add without breaking `getTree()`?
 - What tests already cover Files provider behavior?
 
 Expected report:
@@ -129,8 +122,7 @@ Questions:
 
 - Which tests should be extended versus newly created?
 - What exact focused commands should the plan require?
-- Are there existing test factories for `TreeNode`, Files provider, or panel
-  state?
+- Are there existing test factories for `TreeNode`, Files provider, or panel state?
 - What is the smallest red-green sequence for `EDP-002`?
 
 Expected report:
@@ -150,8 +142,7 @@ Questions:
 
 - What must `EDP-002` avoid so overlay batching stays in `EDP-004`?
 - Which existing decoration behavior must remain compatible through `getTree()`?
-- What signatures or output terms should the plan reserve for later without
-  implementing them?
+- What signatures or output terms should the plan reserve for later without implementing them?
 
 Expected report:
 
@@ -167,10 +158,8 @@ The plan must follow the `writing-plans` standard:
 
 - exact files to create/modify;
 - TDD steps with red/green commands and expected outputs;
-- code-level contracts for `typeExplorerDataPlane.ts`,
-  `logicExplorerSnapshot.ts`, and `serviceExplorerDataPlane.svelte.ts`;
-- compatibility steps for `explorerFiles.ts`, `panelExplorer.svelte`, and
-  `viewTree.svelte`;
+- code-level contracts for `typeExplorerDataPlane.ts`, `logicExplorerSnapshot.ts`, and `serviceExplorerDataPlane.svelte.ts`;
+- compatibility steps for `explorerFiles.ts`, `panelExplorer.svelte`, and `viewTree.svelte`;
 - focused verification commands;
 - no placeholders, no broad "add tests" steps.
 
@@ -185,8 +174,7 @@ The plan must explicitly defer:
 
 ## Final Output To Leave For Codex
 
-Claude must finish by updating this file or adding a short final handoff note
-with:
+Claude must finish by updating this file or adding a short final handoff note with:
 
 - links to the four scout reports;
 - link to the `EDP-002` implementation plan;
@@ -194,9 +182,7 @@ with:
 - proposed Wave C worker split with disjoint write scopes;
 - exact first command Codex should run before implementation.
 
-Do not mark `EDP-002` as complete. If the plan is ready for implementation,
-update the issue label/status to `ready-for-agent` only if the local tracker
-convention is clear and `EDP-001` has been satisfied.
+Do not mark `EDP-002` as complete. If the plan is ready for implementation, update the issue label/status to `ready-for-agent` only if the local tracker convention is clear and `EDP-001` has been satisfied.
 
 ## Wave A/B Completion (2026-05-12)
 
@@ -213,42 +199,24 @@ Wave B output:
 
 Locked decisions resolved during synthesis:
 
-- Provider method names: `getStructuralTree()` (mirrors `getTree()`) and
-  `getStructuralRevisions()`. Scout A3's alternate `getStructuralSource()`
-  name was rejected for symmetry.
+- Provider method names: `getStructuralTree()` (mirrors `getTree()`) and `getStructuralRevisions()`. Scout A3's alternate `getStructuralSource()` name was rejected for symmetry.
 - `ExplorerDataPlaneRevisions` field set: `filesRevision` required;
   `propsRevision`/`tagsRevision`/`contentRevision` optional carry-throughs.
-  `queueRevision`, `filterRevision`, `decorationRevision` explicitly
-  excluded (reserved for `EDP-004`).
+  `queueRevision`, `filterRevision`, `decorationRevision` explicitly excluded (reserved for `EDP-004`).
 - `subscribe(explorerId, cb)` API is per-explorer, matching spec shard 14.
-- `viewTree.svelte` reveal resolution stays unchanged; only the type
-  `ExplorerRevealTarget` lands in this slice. View adoption is deferred to
-  `EDP-009`.
-- `panelExplorer.svelte` `visibleNodeIds()` is the only helper rewired for
-  Files in EDP-002. The other 11 recursive scans listed by Scout A2 are
-  reserved for `EDP-003`.
+- `viewTree.svelte` reveal resolution stays unchanged; only the type `ExplorerRevealTarget` lands in this slice. View adoption is deferred to `EDP-009`.
+- `panelExplorer.svelte` `visibleNodeIds()` is the only helper rewired for Files in EDP-002. The other 11 recursive scans listed by Scout A2 are reserved for `EDP-003`.
 
 Unresolved questions deferred to Codex:
 
-- Auto-publish wiring inside `panelExplorer.refreshData()`. The plan
-  installs `ExplorerDataPlaneService` and the consumer branch, but the
-  publish trigger (subscribe to `filesIndex.subscribe` + republish on
-  structural revision change) is intentionally minimal in EDP-002. The
-  test stubs install the snapshot directly. Document the chosen wiring in
-  the Task 5 commit message.
-- Whether `getStructuralRevisions()` should include `propsRevision` only
-  when `sortBy === 'count'`. The plan unconditionally includes it.
+- Auto-publish wiring inside `panelExplorer.refreshData()`. The plan installs `ExplorerDataPlaneService` and the consumer branch, but the publish trigger (subscribe to `filesIndex.subscribe` + republish on structural revision change) is intentionally minimal in EDP-002. The test stubs install the snapshot directly. Document the chosen wiring in the Task 5 commit message.
+- Whether `getStructuralRevisions()` should include `propsRevision` only when `sortBy === 'count'`. The plan unconditionally includes it.
 
 Proposed Wave C worker split:
 
-- Worker 1: Tasks 1–3 — types, pure builder, service. Writes only in
-  `src/types/`, `src/logic/`, `src/services/`, `test/unit/`.
-- Worker 2: Tasks 4–5 — Files provider + main wiring + Files provider
-  test extensions. Writes only in `src/providers/explorerFiles.ts`,
-  `src/main.ts`, `test/unit/components/explorerFiles.test.ts`.
-- Worker 3: Task 6 — panel wiring + panel test extensions. Writes only in
-  `src/components/containers/panelExplorer.svelte` and
-  `test/component/panelExplorerSelection.test.ts`.
+- Worker 1: Tasks 1–3 — types, pure builder, service. Writes only in `src/types/`, `src/logic/`, `src/services/`, `test/unit/`.
+- Worker 2: Tasks 4–5 — Files provider + main wiring + Files provider test extensions. Writes only in `src/providers/explorerFiles.ts`, `src/main.ts`, `test/unit/components/explorerFiles.test.ts`.
+- Worker 3: Task 6 — panel wiring + panel test extensions. Writes only in `src/components/containers/panelExplorer.svelte` and `test/component/panelExplorerSelection.test.ts`.
 - Worker 4: Task 7 — final verification. Read-only on code.
 
 Workers 1 and 2 may run in parallel; Worker 3 starts after both merge;
@@ -260,8 +228,6 @@ Exact first command Codex should run before implementation:
 pnpm run test:unit -- test/unit/logic/logicExplorerSnapshot.test.ts
 ```
 
-Expected: FAIL with module-resolution error. This is the RED gate for
-Task 2.1 in the plan.
+Expected: FAIL with module-resolution error. This is the RED gate for Task 2.1 in the plan.
 
-`EDP-002` issue status: keep at `needs-triage` until `EDP-001` is
-satisfied and the user explicitly approves promotion to `ready-for-agent`.
+`EDP-002` issue status: keep at `needs-triage` until `EDP-001` is satisfied and the user explicitly approves promotion to `ready-for-agent`.

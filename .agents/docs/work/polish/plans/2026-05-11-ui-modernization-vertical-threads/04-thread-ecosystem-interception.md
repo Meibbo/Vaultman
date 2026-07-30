@@ -26,16 +26,7 @@ updated_by: codex
 
 ## Scope
 
-T4 owns the surfaces where Vaultman meets the rest of Obsidian. It
-installs Bits UI v1, ships the **portal-resolver helper** that keeps
-Dialogs/Popovers safe in pop-out windows, migrates islands and modals
-to Bits UI, intercepts native DOM clicks (Ctrl+Click on `.cm-hashtag`,
-snippet rows, plugin rows) to route into the alias system, extends
-`serviceDnD` with alias-aware drops, adds Adopted-Node DnD (block
-extraction), implements **Foul Detection**, lays down the 3-Column
-Dashboard, and finishes the Add-ons island with Quick Switcher +
-MarkdownRenderer integration. Note that the FAB orbiting-ink visual
-polish is included here as task 4.9 step 3.
+T4 owns the surfaces where Vaultman meets the rest of Obsidian. It installs Bits UI v1, ships the **portal-resolver helper** that keeps Dialogs/Popovers safe in pop-out windows, migrates islands and modals to Bits UI, intercepts native DOM clicks (Ctrl+Click on `.cm-hashtag`, snippet rows, plugin rows) to route into the alias system, extends `serviceDnD` with alias-aware drops, adds Adopted-Node DnD (block extraction), implements **Foul Detection**, lays down the 3-Column Dashboard, and finishes the Add-ons island with Quick Switcher + MarkdownRenderer integration. Note that the FAB orbiting-ink visual polish is included here as task 4.9 step 3.
 
 ## Files
 
@@ -67,9 +58,7 @@ polish is included here as task 4.9 step 3.
 - Create: `test/component/dashboard3Column.test.ts`
 - Create: `test/component/addonsMarkdownPane.test.ts`
 
-Read-only (T4 must not edit): all `View*` / `view*` node surface
-components except `frameVaultman.svelte`, all VFS-related code (T3),
-theme service core file (T1).
+Read-only (T4 must not edit): all `View*` / `view*` node surface components except `frameVaultman.svelte`, all VFS-related code (T3), theme service core file (T1).
 
 ## Source Specs Consumed
 
@@ -82,117 +71,62 @@ theme service core file (T1).
 
 ## Dependencies
 
-- **Before T4 starts:** T1 task 1.5 (`.vm-root` arbitration), T1 task
-  1.0 confirms `@dnd-kit/svelte` version. The user prompt mentions
-  `@thisux/sveltednd` — **do not** install it; the canonical adapter
-  per current handoff is `@dnd-kit/svelte@^0.4.0`.
-- **T4 may start after T1 ships task 1.5.** T4 can run in parallel
-  with T2.
-- **T4 task 4.6 (Adopted-Node DnD block extraction)** depends on
-  T3 task 3.8 (cutover) since the extraction stages an op into the
-  VFS chain.
-- **T4 task 4.8 (3-Column Dashboard)** consumes `serviceLayout.resolveDashboardEnabled`
-  which already exists per the chameleon plan.
+- **Before T4 starts:** T1 task 1.5 (`.vm-root` arbitration), T1 task 1.0 confirms `@dnd-kit/svelte` version. The user prompt mentions `@thisux/sveltednd` — **do not** install it; the canonical adapter per current handoff is `@dnd-kit/svelte@^0.4.0`.
+- **T4 may start after T1 ships task 1.5.** T4 can run in parallel with T2.
+- **T4 task 4.6 (Adopted-Node DnD block extraction)** depends on T3 task 3.8 (cutover) since the extraction stages an op into the VFS chain.
+- **T4 task 4.8 (3-Column Dashboard)** consumes `serviceLayout.resolveDashboardEnabled` which already exists per the chameleon plan.
 
 ---
 
 ## 2026-05-11 T4 Continuation Log
 
-- Continued in Claude worktree
-  `C:\Users\vic_A\Desktop\vaultman\.claude\worktrees\sleepy-engelbart-9e6dc6`
-  on branch `claude/sleepy-engelbart-9e6dc6`.
+- Continued in Claude worktree `C:\Users\vic_A\Desktop\vaultman\.claude\worktrees\sleepy-engelbart-9e6dc6` on branch `claude/sleepy-engelbart-9e6dc6`.
 - Baseline audit found several T4 assets already present in the current code:
-  `bits-ui@^2.18.1`, `servicePortalResolver.ts`,
-  `serviceFoulDetection.svelte.ts`, `serviceNativeClickIntercept.ts`,
-  `serviceDndAliasAware.ts`, `serviceAddonsIsland.svelte.ts`,
-  `vmDialog.svelte`, `vmPopover.svelte`, `Dashboard3Column.svelte`, and
-  `AddonsMarkdownPane.svelte`.
+  `bits-ui@^2.18.1`, `servicePortalResolver.ts`, `serviceFoulDetection.svelte.ts`, `serviceNativeClickIntercept.ts`, `serviceDndAliasAware.ts`, `serviceAddonsIsland.svelte.ts`, `vmDialog.svelte`, `vmPopover.svelte`, `Dashboard3Column.svelte`, and `AddonsMarkdownPane.svelte`.
 - Added the missing component gate files requested by this thread:
-  `test/component/vmDialogPortal.test.ts`,
-  `test/component/vmPopoverIsland.test.ts`,
-  `test/component/nativeClickInterceptor.test.ts`,
-  `test/component/dashboard3Column.test.ts`, and
-  `test/component/addonsMarkdownPane.test.ts`.
-- The first component RED exposed an incorrect test assumption, not a product
-  defect: Bits UI keeps the dialog node mounted and moves it to
-  `data-state="closed"` after close. The test now asserts that state.
-- Added `test/unit/services/serviceDndMoveBlock.test.ts` and implemented
-  `buildMoveBlockOps()` in `serviceDnd.ts`. The helper returns two immutable
-  ops: source extraction removes the block line, and target insertion appends
-  the extracted line. This closes the helper contract in task 4.6, but queue
-  integration for staging a real two-file block move remains a follow-up.
+  `test/component/vmDialogPortal.test.ts`, `test/component/vmPopoverIsland.test.ts`, `test/component/nativeClickInterceptor.test.ts`, `test/component/dashboard3Column.test.ts`, and `test/component/addonsMarkdownPane.test.ts`.
+- The first component RED exposed an incorrect test assumption, not a product defect: Bits UI keeps the dialog node mounted and moves it to `data-state="closed"` after close. The test now asserts that state.
+- Added `test/unit/services/serviceDndMoveBlock.test.ts` and implemented `buildMoveBlockOps()` in `serviceDnd.ts`. The helper returns two immutable ops: source extraction removes the block line, and target insertion appends the extracted line. This closes the helper contract in task 4.6, but queue integration for staging a real two-file block move remains a follow-up.
 - Focused T4 unit gate passed: 8 files / 52 tests.
 - Focused T4 component gate passed: 5 files / 9 tests.
 - Full unit passed: 117 files / 723 tests.
 - Full component passed: 61 files / 290 tests.
-- `pnpm run lint:full`, `pnpm run check`, `pnpm run build:plugin`, and
-  `git diff --check` passed. `git diff --check` emitted CRLF warnings only.
-- Live Obsidian smoke passed for plugin reload, `vaultman:open`, and
-  `dev:errors`. Dialog and dashboard DOM evals returned `false` because no
-  dialog was open and the dashboard surface was not active in the live view.
-- Still open for future T4 work: wire native click interception through the
-  frame/settings surface if that setting is still desired, migrate the actual
-  Find/Replace island to `vmPopover`, integrate dashboard/add-ons into
-  `frameVaultman.svelte`, stage real adopted-block moves into queue chains,
-  and implement Quick Switcher plus FAB orbiting-ink polish.
+- `pnpm run lint:full`, `pnpm run check`, `pnpm run build:plugin`, and `git diff --check` passed. `git diff --check` emitted CRLF warnings only.
+- Live Obsidian smoke passed for plugin reload, `vaultman:open`, and `dev:errors`. Dialog and dashboard DOM evals returned `false` because no dialog was open and the dashboard surface was not active in the live view.
+- Still open for future T4 work: wire native click interception through the frame/settings surface if that setting is still desired, migrate the actual Find/Replace island to `vmPopover`, integrate dashboard/add-ons into `frameVaultman.svelte`, stage real adopted-block moves into queue chains, and implement Quick Switcher plus FAB orbiting-ink polish.
 
 ## 2026-05-13 T4 Dashboard/Add-ons Frame Wiring Follow-up
 
-- Continued in Codex worktree
-  `C:\Users\vic_A\Desktop\vaultman\.claude\worktrees\t4-addons-dashboard`
-  on branch `codex/t4-addons-dashboard`, based on `claude/explorer`.
-- Base verification: `03326b8d3fde809e7d94a3d3926f382e60cb493e` is the
-  `claude/explorer` head and contains required ancestor `03326b8`.
+- Continued in Codex worktree `C:\Users\vic_A\Desktop\vaultman\.claude\worktrees\t4-addons-dashboard` on branch `codex/t4-addons-dashboard`, based on `claude/explorer`.
+- Base verification: `03326b8d3fde809e7d94a3d3926f382e60cb493e` is the `claude/explorer` head and contains required ancestor `03326b8`.
 - RED gate:
-  `pnpm exec vp test run --project component --config vitest.config.ts test/component/frameDashboardAddons.test.ts --fileParallelism=false`
-  failed 1/1 because `[data-vm-dashboard]` was absent from the live frame.
+  `pnpm exec vp test run --project component --config vitest.config.ts test/component/frameDashboardAddons.test.ts --fileParallelism=false` failed 1/1 because `[data-vm-dashboard]` was absent from the live frame.
 - Implementation:
-  - `frameVaultman.svelte` now measures the frame root with `ResizeObserver`
-    and gates dashboard mode through `resolveDashboardEnabled`.
-  - Wide non-thin main frames render `Dashboard3Column` with a filter-tab rail,
-    the active frame page in the explorer column, and `AddonsMarkdownPane` in
-    the add-ons column.
-  - The add-ons pane owns a frame-local `AddonsIslandService` and receives the
-    plugin app through the service's Quick Switcher adapter type.
-  - Thin/sidebar behavior keeps the existing single-column sliding page strip,
-    `FrameViewportController`, island backdrop, and dock path.
-- Explicit non-scope: no EDP-010 selection mirror cleanup, no
-  ViewService/NodeSelectionService ownership changes, no FnR `vmPopover`
-  migration, no EDP row-contract work, and no performance-threshold edits.
+  - `frameVaultman.svelte` now measures the frame root with `ResizeObserver` and gates dashboard mode through `resolveDashboardEnabled`.
+  - Wide non-thin main frames render `Dashboard3Column` with a filter-tab rail, the active frame page in the explorer column, and `AddonsMarkdownPane` in the add-ons column.
+  - The add-ons pane owns a frame-local `AddonsIslandService` and receives the plugin app through the service's Quick Switcher adapter type.
+  - Thin/sidebar behavior keeps the existing single-column sliding page strip, `FrameViewportController`, island backdrop, and dock path.
+- Explicit non-scope: no EDP-010 selection mirror cleanup, no ViewService/NodeSelectionService ownership changes, no FnR `vmPopover` migration, no EDP row-contract work, and no performance-threshold edits.
 - Focused verification passed:
   - RED rerun after implementation:
-    `pnpm exec vp test run --project component --config vitest.config.ts test/component/frameDashboardAddons.test.ts --fileParallelism=false`
-    passed 1 file / 2 tests.
+    `pnpm exec vp test run --project component --config vitest.config.ts test/component/frameDashboardAddons.test.ts --fileParallelism=false` passed 1 file / 2 tests.
   - Dashboard/add-ons/frame component gate:
-    `pnpm exec vp test run --project component --config vitest.config.ts test/component/frameDashboardAddons.test.ts test/component/frameFaintMultiWindow.test.ts test/component/dashboard3Column.test.ts test/component/addonsMarkdownPane.test.ts --fileParallelism=false`
-    passed 4 files / 9 tests.
+    `pnpm exec vp test run --project component --config vitest.config.ts test/component/frameDashboardAddons.test.ts test/component/frameFaintMultiWindow.test.ts test/component/dashboard3Column.test.ts test/component/addonsMarkdownPane.test.ts --fileParallelism=false` passed 4 files / 9 tests.
   - Service/layout unit gate:
-    `pnpm exec vp test run --project unit --config vitest.config.ts test/unit/services/serviceAddonsIsland.test.ts test/unit/services/serviceLayoutElastic.test.ts --fileParallelism=false`
-    passed 2 files / 14 tests.
+    `pnpm exec vp test run --project unit --config vitest.config.ts test/unit/services/serviceAddonsIsland.test.ts test/unit/services/serviceLayoutElastic.test.ts --fileParallelism=false` passed 2 files / 14 tests.
 - Static/build verification passed:
-  `pnpm run lint:full`, `pnpm run check`, `pnpm run build:plugin`, and final
-  `git diff --check` after doc updates. `git diff --check` emitted only the
-  existing CRLF conversion warnings.
-- Svelte validation note: `npx @sveltejs/mcp svelte-autofixer` still reports an
-  unlocated parse issue on the full legacy `frameVaultman.svelte` path. The
-  MCP autofixer accepted a focused equivalent of the changed snippets and
-  reported only pre-existing/action-style suggestions, while repo
-  `svelte-check` and Prettier parse the actual file with zero diagnostics.
+  `pnpm run lint:full`, `pnpm run check`, `pnpm run build:plugin`, and final `git diff --check` after doc updates. `git diff --check` emitted only the existing CRLF conversion warnings.
+- Svelte validation note: `npx @sveltejs/mcp svelte-autofixer` still reports an unlocated parse issue on the full legacy `frameVaultman.svelte` path. The MCP autofixer accepted a focused equivalent of the changed snippets and reported only pre-existing/action-style suggestions, while repo `svelte-check` and Prettier parse the actual file with zero diagnostics.
 
 ## 2026-05-13 Parallel Integration Note
 
-- T4 FnR `vmPopover` follow-up integrated into `claude/explorer` with merge
-  commit `bc5a151b909483287a250a73a09923592319ad5b`.
-- T4 dashboard/add-ons frame wiring integrated into `claude/explorer` with
-  merge commit `d4c4225f7ce5d2e2e2b393e01e3eb63dc355b71a`.
+- T4 FnR `vmPopover` follow-up integrated into `claude/explorer` with merge commit `bc5a151b909483287a250a73a09923592319ad5b`.
+- T4 dashboard/add-ons frame wiring integrated into `claude/explorer` with merge commit `d4c4225f7ce5d2e2e2b393e01e3eb63dc355b71a`.
 - The dashboard/add-ons merge conflicted with T3 in `frameVaultman.svelte`.
-  Resolution preserved dashboard mode and the T3 open-diff hook by binding
-  `OperationsPage.activeTab` in both the standard page strip and the dashboard
-  explorer snippet.
+  Resolution preserved dashboard mode and the T3 open-diff hook by binding `OperationsPage.activeTab` in both the standard page strip and the dashboard explorer snippet.
 - Final integrated T3/T4 unit gate passed 8 files / 87 tests.
 - Final integrated T3/T4 component gate passed 11 files / 38 tests.
-- Static/build gates passed: `lint:full`, `check`, `build:plugin`, and
-  `git diff --check`.
+- Static/build gates passed: `lint:full`, `check`, `build:plugin`, and `git diff --check`.
 
 ---
 
@@ -208,9 +142,7 @@ theme service core file (T1).
 node -e "const p=require('./package.json'); console.log('dnd-kit:', p.dependencies['@dnd-kit/svelte']); console.log('thisux:', p.dependencies['@thisux/sveltednd']);"
 ```
 
-Expected: `dnd-kit: ^0.4.0`, `thisux: undefined`. If `thisux` is
-present, the package mistakenly returned to dependencies; remove it
-with `pnpm remove @thisux/sveltednd` and re-run.
+Expected: `dnd-kit: ^0.4.0`, `thisux: undefined`. If `thisux` is present, the package mistakenly returned to dependencies; remove it with `pnpm remove @thisux/sveltednd` and re-run.
 
 - [ ] **Step 2 — Install Bits UI v1**
 
@@ -228,8 +160,7 @@ Expected: `^1.0.0` or a `1.x` resolved version.
 
 - [ ] **Step 3 — Update i18n keys for the new surfaces**
 
-Append the following keys to `src/index/i18n/locales/en.ts` (or the
-canonical English locale):
+Append the following keys to `src/index/i18n/locales/en.ts` (or the canonical English locale):
 
 ```ts
 'dashboard.col_filters': 'Filters',
@@ -243,8 +174,7 @@ canonical English locale):
 'native.ctrl_click_hint': 'Ctrl+Click to open the linked note.',
 ```
 
-Copy these to every non-English locale as the English fallback so
-smoke tests do not fail on missing keys.
+Copy these to every non-English locale as the English fallback so smoke tests do not fail on missing keys.
 
 ---
 
@@ -451,9 +381,7 @@ describe('vmDialog', () => {
 pnpm exec vp test run --project component --config vitest.config.ts test/component/vmDialogPortal.test.ts --fileParallelism=false
 ```
 
-Expected: PASS, 2/2. If the second test fails because Bits UI bubbles
-Escape via a window listener, route the close through `bind:open` and
-trigger it from the test by setting `open = false` after dispatch.
+Expected: PASS, 2/2. If the second test fails because Bits UI bubbles Escape via a window listener, route the close through `bind:open` and trigger it from the test by setting `open = false` after dispatch.
 
 ---
 
@@ -528,9 +456,7 @@ describe('overlayIsland Find/Replace popover', () => {
 
 - [ ] **Step 3 — Refactor `overlayIsland.svelte`**
 
-Replace the existing manual show/hide DOM with `<vmPopover>` bound to
-`fnrService.expanded`. Preserve the existing trigger label and content
-slots. Confirm the keyboard shortcut still toggles `expanded`.
+Replace the existing manual show/hide DOM with `<vmPopover>` bound to `fnrService.expanded`. Preserve the existing trigger label and content slots. Confirm the keyboard shortcut still toggles `expanded`.
 
 - [ ] **Step 4 — Run**
 
@@ -685,9 +611,7 @@ function dispatchOpen(doc: Document, alias: string): void {
 }
 ```
 
-In `frameVaultman.svelte`, on mount: if `interceptNativeClicks` is
-true (settings flag), call `attachNativeClickInterceptor`. Tear down
-on destroy.
+In `frameVaultman.svelte`, on mount: if `interceptNativeClicks` is true (settings flag), call `attachNativeClickInterceptor`. Tear down on destroy.
 
 - [ ] **Step 3 — Extend `serviceNodeBinding.ts`**
 
@@ -866,10 +790,7 @@ Expected: `CUTOVER OK`. If violations remain, halt 4.6 and notify T3.
 
 - [ ] **Step 2 — Implement the op**
 
-Create a `MoveBlockOp` that captures `(fromPath, toPath, blockId)` and
-implements `apply(vfs)` to return a new state with the block line
-spliced out of the `from` body and spliced into the `to` body. Stage
-the op into the two relevant chains via `queueService.stageImmutableOp`.
+Create a `MoveBlockOp` that captures `(fromPath, toPath, blockId)` and implements `apply(vfs)` to return a new state with the block line spliced out of the `from` body and spliced into the `to` body. Stage the op into the two relevant chains via `queueService.stageImmutableOp`.
 
 Concrete shape (in `serviceDnd.ts` or a new `src/logic/logicBlocks.ts`):
 
@@ -1061,12 +982,7 @@ export class FoulDetectionService {
 
 - [ ] **Step 3 — Wire into the frame**
 
-In `frameVaultman.svelte`, on mount when `themeService.foulDetection` is
-true, instantiate `FoulDetectionService` and run `checkDomMimicry(root)`
-inside an `$effect` whenever `themeService.mode` or
-`themeService.identity` changes. Pass the service into `vmDialog` /
-`vmPopover` via context so they can call `recordPortalFoul` when the
-portal resolver reports one.
+In `frameVaultman.svelte`, on mount when `themeService.foulDetection` is true, instantiate `FoulDetectionService` and run `checkDomMimicry(root)` inside an `$effect` whenever `themeService.mode` or `themeService.identity` changes. Pass the service into `vmDialog` / `vmPopover` via context so they can call `recordPortalFoul` when the portal resolver reports one.
 
 - [ ] **Step 4 — Run + pass**
 
@@ -1174,11 +1090,7 @@ describe('Dashboard3Column', () => {
 
 - [ ] **Step 3 — Wire from `frameVaultman.svelte`**
 
-Compute `enabled` from `serviceLayout.resolveDashboardEnabled({ width, kind, mode })`
-via a `ResizeObserver` measuring the frame container. Pass three
-snippets corresponding to: filters bar, explorer (whichever tab is
-active), and add-ons. The exact snippet wiring depends on the existing
-frame layout; preserve current single-column behavior for sidebar/Thin.
+Compute `enabled` from `serviceLayout.resolveDashboardEnabled({ width, kind, mode })` via a `ResizeObserver` measuring the frame container. Pass three snippets corresponding to: filters bar, explorer (whichever tab is active), and add-ons. The exact snippet wiring depends on the existing frame layout; preserve current single-column behavior for sidebar/Thin.
 
 - [ ] **Step 4 — Run + pass**
 
@@ -1294,22 +1206,15 @@ export class AddonsIslandService {
 {/if}
 ```
 
-In production wiring, `markdownRenderer` invokes Obsidian's
-`MarkdownRenderer.renderMarkdown(content, mountPoint, sourcePath, component)`.
+In production wiring, `markdownRenderer` invokes Obsidian's `MarkdownRenderer.renderMarkdown(content, mountPoint, sourcePath, component)`.
 
 - [ ] **Step 4 — Quick Switcher hook**
 
-In the add-ons island toolbar, add a button that calls
-`(this.app as any).commands.executeCommandById('switcher:open')` and
-then registers a one-shot interception for the user's selection (read
-`app.workspace.getActiveFile()` after the switcher closes). The exact
-hook depends on Obsidian internals; keep the call boxed inside the
-add-ons island service so future API changes only touch one place.
+In the add-ons island toolbar, add a button that calls `(this.app as any).commands.executeCommandById('switcher:open')` and then registers a one-shot interception for the user's selection (read `app.workspace.getActiveFile()` after the switcher closes). The exact hook depends on Obsidian internals; keep the call boxed inside the add-ons island service so future API changes only touch one place.
 
 - [ ] **Step 5 — FAB orbiting-ink animation**
 
-In `layoutOverlay.svelte`, observe `queueService.length` (or
-`chains.size`) and toggle a `.vm-fab-processing` class on the Ops FAB.
+In `layoutOverlay.svelte`, observe `queueService.length` (or `chains.size`) and toggle a `.vm-fab-processing` class on the Ops FAB.
 SCSS in `src/styles/panel/_ops.scss` adds:
 
 ```scss
@@ -1323,9 +1228,7 @@ SCSS in `src/styles/panel/_ops.scss` adds:
 }
 ```
 
-Respect `themeService.reducedMotion`: when true, suppress the
-animation by gating with `[data-vm-reduced-motion="false"]` or the
-existing `.vm-reduced-motion` root class.
+Respect `themeService.reducedMotion`: when true, suppress the animation by gating with `[data-vm-reduced-motion="false"]` or the existing `.vm-reduced-motion` root class.
 
 - [ ] **Step 6 — Run**
 
@@ -1352,27 +1255,13 @@ obsidian vault=plugin-dev eval code="(() => !!activeDocument.querySelector('[dat
 obsidian vault=plugin-dev dev:errors
 ```
 
-Expected: lint clean, all targeted tests pass, `svelte-check` exits 0,
-build exits 0, plugin reloads, both evals return appropriate booleans
-once the diff modal is opened and the dashboard mode is active in a
-main-leaf wider than 800px, no Vaultman stack in dev errors.
+Expected: lint clean, all targeted tests pass, `svelte-check` exits 0, build exits 0, plugin reloads, both evals return appropriate booleans once the diff modal is opened and the dashboard mode is active in a main-leaf wider than 800px, no Vaultman stack in dev errors.
 
-Additional pop-out window smoke (manual): open Vaultman in a pop-out
-window, trigger the diff dialog, confirm the modal renders inside the
-pop-out's `.vm-root`. With `themeService.foulDetection = true`, no
-`portal-misplaced` foul should be logged.
+Additional pop-out window smoke (manual): open Vaultman in a pop-out window, trigger the diff dialog, confirm the modal renders inside the pop-out's `.vm-root`. With `themeService.foulDetection = true`, no `portal-misplaced` foul should be logged.
 
 ## Handoff Notes
 
-- If T4 task 4.6 was skipped because T3 cutover had not landed, list
-  the skip in the handoff and reopen once T3 task 3.8 reports green.
-- Quick Switcher integration in 4.9 step 4 depends on Obsidian command
-  IDs. If `switcher:open` is unavailable in the target Obsidian
-  version, fall back to `app.commands.executeCommandById('quick-switcher:open')`
-  or surface a settings field for the user to pin the command ID.
-- Adopted-Header DnD (separate from block extraction) is **not** in
-  T4 scope; if needed, plan a follow-up under `tabOutlines` polish.
-- All Bits UI components used by T4 (`Dialog`, `Popover`,
-  `DropdownMenu`, `Accordion` for properties mimicry per spec 11) must
-  resolve their portal via `resolvePortalTarget`. If a new Bits UI
-  surface is introduced, add a portal-correctness test next to it.
+- If T4 task 4.6 was skipped because T3 cutover had not landed, list the skip in the handoff and reopen once T3 task 3.8 reports green.
+- Quick Switcher integration in 4.9 step 4 depends on Obsidian command IDs. If `switcher:open` is unavailable in the target Obsidian version, fall back to `app.commands.executeCommandById('quick-switcher:open')` or surface a settings field for the user to pin the command ID.
+- Adopted-Header DnD (separate from block extraction) is **not** in T4 scope; if needed, plan a follow-up under `tabOutlines` polish.
+- All Bits UI components used by T4 (`Dialog`, `Popover`, `DropdownMenu`, `Accordion` for properties mimicry per spec 11) must resolve their portal via `resolvePortalTarget`. If a new Bits UI surface is introduced, add a portal-correctness test next to it.

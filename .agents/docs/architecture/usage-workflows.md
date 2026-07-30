@@ -29,11 +29,7 @@ tags:
 ## W-001 — youtubeScene (custom Scene con provider remoto)
 
 **El ejemplo (formulación dev, 2026-06-03 megadump + re-formulación 2026-07-09 grill NIB):**
-el user compone un `youtubeScene`: un **`panelExplorer`** cuyos nodos vienen de fetched-data
-(customProvider: playlist de YouTube) rendereados por composed views; un **panel de widgets**
-con action-nodes/cells que operan sobre esos nodos (like, quitar de la lista); y un
-**`panelContent`** (ro/rw según contexto/config del user, editor CodeMirror de Obsidian) con
-la descripción del video o las anotaciones del user. La scene se guarda/comparte como archivo.
+el user compone un `youtubeScene`: un **`panelExplorer`** cuyos nodos vienen de fetched-data (customProvider: playlist de YouTube) rendereados por composed views; un **panel de widgets** con action-nodes/cells que operan sobre esos nodos (like, quitar de la lista); y un **`panelContent`** (ro/rw según contexto/config del user, editor CodeMirror de Obsidian) con la descripción del video o las anotaciones del user. La scene se guarda/comparte como archivo.
 
 **Mapeo al canon vigente (2026-07-09):**
 
@@ -48,48 +44,21 @@ la descripción del video o las anotaciones del user. La scene se guarda/compart
 | panelContent ro/rw | panel-kind `panelContent` ([[docs/architecture/explorer-model/04-panels-axons-mutation-layout|shard 04]]) | typed only (P.D slice 1); sin implementación |
 | Composición/tiles | Scene tile-tree ([[docs/architecture/explorer-model/03-surfaces-and-interaction|shard 03]]) | tracer P.D: scene single-tile |
 
-**Opens que este workflow acumula:** spec formal `.vmscene` (CR-2→PSS) · `vm-online_fetch`
-(auth/cache/offline, R-REMOTE-PROVIDER) · grill panelWidget (¿bars/primitives = panel-kind
-propio o Overlays? conflicto con glossary L140 Overlay y shard 04 `panelData` "mostly
-read-only" — el propio pageStats ya lo tensiona) · término Symbiont/ComposedViews sin entrada
-de glosario (grill corto pendiente; hipótesis dev 2026-07-09: la mecánica symbiont aplica a
-TODO panel-kind que soporte nodos/celdas, no solo al explorer).
+**Opens que este workflow acumula:** spec formal `.vmscene` (CR-2→PSS) · `vm-online_fetch` (auth/cache/offline, R-REMOTE-PROVIDER) · grill panelWidget (¿bars/primitives = panel-kind propio o Overlays? conflicto con glossary L140 Overlay y shard 04 `panelData` "mostly read-only" — el propio pageStats ya lo tensiona) · término Symbiont/ComposedViews sin entrada de glosario (grill corto pendiente; hipótesis dev 2026-07-09: la mecánica symbiont aplica a TODO panel-kind que soporte nodos/celdas, no solo al explorer).
 
 ## W-002 — índices explorables (index-as-provider, efecto SDK)
 
-**El ejemplo (dev, grill NIB 2026-07-09):** todos los índices internos (SASI
-commands/services/scripts/gestures · provider-index · fragility registry · presets) exponen su
-propio provider para que el user explore las capacidades de Obsidian+Vaultman+plugins desde
-explorers — "documentación viva dentro del workspace": experimentación profunda sin tocar
-código. Complemento: research de visual node-based programming (Node-RED/Blueprints/n8n) para
-composición de macros/ActionNodes.
+**El ejemplo (dev, grill NIB 2026-07-09):** todos los índices internos (SASI commands/services/scripts/gestures · provider-index · fragility registry · presets) exponen su propio provider para que el user explore las capacidades de Obsidian+Vaultman+plugins desde explorers — "documentación viva dentro del workspace": experimentación profunda sin tocar código. Complemento: research de visual node-based programming (Node-RED/Blueprints/n8n) para composición de macros/ActionNodes.
 
-**Mapeo:** contrato `ExplorerProvider` ya lo soporta sin cambios (`src/types/typeExplorer.ts:45`
-— dominio→nodos+operaciones); precedentes canónicos: queue = explorer de OperationNodes,
-`scenesManagerScene`, `FilterProvider` (glossary). Candidato a canon registrado en
-[[docs/current/pendientes|pendientes]]; research visual-programming ídem.
+**Mapeo:** contrato `ExplorerProvider` ya lo soporta sin cambios (`src/types/typeExplorer.ts:45` — dominio→nodos+operaciones); precedentes canónicos: queue = explorer de OperationNodes, `scenesManagerScene`, `FilterProvider` (glossary). Candidato a canon registrado en [[docs/current/pendientes|pendientes]]; research visual-programming ídem.
 
 ## W-003 — anatomía de un tab actual (main) re-mapeada a la taxonomía 2.0
 
 **El ejemplo (dev, grill NIB 2026-07-10):** el modelo viejo de main, traducido nivel a nivel:
-un **tab** (= Surface) contiene lo que entonces llamábamos "un explorer" (= ahora **Scene**,
-faltaba un nivel jerárquico) con datos propios (= **provider**); muestra una **toolbar**
-(= ahora **panel**, específicamente **`panelWidget`**: su función actúa sobre la navegación
-del frame y el renderizado del explorer, NO sobre los datos en sí) que opera vía los
-**mediators** (cambiar scenes/viewConfigs a través de **Actions** — nodes o cells — y manejar
-interacción entre niveles del workspace: surfaces/scenes/panels/nodes/cells); sigue el
-explorer en sí (= **`panelExplorer`**: nodos + data relevante como cells) para abrir notas
-que se editan en el main leaf de Obsidian (= **`panelContent`**). Idea futura anotada para
-panelContent: **media_cells con coordenadas** — imágenes colocadas sobre notas .md como
-estampillas/stickers.
+un **tab** (= Surface) contiene lo que entonces llamábamos "un explorer" (= ahora **Scene**, faltaba un nivel jerárquico) con datos propios (= **provider**); muestra una **toolbar** (= ahora **panel**, específicamente **`panelWidget`**: su función actúa sobre la navegación del frame y el renderizado del explorer, NO sobre los datos en sí) que opera vía los **mediators** (cambiar scenes/viewConfigs a través de **Actions** — nodes o cells — y manejar interacción entre niveles del workspace: surfaces/scenes/panels/nodes/cells); sigue el explorer en sí (= **`panelExplorer`**: nodos + data relevante como cells) para abrir notas que se editan en el main leaf de Obsidian (= **`panelContent`**). Idea futura anotada para panelContent: **media_cells con coordenadas** — imágenes colocadas sobre notas .md como estampillas/stickers.
 
-**Valor:** es la piedra Rosetta main→2.0 (jerarquía LOCKED: surface > scene > panel > node >
-cell) y el origen del rename `panelData`→`panelWidget` (ver [[docs/architecture/explorer-model/04-panels-axons-mutation-layout|shard 04]]
-nota 2026-07-10). Refs: [[docs/architecture/glossary|glossary]] (panelWidget/Overlay
-corregidos), pendientes (grill Symbiont/viewComposer).
+**Valor:** es la piedra Rosetta main→2.0 (jerarquía LOCKED: surface > scene > panel > node > cell) y el origen del rename `panelData`→`panelWidget` (ver [[docs/architecture/explorer-model/04-panels-axons-mutation-layout|shard 04]] nota 2026-07-10). Refs: [[docs/architecture/glossary|glossary]] (panelWidget/Overlay corregidos), pendientes (grill Symbiont/viewComposer).
 
 ## Cómo añadir un entry
 
-`## W-NNN — nombre` + formulación fiel del dev (fecha+fuente) + tabla de mapeo a sistemas con
-estado + opens. Si el ejemplo nace en un chat: registrarlo AQUÍ en la misma sesión (no
-posponer). Si la arquitectura cambia un mapeo: nota fechada, no reescritura silenciosa.
+`## W-NNN — nombre` + formulación fiel del dev (fecha+fuente) + tabla de mapeo a sistemas con estado + opens. Si el ejemplo nace en un chat: registrarlo AQUÍ en la misma sesión (no posponer). Si la arquitectura cambia un mapeo: nota fechada, no reescritura silenciosa.

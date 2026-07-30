@@ -13,8 +13,7 @@ tags:
 
 # Repro And Acceptance Criteria
 
-This shard is split between the live plugin-dev repro and the test/acceptance
-matrix.
+This shard is split between the live plugin-dev repro and the test/acceptance matrix.
 
 ## Continuations
 
@@ -35,7 +34,5 @@ obsidian dev:errors vault=plugin-dev
 obsidian eval code="<specific code>" vault=plugin-dev
 ```
 
-If Obsidian CLI eval latency is already tens of seconds before the scroll test,
-restart or reload plugin-dev before recording results. A slow control eval is a
-bad measurement baseline.
+If Obsidian CLI eval latency is already tens of seconds before the scroll test, restart or reload plugin-dev before recording results. A slow control eval is a bad measurement baseline.
 

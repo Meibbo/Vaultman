@@ -19,14 +19,11 @@ tags: [agent/issue, initiative/polish, release/bt5]
 
 ## Parent
 
-[[docs/work/polish/issues/bt5-next-release/index|BT5 next release train]]. Parte del
-residual de BT4-009.
+[[docs/work/polish/issues/bt5-next-release/index|BT5 next release train]]. Parte del residual de BT4-009.
 
 ## What to build
 
-Completar en `popupSort` la misma proyección y edición de By level que ya ofrece el
-menú nativo: nested, folders first/fixed folders, scope y niveles. Ambas superficies
-deben leer/escribir el mismo estado normalizado, sin reimplementar reglas contextuales.
+Completar en `popupSort` la misma proyección y edición de By level que ya ofrece el menú nativo: nested, folders first/fixed folders, scope y niveles. Ambas superficies deben leer/escribir el mismo estado normalizado, sin reimplementar reglas contextuales.
 
 ## Acceptance criteria
 
@@ -42,8 +39,5 @@ None — can start immediately.
 
 ## Outcome
 
-Completado en `f1dbe2f5`. `logicSortMenu.ts` es el seam compartido para opciones, visibilidad,
-tipos de nodo y el modelo ordenado de By level; navbar y popup consumen la misma proyección.
-El popup incorpora nested/folders first/fixed folders/scope sin duplicar resolvers y se
-resincroniza con cambios externos. Cubierto por `sortMenuModel.test.ts`, guards de ambas
-superficies y el gate completo de 615 tests.
+Completado en `f1dbe2f5`. `logicSortMenu.ts` es el seam compartido para opciones, visibilidad, tipos de nodo y el modelo ordenado de By level; navbar y popup consumen la misma proyección.
+El popup incorpora nested/folders first/fixed folders/scope sin duplicar resolvers y se resincroniza con cambios externos. Cubierto por `sortMenuModel.test.ts`, guards de ambas superficies y el gate completo de 615 tests.

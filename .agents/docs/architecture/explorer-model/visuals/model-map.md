@@ -88,5 +88,4 @@ flowchart LR
 | Page = editor-group | accepted | [ADR 0007](../../adr/0007-page-editor-group.md) |
 | Render ownership 2-layer | accepted | [ADR 0008](../../adr/0008-render-ownership-two-layer.md) |
 
-Detailed responsibility ownership (current → target) is the table in
-[01-responsibility-map](../01-responsibility-map.md), not duplicated here.
+Detailed responsibility ownership (current → target) is the table in [01-responsibility-map](../01-responsibility-map.md), not duplicated here.

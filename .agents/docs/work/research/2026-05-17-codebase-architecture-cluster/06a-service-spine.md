@@ -21,8 +21,7 @@ source:
 
 ## Composition Root
 
-`src/main.ts` composes this layer. The service order matters because later
-services depend on earlier indexes and settings.
+`src/main.ts` composes this layer. The service order matters because later services depend on earlier indexes and settings.
 
 ```mermaid
 sequenceDiagram
@@ -57,19 +56,11 @@ sequenceDiagram
 
 ## Contract Edges
 
-`typeContracts.ts` defines index and service interfaces used by `main.ts`,
-providers, and UI services. `typeSettings.ts` pulls in layout, mouse gesture,
-operation-scope, and elastic UI contracts, so settings are not passive data:
-they determine toolbar search mode, filter behavior, visible fields, operation
-scope, detached leaves, FnR defaults, layout, theme, and node gestures.
+`typeContracts.ts` defines index and service interfaces used by `main.ts`, providers, and UI services. `typeSettings.ts` pulls in layout, mouse gesture, operation-scope, and elastic UI contracts, so settings are not passive data:
+they determine toolbar search mode, filter behavior, visible fields, operation scope, detached leaves, FnR defaults, layout, theme, and node gestures.
 
 ## Risks And Refactors
 
-- `src/main.ts` is the only place where all service lifetimes are visible. New
-  services should be wired there deliberately or through a small composition
-  helper, not ad hoc inside components.
-- `typeSettings.ts` imports service defaults. This is convenient but creates a
-  contract-to-service dependency that should stay limited to constants/types.
-- `serviceQueue.svelte.ts` remains the largest service and owns both mutable
-  transactions and immutable chains. Any queue refactor should keep both paths
-  visible until the strangler migration is complete.
+- `src/main.ts` is the only place where all service lifetimes are visible. New services should be wired there deliberately or through a small composition helper, not ad hoc inside components.
+- `typeSettings.ts` imports service defaults. This is convenient but creates a contract-to-service dependency that should stay limited to constants/types.
+- `serviceQueue.svelte.ts` remains the largest service and owns both mutable transactions and immutable chains. Any queue refactor should keep both paths visible until the strangler migration is complete.

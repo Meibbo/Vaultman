@@ -19,16 +19,12 @@ updated_by: codex-gpt-5
 
 ## Scope
 
-Read-only delta captured on 2026-06-04 before implementing any `1.0.2` gate
-changes. Compares:
+Read-only delta captured on 2026-06-04 before implementing any `1.0.2` gate changes. Compares:
 
-- Stable hotfix candidate: `hotfix/1.0.2-css-scorecard` at
-  `6b49f8c30d73938aa8d56e408d90173e09d5f8d5`.
-- Canary reference: `sandbox` at
-  `aa4445788473e11b6cce3f667fa290e29a788177`.
+- Stable hotfix candidate: `hotfix/1.0.2-css-scorecard` at `6b49f8c30d73938aa8d56e408d90173e09d5f8d5`.
+- Canary reference: `sandbox` at `aa4445788473e11b6cce3f667fa290e29a788177`.
 
-This inventory is a release-gate planning record. It does not authorize pushing,
-tagging, retagging, merging, or publishing.
+This inventory is a release-gate planning record. It does not authorize pushing, tagging, retagging, merging, or publishing.
 
 Parallel execution source:
 [[docs/work/publish/items/2026-06-04-release-1-0-2-parallel-dispatch|Release 1.0.2 parallel dispatch plan]].
@@ -60,57 +56,34 @@ Parallel execution source:
 
 ## External Gate Snapshot
 
-- Latest stable release observed: GitHub Release `1.0.1`, not prerelease,
-  published 2026-05-27, target `main`.
-- Misreleased canary/beta artifact observed: GitHub Release tag `1.1.0`, titled
-  `1.1.0-beta.1`, marked prerelease, published 2026-05-20.
+- Latest stable release observed: GitHub Release `1.0.1`, not prerelease, published 2026-05-27, target `main`.
+- Misreleased canary/beta artifact observed: GitHub Release tag `1.1.0`, titled `1.1.0-beta.1`, marked prerelease, published 2026-05-20.
 - Dependabot alerts API returned `0` open alerts.
-- Open PRs include Dependabot PRs for Mocha, esbuild, WebdriverIO runner,
-  `actions/setup-node`, CodeQL action, release-please action, globals, and
-  `@eslint/js`; most were blocked by review, not by failing checks. PR #18
-  still has failing `verify`.
+- Open PRs include Dependabot PRs for Mocha, esbuild, WebdriverIO runner, `actions/setup-node`, CodeQL action, release-please action, globals, and `@eslint/js`; most were blocked by review, not by failing checks. PR #18 still has failing `verify`.
 - CodeQL alert #64:
-  `src/modals/modalQueueDetails.ts:231`, message
-  `This guard always evaluates to false.`
+  `src/modals/modalQueueDetails.ts:231`, message `This guard always evaluates to false.`
 - Scorecard alerts open:
-  `CITestsID`, `SASTID`, `FuzzingID`, `CIIBestPracticesID`,
-  `SecurityPolicyID`, `MaintainedID`, `CodeReviewID`, `TokenPermissionsID`
-  x3, and `BranchProtectionID`.
+  `CITestsID`, `SASTID`, `FuzzingID`, `CIIBestPracticesID`, `SecurityPolicyID`, `MaintainedID`, `CodeReviewID`, `TokenPermissionsID` x3, and `BranchProtectionID`.
 
 ## Executable Checklist For The Next Release Pass
 
-- [ ] Confirm the `1.0.2` implementation branch/worktree starts from the stable
-  hotfix candidate and remains free of AI workflow files.
-- [ ] Decide package manager for `1.0.2`: migrate to pnpm now, or explicitly
-  publish one more npm-based patch.
-- [ ] If pnpm is adopted, generate/verify the pnpm lockfile from the stable
-  dependency graph instead of copying the canary lockfile blindly.
-- [ ] Add a stable Node pin that matches CI, then align Node types or document
-  why the type package can stay at Node 22.
-- [ ] Keep esbuild for the `1.0.2` stable build unless a concrete build failure
-  forces a fallback.
-- [ ] Audit `eslint-plugin-obsidianmd`: latest version, changelog, enabled rules,
-  and any new findings.
-- [ ] Decide whether `format:check` enters the release gate; avoid broad
-  formatting rewrites in the same commit as tooling adoption.
-- [ ] Decide whether `stylelint` blocks `1.0.2`; if yes, start with a narrow
-  release-risk config.
-- [ ] Keep or extend `test:scorecard` so the exact CSS/source patterns that
-  reached stable cannot recur.
+- [ ] Confirm the `1.0.2` implementation branch/worktree starts from the stable hotfix candidate and remains free of AI workflow files.
+- [ ] Decide package manager for `1.0.2`: migrate to pnpm now, or explicitly publish one more npm-based patch.
+- [ ] If pnpm is adopted, generate/verify the pnpm lockfile from the stable dependency graph instead of copying the canary lockfile blindly.
+- [ ] Add a stable Node pin that matches CI, then align Node types or document why the type package can stay at Node 22.
+- [ ] Keep esbuild for the `1.0.2` stable build unless a concrete build failure forces a fallback.
+- [ ] Audit `eslint-plugin-obsidianmd`: latest version, changelog, enabled rules, and any new findings.
+- [ ] Decide whether `format:check` enters the release gate; avoid broad formatting rewrites in the same commit as tooling adoption.
+- [ ] Decide whether `stylelint` blocks `1.0.2`; if yes, start with a narrow release-risk config.
+- [ ] Keep or extend `test:scorecard` so the exact CSS/source patterns that reached stable cannot recur.
 - [ ] Fix CodeQL #64 on the stable branch.
 - [ ] Add `SECURITY.md` unless maintainer process says otherwise.
 - [ ] Add `CHANGELOG.md` `1.0.2` notes.
-- [ ] Recheck GitHub Dependabot alerts, CodeQL alerts, and Scorecard SARIF
-  after the branch passes local gates.
-- [ ] Record `manifest.json.minAppVersion` evidence before changing
-  `versions.json` beyond the `1.0.2` entry.
+- [ ] Recheck GitHub Dependabot alerts, CodeQL alerts, and Scorecard SARIF after the branch passes local gates.
+- [ ] Record `manifest.json.minAppVersion` evidence before changing `versions.json` beyond the `1.0.2` entry.
 - [ ] Run final local gate using the same package manager and Node version as CI.
 - [ ] Do not create a bare SemVer tag until the public release is intended.
 
 ## Recommendation From This Inventory
 
-Adopt pnpm and Node pinning before the public `1.0.2` release if the migration
-can be kept to release-gate files and the stable dependency graph. Do not adopt
-Vite/Vite+ or canary UI changes in the same patch. The most valuable first patch
-slice is package-manager/Node normalization plus Obsidian ESLint, CSS/Scorecard,
-CodeQL, `SECURITY.md`, changelog, and manifest-evidence cleanup.
+Adopt pnpm and Node pinning before the public `1.0.2` release if the migration can be kept to release-gate files and the stable dependency graph. Do not adopt Vite/Vite+ or canary UI changes in the same patch. The most valuable first patch slice is package-manager/Node normalization plus Obsidian ESLint, CSS/Scorecard, CodeQL, `SECURITY.md`, changelog, and manifest-evidence cleanup.

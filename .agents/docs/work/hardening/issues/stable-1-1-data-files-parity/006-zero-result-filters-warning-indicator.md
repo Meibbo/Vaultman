@@ -26,8 +26,7 @@ updated_by: codex-gpt-5
 
 ## What To Build
 
-Change the Filters FAB indicator so active filters that return zero files show `lucide-warning`
-instead of a numeric badge.
+Change the Filters FAB indicator so active filters that return zero files show `lucide-warning` instead of a numeric badge.
 
 ## Acceptance Criteria
 
@@ -43,11 +42,9 @@ None - can start immediately.
 
 ## Verification
 
-- `pnpm exec vitest run --config vitest.unit.config.mts test/unit/fabIndicator.test.ts test/unit/navbarPillFabSource.test.ts test/unit/navbarFiltersSource.test.ts`
-  passed 3 files / 9 tests.
+- `pnpm exec vitest run --config vitest.unit.config.mts test/unit/fabIndicator.test.ts test/unit/navbarPillFabSource.test.ts test/unit/navbarFiltersSource.test.ts` passed 3 files / 9 tests.
 - `pnpm run verify` passed with 21 unit files / 72 tests and scorecard 17 checks.
-- Build synced to `plugin-dev` with `node scripts/sync-test-build.mjs`; `plugin:reload` and `vaultman:open`
-  passed.
+- Build synced to `plugin-dev` with `node scripts/sync-test-build.mjs`; `plugin:reload` and `vaultman:open` passed.
 - Runtime smoke applied a Files search-derived impossible filter and confirmed:
   - `filtered: 0`;
   - `.vaultman-fab-badge--warning` exists;
@@ -58,6 +55,4 @@ None - can start immediately.
 
 ## Notes
 
-The original issue wording used `lucide-warning`; Obsidian did not render that icon name in the
-runtime smoke, leaving an empty badge. The implementation uses the valid Lucide/Obsidian warning icon
-`lucide-alert-triangle` so the indicator is visible.
+The original issue wording used `lucide-warning`; Obsidian did not render that icon name in the runtime smoke, leaving an empty badge. The implementation uses the valid Lucide/Obsidian warning icon `lucide-alert-triangle` so the indicator is visible.

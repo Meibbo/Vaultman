@@ -138,8 +138,7 @@ export function createKeyboardNav(ctx: KeyboardNavContext): KeyboardNavControlle
 
 - [x] **Step 4: Run test to verify it passes**
 
-Run: `pnpm vitest run test/unit/services/keyboardNav.test.ts`
-Expected: PASS (all describes).
+Run: `pnpm vitest run test/unit/services/keyboardNav.test.ts` Expected: PASS (all describes).
 
 - [x] **Step 5: Commit**
 

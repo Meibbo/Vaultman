@@ -17,11 +17,8 @@ tags:
 
 # BT4 — v1.2.0-beta.4 batch
 
-Issue-set del spec
-[[docs/work/polish/specs/2026-07-18-v1-2-beta4-batch/index|beta.4 batch]] (D21-D37).
-Base `dev` @ `fa48b96a` (beta.3 publicada); rama `v12/bt4`. Detalle por grupo en
-shards: [[01-regressions|01 regresiones]] · [[02-bugs|02 bugs]] ·
-[[03-redesign-ia-features|03 redesign/IA/features]].
+Issue-set del spec [[docs/work/polish/specs/2026-07-18-v1-2-beta4-batch/index|beta.4 batch]] (D21-D37).
+Base `dev` @ `fa48b96a` (beta.3 publicada); rama `v12/bt4`. Detalle por grupo en shards: [[01-regressions|01 regresiones]] · [[02-bugs|02 bugs]] · [[03-redesign-ia-features|03 redesign/IA/features]].
 
 | Issue   | Título                                                                                                                                                                 | Grupo | Estado                                                                                                                                                                         |                                                                                       |           |
 | ------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------- | --------- |
@@ -62,24 +59,14 @@ shards: [[01-regressions|01 regresiones]] · [[02-bugs|02 bugs]] ·
 | BT4-019 | Content search: conteo de resultados ≠ core search (3 vs 1)                                                                                                            | 02    | ✅ `a0e1e3f1` (offsets locales autoritativos)                                                                                                                                   |                                                                                       |           |
 | BT4-020 | Content search: refresh tras replace                                                                                                                                   | 02    | ✅ `be2cce4a` (vault modify re-keys, debounce 400ms)                                                                                                                            |                                                                                       |           |
 
-**CORTE DEV 2026-07-18: el batch beta.4 queda CERRADO aquí.** Todo `pending`
-(013 · 025-029 · mitad-registro de 030 · 032 · 034 · 035 · 036 + residuales 009)
-pasa al SIGUIENTE PATCH. Codex ejecuta el update release (runbook
-[[docs/architecture/policies/release|policy release]]: FF `dev` → `v12/bt4`,
-`pnpm release beta 1.2` → `1.2.0-beta.4`).
+**CORTE DEV 2026-07-18: el batch beta.4 queda CERRADO aquí.** Todo `pending` (013 · 025-029 · mitad-registro de 030 · 032 · 034 · 035 · 036 + residuales 009) pasa al SIGUIENTE PATCH. Codex ejecuta el update release (runbook [[docs/architecture/policies/release|policy release]]: FF `dev` → `v12/bt4`, `pnpm release beta 1.2` → `1.2.0-beta.4`).
 
-**ADENDA DEV 2026-07-19:** el "siguiente patch" se reemplaza por el tren
-[[../bt5-next-release/index|BT5-001..024]], que puede terminar como beta.5 o stable.
-Toda implementación pendiente/reabierta usa desde ahora el ID BT5; esta tabla queda
-como evidencia histórica y mapa de migración, no como segunda cola activa.
+**ADENDA DEV 2026-07-19:** el "siguiente patch" se reemplaza por el tren [[../bt5-next-release/index|BT5-001..024]], que puede terminar como beta.5 o stable.
+Toda implementación pendiente/reabierta usa desde ahora el ID BT5; esta tabla queda como evidencia histórica y mapa de migración, no como segunda cola activa.
 
 ## Reglas comunes
 
-- Regresiones (001-003): skill **`vm-regression-resolver`** obligatorio — oráculo
-  beta.2 = `5e5fa1df`; rango culpable `03fe92bc..7ba6a3c9`; commit fix cita
-  `COMMIT_BUENO`/`COMMIT_MALO`.
-- Gates por issue: RED/GREEN focal · check 0/0 · autofixer `issues:[]` en `.svelte`
-  tocados · lint/stylelint · build · scorecard · full unit al integrar. Testing
-  visual/UI/Obsidian/mobile delistado para agentes.
+- Regresiones (001-003): skill **`vm-regression-resolver`** obligatorio — oráculo beta.2 = `5e5fa1df`; rango culpable `03fe92bc..7ba6a3c9`; commit fix cita `COMMIT_BUENO`/`COMMIT_MALO`.
+- Gates por issue: RED/GREEN focal · check 0/0 · autofixer `issues:[]` en `.svelte` tocados · lint/stylelint · build · scorecard · full unit al integrar. Testing visual/UI/Obsidian/mobile delistado para agentes.
 - Two-commit código/docs; `.agents` jamás en pushes; sin push/tag/FF sin el dev.
 - i18n en+es sincronizados; adversarial pass C2 al cerrar cada slice.

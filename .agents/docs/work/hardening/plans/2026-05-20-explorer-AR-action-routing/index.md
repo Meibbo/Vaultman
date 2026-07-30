@@ -19,24 +19,13 @@ created_by: claude-opus-4-7
 > or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`)
 > syntax for tracking.
 
-**Goal:** Unificar caret, keyboard nav (2D+3D), selección, context-menu y expand/collapse-all en los
-5 views del explorer detrás de un único contrato de ruteo `(id, MouseEvent)`, vía dos servicios puros
-nuevos (`serviceKeyboardNav`, `serviceRowAction`) y un intent-seam extensible.
+**Goal:** Unificar caret, keyboard nav (2D+3D), selección, context-menu y expand/collapse-all en los 5 views del explorer detrás de un único contrato de ruteo `(id, MouseEvent)`, vía dos servicios puros nuevos (`serviceKeyboardNav`, `serviceRowAction`) y un intent-seam extensible.
 
-**Architecture:** Approach A1 — builders Melt-UI en capa de servicio; cada view spreadea prop-bags
-sobre su markup existente. `serviceKeyboardNav` extrae/unifica la lógica de teclado hoy atrapada en
-`panelExplorer.handleRowKeydown` y completa los gaps (Home/End universal, type-ahead). El contrato del
-seam se angosta a una sola familia `(id, MouseEvent)` con `id === ExplorerRowInput.callbackId`; se
-borra el Contract B de list y su hack de `MouseEvent` sintético. No NodeRow primitive, no view
-decomposition (esos son N.R/V.D, releases posteriores).
+**Architecture:** Approach A1 — builders Melt-UI en capa de servicio; cada view spreadea prop-bags sobre su markup existente. `serviceKeyboardNav` extrae/unifica la lógica de teclado hoy atrapada en `panelExplorer.handleRowKeydown` y completa los gaps (Home/End universal, type-ahead). El contrato del seam se angosta a una sola familia `(id, MouseEvent)` con `id === ExplorerRowInput.callbackId`; se borra el Contract B de list y su hack de `MouseEvent` sintético. No NodeRow primitive, no view decomposition (esos son N.R/V.D, releases posteriores).
 
-**Tech Stack:** Svelte 5 (runes), TypeScript, Vitest (jsdom Tier-1 + browser-mode Tier-2), Obsidian
-API. Reusa servicios existentes: `serviceSelection.svelte` (multi-select anchor/focus/hover),
-`serviceMouse` (gesture→intent + `resolveNodeMouseActions`), `serviceCMenu` (registry), feature flags
-de `serviceExplorerViewContract`.
+**Tech Stack:** Svelte 5 (runes), TypeScript, Vitest (jsdom Tier-1 + browser-mode Tier-2), Obsidian API. Reusa servicios existentes: `serviceSelection.svelte` (multi-select anchor/focus/hover), `serviceMouse` (gesture→intent + `resolveNodeMouseActions`), `serviceCMenu` (registry), feature flags de `serviceExplorerViewContract`.
 
-Spec fuente: [[docs/work/hardening/specs/2026-05-20-explorer-AR-action-routing/index|A.R spec]]
-(6 shards). Este plan implementa esa spec 1:1.
+Spec fuente: [[docs/work/hardening/specs/2026-05-20-explorer-AR-action-routing/index|A.R spec]] (6 shards). Este plan implementa esa spec 1:1.
 
 ---
 
@@ -44,11 +33,8 @@ Spec fuente: [[docs/work/hardening/specs/2026-05-20-explorer-AR-action-routing/i
 
 Antes de la Task 1, verificar y NO proceder si falla:
 
-- [x] **0-A cerrado**: C12 (flicker fix) + C13 (verification gates) checkeados en el plan de 0-A
-  (`.agents/docs/work/hardening/plans/2026-05-18-explorer-sub-system-0-a-native-dom-parity/`),
-  y `pnpm verify` verde en 0-A. A.R rebasa sobre el markup post-0-A.
-- [x] **Dirty worktree seguro**: el cierre 0-A/C12-C13 quedó aislado en archivos de harness,
-  perf probe, tests y docs. A.R aún no tocó `viewTree.svelte`, `ViewNodeList.svelte` ni otros views.
+- [x] **0-A cerrado**: C12 (flicker fix) + C13 (verification gates) checkeados en el plan de 0-A (`.agents/docs/work/hardening/plans/2026-05-18-explorer-sub-system-0-a-native-dom-parity/`), y `pnpm verify` verde en 0-A. A.R rebasa sobre el markup post-0-A.
+- [x] **Dirty worktree seguro**: el cierre 0-A/C12-C13 quedó aislado en archivos de harness, perf probe, tests y docs. A.R aún no tocó `viewTree.svelte`, `ViewNodeList.svelte` ni otros views.
 - [x] **Baseline verde**: `pnpm check` (0 errors) + suite actual verde como línea base.
 
 Gate-0 cerrado el 2026-05-20. Evidencia fuente:
@@ -75,8 +61,7 @@ Gate-0 cerrado el 2026-05-20. Evidencia fuente:
 
 ## Tasks (shards)
 
-- [[01-services]] — Task 1 (typeActionRouting + intent resolver), Task 2 (serviceKeyboardNav),
-  Task 3 (serviceRowAction). Tier-1 jsdom, full code.
+- [[01-services]] — Task 1 (typeActionRouting + intent resolver), Task 2 (serviceKeyboardNav), Task 3 (serviceRowAction). Tier-1 jsdom, full code.
 - [[02-caret-and-seam]] — Task 4 (caret fix), Task 5 (ViewHost+panel+list normalization, drop Contract B).
 - [[03-view-adoption]] — Task 6a-6d (tree/table/grid/cards adoptan builders + delegan keyboard).
 - [[04-expand-and-cmenu]] — Task 7 (expand/collapse-all data-gated), Task 8 (cmenu trigger unify + standard set).
@@ -91,11 +76,8 @@ Luego 7 → 8 → 9. Tasks 1-3 son los más densos (servicios + tests). Task 5 d
 
 - Spec coverage: cada sección de la spec mapeada a task(s). Gaps: ninguno conocido.
 - Placeholder scan: sin TBD/TODO; código completo en cada step de código.
-- Type consistency: nombres de tipos/métodos consistentes entre tasks (`RowActionContext`,
-  `KeyboardNavController`, `getRowProps`, `data-row-key`, `selectionModifiersFromEvent`).
+- Type consistency: nombres de tipos/métodos consistentes entre tasks (`RowActionContext`, `KeyboardNavController`, `getRowProps`, `data-row-key`, `selectionModifiersFromEvent`).
 
 ## Execution handoff
 
-A.R ejecutado completo en `sandbox` el 2026-05-20. Gate-0 y Tasks 1-9 están cerrados; la evidencia
-final vive en [[05-verification]]. Próximo slice de `v1.2.0`: tree sticky-parent fix, 0-A.S scroll
-harness follow-up, o T.G invariant-gate basis.
+A.R ejecutado completo en `sandbox` el 2026-05-20. Gate-0 y Tasks 1-9 están cerrados; la evidencia final vive en [[05-verification]]. Próximo slice de `v1.2.0`: tree sticky-parent fix, 0-A.S scroll harness follow-up, o T.G invariant-gate basis.

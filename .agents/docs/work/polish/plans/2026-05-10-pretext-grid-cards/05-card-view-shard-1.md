@@ -18,16 +18,7 @@ updated_by: codex
 
 Continua desde [[docs/work/polish/plans/2026-05-10-pretext-grid-cards/05-card-view|Cards view component and panel route]].
 
-				onTertiaryAction={handleTertiaryAction}
-				onContextMenu={handleContextMenu}
-				onCardKeydown={handleRowKeydown}
-				{scrollTarget}
-				mouseGestureConfig={plugin.settings?.mouseGestures?.node}
-				{icon}
-			/>
-		{/if}
-	</div>
-{/if}
+				onTertiaryAction={handleTertiaryAction} onContextMenu={handleContextMenu} onCardKeydown={handleRowKeydown} {scrollTarget} mouseGestureConfig={plugin.settings?.mouseGestures?.node} {icon} /> {/if} </div> {/if}
 ```
 
 Add `.vm-cards-container` style matching `.vm-grid-container`.
@@ -60,8 +51,7 @@ Expected: all listed component tests pass.
 Run:
 
 ```powershell
-npx @sveltejs/mcp svelte-autofixer ./src/components/views/ViewNodeCards.svelte --svelte-version 5
-npx @sveltejs/mcp svelte-autofixer ./src/components/layout/overlays/overlayViewMenu.svelte --svelte-version 5
+npx @sveltejs/mcp svelte-autofixer ./src/components/views/ViewNodeCards.svelte --svelte-version 5 npx @sveltejs/mcp svelte-autofixer ./src/components/layout/overlays/overlayViewMenu.svelte --svelte-version 5
 ```
 
 Expected: no required fixes remain.

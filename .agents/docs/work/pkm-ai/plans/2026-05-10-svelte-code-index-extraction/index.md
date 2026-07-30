@@ -17,8 +17,7 @@ tags:
 
 ## Goal
 
-Extend `code-index.mjs` so local-code retrieval can inspect Svelte component
-interfaces, not only TypeScript modules.
+Extend `code-index.mjs` so local-code retrieval can inspect Svelte component interfaces, not only TypeScript modules.
 
 ## Scope
 
@@ -27,10 +26,8 @@ In scope:
 - Include `.svelte` files in `code-index` targets.
 - Parse Svelte instance/module scripts with `svelte/compiler`.
 - Extract script imports/exports/declarations.
-- Extract component props from legacy `export let` and Svelte 5 `$props()`
-  object destructuring.
-- Extract emitted component events from `createEventDispatcher()` dispatcher
-  calls with string literal event names.
+- Extract component props from legacy `export let` and Svelte 5 `$props()` object destructuring.
+- Extract emitted component events from `createEventDispatcher()` dispatcher calls with string literal event names.
 - Keep output explicitly limited to parsed static evidence.
 
 Out of scope:
@@ -71,8 +68,7 @@ Out of scope:
 
 ## Status
 
-- [x] Read route docs, current status/handoff, existing `code-index`, and
-  Agent Control Plane retrieval/tool contracts.
+- [x] Read route docs, current status/handoff, existing `code-index`, and Agent Control Plane retrieval/tool contracts.
 - [x] Create this plan.
 - [x] Add RED tests.
 - [x] Implement Svelte extraction.
@@ -84,21 +80,17 @@ Out of scope:
 
 RED:
 
-- `node --test .agents/tools/pkm-ai/test/code-index.test.mjs` failed on the
-  new Svelte test because `src/Widget.svelte` was not discovered.
+- `node --test .agents/tools/pkm-ai/test/code-index.test.mjs` failed on the new Svelte test because `src/Widget.svelte` was not discovered.
 
 GREEN and regression:
 
 - `node --test .agents/tools/pkm-ai/test/code-index.test.mjs` passed:
   3 tests.
 - `npm --prefix .agents/tools/pkm-ai test` passed: 17 tests.
-- `node .agents/tools/pkm-ai/code-index.mjs --json src/components/layout/navbarExplorer.svelte`
-  exited 0 and emitted imports, resolved edges, `$props()` props, exports, and
-  empty dispatcher events for that component.
+- `node .agents/tools/pkm-ai/code-index.mjs --json src/components/layout/navbarExplorer.svelte` exited 0 and emitted imports, resolved edges, `$props()` props, exports, and empty dispatcher events for that component.
 - `pnpm run lint` passed with 0 warnings and 0 errors.
 - Scoped `git diff --check` passed with only CRLF warnings on existing files.
-- `node .agents/tools/pkm-ai/check-doc-health.mjs` still reports global
-  `doc health: FAIL (48)`, with no `svelte-code-index-extraction` path hit.
+- `node .agents/tools/pkm-ai/check-doc-health.mjs` still reports global `doc health: FAIL (48)`, with no `svelte-code-index-extraction` path hit.
 
 Implemented:
 

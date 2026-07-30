@@ -17,8 +17,7 @@ updated_by: codex
 
 ## `src/pluginEntry.ts`
 
-`pluginEntry.ts` is the Vite library entry from `vite.config.ts`. It has three
-jobs:
+`pluginEntry.ts` is the Vite library entry from `vite.config.ts`. It has three jobs:
 
 ```ts
 import 'virtual:uno.css';
@@ -27,13 +26,11 @@ import './main.scss';
 export { default } from './main';
 ```
 
-This means runtime loading starts by including generated UnoCSS, loading the
-SCSS tree, then exporting the default plugin class from `src/main.ts`.
+This means runtime loading starts by including generated UnoCSS, loading the SCSS tree, then exporting the default plugin class from `src/main.ts`.
 
 ## `src/main.ts`
 
-`main.ts` exports `VaultmanPlugin extends Plugin` and then exports it as
-default. It is the runtime container for the plugin:
+`main.ts` exports `VaultmanPlugin extends Plugin` and then exports it as default. It is the runtime container for the plugin:
 
 | Runtime area | Evidence in `main.ts` | Connection |
 | --- | --- | --- |
@@ -86,10 +83,6 @@ sequenceDiagram
 
 ## Settings Flow
 
-`loadSettings()` deep-copies `DEFAULT_SETTINGS`, overlays saved data, resolves
-layout settings through `resolveLayoutSettings()`, normalizes elastic UI
-settings, and runs a one-time tab-label migration.
+`loadSettings()` deep-copies `DEFAULT_SETTINGS`, overlays saved data, resolves layout settings through `resolveLayoutSettings()`, normalizes elastic UI settings, and runs a one-time tab-label migration.
 
-`saveSettings()` writes active theme preset/custom preset state back into
-`settings.elasticUi` before `saveData()`. This means `ThemeService` is not only
-visual state; it is part of persisted settings.
+`saveSettings()` writes active theme preset/custom preset state back into `settings.elasticUi` before `saveData()`. This means `ThemeService` is not only visual state; it is part of persisted settings.

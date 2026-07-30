@@ -6,10 +6,7 @@ parent: "[[2026-05-18-explorer-sub-system-0-a-native-dom-parity/index]]"
 
 # 11 — C11: Diagonal verification matrix + invariant gates consolidation
 
-Consolidates the 5 panel × vaultman DOM snapshots, the 1 viewTree native
-cross-check against obsidian-web-lab, and all invariant unit tests not
-added in earlier commits. Captures live `plugin-dev` smoke output in the
-commit message.
+Consolidates the 5 panel × vaultman DOM snapshots, the 1 viewTree native cross-check against obsidian-web-lab, and all invariant unit tests not added in earlier commits. Captures live `plugin-dev` smoke output in the commit message.
 
 **Files:**
 - Create: `test/component/views/viewTree.panel.vaultman.snapshot.test.ts`
@@ -25,21 +22,13 @@ commit message.
 
 - [ ] **Step 1: Capture obsidian-web-lab tree fixture**
 
-Extract a representative file-explorer tree DOM snippet from
-`C:\Users\vic_A\Desktop\obsidian-web-lab` and save it as
-`test/fixtures/obsidian-web-lab/file-explorer-tree.html`:
+Extract a representative file-explorer tree DOM snippet from `C:\Users\vic_A\Desktop\obsidian-web-lab` and save it as `test/fixtures/obsidian-web-lab/file-explorer-tree.html`:
 
 ```powershell
 New-Item -ItemType Directory -Force -Path test/fixtures/obsidian-web-lab | Out-Null
 ```
 
-The HTML fixture should contain a 3-level nested tree with at least one
-file leaf, one folder collapsed, one folder expanded, and demonstrate
-the `.tree-item` / `.tree-item-self` / `.tree-item-inner` /
-`.tree-item-children` / `.collapse-icon` nesting. Capture from
-obsidian-web-lab's actual rendered DOM (either via screenshot + manual
-write-out, or by running obsidian-web-lab briefly and copying the
-`document.querySelector('.nav-files-container').outerHTML` output).
+The HTML fixture should contain a 3-level nested tree with at least one file leaf, one folder collapsed, one folder expanded, and demonstrate the `.tree-item` / `.tree-item-self` / `.tree-item-inner` / `.tree-item-children` / `.collapse-icon` nesting. Capture from obsidian-web-lab's actual rendered DOM (either via screenshot + manual write-out, or by running obsidian-web-lab briefly and copying the `document.querySelector('.nav-files-container').outerHTML` output).
 
 - [ ] **Step 2: Write the 5 panel × vaultman DOM snapshot tests**
 
@@ -86,9 +75,7 @@ describe('viewTree — panel × vaultman snapshot', () => {
 });
 ```
 
-Repeat with adjusted view + fixture for List, Table, Grid, Cards. Each
-snapshot covers row root classes, state mods, mask-gated children
-visible per default vaultman mask.
+Repeat with adjusted view + fixture for List, Table, Grid, Cards. Each snapshot covers row root classes, state mods, mask-gated children visible per default vaultman mask.
 
 - [ ] **Step 3: Write viewTree native cross-check test**
 
@@ -204,9 +191,7 @@ describe('0-A invariants — consolidated', () => {
 });
 ```
 
-Fill in the imports for `PRESET_NATIVE` / `PRESET_VAULTMAN` to whatever
-file exports the built-in preset literals. If 0-B doesn't export them as
-named symbols, do a one-line export addition.
+Fill in the imports for `PRESET_NATIVE` / `PRESET_VAULTMAN` to whatever file exports the built-in preset literals. If 0-B doesn't export them as named symbols, do a one-line export addition.
 
 - [ ] **Step 5: Run all C11 tests**
 
@@ -286,5 +271,4 @@ Live plugin-dev smoke (captured):
 
 ## Rollback
 
-`git revert <commit>` reverts test additions. Earlier commits' tests
-remain in place.
+`git revert <commit>` reverts test additions. Earlier commits' tests remain in place.

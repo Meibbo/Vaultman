@@ -15,8 +15,7 @@ tags:
 
 # CR-2 — Scene Format Demos
 
-Concrete sketches so the dev can FEEL each container option, plus the data-vs-code distinction
-that reframes the choice. Per S-8 preview-prototype mechanic. NOTHING here is built — illustrative only.
+Concrete sketches so the dev can FEEL each container option, plus the data-vs-code distinction that reframes the choice. Per S-8 preview-prototype mechanic. NOTHING here is built — illustrative only.
 
 ## The reframe: two different artifacts
 
@@ -30,8 +29,7 @@ that reframes the choice. Per S-8 preview-prototype mechanic. NOTHING here is bu
 | analogy | a `.base` / `.canvas` file | a Svelte component / an Obsidian plugin |
 
 The "scene ≈ compressed plugin / svelte / mhtml" instinct = the CODE column (those self-execute).
-"No inline script, shareable like `.base`" = the DATA column. Self-executing ⟹ needs review ⟹ not
-freely shareable → they cannot be the same artifact. Keep them separate.
+"No inline script, shareable like `.base`" = the DATA column. Self-executing ⟹ needs review ⟹ not freely shareable → they cannot be the same artifact. Keep them separate.
 
 ## Demo 1 — Layered YAML-first `.vmscene` (REC: DATA)
 
@@ -61,8 +59,7 @@ notes:                        # embedded markdown, multi-note, each own frontmat
       Bundled doc, like plugin documentation.
 ```
 
-A "button" = `{ kind: action-cell, action: … }`. VM emits a NATIVE primitive (native preset) or a UCV
-component (polish). The file never writes `<button>` → chameleon-safe.
+A "button" = `{ kind: action-cell, action: … }`. VM emits a NATIVE primitive (native preset) or a UCV component (polish). The file never writes `<button>` → chameleon-safe.
 
 ## Demo 2 — HTML-first `.scene` (svelte-like: shows the costs)
 
@@ -78,10 +75,7 @@ component (polish). The file never writes `<button>` → chameleon-safe.
 </vm-scene>
 ```
 
-Costs: (1) look baked in file → breaks native↔polish chameleon swap. (2) `<script src>` = execution
-surface → Obsidian review needed → loses "share like `.base`". (3) "svelte without precompiler" ⟹ VM
-must ship a runtime interpreter for this DSL = big, fragile, security-heavy. (4) bridging to
-`.base`/`.canvas` becomes lossy/hard.
+Costs: (1) look baked in file → breaks native↔polish chameleon swap. (2) `<script src>` = execution surface → Obsidian review needed → loses "share like `.base`". (3) "svelte without precompiler" ⟹ VM must ship a runtime interpreter for this DSL = big, fragile, security-heavy. (4) bridging to `.base`/`.canvas` becomes lossy/hard.
 
 ## Demo 3 — VM code-module (the "compressed plugin" you actually described)
 
@@ -98,8 +92,7 @@ export default vm.defineModule({
 });
 ```
 
-THIS is "write logic, use VM primitives via API, create scenes with buttons." It is a module/plugin
-(reviewed/trusted), NOT a config file — and it can EMIT a `.vmscene` (data) as its output.
+THIS is "write logic, use VM primitives via API, create scenes with buttons." It is a module/plugin (reviewed/trusted), NOT a config file — and it can EMIT a `.vmscene` (data) as its output.
 
 ## Demo 4 — Pure YAML (strict S-7), for contrast
 
@@ -114,8 +107,7 @@ Minimal, maximally portable/bridgeable; cannot carry embedded notes or presentat
 
 ## Where these live (Sync) — already LOCKED
 
-- `.vmscene` files live in the **vault** → synced by Obsidian Sync + shareable + portable. Distinct from
-  `data.json` (internal plugin settings; ONE file → churn risk → keep small) (watch-list §1).
+- `.vmscene` files live in the **vault** → synced by Obsidian Sync + shareable + portable. Distinct from `data.json` (internal plugin settings; ONE file → churn risk → keep small) (watch-list §1).
 - Sync-boundary LOCKED: presets / view-config-defaults / filter-templates / content-marks = SYNCED;
   caches / regenerable indexes / per-device toggles = device-local.
 - Per-subsystem storage tier table = **S-1..S-7 PENDING** (Storage grill).
@@ -123,9 +115,6 @@ Minimal, maximally portable/bridgeable; cannot carry embedded notes or presentat
 ## serviceMark vs SPS (memory check)
 
 - **serviceMark (current model)** = durable PER-NODE annotations (size-marks, manual order); view-state;
-  synced in `data.json`; NOT BUILT YET (god-object). The dev's "serviceMarks = save/checkpoint manager"
-  = the OLD archived ghost `serviceMarks.ts` (Templates module, never shipped). Don't reuse the name.
+  synced in `data.json`; NOT BUILT YET (god-object). The dev's "serviceMarks = save/checkpoint manager" = the OLD archived ghost `serviceMarks.ts` (Templates module, never shipped). Don't reuse the name.
 - **Saving configs/patterns** = "savable as **preset/template**" + export to `.base`/`.vmscene`/yaml/json.
-- **SPS (Saving Presets System)** = dump term, NOT specced. Working def: captures/switches presets
-  (style/layout/load/workspace) + checkpoints + queued-op batches. Overlaps Workspace-profile (OPEN) +
-  preset-taxonomy parking-lot. → **needs its own grill**; `.vmscene` is the file a saved preset serializes to.
+- **SPS (Saving Presets System)** = dump term, NOT specced. Working def: captures/switches presets (style/layout/load/workspace) + checkpoints + queued-op batches. Overlaps Workspace-profile (OPEN) + preset-taxonomy parking-lot. → **needs its own grill**; `.vmscene` is the file a saved preset serializes to.

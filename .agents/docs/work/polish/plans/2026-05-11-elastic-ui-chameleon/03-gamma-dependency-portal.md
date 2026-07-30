@@ -23,8 +23,7 @@ updated_by: codex
 "bits-ui": "latest"
 ```
 
-- [ ] Do not add copied shadcn-svelte components in this shard. Use Bits UI
-  primitives directly so Vaultman controls DOM and classes.
+- [ ] Do not add copied shadcn-svelte components in this shard. Use Bits UI primitives directly so Vaultman controls DOM and classes.
 
 Verification:
 
@@ -61,10 +60,7 @@ Create `src/components/overlays/BitsPortalTarget.svelte`:
 {/if}
 ```
 
-Bits UI portal components must receive the root element from
-`theme.portalTarget` using the current Bits UI prop name. If the installed Bits
-UI version uses `to`, pass `to={target}`. If it uses `target`, pass
-`target={target}`. Record the exact prop in the test name and wrapper comments.
+Bits UI portal components must receive the root element from `theme.portalTarget` using the current Bits UI prop name. If the installed Bits UI version uses `to`, pass `to={target}`. If it uses `target`, pass `target={target}`. Record the exact prop in the test name and wrapper comments.
 
 Verification:
 
@@ -72,5 +68,4 @@ Verification:
 pnpm exec vp test run --project component --config vitest.config.ts test/component/overlayPortalTarget.test.ts --fileParallelism=false
 ```
 
-Expected: rendering a popover from a fake pop-out document appends content under
-that fake `.vm-root`, not under the primary `document.body`.
+Expected: rendering a popover from a fake pop-out document appends content under that fake `.vm-root`, not under the primary `document.body`.

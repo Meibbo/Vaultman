@@ -21,8 +21,7 @@ Write scope:
 - create `src/types/typeSelection.ts`;
 - create `src/services/serviceSelection.svelte.ts`;
 - create `test/unit/services/serviceSelection.test.ts`;
-- optionally update `src/logic/logicKeyboard.ts` only if the service reuses or
-  needs a small pure helper.
+- optionally update `src/logic/logicKeyboard.ts` only if the service reuses or needs a small pure helper.
 
 Do not edit Svelte components in this phase.
 
@@ -36,8 +35,7 @@ Do not edit Svelte components in this phase.
 
 2. Run the test and confirm it fails because the service does not exist.
 
-3. Implement the minimal service constructor, per-explorer state creation, and
-   `selectPointer`.
+3. Implement the minimal service constructor, per-explorer state creation, and `selectPointer`.
 
 4. Run the focused unit test and confirm it passes.
 
@@ -50,11 +48,9 @@ Do not edit Svelte components in this phase.
 
 7. Add tests for Shift range and Control/Command plus Shift additive range.
    - Shift from anchor `b` to target `d` selects `['b', 'c', 'd']`.
-   - Additive range from focused `b` to target `e` with existing
-     `['a', 'b']` produces `['a', 'b', 'c', 'd', 'e']`.
+   - Additive range from focused `b` to target `e` with existing `['a', 'b']` produces `['a', 'b', 'c', 'd', 'e']`.
 
-8. Implement range handling by reusing or moving the existing
-   `logicKeyboard.ts` behavior.
+8. Implement range handling by reusing or moving the existing `logicKeyboard.ts` behavior.
 
 9. Add tests for box selection replacement and additive box selection.
    - Replacement orders target ids by `orderedIds`, not by DOM order.
@@ -73,8 +69,7 @@ Do not edit Svelte components in this phase.
 
 14. Implement `toggleFocused`.
 
-15. Add tests for `setHovered`, `setFocused`, active derivation, `clear`, and
-   `prune`.
+15. Add tests for `setHovered`, `setFocused`, active derivation, `clear`, and `prune`.
 
 16. Implement the remaining service commands.
 

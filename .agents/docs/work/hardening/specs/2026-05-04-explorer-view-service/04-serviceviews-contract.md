@@ -48,8 +48,7 @@ export interface IViewService {
 }
 ```
 
-This is illustrative. The implementation plan should refine names after
-checking current type patterns.
+This is illustrative. The implementation plan should refine names after checking current type patterns.
 
 ## Input Shape
 
@@ -71,8 +70,7 @@ export interface ExplorerViewInput<TNode extends NodeBase> {
 }
 ```
 
-The input should not require `TFile`. File explorers can include file metadata
-inside node metadata.
+The input should not require `TFile`. File explorers can include file metadata inside node metadata.
 
 ## Render Model Shape
 
@@ -156,8 +154,7 @@ export interface ViewColumn<TNode extends NodeBase = NodeBase> {
 }
 ```
 
-Columns are part of the render contract. Persisted user column settings should
-eventually live in marks/templates or settings.
+Columns are part of the render contract. Persisted user column settings should eventually live in marks/templates or settings.
 
 ## Capabilities
 
@@ -178,8 +175,7 @@ export interface ViewCapabilities {
 }
 ```
 
-Views should hide or disable interactions based on capabilities, but the
-service should define the allowed behavior.
+Views should hide or disable interactions based on capabilities, but the service should define the allowed behavior.
 
 ## Actions
 

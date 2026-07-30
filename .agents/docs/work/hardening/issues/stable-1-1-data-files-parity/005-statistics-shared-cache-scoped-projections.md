@@ -48,23 +48,15 @@ all eligible files, currently filtered files, and the focused editor file.
 ## Verification
 
 - Focused RED/GREEN tests:
-  `pnpm exec vitest run --config vitest.unit.config.mts test/unit/explorerSort.test.ts test/unit/filesLogic.test.ts test/unit/statisticsCacheService.test.ts test/unit/sortUiSource.test.ts test/unit/explorerSetterSource.test.ts test/unit/statisticsScope.test.ts`
-  passed (`6` files / `22` tests).
+  `pnpm exec vitest run --config vitest.unit.config.mts test/unit/explorerSort.test.ts test/unit/filesLogic.test.ts test/unit/statisticsCacheService.test.ts test/unit/sortUiSource.test.ts test/unit/explorerSetterSource.test.ts test/unit/statisticsScope.test.ts` passed (`6` files / `22` tests).
 - `pnpm run check` passed with `0` Svelte diagnostics.
 - `pnpm run verify` passed (`24` unit files / `79` tests; scorecard `17` checks).
 - Build synced to `plugin-dev`; plugin reload/open passed; final `dev:errors` returned `No errors captured`.
-- Runtime smoke cleared filters and verified `filteredCount` equals markdown count (`11068`), opened a
-  sample markdown file, confirmed the active file path matched that sample, computed a selected-file
-  snapshot with `files=1`, and confirmed `statisticsCache.getFileTimes()` returns matching `ctime` and
-  `mtime`.
+- Runtime smoke cleared filters and verified `filteredCount` equals markdown count (`11068`), opened a sample markdown file, confirmed the active file path matched that sample, computed a selected-file snapshot with `files=1`, and confirmed `statisticsCache.getFileTimes()` returns matching `ctime` and `mtime`.
 
 ## Completion Notes
 
 - Added `logicStatisticsScope.ts` so scope selection is a pure, testable projection:
-  `vault -> markdownFiles`, `filtered -> filterService.filteredFiles`, and
-  `selected -> workspace.getActiveFile()`.
-- Folder count now projects from the files in the current scope instead of making `vault` count all
-  folders while `filtered` counted only folders represented by files. This removes the no-filter
-  mismatch between `All files` and `Filtered files`.
-- `pageStatistics.svelte` now listens to `workspace.on('file-open')` so selected-file statistics
-  update when the focused editor changes.
+  `vault -> markdownFiles`, `filtered -> filterService.filteredFiles`, and `selected -> workspace.getActiveFile()`.
+- Folder count now projects from the files in the current scope instead of making `vault` count all folders while `filtered` counted only folders represented by files. This removes the no-filter mismatch between `All files` and `Filtered files`.
+- `pageStatistics.svelte` now listens to `workspace.on('file-open')` so selected-file statistics update when the focused editor changes.

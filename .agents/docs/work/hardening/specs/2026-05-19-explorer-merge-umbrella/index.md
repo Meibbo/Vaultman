@@ -15,11 +15,8 @@ created_by: claude-opus-4-7
 ---
 # Explorer Merge Umbrella
 
-Umbrella spec que captura las decisiones del brainstorm 2026-05-19: cómo el `proto-v5`
-(en `C:\Users\vic_A\Downloads\Vaultman (1)\`) se mergea con el Explorer de producción;
-cómo el refactor SOLID de los god-objects (panelExplorer 1329 LoC + 5 views 4377 LoC + serviceQueue 1043 LoC deferred)
-se interleavea con el merge del proto; y la release pipeline `v1.2.0 → v2.0.0`
-que orquesta implementaciones, bug fixes y el major version jump después del catch-up `1.1.0`.
+Umbrella spec que captura las decisiones del brainstorm 2026-05-19: cómo el `proto-v5` (en `C:\Users\vic_A\Downloads\Vaultman (1)\`) se mergea con el Explorer de producción;
+cómo el refactor SOLID de los god-objects (panelExplorer 1329 LoC + 5 views 4377 LoC + serviceQueue 1043 LoC deferred) se interleavea con el merge del proto; y la release pipeline `v1.2.0 → v2.0.0` que orquesta implementaciones, bug fixes y el major version jump después del catch-up `1.1.0`.
 
 Este NO es un implementation spec único. Es el index que ordena hijos:
 
@@ -27,61 +24,47 @@ Este NO es un implementation spec único. Es el index que ordena hijos:
 - 1 cross-cutting (R.D — Release Discipline)
 - 9 sub-systems pre-existentes con merge layer (5, 6, 8, 10, 11, 12, 4-I, 2, N)
 
-Cada hijo tiene (o tendrá) su propio ciclo spec/plan/impl. Esta umbrella loquea el
-orden y el merge map.
+Cada hijo tiene (o tendrá) su propio ciclo spec/plan/impl. Esta umbrella loquea el orden y el merge map.
 
 ## Locked decisions (del brainstorm)
 
 - `proto-v5 ≠ canónico`. Estamos haciendo un **merge** prototipo + producción.
-- Tree view se KEEP (proto tiene tree con sticky-parents funcional en `pages.jsx:323-367`
-  que es referencia para arreglar el nuestro roto).
+- Tree view se KEEP (proto tiene tree con sticky-parents funcional en `pages.jsx:323-367` que es referencia para arreglar el nuestro roto).
 - View mode mapping:
   - `viewTree` → KEEP + sticky-parents fix per proto reference
   - `viewList` → proto Nautilus tiles (horizontal icon + multi-meta)
   - `viewTable` → Bases table parity (`bases-tr`, `bases-table-cell`, `data-property`) — NOT proto
-  - `viewGrid` → proto Nautilus icons (Adwaita SVG folders + file-type labels). Rich rows-only
-    mode = hidrato de viewList + tiles fusionado.
-  - `viewCards` → Bases cards parity (`bases-cards-item`, `bases-cards-property`, `bases-cards-cover`,
-    `mod-title`) — NOT proto
+  - `viewGrid` → proto Nautilus icons (Adwaita SVG folders + file-type labels). Rich rows-only mode = hidrato de viewList + tiles fusionado.
+  - `viewCards` → Bases cards parity (`bases-cards-item`, `bases-cards-property`, `bases-cards-cover`, `mod-title`) — NOT proto
 - Theme system:
   - DROP proto's 6 built-in palettes (Catppuccin/Gruvbox/Dracula/Nord) — Obsidian nativo
   - DROP proto's custom hex picker — Obsidian nativo
   - ADD: provider de system themes Obsidian (detecta themes instalados)
   - ADD: recent themes UI (últimos 3 usados + 4to slot custom picker)
-- Mode toggle (sidebar/desktop/both) DROPPED — `serviceLayout.resolveDashboardEnabled` ya cubre
-  responsive (width ≥ 800 + main-leaf). NO hay desktop/sidebar split — frame único responsive.
+- Mode toggle (sidebar/desktop/both) DROPPED — `serviceLayout.resolveDashboardEnabled` ya cubre responsive (width ≥ 800 + main-leaf). NO hay desktop/sidebar split — frame único responsive.
 - Theme Builder UI accedido desde Settings (sub-system 10).
-- Adwaita SVG icons = sub-feature del Theme Builder (10): user importa Gnome icons + Lucide
-  section (Obsidian native) + per-node manual override.
+- Adwaita SVG icons = sub-feature del Theme Builder (10): user importa Gnome icons + Lucide section (Obsidian native) + per-node manual override.
 - StackIsland primitive ADOPT con opción squircle-up-center además del default arriba-derecha.
-- dashboard3 redefinido: hidratación del módulo "send tabs to Obsidian tabs" + control de qué
-  tab muestra qué bars (toolbar/bottom/top). NO 4-column frame divide (Obsidian core + tab-mount
-  module ya lo cubren).
+- dashboard3 redefinido: hidratación del módulo "send tabs to Obsidian tabs" + control de qué tab muestra qué bars (toolbar/bottom/top). NO 4-column frame divide (Obsidian core + tab-mount module ya lo cubren).
 - Suggestion rows cap: chips → bits-ui input con `−/+`.
-- Operator system: 9-type map (tag/list/select/text/number/date/checkbox/folder/link) =
-  primitive del sub-system 4-I (Bases-parity filter logical switching).
+- Operator system: 9-type map (tag/list/select/text/number/date/checkbox/folder/link) = primitive del sub-system 4-I (Bases-parity filter logical switching).
 
 ## Locked non-goals (esta umbrella, sesiones futuras)
 
 - No tocar serviceQueue refactor (1043 LoC) — deferred post-v1.8.
 - No retomar sub-systems retained-in-human: 1 (Unified input), 3 (in-editor diff).
 - proto-list mode (sin equivalencia clara) — observación, no in-scope hasta sesión futura.
-- viewGrid dual-mode (icons full + rich rows-only) — pendiente decidir si toggle interno o
-  views separados; default = una sola view con toggle, se decide en spec de v1.5.0.
+- viewGrid dual-mode (icons full + rich rows-only) — pendiente decidir si toggle interno o views separados; default = una sola view con toggle, se decide en spec de v1.5.0.
 - IndexOverlay (formerly AZIndexOverlay) — future, post-v1.6.0.
-- Tab-mount module enhancement details (dashboard3 redefinition) — su propio spec dentro de
-  v1.6.0 / sub-system 5.
+- Tab-mount module enhancement details (dashboard3 redefinition) — su propio spec dentro de v1.6.0 / sub-system 5.
 - Statusbar al pie ("X of Y selected · free: GB") — deferred al sub-system serviceStats futuro.
 - viewOutlineExplorer (77 LoC, out-of-band) — preserve sin cambios.
 - ViewMarkmap (deferred) — preserve hidden.
-- proto's Desktop mode big-picture full-screen — NO existe en producción (no hay desktop/sidebar
-  split).
+- proto's Desktop mode big-picture full-screen — NO existe en producción (no hay desktop/sidebar split).
 
 ## Release pipeline v1.2.0 → v2.0.0
 
-`v1.1.0` fue el release catch-up ya completado para reconciliar `main` y activar la release
-automation. No contiene los sub-systems del umbrella; ver
-[[docs/work/hardening/plans/2026-05-20-release-1-1-0-catch-up|Release 1.1.0 catch-up]].
+`v1.1.0` fue el release catch-up ya completado para reconciliar `main` y activar la release automation. No contiene los sub-systems del umbrella; ver [[docs/work/hardening/plans/2026-05-20-release-1-1-0-catch-up|Release 1.1.0 catch-up]].
 
 | Version | Tema | Sub-systems incluidos | SemVer rationale |
 |---|---|---|---|
@@ -154,22 +137,18 @@ Detalle completo en [[02-sub-system-inventory]].
 
 ## Adjacent docs
 
-- [[docs/work/roadmap-overview|Roadmap Overview]] — debe actualizarse con los 13 nuevos sub-systems
-  (N.R, A.R, V.D, P.D, T.G, 0-A.S, K.B, API, I.E, B.P, C.D, R.D) + release pipeline columna.
+- [[docs/work/roadmap-overview|Roadmap Overview]] — debe actualizarse con los 13 nuevos sub-systems (N.R, A.R, V.D, P.D, T.G, 0-A.S, K.B, API, I.E, B.P, C.D, R.D) + release pipeline columna.
   Pendiente en [[06-next-actions]].
 - [[docs/current/status|Current status]] — debe linkar este umbrella como next initiative.
 - [[docs/current/handoff|Current handoff]] — next action = umbrella review + escribir A.R spec.
-- [[docs/work/hardening/specs/2026-05-18-explorer-sub-system-0-a-native-dom-parity/index|0-A spec]]
-  — close pendiente, in-flight commits (cd2d8fc…cfc2604).
-- [[docs/work/hardening/backlog/2026-05-15-explorer-ui-vision/index|Explorer UI Vision backlog]]
-  — canonical source of sub-systems 1-12+N+O.
+- [[docs/work/hardening/specs/2026-05-18-explorer-sub-system-0-a-native-dom-parity/index|0-A spec]] — close pendiente, in-flight commits (cd2d8fc…cfc2604).
+- [[docs/work/hardening/backlog/2026-05-15-explorer-ui-vision/index|Explorer UI Vision backlog]] — canonical source of sub-systems 1-12+N+O.
 
 ## Source references
 
 - proto-v5 files: `C:\Users\vic_A\Downloads\Vaultman (1)\Vaultman Prototype v5.html` (124 KB)
   + `C:\Users\vic_A\Downloads\Vaultman (1)\proto-v5\*.jsx` (10 files, ~170 KB total):
-  app.jsx, control-island.jsx, data.jsx, desktop.jsx, nautilus.jsx, pages.jsx, popups.jsx,
-  search-island.jsx, sidebar.jsx, stack-island.jsx
+  app.jsx, control-island.jsx, data.jsx, desktop.jsx, nautilus.jsx, pages.jsx, popups.jsx, search-island.jsx, sidebar.jsx, stack-island.jsx
 - External research outputs en el transcript del brainstorm:
   1. Internal arch audit (LoC + behavior matrix + service inventory + SOLID violations)
   2. External research (Svelte 5 patterns + Electron testing + TanStack Virtual + WAI-ARIA tree)

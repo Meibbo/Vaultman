@@ -22,21 +22,14 @@ tags: [agent/issue, triage/completed, initiative/polish, release/1.2.0, performa
 
 ## What to build
 
-Under the recency sort, every `file-open` rebuilt the whole Files model —
-re-sort plus every decoration pass plus a full projection. Obsidian emits
-`file-open` on every tab switch, so moving between notes stuttered. A reusable
-single-node move API reorders just the opened file within its sibling group.
+Under the recency sort, every `file-open` rebuilt the whole Files model — re-sort plus every decoration pass plus a full projection. Obsidian emits `file-open` on every tab switch, so moving between notes stuttered. A reusable single-node move API reorders just the opened file within its sibling group.
 
 ## Acceptance criteria
 
-- [x] `moveNodeWithinSiblings` / `moveNodeToSiblingEdge` rebuild only the moved
-      sibling array and its ancestors; untouched subtrees keep their identity.
-- [x] Re-opening the file already at the edge, or bouncing between the top two,
-      reports `changed: false` and costs nothing.
-- [x] A `partitionOf` grouping keeps a file within the file run, so with
-      `parentsFirst` it never jumps above the folders.
-- [x] The shortcut is gated to `parentsFirst && fixedFolders`, where the result
-      provably equals a full re-sort; other layouts fall through to the rebuild.
+- [x] `moveNodeWithinSiblings` / `moveNodeToSiblingEdge` rebuild only the moved sibling array and its ancestors; untouched subtrees keep their identity.
+- [x] Re-opening the file already at the edge, or bouncing between the top two, reports `changed: false` and costs nothing.
+- [x] A `partitionOf` grouping keeps a file within the file run, so with `parentsFirst` it never jumps above the folders.
+- [x] The shortcut is gated to `parentsFirst && fixedFolders`, where the result provably equals a full re-sort; other layouts fall through to the rebuild.
 - [x] Table and Cards keep the full rebuild (no equivalent projection yet).
 
 ## Blocked by
@@ -45,5 +38,4 @@ None.
 
 ## Outcome
 
-Shipped in `d8367255`; the folder-partition correction is `ced1c078`. Reused
-by [[090-folder-recency-and-mtime-tiebreak|BT5-090]].
+Shipped in `d8367255`; the folder-partition correction is `ced1c078`. Reused by [[090-folder-recency-and-mtime-tiebreak|BT5-090]].

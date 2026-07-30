@@ -14,8 +14,7 @@ tags:
 
 ## DecorationManager Target Role
 
-`DecorationManager` should become a semantic decoration provider, not a partial
-icon/highlight helper.
+`DecorationManager` should become a semantic decoration provider, not a partial icon/highlight helper.
 
 It should be able to supply:
 
@@ -62,8 +61,7 @@ Current duplicated examples:
 
 Target behavior:
 
-- a `QueueBadgeLayerProvider` or `serviceViews` helper maps operations to
-  affected rows/cells/nodes;
+- a `QueueBadgeLayerProvider` or `serviceViews` helper maps operations to affected rows/cells/nodes;
 - result goes into `layers.badges.ops`;
 - action reference points to remove/undo operation;
 - views render the action as double-click, button, context menu, or chip.
@@ -84,8 +82,7 @@ Current regression:
 Target behavior:
 
 - `serviceViews` can answer whether a node/cell represents an active filter;
-- active filter layer is computed consistently for props, values, tags, files,
-  queue, and active filter explorer itself;
+- active filter layer is computed consistently for props, values, tags, files, queue, and active filter explorer itself;
 - views render it according to mode.
 
 ## Query Highlights
@@ -100,14 +97,11 @@ They should be produced once and attached to:
 - card title/property text;
 - list detail.
 
-`DecorationManager` can keep range generation, but `serviceViews` decides where
-to attach those ranges.
+`DecorationManager` can keep range generation, but `serviceViews` decides where to attach those ranges.
 
 ## General Hierarchical Badge Bubbling
 
-Badge bubbling is a general hierarchy need based on semantic badge data, not a
-tree-only behavior. Full rules and the `childBadgeIndicator` projection are in
-[[docs/work/hardening/specs/2026-05-04-explorer-view-service/13-hierarchical-badge-bubbling|Hierarchical badge bubbling]].
+Badge bubbling is a general hierarchy need based on semantic badge data, not a tree-only behavior. Full rules and the `childBadgeIndicator` projection are in [[docs/work/hardening/specs/2026-05-04-explorer-view-service/13-hierarchical-badge-bubbling|Hierarchical badge bubbling]].
 
 ## Marks
 
@@ -147,13 +141,11 @@ Views may display marks as badges/chips, but the model should distinguish them.
 - templates;
 - display options.
 
-This should eventually line up with Bases-style view configuration, but does
-not need to use `.base` files as the first storage format.
+This should eventually line up with Bases-style view configuration, but does not need to use `.base` files as the first storage format.
 
 ## Queue List Templates
 
-Queue list templates should represent saved presentations or filters for the
-queue:
+Queue list templates should represent saved presentations or filters for the queue:
 
 - group by operation type;
 - group by file;
@@ -162,8 +154,7 @@ queue:
 - show diffs inline;
 - show operation count summaries.
 
-They should be modeled as marks/templates consumed by `serviceViews`, not as
-hardcoded branches in `explorerQueue.svelte`.
+They should be modeled as marks/templates consumed by `serviceViews`, not as hardcoded branches in `explorerQueue.svelte`.
 
 ## Decoration Output Compatibility
 

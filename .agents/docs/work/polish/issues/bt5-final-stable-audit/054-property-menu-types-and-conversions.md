@@ -22,10 +22,7 @@ tags: [agent/issue, triage/in-progress, initiative/polish, release/1.2.0, proper
 
 ## What to build
 
-Complete the Properties context menu with Change type → Date & Time, check the
-node's effective current type, add Convert → Wikilink for value nodes and use the
-exact conversion labels `lowercase`, `UPPERCASE`, `Titlecase`. All state-changing
-conversions must use the operation queue.
+Complete the Properties context menu with Change type → Date & Time, check the node's effective current type, add Convert → Wikilink for value nodes and use the exact conversion labels `lowercase`, `UPPERCASE`, `Titlecase`. All state-changing conversions must use the operation queue.
 
 ## Acceptance criteria
 

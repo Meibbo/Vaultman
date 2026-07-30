@@ -27,9 +27,7 @@ git status --short --branch
 git status --porcelain=v1 -- README.md CONTRIBUTING.md package.json manifest.json .github/workflows/ci.yml .github/workflows/codeql.yml LICENSE SECURITY.md CODE_OF_CONDUCT.md
 ```
 
-Expected: root files may be dirty before this plan starts. Do not stage or
-restore existing dirty files unless they are intentionally owned by the current
-slice.
+Expected: root files may be dirty before this plan starts. Do not stage or restore existing dirty files unless they are intentionally owned by the current slice.
 
 - [x] **Step 2: Choose the first executable slice**
 
@@ -43,9 +41,7 @@ Use this order:
 
 Expected: each slice can be reviewed and committed independently.
 
-Execution note, 2026-05-16: root files for this slice started clean. Unrelated
-Explorer files were dirty and were not touched. The first executable slice was
-local security docs plus workflow permissions.
+Execution note, 2026-05-16: root files for this slice started clean. Unrelated Explorer files were dirty and were not touched. The first executable slice was local security docs plus workflow permissions.
 
 ## Task 1: Public Security And Community Files
 
@@ -95,18 +91,10 @@ git show HEAD:CONTRIBUTING.md
 git ls-tree -r --name-only origin/main 2>$null | rg "^(LICENSE|CONTRIBUTING.md)$"
 ```
 
-Expected: determine whether the local deletion of `CONTRIBUTING.md` is
-intentional. If it is not intentional, restore the current desired content in a
-separate commit. If it is intentional, document why before release work.
+Expected: determine whether the local deletion of `CONTRIBUTING.md` is intentional. If it is not intentional, restore the current desired content in a separate commit. If it is intentional, document why before release work.
 
-Execution note, 2026-05-16: the user confirmed `CONTRIBUTING.md` was removed
-because it was very outdated. It remains absent. OpenSSF OSPS Baseline
-v2026.02.19 requires Level 1 projects to document an explanation of the
-contribution process, and recommends `CONTRIBUTING.md`; the file name is not
-itself mandatory. A minimal contribution process was added to `README.md`.
-The user clarified that `origin/main:LICENSE` is canonical, so `LICENSE` was
-restored from `origin/main`; `README.md` and `package.json` were aligned to
-Apache-2.0.
+Execution note, 2026-05-16: the user confirmed `CONTRIBUTING.md` was removed because it was very outdated. It remains absent. OpenSSF OSPS Baseline v2026.02.19 requires Level 1 projects to document an explanation of the contribution process, and recommends `CONTRIBUTING.md`; the file name is not itself mandatory. A minimal contribution process was added to `README.md`.
+The user clarified that `origin/main:LICENSE` is canonical, so `LICENSE` was restored from `origin/main`; `README.md` and `package.json` were aligned to Apache-2.0.
 
 - [x] **Step 3: Update README security links**
 
@@ -120,8 +108,7 @@ Add visible links only after the files exist:
 
 Expected: README links resolve locally.
 
-Execution note, 2026-05-16: README now links `SECURITY.md`, includes a minimal
-`Contributing` section, and links `LICENSE` as Apache License 2.0.
+Execution note, 2026-05-16: README now links `SECURITY.md`, includes a minimal `Contributing` section, and links `LICENSE` as Apache License 2.0.
 
 ## Task 2: Workflow Token Permissions
 
@@ -134,9 +121,7 @@ permissions:
   contents: read
 ```
 
-Expected: CI uses the least privileged token needed for checkout, install,
-lint, build, coverage, and artifact upload. If artifact upload requires another
-permission in this repository, add only that permission and record why.
+Expected: CI uses the least privileged token needed for checkout, install, lint, build, coverage, and artifact upload. If artifact upload requires another permission in this repository, add only that permission and record why.
 
 - [x] **Step 2: Add permissions to CodeQL query tests**
 
@@ -147,8 +132,7 @@ permissions:
   contents: read
 ```
 
-Expected: the job has explicit permissions instead of inheriting repository
-defaults.
+Expected: the job has explicit permissions instead of inheriting repository defaults.
 
 - [x] **Step 3: Verify workflow syntax through local checks**
 
@@ -161,7 +145,4 @@ git diff --check -- .github/workflows/ci.yml .github/workflows/codeql.yml
 
 Expected: formatting and diff hygiene pass.
 
-Execution note, 2026-05-16: `pnpm exec prettier --check
-".github/workflows/*.yml"` passed after formatting the workflows, and
-`git diff --check -- SECURITY.md README.md .github/workflows/ci.yml
-.github/workflows/codeql.yml` passed.
+Execution note, 2026-05-16: `pnpm exec prettier --check ".github/workflows/*.yml"` passed after formatting the workflows, and `git diff --check -- SECURITY.md README.md .github/workflows/ci.yml .github/workflows/codeql.yml` passed.

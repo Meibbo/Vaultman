@@ -18,9 +18,7 @@ updated_by: codex
 
 ## Purpose
 
-Create a Svelte 5 table component that renders TanStack rows and headers while
-reporting user intent to the parent. The component does not mutate
-`NodeSelectionService` directly.
+Create a Svelte 5 table component that renders TanStack rows and headers while reporting user intent to the parent. The component does not mutate `NodeSelectionService` directly.
 
 Continuation: [[docs/work/polish/plans/2026-05-07-tanstack-node-table/02-component-part-2|ViewNodeTable component part 2]]
 
@@ -33,8 +31,7 @@ Continuation: [[docs/work/polish/plans/2026-05-07-tanstack-node-table/02-compone
 
 - [ ] **Step 1: Write the failing component test**
 
-Create `test/component/viewTableSelection.test.ts` with tests for render,
-sorting, selection, keyboard, and context menu:
+Create `test/component/viewTableSelection.test.ts` with tests for render, sorting, selection, keyboard, and context menu:
 
 ```ts
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';

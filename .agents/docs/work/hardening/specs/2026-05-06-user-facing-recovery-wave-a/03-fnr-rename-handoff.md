@@ -15,24 +15,19 @@ tags:
 
 ## Current State
 
-`serviceFnR.svelte.ts` already exists for content find/replace. It supports
-plain, regex, Obsidian search, Bases, Dataview, and Ant Renamer syntax options.
-`tabContent.svelte` uses it for content replace and queues
-`content_replace` operations.
+`serviceFnR.svelte.ts` already exists for content find/replace. It supports plain, regex, Obsidian search, Bases, Dataview, and Ant Renamer syntax options.
+`tabContent.svelte` uses it for content replace and queues `content_replace` operations.
 
-Prop/value rename still uses `showInputModal` in `explorerProps`. File rename
-uses `FileRenameModal`. Tag rename has no working implementation.
+Prop/value rename still uses `showInputModal` in `explorerProps`. File rename uses `FileRenameModal`. Tag rename has no working implementation.
 
 ## User Decision
 
 The first rename handoff implementation should start with **prop/value**.
-Tags/files are still mandatory before wave completion, but they follow after
-A0 repairs the context-menu queue path.
+Tags/files are still mandatory before wave completion, but they follow after A0 repairs the context-menu queue path.
 
 ## Target UX
 
-Selecting Rename from a prop or value context menu should move the user into a
-smart FnR/navbar state rather than opening an isolated input modal.
+Selecting Rename from a prop or value context menu should move the user into a smart FnR/navbar state rather than opening an isolated input modal.
 
 The navbar/FnR surface should:
 
@@ -45,8 +40,7 @@ The navbar/FnR surface should:
 
 ## State Model
 
-Add a rename handoff state next to existing `FnRState` rather than overloading
-content replace fields with hidden meaning.
+Add a rename handoff state next to existing `FnRState` rather than overloading content replace fields with hidden meaning.
 
 The handoff should include:
 
@@ -59,9 +53,7 @@ The handoff should include:
 
 ## Builder Model
 
-Queue operation construction should live in testable TypeScript helpers or
-service functions, not in Svelte markup. The Svelte components should only bind
-state, focus inputs, and dispatch commands.
+Queue operation construction should live in testable TypeScript helpers or service functions, not in Svelte markup. The Svelte components should only bind state, focus inputs, and dispatch commands.
 
 For prop/value:
 

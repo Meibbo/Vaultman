@@ -1,7 +1,5 @@
 # UnoCSS Migration Strategy & Architectural Forecast
-**Date:** 2026-05-15
-**Status:** Research / Architectural Blueprint
-**Context:** Evaluation of migrating a ~6.9K LOC SCSS architecture to a UnoCSS utility-first model in Vaultman.
+**Date:** 2026-05-15 **Status:** Research / Architectural Blueprint **Context:** Evaluation of migrating a ~6.9K LOC SCSS architecture to a UnoCSS utility-first model in Vaultman.
 
 ## 1. Executive Summary
 Vaultman currently utilizes a highly structured ITCSS-based SCSS architecture totaling ~6.9K lines across 41 files. While organized, this results in a monolithic `styles.css` (~178KB), dead CSS accumulation, and architectural friction when implementing dynamic theming (Theme Builder). 

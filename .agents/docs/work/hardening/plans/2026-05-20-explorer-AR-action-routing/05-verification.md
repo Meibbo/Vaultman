@@ -36,18 +36,13 @@ Implementa la matriz de [[docs/work/hardening/specs/2026-05-20-explorer-AR-actio
 
 - [x] **Step 3: Run the full Tier-1 + Tier-2 suite**
 
-Run: `pnpm vitest run test/unit/services/actionRouting.intent.test.ts test/unit/services/keyboardNav.test.ts test/unit/services/rowAction.test.ts`
-Run: `pnpm vitest run test/component/viewTreeCaret.test.ts test/component/selectionContractParity.test.ts test/component/keyboardNavParity.test.ts test/component/structuralAttrs.test.ts test/component/cmenuTriggerParity.test.ts test/component/expandAllParity.test.ts`
-Run los `*ActionAdoption.test.ts` (6a-6d).
+Run: `pnpm vitest run test/unit/services/actionRouting.intent.test.ts test/unit/services/keyboardNav.test.ts test/unit/services/rowAction.test.ts` Run: `pnpm vitest run test/component/viewTreeCaret.test.ts test/component/selectionContractParity.test.ts test/component/keyboardNavParity.test.ts test/component/structuralAttrs.test.ts test/component/cmenuTriggerParity.test.ts test/component/expandAllParity.test.ts` Run los `*ActionAdoption.test.ts` (6a-6d).
 Expected: all PASS.
 
 - [x] **Step 4: Full gate**
 
 Run: `pnpm check` → 0 errors / 0 warnings.
-Run: `pnpm verify` → lint + check + build + unit + component. (Si falla por los archivos flaky/timing
-ya aceptados por el equipo — `viewTableStress`, `pageFiltersRenameHandoff`, `vmDialogPortal`,
-`explorerNotebookNavigatorComparison` — re-correr aislados y aceptar como excepción documentada,
-NO como fallo de A.R.)
+Run: `pnpm verify` → lint + check + build + unit + component. (Si falla por los archivos flaky/timing ya aceptados por el equipo — `viewTableStress`, `pageFiltersRenameHandoff`, `vmDialogPortal`, `explorerNotebookNavigatorComparison` — re-correr aislados y aceptar como excepción documentada, NO como fallo de A.R.)
 
 - [x] **Step 5: Live `plugin-dev` smoke (diagonal 5 views × 4 provider tabs)**
 
@@ -64,8 +59,7 @@ obsidian vault=plugin-dev dev:errors    # esperado: "No errors captured."
 
 - [x] **Step 6: Docs update + commit**
 
-Actualizar `status.md` + `handoff.md`: A.R implementado + verificado; next = siguiente sub-system del
-umbrella o renumber. NO commitear los ~10 M files del usuario.
+Actualizar `status.md` + `handoff.md`: A.R implementado + verificado; next = siguiente sub-system del umbrella o renumber. NO commitear los ~10 M files del usuario.
 
 ```bash
 git add test/component/keyboardNavParity.test.ts test/component/structuralAttrs.test.ts \
@@ -77,39 +71,25 @@ git commit -m "test(A.R): action-routing verification matrix + live smoke green"
 
 Implemented Task 9 as the final A.R verification layer:
 
-- Created `test/component/keyboardNavParity.test.ts`: Tree/List/Table/Grid/Cards each delegate
-  `ArrowDown`, `ArrowUp`, `Home`, `End`, `Enter`, and `Space` to the view-level keyboard callback with
-  `(id, KeyboardEvent)`.
-- Created `test/component/structuralAttrs.test.ts`: Tree/List/Table/Grid/Cards each expose stable
-  `data-row-key`, the expected role, selected-state `aria-selected`, and non-expandable rows omit
-  `aria-expanded`.
-- Updated `ViewNodeList.svelte` to consume `serviceRowAction` for structural row attributes. This was
-  required by the new anti-drift test; the previous list rows had no `data-row-key`.
-- Tightened `ViewNodeGrid.svelte` startup geometry: `columnCount` now initializes from the fallback
-  width and `updateGridMetrics()` only assigns/report changes when values change. This preserved the
-  existing jank guardrail (`setOptions` calls after mount ≤ 3) without relaxing the threshold.
+- Created `test/component/keyboardNavParity.test.ts`: Tree/List/Table/Grid/Cards each delegate `ArrowDown`, `ArrowUp`, `Home`, `End`, `Enter`, and `Space` to the view-level keyboard callback with `(id, KeyboardEvent)`.
+- Created `test/component/structuralAttrs.test.ts`: Tree/List/Table/Grid/Cards each expose stable `data-row-key`, the expected role, selected-state `aria-selected`, and non-expandable rows omit `aria-expanded`.
+- Updated `ViewNodeList.svelte` to consume `serviceRowAction` for structural row attributes. This was required by the new anti-drift test; the previous list rows had no `data-row-key`.
+- Tightened `ViewNodeGrid.svelte` startup geometry: `columnCount` now initializes from the fallback width and `updateGridMetrics()` only assigns/report changes when values change. This preserved the existing jank guardrail (`setOptions` calls after mount ≤ 3) without relaxing the threshold.
 - Updated legacy tree tests to assert the A.R toggle contract `(id, MouseEvent)`.
 - Updated Vaultman panel snapshots for the expected structural attributes.
 
 Verification:
 
 - RED phase:
-  - `test/component/keyboardNavParity.test.ts test/component/structuralAttrs.test.ts` failed on List
-    missing `data-row-key`.
-  - Full component suite initially found the remaining expected drift: two old toggle expectations,
-    two snapshots, and the Grid jank guardrail.
+  - `test/component/keyboardNavParity.test.ts test/component/structuralAttrs.test.ts` failed on List missing `data-row-key`.
+  - Full component suite initially found the remaining expected drift: two old toggle expectations, two snapshots, and the Grid jank guardrail.
 - Focused green gates:
-  - `pnpm vitest run test/unit/services/actionRouting.intent.test.ts test/unit/services/keyboardNav.test.ts test/unit/services/rowAction.test.ts`
-    → 3 files / 19 tests passed.
-  - `pnpm vitest run test/component/viewTreeCaret.test.ts test/component/selectionContractParity.test.ts test/component/keyboardNavParity.test.ts test/component/structuralAttrs.test.ts test/component/cmenuTriggerParity.test.ts test/component/expandAllParity.test.ts`
-    → 6 files / 19 tests passed.
-  - `pnpm vitest run test/component/viewTreeActionAdoption.test.ts test/component/viewTableActionAdoption.test.ts test/component/viewGridActionAdoption.test.ts test/component/viewCardsActionAdoption.test.ts`
-    → 4 files / 14 tests passed.
-  - `pnpm vitest run test/component/viewNodeScrollJank.test.ts test/component/viewTreeDecorations.test.ts test/component/viewTreeGridRowInputContract.test.ts test/component/views/ViewNodeList.panel.vaultman.snapshot.test.ts test/component/views/viewTree.panel.vaultman.snapshot.test.ts`
-    → 5 files / 22 tests passed.
+  - `pnpm vitest run test/unit/services/actionRouting.intent.test.ts test/unit/services/keyboardNav.test.ts test/unit/services/rowAction.test.ts` → 3 files / 19 tests passed.
+  - `pnpm vitest run test/component/viewTreeCaret.test.ts test/component/selectionContractParity.test.ts test/component/keyboardNavParity.test.ts test/component/structuralAttrs.test.ts test/component/cmenuTriggerParity.test.ts test/component/expandAllParity.test.ts` → 6 files / 19 tests passed.
+  - `pnpm vitest run test/component/viewTreeActionAdoption.test.ts test/component/viewTableActionAdoption.test.ts test/component/viewGridActionAdoption.test.ts test/component/viewCardsActionAdoption.test.ts` → 4 files / 14 tests passed.
+  - `pnpm vitest run test/component/viewNodeScrollJank.test.ts test/component/viewTreeDecorations.test.ts test/component/viewTreeGridRowInputContract.test.ts test/component/views/ViewNodeList.panel.vaultman.snapshot.test.ts test/component/views/viewTree.panel.vaultman.snapshot.test.ts` → 5 files / 22 tests passed.
 - Official Svelte MCP autofixer:
-  - `ViewNodeGrid.svelte`: 0 issues; suggestions only existing/known effect and mutable collection
-    guidance.
+  - `ViewNodeGrid.svelte`: 0 issues; suggestions only existing/known effect and mutable collection guidance.
   - `ViewNodeList.svelte`: 0 issues; suggestions only existing/known effect and action guidance.
 - Full gate:
   - `pnpm run verify` exit 0.
@@ -121,11 +101,8 @@ Verification:
 
 Live `plugin-dev` smoke:
 
-- `node scripts/run-explorer-scroll-smoke.mjs --view=tree --jumps=100 --visual-delay-ms=0 --no-build`
-  initially passed after plugin reload/open.
-- The first List attempt failed with `jumps=0` because the runner did not change the already-open
-  frame from Tree to List. This was not treated as a scroll failure; the final matrix explicitly used
-  `openViewMenuHook` to switch each view before invoking the smoke runner with `--no-open`.
+- `node scripts/run-explorer-scroll-smoke.mjs --view=tree --jumps=100 --visual-delay-ms=0 --no-build` initially passed after plugin reload/open.
+- The first List attempt failed with `jumps=0` because the runner did not change the already-open frame from Tree to List. This was not treated as a scroll failure; the final matrix explicitly used `openViewMenuHook` to switch each view before invoking the smoke runner with `--no-open`.
 - Final explicit-switch matrix passed:
   - Tree: `blankFrames=0`, `blank>100ms=0`, `blank>250ms=0`, `maxBlank=0ms`, `maxDelay=366ms`.
   - List: `blankFrames=0`, `blank>100ms=0`, `blank>250ms=0`, `maxBlank=0ms`, `maxDelay=45ms`.
@@ -136,12 +113,8 @@ Live `plugin-dev` smoke:
 
 Notes:
 
-- The live matrix above verifies the selectable views on the active `plugin-dev` Explorer surface. The
-  original plan's full manual 5-view × 4-provider interaction diagonal remains broader than the
-  current automated harness; Task 9 locked the cross-view contract in component tests and smoke-tested
-  the visible scroll/blanking symptom live.
-- Grid no longer goes invisible during the automated large-jump smoke, but its `maxDelay=4596ms`
-  remains a follow-up performance signal for the next scroll-jank pass.
+- The live matrix above verifies the selectable views on the active `plugin-dev` Explorer surface. The original plan's full manual 5-view × 4-provider interaction diagonal remains broader than the current automated harness; Task 9 locked the cross-view contract in component tests and smoke-tested the visible scroll/blanking symptom live.
+- Grid no longer goes invisible during the automated large-jump smoke, but its `maxDelay=4596ms` remains a follow-up performance signal for the next scroll-jank pass.
 
 ---
 
@@ -169,17 +142,11 @@ Ejecutado con ojos frescos contra el spec.
 
 Sin gaps. DnD + scoped-views = fuera de scope por diseño (spec §05).
 
-**2. Placeholder scan** — sin TBD/TODO. Donde un test referencia un harness existente
-(`panelExplorerSelection`, `viewGridSelection`, `cmenuSetAction`), es por reuso explícito del patrón, no
-placeholder. El único valor a descubrir en ejecución es el `columnCount` real del grid (Task 6c, punto
-de integración nombrado) y el set exacto de cmenu por provider (Task 8, verificación contra código real)
-— ambos son acciones definidas, no huecos.
+**2. Placeholder scan** — sin TBD/TODO. Donde un test referencia un harness existente (`panelExplorerSelection`, `viewGridSelection`, `cmenuSetAction`), es por reuso explícito del patrón, no placeholder. El único valor a descubrir en ejecución es el `columnCount` real del grid (Task 6c, punto de integración nombrado) y el set exacto de cmenu por provider (Task 8, verificación contra código real) — ambos son acciones definidas, no huecos.
 
 **3. Type consistency** — nombres consistentes entre tasks:
-- `RowActionContext` (sin getters de estado) + `RowState` (per-call) + `getRowProps(id, state)` —
-  Task 3 ↔ Tasks 6a-6d.
-- `KeyboardNavContext` callbacks (`moveFocus`/`focusEdge`/`focusId`/`movePage`/`toggleSelect`/`selectAll`/
-  `expand`/`collapse`/`activate(id,e)`/`drill`) — Task 2 ↔ Task 5 (panel los implementa).
+- `RowActionContext` (sin getters de estado) + `RowState` (per-call) + `getRowProps(id, state)` — Task 3 ↔ Tasks 6a-6d.
+- `KeyboardNavContext` callbacks (`moveFocus`/`focusEdge`/`focusId`/`movePage`/`toggleSelect`/`selectAll`/ `expand`/`collapse`/`activate(id,e)`/`drill`) — Task 2 ↔ Task 5 (panel los implementa).
 - `RowInteractionContract` + `ActionIntent*` + `selectionModifiersFromEvent` — Task 1 ↔ Tasks 5/6.
 - `data-row-key` (== id) — Tasks 3/6/9 idénticos.
 - El builder NO provee `onclick`/`onauxclick` (views conservan gestos) — Task 3 ↔ Tasks 6a-6d coherente.

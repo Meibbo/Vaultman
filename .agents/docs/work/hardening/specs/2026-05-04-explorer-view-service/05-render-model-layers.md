@@ -52,8 +52,7 @@ export interface ViewIconLayer {
 }
 ```
 
-Views decide whether to display one icon, multiple icons, or a compact icon
-stack.
+Views decide whether to display one icon, multiple icons, or a compact icon stack.
 
 ## Badges
 
@@ -77,8 +76,7 @@ export interface ViewBadgeLayers {
 
 `badges.inherited` covers badges bubbled from hidden/collapsed descendants.
 
-`badges.counts` covers counts where a view wants count badges instead of a
-dedicated count column.
+`badges.counts` covers counts where a view wants count badges instead of a dedicated count column.
 
 ## Badge Shape
 
@@ -96,8 +94,7 @@ export interface ViewBadge {
 }
 ```
 
-Avoid tying the contract to current color names such as `red`, `blue`,
-`purple`, `orange`, and `green`. Views can map tones to CSS.
+Avoid tying the contract to current color names such as `red`, `blue`, `purple`, `orange`, and `green`. Views can map tones to CSS.
 
 ## Highlights
 

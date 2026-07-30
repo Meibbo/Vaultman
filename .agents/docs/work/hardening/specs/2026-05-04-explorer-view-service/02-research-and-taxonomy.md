@@ -14,8 +14,7 @@ tags:
 
 ## Corrected Taxonomy
 
-The previous naming was wrong. The current `grid` was used as a table-like
-matrix. That created confusion and made the implementation drift.
+The previous naming was wrong. The current `grid` was used as a table-like matrix. That created confusion and made the implementation drift.
 
 Vaultman should use this vocabulary:
 
@@ -52,8 +51,7 @@ Expected traits:
 - property display order;
 - keyboard navigation by cell.
 
-This should be the view that recovers the original good beta progress that was
-lost when the concept was renamed to grid and degraded.
+This should be the view that recovers the original good beta progress that was lost when the concept was renamed to grid and degraded.
 
 ## Grid
 
@@ -152,15 +150,11 @@ Important custom-view concepts from the developer guide:
 - rendering values goes through view-specific code;
 - grouping is a first-class shape in the data.
 
-Vaultman should not assume an official public API for reusing the internal
-native Bases table implementation. If reuse is possible later, it must be
-verified and isolated behind a boundary.
+Vaultman should not assume an official public API for reusing the internal native Bases table implementation. If reuse is possible later, it must be verified and isolated behind a boundary.
 
 ## File Explorer Notes
 
-Windows list-view documentation distinguishes table/details views from icon or
-tile views. The relevant concept is not to copy Windows UI, but to preserve the
-semantic distinction:
+Windows list-view documentation distinguishes table/details views from icon or tile views. The relevant concept is not to copy Windows UI, but to preserve the semantic distinction:
 
 - details/table is column-oriented;
 - icon/tile/grid is object-oriented and spatial.

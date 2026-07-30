@@ -26,16 +26,11 @@ tags:
 
 ## Source spec
 
-[[docs/work/hardening/specs/2026-05-18-explorer-sub-system-0-a-native-dom-parity/index|0-A spec]]
-(12 shards, ≈2550 lines, drafted 2026-05-18). Plan derives directly from the
-12-commit migration sequence in shard 09.
+[[docs/work/hardening/specs/2026-05-18-explorer-sub-system-0-a-native-dom-parity/index|0-A spec]] (12 shards, ≈2550 lines, drafted 2026-05-18). Plan derives directly from the 12-commit migration sequence in shard 09.
 
 ## Sequencing
 
-Locked build order: `0-H ✅ → 0-B ✅ → O ✅ → 0-A → N`. After 0-A: unlocks
-Sub-systems 6 (Layout extension), 7 (Toolbar contract), 12 (bits-ui adoption),
-and the in-editor renderer fast-follow. Adversarial scroll harness work
-(Sub-system 0-A.S) is a sibling track that does not block 0-A.
+Locked build order: `0-H ✅ → 0-B ✅ → O ✅ → 0-A → N`. After 0-A: unlocks Sub-systems 6 (Layout extension), 7 (Toolbar contract), 12 (bits-ui adoption), and the in-editor renderer fast-follow. Adversarial scroll harness work (Sub-system 0-A.S) is a sibling track that does not block 0-A.
 
 ## Task list
 
@@ -68,8 +63,7 @@ C1 ──┬──> C2 ──> C3 ──> C4 ──> C5 ──┬──> C6 ─�
 - `NodeSelectionService` remains sole authority for selection state.
 - No direct VFS mutation paths added.
 - `serviceDnd` / `serviceManualDnd` / dnd-kit untouched.
-- `serviceExplorerScrollGeometry` / `serviceNodeRowMeasure` public API stable
-  (except possibly during C12 root-cause analysis; escalate if change is needed).
+- `serviceExplorerScrollGeometry` / `serviceNodeRowMeasure` public API stable (except possibly during C12 root-cause analysis; escalate if change is needed).
 - `themeService` instance + `useNativeDom` derivation preserved.
 - TanStack virtualization untouched.
 - `EXPLORER_PLATFORM_VIEW_MODES = ['tree','list','table','grid','cards']` — no markmap, no outline.

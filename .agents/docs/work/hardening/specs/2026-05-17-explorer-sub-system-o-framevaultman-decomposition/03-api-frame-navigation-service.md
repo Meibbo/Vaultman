@@ -18,9 +18,7 @@ tags:
 `src/components/frame/frameNavigation.svelte.ts`
 
 Exports a Symbol context key and a runes class. No default export.
-Naming follows the no-`service` prefix precedent of
-`frameOverlays.svelte.ts`, `frameNavReorder.svelte.ts`, and
-`frameViewport.ts`.
+Naming follows the no-`service` prefix precedent of `frameOverlays.svelte.ts`, `frameNavReorder.svelte.ts`, and `frameViewport.ts`.
 
 ## Symbol context key
 
@@ -28,8 +26,7 @@ Naming follows the no-`service` prefix precedent of
 export const FRAME_NAVIGATION_KEY: unique symbol = Symbol('frame.navigation');
 ```
 
-Consumers always import the key from the same module that exports the
-class so the type and key stay co-located.
+Consumers always import the key from the same module that exports the class so the type and key stay co-located.
 
 ## Constructor signature
 
@@ -39,13 +36,8 @@ export class FrameNavigationService {
 }
 ```
 
-- `plugin` — the `VaultmanPlugin` instance. Used for
-  `plugin.settings.pageOrder`, `plugin.settings.explorerOperationScope`,
-  `plugin.saveSettings()`, `plugin.app` (file-suggest modal).
-- `overlays` — existing `FrameOverlayController`. The service calls
-  `overlays.closeQueueIsland()`, `closeFiltersIsland()`,
-  `closePopup()`, and reads `overlays.popupOpen` /
-  `overlays.activePopup`.
+- `plugin` — the `VaultmanPlugin` instance. Used for `plugin.settings.pageOrder`, `plugin.settings.explorerOperationScope`, `plugin.saveSettings()`, `plugin.app` (file-suggest modal).
+- `overlays` — existing `FrameOverlayController`. The service calls `overlays.closeQueueIsland()`, `closeFiltersIsland()`, `closePopup()`, and reads `overlays.popupOpen` / `overlays.activePopup`.
 
 **Late-bound dependencies:**
 
@@ -54,16 +46,11 @@ attachViewport(viewport: FrameViewportController): void;
 attachNavReorder(navReorder: FrameNavReorderController): void;
 ```
 
-`viewport` and `navReorder` cannot be constructor-injected because
-they need `() => nav.pageIndex` and `() => nav.pageOrder` getters
-respectively (circular instantiation). Frame calls
-`attachViewport` / `attachNavReorder` immediately after their
-construction, before `setContext`.
+`viewport` and `navReorder` cannot be constructor-injected because they need `() => nav.pageIndex` and `() => nav.pageOrder` getters respectively (circular instantiation). Frame calls `attachViewport` / `attachNavReorder` immediately after their construction, before `setContext`.
 
 ## Public reactive state
 
-All public state is exposed via getters over private `$state`
-fields. Where bindable, a matching setter exists.
+All public state is exposed via getters over private `$state` fields. Where bindable, a matching setter exists.
 
 ```ts
 // Page navigation
@@ -95,9 +82,7 @@ get navReorder(): FrameNavReorderController;    // throws if not attached
 
 ## Public surface derivations
 
-These are `$derived` values, exposed as getters. They consume
-`plugin.settings.layout` via `resolveLayoutSettings()` and the
-detached-tabs state via `plugin.leafDetachService`.
+These are `$derived` values, exposed as getters. They consume `plugin.settings.layout` via `resolveLayoutSettings()` and the detached-tabs state via `plugin.leafDetachService`.
 
 ```ts
 get layoutSettings(): LayoutSettings;            // resolveLayoutSettings(plugin.settings.layout)
@@ -117,8 +102,7 @@ get dockUsesFramePages(): boolean;               // layoutSettings.dock.content 
 get detachedTabs(): LeafDetachState;             // proxies plugin.leafDetachService state
 ```
 
-Helper functions used internally by the derivations (private to the
-class):
+Helper functions used internally by the derivations (private to the class):
 
 ```ts
 #itemsForSurface(content: LayoutSurfaceContent): SurfaceNavItem[];
@@ -128,16 +112,13 @@ class):
 #tabIdForSurfaceItem(content: LayoutSurfaceContent, id: string): TabId | null;
 ```
 
-Surface-item construction also requires `selectedCount` for the
-"stats has selection dot" derivation. Two options:
+Surface-item construction also requires `selectedCount` for the "stats has selection dot" derivation. Two options:
 
 1. **Inject as a getter** — `constructor(plugin, overlays, getSelectedCount: () => number)`.
-2. **Accept on the call site** — pass `selectedCount` as a parameter to
-   `dockItems`/`topTabItems` getters or to `itemsForSurface`.
+2. **Accept on the call site** — pass `selectedCount` as a parameter to `dockItems`/`topTabItems` getters or to `itemsForSurface`.
 
 **Decision:** option 1 (constructor injection of `getSelectedCount`).
-Cleaner — the derivations stay self-contained and reactivity flows
-correctly because Svelte 5 tracks the getter call.
+Cleaner — the derivations stay self-contained and reactivity flows correctly because Svelte 5 tracks the getter call.
 
 ```ts
 constructor(
@@ -149,8 +130,7 @@ constructor(
 
 ## Public intent methods
 
-T3 and T4 intents plus navigation primitives. All methods return
-`void` unless specified.
+T3 and T4 intents plus navigation primitives. All methods return `void` unless specified.
 
 ```ts
 // Primary navigation
@@ -198,17 +178,9 @@ selectSurfaceItem(content: LayoutSurfaceContent, id: string): void;
 
 ## Reactive `$effect` for filters search routing
 
-The big switch that routes `filtersSearchByTab[filtersActiveTab]` to
-the right provider lives **inside the service**, not in frame. The
-service exposes its filter-search state as `filtersSearchByTab` and
-declares an internal effect that dispatches `setSearchTerm` /
-`setSearchFilter` / `setQuery` to `propExplorer` / `tagsExplorer` /
-`fileList` / `plugin.contentIndex` based on tab + category.
+The big switch that routes `filtersSearchByTab[filtersActiveTab]` to the right provider lives **inside the service**, not in frame. The service exposes its filter-search state as `filtersSearchByTab` and declares an internal effect that dispatches `setSearchTerm` / `setSearchFilter` / `setQuery` to `propExplorer` / `tagsExplorer` / `fileList` / `plugin.contentIndex` based on tab + category.
 
-Because these consumers (`propExplorer`, `tagsExplorer`, `fileList`)
-are bound from `FiltersPage` and live as $state on **the frame**
-(they're `$state<explorerFiles | undefined>` etc., set via
-`bind:` from FiltersPage), the service needs accessors:
+Because these consumers (`propExplorer`, `tagsExplorer`, `fileList`) are bound from `FiltersPage` and live as $state on **the frame** (they're `$state<explorerFiles | undefined>` etc., set via `bind:` from FiltersPage), the service needs accessors:
 
 ```ts
 // Constructor adds optional accessors for the explorer instances
@@ -223,22 +195,11 @@ constructor(
 ```
 
 The internal `$effect` reads these via the getters. Reactivity:
-Svelte 5 tracks calls into `getFileList()` etc., so when frame's
-`fileList` $state changes (bind from FiltersPage), the effect
-re-fires.
+Svelte 5 tracks calls into `getFileList()` etc., so when frame's `fileList` $state changes (bind from FiltersPage), the effect re-fires.
 
-**Alternative:** keep the filters-search routing $effect in
-**frame** (where the explorer instances live) and don't move it
-to the service. This is simpler and avoids passing 3 getters into
-the constructor. Decision deferred to implementation; both shapes
-satisfy the spec. The plan-time decision should weigh keeping the
-service constructor minimal vs colocating effect with state.
+**Alternative:** keep the filters-search routing $effect in **frame** (where the explorer instances live) and don't move it to the service. This is simpler and avoids passing 3 getters into the constructor. Decision deferred to implementation; both shapes satisfy the spec. The plan-time decision should weigh keeping the service constructor minimal vs colocating effect with state.
 
-**Recommendation:** keep the filters-search routing $effect inline
-in frame. It crosses too many bind-down values
-(`fileList`/`propExplorer`/`tagsExplorer`/`plugin.contentIndex`)
-to be cleanly extracted without restructuring FiltersPage —
-violates the no-downstream-changes rule.
+**Recommendation:** keep the filters-search routing $effect inline in frame. It crosses too many bind-down values (`fileList`/`propExplorer`/`tagsExplorer`/`plugin.contentIndex`) to be cleanly extracted without restructuring FiltersPage — violates the no-downstream-changes rule.
 
 ## Construction order in frame
 
@@ -278,15 +239,11 @@ nav.attachNavReorder(navReorder);
 setContext(FRAME_NAVIGATION_KEY, nav);
 ```
 
-The forward reference in `overlays`' `onImportBases` closure is
-safe because the closure is called only after `nav` is instantiated
-(when the user clicks the bases-import action), well after the
-frame's script body executes.
+The forward reference in `overlays`' `onImportBases` closure is safe because the closure is called only after `nav` is instantiated (when the user clicks the bases-import action), well after the frame's script body executes.
 
 ## Removed from frame
 
-Items moved into `FrameNavigationService` or its derivations,
-deleted from `frameVaultman.svelte` after Commit 1:
+Items moved into `FrameNavigationService` or its derivations, deleted from `frameVaultman.svelte` after Commit 1:
 
 - `let pageOrder = $state(...)` declaration
 - `let pageRenderKey = $state(0)`
@@ -301,40 +258,23 @@ deleted from `frameVaultman.svelte` after Commit 1:
 - `enterBasesImportMode` / `exitBasesImportMode` functions
 - `openStatsNote` / `showStatsPage` functions
 - `openDiffView` function and its registration `$effect`
-- `itemsForSurface` / `activeForSurface` / `externalIdsForSurface` /
-  `detachedTabIdForSurfaceItem` / `tabIdForSurfaceItem` / `selectSurfaceItem`
-- `framePageTabs` / `filterTabItems` / `topTabItems` / `topTabActive` /
-  `topExternalTabIds` / `dockItems` / `dockActive` / `dockExternalTabIds` /
-  `dockUsesFramePages` / `filterTabsExternallyMounted` derivations
+- `itemsForSurface` / `activeForSurface` / `externalIdsForSurface` / `detachedTabIdForSurfaceItem` / `tabIdForSurfaceItem` / `selectSurfaceItem`
+- `framePageTabs` / `filterTabItems` / `topTabItems` / `topTabActive` / `topExternalTabIds` / `dockItems` / `dockActive` / `dockExternalTabIds` / `dockUsesFramePages` / `filterTabsExternallyMounted` derivations
 - `layoutSettings` derivation (now `nav.layoutSettings`)
-- `pageFabs` / `leftFab` / `rightFab` derivations move into nav as
-  `nav.pageFabs` / `nav.leftFab` / `nav.rightFab` (they depend on
-  activePage which is now on nav)
-- Two `$effect`s tied to navigation: `pageIndex → viewport.applyPageTransform`
-  and `pageOrder validity check`; both move inside the service.
+- `pageFabs` / `leftFab` / `rightFab` derivations move into nav as `nav.pageFabs` / `nav.leftFab` / `nav.rightFab` (they depend on activePage which is now on nav)
+- Two `$effect`s tied to navigation: `pageIndex → viewport.applyPageTransform` and `pageOrder validity check`; both move inside the service.
 
 ## What stays in frame
 
-- `let detachedTabs` (subscribed in onMount; bound through to nav via
-  `getDetachedTabs` getter passed into constructor — but actually
-  `plugin.leafDetachService` is on the plugin so nav can read it
-  directly; the `detachedTabs` frame state is redundant once nav
-  proxies `plugin.leafDetachService.getState()`).
+- `let detachedTabs` (subscribed in onMount; bound through to nav via `getDetachedTabs` getter passed into constructor — but actually `plugin.leafDetachService` is on the plugin so nav can read it directly; the `detachedTabs` frame state is redundant once nav proxies `plugin.leafDetachService.getState()`).
 - `selectedCount` / `queuedCount` / `filterRuleCount` / `addOpCount`
-  + `updateStats()` + `renderAddonsStats()` (stats counters — see
-  motivation in index for why they don't move).
-- `let searchName` / `let searchFolder` (moved to FramePopupsState in
-  Commit 2, not C1).
+  + `updateStats()` + `renderAddonsStats()` (stats counters — see motivation in index for why they don't move).
+- `let searchName` / `let searchFolder` (moved to FramePopupsState in Commit 2, not C1).
 - All popup state (moves in C2).
-- Window focus binding (`onWindowFocus`, `onWindowBlur`, second
-  `onMount`).
+- Window focus binding (`onWindowFocus`, `onWindowBlur`, second `onMount`).
 - `elasticRootClasses` derivation.
 - The filters search routing `$effect` (per recommendation above).
-- The active-filters popup refresh `$effect` (3-line proxy to
-  `popups.refreshActiveFiltersPopup` after Commit 2).
-- The `bindDashboardMeasurement` action and viewport derivations
-  (move to `FrameDashboardShell` in Commit 4).
+- The active-filters popup refresh `$effect` (3-line proxy to `popups.refreshActiveFiltersPopup` after Commit 2).
+- The `bindDashboardMeasurement` action and viewport derivations (move to `FrameDashboardShell` in Commit 4).
 - The `icon` action (frame-local helper).
-- Lifecycle `onMount` #1 (subscriptions to filter/queue/leafDetach/
-  metadataCache — these touch many cross-cutting concerns and are
-  the frame's lifecycle responsibility).
+- Lifecycle `onMount` #1 (subscriptions to filter/queue/leafDetach/ metadataCache — these touch many cross-cutting concerns and are the frame's lifecycle responsibility).

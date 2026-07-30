@@ -17,9 +17,7 @@ updated_by: codex
 
 # Explorer Icon Pack Cache
 
-Spec for a visual asset subsystem that supports icon packs and GTK-style icon
-groups such as Adwaita without mixing icon asset lookup into badge semantics or
-Tree render hot paths.
+Spec for a visual asset subsystem that supports icon packs and GTK-style icon groups such as Adwaita without mixing icon asset lookup into badge semantics or Tree render hot paths.
 
 This is separate from:
 
@@ -34,16 +32,12 @@ This is separate from:
 
 ## Goal
 
-Rows, badges, file types, properties, tags, and future Nautilus-inspired views
-need richer icon groups. Icons should resolve through a cacheable descriptor
-model, not through ad hoc strings scattered through view components.
+Rows, badges, file types, properties, tags, and future Nautilus-inspired views need richer icon groups. Icons should resolve through a cacheable descriptor model, not through ad hoc strings scattered through view components.
 
 ## Existing Base
 
-- `src/services/serviceIcons.ts` currently loads Iconic plugin property/tag
-  icon data.
-- Views currently pass icon names to Obsidian `setIcon` through actions such as
-  `use:icon`.
+- `src/services/serviceIcons.ts` currently loads Iconic plugin property/tag icon data.
+- Views currently pass icon names to Obsidian `setIcon` through actions such as `use:icon`.
 - Badge rendering accepts icon strings but does not own asset lookup.
 
 ## Non-Goals

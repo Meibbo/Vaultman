@@ -18,8 +18,7 @@ tags:
 ## Goal
 
 Implement the first product `serviceAPI` slice for Agent Control Plane Module
-5. The API exposes only supervised read, plan, and enqueue operations. It must
-not execute queued work or mutate vault files directly.
+5. The API exposes only supervised read, plan, and enqueue operations. It must not execute queued work or mutate vault files directly.
 
 ## Preconditions
 
@@ -27,9 +26,7 @@ not execute queued work or mutate vault files directly.
   [[docs/work/pkm-ai/plans/2026-05-10-queue-contract-repair/index|queue-contract-repair]].
 - Operation scope now verifies selected files against visible filtered files:
   [[docs/work/pkm-ai/plans/2026-05-10-selected-visible-scope-verification/index|selected-visible-scope-verification]].
-- Phase 5 spec acceptance requires read/plan/enqueue only, no direct
-  destructive mutation, and response payloads with counts, affected paths or
-  nodes, validation errors, rollback limits, and summaries.
+- Phase 5 spec acceptance requires read/plan/enqueue only, no direct destructive mutation, and response payloads with counts, affected paths or nodes, validation errors, rollback limits, and summaries.
 
 ## Contract
 
@@ -64,8 +61,7 @@ Response payloads must always include:
 1. RED: add `test/unit/services/serviceAPI.test.ts`.
 2. Assert `read()` reports index counts, verified scope, and revision warnings.
 3. Assert `plan()` validates changes and does not enqueue.
-4. Assert `enqueue()` rejects destructive work without confirmation and queues
-   confirmed plans through `queueService.add` only.
+4. Assert `enqueue()` rejects destructive work without confirmation and queues confirmed plans through `queueService.add` only.
 5. GREEN: implement the minimum service needed for those tests.
 6. Refactor only inside `serviceAPI.ts` if duplication obscures the contract.
 
@@ -86,8 +82,7 @@ Scope/regression:
 
 ## Status
 
-- [x] Read current route docs, handoff, spec shards, queue, scope, and type
-  contracts.
+- [x] Read current route docs, handoff, spec shards, queue, scope, and type contracts.
 - [x] Create this plan.
 - [x] Add RED tests.
 - [x] Implement minimal `serviceAPI`.
@@ -98,24 +93,19 @@ Scope/regression:
 
 RED:
 
-- `pnpm exec vp test run --project unit --config vitest.config.ts test/unit/services/serviceAPI.test.ts`
-  failed because `../../../src/services/serviceAPI` did not exist.
+- `pnpm exec vp test run --project unit --config vitest.config.ts test/unit/services/serviceAPI.test.ts` failed because `../../../src/services/serviceAPI` did not exist.
 
 GREEN and regression:
 
-- `pnpm exec vp test run --project unit --config vitest.config.ts test/unit/services/serviceAPI.test.ts`
-  passed: 1 file, 3 tests.
-- `pnpm exec vp test run --project unit --config vitest.config.ts test/unit/services/serviceOperationScope.test.ts test/unit/services/serviceQueue.test.ts test/unit/services/serviceAPI.test.ts`
-  passed: 3 files, 35 tests.
+- `pnpm exec vp test run --project unit --config vitest.config.ts test/unit/services/serviceAPI.test.ts` passed: 1 file, 3 tests.
+- `pnpm exec vp test run --project unit --config vitest.config.ts test/unit/services/serviceOperationScope.test.ts test/unit/services/serviceQueue.test.ts test/unit/services/serviceAPI.test.ts` passed: 3 files, 35 tests.
 - `pnpm run check` passed with 0 errors and 0 warnings.
 - `pnpm run lint` passed with 0 warnings and 0 errors.
-- `pnpm run build` exited 0 after `tsc`, Vite build, and sync. The external
-  Obsidian reload tail printed the known `vault=plugin-dev` command error.
+- `pnpm run build` exited 0 after `tsc`, Vite build, and sync. The external Obsidian reload tail printed the known `vault=plugin-dev` command error.
 - `pnpm exec tsc -noEmit -skipLibCheck` passed.
 - `pnpm exec vp build` passed directly.
 - Scoped `git diff --check` passed with only CRLF warnings on existing Markdown.
-- `node .agents/tools/pkm-ai/check-doc-health.mjs` still reports global
-  `doc health: FAIL (48)`, with no `service-api-read-plan-enqueue` path hit.
+- `node .agents/tools/pkm-ai/check-doc-health.mjs` still reports global `doc health: FAIL (48)`, with no `service-api-read-plan-enqueue` path hit.
 
 Implemented files:
 

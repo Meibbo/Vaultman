@@ -28,9 +28,7 @@ file cache / services / settings / expansion
   -> memoized row components
 ```
 
-The navigation pane keeps hierarchy upstream. By the time layout renders, rows
-are just `items[index]` with item type, key, level, icon/color/count metadata,
-and path/index maps.
+The navigation pane keeps hierarchy upstream. By the time layout renders, rows are just `items[index]` with item type, key, level, icon/color/count metadata, and path/index maps.
 
 ### Notebook Navigator List Pane
 
@@ -44,9 +42,7 @@ selection / search / settings / file cache
   -> memoized FileItem
 ```
 
-The file row is visually heavy, but the data pipeline is staged. Headers,
-spacers, file rows, collapsed groups, hidden state, search metadata, and file
-indices are all modeled before render.
+The file row is visually heavy, but the data pipeline is staged. Headers, spacers, file rows, collapsed groups, hidden state, search metadata, and file indices are all modeled before render.
 
 ### Vaultman ViewNodeList
 
@@ -73,9 +69,7 @@ panelExplorer snapshot.rows / displayNodes / expandedIds
   -> heavy treeRow snippet
 ```
 
-This is the problematic shape. `viewTree` owns render, hierarchy flattening,
-sticky metadata, fallback scroll state, row decorations, and multiple
-interaction modes.
+This is the problematic shape. `viewTree` owns render, hierarchy flattening, sticky metadata, fallback scroll state, row decorations, and multiple interaction modes.
 
 ## Criteria Matrix
 
@@ -105,10 +99,7 @@ Notebook Navigator's file and navigation rows include combinations of:
 - group headers and sticky group headers;
 - shortcuts, recent notes, virtual folders, properties, and tags.
 
-Despite that visual load, it keeps scroll performance because most expensive
-row facts are either precomputed or scoped inside memoized row components. A
-rendered row can still be heavy, but a scroll event does not force the view
-component to rebuild tree topology.
+Despite that visual load, it keeps scroll performance because most expensive row facts are either precomputed or scoped inside memoized row components. A rendered row can still be heavy, but a scroll event does not force the view component to rebuild tree topology.
 
 ## The `snapshot.rows` Gap
 
@@ -117,21 +108,15 @@ Vaultman's snapshot already records two concepts:
 - `rows`: structural row records for the full tree traversal;
 - `visibleIds`: the visible row order controlled by expanded ancestors.
 
-The current Tree path maps `snapshot.rows` into `treeRowInputs`. That defeats
-the visible-row contract. It asks `viewTree` to reconstruct visibility and
-subtree state later. A V.D-compliant design should make visible row order a
-data-plane output, not a view concern.
+The current Tree path maps `snapshot.rows` into `treeRowInputs`. That defeats the visible-row contract. It asks `viewTree` to reconstruct visibility and subtree state later. A V.D-compliant design should make visible row order a data-plane output, not a view concern.
 
 ## Svelte-Specific Note
 
 Official Svelte 5 guidance reinforces the direction:
 
 - keyed `{#each}` blocks help update the right row identity;
-- `$derived` is lazy and can skip downstream updates only when values remain
-  referentially stable;
+- `$derived` is lazy and can skip downstream updates only when values remain referentially stable;
 - `$effect` should not be used as a general state synchronization pipeline.
 
-`viewTree.svelte` currently has many derived values and effects chained around
-arrays, maps, and scroll state. Moving projection work out of the Svelte
-component gives Svelte fewer large derived objects to invalidate.
+`viewTree.svelte` currently has many derived values and effects chained around arrays, maps, and scroll state. Moving projection work out of the Svelte component gives Svelte fewer large derived objects to invalidate.
 

@@ -17,17 +17,13 @@ tags:
 
 ## Purpose
 
-These contracts classify PKM-AI tools by the strength of evidence they can
-support. A tool can be useful without being strong enough to justify an
-architecture or completion claim by itself.
+These contracts classify PKM-AI tools by the strength of evidence they can support. A tool can be useful without being strong enough to justify an architecture or completion claim by itself.
 
 ## Confidence Levels
 
-- authoritative: deterministic enough to support a completion claim when its
-  command succeeds and scope matches the task.
+- authoritative: deterministic enough to support a completion claim when its command succeeds and scope matches the task.
 - evidence-bearing: useful proof, but only for the exact surface it checks.
-- heuristic: orientation only; cannot justify architecture or completion
-  claims by itself.
+- heuristic: orientation only; cannot justify architecture or completion claims by itself.
 - deprecated: do not use except to read historical context.
 
 ## Current Tool Classification
@@ -46,12 +42,7 @@ architecture or completion claim by itself.
 
 ## Use Rules
 
-- Cite authoritative or evidence-bearing tools only for the exact scope they
-  check.
-- Do not cite heuristic tools as sole proof for architecture, ownership, or
-  completion claims.
-- When a heuristic result affects a decision, confirm it with source reads,
-  tests, runtime evidence, or a stronger parser.
-- When a tool fails because of unrelated malformed docs, stale cache, or
-  environment friction, record the blocking path and classify the residual
-  before continuing.
+- Cite authoritative or evidence-bearing tools only for the exact scope they check.
+- Do not cite heuristic tools as sole proof for architecture, ownership, or completion claims.
+- When a heuristic result affects a decision, confirm it with source reads, tests, runtime evidence, or a stronger parser.
+- When a tool fails because of unrelated malformed docs, stale cache, or environment friction, record the blocking path and classify the residual before continuing.

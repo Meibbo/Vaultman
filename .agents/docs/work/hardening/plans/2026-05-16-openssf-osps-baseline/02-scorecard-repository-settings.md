@@ -34,14 +34,10 @@ Expected pinned refs captured on 2026-05-16:
 - `ossf/scorecard-action@4eaacf0543bb3f2c246792bd56e8cdeffafb205a`
 - `github/codeql-action/upload-sarif@7c1e4cf0b20d7c1872b26569c00ba908797a59bf`
 
-If the implementation date is not 2026-05-16, re-check the official
-`ossf/scorecard-action` repository before deciding whether to use these pins or
-a newer verified release.
+If the implementation date is not 2026-05-16, re-check the official `ossf/scorecard-action` repository before deciding whether to use these pins or a newer verified release.
 
 Execution note, 2026-05-16: refs were re-verified before creating the workflow:
-`actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5`,
-`ossf/scorecard-action@4eaacf0543bb3f2c246792bd56e8cdeffafb205a`, and
-`github/codeql-action/upload-sarif@7c1e4cf0b20d7c1872b26569c00ba908797a59bf`.
+`actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5`, `ossf/scorecard-action@4eaacf0543bb3f2c246792bd56e8cdeffafb205a`, and `github/codeql-action/upload-sarif@7c1e4cf0b20d7c1872b26569c00ba908797a59bf`.
 
 - [x] **Step 2: Create `.github/workflows/scorecard.yml`**
 
@@ -83,20 +79,15 @@ jobs:
           sarif_file: scorecard-results.sarif
 ```
 
-Expected: Scorecard publishes results and uploads SARIF with minimal
-permissions.
+Expected: Scorecard publishes results and uploads SARIF with minimal permissions.
 
 - [x] **Step 3: Add README badge only after first successful run**
 
-Use the official badge URL from the repository's Scorecard result page after
-the workflow has completed successfully.
+Use the official badge URL from the repository's Scorecard result page after the workflow has completed successfully.
 
 Expected: README does not advertise a stale or failing score.
 
-Execution note, 2026-05-16: the user explicitly requested adding the badge now,
-before the first GitHub run. The README uses the official Scorecard badge URL
-shape with `publish_results: true`; the badge may not display a fresh project
-score until the workflow has run on GitHub.
+Execution note, 2026-05-16: the user explicitly requested adding the badge now, before the first GitHub run. The README uses the official Scorecard badge URL shape with `publish_results: true`; the badge may not display a fresh project score until the workflow has run on GitHub.
 
 ## Task 4: Repository Settings Checklist
 
@@ -108,18 +99,12 @@ Required state:
 - Required checks include CI and CodeQL.
 - Stale reviews are dismissed when relevant.
 - Force pushes and deletions are blocked.
-- The disabled `Main branch protection` ruleset is either enabled or replaced
-  with an equivalent active rule.
+- The disabled `Main branch protection` ruleset is either enabled or replaced with an equivalent active rule.
 
 Expected: settings are verified by GitHub UI/API and recorded in the plan log.
 
-Execution note, 2026-05-16: GitHub ruleset `15778949` (`Main branch
-protection`) was changed from `disabled` to `active` for `~DEFAULT_BRANCH`.
-Rules now block deletion and non-fast-forward updates, require pull requests
-with one approval and stale-review dismissal, require review-thread
-resolution, and require status checks `verify` and
-`Analyze (javascript-typescript)` with strict branch currency. Existing admin
-bypass actor `RepositoryRole` id `5` was preserved for maintainer continuity.
+Execution note, 2026-05-16: GitHub ruleset `15778949` (`Main branch protection`) was changed from `disabled` to `active` for `~DEFAULT_BRANCH`.
+Rules now block deletion and non-fast-forward updates, require pull requests with one approval and stale-review dismissal, require review-thread resolution, and require status checks `verify` and `Analyze (javascript-typescript)` with strict branch currency. Existing admin bypass actor `RepositoryRole` id `5` was preserved for maintainer continuity.
 
 - [x] **Step 2: Enable vulnerability and Dependabot alerts**
 
@@ -130,11 +115,7 @@ Required state:
 - Dependabot security updates enabled if acceptable for the repository.
 - Private vulnerability reporting enabled if available.
 
-Expected: OSPS and Scorecard no longer flag missing dependency/security alert
-basics.
+Expected: OSPS and Scorecard no longer flag missing dependency/security alert basics.
 
-Execution note, 2026-05-16: `gh api -X PUT
-repos/Meibbo/Vaultman/vulnerability-alerts` returned HTTP 204, and
-`gh api -X PUT repos/Meibbo/Vaultman/automated-security-fixes` returned HTTP
-204 after vulnerability alerts propagated. Follow-up local config:
+Execution note, 2026-05-16: `gh api -X PUT repos/Meibbo/Vaultman/vulnerability-alerts` returned HTTP 204, and `gh api -X PUT repos/Meibbo/Vaultman/automated-security-fixes` returned HTTP 204 after vulnerability alerts propagated. Follow-up local config:
 `.github/dependabot.yml` was added for npm and GitHub Actions weekly updates.

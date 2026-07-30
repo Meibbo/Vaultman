@@ -51,8 +51,7 @@ Expected: FAIL.
 
 - [ ] **Step 2: Add frame-level derived counters**
 
-In `src/VaultmanFrame.svelte`, keep `filterRuleCount` as the global `FilterService` count. Add the derived values
-after the existing explorer refs so `fileList` is initialized before a Svelte derived reads it:
+In `src/VaultmanFrame.svelte`, keep `filterRuleCount` as the global `FilterService` count. Add the derived values after the existing explorer refs so `fileList` is initialized before a Svelte derived reads it:
 
 ```ts
 let fileList = $state<FilesExplorerPanel | undefined>(undefined);

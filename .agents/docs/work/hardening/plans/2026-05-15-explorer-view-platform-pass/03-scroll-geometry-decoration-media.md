@@ -47,13 +47,11 @@ Expected: fail until service exists.
 
 - [ ] **Step 2: Implement fixed-row coordinator**
 
-Support fixed row height for tree/list first, late id lookup, priority
-coalescing, manual-scroll cancellation, and revision guard.
+Support fixed row height for tree/list first, late id lookup, priority coalescing, manual-scroll cancellation, and revision guard.
 
 - [ ] **Step 3: Add variable geometry interface**
 
-Add an interface for table/grid/cards estimates and measured corrections without
-fully migrating those views in this pass.
+Add an interface for table/grid/cards estimates and measured corrections without fully migrating those views in this pass.
 
 - [ ] **Step 4: Commit**
 
@@ -67,9 +65,7 @@ Commit message: `feat: add explorer scroll geometry coordinator`.
 
 - [x] **Step 1: Write failing batched layer tests**
 
-Assert one layer build accepts a projection and returns badge/filter/action
-state keyed by node id. Assert repeated calls with same revision reuse cached
-layers.
+Assert one layer build accepts a projection and returns badge/filter/action state keyed by node id. Assert repeated calls with same revision reuse cached layers.
 
 - [x] **Step 2: Implement revision-keyed layer builder**
 
@@ -93,8 +89,7 @@ Commit message: `feat: batch explorer decoration layers`.
 
 - [x] **Step 1: Write failing hidden media tests**
 
-Assert every synthetic node can carry a descriptor and that hidden media does
-not request blobs:
+Assert every synthetic node can carry a descriptor and that hidden media does not request blobs:
 
 ```ts
 expect(projection.mediaById.size).toBe(rowInputs.length);
@@ -103,13 +98,11 @@ expect(mediaCache.loadVisibleBlobs).not.toHaveBeenCalled();
 
 - [x] **Step 2: Add descriptor-only projection path**
 
-Projection stores descriptor status, media key, dimensions, and revision. Blob
-data remains inside media cache.
+Projection stores descriptor status, media key, dimensions, and revision. Blob data remains inside media cache.
 
 - [x] **Step 3: Add visible-only blob test**
 
-When `media` field is enabled and visible ids are passed, assert only visible
-blob keys are requested.
+When `media` field is enabled and visible ids are passed, assert only visible blob keys are requested.
 
 - [x] **Step 4: Commit**
 

@@ -17,27 +17,19 @@ updated_by: codex
 
 ## Context
 
-The first sticky-row attempt lived in the accidental root `sandbox` worktree and
-was not portable as-is because it was mixed with stale EDP-005 work. The sticky
-row idea itself is valid and is now treated as a standalone Explorer tree UX
-feature.
+The first sticky-row attempt lived in the accidental root `sandbox` worktree and was not portable as-is because it was mixed with stale EDP-005 work. The sticky row idea itself is valid and is now treated as a standalone Explorer tree UX feature.
 
 ## Implemented Scope
 
 - Branch/worktree:
-  `codex/sticky-rows-nav-offset` at
-  `C:\Users\vic_A\Desktop\vaultman\.claude\worktrees\sticky-rows-nav-offset`.
+  `codex/sticky-rows-nav-offset` at `C:\Users\vic_A\Desktop\vaultman\.claude\worktrees\sticky-rows-nav-offset`.
 - Base: `claude/explorer` at `044e189 feat: add explorer data-plane perf probes`.
 - `viewTree.svelte` now tracks flattened row ancestry and subtree end indices.
-- Expanded ancestor rows render in a `.vm-tree-sticky-layer` while scrolling
-  through their subtree.
-- Sticky rows use the same row snippet as normal virtual rows, so toggle,
-  badge, label, selection, native DOM classes, and context handlers stay shared.
+- Expanded ancestor rows render in a `.vm-tree-sticky-layer` while scrolling through their subtree.
+- Sticky rows use the same row snippet as normal virtual rows, so toggle, badge, label, selection, native DOM classes, and context handlers stay shared.
 - `stickyTopOffset` defaults to `0`; this covers detached/no-nav-tools layouts.
-  When a parent layout needs to reserve overlaid nav tools, it can pass the
-  measured nav height without changing the sticky-row algorithm.
-- `_virtual-list.scss` places sticky rows in their own non-layout layer and
-  offsets the layer by `scrollTop + stickyTopOffset`.
+  When a parent layout needs to reserve overlaid nav tools, it can pass the measured nav height without changing the sticky-row algorithm.
+- `_virtual-list.scss` places sticky rows in their own non-layout layer and offsets the layer by `scrollTop + stickyTopOffset`.
 
 ## Tests Added
 

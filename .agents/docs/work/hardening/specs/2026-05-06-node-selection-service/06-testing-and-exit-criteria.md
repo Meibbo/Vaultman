@@ -39,12 +39,9 @@ Create or extend component tests around `ViewTree`.
 
 Required behaviors:
 
-- chevron click calls `onToggle` and does not call row selection or primary
-  action;
-- badge click calls badge action and does not call row selection or primary
-  action;
-- row-slot click calls row selection for clicks in the visual text area and in
-  the apparent vertical gap area;
+- chevron click calls `onToggle` and does not call row selection or primary action;
+- badge click calls badge action and does not call row selection or primary action;
+- row-slot click calls row selection for clicks in the visual text area and in the apparent vertical gap area;
 - label/action-zone click calls primary action without suppressing focus;
 - context menu on an unselected node selects only that node before opening;
 - context menu on a selected node passes the selected set;
@@ -72,23 +69,20 @@ Required behaviors:
 - selected tag nodes can be passed to tag delete;
 - selected prop nodes can be passed to property delete and type change;
 - selected value nodes can be passed to value delete;
-- direct primary action still toggles the correct filter or file action when
-  no context-menu action is used;
+- direct primary action still toggles the correct filter or file action when no context-menu action is used;
 - add mode quick actions still queue operations without activating rows.
 
 ## Accessibility Checks
 
 Tree:
 
-- root `role="tree"` declares `aria-multiselectable="true"` when selection is
-  enabled;
+- root `role="tree"` declares `aria-multiselectable="true"` when selection is enabled;
 - selectable treeitems expose `aria-selected="true"` or `"false"`;
 - focused and selected states are visually distinct.
 
 Grid:
 
-- root `role="grid"` or a more appropriate selectable layout role declares
-  `aria-multiselectable="true"` when selection is enabled;
+- root `role="grid"` or a more appropriate selectable layout role declares `aria-multiselectable="true"` when selection is enabled;
 - selectable tiles/rows expose selected state consistently.
 
 ## Verification Commands
@@ -110,18 +104,14 @@ pnpm run lint
 pnpm run build
 ```
 
-Avoid running Vite/Svelte component/build commands in parallel because the
-current handoff records a transient resolver issue in combined runs.
+Avoid running Vite/Svelte component/build commands in parallel because the current handoff records a transient resolver issue in combined runs.
 
 ## Exit Criteria
 
-- Selection box, row click, keyboard, and context menu all use the same
-  selection service state.
-- Expand/collapse, badges, inputs, and label primary actions are not blocked by
-  selection gestures.
+- Selection box, row click, keyboard, and context menu all use the same selection service state.
+- Expand/collapse, badges, inputs, and label primary actions are not blocked by selection gestures.
 - Clicking outside the explorer and pressing `Escape` clear selected nodes.
 - Active/focused styling is visibly distinct from selected styling.
 - Apparent visual gaps between virtual rows are still clickable row slots.
 - Generic `viewGrid` exists and exercises the same node selection model.
-- Focused verification commands pass or any remaining failures are documented
-  with root cause.
+- Focused verification commands pass or any remaining failures are documented with root cause.

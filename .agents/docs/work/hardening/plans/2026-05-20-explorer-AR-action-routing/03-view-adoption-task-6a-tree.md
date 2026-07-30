@@ -62,14 +62,12 @@ describe('ViewTree action-routing adoption', () => {
 
 - [x] **Step 2: Run test to verify it fails**
 
-Run: `pnpm vitest run test/component/viewTreeActionAdoption.test.ts`
-Expected: FAIL — no `data-row-key` attribute yet.
+Run: `pnpm vitest run test/component/viewTreeActionAdoption.test.ts` Expected: FAIL — no `data-row-key` attribute yet.
 
 - [x] **Step 3: Adopt the builder**
 
 In `viewTree.svelte` `<script>` add the common builder block (role `'treeitem'`).
-Row root (949-957) — replace inline `role`/`tabindex`/`aria-selected`/`aria-expanded`/`oncontextmenu`/
-`onkeydown` with the spread, keep `onclick`/`onauxclick`/`data-id`/`style`/`class:*`:
+Row root (949-957) — replace inline `role`/`tabindex`/`aria-selected`/`aria-expanded`/`oncontextmenu`/ `onkeydown` with the spread, keep `onclick`/`onauxclick`/`data-id`/`style`/`class:*`:
 
 ```svelte
 <div
@@ -87,8 +85,7 @@ Row root (949-957) — replace inline `role`/`tabindex`/`aria-selected`/`aria-ex
 >
 ```
 
-Branch caret (985-996) — replace inline `onclick`/`role`/`tabindex`/`onkeydown` with the caret spread
-(it stays a pointer affordance; `aria-hidden` makes the row own `aria-expanded`):
+Branch caret (985-996) — replace inline `onclick`/`role`/`tabindex`/`onkeydown` with the caret spread (it stays a pointer affordance; `aria-hidden` makes the row own `aria-expanded`):
 
 ```svelte
 {#if flat.hasChildren}
@@ -100,13 +97,11 @@ Branch caret (985-996) — replace inline `onclick`/`role`/`tabindex`/`onkeydown
 {/if}
 ```
 
-Note: `data-row-key` (spread) coexists with `data-id` (kept). Existing `viewTreeSelection.test.ts`
-queries `[data-id]` → still pass.
+Note: `data-row-key` (spread) coexists with `data-id` (kept). Existing `viewTreeSelection.test.ts` queries `[data-id]` → still pass.
 
 - [x] **Step 4: Run tests**
 
-Run: `pnpm vitest run test/component/viewTreeActionAdoption.test.ts test/component/viewTreeSelection.test.ts test/component/viewTreeCaret.test.ts`
-Expected: all PASS.
+Run: `pnpm vitest run test/component/viewTreeActionAdoption.test.ts test/component/viewTreeSelection.test.ts test/component/viewTreeCaret.test.ts` Expected: all PASS.
 
 Actual verification:
 - `pnpm vitest run test/component/viewTreeActionAdoption.test.ts` — RED first, missing `data-row-key` and caret event.

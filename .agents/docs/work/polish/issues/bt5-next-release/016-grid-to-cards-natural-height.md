@@ -23,8 +23,7 @@ tags: [agent/issue, triage/needs-triage, initiative/polish, release/bt5]
 
 ## What to build
 
-Renombrar el engine/view mode de usuario `Grid` a `Cards` y hacer que una card sin cells
-activos colapse a la altura de su contenido en lugar de reservar el box informativo vacío.
+Renombrar el engine/view mode de usuario `Grid` a `Cards` y hacer que una card sin cells activos colapse a la altura de su contenido en lugar de reservar el box informativo vacío.
 Mantener compatibilidad de valores persistidos `grid` mediante normalización/migración.
 
 ## Acceptance criteria

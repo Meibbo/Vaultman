@@ -119,8 +119,7 @@ Spanish:
 
 - [ ] **Step 5: Gate Props and Tags highlight IDs**
 
-In `src/components/containers/explorerProps.ts` and `src/components/containers/explorerTags.ts`, where `highlightIds`
-is computed or passed, wrap it:
+In `src/components/containers/explorerProps.ts` and `src/components/containers/explorerTags.ts`, where `highlightIds` is computed or passed, wrap it:
 
 ```ts
 const highlightIds = this.plugin.settings?.explorerSearchHighlights

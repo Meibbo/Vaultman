@@ -21,9 +21,7 @@ tags: [agent/issue, initiative/polish, release/1.2.0, i18n, filters]
 
 ## What to build
 
-Restore the concise, precise English filter labels edited by the dev before
-`b56b9a78`, align Spanish keys and update tests to assert the intended catalog
-instead of the agent's rewritten wording. Do not silently rename semantic filter ids.
+Restore the concise, precise English filter labels edited by the dev before `b56b9a78`, align Spanish keys and update tests to assert the intended catalog instead of the agent's rewritten wording. Do not silently rename semantic filter ids.
 
 ## Acceptance criteria
 
@@ -40,12 +38,8 @@ None — can start immediately.
 ## Completion evidence — 2026-07-22
 
 - Product commit: `a9c8fdc9 fix(i18n): restore concise filter labels`.
-- Git/blame showed `b56b9a78` already introduced the dev's short `Has/Not` wording for eight
-  keys, but accidentally removed `filter.file_name` while `modalAddFilter` still translated it.
+- Git/blame showed `b56b9a78` already introduced the dev's short `Has/Not` wording for eight keys, but accidentally removed `filter.file_name` while `modalAddFilter` still translated it.
   `Has name` restores the missing half of that pair and prevents a raw key.
-- Spanish now mirrors polarity with `Con/Sin` rather than the obsolete
-  Specific/Multiple/Exclude wording. No filter id or serialized shape changed.
-- New `filterI18n.test.ts` locks ten English/Spanish labels and verifies every Add Filter and
-  Text consumer resolves an existing key.
-- Verification: focused red captured missing `Has name` and stale Spanish; final related suite
-  15/15, changed-path ESLint and diff check green.
+- Spanish now mirrors polarity with `Con/Sin` rather than the obsolete Specific/Multiple/Exclude wording. No filter id or serialized shape changed.
+- New `filterI18n.test.ts` locks ten English/Spanish labels and verifies every Add Filter and Text consumer resolves an existing key.
+- Verification: focused red captured missing `Has name` and stale Spanish; final related suite 15/15, changed-path ESLint and diff check green.

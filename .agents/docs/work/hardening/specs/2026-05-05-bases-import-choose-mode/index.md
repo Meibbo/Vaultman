@@ -21,27 +21,19 @@ This spec continues:
 - [[docs/work/hardening/research/2026-05-05-bases-interop-research/index|Bases interop research]]
 - [[docs/work/hardening/research/2026-05-05-bases-interop-research/04-compatibility-matrix|Bases compatibility matrix]]
 
-The first implementation slice imports compatible Obsidian Bases filters into
-Vaultman active filters through a constrained chooser UI. It does not export or
-mutate `.base` files yet.
+The first implementation slice imports compatible Obsidian Bases filters into Vaultman active filters through a constrained chooser UI. It does not export or mutate `.base` files yet.
 
 ## Decision Summary
 
-- Active filters gains four squircles: templates, import/export, add logic
-  group, and clear filters.
-- Import/export opens a compact two-button flyout that overlays from the large
-  button without pushing the frame.
+- Active filters gains four squircles: templates, import/export, add logic group, and clear filters.
+- Import/export opens a compact two-button flyout that overlays from the large button without pushing the frame.
 - Import enters a files-only chooser mode with `NavbarTabs` still visible;
   non-file tabs are faint and disabled.
-- Compatible `.base` files, `.base` views, and markdown fenced `bases` blocks
-  are discoverable as file explorer targets.
-- Selecting a compatible view applies filters immediately and exits chooser
-  mode. There is no separate Apply Filters button.
-- Vaultman internal `FilterGroup.logic` changes from `all | any | none` to
-  `and | or | not`, with legacy normalization for saved data.
+- Compatible `.base` files, `.base` views, and markdown fenced `bases` blocks are discoverable as file explorer targets.
+- Selecting a compatible view applies filters immediately and exits chooser mode. There is no separate Apply Filters button.
+- Vaultman internal `FilterGroup.logic` changes from `all | any | none` to `and | or | not`, with legacy normalization for saved data.
 - The slice includes a reusable explorer empty/loading landing.
-- Every import produces a Bases interop report, even when incompatible
-  candidates are filtered out of the chooser.
+- Every import produces a Bases interop report, even when incompatible candidates are filtered out of the chooser.
 
 ## Shards
 

@@ -20,8 +20,7 @@ For 50k rows in plugin-dev:
 - no blank window over 100 ms;
 - zero blank windows over 250 ms;
 - max event-loop delay under 100 ms for normal list/tree;
-- max event-loop delay under 150 ms for grid/cards/table until variable-height
-  offset indexing is fully optimized;
+- max event-loop delay under 150 ms for grid/cards/table until variable-height offset indexing is fully optimized;
 - rendered row count bounded to visible rows plus overscan;
 - no fallback may return all rows;
 - direct jump from top to bottom must not process every intermediate row;
@@ -29,8 +28,7 @@ For 50k rows in plugin-dev:
 
 For 100k proof:
 
-- same invariants, with thresholds allowed to be recorded separately before
-  release gating;
+- same invariants, with thresholds allowed to be recorded separately before release gating;
 - no all-row rendering;
 - no O(total rows) fallback scan per jump.
 
@@ -44,8 +42,7 @@ Fixed-height list/tree:
 
 Cards:
 
-- when TanStack virtual rows are empty, fallback returns bounded rows near
-  current scrollTop;
+- when TanStack virtual rows are empty, fallback returns bounded rows near current scrollTop;
 - fallback does not call `cardRows.map(...)` over the full dataset;
 - rowTop for a deep row is computed through offset index, not slice/reduce.
 
@@ -69,8 +66,7 @@ Scroll intent queue:
 
 Media:
 
-- visible row text paints when media descriptor exists but blob/image is not
-  loaded;
+- visible row text paints when media descriptor exists but blob/image is not loaded;
 - media placeholder height is stable;
 - image/GIF load updates media content without full-list remeasure;
 - repeated jump burst with media descriptors remains bounded.
@@ -86,8 +82,7 @@ Vaultman can be considered NN-level for this issue only when:
 5. Scroll requests are coalesced and revision-gated.
 6. Row labels/text remain paintable during scroll.
 7. Unit/component tests and plugin-dev live probe pass.
-8. `obsidian dev:errors vault=plugin-dev` reports no new errors after the live
-   run.
+8. `obsidian dev:errors vault=plugin-dev` reports no new errors after the live run.
 
 ## Immediate Next Plan
 
@@ -97,16 +92,11 @@ Vaultman can be considered NN-level for this issue only when:
 4. [x] Add shared offset index for variable-height grid/cards/table.
 5. [ ] Add scroll intent/revision queue where direct local effects still exist.
 6. [x] Re-run the live plugin-dev burst probe.
-7. [ ] Consider the scroll issue fixed only after the latency residuals and
-   confirmed 50k/100k matrix are closed.
+7. [ ] Consider the scroll issue fixed only after the latency residuals and confirmed 50k/100k matrix are closed.
 
 ## 2026-05-16 Implementation Progress
 
 Implementation record:
 [[docs/work/hardening/plans/2026-05-16-explorer-variable-scroll-repair/index|Explorer variable scroll repair]].
 
-Live `plugin-dev` burst smoke now passes with zero blank frames and no dev
-errors for Tree, List, Table, Grid, and Cards. This verifies the bounded
-visible-row invariant for the current selectable modes. Residual event-loop
-delay spikes remain, especially Table and Grid, so the next pass should target
-remeasure/projection latency rather than the blank fallback path.
+Live `plugin-dev` burst smoke now passes with zero blank frames and no dev errors for Tree, List, Table, Grid, and Cards. This verifies the bounded visible-row invariant for the current selectable modes. Residual event-loop delay spikes remain, especially Table and Grid, so the next pass should target remeasure/projection latency rather than the blank fallback path.

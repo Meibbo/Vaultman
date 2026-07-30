@@ -84,9 +84,7 @@ describe('ViewNodeGrid — DnD state mod emission (C9)', () => {
 });
 ```
 
-(Grid is intentionally `vm-only` per honest-hybrid; even when
-`useNativeDom=true`, grid's `rowStateMods=[]` means no native classes
-emit. Test asserts this explicitly.)
+(Grid is intentionally `vm-only` per honest-hybrid; even when `useNativeDom=true`, grid's `rowStateMods=[]` means no native classes emit. Test asserts this explicitly.)
 
 - [ ] **Step 2: Run test to verify it fails**
 
@@ -94,17 +92,12 @@ emit. Test asserts this explicitly.)
 pnpm vitest run test/component/views/ViewNodeGrid.DndStateMods.test.ts
 ```
 
-Expected: FAIL — current grid emission uses `is-dnd-dragging` or no class
-at all (per inventory).
+Expected: FAIL — current grid emission uses `is-dnd-dragging` or no class at all (per inventory).
 
 - [ ] **Step 3: Update `ViewNodeGrid.svelte` DnD emission to use vm-drag-source / vm-drop-target**
 
-The grid component today (per inventory) reads `isDragSource` and applies
-`is-dnd-dragging` or similar. Replace with `vm-drag-source` / `vm-drop-target`.
-Because grid's `rowStateMods` in the contract is `[]`, native classes are
-never emitted regardless of `useNativeDom`. The `stateModEmissions` helper
-already handles this correctly — just thread `isDragSource` / `isDropTarget`
-booleans through to the helper.
+The grid component today (per inventory) reads `isDragSource` and applies `is-dnd-dragging` or similar. Replace with `vm-drag-source` / `vm-drop-target`.
+Because grid's `rowStateMods` in the contract is `[]`, native classes are never emitted regardless of `useNativeDom`. The `stateModEmissions` helper already handles this correctly — just thread `isDragSource` / `isDropTarget` booleans through to the helper.
 
 - [ ] **Step 4: Run grid test to verify PASS**
 
@@ -122,17 +115,13 @@ Create `test/component/views/viewTree.DndStateMods.test.ts`:
 - `is-being-dragged-over` when `isDropTarget=true AND useNativeDom=true`
 - No native classes when `useNativeDom=false`
 
-Update `viewTree.svelte` DnD emission to thread booleans through
-`stateModEmissions`. Tree's contract has the drag mods in `rowStateMods`,
-so they emit correctly when native.
+Update `viewTree.svelte` DnD emission to thread booleans through `stateModEmissions`. Tree's contract has the drag mods in `rowStateMods`, so they emit correctly when native.
 
 Run test, expect PASS.
 
 - [ ] **Step 6: Repeat for ViewNodeTable**
 
-Create `test/component/views/ViewNodeTable.DndStateMods.test.ts` with the
-same pattern (native drag mods present when `useNativeDom=true`, vm-style
-always).
+Create `test/component/views/ViewNodeTable.DndStateMods.test.ts` with the same pattern (native drag mods present when `useNativeDom=true`, vm-style always).
 
 Update `ViewNodeTable.svelte` accordingly.
 
@@ -171,9 +160,7 @@ Expected: PASS without code change (list does not consume DnD booleans).
 
 - [ ] **Step 9: drop-indicator element emission**
 
-Audit existing code for the drop-indicator render (where the visual line
-appears between rows during DnD). Likely lives in viewTree / ViewNodeGrid
-container scope (not per-row).
+Audit existing code for the drop-indicator render (where the visual line appears between rows during DnD). Likely lives in viewTree / ViewNodeGrid container scope (not per-row).
 
 Update its class string:
 
@@ -186,9 +173,7 @@ Update its class string:
 {/if}
 ```
 
-Add a test asserting `drop-indicator is-active` appears when
-`useNativeDom=true` and a dropIndicator position is set; vm-only when
-false.
+Add a test asserting `drop-indicator is-active` appears when `useNativeDom=true` and a dropIndicator position is set; vm-only when false.
 
 - [ ] **Step 10: Verify NO modification to serviceDnd / serviceManualDnd / dnd-kit files**
 
@@ -199,8 +184,7 @@ git diff --stat src/services/serviceDnd.ts src/services/serviceManualDnd.ts 2>&1
 git diff --stat node_modules/.. -- "**/dnd-kit*" 2>&1
 ```
 
-Expected: zero changes to these files. If any diff appears, revert
-those changes — the services must stay preset-agnostic.
+Expected: zero changes to these files. If any diff appears, revert those changes — the services must stay preset-agnostic.
 
 - [ ] **Step 11: Run all C9 tests + `pnpm verify`**
 
@@ -244,12 +228,10 @@ to not participate in DnD."
 ## Verification gates
 
 - 4 view tests + 1 negative list test pass.
-- `serviceDnd`, `serviceManualDnd`, dnd-kit unchanged (git diff empty for
-  those paths).
+- `serviceDnd`, `serviceManualDnd`, dnd-kit unchanged (git diff empty for those paths).
 - `pnpm verify` baseline preserved.
 - Live smoke: drag visuals work in both presets.
 
 ## Rollback
 
-`git revert <commit>` reverts DnD class emission. Services + helper +
-vocab const remain.
+`git revert <commit>` reverts DnD class emission. Services + helper + vocab const remain.

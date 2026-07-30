@@ -19,15 +19,11 @@ updated_by: codex
 > superpowers:executing-plans to implement this plan task-by-task. Steps use
 > checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Let agents retrieve objective task states with one structured CLI
-call instead of reading plan Markdown manually.
+**Goal:** Let agents retrieve objective task states with one structured CLI call instead of reading plan Markdown manually.
 
-**Architecture:** Extend the existing `manage-tasks.mjs` read/write task state
-tool. Keep retrieval read-only and JSON-first, while preserving the existing
-write commands for mechanical objective completion.
+**Architecture:** Extend the existing `manage-tasks.mjs` read/write task state tool. Keep retrieval read-only and JSON-first, while preserving the existing write commands for mechanical objective completion.
 
-**Tech Stack:** Node ESM CLI scripts, Node test runner, Obsidian Markdown, and
-the Tasks emoji task format.
+**Tech Stack:** Node ESM CLI scripts, Node test runner, Obsidian Markdown, and the Tasks emoji task format.
 
 ---
 
@@ -67,9 +63,7 @@ node .agents/tools/pkm-ai/manage-tasks.mjs `
   --json
 ```
 
-The JSON rows include `objective`, `status`, `symbol`, `description`, `path`,
-`line`, and parsed Tasks emoji metadata when present. Retrieval ignores task
-examples inside fenced Markdown code blocks.
+The JSON rows include `objective`, `status`, `symbol`, `description`, `path`, `line`, and parsed Tasks emoji metadata when present. Retrieval ignores task examples inside fenced Markdown code blocks.
 
 ## Verification
 

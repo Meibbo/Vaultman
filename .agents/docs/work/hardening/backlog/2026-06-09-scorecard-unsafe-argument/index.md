@@ -48,13 +48,9 @@ for (const node of nodes) {
 
 This is a valid hardening item, not an urgent release blocker.
 
-The local TypeScript gate passes, but Scorecard's stricter analysis sees `node.path`
-as insufficiently refined before it is passed to Obsidian's typed
-`getAbstractFileByPath(path: string)` API.
+The local TypeScript gate passes, but Scorecard's stricter analysis sees `node.path` as insufficiently refined before it is passed to Obsidian's typed `getAbstractFileByPath(path: string)` API.
 
-The immediate local cause is that `_moveDraggedNodesIntoFolder()` uses an inline
-boolean `.filter()` instead of the existing `_fileDragNodes()` helper. That helper
-already returns:
+The immediate local cause is that `_moveDraggedNodesIntoFolder()` uses an inline boolean `.filter()` instead of the existing `_fileDragNodes()` helper. That helper already returns:
 
 ```ts
 Array<Extract<VaultmanDragNodePayload, { kind: 'file' | 'folder' }>>
@@ -62,26 +58,21 @@ Array<Extract<VaultmanDragNodePayload, { kind: 'file' | 'folder' }>>
 
 ## Recommended Patch
 
-Replace the inline filter in `_moveDraggedNodesIntoFolder()` with the existing
-typed helper:
+Replace the inline filter in `_moveDraggedNodesIntoFolder()` with the existing typed helper:
 
 ```ts
 const nodes = this._fileDragNodes(payload);
 ```
 
-If Scorecard still flags the call, add a tiny named type predicate such as
-`isFileDragNodePayload()` in the drag payload module and reuse it from both
-`_fileDragNodes()` and this move path.
+If Scorecard still flags the call, add a tiny named type predicate such as `isFileDragNodePayload()` in the drag payload module and reuse it from both `_fileDragNodes()` and this move path.
 
-Do not silence the rule with `as string` or an eslint disable comment unless a
-typed guard has first been proven insufficient.
+Do not silence the rule with `as string` or an eslint disable comment unless a typed guard has first been proven insufficient.
 
 ## Acceptance
 
 - `pnpm run lint` passes with no `@typescript-eslint/no-unsafe-argument` warning.
 - `pnpm run verify` passes.
-- Obsidian Scorecard no longer reports the unsafe typed-parameter warning at
-  `src/components/containers/explorerFiles.ts:784`.
+- Obsidian Scorecard no longer reports the unsafe typed-parameter warning at `src/components/containers/explorerFiles.ts:784`.
 - Existing Files internal DnD behavior still works:
   - file into folder;
   - folder into folder;
@@ -90,9 +81,7 @@ typed guard has first been proven insufficient.
 
 ## Suggested Test Guard
 
-Add or extend a source-level unit guard around `explorerFiles.ts` so
-`_moveDraggedNodesIntoFolder()` uses `_fileDragNodes(payload)` rather than a local
-boolean filter that widens back to `VaultmanDragNodePayload[]`.
+Add or extend a source-level unit guard around `explorerFiles.ts` so `_moveDraggedNodesIntoFolder()` uses `_fileDragNodes(payload)` rather than a local boolean filter that widens back to `VaultmanDragNodePayload[]`.
 
 ## Resolution - 2026-06-13
 

@@ -25,18 +25,15 @@ updated_by: codex
 
 - [ ] **Step 1: Add tests for projection-backed rows**
 
-Mount tree with `rowInputs` and with projection rows. Assert same visible
-labels, ids, depths, selection classes, and scroll reveal behavior.
+Mount tree with `rowInputs` and with projection rows. Assert same visible labels, ids, depths, selection classes, and scroll reveal behavior.
 
 - [ ] **Step 2: Move flattening out of render hot path**
 
-Use projection rows and `visibleIds` as the render source. Keep legacy `nodes`
-input as compatibility adapter until callers migrate.
+Use projection rows and `visibleIds` as the render source. Keep legacy `nodes` input as compatibility adapter until callers migrate.
 
 - [ ] **Step 3: Preserve markup and classes**
 
-Keep `.vm-tree-virtual-row`, `.vm-tree-row-surface`, `.vm-tree-label`,
-`.vm-tree-field-zone`, `.vm-tree-badge-zone`, and `.vm-selection-box`.
+Keep `.vm-tree-virtual-row`, `.vm-tree-row-surface`, `.vm-tree-label`, `.vm-tree-field-zone`, `.vm-tree-badge-zone`, and `.vm-selection-box`.
 
 - [ ] **Step 4: Commit**
 
@@ -51,13 +48,11 @@ Commit message: `refactor: migrate tree rows to explorer projection`.
 
 - [ ] **Step 1: Add scroll intent tests**
 
-Assert reveal by id uses projection `idToIndex`, revision guard, and fixed-row
-top calculation. Assert stale revisions do not scroll.
+Assert reveal by id uses projection `idToIndex`, revision guard, and fixed-row top calculation. Assert stale revisions do not scroll.
 
 - [ ] **Step 2: Replace local reveal lookup**
 
-Use `serviceExplorerScrollGeometry.ts` for reveal target resolution. Keep
-TanStack virtualizer ownership inside the view adapter.
+Use `serviceExplorerScrollGeometry.ts` for reveal target resolution. Keep TanStack virtualizer ownership inside the view adapter.
 
 - [ ] **Step 3: Verify 10K and 50K synthetic tree jumps**
 
@@ -81,13 +76,11 @@ Commit message: `refactor: route tree reveal through scroll coordinator`.
 
 - [ ] **Step 1: Add panel projection wiring tests**
 
-Assert panel creates one projection per provider/view revision and passes stable
-rows to tree/list.
+Assert panel creates one projection per provider/view revision and passes stable rows to tree/list.
 
 - [ ] **Step 2: Keep list behavior stable**
 
-Adapt `ViewNodeList.svelte` only where needed to consume shared projection
-facts. Do not alter row height, row classes, or activation behavior.
+Adapt `ViewNodeList.svelte` only where needed to consume shared projection facts. Do not alter row height, row classes, or activation behavior.
 
 - [ ] **Step 3: Verify**
 
@@ -110,13 +103,11 @@ Commit message: `refactor: align panel tree list projection adapters`.
 
 - [ ] **Step 1: Add contract acceptance tests**
 
-Assert table/grid/cards accept projection row facts and media descriptors with
-media render disabled by default.
+Assert table/grid/cards accept projection row facts and media descriptors with media render disabled by default.
 
 - [ ] **Step 2: Add adapter hooks without full 50K blocker**
 
-Wire shared geometry/media contract inputs where low risk. Keep their existing
-render behavior stable.
+Wire shared geometry/media contract inputs where low risk. Keep their existing render behavior stable.
 
 - [ ] **Step 3: Verify 10K gates**
 

@@ -47,14 +47,11 @@ Expected: fail because the projection service does not exist.
 
 - [ ] **Step 2: Implement projection builder**
 
-Create rows with stable keys, depth, parent id, node reference, row input,
-provider id, view mode, and media descriptor reference. Do not include decoded
-media blobs.
+Create rows with stable keys, depth, parent id, node reference, row input, provider id, view mode, and media descriptor reference. Do not include decoded media blobs.
 
 - [ ] **Step 3: Add revision invalidation tests**
 
-Assert same source revision reuses stable ids and new source revision increments
-`rowsRevision` or `layoutRevision` only where expected.
+Assert same source revision reuses stable ids and new source revision increments `rowsRevision` or `layoutRevision` only where expected.
 
 - [ ] **Step 4: Commit**
 
@@ -69,8 +66,7 @@ Commit message: `feat: add explorer projection contract`.
 - [ ] **Step 1: Write failing feature matrix tests**
 
 Assert `tree`, `list`, `table`, `grid`, and `cards` declare support for:
-selection, keyboard focus, context menu, scroll reveal, badges, node element
-toggles, and media descriptor acceptance.
+selection, keyboard focus, context menu, scroll reveal, badges, node element toggles, and media descriptor acceptance.
 
 - [ ] **Step 2: Implement contract registry**
 
@@ -84,8 +80,7 @@ Map is excluded from selectable modes in this pass.
 
 - [ ] **Step 3: Add no-tree-only API guard**
 
-Test that every non-Map mode has a contract entry and that table/grid/cards
-have adapter notes for 10K gates and 50K characterization.
+Test that every non-Map mode has a contract entry and that table/grid/cards have adapter notes for 10K gates and 50K characterization.
 
 - [ ] **Step 4: Commit**
 
@@ -100,8 +95,7 @@ Commit message: `feat: add explorer view feature contract`.
 
 - [ ] **Step 1: Add failing media field tests**
 
-Assert `media` is a legal node field, defaults off for all views, and appears
-in `btnNodeElementsVisibility` when not using the native Obsidian preset.
+Assert `media` is a legal node field, defaults off for all views, and appears in `btnNodeElementsVisibility` when not using the native Obsidian preset.
 
 Run:
 `pnpm exec vitest run --project component --config vitest.config.ts test/component/overlayViewMenu.test.ts --fileParallelism=false`
@@ -110,13 +104,11 @@ Expected: fail until `media` is registered and rendered.
 
 - [ ] **Step 2: Add `media` field definition**
 
-Add a `NodeFieldId` value `media` with `defaultOn: false`. Do not mark it as
-identity. Ensure default visible fields remain unchanged for existing views.
+Add a `NodeFieldId` value `media` with `defaultOn: false`. Do not mark it as identity. Ensure default visible fields remain unchanged for existing views.
 
 - [ ] **Step 3: Respect native preset**
 
-When native preset is active, element visibility follows the preset. When
-custom preset is active, `btnNodeElementsVisibility` controls granular elements.
+When native preset is active, element visibility follows the preset. When custom preset is active, `btnNodeElementsVisibility` controls granular elements.
 
 - [ ] **Step 4: Commit**
 

@@ -19,15 +19,11 @@ tags: [agent/issue, triage/needs-triage, initiative/polish, release/bt5]
 
 ## Parent
 
-[[docs/work/polish/issues/bt5-next-release/index|BT5 next release train]]. Migra la
-mitad pendiente de BT4-030; el watcher externo Iconic ya cerró en beta.4.
+[[docs/work/polish/issues/bt5-next-release/index|BT5 next release train]]. Migra la mitad pendiente de BT4-030; el watcher externo Iconic ya cerró en beta.4.
 
 ## What to build
 
-Dar a snippets y plugins un registro propio de overrides de icono y un picker accesible
-desde su context menu. Mantener precedencia explícita entre override Vaultman, override
-externo/Iconic, icono emitido por el plugin y fallback; no depender de que Iconic modele
-item-kinds que no conoce.
+Dar a snippets y plugins un registro propio de overrides de icono y un picker accesible desde su context menu. Mantener precedencia explícita entre override Vaultman, override externo/Iconic, icono emitido por el plugin y fallback; no depender de que Iconic modele item-kinds que no conoce.
 
 ## Acceptance criteria
 

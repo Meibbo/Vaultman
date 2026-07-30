@@ -6,10 +6,7 @@ parent: "[[2026-05-18-explorer-sub-system-0-a-native-dom-parity/index]]"
 
 # 10 — C10: In-editor seam vocabulary shard + `InEditorMountContract` types
 
-Type-only commit. The shard `08-in-editor-seam-vocabulary.md` was written
-during the spec phase; this commit finalizes its types in
-`src/types/typeViewHost.ts` and adds a compile-only test ensuring shape
-stability.
+Type-only commit. The shard `08-in-editor-seam-vocabulary.md` was written during the spec phase; this commit finalizes its types in `src/types/typeViewHost.ts` and adds a compile-only test ensuring shape stability.
 
 **Files:**
 - Modify (final review): `src/types/typeViewHost.ts` (confirm in-editor seam types match spec shard 08)
@@ -19,8 +16,7 @@ stability.
 
 - [ ] **Step 1: Confirm types from C1 are complete per spec shard 08**
 
-Open `src/types/typeViewHost.ts` and verify the following types exist
-with the exact shape from spec shard 08:
+Open `src/types/typeViewHost.ts` and verify the following types exist with the exact shape from spec shard 08:
 
 ```typescript
 export type ViewHostMountContext = 'panel' | 'in-editor';
@@ -40,8 +36,7 @@ export interface InEditorMountContract {
 }
 ```
 
-If C1 already added them per the plan, no edit needed in this step. If any
-field drifted during impl, fix here.
+If C1 already added them per the plan, no edit needed in this step. If any field drifted during impl, fix here.
 
 - [ ] **Step 2: Write compile-only test for in-editor seam types**
 
@@ -140,8 +135,7 @@ describe('typeViewHost compile-only contracts', () => {
 pnpm vitest run test/unit/types/typeViewHost.compile.test.ts
 ```
 
-Expected: PASS. If any test fails, the type shape drifted from spec
-shard 08 — fix `typeViewHost.ts` to match the spec.
+Expected: PASS. If any test fails, the type shape drifted from spec shard 08 — fix `typeViewHost.ts` to match the spec.
 
 - [ ] **Step 4: Verify shard 08 of the spec is committed**
 
@@ -151,8 +145,7 @@ Run:
 git log --oneline -- .agents/docs/work/hardening/specs/2026-05-18-explorer-sub-system-0-a-native-dom-parity/08-in-editor-seam-vocabulary.md
 ```
 
-Expected: at least one commit (from the brainstorm spec write). If for some
-reason the shard is missing from git, commit it now.
+Expected: at least one commit (from the brainstorm spec write). If for some reason the shard is missing from git, commit it now.
 
 - [ ] **Step 5: Run `pnpm verify`**
 

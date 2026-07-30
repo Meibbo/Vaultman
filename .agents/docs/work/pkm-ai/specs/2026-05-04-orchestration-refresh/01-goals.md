@@ -19,8 +19,7 @@ tags:
 - Make stale, contradicted, and superseded information explicit.
 - Keep AI workflow files out of `main`.
 - Let the developer learn the PKM-AI system through a living manual.
-- Support sub-agents, small composable skills, scripts, and health checks without
-  turning startup context into a large internal search engine.
+- Support sub-agents, small composable skills, scripts, and health checks without turning startup context into a large internal search engine.
 
 ## Non-Goals
 

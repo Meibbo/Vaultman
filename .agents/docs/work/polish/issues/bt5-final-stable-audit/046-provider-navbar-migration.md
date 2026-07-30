@@ -22,11 +22,7 @@ Reopens the incomplete result recorded as BT5-037.
 
 ## What to build
 
-Migrate Files, Props, Tags, Text, Snippets, Plugins and Statistics to provider
-contributions and remove page-local navbar duplication. Statistics contributes its
-scope selector as an action/menu and exposes the same tab-menu capabilities as the
-other scenes: Toolbar, Snippets, Plugins and Statistics itself; Index remains absent
-because Statistics cannot provide it.
+Migrate Files, Props, Tags, Text, Snippets, Plugins and Statistics to provider contributions and remove page-local navbar duplication. Statistics contributes its scope selector as an action/menu and exposes the same tab-menu capabilities as the other scenes: Toolbar, Snippets, Plugins and Statistics itself; Index remains absent because Statistics cannot provide it.
 
 ## Acceptance criteria
 

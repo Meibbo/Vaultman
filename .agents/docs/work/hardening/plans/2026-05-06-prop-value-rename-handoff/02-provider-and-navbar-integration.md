@@ -15,8 +15,7 @@ tags:
 
 ## Red Tests
 
-- `prop.rename` registered action calls the handoff callback and does not call
-  `showInputModal` when the callback is provided.
+- `prop.rename` registered action calls the handoff callback and does not call `showInputModal` when the callback is provided.
 - `value.rename` registered action does the same with value metadata.
 - The handoff callback receives files resolved through current operation scope.
 
@@ -24,17 +23,11 @@ tags:
 
 - Add optional constructor options to `explorerProps`:
   `startRenameHandoff?: (handoff: FnRRenameHandoff) => void`.
-- In `tabProps.svelte`, bind shared `fnrState` and construct `explorerProps`
-  with a callback that updates `filtersFnRState`.
-- In `pageFilters.svelte`, pass `bind:filtersFnRState` to `FiltersPropsTab` and
-  pass `filtersFnRState` plus confirm/cancel/update callbacks to
-  `NavbarExplorer`.
-- In `NavbarExplorer.svelte`, render a compact rename handoff row when
-  `fnrState.rename.status` is `editing` or `ready`.
-- Focus the replacement input when the handoff appears; use icon buttons for
-  confirm/cancel with accessible labels and titles.
+- In `tabProps.svelte`, bind shared `fnrState` and construct `explorerProps` with a callback that updates `filtersFnRState`.
+- In `pageFilters.svelte`, pass `bind:filtersFnRState` to `FiltersPropsTab` and pass `filtersFnRState` plus confirm/cancel/update callbacks to `NavbarExplorer`.
+- In `NavbarExplorer.svelte`, render a compact rename handoff row when `fnrState.rename.status` is `editing` or `ready`.
+- Focus the replacement input when the handoff appears; use icon buttons for confirm/cancel with accessible labels and titles.
 
 ## Expected Result
 
-Selecting prop/value rename from CMenu opens an inline navbar handoff instead
-of the old isolated prompt, and confirming it stages the same queue operation.
+Selecting prop/value rename from CMenu opens an inline navbar handoff instead of the old isolated prompt, and confirming it stages the same queue operation.

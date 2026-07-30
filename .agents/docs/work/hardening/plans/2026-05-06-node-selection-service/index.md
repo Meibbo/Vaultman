@@ -19,17 +19,11 @@ tags:
 > phase below has an explicit write scope so subagents can work without
 > overwriting each other.
 
-**Goal:** move node selection into its own service, restore normal tree
-interactions, and create a generic `viewGrid` that uses the same selection
-model.
+**Goal:** move node selection into its own service, restore normal tree interactions, and create a generic `viewGrid` that uses the same selection model.
 
-**Architecture:** create a Svelte 5 selection service as the owner of selected
-ids, anchor, focus, hover, and active node per explorer id. Keep tree and grid
-as adapters that report user intent. Keep provider domain actions in providers.
+**Architecture:** create a Svelte 5 selection service as the owner of selected ids, anchor, focus, hover, and active node per explorer id. Keep tree and grid as adapters that report user intent. Keep provider domain actions in providers.
 
-**Tech Stack:** TypeScript, Svelte 5 runes, `svelte/reactivity` `SvelteMap` and
-`SvelteSet`, Vitest unit and component tests, existing Obsidian mocks, existing
-context-menu service.
+**Tech Stack:** TypeScript, Svelte 5 runes, `svelte/reactivity` `SvelteMap` and `SvelteSet`, Vitest unit and component tests, existing Obsidian mocks, existing context-menu service.
 
 ## Source Records
 
@@ -38,8 +32,7 @@ context-menu service.
 - [[docs/current/engineering-context|engineering context]]
 - WAI-ARIA APG Tree View Pattern: https://www.w3.org/WAI/ARIA/apg/patterns/treeview/
 - WAI-ARIA APG Grid Pattern: https://www.w3.org/WAI/ARIA/apg/patterns/grid/
-- Svelte docs loaded for `.svelte.ts`, `$state`, `$derived`, document/window
-  events, class binding, and Vitest component testing.
+- Svelte docs loaded for `.svelte.ts`, `$state`, `$derived`, document/window events, class binding, and Vitest component testing.
 
 ## Phase Order
 
@@ -56,24 +49,15 @@ Phase 1 must run first because it defines the service interface.
 
 After Phase 1:
 
-- Tree adapter and provider-action tests can be split but must coordinate on
-  `panelExplorer.svelte`.
-- Viewgrid can run in parallel with provider-action work if it only consumes
-  the Phase 1 service and avoids provider internals.
-- If `viewGrid.svelte` replacement risks breaking file workflows, create
-  `ViewNodeGrid.svelte` first and let a later cleanup rename or retire the old
-  file-grid adapter.
+- Tree adapter and provider-action tests can be split but must coordinate on `panelExplorer.svelte`.
+- Viewgrid can run in parallel with provider-action work if it only consumes the Phase 1 service and avoids provider internals.
+- If `viewGrid.svelte` replacement risks breaking file workflows, create `ViewNodeGrid.svelte` first and let a later cleanup rename or retire the old file-grid adapter.
 - Visual accessibility should run after tree and grid markup stabilize.
 - Verification runs last and must inspect all touched files.
 
 ## Stop Conditions
 
-- Stop if provider primary action semantics are ambiguous enough to require a
-  product decision. The current assumption is: row slot selects; label/action
-  zone activates.
+- Stop if provider primary action semantics are ambiguous enough to require a product decision. The current assumption is: row slot selects; label/action zone activates.
 - Stop if the generic grid cannot be built without deleting file workflows.
-  Move the old file-specific grid to a compatibility name instead of losing
-  behavior.
-- Stop if tests show `ViewService` and the new selection service fight over the
-  same state. In that case, make `ViewService` delegate selection snapshots
-  rather than mirroring manually.
+  Move the old file-specific grid to a compatibility name instead of losing behavior.
+- Stop if tests show `ViewService` and the new selection service fight over the same state. In that case, make `ViewService` delegate selection snapshots rather than mirroring manually.

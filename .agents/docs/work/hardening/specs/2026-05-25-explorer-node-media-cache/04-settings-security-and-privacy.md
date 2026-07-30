@@ -66,10 +66,8 @@ Remote fetches can reveal vault content through URLs in notes. Therefore:
 
 - remote fetching must be opt-in;
 - page extraction must be a separate opt-in;
-- settings UI must state that remote image fetching contacts third-party
-  servers;
-- remote cache records must not store note content beyond the resolved URL and
-  source metadata required for invalidation.
+- settings UI must state that remote image fetching contacts third-party servers;
+- remote cache records must not store note content beyond the resolved URL and source metadata required for invalidation.
 
 ## Network Safety Rules
 
@@ -105,6 +103,5 @@ Records should include:
 - source fingerprint;
 - generated timestamp.
 
-When cache schema changes, old records should be ignored or migrated lazily. Do
-not perform a blocking full-cache migration on plugin load.
+When cache schema changes, old records should be ignored or migrated lazily. Do not perform a blocking full-cache migration on plugin load.
 

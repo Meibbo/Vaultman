@@ -13,8 +13,7 @@ tags:
 
 # Draft
 
-Use this route for ideas, untriaged requests, and work that does not yet belong
-to hardening, polish, v1-stable, or PKM-AI.
+Use this route for ideas, untriaged requests, and work that does not yet belong to hardening, polish, v1-stable, or PKM-AI.
 
 ## Intake Rules
 

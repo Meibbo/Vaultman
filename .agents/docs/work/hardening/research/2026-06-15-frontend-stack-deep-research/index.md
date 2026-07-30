@@ -17,43 +17,24 @@ tags:
 
 # Frontend Stack Deep Research
 
-Dev-requested deep research sweep (2026-06-15) on the libraries that the Vaultman 2.0
-render/interaction stack actually depends on. Trigger: the **N.R / V.D form decision**
-(imperative vs Svelte cell) could not be made responsibly without knowing how the
-underlying libraries behave — and the team had **abandoned 1.1.0 beta.1 for terrible
-virtualization performance**, so "trust TanStack blindly" is an explicit anti-pattern.
+Dev-requested deep research sweep (2026-06-15) on the libraries that the Vaultman 2.0 render/interaction stack actually depends on. Trigger: the **N.R / V.D form decision** (imperative vs Svelte cell) could not be made responsibly without knowing how the underlying libraries behave — and the team had **abandoned 1.1.0 beta.1 for terrible virtualization performance**, so "trust TanStack blindly" is an explicit anti-pattern.
 Dev mandate this session: **stop drawing conclusions without the data in hand.**
 
-Method: **6 parallel read-only Explore agents** (research-only, no write access — honors
-the 706-file-deletion rule), each with exact doc links + in-repo pre-reads + specific
-questions. The coordinator (opus-4-8) then **verified every load-bearing claim** against
-the actual repo and live web before writing this durable record. Stale-cutoff agent claims
-were caught and corrected (see ledger).
+Method: **6 parallel read-only Explore agents** (research-only, no write access — honors the 706-file-deletion rule), each with exact doc links + in-repo pre-reads + specific questions. The coordinator (opus-4-8) then **verified every load-bearing claim** against the actual repo and live web before writing this durable record. Stale-cutoff agent claims were caught and corrected (see ledger).
 
 ## Executive summary (the cross-cutting conclusions)
 
 1. **The stack is already committed to Svelte 5 + `@tanstack/svelte-virtual` + `@chenglou/pretext`.**
-   The render pipeline is not greenfield. `viewTree` renders rows as a Svelte `{#snippet}` via
-   `{@render}`; Grid/Table/Cards use imperative `createEl`; a Fenwick-tree geometry service
-   (`serviceExplorerScrollGeometry.ts`) already exists for O(log n) variable-height offsets.
+   The render pipeline is not greenfield. `viewTree` renders rows as a Svelte `{#snippet}` via `{@render}`; Grid/Table/Cards use imperative `createEl`; a Fenwick-tree geometry service (`serviceExplorerScrollGeometry.ts`) already exists for O(log n) variable-height offsets.
 2. **The real performance lever is V.D (the shared render-runtime), not N.R's cell form.**
-   TanStack Virtual virtualizes the LIST (only the visible window mounts, ~30–60 rows), so a
-   Svelte-5 cell vs an imperative builder is a near-marginal perf choice. The beta.1 disaster
-   came from **O(n) offset scans + stale measurement caches + missing overscan on jumps** —
-   list-level orchestration, not the per-cell framework.
+   TanStack Virtual virtualizes the LIST (only the visible window mounts, ~30–60 rows), so a Svelte-5 cell vs an imperative builder is a near-marginal perf choice. The beta.1 disaster came from **O(n) offset scans + stale measurement caches + missing overscan on jumps** — list-level orchestration, not the per-cell framework.
 3. **Prior multiview research already prescribed the fix** ([[docs/work/hardening/research/2026-05-16-multiview-virtualization-research/index|multiview-virtualization]]):
-   keep TanStack, add ONE shared virtual-layout service (fixed-height math + variable-height
-   Fenwick offsets + lanes + range fallback + total-size policy), gate every perf claim behind
-   a live blank-frame detector. This session's TanStack deep-dive confirms + operationalizes it.
-4. **`render-tag` answers the dev's "html-in-canvas" question.** It is the Polotno project's
-   `render-tag` lib (renders styled HTML/CSS straight to Canvas 2D, no SVG/foreignObject). It is
-   NOT in our deps and is only relevant to a **future N4 canvas/graph/spatial engine**, never to
-   the DOM tree/list/table cell (which must stay DOM for native parity + a11y + theming).
+   keep TanStack, add ONE shared virtual-layout service (fixed-height math + variable-height Fenwick offsets + lanes + range fallback + total-size policy), gate every perf claim behind a live blank-frame detector. This session's TanStack deep-dive confirms + operationalizes it.
+4. **`render-tag` answers the dev's "html-in-canvas" question.** It is the Polotno project's `render-tag` lib (renders styled HTML/CSS straight to Canvas 2D, no SVG/foreignObject). It is NOT in our deps and is only relevant to a **future N4 canvas/graph/spatial engine**, never to the DOM tree/list/table cell (which must stay DOM for native parity + a11y + theming).
 
 ## Verification ledger (claim · source · status · confidence)
 
-Every load-bearing claim, tagged. `repo✓` = verified against actual files. `web✓` = verified
-live online. `flag` = still needs verification before it gates code.
+Every load-bearing claim, tagged. `repo✓` = verified against actual files. `web✓` = verified live online. `flag` = still needs verification before it gates code.
 
 | # | Claim | Source | Status | Confidence |
 |---|---|---|---|---|
@@ -108,20 +89,11 @@ live online. `flag` = still needs verification before it gates code.
 ## Connection to the spine (N.R / V.D)
 
 This research directly informs the open spine decision:
-- **N.R** (node-element cell) → Svelte 5 cell consuming `ExplorerRowInput` + `NativeClassVocabulary`,
-  rendered by `{@render}` inside `svelte-virtual`. Headless `data-vm-*` per the bits-ui/D-PSS strategy (shard 05).
-- **V.D** (view shells + render-runtime) → the high-leverage work: one shared virtual-layout service
-  wrapping `svelte-virtual` (shard 01 §orchestration), Fenwick geometry reuse across engines, pretext
-  measurement (shard 02), blank-frame detector gate. N.R and V.D are more coupled than the pyramid
-  implied: the cell's form depends on how the runtime mounts it.
+- **N.R** (node-element cell) → Svelte 5 cell consuming `ExplorerRowInput` + `NativeClassVocabulary`, rendered by `{@render}` inside `svelte-virtual`. Headless `data-vm-*` per the bits-ui/D-PSS strategy (shard 05).
+- **V.D** (view shells + render-runtime) → the high-leverage work: one shared virtual-layout service wrapping `svelte-virtual` (shard 01 §orchestration), Fenwick geometry reuse across engines, pretext measurement (shard 02), blank-frame detector gate. N.R and V.D are more coupled than the pyramid implied: the cell's form depends on how the runtime mounts it.
 
 ## Process notes
 
-- Research = 6 read-only Explore agents (no write access). Coordinator verified all repo-file claims
-  (glob/grep) and the two highest-stakes online claims (presetWind4 existence via WebSearch; dnd-kit
-  Svelte API via WebFetch of dndkit.com/svelte). Three `flag` items remain (ledger #9/#11/#12) — they
-  must be re-verified before they gate code, not trusted from the agent reports alone.
-- Slots into research-inventory codes: virtua-vs-tanstack (V.D perf), R-UNOCSS, R-UI-PRIMITIVES (S-29),
-  R-CHARTS (S-23), R-DND-C (deepened + package reconciliation), bits-ui FnR breakage.
-</content>
-</invoke>
+- Research = 6 read-only Explore agents (no write access). Coordinator verified all repo-file claims (glob/grep) and the two highest-stakes online claims (presetWind4 existence via WebSearch; dnd-kit Svelte API via WebFetch of dndkit.com/svelte). Three `flag` items remain (ledger #9/#11/#12) — they must be re-verified before they gate code, not trusted from the agent reports alone.
+- Slots into research-inventory codes: virtua-vs-tanstack (V.D perf), R-UNOCSS, R-UI-PRIMITIVES (S-29), R-CHARTS (S-23), R-DND-C (deepened + package reconciliation), bits-ui FnR breakage.
+</content> </invoke>

@@ -27,23 +27,19 @@ Write scope:
   - `test/unit/components/explorerTags.test.ts`;
   - `test/unit/components/explorerProps.test.ts`.
 
-Avoid editing `panelExplorer.svelte` unless Phase 2 left a provider contract
-hole that blocks selection-aware context menus.
+Avoid editing `panelExplorer.svelte` unless Phase 2 left a provider contract hole that blocks selection-aware context menus.
 
 ## TDD Steps
 
 1. Add tests for context menu selected set behavior in provider unit tests.
-   - Files: selected file nodes passed into rename/delete use all selected
-     files.
+   - Files: selected file nodes passed into rename/delete use all selected files.
    - Tags: selected tag nodes passed into delete queue all selected tags.
-   - Props: selected prop nodes passed into delete/type change queue all
-     selected props.
+   - Props: selected prop nodes passed into delete/type change queue all selected props.
    - Values: selected value nodes passed into delete queue all selected values.
 
 2. Run the tests and confirm failures for missing selected-set behavior.
 
-3. Implement provider action fixes using existing `contextFiles`,
-   `contextTagNodes`, `contextPropNodes`, and `contextValueNodes` helpers.
+3. Implement provider action fixes using existing `contextFiles`, `contextTagNodes`, `contextPropNodes`, and `contextValueNodes` helpers.
 
 4. Add tests that primary direct actions still work with no context menu.
    - File direct action uses the intended file workflow.
@@ -72,5 +68,4 @@ Expected: provider tests pass.
 
 Providers own domain meaning. The selection service only knows node ids.
 
-If a future action sends selected nodes to filters, implement it as provider or
-context-menu action code, not as generic selection-service behavior.
+If a future action sends selected nodes to filters, implement it as provider or context-menu action code, not as generic selection-service behavior.

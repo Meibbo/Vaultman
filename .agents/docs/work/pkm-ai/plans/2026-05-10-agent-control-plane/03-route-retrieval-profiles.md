@@ -17,8 +17,7 @@ tags:
 
 ## Task
 
-Define how agents choose information sources for local docs, codebase,
-archives, web, official docs, and tool-assisted extraction.
+Define how agents choose information sources for local docs, codebase, archives, web, official docs, and tool-assisted extraction.
 
 ## Files
 
@@ -33,8 +32,7 @@ archives, web, official docs, and tool-assisted extraction.
 
 - [x] **Step 1: Create the profile shard**
 
-Create the file with the same frontmatter pattern as other control-plane spec
-shards and title `Agent control plane - route and retrieval profiles`.
+Create the file with the same frontmatter pattern as other control-plane spec shards and title `Agent control plane - route and retrieval profiles`.
 
 - [x] **Step 2: Add route profile table**
 
@@ -81,12 +79,10 @@ Rows:
 Add rules:
 
 - use `rg`/`rg --files` first for local text and files;
-- use `query-docs.mjs` when frontmatter, type, status, initiative, tag, or
-  glossary matter;
+- use `query-docs.mjs` when frontmatter, type, status, initiative, tag, or glossary matter;
 - use official docs for unstable framework/API facts;
 - use Defuddle-style extraction for user-provided URLs when the page is noisy;
-- use web search for current external facts only when local sources cannot
-  answer or freshness matters;
+- use web search for current external facts only when local sources cannot answer or freshness matters;
 - record source gaps in the relevant source record, not only in chat.
 
 - [x] **Step 5: Verify the slice**
@@ -105,30 +101,15 @@ Expected:
 
 ## Result
 
-Completed 2026-05-10T05:13:29. Created
-[[docs/work/pkm-ai/specs/2026-05-10-agent-control-plane/05-route-retrieval-profiles|Route and retrieval profiles]]
-with route profiles, retrieval profiles, and tool-choice rules. Linked the new
-shard from the parent Agent Control Plane spec index.
+Completed 2026-05-10T05:13:29. Created [[docs/work/pkm-ai/specs/2026-05-10-agent-control-plane/05-route-retrieval-profiles|Route and retrieval profiles]] with route profiles, retrieval profiles, and tool-choice rules. Linked the new shard from the parent Agent Control Plane spec index.
 
-During verification, `index-docs.mjs` was blocked by three pre-existing
-frontmatter parse errors in vertical-analysis research notes. The repair was
-limited to quoting YAML titles containing `:` and removing trailing whitespace
-from those same touched files. `query-docs.mjs "route retrieval profiles"` also
-exposed literal substring matching that could not find
-`route and retrieval profiles`; the search matcher now tokenizes punctuation
-and connector-word cases, with a regression test in
-`.agents/tools/pkm-ai/test/frontmatter.test.mjs`.
+During verification, `index-docs.mjs` was blocked by three pre-existing frontmatter parse errors in vertical-analysis research notes. The repair was limited to quoting YAML titles containing `:` and removing trailing whitespace from those same touched files. `query-docs.mjs "route retrieval profiles"` also exposed literal substring matching that could not find `route and retrieval profiles`; the search matcher now tokenizes punctuation and connector-word cases, with a regression test in `.agents/tools/pkm-ai/test/frontmatter.test.mjs`.
 
 Verification:
 
-- RED: `node --test ".agents/tools/pkm-ai/test/frontmatter.test.mjs"` failed on
-  `filterEntries matches search words across punctuation and connector words`.
-- GREEN: focused frontmatter test passed, then
-  `node --test ".agents/tools/pkm-ai/test/*.test.mjs"` passed 14/14.
+- RED: `node --test ".agents/tools/pkm-ai/test/frontmatter.test.mjs"` failed on `filterEntries matches search words across punctuation and connector words`.
+- GREEN: focused frontmatter test passed, then `node --test ".agents/tools/pkm-ai/test/*.test.mjs"` passed 14/14.
 - `node .agents\tools\pkm-ai\index-docs.mjs` indexed 331 docs.
-- `node .agents\tools\pkm-ai\query-docs.mjs "route retrieval profiles"` found
-  the Task 3 plan slice and new spec shard.
-- Filtered doc health still reports global `doc health: FAIL (47)`, with no
-  `route-retrieval` or `frontmatter-parse` path failure.
-- Scoped trailing-whitespace scan and scoped `git diff --check` returned no
-  path errors; Git emitted only CRLF conversion warnings.
+- `node .agents\tools\pkm-ai\query-docs.mjs "route retrieval profiles"` found the Task 3 plan slice and new spec shard.
+- Filtered doc health still reports global `doc health: FAIL (47)`, with no `route-retrieval` or `frontmatter-parse` path failure.
+- Scoped trailing-whitespace scan and scoped `git diff --check` returned no path errors; Git emitted only CRLF conversion warnings.

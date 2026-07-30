@@ -40,8 +40,7 @@ Entering import mode changes the filters page state:
 - The bottom filters FAB changes to `lucide-x` and exits choose mode.
 - The main body shows only the files explorer configured for import sources.
 
-This keeps the user oriented in the existing filter page instead of opening a
-modal flow.
+This keeps the user oriented in the existing filter page instead of opening a modal flow.
 
 ## Source Discovery
 
@@ -54,26 +53,19 @@ The chooser includes compatible import targets:
 ````markdown
 ```bases
 views:
-  - type: table
-    name: Example
+  - type: table name: Example
 ```
 ````
 
-Markdown body discovery should reuse the existing content/FnR-style retrieval
-path where practical, because scanning thousands of notes can take a moment.
-While indexing or searching body content, the files body should show a compact
-loading landing.
+Markdown body discovery should reuse the existing content/FnR-style retrieval path where practical, because scanning thousands of notes can take a moment.
+While indexing or searching body content, the files body should show a compact loading landing.
 
-Incompatible files or blocks are filtered out of the chooser rather than shown
-with warning rows. The report still records why a candidate was rejected or why
-individual expressions could not be applied.
+Incompatible files or blocks are filtered out of the chooser rather than shown with warning rows. The report still records why a candidate was rejected or why individual expressions could not be applied.
 
 ## Selection Behavior
 
-- Selecting a compatible view applies its filters immediately and exits choose
-  mode.
-- Selecting a `.base` source with multiple views expands or reveals child view
-  nodes.
+- Selecting a compatible view applies its filters immediately and exits choose mode.
+- Selecting a `.base` source with multiple views expands or reveals child view nodes.
 - Selecting a source with a single compatible target may apply directly.
 - There is no separate Apply Filters button.
 
@@ -95,5 +87,4 @@ States:
 - active filters produced no matches.
 - import chooser found no compatible Bases targets.
 
-This should live near shared view/render infrastructure where practical, so
-individual explorers do not duplicate empty-state markup.
+This should live near shared view/render infrastructure where practical, so individual explorers do not duplicate empty-state markup.

@@ -46,8 +46,7 @@ git status --short -- .agents AGENTS.md CLAUDE.md docs .gitignore
 pnpm run build
 ```
 
-- [ ] Expected: build passes. This protects against accidental product file
-damage during migration.
+- [ ] Expected: build passes. This protects against accidental product file damage during migration.
 
 ## Task 4: Final Review
 

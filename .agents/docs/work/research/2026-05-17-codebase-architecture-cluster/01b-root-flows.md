@@ -77,9 +77,7 @@ flowchart LR
   rootArtifacts --> release
 ```
 
-Root build control is concentrated in `package.json`, `vite.config.ts`,
-`svelte.config.js`, `uno.config.ts`, and `tsconfig.json`. The source surface it
-touches first is `src/pluginEntry.ts`, then `src/main.ts` and `src/main.scss`.
+Root build control is concentrated in `package.json`, `vite.config.ts`, `svelte.config.js`, `uno.config.ts`, and `tsconfig.json`. The source surface it touches first is `src/pluginEntry.ts`, then `src/main.ts` and `src/main.scss`.
 
 ## Test Surface
 
@@ -97,9 +95,7 @@ flowchart LR
   integration --> plugin["plugin runtime in Obsidian harness"]
 ```
 
-`vitest.config.ts` is the root switchboard for fast verification. It separates
-node unit tests, browser-like Svelte component tests, and Obsidian integration
-tests. The e2e layer is separate through WDIO.
+`vitest.config.ts` is the root switchboard for fast verification. It separates node unit tests, browser-like Svelte component tests, and Obsidian integration tests. The e2e layer is separate through WDIO.
 
 ## Scripts Surface
 
@@ -141,15 +137,11 @@ flowchart TD
   dependabot --> deps["npm + GitHub Actions updates"]
 ```
 
-The root CI layer is intentionally not just a mirror of local commands. It adds
-security audit, CodeQL query tests, Scorecard, release attestation, checksums,
-and SBOM generation.
+The root CI layer is intentionally not just a mirror of local commands. It adds security audit, CodeQL query tests, Scorecard, release attestation, checksums, and SBOM generation.
 
 ## Next Layer Recommendation
 
-Map `src/pluginEntry.ts`, `src/main.ts`, `src/main.scss`, and the first-level
-runtime directories next. That should define the trunk that later canvases can
-attach to:
+Map `src/pluginEntry.ts`, `src/main.ts`, `src/main.scss`, and the first-level runtime directories next. That should define the trunk that later canvases can attach to:
 
 - `src/components/` UI surface.
 - `src/services/`, `providers/`, `registry/` behavior surface.

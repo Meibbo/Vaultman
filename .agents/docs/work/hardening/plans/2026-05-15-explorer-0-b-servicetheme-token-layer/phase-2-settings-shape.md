@@ -12,9 +12,7 @@ tags:
 
 # Phase 2 — Settings Shape
 
-One task. Add `themePresetId` and `customPresets` to
-`ElasticUiSettings`. Other settings cleanup (deleting legacy fields) is
-deferred to T13.
+One task. Add `themePresetId` and `customPresets` to `ElasticUiSettings`. Other settings cleanup (deleting legacy fields) is deferred to T13.
 
 ## Task 4 — Extend `ElasticUiSettings` with `themePresetId` and `customPresets`
 
@@ -111,9 +109,7 @@ describe('ElasticUiSettings themePresetId + customPresets', () => {
 
 - [ ] **Step 3: Run tests — verify FAIL**
 
-Run: `pnpm exec vitest run --project unit --config vitest.config.ts test/unit/types/typeElasticUi.test.ts`
-Expected: FAIL — `themePresetId` / `customPresets` missing from
-defaults and normalizer.
+Run: `pnpm exec vitest run --project unit --config vitest.config.ts test/unit/types/typeElasticUi.test.ts` Expected: FAIL — `themePresetId` / `customPresets` missing from defaults and normalizer.
 
 - [ ] **Step 4: Modify `src/types/typeElasticUi.ts`**
 
@@ -189,18 +185,11 @@ export function normalizeElasticUiSettings(raw: unknown): ElasticUiSettings {
 
 - [ ] **Step 5: Run tests — verify PASS**
 
-Run: `pnpm exec vitest run --project unit --config vitest.config.ts test/unit/types/typeElasticUi.test.ts test/unit/types/typeThemePreset.test.ts`
-Expected: PASS — both files green.
+Run: `pnpm exec vitest run --project unit --config vitest.config.ts test/unit/types/typeElasticUi.test.ts test/unit/types/typeThemePreset.test.ts` Expected: PASS — both files green.
 
 - [ ] **Step 6: `pnpm check`**
 
-Run: `pnpm check`
-Expected: 0 errors. If errors appear in `src/types/typeSettings.ts`
-about `elasticUi: ElasticUiSettings` being incompatible (because the
-field was optional `?` before), make the typeSettings field required —
-but that change is part of T14. For T4, if check fails due to
-typeSettings incompatibility, defer the strict required-ness for now
-by keeping `elasticUi?: ElasticUiSettings`.
+Run: `pnpm check` Expected: 0 errors. If errors appear in `src/types/typeSettings.ts` about `elasticUi: ElasticUiSettings` being incompatible (because the field was optional `?` before), make the typeSettings field required — but that change is part of T14. For T4, if check fails due to typeSettings incompatibility, defer the strict required-ness for now by keeping `elasticUi?: ElasticUiSettings`.
 
 If `pnpm check` still fails, investigate before continuing.
 
@@ -222,5 +211,4 @@ EOF
 )"
 ```
 
-When Phase 2 is complete, proceed to
-[[docs/work/hardening/plans/2026-05-15-explorer-0-b-servicetheme-token-layer/phase-3-service-core|Phase 3]].
+When Phase 2 is complete, proceed to [[docs/work/hardening/plans/2026-05-15-explorer-0-b-servicetheme-token-layer/phase-3-service-core|Phase 3]].

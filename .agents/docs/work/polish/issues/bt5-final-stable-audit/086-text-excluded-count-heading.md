@@ -22,14 +22,11 @@ tags: [agent/issue, triage/completed, initiative/polish, release/1.2.0, content-
 
 ## What to build
 
-The Content preview link read "with active filters" in accent — the colour
-reserved for inclusive state across the explorers. Change the copy to
-"with N excluded" and the colour to primary text.
+The Content preview link read "with active filters" in accent — the colour reserved for inclusive state across the explorers. Change the copy to "with N excluded" and the colour to primary text.
 
 ## Acceptance criteria
 
-- [x] Link reads `with {count} excluded`, localized, count derived from the
-      non-content filters' effect on the scope.
+- [x] Link reads `with {count} excluded`, localized, count derived from the non-content filters' effect on the scope.
 - [x] Colour is `--text-normal`, hover reveals accent.
 
 ## Blocked by
@@ -38,7 +35,4 @@ None.
 
 ## Outcome
 
-Resolved by `d4cf0d0f`. The count is only visible once the non-content
-filters actually narrow the Text result set; the restructure that surfaces the
-excluded matches under the collapsed header is separate — see
-[[../v1-2-1-polish/index|the 1.2.1 backlog]].
+Resolved by `d4cf0d0f`. The count is only visible once the non-content filters actually narrow the Text result set; the restructure that surfaces the excluded matches under the collapsed header is separate — see [[../v1-2-1-polish/index|the 1.2.1 backlog]].

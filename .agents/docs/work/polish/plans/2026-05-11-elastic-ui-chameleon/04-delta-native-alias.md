@@ -44,8 +44,7 @@ const PLUGIN_SELECTORS = [
 
 - Resolve snippet node as `{ kind: 'snippet', label: filenameWithoutCss }`.
 - Resolve plugin node as `{ kind: 'plugin', label: displayName, pluginId }`.
-- Preserve `Ctrl`, `Meta`, `Alt`, and middle-click as binding gestures unless
-  the user explicitly narrows the grammar later.
+- Preserve `Ctrl`, `Meta`, `Alt`, and middle-click as binding gestures unless the user explicitly narrows the grammar later.
 
 Verification:
 
@@ -53,9 +52,7 @@ Verification:
 pnpm exec vp test run --project unit --config vitest.config.ts test/unit/services/serviceNativeSurfaceBinding.test.ts --fileParallelism=false
 ```
 
-Expected: tag, folder, snippet, and plugin native elements resolve to binding
-inputs; Ctrl+Click calls `bindOrCreate`; hover-link fires only for exactly one
-matching alias note.
+Expected: tag, folder, snippet, and plugin native elements resolve to binding inputs; Ctrl+Click calls `bindOrCreate`; hover-link fires only for exactly one matching alias note.
 
 ## Task D4: Alias Association Logic
 
@@ -67,9 +64,7 @@ expect(computeAliasToken({ kind: 'snippet', label: 'wide-table.css' })).toBe('$w
 expect(computeAliasToken({ kind: 'plugin', label: 'Calendar', pluginId: 'calendar' })).toBe('%calendar');
 ```
 
-If product decision prefers snippet aliases without `.css`, normalize in both
-provider and native interception, then tests must assert `$wide-table`. Do not
-allow one path to use `$wide-table.css` and another to use `$wide-table`.
+If product decision prefers snippet aliases without `.css`, normalize in both provider and native interception, then tests must assert `$wide-table`. Do not allow one path to use `$wide-table.css` and another to use `$wide-table`.
 
 Verification:
 
@@ -77,8 +72,7 @@ Verification:
 pnpm exec vp test run --project unit --config vitest.config.ts test/unit/services/serviceNodeBinding.test.ts --fileParallelism=false
 ```
 
-Expected: alias tokens are deterministic across context menu, hover badge, and
-native Ctrl+Click routes.
+Expected: alias tokens are deterministic across context menu, hover badge, and native Ctrl+Click routes.
 
 ## Task D6: Notes For Nodes Ctrl+Click Smoke
 
@@ -90,5 +84,4 @@ obsidian vault=plugin-dev eval code="(() => { const el=activeDocument.createElem
 obsidian vault=plugin-dev dev:errors
 ```
 
-Expected: commands do not throw. If no matching alias note exists,
-`NodeBindingService` creates or routes according to current service rules.
+Expected: commands do not throw. If no matching alias note exists, `NodeBindingService` creates or routes according to current service rules.

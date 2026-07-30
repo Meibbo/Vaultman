@@ -6,9 +6,7 @@ parent: "[[2026-05-18-explorer-sub-system-0-a-native-dom-parity/index]]"
 
 # 04 — C4: Add `ViewHost.svelte` shell with mode switch + context distribution
 
-Shell component analogous to O's `FrameNavbarShell`. Owns the mode switch,
-constructs `ViewHostService`, `setContext` for 3 keys, mounts the chosen
-view. Not yet consumed by `panelExplorer` (mounted in C5).
+Shell component analogous to O's `FrameNavbarShell`. Owns the mode switch, constructs `ViewHostService`, `setContext` for 3 keys, mounts the chosen view. Not yet consumed by `panelExplorer` (mounted in C5).
 
 **Files:**
 - Create: `src/components/explorer/ViewHost.svelte`
@@ -103,9 +101,7 @@ describe('ViewHost.svelte — shell behavior', () => {
 });
 ```
 
-(Some assertions are coarse because Svelte 5 test interop is in flux; the
-mount/unmount checks are the high-value gates. Refine selectors during impl
-to match actual emitted root classes.)
+(Some assertions are coarse because Svelte 5 test interop is in flux; the mount/unmount checks are the high-value gates. Refine selectors during impl to match actual emitted root classes.)
 
 - [ ] **Step 2: Run test to verify it fails**
 
@@ -331,9 +327,7 @@ Expected: FAIL — `ViewHost.svelte` does not exist.
 {/if}
 ```
 
-(Prop-thread details may shift during impl based on the current per-view
-prop signatures. The thread set must be the same as what panelExplorer
-passes to each view today, captured in the C5 audit step.)
+(Prop-thread details may shift during impl based on the current per-view prop signatures. The thread set must be the same as what panelExplorer passes to each view today, captured in the C5 audit step.)
 
 - [ ] **Step 4: Run test to verify pass**
 
@@ -343,8 +337,7 @@ Run:
 pnpm vitest run test/component/explorer/ViewHost.test.ts
 ```
 
-Expected: PASS. Coarse selectors verify mount/unmount; refine if any case
-fails to a non-trivial reason.
+Expected: PASS. Coarse selectors verify mount/unmount; refine if any case fails to a non-trivial reason.
 
 - [ ] **Step 5: Run `pnpm verify`**
 
@@ -376,5 +369,4 @@ availability. Not yet consumed by panelExplorer (mounted in C5)."
 
 ## Rollback
 
-`git revert <commit>` cleanly removes the additions. ViewHost service +
-context keys still survive (added in C3).
+`git revert <commit>` cleanly removes the additions. ViewHost service + context keys still survive (added in C3).

@@ -18,46 +18,29 @@ updated_by: claude
 
 ## Tasks
 
-- [x] Create `src/registry/tabRegistry.ts` enumerating `TabId` and
-      `DETACHABLE` set per spec.
-- [x] Create `src/services/serviceLeafDetach.ts` implementing
-      `detach`, `attach`, `restore`, plus persistence via
-      `loadData()`/`saveData()`.
-- [x] For each detachable tab, register a unique `VIEW_TYPE` in
-      `main.ts onload` with a Svelte component factory. Spawning
-      remains conditional.
-- [x] Add **detach to leaf** / **return to panel** entry to each
-      tab's `view` menu via `overlayViewMenu.svelte`.
-- [x] Add Settings global toggle **all tabs as independent
-      leaves** that calls detach/attach for every tab in
-      `DETACHABLE`.
-- [x] In `onLayoutReady`, call `LeafDetachService.restore()` after
-      Obsidian's own workspace replay.
+- [x] Create `src/registry/tabRegistry.ts` enumerating `TabId` and `DETACHABLE` set per spec.
+- [x] Create `src/services/serviceLeafDetach.ts` implementing `detach`, `attach`, `restore`, plus persistence via `loadData()`/`saveData()`.
+- [x] For each detachable tab, register a unique `VIEW_TYPE` in `main.ts onload` with a Svelte component factory. Spawning remains conditional.
+- [x] Add **detach to leaf** / **return to panel** entry to each tab's `view` menu via `overlayViewMenu.svelte`.
+- [x] Add Settings global toggle **all tabs as independent leaves** that calls detach/attach for every tab in `DETACHABLE`.
+- [x] In `onLayoutReady`, call `LeafDetachService.restore()` after Obsidian's own workspace replay.
 
 ## Tests
 
-- [x] `test/component/tabViewMenuDetach.test.ts` — menu entry
-      label flips with state.
-- [x] `test/component/settingsLeafToggle.test.ts` — global toggle
-      detaches/attaches all tabs.
-- [x] `test/unit/services/serviceLeafDetach.test.ts` —
-      `loadData`/`saveData` round trip, `restore` is idempotent.
-- [x] `test/smoke/obsidianLeafPersistence.test.ts` — detach a
-      tab, reload Obsidian, leaf re-spawns.
+- [x] `test/component/tabViewMenuDetach.test.ts` — menu entry label flips with state.
+- [x] `test/component/settingsLeafToggle.test.ts` — global toggle detaches/attaches all tabs.
+- [x] `test/unit/services/serviceLeafDetach.test.ts` — `loadData`/`saveData` round trip, `restore` is idempotent.
+- [x] `test/smoke/obsidianLeafPersistence.test.ts` — detach a tab, reload Obsidian, leaf re-spawns.
 
 ## Verification
 
 - [x] Focused unit + component runs.
-- [x] Obsidian CLI smoke: `obsidian plugin:reload id=vaultman`
-      and assert detached leaves come back.
+- [x] Obsidian CLI smoke: `obsidian plugin:reload id=vaultman` and assert detached leaves come back.
 - [x] `pnpm run check && pnpm run lint && pnpm run build`.
 
 ## Stop Conditions
 
 - Stop if detach requires monkey-patching private Obsidian APIs.
   Document and propose alternative.
-- Stop if a detached leaf double-mounts the same Svelte component
-  alongside the in-panel slot. Ensure mutual exclusion.
-- Stop if `restore()` races Obsidian's own workspace load and
-  produces duplicate leaves. Defer to a `app.workspace.onLayoutReady`
-  callback or microtask.
+- Stop if a detached leaf double-mounts the same Svelte component alongside the in-panel slot. Ensure mutual exclusion.
+- Stop if `restore()` races Obsidian's own workspace load and produces duplicate leaves. Defer to a `app.workspace.onLayoutReady` callback or microtask.

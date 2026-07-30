@@ -17,15 +17,11 @@ updated_by: codex
 # Product Runtime Foundations
 
 This shard covers foundational platform dependencies: `obsidian` and `svelte`.
-Feature-specific product libraries are covered in
-[[docs/work/hardening/research/2026-05-12-library-usage-inventory/01a-product-feature-libraries|01a - Product feature libraries]].
+Feature-specific product libraries are covered in [[docs/work/hardening/research/2026-05-12-library-usage-inventory/01a-product-feature-libraries|01a - Product feature libraries]].
 
 ## `obsidian`
 
-Purpose: host API for the Obsidian plugin runtime. Vaultman uses it for plugin
-lifecycle, vault/file abstractions, workspace integration, settings tabs,
-notices, modals, DOM helpers, markdown rendering, and type contracts such as
-`TFile`, `TFolder`, and `TAbstractFile`.
+Purpose: host API for the Obsidian plugin runtime. Vaultman uses it for plugin lifecycle, vault/file abstractions, workspace integration, settings tabs, notices, modals, DOM helpers, markdown rendering, and type contracts such as `TFile`, `TFolder`, and `TAbstractFile`.
 
 Primary users:
 
@@ -65,14 +61,12 @@ Primary users:
   - `src/utils/*`
   - `src/types/*`
 
-Interpretation: this is a foundational dependency. It should be treated as the
-external platform contract, not as a removable UI library.
+Interpretation: this is a foundational dependency. It should be treated as the external platform contract, not as a removable UI library.
 
 ## `svelte`
 
 Purpose: component framework and runtime/compiler contract for Vaultman's UI.
-The project uses Svelte components plus Svelte 5-style `.svelte.ts` service
-modules for reactive state.
+The project uses Svelte components plus Svelte 5-style `.svelte.ts` service modules for reactive state.
 
 Primary users:
 
@@ -83,7 +77,4 @@ Primary users:
   - `src/services/serviceViews.svelte.ts`
 - Component tests under `test/component/**/*.test.ts`.
 
-Interpretation: Svelte is both the UI authoring model and part of the build
-pipeline. Component source depends on it even when a file has no explicit
-`import 'svelte'` line, because `.svelte` files are compiled by the Svelte
-compiler.
+Interpretation: Svelte is both the UI authoring model and part of the build pipeline. Component source depends on it even when a file has no explicit `import 'svelte'` line, because `.svelte` files are compiled by the Svelte compiler.

@@ -24,8 +24,7 @@ Possible internal split:
 - `serviceViewMarks`;
 - `serviceViewGroups`.
 
-Start with one service only if it stays readable. Extract when boundaries are
-proven.
+Start with one service only if it stays readable. Extract when boundaries are proven.
 
 ## Bases Reuse
 
@@ -91,8 +90,7 @@ Existing providers are class-based and contain action logic.
 
 Migration risk:
 
-- moving too much at once can break context menus, add mode, filters, and queue
-  operations.
+- moving too much at once can break context menus, add mode, filters, and queue operations.
 
 Mitigation:
 

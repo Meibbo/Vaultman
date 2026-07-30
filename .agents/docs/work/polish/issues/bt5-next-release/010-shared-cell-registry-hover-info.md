@@ -20,15 +20,11 @@ tags: [agent/issue, triage/needs-triage, initiative/polish, release/bt5]
 
 ## Parent
 
-[[docs/work/polish/issues/bt5-next-release/index|BT5 next release train]]. Migra
-BT4-025 y absorbe el orden DnD de hover-info que estaba acoplado a BT4-013.
+[[docs/work/polish/issues/bt5-next-release/index|BT5 next release train]]. Migra BT4-025 y absorbe el orden DnD de hover-info que estaba acoplado a BT4-013.
 
 ## What to build
 
-Crear un catálogo 1.2 único para los cells presentes y futuros: id estable, label/icon,
-explorers/view modes compatibles, posición fixed, default visibility, renderer/valor de
-hover y sort asociado cuando exista. View mode y hover-info consumen el catálogo; hover-info
-permite show/hide de Label y todos los cells, además de orden DnD persistente.
+Crear un catálogo 1.2 único para los cells presentes y futuros: id estable, label/icon, explorers/view modes compatibles, posición fixed, default visibility, renderer/valor de hover y sort asociado cuando exista. View mode y hover-info consumen el catálogo; hover-info permite show/hide de Label y todos los cells, además de orden DnD persistente.
 
 ## Acceptance criteria
 

@@ -10,8 +10,7 @@ parent: "[[current/status|Current Status]]"
 
 # Research Work Index
 
-This folder holds active research and synthesis records. Keep source detail in
-the initiative folders and link only compactly from current status/handoff.
+This folder holds active research and synthesis records. Keep source detail in the initiative folders and link only compactly from current status/handoff.
 
 ## Active Records
 

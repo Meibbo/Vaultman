@@ -23,10 +23,7 @@ tags: [agent/issue, triage/needs-triage, initiative/polish, release/bt5]
 
 ## What to build
 
-Añadir un segundo botón `View` a View configs, Filter templates y Operation presets que
-muestre la lista completa y normalizada de lo que se cargará —index, cells, By level,
-sorts, filtros, layout y demás payload relevante— sin ejecutar la carga. No usar una
-description truncada como sustituto del preview.
+Añadir un segundo botón `View` a View configs, Filter templates y Operation presets que muestre la lista completa y normalizada de lo que se cargará —index, cells, By level, sorts, filtros, layout y demás payload relevante— sin ejecutar la carga. No usar una description truncada como sustituto del preview.
 
 ## Acceptance criteria
 

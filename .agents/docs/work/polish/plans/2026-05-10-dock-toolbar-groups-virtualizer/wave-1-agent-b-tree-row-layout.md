@@ -17,8 +17,7 @@ updated_by: codex
 
 ## Scope
 
-Executed `ola 1 agente b` from
-[[docs/work/polish/plans/2026-05-10-dock-toolbar-groups-virtualizer/dispatch-shortcuts|Dock Toolbar Parallel Dispatch Shortcuts]].
+Executed `ola 1 agente b` from [[docs/work/polish/plans/2026-05-10-dock-toolbar-groups-virtualizer/dispatch-shortcuts|Dock Toolbar Parallel Dispatch Shortcuts]].
 
 Owned files touched:
 
@@ -31,21 +30,15 @@ No Settings/nav, DnD service/UI, Queue presentation, or Cut 4 files were changed
 
 ## Implementation
 
-- Added a narrow-row regression contract for tree rows that carry both a counter
-  and operation badges.
+- Added a narrow-row regression contract for tree rows that carry both a counter and operation badges.
 - Split the row affordance model in `ViewTree`:
   - `has-count` marks rows and badge zones that need explicit counter reserve.
   - `has-overlay-badges` marks rows with direct, inherited, or hover badges.
-  - `.vm-tree-overlay-badge-zone` holds direct/inherited/hover badges separately
-    from `.vm-tree-count`, so the count can stay visible while badges overlay.
-  - `has-active-badges` keeps queued/solid operation badges visible without
-    waiting for row hover.
-- Updated virtual tree SCSS so counters reserve `--vm-tree-counter-reserve`
-  width while non-active badge overlays reveal on hover or focus.
+  - `.vm-tree-overlay-badge-zone` holds direct/inherited/hover badges separately from `.vm-tree-count`, so the count can stay visible while badges overlay.
+  - `has-active-badges` keeps queued/solid operation badges visible without waiting for row hover.
+- Updated virtual tree SCSS so counters reserve `--vm-tree-counter-reserve` width while non-active badge overlays reveal on hover or focus.
 - Preserved prior Agent B-adjacent corrections already present in the branch:
-  reserved toggle placeholders, open-folder icon for expanded folders,
-  indentation guides, restored hover feedback, and pointer capture only after
-  selection movement crosses the threshold.
+  reserved toggle placeholders, open-folder icon for expanded folders, indentation guides, restored hover feedback, and pointer capture only after selection movement crosses the threshold.
 
 ## Verification
 
@@ -64,7 +57,5 @@ Green checks after implementation:
 ## Residuals
 
 - Live narrow-frame Obsidian visual smoke was not run in this session.
-- Agent D remains the read-only live/manual QA shortcut for Queue island and
-  narrow compact controls.
-- Later Wave 2 Agent E/F work should preserve the tree row count/overlay split
-  and Agent C's DnD service contract.
+- Agent D remains the read-only live/manual QA shortcut for Queue island and narrow compact controls.
+- Later Wave 2 Agent E/F work should preserve the tree row count/overlay split and Agent C's DnD service contract.

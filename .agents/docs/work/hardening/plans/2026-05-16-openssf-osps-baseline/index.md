@@ -29,13 +29,10 @@ updated_by: codex
 
 ## Guardrails
 
-- Do not overwrite the current dirty deletion of `CONTRIBUTING.md` without an
-  explicit decision.
-- Do not push, tag, merge, or mutate repository settings unless the user asks
-  for that exact action.
+- Do not overwrite the current dirty deletion of `CONTRIBUTING.md` without an explicit decision.
+- Do not push, tag, merge, or mutate repository settings unless the user asks for that exact action.
 - Keep AI workflow files out of `main`; this plan lives only on an agent branch.
-- Pin actions by immutable SHA only after resolving the current upstream SHA at
-  execution time.
+- Pin actions by immutable SHA only after resolving the current upstream SHA at execution time.
 - For settings changes, record the exact GitHub UI/API state before and after.
 
 ## File Map
@@ -49,8 +46,7 @@ updated_by: codex
 - Create: `.github/workflows/scorecard.yml`
 - Create: `.github/workflows/release.yml`
 - Modify: `package.json`
-- Create or modify: dependency audit documentation under
-  `.agents/docs/work/hardening/`
+- Create or modify: dependency audit documentation under `.agents/docs/work/hardening/`
 
 ## Verification Commands
 
@@ -77,5 +73,4 @@ updated_by: codex
 - Scorecard runs automatically and publishes results.
 - `main` protection, dependency alerts, and vulnerability reporting are active.
 - Dependency audit findings are either fixed or explicitly risk-accepted.
-- Releases are generated from GitHub Actions with checksums, SBOM, and
-  provenance for Obsidian plugin assets.
+- Releases are generated from GitHub Actions with checksums, SBOM, and provenance for Obsidian plugin assets.

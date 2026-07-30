@@ -1,7 +1,6 @@
 ## 1. Contrato unificado del seam (ViewHost)
 
-El contrato angostado. Se **dropea** Contract B (`onSelect`/`onActivate`/`onFocus`/
-`onListContextMenu`). Todos los views reciben la misma familia. `id === ExplorerRowInput.callbackId`.
+El contrato angostado. Se **dropea** Contract B (`onSelect`/`onActivate`/`onFocus`/ `onListContextMenu`). Todos los views reciben la misma familia. `id === ExplorerRowInput.callbackId`.
 
 ```ts
 // src/types/typeActionRouting.ts
@@ -23,8 +22,7 @@ export interface RowInteractionContract {
 ```
 
 Grid/Cards conservan sus nombres de prop internos (`onTileClick`/`onCardClick`) como binding local;
-ViewHost ya mapea `rest.onRowClick`→ellos. El único view que cambia su contrato emitido es
-**ViewNodeList**.
+ViewHost ya mapea `rest.onRowClick`→ellos. El único view que cambia su contrato emitido es **ViewNodeList**.
 
 ## 2. Intent seam — `resolveActionIntent`
 
@@ -55,9 +53,5 @@ export interface ActionIntent {
 }
 ```
 
-`resolveActionIntent(query, mouseConfig): ActionIntent`. v1.2.0 resuelve `surface ∈ {row,caret}`,
-`gesture ∈ {click,aux,keyboard}`, `pointerType ∈ {mouse,keyboard}`. Para cualquier otra combinación
-retorna `{ kind: 'ignored' }` con un comentario `// reserved: <home>`. El mapeo click→kind respeta
-`resolveNodeMouseActions` (serviceMouse.ts): default primary=`filter`, secondary=`open`,
-tertiary=`delete`.
+`resolveActionIntent(query, mouseConfig): ActionIntent`. v1.2.0 resuelve `surface ∈ {row,caret}`, `gesture ∈ {click,aux,keyboard}`, `pointerType ∈ {mouse,keyboard}`. Para cualquier otra combinación retorna `{ kind: 'ignored' }` con un comentario `// reserved: <home>`. El mapeo click→kind respeta `resolveNodeMouseActions` (serviceMouse.ts): default primary=`filter`, secondary=`open`, tertiary=`delete`.
 

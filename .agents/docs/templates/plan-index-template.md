@@ -21,5 +21,4 @@ tags:
 
 ## Shard Trigger
 
-Shard into dated folders when this index approaches 150 lines or plan slices
-need separate ownership.
+Shard into dated folders when this index approaches 150 lines or plan slices need separate ownership.

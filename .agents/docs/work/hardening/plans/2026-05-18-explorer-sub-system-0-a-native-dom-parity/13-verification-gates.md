@@ -6,9 +6,7 @@ parent: "[[2026-05-18-explorer-sub-system-0-a-native-dom-parity/index]]"
 
 # 13 — Final verification gates
 
-After all 12 commits land, run the full aggregate verification. This step
-does NOT add any new code; it confirms the 0-A sub-system as a whole
-meets the spec's verification matrix (shard 10).
+After all 12 commits land, run the full aggregate verification. This step does NOT add any new code; it confirms the 0-A sub-system as a whole meets the spec's verification matrix (shard 10).
 
 **Files:**
 - No new code or test files in this step.
@@ -33,8 +31,7 @@ Expected: PASS.
 pnpm run build
 ```
 
-Expected: PASS. `dist/build/` output generated. Synced to `plugin-dev`
-per existing post-build hook.
+Expected: PASS. `dist/build/` output generated. Synced to `plugin-dev` per existing post-build hook.
 
 - [x] **Step 3: Run `git diff --check`**
 
@@ -52,8 +49,7 @@ git log --oneline -- "node_modules/@dnd-kit/*" 2>$null
 ```
 
 Expected: no commits from 0-A author in this range touched these paths.
-(0-A commits are scoped to the 12-commit set; verify none of them
-modified these.)
+(0-A commits are scoped to the 12-commit set; verify none of them modified these.)
 
 - [x] **Step 5: Confirm `btnMultiSelection` is fully renamed**
 
@@ -67,8 +63,7 @@ Expected: zero hits in `src/` and `test/`.
 Select-String -Path .agents/docs -Pattern "btnMultiSelection" -SimpleMatch -Recurse
 ```
 
-Expected: only archeological annotation hits (lines containing
-"renamed from btnMultiSelection in 0-A" or equivalent).
+Expected: only archeological annotation hits (lines containing "renamed from btnMultiSelection in 0-A" or equivalent).
 
 - [x] **Step 6: Run per-view scroll smoke baseline comparison**
 
@@ -80,14 +75,11 @@ pnpm smoke:scroll -- --view=grid --jumps=100
 pnpm smoke:scroll -- --view=cards --jumps=100
 ```
 
-Per view: capture `blankFrames`, `blank>100ms`, `blank>250ms`, `maxBlank`,
-`maxDelay`. Append to `baseline-log.md` under a section
-"Post-0-A scroll smoke baseline".
+Per view: capture `blankFrames`, `blank>100ms`, `blank>250ms`, `maxBlank`, `maxDelay`. Append to `baseline-log.md` under a section "Post-0-A scroll smoke baseline".
 
 Comparison to pre-0-A baseline (captured in step 00):
 - `blankFrames=0` and `maxBlank=0ms` must be preserved.
-- `maxDelay` per view may differ; record actuals. C12 flicker fix should
-  not regress this; if it does, investigate.
+- `maxDelay` per view may differ; record actuals. C12 flicker fix should not regress this; if it does, investigate.
 
 - [x] **Step 7: Run Notebook Navigator comparison bridge**
 
@@ -95,8 +87,7 @@ Comparison to pre-0-A baseline (captured in step 00):
 pnpm vitest run test/unit/performance/explorerNotebookNavigatorComparison.test.ts
 ```
 
-Expected: PASS. Vaultman 50K projection median must remain faster than
-the NN list builder median (current: ~27ms vs ~61ms per status doc).
+Expected: PASS. Vaultman 50K projection median must remain faster than the NN list builder median (current: ~27ms vs ~61ms per status doc).
 
 - [x] **Step 8: Live `plugin-dev` flow per spec shard 10**
 
@@ -179,10 +170,7 @@ the executed implementation plan."
 
 - [x] **Step 12: Update `.agents/docs/current/status.md` next action**
 
-Change "Next Action" to reflect 0-A completion and queue Sub-system N
-(SCSS → UnoCSS migration) per the locked build order
-`0-H → 0-B → O → 0-A → N`. Or if 0-A.S brainstorm should run first,
-note that.
+Change "Next Action" to reflect 0-A completion and queue Sub-system N (SCSS → UnoCSS migration) per the locked build order `0-H → 0-B → O → 0-A → N`. Or if 0-A.S brainstorm should run first, note that.
 
 Commit alongside the roadmap update.
 
@@ -194,21 +182,15 @@ Commit alongside the roadmap update.
 
 ## Closeout note
 
-Closed on 2026-05-20. `baseline-log.md` records the final `pnpm verify` pass, focused test gates,
-strict and non-strict live scroll smokes for all five selectable views, Notebook Navigator comparison
-bridge evidence, `btnMultiSelection`/DnD audit checks, and the `plugin-dev` preset/menu/dev-error gate.
-The natural handoff commit for this closeout includes the baseline, roadmap, current status/handoff,
-and C12/C13 checklist updates.
+Closed on 2026-05-20. `baseline-log.md` records the final `pnpm verify` pass, focused test gates, strict and non-strict live scroll smokes for all five selectable views, Notebook Navigator comparison bridge evidence, `btnMultiSelection`/DnD audit checks, and the `plugin-dev` preset/menu/dev-error gate.
+The natural handoff commit for this closeout includes the baseline, roadmap, current status/handoff, and C12/C13 checklist updates.
 
 ## After this step
 
-Sub-system 0-A is complete. Next track decisions per
-[[docs/work/hardening/specs/2026-05-18-explorer-sub-system-0-a-native-dom-parity/11-risks-and-followups|spec shard 11 follow-ups]]:
+Sub-system 0-A is complete. Next track decisions per [[docs/work/hardening/specs/2026-05-18-explorer-sub-system-0-a-native-dom-parity/11-risks-and-followups|spec shard 11 follow-ups]]:
 
 - Sub-system N (SCSS → UnoCSS) — per locked build order.
-- Sub-system 0-A.S — adversarial scroll harness + 3-plugin sequential
-  perf comparison (parallel track).
-- Polished preset rewrite session — user uploads source files,
-  separate brainstorm distributes pieces to sub-system entries.
+- Sub-system 0-A.S — adversarial scroll harness + 3-plugin sequential perf comparison (parallel track).
+- Polished preset rewrite session — user uploads source files, separate brainstorm distributes pieces to sub-system entries.
 - Action Routing Contract — when needed.
 - Provider Extensibility — when needed for Bases parity work.

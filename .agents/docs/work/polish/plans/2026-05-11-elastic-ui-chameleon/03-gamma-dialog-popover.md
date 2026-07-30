@@ -47,8 +47,7 @@ Create `src/components/overlays/VmDialog.svelte`:
 </Dialog.Root>
 ```
 
-If installed Bits UI uses a different portal prop, adapt only the prop and keep
-the wrapper API stable.
+If installed Bits UI uses a different portal prop, adapt only the prop and keep the wrapper API stable.
 
 Verification:
 
@@ -56,8 +55,7 @@ Verification:
 pnpm exec vp test run --project component --config vitest.config.ts test/component/overlayEscapeFocus.test.ts --fileParallelism=false
 ```
 
-Expected: Escape closes the dialog, focus returns to the trigger, and the dialog
-is inside `.vm-root`.
+Expected: Escape closes the dialog, focus returns to the trigger, and the dialog is inside `.vm-root`.
 
 ## Task G4: Popover Wrapper
 
@@ -99,5 +97,4 @@ Verification:
 pnpm exec vp test run --project component --config vitest.config.ts test/component/overlayViewMenu.test.ts test/component/overlaySortMenu.test.ts test/component/overlayPortalTarget.test.ts --fileParallelism=false
 ```
 
-Expected: view and sort menus open with keyboard and mouse, render inside
-`.vm-root`, and keep existing menu item labels/actions.
+Expected: view and sort menus open with keyboard and mouse, render inside `.vm-root`, and keep existing menu item labels/actions.

@@ -23,9 +23,7 @@ tags: [agent/issue, initiative/polish, release/bt5]
 
 ## What to build
 
-Añadir una opción de presentación para colocar Icon en el slot reservado al caret cuando
-el nodo no necesita expansión, recuperando espacio horizontal sin confundir un icono con
-un control expandible. Los nodos expandibles conservan caret y affordance correctos.
+Añadir una opción de presentación para colocar Icon en el slot reservado al caret cuando el nodo no necesita expansión, recuperando espacio horizontal sin confundir un icono con un control expandible. Los nodos expandibles conservan caret y affordance correctos.
 
 ## Acceptance criteria
 
@@ -41,22 +39,13 @@ un control expandible. Los nodos expandibles conservan caret y affordance correc
 
 ## Outcome 2026-07-20
 
-**Commit `d396c3f0`.** Gate verde: 123 files / 812 tests, svelte-check 0/0,
-scorecard 17/17. Test focal `test/unit/iconInCaretSlot.test.ts`.
+**Commit `d396c3f0`.** Gate verde: 123 files / 812 tests, svelte-check 0/0, scorecard 17/17. Test focal `test/unit/iconInCaretSlot.test.ts`.
 
-Un nodo que reserva la columna del caret sin nada que expandir
-(`showCaret && !hasChildren`) dibujaba un placeholder atenuado más un icono
-aparte: gastaba la columna dos veces. Con la opción activa (setting nuevo, default
-off) el icono ocupa el slot y el icono suelto se suprime, así que nunca se emite
-dos veces.
+Un nodo que reserva la columna del caret sin nada que expandir (`showCaret && !hasChildren`) dibujaba un placeholder atenuado más un icono aparte: gastaba la columna dos veces. Con la opción activa (setting nuevo, default off) el icono ocupa el slot y el icono suelto se suprime, así que nunca se emite dos veces.
 
 Los nodos expandibles no se tocan: conservan caret, listener y `aria-expanded`.
-El slot con icono mantiene el modificador `--empty`, así que sigue
-`pointer-events: none` y `aria-hidden` y nunca se lee como control de expansión.
-La opción entra en `rowSignature`, así que un toggle en runtime repinta las filas
-recicladas; la altura de fila no cambia, así que la medición de la virtualización
-queda intacta. Llega a las cinco superficies de árbol; table y cards no dibujan
-caret y quedan declaradas no aplicables.
+El slot con icono mantiene el modificador `--empty`, así que sigue `pointer-events: none` y `aria-hidden` y nunca se lee como control de expansión.
+La opción entra en `rowSignature`, así que un toggle en runtime repinta las filas recicladas; la altura de fila no cambia, así que la medición de la virtualización queda intacta. Llega a las cinco superficies de árbol; table y cards no dibujan caret y quedan declaradas no aplicables.
 
 Detalle: [[docs/work/polish/plans/2026-07-19-bt5-next-10/06-bt5-012-013-015-018-031-032|shard 06]].
 
@@ -64,16 +53,9 @@ Pendiente: smoke de runtime.
 
 ## Corrección 2026-07-20 (tarde) — rehecho
 
-**Commit `dad3ef32`.** La primera implementación (`d396c3f0`, shard 06) estaba mal
-y no servía: movía el icono al elemento del caret solo en nodos que reservan caret
-y no pueden expandir — un caso que no causa el problema que reportó el dev.
+**Commit `dad3ef32`.** La primera implementación (`d396c3f0`, shard 06) estaba mal y no servía: movía el icono al elemento del caret solo en nodos que reservan caret y no pueden expandir — un caso que no causa el problema que reportó el dev.
 
-Intención real: la fila es flex, un icono añade ancho y empuja el label; un
-hermano sin icono queda más a la izquierda (visible en "custom icons only"). Ahora
-una fila que renderiza icono y no reserva caret saca el icono del flujo flex hacia
-la columna del caret vía CSS (`position: absolute`), así todos los labels caen en
-la misma x. Filas con caret intactas. Gate verde 123→ (final 854). Guard
-reescrito.
+Intención real: la fila es flex, un icono añade ancho y empuja el label; un hermano sin icono queda más a la izquierda (visible en "custom icons only"). Ahora una fila que renderiza icono y no reserva caret saca el icono del flujo flex hacia la columna del caret vía CSS (`position: absolute`), así todos los labels caen en la misma x. Filas con caret intactas. Gate verde 123→ (final 854). Guard reescrito.
 
 Detalle: [[docs/work/polish/plans/2026-07-19-bt5-next-10/07-dev-corrections-and-interaction-fixes|shard 07]].
 

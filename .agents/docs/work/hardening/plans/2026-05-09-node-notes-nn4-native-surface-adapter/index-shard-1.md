@@ -18,10 +18,8 @@ updated_by: codex
 
 Continua desde [[docs/work/hardening/plans/2026-05-09-node-notes-nn4-native-surface-adapter/index|NN-4 native Obsidian surface adapter]].
 
-- middle click on a supported folder returns `true`, calls `bindOrCreate` with
-  the folder input, and prevents/stops native behavior.
-- modifier click on an unrelated element returns `false` and leaves the event
-  alone.
+- middle click on a supported folder returns `true`, calls `bindOrCreate` with the folder input, and prevents/stops native behavior.
+- modifier click on an unrelated element returns `false` and leaves the event alone.
 
 - [x] **Step 2: Run tests and verify RED**
 
@@ -52,8 +50,7 @@ export function handleNativeBindingHover(event, deps): boolean
 
 Assertions:
 
-- a tag surface with exactly one alias match triggers `workspace.trigger` with
-  source `vaultman-native-surface` and the matched note path.
+- a tag surface with exactly one alias match triggers `workspace.trigger` with source `vaultman-native-surface` and the matched note path.
 - zero alias matches do not trigger.
 - two alias matches do not trigger.
 
@@ -63,8 +60,7 @@ Expected: fail because `handleNativeBindingHover` is missing.
 
 - [x] **Step 3: Implement hover helper**
 
-Use `computeAliasToken(...)` and `findNotesByAlias(...)`; never call
-`bindOrCreate(...)` from hover.
+Use `computeAliasToken(...)` and `findNotesByAlias(...)`; never call `bindOrCreate(...)` from hover.
 
 - [x] **Step 4: Run tests and verify GREEN**
 
@@ -84,8 +80,7 @@ Run the focused unit command. Expected: all service tests pass.
 Assert a `NativeSurfaceBindingService` instance:
 
 - registers hover source through `plugin.registerHoverLinkSource(...)`
-- registers `click`, `auxclick`, and `mouseover` handlers on the document with
-  capture enabled
+- registers `click`, `auxclick`, and `mouseover` handlers on the document with capture enabled
 - disposes cleanly through Obsidian `Component` lifecycle
 
 - [x] **Step 2: Run tests and verify RED**
@@ -105,9 +100,7 @@ Expected: fail because the component class or registration details are missing.
 }
 ```
 
-`onload()` calls `plugin.registerHoverLinkSource(...)`, then registers the
-document event handlers. `main.ts` constructs the service after
-`nodeBindingService` and adds it as a plugin child.
+`onload()` calls `plugin.registerHoverLinkSource(...)`, then registers the document event handlers. `main.ts` constructs the service after `nodeBindingService` and adds it as a plugin child.
 
 - [x] **Step 4: Run tests and verify GREEN**
 
@@ -145,8 +138,7 @@ obsidian vault=plugin-dev command id=vaultman:open
 obsidian vault=plugin-dev dev:errors
 ```
 
-Expected: plugin reloads, Vaultman opens, and `dev:errors` reports no captured
-Vaultman runtime errors.
+Expected: plugin reloads, Vaultman opens, and `dev:errors` reports no captured Vaultman runtime errors.
 
 - [x] **Step 4: Run whitespace check**
 
@@ -156,6 +148,4 @@ git diff --check
 
 - [x] **Step 5: Update records**
 
-Mark NN-4 done only after the commands above have fresh passing output. If live
-smoke is unavailable, leave NN-4 as implemented-without-live-smoke and record
-the blocker explicitly.
+Mark NN-4 done only after the commands above have fresh passing output. If live smoke is unavailable, leave NN-4 as implemented-without-live-smoke and record the blocker explicitly.

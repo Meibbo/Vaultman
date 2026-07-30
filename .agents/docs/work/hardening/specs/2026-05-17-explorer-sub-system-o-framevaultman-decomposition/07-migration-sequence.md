@@ -14,30 +14,18 @@ tags:
 # Migration Sequence (5 Commits)
 
 Each commit is **independently revertible**. Each commit follows TDD:
-failing test → implementation → green test. Each commit ends with a
-green `pnpm verify` and a successful live smoke against `plugin-dev`
-(`obsidian dev:errors vault=plugin-dev` returning `No errors captured.`).
+failing test → implementation → green test. Each commit ends with a green `pnpm verify` and a successful live smoke against `plugin-dev` (`obsidian dev:errors vault=plugin-dev` returning `No errors captured.`).
 
 ## Pre-step 0 — Baseline capture
 
 Before C1, capture:
 
-1. **DOM snapshot of frame in three states.** New test
-   `test/component/frame/frameVaultmanBaseline.test.ts`. Mount the
-   frame at `activePage='ops'`, capture rendered DOM. Mount at
-   `activePage='filters'`, capture. Mount at `activePage='statistics'`,
-   capture. Save snapshots in `test/__snapshots__/`. These become the
-   regression guard for C3 + C4.
-2. **Live smoke baseline log.** Reload `plugin-dev`, navigate
-   `ops → filters → statistics → ops`, toggle dock drawer, execute
-   `vaultman:open-diff`, run scope/active-filters/search/move
-   popups (basic smoke), record `dev:errors` output (expected:
+1. **DOM snapshot of frame in three states.** New test `test/component/frame/frameVaultmanBaseline.test.ts`. Mount the frame at `activePage='ops'`, capture rendered DOM. Mount at `activePage='filters'`, capture. Mount at `activePage='statistics'`, capture. Save snapshots in `test/__snapshots__/`. These become the regression guard for C3 + C4.
+2. **Live smoke baseline log.** Reload `plugin-dev`, navigate `ops → filters → statistics → ops`, toggle dock drawer, execute `vaultman:open-diff`, run scope/active-filters/search/move popups (basic smoke), record `dev:errors` output (expected:
    `No errors captured.`).
-3. **LOC baseline.** `wc -l src/components/frame/frameVaultman.svelte`
-   → expected 866 (or close). Record in plan as starting point.
+3. **LOC baseline.** `wc -l src/components/frame/frameVaultman.svelte` → expected 866 (or close). Record in plan as starting point.
 
-No code changes in pre-step 0; pure capture. Optional: commit the
-baseline test in its own micro-commit to keep C1 clean.
+No code changes in pre-step 0; pure capture. Optional: commit the baseline test in its own micro-commit to keep C1 clean.
 
 ## Commit 1 — `feat(O): extract FrameNavigationService`
 
@@ -48,81 +36,47 @@ New test file `test/component/frame/frameNavigationService.test.ts`:
 - Constructor with mock deps (plugin, overlays).
 - `navigateTo(page)`:
   - Same page → no overlay/popup changes, no transform call.
-  - Different page → calls `overlays.closeQueueIsland()`,
-    `overlays.closeFiltersIsland()`, conditional `overlays.closePopup()`,
-    sets `activePage`, calls `viewport.applyPageTransform(true)`.
+  - Different page → calls `overlays.closeQueueIsland()`, `overlays.closeFiltersIsland()`, conditional `overlays.closePopup()`, sets `activePage`, calls `viewport.applyPageTransform(true)`.
   - Leaving 'filters' clears `filtersBaseChooseMode`.
-- **`openDiffIntent()` — order assertion:** mock `overlays` and
-  `viewport` to record call order. Assert sequence:
-  `closeQueueIsland → closeFiltersIsland → [closePopup if open] →
-   activePage='ops' → toolsActiveTab='file_diff' → applyPageTransform(true)`.
-- `enterBasesImport()`: `filtersBaseChooseMode=true`,
-  `filtersActiveTab='files'`, activePage='filters' if not already,
-  applyPageTransform(true).
+- **`openDiffIntent()` — order assertion:** mock `overlays` and `viewport` to record call order. Assert sequence:
+  `closeQueueIsland → closeFiltersIsland → [closePopup if open] → activePage='ops' → toolsActiveTab='file_diff' → applyPageTransform(true)`.
+- `enterBasesImport()`: `filtersBaseChooseMode=true`, `filtersActiveTab='files'`, activePage='filters' if not already, applyPageTransform(true).
 - `exitBasesImport()`: `filtersBaseChooseMode=false`.
-- `openStatsNote()`: opens modal (mocked), on selection sets
-  `statsPreviewFile` + `activePage='statistics'`, applyPageTransform.
+- `openStatsNote()`: opens modal (mocked), on selection sets `statsPreviewFile` + `activePage='statistics'`, applyPageTransform.
 - `showStatsPage()`: clears `statsPreviewFile`.
 - `selectSurfaceItem(content, id)`:
   - `content='filter-tabs'`, detached → calls `plugin.spawnTabLeaf(tabId)`.
-  - `content='filter-tabs'`, not detached → sets `filtersActiveTab=id`,
-    navigateTo('filters') if not active.
+  - `content='filter-tabs'`, not detached → sets `filtersActiveTab=id`, navigateTo('filters') if not active.
   - `content='frame-pages'` → navigateTo(id).
-- Surface derivations: `itemsForSurface`, `activeForSurface`,
-  `dockItems`, `topTabItems`, `dockUsesFramePages`.
+- Surface derivations: `itemsForSurface`, `activeForSurface`, `dockItems`, `topTabItems`, `dockUsesFramePages`.
 - `attachViewport` / `attachNavReorder`: late-bound deps.
 - `nav.viewport` / `nav.navReorder` getters throw if not attached.
-- T4 bindable: assigning `nav.toolsActiveTab = 'file_diff'`
-  reflects in subsequent getter reads.
+- T4 bindable: assigning `nav.toolsActiveTab = 'file_diff'` reflects in subsequent getter reads.
 
 ### Implementation
 
-1. Create `src/components/frame/frameNavigation.svelte.ts` with
-   the full class per shard 03 contract.
-2. **POC bind: verification.** Before the full refactor, write a
-   minimal test that confirms `bind:value={instance.field}` works
-   for a getter/setter pair on a runes class. If it doesn't, switch
-   the strategy to explicit prop + callback (documented in shard 09
-   risks).
+1. Create `src/components/frame/frameNavigation.svelte.ts` with the full class per shard 03 contract.
+2. **POC bind: verification.** Before the full refactor, write a minimal test that confirms `bind:value={instance.field}` works for a getter/setter pair on a runes class. If it doesn't, switch the strategy to explicit prop + callback (documented in shard 09 risks).
 3. Refactor `frameVaultman.svelte`:
    - Add imports.
-   - Construct overlays (no changes to its constructor signature
-     other than `onImportBases: () => nav.enterBasesImport()`).
+   - Construct overlays (no changes to its constructor signature other than `onImportBases: () => nav.enterBasesImport()`).
    - Construct `nav` with the getter-injections per shard 03.
    - Construct `viewport`, call `nav.attachViewport(viewport)`.
    - Construct `navReorder`, call `nav.attachNavReorder(navReorder)`.
    - Call `setContext(FRAME_NAVIGATION_KEY, nav)`.
-   - Replace the inline `openDiffView` + its `$effect` with a
-     single 3-line `$effect` that registers
-     `plugin.openDiffViewHook = () => nav.openDiffIntent()` (with
-     identity-check cleanup).
-   - Replace every read of `activePage`, `pageOrder`, `pageIndex`,
-     `toolsActiveTab`, `statsPreviewFile`, `filtersBaseChooseMode`,
-     `filtersActiveTab` with `nav.X`.
-   - Replace `bind:activeTab={toolsActiveTab}` with
-     `bind:activeTab={nav.toolsActiveTab}` (or callback fallback).
-   - Delete the moved functions: `initFrameState`, `navigateTo`,
-     `enterBasesImportMode`, `exitBasesImportMode`, `openStatsNote`,
-     `showStatsPage`, `openDiffView`, `itemsForSurface`,
-     `activeForSurface`, `externalIdsForSurface`,
-     `detachedTabIdForSurfaceItem`, `tabIdForSurfaceItem`,
-     `selectSurfaceItem`.
-   - Delete the moved derivations: `framePageTabs`, `filterTabItems`
-     (or proxy to nav), `topTabItems`, `topTabActive`,
-     `topExternalTabIds`, `dockItems`, `dockActive`,
-     `dockExternalTabIds`, `dockUsesFramePages`,
-     `filterTabsExternallyMounted`, `pageFabs`, `leftFab`, `rightFab`,
-     `layoutSettings`.
-   - Delete the moved $effects: `pageIndex → viewport.applyPageTransform`
-     and `pageOrder validity check`.
+   - Replace the inline `openDiffView` + its `$effect` with a single 3-line `$effect` that registers `plugin.openDiffViewHook = () => nav.openDiffIntent()` (with identity-check cleanup).
+   - Replace every read of `activePage`, `pageOrder`, `pageIndex`, `toolsActiveTab`, `statsPreviewFile`, `filtersBaseChooseMode`, `filtersActiveTab` with `nav.X`.
+   - Replace `bind:activeTab={toolsActiveTab}` with `bind:activeTab={nav.toolsActiveTab}` (or callback fallback).
+   - Delete the moved functions: `initFrameState`, `navigateTo`, `enterBasesImportMode`, `exitBasesImportMode`, `openStatsNote`, `showStatsPage`, `openDiffView`, `itemsForSurface`, `activeForSurface`, `externalIdsForSurface`, `detachedTabIdForSurfaceItem`, `tabIdForSurfaceItem`, `selectSurfaceItem`.
+   - Delete the moved derivations: `framePageTabs`, `filterTabItems` (or proxy to nav), `topTabItems`, `topTabActive`, `topExternalTabIds`, `dockItems`, `dockActive`, `dockExternalTabIds`, `dockUsesFramePages`, `filterTabsExternallyMounted`, `pageFabs`, `leftFab`, `rightFab`, `layoutSettings`.
+   - Delete the moved $effects: `pageIndex → viewport.applyPageTransform` and `pageOrder validity check`.
 
 ### Verification
 
 - `pnpm tsc --noEmit` clean.
 - `pnpm test test/component/frame/frameNavigationService.test.ts` green.
 - `pnpm verify` (full suite + lint).
-- Baseline DOM snapshot test still green (frame's rendered DOM should
-  not change at this step — only internal wiring changed).
+- Baseline DOM snapshot test still green (frame's rendered DOM should not change at this step — only internal wiring changed).
 - Live smoke per the pre-step 0 baseline.
 
 ### LOC delta
@@ -137,25 +91,16 @@ New: frameNavigation.svelte.ts: 0 → ~150 LOC.
 New test file `test/component/frame/framePopupsState.test.ts`:
 
 - Constructor with mock deps (plugin, overlays, onStatsDirty callback).
-- `setScope(v)`: normalizes value, mutates
-  `plugin.settings.explorerOperationScope`, calls saveSettings,
-  closes popup.
-- `setFiltersOperationScope(v)`: same as setScope but no
-  popup close.
-- `refreshActiveFiltersPopup()`: reads
-  `plugin.filterService.activeFilter`, exposes rules.
-- `toggleFilterRule(rule)`: calls
-  `plugin.filterService.toggleFilterRule(rule.node.id)`, refreshes.
-- `deleteFilterRule(rule)`: calls
-  `plugin.filterService.removeNode(rule.node, rule.parent)`,
-  refreshes, fires `onStatsDirty`.
+- `setScope(v)`: normalizes value, mutates `plugin.settings.explorerOperationScope`, calls saveSettings, closes popup.
+- `setFiltersOperationScope(v)`: same as setScope but no popup close.
+- `refreshActiveFiltersPopup()`: reads `plugin.filterService.activeFilter`, exposes rules.
+- `toggleFilterRule(rule)`: calls `plugin.filterService.toggleFilterRule(rule.node.id)`, refreshes.
+- `deleteFilterRule(rule)`: calls `plugin.filterService.removeNode(rule.node, rule.parent)`, refreshes, fires `onStatsDirty`.
 - `searchName`/`searchFolder` get/set: bindable reactivity.
 - `moveTargetFiles`/`moveTargetFolder` get/set: bindable.
 - `movePreviews` derived from `createMovePreviews(files, folder)`.
-- `queueMoves()`: builds changes via `createMoveChanges`, calls
-  `plugin.queueService.addBatch`, closes popup.
-- `attachFolderSuggest(el)`: constructs `FolderSuggest`, returns
-  `{ destroy() }` per Svelte action contract.
+- `queueMoves()`: builds changes via `createMoveChanges`, calls `plugin.queueService.addBatch`, closes popup.
+- `attachFolderSuggest(el)`: constructs `FolderSuggest`, returns `{ destroy() }` per Svelte action contract.
 
 ### Implementation
 
@@ -164,28 +109,17 @@ New test file `test/component/frame/framePopupsState.test.ts`:
    - Add imports.
    - Construct `popups = new FramePopupsState(plugin, overlays, () => updateStats())`.
    - Call `setContext(FRAME_POPUPS_KEY, popups)`.
-   - Replace `<PopupOverlay>` props with `popups.X` getters and
-     `(args) => popups.method(args)` callbacks (per shard 04
-     example).
-   - Update the active-filters popup refresh $effect to call
-     `popups.refreshActiveFiltersPopup()` instead of inline.
-   - Update the search routing $effect to read
-     `popups.searchName` / `popups.searchFolder` instead of inline
-     state.
-   - Delete the moved declarations: `scopeOptions`, `setScope`,
-     `setFiltersOperationScope`, `activeFilterRules`,
-     `refreshActiveFiltersPopup`, `toggleFilterRule`,
-     `deleteFilterRule`, `searchName`, `searchFolder`,
-     `moveTargetFiles`, `moveTargetFolder`, `movePreviews`,
-     `queueMoves`, `attachFolderSuggest`.
+   - Replace `<PopupOverlay>` props with `popups.X` getters and `(args) => popups.method(args)` callbacks (per shard 04 example).
+   - Update the active-filters popup refresh $effect to call `popups.refreshActiveFiltersPopup()` instead of inline.
+   - Update the search routing $effect to read `popups.searchName` / `popups.searchFolder` instead of inline state.
+   - Delete the moved declarations: `scopeOptions`, `setScope`, `setFiltersOperationScope`, `activeFilterRules`, `refreshActiveFiltersPopup`, `toggleFilterRule`, `deleteFilterRule`, `searchName`, `searchFolder`, `moveTargetFiles`, `moveTargetFolder`, `movePreviews`, `queueMoves`, `attachFolderSuggest`.
 
 ### Verification
 
 - `pnpm test test/component/frame/framePopupsState.test.ts` green.
 - `pnpm verify`.
 - Baseline DOM snapshot still green.
-- Live smoke: open each of 4 popups, exercise actions, verify
-  identical behavior.
+- Live smoke: open each of 4 popups, exercise actions, verify identical behavior.
 
 ### LOC delta
 
@@ -201,28 +135,18 @@ New test file `test/component/frame/FrameNavbarShell.test.ts`:
 - Mount with nav mock in context, overlays mock prop, minimal other props.
 - Renders `<NavbarTabs>` when `nav.topTabItems.length > 0`.
 - Renders `<NavbarDock>` with `nav.dockItems` / `nav.dockActive`.
-- Renders island backdrop with correct `is-open` class derived from
-  `overlays.isIslandOpen`.
-- Click on dock item dispatches
-  `nav.selectSurfaceItem(layoutSettings.dock.content, id)`.
-- Reorder gating: `nav.dockUsesFramePages=true` enables
-  `onItemPointerDown` etc.; `false` disables.
-- **DOM byte-equivalence test:** import the baseline snapshot from
-  pre-step 0; mount frame post-C3 with same inputs; assert the
-  rendered navbar region matches the baseline byte-for-byte (or
-  documents the intended diff if a wrapper element was added).
+- Renders island backdrop with correct `is-open` class derived from `overlays.isIslandOpen`.
+- Click on dock item dispatches `nav.selectSurfaceItem(layoutSettings.dock.content, id)`.
+- Reorder gating: `nav.dockUsesFramePages=true` enables `onItemPointerDown` etc.; `false` disables.
+- **DOM byte-equivalence test:** import the baseline snapshot from pre-step 0; mount frame post-C3 with same inputs; assert the rendered navbar region matches the baseline byte-for-byte (or documents the intended diff if a wrapper element was added).
 
 ### Implementation
 
 1. Create `src/components/frame/FrameNavbarShell.svelte` per shard 05.
-2. Add `drawerOpen` $state to `FrameNavReorderController` (new
-   public getter/setter pair). Update tests for the controller to
-   cover `drawerOpen`.
+2. Add `drawerOpen` $state to `FrameNavReorderController` (new public getter/setter pair). Update tests for the controller to cover `drawerOpen`.
 3. Refactor `frameVaultman.svelte`:
    - Delete the `frameIslandAndDock` snippet entirely.
-   - Replace the two `{@render frameIslandAndDock()}` sites with
-     a single `<FrameNavbarShell ... />` mount AFTER the dashboard
-     / pages-strip conditional.
+   - Replace the two `{@render frameIslandAndDock()}` sites with a single `<FrameNavbarShell ... />` mount AFTER the dashboard / pages-strip conditional.
    - Move the top `NavbarTabs` conditional render into the shell.
    - Remove the top-level `NavbarTabs` mount from the frame template.
    - Delete `dockDrawerOpen` $state from frame.
@@ -230,11 +154,9 @@ New test file `test/component/frame/FrameNavbarShell.test.ts`:
 ### Verification
 
 - `pnpm test test/component/frame/FrameNavbarShell.test.ts` green.
-- Baseline DOM snapshot for navbar region passes (byte-equivalent
-  or documented diff).
+- Baseline DOM snapshot for navbar region passes (byte-equivalent or documented diff).
 - `pnpm verify`.
-- Live smoke: toggle dock drawer, reorder pages, navigate dock
-  items, navigate top tabs, verify identical behavior.
+- Live smoke: toggle dock drawer, reorder pages, navigate dock items, navigate top tabs, verify identical behavior.
 
 ### LOC delta
 
@@ -248,32 +170,19 @@ New: FrameNavbarShell.svelte: 0 → ~170 LOC.
 New test file `test/component/frame/FrameDashboardShell.test.ts`:
 
 - Mount with nav mock in context, 24 props.
-- `dashboardEnabled=true` → renders `Dashboard3Column` with the 3
-  snippets.
+- `dashboardEnabled=true` → renders `Dashboard3Column` with the 3 snippets.
 - `dashboardEnabled=false` → renders nothing.
-- Each of the 3 snippets renders its expected content
-  (dashboardFilters: filter buttons; dashboardExplorer: per-page
-  component; dashboardAddons: AddonsMarkdownPane).
-- bind:s from FiltersPage propagate back (smoke test with a
-  mock FiltersPage that writes `filtersActiveTab`).
-- **DOM byte-equivalence test:** capture pre-C4 baseline DOM for
-  dashboardEnabled=true with a representative state; assert post-C4
-  matches.
+- Each of the 3 snippets renders its expected content (dashboardFilters: filter buttons; dashboardExplorer: per-page component; dashboardAddons: AddonsMarkdownPane).
+- bind:s from FiltersPage propagate back (smoke test with a mock FiltersPage that writes `filtersActiveTab`).
+- **DOM byte-equivalence test:** capture pre-C4 baseline DOM for dashboardEnabled=true with a representative state; assert post-C4 matches.
 
 ### Implementation
 
-1. Create `src/components/frame/FrameDashboardShell.svelte` per
-   shard 06.
+1. Create `src/components/frame/FrameDashboardShell.svelte` per shard 06.
 2. Refactor `frameVaultman.svelte`:
-   - Move the three snippets (`dashboardFilters`, `dashboardExplorer`,
-     `dashboardAddons`) **out** of frame and into the shell.
-   - Replace the `{#if dashboardEnabled}` branch of the main
-     template with `<FrameDashboardShell ... />` mount, passing
-     `dashboardEnabled` as a prop.
-   - Keep `frameViewportWidth`, `measuredViewportKind`,
-     `dashboardViewportKind`, `dashboardEnabled`,
-     `bindDashboardMeasurement`, `measureFrameWidth`,
-     `inferFrameViewportKind` in frame (per shard 06 decision).
+   - Move the three snippets (`dashboardFilters`, `dashboardExplorer`, `dashboardAddons`) **out** of frame and into the shell.
+   - Replace the `{#if dashboardEnabled}` branch of the main template with `<FrameDashboardShell ... />` mount, passing `dashboardEnabled` as a prop.
+   - Keep `frameViewportWidth`, `measuredViewportKind`, `dashboardViewportKind`, `dashboardEnabled`, `bindDashboardMeasurement`, `measureFrameWidth`, `inferFrameViewportKind` in frame (per shard 06 decision).
    - The pages-strip `{:else}` branch stays inline in frame.
 
 ### Verification
@@ -281,9 +190,7 @@ New test file `test/component/frame/FrameDashboardShell.test.ts`:
 - `pnpm test test/component/frame/FrameDashboardShell.test.ts` green.
 - Baseline DOM snapshot for dashboard mode passes.
 - `pnpm verify`.
-- Live smoke: switch between dashboard and pages-strip viewport
-  modes (resize Obsidian window to trigger threshold), verify
-  identical behavior in both.
+- Live smoke: switch between dashboard and pages-strip viewport modes (resize Obsidian window to trigger threshold), verify identical behavior in both.
 
 ### LOC delta
 
@@ -301,20 +208,14 @@ New: FrameDashboardShell.svelte: 0 → ~115 LOC.
    - Comments referencing removed code → remove.
 2. Confirm the final LOC: `wc -l src/components/frame/frameVaultman.svelte`.
    Target: ≤ ~360 LOC.
-3. Audit `src/components/frame/` for any new dead helper (in
-   `frameOverlays`, `frameNavReorder`, etc.). Should be none — O
-   only adds new files, doesn't delete existing ones.
-4. Run `git grep` for moved-and-deleted symbols
-   (`openDiffView`, `navigateTo` inside frame namespace,
-   `setScope` inside frame, etc.) and confirm no stale references
-   in tests or other components.
+3. Audit `src/components/frame/` for any new dead helper (in `frameOverlays`, `frameNavReorder`, etc.). Should be none — O only adds new files, doesn't delete existing ones.
+4. Run `git grep` for moved-and-deleted symbols (`openDiffView`, `navigateTo` inside frame namespace, `setScope` inside frame, etc.) and confirm no stale references in tests or other components.
 
 ### Verification
 
 - `pnpm verify` complete (unit + component + lint).
 - All baseline DOM snapshots still green.
-- Live smoke complete (every navigation path, every popup, T3 hook,
-  dev:errors).
+- Live smoke complete (every navigation path, every popup, T3 hook, dev:errors).
 - Visual smoke checklist:
   - Navigate ops → filters → statistics → ops.
   - Execute `vaultman:open-diff` command (T3).
@@ -332,19 +233,15 @@ Final target met.
 
 ## Per-commit rollback
 
-Each commit is its own merge unit. If C3 regresses something not
-caught by tests:
+Each commit is its own merge unit. If C3 regresses something not caught by tests:
 
-- Revert C3 only. C1 + C2 stay landed (FrameNavigationService and
-  FramePopupsState are healthy).
+- Revert C3 only. C1 + C2 stay landed (FrameNavigationService and FramePopupsState are healthy).
 - Re-investigate, address, re-land C3.
 
 If C1 regresses something deeper:
 
 - Revert C1 (and C2, C3, C4 since they depend on it).
-- This is the bigger reversal, but each subsequent commit only
-  builds on C1's API surface — the API contract is finalized in
-  C1.
+- This is the bigger reversal, but each subsequent commit only builds on C1's API surface — the API contract is finalized in C1.
 
 ## Commit message templates
 

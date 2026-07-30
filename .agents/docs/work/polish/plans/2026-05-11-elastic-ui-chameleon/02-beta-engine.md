@@ -17,9 +17,7 @@ updated_by: codex
 
 ## Ownership
 
-BETA owns node surface virtualization, dynamic measurement, table/grid/card
-rendering contracts, and view-level mode-aware classes. It must not install
-style dependencies or change overlay portal behavior.
+BETA owns node surface virtualization, dynamic measurement, table/grid/card rendering contracts, and view-level mode-aware classes. It must not install style dependencies or change overlay portal behavior.
 
 ## Files
 
@@ -31,10 +29,7 @@ style dependencies or change overlay portal behavior.
 - Create: `src/services/serviceNodeRowMeasure.ts`
 - Create: `test/unit/services/serviceNodeRowMeasure.test.ts`
 - Modify or create focused component tests:
-  `test/component/viewTableStress.test.ts`,
-  `test/component/viewTableSelection.test.ts`,
-  `test/component/viewGridSelection.test.ts`,
-  `test/component/viewNodeCards.test.ts`
+  `test/component/viewTableStress.test.ts`, `test/component/viewTableSelection.test.ts`, `test/component/viewGridSelection.test.ts`, `test/component/viewNodeCards.test.ts`
 
 ## Shards
 
@@ -53,5 +48,4 @@ obsidian vault=plugin-dev eval code="window.__vaultmanPerfProbe.run('tree-scroll
 obsidian vault=plugin-dev dev:errors
 ```
 
-Expected: focused tests pass, no Svelte errors, build exits 0, performance probe
-returns JSON, and no Vaultman stack appears.
+Expected: focused tests pass, no Svelte errors, build exits 0, performance probe returns JSON, and no Vaultman stack appears.

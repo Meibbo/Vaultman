@@ -15,18 +15,12 @@ tags:
 
 # Wave 1 Specs — Fase C-lite
 
-Specs ejecutables de los tres lanes de wave 1 (contratos en
-[[docs/work/hardening/specs/2026-06-10-vaultman-2-0-synthesis-umbrella/04-wave-1-contracts|umbrella shard 04]]).
-Consumen: ledger
-[[docs/work/hardening/research/2026-06-11-function-union-ledger/09-sintesis-transversal|síntesis (09)]]
-§7, decisiones D1-D9 + D-PSS-1..10 + **D-C-1/5/7** (grill 2026-06-12, en
-[[docs/work/hardening/specs/2026-06-10-vaultman-2-0-synthesis-umbrella/01-locked-decisions-grill|umbrella shard 01]]).
+Specs ejecutables de los tres lanes de wave 1 (contratos en [[docs/work/hardening/specs/2026-06-10-vaultman-2-0-synthesis-umbrella/04-wave-1-contracts|umbrella shard 04]]).
+Consumen: ledger [[docs/work/hardening/research/2026-06-11-function-union-ledger/09-sintesis-transversal|síntesis (09)]] §7, decisiones D1-D9 + D-PSS-1..10 + **D-C-1/5/7** (grill 2026-06-12, en [[docs/work/hardening/specs/2026-06-10-vaultman-2-0-synthesis-umbrella/01-locked-decisions-grill|umbrella shard 01]]).
 
-**Prioridad alpha declarada por el dev (2026-06-12): robustez de MyWorkspace +
-Symbiont Explorer + node-notes.** Cada spec ordena su alcance bajo ese criterio.
+**Prioridad alpha declarada por el dev (2026-06-12): robustez de MyWorkspace + Symbiont Explorer + node-notes.** Cada spec ordena su alcance bajo ese criterio.
 
-C-lite = spec suficiente para que un agente con worktree propio escriba su PLAN e
-implemente sin re-derivar contexto; NO duplica los pre-reads — los enlaza.
+C-lite = spec suficiente para que un agente con worktree propio escriba su PLAN e implemente sin re-derivar contexto; NO duplica los pre-reads — los enlaza.
 
 ## Shards
 

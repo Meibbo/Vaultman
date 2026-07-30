@@ -14,14 +14,11 @@ tags:
 ---
 # 2026-05-29 Checkpoint — feature grill closeout + decision maps
 
-Feature-request grill captured and closed for this session. No product code changed. This checkpoint
-adds a dev-facing pending-question item plus Mermaid visual maps for resuming.
+Feature-request grill captured and closed for this session. No product code changed. This checkpoint adds a dev-facing pending-question item plus Mermaid visual maps for resuming.
 
 ## What changed
 
-- S-26 locked: `NodeIdentity={providerId,kind,canonicalId}`, `NodeOccurrence` = visual appearance,
-  `Membership` = relation/context causing appearance. Identity is never label; sibling label collisions
-  require a default disambiguation affordance.
+- S-26 locked: `NodeIdentity={providerId,kind,canonicalId}`, `NodeOccurrence` = visual appearance, `Membership` = relation/context causing appearance. Identity is never label; sibling label collisions require a default disambiguation affordance.
 - `MembershipEdge` renamed to **Membership**.
 - `pack` clarified as non-canonical; use user-named manual `ContainerNode`.
 - S-27 panelData was NOT locked; it needs a dedicated grill/research (`R-PANELDATA`).
@@ -59,5 +56,4 @@ Then: S-29 primitive adapter strategy, S-10/S-11 DnD/tooling locks, then S-15/S-
 
 ## Worktree note
 
-Branch `sandbox` was already docs-dirty from goal-anchor iterations. This session preserved unrelated
-dirty files and added docs-only checkpoint / inventory / visual records.
+Branch `sandbox` was already docs-dirty from goal-anchor iterations. This session preserved unrelated dirty files and added docs-only checkpoint / inventory / visual records.

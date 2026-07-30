@@ -26,8 +26,7 @@ tags:
 
 - Add display size vs generated pixel size settings.
 - Add cache stats, rebuild, clear, and prune controls.
-- Ensure quality/size changes create new variant keys and schedule background
-  regeneration.
+- Ensure quality/size changes create new variant keys and schedule background regeneration.
 
 ### Slice 3: YouTube Provider
 
@@ -51,8 +50,7 @@ tags:
 
 - `vid` codeblocks are ignored.
 - Configured node property resolves local image and local video paths.
-- First document media resolves standard links/embeds but ignores custom
-  codeblocks.
+- First document media resolves standard links/embeds but ignores custom codeblocks.
 - Only one primary media is active per node.
 - YouTube URL variants converge to the same source key.
 - Provider fetches are skipped when provider remote fetching is disabled.
@@ -69,8 +67,7 @@ tags:
 - Row render must not decode source media.
 - Visible-range hydration must be bounded by virtualizer overscan.
 - Provider/generic page resolution runs only in queue/background work.
-- Animated previews activate only for hover/selected/focused policy, never for
-  every visible row by default.
+- Animated previews activate only for hover/selected/focused policy, never for every visible row by default.
 
 ## Manual QA Dataset
 

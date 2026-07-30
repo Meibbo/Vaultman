@@ -26,8 +26,7 @@ updated_by: codex-gpt-5
 
 ## What To Build
 
-Make the explorer header expand/collapse action derive from real expanded-node state for Files, Props,
-Tags, and Content where applicable.
+Make the explorer header expand/collapse action derive from real expanded-node state for Files, Props, Tags, and Content where applicable.
 
 ## Acceptance Criteria
 

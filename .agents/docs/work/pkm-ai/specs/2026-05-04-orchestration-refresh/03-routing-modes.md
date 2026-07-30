@@ -43,8 +43,7 @@ health:
 handoff:
 ```
 
-Modes limit action scope. A quick side question is answered directly and does
-not require a new chat or mode switch.
+Modes limit action scope. A quick side question is answered directly and does not require a new chat or mode switch.
 
 ## Micro Commands
 

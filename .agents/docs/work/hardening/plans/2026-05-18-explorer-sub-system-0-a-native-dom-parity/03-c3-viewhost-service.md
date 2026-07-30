@@ -6,9 +6,7 @@ parent: "[[2026-05-18-explorer-sub-system-0-a-native-dom-parity/index]]"
 
 # 03 — C3: Add `serviceViewHost` runes class + Symbol context keys
 
-Per-panel mutable host state. Owns `viewMode`, `mountContext`, `preset`,
-`btnNodeElementsVisibility`. Derives `selectableModes`, `nodeElementMask`,
-`multiSelectionAvailable`. No consumers yet (mounted in C4).
+Per-panel mutable host state. Owns `viewMode`, `mountContext`, `preset`, `btnNodeElementsVisibility`. Derives `selectableModes`, `nodeElementMask`, `multiSelectionAvailable`. No consumers yet (mounted in C4).
 
 **Files:**
 - Create: `src/services/serviceViewHost.svelte.ts`
@@ -316,11 +314,7 @@ Run:
 Get-Content src/components/frame/frameNavigation.svelte.ts -TotalCount 60
 ```
 
-Look for: any `createInjectionKey<T>()` generic helper or different cast
-pattern. If O uses a helper, replace the cast above with that helper for
-consistency. If O uses a different cast, match it. Update
-`viewHostContext.ts` accordingly. This is a small fix-up, not a behavior
-change.
+Look for: any `createInjectionKey<T>()` generic helper or different cast pattern. If O uses a helper, replace the cast above with that helper for consistency. If O uses a different cast, match it. Update `viewHostContext.ts` accordingly. This is a small fix-up, not a behavior change.
 
 - [ ] **Step 7: Run test to verify pass**
 

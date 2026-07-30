@@ -18,19 +18,11 @@ tags:
 
 ## Context
 
-`viewTree.svelte` (1188 LOC) is simultaneously a renderer, a tree-projection engine,
-a decoration computer, and a scroll-fallback owner. The 50k matrix shows Tree p99
-1051 ms vs List 43 ms. The five views each re-implement overlapping logic, so the
-same node renders divergently across views (the reported drift bug).
+`viewTree.svelte` (1188 LOC) is simultaneously a renderer, a tree-projection engine, a decoration computer, and a scroll-fallback owner. The 50k matrix shows Tree p99 1051 ms vs List 43 ms. The five views each re-implement overlapping logic, so the same node renders divergently across views (the reported drift bug).
 
 ## Decision
 
-A **View is a pure renderer** over a finished render-projection (rows flattened,
-indexed, decorated with descriptors). It owns DOM/markup and local interaction
-wiring only; data, projection, and decoration resolution move upstream. There is no
-fixed set of "5 views": the render layer = a few render engines × modes × orientation
-plus externally registered views. The DOM runtime (virtualizer/scroll/measure) is
-shared, not per-view — see ADR 0008.
+A **View is a pure renderer** over a finished render-projection (rows flattened, indexed, decorated with descriptors). It owns DOM/markup and local interaction wiring only; data, projection, and decoration resolution move upstream. There is no fixed set of "5 views": the render layer = a few render engines × modes × orientation plus externally registered views. The DOM runtime (virtualizer/scroll/measure) is shared, not per-view — see ADR 0008.
 
 ## Consequences
 

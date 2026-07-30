@@ -17,8 +17,7 @@ tags:
 
 - Modify: `.agents/docs/work/polish/specs/2026-05-10-pretext-grid-cards/index.md`
 - Modify: `.agents/docs/work/polish/index.md` if plan status changes
-- Modify: `.agents/docs/current/status.md` only if the implementation is
-  completed in the executing session and current status needs a compact link
+- Modify: `.agents/docs/current/status.md` only if the implementation is completed in the executing session and current status needs a compact link
 
 ## Steps
 
@@ -84,27 +83,20 @@ Expected: command exits 0.
 
 - [x] **Step 7: Update PKM-AI completion notes after implementation**
 
-If implementation is completed, append a compact implementation status to
-`.agents/docs/work/polish/specs/2026-05-10-pretext-grid-cards/index.md` with:
+If implementation is completed, append a compact implementation status to `.agents/docs/work/polish/specs/2026-05-10-pretext-grid-cards/index.md` with:
 
 - files changed;
 - verification commands and results;
 - any deviations from the plan;
-- deferred follow-up for `dnd-kit`, resize, and multiline table rows. Exact CSS
-  font snapshotting is superseded by
-  [[docs/work/polish/plans/2026-05-10-pretext-grid-cards/07-css-font-snapshot|CSS font snapshot follow-up result]].
+- deferred follow-up for `dnd-kit`, resize, and multiline table rows. Exact CSS font snapshotting is superseded by [[docs/work/polish/plans/2026-05-10-pretext-grid-cards/07-css-font-snapshot|CSS font snapshot follow-up result]].
 
 - [x] **Step 8: Keep current docs compact**
 
-If updating `.agents/docs/current/status.md`, add only a compact link to the
-source record and next action. Keep implementation detail inside the polish
-spec or a dedicated result note.
+If updating `.agents/docs/current/status.md`, add only a compact link to the source record and next action. Keep implementation detail inside the polish spec or a dedicated result note.
 
 ## Result
 
-Task 6 is complete. Verification record and implementation status were added to
-the Pretext spec. Current docs were not expanded; source detail remains in the
-polish plan/spec records.
+Task 6 is complete. Verification record and implementation status were added to the Pretext spec. Current docs were not expanded; source detail remains in the polish plan/spec records.
 
 Verification on 2026-05-10T02:37:32:
 
@@ -113,5 +105,4 @@ Verification on 2026-05-10T02:37:32:
 - `pnpm run check` passed with 0 errors / 0 warnings.
 - `pnpm run lint` passed with 0 warnings / 0 errors.
 - `pnpm run build` passed and synced build artifacts.
-- Scoped `git diff --check` exited 0 with only LF-to-CRLF working-copy
-  normalization warnings.
+- Scoped `git diff --check` exited 0 with only LF-to-CRLF working-copy normalization warnings.

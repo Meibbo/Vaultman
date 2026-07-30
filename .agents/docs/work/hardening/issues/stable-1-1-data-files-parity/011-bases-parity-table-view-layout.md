@@ -27,21 +27,13 @@ updated_by: codex-gpt-5
 
 ## What To Build
 
-Repair Vaultman's table view so it behaves and reads as a real table with separated columns, stable
-headers, cells, and widths comparable to Obsidian Core Bases under equivalent row limits.
+Repair Vaultman's table view so it behaves and reads as a real table with separated columns, stable headers, cells, and widths comparable to Obsidian Core Bases under equivalent row limits.
 
 ## Research Gate
 
-- [x] Capture a before/evidence comparison for Vaultman table view and Core Bases table view under
-      the same row-count conditions. Screenshot capture was unavailable because
-      `obsidian vault=plugin-dev dev:screenshot ...` returned `TypeError: Cannot read properties of
-      undefined (reading 'includes')`; DOM rect/scroll evidence below substitutes for this CLI
-      failure.
-- [x] Use `obsidian-cli` against `plugin-dev` to inspect Core Bases DOM/classes for headers, rows,
-      cells, column separators, resize handles, widths, overflow, sticky header behavior, and
-      virtualization.
-- [x] Determine whether `obsidian-web-lab` is needed for Bases table layout, virtualization, or
-      column-resize behavior. DOM inspection was sufficient for this fix, so web-lab was not used.
+- [x] Capture a before/evidence comparison for Vaultman table view and Core Bases table view under the same row-count conditions. Screenshot capture was unavailable because `obsidian vault=plugin-dev dev:screenshot ...` returned `TypeError: Cannot read properties of undefined (reading 'includes')`; DOM rect/scroll evidence below substitutes for this CLI failure.
+- [x] Use `obsidian-cli` against `plugin-dev` to inspect Core Bases DOM/classes for headers, rows, cells, column separators, resize handles, widths, overflow, sticky header behavior, and virtualization.
+- [x] Determine whether `obsidian-web-lab` is needed for Bases table layout, virtualization, or column-resize behavior. DOM inspection was sufficient for this fix, so web-lab was not used.
 - [x] Document which Bases classes can be reused directly and which behaviors must be mirrored.
 
 ## Acceptance Criteria
@@ -61,33 +53,15 @@ None - can start immediately.
 ## Verification
 
 - Core Bases reference file created in `plugin-dev`:
-  `_vaultman_table_parity_reference.base`, with a table view limit of `11110` rows and columns
-  `file.name`, `file.ext`, `file.folder`, and `file.mtime`.
-- Core Bases DOM finding: `.bases-table-container` contains `.bases-table`, `.bases-thead`, and
-  `.bases-tbody`; headers and row cells are `.bases-td` elements positioned with inline
-  `inset-inline-start` and `width`, not CSS grid tracks. Reference widths observed:
+  `_vaultman_table_parity_reference.base`, with a table view limit of `11110` rows and columns `file.name`, `file.ext`, `file.folder`, and `file.mtime`.
+- Core Bases DOM finding: `.bases-table-container` contains `.bases-table`, `.bases-thead`, and `.bases-tbody`; headers and row cells are `.bases-td` elements positioned with inline `inset-inline-start` and `width`, not CSS grid tracks. Reference widths observed:
   file name `300px`, file extension `111px`, folder `201px`, modified time `213px`.
-- Vaultman before-fix finding: header and row cells all measured at the same x-coordinate, producing
-  list-like overlap even though the renderer assigned `gridTemplateColumns`.
-- Product fix: `src/logic/logicTableLayout.ts` now resolves stable Bases-style column offsets and
-  widths; `src/components/layout/viewGrid.ts` applies `insetInlineStart` / `width` to every header
-  and body `.bases-td`; `styles.css` scopes absolute table-cell positioning under
-  `.vaultman-files-table-root`; `.md` rows show basename while non-Markdown rows keep `file.name`
-  such as `_vaultman_table_parity_reference.base`.
+- Vaultman before-fix finding: header and row cells all measured at the same x-coordinate, producing list-like overlap even though the renderer assigned `gridTemplateColumns`.
+- Product fix: `src/logic/logicTableLayout.ts` now resolves stable Bases-style column offsets and widths; `src/components/layout/viewGrid.ts` applies `insetInlineStart` / `width` to every header and body `.bases-td`; `styles.css` scopes absolute table-cell positioning under `.vaultman-files-table-root`; `.md` rows show basename while non-Markdown rows keep `file.name` such as `_vaultman_table_parity_reference.base`.
 - Focused tests:
-  `pnpm exec vitest run test/unit/tableLayout.test.ts test/unit/gridViewSource.test.ts test/unit/tableVirtualization.test.ts --config vitest.unit.config.mts`
-  passed (`3` files / `6` tests).
-- Full gate: `pnpm run verify` passed: lint, `svelte-check`, format check, stylelint, production
-  build, `27` unit files / `87` tests, and scorecard regression scan `17` checks.
-- Runtime `plugin-dev` gate: `pnpm run build` synced artifacts to
-  `C:/Users/vic_A/Desktop/plugin-dev/.obsidian/plugins/vaultman`; `obsidian vault=plugin-dev
-  plugin:reload id=vaultman` and `obsidian vault=plugin-dev command id=vaultman:open` passed;
-  `obsidian vault=plugin-dev dev:errors` returned `No errors captured`; after `dev:debug on`,
-  `obsidian vault=plugin-dev dev:console level=error` returned `No console messages captured`.
-- Vaultman after-fix DOM: root width `247`, scroll `clientWidth=235`, `scrollWidth=612`,
-  `scrollHeight=333570`; header cells measured at x/width/inset `(48,300,0px)`,
-  `(348,111,300px)`, `(459,201,411px)`; first row cells matched those same positions. Horizontal
-  scroll set `scrollLeft=250` and header transform became `translateX(-250px)`.
-- Scroll virtualization smoke: near-bottom scroll rendered rows with tops `332520px` through
-  `332730px` and paths such as `+/Warcraft III The Frozen Throne.md`; `repeatedFirstAtBottom=false`,
-  so the earlier duplicate-from-top table behavior was not observed.
+  `pnpm exec vitest run test/unit/tableLayout.test.ts test/unit/gridViewSource.test.ts test/unit/tableVirtualization.test.ts --config vitest.unit.config.mts` passed (`3` files / `6` tests).
+- Full gate: `pnpm run verify` passed: lint, `svelte-check`, format check, stylelint, production build, `27` unit files / `87` tests, and scorecard regression scan `17` checks.
+- Runtime `plugin-dev` gate: `pnpm run build` synced artifacts to `C:/Users/vic_A/Desktop/plugin-dev/.obsidian/plugins/vaultman`; `obsidian vault=plugin-dev plugin:reload id=vaultman` and `obsidian vault=plugin-dev command id=vaultman:open` passed;
+  `obsidian vault=plugin-dev dev:errors` returned `No errors captured`; after `dev:debug on`, `obsidian vault=plugin-dev dev:console level=error` returned `No console messages captured`.
+- Vaultman after-fix DOM: root width `247`, scroll `clientWidth=235`, `scrollWidth=612`, `scrollHeight=333570`; header cells measured at x/width/inset `(48,300,0px)`, `(348,111,300px)`, `(459,201,411px)`; first row cells matched those same positions. Horizontal scroll set `scrollLeft=250` and header transform became `translateX(-250px)`.
+- Scroll virtualization smoke: near-bottom scroll rendered rows with tops `332520px` through `332730px` and paths such as `+/Warcraft III The Frozen Throne.md`; `repeatedFirstAtBottom=false`, so the earlier duplicate-from-top table behavior was not observed.

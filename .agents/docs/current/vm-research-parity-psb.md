@@ -1,37 +1,18 @@
 # Vaultman Explorer — Parity Research: Properties, Search, Bases
 
-Research date: 2026-05-14. Parity target: "2:1" (more capable than core, with
-settings that dial back to 1:1 / look identical).
+Research date: 2026-05-14. Parity target: "2:1" (more capable than core, with settings that dial back to 1:1 / look identical).
 
-Method: read the prior Bases interop research doc + shards; verified Vaultman
-state in the `claude/explorer` worktree (`.claude/worktrees/jovial-wilson-f81c67`);
-Obsidian core-plugin behavior from official docs (pages are JS-rendered so
-fetched outlines were thin — core-plugin feature lists below are from
-established, stable Obsidian behavior, flagged as inference where not directly
-re-confirmed on 2026-05-14).
+Method: read the prior Bases interop research doc + shards; verified Vaultman state in the `claude/explorer` worktree (`.claude/worktrees/jovial-wilson-f81c67`);
+Obsidian core-plugin behavior from official docs (pages are JS-rendered so fetched outlines were thin — core-plugin feature lists below are from established, stable Obsidian behavior, flagged as inference where not directly re-confirmed on 2026-05-14).
 
 IMPORTANT — worktree differs from the recon baseline. Actual files found:
 - `src/components/containers/panelExplorer.svelte` (unified surface)
-- Views: `src/components/views/viewTree.svelte`, `ViewNodeGrid.svelte`,
-  `ViewNodeTable.svelte`, `ViewNodeCards.svelte`, `ViewMarkmap.svelte`,
-  `viewGrid.svelte`, `viewList.svelte`, `viewOutlineExplorer.svelte`,
-  `viewDiff.svelte`, `viewEmptyLanding.svelte`
-- Providers: `src/providers/explorerProps.ts`, `explorerContent.ts`,
-  `explorerFiles.ts`, `explorerTags.ts`, `explorerOutline.ts`,
-  `explorerPlugins.ts`, `explorerSnippets.ts`; provider container shims under
-  `src/components/containers/explorer*.ts`
-- `src/components/containers/explorerBasesImport.ts` + `explorerProps.ts` (the
-  recon "panelExplorer 5 modes / Props provider" matches; the named
-  `serviceSelection.svelte.ts`, `serviceExplorerDataPlane.svelte.ts`,
-  `logicExplorerSnapshot.ts`, `serviceNodeFieldVisibility.ts` all exist)
-- Bases interop: `src/services/serviceBasesInterop.ts`,
-  `src/types/typeBasesInterop.ts`, `src/index/indexBasesImportTargets.ts`,
-  `src/components/containers/explorerBasesImport.ts`
-- Search/content: `src/index/indexContent.ts`, `src/providers/explorerContent.ts`,
-  `src/components/primitives/boxSearch.svelte`,
-  `src/components/frame/frameFiltersSearch.ts`, `frameSearchSources.ts`
-- FnR (find & replace): `src/services/serviceFnR.ts`, `serviceFnRIsland.svelte.ts`,
-  `serviceFnRPropSet.ts`, `serviceFnRTemplate.ts`, `serviceFnRDateParser.ts`
+- Views: `src/components/views/viewTree.svelte`, `ViewNodeGrid.svelte`, `ViewNodeTable.svelte`, `ViewNodeCards.svelte`, `ViewMarkmap.svelte`, `viewGrid.svelte`, `viewList.svelte`, `viewOutlineExplorer.svelte`, `viewDiff.svelte`, `viewEmptyLanding.svelte`
+- Providers: `src/providers/explorerProps.ts`, `explorerContent.ts`, `explorerFiles.ts`, `explorerTags.ts`, `explorerOutline.ts`, `explorerPlugins.ts`, `explorerSnippets.ts`; provider container shims under `src/components/containers/explorer*.ts`
+- `src/components/containers/explorerBasesImport.ts` + `explorerProps.ts` (the recon "panelExplorer 5 modes / Props provider" matches; the named `serviceSelection.svelte.ts`, `serviceExplorerDataPlane.svelte.ts`, `logicExplorerSnapshot.ts`, `serviceNodeFieldVisibility.ts` all exist)
+- Bases interop: `src/services/serviceBasesInterop.ts`, `src/types/typeBasesInterop.ts`, `src/index/indexBasesImportTargets.ts`, `src/components/containers/explorerBasesImport.ts`
+- Search/content: `src/index/indexContent.ts`, `src/providers/explorerContent.ts`, `src/components/primitives/boxSearch.svelte`, `src/components/frame/frameFiltersSearch.ts`, `frameSearchSources.ts`
+- FnR (find & replace): `src/services/serviceFnR.ts`, `serviceFnRIsland.svelte.ts`, `serviceFnRPropSet.ts`, `serviceFnRTemplate.ts`, `serviceFnRDateParser.ts`
 
 ---
 
@@ -41,60 +22,32 @@ IMPORTANT — worktree differs from the recon baseline. Actual files found:
 
 Core "Properties" plugin surfaces (facts, established Obsidian behavior):
 
-- **Properties in the editor** — frontmatter rendered as a structured
-  key/value table at the top of a note. Each row = property pill (name +
-  type icon) and a type-specific value widget.
-- **Property types**: `text`, `list` (multitext / tags-like chips),
-  `number`, `checkbox` (boolean), `date`, `datetime`. Type is global per
-  property name across the vault (stored in `app.metadataTypeManager` /
-  `types.json`).
-- **Type-specific widgets**: text input; list = chip editor with
-  add/remove + autocomplete; number = numeric input; checkbox = toggle;
-  date/datetime = date picker. Unknown/mismatched values show a type
-  mismatch affordance.
-- **Add property**: "Add property" command + `+` affordance in the editor
-  properties block; name autocomplete from existing vault property names;
+- **Properties in the editor** — frontmatter rendered as a structured key/value table at the top of a note. Each row = property pill (name + type icon) and a type-specific value widget.
+- **Property types**: `text`, `list` (multitext / tags-like chips), `number`, `checkbox` (boolean), `date`, `datetime`. Type is global per property name across the vault (stored in `app.metadataTypeManager` / `types.json`).
+- **Type-specific widgets**: text input; list = chip editor with add/remove + autocomplete; number = numeric input; checkbox = toggle;
+  date/datetime = date picker. Unknown/mismatched values show a type mismatch affordance.
+- **Add property**: "Add property" command + `+` affordance in the editor properties block; name autocomplete from existing vault property names;
   value autocomplete from existing values.
 - **Default new property type** setting (core plugin setting).
-- **Properties view** (sidebar leaf, view type `all-properties`): a tree of
-  every property name in the vault with usage counts; expanding a property
-  lists its values. Has its own search box. This is the closest core
-  analogue to Vaultman's Props provider.
+- **Properties view** (sidebar leaf, view type `all-properties`): a tree of every property name in the vault with usage counts; expanding a property lists its values. Has its own search box. This is the closest core analogue to Vaultman's Props provider.
 - **File properties view** (sidebar leaf, view type `file-properties`):
-  shows the active file's properties — mirrors the editor block in the
-  sidebar.
-- **Special properties**: `tags`, `aliases`, `cssclasses` get dedicated
-  handling/widgets.
-- **Context-menu actions** (on a property row): change type (submenu of the
-  6 types), rename property (vault-wide rename), delete property, copy.
-  In the All Properties view: right-click a property/value for similar
-  actions; click a value to search for it.
+  shows the active file's properties — mirrors the editor block in the sidebar.
+- **Special properties**: `tags`, `aliases`, `cssclasses` get dedicated handling/widgets.
+- **Context-menu actions** (on a property row): change type (submenu of the 6 types), rename property (vault-wide rename), delete property, copy.
+  In the All Properties view: right-click a property/value for similar actions; click a value to search for it.
 - **Keyboard**: Tab/Shift-Tab between property fields; Enter to commit;
-  Esc to cancel; arrow keys within chip lists; the properties block is
-  keyboard-navigable in the editor.
+  Esc to cancel; arrow keys within chip lists; the properties block is keyboard-navigable in the editor.
 - **Drag**: reorder properties in the editor block.
 - **Settings**: "Properties in document" = visible / hidden / source.
 
 ### 1b. DOM / class hooks — Obsidian core
 
-For a 1:1 visual mimic, the relevant core DOM hooks (stable Obsidian
-class names; inference — verify against a live build):
+For a 1:1 visual mimic, the relevant core DOM hooks (stable Obsidian class names; inference — verify against a live build):
 
-- Editor properties block: `.metadata-container`, `.metadata-properties`,
-  `.metadata-property` (with `data-property-key="…"` and
-  `data-property-type="…"`), `.metadata-property-key`,
-  `.metadata-property-key-input`, `.metadata-property-icon`,
-  `.metadata-property-value`, `.metadata-add-button`.
-- Value widgets: `.metadata-input-longtext`, `.metadata-input-number`,
-  `.metadata-input-checkbox`, multitext chips as `.multi-select-pill` /
-  `.multi-select-pill-content` inside `.multi-select-container`,
-  `.metadata-link` for link-type values.
-- All Properties view leaf: `.tree-item` / `.tree-item-self` /
-  `.tree-item-inner` / `.tree-item-flair` (count), nested values as child
-  `.tree-item`s — i.e. the standard Obsidian nav-tree DOM, the same family
-  Vaultman's `viewTree.svelte` would need to emit for `useNativeDom`.
-- Type icons are Lucide glyphs (`lucide-text`, `lucide-list`, `lucide-hash`,
-  `lucide-check-square`, `lucide-calendar`, `lucide-clock`).
+- Editor properties block: `.metadata-container`, `.metadata-properties`, `.metadata-property` (with `data-property-key="…"` and `data-property-type="…"`), `.metadata-property-key`, `.metadata-property-key-input`, `.metadata-property-icon`, `.metadata-property-value`, `.metadata-add-button`.
+- Value widgets: `.metadata-input-longtext`, `.metadata-input-number`, `.metadata-input-checkbox`, multitext chips as `.multi-select-pill` / `.multi-select-pill-content` inside `.multi-select-container`, `.metadata-link` for link-type values.
+- All Properties view leaf: `.tree-item` / `.tree-item-self` / `.tree-item-inner` / `.tree-item-flair` (count), nested values as child `.tree-item`s — i.e. the standard Obsidian nav-tree DOM, the same family Vaultman's `viewTree.svelte` would need to emit for `useNativeDom`.
+- Type icons are Lucide glyphs (`lucide-text`, `lucide-list`, `lucide-hash`, `lucide-check-square`, `lucide-calendar`, `lucide-clock`).
 
 ### 1c. Vaultman parity status
 
@@ -121,22 +74,10 @@ class names; inference — verify against a live build):
 
 ### 1d. Notes for "2:1" (Properties)
 
-- Already past 1:1 on **bulk ops**: vault-wide rename/delete/set across many
-  files with a queue + FnR handoff is strictly more capable than core's
-  per-property rename.
-- Gaps to close for **1:1 look/feel**: add a `datetime` type action and real
-  type coercion in `_changePropType`; add inline type-specific value
-  widgets (date picker, checkbox toggle, multitext chip editor) in
-  `ViewNodeTable`/`ViewNodeCards` so the table mode can *edit* like core's
-  pill widgets, not just display strings; add a "File properties" provider
-  mode bound to the active file; special-case `tags`/`aliases`/`cssclasses`.
-- "Dial back to 1:1": a setting to hide the extra sort targets / bulk
-  badges and emit `.metadata-property*` / nav-tree DOM so a theme can't
-  tell Vaultman's Props view from core's All-Properties view.
-- "2:1" stretch: type-mismatch/conflict surfacing already exists
-  (`isTypeIncompatible` → red "Conflict" badge in `_decorateTree`) — extend
-  to a bulk "fix all conflicts" op; multi-property bulk type change is
-  already wired (loops `contextPropNodes`).
+- Already past 1:1 on **bulk ops**: vault-wide rename/delete/set across many files with a queue + FnR handoff is strictly more capable than core's per-property rename.
+- Gaps to close for **1:1 look/feel**: add a `datetime` type action and real type coercion in `_changePropType`; add inline type-specific value widgets (date picker, checkbox toggle, multitext chip editor) in `ViewNodeTable`/`ViewNodeCards` so the table mode can *edit* like core's pill widgets, not just display strings; add a "File properties" provider mode bound to the active file; special-case `tags`/`aliases`/`cssclasses`.
+- "Dial back to 1:1": a setting to hide the extra sort targets / bulk badges and emit `.metadata-property*` / nav-tree DOM so a theme can't tell Vaultman's Props view from core's All-Properties view.
+- "2:1" stretch: type-mismatch/conflict surfacing already exists (`isTypeIncompatible` → red "Conflict" badge in `_decorateTree`) — extend to a bulk "fix all conflicts" op; multi-property bulk type change is already wired (loops `contextPropNodes`).
 
 ---
 
@@ -144,11 +85,9 @@ class names; inference — verify against a live build):
 
 ### 2a. Functional feature list — Obsidian core
 
-Core "Search" plugin (facts, established Obsidian behavior — query syntax
-is stable and documented):
+Core "Search" plugin (facts, established Obsidian behavior — query syntax is stable and documented):
 
-- **Global search pane** (sidebar leaf `search`): query input, result list
-  grouped by file with match snippets/context.
+- **Global search pane** (sidebar leaf `search`): query input, result list grouped by file with match snippets/context.
 - **Query operators**:
   - `path:` — match on file path
   - `file:` — match on file name
@@ -160,41 +99,25 @@ is stable and documented):
   - `section:(…)` — terms in the same section (between headings)
   - `task:`, `task-todo:`, `task-done:` — match task lines / state
   - `property:` — notes having a property (value matching too)
-  - `[bookmark]` style? no — but `ignore-diacritics:` exists for diacritic
-    folding
+  - `[bookmark]` style? no — but `ignore-diacritics:` exists for diacritic folding
   - Regex: `/pattern/` as a term
-  - Booleans: space = AND, `OR`, `-` negation, `"exact phrase"`,
-    `( )` grouping. Operators nest.
-- **Result interactions**: collapse/expand results, "collapse all",
-  per-file expand, change sort order (file name A→Z/Z→A, modified time,
-  created time), show more / less context lines, copy search results
-  (as a list), hover-preview matches, click to open at the match.
-- **Embedded search**: a ```` ```query ```` code block in a note renders a
-  live search-results block inline.
-- **Settings** (search pane "settings" gear / context): "Explain search
-  term" (shows how the query parsed), collapse results default, show more
-  context default, sort order default.
-- **Scope**: "Search in folder" via folder context-menu; results can be
-  scoped to a path. Search-and-replace is **not** part of core search
-  (only find/replace within the active editor, Ctrl/Cmd-F / Ctrl-H).
-- **Keyboard**: focus search command; Up/Down through results; Enter to
-  open.
+  - Booleans: space = AND, `OR`, `-` negation, `"exact phrase"`, `( )` grouping. Operators nest.
+- **Result interactions**: collapse/expand results, "collapse all", per-file expand, change sort order (file name A→Z/Z→A, modified time, created time), show more / less context lines, copy search results (as a list), hover-preview matches, click to open at the match.
+- **Embedded search**: a ```` ```query ```` code block in a note renders a live search-results block inline.
+- **Settings** (search pane "settings" gear / context): "Explain search term" (shows how the query parsed), collapse results default, show more context default, sort order default.
+- **Scope**: "Search in folder" via folder context-menu; results can be scoped to a path. Search-and-replace is **not** part of core search (only find/replace within the active editor, Ctrl/Cmd-F / Ctrl-H).
+- **Keyboard**: focus search command; Up/Down through results; Enter to open.
 
 ### 2b. DOM / class hooks — Obsidian core
 
 For a 1:1 visual mimic (stable Obsidian classes; inference):
 
-- Search leaf: `.search-result-container`, search input
-  `.search-input-container` > `input`.
-- Each file group: `.search-result` > `.search-result-file-title`
-  (`.tree-item-self`) with `.tree-item-icon` collapse chevron and
-  `.tree-item-flair` match count; matches in `.search-result-file-matches`
+- Search leaf: `.search-result-container`, search input `.search-input-container` > `input`.
+- Each file group: `.search-result` > `.search-result-file-title` (`.tree-item-self`) with `.tree-item-icon` collapse chevron and `.tree-item-flair` match count; matches in `.search-result-file-matches`
   > `.search-result-file-match` with the matched substring wrapped in
   `<span class="search-result-file-matched-text">`.
-- Toolbar: `.search-result-hover-button`, the collapse/sort/context
-  controls live in the leaf's `.nav-buttons-container` / `.search-info`.
-- Embedded query block renders inside `.internal-query` /
-  `.search-result-container` in reading view.
+- Toolbar: `.search-result-hover-button`, the collapse/sort/context controls live in the leaf's `.nav-buttons-container` / `.search-info`.
+- Embedded query block renders inside `.internal-query` / `.search-result-container` in reading view.
 
 ### 2c. Vaultman parity status
 
@@ -221,23 +144,12 @@ For a 1:1 visual mimic (stable Obsidian classes; inference):
 
 ### 2d. Notes for "2:1" (Search)
 
-- The replace side is already **2:1+** — core has no cross-file replace and
-  Vaultman has a whole FnR island with templates, date parsing, prop-set.
-- To even reach **1:1 on the *search* side**, the dominant missing piece is
-  a **query parser**: implement `path:`/`file:`/`content:`/`tag:`/`line:`/
-  `block:`/`section:`/`task:`/`property:` + boolean `OR`/`-`/`"…"`/`( )` +
-  `/regex/` and `match-case:`/`ignore-diacritics:`. Today `indexContent.ts`
-  is a literal substring scanner.
-- Other 1:1 gaps: jump-to-line on click (data is already there —
-  `match.line`); result sort order; variable context lines; collapse-all;
-  copy-results; folder scoping of the content scan; an embedded `query`
-  code-block post-processor.
-- "Dial back to 1:1": setting to render content results in the
-  `.search-result-*` DOM and hide the table/cards/grid mode switch and the
-  bulk-delete badges.
-- "2:1" stretch beyond replace: structured query chips (reuse the filter IR
-  from Bases interop), saved searches, regex with capture-group preview,
-  result-set → bulk operation (already partly true via delete badge).
+- The replace side is already **2:1+** — core has no cross-file replace and Vaultman has a whole FnR island with templates, date parsing, prop-set.
+- To even reach **1:1 on the *search* side**, the dominant missing piece is a **query parser**: implement `path:`/`file:`/`content:`/`tag:`/`line:`/ `block:`/`section:`/`task:`/`property:` + boolean `OR`/`-`/`"…"`/`( )` + `/regex/` and `match-case:`/`ignore-diacritics:`. Today `indexContent.ts` is a literal substring scanner.
+- Other 1:1 gaps: jump-to-line on click (data is already there — `match.line`); result sort order; variable context lines; collapse-all;
+  copy-results; folder scoping of the content scan; an embedded `query` code-block post-processor.
+- "Dial back to 1:1": setting to render content results in the `.search-result-*` DOM and hide the table/cards/grid mode switch and the bulk-delete badges.
+- "2:1" stretch beyond replace: structured query chips (reuse the filter IR from Bases interop), saved searches, regex with capture-group preview, result-set → bulk operation (already partly true via delete badge).
 
 ---
 
@@ -247,51 +159,25 @@ Builds on the existing research doc — see §4 for what that doc covers.
 
 ### 3a. Functional feature list — Obsidian core
 
-Core "Bases" (confirmed in the prior research shards `01-sources-api.md`
-from official docs checked 2026-05-05; `.base` = YAML):
+Core "Bases" (confirmed in the prior research shards `01-sources-api.md` from official docs checked 2026-05-05; `.base` = YAML):
 
-- `.base` file schema: top-level `filters`, `formulas`, `properties`,
-  `summaries`, `views`.
-- **Views**: `type` (`table`, `cards`, `list`, `map`), `name`, optional
-  per-view `filters`, `groupBy`, `order`, `summaries` + plugin-specific
-  custom keys.
-- **Filters**: global (all views, ANDed) + per-view; string expression OR
-  recursive `{and|or|not: […]}` object. Filter strings share the formula
-  expression language.
-- **Expression language**: note props (`note.x`, shorthand `x`), file props
-  (`file.name/.path/.folder/.ext/.ctime/.mtime/.tags/.links/.backlinks/…`),
-  `formula.name`, `this` (context-dependent: base file / embedding file /
-  active file). Operators `==` `!=` `<` `<=` `>` `>=`, `&&` `||` `!`;
-  methods `.contains` `.containsAny` `.startsWith` `.endsWith` `.isEmpty`
-  `.filter`; functions `file.hasTag` `file.inFolder` `file.hasLink`,
-  `date()` `today()` `now()` `.format()`, `link()`, `html()` `image()`
-  `icon()`, regex `/…/.matches(…)`.
+- `.base` file schema: top-level `filters`, `formulas`, `properties`, `summaries`, `views`.
+- **Views**: `type` (`table`, `cards`, `list`, `map`), `name`, optional per-view `filters`, `groupBy`, `order`, `summaries` + plugin-specific custom keys.
+- **Filters**: global (all views, ANDed) + per-view; string expression OR recursive `{and|or|not: […]}` object. Filter strings share the formula expression language.
+- **Expression language**: note props (`note.x`, shorthand `x`), file props (`file.name/.path/.folder/.ext/.ctime/.mtime/.tags/.links/.backlinks/…`), `formula.name`, `this` (context-dependent: base file / embedding file / active file). Operators `==` `!=` `<` `<=` `>` `>=`, `&&` `||` `!`;
+  methods `.contains` `.containsAny` `.startsWith` `.endsWith` `.isEmpty` `.filter`; functions `file.hasTag` `file.inFolder` `file.hasLink`, `date()` `today()` `now()` `.format()`, `link()`, `html()` `image()` `icon()`, regex `/…/.matches(…)`.
 - **Formulas**: named computed columns.
 - **Summaries**: aggregates (`values.mean()`, `Average`, `.round()`).
 - **Properties block**: per-property `displayName` and config metadata.
 - Embedded bases via a ```` ```base ```` code fence in a note.
-- **Public API**: `Plugin.registerBasesView(viewId, registration)` —
-  custom view types; `BasesView extends Component` with `onDataUpdated()`,
-  `app`, `config`, `allProperties`, `data` (`BasesQueryResult`);
+- **Public API**: `Plugin.registerBasesView(viewId, registration)` — custom view types; `BasesView extends Component` with `onDataUpdated()`, `app`, `config`, `allProperties`, `data` (`BasesQueryResult`);
   `BasesViewConfig` get/set/`getOrder()`/`getSort()`/`getDisplayName()`;
-  `QueryController` is a public constructor dependency but exposes **no
-  public arbitrary-query API** outside a registered view's lifecycle.
-- `Value` type system (`NullValue`/`NumberValue`/`StringValue`/`DateValue`/
-  `DurationValue`/`ListValue`/`ObjectValue`/`FileValue`/`RegExpValue`/
-  `UrlValue` + HTML/icon/image/link values).
+  `QueryController` is a public constructor dependency but exposes **no public arbitrary-query API** outside a registered view's lifecycle.
+- `Value` type system (`NullValue`/`NumberValue`/`StringValue`/`DateValue`/ `DurationValue`/`ListValue`/`ObjectValue`/`FileValue`/`RegExpValue`/ `UrlValue` + HTML/icon/image/link values).
 
 ### 3b. DOM / class hooks — Obsidian core
 
-Bases renders its own views; the prior research did not capture concrete
-class names (DOM hooks are an **explicit unknown** — see §5). Known-stable
-shells only: a Bases leaf/embed renders inside a `.bases-view` /
-`.bases-toolbar` style container with a view-type switcher; the `table`
-view is an HTML grid, `cards` a card grid, `list` a list. Custom views via
-`registerBasesView` get a bare `containerEl` and own all their markup —
-i.e. Vaultman *could* register a view and emit whatever DOM it wants
-(including its own `vm-*` classes), so 1:1 DOM mimicry is **not required**
-for the custom-view path; it only matters if Vaultman tries to *replace*
-the core table/cards/list look inside its own panel.
+Bases renders its own views; the prior research did not capture concrete class names (DOM hooks are an **explicit unknown** — see §5). Known-stable shells only: a Bases leaf/embed renders inside a `.bases-view` / `.bases-toolbar` style container with a view-type switcher; the `table` view is an HTML grid, `cards` a card grid, `list` a list. Custom views via `registerBasesView` get a bare `containerEl` and own all their markup — i.e. Vaultman *could* register a view and emit whatever DOM it wants (including its own `vm-*` classes), so 1:1 DOM mimicry is **not required** for the custom-view path; it only matters if Vaultman tries to *replace* the core table/cards/list look inside its own panel.
 
 ### 3c. Vaultman parity status
 
@@ -316,94 +202,40 @@ the core table/cards/list look inside its own panel.
 
 ### 3d. Notes for "2:1" (Bases)
 
-- Vaultman's *angle* on Bases is interop + bulk-edit, which is inherently
-  "2:1": core Bases is a read/query/display surface; Vaultman can take the
-  same `.base` filter/view config and drive **bulk edits** + multi-mode
-  rendering off it.
-- For **1:1**: (a) finish the filter expression IR so more of the corpus
-  imports losslessly (the prior research's "wider IR with raw expression
-  leaves" — comparisons, boolean ops, list/string methods, dates); (b)
-  per-view filter IR; (c) model `formulas` and `summaries` even if only
-  preserved; (d) ship at least one of the three "first slice" options from
-  the research (read-only import preview is closest to done; `.base`
-  export and `registerBasesView` are both still MISSING).
-- "Dial back to 1:1 / look identical": register a Vaultman Bases view via
-  `registerBasesView` whose default skin mimics core `table`/`cards`/`list`
-  — then a Vaultman base looks like a core base but a setting unlocks the
-  extra Explorer modes + bulk ops.
-- "2:1" stretch: `.base` export so Vaultman filter/view state round-trips
-  to a portable file; advanced query chips (read-only vs editable —
-  research's open question §"Immediate Next Design Tasks #3").
+- Vaultman's *angle* on Bases is interop + bulk-edit, which is inherently "2:1": core Bases is a read/query/display surface; Vaultman can take the same `.base` filter/view config and drive **bulk edits** + multi-mode rendering off it.
+- For **1:1**: (a) finish the filter expression IR so more of the corpus imports losslessly (the prior research's "wider IR with raw expression leaves" — comparisons, boolean ops, list/string methods, dates); (b) per-view filter IR; (c) model `formulas` and `summaries` even if only preserved; (d) ship at least one of the three "first slice" options from the research (read-only import preview is closest to done; `.base` export and `registerBasesView` are both still MISSING).
+- "Dial back to 1:1 / look identical": register a Vaultman Bases view via `registerBasesView` whose default skin mimics core `table`/`cards`/`list` — then a Vaultman base looks like a core base but a setting unlocks the extra Explorer modes + bulk ops.
+- "2:1" stretch: `.base` export so Vaultman filter/view state round-trips to a portable file; advanced query chips (read-only vs editable — research's open question §"Immediate Next Design Tasks #3").
 
 ---
 
 ## 4. How the existing Bases research doc relates
 
-`.agents/docs/work/hardening/research/2026-05-05-bases-interop-research/`
-(index + shards `01-sources-api`, `02-local-fixtures`, `03-compat-design`,
-`04-compatibility-matrix`).
+`.agents/docs/work/hardening/research/2026-05-05-bases-interop-research/` (index + shards `01-sources-api`, `02-local-fixtures`, `03-compat-design`, `04-compatibility-matrix`).
 
 **What it covers (don't redo):**
-- Authoritative Bases semantics + public API surface from official docs
-  and `obsidian.d.ts` (shard 01) — schema, expression language, `Value`
-  types, `registerBasesView`, `BasesView`/`BasesViewConfig`/
-  `BasesQueryResult`.
-- A 25-file `.base` corpus classified by expression feature + view type
-  (136 views, 10 view types) — shard 02 / matrix "Corpus Classification".
-- A full feature-by-feature **compatibility matrix** with import/export
-  strategy + lossiness rating (shard 04).
-- Confirmed direction: interop must be separate from FnR; needs a wider
-  filter/view IR with raw expression leaves; import-preview-first.
+- Authoritative Bases semantics + public API surface from official docs and `obsidian.d.ts` (shard 01) — schema, expression language, `Value` types, `registerBasesView`, `BasesView`/`BasesViewConfig`/ `BasesQueryResult`.
+- A 25-file `.base` corpus classified by expression feature + view type (136 views, 10 view types) — shard 02 / matrix "Corpus Classification".
+- A full feature-by-feature **compatibility matrix** with import/export strategy + lossiness rating (shard 04).
+- Confirmed direction: interop must be separate from FnR; needs a wider filter/view IR with raw expression leaves; import-preview-first.
 
 **Gaps in that doc (this research adds / flags):**
-- It is interop-only — no **functional or visual parity** framing vs core
-  Bases as a *plugin surface* (no DOM/class hooks; that's an unknown here
-  too, §5).
-- It predates the current worktree; this doc verifies what actually landed
-  (`serviceBasesInterop.ts` read in full, 268 lines):
+- It is interop-only — no **functional or visual parity** framing vs core Bases as a *plugin surface* (no DOM/class hooks; that's an unknown here too, §5).
+- It predates the current worktree; this doc verifies what actually landed (`serviceBasesInterop.ts` read in full, 268 lines):
   `serviceBasesInterop.ts` + `typeBasesInterop.ts` + `indexBasesImportTargets.ts`
-  + `explorerBasesImport.ts` exist and implement **import-preview only**
-  (`previewBasesImport`, `extractBasesFencedBlocks`). **`.base` export, an
-  `InteropReport` emitter for export, formulas/summaries modeling, and
-  `registerBasesView` are all still MISSING** — `grep registerBasesView src/`
-  returns nothing.
-- Two compat-matrix rows are now **stale vs the worktree**: (a) "View
-  filters: no per-view filter IR" — per-view filter import *is* wired
-  (`findViewFilters` + `combineFilters`); (b) the matrix implies a broader
-  set of mappable predicates than the 4 shapes `convertExpression` actually
-  handles today. The matrix is a *design target*; the worktree is a thinner
-  first cut.
+  + `explorerBasesImport.ts` exist and implement **import-preview only** (`previewBasesImport`, `extractBasesFencedBlocks`). **`.base` export, an `InteropReport` emitter for export, formulas/summaries modeling, and `registerBasesView` are all still MISSING** — `grep registerBasesView src/` returns nothing.
+- Two compat-matrix rows are now **stale vs the worktree**: (a) "View filters: no per-view filter IR" — per-view filter import *is* wired (`findViewFilters` + `combineFilters`); (b) the matrix implies a broader set of mappable predicates than the 4 shapes `convertExpression` actually handles today. The matrix is a *design target*; the worktree is a thinner first cut.
 - It does not touch Properties or Search at all (this doc's §1–§2).
 
 ---
 
 ## 5. Explicit unknowns
 
-- **Obsidian core DOM/class names not re-verified on 2026-05-14.** The
-  official help pages (`obsidian.md/help/properties`, `…/plugins/search`)
-  are JS-rendered; WebFetch returned only outlines/titles. The
-  `.metadata-property*`, `.search-result-*`, `.tree-item-*` hooks listed
-  are from stable, long-standing Obsidian class names (high confidence) but
-  should be confirmed against a live build or `app.css` before building a
-  pixel-1:1 skin.
-- **Bases view DOM** (`.bases-view` etc.) is essentially unconfirmed — the
-  prior research never captured concrete Bases markup, and Bases is newer
-  so class names may still move.
-- **Whether Vaultman targets in-editor surfaces at all.** Core Properties'
-  primary surface is the *frontmatter block inside a note*; core Search's
-  is the *sidebar pane* + *embedded query blocks*. Vaultman's Explorer is a
-  panel. Reaching "1:1" on those in-editor/embedded surfaces may be out of
-  scope by design — needs a product decision (flagged, not assumed).
-- **Recon baseline vs worktree drift.** The task's recon described 5 view
-  modes; `typeViews.ts` `EXPLORER_VIEW_MODES` is actually **6**: `tree`,
-  `table`, `grid`, `cards`, `markmap`, `list`. Recon's named services all
-  exist, but the worktree also has more views (`viewList`, `viewGrid`,
-  `viewOutlineExplorer`, `viewDiff`) and providers (`outline`, `plugins`,
-  `snippets`) than recon listed. Parity tables above are scoped to
-  Props/Content/Bases providers; other providers not audited.
-- Core Search operator list (`section:`, `task-*:`, `property:`,
-  `ignore-diacritics:`) is from stable documented Obsidian syntax; not
-  re-confirmed line-by-line against the 2026-05-14 docs build.
+- **Obsidian core DOM/class names not re-verified on 2026-05-14.** The official help pages (`obsidian.md/help/properties`, `…/plugins/search`) are JS-rendered; WebFetch returned only outlines/titles. The `.metadata-property*`, `.search-result-*`, `.tree-item-*` hooks listed are from stable, long-standing Obsidian class names (high confidence) but should be confirmed against a live build or `app.css` before building a pixel-1:1 skin.
+- **Bases view DOM** (`.bases-view` etc.) is essentially unconfirmed — the prior research never captured concrete Bases markup, and Bases is newer so class names may still move.
+- **Whether Vaultman targets in-editor surfaces at all.** Core Properties' primary surface is the *frontmatter block inside a note*; core Search's is the *sidebar pane* + *embedded query blocks*. Vaultman's Explorer is a panel. Reaching "1:1" on those in-editor/embedded surfaces may be out of scope by design — needs a product decision (flagged, not assumed).
+- **Recon baseline vs worktree drift.** The task's recon described 5 view modes; `typeViews.ts` `EXPLORER_VIEW_MODES` is actually **6**: `tree`, `table`, `grid`, `cards`, `markmap`, `list`. Recon's named services all exist, but the worktree also has more views (`viewList`, `viewGrid`, `viewOutlineExplorer`, `viewDiff`) and providers (`outline`, `plugins`, `snippets`) than recon listed. Parity tables above are scoped to Props/Content/Bases providers; other providers not audited.
+- Core Search operator list (`section:`, `task-*:`, `property:`, `ignore-diacritics:`) is from stable documented Obsidian syntax; not re-confirmed line-by-line against the 2026-05-14 docs build.
 
 ---
 
@@ -428,8 +260,7 @@ the core table/cards/list look inside its own panel.
 - `src/components/containers/explorerBasesImport.ts` (full)
 - `src/components/views/ViewNodeTable.svelte` (full)
 - `src/styles/explorer/_explorer.scss` (full)
-- Directory listings: `src/`, `src/components/views/`, `src/providers/`,
-  `src/services/`, plus `git log` on `panelExplorer.svelte`
+- Directory listings: `src/`, `src/components/views/`, `src/providers/`, `src/services/`, plus `git log` on `panelExplorer.svelte`
 
 **Prior research read:**
 - `.agents/docs/work/hardening/research/2026-05-05-bases-interop-research/index.md`
@@ -439,12 +270,6 @@ the core table/cards/list look inside its own panel.
 **Web (official Obsidian docs — JS-rendered, only outlines retrieved):**
 - https://obsidian.md/help/properties (redirect from help.obsidian.md/properties)
 - https://obsidian.md/help/plugins/search (redirect from help.obsidian.md/plugins/search)
-- Bases docs referenced via prior research shard 01: https://obsidian.md/help/bases/syntax,
-  https://obsidian.md/help/bases/functions, https://docs.obsidian.md/plugins/guides/bases-view
+- Bases docs referenced via prior research shard 01: https://obsidian.md/help/bases/syntax, https://obsidian.md/help/bases/functions, https://docs.obsidian.md/plugins/guides/bases-view
 
-**Inference vs fact:** Worktree file evidence = fact. Obsidian core
-Properties/Search query syntax and behavior = established/documented but
-not re-confirmed line-by-line on 2026-05-14 (JS-rendered docs) — treat
-operator lists and class-name lists as high-confidence inference. Bases
-semantics/API = fact (captured in prior research from official docs +
-`obsidian.d.ts`). Bases view DOM = unknown.
+**Inference vs fact:** Worktree file evidence = fact. Obsidian core Properties/Search query syntax and behavior = established/documented but not re-confirmed line-by-line on 2026-05-14 (JS-rendered docs) — treat operator lists and class-name lists as high-confidence inference. Bases semantics/API = fact (captured in prior research from official docs + `obsidian.d.ts`). Bases view DOM = unknown.

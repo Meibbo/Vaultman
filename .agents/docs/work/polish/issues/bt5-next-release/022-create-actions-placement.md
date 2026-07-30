@@ -22,8 +22,7 @@ tags: [agent/issue, initiative/polish, release/bt5]
 ## What to build
 
 Añadir una opción de placement para los action nodes built-in Create File y Create Folder:
-mantenerlos en el searchbox o moverlos al toolbar. En toolbar conservan la semántica de
-creación actual y participan de la estrategia de overflow de BT5-021.
+mantenerlos en el searchbox o moverlos al toolbar. En toolbar conservan la semántica de creación actual y participan de la estrategia de overflow de BT5-021.
 
 ## Acceptance criteria
 
@@ -41,10 +40,6 @@ None — puede implementarse sobre condensed actual e integrarse con BT5-021 en 
 
 ## Outcome 2026-07-20 (tarde)
 
-**Commit `546c376d`** (junto a 024). Gate verde. Test focal
-`test/unit/toolbarCommandsAndCreate.test.ts`. Setting `createActionsPlacement`
-(default searchbox). En toolbar, Create File/Folder son nodos del toolbar (Create
-File respeta el binding de BT5-023) y el create del searchbox de Files se retira sin
-duplicar. Montan sobre el overflow de BT5-021. Detalle: [[docs/work/polish/plans/2026-07-19-bt5-next-10/08-bt5-014-021-022-023-024|shard 08]].
+**Commit `546c376d`** (junto a 024). Gate verde. Test focal `test/unit/toolbarCommandsAndCreate.test.ts`. Setting `createActionsPlacement` (default searchbox). En toolbar, Create File/Folder son nodos del toolbar (Create File respeta el binding de BT5-023) y el create del searchbox de Files se retira sin duplicar. Montan sobre el overflow de BT5-021. Detalle: [[docs/work/polish/plans/2026-07-19-bt5-next-10/08-bt5-014-021-022-023-024|shard 08]].
 
 Pendiente: smoke; relocalización a Tools en condensed (diferido).

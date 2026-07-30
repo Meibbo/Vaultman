@@ -15,58 +15,27 @@ tags: [agent/issues, triage/needs-triage, initiative/polish, release/1.2.1]
 
 ## Triaged into files (2026-07-29)
 
-From the Obsidian team's automated scan of stable 1.2.0 plus one dev runtime
-report. Every scan warning was re-verified against `main` (manifest `1.2.0`)
-before filing — the scan's line references are stable-tree references and do not
-match sandbox, which reorganized `src/`.
+From the Obsidian team's automated scan of stable 1.2.0 plus one dev runtime report. Every scan warning was re-verified against `main` (manifest `1.2.0`) before filing — the scan's line references are stable-tree references and do not match sandbox, which reorganized `src/`.
 
-- [[092-vm-scene-open-close-freeze|BT5-092]] — vm-scene open/close freezes the
-  app for an instant (dev report; no diagnosis yet, HITL).
+- [[092-vm-scene-open-close-freeze|BT5-092]] — vm-scene open/close freezes the app for an instant (dev report; no diagnosis yet, HITL).
 - [[093-declarative-settings-api|BT5-093]] — adopt `getSettingDefinitions()`;
   without it no Vaultman setting is findable in settings search on 1.13.0+.
   Live on both stable and sandbox (file renamed to `src/settingsVM.ts` there).
-- [[094-unnecessary-assertions-and-create-el|BT5-094]] — 11 unnecessary type
-  assertions (6/6 sampled verified live on `main`) + the last
-  `document.createElement`. `prefer-create-el` is otherwise already fixed on
-  stable, so most of that scan warning is stale.
-- [[095-lint-and-guard-harness-red|BT5-095]] — **root cause of the W5
-  regression.** On stable the harness is wired (stylelint and the scorecard
-  guard both run inside `verify`), but neither has a browser-compat rule, so
-  `text-decoration` was never guarded — the 1.1.6 fix was manual and nothing
-  held it. Part B records that sandbox *dropped* both gates in the vite-plus
-  migration, plus its 263-error eslint baseline.
-- [[096-dependency-refresh-and-advisories|BT5-096]] — 19 Dependabot alerts, all
-  `scope: development` so none ships to users; 13 open PRs of which every
-  sampled dev-dependency bump is already exceeded on sandbox; plus
-  `eslint-plugin-obsidianmd` 0.3.0 → 0.4.1 on both lines.
-- [[097-code-scanning-alerts|BT5-097]] — the other 18 alerts: 9 CodeQL code
-  findings (4 high `remote-property-injection` in a file that exists only on
-  stable) and 9 OpenSSF Scorecard policy items that no code change fixes.
+- [[094-unnecessary-assertions-and-create-el|BT5-094]] — 11 unnecessary type assertions (6/6 sampled verified live on `main`) + the last `document.createElement`. `prefer-create-el` is otherwise already fixed on stable, so most of that scan warning is stale.
+- [[095-lint-and-guard-harness-red|BT5-095]] — **root cause of the W5 regression.** On stable the harness is wired (stylelint and the scorecard guard both run inside `verify`), but neither has a browser-compat rule, so `text-decoration` was never guarded — the 1.1.6 fix was manual and nothing held it. Part B records that sandbox *dropped* both gates in the vite-plus migration, plus its 263-error eslint baseline.
+- [[096-dependency-refresh-and-advisories|BT5-096]] — 19 Dependabot alerts, all `scope: development` so none ships to users; 13 open PRs of which every sampled dev-dependency bump is already exceeded on sandbox; plus `eslint-plugin-obsidianmd` 0.3.0 → 0.4.1 on both lines.
+- [[097-code-scanning-alerts|BT5-097]] — the other 18 alerts: 9 CodeQL code findings (4 high `remote-property-injection` in a file that exists only on stable) and 9 OpenSSF Scorecard policy items that no code change fixes.
 
-**Branch-attribution note (2026-07-29).** The first pass of 095/096 reported
-sandbox measurements as stable facts. `vite-plus` (`vp`) is sandbox-only, so
-`vp run lint`, the 263-error count and the orphaned stylelint config never
-described stable. Corrected in place; both issues now separate the two lines.
-Stable is also *behind* sandbox on `obsidian` (1.12.3 vs 1.13.1), which adds a
-typings bump to BT5-093.
+**Branch-attribution note (2026-07-29).** The first pass of 095/096 reported sandbox measurements as stable facts. `vite-plus` (`vp`) is sandbox-only, so `vp run lint`, the 263-error count and the orphaned stylelint config never described stable. Corrected in place; both issues now separate the two lines.
+Stable is also *behind* sandbox on `obsidian` (1.12.3 vs 1.13.1), which adds a typings bump to BT5-093.
 
-W5 (`text-decoration` at `styles.css:6895`) has no issue of its own: the scan
-flags it for Obsidian 1.11.4, below the declared `minAppVersion: 1.12.0`, so no
-installable user is affected. The actionable part — the missing guard and the
-stale compat target — lives in BT5-095.
+W5 (`text-decoration` at `styles.css:6895`) has no issue of its own: the scan flags it for Obsidian 1.11.4, below the declared `minAppVersion: 1.12.0`, so no installable user is affected. The actionable part — the missing guard and the stale compat target — lives in BT5-095.
 
-Work designed with the dev across the pre-stable prompts but deferred out of
-v1.2.0 so the stable could ship on the verified fixes. These are the large,
-cross-cutting, or newly-scoped items. Numbers are provisional until triaged
-into individual files; the design detail lives in
-[[docs/sessions/2026-07-22-codex-gpt5-root|the audit shard]] and the
-2026-07-23 session log.
+Work designed with the dev across the pre-stable prompts but deferred out of v1.2.0 so the stable could ship on the verified fixes. These are the large, cross-cutting, or newly-scoped items. Numbers are provisional until triaged into individual files; the design detail lives in [[docs/sessions/2026-07-22-codex-gpt5-root|the audit shard]] and the 2026-07-23 session log.
 
 ## GitHub issue map (published 2026-07-29)
 
-Public tracker: https://github.com/Meibbo/Vaultman/issues. The `U121` identifiers
-are the canonical public codes for the 1.2.1 patch; older `BT5` identifiers below
-remain historical local-memory references only.
+Public tracker: https://github.com/Meibbo/Vaultman/issues. The `U121` identifiers are the canonical public codes for the 1.2.1 patch; older `BT5` identifiers below remain historical local-memory references only.
 
 - [U121-001 #41](https://github.com/Meibbo/Vaultman/issues/41) — Universal Navbar host.
 - [U121-002 #42](https://github.com/Meibbo/Vaultman/issues/42) — Text Has/Hasn't Navbar action.
@@ -98,8 +67,7 @@ remain historical local-memory references only.
 - [U121-028 #67](https://github.com/Meibbo/Vaultman/issues/67) — menu/Navbar action editor.
 
 Published 2026-07-29 (claude-opus-5) — the five items that were local-only until now.
-The `BT5-09x` codes stay as the local-memory record; the `U121` codes are canonical
-in public:
+The `BT5-09x` codes stay as the local-memory record; the `U121` codes are canonical in public:
 
 - [U121-029 #69](https://github.com/Meibbo/Vaultman/issues/69) — vm-scene open/close freeze (= [[092-vm-scene-open-close-freeze|BT5-092]], HITL).
 - [U121-030 #70](https://github.com/Meibbo/Vaultman/issues/70) — declarative settings API (= [[093-declarative-settings-api|BT5-093]]).
@@ -109,91 +77,54 @@ in public:
 
 ## Carried over from the v1.2.0 audit (never started)
 
-- **BT5-043..046 — Universal Navbar as a `panelWidget`.** Host + provider
-  contract, measured Condensed/Scroll/Wrap overflow (Scroll keeps a fixed lane,
-  no visible bar), migrate Statistics and every provider off duplicated
-  toolbars. Blocks the Navbar cmenu editor below.
-- **BT5-047..048 — Canonical ChangeIcon router.** One capability route for all
-  explorers, extensible to Iconic and other picker plugins; adapters, initial
-  selection, intercept, fallback and dedupe.
-- **BT5-055 — Configurable Property value `format` cell**, incl. tag rendering
-  for the `tags` property's values (props explorer only).
-- **BT5-056/057 — Checkbox and date/datetime `action_cell`s** through the
-  operation queue (web-lab widget contract; Daily Note stays navigation).
-- **BT5-058 — Glyph color gaps**: folder icon keeps its glyph after expand,
-  subfolders inherit the parent color per the fancyfile snippet, hover
-  cell_highlight colored; Files cell_name.
+- **BT5-043..046 — Universal Navbar as a `panelWidget`.** Host + provider contract, measured Condensed/Scroll/Wrap overflow (Scroll keeps a fixed lane, no visible bar), migrate Statistics and every provider off duplicated toolbars. Blocks the Navbar cmenu editor below.
+- **BT5-047..048 — Canonical ChangeIcon router.** One capability route for all explorers, extensible to Iconic and other picker plugins; adapters, initial selection, intercept, fallback and dedupe.
+- **BT5-055 — Configurable Property value `format` cell**, incl. tag rendering for the `tags` property's values (props explorer only).
+- **BT5-056/057 — Checkbox and date/datetime `action_cell`s** through the operation queue (web-lab widget contract; Daily Note stays navigation).
+- **BT5-058 — Glyph color gaps**: folder icon keeps its glyph after expand, subfolders inherit the parent color per the fancyfile snippet, hover cell_highlight colored; Files cell_name.
 - **BT5-059 — Frame top-edge geometry** (beta.5 vs last commit vs DOM measure).
 
 ## New scope from the smoke prompts (prompt 4–6)
 
 ### Decoration contract (do first; blocks the others)
 
-- **Generic `cell_highlight` for the explorer** — hover / inclusive / exclusive
-  / **deletion**, applied to glyph_cells, not hardcoded to props/values. Owns
-  the exclusive bubbledot re-render and status-vs-operation badge coexistence
-  (a parent shows at most two bubbledot badges, left of any operation badge).
-- **Folder queue badges in Files** — the marked folder gets its own badge, its
-  child folders too, and the bubble only projects what a collapse hides.
-- **`cell_label_change`** — a queued rename projects a preview name in
-  `cell_name` (like `cell_path`), generic across explorers.
+- **Generic `cell_highlight` for the explorer** — hover / inclusive / exclusive / **deletion**, applied to glyph_cells, not hardcoded to props/values. Owns the exclusive bubbledot re-render and status-vs-operation badge coexistence (a parent shows at most two bubbledot badges, left of any operation badge).
+- **Folder queue badges in Files** — the marked folder gets its own badge, its child folders too, and the bubble only projects what a collapse hides.
+- **`cell_label_change`** — a queued rename projects a preview name in `cell_name` (like `cell_path`), generic across explorers.
 
 ### Filter / render performance
 
-- **BT5-088 P3 — differential render.** The dominant cost; only re-touch rows
-  that entered/left the filtered set. Requires separating position-independent
-  decoration (icons, times, name) from the rainbow-bucket / bubble-dot / queue
-  passes that depend on order. P4 (memoize decoration by signature) folds in.
+- **BT5-088 P3 — differential render.** The dominant cost; only re-touch rows that entered/left the filtered set. Requires separating position-independent decoration (icons, times, name) from the rainbow-bucket / bubble-dot / queue passes that depend on order. P4 (memoize decoration by signature) folds in.
 
 ### Text explorer
 
 - Preserve the search state when switching provider tabs and back.
-- Real pause/resume: resume continues instead of restarting; the toggle
-  becomes "restart search" when the search completes.
-- **Adopt Files `node_file` nodes as the Text parents** (`.md` only) — the
-  first "adopted nodes" precedent; needs an ADR (the concept already exists in
-  the sandbox/goal streams — link, do not duplicate).
-- Core-search parity: horizontal padding and a "show more context" affordance
-  (web-lab gate).
-- `node_text` context menu with Replace-with opening the rich modal; a view
-  menu with the Files cells (minus extension), In mode, Index, and Files sort
-  options.
+- Real pause/resume: resume continues instead of restarting; the toggle becomes "restart search" when the search completes.
+- **Adopt Files `node_file` nodes as the Text parents** (`.md` only) — the first "adopted nodes" precedent; needs an ADR (the concept already exists in the sandbox/goal streams — link, do not duplicate).
+- Core-search parity: horizontal padding and a "show more context" affordance (web-lab gate).
+- `node_text` context menu with Replace-with opening the rich modal; a view menu with the Files cells (minus extension), In mode, Index, and Files sort options.
 - Move the Has/Hasn't text toggle out of the input bar (BT5-044 owns this).
 
 ### Tags typing
 
 - **Inline vs frontmatter cell_type.** Props explorer shows frontmatter only;
-  Tags explorer shows both with an option to classify (splits occurrences into
-  `inline` and `frontmatter` cells). Simple/nested stay filter concerns, not
-  cell types. Unblocks rename/delete of inline-body tags.
+  Tags explorer shows both with an option to classify (splits occurrences into `inline` and `frontmatter` cells). Simple/nested stay filter concerns, not cell types. Unblocks rename/delete of inline-body tags.
 
 ### Rename family
 
-- Inline rename as the default single-node path, behind a Layout setting
-  (default on). CSS height already fixed in
-  [[../bt5-final-stable-audit/091-inline-rename-editor-height|BT5-091]].
+- Inline rename as the default single-node path, behind a Layout setting (default on). CSS height already fixed in [[../bt5-final-stable-audit/091-inline-rename-editor-height|BT5-091]].
 - Extend the rich queued rename to folders, props and values.
 
 ### Commands, updates, misc
 
-- **Updates modal** — render `whats-new.md` (with images) inside the modal
-  instead of opening GitHub; show once per version, not on every enable;
+- **Updates modal** — render `whats-new.md` (with images) inside the modal instead of opening GitHub; show once per version, not on every enable;
   fix the "Got it" button onto the same row.
-- **Open ↔ Close** dynamic command text by `openMode` (`new_instance` stays
-  "Open").
-- New commands: open Filters island, open Queue island, reveal file,
-  expand/collapse all, focus instance.
-- Relative time for `last opened` / `modified` / `created` cells under 24h,
-  in the tooltip too, with a settings toggle between relative and specific.
-- Divider / submenu creation in the context-menu editor (they are dropped by
-  the draft-time normalization); drag-and-drop between menu levels; the full
-  native catalog (recurse submenus, keep separators, harvest from the real
-  target); a cmenu editor for the Navbar's action nodes.
+- **Open ↔ Close** dynamic command text by `openMode` (`new_instance` stays "Open").
+- New commands: open Filters island, open Queue island, reveal file, expand/collapse all, focus instance.
+- Relative time for `last opened` / `modified` / `created` cells under 24h, in the tooltip too, with a settings toggle between relative and specific.
+- Divider / submenu creation in the context-menu editor (they are dropped by the draft-time normalization); drag-and-drop between menu levels; the full native catalog (recurse submenus, keep separators, harvest from the real target); a cmenu editor for the Navbar's action nodes.
 
 ## Backlog, no fixed release
 
-- **Per-node delete rescue** — cancel a descendant's delete without cancelling
-  its parent's, re-projecting the rescued node up ln+n. Depends on:
-- **Operation queue persistence** — the queue and its badges do not survive a
-  plugin reload today (`OperationQueueService` has no load/save). Prerequisite
-  for the rescue surviving a close.
+- **Per-node delete rescue** — cancel a descendant's delete without cancelling its parent's, re-projecting the rescued node up ln+n. Depends on:
+- **Operation queue persistence** — the queue and its badges do not survive a plugin reload today (`OperationQueueService` has no load/save). Prerequisite for the rescue surviving a close.

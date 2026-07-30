@@ -42,8 +42,7 @@ $vm-error: #ef4444;
 ### 2. Manual Primitive Implementation
 Primitives are not just visual; they are state-aware components that bridge the Gap between Svelte 5 Runes and CSS.
 
-**Example: `Badge.svelte` (Contract Analysis)**
-The `Badge` primitive uses a `$derived` rune to compute inline styles, creating a scoped "CSS API" for each instance.
+**Example: `Badge.svelte` (Contract Analysis)** The `Badge` primitive uses a `$derived` rune to compute inline styles, creating a scoped "CSS API" for each instance.
 
 ```svelte
 <script lang="ts">

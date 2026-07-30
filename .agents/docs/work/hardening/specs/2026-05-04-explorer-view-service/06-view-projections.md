@@ -14,8 +14,7 @@ tags:
 
 ## Core Rule
 
-All views receive the same semantic layer families. Each view projects them in
-the layout that fits the view.
+All views receive the same semantic layer families. Each view projects them in the layout that fits the view.
 
 ## Tree Projection
 
@@ -140,9 +139,7 @@ List-specific behavior:
 
 `viewDiff.svelte` already exists and is not one of the explorer base views.
 
-However, the view service should eventually provide enough semantic operation
-state that diff views can be launched from queue rows, table cells, or badge
-actions without duplicating queue lookup logic.
+However, the view service should eventually provide enough semantic operation state that diff views can be launched from queue rows, table cells, or badge actions without duplicating queue lookup logic.
 
 ## Projection Matrix
 

@@ -209,9 +209,7 @@ git commit -m "feat(fnr): add replacement field with setReplacement"
 
 - Modify: `src/components/layout/Toolbar.svelte`
 
-The chips are already rendered as filter rows inside
-`explorerActiveFilters.svelte`; removing the in-search preview does not
-orphan data.
+The chips are already rendered as filter rows inside `explorerActiveFilters.svelte`; removing the in-search preview does not orphan data.
 
 - [ ] **Step 1: Locate the stacked block**
 
@@ -221,11 +219,8 @@ grep -n "vm-search-stack\|Stacked" src/components/layout/Toolbar.svelte
 
 - [ ] **Step 2: Delete the markup**
 
-Remove the `<div class="vm-search-stack">…</div>` block (the section
-that renders `chips.length > 0 && ...` with the `Stacked · N` label).
-Keep the `chips` state variable for now — Task 2.8's gate sweep
-removes the legacy chip-selection plumbing once it confirms nothing
-else references it.
+Remove the `<div class="vm-search-stack">…</div>` block (the section that renders `chips.length > 0 && ...` with the `Stacked · N` label).
+Keep the `chips` state variable for now — Task 2.8's gate sweep removes the legacy chip-selection plumbing once it confirms nothing else references it.
 
 - [ ] **Step 3: Build to verify**
 
@@ -233,8 +228,7 @@ else references it.
 pnpm run check
 ```
 
-Expected: clean (unused-variable warnings about `chips` are acceptable
-at this step; resolved in Task 2.3).
+Expected: clean (unused-variable warnings about `chips` are acceptable at this step; resolved in Task 2.3).
 
 - [ ] **Step 4: Commit**
 
@@ -362,8 +356,7 @@ const replaceVisible = $derived(fnrReplaceAlwaysVisible || fnrPillExpanded);
 
 - [ ] **Step 5: Insert pill + replace input above the suggestions section**
 
-Inside the search-island markup, immediately under the existing find
-input row, insert:
+Inside the search-island markup, immediately under the existing find input row, insert:
 
 ```svelte
 {#if !fnrReplaceAlwaysVisible}
@@ -516,8 +509,7 @@ const applyButtonLabel = $derived.by(() => {
 
 - [ ] **Step 2: Render the label**
 
-Update the primary Apply button inside the search island footer
-(currently a button with text `Apply`):
+Update the primary Apply button inside the search island footer (currently a button with text `Apply`):
 
 ```svelte
 <button class="primary" data-test="search-apply" onclick={onSearchApply}>
@@ -570,14 +562,11 @@ git commit -m "feat(toolbar): adaptive Apply/Rename/Replace label per tab and re
 grep -n "searchHistory" src/components/frame/frameVaultman.svelte src/components/layout/Toolbar.svelte
 ```
 
-If `searchHistory` is `string[]` today, extend the shape to a per-tab
-record on the producer side. If it is already `{term:string, tab:string}[]`,
-skip the producer change and only update the consumer.
+If `searchHistory` is `string[]` today, extend the shape to a per-tab record on the producer side. If it is already `{term:string, tab:string}[]`, skip the producer change and only update the consumer.
 
 - [ ] **Step 2: Update producer (frameVaultman.svelte) to record tab**
 
-Where the history is appended (search for `onSearchHistoryCommit`),
-ensure each entry includes the current `activeTab`:
+Where the history is appended (search for `onSearchHistoryCommit`), ensure each entry includes the current `activeTab`:
 
 ```ts
 function commitHistory(term: string) {
@@ -590,8 +579,7 @@ function commitHistory(term: string) {
 }
 ```
 
-Update the `state.searchHistory` type (in its initial declaration) to
-`{ term: string; tab: FiltersTab }[]`.
+Update the `state.searchHistory` type (in its initial declaration) to `{ term: string; tab: FiltersTab }[]`.
 
 - [ ] **Step 3: Consumer changes in Toolbar.svelte**
 
@@ -604,8 +592,7 @@ const recentHistory = $derived.by(() =>
 );
 ```
 
-Replace the section label and chips block (the one that today reads
-`Common in {tab}` / suggestions). New markup:
+Replace the section label and chips block (the one that today reads `Common in {tab}` / suggestions). New markup:
 
 ```svelte
 <div class="vm-search-section-label">
@@ -647,8 +634,7 @@ const activeTabLabel = $derived(translate(`filter.tab.${activeTab}`));
 'search.recent.empty': 'No recent searches yet',
 ```
 
-Wire `translate` to support the `{tab}` interpolation if it does not
-already (most likely it does — check the existing `translate(...)`
+Wire `translate` to support the `{tab}` interpolation if it does not already (most likely it does — check the existing `translate(...)`
 signature).
 
 - [ ] **Step 5: Build + spot-test**
@@ -657,9 +643,7 @@ signature).
 pnpm run check
 ```
 
-Expected: clean. Type errors about the `searchHistory` shape change
-must be fixed at every call site they appear (touch each producer/
-consumer).
+Expected: clean. Type errors about the `searchHistory` shape change must be fixed at every call site they appear (touch each producer/ consumer).
 
 - [ ] **Step 6: Commit**
 
@@ -990,9 +974,7 @@ Expected: all clean (modulo deferred perf tests).
 
 - [ ] **Step 2: Sweep up any unused legacy state**
 
-If `chips`, `setChips`, or related variables from the old stacked block
-remain unused in `Toolbar.svelte`, delete them now (and any reactivity
-that depended on them). Re-run the gate.
+If `chips`, `setChips`, or related variables from the old stacked block remain unused in `Toolbar.svelte`, delete them now (and any reactivity that depended on them). Re-run the gate.
 
 - [ ] **Step 3: Commit cleanup**
 

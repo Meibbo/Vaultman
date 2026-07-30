@@ -40,10 +40,6 @@ Start with [[docs/start|start]].
 
 ## Rule
 
-This is a map, not a complete index. Route through intent and read the smallest
-set of files needed for the task.
+This is a map, not a complete index. Route through intent and read the smallest set of files needed for the task.
 
-Top-level directories are limited to `architecture/`, `archive/`, `current/`,
-`sessions/`, `templates/`, and `work/`. Root files are `start.md`, `index.md`,
-and `Recent Notes.base`; the Base is an Obsidian utility view, not canonical
-agent memory.
+Top-level directories are limited to `architecture/`, `archive/`, `current/`, `sessions/`, `templates/`, and `work/`. Root files are `start.md`, `index.md`, and `Recent Notes.base`; the Base is an Obsidian utility view, not canonical agent memory.

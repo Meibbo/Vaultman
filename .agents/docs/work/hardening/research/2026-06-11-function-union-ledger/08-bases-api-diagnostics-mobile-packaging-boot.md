@@ -18,29 +18,11 @@ tags:
 
 **Nota del coordinador (importante — leer antes de usar las tablas):**
 
-1. **Framing stale corregido.** El subagente apoyó varias filas y hallazgos en el shard 06
-   (promotion/reconciliation spec), que fue escrito ANTES de la publicación de `1.1.1`
-   (2026-06-09, `main`=`dev`=`33d9d23`). Todo lo que el subagente reportó como "blocker de
-   release pendiente" (metadata 1.0.2→1.1.0, hotfix worktree dirty, Tasks 7-10 sin verificar)
-   es HISTÓRICO y está resuelto: `1.1.1` salió con sus assets completos. Esas filas siguen
-   siendo válidas como evidencia de QUÉ funciones existen en stable; sus notas de "pendiente"
-   no aplican ya como bloqueo.
-2. **Decisión normalizada.** El subagente usó tokens fuera de leyenda (`KEEP-*`,
-   `TRANSLATE`, `STABILIZE-BEFORE-PROMOTION`); el coordinador los mapeó a la leyenda del
-   ledger: `KEEP-sandbox`→ADOPT-sandbox · `KEEP-stable*`→ADOPT-stable · `KEEP-both`→ADOPT
-   del stream con forma más rica (anotado) · `TRANSLATE`→MAP · `STABILIZE`→RESHAPE/DEFER con
-   nota. Clasificaciones compuestas (`SOLO-X + SOLO-Y`) se normalizaron a OVERLAP.
-3. **Evidencia más fuerte:** filas con `git show 1.1.1:` directo (manifest, main.ts,
-   typeSettings.ts, ls-tree de services) superan al delta-matrix (escrito contra 1.0.1) y al
-   shard 06 (escrito contra el hotfix pre-release).
+1. **Framing stale corregido.** El subagente apoyó varias filas y hallazgos en el shard 06 (promotion/reconciliation spec), que fue escrito ANTES de la publicación de `1.1.1` (2026-06-09, `main`=`dev`=`33d9d23`). Todo lo que el subagente reportó como "blocker de release pendiente" (metadata 1.0.2→1.1.0, hotfix worktree dirty, Tasks 7-10 sin verificar) es HISTÓRICO y está resuelto: `1.1.1` salió con sus assets completos. Esas filas siguen siendo válidas como evidencia de QUÉ funciones existen en stable; sus notas de "pendiente" no aplican ya como bloqueo.
+2. **Decisión normalizada.** El subagente usó tokens fuera de leyenda (`KEEP-*`, `TRANSLATE`, `STABILIZE-BEFORE-PROMOTION`); el coordinador los mapeó a la leyenda del ledger: `KEEP-sandbox`→ADOPT-sandbox · `KEEP-stable*`→ADOPT-stable · `KEEP-both`→ADOPT del stream con forma más rica (anotado) · `TRANSLATE`→MAP · `STABILIZE`→RESHAPE/DEFER con nota. Clasificaciones compuestas (`SOLO-X + SOLO-Y`) se normalizaron a OVERLAP.
+3. **Evidencia más fuerte:** filas con `git show 1.1.1:` directo (manifest, main.ts, typeSettings.ts, ls-tree de services) superan al delta-matrix (escrito contra 1.0.1) y al shard 06 (escrito contra el hotfix pre-release).
 
-**Hallazgo central:** stable 1.1.1 quedó como un núcleo de 6-7 servicios con settings ricos
-pero sin API programática ni diagnósticos de producto; sandbox tiene TODO el plano
-ServiceAPI/diagnostics/Bases-interop en solitario (SOLO-SANDBOX masivo en las tablas 005-006)
-— consistente con el hallazgo del cluster 04: stable=policy sin arquitectura,
-sandbox=arquitectura sin policy. El gap transversal nuevo de este cluster es **mobile**: los
-tres streams declaran `isDesktopOnly:false` y ninguno tiene evidencia de prueba móvil real
-(gap is-phone documentado en working-memory).
+**Hallazgo central:** stable 1.1.1 quedó como un núcleo de 6-7 servicios con settings ricos pero sin API programática ni diagnósticos de producto; sandbox tiene TODO el plano ServiceAPI/diagnostics/Bases-interop en solitario (SOLO-SANDBOX masivo en las tablas 005-006) — consistente con el hallazgo del cluster 04: stable=policy sin arquitectura, sandbox=arquitectura sin policy. El gap transversal nuevo de este cluster es **mobile**: los tres streams declaran `isDesktopOnly:false` y ninguno tiene evidencia de prueba móvil real (gap is-phone documentado en working-memory).
 
 ## Tabla 1 — Boot / plugin lifecycle
 
@@ -169,51 +151,26 @@ tres streams declaran `isDesktopOnly:false` y ninguno tiene evidencia de prueba 
 
 ## Hallazgos centrales
 
-1. **ServiceAPI y diagnostics de producto son SOLO-SANDBOX en bloque** (8 filas Tabla 5 + ops
-   log): stable 1.1.1 no expone nada programático. La 2.0 adopta el plano sandbox pero con la
-   policy de riesgo de stable gobernando flags/confirmaciones (mismo patrón del cluster 04:
+1. **ServiceAPI y diagnostics de producto son SOLO-SANDBOX en bloque** (8 filas Tabla 5 + ops log): stable 1.1.1 no expone nada programático. La 2.0 adopta el plano sandbox pero con la policy de riesgo de stable gobernando flags/confirmaciones (mismo patrón del cluster 04:
    stable=policy, sandbox=arquitectura).
-2. **Stable 1.1.1 es más rico de lo que el delta-matrix decía también aquí**: perf probe
-   global, performance HUD completo (default-off), settings reactivos (settingsRevision),
-   StatisticsCache con IndexedDB, navbar móvil, `.base` en Files — todo ya en el tag 1.1.1.
-   El delta-matrix (contra 1.0.1) subestima sistemáticamente a stable; verificar siempre con
-   `git show 1.1.1:`.
-3. **CONTRADICE de labels**: sandbox lleva `1.1.0-beta.1` siendo canary — contradice D4
-   enmendado (canary = stream, nunca label). Se resuelve al arrancar la línea
-   `2.0.0-alpha.N`; no requiere fix en la 1.1.x.
-4. **Mobile es el gap transversal de los tres streams**: `isDesktopOnly:false` declarado por
-   todos, probado por ninguno; is-phone sin doc ni código; detached leaves y hover-only
-   interactions sin validación móvil. La 2.0 necesita un platform gate explícito (encaja en
-   el open PlatformAdapter de wave 1).
-5. **Bases interop queda asimétrico**: stable tiene settings + `.base` discovery; sandbox
-   tiene el único path real de import (parse YAML, conversión de filtros, preview) — pero
-   sin matriz de cobertura de expresiones y solo el lado read del híbrido ADR 0009. El lado
-   mutable no existe en ningún stream.
-6. **El catálogo de smokes de la línea 1.1.x ES el test de aceptación `legacy-1.1`**
-   (D-PSS-9): casing, `.base` discovery, HUD toggle, queue stage-by-default, native Search.
+2. **Stable 1.1.1 es más rico de lo que el delta-matrix decía también aquí**: perf probe global, performance HUD completo (default-off), settings reactivos (settingsRevision), StatisticsCache con IndexedDB, navbar móvil, `.base` en Files — todo ya en el tag 1.1.1.
+   El delta-matrix (contra 1.0.1) subestima sistemáticamente a stable; verificar siempre con `git show 1.1.1:`.
+3. **CONTRADICE de labels**: sandbox lleva `1.1.0-beta.1` siendo canary — contradice D4 enmendado (canary = stream, nunca label). Se resuelve al arrancar la línea `2.0.0-alpha.N`; no requiere fix en la 1.1.x.
+4. **Mobile es el gap transversal de los tres streams**: `isDesktopOnly:false` declarado por todos, probado por ninguno; is-phone sin doc ni código; detached leaves y hover-only interactions sin validación móvil. La 2.0 necesita un platform gate explícito (encaja en el open PlatformAdapter de wave 1).
+5. **Bases interop queda asimétrico**: stable tiene settings + `.base` discovery; sandbox tiene el único path real de import (parse YAML, conversión de filtros, preview) — pero sin matriz de cobertura de expresiones y solo el lado read del híbrido ADR 0009. El lado mutable no existe en ningún stream.
+6. **El catálogo de smokes de la línea 1.1.x ES el test de aceptación `legacy-1.1`** (D-PSS-9): casing, `.base` discovery, HUD toggle, queue stage-by-default, native Search.
    La Tabla 9 funciona como inventario inicial de ese profile.
 
 ## Cobertura honesta
 
-- **Bien evidenciado**: boot lifecycle (shard 03 + `git show 1.1.1:src/main.ts`), settings
-  schema (typeSettings.ts 1.1.1 directo), diagnostics/HUD (código 1.1.1), release/packaging
-  (session-log 2026-06-09 + release facts de 1.1.0/1.1.1), Bases settings.
+- **Bien evidenciado**: boot lifecycle (shard 03 + `git show 1.1.1:src/main.ts`), settings schema (typeSettings.ts 1.1.1 directo), diagnostics/HUD (código 1.1.1), release/packaging (session-log 2026-06-09 + release facts de 1.1.0/1.1.1), Bases settings.
 - **Parcial**: SASI/module contracts (postulado ADR 0011, no formalizado en ningún stream);
   híbrido ADR 0009 lado mutable (no existe); matriz de expresiones Bases (sin evidencia);
-  is-phone/touch (sin código encontrado); minimal searchbox y config-export (sin función
-  explícita).
+  is-phone/touch (sin código encontrado); minimal searchbox y config-export (sin función explícita).
 - **No accedido**: suites de test completas (fuera de alcance por regla del ledger);
-  feasibility runtime del proto (es diseño React, no producto); schema IndexedDB completo de
-  StatisticsCache; loop de polling del native Search adapter.
-- **Corrección del coordinador**: las afirmaciones del subagente basadas en el shard 06 sobre
-  "hotfix dirty/metadata blocker/Tasks 7-10 pendientes" se reclasificaron como históricas
-  (pre-1.1.1); no son bloqueos vigentes.
+  feasibility runtime del proto (es diseño React, no producto); schema IndexedDB completo de StatisticsCache; loop de polling del native Search adapter.
+- **Corrección del coordinador**: las afirmaciones del subagente basadas en el shard 06 sobre "hotfix dirty/metadata blocker/Tasks 7-10 pendientes" se reclasificaron como históricas (pre-1.1.1); no son bloqueos vigentes.
 
 ## Shards leídos
 
-delta-matrix 05 (§boot/§settings + secciones post-1651: Bases/API/diagnostics/mobile/
-packaging/SCSS/i18n/deps) · shard 03 canary (boot DAG, settings, ServiceAPI) · shard 04
-proto-v12 · shard 06 promotion spec (§02/§06/§11-12 — con corrección de staleness) ·
-session-log 2026-06-09 · umbrella shard 01 (D2/D4/D8, D-PSS-3/6/7/9) · ADR 0009/0011 ·
-working-memory tooling · código: `git show 1.1.1:` (manifest, main.ts, typeSettings.ts,
-ls-tree services) + `src/` actual + `.github/workflows/`.
+delta-matrix 05 (§boot/§settings + secciones post-1651: Bases/API/diagnostics/mobile/ packaging/SCSS/i18n/deps) · shard 03 canary (boot DAG, settings, ServiceAPI) · shard 04 proto-v12 · shard 06 promotion spec (§02/§06/§11-12 — con corrección de staleness) · session-log 2026-06-09 · umbrella shard 01 (D2/D4/D8, D-PSS-3/6/7/9) · ADR 0009/0011 · working-memory tooling · código: `git show 1.1.1:` (manifest, main.ts, typeSettings.ts, ls-tree services) + `src/` actual + `.github/workflows/`.

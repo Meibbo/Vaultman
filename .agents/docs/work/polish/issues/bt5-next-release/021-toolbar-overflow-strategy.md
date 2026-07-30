@@ -22,10 +22,8 @@ tags: [agent/issue, initiative/polish, release/bt5]
 ## What to build
 
 Añadir en Settings/Toolbar una estrategia de overflow:
-`Condensed menu` —comportamiento actual responsive— o `Horizontal scroll`. En scroll,
-todos los action nodes aplicables permanecen en la barra en una sola línea desplazable;
-en condensed, el threshold y el force-menu actuales siguen trasladando acciones al Tools
-menu. Esto es independiente de que BT5-006 retire una acción contextual inútil.
+`Condensed menu` —comportamiento actual responsive— o `Horizontal scroll`. En scroll, todos los action nodes aplicables permanecen en la barra en una sola línea desplazable;
+en condensed, el threshold y el force-menu actuales siguen trasladando acciones al Tools menu. Esto es independiente de que BT5-006 retire una acción contextual inútil.
 
 ## Acceptance criteria
 
@@ -38,9 +36,7 @@ menu. Esto es independiente de que BT5-006 retire una acción contextual inútil
 - [x] Añadir/quitar nodos o cambiar nested recalcula overflow sin resize loop.
 - [x] Tests cubren ambos modos, widths estrechos, cambio runtime y migración.
 
-El trade-off aceptado es que scroll conserva cada nodo en su lugar pero reduce la
-descubribilidad frente a un único Tools menu; por eso la pista de overflow es parte del
-feature, no polish opcional.
+El trade-off aceptado es que scroll conserva cada nodo en su lugar pero reduce la descubribilidad frente a un único Tools menu; por eso la pista de overflow es parte del feature, no polish opcional.
 
 ## Blocked by
 
@@ -48,11 +44,6 @@ None — can start immediately.
 
 ## Outcome 2026-07-20 (tarde)
 
-**Commit `57739ac5`.** Gate verde, scorecard 17/17. Test focal
-`test/unit/toolbarOverflowStrategy.test.ts`. Enum `toolbarOverflowStrategy` (default
-condensed). Scroll apaga auto-condense y el traslado a Tools, pone la barra en una
-sola línea con scroll horizontal, fade de overflow en el borde y `scroll-margin`
-para focus. Detalle: [[docs/work/polish/plans/2026-07-19-bt5-next-10/08-bt5-014-021-022-023-024|shard 08]].
+**Commit `57739ac5`.** Gate verde, scorecard 17/17. Test focal `test/unit/toolbarOverflowStrategy.test.ts`. Enum `toolbarOverflowStrategy` (default condensed). Scroll apaga auto-condense y el traslado a Tools, pone la barra en una sola línea con scroll horizontal, fade de overflow en el borde y `scroll-margin` para focus. Detalle: [[docs/work/polish/plans/2026-07-19-bt5-next-10/08-bt5-014-021-022-023-024|shard 08]].
 
-Pendiente: smoke de la UX de scroll; relocalización a Tools en condensed (diferido,
-no aplica a scroll).
+Pendiente: smoke de la UX de scroll; relocalización a Tools en condensed (diferido, no aplica a scroll).

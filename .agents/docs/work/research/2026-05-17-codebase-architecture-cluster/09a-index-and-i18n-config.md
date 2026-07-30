@@ -22,10 +22,8 @@ updated_by: codex
 `src/index/indexNodeCreate.ts` is the generic read-model factory.
 
 - IN: `INodeIndex`, `NodeBase`, optional `getActivePerfProbe`.
-- OUT: `nodes`, `flatIds`, `revision`, `refresh`, `subscribe`, `byId`, and
-  `getSearchBuffer`.
-- Data flow: `opts.build()` -> normalized search buffers -> revision increment
-  -> subscriber notification.
+- OUT: `nodes`, `flatIds`, `revision`, `refresh`, `subscribe`, `byId`, and `getSearchBuffer`.
+- Data flow: `opts.build()` -> normalized search buffers -> revision increment -> subscriber notification.
 - Guardrail: `refreshVersion` drops stale async refreshes.
 
 ## Index Factories
@@ -43,8 +41,7 @@ updated_by: codex
 
 ## Specialized Indexes
 
-`indexContent.ts` does not reuse `createNodeIndex`. It needs async content
-search state:
+`indexContent.ts` does not reuse `createNodeIndex`. It needs async content search state:
 
 - Query state and `setQuery`.
 - Empty/scanning/done `ContentSearchStatus`.
@@ -55,33 +52,24 @@ search state:
 `utilPropIndex.ts` is a component-backed live property index:
 
 - Loads on plugin startup from all Markdown frontmatter.
-- Listens to metadata `resolved` and `changed`, plus vault `delete` and
-  `create`.
+- Listens to metadata `resolved` and `changed`, plus vault `delete` and `create`.
 - Debounces changed-file flushes by 50 ms.
-- Keeps values monotonically between full rebuilds after deletes, which is
-  acceptable for autocomplete according to its source comment.
+- Keeps values monotonically between full rebuilds after deletes, which is acceptable for autocomplete according to its source comment.
 
 ## i18n
 
-`src/index/i18n/lang.ts` imports `en` and `es`, but `currentLang` is hard-coded
-to `en`. `translate(key, vars)` falls back to English and then the raw key, and
-performs simple `{placeholder}` replacement.
+`src/index/i18n/lang.ts` imports `en` and `es`, but `currentLang` is hard-coded to `en`. `translate(key, vars)` falls back to English and then the raw key, and performs simple `{placeholder}` replacement.
 
 ## Theme Config
 
 `src/config/themePresetsBuiltin.ts` exports:
 
-- `PRESET_NATIVE`: core-like Explorer, hidden dock/tabs, core toolbar, tree view
-  only, locked node-element visibility.
-- `PRESET_VAULTMAN`: full plugin layout, bar dock, top tabs, full toolbar, all
-  primary view modes, unlocked node-element visibility.
+- `PRESET_NATIVE`: core-like Explorer, hidden dock/tabs, core toolbar, tree view only, locked node-element visibility.
+- `PRESET_VAULTMAN`: full plugin layout, bar dock, top tabs, full toolbar, all primary view modes, unlocked node-element visibility.
 - `BUILT_IN_PRESETS`: ordered as `native`, then `vaultman`.
 
-`src/services/serviceTheme.svelte.ts` consumes this config and appends custom
-presets.
+`src/services/serviceTheme.svelte.ts` consumes this config and appends custom presets.
 
 ## Test Coverage
 
-Relevant tests include `createNodeIndex`, all service index suites, content
-index, Bases import targets, plugin/snippet indexes, `utilPropIndex`, theme
-presets, and theme settings synchronization.
+Relevant tests include `createNodeIndex`, all service index suites, content index, Bases import targets, plugin/snippet indexes, `utilPropIndex`, theme presets, and theme settings synchronization.

@@ -17,31 +17,23 @@ tags: [agent/issue, initiative/polish, release/bt5, hover]
 
 ## Parent
 
-[[docs/work/polish/issues/bt5-next-release/index|BT5 next release train]]. Reportado
-por el dev el 2026-07-20; observado en Plugins explorer y en Files explorer.
+[[docs/work/polish/issues/bt5-next-release/index|BT5 next release train]]. Reportado por el dev el 2026-07-20; observado en Plugins explorer y en Files explorer.
 
 ## Reported behavior
 
-Los nodos tienen dos hovers distintos: el que Vaultman expone y configura, y otro
-que no es configurable. Cuando ambos existen se muestra el segundo, que es
-justamente el que no debería ganar.
+Los nodos tienen dos hovers distintos: el que Vaultman expone y configura, y otro que no es configurable. Cuando ambos existen se muestra el segundo, que es justamente el que no debería ganar.
 
 ## Diagnóstico ya realizado (source, sin runtime)
 
 Hay dos escritores sobre el MISMO elemento (`row`), en este orden:
 
-1. `viewTree.applyRowTitle()` (`viewTree.ts:524`) llama `setTooltip(row, rowTitle(node))`
-   en **cada render de fila**. `rowTitle()` (`viewTree.ts:516`) fabrica un texto
-   genérico y **hardcoded en inglés** a partir de lo que el nodo traiga:
-   `Last modified: … / Created at: … / Words: …`. No pasa por `filesHoverInfo`, no
-   respeta orden ni selección del usuario, y no está traducido.
+1. `viewTree.applyRowTitle()` (`viewTree.ts:524`) llama `setTooltip(row, rowTitle(node))` en **cada render de fila**. `rowTitle()` (`viewTree.ts:516`) fabrica un texto genérico y **hardcoded en inglés** a partir de lo que el nodo traiga:
+   `Last modified: … / Created at: … / Words: …`. No pasa por `filesHoverInfo`, no respeta orden ni selección del usuario, y no está traducido.
 2. El tooltip configurable se aplica **después**, pero solo en `onRowHover`:
    Files → `_handleFileHover` → `buildFileHoverInfo` (registro BT5-010);
    Plugins/Snippets → `buildAddonHoverInfo`.
 
-El de (2) debería ser el único, pero (1) se reaplica en cada repintado de la fila
-(scroll virtual, cambio de estado, reciclado de filas), así que en la práctica el
-genérico reaparece y tapa al configurado.
+El de (2) debería ser el único, pero (1) se reaplica en cada repintado de la fila (scroll virtual, cambio de estado, reciclado de filas), así que en la práctica el genérico reaparece y tapa al configurado.
 
 ## Acceptance criteria
 
@@ -61,24 +53,14 @@ verificar Props/Tags/Content además de los dos reportados.
 
 ## Outcome 2026-07-20
 
-**Commit `577789c2`.** Gate verde: 125 files / 822 tests, svelte-check 0/0,
-scorecard 17/17. Test focal `test/unit/singleRowTooltip.test.ts`.
+**Commit `577789c2`.** Gate verde: 125 files / 822 tests, svelte-check 0/0, scorecard 17/17. Test focal `test/unit/singleRowTooltip.test.ts`.
 
-La vista ya no redacta tooltips. `rowTitle()` y su texto hardcoded en inglés
-desaparecen; `clearRowTooltip` solo garantiza pizarra limpia: quita el atributo
-nativo `title` (que duplica el render) y borra el texto que quedara en una fila
-reciclada. El contenido pasa a ser enteramente del builder de hover del panel
-—`filesHoverInfo` en Files, `buildAddonHoverInfo` en Plugins y Snippets—, así que
-selección y orden se respetan también tras un repintado.
+La vista ya no redacta tooltips. `rowTitle()` y su texto hardcoded en inglés desaparecen; `clearRowTooltip` solo garantiza pizarra limpia: quita el atributo nativo `title` (que duplica el render) y borra el texto que quedara en una fila reciclada. El contenido pasa a ser enteramente del builder de hover del panel —`filesHoverInfo` en Files, `buildAddonHoverInfo` en Plugins y Snippets—, así que selección y orden se respetan también tras un repintado.
 
-Una fila repintada mientras el puntero está encima recupera su tooltip configurado
-en el acto (`_hoveredRowId`), así que el reciclado por scroll nunca deja una fila
-sin tooltip hasta que el ratón salga y vuelva.
+Una fila repintada mientras el puntero está encima recupera su tooltip configurado en el acto (`_hoveredRowId`), así que el reciclado por scroll nunca deja una fila sin tooltip hasta que el ratón salga y vuelva.
 
-**Cambio visible declarado:** Props, Tags y Content no registran builder de hover,
-así que ahora no muestran ningún tooltip en vez de uno inventado y sin traducir.
-Es el AC "ausencia de datos = sin tooltip". Si el dev quiere hover ahí, el paso
-siguiente es darles builder configurable propio, no reponer el genérico.
+**Cambio visible declarado:** Props, Tags y Content no registran builder de hover, así que ahora no muestran ningún tooltip en vez de uno inventado y sin traducir.
+Es el AC "ausencia de datos = sin tooltip". Si el dev quiere hover ahí, el paso siguiente es darles builder configurable propio, no reponer el genérico.
 
 Detalle: [[docs/work/polish/plans/2026-07-19-bt5-next-10/06-bt5-012-013-015-018-031-032|shard 06]].
 

@@ -22,10 +22,7 @@ tags: [agent/issue, triage/completed, initiative/polish, release/1.2.0, explorer
 
 ## What to build
 
-The Tags inline rename input carried a fixed `height: 20px` plus a negative
-vertical margin, so it spilled out of its row and covered the neighbouring
-cells, and its vertical padding made it taller than the node it replaces. Let
-it stretch to the row instead.
+The Tags inline rename input carried a fixed `height: 20px` plus a negative vertical margin, so it spilled out of its row and covered the neighbouring cells, and its vertical padding made it taller than the node it replaces. Let it stretch to the row instead.
 
 ## Acceptance criteria
 
@@ -39,6 +36,4 @@ None.
 
 ## Outcome
 
-Resolved by `aeb1df1d`. Making the inline editor the default rename path for a
-single node (behind a Layout setting) is separate — see
-[[../v1-2-1-polish/index|the 1.2.1 backlog]].
+Resolved by `aeb1df1d`. Making the inline editor the default rename path for a single node (behind a Layout setting) is separate — see [[../v1-2-1-polish/index|the 1.2.1 backlog]].

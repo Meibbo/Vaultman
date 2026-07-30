@@ -24,8 +24,7 @@ updated_by: codex
 | `manifest.json` | Obsidian plugin manifest | 294 bytes |
 | `versions.json` | Obsidian version compatibility map | 689 bytes |
 
-`manifest.json` currently identifies the plugin as `vaultman`, version `1.1.0`,
-with `minAppVersion` `1.12.0`. `versions.json` includes the same `1.1.0` entry.
+`manifest.json` currently identifies the plugin as `vaultman`, version `1.1.0`, with `minAppVersion` `1.12.0`. `versions.json` includes the same `1.1.0` entry.
 
 ## Generated Directories
 
@@ -38,20 +37,16 @@ with `minAppVersion` `1.12.0`. `versions.json` includes the same `1.1.0` entry.
 
 ## Output Boundaries
 
-- `dist/vite` is the upstream Vite build source used by sync and release
-  staging.
+- `dist/vite` is the upstream Vite build source used by sync and release staging.
 - `dist/build` is a local synchronized output surface.
 - `dist/release` is the release staging surface.
-- Root `main.js` and `styles.css` are generated build artifacts and should not
-  be used to infer source architecture.
-- Root `manifest.json` and `versions.json` are release metadata and do affect
-  package/release behavior.
+- Root `main.js` and `styles.css` are generated build artifacts and should not be used to infer source architecture.
+- Root `manifest.json` and `versions.json` are release metadata and do affect package/release behavior.
 
 ## CodeQL Pack Outputs
 
 The `codeql/` directory is source for security analysis, not generated output.
-It belongs in this phase because workflows execute it outside the runtime/test
-bundle.
+It belongs in this phase because workflows execute it outside the runtime/test bundle.
 
 - `codeql/queries/javascript/vaultman/qlpack.yml` defines the query pack.
 - `codeql/tests/javascript/vaultman/qlpack.yml` defines the query test pack.
@@ -61,9 +56,6 @@ bundle.
 
 When implementing product changes:
 
-- Edit `src/`, `test/`, scripts, workflows, or manifest metadata as the source
-  of truth.
-- Let build/release commands regenerate `main.js`, `styles.css`, `dist/build`,
-  and `dist/release`.
-- Review generated artifacts only when the change explicitly affects packaging,
-  manifest fields, CSS output, release checksums, or SBOM behavior.
+- Edit `src/`, `test/`, scripts, workflows, or manifest metadata as the source of truth.
+- Let build/release commands regenerate `main.js`, `styles.css`, `dist/build`, and `dist/release`.
+- Review generated artifacts only when the change explicitly affects packaging, manifest fields, CSS output, release checksums, or SBOM behavior.

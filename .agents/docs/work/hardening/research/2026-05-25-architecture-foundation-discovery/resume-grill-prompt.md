@@ -14,8 +14,7 @@ tags:
 
 # Resume Grill Prompt
 
-Paste the block below into a fresh chat (Vaultman repo) to resume the architecture / proto-design
-grill where the 2026-05-27 close left off. Prior 2026-05-26 version archived:
+Paste the block below into a fresh chat (Vaultman repo) to resume the architecture / proto-design grill where the 2026-05-27 close left off. Prior 2026-05-26 version archived:
 [[docs/archive/pkm-ai/active-docs/2026-05-27T000000-handoff-status-superseded-sections|2026-05-27 superseded sections archive]].
 
 ```text

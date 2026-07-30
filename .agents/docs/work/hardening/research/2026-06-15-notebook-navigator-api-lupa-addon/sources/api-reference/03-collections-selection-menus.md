@@ -44,11 +44,9 @@ const root = nn.propertyNodes.parse(nn.propertyNodes.rootId);
 
 Query the current selection state in the navigator.
 
-`getNavItem()` and `getCurrent()` return the navigator's most recently known state. Selection updates while the navigator
-view is active, and navigation selection is restored from localStorage on startup.
+`getNavItem()` and `getCurrent()` return the navigator's most recently known state. Selection updates while the navigator view is active, and navigation selection is restored from localStorage on startup.
 
-When `navItem.type === 'tag'`, `navItem.tag` can be either a canonical tag path or an aggregate tag collection id
-(`'__tagged__'` or `'__untagged__'`).
+When `navItem.type === 'tag'`, `navItem.tag` can be either a canonical tag path or an aggregate tag collection id (`'__tagged__'` or `'__untagged__'`).
 
 | Method         | Description                  | Returns          |
 | -------------- | ---------------------------- | ---------------- |

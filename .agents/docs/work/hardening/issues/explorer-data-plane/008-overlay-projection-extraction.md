@@ -32,29 +32,21 @@ updated_by: codex
 
 ## What To Build
 
-Extract queue/filter projection rules behind a tested module while keeping
-`ViewLayers` as the output vocabulary and preserving existing badge registry
-semantics.
+Extract queue/filter projection rules behind a tested module while keeping `ViewLayers` as the output vocabulary and preserving existing badge registry semantics.
 
 ## Acceptance Criteria
 
-- [x] Queue/filter projection rules move behind a tested module while
-      `ViewLayers` stays output.
-- [x] Queue popup and active-filter list presentation have pure projection
-      tests outside Svelte components.
+- [x] Queue/filter projection rules move behind a tested module while `ViewLayers` stays output.
+- [x] Queue popup and active-filter list presentation have pure projection tests outside Svelte components.
 - [x] Existing `serviceBadge` and `badgeRegistry` vocabulary is reused.
 
 ## Completion Notes
 
 - Implemented pure overlay projection in `src/services/serviceOverlayProjection.ts`.
-- `ViewService` remains the render-model coordinator and now delegates queue,
-  filter, and structural-row overlay layers to the projection module.
+- `ViewService` remains the render-model coordinator and now delegates queue, filter, and structural-row overlay layers to the projection module.
 - Queue popup presentation moved to `src/services/serviceQueuePresentation.ts`.
-- Active-filter labels, details, and reorder boundaries moved to
-  `src/services/serviceActiveFilterPresentation.ts`.
-- Files, Tags, and Props still consume overlays through the shared
-  `ViewService`/`ViewLayers` path; structural snapshot adapters were not
-  modified.
+- Active-filter labels, details, and reorder boundaries moved to `src/services/serviceActiveFilterPresentation.ts`.
+- Files, Tags, and Props still consume overlays through the shared `ViewService`/`ViewLayers` path; structural snapshot adapters were not modified.
 
 ## Blocked By
 
@@ -63,9 +55,7 @@ semantics.
 
 ## Verification
 
-- RED: focused EDP-008 tests failed on missing
-  `serviceOverlayProjection`, `serviceActiveFilterPresentation`,
-  `queueActionTone`, and `presentQueueModel` exports.
+- RED: focused EDP-008 tests failed on missing `serviceOverlayProjection`, `serviceActiveFilterPresentation`, `queueActionTone`, and `presentQueueModel` exports.
 - PASS: `pnpm run test:unit -- test/unit/services/serviceOverlayProjection.test.ts test/unit/services/serviceQueuePresentation.test.ts test/unit/services/serviceActiveFilterPresentation.test.ts`
   - 3 files / 10 tests.
 - PASS: `pnpm run test:unit -- test/unit/services/serviceViews.test.ts test/unit/services/badgeRegistry.test.ts test/unit/badges/serviceBadge.test.ts test/unit/services/serviceQueuePresentation.test.ts test/unit/services/serviceActiveFiltersIndex.test.ts test/unit/components/explorerFiles.test.ts test/unit/components/explorerTags.test.ts test/unit/components/explorerTagsSnapshot.test.ts test/unit/components/explorerProps.test.ts`
@@ -81,6 +71,4 @@ semantics.
 - PASS: `pnpm run build:plugin`.
 - PASS: `git diff --check`.
 - Integrated into `claude/explorer` with merge commit `10855e5`.
-- PASS on merged `claude/explorer`: focused overlay unit 4 files / 27 tests,
-  EDP-006 regression unit 5 files / 51 tests, sticky component 4 files / 39
-  tests, `lint:full`, `check`, and `build:plugin`.
+- PASS on merged `claude/explorer`: focused overlay unit 4 files / 27 tests, EDP-006 regression unit 5 files / 51 tests, sticky component 4 files / 39 tests, `lint:full`, `check`, and `build:plugin`.

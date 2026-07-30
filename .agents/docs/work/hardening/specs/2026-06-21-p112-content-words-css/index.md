@@ -138,12 +138,9 @@ fileStats = {
 | 2025-W46.md | 181 | **237** (bug) | 179 | 179 |
 | Unfolding the Napkin (accented prose) | 27 | 7 | 25 | **27** (exact) |
 
-`\w+` is `[A-Za-z0-9_]` — it SPLITS accented Spanish words (`Díaz` → `D` + `az`), undercounting. The vault is
-Spanish-heavy, so `\w+` is wrong. The Unicode pattern `[\p{L}\p{N}]+/gu` matches Obsidian exactly on prose and
-handles accents correctly.
+`\w+` is `[A-Za-z0-9_]` — it SPLITS accented Spanish words (`Díaz` → `D` + `az`), undercounting. The vault is Spanish-heavy, so `\w+` is wrong. The Unicode pattern `[\p{L}\p{N}]+/gu` matches Obsidian exactly on prose and handles accents correctly.
 
-**Fix:** Replace `\S+` with Unicode `[\p{L}\p{N}]+/gu` in `countWords()` (also drop the `.trim()` — irrelevant
-once matching word-char runs):
+**Fix:** Replace `\S+` with Unicode `[\p{L}\p{N}]+/gu` in `countWords()` (also drop the `.trim()` — irrelevant once matching word-char runs):
 ```typescript
 private countWords(content: string): number {
     const withoutFrontmatter = content.replace(/^---[\s\S]*?---\s*/, '');
@@ -152,12 +149,9 @@ private countWords(content: string): number {
 }
 ```
 
-Residual delta on W46 (179 vs Obsidian 181 = 2 words) is from Obsidian's worker tokenizing wikilinks/numbers
-slightly differently; not worth replicating its full worker regex. Fixes the user complaint (237 → 179) and is
-exact on prose.
+Residual delta on W46 (179 vs Obsidian 181 = 2 words) is from Obsidian's worker tokenizing wikilinks/numbers slightly differently; not worth replicating its full worker regex. Fixes the user complaint (237 → 179) and is exact on prose.
 
-**Cache note:** Existing cached `.md` file word counts are stale after this change. They self-correct when a file is
-modified (triggers `invalidateFile`) or when statistics are recomputed. No forced cache clear needed for a hotfix.
+**Cache note:** Existing cached `.md` file word counts are stale after this change. They self-correct when a file is modified (triggers `invalidateFile`) or when statistics are recomputed. No forced cache clear needed for a hotfix.
 
 ---
 

@@ -6,11 +6,7 @@ parent: "[[2026-05-18-explorer-sub-system-0-a-native-dom-parity/index]]"
 
 # 05 — C5: Extract view-host from `panelExplorer.svelte` to `<ViewHost>` mount
 
-Replace the inline view-mode switch block in
-`src/components/containers/panelExplorer.svelte` (≈lines 1205-1380) with a
-single `<ViewHost>` mount for platform modes. Markmap branch stays as outer
-fallback. Surrounding panelExplorer state, callbacks, `$effect` blocks
-remain untouched.
+Replace the inline view-mode switch block in `src/components/containers/panelExplorer.svelte` (≈lines 1205-1380) with a single `<ViewHost>` mount for platform modes. Markmap branch stays as outer fallback. Surrounding panelExplorer state, callbacks, `$effect` blocks remain untouched.
 
 **Files:**
 - Modify: `src/components/containers/panelExplorer.svelte`
@@ -27,8 +23,7 @@ pnpm vitest run test/component/containers/ 2>&1 | Out-File pre-c5-component-base
 git status --short
 ```
 
-Record baseline test pass count and any existing snapshot files in
-`baseline-log.md`.
+Record baseline test pass count and any existing snapshot files in `baseline-log.md`.
 
 - [ ] **Step 2: Write failing test for post-extraction DOM structure**
 
@@ -71,8 +66,7 @@ describe('panelExplorer — ViewHost mount (C5)', () => {
 });
 ```
 
-(Test fixture details depend on `panelExplorer.svelte`'s actual prop
-signature; match the existing panelExplorer component-test conventions.)
+(Test fixture details depend on `panelExplorer.svelte`'s actual prop signature; match the existing panelExplorer component-test conventions.)
 
 - [ ] **Step 3: Run test to verify it fails**
 
@@ -92,8 +86,7 @@ Run:
 Get-Content src/components/containers/panelExplorer.svelte | Select-Object -Skip 1199 -First 200
 ```
 
-Identify the full block to replace (≈lines 1200-1380). Capture the
-EXACT prop set passed to each view component for the audit in Step 6.
+Identify the full block to replace (≈lines 1200-1380). Capture the EXACT prop set passed to each view component for the audit in Step 6.
 
 - [ ] **Step 5: Add `isPlatformMode` import + `isCurrentViewEmpty` consolidation**
 
@@ -120,8 +113,7 @@ const isCurrentViewEmpty = $derived(
 
 - [ ] **Step 6: Replace the inline mode-switch with ViewHost mount**
 
-Replace the block from `{#if viewMode === 'tree'}` through the final
-`{:else}` with:
+Replace the block from `{#if viewMode === 'tree'}` through the final `{:else}` with:
 
 ```svelte
 {#if viewMode === 'markmap'}
@@ -199,9 +191,7 @@ Replace the block from `{#if viewMode === 'tree'}` through the final
 {/if}
 ```
 
-Confirm every prop / callback that the old switch passed to a view
-component is present in the ViewHost mount above. Use the audit from
-Step 4 as the checklist.
+Confirm every prop / callback that the old switch passed to a view component is present in the ViewHost mount above. Use the audit from Step 4 as the checklist.
 
 - [ ] **Step 7: Audit container-class lineage in `src/styles/`**
 
@@ -212,13 +202,8 @@ Select-String -Path src/styles -Pattern "vm-tree-container|vm-grid-container|vm-
 ```
 
 For each hit:
-- If a rule is targeting `.vm-<view>-container > .vm-<view>-virtual-row`, the
-  rule still works because `<ViewHost>` renders the same view component
-  output; the outer container disappears but the inner content stays.
-- If a rule targets `.vm-<view>-container` directly for visual styling
-  (padding, background), it may need to migrate to `.vm-view-host-container`
-  or to a per-view inner element. Decide per rule; document choices in
-  the commit message.
+- If a rule is targeting `.vm-<view>-container > .vm-<view>-virtual-row`, the rule still works because `<ViewHost>` renders the same view component output; the outer container disappears but the inner content stays.
+- If a rule targets `.vm-<view>-container` directly for visual styling (padding, background), it may need to migrate to `.vm-view-host-container` or to a per-view inner element. Decide per rule; document choices in the commit message.
 
 - [ ] **Step 8: Run focused tests**
 
@@ -229,9 +214,7 @@ pnpm vitest run test/component/containers/panelExplorerViewHostMount.test.ts
 pnpm vitest run test/component/containers/panelExplorer.test.ts
 ```
 
-Expected: both PASS. The existing panelExplorer component test (if any)
-should be updated to match the new wrapper class if it asserted on
-`.vm-tree-container` etc.
+Expected: both PASS. The existing panelExplorer component test (if any) should be updated to match the new wrapper class if it asserted on `.vm-tree-container` etc.
 
 - [ ] **Step 9: Run full `pnpm verify`**
 
@@ -241,8 +224,7 @@ Run:
 pnpm verify
 ```
 
-Expected: PASS. Lint clean. If component tests fail due to selector
-change, update the test to match the new wrapper element.
+Expected: PASS. Lint clean. If component tests fail due to selector change, update the test to match the new wrapper element.
 
 - [ ] **Step 10: Run live `plugin-dev` smoke**
 
@@ -276,20 +258,13 @@ without semantic change."
 - Existing panelExplorer tests pass (with selector updates if any).
 - `pnpm verify` baseline preserved.
 - Live plugin-dev smoke: no dev errors across all 6 viewMode values.
-- Visual smoke (manual): rows render in each viewMode with same overall
-  layout as before C5.
+- Visual smoke (manual): rows render in each viewMode with same overall layout as before C5.
 
 ## Risk surface (R1)
 
-- The bindable `viewMode` two-way sync introduces a possible loop if
-  panelExplorer mutates `viewMode` from its own `$effect`. During Step 8
-  watch test logs for `Maximum reactive update depth` warnings. If
-  observed, guard ViewHost's prune `$effect` with an equality check
-  before assigning back.
-- Container-class lineage in SCSS may need touchups if styles relied on
-  the now-removed wrapper. Document any SCSS edits in the commit message.
+- The bindable `viewMode` two-way sync introduces a possible loop if panelExplorer mutates `viewMode` from its own `$effect`. During Step 8 watch test logs for `Maximum reactive update depth` warnings. If observed, guard ViewHost's prune `$effect` with an equality check before assigning back.
+- Container-class lineage in SCSS may need touchups if styles relied on the now-removed wrapper. Document any SCSS edits in the commit message.
 
 ## Rollback
 
-`git revert <commit>` reverts to the inline switch. ViewHost shell + service
-remain available for the next attempt.
+`git revert <commit>` reverts to the inline switch. ViewHost shell + service remain available for the next attempt.

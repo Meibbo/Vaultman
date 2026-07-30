@@ -1442,8 +1442,7 @@ Co-Authored-By: Claude Opus 4.7 <noreply@anthropic.com>"
 
 ## Execution handoff
 
-Plan complete. Saved to
-`.agents/docs/work/hardening/plans/2026-05-15-explorer-0-h-virtualizer-list-mode/index.md`.
+Plan complete. Saved to `.agents/docs/work/hardening/plans/2026-05-15-explorer-0-h-virtualizer-list-mode/index.md`.
 
 Two execution options:
 

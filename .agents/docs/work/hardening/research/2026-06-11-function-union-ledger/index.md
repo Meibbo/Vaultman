@@ -16,20 +16,13 @@ tags:
 
 # Function-Union Ledger (Fase B de la Synthesis Umbrella)
 
-Matriz a nivel FUNCIÓN de los tres streams — la "suma de funciones que comparten +
-las que diferencian" pedida por el dev. Insumo directo de Fase C (specs) y del DoD
-de cada wave (D3: paridad stable por sistema). Producida con subagentes read-only
-(Explore) por cluster; integrada y escrita por el agente coordinador.
+Matriz a nivel FUNCIÓN de los tres streams — la "suma de funciones que comparten + las que diferencian" pedida por el dev. Insumo directo de Fase C (specs) y del DoD de cada wave (D3: paridad stable por sistema). Producida con subagentes read-only (Explore) por cluster; integrada y escrita por el agente coordinador.
 
 ## Baseline por stream
 
-- **stable** = `1.1.1` (`origin/main`/`origin/dev` = `33d9d23`): línea hotfix +
-  SDF-001..016 + microcuts 2026-06-09 (scrollbar virtual, DnD Files, navbar móvil
-  `d99a493`). Fuentes: shard 06 §06.01-06.19 (inventario hotfix), issues SDF,
-  session-log 2026-06-06..09, shard 02 (base histórica 1.0.1), `git show 1.1.1:`
+- **stable** = `1.1.1` (`origin/main`/`origin/dev` = `33d9d23`): línea hotfix + SDF-001..016 + microcuts 2026-06-09 (scrollbar virtual, DnD Files, navbar móvil `d99a493`). Fuentes: shard 06 §06.01-06.19 (inventario hotfix), issues SDF, session-log 2026-06-06..09, shard 02 (base histórica 1.0.1), `git show 1.1.1:`
   para verificación puntual.
-- **sandbox** = workspace actual (canary; 271 archivos / ~43k LOC). Fuente: shard 03
-  (deep redo) + `src/` actual.
+- **sandbox** = workspace actual (canary; 271 archivos / ~43k LOC). Fuente: shard 03 (deep redo) + `src/` actual.
 - **proto v12** = canon preset polish/demo. Fuente: shard 04 (vertical read completo);
   raw proto solo para verificación puntual.
 
@@ -38,16 +31,10 @@ de cada wave (D3: paridad stable por sistema). Producida con subagentes read-onl
 `| Función | Stable 1.1.1 | Sandbox | Proto v12 | Clasificación | Decisión | Destino | Preset | Nivel | Notas |`
 
 - Celdas de stream: `✓ (forma breve)` · `~ (parcial)` · `—`.
-- **Clasificación**: COMPARTIDA · SOLO-STABLE · SOLO-SANDBOX · SOLO-PROTO ·
-  OVERLAP (la misma función con formas distintas) · CONTRADICE (formas incompatibles
-  — mostrar el conflicto, no resolverlo en silencio).
-- **Decisión**: ADOPT (tomar de un stream, indicar cuál) · RESHAPE (rediseñar para
-  runtime) · MAP (traducir vocabulario/diseño) · DROP · DEFER.
-- **Destino**: dimensión del modelo 8-dim (Surface/View/Node/Logic/Navigation/
-  Style/Process/Operations) + owner destino (p.ej. `logicFiles`, `ViewHost`, `PSS`,
-  `WSA`, `NIB`, `queue/VFS`).
-- **Preset** (D8): native · polish · barebones · flag · n/a — qué rung exhibe la
-  función.
+- **Clasificación**: COMPARTIDA · SOLO-STABLE · SOLO-SANDBOX · SOLO-PROTO · OVERLAP (la misma función con formas distintas) · CONTRADICE (formas incompatibles — mostrar el conflicto, no resolverlo en silencio).
+- **Decisión**: ADOPT (tomar de un stream, indicar cuál) · RESHAPE (rediseñar para runtime) · MAP (traducir vocabulario/diseño) · DROP · DEFER.
+- **Destino**: dimensión del modelo 8-dim (Surface/View/Node/Logic/Navigation/ Style/Process/Operations) + owner destino (p.ej. `logicFiles`, `ViewHost`, `PSS`, `WSA`, `NIB`, `queue/VFS`).
+- **Preset** (D8): native · polish · barebones · flag · n/a — qué rung exhibe la función.
 - **Nivel**: N0-N4 (pirámide, shard 03 de la umbrella).
 - Marcar inferencias con `(inf)` y huecos con `(sin evidencia)`.
 
@@ -68,8 +55,7 @@ de cada wave (D3: paridad stable por sistema). Producida con subagentes read-onl
 ## Reglas
 
 - Read-only para subagentes; el coordinador escribe.
-- Stable 1.1.1 = oráculo de comportamiento (D3); cada hotfix/minor futuro de la
-  línea 1.1.x se registra aquí al ocurrir (D4).
+- Stable 1.1.1 = oráculo de comportamiento (D3); cada hotfix/minor futuro de la línea 1.1.x se registra aquí al ocurrir (D4).
 - Columnas preset/decorations/contradicciones obligatorias (D8).
 - No inventar funciones; cobertura honesta por cluster al pie de cada shard.
 

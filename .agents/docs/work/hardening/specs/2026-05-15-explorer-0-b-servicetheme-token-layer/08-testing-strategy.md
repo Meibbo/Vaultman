@@ -20,11 +20,7 @@ tags:
 | `test/unit/services/serviceThemeRunes.test.ts` | EXPANDED. Existing tests for mode/identity/faintActive/useUtilities/rootClasses-without-theme-class are preserved. New tests for preset registry, `activePreset`, `useNativeDom`-derived-from-preset, `rootClasses` with `vm-theme-{id}`, hydrate with new fields. |
 | `test/component/settingsUI.test.ts` | MODIFIED. Remove `updateGlassBlur` mock and tests that exercise the deleted slider/dropdown UI. |
 
-Other existing tests that import `themeService` indirectly (e.g.,
-`reactiveExplorers.test.ts`, `panelExplorerSelection.test.ts`,
-`overlayViewMenu.test.ts`) should be byte-identical: they only consume
-`themeService.useNativeDom` / `themeService.rootClasses` getter contracts
-which preserve their signatures.
+Other existing tests that import `themeService` indirectly (e.g., `reactiveExplorers.test.ts`, `panelExplorerSelection.test.ts`, `overlayViewMenu.test.ts`) should be byte-identical: they only consume `themeService.useNativeDom` / `themeService.rootClasses` getter contracts which preserve their signatures.
 
 ## New unit test — `test/unit/types/typeThemePreset.test.ts`
 
@@ -395,13 +391,8 @@ function makeCustom(id: string, overrides: Partial<ThemePreset> = {}): ThemePres
 }
 ```
 
-NOTE on the last test: implementation must decide whether `rootClasses`
-emits raw id or css-safe id. Recommended: emit **raw** in `rootClasses`
-(no transform) so DOM class matches the SCSS block emitted by
-`#syncCustomStyles` which uses `#cssEscape`. **Conflict** — fixing:
-ensure `rootClasses` also applies `#cssEscape` to the active preset id
-when composing the class name. Update both paths. Test should assert
-encoded match.
+NOTE on the last test: implementation must decide whether `rootClasses` emits raw id or css-safe id. Recommended: emit **raw** in `rootClasses` (no transform) so DOM class matches the SCSS block emitted by `#syncCustomStyles` which uses `#cssEscape`. **Conflict** — fixing:
+ensure `rootClasses` also applies `#cssEscape` to the active preset id when composing the class name. Update both paths. Test should assert encoded match.
 
 ## New component test — `test/component/themeServiceCustomStyleInjection.test.ts`
 
@@ -493,8 +484,7 @@ describe('ThemeService custom style injection', () => {
 
 ## New component test — `test/component/frameVaultmanRootClasses.test.ts`
 
-Lightweight component test that mounts a slim wrapper consuming
-`themeService.rootClasses`:
+Lightweight component test that mounts a slim wrapper consuming `themeService.rootClasses`:
 
 ```typescript
 import { describe, expect, it } from 'vitest';
@@ -554,10 +544,8 @@ Total: 4 new files, 1 expanded, ~43 new tests.
 - New tests specifically: all green.
 - `git grep -n "applyVaultmanTheme"` returns zero matches.
 - `git grep -n "vm-glass-blur"` returns zero matches.
-- `git grep -n "body\.vm-theme\|body \.vm-theme"` in `src/styles/`
-  returns zero matches.
-- `git grep -n "normalizeLayoutTheme\|LAYOUT_THEME_OPTIONS"` returns zero
-  matches.
+- `git grep -n "body\.vm-theme\|body \.vm-theme"` in `src/styles/` returns zero matches.
+- `git grep -n "normalizeLayoutTheme\|LAYOUT_THEME_OPTIONS"` returns zero matches.
 
 ### Live smoke (recommended, not blocking)
 
@@ -576,5 +564,4 @@ console.log(root.className);
 // Expected: includes "vm-theme-native", does NOT include "vm-theme-vaultman"
 ```
 
-Visual verification: chrome opacity + density actually change between
-the two presets.
+Visual verification: chrome opacity + density actually change between the two presets.

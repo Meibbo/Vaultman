@@ -8,13 +8,9 @@ updated: 2026-07-15
 
 # FTC-009 — Joined Niagara track and deferred effects
 
-**Goal:** make Niagara a bidirectional, shared action/index track; fix rail anchoring and
-plain styling; remove unfinished effect controls from beta UX.
+**Goal:** make Niagara a bidirectional, shared action/index track; fix rail anchoring and plain styling; remove unfinished effect controls from beta UX.
 
-**Architecture:** extract pure wave/shift math into `logicNiagaraTrack.ts`; let the
-component render stable action descriptors before glyph descriptors when joined; keep
-callbacks at the action boundary so pointer scrubbing changes geometry/navigation but
-never fires an action.
+**Architecture:** extract pure wave/shift math into `logicNiagaraTrack.ts`; let the component render stable action descriptors before glyph descriptors when joined; keep callbacks at the action boundary so pointer scrubbing changes geometry/navigation but never fires an action.
 
 ## Task 1 — Lock the proto curve and reversible shift as pure logic
 
@@ -27,9 +23,7 @@ never fires an action.
    - proto sigma `Math.min(7, Math.max(3, count * 0.28))`;
    - Gaussian `exp(-(distance²)/(2*sigma²))`;
    - scale `1 + 0.5 * gaussian`;
-   - perpendicular offset `direction * perpendicularPull * gaussian` (the case
-     `perpendicularPull = 38` proves the proto coefficient is not replaced by a
-     fixed component constant);
+   - perpendicular offset `direction * perpendicularPull * gaussian` (the case `perpendicularPull = 38` proves the proto coefficient is not replaced by a fixed component constant);
    - signed neighbour spread `7 * tanh(distance / 1.5) * gaussian`;
    - signed overflow before the first center and after the last center;
    - zero shift while the pointer is inside the center range;
@@ -80,25 +74,17 @@ never fires an action.
    - drag suppression preventing a release click from invoking an action;
    - the label “Join action nodes to slide”.
 2. Run the focused source test and confirm RED.
-3. In the component, derive stable action descriptors. When
-   `floatingTocNiagaraNodes` is false, render the existing separate actions widget. When
-   true, render those descriptors immediately before glyph descriptors inside the same
-   orientation track and register every entry in the same element/center array.
+3. In the component, derive stable action descriptors. When `floatingTocNiagaraNodes` is false, render the existing separate actions widget. When true, render those descriptors immediately before glyph descriptors inside the same orientation track and register every entry in the same element/center array.
 4. Replace component-local Gaussian constants with the pure proto-equivalent helpers.
    Apply scale, perpendicular offset, and spread to both action and glyph entries.
-5. Replace high-water shift state with the signed result from `niagaraTrackShift` on
-   every pointer sample. Recompute from current geometry so upward/leftward and
-   downward/rightward movement are symmetric and return toward zero.
+5. Replace high-water shift state with the signed result from `niagaraTrackShift` on every pointer sample. Recompute from current geometry so upward/leftward and downward/rightward movement are symmetric and return toward zero.
 6. Gesture rules:
-   - nearest glyph entry may call `onJump` only when its group differs from the last
-     navigated group;
+   - nearest glyph entry may call `onJump` only when its group differs from the last navigated group;
    - nearest action entry changes only wave/active geometry;
-   - a pointer gesture crossing the drag threshold suppresses the subsequent action
-     click;
+   - a pointer gesture crossing the drag threshold suppresses the subsequent action click;
    - a quick stationary tap invokes its action once;
    - close cannot fire while merely scrubbing across it.
-7. Rename the setting copy from “Nodes join scrub” to “Join action nodes to slide”. Keep
-   the stored key `floatingTocNiagaraNodes` unchanged.
+7. Rename the setting copy from “Nodes join scrub” to “Join action nodes to slide”. Keep the stored key `floatingTocNiagaraNodes` unchanged.
 8. Force deferred runtime effects at the frame boundary:
 
    ```ts
@@ -125,14 +111,10 @@ never fires an action.
    - plain style targets both action entries and index glyph entries;
    - non-plain compact surfaces cover both entry types.
 2. Confirm RED.
-3. Keep the wrapper bounded by the Vaultman frame. Center horizontal tracks with flex
-   alignment; anchor bottom to the available frame edge above the dock when shown and
-   to the frame inset when the dock is off. Do not use viewport coordinates.
-4. Give top/bottom mirrored transform origins so perpendicular wave movement grows into
-   the frame.
+3. Keep the wrapper bounded by the Vaultman frame. Center horizontal tracks with flex alignment; anchor bottom to the available frame edge above the dock when shown and to the frame inset when the dock is off. Do not use viewport coordinates.
+4. Give top/bottom mirrored transform origins so perpendicular wave movement grows into the frame.
 5. Apply the compact surface/background selector uniformly to action and glyph entries.
-   Under `.is-plain`, remove background, border, shadow, and backdrop treatment from
-   both entry types while preserving hit targets.
+   Under `.is-plain`, remove background, border, shadow, and backdrop treatment from both entry types while preserving hit targets.
 6. Re-run focused tests, stylelint, and `git diff --check`.
 
 ## Task 4 — Remove deferred effect controls from beta Settings
@@ -142,10 +124,8 @@ never fires an action.
 - Modify `test/unit/settingsLayoutSource.test.ts`
 - Modify `src/VaultmanSettings.ts`
 
-1. Add failing assertions that no Settings rows expose Name Pill, Scrub Glow, Name Cell,
-   Name Reveal, or Name Letters, while the underlying type/default keys remain intact.
-2. Remove those five rows only. Keep the visible sequence: enable, Niagara slide, plain
-   style, rail position, glyph mode, Soft Scroll, Join action nodes to slide.
+1. Add failing assertions that no Settings rows expose Name Pill, Scrub Glow, Name Cell, Name Reveal, or Name Letters, while the underlying type/default keys remain intact.
+2. Remove those five rows only. Keep the visible sequence: enable, Niagara slide, plain style, rail position, glyph mode, Soft Scroll, Join action nodes to slide.
 3. Run:
 
    ```powershell

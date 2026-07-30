@@ -19,21 +19,15 @@ tags:
 ## Context
 
 Several planned features require Obsidian private/undocumented APIs or monkey-patches:
-floating tiles (hover-editor patches `WorkspaceLeaf` + `interact.js`), menu interception,
-native-ribbon relocation. These break when Obsidian ships updates.
+floating tiles (hover-editor patches `WorkspaceLeaf` + `interact.js`), menu interception, native-ribbon relocation. These break when Obsidian ships updates.
 
 ## Decision
 
-Every monkey-patch / private-or-undocumented-API access lives in **one named
-`PlatformAdapter`** module with: a runtime **capability probe**, a **degraded
-fallback**, and a **`serviceUnload` revert**. All adapters are enumerated in a
-**Fragility Registry**; on load, failed probes auto-disable that feature gracefully
-(no crash). **T.G shape-tests** assert the private symbols and gate `minAppVersion` bumps.
+Every monkey-patch / private-or-undocumented-API access lives in **one named `PlatformAdapter`** module with: a runtime **capability probe**, a **degraded fallback**, and a **`serviceUnload` revert**. All adapters are enumerated in a **Fragility Registry**; on load, failed probes auto-disable that feature gracefully (no crash). **T.G shape-tests** assert the private symbols and gate `minAppVersion` bumps.
 
 ## Consequences
 
-- Fragile zones are enumerable, unloadable, update-friendly (one adapter per fix),
-  and self-degrading. Optional features can be `serviceUnload`-gated per user.
+- Fragile zones are enumerable, unloadable, update-friendly (one adapter per fix), and self-degrading. Optional features can be `serviceUnload`-gated per user.
 - Adds a thin boundary layer; all platform-risky code must route through it.
 
 ## Alternatives considered

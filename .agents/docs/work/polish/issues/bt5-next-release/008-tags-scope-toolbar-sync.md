@@ -19,14 +19,11 @@ tags: [agent/issue, initiative/polish, release/bt5]
 
 ## Parent
 
-[[docs/work/polish/issues/bt5-next-release/index|BT5 next release train]]. Parte del
-residual de BT4-009.
+[[docs/work/polish/issues/bt5-next-release/index|BT5 next release train]]. Parte del residual de BT4-009.
 
 ## What to build
 
-Hacer que el toolbar de Tags proyecte cambios de scope originados fuera de él —por
-ejemplo sync desde floating index o carga de View config— con la misma paridad ya
-existente en Files. El estado autoritativo debe ser único y el toolbar solo una vista.
+Hacer que el toolbar de Tags proyecte cambios de scope originados fuera de él —por ejemplo sync desde floating index o carga de View config— con la misma paridad ya existente en Files. El estado autoritativo debe ser único y el toolbar solo una vista.
 
 ## Acceptance criteria
 
@@ -42,8 +39,4 @@ None — can start immediately.
 
 ## Outcome
 
-Completado en `f1dbe2f5`. Tags publica cambios externos efectivos mediante el mismo seam
-guardado que Files. El handshake distingue primera conexión —panel lazy recibe el estado
-autoritativo del navbar— de reconexión —un navbar remontado recupera el estado persistente
-del panel—, cerrando tanto View config antes del primer mount como Tags→Content→Tags sin
-ping-pong. `tagsScopeSync.test.ts` cubre ambos sentidos y el gate completo pasó 615 tests.
+Completado en `f1dbe2f5`. Tags publica cambios externos efectivos mediante el mismo seam guardado que Files. El handshake distingue primera conexión —panel lazy recibe el estado autoritativo del navbar— de reconexión —un navbar remontado recupera el estado persistente del panel—, cerrando tanto View config antes del primer mount como Tags→Content→Tags sin ping-pong. `tagsScopeSync.test.ts` cubre ambos sentidos y el gate completo pasó 615 tests.

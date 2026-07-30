@@ -26,8 +26,7 @@ projects: vaultman
 
 ## Summary
 
-Refresh the Vaultman PKM-AI orchestration docs, routing, backlog, and worker
-handoff system so agents can coordinate safely on AI-docs branches.
+Refresh the Vaultman PKM-AI orchestration docs, routing, backlog, and worker handoff system so agents can coordinate safely on AI-docs branches.
 
 ## Links
 
@@ -57,7 +56,6 @@ handoff system so agents can coordinate safely on AI-docs branches.
 
 ## Notes
 
-- This item tracks the whole orchestration refresh initiative; individual
-  workers own scoped plan slices.
+- This item tracks the whole orchestration refresh initiative; individual workers own scoped plan slices.
 - Raw migration archive files are allowed to exceed active line limits.
 - Timestamp updates now use `tools/pkm-ai/update-frontmatter.mjs`.

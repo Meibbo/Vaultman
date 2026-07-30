@@ -28,15 +28,10 @@ updated_by: codex
 ## Steps
 
 - [ ] Use Svelte tooling before finalizing the new component.
-- [ ] Add a failing component test that mounts `viewList.svelte` with two rows,
-  verifies labels/details render, and verifies row action callback receives the
-  semantic action and row id.
-- [ ] Implement `viewList.svelte` as a renderer for `ExplorerRenderModel`
-  `rows`, with virtualization owned by the view.
-- [ ] Migrate `explorerQueue.svelte` to build a list model and pass it to
-  `viewList`. Keep clear/execute/close toolbar behavior unchanged.
-- [ ] Migrate `explorerActiveFilters.svelte` to build a list model and pass it
-  to `viewList`. Keep clear/close toolbar behavior unchanged.
+- [ ] Add a failing component test that mounts `viewList.svelte` with two rows, verifies labels/details render, and verifies row action callback receives the semantic action and row id.
+- [ ] Implement `viewList.svelte` as a renderer for `ExplorerRenderModel` `rows`, with virtualization owned by the view.
+- [ ] Migrate `explorerQueue.svelte` to build a list model and pass it to `viewList`. Keep clear/execute/close toolbar behavior unchanged.
+- [ ] Migrate `explorerActiveFilters.svelte` to build a list model and pass it to `viewList`. Keep clear/close toolbar behavior unchanged.
 - [ ] Run component test, unit test, and `pnpm run check`.
 
 ## Acceptance

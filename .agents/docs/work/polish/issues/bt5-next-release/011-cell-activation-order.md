@@ -21,10 +21,7 @@ tags: [agent/issue, triage/needs-triage, initiative/polish, release/bt5]
 
 ## What to build
 
-Añadir en Settings/Explorer `Order cells by activation`, default off. En modo activation,
-los cells activos renderizan en el orden en que fueron activados; en fixed usan la posición
-canónica del registro. Los menús de cell y sort proyectan el mismo orden visual: activos
-primero en orden de render y luego inactivos en su posición fixed potencial.
+Añadir en Settings/Explorer `Order cells by activation`, default off. En modo activation, los cells activos renderizan en el orden en que fueron activados; en fixed usan la posición canónica del registro. Los menús de cell y sort proyectan el mismo orden visual: activos primero en orden de render y luego inactivos en su posición fixed potencial.
 
 ## Acceptance criteria
 

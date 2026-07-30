@@ -21,10 +21,7 @@ tags: [agent/issue, initiative/polish, release/bt5]
 
 ## What to build
 
-Mostrar Collapse/expand all solo cuando el explorer activo soporta expansión y su
-configuración `nested` está encendida. Con `nested=off`, retirar únicamente ese action
-node tanto del toolbar directo como del Tools menu; no apagar ni puentear la capacidad
-de condensación/overflow del toolbar.
+Mostrar Collapse/expand all solo cuando el explorer activo soporta expansión y su configuración `nested` está encendida. Con `nested=off`, retirar únicamente ese action node tanto del toolbar directo como del Tools menu; no apagar ni puentear la capacidad de condensación/overflow del toolbar.
 
 ## Acceptance criteria
 
@@ -41,7 +38,4 @@ None — can start immediately; debe integrar con BT5-021 sin depender de su ord
 
 ## Outcome
 
-Completado en `f1dbe2f5`. `expansionActionAvailable` deriva la disponibilidad desde tab y
-`visibleCells`; el botón directo y la entrada Tools desaparecen con `nested=off`, mientras
-Auto-reveal y el mecanismo de overflow permanecen disponibles. Cubierto por
-`expansionAvailability.test.ts`, guards de navbar y el gate completo de 615 tests.
+Completado en `f1dbe2f5`. `expansionActionAvailable` deriva la disponibilidad desde tab y `visibleCells`; el botón directo y la entrada Tools desaparecen con `nested=off`, mientras Auto-reveal y el mecanismo de overflow permanecen disponibles. Cubierto por `expansionAvailability.test.ts`, guards de navbar y el gate completo de 615 tests.

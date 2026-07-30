@@ -25,13 +25,7 @@ updated_by: codex
 
 ## Scope
 
-T3 migrates `VirtualFileState` from in-place mutation to **structural
-immutability with snapshot chains**, refactors `StagedOp.apply` to
-return a new state, introduces a `VFSChain` (initial → snapshots → head)
-in `serviceQueue.svelte.ts`, and ships a **Cursor-like Diff Navbar**
-that traverses snapshots with keyboard-driven prev/next-change /
-prev/next-file / prev/next-snapshot bindings. The existing `serviceDiff`
-LCS body diff is preserved.
+T3 migrates `VirtualFileState` from in-place mutation to **structural immutability with snapshot chains**, refactors `StagedOp.apply` to return a new state, introduces a `VFSChain` (initial → snapshots → head) in `serviceQueue.svelte.ts`, and ships a **Cursor-like Diff Navbar** that traverses snapshots with keyboard-driven prev/next-change / prev/next-file / prev/next-snapshot bindings. The existing `serviceDiff` LCS body diff is preserved.
 
 ## Files
 
@@ -53,27 +47,18 @@ LCS body diff is preserved.
 - Create: `test/component/viewDiffNavbar.test.ts`
 - Create: `test/unit/lint/noMutableVfsRule.test.ts`
 
-Read-only (T3 must not edit unless task 3.6 mandates it): `View*` and
-`view*` components other than `viewDiff` and `viewDiffNavbar`, all
-DnD services, theme service, providers.
+Read-only (T3 must not edit unless task 3.6 mandates it): `View*` and `view*` components other than `viewDiff` and `viewDiffNavbar`, all DnD services, theme service, providers.
 
 ## Source Specs Consumed
 
-- User-prompt Spec 12 (Interactive Diff Review & Robust VFS). T3 task
-  3.0 materializes it as a real spec file before writing code.
-- 03 GAMMA Overlays (T3 reuses the portal-resolver helper from T4 only
-  for the diff modal — see 3.5 step 4).
+- User-prompt Spec 12 (Interactive Diff Review & Robust VFS). T3 task 3.0 materializes it as a real spec file before writing code.
+- 03 GAMMA Overlays (T3 reuses the portal-resolver helper from T4 only for the diff modal — see 3.5 step 4).
 
 ## Dependencies
 
-- **Before T3 starts:** T1 must have shipped task 1.5 (root arbitration)
-  so the Diff Navbar can read `themeService.useNativeDom` for its render
-  mode.
-- **T3 may start in parallel with T2/T4 once task 3.0 (spec author) +
-  3.1 (type contract) are approved by the user.** All subsequent tasks
-  are file-disjoint from T2 and T4.
-- **T3 task 3.8 (cutover) blocks T4 task 4.6 (DnD block extraction)**
-  since DnD applies an op to the VFS chain.
+- **Before T3 starts:** T1 must have shipped task 1.5 (root arbitration) so the Diff Navbar can read `themeService.useNativeDom` for its render mode.
+- **T3 may start in parallel with T2/T4 once task 3.0 (spec author) + 3.1 (type contract) are approved by the user.** All subsequent tasks are file-disjoint from T2 and T4.
+- **T3 task 3.8 (cutover) blocks T4 task 4.6 (DnD block extraction)** since DnD applies an op to the VFS chain.
 
 ---
 
@@ -151,8 +136,7 @@ notes" in the snapshot timeline.
 
 - [x] **Step 2 — Update the spec index**
 
-In `.agents/docs/superpowers/specs/2026-05-10-shadcn-tailwind-transition/index.md`,
-append:
+In `.agents/docs/superpowers/specs/2026-05-10-shadcn-tailwind-transition/index.md`, append:
 
 ```markdown
 - [[12-data-layer-vfs-immutability|Spec 12: Data Layer — Interactive Diff Review & Robust VFS]]
@@ -478,8 +462,7 @@ function collectOpSummariesBetween(chain: VfsChain, from: number, to: number) {
 
 - [x] **Step 2 — Add unit test**
 
-Append to `test/unit/services/serviceVfsChain.test.ts` (kept in the same
-suite for locality):
+Append to `test/unit/services/serviceVfsChain.test.ts` (kept in the same suite for locality):
 
 ```ts
 import { buildSnapshotDiff } from '../../../src/services/serviceDiff';
@@ -515,8 +498,7 @@ Expected: PASS, 6/6.
 
 - [x] **Step 1 — Add chain Map alongside the existing transactions Map**
 
-Read the current `OperationQueueService` shape (it exposes
-`transactions: Map<string, VirtualFileState>` used by `viewDiff`). Add:
+Read the current `OperationQueueService` shape (it exposes `transactions: Map<string, VirtualFileState>` used by `viewDiff`). Add:
 
 ```ts
 import { VfsChain } from './serviceVfsChain';
@@ -799,9 +781,7 @@ Add these handlers, dispatching through the navbar's `onNavigate`:
 { key: ']', modifiers: { alt: true, ctrl: true }, action: 'diff.next-file' },
 ```
 
-Connect the actions to the navbar's exported functions by exporting
-them from the component via `$bindable` callbacks or by routing the
-keyboard action through `serviceOverlayState.svelte.ts`.
+Connect the actions to the navbar's exported functions by exporting them from the component via `$bindable` callbacks or by routing the keyboard action through `serviceOverlayState.svelte.ts`.
 
 - [x] **Step 5 — Run + pass**
 
@@ -821,10 +801,7 @@ Expected: PASS, 3/3.
 
 - [x] **Step 1 — Add chain-aware props alongside existing ones**
 
-Add a `chains?: Map<string, VfsChain>` prop. If `chains` is set, prefer
-snapshot diff via `buildSnapshotDiff`; otherwise fall back to the
-existing transaction path. This is the strangler — keep the legacy
-behavior alive.
+Add a `chains?: Map<string, VfsChain>` prop. If `chains` is set, prefer snapshot diff via `buildSnapshotDiff`; otherwise fall back to the existing transaction path. This is the strangler — keep the legacy behavior alive.
 
 ```svelte
 <script lang="ts">
@@ -984,54 +961,28 @@ pnpm exec vp test run --project unit --config vitest.config.ts test/unit/lint/no
 pnpm run lint:full
 ```
 
-Expected: rule tests PASS. `lint:full` may report new violations in the
-legacy paths — that is **expected** and is exactly what task 3.8
-addresses.
+Expected: rule tests PASS. `lint:full` may report new violations in the legacy paths — that is **expected** and is exactly what task 3.8 addresses.
 
 ### 2026-05-11 T3.0-T3.7 Continuation Log
 
-- T3.0 landed
-  `.agents/docs/superpowers/specs/2026-05-10-shadcn-tailwind-transition/12-data-layer-vfs-immutability.md`
-  and linked it from the Elastic UI transition spec index.
-- T3.1 was already present in the worktree. A new RED guard proved
-  `freezeVfs()` only shallow-froze nested frontmatter values; `deepFreeze()`
-  now freezes nested `fm`, `fmInitial`, and `ops` values.
-- T3.2, T3.3, and T3.4 were already present in the worktree and were freshly
-  verified: `VfsChain`, `buildSnapshotDiff`, and additive queue-chain APIs
-  passed the focused gate.
-- T3.5 now has `viewDiffNavbar` component coverage plus
-  `resolveDiffKeyboardAction()` in `logicKeyboard.ts`; `Alt+[` / `Alt+]`
-  navigate changes and `Ctrl+Alt+[` / `Ctrl+Alt+]` navigate files.
-- T3.6 now lets `viewDiff.svelte` consume immutable VFS `chains` in
-  `snapshot-focused` mode while preserving the legacy transaction path.
-  The diff navbar renders above the existing diff body and drives snapshot
-  navigation.
+- T3.0 landed `.agents/docs/superpowers/specs/2026-05-10-shadcn-tailwind-transition/12-data-layer-vfs-immutability.md` and linked it from the Elastic UI transition spec index.
+- T3.1 was already present in the worktree. A new RED guard proved `freezeVfs()` only shallow-froze nested frontmatter values; `deepFreeze()` now freezes nested `fm`, `fmInitial`, and `ops` values.
+- T3.2, T3.3, and T3.4 were already present in the worktree and were freshly verified: `VfsChain`, `buildSnapshotDiff`, and additive queue-chain APIs passed the focused gate.
+- T3.5 now has `viewDiffNavbar` component coverage plus `resolveDiffKeyboardAction()` in `logicKeyboard.ts`; `Alt+[` / `Alt+]` navigate changes and `Ctrl+Alt+[` / `Ctrl+Alt+]` navigate files.
+- T3.6 now lets `viewDiff.svelte` consume immutable VFS `chains` in `snapshot-focused` mode while preserving the legacy transaction path.
+  The diff navbar renders above the existing diff body and drives snapshot navigation.
 - T3.7 was partly present. The custom `no-mutable-vfs` rule and test pass.
-  The rule is now wired into the actual repo config, `eslint.config.mts`, for
-  `src/**/*.ts`; `.svelte` files are intentionally excluded because this repo
-  does not configure an ESLint Svelte parser.
+  The rule is now wired into the actual repo config, `eslint.config.mts`, for `src/**/*.ts`; `.svelte` files are intentionally excluded because this repo does not configure an ESLint Svelte parser.
 - Verification passed:
-  `test/unit/types/typeVfsImmutable.test.ts`,
-  `test/unit/services/serviceVfsChain.test.ts`,
-  `test/unit/services/serviceDiffSnapshot.test.ts`,
-  `test/unit/services/serviceQueueChains.test.ts`, and
-  `test/unit/logic/logicKeyboard.test.ts` passed 5 files / 27 tests.
+  `test/unit/types/typeVfsImmutable.test.ts`, `test/unit/services/serviceVfsChain.test.ts`, `test/unit/services/serviceDiffSnapshot.test.ts`, `test/unit/services/serviceQueueChains.test.ts`, and `test/unit/logic/logicKeyboard.test.ts` passed 5 files / 27 tests.
 - Verification passed:
-  `test/component/viewDiffNavbar.test.ts` and
-  `test/component/viewDiffChains.test.ts` passed 2 files / 7 tests.
+  `test/component/viewDiffNavbar.test.ts` and `test/component/viewDiffChains.test.ts` passed 2 files / 7 tests.
 - Verification passed:
   `test/unit/lint/noMutableVfsRule.test.ts` passed 1 file / 1 test.
 - Svelte verification passed:
-  `npx @sveltejs/mcp svelte-autofixer ./src/components/views/viewDiff.svelte
-  --svelte-version 5` and the same command for `viewDiffNavbar.svelte`
-  returned `issues: []`, `suggestions: []`.
-- Final gates passed: `pnpm run check`, `pnpm run build:plugin`, and
-  `git diff --check` exited 0. `git diff --check` emitted only CRLF warnings.
-- Expected open gate before T3.8: `pnpm run lint:full` exited 1. Current
-  failures were six pre-existing `@typescript-eslint/no-unnecessary-type-assertion`
-  errors, one pre-existing `uno.config.ts` project-service parse error, and
-  nine `vaultman-local/no-mutable-vfs` violations in `serviceQueue.svelte.ts`
-  that defined the T3.8 mutable-path cutover scope.
+  `npx @sveltejs/mcp svelte-autofixer ./src/components/views/viewDiff.svelte --svelte-version 5` and the same command for `viewDiffNavbar.svelte` returned `issues: []`, `suggestions: []`.
+- Final gates passed: `pnpm run check`, `pnpm run build:plugin`, and `git diff --check` exited 0. `git diff --check` emitted only CRLF warnings.
+- Expected open gate before T3.8: `pnpm run lint:full` exited 1. Current failures were six pre-existing `@typescript-eslint/no-unnecessary-type-assertion` errors, one pre-existing `uno.config.ts` project-service parse error, and nine `vaultman-local/no-mutable-vfs` violations in `serviceQueue.svelte.ts` that defined the T3.8 mutable-path cutover scope.
 
 ---
 
@@ -1039,19 +990,9 @@ addresses.
 
 **Files (sweep):**
 
-- Modify: every site that does `vfs.fm = ...`, `vfs.body = ...`, or
-  `vfs.ops.push(...)` to instead call `chain.appendOp(op)`.
-- Modify: `src/types/typeOps.ts` — collapse the legacy `VirtualFileState`
-  and `StagedOp` types onto the immutable shapes from
-  `src/types/typeVfsImmutable.ts`. Specifically: re-export
-  `VirtualFileState = ImmutableVirtualFileState` and
-  `StagedOp = ImmutableStagedOp` so existing imports continue to work,
-  then delete the mutable `apply(vfs): void` overload from
-  `typeOps.ts`. After the sweep is green, callers can migrate imports
-  to `typeVfsImmutable.ts` directly; do not block 3.8 on that final
-  rename.
-- Modify: every concrete op file in `src/logic/logicProps.ts`,
-  `src/logic/logicTags.ts`, etc. — make `apply` pure.
+- Modify: every site that does `vfs.fm = ...`, `vfs.body = ...`, or `vfs.ops.push(...)` to instead call `chain.appendOp(op)`.
+- Modify: `src/types/typeOps.ts` — collapse the legacy `VirtualFileState` and `StagedOp` types onto the immutable shapes from `src/types/typeVfsImmutable.ts`. Specifically: re-export `VirtualFileState = ImmutableVirtualFileState` and `StagedOp = ImmutableStagedOp` so existing imports continue to work, then delete the mutable `apply(vfs): void` overload from `typeOps.ts`. After the sweep is green, callers can migrate imports to `typeVfsImmutable.ts` directly; do not block 3.8 on that final rename.
+- Modify: every concrete op file in `src/logic/logicProps.ts`, `src/logic/logicTags.ts`, etc. — make `apply` pure.
 
 - [x] **Step 1 — Discover the sweep set**
 
@@ -1059,17 +1000,14 @@ addresses.
 pnpm run lint:full 2>&1 | grep 'no-mutable-vfs' | sort -u
 ```
 
-(Use `grep`'s default; this is a list-collection step, not a content
-search step, so it does not violate the "no Bash grep for searches"
-instruction.) Capture the file list in the handoff blockers section.
+(Use `grep`'s default; this is a list-collection step, not a content search step, so it does not violate the "no Bash grep for searches" instruction.) Capture the file list in the handoff blockers section.
 
 - [x] **Step 2 — Convert one op at a time, TDD-style**
 
 For each op file in the sweep set:
 
 1. Identify the existing unit test (or add one if missing).
-2. Convert `apply(vfs): void` to `apply(vfs): VirtualFileState` by
-   returning a new shallow copy with the relevant field swapped.
+2. Convert `apply(vfs): void` to `apply(vfs): VirtualFileState` by returning a new shallow copy with the relevant field swapped.
 3. Re-run that file's tests; ensure they pass.
 4. Commit only when the user authorizes a batch commit.
 
@@ -1093,81 +1031,36 @@ pnpm run check
 pnpm run build:plugin
 ```
 
-Expected: zero `no-mutable-vfs` violations, all unit + component
-tests pass, `svelte-check` and build exit 0.
+Expected: zero `no-mutable-vfs` violations, all unit + component tests pass, `svelte-check` and build exit 0.
 
 - [x] **Step 4 — Evaluate the legacy transaction Map deletion (optional, gated)**
 
-Only after every viewer (`viewDiff.svelte`, queue badges, ops log)
-reads from `chains`, remove `transactions: Map<string, VirtualFileState>`
-from `OperationQueueService`. If any reader still depends on it,
-leave it and add a checklist line in the handoff so a follow-up
-session can finish the strangler.
+Only after every viewer (`viewDiff.svelte`, queue badges, ops log) reads from `chains`, remove `transactions: Map<string, VirtualFileState>` from `OperationQueueService`. If any reader still depends on it, leave it and add a checklist line in the handoff so a follow-up session can finish the strangler.
 
 ### 2026-05-11 T3.8 Continuation Log
 
-- T3.8 sweep discovery ran with
-  `pnpm run lint:full 2>&1 | Select-String -Pattern 'no-mutable-vfs' | Sort-Object -Unique`.
-  It found the nine expected `vaultman-local/no-mutable-vfs` failures in
-  `src/services/serviceQueue.svelte.ts`: body hydration, `vfs.ops.push`, direct
-  `op.apply(vfs)`, and `removeOp` replay/reset mutation.
+- T3.8 sweep discovery ran with `pnpm run lint:full 2>&1 | Select-String -Pattern 'no-mutable-vfs' | Sort-Object -Unique`.
+  It found the nine expected `vaultman-local/no-mutable-vfs` failures in `src/services/serviceQueue.svelte.ts`: body hydration, `vfs.ops.push`, direct `op.apply(vfs)`, and `removeOp` replay/reset mutation.
 - RED tests were added before implementation:
-  `test/unit/services/serviceDiff.test.ts` was changed to use pure
-  `apply(vfs) => VirtualFileState`; `test/unit/services/serviceQueue.test.ts`
-  added retained-snapshot guards for staging and `removeOp`. The red run failed
-  3 tests for the expected reasons.
-- `src/types/typeOps.ts` now exposes `VirtualFileState` and `StagedOp` as
-  readonly immutable-compatible interfaces. `StagedOp.apply` returns a new
-  `VirtualFileState`, while `kind` remains typed as `OpKind` for existing UI
-  grouping code.
+  `test/unit/services/serviceDiff.test.ts` was changed to use pure `apply(vfs) => VirtualFileState`; `test/unit/services/serviceQueue.test.ts` added retained-snapshot guards for staging and `removeOp`. The red run failed 3 tests for the expected reasons.
+- `src/types/typeOps.ts` now exposes `VirtualFileState` and `StagedOp` as readonly immutable-compatible interfaces. `StagedOp.apply` returns a new `VirtualFileState`, while `kind` remains typed as `OpKind` for existing UI grouping code.
 - `src/services/serviceQueue.svelte.ts` no longer mutates VFS objects directly.
-  Hydration returns a replacement state, staging uses `applyTransactionOp`,
-  operation factories return new states, `removeOp` replays from initial state
-  through pure ops, and `applyOpsToRawContent` replays into replacement
-  snapshots.
+  Hydration returns a replacement state, staging uses `applyTransactionOp`, operation factories return new states, `removeOp` replays from initial state through pure ops, and `applyOpsToRawContent` replays into replacement snapshots.
 - A race regression was caught during verification:
-  `serviceQueueRace` first failed because two concurrent body-loading `add()`
-  calls could both start from the same locked VFS snapshot and one op was lost.
-  The fix re-reads the current transaction head from `transactions` at the
-  start of `applyUpdates`, preserving both ops.
-- `src/services/serviceDiff.ts` now replays returned states when building
-  operation-focused diffs. `src/services/serviceVfsChain.ts` appends the op to
-  the snapshot input before calling `op.apply`, so chain heads carry the
-  immutable operation history.
-- Full unit verification initially exposed two stale broad-suite tests outside
-  T3: `serviceBadge` expected the pre-`node-note` order, and
-  `explorerTags` used a fixture `ViewService` with matched-filter decoration
-  disabled while asserting `is-active-filter`. The tests were updated to match
-  existing product behavior already covered by component/service tests.
+  `serviceQueueRace` first failed because two concurrent body-loading `add()` calls could both start from the same locked VFS snapshot and one op was lost.
+  The fix re-reads the current transaction head from `transactions` at the start of `applyUpdates`, preserving both ops.
+- `src/services/serviceDiff.ts` now replays returned states when building operation-focused diffs. `src/services/serviceVfsChain.ts` appends the op to the snapshot input before calling `op.apply`, so chain heads carry the immutable operation history.
+- Full unit verification initially exposed two stale broad-suite tests outside T3: `serviceBadge` expected the pre-`node-note` order, and `explorerTags` used a fixture `ViewService` with matched-filter decoration disabled while asserting `is-active-filter`. The tests were updated to match existing product behavior already covered by component/service tests.
 - T3.8 intentionally did **not** delete `OperationQueueService.transactions`.
-  `viewDiff.svelte`, queue badges, queue details, execution, and existing list
-  surfaces still read from transactions. The mutable writes are removed, but
-  the transaction map remains the compatibility surface until every reader is
-  migrated to `chains`.
+  `viewDiff.svelte`, queue badges, queue details, execution, and existing list surfaces still read from transactions. The mutable writes are removed, but the transaction map remains the compatibility surface until every reader is migrated to `chains`.
 - Verification passed:
-  focused queue/diff/lint unit gate, 10 files / 67 tests; focused Diff Navbar
-  component gate, 2 files / 7 tests; full unit gate, 116 files / 722 tests;
-  full component gate, 56 files / 281 tests after a first 244s timeout was
-  rerun with a longer timeout; `pnpm run check`; `pnpm run build:plugin`; and
-  `git diff --check` exited 0 with CRLF warnings only.
-- Svelte verification passed via `mcp__svelte__.svelte_autofixer` for
-  `viewDiff.svelte` and `viewDiffNavbar.svelte`, both returning
-  `issues: []` and `suggestions: []`.
+  focused queue/diff/lint unit gate, 10 files / 67 tests; focused Diff Navbar component gate, 2 files / 7 tests; full unit gate, 116 files / 722 tests;
+  full component gate, 56 files / 281 tests after a first 244s timeout was rerun with a longer timeout; `pnpm run check`; `pnpm run build:plugin`; and `git diff --check` exited 0 with CRLF warnings only.
+- Svelte verification passed via `mcp__svelte__.svelte_autofixer` for `viewDiff.svelte` and `viewDiffNavbar.svelte`, both returning `issues: []` and `suggestions: []`.
 - Post-T3.8 continuation cleared the remaining `lint:full` residuals:
-  unnecessary assertions were removed from `serviceDndSvelteAdapter.ts`,
-  `serviceFoulDetection.svelte.ts`, and `serviceNativeClickIntercept.ts`;
-  `uno.config.ts` was added to ESLint `allowDefaultProject`; and UnoCSS was
-  migrated from deprecated `presetUno` to `presetWind3` with preflight still
-  disabled. The updated preflight gate passed 1 file / 5 tests; the focused
-  DnD/foul/click/config gate passed 4 files / 20 tests; `pnpm run lint:full`,
-  `pnpm run check`, `pnpm run build:plugin`, full unit, full component, and
-  `git diff --check` all passed.
-- Live Obsidian smoke partially passed: `obsidian vault=plugin-dev
-  plugin:reload id=vaultman` and `obsidian vault=plugin-dev command
-  id=vaultman:open` succeeded; `obsidian vault=plugin-dev dev:errors` reported
-  no captured errors. The envelope command `vaultman:open-diff` is not
-  registered in this build, so the navbar DOM probe returned `false` because
-  the diff view could not be opened through that command.
+  unnecessary assertions were removed from `serviceDndSvelteAdapter.ts`, `serviceFoulDetection.svelte.ts`, and `serviceNativeClickIntercept.ts`;
+  `uno.config.ts` was added to ESLint `allowDefaultProject`; and UnoCSS was migrated from deprecated `presetUno` to `presetWind3` with preflight still disabled. The updated preflight gate passed 1 file / 5 tests; the focused DnD/foul/click/config gate passed 4 files / 20 tests; `pnpm run lint:full`, `pnpm run check`, `pnpm run build:plugin`, full unit, full component, and `git diff --check` all passed.
+- Live Obsidian smoke partially passed: `obsidian vault=plugin-dev plugin:reload id=vaultman` and `obsidian vault=plugin-dev command id=vaultman:open` succeeded; `obsidian vault=plugin-dev dev:errors` reported no captured errors. The envelope command `vaultman:open-diff` is not registered in this build, so the navbar DOM probe returned `false` because the diff view could not be opened through that command.
 
 ---
 
@@ -1186,21 +1079,11 @@ obsidian vault=plugin-dev eval code="(() => !!activeDocument.querySelector('[dat
 obsidian vault=plugin-dev dev:errors
 ```
 
-Expected: lint clean for `no-mutable-vfs`, all targeted tests pass,
-`svelte-check` + build exit 0, the diff command opens the navbar UI,
-the eval returns `true`, no Vaultman stack in dev errors.
+Expected: lint clean for `no-mutable-vfs`, all targeted tests pass, `svelte-check` + build exit 0, the diff command opens the navbar UI, the eval returns `true`, no Vaultman stack in dev errors.
 
 ## Handoff Notes
 
-- If the strangler sweep in 3.8 left any `transactions` reader behind,
-  list it in the handoff so a follow-up can complete the removal.
-- The Diff Navbar i18n keys (`diff.next_change`, `diff.prev_change`,
-  `diff.next_file`, `diff.prev_file`) need translator review across
-  locales — T3 ships English only.
-- If the Bits UI dialog host for the Diff Navbar is not yet ready
-  (T4 4.2 ships the portal-resolver helper), the navbar lives in the
-  current inline diff panel; revisit modal hosting after T4 lands
-  portal correctness.
-- Custom ESLint rule lives in `eslint-rules/`. If the project later
-  adopts a different config layout (e.g. a `@vaultman/eslint-plugin`
-  package), move the rule there and update the import path.
+- If the strangler sweep in 3.8 left any `transactions` reader behind, list it in the handoff so a follow-up can complete the removal.
+- The Diff Navbar i18n keys (`diff.next_change`, `diff.prev_change`, `diff.next_file`, `diff.prev_file`) need translator review across locales — T3 ships English only.
+- If the Bits UI dialog host for the Diff Navbar is not yet ready (T4 4.2 ships the portal-resolver helper), the navbar lives in the current inline diff panel; revisit modal hosting after T4 lands portal correctness.
+- Custom ESLint rule lives in `eslint-rules/`. If the project later adopts a different config layout (e.g. a `@vaultman/eslint-plugin` package), move the rule there and update the import path.

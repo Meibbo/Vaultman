@@ -18,11 +18,7 @@ updated_by: codex-gpt-5
 
 ## Scope
 
-Inline execution of the accepted
-[[docs/work/publish/specs/2026-06-04-release-1-0-2-gate-normalization-design|Release 1.0.2 gate normalization design]]
-and
-[[docs/work/publish/plans/2026-06-04-release-1-0-2-gate-normalization/index|implementation plan]]
-in the stable hotfix worktree:
+Inline execution of the accepted [[docs/work/publish/specs/2026-06-04-release-1-0-2-gate-normalization-design|Release 1.0.2 gate normalization design]] and [[docs/work/publish/plans/2026-06-04-release-1-0-2-gate-normalization/index|implementation plan]] in the stable hotfix worktree:
 
 `C:\Users\vic_A\Desktop\vaultman\.claude\worktrees\hotfix-1.0.2-css-scorecard`
 
@@ -49,26 +45,19 @@ The branch is `ahead 6` over `origin/main` and the worktree status was clean at 
 
 ## Implemented Gate Changes
 
-- Replaced npm lock/install path with `pnpm@11.1.2`, `pnpm-lock.yaml`,
-  `pnpm-workspace.yaml`, and `.node-version` Node 24 baseline.
+- Replaced npm lock/install path with `pnpm@11.1.2`, `pnpm-lock.yaml`, `pnpm-workspace.yaml`, and `.node-version` Node 24 baseline.
 - Removed `package-lock.json`.
 - Pinned the stable dependency graph instead of allowing broad range drift:
   `obsidian@1.12.3`, WebdriverIO gate packages, Svelte, Vitest, and gate tooling.
 - Added `svelte-check` with `svelte.config.js` and `verbatimModuleSyntax`.
-- Added release-blocking `format:check`, `stylelint`, and aggregate `verify`
-  scripts.
+- Added release-blocking `format:check`, `stylelint`, and aggregate `verify` scripts.
 - Added Prettier Svelte baseline and formatted Svelte files.
-- Added stylelint config for `styles.css`; `no-duplicate-selectors` is disabled
-  because stable CSS still uses cascade-layered iteration overrides. The
-  release-risk rules for `!important`, `display: contents`, and ignored
-  declarations remain blocking.
-- Extended `scripts/scorecard-regression-check.mjs` to assert `format:check`,
-  `stylelint`, and `svelte-check` are present in the gate.
+- Added stylelint config for `styles.css`; `no-duplicate-selectors` is disabled because stable CSS still uses cascade-layered iteration overrides. The release-risk rules for `!important`, `display: contents`, and ignored declarations remain blocking.
+- Extended `scripts/scorecard-regression-check.mjs` to assert `format:check`, `stylelint`, and `svelte-check` are present in the gate.
 - Removed the CodeQL dead guard in `src/modals/modalQueueDetails.ts`.
 - Added `SECURITY.md`.
 - Added `CHANGELOG.md` entry for `1.0.2`.
-- Updated CI and release workflows to use Corepack + pnpm with Node 24 and
-  `cache: pnpm`.
+- Updated CI and release workflows to use Corepack + pnpm with Node 24 and `cache: pnpm`.
 
 ## Verification Evidence
 
@@ -95,10 +84,7 @@ pnpm install --frozen-lockfile
 exit 0
 ```
 
-`corepack enable pnpm` emitted a local Windows `EPERM` against
-`C:\Program Files\nodejs\pnpm`; `corepack prepare pnpm@11.1.2 --activate` and
-`pnpm install --frozen-lockfile` still completed with exit 0. This is a local
-machine permission artifact, not a CI workflow blocker.
+`corepack enable pnpm` emitted a local Windows `EPERM` against `C:\Program Files\nodejs\pnpm`; `corepack prepare pnpm@11.1.2 --activate` and `pnpm install --frozen-lockfile` still completed with exit 0. This is a local machine permission artifact, not a CI workflow blocker.
 
 ```text
 git diff --check
@@ -140,13 +126,8 @@ Dependabot open alerts: 0
 
 Open code-scanning alerts:
 
-- CodeQL `#64`, `js/unneeded-defensive-code`, severity `note`; expected to close
-  only after GitHub analyzes the branch/PR/default branch containing the
-  `modalQueueDetails.ts` fix.
-- Scorecard administrative/maturity alerts remain open: branch protection, token
-  permissions, code review, maintained, security policy, CII best practices,
-  fuzzing, SAST, CI tests. The new `SECURITY.md` should address the local
-  security-policy file gap, but Scorecard must rerun remotely.
+- CodeQL `#64`, `js/unneeded-defensive-code`, severity `note`; expected to close only after GitHub analyzes the branch/PR/default branch containing the `modalQueueDetails.ts` fix.
+- Scorecard administrative/maturity alerts remain open: branch protection, token permissions, code review, maintained, security policy, CII best practices, fuzzing, SAST, CI tests. The new `SECURITY.md` should address the local security-policy file gap, but Scorecard must rerun remotely.
 
 Open PRs targeting `main` remain blocked dependabot/release automation PRs:
 
@@ -162,12 +143,6 @@ Open PRs targeting `main` remain blocked dependabot/release automation PRs:
 
 ## Residual Risks
 
-- `obsidian-integration-testing@4.1.6` has a non-fatal postinstall patch-package
-  script. The stable graph remains pinned to the prior npm-lock version; latest
-  npm version is `4.2.0`, but upgrading it was intentionally left out of the
-  `1.0.2` hotfix because it changes the integration-test graph.
-- `stylelint-config-recommended` initially flagged many duplicate selectors in
-  stable CSS. Those are not fixed in this hotfix because merging them can change
-  cascade order. CSS consolidation belongs to a later style architecture item.
-- No release tag was created. `1.0.2` is release-ready for maintainer review, not
-  published.
+- `obsidian-integration-testing@4.1.6` has a non-fatal postinstall patch-package script. The stable graph remains pinned to the prior npm-lock version; latest npm version is `4.2.0`, but upgrading it was intentionally left out of the `1.0.2` hotfix because it changes the integration-test graph.
+- `stylelint-config-recommended` initially flagged many duplicate selectors in stable CSS. Those are not fixed in this hotfix because merging them can change cascade order. CSS consolidation belongs to a later style architecture item.
+- No release tag was created. `1.0.2` is release-ready for maintainer review, not published.

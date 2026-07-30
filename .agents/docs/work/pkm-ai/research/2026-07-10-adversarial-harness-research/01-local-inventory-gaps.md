@@ -36,40 +36,17 @@ updated_by: claude-sonnet-adversarial-research
 
 ## B. Everything else in `.claude/skills/` (49 folders total, for completeness)
 
-Legend: **V** = local file is a vendored copy of a `superpowers:`-namespaced plugin skill (same
-name exists twice in the available-skills list; content read is generic, no Vaultman-specific
-material found) · **D** = `disable-model-invocation: true` (not auto-offered, invoked by
-literal request only) · **∅** = empty folder, no `SKILL.md` at all.
+Legend: **V** = local file is a vendored copy of a `superpowers:`-namespaced plugin skill (same name exists twice in the available-skills list; content read is generic, no Vaultman-specific material found) · **D** = `disable-model-invocation: true` (not auto-offered, invoked by literal request only) · **∅** = empty folder, no `SKILL.md` at all.
 
-- **Meta/session:** `vm-start-session` (bootstrap/route), `vm-pkm-ai-guide` (explain PKM-AI),
-  `using-superpowers`(V) (how to find skills), `writing-skills`(V)/`write-a-skill` (author new
-  skills), `vm-work-visualizer` (Mermaid/Canvas maps of work), `caveman` (terse mode),
-  `setup-matt-pocock-skills`(D) (scaffold issue-tracker/triage config).
-- **Plan/backlog:** `architecture-research-to-issues`, `comparative-research`, `to-issues`,
-  `to-prd`, `triage`, `vm-backlog-manager`, `dispatching-parallel-agents`(V).
-- **Implementation:** `executing-plans`(V), `subagent-driven-development`(V),
-  `test-driven-development`(V)/`tdd`, `using-git-worktrees`(V), `scss-professional`,
-  `svelte-code-writer`, `svelte-core-bestpractices`, `pdf`.
-- **Obsidian-format authoring:** `obsidian-bases`, `obsidian-cli`, `obsidian-markdown`,
-  `json-canvas`, `journal-workflow`, `vault-workflow`.
-- **Domain/reference:** `vm-explorer-virtualization`, `vm-frontend-llms-docs`,
-  `vm-vertical-codebase-analysis`, `improve-codebase-architecture`, `zoom-out`(D),
-  `defuddle` (URL→markdown for research).
-- **Orphaned, not functioning as skills:** `codex-primary-runtime`(∅), `vertical-codebase-analysis`(∅)
-  — both empty folders with no `SKILL.md`, so neither appears in the live available-skills list.
-  (`vm-vertical-codebase-analysis` is the real, populated skill; the un-prefixed
-  `vertical-codebase-analysis` folder is dead weight.)
+- **Meta/session:** `vm-start-session` (bootstrap/route), `vm-pkm-ai-guide` (explain PKM-AI), `using-superpowers`(V) (how to find skills), `writing-skills`(V)/`write-a-skill` (author new skills), `vm-work-visualizer` (Mermaid/Canvas maps of work), `caveman` (terse mode), `setup-matt-pocock-skills`(D) (scaffold issue-tracker/triage config).
+- **Plan/backlog:** `architecture-research-to-issues`, `comparative-research`, `to-issues`, `to-prd`, `triage`, `vm-backlog-manager`, `dispatching-parallel-agents`(V).
+- **Implementation:** `executing-plans`(V), `subagent-driven-development`(V), `test-driven-development`(V)/`tdd`, `using-git-worktrees`(V), `scss-professional`, `svelte-code-writer`, `svelte-core-bestpractices`, `pdf`.
+- **Obsidian-format authoring:** `obsidian-bases`, `obsidian-cli`, `obsidian-markdown`, `json-canvas`, `journal-workflow`, `vault-workflow`.
+- **Domain/reference:** `vm-explorer-virtualization`, `vm-frontend-llms-docs`, `vm-vertical-codebase-analysis`, `improve-codebase-architecture`, `zoom-out`(D), `defuddle` (URL→markdown for research).
+- **Orphaned, not functioning as skills:** `codex-primary-runtime`(∅), `vertical-codebase-analysis`(∅) — both empty folders with no `SKILL.md`, so neither appears in the live available-skills list.
+  (`vm-vertical-codebase-analysis` is the real, populated skill; the un-prefixed `vertical-codebase-analysis` folder is dead weight.)
 
-**~13 of the 49 folders are vendored duplicates of `superpowers:`-namespaced plugin skills**
-(brainstorming, writing-plans, receiving/requesting-code-review, verification-before-completion,
-systematic-debugging, test-driven-development, executing-plans, subagent-driven-development,
-using-git-worktrees, using-superpowers, writing-skills, dispatching-parallel-agents,
-finishing-a-development-branch). Content read from several of these (receiving-code-review,
-verification-before-completion) is generic "your human partner"-style boilerplate with no
-Vaultman-specific edits — meaning they were copied in at some point, not authored locally. If
-the upstream `superpowers` plugin ships its own anti-sycophancy patch to any of these, Vaultman
-will not inherit it automatically; the local copy would need a manual re-sync. This is a
-maintenance-drift risk adjacent to, but distinct from, the core adversarial-forcing gap.
+**~13 of the 49 folders are vendored duplicates of `superpowers:`-namespaced plugin skills** (brainstorming, writing-plans, receiving/requesting-code-review, verification-before-completion, systematic-debugging, test-driven-development, executing-plans, subagent-driven-development, using-git-worktrees, using-superpowers, writing-skills, dispatching-parallel-agents, finishing-a-development-branch). Content read from several of these (receiving-code-review, verification-before-completion) is generic "your human partner"-style boilerplate with no Vaultman-specific edits — meaning they were copied in at some point, not authored locally. If the upstream `superpowers` plugin ships its own anti-sycophancy patch to any of these, Vaultman will not inherit it automatically; the local copy would need a manual re-sync. This is a maintenance-drift risk adjacent to, but distinct from, the core adversarial-forcing gap.
 
 ## C. Policies in `.agents/docs/architecture/policies/` (7 files, all read in full)
 
@@ -83,37 +60,16 @@ maintenance-drift risk adjacent to, but distinct from, the core adversarial-forc
 | `backlog.md` | No | Draft→initiative→archive routing |
 | `tools.md` | No | Tool-preference and metric-recording rules |
 
-**No policy file contains an adversarial-pass, devil's-advocate, or anti-sycophancy
-requirement.** The only place this requirement exists anywhere in the repo is inside the body
-text of one skill (`grill-with-docs`). A plain conversation, a `brainstorming` session, or a
-`writing-plans` session that never explicitly invokes `grill-with-docs` has **zero** forcing
-function today — matching exactly the failure the dev caught (compliance depended on the model
-choosing to apply the pattern, not on anything the harness enforces).
+**No policy file contains an adversarial-pass, devil's-advocate, or anti-sycophancy requirement.** The only place this requirement exists anywhere in the repo is inside the body text of one skill (`grill-with-docs`). A plain conversation, a `brainstorming` session, or a `writing-plans` session that never explicitly invokes `grill-with-docs` has **zero** forcing function today — matching exactly the failure the dev caught (compliance depended on the model choosing to apply the pattern, not on anything the harness enforces).
 
 ## D. Hooks and subagents (the enforcement layer)
 
-- `.claude/settings.json` is the **only** hooks file in the repo (no user-level hooks checked,
-  no `.claude/settings.local.json` hooks — that file has permissions only). It defines exactly
-  two hooks:
-  - `Stop`: echoes a static checkpoint reminder — *"Did you update `docs/HANDOFF.md`... Run
-    `npm run build`..."*. **`docs/HANDOFF.md` does not exist** (verified) — the real, current
-    handoff file is `.agents/docs/current/handoff.md`. This hook is stale, almost certainly
-    left over from before the `.agents/docs` restructuring, and fires on every single response
-    regardless of relevance.
-  - `UserPromptSubmit`: echoes a static reminder about context-window inference rules (matches
-    the "Size And Context" section of `AGENTS.md` near-verbatim) — this one is current and
-    accurate, just static.
-- **No `.claude/agents/` directory exists** — confirmed via filesystem check. `requesting-code-review`'s
-  reference to a "code-reviewer subagent" resolves to the generic `superpowers`-plugin
-  template, not a Vaultman-authored one.
-- Both existing hooks are `"type": "command"` with a bare `echo` — deterministic, but static
-  (no branching on conversation content). Neither reads the response text or applies any
-  judgment.
+- `.claude/settings.json` is the **only** hooks file in the repo (no user-level hooks checked, no `.claude/settings.local.json` hooks — that file has permissions only). It defines exactly two hooks:
+  - `Stop`: echoes a static checkpoint reminder — *"Did you update `docs/HANDOFF.md`... Run `npm run build`..."*. **`docs/HANDOFF.md` does not exist** (verified) — the real, current handoff file is `.agents/docs/current/handoff.md`. This hook is stale, almost certainly left over from before the `.agents/docs` restructuring, and fires on every single response regardless of relevance.
+  - `UserPromptSubmit`: echoes a static reminder about context-window inference rules (matches the "Size And Context" section of `AGENTS.md` near-verbatim) — this one is current and accurate, just static.
+- **No `.claude/agents/` directory exists** — confirmed via filesystem check. `requesting-code-review`'s reference to a "code-reviewer subagent" resolves to the generic `superpowers`-plugin template, not a Vaultman-authored one.
+- Both existing hooks are `"type": "command"` with a bare `echo` — deterministic, but static (no branching on conversation content). Neither reads the response text or applies any judgment.
 
 ## E. Confirmed absence of prior art
 
-`grep -i "adversarial|critique|sycophan|devil|performative"` across the entire
-the PKM-AI docs tree (specs, plans, items, adr, research, CHANGELOG) returned **zero
-matches**. No ADR, spec, or research note has touched this topic before. The only trace in the
-whole repo is the source pendientes line and the grill-with-docs patch itself. This research
-folder is the first durable record.
+`grep -i "adversarial|critique|sycophan|devil|performative"` across the entire the PKM-AI docs tree (specs, plans, items, adr, research, CHANGELOG) returned **zero matches**. No ADR, spec, or research note has touched this topic before. The only trace in the whole repo is the source pendientes line and the grill-with-docs patch itself. This research folder is the first durable record.

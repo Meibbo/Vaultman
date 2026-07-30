@@ -18,16 +18,9 @@ updated_by: codex
 
 ## Purpose
 
-Build a layered visual map of the Vaultman codebase. Each phase adds a Markdown
-record and, when useful, a child Canvas linked from the central Canvas.
+Build a layered visual map of the Vaultman codebase. Each phase adds a Markdown record and, when useful, a child Canvas linked from the central Canvas.
 
-Completed phases now cover the root layer, the source runtime spine, the
-`src/components/frame/` shell layer, the layout/pages layer, the explorer
-containers/providers/views layer, the shared services/types/logic layer, the
-test architecture layer, the scripts/CI/release automation layer, and the
-residual `src/` support layer. Later phases should keep adding one Markdown
-record plus one child Canvas when the layer has enough branching structure to
-justify a visual map.
+Completed phases now cover the root layer, the source runtime spine, the `src/components/frame/` shell layer, the layout/pages layer, the explorer containers/providers/views layer, the shared services/types/logic layer, the test architecture layer, the scripts/CI/release automation layer, and the residual `src/` support layer. Later phases should keep adding one Markdown record plus one child Canvas when the layer has enough branching structure to justify a visual map.
 
 ## Visual Hub
 
@@ -75,7 +68,4 @@ flowchart LR
 
 ## Decision Point
 
-Recommended next phase: run a coverage reconciliation pass before claiming the
-whole codebase cluster is complete. Phase 10 should compare all tracked
-source/config/test/doc paths against phases 01-09, mark generated artifacts that
-are intentionally excluded, and produce a final coverage matrix.
+Recommended next phase: run a coverage reconciliation pass before claiming the whole codebase cluster is complete. Phase 10 should compare all tracked source/config/test/doc paths against phases 01-09, mark generated artifacts that are intentionally excluded, and produce a final coverage matrix.

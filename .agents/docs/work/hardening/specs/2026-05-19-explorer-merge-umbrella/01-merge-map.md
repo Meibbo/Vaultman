@@ -28,9 +28,7 @@ Sources: proto-v5 (`C:\Users\vic_A\Downloads\Vaultman (1)\`) + auditoría intern
 
 Notas:
 
-- viewGrid sin columnas (rows-only mode) = estructuralmente equivalente a viewList + view tiles
-  fusionado. Resolución de "una view con toggle interno vs dos views separados" se decide en
-  el spec de v1.5.0 (no in-scope esta umbrella). Default propuesto: una sola view con toggle.
+- viewGrid sin columnas (rows-only mode) = estructuralmente equivalente a viewList + view tiles fusionado. Resolución de "una view con toggle interno vs dos views separados" se decide en el spec de v1.5.0 (no in-scope esta umbrella). Default propuesto: una sola view con toggle.
 - `EXPLORER_PLATFORM_VIEW_MODES = ['tree','list','table','grid','cards']` se preserva.
   Map / ViewNodeMap deferred (no selectable). Outline out-of-band.
 

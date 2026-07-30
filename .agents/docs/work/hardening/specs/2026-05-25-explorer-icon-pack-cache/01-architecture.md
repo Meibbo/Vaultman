@@ -15,9 +15,7 @@ tags:
 
 ## Boundary
 
-Icons are visual assets. Badges are semantic status/action markers. A badge can
-reference an icon descriptor, but it must not own icon pack lookup, SVG parsing,
-or cache invalidation.
+Icons are visual assets. Badges are semantic status/action markers. A badge can reference an icon descriptor, but it must not own icon pack lookup, SVG parsing, or cache invalidation.
 
 ## Target Flow
 
@@ -29,9 +27,7 @@ node/provider semantics
   -> render action/component
 ```
 
-Views consume an icon descriptor or already-resolved icon handle. They should
-not know whether the source is Lucide, Iconic, Adwaita, GTK symbolic, or a
-future bundled set.
+Views consume an icon descriptor or already-resolved icon handle. They should not know whether the source is Lucide, Iconic, Adwaita, GTK symbolic, or a future bundled set.
 
 ## Services
 
@@ -47,8 +43,7 @@ Recommended files:
 - `src/services/serviceIconDescriptors.ts`
   - defines shared descriptor types and helpers.
 
-Existing `IconicService` can become one provider registered with the pack
-registry instead of remaining a standalone lookup path.
+Existing `IconicService` can become one provider registered with the pack registry instead of remaining a standalone lookup path.
 
 ## Pack Types
 
@@ -75,8 +70,7 @@ Cache resolved assets by descriptor fingerprint:
 - theme revision;
 - pack version.
 
-The cache must not be row-indexed. Many rows should share one resolved icon
-asset.
+The cache must not be row-indexed. Many rows should share one resolved icon asset.
 
 ## Render Principle
 
@@ -87,6 +81,5 @@ Rendering can use:
 - CSS mask for symbolic icons;
 - image element only for raster fallback.
 
-The first slice should preserve existing render actions and introduce the
-descriptor/cache behind them incrementally.
+The first slice should preserve existing render actions and introduce the descriptor/cache behind them incrementally.
 

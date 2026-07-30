@@ -14,8 +14,7 @@ tags:
 
 ## Principle
 
-Use scripts for deterministic, repeated work. Let the developer computer carry
-the scanning, parsing, and indexing load. Let the agent consume compact outputs.
+Use scripts for deterministic, repeated work. Let the developer computer carry the scanning, parsing, and indexing load. Let the agent consume compact outputs.
 
 ## Current Script Layer
 
@@ -28,8 +27,7 @@ the scanning, parsing, and indexing load. Let the agent consume compact outputs.
 
 ## Phase 1 Indexing
 
-Index `docs` frontmatter and paths. This supports routing, backlog
-queries, health checks, and current-memory repair.
+Index `docs` frontmatter and paths. This supports routing, backlog queries, health checks, and current-memory repair.
 
 ## Phase 2 Indexing
 
@@ -40,11 +38,9 @@ Add structural code indexes when useful:
 - test map
 - Svelte component map
 
-This enables requests like "make a canvas of exports and imports" without the
-agent manually opening files one by one.
+This enables requests like "make a canvas of exports and imports" without the agent manually opening files one by one.
 
 ## Phase 3 Deferred
 
-Semantic/vector indexing is out of current scope. Create a research item before
-adding it.
+Semantic/vector indexing is out of current scope. Create a research item before adding it.
 

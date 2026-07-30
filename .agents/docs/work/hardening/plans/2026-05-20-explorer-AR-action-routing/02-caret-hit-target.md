@@ -4,8 +4,7 @@
 - Modify: `src/styles/explorer/_tree.scss` (bloque `.vm-tree-toggle`, ~line 113-117)
 - Test: `test/component/viewTreeCaret.test.ts`
 
-El placeholder de hoja es inerte by-design (ya probado en `viewTreeSelection.test.ts:139`) y el
-row-click ya funciona — NO se toca. Defecto verificable = hit-target 20px < 24px (WCAG 2.5.8).
+El placeholder de hoja es inerte by-design (ya probado en `viewTreeSelection.test.ts:139`) y el row-click ya funciona — NO se toca. Defecto verificable = hit-target 20px < 24px (WCAG 2.5.8).
 
 - [x] **Step 1: Write the failing test**
 
@@ -50,11 +49,9 @@ describe('ViewTree caret hit-target (WCAG 2.5.8)', () => {
 
 - [x] **Step 2: Run test to verify it fails**
 
-Run: `pnpm vitest run test/component/viewTreeCaret.test.ts`
-Expected: FAIL — minWidth/minHeight `20px` (or unset) < 24.
+Run: `pnpm vitest run test/component/viewTreeCaret.test.ts` Expected: FAIL — minWidth/minHeight `20px` (or unset) < 24.
 
-(Note: jsdom `getComputedStyle` returns authored CSS, not layout. If the SCSS var is not resolved in
-jsdom, assert against the explicit `min-width`/`min-height` declarations added in Step 3 instead.)
+(Note: jsdom `getComputedStyle` returns authored CSS, not layout. If the SCSS var is not resolved in jsdom, assert against the explicit `min-width`/`min-height` declarations added in Step 3 instead.)
 
 - [x] **Step 3: Add the hit-target padding**
 
@@ -70,13 +67,11 @@ jsdom, assert against the explicit `min-width`/`min-height` declarations added i
 &-toggle.is-placeholder { min-width: 24px; min-height: 24px; }
 ```
 
-The icon stays 20px (`--vm-tree-toggle-size`); only the clickable box grows to 24px. Does not affect
-`--vm-tree-icon-size` (16px) asserts in `viewTreeSelection.test.ts`.
+The icon stays 20px (`--vm-tree-toggle-size`); only the clickable box grows to 24px. Does not affect `--vm-tree-icon-size` (16px) asserts in `viewTreeSelection.test.ts`.
 
 - [x] **Step 4: Run test to verify it passes**
 
-Run: `pnpm vitest run test/component/viewTreeCaret.test.ts`
-Expected: PASS. Also run `pnpm vitest run test/component/viewTreeSelection.test.ts` → still PASS.
+Run: `pnpm vitest run test/component/viewTreeCaret.test.ts` Expected: PASS. Also run `pnpm vitest run test/component/viewTreeSelection.test.ts` → still PASS.
 
 - [x] **Step 5: Commit**
 

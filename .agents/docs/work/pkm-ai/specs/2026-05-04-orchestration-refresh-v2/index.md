@@ -15,9 +15,7 @@ tags:
 
 # PKM-AI Orchestration Refresh V2
 
-This is the richer version of the orchestration spec. V1 proved the structure
-but compressed too much. V2 preserves rationale, tradeoffs, and operating detail
-while keeping each file short enough to navigate.
+This is the richer version of the orchestration spec. V1 proved the structure but compressed too much. V2 preserves rationale, tradeoffs, and operating detail while keeping each file short enough to navigate.
 
 ## Read Order
 

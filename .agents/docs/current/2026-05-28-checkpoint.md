@@ -15,46 +15,29 @@ tags:
 
 # 2026-05-28 Checkpoint — close of architecture wave
 
-Sharded from `handoff.md` (line-limit policy) to absorb the long multi-day session: the architecture +
-style + version-streams grill **plus** the post-grill waves — proto/filter, Bases hybrid (ADR 0009),
-storage architecture recon, DnD design (library + foreign-drop adapters), identity + dev-glossary +
-tooling registry + watch-list. **Next chat is reserved for the dev's incoming feature-request list** to
-evaluate against the locked architecture + plan the mega-refactor / reconstruction wave + tighten the
-publish / commit / branch / release discipline.
+Sharded from `handoff.md` (line-limit policy) to absorb the long multi-day session: the architecture + style + version-streams grill **plus** the post-grill waves — proto/filter, Bases hybrid (ADR 0009), storage architecture recon, DnD design (library + foreign-drop adapters), identity + dev-glossary + tooling registry + watch-list. **Next chat is reserved for the dev's incoming feature-request list** to evaluate against the locked architecture + plan the mega-refactor / reconstruction wave + tighten the publish / commit / branch / release discipline.
 
 ## What landed in this wave (post-2026-05-27)
 
-- **Bases strategy** — `ADR 0009` Accepted: hybrid (native shells PRIMARY + Bases-IN + import/export
-  ALWAYS + Bases-OUT as opt-in `registerBasesView` PlatformAdapter add-on + foreign Bases views stay
-  OPAQUE). Resolves replace-vs-interop tension; user can disable core Bases anytime.
+- **Bases strategy** — `ADR 0009` Accepted: hybrid (native shells PRIMARY + Bases-IN + import/export ALWAYS + Bases-OUT as opt-in `registerBasesView` PlatformAdapter add-on + foreign Bases views stay OPAQUE). Resolves replace-vs-interop tension; user can disable core Bases anytime.
 - **Storage Architecture recon** — `storage-architecture-findings`: IDB confirmed not-synced;
-  `.obsidian/` all-or-nothing sync (no per-folder opt-out); `data.json` mod-date-flap + LWW + iffy
-  key-merge; quality-tier cache = innovation gap. PROPOSED 6-tier per-subsystem map (now incl. note
-  frontmatter for node-attribute cells only).
-- **`.vmscene` own scene file format** — PROPOSED: single polymorphic ext, YAML, `{type, name, version,
-  payload}`; `registerExtensions(['vmscene'], 'vaultman-scene')`; bridges to `.base` / `.canvas` /
-  dataview / datacore (latter two pending R-1 research).
+  `.obsidian/` all-or-nothing sync (no per-folder opt-out); `data.json` mod-date-flap + LWW + iffy key-merge; quality-tier cache = innovation gap. PROPOSED 6-tier per-subsystem map (now incl. note frontmatter for node-attribute cells only).
+- **`.vmscene` own scene file format** — PROPOSED: single polymorphic ext, YAML, `{type, name, version, payload}`; `registerExtensions(['vmscene'], 'vaultman-scene')`; bridges to `.base` / `.canvas` / dataview / datacore (latter two pending R-1 research).
 - **DnD design grounded**:
   - Library: **`dnd-kit-svelte` (HanielU)** PROPOSED (S-10).
-  - Foreign drops: `EditorSurfaceAdapter` (CodeMirror 6 `domEventHandlers` + `posAtCoords` +
-    `view.dispatch`) and `HoverFloatAdapter` / `ForeignEmbedAdapter` (hover-editor template:
+  - Foreign drops: `EditorSurfaceAdapter` (CodeMirror 6 `domEventHandlers` + `posAtCoords` + `view.dispatch`) and `HoverFloatAdapter` / `ForeignEmbedAdapter` (hover-editor template:
     `monkey-around` for prototype wrapping + popover DOM + `interact.js` for floating drag/resize).
   - Public Obsidian DnD API mapped (`Workspace.onDragLeaf` / `getDropLocation` / `recursiveGetTarget`).
-  - PlatformAdapter Registry concretized: `HoverFloatAdapter` · `ForeignEmbedAdapter` ·
-    `EditorSurfaceAdapter` · `HometabAdapter` · `BasesViewAdapter`.
+  - PlatformAdapter Registry concretized: `HoverFloatAdapter` · `ForeignEmbedAdapter` · `EditorSurfaceAdapter` · `HometabAdapter` · `BasesViewAdapter`.
   - S-11 raised — adopt `monkey-around` + `interact.js`.
 - **New cross-cutting docs** in `docs/architecture/`:
-  `zoom-out-map` · `dev-glossary` · `operational-watch-list` · `research-inventory` ·
-  `pending-decisions` · `tooling-libraries` · `vaultman-identity`.
+  `zoom-out-map` · `dev-glossary` · `operational-watch-list` · `research-inventory` · `pending-decisions` · `tooling-libraries` · `vaultman-identity`.
 - **Reconstruction-not-refactor framing** parked as **S-8**: rename internally to "reconstruction wave";
-  preview-prototype artifact per spec for any style/UI-heavy slice
-  (under `docs/work/<initiative>/previews/`).
+  preview-prototype artifact per spec for any style/UI-heavy slice (under `docs/work/<initiative>/previews/`).
 - **Periodic stability-promotion mechanic** parked as **S-9** (publish-track owns the cadence).
-- **Context-hook policy fix**: agent no longer self-closes at inferred-low-context; asks dev about
-  window remaining + checkpoint-vs-close intent. Edits in `.claude/settings.json` UserPromptSubmit hook
+- **Context-hook policy fix**: agent no longer self-closes at inferred-low-context; asks dev about window remaining + checkpoint-vs-close intent. Edits in `.claude/settings.json` UserPromptSubmit hook
   + `AGENTS.md` §Size-And-Context.
-- **Publish stable 1.0.1** SHIPPED (Codex 2026-05-27) — mis-release fixed; GitHub Release `1.1.0`
-  renamed `1.1.0-beta.1` + marked prerelease.
+- **Publish stable 1.0.1** SHIPPED (Codex 2026-05-27) — mis-release fixed; GitHub Release `1.1.0` renamed `1.1.0-beta.1` + marked prerelease.
 
 ## Key architecture surfaces (read these first, in this order)
 
@@ -70,15 +53,7 @@ publish / commit / branch / release discipline.
 | 8 | [[docs/architecture/glossary\|canonical glossary]] · [[docs/architecture/adr/README\|ADR index 0001–0009]] · [[docs/architecture/explorer-model/index\|explorer-model (4 shards)]] | architecture canon |
 
 **Findings shards** under `docs/work/hardening/research/2026-05-25-architecture-foundation-discovery/`:
-[[docs/work/hardening/research/2026-05-25-architecture-foundation-discovery/bases-interop-findings|bases-interop-findings]] ·
-[[docs/work/hardening/research/2026-05-25-architecture-foundation-discovery/obsidian-extension-api-findings|obsidian-extension-api-findings]] ·
-[[docs/work/hardening/research/2026-05-25-architecture-foundation-discovery/storage-architecture-findings|storage-architecture-findings]] ·
-[[docs/work/hardening/research/2026-05-25-architecture-foundation-discovery/dnd-library-findings|dnd-library-findings]] ·
-[[docs/work/hardening/research/2026-05-25-architecture-foundation-discovery/obsidian-dnd-findings|obsidian-dnd-findings]] ·
-[[docs/work/hardening/research/2026-05-25-architecture-foundation-discovery/open-inventory|open-inventory]] ·
-[[docs/work/hardening/research/2026-05-25-architecture-foundation-discovery/decision-ledger|decision-ledger]] ·
-[[docs/work/hardening/research/2026-05-25-architecture-foundation-discovery/decision-changelog|decision-changelog]] ·
-[[docs/work/hardening/research/2026-05-25-architecture-foundation-discovery/roadmap-dispatch|roadmap-dispatch]].
+[[docs/work/hardening/research/2026-05-25-architecture-foundation-discovery/bases-interop-findings|bases-interop-findings]] · [[docs/work/hardening/research/2026-05-25-architecture-foundation-discovery/obsidian-extension-api-findings|obsidian-extension-api-findings]] · [[docs/work/hardening/research/2026-05-25-architecture-foundation-discovery/storage-architecture-findings|storage-architecture-findings]] · [[docs/work/hardening/research/2026-05-25-architecture-foundation-discovery/dnd-library-findings|dnd-library-findings]] · [[docs/work/hardening/research/2026-05-25-architecture-foundation-discovery/obsidian-dnd-findings|obsidian-dnd-findings]] · [[docs/work/hardening/research/2026-05-25-architecture-foundation-discovery/open-inventory|open-inventory]] · [[docs/work/hardening/research/2026-05-25-architecture-foundation-discovery/decision-ledger|decision-ledger]] · [[docs/work/hardening/research/2026-05-25-architecture-foundation-discovery/decision-changelog|decision-changelog]] · [[docs/work/hardening/research/2026-05-25-architecture-foundation-discovery/roadmap-dispatch|roadmap-dispatch]].
 
 ## Pending dev decisions (summary; full detail in `pending-decisions`)
 
@@ -147,6 +122,4 @@ Best-practices research applied: [[docs/architecture/agent-memory-routing-best-p
 
 ## Status
 
-Wave closed 2026-05-28. Architecture canon stable; foundation grounded across model · style · streams ·
-Bases · storage · DnD · identity. Next session = feature-request evaluation + publish discipline. The
-copy-pasteable prompt above is the bootstrap.
+Wave closed 2026-05-28. Architecture canon stable; foundation grounded across model · style · streams · Bases · storage · DnD · identity. Next session = feature-request evaluation + publish discipline. The copy-pasteable prompt above is the bootstrap.

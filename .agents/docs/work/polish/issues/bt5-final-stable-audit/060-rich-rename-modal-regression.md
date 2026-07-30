@@ -23,12 +23,7 @@ Corrects the Content slice of [[../bt5-next-release/036-node-menu-actions-and-co
 
 ## What to build
 
-Replace `content.rename → promptForFileRename` introduced by `e0945039` with the
-rich queued rename flow used by Files. Extend the rich modal to accept an initial
-pattern: a single `pepito.md` opens with `pepito`, while multi-target operations
-retain `{basename}` and other placeholders. Audit rename callers and migrate every
-operation that uses a basic prompt or bypasses the queue when the rich operation
-contract applies; preserve simple prompts for non-operation naming such as Save Layout.
+Replace `content.rename → promptForFileRename` introduced by `e0945039` with the rich queued rename flow used by Files. Extend the rich modal to accept an initial pattern: a single `pepito.md` opens with `pepito`, while multi-target operations retain `{basename}` and other placeholders. Audit rename callers and migrate every operation that uses a basic prompt or bypasses the queue when the rich operation contract applies; preserve simple prompts for non-operation naming such as Save Layout.
 
 ## Acceptance criteria
 
@@ -38,8 +33,7 @@ contract applies; preserve simple prompts for non-operation naming such as Save 
 - [x] Queued Content rename projects `badge_rename` and is cancelable.
 - [x] `contentContextMenu.test.ts` stops requiring the native rename prompt.
 - [x] Snippet rename no longer extracts `_RENAME_FILE` and calls `adapter.rename` directly.
-- [x] Folder/Property/Value/basic-modal callers are classified and migrated only when the
-      richer operation contract fits their domain; Tag inline queue remains valid.
+- [x] Folder/Property/Value/basic-modal callers are classified and migrated only when the richer operation contract fits their domain; Tag inline queue remains valid.
 - [x] Delete confirmation remains separate and may keep the native Obsidian prompt.
 
 ## Blocked by
@@ -49,23 +43,15 @@ None — can start immediately.
 ## Implementation checkpoint — 2026-07-22
 
 - Product commit: `45c86373 fix(operations): restore rich queued rename flows`.
-- `FileRenameModal` now initializes a single target with its literal basename and accepts
-  a typed change builder without losing preview/placeholders/validation.
+- `FileRenameModal` now initializes a single target with its literal basename and accepts a typed change builder without losing preview/placeholders/validation.
 - Content calls the rich modal and `queueService.addOrRun`; native deletion remains separate.
-- Snippet rename is an explicit config-directory operation executed only by the queue. Its
-  row and Content rows project the same cancellable pencil badge.
-- Focused evidence: 7 files / 45 tests green; full unit suite 142/143 files and 932/933 tests
-  green. The sole failure is the pre-existing BT5-045 baseline where
-  `toolbarUsesHorizontalScroll` was commented out in the uncommitted
-  `logicResponsiveLayout.ts` edit.
-- ESLint on every changed TS/test path, Svelte autofixer, Svelte format and `git diff --check`
-  are green. `pnpm run check` has only the same three overflow diagnostics recorded before
-  this slice.
+- Snippet rename is an explicit config-directory operation executed only by the queue. Its row and Content rows project the same cancellable pencil badge.
+- Focused evidence: 7 files / 45 tests green; full unit suite 142/143 files and 932/933 tests green. The sole failure is the pre-existing BT5-045 baseline where `toolbarUsesHorizontalScroll` was commented out in the uncommitted `logicResponsiveLayout.ts` edit.
+- ESLint on every changed TS/test path, Svelte autofixer, Svelte format and `git diff --check` are green. `pnpm run check` has only the same three overflow diagnostics recorded before this slice.
 
 ## Remaining before closing
 
-- Dev/runtime smoke in Obsidian: initial input, preview, queue badge, cancellation and Apply
-  for Content and Snippet. Keep status `in-progress` until that visible behavior is accepted.
+- Dev/runtime smoke in Obsidian: initial input, preview, queue badge, cancellation and Apply for Content and Snippet. Keep status `in-progress` until that visible behavior is accepted.
 
 ## Outcome (2026-07-23)
 

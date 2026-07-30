@@ -12,10 +12,7 @@ tags:
 
 # Phase 6 — Legacy Cleanup
 
-Three tasks delete the legacy `serviceTheme.ts`, `applyVaultmanTheme`
-call, `updateGlassBlur` method, and the three legacy settings fields
-(`layoutTheme`, `glassBlurIntensity`, `islandBackdropBlur`). Then wire
-main.ts saveSettings + onunload.
+Three tasks delete the legacy `serviceTheme.ts`, `applyVaultmanTheme` call, `updateGlassBlur` method, and the three legacy settings fields (`layoutTheme`, `glassBlurIntensity`, `islandBackdropBlur`). Then wire main.ts saveSettings + onunload.
 
 ## Task 13 — Delete `serviceTheme.ts` + remove call sites in `main.ts`
 
@@ -28,11 +25,9 @@ main.ts saveSettings + onunload.
 
 Run: `grep -rn "applyVaultmanTheme\|normalizeLayoutTheme\|LAYOUT_THEME_OPTIONS" src/ test/ --include="*.ts" --include="*.svelte" | grep -v "src/services/serviceTheme.ts"`
 
-Expected: only references in `src/main.ts` (the import at line 57 and
-the call inside `updateGlassBlur` at line 393).
+Expected: only references in `src/main.ts` (the import at line 57 and the call inside `updateGlassBlur` at line 393).
 
-If any other files reference `applyVaultmanTheme` or its helpers, they
-must be migrated first. (None expected per current audit.)
+If any other files reference `applyVaultmanTheme` or its helpers, they must be migrated first. (None expected per current audit.)
 
 - [ ] **Step 2: Remove import and call in `main.ts`**
 
@@ -51,8 +46,7 @@ In `src/main.ts`:
     applyVaultmanTheme(body, this.settings);
   }
   ```
-  Delete it. Also delete the `this.updateGlassBlur();` call after
-  hydrate (around line 147).
+  Delete it. Also delete the `this.updateGlassBlur();` call after hydrate (around line 147).
 
 - [ ] **Step 3: Delete the file and its test**
 
@@ -78,26 +72,16 @@ Run:
 grep -rn "updateGlassBlur" src/ test/ --include="*.ts" --include="*.svelte"
 ```
 
-Expected: still has matches in `src/types/typeSettings.ts` (interface
-declaration), `src/components/settings/SettingsUI.svelte` (call site),
-and `test/component/settingsUI.test.ts` (mock). Those will be deleted
-in T14.
+Expected: still has matches in `src/types/typeSettings.ts` (interface declaration), `src/components/settings/SettingsUI.svelte` (call site), and `test/component/settingsUI.test.ts` (mock). Those will be deleted in T14.
 
 - [ ] **Step 5: `pnpm check`**
 
-Run: `pnpm check`
-Expected: errors in `typeSettings.ts` about `LayoutTheme` import,
-`SettingsUI.svelte` calling `updateGlassBlur` on a no-longer-existing
-method, and `settingsUI.test.ts` mocking it. These are expected and
-fixed in T14.
+Run: `pnpm check` Expected: errors in `typeSettings.ts` about `LayoutTheme` import, `SettingsUI.svelte` calling `updateGlassBlur` on a no-longer-existing method, and `settingsUI.test.ts` mocking it. These are expected and fixed in T14.
 
-For now, accept the broken state. Do not attempt to build (`pnpm
-verify` would fail). The Build pipeline is broken between T13 and T14;
-that is acceptable for a single-engineer execution and the commit at
-the end of T13 captures the partial state.
+For now, accept the broken state. Do not attempt to build (`pnpm verify` would fail). The Build pipeline is broken between T13 and T14;
+that is acceptable for a single-engineer execution and the commit at the end of T13 captures the partial state.
 
-If running this plan via subagent-driven development, **merge T13 and
-T14 into one branch checkpoint** — do not run a gate between them.
+If running this plan via subagent-driven development, **merge T13 and T14 into one branch checkpoint** — do not run a gate between them.
 
 - [ ] **Step 6: Commit**
 
@@ -149,35 +133,26 @@ Open `src/types/typeSettings.ts`. Make these edits:
 
 Open `src/components/settings/SettingsUI.svelte`. Find:
 
-- The `layoutTheme` dropdown (uses `LAYOUT_THEME_OPTIONS` and binds
-  `settings.layoutTheme`). Delete the entire JSX/template block.
-- The glass blur slider (binds `settings.glassBlurIntensity`,
-  invokes `plugin.updateGlassBlur()` on input). Delete entire block.
+- The `layoutTheme` dropdown (uses `LAYOUT_THEME_OPTIONS` and binds `settings.layoutTheme`). Delete the entire JSX/template block.
+- The glass blur slider (binds `settings.glassBlurIntensity`, invokes `plugin.updateGlassBlur()` on input). Delete entire block.
 - The island backdrop toggle (binds `settings.islandBackdropBlur`).
   Delete entire block.
 
-Remove any now-unused imports related to these controls. If a
-container/section that hosted these controls becomes empty, decide
-whether to delete the section or leave a placeholder comment for the
-future Settings UI refresh sub-system to repopulate.
+Remove any now-unused imports related to these controls. If a container/section that hosted these controls becomes empty, decide whether to delete the section or leave a placeholder comment for the future Settings UI refresh sub-system to repopulate.
 
 - [ ] **Step 3: Update `test/component/settingsUI.test.ts`**
 
 Open the test file. Find:
 
-- The mock object passed as `plugin` — remove the `updateGlassBlur:
-  vi.fn()` entry.
+- The mock object passed as `plugin` — remove the `updateGlassBlur: vi.fn()` entry.
 - Any individual test that exercised the deleted UI controls (e.g.
-  "shows layout theme dropdown", "glass blur slider calls
-  updateGlassBlur") — delete those tests entirely.
+  "shows layout theme dropdown", "glass blur slider calls updateGlassBlur") — delete those tests entirely.
 
 Keep the rest of the test file intact.
 
 - [ ] **Step 4: Run `pnpm check`**
 
-Run: `pnpm check`
-Expected: 0 errors. If errors persist, the deletion in T13 + T14 missed
-a consumer. Search for the remaining symbol and clean up.
+Run: `pnpm check` Expected: 0 errors. If errors persist, the deletion in T13 + T14 missed a consumer. Search for the remaining symbol and clean up.
 
 - [ ] **Step 5: Run targeted tests**
 
@@ -192,8 +167,7 @@ Expected: PASS for all.
 
 - [ ] **Step 6: `pnpm run build:plugin`**
 
-Run: `pnpm run build:plugin`
-Expected: build passes.
+Run: `pnpm run build:plugin` Expected: build passes.
 
 - [ ] **Step 7: Commit**
 
@@ -240,14 +214,11 @@ async saveSettings(): Promise<void> {
 }
 ```
 
-If `saveSettings` was a one-liner before (`await this.saveData(this.settings);`),
-this is a behavioral expansion. The sync happens here so any preset
-mutation made via the service propagates to disk on next save.
+If `saveSettings` was a one-liner before (`await this.saveData(this.settings);`), this is a behavioral expansion. The sync happens here so any preset mutation made via the service propagates to disk on next save.
 
 - [ ] **Step 2: Update `onunload`**
 
-Find `onunload()` (or the equivalent — Obsidian's `onunload` is
-synchronous; check existing return type). Add at the top:
+Find `onunload()` (or the equivalent — Obsidian's `onunload` is synchronous; check existing return type). Add at the top:
 
 ```typescript
 async onunload(): Promise<void> {
@@ -266,22 +237,15 @@ onunload(): void {
 
 - [ ] **Step 3: Run `pnpm check`**
 
-Run: `pnpm check`
-Expected: 0 errors.
+Run: `pnpm check` Expected: 0 errors.
 
 - [ ] **Step 4: Run full unit + component tests**
 
-Run: `pnpm run test:unit && pnpm run test:component`
-Expected: all pass. Note recorded baselines: pre-0-B at 129 unit / ~800
-tests and 68 component / ~355 tests. Post-0-B counts may differ
-slightly because of T13 test deletion and T14 SettingsUI test deletion
-plus the new tests added in Phases 1–4. Compare with expected delta:
+Run: `pnpm run test:unit && pnpm run test:component` Expected: all pass. Note recorded baselines: pre-0-B at 129 unit / ~800 tests and 68 component / ~355 tests. Post-0-B counts may differ slightly because of T13 test deletion and T14 SettingsUI test deletion plus the new tests added in Phases 1–4. Compare with expected delta:
 
 - Deleted: `serviceTheme.test.ts` (~5 tests).
 - Deleted: a few `settingsUI.test.ts` cases.
-- Added: ~10 in `typeThemePreset.test.ts`, ~10 in `themePresetsBuiltin.test.ts`,
-  ~13 expanded in `serviceThemeRunes.test.ts`, ~10 in
-  `themeServiceCustomStyleInjection.test.ts`.
+- Added: ~10 in `typeThemePreset.test.ts`, ~10 in `themePresetsBuiltin.test.ts`, ~13 expanded in `serviceThemeRunes.test.ts`, ~10 in `themeServiceCustomStyleInjection.test.ts`.
 - Net: positive growth around +30 tests overall.
 
 If a non-target test fails, investigate before continuing.
@@ -305,5 +269,4 @@ EOF
 )"
 ```
 
-When Phase 6 is complete, proceed to
-[[docs/work/hardening/plans/2026-05-15-explorer-0-b-servicetheme-token-layer/phase-7-tests-and-gates|Phase 7]].
+When Phase 6 is complete, proceed to [[docs/work/hardening/plans/2026-05-15-explorer-0-b-servicetheme-token-layer/phase-7-tests-and-gates|Phase 7]].

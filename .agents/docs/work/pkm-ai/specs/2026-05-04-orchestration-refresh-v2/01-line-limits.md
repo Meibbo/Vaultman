@@ -14,15 +14,11 @@ tags:
 
 ## Rule
 
-The 200-line rule is not a content budget. It is a page size. Like pages in a
-book, it says when to turn the page, not when to stop the chapter.
+The 200-line rule is not a content budget. It is a page size. Like pages in a book, it says when to turn the page, not when to stop the chapter.
 
 ## Why V1 Failed
 
-V1 translated "under 200 lines" into "short docs." That created a risk: valuable
-design rationale and accepted nuance could be compressed into slogans. A future
-agent would then obey the slogan without seeing the reason, exception, or
-recovery path.
+V1 translated "under 200 lines" into "short docs." That created a risk: valuable design rationale and accepted nuance could be compressed into slogans. A future agent would then obey the slogan without seeing the reason, exception, or recovery path.
 
 ## Correct Pattern
 
@@ -37,8 +33,7 @@ topic/
   04-failure-modes.md
 ```
 
-The index routes. The shards preserve detail. Nothing important disappears
-because a file hit the page size.
+The index routes. The shards preserve detail. Nothing important disappears because a file hit the page size.
 
 ## Forbidden Interpretation
 

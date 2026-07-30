@@ -16,17 +16,10 @@ tags:
 
 # 02 - Stable Stream Vertical Read
 
-This shard analyzes the stable stream. In this workspace, the source-backed
-stable baseline is `origin/main` plus tag `1.0.1`, not the local `main` branch
-and not tag `1.1.0`.
+This shard analyzes the stable stream. In this workspace, the source-backed stable baseline is `origin/main` plus tag `1.0.1`, not the local `main` branch and not tag `1.1.0`.
 
-The stable stream is smaller, more conservative, and more directly coupled than
-the current canary stream. It has a coherent user product: one Obsidian view,
-three main pages, filters over files/properties/tags, a queue for many
-operations, context-menu actions, settings, and Obsidian-native metadata access.
-It does not yet have the later reconstruction vocabulary: providers, data-plane
-snapshots, shared render-runtime, PlatformAdapter, detached tab leaves, service
-theme tokens, view-host contracts, public API, or the larger Bases/interop spine.
+The stable stream is smaller, more conservative, and more directly coupled than the current canary stream. It has a coherent user product: one Obsidian view, three main pages, filters over files/properties/tags, a queue for many operations, context-menu actions, settings, and Obsidian-native metadata access.
+It does not yet have the later reconstruction vocabulary: providers, data-plane snapshots, shared render-runtime, PlatformAdapter, detached tab leaves, service theme tokens, view-host contracts, public API, or the larger Bases/interop spine.
 
 ## Sources Read
 
@@ -110,8 +103,7 @@ Not read in detail in this shard:
 - every line of `styles.css`;
 - every modal not listed above.
 
-These are not needed to state the stable-stream shape, but they remain pending
-if a later exact stable UI inventory is needed.
+These are not needed to state the stable-stream shape, but they remain pending if a later exact stable UI inventory is needed.
 
 ## Stable Stream Ground Truth
 
@@ -137,10 +129,8 @@ Tag metadata confirms:
 1.1.0 -> manifest version 1.1.0
 ```
 
-`1.0.0..origin/main` is a small patch delta: 26 files, 126 insertions,
-66 deletions across metadata, README/CHANGELOG, and targeted product fixes.
-That makes `origin/main` a true continuation of `1.0.0`, not a rewritten
-branch.
+`1.0.0..origin/main` is a small patch delta: 26 files, 126 insertions, 66 deletions across metadata, README/CHANGELOG, and targeted product fixes.
+That makes `origin/main` a true continuation of `1.0.0`, not a rewritten branch.
 
 By contrast, `origin/main..1.1.0` is a huge product delta:
 
@@ -148,8 +138,7 @@ By contrast, `origin/main..1.1.0` is a huge product delta:
 297 files changed, 43828 insertions(+), 12327 deletions(-)
 ```
 
-That is the practical reason stable cannot be reconciled by just saying
-"1.1.0 is the next stable". It is a different product shape.
+That is the practical reason stable cannot be reconciled by just saying "1.1.0 is the next stable". It is a different product shape.
 
 ### Inventory
 
@@ -164,9 +153,7 @@ providers=0
 types=6
 ```
 
-The zero-provider count matters. Stable does not have the later provider/data
-plane architecture. It reads Obsidian APIs directly from services, logic, and
-component-backed panels.
+The zero-provider count matters. Stable does not have the later provider/data plane architecture. It reads Obsidian APIs directly from services, logic, and component-backed panels.
 
 ## Stable Stream Product Model
 
@@ -195,9 +182,7 @@ flowchart TD
   Panels --> Mutations
 ```
 
-Stable is "single-frame, service-backed, imperative-panel Vaultman". The frame
-is not yet a Scene/Panel/Surface architecture. The product works by putting
-several Obsidian-aware classes under one mounted Svelte shell.
+Stable is "single-frame, service-backed, imperative-panel Vaultman". The frame is not yet a Scene/Panel/Surface architecture. The product works by putting several Obsidian-aware classes under one mounted Svelte shell.
 
 ## Stable Stream User Product
 
@@ -214,21 +199,15 @@ The stable user experience, as implemented in the inspected source, is:
 9. Many mutations are queued before execution.
 10. Some actions still mutate directly.
 11. Content find/replace has a real preview-and-queue workflow.
-12. Linter, menu-curation, move/search/scope popups, and filter-template
-    modals exist as practical stable product surfaces, not only settings.
-13. A bottom status bar summarizes total, filtered, selected, queued,
-    property, and value counts.
-14. Settings expose language, property defaults, explorer behavior, operations
-    scope, open mode, view labels, context menu settings, and several Bases
-    settings that are not wired into a Bases runtime in stable.
+12. Linter, menu-curation, move/search/scope popups, and filter-template modals exist as practical stable product surfaces, not only settings.
+13. A bottom status bar summarizes total, filtered, selected, queued, property, and value counts.
+14. Settings expose language, property defaults, explorer behavior, operations scope, open mode, view labels, context menu settings, and several Bases settings that are not wired into a Bases runtime in stable.
 
 ## [origin/main:src/main.ts] - Stable Plugin Bootstrap
 
 ### Purpose
 
-`main.ts` is the root composition point. It instantiates all stable services,
-registers the Vaultman Obsidian view, installs the ribbon icon and commands,
-loads settings, and wires a simple metadata-resolved refresh.
+`main.ts` is the root composition point. It instantiates all stable services, registers the Vaultman Obsidian view, installs the ribbon icon and commands, loads settings, and wires a simple metadata-resolved refresh.
 
 ### Dependencies
 
@@ -266,9 +245,7 @@ this.propertyTypeService = new PropertyTypeService(this.app);
 this.contextMenuService = new ContextMenuService(this);
 ```
 
-This is stable's service model: no DI container, no provider registry, no
-capability adapter layer. The plugin instance itself is the shared dependency
-surface.
+This is stable's service model: no DI container, no provider registry, no capability adapter layer. The plugin instance itself is the shared dependency surface.
 
 ```ts
 this.registerEvent(
@@ -278,26 +255,21 @@ this.registerEvent(
 );
 ```
 
-Stable reacts to the metadata cache finishing by reapplying filters. It does not
-yet expose a revisioned data-plane snapshot or per-provider invalidation model.
+Stable reacts to the metadata cache finishing by reapplying filters. It does not yet expose a revisioned data-plane snapshot or per-provider invalidation model.
 
 ### Honest State
 
 - Good: simple and easy to reason about.
 - Good: small release surface.
-- Risk: root plugin exposes many services directly; components can reach across
-  boundaries freely.
+- Risk: root plugin exposes many services directly; components can reach across boundaries freely.
 - Risk: refresh model is coarse. There is no stable revision vocabulary.
-- Risk: `manifest.json` says mobile-capable, but no `Platform` or mobile gate
-  appears in stable product source.
+- Risk: `manifest.json` says mobile-capable, but no `Platform` or mobile gate appears in stable product source.
 
 ## [origin/main:src/VaultmanFrame.ts] - Obsidian ItemView Wrapper
 
 ### Purpose
 
-This file adapts Svelte into Obsidian's `ItemView`. It creates the content
-element, assigns the frame class, mounts `VaultmanFrame.svelte`, and unmounts it
-on close.
+This file adapts Svelte into Obsidian's `ItemView`. It creates the content element, assigns the frame class, mounts `VaultmanFrame.svelte`, and unmounts it on close.
 
 ### Dependencies
 
@@ -310,8 +282,7 @@ on close.
 export const VAULTMAN_FRAME_TYPE = 'vaultman-frame';
 ```
 
-This is the whole stable surface identity. Unlike canary, stable does not
-register independent tab-leaf views for each page.
+This is the whole stable surface identity. Unlike canary, stable does not register independent tab-leaf views for each page.
 
 ```ts
 this.svelteApp = mount(VaultmanFrameSvelte, {
@@ -324,24 +295,18 @@ The Svelte frame receives the entire plugin object, not a narrowed contract.
 
 ### Honest State
 
-Stable's Obsidian integration is conservative and clean. The coupling is pushed
-into the Svelte frame and panels.
+Stable's Obsidian integration is conservative and clean. The coupling is pushed into the Svelte frame and panels.
 
 ## [origin/main:src/VaultmanFrame.svelte] - Stable Frame Orchestrator
 
 ### Purpose
 
-This is the main stable UI composition file. It owns page order, active page,
-bottom nav behavior, FAB actions, queue/filter islands, popup routing, selected
-counts, filtered counts, search routing, move popup state, queue stats, and
-connections to imperative explorer panels.
+This is the main stable UI composition file. It owns page order, active page, bottom nav behavior, FAB actions, queue/filter islands, popup routing, selected counts, filtered counts, search routing, move popup state, queue stats, and connections to imperative explorer panels.
 
 ### Dependencies
 
-- IN: `VaultmanPlugin`, Obsidian `setIcon`, Svelte runes, pages, popup overlay,
-  queue/filter island classes, modals, autocomplete utilities, queue types.
-- OUT: renders three pages; mutates plugin settings; opens modals; calls service
-  methods; instantiates imperative island classes.
+- IN: `VaultmanPlugin`, Obsidian `setIcon`, Svelte runes, pages, popup overlay, queue/filter island classes, modals, autocomplete utilities, queue types.
+- OUT: renders three pages; mutates plugin settings; opens modals; calls service methods; instantiates imperative island classes.
 
 ### Svelte Shape
 
@@ -354,9 +319,7 @@ const pageFabs = $derived.by(() => ({ ... }));
 let activePage = $state(initialPageOrder[0] ?? "ops");
 ```
 
-But it also holds many unrelated responsibilities in one component. This is
-not wrong for stable, but it is why canary later decomposed frame logic into
-`frameNavigation`, `frameOverlays`, `framePopups`, `framePages`, and shells.
+But it also holds many unrelated responsibilities in one component. This is not wrong for stable, but it is why canary later decomposed frame logic into `frameNavigation`, `frameOverlays`, `framePopups`, `framePages`, and shells.
 
 ### Frame-Owned Product State
 
@@ -429,8 +392,7 @@ $effect(() => {
 });
 ```
 
-This shows the stable style: UI state directly calls panel methods. There is no
-central search/source controller.
+This shows the stable style: UI state directly calls panel methods. There is no central search/source controller.
 
 ### Key Code - Queue/Filter Subscriptions
 
@@ -440,25 +402,21 @@ plugin.queueService.on("changed", onQueueChanged);
 plugin.app.metadataCache.on("resolved", onVaultResolved);
 ```
 
-Stable uses event subscriptions directly inside the frame. Later canary
-separates this into more dedicated services and component contracts.
+Stable uses event subscriptions directly inside the frame. Later canary separates this into more dedicated services and component contracts.
 
 ### Honest State
 
 - Good: one file shows the whole stable UX.
 - Good: no hidden orchestration layer.
 - Risk: this file is a god component.
-- Risk: Svelte effects cause imperative panel calls; if handles are stale,
-  behavior depends on mount order.
-- Risk: multiple state concerns share one component; small changes can affect
-  navigation, popups, filtering, queue state, and selection at once.
+- Risk: Svelte effects cause imperative panel calls; if handles are stale, behavior depends on mount order.
+- Risk: multiple state concerns share one component; small changes can affect navigation, popups, filtering, queue state, and selection at once.
 
 ## [origin/main:src/VaultmanSettings.ts] - Stable Settings UI
 
 ### Purpose
 
-The settings tab exposes product switches and persists them through
-`plugin.saveSettings()`.
+The settings tab exposes product switches and persists them through `plugin.saveSettings()`.
 
 ### Dependencies
 
@@ -500,16 +458,13 @@ basesInjectCheckboxes: boolean;
 basesShowColumnSeparators: boolean;
 ```
 
-But `git grep "bases"` in `origin/main -- src` only finds these settings and
-their UI. No stable source read showed a Bases runtime, `.base` parser, Bases
-registration, or attach mechanism.
+But `git grep "bases"` in `origin/main -- src` only finds these settings and their UI. No stable source read showed a Bases runtime, `.base` parser, Bases registration, or attach mechanism.
 
 ### Honest State
 
 - Stable settings include future-facing placeholders.
 - That is acceptable for a stable patch only if the controls are harmless.
-- It also means stable has a promise-shape mismatch: settings mention Bases
-  behavior that is not implemented in the stable product path.
+- It also means stable has a promise-shape mismatch: settings mention Bases behavior that is not implemented in the stable product path.
 
 ## [origin/main:src/services/serviceFilter.ts] - Filter State And Evaluation
 
@@ -553,26 +508,22 @@ activeFilter: FilterGroup = {
 };
 ```
 
-The stable filter tree is simple and compatible with the later FilterGroup
-concept, but it is stored directly in the service with mutable child arrays.
+The stable filter tree is simple and compatible with the later FilterGroup concept, but it is stored directly in the service with mutable child arrays.
 
 ```ts
 const matchingPaths = evalNode(this.activeFilter, allFiles, getMeta);
 base = allFiles.filter((f) => matchingPaths.has(f.path));
 ```
 
-The filter evaluator is pure-ish: it receives the file universe and a metadata
-getter.
+The filter evaluator is pure-ish: it receives the file universe and a metadata getter.
 
 ### Issues / Improvements
 
 - Mutable `activeFilter` is shared directly across UI code.
-- Search filters are state inside the filter service, but tab-specific search
-  state lives in the frame.
+- Search filters are state inside the filter service, but tab-specific search state lives in the frame.
 - `selectedFiles` exists here but selection ownership is not authoritative;
   files panel owns selected rows and frame passes selected count separately.
-- Later canary's selection service/data-plane direction is a real improvement,
-  not just extra abstraction.
+- Later canary's selection service/data-plane direction is a real improvement, not just extra abstraction.
 
 ## [origin/main:src/utils/filter-evaluator.ts] - Pure Filter Tree Semantics
 
@@ -608,23 +559,18 @@ case 'none': universe minus union
 
 ### Honest State
 
-This module is a stable asset worth preserving. It is already close to the
-future `logic*` extraction direction because it is DOM-free and App-free except
-for Obsidian metadata types.
+This module is a stable asset worth preserving. It is already close to the future `logic*` extraction direction because it is DOM-free and App-free except for Obsidian metadata types.
 
 ## [origin/main:src/services/serviceOperationQueue.ts] - Stable Mutation Queue
 
 ### Purpose
 
-`OperationQueueService` stores queued changes and applies them in chunks. It is
-the stable stream's strongest safety mechanism.
+`OperationQueueService` stores queued changes and applies them in chunks. It is the stable stream's strongest safety mechanism.
 
 ### Dependencies
 
-- IN: Obsidian `App`, `Notice`, `TFile`, `FileManager`; `PendingChange` and
-  special operation keys.
-- OUT: queued operations, execution notices, file/frontmatter/content writes,
-  diff simulation.
+- IN: Obsidian `App`, `Notice`, `TFile`, `FileManager`; `PendingChange` and special operation keys.
+- OUT: queued operations, execution notices, file/frontmatter/content writes, diff simulation.
 
 ### Data Flow
 
@@ -656,8 +602,7 @@ addBatch(changes: PendingChange[]): void {
 }
 ```
 
-This stable patch already recognizes render-thrash risk: batch operations emit
-one event instead of one event per file.
+This stable patch already recognizes render-thrash risk: batch operations emit one event instead of one event per file.
 
 ### Key Code - Chunked Execution
 
@@ -680,19 +625,15 @@ await this.app.fileManager.processFrontMatter(file, (fm) => {
 });
 ```
 
-This is a good stable invariant: apply against the current frontmatter buffer,
-not stale metadata cache snapshots.
+This is a good stable invariant: apply against the current frontmatter buffer, not stale metadata cache snapshots.
 
 ### Honest State
 
 - Good: queue-first design is real for many operations.
 - Good: diff simulation exists.
 - Good: execution yields to the UI thread.
-- Risk: a single `PendingChange` object carries both operation metadata and
-  executable logic closure; this makes serialization, replay, and agent/API
-  integration harder.
-- Risk: content replace reads/modifies whole files directly; no chunk-acceptance
-  beyond the preview.
+- Risk: a single `PendingChange` object carries both operation metadata and executable logic closure; this makes serialization, replay, and agent/API integration harder.
+- Risk: content replace reads/modifies whole files directly; no chunk-acceptance beyond the preview.
 - Risk: not all product mutations use the queue.
 
 ## Stable Mutation Boundary - Queued vs Direct
@@ -719,8 +660,7 @@ return this.plugin.app.fileManager.trashFile(meta.file);
 await this.plugin.app.fileManager.processFrontMatter(file, ...);
 ```
 
-Tag rename, tag delete, inline-to-frontmatter, and file delete do not go through
-the same queue preview path in stable.
+Tag rename, tag delete, inline-to-frontmatter, and file delete do not go through the same queue preview path in stable.
 
 ### Honest State
 
@@ -770,16 +710,14 @@ Stable already does incremental updates with a debounce.
 ### Honest State
 
 - Good: small and useful.
-- Risk: `removeFile()` deletes file contribution bookkeeping but does not remove
-  values from the index; values can grow stale until rebuild.
+- Risk: `removeFile()` deletes file contribution bookkeeping but does not remove values from the index; values can grow stale until rebuild.
 - Risk: index uses stringified values and has no schema/source revision model.
 
 ## [origin/main:src/services/serviceContextMenu.ts] - Menu Injection And Hiding
 
 ### Purpose
 
-Stable has a registry of actions and injects them into panel menus, file menus,
-editor menus, and more-options menus.
+Stable has a registry of actions and injects them into panel menus, file menus, editor menus, and more-options menus.
 
 ### Dependencies
 
@@ -803,18 +741,15 @@ Menu hiding reaches into internal menu item arrays.
 
 ### Honest State
 
-- Good: a registry already exists; this is the ancestor of ActionNode/menu
-  curator thinking.
+- Good: a registry already exists; this is the ancestor of ActionNode/menu curator thinking.
 - Risk: menu internals are fragile.
-- Risk: action definitions are local and imperative, not a cross-surface
-  ActionNode contract yet.
+- Risk: action definitions are local and imperative, not a cross-surface ActionNode contract yet.
 
 ## [origin/main:src/services/serviceIcons.ts] - Iconic Bridge
 
 ### Purpose
 
-Reads Iconic plugin data from `.obsidian/plugins/iconic/data.json` and exposes
-property/tag icon lookups.
+Reads Iconic plugin data from `.obsidian/plugins/iconic/data.json` and exposes property/tag icon lookups.
 
 ### Dependencies
 
@@ -828,8 +763,7 @@ This is a useful bridge but fragile:
 - it assumes Iconic's data path and JSON shape;
 - failures are swallowed;
 - no capability probe / Fragility Registry exists;
-- no unload/revert is needed because it only reads, but it is still a foreign
-  plugin coupling.
+- no unload/revert is needed because it only reads, but it is still a foreign plugin coupling.
 
 ## [origin/main:src/services/servicePropertyType.ts] - Property Type Bridge
 
@@ -839,23 +773,18 @@ Reads and writes `.obsidian/types.json` for property type assignments.
 
 ### Honest State
 
-This is another direct Obsidian-file bridge. It is small, stable-like, and
-useful, but it is not protected by adapter boundaries.
+This is another direct Obsidian-file bridge. It is small, stable-like, and useful, but it is not protected by adapter boundaries.
 
 ## [origin/main:src/components/containers/explorerFiles.ts] - Files Panel
 
 ### Purpose
 
-The files panel renders filtered files as a grid or tree, owns file selection
-in grid mode, registers file context actions, handles add-mode property editing,
-and opens files in the workspace.
+The files panel renders filtered files as a grid or tree, owns file selection in grid mode, registers file context actions, handles add-mode property editing, and opens files in the workspace.
 
 ### Dependencies
 
-- IN: `VaultmanPlugin`, `FilesLogic`, `GridView`, `UnifiedTreeView`, modals,
-  context menu service.
-- OUT: rendered file UI, selected file list, queued file/property changes,
-  direct trash action, workspace open-link side effect.
+- IN: `VaultmanPlugin`, `FilesLogic`, `GridView`, `UnifiedTreeView`, modals, context menu service.
+- OUT: rendered file UI, selected file list, queued file/property changes, direct trash action, workspace open-link side effect.
 
 ### Data Flow
 
@@ -880,24 +809,19 @@ flowchart TD
 ### Honest State
 
 - Stable files panel is a practical product surface.
-- It directly combines data transformation, render selection, action
-  registration, modal opening, and context-menu actions.
-- It has no virtualization; `GridView` and `UnifiedTreeView` both use a
-  200-item default display limit with "Show all".
+- It directly combines data transformation, render selection, action registration, modal opening, and context-menu actions.
+- It has no virtualization; `GridView` and `UnifiedTreeView` both use a 200-item default display limit with "Show all".
 - It can immediately trash files via context menu, bypassing queue preview.
 
 ## [origin/main:src/components/containers/explorerProps.ts] - Props Panel
 
 ### Purpose
 
-Props panel renders property names and values, toggles filter rules, registers
-property/value actions, shows queue badges, supports warning badges for type
-incompatibility, and can queue property mutations.
+Props panel renders property names and values, toggles filter rules, registers property/value actions, shows queue badges, supports warning badges for type incompatibility, and can queue property mutations.
 
 ### Dependencies
 
-- IN: Obsidian app, `PropsLogic`, filter service, Iconic service, context menu,
-  queue service, tree view, input modal.
+- IN: Obsidian app, `PropsLogic`, filter service, Iconic service, context menu, queue service, tree view, input modal.
 - OUT: tree/grid DOM, queue changes, filter changes, context menu actions.
 
 ### Important Behaviors
@@ -910,28 +834,22 @@ incompatibility, and can queue property mutations.
 
 ### Honest State
 
-This is one of stable's richest files. It also shows why future logic extraction
-is needed: rendering, action policy, queue badge projection, filter matching,
-icon resolution, sorting, and mutation building all live in one class.
+This is one of stable's richest files. It also shows why future logic extraction is needed: rendering, action policy, queue badge projection, filter matching, icon resolution, sorting, and mutation building all live in one class.
 
 ## [origin/main:src/components/containers/explorerTags.ts] - Tags Panel
 
 ### Purpose
 
-Tags panel renders Obsidian tag hierarchy, toggles tag filters, supports search,
-sorting, Iconic tag icons, queue badges, and direct tag operations.
+Tags panel renders Obsidian tag hierarchy, toggles tag filters, supports search, sorting, Iconic tag icons, queue badges, and direct tag operations.
 
 ### Dependencies
 
-- IN: `TagsLogic`, filter service, Iconic service, context menu service, queue
-  service, `UnifiedTreeView`.
-- OUT: rendered tag tree, filter changes, queued add-tag operations, direct
-  frontmatter rewrites.
+- IN: `TagsLogic`, filter service, Iconic service, context menu service, queue service, `UnifiedTreeView`.
+- OUT: rendered tag tree, filter changes, queued add-tag operations, direct frontmatter rewrites.
 
 ### Important Difference From Props
 
-Tag add-mode queues operations, but tag rename/delete/frontmatter conversion
-mutate files immediately with `processFrontMatter`.
+Tag add-mode queues operations, but tag rename/delete/frontmatter conversion mutate files immediately with `processFrontMatter`.
 
 ### Honest State
 
@@ -946,21 +864,17 @@ Builds file hierarchy and does flat file search.
 
 ### Honest State
 
-It is straightforward and stable. The main limitation is that it builds a full
-tree from input files each render path and has no revision/cache contract.
+It is straightforward and stable. The main limitation is that it builds a full tree from input files each render path and has no revision/cache contract.
 
 ## [origin/main:src/logic/logicProps.ts] - Properties Data Shape
 
 ### Purpose
 
-Builds property/value trees from Obsidian metadata and detects type
-incompatibility.
+Builds property/value trees from Obsidian metadata and detects type incompatibility.
 
 ### Honest State
 
-It caches until invalidated, which is good. It also recomputes by walking all
-markdown files when stale. It is DOM-free enough to be a candidate for future
-`logicProps`, but the stable panel still owns too much around it.
+It caches until invalidated, which is good. It also recomputes by walking all markdown files when stale. It is DOM-free enough to be a candidate for future `logicProps`, but the stable panel still owns too much around it.
 
 ## [origin/main:src/logic/logicTags.ts] - Tags Data Shape
 
@@ -970,16 +884,13 @@ Builds hierarchical tag nodes from `metadataCache.getTags()`.
 
 ### Honest State
 
-It is compact and DOM-free. It likely survives reconstruction as a logic module
-or seed for one.
+It is compact and DOM-free. It likely survives reconstruction as a logic module or seed for one.
 
 ## [origin/main:src/components/layout/viewTree.ts] - Stable Tree Renderer
 
 ### Purpose
 
-Imperatively renders `TreeNode[]` into DOM rows. Handles expansion, badges,
-count display, editing input, click, context menu, search highlight, warnings,
-and show-more.
+Imperatively renders `TreeNode[]` into DOM rows. Handles expansion, badges, count display, editing input, click, context menu, search highlight, warnings, and show-more.
 
 ### Dependencies
 
@@ -1002,21 +913,17 @@ Stable avoids full render by limiting output, not by virtualizing.
 
 - Good: simple DOM renderer and predictable.
 - Risk: not enough for 50k/100k explorer targets.
-- Risk: renderer knows badge semantics and editing semantics, so it is not a
-  pure renderer in the future ADR 0002 sense.
+- Risk: renderer knows badge semantics and editing semantics, so it is not a pure renderer in the future ADR 0002 sense.
 
 ## [origin/main:src/components/layout/viewGrid.ts] - Stable File Grid
 
 ### Purpose
 
-Imperatively renders files into a sortable/selectable grid with checkbox
-selection and "Show all".
+Imperatively renders files into a sortable/selectable grid with checkbox selection and "Show all".
 
 ### Honest State
 
-It is stable-user friendly for small/medium vaults. It is not a scalable render
-runtime. Selection ownership is local to `GridView.selectedFiles`, which is why
-later selection unification is necessary.
+It is stable-user friendly for small/medium vaults. It is not a scalable render runtime. Selection ownership is local to `GridView.selectedFiles`, which is why later selection unification is necessary.
 
 ## [origin/main:src/components/pages/pageFilters.svelte] - Filters Page
 
@@ -1032,8 +939,7 @@ props, files, tags.
 
 ### Honest State
 
-This page is a thin Svelte composition layer. Most logic lives above it in
-`VaultmanFrame.svelte` or below it in panel classes.
+This page is a thin Svelte composition layer. Most logic lives above it in `VaultmanFrame.svelte` or below it in panel classes.
 
 ## [origin/main:src/components/pages/pageOps.svelte] - Operations Page
 
@@ -1049,20 +955,17 @@ const files = (scope === "selected" || (scope === "auto" && selected.length > 0)
   : plugin.filterService.filteredFiles;
 ```
 
-Stable operation scope is selected-first if configured or if `auto` sees
-selected files.
+Stable operation scope is selected-first if configured or if `auto` sees selected files.
 
 ### Honest State
 
-The content replacement preview is useful but direct and local. The operation
-payload is a closure returning special operation keys, not a serializable plan.
+The content replacement preview is useful but direct and local. The operation payload is a closure returning special operation keys, not a serializable plan.
 
 ## [origin/main:src/components/containers/panelContent.svelte + tabContent.svelte] - Stable Content Find/Replace UI
 
 ### Purpose
 
-These two files show that stable's operations page is not only a generic queue
-page. It has a concrete content find/replace workflow:
+These two files show that stable's operations page is not only a generic queue page. It has a concrete content find/replace workflow:
 
 - find input;
 - replace input;
@@ -1095,16 +998,11 @@ page. It has a concrete content find/replace workflow:
   >{translate("content.queue_replace")}</button>
 ```
 
-The practical difference from canary is not "stable has no FnR". Stable already
-has content replacement. The difference is ownership and breadth: stable's
-content replacement is an ops-page-local workflow, while canary later turns FnR
-into a cross-explorer command island and rename handoff system.
+The practical difference from canary is not "stable has no FnR". Stable already has content replacement. The difference is ownership and breadth: stable's content replacement is an ops-page-local workflow, while canary later turns FnR into a cross-explorer command island and rename handoff system.
 
 ### Honest State
 
-This is more user-facing than the first pass implied. Stable users can inspect
-matches before queueing replacement, and the UI supports plain and regex-like
-workflows. It is still local and narrow:
+This is more user-facing than the first pass implied. Stable users can inspect matches before queueing replacement, and the UI supports plain and regex-like workflows. It is still local and narrow:
 
 - it is not a full syntax-aware FnR engine;
 - it does not unify prop/value/tag/file rename handoffs;
@@ -1115,47 +1013,34 @@ workflows. It is still local and narrow:
 
 ### Purpose
 
-Stable includes a linter tab and modal that integrate with the community
-`obsidian-linter` plugin. The modal is specifically oriented around the linter's
-`yaml-key-sort` rule and lets the user edit the property priority order before
-applying linting to the target file set.
+Stable includes a linter tab and modal that integrate with the community `obsidian-linter` plugin. The modal is specifically oriented around the linter's `yaml-key-sort` rule and lets the user edit the property priority order before applying linting to the target file set.
 
 ### Practical Behavior
 
 - It checks whether the `obsidian-linter` plugin is installed.
 - It reads the linter plugin's in-memory `settings.ruleConfigs`.
-- It targets the `yaml-key-sort` config key
-  `yaml-key-priority-sort-order`.
+- It targets the `yaml-key-sort` config key `yaml-key-priority-sort-order`.
 - It lets users add/remove/reorder properties with property autosuggest.
-- It writes the priority order back through the linter plugin's `saveSettings`
-  function if available.
-- It opens each target file in a tab leaf and executes
-  `obsidian-linter:lint-file`.
+- It writes the priority order back through the linter plugin's `saveSettings` function if available.
+- It opens each target file in a tab leaf and executes `obsidian-linter:lint-file`.
 - It reports progress with notices.
 
 ### Honest State
 
-This is useful, but it is one of stable's clearest fragility bridges. It touches
-another plugin's internal settings shape and then calls Obsidian's internal
-command registry:
+This is useful, but it is one of stable's clearest fragility bridges. It touches another plugin's internal settings shape and then calls Obsidian's internal command registry:
 
 ```ts
 (this.app as unknown as { commands: { executeCommandById: (id: string) => boolean } })
   .commands.executeCommandById(commandId);
 ```
 
-That does not make the feature bad. It means stable has already crossed into
-external-plugin orchestration before canary's later PlatformAdapter/Fragility
-Registry vocabulary. Any promotion story should treat this as an adapter
-candidate, not as harmless modal code.
+That does not make the feature bad. It means stable has already crossed into external-plugin orchestration before canary's later PlatformAdapter/Fragility Registry vocabulary. Any promotion story should treat this as an adapter candidate, not as harmless modal code.
 
 ## [origin/main:src/components/containers/panelCurator.ts] - Stable Context Menu Curator
 
 ### Purpose
 
-Stable has a concrete "context menu curator" panel. It is not only a hidden
-settings flag. It lets users add, enable/disable, and delete rules that hide
-items from Obsidian workspace context menus.
+Stable has a concrete "context menu curator" panel. It is not only a hidden settings flag. It lets users add, enable/disable, and delete rules that hide items from Obsidian workspace context menus.
 
 ### Practical Behavior
 
@@ -1175,26 +1060,22 @@ const newRule: MenuHideRule = {
 };
 ```
 
-The panel writes directly to `plugin.settings.contextMenuHideRules` and saves
-settings after mutation.
+The panel writes directly to `plugin.settings.contextMenuHideRules` and saves settings after mutation.
 
 ### Honest State
 
-This expands stable's product scope beyond Vaultman's own panels. Stable already
-tries to curate Obsidian-native menus. That reinforces two facts:
+This expands stable's product scope beyond Vaultman's own panels. Stable already tries to curate Obsidian-native menus. That reinforces two facts:
 
 - stable is not purely a metadata explorer;
 - stable already depends on internal/native Obsidian surface assumptions.
 
-Canary's native-surface binding work is broader, but the product impulse already
-exists in stable.
+Canary's native-surface binding work is broader, but the product impulse already exists in stable.
 
 ## [origin/main:src/components/layout/popupScope.svelte + popupSearch.svelte + popupMove.svelte] - Stable Popup Command Trio
 
 ### Purpose
 
-The first pass captured `PopupOverlay.svelte` as a router, but the individual
-popups matter because they are stable's command-surface proof:
+The first pass captured `PopupOverlay.svelte` as a router, but the individual popups matter because they are stable's command-surface proof:
 
 - scope popup chooses operation scope;
 - search popup separates file-name and folder search;
@@ -1202,24 +1083,17 @@ popups matter because they are stable's command-surface proof:
 
 ### Practical Behavior
 
-`popupScope.svelte` writes through `setScope` and compares each option against
-`plugin.settings.explorerOperationScope`. `popupSearch.svelte` owns separate
-`searchName` and `searchFolder` bindings. `popupMove.svelte` shows old/new path
-previews before calling `queueMoves`.
+`popupScope.svelte` writes through `setScope` and compares each option against `plugin.settings.explorerOperationScope`. `popupSearch.svelte` owns separate `searchName` and `searchFolder` bindings. `popupMove.svelte` shows old/new path previews before calling `queueMoves`.
 
 ### Honest State
 
-Stable has smaller command surfaces than canary, but they are real. The
-difference is centralization: stable popups are parent-frame callback surfaces,
-while canary later grows dedicated overlay/frame services and command host
-contracts.
+Stable has smaller command surfaces than canary, but they are real. The difference is centralization: stable popups are parent-frame callback surfaces, while canary later grows dedicated overlay/frame services and command host contracts.
 
 ## [origin/main:src/modals/modalAddFilter.ts + modalSaveTemplate.ts] - Stable Filter Authoring And Template Persistence
 
 ### Purpose
 
-Stable filters are not only toggles over preexisting data. Users can author
-rules/groups and save the current filter tree as a named template.
+Stable filters are not only toggles over preexisting data. Users can author rules/groups and save the current filter tree as a named template.
 
 ### Practical Behavior
 
@@ -1236,15 +1110,11 @@ rules/groups and save the current filter tree as a named template.
 - property autosuggest;
 - value autosuggest when the property is known.
 
-`modalSaveTemplate.ts` deep-clones the current filter root and stores it in
-`plugin.settings.filterTemplates`, replacing an existing template with the same
-name or appending a new one.
+`modalSaveTemplate.ts` deep-clones the current filter root and stores it in `plugin.settings.filterTemplates`, replacing an existing template with the same name or appending a new one.
 
 ### Honest State
 
-This makes filter template persistence a stable product truth, not just a
-settings artifact. Canary must preserve the user contract even if it replaces
-the filter runtime with active filter indexes and provider projections.
+This makes filter template persistence a stable product truth, not just a settings artifact. Canary must preserve the user contract even if it replaces the filter runtime with active filter indexes and provider projections.
 
 ## [origin/main:src/components/componentStatusBar.ts] - Stable Bottom Count Ledger
 
@@ -1261,29 +1131,23 @@ Stable has a bottom status bar with practical count feedback:
 
 ### Honest State
 
-This is not architecturally large, but it matters to the user model. It gives
-the stable interface a compact operational ledger. Canary's dashboards and
-badges are broader; they should not regress this simple count affordance.
+This is not architecturally large, but it matters to the user model. It gives the stable interface a compact operational ledger. Canary's dashboards and badges are broader; they should not regress this simple count affordance.
 
 ## [origin/main:src/components/pages/pageStatistics.svelte] - Statistics Page
 
 ### Purpose
 
-Shows counts for folders, files, properties, values, tags, and approximate link
-stats.
+Shows counts for folders, files, properties, values, tags, and approximate link stats.
 
 ### Honest State
 
-It is a lightweight dashboard. It explicitly defers word count because reading
-content is heavy. Its `selected` scope depends on `filterService.selectedFiles`,
-but stable selection is actually local to file grid; this is an ownership gap.
+It is a lightweight dashboard. It explicitly defers word count because reading content is heavy. Its `selected` scope depends on `filterService.selectedFiles`, but stable selection is actually local to file grid; this is an ownership gap.
 
 ## [origin/main:src/components/layout/navbarFilters.svelte] - Filter Toolbar
 
 ### Purpose
 
-Owns the filter-page search pill, category switch, sort popup, view-mode popup,
-and add-mode toggle.
+Owns the filter-page search pill, category switch, sort popup, view-mode popup, and add-mode toggle.
 
 ### Honest State
 
@@ -1295,22 +1159,17 @@ if (activeTab === "props") propExplorer?.setSortBy(sortBy, direction);
 if (activeTab === "tags") tagsExplorer?.setSortBy(sortBy, direction);
 ```
 
-This supports the existing docs saying the current toolbar is not yet
-tab-agnostic primitive ordering.
+This supports the existing docs saying the current toolbar is not yet tab-agnostic primitive ordering.
 
 ## [origin/main:src/components/layout/navbarPillFab.svelte] - Bottom Navigation
 
 ### Purpose
 
-Renders the bottom glass navigation bar with left/right FABs, page icons,
-queue/filter badges, collapsed mode, and long-press reorder hooks supplied by
-the frame.
+Renders the bottom glass navigation bar with left/right FABs, page icons, queue/filter badges, collapsed mode, and long-press reorder hooks supplied by the frame.
 
 ### Honest State
 
-This is a stable visual signature: bottom pill nav plus floating FABs. It is
-less architectural than canary's later toolbar/dock/frame split, but it is
-important stable UX context.
+This is a stable visual signature: bottom pill nav plus floating FABs. It is less architectural than canary's later toolbar/dock/frame split, but it is important stable UX context.
 
 ## [origin/main:src/components/layout/PopupOverlay.svelte] - Popup Router
 
@@ -1320,9 +1179,7 @@ Routes one overlay shell to active-filters, scope, search, and move popups.
 
 ### Honest State
 
-It is clean enough for stable, but the parent frame owns almost all popup state
-and passes many callbacks. Canary's overlay controller split is an understandable
-response to this prop/callback density.
+It is clean enough for stable, but the parent frame owns almost all popup state and passes many callbacks. Canary's overlay controller split is an understandable response to this prop/callback density.
 
 ## [origin/main:src/components/layout/islandQueue.ts] - Queue Island
 
@@ -1332,61 +1189,50 @@ Imperatively renders the floating queue island above the bottom nav.
 
 ### Honest State
 
-It gives stable users quick apply/details/clear access. It also can execute the
-queue directly, closing the island:
+It gives stable users quick apply/details/clear access. It also can execute the queue directly, closing the island:
 
 ```ts
 void this.queueService.execute();
 this.onClose();
 ```
 
-That is stable-simple, but later chunk-acceptance/diff workflow wants a more
-uniform operation gate.
+That is stable-simple, but later chunk-acceptance/diff workflow wants a more uniform operation gate.
 
 ## [origin/main:src/components/layout/islandActiveFilters.ts] - Active Filters Island
 
 ### Purpose
 
-Imperatively renders active filter rules with clear, templates, enable/disable,
-delete, and save-reserved controls.
+Imperatively renders active filter rules with clear, templates, enable/disable, delete, and save-reserved controls.
 
 ### Honest State
 
-It mirrors queue island and uses `FilterService.getFlatRules()`. It is useful
-but duplicates some active-filter popup behavior.
+It mirrors queue island and uses `FilterService.getFlatRules()`. It is useful but duplicates some active-filter popup behavior.
 
 ## [origin/main:src/modals/modalQueueDetails.ts] - Stable Diff Preview
 
 ### Purpose
 
-Shows queued operations, simulated frontmatter diffs, file rename/move headers,
-content replacement snippets, and applies the queue.
+Shows queued operations, simulated frontmatter diffs, file rename/move headers, content replacement snippets, and applies the queue.
 
 ### Honest State
 
-This is one of stable's strongest user-safety surfaces. The limitation is that
-it is operation-queue-specific and not yet the future universal diffview /
-chunk-acceptance system.
+This is one of stable's strongest user-safety surfaces. The limitation is that it is operation-queue-specific and not yet the future universal diffview / chunk-acceptance system.
 
 ## [origin/main:src/modals/modalPropertyManager.ts] - Property Operation Builder
 
 ### Purpose
 
-Builds queued property operations from a modal form: set, rename, delete,
-clean-empty, change-type, add.
+Builds queued property operations from a modal form: set, rename, delete, clean-empty, change-type, add.
 
 ### Honest State
 
-This is stable's most concrete mutation builder. It also exposes how operations
-are currently represented: closures over modal state rather than serializable
-operation descriptions.
+This is stable's most concrete mutation builder. It also exposes how operations are currently represented: closures over modal state rather than serializable operation descriptions.
 
 ## [origin/main:styles.css] - Stable Visual Layer
 
 ### Purpose
 
-The stable style layer is a single root stylesheet. The sampled beginning shows
-Obsidian-compatible CSS variables:
+The stable style layer is a single root stylesheet. The sampled beginning shows Obsidian-compatible CSS variables:
 
 ```css
 .vaultman-view,
@@ -1401,8 +1247,7 @@ Obsidian-compatible CSS variables:
 
 ### Honest State
 
-Stable uses Obsidian theme variables and a compact CSS surface. It does not yet
-have canary's SCSS sharding, token service, elastic UI, or preset split.
+Stable uses Obsidian theme variables and a compact CSS surface. It does not yet have canary's SCSS sharding, token service, elastic UI, or preset split.
 
 ## Stable Theory vs Practice
 
@@ -1439,19 +1284,16 @@ have canary's SCSS sharding, token service, elastic UI, or preset split.
 ## Main Stable Weaknesses
 
 1. The frame is a god component.
-2. Panels mix data logic, render policy, context actions, queue projection, and
-   mutation building.
+2. Panels mix data logic, render policy, context actions, queue projection, and mutation building.
 3. Selection ownership is fragmented.
 4. Some destructive operations bypass the queue.
 5. No virtualization; render limits substitute for runtime scalability.
 6. No mobile/platform gate despite `isDesktopOnly:false`.
 7. Bases settings exist without stable runtime implementation.
-8. Iconic and context-menu bridges touch fragile external/internal shapes
-   without PlatformAdapter/Fragility Registry.
+8. Iconic and context-menu bridges touch fragile external/internal shapes without PlatformAdapter/Fragility Registry.
 9. Operations are closures, not serializable action plans.
 10. Settings and CSS are pre-token-layer stable code.
-11. The linter bridge depends on another plugin's internal settings and command
-    IDs.
+11. The linter bridge depends on another plugin's internal settings and command IDs.
 12. Popup command surfaces are useful but parent-frame callback-heavy.
 
 ## What Stable Must Contribute Upward
@@ -1485,8 +1327,7 @@ Stable should not force canary/future architecture to keep:
 
 ## Stable Stream Current State
 
-Stable is a functional v1.0.x product line. It is the user-protecting line, not
-the architecture-leading line.
+Stable is a functional v1.0.x product line. It is the user-protecting line, not the architecture-leading line.
 
 In practical terms:
 
@@ -1495,21 +1336,16 @@ stable = conservative Obsidian plugin with one frame, filter/ops/stats pages,
 direct services, and a partial queue safety model.
 ```
 
-It is reliable because it is smaller. It is limited because it is smaller and
-more coupled.
+It is reliable because it is smaller. It is limited because it is smaller and more coupled.
 
-That is the central difference from canary: canary contains the reconstruction
-surface; stable contains the known-user baseline that must not be broken while
-the reconstruction is distilled.
+That is the central difference from canary: canary contains the reconstruction surface; stable contains the known-user baseline that must not be broken while the reconstruction is distilled.
 
 ## Coverage Notes For Next Shard
 
-Shard 03 should not repeat stable. It should read current `sandbox` product
-source and answer:
+Shard 03 should not repeat stable. It should read current `sandbox` product source and answer:
 
 - which stable systems were replaced;
 - which stable systems were preserved and renamed;
 - which stable risks were actually fixed;
 - which new risks canary introduced;
-- whether canary code genuinely matches the goal architecture or only contains
-  more files.
+- whether canary code genuinely matches the goal architecture or only contains more files.

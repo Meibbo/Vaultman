@@ -15,8 +15,7 @@ updated_by: codex
 
 # Explorer Data Plane Transition Plans
 
-Planning records for turning the Explorer data-plane specs and local issues
-into executable implementation work.
+Planning records for turning the Explorer data-plane specs and local issues into executable implementation work.
 
 ## Shards
 
@@ -37,15 +36,8 @@ Wave A scout reports live under `reports/`:
 
 ## Current Route
 
-- Wave A/B (Claude) completed on 2026-05-12: four scout reports landed and
-  EDP-002 implementation plan written as shard `02`.
-- EDP-001 through EDP-010 are complete through the local final stabilization
-  branch `codex/edp-final-stabilization`.
-- The parallel integration landed on `claude/explorer` in
-  [[06-parallel-branch-integration|Parallel branch integration handoff]].
-- The final stabilization gate passed in
-  [[07-final-stabilization|EDP final stabilization]], including the previously
-  known `stress.test.ts` and `viewTableStress.test.ts` performance thresholds.
-- Every worker must follow [[05-worker-operating-contract|EDP worker operating contract]]
-  for base branch, worktree naming, ownership boundaries, verification, and
-  handoff.
+- Wave A/B (Claude) completed on 2026-05-12: four scout reports landed and EDP-002 implementation plan written as shard `02`.
+- EDP-001 through EDP-010 are complete through the local final stabilization branch `codex/edp-final-stabilization`.
+- The parallel integration landed on `claude/explorer` in [[06-parallel-branch-integration|Parallel branch integration handoff]].
+- The final stabilization gate passed in [[07-final-stabilization|EDP final stabilization]], including the previously known `stress.test.ts` and `viewTableStress.test.ts` performance thresholds.
+- Every worker must follow [[05-worker-operating-contract|EDP worker operating contract]] for base branch, worktree naming, ownership boundaries, verification, and handoff.

@@ -6,9 +6,7 @@ parent: "[[2026-05-18-explorer-sub-system-0-a-native-dom-parity/index]]"
 
 # 10 — Verification matrix
 
-Diagonal coverage locked in brainstorm: representative cells +
-invariant unit tests + live smoke. Full 20-cell matrix and
-adversarial scroll harness deferred to Sub-system 0-A.S.
+Diagonal coverage locked in brainstorm: representative cells + invariant unit tests + live smoke. Full 20-cell matrix and adversarial scroll harness deferred to Sub-system 0-A.S.
 
 ## Unit tests (per-commit gates)
 
@@ -27,9 +25,7 @@ adversarial scroll harness deferred to Sub-system 0-A.S.
 
 ## Component DOM snapshots — panel × vaultman preset (5 baseline cells)
 
-Added in C11 (or rolled in earlier per commit). Each captures the
-full rendered DOM for the view component with a representative
-row input, asserting class strings, attribute presence, and nesting:
+Added in C11 (or rolled in earlier per commit). Each captures the full rendered DOM for the view component with a representative row input, asserting class strings, attribute presence, and nesting:
 
 | Snapshot test file | View | Preset | Context |
 |---|---|---|---|
@@ -39,31 +35,15 @@ row input, asserting class strings, attribute presence, and nesting:
 | `test/component/views/ViewNodeGrid.panel.vaultman.snapshot.test.ts` | grid | vaultman | panel |
 | `test/component/views/ViewNodeCards.panel.vaultman.snapshot.test.ts` | cards | vaultman | panel |
 
-Snapshot must include: row root classes, primaryLabel classes,
-state mods (selected / focused / active), badge containers per
-sub-kind, media slot conditional, DnD state classes when drag
-flags are set in fixture.
+Snapshot must include: row root classes, primaryLabel classes, state mods (selected / focused / active), badge containers per sub-kind, media slot conditional, DnD state classes when drag flags are set in fixture.
 
 ## Native preset cross-check — viewTree only (1 cell)
 
-`test/component/views/viewTree.panel.native.crosscheck.test.ts` —
-mounts viewTree with `PRESET_NATIVE` (forcing `useNativeDom=true`)
-and compares the emitted DOM against a snapshot extracted from
-`C:\Users\vic_A\Desktop\obsidian-web-lab\obsidian\app.css`-driven
-file-explorer DOM. Pass = identical class structure on row root +
-inner + children. Tolerance: text content and child order may
-differ; CSS class strings on structural elements may not.
+`test/component/views/viewTree.panel.native.crosscheck.test.ts` — mounts viewTree with `PRESET_NATIVE` (forcing `useNativeDom=true`) and compares the emitted DOM against a snapshot extracted from `C:\Users\vic_A\Desktop\obsidian-web-lab\obsidian\app.css`-driven file-explorer DOM. Pass = identical class structure on row root + inner + children. Tolerance: text content and child order may differ; CSS class strings on structural elements may not.
 
-The fixture for the obsidian-web-lab tree DOM is captured into
-`test/fixtures/obsidian-web-lab/file-explorer-tree.html` during
-C11 and committed alongside the test.
+The fixture for the obsidian-web-lab tree DOM is captured into `test/fixtures/obsidian-web-lab/file-explorer-tree.html` during C11 and committed alongside the test.
 
-Table/Cards cross-check against Bases is intentionally NOT in 0-A
-scope. Verifying that emission matches Bases' literal class strings
-is covered by the unit tests in C8 (which assert against the
-contract literals, which were authored from obsidian-web-lab
-research). A future Sub-system "Bases parity verification" can
-add Bases live cross-check if needed.
+Table/Cards cross-check against Bases is intentionally NOT in 0-A scope. Verifying that emission matches Bases' literal class strings is covered by the unit tests in C8 (which assert against the contract literals, which were authored from obsidian-web-lab research). A future Sub-system "Bases parity verification" can add Bases live cross-check if needed.
 
 ## Live plugin-dev smoke flow
 
@@ -142,38 +122,22 @@ test('TanStack virtualizer setup unchanged across 0-A commits');
 test('serviceExplorerScrollGeometry public API unchanged (signature) across C1-C11');
 ```
 
-`pnpm verify` post-C11 expected: unit ≥ baseline + new tests,
-component ≥ baseline + new tests, lint 0 errors, build clean.
+`pnpm verify` post-C11 expected: unit ≥ baseline + new tests, component ≥ baseline + new tests, lint 0 errors, build clean.
 
 ## Performance gates
 
-Match or beat current baseline (from
-[[docs/work/hardening/plans/2026-05-15-explorer-view-platform-pass/perf-baseline|Explorer View Platform perf baseline]]):
+Match or beat current baseline (from [[docs/work/hardening/plans/2026-05-15-explorer-view-platform-pass/perf-baseline|Explorer View Platform perf baseline]]):
 
-- Notebook Navigator comparison bridge: Vaultman 50K projection
-  faster than NN list builder (current: 26.96 ms vs 61.15 ms).
-- Live `plugin-dev` per-view burst smoke: `blankFrames=0`,
-  `maxBlank=0ms`, no dev errors.
+- Notebook Navigator comparison bridge: Vaultman 50K projection faster than NN list builder (current: 26.96 ms vs 61.15 ms).
+- Live `plugin-dev` per-view burst smoke: `blankFrames=0`, `maxBlank=0ms`, no dev errors.
 - Per-view maxDelay current baselines (informational, not gates):
   Tree 108 ms, List 258 ms, Table 1312 ms, Grid 600 ms, Cards 24 ms.
-- **C12 success target**: ZERO frames during scroll burst where
-  a visible row container exists but its mask-gated children
-  (icon/label/detail/badges/media) are absent or empty.
+- **C12 success target**: ZERO frames during scroll burst where a visible row container exists but its mask-gated children (icon/label/detail/badges/media) are absent or empty.
 
-Adversarial scroll patterns (P1-P5 from brainstorm),
-3-plugin sequential comparison, and real-scroll synthetic-event
-harness rebuild are explicitly OUT of 0-A scope; tracked in
-Sub-system 0-A.S.
+Adversarial scroll patterns (P1-P5 from brainstorm), 3-plugin sequential comparison, and real-scroll synthetic-event harness rebuild are explicitly OUT of 0-A scope; tracked in Sub-system 0-A.S.
 
 ## Failure semantics
 
-Any failed invariant or snapshot mismatch = no merge. Failed
-performance gate = investigate before merge (perf regression
-under a foundational refactor is unacceptable). Smoke errors
-in `dev:errors` = no merge.
+Any failed invariant or snapshot mismatch = no merge. Failed performance gate = investigate before merge (perf regression under a foundational refactor is unacceptable). Smoke errors in `dev:errors` = no merge.
 
-If C12 cannot reproduce the flicker on the smoke harness (e.g.,
-because jump-cheat does not exercise real scroll), the C12
-verification falls back to manual `plugin-dev` observation +
-agent description; mark this as a known limitation and tag for
-0-A.S harness rebuild to provide automated regression coverage.
+If C12 cannot reproduce the flicker on the smoke harness (e.g., because jump-cheat does not exercise real scroll), the C12 verification falls back to manual `plugin-dev` observation + agent description; mark this as a known limitation and tag for 0-A.S harness rebuild to provide automated regression coverage.

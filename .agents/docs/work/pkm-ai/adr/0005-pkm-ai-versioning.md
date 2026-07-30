@@ -18,22 +18,16 @@ tags:
 
 ## Context
 
-PKM-AI (the agent protocol + state schema + `.agents/tools/` tooling) evolves, but there is no version
-surface → agents don't know which contract they operate under, and upgrades are untracked / silent. The dev
-wants a version system. Seed already exists: agent-room manifest `schemaVersion: 1`.
+PKM-AI (the agent protocol + state schema + `.agents/tools/` tooling) evolves, but there is no version surface → agents don't know which contract they operate under, and upgrades are untracked / silent. The dev wants a version system. Seed already exists: agent-room manifest `schemaVersion: 1`.
 
 ## Decision
 
-A single **PKM-AI semantic version** covering the protocol/contract + state schema + tooling, surfaced so
-any agent reads it cheaply at startup.
+A single **PKM-AI semantic version** covering the protocol/contract + state schema + tooling, surfaced so any agent reads it cheaply at startup.
 
-- **Source of truth:** `.agents/pkm-ai.version.json` = `{ pkmAiVersion, protocolVersion, stateSchemaVersion,
-  toolingVersion }`. Semver: **MAJOR** = breaking protocol/schema change (agents MUST re-read protocol docs);
+- **Source of truth:** `.agents/pkm-ai.version.json` = `{ pkmAiVersion, protocolVersion, stateSchemaVersion, toolingVersion }`. Semver: **MAJOR** = breaking protocol/schema change (agents MUST re-read protocol docs);
   **MINOR** = additive; **PATCH** = fixes.
-- **Read at startup:** runtime-startup step 0 (0004) reads `pkmAiVersion`; on a MAJOR mismatch vs what the
-  agent last knew, it re-reads the protocol docs before acting.
-- **Changelog:** `docs/work/pkm-ai/CHANGELOG.md` records each bump + what changed → doubles as the
-  "new-since" delta surface for fresh agents (ties best-practices P2 / S-13).
+- **Read at startup:** runtime-startup step 0 (0004) reads `pkmAiVersion`; on a MAJOR mismatch vs what the agent last knew, it re-reads the protocol docs before acting.
+- **Changelog:** `docs/work/pkm-ai/CHANGELOG.md` records each bump + what changed → doubles as the "new-since" delta surface for fresh agents (ties best-practices P2 / S-13).
 - **Ties:** `stateSchemaVersion` ← agent-room `schemaVersion` (0003); `toolingVersion` ← `.ts` tooling (0001).
 
 ## Consequences

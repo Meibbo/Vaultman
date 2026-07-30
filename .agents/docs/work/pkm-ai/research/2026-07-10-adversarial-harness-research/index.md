@@ -17,55 +17,27 @@ tags:
 
 # Adversarial Harness Research
 
-Source item: [[docs/current/pendientes|pendientes]] ("Research/harness: tooling adversarial +
-ruteo de skills", pedido dev 2026-07-10).
+Source item: [[docs/current/pendientes|pendientes]] ("Research/harness: tooling adversarial + ruteo de skills", pedido dev 2026-07-10).
 
 ## Why this exists
 
-2026-07-10: the dev caught the coordinator (Claude) doing honest, structural critique of a
-design proposal only after being explicitly asked ("critica esto honestamente") — performative
-agreement otherwise. A first, partial fix landed the same day in
-`.claude/skills/grill-with-docs/SKILL.md`. This research answers the dev's follow-up: does
-anything else in the harness force unprompted critique, and what should close the remaining
-gaps — plus a related, separate ask: offer skill routing at the end of responses based on the
-dev's stance, without the dev having to ask for it.
+2026-07-10: the dev caught the coordinator (Claude) doing honest, structural critique of a design proposal only after being explicitly asked ("critica esto honestamente") — performative agreement otherwise. A first, partial fix landed the same day in `.claude/skills/grill-with-docs/SKILL.md`. This research answers the dev's follow-up: does anything else in the harness force unprompted critique, and what should close the remaining gaps — plus a related, separate ask: offer skill routing at the end of responses based on the dev's stance, without the dev having to ask for it.
 
 **Baseline read in full before this research started:**
-`.claude/skills/grill-with-docs/SKILL.md`, section "Adversarial pass (MANDATORY — added
-2026-07-10 after dev feedback)". It requires an unprompted adversarial pass at ~3-decision
-intervals and always before a final lock: attack the agent's own accumulated proposal, invent
-scenarios the user did not raise and trace them through the design, grep-check names against
-the real codebase (not memory), check SOLID plus "dev-in-a-week readability" against the
-post-plan code, and state plainly what the design does NOT cover and what is LOST vs the
-status quo. The same patch also added "close every substantial grill answer with 1-3 skill
-suggestions."
+`.claude/skills/grill-with-docs/SKILL.md`, section "Adversarial pass (MANDATORY — added 2026-07-10 after dev feedback)". It requires an unprompted adversarial pass at ~3-decision intervals and always before a final lock: attack the agent's own accumulated proposal, invent scenarios the user did not raise and trace them through the design, grep-check names against the real codebase (not memory), check SOLID plus "dev-in-a-week readability" against the post-plan code, and state plainly what the design does NOT cover and what is LOST vs the status quo. The same patch also added "close every substantial grill answer with 1-3 skill suggestions."
 
 ## Method
 
-- **Local inventory** — read every `.claude/skills/*/SKILL.md` frontmatter description (49
-  folders on disk) and the full text of all 7 files in
-  `.agents/docs/architecture/policies/`, for review/critique/verification content.
-  Cross-checked against `.claude/settings.json` (the only hooks file in this repo — confirmed
-  no `.claude/agents/` custom subagents exist) and grepped the then-legacy PKM-AI root for
-  adversarial/critique/sycophancy/devil/performative — zero hits, so this is the first record
-  of the topic in pkm-ai.
-- **Online research** — WebSearch + WebFetch against primary sources: Anthropic's own Claude
-  Code hooks reference and the shipped `security-guidance` plugin (a working, official example
-  of "hook runs a separate model review and feeds findings back"), plus arXiv papers and ACL
-  Anthology for the multi-agent-critique and sycophancy literature.
-- Everything below is a **draft for the dev to decide** — nothing outside this folder was
-  touched, and nothing here was applied to the harness.
+- **Local inventory** — read every `.claude/skills/*/SKILL.md` frontmatter description (49 folders on disk) and the full text of all 7 files in `.agents/docs/architecture/policies/`, for review/critique/verification content.
+  Cross-checked against `.claude/settings.json` (the only hooks file in this repo — confirmed no `.claude/agents/` custom subagents exist) and grepped the then-legacy PKM-AI root for adversarial/critique/sycophancy/devil/performative — zero hits, so this is the first record of the topic in pkm-ai.
+- **Online research** — WebSearch + WebFetch against primary sources: Anthropic's own Claude Code hooks reference and the shipped `security-guidance` plugin (a working, official example of "hook runs a separate model review and feeds findings back"), plus arXiv papers and ACL Anthology for the multi-agent-critique and sycophancy literature.
+- Everything below is a **draft for the dev to decide** — nothing outside this folder was touched, and nothing here was applied to the harness.
 
 ## Shards
 
-- [[docs/work/pkm-ai/research/2026-07-10-adversarial-harness-research/01-local-inventory-gaps|01 — Local inventory + gaps by phase]]
-  — full skills/policies inventory, the gap-by-phase table with evidence, and 9 supporting
-  findings (stale Stop-hook path, vendored-skill drift, orphan folders, etc).
-- [[docs/work/pkm-ai/research/2026-07-10-adversarial-harness-research/02-online-techniques-evaluated|02 — Online techniques evaluated]]
-  — 8 techniques with source, mechanism, and an adopt/adapt/discard verdict for this harness.
-- [[docs/work/pkm-ai/research/2026-07-10-adversarial-harness-research/03-proposal-prioritized|03 — Prioritized proposal (draft)]]
-  — 3 cheap skill/policy edits, 2 hook-based options (deterministic + prompt-hook), 1 expensive
-  pre-lock critic pattern, each scoped, costed, and left as an open question for the dev.
+- [[docs/work/pkm-ai/research/2026-07-10-adversarial-harness-research/01-local-inventory-gaps|01 — Local inventory + gaps by phase]] — full skills/policies inventory, the gap-by-phase table with evidence, and 9 supporting findings (stale Stop-hook path, vendored-skill drift, orphan folders, etc).
+- [[docs/work/pkm-ai/research/2026-07-10-adversarial-harness-research/02-online-techniques-evaluated|02 — Online techniques evaluated]] — 8 techniques with source, mechanism, and an adopt/adapt/discard verdict for this harness.
+- [[docs/work/pkm-ai/research/2026-07-10-adversarial-harness-research/03-proposal-prioritized|03 — Prioritized proposal (draft)]] — 3 cheap skill/policy edits, 2 hook-based options (deterministic + prompt-hook), 1 expensive pre-lock critic pattern, each scoped, costed, and left as an open question for the dev.
 
 ## Verdict at a glance
 
@@ -79,30 +51,15 @@ suggestions."
 | Closure (`finishing-a-development-branch`) | No — verifies tests, not design soundness | — | none |
 | Cross-cutting (policies, hooks) | No | `.claude/settings.json` has 2 hooks, neither about critique | Hook (harness-enforced, but wrong content today) |
 
-The one existing enforcement-layer artifact in this repo — the `Stop` hook in
-`.claude/settings.json` — is harness-level (fires regardless of skill/model compliance) but
-currently does something unrelated (a stale doc-path reminder). See shard 01. That makes it
-the cheapest lever to repurpose, not just fix.
+The one existing enforcement-layer artifact in this repo — the `Stop` hook in `.claude/settings.json` — is harness-level (fires regardless of skill/model compliance) but currently does something unrelated (a stale doc-path reminder). See shard 01. That makes it the cheapest lever to repurpose, not just fix.
 
 ## Note on path (updated after a write-persistence test)
 
 The dev's instruction specified `.agents/docs/work/pkm-ai/research/2026-07-10-adversarial-harness-research/`.
-That exact path was written successfully (confirmed by the write tool both times) but
-**silently disappeared twice** before the docs topology cleanup — confirmed gone via `Test-Path`
-moments later, no error surfaced anywhere in that session, and no action was taken by that agent
-to remove it. A follow-up test placed under the then-legacy PKM-AI research root
-location persisted cleanly across the same kind of round trip, so the research was temporarily
-filed there.
+That exact path was written successfully (confirmed by the write tool both times) but **silently disappeared twice** before the docs topology cleanup — confirmed gone via `Test-Path` moments later, no error surfaced anywhere in that session, and no action was taken by that agent to remove it. A follow-up test placed under the then-legacy PKM-AI research root location persisted cleanly across the same kind of round trip, so the research was temporarily filed there.
 
-The 2026-07-10 docs topology cleanup normalized the legacy `pkm-ai` tree into the canonical
-physical path, so this research now lives at
-`.agents/docs/work/pkm-ai/research/2026-07-10-adversarial-harness-research/`.
+The 2026-07-10 docs topology cleanup normalized the legacy `pkm-ai` tree into the canonical physical path, so this research now lives at `.agents/docs/work/pkm-ai/research/2026-07-10-adversarial-harness-research/`.
 
-Every wikilink inside these files still uses the repo-wide `docs/work/pkm-ai/...` virtual
-prefix, matching the other 118 pkm-ai files and the `docs.md` policy's own prose description of
-the folder model — so nothing here is a broken link either way, and the content is unchanged
-from what was twice written at the originally-instructed path.
+Every wikilink inside these files still uses the repo-wide `docs/work/pkm-ai/...` virtual prefix, matching the other 118 pkm-ai files and the `docs.md` policy's own prose description of the folder model — so nothing here is a broken link either way, and the content is unchanged from what was twice written at the originally-instructed path.
 
-**Flag for the dev:** the earlier disappearance still indicates a sync/mirror/cleanup process may
-have been pruning newly-created folders under `work/`. After this normalization, future writes to
-`.agents/docs/work/pkm-ai/` should be treated as a regression test for that issue.
+**Flag for the dev:** the earlier disappearance still indicates a sync/mirror/cleanup process may have been pruning newly-created folders under `work/`. After this normalization, future writes to `.agents/docs/work/pkm-ai/` should be treated as a regression test for that issue.

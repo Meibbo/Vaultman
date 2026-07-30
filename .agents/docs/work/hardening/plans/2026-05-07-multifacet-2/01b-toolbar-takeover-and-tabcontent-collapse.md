@@ -19,44 +19,25 @@ updated_by: claude
 
 ## Scope
 
-Phase 1a shipped the searchbox-mounted island, mode pill, `crear` button,
-toolbar takeover dim/disable styling, Esc + outside-click collapse, and
-the `explorerAddOps` registry. Tasks 4 and 5 of the original phase 1
-shard remain:
+Phase 1a shipped the searchbox-mounted island, mode pill, `crear` button, toolbar takeover dim/disable styling, Esc + outside-click collapse, and the `explorerAddOps` registry. Tasks 4 and 5 of the original phase 1 shard remain:
 
-- [x] In `src/components/pages/tabContent.svelte`: collapse the
-      three `.vm-content-fnr-input` rows into ONE searchbox + mode
-      pill. Pill toggles between `search` and `replace`. Delete the
-      separate replace input and the third options-row input. Keep
-      scope toggle + queue-replace button.
-- [x] Move `view` and `sort` menus to the right side of the toolbar
-      in `navbarExplorer.svelte`. Apply minimalist class. Update the
-      relevant SCSS partial under `src/styles/explorer/`.
+- [x] In `src/components/pages/tabContent.svelte`: collapse the three `.vm-content-fnr-input` rows into ONE searchbox + mode pill. Pill toggles between `search` and `replace`. Delete the separate replace input and the third options-row input. Keep scope toggle + queue-replace button.
+- [x] Move `view` and `sort` menus to the right side of the toolbar in `navbarExplorer.svelte`. Apply minimalist class. Update the relevant SCSS partial under `src/styles/explorer/`.
 
 ## Tests
 
-- [x] `test/component/explorerContentSingleInput.test.ts` — content
-      explorer renders exactly one input regardless of pill mode.
+- [x] `test/component/explorerContentSingleInput.test.ts` — content explorer renders exactly one input regardless of pill mode.
       (2 tests pass)
-- [x] `test/component/navbarToolbarMenuPlacement.test.ts` — view/sort
-      menus rendered right of crear with minimalist class. (1 test
-      pass)
+- [x] `test/component/navbarToolbarMenuPlacement.test.ts` — view/sort menus rendered right of crear with minimalist class. (1 test pass)
 
 ## Notes
 
-- Phase 1a left the `.vm-fnr-island.vm-fnr-rename` block reachable via
-  the legacy `fnrState` prop, but mounted INSIDE the searchbox row.
-  Phase 1b should keep that mount point when collapsing
-  `tabContent.svelte` so the rename handoff still works for content.
-- Toolbar takeover currently applies `opacity` + `pointer-events: none`
-  on `.vm-nav-icon`, `.vm-filters-help-wrap`, and `.vm-filters-crear`.
-  When phase 1b moves view/sort to the right side, the existing class
-  selectors should keep covering them.
+- Phase 1a left the `.vm-fnr-island.vm-fnr-rename` block reachable via the legacy `fnrState` prop, but mounted INSIDE the searchbox row.
+  Phase 1b should keep that mount point when collapsing `tabContent.svelte` so the rename handoff still works for content.
+- Toolbar takeover currently applies `opacity` + `pointer-events: none` on `.vm-nav-icon`, `.vm-filters-help-wrap`, and `.vm-filters-crear`.
+  When phase 1b moves view/sort to the right side, the existing class selectors should keep covering them.
 
 ## Stop Conditions
 
-- Stop if reducing `tabContent.svelte` to one input breaks the
-  existing search↔replace toggle.
-- Stop if relocating view/sort buttons triggers TanStack virtualizer
-  layout invalidation (the takeover style was chosen to avoid this; do
-  not introduce `display:none` swaps).
+- Stop if reducing `tabContent.svelte` to one input breaks the existing search↔replace toggle.
+- Stop if relocating view/sort buttons triggers TanStack virtualizer layout invalidation (the takeover style was chosen to avoid this; do not introduce `display:none` swaps).

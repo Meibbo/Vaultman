@@ -17,8 +17,7 @@ tags:
 
 ## Task
 
-Verify the first Agent Control Plane slice and record what remains outside
-scope.
+Verify the first Agent Control Plane slice and record what remains outside scope.
 
 ## Files
 
@@ -76,8 +75,7 @@ Run:
 git status --short -- .agents/docs/work/pkm-ai .agents/docs/architecture/policies/tools.md
 ```
 
-Expected: changed files are limited to the control-plane docs, PKM-AI index,
-residual-classification research record, and tools policy if Task 4 executed.
+Expected: changed files are limited to the control-plane docs, PKM-AI index, residual-classification research record, and tools policy if Task 4 executed.
 
 - [x] **Step 5: Record out-of-scope next plans**
 
@@ -100,23 +98,11 @@ Final response must state:
 
 ## Result
 
-Completed 2026-05-10T05:30:51. The first Agent Control Plane slice now has
-source records for residual classification, verification matrix,
-route/retrieval profiles, and tool contracts. The implementation plan index
-now records next plans for queue contract repair, selected/visible scope
-verification, `serviceAPI` read/plan/enqueue design, and TypeScript AST
-code-index implementation. The PKM-AI index links the Agent Control Plane
-outputs.
+Completed 2026-05-10T05:30:51. The first Agent Control Plane slice now has source records for residual classification, verification matrix, route/retrieval profiles, and tool contracts. The implementation plan index now records next plans for queue contract repair, selected/visible scope verification, `serviceAPI` read/plan/enqueue design, and TypeScript AST code-index implementation. The PKM-AI index links the Agent Control Plane outputs.
 
 Verification:
 
 - All control-plane spec/plan Markdown files are under 200 lines.
-- Banned-token and trailing-whitespace checks for the control-plane spec/plan
-  folder returned no output.
-- Filtered doc health still reports global `doc health: FAIL (47)`, with no
-  new `agent-control-plane`, `residual-classification`, `route-retrieval`, or
-  `tool-contracts` path failure.
-- Scoped git status shows changes limited to PKM-AI control-plane docs,
-  `.agents/docs/work/pkm-ai/index.md`, and
-  `.agents/docs/architecture/policies/tools.md` for this plan's requested
-  documentation scope.
+- Banned-token and trailing-whitespace checks for the control-plane spec/plan folder returned no output.
+- Filtered doc health still reports global `doc health: FAIL (47)`, with no new `agent-control-plane`, `residual-classification`, `route-retrieval`, or `tool-contracts` path failure.
+- Scoped git status shows changes limited to PKM-AI control-plane docs, `.agents/docs/work/pkm-ai/index.md`, and `.agents/docs/architecture/policies/tools.md` for this plan's requested documentation scope.

@@ -15,20 +15,14 @@ tags:
 
 # Proto v12 design inputs (import 2026-07-02)
 
-Tres documentos de diseño del dev que vivían SOLO en `C:/Users/vic_A/Downloads/vaultman/`
-(sin indexar en pkm-ai), importados verbatim por decisión del dev (grill 2026-07-02).
+Tres documentos de diseño del dev que vivían SOLO en `C:/Users/vic_A/Downloads/vaultman/` (sin indexar en pkm-ai), importados verbatim por decisión del dev (grill 2026-07-02).
 Provenance: el dev escribe estos specs junto a los prototipos.
 
 ## Canon raw del proto (registrado aquí, decisión dev 2026-07-02)
 
-- **Home**: `C:/Users/vic_A/Downloads/vaultman/` — carpetas `proto-vXX/` por versión
-  (+ `Vaultman Prototype vXX.html`). **La carpeta SIN sufijo `proto/` es STALE (v7-era).**
-- **Canónico actual = `proto-v12/`**. Seguirá subiendo (v13+); ante cualquier duda,
-  la carpeta `proto-vXX` de número más alto es el canon, y se verifica con el dev.
-- **Drift conocido**: el "vertical read v12" citado por umbrella/ledger ES el shard
-  `04-proto-design-v7-vertical-read` (v7). Decisión dev (opción b): NO re-read completo
-  de v12; los deltas v7→v12 se verifican POR SISTEMA contra el raw al absorber cada uno
-  (patrón PAI-001: el implementador lee el `proto-v12/<archivo>.jsx` del sistema).
+- **Home**: `C:/Users/vic_A/Downloads/vaultman/` — carpetas `proto-vXX/` por versión (+ `Vaultman Prototype vXX.html`). **La carpeta SIN sufijo `proto/` es STALE (v7-era).**
+- **Canónico actual = `proto-v12/`**. Seguirá subiendo (v13+); ante cualquier duda, la carpeta `proto-vXX` de número más alto es el canon, y se verifica con el dev.
+- **Drift conocido**: el "vertical read v12" citado por umbrella/ledger ES el shard `04-proto-design-v7-vertical-read` (v7). Decisión dev (opción b): NO re-read completo de v12; los deltas v7→v12 se verifican POR SISTEMA contra el raw al absorber cada uno (patrón PAI-001: el implementador lee el `proto-v12/<archivo>.jsx` del sistema).
 
 ## Documentos
 
@@ -40,7 +34,5 @@ Provenance: el dev escribe estos specs junto a los prototipos.
 
 ## Regla de uso
 
-Estos docs son INPUT de diseño del dev, no canon técnico del repo: al consumirlos,
-verificar contra el raw `proto-v12/` y contra el canon lockeado
-([[docs/architecture/explorer-model/05-view-canon|05-view-canon]] + ADR 0012 — p.ej.
+Estos docs son INPUT de diseño del dev, no canon técnico del repo: al consumirlos, verificar contra el raw `proto-v12/` y contra el canon lockeado ([[docs/architecture/explorer-model/05-view-canon|05-view-canon]] + ADR 0012 — p.ej.
 el naming de engines del canon YA supersede `lineal/grid/matrix/canvas` de las notas v12).

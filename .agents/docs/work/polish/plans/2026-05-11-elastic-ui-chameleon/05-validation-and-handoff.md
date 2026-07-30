@@ -17,9 +17,7 @@ updated_by: codex
 
 ## Cross-Shard Main View Contract
 
-The 3-column dashboard belongs to the final integration pass after ALPHA exposes
-`serviceTheme`, BETA preserves virtualized surfaces, GAMMA secures overlays, and
-DELTA preserves interactions.
+The 3-column dashboard belongs to the final integration pass after ALPHA exposes `serviceTheme`, BETA preserves virtualized surfaces, GAMMA secures overlays, and DELTA preserves interactions.
 
 Modify `src/components/frame/frameVaultman.svelte` in the integration pass:
 
@@ -129,8 +127,7 @@ obsidian vault=plugin-dev command id=vaultman:open
 obsidian vault=plugin-dev dev:errors
 ```
 
-Expected: plugin reload and open succeed; `dev:errors` contains no Vaultman
-stack.
+Expected: plugin reload and open succeed; `dev:errors` contains no Vaultman stack.
 
 - [ ] Faint Mode runtime:
 
@@ -154,8 +151,7 @@ Expected: returns `true` after an overlay has been opened.
 obsidian vault=plugin-dev eval code="(() => { const svc=app.plugins.plugins.vaultman?.nodeBindingService; return ['#project','$wide-table','%calendar'].map(token => !!svc).join(','); })()"
 ```
 
-Expected: command does not throw and returns `true,true,true` when Vaultman is
-loaded. Detailed alias behavior is covered by unit tests.
+Expected: command does not throw and returns `true,true,true` when Vaultman is loaded. Detailed alias behavior is covered by unit tests.
 
 ## Handoff Checklist
 
@@ -163,26 +159,18 @@ loaded. Detailed alias behavior is covered by unit tests.
 - [ ] Each shard lists files it modified.
 - [ ] Each shard includes focused test commands and exact pass/fail output.
 - [ ] The integration pass reruns the global verification envelope.
-- [ ] `git status --short` is copied into the handoff so the next agent can
-  distinguish Elastic UI changes from pre-existing dirty work.
-- [ ] If `@thisux/sveltednd` was approved, the handoff names who approved the
-  reversal and lists every file changed by the adapter migration.
-- [ ] If DaisyUI was not installed directly, the handoff states that the plan
-  implemented Daisy-style semantic shortcuts through UnoCSS because official
-  DaisyUI integration remains Tailwind-oriented.
+- [ ] `git status --short` is copied into the handoff so the next agent can distinguish Elastic UI changes from pre-existing dirty work.
+- [ ] If `@thisux/sveltednd` was approved, the handoff names who approved the reversal and lists every file changed by the adapter migration.
+- [ ] If DaisyUI was not installed directly, the handoff states that the plan implemented Daisy-style semantic shortcuts through UnoCSS because official DaisyUI integration remains Tailwind-oriented.
 
 ## Completion Criteria
 
 The phase is complete only when all of these are true:
 
 - Thin mode visually and structurally mimics native Obsidian classes.
-- Thick mode can opt into Daisy-style semantic classes without losing native
-  root classes.
-- Bits UI overlay content is scoped to the current `.vm-root` in the current
-  window.
+- Thick mode can opt into Daisy-style semantic classes without losing native root classes.
+- Bits UI overlay content is scoped to the current `.vm-root` in the current window.
 - Table and grid virtualization remain smooth under the large-vault probe.
-- Node notes resolve aliases through `#`, `$`, `%`, and existing property/folder
-  contracts.
-- Main View uses Svelte 5 snippets for the 3-column dashboard and mobile page
-  fallback.
+- Node notes resolve aliases through `#`, `$`, `%`, and existing property/folder contracts.
+- Main View uses Svelte 5 snippets for the 3-column dashboard and mobile page fallback.
 - All commands in this validation file have fresh passing output recorded.

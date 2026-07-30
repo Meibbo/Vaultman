@@ -22,31 +22,18 @@ source_repos:
 
 ## Takeaway
 
-Notebook Navigator's useful prior art is not React itself and not IndexedDB by
-default. The useful pattern is a staged explorer data path:
+Notebook Navigator's useful prior art is not React itself and not IndexedDB by default. The useful pattern is a staged explorer data path:
 
 1. source facts are indexed first;
 2. tree services build canonical lookup structures;
-3. pane-specific source state combines settings, visibility, ordering, and
-   revision inputs;
+3. pane-specific source state combines settings, visibility, ordering, and revision inputs;
 4. panes flatten to row items;
-5. stable lookup maps such as `pathToIndex` are built after final row
-   projection;
-6. scroll, list, selection, and keyboard consumers resolve late against the
-   current visible map.
+5. stable lookup maps such as `pathToIndex` are built after final row projection;
+6. scroll, list, selection, and keyboard consumers resolve late against the current visible map.
 
-Vaultman is already moving toward the same architecture with
-`ExplorerSnapshot`, `ExplorerDataPlaneService`, snapshot row inputs, and
-revision-gated reveal targets. The current `claude/explorer` worktree still has
-an important connection gap: `filesSnapshot` is consumed by `panelExplorer`, but
-the source scan did not find structural snapshot publication into
-`ExplorerDataPlaneService`.
+Vaultman is already moving toward the same architecture with `ExplorerSnapshot`, `ExplorerDataPlaneService`, snapshot row inputs, and revision-gated reveal targets. The current `claude/explorer` worktree still has an important connection gap: `filesSnapshot` is consumed by `panelExplorer`, but the source scan did not find structural snapshot publication into `ExplorerDataPlaneService`.
 
-Confidence: high for the architectural direction, medium for exact current
-implementation state because local file reads against the worktree were slow
-and the final targeted scan timed out. The earlier repository-wide scan found
-`ExplorerDataPlaneService` creation/consumption and Tags/Props `getSnapshot()`,
-but no Files snapshot `publish()` call.
+Confidence: high for the architectural direction, medium for exact current implementation state because local file reads against the worktree were slow and the final targeted scan timed out. The earlier repository-wide scan found `ExplorerDataPlaneService` creation/consumption and Tags/Props `getSnapshot()`, but no Files snapshot `publish()` call.
 
 ## Decision Frame
 
@@ -103,27 +90,18 @@ but no Files snapshot `publish()` call.
 
 ## Current Vaultman Gap
 
-The branch has the right pieces: `typeExplorerDataPlane.ts` defines snapshot
-contracts; `logicExplorerSnapshot.ts` builds rows and maps;
-`serviceExplorerDataPlane.svelte.ts` stores snapshots; `serviceExplorerRowInput`
-adapts rows and reveal gating; Tags/Props expose `getSnapshot()`; Files exposes
-structural tree/revisions; and `panelExplorer.svelte` reads a `files` snapshot.
+The branch has the right pieces: `typeExplorerDataPlane.ts` defines snapshot contracts; `logicExplorerSnapshot.ts` builds rows and maps;
+`serviceExplorerDataPlane.svelte.ts` stores snapshots; `serviceExplorerRowInput` adapts rows and reveal gating; Tags/Props expose `getSnapshot()`; Files exposes structural tree/revisions; and `panelExplorer.svelte` reads a `files` snapshot.
 
-The gap is publication and ownership. The scan did not find a Files snapshot
-publisher that calls the data plane after structural rebuild. Therefore the
-implementation likely has a half-connected Files data-plane path: consumers are
-ready, the service exists, but the source publish step is missing or not in the
-searched paths.
+The gap is publication and ownership. The scan did not find a Files snapshot publisher that calls the data plane after structural rebuild. Therefore the implementation likely has a half-connected Files data-plane path: consumers are ready, the service exists, but the source publish step is missing or not in the searched paths.
 
-Before implementation, re-run a targeted search in the active `claude/explorer`
-worktree:
+Before implementation, re-run a targeted search in the active `claude/explorer` worktree:
 
 ```powershell
 rg -n "explorerDataPlaneService|\\.publish\\(|getSnapshot\\(|buildExplorerSnapshot" src
 ```
 
-If no Files publish path appears, the next slice should add it deliberately
-rather than adding more consumer-side fallbacks.
+If no Files publish path appears, the next slice should add it deliberately rather than adding more consumer-side fallbacks.
 
 ## Recommended Next Slice
 
@@ -141,18 +119,13 @@ Use Files as the tracer bullet:
 ## Acceptance Signals
 
 - Files publishes a structural snapshot before decoration.
-- `panelExplorer` can resolve Files selection, parent, visible order, and reveal
-  through snapshot maps.
+- `panelExplorer` can resolve Files selection, parent, visible order, and reveal through snapshot maps.
 - Repeated queue/filter overlay changes do not rebuild Files structural rows.
 - `viewTree` receives stable row keys and revision-gated `idToIndex`.
 - Existing provider action hooks and `TreeNode` compatibility still work.
-- Tags/Props have an explicit follow-up path to batch decoration and service
-  lookup parity.
+- Tags/Props have an explicit follow-up path to batch decoration and service lookup parity.
 
 ## Decision
 
 Proceed with a Svelte-native version of Notebook Navigator's staged data path:
-source state, structural snapshot, lookup maps, overlay layers, adapter-local
-virtualization. Do not copy React hooks literally. Do not persist structural
-snapshots. Do use Notebook Navigator's tree service and late lookup discipline
-as the architectural reference.
+source state, structural snapshot, lookup maps, overlay layers, adapter-local virtualization. Do not copy React hooks literally. Do not persist structural snapshots. Do use Notebook Navigator's tree service and late lookup discipline as the architectural reference.

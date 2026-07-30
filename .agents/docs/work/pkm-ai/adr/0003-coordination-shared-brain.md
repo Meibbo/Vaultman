@@ -18,11 +18,7 @@ tags:
 
 ## Context
 
-Multiple agents (Claude, Codex) work in parallel across streams (goal/stable/proto) and collide on shared
-memory (`status.md`/`handoff.md` dirty 2026-06-04). The dev wants **peers coordinating via a shared brain on
-disk — NOT a master/proprietary orchestrator agent** — with semi-real-time awareness and dependency waiting
-("B needs A done → B awaits A"). `agent-room.mjs` already implements the substrate but is unmandated/lapsed
-(last room 2026-05-26).
+Multiple agents (Claude, Codex) work in parallel across streams (goal/stable/proto) and collide on shared memory (`status.md`/`handoff.md` dirty 2026-06-04). The dev wants **peers coordinating via a shared brain on disk — NOT a master/proprietary orchestrator agent** — with semi-real-time awareness and dependency waiting ("B needs A done → B awaits A"). `agent-room.mjs` already implements the substrate but is unmandated/lapsed (last room 2026-05-26).
 
 ## Decision
 
@@ -31,30 +27,21 @@ the disk state IS the coordinator.
 
 - **Presence:** `agent join` + `heartbeat` (liveness; stale heartbeat → lease expiry).
 - **Work claims:** `scope claim` before touching a shared region; `scope conflicts` warns/blocks on overlap.
-- **Memory boundary (own vs shared):** shared edits REQUIRE a scope claim; per-agent memory = own session
-  shard (PKM-AI / S-12), never overwrite shared in place.
+- **Memory boundary (own vs shared):** shared edits REQUIRE a scope claim; per-agent memory = own session shard (PKM-AI / S-12), never overwrite shared in place.
 - **Messaging:** `mailbox send/read/ack` for A↔B.
-- **Dependencies:** task `dependsOn[]` + `scope[]` + `waiting`/`blocked`/`question` statuses ALREADY EXIST
-  in agent-room (verified by smoke-test 2026-06-04). B's task `dependsOn` A's; B polls A's status each turn.
+- **Dependencies:** task `dependsOn[]` + `scope[]` + `waiting`/`blocked`/`question` statuses ALREADY EXIST in agent-room (verified by smoke-test 2026-06-04). B's task `dependsOn` A's; B polls A's status each turn.
   Nothing to add to the schema — only the POLL CONVENTION + the mandate are new.
-- **Reactivity:** `events.jsonl` = the feed; agents **poll at turn boundaries** — CLI agents are not live
-  sockets, so this is *semi*-real-time (turn-granular), not push.
-- **Mandate:** enforced by the AGENTS.md runtime-startup sequence (PKM-AI runtime-startup ADR, pending) —
-  without the mandate the substrate stays unused (today's failure).
-- **Cross-stream SHARED room (dev 2026-06-04):** room state lives at a SHARED root resolved via
-  `git rev-parse --git-common-dir` (all git worktrees of the repo share the common `.git`) → **ONE project
-  room across streams** (goal/stable/proto), not per-worktree. Configurable `roomStateRoot` (default =
-  common-dir; absolute path for separate clones / cross-machine). Agents tag `stream` + `worktree`.
-  Cross-stream scope-claims are ADVISORY awareness (files differ per branch); the shared coordination surface
-  = presence + mailbox + task `dependsOn` + `events.jsonl`. Builds in S2 (agent-room `--state-root` resolution
+- **Reactivity:** `events.jsonl` = the feed; agents **poll at turn boundaries** — CLI agents are not live sockets, so this is *semi*-real-time (turn-granular), not push.
+- **Mandate:** enforced by the AGENTS.md runtime-startup sequence (PKM-AI runtime-startup ADR, pending) — without the mandate the substrate stays unused (today's failure).
+- **Cross-stream SHARED room (dev 2026-06-04):** room state lives at a SHARED root resolved via `git rev-parse --git-common-dir` (all git worktrees of the repo share the common `.git`) → **ONE project room across streams** (goal/stable/proto), not per-worktree. Configurable `roomStateRoot` (default = common-dir; absolute path for separate clones / cross-machine). Agents tag `stream` + `worktree`.
+  Cross-stream scope-claims are ADVISORY awareness (files differ per branch); the shared coordination surface = presence + mailbox + task `dependsOn` + `events.jsonl`. Builds in S2 (agent-room `--state-root` resolution
   + atomic race-safe `ensure-run` join-or-create — no double-room on simultaneous starts).
 
 ## Consequences
 
 - Agents are mutually aware + non-colliding via leases/scopes; dependency waiting without a master agent.
 - Works with monthly-plan CLIs — no API keys, no live server, no proprietary orchestrator.
-- Cost: polling latency (turn-granular, not instant); requires the mandate + an agent-room smoke-test +
-  the `depends_on` addition.
+- Cost: polling latency (turn-granular, not instant); requires the mandate + an agent-room smoke-test + the `depends_on` addition.
 
 ## Alternatives considered
 

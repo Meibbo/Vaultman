@@ -61,16 +61,13 @@ Baseline from 2026-05-20:
 Target:
 
 - Tree p99 under `150 ms` in the same 50k Files matrix.
-- Tree max delay under `300 ms` unless a single outlier is explained by a
-  non-Tree Obsidian runtime event.
+- Tree max delay under `300 ms` unless a single outlier is explained by a non-Tree Obsidian runtime event.
 - Tree zero blank frames.
 - List remains zero blank frames and does not materially regress.
 
 If target is not reached:
 
-- The implementation may still be accepted only if the record includes timing
-  marks proving projection cost was removed and identifies the next top hotspot
-  with evidence.
+- The implementation may still be accepted only if the record includes timing marks proving projection cost was removed and identifies the next top hotspot with evidence.
 
 ## Required Tests
 
@@ -92,8 +89,7 @@ pnpm run build
 git diff --check
 ```
 
-Full `pnpm run verify` is recommended before commit if the touched surface
-exceeds the planned files or if component tests show timing-sensitive behavior.
+Full `pnpm run verify` is recommended before commit if the touched surface exceeds the planned files or if component tests show timing-sensitive behavior.
 
 ## Live Verification
 
@@ -124,7 +120,5 @@ After implementation:
 
 - update the V.D implementation record with commands and raw stress output;
 - update current status/handoff with a compact link only;
-- leave this spec as the source of expected behavior unless implementation
-  discovers a necessary contract change, in which case update the spec before
-  final handoff.
+- leave this spec as the source of expected behavior unless implementation discovers a necessary contract change, in which case update the spec before final handoff.
 

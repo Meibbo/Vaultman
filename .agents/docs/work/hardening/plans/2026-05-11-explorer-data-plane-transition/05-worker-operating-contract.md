@@ -16,23 +16,18 @@ updated_by: codex
 
 # EDP Worker Operating Contract
 
-This is the mandatory worker contract for the remaining Explorer data-plane
-parallel work.
+This is the mandatory worker contract for the remaining Explorer data-plane parallel work.
 
 ## Current Base
 
 - Canonical branch: `claude/explorer`.
-- Current integrated head: current `claude/explorer` head after
-  `merge: integrate edp-008 overlay projection`.
-- Completed on this branch: EDP-001, EDP-002, EDP-003, EDP-004, EDP-005,
-  EDP-006, EDP-007, EDP-008.
-- Do not work from the root `sandbox` worktree. Its Wave 3 edits are stale and
-  were superseded by `d110fe6`.
+- Current integrated head: current `claude/explorer` head after `merge: integrate edp-008 overlay projection`.
+- Completed on this branch: EDP-001, EDP-002, EDP-003, EDP-004, EDP-005, EDP-006, EDP-007, EDP-008.
+- Do not work from the root `sandbox` worktree. Its Wave 3 edits are stale and were superseded by `d110fe6`.
 
 ## Required Start Sequence
 
-Every implementation worker starts from the canonical branch and an isolated
-worktree:
+Every implementation worker starts from the canonical branch and an isolated worktree:
 
 ```powershell
 cd C:\Users\vic_A\Desktop\vaultman
@@ -42,9 +37,7 @@ pnpm install
 git status --short --branch
 ```
 
-Use the exact worktree and branch names listed for the assigned agent below
-unless the path already exists. If it exists, stop and report instead of
-reusing another worker's directory.
+Use the exact worktree and branch names listed for the assigned agent below unless the path already exists. If it exists, stop and report instead of reusing another worker's directory.
 
 ## Required Reading
 
@@ -61,19 +54,13 @@ Every worker reads, in order:
 
 ## Universal Worker Rules
 
-- Use TDD for behavior changes: add or extend a focused failing test, confirm
-  it fails for the intended reason, then implement the minimal fix.
-- Do not relax `test/unit/performance/stress.test.ts` or
-  `test/component/viewTableStress.test.ts` thresholds inside functional
-  slices.
+- Use TDD for behavior changes: add or extend a focused failing test, confirm it fails for the intended reason, then implement the minimal fix.
+- Do not relax `test/unit/performance/stress.test.ts` or `test/component/viewTableStress.test.ts` thresholds inside functional slices.
 - Do not push, merge, force-push, or rewrite history.
-- Do not edit another worker's owned files unless the dispatch index explicitly
-  allows it. If ownership is wrong or insufficient, stop and report.
+- Do not edit another worker's owned files unless the dispatch index explicitly allows it. If ownership is wrong or insufficient, stop and report.
 - Do not touch `sandbox` changes. Treat `claude/explorer` as the only base.
-- If a Svelte component or `.svelte.ts` module is changed, run the Svelte
-  autofixer and `pnpm run check`.
-- Keep docs detailed in source records; keep `current/status.md` and
-  `current/handoff.md` compact.
+- If a Svelte component or `.svelte.ts` module is changed, run the Svelte autofixer and `pnpm run check`.
+- Keep docs detailed in source records; keep `current/status.md` and `current/handoff.md` compact.
 - End each worker branch with a local commit after verification.
 
 ## Required Worker Handoff
@@ -91,8 +78,7 @@ Each worker final response must include:
 Each worker updates:
 
 - The assigned local issue with status, acceptance checklist, and verification.
-- `.agents/docs/current/status.md` and `.agents/docs/current/handoff.md` with a
-  compact route note only.
+- `.agents/docs/current/status.md` and `.agents/docs/current/handoff.md` with a compact route note only.
 
 ## Wave 2 - Agent D - EDP-005 Data-Plane Perf Gate
 
@@ -107,12 +93,10 @@ git worktree add .claude\worktrees\edp-005-perf -b codex/edp-005-perf claude/exp
 Owns:
 
 - `.agents/docs/work/hardening/issues/explorer-data-plane/005-files-data-plane-performance-gate.md`
-- Performance evidence records under `.agents/docs/work/hardening/research/`
-  or the active Explorer data-plane plan folder.
+- Performance evidence records under `.agents/docs/work/hardening/research/` or the active Explorer data-plane plan folder.
 - `src/dev/perfProbe.ts` only if new probe labels or counters are needed.
 - Focused perf harnesses or tests that measure the Files data-plane path.
-- Existing focused tests needed to prove queue/filter-only changes avoid
-  structural rebuilds.
+- Existing focused tests needed to prove queue/filter-only changes avoid structural rebuilds.
 
 Must not touch:
 
@@ -147,8 +131,7 @@ Unlocks: Wave 3.
 
 Starts only after Agent D is integrated into `claude/explorer`.
 
-Run a short coordinator first if shared type or helper ownership is still
-ambiguous. After the coordinator lands, E1 and E2 may work in parallel.
+Run a short coordinator first if shared type or helper ownership is still ambiguous. After the coordinator lands, E1 and E2 may work in parallel.
 
 ### Agent E0 - EDP-006 Shared Contract Coordinator
 
@@ -171,8 +154,7 @@ Must not:
 - Implement Props provider migration.
 - Change panel/view behavior.
 
-Done when E1 and E2 can implement without both editing shared data-plane
-contracts.
+Done when E1 and E2 can implement without both editing shared data-plane contracts.
 
 ### Agent E1 - EDP-006 Tags Snapshot Adapter
 
@@ -195,8 +177,7 @@ Must not touch:
 - `src/components/containers/explorerProps.ts`
 - shared data-plane contracts unless E0 has not run and the agent stops first.
 
-Done when Tags snapshots cover ids, parent links, visible order, search mode,
-sorting, casing behavior, and existing filter/queue/context actions.
+Done when Tags snapshots cover ids, parent links, visible order, search mode, sorting, casing behavior, and existing filter/queue/context actions.
 
 ### Agent E2 - EDP-006 Props Snapshot Adapter
 
@@ -219,11 +200,9 @@ Must not touch:
 - `src/components/containers/explorerTags.ts`
 - shared data-plane contracts unless E0 has not run and the agent stops first.
 
-Done when Props snapshots cover ids, parent links, visible order, property/value
-scope, object values, value removal, and existing FnR/queue/context actions.
+Done when Props snapshots cover ids, parent links, visible order, property/value scope, object values, value removal, and existing FnR/queue/context actions.
 
-Wave 3 merge rule: integrate E1 and E2 only after both focused suites pass
-against the same E0 base.
+Wave 3 merge rule: integrate E1 and E2 only after both focused suites pass against the same E0 base.
 
 ## Wave 4 - Agent F - EDP-008 Overlay Projection
 
@@ -241,19 +220,16 @@ Owns:
 - `src/badges/serviceBadge.ts`
 - `src/services/badgeRegistry.ts`
 - `src/services/serviceQueuePresentation.ts`
-- `src/components/containers/explorerActiveFilters.svelte` or related active
-  filter presentation only if wiring is required
+- `src/components/containers/explorerActiveFilters.svelte` or related active filter presentation only if wiring is required
 - focused overlay, badge, queue popup, and active-filter tests
 
 Must not touch:
 
-- Tags/Props snapshot adapter internals except for consuming their public row
-  contract.
+- Tags/Props snapshot adapter internals except for consuming their public row contract.
 - Row adapter migrations.
 - Selection mirror cleanup.
 
-Done when queue/filter projection is pure, tested outside Svelte components,
-and still outputs the `ViewLayers` vocabulary used by existing badge logic.
+Done when queue/filter projection is pure, tested outside Svelte components, and still outputs the `ViewLayers` vocabulary used by existing badge logic.
 
 ## Wave 5 - Adapter Row Contract
 
@@ -269,8 +245,7 @@ Worktree and branch:
 git worktree add .claude\worktrees\edp-009-row-contract -b codex/edp-009-row-contract claude/explorer
 ```
 
-Owns shared row-input types/helpers and a short source-record decision. Must
-not migrate view components.
+Owns shared row-input types/helpers and a short source-record decision. Must not migrate view components.
 
 ### Agent G1 - Tree/Grid Row Contract
 
@@ -308,8 +283,7 @@ Must preserve existing Polish table/card behavior.
 
 ### Agent G3 - SVAR Removal
 
-SVAR compatibility bridge work is superseded. SVAR is no longer needed and
-should be removed after row-contract finalization, including package imports.
+SVAR compatibility bridge work is superseded. SVAR is no longer needed and should be removed after row-contract finalization, including package imports.
 Do not preserve SVAR as a compatibility adapter.
 
 Worktree and branch:
@@ -318,9 +292,7 @@ Worktree and branch:
 git worktree add .claude\worktrees\edp-009-svar -b codex/edp-009-svar claude/explorer
 ```
 
-Owns removal of `src/components/views/ViewSvarFileManager.svelte`, references
-to SVAR view mode/routes, and related package imports if G0/G1/G2 leave that
-cleanup to a separate worker.
+Owns removal of `src/components/views/ViewSvarFileManager.svelte`, references to SVAR view mode/routes, and related package imports if G0/G1/G2 leave that cleanup to a separate worker.
 
 ## Wave 6 - Agent H - EDP-010 Selection Mirror Cleanup
 
@@ -340,8 +312,7 @@ Owns:
 - selection compatibility tests
 - adapter compatibility tests touched by the cleanup
 
-Must not remove legacy layer output needed by remaining adapters. Done when
-tests prove no divergence from `NodeSelectionService`.
+Must not remove legacy layer output needed by remaining adapters. Done when tests prove no divergence from `NodeSelectionService`.
 
 ## Final Stabilization Agent
 
@@ -353,7 +324,4 @@ Worktree and branch:
 git worktree add .claude\worktrees\edp-final-stabilization -b codex/edp-final-stabilization claude/explorer
 ```
 
-Owns full-suite verification, performance residual diagnosis, and live Obsidian
-smoke against `plugin-dev`. This is the only slice allowed to decide what to do
-with the known full-suite performance threshold residuals, and it still must
-not weaken thresholds without a documented decision.
+Owns full-suite verification, performance residual diagnosis, and live Obsidian smoke against `plugin-dev`. This is the only slice allowed to decide what to do with the known full-suite performance threshold residuals, and it still must not weaken thresholds without a documented decision.

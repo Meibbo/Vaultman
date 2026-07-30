@@ -17,18 +17,14 @@ tags:
 # Feature Request Architecture Fit — 2026-05-28
 
 Feature-request intake against the locked architecture after the 2026-05-25→28 foundation wave.
-This is NOT a spec and creates no implementation greenlight. It classifies each request by axis,
-locked-decision fit, conflict risk, S-8 reconstruction impact, roadmap tier, dev-blocked decisions,
-and research queues.
+This is NOT a spec and creates no implementation greenlight. It classifies each request by axis, locked-decision fit, conflict risk, S-8 reconstruction impact, roadmap tier, dev-blocked decisions, and research queues.
 
-Authoritative locks used: ADRs 0001–0009, explorer-model shards 01–04, operational-watch-list,
-version-streams, decision-ledger/changelog, open-inventory, roadmap-dispatch.
+Authoritative locks used: ADRs 0001–0009, explorer-model shards 01–04, operational-watch-list, version-streams, decision-ledger/changelog, open-inventory, roadmap-dispatch.
 
 ## Publish Discipline Resolution
 
 The dev clarified that the newer `version-streams` discipline is authoritative:
-`main = stable`, `dev = beta/nightly`, `sandbox = canary`. Older publish/ADR text that said
-`sandbox = beta` is superseded and must not guide future publish work.
+`main = stable`, `dev = beta/nightly`, `sandbox = canary`. Older publish/ADR text that said `sandbox = beta` is superseded and must not guide future publish work.
 
 ## Intake Matrix
 
@@ -47,10 +43,8 @@ The dev clarified that the newer `version-streams` discipline is authoritative:
 
 ## Recommended Architecture Stance
 
-- External engine API and external provider/index API are two different public surfaces. Keep them
-  separate: engines render projections; providers construct nodes/cells/snapshots.
-- For user-facing copy, "button" is fine. Internally, keep `ActionNode` as the contract term so
-  actions remain bindable/renderable across menus, bars, FABs, gestures, and shortcuts.
+- External engine API and external provider/index API are two different public surfaces. Keep them separate: engines render projections; providers construct nodes/cells/snapshots.
+- For user-facing copy, "button" is fine. Internally, keep `ActionNode` as the contract term so actions remain bindable/renderable across menus, bars, FABs, gestures, and shortcuts.
 - Gesture vocabulary should be normalized before implementation:
   - drag = continuous pointer movement with payload or element displacement.
   - swipe = short, velocity/threshold-based directional gesture.
@@ -59,8 +53,7 @@ The dev clarified that the newer `version-streams` discipline is authoritative:
   - long-press = time threshold before activation or mode switch.
 - Outline graph belongs under Canvas unless research proves graph controls need a separate runtime.
 - Charts should be named `Charts` or `DataViz`, not `Graph`, to avoid collision with Canvas graph mode.
-- ContainerNode is already a kind. Manual group, serviceGroup, FilterGroup, and future scene/layout
-  containers are producers/usages of ContainerNodes.
+- ContainerNode is already a kind. Manual group, serviceGroup, FilterGroup, and future scene/layout containers are producers/usages of ContainerNodes.
 
 ## Roadmap Tier Summary
 
@@ -95,11 +88,8 @@ Continuation shards:
 ## Queued Research
 
 Compact rows live in [[docs/architecture/research-inventory|research-inventory]]:
-R-API-ENGINE, R-REMOTE-PROVIDER, R-GESTURES, R-ONBOARDING, R-AGENT-WRITE, R-GRAPH,
-R-CHARTS, R-CALLOUT-MANAGER, and R-PROPERTIES-PARITY.
+R-API-ENGINE, R-REMOTE-PROVIDER, R-GESTURES, R-ONBOARDING, R-AGENT-WRITE, R-GRAPH, R-CHARTS, R-CALLOUT-MANAGER, and R-PROPERTIES-PARITY.
 
 ## Status
 
-Captured as a grill/brainstorm intake. No per-subsystem specs created. Next move: dev answers the
-blocked decisions only where a request is needed before the reconstruction wave starts; otherwise fold
-small clean items into the existing NOW/NEXT spine.
+Captured as a grill/brainstorm intake. No per-subsystem specs created. Next move: dev answers the blocked decisions only where a request is needed before the reconstruction wave starts; otherwise fold small clean items into the existing NOW/NEXT spine.

@@ -45,8 +45,7 @@ Verification:
 pnpm exec vp test run --project unit --config vitest.config.ts test/unit/services/serviceMouse.test.ts --fileParallelism=false
 ```
 
-Expected: clicking inside a Bits menu item returns `ignored`; normal node row
-click still resolves primary/secondary/tertiary gestures.
+Expected: clicking inside a Bits menu item returns `ignored`; normal node row click still resolves primary/secondary/tertiary gestures.
 
 ## Task D2: i18n Attribute Bridge
 
@@ -103,5 +102,4 @@ pnpm exec vp test run --project unit --config vitest.config.ts test/unit/service
 pnpm run check
 ```
 
-Expected: bridge returns translated `aria-label`, `title`, and `placeholder`
-without forcing components to import translation keys repeatedly.
+Expected: bridge returns translated `aria-label`, `title`, and `placeholder` without forcing components to import translation keys repeatedly.

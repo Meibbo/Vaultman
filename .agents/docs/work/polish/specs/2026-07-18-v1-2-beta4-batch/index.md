@@ -18,10 +18,7 @@ Beta.3 = commits `03fe92bc..7ba6a3c9` (codex) sobre beta.2 `5e5fa1df`.
 Worktree: `C:/tmp/vaultman-release-beta2-final2`; rama nueva `v12/bt4`.
 Issue-set: [[docs/work/polish/issues/bt4-beta4-batch/index|BT4-001..013]].
 
-**Regresiones se resuelven con el skill `vm-regression-resolver`** (oráculo =
-beta.2 `5e5fa1df`; commits granulares de beta.3 permiten bisect). Vaults de
-inspección del dev via obsidian-cli: `start of the road` (beta.2 activa) y
-`plugin-dev` (beta.3).
+**Regresiones se resuelven con el skill `vm-regression-resolver`** (oráculo = beta.2 `5e5fa1df`; commits granulares de beta.3 permiten bisect). Vaults de inspección del dev via obsidian-cli: `start of the road` (beta.2 activa) y `plugin-dev` (beta.3).
 
 ## Decisiones locked (grill 2026-07-18)
 
@@ -67,12 +64,10 @@ inspección del dev via obsidian-cli: `start of the road` (beta.2 activa) y
 
 ## §UX — Niagara tap vs scrub (crítica adversarial, D25)
 
-Propuesta dev: timer 0.8s. Contra-propuesta (estándar de plataforma): 800ms se
-siente roto (long-press estándar = 400-500ms iOS/Android). Diseño intent-based:
+Propuesta dev: timer 0.8s. Contra-propuesta (estándar de plataforma): 800ms se siente roto (long-press estándar = 400-500ms iOS/Android). Diseño intent-based:
 
 - pointer-down en rail: nada visible.
-- **Scrub/deformación** arranca si: press sostenido ≥ ~450ms **O** movimiento
-  vertical > ~8px con el pointer abajo (intención de arrastre).
+- **Scrub/deformación** arranca si: press sostenido ≥ ~450ms **O** movimiento vertical > ~8px con el pointer abajo (intención de arrastre).
 - **Tap** (< 450ms y < 8px): jump al nodo, rail estático.
 - pointer-leave/cancel resetea. Umbrales como constantes ajustables (HITL dev).
 
@@ -116,28 +111,16 @@ flowchart TB
   N10 -. VaultmanSettings .-> N13
 ```
 
-Orden recomendado: BT4-002 (hang = bloqueante de uso) → 001 → 003 → 008 →
-004/006/007 (addons) → 005 → 009 → 011 → 010 → 012 → 013. 001/009 comparten
-`navbarFilters.svelte` — serial entre sí.
+Orden recomendado: BT4-002 (hang = bloqueante de uso) → 001 → 003 → 008 → 004/006/007 (addons) → 005 → 009 → 011 → 010 → 012 → 013. 001/009 comparten `navbarFilters.svelte` — serial entre sí.
 
 ## Gates
 
-Policy sin cambio: RED/GREEN focal · check 0/0 · autofixer `issues:[]` en `.svelte`
-tocados · lint/stylelint · build · full unit al integrar · scorecard. Testing
-visual/UI/Obsidian/mobile delistado para agentes (dev valida). Two-commit
-código/docs; `.agents` jamás en pushes. Regresiones: cita `COMMIT_BUENO`/`COMMIT_MALO`
-en el commit fix (protocolo del skill).
+Policy sin cambio: RED/GREEN focal · check 0/0 · autofixer `issues:[]` en `.svelte` tocados · lint/stylelint · build · full unit al integrar · scorecard. Testing visual/UI/Obsidian/mobile delistado para agentes (dev valida). Two-commit código/docs; `.agents` jamás en pushes. Regresiones: cita `COMMIT_BUENO`/`COMMIT_MALO` en el commit fix (protocolo del skill).
 
 ## Adversarial pass (C2)
 
-- BT4-002: fix superficial (quitar listener) puede matar refresh legítimo de iconos —
-  el fix debe conservar re-render por cambio de Iconic SIN loop (memo/equality gate).
-- BT4-009 explota combinaciones (nested × folders-first × fixed-folders × drill ×
-  all-levels × inline/submenu × index-drill-sync): shard 01 trae matriz; tests deben
-  cubrir la matriz, no casos sueltos.
-- BT4-008: limitar a `.md` cambia semántica para vaults con `.canvas`/`.base` — se
-  documenta como decisión (D28) y el seam queda extensible por extensión-allowlist.
-- BT4-013 introduce persistencia de orden de menú: shape debe sobrevivir a opciones
-  nuevas futuras (merge por id, no por índice).
-- No cubierto: BT3-010 research rainbow (sigue pendiente, no entra en beta.4 salvo
-  pedido) · reorder de cells por usuario (D27 lo excluye) · popupView parity (D20).
+- BT4-002: fix superficial (quitar listener) puede matar refresh legítimo de iconos — el fix debe conservar re-render por cambio de Iconic SIN loop (memo/equality gate).
+- BT4-009 explota combinaciones (nested × folders-first × fixed-folders × drill × all-levels × inline/submenu × index-drill-sync): shard 01 trae matriz; tests deben cubrir la matriz, no casos sueltos.
+- BT4-008: limitar a `.md` cambia semántica para vaults con `.canvas`/`.base` — se documenta como decisión (D28) y el seam queda extensible por extensión-allowlist.
+- BT4-013 introduce persistencia de orden de menú: shape debe sobrevivir a opciones nuevas futuras (merge por id, no por índice).
+- No cubierto: BT3-010 research rainbow (sigue pendiente, no entra en beta.4 salvo pedido) · reorder de cells por usuario (D27 lo excluye) · popupView parity (D20).

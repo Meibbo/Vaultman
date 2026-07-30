@@ -14,8 +14,7 @@ tags:
 
 ## Skill Principle
 
-Skills should be small and composable. A project skill should route to docs or
-scripts instead of copying all project knowledge into `SKILL.md`.
+Skills should be small and composable. A project skill should route to docs or scripts instead of copying all project knowledge into `SKILL.md`.
 
 Current project skills:
 
@@ -26,9 +25,7 @@ Current project skills:
 
 ## Duplicate Skills
 
-Health checks should detect overlapping skills. Consolidation should preserve
-functionality by referencing, renaming, or archiving. Do not delete useful
-behavior silently.
+Health checks should detect overlapping skills. Consolidation should preserve functionality by referencing, renaming, or archiving. Do not delete useful behavior silently.
 
 ## Subagents
 
@@ -40,6 +37,5 @@ Use subagents for independent tasks only. The main agent remains coordinator.
 
 ## Hooks
 
-Hooks are explicit scripts/checks invoked by modes or verification. They are not
-hidden per-message automation. Expensive hooks run on demand or in `health:`.
+Hooks are explicit scripts/checks invoked by modes or verification. They are not hidden per-message automation. Expensive hooks run on demand or in `health:`.
 

@@ -15,13 +15,9 @@ tags:
 
 # Decision Graph
 
-Cross-reference map of architecture decisions: ADRs (Accepted), their dependencies, and any
-supersessions. Per
-[[docs/architecture/agent-memory-routing-best-practices|agent-memory-routing-best-practices]] (P1 seed)
-— prevents re-litigating settled decisions; clarifies the chain.
+Cross-reference map of architecture decisions: ADRs (Accepted), their dependencies, and any supersessions. Per [[docs/architecture/agent-memory-routing-best-practices|agent-memory-routing-best-practices]] (P1 seed) — prevents re-litigating settled decisions; clarifies the chain.
 
-Sub-decisions (changes that didn't warrant a new ADR) live in
-[[docs/work/hardening/research/2026-05-25-architecture-foundation-discovery/decision-changelog|decision-changelog]].
+Sub-decisions (changes that didn't warrant a new ADR) live in [[docs/work/hardening/research/2026-05-25-architecture-foundation-discovery/decision-changelog|decision-changelog]].
 
 ## ADRs (current state)
 
@@ -72,27 +68,20 @@ flowchart TD
 
 ## Supersessions (within the ADR set)
 
-ADR 0006 is superseded as active publish guidance by
-[[docs/work/hardening/research/2026-05-27-version-streams-distillation/index|version-streams]]:
-`main=stable`, `dev=beta/nightly`, `sandbox=canary`. The ADR remains the historical predecessor for
-the stable-user-protection principle; current branch/channel mechanics belong to `version-streams` +
-the `publish` initiative.
+ADR 0006 is superseded as active publish guidance by [[docs/work/hardening/research/2026-05-27-version-streams-distillation/index|version-streams]]:
+`main=stable`, `dev=beta/nightly`, `sandbox=canary`. The ADR remains the historical predecessor for the stable-user-protection principle; current branch/channel mechanics belong to `version-streams` + the `publish` initiative.
 
 ## Sub-decision pointers
 
 Routine refinements (not ADR-worthy) tracked elsewhere:
-- [[docs/work/hardening/research/2026-05-25-architecture-foundation-discovery/decision-changelog|decision-changelog]]
-  — chronological supersession trail (FilterGroup vs serviceGroup · proto stream direction · Bases OUT
-  shape · Bases interop strategy).
-- [[docs/work/hardening/research/2026-05-25-architecture-foundation-discovery/decision-ledger|decision-ledger]]
-  — current locked state across all axes.
+- [[docs/work/hardening/research/2026-05-25-architecture-foundation-discovery/decision-changelog|decision-changelog]] — chronological supersession trail (FilterGroup vs serviceGroup · proto stream direction · Bases OUT shape · Bases interop strategy).
+- [[docs/work/hardening/research/2026-05-25-architecture-foundation-discovery/decision-ledger|decision-ledger]] — current locked state across all axes.
 - [[docs/architecture/pending-decisions|pending-decisions]] — dev-blocked decisions (S-1..S-11+).
 
 ## Process
 
 - When a new ADR is Accepted: add a row + a `flowchart` node + edges to its dependencies.
-- When an ADR is superseded: change status to Superseded; add the superseding ADR; draw the supersession
-  edge.
+- When an ADR is superseded: change status to Superseded; add the superseding ADR; draw the supersession edge.
 - Keep the graph minimal — link to the ADRs for full prose; don't restate decision content here.
 
 ## Status

@@ -12,9 +12,7 @@ tags:
 
 # Phase 3 — Service Core
 
-Four tasks expand `ThemeService` with preset state, derived reads,
-writes, and hydrate handling. Each task adds one logical chunk; runtime
-`<style>` injection lands in Phase 4.
+Four tasks expand `ThemeService` with preset state, derived reads, writes, and hydrate handling. Each task adds one logical chunk; runtime `<style>` injection lands in Phase 4.
 
 ## Task 5 — Add preset registry state + `activePreset` + `availablePresets` getters
 
@@ -69,9 +67,7 @@ describe('ThemeService preset registry — state + activePreset', () => {
 
 - [ ] **Step 2: Run tests — expect FAIL**
 
-Run: `pnpm exec vitest run --project unit --config vitest.config.ts test/unit/services/serviceThemeRunes.test.ts`
-Expected: FAIL — `activePresetId`, `activePreset`, `availablePresets`,
-`customPresets` undefined on ThemeService.
+Run: `pnpm exec vitest run --project unit --config vitest.config.ts test/unit/services/serviceThemeRunes.test.ts` Expected: FAIL — `activePresetId`, `activePreset`, `availablePresets`, `customPresets` undefined on ThemeService.
 
 - [ ] **Step 3: Modify `src/services/serviceTheme.svelte.ts`**
 
@@ -155,13 +151,11 @@ export class ThemeService {
 
 - [ ] **Step 4: Run tests — expect PASS**
 
-Run: `pnpm exec vitest run --project unit --config vitest.config.ts test/unit/services/serviceThemeRunes.test.ts`
-Expected: PASS — new tests green, existing tests still green.
+Run: `pnpm exec vitest run --project unit --config vitest.config.ts test/unit/services/serviceThemeRunes.test.ts` Expected: PASS — new tests green, existing tests still green.
 
 - [ ] **Step 5: `pnpm check`**
 
-Run: `pnpm check`
-Expected: 0 errors.
+Run: `pnpm check` Expected: 0 errors.
 
 - [ ] **Step 6: Commit**
 
@@ -245,14 +239,11 @@ describe('ThemeService useNativeDom + rootClasses derive from preset', () => {
 
 - [ ] **Step 2: Run tests — expect FAIL**
 
-Run: `pnpm exec vitest run --project unit --config vitest.config.ts test/unit/services/serviceThemeRunes.test.ts`
-Expected: FAIL — `useNativeDom` returns wrong value, `rootClasses`
-missing `vm-theme-*` element.
+Run: `pnpm exec vitest run --project unit --config vitest.config.ts test/unit/services/serviceThemeRunes.test.ts` Expected: FAIL — `useNativeDom` returns wrong value, `rootClasses` missing `vm-theme-*` element.
 
 - [ ] **Step 3: Replace `useNativeDom` and `rootClasses` getters and add `#cssEscape`**
 
-In `src/services/serviceTheme.svelte.ts`, replace the existing
-`useNativeDom` and `rootClasses` getters and add the private helper:
+In `src/services/serviceTheme.svelte.ts`, replace the existing `useNativeDom` and `rootClasses` getters and add the private helper:
 
 ```typescript
   get useNativeDom(): boolean {
@@ -279,20 +270,14 @@ In `src/services/serviceTheme.svelte.ts`, replace the existing
 
 - [ ] **Step 4: Run tests — expect PASS**
 
-Run: `pnpm exec vitest run --project unit --config vitest.config.ts test/unit/services/serviceThemeRunes.test.ts`
-Expected: PASS — including legacy tests of `useUtilities`, `faintActive`,
-mode/identity-driven `rootClasses` checks (the latter must already
-include the new vm-theme element).
+Run: `pnpm exec vitest run --project unit --config vitest.config.ts test/unit/services/serviceThemeRunes.test.ts` Expected: PASS — including legacy tests of `useUtilities`, `faintActive`, mode/identity-driven `rootClasses` checks (the latter must already include the new vm-theme element).
 
-If a legacy test fails because it asserted the exact length of
-`rootClasses` or absence of a `vm-theme-*` element, update it: those
-tests asserted pre-0-B behavior that the spec is intentionally changing.
+If a legacy test fails because it asserted the exact length of `rootClasses` or absence of a `vm-theme-*` element, update it: those tests asserted pre-0-B behavior that the spec is intentionally changing.
 Note this in the commit message.
 
 - [ ] **Step 5: `pnpm check`**
 
-Run: `pnpm check`
-Expected: 0 errors.
+Run: `pnpm check` Expected: 0 errors.
 
 - [ ] **Step 6: Commit**
 
@@ -420,9 +405,7 @@ describe('ThemeService writes', () => {
 
 - [ ] **Step 2: Run tests — expect FAIL**
 
-Run: `pnpm exec vitest run --project unit --config vitest.config.ts test/unit/services/serviceThemeRunes.test.ts`
-Expected: FAIL — `setPreset`/`registerCustomPreset`/`unregisterCustomPreset`/
-`updateCustomPreset` undefined.
+Run: `pnpm exec vitest run --project unit --config vitest.config.ts test/unit/services/serviceThemeRunes.test.ts` Expected: FAIL — `setPreset`/`registerCustomPreset`/`unregisterCustomPreset`/ `updateCustomPreset` undefined.
 
 - [ ] **Step 3: Add write methods to `src/services/serviceTheme.svelte.ts`**
 
@@ -463,18 +446,15 @@ Inside the `ThemeService` class, add (above `hydrate`):
   }
 ```
 
-Also import `PRESET_NATIVE` in the test file if not already (already
-imported in T5 step 1).
+Also import `PRESET_NATIVE` in the test file if not already (already imported in T5 step 1).
 
 - [ ] **Step 4: Run tests — expect PASS**
 
-Run: `pnpm exec vitest run --project unit --config vitest.config.ts test/unit/services/serviceThemeRunes.test.ts`
-Expected: PASS — all new tests green.
+Run: `pnpm exec vitest run --project unit --config vitest.config.ts test/unit/services/serviceThemeRunes.test.ts` Expected: PASS — all new tests green.
 
 - [ ] **Step 5: `pnpm check`**
 
-Run: `pnpm check`
-Expected: 0 errors.
+Run: `pnpm check` Expected: 0 errors.
 
 - [ ] **Step 6: Commit**
 
@@ -549,14 +529,11 @@ describe('ThemeService.hydrate', () => {
 });
 ```
 
-Note: the "filters invalid customPresets" test relies on hydrate
-calling `normalizeCustomPreset` over each entry. Confirmed in next
-step.
+Note: the "filters invalid customPresets" test relies on hydrate calling `normalizeCustomPreset` over each entry. Confirmed in next step.
 
 - [ ] **Step 2: Run tests — expect FAIL**
 
-Run: `pnpm exec vitest run --project unit --config vitest.config.ts test/unit/services/serviceThemeRunes.test.ts`
-Expected: FAIL — themePresetId/customPresets not read by hydrate.
+Run: `pnpm exec vitest run --project unit --config vitest.config.ts test/unit/services/serviceThemeRunes.test.ts` Expected: FAIL — themePresetId/customPresets not read by hydrate.
 
 - [ ] **Step 3: Update `hydrate` in `src/services/serviceTheme.svelte.ts`**
 
@@ -585,13 +562,11 @@ import { normalizeCustomPreset } from '../types/typeThemePreset';
 
 - [ ] **Step 4: Run tests — expect PASS**
 
-Run: `pnpm exec vitest run --project unit --config vitest.config.ts test/unit/services/serviceThemeRunes.test.ts`
-Expected: PASS — all hydrate tests green; existing tests still green.
+Run: `pnpm exec vitest run --project unit --config vitest.config.ts test/unit/services/serviceThemeRunes.test.ts` Expected: PASS — all hydrate tests green; existing tests still green.
 
 - [ ] **Step 5: `pnpm check`**
 
-Run: `pnpm check`
-Expected: 0 errors.
+Run: `pnpm check` Expected: 0 errors.
 
 - [ ] **Step 6: Commit**
 
@@ -610,5 +585,4 @@ EOF
 )"
 ```
 
-When Phase 3 is complete, proceed to
-[[docs/work/hardening/plans/2026-05-15-explorer-0-b-servicetheme-token-layer/phase-4-runtime-injection|Phase 4]].
+When Phase 3 is complete, proceed to [[docs/work/hardening/plans/2026-05-15-explorer-0-b-servicetheme-token-layer/phase-4-runtime-injection|Phase 4]].

@@ -21,8 +21,7 @@ Write scope:
 - test snapshots only if approved by test failures;
 - current docs update if the implementation is complete.
 
-Do not refactor production code in this phase unless verification reveals a
-root-cause bug and the coordinator approves a targeted fix.
+Do not refactor production code in this phase unless verification reveals a root-cause bug and the coordinator approves a targeted fix.
 
 ## Focused Commands
 
@@ -51,8 +50,7 @@ pnpm run lint
 pnpm run build
 ```
 
-If `pnpm run build` hits the known transient Svelte resolver issue, rerun once
-sequentially and record both outcomes.
+If `pnpm run build` hits the known transient Svelte resolver issue, rerun once sequentially and record both outcomes.
 
 ## Manual Smoke Checklist
 
@@ -60,8 +58,7 @@ In Obsidian or the available component harness:
 
 - tree file node chevron expands/collapses without changing selection;
 - file label primary action still works;
-- prop, value, and tag primary actions still route to filter/FnR/add behavior
-  according to mode;
+- prop, value, and tag primary actions still route to filter/FnR/add behavior according to mode;
 - plain row click selects only that node;
 - Control/Command click toggles one node;
 - Shift click selects a range;
@@ -77,9 +74,6 @@ In Obsidian or the available component harness:
 
 When verification passes:
 
-- update [[docs/current/status|current status]] with completed phases and
-  verification commands;
-- update [[docs/current/handoff|current handoff]] with changed files, known
-  residuals, and next recommended slice;
-- optionally commit docs and code if the user still wants commits enabled for
-  this task.
+- update [[docs/current/status|current status]] with completed phases and verification commands;
+- update [[docs/current/handoff|current handoff]] with changed files, known residuals, and next recommended slice;
+- optionally commit docs and code if the user still wants commits enabled for this task.

@@ -9,12 +9,9 @@ updated: 2026-05-19T00:00:00
 
 # Release Pipeline v1.2.0 → v2.0.0
 
-Per-version: tema, scope sub-systems, shippable criterion (qué debe cumplirse para release),
-SemVer rationale, blockers, R.D actions específicas.
+Per-version: tema, scope sub-systems, shippable criterion (qué debe cumplirse para release), SemVer rationale, blockers, R.D actions específicas.
 
-`v1.1.0` ya fue usado como release catch-up de main el 2026-05-20. Ese release no pertenece al
-feature pipeline del umbrella; ver
-[[docs/work/hardening/plans/2026-05-20-release-1-1-0-catch-up|Release 1.1.0 catch-up]].
+`v1.1.0` ya fue usado como release catch-up de main el 2026-05-20. Ese release no pertenece al feature pipeline del umbrella; ver [[docs/work/hardening/plans/2026-05-20-release-1-1-0-catch-up|Release 1.1.0 catch-up]].
 
 ## v1.2.0 — Explorer Hardening + sticky-parents
 
@@ -30,8 +27,7 @@ feature pipeline del umbrella; ver
 **Shippable criterion**:
 - Caret click funciona en tree (placeholder div en `viewTree.svelte:974-978` resuelto)
 - Keyboard nav (Arrows/Home/End/PageUp/Down/Enter/Space/typeahead) funciona en TODOS los views
-- Selection contract unified `(id, MouseEvent)` en TODOS los mount-contexts (ViewNodeList sin
-  contract divergente `(row, SelectModifiers)`)
+- Selection contract unified `(id, MouseEvent)` en TODOS los mount-contexts (ViewNodeList sin contract divergente `(row, SelectModifiers)`)
 - Expand/collapse all funciona en tree + grid + cualquier view que exponga hasExpansionSurface
 - Context menu funciona en TODOS los views con standard 10-item set
 - Tree scroll sin blank frames (triple-write race en `viewTree.svelte:420-441` resuelto)
@@ -129,8 +125,7 @@ feature pipeline del umbrella; ver
 **Shippable criterion**:
 - ViewNodeList renderea como Nautilus tiles (horizontal icon + multi-meta)
 - ViewNodeGrid renderea como Nautilus icons (Adwaita SVG + per-folder semantic colors)
-- viewGrid rich rows-only mode toggle funcional (decidir en spec si es view variant interna
-  o view mode separado)
+- viewGrid rich rows-only mode toggle funcional (decidir en spec si es view variant interna o view mode separado)
 - Adwata SVG folder + file primitives (parametric, no Theme Builder UI todavía)
 - `detectKind(name)` utility
 - Performance gates preserved
@@ -238,8 +233,7 @@ feature pipeline del umbrella; ver
 
 **Shippable criterion**:
 - Property addressing migrated `prop:area → prop.note.area` (BREAKING)
-- DOM vocab emits `bases-tr`, `bases-table-cell`, `bases-td`, `bases-cards-item`,
-  `bases-cards-property mod-title`, `bases-cards-cover` cuando `useNativeDom === true`
+- DOM vocab emits `bases-tr`, `bases-table-cell`, `bases-td`, `bases-cards-item`, `bases-cards-property mod-title`, `bases-cards-cover` cuando `useNativeDom === true`
 - `data-property="note.X"` attribute convention applied
 - `registerBasesView()` para viewTable funcional (inherit Bases pipeline)
 - viewTable rewrite completa (Bases vocab + cell semantics)
@@ -282,9 +276,7 @@ Antes de cada release:
 - [ ] Live `plugin-dev` smoke: `obsidian vault=plugin-dev dev:errors` returns "No errors captured"
 - [ ] Push `sandbox → origin/sandbox` before opening release branch/PR if sandbox is the source
 - [ ] Tag `X.Y.Z` — **NO prefijo `v`** (Obsidian exige tag == manifest.json version exacto). No `--no-gpg-sign` unless explicit
-- [ ] Merge to main: release-please release-PR como ÚNICO PR que toca main + `dorny/paths-filter`
-      guard Action que FALLA el PR si toca `.agents/**`/`CLAUDE.md`/`AGENTS.md`/`.claude/**`
-      (mecánico, no procedural) per AGENTS.md "main = 0 AI files"
+- [ ] Merge to main: release-please release-PR como ÚNICO PR que toca main + `dorny/paths-filter` guard Action que FALLA el PR si toca `.agents/**`/`CLAUDE.md`/`AGENTS.md`/`.claude/**` (mecánico, no procedural) per AGENTS.md "main = 0 AI files"
 - [ ] GitHub Release published con notes copy-paste desde CHANGELOG section
 - [ ] Obsidian community plugin update (manifest.json reachable on main)
 
@@ -306,29 +298,15 @@ Antes de cada release:
 
 ### Manifest sync
 
-- manifest.json `id`, `name`, `version`, `minAppVersion`, `description`, `author`, `isDesktopOnly`
-  deben coincidir con package.json en cada release
+- manifest.json `id`, `name`, `version`, `minAppVersion`, `description`, `author`, `isDesktopOnly` deben coincidir con package.json en cada release
 - versions.json mantiene historial completo para Obsidian community plugin distribution
 
 ### Tooling (research 2026-05-19)
 
-- **release-please** (installed on `main` 2026-05-20; `googleapis/release-please-action`, `release-type: node`,
-  `extra-files: [manifest.json, versions.json]`, tag format `${version}` sin `v`): genera
-  release-PR reviewable que consolida commits en changelog Conventional-Commits-grouped.
+- **release-please** (installed on `main` 2026-05-20; `googleapis/release-please-action`, `release-type: node`, `extra-files: [manifest.json, versions.json]`, tag format `${version}` sin `v`): genera release-PR reviewable que consolida commits en changelog Conventional-Commits-grouped.
   Mejor que semantic-release para multi-subsystem porque el PR es amendable antes del tag.
-- **Conventional Commits** baked en executing-plans output template (`feat:` / `fix:` /
-  `feat!:`) → semver bump determinístico.
-- **`dorny/paths-filter`** guard Action: enforcement mecánico de "main = 0 AI files"
-  (falla PR a main si toca `.agents/**`/`CLAUDE.md`/`AGENTS.md`/`.claude/**`).
-- **`anthropics/claude-code-action@v1`** como neutral PR reviewer (Sonnet 4.6 default,
-  Opus 4.7 para large-codebase reasoning): postea severity, NO auto-bloquea. Auto-merge
-  matrix = CI green + severity ≤ low + ≥1 human approval.
-- **Anti-drift gates** (ver T.G): AgentAssay-style statistical gates (N=5 runs + Wilson CI +
-  Fisher exact) + CUSUM drift detection entre iteraciones. Ataca **intent-drift** (behavior
-  diverge del spec sin fallar un test) — la causa raíz de "tests no previenen regresiones".
-- Refs: [release-please](https://github.com/googleapis/release-please) ·
-  [paths-filter](https://github.com/dorny/paths-filter) ·
-  [claude-code-action](https://github.com/anthropics/claude-code-action) ·
-  [obsidian-releases](https://github.com/obsidianmd/obsidian-releases) ·
-  [Conventional Commits](https://www.conventionalcommits.org/en/v1.0.0/) ·
-  [release-please Obsidian extra-files](https://docs.obsidian.md/Plugins/Releasing/Release+your+plugin+with+GitHub+Actions)
+- **Conventional Commits** baked en executing-plans output template (`feat:` / `fix:` / `feat!:`) → semver bump determinístico.
+- **`dorny/paths-filter`** guard Action: enforcement mecánico de "main = 0 AI files" (falla PR a main si toca `.agents/**`/`CLAUDE.md`/`AGENTS.md`/`.claude/**`).
+- **`anthropics/claude-code-action@v1`** como neutral PR reviewer (Sonnet 4.6 default, Opus 4.7 para large-codebase reasoning): postea severity, NO auto-bloquea. Auto-merge matrix = CI green + severity ≤ low + ≥1 human approval.
+- **Anti-drift gates** (ver T.G): AgentAssay-style statistical gates (N=5 runs + Wilson CI + Fisher exact) + CUSUM drift detection entre iteraciones. Ataca **intent-drift** (behavior diverge del spec sin fallar un test) — la causa raíz de "tests no previenen regresiones".
+- Refs: [release-please](https://github.com/googleapis/release-please) · [paths-filter](https://github.com/dorny/paths-filter) · [claude-code-action](https://github.com/anthropics/claude-code-action) · [obsidian-releases](https://github.com/obsidianmd/obsidian-releases) · [Conventional Commits](https://www.conventionalcommits.org/en/v1.0.0/) · [release-please Obsidian extra-files](https://docs.obsidian.md/Plugins/Releasing/Release+your+plugin+with+GitHub+Actions)

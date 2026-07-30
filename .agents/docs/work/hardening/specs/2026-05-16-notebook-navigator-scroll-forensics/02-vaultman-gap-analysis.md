@@ -34,12 +34,9 @@ Observed constants:
 
 The fixed-height list/tree fallback helper is good in isolation:
 
-- `serviceScroll.fallbackFixedVirtualRows()` computes visible start from
-  `scrollTop / rowHeight`.
+- `serviceScroll.fallbackFixedVirtualRows()` computes visible start from `scrollTop / rowHeight`.
 - It returns only visible rows plus overscan.
 - It is O(visible rows) for fixed heights.
 
-The issue is that this pattern is not consistently applied across modes, and
-the live repro is a repeated jump/render starvation problem, not a single
-mathematical scrollTop problem.
+The issue is that this pattern is not consistently applied across modes, and the live repro is a repeated jump/render starvation problem, not a single mathematical scrollTop problem.
 

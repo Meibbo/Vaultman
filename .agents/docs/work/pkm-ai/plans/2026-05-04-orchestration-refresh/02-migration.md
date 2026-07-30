@@ -47,6 +47,5 @@ tags:
 - Review: `docs/**`
 
 - [ ] Leave public user/dev docs in `docs/**`.
-- [ ] If unsure whether a doc is public, move it to PKM-AI archive and mark
-`needs_dev_selection: true` in migration index.
+- [ ] If unsure whether a doc is public, move it to PKM-AI archive and mark `needs_dev_selection: true` in migration index.
 

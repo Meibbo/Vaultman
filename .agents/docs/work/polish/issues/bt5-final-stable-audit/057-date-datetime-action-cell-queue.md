@@ -21,12 +21,7 @@ tags: [agent/issue, triage/needs-triage, initiative/polish, release/1.2.0, prope
 
 ## What to build
 
-Research Obsidian core Properties in `obsidian-web-lab` to document the DOM,
-events, serialization and state transitions of date and datetime pickers. Use
-instrumentation/monkey-patching in the lab for observation, not as the default
-production mechanism. Implement Vaultman date/datetime `action_cells` that route
-selection/clear/commit through the operation queue. Daily Note navigation remains
-a separate non-mutating action.
+Research Obsidian core Properties in `obsidian-web-lab` to document the DOM, events, serialization and state transitions of date and datetime pickers. Use instrumentation/monkey-patching in the lab for observation, not as the default production mechanism. Implement Vaultman date/datetime `action_cells` that route selection/clear/commit through the operation queue. Daily Note navigation remains a separate non-mutating action.
 
 ## Acceptance criteria
 

@@ -269,89 +269,46 @@ Debe cubrir, como mínimo:
 
 ### Contratos históricos que el intento anterior no gobernó
 
-- Beta3 D14 ya fija tabs cmenu: Files → Props → Tags → Content / Filters + Queue /
-  Floating TOC / Statistics → Snippets → Plugins / toggle Toolbar. El follow-up de
-  Statistics debe consumir este catálogo compartido, no copiar otra lista local.
-- Beta4 D23 fija que Reserve index lane mueve el rail al lane de 22/26 px. Hide
-  scrollbar debe ocultar sólo el bar y mantener exactamente esa geometría.
-- BT5-021 se cerró aunque su Outcome decía que la relocalización real a Tools en
-  condensed quedaba diferida. El completion no cubría el contrato actual.
-- BT5-039 ya describía casi literalmente el Prompt 3 y permanecía needs-triage. El
-  agente anterior lo implementó parcialmente dentro de `b56b9a78` sin actualizar
-  el issue, sin plan y sin smoke.
-- BT5-019 está `needs-triage` en su archivo y `completed` en el índice. BT5-037 y
-  BT5-038 figuran completed en índice/plan pero no tienen issue file. Antes de
-  release hay que reconciliar fuente de verdad y evidence links.
+- Beta3 D14 ya fija tabs cmenu: Files → Props → Tags → Content / Filters + Queue / Floating TOC / Statistics → Snippets → Plugins / toggle Toolbar. El follow-up de Statistics debe consumir este catálogo compartido, no copiar otra lista local.
+- Beta4 D23 fija que Reserve index lane mueve el rail al lane de 22/26 px. Hide scrollbar debe ocultar sólo el bar y mantener exactamente esa geometría.
+- BT5-021 se cerró aunque su Outcome decía que la relocalización real a Tools en condensed quedaba diferida. El completion no cubría el contrato actual.
+- BT5-039 ya describía casi literalmente el Prompt 3 y permanecía needs-triage. El agente anterior lo implementó parcialmente dentro de `b56b9a78` sin actualizar el issue, sin plan y sin smoke.
+- BT5-019 está `needs-triage` en su archivo y `completed` en el índice. BT5-037 y BT5-038 figuran completed en índice/plan pero no tienen issue file. Antes de release hay que reconciliar fuente de verdad y evidence links.
 
 ### Diseño recomendado
 
-- Un `SceneDescriptor` catalog único aporta id/label/icon/availability/command a
-  todos los tab menus; Statistics deja de mantener su copia.
-- Cada provider aporta `ToolbarActionDescriptor[]` ordenados. El navbar sólo
-  renderiza; un layout controller calcula fitting sobre ancho realmente medido.
-- Condensed usa el orden real y reserva primero espacio para Tools: desplaza los
-  dos últimos candidatos y después uno por uno hacia la izquierda. Un eventual
-  `Fixed amount` manual es un **cap**, nunca una cifra que fuerce más nodos que el
-  ancho medido.
-- Scroll y wrap usan el mismo catálogo: scroll conserva una fila y overflow-x sin
-  scrollbar visual; wrap delega flex-wrap. Ninguno mueve items al Tools menu.
-- Iconos: adapter por capacidad. Cuando existe Iconic, usar el manager preparado
-  para Files/Props/Tags y un adapter virtual explícito para Snippets/Plugins;
-  capturar el callback en el store Vaultman. Si no existe/falla, usar fallback
-  propio. Una identidad canónica de acción deduplica contribuciones externas.
-- Property values: adapter híbrido. Reusar el widget/manager metadata de Obsidian
-  cuando la capacidad exista; fallback local semántico y accesible. Daily Notes
-  siempre resuelve el archivo real/configurado, nunca `openLinkText(YYYY-MM-DD)`.
+- Un `SceneDescriptor` catalog único aporta id/label/icon/availability/command a todos los tab menus; Statistics deja de mantener su copia.
+- Cada provider aporta `ToolbarActionDescriptor[]` ordenados. El navbar sólo renderiza; un layout controller calcula fitting sobre ancho realmente medido.
+- Condensed usa el orden real y reserva primero espacio para Tools: desplaza los dos últimos candidatos y después uno por uno hacia la izquierda. Un eventual `Fixed amount` manual es un **cap**, nunca una cifra que fuerce más nodos que el ancho medido.
+- Scroll y wrap usan el mismo catálogo: scroll conserva una fila y overflow-x sin scrollbar visual; wrap delega flex-wrap. Ninguno mueve items al Tools menu.
+- Iconos: adapter por capacidad. Cuando existe Iconic, usar el manager preparado para Files/Props/Tags y un adapter virtual explícito para Snippets/Plugins;
+  capturar el callback en el store Vaultman. Si no existe/falla, usar fallback propio. Una identidad canónica de acción deduplica contribuciones externas.
+- Property values: adapter híbrido. Reusar el widget/manager metadata de Obsidian cuando la capacidad exista; fallback local semántico y accesible. Daily Notes siempre resuelve el archivo real/configurado, nunca `openLinkText(YYYY-MM-DD)`.
 
 ### Issues/slices propuestos para aprobación
 
 1. `BT5-039-R1` (AFK): catálogo provider-aware de action nodes + fitting medido.
-2. `BT5-021-R/BT5-039-R2` (AFK, smoke HITL; depende 1): condensed/scroll/wrap con
-   contratos mutuamente exclusivos y migración del dirty state roto.
-3. `BT5-019-R1` (AFK): fallback estable de Change icon en Files/Props/Tags/Text,
-   precedencia y refresh con Iconic ausente/desactivado.
-4. `BT5-019-R2` (AFK + smoke HITL; depende 3): managers/picker de Iconic, selección
-   inicial, adapters Snippets/Plugins, intercept de resultado y dedupe.
-5. `BT5-043` (AFK): identidad/i18n/icono canónicos de Reveal in system explorer +
-   tests de self-disable/self-uninstall guard.
-6. `BT5-044` (AFK + smoke HITL): Hide explorer scrollbar conserva lane D23 en
-   todas las superficies/posiciones y oculta Reserve lane en settings.
-7. `BT5-045` (AFK; coordina con 1): SceneDescriptor compartido, tab menu completo
-   de Statistics según D14 y scope action como toolbar provider.
-8. `BT5-046` (AFK): catálogo i18n correcto de filters + ciclo Props/Tags
-   inclusive → exclusive → remove y highlights/bubbledots distintos; follow-up de
-   BT5-038, no reapertura de BT5-009.
-9. `BT5-047` (AFK): Property context menu type/conversion con i18n, checked state
-   y semántica compuesta testeada.
-10. `BT5-048` (HITL en elección/fidelidad; depende 9 parcialmente): renderer
-    híbrido de values con wikilink/checkbox/date/datetime/Daily Notes.
-11. `BT5-049` (AFK + smoke HITL; depende BT5-025): glyph color sólo en action
-    nodes unidos al rail y Files cell_name en Tree/Table/Cards con precedencias.
-12. `BT5-050` (diagnóstico AFK + validación HITL): medir y reparar top-edge/clip
-    geometry del VaultmanFrame sin eliminar padding/barra por conjetura.
+2. `BT5-021-R/BT5-039-R2` (AFK, smoke HITL; depende 1): condensed/scroll/wrap con contratos mutuamente exclusivos y migración del dirty state roto.
+3. `BT5-019-R1` (AFK): fallback estable de Change icon en Files/Props/Tags/Text, precedencia y refresh con Iconic ausente/desactivado.
+4. `BT5-019-R2` (AFK + smoke HITL; depende 3): managers/picker de Iconic, selección inicial, adapters Snippets/Plugins, intercept de resultado y dedupe.
+5. `BT5-043` (AFK): identidad/i18n/icono canónicos de Reveal in system explorer + tests de self-disable/self-uninstall guard.
+6. `BT5-044` (AFK + smoke HITL): Hide explorer scrollbar conserva lane D23 en todas las superficies/posiciones y oculta Reserve lane en settings.
+7. `BT5-045` (AFK; coordina con 1): SceneDescriptor compartido, tab menu completo de Statistics según D14 y scope action como toolbar provider.
+8. `BT5-046` (AFK): catálogo i18n correcto de filters + ciclo Props/Tags inclusive → exclusive → remove y highlights/bubbledots distintos; follow-up de BT5-038, no reapertura de BT5-009.
+9. `BT5-047` (AFK): Property context menu type/conversion con i18n, checked state y semántica compuesta testeada.
+10. `BT5-048` (HITL en elección/fidelidad; depende 9 parcialmente): renderer híbrido de values con wikilink/checkbox/date/datetime/Daily Notes.
+11. `BT5-049` (AFK + smoke HITL; depende BT5-025): glyph color sólo en action nodes unidos al rail y Files cell_name en Tree/Table/Cards con precedencias.
+12. `BT5-050` (diagnóstico AFK + validación HITL): medir y reparar top-edge/clip geometry del VaultmanFrame sin eliminar padding/barra por conjetura.
 
 ### Adversarial pass ejecutado sobre la propuesta
 
-- Iconic puede instalarse/desinstalarse o activarse durante la sesión; el adapter
-  no puede cachear managers indefinidamente. Rename/move debe migrar overrides y
-  contribuciones duplicadas de terceros requieren dedupe por identidad/semántica,
-  no por label traducido.
-- Fitting del toolbar debe sobrevivir labels i18n largos, zoom/font scale, comandos
-  custom de ancho distinto, provider sin ciertas acciones, min split y la anchura
-  que consume el propio Tools button. Medir sólo nodes visibles crea feedback loop;
+- Iconic puede instalarse/desinstalarse o activarse durante la sesión; el adapter no puede cachear managers indefinidamente. Rename/move debe migrar overrides y contribuciones duplicadas de terceros requieren dedupe por identidad/semántica, no por label traducido.
+- Fitting del toolbar debe sobrevivir labels i18n largos, zoom/font scale, comandos custom de ancho distinto, provider sin ciertas acciones, min split y la anchura que consume el propio Tools button. Medir sólo nodes visibles crea feedback loop;
   se necesita measurement pass estable/offscreen o cache invalidable.
-- Double click produce click 1 + click 2; el servicio no debe persistir dos estados
-  ni emitir operaciones costosas dos veces. Touch/keyboard necesitan ruta accesible
-  para exclusive aunque el doble click siga siendo el shortcut pedido.
-- Values: arrays, aliases, links ya formateados, checkbox indeterminate, dates
-  inválidas y Daily Notes disabled/custom path/format. No parsear dates con UTC de
-  JS de forma que cambie el día local.
-- Index: left/right/top/bottom, dock on/off, toolbar on/off, short frame, mobile y
-  themes con scrollbar overlay/clásico. Top/bottom no deben ganar scrollbar.
-- No cubre: refactor total de `navbarFilters.svelte`, clasificación completa de
-  BT5-033, BT5-035 completo, custom confirmation modal ni rediseño visual. El
-  adapter híbrido pierde estabilidad si usa APIs privadas de Obsidian; el fallback
-  local pierde fidelidad exacta. Ambos riesgos deben quedar explícitos y testeados.
+- Double click produce click 1 + click 2; el servicio no debe persistir dos estados ni emitir operaciones costosas dos veces. Touch/keyboard necesitan ruta accesible para exclusive aunque el doble click siga siendo el shortcut pedido.
+- Values: arrays, aliases, links ya formateados, checkbox indeterminate, dates inválidas y Daily Notes disabled/custom path/format. No parsear dates con UTC de JS de forma que cambie el día local.
+- Index: left/right/top/bottom, dock on/off, toolbar on/off, short frame, mobile y themes con scrollbar overlay/clásico. Top/bottom no deben ganar scrollbar.
+- No cubre: refactor total de `navbarFilters.svelte`, clasificación completa de BT5-033, BT5-035 completo, custom confirmation modal ni rediseño visual. El adapter híbrido pierde estabilidad si usa APIs privadas de Obsidian; el fallback local pierde fidelidad exacta. Ambos riesgos deben quedar explícitos y testeados.
 
 ## Próximos pasos exactos
 
@@ -367,99 +324,54 @@ Debe cubrir, como mínimo:
 
 ### Deltas obligatorios que introduce
 
-- Self-disable deja de considerarse correcto end-to-end: la action/guard puede existir,
-  pero el `cell_toggle` mantiene warning/prohibición y no invoca coherentemente la misma
-  operación. El slice debe cubrir action + cell + mensajes + estado externo.
-- Hide scrollbar no equivale a activar Reserve lane. Debe conservar la posición overlay
-  actual del index y **no permitir que los nodos reclamen la huella liberada del
-  scrollbar/index**, de modo que no queden debajo del rail. Debe existir un solo gutter:
-  ocultar el bar no puede aplicar el desplazamiento de Reserve lane (`right: 14px`) además
-  del padding. La huella depende levemente de `index_plain_style`; ajustar sólo esa
-  diferencia real, sin crear un segundo lane ni exagerar píxeles microscópicos.
-- Change icon necesita una única ruta/capability adapter para todos los explorers y un
-  protocolo extensible a Iconic u otros plugins con picker; no seis invocaciones ad hoc.
-- El toolbar debe ser una superficie universal alimentada por providers; Statistics y
-  los demás no deben duplicar renderers ni perder las reglas de overflow de Files.
-- Exclusive Props/Values/Tags falla en engines: cell_highlight sólo aparece en Cards y
-  no se elimina con el siguiente click. El test matrix debe cubrir Tree/Table/Cards y
-  transición inclusive/exclusive/remove, no sólo estado de servicio.
-- Scroll mode debe reservar un lane horizontal fijo para el toolbar/ribbon, con scroll
-  del contenido dentro de ese host y sin scrollbar visible; no resolverlo como flex-wrap
-  ni como condensed.
+- Self-disable deja de considerarse correcto end-to-end: la action/guard puede existir, pero el `cell_toggle` mantiene warning/prohibición y no invoca coherentemente la misma operación. El slice debe cubrir action + cell + mensajes + estado externo.
+- Hide scrollbar no equivale a activar Reserve lane. Debe conservar la posición overlay actual del index y **no permitir que los nodos reclamen la huella liberada del scrollbar/index**, de modo que no queden debajo del rail. Debe existir un solo gutter:
+  ocultar el bar no puede aplicar el desplazamiento de Reserve lane (`right: 14px`) además del padding. La huella depende levemente de `index_plain_style`; ajustar sólo esa diferencia real, sin crear un segundo lane ni exagerar píxeles microscópicos.
+- Change icon necesita una única ruta/capability adapter para todos los explorers y un protocolo extensible a Iconic u otros plugins con picker; no seis invocaciones ad hoc.
+- El toolbar debe ser una superficie universal alimentada por providers; Statistics y los demás no deben duplicar renderers ni perder las reglas de overflow de Files.
+- Exclusive Props/Values/Tags falla en engines: cell_highlight sólo aparece en Cards y no se elimina con el siguiente click. El test matrix debe cubrir Tree/Table/Cards y transición inclusive/exclusive/remove, no sólo estado de servicio.
+- Scroll mode debe reservar un lane horizontal fijo para el toolbar/ribbon, con scroll del contenido dentro de ese host y sin scrollbar visible; no resolverlo como flex-wrap ni como condensed.
 - Property values requiere una cell configurable `format` que enciende/apaga el renderer;
   la propuesta anterior cubría el renderer pero omitía el control de cell registry/layout.
-- Glyph color de folders se limita por ahora a Tree, porque Table/Cards no proyectan
-  folders. No inventar soporte para nodos inexistentes; file names se revisan según scope.
+- Glyph color de folders se limita por ahora a Tree, porque Table/Cards no proyectan folders. No inventar soporte para nodos inexistentes; file names se revisan según scope.
 - Top-edge geometry debe comparar beta.5 contra el último commit, además de medir DOM.
-- Requisito nuevo para esta auditoría: retirar el toggle `Has/Hasn't text` del cuerpo del
-  Text explorer y registrarlo como action node del provider Text entre Pause/Resume search
-  y Sort. Este requisito **no aparece en ninguno de los tres prompts literales** recibidos
-  en esta sesión; por eso no entró en los doce slices. Debe buscarse en backlog/specs o en
-  un prompt anterior no incluido antes de decidir si es issue recuperado o nuevo.
+- Requisito nuevo para esta auditoría: retirar el toggle `Has/Hasn't text` del cuerpo del Text explorer y registrarlo como action node del provider Text entre Pause/Resume search y Sort. Este requisito **no aparece en ninguno de los tres prompts literales** recibidos en esta sesión; por eso no entró en los doce slices. Debe buscarse en backlog/specs o en un prompt anterior no incluido antes de decidir si es issue recuperado o nuevo.
 
 ### Evidencia de fuente para las correcciones
 
-- `explorerPlugins.toggle()` corta en `meta.isVaultman`, muestra
-  `addons.plugins.self_protected` y nunca llega a `setCommunityPluginEnabled`; en cambio
-  `logicPluginContextMenu` registra `plugin.toggle` sin excluir Vaultman. El test
-  `addonExplorerSource.test.ts` todavía exige “without allowing Vaultman to disable
-  itself”. Es una contradicción action/cell/test, no sólo copy desactualizado.
-- `tocReservedLanePosition` retorna left/right si `tocReservedLane` **o**
-  `tocHideExplorerScrollbar` están activos. Esa misma clase aplica padding 22/26 px y,
-  a la derecha, mueve el index a `right: 14px`. Confirma el doble gutter descrito.
-- El CSS de exclusión incluye `.vm-tree-row-surface`, pero el renderer actual emite
-  `.vaultman-tree-row`; por eso Tree no recibe el highlight. Table sí tiene selector,
-  pero necesita smoke porque el usuario observa que tampoco funciona de extremo a extremo.
-- `removeNodeByProperty` sólo elimina `specific_value`/`has_property` y
-  `removeNodeByTag` sólo `has_tag`; no eliminan `not_specific_value`,
-  `missing_property` ni `not_has_tag`. Por eso el click posterior detecta estado excluded
-  pero no logra retirarlo.
-- No existe una cell `format` en el registry; `renderPropertyValue` se aplica directamente
-  al label de values. El control pedido fue omitido completamente.
-- `tabContent.svelte` contiene el toggle de `contentIsExclusion`. El array
-  `contentHeaderActions` contiene `content-pause` seguido de `content-sort`, exactamente el
-  seam donde debe insertarse la action del provider Text.
-- La investigación histórica `2026-05-17-toolbar-architecture/01-current-map.md` ya
-  diagnosticaba que el toolbar estaba acoplado a Filters, que otras páginas resolvían
-  controles localmente y que no existía un capability/command registry universal. La
-  corrección del usuario confirma que esa deuda ya es bug de consistencia/overflow.
+- `explorerPlugins.toggle()` corta en `meta.isVaultman`, muestra `addons.plugins.self_protected` y nunca llega a `setCommunityPluginEnabled`; en cambio `logicPluginContextMenu` registra `plugin.toggle` sin excluir Vaultman. El test `addonExplorerSource.test.ts` todavía exige “without allowing Vaultman to disable itself”. Es una contradicción action/cell/test, no sólo copy desactualizado.
+- `tocReservedLanePosition` retorna left/right si `tocReservedLane` **o** `tocHideExplorerScrollbar` están activos. Esa misma clase aplica padding 22/26 px y, a la derecha, mueve el index a `right: 14px`. Confirma el doble gutter descrito.
+- El CSS de exclusión incluye `.vm-tree-row-surface`, pero el renderer actual emite `.vaultman-tree-row`; por eso Tree no recibe el highlight. Table sí tiene selector, pero necesita smoke porque el usuario observa que tampoco funciona de extremo a extremo.
+- `removeNodeByProperty` sólo elimina `specific_value`/`has_property` y `removeNodeByTag` sólo `has_tag`; no eliminan `not_specific_value`, `missing_property` ni `not_has_tag`. Por eso el click posterior detecta estado excluded pero no logra retirarlo.
+- No existe una cell `format` en el registry; `renderPropertyValue` se aplica directamente al label de values. El control pedido fue omitido completamente.
+- `tabContent.svelte` contiene el toggle de `contentIsExclusion`. El array `contentHeaderActions` contiene `content-pause` seguido de `content-sort`, exactamente el seam donde debe insertarse la action del provider Text.
+- La investigación histórica `2026-05-17-toolbar-architecture/01-current-map.md` ya diagnosticaba que el toolbar estaba acoplado a Filters, que otras páginas resolvían controles localmente y que no existía un capability/command registry universal. La corrección del usuario confirma que esa deuda ya es bug de consistencia/overflow.
 - Top-edge: `1.2.0-beta.5` ya contiene toolbar slot/peek y padding cero del view-content;
-  `b56b9a78` vuelve a tocar los cuatro archivos de la geometría. Ambos son oráculos de
-  comparación, pero aún hace falta DOM computed geometry para atribuir la barra exacta.
+  `b56b9a78` vuelve a tocar los cuatro archivos de la geometría. Ambos son oráculos de comparación, pero aún hace falta DOM computed geometry para atribuir la barra exacta.
 
 ### Efecto sobre el desglose anterior
 
-- El diseño cambia de forma material, no cosmética. Los doce slices anteriores eran
-  demasiado gruesos en toolbar, self-actions, i18n y formatting.
-- Propuesta revisada: **16 slices finos**. Se preservan todos los user stories, se añade el
-  requisito Text omitido y se evita implementar folders inexistentes en Table/Cards.
+- El diseño cambia de forma material, no cosmética. Los doce slices anteriores eran demasiado gruesos en toolbar, self-actions, i18n y formatting.
+- Propuesta revisada: **16 slices finos**. Se preservan todos los user stories, se añade el requisito Text omitido y se evita implementar folders inexistentes en Table/Cards.
 - Los IDs son provisionales hasta aprobación; publicar en orden de dependencia.
 
 1. Universal Toolbar host + contrato `ToolbarProvider` (AFK).
 2. Text provider tracer: mover Has/Hasn't text entre Pause/Resume y Sort (AFK; bloqueado 1).
 3. Overflow universal medido: condensed/scroll/wrap, scroll con lane fijo (AFK + smoke HITL;
    bloqueado 1).
-4. Migrar Statistics y demás providers al host, retirando toolbars duplicados (AFK + smoke
-   HITL; bloqueado 1 y 3).
+4. Migrar Statistics y demás providers al host, retirando toolbars duplicados (AFK + smoke HITL; bloqueado 1 y 3).
 5. `ChangeIcon` action/router único + registry de picker capabilities extensible (AFK).
-6. Adapters Vaultman/Iconic, selección inicial, fallback, intercept y dedupe (AFK + smoke
-   HITL; bloqueado 5).
-7. Plugin self-toggle end-to-end: cell/action/test permiten disable; uninstall sigue bloqueado
-   (AFK + smoke HITL).
+6. Adapters Vaultman/Iconic, selección inicial, fallback, intercept y dedupe (AFK + smoke HITL; bloqueado 5).
+7. Plugin self-toggle end-to-end: cell/action/test permiten disable; uninstall sigue bloqueado (AFK + smoke HITL).
 8. Snippet Reveal in system explorer: id/label/i18n/icon canónicos (AFK).
-9. Hide scrollbar con una sola huella del index y variación plain-style, separado de Reserve
-   lane (AFK + smoke HITL).
+9. Hide scrollbar con una sola huella del index y variación plain-style, separado de Reserve lane (AFK + smoke HITL).
 10. Restaurar catálogo i18n corto/correcto de filters (AFK).
-11. Props/Values/Tags polarity end-to-end: inclusive/exclusive/remove + highlight/dot por
-    engine y input (AFK + smoke HITL).
+11. Props/Values/Tags polarity end-to-end: inclusive/exclusive/remove + highlight/dot por engine y input (AFK + smoke HITL).
 12. Property context menu: type/Date & Time/current checked + conversions con i18n (AFK).
 13. Cell `format` registrable/configurable y raw-vs-formatted toggle (AFK).
-14. Property value parity renderer: wikilink/checkbox/date/datetime/Daily Notes (HITL de
-    fidelidad; bloqueado 13).
-15. Glyph color follow-up: action nodes sólo dentro del rail y folder `cell_name` sólo donde
-    folders existen hoy (Tree); no inventar Table/Cards folders (AFK + smoke HITL).
-16. Top-edge/clip geometry: beta.5 + último commit + medición DOM (diagnóstico AFK,
-    validación HITL).
+14. Property value parity renderer: wikilink/checkbox/date/datetime/Daily Notes (HITL de fidelidad; bloqueado 13).
+15. Glyph color follow-up: action nodes sólo dentro del rail y folder `cell_name` sólo donde folders existen hoy (Tree); no inventar Table/Cards folders (AFK + smoke HITL).
+16. Top-edge/clip geometry: beta.5 + último commit + medición DOM (diagnóstico AFK, validación HITL).
 
 ## Aclaración del usuario: format parcial y semántica Navbar — copia literal
 
@@ -467,18 +379,11 @@ Debe cubrir, como mínimo:
 
 ### Delta de diseño
 
-- Conservar el seam de wikilinks que ya funciona; no describir `format` como renderer
-  completamente ausente. Lo ausente/roto es el control configurable y la paridad de
-  checkbox/date/datetime.
-- Obsidian no expone API pública para esos widgets del core Properties. La investigación
-  en `obsidian-web-lab` es gate obligatorio. Recomendación provisional: instrumentar o
-  monkey-patchear **el lab para observar** constructores, DOM, eventos y state transitions;
-  implementar widgets Vaultman con ese contrato observado. No monkey-patchear producción
-  por defecto porque sería frágil entre versiones y puede interferir con terceros.
-- Renombrar la frontera arquitectónica de `Universal Toolbar` a **Navbar**, clasificada
-  como `panelWidget`. `Toolbar` puede persistir como label UX/alias legacy durante v1.2.0.
-  Funcionalmente sí importa: Navbar pertenece al frame/panelWidget y recibe action_nodes de
-  providers; no pertenece a Files ni a cada page.
+- Conservar el seam de wikilinks que ya funciona; no describir `format` como renderer completamente ausente. Lo ausente/roto es el control configurable y la paridad de checkbox/date/datetime.
+- Obsidian no expone API pública para esos widgets del core Properties. La investigación en `obsidian-web-lab` es gate obligatorio. Recomendación provisional: instrumentar o monkey-patchear **el lab para observar** constructores, DOM, eventos y state transitions;
+  implementar widgets Vaultman con ese contrato observado. No monkey-patchear producción por defecto porque sería frágil entre versiones y puede interferir con terceros.
+- Renombrar la frontera arquitectónica de `Universal Toolbar` a **Navbar**, clasificada como `panelWidget`. `Toolbar` puede persistir como label UX/alias legacy durante v1.2.0.
+  Funcionalmente sí importa: Navbar pertenece al frame/panelWidget y recibe action_nodes de providers; no pertenece a Files ni a cada page.
 
 ## Aclaración del usuario: action_cells queued y regresión de rename modal — copia literal
 
@@ -486,96 +391,36 @@ Debe cubrir, como mínimo:
 
 ### Delta de diseño
 
-- Checkbox y date/datetime no son formatters pasivos: son `action_cells`. Su evento produce
-  un intent tipado de cambio de value y **no escribe directamente**. El provider resuelve el
-  conjunto de files representado por el value node, crea una operación rename/value-change
-  en `queueService` y la proyección normal de queue coloca `badge_rename` en ese value node.
+- Checkbox y date/datetime no son formatters pasivos: son `action_cells`. Su evento produce un intent tipado de cambio de value y **no escribe directamente**. El provider resuelve el conjunto de files representado por el value node, crea una operación rename/value-change en `queueService` y la proyección normal de queue coloca `badge_rename` en ese value node.
 - Navegación a Daily Note sigue siendo una action de navegación, no una operación queued.
-- Separar widgets interactivos en tracer bullets: checkbox queued y date/datetime queued,
-  porque el segundo necesita investigación/picker del web-lab y tiene más riesgo HITL.
-- Añadir issue de regresión para operation rename de nodo individual. Encontrar
-  `COMMIT_BUENO` con el modal rico y `COMMIT_MALO` que lo sustituyó; adaptar el modal rico
-  para que un target individual muestre el nombre literal (`pepito`) en vez de
-  `{basename}`. Auditar todos los callers del modal básico y migrarlos cuando correspondan,
-  sin eliminar capacidades del modal rico.
-- Efecto provisional: el desglose pasa de 16 a **18 slices** (se divide format interactivo
-  y se añade la regresión rename-modal). IDs aún no publicados.
+- Separar widgets interactivos en tracer bullets: checkbox queued y date/datetime queued, porque el segundo necesita investigación/picker del web-lab y tiene más riesgo HITL.
+- Añadir issue de regresión para operation rename de nodo individual. Encontrar `COMMIT_BUENO` con el modal rico y `COMMIT_MALO` que lo sustituyó; adaptar el modal rico para que un target individual muestre el nombre literal (`pepito`) en vez de `{basename}`. Auditar todos los callers del modal básico y migrarlos cuando correspondan, sin eliminar capacidades del modal rico.
+- Efecto provisional: el desglose pasa de 16 a **18 slices** (se divide format interactivo y se añade la regresión rename-modal). IDs aún no publicados.
 
 ### Diagnóstico confirmado de la regresión rename-modal
 
-- El modal rico sigue existiendo en `src/modals/modalFileRename.ts` como
-  `FileRenameModal`: soporta `{basename}`, `{date}`, `{counter}`, propiedades de
-  frontmatter, preview y entrega un `PendingChange` al queue callback. Su valor inicial
-  continúa hardcodeado como `private pattern = '{basename}'`; la corrección exacta es
-  permitir un initial pattern/contexto y usar el basename literal sólo cuando hay un
-  target individual.
-- `file.rename` en `explorerFiles.ts` todavía usa correctamente `FileRenameModal` y
-  `queueService.addOrRun`; no fue esa ruta la sustituida.
-- La regresión concreta fue introducida por `e0945039` (`feat(content): add configurable
-  Rename/Delete to content search nodes`, 2026-07-21): `content.rename` llama
-  `app.fileManager.promptForFileRename(file)`. Ese prompt nativo hace un rename inmediato,
-  no usa el modal rico y no crea `PendingChange`/badge. El test nuevo
-  `contentContextMenu.test.ts` cristaliza explícitamente esa conducta equivocada al exigir
-  `promptForFileRename`.
-- El último estado bueno reutilizable no es un único commit inmediatamente anterior para
-  Content, porque la acción Content fue creada ya defectuosa. El oráculo bueno es la ruta
-  canónica preexistente `file.rename`/`FileRenameModal`, presente al menos desde
-  `2793c899`; el commit malo de la nueva ruta es `e0945039`. En el issue se documentará
-  como **good implementation oracle + bad introducing commit**, no como falso revert
-  lineal.
+- El modal rico sigue existiendo en `src/modals/modalFileRename.ts` como `FileRenameModal`: soporta `{basename}`, `{date}`, `{counter}`, propiedades de frontmatter, preview y entrega un `PendingChange` al queue callback. Su valor inicial continúa hardcodeado como `private pattern = '{basename}'`; la corrección exacta es permitir un initial pattern/contexto y usar el basename literal sólo cuando hay un target individual.
+- `file.rename` en `explorerFiles.ts` todavía usa correctamente `FileRenameModal` y `queueService.addOrRun`; no fue esa ruta la sustituida.
+- La regresión concreta fue introducida por `e0945039` (`feat(content): add configurable Rename/Delete to content search nodes`, 2026-07-21): `content.rename` llama `app.fileManager.promptForFileRename(file)`. Ese prompt nativo hace un rename inmediato, no usa el modal rico y no crea `PendingChange`/badge. El test nuevo `contentContextMenu.test.ts` cristaliza explícitamente esa conducta equivocada al exigir `promptForFileRename`.
+- El último estado bueno reutilizable no es un único commit inmediatamente anterior para Content, porque la acción Content fue creada ya defectuosa. El oráculo bueno es la ruta canónica preexistente `file.rename`/`FileRenameModal`, presente al menos desde `2793c899`; el commit malo de la nueva ruta es `e0945039`. En el issue se documentará como **good implementation oracle + bad introducing commit**, no como falso revert lineal.
 - Inventario de callers file-rename:
-  - correctos/queue: `explorerFiles.ts`, `basesMultiSelectOperations.ts` y el viejo
-    `sidebarOps_old.ts` usan `FileRenameModal` con queue callback;
+  - correctos/queue: `explorerFiles.ts`, `basesMultiSelectOperations.ts` y el viejo `sidebarOps_old.ts` usan `FileRenameModal` con queue callback;
   - regresión: `logicContentContextMenu.ts` usa el prompt nativo;
-  - adaptación incompleta: `logicSnippetContextMenu.ts` fabrica un `TFile`, abre el modal
-    rico, extrae `_RENAME_FILE` del `logicFunc` y luego llama `adapter.rename` directamente;
-    conserva UI rica pero se salta el queue, por lo que también debe converger si Snippets
-    expone operation rename.
-- `showInputModal` es otro modal básico, usado por folder rename/move, prop rename,
-  value rename y Save Layout. No todos deben migrarse mecánicamente al modal de archivos:
-  Save Layout no es una operation; prop/value/folder tienen semánticas distintas. El issue
-  debe auditar cada caller y extraer una frontera reutilizable de `OperationRenameModal`
-  sólo donde conserve preview/opciones/queue sin imponer placeholders de archivos a otros
-  dominios. Tag rename ya es inline y encola, por lo que es otro control legítimo, no un
-  caller del prompt básico.
-- Aceptación añadida: desde Content/Text, Rename abre el mismo modal rico que Files, el
-  campo inicial de un único `pepito.md` contiene `pepito` (no `{basename}`), confirmar crea
-  la operación en queue y proyecta `badge_rename`; las pruebas dejan de defender el prompt
-  nativo. Delete puede conservar la confirmación nativa porque es una semántica separada.
+  - adaptación incompleta: `logicSnippetContextMenu.ts` fabrica un `TFile`, abre el modal rico, extrae `_RENAME_FILE` del `logicFunc` y luego llama `adapter.rename` directamente;
+    conserva UI rica pero se salta el queue, por lo que también debe converger si Snippets expone operation rename.
+- `showInputModal` es otro modal básico, usado por folder rename/move, prop rename, value rename y Save Layout. No todos deben migrarse mecánicamente al modal de archivos:
+  Save Layout no es una operation; prop/value/folder tienen semánticas distintas. El issue debe auditar cada caller y extraer una frontera reutilizable de `OperationRenameModal` sólo donde conserve preview/opciones/queue sin imponer placeholders de archivos a otros dominios. Tag rename ya es inline y encola, por lo que es otro control legítimo, no un caller del prompt básico.
+- Aceptación añadida: desde Content/Text, Rename abre el mismo modal rico que Files, el campo inicial de un único `pepito.md` contiene `pepito` (no `{basename}`), confirmar crea la operación en queue y proyecta `badge_rename`; las pruebas dejan de defender el prompt nativo. Delete puede conservar la confirmación nativa porque es una semántica separada.
 
 ### Pase adversarial de action_cells y queue
 
-- Ya existe el seam de dominio correcto: `_replaceValueInVault` crea un
-  `PropertyChange { action: 'set', property, oldValue, value, files }` mediante
-  `queueService.addOrRun`. La proyección de Props considera tanto `rename` como `set` una
-  actualización con icono pencil/badge azul. No hace falta inventar una segunda clase de
-  operación sólo para el widget; sí hace falta formalizar el intent de la `action_cell` y
-  conservar la semántica visual `badge_rename` pedida.
-- El renderer actual contradice el requerimiento: crea checkbox con `disabled = true`; para
-  date/datetime sólo imprime texto y un botón de Daily Note. No hay picker ni intent de
-  edición. Esto confirma que sólo Wikilink está funcional como formato interactivo de
-  navegación.
-- Riesgo no mencionado: la política actual trata dos `set` distintos sobre la misma
-  propiedad y files solapados como conflicto. Si el usuario cambia una checkbox/date dos
-  veces antes de ejecutar el queue, el segundo intent puede ser rechazado y el widget
-  quedar visualmente incoherente. Aceptación obligatoria: por identidad exacta de value
-  node (`property + oldValue + target files`), el último intent sustituye al pendiente; si
-  vuelve al valor original, cancela la operación y quita el badge. No ejecutar dos writes.
-- En mode `stage`, el widget proyecta el valor pendiente de forma optimista y muestra el
-  badge cancelable; en mode `bypass`, `addOrRun` aplica inmediatamente. El handler debe
-  impedir que el evento observado del widget core también escriba por debajo, o se
-  produciría doble mutación.
-- `open picker` por sí solo no es una operación. Sólo select/clear/commit de una fecha o
-  datetime produce intent queued. Escape/cancel no cambia nada. El botón Daily Note es
-  navegación y nunca genera badge.
-- Value nodes agregan varios files: la operación debe usar exactamente el conjunto
-  representado por el nodo y conservar arrays/boolean YAML. Checkbox no debe degradarse a
-  string; date no debe cambiar de día por UTC y datetime debe preservar timezone/precisión
-  observados en web-lab.
-- `TreeNodeCell`/`onCellClick` existe hoy principalmente en Tree; Table renderiza values
-  por `renderLabel`. La semántica `action_cell` debe ser de dominio y tener adapters por
-  engine, no depender de que el DOM sea literalmente `TreeNodeCell`, o Table/Cards volverán
-  a quedar inconsistentes.
+- Ya existe el seam de dominio correcto: `_replaceValueInVault` crea un `PropertyChange { action: 'set', property, oldValue, value, files }` mediante `queueService.addOrRun`. La proyección de Props considera tanto `rename` como `set` una actualización con icono pencil/badge azul. No hace falta inventar una segunda clase de operación sólo para el widget; sí hace falta formalizar el intent de la `action_cell` y conservar la semántica visual `badge_rename` pedida.
+- El renderer actual contradice el requerimiento: crea checkbox con `disabled = true`; para date/datetime sólo imprime texto y un botón de Daily Note. No hay picker ni intent de edición. Esto confirma que sólo Wikilink está funcional como formato interactivo de navegación.
+- Riesgo no mencionado: la política actual trata dos `set` distintos sobre la misma propiedad y files solapados como conflicto. Si el usuario cambia una checkbox/date dos veces antes de ejecutar el queue, el segundo intent puede ser rechazado y el widget quedar visualmente incoherente. Aceptación obligatoria: por identidad exacta de value node (`property + oldValue + target files`), el último intent sustituye al pendiente; si vuelve al valor original, cancela la operación y quita el badge. No ejecutar dos writes.
+- En mode `stage`, el widget proyecta el valor pendiente de forma optimista y muestra el badge cancelable; en mode `bypass`, `addOrRun` aplica inmediatamente. El handler debe impedir que el evento observado del widget core también escriba por debajo, o se produciría doble mutación.
+- `open picker` por sí solo no es una operación. Sólo select/clear/commit de una fecha o datetime produce intent queued. Escape/cancel no cambia nada. El botón Daily Note es navegación y nunca genera badge.
+- Value nodes agregan varios files: la operación debe usar exactamente el conjunto representado por el nodo y conservar arrays/boolean YAML. Checkbox no debe degradarse a string; date no debe cambiar de día por UTC y datetime debe preservar timezone/precisión observados en web-lab.
+- `TreeNodeCell`/`onCellClick` existe hoy principalmente en Tree; Table renderiza values por `renderLabel`. La semántica `action_cell` debe ser de dominio y tener adapters por engine, no depender de que el DOM sea literalmente `TreeNodeCell`, o Table/Cards volverán a quedar inconsistentes.
 
 ### Desglose revisado consolidado: 18 slices provisionales
 
@@ -596,18 +441,13 @@ Debe cubrir, como mínimo:
 15. Date/datetime `action_cell`: contrato web-lab, picker, queue/bypass y Daily Note separada.
 16. Glyph color: rail action_nodes y folder cell_name sólo en Tree existente.
 17. Top-edge/clip geometry comparando beta.5, b56 y DOM computed.
-18. Regresión operation rename: restaurar modal rico en Content, initial literal para target
-    individual, queue/badge, corregir test erróneo y auditar/migrar callers básicos o bypass
-    (incluido Snippets) según la matriz de dominio.
+18. Regresión operation rename: restaurar modal rico en Content, initial literal para target individual, queue/badge, corregir test erróneo y auditar/migrar callers básicos o bypass (incluido Snippets) según la matriz de dominio.
 
 ## Implementation checkpoint 1 — BT5-060 rich queued rename
 
 - Worktree/branch advanced from `b56b9a78` to product commit `45c86373`:
   `fix(operations): restore rich queued rename flows`.
-- Root cause confirmed by Git/source comparison: `e0945039` introduced a new Content route
-  using `promptForFileRename`, while Files/Bases already used the correct
-  `FileRenameModal → queueService.addOrRun` route. Snippets kept the modal but extracted
-  `_RENAME_FILE` and mutated the config adapter immediately.
+- Root cause confirmed by Git/source comparison: `e0945039` introduced a new Content route using `promptForFileRename`, while Files/Bases already used the correct `FileRenameModal → queueService.addOrRun` route. Snippets kept the modal but extracted `_RENAME_FILE` and mutated the config adapter immediately.
 - TDD reds observed independently:
   - `initialFileRenamePattern is not a function`;
   - injected rich Content opener received zero calls;
@@ -624,29 +464,22 @@ Debe cubrir, como mínimo:
 - Verification:
   - focused: 7 files, 45/45 tests green;
   - full unit: 142/143 files, 932/933 tests green;
-  - only failure is the exact pre-slice baseline in
-    `toolbarOverflowStrategy.test.ts` (`toolbarUsesHorizontalScroll` commented out by the
-    pre-existing dirty `logicResponsiveLayout.ts` edit);
+  - only failure is the exact pre-slice baseline in `toolbarOverflowStrategy.test.ts` (`toolbarUsesHorizontalScroll` commented out by the pre-existing dirty `logicResponsiveLayout.ts` edit);
   - changed-path ESLint, Svelte autofixer (0 issues), Svelte format and diff check green;
   - `pnpm run check` contains only the same three overflow diagnostics.
 - Caller audit: Files/Bases/old sidebar remain rich+queued; Content and Snippets converged;
-  Save Layout and folder/property/value inputs are separate domain operations; Tag inline
-  rename remains legitimate. Runtime/HITL smoke remains before issue closure.
+  Save Layout and folder/property/value inputs are separate domain operations; Tag inline rename remains legitimate. Runtime/HITL smoke remains before issue closure.
 
 ## Implementation checkpoint 2 — BT5-049 self-disable
 
 - Product commit `1c689ef1`: `fix(plugins): allow Vaultman self-disable`.
-- Root cause: `logicPluginContextMenu` already allowed self-disable, but
-  `explorerPlugins.toggle` duplicated an obsolete `meta.isVaultman` prohibition and warning.
+- Root cause: `logicPluginContextMenu` already allowed self-disable, but `explorerPlugins.toggle` duplicated an obsolete `meta.isVaultman` prohibition and warning.
 - TDD red confirmed both missing shared policy exports and the stale cell source contract.
-- `logicAddonCells` now provides `canToggleCommunityPlugin`,
-  `canUninstallCommunityPlugin`, and `toggleCommunityPlugin`; both callers use that route.
-- Cell orchestration tracks a successful self-disable as caller teardown and performs no
-  later refresh/rebuild. Failure paths still clear pending state and repaint.
+- `logicAddonCells` now provides `canToggleCommunityPlugin`, `canUninstallCommunityPlugin`, and `toggleCommunityPlugin`; both callers use that route.
+- Cell orchestration tracks a successful self-disable as caller teardown and performs no later refresh/rebuild. Failure paths still clear pending state and repaint.
 - Uninstall is denied in both `when` and `run`; obsolete i18n entries were removed.
 - Verification: 82/82 focused tests; changed-path ESLint, format and diff check green.
-  Type-check remains red only for the three baseline overflow errors in the preserved foreign
-  `logicResponsiveLayout.ts` edit. Runtime self-disable/re-enable remains HITL.
+  Type-check remains red only for the three baseline overflow errors in the preserved foreign `logicResponsiveLayout.ts` edit. Runtime self-disable/re-enable remains HITL.
 
 ## Implementation checkpoint 3 — BT5-050 canonical Snippet Reveal
 
@@ -654,8 +487,7 @@ Debe cubrir, como mínimo:
 - Direct read-only inspection of installed `obsidian.asar` established the Files menu oracle:
   `lucide-arrow-up-right`, “Show in system explorer”, with Finder copy on macOS.
 - New `logicSystemExplorer` centralizes id/icon/label/capability/invocation.
-- Reveal is now `snippet.reveal`; the old `snippet.see-details` saved-layout id migrates without
-  losing position or visibility. Static translated registration prevents catalog id leakage.
+- Reveal is now `snippet.reveal`; the old `snippet.see-details` saved-layout id migrates without losing position or visibility. Static translated registration prevents catalog id leakage.
 - `when` checks `showInFolder`; `run` uses `cssSnippetPath`, including custom config folders.
   Open in default app is unchanged and remains independently capability-gated.
 - Verification: dedicated 3/3 and related 86/86 tests, changed-path ESLint and diff check green.
@@ -664,48 +496,29 @@ Debe cubrir, como mínimo:
 ## Implementation checkpoint 4 — BT5-051 one hidden-scrollbar footprint
 
 - Product commit `3fb23d17`: `fix(layout): preserve one hidden-scrollbar gutter`.
-- Root cause was a shared `Reserve || Hide` lane projection: Hide inherited both content
-  padding and Reserve's 14 px rail displacement.
-- `resolveFloatingTocLaneLayout` now projects four independent outputs. Hide keeps the rail at
-  its overlay edge, supplies one content gutter, and overrides stale saved Reserve state.
-- Effective footprints use actual dimensions: desktop 20/22 px and mobile 28/30 px for
-  plain/pill. A common 2/4 px edge variable fixes mobile left and explicit-right precedence.
-- Vertical gutters are absent at Top/Bottom; rail scrollbars remain hidden by the existing
-  scoped rules. Reserve remains hidden in Settings while Hide is on.
-- Verification: pure 7/7, related 49/49, Stylelint, Svelte format, diff check and official
-  Svelte autofixer (zero issues) green. Only the five known foreign overflow diagnostics remain
-  in global Svelte check. DOM geometry HITL remains.
+- Root cause was a shared `Reserve || Hide` lane projection: Hide inherited both content padding and Reserve's 14 px rail displacement.
+- `resolveFloatingTocLaneLayout` now projects four independent outputs. Hide keeps the rail at its overlay edge, supplies one content gutter, and overrides stale saved Reserve state.
+- Effective footprints use actual dimensions: desktop 20/22 px and mobile 28/30 px for plain/pill. A common 2/4 px edge variable fixes mobile left and explicit-right precedence.
+- Vertical gutters are absent at Top/Bottom; rail scrollbars remain hidden by the existing scoped rules. Reserve remains hidden in Settings while Hide is on.
+- Verification: pure 7/7, related 49/49, Stylelint, Svelte format, diff check and official Svelte autofixer (zero issues) green. Only the five known foreign overflow diagnostics remain in global Svelte check. DOM geometry HITL remains.
 
 ## Implementation checkpoint 5 — BT5-052 concise filter copy
 
 - Product commit `a9c8fdc9`: `fix(i18n): restore concise filter labels`.
-- Forensics corrected the provisional diagnosis: `b56b9a78` retained eight dev-authored short
-  labels but deleted `filter.file_name`, despite its live Add Filter consumer.
+- Forensics corrected the provisional diagnosis: `b56b9a78` retained eight dev-authored short labels but deleted `filter.file_name`, despite its live Add Filter consumer.
 - Restored the symmetric `Has name`; aligned all Spanish filter polarity copy to `Con/Sin`.
   Keys, filter ids and saved payload shapes are unchanged.
-- New catalog/consumer contract covers ten labels in both locales and ensures Add Filter/Text
-  never fall back to raw keys. Related 15/15, ESLint and diff check green. Issue completed AFK.
+- New catalog/consumer contract covers ten labels in both locales and ensures Add Filter/Text never fall back to raw keys. Related 15/15, ESLint and diff check green. Issue completed AFK.
 
 ## Implementation checkpoint 6 — BT5-053 atomic filter polarity
 
 - Product commit `cde64206`: `fix(filters): make polarity interaction reversible`.
-- Root causes were compound: exclusive remove helpers only knew positive filter types; the
-  first browser click wrote inclusive before the second replaced it; Props and Tags duplicated
-  mutation routes; and Tree exclusive CSS still named the removed `.vm-tree-row-surface`.
-- TDD red established missing negative removal, missing atomic setters, missing deferred
-  coordinator/wiring, stale Tree selector and absent Tree keyboard activation.
-- New `DeferredFilterClickCoordinator` owns the temporal gesture contract. Inactive single
-  click is delayed 250 ms; a fast pair emits exclusive exactly once; a slow second click is a
-  normal remove; active double-click cannot re-add because of a short expiring tombstone.
-  Semantic keys survive repaints/view switches, teardown cancels timers, and expired
-  tombstones are pruned.
+- Root causes were compound: exclusive remove helpers only knew positive filter types; the first browser click wrote inclusive before the second replaced it; Props and Tags duplicated mutation routes; and Tree exclusive CSS still named the removed `.vm-tree-row-surface`.
+- TDD red established missing negative removal, missing atomic setters, missing deferred coordinator/wiring, stale Tree selector and absent Tree keyboard activation.
+- New `DeferredFilterClickCoordinator` owns the temporal gesture contract. Inactive single click is delayed 250 ms; a fast pair emits exclusive exactly once; a slow second click is a normal remove; active double-click cannot re-add because of a short expiring tombstone.
+  Semantic keys survive repaints/view switches, teardown cancels timers, and expired tombstones are pruned.
 - `FilterService` replaces/removes both polarities recursively and calls `applyFilters` once.
-  Both explorers and their context menus converge on that route; negative metadata filter
-  types now participate in metadata refresh invalidation.
-- Tree rows gained Enter/Space activation. Tree/Table/Cards retain active/excluded class
-  projection; CSS now targets `.vaultman-tree-row`, with accent inclusive and primary-text
-  exclusive descendant dots.
+  Both explorers and their context menus converge on that route; negative metadata filter types now participate in metadata refresh invalidation.
+- Tree rows gained Enter/Space activation. Tree/Table/Cards retain active/excluded class projection; CSS now targets `.vaultman-tree-row`, with accent inclusive and primary-text exclusive descendant dots.
 - Verification: focused 41/41; full unit 957/958 with only the known foreign toolbar failure;
-  changed-path ESLint, Stylelint, Prettier and diff check green. Global type-check still has
-  exactly the three foreign toolbar diagnostics. Issue remains HITL for the live multi-engine,
-  theme and touch/pointer smoke.
+  changed-path ESLint, Stylelint, Prettier and diff check green. Global type-check still has exactly the three foreign toolbar diagnostics. Issue remains HITL for the live multi-engine, theme and touch/pointer smoke.

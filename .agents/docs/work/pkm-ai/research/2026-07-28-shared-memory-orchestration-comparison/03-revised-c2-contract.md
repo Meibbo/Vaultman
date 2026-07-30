@@ -63,13 +63,11 @@ Records what was known at one boundary:
 - pending/committed/unknown side-effect receipts;
 - verification performed and timestamp.
 
-It is append-only. It is authoritative only about the execution observation,
-not about the current domain state.
+It is append-only. It is authoritative only about the execution observation, not about the current domain state.
 
 ### Current reconciliation view
 
-Rebuilt on start/resume from current truth and projections. It compares current
-epochs against the last immutable checkpoint and reports:
+Rebuilt on start/resume from current truth and projections. It compares current epochs against the last immutable checkpoint and reports:
 
 - unchanged and safe to resume;
 - changed but automatically reconcilable;
@@ -122,8 +120,7 @@ freshness = fresh | stale | partial | unknown
 | What decision is authoritative? | open cited source document |
 | Are sources contradictory? | retrieve sources, compare timestamps and supersession |
 
-Vector retrieval may propose evidence; it cannot settle ownership, status or
-source authority.
+Vector retrieval may propose evidence; it cannot settle ownership, status or source authority.
 
 ## Execution State Machine
 
@@ -173,8 +170,7 @@ After mutation:
 | Standard | Normal implementation | Short plus targeted source excerpts and structural impact |
 | Deep | Reconciliation, design or incident | Progressive retrieval; never one unbounded dump |
 
-Each profile has explicit line/token and latency budgets. `--full` is never the
-default.
+Each profile has explicit line/token and latency budgets. `--full` is never the default.
 
 ## Skill Responsibility
 
@@ -195,11 +191,8 @@ It must not:
 
 ## Open Design Decisions
 
-1. Whether immutable checkpoints live inside agent-room state, an adjacent
-   event store, or a dedicated local database.
-2. Which operations require strict quiescence versus a fuzzy snapshot plus
-   optimistic validation.
-3. Whether structural-impact conflicts are hard gates or severity-ranked
-   warnings for the first version.
+1. Whether immutable checkpoints live inside agent-room state, an adjacent event store, or a dedicated local database.
+2. Which operations require strict quiescence versus a fuzzy snapshot plus optimistic validation.
+3. Whether structural-impact conflicts are hard gates or severity-ranked warnings for the first version.
 4. How codebase-memory exposes a trustworthy source cursor and dirty coverage.
 5. Retention periods and archive format for old room runs and checkpoints.

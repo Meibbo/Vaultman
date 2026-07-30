@@ -36,13 +36,11 @@ Micro commands do not switch mode and do not write files.
 
 ## Persistent Toggles
 
-Some skills can be persistent, such as terse communication. Persistent toggles
-must document:
+Some skills can be persistent, such as terse communication. Persistent toggles must document:
 
 - activation phrase
 - deactivation phrase
 - scope
 - whether they affect docs or only chat
 
-If a toggle is active but harms clarity, the agent should explain the exception
-briefly and resume the toggle afterward.
+If a toggle is active but harms clarity, the agent should explain the exception briefly and resume the toggle afterward.

@@ -25,21 +25,16 @@ updated_by: codex
 
 ## Steps
 
-- [ ] Add failing tests for per-explorer mode state, selection toggling,
-  expansion toggling, subscriber notification, and flat render model creation.
-- [ ] Add a failing test that passes a fake decoration manager and verifies
-  `icons` become `layers.icons` and query ranges become `layers.highlights.query`.
-- [ ] Run the specific unit test and confirm the new tests fail because
-  `ViewService` does not exist.
+- [ ] Add failing tests for per-explorer mode state, selection toggling, expansion toggling, subscriber notification, and flat render model creation.
+- [ ] Add a failing test that passes a fake decoration manager and verifies `icons` become `layers.icons` and query ranges become `layers.highlights.query`.
+- [ ] Run the specific unit test and confirm the new tests fail because `ViewService` does not exist.
 - [ ] Implement `ViewService` with Svelte rune state only where state is needed;
   keep pure row/model mapping in small private methods.
-- [ ] Expose `createListModel`/`getModel` behavior through `IViewService`
-  without requiring Obsidian `App` or concrete explorer services.
+- [ ] Expose `createListModel`/`getModel` behavior through `IViewService` without requiring Obsidian `App` or concrete explorer services.
 - [ ] Run the specific unit test and confirm all `serviceViews` tests pass.
 
 ## Acceptance
 
-- Service can produce list rows from `QueueChange` and `ActiveFilterEntry` using
-  supplied label/action mappers.
+- Service can produce list rows from `QueueChange` and `ActiveFilterEntry` using supplied label/action mappers.
 - Service does not import Svelte components.
 - Service does not import queue/filter/index implementations.

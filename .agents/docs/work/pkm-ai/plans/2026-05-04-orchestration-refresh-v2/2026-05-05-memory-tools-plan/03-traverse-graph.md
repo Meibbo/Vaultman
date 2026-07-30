@@ -36,8 +36,7 @@ imports.forEach(i => console.log(i));
 
 - [ ] **Step 2: Run to verify it works**
 
-Run: `node tools/pkm-ai/traverse-graph.mjs src/components/pages/pageFilters.svelte`
-Expected: Prints the import statements found in the file.
+Run: `node tools/pkm-ai/traverse-graph.mjs src/components/pages/pageFilters.svelte` Expected: Prints the import statements found in the file.
 
 - [ ] **Step 3: Commit**
 

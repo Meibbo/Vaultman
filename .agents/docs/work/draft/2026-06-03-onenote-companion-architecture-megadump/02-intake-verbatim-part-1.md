@@ -15,8 +15,7 @@ tags:
 
 # Megadump Intake — Verbatim Part 1
 
-Lossless capture of the dev's 2026-06-03 product dump (chat). Fenced to keep
-wikilinks/tags/`***` inert in the vault graph. Do not edit the fenced text.
+Lossless capture of the dev's 2026-06-03 product dump (chat). Fenced to keep wikilinks/tags/`***` inert in the vault graph. Do not edit the fenced text.
 Classification lives in [[docs/work/draft/2026-06-03-onenote-companion-architecture-megadump/01-triage-classification|01-triage-classification]].
 
 ```text

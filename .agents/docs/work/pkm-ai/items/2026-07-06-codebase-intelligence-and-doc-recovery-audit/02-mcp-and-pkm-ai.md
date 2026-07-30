@@ -52,8 +52,7 @@ Relevant edge types:
 | SEMANTICALLY_RELATED | 41 |
 | HTTP_CALLS | 13 |
 
-Interpretation: this is a real structural graph, not only text search. It is
-strong enough to be the default source for code discovery and impact analysis.
+Interpretation: this is a real structural graph, not only text search. It is strong enough to be the default source for code discovery and impact analysis.
 
 ## MCP HTTP UI
 
@@ -71,8 +70,7 @@ Observed:
 
 Classification: available at `http://127.0.0.1:9749/`.
 
-Interpretation: the UI exists and is reachable locally. Treat it as a visual
-inspection surface; keep MCP tool output as canonical evidence.
+Interpretation: the UI exists and is reachable locally. Treat it as a visual inspection surface; keep MCP tool output as canonical evidence.
 
 ## PKM-AI Retrieval Cache
 
@@ -116,7 +114,4 @@ query-docs --semantic: no embeddings found. Run: node .agents/tools/pkm-ai/embed
 
 Exit code: `1`.
 
-Interpretation: semantic retrieval support exists in code, but this workspace
-currently has no persisted doc embeddings. Do not run `embed-docs.ts` until the
-document recovery gate is resolved; otherwise the vector index would snapshot an
-incomplete doc corpus.
+Interpretation: semantic retrieval support exists in code, but this workspace currently has no persisted doc embeddings. Do not run `embed-docs.ts` until the document recovery gate is resolved; otherwise the vector index would snapshot an incomplete doc corpus.

@@ -16,30 +16,19 @@ tags:
 
 ## Why `unocss-preset-theme`
 
-The user decided mid-brainstorm to invert the styling-source plan: UnoCSS
-will become the primary styling source (~90% target) post-0-B via the
-new Sub-system N (SCSS-to-UnoCSS migration). 0-B anticipates that
-target state for the small token surface it owns. The decision reverses
-the earlier "SCSS-only" plan.
+The user decided mid-brainstorm to invert the styling-source plan: UnoCSS will become the primary styling source (~90% target) post-0-B via the new Sub-system N (SCSS-to-UnoCSS migration). 0-B anticipates that target state for the small token surface it owns. The decision reverses the earlier "SCSS-only" plan.
 
 Adopting `unocss-preset-theme` now means:
 
-- Built-in theme tokens are declared once, declaratively, in
-  `uno.config.ts`. No hand-maintained SCSS file for theme blocks.
-- When Sub-system N migrates the rest of the styles, theme tokens are
-  already in the canonical place. N does not have to touch them.
-- UnoCSS will continue to be the build-time source-of-truth for theme
-  CSS-var emission.
+- Built-in theme tokens are declared once, declaratively, in `uno.config.ts`. No hand-maintained SCSS file for theme blocks.
+- When Sub-system N migrates the rest of the styles, theme tokens are already in the canonical place. N does not have to touch them.
+- UnoCSS will continue to be the build-time source-of-truth for theme CSS-var emission.
 
-Custom presets continue to be runtime-injected by `ThemeService` (a
-`<style data-vm-theme-presets="custom">` element). Build-time UnoCSS
-cannot know about user-created presets; runtime injection is mandatory
-for that path.
+Custom presets continue to be runtime-injected by `ThemeService` (a `<style data-vm-theme-presets="custom">` element). Build-time UnoCSS cannot know about user-created presets; runtime injection is mandatory for that path.
 
 ## File 1 — `package.json` (MODIFIED)
 
-Add the preset-theme plugin to `devDependencies` (UnoCSS itself is
-already declared):
+Add the preset-theme plugin to `devDependencies` (UnoCSS itself is already declared):
 
 ```jsonc
 {
@@ -143,11 +132,7 @@ export default defineConfig({
 });
 ```
 
-**API note.** `@unocss/preset-theme` API may not match this skeleton
-verbatim across versions. The exact configuration shape — whether
-`selectors` is the field name, whether `prefix` controls CSS-var
-prefix, etc. — must be verified against `@unocss/preset-theme` docs
-during T10 implementation. The contract the spec mandates is:
+**API note.** `@unocss/preset-theme` API may not match this skeleton verbatim across versions. The exact configuration shape — whether `selectors` is the field name, whether `prefix` controls CSS-var prefix, etc. — must be verified against `@unocss/preset-theme` docs during T10 implementation. The contract the spec mandates is:
 
 1. Build output contains exactly two CSS blocks:
    ```css
@@ -168,20 +153,14 @@ during T10 implementation. The contract the spec mandates is:
      --vm-icon-size: 16px;
    }
    ```
-2. The selector class names are exactly `.vm-theme-native` and
-   `.vm-theme-vaultman` so `ThemeService.rootClasses` matches.
-3. The CSS variables are prefixed `--vm-*` so existing SCSS consumers
-   work unchanged.
+2. The selector class names are exactly `.vm-theme-native` and `.vm-theme-vaultman` so `ThemeService.rootClasses` matches.
+3. The CSS variables are prefixed `--vm-*` so existing SCSS consumers work unchanged.
 
-If preset-theme's actual API forces different naming, write a custom
-UnoCSS rule that emits the same CSS rather than fight the plugin. The
-spec contract is the CSS output shape, not the plugin's name for
-configuration keys.
+If preset-theme's actual API forces different naming, write a custom UnoCSS rule that emits the same CSS rather than fight the plugin. The spec contract is the CSS output shape, not the plugin's name for configuration keys.
 
 ## File 3 — `src/styles/popup/_islands.scss` (MODIFIED)
 
-Same migration as the SCSS-first plan: replace the four legacy
-theme-name blocks with a single token-driven block.
+Same migration as the SCSS-first plan: replace the four legacy theme-name blocks with a single token-driven block.
 
 ### Before
 
@@ -224,13 +203,11 @@ theme-name blocks with a single token-driven block.
 }
 ```
 
-Three legacy theme-name selectors deleted. Token values arrive from
-whichever `.vm-theme-{id}` class is active on `.vm-root`.
+Three legacy theme-name selectors deleted. Token values arrive from whichever `.vm-theme-{id}` class is active on `.vm-root`.
 
 ## File 4 — `src/styles/explorer/_virtual-list.scss` (MODIFIED)
 
-Find constants for row height, padding-y, icon size; replace with
-`var()` reads:
+Find constants for row height, padding-y, icon size; replace with `var()` reads:
 
 ```scss
 .vm-view-list-row {
@@ -246,9 +223,7 @@ Find constants for row height, padding-y, icon size; replace with
 
 ## File 5 — `src/styles/explorer/_tree.scss` (MODIFIED)
 
-Same pattern as `_virtual-list.scss`. If no row-height constants exist
-in this file (rendering depends on component style), this file may not
-need changes.
+Same pattern as `_virtual-list.scss`. If no row-height constants exist in this file (rendering depends on component style), this file may not need changes.
 
 ## DOM binding flow
 
@@ -286,18 +261,9 @@ Same as the SCSS-first plan with the source of var defs changed:
 
 ## Runtime custom preset injection
 
-Unchanged from the SCSS-first plan. ThemeService's `#syncCustomStyles`
-method appends `<style data-vm-theme-presets="custom">` to `<head>` and
-populates it with one `.vm-theme-{cssEscapedId}` block per custom
-preset, with the same six tokens that UnoCSS emits for built-ins.
+Unchanged from the SCSS-first plan. ThemeService's `#syncCustomStyles` method appends `<style data-vm-theme-presets="custom">` to `<head>` and populates it with one `.vm-theme-{cssEscapedId}` block per custom preset, with the same six tokens that UnoCSS emits for built-ins.
 
-The runtime-injected blocks coexist with UnoCSS-emitted blocks in the
-cascade. Selector specificity is identical (`.vm-theme-{id}`), so the
-later-loaded source wins. `ThemeService.#syncCustomStyles` appends to
-`<head>` after the bundle loads, so runtime blocks appear later in the
-cascade — but this only matters if a custom preset shares an id with a
-built-in, which is rejected by `registerCustomPreset` (built-in ids are
-reserved).
+The runtime-injected blocks coexist with UnoCSS-emitted blocks in the cascade. Selector specificity is identical (`.vm-theme-{id}`), so the later-loaded source wins. `ThemeService.#syncCustomStyles` appends to `<head>` after the bundle loads, so runtime blocks appear later in the cascade — but this only matters if a custom preset shares an id with a built-in, which is rejected by `registerCustomPreset` (built-in ids are reserved).
 
 ### CSS-id encoding
 
@@ -305,19 +271,13 @@ Same as before. `#cssEscape(id)` replaces non-`[A-Za-z0-9_-]` with `-`.
 
 ### Value sanitization
 
-Same as before. `#sanitizeCssLength` and `#sanitizeNumber01` validate
-each token before injection.
+Same as before. `#sanitizeCssLength` and `#sanitizeNumber01` validate each token before injection.
 
 ## Body class binding removed
 
-Unchanged from the SCSS-first plan. The four legacy body classes
-toggled by `applyVaultmanTheme` are deleted (`vm-theme-*`,
-`vm-island-backdrop-enabled`, `vm-faint-accents-workspace-focus`,
-`vm-node-backgrounds-off`, `vm-node-borders-off`).
+Unchanged from the SCSS-first plan. The four legacy body classes toggled by `applyVaultmanTheme` are deleted (`vm-theme-*`, `vm-island-backdrop-enabled`, `vm-faint-accents-workspace-focus`, `vm-node-backgrounds-off`, `vm-node-borders-off`).
 
-The first goes to `.vm-root` via `rootClasses`. The other four become
-dead body selectors until a follow-up re-binds them on `.vm-root`. See
-[[docs/work/hardening/specs/2026-05-15-explorer-0-b-servicetheme-token-layer/09-risks-and-open-items|Sec 9 R6]].
+The first goes to `.vm-root` via `rootClasses`. The other four become dead body selectors until a follow-up re-binds them on `.vm-root`. See [[docs/work/hardening/specs/2026-05-15-explorer-0-b-servicetheme-token-layer/09-risks-and-open-items|Sec 9 R6]].
 
 ## Verification queries
 
@@ -331,11 +291,7 @@ These verify the migration is complete.
 
 Also verify build output:
 
-- `grep -A 8 "vm-theme-native" dist/build/styles.css` → 6 `--vm-*`
-  custom properties declared.
-- `grep -A 8 "vm-theme-vaultman" dist/build/styles.css` → 6 `--vm-*`
-  custom properties declared.
+- `grep -A 8 "vm-theme-native" dist/build/styles.css` → 6 `--vm-*` custom properties declared.
+- `grep -A 8 "vm-theme-vaultman" dist/build/styles.css` → 6 `--vm-*` custom properties declared.
 
-The build output verification confirms `unocss-preset-theme` emitted
-the expected blocks. If absent, the preset-theme configuration in T10
-is wrong.
+The build output verification confirms `unocss-preset-theme` emitted the expected blocks. If absent, the preset-theme configuration in T10 is wrong.

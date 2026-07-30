@@ -25,13 +25,7 @@ updated_by: codex
 
 ## Scope
 
-T2 owns every high-performance node surface: virtualized tables, grids,
-card lists, and tree explorers. It integrates PretextJS for dynamic row
-measurement, migrates the existing TanStack Table + Virtual stack to
-PretextJS-derived heights, ships the new `explorerOutline` provider that
-introduces **Adopted Nodes** (Markdown headers / tasks / blocks treated
-as virtual children of file nodes), and wires the `tabOutlines` explorer
-into the workspace.
+T2 owns every high-performance node surface: virtualized tables, grids, card lists, and tree explorers. It integrates PretextJS for dynamic row measurement, migrates the existing TanStack Table + Virtual stack to PretextJS-derived heights, ships the new `explorerOutline` provider that introduces **Adopted Nodes** (Markdown headers / tasks / blocks treated as virtual children of file nodes), and wires the `tabOutlines` explorer into the workspace.
 
 ## Files
 
@@ -57,30 +51,20 @@ into the workspace.
 - Create: `test/component/viewTreeAdoptedNodes.test.ts`
 - Create: `test/component/viewNodeMirrorClasses.test.ts`
 
-Read-only (T2 must not edit): `src/services/serviceDiff.ts`,
-`src/services/serviceQueue.svelte.ts`, all overlay/portal surfaces,
-DnD services, settings UI, theme service.
+Read-only (T2 must not edit): `src/services/serviceDiff.ts`, `src/services/serviceQueue.svelte.ts`, all overlay/portal surfaces, DnD services, settings UI, theme service.
 
 ## Source Specs Consumed
 
 - 02 BETA Data Virtualization (PretextJS, TanStack patterns).
-- 08 New Explorers & Adopted Nodes (outline as virtual tree, snippets,
-  plugins, folder fix).
-- 10 Visual Polish (gadget property editors are out of T2 — listed in T4
-  for Bits UI integration).
+- 08 New Explorers & Adopted Nodes (outline as virtual tree, snippets, plugins, folder fix).
+- 10 Visual Polish (gadget property editors are out of T2 — listed in T4 for Bits UI integration).
 - 11 Bits UI Main View (Adopted Nodes & cross-pollination — outline side).
 
 ## Dependencies
 
-- **Before T2 starts:** T1 task 1.5 (`.vm-root` arbitration) must be live
-  so view components can read `themeService.useNativeDom` to switch DOM
-  shape.
-- **Coordination with T1:** If task 1.7 (snippet mimicry smoke) failed
-  because a view did not emit the mirror class, T2 task 2.3 fixes the
-  emission per-view.
-- **Coordination with T3:** Snapshot timeline view in T3 reuses T2's
-  PretextJS-measured `ViewNodeCards`. Keep `ViewNodeCards`'s public
-  props stable; flag any breaking change to T3 in the handoff.
+- **Before T2 starts:** T1 task 1.5 (`.vm-root` arbitration) must be live so view components can read `themeService.useNativeDom` to switch DOM shape.
+- **Coordination with T1:** If task 1.7 (snippet mimicry smoke) failed because a view did not emit the mirror class, T2 task 2.3 fixes the emission per-view.
+- **Coordination with T3:** Snapshot timeline view in T3 reuses T2's PretextJS-measured `ViewNodeCards`. Keep `ViewNodeCards`'s public props stable; flag any breaking change to T3 in the handoff.
 
 ---
 
@@ -92,9 +76,7 @@ DnD services, settings UI, theme service.
 node -e "const m=require('./src/services/serviceTheme.svelte.ts'.replace(/.ts$/,''));console.log(typeof require)" 2>&1 | head -n 1
 ```
 
-The actual probe is to read `src/services/serviceTheme.svelte.ts` and
-confirm the `ThemeService` class plus `useNativeDom` / `useUtilities`
-getters. If missing, halt T2 and notify T1.
+The actual probe is to read `src/services/serviceTheme.svelte.ts` and confirm the `ThemeService` class plus `useNativeDom` / `useUtilities` getters. If missing, halt T2 and notify T1.
 
 - [x] **Step 2 — Confirm `@chenglou/pretext` is installed**
 
@@ -102,8 +84,7 @@ getters. If missing, halt T2 and notify T1.
 node -e "const p=require('./package.json'); console.log(p.dependencies['@chenglou/pretext'])"
 ```
 
-Expected: `^0.0.6`. If `undefined`, the install regressed; add it back
-to `dependencies` and re-run `pnpm install`.
+Expected: `^0.0.6`. If `undefined`, the install regressed; add it back to `dependencies` and re-run `pnpm install`.
 
 ---
 
@@ -213,15 +194,11 @@ export class TextMeasureService {
 }
 ```
 
-If a `TextMeasureService` already exists with a different shape, **rename
-the legacy methods to** `legacyMeasureRowHeight` etc. **and route them to
-the new pretext-backed implementations.** Do not introduce a parallel
-service.
+If a `TextMeasureService` already exists with a different shape, **rename the legacy methods to** `legacyMeasureRowHeight` etc. **and route them to the new pretext-backed implementations.** Do not introduce a parallel service.
 
 - [x] **Step 4 — Wire the active table virtualizer to consult the heightmap**
 
-Find the `estimateSize` function in the virtualizer (currently returns
-`TABLE_ROW_HEIGHT` constant). Replace with:
+Find the `estimateSize` function in the virtualizer (currently returns `TABLE_ROW_HEIGHT` constant). Replace with:
 
 ```ts
 estimateSize: (index: number): number => {
@@ -232,9 +209,7 @@ estimateSize: (index: number): number => {
 },
 ```
 
-Inject `textMeasure` and `columnWidth` via constructor. The virtualizer
-already accepts `count` and `getScrollElement`; add the two new
-dependencies.
+Inject `textMeasure` and `columnWidth` via constructor. The virtualizer already accepts `count` and `getScrollElement`; add the two new dependencies.
 
 - [x] **Step 5 — Re-run unit tests**
 
@@ -244,14 +219,7 @@ pnpm exec vp test run --project unit --config vitest.config.ts test/unit/service
 
 Expected: PASS, 4/4.
 
-2026-05-11 implementation note: the existing codebase already owns table
-virtualization directly inside `ViewNodeTable.svelte` through
-`@tanstack/svelte-virtual`; `serviceVirtualizer.svelte.ts` remains the
-fixed-row helper for list/grid-style fallbacks. Step 4 was therefore applied
-to the active table virtualizer in T2.2 instead of introducing an unused
-parallel wrapper. `serviceTextMeasure.ts` keeps the existing `measure()`
-contract and adds `measureRowHeight()`, `cacheMisses`, `invalidate()`, and
-`invalidateAll()` on the same service.
+2026-05-11 implementation note: the existing codebase already owns table virtualization directly inside `ViewNodeTable.svelte` through `@tanstack/svelte-virtual`; `serviceVirtualizer.svelte.ts` remains the fixed-row helper for list/grid-style fallbacks. Step 4 was therefore applied to the active table virtualizer in T2.2 instead of introducing an unused parallel wrapper. `serviceTextMeasure.ts` keeps the existing `measure()` contract and adds `measureRowHeight()`, `cacheMisses`, `invalidate()`, and `invalidateAll()` on the same service.
 
 ---
 
@@ -331,9 +299,7 @@ Expected: FAIL.
 
 - [x] **Step 3 — Migrate `ViewNodeTable.svelte`**
 
-The current implementation uses `TABLE_ROW_HEIGHT = 32`. Replace the
-estimation with the virtualizer-resolved heights, and add mode-aware
-class arbitration:
+The current implementation uses `TABLE_ROW_HEIGHT = 32`. Replace the estimation with the virtualizer-resolved heights, and add mode-aware class arbitration:
 
 ```svelte
 <script lang="ts">
@@ -385,9 +351,7 @@ class arbitration:
 </div>
 ```
 
-If the project's `serviceVirtualizer.svelte.ts` does not yet expose
-`totalSize` / `items` / `key` like this, extend it. Keep TanStack
-Virtual under the hood; the wrapper class adapts to Vaultman naming.
+If the project's `serviceVirtualizer.svelte.ts` does not yet expose `totalSize` / `items` / `key` like this, extend it. Keep TanStack Virtual under the hood; the wrapper class adapts to Vaultman naming.
 
 - [x] **Step 4 — Run + iterate**
 
@@ -395,47 +359,22 @@ Virtual under the hood; the wrapper class adapts to Vaultman naming.
 pnpm exec vp test run --project component --config vitest.config.ts test/component/viewNodeTableHeightmap.test.ts --fileParallelism=false
 ```
 
-Expected: PASS, 2/2. If the wrap test fails because labels produced
-identical heights, increase the wrap label length or narrow
-`columnWidth` further.
+Expected: PASS, 2/2. If the wrap test fails because labels produced identical heights, increase the wrap label length or narrow `columnWidth` further.
 
 ### 2026-05-11 T2.0-T2.2 Continuation Log
 
-- T2.0 gate passed: `serviceTheme.svelte.ts` exposes `ThemeService` with
-  `useNativeDom` / `useUtilities`, and `package.json` reports
-  `@chenglou/pretext` as `^0.0.6`.
-- RED: `test/unit/services/serviceTextMeasurePretext.test.ts` failed 4/4
-  because `createTextMeasureService()` did not expose `measureRowHeight()`.
-- RED: `test/component/viewNodeTableHeightmap.test.ts` failed 1/2 because
-  `ViewNodeTable` still positioned table rows at fixed `0px`, `32px`,
-  `64px` offsets.
-- GREEN: `serviceTextMeasure.ts` now exposes a cached row-height heightmap on
-  the existing service, keyed by label, width, and style, while preserving
-  `measure()` for card layout.
-- GREEN: `ViewNodeTable.svelte` accepts optional `measure` and `columnWidth`,
-  estimates TanStack virtual rows through `measure.measureRowHeight()`, tracks
-  cumulative row offsets for scroll targeting and fallback rendering, and sets
-  `--vm-node-table-row-h` for measured row height.
-- GREEN: `_table.scss` applies the measured row height and lets the label cell
-  wrap without overlapping the next absolute row.
+- T2.0 gate passed: `serviceTheme.svelte.ts` exposes `ThemeService` with `useNativeDom` / `useUtilities`, and `package.json` reports `@chenglou/pretext` as `^0.0.6`.
+- RED: `test/unit/services/serviceTextMeasurePretext.test.ts` failed 4/4 because `createTextMeasureService()` did not expose `measureRowHeight()`.
+- RED: `test/component/viewNodeTableHeightmap.test.ts` failed 1/2 because `ViewNodeTable` still positioned table rows at fixed `0px`, `32px`, `64px` offsets.
+- GREEN: `serviceTextMeasure.ts` now exposes a cached row-height heightmap on the existing service, keyed by label, width, and style, while preserving `measure()` for card layout.
+- GREEN: `ViewNodeTable.svelte` accepts optional `measure` and `columnWidth`, estimates TanStack virtual rows through `measure.measureRowHeight()`, tracks cumulative row offsets for scroll targeting and fallback rendering, and sets `--vm-node-table-row-h` for measured row height.
+- GREEN: `_table.scss` applies the measured row height and lets the label cell wrap without overlapping the next absolute row.
 - Verification passed:
-  `test/unit/services/serviceTextMeasurePretext.test.ts`,
-  `test/unit/services/serviceTextMeasure.test.ts`, and
-  `test/unit/services/serviceNodeCardLayout.test.ts` passed 3 files / 13
-  tests.
+  `test/unit/services/serviceTextMeasurePretext.test.ts`, `test/unit/services/serviceTextMeasure.test.ts`, and `test/unit/services/serviceNodeCardLayout.test.ts` passed 3 files / 13 tests.
 - Verification passed:
-  `test/component/viewNodeTableHeightmap.test.ts`,
-  `test/component/viewTableSelection.test.ts`,
-  `test/component/virtualizerItemKeys.test.ts`,
-  `test/component/viewNodeCards.test.ts`, and
-  `test/component/viewNodeMirrorClasses.test.ts` passed 5 files / 20 tests.
-- Svelte verification passed: `npx @sveltejs/mcp svelte-autofixer
-  ./src/components/views/ViewNodeTable.svelte --svelte-version 5` returned
-  `issues: []`; remaining suggestions are the existing TanStack `$effect` /
-  `bind:this` pattern.
-- Final gates passed: `pnpm run check`, `pnpm run build:plugin`, and
-  `git diff --check` exited 0. `git diff --check` emitted only CRLF working
-  copy warnings.
+  `test/component/viewNodeTableHeightmap.test.ts`, `test/component/viewTableSelection.test.ts`, `test/component/virtualizerItemKeys.test.ts`, `test/component/viewNodeCards.test.ts`, and `test/component/viewNodeMirrorClasses.test.ts` passed 5 files / 20 tests.
+- Svelte verification passed: `npx @sveltejs/mcp svelte-autofixer ./src/components/views/ViewNodeTable.svelte --svelte-version 5` returned `issues: []`; remaining suggestions are the existing TanStack `$effect` / `bind:this` pattern.
+- Final gates passed: `pnpm run check`, `pnpm run build:plugin`, and `git diff --check` exited 0. `git diff --check` emitted only CRLF working copy warnings.
 
 ---
 
@@ -518,9 +457,7 @@ Expected: FAIL on at least three cases.
 
 - [x] **Step 3 — Implement polymorphic class application**
 
-In each of `ViewNodeGrid.svelte`, `ViewNodeCards.svelte`, and
-`viewTree.svelte`, add a `themeService` prop and apply class arbitration
-on the row root via `class:`:
+In each of `ViewNodeGrid.svelte`, `ViewNodeCards.svelte`, and `viewTree.svelte`, add a `themeService` prop and apply class arbitration on the row root via `class:`:
 
 ```svelte
 <script lang="ts">
@@ -558,34 +495,20 @@ Expected: PASS, 6/6 + (T1) 3/3.
 Execution note, 2026-05-11T03:34:26:
 
 - Created `test/component/viewNodeMirrorClasses.test.ts` and confirmed RED:
-  3/3 failures on missing `nav-file`, `nav-file-title`, `tree-item`,
-  `tree-item-self`, and `tree-item-inner` mirror classes.
-- Implemented optional `themeService` props in `ViewNodeGrid.svelte`,
-  `ViewNodeCards.svelte`, and `viewTree.svelte`; the views now emit native
-  mirror classes only when `themeService.useNativeDom` is true.
+  3/3 failures on missing `nav-file`, `nav-file-title`, `tree-item`, `tree-item-self`, and `tree-item-inner` mirror classes.
+- Implemented optional `themeService` props in `ViewNodeGrid.svelte`, `ViewNodeCards.svelte`, and `viewTree.svelte`; the views now emit native mirror classes only when `themeService.useNativeDom` is true.
 - GREEN:
-  `pnpm exec vp test run --project component --config vitest.config.ts test/component/viewNodeMirrorClasses.test.ts --fileParallelism=false`
-  passed 3/3.
+  `pnpm exec vp test run --project component --config vitest.config.ts test/component/viewNodeMirrorClasses.test.ts --fileParallelism=false` passed 3/3.
 - Focused regression gate:
-  `pnpm exec vp test run --project component --config vitest.config.ts test/component/viewNodeMirrorClasses.test.ts test/component/viewGridHoverBadges.test.ts test/component/viewGridSelection.test.ts test/component/viewNodeCards.test.ts test/component/viewTreeDecorations.test.ts test/component/viewTreeHoverBadges.test.ts test/component/viewTreeSelection.test.ts --fileParallelism=false`
-  passed 7 files / 61 tests.
-- Svelte autofixer returned `issues: []` for `ViewNodeGrid.svelte`,
-  `ViewNodeCards.svelte`, and `viewTree.svelte`.
-- T1 caveat: `test/component/snippetMimicry.test.ts` is still absent, so the
-  T1.7 smoke remains open; this T2.3 slice supplied the view-level mirror
-  class emissions that T1.7 will consume.
+  `pnpm exec vp test run --project component --config vitest.config.ts test/component/viewNodeMirrorClasses.test.ts test/component/viewGridHoverBadges.test.ts test/component/viewGridSelection.test.ts test/component/viewNodeCards.test.ts test/component/viewTreeDecorations.test.ts test/component/viewTreeHoverBadges.test.ts test/component/viewTreeSelection.test.ts --fileParallelism=false` passed 7 files / 61 tests.
+- Svelte autofixer returned `issues: []` for `ViewNodeGrid.svelte`, `ViewNodeCards.svelte`, and `viewTree.svelte`.
+- T1 caveat: `test/component/snippetMimicry.test.ts` is still absent, so the T1.7 smoke remains open; this T2.3 slice supplied the view-level mirror class emissions that T1.7 will consume.
 
 Integration note, 2026-05-11T03:53:32:
 
-- `PanelExplorer` now passes `plugin.themeService` into `ViewTree`,
-  `ViewNodeGrid`, `ViewNodeCards`, and `ViewNodeTable`, so mirror classes are
-  live through the production adapter rather than only direct component mounts.
-- `ViewNodeTable` now accepts optional `themeService` and emits
-  `nav-file`, `nav-file-title`, `metadata-property`, and
-  `metadata-property-key` when native DOM mode is active.
-- `test/component/snippetMimicry.test.ts` now covers the panel-level route
-  for `nav-file-title`, `tree-item-self`, and `metadata-property`; T1.7 is
-  closed in the T1 shard.
+- `PanelExplorer` now passes `plugin.themeService` into `ViewTree`, `ViewNodeGrid`, `ViewNodeCards`, and `ViewNodeTable`, so mirror classes are live through the production adapter rather than only direct component mounts.
+- `ViewNodeTable` now accepts optional `themeService` and emits `nav-file`, `nav-file-title`, `metadata-property`, and `metadata-property-key` when native DOM mode is active.
+- `test/component/snippetMimicry.test.ts` now covers the panel-level route for `nav-file-title`, `tree-item-self`, and `metadata-property`; T1.7 is closed in the T1 shard.
 
 ---
 
@@ -873,10 +796,8 @@ describe('AdoptionService', () => {
 
 - [x] **Step 3 — Implement adoption in `explorerFiles`**
 
-In `src/providers/explorerFiles.ts`, find the function that produces
-children for a file node (likely `getChildrenForFile` or equivalent).
-Inject an `AdoptionService` instance + `buildOutlineForFile` and
-concatenate adopted children:
+In `src/providers/explorerFiles.ts`, find the function that produces children for a file node (likely `getChildrenForFile` or equivalent).
+Inject an `AdoptionService` instance + `buildOutlineForFile` and concatenate adopted children:
 
 ```ts
 import { buildOutlineForFile } from './explorerOutline';
@@ -896,11 +817,8 @@ export function getChildrenForFile(file: TFile, ctx: {
 }
 ```
 
-The actual `readContent` integration depends on how `explorerFiles`
-currently lazy-loads; do not block the synchronous tree on disk reads.
-If the existing provider exposes a `children()` async API, wire
-adoption into it. If it does not, leave a TODO with the exact line and
-flag the integration in the handoff.
+The actual `readContent` integration depends on how `explorerFiles` currently lazy-loads; do not block the synchronous tree on disk reads.
+If the existing provider exposes a `children()` async API, wire adoption into it. If it does not, leave a TODO with the exact line and flag the integration in the handoff.
 
 - [x] **Step 4 — Run tests**
 
@@ -912,55 +830,29 @@ Expected: PASS, 7/7.
 
 Execution note, 2026-05-11T04:31:26:
 
-- Subagent completed the T2.4/T2.5 foundation without touching
-  `explorerFiles.ts`.
-- `src/types/typeAdoptedNode.ts`, `src/services/serviceAdoption.svelte.ts`,
-  and the base adoption service tests already existed and matched the plan
-  foundation.
-- Extended `src/providers/explorerOutline.ts` and
-  `test/unit/providers/explorerOutline.test.ts` to normalize uppercase task
-  state (`[X] -> x`), preserve `/` and `-`, strip a trailing block reference
-  from task labels, and add a sibling adopted `block` node for task-line block
-  references.
+- Subagent completed the T2.4/T2.5 foundation without touching `explorerFiles.ts`.
+- `src/types/typeAdoptedNode.ts`, `src/services/serviceAdoption.svelte.ts`, and the base adoption service tests already existed and matched the plan foundation.
+- Extended `src/providers/explorerOutline.ts` and `test/unit/providers/explorerOutline.test.ts` to normalize uppercase task state (`[X] -> x`), preserve `/` and `-`, strip a trailing block reference from task labels, and add a sibling adopted `block` node for task-line block references.
 - RED:
-  `pnpm exec vp test run --project unit --config vitest.config.ts test/unit/providers/explorerOutline.test.ts test/unit/services/serviceAdoption.test.ts --fileParallelism=false`
-  failed 1/10 because task-line block refs did not include `task-block`.
+  `pnpm exec vp test run --project unit --config vitest.config.ts test/unit/providers/explorerOutline.test.ts test/unit/services/serviceAdoption.test.ts --fileParallelism=false` failed 1/10 because task-line block refs did not include `task-block`.
 - GREEN: the same command passed 2 files / 10 tests.
 - Focused unit gate with `serviceTheme`:
-  `pnpm exec vp test run --project unit --config vitest.config.ts test/unit/services/serviceTheme.test.ts test/unit/providers/explorerOutline.test.ts test/unit/services/serviceAdoption.test.ts --fileParallelism=false`
-  passed 3 files / 14 tests.
-- Svelte autofixer CLI returned `issues: []` for
-  `src/services/serviceAdoption.svelte.ts`.
+  `pnpm exec vp test run --project unit --config vitest.config.ts test/unit/services/serviceTheme.test.ts test/unit/providers/explorerOutline.test.ts test/unit/services/serviceAdoption.test.ts --fileParallelism=false` passed 3 files / 14 tests.
+- Svelte autofixer CLI returned `issues: []` for `src/services/serviceAdoption.svelte.ts`.
 - Earlier partial note, superseded by the 2026-05-11T06:04:23 continuation:
-  T2.5 Step 3 remained open because `explorerFiles.getTree()` was synchronous
-  around
-  `src/providers/explorerFiles.ts:101-120`, so adopted-node content requires an
-  async or cache-backed content stage before it can be safely concatenated into
-  file-node children.
+  T2.5 Step 3 remained open because `explorerFiles.getTree()` was synchronous around `src/providers/explorerFiles.ts:101-120`, so adopted-node content requires an async or cache-backed content stage before it can be safely concatenated into file-node children.
 
 Continuation note, 2026-05-11T06:04:23:
 
-- Completed T2.5 Step 3 with explicit cache-backed adoption in
-  `src/providers/explorerFiles.ts`. `getTree()` remains synchronous and only
-  attaches adopted children already cached by `preloadAdoptedChildren()`.
-- Added optional `adoptionService`, `readFileContent`, `subscribe()`, and
-  `preloadAdoptedChildren()` support to `explorerFiles`. The preload path
-  reads markdown content asynchronously, builds outlines with
-  `buildOutlineForFile`, stores raw adopted trees by file path, and notifies
-  subscribers after cache changes.
-- Integration guard added after review: when `AdoptionService.enabled` is
-  false, preload returns before file-content I/O and before subscriber
-  notification.
+- Completed T2.5 Step 3 with explicit cache-backed adoption in `src/providers/explorerFiles.ts`. `getTree()` remains synchronous and only attaches adopted children already cached by `preloadAdoptedChildren()`.
+- Added optional `adoptionService`, `readFileContent`, `subscribe()`, and `preloadAdoptedChildren()` support to `explorerFiles`. The preload path reads markdown content asynchronously, builds outlines with `buildOutlineForFile`, stores raw adopted trees by file path, and notifies subscribers after cache changes.
+- Integration guard added after review: when `AdoptionService.enabled` is false, preload returns before file-content I/O and before subscriber notification.
 - RED:
-  `pnpm exec vp test run --project unit --config vitest.config.ts test/unit/components/explorerFiles.test.ts --fileParallelism=false`
-  failed 3/18 before implementation on missing `preloadAdoptedChildren` and
-  `subscribe` APIs; after the integration guard assertion was added it failed
-  1/18 because disabled adoption still read file content.
+  `pnpm exec vp test run --project unit --config vitest.config.ts test/unit/components/explorerFiles.test.ts --fileParallelism=false` failed 3/18 before implementation on missing `preloadAdoptedChildren` and `subscribe` APIs; after the integration guard assertion was added it failed 1/18 because disabled adoption still read file content.
 - GREEN:
   `test/unit/components/explorerFiles.test.ts` passed 18/18.
 - Focused adopted-node unit gate:
-  `pnpm exec vp test run --project unit --config vitest.config.ts test/unit/components/explorerFiles.test.ts test/unit/providers/explorerOutline.test.ts test/unit/services/serviceAdoption.test.ts test/unit/frame/frameFiltersSearch.test.ts --fileParallelism=false`
-  passed 4 files / 31 tests.
+  `pnpm exec vp test run --project unit --config vitest.config.ts test/unit/components/explorerFiles.test.ts test/unit/providers/explorerOutline.test.ts test/unit/services/serviceAdoption.test.ts test/unit/frame/frameFiltersSearch.test.ts --fileParallelism=false` passed 4 files / 31 tests.
 
 ---
 
@@ -990,15 +882,9 @@ describe('explorerFiles folder context menu', () => {
 
 - [x] **Step 2 — Implement**
 
-In `explorerFiles.ts`, ensure that `handleContextMenu` accepts both
-`file` and `folder` kinds. Per spec 08: folders **must** support
-context menus and the "Create Node Note" action. Update the predicate
-that previously skipped folders.
+In `explorerFiles.ts`, ensure that `handleContextMenu` accepts both `file` and `folder` kinds. Per spec 08: folders **must** support context menus and the "Create Node Note" action. Update the predicate that previously skipped folders.
 
-For the filter side: when a folder is selected, the folder must NOT
-join the global filter list. Instead, expose a "Filter: is in folder
-<name>" badge that the user can click. In `serviceFilter.svelte.ts`,
-add:
+For the filter side: when a folder is selected, the folder must NOT join the global filter list. Instead, expose a "Filter: is in folder <name>" badge that the user can click. In `serviceFilter.svelte.ts`, add:
 
 ```ts
 addIsInFolderFilter(folder: { path: string; name: string }): void {
@@ -1023,33 +909,18 @@ Expected: PASS.
 
 Execution note, 2026-05-11T05:01:54:
 
-- Implemented T2.6 using existing test files rather than creating
-  `test/unit/providers/explorerFilesFolderMenu.test.ts`, because this repo's
-  explorer provider tests live under `test/unit/components/explorerFiles.test.ts`.
+- Implemented T2.6 using existing test files rather than creating `test/unit/providers/explorerFilesFolderMenu.test.ts`, because this repo's explorer provider tests live under `test/unit/components/explorerFiles.test.ts`.
 - RED, folder context:
-  `pnpm exec vp test run --project unit --config vitest.config.ts test/unit/components/explorerFiles.test.ts --fileParallelism=false`
-  failed 1/15 after fixture correction because `handleContextMenu` made zero
-  calls for folder nodes.
+  `pnpm exec vp test run --project unit --config vitest.config.ts test/unit/components/explorerFiles.test.ts --fileParallelism=false` failed 1/15 after fixture correction because `handleContextMenu` made zero calls for folder nodes.
 - RED, folder filter badge:
-  `pnpm exec vp test run --project unit --config vitest.config.ts test/unit/services/serviceFilter.test.ts --fileParallelism=false`
-  failed 1/21 because `FilterService.addIsInFolderFilter` did not exist.
+  `pnpm exec vp test run --project unit --config vitest.config.ts test/unit/services/serviceFilter.test.ts --fileParallelism=false` failed 1/21 because `FilterService.addIsInFolderFilter` did not exist.
 - GREEN:
-  `test/unit/components/explorerFiles.test.ts` passed 15/15 and
-  `test/unit/services/serviceFilter.test.ts` passed 21/21.
+  `test/unit/components/explorerFiles.test.ts` passed 15/15 and `test/unit/services/serviceFilter.test.ts` passed 21/21.
 - Focused regression gate:
-  `pnpm exec vp test run --project unit --config vitest.config.ts test/unit/components/explorerFiles.test.ts test/unit/services/serviceFilter.test.ts test/unit/services/serviceCMenu.test.ts test/unit/services/serviceActiveFiltersIndex.test.ts --fileParallelism=false`
-  passed 4 files / 48 tests.
+  `pnpm exec vp test run --project unit --config vitest.config.ts test/unit/components/explorerFiles.test.ts test/unit/services/serviceFilter.test.ts test/unit/services/serviceCMenu.test.ts test/unit/services/serviceActiveFiltersIndex.test.ts --fileParallelism=false` passed 4 files / 48 tests.
 - Implementation:
-  `explorerFiles.handleContextMenu` now opens panel context menus for folder
-  nodes; `explorerFiles` registers `folder.filter`, whose label is
-  `Filter: is in folder <name>` and whose action calls
-  `FilterService.addIsInFolderFilter`; `FilterService` deduplicates
-  `folder:<path>` rules and exposes `is in folder <path>` through
-  `getFlatRules()`.
-- Svelte autofixer on `serviceFilter.svelte.ts`: `issues: []`; it suggested
-  replacing existing internal `Set` instances with `SvelteSet`, but those sets
-  are non-rendering subscriber/deduplication internals and were left unchanged
-  for scope control.
+  `explorerFiles.handleContextMenu` now opens panel context menus for folder nodes; `explorerFiles` registers `folder.filter`, whose label is `Filter: is in folder <name>` and whose action calls `FilterService.addIsInFolderFilter`; `FilterService` deduplicates `folder:<path>` rules and exposes `is in folder <path>` through `getFlatRules()`.
+- Svelte autofixer on `serviceFilter.svelte.ts`: `issues: []`; it suggested replacing existing internal `Set` instances with `SvelteSet`, but those sets are non-rendering subscriber/deduplication internals and were left unchanged for scope control.
 
 ---
 
@@ -1155,9 +1026,7 @@ describe('viewOutlineExplorer', () => {
 
 - [x] **Step 3 — Register the tab**
 
-In `serviceViews.svelte.ts`, append an outline-tab descriptor matching
-the existing tab registry shape. Read the file to confirm shape — do
-not invent fields. Add the i18n key `tabs.outline.title` to locales.
+In `serviceViews.svelte.ts`, append an outline-tab descriptor matching the existing tab registry shape. Read the file to confirm shape — do not invent fields. Add the i18n key `tabs.outline.title` to locales.
 
 - [x] **Step 4 — Run tests + check + build**
 
@@ -1172,59 +1041,30 @@ Expected: PASS, build exits 0.
 Execution note, 2026-05-11T05:24:59:
 
 - Created `test/component/viewTreeAdoptedNodes.test.ts` and confirmed RED:
-  `pnpm exec vp test run --project component --config vitest.config.ts test/component/viewTreeAdoptedNodes.test.ts --fileParallelism=false`
-  failed because `src/components/views/viewOutlineExplorer.svelte` did not
-  exist.
-- Implemented `src/components/views/viewOutlineExplorer.svelte` as the
-  adopted-node outline tree surface. It renders header/task/block rows with
-  `tree-item`, `tree-item-self`, `tree-item-inner`, and
-  `tree-item-children` mirror classes when native DOM mode is active, plus
-  Vaultman-owned `vm-outline-*` classes in all modes.
+  `pnpm exec vp test run --project component --config vitest.config.ts test/component/viewTreeAdoptedNodes.test.ts --fileParallelism=false` failed because `src/components/views/viewOutlineExplorer.svelte` did not exist.
+- Implemented `src/components/views/viewOutlineExplorer.svelte` as the adopted-node outline tree surface. It renders header/task/block rows with `tree-item`, `tree-item-self`, `tree-item-inner`, and `tree-item-children` mirror classes when native DOM mode is active, plus Vaultman-owned `vm-outline-*` classes in all modes.
 - GREEN:
-  `pnpm exec vp test run --project component --config vitest.config.ts test/component/viewTreeAdoptedNodes.test.ts --fileParallelism=false`
-  passed 1/1 before the final sweep.
+  `pnpm exec vp test run --project component --config vitest.config.ts test/component/viewTreeAdoptedNodes.test.ts --fileParallelism=false` passed 1/1 before the final sweep.
 - Final focused component gate:
-  `pnpm exec vp test run --project component --config vitest.config.ts test/component/viewTreeAdoptedNodes.test.ts test/component/viewNodeMirrorClasses.test.ts --fileParallelism=false`
-  passed 2 files / 4 tests.
+  `pnpm exec vp test run --project component --config vitest.config.ts test/component/viewTreeAdoptedNodes.test.ts test/component/viewNodeMirrorClasses.test.ts --fileParallelism=false` passed 2 files / 4 tests.
 - Adopted-node unit gate:
-  `pnpm exec vp test run --project unit --config vitest.config.ts test/unit/providers/explorerOutline.test.ts test/unit/services/serviceAdoption.test.ts --fileParallelism=false`
-  passed 2 files / 10 tests.
-- Svelte autofixer returned `issues: []` and `suggestions: []` for
-  `viewOutlineExplorer.svelte`.
-- `pnpm run check` passed with 0 errors / 0 warnings and
-  `pnpm run build:plugin` exited 0.
+  `pnpm exec vp test run --project unit --config vitest.config.ts test/unit/providers/explorerOutline.test.ts test/unit/services/serviceAdoption.test.ts --fileParallelism=false` passed 2 files / 10 tests.
+- Svelte autofixer returned `issues: []` and `suggestions: []` for `viewOutlineExplorer.svelte`.
+- `pnpm run check` passed with 0 errors / 0 warnings and `pnpm run build:plugin` exited 0.
 - Earlier partial note, superseded by the 2026-05-11T06:04:23 continuation:
-  Step 3 remained open because `serviceViews.svelte.ts` is a row/view-model service,
-  not a tab registry. The actual tab surfaces currently route through
-  `src/types/typeTab.ts` (`FTabs`) and `src/registry/tabRegistry.ts`; a real
-  `tabOutlines` registration still needs an active-file/async content route
-  rather than a descriptor invented in the wrong service.
+  Step 3 remained open because `serviceViews.svelte.ts` is a row/view-model service, not a tab registry. The actual tab surfaces currently route through `src/types/typeTab.ts` (`FTabs`) and `src/registry/tabRegistry.ts`; a real `tabOutlines` registration still needs an active-file/async content route rather than a descriptor invented in the wrong service.
 
 Continuation note, 2026-05-11T06:04:23:
 
-- Completed T2.7 Step 3 through the real tab route rather than
-  `serviceViews.svelte.ts`: `FTabs` now includes `outline`,
-  `tabRegistry` maps `outline` to canonical `explorer-outline`, and
-  `DetachedTabHost` can mount the outline tab.
+- Completed T2.7 Step 3 through the real tab route rather than `serviceViews.svelte.ts`: `FTabs` now includes `outline`, `tabRegistry` maps `outline` to canonical `explorer-outline`, and `DetachedTabHost` can mount the outline tab.
 - Added `src/components/pages/tabOutlines.svelte` as the active-file wrapper:
-  it listens for active-file changes, reads the current file content
-  asynchronously, builds adopted outline nodes with `buildOutlineForFile`,
-  and renders `viewOutlineExplorer.svelte`.
-- Added i18n labels for `filter.tab.outline` in English and Spanish and
-  extended frame filter-search state for the outline tab.
+  it listens for active-file changes, reads the current file content asynchronously, builds adopted outline nodes with `buildOutlineForFile`, and renders `viewOutlineExplorer.svelte`.
+- Added i18n labels for `filter.tab.outline` in English and Spanish and extended frame filter-search state for the outline tab.
 - RED:
-  `pnpm exec vp test run --project component --config vitest.config.ts test/component/tabOutlinesRegistration.test.ts --fileParallelism=false`
-  failed 3/3 before implementation because `FTabs` lacked `outline`,
-  `tabIdFromInner('outline')` returned `null`, and `DetachedTabHost` did not
-  render `.vm-outline-explorer`.
+  `pnpm exec vp test run --project component --config vitest.config.ts test/component/tabOutlinesRegistration.test.ts --fileParallelism=false` failed 3/3 before implementation because `FTabs` lacked `outline`, `tabIdFromInner('outline')` returned `null`, and `DetachedTabHost` did not render `.vm-outline-explorer`.
 - GREEN/focused component gate:
-  `pnpm exec vp test run --project component --config vitest.config.ts test/component/tabOutlinesRegistration.test.ts test/component/navbarTabs.test.ts test/component/detachedTabHost.test.ts test/component/viewTreeAdoptedNodes.test.ts test/component/viewNodeMirrorClasses.test.ts --fileParallelism=false`
-  passed 5 files / 13 tests.
-- Svelte autofixer returned `issues: []` for `tabOutlines.svelte`,
-  `DetachedTabHost.svelte`, `pageFilters.svelte`, and
-  `viewOutlineExplorer.svelte`. `frameVaultman.svelte` still returns the
-  pre-existing parser diagnostic `',' expected. at line undefined, column
-  undefined`; `svelte-check` is the authoritative gate for that legacy file.
+  `pnpm exec vp test run --project component --config vitest.config.ts test/component/tabOutlinesRegistration.test.ts test/component/navbarTabs.test.ts test/component/detachedTabHost.test.ts test/component/viewTreeAdoptedNodes.test.ts test/component/viewNodeMirrorClasses.test.ts --fileParallelism=false` passed 5 files / 13 tests.
+- Svelte autofixer returned `issues: []` for `tabOutlines.svelte`, `DetachedTabHost.svelte`, `pageFilters.svelte`, and `viewOutlineExplorer.svelte`. `frameVaultman.svelte` still returns the pre-existing parser diagnostic `',' expected. at line undefined, column undefined`; `svelte-check` is the authoritative gate for that legacy file.
 
 ---
 
@@ -1241,20 +1081,11 @@ obsidian vault=plugin-dev eval code="(() => activeDocument.querySelectorAll('.vm
 obsidian vault=plugin-dev dev:errors
 ```
 
-Expected: all tests pass, `svelte-check` exits 0, build exits 0, plugin
-reloads, eval returns a positive integer in a populated vault, no
-Vaultman stack in dev errors. Performance check (run separately, not
-gating handoff): scroll the table with 10,000 nodes; row paint should
-stay above 30fps in DevTools' performance tab.
+Expected: all tests pass, `svelte-check` exits 0, build exits 0, plugin reloads, eval returns a positive integer in a populated vault, no Vaultman stack in dev errors. Performance check (run separately, not gating handoff): scroll the table with 10,000 nodes; row paint should stay above 30fps in DevTools' performance tab.
 
 ## Handoff Notes
 
-- If `serviceVirtualizer.svelte.ts` was extended for the new estimator
-  signature, list every other caller you updated in the handoff so T3
-  can re-use the same shape for the snapshot timeline.
-- If the cross-pollination integration in 2.5 had to stub `readContent`,
-  note the exact line so T4 can finish it during the dashboard wire-up.
-- `explorerSnippets` and `explorerPlugins` were not modified by this
-  thread; their alias logic (`$` and `%`) remains with T4.
-- Adopted Nodes DnD (block extraction) lives in T4 task 4.6 — do not
-  start it here.
+- If `serviceVirtualizer.svelte.ts` was extended for the new estimator signature, list every other caller you updated in the handoff so T3 can re-use the same shape for the snapshot timeline.
+- If the cross-pollination integration in 2.5 had to stub `readContent`, note the exact line so T4 can finish it during the dashboard wire-up.
+- `explorerSnippets` and `explorerPlugins` were not modified by this thread; their alias logic (`$` and `%`) remains with T4.
+- Adopted Nodes DnD (block extraction) lives in T4 task 4.6 — do not start it here.

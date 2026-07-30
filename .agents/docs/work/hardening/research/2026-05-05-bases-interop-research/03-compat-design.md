@@ -17,9 +17,7 @@ tags:
 Current `src/types/typeFilter.ts` is rule/group oriented:
 
 - group logic: `all`, `any`, `none`.
-- rules: `has_property`, `missing_property`, `specific_value`,
-  `multiple_values`, `folder`, `folder_exclude`, `file_name`,
-  `file_name_exclude`, `file_path`, `file_folder`, `has_tag`.
+- rules: `has_property`, `missing_property`, `specific_value`, `multiple_values`, `folder`, `folder_exclude`, `file_name`, `file_name_exclude`, `file_path`, `file_folder`, `has_tag`.
 
 This represents a small subset of Bases filters. It cannot represent:
 
@@ -56,14 +54,11 @@ Suggested IRs:
 - `BasesExpressionIR`
   - parsed filter/formula expression or raw fallback.
 - `VaultmanFilterIR`
-  - superset of current `FilterGroup`, with raw expression leaves for
-    unsupported Bases logic.
+  - superset of current `FilterGroup`, with raw expression leaves for unsupported Bases logic.
 - `VaultmanViewIR`
-  - maps Bases `views[]` to Vaultman view mode, columns, sort, group,
-    cards/table options, and custom metadata.
+  - maps Bases `views[]` to Vaultman view mode, columns, sort, group, cards/table options, and custom metadata.
 - `InteropReport`
-  - warnings for lossy import/export, unsupported functions, plugin-specific
-    view types, and fields preserved as opaque metadata.
+  - warnings for lossy import/export, unsupported functions, plugin-specific view types, and fields preserved as opaque metadata.
 
 ## Recommended Import Levels
 
@@ -77,28 +72,23 @@ Suggested IRs:
    - evaluate/compile supported predicates into Vaultman filter logic.
 4. View import:
    - core `table`, `cards`, `list` map to Vaultman views.
-   - `map`, TaskNotes, dynamic/facet/carousel views are preserved as
-     plugin-specific view configs until explicitly supported.
+   - `map`, TaskNotes, dynamic/facet/carousel views are preserved as plugin-specific view configs until explicitly supported.
 5. Export:
    - Vaultman filters/views export to `.base`.
-   - unsupported Vaultman semantics should be emitted as report/comments, not
-     silently dropped.
+   - unsupported Vaultman semantics should be emitted as report/comments, not silently dropped.
 
 ## Can Views Be Used Both Ways?
 
 Confirmed:
 
 - Vaultman can register custom Bases views using public API.
-- A Vaultman Bases view would receive filtered Bases data from Obsidian via
-  `BasesQueryResult`; this is a strong path for “our views in Bases”.
+- A Vaultman Bases view would receive filtered Bases data from Obsidian via `BasesQueryResult`; this is a strong path for “our views in Bases”.
 
 Not confirmed / likely not safe:
 
 - Reusing other plugins’ Bases renderers directly inside Vaultman explorers.
-  Public API exposes registration and Bases data objects, not a registry for
-  instantiating arbitrary third-party view classes inside another plugin.
-  Safer path is importing/exporting serialized view config and optionally
-  implementing compatible Vaultman renderers for selected view types.
+  Public API exposes registration and Bases data objects, not a registry for instantiating arbitrary third-party view classes inside another plugin.
+  Safer path is importing/exporting serialized view config and optionally implementing compatible Vaultman renderers for selected view types.
 
 ## First Implementation Options
 
@@ -116,19 +106,13 @@ Option B: export current Vaultman filters/views to `.base`.
 Option C: register Vaultman Bases view.
 
 - Proves API integration.
-- Requires careful Svelte/DOM integration and performance testing with
-  `BasesQueryResult`.
+- Requires careful Svelte/DOM integration and performance testing with `BasesQueryResult`.
 
-Recommended first slice: Option A, because it builds the compatibility matrix
-and prevents silent data loss.
+Recommended first slice: Option A, because it builds the compatibility matrix and prevents silent data loss.
 
 ## Open Questions
 
-- How much of Bases expression syntax should Vaultman evaluate itself versus
-  preserving as raw expressions?
-- Should advanced raw Bases expressions become active filters, read-only
-  filters, or query chips with unsupported badges?
-- Should plugin-specific views map to opaque `VaultmanViewIR.custom`, or should
-  known plugins like TaskNotes get adapters?
-- How should export preserve unknown custom keys: exact round-trip, namespaced
-  metadata, or report-only?
+- How much of Bases expression syntax should Vaultman evaluate itself versus preserving as raw expressions?
+- Should advanced raw Bases expressions become active filters, read-only filters, or query chips with unsupported badges?
+- Should plugin-specific views map to opaque `VaultmanViewIR.custom`, or should known plugins like TaskNotes get adapters?
+- How should export preserve unknown custom keys: exact round-trip, namespaced metadata, or report-only?

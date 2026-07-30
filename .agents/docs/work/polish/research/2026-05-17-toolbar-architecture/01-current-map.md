@@ -32,61 +32,27 @@ updated_by: codex
 
 ## Call sites y dependencias observadas
 
-- `pageFilters.svelte` importa `Toolbar` y lo monta directamente con
-  `bind:this={toolbarApi}`.
-- `pageFilters.svelte` traduce `filtersActiveTab === 'outline'` a
-  `toolbarActiveTab === 'content'`, lo que confirma que el toolbar no sabe
-  representar todos los tabs de Filters.
-- `Toolbar.svelte` define internamente `type FiltersTab = 'props' | 'files' |
-  'tags' | 'content'`.
-- `Toolbar.svelte` importa `explorerFiles`, `explorerProps`, `explorerTags`,
-  `FnRIslandService`, `explorerAddOps`, `serviceOperationScope` y
-  `serviceNodeFieldVisibility`; no recibe una capability interface agnóstica.
-- `frameVaultman.svelte` renderiza `FiltersPage`, `OperationsPage` y
-  `StatisticsPage`, pero solo `FiltersPage` recibe toda la familia de estado
-  que requiere el toolbar.
-- `pageTools.svelte` usa `NavbarTabs` y renderiza tabs internos; no expone
-  primitives de toolbar.
-- `explorerActiveFilters.svelte` implementa una toolbar propia de squircles
-  para import/export, add group y clear.
-- `ThemePreset.toolbar.buttons` existe en tipos y presets built-in, pero no hay
-  consumo runtime del campo en `Toolbar.svelte` ni en `frameVaultman.svelte`.
+- `pageFilters.svelte` importa `Toolbar` y lo monta directamente con `bind:this={toolbarApi}`.
+- `pageFilters.svelte` traduce `filtersActiveTab === 'outline'` a `toolbarActiveTab === 'content'`, lo que confirma que el toolbar no sabe representar todos los tabs de Filters.
+- `Toolbar.svelte` define internamente `type FiltersTab = 'props' | 'files' | 'tags' | 'content'`.
+- `Toolbar.svelte` importa `explorerFiles`, `explorerProps`, `explorerTags`, `FnRIslandService`, `explorerAddOps`, `serviceOperationScope` y `serviceNodeFieldVisibility`; no recibe una capability interface agnóstica.
+- `frameVaultman.svelte` renderiza `FiltersPage`, `OperationsPage` y `StatisticsPage`, pero solo `FiltersPage` recibe toda la familia de estado que requiere el toolbar.
+- `pageTools.svelte` usa `NavbarTabs` y renderiza tabs internos; no expone primitives de toolbar.
+- `explorerActiveFilters.svelte` implementa una toolbar propia de squircles para import/export, add group y clear.
+- `ThemePreset.toolbar.buttons` existe en tipos y presets built-in, pero no hay consumo runtime del campo en `Toolbar.svelte` ni en `frameVaultman.svelte`.
 
 ## Por qué está conectado solo a Filters page
 
-1. **La interface del módulo revela el acoplamiento.** `Toolbar.svelte` acepta
-   `activeTab` como `props/files/tags/content`; no acepta un `surfaceId`
-   genérico ni capabilities por página.
-2. **El estado que necesita no existe fuera de Filters page.** Search por tab,
-   `filtersSearchCategory`, `filtersFnRState`, explorer providers,
-   `nodeExpansionSummary`, field visibility y operation scope son estado de
-   `pageFilters.svelte`.
-3. **Los comandos globales se enchufan desde Filters page.** `pageFilters`
-   registra `plugin.openViewMenuHook`, `plugin.openSortMenuHook` y
-   `plugin.openContentSearchHook`; el frame no tiene un registry de comandos de
-   toolbar.
-4. **Otras páginas ya resolvieron sus controles localmente.** `pageTools` usa
-   `NavbarTabs`; active filters usa una squircle row; grid usa
-   `GridNavigationToolbar`. Esas superficies no tienen una interface común que
-   el toolbar pueda consumir.
-5. **El preset no participa.** `toolbar.buttons` existe en los presets, pero
-   no hay un resolver que traduzca `core`, `full` o `string[]` a primitives
-   reales.
+1. **La interface del módulo revela el acoplamiento.** `Toolbar.svelte` acepta `activeTab` como `props/files/tags/content`; no acepta un `surfaceId` genérico ni capabilities por página.
+2. **El estado que necesita no existe fuera de Filters page.** Search por tab, `filtersSearchCategory`, `filtersFnRState`, explorer providers, `nodeExpansionSummary`, field visibility y operation scope son estado de `pageFilters.svelte`.
+3. **Los comandos globales se enchufan desde Filters page.** `pageFilters` registra `plugin.openViewMenuHook`, `plugin.openSortMenuHook` y `plugin.openContentSearchHook`; el frame no tiene un registry de comandos de toolbar.
+4. **Otras páginas ya resolvieron sus controles localmente.** `pageTools` usa `NavbarTabs`; active filters usa una squircle row; grid usa `GridNavigationToolbar`. Esas superficies no tienen una interface común que el toolbar pueda consumir.
+5. **El preset no participa.** `toolbar.buttons` existe en los presets, pero no hay un resolver que traduzca `core`, `full` o `string[]` a primitives reales.
 
-En términos de arquitectura, el módulo es poco profundo: su interface es casi
-tan compleja como su implementación. La señal es que moverlo a otra página
-obliga a conocer demasiados detalles internos de Filters.
+En términos de arquitectura, el módulo es poco profundo: su interface es casi tan compleja como su implementación. La señal es que moverlo a otra página obliga a conocer demasiados detalles internos de Filters.
 
 ## Riesgo de seguir agregando condicionales
 
-Si se añade `activePage === 'tools'`, `activePage === 'statistics'` o
-`activeTab === 'outline'` directamente dentro de `Toolbar.svelte`, la interface
-crece en paralelo con cada nueva superficie. Eso degrada locality porque los
-cambios de PageTools, Grid, active filters o theme presets terminarían editando
-el mismo archivo aunque sus reglas pertenezcan a dominios distintos.
+Si se añade `activePage === 'tools'`, `activePage === 'statistics'` o `activeTab === 'outline'` directamente dentro de `Toolbar.svelte`, la interface crece en paralelo con cada nueva superficie. Eso degrada locality porque los cambios de PageTools, Grid, active filters o theme presets terminarían editando el mismo archivo aunque sus reglas pertenezcan a dominios distintos.
 
-La prueba de eliminación también marca el problema: si se elimina
-`Toolbar.svelte`, la complejidad no desaparece; reaparece repartida entre
-Filters search, Sort menu, View menu, FnR, add ops, field visibility y command
-hooks. Eso indica que el module actual sí encapsula comportamiento, pero su
-interface no tiene suficiente profundidad para reutilizarlo fuera de Filters.
+La prueba de eliminación también marca el problema: si se elimina `Toolbar.svelte`, la complejidad no desaparece; reaparece repartida entre Filters search, Sort menu, View menu, FnR, add ops, field visibility y command hooks. Eso indica que el module actual sí encapsula comportamiento, pero su interface no tiene suficiente profundidad para reutilizarlo fuera de Filters.

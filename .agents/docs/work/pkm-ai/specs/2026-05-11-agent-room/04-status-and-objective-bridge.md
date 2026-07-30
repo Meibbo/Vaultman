@@ -124,9 +124,7 @@ cancelled -> cancelled
 skipped -> on-hold
 ```
 
-`failed` maps to `blocked` because existing objective vocabulary does not have
-a failure state. The event log should preserve the original `failed` task
-status so the loss is visible.
+`failed` maps to `blocked` because existing objective vocabulary does not have a failure state. The event log should preserve the original `failed` task status so the loss is visible.
 
 ## Bridge Rules
 
@@ -134,9 +132,6 @@ status so the loss is visible.
 - Sync requires a current task claim token.
 - Importing objectives must not overwrite existing room tasks.
 - A room task may point to one objective only.
-- One objective may have multiple room tasks only when the user explicitly
-  decomposes it.
-- `objectives list --json` should delegate to `manage-tasks.mjs` rather than
-  parse Markdown directly.
-- If `manage-tasks.mjs` cannot expose required fields, update that script first
-  with a small structured-output change.
+- One objective may have multiple room tasks only when the user explicitly decomposes it.
+- `objectives list --json` should delegate to `manage-tasks.mjs` rather than parse Markdown directly.
+- If `manage-tasks.mjs` cannot expose required fields, update that script first with a small structured-output change.

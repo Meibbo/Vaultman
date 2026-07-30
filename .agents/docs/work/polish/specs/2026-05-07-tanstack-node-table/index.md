@@ -20,13 +20,9 @@ glossary_candidates:
 
 # TanStack Node Table
 
-Build the real `viewTable` for Vaultman as a dense node matrix backed by
-TanStack Table core logic and Vaultman's existing Svelte 5 view architecture.
+Build the real `viewTable` for Vaultman as a dense node matrix backed by TanStack Table core logic and Vaultman's existing Svelte 5 view architecture.
 
-The user approved the conservative Svelte 5 route: use
-`@tanstack/table-core` behind a thin local adapter, keep
-`NodeSelectionService` authoritative, and integrate TanStack row-selection APIs
-as controlled table UI helpers.
+The user approved the conservative Svelte 5 route: use `@tanstack/table-core` behind a thin local adapter, keep `NodeSelectionService` authoritative, and integrate TanStack row-selection APIs as controlled table UI helpers.
 
 ## Shards
 
@@ -37,15 +33,9 @@ as controlled table UI helpers.
 ## Implementation Status
 
 - MVP table implementation completed and verified in the current worktree.
-- UI route completed after smoke found the view-mode popup did not expose
-  `table`; `ViewModePopup` now includes a Table button and translation.
-- Obsidian CLI smoke verified the popup switches to table mode, renders 1
-  `.vm-node-table` with 23 rows and `Name / Detail / Count` headers, supports
-  row selection and header sorting, and reports no runtime errors or console
-  errors after interaction.
-- Provider-specific table columns are implemented for `props`, `tags`, `files`,
-  and `content`; Obsidian CLI smoke verified the live `props` table renders
-  `Name / Kind / Type / Count` with `Property` and `Value` row cells.
+- UI route completed after smoke found the view-mode popup did not expose `table`; `ViewModePopup` now includes a Table button and translation.
+- Obsidian CLI smoke verified the popup switches to table mode, renders 1 `.vm-node-table` with 23 rows and `Name / Detail / Count` headers, supports row selection and header sorting, and reports no runtime errors or console errors after interaction.
+- Provider-specific table columns are implemented for `props`, `tags`, `files`, and `content`; Obsidian CLI smoke verified the live `props` table renders `Name / Kind / Type / Count` with `Property` and `Value` row cells.
 
 ## Scope Summary
 
@@ -70,6 +60,4 @@ Out of scope for the first implementation:
 
 ## Next Action
 
-Choose the next post-MVP table capability, such as inline cell edit,
-copy/paste, range selection, persisted column layout, Bases summaries, or
-formulas.
+Choose the next post-MVP table capability, such as inline cell edit, copy/paste, range selection, persisted column layout, Bases summaries, or formulas.

@@ -43,5 +43,4 @@ propMatches.forEach(m => console.log(`- ${m}`));
 
 - [ ] **Step 2: Run to verify it works**
 
-Run: `node tools/pkm-ai/analyze-code.mjs src/components/pages/pageFilters.svelte` (or any existing file)
-Expected: Prints the exports and props found.
+Run: `node tools/pkm-ai/analyze-code.mjs src/components/pages/pageFilters.svelte` (or any existing file) Expected: Prints the exports and props found.

@@ -32,9 +32,7 @@ updated_by: codex
 | `boxSearch.svelte` | Legacy popup file/folder search fields. | `layoutOverlay`. |
 | `dropDScope.svelte` | Legacy operation-scope popup. | `layoutOverlay`. |
 
-`PrimitiveFab` is the most coupled primitive. It imports i18n, badge
-descriptors, `FabDef`, and mouse gesture merging. It handles primary,
-double-click, alt-click, and middle-click routes through `serviceMouse`.
+`PrimitiveFab` is the most coupled primitive. It imports i18n, badge descriptors, `FabDef`, and mouse gesture merging. It handles primary, double-click, alt-click, and middle-click routes through `serviceMouse`.
 
 ## Badge Service
 
@@ -43,37 +41,25 @@ double-click, alt-click, and middle-click routes through `serviceMouse`.
 - Badge kinds: set, rename, convert, delete, filter, node-note.
 - FAB badge kinds: queue and filters.
 - Order: set -> rename -> convert -> delete -> filter -> node-note.
-- Hover badge visibility skips active badges and collapses to filter when a
-  delete badge is active.
+- Hover badge visibility skips active badges and collapses to filter when a delete badge is active.
 - Delete with set/rename/convert is detected as a warning contradiction.
 - Operation and node-badge descriptors can be mapped back into badge kinds.
 
-Consumers include Explorer view hover badges, badge bubbling utilities,
-`PrimitiveFab`, and component tests around FAB counts/click weights.
+Consumers include Explorer view hover badges, badge bubbling utilities, `PrimitiveFab`, and component tests around FAB counts/click weights.
 
 ## Settings UI
 
 `src/components/settings/SettingsUI.svelte` is the declarative settings tab.
 
-- IN: `iVaultmanPlugin`, `plugin.settings`, `plugin.app`, translation keys,
-  layout normalization, operation-scope normalization, mouse action resolution,
-  elastic UI defaults/normalization, and reusable controls.
-- OUT: mutates `plugin.settings` via `Object.assign(...$state.snapshot(s))`
-  and calls `plugin.saveSettings()`.
-- Important side effect: toggles `vm-bases-column-separators` on
-  `activeDocument.body`.
+- IN: `iVaultmanPlugin`, `plugin.settings`, `plugin.app`, translation keys, layout normalization, operation-scope normalization, mouse action resolution, elastic UI defaults/normalization, and reusable controls.
+- OUT: mutates `plugin.settings` via `Object.assign(...$state.snapshot(s))` and calls `plugin.saveSettings()`.
+- Important side effect: toggles `vm-bases-column-separators` on `activeDocument.body`.
 - It intentionally uses targeted handlers instead of a blanket autosave effect;
-  component tests cover the historical `effect_update_depth_exceeded`
-  regression.
+  component tests cover the historical `effect_update_depth_exceeded` regression.
 
-`src/components/settings/settingsLeafToggle.svelte` is a Tools page support
-control that toggles every `ALL_TAB_IDS` entry through `LeafDetachService`.
+`src/components/settings/settingsLeafToggle.svelte` is a Tools page support control that toggles every `ALL_TAB_IDS` entry through `LeafDetachService`.
 
 ## Risk Notes
 
-- General primitives are small, but `PrimitiveFab`, `boxSearch`, and
-  `dropDScope` are app-specific. Treat them as layout primitives, not neutral
-  design-system primitives.
-- `SettingsUI` is broad and writes many settings directly. Refactors should be
-  test-first because settings migration, UI mount behavior, and save semantics
-  are already covered by tests.
+- General primitives are small, but `PrimitiveFab`, `boxSearch`, and `dropDScope` are app-specific. Treat them as layout primitives, not neutral design-system primitives.
+- `SettingsUI` is broad and writes many settings directly. Refactors should be test-first because settings migration, UI mount behavior, and save semantics are already covered by tests.

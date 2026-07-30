@@ -18,26 +18,16 @@ tags:
 
 ## Context
 
-Context menus, bars, fabs, dock items, and hover-actions duplicate logic. Reference
-plugins (Commander, Editing Toolbar) and VSCode/Terminal show "commands/menus as
-data". A cascading menu is structurally a tree of action items — the same shape as our
-explorer.
+Context menus, bars, fabs, dock items, and hover-actions duplicate logic. Reference plugins (Commander, Editing Toolbar) and VSCode/Terminal show "commands/menus as data". A cascading menu is structurally a tree of action items — the same shape as our explorer.
 
 ## Decision
 
-Actions are a **NodeKind (`ActionNode`)** produced by an **`ActionProvider`** that
-aggregates ours + Obsidian commands + other plugins' menu contributions. Cmenus, bars,
-fabs, and dock items are ActionNodes in different placements rendered by the same
-node/view engine. Default cmenu renderer = native Obsidian `Menu`; explorer-as-menu is
-opt-in and only for OS-style/high-density cases (ARIA-gated by T.G). A **badge** is a
-placement that hosts either a status-cell or an action-node.
+Actions are a **NodeKind (`ActionNode`)** produced by an **`ActionProvider`** that aggregates ours + Obsidian commands + other plugins' menu contributions. Cmenus, bars, fabs, and dock items are ActionNodes in different placements rendered by the same node/view engine. Default cmenu renderer = native Obsidian `Menu`; explorer-as-menu is opt-in and only for OS-style/high-density cases (ARIA-gated by T.G). A **badge** is a placement that hosts either a status-cell or an action-node.
 
 ## Consequences
 
-- One engine powers explorer + menus + bars; programmable actions/macros; the
-  long-wanted menu-curator (render Obsidian's menus from the ActionProvider).
-- Must not over-generalize: action vs file node have different semantics (NodeKind
-  parameterizes); small menus must not pay virtualizer cost.
+- One engine powers explorer + menus + bars; programmable actions/macros; the long-wanted menu-curator (render Obsidian's menus from the ActionProvider).
+- Must not over-generalize: action vs file node have different semantics (NodeKind parameterizes); small menus must not pay virtualizer cost.
 
 ## Alternatives considered
 

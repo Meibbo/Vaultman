@@ -13,8 +13,7 @@ tags:
 
 ## Phase 1: Bootstrap
 
-- Update ignore rules so `docs/**`, `skills/**`, and
-  `tools/**` can be tracked on agent branches.
+- Update ignore rules so `docs/**`, `skills/**`, and `tools/**` can be tracked on agent branches.
 - Create lean root `AGENTS.md` and `CLAUDE.md`.
 - Create `start.md`, `index.md`, `current/status.md`, and `current/handoff.md`.
 
@@ -54,5 +53,4 @@ Use `skill-creator` and `writing-skills` discipline. Start with:
 
 ## Phase 6: Add Automation Scripts
 
-Create only scripts needed by the initial skills and health checks. Avoid
-semantic/vector indexing until structural indexing fails to meet retrieval needs.
+Create only scripts needed by the initial skills and health checks. Avoid semantic/vector indexing until structural indexing fails to meet retrieval needs.

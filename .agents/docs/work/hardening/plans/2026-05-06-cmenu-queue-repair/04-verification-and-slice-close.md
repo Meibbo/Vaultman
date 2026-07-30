@@ -37,8 +37,7 @@ Before claiming A0 complete:
 pnpm run check
 ```
 
-If Svelte files were edited, also run `svelte-autofixer` on each changed Svelte
-component before `pnpm run check`.
+If Svelte files were edited, also run `svelte-autofixer` on each changed Svelte component before `pnpm run check`.
 
 ## Documentation Closeout
 
@@ -48,8 +47,7 @@ component before `pnpm run check`.
    - tests run;
    - A0 result;
    - next slice named as A1 prop/value rename handoff.
-3. Keep `docs/current/status.md` under 200 lines by linking to this
-   plan if more detail is needed.
+3. Keep `docs/current/status.md` under 200 lines by linking to this plan if more detail is needed.
 4. Run:
 
 ```powershell

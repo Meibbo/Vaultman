@@ -17,20 +17,15 @@ updated_by: codex
 
 ## Goal
 
-Resolve the remaining non-blocking `glossary-unknown` health warnings after the
-health residual auto-repair slice.
+Resolve the remaining non-blocking `glossary-unknown` health warnings after the health residual auto-repair slice.
 
 ## Source Warnings
 
-`node .agents/tools/pkm-ai/check-doc-health.mjs` reported 23 glossary warnings
-across hardening and polish source records. The warnings were candidates, not
-health failures; `doc health: OK` already passed.
+`node .agents/tools/pkm-ai/check-doc-health.mjs` reported 23 glossary warnings across hardening and polish source records. The warnings were candidates, not health failures; `doc health: OK` already passed.
 
 ## Triage Decision
 
-All reported terms are active Vaultman vocabulary, adopted library vocabulary,
-or named implementation slices. None were stale probe terms or unrelated
-external/test terms.
+All reported terms are active Vaultman vocabulary, adopted library vocabulary, or named implementation slices. None were stale probe terms or unrelated external/test terms.
 
 Accepted into [[docs/architecture/glossary|Glossary]]:
 

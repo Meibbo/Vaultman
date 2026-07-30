@@ -20,19 +20,13 @@ Router for invoking parallel agents after EDP-002 landed on `claude/explorer`.
 
 ## Baseline
 
-- Branch/worktree: `C:\Users\vic_A\Desktop\vaultman\.claude\worktrees\jovial-wilson-f81c67`
-  on `claude/explorer`.
-- Latest integrated commit: current `claude/explorer` head,
-  `feat: add explorer data-plane perf probes`.
+- Branch/worktree: `C:\Users\vic_A\Desktop\vaultman\.claude\worktrees\jovial-wilson-f81c67` on `claude/explorer`.
+- Latest integrated commit: current `claude/explorer` head, `feat: add explorer data-plane perf probes`.
 - EDP-001 is completed.
 - EDP-002 is implemented and committed.
 - EDP-003, EDP-004, EDP-005, and EDP-007 are implemented and integrated.
-- Focused EDP-002 gates passed before this dispatch index: unit EDP tests,
-  component EDP tests, `pnpm run check`, `pnpm run build:plugin`, and
-  `git diff --check`.
-- Known full-suite performance-threshold residuals are deferred to the final
-  stabilization gate. Do not relax performance thresholds inside functional
-  EDP slices.
+- Focused EDP-002 gates passed before this dispatch index: unit EDP tests, component EDP tests, `pnpm run check`, `pnpm run build:plugin`, and `git diff --check`.
+- Known full-suite performance-threshold residuals are deferred to the final stabilization gate. Do not relax performance thresholds inside functional EDP slices.
 
 ## Every Agent Reads First
 
@@ -45,18 +39,14 @@ Router for invoking parallel agents after EDP-002 landed on `claude/explorer`.
 7. This dispatch index.
 8. [[05-worker-operating-contract|EDP worker operating contract]]
 
-Use one worktree per implementation agent. The exact worktree names, branch
-names, start commands, ownership rules, verification expectations, and handoff
-format live in [[05-worker-operating-contract|EDP worker operating contract]].
+Use one worktree per implementation agent. The exact worktree names, branch names, start commands, ownership rules, verification expectations, and handoff format live in [[05-worker-operating-contract|EDP worker operating contract]].
 Stop and report if a task crosses ownership boundaries.
 
 ## Current Parallelism Rule
 
-- Immediate next slice: Agent E0 / EDP-006 shared snapshot contract
-  coordinator.
+- Immediate next slice: Agent E0 / EDP-006 shared snapshot contract coordinator.
 - Next parallel split: Wave 3, Agents E1 and E2, after E0 lands.
-- Do not dispatch E1/E2 from `sandbox` or branches that predate the EDP-005
-  perf-probe commit.
+- Do not dispatch E1/E2 from `sandbox` or branches that predate the EDP-005 perf-probe commit.
 
 ## Dependency Map
 
@@ -101,8 +91,7 @@ graph TD
 
 ## Wave 1 - Completed Parallel Start
 
-These agents were originally safe to start in parallel after `f4cdbc7`; their
-reconciled output is integrated in `d110fe6`.
+These agents were originally safe to start in parallel after `f4cdbc7`; their reconciled output is integrated in `d110fe6`.
 
 ### Agent A - EDP-003 Panel/Reveal
 
@@ -125,9 +114,7 @@ Must not touch:
 - media cache modules
 - Tags/Props providers
 
-Done when Files uses snapshot visible order where available, non-snapshot
-providers keep fallback recursive paths, reveal targets are revision-aware, and
-focused panel/tree/reveal tests pass.
+Done when Files uses snapshot visible order where available, non-snapshot providers keep fallback recursive paths, reveal targets are revision-aware, and focused panel/tree/reveal tests pass.
 
 Unlocks: EDP-005 and EDP-009 after EDP-004 also lands.
 
@@ -152,9 +139,7 @@ Must not touch:
 - media cache modules
 - Tags/Props providers except for type-only compatibility if unavoidable
 
-Done when Files batches layer creation through `ViewService`, queue/filter-only
-changes update layers without structural snapshot rebuilds, and batch parity
-tests match current per-node decoration behavior.
+Done when Files batches layer creation through `ViewService`, queue/filter-only changes update layers without structural snapshot rebuilds, and batch parity tests match current per-node decoration behavior.
 
 Unlocks: EDP-005, EDP-008, and EDP-009 after their other blockers land.
 
@@ -179,8 +164,7 @@ Must not touch:
 - `panelExplorer.svelte`
 - `serviceViews.svelte.ts`
 
-Done when media metadata/blobs are separate, blob reads validate `mediaKey`,
-and visible-row media updates do not rebuild structural snapshots or layers.
+Done when media metadata/blobs are separate, blob reads validate `mediaKey`, and visible-row media updates do not rebuild structural snapshots or layers.
 
 Unlocks: final stabilization gate. It does not block EDP-003 or EDP-004.
 
@@ -201,12 +185,10 @@ Starts after: EDP-003 and EDP-004 are merged together.
 
 Owns:
 - performance probe additions and records
-- tests or scripts that measure snapshot creation, lookup-map creation, layer
-  batching, reveal lookup, and total panel refresh cost
+- tests or scripts that measure snapshot creation, lookup-map creation, layer batching, reveal lookup, and total panel refresh cost
 
 Must not:
-- relax `stress.test.ts` or `viewTableStress.test.ts` thresholds as part of
-  this slice
+- relax `stress.test.ts` or `viewTableStress.test.ts` thresholds as part of this slice
 - mix functional adapter migrations into the measurement patch
 
 Unlocks: EDP-006.
@@ -215,8 +197,7 @@ Unlocks: EDP-006.
 
 Starts after: EDP-005 lands.
 
-Dispatch the short E0 coordinator first if shared adapter contract ownership is
-still ambiguous. After E0 lands, split:
+Dispatch the short E0 coordinator first if shared adapter contract ownership is still ambiguous. After E0 lands, split:
 
 - Agent E0: Shared snapshot contract coordinator.
 - Agent E1: Tags snapshot adapter.
@@ -227,9 +208,7 @@ still ambiguous. After E0 lands, split:
 - [[docs/work/hardening/specs/2026-05-11-explorer-data-plane-structural-taxonomy/07-wave-2-tags-props-vertical-spec|Wave 2 Tags/Props vertical spec]]
 
 Agent E0 owns shared contracts. Agent E1 owns Tags provider/container/tests.
-Agent E2 owns Props provider/container/tests. Only E0 may modify shared
-data-plane contracts unless the coordinator explicitly hands off a type-only
-compatibility patch.
+Agent E2 owns Props provider/container/tests. Only E0 may modify shared data-plane contracts unless the coordinator explicitly hands off a type-only compatibility patch.
 
 Worker setup: see [[05-worker-operating-contract#Wave 3 - TagsProps Snapshot Adapters|Wave 3 operating contract]].
 
@@ -247,8 +226,7 @@ Worker setup: see [[05-worker-operating-contract#Wave 4 - Agent F - EDP-008 Over
 - [[docs/work/hardening/specs/2026-05-11-explorer-data-plane-structural-taxonomy/17-wave-4-follow-up-slices#slice-b---overlay-projection-module|Wave 4 Slice B]]
 - [[docs/work/hardening/specs/2026-05-11-explorer-data-plane-structural-taxonomy/08-wave-2-overlay-invalidation-spec|Wave 2 overlay invalidation spec]]
 
-Owns overlay projection modules/tests. Must preserve `ViewLayers`,
-`serviceBadge`, and `badgeRegistry` vocabulary.
+Owns overlay projection modules/tests. Must preserve `ViewLayers`, `serviceBadge`, and `badgeRegistry` vocabulary.
 
 Unlocks: EDP-009.
 
@@ -256,13 +234,11 @@ Unlocks: EDP-009.
 
 Starts after: EDP-003, EDP-004, and EDP-008 land.
 
-Dispatch a coordinator to freeze row-input vocabulary, then split if write
-scopes stay clean:
+Dispatch a coordinator to freeze row-input vocabulary, then split if write scopes stay clean:
 
 - Agent G1: tree/grid adapter row contract.
 - Agent G2: table/cards adapter row contract.
-- Agent G3: skipped. SVAR is no longer needed and should be removed by the
-  EDP-009 agent after row-contract finalization, including package imports.
+- Agent G3: skipped. SVAR is no longer needed and should be removed by the EDP-009 agent after row-contract finalization, including package imports.
 
 - [[docs/work/hardening/issues/explorer-data-plane/009-adapter-row-contract-follow-up|EDP-009]]
 - [[docs/work/hardening/specs/2026-05-11-explorer-data-plane-structural-taxonomy/17-wave-4-follow-up-slices#slice-c---adapter-row-contract|Wave 4 Slice C]]
@@ -293,12 +269,8 @@ Unlocks: final stabilization gate.
 
 Run only after all functional EDP slices intended for this batch have landed.
 
-Required checks: focused tests from all completed EDP agents,
-`pnpm run test:unit`, `pnpm run test:component`, `pnpm run lint`,
-`pnpm run check`, `pnpm run build:plugin`, `git diff --check`, and live
-Obsidian smoke against `plugin-dev` if runtime behavior changed.
+Required checks: focused tests from all completed EDP agents, `pnpm run test:unit`, `pnpm run test:component`, `pnpm run lint`, `pnpm run check`, `pnpm run build:plugin`, `git diff --check`, and live Obsidian smoke against `plugin-dev` if runtime behavior changed.
 
-This is where the known performance-threshold residuals are diagnosed or
-handled. Do not let earlier agents solve them by weakening thresholds.
+This is where the known performance-threshold residuals are diagnosed or handled. Do not let earlier agents solve them by weakening thresholds.
 
 Worker setup: see [[05-worker-operating-contract#Final Stabilization Agent|Final stabilization operating contract]].

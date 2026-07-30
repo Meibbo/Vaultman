@@ -12,9 +12,7 @@ tags:
 
 # Settings Shape (Clean Break)
 
-The user confirmed during brainstorm: no pre-0-B userbase exists. 0-B
-adopts a clean-break shape — no migration code, no downgrade safety, no
-`@deprecated` markers, no legacy normalize fallbacks.
+The user confirmed during brainstorm: no pre-0-B userbase exists. 0-B adopts a clean-break shape — no migration code, no downgrade safety, no `@deprecated` markers, no legacy normalize fallbacks.
 
 ## `ElasticUiSettings` — post-0-B shape
 
@@ -91,9 +89,7 @@ export function normalizeElasticUiSettings(raw: unknown): ElasticUiSettings {
 }
 ```
 
-`themePresetId` and `customPresets` are required interface fields with
-defaults provided by `DEFAULT_ELASTIC_UI_SETTINGS`. The normalizer fills
-defaults for missing or invalid input.
+`themePresetId` and `customPresets` are required interface fields with defaults provided by `DEFAULT_ELASTIC_UI_SETTINGS`. The normalizer fills defaults for missing or invalid input.
 
 ## `VaultmanSettings` — fields removed in 0-B
 
@@ -118,8 +114,7 @@ export interface VaultmanSettings {
 }
 ```
 
-`updateGlassBlur(): void` method declaration is also removed from the
-interface (was at `typeSettings.ts:141`).
+`updateGlassBlur(): void` method declaration is also removed from the interface (was at `typeSettings.ts:141`).
 
 ```typescript
 // DEFAULT_SETTINGS excerpt
@@ -207,22 +202,17 @@ updateGlassBlur(): void {
 Its consumers also lose their calls:
 
 - `main.ts:147` `this.updateGlassBlur()` after hydrate — removed.
-- `SettingsUI.svelte:97` `plugin.updateGlassBlur()` — removed (along with
-  the glass slider UI).
+- `SettingsUI.svelte:97` `plugin.updateGlassBlur()` — removed (along with the glass slider UI).
 
 ## `SettingsUI.svelte` — controls removed
 
 - Legacy `layoutTheme` dropdown — removed.
 - Glass blur slider — removed.
 - Island backdrop toggle — removed.
-- Any mock or test references in `test/component/settingsUI.test.ts` are
-  cleaned up correspondingly.
+- Any mock or test references in `test/component/settingsUI.test.ts` are cleaned up correspondingly.
 
-The Settings UI loses three controls. The new preset selector that
-replaces them is **out of scope** for 0-B (sub-system "Settings UI
-refresh"). Until that lands, users switch presets by editing `data.json`.
-This is documented as known UI degradation in
-[[docs/work/hardening/specs/2026-05-15-explorer-0-b-servicetheme-token-layer/09-risks-and-open-items|Sec 9 O1]].
+The Settings UI loses three controls. The new preset selector that replaces them is **out of scope** for 0-B (sub-system "Settings UI refresh"). Until that lands, users switch presets by editing `data.json`.
+This is documented as known UI degradation in [[docs/work/hardening/specs/2026-05-15-explorer-0-b-servicetheme-token-layer/09-risks-and-open-items|Sec 9 O1]].
 
 ## `data.json` — before and after
 
@@ -263,9 +253,7 @@ This is documented as known UI degradation in
 }
 ```
 
-Three keys removed at top level (`layoutTheme`, `glassBlurIntensity`,
-`islandBackdropBlur`). Two keys added inside `elasticUi`
-(`themePresetId`, `customPresets`).
+Three keys removed at top level (`layoutTheme`, `glassBlurIntensity`, `islandBackdropBlur`). Two keys added inside `elasticUi` (`themePresetId`, `customPresets`).
 
 ### Custom preset example (user authors manually)
 
@@ -319,8 +307,6 @@ This custom preset:
 - Starts from `native` (records via `extends`).
 - Same DOM emission (`useNativeDom: true`) and chrome/density as native.
 - BUT enables the dock (`dock.visible: true`, presentation `'drawer'`).
-- Unlocks node-element visibility so user can toggle via
-  `btnNodeElementsVisibility` (once Sub-system 0-A wires it).
+- Unlocks node-element visibility so user can toggle via `btnNodeElementsVisibility` (once Sub-system 0-A wires it).
 
-The user activates by setting `themePresetId: "native-with-dock"` at top
-of `elasticUi`.
+The user activates by setting `themePresetId: "native-with-dock"` at top of `elasticUi`.

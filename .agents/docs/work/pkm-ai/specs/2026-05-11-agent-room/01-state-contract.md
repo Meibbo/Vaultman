@@ -27,8 +27,7 @@ updated_by: codex
 - JSON files are written with temp-file replacement.
 - JSONL files are append-only.
 - Lock files are never edited by hand.
-- Stale locks may be reported automatically; removal requires explicit command
-  intent.
+- Stale locks may be reported automatically; removal requires explicit command intent.
 
 ## Run Manifest
 
@@ -102,14 +101,12 @@ Rules:
 - `taskId` is stable inside a run.
 - `objectiveId` is optional and points to `manage-tasks.mjs` state when present.
 - `claim.token` is required for release and status transition by owner.
-- A task with an unexpired claim cannot be claimed by a different owner unless
-  `--force` is provided and an event is appended.
+- A task with an unexpired claim cannot be claimed by a different owner unless `--force` is provided and an event is appended.
 - Terminal tasks cannot move back to active statuses without `--reopen`.
 
 ## Scope Claim
 
-Scope claims can be stored inline on tasks for v1. If run-level non-task scope
-claims are needed, add:
+Scope claims can be stored inline on tasks for v1. If run-level non-task scope claims are needed, add:
 
 ```text
 .agents/state/runs/{runId}/scopes.json

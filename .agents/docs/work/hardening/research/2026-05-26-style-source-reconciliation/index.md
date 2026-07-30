@@ -16,12 +16,9 @@ tags:
 
 # Style Source Reconciliation
 
-Method + matrix for juggling style across versions, feeding **N (SCSS→UnoCSS)** and the
-**proto-v6 integration** grill. Per the locked norm: prototypes are merge INPUTS, not
-canonical. Decide concern-by-concern, source-attributed.
+Method + matrix for juggling style across versions, feeding **N (SCSS→UnoCSS)** and the **proto-v6 integration** grill. Per the locked norm: prototypes are merge INPUTS, not canonical. Decide concern-by-concern, source-attributed.
 
-Related: [[docs/work/hardening/research/2026-05-25-architecture-foundation-discovery/roadmap-dispatch|roadmap-dispatch]]
-(constraint: proto-v6 breaking style → before N) · [[docs/work/hardening/specs/2026-05-19-explorer-merge-umbrella/index|merge umbrella]] (built vs v5) · [[docs/work/hardening/research/2026-05-26-style-source-reconciliation/proto-v6-sidebar-map|proto-v6 sidebar map]] (piece → model → roadmap).
+Related: [[docs/work/hardening/research/2026-05-25-architecture-foundation-discovery/roadmap-dispatch|roadmap-dispatch]] (constraint: proto-v6 breaking style → before N) · [[docs/work/hardening/specs/2026-05-19-explorer-merge-umbrella/index|merge umbrella]] (built vs v5) · [[docs/work/hardening/research/2026-05-26-style-source-reconciliation/proto-v6-sidebar-map|proto-v6 sidebar map]] (piece → model → roadmap).
 
 ## Sources + authority
 
@@ -50,8 +47,7 @@ Maps the user's diferencias / parecidos / adiciones / eliminaciones / superseded
 ## Translation target
 
 Per the 0-B token layer: prefer **UnoCSS utility**, **SCSS** only where structural/complex.
-Every ADOPT/RESHAPE row notes its target. N consumes this matrix; proto-v6 breaking style
-lands BEFORE N (roadmap constraint).
+Every ADOPT/RESHAPE row notes its target. N consumes this matrix; proto-v6 breaking style lands BEFORE N (roadmap constraint).
 
 ## Matrix (grows style-by-style)
 
@@ -74,40 +70,26 @@ lands BEFORE N (roadmap constraint).
 
 ## Source evidence — proto-v6 (agent, 2026-05-26)
 
-- Styling = **CSS custom-properties (tokens) bound via `data-theme`, NO framework** (not
-  Tailwind/UnoCSS); BEM `.vm-*` + `.is-*`. Vars mirror Obsidian native (`--background-primary`,
-  `--text-muted`, `--interactive-accent`) → chameleon-friendly. **N target = MAP these tokens
-  into 0-B + UnoCSS**, not adopt raw CSS.
+- Styling = **CSS custom-properties (tokens) bound via `data-theme`, NO framework** (not Tailwind/UnoCSS); BEM `.vm-*` + `.is-*`. Vars mirror Obsidian native (`--background-primary`, `--text-muted`, `--interactive-accent`) → chameleon-friendly. **N target = MAP these tokens into 0-B + UnoCSS**, not adopt raw CSS.
 - Tinting via `color-mix(in srgb, … N%, transparent)`, not opacity — ADOPT (theme-consistent).
-- Views: tree (sticky parents + connector lines) · Nautilus icon grid + tile list (4 sizes
-  each) · card grid · content/search (`<mark>`). **Table = legacy styled list** (`.vm-grid-table`),
-  not an engine.
-- CONFIRMED missing: per-node decorations · separated table engine · tree+grid hybrid · column
-  customization · focus ring · scoped nested-search highlight · ARIA labels · per-node cmenu wiring.
+- Views: tree (sticky parents + connector lines) · Nautilus icon grid + tile list (4 sizes each) · card grid · content/search (`<mark>`). **Table = legacy styled list** (`.vm-grid-table`), not an engine.
+- CONFIRMED missing: per-node decorations · separated table engine · tree+grid hybrid · column customization · focus ring · scoped nested-search highlight · ARIA labels · per-node cmenu wiring.
 - Adopt-worthy: multi-theme color-mix tokens · radius/type/spacing scale · glass blur · compact density.
 - Files: `Vaultman Prototype v6.html` (tokens L8–82) · `proto-v6/nautilus.jsx` · `proto-v6/control-island.jsx`.
 
 ## Source evidence — stable↔beta (agent, 2026-05-26)
 
-Net: **beta is MORE complete than stable** (fuller badges, inset-shadow filters, virtualized tree +
-indent guides, better cards). Surprises vs the dev's assumptions:
+Net: **beta is MORE complete than stable** (fuller badges, inset-shadow filters, virtualized tree + indent guides, better cards). Surprises vs the dev's assumptions:
 
-- **per-node decorations**: beta's `.vm-badge` (quick-action / hover / undoable / inherited) >
-  stable's basic badges → row 1 source = **beta**, not stable.
-- **in-filters highlight**: beta UPGRADED it (inset shadow + child-opacity elevation; virtual-list
-  14% + 78% accent) — not a stable-only win. (Dev recalled stable as "prettiest" — likely taste, or
-  conflated with the selection regression below.)
-- **search-result**: stable + beta share an IDENTICAL transient pulse (`@keyframes vm-search-pulse`,
-  0.8s), refactored to tokens, no regression → search = transient, NOT a durable mark.
-- **regression found**: row selection tint stable **accent 12%** → beta **text-faint 11%** (less
-  prominent). Likely the regression the dev sensed.
+- **per-node decorations**: beta's `.vm-badge` (quick-action / hover / undoable / inherited) > stable's basic badges → row 1 source = **beta**, not stable.
+- **in-filters highlight**: beta UPGRADED it (inset shadow + child-opacity elevation; virtual-list 14% + 78% accent) — not a stable-only win. (Dev recalled stable as "prettiest" — likely taste, or conflated with the selection regression below.)
+- **search-result**: stable + beta share an IDENTICAL transient pulse (`@keyframes vm-search-pulse`, 0.8s), refactored to tokens, no regression → search = transient, NOT a durable mark.
+- **regression found**: row selection tint stable **accent 12%** → beta **text-faint 11%** (less prominent). Likely the regression the dev sensed.
 
-Files: `src/styles/explorer/{_explorer,_tree,_virtual-list,_cards,_tags}.scss` ·
-`components/_badges.scss` · `_animations.scss`.
+Files: `src/styles/explorer/{_explorer,_tree,_virtual-list,_cards,_tags}.scss` · `components/_badges.scss` · `_animations.scss`.
 
 ## Status
 
 Both evidence agents IN (proto-v6 + stable↔beta). Matrix rows 1–7. Evidence corrected assumptions:
 row 1 source = beta (not stable); 2a in-filters = beta improved; 2b search = transient (RESOLVED);
-NEW row 7 = selection-color regression (accent→text-faint). Pending dev calls: confirm row 1 / 2a
-source = beta; row 7 (restore accent?); rows 4–6 adopt. Then the matrix feeds N + the proto-v6 grill.
+NEW row 7 = selection-color regression (accent→text-faint). Pending dev calls: confirm row 1 / 2a source = beta; row 7 (restore accent?); rows 4–6 adopt. Then the matrix feeds N + the proto-v6 grill.

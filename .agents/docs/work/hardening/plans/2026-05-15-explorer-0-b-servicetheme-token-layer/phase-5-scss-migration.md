@@ -13,10 +13,7 @@ tags:
 
 # Phase 5 — SCSS Migration
 
-Three tasks: create the built-in token blocks file, migrate
-`_islands.scss` to token-driven chrome, migrate row-height consumers to
-the new density token. SCSS changes have no unit-test gate — verify via
-build and visual smoke.
+Three tasks: create the built-in token blocks file, migrate `_islands.scss` to token-driven chrome, migrate row-height consumers to the new density token. SCSS changes have no unit-test gate — verify via build and visual smoke.
 
 ## Task 10 — Install `@unocss/preset-theme` and configure built-in tokens
 
@@ -27,13 +24,10 @@ build and visual smoke.
 
 - [ ] **Step 1: Install `@unocss/preset-theme`**
 
-Run: `pnpm add -D @unocss/preset-theme@latest`
-Expected: `package.json` `devDependencies` gains `@unocss/preset-theme`
-at a version matching the installed `unocss` (currently ^66.6.8).
+Run: `pnpm add -D @unocss/preset-theme@latest` Expected: `package.json` `devDependencies` gains `@unocss/preset-theme` at a version matching the installed `unocss` (currently ^66.6.8).
 `pnpm-lock.yaml` is updated.
 
-If the latest version differs from the installed `unocss` major
-version, pin to the matching version explicitly:
+If the latest version differs from the installed `unocss` major version, pin to the matching version explicitly:
 
 ```bash
 pnpm add -D @unocss/preset-theme@^66.6.8
@@ -41,14 +35,9 @@ pnpm add -D @unocss/preset-theme@^66.6.8
 
 - [ ] **Step 2: Read the installed preset-theme API surface**
 
-Run: `cat node_modules/@unocss/preset-theme/package.json | head -20`
-Note the entry point and version. Read the README at
-`node_modules/@unocss/preset-theme/README.md` (or browse the
-[GitHub repo](https://github.com/unocss/unocss/tree/main/packages/preset-theme))
-to confirm exact configuration shape.
+Run: `cat node_modules/@unocss/preset-theme/package.json | head -20` Note the entry point and version. Read the README at `node_modules/@unocss/preset-theme/README.md` (or browse the [GitHub repo](https://github.com/unocss/unocss/tree/main/packages/preset-theme)) to confirm exact configuration shape.
 
-The spec mandates this OUTPUT contract; the configuration shape may
-differ across plugin versions and the engineer must adapt:
+The spec mandates this OUTPUT contract; the configuration shape may differ across plugin versions and the engineer must adapt:
 
 1. Build emits exactly:
    ```css
@@ -70,21 +59,13 @@ differ across plugin versions and the engineer must adapt:
    }
    ```
 2. Variable names use the `--vm-` prefix exactly.
-3. Class selectors are `.vm-theme-native` and `.vm-theme-vaultman`
-   exactly.
+3. Class selectors are `.vm-theme-native` and `.vm-theme-vaultman` exactly.
 
-If `@unocss/preset-theme`'s declarative API doesn't reach this shape
-(e.g., it generates `.theme-{name}` selectors with no override), the
-engineer writes a custom UnoCSS rule via `rules:` array that emits
-the equivalent CSS — preserving the OUTPUT contract above. Do NOT
-fight the plugin.
+If `@unocss/preset-theme`'s declarative API doesn't reach this shape (e.g., it generates `.theme-{name}` selectors with no override), the engineer writes a custom UnoCSS rule via `rules:` array that emits the equivalent CSS — preserving the OUTPUT contract above. Do NOT fight the plugin.
 
 - [ ] **Step 3: Modify `uno.config.ts`**
 
-Replace the file contents with the spec-mandated configuration. The
-exact API in the code below uses `presetTheme` with `prefix`,
-`theme`, and `selectors` fields — adjust if the installed version
-uses different field names while preserving the output contract.
+Replace the file contents with the spec-mandated configuration. The exact API in the code below uses `presetTheme` with `prefix`, `theme`, and `selectors` fields — adjust if the installed version uses different field names while preserving the output contract.
 
 ```typescript
 import {
@@ -171,25 +152,17 @@ export default defineConfig({
 
 - [ ] **Step 4: Run build**
 
-Run: `pnpm run build:plugin`
-Expected: build passes.
+Run: `pnpm run build:plugin` Expected: build passes.
 
-If the preset-theme config shape is incorrect for the installed
-version, the build fails. Inspect the error; consult preset-theme
-README; adjust the config; re-run.
+If the preset-theme config shape is incorrect for the installed version, the build fails. Inspect the error; consult preset-theme README; adjust the config; re-run.
 
 - [ ] **Step 5: Verify build output**
 
-Run: `grep -A 8 "vm-theme-native" dist/build/styles.css | head -10`
-Expected: six `--vm-*` custom properties listed within the
-`.vm-theme-native { ... }` block.
+Run: `grep -A 8 "vm-theme-native" dist/build/styles.css | head -10` Expected: six `--vm-*` custom properties listed within the `.vm-theme-native { ... }` block.
 
-Run: `grep -A 8 "vm-theme-vaultman" dist/build/styles.css | head -10`
-Expected: six `--vm-*` custom properties listed within the
-`.vm-theme-vaultman { ... }` block.
+Run: `grep -A 8 "vm-theme-vaultman" dist/build/styles.css | head -10` Expected: six `--vm-*` custom properties listed within the `.vm-theme-vaultman { ... }` block.
 
-If either selector is absent or the variables are missing, the
-preset-theme configuration did not produce the spec-mandated output.
+If either selector is absent or the variables are missing, the preset-theme configuration did not produce the spec-mandated output.
 Fix before continuing.
 
 - [ ] **Step 6: Commit**
@@ -224,14 +197,11 @@ EOF
 
 - [ ] **Step 1: Read current state**
 
-Run: `grep -n "vm-glass-blur\|vm-theme-default\|vm-theme-native\|vm-theme-polish\|vm-theme-glass" src/styles/popup/_islands.scss`
-Note all line numbers that reference legacy theme blocks or
-`--vm-glass-blur`.
+Run: `grep -n "vm-glass-blur\|vm-theme-default\|vm-theme-native\|vm-theme-polish\|vm-theme-glass" src/styles/popup/_islands.scss` Note all line numbers that reference legacy theme blocks or `--vm-glass-blur`.
 
 - [ ] **Step 2: Replace the four theme blocks with one token-driven block**
 
-Open `src/styles/popup/_islands.scss`. Find the four legacy blocks
-(approximately lines 446-475 per pre-0-B state). They look like:
+Open `src/styles/popup/_islands.scss`. Find the four legacy blocks (approximately lines 446-475 per pre-0-B state). They look like:
 
 ```scss
 .vm-theme-default,
@@ -244,8 +214,7 @@ Open `src/styles/popup/_islands.scss`. Find the four legacy blocks
 .vm-theme-glass { ... }
 ```
 
-Replace ALL FOUR blocks with the single token-driven block from
-[[docs/work/hardening/specs/2026-05-15-explorer-0-b-servicetheme-token-layer/05-scss-and-dom-binding|spec shard 05 §"File 3"]]:
+Replace ALL FOUR blocks with the single token-driven block from [[docs/work/hardening/specs/2026-05-15-explorer-0-b-servicetheme-token-layer/05-scss-and-dom-binding|spec shard 05 §"File 3"]]:
 
 ```scss
 // Token-driven chrome. Selector targets .vm-root because the active
@@ -268,23 +237,18 @@ Replace ALL FOUR blocks with the single token-driven block from
 
 - [ ] **Step 3: Run build**
 
-Run: `pnpm run build:plugin`
-Expected: build passes.
+Run: `pnpm run build:plugin` Expected: build passes.
 
 - [ ] **Step 4: Verify legacy references removed**
 
-Run: `grep -n "vm-theme-default\|vm-theme-polish\|vm-theme-glass\|vm-glass-blur" src/styles/popup/_islands.scss`
-Expected: empty output.
+Run: `grep -n "vm-theme-default\|vm-theme-polish\|vm-theme-glass\|vm-glass-blur" src/styles/popup/_islands.scss` Expected: empty output.
 
-Run: `grep -rn "vm-glass-blur" src/styles/`
-Expected: empty output (any other file still using `--vm-glass-blur`
-must be updated to `--vm-popup-backdrop-blur` — investigate matches).
+Run: `grep -rn "vm-glass-blur" src/styles/` Expected: empty output (any other file still using `--vm-glass-blur` must be updated to `--vm-popup-backdrop-blur` — investigate matches).
 
 - [ ] **Step 5: Live visual smoke (optional but recommended)**
 
 Run: `pnpm run build` (or whichever script syncs to `plugin-dev`).
-Reload Vaultman in Obsidian. Open a popup; confirm it renders. Switch
-preset via:
+Reload Vaultman in Obsidian. Open a popup; confirm it renders. Switch preset via:
 
 ```javascript
 plugin.themeService.setPreset('native');
@@ -327,8 +291,7 @@ EOF
 
 Run: `grep -nE "(height|padding-y|padding):\s*[0-9]+px" src/styles/explorer/_virtual-list.scss src/styles/explorer/_tree.scss | head -20`
 
-Identify rules that hardcode row height, vertical padding, or icon
-size. These are the migration targets.
+Identify rules that hardcode row height, vertical padding, or icon size. These are the migration targets.
 
 - [ ] **Step 2: Migrate hardcoded values to var() reads**
 
@@ -365,20 +328,15 @@ Apply the same pattern to icon-related rules:
 }
 ```
 
-The exact rules depend on current file content; the migration pattern is
-the same.
+The exact rules depend on current file content; the migration pattern is the same.
 
 - [ ] **Step 3: Run build**
 
-Run: `pnpm run build:plugin`
-Expected: build passes.
+Run: `pnpm run build:plugin` Expected: build passes.
 
 - [ ] **Step 4: Live visual smoke**
 
-Reload Vaultman. Switch presets and confirm row height changes between
-native (~26px) and vaultman (~32px). If TanStack virtualizer
-measureElement reflows show visible jank during switch, it is the known
-R5 risk — acceptable.
+Reload Vaultman. Switch presets and confirm row height changes between native (~26px) and vaultman (~32px). If TanStack virtualizer measureElement reflows show visible jank during switch, it is the known R5 risk — acceptable.
 
 - [ ] **Step 5: Commit**
 
@@ -400,5 +358,4 @@ EOF
 )"
 ```
 
-When Phase 5 is complete, proceed to
-[[docs/work/hardening/plans/2026-05-15-explorer-0-b-servicetheme-token-layer/phase-6-legacy-cleanup|Phase 6]].
+When Phase 5 is complete, proceed to [[docs/work/hardening/plans/2026-05-15-explorer-0-b-servicetheme-token-layer/phase-6-legacy-cleanup|Phase 6]].

@@ -120,8 +120,7 @@ Users:
 - `wdio.conf.mts`
 - package scripts that run WDIO.
 
-Interpretation: most WDIO packages are used indirectly through WebdriverIO's
-configuration resolution rather than direct imports in source files.
+Interpretation: most WDIO packages are used indirectly through WebdriverIO's configuration resolution rather than direct imports in source files.
 
 ## ESLint Stack
 
@@ -144,9 +143,7 @@ Declared but no direct config usage observed:
 - `@eslint/js`
 - `eslint-plugin-unused-imports`
 
-Interpretation: `@eslint/js` and `eslint-plugin-unused-imports` may be stale,
-reserved for future config, or indirectly relevant. They should be checked with
-the dependency-audit commands before removal.
+Interpretation: `@eslint/js` and `eslint-plugin-unused-imports` may be stale, reserved for future config, or indirectly relevant. They should be checked with the dependency-audit commands before removal.
 
 ## Format And Static Audit Tools
 
@@ -175,10 +172,8 @@ Packages:
 
 Observed usage:
 
-- `typescript`, `@types/node`, and `@types/js-yaml` support typechecking and
-  package typings.
+- `typescript`, `@types/node`, and `@types/js-yaml` support typechecking and package typings.
 - `type-fest` had no direct import in the scan.
 - `jiti` had no direct import in the scan.
 
-Interpretation: type packages often have no runtime import. `type-fest` and
-`jiti` need a focused audit before any cleanup decision.
+Interpretation: type packages often have no runtime import. `type-fest` and `jiti` need a focused audit before any cleanup decision.

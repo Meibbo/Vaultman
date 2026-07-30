@@ -17,8 +17,7 @@ tags:
 
 ## Task
 
-Create a shared verification matrix so future plans cite one source instead of
-inventing commands and residual rules per slice.
+Create a shared verification matrix so future plans cite one source instead of inventing commands and residual rules per slice.
 
 ## Files
 
@@ -69,23 +68,15 @@ Rows to include:
 
 Use these command contracts:
 
-- docs-only: `node .agents\tools\pkm-ai\check-doc-health.mjs`, scoped
-  `git diff --check`;
+- docs-only: `node .agents\tools\pkm-ai\check-doc-health.mjs`, scoped `git diff --check`;
 - agent-tooling script: `node --test ".agents/tools/pkm-ai/test/*.test.mjs"`;
-- Svelte component: focused component test with `--fileParallelism=false`,
-  then `pnpm run check`;
-- Svelte lifecycle/reactivity: mounted component test plus Obsidian smoke when
-  available;
-- service logic: focused unit test, then `pnpm run test:unit` when the service
-  is shared;
-- queue/file operation: focused unit and component tests plus Obsidian smoke
-  for live vault mutation paths;
-- settings/persistence: focused unit/component test plus migration check when
-  settings shape changes;
-- performance-sensitive path: focused perf/integration probe plus CodeQL shape
-  if applicable;
-- CodeQL guardrail: local `codeql test run --additional-packs
-  codeql\queries\javascript codeql\tests --threads=0`;
+- Svelte component: focused component test with `--fileParallelism=false`, then `pnpm run check`;
+- Svelte lifecycle/reactivity: mounted component test plus Obsidian smoke when available;
+- service logic: focused unit test, then `pnpm run test:unit` when the service is shared;
+- queue/file operation: focused unit and component tests plus Obsidian smoke for live vault mutation paths;
+- settings/persistence: focused unit/component test plus migration check when settings shape changes;
+- performance-sensitive path: focused perf/integration probe plus CodeQL shape if applicable;
+- CodeQL guardrail: local `codeql test run --additional-packs codeql\queries\javascript codeql\tests --threads=0`;
 - Obsidian runtime behavior: Obsidian CLI or WDIO smoke;
 - dependency/package change: install/build/check plus lockfile scope review.
 
@@ -109,16 +100,10 @@ Expected: no new failure under `agent-control-plane`.
 
 ## Result
 
-Completed 2026-05-10T04:55:05. The verification matrix shard now includes the
-required change-type rows, command contracts, sequencing, residual rules, and
-an `Evidence record path` column that routes evidence to the active initiative
-source record verification section or shard instead of only
-`items/<item>/verification.md`.
+Completed 2026-05-10T04:55:05. The verification matrix shard now includes the required change-type rows, command contracts, sequencing, residual rules, and an `Evidence record path` column that routes evidence to the active initiative source record verification section or shard instead of only `items/<item>/verification.md`.
 
 Verification:
 
 - Line counts: spec index 68 lines, matrix shard 36 lines, plan slice 124 lines.
 - Trailing whitespace scan on the three touched files returned no matches.
-- `node .agents\tools\pkm-ai\check-doc-health.mjs` still reports global
-  pre-existing failures, but no `agent-control-plane` or `verification-matrix`
-  path failure appears in the filtered output or full health output.
+- `node .agents\tools\pkm-ai\check-doc-health.mjs` still reports global pre-existing failures, but no `agent-control-plane` or `verification-matrix` path failure appears in the filtered output or full health output.

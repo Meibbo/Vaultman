@@ -14,30 +14,21 @@ tags:
 
 ## Terms
 
-**Selected node** means the node is in the current operation set. Batch actions,
-context menus, delete, rename, set prop/value/tag, and future queue operations
-use this set.
+**Selected node** means the node is in the current operation set. Batch actions, context menus, delete, rename, set prop/value/tag, and future queue operations use this set.
 
-**Focused node** means the keyboard navigation target. It can move without
-changing selected nodes.
+**Focused node** means the keyboard navigation target. It can move without changing selected nodes.
 
-**Active node** means the visual row/tile currently pointed at by keyboard
-focus or mouse hover. It uses a faint transparent highlight and can be derived
-from focus and hover.
+**Active node** means the visual row/tile currently pointed at by keyboard focus or mouse hover. It uses a faint transparent highlight and can be derived from focus and hover.
 
-**Active filter node** means a node matching an enabled filter. It is not the
-same as selection and should keep its existing semantic accent.
+**Active filter node** means a node matching an enabled filter. It is not the same as selection and should keep its existing semantic accent.
 
 **Primary node action** means the provider action for the node. Examples:
 
-- file label action opens or selects the file workflow defined by the files
-  provider;
-- prop label action toggles property filter unless a more specific action mode
-  is active;
+- file label action opens or selects the file workflow defined by the files provider;
+- prop label action toggles property filter unless a more specific action mode is active;
 - value label action toggles value filter;
 - tag label action toggles tag filter;
-- add mode queues add operations through direct action badges or provider
-  action handling.
+- add mode queues add operations through direct action badges or provider action handling.
 
 ## Pointer Model
 
@@ -76,8 +67,7 @@ Label/action-zone click:
 
 - runs the provider primary node action;
 - does not prevent the node from becoming active/focused;
-- should not silently change a multi-selection unless the action explicitly
-  consumes the selected set.
+- should not silently change a multi-selection unless the action explicitly consumes the selected set.
 
 Chevron click:
 
@@ -93,8 +83,7 @@ Badge or quick-action click:
 
 Context menu:
 
-- if the target node is not selected, replace selection with the target node
-  before opening the menu;
+- if the target node is not selected, replace selection with the target node before opening the menu;
 - if the target node is selected, open the menu with the selected set;
 - pass selected nodes to provider/context-menu actions.
 
@@ -102,8 +91,7 @@ Click outside active explorer:
 
 - clears selected ids, anchor, focus, and active id for that explorer;
 - does not clear expanded/collapsed tree state;
-- does not clear active filters or selected files unless selected files are
-  explicitly derived from the node selection for the current provider.
+- does not clear active filters or selected files unless selected files are explicitly derived from the node selection for the current provider.
 
 ## Keyboard Model
 
@@ -138,8 +126,7 @@ Click outside active explorer:
 
 `Escape`:
 
-- clears selected ids, anchor, focus, and active id unless a nested editor or
-  popup consumed the key first.
+- clears selected ids, anchor, focus, and active id unless a nested editor or popup consumed the key first.
 
 `Home` and `End`:
 
@@ -147,8 +134,7 @@ Click outside active explorer:
 
 `Control+A`:
 
-- optional but useful. Select all visible nodes in the active explorer. If this
-  is implemented, the explorer container must expose clear selection as well.
+- optional but useful. Select all visible nodes in the active explorer. If this is implemented, the explorer container must expose clear selection as well.
 
 ## Visual Model
 

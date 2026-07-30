@@ -20,9 +20,7 @@ visuals:
 # Phase 05 - Containers Providers Views Layer
 
 This phase maps the explorer composition layer below the layout/page tabs.
-Phase 04 showed that Filters page tabs delegate their body to
-`PanelExplorer.svelte`; this layer shows how that panel turns provider data into
-Tree, List, Grid, Table, Cards, Markmap, queue, active-filter, and diff views.
+Phase 04 showed that Filters page tabs delegate their body to `PanelExplorer.svelte`; this layer shows how that panel turns provider data into Tree, List, Grid, Table, Cards, Markmap, queue, active-filter, and diff views.
 
 ## Files In This Phase
 
@@ -57,12 +55,7 @@ flowchart TD
 
 ## Key Conclusion
 
-`PanelExplorer.svelte` is the narrow waist of the explorer system. Providers own
-domain reads and actions; views own rendering, keyboard, focus, scroll, and
-badges; services in `src/services/` translate between those two planes. That
-makes the next architectural layer `src/services/`, `src/logic/`, `src/registry/`,
-`src/utils/`, and `src/types/`, because phase 05 repeatedly crosses those
-contracts.
+`PanelExplorer.svelte` is the narrow waist of the explorer system. Providers own domain reads and actions; views own rendering, keyboard, focus, scroll, and badges; services in `src/services/` translate between those two planes. That makes the next architectural layer `src/services/`, `src/logic/`, `src/registry/`, `src/utils/`, and `src/types/`, because phase 05 repeatedly crosses those contracts.
 
 ## Shards
 
@@ -76,7 +69,4 @@ contracts.
 
 ## Next Layer
 
-Phase 06 should map service and contract modules together: `src/services/`,
-`src/logic/`, `src/registry/`, `src/utils/`, and `src/types/`. Phase 05 depends
-on those modules for projection, snapshots, queue operations, filter indexes,
-selection, measurement, context menus, and provider logic.
+Phase 06 should map service and contract modules together: `src/services/`, `src/logic/`, `src/registry/`, `src/utils/`, and `src/types/`. Phase 05 depends on those modules for projection, snapshots, queue operations, filter indexes, selection, measurement, context menus, and provider logic.

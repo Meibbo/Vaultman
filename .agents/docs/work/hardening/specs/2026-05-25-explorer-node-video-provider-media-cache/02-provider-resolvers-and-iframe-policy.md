@@ -16,8 +16,7 @@ tags:
 
 ## Resolver Contract
 
-Provider resolvers normalize known public URLs into thumbnail and playback
-metadata. They do not create DOM nodes.
+Provider resolvers normalize known public URLs into thumbnail and playback metadata. They do not create DOM nodes.
 
 ```ts
 export interface NodeMediaProviderResolver {
@@ -50,8 +49,7 @@ export interface ProviderPosterCandidate {
 
 ### YouTube
 
-YouTube gets a first-class resolver because thumbnail URLs can be derived from
-the video id without iframe creation.
+YouTube gets a first-class resolver because thumbnail URLs can be derived from the video id without iframe creation.
 
 Quality policy should be configurable. Candidate order can include:
 
@@ -60,25 +58,20 @@ Quality policy should be configurable. Candidate order can include:
 - `mqdefault.jpg`
 - `default.jpg`
 
-The cache key must be based on the video id plus thumbnail quality variant, not
-on the original URL shape. `youtu.be`, `/watch?v=`, `/embed/`, and `/shorts/`
-URLs for the same id should converge.
+The cache key must be based on the video id plus thumbnail quality variant, not on the original URL shape. `youtu.be`, `/watch?v=`, `/embed/`, and `/shorts/` URLs for the same id should converge.
 
 ### Facebook, Instagram, Twitter/X, Reddit
 
-These providers get first-class URL recognizers, but resolution must be
-fail-closed:
+These providers get first-class URL recognizers, but resolution must be fail-closed:
 
 - use public metadata only;
 - prefer OpenGraph/Twitter card metadata when available;
 - do not require login cookies;
 - do not execute page JavaScript;
 - do not scrape private/authenticated content;
-- treat rate limits, consent walls, unavailable metadata, and blocked responses
-  as `provider-unresolved`, not as UI failures.
+- treat rate limits, consent walls, unavailable metadata, and blocked responses as `provider-unresolved`, not as UI failures.
 
-The first implementation may resolve only posters and titles. Playback can
-remain external-open or provider-iframe-on-demand.
+The first implementation may resolve only posters and titles. Playback can remain external-open or provider-iframe-on-demand.
 
 ### Generic URLs
 
@@ -108,8 +101,7 @@ Allowed on explicit user action:
 - open in Obsidian/external browser;
 - mount provider iframe in a focused preview panel/popover;
 - mount native Obsidian media player for local/direct video files;
-- mount a direct `<video controls>` element in a detail surface if Obsidian's
-  native player path is unavailable.
+- mount a direct `<video controls>` element in a detail surface if Obsidian's native player path is unavailable.
 
 ## Playback Descriptor
 
@@ -121,6 +113,5 @@ export type NodeVideoPlaybackDescriptor =
   | { mode: 'external-open'; url: string };
 ```
 
-Rows consume only poster/preview descriptors. Playback descriptors are inert
-metadata until the user asks to play.
+Rows consume only poster/preview descriptors. Playback descriptors are inert metadata until the user asks to play.
 

@@ -8,31 +8,12 @@ parent: "[[2026-05-18-explorer-sub-system-0-a-native-dom-parity/index]]"
 
 ## Principles
 
-- **Deep modules with small interfaces** (Ousterhout). Each new
-  module exposes a narrow public surface and hides substantial
-  implementation depth. The View Feature Contract is the small
-  interface; the view-host + presentation service + per-view
-  emission rules are the deep modules.
-- **Data-driven, not code-driven.** Vocab choices per (view ×
-  preset × context) live in contract literals, not in view
-  component templates. Adding a new provider or vocab dialect
-  becomes a literal edit, never a rewrite.
-- **Services stay agnostic of presentation.** `serviceDnd`,
-  `serviceManualDnd`, `serviceNodeRowMeasure`, `serviceExplorerScrollGeometry`,
-  and `NodeSelectionService` do not learn about preset / native
-  vocab / `btnNodeElementsVisibility`. View components are the
-  presentation boundary.
+- **Deep modules with small interfaces** (Ousterhout). Each new module exposes a narrow public surface and hides substantial implementation depth. The View Feature Contract is the small interface; the view-host + presentation service + per-view emission rules are the deep modules.
+- **Data-driven, not code-driven.** Vocab choices per (view × preset × context) live in contract literals, not in view component templates. Adding a new provider or vocab dialect becomes a literal edit, never a rewrite.
+- **Services stay agnostic of presentation.** `serviceDnd`, `serviceManualDnd`, `serviceNodeRowMeasure`, `serviceExplorerScrollGeometry`, and `NodeSelectionService` do not learn about preset / native vocab / `btnNodeElementsVisibility`. View components are the presentation boundary.
 - **Context API for state-crossing, props for control flow.**
-  ViewHost distributes shared state (viewHost service, mask,
-  preset) via typed-Symbol contexts (`VIEW_HOST_KEY`,
-  `NODE_ELEMENT_MASK_KEY`, `PRESET_KEY`) — the pattern O established
-  for `FRAME_NAVIGATION_KEY` / `FRAME_POPUPS_KEY`. Per-view
-  control flow (row inputs, callbacks, scroll target) remains
-  prop-based; the EDP-009 row contract is untouched.
-- **Preserve user intent across preset toggles.** Override state
-  on the viewHost service is not cleared when preset switches; it
-  is dormant under `lockNodeElementVisibility=true` and reasserts
-  when the user returns to an unlocked preset.
+  ViewHost distributes shared state (viewHost service, mask, preset) via typed-Symbol contexts (`VIEW_HOST_KEY`, `NODE_ELEMENT_MASK_KEY`, `PRESET_KEY`) — the pattern O established for `FRAME_NAVIGATION_KEY` / `FRAME_POPUPS_KEY`. Per-view control flow (row inputs, callbacks, scroll target) remains prop-based; the EDP-009 row contract is untouched.
+- **Preserve user intent across preset toggles.** Override state on the viewHost service is not cleared when preset switches; it is dormant under `lockNodeElementVisibility=true` and reasserts when the user returns to an unlocked preset.
 
 ## Component graph
 
@@ -133,14 +114,7 @@ src/
 
 ## Historical-compatibility note: btnMultiSelection → btnNodeElementsVisibility
 
-0-B documents and discussion threads refer to the user-facing
-multi-element visibility toggle button as `btnMultiSelection`.
-0-A renames the identifier across the codebase to
-`btnNodeElementsVisibility` because the historical name reads as
-"multi-row selection" which is a different feature owned by
-`NodeSelectionService` (Ctrl-click, Shift-click, box-select). The
-new name reflects the actual semantic: a per-`NodeElementKind`
-visibility selector.
+0-B documents and discussion threads refer to the user-facing multi-element visibility toggle button as `btnMultiSelection`.
+0-A renames the identifier across the codebase to `btnNodeElementsVisibility` because the historical name reads as "multi-row selection" which is a different feature owned by `NodeSelectionService` (Ctrl-click, Shift-click, box-select). The new name reflects the actual semantic: a per-`NodeElementKind` visibility selector.
 
-A post-rename grep across `.agents/docs/` is mandated in C7 to
-update or annotate any remaining references with the rename note.
+A post-rename grep across `.agents/docs/` is mandated in C7 to update or annotate any remaining references with the rename note.

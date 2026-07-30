@@ -12,9 +12,7 @@ tags:
 
 # PKM-AI Orchestration Refresh V2 Plan
 
-This plan repairs the V1 compression problem. It does not redo all bootstrap
-work. It enriches the active source model so future agents can recover details
-without rereading this chat.
+This plan repairs the V1 compression problem. It does not redo all bootstrap work. It enriches the active source model so future agents can recover details without rereading this chat.
 
 ## Read Order
 
@@ -26,6 +24,5 @@ without rereading this chat.
 
 ## Execution Rule
 
-Keep V1 as superseded source. Do not delete it. Update current routing only
-after V2 passes doc health and developer review.
+Keep V1 as superseded source. Do not delete it. Update current routing only after V2 passes doc health and developer review.
 

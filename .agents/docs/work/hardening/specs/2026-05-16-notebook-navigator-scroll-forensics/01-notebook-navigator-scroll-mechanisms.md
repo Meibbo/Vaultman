@@ -13,8 +13,7 @@ tags:
 
 # Notebook Navigator Scroll Mechanisms
 
-This shard is split because the NN scroll model is several coupled mechanisms,
-not one trick.
+This shard is split because the NN scroll model is several coupled mechanisms, not one trick.
 
 ## Continuations
 
@@ -37,6 +36,5 @@ Notebook Navigator scroll performance comes from a contract:
 - suppress hover/quick action churn, not core row text;
 - isolate row layout/paint with CSS containment.
 
-The IndexedDB cache supports this by hydrating synchronous memory metadata. It
-does not store scroll positions or pre-rendered rows.
+The IndexedDB cache supports this by hydrating synchronous memory metadata. It does not store scroll positions or pre-rendered rows.
 

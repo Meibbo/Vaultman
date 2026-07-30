@@ -18,20 +18,16 @@ updated_by: codex
 
 ## Goal
 
-Introduce a Files-only structural snapshot boundary that can be generated from
-current Files data without changing user-visible explorer behavior.
+Introduce a Files-only structural snapshot boundary that can be generated from current Files data without changing user-visible explorer behavior.
 
 ## Source Inputs
 
 From Wave 2:
 
-- `createFilesIndex` already publishes source files with `nodes`, `flatIds`,
-  `byId`, `revision`, and `subscribe`.
-- `explorerFiles.getTree()` currently mixes source selection, hidden filtering,
-  search, sort, folder tree construction, adopted children, and decoration.
+- `createFilesIndex` already publishes source files with `nodes`, `flatIds`, `byId`, `revision`, and `subscribe`.
+- `explorerFiles.getTree()` currently mixes source selection, hidden filtering, search, sort, folder tree construction, adopted children, and decoration.
 - `panelExplorer` currently performs recursive id/path/order scans.
-- `viewTree` currently flattens `TreeNode[]` and resolves scroll targets by
-  scanning adapter-local rows.
+- `viewTree` currently flattens `TreeNode[]` and resolves scroll targets by scanning adapter-local rows.
 
 ## Target Contract
 
@@ -66,16 +62,14 @@ export interface ExplorerSnapshot<TMeta = unknown> {
 }
 ```
 
-This contract is structural. It must not contain queue badges, active-filter
-badges, selection, hover, focus, dragging, or virtualizer state.
+This contract is structural. It must not contain queue badges, active-filter badges, selection, hover, focus, dragging, or virtualizer state.
 
 ## File Responsibilities
 
 `src/logic/logicExplorerSnapshot.ts`:
 
 - Walk `TreeNode<TMeta>[]`.
-- Build `rows`, `visibleIds`, `byId`, `idToIndex`, `pathToId`,
-  `folderPathToId`, parent ids, and children ids.
+- Build `rows`, `visibleIds`, `byId`, `idToIndex`, `pathToId`, `folderPathToId`, parent ids, and children ids.
 - Preserve input `TreeNode` references unless a compatibility bridge must clone.
 - Accept expansion state as an input and mark visible order deterministically.
 - Return immutable arrays/maps by convention.
@@ -84,8 +78,7 @@ badges, selection, hover, focus, dragging, or virtualizer state.
 
 - Hold current snapshots in `$state.raw` or immutable assignments.
 - Increment `revision` only when a snapshot is replaced.
-- Expose `snapshot(explorerId)`, `publish(explorerId, snapshot)`,
-  `subscribe(explorerId, cb)`, and `clear(explorerId)`.
+- Expose `snapshot(explorerId)`, `publish(explorerId, snapshot)`, `subscribe(explorerId, cb)`, and `clear(explorerId)`.
 - Do not read Obsidian APIs directly in the first slice.
 
 `src/providers/explorerFiles.ts`:
@@ -98,18 +91,12 @@ badges, selection, hover, focus, dragging, or virtualizer state.
 ## Migration Sequence
 
 1. Add types and pure snapshot builder.
-2. Add unit tests for a hand-built Files tree: folders, files, nested children,
-   duplicate labels, hidden folder, adopted child, path lookup, folder lookup,
-   parent links, and id-to-index order.
-3. Add `ExplorerDataPlane` service tests for immutable publish, revision
-   changes, snapshot lookup, and subscription firing.
-4. Add Files provider structural adapter tests proving undecorated tree output
-   matches current structural `getTree()` before decoration.
+2. Add unit tests for a hand-built Files tree: folders, files, nested children, duplicate labels, hidden folder, adopted child, path lookup, folder lookup, parent links, and id-to-index order.
+3. Add `ExplorerDataPlane` service tests for immutable publish, revision changes, snapshot lookup, and subscription firing.
+4. Add Files provider structural adapter tests proving undecorated tree output matches current structural `getTree()` before decoration.
 5. Wire `panelExplorer` behind a feature-free compatibility path:
-   if the provider exposes a data-plane source, publish a snapshot and use its
-   lookup maps; otherwise use current recursive helpers.
-6. Keep rendered tree output equivalent by feeding the same `TreeNode`
-   compatibility tree to existing views.
+   if the provider exposes a data-plane source, publish a snapshot and use its lookup maps; otherwise use current recursive helpers.
+6. Keep rendered tree output equivalent by feeding the same `TreeNode` compatibility tree to existing views.
 
 ## Structural Invalidation
 
@@ -123,36 +110,26 @@ Files snapshot structure must rebuild when any of these change:
 - adopted-child structural source;
 - Files provider mode that changes visible row set.
 
-Queue revision and active-filter revision must not rebuild structural rows in
-this slice.
+Queue revision and active-filter revision must not rebuild structural rows in this slice.
 
 ## Compatibility Bridge
 
-The first slice may still pass `TreeNode[]` to `viewTree`, grid, table, and
-cards. The value of the slice is not removing `TreeNode`; it is proving that
-source structure and lookup maps can exist before decoration and panel scans.
+The first slice may still pass `TreeNode[]` to `viewTree`, grid, table, and cards. The value of the slice is not removing `TreeNode`; it is proving that source structure and lookup maps can exist before decoration and panel scans.
 
-Provider action hooks still receive `TreeNode` because context menus, queue
-actions, FnR handoff, rename, delete, file open, and set/filter hover actions
-expect provider-specific `meta`.
+Provider action hooks still receive `TreeNode` because context menus, queue actions, FnR handoff, rename, delete, file open, and set/filter hover actions expect provider-specific `meta`.
 
 ## Test Gates
 
-- `test/unit/logic/logicExplorerSnapshot.test.ts`: rows, maps, parent/child
-  links, visible ids, depth, lookup stability, and stale index absence.
-- `test/unit/services/serviceExplorerDataPlane.test.ts`: publish, clear,
-  subscribe, revision replacement, immutable snapshot read.
-- `test/unit/components/explorerFiles.test.ts`: undecorated structural source
-  parity and preservation of action hooks.
-- `test/component/panelExplorerSelection.test.ts`: selection prune and range
-  use snapshot visible order for Files.
+- `test/unit/logic/logicExplorerSnapshot.test.ts`: rows, maps, parent/child links, visible ids, depth, lookup stability, and stale index absence.
+- `test/unit/services/serviceExplorerDataPlane.test.ts`: publish, clear, subscribe, revision replacement, immutable snapshot read.
+- `test/unit/components/explorerFiles.test.ts`: undecorated structural source parity and preservation of action hooks.
+- `test/component/panelExplorerSelection.test.ts`: selection prune and range use snapshot visible order for Files.
 - Existing Files provider and tree component tests keep passing.
 
 ## Acceptance
 
 - Files can produce a structural snapshot before decorative layers.
-- `panelExplorer` can use snapshot maps for Files without breaking other
-  providers.
+- `panelExplorer` can use snapshot maps for Files without breaking other providers.
 - `TreeNode` compatibility remains intact.
 - No persistent storage, row subscriptions, or adapter rewrites are introduced.
 

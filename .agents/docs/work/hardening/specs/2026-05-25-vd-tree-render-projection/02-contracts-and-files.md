@@ -62,10 +62,7 @@ export interface TreeRenderProjection<TMeta = unknown> {
 }
 ```
 
-The exact names may be adjusted to match existing service style, but the fields
-above are required. The important distinction is `structuralRowCount` versus
-`visibleRowCount`; every stress log must be able to show that Tree is using the
-visible count.
+The exact names may be adjusted to match existing service style, but the fields above are required. The important distinction is `structuralRowCount` versus `visibleRowCount`; every stress log must be able to show that Tree is using the visible count.
 
 ## Builder Inputs
 
@@ -83,13 +80,9 @@ export interface TreeRenderProjectionInput<TMeta = unknown> {
 Rules:
 
 - If `visibleIds` is supplied, output rows must follow it exactly.
-- If `visibleIds` is omitted, derive visible order from `rowInputs` and
-  `expandedIds` without using nested subtree scans.
-- Missing ids in `visibleIds` should be ignored only if the source row is absent
-  from `rowInputs`; count the skip with a dev perf mark. Do not throw in
-  production render.
-- Duplicate ids should keep the first row and skip later duplicates. This
-  preserves existing `Map` lookup semantics.
+- If `visibleIds` is omitted, derive visible order from `rowInputs` and `expandedIds` without using nested subtree scans.
+- Missing ids in `visibleIds` should be ignored only if the source row is absent from `rowInputs`; count the skip with a dev perf mark. Do not throw in production render.
+- Duplicate ids should keep the first row and skip later duplicates. This preserves existing `Map` lookup semantics.
 
 ## Modified Files
 
@@ -131,8 +124,7 @@ filesSnapshot
   -> ViewHost treeRenderProjection
 ```
 
-List should keep using `createExplorerProjection`. This spec is intentionally
-Tree-only.
+List should keep using `createExplorerProjection`. This spec is intentionally Tree-only.
 
 ## `ViewHost.svelte` Contract Change
 
@@ -155,14 +147,10 @@ renderProjection?: TreeRenderProjection<TMeta>;
 Resolution order:
 
 1. If `renderProjection` exists, use `renderProjection.rows`.
-2. Else if `projection` exists, keep legacy `projectionRowInputs` path during
-   migration.
+2. Else if `projection` exists, keep legacy `projectionRowInputs` path during migration.
 3. Else use `nodes` fallback.
 
-After tests pass and `panelExplorer` uses `renderProjection`, remove or mark the
-legacy `flatProjectionRows` path as obsolete in the same slice only if no tests
-or consumers still need it. The end-state required by this spec is that the
-Files Tree route no longer depends on `flatProjectionRows`.
+After tests pass and `panelExplorer` uses `renderProjection`, remove or mark the legacy `flatProjectionRows` path as obsolete in the same slice only if no tests or consumers still need it. The end-state required by this spec is that the Files Tree route no longer depends on `flatProjectionRows`.
 
 ## Perf Marks
 
@@ -180,6 +168,5 @@ Preserve existing marks:
 - `viewTree.scroll`
 - `explorerDataPlane.reveal.lookup`
 
-During migration, old and new marks may coexist. The implementation record must
-show which one is active in the Files Tree route.
+During migration, old and new marks may coexist. The implementation record must show which one is active in the Files Tree route.
 

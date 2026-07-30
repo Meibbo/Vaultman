@@ -27,8 +27,7 @@ The Notebook Navigator plugin exposes a public API for other plugins and scripts
 
 ### Accessing the API
 
-The Notebook Navigator API is available at runtime through the Obsidian app object. Here's a practical example using
-Templater:
+The Notebook Navigator API is available at runtime through the Obsidian app object. Here's a practical example using Templater:
 
 ```javascript
 <%* // Templater script to pin the current file in Notebook Navigator
@@ -71,8 +70,7 @@ The API provides six main namespaces:
 
 ### Public surface
 
-The supported public surface is the API described in this document and in `src/api/public/notebook-navigator.d.ts`. The
-runtime `api` object may contain additional methods and properties; treat them as internal.
+The supported public surface is the API described in this document and in `src/api/public/notebook-navigator.d.ts`. The runtime `api` object may contain additional methods and properties; treat them as internal.
 
 ### Stability policy
 
@@ -94,23 +92,13 @@ Customize folder, tag, and property node appearance, manage pinned files.
 ### Runtime Behavior
 
 - **Icon input format**: Setter methods parse the same icon value format Notebook Navigator writes to frontmatter.
-  Use `IconString` when you want compile-time validation for short provider-prefixed values such as `ph-folder`,
-  `bi-alarm`, `fas-user`, `mi-crop_16_9`, `ra-harpoon-trident`, and `si-github`. Lucide icons use bare slugs such as
-  `folder-open`. Emoji icons use bare emoji such as `📁`.
-- **Legacy Iconize input**: Setter methods also accept supported legacy Iconize compact IDs such as `LiHome`,
-  `PhAppleLogo`, `FasUser`, `MiCrop169`, and `SiGithub`. These values are normalized before saving and are returned in
-  frontmatter format, not Iconize format.
-- **Icon output format**: `FolderMetadata.icon`, `TagMetadata.icon`, and `PropertyMetadata.icon` use `IconValue`
-  because returned values are normalized strings. Supported icons are returned in the same format Notebook Navigator
-  writes to frontmatter: Lucide slug (`folder-open`), short provider-prefixed slug (`ph-folder`), or bare emoji (`📁`).
+  Use `IconString` when you want compile-time validation for short provider-prefixed values such as `ph-folder`, `bi-alarm`, `fas-user`, `mi-crop_16_9`, `ra-harpoon-trident`, and `si-github`. Lucide icons use bare slugs such as `folder-open`. Emoji icons use bare emoji such as `📁`.
+- **Legacy Iconize input**: Setter methods also accept supported legacy Iconize compact IDs such as `LiHome`, `PhAppleLogo`, `FasUser`, `MiCrop169`, and `SiGithub`. These values are normalized before saving and are returned in frontmatter format, not Iconize format.
+- **Icon output format**: `FolderMetadata.icon`, `TagMetadata.icon`, and `PropertyMetadata.icon` use `IconValue` because returned values are normalized strings. Supported icons are returned in the same format Notebook Navigator writes to frontmatter: Lucide slug (`folder-open`), short provider-prefixed slug (`ph-folder`), or bare emoji (`📁`).
   Supported providers are not returned with colon-separated IDs.
-- **Icon normalization**: Icon values are normalized before saving (for example, short provider values are converted to
-  the internal render ID, redundant external-provider prefixes like `ph-` and `ra-` are stripped, and `material-icons`
-  identifiers are stored as snake case internally).
-- **Unsupported providers**: Setter methods ignore values outside the frontmatter icon format and supported legacy
-  Iconize compact IDs. Existing unsupported or malformed settings values may be returned unchanged.
-- **Color values**: Any string is accepted and saved. Invalid CSS colors will not render correctly but won't throw
-  errors.
+- **Icon normalization**: Icon values are normalized before saving (for example, short provider values are converted to the internal render ID, redundant external-provider prefixes like `ph-` and `ra-` are stripped, and `material-icons` identifiers are stored as snake case internally).
+- **Unsupported providers**: Setter methods ignore values outside the frontmatter icon format and supported legacy Iconize compact IDs. Existing unsupported or malformed settings values may be returned unchanged.
+- **Color values**: Any string is accepted and saved. Invalid CSS colors will not render correctly but won't throw errors.
 - **Tag normalization**: The `getTagMeta()` and `setTagMeta()` methods automatically normalize tags:
   - Both `'work'` and `'#work'` are accepted as input
   - Tags are case-insensitive: `'#Work'` and `'#work'` refer to the same tag
@@ -131,12 +119,9 @@ Customize folder, tag, and property node appearance, manage pinned files.
 | `getPropertyMeta(nodeId)`     | Get all property node metadata       | `PropertyMetadata \| null` |
 | `setPropertyMeta(nodeId, meta)` | Set property node metadata (partial update) | `Promise<void>`          |
 
-`setFolderMeta()`, `setTagMeta()`, and `setPropertyMeta()` use `FolderMetadataUpdate`,
-`TagMetadataUpdate`, and `PropertyMetadataUpdate`.
+`setFolderMeta()`, `setTagMeta()`, and `setPropertyMeta()` use `FolderMetadataUpdate`, `TagMetadataUpdate`, and `PropertyMetadataUpdate`.
 
-When `useFrontmatterMetadata` is enabled, `getFolderMeta()` resolves current folder display data through
-`MetadataService`. `setFolderMeta()` writes through `metadataService.setFolderStyle(...)` whenever `MetadataService` is
-available. Folder metadata can therefore reflect folder-note frontmatter, not only the raw settings maps.
+When `useFrontmatterMetadata` is enabled, `getFolderMeta()` resolves current folder display data through `MetadataService`. `setFolderMeta()` writes through `metadataService.setFolderStyle(...)` whenever `MetadataService` is available. Folder metadata can therefore reflect folder-note frontmatter, not only the raw settings maps.
 
 #### Property Update Behavior
 
@@ -146,5 +131,4 @@ When using `setFolderMeta`, `setTagMeta`, or `setPropertyMeta`, partial updates 
 - **`color: null`** - Clears the color (removes the property)
 - **`color: undefined`** or property not present - Leaves the color unchanged
 
-This applies to all metadata properties (color, backgroundColor, icon). Only properties explicitly included in the
-update object are modified.
+This applies to all metadata properties (color, backgroundColor, icon). Only properties explicitly included in the update object are modified.
