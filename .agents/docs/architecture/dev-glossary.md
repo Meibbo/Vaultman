@@ -3,14 +3,14 @@ title: Developer Glossary (VM domain terms + technical terms + disambiguations)
 type: architecture
 status: active
 parent: "[[docs/work/hardening/index|hardening]]"
-created: 2026-05-27T00:00:00
-updated: 2026-05-28T21:24:03
+updated: 2026-07-30T05:20:00
 created_by: claude-opus-4-7
-updated_by: codex-gpt-5
+updated_by: codex-gpt5-root
 tags:
   - agent/architecture
   - agent/glossary
   - agent/onboarding
+dateCreated: 2026-05-27T00:00:00
 ---
 
 # Developer Glossary
@@ -36,7 +36,7 @@ The exact confusion you flagged. Clean cut:
 - **Panel** (VM domain) — a **rendering atom**: `{engine + provider + config}`. Renders data via an engine (Linear / Geometry / Canvas / Charts; Table = Geometry mode). Canon:
   [[docs/architecture/explorer-model/05-view-canon|05-view-canon]]. Kinds: `panelExplorer` (nodes), `panelData` (widgets), `panelContent` (live-preview embed), `custom-panel`. Lives INSIDE a Scene; exposes a `PanelHandle`.
   Implemented as a Svelte component.
-- **Primitive** (VM domain) — a **small interactive UI building block** that a Scene slots alongside its Panels. Examples: an operator-cycle chip (AND/OR/NONE), a filter composer, a Sort-level row, an apply button, a FAB action chip, a search input. Primitives are NOT Bars — Bars are overlays on the Surface/Page (toolbar, statusbar, ribbon, popover), Primitives live inside a Scene's internal layout.
+- **Primitive** (VM domain) — a **small interactive UI building block** that a Scene slots inside one of its Panels. Examples: an operator-cycle chip (AND/OR/NONE), a filter composer, a Sort-level row, an apply button, a FAB action chip, a search input. A persistent bar composed by a Scene is not an overlay Surface: its domain role is a `panelWidget`, and the small controls rendered inside it are Primitives or Cells.
   Implemented as Svelte components, but THE WORD "Primitive" refers to its small, slot-able role.
 - **Component** (technical) — any `.svelte` file. Every Scene, Panel, Primitive, Bar, Cell-renderer is a component in the Svelte sense. **Component = file form; the others = role.**
 
@@ -47,7 +47,7 @@ flowchart TD
   S["Scene (filterScene / queueScene / sortScene / viewScene)"]
   S --> P1["Panel (panelExplorer / panelData / panelContent / custom)"]
   S --> Pr["Primitive (operator chip / composer / apply / sort-level row / …)"]
-  S --> B["Bar (overlay on the Surface — NOT inside Scene)"]
+  S --> B["panelWidget (toolbar / dock / ribbon / statusbar / tab strip)"]
   P1 -. impl as .-> CF[".svelte file (Svelte component)"]
   Pr -. impl as .-> CF
   S -. impl as .-> CF
@@ -64,7 +64,7 @@ flowchart TD
 - **Mode** (engine variant: Linear `flat·indent·cascade·detail`; Geometry `grid·cards·masonry·table`; Canvas/Charts deferred per [[docs/architecture/explorer-model/05-view-canon|05-view-canon]]) vs **state** (Svelte 5 `$state`).
 - **Operation** (`OperationNode`, queued change) vs **Action** (`ActionNode`, command/macro). Actions produce Operations.
 - **Button** (user-facing UI label) vs **ActionNode** (internal architecture contract). It is OK for user-facing copy to say "button"; design/spec/code discussions should keep `ActionNode` when the item is bindable, routable, renderable in menus/bars/FABs/gestures, or produced by the ActionProvider.
-- **Bar** (overlay) vs **Primitive** (inside Scene).
+- **Bar** (UX/layout alias for a Scene-owned `panelWidget`) vs **Primitive** (small control rendered inside a Panel) vs **Overlay** (a Surface-kind with its own lifecycle). CSS positioning does not change the tier.
 - **FilterGroup** (predicate composition tree — and/or/none over filter rules) vs **serviceGroup** (node-display grouping → ContainerNodes). Both materialize as ContainerNode trees; different producers. (See ADR 0009 + bases-interop-findings.)
 - **Bases-IN** (read `.base` → render in our shells) vs **Bases-OUT** (`registerBasesView` add-on, ADR 0009).
 - **ForeignEmbed** (opaque foreign leaf hosted in our tile via PlatformAdapter) vs **Bases-registered** (we register OUR shells INTO Bases; we never host THIRD-PARTY Bases views).

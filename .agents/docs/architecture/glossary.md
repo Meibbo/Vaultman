@@ -3,10 +3,10 @@ title: Glossary
 type: architecture
 status: active
 parent: "[[docs/work/pkm-ai/specs/2026-05-04-orchestration-refresh/index|pkm-ai]]"
-created: 2026-05-04T01:36:20
-updated: 2026-07-29T20:51:00
+updated: 2026-07-30T05:20:00
 tags:
   - agent/architecture
+dateCreated: 2026-05-04T01:36:20
 ---
 
 # Glossary
@@ -115,7 +115,7 @@ Supersedes the older "View adapter" / "Viewgrid" entries (a View no longer does 
 - EditorScene (PROPOSED): active-editor content modeled as Content/paragraph adopted-nodes per edit-mode; visual columns codeblock compiled to markdown; draggable paragraphs.
 - Hometab (PROPOSED): a configured page mounted on Obsidian new-tab/new-window (HometabAdapter).
 - panel-kind: a Panel's type — panelExplorer (nodes/engines) · **panelWidget** (renamed from `panelData`, 2026-07-10 NIB grill) · panelContent (live-preview embed) · custom-panel; host concerns are owned per kind, not by a single Panel host.
-- panelWidget: panel-kind for elements whose function acts ON the rendered data / frame (not on the data itself): bars (toolbar/dock/ribbon/statusbar/tab-strips), scope selectors, interactive primitives — composed of action-nodes/cells routed via the mediator (scene/viewConfig switching, workspace-tier interaction). "Static-leaning" vs the extremely dynamic panelExplorer — NOT read-only (e.g. a tab-selector changes content by condition). Example split (pageStats): configurable statsProvider nodes = a panelExplorer; the scope-router = the panelWidget. *(2026-07-10 NIB grill — supersedes `panelData` + its "mostly read-only" wording; code union rename lands in NIB slice 1.)*
+- panelWidget: Scene-owned panel-kind for elements whose function acts ON rendered data or the frame rather than presenting the provider's data itself: bars (toolbar/dock/ribbon/statusbar/tab-strips), scope selectors and interactive primitives. A `panelWidget` consumes a DOM-free node projection resolved from `{provider + effective PVPUI config}` through the PSS boundary; it does not discover providers or decide policy. ActionNodes in that projection are invoked through the owning Scene's WASA seam so interaction with sibling panels (for example Explorer expand/collapse or reveal) remains outside the renderer. It is dynamic, but its render/measure/focus lifecycle is independent from provider switches. Example split (`pageStatistics`): statsProvider data nodes belong to a panelExplorer; its scope-router belongs to the Navbar panelWidget. “Toolbar” remains a valid UX/settings alias, never an architecture owner. *(Refined 2026-07-30 for U121-001–004; supersedes provider-registry and page-owned-toolbar interpretations.)*
 - InputRouter: per-panel dispatch — the ONLY tier that sees RAW inputs (mouse/key/touch/pinch/future InputBinding); resolves them with local context (surface/row/target/modifiers) into **ActionNode invocations**. No separate nav branch: nav-kind ActionNodes are handled by Selection/Expansion, command-kind may emit an OperationNode or open a surface (shard 04). Kind-agnostic contract with capabilities per panel-kind; the A.R stack (`resolveActionIntent` + serviceMouse/serviceKeyboardNav) is its first, explorer-only implementation. *(Redefined 2026-07-09 NIB grill Q1 — supersedes the earlier "nav-intent vs action-intent" wording of this entry.)*
 - WorkspaceActionRouter: mediator-level router that NEVER sees raw inputs — receives **ActionNode invocations** (nav-kind or command-kind; origin: palette, already-resolved hotkey, macro, agent, cross-panel mediator routing) and delivers them to the active panel/target via PanelHandle. Obsidian resolves its own inputs (hotkey/palette → command) before we ever see them. First implementation = the P.D tracer's `serviceWorkspaceInputRouter` (rename to WorkspaceActionRouter pending, NIB slice 1). *(2026-07-09 NIB grill Q1.)*
 - diffview: a View engine rendering an OperationNode's chunks for preview.
@@ -144,5 +144,7 @@ Supersedes the older "View adapter" / "Viewgrid" entries (a View no longer does 
 
 ## Presets / PSS terms (2026-06-10)
 
+- PVPUI (Presets / Variables / Primitives / User Interface): owner of surface/scene/node/cell kinds plus layout, custom styles and custom values. It absorbs the historical UPV and UCV names; new specs and code must not create parallel UPV/UCV contracts.
+- WASA (Workspace Actions & Surfaces Abstraction): MyWorkspace boundary containing WIR (raw input routing), WAR (resolved ActionNode routing) and WOW (workspace capabilities/surface definitions). Stable 1.2.x does not build the future global WIR stack; a Scene may expose a narrow WASA-shaped action seam without inventing a global provider registry.
 - PSS (Presets Saving System): official name (dev, 2026-06-10) for the presets persistence system. **DEFINED 2026-06-11** (grill closed — D-PSS-1..10 in [[docs/work/hardening/specs/2026-06-10-vaultman-2-0-synthesis-umbrella/01-locked-decisions-grill|umbrella shard 01]]): typed facet presets (style/layout/load/view/workspace/input) + Profile composition + cascade resolution per scope (most-specific-wins, facet-by-facet); 4 storage classes (Presets/Profiles · Library items · Marks · Session) over one write-batcher infra; presets reference assets/library by id; `.scene` payload = multi-doc layered YAML (CR-2 unlocked); the operation queue protects the VAULT while config is protected by undo/ephemeral-snapshot. Persists non-rigid placement (xyz/layers/z-order). Acceptance tests: `legacy-1.1` profile exercising ALL subsystems · native preset = core-Bases behavior parity · barebones = {config_scene, snippet_scene, plugin_scene}.
 - SPS: superseded alias of PSS — the megadump 2026-06-03 acronym ("Saving Presets System"). Read historical SPS mentions (megadump, ADR 0011 context, anchor checkpoint 2026-06-04) as PSS.
