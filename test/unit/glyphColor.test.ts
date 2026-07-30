@@ -1,11 +1,14 @@
 import { describe, expect, it } from 'vitest';
 
 import {
+	explorerRainbowGlyphColor,
 	GLYPH_COLOR_CHOICES,
 	normalizeGlyphColorChoice,
 	normalizeGlyphColorScope,
 	normalizeGlyphCustomColor,
 	rainbowGlyphColor,
+	resolveExplorerGlyphColor,
+	resolveExplorerGlyphDecoration,
 	resolveGlyphColorCss,
 } from '../../src/logic/logicGlyphColor';
 import floatingTocSource from '../../src/components/layout/floatingToc.svelte?raw';
@@ -59,6 +62,75 @@ describe('BT5-025 shared glyph color palette', () => {
 		expect(normalizeGlyphColorScope('both')).toBe('both');
 		expect(normalizeGlyphColorScope('files')).toBe('files');
 		expect(normalizeGlyphColorScope('nonsense')).toBe('folders');
+	});
+
+	it('maps Explorer rainbow positions to the ten-slot snippet order', () => {
+		expect(explorerRainbowGlyphColor(0)).toContain('--color-rainbow-10');
+		expect(explorerRainbowGlyphColor(1)).toContain('--color-rainbow-1');
+		expect(explorerRainbowGlyphColor(9)).toContain('--color-rainbow-9');
+		expect(explorerRainbowGlyphColor(10)).toContain('--color-rainbow-10');
+		expect(explorerRainbowGlyphColor(-1)).toContain('--color-rainbow-9');
+	});
+
+	it('applies Explorer glyph color only inside the configured scope', () => {
+		const base = {
+			choice: 'accent' as const,
+			customColor: '#123456',
+			position: 0,
+		};
+		expect(
+			resolveExplorerGlyphColor({
+				...base,
+				scope: 'files',
+				kind: 'file',
+			}),
+		).toBe('var(--interactive-accent)');
+		expect(
+			resolveExplorerGlyphColor({
+				...base,
+				scope: 'files',
+				kind: 'folder',
+			}),
+		).toBeNull();
+		expect(
+			resolveExplorerGlyphColor({
+				...base,
+				scope: 'folders',
+				kind: 'file',
+			}),
+		).toBeNull();
+		expect(
+			resolveExplorerGlyphColor({
+				...base,
+				scope: 'both',
+				kind: 'folder',
+			}),
+		).toBe('var(--interactive-accent)');
+	});
+
+	it('inherits a branch rainbow and keeps Iconic precedence on cell_icon', () => {
+		const inherited = 'var(--color-rainbow-4, #22c55e)';
+		const glyphColor = resolveExplorerGlyphColor({
+			choice: 'rainbow',
+			customColor: '#123456',
+			scope: 'files',
+			kind: 'file',
+			position: 7,
+			inheritedRainbowColor: inherited,
+		});
+		expect(glyphColor).toBe(inherited);
+		expect(resolveExplorerGlyphDecoration(glyphColor, '#abcdef')).toEqual({
+			iconColor: '#abcdef',
+			labelColor: inherited,
+		});
+		expect(resolveExplorerGlyphDecoration(glyphColor, null)).toEqual({
+			iconColor: inherited,
+			labelColor: inherited,
+		});
+		expect(resolveExplorerGlyphDecoration(null, null)).toEqual({
+			iconColor: undefined,
+			labelColor: undefined,
+		});
 	});
 
 	it('the floating index consumes the shared resolver', () => {

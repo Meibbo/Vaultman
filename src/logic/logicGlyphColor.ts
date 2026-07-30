@@ -46,8 +46,38 @@ const RAINBOW_PASTEL_FALLBACK = [
 	'#f7a4e6',
 ];
 
+const EXPLORER_RAINBOW_FALLBACK = [
+	'#ef4444',
+	'#f97316',
+	'#eab308',
+	'#22c55e',
+	'#14b8a6',
+	'#06b6d4',
+	'#3b82f6',
+	'#8b5cf6',
+	'#d946ef',
+	'#ec4899',
+] as const;
+
 const DEFAULT_CUSTOM_COLOR = '#7c3aed';
 const HEX_RE = /^#(?:[0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/;
+
+export type GlyphColorScope = 'folders' | 'files' | 'both';
+export type ExplorerGlyphNodeKind = 'folder' | 'file';
+
+export interface ExplorerGlyphColorInput {
+	choice: GlyphColorChoice;
+	customColor: string;
+	scope: GlyphColorScope;
+	kind: ExplorerGlyphNodeKind;
+	position: number;
+	inheritedRainbowColor?: string | null;
+}
+
+export interface ExplorerGlyphDecoration {
+	iconColor: string | undefined;
+	labelColor: string | undefined;
+}
 
 export function isValidGlyphColor(value: unknown): value is string {
 	return typeof value === 'string' && HEX_RE.test(value.trim());
@@ -82,6 +112,41 @@ export function rainbowGlyphColor(index: number, total: number): string {
 	return `var(--color-rainbow-${varIndex + 1}, ${RAINBOW_PASTEL_FALLBACK[slot]})`;
 }
 
+export function explorerRainbowGlyphColor(position: number): string {
+	const count = EXPLORER_RAINBOW_FALLBACK.length;
+	const slot = (((position + count - 1) % count) + count) % count;
+	return `var(--color-rainbow-${slot + 1}, ${EXPLORER_RAINBOW_FALLBACK[slot]})`;
+}
+
+export function resolveExplorerGlyphColor({
+	choice,
+	customColor,
+	scope,
+	kind,
+	position,
+	inheritedRainbowColor,
+}: ExplorerGlyphColorInput): string | null {
+	const inScope =
+		scope === 'both' ||
+		(scope === 'folders' && kind === 'folder') ||
+		(scope === 'files' && kind === 'file');
+	if (!inScope || choice === 'default') return null;
+	if (choice === 'rainbow') {
+		return inheritedRainbowColor ?? explorerRainbowGlyphColor(position);
+	}
+	return resolveGlyphColorCss(choice, customColor) || null;
+}
+
+export function resolveExplorerGlyphDecoration(
+	glyphColor: string | null,
+	explicitIconColor: string | null | undefined,
+): ExplorerGlyphDecoration {
+	return {
+		iconColor: explicitIconColor ?? glyphColor ?? undefined,
+		labelColor: glyphColor ?? undefined,
+	};
+}
+
 /**
  * The CSS color for a non-rainbow choice, or '' for `default` (no override).
  * Rainbow is index-based, so callers use rainbowGlyphColor per glyph instead.
@@ -103,9 +168,6 @@ export function resolveGlyphColorCss(
 			return '';
 	}
 }
-
-export type GlyphColorScope = 'folders' | 'files' | 'both';
-
 export function normalizeGlyphColorScope(value: unknown): GlyphColorScope {
 	return value === 'files' || value === 'both' ? value : 'folders';
 }
