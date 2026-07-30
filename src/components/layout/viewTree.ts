@@ -526,6 +526,7 @@ export class UnifiedTreeView {
 			node.cls ?? '',
 			node.icon ?? '',
 			node.iconColor ?? '',
+			node.labelColor ?? '',
 			node.typeText ?? '',
 			node.mtimeText ?? '',
 			node.ctimeText ?? '',

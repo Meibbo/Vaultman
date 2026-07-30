@@ -702,4 +702,55 @@ describe('UnifiedTreeView behavior', () => {
 		expect(active).not.toBeNull();
 		expect(active?.classList.contains('is-active')).toBe(true);
 	});
+
+	it('repaints a recycled row when only labelColor changes', async () => {
+		const { UnifiedTreeView } =
+			await import('../../src/components/layout/viewTree');
+		const container = new TinyElement('div');
+		const view = new UnifiedTreeView(
+			container as unknown as HTMLElement,
+		);
+		const options = {
+			expandedIds: new Set<string>(),
+			onToggle: () => {},
+			onRowClick: () => {},
+			onContextMenu: () => {},
+		};
+
+		view.render({
+			...options,
+			nodes: [
+				{
+					id: 'Alpha.md',
+					label: 'Alpha',
+					depth: 0,
+					meta: {},
+					labelColor: '#111111',
+				},
+			],
+		});
+		const firstLabel = container.querySelector(
+			'.vaultman-tree-label',
+		) as unknown as TinyElement | null;
+
+		view.render({
+			...options,
+			nodes: [
+				{
+					id: 'Alpha.md',
+					label: 'Alpha',
+					depth: 0,
+					meta: {},
+					labelColor: '#222222',
+				},
+			],
+		});
+		const secondLabel = container.querySelector(
+			'.vaultman-tree-label',
+		) as unknown as TinyElement | null;
+
+		expect(firstLabel?.style.color).toBe('#111111');
+		expect(secondLabel?.style.color).toBe('#222222');
+		expect(secondLabel).not.toBe(firstLabel);
+	});
 });

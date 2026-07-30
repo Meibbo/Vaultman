@@ -154,8 +154,12 @@ describe('BT5-025 shared glyph color palette', () => {
 
 	it('colors explorer glyphs by scope but never over an Iconic color', () => {
 		expect(explorerFilesSource).toContain('_explorerGlyphColorFor(');
-		// An explicit resolved (Iconic) color takes precedence over the glyph.
-		expect(explorerFilesSource).toContain('resolved?.color ?? glyph ?? undefined');
+		// The shared precedence helper receives the explicit resolved (Iconic)
+		// color, which wins the icon while glyph color still owns the label.
+		expect(explorerFilesSource).toContain(
+			'resolveExplorerGlyphDecoration(',
+		);
+		expect(explorerFilesSource).toContain('resolved?.color');
 		expect(explorerFilesSource).toContain('this.plugin.settings.explorerGlyphScope');
 	});
 });
