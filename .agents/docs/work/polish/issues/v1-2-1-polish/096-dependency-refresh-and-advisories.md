@@ -79,12 +79,32 @@ branch's `package.json`.
 Non-Dependabot: **#40** `chore(main): release 1.2.0` (release-please) and **#35**
 `Adjust image size and update Table of Contents links` (dev's own).
 
-**The decision this needs:** merging the dev-dependency PRs into stable duplicates
-work that sandbox already did, and merging into a branch that `vp` will later
-replace may just create conflicts. Closing them makes the badge count drop but
-leaves stable's lockfile stale if the sandbox merge slips. That trade-off is the
-dev's call, and it drives whether this issue is "merge 11 PRs" or "close 6, merge
-the 5 Actions bumps".
+### Dev decision (2026-07-29)
+
+Port the devDependencies from sandbox to main, then **close** the dependency PRs
+without accepting them. Two constraints found while scoping that port:
+
+1. **#40 and #35 must not be closed.** #40 is release-please's
+   `chore(main): release 1.2.0` (author `app/github-actions`) — closing it breaks
+   the release automation. #35 is the dev's own PR. Only the 11 Dependabot PRs are
+   in scope, and only 6 of those are `package.json` changes.
+2. **The eslint family is coupled and is a major bump.** #18 raises `@eslint/js`
+   to 10.0.1, but no PR raises `eslint` itself, which main pins at 9.39.4.
+   `@eslint/js` 10 pairs with eslint 10; sandbox works because it carries both at
+   10.x. So "port sandbox's devDeps" means taking eslint 9.39.4 → 10.5.0 and
+   `typescript-eslint` 8.35.1 → 8.61.1 on stable. A major eslint bump will move
+   main's lint baseline — the number nobody has measured yet (see BT5-095 Part A).
+
+| Group | PRs | Portable from sandbox? |
+| --- | --- | --- |
+| Uncoupled devDeps: `esbuild`, `mocha`, `@wdio/local-runner`, `globals` | #34, #30, #31, #29, #19 | Yes, low risk |
+| eslint family: `@eslint/js` + `eslint` + `typescript-eslint` | #18 | Only as a gated major bump |
+| GitHub Actions pins | #39, #36, #33, #28, #26 | Not a `package.json` change. Sandbox pins actions by **commit SHA** rather than version tag, so porting sandbox's workflow refs resolves these — a separate workflow change. |
+
+**Sequencing this implies:** measure main's eslint baseline first, then port the
+uncoupled four, then treat the eslint major as its own gated step, then close the
+11. Closing before the port would drop the badge count while leaving stable's
+lockfile stale.
 
 ## The outdated lint plugin does not explain the scan findings
 
