@@ -37,8 +37,11 @@ the difference between discoverable and effectively hidden configuration.
 - Sandbox: same gap, the class moved to `src/settingsVM.ts:6`. **Fixing this on
   the patch branch alone will not carry to sandbox** — the file was renamed, so
   the change has to be applied on both lines or ported deliberately.
-- `obsidian` typings are already at `1.13.1`, so the API is available to type
-  against with no dependency bump.
+- **Typings need a bump on the patch line.** Stable pins `obsidian@1.12.3`, which
+  predates the API — there is nothing to type `getSettingDefinitions()` against
+  there. Sandbox already carries `obsidian@1.13.1`. So this issue implies raising
+  stable's `obsidian` devDep to ≥1.13.x, which also means re-checking stable's
+  `minAppVersion: 1.12.0` against whatever the new typings assume.
 
 ## Plan
 

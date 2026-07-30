@@ -1,96 +1,129 @@
 ---
-title: "BT5-096 — Dependency refresh: 3 high advisories + outdated obsidianmd plugin"
+title: "BT5-096 — Dependency refresh: 19 Dependabot alerts, 13 stale PRs, obsidianmd bump"
 type: issue
 status: needs-triage
 lifecycle: active
 priority: P2
-execution: AFK
+execution: HITL
 parent: "[[docs/work/polish/issues/v1-2-1-polish/index|v1.2.1 polish backlog]]"
 dateCreated: 2026-07-29T18:52:04
-dateUpdated: 2026-07-29T18:52:04
+dateUpdated: 2026-07-29T20:14:00
 created_by: claude-opus-5
 updated_by: claude-opus-5
 tags: [agent/issue, triage/needs-triage, initiative/polish, release/1.2.1, dependencies, security]
 ---
 
-# BT5-096 — Dependency refresh: 3 high advisories + outdated obsidianmd plugin
+# BT5-096 — Dependency refresh: 19 Dependabot alerts, 13 stale PRs, obsidianmd bump
 
-## Symptom
+> **Branch-attribution correction (2026-07-29).** The first version quoted a
+> sandbox `pnpm why` trace (`immutable ← sass ← vite-plus`) as if it described
+> stable. `vite-plus` is sandbox-only, so stable's graph differs. GitHub's alerts
+> are against the default branch. Both are separated below.
 
-The dev's read — that the GitHub security warnings and the scorecard findings
-point at the same staleness — is half right, and the split matters.
+## GitHub's view (default branch): 19 alerts, every one dev-scope
 
-### Security advisories: real, and all build-time
+Queried via `gh api repos/Meibbo/Vaultman/dependabot/alerts?state=open`:
 
-`node scripts/security-audit.mjs --scope=prod --report-level=moderate --fail-level=high`
-fails with `high:3`:
+| Package | Alerts | Severities |
+| --- | --- | --- |
+| `undici` | 9 | 2 high, 3 medium, 4 low |
+| `brace-expansion` | 3 | 3 high |
+| `fast-uri` | 2 | 2 high |
+| `vite` | 2 | 1 high, 1 medium |
+| `tar` | 1 | 1 medium |
+| `js-yaml` | 1 | 1 high |
+| `esbuild` | 1 | 1 low |
 
-| Advisory | Package | Installed | Patched in |
+**All 19 report `scope: development`.** The shipped artifact is a bundled
+`main.js`, so none of these reaches a user's Obsidian — the exposure is the build
+machine and CI, which is real supply-chain surface but not a user-facing
+vulnerability. Worth saying explicitly when the badge count is the motivation:
+clearing it is repo hygiene, not a user security fix.
+
+Sandbox already pins four of these families through `pnpm.overrides`
+(`esbuild`, `js-yaml`, `undici`, `vite`), so those alerts are stable-only and
+will resolve when sandbox's override block lands. `brace-expansion`, `fast-uri`
+and `tar` are covered by neither line.
+
+## Sandbox's own audit is also failing
+
+`scripts/security-audit.mjs` on sandbox:
+
+- `--scope=prod` → `high:3` — `immutable` ×2 (patched ≥5.1.8), `postcss`
+  (patched ≥8.5.18). Traced with `pnpm why` to `sass@1.99.0` and to
+  `vite`/`svelte-preprocess`/`vite-plus` — all devDependency paths.
+- `--scope=dev` → **13 advisories at high+**, adding `fast-uri` ×2,
+  `fast-xml-parser` (≥5.10.1) and `tar` ×4 (≥7.5.21 covers the set).
+
+So sandbox's overrides do not make it clean; they cover a different subset than
+the one GitHub reports for stable. Neither line is green.
+
+## The 13 open PRs
+
+11 of the 13 are Dependabot. Every sampled one is **already satisfied or
+exceeded on sandbox**:
+
+| PR | Package | PR target | sandbox has |
 | --- | --- | --- | --- |
-| GHSA-v56q-mh7h-f735 | `immutable` | 5.1.5 | ≥ 5.1.8 |
-| GHSA-xvcm-6775-5m9r | `immutable` | 5.1.5 | ≥ 5.1.8 |
-| GHSA-r28c-9q8g-f849 | `postcss` | 8.5.16 | ≥ 8.5.18 |
+| #34, #30 | `esbuild` | 0.28.1 / 0.28.0 | `^0.28.1` |
+| #31 | `mocha` | 11.7.6 | `^11.7.6` |
+| #19 | `globals` | 17.6.0 | `17.6.0` |
+| #18 | `@eslint/js` | 10.0.1 | `^10.0.1` |
+| #29 | `@wdio/local-runner` | 9.27.2 | `^9.29.0` (ahead) |
 
-Both are 32-bit-trie / hash-collision DoS in `immutable`, and a source-map path
-traversal in `postcss`. Provenance traced with `pnpm why`:
+The rest are GitHub Actions bumps (#39 `codeql-action/analyze`, #36
+`actions/checkout`, #33 `codeql-action`, #28 `actions/setup-node`, #26
+`release-please-action`) which are workflow-file changes independent of either
+branch's `package.json`.
 
-- `immutable@5.1.5` ← `sass@1.99.0` ← `vite-plus`, `esbuild-sass-plugin`,
-  `sass-embedded`
-- `postcss@8.5.16` ← `vite@8.0.16`, `svelte-preprocess`, `vite-plus`;
-  `postcss@8.5.13` ← `depcheck`
+Non-Dependabot: **#40** `chore(main): release 1.2.0` (release-please) and **#35**
+`Adjust image size and update Table of Contents links` (dev's own).
 
-**Every path runs through `devDependencies`.** The shipped artifact is a bundled
-`main.js`, so none of these three reaches a user's Obsidian — the exposure is the
-build machine and CI, not the plugin. That lowers urgency but does not make it
-cosmetic: a source-map path traversal in the bundler's own toolchain is a
-supply-chain surface, and the audit is a `fail-level=high` gate, so it is red.
+**The decision this needs:** merging the dev-dependency PRs into stable duplicates
+work that sandbox already did, and merging into a branch that `vp` will later
+replace may just create conflicts. Closing them makes the badge count drop but
+leaves stable's lockfile stale if the sandbox merge slips. That trade-off is the
+dev's call, and it drives whether this issue is "merge 11 PRs" or "close 6, merge
+the 5 Actions bumps".
 
-Both fixes are patch bumps. The repo already carries the exact convention for
-pinning a transitive — `pnpm.overrides` in `package.json` currently pins
-`esbuild`, `js-yaml`, `undici` and `vite` — so this follows an established
-pattern rather than inventing one.
+## The outdated lint plugin does not explain the scan findings
 
-### The outdated lint plugin: real, but does not explain the scan findings
+| Package | stable | sandbox | Latest | Verdict |
+| --- | --- | --- | --- | --- |
+| `eslint-plugin-obsidianmd` | 0.3.0 | 0.3.0 | **0.4.1** | outdated on both |
+| `obsidian` | 1.12.3 | 1.13.1 | 1.13.1 | stable behind (see BT5-093) |
+| `eslint` | 9.39.4 | 10.5.0 | — | different majors |
+| `typescript-eslint` | 8.35.1 | 8.61.1 | — | stable behind |
 
-| Package | Installed | Latest | Verdict |
-| --- | --- | --- | --- |
-| `eslint-plugin-obsidianmd` | 0.3.0 | **0.4.1** | outdated (0.4.0 2026-06-30, 0.4.1 2026-07-02) |
-| `obsidian` | 1.13.1 | 1.13.1 | current |
-| `eslint` | 10.5.0 | — | current major |
-| `typescript-eslint` | 8.61.1 | — | current major |
-
-0.4.0 was a maintainer handoff (`joethei` → `lishid`) plus an ESLint `>=9.19.0`
-floor and dependency bumps; **no substantive rule additions**. So bumping it
-would *not* have caught the `getSettingDefinitions` warning
-([[093-declarative-settings-api|BT5-093]]) and would not have changed the
-assertion findings either — those come from `typescript-eslint`, already
-installed and already reporting. Worth doing for maintenance, not as a fix for
-the scan.
+0.4.0 (2026-06-30) was a maintainer handoff (`joethei` → `lishid`) plus an
+ESLint `>=9.19.0` floor and dependency bumps; 0.4.1 (2026-07-02) added no
+substantive rules. So the bump would **not** have caught the
+`getSettingDefinitions` warning ([[093-declarative-settings-api|BT5-093]]), and
+the assertion findings come from `typescript-eslint`, which was already
+installed and already reporting. Do the bump as maintenance, not as a fix.
 
 ## Plan
 
-- [ ] Pin `immutable` ≥ 5.1.8 and `postcss` ≥ 8.5.18 via `pnpm.overrides`,
-      matching the existing override style; prefer a plain `pnpm update` first if
-      the lockfile resolves clean without pinning.
-- [ ] Re-run `security:audit` for both `--scope=prod` and `--scope=dev` — the
-      `verify` chain runs both and only prod was checked here.
-- [ ] Bump `eslint-plugin-obsidianmd` to 0.4.1 and re-run lint; treat any new
-      findings as separate items rather than folding them in.
-- [ ] Reconcile against GitHub's Dependabot alert list — the dev reports "too
-      many" there, and this audit only covers what the repo script scopes. If the
-      GitHub list is longer, the delta is its own finding.
+- [ ] **Dev decision:** merge vs close the 6 dev-dependency PRs, given sandbox
+      already exceeds all of them and `vp` will rewrite stable's toolchain.
+- [ ] Merge the 5 GitHub Actions bumps — branch-independent, low risk, and they
+      also feed the `TokenPermissionsID` scorecard findings in
+      [[097-code-scanning-alerts|BT5-097]].
+- [ ] Cover `brace-expansion`, `fast-uri` and `tar` on both lines — neither has
+      them pinned. `tar` ≥7.5.21 clears all four of its advisories.
+- [ ] Add `immutable` ≥5.1.8, `postcss` ≥8.5.18, `fast-xml-parser` ≥5.10.1 to
+      sandbox's existing `pnpm.overrides` block.
+- [ ] Bump `eslint-plugin-obsidianmd` to 0.4.1 on both lines; treat any new
+      findings as separate items.
+- [ ] Re-run `security:audit` for prod **and** dev on both lines — `verify` runs
+      both scopes, and only prod was checked in the first pass.
+- [ ] Resolve #40 (release 1.2.0) and #35 (dev's docs PR) — neither is a
+      dependency concern, but both count toward the "repo looks clean" goal.
 
 ## Acceptance criteria
 
-- [ ] `security:audit` passes at `fail-level=high` for prod and dev scopes.
-- [ ] `eslint-plugin-obsidianmd` at 0.4.1 with lint output unchanged or
-      explained.
+- [ ] `security:audit` passes at `fail-level=high` for prod and dev on both lines.
+- [ ] Dependabot's open-alert count is zero, or each survivor has a recorded
+      reason (dev-scope-only being a legitimate one).
+- [ ] No stale dependency PRs remain open.
 - [ ] Build, unit, component and integration suites green after the bumps.
-- [ ] The GitHub advisory count is either cleared or each remaining item has a
-      recorded reason.
-
-## Notes
-
-Does not unblock [[095-lint-and-guard-harness-red|BT5-095]] and is not blocked by
-it — the 263-error lint baseline is a config/gate question, unrelated to
-dependency versions.

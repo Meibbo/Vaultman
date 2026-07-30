@@ -5,9 +5,9 @@ status: active
 lifecycle: active
 parent: "[[docs/work/polish/issues/bt5-final-stable-audit/index|BT5 final stable audit]]"
 created: 2026-07-23T02:15:00
-updated: 2026-07-29T18:31:00
+updated: 2026-07-29T21:30:00
 created_by: claude-opus-4-8-audit
-updated_by: codex-gpt5-root
+updated_by: claude-opus-5
 tags: [agent/issues, triage/needs-triage, initiative/polish, release/1.2.1]
 ---
 
@@ -29,14 +29,26 @@ match sandbox, which reorganized `src/`.
   assertions (6/6 sampled verified live on `main`) + the last
   `document.createElement`. `prefer-create-el` is otherwise already fixed on
   stable, so most of that scan warning is stale.
-- [[095-lint-and-guard-harness-red|BT5-095]] — **root cause.** The lint gate
-  exits 1 with 263 errors, the scorecard regression guard is unwired and
-  crashes, and stylelint is configured but never installed. Explains why the
-  `text-decoration` warning (W5) returned after being fixed for 1.1.6, and why
-  the assertion warnings were invisible locally.
-- [[096-dependency-refresh-and-advisories|BT5-096]] — 3 high advisories
-  (`immutable` ×2, `postcss`), all reached through devDependencies so
-  build-time only, plus `eslint-plugin-obsidianmd` 0.3.0 → 0.4.1.
+- [[095-lint-and-guard-harness-red|BT5-095]] — **root cause of the W5
+  regression.** On stable the harness is wired (stylelint and the scorecard
+  guard both run inside `verify`), but neither has a browser-compat rule, so
+  `text-decoration` was never guarded — the 1.1.6 fix was manual and nothing
+  held it. Part B records that sandbox *dropped* both gates in the vite-plus
+  migration, plus its 263-error eslint baseline.
+- [[096-dependency-refresh-and-advisories|BT5-096]] — 19 Dependabot alerts, all
+  `scope: development` so none ships to users; 13 open PRs of which every
+  sampled dev-dependency bump is already exceeded on sandbox; plus
+  `eslint-plugin-obsidianmd` 0.3.0 → 0.4.1 on both lines.
+- [[097-code-scanning-alerts|BT5-097]] — the other 18 alerts: 9 CodeQL code
+  findings (4 high `remote-property-injection` in a file that exists only on
+  stable) and 9 OpenSSF Scorecard policy items that no code change fixes.
+
+**Branch-attribution note (2026-07-29).** The first pass of 095/096 reported
+sandbox measurements as stable facts. `vite-plus` (`vp`) is sandbox-only, so
+`vp run lint`, the 263-error count and the orphaned stylelint config never
+described stable. Corrected in place; both issues now separate the two lines.
+Stable is also *behind* sandbox on `obsidian` (1.12.3 vs 1.13.1), which adds a
+typings bump to BT5-093.
 
 W5 (`text-decoration` at `styles.css:6895`) has no issue of its own: the scan
 flags it for Obsidian 1.11.4, below the declared `minAppVersion: 1.12.0`, so no
@@ -84,6 +96,16 @@ remain historical local-memory references only.
 - [U121-026 #56](https://github.com/Meibbo/Vaultman/issues/56) — navigation/focus commands.
 - [U121-027 #57](https://github.com/Meibbo/Vaultman/issues/57) — relative timestamps.
 - [U121-028 #67](https://github.com/Meibbo/Vaultman/issues/67) — menu/Navbar action editor.
+
+Published 2026-07-29 (claude-opus-5) — the five items that were local-only until now.
+The `BT5-09x` codes stay as the local-memory record; the `U121` codes are canonical
+in public:
+
+- [U121-029 #69](https://github.com/Meibbo/Vaultman/issues/69) — vm-scene open/close freeze (= [[092-vm-scene-open-close-freeze|BT5-092]], HITL).
+- [U121-030 #70](https://github.com/Meibbo/Vaultman/issues/70) — declarative settings API (= [[093-declarative-settings-api|BT5-093]]).
+- [U121-031 #71](https://github.com/Meibbo/Vaultman/issues/71) — unnecessary assertions + `createEl` (= [[094-unnecessary-assertions-and-create-el|BT5-094]]).
+- [U121-032 #72](https://github.com/Meibbo/Vaultman/issues/72) — lint gate red + dormant scorecard guard (= [[095-lint-and-guard-harness-red|BT5-095]], P1, HITL).
+- [U121-033 #73](https://github.com/Meibbo/Vaultman/issues/73) — dependency refresh + 3 high advisories (= [[096-dependency-refresh-and-advisories|BT5-096]]).
 
 ## Carried over from the v1.2.0 audit (never started)
 
