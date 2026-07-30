@@ -1013,4 +1013,13 @@ export const en: Record<string, string> = {
 	'stats.remaining_tasks': 'Remaining tasks',
 	'stats.word_count': 'Word Count',
 	'stats.reconciling': 'Reconciling',
+	// U121-027: relative timestamp cells
+	'time.just_now': 'Just now',
+	'time.minute_ago': '{count} minute ago',
+	'time.minutes_ago': '{count} minutes ago',
+	'time.hour_ago': '{count} hour ago',
+	'time.hours_ago': '{count} hours ago',
+	'settings.timestamp_format': 'Relative timestamps',
+	'settings.timestamp_format.desc':
+		'Show Last opened, Modified and Created as "3 hours ago" when they are under a day old. Turn off to always show the exact date.',
 };

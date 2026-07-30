@@ -915,4 +915,13 @@ export const es: Record<string, string> = {
 	'content.landing_title': 'Búsqueda de texto',
 	'content.landing_desc': 'Escribe un término para explorar el alcance actual.',
 	'content.empty_desc': 'Prueba otro término o ajusta los filtros actuales.',
+	// U121-027: celdas de tiempo relativo
+	'time.just_now': 'Ahora mismo',
+	'time.minute_ago': 'hace {count} minuto',
+	'time.minutes_ago': 'hace {count} minutos',
+	'time.hour_ago': 'hace {count} hora',
+	'time.hours_ago': 'hace {count} horas',
+	'settings.timestamp_format': 'Marcas de tiempo relativas',
+	'settings.timestamp_format.desc':
+		'Muestra Ultima apertura, Modificado y Creado como "hace 3 horas" cuando tienen menos de un dia. Desactivalo para mostrar siempre la fecha exacta.',
 };

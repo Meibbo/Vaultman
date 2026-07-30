@@ -195,6 +195,20 @@ export class VaultmanSettingsTab extends PluginSettingTab {
 				}),
 			);
 
+		// U121-027: saveSettings() notifies the settings listeners, so the visible
+		// cells re-render from the cached times — no index rebuild.
+		new Setting(containerEl)
+			.setName(translate('settings.timestamp_format'))
+			.setDesc(translate('settings.timestamp_format.desc'))
+			.addToggle((toggle) =>
+				toggle
+					.setValue(this.plugin.settings.timestampRelative)
+					.onChange(async (value) => {
+						this.plugin.settings.timestampRelative = value;
+						await this.plugin.saveSettings();
+					}),
+			);
+
 		new Setting(containerEl)
 			.setName(translate('settings.show_dock'))
 			.setDesc(translate('settings.show_dock.desc'))

@@ -78,6 +78,12 @@ export interface VaultmanSettings {
 	basesShowColumnSeparators: boolean;
 	/** What to open when the ribbon icon is clicked: sidebar only, main view only, or both */
 	openMode: 'sidebar' | 'main' | 'new_instance' | 'both';
+	/**
+	 * U121-027: render Last opened / Modified / Created as relative copy ("3 hours
+	 * ago") while they are under a day old. Off renders the exact date everywhere,
+	 * which is the 1.2.0 behaviour.
+	 */
+	timestampRelative: boolean;
 	/** Order of pages in the sidebar bottom nav (page IDs: 'filters', 'statistics') */
 	pageOrder: string[];
 	/** Glassmorphism blur intensity for bottom bar and popups (0–100, maps to 0–20px) */
@@ -268,6 +274,7 @@ export const DEFAULT_SETTINGS: VaultmanSettings = {
 	basesInjectCheckboxes: true,
 	basesShowColumnSeparators: false,
 	openMode: 'new_instance',
+	timestampRelative: true,
 	pageOrder: ['filters', 'statistics'],
 	separatePanes: false,
 	viewMode: 'list',

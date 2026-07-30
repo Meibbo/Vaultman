@@ -29,6 +29,11 @@ export interface FilesGridViewCallbacks {
 	getPropCount?: (file: TFile) => number;
 	getFileTimes?: (file: TFile) => ExplorerFileTimes;
 	getWordCount?: (file: TFile) => number | null;
+	/**
+	 * U121-027: supplied by the explorer so card dates follow the same
+	 * relative/specific mode as the tree cells. Absent = the 1.2.0 absolute date.
+	 */
+	formatTimestamp?: (time: number) => string | undefined;
 }
 
 export class FilesGridView {
@@ -469,9 +474,12 @@ export class FilesGridView {
 
 	private renderDateCell(parent: HTMLElement, time: number): void {
 		if (!Number.isFinite(time) || time <= 0) return;
+		const text =
+			this.callbacks.formatTimestamp?.(time) ?? new Date(time).toLocaleDateString();
+		if (!text) return;
 		parent.createSpan({
 			cls: 'nav-file-tag vaultman-files-grid-card-date',
-			text: new Date(time).toLocaleDateString(),
+			text,
 		});
 	}
 

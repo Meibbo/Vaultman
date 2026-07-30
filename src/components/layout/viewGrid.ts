@@ -61,6 +61,11 @@ export interface GridViewCallbacks {
 	onFileHover?: (file: TFile, element: HTMLElement) => void;
 	onSortChange?: (column: SortColumn, direction: SortDirection) => void;
 	onDragStart?: (file: TFile, event: DragEvent) => void;
+	/**
+	 * U121-027: supplied by the explorer so table dates follow the same
+	 * relative/specific mode as the tree cells. Absent = the 1.2.0 absolute date.
+	 */
+	formatTimestamp?: (time: number) => string | undefined;
 }
 
 export class GridView {
@@ -596,10 +601,12 @@ export class GridView {
 					'vaultman-file-ext',
 				);
 			} else if (column.id === 'mtime' || column.id === 'ctime') {
+				const raw = times[column.id];
 				this._renderTextCell(
 					row,
 					column,
-					new Date(times[column.id]).toLocaleDateString(),
+					this.callbacks.formatTimestamp?.(raw) ??
+						new Date(raw).toLocaleDateString(),
 					'vaultman-file-date',
 				);
 			} else if (column.id === 'path') {

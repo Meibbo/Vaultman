@@ -46,6 +46,7 @@ import { FileMoveModal } from '../../modals/modalFileMove';
 import { PropertyManagerModal } from '../../modals/modalPropertyManager';
 import { DELETE_FILE, MOVE_FILE } from '../../types/typeOps';
 import { translate } from '../../i18n/index';
+import { formatTimestampCell } from '../../logic/logicRelativeTime';
 import { showInputModal } from '../../utils/inputModal';
 import {
 	changedItemsRemainOrdered,
@@ -863,6 +864,7 @@ export class FilesExplorerPanel extends Component {
 		this.treeView = null;
 		if (this.viewMode === 'table') {
 			this.tableView = new FilesTableView(this.containerEl, this.plugin.app, {
+				formatTimestamp: this._formatDateCell,
 				getFileTimes: (file: TFile) =>
 					this.plugin.statisticsCache.getFileTimes(file),
 				getWordCount: (file: TFile) =>
@@ -912,6 +914,7 @@ export class FilesExplorerPanel extends Component {
 			);
 		} else if (this.viewMode === 'grid') {
 			this.gridView = new FilesGridView(this.containerEl, {
+				formatTimestamp: this._formatDateCell,
 				onContextMenu: (file: TFile, e: MouseEvent) =>
 					this._openFileContextMenu(file, e),
 				onSelectionChange: (selected: Set<string>) => {
@@ -2471,10 +2474,17 @@ export class FilesExplorerPanel extends Component {
 		return openedAt === null ? undefined : this._formatDateCell(openedAt);
 	}
 
-	private _formatDateCell(time: number): string | undefined {
-		if (!Number.isFinite(time) || time <= 0) return undefined;
-		return new Date(time).toLocaleDateString();
-	}
+	/**
+	 * U121-027: the single formatter for every time cell in this explorer. The
+	 * grid and table views receive it as a callback so all surfaces switch modes
+	 * together instead of each re-deriving the date.
+	 */
+	private _formatDateCell = (time: number): string | undefined =>
+		formatTimestampCell(time, {
+			now: Date.now(),
+			mode: this.plugin.settings.timestampRelative ? 'relative' : 'specific',
+			translate,
+		});
 
 	private _filesHoverFields(): FileHoverInfoId[] {
 		return resolveFileHoverEntries(
