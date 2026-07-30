@@ -58,6 +58,31 @@ and `tar` are covered by neither line.
 So sandbox's overrides do not make it clean; they cover a different subset than
 the one GitHub reports for stable. Neither line is green.
 
+## The badge undercounts, and the audit is prod-only by construction
+
+Measured by the parallel agent (`claude-opus-5`) from a clean `main` worktree @
+`b30f8f23`; recorded here rather than re-derived.
+
+- `pnpm audit --prod --audit-level=high` on main → **clean, exit 0**. That is
+  exactly what `security:audit` runs on this line, so the whole dev-scope backlog
+  is invisible to stable's own gate **by construction**, not by accident.
+- `pnpm audit` without `--prod` → **27 vulnerabilities**: 1 critical, 14 high,
+  7 moderate, 5 low.
+- The critical is `tar` GHSA-23hp-3jrh-7fpw (vulnerable ≤ 7.5.18, patched
+  ≥ 7.5.19). **Dependabot reports it as medium**, so the panel badge
+  *understates* the worst finding. Anyone triaging by badge severity alone will
+  mis-rank this.
+
+### Two vulnerable paths enter through the lint toolchain itself
+
+- `eslint-plugin-obsidianmd > eslint-plugin-json-schema-validator > ajv > fast-uri`
+- `stylelint > table > ajv > fast-uri`
+
+This changes the framing of the `eslint-plugin-obsidianmd` 0.3.0 → 0.4.1 bump
+elsewhere in this issue: it is not only maintenance hygiene, it is one of the two
+routes carrying a vulnerable transitive. Same for `stylelint`, which stable
+deliberately keeps wired.
+
 ## The 13 open PRs
 
 11 of the 13 are Dependabot. Every sampled one is **already satisfied or
