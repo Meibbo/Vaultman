@@ -5,13 +5,43 @@ status: active
 lifecycle: active
 parent: "[[docs/work/polish/issues/bt5-final-stable-audit/index|BT5 final stable audit]]"
 created: 2026-07-23T02:15:00
-updated: 2026-07-23T02:15:00
+updated: 2026-07-29T18:31:00
 created_by: claude-opus-4-8-audit
-updated_by: claude-opus-4-8-audit
+updated_by: codex-gpt5-root
 tags: [agent/issues, triage/needs-triage, initiative/polish, release/1.2.1]
 ---
 
 # v1.2.1 polish backlog
+
+## Triaged into files (2026-07-29)
+
+From the Obsidian team's automated scan of stable 1.2.0 plus one dev runtime
+report. Every scan warning was re-verified against `main` (manifest `1.2.0`)
+before filing — the scan's line references are stable-tree references and do not
+match sandbox, which reorganized `src/`.
+
+- [[092-vm-scene-open-close-freeze|BT5-092]] — vm-scene open/close freezes the
+  app for an instant (dev report; no diagnosis yet, HITL).
+- [[093-declarative-settings-api|BT5-093]] — adopt `getSettingDefinitions()`;
+  without it no Vaultman setting is findable in settings search on 1.13.0+.
+  Live on both stable and sandbox (file renamed to `src/settingsVM.ts` there).
+- [[094-unnecessary-assertions-and-create-el|BT5-094]] — 11 unnecessary type
+  assertions (6/6 sampled verified live on `main`) + the last
+  `document.createElement`. `prefer-create-el` is otherwise already fixed on
+  stable, so most of that scan warning is stale.
+- [[095-lint-and-guard-harness-red|BT5-095]] — **root cause.** The lint gate
+  exits 1 with 263 errors, the scorecard regression guard is unwired and
+  crashes, and stylelint is configured but never installed. Explains why the
+  `text-decoration` warning (W5) returned after being fixed for 1.1.6, and why
+  the assertion warnings were invisible locally.
+- [[096-dependency-refresh-and-advisories|BT5-096]] — 3 high advisories
+  (`immutable` ×2, `postcss`), all reached through devDependencies so
+  build-time only, plus `eslint-plugin-obsidianmd` 0.3.0 → 0.4.1.
+
+W5 (`text-decoration` at `styles.css:6895`) has no issue of its own: the scan
+flags it for Obsidian 1.11.4, below the declared `minAppVersion: 1.12.0`, so no
+installable user is affected. The actionable part — the missing guard and the
+stale compat target — lives in BT5-095.
 
 Work designed with the dev across the pre-stable prompts but deferred out of
 v1.2.0 so the stable could ship on the verified fixes. These are the large,
@@ -19,6 +49,41 @@ cross-cutting, or newly-scoped items. Numbers are provisional until triaged
 into individual files; the design detail lives in
 [[docs/sessions/2026-07-22-codex-gpt5-root|the audit shard]] and the
 2026-07-23 session log.
+
+## GitHub issue map (published 2026-07-29)
+
+Public tracker: https://github.com/Meibbo/Vaultman/issues. The `U121` identifiers
+are the canonical public codes for the 1.2.1 patch; older `BT5` identifiers below
+remain historical local-memory references only.
+
+- [U121-001 #41](https://github.com/Meibbo/Vaultman/issues/41) — Universal Navbar host.
+- [U121-002 #42](https://github.com/Meibbo/Vaultman/issues/42) — Text Has/Hasn't Navbar action.
+- [U121-003 #43](https://github.com/Meibbo/Vaultman/issues/43) — measured Navbar overflow.
+- [U121-004 #58](https://github.com/Meibbo/Vaultman/issues/58) — provider Navbar migration.
+- [U121-005 #44](https://github.com/Meibbo/Vaultman/issues/44) — ChangeIcon router.
+- [U121-006 #59](https://github.com/Meibbo/Vaultman/issues/59) — ChangeIcon adapters/fallback.
+- [U121-007 #45](https://github.com/Meibbo/Vaultman/issues/45) — Property format cell.
+- [U121-008 #60](https://github.com/Meibbo/Vaultman/issues/60) — checkbox action cell.
+- [U121-009 #61](https://github.com/Meibbo/Vaultman/issues/61) — date/datetime action cells.
+- [U121-010 #46](https://github.com/Meibbo/Vaultman/issues/46) — glyph color projection.
+- [U121-011 #62](https://github.com/Meibbo/Vaultman/issues/62) — frame top-edge geometry.
+- [U121-012 #63](https://github.com/Meibbo/Vaultman/issues/63) — differential filter render.
+- [U121-013 #47](https://github.com/Meibbo/Vaultman/issues/47) — generic highlight contract.
+- [U121-014 #64](https://github.com/Meibbo/Vaultman/issues/64) — folder queue badges.
+- [U121-015 #65](https://github.com/Meibbo/Vaultman/issues/65) — queued rename label preview.
+- [U121-016 #48](https://github.com/Meibbo/Vaultman/issues/48) — Text state preservation.
+- [U121-017 #49](https://github.com/Meibbo/Vaultman/issues/49) — Text pause/resume/restart.
+- [U121-018 #50](https://github.com/Meibbo/Vaultman/issues/50) — adopted Text file parents.
+- [U121-019 #51](https://github.com/Meibbo/Vaultman/issues/51) — core-search visual parity.
+- [U121-020 #66](https://github.com/Meibbo/Vaultman/issues/66) — Text context/view menus.
+- [U121-021 #52](https://github.com/Meibbo/Vaultman/issues/52) — tag occurrence provenance.
+- [U121-022 #53](https://github.com/Meibbo/Vaultman/issues/53) — default inline rename.
+- [U121-023 #68](https://github.com/Meibbo/Vaultman/issues/68) — rich queued rename expansion.
+- [U121-024 #54](https://github.com/Meibbo/Vaultman/issues/54) — in-app What's New modal.
+- [U121-025 #55](https://github.com/Meibbo/Vaultman/issues/55) — dynamic Open/Close copy.
+- [U121-026 #56](https://github.com/Meibbo/Vaultman/issues/56) — navigation/focus commands.
+- [U121-027 #57](https://github.com/Meibbo/Vaultman/issues/57) — relative timestamps.
+- [U121-028 #67](https://github.com/Meibbo/Vaultman/issues/67) — menu/Navbar action editor.
 
 ## Carried over from the v1.2.0 audit (never started)
 
