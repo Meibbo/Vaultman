@@ -939,6 +939,7 @@ export const en: Record<string, string> = {
 	'sort.level.title': 'By level',
 	'content.pause_search': 'Pause search',
 	'content.resume_search': 'Resume search',
+	'content.restart_search': 'Restart search',
 	'sort.level.nested': 'Nested',
 	'sort.level.fixed_folders': 'Fixed folders',
 	'settings.sort_level_inline': 'Inline By level options',

@@ -379,6 +379,114 @@ describe('Native search adapter helpers', () => {
 		});
 	});
 
+	// U121-017 regression guards. Three builds shipped with green suites while
+	// pause and resume were broken in the app, because nothing here exercised the
+	// lifecycle against the adapter. These two fail on the code as it shipped.
+	it('accumulates retained matches across polls instead of replacing them', async () => {
+		vi.stubGlobal('window', {
+			setTimeout: (handler: () => void, _timeout?: number) => {
+				handler();
+				return 0;
+			},
+		});
+		const early = makeFile('notes/early.md');
+		const late = makeFile('notes/late.md');
+		let polls = 0;
+		// Core drops `early` from its DOM once it has moved on to `late`. The
+		// retained floor must still carry it, or a resume loses ground.
+		const view = {
+			dom: {
+				working: true,
+				getFiles: () => {
+					polls += 1;
+					return polls <= 2 ? [early] : [late];
+				},
+				getMatchCount: () => 1,
+				getResult: (file: TFile) => ({
+					content: file === early ? 'como early' : 'como late',
+					result: { content: [[0, 4]] as [number, number][] },
+				}),
+			},
+			setQuery: vi.fn(),
+			startSearch: vi.fn(),
+			stopSearch: vi.fn(),
+			setMatchingCase: vi.fn(),
+		};
+		const adapter = new NativeSearchAdapter({
+			vault: {
+				cachedRead: async (file: TFile) =>
+					file === early ? 'como early' : 'como late',
+			},
+			workspace: { getLeavesOfType: () => [{ view }] },
+		} as never);
+
+		const searching = adapter.search({
+			query: 'como',
+			isRegex: false,
+			caseSensitive: false,
+			scopeFiles: [early, late],
+			onUpdate: () => {},
+		});
+		// Let a few polls run, then stop the way a pause does.
+		await Promise.resolve();
+		await Promise.resolve();
+		await Promise.resolve();
+		adapter.cancel();
+		await searching;
+
+		const retainedPaths = adapter.retainedInputs().map((i) => i.file.path);
+		expect(retainedPaths).toContain(early.path);
+	});
+
+	it('stops core and silences updates when a pause cancels the run', async () => {
+		vi.stubGlobal('window', {
+			setTimeout: (handler: () => void, _timeout?: number) => {
+				handler();
+				return 0;
+			},
+		});
+		const file = makeFile('notes/only.md');
+		const view = {
+			dom: {
+				working: true,
+				getFiles: () => [file],
+				getMatchCount: () => 1,
+				getResult: () => ({
+					content: 'como only',
+					result: { content: [[0, 4]] as [number, number][] },
+				}),
+			},
+			setQuery: vi.fn(),
+			startSearch: vi.fn(),
+			stopSearch: vi.fn(),
+			setMatchingCase: vi.fn(),
+		};
+		const adapter = new NativeSearchAdapter({
+			vault: { cachedRead: async () => 'como only' },
+			workspace: { getLeavesOfType: () => [{ view }] },
+		} as never);
+		let updates = 0;
+
+		const searching = adapter.search({
+			query: 'como',
+			isRegex: false,
+			caseSensitive: false,
+			scopeFiles: [file],
+			onUpdate: () => {
+				updates += 1;
+			},
+		});
+		await Promise.resolve();
+		adapter.cancel();
+		const afterCancel = updates;
+		await searching;
+
+		// Core is told to stop, not just our loop.
+		expect(view.stopSearch).toHaveBeenCalled();
+		// And nothing publishes after the cancel, so a paused count cannot climb.
+		expect(updates).toBe(afterCancel);
+	});
+
 	it('keeps polling longer for large native result sets', async () => {
 		vi.stubGlobal('window', {
 			setTimeout: (handler: () => void, _timeout?: number) => {

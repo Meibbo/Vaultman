@@ -825,6 +825,7 @@ export const es: Record<string, string> = {
 	'sort.level.title': 'Por nivel',
 	'content.pause_search': 'Pausar búsqueda',
 	'content.resume_search': 'Reanudar búsqueda',
+	'content.restart_search': 'Reiniciar búsqueda',
 	'sort.level.nested': 'Anidado',
 	'sort.level.fixed_folders': 'Carpetas fijas',
 	'settings.sort_level_inline': 'Opciones By level en línea',

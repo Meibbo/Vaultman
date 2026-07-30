@@ -46,18 +46,25 @@ describe('content search scope + input responsiveness (BT4-008 / D28)', () => {
 
 describe('preview refresh after edits (BT4-020)', () => {
 	it('re-keys the content search when the vault changes mid-search', () => {
-		expect(frameSource).toContain("plugin.app.vault.on('modify', onVaultModified)");
+		expect(frameSource).toContain(
+			"plugin.app.vault.on('modify', onVaultModified)",
+		);
 		expect(frameSource).toContain('hasEnabledContentSearchRule()');
 		expect(frameSource).toContain(':edit:${contentEditRevision}');
 		expect(frameSource).toContain('plugin.app.vault.offref(vaultModifyRef)');
 	});
 });
 
-describe('pause/resume content search (BT4-018 / D46)', () => {
+describe('pause/resume content search (BT4-018 / D46, re-pointed by U121-017)', () => {
 	it('freezes partial matches into the filter and unlocks replace while paused', () => {
 		expect(pageFiltersSource).toContain("id: 'content-pause'");
-		expect(pageFiltersSource).toContain('contentSearchPaused = !contentSearchPaused;');
-		const pauseIndex = pageFiltersSource.indexOf('if (paused) {');
+		// The boolean toggle became a phase machine; the control now applies an
+		// intent instead of flipping `contentSearchPaused`.
+		expect(pageFiltersSource).toContain('applyTextSearchIntent(');
+		expect(pageFiltersSource).toContain('contentSearchControl.intent');
+		const pauseIndex = pageFiltersSource.indexOf(
+			'if (!textSearchShouldScan(run)) {',
+		);
 		const timerIndex = pageFiltersSource.indexOf(
 			'const timer = window.setTimeout(() => {',
 		);
@@ -66,5 +73,75 @@ describe('pause/resume content search (BT4-018 / D46)', () => {
 		const branch = pageFiltersSource.slice(pauseIndex, timerIndex);
 		expect(branch).toContain('isLoading: false');
 		expect(branch).toContain('setContentSearchRule(find, matched)');
+	});
+
+	it('resumes from the cursor and does not cancel the scan on tab switch (U121-016/017)', () => {
+		// The teardown used to call `nativeSearchAdapter.cancel()`, which killed
+		// an in-flight scan whenever the effect re-ran — including on a provider
+		// switch. Only the debounce may be torn down now.
+		const teardownIndex = pageFiltersSource.indexOf(
+			'return () => {\n\t\t\twindow.clearTimeout(timer);',
+		);
+		expect(teardownIndex).toBeGreaterThan(-1);
+		const teardown = pageFiltersSource.slice(
+			teardownIndex,
+			teardownIndex + 120,
+		);
+		expect(teardown).not.toContain('nativeSearchAdapter.cancel()');
+
+		expect(pageFiltersSource).toContain('resumeFrom,');
+		expect(pageFiltersSource).toContain('onProgress: (nextIndex) => {');
+		expect(pageFiltersSource).toContain('reconcileTextSearchRun(');
+	});
+
+	it('claims the launch token inside the debounce, never before it', () => {
+		// Claiming it before the timer meant an effect re-run inside the debounce
+		// window cleared the pending timer and then returned early, so the search
+		// never started and the Text tab showed nothing at all.
+		const guardIndex = pageFiltersSource.indexOf('shouldLaunchTextSearch(');
+		const timerIndex = pageFiltersSource.indexOf(
+			'const timer = window.setTimeout(() => {',
+		);
+		const claimIndex = pageFiltersSource.indexOf(
+			'contentSearchLaunchToken = launchToken;',
+		);
+		expect(guardIndex).toBeGreaterThan(-1);
+		expect(claimIndex).toBeGreaterThan(timerIndex);
+		expect(guardIndex).toBeLessThan(timerIndex);
+	});
+
+	it('applies the frozen filter rule once, not on every effect pass', () => {
+		// setContentSearchRule -> onContentFilterChanged -> updateStats moves the
+		// scope revision, which re-runs this effect. Without the token the frozen
+		// branch re-applied the rule forever and pausing froze the app.
+		expect(pageFiltersSource).toContain('const frozenToken =');
+		expect(pageFiltersSource).toContain(
+			'if (contentFrozenApplyToken !== frozenToken) {',
+		);
+		const tokenIndex = pageFiltersSource.indexOf(
+			'if (contentFrozenApplyToken !== frozenToken) {',
+		);
+		const applyIndex = pageFiltersSource.indexOf(
+			'setContentSearchRule(find, matched, true)',
+		);
+		expect(tokenIndex).toBeGreaterThan(-1);
+		expect(applyIndex).toBeGreaterThan(tokenIndex);
+	});
+
+	it('a scope-only revision change does not discard the traversal', () => {
+		// `onContentFilterChanged` -> `updateStats` recomputes the scope revision,
+		// so this search changes its own signature on its own tail. Only a real
+		// intent change may reset the adapter.
+		const resetIndex = pageFiltersSource.indexOf(
+			'nativeSearchAdapter.resetRetained();',
+		);
+		expect(resetIndex).toBeGreaterThan(-1);
+		expect(pageFiltersSource).toContain(
+			'const intentChanged = !sameTextSearchIntent(',
+		);
+		const effectResetIndex = pageFiltersSource.indexOf(
+			'if (intentChanged) {\n\t\t\t\tnativeSearchAdapter.resetRetained();',
+		);
+		expect(effectResetIndex).toBeGreaterThan(-1);
 	});
 });

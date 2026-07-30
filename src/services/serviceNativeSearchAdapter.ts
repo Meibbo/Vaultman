@@ -15,6 +15,14 @@ interface NativeSearchDom {
 	getFiles(): TFile[];
 	getResult(file: TFile): NativeSearchResult | null;
 	getMatchCount?(): number;
+	/**
+	 * Core's own "still searching" flag, verified live on Obsidian 1.12.3
+	 * (`app.workspace.getLeavesOfType('search')[0].view.dom.working`). Asking it
+	 * replaces the guesswork that used to decide when a search had finished —
+	 * heuristics that called a search done while core was still finding matches,
+	 * which is why a common query reported a fraction of Core's count.
+	 */
+	working?: boolean;
 }
 
 interface NativeSearchView {
@@ -44,6 +52,22 @@ export interface NativeSearchOptions {
 	caseSensitive: boolean;
 	scopeFiles: TFile[];
 	onUpdate(result: ContentPreviewResult): void;
+	/**
+	 * U121-017: index into `scopeFiles` to continue from. A resumed scan skips
+	 * the native poll phase — Obsidian's search view has no cursor, so polling
+	 * it again would restart the very traversal we are resuming.
+	 */
+	resumeFrom?: number;
+	/** Matches already accumulated by the paused run, keyed by path on merge. */
+	seedInputs?: NativeSearchInput[];
+	/** Reports the next unscanned index so the host can persist the cursor. */
+	onProgress?(nextIndex: number): void;
+	/**
+	 * Force the local traversal even from index 0. A resume asks for this: the
+	 * native fast path has no cursor and stops on Obsidian's own snapshot, so
+	 * re-entering it would repeat the same short result instead of continuing.
+	 */
+	preferLocal?: boolean;
 }
 
 const MAX_FILES = 200;
@@ -161,6 +185,10 @@ export class NativeSearchAdapter {
 	private activeRun = 0;
 	private preservedView: NativeSearchView | null = null;
 	private preservedQuery: string | null = null;
+	/** Matches produced so far, kept across a pause so a resume can seed them. */
+	private retained: NativeSearchInput[] = [];
+	/** The core view we last told to search, so `cancel()` can stop it. */
+	private activeView: NativeSearchView | null = null;
 
 	constructor(app: App) {
 		this.app = app as SearchApp;
@@ -168,10 +196,43 @@ export class NativeSearchAdapter {
 
 	cancel(): void {
 		this.activeRun += 1;
+		// Stopping our poll loop is not stopping the search. `startSearch()` was
+		// issued against Obsidian's own view and nothing ever called
+		// `stopSearch()`, so core kept scanning in the background after a pause —
+		// which is why the match count kept climbing while the UI said "paused",
+		// and part of why the whole app crawled.
+		this.activeView?.stopSearch?.();
+		this.activeView = null;
+	}
+
+	/** Everything the current traversal has matched. Survives `cancel()`. */
+	retainedInputs(): NativeSearchInput[] {
+		return this.retained;
+	}
+
+	/** Drop accumulated matches when the query or mode makes them invalid. */
+	resetRetained(): void {
+		this.retained = [];
+	}
+
+	/**
+	 * Fold a fresh snapshot onto the retained one, keyed by path so a match is
+	 * never counted twice. The retained entry wins only when the incoming
+	 * snapshot has not reached that file yet, so the projected count is
+	 * monotone: it may grow, never shrink.
+	 */
+	private mergeRetained(incoming: NativeSearchInput[]): NativeSearchInput[] {
+		if (this.retained.length === 0) return incoming;
+		const byPath = new Map(
+			this.retained.map((input) => [input.file.path, input]),
+		);
+		for (const input of incoming) byPath.set(input.file.path, input);
+		return [...byPath.values()];
 	}
 
 	destroy(): void {
 		this.cancel();
+		this.retained = [];
 		if (this.preservedView && this.preservedQuery !== null) {
 			this.preservedView.setQuery(this.preservedQuery);
 			this.preservedView.startSearch();
@@ -183,7 +244,13 @@ export class NativeSearchAdapter {
 	async search(options: NativeSearchOptions): Promise<void> {
 		const run = (this.activeRun += 1);
 		const view = this.findSearchView();
-		if (!view) {
+		// A resume no longer walks the vault locally. That path read every file
+		// through `cachedRead` on the UI thread, which is what froze and crashed
+		// the app on resume. Core is re-issued instead and its results merge onto
+		// the retained floor, so the traversal cost stays inside core's own
+		// indexed search. Local remains the fallback for a vault where core
+		// search is unavailable, and for an explicit `preferLocal` caller.
+		if (!view || options.preferLocal) {
 			await this.searchLocal(options, run);
 			return;
 		}
@@ -196,6 +263,7 @@ export class NativeSearchAdapter {
 		view.setMatchingCase?.(options.caseSensitive);
 		view.setQuery(toNativeSearchQuery(options.query, options.isRegex));
 		view.startSearch();
+		this.activeView = view;
 
 		const scopePaths = new Set(options.scopeFiles.map((file) => file.path));
 		let latestNativeInputs: NativeSearchInput[] = [];
@@ -203,7 +271,14 @@ export class NativeSearchAdapter {
 		let bestNativeScore = -1;
 		let lastSnapshotKey = '';
 		let stableSnapshots = 0;
-		options.onUpdate(buildNativeSearchPreview([], true));
+		let coreIdlePolls = 0;
+		// A resume repaints the retained snapshot first. Core restarts its own
+		// scan internally — it has no cursor to hand us — but the user never sees
+		// a reset, because the retained matches stay on screen as the floor and
+		// incoming results merge into them. That is the whole trick: the resume
+		// is simulated, and it is indistinguishable as long as the count never
+		// goes backwards.
+		options.onUpdate(buildNativeSearchPreview(this.mergeRetained([]), true));
 
 		for (let attempt = 0; attempt < MAX_NATIVE_ATTEMPTS; attempt += 1) {
 			await new Promise((resolve) =>
@@ -214,35 +289,61 @@ export class NativeSearchAdapter {
 			const nativeMatchCount = view.dom?.getMatchCount?.();
 			const totalOffsets = countInputOffsets(attemptInputs);
 			const snapshotKey = `${attemptInputs.length}:${totalOffsets}:${nativeMatchCount ?? 'unknown'}`;
-			if (attemptInputs.length > 0) latestNativeInputs = attemptInputs;
+			if (attemptInputs.length > 0) {
+				latestNativeInputs = attemptInputs;
+				// Accumulate, do not replace. Assigning the raw snapshot here used
+				// to clobber the retained floor one statement before `mergeRetained`
+				// read it, which silently reduced the merge to a no-op and made a
+				// resume look exactly like a restart.
+				this.retained = this.mergeRetained(attemptInputs);
+			}
 			const nativeScore = nativeMatchCount ?? totalOffsets;
 			if (attemptInputs.length > 0 && nativeScore >= bestNativeScore) {
 				bestNativeInputs = attemptInputs;
 				bestNativeScore = nativeScore;
 			}
-			options.onUpdate(buildNativeSearchPreview(attemptInputs, true));
-			if (
-				attempt + 1 >= MIN_NATIVE_ATTEMPTS &&
-				attemptInputs.length === 0 &&
-				(nativeMatchCount === undefined || nativeMatchCount === 0)
-			) {
-				break;
-			}
-			if (snapshotKey === lastSnapshotKey && attemptInputs.length > 0) {
-				stableSnapshots += 1;
+			options.onUpdate(
+				buildNativeSearchPreview(this.mergeRetained(attemptInputs), true),
+			);
+
+			// Core tells us whether it is still working. Ask it instead of
+			// guessing: the old heuristics ended the poll on a momentary plateau,
+			// so a common query settled at a fraction of Core's real count and
+			// then announced itself as finished.
+			const working = view.dom?.working;
+			if (working === false) {
+				coreIdlePolls += 1;
+				// One extra poll after core goes idle, so the last batch it
+				// rendered is collected before we stop looking.
+				if (coreIdlePolls >= MIN_NATIVE_STABLE_ATTEMPTS) break;
+			} else if (working === true) {
+				coreIdlePolls = 0;
 			} else {
-				lastSnapshotKey = snapshotKey;
-				stableSnapshots = attemptInputs.length > 0 ? 1 : 0;
-			}
-			const requiredAttempts =
-				bestNativeScore >= LARGE_NATIVE_MATCH_THRESHOLD
-					? MIN_LARGE_NATIVE_ATTEMPTS
-					: MIN_NATIVE_ATTEMPTS;
-			if (
-				attempt + 1 >= requiredAttempts &&
-				stableSnapshots >= MIN_NATIVE_STABLE_ATTEMPTS
-			) {
-				break;
+				// `working` is absent on this build: fall back to the previous
+				// stability heuristic rather than polling to the hard cap.
+				if (
+					attempt + 1 >= MIN_NATIVE_ATTEMPTS &&
+					attemptInputs.length === 0 &&
+					(nativeMatchCount === undefined || nativeMatchCount === 0)
+				) {
+					break;
+				}
+				if (snapshotKey === lastSnapshotKey && attemptInputs.length > 0) {
+					stableSnapshots += 1;
+				} else {
+					lastSnapshotKey = snapshotKey;
+					stableSnapshots = attemptInputs.length > 0 ? 1 : 0;
+				}
+				const requiredAttempts =
+					bestNativeScore >= LARGE_NATIVE_MATCH_THRESHOLD
+						? MIN_LARGE_NATIVE_ATTEMPTS
+						: MIN_NATIVE_ATTEMPTS;
+				if (
+					attempt + 1 >= requiredAttempts &&
+					stableSnapshots >= MIN_NATIVE_STABLE_ATTEMPTS
+				) {
+					break;
+				}
 			}
 		}
 
@@ -263,8 +364,11 @@ export class NativeSearchAdapter {
 				(typeof nativeMatchCount === 'number' &&
 					nativeMatchCount >= LARGE_NATIVE_MATCH_THRESHOLD))
 		) {
+			// Skipping the local reconcile is only sound now that core told us it
+			// finished: this snapshot is its whole answer, not a plateau.
+			this.retained = this.mergeRetained(nativeInputs);
 			options.onUpdate(
-				buildNativeSearchPreview(nativeInputs, false, nativeMatchCount),
+				buildNativeSearchPreview(this.retained, false, nativeMatchCount),
 			);
 			return;
 		}
@@ -282,8 +386,10 @@ export class NativeSearchAdapter {
 		options: NativeSearchOptions,
 		run: number,
 	): Promise<void> {
-		options.onUpdate(buildNativeSearchPreview([], true));
-		const inputs = await this.collectLocalResults(options, run, [], true);
+		const seeds = options.seedInputs ?? [];
+		// A resumed scan must repaint what it already has, not an empty frame.
+		options.onUpdate(buildNativeSearchPreview(seeds, true));
+		const inputs = await this.collectLocalResults(options, run, seeds, true);
 		if (run !== this.activeRun) return;
 		options.onUpdate(buildNativeSearchPreview(inputs, false));
 	}
@@ -297,8 +403,28 @@ export class NativeSearchAdapter {
 		const inputsByPath = new Map(
 			initialInputs.map((input) => [input.file.path, { ...input }]),
 		);
-		for (let index = 0; index < options.scopeFiles.length; index += 1) {
+		// Keyed by path, so a seeded resume can never duplicate a match that the
+		// paused half of the traversal already produced (BT4-019 keeps holding:
+		// local offsets stay authoritative over any native snapshot).
+		for (const seed of options.seedInputs ?? []) {
+			if (!inputsByPath.has(seed.file.path)) {
+				inputsByPath.set(seed.file.path, { ...seed });
+			}
+		}
+		if ((options.resumeFrom ?? 0) > 0 && !options.seedInputs) {
+			for (const seed of this.retained) {
+				if (!inputsByPath.has(seed.file.path)) {
+					inputsByPath.set(seed.file.path, { ...seed });
+				}
+			}
+		}
+		const start = Math.max(
+			0,
+			Math.min(options.resumeFrom ?? 0, options.scopeFiles.length),
+		);
+		for (let index = start; index < options.scopeFiles.length; index += 1) {
 			if (run !== this.activeRun) return [...inputsByPath.values()];
+			options.onProgress?.(index);
 			const file = options.scopeFiles[index];
 			if (!isContentSearchableFile(file)) continue;
 			let content = '';
@@ -320,13 +446,14 @@ export class NativeSearchAdapter {
 				inputsByPath.set(file.path, { file, content, offsets });
 			}
 			if (emitPartial && index % LOCAL_UPDATE_INTERVAL === 0) {
-				options.onUpdate(
-					buildNativeSearchPreview([...inputsByPath.values()], true),
-				);
+				this.retained = [...inputsByPath.values()];
+				options.onUpdate(buildNativeSearchPreview(this.retained, true));
 				await new Promise((resolve) => window.setTimeout(resolve, 0));
 			}
 		}
-		return [...inputsByPath.values()];
+		options.onProgress?.(options.scopeFiles.length);
+		this.retained = [...inputsByPath.values()];
+		return this.retained;
 	}
 
 	private collectResults(

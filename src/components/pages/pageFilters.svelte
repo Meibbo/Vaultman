@@ -38,6 +38,19 @@
 	import { observeActiveContentFile } from '../../logic/logicContentActiveFile';
 	import { contentMenuNode } from '../../logic/logicContentContextMenu';
 	import { queuedRenameBadgeForPath } from '../../logic/logicRenameBadges';
+	import {
+		advanceTextSearchRun,
+		applyTextSearchIntent,
+		completeTextSearchRun,
+		createTextSearchRun,
+		reconcileTextSearchRun,
+		sameTextSearchIntent,
+		shouldLaunchTextSearch,
+		textSearchControl,
+		textSearchLaunchToken,
+		textSearchShouldScan,
+		type TextSearchRun,
+	} from '../../logic/logicTextSearchState';
 
 	type FiltersTab =
 		| 'files'
@@ -211,7 +224,25 @@
 	let contentCaseSensitive = $state(false);
 	let contentIsRegex = $state(false);
 	let contentIsExclusion = $state(false);
-	let contentSearchPaused = $state(false);
+	// U121-016/017: the Text lifecycle is a phase machine, not a boolean. It
+	// carries the traversal cursor so returning to this tab (the pane stays
+	// mounted, BT4-022) resumes instead of restarting.
+	let contentSearchRun = $state<TextSearchRun>(
+		createTextSearchRun({
+			query: '',
+			isRegex: false,
+			caseSensitive: false,
+			isExclusion: false,
+			scopeRevision: 0,
+		}),
+	);
+	// Deliberately NOT reactive: the adapter reports progress continuously, and
+	// folding it into `contentSearchRun` would re-trigger the search effect on
+	// every scanned file. It is folded in only when the user pauses.
+	let contentScanCursor = 0;
+	let contentSearchLaunchToken = '';
+	let contentFrozenApplyToken = '';
+	let contentResumeRequested = false;
 	let contentPreviewResult = $state<ContentPreviewResult | null>(null);
 	let contentPreviewOpen = $state(true);
 	let contentRegexError = $state('');
@@ -512,18 +543,37 @@
 				(fileResult) => !collapsedContentPathSet.has(fileResult.file.path),
 			),
 	);
+	const contentSearchControl = $derived(
+		textSearchControl(contentSearchRun, contentFind.length > 0),
+	);
 	const contentHeaderActions = $derived<HeaderAction[]>(
 		filtersActiveTab === 'content'
 			? [
 					{
 						id: 'content-pause',
-						label: contentSearchPaused
-							? translate('content.resume_search')
-							: translate('content.pause_search'),
-						icon: contentSearchPaused ? 'lucide-play' : 'lucide-pause',
-						disabled: !contentFind,
+						label: translate(contentSearchControl.labelKey),
+						icon: contentSearchControl.icon,
+						disabled: contentSearchControl.disabled,
 						onClick: () => {
-							contentSearchPaused = !contentSearchPaused;
+							// Fold the live cursor in before the transition so a pause
+							// records where the traversal actually stands.
+							contentSearchRun = applyTextSearchIntent(
+								advanceTextSearchRun(contentSearchRun, contentScanCursor),
+								contentSearchControl.intent,
+							);
+							if (contentSearchControl.intent === 'pause') {
+								nativeSearchAdapter.cancel();
+								contentSearchLaunchToken = '';
+							}
+							if (contentSearchControl.intent === 'resume') {
+								contentResumeRequested = true;
+							}
+							if (contentSearchControl.intent === 'restart') {
+								contentScanCursor = 0;
+								nativeSearchAdapter.cancel();
+								nativeSearchAdapter.resetRetained();
+								contentSearchLaunchToken = '';
+							}
 						},
 					},
 					{
@@ -746,6 +796,16 @@
 
 	function clearContentSearchState(): void {
 		nativeSearchAdapter.cancel();
+		nativeSearchAdapter.resetRetained();
+		contentScanCursor = 0;
+		contentSearchLaunchToken = '';
+		contentSearchRun = createTextSearchRun({
+			query: '',
+			isRegex: false,
+			caseSensitive: false,
+			isExclusion: false,
+			scopeRevision: contentSearchScopeRevision,
+		});
 		contentFind = '';
 		contentReplace = '';
 		contentPreviewResult = null;
@@ -770,7 +830,7 @@
 	});
 
 	$effect(() => {
-		void contentSearchScopeRevision;
+		const scopeRevision = contentSearchScopeRevision;
 		const tab = filtersActiveTab;
 		const find = contentFind;
 		const caseSensitive = contentCaseSensitive;
@@ -778,12 +838,43 @@
 		const isExclusion = contentIsExclusion;
 		const files = contentSearchScopeFiles();
 
+		// U121-016: leaving the Text tab must not touch the run. The pane stays
+		// mounted, so cancelling or resetting here is what used to throw away
+		// in-flight progress and restart the scan on the way back.
 		if (tab !== 'content') return;
-		nativeSearchAdapter.cancel();
-		if (!find) {
+
+		const reconciled = reconcileTextSearchRun(contentSearchRun, {
+			query: find,
+			isRegex,
+			caseSensitive,
+			isExclusion,
+			scopeRevision,
+		});
+		if (reconciled !== contentSearchRun) {
+			// Only a real intent change throws the accumulated matches away. A
+			// scope-only move keeps them: it fires on this search's own tail
+			// (`onContentFilterChanged` -> `updateStats` -> new scope revision),
+			// and treating it as a new search cancelled the scan that had just
+			// started, over and over, so nothing ever completed.
+			const intentChanged = !sameTextSearchIntent(
+				contentSearchRun.signature,
+				reconciled.signature,
+			);
+			if (intentChanged || reconciled.phase === 'running') {
+				nativeSearchAdapter.cancel();
+				contentSearchLaunchToken = '';
+			}
+			if (intentChanged) {
+				nativeSearchAdapter.resetRetained();
+				contentScanCursor = 0;
+			}
+			contentSearchRun = reconciled;
+		}
+		const run = reconciled;
+
+		if (run.phase === 'idle') {
 			contentPreviewResult = null;
 			contentRegexError = '';
-			contentSearchPaused = false;
 			collapsedContentFilePaths = [];
 			plugin.filterService.setContentSearchRule('', []);
 			onContentFilterChanged?.();
@@ -794,53 +885,107 @@
 			onContentFilterChanged?.();
 			return;
 		}
-		const paused = contentSearchPaused;
-		if (paused) {
-			// BT4-018: freeze the scan where it stands — the partial matches
-			// become the effective files filter, the loading state clears, and
-			// replace unlocks. Resuming re-runs the full search.
+		if (!textSearchShouldScan(run)) {
+			// BT4-018 still holds for the frozen view: the partial matches become
+			// the effective files filter and replace unlocks. What changed is that
+			// the cursor survives, so resuming continues instead of restarting.
 			const frozen = contentPreviewResult;
 			if (frozen?.isLoading) {
 				contentPreviewResult = { ...frozen, isLoading: false };
 			}
 			const matched =
 				frozen?.matchedFiles ?? frozen?.files.map((entry) => entry.file) ?? [];
-			if (isExclusion) {
-				plugin.filterService.setContentSearchRule(find, matched, true);
-			} else {
-				plugin.filterService.setContentSearchRule(find, matched);
+			// Applied once per frozen state, not on every pass. Re-applying it
+			// moves the host's scope revision, which re-runs this effect, which
+			// re-applies it: that loop froze the app on pause.
+			// `isExclusion` is in the token because it is deliberately NOT part of
+			// the search signature: toggling Has/Hasn't must re-publish the rule
+			// without re-scanning a single file.
+			const frozenToken = `${run.generation}:${run.phase}:${matched.length}:${isExclusion}`;
+			if (contentFrozenApplyToken !== frozenToken) {
+				contentFrozenApplyToken = frozenToken;
+				// Freezing the view is not stopping the search. Without this the
+				// adapter's poll loop stayed alive and kept publishing updates, so
+				// the count climbed while the UI said "paused" — and core itself was
+				// never told to stop, because `stopSearch()` lives in `cancel()`.
+				nativeSearchAdapter.cancel();
+				if (isExclusion) {
+					plugin.filterService.setContentSearchRule(find, matched, true);
+				} else {
+					plugin.filterService.setContentSearchRule(find, matched);
+				}
+				onContentFilterChanged?.();
 			}
-			onContentFilterChanged?.();
 			return;
 		}
-		contentPreviewResult = {
-			totalMatches: 0,
-			files: [],
-			moreFiles: 0,
-			isLoading: true,
-		};
+		contentFrozenApplyToken = '';
+
+		// One scan per intent — but the token is claimed inside the timer, not
+		// here. Claiming it up front meant an effect re-run during the debounce
+		// cancelled the pending timer and then declined to reschedule it, so the
+		// search never started at all.
+		const launchToken = textSearchLaunchToken(run);
+		if (!shouldLaunchTextSearch(run, contentSearchLaunchToken)) return;
+
+		const resumeFrom = run.resumeFrom;
+		if (resumeFrom === 0) {
+			contentPreviewResult = {
+				totalMatches: 0,
+				files: [],
+				moreFiles: 0,
+				isLoading: true,
+			};
+			collapsedContentFilePaths = [];
+		} else if (contentPreviewResult) {
+			contentPreviewResult = { ...contentPreviewResult, isLoading: true };
+		}
 		contentPreviewOpen = true;
-		collapsedContentFilePaths = [];
+		const resuming = contentResumeRequested;
+		contentResumeRequested = false;
 		const timer = window.setTimeout(() => {
+			// Claimed here, once the scan is really starting.
+			contentSearchLaunchToken = launchToken;
 			// Deferred with the scan: setContentSearchPending re-runs the whole
 			// filter pipeline synchronously, which froze typing when it fired
 			// per keystroke (BT4-008).
-			if (isExclusion) {
-				plugin.filterService.setContentSearchPending(find, true);
-			} else {
-				plugin.filterService.setContentSearchPending(find);
+			//
+			// Skipped on a resume: pending clears the rule, which empties every
+			// node in the explorer until the scan republishes it. A resume already
+			// has a valid frozen rule, so re-entering pending only produced a
+			// full blank/repopulate flash.
+			if (!resuming) {
+				if (isExclusion) {
+					plugin.filterService.setContentSearchPending(find, true);
+				} else {
+					plugin.filterService.setContentSearchPending(find);
+				}
+				onContentFilterChanged?.();
 			}
-			onContentFilterChanged?.();
 			void nativeSearchAdapter
 				.search({
 					query: find,
 					isRegex,
 					caseSensitive,
 					scopeFiles: files,
+					resumeFrom,
+					preferLocal: resuming,
+					onProgress: (nextIndex) => {
+						contentScanCursor = nextIndex;
+					},
 					onUpdate: (result) => {
 						contentPreviewResult = result;
 						contentPreviewOpen = true;
 						if (!result.isLoading) {
+							// Settling short scans as "paused" made the control invert:
+							// the machine was already paused, so the dev's next click
+							// read as Resume and launched a full rescan. Until the
+							// traversal is genuinely ours, a finished scan is reported
+							// as finished — a button that does what its label says beats
+							// a more accurate label that does the wrong thing.
+							contentSearchLaunchToken = '';
+							contentSearchRun = completeTextSearchRun(
+								advanceTextSearchRun(contentSearchRun, contentScanCursor),
+							);
 							const matched =
 								result.matchedFiles ?? result.files.map((entry) => entry.file);
 							if (isExclusion) {
@@ -855,9 +1000,11 @@
 				.catch((error) => console.error(error));
 		}, 250);
 
+		// Only the debounce is torn down here. Cancelling the adapter on teardown
+		// is what made a tab switch kill an in-flight scan (U121-016); the run
+		// itself decides when a traversal stops.
 		return () => {
 			window.clearTimeout(timer);
-			nativeSearchAdapter.cancel();
 		};
 	});
 
