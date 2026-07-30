@@ -1,6 +1,10 @@
 import { describe, expect, it } from 'vitest';
 
-import { formatTimestampCell } from '../../src/logic/logicRelativeTime';
+import {
+	formatTimestampCell,
+	isLiveTimestamp,
+	LIVE_TIMESTAMP_TICK_MS,
+} from '../../src/logic/logicRelativeTime';
 
 /**
  * U121-027. The clock is injected, never read from Date.now(), so every boundary
@@ -66,5 +70,41 @@ describe('U121-027 relative timestamp cells', () => {
 		);
 		expect(specific(NOW - 3 * HOUR)).toBe(new Date(NOW - 3 * HOUR).toLocaleDateString());
 		expect(specific(null)).toBeUndefined();
+	});
+});
+
+describe('U121-027 live-timestamp guard', () => {
+	const relativeMode = { now: NOW, mode: 'relative' as const };
+	const specificMode = { now: NOW, mode: 'specific' as const };
+
+	it('marks sub-24h timestamps as live in relative mode', () => {
+		expect(isLiveTimestamp(NOW - 30 * SECOND, relativeMode)).toBe(true);
+		expect(isLiveTimestamp(NOW - 23 * HOUR, relativeMode)).toBe(true);
+	});
+
+	it('does not mark anything live once the cell shows a fixed date', () => {
+		// At/over 24h the cell renders an absolute date, which never goes stale.
+		expect(isLiveTimestamp(NOW - DAY, relativeMode)).toBe(false);
+		expect(isLiveTimestamp(NOW - 400 * DAY, relativeMode)).toBe(false);
+	});
+
+	it('never reports live in specific mode, so an absolute vault skips the tick', () => {
+		expect(isLiveTimestamp(NOW - 30 * SECOND, specificMode)).toBe(false);
+		expect(isLiveTimestamp(NOW - 3 * HOUR, specificMode)).toBe(false);
+	});
+
+	it('treats unusable timestamps as not live', () => {
+		expect(isLiveTimestamp(null, relativeMode)).toBe(false);
+		expect(isLiveTimestamp(undefined, relativeMode)).toBe(false);
+		expect(isLiveTimestamp(0, relativeMode)).toBe(false);
+		expect(isLiveTimestamp(Number.NaN, relativeMode)).toBe(false);
+	});
+
+	it('counts a future timestamp as live, since it still reads "just now"', () => {
+		expect(isLiveTimestamp(NOW + HOUR, relativeMode)).toBe(true);
+	});
+
+	it('ticks at most once a minute, the coarsest cadence that never shows stale copy', () => {
+		expect(LIVE_TIMESTAMP_TICK_MS).toBe(MINUTE);
 	});
 });

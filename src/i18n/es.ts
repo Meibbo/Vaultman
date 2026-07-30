@@ -221,7 +221,8 @@ export const es: Record<string, string> = {
 	'sort.by.tasks': 'Tareas pendientes',
 	'viewmode.pill.tasks': 'Tareas',
 	'file.ctx.exclude': 'Excluir archivo',
-	'settings.explorer_page': 'Explorer',
+	'settings.explorer_page': 'Panel: Explorer',
+	'settings.cells_section': 'Celdas',
 	'settings.explorer_page.desc':
 		'Cells, badges y comportamiento de resaltado de los explorers.',
 	'settings.context_menu.page_desc':

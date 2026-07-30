@@ -46,7 +46,11 @@ import { FileMoveModal } from '../../modals/modalFileMove';
 import { PropertyManagerModal } from '../../modals/modalPropertyManager';
 import { DELETE_FILE, MOVE_FILE } from '../../types/typeOps';
 import { translate } from '../../i18n/index';
-import { formatTimestampCell } from '../../logic/logicRelativeTime';
+import {
+	formatTimestampCell,
+	isLiveTimestamp,
+	LIVE_TIMESTAMP_TICK_MS,
+} from '../../logic/logicRelativeTime';
 import { showInputModal } from '../../utils/inputModal';
 import {
 	changedItemsRemainOrdered,
@@ -591,6 +595,23 @@ export class FilesExplorerPanel extends Component {
 		}
 		this.containerEl.addEventListener('dragover', this._handleRootFileDragOver);
 		this.containerEl.addEventListener('drop', this._handleRootFileDrop);
+
+		// LivreUI (U121-027): a user-visible setting must repaint the cells that
+		// depend on it without waiting for an unrelated event. `onSettingsChange`
+		// existed since 1.2.0 but had no subscribers, so every toggle was silent.
+		// Deliberately outside the Iconic block above: BT5-031 guards that block
+		// as "two subscriptions, no timer", and these belong to neither.
+		this.register(this.plugin.onSettingsChange(this._scheduleLiveRender));
+
+		// LivreUI (U121-027): relative copy goes stale on the wall clock, not on
+		// any vault event, so it needs its own heartbeat. The guard keeps an idle
+		// or absolute-mode vault at one boolean check per minute.
+		this.registerInterval(
+			window.setInterval(() => {
+				if (!this._hasLiveTimestamps) return;
+				this._scheduleLiveRender();
+			}, LIVE_TIMESTAMP_TICK_MS),
+		);
 
 		this._migrateLegacyExclusions();
 		this._mountView();
@@ -1292,6 +1313,9 @@ export class FilesExplorerPanel extends Component {
 	}
 
 	private _render(): void {
+		// Cleared before the pass so the flag always describes what this render
+		// actually painted, not what a previous filter state painted.
+		this._hasLiveTimestamps = false;
 		if (this._shouldShowEmptyFilteredState()) {
 			this._renderEmptyFilteredState();
 			this._rememberStatisticsSortOrder([]);
@@ -2115,7 +2139,20 @@ export class FilesExplorerPanel extends Component {
 	}
 
 	private _iconicRenderQueued = false;
-	private readonly _scheduleIconicRender = () => {
+	/**
+	 * LivreUI: raised by `_formatDateCell` whenever a rendered cell shows relative
+	 * copy, cleared at the top of every `_render()`. The ticker reads it so an
+	 * idle vault — or one in absolute mode — never pays for a repaint.
+	 */
+	private _hasLiveTimestamps = false;
+	/**
+	 * LivreUI: the one coalescer every live source pushes through — Iconic
+	 * (BT5-031), the settings toggles (U121-027) and the relative-timestamp
+	 * ticker. One flag, one microtask, one `_render()`, so a burst from several
+	 * sources at once still costs a single repaint. New live sources (badges,
+	 * counters) must call this rather than adding a parallel scheduler.
+	 */
+	private readonly _scheduleLiveRender = () => {
 		if (this._iconicRenderQueued) return;
 		this._iconicRenderQueued = true;
 		queueMicrotask(() => {
@@ -2123,6 +2160,9 @@ export class FilesExplorerPanel extends Component {
 			this._render();
 		});
 	};
+
+	/** BT5-031 kept its name at the Iconic call sites. */
+	private readonly _scheduleIconicRender = () => this._scheduleLiveRender();
 
 	private readonly _handleQueueChange = (): void => {
 		this._render();
@@ -2199,7 +2239,17 @@ export class FilesExplorerPanel extends Component {
 			this._scheduleStatsRefresh();
 			return;
 		}
-		if (!this.visibleCells.has('words') && !this.visibleCells.has('tasks')) {
+		// LivreUI (U121-027): `statisticsCache` already listens to vault `modify`
+		// and emits `file-stats-refreshed` with the changed paths — the signal the
+		// time cells need was arriving here and being dropped, because only the
+		// words/tasks cells were considered. Modifying a note left both the mtime
+		// cell and an mtime sort stale until the minute ticker or an unrelated
+		// render came along.
+		if (
+			!this.visibleCells.has('words') &&
+			!this.visibleCells.has('tasks') &&
+			!this._timeCellVisible()
+		) {
 			return;
 		}
 		this._scheduleStatsRefresh(change.paths);
@@ -2214,7 +2264,21 @@ export class FilesExplorerPanel extends Component {
 			this.statsRefreshTimer = null;
 			const changedPaths = new Set(this.pendingStatsPaths);
 			this.pendingStatsPaths.clear();
-			if (this._usesStatisticsSort() || this.statisticsRetrySignature) {
+			// A time sort has to re-order (a modified file's mtime becomes the
+			// max), and a visible time cell has to re-derive its text. Neither can
+			// use the surgical patch below: the three date cells share one class
+			// per view (`vaultman-tree-date`, `vaultman-file-date`,
+			// `vaultman-files-grid-card-date`), so there is no selector that
+			// addresses mtime without also matching ctime and opened. Giving them
+			// separate identities is the prerequisite for patching them, and is
+			// worth doing — until then the honest option is this render, which the
+			// 60ms debounce already keeps off the typing path.
+			if (
+				this._usesStatisticsSort() ||
+				this._usesTimeSort() ||
+				this._timeCellVisible() ||
+				this.statisticsRetrySignature
+			) {
 				this._render();
 			} else {
 				this._patchVisibleStatisticsCells(changedPaths);
@@ -2348,7 +2412,25 @@ export class FilesExplorerPanel extends Component {
 		// history does. The microtask defers past the plugin's own file-open
 		// listener, so the timestamp is already recorded when we re-sort, with
 		// no dependency on listener registration order.
-		if (normalizeExplorerSortBy(this.sortBy) !== 'opened') return;
+		// LivreUI (U121-027) vs BT5-030: opening a file bumps its Last opened value
+		// whatever the sort is, so the cell is stale under every other order too.
+		// BT5-030 forbids a panel render here (it is what removed the typing
+		// micro-stalls), so this refreshes the one opened node in place and
+		// repaints the tree window — no model rebuild, no re-sort, no `_render()`.
+		// Table and Cards have no equivalent targeted path, so they stay on
+		// BT5-030's contract and are handled by the next full render.
+		if (normalizeExplorerSortBy(this.sortBy) !== 'opened') {
+			if (!file || !this._timeCellVisible()) return;
+			if (!this.treeView || !this._treeRenderOpts) return;
+			const opened = this._findNode(
+				file.path,
+				this._treeRenderOpts.nodes as TreeNode<FileMeta>[],
+			);
+			if (!opened) return;
+			this._refreshNodeTimeCells(opened);
+			this.treeView.render(this._treeRenderOpts);
+			return;
+		}
 		queueMicrotask(() => {
 			if (!this.containerEl.isConnected) return;
 			// BT5-089: the new timestamp is the maximum, so the file moves to
@@ -2368,7 +2450,19 @@ export class FilesExplorerPanel extends Component {
 				);
 				// Re-opening the file already at the edge, or bouncing between
 				// the top two, changes nothing and must cost nothing.
-				if (!result.changed) return;
+				// LivreUI (U121-027): the node's own time cells are stale even when
+				// it does not move — re-opening the file at the edge still bumps
+				// Last opened. Refreshed before the early return so "no reorder"
+				// never means "no repaint".
+				const moved = this._findNode(
+					file.path,
+					(result.changed ? result.nodes : this._treeRenderOpts.nodes) as TreeNode<FileMeta>[],
+				);
+				if (moved) this._refreshNodeTimeCells(moved);
+				if (!result.changed) {
+					if (moved && this._timeCellVisible()) this.treeView.render(this._treeRenderOpts);
+					return;
+				}
 				this._bubbleTree = result.nodes;
 				this._treeRenderOpts = { ...this._treeRenderOpts, nodes: result.nodes };
 				this.treeView.render(this._treeRenderOpts);
@@ -2479,12 +2573,19 @@ export class FilesExplorerPanel extends Component {
 	 * grid and table views receive it as a callback so all surfaces switch modes
 	 * together instead of each re-deriving the date.
 	 */
-	private _formatDateCell = (time: number): string | undefined =>
-		formatTimestampCell(time, {
+	private _formatDateCell = (time: number): string | undefined => {
+		const options = {
 			now: Date.now(),
-			mode: this.plugin.settings.timestampRelative ? 'relative' : 'specific',
-			translate,
-		});
+			mode: this.plugin.settings.timestampRelative
+				? ('relative' as const)
+				: ('specific' as const),
+		};
+		// LivreUI: the flag is raised here rather than in the tree decoration
+		// because tree, grid and table each reach this formatter by a different
+		// path — only the formatter itself sees every rendered cell.
+		if (isLiveTimestamp(time, options)) this._hasLiveTimestamps = true;
+		return formatTimestampCell(time, { ...options, translate });
+	};
 
 	private _filesHoverFields(): FileHoverInfoId[] {
 		return resolveFileHoverEntries(
@@ -2578,6 +2679,40 @@ export class FilesExplorerPanel extends Component {
 				);
 			})
 			.finally(() => this.pendingHoverStats.delete(file.path));
+	}
+
+	/**
+	 * LivreUI (U121-027): recompute one node's time cells in place. The BT5-089
+	 * open-shortcut repositions a node without going through `_render()`, so the
+	 * text it already carries is from before the file was opened — the node lands
+	 * first while still reading "4 minutes ago". Refreshing the single moved node
+	 * keeps that shortcut's whole point (no rebuild, no re-sort, no O(n) reformat).
+	 */
+	private _refreshNodeTimeCells(node: TreeNode<FileMeta>): void {
+		const file = node.meta.file;
+		if (!file) return;
+		const times = this.plugin.statisticsCache.getFileTimes(file);
+		node.mtimeText = this._formatDateCell(times.mtime);
+		node.ctimeText = this._formatDateCell(times.ctime);
+		node.openedText = this._formatOpenedCell(file);
+	}
+
+	/**
+	 * Whether the active order depends on a file time that a vault `modify`
+	 * changes. `opened` is excluded: it is driven by `file-open`, not by writes.
+	 */
+	private _usesTimeSort(): boolean {
+		const sortBy = normalizeExplorerSortBy(this.sortBy);
+		return sortBy === 'mtime' || sortBy === 'ctime';
+	}
+
+	/** Whether any cell that goes stale on the wall clock is on screen. */
+	private _timeCellVisible(): boolean {
+		return (
+			this.visibleCells.has('opened') ||
+			this.visibleCells.has('mtime') ||
+			this.visibleCells.has('ctime')
+		);
 	}
 
 	private _findNode(

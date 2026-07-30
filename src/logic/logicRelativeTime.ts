@@ -36,6 +36,29 @@ export function formatAbsoluteTimestamp(time: number): string {
 }
 
 /**
+ * True when this cell's text will go stale on its own — relative mode and still
+ * inside the 24h window. The explorer ORs this across a render to decide whether
+ * the live ticker has anything to repaint, so an idle vault costs one boolean
+ * check per minute instead of a render.
+ */
+export function isLiveTimestamp(
+	time: number | null | undefined,
+	options: Pick<FormatTimestampOptions, 'now' | 'mode'>,
+): boolean {
+	if (options.mode !== 'relative') return false;
+	if (time === null || time === undefined) return false;
+	if (!Number.isFinite(time) || time <= 0) return false;
+	return Math.max(0, options.now - time) < DAY;
+}
+
+/**
+ * How often a relative cell can change wording: once a minute while it reads in
+ * minutes, and the hour buckets are a superset of that. One tick per minute is
+ * therefore the coarsest cadence that never shows stale copy.
+ */
+export const LIVE_TIMESTAMP_TICK_MS = MINUTE;
+
+/**
  * Returns `undefined` for anything that is not a usable instant, which is the
  * signal the cells already use to render blank (BT5-013: a never-opened file
  * must not show a fake epoch).

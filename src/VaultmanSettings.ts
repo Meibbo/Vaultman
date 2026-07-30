@@ -195,20 +195,6 @@ export class VaultmanSettingsTab extends PluginSettingTab {
 				}),
 			);
 
-		// U121-027: saveSettings() notifies the settings listeners, so the visible
-		// cells re-render from the cached times — no index rebuild.
-		new Setting(containerEl)
-			.setName(translate('settings.timestamp_format'))
-			.setDesc(translate('settings.timestamp_format.desc'))
-			.addToggle((toggle) =>
-				toggle
-					.setValue(this.plugin.settings.timestampRelative)
-					.onChange(async (value) => {
-						this.plugin.settings.timestampRelative = value;
-						await this.plugin.saveSettings();
-					}),
-			);
-
 		new Setting(containerEl)
 			.setName(translate('settings.show_dock'))
 			.setDesc(translate('settings.show_dock.desc'))
@@ -717,6 +703,12 @@ export class VaultmanSettingsTab extends PluginSettingTab {
 			.setName(translate('settings.explorer_page'))
 			.setHeading();
 
+		// U121-027: the cell-shaping settings gather under one heading. This is not
+		// the whole set — `addonCellStyle`, `orderCellsByActivation`, the hover
+		// fields and the grid column options still live on their own pages; moving
+		// those is a separate UX call.
+		new Setting(containerEl).setName(translate('settings.cells_section')).setHeading();
+
 		// BT5-040: folders can show the recursive sum of their files' cells.
 		new Setting(containerEl)
 			.setName(translate('settings.folder_aggregate_cells'))
@@ -726,6 +718,20 @@ export class VaultmanSettingsTab extends PluginSettingTab {
 					.setValue(this.plugin.settings.folderAggregateCells === true)
 					.onChange(async (value) => {
 						this.plugin.settings.folderAggregateCells = value;
+						await this.plugin.saveSettings();
+					}),
+			);
+
+		// U121-027. saveSettings() notifies the settings listeners and the explorer
+		// now subscribes, so toggling this repaints the visible cells immediately.
+		new Setting(containerEl)
+			.setName(translate('settings.timestamp_format'))
+			.setDesc(translate('settings.timestamp_format.desc'))
+			.addToggle((toggle) =>
+				toggle
+					.setValue(this.plugin.settings.timestampRelative)
+					.onChange(async (value) => {
+						this.plugin.settings.timestampRelative = value;
 						await this.plugin.saveSettings();
 					}),
 			);

@@ -223,7 +223,8 @@ export const en: Record<string, string> = {
 	'sort.by.tasks': 'Remaining tasks',
 	'viewmode.pill.tasks': 'Tasks',
 	'file.ctx.exclude': 'Exclude file',
-	'settings.explorer_page': 'Panel Explorer',
+	'settings.explorer_page': 'Panel: Explorer',
+	'settings.cells_section': 'Cells',
 	'settings.explorer_page.desc':
 		'Customize globally your explorers. Tweak cells, badges and highlight behavior.',
 	'settings.context_menu.page_desc':
