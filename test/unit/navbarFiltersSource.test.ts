@@ -128,15 +128,22 @@ describe('minimal filters header source guards', () => {
 		expect(navbarFiltersSource).not.toContain('childLevel');
 	});
 
-	it('condenses the ordered Files action suffix into Tools progressively', () => {
+	it('condenses the measured provider action suffix into Tools progressively', () => {
 		expect(navbarFiltersSource).toContain('toolbarToolsMenu = false');
-		expect(navbarFiltersSource).toContain('frameWidth = 0');
-		expect(navbarFiltersSource).toContain('condensedToolbarHiddenCount({');
-		expect(navbarFiltersSource).toContain('manual: toolbarToolsMenu');
+		expect(navbarFiltersSource).toContain(
+			'resolveCondensedPanelWidgetOverflow({',
+		);
+		expect(navbarFiltersSource).toContain('availableWidth: actionsEl.clientWidth');
+		expect(navbarFiltersSource).toContain('measuredNodeWidths');
+		expect(navbarFiltersSource).toContain('data-panel-widget-node-id');
+		expect(navbarFiltersSource).toContain('data-panel-widget-tools-measure');
 		expect(navbarFiltersSource).toContain('toolbarNodeVisible(');
 		expect(navbarFiltersSource).toContain('toolbarNodeHidden(');
 		expect(navbarFiltersSource).toContain(
-			'const compactFilesTools = $derived(autoCondensedHiddenCount > 0)',
+			'const compactPanelWidgetTools = $derived(',
+		);
+		expect(navbarFiltersSource).not.toContain(
+			"activeSectionTab === 'files' &&\n\t\t\ttoolbarOverflowStrategy",
 		);
 
 		const actionsSource = navbarFiltersSource.slice(
@@ -162,7 +169,7 @@ describe('minimal filters header source guards', () => {
 		const menuEnd = navbarFiltersSource.indexOf('\n\tfunction ', menuStart + 1);
 		const menuSource = navbarFiltersSource.slice(menuStart, menuEnd);
 		expect(menuSource).toContain("translate('filter.auto_reveal')");
-		expect(menuSource).toContain('fileList?.autoRevealActiveFile()');
+		expect(menuSource).toContain('revealActiveExplorerFile');
 		expect(menuSource).toContain('expansionLabel');
 		expect(menuSource).toContain('toggleExplorerExpansion');
 		expect(menuSource.indexOf("translate('filter.auto_reveal')")).toBeLessThan(

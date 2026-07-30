@@ -10,6 +10,7 @@
 	import StatisticsPage from './components/pages/pageStatistics.svelte';
 	import FiltersPage from './components/pages/pageFilters.svelte';
 	import BottomNav from './components/layout/navbarPillFab.svelte';
+	import NavbarPanelWidgetHost from './components/layout/navbarPanelWidgetHost.svelte';
 	import FloatingToc from './components/layout/floatingToc.svelte';
 	import {
 		FloatingTocRouter,
@@ -32,6 +33,7 @@
 	import { QueueDetailsModal } from './modals/modalQueueDetails';
 	import { translate } from './i18n/index';
 	import type { FabDef } from './types/typeUI';
+	import type { NavbarPanelWidgetState } from './types/typePanelWidget';
 	import { resolveDockPageOrder } from './logic/logicNavigation';
 	import type { StatisticsDataTab } from './logic/logicStatisticsNavigation';
 	import { countQueuedOperationWarnings } from './logic/logicQueueWarnings';
@@ -281,6 +283,32 @@
 	);
 
 	let activePage = $state(initialPageOrder[0] ?? 'filters');
+	let filtersPanelWidgetState = $state<NavbarPanelWidgetState | null>(null);
+	let statisticsPanelWidgetState = $state<NavbarPanelWidgetState | null>(null);
+	let panelWidgetPeek = $state(false);
+	const activePanelWidgetState = $derived(
+		activePage === 'statistics'
+			? statisticsPanelWidgetState
+			: filtersPanelWidgetState,
+	);
+	const panelWidgetVisible = $derived(
+		frameShowToolbar &&
+			(activePage === 'statistics' ||
+				activePanelWidgetState?.minimalStyle === true ||
+				activePanelWidgetState?.showExplorerControls !== false),
+	);
+
+	function publishFiltersPanelWidgetState(
+		state: NavbarPanelWidgetState | null,
+	): void {
+		filtersPanelWidgetState = state;
+	}
+
+	function publishStatisticsPanelWidgetState(
+		state: NavbarPanelWidgetState | null,
+	): void {
+		statisticsPanelWidgetState = state;
+	}
 
 	// Use DOM insertion order (pageOrder at mount time) — avoids stale settings mismatch
 	let pageIndex = $derived(pageOrder.indexOf(activePage));
@@ -368,13 +396,13 @@
 				: 'props';
 		navigateToDataTab(tab);
 		const explorerSearchSelectors = [
-			'.vaultman-page[data-page="filters"] .vaultman-navbar-filters .vaultman-filters-search-input',
+			'.vaultman-panel-widget-host .vaultman-navbar-filters .vaultman-filters-search-input',
 			'.vaultman-filters-tab-pane.is-active .vaultman-filters-search-input',
 		];
 		let focused = await focusFrameInput(explorerSearchSelectors);
 		if (!focused) {
 			const expanded = await activateFrameControl(
-				'.vaultman-page[data-page="filters"] [data-vaultman-search-toggle="true"]',
+				'.vaultman-panel-widget-host [data-vaultman-search-toggle="true"]',
 			);
 			if (expanded) focused = await focusFrameInput(explorerSearchSelectors);
 		}
@@ -1238,10 +1266,14 @@
 		plugin.filterService.on('changed', onFilterChanged);
 		plugin.queueService.on('changed', onQueueChanged);
 
-		refreshFiles();
+		// Let the Scene's panelWidget host apply the provider's complete PVPUI
+		// projection before the first large model build. Subsequent filter
+		// changes remain immediate through onFilterChanged.
+		const initialFilesRenderFrame = window.requestAnimationFrame(refreshFiles);
 		refreshQueue();
 
 		return () => {
+			window.cancelAnimationFrame(initialFilesRenderFrame);
 			clearLauncherTimers();
 			stopTocPick();
 			detachBasesMultiSelectOperations();
@@ -1273,6 +1305,19 @@
 	use:bindViewport
 	use:bindViewRoot
 >
+	<NavbarPanelWidgetHost
+		providerState={activePanelWidgetState}
+		visible={panelWidgetVisible}
+		peeking={panelWidgetPeek}
+		onPointerLeave={() => (panelWidgetPeek = false)}
+	/>
+	{#if !panelWidgetVisible}
+		<!-- svelte-ignore a11y_no_static_element_interactions -->
+		<div
+			class="vaultman-toolbar-peek"
+			onpointerenter={() => (panelWidgetPeek = true)}
+		></div>
+	{/if}
 	<div
 		class="vaultman-page-container"
 		use:bindContainer
@@ -1289,6 +1334,7 @@
 							onNavigateToDataTab={navigateToDataTab}
 							toolbarShown={frameShowToolbar}
 							onToggleToolbar={() => handleShowToolbarChange(!frameShowToolbar)}
+							onPanelWidgetStateChange={publishStatisticsPanelWidgetState}
 						/>
 					{:else if pageId === 'filters'}
 						<FiltersPage
@@ -1334,6 +1380,7 @@
 							{icon}
 							initialShowToolbar={frameShowToolbar}
 							onShowToolbarChange={handleShowToolbarChange}
+							onPanelWidgetStateChange={publishFiltersPanelWidgetState}
 							bind:this={filtersPageRef}
 						/>
 					{/if}

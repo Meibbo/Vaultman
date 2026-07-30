@@ -1,18 +1,15 @@
 <script lang="ts">
 	import { Menu, Notice } from 'obsidian';
-	import { untrack } from 'svelte';
+	import { onMount, untrack } from 'svelte';
+	import { SvelteMap } from 'svelte/reactivity';
 	import { translate } from '../../i18n/index';
 	import SortPopup from './popupSort.svelte';
 	import ViewModePopup from './popupView.svelte';
-	import type { FilesExplorerPanel } from '../containers/explorerFiles';
-	import type { PropsExplorerPanel } from '../containers/explorerProps';
-	import type { TagsExplorerPanel } from '../containers/explorerTags';
 	import type {
 		ExplorerTabId,
 		ExplorerSortState,
 		ExplorerViewMode,
 	} from '../../types/typeUI';
-	import type { AddonExplorerPanelPort } from '../../logic/logicAddonExplorer';
 	import type { SavedLayout, SavedViewConfig } from '../../types/typeSettings';
 	import { showInputModal } from '../../utils/inputModal';
 	import {
@@ -39,7 +36,6 @@
 		type InteractionMode,
 	} from '../../logic/logicInteractionMode';
 	import {
-		condensedToolbarHiddenCount,
 		shouldHideTabLabelForSearch,
 		shouldShowMinimalSearchInput,
 		toolbarUsesHorizontalScroll,
@@ -67,33 +63,35 @@
 		isIdentityCell,
 		normalizeVisibleCellIds,
 	} from '../../logic/logicCellRegistry';
+	import { resolvePanelWidgetProjection } from '../../logic/logicPanelWidgetProjection';
+	import { resolveCondensedPanelWidgetOverflow } from '../../logic/logicPanelWidgetOverflow';
+	import type {
+		NavbarPanelWidgetState,
+		PanelWidgetExplorerPort,
+		PanelWidgetFilesExplorerPort,
+		PanelWidgetHeaderMenuAction,
+		PanelWidgetHeaderTabOption,
+		PanelWidgetNode,
+		PanelWidgetTreeExplorerPort,
+	} from '../../types/typePanelWidget';
 
 	type FiltersTab = ExplorerTabId;
 	type CoreFiltersTab = 'props' | 'files' | 'tags';
-	type SearchCategoryState = Record<CoreFiltersTab, number> &
-		Partial<Record<Exclude<FiltersTab, CoreFiltersTab>, number>>;
-	type HeaderTabOption = { id: string; label: string; icon: string };
-	type HeaderMenuAction = {
-		id: 'filters' | 'queue' | 'statistics';
-		label: string;
-		icon: string;
-		count?: number;
-		warning?: boolean;
-		tooltip?: string;
-		onClick: () => void;
-		onDoubleClick?: () => void;
-	};
-	type HeaderAction = {
-		id: string;
-		label: string;
-		icon: string;
-		disabled?: boolean;
-		onClick: (event: MouseEvent) => void;
+	type HeaderTabOption = PanelWidgetHeaderTabOption;
+	type HeaderMenuAction = PanelWidgetHeaderMenuAction;
+	type NavbarRendererState = NavbarPanelWidgetState & {
+		fileList?: PanelWidgetFilesExplorerPort;
+		propExplorer?: PanelWidgetTreeExplorerPort;
+		tagsExplorer?: PanelWidgetTreeExplorerPort | null;
+		snippetsExplorer?: PanelWidgetExplorerPort;
+		pluginsExplorer?: PanelWidgetExplorerPort;
 	};
 	type HeaderMode = 'header' | 'sort' | 'viewmode';
 	type SearchControlVariant = 'inline' | 'phone';
 	let {
 		activeTab,
+		providerId = activeTab,
+		actionPort,
 		filtersSearch = $bindable(''),
 		filtersSearchCategory = $bindable({ tags: 0, props: 0, files: 0 }),
 		tagsExplorer,
@@ -111,6 +109,7 @@
 		activeSectionTab = activeTab,
 		onSectionTabChange,
 		onFiltersSearchChange,
+		onFiltersSearchCategoryChange,
 		onViewFiltersChanged,
 		onContentSearch,
 		showExplorerControls = true,
@@ -130,49 +129,21 @@
 		sortLevelInline = true,
 		orderCellsByActivation = false,
 		commandActions = [],
-		onRunCommand,
 		createActionsPlacement = 'searchbox',
-	}: {
-		activeTab: FiltersTab;
-		filtersSearch: string;
-		filtersSearchCategory: SearchCategoryState;
-		tagsExplorer: TagsExplorerPanel | null | undefined;
-		propExplorer: PropsExplorerPanel | undefined;
-		fileList: FilesExplorerPanel | undefined;
-		snippetsExplorer?: AddonExplorerPanelPort;
-		pluginsExplorer?: AddonExplorerPanelPort;
-		icon: (node: HTMLElement, name: string) => { update(n: string): void };
-		addOpCount?: number;
-		minimalStyle?: boolean;
-		showDock?: boolean;
-		tabOptions?: HeaderTabOption[];
-		tabMenuActions?: HeaderMenuAction[];
-		headerActions?: HeaderAction[];
-		activeSectionTab?: string;
-		onSectionTabChange?: (tab: string) => void;
-		onFiltersSearchChange?: (value: string) => void;
-		onViewFiltersChanged?: () => void;
-		onContentSearch?: (query: string) => void;
-		showExplorerControls?: boolean;
-		expansionRevision?: number;
-		floatingTocEnabled?: boolean;
-		onToggleFloatingToc?: () => void;
-		toolbarToolsMenu?: boolean;
-		toolbarOverflowStrategy?: ToolbarOverflowStrategy;
-		frameWidth?: number;
-		onToggleToolbar?: () => void;
-		toolbarShown?: boolean;
-		savedLayouts?: SavedLayout[];
-		onSaveLayout?: (layout: SavedLayout) => void;
-		onLayoutLoaded?: (layout: SavedLayout) => void;
-		app?: import('obsidian').App;
-		showTabLabels?: boolean;
-		sortLevelInline?: boolean;
-		orderCellsByActivation?: boolean;
-		commandActions?: import('../../logic/logicCommandActions').ResolvedCommandAction[];
-		onRunCommand?: (id: string) => void;
-		createActionsPlacement?: 'searchbox' | 'toolbar';
-	} = $props();
+		pvpuiConfig = {},
+	}: NavbarRendererState = $props();
+
+	function invokeSceneAction(
+		actionId: string,
+		origin: 'pointer' | 'keyboard' | 'menu',
+		event?: MouseEvent,
+	): void {
+		void actionPort.invoke({
+			actionId,
+			origin,
+			payload: event ? { event } : undefined,
+		});
+	}
 
 	async function promptSaveLayout() {
 		if (!app) return;
@@ -353,6 +324,10 @@
 	let searchExpanded = $state(false);
 	let searchToggleActivationPending = false;
 	let navbarEl = $state<HTMLElement | null>(null);
+	let actionsEl = $state<HTMLElement | null>(null);
+	let measuredOverflowIds = $state<string[]>([]);
+	let overflowFrame = 0;
+	const measuredNodeWidths = new SvelteMap<string, number>();
 	let drillPickCleanup: (() => void) | null = null;
 	let expansionRefresh = $state(0);
 	const headerActionClass = $derived(
@@ -407,54 +382,133 @@
 	const showTabsButtonLabel = $derived(
 		tabLabelIntended && !tabLabelYieldsToSearch,
 	);
-	const toolbarTabsCount = $derived(
-		minimalStyle && tabOptions.length > 0 ? 1 : 0,
+	const panelWidgetNodeId = (localId: string): string =>
+		`${providerId}:${localId}`;
+	const panelWidgetNodes = $derived.by<PanelWidgetNode[]>(() => {
+		const nodes: PanelWidgetNode[] = [];
+		const append = (
+			localId: string,
+			label: string,
+			iconName: string,
+			presentation: PanelWidgetNode['presentation'] = 'button',
+			condensable = true,
+		) => {
+			nodes.push({
+				id: panelWidgetNodeId(localId),
+				nodeKind: 'action',
+				cellKind: 'action',
+				presentation,
+				label,
+				icon: iconName,
+				order: nodes.length,
+				available: true,
+				condensable,
+				action: { id: localId },
+			});
+		};
+
+		if (minimalStyle && tabOptions.length > 0) {
+			append('tabs', currentTabsLabel, currentTabsIcon, 'tabs', false);
+		}
+		for (const action of headerActions) {
+			append(`header:${action.id}`, action.label, action.icon);
+		}
+		if (!showExplorerControls) return nodes;
+
+		append(
+			'view',
+			translate('filter.viewmode_btn'),
+			'lucide-layout-list',
+			'menu',
+		);
+		append(
+			'sort',
+			translate('filter.sort_btn'),
+			'lucide-arrow-up-down',
+			'menu',
+		);
+		append(
+			'search',
+			translate('explorer.btn.search'),
+			'lucide-search',
+			'search',
+		);
+		if (activeTab === 'files') {
+			append(
+				'reveal-active-file',
+				translate('filter.auto_reveal'),
+				'lucide-gallery-vertical',
+			);
+		}
+		if (expansionActionAvailableForActiveTab) {
+			append('toggle-expansion', expansionLabel, expansionIcon, 'toggle');
+		}
+		if (activeTab === 'files' && createActionsPlacement === 'toolbar') {
+			append(
+				'create-file',
+				translate('folder.ctx.new_note'),
+				'lucide-file-plus',
+			);
+			append(
+				'create-folder',
+				translate('folder.ctx.new_folder'),
+				'lucide-folder-plus',
+			);
+		}
+		for (const command of commandActions) {
+			append(
+				`command:${command.id}`,
+				command.label,
+				command.icon ?? 'lucide-terminal',
+			);
+		}
+		return nodes;
+	});
+	const panelWidgetProjection = $derived(
+		resolvePanelWidgetProjection({
+			providerId,
+			nodes: panelWidgetNodes,
+			config: pvpuiConfig,
+		}),
 	);
-	const toolbarViewIndex = $derived(toolbarTabsCount + headerActions.length);
-	const toolbarSortIndex = $derived(toolbarViewIndex + 1);
-	const toolbarSearchIndex = $derived(toolbarSortIndex + 1);
-	const toolbarRevealIndex = $derived(toolbarSearchIndex + 1);
-	const toolbarExpansionIndex = $derived(toolbarRevealIndex + 1);
-	const toolbarCreateIndex = $derived(
-		toolbarExpansionIndex + (expansionActionAvailableForActiveTab ? 1 : 0),
+	const forcedOverflowIds = $derived.by(() => {
+		if (
+			!minimalStyle ||
+			toolbarOverflowStrategy !== 'condensed' ||
+			!toolbarToolsMenu
+		) {
+			return measuredOverflowIds;
+		}
+		const candidates = panelWidgetProjection.nodes.filter(
+			(node) => node.condensable !== false,
+		);
+		const minimumVisible = tabLabelIntended ? 3 : 4;
+		const hiddenCount = Math.min(
+			candidates.length,
+			Math.max(2, panelWidgetProjection.nodes.length - minimumVisible),
+		);
+		return candidates.slice(-hiddenCount).map((node) => node.id);
+	});
+	const toolbarNodeVisible = (localId: string): boolean =>
+		panelWidgetProjection.nodes.some(
+			(node) => node.id === panelWidgetNodeId(localId),
+		) &&
+		(toolbarOverflowStrategy !== 'condensed' ||
+			!forcedOverflowIds.includes(panelWidgetNodeId(localId)));
+	const toolbarNodeHidden = (localId: string): boolean =>
+		toolbarOverflowStrategy === 'condensed' &&
+		forcedOverflowIds.includes(panelWidgetNodeId(localId));
+	const panelWidgetNodeOrder = (localId: string): number =>
+		panelWidgetProjection.nodes.findIndex(
+			(node) => node.id === panelWidgetNodeId(localId),
+		);
+	const compactPanelWidgetTools = $derived(
+		toolbarOverflowStrategy === 'condensed' && forcedOverflowIds.length > 0,
 	);
-	const toolbarCommandIndex = $derived(
-		toolbarCreateIndex +
-			(activeTab === 'files' && createActionsPlacement === 'toolbar' ? 2 : 0),
-	);
-	const toolbarNodeCount = $derived(
-		showExplorerControls
-			? toolbarCommandIndex + commandActions.length
-			: toolbarTabsCount + headerActions.length,
-	);
-	const autoCondensedHiddenCount = $derived(
-		minimalStyle &&
-			activeSectionTab === 'files' &&
-			toolbarOverflowStrategy === 'condensed'
-			? condensedToolbarHiddenCount({
-					frameWidth,
-					nodeCount: toolbarNodeCount,
-					tabLabelVisible: tabLabelIntended,
-					manual: toolbarToolsMenu,
-				})
-			: 0,
-	);
-	const toolbarVisibleLimit = $derived(
-		toolbarNodeCount - autoCondensedHiddenCount,
-	);
-	const toolbarNodeVisible = (index: number): boolean =>
-		autoCondensedHiddenCount === 0 || index < toolbarVisibleLimit;
-	const toolbarNodeHidden = (index: number): boolean =>
-		autoCondensedHiddenCount > 0 && index >= toolbarVisibleLimit;
-	// Condense keys off label INTENT, not the yielded state, so opening the
-	// search cannot flip the toolbar in and out of its condensed form.
-	const compactFilesTools = $derived(autoCondensedHiddenCount > 0);
 	// BT5-021: in scroll mode the action bar is one horizontally scrollable line
 	// with an overflow hint, instead of moving nodes into the Tools menu.
 	const toolbarScroll = $derived(
-		minimalStyle &&
-			activeSectionTab === 'files' &&
-			toolbarUsesHorizontalScroll(toolbarOverflowStrategy),
+		minimalStyle && toolbarUsesHorizontalScroll(toolbarOverflowStrategy),
 	);
 	const toolbarWrap = $derived(
 		minimalStyle && toolbarOverflowStrategy === 'wrap',
@@ -467,6 +521,84 @@
 			tabLabelVisible: showTabsButtonLabel,
 		}),
 	);
+
+	function measurePanelWidgetOverflow(): void {
+		overflowFrame = 0;
+		if (
+			!actionsEl ||
+			!minimalStyle ||
+			toolbarOverflowStrategy !== 'condensed'
+		) {
+			if (measuredOverflowIds.length > 0) measuredOverflowIds = [];
+			return;
+		}
+
+		const elements = actionsEl.querySelectorAll<HTMLElement>(
+			'[data-panel-widget-node-id]',
+		);
+		for (const element of elements) {
+			const id = element.dataset.panelWidgetNodeId;
+			if (!id || element.hidden) continue;
+			const width = element.getBoundingClientRect().width;
+			if (width > 0) measuredNodeWidths.set(id, width);
+		}
+
+		const style = window.getComputedStyle(actionsEl);
+		const gap = Number.parseFloat(style.columnGap || style.gap || '0') || 0;
+		const toolsMeasure = actionsEl.querySelector<HTMLElement>(
+			'[data-panel-widget-tools-measure]',
+		);
+		const toolsWidth = toolsMeasure?.getBoundingClientRect().width ?? 0;
+		const result = resolveCondensedPanelWidgetOverflow({
+			availableWidth: actionsEl.clientWidth,
+			nodes: panelWidgetProjection.nodes.map((node) => ({
+				id: node.id,
+				width: measuredNodeWidths.get(node.id) ?? 0,
+				condensable: node.condensable,
+			})),
+			gap,
+			toolsWidth,
+		});
+		const signature = result.overflowIds.join('\u0000');
+		if (signature !== measuredOverflowIds.join('\u0000')) {
+			measuredOverflowIds = result.overflowIds;
+		}
+	}
+
+	function schedulePanelWidgetOverflowMeasure(): void {
+		if (overflowFrame !== 0) return;
+		overflowFrame = window.requestAnimationFrame(measurePanelWidgetOverflow);
+	}
+
+	onMount(() => {
+		const resizeObserver = new ResizeObserver(
+			schedulePanelWidgetOverflowMeasure,
+		);
+		const mutationObserver = new MutationObserver(
+			schedulePanelWidgetOverflowMeasure,
+		);
+		if (navbarEl) resizeObserver.observe(navbarEl);
+		if (actionsEl) {
+			resizeObserver.observe(actionsEl);
+			mutationObserver.observe(actionsEl, {
+				childList: true,
+				subtree: true,
+			});
+		}
+		schedulePanelWidgetOverflowMeasure();
+		return () => {
+			if (overflowFrame !== 0) window.cancelAnimationFrame(overflowFrame);
+			resizeObserver.disconnect();
+			mutationObserver.disconnect();
+		};
+	});
+
+	$effect(() => {
+		void panelWidgetProjection;
+		void showTabsButtonLabel;
+		void searchExpanded;
+		schedulePanelWidgetOverflowMeasure();
+	});
 
 	function menuEventFromElement(element: HTMLElement): MouseEvent {
 		const rect = element.getBoundingClientRect();
@@ -506,9 +638,15 @@
 	function cycleSearchCategory() {
 		const tab = activeTab;
 		const count = CATEGORY_ICONS[tab].length;
-		filtersSearchCategory[tab] =
-			((filtersSearchCategory[tab] ?? 0) + 1) % Math.max(1, count);
-		filtersSearchCategory = { ...filtersSearchCategory };
+		const next = {
+			...filtersSearchCategory,
+			[tab]: ((filtersSearchCategory[tab] ?? 0) + 1) % Math.max(1, count),
+		};
+		if (onFiltersSearchCategoryChange) {
+			onFiltersSearchCategoryChange(next);
+			return;
+		}
+		filtersSearchCategory = next;
 	}
 
 	function setFiltersSearch(value: string) {
@@ -983,7 +1121,10 @@
 				? { isValidDrillNode: (id: string) => fileList.hasSortNode(id) }
 				: {}),
 			...(validateDrill && tab === 'tags' && tagsExplorer
-				? { isValidDrillNode: (id: string) => tagsExplorer.hasSortNode(id) }
+				? {
+						isValidDrillNode: (id: string) =>
+							tagsExplorer.hasSortNode?.(id) ?? false,
+					}
 				: {}),
 		});
 		return {
@@ -1085,7 +1226,7 @@
 		if (current.activeScope !== 'drill' || !current.drillNodeId) return base;
 		const panel =
 			tab === 'files' ? fileList : tab === 'tags' ? tagsExplorer : null;
-		const label = panel?.sortNodeLabel(current.drillNodeId) ?? '';
+		const label = panel?.sortNodeLabel?.(current.drillNodeId) ?? '';
 		if (!label) return base;
 		const chars = [...label];
 		const short = chars.slice(0, 6).join('') + (chars.length > 6 ? '…' : '');
@@ -1252,39 +1393,39 @@
 		menu.showAtMouseEvent(event);
 	}
 
-	function toggleExplorerExpansion() {
-		const next = !hasExpandedNodes;
-		if (activeTab === 'files') {
-			if (next) fileList?.expandAll();
-			else fileList?.collapseAll();
-		}
-		if (activeTab === 'props') {
-			if (next) propExplorer?.expandAll();
-			else propExplorer?.collapseAll();
-		}
-		if (activeTab === 'tags') {
-			if (next) tagsExplorer?.expandAll();
-			else tagsExplorer?.collapseAll();
-		}
+	function toggleExplorerExpansion(
+		origin: 'pointer' | 'keyboard' | 'menu' = 'pointer',
+		event?: MouseEvent,
+	) {
+		invokeSceneAction('toggle-expansion', origin, event);
 		expansionRefresh += 1;
 		window.requestAnimationFrame(() => {
 			expansionRefresh += 1;
 		});
 	}
 
+	function revealActiveExplorerFile(
+		origin: 'pointer' | 'keyboard' | 'menu' = 'pointer',
+		event?: MouseEvent,
+	) {
+		invokeSceneAction('reveal-active-file', origin, event);
+	}
+
 	function openToolsMenu(event: MouseEvent) {
 		const menu = new Menu();
-		for (const [index, action] of headerActions.entries()) {
-			if (!toolbarNodeHidden(toolbarTabsCount + index)) continue;
+		for (const action of headerActions) {
+			if (!toolbarNodeHidden(`header:${action.id}`)) continue;
 			menu.addItem((item) =>
 				item
 					.setTitle(action.label)
 					.setIcon(action.icon)
 					.setDisabled(action.disabled === true)
-					.onClick(() => action.onClick(event)),
+					.onClick(() =>
+						invokeSceneAction(`header:${action.id}`, 'menu', event),
+					),
 			);
 		}
-		if (toolbarNodeHidden(toolbarViewIndex)) {
+		if (toolbarNodeHidden('view')) {
 			menu.addItem((item) =>
 				item
 					.setTitle(translate('filter.viewmode_btn'))
@@ -1292,7 +1433,7 @@
 					.onClick(() => openNativeViewMenu(event)),
 			);
 		}
-		if (toolbarNodeHidden(toolbarSortIndex)) {
+		if (toolbarNodeHidden('sort')) {
 			menu.addItem((item) =>
 				item
 					.setTitle(translate('filter.sort_btn'))
@@ -1300,7 +1441,7 @@
 					.onClick(() => openNativeSortMenu(event)),
 			);
 		}
-		if (toolbarNodeHidden(toolbarSearchIndex)) {
+		if (toolbarNodeHidden('search')) {
 			menu.addItem((item) =>
 				item
 					.setTitle(translate('explorer.btn.search'))
@@ -1308,57 +1449,59 @@
 					.onClick(expandSearch),
 			);
 		}
-		if (toolbarNodeHidden(toolbarRevealIndex)) {
+		if (toolbarNodeHidden('reveal-active-file')) {
 			menu.addItem((item) =>
 				item
 					.setTitle(translate('filter.auto_reveal'))
 					.setIcon('lucide-gallery-vertical')
-					.onClick(() => fileList?.autoRevealActiveFile()),
+					.onClick(() => revealActiveExplorerFile('menu', event)),
 			);
 		}
 		if (
 			expansionActionAvailableForActiveTab &&
-			toolbarNodeHidden(toolbarExpansionIndex)
+			toolbarNodeHidden('toggle-expansion')
 		) {
 			menu.addItem((item) =>
 				item
 					.setTitle(expansionLabel)
 					.setIcon(expansionIcon)
-					.onClick(toggleExplorerExpansion),
+					.onClick(() => toggleExplorerExpansion('menu', event)),
 			);
 		}
 		if (
 			activeTab === 'files' &&
 			createActionsPlacement === 'toolbar' &&
-			toolbarNodeHidden(toolbarCreateIndex)
+			toolbarNodeHidden('create-file')
 		) {
 			menu.addItem((item) =>
 				item
 					.setTitle(translate('folder.ctx.new_note'))
 					.setIcon('lucide-file-plus')
-					.onClick(() => void fileList?.createFromSearch(0, filtersSearch)),
+					.onClick(() => invokeSceneAction('create-file', 'menu', event)),
 			);
 		}
 		if (
 			activeTab === 'files' &&
 			createActionsPlacement === 'toolbar' &&
-			toolbarNodeHidden(toolbarCreateIndex + 1)
+			toolbarNodeHidden('create-folder')
 		) {
 			menu.addItem((item) =>
 				item
 					.setTitle(translate('folder.ctx.new_folder'))
 					.setIcon('lucide-folder-plus')
-					.onClick(() => void fileList?.createFromSearch(1, filtersSearch)),
+					.onClick(() => invokeSceneAction('create-folder', 'menu', event)),
 			);
 		}
-		for (const [index, command] of commandActions.entries()) {
-			if (!toolbarNodeHidden(toolbarCommandIndex + index)) continue;
+		for (const command of commandActions) {
+			if (!toolbarNodeHidden(`command:${command.id}`)) continue;
 			menu.addItem((item) => {
 				item
 					.setTitle(command.label)
 					.setIcon(command.icon ?? 'lucide-terminal')
 					.setDisabled(!command.available)
-					.onClick(() => onRunCommand?.(command.id));
+					.onClick(() =>
+						invokeSceneAction(`command:${command.id}`, 'menu', event),
+					);
 			});
 		}
 		menu.showAtMouseEvent(event);
@@ -1386,10 +1529,12 @@
 		const currentFileList = fileList;
 		const currentTagsExplorer = tagsExplorer;
 		currentFileList?.setSortStateChangeHandler(handleExternalFilesSortState);
-		currentTagsExplorer?.setSortStateChangeHandler(handleExternalTagsSortState);
+		currentTagsExplorer?.setSortStateChangeHandler?.(
+			handleExternalTagsSortState,
+		);
 		return () => {
 			currentFileList?.setSortStateChangeHandler(undefined);
-			currentTagsExplorer?.setSortStateChangeHandler(undefined);
+			currentTagsExplorer?.setSortStateChangeHandler?.(undefined);
 		};
 	});
 
@@ -1408,10 +1553,34 @@
 			() => sortStateByTab[tab] ?? DEFAULT_SORT_STATE[tab],
 		);
 		if (tab === 'files' && fileList) {
-			applyViewMode(tab, viewMode);
-			applyVisibleCells(tab, cells);
-			applySortState(tab, sortState);
-			if (interactionMode) applyInteractionMode(tab, interactionMode);
+			const normalizedState = normalizeSortState(tab, sortState, true);
+			if (!sameSortState(sortState, normalizedState)) {
+				sortStateByTab = {
+					...sortStateByTab,
+					[tab]: normalizedState,
+				};
+			}
+			appliedSortStateByTab[tab] = normalizedState;
+			const effectiveMode = panelViewModeForDataSurface(tab, viewMode);
+			const filesViewMode =
+				effectiveMode === 'table'
+					? 'table'
+					: effectiveMode === 'grid'
+						? 'grid'
+						: 'tree';
+			if (fileList.configurePanelWidgetProjection) {
+				fileList.configurePanelWidgetProjection({
+					viewMode: filesViewMode,
+					visibleCells: new Set(cells),
+					sortState: normalizedState,
+					...(interactionMode ? { interactionMode } : {}),
+				});
+			} else {
+				applyViewMode(tab, viewMode);
+				applyVisibleCells(tab, cells);
+				applySortState(tab, normalizedState);
+				if (interactionMode) applyInteractionMode(tab, interactionMode);
+			}
 		}
 		if (tab === 'props' && propExplorer) {
 			applyViewMode(tab, viewMode);
@@ -1441,6 +1610,12 @@
 {#snippet searchControl(variant: SearchControlVariant)}
 	<div
 		class={`vaultman-filters-header-search-pill vaultman-filters-header-search-pill--${variant}`}
+		data-panel-widget-node-id={variant === 'inline'
+			? panelWidgetNodeId('search')
+			: undefined}
+		style:order={variant === 'inline'
+			? panelWidgetNodeOrder('search')
+			: undefined}
 		onfocusout={handleSearchFocusOut}
 	>
 		<input
@@ -1509,11 +1684,14 @@
 					class:nav-buttons-container={minimalStyle}
 					class:vaultman-filters-actions--scroll={toolbarScroll}
 					class:vaultman-filters-actions--wrap={toolbarWrap}
+					bind:this={actionsEl}
 				>
-					{#if minimalStyle && tabOptions.length > 0}
+					{#if minimalStyle && tabOptions.length > 0 && toolbarNodeVisible('tabs')}
 						<div
 							class={headerActionClass}
 							class:vaultman-header-action-with-label={showTabsButtonLabel}
+							data-panel-widget-node-id={panelWidgetNodeId('tabs')}
+							style:order={panelWidgetNodeOrder('tabs')}
 							role="button"
 							tabindex="0"
 							aria-label={currentTabsLabel}
@@ -1540,11 +1718,15 @@
 							{/if}
 						</div>
 					{/if}
-					{#each headerActions as action, actionIndex (action.id)}
-						{#if toolbarNodeVisible(toolbarTabsCount + actionIndex)}
+					{#each headerActions as action (action.id)}
+						{#if toolbarNodeVisible(`header:${action.id}`)}
 							<div
 								class={headerActionClass}
 								class:is-disabled={action.disabled}
+								data-panel-widget-node-id={panelWidgetNodeId(
+									`header:${action.id}`,
+								)}
+								style:order={panelWidgetNodeOrder(`header:${action.id}`)}
 								role="button"
 								tabindex={action.disabled ? -1 : 0}
 								aria-label={action.label}
@@ -1552,13 +1734,15 @@
 								title={minimalStyle ? undefined : action.label}
 								onclick={(event: MouseEvent) => {
 									if (action.disabled) return;
-									action.onClick(event);
+									invokeSceneAction(`header:${action.id}`, 'pointer', event);
 								}}
 								onkeydown={(e: KeyboardEvent) => {
 									if (action.disabled) return;
 									if (e.key === 'Enter' || e.key === ' ') {
 										e.preventDefault();
-										action.onClick(
+										invokeSceneAction(
+											`header:${action.id}`,
+											'keyboard',
 											menuEventFromElement(e.currentTarget as HTMLElement),
 										);
 									}
@@ -1568,9 +1752,11 @@
 						{/if}
 					{/each}
 					{#if showExplorerControls}
-						{#if toolbarNodeVisible(toolbarViewIndex)}
+						{#if toolbarNodeVisible('view')}
 							<div
 								class={headerActionClass}
+								data-panel-widget-node-id={panelWidgetNodeId('view')}
+								style:order={panelWidgetNodeOrder('view')}
 								role="button"
 								tabindex="0"
 								aria-label={translate('filter.viewmode_btn')}
@@ -1591,9 +1777,11 @@
 								use:icon={'lucide-layout-list'}
 							></div>
 						{/if}
-						{#if toolbarNodeVisible(toolbarSortIndex)}
+						{#if toolbarNodeVisible('sort')}
 							<div
 								class={headerActionClass}
+								data-panel-widget-node-id={panelWidgetNodeId('sort')}
+								style:order={panelWidgetNodeOrder('sort')}
 								role="button"
 								tabindex="0"
 								aria-label={translate('filter.sort_btn')}
@@ -1612,11 +1800,13 @@
 								use:icon={'lucide-arrow-up-down'}
 							></div>
 						{/if}
-						{#if minimalStyle && toolbarNodeVisible(toolbarSearchIndex)}
+						{#if minimalStyle && toolbarNodeVisible('search')}
 							<div
 								class={headerActionClass}
 								class:is-active={searchExpanded || filtersSearch.length > 0}
 								data-vaultman-search-toggle="true"
+								data-panel-widget-node-id={panelWidgetNodeId('search')}
+								style:order={panelWidgetNodeOrder('search')}
 								role="button"
 								tabindex="0"
 								aria-label={translate('explorer.btn.search')}
@@ -1656,37 +1846,51 @@
 								use:icon={'lucide-search'}
 							></div>
 						{/if}
-						{#if activeTab === 'files' && toolbarNodeVisible(toolbarRevealIndex)}
+						{#if activeTab === 'files' && toolbarNodeVisible('reveal-active-file')}
 							<div
 								class={headerActionClass}
+								data-panel-widget-node-id={panelWidgetNodeId(
+									'reveal-active-file',
+								)}
+								style:order={panelWidgetNodeOrder('reveal-active-file')}
 								role="button"
 								tabindex="0"
 								aria-label={translate('filter.auto_reveal')}
 								title={minimalStyle
 									? undefined
 									: translate('filter.auto_reveal')}
-								onclick={() => fileList?.autoRevealActiveFile()}
+								onclick={(event) => revealActiveExplorerFile('pointer', event)}
 								onkeydown={(e: KeyboardEvent) => {
 									if (e.key === 'Enter' || e.key === ' ') {
 										e.preventDefault();
-										fileList?.autoRevealActiveFile();
+										revealActiveExplorerFile(
+											'keyboard',
+											menuEventFromElement(e.currentTarget as HTMLElement),
+										);
 									}
 								}}
 								use:icon={'lucide-gallery-vertical'}
 							></div>
 						{/if}
-						{#if expansionActionAvailableForActiveTab && toolbarNodeVisible(toolbarExpansionIndex)}
+						{#if expansionActionAvailableForActiveTab && toolbarNodeVisible('toggle-expansion')}
 							<div
 								class={headerActionClass}
+								data-panel-widget-node-id={panelWidgetNodeId(
+									'toggle-expansion',
+								)}
+								style:order={panelWidgetNodeOrder('toggle-expansion')}
 								role="button"
 								tabindex="0"
 								aria-label={expansionLabel}
 								title={minimalStyle ? undefined : expansionLabel}
-								onclick={toggleExplorerExpansion}
+								onclick={(event) => toggleExplorerExpansion('pointer', event)}
 								onkeydown={(e: KeyboardEvent) => {
 									if (e.key === 'Enter' || e.key === ' ') {
 										e.preventDefault();
-										toggleExplorerExpansion();
+										toggleExplorerExpansion(
+											'keyboard',
+											menuEventFromElement(e.currentTarget as HTMLElement),
+										);
 									}
 								}}
 								use:icon={expansionIcon}
@@ -1694,53 +1898,69 @@
 						{/if}
 						{#if activeTab === 'files' && createActionsPlacement === 'toolbar'}
 							<!-- BT5-022: built-in Create File/Folder as toolbar nodes. -->
-							{#if toolbarNodeVisible(toolbarCreateIndex)}
+							{#if toolbarNodeVisible('create-file')}
 								<div
 									class={headerActionClass}
+									data-panel-widget-node-id={panelWidgetNodeId('create-file')}
+									style:order={panelWidgetNodeOrder('create-file')}
 									role="button"
 									tabindex="0"
 									aria-label={translate('folder.ctx.new_note')}
 									title={minimalStyle
 										? undefined
 										: translate('folder.ctx.new_note')}
-									onclick={() =>
-										void fileList?.createFromSearch(0, filtersSearch)}
+									onclick={(event) =>
+										invokeSceneAction('create-file', 'pointer', event)}
 									onkeydown={(e: KeyboardEvent) => {
 										if (e.key === 'Enter' || e.key === ' ') {
 											e.preventDefault();
-											void fileList?.createFromSearch(0, filtersSearch);
+											invokeSceneAction(
+												'create-file',
+												'keyboard',
+												menuEventFromElement(e.currentTarget as HTMLElement),
+											);
 										}
 									}}
 									use:icon={'lucide-file-plus'}
 								></div>
 							{/if}
-							{#if toolbarNodeVisible(toolbarCreateIndex + 1)}
+							{#if toolbarNodeVisible('create-folder')}
 								<div
 									class={headerActionClass}
+									data-panel-widget-node-id={panelWidgetNodeId('create-folder')}
+									style:order={panelWidgetNodeOrder('create-folder')}
 									role="button"
 									tabindex="0"
 									aria-label={translate('folder.ctx.new_folder')}
 									title={minimalStyle
 										? undefined
 										: translate('folder.ctx.new_folder')}
-									onclick={() =>
-										void fileList?.createFromSearch(1, filtersSearch)}
+									onclick={(event) =>
+										invokeSceneAction('create-folder', 'pointer', event)}
 									onkeydown={(e: KeyboardEvent) => {
 										if (e.key === 'Enter' || e.key === ' ') {
 											e.preventDefault();
-											void fileList?.createFromSearch(1, filtersSearch);
+											invokeSceneAction(
+												'create-folder',
+												'keyboard',
+												menuEventFromElement(e.currentTarget as HTMLElement),
+											);
 										}
 									}}
 									use:icon={'lucide-folder-plus'}
 								></div>
 							{/if}
 						{/if}
-						{#each commandActions as command, commandIndex (command.id)}
-							{#if toolbarNodeVisible(toolbarCommandIndex + commandIndex)}
+						{#each commandActions as command (command.id)}
+							{#if toolbarNodeVisible(`command:${command.id}`)}
 								<!-- BT5-024: Obsidian commands projected as toolbar nodes. -->
 								<div
 									class={headerActionClass}
 									class:is-disabled={!command.available}
+									data-panel-widget-node-id={panelWidgetNodeId(
+										`command:${command.id}`,
+									)}
+									style:order={panelWidgetNodeOrder(`command:${command.id}`)}
 									role="button"
 									tabindex="0"
 									aria-label={command.label}
@@ -1751,7 +1971,9 @@
 												command.id,
 											)}
 									onclick={() => {
-										if (command.available) onRunCommand?.(command.id);
+										if (command.available) {
+											invokeSceneAction(`command:${command.id}`, 'pointer');
+										}
 									}}
 									onkeydown={(e: KeyboardEvent) => {
 										if (
@@ -1759,16 +1981,23 @@
 											(e.key === 'Enter' || e.key === ' ')
 										) {
 											e.preventDefault();
-											onRunCommand?.(command.id);
+											invokeSceneAction(`command:${command.id}`, 'keyboard');
 										}
 									}}
 									use:icon={command.icon ?? 'lucide-terminal'}
 								></div>
 							{/if}
 						{/each}
-						{#if compactFilesTools}
+						<span
+							class="vaultman-panel-widget-tools-measure"
+							data-panel-widget-tools-measure
+							aria-hidden="true"
+							use:icon={'lucide-tool-case'}
+						></span>
+						{#if compactPanelWidgetTools}
 							<div
 								class={headerActionClass}
+								style:order={panelWidgetProjection.nodes.length}
 								role="button"
 								tabindex="0"
 								aria-label={translate('filter.tools')}

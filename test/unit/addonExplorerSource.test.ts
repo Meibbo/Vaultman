@@ -51,10 +51,10 @@ describe('Snippets and Plugins explorer tabs source guards', () => {
 		expect(frameSource).toContain("case 'snippets':");
 		expect(frameSource).toContain("case 'plugins':");
 		expect(navbarFiltersSource).toContain(
-			'snippetsExplorer?: AddonExplorerPanelPort',
+			'snippetsExplorer?: PanelWidgetExplorerPort',
 		);
 		expect(navbarFiltersSource).toContain(
-			'pluginsExplorer?: AddonExplorerPanelPort',
+			'pluginsExplorer?: PanelWidgetExplorerPort',
 		);
 		expect(snippetsPanelSource).toContain('implements AddonExplorerPanelPort');
 		expect(pluginsPanelSource).toContain('implements AddonExplorerPanelPort');

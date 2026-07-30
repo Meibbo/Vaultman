@@ -24,13 +24,15 @@ describe('Statistics page source guards', () => {
 		expect(statisticsPageSource).toContain('openScopeMenu');
 	});
 
-	it('keeps the shared filters navbar on Statistics with a tabmenu-only configuration', () => {
-		expect(statisticsPageSource).toContain('import NavbarFilters');
+	it('publishes Statistics into the Scene-owned panelWidget host', () => {
+		expect(statisticsPageSource).not.toContain('import NavbarFilters');
+		expect(statisticsPageSource).toContain('onPanelWidgetStateChange?.({');
+		expect(statisticsPageSource).toContain("providerId: 'statistics'");
 		expect(statisticsPageSource).toContain('statsTabOptions');
-		expect(statisticsPageSource).toContain('activeSectionTab="statistics"');
-		expect(statisticsPageSource).toContain('showExplorerControls={false}');
+		expect(statisticsPageSource).toContain("activeSectionTab: 'statistics'");
+		expect(statisticsPageSource).toContain('showExplorerControls: false');
 		expect(statisticsPageSource).toContain(
-			'onSectionTabChange={navigateFromHeader}',
+			'onSectionTabChange: navigateFromHeader',
 		);
 	});
 });

@@ -45,7 +45,20 @@ describe('pageFilters tab switching source guard', () => {
 		expect(pageFiltersSource).toContain('contentHeaderActions');
 		expect(pageFiltersSource).toContain('openContentSortMenu');
 		expect(pageFiltersSource).toContain('toggleAllContentFiles');
-		expect(pageFiltersSource).toContain('headerActions={contentHeaderActions}');
+		expect(pageFiltersSource).toContain('headerActions: contentHeaderActions');
+	});
+
+	it('projects Text Pause, Has/Hasn’t, then Sort in canonical panelWidget order', () => {
+		const pause = pageFiltersSource.indexOf("id: 'content-pause'");
+		const has = pageFiltersSource.indexOf("id: 'content-has'");
+		const sort = pageFiltersSource.indexOf("id: 'content-sort'");
+
+		expect(pause).toBeGreaterThan(-1);
+		expect(has).toBeGreaterThan(pause);
+		expect(sort).toBeGreaterThan(has);
+		expect(pageFiltersSource).toContain(
+			'contentIsExclusion = !contentIsExclusion;',
+		);
 	});
 
 	it('adds a Content header action to reveal the active file in results', () => {
@@ -67,8 +80,8 @@ describe('pageFilters tab switching source guard', () => {
 		expect(pageFiltersSource).toContain(
 			'plugin.settings.toolbarToolsMenu === true',
 		);
-		expect(pageFiltersSource).toContain('{toolbarToolsMenu}');
+		expect(pageFiltersSource).toContain('toolbarToolsMenu,');
 		expect(pageFiltersSource).toContain('frameWidth = 0');
-		expect(pageFiltersSource).toContain('{frameWidth}');
+		expect(pageFiltersSource).toContain('frameWidth,');
 	});
 });

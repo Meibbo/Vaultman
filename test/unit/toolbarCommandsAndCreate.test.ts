@@ -16,8 +16,14 @@ describe('BT5-022 create actions placement', () => {
 		expect(navbarSource).toContain(
 			"activeTab === 'files' && createActionsPlacement === 'toolbar'",
 		);
-		expect(navbarSource).toContain('fileList?.createFromSearch(0, filtersSearch)');
-		expect(navbarSource).toContain('fileList?.createFromSearch(1, filtersSearch)');
+		expect(navbarSource).toContain("append(\n\t\t\t\t'create-file'");
+		expect(navbarSource).toContain("append(\n\t\t\t\t'create-folder'");
+		expect(pageFiltersSource).toContain(
+			"invocation.actionId === 'create-file'",
+		);
+		expect(pageFiltersSource).toContain(
+			'fileList?.createFromSearch(0, filtersSearch)',
+		);
 	});
 
 	it('drops the Files searchbox create button when moved to the toolbar', () => {
@@ -41,7 +47,9 @@ describe('BT5-024 custom command toolbar actions', () => {
 
 	it('projects resolved commands as toolbar nodes that run by id', () => {
 		expect(navbarSource).toContain('{#each commandActions as command');
-		expect(navbarSource).toContain('onRunCommand?.(command.id)');
+		expect(navbarSource).toContain(
+			'invokeSceneAction(`command:${command.id}`',
+		);
 		// A retired command is disabled and labelled, not silently dropped.
 		expect(navbarSource).toContain('class:is-disabled={!command.available}');
 		expect(navbarSource).toContain("translate('command.unavailable')");
@@ -51,8 +59,9 @@ describe('BT5-024 custom command toolbar actions', () => {
 		expect(pageFiltersSource).toContain('resolveCommandActions(');
 		expect(pageFiltersSource).toContain('listObsidianCommands(plugin.app)');
 		expect(pageFiltersSource).toContain(
-			'onRunCommand={(id) => executeObsidianCommand(plugin.app, id)}',
+			"invocation.actionId.startsWith('command:')",
 		);
+		expect(pageFiltersSource).toContain("invocation.actionId.slice('command:'.length)");
 	});
 
 	it('manages the list with add, remove and reorder in settings', () => {

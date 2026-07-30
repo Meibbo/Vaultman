@@ -138,22 +138,6 @@
 	</div>
 	<button
 		class="clickable-icon vaultman-icon-toggle"
-		class:is-active={contentIsExclusion}
-		aria-label={contentIsExclusion
-			? translate('filter.text_not_contains')
-			: translate('filter.text_contains')}
-		title={contentIsExclusion
-			? translate('filter.text_not_contains')
-			: translate('filter.text_contains')}
-		onclick={() => {
-			contentIsExclusion = !contentIsExclusion;
-		}}
-		use:iconAction={contentIsExclusion
-			? 'lucide-file-minus'
-			: 'lucide-file-text'}
-	></button>
-	<button
-		class="clickable-icon vaultman-icon-toggle"
 		class:is-active={contentCaseSensitive}
 		aria-label={translate('content.toggle_case')}
 		title={translate('content.toggle_case')}

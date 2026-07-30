@@ -126,6 +126,19 @@ describe('BT5-021 toolbar overflow strategy', () => {
 		expect(stylesSource).toContain('flex-wrap: wrap');
 	});
 
+	it('keeps condensed nodes and its Tools case on one shrinkable line', () => {
+		const baseActions =
+			stylesSource.match(/\.vaultman-filters-actions\s*\{[\s\S]*?\n\}/)?.[0] ??
+			'';
+		expect(baseActions).toContain('flex-wrap: nowrap');
+		expect(baseActions).toContain('min-width: 0');
+		expect(baseActions).toContain('overflow: hidden');
+		expect(stylesSource).toContain(
+			'.vaultman-filters-actions > .nav-action-button',
+		);
+		expect(stylesSource).toContain('flex: 0 0 auto');
+	});
+
 	it('exposes the strategy selector in settings', () => {
 		expect(settingsSource).toContain("'condensed'");
 		expect(settingsSource).toContain("'scroll'");

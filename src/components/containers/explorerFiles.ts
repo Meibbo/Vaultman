@@ -124,6 +124,8 @@ import {
 	withActiveFilterDragSelection,
 } from '../../utils/dragPayload';
 import { flattenVisibleTree } from '../../utils/treeVirtualization';
+import { vaultmanPerfMonitor } from '../../utils/performanceMonitor';
+import type { PanelWidgetExplorerProjectionConfig } from '../../types/typePanelWidget';
 
 export type FilesViewMode = 'grid' | 'table' | 'tree';
 
@@ -200,6 +202,8 @@ export class FilesExplorerPanel extends Component {
 	private onExpansionChange?: () => void;
 	private onSortStateChange?: (state: ExplorerSortState) => void;
 	private _glyphSettingsSignature = '';
+	private renderBatchDepth = 0;
+	private renderPending = false;
 
 	constructor(
 		containerEl: HTMLElement,
@@ -656,6 +660,19 @@ export class FilesExplorerPanel extends Component {
 		this.interactionMode = normalizeInteractionMode('files', mode);
 	}
 
+	configurePanelWidgetProjection(
+		config: PanelWidgetExplorerProjectionConfig,
+	): void {
+		this._withRenderBatch(() => {
+			this.setViewMode(config.viewMode);
+			this.setVisibleCells(new Set(config.visibleCells));
+			this.setSortState(config.sortState);
+			if (config.interactionMode) {
+				this.setInteractionMode(config.interactionMode);
+			}
+		});
+	}
+
 	setViewMode(mode: FilesViewMode): void {
 		if (this.viewMode === mode) return;
 		this.viewMode = mode;
@@ -788,46 +805,44 @@ export class FilesExplorerPanel extends Component {
 
 	expandAll(): void {
 		if (!this._nestedEnabled()) return;
-		const tree = this.logic.buildFileTree(
-			this._sortFiles(this._filesForDisplay()),
-			this._foldersForCurrentView(),
-			{
-				rebaseFolderPaths: this._activeFolderFilterPaths(),
-				parentsFirst: this.parentsFirst,
-				sorts: {
-					all: activeScopeSort('files', this.sortState, 'all'),
-					drill: activeScopeSort('files', this.sortState, 'drill'),
-				},
-				drillNodeId: this.sortState.drillNodeId,
-				compareNodes: (a, b, sort) => this._compareFileTreeNodes(a, b, sort),
-			},
-		);
+		const changedFolderIds: string[] = [];
 		const walk = (nodes: TreeNode<FileMeta>[]) => {
 			for (const node of nodes) {
-				if (node.meta.isFolder) this.expandedIds.add(node.id);
+				if (node.meta.isFolder && !this.expandedIds.has(node.id)) {
+					this.expandedIds.add(node.id);
+					changedFolderIds.push(node.id);
+				}
 				if (node.children?.length) walk(node.children);
 			}
 		};
-		walk(tree);
+		walk(this._lastRenderTree);
+		if (changedFolderIds.length === 0) return;
 		this._notifyExpansionChanged();
-		this._render();
+		this._refreshCompleteTreeExpansion(changedFolderIds);
 	}
 
 	collapseAll(): void {
+		const changedFolderIds = [...this.expandedIds];
+		if (changedFolderIds.length === 0) return;
 		this.expandedIds.clear();
 		this._notifyExpansionChanged({ type: 'collapse-all' });
-		this._render();
+		this._refreshCompleteTreeExpansion(changedFolderIds);
 	}
 
 	autoRevealActiveFile(): void {
 		const file = this.plugin.app.workspace.getActiveFile();
 		if (!file) return;
 		this._syncActiveFilePath(file);
+		const changedFolderIds: string[] = [];
 		for (const id of this.logic.getAncestorFolderIds([file])) {
+			if (this.expandedIds.has(id)) continue;
 			this.expandedIds.add(id);
+			changedFolderIds.push(id);
 		}
-		this._notifyExpansionChanged();
-		this._render();
+		if (changedFolderIds.length > 0) {
+			this._notifyExpansionChanged();
+			this._refreshCompleteTreeExpansion(changedFolderIds);
+		}
 		window.requestAnimationFrame(() => {
 			if (this.viewMode === 'table') {
 				this.tableView?.scrollToPath(file.path);
@@ -1300,6 +1315,34 @@ export class FilesExplorerPanel extends Component {
 	}
 
 	private _render(): void {
+		if (this.renderBatchDepth > 0) {
+			this.renderPending = true;
+			return;
+		}
+		vaultmanPerfMonitor.measure(
+			'explorer.files.render',
+			() => this._renderProjection(),
+			{
+				files: this._currentFiles.length,
+				viewMode: this.viewMode,
+			},
+		);
+	}
+
+	private _withRenderBatch(operation: () => void): void {
+		this.renderBatchDepth += 1;
+		try {
+			operation();
+		} finally {
+			this.renderBatchDepth -= 1;
+			if (this.renderBatchDepth === 0 && this.renderPending) {
+				this.renderPending = false;
+				this._render();
+			}
+		}
+	}
+
+	private _renderProjection(): void {
 		if (this._shouldShowEmptyFilteredState()) {
 			this._renderEmptyFilteredState();
 			this._rememberStatisticsSortOrder([]);
@@ -1334,38 +1377,73 @@ export class FilesExplorerPanel extends Component {
 				})),
 			);
 		} else if (this.viewMode === 'tree' && this.treeView) {
-			const sortedFiles = this._sortFiles(displayFiles);
-			this._rememberStatisticsSortOrder(sortedFiles);
+			const nested = this._nestedEnabled();
+			// buildFileTree orders every sibling scope itself. Sorting the whole
+			// vault first duplicated the most expensive comparison pass.
+			const sortedFiles = nested
+				? displayFiles
+				: vaultmanPerfMonitor.measure(
+						'explorer.files.sort',
+						() => this._sortFiles(displayFiles),
+						{ files: displayFiles.length },
+					);
+			this._rememberStatisticsSortOrder(nested ? [] : sortedFiles);
 			// BT5-090: the folder mtime tie-break for the recency sort. Built
 			// before buildFileTree so the node comparator can read it.
-			this._folderMaxMtime = bubbleMaxToFolders(
-				displayFiles.map((file) => [
-					file.path,
-					this.plugin.statisticsCache.getFileTimes(file).mtime,
-				]),
+			this._folderMaxMtime = vaultmanPerfMonitor.measure(
+				'explorer.files.folder-times',
+				() =>
+					bubbleMaxToFolders(
+						displayFiles.map((file) => [
+							file.path,
+							this.plugin.statisticsCache.getFileTimes(file).mtime,
+						]),
+					),
+				{ files: displayFiles.length },
 			);
 			const rebaseFolderPaths = this._activeFolderFilterPaths();
 			const renderTree = this._nestedEnabled()
-				? this.logic.buildFileTree(sortedFiles, this._foldersForCurrentView(), {
-						rebaseFolderPaths,
-						parentsFirst: this.parentsFirst,
-						fixedFolders: this.sortState.fixedFolders !== false,
-						sorts: {
-							all: activeScopeSort('files', this.sortState, 'all'),
-							drill: activeScopeSort('files', this.sortState, 'drill'),
-						},
-						drillNodeId: this.sortState.drillNodeId,
-						compareNodes: (a, b, sort) =>
-							this._compareFileTreeNodes(a, b, sort),
-					})
+				? vaultmanPerfMonitor.measure(
+						'explorer.files.build-tree',
+						() =>
+							this.logic.buildFileTree(
+								sortedFiles,
+								this._foldersForCurrentView(),
+								{
+									rebaseFolderPaths,
+									parentsFirst: this.parentsFirst,
+									fixedFolders: this.sortState.fixedFolders !== false,
+									sorts: {
+										all: activeScopeSort('files', this.sortState, 'all'),
+										drill: activeScopeSort('files', this.sortState, 'drill'),
+									},
+									drillNodeId: this.sortState.drillNodeId,
+									compareNodes: (a, b, sort) =>
+										this._compareFileTreeNodes(a, b, sort),
+								},
+							),
+						{ files: sortedFiles.length },
+					)
 				: this.logic.buildFlatFileNodes(sortedFiles, {
 						rebaseFolderPaths,
 						labelMode: this._pathLabelActive() ? 'path' : 'name',
 					});
 			if (this._nestedEnabled()) this._autoExpandSparseTopLevel(renderTree);
-			this._decorateTreeWithFileTimes(renderTree);
-			this._decorateTreeWithRainbow(renderTree);
-			this._decorateTreeWithQueue(renderTree);
+			vaultmanPerfMonitor.measure(
+				'explorer.files.decorate-times',
+				() => this._decorateTreeWithFileTimes(renderTree),
+				{ files: sortedFiles.length },
+			);
+			vaultmanPerfMonitor.measure(
+				'explorer.files.decorate-rainbow',
+				() => this._decorateTreeWithRainbow(renderTree),
+				{ files: sortedFiles.length },
+			);
+			vaultmanPerfMonitor.measure(
+				'explorer.files.decorate-queue',
+				() => this._decorateTreeWithQueue(renderTree),
+				{ files: sortedFiles.length },
+			);
 			const applyFolderIcons = (
 				nodes: TreeNode<FileMeta>[],
 				expanded: Set<string>,
@@ -1380,7 +1458,11 @@ export class FilesExplorerPanel extends Component {
 				}
 			};
 			applyFolderIcons(renderTree, this.expandedIds);
-			this._decorateTreeWithIcons(renderTree);
+			vaultmanPerfMonitor.measure(
+				'explorer.files.decorate-icons',
+				() => this._decorateTreeWithIcons(renderTree),
+				{ files: sortedFiles.length },
+			);
 			this._setIndexRoots(renderTree, []);
 			this._treeRenderOpts = {
 				nodes: renderTree,
@@ -1744,6 +1826,26 @@ export class FilesExplorerPanel extends Component {
 		this.treeView?.updateExpansion(rootId, this.expandedIds);
 	}
 
+	/**
+	 * Re-project a bulk expansion change from the Scene's current tree model.
+	 * Expansion is view state: rebuilding, sorting, and decorating the provider
+	 * model here made panelWidget actions scale with the complete vault.
+	 */
+	private _refreshCompleteTreeExpansion(
+		changedFolderIds: readonly string[],
+	): void {
+		if (this.viewMode !== 'tree' || !this.treeView || !this._treeRenderOpts) {
+			return;
+		}
+		this._applyBubbleDots();
+		for (const id of changedFolderIds) this._refreshFolderIcon(id);
+		this._treeRenderOpts = {
+			...this._treeRenderOpts,
+			expandedIds: this.expandedIds,
+		};
+		this.treeView.render(this._treeRenderOpts);
+	}
+
 	private _refreshFolderIcon(id: string): void {
 		const node = this.bubbleIndex?.nodesById.get(id);
 		if (!node?.meta.isFolder) return;
@@ -2029,13 +2131,10 @@ export class FilesExplorerPanel extends Component {
 		inheritedRainbowColor?: string,
 	): string | null {
 		return resolveExplorerGlyphColor({
-			choice: normalizeGlyphColorChoice(
-				this.plugin.settings.explorerGlyphColor,
-			).choice,
+			choice: normalizeGlyphColorChoice(this.plugin.settings.explorerGlyphColor)
+				.choice,
 			customColor: this.plugin.settings.explorerGlyphCustomColor,
-			scope: normalizeGlyphColorScope(
-				this.plugin.settings.explorerGlyphScope,
-			),
+			scope: normalizeGlyphColorScope(this.plugin.settings.explorerGlyphScope),
 			kind: isFolder ? 'folder' : 'file',
 			position,
 			inheritedRainbowColor,
@@ -2151,6 +2250,9 @@ export class FilesExplorerPanel extends Component {
 	};
 
 	private readonly _scheduleIconicRender = () => {
+		// Iconic can finish loading while the Scene is still configuring the
+		// provider. The first projection will already read the loaded icons.
+		if (this._currentFiles.length === 0) return;
 		if (this._iconicRenderQueued) return;
 		this._iconicRenderQueued = true;
 		queueMicrotask(() => {
@@ -2394,7 +2496,12 @@ export class FilesExplorerPanel extends Component {
 			// re-sort would: folders must be a fixed head partition, or the
 			// level's real order depends on comparisons this move does not
 			// perform. Anything else falls through to the honest rebuild.
-			if (file && this.treeView && this._treeRenderOpts && this._canMoveOnOpen()) {
+			if (
+				file &&
+				this.treeView &&
+				this._treeRenderOpts &&
+				this._canMoveOnOpen()
+			) {
 				const result = moveNodeToSiblingEdge(
 					this._treeRenderOpts.nodes as TreeNode<FileMeta>[],
 					file.path,
@@ -2441,25 +2548,60 @@ export class FilesExplorerPanel extends Component {
 	}
 
 	private _decorateTreeWithFileTimes(nodes: TreeNode<FileMeta>[]): void {
-		for (const node of nodes) {
-			if (node.meta.file) {
-				const times = this.plugin.statisticsCache.getFileTimes(node.meta.file);
-				const wordCount = this.plugin.statisticsCache.getFileWordCount(
-					node.meta.file,
-				);
-				node.mtimeText = this._formatDateCell(times.mtime);
-				node.ctimeText = this._formatDateCell(times.ctime);
-				node.openedText = this._formatOpenedCell(node.meta.file);
-				node.wordCountText =
-					wordCount === null ? undefined : this._formatWordCountCell(wordCount);
-				const tasks = this.plugin.statisticsCache.getFileRemainingTasks(
-					node.meta.file,
-				);
-				node.tasksText =
-					tasks === null || tasks === 0 ? undefined : String(tasks);
-			}
-			if (node.children?.length) this._decorateTreeWithFileTimes(node.children);
+		const showMtime =
+			this.visibleCells.has('mtime') || this.visibleCells.has('updated');
+		const showCtime =
+			this.visibleCells.has('ctime') || this.visibleCells.has('installed');
+		const showOpened = this.visibleCells.has('opened');
+		const showWords = this.visibleCells.has('words');
+		const showTasks = this.visibleCells.has('tasks');
+		const showFolderAggregates =
+			this.plugin.settings.folderAggregateCells === true &&
+			(this.visibleCells.has('count') || showWords || showTasks);
+		if (
+			!showMtime &&
+			!showCtime &&
+			!showOpened &&
+			!showWords &&
+			!showTasks &&
+			!showFolderAggregates
+		) {
+			return;
 		}
+		const visit = (subtree: TreeNode<FileMeta>[]): void => {
+			for (const node of subtree) {
+				if (node.meta.file) {
+					if (showMtime || showCtime) {
+						const times = this.plugin.statisticsCache.getFileTimes(
+							node.meta.file,
+						);
+						if (showMtime) node.mtimeText = this._formatDateCell(times.mtime);
+						if (showCtime) node.ctimeText = this._formatDateCell(times.ctime);
+					}
+					if (showOpened) {
+						node.openedText = this._formatOpenedCell(node.meta.file);
+					}
+					if (showWords) {
+						const wordCount = this.plugin.statisticsCache.getFileWordCount(
+							node.meta.file,
+						);
+						node.wordCountText =
+							wordCount === null
+								? undefined
+								: this._formatWordCountCell(wordCount);
+					}
+					if (showTasks) {
+						const tasks = this.plugin.statisticsCache.getFileRemainingTasks(
+							node.meta.file,
+						);
+						node.tasksText =
+							tasks === null || tasks === 0 ? undefined : String(tasks);
+					}
+				}
+				if (node.children?.length) visit(node.children);
+			}
+		};
+		visit(nodes);
 		// BT5-040: after files carry their own values, fold them up so folders
 		// show the recursive sum of props, words and tasks of everything inside.
 		this._decorateFoldersWithAggregates(nodes);
@@ -2467,18 +2609,25 @@ export class FilesExplorerPanel extends Component {
 
 	private _decorateFoldersWithAggregates(nodes: TreeNode<FileMeta>[]): void {
 		if (this.plugin.settings.folderAggregateCells !== true) return;
+		const aggregateCount = this.visibleCells.has('count');
+		const aggregateWords = this.visibleCells.has('words');
+		const aggregateTasks = this.visibleCells.has('tasks');
+		if (!aggregateCount && !aggregateWords && !aggregateTasks) return;
 		const totals = aggregateFolderCells(
 			nodes,
 			(node) => ({
-				count: node.meta.file ? this._propCountForFile(node.meta.file) : 0,
-				words: node.meta.file
-					? (this.plugin.statisticsCache.getFileWordCount(node.meta.file) ?? 0)
-					: 0,
-				tasks: node.meta.file
-					? (this.plugin.statisticsCache.getFileRemainingTasks(
-							node.meta.file,
-						) ?? 0)
-					: 0,
+				count: node.meta.file && aggregateCount ? (node.count ?? 0) : 0,
+				words:
+					node.meta.file && aggregateWords
+						? (this.plugin.statisticsCache.getFileWordCount(node.meta.file) ??
+							0)
+						: 0,
+				tasks:
+					node.meta.file && aggregateTasks
+						? (this.plugin.statisticsCache.getFileRemainingTasks(
+								node.meta.file,
+							) ?? 0)
+						: 0,
 			}),
 			(node) => node.meta.isFolder,
 		);

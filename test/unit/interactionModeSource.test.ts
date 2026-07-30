@@ -72,7 +72,9 @@ describe('BT3 native menu and interaction-mode source guards', () => {
 			'function activateNodeContentSearch(query: string)',
 		);
 		expect(pageSource).toContain("switchFiltersTab('content')");
-		expect(pageSource).toContain('onContentSearch={activateNodeContentSearch}');
+		expect(pageSource).toContain(
+			'onContentSearch: activateNodeContentSearch',
+		);
 		expect(propsSource).toContain("action === 'content-search'");
 		expect(tagsSource).toContain("action === 'content-search'");
 		expect(filesSource).toContain("action === 'select'");

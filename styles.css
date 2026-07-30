@@ -2835,6 +2835,19 @@ body.vaultman-bases-column-separators table th {
   will-change: transform;
 }
 
+.vaultman-pages-viewport > .vaultman-page-container {
+  flex: 1 1 auto;
+  min-height: 0;
+  height: auto;
+}
+
+.vaultman-panel-widget-host {
+  position: relative;
+  z-index: 15;
+  flex: 0 0 auto;
+  width: 100%;
+}
+
 .vaultman-page {
   display: flex;
   flex-direction: column;
@@ -2870,6 +2883,14 @@ body.vaultman-bases-column-separators table th {
   align-self: center;
 }
 
+.vaultman-panel-widget-tools-measure {
+  position: absolute;
+  visibility: hidden;
+  pointer-events: none;
+  inline-size: var(--clickable-icon-size);
+  block-size: var(--clickable-icon-size);
+}
+
 .vaultman-filters-header .nav-action-button.is-disabled {
   opacity: 0.45;
   pointer-events: none;
@@ -2879,8 +2900,11 @@ body.vaultman-bases-column-separators table th {
   display: flex;
   align-items: center;
   justify-content: center;
+  flex-wrap: nowrap;
   gap: 2px;
   width: 100%;
+  min-width: 0;
+  overflow: hidden;
   background: transparent;
 }
 

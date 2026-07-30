@@ -64,10 +64,10 @@ describe('search focus command source guards', () => {
 		expect(frameSource).toContain("filtersActiveTab === 'tags'");
 		expect(frameSource).toContain(": 'props';");
 		expect(frameSource).toContain(
-			'.vaultman-page[data-page="filters"] .vaultman-navbar-filters .vaultman-filters-search-input',
+			'.vaultman-panel-widget-host .vaultman-navbar-filters .vaultman-filters-search-input',
 		);
 		expect(frameSource).toContain(
-			'.vaultman-page[data-page="filters"] [data-vaultman-search-toggle="true"]',
+			'.vaultman-panel-widget-host [data-vaultman-search-toggle="true"]',
 		);
 		expect(frameSource).toContain('input?.focus();');
 		expect(frameSource).toContain('input?.select();');

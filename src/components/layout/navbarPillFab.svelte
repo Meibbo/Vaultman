@@ -202,6 +202,7 @@
 					class="workspace-tab-header tappable workspace-tab-header-inner vaultman-nav-page-icon"
 					class:is-active={activePage === pageId && !isReordering}
 					class:is-reorder-target={isReordering && reorderTargetIdx === i}
+					data-vaultman-page-id={pageId}
 					aria-label={pageLabels[pageId] ?? pageId}
 					use:icon={pageIcons[pageId] ?? 'lucide-circle'}
 					onpointerdown={(e: PointerEvent) => onNavIconPointerDown(e, i)}
@@ -314,6 +315,7 @@
 					class="vaultman-nav-icon vaultman-nav-page-icon"
 					class:is-active={activePage === pageId && !isReordering}
 					class:is-reorder-target={isReordering && reorderTargetIdx === i}
+					data-vaultman-page-id={pageId}
 					aria-label={pageLabels[pageId] ?? pageId}
 					use:icon={pageIcons[pageId] ?? 'lucide-circle'}
 					onpointerdown={(e: PointerEvent) => onNavIconPointerDown(e, i)}

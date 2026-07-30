@@ -28,11 +28,11 @@ describe('BT5-006 contextual expand/collapse availability', () => {
 		const toolsSource = navbarSource.slice(toolsStart, toolsEnd);
 		expect(toolsSource).toContain("translate('filter.auto_reveal')");
 		expect(toolsSource).toContain('expansionActionAvailableForActiveTab &&');
-		expect(toolsSource).toContain('toolbarNodeHidden(toolbarExpansionIndex)');
+		expect(toolsSource).toContain("toolbarNodeHidden('toggle-expansion')");
 
-		expect(navbarSource).toContain('{#if compactFilesTools}');
+		expect(navbarSource).toContain('{#if compactPanelWidgetTools}');
 		expect(navbarSource).toContain(
-			'{#if expansionActionAvailableForActiveTab && toolbarNodeVisible(toolbarExpansionIndex)}',
+			"{#if expansionActionAvailableForActiveTab && toolbarNodeVisible('toggle-expansion')}",
 		);
 	});
 });
