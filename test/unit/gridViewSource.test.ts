@@ -78,4 +78,29 @@ describe('GridView source guards', () => {
 		expect(gridViewSource).toContain('if (event.button !== 1) return;');
 		expect(gridViewSource).toContain('this.callbacks.onFileClick(file, event)');
 	});
+
+	it('projects file glyph color by global virtual index without changing link state', () => {
+		expect(gridViewSource).toContain(
+			'getGlyphColor?: (file: TFile, index: number) => string | null',
+		);
+		expect(gridViewSource).toContain(
+			'this._renderRow(this.tbodyEl, row.row, row.index, row.top, layout)',
+		);
+		expect(gridViewSource).toContain('glyphColor,');
+		expect(gridViewSource).toContain(
+			'resolvedIcon.color ?? glyphColor ?? undefined',
+		);
+		expect(gridViewSource).toContain(
+			'if (glyphColor) nameEl.style.color = glyphColor',
+		);
+		for (const className of [
+			'tree-item-self',
+			'nav-file-title',
+			'tappable',
+			'is-clickable',
+			'is-active',
+		]) {
+			expect(gridViewSource).toContain(className);
+		}
+	});
 });

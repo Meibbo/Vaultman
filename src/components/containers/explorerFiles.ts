@@ -873,6 +873,8 @@ export class FilesExplorerPanel extends Component {
 				getBadges: (file: TFile) => this._badgesForFile(file),
 				getFileIcon: (file: TFile, defaultIcon: string) =>
 					this._resolveFileIcon(file.path, false, defaultIcon),
+				getGlyphColor: (_file: TFile, index: number) =>
+					this._explorerGlyphColorFor(false, index),
 				onContextMenu: (file: TFile, e: MouseEvent) =>
 					this._openFileContextMenu(file, e),
 				onSelectionChange: (selected: Set<string>) => {
@@ -929,6 +931,8 @@ export class FilesExplorerPanel extends Component {
 				getBadges: (file: TFile) => this._badgesForFile(file),
 				getFileIcon: (file: TFile, defaultIcon: string) =>
 					this._resolveFileIcon(file.path, false, defaultIcon),
+				getGlyphColor: (_file: TFile, index: number) =>
+					this._explorerGlyphColorFor(false, index),
 				getPropCount: (file: TFile) => this._propCountForFile(file),
 				getFileTimes: (file: TFile) =>
 					this.plugin.statisticsCache.getFileTimes(file),

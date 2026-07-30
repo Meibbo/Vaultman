@@ -26,6 +26,7 @@ export interface FilesGridViewCallbacks {
 		file: TFile,
 		defaultIcon: string,
 	) => ResolvedExplorerIcon | null;
+	getGlyphColor?: (file: TFile, index: number) => string | null;
 	getPropCount?: (file: TFile) => number;
 	getFileTimes?: (file: TFile) => ExplorerFileTimes;
 	getWordCount?: (file: TFile) => number | null;
@@ -287,7 +288,7 @@ export class FilesGridView {
 		);
 		this.removeStaleCards(visiblePaths);
 		for (const item of projection.visibleRows) {
-			this.renderCard(item.row, {
+			this.renderCard(item.row, item.index, {
 				top: item.top,
 				left: this.gap + item.column * (metrics.cardWidth + this.gap),
 				width: metrics.cardWidth,
@@ -344,6 +345,7 @@ export class FilesGridView {
 
 	private renderCard(
 		file: TFile,
+		index: number,
 		position: { top: number; left: number; width: number },
 	): void {
 		if (!this.contentEl) return;
@@ -358,12 +360,14 @@ export class FilesGridView {
 			this.visibleCells.has('icon') || this.visibleCells.has('name')
 				? this.resolvedIconForFile(file)
 				: null;
+		const glyphColor = this.callbacks.getGlyphColor?.(file, index) ?? null;
 		const signature = [
 			file.path,
 			file.name,
 			file.extension,
 			resolvedIcon?.icon ?? '',
 			resolvedIcon?.color ?? '',
+			glyphColor ?? '',
 			times.mtime,
 			times.ctime,
 			this.selectedFiles.has(file.path) ? '1' : '0',
@@ -428,14 +432,19 @@ export class FilesGridView {
 
 		if (this.visibleCells.has('icon') && resolvedIcon) {
 			const iconEl = card.createDiv({ cls: 'vaultman-files-grid-card-icon' });
-			renderIconValue(iconEl, resolvedIcon.icon, resolvedIcon.color);
+			renderIconValue(
+				iconEl,
+				resolvedIcon.icon,
+				resolvedIcon.color ?? glyphColor ?? undefined,
+			);
 		}
 		if (this.visibleCells.has('name')) {
 			const name = card.createDiv({
 				cls: 'vaultman-files-grid-card-name',
 				text: formatFileTableName(file),
 			});
-			if (resolvedIcon?.color) name.style.color = resolvedIcon.color;
+			const nameColor = glyphColor ?? resolvedIcon?.color;
+			if (nameColor) name.style.color = nameColor;
 		}
 		if (this.hasMetaCells) {
 			const metaRow = card.createDiv({ cls: 'vaultman-files-grid-card-meta' });
