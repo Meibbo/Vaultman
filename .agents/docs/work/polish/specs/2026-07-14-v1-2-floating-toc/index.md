@@ -107,8 +107,7 @@ no auto-saltan al stable → patch `1.2.1` temprano o aviso). Runbook completo:
 
 ## Anclajes de implementación
 
-Shard [[docs/work/polish/specs/2026-07-14-v1-2-floating-toc/01-anchors-1-1-6|01 —
-anclajes 1.1.6]] (paths+líneas verificados vía `git show 1.1.6:`).
+Shard [[docs/work/polish/specs/2026-07-14-v1-2-floating-toc/01-anchors-1-1-6|01 — anclajes 1.1.6]] (paths+líneas verificados vía `git show 1.1.6:`).
 
 ## Registro 2.0 (hooks)
 

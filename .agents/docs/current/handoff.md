@@ -201,8 +201,7 @@ El batch correctivo beta.4 está ESPECIFICADO con triage completo del reporte de
 **Lee en orden:**
 1. [[docs/work/polish/specs/2026-07-18-v1-2-beta4-batch/index|Spec beta.4]]
    (D21-D37 + §UX niagara + Mermaid + adversarial).
-2. [[docs/work/polish/specs/2026-07-18-v1-2-beta4-batch/01-by-level-sort|Shard 01
-   By level sort]] (BT4-009 — ENTERO antes de tocar sort).
+2. [[docs/work/polish/specs/2026-07-18-v1-2-beta4-batch/01-by-level-sort|Shard 01 By level sort]] (BT4-009 — ENTERO antes de tocar sort).
 3. [[docs/work/polish/issues/bt4-beta4-batch/index|Issue-set BT4-001..013]]
    (+ shards 01-regressions/02-bugs/03-redesign-ia-features).
 

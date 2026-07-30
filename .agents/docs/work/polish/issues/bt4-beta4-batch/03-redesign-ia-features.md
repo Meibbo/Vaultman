@@ -13,8 +13,7 @@ tags: [agent/issue, initiative/polish]
 ## BT4-009 — By level sort (D29-D33)
 
 Diseño completo:
-[[docs/work/polish/specs/2026-07-18-v1-2-beta4-batch/01-by-level-sort|shard 01 del
-spec]] — leer ENTERO. Resumen: grupo "By level" (Nested → Folders first →
+[[docs/work/polish/specs/2026-07-18-v1-2-beta4-batch/01-by-level-sort|shard 01 del spec]] — leer ENTERO. Resumen: grupo "By level" (Nested → Folders first →
 Fixed folders → divider → Scope:`<6chars>` → All levels), inline por defecto (D32),
 drill con UX del floating index (border dashed + click simple), fix "All no ordena
 L1", sync opcional index-drill↔sort-drill (D31), options contextuales (D33),

@@ -60,6 +60,161 @@ status: active
   assert.match(detail, /bad indentation of a mapping entry \(line 2, column 36\)/);
 });
 
+// Obsidian wikilinks cannot span lines: hard-wrapping prose through a [[...]] leaves a dead link
+// that renders as literal text. This is the mechanical cause of every broken link found in the
+// corpus on 2026-07-30, so health fails it and names the file.
+test("check-doc-health fails a wikilink split across two lines", () => {
+  const root = makeTempRoot();
+  writeFile(
+    path.join(root, ".agents", "docs", "work", "alpha", "split.md"),
+    `${docHeader("Split link")}
+Ver [[docs/work/polish/specs/2026-07-18-batch/01-by-level-sort|Shard 01
+By level sort]] antes de tocar el sort.
+
+Inline code is not a link: \`filename: [[start, end], ...]\`.
+`,
+  );
+
+  const result = spawnSync(process.execPath, [toolPath], { cwd: root, encoding: "utf8" });
+
+  assert.notEqual(result.status, 0);
+  const lines = result.stdout.split("\n").filter((line) => line.startsWith("wikilink-unclosed\t"));
+  assert.equal(lines.length, 1, `expected one wikilink-unclosed failure, got ${JSON.stringify(result.stdout)}`);
+  assert.match(lines[0], /work\/alpha\/split\.md/);
+  assert.match(lines[0], /line 9/);
+  assert.match(lines[0], /closing \]\] is on line 10/);
+});
+
+test("check-doc-health tells a stray [[ apart from a link split by a wrap", () => {
+  const root = makeTempRoot();
+  writeFile(
+    path.join(root, ".agents", "docs", "work", "alpha", "stray.md"),
+    `${docHeader("Stray bracket")}
+Para enlazar se escribe [[ seguido del path.
+`,
+  );
+
+  const result = spawnSync(process.execPath, [toolPath], { cwd: root, encoding: "utf8" });
+
+  const lines = result.stdout.split("\n").filter((line) => line.startsWith("wikilink-unclosed\t"));
+  assert.equal(lines.length, 1);
+  assert.match(lines[0], /no closing \]\] found/);
+});
+
+test("--repair-wikilink-splits rejoins the link and clears the failure", () => {
+  const root = makeTempRoot();
+  const docPath = path.join(root, ".agents", "docs", "work", "alpha", "split.md");
+  writeFile(
+    docPath,
+    `${docHeader("Split link")}
+Ver [[docs/work/polish/specs/2026-07-18-batch/01-by-level-sort|Shard 01
+By level sort]] antes de tocar el sort.
+`,
+  );
+
+  const result = spawnSync(process.execPath, [toolPath, "--repair-wikilink-splits"], { cwd: root, encoding: "utf8" });
+
+  assert.equal(result.status, 0, result.stdout);
+  const repaired = fs.readFileSync(docPath, "utf8");
+  assert.match(
+    repaired,
+    /Ver \[\[docs\/work\/polish\/specs\/2026-07-18-batch\/01-by-level-sort\|Shard 01 By level sort\]\] antes de tocar el sort\./,
+  );
+});
+
+// A repair that rewrites files it did not actually change turns a surgical fix into a corpus-wide
+// diff — and on CRLF files the only "change" was the line endings (caught on the real corpus,
+// 2026-07-30). A doc with nothing to join must come out byte-identical.
+test("repairs leave untouched docs byte-identical, CRLF included", () => {
+  const root = makeTempRoot();
+  const docPath = path.join(root, ".agents", "docs", "work", "alpha", "crlf.md");
+  const original = `${docHeader("CRLF doc")}\nVer [[docs/work/alpha/other|otro]] y nada más.\n`.replace(/\n/g, "\r\n");
+  writeFile(docPath, original);
+
+  // Mixed endings are the live case: Obsidian writes CRLF on Windows while agents write LF, so a
+  // doc another agent is editing right now carries both. Normalizing them is not this tool's job.
+  const mixedPath = path.join(root, ".agents", "docs", "work", "alpha", "mixed.md");
+  const mixed = `${docHeader("Mixed endings")}`.replace(/\n/g, "\r\n") + "\nVer [[docs/work/alpha/other|otro]].\r\nSegunda línea suelta.\n";
+  writeFile(mixedPath, mixed);
+
+  for (const flag of ["--repair-wikilink-splits", "--repair-hard-wraps"]) {
+    const result = spawnSync(process.execPath, [toolPath, flag], { cwd: root, encoding: "utf8" });
+    assert.equal(result.status, 0, result.stdout);
+    assert.equal(fs.readFileSync(docPath, "utf8"), original, `${flag} rewrote an unchanged doc`);
+    assert.equal(fs.readFileSync(mixedPath, "utf8"), mixed, `${flag} normalized line endings`);
+  }
+});
+
+// The dev reads these docs in Obsidian, where the pane soft-wraps: a sentence broken across two
+// source lines is noise. Repair joins a line to the next only while the sentence is still open,
+// so the result is one line per sentence — never one line per paragraph, never a mangled list.
+test("--repair-hard-wraps joins split sentences and leaves structure alone", () => {
+  const root = makeTempRoot();
+  const docPath = path.join(root, ".agents", "docs", "work", "alpha", "wrapped.md");
+  writeFile(
+    docPath,
+    `${docHeader("Wrapped prose")}
+Explorer responsibilities are tangled across \`panelExplorer\`, the views, and the
+god-providers. A pure 4-axis split left Navigation and Style without a clear
+home.
+
+- Bullet text that keeps going
+  onto a continuation line.
+- Second bullet stays separate.
+
+| col | value |
+| --- | ----- |
+| a   | b     |
+
+\`\`\`ts
+const wrapped = "code stays"
+  + " exactly as written";
+\`\`\`
+`,
+  );
+
+  const result = spawnSync(process.execPath, [toolPath, "--repair-hard-wraps"], { cwd: root, encoding: "utf8" });
+
+  assert.equal(result.status, 0, result.stdout);
+  const repaired = fs.readFileSync(docPath, "utf8");
+  assert.match(repaired, /tangled across `panelExplorer`, the views, and the god-providers\./);
+  assert.match(repaired, /A pure 4-axis split left Navigation and Style without a clear home\./);
+  assert.match(repaired, /- Bullet text that keeps going onto a continuation line\./);
+  assert.match(repaired, /- Second bullet stays separate\./);
+  assert.match(repaired, /\| col \| value \|\r?\n\| --- \| ----- \|/, "table rows must not join");
+  assert.match(repaired, /const wrapped = "code stays"\r?\n {2}\+ " exactly as written";/, "code fence untouched");
+});
+
+// Two cases the first cut of the unwrapper left behind, found by running it on the docs policy
+// itself: 4-space nested list continuations, and a `:` that only looks sentence-final because it
+// sits inside an inline code span the wrap cut in half (which breaks the code span too).
+test("--repair-hard-wraps joins nested list continuations and wrapped code spans", () => {
+  const root = makeTempRoot();
+  const docPath = path.join(root, ".agents", "docs", "work", "alpha", "nested.md");
+  writeFile(
+    docPath,
+    `${docHeader("Nested")}
+- Include agent tracking:
+    - The value SHOULD include the model after the agent name as
+      \`<agent>-<model>\` (e.g. \`claude-opus-4-7\`) to record which model produced
+      the edit.
+- Quote any value with an unquoted colon inside \`title:
+  3 high advisories\` because it reads as a nested mapping.
+`,
+  );
+
+  const result = spawnSync(process.execPath, [toolPath, "--repair-hard-wraps"], { cwd: root, encoding: "utf8" });
+
+  assert.equal(result.status, 0, result.stdout);
+  const repaired = fs.readFileSync(docPath, "utf8");
+  assert.match(
+    repaired,
+    /- The value SHOULD include the model after the agent name as `<agent>-<model>` \(e\.g\. `claude-opus-4-7`\) to record which model produced the edit\./,
+  );
+  assert.match(repaired, /inside `title: 3 high advisories` because it reads as a nested mapping\./);
+  assert.match(repaired, /^- Include agent tracking:$/m, "the parent bullet keeps its own line");
+});
+
 test("check-doc-health warns for unknown glossary candidates", () => {
   const root = makeTempRoot();
   writeFile(
@@ -466,6 +621,18 @@ tags:
 
 function makeTempRoot() {
   return fs.mkdtempSync(path.join(os.tmpdir(), "pkm-ai-health-"));
+}
+
+// 7-line frontmatter block: doc bodies below therefore start at line 8.
+function docHeader(title) {
+  return `---
+title: ${title}
+type: note
+status: active
+created: 2026-07-30T01:00:00
+updated: 2026-07-30T01:00:00
+---
+`;
 }
 
 function writeFile(filePath, content) {

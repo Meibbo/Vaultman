@@ -38,7 +38,20 @@ const root = process.cwd();
 const index = loadRetrievalIndex(root) as RetrievalIndex;
 const provider = new TransformersEmbeddingProvider();
 
-const { embedded, skipped } = await embedPendingDocs(root, index, provider, { limit });
+// Same reporting contract as index-docs: a doc that no longer parses is skipped, not fatal, and
+// named on stderr in the check-doc-health failure format.
+const unparseable: Array<{ code: string; path: string; detail: string }> = [];
+const { embedded, skipped } = await embedPendingDocs(root, index, provider, {
+  limit,
+  onFailure: (failure: { code: string; path: string; detail: string }) => unparseable.push(failure),
+});
+
+if (unparseable.length > 0) {
+  console.error(`embed-docs: skipped ${unparseable.length} doc(s) with unparseable frontmatter`);
+  for (const failure of unparseable) {
+    console.error(`${failure.code}\t${failure.path}\t${failure.detail}`);
+  }
+}
 
 const outputPath = path.join(root, RETRIEVAL_CACHE_PATH);
 fs.mkdirSync(path.dirname(outputPath), { recursive: true });

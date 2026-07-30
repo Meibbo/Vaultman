@@ -19,6 +19,8 @@ interface ParsedArgs {
   repairParentShape: boolean;
   repairTimestampOffsets: boolean;
   repairForbiddenPublicDocs: boolean;
+  repairWikilinkSplits: boolean;
+  repairHardWraps: boolean;
   now: string;
   staleActiveDays: number;
   paths: string[];
@@ -65,8 +67,14 @@ days as a WARN (review/demote), not a failure.
 --repair-line-limits rewrites docs past the hard cap (limit + 100 = 300) into
 continuation shards before the final health check. Docs in the soft range (over
 the 200 limit but within the hard cap) only WARN and are left for the dev to decide.
---repair-residuals also repairs parent shape, timestamp offsets, and public
-docs/superpowers placement.
+--repair-residuals also repairs parent shape, timestamp offsets, public
+docs/superpowers placement, and wikilinks a line wrap split in two.
+
+--repair-hard-wraps unwraps prose: a line is joined to the next while the
+sentence is still open, so a paragraph broken across source lines becomes one
+line per sentence. Lists keep their markers, tables/code fences/frontmatter are
+untouched. NOT part of --repair-residuals — it rewrites most of the corpus, so
+run it scoped with --path and review the diff.
 
 --path <prefix> (repeatable) confines the check + repair to a subtree;
 --exclude <prefix> (repeatable) skips one. Prefixes accept ".agents/docs/work/x",
@@ -111,6 +119,20 @@ if (options.repairTimestampOffsets) {
   }
 }
 
+if (options.repairWikilinkSplits) {
+  const repairs = repairWikilinkSplits(root);
+  if (repairs.length > 0) {
+    console.log(`wikilink repair: rejoined split links in ${repairs.length} file(s)`);
+  }
+}
+
+if (options.repairHardWraps) {
+  const repairs = repairHardWraps(root);
+  if (repairs.length > 0) {
+    console.log(`hard-wrap repair: unwrapped prose in ${repairs.length} file(s)`);
+  }
+}
+
 if (options.repairForbiddenPublicDocs && inScope("docs/superpowers")) {
   const repair = repairForbiddenPublicDocs(root, options.now);
   if (repair) {
@@ -145,6 +167,7 @@ for (const file of listMarkdownFiles(root, ".agents/docs", { excludeArchive: tru
     failures.push(...validateFrontmatter(markdown.frontmatter, rel).filter((failure: HealthIssue) => !isAllowedTemplateParent(failure, markdown.frontmatter, rel)));
     failures.push(...validateArchiveSource(markdown.frontmatter, text, rel));
     failures.push(...validateLifecycle(markdown.frontmatter, rel));
+    failures.push(...validateWikilinks(text, rel));
     warnings.push(...validateGlossaryCandidates(markdown.frontmatter, rel, glossaryTerms));
     warnings.push(...validateSummarySource(markdown.frontmatter, text, rel));
     warnings.push(...validateStaleActive(markdown.frontmatter, rel, options.now, options.staleActiveDays));
@@ -179,6 +202,8 @@ function parseArgs(args: string[]): ParsedArgs {
     repairParentShape: false,
     repairTimestampOffsets: false,
     repairForbiddenPublicDocs: false,
+    repairWikilinkSplits: false,
+    repairHardWraps: false,
     now: nowTimestamp(),
     staleActiveDays: 30,
     paths: [],
@@ -197,11 +222,18 @@ function parseArgs(args: string[]): ParsedArgs {
       parsed.repairTimestampOffsets = true;
     } else if (arg === "--repair-forbidden-public-docs") {
       parsed.repairForbiddenPublicDocs = true;
+    } else if (arg === "--repair-wikilink-splits") {
+      parsed.repairWikilinkSplits = true;
+    } else if (arg === "--repair-hard-wraps") {
+      parsed.repairHardWraps = true;
     } else if (arg === "--repair-residuals") {
       parsed.repairLineLimits = true;
       parsed.repairParentShape = true;
       parsed.repairTimestampOffsets = true;
       parsed.repairForbiddenPublicDocs = true;
+      // --repair-hard-wraps is deliberately NOT here: rejoining a split link is surgical, but
+      // unwrapping prose rewrites most of the corpus and stays an explicit, scoped decision.
+      parsed.repairWikilinkSplits = true;
     } else if (arg === "--stale-active-days") {
       parsed.staleActiveDays = Number(args[index + 1] ?? "30");
       index += 1;
@@ -276,6 +308,109 @@ function repairTimestampOffsetFailures(root: string): string[] {
     repaired.push(relativePath(root, file));
   }
   return repaired;
+}
+
+// Rejoin links the wrap broke. Surgical: only lines whose `]]` sits on the next prose line are
+// touched, so a stray `[[` (a genuine authoring mistake) is left for a human and keeps failing.
+function repairWikilinkSplits(root: string): string[] {
+  return rewriteDocs(root, joinWikilinkSplits);
+}
+
+// Undo hard-wrapped prose. The dev reads these docs in Obsidian, where the pane soft-wraps, so a
+// sentence broken across source lines is pure noise — and it also inflates the 200-line budget.
+// Opt-in and scopeable (--path/--exclude) because it rewrites most of the corpus.
+function repairHardWraps(root: string): string[] {
+  return rewriteDocs(root, joinHardWraps);
+}
+
+function rewriteDocs(root: string, transform: (text: string) => string): string[] {
+  const repaired: string[] = [];
+  for (const file of listMarkdownFiles(root, ".agents/docs", { excludeArchive: true })) {
+    const rel = relativePath(root, file);
+    if (!inScope(rel)) continue;
+    const text = fs.readFileSync(file, "utf8");
+    const next = transform(text);
+    if (next === text) continue;
+    fs.writeFileSync(file, next);
+    repaired.push(rel);
+  }
+  return repaired;
+}
+
+function joinWikilinkSplits(text: string): string {
+  return joinLines(text, (lines, prose, index, current) => {
+    if (!hasUnclosedWikilink(current)) return false;
+    return closingLineFor(lines, prose, index) !== null;
+  });
+}
+
+function joinHardWraps(text: string): string {
+  return joinLines(text, (lines, prose, index, current) => {
+    if (!continuesSentence(current)) return false;
+    return isWrapContinuation(lines[index + 1] ?? "");
+  });
+}
+
+// Shared join loop: walk the original lines and, while `shouldJoin` holds, pull the next prose line
+// up with a single space. The predicate sees the CURRENT accumulated line, so a join that leaves the
+// sentence (or the link) still open keeps going.
+// Each surviving line keeps its OWN original ending, and a run that joined nothing returns the
+// input untouched. Obsidian writes CRLF on Windows while agents write LF, so docs in flight carry
+// both; rewriting endings would turn a three-link fix into a whole-corpus diff over files another
+// agent is editing right now (2026-07-30).
+function joinLines(
+  text: string,
+  shouldJoin: (lines: string[], prose: Set<number>, index: number, current: string) => boolean,
+): string {
+  const raw = text.split("\n");
+  const endings = raw.map((line) => (line.endsWith("\r") ? "\r\n" : "\n"));
+  const lines = raw.map((line) => (line.endsWith("\r") ? line.slice(0, -1) : line));
+  const prose = proseLineIndices(lines);
+  const out: string[] = [];
+  let joins = 0;
+
+  for (let index = 0; index < lines.length; index += 1) {
+    let current = lines[index];
+    let ending = endings[index];
+    while (
+      prose.has(index) &&
+      prose.has(index + 1) &&
+      lines[index + 1] !== undefined &&
+      lines[index + 1].trim() !== "" &&
+      shouldJoin(lines, prose, index, current)
+    ) {
+      current = `${current.replace(/\s+$/, "")} ${lines[index + 1].trim()}`;
+      ending = endings[index + 1];
+      index += 1;
+      joins += 1;
+    }
+    out.push({ text: current, ending });
+  }
+
+  if (joins === 0) return text;
+  // The final element of a split() carries no ending of its own; drop the one we inferred for it.
+  return out.map((line, index) => (index === out.length - 1 ? line.text : line.text + line.ending)).join("");
+}
+
+// The line still owes a sentence: it carries prose, is not a block of its own (heading, table row,
+// setext rule), and does not end on sentence-final punctuation or an explicit Markdown line break.
+function continuesSentence(line: string): boolean {
+  if (line.trim() === "") return false;
+  if (/^\s*(#{1,6}\s|\||>|---|===)/.test(line)) return false;
+  if (/(\s{2}|\\)$/.test(line)) return false;
+  // An inline code span cannot span lines either. While one is open, the punctuation that looks
+  // sentence-final is inside the code (`title:`), so the sentence is still running.
+  if (((line.match(/`/g) ?? []).length % 2) === 1) return true;
+  return !/[.!?:;]["'*`)\]]*\s*$/.test(line.trimEnd());
+}
+
+// A line that continues the previous one rather than opening a new block. Lists, quotes, tables,
+// headings and footnotes all start something new and are never pulled up. Indentation alone does
+// not disqualify a line: 4-space nesting is how this corpus writes sub-list continuations, and a
+// true indented code block is always preceded by a blank line, which already stops the join.
+function isWrapContinuation(line: string): boolean {
+  if (line.trim() === "") return false;
+  return !/^\s*([-*+]\s|\d+[.)]\s|#{1,6}\s|>|\||---|===|\[\^)/.test(line);
 }
 
 function repairForbiddenPublicDocs(root: string, now: string): { path: string } | null {
@@ -487,6 +622,64 @@ function wikiPathForRel(rel: string): string {
 
 function splitLines(text: string): string[] {
   return text.replace(/\r\n/g, "\n").split("\n");
+}
+
+// Indices of the lines that are prose: frontmatter and fenced code obey their own syntax, so no
+// line rule (wikilink shape, sentence wrapping) may touch them.
+function proseLineIndices(lines: string[]): Set<number> {
+  const prose = new Set<number>();
+  let inFrontmatter = lines[0] === "---";
+  let inFence = false;
+  for (let index = 0; index < lines.length; index += 1) {
+    const line = lines[index];
+    if (inFrontmatter) {
+      if (index > 0 && line.trim() === "---") inFrontmatter = false;
+      continue;
+    }
+    if (/^\s*(```|~~~)/.test(line)) {
+      inFence = !inFence;
+      continue;
+    }
+    if (inFence) continue;
+    prose.add(index);
+  }
+  return prose;
+}
+
+// Inline code routinely carries bracket pairs that are not wikilinks (`filename: [[start, end]`),
+// so strip code spans before counting.
+function hasUnclosedWikilink(line: string): boolean {
+  const stripped = line.replace(/`[^`]*`/g, "");
+  return (stripped.match(/\[\[/g) ?? []).length > (stripped.match(/\]\]/g) ?? []).length;
+}
+
+// An Obsidian wikilink cannot span lines. Hard-wrapping prose through one leaves a dead link that
+// renders as literal `[[path|alias` text — the mechanical cause of every broken link in the corpus
+// (2026-07-30 census). Reported separately from a stray `[[`, which needs a human decision.
+function validateWikilinks(text: string, rel: string): HealthIssue[] {
+  const lines = splitLines(text);
+  const prose = proseLineIndices(lines);
+  const issues: HealthIssue[] = [];
+  for (const index of prose) {
+    if (!hasUnclosedWikilink(lines[index])) continue;
+    const closesOn = closingLineFor(lines, prose, index);
+    const detail =
+      closesOn === null
+        ? `line ${index + 1}: no closing ]] found`
+        : `line ${index + 1}: closing ]] is on line ${closesOn + 1} — Obsidian links cannot span lines; --repair-wikilink-splits joins them`;
+    issues.push({ code: "wikilink-unclosed", path: rel, detail });
+  }
+  return issues.sort((a, b) => a.detail.localeCompare(b.detail, undefined, { numeric: true }));
+}
+
+// Where the `]]` for an unclosed line lands, if it lands at all. A wikilink never crosses a blank
+// line, so the paragraph break bounds the search and a stray `[[` is not mistaken for a wrap.
+function closingLineFor(lines: string[], prose: Set<number>, index: number): number | null {
+  for (let next = index + 1; next < lines.length; next += 1) {
+    if (!prose.has(next) || lines[next].trim() === "") return null;
+    if (lines[next].includes("]]")) return next;
+  }
+  return null;
 }
 
 function chunkLines(lines: string[], size: number): string[][] {

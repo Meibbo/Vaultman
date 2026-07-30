@@ -93,7 +93,14 @@ export async function embedPendingDocs(root, index, provider, options = {}) {
       skipped += 1;
       continue;
     }
-    const parsed = parseMarkdown(fs.readFileSync(abs, "utf8"));
+    // The cached entry can outlive the doc's last valid state (indexed fine, broken afterwards), so
+    // parse as forgivingly as the index build: skip and report, never throw the embed run away.
+    const { parsed, failure } = tryParseMarkdown(fs.readFileSync(abs, "utf8"), doc.path);
+    if (failure) {
+      options.onFailure?.(failure);
+      skipped += 1;
+      continue;
+    }
     const title = String(parsed.frontmatter?.title ?? doc.title ?? doc.path);
     const text = `${title}\n${parsed.body}`.slice(0, 8000);
     const [vector] = await provider.embed([text]);

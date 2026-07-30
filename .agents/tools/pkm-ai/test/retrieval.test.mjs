@@ -154,6 +154,47 @@ test("embedPendingDocs embeds only changed docs and leaves fresh ones untouched"
   assert.equal(calls.length, 1, "provider called once, only for the changed doc");
 });
 
+// A cached index entry can outlive the doc's last valid state: the file was fine when it was
+// indexed and got broken frontmatter afterwards. embed-docs loads that cached index, so the parse
+// has to be as forgiving as the index build is.
+test("embedPendingDocs skips a doc whose frontmatter no longer parses and reports it", async () => {
+  const { embedPendingDocs } = await import("../lib/retrieval.mjs");
+  const root = makeRoot();
+  writeDoc(root, "work/pkm-ai/ok.md", "Ok", "active", "body that still parses");
+  writeRaw(
+    root,
+    "work/pkm-ai/broken.md",
+    `---
+title: BT5-096 — Dependency refresh: 3 high advisories
+type: note
+---
+
+# Broken
+`,
+  );
+
+  const index = {
+    docs: [
+      { path: ".agents/docs/work/pkm-ai/ok.md", contentHash: "h1" },
+      { path: ".agents/docs/work/pkm-ai/broken.md", contentHash: "h2" },
+    ],
+  };
+  const failures = [];
+  const provider = { id: "stub", dims: 2, embed: async (texts) => texts.map(() => [1, 2]) };
+
+  const tally = await embedPendingDocs(root, index, provider, {
+    onFailure: (failure) => failures.push(failure),
+  });
+
+  assert.deepEqual(tally, { embedded: 1, skipped: 1 });
+  assert.deepEqual(index.docs[0].vector, [1, 2], "valid doc still embedded");
+  assert.equal(index.docs[1].vector, undefined, "broken doc left unembedded");
+  assert.equal(failures.length, 1);
+  assert.equal(failures[0].code, "frontmatter-yaml");
+  assert.equal(failures[0].path, ".agents/docs/work/pkm-ai/broken.md");
+  assert.match(failures[0].detail, /bad indentation of a mapping entry/);
+});
+
 test("embedPendingDocs honours --limit style caps", async () => {
   const { embedPendingDocs } = await import("../lib/retrieval.mjs");
   const root = makeRoot();
@@ -199,6 +240,12 @@ tags:
 ${body}
 `,
   );
+}
+
+function writeRaw(root, rel, contents) {
+  const filePath = path.join(root, ".agents", "docs", rel);
+  fs.mkdirSync(path.dirname(filePath), { recursive: true });
+  fs.writeFileSync(filePath, contents);
 }
 
 function run(root, tool, args) {
