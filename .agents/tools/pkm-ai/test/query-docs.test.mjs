@@ -70,6 +70,29 @@ test("query-docs --refresh rebuilds the cache and drops the warning", () => {
   assert.match(result.stdout, /newer-doc/);
 });
 
+test("query-docs --refresh warns about an unparseable doc instead of crashing", () => {
+  const root = makeRootWithStaleCache();
+  writeFile(
+    path.join(root, ".agents", "docs", "work", "alpha", "broken.md"),
+    `---
+title: BT5-096 — Dependency refresh: 3 high advisories
+type: item
+status: active
+---
+
+# Broken
+`,
+  );
+
+  const result = runQuery(root, ["--status", "active", "--refresh", "--json"]);
+
+  assert.equal(result.status, 0, result.stderr);
+  assert.match(result.stderr, /frontmatter-yaml/);
+  assert.match(result.stderr, /work\/alpha\/broken\.md/);
+  const titles = JSON.parse(result.stdout).map((row) => row.title).sort();
+  assert.deepEqual(titles, ["cached-doc", "newer-doc"]);
+});
+
 test("query-docs reports cached paths that no longer exist on disk", () => {
   const root = makeRootWithStaleCache({ includeGhost: true });
 

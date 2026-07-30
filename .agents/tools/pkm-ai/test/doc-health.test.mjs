@@ -36,6 +36,30 @@ Short replacement.
   assert.match(result.stdout, /archive-source/);
 });
 
+test("check-doc-health reports unparseable frontmatter as a one-line frontmatter-yaml failure", () => {
+  const root = makeTempRoot();
+  writeFile(
+    path.join(root, ".agents", "docs", "work", "pkm-ai", "broken.md"),
+    `---
+title: BT5-096 — Dependency refresh: 3 high advisories
+type: item
+status: active
+---
+
+# Broken
+`,
+  );
+
+  const result = spawnSync(process.execPath, [toolPath], { cwd: root, encoding: "utf8" });
+
+  assert.notEqual(result.status, 0);
+  const lines = result.stdout.split("\n").filter((line) => line.startsWith("frontmatter-yaml\t"));
+  assert.equal(lines.length, 1, `expected one failure line, got ${JSON.stringify(result.stdout)}`);
+  const [, failurePath, detail] = lines[0].split("\t");
+  assert.equal(failurePath, ".agents/docs/work/pkm-ai/broken.md");
+  assert.match(detail, /bad indentation of a mapping entry \(line 2, column 36\)/);
+});
+
 test("check-doc-health warns for unknown glossary candidates", () => {
   const root = makeTempRoot();
   writeFile(

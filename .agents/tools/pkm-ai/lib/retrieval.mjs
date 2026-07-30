@@ -1,6 +1,6 @@
 import fs from "node:fs";
 import crypto from "node:crypto";
-import { listMarkdownFiles, parseMarkdown, relativePath } from "./frontmatter.mjs";
+import { listMarkdownFiles, parseMarkdown, relativePath, tryParseMarkdown } from "./frontmatter.mjs";
 import { FlatJsonVectorStore } from "../retrieval/vector-store.mjs";
 
 export const RETRIEVAL_CACHE_PATH = ".agents/cache/retrieval-index.json";
@@ -28,10 +28,17 @@ export function tokenize(text) {
 // Build the retrieval corpus: one entry per active doc with body term frequencies, a content hash
 // (for re-embed-on-change in S6d), lifecycle, and length. Pure-local, zero network.
 export function buildRetrievalIndex(root = process.cwd(), options = {}) {
-  const docs = listMarkdownFiles(root, ".agents/docs", { excludeArchive: true, ...options }).map((file) => {
+  const docs = [];
+  for (const file of listMarkdownFiles(root, ".agents/docs", { excludeArchive: true, ...options })) {
     const rel = relativePath(root, file);
     const raw = fs.readFileSync(file, "utf8");
-    const parsed = parseMarkdown(raw);
+    // Same rule as the frontmatter index: a doc that does not parse is skipped and reported through
+    // options.onFailure, never thrown, so one bad doc cannot blank the retrieval channel.
+    const { parsed, failure } = tryParseMarkdown(raw, rel);
+    if (failure) {
+      options.onFailure?.(failure);
+      continue;
+    }
     const frontmatter = parsed.frontmatter ?? {};
     const title = frontmatter.title ?? rel;
     const lifecycle = typeof frontmatter.lifecycle === "string" ? frontmatter.lifecycle : "";
@@ -42,7 +49,7 @@ export function buildRetrievalIndex(root = process.cwd(), options = {}) {
       termFreq[token] = (termFreq[token] ?? 0) + 1;
     }
     const contentHash = crypto.createHash("sha1").update(raw).digest("hex");
-    return {
+    docs.push({
       path: rel,
       title: String(title),
       lifecycle,
@@ -50,8 +57,8 @@ export function buildRetrievalIndex(root = process.cwd(), options = {}) {
       contentHash,
       length: tokens.length,
       termFreq,
-    };
-  });
+    });
+  }
   return { generated_at: new Date().toISOString(), docs };
 }
 

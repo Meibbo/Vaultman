@@ -29,6 +29,37 @@ export function readMarkdown(filePath) {
   return parseMarkdown(fs.readFileSync(filePath, "utf8"));
 }
 
+// Health-failure code for frontmatter that is not valid YAML. Same vocabulary as check-doc-health,
+// so the index build and the health check name the same defect the same way.
+export const FRONTMATTER_YAML_CODE = "frontmatter-yaml";
+
+// A single malformed doc must not take down a whole-corpus build. Before this, one unquoted colon
+// in a `title:` (2026-07-29) made js-yaml throw out of parseMarkdown, index-docs died on the
+// unhandled exception, and no index was written at all — every agent then queried a stale cache.
+// Callers get {parsed} or {failure} with the check-doc-health {code, path, detail} shape, so they
+// can skip the offending file and report it.
+export function tryParseMarkdown(markdown, filePath) {
+  try {
+    return { parsed: parseMarkdown(markdown) };
+  } catch (error) {
+    return { failure: { code: FRONTMATTER_YAML_CODE, path: filePath, detail: frontmatterYamlDetail(error) } };
+  }
+}
+
+export function tryReadMarkdown(filePath, reportedPath = filePath) {
+  return tryParseMarkdown(fs.readFileSync(filePath, "utf8"), reportedPath);
+}
+
+// js-yaml's `message` embeds a multi-line source snippet; a health failure is one line per file.
+// Keep the reason and translate the mark to the FILE's coordinates: the frontmatter block starts
+// after the opening `---`, so its line 1 is the file's line 2.
+function frontmatterYamlDetail(error) {
+  const reason = String(error?.reason ?? error?.message ?? error).split("\n")[0];
+  const line = error?.mark?.line;
+  if (!Number.isInteger(line)) return reason;
+  return `${reason} (line ${line + 2}, column ${(error.mark.column ?? 0) + 1})`;
+}
+
 export function listMarkdownFiles(root = process.cwd(), docsRoot = DOCS_ROOT, options = {}) {
   const base = path.resolve(root, docsRoot);
   if (!fs.existsSync(base)) return [];
@@ -121,11 +152,21 @@ export function titleFromPath(filePath) {
   return path.basename(filePath, ".md").replace(/[-_]+/g, " ");
 }
 
+// Docs whose frontmatter does not parse are skipped, not fatal: `options.onFailure` receives one
+// {code, path, detail} per skipped doc so the caller can report it while the index still covers
+// every doc that does parse.
 export function buildIndex(root = process.cwd(), options = {}) {
-  return listMarkdownFiles(root, DOCS_ROOT, options).map((file) => {
+  const entries = [];
+  for (const file of listMarkdownFiles(root, DOCS_ROOT, options)) {
     const rel = relativePath(root, file);
-    return buildDocEntry(rel, readMarkdown(file).frontmatter);
-  });
+    const { parsed, failure } = tryReadMarkdown(file, rel);
+    if (failure) {
+      options.onFailure?.(failure);
+      continue;
+    }
+    entries.push(buildDocEntry(rel, parsed.frontmatter));
+  }
+  return entries;
 }
 
 export const BOOLEAN_FLAGS = ["--json", "--refresh", "--strict", "--open", "--closed"];

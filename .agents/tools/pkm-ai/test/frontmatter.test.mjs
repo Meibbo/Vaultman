@@ -1,8 +1,12 @@
 import test from "node:test";
 import assert from "node:assert/strict";
+import fs from "node:fs";
+import os from "node:os";
+import path from "node:path";
 
 import {
   buildDocEntry,
+  buildIndex,
   filterEntries,
   formatRows,
   parseArgs,
@@ -42,6 +46,12 @@ test("validateFrontmatter reports timezone offsets, parent_path, and parent shap
     ["timestamp-offset", "parent-path", "parent-shape"],
   );
 });
+
+function writeDoc(root, rel, frontmatterLine) {
+  const filePath = path.join(root, ".agents", "docs", ...rel.split("/"));
+  fs.mkdirSync(path.dirname(filePath), { recursive: true });
+  fs.writeFileSync(filePath, `---\n${frontmatterLine}\ntype: note\nstatus: active\n---\n\n# Body\n`);
+}
 
 test("buildDocEntry maps frontmatter fields into index entries", () => {
   const entry = buildDocEntry(".agents/docs/work/pkm-ai/items/vm-0001.md", {
@@ -122,6 +132,33 @@ test("buildDocEntry still reads the legacy created/updated keys", () => {
 
   assert.equal(entry.created, "2026-01-01T00:00:00");
   assert.equal(entry.updated, "2026-01-02T00:00:00");
+});
+
+test("buildIndex skips a doc with unparseable frontmatter and reports it as a failure", () => {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), "pkm-ai-badyaml-"));
+  writeDoc(root, "work/alpha/good.md", "title: Good doc");
+  // The 2026-07-29 corpus break: an unquoted colon inside `title:` reads as a nested mapping.
+  writeDoc(root, "work/alpha/broken.md", "title: BT5-096 — Dependency refresh: 3 high advisories");
+
+  const failures = [];
+  const entries = buildIndex(root, { onFailure: (failure) => failures.push(failure) });
+
+  assert.deepEqual(entries.map((entry) => entry.title), ["Good doc"]);
+  assert.deepEqual(
+    failures.map((failure) => ({ code: failure.code, path: failure.path })),
+    [{ code: "frontmatter-yaml", path: ".agents/docs/work/alpha/broken.md" }],
+  );
+  assert.match(failures[0].detail, /bad indentation of a mapping entry/);
+  // Positions are reported against the file, not the frontmatter block: `title:` is file line 2.
+  assert.match(failures[0].detail, /line 2/);
+});
+
+test("buildIndex keeps building when no failure handler is given", () => {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), "pkm-ai-badyaml-"));
+  writeDoc(root, "work/alpha/good.md", "title: Good doc");
+  writeDoc(root, "work/alpha/broken.md", "title: BT5-096 — Dependency refresh: 3 high advisories");
+
+  assert.deepEqual(buildIndex(root).map((entry) => entry.title), ["Good doc"]);
 });
 
 test("validateFrontmatter flags timezone offsets on the dateUpdated norm", () => {

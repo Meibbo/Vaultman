@@ -8,6 +8,12 @@ interface DocEntry {
   [key: string]: unknown;
 }
 
+interface IndexFailure {
+  code: string;
+  path: string;
+  detail: string;
+}
+
 interface CachedEmbedding {
   contentHash?: string;
   vector?: number[];
@@ -37,14 +43,22 @@ something to embed, so a no-op rebuild pays no embedding cost.
 const noEmbed = process.argv.includes("--no-embed");
 const embedLimit = parseEmbedLimit(process.argv.slice(2));
 const root = process.cwd();
-const entries: DocEntry[] = buildIndex(root, { excludeArchiveRaw: false, excludeTemplates: true });
+// A doc with unparseable frontmatter is skipped by both builders and reported here, once per path
+// (both passes hit the same file). Before this the exception escaped and the run wrote no index at
+// all, so one bad doc blanked retrieval for every agent (2026-07-29).
+const skipped = new Map<string, IndexFailure>();
+const onFailure = (failure: IndexFailure) => {
+  if (!skipped.has(failure.path)) skipped.set(failure.path, failure);
+};
+
+const entries: DocEntry[] = buildIndex(root, { excludeArchiveRaw: false, excludeTemplates: true, onFailure });
 const outputPath = path.join(root, CACHE_PATH);
 fs.mkdirSync(path.dirname(outputPath), { recursive: true });
 fs.writeFileSync(
   outputPath,
   `${JSON.stringify({ generated_at: new Date().toISOString(), entries }, null, 2)}\n`,
 );
-console.log(`indexed ${entries.length} docs -> ${CACHE_PATH}`);
+console.log(`indexed ${entries.length} docs -> ${CACHE_PATH}${skipped.size > 0 ? ` (${skipped.size} skipped)` : ""}`);
 
 const retrievalPath = path.join(root, RETRIEVAL_CACHE_PATH);
 const cachedRetrieval = readCachedRetrievalIndex(retrievalPath);
@@ -59,12 +73,23 @@ for (const doc of cachedRetrieval?.docs ?? []) {
   }
 }
 
-const retrievalIndex = buildRetrievalIndex(root) as {
+const retrievalIndex = buildRetrievalIndex(root, { onFailure }) as {
   generated_at: string;
   embedModel?: string;
   embedDims?: number;
   docs: Array<DocEntry & CachedEmbedding>;
 };
+
+// Report before the (possibly long) embedding pass, in the check-doc-health failure format so the
+// dev sees which file to fix and why instead of a stack trace. Exit stays 0: the index is complete
+// for every doc that parses, and check-doc-health is the gate that fails the build.
+if (skipped.size > 0) {
+  console.error(`doc-index: skipped ${skipped.size} doc(s) with unparseable frontmatter`);
+  for (const failure of skipped.values()) {
+    console.error(`${failure.code}\t${failure.path}\t${failure.detail}`);
+  }
+}
+
 let reusedEmbeddings = 0;
 for (const doc of retrievalIndex.docs) {
   const cached = typeof doc.contentHash === "string" ? embeddingsByContentHash.get(doc.contentHash) : undefined;

@@ -152,7 +152,11 @@ const indexOptions = { excludeArchiveRaw: false, excludeTemplates: true };
 
 let entries: DocEntry[];
 if (args.refresh || !fs.existsSync(cachePath)) {
-  entries = buildIndex(root, indexOptions) as DocEntry[];
+  // Docs whose frontmatter does not parse are skipped by buildIndex; warn on stderr (same channel as
+  // the staleness warning) so a silently missing doc is never mistaken for a doc that does not exist.
+  const onFailure = (failure: { code: string; path: string; detail: string }) =>
+    console.error(`query-docs: ${failure.code}\t${failure.path}\t${failure.detail}`);
+  entries = buildIndex(root, { ...indexOptions, onFailure }) as DocEntry[];
   if (args.refresh) writeCache(cachePath, entries);
 } else {
   const cache = JSON.parse(fs.readFileSync(cachePath, "utf8"));

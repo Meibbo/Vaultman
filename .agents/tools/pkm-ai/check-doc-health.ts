@@ -7,6 +7,7 @@ import {
   readMarkdown,
   relativePath,
   titleFromPath,
+  tryParseMarkdown,
   validateFrontmatter,
 } from "./lib/frontmatter.mjs";
 import { normalizeGlossaryTerm, readGlossaryTerms } from "./lib/glossary.mjs";
@@ -132,8 +133,15 @@ for (const file of listMarkdownFiles(root, ".agents/docs", { excludeArchive: tru
     warnings.push({ code: "line-limit-soft", path: rel, detail: `${lines} > ${limit} soft limit; alert the dev to decide whether to shard` });
   }
 
+  // Unparseable YAML gets its own code (the index build reports the same one for the doc it had to
+  // skip); `frontmatter-parse` stays the catch-all for anything the validators themselves throw.
+  const { parsed: markdown, failure: yamlFailure } = tryParseMarkdown(text, rel);
+  if (yamlFailure) {
+    failures.push(yamlFailure);
+    continue;
+  }
+
   try {
-    const markdown = readMarkdown(file);
     failures.push(...validateFrontmatter(markdown.frontmatter, rel).filter((failure: HealthIssue) => !isAllowedTemplateParent(failure, markdown.frontmatter, rel)));
     failures.push(...validateArchiveSource(markdown.frontmatter, text, rel));
     failures.push(...validateLifecycle(markdown.frontmatter, rel));
