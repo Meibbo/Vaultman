@@ -2367,3 +2367,112 @@ gates that.
 - **git:** documentación local `.agents/` y dos eventos de health generados en
   `.agents/metrics/pkm-ai.jsonl`; sin commit, push, tag, merge ni cambios de
   producto.
+
+## 2026-07-29 18:10 -0500 — codex-gpt5-root · scout · inventario abierto v1.2.1
+
+- **summary:** Consultado el índice documental por predicados para identificar el
+  trabajo abierto del primer parche de la línea estable 1.2.
+- **finding:** El backlog canónico `v1-2-1-polish` conserva 11 issues BT5
+  formalizados sin iniciar (043–048 y 055–059), BT5-088 P3 en progreso y varios
+  slices nuevos todavía agrupados y pendientes de triage/IDs individuales.
+- **next-action:** El dev elige un slice o autoriza el triage del backlog antes de
+  implementación.
+- **git:** sólo esta entrada de sesión; sin cambios de producto, commit, push,
+  tag ni merge.
+
+## 2026-07-29 18:33 -0500 — codex-gpt5-root · triage/design · U121 GitHub publish
+
+- **summary:** Publicados 28 issues del parche 1.2.1 en
+  `Meibbo/Vaultman` como `U121-001..028` (#41–#68), con criterios de aceptación,
+  tipo AFK/HITL, dependencias reales y etiqueta `needs-triage`. La búsqueda final
+  devolvió los 28 y cero referencias públicas `BT5`.
+- **docs:** El índice `v1-2-1-polish` contiene el mapa canónico U121↔GitHub; doc
+  health focal y `git diff --check` quedaron limpios (warnings CRLF informativos).
+- **design start:** Elegido U121-013 (#47), contrato genérico `cell_highlight`,
+  como primer slice desbloqueante. El CodeGraph ubicó el seam actual en
+  `ViewService.computeLayers`, `projectOverlayLayers`, `ViewLayers` y los
+  handlers duplicados por provider. No se modificó código.
+- **next-action:** Confirmar con el dev la base de trabajo: `main` estable 1.2.0
+  en su worktree existente o crear una rama/worktree nueva desde `main`.
+- **git:** sólo memoria local `.agents/`; sin commit, push, tag, merge ni cambios
+  de producto.
+
+## 2026-07-29 18:43 -0500 — codex-gpt5-root · scout · worktree estable U121
+
+- **summary:** Verificado el worktree señalado por el dev:
+  `C:/tmp/vaultman-release-beta2-final2` está en `main` @ `b30f8f23`,
+  exactamente alineado con `origin/main` después de `git fetch` (0 ahead /
+  0 behind).
+- **caveat:** El worktree no está limpio: `README.md` contiene dos cambios locales
+  de copy (`Via BRAT` → `Beta testing`) y `vm-update-v1_2_0.gif` aparece eliminado
+  localmente. Se preservaron ambos; no hubo reset, checkout ni edición.
+- **recommendation:** Crear un worktree/branch limpio `codex/u121-013` desde
+  `origin/main`, manteniendo intacto el checkout estable existente.
+- **git:** sólo esta entrada de sesión; sin commit, push, tag, merge ni cambios
+  de producto.
+
+## 2026-07-29 19:19 -0500 — codex-gpt5-root · design setup · U121-013
+
+- **commit/base:** Por orden explícita del dev se registraron los cambios locales
+  preexistentes del worktree `C:/tmp/vaultman-release-beta2-final2` como
+  `e6d12598` (`docs: clarify beta testing and remove duplicate update gif`).
+  El GIF usado por README permanece en `img/`; se eliminó sólo el duplicado raíz.
+- **branch:** El mismo worktree quedó limpio en `codex/u121-013`, basado en el
+  `main` estable 1.2.0 más el commit documental anterior. Sin push.
+- **baseline:** `pnpm install --frozen-lockfile` confirmó lockfile/deps. El
+  agregado `pnpm run verify` excedió dos timeouts del supervisor (244 s y
+  604 s), por lo que se aisló sistemáticamente: lint verde (112.6 s), check
+  0/0 (71.3 s), format-check, Stylelint, build:plugin, unit 154 files / 1004
+  tests (191.75 s) y scorecard 17 checks, todos exit 0. El worktree siguió
+  limpio.
+- **design discovery:** El CodeGraph del worktree estable sitúa el seam real en
+  `logicBadgeBubbling`, `TreeNode.badges`/`bubbleDot`, `FilesExplorerPanel` y
+  los renderers Tree/Grid/Table; la arquitectura `ViewLayers` de sandbox no
+  existe todavía en esta línea estable.
+- **next-action:** El dev decide si U121-013 debe cerrar desde el primer slice
+  todos los modos con glyph cells o pilotar Tree con contrato reusable.
+- **git:** commit local + rama local; sin push, PR, tag ni merge.
+- **2026-07-29 — codex-gpt5/root — U121 glyph-color scope correction:**
+  El dev aclaró que el comportamiento actual pertenece al Stream estable
+  `Linear · indent`, mientras la proyección de `files|both` hacia
+  `Geometry · table/cards` es Goal Stream. La taxonomía canónica fue
+  contrastada con `05-view-canon.md` y el estudio Goal/Stream; `glyph`,
+  `cell_icon`, `cell_name`, `stream` y `goal` aún no aparecen en el glosario
+  central (deuda documental). El código estable confirma que
+  `_refreshFolderIcon()` reemplaza `node.iconColor` sólo con el color de
+  Iconic durante expand/collapse y omite reaplicar el glyph color global,
+  causando la pérdida observada. El alcance corresponde a U121-010, no a
+  U121-013. **Corrección del dev:** para files, glyph color se proyecta sólo
+  cuando `explorerGlyphScope` es `files` o `both`; entonces colorea
+  `cell_icon` y reemplaza el color visible de `cell_name`. Esto no modifica ni
+  incorpora al contrato una variable o estado semántico `active color`; esa
+  interpretación queda fuera de alcance. Se corrigió el glosario central
+  (Stream, Goal, glyph, glyph color, `cell_icon`, `cell_name`), doc-health
+  focal quedó OK y el índice recupera el glosario para esos términos. Claude
+  Opus 5 recibió la corrección por mailbox y mantiene el carril disjunto
+  U121-016/#48 + U121-017/#49.
+- **2026-07-29 — codex-gpt5/root — U121-010 process audit:** Brainstorming is
+  partial (context, root cause and glyph-scope rule locked; approaches, approved
+  design, written spec and user review missing). Triage is incomplete: the
+  canonical issue remains `needs-triage`, GitHub #46 has no triage comments and
+  its body still carries the superseded no-Table/Cards projection wording. No
+  current U121-010 implementation plan exists; the historical BT5-058 Task 8
+  plan is stale and conflicts with the newly locked `files|both` projection.
+  Next gate is to finish brainstorming, then spec review, GitHub triage/agent
+  brief, current writing-plan, and only then TDD implementation.
+- **2026-07-29 — codex-gpt5/root — U121-010 design discovery checkpoint:**
+  Stable-source inspection confirmed four facts for the proposal. First,
+  `_refreshFolderIcon()` drops the glyph fallback during open/close refresh,
+  which is the direct cause of folder `cell_icon` color loss. Second, glyph
+  scope is currently projected only by the Files Tree; Table and Cards expose
+  no glyph-color input. Third, the reference CSS uses ten slots, maps the first
+  root sibling to slot 10 and descendants inherit their top-level branch color;
+  the current implementation uses eight slots and a global DFS bucket. Fourth,
+  Floating Index already applies the glyph-color style in joined and separate
+  actions at stable HEAD, so U121-010 should retain a regression guard but make
+  no Floating Index product change absent a runtime repro. Recommended design:
+  a pure Explorer-specific projection shared by Tree/Table/Cards; explicit
+  Iconic color wins `cell_icon`, while applicable glyph color wins the visible
+  `cell_name` color without altering active-link state or variables. Table and
+  Cards use the global displayed projection index, not the virtual DOM window.
+  No code or public issue mutation occurred pending explicit design approval.

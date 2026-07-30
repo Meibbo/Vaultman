@@ -4,7 +4,7 @@ type: architecture
 status: active
 parent: "[[docs/work/pkm-ai/specs/2026-05-04-orchestration-refresh/index|pkm-ai]]"
 created: 2026-05-04T01:36:20
-updated: 2026-05-17T11:49:10
+updated: 2026-07-29T20:51:00
 tags:
   - agent/architecture
 ---
@@ -125,11 +125,15 @@ Concise lookup. Full detail + how they fit:
 Supersedes the older "View adapter" / "Viewgrid" entries (a View no longer does
 projection/translation).
 
+- Stream: implemented version lineage used to describe what exists in a concrete release line today; it is not the Goal. Branch/channel mapping and lifecycle: [[docs/work/hardening/research/2026-05-29-version-streams-vertical-codebase-analysis/01-stream-taxonomy-and-ground-truth|stream taxonomy]].
+- Goal: north-star architecture and desired domain model; it describes the destination and canonical vocabulary, not a branch, release, or claim that behavior is already implemented. Canon: [[docs/work/hardening/research/2026-07-14-goal-taxonomy-alignment/index|Goal taxonomy alignment]].
 - View: pure renderer over a finished render-projection; owns DOM/markup + shared runtime only. No fixed "5 views".
 - Render engine: reusable layout family — **Linear · Geometry · Canvas · Charts** (Table = Geometry mode; Charts = 4th). Canon: [[docs/architecture/explorer-model/05-view-canon|05 View Canon]] / ADR 0012. Supersedes the old four-engine wording.
 - Mode: engine variant — Linear `flat·indent·cascade·detail`; Geometry `grid·cards·masonry·table`; Canvas `mindmap·graph`; Charts `chart`. group-box removed (= composition). Canon: [[docs/architecture/explorer-model/05-view-canon|05-view-canon]].
 - Orientation: **arrangement semantics, engine-specific** (Linear `list·collapsible·accordion·drill`; Geometry `list·section·drill·container`) — NOT h/v; h/v moved to the `direction` axis. Plus `direction` / `child_global_direction` / `viewScope` (per_panel/level/parent/node) / `regime` (slot|coordinates): see 05.
 - Cell: universal element = source ({in|cross}-provider field, incl. note-preview) + semantic role; position owned by view-config.
+- `cell_icon` / `cell_name`: node Cells that render, respectively, its glyph and its visible name or label.
+- Glyph / glyph color: a glyph is the rendered symbol carried by a glyph-bearing Cell such as `cell_icon`; it is decoration, not node identity. Glyph color is the resolved decoration for those Cells. Explorer setting `explorerGlyphScope` accepts `folders`, `files`, or `both`: for a file node, glyph color applies **only** with `files` or `both`, and then projects the resolved color to both `cell_icon` and the visible text of `cell_name`. This projection may win the rendered color at those Cells, but does not mutate, rename, or redefine any other color variable, state, or semantic contract.
 - view-config (specific_view): user-editable role→slot/order map per engine+mode; superset of the Bases view-def; the Bases IN/OUT bridge.
 - Node: data atom = kind + source + cells + children; produced by a provider.
 - Panel: {engine + provider(s) + config}; kinds = explorer-panel, dashboard-panel.
