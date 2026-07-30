@@ -2476,3 +2476,138 @@ gates that.
   `cell_name` color without altering active-link state or variables. Table and
   Cards use the global displayed projection index, not the virtual DOM window.
   No code or public issue mutation occurred pending explicit design approval.
+
+## 2026-07-29 — codex-gpt5/root — U121-010 approved spec
+
+- **approval:** El dev aprobó el diseño completo, incluida la herencia rainbow
+  de archivos dentro de una rama y el ciclo por índice global proyectado en
+  Table/Cards.
+- **spec:** Se escribió y autorrevisó
+  [[docs/work/polish/specs/2026-07-29-u121-010-glyph-color-projection/index|U121-010 Files glyph color projection]]
+  con shard normativo de verificación y límites. La revisión eliminó el exceso
+  sobre el hard cap sin perder requisitos; doc-health focal y
+  `git diff --check` quedaron verdes, sin placeholders ni ambigüedades abiertas.
+- **commit:** `84fbd709` (`docs(polish): specify U121-010 glyph projection`) en
+  `sandbox`, local-only conforme a la frontera de `.agents/`. Incluye el
+  glosario corregido, la memoria de sesión y la spec aprobada; no incluye
+  cambios ajenos ni producto.
+- **next-action:** Gate de revisión del archivo por el dev; después,
+  `writing-plans`, triage/corrección de GitHub #46 y TDD en
+  `C:/tmp/vaultman-release-beta2-final2`.
+
+## 2026-07-30 — codex-gpt5/root — U121-010 implemented and ready for HITL
+
+- **plan:** Se escribió el plan de referencia
+  [[docs/work/polish/plans/2026-07-30-u121-010-glyph-color-projection/index|U121-010 implementation plan]]
+  y se comprometió localmente como `44afd939`; el dev había autorizado avanzar
+  sin un gate adicional de aprobación.
+- **triage:** GitHub #46 se corrigió a `U121-010 — Files glyph color projection
+  gaps`, se publicó el contrato aprobado y, tras la implementación, quedó
+  abierto con las etiquetas `bug` y `ready-for-human`.
+- **implementation:** En `C:/tmp/vaultman-release-beta2-final2`, rama
+  `codex/u121-010`, se crearon tres commits de producto: `9859d833` (contrato
+  puro), `212741df` (Tree, expansión y repintado de filas recicladas) y
+  `39215ac7` (Table/Cards por índice virtual global). No se hizo push, PR,
+  merge, tag ni release; el worktree quedó preservado.
+- **verification:** 9 archivos/99 pruebas focales y 155 archivos/1014 pruebas
+  unitarias pasaron; también quedaron verdes `check` (0 errores, 0 warnings),
+  ESLint, Prettier, Stylelint, build de producción, scorecard (17 checks) y
+  `git diff --check`.
+- **next-action:** Validación humana de GitHub #46 en Tree/Table/Cards y
+  decisión explícita posterior sobre push/PR o integración a otra rama.
+
+## 2026-07-30 — codex-gpt5/root — U121-010 smoke follow-up ready
+
+- **smoke-findings:** La primera validación humana detectó que Files no
+  repintaba glyph settings en vivo; que faltaba una opción pastel compartida
+  con Floating Index y con diez tonos; y que `Glyph color mode = always`
+  invalidaba el color y el transform Niagara por concatenar declaraciones CSS
+  sin `;`.
+- **implementation:** El commit de producto `5467a463`
+  (`fix(explorer): repair live glyph palette projection`) registra el listener
+  de settings del panel Files con firma y coalescing, comparte `Rainbow` y
+  `Pastel rainbow` entre ambos selectores con las dos paletas HSL exactas de
+  diez tonos del snippet, y separa los estilos `transform`/`color` del Floating
+  Index sin alterar el gate `static`. Los valores de ambos paneles permanecen
+  persistidos por separado.
+- **verification:** 121/121 pruebas focales y 1018/1018 pruebas unitarias en
+  155 archivos; `check` (0 errores/0 warnings), ESLint, Prettier, Stylelint,
+  build de producción, scorecard 17/17 y `git diff --check` pasaron. El
+  autofixer oficial de Svelte reportó 0 issues.
+- **handoff:** `pnpm run build` sincronizó `main.js`, `manifest.json` y
+  `styles.css` hacia `plugin-dev`; los tres SHA-256 coinciden. GitHub #46 sigue
+  abierto con `bug` + `ready-for-human`, con seguimiento publicado en el
+  comentario `5128166218`. No hubo push, PR ni merge.
+- **next-action:** Segundo smoke: repintado vivo en Files; ambas paletas en
+  Files/Floating; y Niagara funcional con modos `static` y `always`.
+
+## 2026-07-30 — codex-gpt5/root — U121 integration-train recommendation
+
+- **HITL:** El dev confirmó U121-010 como correcto y listo para completar.
+- **evidence:** Tras `git fetch origin main dev`, `origin/dev` está 6 commits
+  detrás de `origin/main` y 0 delante, por lo que puede hacer fast-forward.
+  `codex/u121-010` contiene cinco commits sobre `origin/main`, pero solo los
+  cuatro `9859d833..5467a463` pertenecen al issue; esto confirma que fusionar
+  ramas completas arriesga absorber commits ajenos.
+- **recommendation:** Crear un tren `codex/integrate-1.2.1` desde el
+  `origin/main` vigente, integrar exclusivamente rangos code-only aceptados
+  mediante `cherry-pick -x`, verificar cada slice y el conjunto, promover por
+  fast-forward a `dev`, publicar una beta acumulativa y solo después hacer PR
+  `dev → main` para `1.2.1`. Mantener un ledger central
+  issue→branch→base→SHA aceptados→SHA integrados.
+
+## 2026-07-30 — codex-gpt5/root — 1.2.1 integration train opened
+
+- **coordination:** Agent Room `task_064` is the canonical serialized
+  integration train. A local-only ledger at
+  [[docs/work/publish/items/2026-07-30-release-1.2.1-integration-train|Release
+  1.2.1 accepted-issue integration train]] defines the required handoff and
+  source→integration mapping. High-priority mailbox instructions were sent to
+  the currently relevant implementation agents.
+- **issue:** GitHub #46 / U121-010 was closed as `completed` after explicit
+  developer HITL approval; `ready-for-human` was removed and closure comment
+  `5128560609` records the accepted source SHAs.
+- **integration:** Created ignored worktree
+  `.worktrees/codex-integrate-1.2.1` on `codex/integrate-1.2.1` from
+  `origin/main@b30f8f23`. Applied code-only commits with `cherry-pick -x`:
+  `9859d833→afb46d68`, `212741df→1c276ce8`,
+  `39215ac7→129de195`, and `5467a463→80932195`.
+- **verification:** Baseline `origin/main` passed 154 files/1004 tests. The
+  integrated head passed 121/121 focused tests and full `pnpm run verify`
+  (155 files/1018 tests, check 0/0, lint/format/style/build, scorecard 17/17),
+  `security:audit` with no known production vulnerabilities, and
+  `git diff --check`. The public diff has 16 product files and 0 AI files.
+- **smoke-build:** `pnpm run build` synchronized the integration head to
+  `plugin-dev`; SHA-256 matches for `main.js`, `manifest.json`, and
+  `styles.css`.
+- **next-action:** Keep `task_064` available for the next accepted issue
+  handoff. Re-run focused plus combined gates after each row; promote to `dev`
+  and cut `1.2.1-beta.1` only after an explicit batch cutoff.
+
+## 2026-07-30 — claude-opus-5-triage — U121-027 live cells (regression, handed off)
+
+- **scope:** U121-027 relative timestamps on `claude/u121-025-026-027`
+  (worktree `.claude/worktrees/u121-commands`, base `origin/main`). Commit
+  `b5176943`. Not pushed, not merged.
+- **outcome:** Three LivreUI gaps fixed (settings toggle had no subscriber at
+  all; relative copy never ticked; the BT5-089 open-shortcut moved a node
+  without refreshing its cells). **A fourth problem was introduced: the typing
+  micro-stalls BT5-030 removed are back**, dev-confirmed in QA. Prime suspect is
+  the minute ticker, which runs a full `_render()` on a timer.
+- **root cause of the whole 12h class:** every agent, including me, patched the
+  *render* path. The *data* path already exists — `statisticsCache` listens to
+  `vault.on('modify')` and emits `file-stats-refreshed` with the changed paths,
+  and `_patchVisibleStatisticsCells` writes cell text straight into the DOM with
+  no render. That is why `cell_words` updates live and `mtime` does not: the
+  signal was arriving at `_handleStatsChange` and being dropped for every cell
+  except words/tasks.
+- **handoff:** [[docs/sessions/2026-07-30-u121-027-handoff|U121-027 handoff]] —
+  step 1 stops the stalls, step 2 moves the time cells onto the words pipeline.
+- **also landed (sandbox):** `dateCreated`/`dateUpdated` vault norm in the
+  pkm-ai frontmatter reader (`ac1d206e`), BT5-092..097 triage of the Obsidian
+  1.2.0 scan (`cde673f0`), branch-attribution corrections (`e932a517`),
+  `policies/livreui.md`.
+- **next-action:** Bisect ticker → file-open branch, rebuild a clean
+  `plugin-dev`, then generalize `_patchVisibleStatisticsCells` into a cell
+  patcher keyed by cell id. Sort still needs the `moveNodeToSiblingEdge`
+  treatment for mtime, as it has for Last opened.
