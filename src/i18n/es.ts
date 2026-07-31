@@ -223,7 +223,8 @@ export const es: Record<string, string> = {
 	'sort.by.tasks': 'Tareas pendientes',
 	'viewmode.pill.tasks': 'Tareas',
 	'file.ctx.exclude': 'Excluir archivo',
-	'settings.explorer_page': 'Explorer',
+	'settings.explorer_page': 'Panel: Explorer',
+	'settings.cells_section': 'Celdas',
 	'settings.explorer_page.desc':
 		'Cells, badges y comportamiento de resaltado de los explorers.',
 	'settings.context_menu.page_desc':
@@ -917,4 +918,71 @@ export const es: Record<string, string> = {
 	'content.landing_title': 'Búsqueda de texto',
 	'content.landing_desc': 'Escribe un término para explorar el alcance actual.',
 	'content.empty_desc': 'Prueba otro término o ajusta los filtros actuales.',
+	// U121-027: celdas de tiempo relativo
+	'time.just_now': 'Ahora mismo',
+	'time.minute_ago': 'hace {count} minuto',
+	'time.minutes_ago': 'hace {count} minutos',
+	'time.hour_ago': 'hace {count} hora',
+	'time.hours_ago': 'hace {count} horas',
+	// Los singulares se leen como "la unidad pasada" (y un día atrás es "Ayer"):
+	// el count ahí siempre es 1, así que el texto nombra el periodo.
+	'time.day_ago': 'Ayer',
+	'time.days_ago': 'hace {count} días',
+	'time.week_ago': 'La semana pasada',
+	'time.weeks_ago': 'hace {count} semanas',
+	'time.month_ago': 'El mes pasado',
+	'time.months_ago': 'hace {count} meses',
+	'time.quarter_ago': 'El trimestre pasado',
+	'time.quarters_ago': 'hace {count} trimestres',
+	'time.semester_ago': 'El semestre pasado',
+	'time.semesters_ago': 'hace {count} semestres',
+	'time.year_ago': 'El año pasado',
+	'time.years_ago': 'hace {count} años',
+	'settings.timestamp_format': 'Marcas de tiempo relativas',
+	'settings.timestamp_format.desc':
+		'Muestra Ultima apertura, Modificado y Creado como "hace 3 horas" en vez de la fecha exacta. Desactivalo para mostrar siempre la fecha exacta.',
+	'settings.timestamp_window': 'Límite del tiempo relativo',
+	'settings.timestamp_window.desc':
+		'Hasta cuándo las marcas se muestran relativas. Las celdas más antiguas muestran la fecha exacta. "Sin límite" mantiene todas las marcas relativas.',
+	'settings.timestamp_window.24h': 'Últimas 24 horas',
+	'settings.timestamp_window.31d': 'Últimos 31 días',
+	'settings.timestamp_window.year': 'Este año',
+	'settings.timestamp_window.always': 'Sin límite',
+	'settings.timestamp_cutoffs': 'Unidades del tiempo relativo',
+	'settings.timestamp_cutoffs.desc':
+		'Ajusta a fondo cuándo cambia la unidad — a partir de cuántos segundos se cuenta en minutos, minutos en horas, y así hasta años.',
+	'settings.timestamp_cutoffs.configure': 'Configurar',
+	'settings.timestamp_cutoffs.title': 'Unidades del tiempo relativo',
+	'settings.timestamp_cutoffs.subtitle':
+		'Los campos vacíos usan el valor por defecto. Los cambios se aplican al instante.',
+	'settings.timestamp_cutoffs.reset': 'Restaurar valores por defecto',
+	'settings.timestamp_cutoffs.minuteFromSeconds': 'Minutos desde (segundos)',
+	'settings.timestamp_cutoffs.minuteFromSeconds.desc':
+		'Por debajo de estos segundos la celda dice "Ahora mismo"; desde aquí cuenta en minutos.',
+	'settings.timestamp_cutoffs.hourFromMinutes': 'Horas desde (minutos)',
+	'settings.timestamp_cutoffs.hourFromMinutes.desc':
+		'A partir de estos minutos la celda cuenta en horas.',
+	'settings.timestamp_cutoffs.dayFromHours': 'Días desde (horas)',
+	'settings.timestamp_cutoffs.dayFromHours.desc':
+		'A partir de estas horas la celda cuenta en días.',
+	'settings.timestamp_cutoffs.weekFromDays': 'Semanas desde (días)',
+	'settings.timestamp_cutoffs.weekFromDays.desc':
+		'A partir de estos días la celda cuenta en semanas.',
+	'settings.timestamp_cutoffs.monthFromWeeks': 'Meses desde (semanas)',
+	'settings.timestamp_cutoffs.monthFromWeeks.desc':
+		'A partir de estas semanas la celda cuenta en meses.',
+	'settings.timestamp_cutoffs.quarterFromMonths': 'Trimestres desde (meses)',
+	'settings.timestamp_cutoffs.quarterFromMonths.desc':
+		'A partir de estos meses la celda cuenta en trimestres.',
+	'settings.timestamp_cutoffs.semesterFromQuarters': 'Semestres desde (trimestres)',
+	'settings.timestamp_cutoffs.semesterFromQuarters.desc':
+		'A partir de estos trimestres la celda cuenta en semestres.',
+	'settings.timestamp_cutoffs.yearFromSemesters': 'Años desde (semestres)',
+	'settings.timestamp_cutoffs.yearFromSemesters.desc':
+		'A partir de estos semestres la celda cuenta en años.',
+	'settings.tooltip_time_section': 'Marcas de tiempo del tooltip',
+	'settings.tooltip_timestamp_format.desc':
+		'Muestra las entradas de tiempo del tooltip como texto relativo. Independiente de las opciones de los cells.',
+	'settings.tooltip_timestamp_window.desc':
+		'Hasta cuándo las entradas del tooltip se muestran relativas. Independiente de las opciones de los cells.',
 };

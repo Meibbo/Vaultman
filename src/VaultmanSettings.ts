@@ -42,6 +42,8 @@ import {
 	type GlyphColorChoice,
 } from './logic/logicGlyphColor';
 import { openCommandPicker } from './modals/modalCommandPicker';
+import { RelativeTimeCutoffsModal } from './modals/modalRelativeTimeCutoffs';
+import type { TimestampRelativeWindow } from './logic/logicRelativeTime';
 import { translate } from './i18n/index';
 import { PayloadPreviewModal } from './modals/modalPayloadPreview';
 import {
@@ -703,6 +705,12 @@ export class VaultmanSettingsTab extends PluginSettingTab {
 			.setName(translate('settings.explorer_page'))
 			.setHeading();
 
+		// U121-027: the cell-shaping settings gather under one heading. This is not
+		// the whole set — `addonCellStyle`, `orderCellsByActivation`, the hover
+		// fields and the grid column options still live on their own pages; moving
+		// those is a separate UX call.
+		new Setting(containerEl).setName(translate('settings.cells_section')).setHeading();
+
 		// BT5-040: folders can show the recursive sum of their files' cells.
 		new Setting(containerEl)
 			.setName(translate('settings.folder_aggregate_cells'))
@@ -714,6 +722,51 @@ export class VaultmanSettingsTab extends PluginSettingTab {
 						this.plugin.settings.folderAggregateCells = value;
 						await this.plugin.saveSettings();
 					}),
+			);
+
+		// U121-027. saveSettings() notifies the settings listeners and the explorer
+		// now subscribes, so toggling this repaints the visible cells immediately.
+		new Setting(containerEl)
+			.setName(translate('settings.timestamp_format'))
+			.setDesc(translate('settings.timestamp_format.desc'))
+			.addToggle((toggle) =>
+				toggle
+					.setValue(this.plugin.settings.timestampRelative)
+					.onChange(async (value) => {
+						this.plugin.settings.timestampRelative = value;
+						await this.plugin.saveSettings();
+					}),
+			);
+
+		// U121-027 (QA 2026-07-31): how far back relative copy reaches before the
+		// cell falls back to the exact date. 'always' disables the limit.
+		new Setting(containerEl)
+			.setName(translate('settings.timestamp_window'))
+			.setDesc(translate('settings.timestamp_window.desc'))
+			.addDropdown((dropdown) =>
+				dropdown
+					.addOption('24h', translate('settings.timestamp_window.24h'))
+					.addOption('31d', translate('settings.timestamp_window.31d'))
+					.addOption('year', translate('settings.timestamp_window.year'))
+					.addOption('always', translate('settings.timestamp_window.always'))
+					.setValue(this.plugin.settings.timestampRelativeWindow ?? '24h')
+					.onChange(async (value) => {
+						this.plugin.settings.timestampRelativeWindow =
+							value as TimestampRelativeWindow;
+						await this.plugin.saveSettings();
+					}),
+			);
+
+		// U121-027 (QA 2026-07-31): per-unit cutoffs for the relative wording.
+		new Setting(containerEl)
+			.setName(translate('settings.timestamp_cutoffs'))
+			.setDesc(translate('settings.timestamp_cutoffs.desc'))
+			.addButton((button) =>
+				button
+					.setButtonText(translate('settings.timestamp_cutoffs.configure'))
+					.onClick(() =>
+						new RelativeTimeCutoffsModal(this.app, this.plugin).open(),
+					),
 			);
 
 		// BT5-033: node icon scope lives in the Explorer menu now (was in Add-ons).
@@ -1053,6 +1106,58 @@ export class VaultmanSettingsTab extends PluginSettingTab {
 				void this.plugin.saveSettings().then(() => this.display());
 			});
 		}
+
+		// U121-027 (QA 2026-07-31): the tooltip's relative-time options live
+		// here, split from the Cells-section trio, which shapes only the cells.
+		new Setting(containerEl)
+			.setName(translate('settings.tooltip_time_section'))
+			.setHeading();
+
+		new Setting(containerEl)
+			.setName(translate('settings.timestamp_format'))
+			.setDesc(translate('settings.tooltip_timestamp_format.desc'))
+			.addToggle((toggle) =>
+				toggle
+					.setValue(this.plugin.settings.tooltipTimestampRelative !== false)
+					.onChange(async (value) => {
+						this.plugin.settings.tooltipTimestampRelative = value;
+						await this.plugin.saveSettings();
+					}),
+			);
+
+		new Setting(containerEl)
+			.setName(translate('settings.timestamp_window'))
+			.setDesc(translate('settings.tooltip_timestamp_window.desc'))
+			.addDropdown((dropdown) =>
+				dropdown
+					.addOption('24h', translate('settings.timestamp_window.24h'))
+					.addOption('31d', translate('settings.timestamp_window.31d'))
+					.addOption('year', translate('settings.timestamp_window.year'))
+					.addOption('always', translate('settings.timestamp_window.always'))
+					.setValue(
+						this.plugin.settings.tooltipTimestampRelativeWindow ?? '24h',
+					)
+					.onChange(async (value) => {
+						this.plugin.settings.tooltipTimestampRelativeWindow =
+							value as TimestampRelativeWindow;
+						await this.plugin.saveSettings();
+					}),
+			);
+
+		new Setting(containerEl)
+			.setName(translate('settings.timestamp_cutoffs'))
+			.setDesc(translate('settings.timestamp_cutoffs.desc'))
+			.addButton((button) =>
+				button
+					.setButtonText(translate('settings.timestamp_cutoffs.configure'))
+					.onClick(() =>
+						new RelativeTimeCutoffsModal(
+							this.app,
+							this.plugin,
+							'tooltipTimestampRelativeCutoffs',
+						).open(),
+					),
+			);
 	}
 
 	/**

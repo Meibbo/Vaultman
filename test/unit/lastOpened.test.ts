@@ -176,8 +176,12 @@ describe('BT5-013 last opened is a live recency order', () => {
 	it('re-sorts Files the moment a file is opened', () => {
 		// A recency order is stale the instant it is not refreshed: opening a
 		// note must move it to the top the way a browser history does.
+		// U121-027 widened this from a bare early return to a block: any other
+		// sort now still repaints the time cells (opening a file bumps Last
+		// opened whatever the order is) before returning. The invariant this
+		// guards is unchanged — only the 'opened' sort reaches the re-sort.
 		expect(explorerFilesSource).toContain(
-			"if (normalizeExplorerSortBy(this.sortBy) !== 'opened') return;",
+			"if (normalizeExplorerSortBy(this.sortBy) !== 'opened') {",
 		);
 		expect(explorerFilesSource).toContain('queueMicrotask(() => {');
 	});
@@ -189,8 +193,12 @@ describe('BT5-013 last opened is a live recency order', () => {
 			explorerFilesSource.indexOf('private _syncActiveFilePath('),
 		);
 		expect(handler).toContain('this._syncActiveFilePath(');
-		expect(handler.indexOf("!== 'opened') return;")).toBeLessThan(
-			handler.indexOf('queueMicrotask('),
-		);
+		const guardAt = handler.indexOf("!== 'opened') {");
+		const scheduleAt = handler.indexOf('queueMicrotask(');
+		// Both must be present, or `indexOf` returning -1 would satisfy the
+		// ordering check vacuously and this test would stop guarding anything.
+		expect(guardAt).toBeGreaterThan(-1);
+		expect(scheduleAt).toBeGreaterThan(-1);
+		expect(guardAt).toBeLessThan(scheduleAt);
 	});
 });

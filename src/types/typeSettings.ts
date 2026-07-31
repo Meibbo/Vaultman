@@ -11,6 +11,10 @@ import {
 } from '../logic/logicCellRegistry';
 import type { AddonIconOverrides } from '../logic/logicAddonIcons';
 import type { FilesMenuItem } from '../logic/logicFilesContextMenu';
+import type {
+	RelativeTimeCutoffs,
+	TimestampRelativeWindow,
+} from '../logic/logicRelativeTime';
 
 export type Language = 'auto' | 'en' | 'es';
 
@@ -78,6 +82,32 @@ export interface VaultmanSettings {
 	basesShowColumnSeparators: boolean;
 	/** What to open when the ribbon icon is clicked: sidebar only, main view only, or both */
 	openMode: 'sidebar' | 'main' | 'new_instance' | 'both';
+	/**
+	 * U121-027: render Last opened / Modified / Created as relative copy ("3 hours
+	 * ago") while they are under a day old. Off renders the exact date everywhere,
+	 * which is the 1.2.0 behaviour.
+	 */
+	timestampRelative: boolean;
+	/**
+	 * U121-027: how far back relative copy reaches. '24h' (default) and '31d'
+	 * are rolling windows, 'year' is the current calendar year, 'always' never
+	 * falls back to the absolute date.
+	 */
+	timestampRelativeWindow: TimestampRelativeWindow;
+	/**
+	 * U121-027: per-unit cutoff overrides for relative copy (at how many of the
+	 * current unit the wording switches to the next). Unset fields use
+	 * `DEFAULT_RELATIVE_TIME_CUTOFFS`.
+	 */
+	timestampRelativeCutoffs: Partial<RelativeTimeCutoffs>;
+	/**
+	 * U121-027 (QA 2026-07-31): the hover-info tooltip entries carry their own
+	 * relative-time options — the Cells-section trio above only shapes the
+	 * cells.
+	 */
+	tooltipTimestampRelative: boolean;
+	tooltipTimestampRelativeWindow: TimestampRelativeWindow;
+	tooltipTimestampRelativeCutoffs: Partial<RelativeTimeCutoffs>;
 	/** Order of pages in the sidebar bottom nav (page IDs: 'filters', 'statistics') */
 	pageOrder: string[];
 	/** Glassmorphism blur intensity for bottom bar and popups (0–100, maps to 0–20px) */
@@ -268,6 +298,12 @@ export const DEFAULT_SETTINGS: VaultmanSettings = {
 	basesInjectCheckboxes: true,
 	basesShowColumnSeparators: false,
 	openMode: 'new_instance',
+	timestampRelative: true,
+	timestampRelativeWindow: '24h',
+	timestampRelativeCutoffs: {},
+	tooltipTimestampRelative: true,
+	tooltipTimestampRelativeWindow: '24h',
+	tooltipTimestampRelativeCutoffs: {},
 	pageOrder: ['filters', 'statistics'],
 	separatePanes: false,
 	viewMode: 'list',
