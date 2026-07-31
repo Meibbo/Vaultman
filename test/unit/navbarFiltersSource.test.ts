@@ -133,7 +133,12 @@ describe('minimal filters header source guards', () => {
 		expect(navbarFiltersSource).toContain(
 			'resolveCondensedPanelWidgetOverflow({',
 		);
-		expect(navbarFiltersSource).toContain('availableWidth: actionsEl.clientWidth');
+		// U121-029: the width is read once and checked for 0 before it is packed —
+		// a zero-width bar used to condense everything for one frame.
+		expect(navbarFiltersSource).toContain(
+			'const availableWidth = actionsEl.clientWidth;',
+		);
+		expect(navbarFiltersSource).toContain('if (availableWidth <= 0) return;');
 		expect(navbarFiltersSource).toContain('measuredNodeWidths');
 		expect(navbarFiltersSource).toContain('data-panel-widget-node-id');
 		expect(navbarFiltersSource).toContain('data-panel-widget-tools-measure');

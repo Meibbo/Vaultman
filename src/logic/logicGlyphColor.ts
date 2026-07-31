@@ -32,33 +32,31 @@ const LEGACY_COLOR_HEX: Readonly<Record<string, string>> = {
 	pink: '#d53984',
 };
 
-/** Exact dark/strong tones from the reference rainbow snippet. */
-const RAINBOW_STRONG = [
-	'hsl(18, 60%, 40%)',
-	'hsl(54, 60%, 40%)',
-	'hsl(90, 60%, 40%)',
-	'hsl(126, 60%, 40%)',
-	'hsl(162, 60%, 40%)',
-	'hsl(198, 60%, 40%)',
-	'hsl(234, 60%, 40%)',
-	'hsl(270, 60%, 40%)',
-	'hsl(306, 60%, 40%)',
-	'hsl(342, 60%, 40%)',
-] as const;
+/**
+ * The rainbow palettes are CSS custom properties, not literals (U121-029).
+ *
+ * The reference snippet (FAS — File Explorer Rainbow) declares
+ * `--color-rainbow-1..10` twice: dark tones under `.theme-light` and bright
+ * tones under `.theme-dark`, because a fixed palette can only have correct
+ * contrast in one of the two. Freezing its `.theme-light` values as our single
+ * "strong" palette is what made the glyphs look darkened in a dark vault.
+ *
+ * `styles.css` therefore declares `--vaultman-rainbow-N` per theme, each
+ * chaining through `--color-rainbow-N` first — so a vault that has the snippet
+ * enabled gets glyphs that match its own core file explorer exactly, and a
+ * theme can retint ours by declaring the same variables.
+ */
+const RAINBOW_SLOTS = 10;
 
-/** Exact light/pastel tones from the reference rainbow snippet. */
-const RAINBOW_PASTEL = [
-	'hsl(0, 100%, 84%)',
-	'hsl(33, 100%, 82%)',
-	'hsl(62, 100%, 86%)',
-	'hsl(110, 100%, 87%)',
-	'hsl(193, 100%, 79%)',
-	'hsl(217, 100%, 81%)',
-	'hsl(249, 100%, 85%)',
-	'hsl(270, 100%, 87%)',
-	'hsl(300, 100%, 89%)',
-	'hsl(324, 100%, 83%)',
-] as const;
+const RAINBOW_STRONG = Array.from(
+	{ length: RAINBOW_SLOTS },
+	(_unused, index) => `var(--vaultman-rainbow-${index + 1})`,
+) as readonly string[];
+
+const RAINBOW_PASTEL = Array.from(
+	{ length: RAINBOW_SLOTS },
+	(_unused, index) => `var(--vaultman-rainbow-pastel-${index + 1})`,
+) as readonly string[];
 
 const DEFAULT_CUSTOM_COLOR = '#7c3aed';
 const HEX_RE = /^#(?:[0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/;

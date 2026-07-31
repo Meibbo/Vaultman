@@ -326,8 +326,23 @@
 	let navbarEl = $state<HTMLElement | null>(null);
 	let actionsEl = $state<HTMLElement | null>(null);
 	let measuredOverflowIds = $state<string[]>([]);
+	/**
+	 * U121-029: raised by the first measurement that had a real width to work
+	 * with. Until then the pre-measurement heuristic decides, so the bar never
+	 * paints one frame of overflowing nodes on mount.
+	 */
+	let overflowMeasured = $state(false);
 	let overflowFrame = 0;
+	/**
+	 * Keyed by LOCAL node id, not by the projected `provider:local` id. Node ids
+	 * are namespaced per provider, so a provider switch used to invalidate every
+	 * measured width at once: the bar read 0 for everything, expanded fully, then
+	 * condensed again on the next frame. Widths belong to the node, not to the
+	 * provider that projected it.
+	 */
 	const measuredNodeWidths = new SvelteMap<string, number>();
+	const measuredWidthKey = (nodeId: string): string =>
+		nodeId.slice(nodeId.indexOf(':') + 1);
 	let drillPickCleanup: (() => void) | null = null;
 	let expansionRefresh = $state(0);
 	const headerActionClass = $derived(
@@ -475,7 +490,12 @@
 		if (
 			!minimalStyle ||
 			toolbarOverflowStrategy !== 'condensed' ||
-			!toolbarToolsMenu
+			!toolbarToolsMenu ||
+			// U121-029: once the bar has actually been measured, the measurement is
+			// the answer. The count heuristic below hides at least two nodes no
+			// matter how wide the frame is, so leaving it in charge made the
+			// measured pipeline dead code and over-condensed a roomy toolbar.
+			overflowMeasured
 		) {
 			return measuredOverflowIds;
 		}
@@ -530,8 +550,17 @@
 			toolbarOverflowStrategy !== 'condensed'
 		) {
 			if (measuredOverflowIds.length > 0) measuredOverflowIds = [];
+			overflowMeasured = false;
 			return;
 		}
+
+		// U121-029: an unmeasurable bar keeps what it already shows. A page
+		// mid-slide, a hidden toolbar (`height: 0`), a collapsed sidebar or a
+		// still-deferred mobile drawer all report 0 here, and recomputing from 0
+		// condensed the whole bar into Tools for a frame — the flicker the dev
+		// sees when switching provider quickly.
+		const availableWidth = actionsEl.clientWidth;
+		if (availableWidth <= 0) return;
 
 		const elements = actionsEl.querySelectorAll<HTMLElement>(
 			'[data-panel-widget-node-id]',
@@ -540,7 +569,7 @@
 			const id = element.dataset.panelWidgetNodeId;
 			if (!id || element.hidden) continue;
 			const width = element.getBoundingClientRect().width;
-			if (width > 0) measuredNodeWidths.set(id, width);
+			if (width > 0) measuredNodeWidths.set(measuredWidthKey(id), width);
 		}
 
 		const style = window.getComputedStyle(actionsEl);
@@ -549,16 +578,22 @@
 			'[data-panel-widget-tools-measure]',
 		);
 		const toolsWidth = toolsMeasure?.getBoundingClientRect().width ?? 0;
+		const measuredNodes = panelWidgetProjection.nodes.map((node) => ({
+			id: node.id,
+			width: measuredNodeWidths.get(measuredWidthKey(node.id)) ?? 0,
+			condensable: node.condensable,
+		}));
+		// Every node reporting 0 means nothing has been laid out yet (a provider
+		// projected on its first frame). Packing that would answer "it all fits",
+		// which is the other half of the flicker.
+		if (measuredNodes.every((node) => node.width <= 0)) return;
 		const result = resolveCondensedPanelWidgetOverflow({
-			availableWidth: actionsEl.clientWidth,
-			nodes: panelWidgetProjection.nodes.map((node) => ({
-				id: node.id,
-				width: measuredNodeWidths.get(node.id) ?? 0,
-				condensable: node.condensable,
-			})),
+			availableWidth,
+			nodes: measuredNodes,
 			gap,
 			toolsWidth,
 		});
+		overflowMeasured = true;
 		const signature = result.overflowIds.join('\u0000');
 		if (signature !== measuredOverflowIds.join('\u0000')) {
 			measuredOverflowIds = result.overflowIds;

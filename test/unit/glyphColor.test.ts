@@ -1,3 +1,6 @@
+// eslint-disable-next-line import/no-nodejs-modules -- source guard reads the root CSS file in Vitest's Node environment.
+import { readFileSync } from 'node:fs';
+
 import { describe, expect, it } from 'vitest';
 
 import {
@@ -16,6 +19,11 @@ import floatingTocSource from '../../src/components/layout/floatingToc.svelte?ra
 import settingsSource from '../../src/VaultmanSettings.ts?raw';
 import mainSource from '../../src/main.ts?raw';
 import explorerFilesSource from '../../src/components/containers/explorerFiles.ts?raw';
+
+const stylesSource = readFileSync(
+	new URL('../../styles.css', import.meta.url),
+	'utf8',
+);
 
 describe('BT5-025 shared glyph color palette', () => {
 	it('exposes the same strong and pastel choices to both panels', () => {
@@ -59,11 +67,35 @@ describe('BT5-025 shared glyph color palette', () => {
 		expect(normalizeGlyphColorChoice('garbage')).toEqual({ choice: 'default' });
 	});
 
-	it('uses the ten-tone strong snippet palette for shared rainbow', () => {
-		expect(rainbowGlyphColor(0, 10)).toBe('hsl(18, 60%, 40%)');
-		expect(rainbowGlyphColor(9, 10)).toBe('hsl(342, 60%, 40%)');
-		expect(pastelRainbowGlyphColor(0, 10)).toBe('hsl(0, 100%, 84%)');
-		expect(pastelRainbowGlyphColor(9, 10)).toBe('hsl(324, 100%, 83%)');
+	it('resolves the shared rainbow through theme-aware CSS variables', () => {
+		// U121-029: the palettes are CSS variables, not literals. The snippet
+		// declares its ten slots per theme because one fixed palette cannot have
+		// correct contrast in both; freezing its light values as our only strong
+		// palette is what darkened the glyphs in a dark vault.
+		expect(rainbowGlyphColor(0, 10)).toBe('var(--vaultman-rainbow-1)');
+		expect(rainbowGlyphColor(9, 10)).toBe('var(--vaultman-rainbow-10)');
+		expect(pastelRainbowGlyphColor(0, 10)).toBe(
+			'var(--vaultman-rainbow-pastel-1)',
+		);
+		expect(pastelRainbowGlyphColor(9, 10)).toBe(
+			'var(--vaultman-rainbow-pastel-10)',
+		);
+	});
+
+	it('declares both palettes per theme and inherits the snippet slots', () => {
+		// Chaining through `--color-rainbow-N` means a vault running the reference
+		// snippet gets glyphs identical to its own core file explorer.
+		expect(stylesSource).toContain(
+			'--vaultman-rainbow-1: var(--color-rainbow-1, hsl(18, 60%, 40%));',
+		);
+		expect(stylesSource).toContain(
+			'--vaultman-rainbow-1: var(--color-rainbow-1, hsl(18, 70%, 60%));',
+		);
+		expect(stylesSource).toContain('--vaultman-rainbow-pastel-1: hsl(0, 100%, 84%);');
+		for (let slot = 1; slot <= 10; slot += 1) {
+			expect(stylesSource).toContain(`--vaultman-rainbow-${slot}:`);
+			expect(stylesSource).toContain(`--vaultman-rainbow-pastel-${slot}:`);
+		}
 	});
 
 	it('normalizes the explorer scope', () => {
@@ -73,11 +105,11 @@ describe('BT5-025 shared glyph color palette', () => {
 	});
 
 	it('maps Explorer rainbow positions to the ten-slot snippet order', () => {
-		expect(explorerRainbowGlyphColor(0)).toBe('hsl(342, 60%, 40%)');
-		expect(explorerRainbowGlyphColor(1)).toBe('hsl(18, 60%, 40%)');
-		expect(explorerRainbowGlyphColor(9)).toBe('hsl(306, 60%, 40%)');
-		expect(explorerRainbowGlyphColor(10)).toBe('hsl(342, 60%, 40%)');
-		expect(explorerRainbowGlyphColor(-1)).toBe('hsl(306, 60%, 40%)');
+		expect(explorerRainbowGlyphColor(0)).toBe('var(--vaultman-rainbow-10)');
+		expect(explorerRainbowGlyphColor(1)).toBe('var(--vaultman-rainbow-1)');
+		expect(explorerRainbowGlyphColor(9)).toBe('var(--vaultman-rainbow-9)');
+		expect(explorerRainbowGlyphColor(10)).toBe('var(--vaultman-rainbow-10)');
+		expect(explorerRainbowGlyphColor(-1)).toBe('var(--vaultman-rainbow-9)');
 	});
 
 	it('maps Explorer pastel rainbow to all ten original snippet tones', () => {
@@ -95,8 +127,8 @@ describe('BT5-025 shared glyph color palette', () => {
 			kind: 'folder',
 			position: 1,
 		});
-		expect(first).toBe('hsl(324, 100%, 83%)');
-		expect(second).toBe('hsl(0, 100%, 84%)');
+		expect(first).toBe('var(--vaultman-rainbow-pastel-10)');
+		expect(second).toBe('var(--vaultman-rainbow-pastel-1)');
 	});
 
 	it('applies Explorer glyph color only inside the configured scope', () => {

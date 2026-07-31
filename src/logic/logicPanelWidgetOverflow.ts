@@ -31,6 +31,17 @@ export function resolveCondensedPanelWidgetOverflow({
 		return itemWidth + Math.max(0, itemCount - 1) * Math.max(0, gap);
 	};
 
+	// U121-029: a non-positive available width means the bar could not be
+	// measured — a page mid-slide, a hidden toolbar (`height: 0`), a collapsed
+	// or still-deferred sidebar. Treating it as "nothing fits" condensed the
+	// whole bar into Tools for one frame and then restored it, which is the
+	// flicker the dev sees when switching provider quickly. An unmeasurable bar
+	// must keep whatever it already shows, so report everything visible and let
+	// the next real measurement decide.
+	if (availableWidth <= 0) {
+		return { visibleIds: nodes.map((node) => node.id), overflowIds: [] };
+	}
+
 	if (widthOf(nodes, false) <= Math.max(0, availableWidth)) {
 		return {
 			visibleIds: nodes.map((node) => node.id),

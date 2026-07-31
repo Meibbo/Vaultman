@@ -77,10 +77,10 @@ describe('U121-010 Files Tree glyph projection', () => {
 
 		panel._decorateTreeWithIcons([rootFile, firstFolder, secondFolder]);
 
-		expect(rootFile.labelColor).toBe('hsl(342, 60%, 40%)');
-		expect(firstFolder.labelColor).toBe('hsl(18, 60%, 40%)');
+		expect(rootFile.labelColor).toBe('var(--vaultman-rainbow-10)');
+		expect(firstFolder.labelColor).toBe('var(--vaultman-rainbow-1)');
 		expect(childFile.labelColor).toBe(firstFolder.labelColor);
-		expect(secondFolder.labelColor).toBe('hsl(54, 60%, 40%)');
+		expect(secondFolder.labelColor).toBe('var(--vaultman-rainbow-2)');
 	});
 
 	it('carries a branch color through an out-of-scope folder to scoped files', () => {
@@ -100,7 +100,7 @@ describe('U121-010 Files Tree glyph projection', () => {
 		panel._decorateTreeWithIcons([folder]);
 
 		expect(folder.labelColor).toBeUndefined();
-		expect(childFile.labelColor).toBe('hsl(342, 60%, 40%)');
+		expect(childFile.labelColor).toBe('var(--vaultman-rainbow-10)');
 	});
 
 	it('inherits the pastel rainbow color through the whole root branch', () => {
@@ -120,7 +120,7 @@ describe('U121-010 Files Tree glyph projection', () => {
 
 		panel._decorateTreeWithIcons([folder]);
 
-		expect(folder.labelColor).toBe('hsl(324, 100%, 83%)');
+		expect(folder.labelColor).toBe('var(--vaultman-rainbow-pastel-10)');
 		expect(childFile.labelColor).toBe(folder.labelColor);
 	});
 
