@@ -28,6 +28,7 @@
 	} from '../../types/typeOps';
 	import { translate } from '../../i18n/index';
 	import { NativeSearchAdapter } from '../../services/serviceNativeSearchAdapter';
+	import { bookmarkSearchQuery } from '../../services/serviceCoreBookmarks';
 	import {
 		sortContentPreviewFiles,
 		type ContentSortBy,
@@ -1036,6 +1037,22 @@
 
 	onDestroy(() => nativeSearchAdapter.destroy());
 
+	// U121-019 #51: both are bridges to affordances core already ships. Neither
+	// belongs in the renderer, so the buttons in tabContent only call these.
+	function copyContentSearchResults(event: MouseEvent): void {
+		if (nativeSearchAdapter.copySearchResults(event)) return;
+		new Notice(translate('content.copy_unavailable'));
+	}
+
+	function bookmarkContentSearch(): void {
+		const query = contentFind.trim();
+		if (bookmarkSearchQuery(plugin.app, query)) {
+			new Notice(translate('content.bookmarked').replace('{query}', query));
+			return;
+		}
+		new Notice(translate('content.bookmarks_unavailable'));
+	}
+
 	function queueContentReplace() {
 		if (!contentFind) return;
 		if (!validateContentSearch()) return;
@@ -1211,6 +1228,8 @@
 				{cancelQueuedRename}
 				badgeCancelClickMode={plugin.settings.badgeCancelClickMode}
 				onContentContextMenu={openContentContextMenu}
+				onCopySearchResults={copyContentSearchResults}
+				onBookmarkSearch={bookmarkContentSearch}
 			/>
 		</div>
 	{/if}

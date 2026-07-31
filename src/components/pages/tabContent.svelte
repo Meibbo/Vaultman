@@ -30,6 +30,8 @@
 		cancelQueuedRename,
 		badgeCancelClickMode,
 		onContentContextMenu,
+		onCopySearchResults,
+		onBookmarkSearch,
 	}: {
 		contentFind: string;
 		contentReplace: string;
@@ -56,6 +58,10 @@
 		badgeCancelClickMode: BadgeCancelClickMode;
 		/** BT5-036: open the configurable Content node menu (Rename/Delete). */
 		onContentContextMenu?: (file: TFile, event: MouseEvent) => void;
+		/** U121-019 #51: bridges to core's own `SearchView.onCopyResultsClick`. */
+		onCopySearchResults?: (event: MouseEvent) => void;
+		/** U121-019 #51: adds a `{type:'search'}` item through the Bookmarks plugin. */
+		onBookmarkSearch?: () => void;
 	} = $props();
 
 	let contentReplaceOpen = $state(false);
@@ -136,22 +142,6 @@
 			></button>
 		{/if}
 	</div>
-	<button
-		class="clickable-icon vaultman-icon-toggle"
-		class:is-active={contentIsExclusion}
-		aria-label={contentIsExclusion
-			? translate('filter.text_not_contains')
-			: translate('filter.text_contains')}
-		title={contentIsExclusion
-			? translate('filter.text_not_contains')
-			: translate('filter.text_contains')}
-		onclick={() => {
-			contentIsExclusion = !contentIsExclusion;
-		}}
-		use:iconAction={contentIsExclusion
-			? 'lucide-file-minus'
-			: 'lucide-file-text'}
-	></button>
 	<button
 		class="clickable-icon vaultman-icon-toggle"
 		class:is-active={contentCaseSensitive}
@@ -302,6 +292,54 @@
 					>
 				{/if}
 			</span>
+			<!-- U121-019 #51: action cells on the result header. Has/Hasn't lives
+			     here now, beside the count it changes, not in the search row (the
+			     earlier plan to move it to the toolbar is void). Copy and Bookmark
+			     are core's own affordances, reached rather than rebuilt — see
+			     .agents/docs/architecture/research/core-bookmarks-and-search-actions.md -->
+			<div class="tree-item-flair-outer vaultman-content-header-actions">
+				<button
+					class="clickable-icon vaultman-icon-toggle"
+					class:is-active={contentIsExclusion}
+					aria-label={contentIsExclusion
+						? translate('filter.text_not_contains')
+						: translate('filter.text_contains')}
+					title={contentIsExclusion
+						? translate('filter.text_not_contains')
+						: translate('filter.text_contains')}
+					onclick={(e: MouseEvent) => {
+						e.stopPropagation();
+						contentIsExclusion = !contentIsExclusion;
+					}}
+					use:iconAction={contentIsExclusion
+						? 'lucide-file-minus'
+						: 'lucide-file-text'}
+				></button>
+				{#if onCopySearchResults}
+					<button
+						class="clickable-icon"
+						aria-label={translate('content.copy_results')}
+						title={translate('content.copy_results')}
+						onclick={(e: MouseEvent) => {
+							e.stopPropagation();
+							onCopySearchResults?.(e);
+						}}
+						use:iconAction={'lucide-copy'}
+					></button>
+				{/if}
+				{#if onBookmarkSearch}
+					<button
+						class="clickable-icon"
+						aria-label={translate('content.bookmark_search')}
+						title={translate('content.bookmark_search')}
+						onclick={(e: MouseEvent) => {
+							e.stopPropagation();
+							onBookmarkSearch?.();
+						}}
+						use:iconAction={'lucide-bookmark'}
+					></button>
+				{/if}
+			</div>
 		</div>
 		{#if contentPreviewOpen && contentPreviewResult.totalMatches > 0}
 			<div class="search-results-children" bind:this={contentResultsEl}>
