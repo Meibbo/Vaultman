@@ -197,17 +197,17 @@ describe('FilesExplorerPanel source guards', () => {
 		expect(explorerFilesSource).toContain('this._usesStatisticsSort()');
 		expect(explorerFilesSource).toContain('changedItemsRemainOrdered(');
 		expect(explorerFilesSource).toContain(
-			'!this._statisticsSortNeedsReorder(change.paths ?? [])',
+			'needsReorder: () => this._statisticsSortNeedsReorder(paths)',
 		);
 		expect(explorerFilesSource).toContain(
-			'this._patchVisibleStatisticsCells(new Set(change.paths ?? []))',
+			'this._patchVisibleStatisticsCells(pathSet)',
 		);
 		expect(explorerFilesSource).toContain("this.statisticsWarmSignature = '';");
 		expect(explorerFilesSource).not.toContain(
 			'if (sortingByWords) this._render();',
 		);
 		const patchCellsBlock = explorerFilesSource.match(
-			/private _patchVisibleStatisticsCells[\s\S]*?\n\tprivate readonly _handleActiveFileChange/,
+			/private _patchVisibleStatisticsCells[\s\S]*?\n\tprivate _patchVisibleTimeCells/,
 		)?.[0];
 		expect(patchCellsBlock).toContain('.vaultman-file-words');
 		expect(patchCellsBlock).toContain('.vaultman-files-grid-card-words');

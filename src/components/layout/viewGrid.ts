@@ -711,6 +711,9 @@ export class GridView {
 			text,
 		});
 		valueEl.dataset.propertyType = 'text';
+		// U121-027: mtime and ctime share `vaultman-file-date`, so the column id
+		// is the only identity a targeted cell patch can address.
+		valueEl.dataset.cell = column.id;
 	}
 
 	private visibleExtension(file: TFile): string {

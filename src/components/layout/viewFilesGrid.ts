@@ -463,24 +463,31 @@ export class FilesGridView {
 				});
 			}
 			if (this.visibleCells.has('mtime')) {
-				this.renderDateCell(metaRow, times.mtime);
+				this.renderDateCell(metaRow, times.mtime, 'mtime');
 			}
 			if (this.visibleCells.has('ctime')) {
-				this.renderDateCell(metaRow, times.ctime);
+				this.renderDateCell(metaRow, times.ctime, 'ctime');
 			}
 		}
 		this.renderBadges(card, badges);
 	}
 
-	private renderDateCell(parent: HTMLElement, time: number): void {
+	private renderDateCell(
+		parent: HTMLElement,
+		time: number,
+		cellId: string,
+	): void {
 		if (!Number.isFinite(time) || time <= 0) return;
 		const text =
 			this.callbacks.formatTimestamp?.(time) ?? new Date(time).toLocaleDateString();
 		if (!text) return;
-		parent.createSpan({
+		// U121-027: both date cells share the class; `data-cell` is the identity
+		// the targeted patch pipeline addresses.
+		const span = parent.createSpan({
 			cls: 'nav-file-tag vaultman-files-grid-card-date',
 			text,
 		});
+		span.dataset.cell = cellId;
 	}
 
 	private renderBadges(parent: HTMLElement, badges: NodeBadge[]): void {

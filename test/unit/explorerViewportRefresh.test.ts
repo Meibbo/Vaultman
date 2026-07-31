@@ -80,11 +80,9 @@ describe('BT5-030 cached viewport activation', () => {
 		// sort keeps BT5-030's contract — no render on file-open, which is what
 		// removed the typing micro-stalls. The guard therefore pins the
 		// condition, not the absence of a render.
-		// U121-027 widened the carve-out a second time, narrowly. Opening a file
-		// bumps Last opened under every sort, so the cell was stale under all of
-		// them. The non-'opened' branch now refreshes the single opened node and
-		// repaints the tree window — it still must NOT call `_render()`, which is
-		// the panel render BT5-030 removed.
+		// U121-027 keeps the cells live without bending that contract: the
+		// non-'opened' branch patches the opened row's cells in place through
+		// the LivreUI patch pipeline — no `_render()`, no tree window repaint.
 		expect(handler).toContain(
 			"if (normalizeExplorerSortBy(this.sortBy) !== 'opened') {",
 		);
@@ -92,10 +90,13 @@ describe('BT5-030 cached viewport activation', () => {
 		expect(guardIndex).toBeGreaterThan(-1);
 		const branch = handler.slice(
 			guardIndex,
-			handler.indexOf('queueMicrotask('),
+			handler.indexOf('// BT5-089'),
 		);
-		expect(branch).toContain('this._refreshNodeTimeCells(opened)');
+		expect(branch).toContain(
+			'this._patchVisibleTimeCells(new Set([file.path]))',
+		);
 		expect(branch).not.toContain('this._render()');
+		expect(branch).not.toContain('this.treeView.render(');
 		const renderIndex = handler.indexOf('this._render()');
 		expect(renderIndex).toBeGreaterThan(guardIndex);
 		expect(filesPanelSource).toContain('this.treeView?.setActiveId(nextPath)');

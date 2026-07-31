@@ -905,9 +905,20 @@ export class UnifiedTreeView {
 				text: node.typeText,
 			});
 		};
-		const emitDate = (parent: HTMLElement, text?: string): void => {
+		// U121-027: the three date cells share one class, so `data-cell` gives
+		// each an addressable identity — the prerequisite for patching a single
+		// cell's text in place without a render.
+		const emitDate = (
+			parent: HTMLElement,
+			text: string | undefined,
+			cellId: string,
+		): void => {
 			if (!text) return;
-			parent.createSpan({ cls: 'vaultman-tree-date nav-file-tag', text });
+			const span = parent.createSpan({
+				cls: 'vaultman-tree-date nav-file-tag',
+				text,
+			});
+			span.dataset.cell = cellId;
 		};
 		const emitWords = (parent: HTMLElement): void => {
 			if (!showWords || !node.wordCountText) return;
@@ -937,11 +948,16 @@ export class UnifiedTreeView {
 			path: emitLabel,
 			type: emitType,
 			ext: emitType,
-			mtime: (parent) => emitDate(parent, showMtime ? node.mtimeText : ''),
-			updated: (parent) => emitDate(parent, showMtime ? node.mtimeText : ''),
-			ctime: (parent) => emitDate(parent, showCtime ? node.ctimeText : ''),
-			installed: (parent) => emitDate(parent, showCtime ? node.ctimeText : ''),
-			opened: (parent) => emitDate(parent, showOpened ? node.openedText : ''),
+			mtime: (parent) =>
+				emitDate(parent, showMtime ? node.mtimeText : '', 'mtime'),
+			updated: (parent) =>
+				emitDate(parent, showMtime ? node.mtimeText : '', 'mtime'),
+			ctime: (parent) =>
+				emitDate(parent, showCtime ? node.ctimeText : '', 'ctime'),
+			installed: (parent) =>
+				emitDate(parent, showCtime ? node.ctimeText : '', 'ctime'),
+			opened: (parent) =>
+				emitDate(parent, showOpened ? node.openedText : '', 'opened'),
 			words: emitWords,
 			tasks: emitTasks,
 			count: emitCount,
@@ -1019,9 +1035,9 @@ export class UnifiedTreeView {
 			const badgeZone = row.createDiv({ cls: 'vaultman-tree-badge-zone' });
 
 			if (!usesActivationOrder) {
-				emitDate(badgeZone, showMtime ? node.mtimeText : '');
-				emitDate(badgeZone, showCtime ? node.ctimeText : '');
-				emitDate(badgeZone, showOpened ? node.openedText : '');
+				emitDate(badgeZone, showMtime ? node.mtimeText : '', 'mtime');
+				emitDate(badgeZone, showCtime ? node.ctimeText : '', 'ctime');
+				emitDate(badgeZone, showOpened ? node.openedText : '', 'opened');
 				emitWords(badgeZone);
 				emitTasks(badgeZone);
 			}

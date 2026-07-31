@@ -58,6 +58,11 @@ import {
 	normalizeExplorerSortBy,
 } from '../../logic/logicSort';
 import {
+	isTrackedPrimarySort,
+	resolveScheduledStatsAction,
+	resolveStatsChangeAction,
+} from '../../logic/logicLiveCells';
+import {
 	moveNodeToSiblingEdge,
 	recencyEdgeForDirection,
 } from '../../logic/logicTreeNodeMove';
@@ -609,7 +614,7 @@ export class FilesExplorerPanel extends Component {
 		this.registerInterval(
 			window.setInterval(() => {
 				if (!this._hasLiveTimestamps) return;
-				this._scheduleLiveRender();
+				this._patchVisibleTimeCells();
 			}, LIVE_TIMESTAMP_TICK_MS),
 		);
 
@@ -1834,19 +1839,28 @@ export class FilesExplorerPanel extends Component {
 	}
 
 	private _rememberStatisticsSortOrder(files: readonly TFile[]): void {
-		if (this.sortBy !== 'words' && this.sortBy !== 'tasks') {
+		const sortBy = normalizeExplorerSortBy(this.sortBy);
+		if (!isTrackedPrimarySort(sortBy)) {
 			this.lastStatisticsSortOrder = [];
 			this.lastStatisticsSortComplete = false;
 			return;
 		}
 		this.lastStatisticsSortOrder = [...files];
-		this.lastStatisticsSortComplete = files.every(
-			(file) =>
-				file.extension !== 'md' ||
-				(this.sortBy === 'words'
-					? this.plugin.statisticsCache.getFileWordCount(file)
-					: this.plugin.statisticsCache.getFileRemainingTasks(file)) !== null,
-		);
+		// Word/task counts stream in during warmup, so an order snapshot taken
+		// before they resolve cannot answer "did this change move anything".
+		// File times and Last opened resolve synchronously, so a time-sorted
+		// snapshot is always complete (U121-027).
+		this.lastStatisticsSortComplete =
+			sortBy === 'words' || sortBy === 'tasks'
+				? files.every(
+						(file) =>
+							file.extension !== 'md' ||
+							(sortBy === 'words'
+								? this.plugin.statisticsCache.getFileWordCount(file)
+								: this.plugin.statisticsCache.getFileRemainingTasks(file)) !==
+								null,
+					)
+				: true;
 	}
 
 	private _statisticsSortNeedsReorder(paths: readonly string[]): boolean {
@@ -1855,12 +1869,17 @@ export class FilesExplorerPanel extends Component {
 			this.lastStatisticsSortOrder,
 			paths,
 			(file) => file.path,
+			// Mirrors `_sortFiles` exactly: the incremental answer must be
+			// derived from the same comparator the full sort would use.
 			(a, b) =>
 				compareFilesForExplorer(a, b, this.sortBy, this.sortDir, {
+					countForFile: (file) => this._propCountForFile(file),
 					wordCountForFile: (file) =>
 						this.plugin.statisticsCache.getFileWordCount(file),
 					taskCountForFile: (file) =>
 						this.plugin.statisticsCache.getFileRemainingTasks(file),
+					getFileTimes: (file) =>
+						this.plugin.statisticsCache.getFileTimes(file),
 					lastOpenedForFile: (file) =>
 						this.plugin.lastOpenedService.getLastOpened(file),
 				}),
@@ -2224,35 +2243,35 @@ export class FilesExplorerPanel extends Component {
 			if (this._needsStatisticsWarmup()) this._warmStatisticsCache();
 			return;
 		}
-		if (this.sortBy === 'words' || this.sortBy === 'tasks') {
-			if (
-				change.kind === 'file-stats-refreshed' &&
-				!this._statisticsSortNeedsReorder(change.paths ?? [])
-			) {
-				this._patchVisibleStatisticsCells(new Set(change.paths ?? []));
-				return;
-			}
-			this._scheduleStatsRefresh();
+		// LivreUI (U121-027): `statisticsCache` listens to vault `modify` and
+		// emits `file-stats-refreshed` with the changed paths on every autosave
+		// while the user is typing — so this handler must never buy a render it
+		// cannot prove it needs (BT5-030). The decision is a pure function in
+		// logicLiveCells so the no-render invariant stays behaviourally tested.
+		const paths = change.paths ?? [];
+		const action = resolveStatsChangeAction({
+			kind: change.kind,
+			primarySort: normalizeExplorerSortBy(this.sortBy),
+			secondaryStatsSort: this._usesStatisticsSort(),
+			secondaryTimeSort: this._usesSecondaryTimeSort(),
+			statsCellVisible:
+				this.visibleCells.has('words') || this.visibleCells.has('tasks'),
+			timeCellVisible: this._timeCellVisible(),
+			needsReorder: () => this._statisticsSortNeedsReorder(paths),
+		});
+		if (action === 'ignore') return;
+		if (action === 'patch') {
+			const pathSet = new Set(paths);
+			this._patchVisibleStatisticsCells(pathSet);
+			this._patchVisibleTimeCells(pathSet);
 			return;
 		}
-		if (this._usesStatisticsSort()) {
-			this._scheduleStatsRefresh();
-			return;
-		}
-		// LivreUI (U121-027): `statisticsCache` already listens to vault `modify`
-		// and emits `file-stats-refreshed` with the changed paths — the signal the
-		// time cells need was arriving here and being dropped, because only the
-		// words/tasks cells were considered. Modifying a note left both the mtime
-		// cell and an mtime sort stale until the minute ticker or an unrelated
-		// render came along.
-		if (
-			!this.visibleCells.has('words') &&
-			!this.visibleCells.has('tasks') &&
-			!this._timeCellVisible()
-		) {
-			return;
-		}
-		this._scheduleStatsRefresh(change.paths);
+		// The modified file is the new recency extreme under the Modified sort,
+		// which is exactly BT5-089's Last-opened move — same shortcut, same
+		// honest fallback to the debounced render when it does not provably land
+		// where a full re-sort would.
+		if (action === 'reorder' && this._tryMoveModifiedToEdge(paths)) return;
+		this._scheduleStatsRefresh(paths);
 	};
 
 	private _scheduleStatsRefresh(paths: readonly string[] = []): void {
@@ -2264,24 +2283,22 @@ export class FilesExplorerPanel extends Component {
 			this.statsRefreshTimer = null;
 			const changedPaths = new Set(this.pendingStatsPaths);
 			this.pendingStatsPaths.clear();
-			// A time sort has to re-order (a modified file's mtime becomes the
-			// max), and a visible time cell has to re-derive its text. Neither can
-			// use the surgical patch below: the three date cells share one class
-			// per view (`vaultman-tree-date`, `vaultman-file-date`,
-			// `vaultman-files-grid-card-date`), so there is no selector that
-			// addresses mtime without also matching ctime and opened. Giving them
-			// separate identities is the prerequisite for patching them, and is
-			// worth doing — until then the honest option is this render, which the
-			// 60ms debounce already keeps off the typing path.
-			if (
-				this._usesStatisticsSort() ||
-				this._usesTimeSort() ||
-				this._timeCellVisible() ||
-				this.statisticsRetrySignature
-			) {
+			// Renders are reserved for orders the incremental path could not
+			// preserve (tracked primary sorts that provably re-ordered, secondary
+			// sorts, warmup retries). Everything else — visible words, tasks and
+			// time cells included — is a targeted patch: `data-cell` gives every
+			// date cell an addressable identity, so text lands without a render.
+			const scheduled = resolveScheduledStatsAction({
+				primarySort: normalizeExplorerSortBy(this.sortBy),
+				secondaryStatsSort: this._usesStatisticsSort(),
+				secondaryTimeSort: this._usesSecondaryTimeSort(),
+				retryPending: this.statisticsRetrySignature !== '',
+			});
+			if (scheduled === 'render') {
 				this._render();
 			} else {
 				this._patchVisibleStatisticsCells(changedPaths);
+				this._patchVisibleTimeCells(changedPaths);
 			}
 		}, 60);
 	}
@@ -2405,6 +2422,129 @@ export class FilesExplorerPanel extends Component {
 		visit(this._lastRenderTree);
 	}
 
+	/**
+	 * LivreUI (U121-027): the words/tasks patcher generalized to the clock
+	 * cells — fresh text written straight into the rendered rows, addressed by
+	 * `data-cell`. No model rebuild, no re-sort, no `_render()`: the typing and
+	 * ticker paths never pay for more than targeted DOM writes (BT5-030). An
+	 * empty `paths` set means "every rendered row" — the minute tick.
+	 */
+	private _patchVisibleTimeCells(paths = new Set<string>()): void {
+		if (!this._timeCellVisible()) return;
+		if (paths.size === 0) {
+			// Full tick: recompute the flag from what actually gets formatted, so
+			// a vault whose last relative cell just aged past the threshold stops
+			// paying for the interval. `_formatDateCell` re-raises it.
+			this._hasLiveTimestamps = false;
+		}
+		// Model first: virtualized rows render from node text when they scroll
+		// in, so a DOM-only patch would resurrect stale copy at the edges.
+		if (this.viewMode === 'tree') this._patchCachedTimeNodes(paths);
+		const cellIds: ('mtime' | 'ctime' | 'opened')[] = [];
+		if (this.visibleCells.has('mtime')) cellIds.push('mtime');
+		if (this.visibleCells.has('ctime')) cellIds.push('ctime');
+		// The opened cell only exists in the tree; table columns and card meta
+		// rows do not carry it.
+		if (this.visibleCells.has('opened') && this.viewMode === 'tree') {
+			cellIds.push('opened');
+		}
+		if (cellIds.length === 0) return;
+		const rowSelector =
+			this.viewMode === 'tree'
+				? '.vaultman-tree-row[data-path]'
+				: this.viewMode === 'table'
+					? '.vaultman-file-table-row[data-path]'
+					: '.vaultman-files-grid-card[data-path]';
+		let structuralMiss = false;
+		for (const row of Array.from(
+			this.containerEl.querySelectorAll<HTMLElement>(rowSelector),
+		)) {
+			const path = row.dataset.path;
+			if (!path) continue;
+			if (paths.size > 0 && !paths.has(path)) continue;
+			const file = this.plugin.app.vault.getAbstractFileByPath(path);
+			if (!(file instanceof TFile)) continue;
+			const times = this.plugin.statisticsCache.getFileTimes(file);
+			for (const cellId of cellIds) {
+				const text =
+					cellId === 'opened'
+						? this._formatOpenedCell(file)
+						: this._formatDateCell(times[cellId]);
+				const cell = row.querySelector<HTMLElement>(
+					`[data-cell="${cellId}"]`,
+				);
+				if (!cell) {
+					// The span only exists once the value does (BT5-013 keeps
+					// never-opened files blank), so its first appearance is a
+					// structural change — one viewport refresh absorbs it.
+					if (text) structuralMiss = true;
+					continue;
+				}
+				if (text !== undefined && cell.textContent !== text) {
+					cell.textContent = text;
+				}
+			}
+		}
+		if (structuralMiss) {
+			if (this.viewMode === 'tree') this.treeView?.refreshViewport();
+			else if (this.viewMode === 'table') this.tableView?.refreshViewport();
+			else this.gridView?.refreshViewport();
+		}
+	}
+
+	/** Keep the cached tree nodes in step with what the DOM patch painted. */
+	private _patchCachedTimeNodes(paths: ReadonlySet<string>): void {
+		const visit = (nodes: TreeNode<FileMeta>[]): void => {
+			for (const node of nodes) {
+				if (node.meta.file && (paths.size === 0 || paths.has(node.id))) {
+					this._refreshNodeTimeCells(node);
+				}
+				if (node.children?.length) visit(node.children);
+			}
+		};
+		visit(this._lastRenderTree);
+	}
+
+	/**
+	 * LivreUI (U121-027): under the Modified sort a vault write makes the file
+	 * the new recency extreme — exactly BT5-089's Last-opened situation, so the
+	 * modified note gets the same priority treatment as the opened one. Returns
+	 * false whenever the move is not provably identical to a full re-sort, and
+	 * the caller falls back to the honest debounced render.
+	 */
+	private _tryMoveModifiedToEdge(paths: readonly string[]): boolean {
+		if (normalizeExplorerSortBy(this.sortBy) !== 'mtime') return false;
+		if (paths.length !== 1) return false;
+		if (this.viewMode !== 'tree') return false;
+		if (!this.treeView || !this._treeRenderOpts || !this._canMoveOnOpen()) {
+			return false;
+		}
+		const result = moveNodeToSiblingEdge(
+			this._treeRenderOpts.nodes as TreeNode<FileMeta>[],
+			paths[0],
+			recencyEdgeForDirection(this.sortDir),
+			{ partitionOf: (node) => node.meta.isFolder === true },
+		);
+		const moved = this._findNode(
+			paths[0],
+			(result.changed
+				? result.nodes
+				: this._treeRenderOpts.nodes) as TreeNode<FileMeta>[],
+		);
+		if (!moved) return false;
+		this._refreshNodeTimeCells(moved);
+		if (!result.changed) {
+			// Already at the edge — steady-state typing lands here after the
+			// first save, so it must cost a DOM write, not a window render.
+			this._patchVisibleTimeCells(new Set(paths));
+			return true;
+		}
+		this._bubbleTree = result.nodes;
+		this._treeRenderOpts = { ...this._treeRenderOpts, nodes: result.nodes };
+		this.treeView.render(this._treeRenderOpts);
+		return true;
+	}
+
 	private readonly _handleActiveFileChange = (file: TFile | null): void => {
 		this._syncActiveFilePath(file ?? undefined);
 		// BT5-013: Last opened is a recency order, so opening a file changes it
@@ -2414,21 +2554,17 @@ export class FilesExplorerPanel extends Component {
 		// no dependency on listener registration order.
 		// LivreUI (U121-027) vs BT5-030: opening a file bumps its Last opened value
 		// whatever the sort is, so the cell is stale under every other order too.
-		// BT5-030 forbids a panel render here (it is what removed the typing
-		// micro-stalls), so this refreshes the one opened node in place and
-		// repaints the tree window — no model rebuild, no re-sort, no `_render()`.
-		// Table and Cards have no equivalent targeted path, so they stay on
-		// BT5-030's contract and are handled by the next full render.
+		// BT5-030 forbids a render here (it is what removed the typing
+		// micro-stalls): the patch pipeline writes the one opened row's cells in
+		// place — model text plus a targeted DOM write, no render of any kind.
+		// The microtask defers past the plugin's own file-open listener so the
+		// timestamp is already recorded when the cell is formatted (BT5-013).
 		if (normalizeExplorerSortBy(this.sortBy) !== 'opened') {
 			if (!file || !this._timeCellVisible()) return;
-			if (!this.treeView || !this._treeRenderOpts) return;
-			const opened = this._findNode(
-				file.path,
-				this._treeRenderOpts.nodes as TreeNode<FileMeta>[],
-			);
-			if (!opened) return;
-			this._refreshNodeTimeCells(opened);
-			this.treeView.render(this._treeRenderOpts);
+			queueMicrotask(() => {
+				if (!this.containerEl.isConnected) return;
+				this._patchVisibleTimeCells(new Set([file.path]));
+			});
 			return;
 		}
 		queueMicrotask(() => {
@@ -2698,12 +2834,14 @@ export class FilesExplorerPanel extends Component {
 	}
 
 	/**
-	 * Whether the active order depends on a file time that a vault `modify`
+	 * Whether any scope-sort level orders by a file time that a vault `modify`
 	 * changes. `opened` is excluded: it is driven by `file-open`, not by writes.
 	 */
-	private _usesTimeSort(): boolean {
-		const sortBy = normalizeExplorerSortBy(this.sortBy);
-		return sortBy === 'mtime' || sortBy === 'ctime';
+	private _usesSecondaryTimeSort(): boolean {
+		return Object.values(this.sortState.sorts).some((sort) => {
+			const sortBy = normalizeExplorerSortBy(sort?.sortBy ?? '');
+			return sortBy === 'mtime' || sortBy === 'ctime';
+		});
 	}
 
 	/** Whether any cell that goes stale on the wall clock is on screen. */
