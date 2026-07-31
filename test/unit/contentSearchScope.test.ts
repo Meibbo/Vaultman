@@ -139,9 +139,15 @@ describe('pause/resume content search (BT4-018 / D46, re-pointed by U121-017)', 
 		expect(pageFiltersSource).toContain(
 			'const intentChanged = !sameTextSearchIntent(',
 		);
-		const effectResetIndex = pageFiltersSource.indexOf(
-			'if (intentChanged) {\n\t\t\t\tnativeSearchAdapter.resetRetained();',
-		);
-		expect(effectResetIndex).toBeGreaterThan(-1);
+		// Asserted as "inside the intent-change branch", not as the line that
+		// happens to follow it. The cancel that used to sit above this one carried
+		// an `|| reconciled.phase === 'running'` arm, and folding it in on U121-017
+		// moved this line two rows down without changing what guards it.
+		const intentBranch =
+			pageFiltersSource.match(/if \(intentChanged\) \{[\s\S]*?\n\t{3}\}/)?.[0] ??
+			'';
+		expect(intentBranch).not.toBe('');
+		expect(intentBranch).toContain('nativeSearchAdapter.resetRetained();');
+		expect(intentBranch).toContain('nativeSearchAdapter.cancel();');
 	});
 });

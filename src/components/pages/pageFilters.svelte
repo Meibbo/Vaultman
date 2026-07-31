@@ -860,11 +860,16 @@
 				contentSearchRun.signature,
 				reconciled.signature,
 			);
-			if (intentChanged || reconciled.phase === 'running') {
+			// Only an intent change cancels. `reconciled` reaching here as
+			// `running` already implies a different intent — a scope-only move
+			// comes back by identity — so the extra `phase === 'running'` arm this
+			// used to carry was unreachable, and while reconcile still minted runs
+			// on a scope move it was the other half of the crash: cancel cleared
+			// the launch token, the next pass relaunched, the scan moved the scope
+			// revision, and the effect re-entered until Svelte gave up.
+			if (intentChanged) {
 				nativeSearchAdapter.cancel();
 				contentSearchLaunchToken = '';
-			}
-			if (intentChanged) {
 				nativeSearchAdapter.resetRetained();
 				contentScanCursor = 0;
 			}
@@ -936,8 +941,19 @@
 				isLoading: true,
 			};
 			collapsedContentFilePaths = [];
-		} else if (contentPreviewResult) {
-			contentPreviewResult = { ...contentPreviewResult, isLoading: true };
+		} else {
+			// Untracked, and written at most once. Reading the preview here made it
+			// a dependency of this effect, and the line below writes a fresh object
+			// straight back to it — the effect invalidated itself. Nothing broke the
+			// cycle either: the launch token is claimed inside the debounce timer
+			// (below), and this effect's teardown clears that timer on every re-run,
+			// so the scan never started and `shouldLaunchTextSearch` never turned
+			// false. Only `resumeFrom > 0` reaches this branch, which is why a first
+			// search was fine and Resume took the app down.
+			const frozen = untrack(() => contentPreviewResult);
+			if (frozen && !frozen.isLoading) {
+				contentPreviewResult = { ...frozen, isLoading: true };
+			}
 		}
 		contentPreviewOpen = true;
 		const resuming = contentResumeRequested;

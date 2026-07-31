@@ -367,23 +367,50 @@ describe('scope revision does not invalidate the query state', () => {
 		expect(reconcileTextSearchRun(completed, moved)).toBe(completed);
 	});
 
-	it('a scope-only change keeps the query and mode but restarts the scan', () => {
-		// The host recomputes its scope revision as a side effect of the very
-		// filter update this search performs, so a scope change must not read as
-		// "the user asked for something else".
+	it('returns a running run by identity too, so a scan in flight is not re-minted', () => {
+		// This is the resume crash. A scan already in flight applies its filter
+		// rule, the host recomputes the scope revision off that very update, the
+		// effect re-runs with a moved revision — and a `running` run used to fall
+		// through to a fresh object with `generation + 1`. That is a `$state`
+		// write, the write re-runs the effect, the effect relaunches the scan, the
+		// scan moves the revision again: `effect_update_depth_exceeded`.
+		//
+		// Resume is exactly the transition that returns a run to `running` with
+		// scope and filter *already applied*, which is why it crashed there and
+		// not on a first search. A scope-only move must be inert for every phase
+		// that owns a traversal.
 		const running = advanceTextSearchRun(
 			createTextSearchRun(signature(), 'running'),
 			15,
 		);
-		const next = reconcileTextSearchRun(
-			running,
+		const moved = signature({ scopeRevision: 'sig:view:1:edit:2' });
+
+		expect(reconcileTextSearchRun(running, moved)).toBe(running);
+		expect(reconcileTextSearchRun(running, moved).generation).toBe(
+			running.generation,
+		);
+		expect(reconcileTextSearchRun(running, moved).cursor).toBe(15);
+	});
+
+	it('does not mint a new generation across repeated scope revisions', () => {
+		// The loop needed two passes to run away: pass one mints generation + 1,
+		// pass two mints another off the run pass one produced. Feeding two
+		// distinct revisions in sequence is the smallest shape of the crash.
+		const first = advanceTextSearchRun(
+			createTextSearchRun(signature(), 'running'),
+			15,
+		);
+		const second = reconcileTextSearchRun(
+			first,
 			signature({ scopeRevision: 'sig:view:1:edit:2' }),
 		);
+		const third = reconcileTextSearchRun(
+			second,
+			signature({ scopeRevision: 'sig:view:1:edit:3' }),
+		);
 
-		expect(next.signature.query).toBe('alpha');
-		expect(next.signature.isRegex).toBe(false);
-		expect(next.phase).toBe('running');
-		expect(next.cursor).toBe(0);
+		expect(third.generation).toBe(first.generation);
+		expect(third).toBe(first);
 	});
 });
 

@@ -176,18 +176,26 @@ export function reconcileTextSearchRun(
 	if (sameTextSearchIntent(run.signature, signature)) {
 		// Scope-only move. The host recomputes its scope revision as a side
 		// effect of the filter update this very search performs, so this fires
-		// on our own tail. It must never wake a paused run or re-open a
-		// completed one — that is churn, not a user asking for something else.
+		// on our own tail. It must never wake a paused run, re-open a completed
+		// one, or re-mint one already scanning — that is churn, not a user
+		// asking for something else.
 		//
 		// Returned **by identity**, not as a copy carrying the new revision: a
 		// copy is a state write, the write re-runs the host effect, the effect
 		// re-applies the filter rule, and that moves the revision again. That
-		// loop froze the app on pause. A frozen run has no use for a newer scope
-		// anyway — resuming re-reads the scope files at launch.
-		if (run.phase === 'paused' || run.phase === 'completed') {
-			return run;
-		}
-		return createTextSearchRun(signature, 'running', run.generation + 1);
+		// loop froze the app on pause, and on `running` it ran away outright —
+		// each pass minted `generation + 1`, which relaunched the scan, which
+		// moved the revision, until Svelte raised
+		// `effect_update_depth_exceeded`. Resume is the transition that returns
+		// a run to `running` with scope and filter already applied, so the churn
+		// was immediate there and absent on a first search.
+		//
+		// A run holding a traversal has no use for a newer scope anyway: the
+		// scan reads its scope files at launch, and a user who genuinely wants
+		// the new scope searched has Restart. Only `idle` carries no traversal,
+		// and an idle run with a query is not reachable here — the empty-query
+		// branch above owns that case.
+		return run;
 	}
 	return createTextSearchRun(signature, 'running', run.generation + 1);
 }
