@@ -45,7 +45,7 @@
 		"eslint-plugin-obsidianmd": "0.3.0",
 		"globals": "14.0.0",
 		"jiti": "2.6.1",
-		"mocha": "10.8.2",
+		"mocha": "11.7.6",
 		"obsidian": "1.12.3",
 		"obsidian-integration-testing": "4.1.6",
 		"obsidian-launcher": "3.0.2",
