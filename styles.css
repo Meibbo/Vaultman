@@ -4283,10 +4283,20 @@ button.vaultman-content-scope-hint:focus-visible {
   color: var(--text-accent);
 }
 
-.vaultman-preview-chevron {
-  color: var(--text-muted);
-  font-size: 10px;
-}
+/* U121-019: the caret needs no rules of ours. `app.css` already styles it
+   through `.collapse-icon`, which this row carries:
+
+     .collapse-icon svg.svg-icon      { color: var(--nav-collapse-icon-color);
+                                        stroke-width: 4px; width: 10px;
+                                        height: 10px;
+                                        transition: transform 100ms ease-in-out }
+     .collapse-icon.is-collapsed svg.svg-icon
+                                      { transform: rotate(... -90deg) }
+
+   `is-collapsed` sits on the same element as `collapse-icon`, so the second
+   rule matches as written. A rotation of our own did not replace it, it
+   composed with it — -90deg on the span over -90deg on the svg — and the caret
+   pointed straight up. Everything here is inherited; nothing is reproduced. */
 
 .vaultman-content-preview-file {
   color: var(--color-accent);

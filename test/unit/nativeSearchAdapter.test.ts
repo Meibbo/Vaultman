@@ -7,6 +7,7 @@ import {
 	NativeSearchAdapter,
 	toNativeSearchQuery,
 } from '../../src/services/serviceNativeSearchAdapter';
+import type { ContentPreviewResult } from '../../src/types/typeUI';
 
 const vault = {} as Vault;
 
@@ -585,5 +586,126 @@ describe('local offsets are authoritative for scanned files (BT4-019)', () => {
 			isLoading: false,
 		});
 		expect(updates.at(-1)?.files[0].matchCount).toBe(1);
+	});
+});
+
+describe('resuming a local traversal (U121-017 micro-freeze)', () => {
+	afterEach(() => {
+		vi.unstubAllGlobals();
+	});
+
+	function makeAdapter(term: string) {
+		return new NativeSearchAdapter({
+			vault: {
+				cachedRead: async (file: TFile) =>
+					file.basename === 'empty' ? 'nothing here' : `a ${term} line`,
+			},
+			workspace: { getLeavesOfType: () => [] },
+		} as never);
+	}
+
+	it('repaints the retained floor on the first frame of a resume', async () => {
+		// `searchLocal` opened a resume with `seedInputs ?? []`, and the host never
+		// passes `seedInputs` — so the first frame was an empty preview. Every Text
+		// node in the explorer blanked and then had to be rebuilt from a retained
+		// set thousands of files deep. That is the hang the dev feels on Resume:
+		// the floor is only recovered further down, inside collectLocalResults.
+		vi.stubGlobal('window', { setTimeout });
+		const scope = [
+			makeFile('notes/one.md'),
+			makeFile('notes/two.md'),
+			makeFile('notes/three.md'),
+		];
+		const adapter = makeAdapter('needle');
+
+		await adapter.search({
+			query: 'needle',
+			isRegex: false,
+			caseSensitive: false,
+			scopeFiles: scope.slice(0, 2),
+			preferLocal: true,
+			onUpdate: () => {},
+		});
+
+		const updates: ReturnType<typeof buildNativeSearchPreview>[] = [];
+		await adapter.search({
+			query: 'needle',
+			isRegex: false,
+			caseSensitive: false,
+			scopeFiles: scope,
+			resumeFrom: 2,
+			preferLocal: true,
+			onUpdate: (result) => updates.push(result),
+		});
+
+		expect(updates[0].isLoading).toBe(true);
+		expect(updates[0].files.length).toBe(2);
+		expect(updates[0].totalMatches).toBeGreaterThan(0);
+	});
+
+	it('still opens a fresh scan on an empty frame', async () => {
+		// Only a resume carries a floor. A scan from zero must not repaint
+		// whatever the previous query left behind.
+		vi.stubGlobal('window', { setTimeout });
+		const adapter = makeAdapter('needle');
+		const updates: ReturnType<typeof buildNativeSearchPreview>[] = [];
+
+		await adapter.search({
+			query: 'needle',
+			isRegex: false,
+			caseSensitive: false,
+			scopeFiles: [makeFile('notes/one.md')],
+			resumeFrom: 0,
+			preferLocal: true,
+			onUpdate: (result) => updates.push(result),
+		});
+
+		expect(updates[0].files.length).toBe(0);
+	});
+});
+
+describe('resume does not restart the traversal (U121-017)', () => {
+	afterEach(() => {
+		vi.unstubAllGlobals();
+	});
+
+	it('repaints the retained floor on a resume whose cursor never moved', async () => {
+		// The native path never calls `onProgress` — only `collectLocalResults`
+		// does — so a scan that ran through core leaves the host cursor at 0. The
+		// resume that follows therefore arrives with `resumeFrom === 0`, and
+		// seeding the first frame off `resumeFrom > 0` left it empty: every Text
+		// node in the explorer blanked and was then rebuilt from a floor thousands
+		// of files deep. Whether this is a resume is the caller's statement, not
+		// something to infer from a cursor the fast path never advances.
+		vi.stubGlobal('window', { setTimeout });
+		const fileA = makeFile('notes/a.md');
+		const fileB = makeFile('notes/b.md');
+		const adapter = new NativeSearchAdapter({
+			vault: { cachedRead: async () => 'como aqui' },
+			workspace: { getLeavesOfType: () => [] },
+		} as never);
+
+		await adapter.search({
+			query: 'como',
+			isRegex: false,
+			caseSensitive: false,
+			scopeFiles: [fileA, fileB],
+			onUpdate: () => {},
+		});
+		expect(adapter.retainedInputs().length).toBe(2);
+
+		const updates: ContentPreviewResult[] = [];
+		await adapter.search({
+			query: 'como',
+			isRegex: false,
+			caseSensitive: false,
+			scopeFiles: [fileA, fileB],
+			resume: true,
+			resumeFrom: 0,
+			onUpdate: (result) => updates.push(result),
+		});
+
+		expect(updates[0].isLoading).toBe(true);
+		expect(updates[0].files.length).toBe(2);
 	});
 });

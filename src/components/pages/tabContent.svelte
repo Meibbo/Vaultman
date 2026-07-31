@@ -263,9 +263,10 @@
 			role="button"
 			tabindex="0"
 		>
-			<span class="tree-item-icon collapse-icon vaultman-preview-chevron"
-				>{contentPreviewOpen ? '▼' : '▶'}</span
-			>
+			<!-- U121-019 #51: core prints its result count as plain text, with
+			     neither a triangle nor a caret. The collapse affordance stays on
+			     the per-file rows below, where core has one too. Clicking the
+			     header still toggles the preview. -->
 			<span class="tree-item-inner">
 				{#if contentPreviewResult.totalMatches === 0}
 					<span class="tree-item-inner-text"
@@ -331,10 +332,32 @@
 								}
 							}}
 						>
+							<!-- Core's own collapse icon, probed on 1.12.3: a stroked
+							     caret that it rotates, not a filled text triangle. Copied
+							     as markup rather than through `setIcon` because this row
+							     is rendered by Svelte, and inheriting `currentColor` and
+							     the theme's icon sizing is the whole point of the swap. -->
 							<span
 								class="tree-item-icon collapse-icon vaultman-preview-chevron"
-								>{isContentFileExpanded(fileResult.file.path) ? '▼' : '▶'}</span
+								class:is-collapsed={!isContentFileExpanded(
+									fileResult.file.path,
+								)}
+								aria-hidden="true"
 							>
+								<svg
+									xmlns="http://www.w3.org/2000/svg"
+									width="24"
+									height="24"
+									viewBox="0 0 24 24"
+									fill="none"
+									stroke="currentColor"
+									stroke-width="2"
+									stroke-linecap="round"
+									stroke-linejoin="round"
+									class="svg-icon right-triangle"
+									><path d="M3 8L12 17L21 8" /></svg
+								>
+							</span>
 							<div class="tree-item-inner">
 								<div class="tree-item-inner-text">
 									{fileResult.file.path}

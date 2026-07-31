@@ -110,6 +110,37 @@ describe('pause keeps the traversal cursor', () => {
 		expect(textSearchShouldScan(resumed)).toBe(true);
 	});
 
+	it('marks the run as resumed so the host cannot lose that on a re-run', () => {
+		// The host used to carry this as a one-shot boolean set by the button and
+		// consumed by the first effect pass. Any second pass before the scan
+		// started therefore read "fresh search" and opened an empty frame — the
+		// Text explorer blanked for ~500 ms on every Resume, measured at 201 rows
+		// -> 0 -> 201. Whether a run is a continuation is a property of the run,
+		// stable for as many passes as the host needs.
+		const paused = pauseTextSearchRun(
+			advanceTextSearchRun(createTextSearchRun(signature(), 'running'), 42),
+		);
+		expect(createTextSearchRun(signature(), 'running').resumed).toBe(false);
+		expect(paused.resumed).toBe(false);
+
+		const resumed = resumeTextSearchRun(paused);
+		expect(resumed.resumed).toBe(true);
+		// Survives the pass that pauses it again, and every reconcile in between.
+		expect(pauseTextSearchRun(resumed).resumed).toBe(true);
+		expect(reconcileTextSearchRun(resumed, signature()).resumed).toBe(true);
+	});
+
+	it('clears the resumed mark when the traversal starts over', () => {
+		const resumed = resumeTextSearchRun(
+			pauseTextSearchRun(createTextSearchRun(signature(), 'running')),
+		);
+		expect(restartTextSearchRun(resumed).resumed).toBe(false);
+		// A different query is a different search, not a continuation of this one.
+		expect(
+			reconcileTextSearchRun(resumed, signature({ query: 'beta' })).resumed,
+		).toBe(false);
+	});
+
 	it('does not spend a new generation on resume', () => {
 		const paused = pauseTextSearchRun(
 			createTextSearchRun(signature(), 'running'),

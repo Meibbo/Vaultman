@@ -141,6 +141,40 @@ describe('host guard: the reconcile block in pageFilters', () => {
 		expect(launchPreface).toContain('untrack(');
 	});
 
+	it('keeps the preview on a resume instead of opening an empty frame', () => {
+		// Measured on the running plugin, build 95fcf2ff: Resume blanked the Text
+		// explorer for ~500 ms — 201 rows and "55166 matches in 419 file(s)" went
+		// to 0 rows and "No matches found" at t+80 ms, back at t+600 ms — with a
+		// 1794 ms main-thread stall around it.
+		//
+		// The blank was written here, before the adapter was even called: the
+		// empty loading frame was gated on `resumeFrom === 0`, and the native path
+		// never advances the cursor, so a resume arrives with `resumeFrom === 0`
+		// and wiped the preview. Whether to open empty is a question about the
+		// user's intent, which `resuming` answers and a cursor does not.
+		expect(launchPreface).not.toMatch(/if\s*\(\s*resumeFrom === 0\s*\)/);
+		expect(launchPreface).toMatch(/if\s*\(\s*!?resuming\s*\)/);
+	});
+
+	it('resumes through core instead of forcing the local vault walk', () => {
+		// `preferLocal` routes past core into `searchLocal`, which reads every
+		// remaining file through `cachedRead` on the UI thread. Resume was passing
+		// it, and since the native path never advances the cursor, that walk
+		// started at index 0 — a full re-read of the vault on every Resume, which
+		// is the freeze the dev reported.
+		//
+		// The reason recorded for it was that core "stops on Obsidian's own
+		// snapshot", so re-issuing it would repeat the same short result. Measured
+		// on 1.12.3 against the live view, that is not what core does: `getFiles()`
+		// kept climbing past 737 files / 4129 matches while `working` stayed true,
+		// with 2 rows in the DOM. Core accumulates the whole set and virtualises
+		// the rendering. Resume re-issues core and merges onto the retained floor,
+		// which is the simulated resume this feature was specified as.
+		expect(launchPreface).not.toContain('preferLocal');
+		expect(pageFiltersSource).not.toMatch(/preferLocal:\s*resuming/);
+		expect(pageFiltersSource).toMatch(/resume:\s*resuming/);
+	});
+
 	it('cancels the adapter only when the user asked for a different search', () => {
 		// A cancel on a scope-only move is the other half of the loop: it clears
 		// the launch token, the next pass relaunches, the scan moves the revision.

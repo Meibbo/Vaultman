@@ -63,9 +63,24 @@ export interface NativeSearchOptions {
 	/** Reports the next unscanned index so the host can persist the cursor. */
 	onProgress?(nextIndex: number): void;
 	/**
-	 * Force the local traversal even from index 0. A resume asks for this: the
-	 * native fast path has no cursor and stops on Obsidian's own snapshot, so
-	 * re-entering it would repeat the same short result instead of continuing.
+	 * The caller is continuing a paused run rather than starting one. Stated,
+	 * not inferred from `resumeFrom`: the native path never calls `onProgress`,
+	 * so a scan that went through core leaves the cursor at 0 and a resume
+	 * arrives indistinguishable from a fresh search. Seeding the first frame off
+	 * `resumeFrom > 0` is what blanked every Text node on Resume.
+	 */
+	resume?: boolean;
+	/**
+	 * Force the local traversal even when core's search view is available.
+	 *
+	 * This is the fallback for a vault where core search cannot serve us, not
+	 * the resume path. Resume used to set it, on the recorded grounds that core
+	 * "stops on Obsidian's own snapshot" so re-issuing it would repeat the same
+	 * short result. Measured against the live view on 1.12.3, core does not stop
+	 * short: `getFiles()` climbed past 737 files / 4129 matches with `working`
+	 * still true and two rows in the DOM. Core accumulates the full set and
+	 * virtualises its own rendering. What stopped short was our poll heuristic
+	 * and the `MAX_FILES` cap below.
 	 */
 	preferLocal?: boolean;
 }
@@ -386,8 +401,17 @@ export class NativeSearchAdapter {
 		options: NativeSearchOptions,
 		run: number,
 	): Promise<void> {
-		const seeds = options.seedInputs ?? [];
 		// A resumed scan must repaint what it already has, not an empty frame.
+		// `seedInputs` is the caller-supplied floor, but the host does not pass
+		// one — it relies on the adapter's own retained set, which
+		// `collectLocalResults` only folds in further down. So the first frame of
+		// every Resume was empty: the explorer blanked every Text node and then
+		// rebuilt them from a floor thousands of files deep, which is the hang on
+		// Resume. `resumeFrom` is what separates the two cases; a scan from zero
+		// still opens empty, so a new query cannot show the old one's results.
+		const seeds =
+			options.seedInputs ??
+			(options.resume || (options.resumeFrom ?? 0) > 0 ? this.retained : []);
 		options.onUpdate(buildNativeSearchPreview(seeds, true));
 		const inputs = await this.collectLocalResults(options, run, seeds, true);
 		if (run !== this.activeRun) return;
@@ -411,7 +435,10 @@ export class NativeSearchAdapter {
 				inputsByPath.set(seed.file.path, { ...seed });
 			}
 		}
-		if ((options.resumeFrom ?? 0) > 0 && !options.seedInputs) {
+		if (
+			(options.resume || (options.resumeFrom ?? 0) > 0) &&
+			!options.seedInputs
+		) {
 			for (const seed of this.retained) {
 				if (!inputsByPath.has(seed.file.path)) {
 					inputsByPath.set(seed.file.path, { ...seed });

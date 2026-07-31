@@ -37,6 +37,17 @@ export interface TextSearchRun {
 	resumeFrom: number;
 	/** Increments once per intent that requires a fresh traversal. */
 	generation: number;
+	/**
+	 * This run continues a paused traversal rather than opening a new one.
+	 *
+	 * Lives on the run because the host needs it to survive an arbitrary number
+	 * of effect passes. It was a one-shot boolean set by the toolbar button and
+	 * consumed by the first pass, so a second pass before the scan started read
+	 * "fresh search" and wrote an empty frame — the blank the dev saw on every
+	 * Resume. Cleared by a restart or by a change of intent, both of which are
+	 * genuinely new traversals.
+	 */
+	resumed: boolean;
 }
 
 export type TextSearchIntent = 'pause' | 'resume' | 'restart';
@@ -88,7 +99,14 @@ export function createTextSearchRun(
 	phase: TextSearchPhase = 'idle',
 	generation = 0,
 ): TextSearchRun {
-	return { signature, phase, cursor: 0, resumeFrom: 0, generation };
+	return {
+		signature,
+		phase,
+		cursor: 0,
+		resumeFrom: 0,
+		generation,
+		resumed: false,
+	};
 }
 
 /** True while the host should be feeding the adapter. */
@@ -115,7 +133,7 @@ export function resumeTextSearchRun(run: TextSearchRun): TextSearchRun {
 	if (run.phase !== 'paused') return run;
 	// Already-running is returned by identity above, for the same reason
 	// `completeTextSearchRun` does: a repeated transition must not write state.
-	return { ...run, phase: 'running', resumeFrom: run.cursor };
+	return { ...run, phase: 'running', resumeFrom: run.cursor, resumed: true };
 }
 
 export function completeTextSearchRun(run: TextSearchRun): TextSearchRun {
@@ -154,6 +172,7 @@ export function restartTextSearchRun(run: TextSearchRun): TextSearchRun {
 		cursor: 0,
 		resumeFrom: 0,
 		generation: run.generation + 1,
+		resumed: false,
 	};
 }
 

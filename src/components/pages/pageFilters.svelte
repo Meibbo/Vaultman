@@ -242,7 +242,6 @@
 	let contentScanCursor = 0;
 	let contentSearchLaunchToken = '';
 	let contentFrozenApplyToken = '';
-	let contentResumeRequested = false;
 	let contentPreviewResult = $state<ContentPreviewResult | null>(null);
 	let contentPreviewOpen = $state(true);
 	let contentRegexError = $state('');
@@ -564,9 +563,6 @@
 							if (contentSearchControl.intent === 'pause') {
 								nativeSearchAdapter.cancel();
 								contentSearchLaunchToken = '';
-							}
-							if (contentSearchControl.intent === 'resume') {
-								contentResumeRequested = true;
 							}
 							if (contentSearchControl.intent === 'restart') {
 								contentScanCursor = 0;
@@ -933,7 +929,16 @@
 		if (!shouldLaunchTextSearch(run, contentSearchLaunchToken)) return;
 
 		const resumeFrom = run.resumeFrom;
-		if (resumeFrom === 0) {
+		// Read off the run, not off a one-shot flag. Whether the preview opens
+		// empty is a question about what the user asked for, and the answer has to
+		// survive every pass of this effect until the scan actually starts. It was
+		// gated on `resumeFrom === 0` — but the native path never calls
+		// `onProgress`, so a scan through core leaves the cursor at 0 and a Resume
+		// arrived indistinguishable from a fresh search — and then on a boolean the
+		// first pass consumed, so a second pass blanked it anyway. Measured on the
+		// running plugin: 201 rows -> 0 -> 201 over ~500 ms, every Resume.
+		const resuming = run.resumed;
+		if (!resuming) {
 			contentPreviewResult = {
 				totalMatches: 0,
 				files: [],
@@ -956,8 +961,6 @@
 			}
 		}
 		contentPreviewOpen = true;
-		const resuming = contentResumeRequested;
-		contentResumeRequested = false;
 		const timer = window.setTimeout(() => {
 			// Claimed here, once the scan is really starting.
 			contentSearchLaunchToken = launchToken;
@@ -984,7 +987,14 @@
 					caseSensitive,
 					scopeFiles: files,
 					resumeFrom,
-					preferLocal: resuming,
+					// Stated so the adapter can seed the first frame from the
+					// retained floor. Not `preferLocal`: that routes past core into
+					// a `cachedRead` walk of the vault on the UI thread, and since
+					// the native path never advances the cursor it restarted that
+					// walk from index 0 on every Resume. Core is re-issued and its
+					// results merge onto the floor, which is the simulated resume
+					// this feature was specified as.
+					resume: resuming,
 					onProgress: (nextIndex) => {
 						contentScanCursor = nextIndex;
 					},

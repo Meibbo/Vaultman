@@ -433,3 +433,47 @@ describe('FilterService vault-wide Files filtering', () => {
 		);
 	});
 });
+
+describe("content search exclusion (U121-017: \"doesn't have text\")", () => {
+	function serviceWithFiles() {
+		const files = [
+			makeFile('notes/alpha.md'),
+			makeFile('notes/beta.md'),
+			makeFile('notes/gamma.md'),
+		];
+		return { files, service: new FilterService(makeApp(files, files, {})) };
+	}
+
+	it('keeps only the matched files when the rule is inclusive', () => {
+		const { files, service } = serviceWithFiles();
+		service.setContentSearchRule('needle', [files[0], files[2]]);
+
+		expect(service.filteredFiles.map((f) => f.basename)).toEqual([
+			'alpha',
+			'gamma',
+		]);
+	});
+
+	it('drops the matched files when the rule is exclusive', () => {
+		// The Text tab hands over the files that DO contain the term, plus the
+		// polarity. The rule carried the polarity as far as the label — the
+		// filter scene read "Not text …" — while the files scene kept doing the
+		// intersection, so "doesn't have text" showed exactly the files that do.
+		const { files, service } = serviceWithFiles();
+		service.setContentSearchRule('needle', [files[0], files[2]], true);
+
+		expect(service.filteredFiles.map((f) => f.basename)).toEqual(['beta']);
+	});
+
+	it('inverts against the whole vault list, not against the match set', () => {
+		// A file the scan never matched has to survive the exclusion. Filtering
+		// the matched set by "not in the matched set" would return nothing.
+		const { files, service } = serviceWithFiles();
+		service.setContentSearchRule('needle', [files[1]], true);
+
+		expect(service.filteredFiles.map((f) => f.basename)).toEqual([
+			'alpha',
+			'gamma',
+		]);
+	});
+});
