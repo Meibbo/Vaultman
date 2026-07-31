@@ -2533,6 +2533,15 @@ export class FilesExplorerPanel extends Component {
 		);
 		if (!moved) return false;
 		this._refreshNodeTimeCells(moved);
+		// The edit that moved the file also changed its statistics — the reorder
+		// must not starve the words/tasks cells the patch path would have fed.
+		// (QA 2026-07-31: words froze under the Modified sort because this
+		// branch returned without them.)
+		this._patchVisibleStatisticsCells(new Set(paths));
+		// Keep the order snapshot in step with the move: without this every
+		// following save re-answers "needs reorder" against the pre-move order,
+		// loops through here forever and never takes the cheap patch path.
+		this._rememberMovedFileAtEdge(paths[0]);
 		if (!result.changed) {
 			// Already at the edge — steady-state typing lands here after the
 			// first save, so it must cost a DOM write, not a window render.
@@ -2543,6 +2552,23 @@ export class FilesExplorerPanel extends Component {
 		this._treeRenderOpts = { ...this._treeRenderOpts, nodes: result.nodes };
 		this.treeView.render(this._treeRenderOpts);
 		return true;
+	}
+
+	/**
+	 * Mirror `moveNodeToSiblingEdge` into `lastStatisticsSortOrder`, so the
+	 * incremental order check agrees with what is on screen after an edge move.
+	 */
+	private _rememberMovedFileAtEdge(path: string): void {
+		const index = this.lastStatisticsSortOrder.findIndex(
+			(file) => file.path === path,
+		);
+		if (index === -1) return;
+		const [file] = this.lastStatisticsSortOrder.splice(index, 1);
+		if (recencyEdgeForDirection(this.sortDir) === 'start') {
+			this.lastStatisticsSortOrder.unshift(file);
+		} else {
+			this.lastStatisticsSortOrder.push(file);
+		}
 	}
 
 	private readonly _handleActiveFileChange = (file: TFile | null): void => {
@@ -2715,6 +2741,8 @@ export class FilesExplorerPanel extends Component {
 			mode: this.plugin.settings.timestampRelative
 				? ('relative' as const)
 				: ('specific' as const),
+			window: this.plugin.settings.timestampRelativeWindow ?? '24h',
+			cutoffs: this.plugin.settings.timestampRelativeCutoffs,
 		};
 		// LivreUI: the flag is raised here rather than in the tree decoration
 		// because tree, grid and table each reach this formatter by a different

@@ -1,9 +1,12 @@
 import { describe, expect, it } from 'vitest';
 
 import {
+	DEFAULT_RELATIVE_TIME_CUTOFFS,
 	formatTimestampCell,
 	isLiveTimestamp,
 	LIVE_TIMESTAMP_TICK_MS,
+	type RelativeTimeCutoffs,
+	type TimestampRelativeWindow,
 } from '../../src/logic/logicRelativeTime';
 
 /**
@@ -106,5 +109,110 @@ describe('U121-027 live-timestamp guard', () => {
 
 	it('ticks at most once a minute, the coarsest cadence that never shows stale copy', () => {
 		expect(LIVE_TIMESTAMP_TICK_MS).toBe(MINUTE);
+	});
+});
+
+/** QA 2026-07-31: window + unit-cutoff options. */
+const WEEK = 7 * DAY;
+const YEAR = 365.25 * DAY;
+const MONTH = YEAR / 12;
+
+const windowed = (
+	time: number,
+	window: TimestampRelativeWindow,
+	cutoffs?: Partial<RelativeTimeCutoffs>,
+) => formatTimestampCell(time, { now: NOW, mode: 'relative', window, cutoffs, translate });
+
+describe('U121-027 relative window', () => {
+	it('defaults to the original 24h behaviour when window is omitted', () => {
+		expect(relative(NOW - 25 * HOUR)).toBe(
+			new Date(NOW - 25 * HOUR).toLocaleDateString(),
+		);
+	});
+
+	it('extends relative copy to 31 days', () => {
+		expect(windowed(NOW - 25 * HOUR, '31d')).toBe('time.day_ago:1');
+		expect(windowed(NOW - 6 * DAY, '31d')).toBe('time.days_ago:6');
+		expect(windowed(NOW - 31 * DAY, '31d')).toBe(
+			new Date(NOW - 31 * DAY).toLocaleDateString(),
+		);
+	});
+
+	it('bounds the year window by calendar year, not by rolling days', () => {
+		// NOW is 2026-07-29; January of the same year stays relative, while
+		// December of the previous year — fewer days away than "this year"
+		// spans — falls back to the absolute date.
+		const january = Date.UTC(2026, 0, 10, 12, 0, 0);
+		const lastDecember = Date.UTC(2025, 11, 20, 12, 0, 0);
+		// 200 days back: past two quarters, so the ladder reads it as a semester.
+		expect(windowed(january, 'year')).toBe('time.semester_ago:1');
+		expect(windowed(lastDecember, 'year')).toBe(
+			new Date(lastDecember).toLocaleDateString(),
+		);
+	});
+
+	it('never falls back to the absolute date without a limit', () => {
+		expect(windowed(NOW - 3 * YEAR, 'always')).toBe('time.years_ago:3');
+	});
+
+	it('walks every rung of the unit ladder with the default cutoffs', () => {
+		const cases: [number, string][] = [
+			[NOW - 2 * DAY, 'time.days_ago:2'],
+			[NOW - 10 * DAY, 'time.week_ago:1'],
+			[NOW - 4 * WEEK, 'time.weeks_ago:4'],
+			[NOW - 6 * WEEK, 'time.month_ago:1'],
+			[NOW - 2.5 * MONTH, 'time.months_ago:2'],
+			[NOW - 4 * MONTH, 'time.quarter_ago:1'],
+			[NOW - 7 * MONTH, 'time.semester_ago:1'],
+			[NOW - 1.2 * YEAR, 'time.year_ago:1'],
+		];
+		for (const [time, expected] of cases) {
+			expect(windowed(time, 'always')).toBe(expected);
+		}
+	});
+
+	it('marks cells live exactly while they are inside the window', () => {
+		const live = (time: number, window: TimestampRelativeWindow) =>
+			isLiveTimestamp(time, { now: NOW, mode: 'relative', window });
+		expect(live(NOW - 25 * HOUR, '24h')).toBe(false);
+		expect(live(NOW - 25 * HOUR, '31d')).toBe(true);
+		expect(live(NOW - 3 * YEAR, 'always')).toBe(true);
+		expect(live(Date.UTC(2025, 11, 20), 'year')).toBe(false);
+	});
+});
+
+describe('U121-027 unit cutoffs', () => {
+	it('ships natural defaults', () => {
+		expect(DEFAULT_RELATIVE_TIME_CUTOFFS).toEqual({
+			minuteFromSeconds: 60,
+			hourFromMinutes: 60,
+			dayFromHours: 24,
+			weekFromDays: 7,
+			monthFromWeeks: 5,
+			quarterFromMonths: 3,
+			semesterFromQuarters: 2,
+			yearFromSemesters: 2,
+		});
+	});
+
+	it('honours per-unit overrides', () => {
+		// "Just now" stretched to two minutes.
+		expect(
+			windowed(NOW - 90 * SECOND, 'always', { minuteFromSeconds: 120 }),
+		).toBe('time.just_now');
+		// Hours arrive at 30 minutes instead of 60.
+		expect(
+			windowed(NOW - 45 * MINUTE, 'always', { hourFromMinutes: 30 }),
+		).toBe('time.hour_ago:1');
+		// Days can be pushed out to 48 hours.
+		expect(
+			windowed(NOW - 30 * HOUR, 'always', { dayFromHours: 48 }),
+		).toBe('time.hours_ago:30');
+	});
+
+	it('clamps so a shortened cutoff never prints a zero count', () => {
+		expect(
+			windowed(NOW - 45 * MINUTE, 'always', { hourFromMinutes: 30 }),
+		).not.toContain(':0');
 	});
 });

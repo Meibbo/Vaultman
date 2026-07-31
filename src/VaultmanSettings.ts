@@ -42,6 +42,8 @@ import {
 	type GlyphColorChoice,
 } from './logic/logicGlyphColor';
 import { openCommandPicker } from './modals/modalCommandPicker';
+import { RelativeTimeCutoffsModal } from './modals/modalRelativeTimeCutoffs';
+import type { TimestampRelativeWindow } from './logic/logicRelativeTime';
 import { translate } from './i18n/index';
 import { PayloadPreviewModal } from './modals/modalPayloadPreview';
 import {
@@ -734,6 +736,37 @@ export class VaultmanSettingsTab extends PluginSettingTab {
 						this.plugin.settings.timestampRelative = value;
 						await this.plugin.saveSettings();
 					}),
+			);
+
+		// U121-027 (QA 2026-07-31): how far back relative copy reaches before the
+		// cell falls back to the exact date. 'always' disables the limit.
+		new Setting(containerEl)
+			.setName(translate('settings.timestamp_window'))
+			.setDesc(translate('settings.timestamp_window.desc'))
+			.addDropdown((dropdown) =>
+				dropdown
+					.addOption('24h', translate('settings.timestamp_window.24h'))
+					.addOption('31d', translate('settings.timestamp_window.31d'))
+					.addOption('year', translate('settings.timestamp_window.year'))
+					.addOption('always', translate('settings.timestamp_window.always'))
+					.setValue(this.plugin.settings.timestampRelativeWindow ?? '24h')
+					.onChange(async (value) => {
+						this.plugin.settings.timestampRelativeWindow =
+							value as TimestampRelativeWindow;
+						await this.plugin.saveSettings();
+					}),
+			);
+
+		// U121-027 (QA 2026-07-31): per-unit cutoffs for the relative wording.
+		new Setting(containerEl)
+			.setName(translate('settings.timestamp_cutoffs'))
+			.setDesc(translate('settings.timestamp_cutoffs.desc'))
+			.addButton((button) =>
+				button
+					.setButtonText(translate('settings.timestamp_cutoffs.configure'))
+					.onClick(() =>
+						new RelativeTimeCutoffsModal(this.app, this.plugin).open(),
+					),
 			);
 
 		// BT5-033: node icon scope lives in the Explorer menu now (was in Add-ons).

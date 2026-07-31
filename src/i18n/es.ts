@@ -922,7 +922,58 @@ export const es: Record<string, string> = {
 	'time.minutes_ago': 'hace {count} minutos',
 	'time.hour_ago': 'hace {count} hora',
 	'time.hours_ago': 'hace {count} horas',
+	'time.day_ago': 'hace {count} día',
+	'time.days_ago': 'hace {count} días',
+	'time.week_ago': 'hace {count} semana',
+	'time.weeks_ago': 'hace {count} semanas',
+	'time.month_ago': 'hace {count} mes',
+	'time.months_ago': 'hace {count} meses',
+	'time.quarter_ago': 'hace {count} trimestre',
+	'time.quarters_ago': 'hace {count} trimestres',
+	'time.semester_ago': 'hace {count} semestre',
+	'time.semesters_ago': 'hace {count} semestres',
+	'time.year_ago': 'hace {count} año',
+	'time.years_ago': 'hace {count} años',
 	'settings.timestamp_format': 'Marcas de tiempo relativas',
 	'settings.timestamp_format.desc':
-		'Muestra Ultima apertura, Modificado y Creado como "hace 3 horas" cuando tienen menos de un dia. Desactivalo para mostrar siempre la fecha exacta.',
+		'Muestra Ultima apertura, Modificado y Creado como "hace 3 horas" en vez de la fecha exacta. Desactivalo para mostrar siempre la fecha exacta.',
+	'settings.timestamp_window': 'Límite del tiempo relativo',
+	'settings.timestamp_window.desc':
+		'Hasta cuándo las marcas se muestran relativas. Las celdas más antiguas muestran la fecha exacta. "Sin límite" mantiene todas las marcas relativas.',
+	'settings.timestamp_window.24h': 'Últimas 24 horas',
+	'settings.timestamp_window.31d': 'Últimos 31 días',
+	'settings.timestamp_window.year': 'Este año',
+	'settings.timestamp_window.always': 'Sin límite',
+	'settings.timestamp_cutoffs': 'Unidades del tiempo relativo',
+	'settings.timestamp_cutoffs.desc':
+		'Ajusta a fondo cuándo cambia la unidad — a partir de cuántos segundos se cuenta en minutos, minutos en horas, y así hasta años.',
+	'settings.timestamp_cutoffs.configure': 'Configurar',
+	'settings.timestamp_cutoffs.title': 'Unidades del tiempo relativo',
+	'settings.timestamp_cutoffs.subtitle':
+		'Los campos vacíos usan el valor por defecto. Los cambios se aplican al instante.',
+	'settings.timestamp_cutoffs.reset': 'Restaurar valores por defecto',
+	'settings.timestamp_cutoffs.minuteFromSeconds': 'Minutos desde (segundos)',
+	'settings.timestamp_cutoffs.minuteFromSeconds.desc':
+		'Por debajo de estos segundos la celda dice "Ahora mismo"; desde aquí cuenta en minutos.',
+	'settings.timestamp_cutoffs.hourFromMinutes': 'Horas desde (minutos)',
+	'settings.timestamp_cutoffs.hourFromMinutes.desc':
+		'A partir de estos minutos la celda cuenta en horas.',
+	'settings.timestamp_cutoffs.dayFromHours': 'Días desde (horas)',
+	'settings.timestamp_cutoffs.dayFromHours.desc':
+		'A partir de estas horas la celda cuenta en días.',
+	'settings.timestamp_cutoffs.weekFromDays': 'Semanas desde (días)',
+	'settings.timestamp_cutoffs.weekFromDays.desc':
+		'A partir de estos días la celda cuenta en semanas.',
+	'settings.timestamp_cutoffs.monthFromWeeks': 'Meses desde (semanas)',
+	'settings.timestamp_cutoffs.monthFromWeeks.desc':
+		'A partir de estas semanas la celda cuenta en meses.',
+	'settings.timestamp_cutoffs.quarterFromMonths': 'Trimestres desde (meses)',
+	'settings.timestamp_cutoffs.quarterFromMonths.desc':
+		'A partir de estos meses la celda cuenta en trimestres.',
+	'settings.timestamp_cutoffs.semesterFromQuarters': 'Semestres desde (trimestres)',
+	'settings.timestamp_cutoffs.semesterFromQuarters.desc':
+		'A partir de estos trimestres la celda cuenta en semestres.',
+	'settings.timestamp_cutoffs.yearFromSemesters': 'Años desde (semestres)',
+	'settings.timestamp_cutoffs.yearFromSemesters.desc':
+		'A partir de estos semestres la celda cuenta en años.',
 };
