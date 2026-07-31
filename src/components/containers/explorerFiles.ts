@@ -2725,9 +2725,12 @@ export class FilesExplorerPanel extends Component {
 	}
 
 	/** BT5-013: never-opened files stay blank instead of showing a fake epoch. */
-	private _formatOpenedCell(file: TFile): string | undefined {
+	private _formatOpenedCell(
+		file: TFile,
+		formatter: (time: number) => string | undefined = this._formatDateCell,
+	): string | undefined {
 		const openedAt = this.plugin.lastOpenedService.getLastOpened(file);
-		return openedAt === null ? undefined : this._formatDateCell(openedAt);
+		return openedAt === null ? undefined : formatter(openedAt);
 	}
 
 	/**
@@ -2750,6 +2753,22 @@ export class FilesExplorerPanel extends Component {
 		if (isLiveTimestamp(time, options)) this._hasLiveTimestamps = true;
 		return formatTimestampCell(time, { ...options, translate });
 	};
+
+	/**
+	 * U121-027 (QA 2026-07-31): the hover tooltip formats its time entries from
+	 * its own settings trio, so the Cells-section options shape only the cells.
+	 * No liveness flag: tooltips are built fresh on every hover.
+	 */
+	private _formatHoverDateCell = (time: number): string | undefined =>
+		formatTimestampCell(time, {
+			now: Date.now(),
+			mode: this.plugin.settings.tooltipTimestampRelative !== false
+				? 'relative'
+				: 'specific',
+			window: this.plugin.settings.tooltipTimestampRelativeWindow ?? '24h',
+			cutoffs: this.plugin.settings.tooltipTimestampRelativeCutoffs,
+			translate,
+		});
 
 	private _filesHoverFields(): FileHoverInfoId[] {
 		return resolveFileHoverEntries(
@@ -2774,9 +2793,9 @@ export class FilesExplorerPanel extends Component {
 						? file.basename
 						: file.name,
 				path: file.path,
-				opened: this._formatOpenedCell(file) ?? null,
-				mtime: this._formatDateCell(times.mtime) ?? null,
-				ctime: this._formatDateCell(times.ctime) ?? null,
+				opened: this._formatOpenedCell(file, this._formatHoverDateCell) ?? null,
+				mtime: this._formatHoverDateCell(times.mtime) ?? null,
+				ctime: this._formatHoverDateCell(times.ctime) ?? null,
 				ext: file.extension,
 				words: this.plugin.statisticsCache.getFileWordCount(file),
 				characters: this.plugin.statisticsCache.getFileCharacterCount(file),

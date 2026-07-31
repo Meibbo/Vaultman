@@ -922,17 +922,19 @@ export const es: Record<string, string> = {
 	'time.minutes_ago': 'hace {count} minutos',
 	'time.hour_ago': 'hace {count} hora',
 	'time.hours_ago': 'hace {count} horas',
-	'time.day_ago': 'hace {count} día',
+	// Los singulares se leen como "la unidad pasada" (y un día atrás es "Ayer"):
+	// el count ahí siempre es 1, así que el texto nombra el periodo.
+	'time.day_ago': 'Ayer',
 	'time.days_ago': 'hace {count} días',
-	'time.week_ago': 'hace {count} semana',
+	'time.week_ago': 'La semana pasada',
 	'time.weeks_ago': 'hace {count} semanas',
-	'time.month_ago': 'hace {count} mes',
+	'time.month_ago': 'El mes pasado',
 	'time.months_ago': 'hace {count} meses',
-	'time.quarter_ago': 'hace {count} trimestre',
+	'time.quarter_ago': 'El trimestre pasado',
 	'time.quarters_ago': 'hace {count} trimestres',
-	'time.semester_ago': 'hace {count} semestre',
+	'time.semester_ago': 'El semestre pasado',
 	'time.semesters_ago': 'hace {count} semestres',
-	'time.year_ago': 'hace {count} año',
+	'time.year_ago': 'El año pasado',
 	'time.years_ago': 'hace {count} años',
 	'settings.timestamp_format': 'Marcas de tiempo relativas',
 	'settings.timestamp_format.desc':
@@ -976,4 +978,9 @@ export const es: Record<string, string> = {
 	'settings.timestamp_cutoffs.yearFromSemesters': 'Años desde (semestres)',
 	'settings.timestamp_cutoffs.yearFromSemesters.desc':
 		'A partir de estos semestres la celda cuenta en años.',
+	'settings.tooltip_time_section': 'Marcas de tiempo del tooltip',
+	'settings.tooltip_timestamp_format.desc':
+		'Muestra las entradas de tiempo del tooltip como texto relativo. Independiente de las opciones de los cells.',
+	'settings.tooltip_timestamp_window.desc':
+		'Hasta cuándo las entradas del tooltip se muestran relativas. Independiente de las opciones de los cells.',
 };

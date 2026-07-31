@@ -1020,17 +1020,19 @@ export const en: Record<string, string> = {
 	'time.minutes_ago': '{count} minutes ago',
 	'time.hour_ago': '{count} hour ago',
 	'time.hours_ago': '{count} hours ago',
-	'time.day_ago': '{count} day ago',
+	// Singulars read as "last <unit>" (and one day back is "Yesterday"): the
+	// count is always 1 there, so the wording names the period instead.
+	'time.day_ago': 'Yesterday',
 	'time.days_ago': '{count} days ago',
-	'time.week_ago': '{count} week ago',
+	'time.week_ago': 'Last week',
 	'time.weeks_ago': '{count} weeks ago',
-	'time.month_ago': '{count} month ago',
+	'time.month_ago': 'Last month',
 	'time.months_ago': '{count} months ago',
-	'time.quarter_ago': '{count} quarter ago',
+	'time.quarter_ago': 'Last quarter',
 	'time.quarters_ago': '{count} quarters ago',
-	'time.semester_ago': '{count} semester ago',
+	'time.semester_ago': 'Last semester',
 	'time.semesters_ago': '{count} semesters ago',
-	'time.year_ago': '{count} year ago',
+	'time.year_ago': 'Last year',
 	'time.years_ago': '{count} years ago',
 	'settings.timestamp_format': 'Relative timestamps',
 	'settings.timestamp_format.desc':
@@ -1074,4 +1076,9 @@ export const en: Record<string, string> = {
 	'settings.timestamp_cutoffs.yearFromSemesters': 'Years from (semesters)',
 	'settings.timestamp_cutoffs.yearFromSemesters.desc':
 		'From this many semesters the cell counts in years.',
+	'settings.tooltip_time_section': 'Tooltip timestamps',
+	'settings.tooltip_timestamp_format.desc':
+		'Show the tooltip time entries as relative copy. Independent from the cell options.',
+	'settings.tooltip_timestamp_window.desc':
+		'How far back the tooltip entries stay relative. Independent from the cell options.',
 };

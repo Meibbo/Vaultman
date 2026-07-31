@@ -11,6 +11,11 @@ interface CutoffsHost {
 	saveSettings(): Promise<void>;
 }
 
+/** Which settings field this modal edits (cells vs hover-tooltip trio). */
+export type CutoffsTarget =
+	| 'timestampRelativeCutoffs'
+	| 'tooltipTimestampRelativeCutoffs';
+
 /**
  * U121-027: fine-tuning for the relative-time wording — at how many of the
  * current unit the copy switches to the next one (60 s → minutes, 60 min →
@@ -22,6 +27,7 @@ export class RelativeTimeCutoffsModal extends Modal {
 	constructor(
 		app: App,
 		private readonly host: CutoffsHost,
+		private readonly target: CutoffsTarget = 'timestampRelativeCutoffs',
 	) {
 		super(app);
 	}
@@ -60,20 +66,19 @@ export class RelativeTimeCutoffsModal extends Modal {
 				.addText((text) => {
 					text.inputEl.type = 'number';
 					text.inputEl.min = '1';
+					const cutoffs = this.host.settings[this.target];
 					text
 						.setPlaceholder(String(fallback))
 						.setValue(
-							this.host.settings.timestampRelativeCutoffs[field] === undefined
-								? ''
-								: String(this.host.settings.timestampRelativeCutoffs[field]),
+							cutoffs[field] === undefined ? '' : String(cutoffs[field]),
 						)
 						.onChange(async (value) => {
 							const parsed = Number.parseInt(value, 10);
 							if (value.trim() === '' || !Number.isFinite(parsed) || parsed < 1) {
 								// Blank or invalid falls back to the default.
-								delete this.host.settings.timestampRelativeCutoffs[field];
+								delete this.host.settings[this.target][field];
 							} else {
-								this.host.settings.timestampRelativeCutoffs[field] = parsed;
+								this.host.settings[this.target][field] = parsed;
 							}
 							await this.host.saveSettings();
 						});
@@ -83,7 +88,7 @@ export class RelativeTimeCutoffsModal extends Modal {
 			button
 				.setButtonText(translate('settings.timestamp_cutoffs.reset'))
 				.onClick(async () => {
-					this.host.settings.timestampRelativeCutoffs = {};
+					this.host.settings[this.target] = {};
 					await this.host.saveSettings();
 					this.onOpen();
 				}),

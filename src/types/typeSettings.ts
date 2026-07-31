@@ -100,6 +100,14 @@ export interface VaultmanSettings {
 	 * `DEFAULT_RELATIVE_TIME_CUTOFFS`.
 	 */
 	timestampRelativeCutoffs: Partial<RelativeTimeCutoffs>;
+	/**
+	 * U121-027 (QA 2026-07-31): the hover-info tooltip entries carry their own
+	 * relative-time options — the Cells-section trio above only shapes the
+	 * cells.
+	 */
+	tooltipTimestampRelative: boolean;
+	tooltipTimestampRelativeWindow: TimestampRelativeWindow;
+	tooltipTimestampRelativeCutoffs: Partial<RelativeTimeCutoffs>;
 	/** Order of pages in the sidebar bottom nav (page IDs: 'filters', 'statistics') */
 	pageOrder: string[];
 	/** Glassmorphism blur intensity for bottom bar and popups (0–100, maps to 0–20px) */
@@ -293,6 +301,9 @@ export const DEFAULT_SETTINGS: VaultmanSettings = {
 	timestampRelative: true,
 	timestampRelativeWindow: '24h',
 	timestampRelativeCutoffs: {},
+	tooltipTimestampRelative: true,
+	tooltipTimestampRelativeWindow: '24h',
+	tooltipTimestampRelativeCutoffs: {},
 	pageOrder: ['filters', 'statistics'],
 	separatePanes: false,
 	viewMode: 'list',

@@ -1106,6 +1106,58 @@ export class VaultmanSettingsTab extends PluginSettingTab {
 				void this.plugin.saveSettings().then(() => this.display());
 			});
 		}
+
+		// U121-027 (QA 2026-07-31): the tooltip's relative-time options live
+		// here, split from the Cells-section trio, which shapes only the cells.
+		new Setting(containerEl)
+			.setName(translate('settings.tooltip_time_section'))
+			.setHeading();
+
+		new Setting(containerEl)
+			.setName(translate('settings.timestamp_format'))
+			.setDesc(translate('settings.tooltip_timestamp_format.desc'))
+			.addToggle((toggle) =>
+				toggle
+					.setValue(this.plugin.settings.tooltipTimestampRelative !== false)
+					.onChange(async (value) => {
+						this.plugin.settings.tooltipTimestampRelative = value;
+						await this.plugin.saveSettings();
+					}),
+			);
+
+		new Setting(containerEl)
+			.setName(translate('settings.timestamp_window'))
+			.setDesc(translate('settings.tooltip_timestamp_window.desc'))
+			.addDropdown((dropdown) =>
+				dropdown
+					.addOption('24h', translate('settings.timestamp_window.24h'))
+					.addOption('31d', translate('settings.timestamp_window.31d'))
+					.addOption('year', translate('settings.timestamp_window.year'))
+					.addOption('always', translate('settings.timestamp_window.always'))
+					.setValue(
+						this.plugin.settings.tooltipTimestampRelativeWindow ?? '24h',
+					)
+					.onChange(async (value) => {
+						this.plugin.settings.tooltipTimestampRelativeWindow =
+							value as TimestampRelativeWindow;
+						await this.plugin.saveSettings();
+					}),
+			);
+
+		new Setting(containerEl)
+			.setName(translate('settings.timestamp_cutoffs'))
+			.setDesc(translate('settings.timestamp_cutoffs.desc'))
+			.addButton((button) =>
+				button
+					.setButtonText(translate('settings.timestamp_cutoffs.configure'))
+					.onClick(() =>
+						new RelativeTimeCutoffsModal(
+							this.app,
+							this.plugin,
+							'tooltipTimestampRelativeCutoffs',
+						).open(),
+					),
+			);
 	}
 
 	/**
