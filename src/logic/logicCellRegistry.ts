@@ -210,6 +210,13 @@ export const EXPLORER_CELL_DEFS: readonly ExplorerCellDef[] = [
 		],
 	},
 	{
+		id: 'format',
+		role: 'value',
+		labelKey: 'viewmode.pill.format',
+		icon: 'lucide-braces',
+		supports: [{ explorer: 'props', fixedRank: 35, defaultOn: false }],
+	},
+	{
 		id: 'count',
 		role: 'value',
 		labelKey: 'viewmode.pill.count',
@@ -240,6 +247,16 @@ export const EXPLORER_CELL_DEFS: readonly ExplorerCellDef[] = [
 				defaultOn: false,
 				labelKey: 'viewmode.pill.prop_count',
 			},
+		],
+	},
+	{
+		id: 'file-count',
+		role: 'value',
+		labelKey: 'stats.files',
+		icon: 'lucide-files',
+		sortId: 'file-count',
+		supports: [
+			{ explorer: 'files', viewModes: FILE_TREE_MODES, fixedRank: 85, defaultOn: false },
 		],
 	},
 	{

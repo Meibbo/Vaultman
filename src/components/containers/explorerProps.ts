@@ -74,7 +74,7 @@ import {
 	type FloatingTocExpansionChange,
 	type IndexNodeRef,
 } from '../../logic/logicIndexGroups';
-import { flattenTreeToPathLabels } from '../../logic/logicExplorerHierarchy';
+import { flattenPropertyValues } from '../../logic/logicExplorerHierarchy';
 import { collectExpandableSubtreeIds } from '../../logic/logicTreeExpansion';
 import {
 	normalizeInteractionMode,
@@ -874,7 +874,7 @@ export class PropsExplorerPanel extends Component {
 			this.plugin.queueService.queue,
 		);
 		if (!this._nestedEnabled()) {
-			nodesWithIcons = flattenTreeToPathLabels(nodesWithIcons);
+			nodesWithIcons = flattenPropertyValues(nodesWithIcons);
 		}
 		this._setIndexRoots(nodesWithIcons);
 		if (nodesWithIcons.length === 0) {
@@ -992,7 +992,13 @@ export class PropsExplorerPanel extends Component {
 		container: HTMLElement,
 		node: TreeNode<PropMeta>,
 	): boolean {
-		if (!node.meta.isValueNode) return false;
+		if (!node.meta.isValueNode || !this.visibleCells.has('format')) return false;
+		if (node.meta.flatLabelPrefix) {
+			container.createSpan({
+				cls: 'vaultman-property-value-prefix',
+				text: node.meta.flatLabelPrefix,
+			});
+		}
 		const label = container.createSpan({
 			cls: 'bases-rendered-value vaultman-tree-label vaultman-property-value-cell',
 		});
@@ -1257,7 +1263,7 @@ export class PropsExplorerPanel extends Component {
 		);
 		const filtered = this._nestedEnabled()
 			? resolved.filter((node) => !node.meta.isValueNode)
-			: flattenTreeToPathLabels(resolved);
+			: flattenPropertyValues(resolved);
 		this._setIndexRoots(filtered);
 		if (filtered.length === 0) {
 			this._renderEmptyState();

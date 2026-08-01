@@ -8,12 +8,13 @@ import type { TreeNode } from '../types/typeTree';
  * they have no sensible cumulative value.
  */
 export interface FolderAggregate {
+	files: number;
 	count: number;
 	words: number;
 	tasks: number;
 }
 
-const ZERO: FolderAggregate = { count: 0, words: 0, tasks: 0 };
+const ZERO: FolderAggregate = { files: 0, count: 0, words: 0, tasks: 0 };
 
 export type FileAggregateReader<TMeta> = (
 	node: TreeNode<TMeta>,
@@ -37,6 +38,7 @@ export function aggregateFolderCells<TMeta>(
 		for (const child of node.children ?? []) {
 			const childTotal = visit(child);
 			sum = {
+				files: sum.files + childTotal.files,
 				count: sum.count + childTotal.count,
 				words: sum.words + childTotal.words,
 				tasks: sum.tasks + childTotal.tasks,

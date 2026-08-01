@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { mount, onMount, tick, unmount, untrack } from 'svelte';
+	import { flushSync, mount, onMount, tick, unmount, untrack } from 'svelte';
 	import { Notice, Platform, setIcon, type TFile } from 'obsidian';
 	import type { VaultmanPlugin } from './main';
 	import type { FilesExplorerPanel } from './components/containers/explorerFiles';
@@ -325,8 +325,10 @@
 	function navigateToDataTab(tab: StatisticsDataTab) {
 		closeQueueIsland();
 		closeFiltersIsland();
-		filtersActiveTab = tab;
-		activePage = 'filters';
+		flushSync(() => {
+			filtersActiveTab = tab;
+			activePage = 'filters';
+		});
 		applyPageTransform(!minimalStyle);
 	}
 
@@ -1341,6 +1343,14 @@
 							onNavigateToDataTab={navigateToDataTab}
 							toolbarShown={frameShowToolbar}
 							onToggleToolbar={() => handleShowToolbarChange(!frameShowToolbar)}
+							filterRuleCount={displayedFilterRuleCount}
+							filteredCount={displayedFilteredCount}
+							{queuedCount}
+							{queueWarningCount}
+							onOpenFilters={openFiltersLauncher}
+							onClearFilters={clearActiveFilters}
+							onOpenQueue={openQueueLauncher}
+							onClearQueue={clearQueueQuick}
 							onPanelWidgetStateChange={publishStatisticsPanelWidgetState}
 						/>
 					{:else if pageId === 'filters'}

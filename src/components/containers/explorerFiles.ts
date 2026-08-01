@@ -214,6 +214,7 @@ export class FilesExplorerPanel extends Component {
 	 * sort. Rebuilt from the display set each render, before the comparator runs.
 	 */
 	private _folderMaxMtime: ReadonlyMap<string, number> = new Map();
+	private _folderFileCount: ReadonlyMap<string, number> = new Map();
 	private _lastFlatFiles: { id: string; label: string }[] = [];
 	onIndexChanged?: (change?: FloatingTocExpansionChange) => void;
 
@@ -1070,6 +1071,11 @@ export class FilesExplorerPanel extends Component {
 		const dir = sort.direction === 'asc' ? 1 : -1;
 		const sortBy = normalizeExplorerSortBy(sort.sortBy);
 		const numberValue = (node: TreeNode<FileMeta>): number => {
+			if (sortBy === 'file-count') {
+				return node.meta.file
+					? 1
+					: (this._folderFileCount.get(node.meta.folderPath) ?? 0);
+			}
 			if (sortBy === 'count') return node.count ?? 0;
 			if (sortBy === 'sub') return node.children?.length ?? 0;
 			if (sortBy === 'words') {
@@ -1103,7 +1109,7 @@ export class FilesExplorerPanel extends Component {
 			return 0;
 		};
 		if (
-			['count', 'sub', 'words', 'tasks', 'mtime', 'ctime', 'opened'].includes(
+			['file-count', 'count', 'sub', 'words', 'tasks', 'mtime', 'ctime', 'opened'].includes(
 				sortBy,
 			)
 		) {
@@ -1432,6 +1438,19 @@ export class FilesExplorerPanel extends Component {
 		);
 	}
 
+	private _refreshFolderFileCount(files: readonly TFile[]): void {
+		const counts = new Map<string, number>();
+		for (const file of files) {
+			const parts = file.path.split('/');
+			parts.pop();
+			for (let depth = 1; depth <= parts.length; depth += 1) {
+				const path = parts.slice(0, depth).join('/');
+				counts.set(path, (counts.get(path) ?? 0) + 1);
+			}
+		}
+		this._folderFileCount = counts;
+	}
+
 	private _refreshCachedTreeLabels(nodes: TreeNode<FileMeta>[]): void {
 		if (this._nestedEnabled()) return;
 		const pathLabel = this._pathLabelActive();
@@ -1525,6 +1544,7 @@ export class FilesExplorerPanel extends Component {
 		}
 		this._alternateTreeProjection = null;
 		this._refreshFolderMaxMtime();
+		this._refreshFolderFileCount(this._filesForDisplay());
 		this.logic.sortFileTreeNodes(
 			this._lastRenderTree,
 			this._treeOrderingOptions(),
@@ -1591,6 +1611,7 @@ export class FilesExplorerPanel extends Component {
 			// BT5-090: folder mtimes are only read by the Last opened tie-break.
 			// Avoid scanning the vault for every other sort.
 			this._refreshFolderMaxMtime(displayFiles);
+			this._refreshFolderFileCount(displayFiles);
 			const rebaseFolderPaths = this._activeFolderFilterPaths();
 			const renderTree = this._nestedEnabled()
 				? vaultmanPerfMonitor.measure(
@@ -3024,14 +3045,16 @@ export class FilesExplorerPanel extends Component {
 	}
 
 	private _decorateFoldersWithAggregates(nodes: TreeNode<FileMeta>[]): void {
-		if (this.plugin.settings.folderAggregateCells !== true) return;
+		const aggregateFiles = this.visibleCells.has('file-count');
+		if (this.plugin.settings.folderAggregateCells !== true && !aggregateFiles) return;
 		const aggregateCount = this.visibleCells.has('count');
 		const aggregateWords = this.visibleCells.has('words');
 		const aggregateTasks = this.visibleCells.has('tasks');
-		if (!aggregateCount && !aggregateWords && !aggregateTasks) return;
+		if (!aggregateFiles && !aggregateCount && !aggregateWords && !aggregateTasks) return;
 		const totals = aggregateFolderCells(
 			nodes,
 			(node) => ({
+				files: node.meta.file ? 1 : 0,
 				count: node.meta.file && aggregateCount ? (node.count ?? 0) : 0,
 				words:
 					node.meta.file && aggregateWords
@@ -3051,6 +3074,7 @@ export class FilesExplorerPanel extends Component {
 			for (const node of subtree) {
 				const total = node.meta.isFolder ? totals.get(node.id) : undefined;
 				if (total) {
+					node.fileCountText = aggregateFiles ? String(total.files) : undefined;
 					node.count = total.count > 0 ? total.count : undefined;
 					node.wordCountText =
 						total.words > 0

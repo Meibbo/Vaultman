@@ -62,6 +62,7 @@ export interface TreeNode<TMeta = unknown> {
 	/** BT5-013: formatted last-opened instant; absent when never opened. */
 	openedText?: string;
 	wordCountText?: string;
+	fileCountText?: string;
 	tasksText?: string;
 	/** BT4-014: rainbow bucket color value for folder rows. */
 	folderColor?: string;
@@ -84,6 +85,8 @@ export interface PropMeta {
 	propType: string;
 	isValueNode: boolean;
 	rawValue?: string;
+	/** Prefix projected only by the non-nested property scene. */
+	flatLabelPrefix?: string;
 	isTypeIncompatible?: boolean;
 }
 

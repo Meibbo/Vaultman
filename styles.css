@@ -3099,6 +3099,8 @@ body.vaultman-bases-column-separators table th {
 .vaultman-filters-search-row {
   flex: 0 0 auto;
   width: 100%;
+  min-width: 100%;
+  box-sizing: border-box;
   display: flex;
   align-items: center;
   margin-top: 4px;
@@ -3206,13 +3208,8 @@ body.vaultman-bases-column-separators table th {
   border-radius: 0;
 }
 
-.vaultman-filters-header-search-pill:focus-within {
-  border-color: var(--color-accent);
-}
-
-.vaultman-filters-header--minimal .vaultman-filters-header-search-pill:focus-within {
-  border-color: var(--background-modifier-border);
-  box-shadow: none;
+.vaultman-panel-widget-action--primary {
+  color: var(--interactive-accent);
 }
 
 .vaultman-filters-header-search-pill input.vaultman-filters-search-input {

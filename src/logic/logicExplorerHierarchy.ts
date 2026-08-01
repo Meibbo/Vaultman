@@ -86,3 +86,27 @@ export function flattenTreeToPathLabels<TMeta>(
 	walk(nodes, []);
 	return flat;
 }
+
+export function flattenPropertyValues<
+	TMeta extends { isValueNode: boolean; propName: string; rawValue?: string },
+>(nodes: TreeNode<TMeta>[]): TreeNode<TMeta & { flatLabelPrefix?: string }>[] {
+	const flat: TreeNode<TMeta & { flatLabelPrefix?: string }>[] = [];
+	const visit = (items: TreeNode<TMeta>[]): void => {
+		for (const node of items) {
+			if (node.meta.isValueNode) {
+				const value = node.meta.rawValue ?? node.label;
+				flat.push({
+					...node,
+					label: `${node.meta.propName}: ${value}`,
+					depth: 0,
+					showCaret: false,
+					children: [],
+					meta: { ...node.meta, flatLabelPrefix: `${node.meta.propName}: ` },
+				});
+			}
+			if (node.children?.length) visit(node.children);
+		}
+	};
+	visit(nodes);
+	return flat;
+}

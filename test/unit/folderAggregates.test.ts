@@ -20,6 +20,7 @@ function folder(id: string, children: TreeNode<M>[]): TreeNode<M> {
 }
 
 const read = (node: TreeNode<M>) => ({
+	files: 1,
 	count: node.meta.count ?? 0,
 	words: node.meta.words ?? 0,
 	tasks: node.meta.tasks ?? 0,
@@ -30,7 +31,7 @@ describe('BT5-040 folder aggregate cells', () => {
 	it('sums a folder\'s direct files', () => {
 		const tree = [folder('f', [file('a', 2, 10, 1), file('b', 3, 20, 0)])];
 		const totals = aggregateFolderCells(tree, read, isFolder);
-		expect(totals.get('f')).toEqual({ count: 5, words: 30, tasks: 1 });
+		expect(totals.get('f')).toEqual({ files: 2, count: 5, words: 30, tasks: 1 });
 	});
 
 	it('sums recursively through subfolders without double counting', () => {
@@ -42,19 +43,25 @@ describe('BT5-040 folder aggregate cells', () => {
 		];
 		const totals = aggregateFolderCells(tree, read, isFolder);
 		// sub = 2+0 props, 10+4 words, 3+1 tasks
-		expect(totals.get('sub')).toEqual({ count: 2, words: 14, tasks: 4 });
+		expect(totals.get('sub')).toEqual({ files: 2, count: 2, words: 14, tasks: 4 });
 		// root = its file (1,5,0) plus sub's total (2,14,4)
-		expect(totals.get('root')).toEqual({ count: 3, words: 19, tasks: 4 });
+		expect(totals.get('root')).toEqual({ files: 3, count: 3, words: 19, tasks: 4 });
 	});
 
 	it('gives an empty folder a zero total', () => {
 		const totals = aggregateFolderCells([folder('empty', [])], read, isFolder);
-		expect(totals.get('empty')).toEqual({ count: 0, words: 0, tasks: 0 });
+		expect(totals.get('empty')).toEqual({ files: 0, count: 0, words: 0, tasks: 0 });
 	});
 
 	it('is opt-in and wired into the Files decorate step', () => {
 		expect(DEFAULT_SETTINGS.folderAggregateCells).toBe(false);
 		expect(explorerFilesSource).toContain('aggregateFolderCells(');
 		expect(explorerFilesSource).toContain('this.plugin.settings.folderAggregateCells');
+	});
+
+	it('projects folder file totals as a cell and sortable value', () => {
+		expect(explorerFilesSource).toContain("this.visibleCells.has('file-count')");
+		expect(explorerFilesSource).toContain("sortBy === 'file-count'");
+		expect(explorerFilesSource).toContain('node.fileCountText =');
 	});
 });

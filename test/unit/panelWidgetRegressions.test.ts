@@ -75,10 +75,10 @@ describe('U121-029 panelWidget overflow regressions', () => {
 		// for a frame and condensed again.
 		expect(navbarSource).toContain('const measuredWidthKey = (nodeId: string)');
 		expect(navbarSource).toContain(
-			'measuredNodeWidths.set(measuredPresentationKey(id), width)',
+			'measuredNodeWidths.set(measuredWidthKey(id), width)',
 		);
 		expect(navbarSource).toContain(
-			'measuredNodeWidths.get(measuredPresentationKey(node.id))',
+			'measuredNodeWidths.get(measuredWidthKey(node.id))',
 		);
 	});
 
@@ -185,15 +185,33 @@ describe('U121-029 search field second row', () => {
 		);
 	});
 
-	it('measures the two search presentations separately', () => {
-		// One cache key for the icon button and the expanded pill meant the pill's
-		// ~220px was still on record after it closed, so the packer condensed a
-		// 24px button into Tools with five nodes' worth of room to spare.
-		expect(navbarSource).toContain('const measuredPresentationKey =');
-		expect(navbarSource).toContain("'search:input'");
-		expect(navbarSource).toContain("'search:button'");
+	it('measures only the Search action node, never the auxiliary field', () => {
+		expect(navbarSource).not.toContain('const measuredPresentationKey =');
+		const control = navbarSource.match(
+			/\{#snippet searchControl[\s\S]*?\{\/snippet\}/,
+		)?.[0] ?? '';
+		expect(control).not.toContain('data-panel-widget-node-id');
 		expect(navbarSource).toContain(
-			'measuredNodeWidths.set(measuredPresentationKey(id), width)',
+			'measuredNodeWidths.set(measuredWidthKey(id), width)',
+		);
+		expect(navbarSource).not.toContain(
+			"searchOwnsRow && measuredWidthKey(node.id) === 'search'",
+		);
+		const widthBudget = navbarSource.match(
+			/const barNodeWidths = panelWidgetProjection\.nodes[\s\S]*?const nextSearchOwnsRow/,
+		)?.[0] ?? '';
+		expect(widthBudget).not.toContain("!== 'search'");
+	});
+
+	it('reuses the native Tags search contract and marks Search with primary', () => {
+		expect(navbarSource).toContain('search-input-container');
+		expect(navbarSource).toContain('type="search"');
+		expect(navbarSource).toContain('enterkeyhint="search"');
+		expect(navbarSource).toContain(
+			'class:vaultman-panel-widget-action--primary={searchExpanded}',
+		);
+		expect(stylesSource).not.toContain(
+			'.vaultman-filters-header--minimal .vaultman-filters-header-search-pill:focus-within',
 		);
 	});
 

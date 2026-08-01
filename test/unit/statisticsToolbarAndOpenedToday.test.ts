@@ -8,6 +8,7 @@ import { dataTabForStatisticsCard } from '../../src/logic/logicStatisticsNavigat
 import statisticsSource from '../../src/components/pages/pageStatistics.svelte?raw';
 import filtersSource from '../../src/components/pages/pageFilters.svelte?raw';
 import serviceSource from '../../src/services/serviceLastOpened.ts?raw';
+import frameSource from '../../src/VaultmanFrame.svelte?raw';
 
 describe('statistics toolbar parity + opened-today card', () => {
 	it('matches the explorer toolbar tab labels and icons', () => {
@@ -27,6 +28,18 @@ describe('statistics toolbar parity + opened-today card', () => {
 		expect(statisticsSource).not.toContain("icon: 'lucide-bar-chart-2'");
 		// And the explorer toolbar it mirrors really uses those.
 		expect(filtersSource).toContain("label: translate('filter.tab.files')");
+		expect(tabBlock.indexOf("id: 'files'")).toBeLessThan(
+			tabBlock.indexOf("id: 'statistics'"),
+		);
+		expect(statisticsSource).toContain('tabMenuActions: statsTabMenuActions');
+		expect(statisticsSource).toContain("id: 'filters'");
+		expect(statisticsSource).toContain("id: 'queue'");
+	});
+
+	it('publishes the requested provider atomically when leaving Statistics', () => {
+		expect(frameSource).toContain('flushSync(() => {');
+		expect(frameSource).toContain('filtersActiveTab = tab;');
+		expect(frameSource).toContain("activePage = 'filters';");
 	});
 
 	it('counts files opened since a moment', () => {

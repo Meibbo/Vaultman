@@ -873,6 +873,7 @@ export const es: Record<string, string> = {
 	'viewmode.pill.mtime': 'Modificación',
 	'viewmode.pill.ctime': 'Creación',
 	'viewmode.pill.type': 'Tipo',
+	'viewmode.pill.format': 'Formatear valores',
 	'viewmode.pill.opened': 'Última apertura',
 	'viewmode.pill.path': 'Ruta',
 	'viewmode.pill.words': 'Palabras',

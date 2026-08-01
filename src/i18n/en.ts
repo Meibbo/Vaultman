@@ -990,6 +990,7 @@ export const en: Record<string, string> = {
 	'viewmode.pill.mtime': 'Modified',
 	'viewmode.pill.ctime': 'Created',
 	'viewmode.pill.type': 'Type',
+	'viewmode.pill.format': 'Format values',
 	'viewmode.pill.values': 'Values',
 	'viewmode.pill.name': 'Name',
 	'viewmode.pill.ext': 'Ext',

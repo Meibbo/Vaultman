@@ -719,6 +719,7 @@ export class UnifiedTreeView {
 			: false;
 		const showOpened = visibleCells ? visibleCells.has('opened') : false;
 		const showWords = visibleCells ? visibleCells.has('words') : false;
+		const showFileCount = visibleCells ? visibleCells.has('file-count') : false;
 		const showTasks = visibleCells ? visibleCells.has('tasks') : false;
 		const nodeCells = (node.cells ?? []).filter(
 			(cell) => !visibleCells || visibleCells.has(cell.id),
@@ -934,6 +935,15 @@ export class UnifiedTreeView {
 				text: node.wordCountText,
 			});
 		};
+		const emitFileCount = (parent: HTMLElement): void => {
+			if (!showFileCount || !node.fileCountText) return;
+			const cell = parent.createSpan({
+				cls: 'vaultman-tree-file-count nav-file-tag',
+				text: node.fileCountText,
+			});
+			cell.setAttribute('aria-label', `${node.fileCountText} files`);
+			cell.setAttribute('title', `${node.fileCountText} files`);
+		};
 		const emitTasks = (parent: HTMLElement): void => {
 			if (!showTasks || !node.tasksText) return;
 			parent.createSpan({
@@ -966,6 +976,7 @@ export class UnifiedTreeView {
 			opened: (parent) =>
 				emitDate(parent, showOpened ? node.openedText : '', 'opened'),
 			words: emitWords,
+			'file-count': emitFileCount,
 			tasks: emitTasks,
 			count: emitCount,
 		};
@@ -1032,6 +1043,7 @@ export class UnifiedTreeView {
 			(showCtime && node.ctimeText) ||
 			(showOpened && node.openedText) ||
 			(showWords && node.wordCountText) ||
+			(showFileCount && node.fileCountText) ||
 			(showTasks && node.tasksText) ||
 			(showCount && node.count != null && node.count > 0) ||
 			(node.badges && node.badges.length > 0) ||
@@ -1046,6 +1058,7 @@ export class UnifiedTreeView {
 				emitDate(badgeZone, showCtime ? node.ctimeText : '', 'ctime');
 				emitDate(badgeZone, showOpened ? node.openedText : '', 'opened');
 				emitWords(badgeZone);
+				emitFileCount(badgeZone);
 				emitTasks(badgeZone);
 			}
 

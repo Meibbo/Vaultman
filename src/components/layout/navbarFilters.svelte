@@ -353,18 +353,6 @@
 	const measuredWidthKey = (nodeId: string): string =>
 		nodeId.slice(nodeId.indexOf(':') + 1);
 	/**
-	 * U121-029: the search node has two presentations — a small icon button and
-	 * the expanded input pill — and both carry the same node id. Caching them
-	 * under one key meant the pill's ~220px was still on record after it closed,
-	 * so the packer condensed a 24px button into Tools while five nodes' worth of
-	 * room sat unused. The presentation is part of the identity.
-	 */
-	const measuredPresentationKey = (nodeId: string): string => {
-		const localId = measuredWidthKey(nodeId);
-		if (localId !== 'search') return localId;
-		return showSearchInput ? 'search:input' : 'search:button';
-	};
-	/**
 	 * U121-029: the width the packer may spend is the width of the line, taken
 	 * from the row's containing block — not `actionsEl.clientWidth`.
 	 *
@@ -619,7 +607,7 @@
 			const id = element.dataset.panelWidgetNodeId;
 			if (!id || element.hidden) continue;
 			const width = element.getBoundingClientRect().width;
-			if (width > 0) measuredNodeWidths.set(measuredPresentationKey(id), width);
+			if (width > 0) measuredNodeWidths.set(measuredWidthKey(id), width);
 		}
 
 		const style = window.getComputedStyle(actionsEl);
@@ -633,13 +621,10 @@
 		// row belongs to the nodes, and the field only shares it when what is left
 		// is still a usable field.
 		if (showSearchInput) {
-			const barNodeWidths = panelWidgetProjection.nodes
-				.filter((node) => measuredWidthKey(node.id) !== 'search')
-				.map(
-					(node) =>
-						measuredNodeWidths.get(measuredPresentationKey(node.id)) ||
-						toolsWidth,
-				);
+			const barNodeWidths = panelWidgetProjection.nodes.map(
+				(node) =>
+					measuredNodeWidths.get(measuredWidthKey(node.id)) || toolsWidth,
+			);
 			const nextSearchOwnsRow = searchNeedsOwnRow({
 				availableWidth,
 				nodeWidths: barNodeWidths,
@@ -663,13 +648,9 @@
 		}
 		const measuredNodes = panelWidgetProjection.nodes.map((node) => ({
 			id: node.id,
-			// The expanded search pill is not part of the single-line budget: it
-			// owns its own row (see `searchNeedsOwnRow`), so charging the line for
-			// it would condense nodes that do fit.
-			width:
-				searchOwnsRow && measuredWidthKey(node.id) === 'search'
-					? 0
-					: (measuredNodeWidths.get(measuredPresentationKey(node.id)) ?? 0),
+			// Only projected action nodes are measured. The auxiliary search field
+			// has no node id, so Search always contributes its button width here.
+			width: measuredNodeWidths.get(measuredWidthKey(node.id)) ?? 0,
 			condensable: node.condensable,
 		}));
 		// Every node reporting 0 means nothing has been laid out yet (a provider
@@ -1669,17 +1650,15 @@
 
 {#snippet searchControl(variant: SearchControlVariant)}
 	<div
-		class={`vaultman-filters-header-search-pill vaultman-filters-header-search-pill--${variant}`}
-		data-panel-widget-node-id={variant === 'inline'
-			? panelWidgetNodeId('search')
-			: undefined}
+		class={`search-input-container vaultman-filters-header-search-pill vaultman-filters-header-search-pill--${variant}`}
 		style:order={variant === 'inline'
 			? panelWidgetNodeOrder('search')
 			: undefined}
 	>
 		<input
 			class="vaultman-filters-search-input"
-			type="text"
+			type="search"
+			enterkeyhint="search"
 			autocomplete="off"
 			autocorrect="off"
 			autocapitalize="off"
@@ -1861,6 +1840,7 @@
 						{#if minimalStyle && toolbarNodeVisible('search')}
 							<div
 								class={headerActionClass}
+								class:vaultman-panel-widget-action--primary={searchExpanded}
 								data-vaultman-search-toggle="true"
 								data-panel-widget-node-id={panelWidgetNodeId('search')}
 								style:order={panelWidgetNodeOrder('search')}

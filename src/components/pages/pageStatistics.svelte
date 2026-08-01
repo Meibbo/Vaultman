@@ -17,6 +17,7 @@
 	} from '../../logic/logicStatisticsNavigation';
 	import type {
 		NavbarPanelWidgetState,
+		PanelWidgetHeaderMenuAction,
 		ScenePanelWidgetActionPort,
 	} from '../../types/typePanelWidget';
 
@@ -28,6 +29,14 @@
 		toolbarShown = true,
 		onToggleToolbar,
 		onPanelWidgetStateChange,
+		filterRuleCount = 0,
+		filteredCount = 0,
+		queuedCount = 0,
+		queueWarningCount = 0,
+		onOpenFilters,
+		onClearFilters,
+		onOpenQueue,
+		onClearQueue,
 	}: {
 		plugin: VaultmanPlugin;
 		active?: boolean;
@@ -36,6 +45,14 @@
 		toolbarShown?: boolean;
 		onToggleToolbar?: () => void;
 		onPanelWidgetStateChange?: (state: NavbarPanelWidgetState | null) => void;
+		filterRuleCount?: number;
+		filteredCount?: number;
+		queuedCount?: number;
+		queueWarningCount?: number;
+		onOpenFilters?: () => void;
+		onClearFilters?: () => void;
+		onOpenQueue?: () => void;
+		onClearQueue?: () => void;
 	} = $props();
 	const minimalStyle = $derived.by(() => {
 		void settingsRevision;
@@ -246,14 +263,8 @@
 		},
 	];
 
-	// Match the explorer toolbar exactly (same labels + icons); statistics can
-	// only navigate to the four data surfaces, so it lists just those.
+	// Match the explorer toolbar exactly (same provider order, labels and icons).
 	const statsTabOptions = $derived([
-		{
-			id: 'statistics',
-			label: translate('nav.statistics'),
-			icon: 'lucide-chart-column',
-		},
 		{
 			id: 'files',
 			label: translate('filter.tab.files'),
@@ -279,6 +290,32 @@
 			id: 'plugins',
 			label: translate('filter.tab.plugins'),
 			icon: 'lucide-plug',
+		},
+		{
+			id: 'statistics',
+			label: translate('nav.statistics'),
+			icon: 'lucide-chart-column',
+		},
+	]);
+
+	const statsTabMenuActions = $derived<PanelWidgetHeaderMenuAction[]>([
+		{
+			id: 'filters',
+			label: translate('filters.active'),
+			icon: 'lucide-filter',
+			count: filterRuleCount,
+			warning: filterRuleCount > 0 && filteredCount === 0,
+			onClick: () => onOpenFilters?.(),
+			onDoubleClick: () => onClearFilters?.(),
+		},
+		{
+			id: 'queue',
+			label: translate('ops.tab.queue'),
+			icon: 'lucide-list-checks',
+			count: queuedCount,
+			warning: queueWarningCount > 0,
+			onClick: () => onOpenQueue?.(),
+			onDoubleClick: () => onClearQueue?.(),
 		},
 	]);
 
@@ -362,6 +399,7 @@
 			minimalStyle,
 			showDock: false,
 			tabOptions: statsTabOptions,
+			tabMenuActions: statsTabMenuActions,
 			activeSectionTab: 'statistics',
 			onSectionTabChange: navigateFromHeader,
 			onFiltersSearchChange: (value) => (headerSearch = value),

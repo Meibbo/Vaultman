@@ -70,6 +70,7 @@ describe('shared explorer cell registry', () => {
 			'opened',
 			'words',
 			'tasks',
+			'file-count',
 			'count',
 			'nested',
 		]);
@@ -98,6 +99,7 @@ describe('shared explorer cell registry', () => {
 			'opened',
 			'words',
 			'tasks',
+			'file-count',
 			'count',
 		]);
 	});
