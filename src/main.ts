@@ -239,9 +239,19 @@ export class VaultmanPlugin extends Plugin {
 		return view instanceof VaultmanFrame ? view : null;
 	}
 
-	private async focusVaultmanContentSearch(): Promise<void> {
+	private async focusVaultmanContentSearch(query?: string): Promise<void> {
 		const view = await this.vaultmanFrameForCommand();
-		if (view) await view.focusContentSearch();
+		if (view) await view.focusContentSearch(query);
+	}
+
+	/**
+	 * Public entry point for other services — the editor menu's "search selection
+	 * in Vaultman" uses it. Kept separate from the private command helper so the
+	 * BT5-067 guards, which slice `main.ts` between those two private methods,
+	 * still describe the block they were written for.
+	 */
+	async openContentSearchWithQuery(query: string): Promise<void> {
+		await this.focusVaultmanContentSearch(query);
 	}
 
 	private async focusVaultmanExplorerSearch(): Promise<void> {

@@ -30,20 +30,23 @@ describe('search focus command source guards', () => {
 		expect(mainSource).toContain('await this.ensureVaultmanFrame();');
 		expect(mainSource).toContain('getLeavesOfType(VAULTMAN_FRAME_TYPE)');
 		expect(mainSource).toContain('view instanceof VaultmanFrame');
-		expect(mainSource).toContain('await view.focusContentSearch();');
+		// U121-019 #51 widened this to carry an optional query, for the editor
+		// menu's "search selection in Vaultman". The routing this guard exists for
+		// is unchanged.
+		expect(mainSource).toContain('await view.focusContentSearch(query);');
 		expect(mainSource).toContain('await view.focusActiveExplorerSearch();');
 	});
 
 	it('bridges frame host methods to exported Svelte focus handlers', () => {
 		expect(frameHostSource).toContain('type VaultmanFrameSvelteApi');
 		expect(frameHostSource).toContain(
-			'focusContentSearch?(): Promise<void> | void;',
+			'focusContentSearch?(query?: string): Promise<void> | void;',
 		);
 		expect(frameHostSource).toContain(
 			'focusActiveExplorerSearch?(): Promise<void> | void;',
 		);
 		expect(frameHostSource).toContain(
-			'await this.svelteApp?.focusContentSearch?.();',
+			'await this.svelteApp?.focusContentSearch?.(query);',
 		);
 		expect(frameHostSource).toContain(
 			'await this.svelteApp?.focusActiveExplorerSearch?.();',
@@ -52,7 +55,7 @@ describe('search focus command source guards', () => {
 
 	it('exports focus handlers that navigate to existing search inputs', () => {
 		expect(frameSource).toContain(
-			'export async function focusContentSearch(): Promise<void>',
+			'export async function focusContentSearch(query?: string): Promise<void>',
 		);
 		expect(frameSource).toContain("navigateToDataTab('content')");
 		expect(frameSource).toContain('.vaultman-content-input[type="search"]');

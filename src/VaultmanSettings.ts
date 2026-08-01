@@ -198,6 +198,18 @@ export class VaultmanSettingsTab extends PluginSettingTab {
 			);
 
 		new Setting(containerEl)
+			.setName(translate('settings.text_search_intercepts'))
+			.setDesc(translate('settings.text_search_intercepts.desc'))
+			.addToggle((toggle) =>
+				toggle
+					.setValue(this.plugin.settings.textSearchInterceptsCoreSearch)
+					.onChange(async (value) => {
+						this.plugin.settings.textSearchInterceptsCoreSearch = value;
+						await this.plugin.saveSettings();
+					}),
+			);
+
+		new Setting(containerEl)
 			.setName(translate('settings.show_dock'))
 			.setDesc(translate('settings.show_dock.desc'))
 			.addToggle((toggle) =>

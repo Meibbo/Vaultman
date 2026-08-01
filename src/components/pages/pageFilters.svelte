@@ -235,6 +235,16 @@
 		localShowToolbar = val;
 	}
 
+	/**
+	 * Seed the Text search from outside — the editor context menu's "search
+	 * selected text", when the user has asked for that to land here instead of
+	 * in core's pane. Writing the state the input is bound to drives exactly the
+	 * same path as typing it.
+	 */
+	export function setContentQuery(query: string): void {
+		contentFind = query;
+	}
+
 	let contentFind = $state('');
 	let contentReplace = $state('');
 	let contentCaseSensitive = $state(false);
@@ -506,9 +516,29 @@
 		return scope === 'selected' || (scope === 'auto' && selected.length > 0);
 	}
 
-	function contentSearchScopeFiles(): TFile[] {
+	/**
+	 * The scope the Text search runs over.
+	 *
+	 * Derived, not computed on demand: underneath it is
+	 * `getFilesIgnoringContentSearch(true)`, which walks every file in the vault,
+	 * applies the filter tree and sorts the result through a collator. That ran
+	 * on **every pass of the search effect** — so once per keystroke, and twice
+	 * counting `contentScopeSummary` — which is the freeze the dev felt while
+	 * typing. None of it depends on the query.
+	 *
+	 * `contentSearchScopeRevision` is the host's own signal that the scope or the
+	 * filters moved, and the search effect already keys on it; the selection
+	 * count covers the 'selected' scope, which the revision does not describe.
+	 */
+	const contentScopeFiles = $derived.by<TFile[]>(() => {
+		void contentSearchScopeRevision;
+		void selectedCount;
 		if (contentSearchUsesSelectedScope()) return getSelectedFiles();
 		return contentSearchCandidateFiles();
+	});
+
+	function contentSearchScopeFiles(): TFile[] {
+		return contentScopeFiles;
 	}
 
 	const contentScopeSummary = $derived.by<ContentScopeSummary>(() => {

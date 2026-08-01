@@ -12,7 +12,7 @@ import {
 export const VAULTMAN_FRAME_TYPE = 'vaultman-frame';
 
 type VaultmanFrameSvelteApi = ReturnType<typeof mount> & {
-	focusContentSearch?(): Promise<void> | void;
+	focusContentSearch?(query?: string): Promise<void> | void;
 	focusActiveExplorerSearch?(): Promise<void> | void;
 	refreshActiveExplorerViewport?(): boolean | void;
 	setShowToolbar?(value: boolean): void;
@@ -113,8 +113,8 @@ export class VaultmanFrame extends ItemView {
 		});
 	}
 
-	async focusContentSearch(): Promise<void> {
-		await this.svelteApp?.focusContentSearch?.();
+	async focusContentSearch(query?: string): Promise<void> {
+		await this.svelteApp?.focusContentSearch?.(query);
 	}
 
 	async focusActiveExplorerSearch(): Promise<void> {

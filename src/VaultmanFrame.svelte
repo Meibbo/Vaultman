@@ -70,6 +70,7 @@
 
 	type FiltersPageApi = {
 		setShowToolbar?(value: boolean): void;
+		setContentQuery?(query: string): void;
 	};
 
 	// ─── Page navigation ──────────────────────────────────────────────────────
@@ -379,8 +380,9 @@
 		new Notice(translate('command.focus_search_unavailable'));
 	}
 
-	export async function focusContentSearch(): Promise<void> {
+	export async function focusContentSearch(query?: string): Promise<void> {
 		navigateToDataTab('content');
+		if (query !== undefined) filtersPageRef?.setContentQuery?.(query);
 		const focused = await focusFrameInput(
 			'.vaultman-page[data-page="filters"] .vaultman-filters-tab-pane.is-active .vaultman-content-input[type="search"]',
 		);

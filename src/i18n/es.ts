@@ -835,6 +835,10 @@ export const es: Record<string, string> = {
 	'content.show_more_context': 'Mostrar más contexto',
 	'content.show_more_files': 'Mostrar {count} fichero(s) más',
 	'content.show_more_matches': 'Mostrar {count} coincidencia(s) más',
+	'settings.text_search_intercepts': 'Buscar la selección en el explorador de Texto',
+	'settings.text_search_intercepts.desc':
+		'Añade una entrada de menú que busca el texto seleccionado en Vaultman en vez de en la búsqueda de Obsidian.',
+	'content.search_selection': 'Buscar la selección en Vaultman',
 	'content.copy_results_action': 'Copiar resultados',
 	'content.copy_option_show_path': 'Mostrar ruta completa',
 	'content.copy_option_link_style': 'Estilo de enlace',

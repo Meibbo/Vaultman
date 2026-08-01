@@ -949,6 +949,10 @@ export const en: Record<string, string> = {
 	'content.show_more_context': 'Show more context',
 	'content.show_more_files': 'Show {count} more file(s)',
 	'content.show_more_matches': 'Show {count} more match(es)',
+	'settings.text_search_intercepts': 'Search selection in the Text explorer',
+	'settings.text_search_intercepts.desc':
+		'Adds a menu entry that searches the selected text in Vaultman rather than in Obsidian search.',
+	'content.search_selection': 'Search selection in Vaultman',
 	'content.copy_results_action': 'Copy results',
 	'content.copy_option_show_path': 'Show full path',
 	'content.copy_option_link_style': 'Link style',
