@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { flushSync, mount, onMount, tick, unmount, untrack } from 'svelte';
+	import { mount, onMount, tick, unmount, untrack } from 'svelte';
 	import { Notice, Platform, setIcon, type TFile } from 'obsidian';
 	import type { VaultmanPlugin } from './main';
 	import type { FilesExplorerPanel } from './components/containers/explorerFiles';
@@ -322,13 +322,16 @@
 		applyPageTransform(!minimalStyle);
 	}
 
-	function navigateToDataTab(tab: StatisticsDataTab) {
+	async function navigateToDataTab(tab: StatisticsDataTab) {
 		closeQueueIsland();
 		closeFiltersIsland();
-		flushSync(() => {
-			filtersActiveTab = tab;
-			activePage = 'filters';
-		});
+		// U121-003: FiltersPage owns the provider panelWidget state. When both
+		// assignments shared one Svelte batch, the Scene switched the host back to
+		// Filters while its cached state still belonged to Files. Let the selected
+		// provider publish first; only then may Filters take ownership of the host.
+		filtersActiveTab = tab;
+		await tick();
+		activePage = 'filters';
 		applyPageTransform(!minimalStyle);
 	}
 

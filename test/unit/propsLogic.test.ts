@@ -35,7 +35,7 @@ function makeFile(path: string): TFile {
 function makeApp(
 	files: TFile[],
 	frontmatterByPath: Record<string, Record<string, unknown>>,
-	propertyInfos: Record<string, { type: string }> = {},
+	propertyInfos: Record<string, { type?: string; widget?: string }> = {},
 ): App {
 	return {
 		vault: {
@@ -52,6 +52,38 @@ function makeApp(
 }
 
 describe('PropsLogic', () => {
+	it('uses the Core property widget metadata for formatted values', () => {
+		const file = makeFile('Daily/one.md');
+		const logic = new PropsLogic(
+			makeApp(
+				[file],
+				{
+					[file.path]: {
+						completed: true,
+						createdAt: '2026-08-01T10:30',
+						day: '2026-08-01',
+					},
+				},
+				{
+					completed: { widget: 'checkbox' },
+					createdAt: { widget: 'datetime' },
+					day: { widget: 'date' },
+				},
+			),
+		);
+
+		const tree = logic.getTree();
+		const typeByProperty = Object.fromEntries(
+			tree.map((node) => [node.meta.propName, node.meta.propType]),
+		);
+
+		expect(typeByProperty).toMatchObject({
+			completed: 'checkbox',
+			createdAt: 'datetime',
+			day: 'date',
+		});
+	});
+
 	it('shows the actual frontmatter property casing instead of lowercasing native index keys', () => {
 		const file = makeFile('People/Victoria.md');
 		const logic = new PropsLogic(
@@ -127,5 +159,26 @@ describe('PropsLogic', () => {
 		expect([...logic.expansionIdsForSearchMatches(tree, 'journal', 0)]).toEqual(
 			['mood'],
 		);
+	});
+
+	it('represents null, blank and empty-array property values as empty', () => {
+		const first = makeFile('Daily/one.md');
+		const second = makeFile('Daily/two.md');
+		const third = makeFile('Daily/three.md');
+		const logic = new PropsLogic(
+			makeApp([first, second, third], {
+				[first.path]: { status: '' },
+				[second.path]: { status: null },
+				[third.path]: { status: [] },
+			}),
+		);
+
+		const status = logic.getTree().find((node) => node.id === 'status');
+		expect(status?.children).toHaveLength(1);
+		const empty = status?.children?.[0];
+		expect(empty?.label).toBe('empty');
+		expect(empty?.count).toBe(3);
+		expect(empty?.meta.isValueNode).toBe(true);
+		expect(empty?.meta.rawValue).toBe('');
 	});
 });

@@ -9,6 +9,8 @@ import {
 	searchNeedsOwnRow,
 } from '../../src/logic/logicPanelWidgetOverflow';
 import navbarSource from '../../src/components/layout/navbarFilters.svelte?raw';
+import filtersPageSource from '../../src/components/pages/pageFilters.svelte?raw';
+import frameSource from '../../src/VaultmanFrame.svelte?raw';
 
 const stylesSource = readFileSync(
 	new URL('../../styles.css', import.meta.url),
@@ -104,16 +106,42 @@ describe('U121-029 search field second row', () => {
 		);
 		const clearButton =
 			navbarSource.match(
-				/class="vaultman-filters-search-clear"[\s\S]*?<\/button>/,
+				/class="search-input-clear-button"[\s\S]*?<\/div>/,
 			)?.[0] ?? '';
 		expect(clearButton).not.toBe('');
 		expect(clearButton).not.toContain('searchExpanded = false');
 	});
 
-	it('uses the same square desktop field in inline and second-row layouts', () => {
-		expect(stylesSource).toMatch(
-			/\.vaultman-filters-header-search-pill--inline,\s*\n\.vaultman-filters-header-search-pill--row\s*\{[^}]*border-radius:\s*0;/,
+	it('keeps its open state in the Scene when a resize republishes the panelWidget', () => {
+		expect(navbarSource).toContain('onSearchExpandedChange');
+		expect(navbarSource).toContain('setSearchExpanded(true)');
+		expect(navbarSource).toContain('setSearchExpanded(false)');
+		expect(filtersPageSource).toContain(
+			'let panelWidgetSearchExpanded = $state(false)',
 		);
+		expect(filtersPageSource).toContain(
+			'searchExpanded: panelWidgetSearchExpanded',
+		);
+		expect(filtersPageSource).toContain(
+			'onSearchExpandedChange: (expanded) =>',
+		);
+	});
+
+	it('uses the same Core-owned field chrome inline and on the second row', () => {
+		const rowBlocks = [
+			...stylesSource.matchAll(
+				/\.vaultman-filters-header-search-pill--row\s*\{[\s\S]*?\n\}/g,
+			),
+		];
+		const row = rowBlocks.at(-1)?.[0] ?? '';
+		expect(row).not.toContain('border-radius');
+		expect(row).not.toContain('background:');
+		expect(row).not.toContain('border:');
+		// The final cascade block must undo the base pill's 48% maximum; an
+		// earlier 100% declaration is still overridden at runtime.
+		expect(row).toContain('width: 100%');
+		expect(row).toContain('max-width: none');
+		expect(row).toContain('flex: 1 1 100%');
 	});
 
 	it('keeps the field inline only while a usable width is left', () => {
@@ -205,11 +233,13 @@ describe('U121-029 search field second row', () => {
 
 	it('reuses the native Tags search contract and marks Search with primary', () => {
 		expect(navbarSource).toContain('search-input-container');
+		expect(navbarSource).toContain('search-input-clear-button');
 		expect(navbarSource).toContain('type="search"');
 		expect(navbarSource).toContain('enterkeyhint="search"');
 		expect(navbarSource).toContain(
-			'class:vaultman-panel-widget-action--primary={searchExpanded}',
+			'class:is-active={searchExpanded}',
 		);
+		expect(stylesSource).not.toContain('.vaultman-panel-widget-action--primary');
 		expect(stylesSource).not.toContain(
 			'.vaultman-filters-header--minimal .vaultman-filters-header-search-pill:focus-within',
 		);
@@ -308,6 +338,33 @@ describe('U121-029 phone toolbar anchoring', () => {
 		expect(stylesSource).toMatch(
 			/\.is-phone[^{]*\.vaultman-filters-search-row \{\s*display: none;/,
 		);
+	});
+
+	it('lets the Core drawer toolbar own mobile geometry and its native gradient', () => {
+		const forbiddenOverride =
+			/\.is-phone \.workspace-drawer[^\n]*\.vaultman-filters-actions\.nav-buttons-container\s*\{[\s\S]*?\n\}/g;
+		expect(stylesSource.match(forbiddenOverride) ?? []).toEqual([]);
+		// Vaultman's desktop overflow clip must not cut off Core's tall `:after`
+		// floating-nav gradient on phone.
+		expect(stylesSource).toMatch(
+			/\.is-phone \.workspace-drawer[^\n]*\.vaultman-filters-actions\s*\{[^}]*overflow:\s*visible;/,
+		);
+	});
+});
+
+describe('U121-003 statistics provider handoff', () => {
+	it('publishes the requested provider before Filters takes ownership of the host', () => {
+		const navigation =
+			frameSource.match(
+				/async function navigateToDataTab\([\s\S]*?\n\t\}/,
+			)?.[0] ?? '';
+		expect(navigation).not.toBe('');
+		const selectIndex = navigation.indexOf('filtersActiveTab = tab;');
+		const settleIndex = navigation.indexOf('await tick();');
+		const activateIndex = navigation.indexOf("activePage = 'filters';");
+		expect(selectIndex).toBeGreaterThanOrEqual(0);
+		expect(settleIndex).toBeGreaterThan(selectIndex);
+		expect(activateIndex).toBeGreaterThan(settleIndex);
 	});
 });
 

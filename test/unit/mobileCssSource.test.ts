@@ -9,11 +9,12 @@ const stylesSource = readFileSync(
 
 describe('mobile CSS source guards', () => {
 	it('keeps phone navbar controls above Obsidian mobile gradients and moves Vaultman dock to the top', () => {
-		expect(stylesSource).toContain('position: absolute');
-		expect(stylesSource).toContain('bottom: 0');
-		expect(stylesSource).toContain('height: 56px');
-		expect(stylesSource).toContain('padding: 4px 0 8px');
-		expect(stylesSource).toContain('z-index: 1');
+		// The plugin opts into Core's exact `nav-buttons-container` contract. It
+		// must not duplicate the drawer geometry or gradient, because doing so
+		// blocks theme-owned variants such as Baseline.
+		expect(stylesSource).not.toMatch(
+			/\.is-phone \.workspace-drawer[^\n]*\.vaultman-filters-actions\.nav-buttons-container\s*\{/,
+		);
 		expect(stylesSource).toContain('.vaultman-bottom-nav');
 		expect(stylesSource).toContain('top: 0');
 		expect(stylesSource).toContain('bottom: auto');
@@ -27,11 +28,8 @@ describe('mobile CSS source guards', () => {
 	});
 
 	it('keeps phone minimal search as a top overlay while the search button remains a toggle', () => {
-		expect(stylesSource).toContain(
+		expect(stylesSource).not.toContain(
 			'.vaultman-filters-header--minimal .vaultman-filters-header-search-pill:focus-within',
-		);
-		expect(stylesSource).toContain(
-			'border-color: var(--background-modifier-border)',
 		);
 		expect(stylesSource).toContain('container-type: inline-size');
 		// U121-029: the desktop second row is measured (`searchNeedsOwnRow`), not
@@ -43,9 +41,7 @@ describe('mobile CSS source guards', () => {
 		expect(stylesSource).toMatch(
 			/\.is-phone[^{]*\.vaultman-filters-search-row \{\s*display: none;/,
 		);
-		expect(stylesSource).toContain(
-			'.vaultman-filters-header--minimal .vaultman-filters-header-search-pill',
-		);
+		expect(stylesSource).toContain('.vaultman-filters-header-search-pill');
 		expect(stylesSource).toContain('.vaultman-filters-phone-search-row');
 		expect(stylesSource).toContain('position: static');
 		expect(stylesSource).toContain('padding: 8px 8px 4px');
@@ -53,7 +49,11 @@ describe('mobile CSS source guards', () => {
 		expect(stylesSource).toContain('border-bottom-color: var(--background-modifier-border)');
 		expect(stylesSource).toContain('.vaultman-filters-header-search-pill--inline');
 		expect(stylesSource).toContain('.vaultman-filters-header-search-pill--phone');
-		expect(stylesSource).toContain('border-radius: var(--radius-s)');
+		const searchBlock =
+			stylesSource.match(
+				/\.vaultman-filters-header-search-pill\s*\{[\s\S]*?\n\}/,
+			)?.[0] ?? '';
+		expect(searchBlock).not.toContain('border-radius: 999px');
 		expect(stylesSource).not.toContain('vaultman-minimal-search-row');
 		expect(stylesSource).toContain('width: 28px');
 		expect(stylesSource).toContain('height: 28px');

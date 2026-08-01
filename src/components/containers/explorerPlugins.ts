@@ -36,6 +36,10 @@ import {
 	pluginSettingTabIds,
 	toggleCommunityPlugin,
 } from '../../logic/logicAddonCells';
+import {
+	normalizeInteractionMode,
+	type InteractionMode,
+} from '../../logic/logicInteractionMode';
 
 export class PluginsExplorerPanel
 	extends Component
@@ -54,6 +58,8 @@ export class PluginsExplorerPanel
 	private refreshRevision = 0;
 	private cellStyle: AddonCellStyle;
 	private readonly pendingToggleIds = new Set<string>();
+	private interactionMode: InteractionMode = 'open';
+	private selectedNodeIds = new Set<string>();
 
 	constructor(containerEl: HTMLElement, plugin: VaultmanPlugin) {
 		super();
@@ -161,6 +167,13 @@ export class PluginsExplorerPanel
 		// The scene-precedent port is operationally flat/tree-only in beta.3.
 	}
 
+	setInteractionMode(mode: InteractionMode): void {
+		const normalized = normalizeInteractionMode('plugins', mode);
+		if (this.interactionMode === normalized) return;
+		this.interactionMode = normalized;
+		this.render();
+	}
+
 	setCellStyle(style: AddonCellStyle): void {
 		const next = normalizeAddonCellStyle(style);
 		if (this.cellStyle === next) return;
@@ -245,8 +258,25 @@ export class PluginsExplorerPanel
 			visibleCells: this.visibleCells,
 			iconInCaretSlot: this.plugin.settings.iconInCaretSlot === true,
 			expandedIds: new Set<string>(),
+			...(this.interactionMode === 'select'
+				? {
+						selectedIds: this.selectedNodeIds,
+						selectionCheckboxPosition:
+							this.plugin.settings.selectionCheckboxPosition ?? 'start',
+						onSelectionToggle: (id: string, selected: boolean) => {
+							if (selected) this.selectedNodeIds.add(id);
+							else this.selectedNodeIds.delete(id);
+							this.render();
+						},
+					}
+				: {}),
 			onToggle: () => {},
-			onRowClick: () => {},
+			onRowClick: (id) => {
+				if (this.interactionMode !== 'select') return;
+				if (this.selectedNodeIds.has(id)) this.selectedNodeIds.delete(id);
+				else this.selectedNodeIds.add(id);
+				this.render();
+			},
 			onCellClick: (id, cellId) => {
 				const node = this.findNode(id);
 				if (!node) return;

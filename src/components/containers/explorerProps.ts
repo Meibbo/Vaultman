@@ -36,6 +36,7 @@ export interface PanelPluginCtx {
 		explorerSearchHighlights?: boolean;
 		/** BT5-015 */
 		iconInCaretSlot?: boolean;
+		selectionCheckboxPosition?: 'start' | 'end';
 	};
 	statisticsCache?: Pick<StatisticsCacheService, 'getFileTimes'>;
 	showDragActionGuide?: (text: string) => void;
@@ -389,14 +390,57 @@ export class PropsExplorerPanel extends Component {
 	}
 
 	private interactionMode: InteractionMode = 'filter';
+	private selectedNodeIds = new Set<string>();
 	private onContentSearch?: (query: string) => void;
 
 	setInteractionMode(
 		mode: InteractionMode,
 		onContentSearch?: (query: string) => void,
 	): void {
-		this.interactionMode = normalizeInteractionMode('props', mode);
+		const normalized = normalizeInteractionMode('props', mode);
 		this.onContentSearch = onContentSearch;
+		if (this.interactionMode === normalized) return;
+		this.interactionMode = normalized;
+		this._render();
+	}
+
+	private _selectionViewOptions() {
+		if (this.interactionMode === 'select') {
+			return {
+				selectedIds: this.selectedNodeIds,
+				selectionCheckboxPosition:
+					this.plugin.settings?.selectionCheckboxPosition ?? 'start',
+				onSelectionToggle: (id: string, selected: boolean) => {
+					if (selected) this.selectedNodeIds.add(id);
+					else this.selectedNodeIds.delete(id);
+					void this._render();
+				},
+			} as const;
+		}
+		return {};
+	}
+
+	private _renderCardSelectionCheckbox(
+		card: HTMLElement,
+		node: TreeNode<PropMeta>,
+	): void {
+		if (this.interactionMode !== 'select') return;
+		const position =
+			this.plugin.settings?.selectionCheckboxPosition ?? 'start';
+		card.dataset.id = node.id;
+		const checkbox = card.createEl('input', {
+			type: 'checkbox',
+			cls: `metadata-input-checkbox vaultman-selection-checkbox vaultman-selection-checkbox--${position}`,
+			attr: { 'aria-label': `Select ${node.label}` },
+		});
+		checkbox.checked = this.selectedNodeIds.has(node.id);
+		checkbox.addEventListener('click', (event) => event.stopPropagation());
+		checkbox.addEventListener('change', (event) => {
+			event.stopPropagation();
+			if (checkbox.checked) this.selectedNodeIds.add(node.id);
+			else this.selectedNodeIds.delete(node.id);
+			card.toggleClass('is-selected', checkbox.checked);
+		});
 	}
 
 	private readonly _handleStateChange = () => this._deferRender();
@@ -631,6 +675,13 @@ export class PropsExplorerPanel extends Component {
 				this._toggleExpanded(node.id);
 				void this._render();
 			}
+			return;
+		}
+
+		if (action === 'select') {
+			if (this.selectedNodeIds.has(node.id)) this.selectedNodeIds.delete(node.id);
+			else this.selectedNodeIds.add(node.id);
+			void this._render();
 			return;
 		}
 
@@ -891,6 +942,7 @@ export class PropsExplorerPanel extends Component {
 				nodes: nodesWithIcons,
 				expandedIds: this.expandedIds,
 				visibleCells: this.visibleCells,
+				...this._selectionViewOptions(),
 				activeFilterIds,
 				excludedFilterIds,
 				warningIds,
@@ -941,6 +993,7 @@ export class PropsExplorerPanel extends Component {
 			nodes: nodesWithIcons,
 			expandedIds: this.expandedIds,
 			visibleCells: this.visibleCells,
+			...this._selectionViewOptions(),
 			filterBubbleLabel: translate('filter.active_descendant'),
 			renderLabel: (container, node) =>
 				this._renderPropertyValueLabel(container, node as TreeNode<PropMeta>),
@@ -1280,6 +1333,7 @@ export class PropsExplorerPanel extends Component {
 			card.toggleClass('is-excluded-filter', excludedFilterIds.has(node.id));
 			card.toggleClass('vaultman-badge-warning', warningIds.has(node.id));
 			card.toggleClass('vaultman-search-highlight', highlightIds.has(node.id));
+			card.toggleClass('is-selected', this.selectedNodeIds.has(node.id));
 			card.setAttribute('role', 'button');
 			card.draggable = true;
 			card.setAttribute('tabindex', '0');
@@ -1301,6 +1355,7 @@ export class PropsExplorerPanel extends Component {
 				});
 			}
 			this._renderGridBadges(card, node);
+			this._renderCardSelectionCheckbox(card, node);
 
 			card.addEventListener('click', (event) =>
 				this._handleNodeClick(node, event),

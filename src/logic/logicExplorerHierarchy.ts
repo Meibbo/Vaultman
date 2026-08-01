@@ -93,7 +93,15 @@ export function flattenPropertyValues<
 	const flat: TreeNode<TMeta & { flatLabelPrefix?: string }>[] = [];
 	const visit = (items: TreeNode<TMeta>[]): void => {
 		for (const node of items) {
-			if (node.meta.isValueNode) {
+			if (!node.meta.isValueNode) {
+				flat.push({
+					...node,
+					depth: 0,
+					showCaret: false,
+					children: [],
+					meta: { ...node.meta },
+				});
+			} else {
 				const value = node.meta.rawValue ?? node.label;
 				flat.push({
 					...node,

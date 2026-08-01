@@ -1,4 +1,4 @@
-export type InteractionTab = 'files' | 'props' | 'tags';
+export type InteractionTab = 'files' | 'props' | 'tags' | 'snippets' | 'plugins';
 export type InteractionMode = 'open' | 'filter' | 'add' | 'select';
 export type InteractionAction =
 	| 'open'
@@ -13,12 +13,16 @@ export const DEFAULT_INTERACTION_MODE: Record<InteractionTab, InteractionMode> =
 		files: 'open',
 		props: 'filter',
 		tags: 'filter',
+		snippets: 'open',
+		plugins: 'open',
 	};
 
 const INTERACTION_MODES: Record<InteractionTab, readonly InteractionMode[]> = {
 	files: ['open', 'add', 'select'],
-	props: ['open', 'filter', 'add'],
-	tags: ['open', 'filter', 'add'],
+	props: ['open', 'filter', 'add', 'select'],
+	tags: ['open', 'filter', 'add', 'select'],
+	snippets: ['open', 'select'],
+	plugins: ['open', 'select'],
 };
 
 export function interactionModesForTab(
@@ -43,6 +47,9 @@ export function resolveInteractionAction(
 ): InteractionAction {
 	const normalized = normalizeInteractionMode(tab, mode);
 	if (tab === 'files') return normalized as 'open' | 'add' | 'select';
+	if (tab === 'snippets' || tab === 'plugins') {
+		return normalized as 'open' | 'select';
+	}
 	if (normalized === 'open') return modified ? 'content-search' : 'expand';
-	return normalized as 'filter' | 'add';
+	return normalized;
 }

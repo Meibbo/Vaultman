@@ -3009,44 +3009,10 @@ body.vaultman-bases-column-separators table th {
   position: static;
 }
 
-.is-phone .workspace-drawer .workspace-leaf-content[data-type="vaultman-frame"] .vaultman-filters-actions.nav-buttons-container {
-  position: absolute;
-  inset-inline: 0;
-  top: auto;
-  bottom: 0;
-  height: 56px;
-  min-height: 0;
-  align-items: normal;
-  justify-content: center;
-  gap: var(--size-4-2);
-  padding: 4px 0 8px;
-  z-index: 1;
-  background: transparent;
-  border: 0;
-  box-shadow: none;
-}
-
-.is-phone .workspace-drawer .vaultman-filters-actions.nav-buttons-container {
-  position: absolute;
-  inset-inline: 0;
-  top: auto;
-  bottom: 0;
-  height: 56px;
-  min-height: 0;
-  align-items: normal;
-  justify-content: center;
-  gap: var(--size-4-2);
-  padding: 4px 0 8px;
-  z-index: 1;
-  background: transparent;
-  border: 0;
-  box-shadow: none;
-}
-
-.is-phone .workspace-drawer .vaultman-filters-actions.nav-buttons-container > .nav-action-button {
-  width: 44px;
-  height: 44px;
-  padding: 8px;
+.is-phone .workspace-drawer .vaultman-filters-actions {
+  /* The desktop packer clips its own line. Core's mobile toolbar paints the
+     floating-nav gradient outside that box, so do not clip the Core pseudo. */
+  overflow: visible;
 }
 
 .vaultman-filters-phone-search-row {
@@ -3110,10 +3076,6 @@ body.vaultman-bases-column-separators table th {
   flex: 1 1 auto;
   width: 100%;
   max-width: none;
-  height: 34px;
-  border-radius: 0;
-  gap: 8px;
-  padding-inline: 8px;
 }
 
 /* Phone already owns one dedicated search row above the collapsed header. */
@@ -3192,43 +3154,21 @@ body.vaultman-bases-column-separators table th {
   flex: 0 1 220px;
   min-width: 0;
   max-width: min(220px, 48%);
-  display: flex;
-  align-items: center;
-  background: var(--background-modifier-form-field);
-  border: 1px solid var(--background-modifier-border);
-  border-radius: 999px;
-  padding: 0 6px 0 10px;
-  height: 26px;
-  gap: 4px;
-  transition: border-color 0.12s;
 }
 
-.vaultman-filters-header-search-pill--inline,
 .vaultman-filters-header-search-pill--row {
-  border-radius: 0;
+  flex: 1 1 100%;
+  width: 100%;
+  max-width: none;
 }
 
-.vaultman-panel-widget-action--primary {
-  color: var(--interactive-accent);
+.vaultman-filters-header-search-pill::before {
+  /* Search is already represented by the adjacent native Search action. */
+  display: none;
 }
 
 .vaultman-filters-header-search-pill input.vaultman-filters-search-input {
-  flex: 1;
-  border: none;
-  background: transparent;
-  box-shadow: none;
-  outline: none;
-  font-size: var(--font-ui-smaller);
-  color: var(--text-normal);
-  min-width: 0;
-  height: 100%;
-  padding: 0;
-  margin: 0;
-  /* Reset native search styles */
-  appearance: none;
-  -webkit-appearance: none;
-  background-image: none;
-  border-radius: 0;
+  padding-inline-start: var(--size-4-3);
 }
 
 .is-phone .workspace-drawer .workspace-leaf-content[data-type="vaultman-frame"] .vaultman-filters-header-search-pill .vaultman-filters-search-input {
@@ -3250,7 +3190,6 @@ body.vaultman-bases-column-separators table th {
   color: var(--text-faint);
 }
 
-.vaultman-filters-search-clear,
 .vaultman-filters-search-mode,
 .vaultman-filters-search-create {
   display: flex;
@@ -3273,14 +3212,12 @@ body.vaultman-bases-column-separators table th {
   height: 28px;
 }
 
-.vaultman-filters-search-clear:hover,
 .vaultman-filters-search-mode:hover,
 .vaultman-filters-search-create:hover {
   opacity: 1;
   color: var(--text-normal);
 }
 
-.vaultman-filters-search-clear svg,
 .vaultman-filters-search-mode svg,
 .vaultman-filters-search-create svg {
   width: 14px;
@@ -6954,7 +6891,7 @@ button.vaultman-content-scope-hint:focus-visible {
 .vaultman-property-value-cell {
 	display: inline-flex;
 	align-items: center;
-	gap: 6px;
+	gap: var(--size-2-2);
 }
 
 .vaultman-property-value-link {
@@ -6962,15 +6899,28 @@ button.vaultman-content-scope-hint:focus-visible {
 	text-decoration-line: var(--link-decoration);
 }
 
-.vaultman-property-value-checkbox {
-	margin: 0;
-	pointer-events: none;
+.vaultman-property-value-cell > .metadata-input-checkbox {
+  margin: 0;
 }
 
-.vaultman-property-value-daily-note {
-	width: 22px;
-	height: 22px;
-	padding: 3px;
+.vaultman-selection-checkbox {
+  flex: 0 0 auto;
+  margin: 0 var(--size-2-2);
+}
+
+.vaultman-node-table-row > .vaultman-selection-checkbox,
+:is(.vaultman-prop-card, .vaultman-tag-card) > .vaultman-selection-checkbox {
+  position: absolute;
+  top: var(--size-4-2);
+  z-index: 2;
+}
+
+.vaultman-selection-checkbox--start {
+  inset-inline-start: var(--size-4-2);
+}
+
+.vaultman-selection-checkbox--end {
+  inset-inline-end: var(--size-4-2);
 }
 
 /* ─── Rainbow glyph palettes (U121-029) ────────────────────────────────────

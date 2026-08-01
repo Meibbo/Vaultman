@@ -34,6 +34,9 @@ export interface NodeTableViewOptions<TMeta = unknown> {
 	nodes: TreeNode<TMeta>[];
 	expandedIds: Set<string>;
 	visibleCells: Set<string>;
+	selectedIds?: Set<string>;
+	selectionCheckboxPosition?: 'start' | 'end';
+	onSelectionToggle?: (id: string, selected: boolean) => void;
 	activeFilterIds?: Set<string>;
 	excludedFilterIds?: Set<string>;
 	searchHighlightIds?: Set<string>;
@@ -376,6 +379,8 @@ export class NodeTableView<TMeta = unknown> {
 			visibleCells,
 			columns,
 			badges,
+			opts.onSelectionToggle ? 'selection' : '',
+			opts.selectionCheckboxPosition ?? 'start',
 		].join('\u001f');
 	}
 
@@ -449,8 +454,14 @@ export class NodeTableView<TMeta = unknown> {
 			opts.onContextMenu(node.id, event);
 		};
 		const isHighlighted = opts.searchHighlightIds?.has(node.id) ?? false;
+		const isSelected = opts.selectedIds?.has(node.id) ?? false;
 		if (row.dataset.renderSignature === signature) {
 			row.toggleClass('vaultman-search-highlight', isHighlighted);
+			row.toggleClass('is-selected', isSelected);
+			const checkbox = row.querySelector<HTMLInputElement>(
+				'.vaultman-selection-checkbox',
+			);
+			if (checkbox) checkbox.checked = isSelected;
 			return;
 		}
 		row.empty();
@@ -485,9 +496,23 @@ export class NodeTableView<TMeta = unknown> {
 			opts.warningIds?.has(node.id) ?? false,
 		);
 		row.toggleClass('vaultman-search-highlight', isHighlighted);
+		row.toggleClass('is-selected', isSelected);
 
 		for (const column of layout.columns) {
 			this._renderCell(row, node, column, opts);
+		}
+		if (opts.onSelectionToggle) {
+			const checkbox = row.createEl('input', {
+				type: 'checkbox',
+				cls: `metadata-input-checkbox vaultman-selection-checkbox vaultman-selection-checkbox--${opts.selectionCheckboxPosition ?? 'start'}`,
+				attr: { 'aria-label': `Select ${node.label}` },
+			});
+			checkbox.checked = isSelected;
+			checkbox.onclick = (event) => event.stopPropagation();
+			checkbox.onchange = (event) => {
+				event.stopPropagation();
+				opts.onSelectionToggle?.(node.id, checkbox.checked);
+			};
 		}
 	}
 

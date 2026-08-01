@@ -103,6 +103,20 @@ describe('BT5-007 shared sort menu model', () => {
 
 	it('shares contextual sort visibility and option registries', () => {
 		expect(
+			visibleSortOptions(
+				'files',
+				stateFor('files', { fixedFolders: true }),
+				true,
+			).map((option) => option.id),
+		).not.toContain('file-count');
+		expect(
+			visibleSortOptions(
+				'files',
+				stateFor('files', { fixedFolders: false }),
+				true,
+			).map((option) => option.id),
+		).toContain('file-count');
+		expect(
 			visibleSortOptions('files', stateFor('files'), true).map(
 				(option) => option.id,
 			),
@@ -145,6 +159,7 @@ describe('BT5-007 shared sort menu model', () => {
 		expect(SORT_MENU_OPTIONS.files.map((option) => option.id)).not.toContain(
 			'type',
 		);
+		expect(NODE_TYPE_MENU_OPTIONS.props[0]?.id).toBe('all');
 		expect(NODE_TYPE_MENU_OPTIONS.props.map((option) => option.id)).toContain(
 			'datetime',
 		);

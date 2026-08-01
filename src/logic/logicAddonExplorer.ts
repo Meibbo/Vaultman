@@ -5,6 +5,7 @@ import type {
 } from '../types/typeUI';
 import type { FloatingTocPanel } from '../services/routerFloatingToc';
 import type { AddonCellStyle } from '../types/typeSettings';
+import type { InteractionMode } from './logicInteractionMode';
 
 export interface AddonEntryProjection {
 	name: string;
@@ -19,6 +20,7 @@ export interface AddonExplorerPanelPort extends FloatingTocPanel {
 	setSortState(state: ExplorerSortState): void;
 	setVisibleCells(cells: Set<string>): void;
 	setViewMode(mode: ExplorerViewMode): void;
+	setInteractionMode(mode: InteractionMode): void;
 	setCellStyle(style: AddonCellStyle): void;
 }
 

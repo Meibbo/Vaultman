@@ -299,6 +299,7 @@
 	let localShowToolbar = $state<boolean | null>(
 		untrack(() => initialShowToolbar ?? null),
 	);
+	let panelWidgetSearchExpanded = $state(false);
 	const showToolbar = $derived.by(() => {
 		void settingsRevision;
 		if (localShowToolbar !== null) return localShowToolbar;
@@ -1005,6 +1006,10 @@
 			activeTab: explorerActiveTab,
 			filtersSearch,
 			filtersSearchCategory,
+			searchExpanded: panelWidgetSearchExpanded,
+			onSearchExpandedChange: (expanded) => {
+				panelWidgetSearchExpanded = expanded;
+			},
 			tagsExplorer,
 			propExplorer,
 			fileList,

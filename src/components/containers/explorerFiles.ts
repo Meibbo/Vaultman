@@ -1049,11 +1049,15 @@ export class FilesExplorerPanel extends Component {
 		sort: ScopeSort,
 	): number {
 		if (a.meta.file && b.meta.file) {
+			const fileSort =
+				normalizeExplorerSortBy(sort.sortBy) === 'file-count'
+					? { ...sort, sortBy: 'name' }
+					: sort;
 			return compareFilesForExplorer(
 				a.meta.file,
 				b.meta.file,
-				sort.sortBy,
-				sort.direction,
+				fileSort.sortBy,
+				fileSort.direction,
 				{
 					countForFile: (file) => this._propCountForFile(file),
 					wordCountForFile: (file) =>

@@ -243,6 +243,11 @@ export const es: Record<string, string> = {
 	'settings.icon_in_caret_slot': 'Icono en el hueco del caret',
 	'settings.icon_in_caret_slot.desc':
 		'Los nodos que muestran icono y no reservan caret lo dibujan en la columna del caret en vez de antes del label, así todos los labels quedan alineados con los nodos sin icono.',
+	'settings.selection_checkbox_position': 'Posición de la casilla de selección',
+	'settings.selection_checkbox_position.desc':
+		'Coloca el cell_checkbox del modo seleccionar al inicio o al final de los nodos.',
+	'settings.selection_checkbox_position.start': 'Inicio / izquierda',
+	'settings.selection_checkbox_position.end': 'Final / derecha',
 	'settings.order_cells_by_activation': 'Ordenar celdas por activación',
 	'settings.order_cells_by_activation.desc':
 		'Muestra las celdas en el orden en que las activas en vez de un orden fijo.',
@@ -873,7 +878,7 @@ export const es: Record<string, string> = {
 	'viewmode.pill.mtime': 'Modificación',
 	'viewmode.pill.ctime': 'Creación',
 	'viewmode.pill.type': 'Tipo',
-	'viewmode.pill.format': 'Formatear valores',
+	'viewmode.pill.format': 'Formato',
 	'viewmode.pill.opened': 'Última apertura',
 	'viewmode.pill.path': 'Ruta',
 	'viewmode.pill.words': 'Palabras',

@@ -66,6 +66,7 @@ export interface PanelWidgetExplorerPort {
 	setSortState(state: ExplorerSortState): void;
 	setVisibleCells(cells: Set<string>): void;
 	setViewMode(mode: 'tree' | 'grid' | 'table'): void;
+	setInteractionMode?(mode: InteractionMode): void;
 	configurePanelWidgetProjection?(
 		config: PanelWidgetExplorerProjectionConfig,
 	): void;
@@ -147,6 +148,8 @@ export interface NavbarPanelWidgetState {
 	activeTab: ExplorerTabId;
 	filtersSearch: string;
 	filtersSearchCategory: PanelWidgetSearchCategoryState;
+	searchExpanded?: boolean;
+	onSearchExpandedChange?: (expanded: boolean) => void;
 	tagsExplorer?: PanelWidgetTreeExplorerPort | null;
 	propExplorer?: PanelWidgetTreeExplorerPort;
 	fileList?: PanelWidgetFilesExplorerPort;

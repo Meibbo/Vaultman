@@ -102,7 +102,10 @@ export class PropsLogic {
 		const allProps =
 			(
 				this.app.metadataCache as unknown as {
-					getAllPropertyInfos(): Record<string, { type: string }>;
+					getAllPropertyInfos(): Record<
+						string,
+						{ type?: string; widget?: string }
+					>;
 				}
 			).getAllPropertyInfos?.() ?? {};
 
@@ -125,11 +128,9 @@ export class PropsLogic {
 
 				// Track value frequencies
 				if (!valueMap.has(key)) valueMap.set(key, new Map());
-				const vals = Array.isArray(val) ? val : [val];
+				const vals = Array.isArray(val) && val.length > 0 ? val : [val];
 				for (const v of vals) {
-					if (v == null) continue;
-					const str = String(v);
-					if (str === '') continue;
+					const str = v == null ? '' : String(v);
 					const vMap = valueMap.get(key)!;
 					vMap.set(str, (vMap.get(str) ?? 0) + 1);
 				}
@@ -156,7 +157,7 @@ export class PropsLogic {
 		for (const propName of propNames) {
 			const info =
 				allProps[propName] ?? infoByLower.get(propName.toLowerCase());
-			const propType = info?.type ?? 'text';
+			const propType = info?.widget ?? info?.type ?? 'text';
 			const valuesMap = (valueMap.get(propName) ?? new Map()) as Map<
 				string,
 				number
@@ -168,7 +169,7 @@ export class PropsLogic {
 			const valueNodes: TreeNode<PropMeta>[] = Array.from(valuesMap.entries())
 				.map(([rawValue, cnt]: [string, number]) => ({
 					id: `${propName}::${rawValue}`,
-					label: rawValue,
+					label: rawValue === '' ? 'empty' : rawValue,
 					count: cnt,
 					depth: 1,
 					coreCls: 'tree-item-self tappable is-clickable',

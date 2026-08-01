@@ -36,10 +36,18 @@ describe('statistics toolbar parity + opened-today card', () => {
 		expect(statisticsSource).toContain("id: 'queue'");
 	});
 
-	it('publishes the requested provider atomically when leaving Statistics', () => {
-		expect(frameSource).toContain('flushSync(() => {');
-		expect(frameSource).toContain('filtersActiveTab = tab;');
-		expect(frameSource).toContain("activePage = 'filters';");
+	it('publishes the requested provider before Filters reclaims the toolbar', () => {
+		const handoff = frameSource.slice(
+			frameSource.indexOf('async function navigateToDataTab'),
+			frameSource.indexOf('async function waitForFrameDom'),
+		);
+		const selectProvider = handoff.indexOf('filtersActiveTab = tab;');
+		const publishProvider = handoff.indexOf('await tick();');
+		const activateFilters = handoff.indexOf("activePage = 'filters';");
+		expect(selectProvider).toBeGreaterThanOrEqual(0);
+		expect(publishProvider).toBeGreaterThan(selectProvider);
+		expect(activateFilters).toBeGreaterThan(publishProvider);
+		expect(handoff).not.toContain('flushSync');
 	});
 
 	it('counts files opened since a moment', () => {

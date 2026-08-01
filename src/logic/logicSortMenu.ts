@@ -115,6 +115,7 @@ export const NODE_TYPE_MENU_OPTIONS: Record<
 	readonly BuiltInNodeTypeMenuOption[]
 > = {
 	props: [
+		{ id: 'all', icon: 'lucide-list-filter', labelKey: 'sort.type.all' },
 		...PROP_TYPE_ORDER.map((id) => ({
 			id,
 			icon: TYPE_ICON_MAP[id],
@@ -275,11 +276,17 @@ export function visibleSortOptions(
 	state: ExplorerSortState,
 	nestedActive: boolean,
 ): readonly SortMenuOption[] {
-	return SORT_MENU_OPTIONS[tab].filter((option) =>
-		isSortOptionVisible(option.id, {
-			tab,
-			nestedActive,
-			activeScope: state.activeScope,
-		}),
+	return SORT_MENU_OPTIONS[tab].filter(
+		(option) =>
+			!(
+				tab === 'files' &&
+				option.id === 'file-count' &&
+				state.fixedFolders !== false
+			) &&
+			isSortOptionVisible(option.id, {
+				tab,
+				nestedActive,
+				activeScope: state.activeScope,
+			}),
 	);
 }

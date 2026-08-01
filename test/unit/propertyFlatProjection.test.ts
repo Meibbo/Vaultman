@@ -3,7 +3,7 @@ import { flattenPropertyValues } from '../../src/logic/logicExplorerHierarchy';
 import type { PropMeta, TreeNode } from '../../src/types/typeTree';
 
 describe('U121-003 flat property projection', () => {
-	it('projects only values as unindented parent: value rows', () => {
+	it('keeps property rows and projects their values as unindented parent: value rows', () => {
 		const tree: TreeNode<PropMeta>[] = [{
 			id: 'status', label: 'status', depth: 0,
 			meta: { propName: 'status', propType: 'text', isValueNode: false },
@@ -13,8 +13,9 @@ describe('U121-003 flat property projection', () => {
 			}],
 		}];
 		const flat = flattenPropertyValues(tree);
-		expect(flat).toHaveLength(1);
-		expect(flat[0]).toMatchObject({ label: 'status: open', depth: 0, showCaret: false, children: [] });
-		expect(flat[0].meta.flatLabelPrefix).toBe('status: ');
+		expect(flat).toHaveLength(2);
+		expect(flat[0]).toMatchObject({ label: 'status', depth: 0, showCaret: false, children: [] });
+		expect(flat[1]).toMatchObject({ label: 'status: open', depth: 0, showCaret: false, children: [] });
+		expect(flat[1].meta.flatLabelPrefix).toBe('status: ');
 	});
 });

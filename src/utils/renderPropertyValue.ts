@@ -1,8 +1,6 @@
 import { setIcon, type App } from 'obsidian';
 
 const WIKILINK = /^\[\[([^\]|#]+)(?:#[^\]|]+)?(?:\|([^\]]+))?\]\]$/;
-const DATE = /^\d{4}-\d{2}-\d{2}$/;
-
 export function renderPropertyValue(
 	container: HTMLElement,
 	raw: string,
@@ -12,12 +10,17 @@ export function renderPropertyValue(
 	if (type === 'checkbox') {
 		const checkbox = container.createEl('input', {
 			type: 'checkbox',
-			cls: 'metadata-input-checkbox vaultman-property-value-checkbox',
+			cls: 'metadata-input-checkbox',
 		});
 		checkbox.checked = !['', 'false', '0', 'no', 'none', 'null'].includes(
 			raw.trim().toLowerCase(),
 		);
-		checkbox.disabled = true;
+		checkbox.tabIndex = -1;
+		checkbox.setAttribute('aria-readonly', 'true');
+		checkbox.addEventListener('click', (event) => {
+			event.preventDefault();
+			event.stopPropagation();
+		});
 		return;
 	}
 
@@ -37,40 +40,37 @@ export function renderPropertyValue(
 		return;
 	}
 
-	if (
-		(type === 'date' || type === 'datetime') &&
-		!Number.isNaN(Date.parse(raw))
-	) {
-		const dateParts = raw.match(/^(\d{4})-(\d{2})-(\d{2})$/);
-		const instant =
-			type === 'date' && dateParts
-				? new Date(
-						Number(dateParts[1]),
-						Number(dateParts[2]) - 1,
-						Number(dateParts[3]),
-					)
-				: new Date(raw);
-		const dateText =
-			type === 'datetime'
-				? instant.toLocaleString()
-				: instant.toLocaleDateString();
-		container.createSpan({
-			cls: 'vaultman-property-value-date',
-			text: dateText,
-		});
+	if ((type === 'date' || type === 'datetime') && !Number.isNaN(Date.parse(raw))) {
 		const day = raw.slice(0, 10);
-		if (DATE.test(day)) {
-			const dailyNote = container.createEl('button', {
-				type: 'button',
-				cls: 'clickable-icon vaultman-property-value-daily-note',
+		if (type === 'date') {
+			const dateInput = container.createEl('input', {
+				type: 'date',
+				cls: 'metadata-input metadata-input-text mod-date',
+				attr: { max: '9999-12-31' },
+			});
+			dateInput.value = day;
+			dateInput.readOnly = true;
+			dateInput.tabIndex = -1;
+
+			const dailyNote = container.createDiv({
+				cls: 'clickable-icon',
 				attr: { 'aria-label': `Open daily note ${day}` },
 			});
-			setIcon(dailyNote, 'lucide-calendar-arrow-up');
+			setIcon(dailyNote, 'lucide-link');
 			dailyNote.addEventListener('click', (event) => {
 				event.preventDefault();
 				event.stopPropagation();
 				void app.workspace.openLinkText(day, '', false);
 			});
+		} else {
+			const dateTimeInput = container.createEl('input', {
+				type: 'datetime-local',
+				cls: 'metadata-input metadata-input-text mod-datetime',
+				attr: { max: '9999-12-31T23:59' },
+			});
+			dateTimeInput.value = raw.slice(0, 16);
+			dateTimeInput.readOnly = true;
+			dateTimeInput.tabIndex = -1;
 		}
 		return;
 	}

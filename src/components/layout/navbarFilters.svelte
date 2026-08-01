@@ -80,7 +80,6 @@
 	} from '../../types/typePanelWidget';
 
 	type FiltersTab = ExplorerTabId;
-	type CoreFiltersTab = 'props' | 'files' | 'tags';
 	type HeaderTabOption = PanelWidgetHeaderTabOption;
 	type HeaderMenuAction = PanelWidgetHeaderMenuAction;
 	type NavbarRendererState = NavbarPanelWidgetState & {
@@ -98,6 +97,8 @@
 		actionPort,
 		filtersSearch = $bindable(''),
 		filtersSearchCategory = $bindable({ tags: 0, props: 0, files: 0 }),
+		searchExpanded = false,
+		onSearchExpandedChange,
 		tagsExplorer,
 		propExplorer,
 		fileList,
@@ -216,7 +217,7 @@
 		snippets: 'tree',
 		plugins: 'tree',
 	});
-	let interactionModeByTab = $state<Record<CoreFiltersTab, InteractionMode>>({
+	let interactionModeByTab = $state<Record<FiltersTab, InteractionMode>>({
 		...DEFAULT_INTERACTION_MODE,
 	});
 	let visibleCellsByTab = $state<Record<FiltersTab, string[]>>({
@@ -247,9 +248,6 @@
 		'snippets',
 		'plugins',
 	];
-	function isCoreFiltersTab(tab: FiltersTab): tab is CoreFiltersTab {
-		return tab === 'files' || tab === 'props' || tab === 'tags';
-	}
 	// A short, caveman-ish summary of what each explorer holds in this layout.
 	function buildLayoutSummary(): string {
 		return LAYOUT_TABS.map((tab) => {
@@ -274,9 +272,7 @@
 			config[tab] = {
 				viewMode: viewModeByTab[tab],
 				visibleCells: [...(visibleCellsByTab[tab] ?? [])],
-				...(isCoreFiltersTab(tab)
-					? { interactionMode: interactionModeByTab[tab] }
-					: {}),
+				interactionMode: interactionModeByTab[tab],
 				sortState: {
 					...sortState,
 					sorts: { ...sortState.sorts },
@@ -304,12 +300,10 @@
 				nextView[tab],
 			);
 			nextSort[tab] = normalizeSortState(tab, saved.sortState);
-			if (isCoreFiltersTab(tab)) {
-				nextInteraction[tab] = normalizeInteractionMode(
-					tab,
-					saved.interactionMode,
-				);
-			}
+			nextInteraction[tab] = normalizeInteractionMode(
+				tab,
+				saved.interactionMode,
+			);
 		}
 		viewModeByTab = nextView;
 		visibleCellsByTab = nextCells;
@@ -319,13 +313,10 @@
 			applyViewMode(tab, nextView[tab]);
 			applyVisibleCells(tab, nextCells[tab]);
 			applySortState(tab, nextSort[tab]);
-			if (isCoreFiltersTab(tab)) {
-				applyInteractionMode(tab, nextInteraction[tab]);
-			}
+			applyInteractionMode(tab, nextInteraction[tab]);
 		}
 		onLayoutLoaded?.(layout);
 	}
-	let searchExpanded = $state(false);
 	let navbarEl = $state<HTMLElement | null>(null);
 	let actionsEl = $state<HTMLElement | null>(null);
 	let measuredOverflowIds = $state<string[]>([]);
@@ -764,8 +755,13 @@
 		filtersSearch = value;
 	}
 
+	function setSearchExpanded(expanded: boolean): void {
+		searchExpanded = expanded;
+		onSearchExpandedChange?.(expanded);
+	}
+
 	function expandSearch() {
-		searchExpanded = true;
+		setSearchExpanded(true);
 		window.requestAnimationFrame(() => focusVisibleSearchInput());
 	}
 
@@ -774,7 +770,7 @@
 			expandSearch();
 			return;
 		}
-		searchExpanded = false;
+		setSearchExpanded(false);
 		blurSearchInputs();
 	}
 
@@ -857,7 +853,7 @@
 		if (tab === 'plugins') pluginsExplorer?.setVisibleCells(cellSet);
 	}
 
-	function applyInteractionMode(tab: CoreFiltersTab, mode: InteractionMode) {
+	function applyInteractionMode(tab: FiltersTab, mode: InteractionMode) {
 		const normalized = normalizeInteractionMode(tab, mode);
 		if (tab === 'files') fileList?.setInteractionMode(normalized);
 		if (tab === 'props') {
@@ -866,9 +862,11 @@
 		if (tab === 'tags') {
 			tagsExplorer?.setInteractionMode(normalized, onContentSearch);
 		}
+		if (tab === 'snippets') snippetsExplorer?.setInteractionMode?.(normalized);
+		if (tab === 'plugins') pluginsExplorer?.setInteractionMode?.(normalized);
 	}
 
-	function selectInteractionMode(tab: CoreFiltersTab, mode: InteractionMode) {
+	function selectInteractionMode(tab: FiltersTab, mode: InteractionMode) {
 		const normalized = normalizeInteractionMode(tab, mode);
 		interactionModeByTab = {
 			...interactionModeByTab,
@@ -1046,34 +1044,32 @@
 			});
 		}
 
-		if (isCoreFiltersTab(activeTab)) {
-			if (onSaveLayout) menu.addSeparator();
-			menu.addItem((item) => {
-				item
-					.setTitle(translate('viewmenu.in_mode'))
-					.setIcon('lucide-mouse-pointer-click');
-				const sub = (
-					item as typeof item & { setSubmenu: () => Menu }
-				).setSubmenu();
-				for (const mode of interactionModesForTab(activeTab)) {
-					sub.addItem((subItem) =>
-						subItem
-							.setTitle(translate(`viewmenu.in_mode.${mode}`))
-							.setIcon(
-								mode === 'open'
-									? 'lucide-folder-open'
-									: mode === 'filter'
-										? 'lucide-list-filter'
-										: mode === 'add'
-											? 'lucide-plus'
-											: 'lucide-mouse-pointer-2',
-							)
-							.setChecked(interactionModeByTab[activeTab] === mode)
-							.onClick(() => selectInteractionMode(activeTab, mode)),
-					);
-				}
-			});
-		}
+		if (onSaveLayout) menu.addSeparator();
+		menu.addItem((item) => {
+			item
+				.setTitle(translate('viewmenu.in_mode'))
+				.setIcon('lucide-mouse-pointer-click');
+			const sub = (
+				item as typeof item & { setSubmenu: () => Menu }
+			).setSubmenu();
+			for (const mode of interactionModesForTab(activeTab)) {
+				sub.addItem((subItem) =>
+					subItem
+						.setTitle(translate(`viewmenu.in_mode.${mode}`))
+						.setIcon(
+							mode === 'open'
+								? 'lucide-folder-open'
+								: mode === 'filter'
+									? 'lucide-list-filter'
+									: mode === 'add'
+										? 'lucide-plus'
+										: 'lucide-mouse-pointer-2',
+						)
+						.setChecked(interactionModeByTab[activeTab] === mode)
+						.onClick(() => selectInteractionMode(activeTab, mode)),
+				);
+			}
+		});
 
 		menu.addSeparator();
 		// 'Nested' stays in the sort menu's By level group (D29).
@@ -1587,9 +1583,7 @@
 		const tab = activeTab;
 		const viewMode = viewModeByTab[tab] ?? 'tree';
 		const cells = visibleCellsByTab[tab] ?? defaultVisibleCells(tab, viewMode);
-		const interactionMode = isCoreFiltersTab(tab)
-			? interactionModeByTab[tab]
-			: undefined;
+		const interactionMode = interactionModeByTab[tab];
 		const sortState = untrack(
 			() => sortStateByTab[tab] ?? DEFAULT_SORT_STATE[tab],
 		);
@@ -1669,14 +1663,20 @@
 				setFiltersSearch((event.currentTarget as HTMLInputElement).value)}
 		/>
 		{#if filtersSearch}
-			<button
-				class="vaultman-filters-search-clear"
+			<div
+				class="search-input-clear-button"
 				aria-label={translate('filter.search_clear')}
-				use:icon={'lucide-x'}
+				role="button"
+				tabindex="0"
 				onclick={() => {
 					setFiltersSearch('');
 				}}
-			></button>
+				onkeydown={(event: KeyboardEvent) => {
+					if (event.key !== 'Enter' && event.key !== ' ') return;
+					event.preventDefault();
+					setFiltersSearch('');
+				}}
+			></div>
 		{/if}
 		{#if CATEGORY_ICONS[activeTab].length > 1}
 			<button
@@ -1840,7 +1840,7 @@
 						{#if minimalStyle && toolbarNodeVisible('search')}
 							<div
 								class={headerActionClass}
-								class:vaultman-panel-widget-action--primary={searchExpanded}
+								class:is-active={searchExpanded}
 								data-vaultman-search-toggle="true"
 								data-panel-widget-node-id={panelWidgetNodeId('search')}
 								style:order={panelWidgetNodeOrder('search')}
@@ -2094,7 +2094,7 @@
 					onViewModeChange={handleViewModeChange}
 					onPillsChange={handlePillsChange}
 					onAddModeChange={(active) => {
-						if (!isCoreFiltersTab(activeTab)) return;
+						if (!interactionModesForTab(activeTab).includes('add')) return;
 						selectInteractionMode(
 							activeTab,
 							active ? 'add' : DEFAULT_INTERACTION_MODE[activeTab],

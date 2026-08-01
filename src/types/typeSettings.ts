@@ -206,6 +206,8 @@ export interface VaultmanSettings {
 	orderCellsByActivation: boolean;
 	/** BT5-015: put the node icon in the caret slot when nothing can expand */
 	iconInCaretSlot: boolean;
+	/** Edge used by the select-mode checkbox cell in tree/table/cards. */
+	selectionCheckboxPosition: 'start' | 'end';
 	/** BT5-018: configured Files node context menu (order, visibility, dividers) */
 	filesContextMenuLayout: FilesMenuItem[];
 	/** BT5-036: configured layouts for the other node context menus, by kind. */
@@ -356,6 +358,7 @@ export const DEFAULT_SETTINGS: VaultmanSettings = {
 	addonIconOverrides: {},
 	orderCellsByActivation: false,
 	iconInCaretSlot: false,
+	selectionCheckboxPosition: 'start',
 	filesContextMenuLayout: [],
 	showToolbar: true,
 	bypassOperations: false,

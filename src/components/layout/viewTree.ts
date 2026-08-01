@@ -42,6 +42,8 @@ export interface TreeViewOptions {
 	activeFilterIds?: Set<string>;
 	excludedFilterIds?: Set<string>;
 	selectedIds?: Set<string>;
+	selectionCheckboxPosition?: 'start' | 'end';
+	onSelectionToggle?: (id: string, selected: boolean) => void;
 	searchHighlightIds?: Set<string>;
 	warningIds?: Set<string>;
 	editingId?: string | null;
@@ -550,6 +552,8 @@ export class UnifiedTreeView {
 			visibleCells,
 			cellOrder,
 			opts.iconInCaretSlot ? '1' : '0',
+			opts.onSelectionToggle ? 'selection' : '',
+			opts.selectionCheckboxPosition ?? 'start',
 			badges,
 			cells,
 		].join('\u001f');
@@ -602,6 +606,10 @@ export class UnifiedTreeView {
 		row.toggleClass('mod-collapsible', showCaret);
 		row.toggleClass('vaultman-search-highlight', isHighlighted);
 		row.toggleClass('is-selected', isSelected);
+		const selectionCheckbox = row.querySelector<HTMLInputElement>(
+			'.vaultman-selection-checkbox',
+		);
+		if (selectionCheckbox) selectionCheckbox.checked = isSelected;
 		const toggleEl = row.querySelector<HTMLElement>('.collapse-icon');
 		if (!toggleEl) return;
 		toggleEl.toggleClass('is-collapsed', showCaret && !isExpanded);
@@ -861,6 +869,23 @@ export class UnifiedTreeView {
 			Boolean(node.icon) &&
 			!showCaret;
 		row.toggleClass('vaultman-tree-row--icon-in-caret', iconFillsCaretSlot);
+		const emitSelectionCheckbox = (): void => {
+			if (!opts.onSelectionToggle) return;
+			const checkbox = row.createEl('input', {
+				type: 'checkbox',
+				cls: 'metadata-input-checkbox vaultman-selection-checkbox',
+				attr: { 'aria-label': `Select ${node.label}` },
+			});
+			checkbox.checked = isSelected;
+			checkbox.onclick = (event) => event.stopPropagation();
+			checkbox.onchange = (event) => {
+				event.stopPropagation();
+				opts.onSelectionToggle?.(node.id, checkbox.checked);
+			};
+		};
+		if ((opts.selectionCheckboxPosition ?? 'start') === 'start') {
+			emitSelectionCheckbox();
+		}
 
 		if (showCaret) {
 			const toggleEl = row.createDiv({
@@ -1136,6 +1161,7 @@ export class UnifiedTreeView {
 			// Frequency counter second
 			if (!usesActivationOrder) emitCount(badgeZone);
 		}
+		if (opts.selectionCheckboxPosition === 'end') emitSelectionCheckbox();
 
 		return row;
 	}

@@ -826,6 +826,27 @@ export class VaultmanSettingsTab extends PluginSettingTab {
 			);
 
 		new Setting(containerEl)
+			.setName(translate('settings.selection_checkbox_position'))
+			.setDesc(translate('settings.selection_checkbox_position.desc'))
+			.addDropdown((dropdown) =>
+				dropdown
+					.addOption(
+						'start',
+						translate('settings.selection_checkbox_position.start'),
+					)
+					.addOption(
+						'end',
+						translate('settings.selection_checkbox_position.end'),
+					)
+					.setValue(this.plugin.settings.selectionCheckboxPosition ?? 'start')
+					.onChange(async (value) => {
+						this.plugin.settings.selectionCheckboxPosition =
+							value === 'end' ? 'end' : 'start';
+						await this.plugin.saveSettings();
+					}),
+			);
+
+		new Setting(containerEl)
 			.setName(translate('settings.badge_colors'))
 			.setDesc(translate('settings.badge_colors.desc'))
 			.addToggle((toggle) =>
