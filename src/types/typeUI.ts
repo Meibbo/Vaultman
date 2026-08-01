@@ -24,6 +24,16 @@ export interface ContentSnippet {
 	 * open editor already has a line index: `editor.offsetToPos(offset)`.
 	 */
 	offset: number;
+	/**
+	 * Bounds of the slice currently shown, as character offsets.
+	 *
+	 * Core keeps these per match and moves them one structural unit at a time
+	 * through `showMoreBefore` / `showMoreAfter`, which is what its two hover
+	 * chevrons do. Carrying them here is what lets one match be opened up
+	 * without touching its neighbours.
+	 */
+	from: number;
+	to: number;
 }
 
 export interface ContentPreviewResult {

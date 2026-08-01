@@ -40,6 +40,7 @@
 		badgeCancelClickMode,
 		onContentContextMenu,
 		onHeaderMenu,
+		onShowMoreContext,
 	}: {
 		contentFind: string;
 		contentReplace: string;
@@ -72,6 +73,15 @@
 		 * reports the click.
 		 */
 		onHeaderMenu?: (event: MouseEvent) => void;
+		/**
+		 * U121-019 #51: open one match further out. Core gives every match row two
+		 * hover chevrons that move that match's own bounds and re-render it alone.
+		 */
+		onShowMoreContext?: (
+			filePath: string,
+			matchIndex: number,
+			direction: 'before' | 'after',
+		) => void;
 		/** U121-019 #51: current context level for a file row, 0 = the default slice. */
 		contentContextLevel?: (filePath: string) => number;
 		/** U121-019 #51: widen or narrow one node's context. */
@@ -510,6 +520,62 @@
 											class="search-result-file-matched-text"
 											>{snippet.match}</span
 										><span>{snippet.after}</span>
+										{#if onShowMoreContext}
+											<!-- Core's own affordance, class for class: every match row
+											     carries a `.search-result-hover-button.mod-top` and a
+											     `.mod-bottom`, which call `showMoreBefore` /
+											     `showMoreAfter` on that match alone. -->
+											<div
+												class="search-result-hover-button mod-top"
+												role="button"
+												tabindex="-1"
+												aria-label={translate('content.show_more_context')}
+												onclick={(e: MouseEvent) => {
+													e.stopPropagation();
+													onShowMoreContext?.(
+														fileResult.file.path,
+														snippetIndex,
+														'before',
+													);
+												}}
+												onkeydown={(e: KeyboardEvent) => {
+													if (e.key !== 'Enter' && e.key !== ' ') return;
+													e.preventDefault();
+													e.stopPropagation();
+													onShowMoreContext?.(
+														fileResult.file.path,
+														snippetIndex,
+														'before',
+													);
+												}}
+												use:iconAction={'lucide-chevron-up'}
+											></div>
+											<div
+												class="search-result-hover-button mod-bottom"
+												role="button"
+												tabindex="-1"
+												aria-label={translate('content.show_more_context')}
+												onclick={(e: MouseEvent) => {
+													e.stopPropagation();
+													onShowMoreContext?.(
+														fileResult.file.path,
+														snippetIndex,
+														'after',
+													);
+												}}
+												onkeydown={(e: KeyboardEvent) => {
+													if (e.key !== 'Enter' && e.key !== ' ') return;
+													e.preventDefault();
+													e.stopPropagation();
+													onShowMoreContext?.(
+														fileResult.file.path,
+														snippetIndex,
+														'after',
+													);
+												}}
+												use:iconAction={'lucide-chevron-down'}
+											></div>
+										{/if}
 									</div>
 								{/each}
 								{#if hiddenMatches > 0}

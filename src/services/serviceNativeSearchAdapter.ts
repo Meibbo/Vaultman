@@ -4,6 +4,9 @@ import {
 	extraContextRange,
 	type ExtraContextCache,
 } from '../logic/logicExtraContext';
+
+/** No structure to grow into: `extraContextRange` falls through to the line. */
+const EMPTY_CACHE: ExtraContextCache = {};
 import { isContentSearchableFile } from '../logic/logicContentSearch';
 
 type SearchOffset = [number, number];
@@ -107,33 +110,21 @@ const MIN_NATIVE_STABLE_ATTEMPTS = 3;
 const LARGE_NATIVE_MATCH_THRESHOLD = 50;
 const LOCAL_RECONCILE_NATIVE_FILE_LIMIT = 40;
 
-/** The slice core shows when extra context is off. */
-const CONTEXT = 40;
-
 function buildSnippet(
 	content: string,
 	start: number,
 	end: number,
-	range?: readonly [number, number],
+	range: readonly [number, number],
 ): ContentSnippet {
-	if (range) {
-		return {
-			before: content.slice(range[0], start),
-			match: content.slice(start, end),
-			after: content.slice(end, range[1]),
-			offset: start,
-		};
-	}
-	// Three slices, all bounded, and nothing proportional to where the match
-	// sits in the file.
 	return {
-		before: content.slice(Math.max(0, start - CONTEXT), start),
+		before: content.slice(range[0], start),
 		match: content.slice(start, end),
-		after: content.slice(end, end + CONTEXT),
+		after: content.slice(end, range[1]),
 		offset: start,
+		from: range[0],
+		to: range[1],
 	};
 }
-
 function countInputOffsets(inputs: NativeSearchInput[]): number {
 	return inputs.reduce((sum, input) => sum + input.offsets.length, 0);
 }
@@ -182,6 +173,13 @@ export interface NativeSearchPreviewOptions {
 	/** Obsidian's file cache, needed only when `extraContext` is on. */
 	fileCache?: (path: string) => ExtraContextCache | null;
 	/**
+	 * Bounds a single match has been opened up to, keyed `path:index`.
+	 *
+	 * Core's two hover chevrons move one match's own start and end and re-render
+	 * that match alone, so this is per match rather than per file or per view.
+	 */
+	matchRanges?: ReadonlyMap<string, readonly [number, number]>;
+	/**
 	 * The highest total already published in this run.
 	 *
 	 * The total is derived from whatever inputs a publish carries, so a publish
@@ -219,29 +217,38 @@ export function buildNativeSearchPreview(
 		const key = `${input.offsets.length}:${
 			input.offsets[input.offsets.length - 1]?.[0] ?? -1
 		}:${String(extraContext)}`;
-		const cached = cache?.get(input.file.path);
+		// A file with an opened-up match skips the memo: its snippets no longer
+		// follow from the offsets alone, which is all the key can see.
+		const hasOverride =
+			options.matchRanges !== undefined &&
+			input.offsets.some((_, index) =>
+				options.matchRanges?.has(`${input.file.path}:${index}`),
+			);
+		const cached = hasOverride ? undefined : cache?.get(input.file.path);
 		if (cached && cached.key === key) {
 			files.push(cached.entry);
 			continue;
 		}
+		// With extra context off the cache is empty, so `extraContextRange` falls
+		// through to its line walk — which is exactly what core shows by default.
+		// On, the same call grows the match to its list item or section instead.
 		const fileCache = extraContext
 			? (options.fileCache?.(input.file.path) ?? {})
-			: null;
+			: EMPTY_CACHE;
 		const entry = {
 			file: input.file,
 			matchCount: input.offsets.length,
-			snippets: input.offsets.map(([start, end]) =>
+			snippets: input.offsets.map(([start, end], index) =>
 				buildSnippet(
 					input.content,
 					start,
 					end,
-					fileCache
-						? extraContextRange(input.content, [start, end], fileCache)
-						: undefined,
+					options.matchRanges?.get(`${input.file.path}:${index}`) ??
+						extraContextRange(input.content, [start, end], fileCache),
 				),
 			),
 		};
-		cache?.set(input.file.path, { key, entry });
+		if (!hasOverride) cache?.set(input.file.path, { key, entry });
 		files.push(entry);
 	}
 

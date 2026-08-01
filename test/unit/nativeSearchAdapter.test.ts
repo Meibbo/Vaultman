@@ -275,13 +275,14 @@ describe('Native search adapter helpers', () => {
 		expect(second.files[1]).not.toBe(first.files[1]);
 	});
 
-	it('grows a match to its whole line when extra context is on', () => {
-		// Core's shape: structural, not a character radius. With no cache entry
-		// the match grows to its line, which is core's own fallback.
+	it('shows the match line by default, and its section with extra context on', () => {
+		// Off, core shows the matched line and nothing else — a real core row read
+		// "  - footnotes", thirteen characters. Ours cut 40 characters each side
+		// regardless of line breaks, which is why the rows looked oversized.
+		// On, the match grows to the structure containing it.
 		const newline = String.fromCharCode(10);
-		const content = ['padding line', 'a'.repeat(200) + 'MATCH' + 'b'.repeat(200)].join(
-			newline,
-		);
+		const line = 'a'.repeat(200) + 'MATCH' + 'b'.repeat(200);
+		const content = ['padding line', line, 'trailing line'].join(newline);
 		const start = content.indexOf('MATCH');
 		const inputs = [
 			{
@@ -291,16 +292,85 @@ describe('Native search adapter helpers', () => {
 			},
 		];
 
-		const off = buildNativeSearchPreview(inputs, false);
+		const off = buildNativeSearchPreview(inputs);
+		const offSnippet = off.files[0]?.snippets[0];
+		expect(offSnippet?.before).toHaveLength(200);
+		expect(offSnippet?.after).toHaveLength(200);
+		expect(offSnippet?.match).toBe('MATCH');
+		// The line, not a character radius, and not the neighbouring lines.
+		expect(offSnippet?.before.startsWith('a')).toBe(true);
+		expect(content.slice(offSnippet?.from ?? 0, offSnippet?.to ?? 0)).toBe(line);
+
 		const on = buildNativeSearchPreview(inputs, false, undefined, {
+			extraContext: true,
+			fileCache: () => ({
+				sections: [
+					{ position: { start: { offset: 0 }, end: { offset: content.length } } },
+				],
+			}),
+		});
+		const onSnippet = on.files[0]?.snippets[0];
+		expect(onSnippet?.from).toBe(0);
+		expect(onSnippet?.to).toBe(content.length);
+	});
+
+	it('reuses a file entry across polls when its matches have not moved', () => {
+		// A scan publishes every 150ms and rebuilt every snippet of every file
+		// each time. At 65765 matches that is ~200k string allocations per poll,
+		// and because each entry was a fresh object Svelte re-rendered every row
+		// it had. fileScene does not do this: it builds its indices once and does
+		// O(1) work per row.
+		//
+		// Identity is the contract. An unchanged file must come back as the same
+		// object, so the poll costs nothing and the rows do not re-render.
+		const cache = createContentPreviewCache();
+		const inputs = [
+			{ file: makeFile('a.md'), content: 'alpha beta', offsets: [[0, 5]] as [number, number][] },
+			{ file: makeFile('b.md'), content: 'beta alpha', offsets: [[5, 10]] as [number, number][] },
+		];
+
+		const first = buildNativeSearchPreview(inputs, true, undefined, { cache });
+		const second = buildNativeSearchPreview(inputs, true, undefined, { cache });
+
+		expect(second.files[0]).toBe(first.files[0]);
+		expect(second.files[1]).toBe(first.files[1]);
+	});
+
+	it('rebuilds only the file whose matches changed', () => {
+		const cache = createContentPreviewCache();
+		const stable = { file: makeFile('a.md'), content: 'alpha beta', offsets: [[0, 5]] as [number, number][] };
+		const first = buildNativeSearchPreview([stable, {
+			file: makeFile('b.md'), content: 'beta alpha', offsets: [[5, 10]] as [number, number][],
+		}], true, undefined, { cache });
+
+		const second = buildNativeSearchPreview([stable, {
+			file: makeFile('b.md'),
+			content: 'beta alpha',
+			offsets: [[5, 10], [0, 4]] as [number, number][],
+		}], true, undefined, { cache });
+
+		expect(second.files[0]).toBe(first.files[0]);
+		expect(second.files[1]).not.toBe(first.files[1]);
+		expect(second.files[1]?.matchCount).toBe(2);
+	});
+
+	it('rebuilds every file when extra context is switched on', () => {
+		// Core's switch is view-wide, so this invalidates the whole memo rather
+		// than one row. It is a user action, not something a poll does.
+		const cache = createContentPreviewCache();
+		const inputs = [
+			{ file: makeFile('a.md'), content: 'x'.repeat(600), offsets: [[300, 304]] as [number, number][] },
+			{ file: makeFile('b.md'), content: 'x'.repeat(600), offsets: [[300, 304]] as [number, number][] },
+		];
+		const first = buildNativeSearchPreview(inputs, true, undefined, { cache });
+		const second = buildNativeSearchPreview(inputs, true, undefined, {
+			cache,
 			extraContext: true,
 			fileCache: () => ({}),
 		});
 
-		expect(off.files[0]?.snippets[0]?.before).toHaveLength(40);
-		expect(on.files[0]?.snippets[0]?.before).toHaveLength(200);
-		expect(on.files[0]?.snippets[0]?.after).toHaveLength(200);
-		expect(on.files[0]?.snippets[0]?.match).toBe('MATCH');
+		expect(second.files[0]).not.toBe(first.files[0]);
+		expect(second.files[1]).not.toBe(first.files[1]);
 	});
 
 	it('finds literal and regex content offsets for the public fallback search', () => {

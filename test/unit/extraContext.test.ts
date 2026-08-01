@@ -2,6 +2,8 @@ import { describe, expect, it } from 'vitest';
 
 import {
 	extraContextRange,
+	showMoreAfter,
+	showMoreBefore,
 	type ExtraContextCache,
 } from '../../src/logic/logicExtraContext';
 
@@ -137,5 +139,60 @@ describe('growing to the list item that contains the match', () => {
 			listCache(),
 		);
 		expect(content.slice(from, to)).toBe('after');
+	});
+});
+
+describe('the default slice, with extra context off', () => {
+	it('is the match line, which is what core shows', () => {
+		// Ours cut 40 characters each side regardless of line breaks, so a result
+		// row carried the tail of the line before and the head of the one after.
+		// Core shows the matched line and nothing else — a real row read
+		// "  - footnotes", thirteen characters.
+		//
+		// The line walk is already `extraContextRange`'s own fallback, so the
+		// default is that function over an empty cache: same code, no structure
+		// to grow into.
+		const content = ['before line', 'the match is here', 'after line'].join(
+			String.fromCharCode(10),
+		);
+		const at = content.indexOf('match');
+		const [from, to] = extraContextRange(content, [at, at + 5], {});
+
+		expect(content.slice(from, to)).toBe('the match is here');
+	});
+});
+
+describe('opening one match up, the way core’s two chevrons do', () => {
+	// Core gives every match row a `.search-result-hover-button.mod-top` and a
+	// `.mod-bottom`. They call `showMoreBefore()` / `showMoreAfter()`, which walk
+	// that match's own start and end outward one structural unit at a time and
+	// re-render that match alone.
+	const newline = String.fromCharCode(10);
+	const content = ['line one', 'line two', 'line three', 'line four'].join(newline);
+	const at = content.indexOf('three');
+	const line: [number, number] = extraContextRange(content, [at, at + 5], {});
+
+	it('takes in the line above, and stops at the top of the file', () => {
+		const once = showMoreBefore(content, line, {});
+		expect(content.slice(once[0], once[1])).toBe('line two' + newline + 'line three');
+
+		const twice = showMoreBefore(content, once, {});
+		expect(twice[0]).toBe(0);
+
+		// Already at the start: nothing moves, so the control can report it.
+		expect(showMoreBefore(content, twice, {})).toEqual(twice);
+	});
+
+	it('takes in the line below, and stops at the end of the file', () => {
+		const once = showMoreAfter(content, line, {});
+		expect(content.slice(once[0], once[1])).toBe('line three' + newline + 'line four');
+		expect(showMoreAfter(content, once, {})[1]).toBe(content.length);
+	});
+
+	it('leaves the other end alone', () => {
+		const before = showMoreBefore(content, line, {});
+		expect(before[1]).toBe(line[1]);
+		const after = showMoreAfter(content, line, {});
+		expect(after[0]).toBe(line[0]);
 	});
 });

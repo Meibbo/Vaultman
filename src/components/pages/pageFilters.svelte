@@ -31,6 +31,11 @@
 		NativeSearchAdapter,
 	} from '../../services/serviceNativeSearchAdapter';
 	import { bookmarkSearchQuery } from '../../services/serviceCoreBookmarks';
+	import {
+		extraContextRange,
+		showMoreAfter,
+		showMoreBefore,
+	} from '../../logic/logicExtraContext';
 	import { CopySearchResultsModal } from '../../services/serviceCopySearchResultsModal';
 	import {
 		sortContentPreviewFiles,
@@ -257,6 +262,9 @@
 	// one flag for the view rather than a control per row. On, every match grows
 	// to the list item, section or line containing it.
 	let contentExtraContext = $state(false);
+	// Bounds a single match has been opened up to, keyed `path:index` — core's
+	// two hover chevrons move one match and re-render that match alone.
+	let contentMatchRanges = $state<Record<string, [number, number]>>({});
 	let contentPreviewResult = $state<ContentPreviewResult | null>(null);
 	let contentPreviewOpen = $state(true);
 	let contentRegexError = $state('');
@@ -838,6 +846,7 @@
 	function clearContentSearchState(): void {
 		nativeSearchAdapter.cancel();
 		nativeSearchAdapter.resetRetained();
+		contentMatchRanges = {};
 		contentScanCursor = 0;
 		contentSearchLaunchToken = '';
 		contentSearchRun = createTextSearchRun({
@@ -1092,6 +1101,37 @@
 	// U121-019 #51: one overflow menu on the result header. Both entries are
 	// occasional and the header is narrow, so they live behind a vertical
 	// ellipsis rather than taking a cell each.
+	/** Open one match further out, in one direction, the way core's chevrons do. */
+	function showMoreContext(
+		filePath: string,
+		matchIndex: number,
+		direction: 'before' | 'after',
+	): void {
+		const input = nativeSearchAdapter
+			.retainedInputs()
+			.find((entry) => entry.file.path === filePath);
+		const offsets = input?.offsets[matchIndex];
+		if (!input || !offsets) return;
+
+		const key = `${filePath}:${String(matchIndex)}`;
+		const fileCache = extraContextOptions().fileCache(filePath);
+		const current =
+			contentMatchRanges[key] ??
+			extraContextRange(
+				input.content,
+				offsets,
+				contentExtraContext ? fileCache : {},
+			);
+		const next =
+			direction === 'before'
+				? showMoreBefore(input.content, current, fileCache)
+				: showMoreAfter(input.content, current, fileCache);
+		if (next[0] === current[0] && next[1] === current[1]) return;
+
+		contentMatchRanges = { ...contentMatchRanges, [key]: next };
+		republishContentPreview();
+	}
+
 	/** Rebuild the published preview at the current extra-context setting. */
 	function republishContentPreview(): void {
 		const inputs = nativeSearchAdapter.retainedInputs();
@@ -1112,6 +1152,7 @@
 		return {
 			cache: nativeSearchAdapter.previewMemo(),
 			extraContext: contentExtraContext,
+			matchRanges: new Map(Object.entries(contentMatchRanges)),
 			fileCache: (path: string) => {
 				const file = plugin.app.vault.getAbstractFileByPath(path);
 				return file instanceof TFile
@@ -1415,6 +1456,7 @@
 				badgeCancelClickMode={plugin.settings.badgeCancelClickMode}
 				onContentContextMenu={openContentContextMenu}
 				onHeaderMenu={openContentHeaderMenu}
+				onShowMoreContext={showMoreContext}
 			/>
 		</div>
 	{/if}
