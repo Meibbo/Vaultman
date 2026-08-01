@@ -4,6 +4,19 @@
 	import type { ContentPreviewResult } from '../../types/typeUI';
 	import type { NodeBadge } from '../../types/typeTree';
 	import type { BadgeCancelClickMode } from '../../utils/badgeInteraction';
+	import { untrack } from 'svelte';
+	import {
+		CONTENT_MATCH_WINDOW_STEP,
+		CONTENT_WINDOW_INITIAL,
+		grownContentWindow,
+		remainingContentFiles,
+		shouldGrowContentWindow,
+		visibleContentCount,
+	} from '../../logic/logicContentRenderWindow';
+	import {
+		canShowLessContext,
+		canShowMoreContext,
+	} from '../../logic/logicSnippetContext';
 
 	let {
 		contentFind = $bindable(),
@@ -31,6 +44,8 @@
 		badgeCancelClickMode,
 		onContentContextMenu,
 		onHeaderMenu,
+		contentContextLevel,
+		onContextLevelChange,
 	}: {
 		contentFind: string;
 		contentReplace: string;
@@ -63,10 +78,84 @@
 		 * reports the click.
 		 */
 		onHeaderMenu?: (event: MouseEvent) => void;
+		/** U121-019 #51: current context level for a file row, 0 = the default slice. */
+		contentContextLevel?: (filePath: string) => number;
+		/** U121-019 #51: widen or narrow one node's context. */
+		onContextLevelChange?: (
+			filePath: string,
+			direction: 'more' | 'less',
+		) => void;
 	} = $props();
 
 	let contentReplaceOpen = $state(false);
 	let contentResultsEl = $state<HTMLElement | null>(null);
+	// U121-019 #51: the caps are gone from the results, so the document is what
+	// needs bounding now. This window only delays rows — every match is in the
+	// model and reachable by scrolling. It never shrinks, so nothing on screen
+	// disappears under the user.
+	let contentWindow = $state(CONTENT_WINDOW_INITIAL);
+	// One window per expanded file, for the same reason: every match is in the
+	// model, but a file with thousands of them must not put thousands of rows in
+	// the document just because its row is open.
+	let contentMatchWindows = $state<Record<string, number>>({});
+
+	function matchWindowFor(filePath: string): number {
+		return contentMatchWindows[filePath] ?? CONTENT_MATCH_WINDOW_STEP;
+	}
+
+	function growMatchWindow(filePath: string, total: number): void {
+		contentMatchWindows = {
+			...contentMatchWindows,
+			[filePath]: grownContentWindow(
+				matchWindowFor(filePath),
+				total,
+				CONTENT_MATCH_WINDOW_STEP,
+			),
+		};
+	}
+
+	const visibleContentFiles = $derived(
+		sortedContentFiles.slice(
+			0,
+			visibleContentCount(sortedContentFiles.length, contentWindow),
+		),
+	);
+	const hiddenContentFiles = $derived(
+		remainingContentFiles(sortedContentFiles.length, contentWindow),
+	);
+
+	/** A new result set starts a new window; a growing one keeps its place. */
+	$effect(() => {
+		void contentFind;
+		untrack(() => {
+			contentWindow = CONTENT_WINDOW_INITIAL;
+			contentMatchWindows = {};
+		});
+	});
+
+	function growContentWindow(): void {
+		contentWindow = grownContentWindow(
+			contentWindow,
+			sortedContentFiles.length,
+		);
+	}
+
+	function onContentScroll(event: Event): void {
+		const el = event.currentTarget as HTMLElement | null;
+		if (!el) return;
+		if (
+			!shouldGrowContentWindow({
+				scrollTop: el.scrollTop,
+				scrollHeight: el.scrollHeight,
+				clientHeight: el.clientHeight,
+				total: sortedContentFiles.length,
+				windowSize: contentWindow,
+			})
+		) {
+			return;
+		}
+		growContentWindow();
+	}
 
 	$effect(() => {
 		void contentRevealRevision;
@@ -255,7 +344,10 @@
 	</div>
 {/if}
 {#if contentPreviewResult !== null}
+	<!-- This element is the scroller: measured live, `overflow-y: auto` with the
+	     children taller than its box. The window grows from here. -->
 	<div
+		onscroll={onContentScroll}
 		class={`search-result-container mod-global-search node-insert-event${contentPreviewResult.isLoading ? ' is-loading' : ''}`}
 	>
 		<div
@@ -333,7 +425,7 @@
 		</div>
 		{#if contentPreviewOpen && contentPreviewResult.totalMatches > 0}
 			<div class="search-results-children" bind:this={contentResultsEl}>
-				{#each sortedContentFiles as fileResult (fileResult.file.path)}
+				{#each visibleContentFiles as fileResult (fileResult.file.path)}
 					{@const pendingRename = queuedRenameBadge(fileResult.file.path)}
 					<div
 						class="tree-item search-result"
@@ -416,9 +508,44 @@
 								<span class="tree-item-flair">{fileResult.matchCount}</span>
 							</div>
 						</div>
+						{#if isContentFileExpanded(fileResult.file.path) && onContextLevelChange}
+							<!-- U121-019 #51: "show more context", per node. Core has the
+							     same idea view-wide (`setExtraContext`, a boolean); this is
+							     stepped and per row, so opening one result up leaves the
+							     rest as they were. -->
+							{@const level = contentContextLevel?.(fileResult.file.path) ?? 0}
+							<div class="vaultman-content-context-controls">
+								<button
+									class="clickable-icon"
+									disabled={!canShowLessContext(level)}
+									aria-label={translate('content.show_less_context')}
+									title={translate('content.show_less_context')}
+									onclick={(e: MouseEvent) => {
+										e.stopPropagation();
+										onContextLevelChange?.(fileResult.file.path, 'less');
+									}}
+									use:iconAction={'lucide-chevrons-down-up'}
+								></button>
+								<button
+									class="clickable-icon"
+									disabled={!canShowMoreContext(level)}
+									aria-label={translate('content.show_more_context')}
+									title={translate('content.show_more_context')}
+									onclick={(e: MouseEvent) => {
+										e.stopPropagation();
+										onContextLevelChange?.(fileResult.file.path, 'more');
+									}}
+									use:iconAction={'lucide-chevrons-up-down'}
+								></button>
+							</div>
+						{/if}
 						{#if isContentFileExpanded(fileResult.file.path)}
+							{@const matchWindow = matchWindowFor(fileResult.file.path)}
+							{@const shownSnippets = fileResult.snippets.slice(0, matchWindow)}
+							{@const hiddenMatches =
+								fileResult.snippets.length - shownSnippets.length}
 							<div class="search-result-file-matches">
-								{#each fileResult.snippets as snippet, snippetIndex (`${fileResult.file.path}-${snippetIndex}-${snippet.match}`)}
+								{#each shownSnippets as snippet, snippetIndex (`${fileResult.file.path}-${snippetIndex}-${snippet.match}`)}
 									<div
 										class="search-result-file-match tappable is-clickable"
 										role="button"
@@ -446,17 +573,45 @@
 										><span>{snippet.after}</span>
 									</div>
 								{/each}
+								{#if hiddenMatches > 0}
+									<!-- Every match is in the model; this is the slice with rows.
+									     Without it, a file expanded by default put its whole match
+									     list in the document — 25521 rows on a common letter. -->
+									<button
+										class="vaultman-content-window-more vaultman-content-window-more--matches"
+										onclick={(e: MouseEvent) => {
+											e.stopPropagation();
+											growMatchWindow(
+												fileResult.file.path,
+												fileResult.snippets.length,
+											);
+										}}
+									>
+										{translate('content.show_more_matches').replace(
+											'{count}',
+											String(hiddenMatches),
+										)}
+									</button>
+								{/if}
 							</div>
 						{/if}
 					</div>
 				{/each}
-				{#if contentPreviewResult.moreFiles > 0}
-					<div class="tree-item search-result vaultman-text-faint">
-						{translate('content.preview_more').replace(
+				{#if hiddenContentFiles > 0}
+					<!-- This replaced the `moreFiles` notice, which announced results the
+					     `MAX_FILES` cap had thrown away. These files are in the result and
+					     simply have no row yet: scrolling to the end pulls in the next
+					     step, and the button is here for anyone who would rather not
+					     scroll for it. -->
+					<button
+						class="vaultman-content-window-more"
+						onclick={growContentWindow}
+					>
+						{translate('content.show_more_files').replace(
 							'{count}',
-							String(contentPreviewResult.moreFiles),
+							String(hiddenContentFiles),
 						)}
-					</div>
+					</button>
 				{/if}
 			</div>
 		{:else if !contentPreviewResult.isLoading && contentPreviewResult.totalMatches === 0}

@@ -4280,6 +4280,32 @@ button.vaultman-content-scope-hint:focus-visible {
   margin-inline-start: auto;
 }
 
+/* U121-019 #51: "show more context", per node. Sits between the file row and
+   its matches, so it reads as belonging to that result and not to the pane. */
+.vaultman-content-context-controls {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  justify-content: flex-end;
+  padding-inline-end: var(--size-4-2);
+}
+
+/* Not a cap notice: these files are in the result and simply have no row yet. */
+.vaultman-content-window-more {
+  display: block;
+  width: 100%;
+  margin-block-start: var(--size-4-2);
+  background: transparent;
+  box-shadow: none;
+  color: var(--text-muted);
+  font-size: var(--font-ui-smaller);
+  cursor: pointer;
+}
+
+.vaultman-content-window-more:hover {
+  color: var(--text-normal);
+}
+
 /* Header-only, link-style: no button chrome, just clickable accent text. */
 /* BT5-086: exclusion reads as primary text, not accent. Accent is reserved
    for inclusive state across the explorers, so an exclusion count wearing it

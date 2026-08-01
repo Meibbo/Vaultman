@@ -1,5 +1,6 @@
 import type { App, TFile, WorkspaceLeaf } from 'obsidian';
 import type { ContentPreviewResult, ContentSnippet } from '../types/typeUI';
+import { snippetContextRadius } from '../logic/logicSnippetContext';
 import { isContentSearchableFile } from '../logic/logicContentSearch';
 
 type SearchOffset = [number, number];
@@ -80,14 +81,20 @@ export interface NativeSearchOptions {
 	 * short: `getFiles()` climbed past 737 files / 4129 matches with `working`
 	 * still true and two rows in the DOM. Core accumulates the full set and
 	 * virtualises its own rendering. What stopped short was our poll heuristic
-	 * and the `MAX_FILES` cap below.
+	 * and the `MAX_FILES` cap, both since removed.
 	 */
 	preferLocal?: boolean;
 }
 
-const MAX_FILES = 200;
-const MAX_SNIPPETS = 3;
-const CONTEXT = 40;
+// U121-019 #51: `MAX_FILES = 200` and `MAX_SNIPPETS = 3` used to live here.
+// They truncated the *results* — past the two-hundredth file there was nothing
+// to find, and a file's fourth match did not exist — while standing in for a
+// virtualiser we do not have on this branch. The results are now complete and
+// the document is bounded by a render window instead (logicContentRenderWindow),
+// which only delays rows rather than losing matches.
+//
+// The old fixed context is level 0 of the ladder in `logicSnippetContext`, so
+// the default slice is unchanged and the wider levels are new reach.
 const LOCAL_UPDATE_INTERVAL = 12;
 const NATIVE_POLL_INTERVAL = 150;
 const MAX_NATIVE_ATTEMPTS = 180;
@@ -112,12 +119,13 @@ function buildSnippet(
 	content: string,
 	start: number,
 	end: number,
+	contextRadius: number = snippetContextRadius(0),
 ): ContentSnippet {
 	const position = offsetToPosition(content, start);
 	return {
-		before: content.slice(Math.max(0, start - CONTEXT), start),
+		before: content.slice(Math.max(0, start - contextRadius), start),
 		match: content.slice(start, end),
-		after: content.slice(end, end + CONTEXT),
+		after: content.slice(end, end + contextRadius),
 		line: position.line,
 		ch: position.ch,
 	};
@@ -134,10 +142,19 @@ export function toNativeSearchQuery(query: string, isRegex: boolean): string {
 	return `/${query}/`;
 }
 
+export interface NativeSearchPreviewOptions {
+	/**
+	 * Context level per file path, for the nodes the user has opened up. Absent
+	 * paths stay at level 0 — the slice the fixed `CONTEXT` used to cut.
+	 */
+	contextLevelByPath?: ReadonlyMap<string, number>;
+}
+
 export function buildNativeSearchPreview(
 	inputs: NativeSearchInput[],
 	isLoading = false,
 	totalMatchesOverride?: number,
+	options: NativeSearchPreviewOptions = {},
 ): ContentPreviewResult {
 	let totalMatches = 0;
 	let matchFileCount = 0;
@@ -149,13 +166,17 @@ export function buildNativeSearchPreview(
 		matchFileCount += 1;
 		matchedFiles.push(input.file);
 		totalMatches += input.offsets.length;
-		if (files.length >= MAX_FILES) continue;
+		// No cap, in either direction: every matching file gets an entry and every
+		// match gets a snippet.
+		const contextRadius = snippetContextRadius(
+			options.contextLevelByPath?.get(input.file.path) ?? 0,
+		);
 		files.push({
 			file: input.file,
 			matchCount: input.offsets.length,
-			snippets: input.offsets
-				.slice(0, MAX_SNIPPETS)
-				.map(([start, end]) => buildSnippet(input.content, start, end)),
+			snippets: input.offsets.map(([start, end]) =>
+				buildSnippet(input.content, start, end, contextRadius),
+			),
 		});
 	}
 

@@ -88,7 +88,11 @@ describe('Native search adapter helpers', () => {
 		expect(preview.matchedFiles?.map((file) => file.path)).toHaveLength(12);
 	});
 
-	it('keeps all matched files even when a pathological preview is capped', () => {
+	it('renders every matched file, with no cap left in the data', () => {
+		// This asserted `MAX_FILES = 200` — 200 rendered, 5 announced as "more".
+		// That cap truncated the *results*: the two-hundred-and-first file was
+		// unreachable. It is gone. What bounds the document now is the render
+		// window in `logicContentRenderWindow`, which only delays rows.
 		const inputs = Array.from({ length: 205 }, (_, index) => ({
 			file: makeFile(`notes/${index}.md`),
 			content: 'birthday',
@@ -97,9 +101,54 @@ describe('Native search adapter helpers', () => {
 
 		const preview = buildNativeSearchPreview(inputs);
 
-		expect(preview.files).toHaveLength(200);
-		expect(preview.moreFiles).toBe(5);
+		expect(preview.files).toHaveLength(205);
+		expect(preview.moreFiles).toBe(0);
 		expect(preview.matchedFiles?.map((file) => file.path)).toHaveLength(205);
+	});
+
+	it('keeps every match in a file, not the first three', () => {
+		// `MAX_SNIPPETS = 3` was the same defect one level down: a file's fourth
+		// match did not exist. Snippets only render for an expanded file, so the
+		// cap bought nothing the collapse state was not already buying.
+		const offsets = Array.from(
+			{ length: 40 },
+			(_, i) => [i * 10, i * 10 + 4] as [number, number],
+		);
+		const preview = buildNativeSearchPreview([
+			{ file: makeFile('notes/many.md'), content: 'x'.repeat(500), offsets },
+		]);
+
+		expect(preview.files[0]?.snippets).toHaveLength(40);
+		expect(preview.files[0]?.matchCount).toBe(40);
+	});
+
+	it('widens one file’s context without touching the others', () => {
+		// "Show more context", per node. Level 0 is the slice the fixed
+		// `CONTEXT = 40` used to cut, so an absent path is unchanged behaviour.
+		const content = 'a'.repeat(400) + 'MATCH' + 'b'.repeat(400);
+		const start = 400;
+		const inputs = [
+			{
+				file: makeFile('notes/wide.md'),
+				content,
+				offsets: [[start, start + 5]] as [number, number][],
+			},
+			{
+				file: makeFile('notes/narrow.md'),
+				content,
+				offsets: [[start, start + 5]] as [number, number][],
+			},
+		];
+
+		const preview = buildNativeSearchPreview(inputs, false, undefined, {
+			contextLevelByPath: new Map([['notes/wide.md', 2]]),
+		});
+
+		const wide = preview.files.find((f) => f.file.path === 'notes/wide.md');
+		const narrow = preview.files.find((f) => f.file.path === 'notes/narrow.md');
+		expect(narrow?.snippets[0]?.before).toHaveLength(40);
+		expect(wide?.snippets[0]?.before.length).toBeGreaterThan(40);
+		expect(wide?.snippets[0]?.match).toBe('MATCH');
 	});
 
 	it('finds literal and regex content offsets for the public fallback search', () => {
