@@ -216,3 +216,47 @@ describe('opening one match up, the way core’s two chevrons do', () => {
 		expect(after[0]).toBe(line[0]);
 	});
 });
+
+describe('finding the containing unit without walking the whole file', () => {
+	it('costs the same for a match at the end of a long list as at the start', () => {
+		// Core locates the unit with a binary search (`CT`). The first transcription
+		// of this scanned every list item for every match, so a note with a few
+		// thousand items and a few thousand matches went quadratic — switching the
+		// global "show more context" on took six seconds, and switching it off took
+		// longer.
+		const items = Array.from({ length: 4000 }, (_, i) => ({
+			position: { start: { offset: i * 20, col: 0 }, end: { offset: i * 20 + 19 } },
+			parent: -1,
+		}));
+		const cache: ExtraContextCache = { listItems: items };
+		const content = 'x'.repeat(4000 * 20);
+
+		const time = (offset: number): number => {
+			const started = performance.now();
+			for (let i = 0; i < 2000; i += 1) {
+				extraContextRange(content, [offset, offset + 2], cache);
+			}
+			return performance.now() - started;
+		};
+
+		const early = time(10);
+		const late = time(3990 * 20 + 5);
+
+		// Linear scanning made the late lookup hundreds of times dearer. Pinned
+		// loosely so a slow machine does not fail it.
+		expect(late).toBeLessThan(Math.max(early * 5, 60));
+	});
+
+	it('still finds the right unit at either end', () => {
+		const items = Array.from({ length: 500 }, (_, i) => ({
+			position: { start: { offset: i * 10, col: 0 }, end: { offset: i * 10 + 9 } },
+			parent: -1,
+		}));
+		const cache: ExtraContextCache = { listItems: items };
+		const content = 'y'.repeat(5000);
+
+		expect(extraContextRange(content, [0, 2], cache)[0]).toBe(0);
+		expect(extraContextRange(content, [4990, 4992], cache)[0]).toBe(4990);
+		expect(extraContextRange(content, [2503, 2505], cache)[0]).toBe(2500);
+	});
+});

@@ -847,6 +847,7 @@
 		nativeSearchAdapter.cancel();
 		nativeSearchAdapter.resetRetained();
 		contentMatchRanges = {};
+		nativeSearchAdapter.setMatchRanges(new Map());
 		contentScanCursor = 0;
 		contentSearchLaunchToken = '';
 		contentSearchRun = createTextSearchRun({
@@ -1129,6 +1130,12 @@
 		if (next[0] === current[0] && next[1] === current[1]) return;
 
 		contentMatchRanges = { ...contentMatchRanges, [key]: next };
+		// The adapter publishes every poll, so it needs these too — otherwise the
+		// next poll rebuilds this file without the override and the expansion
+		// undoes itself within 150ms.
+		nativeSearchAdapter.setMatchRanges(
+			new Map(Object.entries(contentMatchRanges)),
+		);
 		republishContentPreview();
 	}
 

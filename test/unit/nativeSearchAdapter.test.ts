@@ -185,6 +185,56 @@ describe('Native search adapter helpers', () => {
 		expect(lateMs).toBeLessThan(Math.max(earlyMs * 4, 50));
 	});
 
+	it('keeps a match expansion across the next publish', () => {
+		// The host owns the chevrons, the adapter owns publishing, and a scan
+		// republishes every 150ms. Without the adapter holding the bounds, the
+		// next poll rebuilt the file without them and the expansion undid itself
+		// before the user let go of the mouse.
+		const inputs = [
+			{
+				file: makeFile('a.md'),
+				content: ['first line', 'second line', 'third line'].join(
+					String.fromCharCode(10),
+				),
+				offsets: [[11, 17]] as [number, number][],
+			},
+		];
+		const ranges = new Map<string, readonly [number, number]>([
+			['a.md:0', [0, 33]],
+		]);
+
+		const published = buildNativeSearchPreview(inputs, true, undefined, {
+			cache: createContentPreviewCache(),
+			matchRanges: ranges,
+		});
+
+		const snippet = published.files[0]?.snippets[0];
+		expect(snippet?.from).toBe(0);
+		expect(snippet?.to).toBe(33);
+	});
+
+	it('does not let the memo serve a stale slice to an expanded match', () => {
+		// The memo keys on offsets, which do not change when a match is opened up,
+		// so a file holding an override has to bypass it.
+		const cache = createContentPreviewCache();
+		const inputs = [
+			{
+				file: makeFile('a.md'),
+				content: 'x'.repeat(400),
+				offsets: [[200, 204]] as [number, number][],
+			},
+		];
+
+		const before = buildNativeSearchPreview(inputs, true, undefined, { cache });
+		const after = buildNativeSearchPreview(inputs, true, undefined, {
+			cache,
+			matchRanges: new Map([['a.md:0', [0, 400] as readonly [number, number]]]),
+		});
+
+		expect(before.files[0]?.snippets[0]?.from).not.toBe(0);
+		expect(after.files[0]?.snippets[0]?.from).toBe(0);
+	});
+
 	it('never reports fewer matches than it already published in this run', () => {
 		// Resuming a large search made the count dip before climbing again. The
 		// total is derived from whatever inputs a publish happens to carry, and a

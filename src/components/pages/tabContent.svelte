@@ -516,11 +516,14 @@
 											}
 										}}
 									>
-										<span>{snippet.before}</span><span
-											class="search-result-file-matched-text"
+										<span
+											>{#if snippet.truncatedBefore}…{/if}{snippet.before}</span
+										><span class="search-result-file-matched-text"
 											>{snippet.match}</span
-										><span>{snippet.after}</span>
-										{#if onShowMoreContext}
+										><span
+											>{snippet.after}{#if snippet.truncatedAfter}…{/if}</span
+										>
+										{#if onShowMoreContext && snippet.moreBefore}
 											<!-- Core's own affordance, class for class: every match row
 											     carries a `.search-result-hover-button.mod-top` and a
 											     `.mod-bottom`, which call `showMoreBefore` /
@@ -550,6 +553,8 @@
 												}}
 												use:iconAction={'lucide-chevron-up'}
 											></div>
+										{/if}
+										{#if onShowMoreContext && snippet.moreAfter}
 											<div
 												class="search-result-hover-button mod-bottom"
 												role="button"

@@ -113,6 +113,7 @@ function buildSnippet(
 	start: number,
 	end: number,
 	range: readonly [number, number],
+	truncated: readonly [boolean, boolean] = [false, false],
 ): ContentSnippet {
 	return {
 		before: content.slice(range[0], start),
@@ -121,6 +122,10 @@ function buildSnippet(
 		offset: start,
 		from: range[0],
 		to: range[1],
+		moreBefore: range[0] > 0,
+		moreAfter: range[1] < content.length,
+		truncatedBefore: truncated[0],
+		truncatedAfter: truncated[1],
 	};
 }
 function countInputOffsets(inputs: NativeSearchInput[]): number {
@@ -236,20 +241,30 @@ export function buildNativeSearchPreview(
 		const entry = {
 			file: input.file,
 			matchCount: input.offsets.length,
-			snippets: input.offsets.map(([start, end], index) =>
-				buildSnippet(
+			snippets: input.offsets.map(([start, end], index) => {
+				const override = options.matchRanges?.get(
+					`${input.file.path}:${index}`,
+				);
+				if (override) {
+					return buildSnippet(input.content, start, end, override);
+				}
+				if (fileCache) {
+					return buildSnippet(
+						input.content,
+						start,
+						end,
+						extraContextRange(input.content, [start, end], fileCache),
+					);
+				}
+				const [from, to, cutBefore, cutAfter] = defaultContextRange(
 					input.content,
-					start,
-					end,
-					options.matchRanges?.get(`${input.file.path}:${index}`) ??
-						(fileCache
-							? extraContextRange(input.content, [start, end], fileCache)
-							: (defaultContextRange(input.content, [start, end]).slice(0, 2) as [
-									number,
-									number,
-								])),
-				),
-			),
+					[start, end],
+				);
+				return buildSnippet(input.content, start, end, [from, to], [
+					cutBefore,
+					cutAfter,
+				]);
+			}),
 		};
 		if (!hasOverride) cache?.set(input.file.path, { key, entry });
 		files.push(entry);
@@ -317,6 +332,14 @@ export class NativeSearchAdapter {
 	 * Cleared with the retained matches, since a new query starts over.
 	 */
 	private publishedTotal = 0;
+	/**
+	 * Bounds the user has opened individual matches to, keyed `path:index`.
+	 *
+	 * The host owns the interaction but the adapter owns the publishing, and a
+	 * scan republishes every 150ms — so without this the next poll rebuilt the
+	 * file without the override and the expansion undid itself.
+	 */
+	private matchRanges: ReadonlyMap<string, readonly [number, number]> = new Map();
 	/** The core view we last told to search, so `cancel()` can stop it. */
 	private activeView: NativeSearchView | null = null;
 
@@ -350,6 +373,7 @@ export class NativeSearchAdapter {
 			cache: this.previewCache,
 			extraContext: this.extraContext,
 			fileCache: this.fileCacheLookup ?? undefined,
+			matchRanges: this.matchRanges,
 			totalFloor: this.publishedTotal,
 		});
 		this.publishedTotal = preview.totalMatches;
@@ -364,6 +388,11 @@ export class NativeSearchAdapter {
 		this.extraContext = enabled;
 		if (fileCache) this.fileCacheLookup = fileCache;
 		this.previewCache.clear();
+	}
+
+	/** Hand over the per-match bounds so a poll does not undo an expansion. */
+	setMatchRanges(ranges: ReadonlyMap<string, readonly [number, number]>): void {
+		this.matchRanges = ranges;
 	}
 
 	/** Whether extra context is currently on. */
@@ -389,6 +418,7 @@ export class NativeSearchAdapter {
 		this.retained = [];
 		this.previewCache.clear();
 		this.publishedTotal = 0;
+		this.matchRanges = new Map();
 	}
 
 	/**
@@ -457,9 +487,17 @@ export class NativeSearchAdapter {
 		options.onUpdate(this.publishPreview(this.mergeRetained([]), true));
 
 		for (let attempt = 0; attempt < MAX_NATIVE_ATTEMPTS; attempt += 1) {
-			await new Promise((resolve) =>
-				window.setTimeout(resolve, NATIVE_POLL_INTERVAL),
-			);
+			// The first look is immediate. Waiting a full poll interval before
+			// even asking meant core could already be showing results while this
+			// pane still showed nothing — the dev measured us starting visibly
+			// later than core and staying behind on the count.
+			if (attempt > 0) {
+				await new Promise((resolve) =>
+					window.setTimeout(resolve, NATIVE_POLL_INTERVAL),
+				);
+			} else {
+				await new Promise((resolve) => window.setTimeout(resolve, 0));
+			}
 			if (run !== this.activeRun) return;
 			const attemptInputs = this.collectResults(view, scopePaths);
 			const nativeMatchCount = view.dom?.getMatchCount?.();

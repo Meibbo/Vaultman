@@ -34,6 +34,21 @@ export interface ContentSnippet {
 	 */
 	from: number;
 	to: number;
+	/**
+	 * Whether there is anything left to reveal in each direction.
+	 *
+	 * Core hides both chevrons and, on hover, calls
+	 * `toggle(this.start > 0)` / `toggle(this.end < this.content.length)` — so a
+	 * match already showing the top of its file offers no upward chevron.
+	 */
+	moreBefore: boolean;
+	moreAfter: boolean;
+	/**
+	 * Whether the default walk stopped on its hundred-character budget rather
+	 * than on a line break. Core appends an ellipsis in that case.
+	 */
+	truncatedBefore: boolean;
+	truncatedAfter: boolean;
 }
 
 export interface ContentPreviewResult {

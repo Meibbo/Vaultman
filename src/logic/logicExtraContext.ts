@@ -44,22 +44,51 @@ const DEFAULT_CONTEXT_BUDGET = 100;
 
 const NEWLINE = 10;
 
-function containing<T extends { position: { start: { offset: number }; end: { offset: number } } }>(
+/**
+ * Index of the last entry starting at or before `offset`, by binary search.
+ *
+ * Core does the same with its own `CT`. The first transcription of this file
+ * scanned every entry for every match, which is fine on a short note and
+ * quadratic on a long one: a few thousand list items against a few thousand
+ * matches is what made the global "show more context" take six seconds to come
+ * on and longer to go off. Both arrays are ordered by position, so the scan was
+ * never necessary.
+ */
+function lastStartingAtOrBefore(
+	entries: { position: { start: { offset: number } } }[],
+	offset: number,
+): number {
+	let low = 0;
+	let high = entries.length - 1;
+	let found = -1;
+	while (low <= high) {
+		const mid = (low + high) >> 1;
+		const entry = entries[mid];
+		if (!entry) break;
+		if (entry.position.start.offset <= offset) {
+			found = mid;
+			low = mid + 1;
+		} else {
+			high = mid - 1;
+		}
+	}
+	return found;
+}
+
+function containing<
+	T extends { position: { start: { offset: number }; end: { offset: number } } },
+>(
 	entries: T[] | undefined,
 	match: readonly [number, number],
 ): { entry: T; index: number } | null {
-	if (!entries) return null;
-	for (let index = 0; index < entries.length; index += 1) {
-		const entry = entries[index];
-		if (!entry) continue;
-		if (
-			match[0] >= entry.position.start.offset &&
-			match[1] <= entry.position.end.offset
-		) {
-			return { entry, index };
-		}
-	}
-	return null;
+	if (!entries || entries.length === 0) return null;
+	const index = lastStartingAtOrBefore(entries, match[0]);
+	if (index < 0) return null;
+	const entry = entries[index];
+	if (!entry) return null;
+	if (match[0] < entry.position.start.offset) return null;
+	if (match[1] > entry.position.end.offset) return null;
+	return { entry, index };
 }
 
 /**
