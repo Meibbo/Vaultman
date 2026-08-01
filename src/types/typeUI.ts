@@ -14,8 +14,16 @@ export interface ContentSnippet {
 	before: string;
 	match: string;
 	after: string;
-	line: number;
-	ch: number;
+	/**
+	 * Character offset of the match in the file.
+	 *
+	 * It used to carry `line` and `ch`, computed while scanning. Deriving them
+	 * meant slicing the content from zero to the match and splitting it on
+	 * newlines, once per match — which is where the fps went once the snippet cap
+	 * was removed. The position is only needed when a match is clicked, and the
+	 * open editor already has a line index: `editor.offsetToPos(offset)`.
+	 */
+	offset: number;
 }
 
 export interface ContentPreviewResult {

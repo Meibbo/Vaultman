@@ -65,7 +65,7 @@
 		isContentFileExpanded: (filePath: string) => boolean;
 		toggleContentFile: (filePath: string) => void;
 		queueContentReplace: () => void;
-		openContentMatch: (file: TFile, line: number, ch: number) => Promise<void>;
+		openContentMatch: (file: TFile, offset: number) => Promise<void>;
 		onOpenFilters?: () => void;
 		queuedRenameBadge: (filePath: string) => NodeBadge | undefined;
 		cancelQueuedRename: (queueIndex: number) => void;
@@ -551,19 +551,11 @@
 										role="button"
 										tabindex="0"
 										onclick={() =>
-											openContentMatch(
-												fileResult.file,
-												snippet.line,
-												snippet.ch,
-											)}
+											openContentMatch(fileResult.file, snippet.offset)}
 										onkeydown={(e: KeyboardEvent) => {
 											if (e.key === 'Enter' || e.key === ' ') {
 												e.preventDefault();
-												void openContentMatch(
-													fileResult.file,
-													snippet.line,
-													snippet.ch,
-												);
+												void openContentMatch(fileResult.file, snippet.offset);
 											}
 										}}
 									>

@@ -765,18 +765,19 @@
 		plugin.queueService.remove(queueIndex);
 	}
 
-	async function openContentMatch(file: TFile, line: number, ch: number) {
+	/**
+	 * The snippet carries the match offset, not a line/column pair. Deriving the
+	 * position while scanning cost a scan of the file per match and was the fps
+	 * collapse; the open editor already holds a line index, so it is asked here,
+	 * once, for the one match the user actually clicked.
+	 */
+	async function openContentMatch(file: TFile, offset: number) {
 		await plugin.app.workspace.openLinkText(file.path, '', false);
 		const view = plugin.app.workspace.getActiveViewOfType(MarkdownView);
 		if (!view) return;
-		view.editor.setCursor({ line, ch });
-		view.editor.scrollIntoView(
-			{
-				from: { line, ch },
-				to: { line, ch },
-			},
-			true,
-		);
+		const position = view.editor.offsetToPos(offset);
+		view.editor.setCursor(position);
+		view.editor.scrollIntoView({ from: position, to: position }, true);
 	}
 
 	function validateContentSearch(): boolean {
@@ -1094,7 +1095,9 @@
 			inputs,
 			contentPreviewResult?.isLoading ?? false,
 			contentPreviewResult?.totalMatches,
-			{ contextLevelByPath: levels },
+			// Same memo the scan uses: only the file whose level moved is rebuilt,
+			// every other row keeps its identity and does not re-render.
+			{ contextLevelByPath: levels, cache: nativeSearchAdapter.previewMemo() },
 		);
 		contentPreviewResult = rebuilt;
 	}

@@ -104,30 +104,19 @@ const MIN_NATIVE_STABLE_ATTEMPTS = 3;
 const LARGE_NATIVE_MATCH_THRESHOLD = 50;
 const LOCAL_RECONCILE_NATIVE_FILE_LIMIT = 40;
 
-function offsetToPosition(
-	content: string,
-	offset: number,
-): { line: number; ch: number } {
-	const before = content.slice(0, offset).split('\n');
-	return {
-		line: before.length - 1,
-		ch: before[before.length - 1]?.length ?? 0,
-	};
-}
-
 function buildSnippet(
 	content: string,
 	start: number,
 	end: number,
 	contextRadius: number = snippetContextRadius(0),
 ): ContentSnippet {
-	const position = offsetToPosition(content, start);
+	// Three slices, all bounded by the context radius, and nothing proportional
+	// to where the match sits in the file.
 	return {
 		before: content.slice(Math.max(0, start - contextRadius), start),
 		match: content.slice(start, end),
 		after: content.slice(end, end + contextRadius),
-		line: position.line,
-		ch: position.ch,
+		offset: start,
 	};
 }
 
@@ -142,7 +131,34 @@ export function toNativeSearchQuery(query: string, isRegex: boolean): string {
 	return `/${query}/`;
 }
 
+interface ContentPreviewCacheEntry {
+	key: string;
+	entry: ContentPreviewResult['files'][number];
+}
+
+/**
+ * Per-file memo of the built preview entry.
+ *
+ * A scan publishes every 150ms and used to rebuild every snippet of every file
+ * each time — at 65765 matches, roughly 200k string allocations per poll — and
+ * because each entry was a fresh object, Svelte re-rendered every row it had.
+ * `fileScene` does not work that way: it builds its indices once and does O(1)
+ * work per row.
+ *
+ * Identity is the contract here. A file whose matches have not moved comes back
+ * as the **same object**, so the poll costs nothing for it and its rows do not
+ * re-render. Only new files and files that gained matches are rebuilt, which
+ * makes the steady-state cost proportional to what actually changed.
+ */
+export type ContentPreviewCache = Map<string, ContentPreviewCacheEntry>;
+
+export function createContentPreviewCache(): ContentPreviewCache {
+	return new Map();
+}
+
 export interface NativeSearchPreviewOptions {
+	/** Reuse unchanged file entries across polls. Omit for a one-off build. */
+	cache?: ContentPreviewCache;
 	/**
 	 * Context level per file path, for the nodes the user has opened up. Absent
 	 * paths stay at level 0 — the slice the fixed `CONTEXT` used to cut.
@@ -171,13 +187,27 @@ export function buildNativeSearchPreview(
 		const contextRadius = snippetContextRadius(
 			options.contextLevelByPath?.get(input.file.path) ?? 0,
 		);
-		files.push({
+		const cache = options.cache;
+		// The last offset moves whenever a file gains a match, and the count
+		// covers a match being dropped — enough to notice a real change without
+		// walking every offset on every poll.
+		const key = `${input.offsets.length}:${
+			input.offsets[input.offsets.length - 1]?.[0] ?? -1
+		}:${contextRadius}`;
+		const cached = cache?.get(input.file.path);
+		if (cached && cached.key === key) {
+			files.push(cached.entry);
+			continue;
+		}
+		const entry = {
 			file: input.file,
 			matchCount: input.offsets.length,
 			snippets: input.offsets.map(([start, end]) =>
 				buildSnippet(input.content, start, end, contextRadius),
 			),
-		});
+		};
+		cache?.set(input.file.path, { key, entry });
+		files.push(entry);
 	}
 
 	return {
@@ -223,6 +253,13 @@ export class NativeSearchAdapter {
 	private preservedQuery: string | null = null;
 	/** Matches produced so far, kept across a pause so a resume can seed them. */
 	private retained: NativeSearchInput[] = [];
+	/**
+	 * One memo for the whole run. A poll rebuilds only the files whose matches
+	 * moved; everything else comes back by identity, so neither the snippets nor
+	 * the rows are rebuilt. Dropped with the retained floor, since the entries
+	 * belong to those matches.
+	 */
+	private previewCache: ContentPreviewCache = createContentPreviewCache();
 	/** The core view we last told to search, so `cancel()` can stop it. */
 	private activeView: NativeSearchView | null = null;
 
@@ -241,6 +278,14 @@ export class NativeSearchAdapter {
 		this.activeView = null;
 	}
 
+	/**
+	 * The run's preview memo, so a host rebuilding the preview itself (a context
+	 * level changed, say) reuses the entries for every file that did not change.
+	 */
+	previewMemo(): ContentPreviewCache {
+		return this.previewCache;
+	}
+
 	/** Everything the current traversal has matched. Survives `cancel()`. */
 	retainedInputs(): NativeSearchInput[] {
 		return this.retained;
@@ -249,6 +294,7 @@ export class NativeSearchAdapter {
 	/** Drop accumulated matches when the query or mode makes them invalid. */
 	resetRetained(): void {
 		this.retained = [];
+		this.previewCache.clear();
 	}
 
 	/**
@@ -314,7 +360,9 @@ export class NativeSearchAdapter {
 		// incoming results merge into them. That is the whole trick: the resume
 		// is simulated, and it is indistinguishable as long as the count never
 		// goes backwards.
-		options.onUpdate(buildNativeSearchPreview(this.mergeRetained([]), true));
+		options.onUpdate(buildNativeSearchPreview(this.mergeRetained([]), true, undefined, {
+				cache: this.previewCache,
+			}));
 
 		for (let attempt = 0; attempt < MAX_NATIVE_ATTEMPTS; attempt += 1) {
 			await new Promise((resolve) =>
@@ -339,7 +387,9 @@ export class NativeSearchAdapter {
 				bestNativeScore = nativeScore;
 			}
 			options.onUpdate(
-				buildNativeSearchPreview(this.mergeRetained(attemptInputs), true),
+				buildNativeSearchPreview(this.mergeRetained(attemptInputs), true, undefined, {
+					cache: this.previewCache,
+				}),
 			);
 
 			// Core tells us whether it is still working. Ask it instead of
@@ -404,7 +454,9 @@ export class NativeSearchAdapter {
 			// finished: this snapshot is its whole answer, not a plateau.
 			this.retained = this.mergeRetained(nativeInputs);
 			options.onUpdate(
-				buildNativeSearchPreview(this.retained, false, nativeMatchCount),
+				buildNativeSearchPreview(this.retained, false, nativeMatchCount, {
+					cache: this.previewCache,
+				}),
 			);
 			return;
 		}
@@ -415,7 +467,9 @@ export class NativeSearchAdapter {
 			true,
 		);
 		if (run !== this.activeRun) return;
-		options.onUpdate(buildNativeSearchPreview(mergedInputs, false));
+		options.onUpdate(buildNativeSearchPreview(mergedInputs, false, undefined, {
+				cache: this.previewCache,
+			}));
 	}
 
 	private async searchLocal(
@@ -433,10 +487,12 @@ export class NativeSearchAdapter {
 		const seeds =
 			options.seedInputs ??
 			(options.resume || (options.resumeFrom ?? 0) > 0 ? this.retained : []);
-		options.onUpdate(buildNativeSearchPreview(seeds, true));
+		options.onUpdate(buildNativeSearchPreview(seeds, true, undefined, { cache: this.previewCache }));
 		const inputs = await this.collectLocalResults(options, run, seeds, true);
 		if (run !== this.activeRun) return;
-		options.onUpdate(buildNativeSearchPreview(inputs, false));
+		options.onUpdate(buildNativeSearchPreview(inputs, false, undefined, {
+			cache: this.previewCache,
+		}));
 	}
 
 	private async collectLocalResults(
@@ -495,7 +551,9 @@ export class NativeSearchAdapter {
 			}
 			if (emitPartial && index % LOCAL_UPDATE_INTERVAL === 0) {
 				this.retained = [...inputsByPath.values()];
-				options.onUpdate(buildNativeSearchPreview(this.retained, true));
+				options.onUpdate(buildNativeSearchPreview(this.retained, true, undefined, {
+					cache: this.previewCache,
+				}));
 				await new Promise((resolve) => window.setTimeout(resolve, 0));
 			}
 		}

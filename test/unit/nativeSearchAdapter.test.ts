@@ -3,6 +3,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import {
 	buildNativeSearchPreview,
+	createContentPreviewCache,
 	findContentOffsets,
 	NativeSearchAdapter,
 	toNativeSearchQuery,
@@ -59,10 +60,12 @@ describe('Native search adapter helpers', () => {
 		expect(preview.totalMatches).toBe(1);
 		expect(preview.files[0].file).toBe(file);
 		expect(preview.files[0].matchCount).toBe(1);
+		// The snippet used to carry `line: 1, ch: 0`, derived by scanning the
+		// content up to the match. It carries the offset now and the editor
+		// resolves the position on click — same destination, none of the scan.
 		expect(preview.files[0].snippets[0]).toMatchObject({
 			match: 'status',
-			line: 1,
-			ch: 0,
+			offset: 11,
 		});
 	});
 
@@ -120,6 +123,122 @@ describe('Native search adapter helpers', () => {
 
 		expect(preview.files[0]?.snippets).toHaveLength(40);
 		expect(preview.files[0]?.matchCount).toBe(40);
+	});
+
+	it('carries the match offset and computes no position while scanning', () => {
+		// This was the fps collapse. `offsetToPosition` sliced the content from
+		// zero to the match and split it on newlines, **per match**: it copied
+		// every byte before the match and built an array of every line before it.
+		// With `MAX_SNIPPETS = 3`
+		// that ran three times a file and hid; uncapped it ran 27240 times per
+		// poll, and the pane blocked for up to 2.4s at a time.
+		//
+		// The position is only ever used when a match is clicked, and the editor
+		// computes it exactly via `offsetToPos` once the file is open. So the
+		// snippet carries the offset and nothing scans.
+		const content = ['line one', 'line two', 'line three'].join('\n');
+		const start = content.indexOf('two');
+		const preview = buildNativeSearchPreview([
+			{
+				file: makeFile('notes/pos.md'),
+				content,
+				offsets: [[start, start + 3]] as [number, number][],
+			},
+		]);
+
+		const snippet = preview.files[0]?.snippets[0];
+		expect(snippet?.offset).toBe(start);
+		expect(snippet?.match).toBe('two');
+	});
+
+	it('costs the same per match wherever the match sits in the file', () => {
+		// The regression guard for the quadratic: a match at the end of a large
+		// file must not cost more than one at the start. Timing is noisy, so this
+		// pins the ratio loosely — the old code was O(offset) and would blow this
+		// out by orders of magnitude, not by a factor of three.
+		const big = 'x'.repeat(400_000);
+		const early = buildNativeSearchPreview([
+			{ file: makeFile('a.md'), content: big, offsets: [[10, 14]] },
+		]);
+		const late = buildNativeSearchPreview([
+			{ file: makeFile('b.md'), content: big, offsets: [[399_000, 399_004]] },
+		]);
+
+		const time = (fn: () => void): number => {
+			const t0 = performance.now();
+			for (let i = 0; i < 200; i += 1) fn();
+			return performance.now() - t0;
+		};
+		const earlyMs = time(() =>
+			buildNativeSearchPreview([
+				{ file: makeFile('a.md'), content: big, offsets: [[10, 14]] },
+			]),
+		);
+		const lateMs = time(() =>
+			buildNativeSearchPreview([
+				{ file: makeFile('b.md'), content: big, offsets: [[399_000, 399_004]] },
+			]),
+		);
+
+		expect(early.files[0]?.snippets[0]?.offset).toBe(10);
+		expect(late.files[0]?.snippets[0]?.offset).toBe(399_000);
+		expect(lateMs).toBeLessThan(Math.max(earlyMs * 4, 50));
+	});
+
+	it('reuses a file entry across polls when its matches have not moved', () => {
+		// A scan publishes every 150ms and rebuilt every snippet of every file
+		// each time. At 65765 matches that is ~200k string allocations per poll,
+		// and because each entry was a fresh object Svelte re-rendered every row
+		// it had. fileScene does not do this: it builds its indices once and does
+		// O(1) work per row.
+		//
+		// Identity is the contract. An unchanged file must come back as the same
+		// object, so the poll costs nothing and the rows do not re-render.
+		const cache = createContentPreviewCache();
+		const inputs = [
+			{ file: makeFile('a.md'), content: 'alpha beta', offsets: [[0, 5]] as [number, number][] },
+			{ file: makeFile('b.md'), content: 'beta alpha', offsets: [[5, 10]] as [number, number][] },
+		];
+
+		const first = buildNativeSearchPreview(inputs, true, undefined, { cache });
+		const second = buildNativeSearchPreview(inputs, true, undefined, { cache });
+
+		expect(second.files[0]).toBe(first.files[0]);
+		expect(second.files[1]).toBe(first.files[1]);
+	});
+
+	it('rebuilds only the file whose matches changed', () => {
+		const cache = createContentPreviewCache();
+		const stable = { file: makeFile('a.md'), content: 'alpha beta', offsets: [[0, 5]] as [number, number][] };
+		const first = buildNativeSearchPreview([stable, {
+			file: makeFile('b.md'), content: 'beta alpha', offsets: [[5, 10]] as [number, number][],
+		}], true, undefined, { cache });
+
+		const second = buildNativeSearchPreview([stable, {
+			file: makeFile('b.md'),
+			content: 'beta alpha',
+			offsets: [[5, 10], [0, 4]] as [number, number][],
+		}], true, undefined, { cache });
+
+		expect(second.files[0]).toBe(first.files[0]);
+		expect(second.files[1]).not.toBe(first.files[1]);
+		expect(second.files[1]?.matchCount).toBe(2);
+	});
+
+	it('rebuilds a file when its context level changes, and only that file', () => {
+		const cache = createContentPreviewCache();
+		const inputs = [
+			{ file: makeFile('a.md'), content: 'x'.repeat(600), offsets: [[300, 304]] as [number, number][] },
+			{ file: makeFile('b.md'), content: 'x'.repeat(600), offsets: [[300, 304]] as [number, number][] },
+		];
+		const first = buildNativeSearchPreview(inputs, true, undefined, { cache });
+		const second = buildNativeSearchPreview(inputs, true, undefined, {
+			cache,
+			contextLevelByPath: new Map([['a.md', 2]]),
+		});
+
+		expect(second.files[0]).not.toBe(first.files[0]);
+		expect(second.files[1]).toBe(first.files[1]);
 	});
 
 	it('widens one file’s context without touching the others', () => {
