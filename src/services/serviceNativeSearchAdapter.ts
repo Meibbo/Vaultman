@@ -1,6 +1,9 @@
 import type { App, TFile, WorkspaceLeaf } from 'obsidian';
 import type { ContentPreviewResult, ContentSnippet } from '../types/typeUI';
-import { snippetContextRadius } from '../logic/logicSnippetContext';
+import {
+	extraContextRange,
+	type ExtraContextCache,
+} from '../logic/logicExtraContext';
 import { isContentSearchableFile } from '../logic/logicContentSearch';
 
 type SearchOffset = [number, number];
@@ -104,18 +107,29 @@ const MIN_NATIVE_STABLE_ATTEMPTS = 3;
 const LARGE_NATIVE_MATCH_THRESHOLD = 50;
 const LOCAL_RECONCILE_NATIVE_FILE_LIMIT = 40;
 
+/** The slice core shows when extra context is off. */
+const CONTEXT = 40;
+
 function buildSnippet(
 	content: string,
 	start: number,
 	end: number,
-	contextRadius: number = snippetContextRadius(0),
+	range?: readonly [number, number],
 ): ContentSnippet {
-	// Three slices, all bounded by the context radius, and nothing proportional
-	// to where the match sits in the file.
+	if (range) {
+		return {
+			before: content.slice(range[0], start),
+			match: content.slice(start, end),
+			after: content.slice(end, range[1]),
+			offset: start,
+		};
+	}
+	// Three slices, all bounded, and nothing proportional to where the match
+	// sits in the file.
 	return {
-		before: content.slice(Math.max(0, start - contextRadius), start),
+		before: content.slice(Math.max(0, start - CONTEXT), start),
 		match: content.slice(start, end),
-		after: content.slice(end, end + contextRadius),
+		after: content.slice(end, end + CONTEXT),
 		offset: start,
 	};
 }
@@ -160,10 +174,13 @@ export interface NativeSearchPreviewOptions {
 	/** Reuse unchanged file entries across polls. Omit for a one-off build. */
 	cache?: ContentPreviewCache;
 	/**
-	 * Context level per file path, for the nodes the user has opened up. Absent
-	 * paths stay at level 0 — the slice the fixed `CONTEXT` used to cut.
+	 * Core's own switch: one flag for the whole view, not a setting per row.
+	 * When on, each match grows to the list item, section or line that contains
+	 * it — see `logicExtraContext`.
 	 */
-	contextLevelByPath?: ReadonlyMap<string, number>;
+	extraContext?: boolean;
+	/** Obsidian's file cache, needed only when `extraContext` is on. */
+	fileCache?: (path: string) => ExtraContextCache | null;
 }
 
 export function buildNativeSearchPreview(
@@ -184,26 +201,34 @@ export function buildNativeSearchPreview(
 		totalMatches += input.offsets.length;
 		// No cap, in either direction: every matching file gets an entry and every
 		// match gets a snippet.
-		const contextRadius = snippetContextRadius(
-			options.contextLevelByPath?.get(input.file.path) ?? 0,
-		);
+		const extraContext = options.extraContext === true;
 		const cache = options.cache;
 		// The last offset moves whenever a file gains a match, and the count
 		// covers a match being dropped — enough to notice a real change without
 		// walking every offset on every poll.
 		const key = `${input.offsets.length}:${
 			input.offsets[input.offsets.length - 1]?.[0] ?? -1
-		}:${contextRadius}`;
+		}:${String(extraContext)}`;
 		const cached = cache?.get(input.file.path);
 		if (cached && cached.key === key) {
 			files.push(cached.entry);
 			continue;
 		}
+		const fileCache = extraContext
+			? (options.fileCache?.(input.file.path) ?? {})
+			: null;
 		const entry = {
 			file: input.file,
 			matchCount: input.offsets.length,
 			snippets: input.offsets.map(([start, end]) =>
-				buildSnippet(input.content, start, end, contextRadius),
+				buildSnippet(
+					input.content,
+					start,
+					end,
+					fileCache
+						? extraContextRange(input.content, [start, end], fileCache)
+						: undefined,
+				),
 			),
 		};
 		cache?.set(input.file.path, { key, entry });
@@ -260,6 +285,10 @@ export class NativeSearchAdapter {
 	 * belong to those matches.
 	 */
 	private previewCache: ContentPreviewCache = createContentPreviewCache();
+	/** Core's own view-wide switch, mirrored: `SearchView.setExtraContext`. */
+	private extraContext = false;
+	private fileCacheLookup: ((path: string) => ExtraContextCache | null) | null =
+		null;
 	/** The core view we last told to search, so `cancel()` can stop it. */
 	private activeView: NativeSearchView | null = null;
 
@@ -279,8 +308,28 @@ export class NativeSearchAdapter {
 	}
 
 	/**
-	 * The run's preview memo, so a host rebuilding the preview itself (a context
-	 * level changed, say) reuses the entries for every file that did not change.
+	 * Turn extra context on or off for the whole view, the way core does. It
+	 * invalidates every entry — core calls `infinityScroll.invalidateAll()` at
+	 * the same point — because the switch changes every snippet.
+	 */
+	setExtraContext(
+		enabled: boolean,
+		fileCache?: (path: string) => ExtraContextCache | null,
+	): void {
+		if (this.extraContext === enabled && fileCache === undefined) return;
+		this.extraContext = enabled;
+		if (fileCache) this.fileCacheLookup = fileCache;
+		this.previewCache.clear();
+	}
+
+	/** Whether extra context is currently on. */
+	get showsExtraContext(): boolean {
+		return this.extraContext;
+	}
+
+	/**
+	 * The run's preview memo, so a host rebuilding the preview itself reuses the
+	 * entries for every file that did not change.
 	 */
 	previewMemo(): ContentPreviewCache {
 		return this.previewCache;
@@ -362,6 +411,8 @@ export class NativeSearchAdapter {
 		// goes backwards.
 		options.onUpdate(buildNativeSearchPreview(this.mergeRetained([]), true, undefined, {
 				cache: this.previewCache,
+				extraContext: this.extraContext,
+				fileCache: this.fileCacheLookup ?? undefined,
 			}));
 
 		for (let attempt = 0; attempt < MAX_NATIVE_ATTEMPTS; attempt += 1) {
@@ -389,6 +440,8 @@ export class NativeSearchAdapter {
 			options.onUpdate(
 				buildNativeSearchPreview(this.mergeRetained(attemptInputs), true, undefined, {
 					cache: this.previewCache,
+					extraContext: this.extraContext,
+					fileCache: this.fileCacheLookup ?? undefined,
 				}),
 			);
 
@@ -456,6 +509,8 @@ export class NativeSearchAdapter {
 			options.onUpdate(
 				buildNativeSearchPreview(this.retained, false, nativeMatchCount, {
 					cache: this.previewCache,
+					extraContext: this.extraContext,
+					fileCache: this.fileCacheLookup ?? undefined,
 				}),
 			);
 			return;
@@ -469,6 +524,8 @@ export class NativeSearchAdapter {
 		if (run !== this.activeRun) return;
 		options.onUpdate(buildNativeSearchPreview(mergedInputs, false, undefined, {
 				cache: this.previewCache,
+				extraContext: this.extraContext,
+				fileCache: this.fileCacheLookup ?? undefined,
 			}));
 	}
 
@@ -487,11 +544,17 @@ export class NativeSearchAdapter {
 		const seeds =
 			options.seedInputs ??
 			(options.resume || (options.resumeFrom ?? 0) > 0 ? this.retained : []);
-		options.onUpdate(buildNativeSearchPreview(seeds, true, undefined, { cache: this.previewCache }));
+		options.onUpdate(buildNativeSearchPreview(seeds, true, undefined, {
+				cache: this.previewCache,
+				extraContext: this.extraContext,
+				fileCache: this.fileCacheLookup ?? undefined,
+			}));
 		const inputs = await this.collectLocalResults(options, run, seeds, true);
 		if (run !== this.activeRun) return;
 		options.onUpdate(buildNativeSearchPreview(inputs, false, undefined, {
 			cache: this.previewCache,
+			extraContext: this.extraContext,
+			fileCache: this.fileCacheLookup ?? undefined,
 		}));
 	}
 
@@ -553,6 +616,8 @@ export class NativeSearchAdapter {
 				this.retained = [...inputsByPath.values()];
 				options.onUpdate(buildNativeSearchPreview(this.retained, true, undefined, {
 					cache: this.previewCache,
+					extraContext: this.extraContext,
+					fileCache: this.fileCacheLookup ?? undefined,
 				}));
 				await new Promise((resolve) => window.setTimeout(resolve, 0));
 			}

@@ -31,10 +31,6 @@
 		buildNativeSearchPreview,
 		NativeSearchAdapter,
 	} from '../../services/serviceNativeSearchAdapter';
-	import {
-		lessContextLevel,
-		moreContextLevel,
-	} from '../../logic/logicSnippetContext';
 	import { bookmarkSearchQuery } from '../../services/serviceCoreBookmarks';
 	import { CopySearchResultsModal } from '../../services/serviceCopySearchResultsModal';
 	import {
@@ -251,9 +247,10 @@
 	let contentScanCursor = 0;
 	let contentSearchLaunchToken = '';
 	let contentFrozenApplyToken = '';
-	// U121-019 #51: "show more context" is per node, so the level is per file
-	// path. Reactive because widening one row has to repaint that row.
-	let contentContextLevels = $state<Record<string, number>>({});
+	// U121-019 #51: core's own switch — `SearchView.setExtraContext(boolean)`,
+	// one flag for the view rather than a control per row. On, every match grows
+	// to the list item, section or line containing it.
+	let contentExtraContext = $state(false);
 	let contentPreviewResult = $state<ContentPreviewResult | null>(null);
 	let contentPreviewOpen = $state(true);
 	let contentRegexError = $state('');
@@ -806,7 +803,6 @@
 	function clearContentSearchState(): void {
 		nativeSearchAdapter.cancel();
 		nativeSearchAdapter.resetRetained();
-		contentContextLevels = {};
 		contentScanCursor = 0;
 		contentSearchLaunchToken = '';
 		contentSearchRun = createTextSearchRun({
@@ -883,7 +879,6 @@
 				nativeSearchAdapter.resetRetained();
 				contentScanCursor = 0;
 				// Levels belong to the results of the query that just changed.
-				contentContextLevels = {};
 			}
 			contentSearchRun = reconciled;
 		}
@@ -1017,12 +1012,8 @@
 					onUpdate: (result) => {
 						contentPreviewResult = result;
 						contentPreviewOpen = true;
-						// A live scan republishes the whole preview, which would flatten
-						// any node the user has opened up. Only pay for the rebuild when
-						// there is something to preserve.
-						if (Object.keys(contentContextLevels).length > 0) {
-							republishContentPreview();
-						}
+						// Extra context is applied by the adapter's own builds, so a poll
+						// needs no rebuild here.
 						if (!result.isLoading) {
 							// Settling short scans as "paused" made the control invert:
 							// the machine was already paused, so the dev's next click
@@ -1063,43 +1054,36 @@
 	// U121-019 #51: one overflow menu on the result header. Both entries are
 	// occasional and the header is narrow, so they live behind a vertical
 	// ellipsis rather than taking a cell each.
-	function contentContextLevel(filePath: string): number {
-		return contentContextLevels[filePath] ?? 0;
-	}
-
-	/**
-	 * Widen or narrow one node's context. The matches are already held by the
-	 * adapter with their file contents, so this re-slices what we have — no
-	 * re-read, no re-scan, and the other rows keep the level they were on.
-	 */
-	function changeContentContextLevel(
-		filePath: string,
-		direction: 'more' | 'less',
-	): void {
-		const current = contentContextLevel(filePath);
-		const next =
-			direction === 'more'
-				? moreContextLevel(current)
-				: lessContextLevel(current);
-		if (next === current) return;
-		contentContextLevels = { ...contentContextLevels, [filePath]: next };
-		republishContentPreview();
-	}
-
-	/** Rebuild the preview from the retained matches at the current levels. */
+	// U121-019 #51: one overflow menu on the result header. Both entries are
+	// occasional and the header is narrow, so they live behind a vertical
+	// ellipsis rather than taking a cell each.
+	/** Rebuild the published preview at the current extra-context setting. */
 	function republishContentPreview(): void {
 		const inputs = nativeSearchAdapter.retainedInputs();
 		if (inputs.length === 0) return;
-		const levels = new Map(Object.entries(contentContextLevels));
-		const rebuilt = buildNativeSearchPreview(
+		contentPreviewResult = buildNativeSearchPreview(
 			inputs,
 			contentPreviewResult?.isLoading ?? false,
 			contentPreviewResult?.totalMatches,
-			// Same memo the scan uses: only the file whose level moved is rebuilt,
-			// every other row keeps its identity and does not re-render.
-			{ contextLevelByPath: levels, cache: nativeSearchAdapter.previewMemo() },
+			extraContextOptions(),
 		);
-		contentPreviewResult = rebuilt;
+	}
+
+	/**
+	 * The options every build shares. `fileCache` is only consulted when the flag
+	 * is on, so an ordinary poll never touches the metadata cache.
+	 */
+	function extraContextOptions() {
+		return {
+			cache: nativeSearchAdapter.previewMemo(),
+			extraContext: contentExtraContext,
+			fileCache: (path: string) => {
+				const file = plugin.app.vault.getAbstractFileByPath(path);
+				return file instanceof TFile
+					? (plugin.app.metadataCache.getFileCache(file) ?? {})
+					: {};
+			},
+		};
 	}
 
 	function openContentHeaderMenu(event: MouseEvent): void {
@@ -1122,6 +1106,23 @@
 					// Our files, not core's result set: core's modal reads its own DOM,
 					// which our scan stops and which never knew our scope.
 					new CopySearchResultsModal(plugin.app, matched).open();
+				}),
+		);
+
+		menu.addItem((item) =>
+			item
+				.setTitle(translate('content.show_more_context'))
+				.setIcon('lucide-text')
+				.setChecked(contentExtraContext)
+				.onClick(() => {
+					// Core's switch is view-wide and re-renders every match, so the
+					// whole memo goes with it.
+					contentExtraContext = !contentExtraContext;
+					nativeSearchAdapter.setExtraContext(
+						contentExtraContext,
+						extraContextOptions().fileCache,
+					);
+					republishContentPreview();
 				}),
 		);
 
@@ -1316,8 +1317,6 @@
 				badgeCancelClickMode={plugin.settings.badgeCancelClickMode}
 				onContentContextMenu={openContentContextMenu}
 				onHeaderMenu={openContentHeaderMenu}
-				{contentContextLevel}
-				onContextLevelChange={changeContentContextLevel}
 			/>
 		</div>
 	{/if}

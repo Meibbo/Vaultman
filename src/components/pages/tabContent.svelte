@@ -13,10 +13,6 @@
 		shouldGrowContentWindow,
 		visibleContentCount,
 	} from '../../logic/logicContentRenderWindow';
-	import {
-		canShowLessContext,
-		canShowMoreContext,
-	} from '../../logic/logicSnippetContext';
 
 	let {
 		contentFind = $bindable(),
@@ -44,8 +40,6 @@
 		badgeCancelClickMode,
 		onContentContextMenu,
 		onHeaderMenu,
-		contentContextLevel,
-		onContextLevelChange,
 	}: {
 		contentFind: string;
 		contentReplace: string;
@@ -508,37 +502,6 @@
 								<span class="tree-item-flair">{fileResult.matchCount}</span>
 							</div>
 						</div>
-						{#if isContentFileExpanded(fileResult.file.path) && onContextLevelChange}
-							<!-- U121-019 #51: "show more context", per node. Core has the
-							     same idea view-wide (`setExtraContext`, a boolean); this is
-							     stepped and per row, so opening one result up leaves the
-							     rest as they were. -->
-							{@const level = contentContextLevel?.(fileResult.file.path) ?? 0}
-							<div class="vaultman-content-context-controls">
-								<button
-									class="clickable-icon"
-									disabled={!canShowLessContext(level)}
-									aria-label={translate('content.show_less_context')}
-									title={translate('content.show_less_context')}
-									onclick={(e: MouseEvent) => {
-										e.stopPropagation();
-										onContextLevelChange?.(fileResult.file.path, 'less');
-									}}
-									use:iconAction={'lucide-chevrons-down-up'}
-								></button>
-								<button
-									class="clickable-icon"
-									disabled={!canShowMoreContext(level)}
-									aria-label={translate('content.show_more_context')}
-									title={translate('content.show_more_context')}
-									onclick={(e: MouseEvent) => {
-										e.stopPropagation();
-										onContextLevelChange?.(fileResult.file.path, 'more');
-									}}
-									use:iconAction={'lucide-chevrons-up-down'}
-								></button>
-							</div>
-						{/if}
 						{#if isContentFileExpanded(fileResult.file.path)}
 							{@const matchWindow = matchWindowFor(fileResult.file.path)}
 							{@const shownSnippets = fileResult.snippets.slice(0, matchWindow)}

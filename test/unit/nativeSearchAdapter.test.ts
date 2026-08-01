@@ -225,7 +225,9 @@ describe('Native search adapter helpers', () => {
 		expect(second.files[1]?.matchCount).toBe(2);
 	});
 
-	it('rebuilds a file when its context level changes, and only that file', () => {
+	it('rebuilds every file when extra context is switched on', () => {
+		// Core's switch is view-wide, so this invalidates the whole memo rather
+		// than one row. It is a user action, not something a poll does.
 		const cache = createContentPreviewCache();
 		const inputs = [
 			{ file: makeFile('a.md'), content: 'x'.repeat(600), offsets: [[300, 304]] as [number, number][] },
@@ -234,40 +236,40 @@ describe('Native search adapter helpers', () => {
 		const first = buildNativeSearchPreview(inputs, true, undefined, { cache });
 		const second = buildNativeSearchPreview(inputs, true, undefined, {
 			cache,
-			contextLevelByPath: new Map([['a.md', 2]]),
+			extraContext: true,
+			fileCache: () => ({}),
 		});
 
 		expect(second.files[0]).not.toBe(first.files[0]);
-		expect(second.files[1]).toBe(first.files[1]);
+		expect(second.files[1]).not.toBe(first.files[1]);
 	});
 
-	it('widens one file’s context without touching the others', () => {
-		// "Show more context", per node. Level 0 is the slice the fixed
-		// `CONTEXT = 40` used to cut, so an absent path is unchanged behaviour.
-		const content = 'a'.repeat(400) + 'MATCH' + 'b'.repeat(400);
-		const start = 400;
+	it('grows a match to its whole line when extra context is on', () => {
+		// Core's shape: structural, not a character radius. With no cache entry
+		// the match grows to its line, which is core's own fallback.
+		const newline = String.fromCharCode(10);
+		const content = ['padding line', 'a'.repeat(200) + 'MATCH' + 'b'.repeat(200)].join(
+			newline,
+		);
+		const start = content.indexOf('MATCH');
 		const inputs = [
 			{
-				file: makeFile('notes/wide.md'),
-				content,
-				offsets: [[start, start + 5]] as [number, number][],
-			},
-			{
-				file: makeFile('notes/narrow.md'),
+				file: makeFile('notes/one.md'),
 				content,
 				offsets: [[start, start + 5]] as [number, number][],
 			},
 		];
 
-		const preview = buildNativeSearchPreview(inputs, false, undefined, {
-			contextLevelByPath: new Map([['notes/wide.md', 2]]),
+		const off = buildNativeSearchPreview(inputs, false);
+		const on = buildNativeSearchPreview(inputs, false, undefined, {
+			extraContext: true,
+			fileCache: () => ({}),
 		});
 
-		const wide = preview.files.find((f) => f.file.path === 'notes/wide.md');
-		const narrow = preview.files.find((f) => f.file.path === 'notes/narrow.md');
-		expect(narrow?.snippets[0]?.before).toHaveLength(40);
-		expect(wide?.snippets[0]?.before.length).toBeGreaterThan(40);
-		expect(wide?.snippets[0]?.match).toBe('MATCH');
+		expect(off.files[0]?.snippets[0]?.before).toHaveLength(40);
+		expect(on.files[0]?.snippets[0]?.before).toHaveLength(200);
+		expect(on.files[0]?.snippets[0]?.after).toHaveLength(200);
+		expect(on.files[0]?.snippets[0]?.match).toBe('MATCH');
 	});
 
 	it('finds literal and regex content offsets for the public fallback search', () => {

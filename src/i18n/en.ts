@@ -944,7 +944,6 @@ export const en: Record<string, string> = {
 	'content.bookmark_search': 'Bookmark search',
 	'content.result_actions': 'More options',
 	'content.show_more_context': 'Show more context',
-	'content.show_less_context': 'Show less context',
 	'content.show_more_files': 'Show {count} more file(s)',
 	'content.show_more_matches': 'Show {count} more match(es)',
 	'content.copy_results_action': 'Copy results',

@@ -830,7 +830,6 @@ export const es: Record<string, string> = {
 	'content.bookmark_search': 'Guardar búsqueda en marcadores',
 	'content.result_actions': 'Más opciones',
 	'content.show_more_context': 'Mostrar más contexto',
-	'content.show_less_context': 'Mostrar menos contexto',
 	'content.show_more_files': 'Mostrar {count} fichero(s) más',
 	'content.show_more_matches': 'Mostrar {count} coincidencia(s) más',
 	'content.copy_results_action': 'Copiar resultados',
