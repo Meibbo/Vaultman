@@ -6,6 +6,13 @@ import type {
 	TreeNodeCell,
 } from '../../types/typeTree';
 import { resolveActiveFilterPresentation } from '../../logic/logicActiveFilterBubbling';
+import {
+	resolveExplorerHighlight,
+	resolveExplorerHighlightForId,
+	resolveExplorerStatusDots,
+	type ExplorerHighlightIdSets,
+	type ExplorerStatusDot,
+} from '../../logic/logicExplorerHighlight';
 
 const EMPTY_ID_SET: ReadonlySet<string> = new Set();
 import {
@@ -41,6 +48,8 @@ export interface TreeViewOptions {
 	onContextMenu: (id: string, e: MouseEvent) => void;
 	activeFilterIds?: Set<string>;
 	excludedFilterIds?: Set<string>;
+	/** U121-013: provider-neutral, independently composable highlight channels. */
+	highlightIds?: ExplorerHighlightIdSets;
 	selectedIds?: Set<string>;
 	searchHighlightIds?: Set<string>;
 	warningIds?: Set<string>;
@@ -66,6 +75,8 @@ export interface TreeViewOptions {
 	bubbleDotLabel?: (dot: NodeBubbleDot) => string;
 	/** BT5-038: localized label for the active-filter-descendant dot. */
 	filterBubbleLabel?: string;
+	/** U121-013: accessible label for provider-neutral status dots. */
+	statusDotLabel?: (dot: ExplorerStatusDot) => string;
 	/**
 	 * BT5-032/034: the panel's configured tooltip text for a row. The view
 	 * still authors nothing — it only asks, and applies whatever it gets, at
@@ -93,6 +104,7 @@ export class UnifiedTreeView {
 	private _pendingRaf: number | null = null;
 	private _filterBubbleIds: ReadonlySet<string> = EMPTY_ID_SET;
 	private _excludedFilterBubbleIds: ReadonlySet<string> = EMPTY_ID_SET;
+	private _highlightBubbleIds: ExplorerHighlightIdSets = {};
 	private _hoveredRowId: string | null = null;
 	private _pendingScrollTimer: number | null = null;
 	private _opts: TreeViewOptions | null = null;
@@ -149,6 +161,16 @@ export class UnifiedTreeView {
 					opts.excludedFilterIds,
 				).bubbled
 			: EMPTY_ID_SET;
+		this._highlightBubbleIds = {};
+		for (const channel of ['inclusive', 'exclusive', 'deletion'] as const) {
+			const exact = opts.highlightIds?.[channel];
+			if (!exact) continue;
+			this._highlightBubbleIds[channel] = resolveActiveFilterPresentation(
+				opts.nodes,
+				opts.expandedIds,
+				new Set(exact),
+			).bubbled;
+		}
 		this._opts = opts;
 		this.containerEl.dataset.vaultmanTreeOwner = this._ownerId;
 		this.containerEl.toggleClass(
@@ -482,6 +504,10 @@ export class UnifiedTreeView {
 	}
 
 	private rowSignature(node: TreeNode, opts: TreeViewOptions): string {
+		const highlight = this.resolveRowHighlight(node.id, opts);
+		const statusDots = this.resolveRowStatusDots(node.id)
+			.map((dot) => dot.channel)
+			.join(',');
 		const cellOrder = opts.cellRenderOrder?.join('>') ?? '';
 		const visibleCells = opts.visibleCells
 			? Array.from(opts.visibleCells).sort().join(',')
@@ -542,9 +568,12 @@ export class UnifiedTreeView {
 			node.count ?? '',
 			node.children?.length ?? 0,
 			node.showCaret ? '1' : '0',
-			opts.activeFilterIds?.has(node.id) ? '1' : '0',
-			opts.excludedFilterIds?.has(node.id) ? '1' : '0',
+			highlight.hover ? '1' : '0',
+			highlight.inclusive ? '1' : '0',
+			highlight.exclusive ? '1' : '0',
+			highlight.deletion ? '1' : '0',
 			this._filterBubbleIds.has(node.id) ? '1' : '0',
+			statusDots,
 			opts.warningIds?.has(node.id) ? '1' : '0',
 			opts.editingId === node.id ? '1' : '0',
 			visibleCells,
@@ -582,6 +611,27 @@ export class UnifiedTreeView {
 		const path = this.nodeDataPath(node);
 		if (path) row.dataset.path = path;
 		else delete row.dataset.path;
+	}
+
+	private resolveRowHighlight(id: string, opts: TreeViewOptions) {
+		const generic = resolveExplorerHighlightForId(id, opts.highlightIds);
+		return resolveExplorerHighlight({
+			...generic,
+			inclusive: generic.inclusive || opts.activeFilterIds?.has(id),
+			exclusive: generic.exclusive || opts.excludedFilterIds?.has(id),
+		});
+	}
+
+	private resolveRowStatusDots(id: string): ExplorerStatusDot[] {
+		return resolveExplorerStatusDots({
+			inclusive:
+				this._highlightBubbleIds.inclusive?.has(id) ||
+				this._filterBubbleIds.has(id),
+			exclusive:
+				this._highlightBubbleIds.exclusive?.has(id) ||
+				this._excludedFilterBubbleIds.has(id),
+			deletion: this._highlightBubbleIds.deletion?.has(id),
+		});
 	}
 
 	private applyMutableRowState({
@@ -689,15 +739,16 @@ export class UnifiedTreeView {
 		const hasChildren = (node.children?.length ?? 0) > 0;
 		const showCaret = hasChildren || Boolean(node.showCaret);
 		const isExpanded = opts.expandedIds.has(node.id);
-		const isActive = opts.activeFilterIds?.has(node.id) ?? false;
-		const isExcluded = opts.excludedFilterIds?.has(node.id) ?? false;
+		const highlight = this.resolveRowHighlight(node.id, opts);
+		const isActive = highlight.inclusive;
+		const isExcluded = highlight.exclusive;
 		// BT5-038: a collapsed parent that only HIDES an active filter shows a
 		// dot, not the filter decoration itself.
-		const hasExcludedFilterBubbleDot = this._excludedFilterBubbleIds.has(
-			node.id,
-		);
-		const hasFilterBubbleDot =
-			this._filterBubbleIds.has(node.id) || hasExcludedFilterBubbleDot;
+		const resolvedStatusDots = this.resolveRowStatusDots(node.id);
+		// A collapsed operation-activity dot already occupies one of the two
+		// status slots. Operation/conflict badges remain a separate channel.
+		const statusDots = resolvedStatusDots.slice(0, node.bubbleDot ? 1 : 2);
+		const hasFilterBubbleDot = statusDots.length > 0;
 		const isWarning = opts.warningIds?.has(node.id) ?? false;
 		const isEditing = opts.editingId === node.id;
 		const isHighlighted = opts.searchHighlightIds?.has(node.id) ?? false;
@@ -842,6 +893,8 @@ export class UnifiedTreeView {
 		row.toggleClass('is-active', this._activeId === node.id);
 		if (isActive) row.addClass('is-active-filter');
 		if (isExcluded) row.addClass('is-excluded-filter');
+		if (highlight.hover) row.addClass('is-explorer-hover-highlight');
+		if (highlight.deletion) row.addClass('is-deletion-highlight');
 		if (isWarning) row.addClass('vaultman-badge-warning');
 		if (isEditing) row.addClass('is-editing');
 
@@ -1067,22 +1120,19 @@ export class UnifiedTreeView {
 				}
 			}
 
-			// BT5-038: a collapsed parent that hides an active filter (props/tags
-			// cell_highlight) gets its own dot, so it signals the hidden filter
-			// without wearing the filter decoration itself.
-			if (hasFilterBubbleDot) {
+			// U121-013: collapsed provider state is projected through the same
+			// generic channels as row highlight. Status always precedes operation
+			// badges and is bounded independently from them.
+			for (const dot of statusDots) {
 				const dotEl = badgeZone.createSpan({
-					cls: `vaultman-tree-bubble-dot ${
-						hasExcludedFilterBubbleDot
-							? 'vaultman-tree-bubble-dot--filter-excluded'
-							: 'vaultman-tree-bubble-dot--filter'
-					}`,
+					cls: `vaultman-tree-bubble-dot vaultman-tree-bubble-dot--${dot.tone}`,
 				});
-				// The view stays i18n-agnostic: the panel supplies the label.
-				if (opts.filterBubbleLabel) {
+				const description =
+					opts.statusDotLabel?.(dot) ?? opts.filterBubbleLabel;
+				if (description) {
 					dotEl.setAttribute('role', 'img');
-					dotEl.setAttribute('aria-label', opts.filterBubbleLabel);
-					setTooltip(dotEl, opts.filterBubbleLabel);
+					dotEl.setAttribute('aria-label', description);
+					setTooltip(dotEl, description);
 				}
 			}
 

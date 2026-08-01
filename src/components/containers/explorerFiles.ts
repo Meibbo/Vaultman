@@ -140,6 +140,12 @@ import {
 import { flattenVisibleTree } from '../../utils/treeVirtualization';
 import { vaultmanPerfMonitor } from '../../utils/performanceMonitor';
 import type { PanelWidgetExplorerProjectionConfig } from '../../types/typePanelWidget';
+import {
+	reconcileFilterProjectionItems,
+	resolveFilterProjectionDelta,
+	type FilterProjectionDelta,
+	type FilterProjectionSnapshot,
+} from '../../logic/logicFilterProjectionDelta';
 
 export type FilesViewMode = 'grid' | 'table' | 'tree';
 
@@ -223,6 +229,7 @@ export class FilesExplorerPanel extends Component {
 	private _glyphSettingsSignature = '';
 	private renderBatchDepth = 0;
 	private renderPending = false;
+	private filterProjectionSnapshot: FilterProjectionSnapshot | null = null;
 
 	constructor(
 		containerEl: HTMLElement,
@@ -839,6 +846,11 @@ export class FilesExplorerPanel extends Component {
 		this._sourceFiles = filteredFiles;
 		this._currentFiles = filteredFiles;
 		this._totalCount = totalCount;
+		this.filterProjectionSnapshot = {
+			paths: filteredFiles.map((file) => file.path),
+			stateSignature:
+				this.plugin.filterService.getProjectionStateSignature(),
+		};
 		this._syncSearchTermsFromActiveFilters();
 		this._expandSearchMatches();
 		this._render();
@@ -3434,13 +3446,119 @@ export class FilesExplorerPanel extends Component {
 		}, 40);
 	};
 
+	private _tryApplyFilterDelta(delta: FilterProjectionDelta): boolean {
+		if (
+			!delta.safe ||
+			this.renderBatchDepth > 0 ||
+			this.viewMode !== 'tree' ||
+			this._nestedEnabled() ||
+			this._currentFiles.length === 0 ||
+			this._lastRenderTree.length === 0 ||
+			this._pathLabelActive() ||
+			this._activeFolderFilterPaths().length > 0 ||
+			!this.treeView ||
+			!this._treeRenderOpts ||
+			this._lastRenderTree.some(
+				(node) => node.meta.isFolder || !node.meta.file,
+			)
+		) {
+			return false;
+		}
+		return this._applyFilterDeltaProjection(delta);
+	}
+
+	private _applyFilterDeltaProjection(delta: FilterProjectionDelta): boolean {
+		if (!this.treeView || !this._treeRenderOpts) return false;
+		const started = performance.now();
+		const displayFiles = this._filesForDisplay();
+		const sortedFiles = this._sortFiles(displayFiles);
+		const previousNodesByPath = new Map(
+			this._lastRenderTree.map((node) => [node.id, node] as const),
+		);
+		const enteredPaths = new Set(delta.entered);
+		const enteredFiles = sortedFiles.filter((file) =>
+			enteredPaths.has(file.path),
+		);
+		const enteredNodes = this.logic.buildFlatFileNodes(enteredFiles, {
+			rebaseFolderPaths: [],
+			labelMode: 'name',
+		});
+		const enteredNodesByPath = new Map(
+			enteredNodes.map((node) => [node.id, node] as const),
+		);
+		const nextNodes = reconcileFilterProjectionItems(
+			sortedFiles.map((file) => file.path),
+			previousNodesByPath,
+			enteredNodesByPath,
+		);
+		if (!nextNodes) return false;
+		this._decorateTreeWithQueue(enteredNodes);
+		const glyphChoice = normalizeGlyphColorChoice(
+			this.plugin.settings.explorerGlyphColor,
+		).choice;
+		this._decorateTreeWithIcons(enteredNodes);
+		if (glyphChoice === 'rainbow' || glyphChoice === 'rainbow-pastel') {
+			this._decorateTreeWithIcons(nextNodes);
+		}
+		this.bubbleIndex = buildBubbleIndex(nextNodes);
+		this._bubbleTree = nextNodes;
+		this._applyBubbleDots();
+		this._rememberStatisticsSortOrder(sortedFiles);
+
+		// Row callbacks close over the full projection's array. Mutating that
+		// array preserves correct lookup behavior and retained row identities.
+		this._lastRenderTree.splice(
+			0,
+			this._lastRenderTree.length,
+			...nextNodes,
+		);
+		this._setIndexRoots(this._lastRenderTree, []);
+		this._treeRenderOpts = {
+			...this._treeRenderOpts,
+			nodes: this._lastRenderTree,
+			expandedIds: this.expandedIds,
+			visibleCells: this.visibleCells,
+			cellRenderOrder: this._activationCellOrder(),
+			prepareNode: (node) =>
+				this._prepareTreeNode(node as TreeNode<FileMeta>),
+		};
+		this.treeView.render(this._treeRenderOpts);
+		if (this._needsStatisticsWarmup()) this._warmStatisticsCache();
+		vaultmanPerfMonitor.record(
+			'explorer.files.filter-delta',
+			performance.now() - started,
+			{
+				entered: delta.entered.length,
+				exited: delta.exited.length,
+				retained: delta.retained.length,
+				orderChanged: delta.orderChanged,
+				stateOnly: delta.stateOnly,
+			},
+		);
+		return true;
+	}
+
 	private _refreshFromFilterService(): void {
+		const previousSnapshot = this.filterProjectionSnapshot;
 		this.hasSourceProjection = true;
 		this._sourceFiles = this._filesForCurrentScope();
 		this._currentFiles = this._sourceFiles;
 		this._totalCount = this.plugin.app.vault.getFiles().length;
 		this._syncSearchTermsFromActiveFilters();
 		this._expandSearchMatches();
+		const nextSnapshot: FilterProjectionSnapshot = {
+			paths: this._sourceFiles.map((file) => file.path),
+			stateSignature:
+				this.plugin.filterService.getProjectionStateSignature(),
+		};
+		this.filterProjectionSnapshot = nextSnapshot;
+		if (previousSnapshot) {
+			const delta = resolveFilterProjectionDelta(
+				previousSnapshot,
+				nextSnapshot,
+			);
+			if (this._tryApplyFilterDelta(delta)) return;
+		}
 		this._render();
 	}
 
