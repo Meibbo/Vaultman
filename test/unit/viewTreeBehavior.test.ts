@@ -208,6 +208,7 @@ class TinyElement {
 
 vi.mock('obsidian', () => ({
 	Platform: { isMobile: false },
+	getIcon: () => ({}),
 	setIcon: (el: TinyElement, icon: string) => {
 		el.createEl('svg', { cls: `svg-icon ${icon}` });
 	},
@@ -233,6 +234,39 @@ describe('UnifiedTreeView behavior', () => {
 			},
 			cancelAnimationFrame: () => {},
 		});
+	});
+
+	it('prepares only virtual-window nodes before their row signatures render', async () => {
+		const { UnifiedTreeView } =
+			await import('../../src/components/layout/viewTree');
+		const container = new TinyElement('div') as unknown as HTMLElement;
+		const view = new UnifiedTreeView(container);
+		const nodes = Array.from({ length: 1_000 }, (_, index) => ({
+			id: `file:${index}`,
+			label: `File ${index}`,
+			depth: 0,
+			meta: {},
+			children: [],
+		}));
+		const prepared: string[] = [];
+
+		view.render({
+			nodes,
+			expandedIds: new Set<string>(),
+			prepareNode: (node) => {
+				prepared.push(node.id);
+				node.icon = 'lucide-file';
+			},
+			onToggle: () => {},
+			onRowClick: () => {},
+			onContextMenu: () => {},
+		});
+
+		expect(prepared.length).toBeGreaterThan(0);
+		expect(prepared.length).toBeLessThan(nodes.length);
+		expect(
+			(container.querySelector('.lucide-file') as unknown as TinyElement | null),
+		).not.toBeNull();
 	});
 
 	it('updates the native collapse caret in place so Obsidian can animate it', async () => {

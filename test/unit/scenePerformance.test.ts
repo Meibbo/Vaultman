@@ -90,17 +90,27 @@ describe('vm-scene performance boundaries', () => {
 			'scene.action.expand-all',
 			'scene.action.collapse-all',
 			'scene.action.reveal-active-file',
+			'scene.action.toggle-cell',
+			'scene.action.change-sort',
+			'scene.action.toggle-nested',
 		]) {
 			expect(`${navbarSource}\n${filtersPageSource}`).toContain(metric);
 		}
 		expect(sceneSmokeSource).toContain('expand-or-collapse');
 		expect(sceneSmokeSource).toContain('reveal-active-file');
+		expect(sceneSmokeSource).toContain('toggle-cell-on');
+		expect(sceneSmokeSource).toContain('toggle-cell-off');
+		expect(sceneSmokeSource).toContain('change-sort');
+		expect(sceneSmokeSource).toContain('restore-sort');
+		expect(sceneSmokeSource).toContain('toggle-nested-off');
+		expect(sceneSmokeSource).toContain('toggle-nested-on');
 		expect(sceneSmokeSource).toContain('close-scene');
 		expect(sceneSmokeSource).toContain('open-scene');
 		expect(sceneSmokeSource).toContain('maxStallMs: 100');
 		expect(sceneSmokeSource).toContain("supportedEntryTypes.includes('longtask')");
 		expect(sceneSmokeSource).toContain('maxLongTaskMs');
 		expect(sceneSmokeSource).toContain('commandMs');
+		expect(sceneSmokeSource).toContain('elapsedMs: commandMs');
 		expect(sceneSmokeSource).toContain(
 			"app.workspace.getLeavesOfType('vaultman-frame')",
 		);

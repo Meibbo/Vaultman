@@ -18,13 +18,15 @@ if (!frameIsOpen()) {
 	]);
 }
 
-const result = parseJson(
-	runChecked(
-		'obsidian',
-		[`vault=${options.vault}`, 'eval', `code=${buildEvalCode()}`],
-		{ print: false },
-	).stdout,
-);
+const interactionResult = runEval(buildInteractionEvalCode());
+const lifecycleResult = runEval(buildLifecycleEvalCode());
+const result = {
+	actions: interactionResult.actions,
+	lifecycle: lifecycleResult.lifecycle,
+	interactionProbe: interactionResult.interactionProbe,
+	lifecycleProbe: lifecycleResult.lifecycleProbe,
+	lifecyclePerf: lifecycleResult.lifecyclePerf,
+};
 
 printReport(result);
 const errors = runChecked('obsidian', [
@@ -94,10 +96,114 @@ function frameIsOpen() {
 	return /\btrue\b/i.test(output ?? '');
 }
 
-function buildEvalCode() {
+function runEval(code) {
+	return parseJson(
+		runChecked(
+			'obsidian',
+			[`vault=${options.vault}`, 'eval', `code=${code}`],
+			{ print: false },
+		).stdout,
+	);
+}
+
+function buildInteractionEvalCode() {
 	return `(async () => {
 		const nextPaint = () => new Promise((resolve) =>
 			requestAnimationFrame(() => requestAnimationFrame(resolve)));
+		const nextTask = () => new Promise((resolve) => setTimeout(resolve, 0));
+		const present = () => Boolean(document.querySelector(
+			'.workspace-leaf-content[data-type="vaultman-frame"]'));
+		const frameLeaves = () =>
+			app.workspace.getLeavesOfType('vaultman-frame');
+		const probe = window.__vaultmanPerfProbe;
+		if (!present() || !probe) {
+			return JSON.stringify({ error: 'Vaultman frame or perf probe unavailable' });
+		}
+		for (const leaf of frameLeaves().slice(1)) leaf.detach();
+		while (frameLeaves().length > 1) await nextTask();
+		for (let tick = 0; tick < 4; tick += 1) await nextTask();
+		window.__vaultmanPerf?.clear?.();
+		probe.reset();
+		const filtersTarget = document.querySelector(
+			'[data-vaultman-page-id="filters"]',
+		);
+		if (filtersTarget instanceof HTMLElement) {
+			filtersTarget.click();
+			await nextPaint();
+		}
+		const actions = [];
+		const panelNode = (localId) =>
+			Array.from(document.querySelectorAll('[data-panel-widget-node-id]'))
+				.find((element) =>
+					element.getAttribute('data-panel-widget-node-id') ===
+						'files:' + localId);
+		const menuItemByIcon = (iconClass) =>
+			Array.from(document.querySelectorAll('.menu-item'))
+				.find((element) => element.querySelector('.' + iconClass));
+		const runAction = async (name, selector) => {
+			const element = document.querySelector(selector);
+			if (!element) {
+				actions.push({ name, elapsedMs: 0, skipped: true });
+				return;
+			}
+			const started = performance.now();
+			element.click();
+			const commandMs = performance.now() - started;
+			await nextPaint();
+			actions.push({
+				name,
+				elapsedMs: commandMs,
+				commandMs,
+				wallMs: performance.now() - started,
+				maxLongTaskMs: 0,
+			});
+		};
+		const runMenuAction = async (name, localId, iconClass) => {
+			panelNode(localId)?.click();
+			await nextTask();
+			const item = menuItemByIcon(iconClass);
+			if (!item) {
+				actions.push({ name, elapsedMs: 0, skipped: true });
+				return;
+			}
+			const started = performance.now();
+			item.click();
+			const commandMs = performance.now() - started;
+			await nextTask();
+			actions.push({
+				name,
+				elapsedMs: commandMs,
+				commandMs,
+				wallMs: performance.now() - started,
+				maxLongTaskMs: 0,
+			});
+		};
+		for (const [name, selector] of [
+			['expand-or-collapse', '[data-panel-widget-node-id$=":toggle-expansion"]'],
+			['collapse-or-expand', '[data-panel-widget-node-id$=":toggle-expansion"]'],
+			['reveal-active-file', '[data-panel-widget-node-id$=":reveal-active-file"]'],
+		]) await runAction(name, selector);
+		for (const [name, localId, iconClass] of [
+			['toggle-cell-on', 'view', 'lucide-calendar-clock'],
+			['toggle-cell-off', 'view', 'lucide-calendar-clock'],
+			['change-sort', 'sort', 'lucide-file-type'],
+			['restore-sort', 'sort', 'lucide-a-large-small'],
+			['toggle-nested-off', 'sort', 'lucide-list-tree'],
+			['toggle-nested-on', 'sort', 'lucide-list-tree'],
+		]) await runMenuAction(name, localId, iconClass);
+		const interactionProbe = probe.snapshot();
+		return JSON.stringify({
+			actions,
+			lifecycle: [],
+			interactionProbe,
+			lifecycleProbe: null,
+			lifecyclePerf: [],
+		});
+	})()`;
+}
+
+function buildLifecycleEvalCode() {
+	return `(async () => {
 		const nextTask = () => new Promise((resolve) => setTimeout(resolve, 0));
 		const present = () => Boolean(document.querySelector(
 			'.workspace-leaf-content[data-type="vaultman-frame"]'));
@@ -130,43 +236,8 @@ function buildEvalCode() {
 		if (!present() || !probe) {
 			return JSON.stringify({ error: 'Vaultman frame or perf probe unavailable' });
 		}
-		for (const leaf of frameLeaves().slice(1)) leaf.detach();
-		while (frameLeaves().length > 1) await nextTask();
-		for (let tick = 0; tick < 4; tick += 1) await nextTask();
 		window.__vaultmanPerf?.clear?.();
 		probe.reset();
-		const filtersTarget = document.querySelector(
-			'[data-vaultman-page-id="filters"]',
-		);
-		if (filtersTarget instanceof HTMLElement) {
-			filtersTarget.click();
-			await nextPaint();
-		}
-		const actions = [];
-		const runAction = async (name, selector) => {
-			const element = document.querySelector(selector);
-			if (!element) {
-				actions.push({ name, elapsedMs: 0, skipped: true });
-				return;
-			}
-			const started = performance.now();
-			element.click();
-			await nextPaint();
-			actions.push({ name, elapsedMs: performance.now() - started });
-		};
-		await runAction(
-			'expand-or-collapse',
-			'[data-panel-widget-node-id$=":toggle-expansion"]',
-		);
-		await runAction(
-			'collapse-or-expand',
-			'[data-panel-widget-node-id$=":toggle-expansion"]',
-		);
-		await runAction(
-			'reveal-active-file',
-			'[data-panel-widget-node-id$=":reveal-active-file"]',
-		);
-		const interactionProbe = probe.snapshot();
 		const lifecycle = [];
 		const toggle = async (name, expectedPresent, operation) => {
 			const longTasks = observeLongTasks();
@@ -198,9 +269,9 @@ function buildEvalCode() {
 		const lifecycleProbe = window.__vaultmanPerfProbe?.snapshot?.();
 		const lifecyclePerf = window.__vaultmanPerf?.recent?.(100) ?? [];
 		return JSON.stringify({
-			actions,
+			actions: [],
 			lifecycle,
-			interactionProbe,
+			interactionProbe: null,
 			lifecycleProbe,
 			lifecyclePerf,
 		});

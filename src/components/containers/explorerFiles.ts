@@ -8,7 +8,10 @@ import {
 	TFolder,
 } from 'obsidian';
 import type { VaultmanPlugin } from '../../main';
-import { FilesLogic } from '../../logic/logicsFiles';
+import {
+	FilesLogic,
+	type BuildFileTreeOptions,
+} from '../../logic/logicsFiles';
 import { FilesGridView } from '../layout/viewFilesGrid';
 import { GridView as FilesTableView } from '../layout/viewGrid';
 import { UnifiedTreeView } from '../layout/viewTree';
@@ -54,6 +57,7 @@ import {
 import { showInputModal } from '../../utils/inputModal';
 import {
 	changedItemsRemainOrdered,
+	compareExplorerText,
 	compareFilesForExplorer,
 	normalizeExplorerSortBy,
 } from '../../logic/logicSort';
@@ -200,6 +204,10 @@ export class FilesExplorerPanel extends Component {
 	 */
 	private _treeRenderOpts: Parameters<UnifiedTreeView['render']>[0] | null =
 		null;
+	private _alternateTreeProjection: {
+		nested: boolean;
+		nodes: TreeNode<FileMeta>[];
+	} | null = null;
 	/**
 	 * BT5-090: folder -> newest descendant mtime, the tie-break for the recency
 	 * sort. Rebuilt from the display set each render, before the comparator runs.
@@ -709,10 +717,25 @@ export class FilesExplorerPanel extends Component {
 
 	setVisibleCells(cells: Set<string>): void {
 		if (sameStringSet(this.visibleCells, cells)) return;
+		const wasNested = this._nestedEnabled();
 		this.visibleCells = new Set(cells);
 		this.tableView?.setVisibleCells(this.visibleCells);
 		this.gridView?.setVisibleCells(this.visibleCells);
 		if (!this._needsStatisticsWarmup()) this.statisticsWarmSignature = '';
+		if (
+			this.renderBatchDepth === 0 &&
+			this.viewMode === 'tree' &&
+			this.treeView &&
+			this._treeRenderOpts
+		) {
+			const nested = this._nestedEnabled();
+			if (nested !== wasNested) {
+				if (this._switchCachedTreeTopology(wasNested, nested)) return;
+			} else {
+				this._refreshCachedTreeCells();
+				return;
+			}
+		}
 		this._render();
 	}
 
@@ -737,6 +760,10 @@ export class FilesExplorerPanel extends Component {
 		const normalizedSortBy = normalizeExplorerSortBy(activeSort.sortBy);
 		const nextNodeTypeFilters = normalizeNodeTypeFilters(
 			normalizedState.nodeTypeFilters ?? normalizedState.nodeTypeFilter,
+		);
+		const nodeTypeFiltersChanged = !sameNodeTypeFilters(
+			this.nodeTypeFilters,
+			nextNodeTypeFilters,
 		);
 		if (
 			sameExplorerSortState(this.sortState, normalizedState) &&
@@ -767,6 +794,7 @@ export class FilesExplorerPanel extends Component {
 			);
 		}
 		this._notifySortStateChanged();
+		if (!nodeTypeFiltersChanged && this._resortCachedTree()) return;
 		this._render();
 	}
 
@@ -1099,13 +1127,7 @@ export class FilesExplorerPanel extends Component {
 			}
 			return node.meta.file?.name ?? node.label;
 		};
-		return (
-			dir *
-			stringValue(a).localeCompare(stringValue(b), undefined, {
-				numeric: true,
-				sensitivity: 'base',
-			})
-		);
+		return dir * compareExplorerText(stringValue(a), stringValue(b));
 	}
 
 	private _filesForDisplay(): TFile[] {
@@ -1302,6 +1324,7 @@ export class FilesExplorerPanel extends Component {
 		if (sameExplorerSortState(this.sortState, next)) return;
 		this.sortState = next;
 		this.onSortStateChange?.(this._sortState());
+		if (this._resortCachedTree()) return;
 		this._render();
 	}
 
@@ -1348,6 +1371,7 @@ export class FilesExplorerPanel extends Component {
 			this.renderPending = true;
 			return;
 		}
+		this._alternateTreeProjection = null;
 		vaultmanPerfMonitor.measure(
 			'explorer.files.render',
 			() => this._renderProjection(),
@@ -1369,6 +1393,145 @@ export class FilesExplorerPanel extends Component {
 				this._render();
 			}
 		}
+	}
+
+	private _treeOrderingOptions(): BuildFileTreeOptions {
+		return {
+			parentsFirst: this.parentsFirst,
+			fixedFolders: this.sortState.fixedFolders !== false,
+			sorts: {
+				all: activeScopeSort('files', this.sortState, 'all'),
+				drill: activeScopeSort('files', this.sortState, 'drill'),
+			},
+			drillNodeId: this.sortState.drillNodeId,
+			compareNodes: (a, b, sort) =>
+				this._compareFileTreeNodes(a, b, sort),
+		};
+	}
+
+	private _refreshFolderMaxMtime(files = this._filesForDisplay()): void {
+		if (!this._usesOpenedSort()) {
+			this._folderMaxMtime = new Map();
+			return;
+		}
+		this._folderMaxMtime = vaultmanPerfMonitor.measure(
+			'explorer.files.folder-times',
+			() =>
+				bubbleMaxToFolders(
+					files.map((file) => [
+						file.path,
+						this.plugin.statisticsCache.getFileTimes(file).mtime,
+					]),
+				),
+			{ files: files.length },
+		);
+	}
+
+	private _refreshCachedTreeLabels(nodes: TreeNode<FileMeta>[]): void {
+		if (this._nestedEnabled()) return;
+		const pathLabel = this._pathLabelActive();
+		for (const node of nodes) {
+			const file = node.meta.file;
+			if (file) node.label = pathLabel ? file.path : file.name;
+		}
+	}
+
+	private _applyCachedTreeProjection(
+		nodes: TreeNode<FileMeta>[],
+		rebuildQueueIndex: boolean,
+	): void {
+		if (!this.treeView || !this._treeRenderOpts) return;
+		this._refreshCachedTreeLabels(nodes);
+		this._decorateTreeWithFileTimes(nodes);
+		if (rebuildQueueIndex) this._decorateTreeWithQueue(nodes);
+		this._setIndexRoots(nodes, []);
+		this._treeRenderOpts = {
+			...this._treeRenderOpts,
+			nodes,
+			expandedIds: this.expandedIds,
+			visibleCells: this.visibleCells,
+			cellRenderOrder: this._activationCellOrder(),
+			prepareNode: (node) =>
+				this._prepareTreeNode(node as TreeNode<FileMeta>),
+		};
+		this.treeView.render(this._treeRenderOpts);
+		if (this._needsStatisticsWarmup()) this._warmStatisticsCache();
+	}
+
+	private _refreshCachedTreeCells(): void {
+		this._applyCachedTreeProjection(this._lastRenderTree, false);
+	}
+
+	private _flattenCachedTree(
+		nodes: readonly TreeNode<FileMeta>[],
+	): TreeNode<FileMeta>[] {
+		const flat: TreeNode<FileMeta>[] = [];
+		const visit = (subtree: readonly TreeNode<FileMeta>[]): void => {
+			for (const node of subtree) {
+				if (node.meta.file) {
+					flat.push({
+						...node,
+						label: this._pathLabelActive()
+							? node.meta.file.path
+							: node.meta.file.name,
+						depth: 0,
+						showCaret: false,
+						bubbleDot: undefined,
+						children: [],
+					});
+				}
+				if (node.children?.length) visit(node.children);
+			}
+		};
+		visit(nodes);
+		return this.logic.sortFileTreeNodes(flat, this._treeOrderingOptions());
+	}
+
+	private _switchCachedTreeTopology(
+		wasNested: boolean,
+		nested: boolean,
+	): boolean {
+		if (!this.treeView || !this._treeRenderOpts) return false;
+		const current = {
+			nested: wasNested,
+			nodes: this._lastRenderTree,
+		};
+		let nextNodes: TreeNode<FileMeta>[] | null = null;
+		if (this._alternateTreeProjection?.nested === nested) {
+			nextNodes = this._alternateTreeProjection.nodes;
+			this._alternateTreeProjection = current;
+		} else if (wasNested && !nested) {
+			nextNodes = this._flattenCachedTree(this._lastRenderTree);
+			this._alternateTreeProjection = current;
+		}
+		if (!nextNodes) return false;
+		this._applyCachedTreeProjection(nextNodes, true);
+		return true;
+	}
+
+	private _resortCachedTree(): boolean {
+		if (
+			this.renderBatchDepth > 0 ||
+			this.viewMode !== 'tree' ||
+			!this.treeView ||
+			!this._treeRenderOpts
+		) {
+			return false;
+		}
+		this._alternateTreeProjection = null;
+		this._refreshFolderMaxMtime();
+		this.logic.sortFileTreeNodes(
+			this._lastRenderTree,
+			this._treeOrderingOptions(),
+		);
+		const sortedFiles = this._nestedEnabled()
+			? []
+			: this._lastRenderTree.flatMap((node) =>
+					node.meta.file ? [node.meta.file] : [],
+				);
+		this._rememberStatisticsSortOrder(sortedFiles);
+		this._applyCachedTreeProjection(this._lastRenderTree, false);
+		return true;
 	}
 
 	private _renderProjection(): void {
@@ -1420,19 +1583,9 @@ export class FilesExplorerPanel extends Component {
 						{ files: displayFiles.length },
 					);
 			this._rememberStatisticsSortOrder(nested ? [] : sortedFiles);
-			// BT5-090: the folder mtime tie-break for the recency sort. Built
-			// before buildFileTree so the node comparator can read it.
-			this._folderMaxMtime = vaultmanPerfMonitor.measure(
-				'explorer.files.folder-times',
-				() =>
-					bubbleMaxToFolders(
-						displayFiles.map((file) => [
-							file.path,
-							this.plugin.statisticsCache.getFileTimes(file).mtime,
-						]),
-					),
-				{ files: displayFiles.length },
-			);
+			// BT5-090: folder mtimes are only read by the Last opened tie-break.
+			// Avoid scanning the vault for every other sort.
+			this._refreshFolderMaxMtime(displayFiles);
 			const rebaseFolderPaths = this._activeFolderFilterPaths();
 			const renderTree = this._nestedEnabled()
 				? vaultmanPerfMonitor.measure(
@@ -1443,15 +1596,7 @@ export class FilesExplorerPanel extends Component {
 								this._foldersForCurrentView(),
 								{
 									rebaseFolderPaths,
-									parentsFirst: this.parentsFirst,
-									fixedFolders: this.sortState.fixedFolders !== false,
-									sorts: {
-										all: activeScopeSort('files', this.sortState, 'all'),
-										drill: activeScopeSort('files', this.sortState, 'drill'),
-									},
-									drillNodeId: this.sortState.drillNodeId,
-									compareNodes: (a, b, sort) =>
-										this._compareFileTreeNodes(a, b, sort),
+									...this._treeOrderingOptions(),
 								},
 							),
 						{ files: sortedFiles.length },
@@ -1502,6 +1647,8 @@ export class FilesExplorerPanel extends Component {
 				visibleCells: this.visibleCells,
 				iconInCaretSlot: this.plugin.settings.iconInCaretSlot === true,
 				cellRenderOrder: this._activationCellOrder(),
+				prepareNode: (node) =>
+					this._prepareTreeNode(node as TreeNode<FileMeta>),
 				bubbleDotLabel: (dot: NodeBubbleDot) => this._bubbleDotLabel(dot),
 				selectedIds: this.selectedFilePaths,
 				onToggle: (id: string) => {
@@ -1949,6 +2096,12 @@ export class FilesExplorerPanel extends Component {
 		);
 	}
 
+	private _usesOpenedSort(): boolean {
+		return Object.values(this.sortState.sorts).some(
+			(sort) => sort?.sortBy === 'opened',
+		);
+	}
+
 	private _usesPropertyCountSort(): boolean {
 		return Object.values(this.sortState.sorts).some(
 			(sort) => sort?.sortBy === 'count',
@@ -2138,12 +2291,6 @@ export class FilesExplorerPanel extends Component {
 			inheritedRainbowColor?: string,
 		): void => {
 			for (const [position, node] of subtree.entries()) {
-				const resolved = this._resolveFileIcon(
-					node.meta.file?.path ?? node.meta.folderPath,
-					node.meta.isFolder,
-					node.icon ?? (node.meta.isFolder ? 'lucide-folder' : 'lucide-file'),
-				);
-				node.icon = resolved?.icon;
 				const branchColor = positionalRainbow
 					? (inheritedRainbowColor ??
 						(choice === 'rainbow'
@@ -2157,7 +2304,7 @@ export class FilesExplorerPanel extends Component {
 				);
 				const decoration = resolveExplorerGlyphDecoration(
 					glyphColor,
-					resolved?.color,
+					null,
 				);
 				node.iconColor = decoration.iconColor;
 				node.labelColor = decoration.labelColor;
@@ -2165,6 +2312,61 @@ export class FilesExplorerPanel extends Component {
 			}
 		};
 		walk(nodes);
+	}
+
+	private _prepareTreeNode(node: TreeNode<FileMeta>): void {
+		this._prepareTreeNodeCells(node);
+		this._prepareTreeNodeIcon(node);
+	}
+
+	private _prepareTreeNodeCells(node: TreeNode<FileMeta>): void {
+		const file = node.meta.file;
+		if (!file) return;
+		const showMtime =
+			this.visibleCells.has('mtime') || this.visibleCells.has('updated');
+		const showCtime =
+			this.visibleCells.has('ctime') || this.visibleCells.has('installed');
+		if (showMtime || showCtime) {
+			const times = this.plugin.statisticsCache.getFileTimes(file);
+			if (showMtime) node.mtimeText = this._formatDateCell(times.mtime);
+			if (showCtime) node.ctimeText = this._formatDateCell(times.ctime);
+		}
+		if (this.visibleCells.has('opened')) {
+			node.openedText = this._formatOpenedCell(file);
+		}
+		if (this.visibleCells.has('words')) {
+			const wordCount = this.plugin.statisticsCache.getFileWordCount(file);
+			node.wordCountText =
+				wordCount === null
+					? undefined
+					: this._formatWordCountCell(wordCount);
+		}
+		if (this.visibleCells.has('tasks')) {
+			const tasks = this.plugin.statisticsCache.getFileRemainingTasks(file);
+			node.tasksText =
+				tasks === null || tasks === 0 ? undefined : String(tasks);
+		}
+	}
+
+	private _prepareTreeNodeIcon(node: TreeNode<FileMeta>): void {
+		const defaultIcon =
+			node.icon ??
+			(node.meta.isFolder
+				? this.expandedIds.has(node.id)
+					? 'lucide-folder-open'
+					: 'lucide-folder'
+				: 'lucide-file');
+		const resolved = this._resolveFileIcon(
+			node.meta.file?.path ?? node.meta.folderPath,
+			node.meta.isFolder,
+			defaultIcon,
+		);
+		node.icon = resolved?.icon;
+		const decoration = resolveExplorerGlyphDecoration(
+			node.labelColor ?? null,
+			resolved?.color,
+		);
+		node.iconColor = decoration.iconColor;
 	}
 
 	/**
@@ -2811,62 +3013,8 @@ export class FilesExplorerPanel extends Component {
 	}
 
 	private _decorateTreeWithFileTimes(nodes: TreeNode<FileMeta>[]): void {
-		const showMtime =
-			this.visibleCells.has('mtime') || this.visibleCells.has('updated');
-		const showCtime =
-			this.visibleCells.has('ctime') || this.visibleCells.has('installed');
-		const showOpened = this.visibleCells.has('opened');
-		const showWords = this.visibleCells.has('words');
-		const showTasks = this.visibleCells.has('tasks');
-		const showFolderAggregates =
-			this.plugin.settings.folderAggregateCells === true &&
-			(this.visibleCells.has('count') || showWords || showTasks);
-		if (
-			!showMtime &&
-			!showCtime &&
-			!showOpened &&
-			!showWords &&
-			!showTasks &&
-			!showFolderAggregates
-		) {
-			return;
-		}
-		const visit = (subtree: TreeNode<FileMeta>[]): void => {
-			for (const node of subtree) {
-				if (node.meta.file) {
-					if (showMtime || showCtime) {
-						const times = this.plugin.statisticsCache.getFileTimes(
-							node.meta.file,
-						);
-						if (showMtime) node.mtimeText = this._formatDateCell(times.mtime);
-						if (showCtime) node.ctimeText = this._formatDateCell(times.ctime);
-					}
-					if (showOpened) {
-						node.openedText = this._formatOpenedCell(node.meta.file);
-					}
-					if (showWords) {
-						const wordCount = this.plugin.statisticsCache.getFileWordCount(
-							node.meta.file,
-						);
-						node.wordCountText =
-							wordCount === null
-								? undefined
-								: this._formatWordCountCell(wordCount);
-					}
-					if (showTasks) {
-						const tasks = this.plugin.statisticsCache.getFileRemainingTasks(
-							node.meta.file,
-						);
-						node.tasksText =
-							tasks === null || tasks === 0 ? undefined : String(tasks);
-					}
-				}
-				if (node.children?.length) visit(node.children);
-			}
-		};
-		visit(nodes);
-		// BT5-040: after files carry their own values, fold them up so folders
-		// show the recursive sum of props, words and tasks of everything inside.
+		// File cell values are prepared only as their rows enter the virtual
+		// window. Recursive folder aggregates are the sole model-wide pass.
 		this._decorateFoldersWithAggregates(nodes);
 	}
 

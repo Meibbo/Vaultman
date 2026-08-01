@@ -73,6 +73,11 @@ export interface TreeViewOptions {
 	 * that configures no tooltip omits this and its rows show none.
 	 */
 	rowTooltip?: (node: TreeNode) => string;
+	/**
+	 * Provider-owned lazy decoration seam. It runs only for nodes entering the
+	 * virtual window and before the row signature is calculated.
+	 */
+	prepareNode?: (node: TreeNode) => void;
 	renderLabel?: (container: HTMLElement, node: TreeNode) => boolean;
 	/**
 	 * BT5-015: when a node reserves a caret slot it cannot use, put its icon
@@ -454,6 +459,7 @@ export class UnifiedTreeView {
 		);
 		this.removeStaleRows(visibleIds);
 		for (const row of projection.visibleRows) {
+			this._opts.prepareNode?.(row.node);
 			const rowEl = this._renderRow(row.node, this._contentEl, this._opts);
 			rowEl.addClass('vaultman-tree-row--virtual');
 			rowEl.style.top = `${row.top}px`;

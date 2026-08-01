@@ -2,6 +2,7 @@
 import { TFolder, type App, type TFile } from 'obsidian';
 import type { TreeNode, FileMeta } from '../types/typeTree';
 import type { ScopeSort } from '../types/typeUI';
+import { compareExplorerText } from './logicSort';
 
 const IMAGE_EXTENSIONS = new Set([
 	'apng',
@@ -173,44 +174,6 @@ export class FilesLogic {
 			return folderMap.get(folderPath) ?? null;
 		};
 
-		const numericLocale = { numeric: true, sensitivity: 'base' } as const;
-		const sortTree = (
-			nodes: TreeNode<FileMeta>[],
-			parentId: string | null = null,
-		): TreeNode<FileMeta>[] => {
-			// A null parentId (the root level) must never match a null/absent
-			// drill target — that let a lingering drill sort capture L1 while
-			// every other level followed the all-scope sort (BT4-009).
-			const scopeSort =
-				parentId !== null && parentId === options.drillNodeId
-					? (options.sorts?.drill ?? options.sorts?.all)
-					: options.sorts?.all;
-			if (options.compareNodes && scopeSort) {
-				nodes.sort((a, b) => options.compareNodes!(a, b, scopeSort));
-			}
-
-			if (parentsFirst) {
-				// Fixed folders (D29, default): hoisted folders keep a stable
-				// name order immune to the chosen sort; disabling it lets the
-				// level's sort order the folders too.
-				const folders = nodes
-					.filter((node) => node.meta?.isFolder)
-					.sort((a, b) =>
-						!fixedFolders && options.compareNodes && scopeSort
-							? options.compareNodes(a, b, scopeSort)
-							: a.label.localeCompare(b.label, undefined, numericLocale),
-					);
-				const files = nodes.filter((node) => !node.meta?.isFolder);
-				nodes.splice(0, nodes.length, ...folders, ...files);
-			}
-
-			for (const node of nodes) {
-				if (node.children?.length) sortTree(node.children, node.id);
-			}
-
-			return nodes;
-		};
-
 		for (const folder of knownFolders) {
 			const folderPath = folder.path === '/' ? '' : folder.path;
 			if (folderPath) ensureFolder(folderPath);
@@ -241,7 +204,61 @@ export class FilesLogic {
 
 			(parentFolder?.children ?? root).push(fileNode);
 		}
-		return sortTree(root);
+		return this.sortFileTreeNodes(root, {
+			...options,
+			parentsFirst,
+			fixedFolders,
+		});
+	}
+
+	/**
+	 * Reorder an existing file hierarchy in place. Decorations and object
+	 * identity survive, so a Scene can change sort without rebuilding its
+	 * provider model or resolving every icon again.
+	 */
+	sortFileTreeNodes(
+		nodes: TreeNode<FileMeta>[],
+		options: BuildFileTreeOptions = {},
+	): TreeNode<FileMeta>[] {
+		const parentsFirst = options.parentsFirst ?? true;
+		const fixedFolders = options.fixedFolders ?? true;
+		const sortTree = (
+			subtree: TreeNode<FileMeta>[],
+			parentId: string | null = null,
+		): void => {
+			// A null parentId (the root level) must never match a null/absent
+			// drill target — that let a lingering drill sort capture L1 while
+			// every other level followed the all-scope sort (BT4-009).
+			const scopeSort =
+				parentId !== null && parentId === options.drillNodeId
+					? (options.sorts?.drill ?? options.sorts?.all)
+					: options.sorts?.all;
+			if (options.compareNodes && scopeSort) {
+				subtree.sort((a, b) => options.compareNodes!(a, b, scopeSort));
+			}
+
+			if (parentsFirst) {
+				// Fixed folders (D29, default): hoisted folders keep a stable
+				// name order immune to the chosen sort; disabling it lets the
+				// level's sort order the folders too.
+				const folders = subtree
+					.filter((node) => node.meta?.isFolder)
+					.sort((a, b) =>
+						!fixedFolders && options.compareNodes && scopeSort
+							? options.compareNodes(a, b, scopeSort)
+							: compareExplorerText(a.label, b.label),
+					);
+				const files = subtree.filter((node) => !node.meta?.isFolder);
+				subtree.splice(0, subtree.length, ...folders, ...files);
+			}
+
+			for (const node of subtree) {
+				if (node.children?.length) sortTree(node.children, node.id);
+			}
+		};
+
+		sortTree(nodes);
+		return nodes;
 	}
 
 	private propCountForFile(file: TFile): number {

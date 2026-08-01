@@ -68,6 +68,7 @@
 		resolveCondensedPanelWidgetOverflow,
 		searchNeedsOwnRow,
 	} from '../../logic/logicPanelWidgetOverflow';
+	import { measureSceneSync } from '../../logic/logicScenePerformance';
 	import type {
 		NavbarPanelWidgetState,
 		PanelWidgetExplorerPort,
@@ -922,10 +923,16 @@
 	}
 
 	function handleSortChange(state: ExplorerSortState) {
-		const normalizedState = normalizeSortState(activeTab, state);
-		sortStateByTab = { ...sortStateByTab, [activeTab]: normalizedState };
-		applySortState(activeTab, normalizedState);
-		onViewFiltersChanged?.();
+		measureSceneSync(
+			`scene.action.change-sort.${activeTab}`,
+			{ operations: 1 },
+			() => {
+				const normalizedState = normalizeSortState(activeTab, state);
+				sortStateByTab = { ...sortStateByTab, [activeTab]: normalizedState };
+				applySortState(activeTab, normalizedState);
+				onViewFiltersChanged?.();
+			},
+		);
 	}
 
 	function handleScopeChangeForTab(tab: FiltersTab, state: ExplorerSortState) {
@@ -1002,8 +1009,14 @@
 	}
 
 	function handlePillsChange(cells: string[]) {
-		visibleCellsByTab = { ...visibleCellsByTab, [activeTab]: cells };
-		applyVisibleCells(activeTab, cells);
+		measureSceneSync(
+			`scene.action.toggle-cell.${activeTab}`,
+			{ operations: 1 },
+			() => {
+				visibleCellsByTab = { ...visibleCellsByTab, [activeTab]: cells };
+				applyVisibleCells(activeTab, cells);
+			},
+		);
 	}
 
 	function canToggleIdentity(
@@ -1333,9 +1346,15 @@
 		const next = cells.includes('nested')
 			? cells.filter((cell) => cell !== 'nested')
 			: [...cells, 'nested'];
-		visibleCellsByTab = { ...visibleCellsByTab, [tab]: next };
-		applyVisibleCells(tab, next);
-		onViewFiltersChanged?.();
+		measureSceneSync(
+			`scene.action.toggle-nested.${tab}`,
+			{ operations: 1 },
+			() => {
+				visibleCellsByTab = { ...visibleCellsByTab, [tab]: next };
+				applyVisibleCells(tab, next);
+				onViewFiltersChanged?.();
+			},
+		);
 	}
 
 	function drillScopeTitle(

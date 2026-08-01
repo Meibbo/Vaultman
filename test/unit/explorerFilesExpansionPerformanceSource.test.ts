@@ -58,4 +58,23 @@ describe('Files Explorer bulk expansion projection', () => {
 		expect(reveal).toContain('this._refreshCompleteTreeExpansion');
 		expect(reveal).not.toContain('this._render()');
 	});
+
+	it('reprojects non-structural cell toggles from the cached Scene tree', () => {
+		const setVisibleCells = methodSource('setVisibleCells', 'hasExpandedNodes');
+
+		expect(setVisibleCells).toContain('this._refreshCachedTreeCells');
+		expect(setVisibleCells).toContain('this._switchCachedTreeTopology');
+	});
+
+	it('re-sorts the cached Scene tree when the file set is unchanged', () => {
+		const setSortState = methodSource('setSortState', 'getActiveTypeFilter');
+
+		expect(setSortState).toContain('this._resortCachedTree');
+	});
+
+	it('defers Iconic resolution to the virtual window', () => {
+		expect(source).toContain('prepareNode: (node)');
+		expect(source).toContain('this._prepareTreeNodeIcon(');
+		expect(source).toContain('this._prepareTreeNodeCells(');
+	});
 });

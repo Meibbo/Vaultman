@@ -28,6 +28,15 @@ export interface ExplorerFileSortOptions {
 	lastOpenedForFile?: (file: TFile) => number | null;
 }
 
+const EXPLORER_TEXT_COLLATOR = new Intl.Collator(undefined, {
+	numeric: true,
+	sensitivity: 'base',
+});
+
+export function compareExplorerText(left: string, right: string): number {
+	return EXPLORER_TEXT_COLLATOR.compare(left, right);
+}
+
 export const DEFAULT_EXPLORER_SORT_DIR: Record<string, ExplorerSortDirection> =
 	{
 		name: 'asc',
@@ -96,11 +105,10 @@ export function compareFilesForExplorer(
 	const dir = direction === 'asc' ? 1 : -1;
 	let result = 0;
 
-	const numericLocale = { numeric: true, sensitivity: 'base' } as const;
 	if (normalizedSortBy === 'path') {
-		result = a.path.localeCompare(b.path, undefined, numericLocale);
+		result = compareExplorerText(a.path, b.path);
 	} else if (normalizedSortBy === 'ext') {
-		result = a.extension.localeCompare(b.extension, undefined, numericLocale);
+		result = compareExplorerText(a.extension, b.extension);
 	} else if (normalizedSortBy === 'mtime' || normalizedSortBy === 'ctime') {
 		result =
 			fileTimeForExplorer(a, normalizedSortBy, options.getFileTimes) -
@@ -129,11 +137,11 @@ export function compareFilesForExplorer(
 			(options.taskCountForFile?.(a) ?? 0) -
 			(options.taskCountForFile?.(b) ?? 0);
 	} else {
-		result = a.name.localeCompare(b.name, undefined, numericLocale);
+		result = compareExplorerText(a.name, b.name);
 	}
 
 	return result === 0
-		? a.path.localeCompare(b.path, undefined, numericLocale)
+		? compareExplorerText(a.path, b.path)
 		: dir * result;
 }
 

@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest';
 
 import {
 	changedItemsRemainOrdered,
+	compareExplorerText,
 	compareFilesForExplorer,
 	DEFAULT_EXPLORER_SORT_DIR,
 	nextExplorerSortDirection,
@@ -44,6 +45,11 @@ function makeFile(
 }
 
 describe('explorer sort helpers', () => {
+	it('reuses natural case-insensitive text ordering for hot sort paths', () => {
+		expect(compareExplorerText('File 2', 'file 10')).toBeLessThan(0);
+		expect(compareExplorerText('ALPHA', 'alpha')).toBe(0);
+	});
+
 	it('defaults Remaining Tasks to descending, then toggles to ascending', () => {
 		expect(DEFAULT_EXPLORER_SORT_DIR.tasks).toBe('desc');
 		expect(nextExplorerSortDirection('name', 'asc', 'tasks')).toBe('desc');
