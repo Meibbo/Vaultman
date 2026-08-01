@@ -7,63 +7,158 @@ import {
 	isBookmarksAvailable,
 } from '../../src/services/serviceCoreBookmarks';
 
-import type { SearchBookmarkItem } from '../../src/logic/logicCoreSearchActions';
+const COMMAND_ID = 'bookmarks:bookmark-current-search';
 
-/** Minimal stand-in for the slice of `app` the bridge actually touches. */
-function appWith(plugin: unknown): App {
-	return {
-		internalPlugins: {
-			getEnabledPluginById: (id: string) =>
-				id === 'bookmarks' ? plugin : null,
-		},
-	} as unknown as App;
+interface StubOptions {
+	bookmarks?: boolean;
+	globalSearch?: boolean;
+	command?: boolean;
+	searchLeaf?: boolean;
 }
 
-describe('bookmarking a Vaultman text search', () => {
-	it('builds core’s own item shape so the bookmarks pane renders it', () => {
-		const addItem = vi.fn<(item: SearchBookmarkItem) => void>();
-		const before = Date.now();
+interface Stub {
+	app: App;
+	executed: string[];
+	viewStates: unknown[];
+}
 
-		expect(bookmarkSearchQuery(appWith({ addItem }), 'alpha')).toBe(true);
+/**
+ * The chain core's own command walks: the Bookmarks plugin owns it, the query
+ * comes from `global-search`, and `global-search` reads it off the **core
+ * search leaf's view state**. All three have to be there.
+ */
+function stubApp(options: StubOptions = {}): Stub {
+	const {
+		bookmarks = true,
+		globalSearch = true,
+		command = true,
+		searchLeaf = true,
+	} = options;
+	const executed: string[] = [];
+	const viewStates: unknown[] = [];
 
-		expect(addItem).toHaveBeenCalledTimes(1);
-		const item: SearchBookmarkItem = addItem.mock.calls[0][0];
-		expect(item.type).toBe('search');
-		expect(item.query).toBe('alpha');
-		expect(item.ctime).toBeGreaterThanOrEqual(before);
-		// Core's factory is exactly `{ type, ctime, query }`. An extra field here
-		// is a schema guess, and the scope a Vaultman search carries has no home
-		// in it — that gap is recorded, not smuggled in.
-		expect(Object.keys(item).sort()).toEqual(['ctime', 'query', 'type']);
+	const leaf = {
+		getViewState: () => ({ type: 'search', state: { query: 'core-query' } }),
+		setViewState: (state: unknown) => {
+			viewStates.push(state);
+			return Promise.resolve();
+		},
+	};
+
+	const app = {
+		commands: {
+			commands: command ? { [COMMAND_ID]: {} } : {},
+			executeCommandById: (id: string) => {
+				executed.push(id);
+				return true;
+			},
+		},
+		internalPlugins: {
+			getEnabledPluginById: (id: string) => {
+				if (id === 'bookmarks') return bookmarks ? {} : null;
+				if (id === 'global-search') return globalSearch ? {} : null;
+				return null;
+			},
+		},
+		workspace: {
+			getLeavesOfType: (type: string) =>
+				type === 'search' && searchLeaf ? [leaf] : [],
+		},
+	} as unknown as App;
+
+	return { app, executed, viewStates };
+}
+
+describe('what the bookmark action needs before it can run', () => {
+	it('is available when the whole chain is present', () => {
+		expect(isBookmarksAvailable(stubApp().app)).toBe(true);
 	});
 
-	it('takes the query from us, not from core’s search leaf', () => {
-		// The whole reason the core command is not reused: it reads the query out
-		// of the core search leaf's view state, which knows nothing about the Text
-		// explorer. Whitespace is trimmed the way core trims its own.
-		const addItem = vi.fn<(item: SearchBookmarkItem) => void>();
-		bookmarkSearchQuery(appWith({ addItem }), '  spaced query  ');
-		expect(addItem.mock.calls[0][0].query).toBe('spaced query');
+	it('is unavailable without the Bookmarks plugin', () => {
+		expect(isBookmarksAvailable(stubApp({ bookmarks: false }).app)).toBe(false);
 	});
 
-	it('reports failure instead of pretending, when Bookmarks is disabled', () => {
-		expect(isBookmarksAvailable(appWith(null))).toBe(false);
-		expect(bookmarkSearchQuery(appWith(null), 'alpha')).toBe(false);
+	it('is unavailable without global-search, which supplies the query', () => {
+		expect(isBookmarksAvailable(stubApp({ globalSearch: false }).app)).toBe(
+			false,
+		);
 	});
 
-	it('treats a plugin without addItem as unavailable', () => {
-		expect(isBookmarksAvailable(appWith({}))).toBe(false);
-		expect(bookmarkSearchQuery(appWith({}), 'alpha')).toBe(false);
+	it('is unavailable without a core search leaf to read the query from', () => {
+		expect(isBookmarksAvailable(stubApp({ searchLeaf: false }).app)).toBe(false);
 	});
 
-	it('does not bookmark an empty query', () => {
-		const addItem = vi.fn();
-		expect(bookmarkSearchQuery(appWith({ addItem }), '   ')).toBe(false);
-		expect(addItem).not.toHaveBeenCalled();
+	it('is unavailable when the command itself is missing', () => {
+		expect(isBookmarksAvailable(stubApp({ command: false }).app)).toBe(false);
 	});
 });
 
-describe('U121-019 #51: where the header actions live', () => {
+describe('opening core’s Add bookmark modal with our query', () => {
+	it('writes our query into the view state the command reads, then runs it', async () => {
+		// Calling `bookmarks.addItem` directly stored a correct item but skipped
+		// the naming modal, so the action felt like nothing had happened. Core's
+		// command opens that modal — it just reads its query from the core search
+		// leaf, which knows nothing about the Text explorer.
+		const { app, executed, viewStates } = stubApp();
+
+		await expect(bookmarkSearchQuery(app, 'alpha')).resolves.toBe(true);
+
+		expect(viewStates).toHaveLength(1);
+		expect(viewStates[0]).toMatchObject({ state: { query: 'alpha' } });
+		expect(executed).toEqual([COMMAND_ID]);
+	});
+
+	it('sets the query before executing, never the other way round', async () => {
+		// Reversed, the modal opens on whatever core happened to hold.
+		const order: string[] = [];
+		const { app } = stubApp();
+		const leaf = (
+			app as unknown as {
+				workspace: { getLeavesOfType(t: string): { setViewState: unknown }[] };
+			}
+		).workspace.getLeavesOfType('search')[0];
+		const originalSetViewState = leaf.setViewState as (s: unknown) => Promise<void>;
+		leaf.setViewState = (state: unknown) => {
+			order.push('setViewState');
+			return originalSetViewState(state);
+		};
+		const commands = (app as unknown as { commands: { executeCommandById: unknown } })
+			.commands;
+		const originalExecute = commands.executeCommandById as (id: string) => boolean;
+		commands.executeCommandById = (id: string) => {
+			order.push('execute');
+			return originalExecute(id);
+		};
+
+		await bookmarkSearchQuery(app, 'alpha');
+
+		expect(order).toEqual(['setViewState', 'execute']);
+	});
+
+	it('trims the query the way core trims its own', async () => {
+		const { app, viewStates } = stubApp();
+		await bookmarkSearchQuery(app, '  spaced  ');
+		expect(viewStates[0]).toMatchObject({ state: { query: 'spaced' } });
+	});
+
+	it('does nothing for an empty query', async () => {
+		const { app, executed, viewStates } = stubApp();
+		await expect(bookmarkSearchQuery(app, '   ')).resolves.toBe(false);
+		expect(executed).toEqual([]);
+		expect(viewStates).toEqual([]);
+	});
+
+	it('does not touch core’s view state when the chain is incomplete', async () => {
+		// Half-applying this would leave core's search query rewritten for an
+		// action that never happened.
+		const { app, executed, viewStates } = stubApp({ bookmarks: false });
+		await expect(bookmarkSearchQuery(app, 'alpha')).resolves.toBe(false);
+		expect(executed).toEqual([]);
+		expect(viewStates).toEqual([]);
+	});
+});
+
+describe('U121-019 #51: the result header', () => {
 	const findRow =
 		tabContentSource.match(
 			/<!-- Find row[\s\S]*?<\/div>\n\{#if contentRegexError\}/,
@@ -78,22 +173,34 @@ describe('U121-019 #51: where the header actions live', () => {
 		expect(headerActions).not.toBe('');
 	});
 
-	it('keeps Has/Hasn’t beside the count it changes, not in the search row', () => {
-		expect(findRow).not.toContain('contentIsExclusion');
-		expect(headerActions).toContain('contentIsExclusion');
+	it('leaves Has/Hasn’t in the search row for the U121-029 lane to move', () => {
+		// That control's placement belongs to U121-029. It is back where 1.2.0 had
+		// it so that lane's change applies without a conflict.
+		expect(findRow).toContain('contentIsExclusion');
+		expect(headerActions).not.toContain('contentIsExclusion');
 	});
 
-	it('puts Copy and Bookmark on the header as optional bridges', () => {
-		expect(headerActions).toContain('onCopySearchResults');
-		expect(headerActions).toContain('onBookmarkSearch');
+	it('offers one overflow menu rather than a cell per action', () => {
+		expect(headerActions).toContain('onHeaderMenu');
+		expect(headerActions).toContain('lucide-more-vertical');
+		expect(headerActions).not.toContain('lucide-copy');
+		expect(headerActions).not.toContain('lucide-bookmark');
 	});
 
-	it('stops header action clicks from toggling the result tree', () => {
-		// The header row is itself the collapse toggle. Without this every action
-		// cell would fold the results as a side effect of being pressed.
-		const clicks = headerActions.match(/onclick=\{\(e: MouseEvent\) =>/g) ?? [];
-		const stops = headerActions.match(/e\.stopPropagation\(\);/g) ?? [];
-		expect(clicks.length).toBeGreaterThanOrEqual(3);
-		expect(stops.length).toBe(clicks.length);
+	it('stops the menu click from toggling the result tree', () => {
+		// The header row is itself the collapse toggle.
+		expect(headerActions).toContain('e.stopPropagation();');
+	});
+});
+
+describe('the mock chain itself', () => {
+	it('reports the command result rather than assuming success', async () => {
+		const { app } = stubApp();
+		const commands = (app as unknown as {
+			commands: { executeCommandById: (id: string) => boolean };
+		}).commands;
+		commands.executeCommandById = vi.fn().mockReturnValue(false);
+
+		await expect(bookmarkSearchQuery(app, 'alpha')).resolves.toBe(false);
 	});
 });

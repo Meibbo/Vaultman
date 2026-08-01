@@ -4266,6 +4266,18 @@ button.vaultman-content-scope-hint:focus-visible {
   color: var(--text-normal);
   margin-bottom: 4px;
   user-select: none;
+  /* U121-019 #51: `.tree-item-self` carries `--nav-item-padding`, whose inline
+     start is sized to clear a collapse icon. This header has none — core prints
+     its result count with neither triangle nor caret — so the count takes that
+     space back instead of sitting behind an indent for a control that is not
+     there. Only the inline start is touched; everything else stays core's. */
+  padding-inline-start: var(--size-4-2);
+}
+
+.vaultman-content-header-actions {
+  display: flex;
+  align-items: center;
+  margin-inline-start: auto;
 }
 
 /* Header-only, link-style: no button chrome, just clickable accent text. */

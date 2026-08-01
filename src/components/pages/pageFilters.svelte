@@ -29,6 +29,7 @@
 	import { translate } from '../../i18n/index';
 	import { NativeSearchAdapter } from '../../services/serviceNativeSearchAdapter';
 	import { bookmarkSearchQuery } from '../../services/serviceCoreBookmarks';
+	import { CopySearchResultsModal } from '../../services/serviceCopySearchResultsModal';
 	import {
 		sortContentPreviewFiles,
 		type ContentSortBy,
@@ -1039,18 +1040,45 @@
 
 	// U121-019 #51: both are bridges to affordances core already ships. Neither
 	// belongs in the renderer, so the buttons in tabContent only call these.
-	function copyContentSearchResults(event: MouseEvent): void {
-		if (nativeSearchAdapter.copySearchResults(event)) return;
-		new Notice(translate('content.copy_unavailable'));
-	}
+	// U121-019 #51: one overflow menu on the result header. Both entries are
+	// occasional and the header is narrow, so they live behind a vertical
+	// ellipsis rather than taking a cell each.
+	function openContentHeaderMenu(event: MouseEvent): void {
+		const menu = new Menu();
+		const matched =
+			contentPreviewResult?.matchedFiles ??
+			contentPreviewResult?.files.map((entry) => entry.file) ??
+			[];
 
-	function bookmarkContentSearch(): void {
-		const query = contentFind.trim();
-		if (bookmarkSearchQuery(plugin.app, query)) {
-			new Notice(translate('content.bookmarked').replace('{query}', query));
-			return;
-		}
-		new Notice(translate('content.bookmarks_unavailable'));
+		menu.addItem((item) =>
+			item
+				.setTitle(translate('content.copy_results'))
+				.setIcon('lucide-copy')
+				.setDisabled(matched.length === 0)
+				.onClick(() => {
+					if (matched.length === 0) {
+						new Notice(translate('content.copy_no_results'));
+						return;
+					}
+					// Our files, not core's result set: core's modal reads its own DOM,
+					// which our scan stops and which never knew our scope.
+					new CopySearchResultsModal(plugin.app, matched).open();
+				}),
+		);
+
+		menu.addItem((item) =>
+			item
+				.setTitle(translate('content.bookmark_search'))
+				.setIcon('lucide-bookmark')
+				.setDisabled(contentFind.trim().length === 0)
+				.onClick(() => {
+					void bookmarkSearchQuery(plugin.app, contentFind).then((opened) => {
+						if (!opened) new Notice(translate('content.bookmarks_unavailable'));
+					});
+				}),
+		);
+
+		menu.showAtMouseEvent(event);
 	}
 
 	function queueContentReplace() {
@@ -1228,8 +1256,7 @@
 				{cancelQueuedRename}
 				badgeCancelClickMode={plugin.settings.badgeCancelClickMode}
 				onContentContextMenu={openContentContextMenu}
-				onCopySearchResults={copyContentSearchResults}
-				onBookmarkSearch={bookmarkContentSearch}
+				onHeaderMenu={openContentHeaderMenu}
 			/>
 		</div>
 	{/if}

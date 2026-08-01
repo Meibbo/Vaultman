@@ -32,13 +32,6 @@ interface NativeSearchView {
 	startSearch(): void;
 	stopSearch?(): void;
 	setMatchingCase?(enabled: boolean): void;
-	/**
-	 * Core's own "Copy search results" modal. It builds its text from the view's
-	 * own `dom` and takes no result list, so bridging to it is one call and the
-	 * modal is the real one — see
-	 * `.agents/docs/architecture/research/core-bookmarks-and-search-actions.md`.
-	 */
-	onCopyResultsClick?(evt: MouseEvent): void;
 }
 
 interface SearchApp extends App {
@@ -505,22 +498,6 @@ export class NativeSearchAdapter {
 			inputs.push({ file, content, offsets });
 		}
 		return inputs;
-	}
-
-	/**
-	 * Open core's "Copy search results" modal for the search core is currently
-	 * holding. Returns false when core search is unavailable, so the caller can
-	 * say so instead of failing silently.
-	 *
-	 * Known gap, recorded rather than papered over: the modal reads core's own
-	 * result set, which knows our query but not our scope. A Text explorer
-	 * search narrowed by folder or filters will copy more than it shows.
-	 */
-	copySearchResults(evt: MouseEvent): boolean {
-		const view = this.activeView ?? this.findSearchView();
-		if (typeof view?.onCopyResultsClick !== 'function') return false;
-		view.onCopyResultsClick(evt);
-		return true;
 	}
 
 	private findSearchView(): NativeSearchView | null {

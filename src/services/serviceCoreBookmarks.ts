@@ -1,67 +1,98 @@
-import type { App } from 'obsidian';
+import type { App, WorkspaceLeaf } from 'obsidian';
 
-import {
-	buildSearchBookmarkItem,
-	canBookmarkSearch,
-	type SearchBookmarkItem,
-} from '../logic/logicCoreSearchActions';
+import { canBookmarkSearch } from '../logic/logicCoreSearchActions';
 
 /**
- * The one Obsidian call behind the Bookmark action. The item's shape and the
- * empty-query rule are pure and live in `logicCoreSearchActions`; this file
- * only reaches the plugin and hands the item over.
+ * U121-019 #51 — bookmarking a Vaultman text search.
  *
- * Why the item is built here instead of delegating to core's own
- * `bookmarks:bookmark-current-search`: that command takes its query from the
- * `global-search` plugin, which reads the **core search leaf's view state**.
- * Nothing in that chain consults Vaultman, so bookmarking from the Text
- * explorer would store core's query instead of ours. `addItem` is public and
- * the item is three fields, so we produce core's exact shape with our query and
- * the same bookmarks pane renders it.
+ * Calling `bookmarks.addItem` directly stored a correct item but skipped the
+ * naming modal core shows, so the action felt like nothing had happened. Core's
+ * own command does open that modal, and it is reachable — it just reads its
+ * query from the wrong place:
  *
- * Verified live on Obsidian 1.12.3; see
- * `.agents/docs/architecture/research/core-bookmarks-and-search-actions.md`.
- * Note `saveSearch()` is *not* bookmarking — it pushes onto the
- * `recent-searches` localStorage list. Do not wire this to it.
+ *     bookmarks:bookmark-current-search
+ *       -> global-search.getGlobalSearchQuery()
+ *       -> the **core search leaf's view state**
+ *
+ * Nothing in that chain consults Vaultman. So our query is written into that
+ * view state first, and then the command runs: core's real "Add bookmark"
+ * modal opens, pre-filled with our query. Verified live on Obsidian 1.12.3.
+ *
+ * Two consequences, both deliberate and neither hidden:
+ *
+ * - Core's search query is left set to ours. It is the same query the user just
+ *   typed here, and it is what makes the saved bookmark reopen onto the same
+ *   results.
+ * - Reopening the bookmark opens **core's** search pane, not the Text explorer.
+ *   `{ type: 'search' }` is core's item type and core owns its activation.
+ *   Landing on our own scene needs an item type of our own, or an interception
+ *   of core's handler — a separate piece of work, recorded rather than faked.
+ *
+ * Scope is still not stored: core's item schema has no room for the folder,
+ * filters or has/hasn't that make a Vaultman text search what it is.
  */
 
-interface BookmarksPlugin {
-	addItem(item: SearchBookmarkItem): void;
-}
+const BOOKMARK_SEARCH_COMMAND = 'bookmarks:bookmark-current-search';
 
-interface InternalPluginsApp extends App {
+interface CommandApp extends App {
+	commands?: {
+		executeCommandById(id: string): boolean;
+		commands: Record<string, unknown>;
+	};
 	internalPlugins?: {
 		getEnabledPluginById(id: string): unknown;
 	};
+	workspace: App['workspace'] & {
+		getLeavesOfType(type: string): WorkspaceLeaf[];
+	};
 }
 
-function getBookmarksPlugin(app: App): BookmarksPlugin | null {
-	const plugin = (app as InternalPluginsApp).internalPlugins?.getEnabledPluginById(
-		'bookmarks',
-	) as Partial<BookmarksPlugin> | null | undefined;
-	if (typeof plugin?.addItem !== 'function') return null;
-	return plugin as BookmarksPlugin;
+function commandExists(app: App): boolean {
+	const commands = (app as CommandApp).commands;
+	if (!commands) return false;
+	return BOOKMARK_SEARCH_COMMAND in commands.commands;
 }
 
-/** True when the Bookmarks core plugin is enabled and exposes `addItem`. */
-export function isBookmarksAvailable(app: App): boolean {
-	return getBookmarksPlugin(app) !== null;
+function searchLeaf(app: App): WorkspaceLeaf | null {
+	return (app as CommandApp).workspace.getLeavesOfType('search')?.[0] ?? null;
 }
 
 /**
- * Record `query` as a search bookmark. Returns false when the query is empty or
- * the Bookmarks plugin is disabled, so the caller can say why nothing happened
- * instead of failing silently.
- *
- * Scope is deliberately not stored: core's item schema has no room for the
- * folder, filters or has/hasn't that make a Vaultman text search what it is, so
- * reopening the bookmark restores the query alone. Widening that schema is an
- * open question for the Bookmarks absorption, not for this patch.
+ * True when the command, the Bookmarks plugin and a core search leaf are all
+ * present. All three are required: the command lives in Bookmarks, its query
+ * comes from `global-search`, and the query itself is read off the search leaf.
  */
-export function bookmarkSearchQuery(app: App, query: string): boolean {
+export function isBookmarksAvailable(app: App): boolean {
+	const internal = (app as CommandApp).internalPlugins;
+	if (!internal?.getEnabledPluginById('bookmarks')) return false;
+	if (!internal.getEnabledPluginById('global-search')) return false;
+	if (!commandExists(app)) return false;
+	return searchLeaf(app) !== null;
+}
+
+/**
+ * Open core's "Add bookmark" modal for `query`. Resolves false when the query is
+ * empty or any part of the chain is missing, so the caller can say why nothing
+ * happened rather than fail silently.
+ */
+export async function bookmarkSearchQuery(
+	app: App,
+	query: string,
+): Promise<boolean> {
 	if (!canBookmarkSearch(query)) return false;
-	const plugin = getBookmarksPlugin(app);
-	if (!plugin) return false;
-	plugin.addItem(buildSearchBookmarkItem(query, Date.now()));
-	return true;
+	if (!isBookmarksAvailable(app)) return false;
+
+	const leaf = searchLeaf(app);
+	if (!leaf) return false;
+
+	// The command reads the query from here, so it is written here.
+	const state = leaf.getViewState();
+	await leaf.setViewState({
+		...state,
+		state: { ...state.state, query: query.trim() },
+	});
+
+	return (app as CommandApp).commands?.executeCommandById(
+		BOOKMARK_SEARCH_COMMAND,
+	) ?? false;
 }
