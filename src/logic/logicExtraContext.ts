@@ -31,6 +31,17 @@ export interface ExtraContextCache {
 /** Core's own budget for the line walk, in characters, each way. */
 const LINE_CLAMP = 1000;
 
+/**
+ * Core's budget for the **default** slice, which is a different walk entirely.
+ *
+ * `getMatchExtraPositions` is only reached when extra context is on. Off, core
+ * renders each match through `Ry(content, match, 100)`: step out from the match
+ * until a newline or a hundred characters, whichever comes first. Measured
+ * against core's own pane, its rows ran 11 to 122 characters; a first attempt
+ * that reused the 1000-character clamp above produced 477.
+ */
+const DEFAULT_CONTEXT_BUDGET = 100;
+
 const NEWLINE = 10;
 
 function containing<T extends { position: { start: { offset: number }; end: { offset: number } } }>(
@@ -134,4 +145,36 @@ export function showMoreAfter(
 	const probe = to + 1;
 	const [, structural] = extraContextRange(content, [probe, probe], cache);
 	return [from, Math.max(structural, probe)];
+}
+
+/**
+ * The slice core shows when extra context is off — its `Ry`, transcribed.
+ *
+ * Returns `[from, to, truncatedBefore, truncatedAfter]`. The two flags say
+ * whether the walk stopped on the budget rather than on a line break, which is
+ * what tells a renderer to mark the row as clipped.
+ */
+export function defaultContextRange(
+	content: string,
+	match: readonly [number, number],
+	budget: number = DEFAULT_CONTEXT_BUDGET,
+): [number, number, boolean, boolean] {
+	let from = match[0] - 1;
+	let back = 0;
+	while (back < budget && from >= 0) {
+		if (content.charCodeAt(from) === NEWLINE) break;
+		from -= 1;
+		back += 1;
+	}
+	from += 1;
+
+	let to = match[1];
+	let forward = 0;
+	while (forward < budget && to < content.length) {
+		if (content.charCodeAt(to) === NEWLINE) break;
+		to += 1;
+		forward += 1;
+	}
+
+	return [from, to, back === budget, forward === budget];
 }

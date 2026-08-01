@@ -1,12 +1,10 @@
 import type { App, TFile, WorkspaceLeaf } from 'obsidian';
 import type { ContentPreviewResult, ContentSnippet } from '../types/typeUI';
 import {
+	defaultContextRange,
 	extraContextRange,
 	type ExtraContextCache,
 } from '../logic/logicExtraContext';
-
-/** No structure to grow into: `extraContextRange` falls through to the line. */
-const EMPTY_CACHE: ExtraContextCache = {};
 import { isContentSearchableFile } from '../logic/logicContentSearch';
 
 type SearchOffset = [number, number];
@@ -229,12 +227,12 @@ export function buildNativeSearchPreview(
 			files.push(cached.entry);
 			continue;
 		}
-		// With extra context off the cache is empty, so `extraContextRange` falls
-		// through to its line walk — which is exactly what core shows by default.
-		// On, the same call grows the match to its list item or section instead.
+		// Off, core renders each match through its own hundred-character walk;
+		// on, it grows the match to the list item or section containing it. Two
+		// different algorithms, not one with a wider budget.
 		const fileCache = extraContext
 			? (options.fileCache?.(input.file.path) ?? {})
-			: EMPTY_CACHE;
+			: null;
 		const entry = {
 			file: input.file,
 			matchCount: input.offsets.length,
@@ -244,7 +242,12 @@ export function buildNativeSearchPreview(
 					start,
 					end,
 					options.matchRanges?.get(`${input.file.path}:${index}`) ??
-						extraContextRange(input.content, [start, end], fileCache),
+						(fileCache
+							? extraContextRange(input.content, [start, end], fileCache)
+							: (defaultContextRange(input.content, [start, end]).slice(0, 2) as [
+									number,
+									number,
+								])),
 				),
 			),
 		};

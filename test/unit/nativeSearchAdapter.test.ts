@@ -275,7 +275,7 @@ describe('Native search adapter helpers', () => {
 		expect(second.files[1]).not.toBe(first.files[1]);
 	});
 
-	it('shows the match line by default, and its section with extra context on', () => {
+	it('slices a hundred characters each way by default, and the section with extra context on', () => {
 		// Off, core shows the matched line and nothing else — a real core row read
 		// "  - footnotes", thirteen characters. Ours cut 40 characters each side
 		// regardless of line breaks, which is why the rows looked oversized.
@@ -294,12 +294,13 @@ describe('Native search adapter helpers', () => {
 
 		const off = buildNativeSearchPreview(inputs);
 		const offSnippet = off.files[0]?.snippets[0];
-		expect(offSnippet?.before).toHaveLength(200);
-		expect(offSnippet?.after).toHaveLength(200);
+		// Core's default walk stops at a newline or a hundred characters,
+		// whichever comes first — measured against its own pane, its rows ran 11
+		// to 122 characters.
+		expect(offSnippet?.before).toHaveLength(100);
+		expect(offSnippet?.after).toHaveLength(100);
 		expect(offSnippet?.match).toBe('MATCH');
-		// The line, not a character radius, and not the neighbouring lines.
 		expect(offSnippet?.before.startsWith('a')).toBe(true);
-		expect(content.slice(offSnippet?.from ?? 0, offSnippet?.to ?? 0)).toBe(line);
 
 		const on = buildNativeSearchPreview(inputs, false, undefined, {
 			extraContext: true,

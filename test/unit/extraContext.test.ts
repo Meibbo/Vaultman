@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import {
+	defaultContextRange,
 	extraContextRange,
 	showMoreAfter,
 	showMoreBefore,
@@ -143,22 +144,41 @@ describe('growing to the list item that contains the match', () => {
 });
 
 describe('the default slice, with extra context off', () => {
-	it('is the match line, which is what core shows', () => {
-		// Ours cut 40 characters each side regardless of line breaks, so a result
-		// row carried the tail of the line before and the head of the one after.
-		// Core shows the matched line and nothing else — a real row read
-		// "  - footnotes", thirteen characters.
-		//
-		// The line walk is already `extraContextRange`'s own fallback, so the
-		// default is that function over an empty cache: same code, no structure
-		// to grow into.
-		const content = ['before line', 'the match is here', 'after line'].join(
-			String.fromCharCode(10),
-		);
-		const at = content.indexOf('match');
-		const [from, to] = extraContextRange(content, [at, at + 5], {});
+	// Core's default is not the line and not the structure — it is a third
+	// function, `Ry(content, match, 100)`: walk out from the match, stop at the
+	// newline or after 100 characters, whichever comes first, and report whether
+	// the walk was cut short.
+	//
+	// Measured against core's own pane on the same query, its rows ran 11, 34,
+	// 122, 32 and 52 characters while ours ran 477 — because the first version of
+	// this used the 1000-character clamp belonging to the *extra* context walk.
+	const newline = String.fromCharCode(10);
 
+	it('shows the whole line when the line is short', () => {
+		const content = ['before line', 'the match is here', 'after line'].join(newline);
+		const at = content.indexOf('match');
+		const [from, to] = defaultContextRange(content, [at, at + 5]);
 		expect(content.slice(from, to)).toBe('the match is here');
+	});
+
+	it('stops at a hundred characters on a long line, not at the line end', () => {
+		const line = 'a'.repeat(400) + 'MATCH' + 'b'.repeat(400);
+		const at = line.indexOf('MATCH');
+		const [from, to] = defaultContextRange(line, [at, at + 5]);
+		expect(at - from).toBe(100);
+		expect(to - (at + 5)).toBe(100);
+	});
+
+	it('reports whether each side was cut short', () => {
+		const short = ['x', 'hit'].join(newline);
+		const at = short.indexOf('hit');
+		expect(defaultContextRange(short, [at, at + 3])[2]).toBe(false);
+		expect(defaultContextRange(short, [at, at + 3])[3]).toBe(false);
+
+		const long = 'a'.repeat(400) + 'MATCH' + 'b'.repeat(400);
+		const hit = long.indexOf('MATCH');
+		expect(defaultContextRange(long, [hit, hit + 5])[2]).toBe(true);
+		expect(defaultContextRange(long, [hit, hit + 5])[3]).toBe(true);
 	});
 });
 
