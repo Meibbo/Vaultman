@@ -34,7 +34,15 @@ describe('mobile CSS source guards', () => {
 			'border-color: var(--background-modifier-border)',
 		);
 		expect(stylesSource).toContain('container-type: inline-size');
-		expect(stylesSource).toContain('@container (max-width: 799px)');
+		// U121-029: the desktop second row is measured (`searchNeedsOwnRow`), not
+		// a 799px container query — that threshold was wider than any sidebar and
+		// its `flex-wrap: wrap` broke the single-line overflow packer.
+		expect(stylesSource).not.toMatch(/^\s*@container \(max-width: 799px\)/m);
+		expect(stylesSource).toContain('.vaultman-filters-search-row');
+		expect(stylesSource).toContain('.vaultman-filters-header-search-pill--row');
+		expect(stylesSource).toMatch(
+			/\.is-phone[^{]*\.vaultman-filters-search-row \{\s*display: none;/,
+		);
 		expect(stylesSource).toContain(
 			'.vaultman-filters-header--minimal .vaultman-filters-header-search-pill',
 		);

@@ -3083,22 +3083,40 @@ body.vaultman-bases-column-separators table th {
   border-bottom-color: var(--background-modifier-border);
 }
 
-@container (max-width: 799px) {
-  .vaultman-filters-header--minimal .vaultman-filters-actions {
-    flex-wrap: wrap;
-  }
+/* U121-029: the expanded search field as a measured second row.
+   This used to be `@container (max-width: 799px)`, which set `flex-wrap: wrap`
+   on the action row and `flex: 1 0 100%` on the field. Two problems: 799px is
+   wider than any Obsidian sidebar, so the rule was effectively always on; and
+   wrapping the action row breaks the overflow packer, which measures one line —
+   so the Tools button was the thing that wrapped while the field stayed inline.
+   The decision is now `searchNeedsOwnRow()` in logicPanelWidgetOverflow, and the
+   field renders as a sibling row instead of a wrapped flex item. The action row
+   stays `nowrap` in every strategy. */
+.vaultman-filters-header--minimal {
+  flex-wrap: wrap;
+}
 
-  .vaultman-filters-header--minimal .vaultman-filters-header-search-pill {
-    order: 100;
-    flex: 1 0 100%;
-    width: 100%;
-    max-width: none;
-    height: 34px;
-    margin-top: 4px;
-    border-radius: var(--radius-s);
-    gap: 8px;
-    padding-inline: 8px;
-  }
+.vaultman-filters-search-row {
+  flex: 0 0 auto;
+  width: 100%;
+  display: flex;
+  align-items: center;
+  margin-top: 4px;
+}
+
+.vaultman-filters-header-search-pill--row {
+  flex: 1 1 auto;
+  width: 100%;
+  max-width: none;
+  height: 34px;
+  border-radius: var(--radius-s);
+  gap: 8px;
+  padding-inline: 8px;
+}
+
+/* Phone already owns one dedicated search row above the collapsed header. */
+.is-phone .workspace-drawer .vaultman-filters-search-row {
+  display: none;
 }
 
 .is-phone .workspace-drawer .workspace-leaf-content[data-type="vaultman-frame"] .vaultman-bottom-nav {

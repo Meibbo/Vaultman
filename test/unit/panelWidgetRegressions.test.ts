@@ -3,7 +3,11 @@ import { readFileSync } from 'node:fs';
 
 import { describe, expect, it } from 'vitest';
 
-import { resolveCondensedPanelWidgetOverflow } from '../../src/logic/logicPanelWidgetOverflow';
+import {
+	MIN_INLINE_SEARCH_WIDTH,
+	resolveCondensedPanelWidgetOverflow,
+	searchNeedsOwnRow,
+} from '../../src/logic/logicPanelWidgetOverflow';
 import navbarSource from '../../src/components/layout/navbarFilters.svelte?raw';
 
 const stylesSource = readFileSync(
@@ -54,7 +58,9 @@ describe('U121-029 panelWidget overflow regressions', () => {
 	});
 
 	it('skips the measurement pass instead of packing a zero width', () => {
-		expect(navbarSource).toContain('const availableWidth = actionsEl.clientWidth;');
+		expect(navbarSource).toContain(
+			'const availableWidth = availableToolbarWidth(actionsEl);',
+		);
 		expect(navbarSource).toContain('if (availableWidth <= 0) return;');
 		// And skips it when nothing has been laid out yet, which is the other
 		// half of the flicker (a fully unmeasured bar reads as "it all fits").
@@ -69,10 +75,10 @@ describe('U121-029 panelWidget overflow regressions', () => {
 		// for a frame and condensed again.
 		expect(navbarSource).toContain('const measuredWidthKey = (nodeId: string)');
 		expect(navbarSource).toContain(
-			'measuredNodeWidths.set(measuredWidthKey(id), width)',
+			'measuredNodeWidths.set(measuredPresentationKey(id), width)',
 		);
 		expect(navbarSource).toContain(
-			'measuredNodeWidths.get(measuredWidthKey(node.id))',
+			'measuredNodeWidths.get(measuredPresentationKey(node.id))',
 		);
 	});
 
@@ -89,6 +95,158 @@ describe('U121-029 panelWidget overflow regressions', () => {
 	});
 });
 
+describe('U121-029 search field second row', () => {
+	it('keeps the field inline only while a usable width is left', () => {
+		// Room for the nodes and a wide field: stays inline.
+		expect(
+			searchNeedsOwnRow({
+				availableWidth: 600,
+				nodeWidths: [30, 30, 30, 30],
+				gap: 2,
+				toolsWidth: 0,
+			}),
+		).toBe(false);
+		// The same nodes in a sidebar: the leftover is not a usable field.
+		expect(
+			searchNeedsOwnRow({
+				availableWidth: 260,
+				nodeWidths: [30, 30, 30, 30],
+				gap: 2,
+				toolsWidth: 30,
+			}),
+		).toBe(true);
+	});
+
+	it('answers on the boundary, not on a breakpoint', () => {
+		const base = { nodeWidths: [100], gap: 0, toolsWidth: 0 };
+		expect(
+			searchNeedsOwnRow({ ...base, availableWidth: 100 + MIN_INLINE_SEARCH_WIDTH }),
+		).toBe(false);
+		expect(
+			searchNeedsOwnRow({
+				...base,
+				availableWidth: 100 + MIN_INLINE_SEARCH_WIDTH - 1,
+			}),
+		).toBe(true);
+	});
+
+	it('decides nothing when the bar cannot be measured', () => {
+		expect(
+			searchNeedsOwnRow({
+				availableWidth: 0,
+				nodeWidths: [30],
+				gap: 2,
+				toolsWidth: 0,
+			}),
+		).toBe(false);
+	});
+
+	it('renders the field as a sibling row, never as a wrapped flex item', () => {
+		// Wrapping the action row is what let the Tools button be the thing that
+		// wrapped while the field stayed inline.
+		expect(navbarSource).toContain('searchNeedsOwnRow({');
+		expect(navbarSource).toContain('searchOwnsRow');
+		expect(navbarSource).toContain('{#if showSearchInput && !searchOwnsRow}');
+		expect(navbarSource).toContain('class="vaultman-filters-search-row"');
+		expect(navbarSource).toContain("searchControl('row')");
+		expect(stylesSource).toContain('.vaultman-filters-search-row');
+		// The 799px container query that fought the packer is gone. A historical
+		// explanation may still mention it in a comment.
+		expect(stylesSource).not.toMatch(/^\s*@container \(max-width: 799px\)/m);
+		// And the decision is strategy-independent: it is computed before the
+		// condensed-only early return.
+		const measure =
+			navbarSource.match(
+				/function measurePanelWidgetOverflow\(\): void \{[\s\S]*?\n\t\}/,
+			)?.[0] ?? '';
+		expect(measure).not.toBe('');
+		expect(measure.indexOf('searchNeedsOwnRow({')).toBeLessThan(
+			measure.indexOf("toolbarOverflowStrategy !== 'condensed'"),
+		);
+	});
+
+	it('measures the two search presentations separately', () => {
+		// One cache key for the icon button and the expanded pill meant the pill's
+		// ~220px was still on record after it closed, so the packer condensed a
+		// 24px button into Tools with five nodes' worth of room to spare.
+		expect(navbarSource).toContain('const measuredPresentationKey =');
+		expect(navbarSource).toContain("'search:input'");
+		expect(navbarSource).toContain("'search:button'");
+		expect(navbarSource).toContain(
+			'measuredNodeWidths.set(measuredPresentationKey(id), width)',
+		);
+	});
+
+	it('moves search before condensing any action node', () => {
+		const measure =
+			navbarSource.match(
+				/function measurePanelWidgetOverflow\(\): void \{[\s\S]*?\n\t\}/,
+			)?.[0] ?? '';
+		const widths =
+			measure.match(
+				/const barNodeWidths =[\s\S]*?;\n\t\t\tsearchOwnsRow/,
+			)?.[0] ?? '';
+		expect(widths).not.toBe('');
+		// Existing overflow is an output of the packer, not permission for search
+		// to keep nodes hidden so it can remain inline.
+		expect(widths).not.toContain('forcedOverflowIds');
+	});
+
+	it('remeasures when the overflow strategy or search presentation changes', () => {
+		const effect =
+			navbarSource.match(
+				/\$effect\(\(\) => \{[\s\S]*?schedulePanelWidgetOverflowMeasure\(\);\n\t\}\);/,
+			)?.[0] ?? '';
+		expect(effect).not.toBe('');
+		expect(effect).toContain('void toolbarOverflowStrategy;');
+		expect(effect).toContain('void showSearchInput;');
+	});
+});
+
+describe('U121-029 Tools menu follows the projection', () => {
+	it('lists exactly the overflowed nodes, generically', () => {
+		// The hand-written list only knew a fixed set of local ids, and some of
+		// its entries carried narrower guards than the nodes themselves — so Text
+		// lost `reveal` and `collapse` at min-width instead of finding them in
+		// Tools.
+		const menu =
+			navbarSource.match(
+				/function openToolsMenu\(event: MouseEvent\) \{[\s\S]*?\n\t\}/,
+			)?.[0] ?? '';
+		expect(menu).not.toBe('');
+		expect(menu).toContain('for (const node of panelWidgetProjection.nodes)');
+		expect(menu).toContain('if (!forcedOverflowIds.includes(node.id)) continue;');
+		expect(menu).toContain('.setTitle(node.label)');
+		// No per-id availability conditions may reappear in the menu.
+		expect(menu).not.toContain('expansionActionAvailableForActiveTab');
+		expect(menu).not.toContain("activeTab === 'files'");
+		expect(menu).not.toContain('createActionsPlacement');
+	});
+
+	it('preserves disabled state in the projected node used by Tools', () => {
+		expect(navbarSource).toContain('available = true');
+		expect(navbarSource).toContain('available,\n\t\t\t\tcondensable');
+		expect(navbarSource).toContain('action.disabled !== true');
+		expect(navbarSource).toContain('command.available');
+	});
+});
+
+describe('U121-029 themed toolbar width', () => {
+	it('measures the line from its containing block, not the themed container', () => {
+		// Velocity collapses `.nav-buttons-container` to `width: 48px; height: 0`
+		// and reveals it on hover. Measuring the container fed the packer 48px, so
+		// it condensed to its two-node minimum and our own `overflow: hidden`
+		// clipped whatever the hover revealed.
+		expect(navbarSource).toContain('function availableToolbarWidth(');
+		expect(navbarSource).toContain('const parent = actions.parentElement;');
+		expect(navbarSource).toContain('return Math.max(own, inner);');
+		expect(navbarSource).toContain(
+			'const availableWidth = availableToolbarWidth(actionsEl);',
+		);
+		expect(navbarSource).not.toContain('availableWidth: actionsEl.clientWidth');
+	});
+});
+
 describe('U121-029 phone toolbar anchoring', () => {
 	it('un-positions the widget host on phone so the action bar can reach the frame', () => {
 		// The phone action bar is `position: absolute; bottom: 0`. Before the
@@ -101,6 +259,12 @@ describe('U121-029 phone toolbar anchoring', () => {
 		);
 		// The bar itself still anchors and still has its height.
 		expect(stylesSource).toContain('.vaultman-pages-viewport {');
+	});
+
+	it('keeps the measured desktop search row out of the phone drawer', () => {
+		expect(stylesSource).toMatch(
+			/\.is-phone[^{]*\.vaultman-filters-search-row \{\s*display: none;/,
+		);
 	});
 });
 

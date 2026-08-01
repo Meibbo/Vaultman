@@ -9,6 +9,53 @@ export interface PanelWidgetOverflowResult {
 	overflowIds: string[];
 }
 
+/**
+ * The narrowest inline search field that is still usable. Below this the field
+ * is better off on its own row than squeezing the action nodes.
+ */
+export const MIN_INLINE_SEARCH_WIDTH = 160;
+
+/**
+ * U121-029: whether the expanded search field has to drop to its own row.
+ *
+ * This is a measurement, not a breakpoint. It used to be
+ * `@container (max-width: 799px)` — a threshold wider than any Obsidian
+ * sidebar, so in a sidebar the field was supposed to always wrap; in practice
+ * the wrap fought the packer, which assumes the action row is a single line, and
+ * the Tools button ended up on the second row while the field stayed inline.
+ *
+ * The row is owned by the action nodes. The field may share it only if what is
+ * left after the nodes (and the Tools button, when it is showing) is still a
+ * usable field. It is deliberately independent of the overflow strategy: the dev
+ * wants the second row under condensed, scroll and wrap alike.
+ */
+export function searchNeedsOwnRow({
+	availableWidth,
+	nodeWidths,
+	gap,
+	toolsWidth,
+	minSearchWidth = MIN_INLINE_SEARCH_WIDTH,
+}: {
+	availableWidth: number;
+	/** Widths of the nodes that stay in the bar, excluding the search field. */
+	nodeWidths: readonly number[];
+	gap: number;
+	/** 0 when no Tools button is showing. */
+	toolsWidth: number;
+	minSearchWidth?: number;
+}): boolean {
+	// An unmeasurable bar decides nothing, exactly as the packer does.
+	if (availableWidth <= 0) return false;
+	const items = nodeWidths.filter((width) => width > 0);
+	const itemCount = items.length + (toolsWidth > 0 ? 1 : 0);
+	const used =
+		items.reduce((total, width) => total + width, 0) +
+		Math.max(0, toolsWidth) +
+		// One gap per item, including the one before the field itself.
+		Math.max(0, itemCount) * Math.max(0, gap);
+	return availableWidth - used < minSearchWidth;
+}
+
 export function resolveCondensedPanelWidgetOverflow({
 	availableWidth,
 	nodes,

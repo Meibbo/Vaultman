@@ -64,7 +64,10 @@
 		normalizeVisibleCellIds,
 	} from '../../logic/logicCellRegistry';
 	import { resolvePanelWidgetProjection } from '../../logic/logicPanelWidgetProjection';
-	import { resolveCondensedPanelWidgetOverflow } from '../../logic/logicPanelWidgetOverflow';
+	import {
+		resolveCondensedPanelWidgetOverflow,
+		searchNeedsOwnRow,
+	} from '../../logic/logicPanelWidgetOverflow';
 	import type {
 		NavbarPanelWidgetState,
 		PanelWidgetExplorerPort,
@@ -87,7 +90,7 @@
 		pluginsExplorer?: PanelWidgetExplorerPort;
 	};
 	type HeaderMode = 'header' | 'sort' | 'viewmode';
-	type SearchControlVariant = 'inline' | 'phone';
+	type SearchControlVariant = 'inline' | 'phone' | 'row';
 	let {
 		activeTab,
 		providerId = activeTab,
@@ -332,6 +335,12 @@
 	 * paints one frame of overflowing nodes on mount.
 	 */
 	let overflowMeasured = $state(false);
+	/**
+	 * U121-029: raised when the expanded search field cannot share the action
+	 * row, so it renders as a second row under the toolbar. Measured, and
+	 * deliberately independent of the overflow strategy.
+	 */
+	let searchOwnsRow = $state(false);
 	let overflowFrame = 0;
 	/**
 	 * Keyed by LOCAL node id, not by the projected `provider:local` id. Node ids
@@ -343,6 +352,41 @@
 	const measuredNodeWidths = new SvelteMap<string, number>();
 	const measuredWidthKey = (nodeId: string): string =>
 		nodeId.slice(nodeId.indexOf(':') + 1);
+	/**
+	 * U121-029: the search node has two presentations — a small icon button and
+	 * the expanded input pill — and both carry the same node id. Caching them
+	 * under one key meant the pill's ~220px was still on record after it closed,
+	 * so the packer condensed a 24px button into Tools while five nodes' worth of
+	 * room sat unused. The presentation is part of the identity.
+	 */
+	const measuredPresentationKey = (nodeId: string): string => {
+		const localId = measuredWidthKey(nodeId);
+		if (localId !== 'search') return localId;
+		return showSearchInput ? 'search:input' : 'search:button';
+	};
+	/**
+	 * U121-029: the width the packer may spend is the width of the line, taken
+	 * from the row's containing block — not `actionsEl.clientWidth`.
+	 *
+	 * A theme owns our actions container the moment we opt into
+	 * `nav-buttons-container` (Velocity collapses it to `width: 48px; height: 0`
+	 * and reveals it on `.nav-header:hover`). Measuring the container therefore
+	 * fed the packer a themed 48px, it condensed down to its two-node minimum,
+	 * and our own `overflow: hidden` clipped whatever the hover then revealed.
+	 * The parent's content box is the honest budget: our container is `width:
+	 * 100%` of it, and a theme resizing the container cannot lie about it.
+	 */
+	function availableToolbarWidth(actions: HTMLElement): number {
+		const own = actions.clientWidth;
+		const parent = actions.parentElement;
+		if (!parent) return own;
+		const style = window.getComputedStyle(parent);
+		const inner =
+			parent.clientWidth -
+			(Number.parseFloat(style.paddingInlineStart) || 0) -
+			(Number.parseFloat(style.paddingInlineEnd) || 0);
+		return Math.max(own, inner);
+	}
 	let drillPickCleanup: (() => void) | null = null;
 	let expansionRefresh = $state(0);
 	const headerActionClass = $derived(
@@ -407,6 +451,7 @@
 			iconName: string,
 			presentation: PanelWidgetNode['presentation'] = 'button',
 			condensable = true,
+			available = true,
 		) => {
 			nodes.push({
 				id: panelWidgetNodeId(localId),
@@ -416,7 +461,7 @@
 				label,
 				icon: iconName,
 				order: nodes.length,
-				available: true,
+				available,
 				condensable,
 				action: { id: localId },
 			});
@@ -426,7 +471,14 @@
 			append('tabs', currentTabsLabel, currentTabsIcon, 'tabs', false);
 		}
 		for (const action of headerActions) {
-			append(`header:${action.id}`, action.label, action.icon);
+			append(
+				`header:${action.id}`,
+				action.label,
+				action.icon,
+				'button',
+				true,
+				action.disabled !== true,
+			);
 		}
 		if (!showExplorerControls) return nodes;
 
@@ -475,6 +527,9 @@
 				`command:${command.id}`,
 				command.label,
 				command.icon ?? 'lucide-terminal',
+				'button',
+				true,
+				command.available,
 			);
 		}
 		return nodes;
@@ -515,9 +570,6 @@
 		) &&
 		(toolbarOverflowStrategy !== 'condensed' ||
 			!forcedOverflowIds.includes(panelWidgetNodeId(localId)));
-	const toolbarNodeHidden = (localId: string): boolean =>
-		toolbarOverflowStrategy === 'condensed' &&
-		forcedOverflowIds.includes(panelWidgetNodeId(localId));
 	const panelWidgetNodeOrder = (localId: string): number =>
 		panelWidgetProjection.nodes.findIndex(
 			(node) => node.id === panelWidgetNodeId(localId),
@@ -544,13 +596,10 @@
 
 	function measurePanelWidgetOverflow(): void {
 		overflowFrame = 0;
-		if (
-			!actionsEl ||
-			!minimalStyle ||
-			toolbarOverflowStrategy !== 'condensed'
-		) {
+		if (!actionsEl || !minimalStyle) {
 			if (measuredOverflowIds.length > 0) measuredOverflowIds = [];
 			overflowMeasured = false;
+			searchOwnsRow = false;
 			return;
 		}
 
@@ -559,7 +608,7 @@
 		// still-deferred mobile drawer all report 0 here, and recomputing from 0
 		// condensed the whole bar into Tools for a frame — the flicker the dev
 		// sees when switching provider quickly.
-		const availableWidth = actionsEl.clientWidth;
+		const availableWidth = availableToolbarWidth(actionsEl);
 		if (availableWidth <= 0) return;
 
 		const elements = actionsEl.querySelectorAll<HTMLElement>(
@@ -569,7 +618,7 @@
 			const id = element.dataset.panelWidgetNodeId;
 			if (!id || element.hidden) continue;
 			const width = element.getBoundingClientRect().width;
-			if (width > 0) measuredNodeWidths.set(measuredWidthKey(id), width);
+			if (width > 0) measuredNodeWidths.set(measuredPresentationKey(id), width);
 		}
 
 		const style = window.getComputedStyle(actionsEl);
@@ -578,9 +627,43 @@
 			'[data-panel-widget-tools-measure]',
 		);
 		const toolsWidth = toolsMeasure?.getBoundingClientRect().width ?? 0;
+
+		// The second-row decision runs for every overflow strategy — the action
+		// row belongs to the nodes, and the field only shares it when what is left
+		// is still a usable field.
+		if (showSearchInput) {
+			const barNodeWidths = panelWidgetProjection.nodes
+				.filter((node) => measuredWidthKey(node.id) !== 'search')
+				.map(
+					(node) =>
+						measuredNodeWidths.get(measuredPresentationKey(node.id)) ||
+						toolsWidth,
+				);
+			searchOwnsRow = searchNeedsOwnRow({
+				availableWidth,
+				nodeWidths: barNodeWidths,
+				gap,
+				// Search must move before any action becomes an overflow victim.
+				// The Tools button is therefore not part of this pre-pack budget.
+				toolsWidth: 0,
+			});
+		} else if (searchOwnsRow) {
+			searchOwnsRow = false;
+		}
+
+		if (toolbarOverflowStrategy !== 'condensed') {
+			if (measuredOverflowIds.length > 0) measuredOverflowIds = [];
+			overflowMeasured = false;
+			return;
+		}
 		const measuredNodes = panelWidgetProjection.nodes.map((node) => ({
 			id: node.id,
-			width: measuredNodeWidths.get(measuredWidthKey(node.id)) ?? 0,
+			// The expanded search pill is not part of the single-line budget: it
+			// owns its own row (see `searchNeedsOwnRow`), so charging the line for
+			// it would condense nodes that do fit.
+			width: searchOwnsRow && measuredWidthKey(node.id) === 'search'
+				? 0
+				: (measuredNodeWidths.get(measuredPresentationKey(node.id)) ?? 0),
 			condensable: node.condensable,
 		}));
 		// Every node reporting 0 means nothing has been laid out yet (a provider
@@ -632,6 +715,8 @@
 		void panelWidgetProjection;
 		void showTabsButtonLabel;
 		void searchExpanded;
+		void showSearchInput;
+		void toolbarOverflowStrategy;
 		schedulePanelWidgetOverflowMeasure();
 	});
 
@@ -1446,97 +1531,43 @@
 		invokeSceneAction('reveal-active-file', origin, event);
 	}
 
+	/**
+	 * U121-029: the Tools menu is generated from the projection, in projection
+	 * order, for exactly the nodes the overflow packer moved out of the bar.
+	 *
+	 * It used to be a hand-written list of known local ids (`view`, `sort`,
+	 * `search`, `reveal-active-file`, `toggle-expansion`, `create-file`,
+	 * `create-folder`, `header:*`, `command:*`), each with its own availability
+	 * condition. Any projected node outside that list — or one whose menu entry
+	 * carried a narrower guard than the node itself — was hidden from the bar
+	 * with nowhere to go, so it vanished until the frame grew again. That is why
+	 * Text lost `reveal` and `collapse` at min-width while Files kept them: the
+	 * `toggle-expansion` entry was additionally gated on
+	 * `expansionActionAvailableForActiveTab` and the create entries on
+	 * `activeTab === 'files'`.
+	 *
+	 * Every node already carries the label, icon and action reference the menu
+	 * needs, so a generic pass cannot fall out of step with the projection.
+	 */
 	function openToolsMenu(event: MouseEvent) {
 		const menu = new Menu();
-		for (const action of headerActions) {
-			if (!toolbarNodeHidden(`header:${action.id}`)) continue;
-			menu.addItem((item) =>
-				item
-					.setTitle(action.label)
-					.setIcon(action.icon)
-					.setDisabled(action.disabled === true)
-					.onClick(() =>
-						invokeSceneAction(`header:${action.id}`, 'menu', event),
-					),
-			);
-		}
-		if (toolbarNodeHidden('view')) {
-			menu.addItem((item) =>
-				item
-					.setTitle(translate('filter.viewmode_btn'))
-					.setIcon('lucide-layout-list')
-					.onClick(() => openNativeViewMenu(event)),
-			);
-		}
-		if (toolbarNodeHidden('sort')) {
-			menu.addItem((item) =>
-				item
-					.setTitle(translate('filter.sort_btn'))
-					.setIcon('lucide-arrow-up-down')
-					.onClick(() => openNativeSortMenu(event)),
-			);
-		}
-		if (toolbarNodeHidden('search')) {
-			menu.addItem((item) =>
-				item
-					.setTitle(translate('explorer.btn.search'))
-					.setIcon('lucide-search')
-					.onClick(expandSearch),
-			);
-		}
-		if (toolbarNodeHidden('reveal-active-file')) {
-			menu.addItem((item) =>
-				item
-					.setTitle(translate('filter.auto_reveal'))
-					.setIcon('lucide-gallery-vertical')
-					.onClick(() => revealActiveExplorerFile('menu', event)),
-			);
-		}
-		if (
-			expansionActionAvailableForActiveTab &&
-			toolbarNodeHidden('toggle-expansion')
-		) {
-			menu.addItem((item) =>
-				item
-					.setTitle(expansionLabel)
-					.setIcon(expansionIcon)
-					.onClick(() => toggleExplorerExpansion('menu', event)),
-			);
-		}
-		if (
-			activeTab === 'files' &&
-			createActionsPlacement === 'toolbar' &&
-			toolbarNodeHidden('create-file')
-		) {
-			menu.addItem((item) =>
-				item
-					.setTitle(translate('folder.ctx.new_note'))
-					.setIcon('lucide-file-plus')
-					.onClick(() => invokeSceneAction('create-file', 'menu', event)),
-			);
-		}
-		if (
-			activeTab === 'files' &&
-			createActionsPlacement === 'toolbar' &&
-			toolbarNodeHidden('create-folder')
-		) {
-			menu.addItem((item) =>
-				item
-					.setTitle(translate('folder.ctx.new_folder'))
-					.setIcon('lucide-folder-plus')
-					.onClick(() => invokeSceneAction('create-folder', 'menu', event)),
-			);
-		}
-		for (const command of commandActions) {
-			if (!toolbarNodeHidden(`command:${command.id}`)) continue;
+		for (const node of panelWidgetProjection.nodes) {
+			if (!forcedOverflowIds.includes(node.id)) continue;
+			const localId = node.action?.id ?? measuredWidthKey(node.id);
 			menu.addItem((item) => {
 				item
-					.setTitle(command.label)
-					.setIcon(command.icon ?? 'lucide-terminal')
-					.setDisabled(!command.available)
-					.onClick(() =>
-						invokeSceneAction(`command:${command.id}`, 'menu', event),
-					);
+					.setTitle(node.label)
+					.setIcon(node.icon ?? 'lucide-terminal')
+					.setDisabled(node.available === false)
+					.onClick(() => {
+						// The two menu presentations open their native menus; the
+						// search node expands the input; everything else is an action
+						// reference resolved by the Scene port.
+						if (localId === 'view') openNativeViewMenu(event);
+						else if (localId === 'sort') openNativeSortMenu(event);
+						else if (localId === 'search') expandSearch();
+						else invokeSceneAction(localId, 'menu', event);
+					});
 			});
 		}
 		menu.showAtMouseEvent(event);
@@ -1860,7 +1891,7 @@
 								use:icon={'lucide-search'}
 							></div>
 						{/if}
-						{#if showSearchInput}
+						{#if showSearchInput && !searchOwnsRow}
 							{@render searchControl('inline')}
 						{:else if !minimalStyle}
 							<div
@@ -2050,6 +2081,16 @@
 						{/if}
 					{/if}
 				</div>
+				<!-- U121-029: the expanded search field as a second row under the
+				     toolbar, whenever the action row cannot spare a usable width for
+				     it. A sibling of the action row rather than a wrapped flex item,
+				     so the packer's single-line assumption stays true and the Tools
+				     button can never be the thing that wraps. -->
+				{#if minimalStyle && showSearchInput && searchOwnsRow}
+					<div class="vaultman-filters-search-row">
+						{@render searchControl('row')}
+					</div>
+				{/if}
 			</div>
 		{:else if headerMode === 'sort'}
 			<div

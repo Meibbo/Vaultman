@@ -28,7 +28,7 @@ describe('minimal filters header source guards', () => {
 	});
 
 	it('keeps minimal search as a toggle and gives phone mode its own top layer', () => {
-		expect(navbarFiltersSource).toContain('{#if showSearchInput}');
+		expect(navbarFiltersSource).toContain('{#if minimalStyle && showSearchInput}');
 		expect(navbarFiltersSource).toContain('function toggleSearch()');
 		expect(navbarFiltersSource).toContain('function focusVisibleSearchInput()');
 		expect(navbarFiltersSource).toContain(
@@ -49,6 +49,7 @@ describe('minimal filters header source guards', () => {
 		);
 		expect(navbarFiltersSource).toContain("{@render searchControl('phone')}");
 		expect(navbarFiltersSource).toContain("{@render searchControl('inline')}");
+		expect(navbarFiltersSource).toContain("{@render searchControl('row')}");
 		expect(navbarFiltersSource).not.toContain('showMinimalSearchRow');
 		expect(navbarFiltersSource).not.toContain('vaultman-minimal-search-row');
 		expect(navbarFiltersSource).not.toContain('isPhoneMode');
@@ -136,14 +137,14 @@ describe('minimal filters header source guards', () => {
 		// U121-029: the width is read once and checked for 0 before it is packed —
 		// a zero-width bar used to condense everything for one frame.
 		expect(navbarFiltersSource).toContain(
-			'const availableWidth = actionsEl.clientWidth;',
+			'const availableWidth = availableToolbarWidth(actionsEl);',
 		);
 		expect(navbarFiltersSource).toContain('if (availableWidth <= 0) return;');
 		expect(navbarFiltersSource).toContain('measuredNodeWidths');
 		expect(navbarFiltersSource).toContain('data-panel-widget-node-id');
 		expect(navbarFiltersSource).toContain('data-panel-widget-tools-measure');
 		expect(navbarFiltersSource).toContain('toolbarNodeVisible(');
-		expect(navbarFiltersSource).toContain('toolbarNodeHidden(');
+		expect(navbarFiltersSource).not.toContain('toolbarNodeHidden(');
 		expect(navbarFiltersSource).toContain(
 			'const compactPanelWidgetTools = $derived(',
 		);
@@ -167,18 +168,23 @@ describe('minimal filters header source guards', () => {
 		expect(searchIndex).toBeLessThan(toolsIndex);
 	});
 
-	it('puts auto-reveal before dynamic expand/collapse in the native Tools menu', () => {
+	it('keeps projection order when Tools renders auto-reveal before expand/collapse', () => {
+		const nodesStart = navbarFiltersSource.indexOf(
+			'const panelWidgetNodes = $derived.by<PanelWidgetNode[]>',
+		);
+		const nodesEnd = navbarFiltersSource.indexOf(
+			'const panelWidgetProjection = $derived(',
+			nodesStart,
+		);
+		const nodesSource = navbarFiltersSource.slice(nodesStart, nodesEnd);
 		const menuStart = navbarFiltersSource.indexOf(
 			'function openToolsMenu(event: MouseEvent)',
 		);
 		const menuEnd = navbarFiltersSource.indexOf('\n\tfunction ', menuStart + 1);
 		const menuSource = navbarFiltersSource.slice(menuStart, menuEnd);
-		expect(menuSource).toContain("translate('filter.auto_reveal')");
-		expect(menuSource).toContain('revealActiveExplorerFile');
-		expect(menuSource).toContain('expansionLabel');
-		expect(menuSource).toContain('toggleExplorerExpansion');
-		expect(menuSource.indexOf("translate('filter.auto_reveal')")).toBeLessThan(
-			menuSource.indexOf('expansionLabel'),
+		expect(nodesSource.indexOf("'reveal-active-file'")).toBeLessThan(
+			nodesSource.indexOf("'toggle-expansion'"),
 		);
+		expect(menuSource).toContain('for (const node of panelWidgetProjection.nodes)');
 	});
 });
