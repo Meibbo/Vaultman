@@ -96,6 +96,26 @@ describe('U121-029 panelWidget overflow regressions', () => {
 });
 
 describe('U121-029 search field second row', () => {
+	it('stays open until its search action toggles it closed', () => {
+		expect(navbarSource).not.toContain('function handleSearchFocusOut');
+		expect(navbarSource).not.toContain('onfocusout=');
+		expect(navbarSource).not.toContain(
+			'class:is-active={searchExpanded || filtersSearch.length > 0}',
+		);
+		const clearButton =
+			navbarSource.match(
+				/class="vaultman-filters-search-clear"[\s\S]*?<\/button>/,
+			)?.[0] ?? '';
+		expect(clearButton).not.toBe('');
+		expect(clearButton).not.toContain('searchExpanded = false');
+	});
+
+	it('uses the same square desktop field in inline and second-row layouts', () => {
+		expect(stylesSource).toMatch(
+			/\.vaultman-filters-header-search-pill--inline,\s*\n\.vaultman-filters-header-search-pill--row\s*\{[^}]*border-radius:\s*0;/,
+		);
+	});
+
 	it('keeps the field inline only while a usable width is left', () => {
 		// Room for the nodes and a wide field: stays inline.
 		expect(
@@ -178,13 +198,18 @@ describe('U121-029 search field second row', () => {
 	});
 
 	it('moves search before condensing any action node', () => {
+		const searchNode =
+			navbarSource.match(
+				/append\(\s*'search',[\s\S]*?'search',\s*false,\s*\);/,
+			)?.[0] ?? '';
+		expect(searchNode).not.toBe('');
 		const measure =
 			navbarSource.match(
 				/function measurePanelWidgetOverflow\(\): void \{[\s\S]*?\n\t\}/,
 			)?.[0] ?? '';
 		const widths =
 			measure.match(
-				/const barNodeWidths =[\s\S]*?;\n\t\t\tsearchOwnsRow/,
+				/const barNodeWidths =[\s\S]*?;\n\t\t\tconst nextSearchOwnsRow/,
 			)?.[0] ?? '';
 		expect(widths).not.toBe('');
 		// Existing overflow is an output of the packer, not permission for search

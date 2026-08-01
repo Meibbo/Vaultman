@@ -1266,14 +1266,21 @@
 		plugin.filterService.on('changed', onFilterChanged);
 		plugin.queueService.on('changed', onQueueChanged);
 
-		// Let the Scene's panelWidget host apply the provider's complete PVPUI
-		// projection before the first large model build. Subsequent filter
-		// changes remain immediate through onFilterChanged.
-		const initialFilesRenderFrame = window.requestAnimationFrame(refreshFiles);
+		// Two Svelte flushes are intentional: the first publishes providerState to
+		// the Scene host; the second lets the mounted renderer apply the complete
+		// PVP config to the Explorer port. Only then publish the first real tree.
+		// A raw microtask or one tick raced that second flush and built it twice;
+		// an animation frame painted an empty tree first and made opening late.
+		let initialFilesRenderCancelled = false;
+		void tick()
+			.then(() => tick())
+			.then(() => {
+				if (!initialFilesRenderCancelled) refreshFiles();
+			});
 		refreshQueue();
 
 		return () => {
-			window.cancelAnimationFrame(initialFilesRenderFrame);
+			initialFilesRenderCancelled = true;
 			clearLauncherTimers();
 			stopTocPick();
 			detachBasesMultiSelectOperations();

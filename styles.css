@@ -3109,7 +3109,7 @@ body.vaultman-bases-column-separators table th {
   width: 100%;
   max-width: none;
   height: 34px;
-  border-radius: var(--radius-s);
+  border-radius: 0;
   gap: 8px;
   padding-inline: 8px;
 }
@@ -3199,6 +3199,11 @@ body.vaultman-bases-column-separators table th {
   height: 26px;
   gap: 4px;
   transition: border-color 0.12s;
+}
+
+.vaultman-filters-header-search-pill--inline,
+.vaultman-filters-header-search-pill--row {
+  border-radius: 0;
 }
 
 .vaultman-filters-header-search-pill:focus-within {

@@ -17,7 +17,7 @@ describe('BT5-006 contextual expand/collapse availability', () => {
 		expect(expansionActionAvailable(tab, cells)).toBe(expected);
 	});
 
-	it('keeps the compact Files Tools entry while gating only expansion', () => {
+	it('keeps reveal in the generic Tools projection while gating only expansion', () => {
 		expect(navbarSource).toContain('expansionActionAvailable(');
 		expect(navbarSource).toContain('visibleCellsByTab[activeTab]');
 
@@ -26,9 +26,17 @@ describe('BT5-006 contextual expand/collapse availability', () => {
 		);
 		const toolsEnd = navbarSource.indexOf('\n\tfunction ', toolsStart + 1);
 		const toolsSource = navbarSource.slice(toolsStart, toolsEnd);
-		expect(toolsSource).toContain("translate('filter.auto_reveal')");
-		expect(toolsSource).toContain('expansionActionAvailableForActiveTab &&');
-		expect(toolsSource).toContain("toolbarNodeHidden('toggle-expansion')");
+		expect(toolsSource).toContain(
+			'for (const node of panelWidgetProjection.nodes)',
+		);
+		expect(toolsSource).toContain(
+			'if (!forcedOverflowIds.includes(node.id)) continue;',
+		);
+		expect(toolsSource).not.toContain('expansionActionAvailableForActiveTab');
+		expect(navbarSource).toContain("append(\n\t\t\t\t'reveal-active-file'");
+		expect(navbarSource).toContain(
+			"if (expansionActionAvailableForActiveTab) {\n\t\t\tappend('toggle-expansion'",
+		);
 
 		expect(navbarSource).toContain('{#if compactPanelWidgetTools}');
 		expect(navbarSource).toContain(

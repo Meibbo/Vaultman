@@ -169,6 +169,7 @@ export class FilesExplorerPanel extends Component {
 	private viewMode: FilesViewMode = 'tree';
 	private _sourceFiles: TFile[] = [];
 	private _currentFiles: TFile[] = [];
+	private hasSourceProjection = false;
 	private _totalCount = 0;
 	private sortBy: string = 'name';
 	private sortDir: 'asc' | 'desc' = 'asc';
@@ -640,7 +641,6 @@ export class FilesExplorerPanel extends Component {
 		this._migrateLegacyExclusions();
 		this._mountView();
 		this._syncActiveFilePath();
-		this._render();
 	}
 
 	/**
@@ -835,6 +835,7 @@ export class FilesExplorerPanel extends Component {
 	}
 
 	render(filteredFiles: TFile[], totalCount: number): void {
+		this.hasSourceProjection = true;
 		this._sourceFiles = filteredFiles;
 		this._currentFiles = filteredFiles;
 		this._totalCount = totalCount;
@@ -1367,6 +1368,10 @@ export class FilesExplorerPanel extends Component {
 	}
 
 	private _render(): void {
+		// PVP configuration arrives before the Scene publishes its first source
+		// projection. Keep the config, but do not build a fake empty tree that is
+		// immediately replaced by the real vault projection.
+		if (!this.hasSourceProjection) return;
 		if (this.renderBatchDepth > 0) {
 			this.renderPending = true;
 			return;
@@ -3430,6 +3435,7 @@ export class FilesExplorerPanel extends Component {
 	};
 
 	private _refreshFromFilterService(): void {
+		this.hasSourceProjection = true;
 		this._sourceFiles = this._filesForCurrentScope();
 		this._currentFiles = this._sourceFiles;
 		this._totalCount = this.plugin.app.vault.getFiles().length;

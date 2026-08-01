@@ -326,7 +326,6 @@
 		onLayoutLoaded?.(layout);
 	}
 	let searchExpanded = $state(false);
-	let searchToggleActivationPending = false;
 	let navbarEl = $state<HTMLElement | null>(null);
 	let actionsEl = $state<HTMLElement | null>(null);
 	let measuredOverflowIds = $state<string[]>([]);
@@ -500,6 +499,7 @@
 			translate('explorer.btn.search'),
 			'lucide-search',
 			'search',
+			false,
 		);
 		if (activeTab === 'files') {
 			append(
@@ -640,7 +640,7 @@
 						measuredNodeWidths.get(measuredPresentationKey(node.id)) ||
 						toolsWidth,
 				);
-			searchOwnsRow = searchNeedsOwnRow({
+			const nextSearchOwnsRow = searchNeedsOwnRow({
 				availableWidth,
 				nodeWidths: barNodeWidths,
 				gap,
@@ -648,6 +648,10 @@
 				// The Tools button is therefore not part of this pre-pack budget.
 				toolsWidth: 0,
 			});
+			if (nextSearchOwnsRow !== searchOwnsRow) {
+				searchOwnsRow = nextSearchOwnsRow;
+				window.requestAnimationFrame(focusVisibleSearchInput);
+			}
 		} else if (searchOwnsRow) {
 			searchOwnsRow = false;
 		}
@@ -662,9 +666,10 @@
 			// The expanded search pill is not part of the single-line budget: it
 			// owns its own row (see `searchNeedsOwnRow`), so charging the line for
 			// it would condense nodes that do fit.
-			width: searchOwnsRow && measuredWidthKey(node.id) === 'search'
-				? 0
-				: (measuredNodeWidths.get(measuredPresentationKey(node.id)) ?? 0),
+			width:
+				searchOwnsRow && measuredWidthKey(node.id) === 'search'
+					? 0
+					: (measuredNodeWidths.get(measuredPresentationKey(node.id)) ?? 0),
 			condensable: node.condensable,
 		}));
 		// Every node reporting 0 means nothing has been laid out yet (a provider
@@ -783,15 +788,7 @@
 		window.requestAnimationFrame(() => focusVisibleSearchInput());
 	}
 
-	function markSearchToggleActivation() {
-		searchToggleActivationPending = true;
-		window.setTimeout(() => {
-			searchToggleActivationPending = false;
-		}, 0);
-	}
-
 	function toggleSearch() {
-		searchToggleActivationPending = false;
 		if (!minimalStyle || !searchExpanded) {
 			expandSearch();
 			return;
@@ -815,28 +812,6 @@
 
 	function blurSearchInputs() {
 		for (const input of searchInputs()) input.blur();
-	}
-
-	function isSearchToggleTarget(target: Node | null) {
-		return (
-			target instanceof HTMLElement &&
-			target.closest('[data-vaultman-search-toggle="true"]') !== null
-		);
-	}
-
-	function handleSearchFocusOut(event: FocusEvent) {
-		if (!minimalStyle || filtersSearch) return;
-		const nextTarget = event.relatedTarget as Node | null;
-		if (
-			nextTarget &&
-			event.currentTarget instanceof HTMLElement &&
-			event.currentTarget.contains(nextTarget)
-		) {
-			return;
-		}
-		if (searchToggleActivationPending || isSearchToggleTarget(nextTarget))
-			return;
-		searchExpanded = false;
 	}
 
 	function createSearchTarget() {
@@ -1701,7 +1676,6 @@
 		style:order={variant === 'inline'
 			? panelWidgetNodeOrder('search')
 			: undefined}
-		onfocusout={handleSearchFocusOut}
 	>
 		<input
 			class="vaultman-filters-search-input"
@@ -1722,7 +1696,6 @@
 				use:icon={'lucide-x'}
 				onclick={() => {
 					setFiltersSearch('');
-					if (minimalStyle) searchExpanded = false;
 				}}
 			></button>
 		{/if}
@@ -1888,7 +1861,6 @@
 						{#if minimalStyle && toolbarNodeVisible('search')}
 							<div
 								class={headerActionClass}
-								class:is-active={searchExpanded || filtersSearch.length > 0}
 								data-vaultman-search-toggle="true"
 								data-panel-widget-node-id={panelWidgetNodeId('search')}
 								style:order={panelWidgetNodeOrder('search')}
@@ -1899,7 +1871,6 @@
 								title={minimalStyle
 									? undefined
 									: translate('explorer.btn.search')}
-								onpointerdown={markSearchToggleActivation}
 								onclick={toggleSearch}
 								onkeydown={(e: KeyboardEvent) => {
 									if (e.key === 'Enter' || e.key === ' ') {

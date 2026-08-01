@@ -17,6 +17,11 @@ describe('Scene-owned Navbar panelWidget source guards', () => {
 		expect(frameSource).toContain('publishStatisticsPanelWidgetState');
 	});
 
+	it('rebinds the renderer atomically when Scene provider ownership changes', () => {
+		expect(hostSource).toContain('{#key mountedState.providerId}');
+		expect(hostSource).toContain('<NavbarFilters {...mountedState} />');
+	});
+
 	it('keeps provider pages from mounting renderer instances', () => {
 		for (const source of [filtersPageSource, statisticsPageSource, opsPageSource]) {
 			expect(source).not.toContain('import NavbarFilters');
