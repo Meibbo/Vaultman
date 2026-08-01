@@ -26,9 +26,15 @@ export interface FilesGridViewCallbacks {
 		file: TFile,
 		defaultIcon: string,
 	) => ResolvedExplorerIcon | null;
+	getGlyphColor?: (file: TFile, index: number) => string | null;
 	getPropCount?: (file: TFile) => number;
 	getFileTimes?: (file: TFile) => ExplorerFileTimes;
 	getWordCount?: (file: TFile) => number | null;
+	/**
+	 * U121-027: supplied by the explorer so card dates follow the same
+	 * relative/specific mode as the tree cells. Absent = the 1.2.0 absolute date.
+	 */
+	formatTimestamp?: (time: number) => string | undefined;
 }
 
 export class FilesGridView {
@@ -287,7 +293,7 @@ export class FilesGridView {
 		);
 		this.removeStaleCards(visiblePaths);
 		for (const item of projection.visibleRows) {
-			this.renderCard(item.row, {
+			this.renderCard(item.row, item.index, {
 				top: item.top,
 				left: this.gap + item.column * (metrics.cardWidth + this.gap),
 				width: metrics.cardWidth,
@@ -344,6 +350,7 @@ export class FilesGridView {
 
 	private renderCard(
 		file: TFile,
+		index: number,
 		position: { top: number; left: number; width: number },
 	): void {
 		if (!this.contentEl) return;
@@ -358,12 +365,14 @@ export class FilesGridView {
 			this.visibleCells.has('icon') || this.visibleCells.has('name')
 				? this.resolvedIconForFile(file)
 				: null;
+		const glyphColor = this.callbacks.getGlyphColor?.(file, index) ?? null;
 		const signature = [
 			file.path,
 			file.name,
 			file.extension,
 			resolvedIcon?.icon ?? '',
 			resolvedIcon?.color ?? '',
+			glyphColor ?? '',
 			times.mtime,
 			times.ctime,
 			this.selectedFiles.has(file.path) ? '1' : '0',
@@ -428,14 +437,19 @@ export class FilesGridView {
 
 		if (this.visibleCells.has('icon') && resolvedIcon) {
 			const iconEl = card.createDiv({ cls: 'vaultman-files-grid-card-icon' });
-			renderIconValue(iconEl, resolvedIcon.icon, resolvedIcon.color);
+			renderIconValue(
+				iconEl,
+				resolvedIcon.icon,
+				resolvedIcon.color ?? glyphColor ?? undefined,
+			);
 		}
 		if (this.visibleCells.has('name')) {
 			const name = card.createDiv({
 				cls: 'vaultman-files-grid-card-name',
 				text: formatFileTableName(file),
 			});
-			if (resolvedIcon?.color) name.style.color = resolvedIcon.color;
+			const nameColor = glyphColor ?? resolvedIcon?.color;
+			if (nameColor) name.style.color = nameColor;
 		}
 		if (this.hasMetaCells) {
 			const metaRow = card.createDiv({ cls: 'vaultman-files-grid-card-meta' });
@@ -458,21 +472,31 @@ export class FilesGridView {
 				});
 			}
 			if (this.visibleCells.has('mtime')) {
-				this.renderDateCell(metaRow, times.mtime);
+				this.renderDateCell(metaRow, times.mtime, 'mtime');
 			}
 			if (this.visibleCells.has('ctime')) {
-				this.renderDateCell(metaRow, times.ctime);
+				this.renderDateCell(metaRow, times.ctime, 'ctime');
 			}
 		}
 		this.renderBadges(card, badges);
 	}
 
-	private renderDateCell(parent: HTMLElement, time: number): void {
+	private renderDateCell(
+		parent: HTMLElement,
+		time: number,
+		cellId: string,
+	): void {
 		if (!Number.isFinite(time) || time <= 0) return;
-		parent.createSpan({
+		const text =
+			this.callbacks.formatTimestamp?.(time) ?? new Date(time).toLocaleDateString();
+		if (!text) return;
+		// U121-027: both date cells share the class; `data-cell` is the identity
+		// the targeted patch pipeline addresses.
+		const span = parent.createSpan({
 			cls: 'nav-file-tag vaultman-files-grid-card-date',
-			text: new Date(time).toLocaleDateString(),
+			text,
 		});
+		span.dataset.cell = cellId;
 	}
 
 	private renderBadges(parent: HTMLElement, badges: NodeBadge[]): void {

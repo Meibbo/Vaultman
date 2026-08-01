@@ -14,7 +14,6 @@
 	import SnippetsTab from './tabSnippets.svelte';
 	import PluginsTab from './tabPlugins.svelte';
 	import NavbarTabs from '../layout/navbarTabs.svelte';
-	import NavbarFilters from '../layout/navbarFilters.svelte';
 	import type { FilesExplorerPanel } from '../containers/explorerFiles';
 	import type { PropsExplorerPanel } from '../containers/explorerProps';
 	import type { TagsExplorerPanel } from '../containers/explorerTags';
@@ -56,6 +55,11 @@
 		textSearchShouldScan,
 		type TextSearchRun,
 	} from '../../logic/logicTextSearchState';
+	import { measureSceneSync } from '../../logic/logicScenePerformance';
+	import type {
+		NavbarPanelWidgetState,
+		ScenePanelWidgetActionPort,
+	} from '../../types/typePanelWidget';
 
 	type FiltersTab =
 		| 'files'
@@ -176,6 +180,7 @@
 		icon,
 		initialShowToolbar = null,
 		onShowToolbarChange,
+		onPanelWidgetStateChange,
 	}: {
 		plugin: VaultmanPlugin;
 		filtersActiveTab: FiltersTab;
@@ -218,6 +223,7 @@
 		icon: (el: HTMLElement, name: string) => any;
 		initialShowToolbar?: boolean | null;
 		onShowToolbarChange?: (val: boolean) => void;
+		onPanelWidgetStateChange?: (state: NavbarPanelWidgetState | null) => void;
 	} = $props();
 
 	export function setShowToolbar(val: boolean): void {
@@ -371,7 +377,6 @@
 	});
 	// When hidden, the toolbar slides out of the frame and peeks back on hover of
 	// the top edge, so it can be re-enabled from its own tabs menu.
-	let toolbarPeek = $state(false);
 	function toggleToolbar() {
 		localShowToolbar = !showToolbar;
 		onShowToolbarChange?.(localShowToolbar);
@@ -582,6 +587,16 @@
 						},
 					},
 					{
+						id: 'content-has',
+						label: contentIsExclusion
+							? translate('filter.text_not_contains')
+							: translate('filter.text_contains'),
+						icon: contentIsExclusion ? 'lucide-file-minus' : 'lucide-file-text',
+						onClick: () => {
+							contentIsExclusion = !contentIsExclusion;
+						},
+					},
+					{
 						id: 'content-sort',
 						label: translate('filter.sort_btn'),
 						icon: 'lucide-arrow-up-down',
@@ -685,41 +700,61 @@
 	}
 
 	function toggleContentFile(filePath: string) {
-		if (collapsedContentPathSet.has(filePath)) {
-			collapsedContentFilePaths = collapsedContentFilePaths.filter(
-				(path) => path !== filePath,
-			);
-			return;
-		}
-		collapsedContentFilePaths = [...collapsedContentFilePaths, filePath];
+		const expanding = collapsedContentPathSet.has(filePath);
+		const metric = expanding
+			? 'scene.action.expand-node.content'
+			: 'scene.action.collapse-node.content';
+		measureSceneSync(metric, { rows: 1 }, () => {
+			if (expanding) {
+				collapsedContentFilePaths = collapsedContentFilePaths.filter(
+					(path) => path !== filePath,
+				);
+				return;
+			}
+			collapsedContentFilePaths = [...collapsedContentFilePaths, filePath];
+		});
 	}
 
 	function toggleAllContentFiles() {
 		if (contentFilePaths.length === 0) return;
-		if (hasExpandedContentFiles) {
-			collapsedContentFilePaths = contentFilePaths;
-			return;
-		}
-		collapsedContentFilePaths = [];
-		contentPreviewOpen = true;
+		const expanding = !hasExpandedContentFiles;
+		const metric = expanding
+			? 'scene.action.expand-all.content'
+			: 'scene.action.collapse-all.content';
+		measureSceneSync(metric, { rows: contentFilePaths.length }, () => {
+			if (!expanding) {
+				collapsedContentFilePaths = contentFilePaths;
+				return;
+			}
+			collapsedContentFilePaths = [];
+			contentPreviewOpen = true;
+		});
 	}
 
 	function revealActiveContentFile() {
-		const file = plugin.app.workspace.getActiveFile();
-		if (!file) {
-			new Notice(translate('content.reveal_no_active_file'));
-			return;
-		}
-		const paths = new Set(sortedContentFiles.map((entry) => entry.file.path));
-		if (!paths.has(file.path)) {
-			new Notice(translate('content.reveal_not_in_results'));
-			return;
-		}
-		activeContentRevealPath = file.path;
-		contentRevealRevision += 1;
-		contentPreviewOpen = true;
-		collapsedContentFilePaths = collapsedContentFilePaths.filter(
-			(path) => path !== file.path,
+		measureSceneSync(
+			'scene.action.reveal-active-file.content',
+			{ files: sortedContentFiles.length },
+			() => {
+				const file = plugin.app.workspace.getActiveFile();
+				if (!file) {
+					new Notice(translate('content.reveal_no_active_file'));
+					return;
+				}
+				const paths = new Set(
+					sortedContentFiles.map((entry) => entry.file.path),
+				);
+				if (!paths.has(file.path)) {
+					new Notice(translate('content.reveal_not_in_results'));
+					return;
+				}
+				activeContentRevealPath = file.path;
+				contentRevealRevision += 1;
+				contentPreviewOpen = true;
+				collapsedContentFilePaths = collapsedContentFilePaths.filter(
+					(path) => path !== file.path,
+				);
+			},
 		);
 	}
 
@@ -1172,6 +1207,128 @@
 			customLogic: true,
 		} as PendingChange);
 	}
+
+	const panelWidgetActionPort: ScenePanelWidgetActionPort = {
+		async invoke(invocation) {
+			const event =
+				invocation.payload?.event instanceof MouseEvent
+					? invocation.payload.event
+					: new MouseEvent('click');
+			if (invocation.actionId.startsWith('header:')) {
+				const action = contentHeaderActions.find(
+					(candidate) =>
+						candidate.id === invocation.actionId.slice('header:'.length),
+				);
+				if (!action || action.disabled) return false;
+				action.onClick(event);
+				return true;
+			}
+
+			if (invocation.actionId === 'reveal-active-file') {
+				measureSceneSync(
+					'scene.action.reveal-active-file.files',
+					undefined,
+					() => fileList?.autoRevealActiveFile(),
+				);
+				return true;
+			}
+
+			if (invocation.actionId === 'toggle-expansion') {
+				const panel =
+					explorerActiveTab === 'files'
+						? fileList
+						: explorerActiveTab === 'props'
+							? propExplorer
+							: explorerActiveTab === 'tags'
+								? tagsExplorer
+								: undefined;
+				if (!panel) return false;
+				const expanded = panel.hasExpandedNodes();
+				measureSceneSync(
+					expanded
+						? `scene.action.collapse-all.${explorerActiveTab}`
+						: `scene.action.expand-all.${explorerActiveTab}`,
+					undefined,
+					() => {
+						if (expanded) panel.collapseAll();
+						else panel.expandAll();
+					},
+				);
+				return true;
+			}
+
+			if (invocation.actionId === 'create-file') {
+				await fileList?.createFromSearch(0, filtersSearch);
+				return true;
+			}
+			if (invocation.actionId === 'create-folder') {
+				await fileList?.createFromSearch(1, filtersSearch);
+				return true;
+			}
+			if (invocation.actionId.startsWith('command:')) {
+				executeObsidianCommand(
+					plugin.app,
+					invocation.actionId.slice('command:'.length),
+				);
+				return true;
+			}
+			return false;
+		},
+	};
+
+	$effect(() => {
+		onPanelWidgetStateChange?.({
+			providerId: filtersActiveTab,
+			actionPort: panelWidgetActionPort,
+			activeTab: explorerActiveTab,
+			filtersSearch,
+			filtersSearchCategory,
+			tagsExplorer,
+			propExplorer,
+			fileList,
+			snippetsExplorer,
+			pluginsExplorer,
+			icon,
+			addOpCount,
+			minimalStyle,
+			showDock,
+			tabOptions: minimalStyle ? filterTabOptions : [],
+			tabMenuActions,
+			headerActions: contentHeaderActions,
+			activeSectionTab: filtersActiveTab,
+			onSectionTabChange: switchFiltersTab,
+			onContentSearch: activateNodeContentSearch,
+			onFiltersSearchChange: setExplorerSearch,
+			onFiltersSearchCategoryChange: (next) => {
+				filtersSearchCategory = {
+					...filtersSearchCategory,
+					...next,
+				};
+			},
+			showExplorerControls: isExplorerControlTab,
+			expansionRevision,
+			onViewFiltersChanged,
+			floatingTocEnabled,
+			onToggleFloatingToc,
+			toolbarToolsMenu,
+			toolbarOverflowStrategy,
+			createActionsPlacement,
+			commandActions,
+			onRunCommand: (id) => executeObsidianCommand(plugin.app, id),
+			sortLevelInline,
+			orderCellsByActivation,
+			frameWidth,
+			onToggleToolbar: toggleToolbar,
+			savedLayouts,
+			onSaveLayout: saveLayout,
+			onLayoutLoaded: (layout) => applyFloatingTocState?.(layout.floatingToc),
+			toolbarShown: showToolbar,
+			app: plugin.app,
+			showTabLabels,
+		});
+	});
+
+	onDestroy(() => onPanelWidgetStateChange?.(null));
 </script>
 
 {#if !minimalStyle}
@@ -1182,65 +1339,6 @@
 		onTabChange={switchFiltersTab}
 		{icon}
 	/>
-{/if}
-
-{#if isExplorerControlTab || minimalStyle}
-	<!-- svelte-ignore a11y_no_static_element_interactions -->
-	<div
-		class="vaultman-toolbar-slot"
-		class:is-hidden-mode={!showToolbar}
-		class:is-peeking={toolbarPeek}
-		onpointerleave={() => (toolbarPeek = false)}
-	>
-		<NavbarFilters
-			activeTab={explorerActiveTab}
-			{filtersSearch}
-			bind:filtersSearchCategory
-			{tagsExplorer}
-			{propExplorer}
-			{fileList}
-			{snippetsExplorer}
-			{pluginsExplorer}
-			{addOpCount}
-			{minimalStyle}
-			{showDock}
-			tabOptions={minimalStyle ? filterTabOptions : []}
-			{tabMenuActions}
-			headerActions={contentHeaderActions}
-			activeSectionTab={filtersActiveTab}
-			onSectionTabChange={switchFiltersTab}
-			onContentSearch={activateNodeContentSearch}
-			onFiltersSearchChange={setExplorerSearch}
-			showExplorerControls={isExplorerControlTab}
-			{expansionRevision}
-			{onViewFiltersChanged}
-			{floatingTocEnabled}
-			{onToggleFloatingToc}
-			{toolbarToolsMenu}
-			{toolbarOverflowStrategy}
-			{createActionsPlacement}
-			{commandActions}
-			onRunCommand={(id) => executeObsidianCommand(plugin.app, id)}
-			{sortLevelInline}
-			{orderCellsByActivation}
-			{frameWidth}
-			onToggleToolbar={toggleToolbar}
-			{savedLayouts}
-			onSaveLayout={saveLayout}
-			onLayoutLoaded={(layout) => applyFloatingTocState?.(layout.floatingToc)}
-			toolbarShown={showToolbar}
-			app={plugin.app}
-			{showTabLabels}
-			{icon}
-		/>
-	</div>
-	{#if !showToolbar}
-		<!-- svelte-ignore a11y_no_static_element_interactions -->
-		<div
-			class="vaultman-toolbar-peek"
-			onpointerenter={() => (toolbarPeek = true)}
-		></div>
-	{/if}
 {/if}
 
 <div class="vaultman-filters-tab-content">

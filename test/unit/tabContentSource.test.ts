@@ -50,6 +50,15 @@ describe('Content tab source guards', () => {
 		expect(tabContentSource).toContain('vaultman-content-replace-container');
 	});
 
+	it('does not own the Has/Hasn’t action after it moves to the Text panelWidget', () => {
+		expect(tabContentSource).not.toContain(
+			'contentIsExclusion = !contentIsExclusion;',
+		);
+		expect(tabContentSource).not.toContain(
+			'class:is-active={contentIsExclusion}',
+		);
+	});
+
 	it('can reveal the active file inside Content results', () => {
 		expect(tabContentSource).toContain('activeContentRevealPath');
 		expect(tabContentSource).toContain('contentRevealRevision');

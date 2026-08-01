@@ -471,3 +471,60 @@ describe('stale drill sort must not capture the root level (BT4-009)', () => {
 		expect(tree.map((node) => node.label)).toEqual(['aaa', 'bbb', 'ccc']);
 	});
 });
+
+describe('FilesLogic cached tree ordering', () => {
+	it('re-sorts an existing decorated hierarchy without rebuilding its nodes', () => {
+		const logic = new FilesLogic(makeApp({}));
+		const compare = (
+			a: { label: string },
+			b: { label: string },
+			sort: { direction: 'asc' | 'desc' },
+		) =>
+			(sort.direction === 'asc' ? 1 : -1) *
+			a.label.localeCompare(b.label);
+		const tree = logic.buildFileTree(
+			[
+				makeFile('Projects/alpha.md'),
+				makeFile('Projects/zeta.md'),
+				makeFile('root-a.md'),
+				makeFile('root-z.md'),
+			],
+			[],
+			{
+				parentsFirst: true,
+				sorts: { all: { sortBy: 'name', direction: 'asc' } },
+				compareNodes: compare,
+			},
+		);
+		const project = tree.find((node) => node.label === 'Projects');
+		const originalRootFile = tree.find((node) => node.id === 'root-a.md');
+		const originalChild = project?.children?.find(
+			(node) => node.id === 'Projects/alpha.md',
+		);
+		if (originalChild) originalChild.iconColor = '#abcdef';
+
+		const resorted = logic.sortFileTreeNodes(tree, {
+			parentsFirst: true,
+			sorts: { all: { sortBy: 'name', direction: 'desc' } },
+			compareNodes: compare,
+		});
+
+		expect(resorted).toBe(tree);
+		expect(resorted.map((node) => node.label)).toEqual([
+			'Projects',
+			'root-z',
+			'root-a',
+		]);
+		expect(project?.children?.map((node) => node.label)).toEqual([
+			'zeta',
+			'alpha',
+		]);
+		expect(resorted.find((node) => node.id === 'root-a.md')).toBe(
+			originalRootFile,
+		);
+		expect(
+			project?.children?.find((node) => node.id === 'Projects/alpha.md'),
+		).toBe(originalChild);
+		expect(originalChild?.iconColor).toBe('#abcdef');
+	});
+});

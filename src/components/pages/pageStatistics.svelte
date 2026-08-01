@@ -15,7 +15,10 @@
 		type StatisticsDataTab,
 		type StatisticsNavigationCard,
 	} from '../../logic/logicStatisticsNavigation';
-	import NavbarFilters from '../layout/navbarFilters.svelte';
+	import type {
+		NavbarPanelWidgetState,
+		ScenePanelWidgetActionPort,
+	} from '../../types/typePanelWidget';
 
 	let {
 		plugin,
@@ -24,6 +27,7 @@
 		onNavigateToDataTab,
 		toolbarShown = true,
 		onToggleToolbar,
+		onPanelWidgetStateChange,
 	}: {
 		plugin: VaultmanPlugin;
 		active?: boolean;
@@ -31,6 +35,7 @@
 		onNavigateToDataTab?: (tab: StatisticsDataTab) => void;
 		toolbarShown?: boolean;
 		onToggleToolbar?: () => void;
+		onPanelWidgetStateChange?: (state: NavbarPanelWidgetState | null) => void;
 	} = $props();
 	const minimalStyle = $derived.by(() => {
 		void settingsRevision;
@@ -328,41 +333,54 @@
 			onNavigateToDataTab?.(tab as StatisticsDataTab);
 		}
 	}
+
+	const panelWidgetActionPort: ScenePanelWidgetActionPort = {
+		async invoke(invocation) {
+			if (!invocation.actionId.startsWith('header:')) return false;
+			const action = statisticsHeaderActions.find(
+				(candidate) =>
+					candidate.id === invocation.actionId.slice('header:'.length),
+			);
+			if (!action) return false;
+			const event =
+				invocation.payload?.event instanceof MouseEvent
+					? invocation.payload.event
+					: new MouseEvent('click');
+			action.onClick(event);
+			return true;
+		},
+	};
+
+	$effect(() => {
+		onPanelWidgetStateChange?.({
+			providerId: 'statistics',
+			actionPort: panelWidgetActionPort,
+			activeTab: 'files',
+			filtersSearch: headerSearch,
+			filtersSearchCategory: headerSearchCategory,
+			icon: iconAction,
+			minimalStyle,
+			showDock: false,
+			tabOptions: statsTabOptions,
+			activeSectionTab: 'statistics',
+			onSectionTabChange: navigateFromHeader,
+			onFiltersSearchChange: (value) => (headerSearch = value),
+			onFiltersSearchCategoryChange: (next) => {
+				headerSearchCategory = {
+					files: next.files ?? 0,
+					props: next.props ?? 0,
+					tags: next.tags ?? 0,
+				};
+			},
+			showExplorerControls: false,
+			headerActions: statisticsHeaderActions,
+			toolbarShown,
+			onToggleToolbar,
+		});
+	});
 </script>
 
 <div class="vaultman-statistics-page" class:is-reconciling={statsReconciling}>
-	{#if toolbarShown}
-		<NavbarFilters
-			activeTab="files"
-			bind:filtersSearch={headerSearch}
-			bind:filtersSearchCategory={headerSearchCategory}
-			tagsExplorer={undefined}
-			propExplorer={undefined}
-			fileList={undefined}
-			icon={iconAction}
-			{minimalStyle}
-			showDock={false}
-			tabOptions={statsTabOptions}
-			activeSectionTab="statistics"
-			onSectionTabChange={navigateFromHeader}
-			showExplorerControls={false}
-			headerActions={statisticsHeaderActions}
-			{toolbarShown}
-			{onToggleToolbar}
-		/>
-	{/if}
-	{#if !toolbarShown}
-		<div
-			class="vaultman-toolbar-peek"
-			role="button"
-			tabindex="0"
-			aria-label={translate('viewmenu.toolbar')}
-			onclick={() => onToggleToolbar?.()}
-			onkeydown={(event) => {
-				if (event.key === 'Enter' || event.key === ' ') onToggleToolbar?.();
-			}}
-		></div>
-	{/if}
 	<div class="vaultman-stat-cards-grid">
 		{#each statCards as card (card.icon)}
 			<button

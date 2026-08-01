@@ -3,7 +3,7 @@ import { describe, expect, it } from 'vitest';
 import { en } from '../../src/i18n/en';
 import { es } from '../../src/i18n/es';
 import addFilterSource from '../../src/modals/modalAddFilter.ts?raw';
-import contentSource from '../../src/components/pages/tabContent.svelte?raw';
+import filtersPageSource from '../../src/components/pages/pageFilters.svelte?raw';
 
 const EXPECTED_ENGLISH_FILTER_COPY = {
 	'filter.has_property': 'Has prop',
@@ -54,7 +54,9 @@ describe('BT5-052 concise filter copy', () => {
 		)) {
 			expect(addFilterSource).toContain(`translate('${key}')`);
 		}
-		expect(contentSource).toContain("translate('filter.text_contains')");
-		expect(contentSource).toContain("translate('filter.text_not_contains')");
+		expect(filtersPageSource).toContain("translate('filter.text_contains')");
+		expect(filtersPageSource).toContain(
+			"translate('filter.text_not_contains')",
+		);
 	});
 });

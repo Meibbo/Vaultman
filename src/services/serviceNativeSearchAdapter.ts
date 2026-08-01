@@ -181,6 +181,16 @@ export interface NativeSearchPreviewOptions {
 	extraContext?: boolean;
 	/** Obsidian's file cache, needed only when `extraContext` is on. */
 	fileCache?: (path: string) => ExtraContextCache | null;
+	/**
+	 * The highest total already published in this run.
+	 *
+	 * The total is derived from whatever inputs a publish carries, so a publish
+	 * over a partial set — one not yet folded onto the retained floor — reported
+	 * a smaller number than the publish before it, and the count visibly dipped
+	 * on resume. Within one run it only grows; a new query resets it along with
+	 * the retained matches.
+	 */
+	totalFloor?: number;
 }
 
 export function buildNativeSearchPreview(
@@ -235,12 +245,14 @@ export function buildNativeSearchPreview(
 		files.push(entry);
 	}
 
+	const reported = Math.max(
+		totalMatches,
+		typeof totalMatchesOverride === 'number' ? totalMatchesOverride : 0,
+		options.totalFloor ?? 0,
+	);
+
 	return {
-		totalMatches:
-			typeof totalMatchesOverride === 'number' &&
-			totalMatchesOverride > totalMatches
-				? totalMatchesOverride
-				: totalMatches,
+		totalMatches: reported,
 		files,
 		matchedFiles,
 		moreFiles: Math.max(0, matchFileCount - files.length),
@@ -289,6 +301,12 @@ export class NativeSearchAdapter {
 	private extraContext = false;
 	private fileCacheLookup: ((path: string) => ExtraContextCache | null) | null =
 		null;
+	/**
+	 * Highest total published in this run. Resume republishes over a partial set
+	 * before folding it onto the retained floor, and the count visibly dipped.
+	 * Cleared with the retained matches, since a new query starts over.
+	 */
+	private publishedTotal = 0;
 	/** The core view we last told to search, so `cancel()` can stop it. */
 	private activeView: NativeSearchView | null = null;
 
@@ -312,6 +330,22 @@ export class NativeSearchAdapter {
 	 * invalidates every entry — core calls `infinityScroll.invalidateAll()` at
 	 * the same point — because the switch changes every snippet.
 	 */
+	/** Build a preview with this run's shared options, and hold the total floor. */
+	private publishPreview(
+		inputs: NativeSearchInput[],
+		isLoading: boolean,
+		totalOverride?: number,
+	): ContentPreviewResult {
+		const preview = buildNativeSearchPreview(inputs, isLoading, totalOverride, {
+			cache: this.previewCache,
+			extraContext: this.extraContext,
+			fileCache: this.fileCacheLookup ?? undefined,
+			totalFloor: this.publishedTotal,
+		});
+		this.publishedTotal = preview.totalMatches;
+		return preview;
+	}
+
 	setExtraContext(
 		enabled: boolean,
 		fileCache?: (path: string) => ExtraContextCache | null,
@@ -344,6 +378,7 @@ export class NativeSearchAdapter {
 	resetRetained(): void {
 		this.retained = [];
 		this.previewCache.clear();
+		this.publishedTotal = 0;
 	}
 
 	/**
@@ -409,11 +444,7 @@ export class NativeSearchAdapter {
 		// incoming results merge into them. That is the whole trick: the resume
 		// is simulated, and it is indistinguishable as long as the count never
 		// goes backwards.
-		options.onUpdate(buildNativeSearchPreview(this.mergeRetained([]), true, undefined, {
-				cache: this.previewCache,
-				extraContext: this.extraContext,
-				fileCache: this.fileCacheLookup ?? undefined,
-			}));
+		options.onUpdate(this.publishPreview(this.mergeRetained([]), true));
 
 		for (let attempt = 0; attempt < MAX_NATIVE_ATTEMPTS; attempt += 1) {
 			await new Promise((resolve) =>
@@ -438,11 +469,7 @@ export class NativeSearchAdapter {
 				bestNativeScore = nativeScore;
 			}
 			options.onUpdate(
-				buildNativeSearchPreview(this.mergeRetained(attemptInputs), true, undefined, {
-					cache: this.previewCache,
-					extraContext: this.extraContext,
-					fileCache: this.fileCacheLookup ?? undefined,
-				}),
+				this.publishPreview(this.mergeRetained(attemptInputs), true),
 			);
 
 			// Core tells us whether it is still working. Ask it instead of
@@ -507,11 +534,7 @@ export class NativeSearchAdapter {
 			// finished: this snapshot is its whole answer, not a plateau.
 			this.retained = this.mergeRetained(nativeInputs);
 			options.onUpdate(
-				buildNativeSearchPreview(this.retained, false, nativeMatchCount, {
-					cache: this.previewCache,
-					extraContext: this.extraContext,
-					fileCache: this.fileCacheLookup ?? undefined,
-				}),
+				this.publishPreview(this.retained, false, nativeMatchCount),
 			);
 			return;
 		}
@@ -522,11 +545,7 @@ export class NativeSearchAdapter {
 			true,
 		);
 		if (run !== this.activeRun) return;
-		options.onUpdate(buildNativeSearchPreview(mergedInputs, false, undefined, {
-				cache: this.previewCache,
-				extraContext: this.extraContext,
-				fileCache: this.fileCacheLookup ?? undefined,
-			}));
+		options.onUpdate(this.publishPreview(mergedInputs, false));
 	}
 
 	private async searchLocal(
@@ -544,18 +563,10 @@ export class NativeSearchAdapter {
 		const seeds =
 			options.seedInputs ??
 			(options.resume || (options.resumeFrom ?? 0) > 0 ? this.retained : []);
-		options.onUpdate(buildNativeSearchPreview(seeds, true, undefined, {
-				cache: this.previewCache,
-				extraContext: this.extraContext,
-				fileCache: this.fileCacheLookup ?? undefined,
-			}));
+		options.onUpdate(this.publishPreview(seeds, true));
 		const inputs = await this.collectLocalResults(options, run, seeds, true);
 		if (run !== this.activeRun) return;
-		options.onUpdate(buildNativeSearchPreview(inputs, false, undefined, {
-			cache: this.previewCache,
-			extraContext: this.extraContext,
-			fileCache: this.fileCacheLookup ?? undefined,
-		}));
+		options.onUpdate(this.publishPreview(inputs, false));
 	}
 
 	private async collectLocalResults(
@@ -614,11 +625,7 @@ export class NativeSearchAdapter {
 			}
 			if (emitPartial && index % LOCAL_UPDATE_INTERVAL === 0) {
 				this.retained = [...inputsByPath.values()];
-				options.onUpdate(buildNativeSearchPreview(this.retained, true, undefined, {
-					cache: this.previewCache,
-					extraContext: this.extraContext,
-					fileCache: this.fileCacheLookup ?? undefined,
-				}));
+				options.onUpdate(this.publishPreview(this.retained, true));
 				await new Promise((resolve) => window.setTimeout(resolve, 0));
 			}
 		}

@@ -116,6 +116,14 @@ describe('BT5-021 toolbar overflow strategy', () => {
 		expect(stylesSource).toContain('vaultman-filters-actions--scroll::after');
 		// Focus brings an off-screen action into view.
 		expect(stylesSource).toContain('scroll-margin');
+		// U121-029: centred while it fits, start-aligned once it overflows, so the
+		// first node stays reachable. The old `:first-child`/`:last-child` auto
+		// margins keyed off DOM order while nodes carry an explicit `order`, so
+		// they opened a gap in the middle of the bar instead of centring it.
+		expect(stylesSource).toContain('justify-content: safe center');
+		expect(stylesSource).not.toContain(
+			'.vaultman-filters-actions--scroll > :first-child',
+		);
 	});
 
 	it('delegates wrap to the natural multi-line flex layout', () => {
@@ -124,6 +132,19 @@ describe('BT5-021 toolbar overflow strategy', () => {
 		);
 		expect(stylesSource).toContain('.vaultman-filters-actions--wrap');
 		expect(stylesSource).toContain('flex-wrap: wrap');
+	});
+
+	it('keeps condensed nodes and its Tools case on one shrinkable line', () => {
+		const baseActions =
+			stylesSource.match(/\.vaultman-filters-actions\s*\{[\s\S]*?\n\}/)?.[0] ??
+			'';
+		expect(baseActions).toContain('flex-wrap: nowrap');
+		expect(baseActions).toContain('min-width: 0');
+		expect(baseActions).toContain('overflow: hidden');
+		expect(stylesSource).toContain(
+			'.vaultman-filters-actions > .nav-action-button',
+		);
+		expect(stylesSource).toContain('flex: 0 0 auto');
 	});
 
 	it('exposes the strategy selector in settings', () => {

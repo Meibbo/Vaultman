@@ -193,6 +193,8 @@ export const en: Record<string, string> = {
 		'Custom',
 	'settings.glyph_color.rainbow':
 		'Rainbow',
+	'settings.glyph_color.rainbow-pastel':
+		'Pastel rainbow',
 	'settings.glyph_color.custom_pick':
 		'Custom color',
 	'settings.explorer_glyph_color':
@@ -223,7 +225,8 @@ export const en: Record<string, string> = {
 	'sort.by.tasks': 'Remaining tasks',
 	'viewmode.pill.tasks': 'Tasks',
 	'file.ctx.exclude': 'Exclude file',
-	'settings.explorer_page': 'Panel Explorer',
+	'settings.explorer_page': 'Panel: Explorer',
+	'settings.cells_section': 'Cells',
 	'settings.explorer_page.desc':
 		'Customize globally your explorers. Tweak cells, badges and highlight behavior.',
 	'settings.context_menu.page_desc':
@@ -1032,4 +1035,71 @@ export const en: Record<string, string> = {
 	'stats.remaining_tasks': 'Remaining tasks',
 	'stats.word_count': 'Word Count',
 	'stats.reconciling': 'Reconciling',
+	// U121-027: relative timestamp cells
+	'time.just_now': 'Just now',
+	'time.minute_ago': '{count} minute ago',
+	'time.minutes_ago': '{count} minutes ago',
+	'time.hour_ago': '{count} hour ago',
+	'time.hours_ago': '{count} hours ago',
+	// Singulars read as "last <unit>" (and one day back is "Yesterday"): the
+	// count is always 1 there, so the wording names the period instead.
+	'time.day_ago': 'Yesterday',
+	'time.days_ago': '{count} days ago',
+	'time.week_ago': 'Last week',
+	'time.weeks_ago': '{count} weeks ago',
+	'time.month_ago': 'Last month',
+	'time.months_ago': '{count} months ago',
+	'time.quarter_ago': 'Last quarter',
+	'time.quarters_ago': '{count} quarters ago',
+	'time.semester_ago': 'Last semester',
+	'time.semesters_ago': '{count} semesters ago',
+	'time.year_ago': 'Last year',
+	'time.years_ago': '{count} years ago',
+	'settings.timestamp_format': 'Relative timestamps',
+	'settings.timestamp_format.desc':
+		'Show Last opened, Modified and Created as "3 hours ago" instead of the exact date. Turn off to always show the exact date.',
+	'settings.timestamp_window': 'Relative time limit',
+	'settings.timestamp_window.desc':
+		'How far back timestamps stay relative. Older cells show the exact date. "No limit" keeps every timestamp relative.',
+	'settings.timestamp_window.24h': 'Last 24 hours',
+	'settings.timestamp_window.31d': 'Last 31 days',
+	'settings.timestamp_window.year': 'This year',
+	'settings.timestamp_window.always': 'No limit',
+	'settings.timestamp_cutoffs': 'Relative time units',
+	'settings.timestamp_cutoffs.desc':
+		'Fine-tune when the wording switches units — from how many seconds it counts in minutes, minutes in hours, and so on up to years.',
+	'settings.timestamp_cutoffs.configure': 'Configure',
+	'settings.timestamp_cutoffs.title': 'Relative time units',
+	'settings.timestamp_cutoffs.subtitle':
+		'Empty fields use the default. Changes apply immediately.',
+	'settings.timestamp_cutoffs.reset': 'Reset to defaults',
+	'settings.timestamp_cutoffs.minuteFromSeconds': 'Minutes from (seconds)',
+	'settings.timestamp_cutoffs.minuteFromSeconds.desc':
+		'Below this many seconds the cell reads "Just now"; from here it counts in minutes.',
+	'settings.timestamp_cutoffs.hourFromMinutes': 'Hours from (minutes)',
+	'settings.timestamp_cutoffs.hourFromMinutes.desc':
+		'From this many minutes the cell counts in hours.',
+	'settings.timestamp_cutoffs.dayFromHours': 'Days from (hours)',
+	'settings.timestamp_cutoffs.dayFromHours.desc':
+		'From this many hours the cell counts in days.',
+	'settings.timestamp_cutoffs.weekFromDays': 'Weeks from (days)',
+	'settings.timestamp_cutoffs.weekFromDays.desc':
+		'From this many days the cell counts in weeks.',
+	'settings.timestamp_cutoffs.monthFromWeeks': 'Months from (weeks)',
+	'settings.timestamp_cutoffs.monthFromWeeks.desc':
+		'From this many weeks the cell counts in months.',
+	'settings.timestamp_cutoffs.quarterFromMonths': 'Quarters from (months)',
+	'settings.timestamp_cutoffs.quarterFromMonths.desc':
+		'From this many months the cell counts in quarters.',
+	'settings.timestamp_cutoffs.semesterFromQuarters': 'Semesters from (quarters)',
+	'settings.timestamp_cutoffs.semesterFromQuarters.desc':
+		'From this many quarters the cell counts in semesters.',
+	'settings.timestamp_cutoffs.yearFromSemesters': 'Years from (semesters)',
+	'settings.timestamp_cutoffs.yearFromSemesters.desc':
+		'From this many semesters the cell counts in years.',
+	'settings.tooltip_time_section': 'Tooltip timestamps',
+	'settings.tooltip_timestamp_format.desc':
+		'Show the tooltip time entries as relative copy. Independent from the cell options.',
+	'settings.tooltip_timestamp_window.desc':
+		'How far back the tooltip entries stay relative. Independent from the cell options.',
 };

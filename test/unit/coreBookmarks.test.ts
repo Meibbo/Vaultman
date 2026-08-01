@@ -173,11 +173,16 @@ describe('U121-019 #51: the result header', () => {
 		expect(headerActions).not.toBe('');
 	});
 
-	it('leaves Has/Hasn’t in the search row for the U121-029 lane to move', () => {
-		// That control's placement belongs to U121-029. It is back where 1.2.0 had
-		// it so that lane's change applies without a conflict.
-		expect(findRow).toContain('contentIsExclusion');
+	it('leaves Has/Hasn’t to the U121-029 lane, which now owns it', () => {
+		// This guard existed to keep the control where 1.2.0 had it so that lane's
+		// change would apply without a conflict. It has: U121-029 moved it out of
+		// the renderer entirely, into a header action built by the host. What the
+		// guard pins now is that this component does not render it at all.
+		expect(findRow).not.toContain('contentIsExclusion');
 		expect(headerActions).not.toContain('contentIsExclusion');
+		// `contentIsExclusion` survives as a prop the host binds; what must not
+		// come back is this component rendering a control for it.
+		expect(tabContentSource).not.toContain('class:is-active={contentIsExclusion}');
 	});
 
 	it('offers one overflow menu rather than a cell per action', () => {

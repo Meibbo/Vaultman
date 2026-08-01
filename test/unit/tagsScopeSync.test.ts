@@ -105,10 +105,11 @@ describe('BT5-008 Tags external sort-scope synchronization', () => {
 		expect(tagsSource).toContain('this.onSortStateChange?.(this._sortState())');
 		expect(navbarSource).toContain('function handleExternalTagsSortState(');
 		expect(navbarSource).toContain(
-			'currentTagsExplorer?.setSortStateChangeHandler(handleExternalTagsSortState)',
+			'currentTagsExplorer?.setSortStateChangeHandler?.(',
 		);
+		expect(navbarSource).toContain('handleExternalTagsSortState,');
 		expect(navbarSource).toContain(
-			'currentTagsExplorer?.setSortStateChangeHandler(undefined)',
+			'currentTagsExplorer?.setSortStateChangeHandler?.(undefined)',
 		);
 
 		const start = navbarSource.indexOf('function handleExternalTagsSortState(');

@@ -4,6 +4,10 @@ import { mount, unmount } from 'svelte';
 import VaultmanFrameSvelte from './VaultmanFrame.svelte';
 import { translate } from './i18n/index';
 import { isSameWorkspaceLeaf } from './logic/logicExplorerViewportActivation';
+import {
+	measureSceneAsync,
+	measureSceneSync,
+} from './logic/logicScenePerformance';
 
 export const VAULTMAN_FRAME_TYPE = 'vaultman-frame';
 
@@ -65,30 +69,48 @@ export class VaultmanFrame extends ItemView {
 
 	async onOpen(): Promise<void> {
 		const { contentEl } = this;
-		contentEl.empty();
-		contentEl.addClass('vaultman-frame');
+		measureSceneSync('scene.lifecycle.open.shell', undefined, () => {
+			contentEl.empty();
+			contentEl.addClass('vaultman-frame');
+		});
 
-		this.svelteApp = mount(VaultmanFrameSvelte, {
-			target: contentEl,
-			props: {
-				plugin: this.plugin,
-				initialShowToolbar: this._showToolbar,
-				onShowToolbarChange: (val: boolean) => {
-					this._showToolbar = val;
-					this.app.workspace.requestSaveLayout();
-				},
-			},
-		}) as VaultmanFrameSvelteApi;
+		this.svelteApp = measureSceneSync(
+			'scene.lifecycle.open.mount',
+			undefined,
+			() =>
+				mount(VaultmanFrameSvelte, {
+					target: contentEl,
+					props: {
+						plugin: this.plugin,
+						initialShowToolbar: this._showToolbar,
+						onShowToolbarChange: (val: boolean) => {
+							this._showToolbar = val;
+							this.app.workspace.requestSaveLayout();
+						},
+					},
+				}) as VaultmanFrameSvelteApi,
+		);
 		this.scheduleViewportRefresh();
 	}
 
 	async onClose(): Promise<void> {
-		this.cancelViewportRefresh();
+		measureSceneSync('scene.lifecycle.close.cancel', undefined, () => {
+			this.cancelViewportRefresh();
+		});
 		if (this.svelteApp) {
-			await unmount(this.svelteApp);
+			const mounted = this.svelteApp;
+			await measureSceneAsync(
+				'scene.lifecycle.close.unmount',
+				undefined,
+				async () => {
+					await unmount(mounted);
+				},
+			);
 			this.svelteApp = null;
 		}
-		this.contentEl.empty();
+		measureSceneSync('scene.lifecycle.close.cleanup', undefined, () => {
+			this.contentEl.empty();
+		});
 	}
 
 	async focusContentSearch(): Promise<void> {
@@ -108,7 +130,9 @@ export class VaultmanFrame extends ItemView {
 
 		const ownerWindow = this.contentEl.ownerDocument.defaultView;
 		if (!ownerWindow) {
-			this.svelteApp?.refreshActiveExplorerViewport?.();
+			measureSceneSync('scene.lifecycle.viewport-refresh', undefined, () => {
+				this.svelteApp?.refreshActiveExplorerViewport?.();
+			});
 			return;
 		}
 
@@ -116,7 +140,9 @@ export class VaultmanFrame extends ItemView {
 		this.viewportRefreshFrame = ownerWindow.requestAnimationFrame(() => {
 			this.viewportRefreshFrame = null;
 			this.viewportRefreshWindow = null;
-			this.svelteApp?.refreshActiveExplorerViewport?.();
+			measureSceneSync('scene.lifecycle.viewport-refresh', undefined, () => {
+				this.svelteApp?.refreshActiveExplorerViewport?.();
+			});
 		});
 	}
 

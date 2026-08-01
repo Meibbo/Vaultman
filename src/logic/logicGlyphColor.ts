@@ -1,6 +1,6 @@
 /**
  * BT5-025: one shared glyph-color palette for the Floating Index and the
- * Explorer. The selector exposes only these five choices; the individual
+ * Explorer. The shared selector exposes these six choices; the individual
  * Obsidian color vars are gone from the UI and fold into `custom`.
  */
 export type GlyphColorChoice =
@@ -8,7 +8,8 @@ export type GlyphColorChoice =
 	| 'faint'
 	| 'accent'
 	| 'custom'
-	| 'rainbow';
+	| 'rainbow'
+	| 'rainbow-pastel';
 
 export const GLYPH_COLOR_CHOICES: readonly GlyphColorChoice[] = [
 	'default',
@@ -16,6 +17,7 @@ export const GLYPH_COLOR_CHOICES: readonly GlyphColorChoice[] = [
 	'accent',
 	'custom',
 	'rainbow',
+	'rainbow-pastel',
 ];
 
 /** Obsidian's documented default hex for each retired color var (migration). */
@@ -31,23 +33,50 @@ const LEGACY_COLOR_HEX: Readonly<Record<string, string>> = {
 };
 
 /**
- * Pastel rainbow tones from the reference folders-rainbow snippet, so rainbow
- * does not depend on the snippet being installed. Prefers the snippet's CSS
- * vars with a built-in hex fallback.
+ * The rainbow palettes are CSS custom properties, not literals (U121-029).
+ *
+ * The reference snippet (FAS — File Explorer Rainbow) declares
+ * `--color-rainbow-1..10` twice: dark tones under `.theme-light` and bright
+ * tones under `.theme-dark`, because a fixed palette can only have correct
+ * contrast in one of the two. Freezing its `.theme-light` values as our single
+ * "strong" palette is what made the glyphs look darkened in a dark vault.
+ *
+ * `styles.css` therefore declares `--vaultman-rainbow-N` per theme, each
+ * chaining through `--color-rainbow-N` first — so a vault that has the snippet
+ * enabled gets glyphs that match its own core file explorer exactly, and a
+ * theme can retint ours by declaring the same variables.
  */
-const RAINBOW_PASTEL_FALLBACK = [
-	'#f7a4a4',
-	'#f7c8a4',
-	'#f7e6a4',
-	'#b8e6b8',
-	'#a4dede',
-	'#a4c4f7',
-	'#c4a4f7',
-	'#f7a4e6',
-];
+const RAINBOW_SLOTS = 10;
+
+const RAINBOW_STRONG = Array.from(
+	{ length: RAINBOW_SLOTS },
+	(_unused, index) => `var(--vaultman-rainbow-${index + 1})`,
+) as readonly string[];
+
+const RAINBOW_PASTEL = Array.from(
+	{ length: RAINBOW_SLOTS },
+	(_unused, index) => `var(--vaultman-rainbow-pastel-${index + 1})`,
+) as readonly string[];
 
 const DEFAULT_CUSTOM_COLOR = '#7c3aed';
 const HEX_RE = /^#(?:[0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/;
+
+export type GlyphColorScope = 'folders' | 'files' | 'both';
+export type ExplorerGlyphNodeKind = 'folder' | 'file';
+
+export interface ExplorerGlyphColorInput {
+	choice: GlyphColorChoice;
+	customColor: string;
+	scope: GlyphColorScope;
+	kind: ExplorerGlyphNodeKind;
+	position: number;
+	inheritedRainbowColor?: string | null;
+}
+
+export interface ExplorerGlyphDecoration {
+	iconColor: string | undefined;
+	labelColor: string | undefined;
+}
 
 export function isValidGlyphColor(value: unknown): value is string {
 	return typeof value === 'string' && HEX_RE.test(value.trim());
@@ -75,11 +104,64 @@ export function normalizeGlyphColorChoice(value: unknown): {
 	return { choice: 'default' };
 }
 
-export function rainbowGlyphColor(index: number, total: number): string {
-	const count = RAINBOW_PASTEL_FALLBACK.length;
-	const slot = ((index % count) + count) % count;
-	const varIndex = (((index % total) + total) % total) % count;
-	return `var(--color-rainbow-${varIndex + 1}, ${RAINBOW_PASTEL_FALLBACK[slot]})`;
+function paletteColor(
+	palette: readonly string[],
+	index: number,
+): string {
+	const slot = ((index % palette.length) + palette.length) % palette.length;
+	return palette[slot] ?? palette[0] ?? '';
+}
+
+export function rainbowGlyphColor(index: number, _total: number): string {
+	return paletteColor(RAINBOW_STRONG, index);
+}
+
+export function pastelRainbowGlyphColor(index: number, _total: number): string {
+	return paletteColor(RAINBOW_PASTEL, index);
+}
+
+export function explorerRainbowGlyphColor(position: number): string {
+	const count = RAINBOW_STRONG.length;
+	const slot = (((position + count - 1) % count) + count) % count;
+	return paletteColor(RAINBOW_STRONG, slot);
+}
+
+export function explorerPastelRainbowGlyphColor(position: number): string {
+	const count = RAINBOW_PASTEL.length;
+	const slot = (((position + count - 1) % count) + count) % count;
+	return paletteColor(RAINBOW_PASTEL, slot);
+}
+
+export function resolveExplorerGlyphColor({
+	choice,
+	customColor,
+	scope,
+	kind,
+	position,
+	inheritedRainbowColor,
+}: ExplorerGlyphColorInput): string | null {
+	const inScope =
+		scope === 'both' ||
+		(scope === 'folders' && kind === 'folder') ||
+		(scope === 'files' && kind === 'file');
+	if (!inScope || choice === 'default') return null;
+	if (choice === 'rainbow') {
+		return inheritedRainbowColor ?? explorerRainbowGlyphColor(position);
+	}
+	if (choice === 'rainbow-pastel') {
+		return inheritedRainbowColor ?? explorerPastelRainbowGlyphColor(position);
+	}
+	return resolveGlyphColorCss(choice, customColor) || null;
+}
+
+export function resolveExplorerGlyphDecoration(
+	glyphColor: string | null,
+	explicitIconColor: string | null | undefined,
+): ExplorerGlyphDecoration {
+	return {
+		iconColor: explicitIconColor ?? glyphColor ?? undefined,
+		labelColor: glyphColor ?? undefined,
+	};
 }
 
 /**
@@ -98,14 +180,12 @@ export function resolveGlyphColorCss(
 		case 'custom':
 			return normalizeGlyphCustomColor(customColor);
 		case 'rainbow':
+		case 'rainbow-pastel':
 		case 'default':
 		default:
 			return '';
 	}
 }
-
-export type GlyphColorScope = 'folders' | 'files' | 'both';
-
 export function normalizeGlyphColorScope(value: unknown): GlyphColorScope {
 	return value === 'files' || value === 'both' ? value : 'folders';
 }

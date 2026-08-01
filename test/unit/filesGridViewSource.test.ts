@@ -17,4 +17,17 @@ describe('Files grid view source guards', () => {
 		expect(filesGridSource).toContain('card.onauxclick = (event) =>');
 		expect(filesGridSource).toContain('if (event.button !== 1) return;');
 	});
+
+	it('keeps Iconic precedence on card icons and glyph color in signatures', () => {
+		expect(filesGridSource).toContain(
+			'getGlyphColor?: (file: TFile, index: number) => string | null',
+		);
+		expect(filesGridSource).toContain(
+			'this.renderCard(item.row, item.index, {',
+		);
+		expect(filesGridSource).toContain('glyphColor ??');
+		expect(filesGridSource).toContain(
+			'resolvedIcon.color ?? glyphColor ?? undefined',
+		);
+	});
 });

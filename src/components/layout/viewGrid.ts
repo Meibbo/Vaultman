@@ -55,12 +55,18 @@ export interface GridViewCallbacks {
 		file: TFile,
 		defaultIcon: string,
 	) => ResolvedExplorerIcon | null;
+	getGlyphColor?: (file: TFile, index: number) => string | null;
 	onContextMenu: (file: TFile, e: MouseEvent) => void;
 	onSelectionChange: (selected: Set<string>) => void;
 	onFileClick: (file: TFile, event?: MouseEvent | KeyboardEvent) => void;
 	onFileHover?: (file: TFile, element: HTMLElement) => void;
 	onSortChange?: (column: SortColumn, direction: SortDirection) => void;
 	onDragStart?: (file: TFile, event: DragEvent) => void;
+	/**
+	 * U121-027: supplied by the explorer so table dates follow the same
+	 * relative/specific mode as the tree cells. Absent = the 1.2.0 absolute date.
+	 */
+	formatTimestamp?: (time: number) => string | undefined;
 }
 
 export class GridView {
@@ -422,7 +428,7 @@ export class GridView {
 		const layout = this._layout();
 		this._applyTableDimensions(layout);
 		for (const row of projection.visibleRows) {
-			this._renderRow(this.tbodyEl, row.row, row.top, layout);
+			this._renderRow(this.tbodyEl, row.row, row.index, row.top, layout);
 		}
 		vaultmanPerfMonitor.record(
 			'files.table.window',
@@ -479,6 +485,7 @@ export class GridView {
 		times: ExplorerFileTimes,
 		wordCount: number | null,
 		badges: NodeBadge[],
+		glyphColor: string | null,
 	): string {
 		const resolvedIcon = this._resolvedFileIcon(file);
 		const columns = layout.columns
@@ -493,6 +500,7 @@ export class GridView {
 			file.extension,
 			resolvedIcon?.icon ?? '',
 			resolvedIcon?.color ?? '',
+			glyphColor ?? '',
 			file.parent?.path ?? '',
 			file.stat.ctime,
 			file.stat.mtime,
@@ -520,6 +528,7 @@ export class GridView {
 	private _renderRow(
 		parent: HTMLElement,
 		file: TFile,
+		index: number,
 		top: number,
 		layout: FileTableLayout,
 	): void {
@@ -533,6 +542,7 @@ export class GridView {
 			? (this.callbacks.getWordCount?.(file) ?? null)
 			: null;
 		const badges = this.callbacks.getBadges?.(file) ?? [];
+		const glyphColor = this.callbacks.getGlyphColor?.(file, index) ?? null;
 		const signature = this.rowSignature(
 			file,
 			layout,
@@ -540,6 +550,7 @@ export class GridView {
 			times,
 			wordCount,
 			badges,
+			glyphColor,
 		);
 		const row =
 			this.rowEls.get(file.path) ??
@@ -571,9 +582,9 @@ export class GridView {
 
 		for (const column of layout.columns) {
 			if (column.id === 'icon') {
-				this._renderIconCell(row, column, file);
+				this._renderIconCell(row, column, file, glyphColor);
 			} else if (column.id === 'name') {
-				this._renderNameCell(row, column, file, badges);
+				this._renderNameCell(row, column, file, badges, glyphColor);
 			} else if (column.id === 'count') {
 				this._renderTextCell(
 					row,
@@ -596,10 +607,12 @@ export class GridView {
 					'vaultman-file-ext',
 				);
 			} else if (column.id === 'mtime' || column.id === 'ctime') {
+				const raw = times[column.id];
 				this._renderTextCell(
 					row,
 					column,
-					new Date(times[column.id]).toLocaleDateString(),
+					this.callbacks.formatTimestamp?.(raw) ??
+						new Date(raw).toLocaleDateString(),
 					'vaultman-file-date',
 				);
 			} else if (column.id === 'path') {
@@ -617,6 +630,7 @@ export class GridView {
 		row: HTMLElement,
 		column: FileTableColumn,
 		file: TFile,
+		glyphColor: string | null,
 	): void {
 		const cell = row.createDiv({ cls: 'bases-td' });
 		this._positionCell(cell, column);
@@ -625,7 +639,11 @@ export class GridView {
 		const iconEl = cell.createSpan({
 			cls: 'bases-table-cell vaultman-file-icon',
 		});
-		renderIconValue(iconEl, resolvedIcon.icon, resolvedIcon.color);
+		renderIconValue(
+			iconEl,
+			resolvedIcon.icon,
+			resolvedIcon.color ?? glyphColor ?? undefined,
+		);
 	}
 
 	private _resolvedFileIcon(file: TFile): ResolvedExplorerIcon | null {
@@ -640,6 +658,7 @@ export class GridView {
 		column: FileTableColumn,
 		file: TFile,
 		badges: NodeBadge[],
+		glyphColor: string | null,
 	): void {
 		const cell = row.createDiv({ cls: 'bases-td mod-implicit' });
 		this._positionCell(cell, column);
@@ -658,6 +677,7 @@ export class GridView {
 				nameEl.addClass(className);
 			}
 		}
+		if (glyphColor) nameEl.style.color = glyphColor;
 		this.renderBadges(cell, badges);
 		nameEl.addEventListener('click', (event) =>
 			this.callbacks.onFileClick(file, event),
@@ -704,6 +724,9 @@ export class GridView {
 			text,
 		});
 		valueEl.dataset.propertyType = 'text';
+		// U121-027: mtime and ctime share `vaultman-file-date`, so the column id
+		// is the only identity a targeted cell patch can address.
+		valueEl.dataset.cell = column.id;
 	}
 
 	private visibleExtension(file: TFile): string {

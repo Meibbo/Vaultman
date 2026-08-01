@@ -15,10 +15,6 @@
 	function initFilesPanel(el: HTMLElement) {
 		fileList = new FilesExplorerPanel(el, plugin, onSelectionChange);
 		fileList.load();
-		fileList.render(
-			plugin.filterService.filteredVaultFiles,
-			plugin.app.vault.getFiles().length,
-		);
 		return {
 			destroy() {
 				fileList?.unload();

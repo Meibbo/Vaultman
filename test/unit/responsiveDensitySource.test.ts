@@ -7,10 +7,12 @@ import nodeTableSource from '../../src/components/layout/viewNodeTable.ts?raw';
 import treeSource from '../../src/components/layout/viewTree.ts?raw';
 
 describe('responsive density source guards', () => {
-	it('feeds measured frame width into the Filters page', () => {
+	it('feeds measured frame width into the Filters provider projection', () => {
 		expect(frameSource).toContain('let frameWidth = $state(0)');
 		expect(frameSource).toContain('frameWidth = w');
+		expect(frameSource).toContain('<FiltersPage');
 		expect(frameSource).toContain('{frameWidth}');
+		expect(frameSource).toContain('publishFiltersPanelWidgetState');
 	});
 
 	it('keeps virtual geometry aligned with the mobile density profile', () => {

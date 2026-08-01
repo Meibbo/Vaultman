@@ -185,6 +185,37 @@ describe('Native search adapter helpers', () => {
 		expect(lateMs).toBeLessThan(Math.max(earlyMs * 4, 50));
 	});
 
+	it('never reports fewer matches than it already published in this run', () => {
+		// Resuming a large search made the count dip before climbing again. The
+		// total is derived from whatever inputs a publish happens to carry, and a
+		// publish over a partial set — one that has not yet been folded onto the
+		// retained floor — reports a smaller number than the one before it.
+		//
+		// Within a single run the count only grows. A new query resets the floor
+		// along with the retained matches.
+		const partial = buildNativeSearchPreview(
+			[{ file: makeFile('a.md'), content: 'aa', offsets: [[0, 1]] }],
+			true,
+			undefined,
+			{ totalFloor: 900 },
+		);
+		expect(partial.totalMatches).toBe(900);
+
+		const grown = buildNativeSearchPreview(
+			[
+				{
+					file: makeFile('a.md'),
+					content: 'aaa',
+					offsets: Array.from({ length: 1200 }, (_, i) => [i, i + 1] as [number, number]),
+				},
+			],
+			true,
+			undefined,
+			{ totalFloor: 900 },
+		);
+		expect(grown.totalMatches).toBe(1200);
+	});
+
 	it('reuses a file entry across polls when its matches have not moved', () => {
 		// A scan publishes every 150ms and rebuilt every snippet of every file
 		// each time. At 65765 matches that is ~200k string allocations per poll,

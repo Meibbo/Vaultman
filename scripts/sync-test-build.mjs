@@ -18,6 +18,15 @@ for (const target of syncTargets) {
 	}
 }
 
+/**
+ * U121-029: a failed copy used to be swallowed into a one-line warning above a
+ * "Synced test build artifacts to:" banner that named the target anyway — so a
+ * build that never reached the vault still read as a success, and the dev
+ * smoke-tested a stale plugin. Failures are now collected, reported with their
+ * real error code, and turned into a non-zero exit.
+ */
+const failures = [];
+
 for (const artifactName of artifactNames) {
 	const sourcePath = path.join(root, artifactName);
 	await stat(sourcePath);
@@ -26,14 +35,25 @@ for (const artifactName of artifactNames) {
 	for (const target of syncTargets) {
 		try {
 			await cp(sourcePath, path.join(target, artifactName), { force: true });
-		} catch {
-			console.warn(
-				`Warning: Could not copy ${artifactName} to target: ${target}`,
-			);
+		} catch (error) {
+			failures.push({ artifactName, target, error });
 		}
 	}
 }
 
-console.log('Synced test build artifacts to:');
-console.log(`- ${distBuildDir}`);
-console.log(`- ${pluginDevTarget}`);
+if (failures.length > 0) {
+	console.error('Failed to sync test build artifacts:');
+	for (const { artifactName, target, error } of failures) {
+		console.error(
+			`- ${artifactName} -> ${target}: ${error.code ?? 'ERROR'} ${error.message}`,
+		);
+	}
+	console.error(
+		`The build is still in ${distBuildDir}; copy it manually or re-run once the target is writable.`,
+	);
+	process.exitCode = 1;
+} else {
+	console.log('Synced test build artifacts to:');
+	console.log(`- ${distBuildDir}`);
+	console.log(`- ${pluginDevTarget}`);
+}

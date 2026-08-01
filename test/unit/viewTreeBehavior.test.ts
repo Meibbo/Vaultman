@@ -208,6 +208,7 @@ class TinyElement {
 
 vi.mock('obsidian', () => ({
 	Platform: { isMobile: false },
+	getIcon: () => ({}),
 	setIcon: (el: TinyElement, icon: string) => {
 		el.createEl('svg', { cls: `svg-icon ${icon}` });
 	},
@@ -233,6 +234,39 @@ describe('UnifiedTreeView behavior', () => {
 			},
 			cancelAnimationFrame: () => {},
 		});
+	});
+
+	it('prepares only virtual-window nodes before their row signatures render', async () => {
+		const { UnifiedTreeView } =
+			await import('../../src/components/layout/viewTree');
+		const container = new TinyElement('div') as unknown as HTMLElement;
+		const view = new UnifiedTreeView(container);
+		const nodes = Array.from({ length: 1_000 }, (_, index) => ({
+			id: `file:${index}`,
+			label: `File ${index}`,
+			depth: 0,
+			meta: {},
+			children: [],
+		}));
+		const prepared: string[] = [];
+
+		view.render({
+			nodes,
+			expandedIds: new Set<string>(),
+			prepareNode: (node) => {
+				prepared.push(node.id);
+				node.icon = 'lucide-file';
+			},
+			onToggle: () => {},
+			onRowClick: () => {},
+			onContextMenu: () => {},
+		});
+
+		expect(prepared.length).toBeGreaterThan(0);
+		expect(prepared.length).toBeLessThan(nodes.length);
+		expect(
+			(container.querySelector('.lucide-file') as unknown as TinyElement | null),
+		).not.toBeNull();
 	});
 
 	it('updates the native collapse caret in place so Obsidian can animate it', async () => {
@@ -701,5 +735,56 @@ describe('UnifiedTreeView behavior', () => {
 		const active = tinyContainer.findByDataId('note-99.md');
 		expect(active).not.toBeNull();
 		expect(active?.classList.contains('is-active')).toBe(true);
+	});
+
+	it('repaints a recycled row when only labelColor changes', async () => {
+		const { UnifiedTreeView } =
+			await import('../../src/components/layout/viewTree');
+		const container = new TinyElement('div');
+		const view = new UnifiedTreeView(
+			container as unknown as HTMLElement,
+		);
+		const options = {
+			expandedIds: new Set<string>(),
+			onToggle: () => {},
+			onRowClick: () => {},
+			onContextMenu: () => {},
+		};
+
+		view.render({
+			...options,
+			nodes: [
+				{
+					id: 'Alpha.md',
+					label: 'Alpha',
+					depth: 0,
+					meta: {},
+					labelColor: '#111111',
+				},
+			],
+		});
+		const firstLabel = container.querySelector(
+			'.vaultman-tree-label',
+		) as unknown as TinyElement | null;
+
+		view.render({
+			...options,
+			nodes: [
+				{
+					id: 'Alpha.md',
+					label: 'Alpha',
+					depth: 0,
+					meta: {},
+					labelColor: '#222222',
+				},
+			],
+		});
+		const secondLabel = container.querySelector(
+			'.vaultman-tree-label',
+		) as unknown as TinyElement | null;
+
+		expect(firstLabel?.style.color).toBe('#111111');
+		expect(secondLabel?.style.color).toBe('#222222');
+		expect(secondLabel).not.toBe(firstLabel);
 	});
 });

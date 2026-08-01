@@ -2835,6 +2835,19 @@ body.vaultman-bases-column-separators table th {
   will-change: transform;
 }
 
+.vaultman-pages-viewport > .vaultman-page-container {
+  flex: 1 1 auto;
+  min-height: 0;
+  height: auto;
+}
+
+.vaultman-panel-widget-host {
+  position: relative;
+  z-index: 15;
+  flex: 0 0 auto;
+  width: 100%;
+}
+
 .vaultman-page {
   display: flex;
   flex-direction: column;
@@ -2870,6 +2883,14 @@ body.vaultman-bases-column-separators table th {
   align-self: center;
 }
 
+.vaultman-panel-widget-tools-measure {
+  position: absolute;
+  visibility: hidden;
+  pointer-events: none;
+  inline-size: var(--clickable-icon-size);
+  block-size: var(--clickable-icon-size);
+}
+
 .vaultman-filters-header .nav-action-button.is-disabled {
   opacity: 0.45;
   pointer-events: none;
@@ -2879,8 +2900,11 @@ body.vaultman-bases-column-separators table th {
   display: flex;
   align-items: center;
   justify-content: center;
+  flex-wrap: nowrap;
   gap: 2px;
   width: 100%;
+  min-width: 0;
+  overflow: hidden;
   background: transparent;
 }
 
@@ -2890,7 +2914,12 @@ body.vaultman-bases-column-separators table th {
    node scrolls it into view. */
 .vaultman-filters-actions--scroll {
 	position: relative;
+	/* U121-029: `safe center` centres the line while it fits and falls back to
+	   start alignment the moment it overflows, so the first node stays reachable
+	   instead of being clipped off the scroll origin. The plain `flex-start`
+	   above it is the fallback for engines without the safe/unsafe keywords. */
 	justify-content: flex-start;
+	justify-content: safe center;
 	flex-wrap: nowrap;
 	overflow-x: auto;
 	overflow-y: hidden;
@@ -2908,13 +2937,12 @@ body.vaultman-bases-column-separators table th {
 	scroll-margin-inline: 12px;
 }
 
-.vaultman-filters-actions--scroll > :first-child {
-	margin-inline-start: auto;
-}
-
-.vaultman-filters-actions--scroll > :last-child {
-	margin-inline-end: auto;
-}
+/* U121-029: the auto-margin centring that used to live here keyed off
+   `:first-child` / `:last-child`, i.e. DOM order — but every node carries an
+   explicit `order`, and the DOM last child is the absolutely positioned Tools
+   measuring probe. The margins therefore landed on arbitrary visual positions
+   and left a gap in the middle of the bar. `justify-content: safe center` on
+   the container replaces them. */
 
 .vaultman-filters-actions--wrap {
   align-content: center;
@@ -2966,6 +2994,19 @@ body.vaultman-bases-column-separators table th {
 
 .is-phone .workspace-drawer .workspace-leaf-content[data-type="vaultman-frame"] .vaultman-page {
   position: relative;
+}
+
+/* U121-029: the phone action bar is `position: absolute; bottom: 0`, so it needs
+   a full-height containing block. Before the panelWidget refactor the toolbar
+   lived inside `.vaultman-page` and got one; now it lives in
+   `.vaultman-panel-widget-host`, a `position: relative` flex item that on phone
+   is only as tall as the 4px collapsed header — the bar collapsed into that
+   strip and read as "the toolbar does not render on mobile". Making the host
+   un-positioned hands the bar back to `.vaultman-pages-viewport`, which is
+   `position: relative` and full height, so it lands at the bottom of the frame
+   exactly as it did before. Desktop keeps the positioned host. */
+.is-phone .workspace-drawer .workspace-leaf-content[data-type="vaultman-frame"] .vaultman-panel-widget-host {
+  position: static;
 }
 
 .is-phone .workspace-drawer .workspace-leaf-content[data-type="vaultman-frame"] .vaultman-filters-actions.nav-buttons-container {
@@ -3042,22 +3083,40 @@ body.vaultman-bases-column-separators table th {
   border-bottom-color: var(--background-modifier-border);
 }
 
-@container (max-width: 799px) {
-  .vaultman-filters-header--minimal .vaultman-filters-actions {
-    flex-wrap: wrap;
-  }
+/* U121-029: the expanded search field as a measured second row.
+   This used to be `@container (max-width: 799px)`, which set `flex-wrap: wrap`
+   on the action row and `flex: 1 0 100%` on the field. Two problems: 799px is
+   wider than any Obsidian sidebar, so the rule was effectively always on; and
+   wrapping the action row breaks the overflow packer, which measures one line —
+   so the Tools button was the thing that wrapped while the field stayed inline.
+   The decision is now `searchNeedsOwnRow()` in logicPanelWidgetOverflow, and the
+   field renders as a sibling row instead of a wrapped flex item. The action row
+   stays `nowrap` in every strategy. */
+.vaultman-filters-header--minimal {
+  flex-wrap: wrap;
+}
 
-  .vaultman-filters-header--minimal .vaultman-filters-header-search-pill {
-    order: 100;
-    flex: 1 0 100%;
-    width: 100%;
-    max-width: none;
-    height: 34px;
-    margin-top: 4px;
-    border-radius: var(--radius-s);
-    gap: 8px;
-    padding-inline: 8px;
-  }
+.vaultman-filters-search-row {
+  flex: 0 0 auto;
+  width: 100%;
+  display: flex;
+  align-items: center;
+  margin-top: 4px;
+}
+
+.vaultman-filters-header-search-pill--row {
+  flex: 1 1 auto;
+  width: 100%;
+  max-width: none;
+  height: 34px;
+  border-radius: 0;
+  gap: 8px;
+  padding-inline: 8px;
+}
+
+/* Phone already owns one dedicated search row above the collapsed header. */
+.is-phone .workspace-drawer .vaultman-filters-search-row {
+  display: none;
 }
 
 .is-phone .workspace-drawer .workspace-leaf-content[data-type="vaultman-frame"] .vaultman-bottom-nav {
@@ -3075,7 +3134,13 @@ body.vaultman-bases-column-separators table th {
   min-width: var(--clickable-icon-size);
   max-width: min(132px, 48vw);
   gap: 5px;
-  padding: 0 8px;
+  /* U121-029: only widen. `padding: 0 8px` rewrote the shorthand and zeroed the
+     block padding a `.clickable-icon` relies on for its height, so a labelled
+     node lost height (and with it its hover rectangle) instead of just getting
+     wider. Inline-only padding plus an explicit minimum block size keeps the
+     node the same height as its icon-only siblings. */
+  padding-inline: 8px;
+  min-block-size: var(--clickable-icon-size);
 }
 
 .vaultman-header-action-icon {
@@ -3134,6 +3199,11 @@ body.vaultman-bases-column-separators table th {
   height: 26px;
   gap: 4px;
   transition: border-color 0.12s;
+}
+
+.vaultman-filters-header-search-pill--inline,
+.vaultman-filters-header-search-pill--row {
+  border-radius: 0;
 }
 
 .vaultman-filters-header-search-pill:focus-within {
@@ -6952,4 +7022,58 @@ button.vaultman-content-scope-hint:focus-visible {
 	width: 22px;
 	height: 22px;
 	padding: 3px;
+}
+
+/* ─── Rainbow glyph palettes (U121-029) ────────────────────────────────────
+   The reference snippet (FAS — File Explorer Rainbow) declares
+   `--color-rainbow-1..10` twice: dark tones under `.theme-light` and bright
+   tones under `.theme-dark`, because one fixed palette cannot have correct
+   contrast in both. Vaultman used to freeze the snippet's light values as its
+   only "strong" palette, which is why the rainbow glyphs looked darkened in a
+   dark vault.
+
+   Each slot now chains through `--color-rainbow-N` first, so a vault with the
+   snippet enabled gets glyphs that match its own core file explorer exactly,
+   and a theme can retint ours by declaring the same variables. The literals are
+   the snippet's own per-theme values. `logicGlyphColor.ts` emits
+   `var(--vaultman-rainbow-N)` / `var(--vaultman-rainbow-pastel-N)`. */
+.theme-light {
+  --vaultman-rainbow-1: var(--color-rainbow-1, hsl(18, 60%, 40%));
+  --vaultman-rainbow-2: var(--color-rainbow-2, hsl(54, 60%, 40%));
+  --vaultman-rainbow-3: var(--color-rainbow-3, hsl(90, 60%, 40%));
+  --vaultman-rainbow-4: var(--color-rainbow-4, hsl(126, 60%, 40%));
+  --vaultman-rainbow-5: var(--color-rainbow-5, hsl(162, 60%, 40%));
+  --vaultman-rainbow-6: var(--color-rainbow-6, hsl(198, 60%, 40%));
+  --vaultman-rainbow-7: var(--color-rainbow-7, hsl(234, 60%, 40%));
+  --vaultman-rainbow-8: var(--color-rainbow-8, hsl(270, 60%, 40%));
+  --vaultman-rainbow-9: var(--color-rainbow-9, hsl(306, 60%, 40%));
+  --vaultman-rainbow-10: var(--color-rainbow-10, hsl(342, 60%, 40%));
+}
+
+.theme-dark {
+  --vaultman-rainbow-1: var(--color-rainbow-1, hsl(18, 70%, 60%));
+  --vaultman-rainbow-2: var(--color-rainbow-2, hsl(54, 70%, 60%));
+  --vaultman-rainbow-3: var(--color-rainbow-3, hsl(90, 70%, 60%));
+  --vaultman-rainbow-4: var(--color-rainbow-4, hsl(126, 70%, 60%));
+  --vaultman-rainbow-5: var(--color-rainbow-5, hsl(162, 70%, 60%));
+  --vaultman-rainbow-6: var(--color-rainbow-6, hsl(198, 70%, 60%));
+  --vaultman-rainbow-7: var(--color-rainbow-7, hsl(234, 70%, 60%));
+  --vaultman-rainbow-8: var(--color-rainbow-8, hsl(270, 70%, 60%));
+  --vaultman-rainbow-9: var(--color-rainbow-9, hsl(306, 70%, 60%));
+  --vaultman-rainbow-10: var(--color-rainbow-10, hsl(342, 70%, 60%));
+}
+
+/* Pastel is an explicit user choice, so it stays the same in both themes —
+   the snippet's own dark-theme tones. */
+body {
+  --vaultman-rainbow-pastel-1: hsl(0, 100%, 84%);
+  --vaultman-rainbow-pastel-2: hsl(33, 100%, 82%);
+  --vaultman-rainbow-pastel-3: hsl(62, 100%, 86%);
+  --vaultman-rainbow-pastel-4: hsl(110, 100%, 87%);
+  --vaultman-rainbow-pastel-5: hsl(193, 100%, 79%);
+  --vaultman-rainbow-pastel-6: hsl(217, 100%, 81%);
+  --vaultman-rainbow-pastel-7: hsl(249, 100%, 85%);
+  --vaultman-rainbow-pastel-8: hsl(270, 100%, 87%);
+  --vaultman-rainbow-pastel-9: hsl(300, 100%, 89%);
+  --vaultman-rainbow-pastel-10: hsl(324, 100%, 83%);
 }

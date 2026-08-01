@@ -1,7 +1,10 @@
 import type { TFile, TFolder, Vault } from 'obsidian';
 import { describe, expect, it } from 'vitest';
 
-import { FilesGridView } from '../../src/components/layout/viewFilesGrid';
+import {
+	FilesGridView,
+	type FilesGridViewCallbacks,
+} from '../../src/components/layout/viewFilesGrid';
 import {
 	buildAnchoredGridWindow,
 	buildVirtualGridWindow,
@@ -132,13 +135,18 @@ interface Harness {
 	contentEl: StubEl;
 }
 
-function makeHarness(fileCount: number, cells: string[]): Harness {
+function makeHarness(
+	fileCount: number,
+	cells: string[],
+	overrides: Partial<FilesGridViewCallbacks> = {},
+): Harness {
 	const container = new StubEl();
 	container.clientWidth = 120;
 	const view = new FilesGridView(container as unknown as HTMLElement, {
 		onContextMenu: () => {},
 		onSelectionChange: () => {},
 		onFileClick: () => {},
+		...overrides,
 	});
 	view.setVisibleCells(new Set(cells));
 	view.render(Array.from({ length: fileCount }, (_, i) => makeFile(i)));
@@ -169,6 +177,30 @@ function renderedPaths(contentEl: StubEl): string[] {
 		.map((c) => c.dataset.path)
 		.filter((p): p is string => Boolean(p));
 }
+
+describe('FilesGridView glyph projection', () => {
+	it('uses the global card index and glyph color wins the visible name', () => {
+		const harness = makeHarness(40, ['name'], {
+			getFileIcon: (_file, defaultIcon) => ({
+				icon: defaultIcon,
+				color: '#abcdef',
+			}),
+			getGlyphColor: (_file, index) =>
+				index === 20 ? '#202020' : '#010101',
+		});
+		harness.scrollEl.scrollTop = 20 * 72;
+
+		harness.view.refreshViewport();
+
+		const card = harness.contentEl.children.find(
+			(candidate) => candidate.dataset.path === 'note-0020.md',
+		);
+		const name = card?.children.find((candidate) =>
+			candidate.classes.has('vaultman-files-grid-card-name'),
+		);
+		expect(name?.style.color).toBe('#202020');
+	});
+});
 
 describe('buildAnchoredGridWindow (pure geometry contract)', () => {
 	it('keeps the bottom anchor when the row height grows', () => {
