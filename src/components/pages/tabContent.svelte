@@ -32,6 +32,7 @@
 		onContentContextMenu,
 		onCopySearchResults,
 		onBookmarkSearch,
+		mountCoreResults,
 	}: {
 		contentFind: string;
 		contentReplace: string;
@@ -62,10 +63,37 @@
 		onCopySearchResults?: (event: MouseEvent) => void;
 		/** U121-019 #51: adds a `{type:'search'}` item through the Bookmarks plugin. */
 		onBookmarkSearch?: () => void;
+		/**
+		 * U121-019 #51: hand this element to Obsidian's own `SearchResultDOM`.
+		 * Returns false when core search is unavailable, and the local list below
+		 * renders instead. Core's DOM holds the whole result set and renders a
+		 * window of it, which is the virtualisation our `MAX_FILES` / `MAX_SNIPPETS`
+		 * caps were standing in for.
+		 */
+		mountCoreResults?: (el: HTMLElement, scrollEl: HTMLElement) => boolean;
 	} = $props();
 
 	let contentReplaceOpen = $state(false);
 	let contentResultsEl = $state<HTMLElement | null>(null);
+	let coreResultsMounted = $state(false);
+	let contentScrollEl = $state<HTMLElement | null>(null);
+
+	/**
+	 * `{@attach}`, not `$effect`: the element is handed over exactly once when it
+	 * enters the document and released when it leaves. Mounting from an effect
+	 * would rebuild core's result DOM on every unrelated re-run.
+	 */
+	function attachCoreResults(el: HTMLElement) {
+		// The scroll element is the `search-result-container` above, not this div.
+		// Core's `infinityScroll` measures the element it is given: handed a
+		// container with `overflow: visible` it sees an unbounded viewport and
+		// renders every row, which is the virtualisation quietly not happening.
+		const scrollEl = contentScrollEl ?? el;
+		coreResultsMounted = mountCoreResults?.(el, scrollEl) ?? false;
+		return () => {
+			coreResultsMounted = false;
+		};
+	}
 
 	$effect(() => {
 		void contentRevealRevision;
@@ -237,6 +265,7 @@
 {/if}
 {#if contentPreviewResult !== null}
 	<div
+		bind:this={contentScrollEl}
 		class={`search-result-container mod-global-search node-insert-event${contentPreviewResult.isLoading ? ' is-loading' : ''}`}
 	>
 		<div
@@ -341,7 +370,21 @@
 				{/if}
 			</div>
 		</div>
-		{#if contentPreviewOpen && contentPreviewResult.totalMatches > 0}
+		{#if contentPreviewOpen && mountCoreResults}
+			<!-- U121-019 #51: Obsidian's own result DOM renders here. It owns an
+			     `infinityScroll`, so it holds every matching file and renders only a
+			     window of it — measured live at 737 files / 4129 matches with two rows
+			     in the document. That is what our `MAX_FILES = 200` and
+			     `MAX_SNIPPETS = 3` were substituting for, and neither applies on this
+			     path. The local list below stays as the fallback for a vault where
+			     core search is unavailable, where the caps still do apply because
+			     there is no virtualiser behind them. -->
+			<div
+				class="vaultman-content-core-results"
+				{@attach attachCoreResults}
+			></div>
+		{/if}
+		{#if contentPreviewOpen && !coreResultsMounted && contentPreviewResult.totalMatches > 0}
 			<div class="search-results-children" bind:this={contentResultsEl}>
 				{#each sortedContentFiles as fileResult (fileResult.file.path)}
 					{@const pendingRename = queuedRenameBadge(fileResult.file.path)}

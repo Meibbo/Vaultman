@@ -30,6 +30,10 @@
 	import { NativeSearchAdapter } from '../../services/serviceNativeSearchAdapter';
 	import { bookmarkSearchQuery } from '../../services/serviceCoreBookmarks';
 	import {
+		CoreResultDomBridge,
+		isCoreResultDomAvailable,
+	} from '../../services/serviceCoreResultDom';
+	import {
 		sortContentPreviewFiles,
 		type ContentSortBy,
 		type ContentSortDirection,
@@ -267,6 +271,28 @@
 	}
 
 	const nativeSearchAdapter = createNativeSearchAdapter();
+	// U121-019 #51: Obsidian's own result DOM renders the Text results. It holds
+	// the full set and renders a window of it, so `MAX_FILES` / `MAX_SNIPPETS` do
+	// not apply on this path. Those caps stay on the local fallback list, which
+	// has no virtualiser behind it.
+	const coreResultDom = new CoreResultDomBridge(untrack(() => plugin).app);
+
+	function mountCoreResults(el: HTMLElement): boolean {
+		if (!isCoreResultDomAvailable(plugin.app)) return false;
+		const mounted = coreResultDom.mount(
+			el,
+			translate('content.no_matches'),
+			el,
+		);
+		if (mounted) publishCoreResults();
+		return mounted;
+	}
+
+	/** Hand core everything the adapter is holding — uncapped, by design. */
+	function publishCoreResults(): void {
+		if (!coreResultDom.mounted) return;
+		coreResultDom.render(nativeSearchAdapter.retainedInputs());
+	}
 
 	onMount(() => {
 		const { workspace, vault } = plugin.app;
@@ -794,6 +820,7 @@
 	function clearContentSearchState(): void {
 		nativeSearchAdapter.cancel();
 		nativeSearchAdapter.resetRetained();
+		coreResultDom.clear();
 		contentScanCursor = 0;
 		contentSearchLaunchToken = '';
 		contentSearchRun = createTextSearchRun({
@@ -869,6 +896,8 @@
 				contentSearchLaunchToken = '';
 				nativeSearchAdapter.resetRetained();
 				contentScanCursor = 0;
+				// The rows core holds belong to the query that just changed.
+				coreResultDom.clear();
 			}
 			contentSearchRun = reconciled;
 		}
@@ -876,6 +905,7 @@
 
 		if (run.phase === 'idle') {
 			contentPreviewResult = null;
+			coreResultDom.clear();
 			contentRegexError = '';
 			collapsedContentFilePaths = [];
 			plugin.filterService.setContentSearchRule('', []);
@@ -1002,6 +1032,10 @@
 					onUpdate: (result) => {
 						contentPreviewResult = result;
 						contentPreviewOpen = true;
+						// Core's DOM gets the uncapped set; `contentPreviewResult`
+						// above still feeds the header count and the fallback list.
+						publishCoreResults();
+						coreResultDom.setLoading(result.isLoading === true);
 						if (!result.isLoading) {
 							// Settling short scans as "paused" made the control invert:
 							// the machine was already paused, so the dev's next click
@@ -1035,7 +1069,10 @@
 		};
 	});
 
-	onDestroy(() => nativeSearchAdapter.destroy());
+	onDestroy(() => {
+		coreResultDom.destroy();
+		nativeSearchAdapter.destroy();
+	});
 
 	// U121-019 #51: both are bridges to affordances core already ships. Neither
 	// belongs in the renderer, so the buttons in tabContent only call these.
@@ -1230,6 +1267,7 @@
 				onContentContextMenu={openContentContextMenu}
 				onCopySearchResults={copyContentSearchResults}
 				onBookmarkSearch={bookmarkContentSearch}
+				{mountCoreResults}
 			/>
 		</div>
 	{/if}
