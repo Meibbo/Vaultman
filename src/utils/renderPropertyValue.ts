@@ -1,5 +1,11 @@
 import { setIcon, type App } from 'obsidian';
 
+import {
+	LIST_WIDGETS,
+	resolveCorePropertyWidget,
+	type CorePropertyWidget,
+} from '../logic/propertyValueCoercion';
+
 const WIKILINK = /^\[\[([^\]|#]+)(?:#[^\]|]+)?(?:\|([^\]]+))?\]\]$/;
 
 /**
@@ -9,20 +15,14 @@ const WIKILINK = /^\[\[([^\]|#]+)(?:#[^\]|]+)?(?:\|([^\]]+))?\]\]$/;
  */
 const DATE_COMMIT_DELAY_MS = 700;
 
-/**
- * The eight property widget types Obsidian Core ships. Core's own `property:set`
- * handler declares `text|list|number|checkbox|date|datetime` as assignable, and
- * `tags`/`aliases` are the derived kinds it renders separately.
- */
-export type CorePropertyWidget =
-	| 'text'
-	| 'multitext'
-	| 'number'
-	| 'checkbox'
-	| 'date'
-	| 'datetime'
-	| 'tags'
-	| 'aliases';
+// The widget vocabulary moved to `logic/propertyValueCoercion`: the inline edit
+// has to coerce a committed string back into the property's runtime type, and
+// that decision must not depend on a module that imports `obsidian`. The
+// renderer keeps re-exporting it so its own importers are unaffected.
+export {
+	resolveCorePropertyWidget,
+	type CorePropertyWidget,
+} from '../logic/propertyValueCoercion';
 
 export interface PropertyValueRenderContext {
 	container: HTMLElement;
@@ -36,49 +36,6 @@ export interface PropertyValueRenderContext {
 }
 
 type PropertyValueRenderer = (context: PropertyValueRenderContext) => void;
-
-const LIST_WIDGETS: ReadonlySet<CorePropertyWidget> = new Set([
-	'tags',
-	'aliases',
-	'multitext',
-]);
-
-const WIDGET_ALIASES: Readonly<Record<string, CorePropertyWidget>> = {
-	list: 'multitext',
-	multitext: 'multitext',
-	boolean: 'checkbox',
-	toggle: 'checkbox',
-	numeric: 'number',
-	'date-time': 'datetime',
-	date_time: 'datetime',
-	cssclasses: 'multitext',
-};
-
-const KNOWN_WIDGETS: ReadonlySet<string> = new Set<CorePropertyWidget>([
-	'text',
-	'multitext',
-	'number',
-	'checkbox',
-	'date',
-	'datetime',
-	'tags',
-	'aliases',
-]);
-
-/**
- * Resolves whatever `PropertyInfo.widget`/`type` reported into one of the eight
- * Core kinds. An unrecognized type renders as text rather than disappearing,
- * because a value the plugin cannot classify is still a value the user wrote.
- */
-export function resolveCorePropertyWidget(
-	propType: string | undefined,
-): CorePropertyWidget {
-	const normalized = (propType ?? '').trim().toLowerCase();
-	const aliased = WIDGET_ALIASES[normalized];
-	if (aliased) return aliased;
-	if (KNOWN_WIDGETS.has(normalized)) return normalized as CorePropertyWidget;
-	return 'text';
-}
 
 /**
  * The editable text node. It carries no styling of its own: in the projection

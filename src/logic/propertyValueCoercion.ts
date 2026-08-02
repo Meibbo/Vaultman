@@ -1,5 +1,63 @@
 import type { PropertyType } from '../types/typeOps';
 
+/**
+ * The eight property widget types Obsidian Core ships. Core's own `property:set`
+ * handler declares `text|list|number|checkbox|date|datetime` as assignable, and
+ * `tags`/`aliases` are the derived kinds it renders separately.
+ */
+export type CorePropertyWidget =
+	| 'text'
+	| 'multitext'
+	| 'number'
+	| 'checkbox'
+	| 'date'
+	| 'datetime'
+	| 'tags'
+	| 'aliases';
+
+export const LIST_WIDGETS: ReadonlySet<CorePropertyWidget> = new Set([
+	'tags',
+	'aliases',
+	'multitext',
+]);
+
+const WIDGET_ALIASES: Readonly<Record<string, CorePropertyWidget>> = {
+	list: 'multitext',
+	multitext: 'multitext',
+	boolean: 'checkbox',
+	toggle: 'checkbox',
+	numeric: 'number',
+	'date-time': 'datetime',
+	date_time: 'datetime',
+	cssclasses: 'multitext',
+};
+
+const KNOWN_WIDGETS: ReadonlySet<string> = new Set<CorePropertyWidget>([
+	'text',
+	'multitext',
+	'number',
+	'checkbox',
+	'date',
+	'datetime',
+	'tags',
+	'aliases',
+]);
+
+/**
+ * Resolves whatever `PropertyInfo.widget`/`type` reported into one of the eight
+ * Core kinds. An unrecognized type renders as text rather than disappearing,
+ * because a value the plugin cannot classify is still a value the user wrote.
+ */
+export function resolveCorePropertyWidget(
+	propType: string | undefined,
+): CorePropertyWidget {
+	const normalized = (propType ?? '').trim().toLowerCase();
+	const aliased = WIDGET_ALIASES[normalized];
+	if (aliased) return aliased;
+	if (KNOWN_WIDGETS.has(normalized)) return normalized as CorePropertyWidget;
+	return 'text';
+}
+
 const FALSEY_CHECKBOX_VALUES = new Set([
 	'false',
 	'0',
@@ -165,6 +223,34 @@ export function parsePropertyValue(raw: string, type: PropertyType): unknown {
 		case 'text':
 		default:
 			return raw;
+	}
+}
+
+/**
+ * Coerces a value a widget just committed back into the runtime type its
+ * property actually holds. Every inline control reports a string — a checkbox
+ * reports `'true'`, a number field reports `'42'` — and writing that string into
+ * the frontmatter makes Obsidian re-infer the property's type from the data,
+ * which silently converts a boolean property into text.
+ *
+ * A value node under a list property is ONE element of that list, so list-shaped
+ * widgets coerce like text: parsing the element as a list would nest an array
+ * inside the array on write.
+ */
+export function coercePropertyValueForWidget(
+	raw: string,
+	propType: string | undefined,
+): unknown {
+	const widget = resolveCorePropertyWidget(propType);
+	switch (widget) {
+		// The `LIST_WIDGETS` members, spelled out so the remaining widgets narrow
+		// to the assignable `PropertyType` set `parsePropertyValue` accepts.
+		case 'tags':
+		case 'aliases':
+		case 'multitext':
+			return raw;
+		default:
+			return parsePropertyValue(raw, widget);
 	}
 }
 

@@ -297,6 +297,16 @@
 
 	let activePage = $state(initialPageOrder[0] ?? 'filters');
 
+	type FiltersTab =
+		| 'files'
+		| 'tags'
+		| 'props'
+		| 'content'
+		| 'snippets'
+		| 'plugins';
+	type SearchTab = Exclude<FiltersTab, 'content'>;
+	let filtersActiveTab = $state<FiltersTab>('files');
+
 	const sceneInstanceId = untrack(
 		() => plugin.manifest.id + '-' + Math.random().toString(36).slice(2, 9),
 	);
@@ -733,16 +743,6 @@
 	let snippetsExplorer = $state<SnippetsExplorerPanel | undefined>(undefined);
 	let pluginsExplorer = $state<PluginsExplorerPanel | undefined>(undefined);
 
-	// ─── Filters page state ──────────────────────────────────────────────────
-	type FiltersTab =
-		| 'files'
-		| 'tags'
-		| 'props'
-		| 'content'
-		| 'snippets'
-		| 'plugins';
-	type SearchTab = Exclude<FiltersTab, 'content'>;
-	let filtersActiveTab = $state<FiltersTab>('files');
 
 	// ─── Floating TOC (FTC-001/002 + toggle/scope-drill) ──────────────────────
 	// Explorer panels notify after each render; the rail re-derives its glyphs.

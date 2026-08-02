@@ -91,6 +91,7 @@ import {
 } from '../../logic/logicInteractionMode';
 import {
 	availablePropertyValueConversions,
+	coercePropertyValueForWidget,
 	convertPropertyValue,
 	parsePropertyValue,
 	PROPERTY_VALUE_CONVERSION_OPTIONS,
@@ -271,7 +272,11 @@ export class PropsExplorerPanel extends Component {
 			when: (ctx) => (ctx.node.meta as PropMeta).isValueNode,
 			run: (ctx) => {
 				const meta = ctx.node.meta as PropMeta;
-				return this._renameValue(meta.propName, meta.rawValue ?? '');
+				return this._renameValue(
+					meta.propName,
+					meta.rawValue ?? '',
+					meta.propType,
+				);
 			},
 		});
 
@@ -1106,7 +1111,17 @@ export class PropsExplorerPanel extends Component {
 				// The context menu's Rename reaches the same vault path through a
 				// modal; inline editing is a second way to enter the value, not a
 				// second way to write it.
-				void this._replaceValueInVault(node.meta.propName, rawValue, next);
+				//
+				// Every widget reports its commit as a string, so the value is
+				// coerced back to the property's own runtime type here. Writing the
+				// string verbatim let a checkbox toggle hand a boolean property the
+				// text `"true"`, and Obsidian re-inferred the property's type from
+				// that data — the same flip was available on number and date.
+				void this._replaceValueInVault(
+					node.meta.propName,
+					rawValue,
+					coercePropertyValueForWidget(next, propType),
+				);
 			},
 		});
 		return true;
@@ -1817,13 +1832,20 @@ export class PropsExplorerPanel extends Component {
 	private async _renameValue(
 		propName: string,
 		oldValue: string,
+		propType?: string,
 	): Promise<void> {
 		const newVal = await showInputModal(
 			this.plugin.app,
 			`Rename value "${oldValue}" to:`,
 		);
 		if (!newVal) return;
-		await this._replaceValueInVault(propName, oldValue, newVal);
+		// The modal returns a string like every widget does, and writing it
+		// verbatim retyped the property. Same coercion, same reason.
+		await this._replaceValueInVault(
+			propName,
+			oldValue,
+			coercePropertyValueForWidget(newVal, propType),
+		);
 	}
 
 	private async _deleteValue(
