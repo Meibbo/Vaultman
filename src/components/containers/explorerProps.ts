@@ -90,6 +90,15 @@ import {
 	type InteractionMode,
 } from '../../logic/logicInteractionMode';
 import {
+	addToFilesAvailability,
+	applyAddToFile,
+	type AddToFilesTarget,
+} from '../../logic/logicAddToFiles';
+import {
+	buildOperationTargetSet,
+	type OperationTarget,
+} from '../../logic/logicOperationTargetSet';
+import {
 	availablePropertyValueConversions,
 	coercePropertyValueForWidget,
 	convertPropertyValue,
@@ -202,6 +211,27 @@ export class PropsExplorerPanel extends Component {
 					'exclusive',
 				);
 			},
+		});
+
+		// `Add to files` used to exist only as a gesture of `interactionMode='add'`,
+		// which meant it could not carry a selection and had no node_value branch
+		// at all. As an operation it takes the same target set as every other
+		// batch action and states its destination count before it is invoked.
+		svc.registerAction({
+			id: 'prop.add-to-files',
+			nodeTypes: ['prop', 'value'],
+			surfaces: ['panel'],
+			label: () =>
+				translate('explorer.ctx.add_to_files', {
+					count: this._addToFilesDestinationCount(),
+				}),
+			icon: 'lucide-file-plus-2',
+			when: (ctx) =>
+				addToFilesAvailability(
+					this._addToFilesTargets(ctx),
+					this._addToFilesDestinationCount(),
+				).available,
+			run: (ctx) => this._addToFiles(ctx),
 		});
 
 		svc.registerAction({
@@ -609,6 +639,85 @@ export class PropsExplorerPanel extends Component {
 		});
 		this.logic.invalidate();
 		this._render();
+	}
+
+	private _addToFilesDestinationCount(): number {
+		// Read at build time, so the count in the label is the count that runs.
+		return this.plugin.filterService.filteredFiles.length;
+	}
+
+	private _addToFilesTargets(ctx: {
+		node: { id: string; label: string; meta?: unknown };
+	}): AddToFilesTarget[] {
+		const tree = this.logic.getTree();
+		const toTarget = (
+			node: TreeNode<PropMeta> | null,
+		): AddToFilesTarget | null => {
+			const meta = node?.meta;
+			if (!node || !meta) return null;
+			return meta.isValueNode
+				? {
+						id: node.id,
+						kind: 'value',
+						property: meta.propName,
+						rawValue: meta.rawValue ?? node.label,
+						propType: meta.propType,
+					}
+				: { id: node.id, kind: 'prop', property: meta.propName };
+		};
+		const wrap = (
+			target: AddToFilesTarget | null,
+		): OperationTarget<AddToFilesTarget> | null =>
+			target ? { id: target.id, kind: target.kind, node: target } : null;
+
+		const selectedNodes: OperationTarget<AddToFilesTarget>[] = [];
+		for (const id of this.selectedNodeIds) {
+			const wrapped = wrap(toTarget(this._findNode(id, tree)));
+			if (wrapped) selectedNodes.push(wrapped);
+		}
+
+		return buildOperationTargetSet<AddToFilesTarget>({
+			selectedNodes,
+			invokedNode: wrap(toTarget(ctx.node as TreeNode<PropMeta>)),
+		}).targets.map((target) => target.node);
+	}
+
+	private _addToFiles(ctx: {
+		node: { id: string; label: string; meta?: unknown };
+	}): void {
+		const files = this.plugin.filterService.filteredFiles;
+		const targets = this._addToFilesTargets(ctx);
+		const availability = addToFilesAvailability(targets, files.length);
+		if (!availability.available) return;
+		if (!availability.enabled) {
+			new Notice(translate('explorer.ctx.add_to_files.empty'));
+			return;
+		}
+
+		for (const target of targets) {
+			// The Props explorer never produces a tag target; the union narrows
+			// here rather than in the pure module, which serves both providers.
+			if (target.kind === 'tag') continue;
+			const details =
+				target.kind === 'value'
+					? `Add "${target.rawValue}" to "${target.property}" in ${files.length} files`
+					: `Add property "${target.property}" to ${files.length} files`;
+			this.plugin.queueService.addOrRun({
+				type: 'property',
+				property: target.property,
+				action: 'add',
+				details,
+				files,
+				...(target.kind === 'value' ? { value: target.rawValue } : {}),
+				customLogic: true,
+				logicFunc: (_file, fm) => {
+					const outcome = applyAddToFile(target, fm);
+					return outcome.status === 'written' ? outcome.frontmatter : null;
+				},
+			});
+		}
+		this.logic.invalidate();
+		void this._render();
 	}
 
 	private _findNode(

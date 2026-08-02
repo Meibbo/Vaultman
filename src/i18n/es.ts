@@ -594,6 +594,8 @@ export const es: Record<string, string> = {
 	'explorer.ctx.rename': 'Renombrar propiedad',
 	'explorer.ctx.type': 'Tipo de propiedad',
 	'explorer.ctx.change_type': 'Cambiar tipo',
+	'explorer.ctx.add_to_files': 'Agregar a {count} archivos',
+	'explorer.ctx.add_to_files.empty': 'Ningún archivo coincide con el filtro',
 	'explorer.ctx.icon': 'Cambiar ícono (Iconic)',
 	'explorer.ctx.delete_prop': 'Eliminar propiedad',
 	'explorer.ctx.add_value': 'Agregar valor',

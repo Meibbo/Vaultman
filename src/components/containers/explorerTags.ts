@@ -1,6 +1,15 @@
 // src/components/TagsExplorerPanel.ts
 import { Component, App, Keymap, Notice, setIcon } from 'obsidian';
 import { TagsLogic } from '../../logic/logicTags';
+import {
+	addToFilesAvailability,
+	applyAddToFile,
+	type AddToFilesTarget,
+} from '../../logic/logicAddToFiles';
+import {
+	buildOperationTargetSet,
+	type OperationTarget,
+} from '../../logic/logicOperationTargetSet';
 import { tagNameProblemKey, validateTagName } from '../../logic/logicTagName';
 import { DeferredExplorerRender } from '../../logic/logicDeferredExplorerRender';
 import {
@@ -155,6 +164,26 @@ export class TagsExplorerPanel extends Component {
 					'exclusive',
 				);
 			},
+		});
+
+		// The same operation the Props explorer offers: the selected tags unioned
+		// with the invoked one, written into every file the filter produced, with
+		// the destination count stated in the label.
+		svc.registerAction({
+			id: 'tag.add-to-files',
+			nodeTypes: ['tag'],
+			surfaces: ['panel'],
+			label: () =>
+				translate('explorer.ctx.add_to_files', {
+					count: this.plugin.filterService.filteredFiles.length,
+				}),
+			icon: 'lucide-file-plus-2',
+			when: (ctx: MenuCtx) =>
+				addToFilesAvailability(
+					this._addToFilesTargets(ctx),
+					this.plugin.filterService.filteredFiles.length,
+				).available,
+			run: (ctx: MenuCtx) => this._addToFiles(ctx),
 		});
 
 		svc.registerAction({
@@ -553,6 +582,58 @@ export class TagsExplorerPanel extends Component {
 		if (this.viewMode === 'tree') this.view.refreshViewport();
 		else this.tableView?.refreshViewport();
 		this.deferredRender.activate(() => this._render());
+	}
+
+	private _addToFilesTargets(ctx: MenuCtx): AddToFilesTarget[] {
+		const tree = this.logic.getTree();
+		const toTarget = (
+			node: TreeNode<TagMeta> | null,
+		): AddToFilesTarget | null =>
+			node?.meta
+				? { id: node.id, kind: 'tag', tag: node.meta.tagPath }
+				: null;
+		const wrap = (
+			target: AddToFilesTarget | null,
+		): OperationTarget<AddToFilesTarget> | null =>
+			target ? { id: target.id, kind: target.kind, node: target } : null;
+
+		const selectedNodes: OperationTarget<AddToFilesTarget>[] = [];
+		for (const id of this.selectedNodeIds) {
+			const wrapped = wrap(toTarget(this._findNode(id, tree)));
+			if (wrapped) selectedNodes.push(wrapped);
+		}
+
+		return buildOperationTargetSet<AddToFilesTarget>({
+			selectedNodes,
+			invokedNode: wrap(toTarget(ctx.node as TreeNode<TagMeta>)),
+		}).targets.map((target) => target.node);
+	}
+
+	private _addToFiles(ctx: MenuCtx): void {
+		const files = this.plugin.filterService.filteredFiles;
+		const targets = this._addToFilesTargets(ctx);
+		const availability = addToFilesAvailability(targets, files.length);
+		if (!availability.available) return;
+		if (!availability.enabled) {
+			new Notice(translate('explorer.ctx.add_to_files.empty'));
+			return;
+		}
+
+		for (const target of targets) {
+			if (target.kind !== 'tag') continue;
+			this.plugin.queueService.addOrRun({
+				type: 'tag',
+				tag: target.tag,
+				action: 'add',
+				details: `Add tag "#${target.tag}" to ${files.length} files`,
+				files,
+				customLogic: true,
+				logicFunc: (_file, fm) => {
+					const outcome = applyAddToFile(target, fm);
+					return outcome.status === 'written' ? outcome.frontmatter : null;
+				},
+			});
+		}
 	}
 
 	hasSortNode(id: string): boolean {

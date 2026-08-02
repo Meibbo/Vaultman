@@ -583,6 +583,8 @@ export const en: Record<string, string> = {
 	'explorer.ctx.rename': 'Rename',
 	'explorer.ctx.type': 'Property type',
 	'explorer.ctx.change_type': 'Change type',
+	'explorer.ctx.add_to_files': 'Add to {count} files',
+	'explorer.ctx.add_to_files.empty': 'No files match the current filter',
 	'explorer.ctx.delete_prop': 'Delete property',
 	'explorer.ctx.add_value': 'Add value',
 
