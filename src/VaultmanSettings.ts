@@ -71,6 +71,98 @@ export class VaultmanSettingsTab extends PluginSettingTab {
 		this.plugin = plugin;
 	}
 
+	getSettingDefinitions(): Array<{
+		id: string;
+		name: string;
+		description?: string;
+		keywords?: string[];
+		onSelect?: () => void;
+	}> {
+		return [
+			{
+				id: 'open-mode',
+				name: translate('settings.open_mode'),
+				description: translate('settings.open_mode.desc'),
+				onSelect: () => {
+					this.page = 'root';
+					this.display();
+				},
+			},
+			{
+				id: 'operation-scope',
+				name: translate('settings.operation_scope'),
+				description: translate('settings.operation_scope.desc'),
+				onSelect: () => {
+					this.page = 'root';
+					this.display();
+				},
+			},
+			{
+				id: 'bulk-operation-warning-threshold',
+				name: translate('settings.bulk_operation_warning_threshold'),
+				description: translate('settings.bulk_operation_warning_threshold.desc'),
+				onSelect: () => {
+					this.page = 'root';
+					this.display();
+				},
+			},
+			{
+				id: 'bypass-operations',
+				name: translate('settings.bypass_operations'),
+				description: translate('settings.bypass_operations.desc'),
+				onSelect: () => {
+					this.page = 'root';
+					this.display();
+				},
+			},
+			{
+				id: 'toolbar-config',
+				name: translate('settings.toolbar'),
+				description: translate('settings.toolbar.desc'),
+				onSelect: () => {
+					this.page = 'toolbar';
+					this.display();
+				},
+			},
+			{
+				id: 'floating-toc-config',
+				name: translate('settings.floating_toc'),
+				description: translate('settings.floating_toc.desc'),
+				onSelect: () => {
+					this.page = 'floating-toc';
+					this.display();
+				},
+			},
+			{
+				id: 'files-hover-config',
+				name: translate('settings.files_hover'),
+				description: translate('settings.files_hover.desc'),
+				onSelect: () => {
+					this.page = 'files-hover';
+					this.display();
+				},
+			},
+			{
+				id: 'explorer-config',
+				name: translate('settings.explorer'),
+				description: translate('settings.explorer.desc'),
+				onSelect: () => {
+					this.page = 'explorer';
+					this.display();
+				},
+			},
+			{
+				id: 'context-menus-config',
+				name: translate('settings.context_menus'),
+				description: translate('settings.context_menus.desc'),
+				onSelect: () => {
+					this.page = 'context-menus';
+					this.display();
+				},
+			},
+		];
+	}
+
 	display(): void {
 		const { containerEl } = this;
 		containerEl.empty();

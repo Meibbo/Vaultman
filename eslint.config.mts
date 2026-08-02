@@ -28,6 +28,9 @@ const obsidianRecommended = (
 
 export default tseslint.config(
 	{
+		linterOptions: {
+			reportUnusedDisableDirectives: 'off',
+		},
 		languageOptions: {
 			globals: {
 				...globals.browser,
@@ -39,6 +42,9 @@ export default tseslint.config(
 						'eslint.config.mts',
 						'manifest.json',
 						'svelte.config.js',
+						'vitest.unit.config.mts',
+						'wdio.conf.mts',
+						'stylelint.config.mjs',
 					],
 				},
 				tsconfigRootDir: import.meta.dirname,
@@ -47,7 +53,7 @@ export default tseslint.config(
 		},
 	},
 	{
-		files: ['scripts/**/*.mjs', '*.mjs'],
+		files: ['scripts/**/*.mjs', '*.mjs', '*.mts'],
 		languageOptions: {
 			globals: {
 				...globals.node,
@@ -55,6 +61,20 @@ export default tseslint.config(
 		},
 	},
 	...obsidianRecommended,
+	{
+		files: ['test/**/*.ts', 'test/**/*.mts', 'wdio.conf.mts'],
+		rules: {
+			'obsidianmd/no-nodejs-modules': 'off',
+			'@typescript-eslint/unbound-method': 'off',
+			'eslint-comments/no-restricted-disable': 'off',
+			'eslint-comments/disable-enable-pair': 'off',
+		},
+		languageOptions: {
+			globals: {
+				...globals.node,
+			},
+		},
+	},
 	globalIgnores([
 		'node_modules',
 		'dist',
@@ -66,5 +86,8 @@ export default tseslint.config(
 		'main.js',
 		'coverage',
 		'.obsidian',
+		'.worktrees',
+		'.claude',
+		'.agents',
 	]),
 );

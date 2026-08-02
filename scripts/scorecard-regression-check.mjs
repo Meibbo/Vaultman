@@ -77,8 +77,13 @@ const checks = [
 	},
 	{
 		file: 'styles.css',
-		name: 'styles avoid display: contents for Obsidian 1.11.4 compatibility',
+		name: 'styles avoid display: contents for Obsidian 1.12.0 compatibility',
 		test: (text) => !/display\s*:\s*contents\b/i.test(text),
+	},
+	{
+		file: 'styles.css',
+		name: 'styles avoid text-decoration-line property for Obsidian 1.12.0 compatibility',
+		test: (text) => !/text-decoration-line\s*:/i.test(text),
 	},
 	{
 		file: '.github/workflows/release.yml',

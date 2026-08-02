@@ -103,7 +103,7 @@ export class NodeTableView<TMeta = unknown> {
 			// BT5-038: only the exact filters keep the decoration; a collapsed
 			// ancestor no longer inherits it (it is signalled separately).
 			this._filterBubbleIds = resolveActiveFilterPresentation(
-				opts.nodes as TreeNode[],
+				opts.nodes,
 				opts.expandedIds,
 				opts.activeFilterIds,
 			).bubbled;
@@ -112,7 +112,7 @@ export class NodeTableView<TMeta = unknown> {
 		}
 		this._excludedFilterBubbleIds = opts.excludedFilterIds
 			? resolveActiveFilterPresentation(
-					opts.nodes as TreeNode[],
+					opts.nodes,
 					opts.expandedIds,
 					opts.excludedFilterIds,
 				).bubbled
@@ -122,14 +122,14 @@ export class NodeTableView<TMeta = unknown> {
 			const exact = opts.highlightIds?.[channel];
 			if (!exact) continue;
 			this._highlightBubbleIds[channel] = resolveActiveFilterPresentation(
-				opts.nodes as TreeNode[],
+				opts.nodes,
 				opts.expandedIds,
 				new Set(exact),
 			).bubbled;
 		}
 		this.opts = opts;
 		this.rows = flattenVisibleTree(
-			opts.nodes as TreeNode[],
+			opts.nodes,
 			opts.expandedIds,
 		) as TreeNode<TMeta>[];
 		this._ensureScaffold();

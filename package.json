@@ -43,7 +43,7 @@
 		"esbuild": "0.25.12",
 		"esbuild-svelte": "0.9.5",
 		"eslint": "9.39.4",
-		"eslint-plugin-obsidianmd": "0.3.0",
+		"eslint-plugin-obsidianmd": "0.4.1",
 		"globals": "14.0.0",
 		"jiti": "2.6.1",
 		"mocha": "10.8.2",
@@ -68,9 +68,12 @@
 	"overrides": {
 		"@wdio/protocols": "9.27.0",
 		"@wdio/types": "9.27.0",
+		"brace-expansion": ">=2.0.1",
 		"devalue": "5.8.1",
+		"fast-uri": ">=3.0.0",
 		"lodash": "4.18.1",
 		"serialize-javascript": "7.0.5",
+		"tar": ">=7.5.21",
 		"vite": "8.0.12",
 		"webdriverio": "9.27.0"
 	},

@@ -6992,7 +6992,7 @@ button.vaultman-content-scope-hint:focus-visible {
 
 .vaultman-property-value-link {
 	color: var(--link-color);
-	text-decoration-line: var(--link-decoration);
+	text-decoration: var(--link-decoration);
 }
 
 .vaultman-property-value-cell > .metadata-input-checkbox {

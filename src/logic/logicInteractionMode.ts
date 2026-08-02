@@ -46,9 +46,8 @@ export function resolveInteractionAction(
 	modified: boolean,
 ): InteractionAction {
 	const normalized = normalizeInteractionMode(tab, mode);
-	if (tab === 'files') return normalized as 'open' | 'add' | 'select';
-	if (tab === 'snippets' || tab === 'plugins') {
-		return normalized as 'open' | 'select';
+	if (tab === 'files' || tab === 'snippets' || tab === 'plugins') {
+		return normalized;
 	}
 	if (normalized === 'open') return modified ? 'content-search' : 'expand';
 	return normalized;
