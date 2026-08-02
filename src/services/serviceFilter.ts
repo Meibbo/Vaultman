@@ -443,6 +443,11 @@ export class FilterService extends Component {
 		});
 	}
 
+	/** Ordered-result consumers use this to distinguish state-only changes. */
+	getProjectionStateSignature(): string {
+		return this.stateSignature;
+	}
+
 	/** Load a saved filter template */
 	loadTemplate(template: FilterTemplate): void {
 		this.activeFilter = JSON.parse(

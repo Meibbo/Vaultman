@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import source from '../../src/components/containers/explorerFiles.ts?raw';
+import filterServiceSource from '../../src/services/serviceFilter.ts?raw';
 
 function methodSource(name: string, nextName: string): string {
 	const start = source.indexOf(`\n\t${name}(`);
@@ -76,5 +77,40 @@ describe('Files Explorer bulk expansion projection', () => {
 		expect(source).toContain('prepareNode: (node)');
 		expect(source).toContain('this._prepareTreeNodeIcon(');
 		expect(source).toContain('this._prepareTreeNodeCells(');
+	});
+
+	it('uses a conservative differential tracer for flat tree filter changes', () => {
+		const initialRender = methodSource('render', 'setSearchFilter');
+		const refresh = methodSource(
+			'private _refreshFromFilterService',
+			'private _filesForCurrentScope',
+		);
+
+		expect(filterServiceSource).toContain('getProjectionStateSignature()');
+		expect(initialRender).toContain('this.filterProjectionSnapshot = {');
+		expect(refresh).toContain('resolveFilterProjectionDelta');
+		expect(refresh).toContain('this._tryApplyFilterDelta');
+		expect(refresh).toContain('this._render()');
+		expect(source).toContain("this.viewMode !== 'tree'");
+		expect(source).toContain('this._nestedEnabled()');
+		expect(source).toContain('!delta.safe');
+		expect(source).toContain('this._currentFiles.length === 0');
+		expect(source).toContain('this._lastRenderTree.length === 0');
+	});
+
+	it('reuses retained flat nodes and decorates only entered nodes', () => {
+		const applyDelta = methodSource(
+			'private _applyFilterDeltaProjection',
+			'private _refreshFromFilterService',
+		);
+
+		expect(applyDelta).toContain('previousNodesByPath');
+		expect(applyDelta).toContain('enteredNodes');
+		expect(applyDelta).toContain('reconcileFilterProjectionItems');
+		expect(applyDelta).toContain('this._decorateTreeWithQueue(enteredNodes)');
+		expect(applyDelta).toContain('this._decorateTreeWithIcons(enteredNodes)');
+		expect(applyDelta).not.toContain(
+			'this._decorateTreeWithFileTimes(nextNodes)',
+		);
 	});
 });
