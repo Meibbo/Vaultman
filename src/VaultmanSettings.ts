@@ -35,6 +35,7 @@ import {
 	resolveCommandAction,
 	resolveCommandActions,
 } from './logic/logicCommandActions';
+import { normalizePropMoveTypeConflict } from './logic/logicPropMoveConflict';
 import { listObsidianCommands } from './utils/obsidianCommands';
 import {
 	GLYPH_COLOR_CHOICES,
@@ -253,6 +254,30 @@ export class VaultmanSettingsTab extends PluginSettingTab {
 				);
 			}
 			
+		new Setting(containerEl)
+			.setName(translate('settings.prop_move_conflict'))
+			.setDesc(translate('settings.prop_move_conflict.desc'))
+			.addDropdown((dropdown) =>
+				dropdown
+					.addOptions({
+						coerce: translate('settings.prop_move_conflict.coerce'),
+						block: translate('settings.prop_move_conflict.block'),
+						ask: translate('settings.prop_move_conflict.ask'),
+					})
+					// Normalized in both directions, so a stale persisted choice
+					// shows the default rather than an empty dropdown.
+					.setValue(
+						normalizePropMoveTypeConflict(
+							this.plugin.settings.propMoveTypeConflict,
+						),
+					)
+					.onChange(async (value) => {
+						this.plugin.settings.propMoveTypeConflict =
+							normalizePropMoveTypeConflict(value);
+						await this.plugin.saveSettings();
+					}),
+			);
+
 		new Setting(containerEl)
 			.setName(translate('settings.bypass_operations'))
 			.setDesc(translate('settings.bypass_operations.desc'))

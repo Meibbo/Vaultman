@@ -7,6 +7,7 @@ import {
 	type PropMoveDecision,
 } from '../../src/logic/logicPropMoveConflict';
 import conflictSource from '../../src/logic/logicPropMoveConflict.ts?raw';
+import settingsSource from '../../src/VaultmanSettings.ts?raw';
 import { DEFAULT_SETTINGS } from '../../src/types/typeSettings';
 import { NATIVE_SET_PROP_TYPE } from '../../src/types/typeOps';
 import { en } from '../../src/i18n/en';
@@ -182,6 +183,29 @@ describe('prop move conflict setting', () => {
 		expect(normalizePropMoveTypeConflict(undefined)).toBe('coerce');
 		expect(normalizePropMoveTypeConflict(null)).toBe('coerce');
 		expect(normalizePropMoveTypeConflict(7)).toBe('coerce');
+	});
+
+	it('is reachable from the settings tab as its three named behaviors', () => {
+		// `settings.bypass_operations` also appears in the settings catalogue
+		// above, so the closing anchor is the occurrence that follows the
+		// control, not the first one in the file.
+		const start = settingsSource.indexOf(
+			"translate('settings.prop_move_conflict')",
+		);
+		const control = settingsSource.slice(
+			start,
+			settingsSource.indexOf("translate('settings.bypass_operations')", start),
+		);
+		expect(control).not.toBe('');
+		expect(control).toContain("translate('settings.prop_move_conflict.desc')");
+		expect(control).toContain('addDropdown');
+		for (const behavior of ['coerce', 'block', 'ask']) {
+			expect(control).toContain(`settings.prop_move_conflict.${behavior}`);
+		}
+		// The persisted value goes through the normalizer in both directions, so
+		// a stale choice cannot show a blank dropdown or be written back.
+		expect(control).toContain('normalizePropMoveTypeConflict');
+		expect(control).toContain('propMoveTypeConflict');
 	});
 
 	it('localizes the setting and both block reasons', () => {
