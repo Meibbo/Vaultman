@@ -198,6 +198,22 @@ export class VaultmanSettingsTab extends PluginSettingTab {
 			);
 
 		new Setting(containerEl)
+			.setName(translate('settings.operations'))
+			.setHeading();
+
+		new Setting(containerEl)
+			.setName(translate('settings.queue_warn_supersede'))
+			.setDesc(translate('settings.queue_warn_supersede.desc'))
+			.addToggle((toggle) =>
+				toggle
+					.setValue(this.plugin.settings.queueWarnOnSupersede)
+					.onChange(async (value) => {
+						this.plugin.settings.queueWarnOnSupersede = value;
+						await this.plugin.saveSettings();
+					}),
+			);
+
+		new Setting(containerEl)
 			.setName(translate('settings.text_search_intercepts'))
 			.setDesc(translate('settings.text_search_intercepts.desc'))
 			.addToggle((toggle) =>

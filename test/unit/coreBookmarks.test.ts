@@ -26,6 +26,7 @@ interface Stub {
 	app: App;
 	executed: string[];
 	viewStates: unknown[];
+	added: SearchBookmarkItem[];
 }
 
 /**
@@ -42,6 +43,7 @@ function stubApp(options: StubOptions = {}): Stub {
 	} = options;
 	const executed: string[] = [];
 	const viewStates: unknown[] = [];
+	const added: SearchBookmarkItem[] = [];
 
 	const leaf = {
 		getViewState: () => ({ type: 'search', state: { query: 'core-query' } }),
@@ -61,7 +63,13 @@ function stubApp(options: StubOptions = {}): Stub {
 		},
 		internalPlugins: {
 			getEnabledPluginById: (id: string) => {
-				if (id === 'bookmarks') return bookmarks ? {} : null;
+				if (id === 'bookmarks')
+					return bookmarks
+						? {
+								addItem: (item: SearchBookmarkItem) => added.push(item),
+								saveData: () => Promise.resolve(),
+							}
+						: null;
 				if (id === 'global-search') return globalSearch ? {} : null;
 				return null;
 			},
@@ -72,30 +80,52 @@ function stubApp(options: StubOptions = {}): Stub {
 		},
 	} as unknown as App;
 
-	return { app, executed, viewStates };
+	return { app, executed, viewStates, added };
 }
 
 describe('what the bookmark action needs before it can run', () => {
-	it('is available when the whole chain is present', () => {
+	it('needs the Bookmarks plugin, and nothing else', () => {
+		// This used to demand `global-search`, the command and a core search leaf
+		// as well, because the flow went through core's command. Bookmarking then
+		// failed with "Bookmarks is disabled" whenever the **Search** plugin was
+		// off — naming the wrong plugin, for a search the Text explorer had just
+		// run perfectly well on its own.
 		expect(isBookmarksAvailable(stubApp().app)).toBe(true);
+		expect(isBookmarksAvailable(stubApp({ globalSearch: false }).app)).toBe(true);
+		expect(isBookmarksAvailable(stubApp({ command: false }).app)).toBe(true);
+		expect(isBookmarksAvailable(stubApp({ searchLeaf: false }).app)).toBe(true);
 	});
 
 	it('is unavailable without the Bookmarks plugin', () => {
 		expect(isBookmarksAvailable(stubApp({ bookmarks: false }).app)).toBe(false);
 	});
+});
 
-	it('is unavailable without global-search, which supplies the query', () => {
-		expect(isBookmarksAvailable(stubApp({ globalSearch: false }).app)).toBe(
-			false,
-		);
+describe('bookmarking with core Search switched off', () => {
+	it('stores the bookmark itself when there is no modal to borrow', async () => {
+		const { app, executed, added } = stubApp({ globalSearch: false });
+
+		await expect(
+			bookmarkSearchQuery(app, 'alpha', {
+				caseSensitive: true,
+				isRegex: false,
+			}),
+		).resolves.toBe(true);
+
+		// No command to run, so nothing was executed — but the bookmark exists.
+		expect(executed).toEqual([]);
+		expect(added).toHaveLength(1);
+		expect(added[0]?.query).toBe('alpha');
+		expect(readSearchBookmarkModifiers(added[0])).toEqual({
+			caseSensitive: true,
+			isRegex: false,
+		});
 	});
 
-	it('is unavailable without a core search leaf to read the query from', () => {
-		expect(isBookmarksAvailable(stubApp({ searchLeaf: false }).app)).toBe(false);
-	});
-
-	it('is unavailable when the command itself is missing', () => {
-		expect(isBookmarksAvailable(stubApp({ command: false }).app)).toBe(false);
+	it('still refuses an empty query', async () => {
+		const { app, added } = stubApp({ globalSearch: false });
+		await expect(bookmarkSearchQuery(app, '   ')).resolves.toBe(false);
+		expect(added).toEqual([]);
 	});
 });
 

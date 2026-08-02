@@ -839,6 +839,12 @@ export const es: Record<string, string> = {
 	'settings.text_search_intercepts.desc':
 		'Añade una entrada de menú que busca el texto seleccionado en Vaultman en vez de en la búsqueda de Obsidian.',
 	'content.search_selection': 'Buscar la selección en Vaultman',
+	'queue.guard.superseded':
+		'Se reemplazó {count} operación(es) en cola sobre el mismo texto.',
+	'settings.operations': 'Operaciones',
+	'settings.queue_warn_supersede': 'Avisar cuando se reemplaza una operación en cola',
+	'settings.queue_warn_supersede.desc':
+		'Encolar un segundo reemplazo del mismo texto sustituye al primero, porque el primero dejaría al segundo sin nada que coincidir. Esto decide si se avisa.',
 	'content.copy_results_action': 'Copiar resultados',
 	'content.copy_option_show_path': 'Mostrar ruta completa',
 	'content.copy_option_link_style': 'Estilo de enlace',

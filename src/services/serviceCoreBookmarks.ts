@@ -1,6 +1,7 @@
 import type { App, WorkspaceLeaf } from 'obsidian';
 
 import {
+	buildSearchBookmarkItem,
 	canBookmarkSearch,
 	readSearchBookmarkModifiers,
 	withSearchBookmarkModifiers,
@@ -63,15 +64,35 @@ function searchLeaf(app: App): WorkspaceLeaf | null {
 	return (app as CommandApp).workspace.getLeavesOfType('search')?.[0] ?? null;
 }
 
+function bookmarksPlugin(app: App): BookmarksPluginInternals | null {
+	return ((app as CommandApp).internalPlugins?.getEnabledPluginById(
+		'bookmarks',
+	) ?? null) as BookmarksPluginInternals | null;
+}
+
 /**
- * True when the command, the Bookmarks plugin and a core search leaf are all
- * present. All three are required: the command lives in Bookmarks, its query
- * comes from `global-search`, and the query itself is read off the search leaf.
+ * The only hard requirement: the Bookmarks plugin itself.
+ *
+ * This used to also demand `global-search`, the command and a core search leaf,
+ * because the flow went through core's own command. That made bookmarking fail
+ * with "Bookmarks is disabled" whenever the **Search** plugin was off — a
+ * message that named the wrong plugin for a search the Text explorer had run
+ * perfectly well on its own.
  */
 export function isBookmarksAvailable(app: App): boolean {
+	return typeof bookmarksPlugin(app)?.addItem === 'function';
+}
+
+/**
+ * Whether core's naming modal can be reached.
+ *
+ * The modal belongs to a command that reads its query from `global-search`,
+ * which reads it off the core search leaf. With Search disabled none of that
+ * exists — but the bookmark itself does not need any of it.
+ */
+function canUseCoreModal(app: App): boolean {
 	const internal = (app as CommandApp).internalPlugins;
-	if (!internal?.getEnabledPluginById('bookmarks')) return false;
-	if (!internal.getEnabledPluginById('global-search')) return false;
+	if (!internal?.getEnabledPluginById('global-search')) return false;
 	if (!commandExists(app)) return false;
 	return searchLeaf(app) !== null;
 }
@@ -87,11 +108,26 @@ export async function bookmarkSearchQuery(
 	modifiers?: SearchBookmarkModifiers,
 ): Promise<boolean> {
 	if (!canBookmarkSearch(query)) return false;
-	if (!isBookmarksAvailable(app)) return false;
+	const plugin = bookmarksPlugin(app);
+	if (!plugin?.addItem) return false;
 
 	// Core's modal creates the item, so the toggles it has no field for are
 	// parked for the `addItem` hook to attach when it does.
 	if (modifiers) stageBookmarkModifiers(query, modifiers);
+
+	if (!canUseCoreModal(app)) {
+		// Search is off, so there is no modal to borrow — but the bookmark is
+		// ours to make. The item goes in directly, named by its query the way an
+		// unnamed core bookmark is, and it still reopens in the Text explorer.
+		const item = withSearchBookmarkModifiers(
+			buildSearchBookmarkItem(query, Date.now()),
+			modifiers ?? { caseSensitive: false, isRegex: false },
+		);
+		pendingModifiers = null;
+		plugin.addItem(item);
+		void plugin.saveData?.();
+		return true;
+	}
 
 	const leaf = searchLeaf(app);
 	if (!leaf) return false;
