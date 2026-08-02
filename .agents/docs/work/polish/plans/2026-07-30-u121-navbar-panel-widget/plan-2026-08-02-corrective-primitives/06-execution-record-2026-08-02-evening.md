@@ -40,7 +40,7 @@ The developer's evening prompt names `plugin-dev` as the smoke vault, supersedin
 this plan's `Start of The Road`, which was deliberately left holding the older
 `cac504a9` build.
 
-- Source commit: `298b9d9cff156a0155d7d5c3a0e05f8de93143e7`
+- Source commit: `f29fab4c594c8e28487bed21b8a59c24bfd22f68` (re-synced after the searchbox fix; the earlier sync was `298b9d9c`)
 - Worktree clean at build time: yes
 - `pnpm run build:plugin` run immediately before copying: yes
 - Target: `C:\Users\vic_A\Desktop\plugin-dev\.obsidian\plugins\vaultman`
@@ -48,8 +48,8 @@ this plan's `Start of The Road`, which was deliberately left holding the older
 SHA-256, source and installed target compared — all three match:
 
 ```text
-main.js        C307F987AB7BEA520DA6EBB71440740423EDCBDFDC7F992941ED1114C4575C46
-styles.css     A8F851C687E60AC2FFFC2ADB2930D443B28335ED4AD6A9F3422B4E9B1C51B9CC
+main.js        5A479280DB74A660A58AD5DB2A86F3F80216525689C9452AE6DB10214A4E4550
+styles.css     79E3746CEEC23A2D41FE304128EEBF3F27A8C1F0C67F49D2C607A731496064CF
 manifest.json  AE221D676BB492425E1480590F3514007193803DABC96EE44C63EC5ED669A996
 ```
 
@@ -71,6 +71,7 @@ What this build newly makes smokeable, beyond the shard 06 matrix as written:
 | Queue details | the bypass toggle is reachable from the queue details modal |
 | `reveal this file` | the toggle sits between search and collapse in Props; it narrows to the active file's properties, follows note switches with no user action, and returns the previous projection when switched off |
 | Reveal + move | entering the move mode replaces the reveal toggle; exiting restores it |
+| **Searchbox** | **the clear, category and create cells sit INSIDE the box, on one line, in the wide inline mode, in the narrow second-row mode and on mobile. This is the twelve-hour defect the developer reported; it is the first thing to check** |
 
 ## Task 6.5 — not started
 

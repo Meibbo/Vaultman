@@ -3113,3 +3113,48 @@ gates that.
   puede smokear. FALTA: 9.3 (anatomía Core en Tree), 9.4 (política de mutación e
   input de valor), 6.4 (matriz viva) y 6.5 (review + aceptación del dev).
   U121-003 NO cierra hasta que el dev acepte un smoke vivo de ese build.
+
+- 2026-08-02 · claude-opus-5 · implement · SEARCHBOX REPARADO (`f29fab4c`). El dev
+  reportó que los tres cells del searchbox llevaban +12h renderizando en línea
+  aparte, fuera de la caja, en los dos modos y también en móvil. DUEÑO: shard 02,
+  tareas 2.1 ("keep the input and every configured trailing ActionCell inside the
+  same root") y 2.2 ("its internal trailing actions must not become independent
+  layout children"). DISCREPANCIA DE BOOKKEEPING: la tabla del handoff da el
+  shard 02 por **done** y en el archivo del shard TODOS los checkboxes siguen en
+  `- [ ]`; el componente aterrizó en `3722b7d0` pero el shard nunca se reconcilió
+  con su propia checklist. CAUSA, leída de app.css del web-lab y no de memoria:
+  `.search-input-container` en Core es `position: relative` y NADA MÁS — no es
+  fila flex; sus controles finales van absolutos encima del input
+  (`.search-input-clear-button`, y `.input-right-decorator` para lo que vaya al
+  lado, que Core YA desplaza 28px cuando aparece el clear). Vaultman metió
+  `.vaultman-filters-search-mode` y `-create` como hijos planos de ese
+  contenedor: styles.css les daba `display: flex` a ELLOS (cada botón como caja
+  flex interna) pero NUNCA le dio `display: flex` al contenedor — verificado, no
+  hay tal regla en ninguna variante, por eso el defecto es idéntico en escritorio
+  y en teléfono. Un hijo plano de un bloque no-flex es una caja de bloque, así
+  que ambos caían debajo del input a todo lo ancho; el clear, absoluto y
+  centrado, quedaba centrado sobre una caja de dos líneas y por eso el dev contó
+  TRES cells fuera y no dos. ARREGLO CORE-FIRST: los dos cells comparten un
+  `.input-right-decorator`, la ranura que Core ya trae para esto; Core lo
+  posiciona, lo centra y lo aparta solo cuando aparece el clear. Lo único
+  declarado nuestro es la fila flex DENTRO del decorator (Core no tiene clase
+  para eso) y el padding del input que reserva su ancho. Descartado hacer el
+  contenedor flex: pelearía con el clear absoluto de Core en vez de componer con
+  él, que es justo el modo de fallo que la regla "no hand-roll lo que Core trae"
+  existe para evitar. De paso: la regla de tamaño en teléfono nombraba una clase
+  de clear que el componente NUNCA renderizó, así que no casaba con nada; ahora
+  apunta a la de Core y cubre también las trailing actions. POR QUÉ NINGÚN GATE
+  LO VIO: `searchControlSource.test.ts` es el guard de este shard y no probaba su
+  requisito — 2.1 pedía los cells como DESCENDIENTES del root y la suite solo
+  afirmaba que la clase del contenedor aparecía una vez, que había un `<input>`,
+  que no había segunda lupa, que nada cerraba en blur y que navbarFilters
+  importaba el componente. Todo cierto mientras el defecto se enviaba. Re-apuntado
+  a contención + ranura del decorator + que el contenedor NO se vuelva fila flex a
+  mano. OJO: dos de mis guards nuevos PASARON EN VACÍO al principio —
+  `styles.css?raw` resuelve a string vacío bajo el pipeline de CSS, cosa que
+  `propertyValueWidgetsSource.test.ts:11` ya documentaba; ahora se lee del disco
+  como los demás guards de hoja de estilos, y al hacerlo cazó un resto real.
+  Suite **1538/1538**, stylelint/format/check limpios. Build re-sincronizado a
+  plugin-dev desde `f29fab4c`: main.js 5A479280…, styles.css 79E3746C…,
+  manifest.json AE221D67…, los tres verificados. LA GEOMETRÍA NO LA PRUEBA
+  NINGÚN GATE: hace falta el smoke vivo.
