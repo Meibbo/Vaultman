@@ -157,7 +157,11 @@ export function parsePropertyValue(raw: string, type: PropertyType): unknown {
 				.split(',')
 				.map((s) => s.trim())
 				.filter((s) => s.length > 0);
+		// `date`, `datetime` and `text` are stored verbatim: the widgets read and
+		// write the exact string, so parsing must not reshape what the input
+		// already produced.
 		case 'date':
+		case 'datetime':
 		case 'text':
 		default:
 			return raw;
@@ -232,6 +236,23 @@ export function convertPropertyValueType(
 			);
 			if (dateMatch) {
 				return dateMatch[2] ? `${dateMatch[1]}T${dateMatch[2]}` : dateMatch[1];
+			}
+			return str;
+		}
+		// `datetime-local` inputs are minute-precision, so a converted value is
+		// normalized to what the widget can actually round-trip: seconds are
+		// dropped rather than serialized into a value the input would discard,
+		// and a bare date gains an explicit zero time instead of staying a date.
+		case 'datetime': {
+			if (Array.isArray(value)) {
+				return convertPropertyValueType(value[0] ?? '', 'datetime');
+			}
+			const str = String((value as string | number | boolean) ?? '');
+			const dateTimeMatch = str.match(
+				/(\d{4}-\d{2}-\d{2})(?:[T\s](\d{2}:\d{2}))?/,
+			);
+			if (dateTimeMatch) {
+				return `${dateTimeMatch[1]}T${dateTimeMatch[2] ?? '00:00'}`;
 			}
 			return str;
 		}

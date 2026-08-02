@@ -125,6 +125,22 @@ export class ContextMenuService extends Component {
 	}
 
 	/**
+	 * U121-003: runs a registered action from outside a context menu — an inline
+	 * control such as the property pill's remove button. It applies the same
+	 * `when` guard the menu applies, so an inline affordance can never execute
+	 * something the menu would have hidden. Returns false when the action is
+	 * unknown or not applicable to this node.
+	 */
+	invokeAction(id: string, ctx: MenuCtx): boolean {
+		const def = this._registry.find((action) => action.id === id);
+		if (!def) return false;
+		if (!def.nodeTypes.includes(ctx.nodeType)) return false;
+		if (def.when && !def.when(ctx)) return false;
+		this._runAction(def, ctx);
+		return true;
+	}
+
+	/**
 	 * BT5-018: every action the Files panel menu could ever show, so the
 	 * settings page lists the live registry instead of a hand-kept copy.
 	 * Registration order is the fallback rank for anything the default order

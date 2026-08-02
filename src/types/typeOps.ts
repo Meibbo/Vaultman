@@ -25,6 +25,7 @@ export type PropertyType =
 	| 'checkbox'
 	| 'list'
 	| 'date'
+	| 'datetime'
 	| 'wikilink';
 
 /** Common fields for all queued operations */

@@ -160,6 +160,15 @@ export function setTooltip(
 	_options?: unknown,
 ): void {}
 
+/**
+ * Core injects an `svg.svg-icon.<name>` child. Reproducing the shape rather
+ * than a no-op lets suites assert which icon a renderer chose, which is the
+ * only observable part of `setIcon` that a contract can depend on.
+ */
+export function setIcon(el: { createEl?: (tag: string, options?: { cls?: string }) => unknown }, icon: string): void {
+	el.createEl?.('svg', { cls: `svg-icon ${icon}` });
+}
+
 export function parseYaml(_yaml: string): unknown {
 	return {};
 }

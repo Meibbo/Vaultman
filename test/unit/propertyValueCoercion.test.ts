@@ -17,4 +17,36 @@ describe('property value coercion', () => {
 		expect(convertPropertyValueType('false', 'checkbox')).toBe(false);
 		expect(convertPropertyValueType('release', 'checkbox')).toBe(true);
 	});
+
+	// U121-003 shard 07: the datetime widget shipped in cac504a9 had no matching
+	// member in PropertyType, so no operation could carry the value it edits.
+	it('parses datetime values in the form the datetime-local widget reads', () => {
+		expect(parsePropertyValue('2026-08-01T10:30', 'datetime')).toBe(
+			'2026-08-01T10:30',
+		);
+	});
+
+	it('normalizes converted datetimes to minute precision', () => {
+		expect(convertPropertyValueType('2026-08-01T10:30:45', 'datetime')).toBe(
+			'2026-08-01T10:30',
+		);
+	});
+
+	it('gives a bare date a zero time when converted to datetime', () => {
+		expect(convertPropertyValueType('2026-08-01', 'datetime')).toBe(
+			'2026-08-01T00:00',
+		);
+	});
+
+	it('takes the first entry when converting a list to datetime', () => {
+		expect(convertPropertyValueType(['2026-08-01T10:30'], 'datetime')).toBe(
+			'2026-08-01T10:30',
+		);
+	});
+
+	it('keeps a datetime verbatim when converted to text', () => {
+		expect(convertPropertyValueType('2026-08-01T10:30', 'text')).toBe(
+			'2026-08-01T10:30',
+		);
+	});
 });

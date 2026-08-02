@@ -6903,6 +6903,46 @@ button.vaultman-content-scope-hint:focus-visible {
   margin: 0;
 }
 
+/* U121-003 shard 07. Core never colours `.multi-select-pill` directly: it maps
+   `--pill-*` from `--tag-*` on an ancestor carrying the property type
+   (app.css:11535). These rules reproduce that mapping inside Vaultman only, so
+   pills follow whatever the active theme defines. No Core declaration is
+   copied — every token is assigned from a Core variable. */
+.vaultman-property-value-cell[data-property-type='tags'] .multi-select-pill {
+  --pill-color: var(--tag-color);
+  --pill-color-hover: var(--tag-color-hover);
+  --pill-color-remove: var(--tag-color);
+  --pill-color-remove-hover: var(--tag-color-hover);
+  --pill-decoration: var(--tag-decoration);
+  --pill-decoration-hover: var(--tag-decoration-hover);
+  --pill-background: var(--tag-background);
+  --pill-background-hover: var(--tag-background-hover);
+  --pill-border-color: var(--tag-border-color);
+  --pill-border-color-hover: var(--tag-border-color-hover);
+  --pill-border-width: var(--tag-border-width);
+  --pill-padding-x: var(--tag-padding-x);
+  --pill-padding-y: var(--tag-padding-y);
+  --pill-radius: var(--tag-radius);
+  --pill-corner-shape: var(--tag-corner-shape);
+  --pill-weight: var(--tag-weight);
+  cursor: var(--cursor-link);
+}
+
+/* Core neutralises pill chrome for non-tag values so they read as inline text
+   rather than as chips (app.css:11457). */
+.vaultman-property-value-cell[data-property-type='aliases'] .multi-select-pill,
+.vaultman-property-value-cell[data-property-type='multitext']
+  .multi-select-pill {
+  --pill-border-width: 0;
+  --pill-padding-x: 0;
+  --pill-padding-y: 0;
+  --pill-color: var(--metadata-input-text-color);
+}
+
+.vaultman-property-value-cell .multi-select-container {
+  min-height: 0;
+}
+
 .vaultman-selection-checkbox {
   flex: 0 0 auto;
   margin: 0 var(--size-2-2);

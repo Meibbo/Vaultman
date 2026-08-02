@@ -90,7 +90,10 @@ import {
 	replaceMatchingPropertyValue,
 	type PropertyValueConversionId,
 } from '../../logic/propertyValueCoercion';
-import { renderPropertyValue } from '../../utils/renderPropertyValue';
+import {
+	renderPropertyValue,
+	resolveCorePropertyWidget,
+} from '../../utils/renderPropertyValue';
 import {
 	readVaultmanDragPayload,
 	setVaultmanDragPayload,
@@ -1052,14 +1055,29 @@ export class PropsExplorerPanel extends Component {
 				text: node.meta.flatLabelPrefix,
 			});
 		}
+		const propType = node.meta.propType ?? 'text';
 		const label = container.createSpan({
 			cls: 'bases-rendered-value vaultman-tree-label vaultman-property-value-cell',
 		});
+		// Core scopes its pill colours to an ancestor carrying the property
+		// type, so the cell publishes the resolved kind and the stylesheet maps
+		// Core's own variables from there. Without it a tag pill renders grey.
+		label.setAttribute('data-property-type', resolveCorePropertyWidget(propType));
 		renderPropertyValue(
 			label,
 			node.meta.rawValue ?? node.label,
-			node.meta.propType ?? 'text',
+			propType,
 			this.plugin.app,
+			() => {
+				// Removal runs the registered `value.delete` action, so the pill
+				// button and the context menu queue the same operation, honour the
+				// same `when` guard and raise the same pending badge.
+				this.plugin.contextMenuService.invokeAction('value.delete', {
+					nodeType: 'value',
+					node,
+					surface: 'panel',
+				});
+			},
 		);
 		return true;
 	}
