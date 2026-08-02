@@ -1,4 +1,4 @@
-import type { ExplorerSortState } from '../types/typeSort';
+import type { ScopeSort } from '../types/typeUI';
 import type { MenuCtx } from '../types/typeCMenu';
 
 export type CanonicalExplorerEngine = 'tree' | 'table' | 'cards';
@@ -23,13 +23,13 @@ export interface CellCapabilityResolution {
 	effectiveVisibleCellIds: ReadonlySet<string>;
 	availableSortIds: ReadonlySet<string>;
 	availableFilterTypeIds: ReadonlySet<string>;
-	effectiveSort: ExplorerSortState;
+	effectiveSort: ScopeSort;
 }
 
 export function resolveCellCapabilities(
 	ctx: CellCapabilityContext,
 	requestedCellIds: readonly string[],
-	currentSort?: ExplorerSortState,
+	currentSort?: ScopeSort,
 ): CellCapabilityResolution {
 	const availableCellIds = new Set<string>();
 	const availableSortIds = new Set<string>();
@@ -77,9 +77,9 @@ export function resolveCellCapabilities(
 		}
 	}
 
-	const defaultSort: ExplorerSortState = { field: 'name', asc: true };
+	const defaultSort: ScopeSort = { sortBy: 'name', direction: 'asc' };
 	const effectiveSort =
-		currentSort && availableSortIds.has(currentSort.field)
+		currentSort && availableSortIds.has(currentSort.sortBy)
 			? currentSort
 			: defaultSort;
 

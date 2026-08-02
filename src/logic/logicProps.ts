@@ -14,6 +14,41 @@ function isCompatible(value: unknown, type: string): boolean {
 	return check ? check(value) : true; // text, list, multitext always compatible
 }
 
+export type PropertyConflictReasonCode =
+	| 'type-mismatch'
+	| 'incompatible-format'
+	| 'parse-error';
+
+export interface PropertyConflict {
+	reasonCode: PropertyConflictReasonCode;
+	reasonText: string;
+}
+
+export function checkPropertyValueConflict(
+	expectedType: string,
+	value: unknown,
+): PropertyConflict | null {
+	if (value === undefined || value === null) return null;
+	if (isCompatible(value, expectedType)) return null;
+
+	if (expectedType === 'checkbox') {
+		return {
+			reasonCode: 'type-mismatch',
+			reasonText: `Value '${String(value)}' is not valid for checkbox`,
+		};
+	}
+	if (expectedType === 'date' || expectedType === 'datetime') {
+		return {
+			reasonCode: 'parse-error',
+			reasonText: `Value '${String(value)}' cannot be parsed as ${expectedType}`,
+		};
+	}
+	return {
+		reasonCode: 'type-mismatch',
+		reasonText: `Value '${String(value)}' does not match type ${expectedType}`,
+	};
+}
+
 export class PropsLogic {
 	private app: App;
 	private _cache: TreeNode<PropMeta>[] | null = null;

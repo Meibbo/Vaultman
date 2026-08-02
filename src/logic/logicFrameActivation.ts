@@ -24,3 +24,13 @@ export function shouldToggleCloseFrame(
 ): boolean {
 	return normalizeOpenMode(mode) !== 'new_instance' && existingFrameCount > 0;
 }
+
+export type FramePlacement = 'left_sidebar' | 'right_sidebar' | 'tab' | 'popout_window';
+
+export function normalizeFramePlacement(placement: string): FramePlacement {
+	if (placement === 'sidebar' || placement === 'left_sidebar') return 'left_sidebar';
+	if (placement === 'right_sidebar') return 'right_sidebar';
+	if (placement === 'tab') return 'tab';
+	if (placement === 'popout_window') return 'popout_window';
+	return 'left_sidebar';
+}
