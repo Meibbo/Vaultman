@@ -191,3 +191,19 @@ export interface NavbarPanelWidgetState {
 	createActionsPlacement?: 'searchbox' | 'toolbar';
 	pvpuiConfig?: PanelWidgetPvpuiConfig;
 }
+
+/**
+ * U121-003: the panelWidget's owner token. `providerId`, `generation` and
+ * `projection` commit together as one immutable envelope, so a provider that
+ * finished async work after the Scene moved on cannot publish over the provider
+ * that owns the toolbar now. Two Vaultman instances carry different
+ * `sceneInstanceId` values and cannot address each other's host.
+ */
+export interface ScenePanelWidgetEnvelope {
+	sceneInstanceId: string;
+	providerId: string;
+	generation: number;
+	projection: NavbarPanelWidgetState;
+}
+
+export type ScenePanelWidgetPublication = ScenePanelWidgetEnvelope;
