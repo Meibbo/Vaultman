@@ -242,6 +242,8 @@ export function sortAllWithDrill<T extends SortableTreeNode<T>>(
 
 /** D33: options that make no sense in the current context disappear.
  * - 'path' is meaningless while the tree is nested.
+ * - 'parent' is its props/tags counterpart: with the hierarchy drawn as rows
+ *   there is nothing for it to group that Nested is not already showing.
  * - 'sub' (sub-element count) is meaningless for prop VALUES (no children).
  */
 export function isSortOptionVisible(
@@ -252,7 +254,12 @@ export function isSortOptionVisible(
 		activeScope: SortScopeKey;
 	},
 ): boolean {
-	if (optionId === 'path' && context.nestedActive) return false;
+	if (
+		(optionId === 'path' || optionId === 'parent') &&
+		context.nestedActive
+	) {
+		return false;
+	}
 	if (
 		(optionId === 'sub' || optionId === 'type') &&
 		context.tab === 'props' &&

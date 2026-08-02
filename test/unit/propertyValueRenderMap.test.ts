@@ -130,6 +130,16 @@ function click(el: StubEl): void {
 	}
 }
 
+function mousedown(el: StubEl): void {
+	for (const handler of el.listeners.get('mousedown') ?? []) {
+		handler({ preventDefault: () => undefined, stopPropagation: () => undefined });
+	}
+}
+
+function change(el: StubEl): void {
+	for (const handler of el.listeners.get('change') ?? []) handler({});
+}
+
 function key(el: StubEl, name: string): void {
 	for (const handler of el.listeners.get('keydown') ?? []) {
 		handler({ key: name, preventDefault: () => undefined });
@@ -147,22 +157,29 @@ describe('U121-003 shard 07 — cell_format renders the Bases value idiom', () =
 		expect(checkbox?.checked).toBe(true);
 	});
 
-	it('disables the date input with the literal attribute Core selects on', () => {
-		// `.bases-rendered-value input[disabled=true]` is what collapses the box
-		// to min-height 0 and width auto. The DOM property serializes as
-		// `disabled=""` and would miss that selector.
+	it('renders a date input plus the daily note shortcut', () => {
 		const root = render('2026-08-01', 'date');
 		const input = root.find('mod-date');
 		expect(input?.tagName).toBe('input');
-		expect(input?.attributes.get('disabled')).toBe('true');
-		expect(root.find('clickable-icon')).not.toBeNull();
+		expect(input?.value).toBe('2026-08-01');
+		expect(root.find('vaultman-property-value-action')).not.toBeNull();
 	});
 
-	it('disables the datetime input the same way', () => {
+	it('renders a datetime input', () => {
 		const root = render('2026-08-01T10:30', 'datetime');
 		const input = root.find('mod-datetime');
 		expect(input?.attributes.get('type')).toBe('datetime-local');
-		expect(input?.attributes.get('disabled')).toBe('true');
+		expect(input?.value).toBe('2026-08-01T10:30');
+	});
+
+	it('only disables a date control that has nowhere to report a change', () => {
+		// A disabled input cannot open its picker, so it is disabled exactly when
+		// the value is not editable.
+		expect(render('2026-08-01', 'date').find('mod-date')?.attributes.get('disabled')).toBe('true');
+		expect(
+			render('2026-08-01', 'date', { onRenameValue: () => undefined })
+				.find('mod-date')?.attributes.get('disabled'),
+		).toBeUndefined();
 	});
 
 	it.each(LIST_TYPES)('renders %s as a Core value-list element', (type) => {
@@ -284,7 +301,7 @@ describe('U121-003 shard 07 — value affordances', () => {
 		expect(root.find('metadata-input')).toBeNull();
 		expect(text?.tagName).toBe('span');
 
-		click(text!);
+		mousedown(text!);
 		expect(text?.contentEditable).toBe('true');
 	});
 
@@ -294,7 +311,7 @@ describe('U121-003 shard 07 — value affordances', () => {
 			onRenameValue: (next) => renames.push(next),
 		});
 		const text = root.find('vaultman-property-value-text')!;
-		click(text);
+		mousedown(text);
 		text.textContent = 'Sala';
 		key(text, 'Enter');
 
@@ -309,13 +326,13 @@ describe('U121-003 shard 07 — value affordances', () => {
 		});
 		const text = root.find('vaultman-property-value-text')!;
 
-		click(text);
+		mousedown(text);
 		text.textContent = 'Sala';
 		key(text, 'Escape');
 		expect(renames).toEqual([]);
 		expect(text.textContent).toBe('cocina');
 
-		click(text);
+		mousedown(text);
 		key(text, 'Enter');
 		expect(renames).toEqual([]);
 	});
@@ -326,5 +343,59 @@ describe('U121-003 shard 07 — value affordances', () => {
 		});
 		const text = root.find('vaultman-property-value-text');
 		expect(text?.classes()).toContain('vaultman-property-value-editable');
+	});
+});
+
+describe('U121-003 shard 07 — checkbox and date edits', () => {
+	it('toggles a checkbox through the rename port', () => {
+		const renames: string[] = [];
+		const root = render('true', 'checkbox', {
+			onRenameValue: (next) => renames.push(next),
+		});
+		const checkbox = root.find('metadata-input-checkbox')!;
+		click(checkbox);
+		expect(renames).toEqual(['false']);
+	});
+
+	it('toggles an unchecked value the other way', () => {
+		const renames: string[] = [];
+		const root = render('false', 'checkbox', {
+			onRenameValue: (next) => renames.push(next),
+		});
+		click(root.find('metadata-input-checkbox')!);
+		expect(renames).toEqual(['true']);
+	});
+
+	it('leaves the checkbox read-only when there is nowhere to report a toggle', () => {
+		const checkbox = render('true', 'checkbox').find('metadata-input-checkbox');
+		expect(checkbox?.attributes.get('aria-readonly')).toBe('true');
+		expect(checkbox?.tabIndex).toBe(-1);
+	});
+
+	it('commits a date picker change as one rename', () => {
+		const renames: string[] = [];
+		const root = render('2026-08-01', 'date', {
+			onRenameValue: (next) => renames.push(next),
+		});
+		const input = root.find('mod-date')!;
+		input.value = '2026-09-15';
+		change(input);
+		expect(renames).toEqual(['2026-09-15']);
+	});
+
+	it('reports nothing when a picker is cleared or unchanged', () => {
+		const renames: string[] = [];
+		const root = render('2026-08-01T10:30', 'datetime', {
+			onRenameValue: (next) => renames.push(next),
+		});
+		const input = root.find('mod-datetime')!;
+
+		change(input);
+		expect(renames).toEqual([]);
+
+		input.value = '';
+		change(input);
+		expect(renames).toEqual([]);
+		expect(input.value).toBe('2026-08-01T10:30');
 	});
 });

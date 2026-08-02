@@ -107,9 +107,16 @@ function renderEditableText(
 	if (!onRenameValue) return text;
 
 	text.addClass('vaultman-property-value-editable');
-	text.addEventListener('click', (event) => {
+	// Editing is armed on pointerdown, before the browser resolves the click.
+	// Focusing an already-editable element would drop the caret at offset 0;
+	// letting the same gesture that armed it also place the caret is what puts
+	// the cursor where the user actually clicked.
+	text.addEventListener('mousedown', (event) => {
 		event.stopPropagation();
 		beginInlineEdit(text, raw, onRenameValue);
+	});
+	text.addEventListener('click', (event) => {
+		event.stopPropagation();
 	});
 	return text;
 }
@@ -126,7 +133,6 @@ function beginInlineEdit(
 ): void {
 	if (text.contentEditable === 'true') return;
 	text.contentEditable = 'true';
-	text.focus();
 
 	let settled = false;
 	const finish = (commit: boolean): void => {
@@ -189,45 +195,85 @@ function renderTags(context: PropertyValueRenderContext): void {
 }
 
 function renderCheckbox(context: PropertyValueRenderContext): void {
+	const { onRenameValue } = context;
 	const checkbox = context.container.createEl('input', {
 		type: 'checkbox',
 		cls: 'metadata-input-checkbox',
 	});
-	checkbox.checked = !['', 'false', '0', 'no', 'none', 'null'].includes(
+	const checked = !['', 'false', '0', 'no', 'none', 'null'].includes(
 		context.raw.trim().toLowerCase(),
 	);
-	checkbox.tabIndex = -1;
-	checkbox.setAttribute('aria-readonly', 'true');
+	checkbox.checked = checked;
+
+	if (!onRenameValue) {
+		checkbox.tabIndex = -1;
+		checkbox.setAttribute('aria-readonly', 'true');
+		checkbox.addEventListener('click', (event) => {
+			event.preventDefault();
+			event.stopPropagation();
+		});
+		return;
+	}
+
+	// A checkbox toggle is a value rename like any other: `true` becomes
+	// `false`. The DOM state is not the source of truth — it is repainted from
+	// the operation, so the box reverts if the rename is cancelled or rejected.
 	checkbox.addEventListener('click', (event) => {
 		event.preventDefault();
 		event.stopPropagation();
+		onRenameValue(checked ? 'false' : 'true');
 	});
 }
 
 /**
- * Date and datetime keep a real control because the picker and the daily-note
- * shortcut are the point of them. `disabled="true"` is the literal attribute
- * Core's own `.bases-rendered-value input[disabled=true]` rules select, which is
- * what collapses the input to `min-height: 0` and `width: auto` instead of
- * leaving a full-width box on the row. Task 5.2 removes it when these become
- * interactive.
+ * Date and datetime keep a real control because the picker is the point of
+ * them. The input stays enabled — a disabled input cannot open a picker — and
+ * its geometry is collapsed by our own scoped rules instead, so it sits on the
+ * row rather than filling it. Committing the picker is the inline edit for a
+ * date: there is no second gesture to learn.
  */
+function renderDateInput(
+	context: PropertyValueRenderContext,
+	kind: 'date' | 'datetime',
+): void {
+	const { container, raw, onRenameValue } = context;
+	const value = kind === 'date' ? raw.slice(0, 10) : raw.slice(0, 16);
+	const input = container.createEl('input', {
+		type: kind === 'date' ? 'date' : 'datetime-local',
+		cls: `metadata-input metadata-input-text mod-${kind}`,
+		attr: {
+			max: kind === 'date' ? '9999-12-31' : '9999-12-31T23:59',
+			...(onRenameValue ? {} : { disabled: 'true' }),
+		},
+	});
+	input.value = value;
+	if (!onRenameValue) return;
+
+	input.addEventListener('click', (event) => event.stopPropagation());
+	input.addEventListener('change', () => {
+		const next = input.value;
+		// An emptied or unchanged picker is not an edit.
+		if (!next || next === value) {
+			input.value = value;
+			return;
+		}
+		onRenameValue(next);
+	});
+}
+
 function renderDate(context: PropertyValueRenderContext): void {
 	const { container, raw, app } = context;
 	if (Number.isNaN(Date.parse(raw))) {
 		renderScalar(context);
 		return;
 	}
-	const day = raw.slice(0, 10);
-	const dateInput = container.createEl('input', {
-		type: 'date',
-		cls: 'metadata-input metadata-input-text mod-date',
-		attr: { max: '9999-12-31', disabled: 'true' },
-	});
-	dateInput.value = day;
+	renderDateInput(context, 'date');
 
-	const dailyNote = container.createDiv({
-		cls: 'clickable-icon',
+	const day = raw.slice(0, 10);
+	// Same treatment as the delete control: it belongs to the row, appears on
+	// hover, and sits beside its value instead of across the cell.
+	const dailyNote = container.createSpan({
+		cls: 'clickable-icon vaultman-property-value-action',
 		attr: { 'aria-label': `Open daily note ${day}` },
 	});
 	setIcon(dailyNote, 'lucide-link');
@@ -239,17 +285,11 @@ function renderDate(context: PropertyValueRenderContext): void {
 }
 
 function renderDateTime(context: PropertyValueRenderContext): void {
-	const { container, raw } = context;
-	if (Number.isNaN(Date.parse(raw))) {
+	if (Number.isNaN(Date.parse(context.raw))) {
 		renderScalar(context);
 		return;
 	}
-	const dateTimeInput = container.createEl('input', {
-		type: 'datetime-local',
-		cls: 'metadata-input metadata-input-text mod-datetime',
-		attr: { max: '9999-12-31T23:59', disabled: 'true' },
-	});
-	dateTimeInput.value = raw.slice(0, 16);
+	renderDateInput(context, 'datetime');
 }
 
 const RENDER_MAP: Readonly<Record<CorePropertyWidget, PropertyValueRenderer>> = {

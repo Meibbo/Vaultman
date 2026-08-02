@@ -823,6 +823,7 @@ export const es: Record<string, string> = {
 	'sort.by.ext': 'Extensión',
 	'sort.by.opened': 'Última apertura',
 	'sort.by.path': 'Ruta',
+	'sort.by.parent': 'Padre',
 	'sort.by.sub': 'Subelementos',
 	'sort.by.subtags': 'Subetiquetas',
 	'sort.by.columns': 'Columnas',

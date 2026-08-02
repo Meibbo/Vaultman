@@ -4,6 +4,7 @@ import {
 	classifyTagStructure,
 	compareTagStructure,
 	flattenTreeToPathLabels,
+	sortFlatProjection,
 	groupRootHierarchy,
 	TAG_STRUCTURE_ORDER,
 } from '../../src/logic/logicExplorerHierarchy';
@@ -137,5 +138,95 @@ describe('explorer hierarchy projections', () => {
 				.sort((a, b) => compareTagStructure(a, b, 'desc'))
 				.map((item) => item.label),
 		).toEqual(['Tag 2', 'Tag 10', 'Group 2', 'Group 10']);
+	});
+});
+
+describe('U121-003 flat projection sorting', () => {
+	function flatNode(label: string, own: string, parent: string) {
+		return {
+			id: `${parent}/${own}`,
+			label,
+			depth: 0,
+			children: [],
+			meta: { id: `${parent}/${own}` },
+			flatOwnLabel: own,
+			flatParentLabel: parent,
+		};
+	}
+
+	// The projection arrives grouped by parent, because flattening runs after
+	// the two-level sort. That grouping is exactly what Name has to undo.
+	const grouped = [
+		flatNode('lugar: sala', 'sala', 'lugar'),
+		flatNode('lugar: cocina', 'cocina', 'lugar'),
+		flatNode('animal: perro', 'perro', 'animal'),
+		flatNode('animal: gato', 'gato', 'animal'),
+	];
+
+	it('sorts by the node name across parents, not by the composed label', () => {
+		const sorted = sortFlatProjection(grouped, 'name', 'asc');
+		expect(sorted.map((node) => node.flatOwnLabel)).toEqual([
+			'cocina',
+			'gato',
+			'perro',
+			'sala',
+		]);
+	});
+
+	it('groups by parent and orders by name inside each group', () => {
+		const sorted = sortFlatProjection(grouped, 'parent', 'asc');
+		expect(sorted.map((node) => node.label)).toEqual([
+			'animal: gato',
+			'animal: perro',
+			'lugar: cocina',
+			'lugar: sala',
+		]);
+	});
+
+	it('reverses both keys together when the direction flips', () => {
+		const sorted = sortFlatProjection(grouped, 'parent', 'desc');
+		expect(sorted.map((node) => node.label)).toEqual([
+			'lugar: sala',
+			'lugar: cocina',
+			'animal: perro',
+			'animal: gato',
+		]);
+	});
+
+	it('keeps the incoming order as the tie break', () => {
+		const ties = [
+			flatNode('a: same', 'same', 'a'),
+			flatNode('b: same', 'same', 'b'),
+		];
+		expect(
+			sortFlatProjection(ties, 'name', 'asc').map((node) => node.label),
+		).toEqual(['a: same', 'b: same']);
+	});
+
+	it('delegates any other sort to the caller comparator', () => {
+		const byLength = sortFlatProjection(
+			grouped,
+			'count',
+			'asc',
+			(a, b) => (a.flatOwnLabel ?? '').length - (b.flatOwnLabel ?? '').length,
+		);
+		// `sala` and `gato` are both four characters, so the incoming order
+		// decides between them.
+		expect(byLength.map((node) => node.flatOwnLabel)).toEqual([
+			'sala',
+			'gato',
+			'perro',
+			'cocina',
+		]);
+	});
+
+	it('leaves nodes that never went through a flattener alone', () => {
+		const unflattened = [
+			{ id: 'b', label: 'b', depth: 0, children: [], meta: { id: 'b' } },
+			{ id: 'a', label: 'a', depth: 0, children: [], meta: { id: 'a' } },
+		];
+		expect(
+			sortFlatProjection(unflattened, 'name', 'asc').map((node) => node.label),
+		).toEqual(['a', 'b']);
 	});
 });

@@ -67,6 +67,15 @@ export interface TreeNode<TMeta = unknown> {
 	/** BT4-014: rainbow bucket color value for folder rows. */
 	folderColor?: string;
 	count?: number;
+	/**
+	 * U121-003: set only by the flat projections. Flattening rewrites `label` to
+	 * carry the ancestry (`lugar: cocina`, `parent/child`), which made every
+	 * label comparison an ancestry comparison — a Name sort that silently
+	 * grouped by parent. These keep both halves addressable so Name and Parent
+	 * can be separate sorts, and give the Parent tooltip its text.
+	 */
+	flatOwnLabel?: string;
+	flatParentLabel?: string;
 	badges?: NodeBadge[];
 	cells?: TreeNodeCell[];
 	children?: TreeNode<TMeta>[];

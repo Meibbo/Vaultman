@@ -64,6 +64,7 @@ import {
 	compareTagStructure,
 	flattenTreeToPathLabels,
 	groupRootHierarchy,
+	sortFlatProjection,
 } from '../../logic/logicExplorerHierarchy';
 import { collectExpandableSubtreeIds } from '../../logic/logicTreeExpansion';
 import { collectExplorerDeletionIds } from '../../logic/logicExplorerHighlight';
@@ -654,9 +655,11 @@ export class TagsExplorerPanel extends Component {
 		// Resolve icons via Iconic
 		let nodesWithIcons = this._resolveIcons(tree, highlightIds, searchFunc);
 		if (!this._nestedEnabled()) {
-			nodesWithIcons = flattenTreeToPathLabels(nodesWithIcons, '/', {
-				showParent: this.visibleCells.has('parent'),
-			});
+			nodesWithIcons = this._sortFlat(
+				flattenTreeToPathLabels(nodesWithIcons, '/', {
+					showParent: this.visibleCells.has('parent'),
+				}),
+			);
 		}
 		if (nodesWithIcons.length === 0) {
 			this._setIndexRoots([]);
@@ -1371,6 +1374,18 @@ export class TagsExplorerPanel extends Component {
 			}
 		}
 		return null;
+	}
+
+	/**
+	 * Flattening runs after the tree sort, so the flat list arrives grouped by
+	 * ancestry whatever was chosen. One level means one sort: Name compares tag
+	 * names across families, Parent restores the grouping deliberately.
+	 */
+	private _sortFlat(nodes: TreeNode<TagMeta>[]): TreeNode<TagMeta>[] {
+		const sort = activeScopeSort('tags', this.sortState, 'all');
+		const sortBy = normalizeExplorerSortBy(sort.sortBy);
+		if (sortBy !== 'name' && sortBy !== 'parent') return nodes;
+		return sortFlatProjection(nodes, sortBy, sort.direction);
 	}
 
 	private _flattenTree(nodes: TreeNode<TagMeta>[]): TreeNode<TagMeta>[] {

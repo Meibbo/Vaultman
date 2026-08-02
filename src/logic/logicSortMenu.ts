@@ -30,6 +30,7 @@ export const SORT_MENU_OPTIONS: Record<
 > = {
 	props: [
 		{ id: 'type', icon: 'lucide-shapes', labelKey: 'sort.by.type' },
+		{ id: 'parent', icon: 'lucide-corner-left-up', labelKey: 'sort.by.parent' },
 		{ id: 'count', icon: 'lucide-hash', labelKey: 'sort.by.count' },
 		{ id: 'name', icon: 'lucide-a-large-small', labelKey: 'sort.by.name' },
 		{
@@ -46,6 +47,7 @@ export const SORT_MENU_OPTIONS: Record<
 	],
 	tags: [
 		{ id: 'type', icon: 'lucide-shapes', labelKey: 'sort.by.type' },
+		{ id: 'parent', icon: 'lucide-corner-left-up', labelKey: 'sort.by.parent' },
 		{ id: 'count', icon: 'lucide-hash', labelKey: 'sort.by.count' },
 		{ id: 'name', icon: 'lucide-a-large-small', labelKey: 'sort.by.name' },
 		{

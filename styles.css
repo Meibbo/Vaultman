@@ -7012,12 +7012,17 @@ button.vaultman-content-scope-hint:focus-visible {
 	background: none;
 }
 
-/* The delete affordance stays out of the way until the row is hovered; one
-   permanent x per value is the visual noise this projection avoids. */
-.vaultman-property-value-remove {
+/* Value affordances — the delete x and the daily-note shortcut — stay out of
+   the way until the row is hovered. One permanent control per value is the
+   visual noise this projection avoids. They sit beside their value rather than
+   across the cell. */
+.vaultman-property-value-remove,
+.vaultman-property-value-action {
 	display: inline-flex;
 	align-items: center;
-	margin-inline-start: var(--size-2-2);
+	flex: 0 0 auto;
+	margin-inline-start: var(--size-2-1);
+	padding: 0;
 	opacity: 0;
 	color: var(--text-faint);
 	cursor: var(--cursor);
@@ -7026,12 +7031,62 @@ button.vaultman-content-scope-hint:focus-visible {
 }
 
 :is(.vaultman-tree-row, .vaultman-node-table-row, .vaultman-prop-card):hover
-	.vaultman-property-value-remove {
+	:is(.vaultman-property-value-remove, .vaultman-property-value-action) {
 	opacity: 1;
 }
 
-.vaultman-property-value-remove:hover {
+.vaultman-property-value-remove:hover,
+.vaultman-property-value-action:hover {
 	color: var(--text-normal);
+	background: none;
+}
+
+/* Core sizes `.metadata-input` for a properties panel row. Inside an explorer
+   row it has to collapse to its content: full-width date boxes pushed the
+   daily-note shortcut to the far edge of the cell. The input stays enabled so
+   its picker still opens. */
+.vaultman-property-value-cell .metadata-input {
+	min-height: 0;
+	height: auto;
+	width: auto;
+	padding: 0;
+	border: none;
+	background: transparent;
+	font-size: inherit;
+	font-family: inherit;
+}
+
+/* A long flat label wrapped and turned the row into a paragraph. Rows are one
+   line: the label ellipsizes like every other explorer label. The property name
+   holds its width and the value gives way, because the name is what tells you
+   which row you are looking at. */
+.vaultman-property-value-prefix {
+	flex: 0 0 auto;
+	white-space: nowrap;
+}
+
+.vaultman-property-value-cell {
+	flex: 0 1 auto;
+	min-width: 0;
+	white-space: nowrap;
+	overflow: hidden;
+	text-overflow: ellipsis;
+}
+
+.vaultman-property-value-text,
+.vaultman-property-value-cell .value-list-element,
+.vaultman-property-value-cell .value-list-container {
+	min-width: 0;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+/* While editing, the caret needs the full value, so the ellipsis gives way to
+   a scroll rather than hiding what is being typed. */
+.vaultman-property-value-editable[contenteditable='true'] {
+	overflow-x: auto;
+	text-overflow: clip;
 }
 
 .vaultman-selection-checkbox {

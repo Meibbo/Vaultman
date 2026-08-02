@@ -935,6 +935,7 @@ export const en: Record<string, string> = {
 	'sort.by.ext': 'Extension',
 	'sort.by.opened': 'Last opened',
 	'sort.by.path': 'Path',
+	'sort.by.parent': 'Parent',
 	'sort.by.sub': 'Sub-elements',
 	'sort.by.subtags': 'Sub-tags',
 	'sort.by.columns': 'Columns',

@@ -16,15 +16,15 @@ const stylesSource = readFileSync(
 );
 
 describe('U121-007 Core property value widgets', () => {
+	// U121-003 re-pointed this guard, and did not weaken it. The two date
+	// renderers were merged into one that computes its type and class from the
+	// kind, so the literals it used to match no longer appear in the source. The
+	// contract it protects — Core's own input types and classes — is asserted
+	// against the rendered DOM in `propertyValueRenderMap.test.ts`; what stays
+	// here is the source-level half those DOM tests cannot see.
 	it('uses Core this-file-properties widget classes and input types', () => {
-		expect(rendererSource).toContain("type: 'date'");
-		expect(rendererSource).toContain("type: 'datetime-local'");
-		expect(rendererSource).toContain(
-			"cls: 'metadata-input metadata-input-text mod-date'",
-		);
-		expect(rendererSource).toContain(
-			"cls: 'metadata-input metadata-input-text mod-datetime'",
-		);
+		expect(rendererSource).toContain("'datetime-local'");
+		expect(rendererSource).toContain('metadata-input metadata-input-text mod-');
 		expect(rendererSource).toContain("cls: 'metadata-input-checkbox'");
 		expect(rendererSource).toContain("setIcon(dailyNote, 'lucide-link')");
 	});

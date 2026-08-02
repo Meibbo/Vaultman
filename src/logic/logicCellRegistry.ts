@@ -225,6 +225,8 @@ export const EXPLORER_CELL_DEFS: readonly ExplorerCellDef[] = [
 		role: 'label-projection',
 		labelKey: 'viewmode.pill.parent',
 		icon: 'lucide-corner-left-up',
+		sortId: 'parent',
+		hoverId: 'parent',
 		requiresCellsOff: ['nested'],
 		supports: [
 			{ explorer: 'props', fixedRank: 25, defaultOn: true },

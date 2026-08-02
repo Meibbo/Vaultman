@@ -78,7 +78,10 @@ import {
 	type FloatingTocExpansionChange,
 	type IndexNodeRef,
 } from '../../logic/logicIndexGroups';
-import { flattenPropertyValues } from '../../logic/logicExplorerHierarchy';
+import {
+	flattenPropertyValues,
+	sortFlatProjection,
+} from '../../logic/logicExplorerHierarchy';
 import { collectExpandableSubtreeIds } from '../../logic/logicTreeExpansion';
 import { collectExplorerDeletionIds } from '../../logic/logicExplorerHighlight';
 import {
@@ -932,9 +935,11 @@ export class PropsExplorerPanel extends Component {
 			this.plugin.queueService.queue,
 		);
 		if (!this._nestedEnabled()) {
-			nodesWithIcons = flattenPropertyValues(nodesWithIcons, {
-				showParent: this.visibleCells.has('parent'),
-			});
+			nodesWithIcons = this._sortFlat(
+				flattenPropertyValues(nodesWithIcons, {
+					showParent: this.visibleCells.has('parent'),
+				}),
+			);
 		}
 		this._setIndexRoots(nodesWithIcons);
 		if (nodesWithIcons.length === 0) {
@@ -1240,6 +1245,20 @@ export class PropsExplorerPanel extends Component {
 		return dir * a.label.localeCompare(b.label);
 	}
 
+	/**
+	 * Flattening runs after the two-level sort, so the flat list arrives grouped
+	 * by property whatever was chosen. One level means one sort: Name compares
+	 * values across properties, Parent restores the grouping deliberately.
+	 */
+	private _sortFlat(
+		nodes: TreeNode<PropMeta>[],
+	): TreeNode<PropMeta>[] {
+		const sort = activeScopeSort('props', this.sortState, 'values');
+		const sortBy = normalizeExplorerSortBy(sort.sortBy);
+		if (sortBy !== 'name' && sortBy !== 'parent') return nodes;
+		return sortFlatProjection(nodes, sortBy, sort.direction);
+	}
+
 	private _applySort(nodes: TreeNode<PropMeta>[]): TreeNode<PropMeta>[] {
 		const propertiesSort = activeScopeSort(
 			'props',
@@ -1359,9 +1378,11 @@ export class PropsExplorerPanel extends Component {
 		);
 		const filtered = this._nestedEnabled()
 			? resolved.filter((node) => !node.meta.isValueNode)
-			: flattenPropertyValues(resolved, {
-					showParent: this.visibleCells.has('parent'),
-				});
+			: this._sortFlat(
+					flattenPropertyValues(resolved, {
+						showParent: this.visibleCells.has('parent'),
+					}),
+				);
 		this._setIndexRoots(filtered);
 		if (filtered.length === 0) {
 			this._renderEmptyState();

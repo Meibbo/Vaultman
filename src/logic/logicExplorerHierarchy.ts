@@ -82,6 +82,8 @@ export function flattenTreeToPathLabels<TMeta>(
 			flat.push({
 				...node,
 				label: showParent ? labelParts.join(separator) : node.label,
+				flatOwnLabel: node.label,
+				flatParentLabel: ancestors.join(separator),
 				children: [],
 				depth: 0,
 				showCaret: false,
@@ -107,6 +109,8 @@ export function flattenPropertyValues<
 			if (!node.meta.isValueNode) {
 				flat.push({
 					...node,
+					flatOwnLabel: node.label,
+					flatParentLabel: '',
 					depth: 0,
 					showCaret: false,
 					children: [],
@@ -120,6 +124,8 @@ export function flattenPropertyValues<
 				flat.push({
 					...node,
 					label: showParent ? `${node.meta.propName}: ${value}` : value,
+					flatOwnLabel: value,
+					flatParentLabel: node.meta.propName,
 					depth: 0,
 					showCaret: false,
 					children: [],
@@ -133,4 +139,53 @@ export function flattenPropertyValues<
 	};
 	visit(nodes);
 	return flat;
+}
+
+/**
+ * U121-003: reorders an already-flattened projection.
+ *
+ * Flattening runs after the two-level sort, so a flat list came out grouped by
+ * its parents no matter which sort was chosen — a Name sort that was really a
+ * Parent sort. Once flat there is one level, so it is sorted as one list:
+ * `parent` groups by ancestry and falls back to the name inside each group,
+ * and every other sort compares the node's own name. Nodes that never went
+ * through a flattener keep their order.
+ */
+export function sortFlatProjection<TMeta>(
+	nodes: TreeNode<TMeta>[],
+	sortBy: string,
+	direction: 'asc' | 'desc',
+	compareOwn?: (a: TreeNode<TMeta>, b: TreeNode<TMeta>) => number,
+): TreeNode<TMeta>[] {
+	const dir = direction === 'asc' ? 1 : -1;
+	const own = (node: TreeNode<TMeta>): string =>
+		node.flatOwnLabel ?? node.label;
+	const parent = (node: TreeNode<TMeta>): string => node.flatParentLabel ?? '';
+	const byName = (a: TreeNode<TMeta>, b: TreeNode<TMeta>): number =>
+		own(a).localeCompare(own(b), undefined, {
+			numeric: true,
+			sensitivity: 'base',
+		});
+
+	// Decorate-sort-undecorate: the incoming order is the tie break, so equal
+	// keys keep the order the projection already established.
+	return nodes
+		.map((node, index) => ({ node, index }))
+		.sort((a, b) => {
+			let result = 0;
+			if (sortBy === 'parent') {
+				result = parent(a.node).localeCompare(parent(b.node), undefined, {
+					numeric: true,
+					sensitivity: 'base',
+				});
+				if (result === 0) result = byName(a.node, b.node);
+			} else if (compareOwn) {
+				result = compareOwn(a.node, b.node);
+			} else {
+				result = byName(a.node, b.node);
+			}
+			if (result !== 0) return dir * result;
+			return a.index - b.index;
+		})
+		.map((entry) => entry.node);
 }
