@@ -19,16 +19,22 @@
 		NavbarPanelWidgetState,
 		PanelWidgetHeaderMenuAction,
 		ScenePanelWidgetActionPort,
+		ScenePanelWidgetEnvelope,
+		ScenePanelWidgetPublication,
 	} from '../../types/typePanelWidget';
 
 	let {
 		plugin,
 		active = false,
+		sceneInstanceId = '',
+		generation = 0,
 		settingsRevision = 0,
 		onNavigateToDataTab,
 		toolbarShown = true,
 		onToggleToolbar,
 		onPanelWidgetStateChange,
+		onPublishPanelWidget,
+		onClearPanelWidget,
 		filterRuleCount = 0,
 		filteredCount = 0,
 		queuedCount = 0,
@@ -40,11 +46,20 @@
 	}: {
 		plugin: VaultmanPlugin;
 		active?: boolean;
+		sceneInstanceId?: string;
+		generation?: number;
 		settingsRevision?: number;
 		onNavigateToDataTab?: (tab: StatisticsDataTab) => void;
 		toolbarShown?: boolean;
 		onToggleToolbar?: () => void;
 		onPanelWidgetStateChange?: (state: NavbarPanelWidgetState | null) => void;
+		onPublishPanelWidget?: (publication: ScenePanelWidgetPublication) => void;
+		onClearPanelWidget?: (
+			owner: Pick<
+				ScenePanelWidgetEnvelope,
+				'sceneInstanceId' | 'providerId' | 'generation'
+			>,
+		) => void;
 		filterRuleCount?: number;
 		filteredCount?: number;
 		queuedCount?: number;
@@ -389,7 +404,7 @@
 	};
 
 	$effect(() => {
-		onPanelWidgetStateChange?.({
+		const state: NavbarPanelWidgetState = {
 			providerId: 'statistics',
 			actionPort: panelWidgetActionPort,
 			activeTab: 'files',
@@ -414,7 +429,25 @@
 			headerActions: statisticsHeaderActions,
 			toolbarShown,
 			onToggleToolbar,
-		});
+		};
+
+		onPanelWidgetStateChange?.(state);
+
+		if (sceneInstanceId && generation) {
+			const owner = {
+				sceneInstanceId,
+				providerId: 'statistics',
+				generation,
+			};
+			onPublishPanelWidget?.({
+				...owner,
+				projection: state,
+			});
+
+			return () => {
+				onClearPanelWidget?.(owner);
+			};
+		}
 	});
 </script>
 

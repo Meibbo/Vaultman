@@ -27,8 +27,6 @@
 	onpointerleave={onPointerLeave}
 >
 	{#if mountedState}
-		{#key mountedState.providerId}
-			<NavbarFilters {...mountedState} />
-		{/key}
+		<NavbarFilters {...mountedState} />
 	{/if}
 </div>

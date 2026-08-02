@@ -356,15 +356,73 @@ describe('U121-003 statistics provider handoff', () => {
 	it('publishes the requested provider before Filters takes ownership of the host', () => {
 		const navigation =
 			frameSource.match(
-				/async function navigateToDataTab\([\s\S]*?\n\t\}/,
+				/function navigateToDataTab\([\s\S]*?\n\t\}/,
 			)?.[0] ?? '';
 		expect(navigation).not.toBe('');
-		const selectIndex = navigation.indexOf('filtersActiveTab = tab;');
-		const settleIndex = navigation.indexOf('await tick();');
-		const activateIndex = navigation.indexOf("activePage = 'filters';");
-		expect(selectIndex).toBeGreaterThanOrEqual(0);
-		expect(settleIndex).toBeGreaterThan(selectIndex);
-		expect(activateIndex).toBeGreaterThan(settleIndex);
+		expect(navigation).not.toContain('await tick();');
+	});
+
+	it('rejects late Statistics publication during Files -> Statistics -> Props -> Files sequence', async () => {
+		const { ScenePanelWidgetController } = await import(
+			'../../src/logic/logicScenePanelWidgetController'
+		);
+		const controller = new ScenePanelWidgetController('scene-test');
+		const mockProjection = (providerId: string): import('../../src/types/typePanelWidget').NavbarPanelWidgetState => ({
+			providerId,
+			actionPort: { invoke: async () => true },
+			activeTab: 'files',
+			filtersSearch: '',
+			filtersSearchCategory: { files: 0, props: 0, tags: 0 },
+			icon: () => ({ update: () => {} }),
+		});
+
+		// 1. Files active
+		const gen1 = controller.begin('files');
+		const filesPub1 = {
+			sceneInstanceId: 'scene-test',
+			providerId: 'files',
+			generation: gen1,
+			projection: mockProjection('files'),
+		};
+		controller.publish(filesPub1);
+		expect(controller.current()?.providerId).toBe('files');
+
+		// 2. Navigate to Statistics
+		const gen2 = controller.begin('statistics');
+
+		// 3. Navigate to Props before Statistics publishes
+		const gen3 = controller.begin('props');
+		const propsPub = {
+			sceneInstanceId: 'scene-test',
+			providerId: 'props',
+			generation: gen3,
+			projection: mockProjection('props'),
+		};
+		controller.publish(propsPub);
+		expect(controller.current()?.providerId).toBe('props');
+
+		// 4. Late Statistics publication arrives
+		const lateStatsPub = {
+			sceneInstanceId: 'scene-test',
+			providerId: 'statistics',
+			generation: gen2,
+			projection: mockProjection('statistics'),
+		};
+		expect(controller.publish(lateStatsPub)).toBeNull();
+
+		// Current remains props
+		expect(controller.current()?.providerId).toBe('props');
+
+		// 5. Navigate to Files
+		const gen4 = controller.begin('files');
+		const filesPub2 = {
+			sceneInstanceId: 'scene-test',
+			providerId: 'files',
+			generation: gen4,
+			projection: mockProjection('files'),
+		};
+		controller.publish(filesPub2);
+		expect(controller.current()?.providerId).toBe('files');
 	});
 });
 

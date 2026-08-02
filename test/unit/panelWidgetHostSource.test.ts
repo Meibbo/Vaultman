@@ -13,13 +13,25 @@ describe('Scene-owned Navbar panelWidget source guards', () => {
 		expect(frameSource).not.toContain('{#key activePage}');
 		expect(hostSource).toContain('PANEL_WIDGET_HOST_ID');
 		expect(hostSource).toContain('data-panel-widget-host-id');
-		expect(frameSource).toContain('publishFiltersPanelWidgetState');
-		expect(frameSource).toContain('publishStatisticsPanelWidgetState');
+		expect(frameSource).not.toContain('publishFiltersPanelWidgetState');
+		expect(frameSource).not.toContain('publishStatisticsPanelWidgetState');
+		expect(frameSource).not.toContain('filtersPanelWidgetState');
+		expect(frameSource).not.toContain('statisticsPanelWidgetState');
+		expect(frameSource).toContain('ScenePanelWidgetController');
 	});
 
 	it('rebinds the renderer atomically when Scene provider ownership changes', () => {
-		expect(hostSource).toContain('{#key mountedState.providerId}');
+		expect(hostSource).not.toContain('{#key');
 		expect(hostSource).toContain('<NavbarFilters {...mountedState} />');
+	});
+
+	it('does not wait on tick() before publishing provider navigation', () => {
+		const navigation =
+			frameSource.match(
+				/function navigateToDataTab\([\s\S]*?\n\t\}/,
+			)?.[0] ?? '';
+		expect(navigation).not.toBe('');
+		expect(navigation).not.toContain('await tick();');
 	});
 
 	it('keeps provider pages from mounting renderer instances', () => {

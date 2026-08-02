@@ -186,6 +186,10 @@
 		initialShowToolbar = null,
 		onShowToolbarChange,
 		onPanelWidgetStateChange,
+		sceneInstanceId = '',
+		generation = 0,
+		onPublishPanelWidget,
+		onClearPanelWidget,
 	}: {
 		plugin: VaultmanPlugin;
 		filtersActiveTab: FiltersTab;
@@ -229,6 +233,15 @@
 		initialShowToolbar?: boolean | null;
 		onShowToolbarChange?: (val: boolean) => void;
 		onPanelWidgetStateChange?: (state: NavbarPanelWidgetState | null) => void;
+		sceneInstanceId?: string;
+		generation?: number;
+		onPublishPanelWidget?: (publication: import('../../types/typePanelWidget').ScenePanelWidgetPublication) => void;
+		onClearPanelWidget?: (
+			owner: Pick<
+				import('../../types/typePanelWidget').ScenePanelWidgetEnvelope,
+				'sceneInstanceId' | 'providerId' | 'generation'
+			>,
+		) => void;
 	} = $props();
 
 	export function setShowToolbar(val: boolean): void {
@@ -1488,7 +1501,7 @@
 	};
 
 	$effect(() => {
-		onPanelWidgetStateChange?.({
+		const state: NavbarPanelWidgetState = {
 			providerId: filtersActiveTab,
 			actionPort: panelWidgetActionPort,
 			activeTab: explorerActiveTab,
@@ -1540,10 +1553,26 @@
 			toolbarShown: showToolbar,
 			app: plugin.app,
 			showTabLabels,
-		});
-	});
+		};
 
-	onDestroy(() => onPanelWidgetStateChange?.(null));
+		onPanelWidgetStateChange?.(state);
+
+		if (sceneInstanceId && generation) {
+			const owner = {
+				sceneInstanceId,
+				providerId: filtersActiveTab,
+				generation,
+			};
+			onPublishPanelWidget?.({
+				...owner,
+				projection: state,
+			});
+
+			return () => {
+				onClearPanelWidget?.(owner);
+			};
+		}
+	});
 </script>
 
 {#if !minimalStyle}

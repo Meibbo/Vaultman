@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { mount, onMount, tick, unmount, untrack } from 'svelte';
+	import { mount, onDestroy, onMount, tick, unmount, untrack } from 'svelte';
 	import { Notice, Platform, setIcon, type TFile } from 'obsidian';
 	import type { VaultmanPlugin } from './main';
 	import type { FilesExplorerPanel } from './components/containers/explorerFiles';
@@ -33,7 +33,11 @@
 	import { QueueDetailsModal } from './modals/modalQueueDetails';
 	import { translate } from './i18n/index';
 	import type { FabDef } from './types/typeUI';
-	import type { NavbarPanelWidgetState } from './types/typePanelWidget';
+	import type {
+		ScenePanelWidgetEnvelope,
+		ScenePanelWidgetPublication,
+	} from './types/typePanelWidget';
+	import { ScenePanelWidgetController } from './logic/logicScenePanelWidgetController';
 	import { resolveDockPageOrder } from './logic/logicNavigation';
 	import type { StatisticsDataTab } from './logic/logicStatisticsNavigation';
 	import { countQueuedOperationWarnings } from './logic/logicQueueWarnings';
@@ -287,13 +291,23 @@
 	);
 
 	let activePage = $state(initialPageOrder[0] ?? 'filters');
-	let filtersPanelWidgetState = $state<NavbarPanelWidgetState | null>(null);
-	let statisticsPanelWidgetState = $state<NavbarPanelWidgetState | null>(null);
+
+	const sceneInstanceId = untrack(
+		() => plugin.manifest.id + '-' + Math.random().toString(36).slice(2, 9),
+	);
+	const sceneController = new ScenePanelWidgetController(sceneInstanceId);
+	onDestroy(() => sceneController.destroy());
+
+	let activeGeneration = $state(
+		sceneController.begin(
+			untrack(() => (activePage === 'statistics' ? 'statistics' : 'files')),
+		),
+	);
+	let activePanelWidgetEnvelope = $state<ScenePanelWidgetEnvelope | null>(null);
 	let panelWidgetPeek = $state(false);
+
 	const activePanelWidgetState = $derived(
-		activePage === 'statistics'
-			? statisticsPanelWidgetState
-			: filtersPanelWidgetState,
+		activePanelWidgetEnvelope?.projection ?? null,
 	);
 	const panelWidgetVisible = $derived(
 		frameShowToolbar &&
@@ -302,16 +316,23 @@
 				activePanelWidgetState?.showExplorerControls !== false),
 	);
 
-	function publishFiltersPanelWidgetState(
-		state: NavbarPanelWidgetState | null,
+	function publishPanelWidget(
+		publication: ScenePanelWidgetPublication,
 	): void {
-		filtersPanelWidgetState = state;
+		if (sceneController.publish(publication)) {
+			activePanelWidgetEnvelope = publication;
+		}
 	}
 
-	function publishStatisticsPanelWidgetState(
-		state: NavbarPanelWidgetState | null,
+	function clearPanelWidget(
+		owner: Pick<
+			ScenePanelWidgetEnvelope,
+			'sceneInstanceId' | 'providerId' | 'generation'
+		>,
 	): void {
-		statisticsPanelWidgetState = state;
+		if (sceneController.clear(owner)) {
+			activePanelWidgetEnvelope = null;
+		}
 	}
 
 	// Use DOM insertion order (pageOrder at mount time) — avoids stale settings mismatch
@@ -323,18 +344,17 @@
 			closeFiltersIsland();
 		}
 		activePage = page;
+		activeGeneration = sceneController.begin(
+			page === 'statistics' ? 'statistics' : filtersActiveTab,
+		);
 		applyPageTransform(!minimalStyle);
 	}
 
-	async function navigateToDataTab(tab: StatisticsDataTab) {
+	function navigateToDataTab(tab: StatisticsDataTab) {
 		closeQueueIsland();
 		closeFiltersIsland();
-		// U121-003: FiltersPage owns the provider panelWidget state. When both
-		// assignments shared one Svelte batch, the Scene switched the host back to
-		// Filters while its cached state still belonged to Files. Let the selected
-		// provider publish first; only then may Filters take ownership of the host.
 		filtersActiveTab = tab;
-		await tick();
+		activeGeneration = sceneController.begin(tab);
 		activePage = 'filters';
 		applyPageTransform(!minimalStyle);
 	}
@@ -1351,6 +1371,8 @@
 						<StatisticsPage
 							{plugin}
 							active={activePage === pageId}
+							sceneInstanceId={sceneController.sceneInstanceId}
+							generation={activeGeneration}
 							{settingsRevision}
 							onNavigateToDataTab={navigateToDataTab}
 							toolbarShown={frameShowToolbar}
@@ -1363,12 +1385,15 @@
 							onClearFilters={clearActiveFilters}
 							onOpenQueue={openQueueLauncher}
 							onClearQueue={clearQueueQuick}
-							onPanelWidgetStateChange={publishStatisticsPanelWidgetState}
+							onPublishPanelWidget={publishPanelWidget}
+							onClearPanelWidget={clearPanelWidget}
 						/>
 					{:else if pageId === 'filters'}
 						<FiltersPage
 							{plugin}
 							{frameWidth}
+							sceneInstanceId={sceneController.sceneInstanceId}
+							generation={activeGeneration}
 							bind:filtersActiveTab
 							bind:filtersSearchByTab
 							bind:filtersSearchCategory
@@ -1409,7 +1434,8 @@
 							{icon}
 							initialShowToolbar={frameShowToolbar}
 							onShowToolbarChange={handleShowToolbarChange}
-							onPanelWidgetStateChange={publishFiltersPanelWidgetState}
+							onPublishPanelWidget={publishPanelWidget}
+							onClearPanelWidget={clearPanelWidget}
 							bind:this={filtersPageRef}
 						/>
 					{/if}
