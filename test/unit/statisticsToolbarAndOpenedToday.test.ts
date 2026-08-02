@@ -37,16 +37,21 @@ describe('statistics toolbar parity + opened-today card', () => {
 	});
 
 	it('publishes the requested provider before Filters reclaims the toolbar', () => {
+		// The handoff is synchronous: it selects the provider, opens a Scene
+		// generation for it, and only then switches the page. Publication rides
+		// that generation, so it never waits on a tick and never forces a flush.
+		expect(frameSource).not.toContain('async function navigateToDataTab');
 		const handoff = frameSource.slice(
-			frameSource.indexOf('async function navigateToDataTab'),
+			frameSource.indexOf('function navigateToDataTab'),
 			frameSource.indexOf('async function waitForFrameDom'),
 		);
 		const selectProvider = handoff.indexOf('filtersActiveTab = tab;');
-		const publishProvider = handoff.indexOf('await tick();');
+		const publishProvider = handoff.indexOf('sceneController.begin(tab)');
 		const activateFilters = handoff.indexOf("activePage = 'filters';");
 		expect(selectProvider).toBeGreaterThanOrEqual(0);
 		expect(publishProvider).toBeGreaterThan(selectProvider);
 		expect(activateFilters).toBeGreaterThan(publishProvider);
+		expect(handoff).not.toContain('await tick();');
 		expect(handoff).not.toContain('flushSync');
 	});
 

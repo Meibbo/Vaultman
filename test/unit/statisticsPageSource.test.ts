@@ -26,13 +26,29 @@ describe('Statistics page source guards', () => {
 
 	it('publishes Statistics into the Scene-owned panelWidget host', () => {
 		expect(statisticsPageSource).not.toContain('import NavbarFilters');
-		expect(statisticsPageSource).toContain('onPanelWidgetStateChange?.({');
-		expect(statisticsPageSource).toContain("providerId: 'statistics'");
-		expect(statisticsPageSource).toContain('statsTabOptions');
-		expect(statisticsPageSource).toContain("activeSectionTab: 'statistics'");
-		expect(statisticsPageSource).toContain('showExplorerControls: false');
-		expect(statisticsPageSource).toContain(
-			'onSectionTabChange: navigateFromHeader',
+		const projection = statisticsPageSource.slice(
+			statisticsPageSource.indexOf(
+				'const state: NavbarPanelWidgetState = {',
+			),
+			statisticsPageSource.indexOf('onPanelWidgetStateChange?.(state)'),
 		);
+		expect(projection).not.toBe('');
+		expect(projection).toContain("providerId: 'statistics'");
+		expect(projection).toContain('statsTabOptions');
+		expect(projection).toContain("activeSectionTab: 'statistics'");
+		expect(projection).toContain('showExplorerControls: false');
+		expect(projection).toContain('onSectionTabChange: navigateFromHeader');
+		// The page owns no host: it hands one projection to the Scene, tagged
+		// with the owner triple, and releases it when that owner is torn down.
+		expect(statisticsPageSource).toContain('onPanelWidgetStateChange?.(state)');
+		const publication = statisticsPageSource.slice(
+			statisticsPageSource.indexOf('if (sceneInstanceId && generation) {'),
+		);
+		expect(publication).toContain('sceneInstanceId,');
+		expect(publication).toContain("providerId: 'statistics'");
+		expect(publication).toContain('generation,');
+		expect(publication).toContain('onPublishPanelWidget?.({');
+		expect(publication).toContain('projection: state,');
+		expect(publication).toContain('onClearPanelWidget?.(owner)');
 	});
 });
