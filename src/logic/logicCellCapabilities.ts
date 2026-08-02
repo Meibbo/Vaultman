@@ -16,6 +16,12 @@ export interface CellCapabilityContext {
 	fixedFolders: boolean;
 	selectionMode: boolean;
 	nodeKinds: ReadonlySet<MenuCtx['nodeType']>;
+	/**
+	 * `reveal this file` narrows the projection to one file. Cells whose meaning
+	 * is vault-wide have none here, so they resolve unavailable rather than
+	 * rendering a number that means nothing.
+	 */
+	reveal?: boolean;
 }
 
 export interface CellCapabilityResolution {
@@ -50,8 +56,10 @@ export function resolveCellCapabilities(
 	availableFilterTypeIds.add('file');
 	availableFilterTypeIds.add('folder');
 
-	// Cell: count (file-count) is available for Files + Tree + nested + folders
+	// Cell: count (file-count) is available for Files + Tree + nested + folders,
+	// and never inside reveal, where there is only one file to count.
 	if (
+		!ctx.reveal &&
 		ctx.providerId === 'files' &&
 		ctx.engine === 'tree' &&
 		ctx.nested &&

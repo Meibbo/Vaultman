@@ -54,3 +54,50 @@ describe('CellCapabilityResolver contracts', () => {
 		expect(res.availableCellIds.has('checkbox')).toBe(true);
 	});
 });
+
+describe('reveal narrows capability to one file', () => {
+	const base: CellCapabilityContext = {
+		providerId: 'files',
+		engine: 'tree',
+		nested: true,
+		fixedFolders: false,
+		selectionMode: false,
+		nodeKinds: new Set(['file', 'folder']),
+	};
+
+	it('offers the vault-wide count outside reveal', () => {
+		const resolution = resolveCellCapabilities({ ...base, reveal: false }, [
+			'count',
+		]);
+		expect(resolution.availableCellIds.has('count')).toBe(true);
+		expect(resolution.effectiveVisibleCellIds.has('count')).toBe(true);
+	});
+
+	it('withdraws the vault-wide count inside reveal', () => {
+		// One file's projection has no vault-wide count. Rendering a zero would
+		// be a number that means nothing, which is worse than no Cell.
+		const resolution = resolveCellCapabilities({ ...base, reveal: true }, [
+			'count',
+		]);
+		expect(resolution.availableCellIds.has('count')).toBe(false);
+		expect(resolution.effectiveVisibleCellIds.has('count')).toBe(false);
+		expect(resolution.availableSortIds.has('count')).toBe(false);
+	});
+
+	it('falls back deterministically when the saved sort is count', () => {
+		const resolution = resolveCellCapabilities(
+			{ ...base, reveal: true },
+			['name'],
+			{ sortBy: 'count', direction: 'desc' },
+		);
+		expect(resolution.effectiveSort).toEqual({
+			sortBy: 'name',
+			direction: 'asc',
+		});
+	});
+
+	it('treats an absent reveal flag as not revealing', () => {
+		const resolution = resolveCellCapabilities(base, ['count']);
+		expect(resolution.availableCellIds.has('count')).toBe(true);
+	});
+});
