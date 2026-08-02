@@ -3061,3 +3061,55 @@ gates that.
   no está en la lista del shard 08 part 2. Hay que decidir el puente antes de
   implementar el adaptador. Sin push, sin merge, sin tag. Los 8 archivos sucios
   del worker detenido siguen intactos y sin stagear.
+
+- 2026-08-02 · claude-opus-5 · implement · SEGUNDO TRAMO: 8.6 completo, shard 09
+  tareas 9.1/9.2, ambos gates rojos preexistentes reparados, `pnpm run verify`
+  en 0 y build exacto sincronizado a plugin-dev. (1) WIP DEL WORKER DETENIDO:
+  el dev eligió commitearlo tal cual primero (`3e3841ed`), leído entero antes de
+  commitear — harness de eslint BT5-095, overrides de seguridad (brace-expansion,
+  fast-uri, tar), eslint-plugin-obsidianmd 0.3.0→0.4.1, check de scorecard para
+  text-decoration-line en Obsidian 1.12.0 con su arreglo en styles.css, casts
+  sobrantes en viewNodeTable, rama compartida en logicInteractionMode y un
+  catálogo `getSettingDefinitions()` para una búsqueda de settings aún sin
+  cablear. Luego mi fila de settings de `propMoveTypeConflict` encima
+  (`3307d83b`). (2) 8.6 (`e20b1631` + `6da42823`): el modo existe de punta a
+  punta. El dev eligió el puente por `headerActions` en vez de enseñarle a
+  `navbarFilters` a consumir `resolvePanelWidgetProjection`. Proceed/Cancel salen
+  por `resolveExclusiveSlotNodes` como header actions; los dos switches viajan
+  en el `trailingActions` que `searchControl` ya tenía y NADIE alimentaba. Cada
+  switch se etiqueta con el estado en el que ESTÁ — uno que nombre el estado al
+  que cambiaría se lee como comando y se pulsa por error. Liveness real: el
+  explorer notifica en cada cambio de modo y la página reproyecta desde esa
+  revisión. HUECO CERRADO: el resumen declaraba `buscar: date -> list` y luego
+  escribía valores SIN cambiar el tipo, dejando que Obsidian lo re-infiriera;
+  `planValueMoveTypeChanges` encola un cambio por destino (no por archivo ni por
+  par: el tipo de una propiedad es UN hecho del vault). DESVIACIÓN REGISTRADA: el
+  spec pide el cambio de tipo dentro del MISMO OperationNode, pero
+  `PendingChange.logicFunc` devuelve o frontmatter o el centinela, nunca ambos —
+  son dos entradas, así que cancelar la de valores deja el tipo cambiado. No lo
+  disfracé. (3) SHARD 09 9.1/9.2 (`274f0a80`, `298b9d9c`): `projectActiveFileProps`
+  filtra el snapshot ya construido, jamás lee el vault ni reconstruye nada, y
+  exporta `REVEAL_FORBIDDEN_REBUILD_SYMBOLS` para que el guard chille si alguien
+  mete un rebuild. Identidad de nodo preservada REUSANDO el nodo vault-wide, no
+  recreándolo con el mismo id. Un valor que el índice todavía no vio se proyecta
+  igual (el cache se retrasa; tirarlo haría parecer que el archivo no tiene lo
+  que el usuario acaba de escribir). Ambos estados vacíos devuelven vacío, nunca
+  el set vault-wide. El toggle vive en el explorer, estrecha el árbol UNA vez
+  antes de search/filters/sort/engines, y sigue el archivo activo por
+  `observeActiveContentFile` (el watcher que ya resuelve open/rename/delete, así
+  que borrar el archivo activo devuelve el estado vacío en vez de tirar).
+  (4) GATES QUE YA ESTABAN ROJOS ANTES DE MI TRABAJO, reparados en `d45e71a2`
+  sin debilitar ninguna regla: `pnpm run lint` salía 1 con **34 errores en
+  `27ee0170`** (19 eran `eslint-disable` de `import/no-nodejs-modules`, regla que
+  el rename de obsidianmd 0.4.1 borró — cada disable no suprimía nada y ERA el
+  error; el resto, el project service reportando parse errors de
+  `scripts/**/*.mjs`, que son Node ESM plano y nunca estuvieron en el programa de
+  TypeScript) y `format:check` fallaba en `VaultmanFrame.svelte`, que yo no toqué.
+  (5) `pnpm run verify` **EXIT 0** — primera vez en esta rama. Suite completa
+  **1533/1533 en 204 archivos**. (6) BUILD EXACTO en plugin-dev desde `298b9d9c`,
+  los tres SHA-256 verificados contra el plugin instalado: main.js C307F987…,
+  styles.css A8F851C6…, manifest.json AE221D67…. Evidencia en
+  `06-execution-record-2026-08-02-evening.md` con la matriz de lo nuevo que se
+  puede smokear. FALTA: 9.3 (anatomía Core en Tree), 9.4 (política de mutación e
+  input de valor), 6.4 (matriz viva) y 6.5 (review + aceptación del dev).
+  U121-003 NO cierra hasta que el dev acepte un smoke vivo de ese build.

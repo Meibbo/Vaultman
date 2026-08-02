@@ -116,12 +116,12 @@ export interface ValueMoveModeState {
   previous node on exit. The same slot is claimed by the reveal toggle of plan
   shard 09; the two are mutually exclusive **by construction**, so assert that no
   projection produces both.
-- [ ] Add tests proving the two toggle ActionCells (`append` ↔ `replace`,
+- [x] Add tests proving the two toggle ActionCells (`append` ↔ `replace`,
   `move` ↔ `copy`) are published as trailing actions of the existing
   `searchControl.svelte` `trailingActions` contract, not as a new bar.
-- [ ] Add tests proving `Proceed with selected` is also registered in the
+- [x] Add tests proving `Proceed with selected` is also registered in the
   node_prop context menu with the same guard as the toolbar node.
-- [ ] Add queue tests:
+- [x] Add queue tests:
   - with `queueService.operationMode === 'stage'`, `Proceed` stages the
     operations and opens no modal — the queue's own review is the confirmation;
   - with `operationMode === 'bypass'`, `Proceed` opens the operation summary and
@@ -131,18 +131,25 @@ export interface ValueMoveModeState {
     values in which files are overwritten;
   - `modalQueueDetails` exposes a bypass toggle that switches
     `queueService.operationMode` from where the consequences are read.
-- [ ] Add adversarial tests: `move` + `replace` into a destination that already
+- [~] Add adversarial tests: `move` + `replace` into a destination that already
   holds the value removes the origin and reports no failure; a destination
-  property absent from a file is created there; cancelling a coercing move's
+  property absent from a file is created there; cancelling a coercing move’s
   queue entry restores both the values and the destination type.
-- [ ] Run the suites and confirm RED.
-- [ ] Implement the adapter in `explorerProps.ts`: it owns the machine instance,
+  **PARTIAL.** The first two are locked in `valueMoveApply.test.ts`. The third
+  is NOT satisfied: the type change is a second queue entry, so cancelling the
+  value entry leaves the type changed. See the execution record.
+- [x] Run the suites and confirm RED.
+- [x] Implement the adapter in `explorerProps.ts`: it owns the machine instance,
   forces `interactionMode` to `select` on enter, publishes the toolbar and search
   nodes, and dies with the panelWidget generation.
-- [ ] Implement the summary modal. It renders the plan the pure logic produced;
+- [x] Implement the summary modal. It renders the plan the pure logic produced;
   it computes nothing itself.
-- [ ] Run the Svelte autofixer before and after on every changed `.svelte`.
-- [ ] Re-run focused tests, confirm GREEN, then run `pnpm run check`,
+- [~] Run the Svelte autofixer before and after on every changed `.svelte`.
+  **PARTIAL.** `svelte-check` (0 errors, 0 warnings) and Prettier ran on both
+  changed components. The `svelte-autofixer` MCP tool requires the whole
+  component inlined and these two are roughly 1700 and 1600 lines, so it was
+  not run on them.
+- [x] Re-run focused tests, confirm GREEN, then run `pnpm run check`,
   `pnpm run lint` and Stylelint.
 
 ## Definition of done for part 2
@@ -245,3 +252,51 @@ layer. The rendered toolbar is still driven by `NavbarPanelWidgetState` through
 Wiring the slot to what actually renders needs either that file or a bridge
 from the projection into `headerActions`. Decide it before implementing the
 adapter, not during.
+
+### Execution record — 8.6, same session
+
+Landed in `e20b1631` (wiring) and `6da42823` (the coercion fix).
+
+The mode exists end to end: it enters from a value node's context menu, forces
+`select`, and composes with the explorer's own selection, so the same gesture
+that selects a node names it as a destination.
+
+**Where its controls live.** The developer chose the `headerActions` bridge over
+teaching `navbarFilters` to consume `resolvePanelWidgetProjection`. `Proceed`
+and `Cancel` are projected through `resolveExclusiveSlotNodes` and published as
+header actions; the two switches ride `searchControl`'s existing
+`trailingActions`, which nothing was feeding before. Each switch is labelled
+with the state it is IN — a control that names the state it would switch to
+reads as a command and gets pressed by mistake.
+
+**Liveness is real, not asserted.** `explorerProps` notifies on every mode
+change and `pageFilters` reprojects from that revision, so the toolbar and the
+searchbox update without an unrelated action forcing a repaint.
+
+#### Deviations and gaps
+
+| Item | State |
+| --- | --- |
+| type change inside the same OperationNode | **NOT satisfied.** `PendingChange.logicFunc` returns either frontmatter or the `NATIVE_SET_PROP_TYPE` sentinel, never both, so the coercion is a second queue entry. Cancelling the value entry leaves the type changed. Expressing the spec exactly needs a queue-contract change, which this shard does not own |
+| `src/logic/logicValueMoveApply.ts` | added; no shard module owned the per-file write semantics |
+| `planValueMoveTypeChanges` | one type change per destination, not per file or per pair — a property's type is one fact about the vault |
+| `pageFiltersSource` guard | re-pointed: it pinned `headerActions: contentHeaderActions` verbatim, and header actions are composed now |
+| `svelte-autofixer` MCP tool | not run on `pageFilters.svelte` / `navbarFilters.svelte`; `svelte-check` 0/0 and Prettier were |
+
+#### Gate status at `6da42823`
+
+Full unit suite **1512/1512** in 203 files. `pnpm run verify` **exit 0** — the
+first time the aggregate gate has passed on this branch.
+
+Getting there needed two gates repaired in `d45e71a2`. Both were already red
+before this work started, so they are recorded here as findings, not as
+regressions:
+
+- `pnpm run lint` exited 1 with **34 errors at `27ee0170`** and 27 after the
+  maintenance commit. 19 were `eslint-disable` directives for
+  `import/no-nodejs-modules`, a rule the obsidianmd 0.4.1 rename deleted — each
+  disable suppressed nothing and was itself the error. The rest were the project
+  service reporting parse errors for `scripts/**/*.mjs`, which are plain Node ESM
+  and were never in the TypeScript program. Nothing was suppressed to reach 0.
+- `pnpm run format:check` failed on `VaultmanFrame.svelte`, untouched by this
+  work. Two Prettier hunks, no behavior.

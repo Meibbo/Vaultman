@@ -40,25 +40,25 @@ over an index that keeps its own lifecycle.
 - Modify: `src/logic/logicProps.ts`
 - Modify: `src/logic/logicCellCapabilities.ts`, `test/unit/cellCapabilities.test.ts`
 
-- [ ] Add pure tests for a projection that takes the already-built vault-wide
+- [x] Add pure tests for a projection that takes the already-built vault-wide
   property snapshot plus one file's frontmatter and returns the node set for that
   file, in **frontmatter key order**.
-- [ ] Add tests proving node identity: a property present in both projections
+- [x] Add tests proving node identity: a property present in both projections
   keeps the same node ID, so selection and expansion survive the toggle.
-- [ ] Add tests for the empty states — no active file, and an active file with no
+- [x] Add tests for the empty states — no active file, and an active file with no
   frontmatter — returning the canonical empty state rather than falling back to
   the vault-wide set.
-- [ ] Add capability tests: `reveal` enters `CellCapabilityContext`, and Cells
+- [x] Add capability tests: `reveal` enters `CellCapabilityContext`, and Cells
   with no single-file meaning (the vault-wide `count`) resolve **unavailable**
   rather than rendering a misleading zero.
-- [ ] Add a source guard proving the toggle path calls no vault-wide rebuild
+- [x] Add a source guard proving the toggle path calls no vault-wide rebuild
   entry point (`servicePropertyIndex` rebuild, `PropsLogic` invalidation, vault
   scans, metadata sweeps). Name the forbidden symbols explicitly so the guard
   fails loudly if a rebuild is added later.
-- [ ] Run the suites and confirm RED.
-- [ ] Implement the projection as a pure filter plus an order, taking the
+- [x] Run the suites and confirm RED.
+- [x] Implement the projection as a pure filter plus an order, taking the
   snapshot in and returning nodes out. It never reads the vault.
-- [ ] Re-run focused tests, confirm GREEN, run `pnpm run check`.
+- [x] Re-run focused tests, confirm GREEN, run `pnpm run check`.
 
 ## Task 9.2 — The toolbar toggle and its exclusive slot
 
@@ -70,26 +70,26 @@ over an index that keeps its own lifecycle.
 - Modify: `test/unit/valueMoveModeProjection.test.ts`
 - Modify: `test/unit/panelWidgetProjection.test.ts`
 
-- [ ] Add projection tests placing the toggle **between `search` and
+- [x] Add projection tests placing the toggle **between `search` and
   `collapse/expand`** in the Props panelWidget, participating in overflow
   condensation and the ToolCase like any other node.
-- [ ] Add a test requiring the open state to use Core's focused/primary
+- [x] Add a test requiring the open state to use Core's focused/primary
   variables, not the Vaultman active accent — the same rule the Search
   ActionNode already follows.
-- [ ] Re-point the mutual-exclusion test written in plan shard 08 part 2: the
+- [x] Re-point the mutual-exclusion test written in plan shard 08 part 2: the
   slot holds the reveal toggle, or `Proceed with selected`, never both, and the
   reveal state is restored when the move mode exits.
-- [ ] Add liveness tests: changing the workspace's active file reprojects within
+- [x] Add liveness tests: changing the workspace's active file reprojects within
   one reactive flush with no user action, and two instances with different active
   files project independently.
-- [ ] Add a test proving that toggling off restores the previous vault-wide
+- [x] Add a test proving that toggling off restores the previous vault-wide
   projection including expansion, scroll position, sort and selection for IDs
   that still exist.
-- [ ] Run the suites and confirm RED.
-- [ ] Implement the toggle as PanelExplorer state under the panelWidget
+- [x] Run the suites and confirm RED.
+- [x] Implement the toggle as PanelExplorer state under the panelWidget
   generation of shard 01, subscribing to the active-leaf change that already
   exists rather than adding a new watcher.
-- [ ] Re-run focused tests, confirm GREEN; run the Svelte autofixer on every
+- [x] Re-run focused tests, confirm GREEN; run the Svelte autofixer on every
   changed `.svelte`.
 
 ## Task 9.3 — Tree renders Core's file-properties anatomy
@@ -188,3 +188,70 @@ The taxonomy question from the spec — what kind of control the value-entry inp
 is in the VIECO/NAVCO vocabulary — stays open. It does not block implementation
 and must not be resolved by wiring the input to `nested`; the developer's
 comparison to `nested` was a classification remark, not a wiring instruction.
+
+## Execution record — 2026-08-02 evening, claude-opus-5
+
+Tasks 9.1 and 9.2 landed in `274f0a80` and `298b9d9c`. Tasks 9.3 and 9.4 are
+untouched.
+
+### 9.1 — the projection
+
+`logicRevealActiveFileProps.ts` narrows an already-built snapshot. It never
+reads the vault, never sweeps the metadata cache and never rebuilds anything,
+and it exports `REVEAL_FORBIDDEN_REBUILD_SYMBOLS` so a guard fails loudly if a
+rebuild entry point is ever added to the toggle path.
+
+Decisions worth carrying:
+
+- **Node identity is preserved by reusing the vault-wide node**, not by
+  rebuilding one with the same ID. Badges, metadata and pending operations
+  therefore come from one place and survive the toggle in both directions.
+- **A value the index has not seen still projects.** The metadata cache can lag
+  a just-typed value; dropping it would make the file look like it does not
+  have what the user just wrote.
+- **Both empty states return empty**, never the vault-wide set. Showing
+  properties the file does not have, while claiming to show the file, is worse
+  than showing nothing.
+- A nested map serializes rather than stringifying, because `[object Object]`
+  is not the value the user wrote and would never match a projected ID.
+
+`CellCapabilityContext` gained `reveal`. The vault-wide `count` withdraws inside
+it and a saved `count` sort falls back to Name.
+
+### 9.2 — the toggle
+
+State on the explorer; the tree is narrowed once, before search, filters, sort
+or any engine reads it, so nothing downstream decides for itself what reveal
+means.
+
+It follows the active file through `observeActiveContentFile` — the watcher that
+already resolves open, rename and delete — rather than adding a second idea of
+which file is active. Deleting the active file therefore returns the empty state
+instead of throwing. The watch exists only while the toggle is on, and the panel
+drops it on unload.
+
+The toggle holds the exclusive slot between `search` and `collapse/expand`. The
+move mode of shard 08 part 2 replaces it and its state survives, because the
+toggle lives on the explorer rather than in the projection. The mutual-exclusion
+test written in that shard already named `props.reveal-this-file`, so it needed
+no re-pointing.
+
+### Gap recorded rather than faked
+
+`resolveCellCapabilities` **has no caller anywhere in `src`**. Shard 04 landed
+it as a module without one, exactly like the `PropertyValueInteractionPort` of
+shard 05 that task 5.2 never finished extracting. So although `reveal` is part
+of the context and the resolver withdraws the vault-wide `count`, **no live Cell
+list is narrowed by reveal yet**. A guard in `revealActiveFileProps.test.ts`
+fails the moment `explorerProps` starts calling the resolver, which is the point
+at which to wire it properly.
+
+### Not done
+
+- **9.3** — Tree's Core file-properties anatomy, the Table/Cards split and the
+  `styles.css` work. Needs `obsidian-web-lab` read first; Core must not be
+  reconstructed from memory.
+- **9.4** — the mutation policy: queued value/key/type changes, live
+  `REORDER_ALL` drag order, and the value-entry input.
+
+Suite at `298b9d9c`: **1533/1533** in 204 files, `tsc` and `svelte-check` 0/0.
