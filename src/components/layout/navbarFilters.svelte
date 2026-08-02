@@ -5,6 +5,7 @@
 	import { translate } from '../../i18n/index';
 	import SortPopup from './popupSort.svelte';
 	import ViewModePopup from './popupView.svelte';
+	import SearchControl from './searchControl.svelte';
 	import type {
 		ExplorerTabId,
 		ExplorerSortState,
@@ -1643,61 +1644,20 @@
 </script>
 
 {#snippet searchControl(variant: SearchControlVariant)}
-	<div
-		class={`search-input-container vaultman-filters-header-search-pill vaultman-filters-header-search-pill--${variant}`}
-		style:order={variant === 'inline'
-			? panelWidgetNodeOrder('search')
-			: undefined}
-	>
-		<input
-			class="vaultman-filters-search-input"
-			type="search"
-			enterkeyhint="search"
-			autocomplete="off"
-			autocorrect="off"
-			autocapitalize="off"
-			spellcheck="false"
-			placeholder={translate('filter.search_placeholder')}
-			value={filtersSearch}
-			oninput={(event: Event) =>
-				setFiltersSearch((event.currentTarget as HTMLInputElement).value)}
-		/>
-		{#if filtersSearch}
-			<div
-				class="search-input-clear-button"
-				aria-label={translate('filter.search_clear')}
-				role="button"
-				tabindex="0"
-				onclick={() => {
-					setFiltersSearch('');
-				}}
-				onkeydown={(event: KeyboardEvent) => {
-					if (event.key !== 'Enter' && event.key !== ' ') return;
-					event.preventDefault();
-					setFiltersSearch('');
-				}}
-			></div>
-		{/if}
-		{#if CATEGORY_ICONS[activeTab].length > 1}
-			<button
-				class="vaultman-filters-search-mode"
-				aria-label={CATEGORY_LABELS[activeTab]?.[
-					filtersSearchCategory[activeTab] ?? 0
-				] ?? translate('filter.search_mode')}
-				use:icon={currentCategoryIcon}
-				onclick={cycleSearchCategory}
-			></button>
-		{/if}
-		{#if canCreateSearchTarget}
-			<button
-				class="vaultman-filters-search-create"
-				aria-label={translate('filter.create')}
-				title={minimalStyle ? undefined : translate('filter.create')}
-				use:icon={currentCreateIcon}
-				onclick={createSearchTarget}
-			></button>
-		{/if}
-	</div>
+	<SearchControl
+		value={filtersSearch}
+		placeholder={translate('filter.search_placeholder')}
+		ownRow={variant === 'row'}
+		clearLabel={translate('filter.search_clear')}
+		categoryIcon={CATEGORY_ICONS[activeTab].length > 1 ? currentCategoryIcon : undefined}
+		categoryLabel={CATEGORY_LABELS[activeTab]?.[filtersSearchCategory[activeTab] ?? 0] ?? translate('filter.search_mode')}
+		onCycleCategory={cycleSearchCategory}
+		createIcon={canCreateSearchTarget ? currentCreateIcon : undefined}
+		createLabel={translate('filter.create')}
+		onCreateTarget={createSearchTarget}
+		onValueChange={setFiltersSearch}
+		{icon}
+	/>
 {/snippet}
 
 <div

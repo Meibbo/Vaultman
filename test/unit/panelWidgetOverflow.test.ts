@@ -83,4 +83,17 @@ describe('measured panelWidget overflow', () => {
 			overflowIds: ['pause', 'has', 'sort'],
 		});
 	});
+
+	it('returns identical layout signature on repeated equal measurements to prevent ResizeObserver loops', () => {
+		const input = {
+			availableWidth: 173,
+			nodes,
+			gap: 8,
+			toolsWidth: 32,
+		};
+		const run1 = resolveCondensedPanelWidgetOverflow(input);
+		const run2 = resolveCondensedPanelWidgetOverflow(input);
+		expect(run1).toEqual(run2);
+		expect(JSON.stringify(run1)).toBe(JSON.stringify(run2));
+	});
 });

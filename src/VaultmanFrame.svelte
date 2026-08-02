@@ -57,8 +57,13 @@
 		onShowToolbarChange,
 	}: Props = $props();
 	let frameShowToolbar = $state(
-		untrack(() => initialShowToolbar ?? plugin.settings.showToolbar !== false),
+		untrack(() =>
+			Platform.isMobile
+				? true
+				: (initialShowToolbar ?? plugin.settings.showToolbar !== false),
+		),
 	);
+	const effectiveShowToolbar = $derived(Platform.isMobile || frameShowToolbar);
 
 	function handleShowToolbarChange(value: boolean): void {
 		frameShowToolbar = value;
@@ -310,7 +315,7 @@
 		activePanelWidgetEnvelope?.projection ?? null,
 	);
 	const panelWidgetVisible = $derived(
-		frameShowToolbar &&
+		effectiveShowToolbar &&
 			(activePage === 'statistics' ||
 				activePanelWidgetState?.minimalStyle === true ||
 				activePanelWidgetState?.showExplorerControls !== false),

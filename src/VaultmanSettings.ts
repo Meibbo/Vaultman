@@ -1,4 +1,4 @@
-import { PluginSettingTab, Setting, type App } from 'obsidian';
+import { PluginSettingTab, Setting, type App, Platform } from 'obsidian';
 import {
 	PROP_CONFLICT_WARNINGS,
 	type FilesIconScope,
@@ -515,17 +515,19 @@ export class VaultmanSettingsTab extends PluginSettingTab {
 					}),
 			);
 
-		new Setting(containerEl)
-			.setName(translate('settings.show_toolbar'))
-			.setDesc(translate('settings.show_toolbar.desc'))
-			.addToggle((toggle) =>
-				toggle
-					.setValue(this.plugin.settings.showToolbar !== false)
-					.onChange(async (value) => {
-						this.plugin.settings.showToolbar = value;
-						await this.plugin.saveSettings();
-					}),
-			);
+		if (!Platform.isMobile) {
+			new Setting(containerEl)
+				.setName(translate('settings.show_toolbar'))
+				.setDesc(translate('settings.show_toolbar.desc'))
+				.addToggle((toggle) =>
+					toggle
+						.setValue(this.plugin.settings.showToolbar !== false)
+						.onChange(async (value) => {
+							this.plugin.settings.showToolbar = value;
+							await this.plugin.saveSettings();
+						}),
+				);
+		}
 
 		new Setting(containerEl)
 			.setName(translate('settings.toolbar_overflow'))

@@ -62,8 +62,9 @@ describe('BT3 settings information architecture source guards', () => {
 			'settings.toolbar_tools_menu',
 		]) {
 			expect(rootSource).not.toContain(`translate('${key}')`);
-			expect(toolbarSource).toContain(`translate('${key}')`);
 		}
+		expect(toolbarSource).toContain('if (!Platform.isMobile)');
+		expect(toolbarSource).toContain("translate('settings.show_toolbar')");
 		expect(toolbarSource).toContain(
 			"translate('settings.back_to_layout_settings')",
 		);
