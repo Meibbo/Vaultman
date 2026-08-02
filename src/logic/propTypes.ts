@@ -42,6 +42,29 @@ export const EDITABLE_PROP_TYPE_OPTIONS: readonly EditablePropTypeOption[] = [
 	{ type: 'list', labelKey: 'prop.type.list', icon: TYPE_ICON_MAP.list },
 ];
 
+/**
+ * The kinds Obsidian derives from the key itself. Core shows them as the
+ * property's current type and does not let you assign them, so they exist here
+ * to be *displayed*, never to be chosen.
+ */
+export const DERIVED_PROP_TYPE_OPTIONS: readonly EditablePropTypeOption[] = [
+	{
+		type: 'tags' as EditablePropType,
+		labelKey: 'prop.type.tags',
+		icon: TYPE_ICON_MAP.tags,
+	},
+	{
+		type: 'aliases' as EditablePropType,
+		labelKey: 'prop.type.aliases',
+		icon: TYPE_ICON_MAP.aliases,
+	},
+	{
+		type: 'cssclasses' as EditablePropType,
+		labelKey: 'prop.type.cssclasses',
+		icon: TYPE_ICON_MAP.cssclasses,
+	},
+];
+
 export const PROP_TYPE_ORDER = [
 	'tags',
 	'list',

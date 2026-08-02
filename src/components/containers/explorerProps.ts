@@ -59,6 +59,7 @@ import {
 } from '../../utils/badgeInteraction';
 import {
 	comparePropTypes,
+	DERIVED_PROP_TYPE_OPTIONS,
 	EDITABLE_PROP_TYPE_OPTIONS,
 	resolveNativePropType,
 	toNativePropType,
@@ -288,6 +289,31 @@ export class PropsExplorerPanel extends Component {
 					const meta = ctx.node.meta as PropMeta;
 					if (this._effectivePropType(meta) === option.type) return;
 					return this._changePropType(meta.propName, option.type);
+				},
+			});
+		}
+
+		// A property whose type is a derived kind had a submenu with nothing
+		// marked, so the menu said nothing about what the type currently is.
+		// Core shows the derived kind and does not offer it; this entry is
+		// checked and inert for exactly that reason.
+		for (const option of DERIVED_PROP_TYPE_OPTIONS) {
+			svc.registerAction({
+				id: `prop.type-current-${option.type}`,
+				nodeTypes: ['prop'],
+				surfaces: ['panel'],
+				label: translate(option.labelKey),
+				icon: option.icon,
+				submenu: translate('explorer.ctx.change_type'),
+				when: (ctx) => {
+					const meta = ctx.node.meta as PropMeta;
+					return (
+						!meta.isValueNode && this._effectivePropType(meta) === option.type
+					);
+				},
+				checked: () => true,
+				run: () => {
+					// Not assignable, matching Core.
 				},
 			});
 		}
