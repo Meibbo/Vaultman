@@ -192,7 +192,8 @@ export function installCoreBookmarkBridge(
 	   by identity on teardown; invoked with an explicit receiver. */
 	const originalAdd = plugin.addItem;
 	const originalOpen = plugin.openBookmark;
-	/* eslint-enable @typescript-eslint/unbound-method */
+	/* eslint-enable @typescript-eslint/unbound-method -- the two captures above
+	   are the whole reason the rule was suspended. */
 
 	if (originalAdd) {
 		plugin.addItem = (item: SearchBookmarkItem) => {

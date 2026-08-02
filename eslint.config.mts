@@ -26,6 +26,12 @@ const obsidianRecommended = (
 		: config;
 });
 
+const obsidianRulesOff = Object.fromEntries(
+	Object.keys(
+		(obsidianmd as unknown as { rules?: Record<string, unknown> }).rules ?? {},
+	).map((ruleName) => [`obsidianmd/${ruleName}`, 'off' as const]),
+);
+
 export default tseslint.config(
 	{
 		linterOptions: {
@@ -61,6 +67,24 @@ export default tseslint.config(
 		},
 	},
 	...obsidianRecommended,
+	{
+		// Build and release scripts are plain Node ESM and are not in the
+		// TypeScript program. Asking the project service for them makes it
+		// report a parsing error for a file it was never meant to own, so they
+		// are linted without type information rather than not linted at all.
+		// This block sits after the Obsidian preset so it is the one that wins.
+		files: ['scripts/**/*.mjs'],
+		extends: [tseslint.configs.disableTypeChecked],
+		languageOptions: {
+			parserOptions: {
+				projectService: false,
+				project: false,
+			},
+		},
+		// The obsidianmd rules describe plugin source. A release script is not
+		// a plugin, so they report on code they were never written about.
+		rules: obsidianRulesOff,
+	},
 	{
 		files: ['test/**/*.ts', 'test/**/*.mts', 'wdio.conf.mts'],
 		rules: {

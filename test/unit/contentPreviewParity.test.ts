@@ -1,4 +1,3 @@
-// eslint-disable-next-line import/no-nodejs-modules -- parity guard reads the root CSS file in Vitest's Node environment.
 import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 

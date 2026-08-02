@@ -335,9 +335,7 @@
 				activePanelWidgetState?.showExplorerControls !== false),
 	);
 
-	function publishPanelWidget(
-		publication: ScenePanelWidgetPublication,
-	): void {
+	function publishPanelWidget(publication: ScenePanelWidgetPublication): void {
 		if (sceneController.publish(publication)) {
 			activePanelWidgetEnvelope = publication;
 		}
@@ -742,7 +740,6 @@
 	let tagsExplorer = $state<TagsExplorerPanel | null>(null);
 	let snippetsExplorer = $state<SnippetsExplorerPanel | undefined>(undefined);
 	let pluginsExplorer = $state<PluginsExplorerPanel | undefined>(undefined);
-
 
 	// ─── Floating TOC (FTC-001/002 + toggle/scope-drill) ──────────────────────
 	// Explorer panels notify after each render; the rail re-derives its glyphs.

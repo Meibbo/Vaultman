@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-// eslint-disable-next-line import/no-nodejs-modules -- source guard reads the runner script in Vitest's Node environment.
+
 import { readFileSync } from 'node:fs';
 
 const source = readFileSync(
