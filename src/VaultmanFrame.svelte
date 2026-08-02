@@ -303,11 +303,15 @@
 	const sceneController = new ScenePanelWidgetController(sceneInstanceId);
 	onDestroy(() => sceneController.destroy());
 
-	let activeGeneration = $state(
-		sceneController.begin(
-			untrack(() => (activePage === 'statistics' ? 'statistics' : 'files')),
-		),
+	const activeProviderId = $derived(
+		activePage === 'statistics' ? 'statistics' : filtersActiveTab,
 	);
+	let activeGeneration = $state(0);
+
+	$effect(() => {
+		const provider = activeProviderId;
+		activeGeneration = sceneController.begin(provider);
+	});
 	let activePanelWidgetEnvelope = $state<ScenePanelWidgetEnvelope | null>(null);
 	let panelWidgetPeek = $state(false);
 
