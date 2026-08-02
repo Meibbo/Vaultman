@@ -378,6 +378,12 @@ export const es: Record<string, string> = {
 	'settings.bulk_operation_warning_threshold': 'Umbral de aviso en cola',
 	'settings.bulk_operation_warning_threshold.desc':
 		'Muestra avisos en la cola cuando una operación afecta más archivos que este límite.',
+	'settings.prop_move_conflict': 'Conflictos de tipo al mover a propiedad',
+	'settings.prop_move_conflict.desc':
+		'Qué ocurre cuando la propiedad de destino no puede contener el valor que se mueve.',
+	'settings.prop_move_conflict.coerce': 'Cambiar el tipo del destino',
+	'settings.prop_move_conflict.block': 'Omitir el destino',
+	'settings.prop_move_conflict.ask': 'Preguntar en el resumen de la operación',
 	'settings.addons': 'Complementos',
 	'settings.addons.iconic': 'Iconic',
 	'settings.addons.iconic.desc':
@@ -599,6 +605,10 @@ export const es: Record<string, string> = {
 	'explorer.ctx.change_type': 'Cambiar tipo',
 	'explorer.ctx.add_to_files': 'Agregar a {count} archivos',
 	'explorer.ctx.add_to_files.empty': 'Ningún archivo coincide con el filtro',
+	'explorer.prop_move.blocked.scalar_occupied':
+		'{property} ya tiene un valor y no es una lista',
+	'explorer.prop_move.blocked.type_mismatch':
+		'{property} es {type} y no puede contener este valor',
 	'explorer.ctx.icon': 'Cambiar ícono (Iconic)',
 	'explorer.ctx.delete_prop': 'Eliminar propiedad',
 	'explorer.ctx.add_value': 'Agregar valor',

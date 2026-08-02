@@ -379,6 +379,12 @@ export const en: Record<string, string> = {
 	'settings.bulk_operation_warning_threshold': 'Queue warning threshold',
 	'settings.bulk_operation_warning_threshold.desc':
 		'Show queue warnings when an operation targets more than this many files.',
+	'settings.prop_move_conflict': 'Move to property type conflicts',
+	'settings.prop_move_conflict.desc':
+		'What happens when the destination property cannot hold the value being moved.',
+	'settings.prop_move_conflict.coerce': 'Change the destination type',
+	'settings.prop_move_conflict.block': 'Skip the destination',
+	'settings.prop_move_conflict.ask': 'Ask in the operation summary',
 	'settings.addons': 'Add-ons',
 	'settings.addons.iconic': 'Iconic',
 	'settings.addons.iconic.desc':
@@ -588,6 +594,10 @@ export const en: Record<string, string> = {
 	'explorer.ctx.change_type': 'Change type',
 	'explorer.ctx.add_to_files': 'Add to {count} files',
 	'explorer.ctx.add_to_files.empty': 'No files match the current filter',
+	'explorer.prop_move.blocked.scalar_occupied':
+		'{property} already holds a value and is not a list',
+	'explorer.prop_move.blocked.type_mismatch':
+		'{property} is {type} and cannot hold this value',
 	'explorer.ctx.delete_prop': 'Delete property',
 	'explorer.ctx.add_value': 'Add value',
 

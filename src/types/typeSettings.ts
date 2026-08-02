@@ -252,6 +252,12 @@ export interface VaultmanSettings {
 	suppressBulkOperationWarning: boolean;
 	/** Queue warning threshold for operations that target many files */
 	bulkOperationWarningThreshold: number;
+	/**
+	 * What `Move to prop...` does when the destination property's type cannot
+	 * admit the incoming value: change the type, skip the destination, or ask
+	 * per destination in the operation summary.
+	 */
+	propMoveTypeConflict: 'coerce' | 'block' | 'ask';
 	/** Show the floating performance diagnostics monitor */
 	performanceHudEnabled: boolean;
 	/** Internal one-shot migration marker for the Iter.12 tab label default */
@@ -394,6 +400,7 @@ export const DEFAULT_SETTINGS: VaultmanSettings = {
 	bypassOperations: false,
 	suppressBulkOperationWarning: false,
 	bulkOperationWarningThreshold: 200,
+	propMoveTypeConflict: 'coerce',
 	performanceHudEnabled: false,
 	filtersTabLabelsMigrated: true,
 	viewCompositionsSeeded: false,
