@@ -118,7 +118,10 @@ import {
 	decidePropMoveConflict,
 	normalizePropMoveTypeConflict,
 } from '../../logic/logicPropMoveConflict';
-import { applyValueMove } from '../../logic/logicValueMoveApply';
+import {
+	applyValueMove,
+	planValueMoveTypeChanges,
+} from '../../logic/logicValueMoveApply';
 import {
 	OperationSummaryModal,
 	type OperationSummaryLine,
@@ -891,7 +894,48 @@ export class PropsExplorerPanel extends Component {
 		const files = this.plugin.filterService.filteredFiles;
 		const operations = buildValueMoveOperations(mode);
 
+		const decideFor = (destination: string, occupied: boolean) =>
+			decidePropMoveConflict(
+				{
+					property: destination,
+					currentType: this._destinationPropType(destination),
+					occupied,
+				},
+				{
+					rawValue: operations[0].rawValue,
+					propType: operations[0].propType,
+				},
+				operations[0].write,
+				policy,
+			);
+
 		const stage = (): void => {
+			// The coercion the summary declared has to reach `types.json`, or the
+			// declaration is a claim the user cannot see fail. It goes first, so
+			// the values land in a destination that already accepts them.
+			for (const change of planValueMoveTypeChanges(operations, (destination) =>
+				decideFor(destination, true),
+			)) {
+				const markerFile =
+					this._getFilesWithProp(change.property)[0] ??
+					this.plugin.app.vault.getMarkdownFiles()[0];
+				if (!markerFile) continue;
+				this.plugin.queueService.addOrRun({
+					type: 'property',
+					property: change.property,
+					action: 'change_type',
+					details: change.declaration,
+					files: [markerFile],
+					customLogic: true,
+					logicFunc: () => ({
+						[NATIVE_SET_PROP_TYPE]: {
+							propName: change.property,
+							type: toNativePropType(change.toType),
+						},
+					}),
+				});
+			}
+
 			for (const operation of operations) {
 				const destinationType = this._destinationPropType(
 					operation.destinationProperty,
@@ -942,16 +986,9 @@ export class PropsExplorerPanel extends Component {
 				const destinationType = this._destinationPropType(
 					operation.destinationProperty,
 				);
-				const decision = decidePropMoveConflict(
-					{
-						property: operation.destinationProperty,
-						currentType: destinationType,
-						occupied: true,
-					},
-					{ rawValue: operation.rawValue, propType: operation.propType },
-					operation.write,
-					policy,
-				);
+				// The same decision the write will make, so the summary cannot
+				// describe something other than what runs.
+				const decision = decideFor(operation.destinationProperty, true);
 				return {
 					destination: operation.destinationProperty,
 					destinationType: destinationType ?? 'text',

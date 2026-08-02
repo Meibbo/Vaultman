@@ -89,6 +89,35 @@ function fileCarriesOriginValue(
 	return scalarText(current) === rawValue;
 }
 
+/**
+ * The type changes a move carries, one per destination that coerces.
+ *
+ * The write decision is made per file because occupancy is, but a property's
+ * type is one fact about the vault, so queueing it per file or per pair would
+ * stage the same change several times over.
+ */
+export function planValueMoveTypeChanges(
+	operations: readonly ValueMoveOperation[],
+	decide: (destination: string) => PropMoveDecision,
+): readonly PropMoveTypeChange[] {
+	const changes: PropMoveTypeChange[] = [];
+	const seen = new Set<string>();
+
+	for (const operation of operations) {
+		const destination = operation.destinationProperty;
+		if (seen.has(destination)) continue;
+		seen.add(destination);
+
+		const decision = decide(destination);
+		// `block` states its reason and changes nothing; only a decision that
+		// carries a type change has one to queue.
+		if (decision.kind === 'blocked' || !decision.typeChange) continue;
+		changes.push(decision.typeChange);
+	}
+
+	return Object.freeze(changes);
+}
+
 export function applyValueMove(
 	operation: ValueMoveOperation,
 	frontmatter: Record<string, unknown>,

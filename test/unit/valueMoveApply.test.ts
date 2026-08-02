@@ -1,6 +1,9 @@
 import { describe, expect, it } from 'vitest';
 
-import { applyValueMove } from '../../src/logic/logicValueMoveApply';
+import {
+	applyValueMove,
+	planValueMoveTypeChanges,
+} from '../../src/logic/logicValueMoveApply';
 import applySource from '../../src/logic/logicValueMoveApply.ts?raw';
 import {
 	decidePropMoveConflict,
@@ -207,6 +210,44 @@ describe('applying one value move to one file', () => {
 		const frontmatter = { lugar: ['cocina', 'salon'], buscar: ['x'] };
 		applyValueMove(operation(), frontmatter, compatible, 'list');
 		expect(frontmatter).toEqual({ lugar: ['cocina', 'salon'], buscar: ['x'] });
+	});
+
+	it('plans one type change per coercing destination, not per file or per pair', () => {
+		const operations = [
+			operation({ originId: 'v1', destinationProperty: 'buscar' }),
+			operation({ originId: 'v2', destinationProperty: 'buscar' }),
+			operation({ originId: 'v1', destinationProperty: 'archivo' }),
+		];
+		const changes = planValueMoveTypeChanges(operations, (destination) =>
+			decidePropMoveConflict(
+				{ property: destination, currentType: 'date', occupied: true },
+				{ rawValue: 'cocina', propType: 'text' },
+				'append',
+				'coerce',
+			),
+		);
+		expect(changes.map((change) => change.property)).toEqual([
+			'buscar',
+			'archivo',
+		]);
+		expect(changes[0]).toMatchObject({ toType: 'list' });
+	});
+
+	it('plans no type change when nothing is coerced', () => {
+		const changes = planValueMoveTypeChanges([operation()], () => compatible);
+		expect(changes).toEqual([]);
+	});
+
+	it('plans no type change for a destination the policy blocked', () => {
+		const changes = planValueMoveTypeChanges([operation()], (destination) =>
+			decidePropMoveConflict(
+				{ property: destination, currentType: 'date', occupied: true },
+				{ rawValue: 'cocina', propType: 'text' },
+				'append',
+				'block',
+			),
+		);
+		expect(changes).toEqual([]);
 	});
 
 	it('reads no vault and queues nothing itself', () => {

@@ -103,6 +103,18 @@ describe('the Move to prop... adapter in the Props explorer', () => {
 		expect(proceed).toContain('OperationSummaryModal');
 	});
 
+	it('queues the declared coercion so it reaches types.json', () => {
+		// A summary that declares `buscar: date -> list` and then does not change
+		// the type would be a lie the user cannot see.
+		const proceed = propsExplorerSource.slice(
+			propsExplorerSource.indexOf('private _proceedValueMove('),
+		);
+		expect(proceed).toContain('planValueMoveTypeChanges');
+		expect(proceed).toContain("action: 'change_type'");
+		expect(proceed).toContain('NATIVE_SET_PROP_TYPE');
+		expect(proceed).toContain('toNativePropType');
+	});
+
 	it('lets the queue review switch bypass from where the consequences are read', () => {
 		expect(queueDetailsSource).toContain('setOperationMode');
 		expect(queueDetailsSource).toContain("translate('settings.bypass_operations')");
