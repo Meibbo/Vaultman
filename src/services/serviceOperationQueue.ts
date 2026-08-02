@@ -1,5 +1,6 @@
 import { App, Component, Events, Notice, TFile, FileManager, TFolder } from 'obsidian';
 import type { PendingChange, OperationResult } from '../types/typeOps';
+import { replaceSingleOccurrence } from '../logic/logicSingleOccurrenceReplace';
 import { DELETE_PROP, RENAME_FILE, REORDER_ALL, MOVE_FILE, FIND_REPLACE_CONTENT, NATIVE_RENAME_PROP, NATIVE_SET_PROP_TYPE, APPLY_TEMPLATE, DELETE_FILE } from '../types/typeOps';
 import { translate } from '../i18n/index';
 
@@ -675,16 +676,37 @@ export class OperationQueueService extends Component {
 		}
 
 		if (FIND_REPLACE_CONTENT in specialUpdates) {
-			const { pattern, replacement, isRegex, caseSensitive } = specialUpdates[FIND_REPLACE_CONTENT] as {
-				pattern: string;
-				replacement: string;
-				isRegex: boolean;
-				caseSensitive: boolean;
-			};
+			const { pattern, replacement, isRegex, caseSensitive, occurrenceOffset } =
+				specialUpdates[FIND_REPLACE_CONTENT] as {
+					pattern: string;
+					replacement: string;
+					isRegex: boolean;
+					caseSensitive: boolean;
+					/** Set when the operation came from one match row's own menu. */
+					occurrenceOffset?: number;
+				};
+			const content = await this.app.vault.read(file);
+
+			if (typeof occurrenceOffset === 'number') {
+				// One occurrence, named by the offset its snippet carries. `null`
+				// means the note moved on since the search — writing over whatever
+				// now sits at a stale offset is the one outcome nobody asked for, so
+				// it is skipped rather than guessed at.
+				const single = replaceSingleOccurrence(content, occurrenceOffset, {
+					pattern,
+					replacement,
+					isRegex,
+					caseSensitive,
+				});
+				if (single !== null && single !== content) {
+					await this.app.vault.modify(file, single);
+				}
+				return;
+			}
+
 			const flags = 'g' + (caseSensitive ? '' : 'i');
 			const escaped = isRegex ? pattern : pattern.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 			const regex = new RegExp(escaped, flags);
-			const content = await this.app.vault.read(file);
 			const newContent = content.replace(regex, replacement);
 			if (newContent !== content) {
 				await this.app.vault.modify(file, newContent);

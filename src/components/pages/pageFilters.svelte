@@ -1198,6 +1198,106 @@
 		republishContentPreview();
 	}
 
+	/**
+	 * The match row's own menu.
+	 *
+	 * Three entries, and the middle one only exists when it has something to
+	 * undo: a row that was never opened up has no context to put back.
+	 */
+	function openSnippetContextMenu(
+		filePath: string,
+		matchIndex: number,
+		event: MouseEvent,
+	): void {
+		const key = `${filePath}:${String(matchIndex)}`;
+		const menu = new Menu();
+		const replacement = contentReplace;
+
+		menu.addItem((item) =>
+			item
+				.setTitle(
+					replacement.length > 0
+						? translate('content.replace_occurrence')
+						: translate('content.replace_occurrence_needs_value'),
+				)
+				.setIcon('lucide-replace')
+				.setDisabled(replacement.length === 0)
+				.onClick(() => {
+					queueOccurrenceReplace(filePath, matchIndex);
+				}),
+		);
+
+		if (contentMatchRanges[key]) {
+			menu.addItem((item) =>
+				item
+					.setTitle(translate('content.reset_context_here'))
+					.setIcon('lucide-chevrons-down-up')
+					.onClick(() => {
+						const { [key]: _dropped, ...rest } = contentMatchRanges;
+						contentMatchRanges = rest;
+						nativeSearchAdapter.setMatchRanges(
+							new Map(Object.entries(contentMatchRanges)),
+						);
+						republishContentPreview();
+					}),
+			);
+		}
+
+		menu.addItem((item) =>
+			item
+				.setTitle(translate('content.more_context_here'))
+				.setIcon('lucide-chevrons-up-down')
+				.onClick(() => {
+					showMoreContext(filePath, matchIndex, 'before');
+					showMoreContext(filePath, matchIndex, 'after');
+				}),
+		);
+
+		menu.showAtMouseEvent(event);
+	}
+
+	/**
+	 * Queue a replacement of one match rather than of every match in the file.
+	 *
+	 * The offset the snippet already carries names which one; the executor checks
+	 * that the text is still there before writing, so a note edited since the
+	 * search is skipped instead of rewritten at a stale position.
+	 */
+	function queueOccurrenceReplace(filePath: string, matchIndex: number): void {
+		const input = nativeSearchAdapter
+			.retainedInputs()
+			.find((entry) => entry.file.path === filePath);
+		const offsets = input?.offsets[matchIndex];
+		if (!input || !offsets) return;
+
+		const find = contentFind;
+		const replace = contentReplace;
+		const isRegex = contentIsRegex;
+		const caseSensitive = contentCaseSensitive;
+		const occurrenceOffset = offsets[0];
+
+		plugin.queueService.addOrRun({
+			type: 'content_replace',
+			action: 'find_replace_content',
+			details: `${translate('queue.details.replace')} ${find} → ${replace}`,
+			files: [input.file],
+			find,
+			replace,
+			isRegex,
+			caseSensitive,
+			logicFunc: () => ({
+				[FIND_REPLACE_CONTENT]: {
+					pattern: find,
+					replacement: replace,
+					isRegex,
+					caseSensitive,
+					occurrenceOffset,
+				},
+			}),
+			customLogic: true,
+		} as PendingChange);
+	}
+
 	/** Rebuild the published preview at the current extra-context setting. */
 	function republishContentPreview(): void {
 		const inputs = nativeSearchAdapter.retainedInputs();
@@ -1526,6 +1626,7 @@
 				onContentContextMenu={openContentContextMenu}
 				onHeaderMenu={openContentHeaderMenu}
 				onShowMoreContext={showMoreContext}
+				onSnippetContextMenu={openSnippetContextMenu}
 			/>
 		</div>
 	{/if}

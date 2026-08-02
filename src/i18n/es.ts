@@ -839,6 +839,11 @@ export const es: Record<string, string> = {
 	'settings.text_search_intercepts.desc':
 		'Añade una entrada de menú que busca el texto seleccionado en Vaultman en vez de en la búsqueda de Obsidian.',
 	'content.search_selection': 'Buscar la selección en Vaultman',
+	'content.current_note': 'Abierta ahora',
+	'content.replace_occurrence': 'Reemplazar esta coincidencia',
+	'content.replace_occurrence_needs_value': 'Reemplazar esta coincidencia (escribe antes un reemplazo)',
+	'content.more_context_here': 'Mostrar más contexto aquí',
+	'content.reset_context_here': 'Restablecer el contexto aquí',
 	'queue.guard.superseded':
 		'Se reemplazó {count} operación(es) en cola sobre el mismo texto.',
 	'settings.operations': 'Operaciones',

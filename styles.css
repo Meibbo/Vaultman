@@ -4376,6 +4376,17 @@ button.vaultman-content-scope-hint:focus-visible {
   color: var(--text-normal);
 }
 
+/* U121-019 #51: the note currently open, as a cell on its result row. Reveal
+   takes you to a note; this says you are already in it. */
+.vaultman-cell-highlight-current::before {
+  content: '';
+  display: block;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background-color: var(--color-accent);
+}
+
 /* U121-019 #51: core hides both chevrons and toggles them on `mouseover`
    (`showMoreBeforeEl.hide()` at construction, `toggle(start > 0)` on focus
    enter). `app.css` carries no rule for that because core does it in JS, so

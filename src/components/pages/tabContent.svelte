@@ -41,6 +41,7 @@
 		onContentContextMenu,
 		onHeaderMenu,
 		onShowMoreContext,
+		onSnippetContextMenu,
 	}: {
 		contentFind: string;
 		contentReplace: string;
@@ -81,6 +82,12 @@
 			filePath: string,
 			matchIndex: number,
 			direction: 'before' | 'after',
+		) => void;
+		/** U121-019 #51: the match row's own menu. The host owns its entries. */
+		onSnippetContextMenu?: (
+			filePath: string,
+			matchIndex: number,
+			event: MouseEvent,
 		) => void;
 		/** U121-019 #51: current context level for a file row, 0 = the default slice. */
 		contentContextLevel?: (filePath: string) => number;
@@ -493,6 +500,16 @@
 										></span>
 									</span>
 								{/if}
+								{#if activeContentFilePath === fileResult.file.path}
+									<!-- U121-019 #51: the note currently open, as a cell rather
+									     than only a row state — reveal takes you to it, this says
+									     you are already there. -->
+									<span
+										class="tree-item-flair vaultman-cell-highlight-current"
+										aria-label={translate('content.current_note')}
+										title={translate('content.current_note')}
+									></span>
+								{/if}
 								<span class="tree-item-flair">{fileResult.matchCount}</span>
 							</div>
 						</div>
@@ -507,6 +524,16 @@
 										class="search-result-file-match tappable is-clickable"
 										role="button"
 										tabindex="0"
+										oncontextmenu={(e: MouseEvent) => {
+											if (!onSnippetContextMenu) return;
+											e.preventDefault();
+											e.stopPropagation();
+											onSnippetContextMenu(
+												fileResult.file.path,
+												snippetIndex,
+												e,
+											);
+										}}
 										onclick={() =>
 											openContentMatch(fileResult.file, snippet.offset)}
 										onkeydown={(e: KeyboardEvent) => {

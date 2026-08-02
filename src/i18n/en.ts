@@ -953,6 +953,11 @@ export const en: Record<string, string> = {
 	'settings.text_search_intercepts.desc':
 		'Adds a menu entry that searches the selected text in Vaultman rather than in Obsidian search.',
 	'content.search_selection': 'Search selection in Vaultman',
+	'content.current_note': 'Currently open',
+	'content.replace_occurrence': 'Replace this occurrence',
+	'content.replace_occurrence_needs_value': 'Replace this occurrence (set a replacement first)',
+	'content.more_context_here': 'Show more context here',
+	'content.reset_context_here': 'Reset context here',
 	'queue.guard.superseded':
 		'Replaced {count} queued operation(s) on the same text.',
 	'settings.operations': 'Operations',
