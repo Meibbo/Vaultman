@@ -26,7 +26,17 @@
 		FIND_REPLACE_CONTENT,
 	} from '../../types/typeOps';
 	import { translate } from '../../i18n/index';
-	import { NativeSearchAdapter } from '../../services/serviceNativeSearchAdapter';
+	import {
+		buildNativeSearchPreview,
+		NativeSearchAdapter,
+	} from '../../services/serviceNativeSearchAdapter';
+	import { bookmarkSearchQuery } from '../../services/serviceCoreBookmarks';
+	import {
+		extraContextRange,
+		showMoreAfter,
+		showMoreBefore,
+	} from '../../logic/logicExtraContext';
+	import { CopySearchResultsModal } from '../../services/serviceCopySearchResultsModal';
 	import {
 		sortContentPreviewFiles,
 		type ContentSortBy,
@@ -37,6 +47,19 @@
 	import { observeActiveContentFile } from '../../logic/logicContentActiveFile';
 	import { contentMenuNode } from '../../logic/logicContentContextMenu';
 	import { queuedRenameBadgeForPath } from '../../logic/logicRenameBadges';
+	import {
+		advanceTextSearchRun,
+		applyTextSearchIntent,
+		completeTextSearchRun,
+		createTextSearchRun,
+		reconcileTextSearchRun,
+		sameTextSearchIntent,
+		shouldLaunchTextSearch,
+		textSearchControl,
+		textSearchLaunchToken,
+		textSearchShouldScan,
+		type TextSearchRun,
+	} from '../../logic/logicTextSearchState';
 	import { measureSceneSync } from '../../logic/logicScenePerformance';
 	import type {
 		NavbarPanelWidgetState,
@@ -212,12 +235,53 @@
 		localShowToolbar = val;
 	}
 
+	/**
+	 * Seed the Text search from outside — the editor context menu's "search
+	 * selected text", when the user has asked for that to land here instead of
+	 * in core's pane. Writing the state the input is bound to drives exactly the
+	 * same path as typing it.
+	 */
+	export function setContentQuery(
+		query: string,
+		modifiers?: { caseSensitive: boolean; isRegex: boolean },
+	): void {
+		if (modifiers) {
+			contentCaseSensitive = modifiers.caseSensitive;
+			contentIsRegex = modifiers.isRegex;
+		}
+		contentFind = query;
+	}
+
 	let contentFind = $state('');
 	let contentReplace = $state('');
 	let contentCaseSensitive = $state(false);
 	let contentIsRegex = $state(false);
 	let contentIsExclusion = $state(false);
-	let contentSearchPaused = $state(false);
+	// U121-016/017: the Text lifecycle is a phase machine, not a boolean. It
+	// carries the traversal cursor so returning to this tab (the pane stays
+	// mounted, BT4-022) resumes instead of restarting.
+	let contentSearchRun = $state<TextSearchRun>(
+		createTextSearchRun({
+			query: '',
+			isRegex: false,
+			caseSensitive: false,
+			isExclusion: false,
+			scopeRevision: 0,
+		}),
+	);
+	// Deliberately NOT reactive: the adapter reports progress continuously, and
+	// folding it into `contentSearchRun` would re-trigger the search effect on
+	// every scanned file. It is folded in only when the user pauses.
+	let contentScanCursor = 0;
+	let contentSearchLaunchToken = '';
+	let contentFrozenApplyToken = '';
+	// U121-019 #51: core's own switch — `SearchView.setExtraContext(boolean)`,
+	// one flag for the view rather than a control per row. On, every match grows
+	// to the list item, section or line containing it.
+	let contentExtraContext = $state(false);
+	// Bounds a single match has been opened up to, keyed `path:index` — core's
+	// two hover chevrons move one match and re-render that match alone.
+	let contentMatchRanges = $state<Record<string, [number, number]>>({});
 	let contentPreviewResult = $state<ContentPreviewResult | null>(null);
 	let contentPreviewOpen = $state(true);
 	let contentRegexError = $state('');
@@ -460,9 +524,29 @@
 		return scope === 'selected' || (scope === 'auto' && selected.length > 0);
 	}
 
-	function contentSearchScopeFiles(): TFile[] {
+	/**
+	 * The scope the Text search runs over.
+	 *
+	 * Derived, not computed on demand: underneath it is
+	 * `getFilesIgnoringContentSearch(true)`, which walks every file in the vault,
+	 * applies the filter tree and sorts the result through a collator. That ran
+	 * on **every pass of the search effect** — so once per keystroke, and twice
+	 * counting `contentScopeSummary` — which is the freeze the dev felt while
+	 * typing. None of it depends on the query.
+	 *
+	 * `contentSearchScopeRevision` is the host's own signal that the scope or the
+	 * filters moved, and the search effect already keys on it; the selection
+	 * count covers the 'selected' scope, which the revision does not describe.
+	 */
+	const contentScopeFiles = $derived.by<TFile[]>(() => {
+		void contentSearchScopeRevision;
+		void selectedCount;
 		if (contentSearchUsesSelectedScope()) return getSelectedFiles();
 		return contentSearchCandidateFiles();
+	});
+
+	function contentSearchScopeFiles(): TFile[] {
+		return contentScopeFiles;
 	}
 
 	const contentScopeSummary = $derived.by<ContentScopeSummary>(() => {
@@ -518,18 +602,34 @@
 				(fileResult) => !collapsedContentPathSet.has(fileResult.file.path),
 			),
 	);
+	const contentSearchControl = $derived(
+		textSearchControl(contentSearchRun, contentFind.length > 0),
+	);
 	const contentHeaderActions = $derived<HeaderAction[]>(
 		filtersActiveTab === 'content'
 			? [
 					{
 						id: 'content-pause',
-						label: contentSearchPaused
-							? translate('content.resume_search')
-							: translate('content.pause_search'),
-						icon: contentSearchPaused ? 'lucide-play' : 'lucide-pause',
-						disabled: !contentFind,
+						label: translate(contentSearchControl.labelKey),
+						icon: contentSearchControl.icon,
+						disabled: contentSearchControl.disabled,
 						onClick: () => {
-							contentSearchPaused = !contentSearchPaused;
+							// Fold the live cursor in before the transition so a pause
+							// records where the traversal actually stands.
+							contentSearchRun = applyTextSearchIntent(
+								advanceTextSearchRun(contentSearchRun, contentScanCursor),
+								contentSearchControl.intent,
+							);
+							if (contentSearchControl.intent === 'pause') {
+								nativeSearchAdapter.cancel();
+								contentSearchLaunchToken = '';
+							}
+							if (contentSearchControl.intent === 'restart') {
+								contentScanCursor = 0;
+								nativeSearchAdapter.cancel();
+								nativeSearchAdapter.resetRetained();
+								contentSearchLaunchToken = '';
+							}
 						},
 					},
 					{
@@ -743,18 +843,41 @@
 		plugin.queueService.remove(queueIndex);
 	}
 
-	async function openContentMatch(file: TFile, line: number, ch: number) {
+	/**
+	 * Open a match the way core opens its own.
+	 *
+	 * Core does not highlight anything itself: `onResultClick` calls
+	 * `openFile(file, { eState: { match: { content, matches } } })` and Obsidian
+	 * applies the highlight from that state — including clearing it on the next
+	 * click in the note. Ours only scrolled, because it opened through
+	 * `openLinkText` and then moved the cursor, which carries no match state.
+	 *
+	 * The content comes from the adapter's retained matches, so nothing is read
+	 * from disk to do it.
+	 */
+	async function openContentMatch(file: TFile, offset: number) {
+		const input = nativeSearchAdapter
+			.retainedInputs()
+			.find((entry) => entry.file.path === file.path);
+		const match = input?.offsets.find(([start]) => start === offset);
+
+		if (input && match) {
+			await plugin.app.workspace.getLeaf(false).openFile(file, {
+				eState: {
+					match: { content: input.content, matches: [match] },
+				},
+			});
+			return;
+		}
+
+		// The match is no longer retained (a new query cleared the floor). Fall
+		// back to placing the cursor, which is what this always did.
 		await plugin.app.workspace.openLinkText(file.path, '', false);
 		const view = plugin.app.workspace.getActiveViewOfType(MarkdownView);
 		if (!view) return;
-		view.editor.setCursor({ line, ch });
-		view.editor.scrollIntoView(
-			{
-				from: { line, ch },
-				to: { line, ch },
-			},
-			true,
-		);
+		const position = view.editor.offsetToPos(offset);
+		view.editor.setCursor(position);
+		view.editor.scrollIntoView({ from: position, to: position }, true);
 	}
 
 	function validateContentSearch(): boolean {
@@ -782,6 +905,18 @@
 
 	function clearContentSearchState(): void {
 		nativeSearchAdapter.cancel();
+		nativeSearchAdapter.resetRetained();
+		contentMatchRanges = {};
+		nativeSearchAdapter.setMatchRanges(new Map());
+		contentScanCursor = 0;
+		contentSearchLaunchToken = '';
+		contentSearchRun = createTextSearchRun({
+			query: '',
+			isRegex: false,
+			caseSensitive: false,
+			isExclusion: false,
+			scopeRevision: contentSearchScopeRevision,
+		});
 		contentFind = '';
 		contentReplace = '';
 		contentPreviewResult = null;
@@ -806,7 +941,7 @@
 	});
 
 	$effect(() => {
-		void contentSearchScopeRevision;
+		const scopeRevision = contentSearchScopeRevision;
 		const tab = filtersActiveTab;
 		const find = contentFind;
 		const caseSensitive = contentCaseSensitive;
@@ -814,12 +949,49 @@
 		const isExclusion = contentIsExclusion;
 		const files = contentSearchScopeFiles();
 
+		// U121-016: leaving the Text tab must not touch the run. The pane stays
+		// mounted, so cancelling or resetting here is what used to throw away
+		// in-flight progress and restart the scan on the way back.
 		if (tab !== 'content') return;
-		nativeSearchAdapter.cancel();
-		if (!find) {
+
+		const reconciled = reconcileTextSearchRun(contentSearchRun, {
+			query: find,
+			isRegex,
+			caseSensitive,
+			isExclusion,
+			scopeRevision,
+		});
+		if (reconciled !== contentSearchRun) {
+			// Only a real intent change throws the accumulated matches away. A
+			// scope-only move keeps them: it fires on this search's own tail
+			// (`onContentFilterChanged` -> `updateStats` -> new scope revision),
+			// and treating it as a new search cancelled the scan that had just
+			// started, over and over, so nothing ever completed.
+			const intentChanged = !sameTextSearchIntent(
+				contentSearchRun.signature,
+				reconciled.signature,
+			);
+			// Only an intent change cancels. `reconciled` reaching here as
+			// `running` already implies a different intent — a scope-only move
+			// comes back by identity — so the extra `phase === 'running'` arm this
+			// used to carry was unreachable, and while reconcile still minted runs
+			// on a scope move it was the other half of the crash: cancel cleared
+			// the launch token, the next pass relaunched, the scan moved the scope
+			// revision, and the effect re-entered until Svelte gave up.
+			if (intentChanged) {
+				nativeSearchAdapter.cancel();
+				contentSearchLaunchToken = '';
+				nativeSearchAdapter.resetRetained();
+				contentScanCursor = 0;
+				// Levels belong to the results of the query that just changed.
+			}
+			contentSearchRun = reconciled;
+		}
+		const run = reconciled;
+
+		if (run.phase === 'idle') {
 			contentPreviewResult = null;
 			contentRegexError = '';
-			contentSearchPaused = false;
 			collapsedContentFilePaths = [];
 			plugin.filterService.setContentSearchRule('', []);
 			onContentFilterChanged?.();
@@ -830,53 +1002,134 @@
 			onContentFilterChanged?.();
 			return;
 		}
-		const paused = contentSearchPaused;
-		if (paused) {
-			// BT4-018: freeze the scan where it stands — the partial matches
-			// become the effective files filter, the loading state clears, and
-			// replace unlocks. Resuming re-runs the full search.
+		if (!textSearchShouldScan(run)) {
+			// BT4-018 still holds for the frozen view: the partial matches become
+			// the effective files filter and replace unlocks. What changed is that
+			// the cursor survives, so resuming continues instead of restarting.
 			const frozen = contentPreviewResult;
 			if (frozen?.isLoading) {
 				contentPreviewResult = { ...frozen, isLoading: false };
 			}
 			const matched =
 				frozen?.matchedFiles ?? frozen?.files.map((entry) => entry.file) ?? [];
-			if (isExclusion) {
-				plugin.filterService.setContentSearchRule(find, matched, true);
-			} else {
-				plugin.filterService.setContentSearchRule(find, matched);
+			// Applied once per frozen state, not on every pass. Re-applying it
+			// moves the host's scope revision, which re-runs this effect, which
+			// re-applies it: that loop froze the app on pause.
+			// `isExclusion` is in the token because it is deliberately NOT part of
+			// the search signature: toggling Has/Hasn't must re-publish the rule
+			// without re-scanning a single file.
+			const frozenToken = `${run.generation}:${run.phase}:${matched.length}:${isExclusion}`;
+			if (contentFrozenApplyToken !== frozenToken) {
+				contentFrozenApplyToken = frozenToken;
+				// Freezing the view is not stopping the search. Without this the
+				// adapter's poll loop stayed alive and kept publishing updates, so
+				// the count climbed while the UI said "paused" — and core itself was
+				// never told to stop, because `stopSearch()` lives in `cancel()`.
+				nativeSearchAdapter.cancel();
+				if (isExclusion) {
+					plugin.filterService.setContentSearchRule(find, matched, true);
+				} else {
+					plugin.filterService.setContentSearchRule(find, matched);
+				}
+				onContentFilterChanged?.();
 			}
-			onContentFilterChanged?.();
 			return;
 		}
-		contentPreviewResult = {
-			totalMatches: 0,
-			files: [],
-			moreFiles: 0,
-			isLoading: true,
-		};
+		contentFrozenApplyToken = '';
+
+		// One scan per intent — but the token is claimed inside the timer, not
+		// here. Claiming it up front meant an effect re-run during the debounce
+		// cancelled the pending timer and then declined to reschedule it, so the
+		// search never started at all.
+		const launchToken = textSearchLaunchToken(run);
+		if (!shouldLaunchTextSearch(run, contentSearchLaunchToken)) return;
+
+		const resumeFrom = run.resumeFrom;
+		// Read off the run, not off a one-shot flag. Whether the preview opens
+		// empty is a question about what the user asked for, and the answer has to
+		// survive every pass of this effect until the scan actually starts. It was
+		// gated on `resumeFrom === 0` — but the native path never calls
+		// `onProgress`, so a scan through core leaves the cursor at 0 and a Resume
+		// arrived indistinguishable from a fresh search — and then on a boolean the
+		// first pass consumed, so a second pass blanked it anyway. Measured on the
+		// running plugin: 201 rows -> 0 -> 201 over ~500 ms, every Resume.
+		const resuming = run.resumed;
+		if (!resuming) {
+			contentPreviewResult = {
+				totalMatches: 0,
+				files: [],
+				moreFiles: 0,
+				isLoading: true,
+			};
+			collapsedContentFilePaths = [];
+		} else {
+			// Untracked, and written at most once. Reading the preview here made it
+			// a dependency of this effect, and the line below writes a fresh object
+			// straight back to it — the effect invalidated itself. Nothing broke the
+			// cycle either: the launch token is claimed inside the debounce timer
+			// (below), and this effect's teardown clears that timer on every re-run,
+			// so the scan never started and `shouldLaunchTextSearch` never turned
+			// false. Only `resumeFrom > 0` reaches this branch, which is why a first
+			// search was fine and Resume took the app down.
+			const frozen = untrack(() => contentPreviewResult);
+			if (frozen && !frozen.isLoading) {
+				contentPreviewResult = { ...frozen, isLoading: true };
+			}
+		}
 		contentPreviewOpen = true;
-		collapsedContentFilePaths = [];
 		const timer = window.setTimeout(() => {
+			// Claimed here, once the scan is really starting.
+			contentSearchLaunchToken = launchToken;
 			// Deferred with the scan: setContentSearchPending re-runs the whole
 			// filter pipeline synchronously, which froze typing when it fired
 			// per keystroke (BT4-008).
-			if (isExclusion) {
-				plugin.filterService.setContentSearchPending(find, true);
-			} else {
-				plugin.filterService.setContentSearchPending(find);
+			//
+			// Skipped on a resume: pending clears the rule, which empties every
+			// node in the explorer until the scan republishes it. A resume already
+			// has a valid frozen rule, so re-entering pending only produced a
+			// full blank/repopulate flash.
+			if (!resuming) {
+				if (isExclusion) {
+					plugin.filterService.setContentSearchPending(find, true);
+				} else {
+					plugin.filterService.setContentSearchPending(find);
+				}
+				onContentFilterChanged?.();
 			}
-			onContentFilterChanged?.();
 			void nativeSearchAdapter
 				.search({
 					query: find,
 					isRegex,
 					caseSensitive,
 					scopeFiles: files,
+					resumeFrom,
+					// Stated so the adapter can seed the first frame from the
+					// retained floor. Not `preferLocal`: that routes past core into
+					// a `cachedRead` walk of the vault on the UI thread, and since
+					// the native path never advances the cursor it restarted that
+					// walk from index 0 on every Resume. Core is re-issued and its
+					// results merge onto the floor, which is the simulated resume
+					// this feature was specified as.
+					resume: resuming,
+					onProgress: (nextIndex) => {
+						contentScanCursor = nextIndex;
+					},
 					onUpdate: (result) => {
 						contentPreviewResult = result;
 						contentPreviewOpen = true;
+						// Extra context is applied by the adapter's own builds, so a poll
+						// needs no rebuild here.
 						if (!result.isLoading) {
+							// Settling short scans as "paused" made the control invert:
+							// the machine was already paused, so the dev's next click
+							// read as Resume and launched a full rescan. Until the
+							// traversal is genuinely ours, a finished scan is reported
+							// as finished — a button that does what its label says beats
+							// a more accurate label that does the wrong thing.
+							contentSearchLaunchToken = '';
+							contentSearchRun = completeTextSearchRun(
+								advanceTextSearchRun(contentSearchRun, contentScanCursor),
+							);
 							const matched =
 								result.matchedFiles ?? result.files.map((entry) => entry.file);
 							if (isExclusion) {
@@ -891,13 +1144,248 @@
 				.catch((error) => console.error(error));
 		}, 250);
 
+		// Only the debounce is torn down here. Cancelling the adapter on teardown
+		// is what made a tab switch kill an in-flight scan (U121-016); the run
+		// itself decides when a traversal stops.
 		return () => {
 			window.clearTimeout(timer);
-			nativeSearchAdapter.cancel();
 		};
 	});
 
 	onDestroy(() => nativeSearchAdapter.destroy());
+
+	// U121-019 #51: both are bridges to affordances core already ships. Neither
+	// belongs in the renderer, so the buttons in tabContent only call these.
+	// U121-019 #51: one overflow menu on the result header. Both entries are
+	// occasional and the header is narrow, so they live behind a vertical
+	// ellipsis rather than taking a cell each.
+	// U121-019 #51: one overflow menu on the result header. Both entries are
+	// occasional and the header is narrow, so they live behind a vertical
+	// ellipsis rather than taking a cell each.
+	/** Open one match further out, in one direction, the way core's chevrons do. */
+	function showMoreContext(
+		filePath: string,
+		matchIndex: number,
+		direction: 'before' | 'after',
+	): void {
+		const input = nativeSearchAdapter
+			.retainedInputs()
+			.find((entry) => entry.file.path === filePath);
+		const offsets = input?.offsets[matchIndex];
+		if (!input || !offsets) return;
+
+		const key = `${filePath}:${String(matchIndex)}`;
+		const fileCache = extraContextOptions().fileCache(filePath);
+		const current =
+			contentMatchRanges[key] ??
+			extraContextRange(
+				input.content,
+				offsets,
+				contentExtraContext ? fileCache : {},
+			);
+		const next =
+			direction === 'before'
+				? showMoreBefore(input.content, current, fileCache)
+				: showMoreAfter(input.content, current, fileCache);
+		if (next[0] === current[0] && next[1] === current[1]) return;
+
+		contentMatchRanges = { ...contentMatchRanges, [key]: next };
+		// The adapter publishes every poll, so it needs these too — otherwise the
+		// next poll rebuilds this file without the override and the expansion
+		// undoes itself within 150ms.
+		nativeSearchAdapter.setMatchRanges(
+			new Map(Object.entries(contentMatchRanges)),
+		);
+		republishContentPreview();
+	}
+
+	/**
+	 * The match row's own menu.
+	 *
+	 * Three entries, and the middle one only exists when it has something to
+	 * undo: a row that was never opened up has no context to put back.
+	 */
+	function openSnippetContextMenu(
+		filePath: string,
+		matchIndex: number,
+		event: MouseEvent,
+	): void {
+		const key = `${filePath}:${String(matchIndex)}`;
+		const menu = new Menu();
+		const replacement = contentReplace;
+
+		menu.addItem((item) =>
+			item
+				.setTitle(
+					replacement.length > 0
+						? translate('content.replace_occurrence')
+						: translate('content.replace_occurrence_needs_value'),
+				)
+				.setIcon('lucide-replace')
+				.setDisabled(replacement.length === 0)
+				.onClick(() => {
+					queueOccurrenceReplace(filePath, matchIndex);
+				}),
+		);
+
+		if (contentMatchRanges[key]) {
+			menu.addItem((item) =>
+				item
+					.setTitle(translate('content.reset_context_here'))
+					.setIcon('lucide-chevrons-down-up')
+					.onClick(() => {
+						const { [key]: _dropped, ...rest } = contentMatchRanges;
+						contentMatchRanges = rest;
+						nativeSearchAdapter.setMatchRanges(
+							new Map(Object.entries(contentMatchRanges)),
+						);
+						republishContentPreview();
+					}),
+			);
+		}
+
+		menu.addItem((item) =>
+			item
+				.setTitle(translate('content.more_context_here'))
+				.setIcon('lucide-chevrons-up-down')
+				.onClick(() => {
+					showMoreContext(filePath, matchIndex, 'before');
+					showMoreContext(filePath, matchIndex, 'after');
+				}),
+		);
+
+		menu.showAtMouseEvent(event);
+	}
+
+	/**
+	 * Queue a replacement of one match rather than of every match in the file.
+	 *
+	 * The offset the snippet already carries names which one; the executor checks
+	 * that the text is still there before writing, so a note edited since the
+	 * search is skipped instead of rewritten at a stale position.
+	 */
+	function queueOccurrenceReplace(filePath: string, matchIndex: number): void {
+		const input = nativeSearchAdapter
+			.retainedInputs()
+			.find((entry) => entry.file.path === filePath);
+		const offsets = input?.offsets[matchIndex];
+		if (!input || !offsets) return;
+
+		const find = contentFind;
+		const replace = contentReplace;
+		const isRegex = contentIsRegex;
+		const caseSensitive = contentCaseSensitive;
+		const occurrenceOffset = offsets[0];
+
+		plugin.queueService.addOrRun({
+			type: 'content_replace',
+			action: 'find_replace_content',
+			details: `${translate('queue.details.replace')} ${find} → ${replace}`,
+			files: [input.file],
+			find,
+			replace,
+			isRegex,
+			caseSensitive,
+			logicFunc: () => ({
+				[FIND_REPLACE_CONTENT]: {
+					pattern: find,
+					replacement: replace,
+					isRegex,
+					caseSensitive,
+					occurrenceOffset,
+				},
+			}),
+			customLogic: true,
+		} as PendingChange);
+	}
+
+	/** Rebuild the published preview at the current extra-context setting. */
+	function republishContentPreview(): void {
+		const inputs = nativeSearchAdapter.retainedInputs();
+		if (inputs.length === 0) return;
+		contentPreviewResult = buildNativeSearchPreview(
+			inputs,
+			contentPreviewResult?.isLoading ?? false,
+			contentPreviewResult?.totalMatches,
+			extraContextOptions(),
+		);
+	}
+
+	/**
+	 * The options every build shares. `fileCache` is only consulted when the flag
+	 * is on, so an ordinary poll never touches the metadata cache.
+	 */
+	function extraContextOptions() {
+		return {
+			cache: nativeSearchAdapter.previewMemo(),
+			extraContext: contentExtraContext,
+			matchRanges: new Map(Object.entries(contentMatchRanges)),
+			fileCache: (path: string) => {
+				const file = plugin.app.vault.getAbstractFileByPath(path);
+				return file instanceof TFile
+					? (plugin.app.metadataCache.getFileCache(file) ?? {})
+					: {};
+			},
+		};
+	}
+
+	function openContentHeaderMenu(event: MouseEvent): void {
+		const menu = new Menu();
+		const matched =
+			contentPreviewResult?.matchedFiles ??
+			contentPreviewResult?.files.map((entry) => entry.file) ??
+			[];
+
+		menu.addItem((item) =>
+			item
+				.setTitle(translate('content.copy_results'))
+				.setIcon('lucide-copy')
+				.setDisabled(matched.length === 0)
+				.onClick(() => {
+					if (matched.length === 0) {
+						new Notice(translate('content.copy_no_results'));
+						return;
+					}
+					// Our files, not core's result set: core's modal reads its own DOM,
+					// which our scan stops and which never knew our scope.
+					new CopySearchResultsModal(plugin.app, matched).open();
+				}),
+		);
+
+		menu.addItem((item) =>
+			item
+				.setTitle(translate('content.show_more_context'))
+				.setIcon('lucide-text')
+				.setChecked(contentExtraContext)
+				.onClick(() => {
+					// Core's switch is view-wide and re-renders every match, so the
+					// whole memo goes with it.
+					contentExtraContext = !contentExtraContext;
+					nativeSearchAdapter.setExtraContext(
+						contentExtraContext,
+						extraContextOptions().fileCache,
+					);
+					republishContentPreview();
+				}),
+		);
+
+		menu.addItem((item) =>
+			item
+				.setTitle(translate('content.bookmark_search'))
+				.setIcon('lucide-bookmark')
+				.setDisabled(contentFind.trim().length === 0)
+				.onClick(() => {
+					void bookmarkSearchQuery(plugin.app, contentFind, {
+						caseSensitive: contentCaseSensitive,
+						isRegex: contentIsRegex,
+					}).then((opened) => {
+						if (!opened) new Notice(translate('content.bookmarks_unavailable'));
+					});
+				}),
+		);
+
+		menu.showAtMouseEvent(event);
+	}
 
 	function queueContentReplace() {
 		if (!contentFind) return;
@@ -1141,6 +1629,9 @@
 				{cancelQueuedRename}
 				badgeCancelClickMode={plugin.settings.badgeCancelClickMode}
 				onContentContextMenu={openContentContextMenu}
+				onHeaderMenu={openContentHeaderMenu}
+				onShowMoreContext={showMoreContext}
+				onSnippetContextMenu={openSnippetContextMenu}
 			/>
 		</div>
 	{/if}

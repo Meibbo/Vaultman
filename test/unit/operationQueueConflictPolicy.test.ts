@@ -268,3 +268,67 @@ describe('OperationQueueService conflict policy', () => {
 		expect(trashFile).toHaveBeenCalledWith(folder);
 	});
 });
+
+describe('a second replacement of the same text replaces the first', () => {
+	// Both used to sit in the queue, because `operationIdentity` folds `replace`
+	// into the key so they read as unrelated operations. That cannot mean
+	// anything: the first runs, and the second then finds nothing to match.
+	const makeService = (): OperationQueueService =>
+		new OperationQueueService({} as App);
+
+	function replaceChange(
+		find: string,
+		replace: string,
+		paths: string[],
+	): PendingChange {
+		return {
+			type: 'content_replace',
+			action: 'find_replace_content',
+			details: `${find} -> ${replace}`,
+			files: paths.map((path) => makeFile(path)),
+			find,
+			replace,
+			isRegex: false,
+			caseSensitive: false,
+			customLogic: true,
+			logicFunc: () => ({}),
+		} as unknown as PendingChange;
+	}
+
+	it('keeps one operation, the newer one', () => {
+		const service = makeService();
+		service.add(replaceChange('alpha', 'first', ['a.md']));
+		service.add(replaceChange('alpha', 'second', ['a.md']));
+
+		const replaces = service.queue.filter((c) => c.type === 'content_replace');
+		expect(replaces).toHaveLength(1);
+		expect((replaces[0] as { replace: string }).replace).toBe('second');
+	});
+
+	it('leaves a different search text alone', () => {
+		const service = makeService();
+		service.add(replaceChange('alpha', 'x', ['a.md']));
+		service.add(replaceChange('beta', 'y', ['a.md']));
+		expect(
+			service.queue.filter((c) => c.type === 'content_replace'),
+		).toHaveLength(2);
+	});
+
+	it('leaves a different file alone', () => {
+		const service = makeService();
+		service.add(replaceChange('alpha', 'x', ['a.md']));
+		service.add(replaceChange('alpha', 'y', ['b.md']));
+		expect(
+			service.queue.filter((c) => c.type === 'content_replace'),
+		).toHaveLength(2);
+	});
+
+	it('treats an identical repeat as the duplicate it is, not a replacement', () => {
+		const service = makeService();
+		service.add(replaceChange('alpha', 'x', ['a.md']));
+		service.add(replaceChange('alpha', 'x', ['a.md']));
+		expect(
+			service.queue.filter((c) => c.type === 'content_replace'),
+		).toHaveLength(1);
+	});
+});

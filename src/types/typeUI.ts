@@ -14,8 +14,41 @@ export interface ContentSnippet {
 	before: string;
 	match: string;
 	after: string;
-	line: number;
-	ch: number;
+	/**
+	 * Character offset of the match in the file.
+	 *
+	 * It used to carry `line` and `ch`, computed while scanning. Deriving them
+	 * meant slicing the content from zero to the match and splitting it on
+	 * newlines, once per match — which is where the fps went once the snippet cap
+	 * was removed. The position is only needed when a match is clicked, and the
+	 * open editor already has a line index: `editor.offsetToPos(offset)`.
+	 */
+	offset: number;
+	/**
+	 * Bounds of the slice currently shown, as character offsets.
+	 *
+	 * Core keeps these per match and moves them one structural unit at a time
+	 * through `showMoreBefore` / `showMoreAfter`, which is what its two hover
+	 * chevrons do. Carrying them here is what lets one match be opened up
+	 * without touching its neighbours.
+	 */
+	from: number;
+	to: number;
+	/**
+	 * Whether there is anything left to reveal in each direction.
+	 *
+	 * Core hides both chevrons and, on hover, calls
+	 * `toggle(this.start > 0)` / `toggle(this.end < this.content.length)` — so a
+	 * match already showing the top of its file offers no upward chevron.
+	 */
+	moreBefore: boolean;
+	moreAfter: boolean;
+	/**
+	 * Whether the default walk stopped on its hundred-character budget rather
+	 * than on a line break. Core appends an ellipsis in that case.
+	 */
+	truncatedBefore: boolean;
+	truncatedAfter: boolean;
 }
 
 export interface ContentPreviewResult {

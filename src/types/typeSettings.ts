@@ -56,6 +56,21 @@ export interface VaultmanSettings {
 	lastSeenUpdatesVersion: string;
 	/** Ctrl+click on property/value opens Obsidian core search */
 	explorerCtrlClickSearch: boolean;
+	/**
+	 * Warn when a queued operation is replaced by a newer one on the same target.
+	 *
+	 * Two replacements of the same text can only mean the second one: the first
+	 * would run and leave the second nothing to match. The later one wins; this
+	 * decides whether that is announced.
+	 */
+	queueWarnOnSupersede: boolean;
+	/**
+	 * Route "search selected text" to the Text explorer instead of core's pane.
+	 *
+	 * Off by default: it changes where a core affordance lands, which is the
+	 * user's call and not ours to assume.
+	 */
+	textSearchInterceptsCoreSearch: boolean;
 	/** Show pending queue changes in the explorer tree */
 	explorerShowQueuePreview: boolean;
 	/** Enable content search in file tree */
@@ -287,6 +302,8 @@ export const DEFAULT_SETTINGS: VaultmanSettings = {
 	sessionFilePath: '',
 	lastSeenUpdatesVersion: '',
 	explorerCtrlClickSearch: true,
+	queueWarnOnSupersede: true,
+	textSearchInterceptsCoreSearch: false,
 	explorerShowQueuePreview: true,
 	explorerContentSearch: true,
 	explorerSearchHighlights: false,

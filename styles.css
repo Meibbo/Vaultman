@@ -4270,6 +4270,72 @@ button.vaultman-content-scope-hint:focus-visible {
   color: var(--text-normal);
   margin-bottom: 4px;
   user-select: none;
+  /* U121-019 #51: `.tree-item-self` carries `--nav-item-padding`, whose inline
+     start is sized to clear a collapse icon. This header has none — core prints
+     its result count with neither triangle nor caret — so the count takes that
+     space back instead of sitting behind an indent for a control that is not
+     there. Only the inline start is touched; everything else stays core's. */
+  padding-inline-start: var(--size-4-2);
+}
+
+.vaultman-content-header-actions {
+  display: flex;
+  align-items: center;
+  margin-inline-start: auto;
+}
+
+/* U121-019 #51: "show more context", per node. Sits between the file row and
+   its matches, so it reads as belonging to that result and not to the pane. */
+.vaultman-content-context-controls {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  justify-content: flex-end;
+  padding-inline-end: var(--size-4-2);
+}
+
+/* Not a cap notice: these files are in the result and simply have no row yet. */
+.vaultman-content-window-more {
+  display: block;
+  width: 100%;
+  margin-block-start: var(--size-4-2);
+  background: transparent;
+  box-shadow: none;
+  color: var(--text-muted);
+  font-size: var(--font-ui-smaller);
+  cursor: pointer;
+}
+
+.vaultman-content-window-more:hover {
+  color: var(--text-normal);
+}
+
+/* U121-019 #51: the note currently open, as a cell on its result row. Reveal
+   takes you to a note; this says you are already in it. */
+.vaultman-cell-highlight-current::before {
+  content: '';
+  display: block;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background-color: var(--color-accent);
+}
+
+/* U121-019 #51: core hides both chevrons and toggles them on `mouseover`
+   (`showMoreBeforeEl.hide()` at construction, `toggle(start > 0)` on focus
+   enter). `app.css` carries no rule for that because core does it in JS, so
+   this is the same behaviour expressed where we can express it — not a
+   duplicate of a core rule. Whether there is anywhere to grow is decided in
+   the markup, so a match already at the top of its file shows no up chevron. */
+.search-result-file-match .search-result-hover-button {
+  opacity: 0;
+  transition: opacity 100ms ease-in-out;
+}
+
+@media (hover: hover) {
+  .search-result-file-match:hover .search-result-hover-button {
+    opacity: 0.7;
+  }
 }
 
 /* Header-only, link-style: no button chrome, just clickable accent text. */
@@ -4287,10 +4353,20 @@ button.vaultman-content-scope-hint:focus-visible {
   color: var(--text-accent);
 }
 
-.vaultman-preview-chevron {
-  color: var(--text-muted);
-  font-size: 10px;
-}
+/* U121-019: the caret needs no rules of ours. `app.css` already styles it
+   through `.collapse-icon`, which this row carries:
+
+     .collapse-icon svg.svg-icon      { color: var(--nav-collapse-icon-color);
+                                        stroke-width: 4px; width: 10px;
+                                        height: 10px;
+                                        transition: transform 100ms ease-in-out }
+     .collapse-icon.is-collapsed svg.svg-icon
+                                      { transform: rotate(... -90deg) }
+
+   `is-collapsed` sits on the same element as `collapse-icon`, so the second
+   rule matches as written. A rotation of our own did not replace it, it
+   composed with it — -90deg on the span over -90deg on the svg — and the caret
+   pointed straight up. Everything here is inherited; nothing is reproduced. */
 
 .vaultman-content-preview-file {
   color: var(--color-accent);
@@ -6060,6 +6136,10 @@ button.vaultman-content-scope-hint:focus-visible {
   --vaultman-bubble-dot-color: var(--text-normal);
 }
 
+.vaultman-tree-bubble-dot--deletion {
+  --vaultman-bubble-dot-color: var(--text-error);
+}
+
 /* Table rows flag the same case with a small trailing accent dot. */
 .vaultman-node-table-filter-dot .vaultman-node-table-col-name::after {
   content: '';
@@ -6886,6 +6966,15 @@ button.vaultman-content-scope-hint:focus-visible {
 .vaultman-node-table-row.is-excluded-filter:hover,
 .vaultman-tree-row.is-excluded-filter:hover {
 	background-color: color-mix(in srgb, var(--text-normal) 12%, transparent);
+}
+
+.vaultman-prop-card.is-deletion-highlight,
+.vaultman-tag-card.is-deletion-highlight,
+.vaultman-node-table-row.is-deletion-highlight,
+.vaultman-tree-row.is-deletion-highlight {
+  background-color: color-mix(in srgb, var(--text-error) 10%, transparent);
+  color: var(--text-normal);
+  box-shadow: inset 2px 0 0 0 var(--text-error);
 }
 
 .vaultman-property-value-cell {

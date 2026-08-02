@@ -162,6 +162,18 @@ describe('BT5-017 bubble index (one pass, expansion-independent)', () => {
 	});
 });
 
+describe('U121-013 highlight styling contract', () => {
+	it('styles deletion rows and deletion status dots without badge coupling', () => {
+		expect(stylesSource).toContain('.is-deletion-highlight');
+		expect(stylesSource).toContain(
+			'.vaultman-tree-bubble-dot--deletion',
+		);
+		expect(stylesSource).not.toMatch(
+			/\.vaultman-badge\.is-deletion-highlight/,
+		);
+	});
+});
+
 describe('BT5-017 dots follow expansion without re-scanning the tree', () => {
 	const tree = [
 		node('root', {

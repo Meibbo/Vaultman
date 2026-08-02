@@ -10,6 +10,13 @@ import {
 } from '../../logic/logicNodeTableLayout';
 import type { TreeNode } from '../../types/typeTree';
 import { resolveActiveFilterPresentation } from '../../logic/logicActiveFilterBubbling';
+import {
+	resolveExplorerHighlight,
+	resolveExplorerHighlightForId,
+	resolveExplorerStatusDots,
+	type ExplorerHighlightIdSets,
+	type ExplorerStatusDot,
+} from '../../logic/logicExplorerHighlight';
 import { buildVirtualTableWindow } from '../../utils/tableVirtualization';
 import { vaultmanPerfMonitor } from '../../utils/performanceMonitor';
 import { elementContentWidth } from '../../utils/elementDimensions';
@@ -39,6 +46,8 @@ export interface NodeTableViewOptions<TMeta = unknown> {
 	onSelectionToggle?: (id: string, selected: boolean) => void;
 	activeFilterIds?: Set<string>;
 	excludedFilterIds?: Set<string>;
+	highlightIds?: ExplorerHighlightIdSets;
+	statusDotLabel?: (dot: ExplorerStatusDot) => string;
 	searchHighlightIds?: Set<string>;
 	warningIds?: Set<string>;
 	onToggle: (id: string) => void;
@@ -64,6 +73,7 @@ export class NodeTableView<TMeta = unknown> {
 	private rowEls = new Map<string, HTMLElement>();
 	private _filterBubbleIds: ReadonlySet<string> = new Set();
 	private _excludedFilterBubbleIds: ReadonlySet<string> = new Set();
+	private _highlightBubbleIds: ExplorerHighlightIdSets = {};
 	private pendingRaf: number | null = null;
 	private pendingScrollTimer: number | null = null;
 	private columnWidths: NodeTableColumnWidths = {};
@@ -107,6 +117,16 @@ export class NodeTableView<TMeta = unknown> {
 					opts.excludedFilterIds,
 				).bubbled
 			: new Set();
+		this._highlightBubbleIds = {};
+		for (const channel of ['inclusive', 'exclusive', 'deletion'] as const) {
+			const exact = opts.highlightIds?.[channel];
+			if (!exact) continue;
+			this._highlightBubbleIds[channel] = resolveActiveFilterPresentation(
+				opts.nodes as TreeNode[],
+				opts.expandedIds,
+				new Set(exact),
+			).bubbled;
+		}
 		this.opts = opts;
 		this.rows = flattenVisibleTree(
 			opts.nodes as TreeNode[],
@@ -338,11 +358,39 @@ export class NodeTableView<TMeta = unknown> {
 		}
 	}
 
+	private resolveRowHighlight(
+		id: string,
+		opts: NodeTableViewOptions<TMeta>,
+	) {
+		const generic = resolveExplorerHighlightForId(id, opts.highlightIds);
+		return resolveExplorerHighlight({
+			...generic,
+			inclusive: generic.inclusive || opts.activeFilterIds?.has(id),
+			exclusive: generic.exclusive || opts.excludedFilterIds?.has(id),
+		});
+	}
+
+	private resolveRowStatusDots(id: string): ExplorerStatusDot[] {
+		return resolveExplorerStatusDots({
+			inclusive:
+				this._highlightBubbleIds.inclusive?.has(id) ||
+				this._filterBubbleIds.has(id),
+			exclusive:
+				this._highlightBubbleIds.exclusive?.has(id) ||
+				this._excludedFilterBubbleIds.has(id),
+			deletion: this._highlightBubbleIds.deletion?.has(id),
+		});
+	}
+
 	private rowSignature(
 		node: TreeNode<TMeta>,
 		layout: NodeTableLayout,
 		opts: NodeTableViewOptions<TMeta>,
 	): string {
+		const highlight = this.resolveRowHighlight(node.id, opts);
+		const statusDots = this.resolveRowStatusDots(node.id)
+			.map((dot) => dot.channel)
+			.join(',');
 		const visibleCells = Array.from(opts.visibleCells).sort().join(',');
 		const columns = layout.columns
 			.map((column) => `${column.id}:${column.left}:${column.width}`)
@@ -372,9 +420,12 @@ export class NodeTableView<TMeta = unknown> {
 			node.children?.length ?? 0,
 			node.showCaret ? '1' : '0',
 			opts.expandedIds.has(node.id) ? '1' : '0',
-			opts.activeFilterIds?.has(node.id) ? '1' : '0',
-			opts.excludedFilterIds?.has(node.id) ? '1' : '0',
+			highlight.hover ? '1' : '0',
+			highlight.inclusive ? '1' : '0',
+			highlight.exclusive ? '1' : '0',
+			highlight.deletion ? '1' : '0',
 			this._filterBubbleIds.has(node.id) ? '1' : '0',
+			statusDots,
 			opts.warningIds?.has(node.id) ? '1' : '0',
 			visibleCells,
 			columns,
@@ -455,6 +506,7 @@ export class NodeTableView<TMeta = unknown> {
 		};
 		const isHighlighted = opts.searchHighlightIds?.has(node.id) ?? false;
 		const isSelected = opts.selectedIds?.has(node.id) ?? false;
+		const highlight = this.resolveRowHighlight(node.id, opts);
 		if (row.dataset.renderSignature === signature) {
 			row.toggleClass('vaultman-search-highlight', isHighlighted);
 			row.toggleClass('is-selected', isSelected);
@@ -474,12 +526,14 @@ export class NodeTableView<TMeta = unknown> {
 		}
 		row.toggleClass(
 			'is-active-filter',
-			opts.activeFilterIds?.has(node.id) ?? false,
+			highlight.inclusive,
 		);
 		row.toggleClass(
 			'is-excluded-filter',
-			opts.excludedFilterIds?.has(node.id) ?? false,
+			highlight.exclusive,
 		);
+		row.toggleClass('is-explorer-hover-highlight', highlight.hover);
+		row.toggleClass('is-deletion-highlight', highlight.deletion);
 		// BT5-038: a collapsed parent hiding an active filter is flagged with a
 		// dot class, not the filter decoration.
 		row.toggleClass(
@@ -590,6 +644,17 @@ export class NodeTableView<TMeta = unknown> {
 		opts: NodeTableViewOptions<TMeta>,
 	): void {
 		const zone = cell.createDiv({ cls: 'vaultman-node-table-badge-zone' });
+		for (const dot of this.resolveRowStatusDots(node.id)) {
+			const dotEl = zone.createSpan({
+				cls: `vaultman-tree-bubble-dot vaultman-tree-bubble-dot--${dot.tone}`,
+			});
+			const description = opts.statusDotLabel?.(dot);
+			if (description) {
+				dotEl.setAttribute('role', 'img');
+				dotEl.setAttribute('aria-label', description);
+				dotEl.setAttribute('title', description);
+			}
+		}
 		for (const badge of node.badges ?? []) {
 			const badgeEl = zone.createSpan({ cls: 'vaultman-badge' });
 			if (badge.solid && badge.color)

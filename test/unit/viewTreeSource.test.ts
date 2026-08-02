@@ -1,6 +1,9 @@
 import { describe, expect, it } from 'vitest';
 
 import treeSource from '../../src/components/layout/viewTree.ts?raw';
+import tableSource from '../../src/components/layout/viewNodeTable.ts?raw';
+import propsSource from '../../src/components/containers/explorerProps.ts?raw';
+import tagsSource from '../../src/components/containers/explorerTags.ts?raw';
 
 describe('UnifiedTreeView source guards', () => {
 	it('reuses visible tree row shells instead of clearing the whole window', () => {
@@ -52,5 +55,18 @@ describe('UnifiedTreeView source guards', () => {
 		expect(treeSource).toContain(
 			"this.containerEl.removeClass('vaultman-tree-nested-guides')",
 		);
+	});
+
+	it('shares the provider-neutral highlight contract with table and adapters', () => {
+		expect(treeSource).toContain('highlightIds?: ExplorerHighlightIdSets');
+		expect(tableSource).toContain('highlightIds?: ExplorerHighlightIdSets');
+		expect(tableSource).toContain('resolveExplorerHighlightForId');
+		expect(tableSource).toContain("'is-deletion-highlight'");
+		expect(propsSource).toContain('highlightIds: {');
+		expect(tagsSource).toContain('highlightIds: {');
+		expect(propsSource).toContain('statusDotLabel:');
+		expect(tagsSource).toContain('statusDotLabel:');
+		expect(propsSource).toContain('deletion: deletionIds');
+		expect(tagsSource).toContain('deletion: deletionIds');
 	});
 });

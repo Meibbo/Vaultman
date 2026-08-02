@@ -787,4 +787,85 @@ describe('UnifiedTreeView behavior', () => {
 		expect(secondLabel?.style.color).toBe('#222222');
 		expect(secondLabel).not.toBe(firstLabel);
 	});
+
+	it('renders every generic highlight channel independently on one row', async () => {
+		const { UnifiedTreeView } =
+			await import('../../src/components/layout/viewTree');
+		const container = new TinyElement('div');
+		const view = new UnifiedTreeView(
+			container as unknown as HTMLElement,
+		);
+
+		view.render({
+			nodes: [{ id: 'Alpha.md', label: 'Alpha', depth: 0, meta: {} }],
+			expandedIds: new Set<string>(),
+			highlightIds: {
+				hover: new Set(['Alpha.md']),
+				inclusive: new Set(['Alpha.md']),
+				exclusive: new Set(['Alpha.md']),
+				deletion: new Set(['Alpha.md']),
+			},
+			onToggle: () => {},
+			onRowClick: () => {},
+			onContextMenu: () => {},
+		});
+
+		const row = container.findByDataId('Alpha.md');
+		expect(row?.classList.contains('is-explorer-hover-highlight')).toBe(true);
+		expect(row?.classList.contains('is-active-filter')).toBe(true);
+		expect(row?.classList.contains('is-excluded-filter')).toBe(true);
+		expect(row?.classList.contains('is-deletion-highlight')).toBe(true);
+	});
+
+	it('renders at most two generic collapsed status dots before operation badges', async () => {
+		const { UnifiedTreeView } =
+			await import('../../src/components/layout/viewTree');
+		const container = new TinyElement('div');
+		const view = new UnifiedTreeView(
+			container as unknown as HTMLElement,
+		);
+
+		view.render({
+			nodes: [
+				{
+					id: 'root',
+					label: 'Root',
+					depth: 0,
+					meta: {},
+					badges: [{ text: 'delete queued', solid: true }],
+					children: [
+						{ id: 'included', label: 'Included', depth: 1, meta: {} },
+						{ id: 'excluded', label: 'Excluded', depth: 1, meta: {} },
+						{ id: 'deleted', label: 'Deleted', depth: 1, meta: {} },
+					],
+				},
+			],
+			expandedIds: new Set<string>(),
+			highlightIds: {
+				inclusive: new Set(['included']),
+				exclusive: new Set(['excluded']),
+				deletion: new Set(['deleted']),
+			},
+			onToggle: () => {},
+			onRowClick: () => {},
+			onContextMenu: () => {},
+		});
+
+		const row = container.findByDataId('root');
+		const zone = row?.querySelector(
+			'.vaultman-tree-badge-zone',
+		) as TinyElement | null;
+		expect(zone?.children).toHaveLength(3);
+		expect(
+			zone?.children[0]?.classList.contains(
+				'vaultman-tree-bubble-dot--deletion',
+			),
+		).toBe(true);
+		expect(
+			zone?.children[1]?.classList.contains(
+				'vaultman-tree-bubble-dot--filter-excluded',
+			),
+		).toBe(true);
+		expect(zone?.children[2]?.classList.contains('vaultman-badge')).toBe(true);
+	});
 });

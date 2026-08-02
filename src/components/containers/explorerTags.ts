@@ -66,6 +66,7 @@ import {
 	groupRootHierarchy,
 } from '../../logic/logicExplorerHierarchy';
 import { collectExpandableSubtreeIds } from '../../logic/logicTreeExpansion';
+import { collectExplorerDeletionIds } from '../../logic/logicExplorerHighlight';
 import {
 	normalizeInteractionMode,
 	resolveInteractionAction,
@@ -660,6 +661,7 @@ export class TagsExplorerPanel extends Component {
 			this._renderEmptyState();
 			return;
 		}
+		const deletionIds = collectExplorerDeletionIds(nodesWithIcons);
 		this._setIndexRoots(nodesWithIcons);
 
 		if (this.viewMode === 'grid') {
@@ -682,8 +684,12 @@ export class TagsExplorerPanel extends Component {
 				expandedIds: this.expandedIds,
 				visibleCells: this.visibleCells,
 				...this._selectionViewOptions(),
-				activeFilterIds,
-				excludedFilterIds,
+				highlightIds: {
+					inclusive: activeFilterIds,
+					exclusive: excludedFilterIds,
+					deletion: deletionIds,
+				},
+				statusDotLabel: () => translate('filter.active_descendant'),
 				searchHighlightIds: highlightIds,
 				onToggle: (id: string) => {
 					this._toggleExpanded(id);
@@ -745,8 +751,12 @@ export class TagsExplorerPanel extends Component {
 			...this._selectionViewOptions(),
 			filterBubbleLabel: translate('filter.active_descendant'),
 			iconInCaretSlot: this.plugin.settings?.iconInCaretSlot === true,
-			activeFilterIds,
-			excludedFilterIds,
+			highlightIds: {
+				inclusive: activeFilterIds,
+				exclusive: excludedFilterIds,
+				deletion: deletionIds,
+			},
+			statusDotLabel: () => translate('filter.active_descendant'),
 			searchHighlightIds: highlightIds,
 			editingId: this.editingId,
 			onRename: (id, newLabel) => {

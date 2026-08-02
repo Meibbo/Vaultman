@@ -443,6 +443,11 @@ export class FilterService extends Component {
 		});
 	}
 
+	/** Ordered-result consumers use this to distinguish state-only changes. */
+	getProjectionStateSignature(): string {
+		return this.stateSignature;
+	}
+
 	/** Load a saved filter template */
 	loadTemplate(template: FilterTemplate): void {
 		this.activeFilter = JSON.parse(
@@ -826,7 +831,17 @@ export class FilterService extends Component {
 		if (!this.hasEnabledContentSearchRule()) return files;
 		if (this.contentSearchPaths === null) return files;
 		const paths = this.contentSearchPaths;
-		return files.filter((file) => paths.has(file.path));
+		// The Text tab always hands over the files that *do* contain the term and
+		// states the polarity separately. The polarity used to reach the rule and
+		// stop there, so it renamed the chip to "Not text …" while this
+		// intersection went on keeping the matches — "doesn't have text" listed
+		// exactly the files that have it.
+		const exclude =
+			this.findRootRuleById(CONTENT_SEARCH_RULE_ID)?.filterType ===
+			'content_search_exclude';
+		return exclude
+			? files.filter((file) => !paths.has(file.path))
+			: files.filter((file) => paths.has(file.path));
 	}
 
 	private applyLegacySearch(files: TFile[]): TFile[] {

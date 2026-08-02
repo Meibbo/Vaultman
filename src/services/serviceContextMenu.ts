@@ -30,9 +30,13 @@ export interface ContextMenuPluginCtx extends Component {
 		contextMenuShowInFileMenu: boolean;
 		contextMenuShowInEditorMenu: boolean;
 		contextMenuHideRules: MenuHideRule[];
+		/** U121-019 #51: route a selection search to the Text explorer. */
+		textSearchInterceptsCoreSearch?: boolean;
 		filesContextMenuLayout?: FilesMenuItem[];
 		contextMenuLayouts?: Partial<Record<PanelMenuKind, FilesMenuItem[]>>;
 	};
+	/** Opens the Text explorer seeded with a query. */
+	openContentSearchWithQuery?(query: string): Promise<void>;
 	filterService?: {
 		activeFilter: { children: unknown[] };
 		clearFilters(): void;
@@ -114,8 +118,33 @@ export class ContextMenuService extends Component {
 				}
 				const file = this.plugin.app.workspace.getActiveFile();
 				if (file) this._injectWorkspaceActions(menu, file, 'editor-menu');
+				this._addSearchSelectionEntry(menu);
 				this._applyHideRules(menu, 'editor-menu');
 			}),
+		);
+	}
+
+	/**
+	 * "Search selection in Vaultman", beside core's own search entry.
+	 *
+	 * Off unless the user asks for it: this puts a second search destination in a
+	 * menu that already has one, and which of the two a selection should land in
+	 * is their call. Core's entry is left alone rather than replaced — hiding it
+	 * would mean matching it by title, which is a translation away from breaking.
+	 */
+	private _addSearchSelectionEntry(menu: Menu): void {
+		if (this.plugin.settings.textSearchInterceptsCoreSearch !== true) return;
+		if (!this.plugin.openContentSearchWithQuery) return;
+		const editor = this.plugin.app.workspace.activeEditor?.editor;
+		const selection = editor?.getSelection().trim();
+		if (!selection) return;
+		menu.addItem((item) =>
+			item
+				.setTitle(translate('content.search_selection'))
+				.setIcon('lucide-file-search')
+				.onClick(() => {
+					void this.plugin.openContentSearchWithQuery?.(selection);
+				}),
 		);
 	}
 

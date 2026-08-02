@@ -1,5 +1,6 @@
 import { App, Component, Events, Notice, TFile, FileManager, TFolder } from 'obsidian';
 import type { PendingChange, OperationResult } from '../types/typeOps';
+import { replaceSingleOccurrence } from '../logic/logicSingleOccurrenceReplace';
 import { DELETE_PROP, RENAME_FILE, REORDER_ALL, MOVE_FILE, FIND_REPLACE_CONTENT, NATIVE_RENAME_PROP, NATIVE_SET_PROP_TYPE, APPLY_TEMPLATE, DELETE_FILE } from '../types/typeOps';
 import { translate } from '../i18n/index';
 
@@ -17,12 +18,19 @@ interface InternalApp extends App {
 
 interface OperationQueueOptions {
 	bypassOperations?: boolean;
+	/**
+	 * Whether replacing a queued operation announces itself. Read live rather
+	 * than copied, because the settings object handed in at construction is the
+	 * same one the settings tab mutates.
+	 */
+	queueWarnOnSupersede?: boolean;
 }
 
 type QueuePolicyDecision =
 	| { kind: 'accept' }
 	| { kind: 'duplicate' }
 	| { kind: 'merge'; existing: PendingChange }
+	| { kind: 'supersede'; existing: PendingChange }
 	| { kind: 'conflict' };
 
 type FolderDeleteChange = PendingChange & {
@@ -35,6 +43,7 @@ interface QueuePolicyStats {
 	merged: number;
 	duplicates: number;
 	conflicts: number;
+	superseded: number;
 	changed: boolean;
 }
 
@@ -43,6 +52,7 @@ function createQueuePolicyStats(): QueuePolicyStats {
 		accepted: 0,
 		merged: 0,
 		duplicates: 0,
+		superseded: 0,
 		conflicts: 0,
 		changed: false,
 	};
@@ -177,6 +187,29 @@ function fileActionsConflict(a: PendingChange, b: PendingChange): boolean {
 	return operationIdentity(a) !== operationIdentity(b);
 }
 
+/**
+ * Two replacements of the same text, differing only in what they replace it
+ * with.
+ *
+ * `operationIdentity` folds `replace` into the key, so these read as unrelated
+ * operations and both sat in the queue — which cannot mean anything, since the
+ * first one runs and the second then finds nothing to match. The later one wins,
+ * the same way a second edit to the same field wins.
+ */
+function supersedesContentReplace(
+	existing: PendingChange,
+	incoming: PendingChange,
+): boolean {
+	if (existing.type !== 'content_replace' || incoming.type !== 'content_replace') {
+		return false;
+	}
+	if (existing.find !== incoming.find) return false;
+	if (existing.caseSensitive !== incoming.caseSensitive) return false;
+	if (existing.isRegex !== incoming.isRegex) return false;
+	if (existing.replace === incoming.replace) return false;
+	return hasFileOverlap(existing, incoming);
+}
+
 function operationsConflict(existing: PendingChange, incoming: PendingChange): boolean {
 	if (!hasFileOverlap(existing, incoming)) return false;
 	if (existing.type === 'property' && incoming.type === 'property') {
@@ -196,6 +229,7 @@ function operationsConflict(existing: PendingChange, incoming: PendingChange): b
  */
 export class OperationQueueService extends Component {
 	private app: App;
+	private readonly options: OperationQueueOptions;
 	private events = new Events();
 
 	private get internalApp(): InternalApp {
@@ -208,6 +242,7 @@ export class OperationQueueService extends Component {
 	constructor(app: App, options: OperationQueueOptions = {}) {
 		super();
 		this.app = app;
+		this.options = options;
 		this.operationMode = options.bypassOperations ? 'bypass' : 'stage';
 	}
 
@@ -354,6 +389,14 @@ export class OperationQueueService extends Component {
 			stats.changed = true;
 			return stats;
 		}
+		if (decision.kind === 'supersede') {
+			const at = this.queue.indexOf(decision.existing);
+			if (at >= 0) this.queue.splice(at, 1);
+			this.queue.push(change);
+			stats.superseded++;
+			stats.changed = true;
+			return stats;
+		}
 		if (decision.kind === 'duplicate') {
 			stats.duplicates++;
 			return stats;
@@ -365,6 +408,9 @@ export class OperationQueueService extends Component {
 	private assessChange(change: PendingChange, bypass = false): QueuePolicyDecision {
 		const incomingIdentity = operationIdentity(change);
 		for (const existing of this.queue) {
+			if (supersedesContentReplace(existing, change)) {
+				return { kind: 'supersede', existing };
+			}
 			if (operationIdentity(existing) === incomingIdentity) {
 				if (!bypass) return { kind: 'merge', existing };
 				if (hasFileOverlap(existing, change)) return { kind: 'duplicate' };
@@ -375,15 +421,29 @@ export class OperationQueueService extends Component {
 		return { kind: 'accept' };
 	}
 
+	/** Whether replacing a queued operation announces itself. Defaults to yes. */
+	private warnsOnSupersede(): boolean {
+		return this.options.queueWarnOnSupersede !== false;
+	}
+
 	private mergeStats(target: QueuePolicyStats, source: QueuePolicyStats): void {
 		target.accepted += source.accepted;
 		target.merged += source.merged;
 		target.duplicates += source.duplicates;
 		target.conflicts += source.conflicts;
+		target.superseded += source.superseded;
 		target.changed = target.changed || source.changed;
 	}
 
 	private reportQueuePolicy(stats: QueuePolicyStats, batch = false): void {
+		// Replacing a queued operation is a normal edit, not a guard rejection, so
+		// it is announced on its own and can be silenced. Everything below is a
+		// refusal and always speaks.
+		if (stats.superseded > 0 && this.warnsOnSupersede()) {
+			new Notice(
+				translate('queue.guard.superseded', { count: stats.superseded }),
+			);
+		}
 		if (stats.merged === 0 && stats.duplicates === 0 && stats.conflicts === 0) return;
 		if (batch || stats.merged + stats.duplicates + stats.conflicts > 1) {
 			new Notice(
@@ -616,16 +676,37 @@ export class OperationQueueService extends Component {
 		}
 
 		if (FIND_REPLACE_CONTENT in specialUpdates) {
-			const { pattern, replacement, isRegex, caseSensitive } = specialUpdates[FIND_REPLACE_CONTENT] as {
-				pattern: string;
-				replacement: string;
-				isRegex: boolean;
-				caseSensitive: boolean;
-			};
+			const { pattern, replacement, isRegex, caseSensitive, occurrenceOffset } =
+				specialUpdates[FIND_REPLACE_CONTENT] as {
+					pattern: string;
+					replacement: string;
+					isRegex: boolean;
+					caseSensitive: boolean;
+					/** Set when the operation came from one match row's own menu. */
+					occurrenceOffset?: number;
+				};
+			const content = await this.app.vault.read(file);
+
+			if (typeof occurrenceOffset === 'number') {
+				// One occurrence, named by the offset its snippet carries. `null`
+				// means the note moved on since the search — writing over whatever
+				// now sits at a stale offset is the one outcome nobody asked for, so
+				// it is skipped rather than guessed at.
+				const single = replaceSingleOccurrence(content, occurrenceOffset, {
+					pattern,
+					replacement,
+					isRegex,
+					caseSensitive,
+				});
+				if (single !== null && single !== content) {
+					await this.app.vault.modify(file, single);
+				}
+				return;
+			}
+
 			const flags = 'g' + (caseSensitive ? '' : 'i');
 			const escaped = isRegex ? pattern : pattern.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 			const regex = new RegExp(escaped, flags);
-			const content = await this.app.vault.read(file);
 			const newContent = content.replace(regex, replacement);
 			if (newContent !== content) {
 				await this.app.vault.modify(file, newContent);

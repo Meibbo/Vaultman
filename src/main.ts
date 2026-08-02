@@ -2,6 +2,7 @@ import { MarkdownView, Notice, Plugin, TFile, WorkspaceLeaf } from 'obsidian';
 import type { VaultmanSettings } from './types/typeSettings';
 import { DEFAULT_SETTINGS } from './types/typeSettings';
 import { PropertyIndexService } from './services/servicePropertyIndex';
+import { installCoreBookmarkBridge } from './services/serviceCoreBookmarks';
 import { FilterService } from './services/serviceFilter';
 import { OperationQueueService } from './services/serviceOperationQueue';
 import { VaultmanFrame, VAULTMAN_FRAME_TYPE } from './VaultmanFrame';
@@ -215,6 +216,19 @@ export class VaultmanPlugin extends Plugin {
 			),
 		);
 
+		// U121-019 #51: search bookmarks reopen in the Text explorer when the user
+		// has asked for that. This patches the Bookmarks plugin's own methods, so
+		// it is registered for teardown alongside everything else that reaches
+		// outside our own surface.
+		this.register(
+			installCoreBookmarkBridge(this.app, {
+				isEnabled: () => this.settings.textSearchInterceptsCoreSearch,
+				openSearch: (query, modifiers) => {
+					void this.openContentSearchWithQuery(query, modifiers);
+				},
+			}),
+		);
+
 		this.addSettingTab(new VaultmanSettingsTab(this.app, this));
 	}
 
@@ -239,9 +253,25 @@ export class VaultmanPlugin extends Plugin {
 		return view instanceof VaultmanFrame ? view : null;
 	}
 
-	private async focusVaultmanContentSearch(): Promise<void> {
+	private async focusVaultmanContentSearch(
+		query?: string,
+		modifiers?: { caseSensitive: boolean; isRegex: boolean },
+	): Promise<void> {
 		const view = await this.vaultmanFrameForCommand();
-		if (view) await view.focusContentSearch();
+		if (view) await view.focusContentSearch(query, modifiers);
+	}
+
+	/**
+	 * Public entry point for other services — the editor menu's "search selection
+	 * in Vaultman" uses it. Kept separate from the private command helper so the
+	 * BT5-067 guards, which slice `main.ts` between those two private methods,
+	 * still describe the block they were written for.
+	 */
+	async openContentSearchWithQuery(
+		query: string,
+		modifiers?: { caseSensitive: boolean; isRegex: boolean },
+	): Promise<void> {
+		await this.focusVaultmanContentSearch(query, modifiers);
 	}
 
 	private async focusVaultmanExplorerSearch(): Promise<void> {

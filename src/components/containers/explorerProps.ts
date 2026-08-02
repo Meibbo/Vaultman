@@ -77,6 +77,7 @@ import {
 } from '../../logic/logicIndexGroups';
 import { flattenPropertyValues } from '../../logic/logicExplorerHierarchy';
 import { collectExpandableSubtreeIds } from '../../logic/logicTreeExpansion';
+import { collectExplorerDeletionIds } from '../../logic/logicExplorerHighlight';
 import {
 	normalizeInteractionMode,
 	resolveInteractionAction,
@@ -935,6 +936,7 @@ export class PropsExplorerPanel extends Component {
 			this._renderEmptyState();
 			return;
 		}
+		const deletionIds = collectExplorerDeletionIds(nodesWithIcons);
 
 		if (this.viewMode === 'table') {
 			if (!this.tableView) {
@@ -946,8 +948,12 @@ export class PropsExplorerPanel extends Component {
 				expandedIds: this.expandedIds,
 				visibleCells: this.visibleCells,
 				...this._selectionViewOptions(),
-				activeFilterIds,
-				excludedFilterIds,
+				highlightIds: {
+					inclusive: activeFilterIds,
+					exclusive: excludedFilterIds,
+					deletion: deletionIds,
+				},
+				statusDotLabel: () => translate('filter.active_descendant'),
 				warningIds,
 				searchHighlightIds: highlightIds,
 				onToggle: (id: string) => {
@@ -1001,8 +1007,12 @@ export class PropsExplorerPanel extends Component {
 			renderLabel: (container, node) =>
 				this._renderPropertyValueLabel(container, node as TreeNode<PropMeta>),
 			iconInCaretSlot: this.plugin.settings?.iconInCaretSlot === true,
-			activeFilterIds,
-			excludedFilterIds,
+			highlightIds: {
+				inclusive: activeFilterIds,
+				exclusive: excludedFilterIds,
+				deletion: deletionIds,
+			},
+			statusDotLabel: () => translate('filter.active_descendant'),
 			warningIds,
 			searchHighlightIds: highlightIds,
 			onToggle: (id: string) => {
