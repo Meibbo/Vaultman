@@ -4,8 +4,13 @@ import {
 	PANEL_WIDGET_EXCLUSIVE_SLOT_ORDER,
 	resolveExclusiveSlotNodes,
 	resolvePanelWidgetProjection,
+	resolveValueMoveToggleNodes,
 } from '../../src/logic/logicPanelWidgetProjection';
 import type { PanelWidgetNode } from '../../src/types/typePanelWidget';
+import filtersPageSource from '../../src/components/pages/pageFilters.svelte?raw';
+import navbarSource from '../../src/components/layout/navbarFilters.svelte?raw';
+import panelWidgetTypeSource from '../../src/types/typePanelWidget.ts?raw';
+import searchControlSource from '../../src/components/layout/searchControl.svelte?raw';
 
 function node(id: string, label: string, order: number): PanelWidgetNode {
 	return {
@@ -36,6 +41,57 @@ const cancel = node(
 	'Cancel',
 	PANEL_WIDGET_EXCLUSIVE_SLOT_ORDER + 1,
 );
+
+describe('the move mode toggles in the SearchControl', () => {
+	const labels = {
+		append: 'Append to the destination',
+		replace: 'Replace the destination',
+		move: 'Remove the original value',
+		copy: 'Keep the original value',
+	};
+
+	it('publishes exactly two toggles, one per axis', () => {
+		const nodes = resolveValueMoveToggleNodes({
+			write: 'append',
+			originDisposition: 'move',
+			labels,
+		});
+		expect(nodes).toHaveLength(2);
+		expect(nodes.map((toggle) => toggle.id)).toEqual([
+			'props.move-to-prop.write',
+			'props.move-to-prop.origin',
+		]);
+		expect(nodes.every((toggle) => toggle.presentation === 'toggle')).toBe(true);
+	});
+
+	it('labels each toggle with the state it is in, not the state it would go to', () => {
+		const appended = resolveValueMoveToggleNodes({
+			write: 'append',
+			originDisposition: 'move',
+			labels,
+		});
+		expect(appended[0].label).toBe(labels.append);
+		expect(appended[1].label).toBe(labels.move);
+
+		const replaced = resolveValueMoveToggleNodes({
+			write: 'replace',
+			originDisposition: 'copy',
+			labels,
+		});
+		expect(replaced[0].label).toBe(labels.replace);
+		expect(replaced[1].label).toBe(labels.copy);
+	});
+
+	it('rides the existing trailing-action contract instead of a new bar', () => {
+		// searchControl already renders `trailingActions`; the mode feeds that
+		// prop rather than introducing a second row of controls.
+		expect(searchControlSource).toContain('trailingActions');
+		expect(navbarSource).toContain('trailingActions={searchTrailingActions}');
+		expect(panelWidgetTypeSource).toContain('searchTrailingActions?:');
+		expect(filtersPageSource).toContain('searchTrailingActions');
+		expect(filtersPageSource).toContain('resolveValueMoveToggleNodes');
+	});
+});
 
 describe('the exclusive props toolbar slot', () => {
 	it('holds its idle occupant while no operation mode is active', () => {

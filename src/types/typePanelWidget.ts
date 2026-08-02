@@ -150,6 +150,12 @@ export interface NavbarPanelWidgetState {
 	filtersSearchCategory: PanelWidgetSearchCategoryState;
 	searchExpanded?: boolean;
 	onSearchExpandedChange?: (expanded: boolean) => void;
+	/**
+	 * Trailing controls rendered inside the searchbox. An operation mode that
+	 * needs its own switches publishes them here rather than adding a bar.
+	 */
+	searchTrailingActions?: readonly PanelWidgetNode[];
+	onSearchTrailingAction?: (node: PanelWidgetNode) => void;
 	tagsExplorer?: PanelWidgetTreeExplorerPort | null;
 	propExplorer?: PanelWidgetTreeExplorerPort;
 	fileList?: PanelWidgetFilesExplorerPort;

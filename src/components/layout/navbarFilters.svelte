@@ -100,6 +100,8 @@
 		filtersSearchCategory = $bindable({ tags: 0, props: 0, files: 0 }),
 		searchExpanded = false,
 		onSearchExpandedChange,
+		searchTrailingActions = [],
+		onSearchTrailingAction,
 		tagsExplorer,
 		propExplorer,
 		fileList,
@@ -1649,13 +1651,19 @@
 		placeholder={translate('filter.search_placeholder')}
 		ownRow={variant === 'row'}
 		clearLabel={translate('filter.search_clear')}
-		categoryIcon={CATEGORY_ICONS[activeTab].length > 1 ? currentCategoryIcon : undefined}
-		categoryLabel={CATEGORY_LABELS[activeTab]?.[filtersSearchCategory[activeTab] ?? 0] ?? translate('filter.search_mode')}
+		categoryIcon={CATEGORY_ICONS[activeTab].length > 1
+			? currentCategoryIcon
+			: undefined}
+		categoryLabel={CATEGORY_LABELS[activeTab]?.[
+			filtersSearchCategory[activeTab] ?? 0
+		] ?? translate('filter.search_mode')}
 		onCycleCategory={cycleSearchCategory}
 		createIcon={canCreateSearchTarget ? currentCreateIcon : undefined}
 		createLabel={translate('filter.create')}
 		onCreateTarget={createSearchTarget}
 		onValueChange={setFiltersSearch}
+		trailingActions={searchTrailingActions}
+		onAction={onSearchTrailingAction}
 		{icon}
 	/>
 {/snippet}

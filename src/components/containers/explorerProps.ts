@@ -39,6 +39,8 @@ export interface PanelPluginCtx {
 		selectionCheckboxPosition?: 'start' | 'end';
 		/** U121-003: how far a type-incompatibility warning decorates its node. */
 		propConflictWarnings?: PropConflictWarnings;
+		/** U121-003: what `Move to prop...` does with an unwilling destination. */
+		propMoveTypeConflict?: 'coerce' | 'block' | 'ask';
 	};
 	statisticsCache?: Pick<StatisticsCacheService, 'getFileTimes'>;
 	showDragActionGuide?: (text: string) => void;
@@ -99,6 +101,28 @@ import {
 	buildOperationTargetSet,
 	type OperationTarget,
 } from '../../logic/logicOperationTargetSet';
+import {
+	buildValueMoveOperations,
+	enterValueMoveMode,
+	exitValueMoveMode,
+	proceedEnabled,
+	reconcileValueMoveOwner,
+	selectValueMoveDestination,
+	toggleValueMoveOriginDisposition,
+	toggleValueMoveWrite,
+	type ValueMoveModeState,
+	type ValueMoveOrigin,
+	type ValueMoveOwner,
+} from '../../logic/logicValueMoveMode';
+import {
+	decidePropMoveConflict,
+	normalizePropMoveTypeConflict,
+} from '../../logic/logicPropMoveConflict';
+import { applyValueMove } from '../../logic/logicValueMoveApply';
+import {
+	OperationSummaryModal,
+	type OperationSummaryLine,
+} from '../../modals/modalOperationSummary';
 import {
 	availablePropertyValueConversions,
 	coercePropertyValueForWidget,
@@ -233,6 +257,30 @@ export class PropsExplorerPanel extends Component {
 					this._addToFilesDestinationCount(),
 				).available,
 			run: (ctx) => this._addToFiles(ctx),
+		});
+
+		// `Move to prop...` cannot resolve its destination implicitly the way
+		// `Add to files` can, so it enters a hidden mode on this explorer and the
+		// destination is picked with the same selection machinery as everything
+		// else — not a second picker with its own idea of what a property is.
+		svc.registerAction({
+			id: 'prop.move-to-prop',
+			nodeTypes: ['value'],
+			surfaces: ['panel'],
+			label: translate('explorer.ctx.move_to_prop'),
+			icon: 'lucide-move-right',
+			when: (ctx) => (ctx.node.meta as PropMeta).isValueNode,
+			run: (ctx) => this._enterValueMoveMode(ctx),
+		});
+
+		svc.registerAction({
+			id: 'prop.move-to-prop.proceed',
+			nodeTypes: ['prop'],
+			surfaces: ['panel'],
+			label: translate('explorer.ctx.move_to_prop.proceed'),
+			icon: 'lucide-check',
+			when: () => this._valueMoveProceedAvailable(),
+			run: () => this._proceedValueMove(),
 		});
 
 		svc.registerAction({
@@ -451,6 +499,9 @@ export class PropsExplorerPanel extends Component {
 	}
 
 	onunload(): void {
+		// The mode's state dies with the panel. A pending operation nobody can
+		// see is worse than one that was never composed.
+		this._exitValueMoveMode();
 		this.deferredRender.dispose();
 		this.filterClicks.dispose();
 		this.plugin.filterService.off('changed', this._handleStateChange);
@@ -667,6 +718,261 @@ export class PropsExplorerPanel extends Component {
 		this._render();
 	}
 
+	// --- `Move to prop...` hidden operation mode -------------------------------
+	//
+	// The adapter owns one machine instance and nothing else: every decision
+	// below comes from the pure reducer, the conflict policy or the write.
+
+	private valueMoveMode: ValueMoveModeState | null = null;
+	private onValueMoveChange?: () => void;
+
+	getValueMoveMode(): ValueMoveModeState | null {
+		return this.valueMoveMode;
+	}
+
+	/**
+	 * The Scene subscribes so the toolbar and searchbox reproject when the mode
+	 * changes. Without it the panel would need an unrelated action to repaint,
+	 * which is exactly the class of defect U121-003 exists to remove.
+	 */
+	setValueMoveChangeHandler(handler?: () => void): void {
+		this.onValueMoveChange = handler;
+	}
+
+	private _setValueMoveMode(next: ValueMoveModeState | null): void {
+		this.valueMoveMode = next;
+		this.onValueMoveChange?.();
+	}
+
+	private _valueMoveOwner(): ValueMoveOwner {
+		return { providerId: 'props', generation: this.valueMoveGeneration };
+	}
+
+	private valueMoveGeneration = 0;
+
+	/**
+	 * Called by the Scene when the panelWidget owner moves. The mode never
+	 * survives a provider change or a generation bump: a pending invisible
+	 * operation in another domain cannot be reasoned about by the user.
+	 */
+	reconcileValueMoveOwner(owner: ValueMoveOwner): void {
+		if (!this.valueMoveMode) return;
+		if (reconcileValueMoveOwner(this.valueMoveMode, owner)) return;
+		this._exitValueMoveMode();
+	}
+
+	private _valueMoveOrigins(ctx: {
+		node: { id: string; label: string; meta?: unknown };
+	}): ValueMoveOrigin[] {
+		const tree = this.logic.getTree();
+		const toOrigin = (node: TreeNode<PropMeta> | null): ValueMoveOrigin | null => {
+			const meta = node?.meta;
+			if (!node || !meta?.isValueNode) return null;
+			return {
+				id: node.id,
+				kind: 'value',
+				node: {
+					property: meta.propName,
+					rawValue: meta.rawValue ?? node.label,
+					propType: meta.propType,
+				},
+			};
+		};
+
+		const selectedNodes: ValueMoveOrigin[] = [];
+		for (const id of this.selectedNodeIds) {
+			const origin = toOrigin(this._findNode(id, tree));
+			if (origin) selectedNodes.push(origin);
+		}
+
+		return buildOperationTargetSet<ValueMoveOrigin['node']>({
+			selectedNodes,
+			invokedNode: toOrigin(ctx.node as TreeNode<PropMeta>),
+		}).targets as ValueMoveOrigin[];
+	}
+
+	private _enterValueMoveMode(ctx: {
+		node: { id: string; label: string; meta?: unknown };
+	}): void {
+		// Re-invoking the originating action exits, like cancel and escape.
+		if (this.valueMoveMode) {
+			this._exitValueMoveMode();
+			return;
+		}
+
+		this.valueMoveGeneration += 1;
+		this._setValueMoveMode(
+			enterValueMoveMode({
+				origin: this._valueMoveOrigins(ctx),
+				restore: {
+					interactionMode: this.interactionMode,
+					searchOpen: this.valueMoveSearchOpen,
+				},
+				owner: this._valueMoveOwner(),
+			}),
+		);
+		this.interactionMode = 'select';
+		void this._render();
+	}
+
+	private valueMoveSearchOpen = false;
+
+	private _exitValueMoveMode(): void {
+		const mode = this.valueMoveMode;
+		if (!mode) return;
+		const { restore } = exitValueMoveMode(mode);
+		this._setValueMoveMode(null);
+		this.interactionMode = normalizeInteractionMode(
+			'props',
+			restore.interactionMode as InteractionMode,
+		);
+		this.valueMoveSearchOpen = restore.searchOpen;
+		void this._render();
+	}
+
+	private _registerValueMoveDestination(meta: PropMeta): void {
+		const mode = this.valueMoveMode;
+		if (!mode) return;
+		const next = selectValueMoveDestination(mode, {
+			kind: meta.isValueNode ? 'value' : 'prop',
+			property: meta.propName,
+		});
+		this._setValueMoveMode(next);
+		if (next.rejection) {
+			new Notice(
+				translate('explorer.move_to_prop.rejected', {
+					property: next.rejection.destination,
+				}),
+			);
+		}
+	}
+
+	toggleValueMoveWrite(): void {
+		if (!this.valueMoveMode) return;
+		this._setValueMoveMode(toggleValueMoveWrite(this.valueMoveMode));
+		void this._render();
+	}
+
+	toggleValueMoveOriginDisposition(): void {
+		if (!this.valueMoveMode) return;
+		this._setValueMoveMode(
+			toggleValueMoveOriginDisposition(this.valueMoveMode),
+		);
+		void this._render();
+	}
+
+	cancelValueMoveMode(): void {
+		this._exitValueMoveMode();
+	}
+
+	private _valueMoveProceedAvailable(): boolean {
+		return this.valueMoveMode !== null && proceedEnabled(this.valueMoveMode);
+	}
+
+	/** The destination's current type, read from the projected tree. */
+	private _destinationPropType(property: string): string | undefined {
+		const node = this.logic
+			.getTree()
+			.find((candidate) => candidate.meta?.propName === property);
+		return node?.meta?.propType;
+	}
+
+	proceedValueMove(): void {
+		this._proceedValueMove();
+	}
+
+	private _proceedValueMove(): void {
+		const mode = this.valueMoveMode;
+		if (!mode || !proceedEnabled(mode)) return;
+
+		const policy = normalizePropMoveTypeConflict(
+			this.plugin.settings?.propMoveTypeConflict,
+		);
+		const files = this.plugin.filterService.filteredFiles;
+		const operations = buildValueMoveOperations(mode);
+
+		const stage = (): void => {
+			for (const operation of operations) {
+				const destinationType = this._destinationPropType(
+					operation.destinationProperty,
+				);
+				this.plugin.queueService.addOrRun({
+					type: 'property',
+					property: operation.destinationProperty,
+					action: 'add',
+					details:
+						`${operation.originDisposition === 'move' ? 'Move' : 'Copy'} ` +
+						`"${operation.rawValue}" from "${operation.originProperty}" ` +
+						`to "${operation.destinationProperty}"`,
+					files,
+					value: operation.rawValue,
+					customLogic: true,
+					logicFunc: (_file, fm) => {
+						// The decision is per file, because occupancy is.
+						const decision = decidePropMoveConflict(
+							{
+								property: operation.destinationProperty,
+								currentType: destinationType,
+								occupied: operation.destinationProperty in fm,
+							},
+							{ rawValue: operation.rawValue, propType: operation.propType },
+							operation.write,
+							policy,
+						);
+						const outcome = applyValueMove(
+							operation,
+							fm,
+							decision,
+							destinationType,
+						);
+						return outcome.status === 'written' ? outcome.frontmatter : null;
+					},
+				});
+			}
+			this._exitValueMoveMode();
+			this.logic.invalidate();
+			void this._render();
+		};
+
+		// Staging is its own confirmation: the queue can be read and cancelled.
+		// Bypass executes immediately and has no such review, so a composed
+		// multi-target move stops at an explicit summary first.
+		if (this.plugin.queueService.operationMode === 'bypass') {
+			const lines: OperationSummaryLine[] = operations.map((operation) => {
+				const destinationType = this._destinationPropType(
+					operation.destinationProperty,
+				);
+				const decision = decidePropMoveConflict(
+					{
+						property: operation.destinationProperty,
+						currentType: destinationType,
+						occupied: true,
+					},
+					{ rawValue: operation.rawValue, propType: operation.propType },
+					operation.write,
+					policy,
+				);
+				return {
+					destination: operation.destinationProperty,
+					destinationType: destinationType ?? 'text',
+					fileCount: files.length,
+					originDisposition: operation.originDisposition,
+					typeChange: decision.typeChange,
+					blockedReason: decision.reasonKey
+						? translate(decision.reasonKey, {
+								property: operation.destinationProperty,
+								type: destinationType ?? 'text',
+							})
+						: null,
+				};
+			});
+			new OperationSummaryModal(this.plugin.app, lines, stage).open();
+			return;
+		}
+
+		stage();
+	}
+
 	private _addToFilesDestinationCount(): number {
 		// Read at build time, so the count in the label is the count that runs.
 		return this.plugin.filterService.filteredFiles.length;
@@ -831,6 +1137,9 @@ export class PropsExplorerPanel extends Component {
 		if (action === 'select') {
 			if (this.selectedNodeIds.has(node.id)) this.selectedNodeIds.delete(node.id);
 			else this.selectedNodeIds.add(node.id);
+			// While the move mode is composing, the same selection gesture also
+			// names a destination; a value node names its parent property.
+			this._registerValueMoveDestination(meta);
 			void this._render();
 			return;
 		}

@@ -605,6 +605,18 @@ export const es: Record<string, string> = {
 	'explorer.ctx.change_type': 'Cambiar tipo',
 	'explorer.ctx.add_to_files': 'Agregar a {count} archivos',
 	'explorer.ctx.add_to_files.empty': 'Ningún archivo coincide con el filtro',
+	'explorer.ctx.move_to_prop': 'Mover a propiedad...',
+	'explorer.ctx.move_to_prop.proceed': 'Continuar con lo seleccionado',
+	'explorer.ctx.move_to_prop.cancel': 'Cancelar',
+	'explorer.move_to_prop.write.append': 'Agregar al destino',
+	'explorer.move_to_prop.write.replace': 'Reemplazar el destino',
+	'explorer.move_to_prop.origin.move': 'Quitar el valor original',
+	'explorer.move_to_prop.origin.copy': 'Conservar el valor original',
+	'explorer.move_to_prop.summary': 'Revisa este movimiento',
+	'explorer.move_to_prop.summary.files': '{count} archivos',
+	'explorer.move_to_prop.summary.confirm': 'Ejecutar ahora',
+	'explorer.move_to_prop.rejected':
+		'{property} es donde este valor ya vive',
 	'explorer.prop_move.blocked.scalar_occupied':
 		'{property} ya tiene un valor y no es una lista',
 	'explorer.prop_move.blocked.type_mismatch':

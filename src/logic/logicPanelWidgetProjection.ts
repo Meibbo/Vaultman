@@ -31,6 +31,50 @@ export function resolveExclusiveSlotNodes({
 	return Object.freeze(idleNode ? [idleNode] : []);
 }
 
+/**
+ * The two toggles the `Move to prop...` mode shows. They ride the SearchControl's
+ * existing `trailingActions` contract rather than a second bar, because that is
+ * where a control that belongs to the search box already goes.
+ *
+ * Each toggle is labelled with the state it is IN. A control that names the
+ * state it would switch to reads as a command and gets pressed by mistake.
+ */
+export function resolveValueMoveToggleNodes({
+	write,
+	originDisposition,
+	labels,
+}: {
+	write: 'append' | 'replace';
+	originDisposition: 'move' | 'copy';
+	labels: { append: string; replace: string; move: string; copy: string };
+}): readonly PanelWidgetNode[] {
+	return Object.freeze([
+		{
+			id: 'props.move-to-prop.write',
+			nodeKind: 'action',
+			cellKind: 'action',
+			presentation: 'toggle',
+			label: write === 'append' ? labels.append : labels.replace,
+			icon: write === 'append' ? 'lucide-list-plus' : 'lucide-replace',
+			order: 10,
+			available: true,
+			action: { id: 'props.move-to-prop.write.toggle' },
+		},
+		{
+			id: 'props.move-to-prop.origin',
+			nodeKind: 'action',
+			cellKind: 'action',
+			presentation: 'toggle',
+			label: originDisposition === 'move' ? labels.move : labels.copy,
+			icon:
+				originDisposition === 'move' ? 'lucide-scissors' : 'lucide-copy',
+			order: 20,
+			available: true,
+			action: { id: 'props.move-to-prop.origin.toggle' },
+		},
+	]);
+}
+
 export function resolvePanelWidgetProjection({
 	providerId,
 	nodes,

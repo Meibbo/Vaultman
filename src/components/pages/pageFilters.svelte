@@ -4,6 +4,12 @@
 	import type { VaultmanPlugin } from '../../main';
 	import { resolveCommandActions } from '../../logic/logicCommandActions';
 	import {
+		PANEL_WIDGET_EXCLUSIVE_SLOT_ORDER,
+		resolveExclusiveSlotNodes,
+		resolveValueMoveToggleNodes,
+	} from '../../logic/logicPanelWidgetProjection';
+	import type { PanelWidgetNode } from '../../types/typePanelWidget';
+	import {
 		executeObsidianCommand,
 		listObsidianCommands,
 	} from '../../utils/obsidianCommands';
@@ -235,7 +241,9 @@
 		onPanelWidgetStateChange?: (state: NavbarPanelWidgetState | null) => void;
 		sceneInstanceId?: string;
 		generation?: number;
-		onPublishPanelWidget?: (publication: import('../../types/typePanelWidget').ScenePanelWidgetPublication) => void;
+		onPublishPanelWidget?: (
+			publication: import('../../types/typePanelWidget').ScenePanelWidgetPublication,
+		) => void;
 		onClearPanelWidget?: (
 			owner: Pick<
 				import('../../types/typePanelWidget').ScenePanelWidgetEnvelope,
@@ -618,6 +626,104 @@
 	const contentSearchControl = $derived(
 		textSearchControl(contentSearchRun, contentFind.length > 0),
 	);
+	// --- `Move to prop...` mode surface ---------------------------------------
+	//
+	// The mode lives on the Props explorer. The page reads it and projects it:
+	// its two switches into the searchbox's existing trailing actions, and its
+	// Proceed/Cancel into the exclusive slot that the reveal toggle of shard 09
+	// will otherwise hold. The explorer notifies on every change, so the toolbar
+	// reprojects without an unrelated action forcing a repaint.
+	let valueMoveRevision = $state(0);
+	$effect(() => {
+		const explorer = propExplorer;
+		explorer?.setValueMoveChangeHandler(() => {
+			valueMoveRevision += 1;
+		});
+		return () => explorer?.setValueMoveChangeHandler(undefined);
+	});
+
+	const valueMoveMode = $derived.by(() => {
+		void valueMoveRevision;
+		return filtersActiveTab === 'props'
+			? (propExplorer?.getValueMoveMode() ?? null)
+			: null;
+	});
+
+	const searchTrailingActions = $derived(
+		valueMoveMode
+			? resolveValueMoveToggleNodes({
+					write: valueMoveMode.write,
+					originDisposition: valueMoveMode.originDisposition,
+					labels: {
+						append: translate('explorer.move_to_prop.write.append'),
+						replace: translate('explorer.move_to_prop.write.replace'),
+						move: translate('explorer.move_to_prop.origin.move'),
+						copy: translate('explorer.move_to_prop.origin.copy'),
+					},
+				})
+			: [],
+	);
+
+	function runSearchTrailingAction(node: PanelWidgetNode): void {
+		if (node.id === 'props.move-to-prop.write') {
+			propExplorer?.toggleValueMoveWrite();
+			return;
+		}
+		if (node.id === 'props.move-to-prop.origin') {
+			propExplorer?.toggleValueMoveOriginDisposition();
+		}
+	}
+
+	const valueMoveSlotNodes = $derived(
+		resolveExclusiveSlotNodes({
+			// Shard 09 puts the `reveal this file` toggle here; until then the
+			// slot is empty at rest, and the mutual exclusion already holds.
+			idleNode: null,
+			moveMode: valueMoveMode
+				? {
+						proceed: {
+							id: 'props.move-to-prop.proceed',
+							nodeKind: 'action',
+							cellKind: 'action',
+							presentation: 'button',
+							label: translate('explorer.ctx.move_to_prop.proceed'),
+							icon: 'lucide-check',
+							order: PANEL_WIDGET_EXCLUSIVE_SLOT_ORDER,
+							available: valueMoveMode.destinations.length > 0,
+							action: { id: 'props.move-to-prop.proceed' },
+						},
+						cancel: {
+							id: 'props.move-to-prop.cancel',
+							nodeKind: 'action',
+							cellKind: 'action',
+							presentation: 'button',
+							label: translate('explorer.ctx.move_to_prop.cancel'),
+							icon: 'lucide-x',
+							order: PANEL_WIDGET_EXCLUSIVE_SLOT_ORDER + 1,
+							available: true,
+							action: { id: 'props.move-to-prop.cancel' },
+						},
+					}
+				: null,
+		}),
+	);
+
+	const valueMoveHeaderActions = $derived<HeaderAction[]>(
+		valueMoveSlotNodes.map((node) => ({
+			id: node.id,
+			label: node.label,
+			icon: node.icon,
+			disabled: !node.available,
+			onClick: () => {
+				if (node.id === 'props.move-to-prop.cancel') {
+					propExplorer?.cancelValueMoveMode();
+					return;
+				}
+				propExplorer?.proceedValueMove();
+			},
+		})),
+	);
+
 	const contentHeaderActions = $derived<HeaderAction[]>(
 		filtersActiveTab === 'content'
 			? [
@@ -1522,7 +1628,9 @@
 			showDock,
 			tabOptions: minimalStyle ? filterTabOptions : [],
 			tabMenuActions,
-			headerActions: contentHeaderActions,
+			headerActions: [...contentHeaderActions, ...valueMoveHeaderActions],
+			searchTrailingActions,
+			onSearchTrailingAction: runSearchTrailingAction,
 			activeSectionTab: filtersActiveTab,
 			onSectionTabChange: switchFiltersTab,
 			onContentSearch: activateNodeContentSearch,

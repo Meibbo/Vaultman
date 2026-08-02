@@ -76,6 +76,20 @@ export class QueueDetailsModal extends Modal {
 		const contentOpsContainer = contentEl.createDiv();
 		void this.renderContentOps(contentOpsContainer);
 
+		// --- Bypass toggle ---
+		// The consequences of running without a queue are read here, so this is
+		// where the mode that skips the queue can be changed.
+		new Setting(contentEl)
+			.setName(translate('settings.bypass_operations'))
+			.setDesc(translate('settings.bypass_operations.desc'))
+			.addToggle((toggle) =>
+				toggle
+					.setValue(this.queueService.operationMode === 'bypass')
+					.onChange((value) => {
+						this.queueService.setOperationMode(value ? 'bypass' : 'stage');
+					}),
+			);
+
 		// --- Apply / Cancel buttons ---
 		new Setting(contentEl)
 			.addButton((btn) =>

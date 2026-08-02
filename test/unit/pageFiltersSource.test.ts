@@ -45,7 +45,12 @@ describe('pageFilters tab switching source guard', () => {
 		expect(pageFiltersSource).toContain('contentHeaderActions');
 		expect(pageFiltersSource).toContain('openContentSortMenu');
 		expect(pageFiltersSource).toContain('toggleAllContentFiles');
-		expect(pageFiltersSource).toContain('headerActions: contentHeaderActions');
+		// The published header actions are composed now — an operation mode adds
+		// its own — but the Content controls still reach them, and still lead.
+		const published = pageFiltersSource.slice(
+			pageFiltersSource.indexOf('headerActions: '),
+		);
+		expect(published).toMatch(/^headerActions: \[\.\.\.contentHeaderActions/);
 	});
 
 	it('projects Text Pause, Has/Hasn’t, then Sort in canonical panelWidget order', () => {
