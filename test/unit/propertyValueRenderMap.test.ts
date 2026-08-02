@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import type { App } from 'obsidian';
 
 import { renderPropertyValue } from '../../src/utils/renderPropertyValue';
@@ -27,6 +27,7 @@ class StubEl {
 	checked = false;
 	tabIndex = 0;
 	contentEditable = 'inherit';
+	isConnected = true;
 
 	constructor(
 		readonly tagName: string,
@@ -66,6 +67,8 @@ class StubEl {
 	}
 
 	focus(): void {}
+
+	blur(): void {}
 
 	setAttribute(name: string, value: string): void {
 		this.attributes.set(name, value);
@@ -134,6 +137,10 @@ function mousedown(el: StubEl): void {
 	for (const handler of el.listeners.get('mousedown') ?? []) {
 		handler({ preventDefault: () => undefined, stopPropagation: () => undefined });
 	}
+}
+
+function blur(el: StubEl): void {
+	for (const handler of el.listeners.get('blur') ?? []) handler({});
 }
 
 function change(el: StubEl): void {
@@ -372,7 +379,32 @@ describe('U121-003 shard 07 — checkbox and date edits', () => {
 		expect(checkbox?.tabIndex).toBe(-1);
 	});
 
-	it('commits a date picker change as one rename', () => {
+	it('waits for the field to settle instead of queuing per keystroke', () => {
+		// A date input reports every value that happens to be valid while it is
+		// being typed. Only the one it settles on may reach the queue.
+		vi.useFakeTimers();
+		try {
+			const renames: string[] = [];
+			const root = render('2026-08-01', 'date', {
+				onRenameValue: (next) => renames.push(next),
+			});
+			const input = root.find('mod-date')!;
+
+			for (const partial of ['2026-09-01', '2026-09-10', '2026-09-15']) {
+				input.value = partial;
+				change(input);
+				vi.advanceTimersByTime(100);
+			}
+			expect(renames).toEqual([]);
+
+			vi.advanceTimersByTime(1000);
+			expect(renames).toEqual(['2026-09-15']);
+		} finally {
+			vi.useRealTimers();
+		}
+	});
+
+	it('flushes immediately on Enter', () => {
 		const renames: string[] = [];
 		const root = render('2026-08-01', 'date', {
 			onRenameValue: (next) => renames.push(next),
@@ -380,22 +412,67 @@ describe('U121-003 shard 07 — checkbox and date edits', () => {
 		const input = root.find('mod-date')!;
 		input.value = '2026-09-15';
 		change(input);
+		key(input, 'Enter');
 		expect(renames).toEqual(['2026-09-15']);
 	});
 
-	it('reports nothing when a picker is cleared or unchanged', () => {
+	it('flushes on blur so a closed picker commits', () => {
+		const renames: string[] = [];
+		const root = render('2026-08-01', 'date', {
+			onRenameValue: (next) => renames.push(next),
+		});
+		const input = root.find('mod-date')!;
+		input.value = '2026-09-15';
+		change(input);
+		blur(input);
+		expect(renames).toEqual(['2026-09-15']);
+	});
+
+	it('restores the original value on Escape', () => {
+		const renames: string[] = [];
+		const root = render('2026-08-01', 'date', {
+			onRenameValue: (next) => renames.push(next),
+		});
+		const input = root.find('mod-date')!;
+		input.value = '2026-09-15';
+		change(input);
+		key(input, 'Escape');
+		expect(renames).toEqual([]);
+		expect(input.value).toBe('2026-08-01');
+	});
+
+	it('reports nothing when a field is cleared or unchanged', () => {
 		const renames: string[] = [];
 		const root = render('2026-08-01T10:30', 'datetime', {
 			onRenameValue: (next) => renames.push(next),
 		});
 		const input = root.find('mod-datetime')!;
 
-		change(input);
+		blur(input);
 		expect(renames).toEqual([]);
 
 		input.value = '';
-		change(input);
+		blur(input);
 		expect(renames).toEqual([]);
 		expect(input.value).toBe('2026-08-01T10:30');
+	});
+
+	it('drops a pending commit whose row was recycled away', () => {
+		vi.useFakeTimers();
+		try {
+			const renames: string[] = [];
+			const root = render('2026-08-01', 'date', {
+				onRenameValue: (next) => renames.push(next),
+			});
+			const input = root.find('mod-date')!;
+			input.value = '2026-09-15';
+			change(input);
+			input.isConnected = false;
+
+			vi.advanceTimersByTime(1000);
+			expect(renames).toEqual([]);
+		} finally {
+			vi.useRealTimers();
+		}
 	});
 });

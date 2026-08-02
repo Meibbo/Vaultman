@@ -7056,6 +7056,16 @@ button.vaultman-content-scope-hint:focus-visible {
 	font-family: inherit;
 }
 
+/* Core puts the picker glyph before the date and absolutely positions it
+   (app.css:7725), but only while the input is not `disabled="true"`. Enabling
+   the input to get a working picker turned that rule on, and with no positioned
+   ancestor and no padding the glyph landed under the row. Anchor it to its own
+   input and reserve the space it needs. */
+.vaultman-property-value-cell :is(input[type='date'], input[type='datetime-local']) {
+	position: relative;
+	padding-inline-start: calc(var(--size-4-1) + var(--icon-s));
+}
+
 /* A long flat label wrapped and turned the row into a paragraph. Rows are one
    line: the label ellipsizes like every other explorer label. The property name
    holds its width and the value gives way, because the name is what tells you
@@ -7065,8 +7075,11 @@ button.vaultman-content-scope-hint:focus-visible {
 	white-space: nowrap;
 }
 
+/* The value cell takes the row's leftover width, the same as the plain label it
+   replaces. Sizing it to its content instead let the count and badge cells
+   collapse leftward against the value rather than staying at the row's edge. */
 .vaultman-property-value-cell {
-	flex: 0 1 auto;
+	flex: 1 1 auto;
 	min-width: 0;
 	white-space: nowrap;
 	overflow: hidden;

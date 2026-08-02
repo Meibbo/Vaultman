@@ -3,6 +3,13 @@ import { setIcon, type App } from 'obsidian';
 const WIKILINK = /^\[\[([^\]|#]+)(?:#[^\]|]+)?(?:\|([^\]]+))?\]\]$/;
 
 /**
+ * How long a date field may keep changing before its value is treated as the
+ * one the user meant. Long enough to type a full date segment by segment,
+ * short enough that a picker selection feels immediate.
+ */
+const DATE_COMMIT_DELAY_MS = 700;
+
+/**
  * The eight property widget types Obsidian Core ships. Core's own `property:set`
  * handler declares `text|list|number|checkbox|date|datetime` as assignable, and
  * `tags`/`aliases` are the derived kinds it renders separately.
@@ -249,16 +256,47 @@ function renderDateInput(
 	input.value = value;
 	if (!onRenameValue) return;
 
-	input.addEventListener('click', (event) => event.stopPropagation());
-	input.addEventListener('change', () => {
+	// A date input fires `change` every time its value becomes valid, so typing
+	// a date segment by segment reports several complete dates on the way to the
+	// intended one — one queued operation per keystroke. The commit waits until
+	// the field settles; Enter and blur flush it immediately, so the picker still
+	// commits as soon as it closes.
+	let pending: ReturnType<typeof setTimeout> | null = null;
+	const cancel = (): void => {
+		if (pending === null) return;
+		clearTimeout(pending);
+		pending = null;
+	};
+	const commit = (): void => {
+		cancel();
 		const next = input.value;
-		// An emptied or unchanged picker is not an edit.
+		// An emptied or unchanged field is not an edit.
 		if (!next || next === value) {
 			input.value = value;
 			return;
 		}
+		// A recycled row can drop this input before the timer fires; a value from
+		// a node that is no longer on screen must not reach the queue.
+		if (!input.isConnected) return;
 		onRenameValue(next);
+	};
+
+	input.addEventListener('click', (event) => event.stopPropagation());
+	input.addEventListener('change', () => {
+		cancel();
+		pending = setTimeout(commit, DATE_COMMIT_DELAY_MS);
 	});
+	input.addEventListener('keydown', (event) => {
+		if (event.key === 'Enter') {
+			event.preventDefault();
+			commit();
+		} else if (event.key === 'Escape') {
+			cancel();
+			input.value = value;
+			input.blur();
+		}
+	});
+	input.addEventListener('blur', commit);
 }
 
 function renderDate(context: PropertyValueRenderContext): void {
