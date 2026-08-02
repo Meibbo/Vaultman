@@ -53,24 +53,24 @@ function millis(run: () => void): number {
 }
 
 describe('what a poll costs at the scale the pane actually reaches', () => {
-	it('rebuilds an unchanged result set far faster than it built it', () => {
-		// The scan republishes every 150ms. Without the memo every poll rebuilt
-		// all 65000 snippets; with it, a poll where nothing moved does no snippet
-		// work at all. The ratio is what matters, not the absolute figures, so
-		// this is pinned loosely enough to survive a slow machine.
+	it('does not discard snippets a row has already paid to build', () => {
+		// This used to compare a cold build against warm ones, because the memo's
+		// job was to avoid rebuilding 65000 snippets per poll. Snippets are lazy
+		// now, so a publish builds none of them and that ratio measures noise.
+		//
+		// What the memo still has to guarantee is this: a poll over an unchanged
+		// file returns the same entry, so the snippets a visible row already built
+		// survive rather than being rebuilt on the next of the 150ms publishes.
 		const inputs = realisticLoad();
 		const cache = createContentPreviewCache();
 
-		const cold = millis(() => {
-			buildNativeSearchPreview(inputs, true, undefined, { cache });
-		});
-		const warm = millis(() => {
-			for (let i = 0; i < 5; i += 1) {
-				buildNativeSearchPreview(inputs, true, undefined, { cache });
-			}
-		});
+		const first = buildNativeSearchPreview(inputs, true, undefined, { cache });
+		const rendered = first.files[0]?.snippets;
+		expect(rendered).toBeDefined();
 
-		expect(warm / 5).toBeLessThan(cold / 4);
+		const second = buildNativeSearchPreview(inputs, true, undefined, { cache });
+
+		expect(second.files[0]?.snippets).toBe(rendered);
 	});
 
 	it('returns every unchanged file by identity, so no row re-renders', () => {
@@ -120,3 +120,76 @@ function buildIdentityAt(
 	if (!path) return undefined;
 	return cache.get(path)?.entry;
 }
+
+describe('snippets are built when a row is read, not when a search publishes', () => {
+	function sectionLoad(): NativeSearchInput[] {
+		const section = 'lorem ipsum dolor sit amet consectetur '.repeat(120);
+		const content = section.repeat(20);
+		return Array.from({ length: 100 }, (_, f) => ({
+			file: file(`n${f}.md`),
+			content,
+			offsets: Array.from(
+				{ length: 200 },
+				(_, m) => [m * 400, m * 400 + 5] as [number, number],
+			),
+		}));
+	}
+
+	const sections = Array.from({ length: 20 }, (_, i) => ({
+		position: {
+			start: { offset: i * 4680 },
+			end: { offset: (i + 1) * 4680 },
+		},
+	}));
+
+	it('materialises nothing for a file nobody scrolls to', () => {
+		// With extra context on, a slice grows to its whole section. Building that
+		// for every match in the model was 280 MB of strings on a 60000-match
+		// query: the app locked when the switch went on and stayed slow until it
+		// went off. The render window only ever shows a couple of thousand rows.
+		const inputs = sectionLoad();
+		const published = buildNativeSearchPreview(inputs, true, undefined, {
+			cache: createContentPreviewCache(),
+			extraContext: true,
+			fileCache: () => ({ sections }),
+		});
+
+		const publishCost = millis(() => {
+			buildNativeSearchPreview(inputs, true, undefined, {
+				cache: createContentPreviewCache(),
+				extraContext: true,
+				fileCache: () => ({ sections }),
+			});
+		});
+		const readCost = millis(() => {
+			void published.files[0]?.snippets.length;
+		});
+
+		// Publishing the whole set must be cheaper than reading one file's rows.
+		expect(publishCost).toBeLessThan(Math.max(readCost * 4, 40));
+		expect(published.files).toHaveLength(inputs.length);
+		expect(published.files[0]?.matchCount).toBe(200);
+	});
+
+	it('builds a file’s snippets once, however often the row is read', () => {
+		const published = buildNativeSearchPreview(sectionLoad(), true, undefined, {
+			cache: createContentPreviewCache(),
+		});
+		const first = published.files[0]?.snippets;
+		expect(published.files[0]?.snippets).toBe(first);
+	});
+
+	it('clamps a structural slice to core’s own per-side budget', () => {
+		// Core can afford an unbounded section because it only materialises rows in
+		// view; we materialise whatever is read, so a section-sized slice needs the
+		// same 1000-character budget core uses for its line walk.
+		const published = buildNativeSearchPreview(sectionLoad(), true, undefined, {
+			cache: createContentPreviewCache(),
+			extraContext: true,
+			fileCache: () => ({ sections }),
+		});
+		const snippet = published.files[0]?.snippets[0];
+		expect(snippet?.before.length).toBeLessThanOrEqual(1000);
+		expect(snippet?.after.length).toBeLessThanOrEqual(1000);
+	});
+});

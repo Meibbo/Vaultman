@@ -19,11 +19,52 @@
  *   shape, same bookmarks pane, our query.
  */
 
+/**
+ * What a Vaultman text search is, beyond its query.
+ *
+ * Core's search has these as UI toggles rather than query syntax, so they have
+ * nowhere to live in `{ type, ctime, query }`.
+ */
+export interface SearchBookmarkModifiers {
+	caseSensitive: boolean;
+	isRegex: boolean;
+}
+
+/** Key the modifiers travel under, inside core's own item. */
+export const VAULTMAN_BOOKMARK_KEY = 'vaultmanTextSearch';
+
 /** The search bookmark item, exactly as core's own factory builds it. */
 export interface SearchBookmarkItem {
 	type: 'search';
 	ctime: number;
 	query: string;
+	/**
+	 * Ours, and optional. Verified on Obsidian 1.12.3: an unknown field on a
+	 * bookmark item survives `saveData` and comes back from
+	 * `.obsidian/bookmarks.json` intact, and core's pane still renders the item
+	 * as an ordinary search bookmark.
+	 */
+	[VAULTMAN_BOOKMARK_KEY]?: SearchBookmarkModifiers;
+}
+
+/** Read our modifiers off an item, defaulting to core's plain behaviour. */
+export function readSearchBookmarkModifiers(
+	item: SearchBookmarkItem | null | undefined,
+): SearchBookmarkModifiers {
+	const stored = item?.[VAULTMAN_BOOKMARK_KEY];
+	return {
+		caseSensitive: stored?.caseSensitive === true,
+		isRegex: stored?.isRegex === true,
+	};
+}
+
+/** Attach modifiers to an item, leaving core's three fields untouched. */
+export function withSearchBookmarkModifiers(
+	item: SearchBookmarkItem,
+	modifiers: SearchBookmarkModifiers,
+): SearchBookmarkItem {
+	if (!modifiers.caseSensitive && !modifiers.isRegex) return item;
+	return { ...item, [VAULTMAN_BOOKMARK_KEY]: { ...modifiers } };
 }
 
 /** Core raises `msgNoSearchQuery()` instead of storing a blank search. */

@@ -241,7 +241,14 @@
 	 * in core's pane. Writing the state the input is bound to drives exactly the
 	 * same path as typing it.
 	 */
-	export function setContentQuery(query: string): void {
+	export function setContentQuery(
+		query: string,
+		modifiers?: { caseSensitive: boolean; isRegex: boolean },
+	): void {
+		if (modifiers) {
+			contentCaseSensitive = modifiers.caseSensitive;
+			contentIsRegex = modifiers.isRegex;
+		}
 		contentFind = query;
 	}
 
@@ -836,12 +843,34 @@
 	}
 
 	/**
-	 * The snippet carries the match offset, not a line/column pair. Deriving the
-	 * position while scanning cost a scan of the file per match and was the fps
-	 * collapse; the open editor already holds a line index, so it is asked here,
-	 * once, for the one match the user actually clicked.
+	 * Open a match the way core opens its own.
+	 *
+	 * Core does not highlight anything itself: `onResultClick` calls
+	 * `openFile(file, { eState: { match: { content, matches } } })` and Obsidian
+	 * applies the highlight from that state — including clearing it on the next
+	 * click in the note. Ours only scrolled, because it opened through
+	 * `openLinkText` and then moved the cursor, which carries no match state.
+	 *
+	 * The content comes from the adapter's retained matches, so nothing is read
+	 * from disk to do it.
 	 */
 	async function openContentMatch(file: TFile, offset: number) {
+		const input = nativeSearchAdapter
+			.retainedInputs()
+			.find((entry) => entry.file.path === file.path);
+		const match = input?.offsets.find(([start]) => start === offset);
+
+		if (input && match) {
+			await plugin.app.workspace.getLeaf(false).openFile(file, {
+				eState: {
+					match: { content: input.content, matches: [match] },
+				},
+			});
+			return;
+		}
+
+		// The match is no longer retained (a new query cleared the floor). Fall
+		// back to placing the cursor, which is what this always did.
 		await plugin.app.workspace.openLinkText(file.path, '', false);
 		const view = plugin.app.workspace.getActiveViewOfType(MarkdownView);
 		if (!view) return;
@@ -1245,7 +1274,10 @@
 				.setIcon('lucide-bookmark')
 				.setDisabled(contentFind.trim().length === 0)
 				.onClick(() => {
-					void bookmarkSearchQuery(plugin.app, contentFind).then((opened) => {
+					void bookmarkSearchQuery(plugin.app, contentFind, {
+						caseSensitive: contentCaseSensitive,
+						isRegex: contentIsRegex,
+					}).then((opened) => {
 						if (!opened) new Notice(translate('content.bookmarks_unavailable'));
 					});
 				}),

@@ -28,7 +28,16 @@ export interface ExtraContextCache {
 	}[];
 }
 
-/** Core's own budget for the line walk, in characters, each way. */
+/**
+ * Core's own budget for the line walk, in characters each way — applied here to
+ * the structural results too.
+ *
+ * Core can afford an unbounded section because it only ever materialises the
+ * rows in view. We build every snippet in the model, so an unbounded section
+ * meant 280 MB of strings for a 60000-match query: the app locked while the
+ * switch went on and stayed slow until it went off. Sections shorter than the
+ * budget are unaffected, which is nearly all of them.
+ */
 const LINE_CLAMP = 1000;
 
 /**
@@ -101,6 +110,11 @@ export function extraContextRange(
 	match: readonly [number, number],
 	cache: ExtraContextCache,
 ): [number, number] {
+	const clamp = (from: number, to: number): [number, number] => [
+		Math.max(from, match[0] - LINE_CLAMP),
+		Math.min(to, match[1] + LINE_CLAMP),
+	];
+
 	const item = containing(cache.listItems, match);
 	if (item) {
 		// Absorb the items that follow while they hang off a parent already
@@ -115,15 +129,18 @@ export function extraContextRange(
 			collectedParents.add(next.position.start.offset);
 			last = next;
 		}
-		return [
+		return clamp(
 			item.entry.position.start.offset - item.entry.position.start.col,
 			last.position.end.offset,
-		];
+		);
 	}
 
 	const section = containing(cache.sections, match);
 	if (section) {
-		return [section.entry.position.start.offset, section.entry.position.end.offset];
+		return clamp(
+			section.entry.position.start.offset,
+			section.entry.position.end.offset,
+		);
 	}
 
 	let from = match[0];

@@ -1,6 +1,12 @@
 import type { App, WorkspaceLeaf } from 'obsidian';
 
-import { canBookmarkSearch } from '../logic/logicCoreSearchActions';
+import {
+	canBookmarkSearch,
+	readSearchBookmarkModifiers,
+	withSearchBookmarkModifiers,
+	type SearchBookmarkItem,
+	type SearchBookmarkModifiers,
+} from '../logic/logicCoreSearchActions';
 
 /**
  * U121-019 #51 — bookmarking a Vaultman text search.
@@ -78,9 +84,14 @@ export function isBookmarksAvailable(app: App): boolean {
 export async function bookmarkSearchQuery(
 	app: App,
 	query: string,
+	modifiers?: SearchBookmarkModifiers,
 ): Promise<boolean> {
 	if (!canBookmarkSearch(query)) return false;
 	if (!isBookmarksAvailable(app)) return false;
+
+	// Core's modal creates the item, so the toggles it has no field for are
+	// parked for the `addItem` hook to attach when it does.
+	if (modifiers) stageBookmarkModifiers(query, modifiers);
 
 	const leaf = searchLeaf(app);
 	if (!leaf) return false;
@@ -95,4 +106,110 @@ export async function bookmarkSearchQuery(
 	return (app as CommandApp).commands?.executeCommandById(
 		BOOKMARK_SEARCH_COMMAND,
 	) ?? false;
+}
+
+interface BookmarksPluginInternals {
+	addItem?(item: SearchBookmarkItem): void;
+	openBookmark?(item: SearchBookmarkItem, ...rest: unknown[]): unknown;
+	saveData?(): unknown;
+}
+
+export interface CoreBookmarkBridgeHandlers {
+	/** True while the user wants search bookmarks to land in the Text explorer. */
+	isEnabled(): boolean;
+	/** Open a stored search here instead of in core's pane. */
+	openSearch(query: string, modifiers: SearchBookmarkModifiers): void;
+}
+
+/**
+ * Wrap the Bookmarks plugin so a stored search belongs to us.
+ *
+ * Two hooks, both on the plugin instance and both restored on unload:
+ *
+ * - `addItem` decorates the item core's own "Add bookmark" modal produces. The
+ *   modal is what makes the action feel like it happened, so the flow stays
+ *   core's; we only attach the case-sensitivity and regex toggles it has no
+ *   field for. Verified on 1.12.3 that the extra key survives `saveData` and
+ *   comes back from `.obsidian/bookmarks.json` intact.
+ * - `openBookmark` sends a `{ type: 'search' }` item to the Text explorer rather
+ *   than to core's pane, so the bookmark reopens where it was made — with its
+ *   modifiers — even with the Search core plugin enabled.
+ *
+ * This patches another plugin's methods at runtime. That is the only place the
+ * decision is made, and it is gated behind a setting that is off by default; it
+ * belongs in the fragility registry, not in the "quietly fine" pile.
+ */
+export function installCoreBookmarkBridge(
+	app: App,
+	handlers: CoreBookmarkBridgeHandlers,
+): () => void {
+	const plugin = (app as CommandApp).internalPlugins?.getEnabledPluginById(
+		'bookmarks',
+	) as BookmarksPluginInternals | null | undefined;
+	if (!plugin) return () => undefined;
+
+	// The raw properties, not bound copies: teardown has to put back exactly what
+	// was there, or the next thing to wrap these would wrap our wrapper. Every
+	// call below goes through `.call(plugin, …)`, which is the receiver the rule
+	// is worried about losing.
+	/* eslint-disable @typescript-eslint/unbound-method -- captured to be restored
+	   by identity on teardown; invoked with an explicit receiver. */
+	const originalAdd = plugin.addItem;
+	const originalOpen = plugin.openBookmark;
+	/* eslint-enable @typescript-eslint/unbound-method */
+
+	if (originalAdd) {
+		plugin.addItem = (item: SearchBookmarkItem) => {
+			const pending = pendingModifiers;
+			if (
+				pending &&
+				item?.type === 'search' &&
+				item.query.trim() === pending.query
+			) {
+				pendingModifiers = null;
+				originalAdd.call(
+					plugin,
+					withSearchBookmarkModifiers(item, pending.modifiers),
+				);
+				void plugin.saveData?.();
+				return;
+			}
+			originalAdd.call(plugin, item);
+		};
+	}
+
+	if (originalOpen) {
+		plugin.openBookmark = (item: SearchBookmarkItem, ...rest: unknown[]) => {
+			if (handlers.isEnabled() && item?.type === 'search') {
+				handlers.openSearch(item.query, readSearchBookmarkModifiers(item));
+				return Promise.resolve();
+			}
+			return originalOpen.call(plugin, item, ...rest);
+		};
+	}
+
+	return () => {
+		if (originalAdd) plugin.addItem = originalAdd;
+		if (originalOpen) plugin.openBookmark = originalOpen;
+		pendingModifiers = null;
+	};
+}
+
+/**
+ * Modifiers waiting to be attached to the next matching item core adds.
+ *
+ * Core's modal owns the moment the item is created, so the toggles are parked
+ * here between opening the modal and the user confirming it.
+ */
+let pendingModifiers: {
+	query: string;
+	modifiers: SearchBookmarkModifiers;
+} | null = null;
+
+/** Park the modifiers for the search the user is about to bookmark. */
+export function stageBookmarkModifiers(
+	query: string,
+	modifiers: SearchBookmarkModifiers,
+): void {
+	pendingModifiers = { query: query.trim(), modifiers };
 }

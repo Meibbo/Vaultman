@@ -238,10 +238,16 @@ export function buildNativeSearchPreview(
 		const fileCache = extraContext
 			? (options.fileCache?.(input.file.path) ?? {})
 			: null;
-		const entry = {
-			file: input.file,
-			matchCount: input.offsets.length,
-			snippets: input.offsets.map(([start, end], index) => {
+		// Snippets are built on first read, not on publish.
+		//
+		// The render window shows at most a couple of thousand match rows, but a
+		// publish covered every match in the model. With extra context on — where
+		// a slice grows to its section rather than a hundred characters — that was
+		// 280 MB of strings for a 60000-match query, which locked the app when the
+		// switch went on and left it slow until it went off. A file nobody scrolls
+		// to now costs nothing but its count.
+		const buildSnippets = (): ContentSnippet[] =>
+			input.offsets.map(([start, end], index) => {
 				const override = options.matchRanges?.get(
 					`${input.file.path}:${index}`,
 				);
@@ -260,11 +266,23 @@ export function buildNativeSearchPreview(
 					input.content,
 					[start, end],
 				);
-				return buildSnippet(input.content, start, end, [from, to], [
-					cutBefore,
-					cutAfter,
-				]);
-			}),
+				return buildSnippet(
+					input.content,
+					start,
+					end,
+					[from, to],
+					[cutBefore, cutAfter],
+				);
+			});
+
+		let builtSnippets: ContentSnippet[] | null = null;
+		const entry = {
+			file: input.file,
+			matchCount: input.offsets.length,
+			get snippets(): ContentSnippet[] {
+				builtSnippets ??= buildSnippets();
+				return builtSnippets;
+			},
 		};
 		if (!hasOverride) cache?.set(input.file.path, { key, entry });
 		files.push(entry);

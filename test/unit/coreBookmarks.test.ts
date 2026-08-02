@@ -4,8 +4,14 @@ import type { App } from 'obsidian';
 import tabContentSource from '../../src/components/pages/tabContent.svelte?raw';
 import {
 	bookmarkSearchQuery,
+	installCoreBookmarkBridge,
 	isBookmarksAvailable,
 } from '../../src/services/serviceCoreBookmarks';
+import {
+	readSearchBookmarkModifiers,
+	withSearchBookmarkModifiers,
+	type SearchBookmarkItem,
+} from '../../src/logic/logicCoreSearchActions';
 
 const COMMAND_ID = 'bookmarks:bookmark-current-search';
 
@@ -207,5 +213,138 @@ describe('the mock chain itself', () => {
 		commands.executeCommandById = vi.fn().mockReturnValue(false);
 
 		await expect(bookmarkSearchQuery(app, 'alpha')).resolves.toBe(false);
+	});
+});
+
+describe('a stored search remembers what kind of search it was', () => {
+	it('carries the toggles core has no field for', () => {
+		// Verified on Obsidian 1.12.3: an unknown key on a bookmark item survives
+		// `saveData` and comes back out of `.obsidian/bookmarks.json` intact, and
+		// core's pane still renders the item as an ordinary search bookmark.
+		const base: SearchBookmarkItem = {
+			type: 'search',
+			ctime: 1,
+			query: 'alpha',
+		};
+		const decorated = withSearchBookmarkModifiers(base, {
+			caseSensitive: true,
+			isRegex: true,
+		});
+
+		expect(decorated.type).toBe('search');
+		expect(decorated.query).toBe('alpha');
+		expect(readSearchBookmarkModifiers(decorated)).toEqual({
+			caseSensitive: true,
+			isRegex: true,
+		});
+	});
+
+	it('leaves core’s three fields alone when there is nothing to remember', () => {
+		const base: SearchBookmarkItem = { type: 'search', ctime: 1, query: 'a' };
+		const plain = withSearchBookmarkModifiers(base, {
+			caseSensitive: false,
+			isRegex: false,
+		});
+		expect(Object.keys(plain).sort()).toEqual(['ctime', 'query', 'type']);
+	});
+
+	it('reads a core-made bookmark as a plain search', () => {
+		// Anything bookmarked from core's own pane has no modifiers, and must not
+		// come back as a regex search by accident.
+		expect(
+			readSearchBookmarkModifiers({ type: 'search', ctime: 1, query: 'a' }),
+		).toEqual({ caseSensitive: false, isRegex: false });
+		expect(readSearchBookmarkModifiers(null)).toEqual({
+			caseSensitive: false,
+			isRegex: false,
+		});
+	});
+});
+
+describe('the bridge over the Bookmarks plugin', () => {
+	function bookmarksApp(): {
+		app: App;
+		plugin: { addItem: unknown; openBookmark: unknown };
+		added: SearchBookmarkItem[];
+		opened: SearchBookmarkItem[];
+	} {
+		const added: SearchBookmarkItem[] = [];
+		const opened: SearchBookmarkItem[] = [];
+		const plugin = {
+			addItem: (item: SearchBookmarkItem) => added.push(item),
+			openBookmark: (item: SearchBookmarkItem) => {
+				opened.push(item);
+				return Promise.resolve();
+			},
+			saveData: () => Promise.resolve(),
+		};
+		const app = {
+			internalPlugins: {
+				getEnabledPluginById: (id: string) => (id === 'bookmarks' ? plugin : null),
+			},
+		} as unknown as App;
+		return { app, plugin, added, opened };
+	}
+
+	it('sends a stored search to us and leaves every other kind to core', () => {
+		const { app, plugin, opened } = bookmarksApp();
+		const routed: { query: string; caseSensitive: boolean }[] = [];
+		const uninstall = installCoreBookmarkBridge(app, {
+			isEnabled: () => true,
+			openSearch: (query, modifiers) =>
+				routed.push({ query, caseSensitive: modifiers.caseSensitive }),
+		});
+
+		const open = plugin.openBookmark as (item: unknown) => unknown;
+		void open({
+			type: 'search',
+			ctime: 1,
+			query: 'alpha',
+			vaultmanTextSearch: { caseSensitive: true, isRegex: false },
+		});
+		void open({ type: 'file', ctime: 2, path: 'a.md' });
+
+		expect(routed).toEqual([{ query: 'alpha', caseSensitive: true }]);
+		expect(opened).toHaveLength(1);
+		expect((opened[0] as { type: string }).type).toBe('file');
+
+		uninstall();
+	});
+
+	it('leaves core alone entirely while the setting is off', () => {
+		const { app, plugin, opened } = bookmarksApp();
+		const routed: string[] = [];
+		const uninstall = installCoreBookmarkBridge(app, {
+			isEnabled: () => false,
+			openSearch: (query) => routed.push(query),
+		});
+
+		const open = plugin.openBookmark as (item: unknown) => unknown;
+		void open({ type: 'search', ctime: 1, query: 'alpha' });
+
+		expect(routed).toEqual([]);
+		expect(opened).toHaveLength(1);
+
+		uninstall();
+	});
+
+	it('restores both methods on teardown', () => {
+		const { app, plugin } = bookmarksApp();
+		const originalAdd = plugin.addItem;
+		const originalOpen = plugin.openBookmark;
+
+		const uninstall = installCoreBookmarkBridge(app, {
+			isEnabled: () => true,
+			openSearch: () => undefined,
+		});
+		expect(plugin.openBookmark).not.toBe(originalOpen);
+
+		uninstall();
+
+		// Patching another plugin is only acceptable if exactly what was there goes
+		// back — a bound copy would look equivalent and quietly nest the next
+		// wrapper on top of ours.
+		expect(plugin.addItem).toBe(originalAdd);
+		expect(plugin.openBookmark).toBe(originalOpen);
 	});
 });

@@ -30,23 +30,25 @@ describe('search focus command source guards', () => {
 		expect(mainSource).toContain('await this.ensureVaultmanFrame();');
 		expect(mainSource).toContain('getLeavesOfType(VAULTMAN_FRAME_TYPE)');
 		expect(mainSource).toContain('view instanceof VaultmanFrame');
-		// U121-019 #51 widened this to carry an optional query, for the editor
-		// menu's "search selection in Vaultman". The routing this guard exists for
-		// is unchanged.
-		expect(mainSource).toContain('await view.focusContentSearch(query);');
+		// Matched by call, not by argument list. This guard is about *routing* —
+		// that the focus commands go through the mounted frame instead of the
+		// toggle — and it has now broken twice over a signature it does not care
+		// about, first when the query was threaded through and again when the
+		// bookmark modifiers were.
+		expect(mainSource).toMatch(/await view\.focusContentSearch\(/);
 		expect(mainSource).toContain('await view.focusActiveExplorerSearch();');
 	});
 
 	it('bridges frame host methods to exported Svelte focus handlers', () => {
 		expect(frameHostSource).toContain('type VaultmanFrameSvelteApi');
-		expect(frameHostSource).toContain(
-			'focusContentSearch?(query?: string): Promise<void> | void;',
+		expect(frameHostSource).toMatch(
+			/focusContentSearch\?\([\s\S]{0,160}?\): Promise<void> \| void;/,
 		);
 		expect(frameHostSource).toContain(
 			'focusActiveExplorerSearch?(): Promise<void> | void;',
 		);
-		expect(frameHostSource).toContain(
-			'await this.svelteApp?.focusContentSearch?.(query);',
+		expect(frameHostSource).toMatch(
+			/await this\.svelteApp\?\.focusContentSearch\?\.\(/,
 		);
 		expect(frameHostSource).toContain(
 			'await this.svelteApp?.focusActiveExplorerSearch?.();',
@@ -54,8 +56,8 @@ describe('search focus command source guards', () => {
 	});
 
 	it('exports focus handlers that navigate to existing search inputs', () => {
-		expect(frameSource).toContain(
-			'export async function focusContentSearch(query?: string): Promise<void>',
+		expect(frameSource).toMatch(
+			/export async function focusContentSearch\([\s\S]{0,200}?\): Promise<void>/,
 		);
 		expect(frameSource).toContain("navigateToDataTab('content')");
 		expect(frameSource).toContain('.vaultman-content-input[type="search"]');
