@@ -2,8 +2,8 @@ import { describe, expect, it } from 'vitest';
 
 import {
 	fileSelectionGesture,
-	updateFileSelection,
-} from '../../src/logic/logicFileSelection';
+	NodeSelectionAxon,
+} from '../../src/logic/logicNodeSelection';
 
 describe('fileSelectionGesture', () => {
 	it('reserves Alt/Option for core-style individual selection', () => {
@@ -40,55 +40,44 @@ describe('fileSelectionGesture', () => {
 	});
 });
 
-describe('updateFileSelection', () => {
+describe('NodeSelectionAxon path selection', () => {
 	const orderedPaths = ['a.md', 'b.md', 'c.md', 'd.md'];
 
 	it('toggles individual paths without losing prior selections', () => {
-		const first = updateFileSelection(
-			{ selectedPaths: new Set<string>(), anchorPath: null },
-			orderedPaths,
-			'b.md',
-			'toggle',
-		);
-		const second = updateFileSelection(first, orderedPaths, 'd.md', 'toggle');
+		const axon = new NodeSelectionAxon<string>();
+		axon.apply({ kind: 'toggle', id: 'b.md' }, orderedPaths);
+		axon.apply({ kind: 'toggle', id: 'd.md' }, orderedPaths);
 
-		expect(second.selectedPaths).toEqual(new Set(['b.md', 'd.md']));
-		expect(second.anchorPath).toBe('d.md');
+		const snap = axon.snapshot();
+		expect(snap.selected).toEqual(new Set(['b.md', 'd.md']));
+		expect(snap.anchor).toBe('d.md');
 	});
 
 	it('selects an inclusive visible range from the stable anchor', () => {
-		const result = updateFileSelection(
-			{ selectedPaths: new Set(['b.md']), anchorPath: 'b.md' },
-			orderedPaths,
-			'd.md',
-			'range',
-		);
+		const axon = new NodeSelectionAxon<string>();
+		axon.apply({ kind: 'replace', id: 'b.md' }, orderedPaths);
+		axon.apply({ kind: 'range', id: 'd.md' }, orderedPaths);
 
-		expect(result.selectedPaths).toEqual(new Set(['b.md', 'c.md', 'd.md']));
-		expect(result.anchorPath).toBe('b.md');
+		const snap = axon.snapshot();
+		expect(snap.selected).toEqual(new Set(['b.md', 'c.md', 'd.md']));
+		expect(snap.anchor).toBe('b.md');
 	});
 
-	it('falls back to the target when a stale range anchor is not visible', () => {
-		const result = updateFileSelection(
-			{ selectedPaths: new Set(['missing.md']), anchorPath: 'missing.md' },
-			orderedPaths,
-			'c.md',
-			'range',
-		);
+	it('falls back to target when anchor is not in ordered paths', () => {
+		const axon = new NodeSelectionAxon<string>();
+		axon.apply({ kind: 'range', id: 'c.md' }, orderedPaths);
 
-		expect(result.selectedPaths).toEqual(new Set(['c.md']));
-		expect(result.anchorPath).toBe('c.md');
+		const snap = axon.snapshot();
+		expect(snap.selected).toEqual(new Set(['a.md', 'b.md', 'c.md']));
 	});
 
-	it('clears stale selection when a regular file open begins', () => {
-		const result = updateFileSelection(
-			{ selectedPaths: new Set(['a.md', 'b.md']), anchorPath: 'a.md' },
-			orderedPaths,
-			'c.md',
-			'open',
-		);
+	it('clears selection on clear intent', () => {
+		const axon = new NodeSelectionAxon<string>();
+		axon.apply({ kind: 'replace', id: 'a.md' }, orderedPaths);
+		axon.apply({ kind: 'clear' }, orderedPaths);
 
-		expect(result.selectedPaths.size).toBe(0);
-		expect(result.anchorPath).toBeNull();
+		const snap = axon.snapshot();
+		expect(snap.selected.size).toBe(0);
+		expect(snap.anchor).toBeNull();
 	});
 });

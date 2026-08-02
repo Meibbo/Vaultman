@@ -106,7 +106,7 @@ import {
 import {
 	fileSelectionGesture,
 	updateFileSelection,
-} from '../../logic/logicFileSelection';
+} from '../../logic/logicNodeSelection';
 import {
 	isFileExcluded,
 	migrateExcludedPathsToFilter,

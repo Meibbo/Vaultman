@@ -9,6 +9,7 @@ import {
 	searchNeedsOwnRow,
 } from '../../src/logic/logicPanelWidgetOverflow';
 import navbarSource from '../../src/components/layout/navbarFilters.svelte?raw';
+import searchControlSource from '../../src/components/layout/searchControl.svelte?raw';
 import filtersPageSource from '../../src/components/pages/pageFilters.svelte?raw';
 import frameSource from '../../src/VaultmanFrame.svelte?raw';
 
@@ -105,7 +106,7 @@ describe('U121-029 search field second row', () => {
 			'class:is-active={searchExpanded || filtersSearch.length > 0}',
 		);
 		const clearButton =
-			navbarSource.match(
+			searchControlSource.match(
 				/class="search-input-clear-button"[\s\S]*?<\/div>/,
 			)?.[0] ?? '';
 		expect(clearButton).not.toBe('');
@@ -232,10 +233,10 @@ describe('U121-029 search field second row', () => {
 	});
 
 	it('reuses the native Tags search contract and marks Search with primary', () => {
-		expect(navbarSource).toContain('search-input-container');
-		expect(navbarSource).toContain('search-input-clear-button');
-		expect(navbarSource).toContain('type="search"');
-		expect(navbarSource).toContain('enterkeyhint="search"');
+		expect(searchControlSource).toContain('search-input-container');
+		expect(searchControlSource).toContain('search-input-clear-button');
+		expect(searchControlSource).toContain('type="search"');
+		expect(searchControlSource).toContain('enterkeyhint="search"');
 		expect(navbarSource).toContain(
 			'class:is-active={searchExpanded}',
 		);
