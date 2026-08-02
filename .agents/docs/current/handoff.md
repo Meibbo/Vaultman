@@ -4,18 +4,33 @@ type: agent-handoff
 status: active
 parent: "[[docs/work/pkm-ai/index|pkm-ai]]"
 archive_source: docs/archive/pkm-ai/active-docs/2026-05-11T080321-current-handoff.md
-created: 2026-05-04T01:36:20
 updated: 2026-07-21T08:10:00
 tags:
   - agent/current
 created_by: dec
 updated_by: claude-opus-4-8
+dateCreated: 2026-05-04T01:36:20
 ---
 
 # Current Handoff
 
 Compact handoff after archiving the oversized current handoff:
 [[docs/archive/pkm-ai/active-docs/2026-05-11T080321-current-handoff|2026-05-11 handoff archive]].
+
+## NEXT AGENT START HERE — U121-003: shard 08 (8.1–8.3) cerrado, faltan 8.4–8.6, 09 y 06 (2026-08-02)
+
+**Prompt de arranque, listo para copiar:**
+[[docs/work/polish/plans/2026-07-30-u121-navbar-panel-widget/plan-2026-08-02-corrective-primitives/next-agent-prompt-2026-08-02-evening|next-agent prompt 2026-08-02 evening]].
+Ese archivo es el estado vigente; los dos prompts anteriores del mismo día quedan como historia.
+
+**Entorno:** worktree `.claude/worktrees/u121-030-033-maintenance`, rama
+**`claude/u121-030-033-maintenance`** @ **`27ee0170`** (FF de la tarde absorbió `claude/u121-029-panel-widget`, que apunta al mismo commit). El worker paralelo fue **detenido por el dev**; su WIP sin commitear (8 archivos de mantenimiento U121-030..033) sigue en ese worktree, `tsc` limpio, **no tocarlo sin preguntar**.
+
+**Cerrado hoy:** el defecto de tipo de propiedad (toda edición inline escribía `String(newValue)` y Obsidian re-inferí­a el tipo; afectaba checkbox, number y el Rename del menú) · deuda de ESLint de `853d8900` · shard 08 tasks 8.1 (`Include as filter`), 8.2 (`Add to files` como operación con conteo de destino y la rama node_value que no existía) y 8.3 (tipo derivado visible como tipo actual).
+
+**Suite completa 1438/1441.** Los 3 rojos son guards del refactor de `VaultmanFrame` del worker detenido (`navigateToDataTab` ya no es `async`: publica por `sceneController.begin(tab)`); re-apuntarlos es la primera tarea del siguiente agente.
+
+**Pendiente:** plan 08 part 2 (`Move to prop...`, 8.4–8.6) · plan 09 (reveal, 9.1–9.4) · plan 06 (gates integrados, build exacto, matriz viva y smoke del dev). El `PropertyValueInteractionPort` sigue sin llamadores: la task 5.2 no terminó su extracción.
 
 ## NEXT AGENT START HERE — 1.2.0-beta.6 PUBLICADA; resolviendo P2 hacia v1.2.0 (2026-07-21)
 

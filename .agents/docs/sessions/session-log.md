@@ -2611,3 +2611,400 @@ gates that.
   `plugin-dev`, then generalize `_patchVisibleStatisticsCells` into a cell
   patcher keyed by cell id. Sort still needs the `moveNodeToSiblingEdge`
   treatment for mtime, as it has for Last opened.
+
+## 2026-07-30 — claude-opus-5 · implement · U121-016/017 Text lifecycle (PARCIAL, regresión)
+
+- **Resultado neto NEGATIVO.** La pausa quedó como en 1.2.0 (donde ya servía) y
+  **reanudar provoca `effect_update_depth_exceeded` y tumba la app**. Cuatro
+  builds rechazados por el dev en smoke. Rama `claude/u121-016-017` @ `bd8ffeae`
+  sobre `origin/main` `b30f8f23`, worktree `.claude/worktrees/u121-text-016-017`,
+  sin push. Handoff completo:
+  [[docs/sessions/2026-07-30-claude-opus-5-u121-handoff|handoff U121-016/017]].
+- **Bucle localizado por lectura, sin verificar en runtime:** `reconcileTextSearchRun`
+  protege por identidad solo `paused`/`completed`, así que un run en `running`
+  con cambio de scope acuña generación nueva cada pasada; `pageFilters.svelte:863`
+  reacciona a `running` cancelando y escribiendo `$state`. El filtro mueve la
+  revisión de scope → el efecto re-corre → ciclo infinito. Resume es la
+  transición que devuelve a `running` un run ya filtrado, por eso revienta ahí.
+- **Arreglos reales que sí quedan** (cada uno con guard probado en rojo): la
+  pausa no cancelaba el adapter ni llamaba a `stopSearch()`; el suelo retenido se
+  pisaba antes del merge (una ronda entera fue código muerto); reanudar leía el
+  vault entero en el hilo de UI; el fin de búsqueda era heurística de meseta
+  (9k vs 23k de Core) y ahora usa `dom.working`; `isExclusion` salió de la firma
+  de traversal; `completeTextSearchRun` era no idempotente.
+- **API nativa descubierta** (sonda live, Obsidian 1.12.3): `dom.working`,
+  `dom.setExtraContext()` + `onKeyShowMoreBefore/After` = el "mostrar más
+  contexto" de U121-019 #51, es nativo. Registrado en el issue.
+- **Corrección de atribución de rama:** los 5 issues locales 092-096 se
+  escribieron midiendo `sandbox` mientras afirmaban `main`. Re-medidos en main y
+  corregidos en público (#70 #71 #72 #73) y en local. En main: lint 0/0,
+  scorecard guard cableado y verde (17 checks), stylelint instalado; audit prod
+  limpio pero 27 vulns dev-scope (1 critical `tar`).
+- **Policy:** registrada la desviación fechada 2026-07-29 en
+  [[docs/architecture/policies/release|release policy]] — 1.2.1 sale acumulativa
+  por excepción del dev.
+- Gate en `bd8ffeae`: `verify` exit 0, 155 files / 1037 tests, scorecard 17.
+  **El gate verde no significó nada**: los cuatro builds rechazados también lo
+  tenían. Ninguna prueba cubría la costura ciclo-de-vida↔adapter.
+
+## 2026-07-31 — claude-fable-5 · implement · U121-027 pipeline de parche + QA round 1
+
+- **Steps 1+2 del handoff ejecutados en una pasada** sobre
+  `claude/u121-025-026-027` (worktree `.claude/worktrees/u121-commands`):
+  `1f74983a` mueve las celdas de tiempo al pipeline invalidate→notify→patch
+  (identidad `data-cell` en tree/table/cards, `_patchVisibleTimeCells`,
+  decisión pura en `logicLiveCells.ts`, `moveNodeToSiblingEdge` para el sort
+  Modified). Guard estricto de BT5-030 restaurado; perf guard nuevo
+  `liveCellsPerf.test.ts` (el hueco por el que 1021 verdes no vieron el stall).
+- **Tercera fuente de stall encontrada** además de las dos del handoff: la rama
+  modify→debounce→`_render()` con celda de tiempo visible corría en cada
+  autosave — era la dominante, no el ticker.
+- **QA dev round 1:** mtime live OK; `cell_words` se congelaba bajo sort
+  Modified — la rama reorder (edge move) retornaba sin parchear stats y el
+  snapshot de orden quedaba viejo, así que cada save recaía en reorder.
+  Arreglado en `f245b25b` (+`_rememberMovedFileAtEdge`).
+- **Feature pedida por el dev:** límite del tiempo relativo
+  (24h/31d/este año/sin límite, default 24h) + modal de cutoffs por unidad
+  (segundos→minutos→…→trimestres→semestres→años) en
+  `logicRelativeTime`/`modalRelativeTimeCutoffs`/settings, con repintado live.
+- Gate: tsc/eslint limpios, 1036/1036 unit, scorecard 17/17, build sync a
+  `plugin-dev`. **Pendiente smoke round 2 del dev.**
+- Policy [[docs/architecture/policies/livreui|livreui]] §how-to-comply
+  actualizada (patch-first, coalescer demovido a fuentes full-render).
+- Lista QA de regresiones del panel widget (U121-029, rama de Codex) registrada
+  en [[docs/work/polish/plans/2026-07-30-u121-navbar-panel-widget/qa-2026-07-31-dev-regressions|qa-2026-07-31-dev-regressions]]
+  para continuarla tras cerrar U121-027.
+
+## 2026-07-31 (tarde) — claude-fable-5 · implement · U121-027 cerrado + U121-029 arranque
+
+- **U121-027 cerrado.** Issue GitHub #57 cerrado con el detalle del pipeline.
+  Último commit de la rama: `2848ef12` ("last <unit>"/"Yesterday" + opciones de
+  tiempo relativo separadas para tooltip).
+- **Unión de ramas sin dañar trabajo ajeno:** `claude/u121-029-panel-widget`
+  (worktree `.claude/worktrees/u121-029-union`) = `codex/u121-panel-widget`
+  `a0eaf5db` + merge de `claude/u121-025-026-027` → `fd942995`. Solapamiento real
+  de 6 archivos, un único conflicto (`explorerFiles.ts`, coalescer LivreUI vs
+  signature de glyph de Codex): ambos coexisten. Gate del merge 1074/1074.
+- **Research en paralelo (3 agentes read-only):** anatomía real de los tres
+  explorers core desde `obsidian-web-lab` (`app.css` sin minificar + `app.js`),
+  inventario de nuestro DOM/CSS, y mapa del panelWidget. Registrado en
+  [[docs/work/polish/specs/2026-07-31-explorer-theme-compat/index|spec de theme compat]]
+  + [[docs/work/polish/specs/2026-07-31-explorer-theme-compat/01-core-anatomy|anatomía core]].
+- **Seis regresiones arregladas en `86a8ee3c`** con guard nuevo
+  (`panelWidgetRegressions.test.ts`): rainbow oscurecido (paleta ahora es
+  variable CSS por tema encadenada al snippet), parpadeo de condensed (ancho 0
+  empaquetado como "no cabe nada" + caché de anchos invalidada por provider),
+  horizontal scroll (centrado por orden DOM con `order` explícito), condensed que
+  siempre ocultaba ≥2 (heurística pisando la medición), toolbar muerto en móvil
+  (host `position: relative` de 4px robándole el anclaje a la barra absoluta), y
+  altura del nodo con label (`padding: 0 8px` anulando el padding de bloque).
+- **Hallazgo de fondo (causa de "se ven distintos"):** reusamos los nombres de
+  clase de core pero no su contrato — geometría en píxeles en vez de
+  `--nav-item-*`, hover propio, sin `align-items: baseline` + ZWSP (la nitidez),
+  `is-collapsed` sólo en el caret (la decoración de colapsado), sin
+  `tree-item-inner`/`nav-file-title-content` (el tamaño de letra), y `rowHeight`
+  como constante JS afinada a mano contra el CSS. Plan en 5 slices en el spec.
+- **Bug independiente encontrado:** `styles.css:3255-3262` (`.tree-item-flair`)
+  no está scopeado con `.vaultman-` → el plugin restilea los paneles core de todo
+  el vault. Va en Slice 1.
+- Gate: tsc/eslint/stylelint limpios, 1082/1082 unit, scorecard 17/17, build
+  sincronizado a `plugin-dev`. **Pendiente smoke del dev.**
+
+## 2026-08-01 — Codex — U121-003 cierre técnico pendiente de smoke
+
+- Cerrados en GitHub como `completed`: U121-001 (#41), U121-002 (#42),
+  U121-004 (#58) y U121-029 (#69). U121-003 (#43) permanece abierto.
+- Worktree `C:/Users/vic_A/Desktop/vaultman/.claude/worktrees/u121-029-union`,
+  rama `claude/u121-029-panel-widget`, commit code-only `f7f9b236`.
+- Se completó: search nativo `search-input-container`, fila secundaria a ancho
+  completo, indicador primary, medición independiente del input y condensed;
+  menú Statistics con orden homogéneo + Filters/Queue; transición atómica de
+  provider; Props plano `property: value` + cell `format`; cell/sort/tooltip de
+  cantidad recursiva de archivos en folders.
+- Gates: 45/45 focales; `tsc + svelte-check` 0/0; ESLint focal y stylelint
+  limpios; build de producción verde y sincronizado a `plugin-dev`. La suite
+  unitaria completa no terminó dentro de dos límites (3 y 6 minutos), aunque
+  los grupos focalizados sí finalizaron verdes. Pendiente smoke humano.
+
+- 2026-08-01 · codex-gpt5-root · implement · U121-013/#47 + U121-012/#63
+  desde `029-union@406b691b` en worktree aislado. Commit code-only `6fdd69e7`:
+  contrato `cell_highlight` independiente (hover/inclusive/exclusive/deletion),
+  máximo dos status dots antes de badges y adaptadores Props/Tags; delta lineal
+  y tracer conservador de Files flat-tree que conserva nodos retenidos y decora
+  solo entradas, con fallback atómico para nested/table/grid/folder/path/empty.
+  Gates: 117 pruebas focales + benchmark 10k→1k verdes; ESLint/Stylelint/tsc/
+  svelte-check (0/0)/build/scorecard (17) verdes. Full unit agotó 5 min sin
+  salida; #63 queda abierto para ampliar tracer a topologías no planas.
+
+- 2026-08-01 · codex-gpt5-root · implement · build de smoke de `6fdd69e7`
+  regenerado desde `codex/u121-012-013-filter-render`: TypeScript y bundle de
+  producción terminaron con exit 0; `main.js`, `manifest.json` y `styles.css`
+  se sincronizaron a `dist/build` y al plugin del vault `plugin-dev`. Hashes
+  SHA-256 de los tres artefactos coinciden entre fuente, dist y destino.
+  Pendiente únicamente smoke humano en Obsidian; #63 conserva fallback full
+  deliberado fuera de Files flat-tree.
+
+- 2026-08-01 · codex-gpt5-root · implement · U121-003/#43 completado en
+  `claude/u121-029-panel-widget` con commit code-only `cac504a9`: contrato Core
+  de toolbar/search, handoff Statistics→provider, Props flat/empty/Format con
+  widgets date/datetime/checkbox reales, folder file-count y select mode en
+  Props/Tags/Snippets/Plugins. Build exacto sincronizado solo a `Start of The
+  Road`; smoke 13 268 archivos: contenido visible 208 ms, toolbar 1 182 ms;
+  Statistics→Props sin softlock. Gates: 1 117 unit, check 0/0, lint/style/
+  format/build verdes, runtime sin errores. #43 queda abierto hasta smoke del
+  dev; sin push/PR/merge/tag; `.agents/` excluido del commit.
+
+- 2026-08-02 · codex-gpt5-root · plan · U121-003 corrective specification
+  approved and replacement TDD plan completed under
+  `plans/2026-07-30-u121-navbar-panel-widget/plan-2026-08-02-corrective-primitives/`.
+  The plan locks a second developer authorization checkpoint before product
+  implementation and includes a self-contained `next-agent-prompt.md`. Product
+  worktree remains at `cac504a9` with no new code/test/build edits; task waits
+  for explicit implementation approval.
+
+- 2026-08-02 · claude-opus-5-root · implement · U121-003 segunda autorización
+  concedida por el dev; spec enmendado con shards 06 (paridad Core de
+  cell_format), 07 (Add to files / Move to prop / Property type / Include as
+  filter) y 08 (modo reveal this-file-properties), más plan shard 07. Ejecutado
+  el shard 07 en `claude/u121-029-panel-widget`, commit code-only `df356038`
+  sobre `cac504a9`: mapa de render declarativo para los ocho widget types de
+  Core, pills tags/aliases/multitext con mapeo `--pill-*` ← `--tag-*` vía
+  `data-property-type` en la celda, remove-button enrutado al action registrado
+  `value.delete` por un `ContextMenuService.invokeAction` nuevo que respeta el
+  `when` y el error boundary existente, y `datetime` añadido a `PropertyType`.
+  Gates: 1147/1147 unit (170 archivos, baseline 1117), lint 0, tsc+svelte-check
+  0/0, stylelint 0, format:check ok, scorecard 17, build:plugin exit 0. SIN
+  smoke en Obsidian todavía y sin sincronizar build al vault. Hallazgo
+  registrado: el branch `date` de `convertPropertyValueType` conserva la hora
+  (`propertyValueCoercion.ts:227`), divergencia conocida no corregida. Un punto
+  del spec shard 08 queda marcado INTERPRETATION esperando confirmación del dev.
+
+- 2026-08-02 · claude-opus-5-root · implement · merge de `claude/u121-016-017`
+  (Text explorer U121-016/017/019 + differential filter projection U121-012/013)
+  a `claude/u121-029-panel-widget`, commit `ad77b678`. Tres conflictos, todos
+  del mismo tipo — ambos lados añadían al mismo call site — resueltos
+  conservando las dos aportaciones: en el render de tabla de Props y Tags se
+  mantienen las opciones de selección de esta rama y el contrato
+  `highlightIds` + `statusDotLabel` de 016-017 (los props sueltos
+  `activeFilterIds`/`excludedFilterIds` quedan superados por `highlightIds`);
+  en `viewNodeTable` se conservan `isSelected` y `highlight`, ambos leídos más
+  abajo. Gates del merge: 1326/1326 unit en 183 archivos, lint 0, tsc +
+  svelte-check 0/0, stylelint 0, format:check ok, scorecard 17, build exit 0.
+  Build sincronizado a `C:/Users/vic_A/Desktop/plugin-dev` con los tres
+  SHA-256 verificados (main.js 995D4F1D…, styles.css 24469261…, manifest
+  AE221D67…). Start of The Road queda intacto con el build de `cac504a9`.
+
+- 2026-08-02 · claude-opus-5-root · implement · plan shard 01 task 1.1 cerrada,
+  commit `856408f9`: `ScenePanelWidgetController` + `ScenePanelWidgetEnvelope`
+  en `typePanelWidget.ts`, con 11 pruebas que fijan aceptación por tupla exacta
+  (scene+provider+generation), rechazo de generación superada, rechazo de otra
+  instancia, `clear` condicionado al owner vigente, independencia entre dos
+  controladores con el mismo providerId, invalidación en `destroy` y no herencia
+  por una Scene reconstruida. Módulo puro y SIN cablear todavía: la task 1.2
+  sustituye las cachés partidas de `VaultmanFrame.svelte`/`pageFilters`/
+  `pageStatistics` y quita el `{#key mountedState.providerId}` del host. El
+  build instalado en plugin-dev corresponde a `ad77b678`; 1.1 no cambia
+  comportamiento porque nadie lo consume aún.
+
+- 2026-08-02 · claude-opus-5-root · implement · corrección del dev sobre
+  `cell_format`, commit `7622b231`. CAUSA RAÍZ: Core tiene DOS anatomías de
+  valor de propiedad — el panel file-properties (`.metadata-property-value` >
+  `.multi-select-pill`) y Bases (`.bases-rendered-value` >
+  `div.value-list-container` > `span.value-list-element`, tags como `a.tag`).
+  La celda de Vaultman ya se declaraba `bases-rendered-value` desde antes, y
+  `df356038` le metió la anatomía del panel. Consecuencia medible: los plugins
+  `pretty-properties` y `typify` consultan `document.querySelectorAll` con
+  `.bases-rendered-value[data-property-type=...]`, `.value-list-element` y
+  `a.tag`; ninguno existía, así que valores que decoran en todas partes
+  (incluido Bases) salían sin decorar solo en Props. Verificado leyendo
+  `main.js` de pretty-properties. Core confirmado en `app.js`: los renderers de
+  Bases usan `setText` para string y number — ningún input — y el `List` usa
+  `value-list-container`/`value-list-element`. CORREGIDO: anatomía Bases,
+  `data-property-type` + `data-property-key` publicados, mapeo `--pill-*`
+  eliminado (se traslada al shard 09, que sí vive en `.metadata-property-value`),
+  text/number sin input, date/datetime con `disabled="true"` literal para que
+  apliquen las reglas de Core que colapsan la caja, y `padding`/`font-size`
+  heredados de `.bases-rendered-value` puestos a 0/inherit. Añadidos: rename
+  inline por click con `contenteditable` (sin input, sin caja), x de borrado en
+  hover que enruta a `value.delete`, setting `propConflictWarnings`
+  ('off'|'badge'|'full', default 'off') y cell `parent` en props/tags (espejo de
+  `path`, defaultOn true para conservar `property: value`). Guard exhaustivo de
+  `cellRegistry` re-apuntado, no borrado. Gates: 1343/1343 unit en 184 archivos,
+  lint 0, tsc+svelte-check 0/0, stylelint 0, format ok, scorecard 17. Build en
+  plugin-dev, hashes verificados (main.js CDD340C2…, styles.css F7861CE0…).
+
+- 2026-08-02 · claude-opus-5-root · implement · segunda ronda de correcciones del
+  dev sobre `cell_format`, commit `8f5bcbed`, build en plugin-dev (main.js
+  D86EEBB9…, styles.css D9733521…). SEIS defectos cerrados: (1) date/datetime
+  sin picker porque el input llevaba `disabled="true"` — un input deshabilitado
+  no abre picker; ahora va habilitado y la geometría se colapsa con reglas
+  propias scoped, y confirmar el picker ES la edición inline de una fecha;
+  (2) el atajo de daily note pasa a control en hover junto a su valor, como la x;
+  (3) checkbox conectado a ops_rename (`true`↔`false`) por el mismo puerto;
+  (4) el caret del inline edit caía en offset 0 porque enfocar un elemento ya
+  editable ignora la posición del click — ahora se arma en `mousedown`;
+  (5) etiqueta plana larga hacía wrap y convertía la fila en párrafo: el nombre
+  de propiedad mantiene ancho, el valor elipsa, y al editar hay scroll;
+  (6) Name y Parent eran el mismo sort — aplanar corre DESPUÉS del sort de dos
+  niveles, así que la lista plana salía agrupada por padre eligieras lo que
+  eligieras. Los flatteners ahora registran `flatOwnLabel`/`flatParentLabel` y
+  `sortFlatProjection` reordena la lista plana como el nivel único que es;
+  `parent` entra al menú de sort de props/tags y se oculta con nested on, igual
+  que `path`. INTEROP, no corregible desde aquí: `pretty-properties` NO barre el
+  documento — parchea las clases de vista de Obsidian (proxies sobre
+  `updateVirtualDisplay` de filas/celdas de Bases, vista del tag pane, widgets de
+  metadata) e indexa por `prop`/`propertyId`; `document.querySelectorAll("a.tag")`
+  aparece 0 veces y el único selector document-wide es
+  `.bases-rendered-value[data-property-type='text']`. Ninguna anatomía que
+  emitamos hará que nos decore. Además Core define `--tag-color: var(--text-accent)`
+  (app.css:2759), así que nuestro tag en color accent ES el render nativo; el
+  naranja de Bases es pretty-properties pisándolo. Guard U121-007 re-apuntado
+  (los literales de `type:`/`cls:` ahora se calculan), no debilitado.
+
+- 2026-08-02 · claude-opus-5-root · implement · CIERRE DE SESIÓN. Commits míos
+  en `claude/u121-029-panel-widget` sobre `cac504a9`: `df356038` (paridad Core de
+  cell_format), `ad77b678` (merge de `claude/u121-016-017`), `856408f9`
+  (ScenePanelWidgetController, task 1.1), `7622b231` (puente al idioma de valor
+  de Bases + setting propConflictWarnings + cell parent), `8f5bcbed` (picker de
+  fecha, checkbox→rename, caret en click, wrap, sort Name/Parent separados),
+  `853d8900` (debounce del commit de fecha, glifo del picker, layout de
+  count/badges). Docs: spec shards 06/07/08 nuevos y aprobados, plan shard 07,
+  índices y tasks 5.2/5.4 actualizados, prompt de arranque en
+  `next-agent-prompt-2026-08-02-claude.md`.
+  ESTADO: HEAD del worktree es `9fd34ea2`, que NO es mío — lo firmó Meibbo a las
+  11:24 y cierra las tasks 1.2/1.3 del shard 01 (VaultmanFrame, pageFilters,
+  pageStatistics, host sin `{#key}`) reescribiendo mi controller y su suite.
+  Hay además `test/unit/searchControlSource.test.ts` sin trackear = shard 02
+  task 2.1 en curso. No toqué ninguno de los dos.
+  DEFECTO ABIERTO Y DIAGNOSTICADO, SIN ARREGLAR: togglear un checkbox de
+  cell_format encola un rename que cambia el TIPO de la propiedad sin permiso.
+  Causa: `_replaceValueInVault` escribe `String(newValue)`, así que una
+  propiedad booleana recibe el string `"true"` y Obsidian re-infiere el tipo
+  desde el dato. Es más ancho que el checkbox: el mismo `String()` afecta a
+  `number` y `date` en cualquier rename inline. El camino correcto ya existía —
+  `_setCheckboxValue(prop, oldValue, boolean)`, que respaldan las acciones
+  registradas `value.checkbox-checked/unchecked`. Segunda vez que inventar un
+  camino en vez de reusar el registrado causa un defecto (la primera fue el
+  borrado del pill, resuelto vía `invokeAction('value.delete')`).
+  PENDIENTE OPERATIVO: ESLint quedó sin correr en `853d8900` por petición
+  explícita del dev; hay que correrlo antes del siguiente commit de código. El
+  build instalado en plugin-dev es `853d8900` (main.js A5BA801E…, styles.css
+  E692EC10…); el dev pidió un build sin suite completa justo antes de cerrar y
+  NO se produjo.
+
+- 2026-08-02 · claude-opus-5-root · implement · defecto de tipo de propiedad
+  CERRADO y planes 08/09 escritos. (1) DEFECTO: toda edición inline de valor
+  escribía `String(newValue)`, así que un checkbox mandaba el string `"true"` a
+  una propiedad booleana y Obsidian re-inferí­a el tipo desde el dato; lo mismo
+  estaba disponible en `number` y en el Rename del menú contextual. FIX: el
+  vocabulario de widgets (`CorePropertyWidget`, `resolveCorePropertyWidget`,
+  `LIST_WIDGETS`) se movió de `utils/renderPropertyValue.ts` a
+  `logic/propertyValueCoercion.ts` — el renderer lo re-exporta, así que sus
+  importadores y los guards siguen igual — y ahí vive el nuevo
+  `coercePropertyValueForWidget(raw, propType)`: checkbox→boolean,
+  number→number, date/datetime/text verbatim, y los widgets de lista devuelven
+  el string porque un node_value es UN elemento de la lista, no la lista (parsear
+  como lista anidaría un array dentro del array al escribir). Enrutados los dos
+  call sites de `explorerProps`: el inline (`onRenameValue`) y el modal
+  (`_renameValue`, que ahora recibe `meta.propType`). NO se enrutó al action
+  registrado `value.checkbox-checked/unchecked` como sugería el prompt: su `when`
+  exige `minimalStyle === true`, así que invocarlo desde el widget inline sería
+  un no-op en la configuración por defecto; la coerción por tipo arregla los
+  cuatro tipos por un solo camino. Tests rojos primero en
+  `test/unit/propertyValueTypeCoercion.test.ts` (12): coerción por tipo y alias,
+  elemento de lista, tipo desconocido→text, y que el reemplazo que se encola
+  lleva el tipo en runtime (`typeof === 'boolean'`/`'number'`) además de los dos
+  guards de call site. (2) ESLINT que quedó a deber en `853d8900`: 7 errores
+  cerrados en `cb98e2ac` sin debilitar reglas — window timers en el debounce de
+  fecha (popout), `BadgedNode.kind` con `string & {}` para no tragarse la unión,
+  mensaje de conflicto que serializa objetos en vez de `[object Object]`, y el
+  mock propio en el test del puerto de interacción. Gates: eslint limpio, check
+  0/0 sobre 1241 archivos, suites focales 22/22. (3) PLANES: escritos
+  `08-value-operations.md` (8.1 label `Include as filter`, 8.2 `Add to files`
+  como operación con blast radius en la etiqueta + la rama node_value que
+  faltaba, 8.3 submenú `Property type` en node_prop), `08-value-operations-part-2.md`
+  (8.4 máquina pura del modo `Move to prop...`, 8.5 política de conflicto de tipo
+  `propMoveTypeConflict`, 8.6 cableado a panelWidget/SearchControl/queue con
+  resumen obligatorio en bypass) y `09-reveal-this-file-properties.md` (9.1
+  proyección sobre el índice ya construido + guard de "sin rebuild", 9.2 toggle y
+  slot exclusivo, 9.3 anatomía Core solo en Tree, 9.4 política de mutación
+  híbrida). La circularidad del spec (§B del shard 07 reemplaza un ActionNode que
+  introduce el shard 08 del spec) se resuelve: el plan 08 construye el SLOT y su
+  regla de precedencia, el plan 09 mete reveal en ese slot y re-apunta el test de
+  exclusión mutua. (4) COLISIÓN DE WORKTREE, para el dev: otro agente trabaja el
+  mismo `u121-029-union` y su commit `4e9dd0db` ("move FiltersTab state
+  declaration") arrastró mi trabajo en vuelo — `explorerProps.ts`,
+  `propertyValueCoercion.ts`, `renderPropertyValue.ts` y el test nuevo — dentro
+  de un commit sobre otra cosa, por stagear con `-a`. No lo revertí. Además hay
+  un cambio suyo SIN commitear en `propertyValueCoercion.ts` (la rama `date` de
+  `convertPropertyValueType` truncando la hora, justo la divergencia que el spec
+  shard 06 dejó registrada) que no toqué. Aviso enviado por mailbox.
+
+- 2026-08-02 · claude-opus-5-root · implement · plan shard 08 (partes 8.1-8.3)
+  EJECUTADO + corrección de un fallo propio. Commits: `e3806e62` (label
+  `Include as filter`/`Incluir como filtro`, solo strings, la key es el
+  identificador de persistencia y no se toca), `3722c7b6` (`Add to files` como
+  operación: módulo puro `logicAddToFiles` con la rama node_value que NO existía
+  — el guard era `action === 'add' && !meta.isValueNode`, así que invocarlo sobre
+  un valor añadía la propiedad VACÍA; tag apendea con su duplicate guard, prop
+  sigue creando la key vacía, value escribe su valor, apendea en destino lista y
+  REPORTA colisión en destino escalar en vez de sobrescribir — la resuelve la
+  política de conflicto de la parte 2; el valor pasa por
+  `coercePropertyValueForWidget`; ambos providers registran la acción sobre
+  `buildOperationTargetSet` — primer consumidor real de ese contrato, que había
+  aterrizado sin llamadores — y etiquetan con el conteo de `filteredFiles` leído
+  en build time; filtro vacío deja la entrada visible e inerte, no oculta),
+  `c6c98a25` (submenú de tipo: YA existía sobre `EDITABLE_PROP_TYPE_OPTIONS` con
+  `NATIVE_SET_PROP_TYPE`; lo que faltaba era que un tipo derivado — tags,
+  aliases, cssclasses — abría el submenú sin nada marcado, así que el menú no
+  decía cuál es el tipo actual; `DERIVED_PROP_TYPE_OPTIONS` lo proyecta marcado e
+  inerte, como Core), `3b0402c9` (comparación escalar sin stringificar un mapa,
+  error de `no-base-to-string` que solo salió al correr eslint sobre el módulo
+  nuevo).
+  FALLO PROPIO CORREGIDO: el fix de popout de `cb98e2ac` usó el `window` global
+  y rompió las 5 pruebas del debounce de fecha — el entorno unitario es `node` y
+  no tiene `window`. Lo destapó la suite completa, no las focales. `27ee0170`
+  usa `el.win` de Obsidian, que es el accessor correcto de todas formas (para un
+  popout el `window` principal no es el suyo), y el stub del render reporta su
+  realm como `win`, que es lo que parchean los fake timers.
+  SUITE COMPLETA a `3b0402c9`: 1433/1441, 8 fallos = 5 míos (ya corregidos) + 3
+  guards del OTRO agente que quedaron rojos con su refactor de `VaultmanFrame`:
+  `statisticsPageSource` ("publishes Statistics into the Scene-owned panelWidget
+  host"), `responsiveDensitySource` ("feeds measured frame width into the Filters
+  provider projection") y `statisticsToolbarAndOpenedToday` ("publishes the
+  requested provider before Filters reclaims the toolbar" — el guard corta el
+  source por `async function navigateToDataTab`, que ya no es `async`: ahora
+  publica por `sceneController.begin(tab)` en vez de `await tick()`). NO los
+  re-apunté: el contrato nuevo es suyo y re-apuntar un guard sobre una intención
+  que no diseñé es enshrinear una invariante equivocada.
+  Planes 08/08-part-2/09 escritos y registrados en el índice; el shard 08 lleva
+  execution record con las cuatro desviaciones de nombre respecto al plan.
+  SUITE COMPLETA a `27ee0170` (tras corregir lo mío): **1438/1441 en 198
+  archivos**; los 3 rojos restantes son exactamente los tres guards del otro
+  agente listados arriba. ESLint limpio, `tsc` limpio.
+
+- 2026-08-02 · claude-opus-5-root · handoff · CIERRE DE SESIÓN. El dev confirmó
+  que el worker paralelo ya no está operativo: lo detuvo porque su cambio caía
+  sobre el shard 07, que ya estaba implementado. Acciones de cierre: (1) el
+  cambio suelto de ese worker en `propertyValueCoercion.ts` (rama `date` de
+  `convertPropertyValueType` truncando la hora) se guardó como
+  `plan-2026-08-02-corrective-primitives/stopped-worker-date-truncation.patch`
+  y se restauró el archivo; la conducta commiteada (hora preservada, divergencia
+  que el spec shard 06 dejó registrada a propósito) es contra la que la suite
+  está verde. (2) **FF merge de `claude/u121-029-panel-widget` a
+  `claude/u121-030-033-maintenance`**: la rama 030 estaba 0 adelante / 6 atrás y
+  ahora apunta a `27ee0170`; el WIP sin commitear del worker detenido en ese
+  worktree (8 archivos: eslint.config.mts, package.json, pnpm-lock.yaml,
+  scorecard-regression-check.mjs, VaultmanSettings.ts, viewNodeTable.ts,
+  logicInteractionMode.ts, styles.css) quedó intacto y `tsc` pasa con él
+  aplicado. (3) Prompt de arranque nuevo:
+  `next-agent-prompt-2026-08-02-evening.md`, que supersede los dos del mismo día
+  e incluye los tres guards rojos como PRIMERA TAREA con el contrato que se
+  movió (`navigateToDataTab` ya no es `async`; publica por
+  `sceneController.begin(tab)` en vez de `await tick()`). (4) status.md y
+  handoff.md actualizados con la ruta nueva.
+  ESTADO FINAL: `claude/u121-030-033-maintenance` = `claude/u121-029-panel-widget`
+  = `27ee0170`. Suite completa 1438/1441 (3 rojos = los guards de arriba),
+  ESLint limpio, check 0/0. Sin push, sin tag, sin merge a dev/main. Falta:
+  plan 08 part 2 (`Move to prop...` 8.4–8.6), plan 09 (reveal 9.1–9.4) y plan 06
+  (gates integrados + build exacto + smoke del dev).

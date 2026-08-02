@@ -4,12 +4,12 @@ type: agent-status
 status: active
 parent: "[[docs/work/pkm-ai/index|pkm-ai]]"
 archive_source: docs/archive/pkm-ai/active-docs/2026-05-11T080321-current-status.md
-created: 2026-05-04T01:36:20
 updated: 2026-07-21T08:10:00
 tags:
   - agent/current
 created_by: dec
 updated_by: claude-opus-4-8
+dateCreated: 2026-05-04T01:36:20
 ---
 
 # Current Status
@@ -28,6 +28,10 @@ Compact route index after archiving the oversized current status:
 
 - Active initiative: [[docs/work/hardening/index|Hardening]].
 - **Pendientes consolidados (dev-facing)**: [[docs/current/pendientes|pendientes]] — HITL · Codex · spine · researches · infra (creado 2026-07-09, mantener al cerrar/abrir ítems).
+- **LATEST (2026-08-02, claude-opus-5-root): U121-003 shard 08 tasks 8.1–8.3 cerradas; planes 08/08-part-2/09 escritos.**
+  Rama de integración **`claude/u121-030-033-maintenance`** @ **`27ee0170`** (worktree `.claude/worktrees/u121-030-033-maintenance`; `claude/u121-029-panel-widget` apunta al mismo commit tras el FF de la tarde). Suite completa **1438/1441**; los 3 rojos son guards del refactor de `VaultmanFrame` del worker detenido y quedan como primera tarea del siguiente agente. Prompt de arranque:
+  [[docs/work/polish/plans/2026-07-30-u121-navbar-panel-widget/plan-2026-08-02-corrective-primitives/next-agent-prompt-2026-08-02-evening|next-agent prompt 2026-08-02 evening]].
+  Pendiente: 8.4–8.6 (`Move to prop...`), 9.1–9.4 (reveal), shard 06 (gates + build exacto + smoke).
 - **LATEST (2026-07-21, claude-opus-4-8): `1.2.0-beta.6` PUBLICADA + batch AFK post-beta.6.**
   Release: https://github.com/Meibbo/Vaultman/releases/tag/1.2.0-beta.6 · `origin/dev` = tag = `fefdde48`. Worktree `C:/tmp/vaultman-release-beta2-final2`, rama `codex/bt5-next-10`, HEAD **`e0945039`** (5 commits sobre beta.6, worktree limpio, sin push). Cerrados AFK después de beta.6: **BT5-042** (`ff083b91` toggle folder colapsado dot↔badges, gate 909), **BT5-034** (`2bdea929` island clamp al frame), **BT5-033 slice-1** (`3353cd88` Node icon scope rename/move), **BT5-040** (`b4b625f7` folder totals recursivos), **BT5-036 slice content** (`e0945039` content Rename/Delete vía prompts nativos, configurable, smoked;
   141 files/919 tests). Registro:
