@@ -600,7 +600,7 @@ export const en: Record<string, string> = {
 	'explorer.ctx.titlecase': 'Titlecase',
 	'explorer.ctx.plain_text': 'Plain text',
 	'explorer.ctx.capitalize': 'First Letter Case',
-	'explorer.ctx.filter_include': 'Add as filter',
+	'explorer.ctx.filter_include': 'Include as filter',
 	'explorer.ctx.filter_exclude': 'Exclude as filter',
 	'explorer.ctx.tag.coming_soon': 'More options coming soon',
 	'tags.invalid_name': 'That is not a valid tag name',

@@ -616,7 +616,7 @@ export const es: Record<string, string> = {
 	'tags.invalid_name': 'Ese nombre de tag no es válido',
 	'tags.invalid_name.spaces':
 		'Los tags no admiten espacios. Usa "-", "_" o "/" en su lugar.',
-	'explorer.ctx.filter_include': 'Agregar como filtro',
+	'explorer.ctx.filter_include': 'Incluir como filtro',
 	'explorer.ctx.filter_exclude': 'Excluir como filtro',
 	'file.ctx.open_tab': 'Abrir en nueva pestaña',
 	'file.ctx.open_right': 'Abrir a la derecha',
