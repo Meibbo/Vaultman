@@ -218,10 +218,10 @@ function renderDateInput(
 	// intended one — one queued operation per keystroke. The commit waits until
 	// the field settles; Enter and blur flush it immediately, so the picker still
 	// commits as soon as it closes.
-	let pending: ReturnType<typeof setTimeout> | null = null;
+	let pending: number | null = null;
 	const cancel = (): void => {
 		if (pending === null) return;
-		clearTimeout(pending);
+		window.clearTimeout(pending);
 		pending = null;
 	};
 	const commit = (): void => {
@@ -241,7 +241,7 @@ function renderDateInput(
 	input.addEventListener('click', (event) => event.stopPropagation());
 	input.addEventListener('change', () => {
 		cancel();
-		pending = setTimeout(commit, DATE_COMMIT_DELAY_MS);
+		pending = window.setTimeout(commit, DATE_COMMIT_DELAY_MS);
 	});
 	input.addEventListener('keydown', (event) => {
 		if (event.key === 'Enter') {

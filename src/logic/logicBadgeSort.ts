@@ -9,7 +9,10 @@ export type NodeBadgeKind =
 
 export interface BadgedNode {
 	badge?: {
-		kind?: NodeBadgeKind | string | null;
+		// A provider may publish a badge kind this module does not classify yet;
+		// `string & {}` keeps the known kinds visible to editors without letting
+		// the wide `string` swallow the union.
+		kind?: NodeBadgeKind | (string & {}) | null;
 	} | null;
 }
 

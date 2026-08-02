@@ -3,9 +3,8 @@ import type { PropertyValueInteractionPort } from '../../src/types/typePropertyV
 
 describe('PropertyValueInteractionPort contracts', () => {
 	it('invokes renameValue on interaction port with normalized values', async () => {
-		const port: PropertyValueInteractionPort = {
-			renameValue: vi.fn().mockResolvedValue(undefined),
-		};
+		const renameValue = vi.fn().mockResolvedValue(undefined);
+		const port: PropertyValueInteractionPort = { renameValue };
 
 		await port.renameValue({
 			property: 'status',
@@ -14,7 +13,7 @@ describe('PropertyValueInteractionPort contracts', () => {
 			valueType: 'checkbox',
 		});
 
-		expect(port.renameValue).toHaveBeenCalledWith({
+		expect(renameValue).toHaveBeenCalledWith({
 			property: 'status',
 			oldValue: 'false',
 			newValue: 'true',

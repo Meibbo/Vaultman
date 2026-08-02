@@ -24,6 +24,22 @@ export interface PropertyConflict {
 	reasonText: string;
 }
 
+/**
+ * Names a frontmatter value in a conflict message. A property can hold a map or
+ * an array, and those stringify to `[object Object]`, which tells the user
+ * nothing about the value that is actually in conflict.
+ */
+function describeConflictValue(value: unknown): string {
+	if (typeof value === 'object') {
+		try {
+			return JSON.stringify(value) ?? String(value as null);
+		} catch {
+			return Object.prototype.toString.call(value);
+		}
+	}
+	return String(value as string | number | boolean | symbol | bigint);
+}
+
 export function checkPropertyValueConflict(
 	expectedType: string,
 	value: unknown,
@@ -31,21 +47,22 @@ export function checkPropertyValueConflict(
 	if (value === undefined || value === null) return null;
 	if (isCompatible(value, expectedType)) return null;
 
+	const described = describeConflictValue(value);
 	if (expectedType === 'checkbox') {
 		return {
 			reasonCode: 'type-mismatch',
-			reasonText: `Value '${String(value)}' is not valid for checkbox`,
+			reasonText: `Value '${described}' is not valid for checkbox`,
 		};
 	}
 	if (expectedType === 'date' || expectedType === 'datetime') {
 		return {
 			reasonCode: 'parse-error',
-			reasonText: `Value '${String(value)}' cannot be parsed as ${expectedType}`,
+			reasonText: `Value '${described}' cannot be parsed as ${expectedType}`,
 		};
 	}
 	return {
 		reasonCode: 'type-mismatch',
-		reasonText: `Value '${String(value)}' does not match type ${expectedType}`,
+		reasonText: `Value '${described}' does not match type ${expectedType}`,
 	};
 }
 
