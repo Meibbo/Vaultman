@@ -5,6 +5,10 @@ import {
 	REVEAL_FORBIDDEN_REBUILD_SYMBOLS,
 } from '../../src/logic/logicRevealActiveFileProps';
 import revealSource from '../../src/logic/logicRevealActiveFileProps.ts?raw';
+import propsExplorerSource from '../../src/components/containers/explorerProps.ts?raw';
+import filtersPageSource from '../../src/components/pages/pageFilters.svelte?raw';
+import { en } from '../../src/i18n/en';
+import { es } from '../../src/i18n/es';
 
 import type { PropMeta } from '../../src/types/typeTree';
 import type { TreeNode } from '../../src/types/typeTree';
@@ -131,5 +135,71 @@ describe('reveal projects the active file over the vault-wide index', () => {
 		}
 		expect(code).not.toContain('app.vault');
 		expect(code).not.toContain('metadataCache');
+	});
+});
+
+describe('the reveal toggle owns the exclusive slot', () => {
+	it('is state on the explorer, not a second panel', () => {
+		expect(propsExplorerSource).toContain('toggleRevealActiveFile(');
+		expect(propsExplorerSource).toContain('isRevealingActiveFile(');
+		expect(propsExplorerSource).toContain('projectActiveFileProps');
+	});
+
+	it('follows the active file through the watcher that already exists', () => {
+		// observeActiveContentFile already handles open, rename and delete, so
+		// reveal does not add a second watcher with its own idea of "active".
+		expect(propsExplorerSource).toContain('observeActiveContentFile');
+	});
+
+	it('keeps the toggle path free of vault-wide rebuild calls', () => {
+		const toggle = propsExplorerSource.slice(
+			propsExplorerSource.indexOf('toggleRevealActiveFile('),
+			propsExplorerSource.indexOf('private _revealFrontmatter('),
+		);
+		expect(toggle).not.toBe('');
+		for (const symbol of REVEAL_FORBIDDEN_REBUILD_SYMBOLS) {
+			expect(toggle).not.toContain(symbol);
+		}
+	});
+
+	it('takes the slot between search and collapse, and yields it to the move mode', () => {
+		const idle = filtersPageSource.slice(
+			filtersPageSource.indexOf('idleNode:'),
+			filtersPageSource.indexOf('moveMode:'),
+		);
+		expect(idle).toContain('props.reveal-this-file');
+		expect(idle).toContain('PANEL_WIDGET_EXCLUSIVE_SLOT_ORDER');
+		// resolveExclusiveSlotNodes is what makes the exclusion structural: the
+		// move mode's controls replace this node rather than sitting beside it.
+		expect(filtersPageSource).toContain('resolveExclusiveSlotNodes');
+	});
+
+	it('narrows the projection once, before anything else consumes it', () => {
+		// Search, filters, sort and every engine read the same narrowed tree
+		// rather than each deciding for itself what reveal means.
+		expect(propsExplorerSource).toContain(
+			'this._revealProjection(this.logic.getTree())',
+		);
+	});
+
+	it('records that the capability resolver still has no caller', () => {
+		// `reveal` is part of CellCapabilityContext and the resolver withdraws
+		// the vault-wide count for it, but `resolveCellCapabilities` is not
+		// called from anywhere in src yet — shard 04 landed it without a caller,
+		// like the interaction port of shard 05. Until it has one, no live Cell
+		// list is narrowed by reveal. This guard fails once that changes, which
+		// is the moment to wire reveal into the real resolution.
+		expect(propsExplorerSource).not.toContain('resolveCellCapabilities');
+	});
+
+	it('localizes the toggle', () => {
+		for (const key of [
+			'explorer.ctx.reveal_this_file',
+			'explorer.ctx.reveal_this_file.empty',
+		] as const) {
+			expect(en[key]).toBeTruthy();
+			expect(es[key]).toBeTruthy();
+			expect(es[key]).not.toBe(en[key]);
+		}
 	});
 });

@@ -676,9 +676,23 @@
 
 	const valueMoveSlotNodes = $derived(
 		resolveExclusiveSlotNodes({
-			// Shard 09 puts the `reveal this file` toggle here; until then the
-			// slot is empty at rest, and the mutual exclusion already holds.
-			idleNode: null,
+			// `reveal this file` holds the slot at rest. The move mode replaces
+			// it rather than crowding it, and its state is restored on exit
+			// because the toggle lives on the explorer, not in the projection.
+			idleNode:
+				filtersActiveTab === 'props'
+					? {
+							id: 'props.reveal-this-file',
+							nodeKind: 'action',
+							cellKind: 'action',
+							presentation: 'toggle',
+							label: translate('explorer.ctx.reveal_this_file'),
+							icon: 'lucide-file-search-2',
+							order: PANEL_WIDGET_EXCLUSIVE_SLOT_ORDER,
+							available: true,
+							action: { id: 'props.reveal-this-file.toggle' },
+						}
+					: null,
 			moveMode: valueMoveMode
 				? {
 						proceed: {
@@ -715,6 +729,11 @@
 			icon: node.icon,
 			disabled: !node.available,
 			onClick: () => {
+				if (node.id === 'props.reveal-this-file') {
+					propExplorer?.toggleRevealActiveFile();
+					valueMoveRevision += 1;
+					return;
+				}
 				if (node.id === 'props.move-to-prop.cancel') {
 					propExplorer?.cancelValueMoveMode();
 					return;

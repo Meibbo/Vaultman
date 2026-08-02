@@ -594,6 +594,8 @@ export const en: Record<string, string> = {
 	'explorer.ctx.change_type': 'Change type',
 	'explorer.ctx.add_to_files': 'Add to {count} files',
 	'explorer.ctx.add_to_files.empty': 'No files match the current filter',
+	'explorer.ctx.reveal_this_file': 'Reveal this file',
+	'explorer.ctx.reveal_this_file.empty': 'This file has no properties',
 	'explorer.ctx.move_to_prop': 'Move to prop...',
 	'explorer.ctx.move_to_prop.proceed': 'Proceed with selected',
 	'explorer.ctx.move_to_prop.cancel': 'Cancel',

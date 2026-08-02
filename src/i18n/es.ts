@@ -605,6 +605,8 @@ export const es: Record<string, string> = {
 	'explorer.ctx.change_type': 'Cambiar tipo',
 	'explorer.ctx.add_to_files': 'Agregar a {count} archivos',
 	'explorer.ctx.add_to_files.empty': 'Ningún archivo coincide con el filtro',
+	'explorer.ctx.reveal_this_file': 'Revelar este archivo',
+	'explorer.ctx.reveal_this_file.empty': 'Este archivo no tiene propiedades',
 	'explorer.ctx.move_to_prop': 'Mover a propiedad...',
 	'explorer.ctx.move_to_prop.proceed': 'Continuar con lo seleccionado',
 	'explorer.ctx.move_to_prop.cancel': 'Cancelar',

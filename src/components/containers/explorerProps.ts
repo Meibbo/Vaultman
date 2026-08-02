@@ -1,6 +1,7 @@
 // src/components/PropsExplorerPanel.ts
 import {
 	Component,
+	TFile,
 	Keymap,
 	Notice,
 	prepareSimpleSearch,
@@ -122,6 +123,8 @@ import {
 	applyValueMove,
 	planValueMoveTypeChanges,
 } from '../../logic/logicValueMoveApply';
+import { observeActiveContentFile } from '../../logic/logicContentActiveFile';
+import { projectActiveFileProps } from '../../logic/logicRevealActiveFileProps';
 import {
 	OperationSummaryModal,
 	type OperationSummaryLine,
@@ -505,6 +508,7 @@ export class PropsExplorerPanel extends Component {
 		// The mode's state dies with the panel. A pending operation nobody can
 		// see is worse than one that was never composed.
 		this._exitValueMoveMode();
+		this._stopRevealWatch();
 		this.deferredRender.dispose();
 		this.filterClicks.dispose();
 		this.plugin.filterService.off('changed', this._handleStateChange);
@@ -719,6 +723,88 @@ export class PropsExplorerPanel extends Component {
 		});
 		this.logic.invalidate();
 		this._render();
+	}
+
+	// --- `reveal this file` ----------------------------------------------------
+	//
+	// A variation of the same explorer, not a second one. The vault-wide index
+	// keeps its own lifecycle; reveal is a filter over the snapshot it already
+	// built, which is what makes reverting the toggle cost nothing.
+
+	private revealActiveFile = false;
+	private revealActivePath: string | null = null;
+	private stopRevealWatch?: () => void;
+
+	isRevealingActiveFile(): boolean {
+		return this.revealActiveFile;
+	}
+
+	toggleRevealActiveFile(): void {
+		this.revealActiveFile = !this.revealActiveFile;
+		if (this.revealActiveFile) this._startRevealWatch();
+		else this._stopRevealWatch();
+		// One projection revision, exactly like changing `nested` or the engine.
+		void this._render();
+	}
+
+	private _startRevealWatch(): void {
+		if (this.stopRevealWatch) return;
+		const workspace = this.plugin.app.workspace;
+		const vault = this.plugin.app.vault;
+		// The watcher that already exists: it resolves open, rename and delete,
+		// so reveal does not add a second idea of which file is active.
+		this.stopRevealWatch = observeActiveContentFile(
+			{
+				current: () => workspace.getActiveFile(),
+				onFileOpen: (listener) => {
+					const ref = workspace.on('file-open', (file) => listener(file));
+					return () => workspace.offref(ref);
+				},
+				onRename: (listener) => {
+					const ref = vault.on('rename', (file, oldPath) => {
+						if (file instanceof TFile) listener(file, oldPath);
+					});
+					return () => vault.offref(ref);
+				},
+				onDelete: (listener) => {
+					const ref = vault.on('delete', (file) => {
+						if (file instanceof TFile) listener(file);
+					});
+					return () => vault.offref(ref);
+				},
+			},
+			(path) => {
+				this.revealActivePath = path;
+				void this._render();
+			},
+		);
+	}
+
+	private _stopRevealWatch(): void {
+		this.stopRevealWatch?.();
+		this.stopRevealWatch = undefined;
+		this.revealActivePath = null;
+	}
+
+	/** The active file's frontmatter, or `null` when there is no active file. */
+	private _revealFrontmatter(): Record<string, unknown> | null {
+		const path = this.revealActivePath;
+		if (!path) return null;
+		const file = this.plugin.app.vault.getFileByPath(path);
+		if (!(file instanceof TFile)) return null;
+		return (
+			(this.plugin.app.metadataCache.getFileCache(file)?.frontmatter as
+				| Record<string, unknown>
+				| undefined) ?? {}
+		);
+	}
+
+	/** Narrows an already-built snapshot; it never asks for a new one. */
+	private _revealProjection(
+		snapshot: TreeNode<PropMeta>[],
+	): TreeNode<PropMeta>[] {
+		if (!this.revealActiveFile) return snapshot;
+		return projectActiveFileProps(snapshot, this._revealFrontmatter());
 	}
 
 	// --- `Move to prop...` hidden operation mode -------------------------------
@@ -1387,7 +1473,9 @@ export class PropsExplorerPanel extends Component {
 			this._renderGrid();
 			return;
 		}
-		let tree = this.logic.getTree();
+		// Narrowed before anything else consumes it, so search, filters, sort and
+		// every engine see one projection rather than each deciding for itself.
+		let tree = this._revealProjection(this.logic.getTree());
 		const filterSets = this._activeFilterIds();
 		const activeFilterIds = filterSets.active;
 		const excludedFilterIds = filterSets.excluded;
@@ -1843,7 +1931,9 @@ export class PropsExplorerPanel extends Component {
 
 	private _renderGrid(): void {
 		this.containerEl.empty();
-		let tree = this.logic.getTree();
+		// Narrowed before anything else consumes it, so search, filters, sort and
+		// every engine see one projection rather than each deciding for itself.
+		let tree = this._revealProjection(this.logic.getTree());
 		const filterSets = this._activeFilterIds();
 		const activeFilterIds = filterSets.active;
 		const excludedFilterIds = filterSets.excluded;
