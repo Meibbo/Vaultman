@@ -34,6 +34,16 @@ export interface AddToFilesAvailability {
 const unchanged: AddToFilesOutcome = { status: 'unchanged', frontmatter: null };
 const collision: AddToFilesOutcome = { status: 'collision', frontmatter: null };
 
+/**
+ * The text form of a scalar frontmatter value, or `null` when the value is a
+ * map or a list. A map never equals a value the explorer projected, and
+ * stringifying it would compare against `[object Object]`.
+ */
+function scalarText(value: unknown): string | null {
+	if (value === null || typeof value === 'object') return null;
+	return String(value as string | number | boolean | bigint);
+}
+
 function asStringList(raw: unknown): string[] {
 	if (Array.isArray(raw)) return (raw as unknown[]).map((v) => String(v));
 	if (typeof raw === 'string') return [raw];
@@ -79,14 +89,14 @@ function addValue(
 	const current = frontmatter[property];
 	if (Array.isArray(current)) {
 		const existing: unknown[] = current;
-		if (existing.some((item) => String(item) === rawValue)) return unchanged;
+		if (existing.some((item) => scalarText(item) === rawValue)) return unchanged;
 		return {
 			status: 'written',
 			frontmatter: { ...frontmatter, [property]: [...existing, value] },
 		};
 	}
 
-	if (String(current) === rawValue) return unchanged;
+	if (scalarText(current) === rawValue) return unchanged;
 	// A scalar already holding a different value is the collision the
 	// `Move to prop...` conflict policy resolves. Overwriting it here would be a
 	// second, quieter answer to the same question.
