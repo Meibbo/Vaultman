@@ -3171,6 +3171,27 @@ body.vaultman-bases-column-separators table th {
   padding-inline-start: var(--size-4-3);
 }
 
+/* Core positions `.input-right-decorator` for us; the only thing it has no
+   class for is laying several controls out inside one decorator. Nothing else
+   is declared here, so Core keeps owning the placement. */
+.vaultman-filters-search-decorator {
+  display: flex;
+  align-items: center;
+  gap: var(--size-2-1);
+}
+
+/* Reserve the width the decorator occupies so typed text cannot run under it.
+   Core already reserves 28px for the clear button on its own. */
+.vaultman-filters-header-search-pill:has(.vaultman-filters-search-decorator)
+  input.vaultman-filters-search-input {
+  padding-inline-end: calc(var(--size-4-3) + 44px);
+}
+
+.vaultman-filters-header-search-pill:has(.vaultman-filters-search-decorator)
+  input.vaultman-filters-search-input:not(:placeholder-shown) {
+  padding-inline-end: calc(var(--size-4-3) + 72px);
+}
+
 .is-phone .workspace-drawer .workspace-leaf-content[data-type="vaultman-frame"] .vaultman-filters-header-search-pill .vaultman-filters-search-input {
   font-size: var(--font-ui-medium);
   min-width: 0;
@@ -3207,7 +3228,10 @@ body.vaultman-bases-column-separators table th {
   transition: opacity 0.15s, color 0.15s;
 }
 
-.is-phone .workspace-drawer .workspace-leaf-content[data-type="vaultman-frame"] .vaultman-filters-header-search-pill :is(.vaultman-filters-search-clear, .vaultman-filters-search-mode, .vaultman-filters-search-create) {
+/* This rule used to name a Vaultman clear-button class that the component never
+   rendered, so it matched nothing on phones. It targets Core's
+   `.search-input-clear-button`, which is what SearchControl actually emits. */
+.is-phone .workspace-drawer .workspace-leaf-content[data-type="vaultman-frame"] .vaultman-filters-header-search-pill :is(.search-input-clear-button, .vaultman-filters-search-mode, .vaultman-filters-search-create, .vaultman-filters-search-trailing-action) {
   width: 28px;
   height: 28px;
 }
