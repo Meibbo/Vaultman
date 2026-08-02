@@ -28,6 +28,11 @@ class StubEl {
 	tabIndex = 0;
 	contentEditable = 'inherit';
 	isConnected = true;
+	// Obsidian gives every element the window it lives in, and the date field
+	// schedules its commit there so a popout keeps working. The stub reports the
+	// test realm, which is what the fake timers patch.
+	// eslint-disable-next-line obsidianmd/no-global-this -- the unit environment is `node`; there is no `window` to report.
+	readonly win = globalThis as unknown as Window;
 
 	constructor(
 		readonly tagName: string,

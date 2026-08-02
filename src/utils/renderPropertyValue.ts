@@ -218,10 +218,14 @@ function renderDateInput(
 	// intended one — one queued operation per keystroke. The commit waits until
 	// the field settles; Enter and blur flush it immediately, so the picker still
 	// commits as soon as it closes.
+	// An input rendered into a popout window has to use that window's timer
+	// queue, which is what Obsidian's `el.win` is for: the main window's timers
+	// stop firing for a detached popout.
+	const timers = input.win;
 	let pending: number | null = null;
 	const cancel = (): void => {
 		if (pending === null) return;
-		window.clearTimeout(pending);
+		timers.clearTimeout(pending);
 		pending = null;
 	};
 	const commit = (): void => {
@@ -241,7 +245,7 @@ function renderDateInput(
 	input.addEventListener('click', (event) => event.stopPropagation());
 	input.addEventListener('change', () => {
 		cancel();
-		pending = window.setTimeout(commit, DATE_COMMIT_DELAY_MS);
+		pending = timers.setTimeout(commit, DATE_COMMIT_DELAY_MS);
 	});
 	input.addEventListener('keydown', (event) => {
 		if (event.key === 'Enter') {
