@@ -34,7 +34,7 @@ control it shows is a normal panelWidget node.
 - Create: `src/logic/logicValueMoveMode.ts`
 - Create: `test/unit/valueMoveMode.test.ts`
 
-- [ ] Add table-driven tests over this lifecycle, with no DOM and no services:
+- [x] Add table-driven tests over this lifecycle, with no DOM and no services:
   - `enter(origin)` with a non-empty origin set produces an active state whose
     `proceedEnabled` is false until at least one destination is selected;
   - `enter` with an empty origin set produces an active state with `proceed`
@@ -50,11 +50,11 @@ control it shows is a normal panelWidget node.
   - `exit` restores the `interactionMode` and the search-open preference that
     were captured on `enter`;
   - a provider change or a generation bump cancels the mode.
-- [ ] Add tests proving `build()` returns **one operation per (origin value,
+- [x] Add tests proving `build()` returns **one operation per (origin value,
   destination property) pair**, so a partial failure is attributable and each
   pair is cancellable on its own.
-- [ ] Run the suite and confirm RED because the module does not exist.
-- [ ] Implement the machine as a pure reducer over an explicit state:
+- [x] Run the suite and confirm RED because the module does not exist.
+- [x] Implement the machine as a pure reducer over an explicit state:
 
 ```ts
 export interface ValueMoveModeState {
@@ -67,9 +67,9 @@ export interface ValueMoveModeState {
 }
 ```
 
-- [ ] Keep it free of Obsidian, settings and queue imports; the adapter passes
+- [x] Keep it free of Obsidian, settings and queue imports; the adapter passes
   what it needs in.
-- [ ] Re-run focused tests, confirm GREEN.
+- [x] Re-run focused tests, confirm GREEN.
 
 ## Task 8.5 — Destination type conflict policy
 
@@ -80,7 +80,7 @@ export interface ValueMoveModeState {
 - Modify: `src/types/typeSettings.ts`, `src/VaultmanSettings.ts`
 - Modify: `src/i18n/en.ts`, `src/i18n/es.ts`
 
-- [ ] Add tests over the matrix of `propMoveTypeConflict: 'coerce' | 'block' |
+- [x] Add tests over the matrix of `propMoveTypeConflict: 'coerce' | 'block' |
   'ask'` (default `'coerce'`):
   - `coerce` computes the **minimum type that satisfies the write** — a value
     appended into an occupied scalar makes the destination `list` — and emits the
@@ -90,14 +90,14 @@ export interface ValueMoveModeState {
     compatible ones run;
   - `ask` emits a per-destination choice for the summary modal rather than
     deciding.
-- [ ] Add tests proving the coercion reuses `convertPropertyValueType` and the
+- [x] Add tests proving the coercion reuses `convertPropertyValueType` and the
   `NATIVE_SET_PROP_TYPE` sentinel, and that no second writer of `types.json`
   appears.
-- [ ] Add settings tests: the key defaults to `'coerce'`, persists, and an
+- [x] Add settings tests: the key defaults to `'coerce'`, persists, and an
   unknown persisted value normalizes to the default instead of throwing.
-- [ ] Run the suites and confirm RED.
-- [ ] Implement the pure policy and add the setting plus its localized labels.
-- [ ] Re-run focused tests, confirm GREEN, run `pnpm run check`.
+- [x] Run the suites and confirm RED.
+- [x] Implement the pure policy and add the setting plus its localized labels.
+- [x] Re-run focused tests, confirm GREEN, run `pnpm run check`.
 
 ## Task 8.6 — Wire the mode into the panelWidget, queue and summary
 
@@ -111,7 +111,7 @@ export interface ValueMoveModeState {
 - Create: `test/unit/valueMoveModeProjection.test.ts`
 - Modify: `test/unit/panelWidgetProjection.test.ts`
 
-- [ ] Add projection tests proving that while the mode is active the toolbar slot
+- [x] Add projection tests proving that while the mode is active the toolbar slot
   holds `Proceed with selected` and `Cancel`, and that the slot returns to its
   previous node on exit. The same slot is claimed by the reveal toggle of plan
   shard 09; the two are mutually exclusive **by construction**, so assert that no
@@ -166,3 +166,82 @@ against whatever occupies the slot. Shard 09 adds the reveal toggle into the sam
 slot and re-points the exclusion test at it. Neither shard is blocked by the
 other; the order is 08 then 09 because the slot contract is easier to state from
 the side that must yield it.
+
+## Execution record — 2026-08-02 evening, claude-opus-5
+
+Executed on `claude/u121-030-033-maintenance`, from `27ee0170`.
+
+### Landed
+
+| Commit | Task | What |
+| --- | --- | --- |
+| `7cf6c36a` | first task | the three red `VaultmanFrame` guards, re-pointed |
+| `413756a8` | 8.4 | `logicValueMoveMode.ts` + 16 tests |
+| `f5e874e4` | 8.5 | `logicPropMoveConflict.ts` + setting + labels, 15 tests |
+| `46b45f37` | 8.6 (first checkbox) | the exclusive slot in `logicPanelWidgetProjection.ts`, plus `logicValueMoveApply.ts`, 21 tests |
+
+Baseline before the work: full unit suite **1441/1441** in 198 files at
+`7cf6c36a` — the three guards were the only red left on the branch. `tsc` and
+`svelte-check` 0/0, ESLint clean on every touched file.
+
+### The three guards
+
+The contract had moved, so each guard was re-pointed at what now proves the
+same behavior. None was deleted or weakened, and each slice asserts its anchor
+resolved so a future move fails loudly instead of passing on an empty string.
+
+- `statisticsToolbarAndOpenedToday` — anchors on the non-async
+  `navigateToDataTab`, requires `sceneController.begin(tab)` between
+  `filtersActiveTab = tab` and `activePage = 'filters'`, and now forbids both
+  `flushSync` and the `await tick()` the generation replaced.
+- `statisticsPageSource` — the page builds one `NavbarPanelWidgetState` and
+  hands it to the Scene tagged with the owner triple, releasing it on teardown.
+  The old assertion matched an inline object literal that no longer exists.
+- `responsiveDensitySource` — its `publishFiltersPanelWidgetState` assertion
+  **contradicted** `panelWidgetHostSource.test.ts:16`, which forbids that symbol
+  in the frame. Publication moved into the Filters page, so the guard now
+  follows the measurement: the frame measures and passes `frameWidth` down, and
+  the page carries it into the projection it owns.
+
+### Deviations from the plan as written
+
+| Planned | Landed | Why |
+| --- | --- | --- |
+| `origin_disposition` in `ValueMoveModeState` | `originDisposition` | every other field of the same interface is camelCase, including `restore.interactionMode` |
+| state shape without an owner | added `owner: { providerId, generation }` | "a provider change or a generation bump cancels the mode" needs the state to remember what it entered under |
+| (not named) | `src/logic/logicValueMoveApply.ts` | 8.6's adversarial cases are per-file write semantics, which no shard module owned. Keeping it out of `logicValueMoveMode` leaves that module about the mode |
+| `reason: string` | `reason: 'origin-is-destination'` code + i18n key | the pure module returns a code; the adapter localizes |
+
+### Decisions worth carrying
+
+- **Destination selection is per-property and toggles.** Two of the tests written
+  in the same red step contradicted each other; per-property toggling is what
+  matches the explorer's own selection machinery, so a value node names the same
+  destination its parent property does, and a second selection deselects.
+- **The minimum type that satisfies the write** depends on the write mode.
+  Appending into an occupied scalar needs a container, so the answer is `list`;
+  replacing discards what was there, so the answer is only as wide as the
+  incoming value — widening to `text` would lose the value's meaning for nothing.
+- **A blocked destination takes the origin with it.** Removing a value after
+  refusing to write it elsewhere would delete data on the user's behalf.
+
+### Not done, and why
+
+- **The `propMoveTypeConflict` control in `VaultmanSettings.ts`.** That file
+  carries the stopped worker's uncommitted work (92 lines); staging it would
+  carry theirs into my commit. The type, the default and the normalizer are
+  landed and tested — only the settings-tab control is missing. **Needs the
+  developer's decision on that worktree WIP.**
+- **The rest of 8.6** — the `explorerProps` adapter, the two SearchControl
+  toggles, the node_prop `Proceed` entry, the stage/bypass split, the operation
+  summary modal and the `modalQueueDetails` bypass toggle.
+- **Shard 09 and shard 06** — untouched.
+
+### Open question for the next agent
+
+The slot lives in `logicPanelWidgetProjection`, which is the pure projection
+layer. The rendered toolbar is still driven by `NavbarPanelWidgetState` through
+`navbarFilters.svelte`, which shard 08 part 2's file list does not include.
+Wiring the slot to what actually renders needs either that file or a bridge
+from the projection into `headerActions`. Decide it before implementing the
+adapter, not during.

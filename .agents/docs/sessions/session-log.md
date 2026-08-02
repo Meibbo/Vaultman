@@ -3008,3 +3008,56 @@ gates that.
   ESLint limpio, check 0/0. Sin push, sin tag, sin merge a dev/main. Falta:
   plan 08 part 2 (`Move to prop...` 8.4–8.6), plan 09 (reveal 9.1–9.4) y plan 06
   (gates integrados + build exacto + smoke del dev).
+
+- 2026-08-02 · claude-opus-5 · implement · TRES GUARDS ROJOS CERRADOS + shard 08
+  part 2 tareas 8.4/8.5 y el primer checkbox de 8.6. Rama
+  `claude/u121-030-033-maintenance` desde `27ee0170`. (1) GUARDS: los tres se
+  re-apuntaron, ninguno se borró ni se debilitó.
+  `statisticsToolbarAndOpenedToday` ancla ahora en el `navigateToDataTab` NO
+  async, exige `sceneController.begin(tab)` entre `filtersActiveTab = tab` y
+  `activePage = 'filters'`, y prohíbe además el `await tick()` que la generación
+  sustituyó. `statisticsPageSource` afirma que la página construye UN
+  `NavbarPanelWidgetState` y lo entrega a la Scene con la tripleta de owner,
+  liberándolo en el teardown; la aserción vieja casaba un objeto literal inline
+  que ya no existe. `responsiveDensitySource` CONTRADECÍA a
+  `panelWidgetHostSource.test.ts:16`, que prohíbe `publishFiltersPanelWidgetState`
+  en el frame: la publicación se mudó a la página de Filters, así que el guard
+  sigue la medición (el frame mide y baja `frameWidth`, la página lo mete en la
+  proyección que posee). Cada slice afirma que su ancla resolvió, así que un
+  contrato movido falla ruidosamente en vez de pasar sobre string vacío.
+  BASELINE tras eso: **suite completa 1441/1441 en 198 archivos**, check 0/0.
+  (2) 8.4 `logicValueMoveMode.ts` (16 tests): reducer puro sin Obsidian/settings/
+  queue; enter captura interactionMode + searchOpen + owner(provider,generation);
+  proceed exige las dos mitades del pairing; destinos por-propiedad que alternan
+  (un node_value nombra el mismo destino que su prop padre); la propia propiedad
+  de origen se rechaza con razón declarada; el owner check devuelve null al
+  cambiar provider o generación; build empareja cada valor origen con cada
+  propiedad destino. (3) 8.5 `logicPropMoveConflict.ts` (15 tests):
+  `propMoveTypeConflict: coerce|block|ask`, default coerce, normalizador al
+  estilo `normalizeOpenMode`. El TIPO MÍNIMO QUE SATISFACE depende del modo de
+  escritura: append sobre escalar ocupado necesita contenedor → `list`; replace
+  descarta lo que había → solo tan ancho como el valor entrante (ensanchar a
+  `text` perdería el significado sin motivo). Declaración literal
+  `buscar: date -> list`. La política decide y no escribe; los valores desplazados
+  convierten por `convertPropertyValueType` y el tipo llega a types.json solo por
+  el centinela `NATIVE_SET_PROP_TYPE`. (4) Primer checkbox de 8.6:
+  `resolveExclusiveSlotNodes` en `logicPanelWidgetProjection.ts` — el slot entre
+  `search` y `collapse/expand`, con reveal en reposo y el modo tomándolo; la
+  exclusión mutua es por construcción, no por regla recordada. Además
+  `logicValueMoveApply.ts` (módulo no nombrado por el plan): semántica de
+  escritura por archivo — destino ausente se crea, append apendea con duplicate
+  guard, replace sobrescribe, move quita el valor origen y borra la key al
+  vaciarse, copy no toca el origen, un destino BLOQUEADO se lleva el origen
+  consigo (quitar un valor tras negarse a escribirlo en otro sitio sería borrar
+  datos), y un destino coercido convierte lo que ya tenía antes de que entre el
+  valor nuevo. Commits: `7cf6c36a`, `413756a8`, `f5e874e4`, `46b45f37`.
+  (5) BLOQUEADO POR WIP AJENO: el control de `propMoveTypeConflict` en
+  `VaultmanSettings.ts` NO se implementó — ese archivo lleva las 92 líneas sin
+  commitear del worker detenido y stagearlo arrastraría su trabajo. El tipo, el
+  default y el normalizador sí están. Falta decisión del dev sobre ese WIP.
+  (6) PREGUNTA ABIERTA registrada en el execution record del shard: el slot vive
+  en `logicPanelWidgetProjection` (capa pura), pero la toolbar que se renderiza
+  la maneja `navbarFilters.svelte` desde `NavbarPanelWidgetState`, y ese archivo
+  no está en la lista del shard 08 part 2. Hay que decidir el puente antes de
+  implementar el adaptador. Sin push, sin merge, sin tag. Los 8 archivos sucios
+  del worker detenido siguen intactos y sin stagear.
