@@ -272,6 +272,12 @@ export const es: Record<string, string> = {
 		'Elige si los badges de operaciones se cancelan con doble click o click simple.',
 	'settings.badge_cancel_click.double': 'Doble click',
 	'settings.badge_cancel_click.single': 'Click simple',
+	'settings.prop_conflict_warnings': 'Avisos de conflicto de propiedades',
+	'settings.prop_conflict_warnings.desc':
+		'Cuanto se decora un valor de tipo incompatible. La deteccion no cambia: ocultar el aviso nunca vuelve valida una operacion bloqueada.',
+	'settings.prop_conflict_warnings.off': 'Ocultos',
+	'settings.prop_conflict_warnings.badge': 'Solo badge',
+	'settings.prop_conflict_warnings.full': 'Badge y borde de fila',
 	'settings.show_toolbar': 'Mostrar barra de herramientas',
 	'settings.show_toolbar.desc':
 		'Muestra la barra del explorer (tabs, vista, orden, búsqueda). Actívala desde el menú de vista; restáurala aquí cuando esté oculta.',
@@ -915,6 +921,7 @@ export const es: Record<string, string> = {
 	'viewmode.pill.format': 'Formato',
 	'viewmode.pill.opened': 'Última apertura',
 	'viewmode.pill.path': 'Ruta',
+	'viewmode.pill.parent': 'Padre',
 	'viewmode.pill.words': 'Palabras',
 	'viewmode.pill.state': 'Estado',
 	'viewmode.pill.config': 'Config',

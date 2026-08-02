@@ -1,5 +1,6 @@
 import { PluginSettingTab, Setting, type App } from 'obsidian';
 import {
+	PROP_CONFLICT_WARNINGS,
 	type FilesIconScope,
 	type iVaultmanPlugin,
 	type VaultmanSettings,
@@ -922,6 +923,25 @@ export class VaultmanSettingsTab extends PluginSettingTab {
 						await this.plugin.saveSettings();
 					}),
 			);
+
+		new Setting(containerEl)
+			.setName(translate('settings.prop_conflict_warnings'))
+			.setDesc(translate('settings.prop_conflict_warnings.desc'))
+			.addDropdown((dropdown) => {
+				for (const mode of PROP_CONFLICT_WARNINGS) {
+					dropdown.addOption(
+						mode,
+						translate(`settings.prop_conflict_warnings.${mode}`),
+					);
+				}
+				return dropdown
+					.setValue(this.plugin.settings.propConflictWarnings)
+					.onChange(async (value) => {
+						this.plugin.settings.propConflictWarnings =
+							PROP_CONFLICT_WARNINGS.find((mode) => mode === value) ?? 'off';
+						await this.plugin.saveSettings();
+					});
+			});
 
 		new Setting(containerEl)
 			.setName(translate('settings.search_highlights'))

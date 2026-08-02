@@ -43,6 +43,26 @@ describe('explorer hierarchy projections', () => {
 		expect(flat.every((item) => item.children?.length === 0)).toBe(true);
 	});
 
+	// U121-003: the `parent` cell drops the ancestry from the flat label while
+	// leaving identity untouched, so a filter or an operation still targets the
+	// same node it did with the full path showing.
+	it('drops the ancestry from flat labels when the parent cell is off', () => {
+		const tree = [
+			node('alpha', 'alpha', [
+				node('alpha/beta', 'beta', [node('alpha/beta/note.md', 'note')]),
+			]),
+		];
+
+		const flat = flattenTreeToPathLabels(tree, '/', { showParent: false });
+
+		expect(flat.map((item) => item.label)).toEqual(['alpha', 'beta', 'note']);
+		expect(flat.map((item) => item.id)).toEqual([
+			'alpha',
+			'alpha/beta',
+			'alpha/beta/note.md',
+		]);
+	});
+
 	it('includes parent tags with direct occurrences (count > 0) in simple mode, stripped of children', () => {
 		const treeWithCounts: TreeNode[] = [
 			{ ...node('daily', 'daily'), count: 3 },

@@ -25,9 +25,8 @@ class StubEl {
 	value = '';
 	href = '';
 	checked = false;
-	readOnly = false;
 	tabIndex = 0;
-	contentEditable: string | undefined;
+	contentEditable = 'inherit';
 
 	constructor(
 		readonly tagName: string,
@@ -57,6 +56,16 @@ class StubEl {
 	createSpan(options: CreateOptions = {}): StubEl {
 		return this.create('span', options);
 	}
+
+	addClass(className: string): void {
+		this.cls = `${this.cls} ${className}`.trim();
+	}
+
+	setText(text: string): void {
+		this.textContent = text;
+	}
+
+	focus(): void {}
 
 	setAttribute(name: string, value: string): void {
 		this.attributes.set(name, value);
@@ -99,27 +108,37 @@ const app = {
 function render(
 	raw: string,
 	type: string,
-	onRemoveValue?: () => void,
+	extra: {
+		onRemoveValue?: () => void;
+		onRenameValue?: (next: string) => void;
+	} = {},
 ): StubEl {
 	const container = new StubEl('span');
-	renderPropertyValue(
-		container as unknown as HTMLElement,
+	renderPropertyValue({
+		container: container as unknown as HTMLElement,
 		raw,
 		type,
 		app,
-		onRemoveValue,
-	);
+		...extra,
+	});
 	return container;
 }
 
 function click(el: StubEl): void {
-	const event = { preventDefault: () => undefined, stopPropagation: () => undefined };
-	for (const handler of el.listeners.get('click') ?? []) handler(event);
+	for (const handler of el.listeners.get('click') ?? []) {
+		handler({ preventDefault: () => undefined, stopPropagation: () => undefined });
+	}
 }
 
-const PILL_TYPES = ['tags', 'aliases', 'multitext'] as const;
+function key(el: StubEl, name: string): void {
+	for (const handler of el.listeners.get('keydown') ?? []) {
+		handler({ key: name, preventDefault: () => undefined });
+	}
+}
 
-describe('U121-003 shard 07 — cell_format Core render map', () => {
+const LIST_TYPES = ['aliases', 'multitext'] as const;
+
+describe('U121-003 shard 07 — cell_format renders the Bases value idiom', () => {
 	it('renders a checkbox with the Core metadata checkbox class', () => {
 		const root = render('true', 'checkbox');
 		const checkbox = root.find('metadata-input-checkbox');
@@ -128,68 +147,70 @@ describe('U121-003 shard 07 — cell_format Core render map', () => {
 		expect(checkbox?.checked).toBe(true);
 	});
 
-	it('renders a date input plus the Core daily note shortcut', () => {
+	it('disables the date input with the literal attribute Core selects on', () => {
+		// `.bases-rendered-value input[disabled=true]` is what collapses the box
+		// to min-height 0 and width auto. The DOM property serializes as
+		// `disabled=""` and would miss that selector.
 		const root = render('2026-08-01', 'date');
 		const input = root.find('mod-date');
 		expect(input?.tagName).toBe('input');
-		expect(input?.classes()).toEqual(
-			expect.arrayContaining(['metadata-input', 'metadata-input-text', 'mod-date']),
-		);
+		expect(input?.attributes.get('disabled')).toBe('true');
 		expect(root.find('clickable-icon')).not.toBeNull();
 	});
 
-	it('renders a datetime input', () => {
+	it('disables the datetime input the same way', () => {
 		const root = render('2026-08-01T10:30', 'datetime');
 		const input = root.find('mod-datetime');
-		expect(input?.tagName).toBe('input');
 		expect(input?.attributes.get('type')).toBe('datetime-local');
+		expect(input?.attributes.get('disabled')).toBe('true');
 	});
 
-	it.each(PILL_TYPES)('renders %s as one Core multi-select pill', (type) => {
+	it.each(LIST_TYPES)('renders %s as a Core value-list element', (type) => {
 		const root = render('cocina', type);
-		const container = root.find('multi-select-container');
-		expect(container).not.toBeNull();
+		expect(root.find('value-list-container')).not.toBeNull();
 
-		const pills = root.findAll('multi-select-pill');
-		expect(pills).toHaveLength(1);
-		expect(pills[0].attributes.get('tabIndex')).toBe('0');
-
-		const content = root.find('multi-select-pill-content');
-		expect(content?.textContent).toBe('cocina');
+		const elements = root.findAll('value-list-element');
+		expect(elements).toHaveLength(1);
+		expect(elements[0].find('vaultman-property-value-text')?.textContent).toBe(
+			'cocina',
+		);
 	});
 
-	it('never re-splits a value into several pills', () => {
+	it('renders a tag value as an anchor so it inherits the theme tag style', () => {
+		const root = render('about', 'tags');
+		const element = root.find('value-list-element');
+		expect(element).not.toBeNull();
+		const tag = element?.find('tag');
+		expect(tag?.tagName).toBe('a');
+		expect(tag?.textContent).toBe('#about');
+	});
+
+	it('does not double the hash on an already prefixed tag', () => {
+		expect(render('#about', 'tags').find('tag')?.textContent).toBe('#about');
+	});
+
+	it('never re-splits a value into several elements', () => {
 		// One value node is one value. `logicProps` already expands arrays into
 		// separate nodes, so a comma here is part of the value, not a separator.
 		const root = render('cocina, sala', 'multitext');
-		expect(root.findAll('multi-select-pill')).toHaveLength(1);
-		expect(root.find('multi-select-pill-content')?.textContent).toBe(
+		expect(root.findAll('value-list-element')).toHaveLength(1);
+		expect(root.find('vaultman-property-value-text')?.textContent).toBe(
 			'cocina, sala',
 		);
 	});
 
-	it('renders a number with the Core number input class', () => {
-		const root = render('42', 'number');
-		const input = root.find('metadata-input-number');
-		expect(input?.tagName).toBe('input');
-		expect(input?.classes()).toEqual(
-			expect.arrayContaining(['metadata-input', 'metadata-input-number']),
-		);
-		expect(input?.value).toBe('42');
-	});
-
-	it('renders text with the Core longtext div, not a bare span', () => {
-		const root = render('una nota larga', 'text');
-		const longtext = root.find('metadata-input-longtext');
-		expect(longtext?.tagName).toBe('div');
-		expect(longtext?.textContent).toBe('una nota larga');
-		// Core makes this contenteditable; the read projection must not.
-		expect(longtext?.contentEditable).toBeUndefined();
-	});
-
-	it('falls back to the text renderer for an unknown type', () => {
-		const root = render('algo', 'no-such-widget');
-		expect(root.find('metadata-input-longtext')).not.toBeNull();
+	it('renders scalars as plain text, with no input and no box', () => {
+		for (const [raw, type] of [
+			['42', 'number'],
+			['una nota larga', 'text'],
+			['algo', 'no-such-widget'],
+		]) {
+			const root = render(raw, type);
+			expect(root.find('vaultman-property-value-text')?.textContent).toBe(raw);
+			expect(root.find('metadata-input-number')).toBeNull();
+			expect(root.find('metadata-input-longtext')).toBeNull();
+			expect(root.find('metadata-input')).toBeNull();
+		}
 	});
 
 	it('keeps wikilink precedence inside a text property', () => {
@@ -197,65 +218,49 @@ describe('U121-003 shard 07 — cell_format Core render map', () => {
 		const link = root.find('internal-link');
 		expect(link?.tagName).toBe('a');
 		expect(link?.textContent).toBe('Nota');
-		expect(root.find('metadata-input-longtext')).toBeNull();
 	});
 
-	it('renders a wikilink inside the pill content for pill types', () => {
-		const root = render('[[Cocina]]', 'tags');
-		const content = root.find('multi-select-pill-content');
-		expect(content).not.toBeNull();
-		const link = content?.find('internal-link');
-		expect(link?.tagName).toBe('a');
-		expect(link?.textContent).toBe('Cocina');
+	it('renders a wikilink inside the list element for list types', () => {
+		const root = render('[[Cocina]]', 'multitext');
+		const element = root.find('value-list-element');
+		expect(element?.find('internal-link')?.textContent).toBe('Cocina');
 	});
 
-	it('honours the wikilink alias in both the plain and pill paths', () => {
-		expect(render('[[Nota|alias]]', 'text').find('internal-link')?.textContent).toBe(
-			'alias',
-		);
+	it('honours the wikilink alias in both the scalar and list paths', () => {
+		expect(
+			render('[[Nota|alias]]', 'text').find('internal-link')?.textContent,
+		).toBe('alias');
 		expect(
 			render('[[Nota|alias]]', 'aliases').find('internal-link')?.textContent,
 		).toBe('alias');
 	});
 });
 
-describe('U121-003 shard 07 — pill remove button', () => {
-	it('omits the remove button when no delete callback is supplied', () => {
-		const root = render('cocina', 'tags');
-		expect(root.find('multi-select-pill-remove-button')).toBeNull();
-	});
-
-	it.each(PILL_TYPES)('renders a Core remove button for %s', (type) => {
-		const root = render('cocina', type, () => undefined);
-		const button = root.find('multi-select-pill-remove-button');
-		expect(button).not.toBeNull();
-		// Core builds the same icon: `tv(s, "lucide-x")`.
-		expect(button?.find('svg-icon')).not.toBeNull();
-	});
-
-	it('never renders a remove button on a non-pill type', () => {
-		for (const type of ['text', 'number', 'date', 'datetime', 'checkbox']) {
-			const root = render('2026-08-01', type, () => undefined);
-			expect(root.find('multi-select-pill-remove-button')).toBeNull();
-		}
+describe('U121-003 shard 07 — value affordances', () => {
+	it('omits the remove control when no delete callback is supplied', () => {
+		expect(
+			render('cocina', 'tags').find('vaultman-property-value-remove'),
+		).toBeNull();
 	});
 
 	it('invokes the delete callback exactly once per activation', () => {
 		let calls = 0;
-		const root = render('cocina', 'tags', () => {
-			calls += 1;
+		const root = render('cocina', 'tags', {
+			onRemoveValue: () => {
+				calls += 1;
+			},
 		});
-		const button = root.find('multi-select-pill-remove-button');
-		expect(button).not.toBeNull();
-		click(button!);
+		const remove = root.find('vaultman-property-value-remove');
+		expect(remove).not.toBeNull();
+		click(remove!);
 		expect(calls).toBe(1);
 	});
 
 	it('keeps the removal gesture off the row', () => {
 		let stopped = 0;
-		const root = render('cocina', 'tags', () => undefined);
-		const button = root.find('multi-select-pill-remove-button');
-		for (const handler of button!.listeners.get('click') ?? []) {
+		const root = render('cocina', 'tags', { onRemoveValue: () => undefined });
+		const remove = root.find('vaultman-property-value-remove')!;
+		for (const handler of remove.listeners.get('click') ?? []) {
 			handler({
 				preventDefault: () => undefined,
 				stopPropagation: () => {
@@ -264,5 +269,62 @@ describe('U121-003 shard 07 — pill remove button', () => {
 			});
 		}
 		expect(stopped).toBe(1);
+	});
+
+	it('is not editable without a rename callback', () => {
+		const text = render('cocina', 'text').find('vaultman-property-value-text');
+		expect(text?.classes()).not.toContain('vaultman-property-value-editable');
+	});
+
+	it('turns the text into a caret in place, adding no element of its own', () => {
+		const root = render('cocina', 'text', { onRenameValue: () => undefined });
+		const text = root.find('vaultman-property-value-text');
+		expect(text?.classes()).toContain('vaultman-property-value-editable');
+		// Editing must not introduce an input, a box or a second node.
+		expect(root.find('metadata-input')).toBeNull();
+		expect(text?.tagName).toBe('span');
+
+		click(text!);
+		expect(text?.contentEditable).toBe('true');
+	});
+
+	it('commits an inline edit on Enter and reports one rename', () => {
+		const renames: string[] = [];
+		const root = render('cocina', 'text', {
+			onRenameValue: (next) => renames.push(next),
+		});
+		const text = root.find('vaultman-property-value-text')!;
+		click(text);
+		text.textContent = 'Sala';
+		key(text, 'Enter');
+
+		expect(renames).toEqual(['Sala']);
+		expect(text.contentEditable).toBe('false');
+	});
+
+	it('reports nothing when the edit is cancelled or unchanged', () => {
+		const renames: string[] = [];
+		const root = render('cocina', 'text', {
+			onRenameValue: (next) => renames.push(next),
+		});
+		const text = root.find('vaultman-property-value-text')!;
+
+		click(text);
+		text.textContent = 'Sala';
+		key(text, 'Escape');
+		expect(renames).toEqual([]);
+		expect(text.textContent).toBe('cocina');
+
+		click(text);
+		key(text, 'Enter');
+		expect(renames).toEqual([]);
+	});
+
+	it('makes list values editable too', () => {
+		const root = render('cocina', 'multitext', {
+			onRenameValue: () => undefined,
+		});
+		const text = root.find('vaultman-property-value-text');
+		expect(text?.classes()).toContain('vaultman-property-value-editable');
 	});
 });

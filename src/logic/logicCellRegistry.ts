@@ -217,6 +217,21 @@ export const EXPLORER_CELL_DEFS: readonly ExplorerCellDef[] = [
 		supports: [{ explorer: 'props', fixedRank: 35, defaultOn: false }],
 	},
 	{
+		// U121-003: the flat counterpart of `path` in the file explorer. With
+		// `nested` off the label carries its ancestry — `lugar: cocina`,
+		// `parent/child` — and this cell is what puts it there. Defaults on so
+		// the projection that shipped keeps its labels until asked otherwise.
+		id: 'parent',
+		role: 'label-projection',
+		labelKey: 'viewmode.pill.parent',
+		icon: 'lucide-corner-left-up',
+		requiresCellsOff: ['nested'],
+		supports: [
+			{ explorer: 'props', fixedRank: 25, defaultOn: true },
+			{ explorer: 'tags', fixedRank: 25, defaultOn: true },
+		],
+	},
+	{
 		id: 'count',
 		role: 'value',
 		labelKey: 'viewmode.pill.count',

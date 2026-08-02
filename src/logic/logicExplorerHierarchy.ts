@@ -63,10 +63,17 @@ export function groupRootHierarchy<TMeta>(
 		.map((node) => ({ ...node, children: [] }));
 }
 
+/**
+ * U121-003: `showParent` backs the `parent` cell, which mirrors `path` in the
+ * file explorer. Turning it off shortens the label to the node's own name; node
+ * identity is untouched, so filters and operations keep targeting the same node.
+ */
 export function flattenTreeToPathLabels<TMeta>(
 	nodes: TreeNode<TMeta>[],
 	separator = '/',
+	options: { showParent?: boolean } = {},
 ): TreeNode<TMeta>[] {
+	const { showParent = true } = options;
 	const flat: TreeNode<TMeta>[] = [];
 
 	const walk = (items: TreeNode<TMeta>[], ancestors: string[]): void => {
@@ -74,7 +81,7 @@ export function flattenTreeToPathLabels<TMeta>(
 			const labelParts = [...ancestors, node.label].filter(Boolean);
 			flat.push({
 				...node,
-				label: labelParts.join(separator),
+				label: showParent ? labelParts.join(separator) : node.label,
 				children: [],
 				depth: 0,
 				showCaret: false,
@@ -89,7 +96,11 @@ export function flattenTreeToPathLabels<TMeta>(
 
 export function flattenPropertyValues<
 	TMeta extends { isValueNode: boolean; propName: string; rawValue?: string },
->(nodes: TreeNode<TMeta>[]): TreeNode<TMeta & { flatLabelPrefix?: string }>[] {
+>(
+	nodes: TreeNode<TMeta>[],
+	options: { showParent?: boolean } = {},
+): TreeNode<TMeta & { flatLabelPrefix?: string }>[] {
+	const { showParent = true } = options;
 	const flat: TreeNode<TMeta & { flatLabelPrefix?: string }>[] = [];
 	const visit = (items: TreeNode<TMeta>[]): void => {
 		for (const node of items) {
@@ -103,13 +114,18 @@ export function flattenPropertyValues<
 				});
 			} else {
 				const value = node.meta.rawValue ?? node.label;
+				// `parent` off leaves the value alone. The prefix is dropped from
+				// the meta too, so the renderer has nothing to draw rather than a
+				// prefix it must remember to suppress.
 				flat.push({
 					...node,
-					label: `${node.meta.propName}: ${value}`,
+					label: showParent ? `${node.meta.propName}: ${value}` : value,
 					depth: 0,
 					showCaret: false,
 					children: [],
-					meta: { ...node.meta, flatLabelPrefix: `${node.meta.propName}: ` },
+					meta: showParent
+						? { ...node.meta, flatLabelPrefix: `${node.meta.propName}: ` }
+						: { ...node.meta },
 				});
 			}
 			if (node.children?.length) visit(node.children);

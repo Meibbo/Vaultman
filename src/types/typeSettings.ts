@@ -45,6 +45,9 @@ export const FILES_ICON_SCOPES = ['all', 'files', 'folders', 'custom'] as const;
 export type FilesIconScope = (typeof FILES_ICON_SCOPES)[number];
 export type AddonCellStyle = 'native' | 'badge';
 
+export const PROP_CONFLICT_WARNINGS = ['off', 'badge', 'full'] as const;
+export type PropConflictWarnings = (typeof PROP_CONFLICT_WARNINGS)[number];
+
 export interface VaultmanSettings {
 	language: Language;
 	defaultPropertyType: string;
@@ -145,6 +148,13 @@ export interface VaultmanSettings {
 	filesIconScope: FilesIconScope;
 	/** Interaction required to cancel an operation badge */
 	badgeCancelClickMode: BadgeCancelClickMode;
+	/**
+	 * U121-003: how far a property type-incompatibility warning decorates its
+	 * node. `off` shows nothing, `badge` shows the Conflict badge alone, `full`
+	 * adds the row highlight and outline. Presentation only — conflict detection,
+	 * validation and blocked operations are unaffected by all three.
+	 */
+	propConflictWarnings: PropConflictWarnings;
 	/** Show the bottom dock; when false, Filters and Queue move into the Data tab menu. */
 	showDock: boolean;
 	/** Show the floating TOC rail (first-letter index) over the explorer tabs */
@@ -338,6 +348,9 @@ export const DEFAULT_SETTINGS: VaultmanSettings = {
 	// BT5-065: cancelling a staged operation is reversible, so it does not need
 	// the friction of a double click.
 	badgeCancelClickMode: 'single',
+	// U121-003: a badge plus a yellow outline on every incompatible value is
+	// noise in a browser whose job is showing values. Detection is unaffected.
+	propConflictWarnings: 'off',
 	showDock: false,
 	floatingTocEnabled: false,
 	floatingTocNiagara: false,

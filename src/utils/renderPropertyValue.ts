@@ -5,7 +5,7 @@ const WIKILINK = /^\[\[([^\]|#]+)(?:#[^\]|]+)?(?:\|([^\]]+))?\]\]$/;
 /**
  * The eight property widget types Obsidian Core ships. Core's own `property:set`
  * handler declares `text|list|number|checkbox|date|datetime` as assignable, and
- * `tags`/`aliases` are the derived kinds it renders as pills.
+ * `tags`/`aliases` are the derived kinds it renders separately.
  */
 export type CorePropertyWidget =
 	| 'text'
@@ -17,15 +17,20 @@ export type CorePropertyWidget =
 	| 'tags'
 	| 'aliases';
 
-type PropertyValueRenderer = (
-	container: HTMLElement,
-	raw: string,
-	app: App,
-	onRemoveValue?: () => void,
-) => void;
+export interface PropertyValueRenderContext {
+	container: HTMLElement;
+	raw: string;
+	type: string;
+	app: App;
+	/** Reports a removal gesture. The caller decides what removal means. */
+	onRemoveValue?: () => void;
+	/** Reports a committed inline edit. Absent means the value is not editable. */
+	onRenameValue?: (next: string) => void;
+}
 
-/** Kinds Core renders through its multi-select pill component. */
-const PILL_WIDGETS: ReadonlySet<CorePropertyWidget> = new Set([
+type PropertyValueRenderer = (context: PropertyValueRenderContext) => void;
+
+const LIST_WIDGETS: ReadonlySet<CorePropertyWidget> = new Set([
 	'tags',
 	'aliases',
 	'multitext',
@@ -68,48 +73,128 @@ export function resolveCorePropertyWidget(
 	return 'text';
 }
 
-function appendWikilink(
-	container: HTMLElement,
-	match: RegExpMatchArray,
-	app: App,
-): void {
-	const target = match[1];
-	const link = container.createEl('a', {
-		cls: 'internal-link vaultman-property-value-link',
-		text: match[2] || target,
-		href: target,
+/**
+ * The editable text node. It carries no styling of its own: in the projection
+ * it must be indistinguishable from the value rendered with Format off, and
+ * clicking it only raises a caret.
+ */
+function renderEditableText(
+	parent: HTMLElement,
+	context: PropertyValueRenderContext,
+): HTMLElement {
+	const { raw, app, onRenameValue } = context;
+
+	const wikilink = raw.trim().match(WIKILINK);
+	if (wikilink) {
+		const target = wikilink[1];
+		const link = parent.createEl('a', {
+			cls: 'internal-link vaultman-property-value-link',
+			text: wikilink[2] || target,
+			href: target,
+		});
+		link.addEventListener('click', (event) => {
+			event.preventDefault();
+			event.stopPropagation();
+			void app.workspace.openLinkText(target, '', false);
+		});
+		return link;
+	}
+
+	const text = parent.createSpan({
+		cls: 'vaultman-property-value-text',
+		text: raw,
 	});
-	link.addEventListener('click', (event) => {
+	if (!onRenameValue) return text;
+
+	text.addClass('vaultman-property-value-editable');
+	text.addEventListener('click', (event) => {
+		event.stopPropagation();
+		beginInlineEdit(text, raw, onRenameValue);
+	});
+	return text;
+}
+
+/**
+ * Turns the text node into a caret in place. `contenteditable` is used rather
+ * than swapping in an input because an input brings a box, its own font and its
+ * own height; the requirement is that editing changes nothing but the caret.
+ */
+function beginInlineEdit(
+	text: HTMLElement,
+	original: string,
+	onRenameValue: (next: string) => void,
+): void {
+	if (text.contentEditable === 'true') return;
+	text.contentEditable = 'true';
+	text.focus();
+
+	let settled = false;
+	const finish = (commit: boolean): void => {
+		if (settled) return;
+		settled = true;
+		text.contentEditable = 'false';
+		const next = (text.textContent ?? '').trim();
+		if (!commit || next === original || !next) {
+			text.setText(original);
+			return;
+		}
+		onRenameValue(next);
+	};
+
+	text.addEventListener('keydown', (event) => {
+		if (event.key === 'Enter') {
+			event.preventDefault();
+			finish(true);
+		} else if (event.key === 'Escape') {
+			event.preventDefault();
+			finish(false);
+		}
+	});
+	text.addEventListener('blur', () => finish(true));
+}
+
+/** Core Bases renders strings and numbers with `setText`. No input, no box. */
+function renderScalar(context: PropertyValueRenderContext): void {
+	renderEditableText(context.container, context);
+}
+
+/**
+ * Core Bases renders a list as `value-list-container` holding one
+ * `value-list-element` per entry. One value node is one entry: `logicProps`
+ * already expanded array frontmatter into separate nodes.
+ *
+ * This is also the anatomy third-party property plugins query, so emitting it
+ * is what lets their decorations reach the explorer.
+ */
+function renderList(context: PropertyValueRenderContext): void {
+	const list = context.container.createDiv({ cls: 'value-list-container' });
+	const element = list.createSpan({ cls: 'value-list-element' });
+	renderEditableText(element, context);
+}
+
+/** Core renders a tag value as an anchor, which inherits the theme's tag style. */
+function renderTags(context: PropertyValueRenderContext): void {
+	const list = context.container.createDiv({ cls: 'value-list-container' });
+	const element = list.createSpan({ cls: 'value-list-element' });
+	const name = context.raw.trim();
+	const tag = element.createEl('a', {
+		cls: 'tag',
+		text: name.startsWith('#') ? name : `#${name}`,
+		href: name.startsWith('#') ? name : `#${name}`,
+	});
+	tag.addEventListener('click', (event) => {
 		event.preventDefault();
 		event.stopPropagation();
-		void app.workspace.openLinkText(target, '', false);
 	});
 }
 
-function renderText(container: HTMLElement, raw: string): void {
-	// Core builds this as a contenteditable div. The read projection reuses the
-	// class for spacing and typography but never the editing affordance; task
-	// 5.2 owns interactivity, and only for checkbox/date/datetime.
-	container.createDiv({ cls: 'metadata-input-longtext', text: raw });
-}
-
-function renderNumber(container: HTMLElement, raw: string): void {
-	const input = container.createEl('input', {
-		type: 'text',
-		cls: 'metadata-input metadata-input-number',
-	});
-	input.value = raw;
-	input.readOnly = true;
-	input.tabIndex = -1;
-}
-
-function renderCheckbox(container: HTMLElement, raw: string): void {
-	const checkbox = container.createEl('input', {
+function renderCheckbox(context: PropertyValueRenderContext): void {
+	const checkbox = context.container.createEl('input', {
 		type: 'checkbox',
 		cls: 'metadata-input-checkbox',
 	});
 	checkbox.checked = !['', 'false', '0', 'no', 'none', 'null'].includes(
-		raw.trim().toLowerCase(),
+		context.raw.trim().toLowerCase(),
 	);
 	checkbox.tabIndex = -1;
 	checkbox.setAttribute('aria-readonly', 'true');
@@ -119,20 +204,27 @@ function renderCheckbox(container: HTMLElement, raw: string): void {
 	});
 }
 
-function renderDate(container: HTMLElement, raw: string, app: App): void {
+/**
+ * Date and datetime keep a real control because the picker and the daily-note
+ * shortcut are the point of them. `disabled="true"` is the literal attribute
+ * Core's own `.bases-rendered-value input[disabled=true]` rules select, which is
+ * what collapses the input to `min-height: 0` and `width: auto` instead of
+ * leaving a full-width box on the row. Task 5.2 removes it when these become
+ * interactive.
+ */
+function renderDate(context: PropertyValueRenderContext): void {
+	const { container, raw, app } = context;
 	if (Number.isNaN(Date.parse(raw))) {
-		renderText(container, raw);
+		renderScalar(context);
 		return;
 	}
 	const day = raw.slice(0, 10);
 	const dateInput = container.createEl('input', {
 		type: 'date',
 		cls: 'metadata-input metadata-input-text mod-date',
-		attr: { max: '9999-12-31' },
+		attr: { max: '9999-12-31', disabled: 'true' },
 	});
 	dateInput.value = day;
-	dateInput.readOnly = true;
-	dateInput.tabIndex = -1;
 
 	const dailyNote = container.createDiv({
 		cls: 'clickable-icon',
@@ -146,87 +238,47 @@ function renderDate(container: HTMLElement, raw: string, app: App): void {
 	});
 }
 
-function renderDateTime(container: HTMLElement, raw: string): void {
+function renderDateTime(context: PropertyValueRenderContext): void {
+	const { container, raw } = context;
 	if (Number.isNaN(Date.parse(raw))) {
-		renderText(container, raw);
+		renderScalar(context);
 		return;
 	}
 	const dateTimeInput = container.createEl('input', {
 		type: 'datetime-local',
 		cls: 'metadata-input metadata-input-text mod-datetime',
-		attr: { max: '9999-12-31T23:59' },
+		attr: { max: '9999-12-31T23:59', disabled: 'true' },
 	});
 	dateTimeInput.value = raw.slice(0, 16);
-	dateTimeInput.readOnly = true;
-	dateTimeInput.tabIndex = -1;
 }
 
-/**
- * One value node is one pill. `logicProps` already expands array frontmatter
- * into a node per entry, so splitting here would multiply values that the
- * projection has already separated.
- */
-function renderPill(
-	container: HTMLElement,
-	raw: string,
-	app: App,
-	onRemoveValue?: () => void,
-): void {
-	const pillContainer = container.createDiv({ cls: 'multi-select-container' });
-	const pill = pillContainer.createDiv({
-		cls: 'multi-select-pill',
-		attr: { tabIndex: 0 },
-	});
-	const wikilink = raw.trim().match(WIKILINK);
-	const content = pill.createDiv({
-		cls: 'multi-select-pill-content',
-		...(wikilink ? {} : { text: raw }),
-	});
-	if (wikilink) appendWikilink(content, wikilink, app);
+const RENDER_MAP: Readonly<Record<CorePropertyWidget, PropertyValueRenderer>> = {
+	text: renderScalar,
+	number: renderScalar,
+	multitext: renderList,
+	aliases: renderList,
+	tags: renderTags,
+	checkbox: renderCheckbox,
+	date: renderDate,
+	datetime: renderDateTime,
+};
 
-	if (!onRemoveValue) return;
-	// The caller decides what removal means; this renderer only reports the
-	// gesture. Keeping the decision outside is what stops a second deletion
-	// path from existing beside the registered `value.delete` action.
-	const remove = pill.createDiv({ cls: 'multi-select-pill-remove-button' });
+export function renderPropertyValue(context: PropertyValueRenderContext): void {
+	const widget = resolveCorePropertyWidget(context.type);
+	RENDER_MAP[widget](context);
+
+	if (!context.onRemoveValue) return;
+	// Reveals on row hover: a delete affordance on every value at rest is the
+	// visual noise this projection is supposed to avoid.
+	const remove = context.container.createSpan({
+		cls: 'vaultman-property-value-remove',
+	});
 	setIcon(remove, 'lucide-x');
 	remove.addEventListener('click', (event) => {
 		event.preventDefault();
 		event.stopPropagation();
-		onRemoveValue();
+		context.onRemoveValue?.();
 	});
 }
 
-const RENDER_MAP: Readonly<Record<CorePropertyWidget, PropertyValueRenderer>> = {
-	text: (container, raw) => renderText(container, raw),
-	multitext: renderPill,
-	number: (container, raw) => renderNumber(container, raw),
-	checkbox: (container, raw) => renderCheckbox(container, raw),
-	date: renderDate,
-	datetime: (container, raw) => renderDateTime(container, raw),
-	tags: renderPill,
-	aliases: renderPill,
-};
-
-export function renderPropertyValue(
-	container: HTMLElement,
-	raw: string,
-	type: string,
-	app: App,
-	onRemoveValue?: () => void,
-): void {
-	const widget = resolveCorePropertyWidget(type);
-
-	// Checkbox reads the raw value itself, and pills carry their own link
-	// handling, so only the scalar widgets hand a wikilink value to the link
-	// renderer. This preserves the precedence the 1.2.1 renderer already had.
-	if (widget !== 'checkbox' && !PILL_WIDGETS.has(widget)) {
-		const wikilink = raw.trim().match(WIKILINK);
-		if (wikilink) {
-			appendWikilink(container, wikilink, app);
-			return;
-		}
-	}
-
-	RENDER_MAP[widget](container, raw, app, onRemoveValue);
-}
+export { LIST_WIDGETS };

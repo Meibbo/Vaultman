@@ -20,16 +20,22 @@ import popupSource from '../../src/components/layout/popupView.svelte?raw';
 import settingsSource from '../../src/VaultmanSettings.ts?raw';
 
 describe('shared explorer cell registry', () => {
+	// U121-003: `parent` joins the props and tags defaults. It only applies while
+	// `nested` is off, and on it reproduces the label those explorers already
+	// shipped (`lugar: cocina`, `parent/child`), so defaulting it on keeps the
+	// flat projection exactly as it was and leaves hiding the ancestry opt-in.
 	it('preserves the current visible-cell defaults exactly', () => {
 		expect(defaultVisibleCells('props', 'tree')).toEqual([
 			'icon',
 			'text',
+			'parent',
 			'count',
 			'nested',
 		]);
 		expect(defaultVisibleCells('tags', 'tree')).toEqual([
 			'icon',
 			'text',
+			'parent',
 			'count',
 			'nested',
 		]);

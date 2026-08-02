@@ -52,4 +52,12 @@ describe('Vaultman default settings', () => {
 		expect(DEFAULT_SETTINGS.iconicEnabled).toBe(true);
 		expect(DEFAULT_SETTINGS.filesIconScope).toBe('all');
 	});
+
+	// U121-003: type-incompatibility warnings decorated every affected row with a
+	// badge and a yellow outline, which reads as noise in a browser whose whole
+	// job is showing values. Hidden by default; the data stays available to
+	// validation either way.
+	it('hides property conflict warnings by default', () => {
+		expect(DEFAULT_SETTINGS.propConflictWarnings).toBe('off');
+	});
 });

@@ -654,7 +654,9 @@ export class TagsExplorerPanel extends Component {
 		// Resolve icons via Iconic
 		let nodesWithIcons = this._resolveIcons(tree, highlightIds, searchFunc);
 		if (!this._nestedEnabled()) {
-			nodesWithIcons = flattenTreeToPathLabels(nodesWithIcons);
+			nodesWithIcons = flattenTreeToPathLabels(nodesWithIcons, '/', {
+				showParent: this.visibleCells.has('parent'),
+			});
 		}
 		if (nodesWithIcons.length === 0) {
 			this._setIndexRoots([]);

@@ -274,6 +274,12 @@ export const en: Record<string, string> = {
 		'Choose whether operation badges are canceled with a double-click or single-click.',
 	'settings.badge_cancel_click.double': 'Double-click',
 	'settings.badge_cancel_click.single': 'Single-click',
+	'settings.prop_conflict_warnings': 'Property conflict warnings',
+	'settings.prop_conflict_warnings.desc':
+		'How far a type-incompatible value is decorated. Detection is unaffected: hiding the warning never makes a blocked operation valid.',
+	'settings.prop_conflict_warnings.off': 'Hidden',
+	'settings.prop_conflict_warnings.badge': 'Badge only',
+	'settings.prop_conflict_warnings.full': 'Badge and row outline',
 	'settings.show_toolbar': 'Show toolbar',
 	'settings.show_toolbar.desc':
 		'Show the explorer header toolbar (tabs, view, sort, search). Toggle it from the view menu; restore it here when hidden.',
@@ -1036,6 +1042,7 @@ export const en: Record<string, string> = {
 	'viewmode.pill.tags': 'Tags',
 	'viewmode.pill.opened': 'Last opened',
 	'viewmode.pill.path': 'Path',
+	'viewmode.pill.parent': 'Parent',
 	'viewmode.pill.size': 'Size',
 	'viewmode.pill.words': 'Words',
 	'viewmode.pill.state': 'State',

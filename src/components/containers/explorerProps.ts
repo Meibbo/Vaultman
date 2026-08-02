@@ -37,6 +37,8 @@ export interface PanelPluginCtx {
 		/** BT5-015 */
 		iconInCaretSlot?: boolean;
 		selectionCheckboxPosition?: 'start' | 'end';
+		/** U121-003: how far a type-incompatibility warning decorates its node. */
+		propConflictWarnings?: PropConflictWarnings;
 	};
 	statisticsCache?: Pick<StatisticsCacheService, 'getFileTimes'>;
 	showDragActionGuide?: (text: string) => void;
@@ -47,6 +49,7 @@ import { UnifiedTreeView } from '../layout/viewTree';
 import { NodeTableView } from '../layout/viewNodeTable';
 import type { TreeNode, PropMeta } from '../../types/typeTree';
 import type { PropertyChange } from '../../types/typeOps';
+import type { PropConflictWarnings } from '../../types/typeSettings';
 import { NATIVE_SET_PROP_TYPE } from '../../types/typeOps';
 import { showInputModal } from '../../utils/inputModal';
 import { translate } from '../../i18n/index';
@@ -929,7 +932,9 @@ export class PropsExplorerPanel extends Component {
 			this.plugin.queueService.queue,
 		);
 		if (!this._nestedEnabled()) {
-			nodesWithIcons = flattenPropertyValues(nodesWithIcons);
+			nodesWithIcons = flattenPropertyValues(nodesWithIcons, {
+				showParent: this.visibleCells.has('parent'),
+			});
 		}
 		this._setIndexRoots(nodesWithIcons);
 		if (nodesWithIcons.length === 0) {
@@ -1066,21 +1071,25 @@ export class PropsExplorerPanel extends Component {
 			});
 		}
 		const propType = node.meta.propType ?? 'text';
+		const rawValue = node.meta.rawValue ?? node.label;
 		const label = container.createSpan({
 			cls: 'bases-rendered-value vaultman-tree-label vaultman-property-value-cell',
 		});
-		// Core scopes its pill colours to an ancestor carrying the property
-		// type, so the cell publishes the resolved kind and the stylesheet maps
-		// Core's own variables from there. Without it a tag pill renders grey.
+		// The cell speaks Bases' value idiom, and third-party property plugins
+		// query exactly this pair — `.bases-rendered-value[data-property-type]`
+		// and `[data-property-key]` — to find values worth decorating. Publishing
+		// them is what lets their decorations reach the explorer instead of
+		// stopping at Bases and the file-properties panel.
 		label.setAttribute('data-property-type', resolveCorePropertyWidget(propType));
-		renderPropertyValue(
-			label,
-			node.meta.rawValue ?? node.label,
-			propType,
-			this.plugin.app,
-			() => {
-				// Removal runs the registered `value.delete` action, so the pill
-				// button and the context menu queue the same operation, honour the
+		label.setAttribute('data-property-key', node.meta.propName);
+		renderPropertyValue({
+			container: label,
+			raw: rawValue,
+			type: propType,
+			app: this.plugin.app,
+			onRemoveValue: () => {
+				// Removal runs the registered `value.delete` action, so the inline
+				// control and the context menu queue the same operation, honour the
 				// same `when` guard and raise the same pending badge.
 				this.plugin.contextMenuService.invokeAction('value.delete', {
 					nodeType: 'value',
@@ -1088,7 +1097,13 @@ export class PropsExplorerPanel extends Component {
 					surface: 'panel',
 				});
 			},
-		);
+			onRenameValue: (next) => {
+				// The context menu's Rename reaches the same vault path through a
+				// modal; inline editing is a second way to enter the value, not a
+				// second way to write it.
+				void this._replaceValueInVault(node.meta.propName, rawValue, next);
+			},
+		});
 		return true;
 	}
 
@@ -1344,7 +1359,9 @@ export class PropsExplorerPanel extends Component {
 		);
 		const filtered = this._nestedEnabled()
 			? resolved.filter((node) => !node.meta.isValueNode)
-			: flattenPropertyValues(resolved);
+			: flattenPropertyValues(resolved, {
+					showParent: this.visibleCells.has('parent'),
+				});
 		this._setIndexRoots(filtered);
 		if (filtered.length === 0) {
 			this._renderEmptyState();
@@ -1546,6 +1563,15 @@ export class PropsExplorerPanel extends Component {
 		});
 	}
 
+	/**
+	 * Presentation only. Hiding the warning never hides the conflict: the value
+	 * stays `isTypeIncompatible`, so validation and blocked operations behave the
+	 * same in all three modes.
+	 */
+	private _conflictWarnings(): PropConflictWarnings {
+		return this.plugin.settings?.propConflictWarnings ?? 'off';
+	}
+
 	private _resolveIcons(
 		nodes: TreeNode<PropMeta>[],
 		warningIds: Set<string>,
@@ -1558,7 +1584,12 @@ export class PropsExplorerPanel extends Component {
 			const meta = node.meta;
 			let currentCls = node.cls || '';
 
-			if (meta.isTypeIncompatible) warningIds.add(node.id);
+			// Only `full` decorates the row itself. `badge` keeps the marker but
+			// drops the highlight and the outline, which is the part that turned a
+			// browsable list into a wall of yellow.
+			if (meta.isTypeIncompatible && this._conflictWarnings() === 'full') {
+				warningIds.add(node.id);
+			}
 			if (searchFunc && searchFunc(node.label)) highlightIds.add(node.id);
 
 			const isPropDeleted =
@@ -1602,7 +1633,7 @@ export class PropsExplorerPanel extends Component {
 				: [];
 
 			const badges: import('../../types/typeTree').NodeBadge[] = [];
-			if (meta.isTypeIncompatible) {
+			if (meta.isTypeIncompatible && this._conflictWarnings() !== 'off') {
 				badges.push({
 					text: 'Conflict',
 					color: 'red',
