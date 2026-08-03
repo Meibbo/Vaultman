@@ -482,8 +482,8 @@ export class FilterService extends Component {
 		}[] = [];
 		const walk = (node: FilterNode, isExcluded: boolean = false) => {
 			if (node.type === 'rule') {
-				let rule = '';
-				let label = '';
+				let rule: string;
+				let label: string;
 				let warning: string | undefined;
 				switch (node.filterType) {
 					case 'has_property':

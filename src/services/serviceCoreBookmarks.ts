@@ -67,7 +67,7 @@ function searchLeaf(app: App): WorkspaceLeaf | null {
 function bookmarksPlugin(app: App): BookmarksPluginInternals | null {
 	return ((app as CommandApp).internalPlugins?.getEnabledPluginById(
 		'bookmarks',
-	) ?? null) as BookmarksPluginInternals | null;
+	) ?? null);
 }
 
 /**

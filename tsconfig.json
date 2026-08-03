@@ -1,7 +1,6 @@
 {
 	// Cache reload triggered
 	"compilerOptions": {
-		"baseUrl": ".",
 		"target": "ES2022",
 		"module": "ESNext",
 		"moduleResolution": "bundler",
@@ -23,22 +22,22 @@
 		"forceConsistentCasingInFileNames": true,
 		"paths": {
 			"@types/*": [
-				"src/types/*"
+				"./src/types/*"
 			],
 			"@services/*": [
-				"src/services/*"
+				"./src/services/*"
 			],
 			"@utils/*": [
-				"src/utils/*"
+				"./src/utils/*"
 			],
 			"@components/*": [
-				"src/components/*"
+				"./src/components/*"
 			],
 			"@modals/*": [
-				"src/modals/*"
+				"./src/modals/*"
 			],
 			"@i18n/*": [
-				"src/i18n/*"
+				"./src/i18n/*"
 			]
 		}
 	},

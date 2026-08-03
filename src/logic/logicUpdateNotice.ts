@@ -1,5 +1,4 @@
-const RELEASE_VERSION_PATTERN =
-	/^\d+\.\d+\.\d+(?:-(?:alpha|beta|rc)\.\d+)?$/;
+const RELEASE_VERSION_PATTERN = /^\d+\.\d+\.\d+(?:-(?:alpha|beta|rc)\.\d+)?$/;
 const UPDATES_REPOSITORY_URL = 'https://github.com/Meibbo/Vaultman';
 
 export function updatesAnchorForVersion(version: string): string {
@@ -21,7 +20,7 @@ export function openUpdatesBulletin(
 	version: string,
 	doc: Document = activeDocument,
 ): void {
-	const link = doc.createElement('a');
+	const link = doc.createEl('a');
 	link.href = updatesUrlForVersion(version);
 	link.target = '_blank';
 	link.rel = 'noopener noreferrer';

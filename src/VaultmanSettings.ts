@@ -101,7 +101,9 @@ export class VaultmanSettingsTab extends PluginSettingTab {
 			{
 				id: 'bulk-operation-warning-threshold',
 				name: translate('settings.bulk_operation_warning_threshold'),
-				description: translate('settings.bulk_operation_warning_threshold.desc'),
+				description: translate(
+					'settings.bulk_operation_warning_threshold.desc',
+				),
 				onSelect: () => {
 					this.page = 'root';
 					this.display();
@@ -209,9 +211,7 @@ export class VaultmanSettingsTab extends PluginSettingTab {
 					)
 					.onChange(async (value) => {
 						this.plugin.settings.openMode = value as
-							| 'sidebar'
-							| 'main'
-							| 'new_instance';
+							'sidebar' | 'main' | 'new_instance';
 						await this.plugin.saveSettings();
 					}),
 			);
@@ -230,10 +230,7 @@ export class VaultmanSettingsTab extends PluginSettingTab {
 					.setValue(this.plugin.settings.explorerOperationScope)
 					.onChange(async (value) => {
 						this.plugin.settings.explorerOperationScope = value as
-							| 'auto'
-							| 'selected'
-							| 'filtered'
-							| 'all';
+							'auto' | 'selected' | 'filtered' | 'all';
 						await this.plugin.saveSettings();
 					}),
 			);
@@ -252,8 +249,8 @@ export class VaultmanSettingsTab extends PluginSettingTab {
 							await this.plugin.saveSettings();
 						}),
 				);
-			}
-			
+		}
+
 		new Setting(containerEl)
 			.setName(translate('settings.prop_move_conflict'))
 			.setDesc(translate('settings.prop_move_conflict.desc'))
@@ -304,7 +301,7 @@ export class VaultmanSettingsTab extends PluginSettingTab {
 					this.display();
 				}),
 			);
-			
+
 		new Setting(containerEl)
 			.setName(translate('settings.floating_toc'))
 			.setDesc(translate('settings.floating_toc.desc'))
@@ -354,7 +351,7 @@ export class VaultmanSettingsTab extends PluginSettingTab {
 						await this.plugin.saveSettings();
 					}),
 			);
-			
+
 		new Setting(containerEl)
 			.setName(translate('settings.explorer_page'))
 			.setDesc(translate('settings.explorer_page.desc'))
@@ -384,7 +381,7 @@ export class VaultmanSettingsTab extends PluginSettingTab {
 					this.display();
 				}),
 			);
-			
+
 		new Setting(containerEl)
 			.setName(translate('settings.style_preset'))
 			.setDesc(translate('settings.style_preset.desc'))
@@ -659,9 +656,7 @@ export class VaultmanSettingsTab extends PluginSettingTab {
 					.setValue(this.plugin.settings.toolbarOverflowStrategy)
 					.onChange(async (value) => {
 						this.plugin.settings.toolbarOverflowStrategy =
-							value === 'scroll' || value === 'wrap'
-								? value
-								: 'condensed';
+							value === 'scroll' || value === 'wrap' ? value : 'condensed';
 						await this.plugin.saveSettings();
 					}),
 			);
@@ -857,7 +852,9 @@ export class VaultmanSettingsTab extends PluginSettingTab {
 		// the whole set — `addonCellStyle`, `orderCellsByActivation`, the hover
 		// fields and the grid column options still live on their own pages; moving
 		// those is a separate UX call.
-		new Setting(containerEl).setName(translate('settings.cells_section')).setHeading();
+		new Setting(containerEl)
+			.setName(translate('settings.cells_section'))
+			.setHeading();
 
 		// BT5-040: folders can show the recursive sum of their files' cells.
 		new Setting(containerEl)
@@ -1367,6 +1364,8 @@ export class VaultmanSettingsTab extends PluginSettingTab {
 					}),
 			);
 
+		// eslint-disable-next-line @typescript-eslint/no-this-alias -- context for inner class
+		const tab = this;
 		const kind = this.contextMenuKind;
 		new Setting(containerEl)
 			.setName(translate(`settings.context_menu_kind.${kind}`))
@@ -1409,23 +1408,25 @@ export class VaultmanSettingsTab extends PluginSettingTab {
 				button
 					.setIcon('lucide-chevron-right')
 					.setTooltip(translate('settings.files_context_menu.add_submenu'))
-					.onClick(() =>
-						void persist(
-							addFilesMenuSubmenu(
-								layout,
-								translate('settings.files_context_menu.submenu_name'),
+					.onClick(
+						() =>
+							void persist(
+								addFilesMenuSubmenu(
+									layout,
+									translate('settings.files_context_menu.submenu_name'),
+								),
 							),
-						),
 					),
 			)
 			.addButton((button) =>
 				button
 					.setIcon('lucide-rotate-ccw')
 					.setTooltip(translate('settings.files_context_menu.reset'))
-					.onClick(() =>
-						void persist(
-							defaultFilesMenuLayout(catalog.map((entry) => entry.id)),
-						),
+					.onClick(
+						() =>
+							void persist(
+								defaultFilesMenuLayout(catalog.map((entry) => entry.id)),
+							),
 					),
 			);
 
@@ -1488,8 +1489,9 @@ export class VaultmanSettingsTab extends PluginSettingTab {
 						dropdown.addOption(submenu.id, submenu.label);
 					}
 					dropdown.setValue(item.parent ?? '');
-					dropdown.onChange((value) =>
-						void persist(setFilesMenuParent(layout, item.id, value || null)),
+					dropdown.onChange(
+						(value) =>
+							void persist(setFilesMenuParent(layout, item.id, value || null)),
 					);
 				});
 			}
@@ -1498,8 +1500,9 @@ export class VaultmanSettingsTab extends PluginSettingTab {
 				setting.addToggle((toggle) =>
 					toggle
 						.setValue(item.visible)
-						.onChange((value) =>
-							void persist(setFilesMenuVisibility(layout, item.id, value)),
+						.onChange(
+							(value) =>
+								void persist(setFilesMenuVisibility(layout, item.id, value)),
 						),
 				);
 			} else {
@@ -1609,9 +1612,7 @@ export class VaultmanSettingsTab extends PluginSettingTab {
 			.setDesc(translate('settings.toc_hide_explorer_scrollbar.desc'))
 			.addToggle((t) =>
 				t
-					.setValue(
-						this.plugin.settings.tocHideExplorerScrollbar === true,
-					)
+					.setValue(this.plugin.settings.tocHideExplorerScrollbar === true)
 					.onChange(async (v) => {
 						await setToc({ tocHideExplorerScrollbar: v });
 						this.display();
@@ -1680,7 +1681,9 @@ export class VaultmanSettingsTab extends PluginSettingTab {
 				.addColorPicker((picker) =>
 					picker
 						.setValue(
-							normalizeGlyphCustomColor(this.plugin.settings.tocGlyphCustomColor),
+							normalizeGlyphCustomColor(
+								this.plugin.settings.tocGlyphCustomColor,
+							),
 						)
 						.onChange((v) => setToc({ tocGlyphCustomColor: v })),
 				);

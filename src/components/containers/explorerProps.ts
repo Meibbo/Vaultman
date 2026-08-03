@@ -793,9 +793,7 @@ export class PropsExplorerPanel extends Component {
 		const file = this.plugin.app.vault.getFileByPath(path);
 		if (!(file instanceof TFile)) return null;
 		return (
-			(this.plugin.app.metadataCache.getFileCache(file)?.frontmatter as
-				| Record<string, unknown>
-				| undefined) ?? {}
+			(this.plugin.app.metadataCache.getFileCache(file)?.frontmatter) ?? {}
 		);
 	}
 
@@ -913,7 +911,7 @@ export class PropsExplorerPanel extends Component {
 		this._setValueMoveMode(null);
 		this.interactionMode = normalizeInteractionMode(
 			'props',
-			restore.interactionMode as InteractionMode,
+			restore.interactionMode,
 		);
 		this.valueMoveSearchOpen = restore.searchOpen;
 		void this._render();

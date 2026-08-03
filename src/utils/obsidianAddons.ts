@@ -94,7 +94,7 @@ function addonTimes(app: App, path: string): Promise<AddonFileTimes> {
 }
 
 function extendedApp(app: App): ExtendedApp {
-	return app as ExtendedApp;
+	return app;
 }
 
 export function cssSnippetPath(app: App, name: string): string {

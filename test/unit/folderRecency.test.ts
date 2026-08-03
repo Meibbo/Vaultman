@@ -45,7 +45,7 @@ describe('BT5-090 folder recency', () => {
 
 	it('ignores corrupt timestamps', () => {
 		const folders = buildFolderRecency({
-			'a/b.md': Number.NaN as unknown as number,
+			'a/b.md': Number.NaN,
 			'a/c.md': 12,
 		});
 		expect(folderRecencyAt(folders, 'a')).toBe(12);

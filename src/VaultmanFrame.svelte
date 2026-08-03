@@ -217,7 +217,6 @@
 		void settingsRevision;
 		return plugin.settings.coloredBadges === true;
 	});
-	let performanceHudHost: HTMLElement | null = null;
 	let performanceHudInstance: Record<string, never> | null = null;
 
 	function destroyPerformanceHud(): void {
@@ -225,8 +224,6 @@
 			void unmount(performanceHudInstance);
 			performanceHudInstance = null;
 		}
-		performanceHudHost?.remove();
-		performanceHudHost = null;
 	}
 
 	$effect(() => {
@@ -235,11 +232,7 @@
 			return;
 		}
 
-		const host = document.createElement('div');
-		host.className = 'vaultman-performance-host';
-		document.body.appendChild(host);
-		performanceHudHost = host;
-		performanceHudInstance = mount(PerformanceHud, { target: host });
+		performanceHudInstance = mount(PerformanceHud, { target: document.body });
 
 		return destroyPerformanceHud;
 	});
@@ -298,12 +291,7 @@
 	let activePage = $state(initialPageOrder[0] ?? 'filters');
 
 	type FiltersTab =
-		| 'files'
-		| 'tags'
-		| 'props'
-		| 'content'
-		| 'snippets'
-		| 'plugins';
+		'files' | 'tags' | 'props' | 'content' | 'snippets' | 'plugins';
 	type SearchTab = Exclude<FiltersTab, 'content'>;
 	let filtersActiveTab = $state<FiltersTab>('files');
 

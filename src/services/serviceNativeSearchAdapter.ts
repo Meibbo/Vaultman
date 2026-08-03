@@ -362,7 +362,7 @@ export class NativeSearchAdapter {
 	private activeView: NativeSearchView | null = null;
 
 	constructor(app: App) {
-		this.app = app as SearchApp;
+		this.app = app;
 	}
 
 	cancel(): void {
@@ -671,7 +671,7 @@ export class NativeSearchAdapter {
 			options.onProgress?.(index);
 			const file = options.scopeFiles[index];
 			if (!isContentSearchableFile(file)) continue;
-			let content = '';
+			let content: string;
 			try {
 				content = await this.app.vault.cachedRead(file);
 			} catch {

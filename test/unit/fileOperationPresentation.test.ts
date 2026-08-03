@@ -1,5 +1,4 @@
 import { readFileSync } from 'node:fs';
-import type { TFile } from 'obsidian';
 import { describe, expect, it } from 'vitest';
 
 import explorerFilesSource from '../../src/components/containers/explorerFiles.ts?raw';
@@ -25,7 +24,7 @@ function targetFile(
 	basename: string,
 	extension: string,
 ): RenameTargetFile {
-	return { name, basename, extension } as TFile & RenameTargetFile;
+	return { name, basename, extension };
 }
 
 describe('file operation presentation', () => {

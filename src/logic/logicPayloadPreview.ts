@@ -740,7 +740,7 @@ function knownLayoutSection(
 
 	if (CORE_TABS.has(tab)) {
 		const interactionMode = normalizeInteractionMode(
-			tab as 'files' | 'props' | 'tags',
+			tab,
 			typeof value.interactionMode === 'string'
 				? value.interactionMode
 				: undefined,

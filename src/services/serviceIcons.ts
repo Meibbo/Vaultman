@@ -165,7 +165,7 @@ export class IconicService extends Component {
 	}
 
 	private async _syncExternalDataInner(): Promise<void> {
-		let mtime = 0;
+		let mtime: number;
 		try {
 			const stat = await this.app.vault.adapter.stat(this._dataFilePath());
 			mtime = stat?.mtime ?? 0;
@@ -244,7 +244,7 @@ export class IconicService extends Component {
 		for (const [key, resolve] of this._pendingRuntime) {
 			if (Date.now() >= deadline) break;
 			this._pendingRuntime.delete(key);
-			let value: IconicResolvedIcon | null = null;
+			let value: IconicResolvedIcon | null;
 			try {
 				value = resolve();
 			} catch {
@@ -514,7 +514,7 @@ export class IconicService extends Component {
 		const plugins = (this.app as ExtendedApp).plugins?.plugins;
 		const candidate = plugins?.iconic;
 		if (!candidate || typeof candidate !== 'object') return null;
-		return candidate as IconicRuntimePlugin;
+		return candidate;
 	}
 
 	private runtimeTagItem(

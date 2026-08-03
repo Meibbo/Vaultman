@@ -1,4 +1,4 @@
-import type { CachedMetadata, TFile, TFolder, Vault } from 'obsidian';
+import type { TFile, TFolder, Vault } from 'obsidian';
 import { describe, expect, it } from 'vitest';
 
 import { evalNode } from '../../src/utils/filter-evaluator';
@@ -47,7 +47,7 @@ describe('filter evaluator file rules', () => {
 				values: [],
 			},
 			files,
-			() => ({ frontmatter: { Birthday: '1990-01-01' } }) as CachedMetadata,
+			() => ({ frontmatter: { Birthday: '1990-01-01' } }),
 		);
 
 		expect([...result]).toEqual(['People/Victoria.md']);
@@ -68,7 +68,7 @@ describe('filter evaluator file rules', () => {
 				values: ['.base'],
 			},
 			files,
-			() => ({ frontmatter: {} }) as CachedMetadata,
+			() => ({ frontmatter: {} }),
 		);
 
 		expect([...result]).toEqual(['Data/Projects.base']);
@@ -102,7 +102,7 @@ describe('filter evaluator file rules', () => {
 										? ['projectile']
 										: ['area/project'],
 					},
-				}) as CachedMetadata,
+				}),
 		);
 
 		expect([...result]).toEqual([
@@ -152,7 +152,7 @@ describe('filter evaluator file rules', () => {
 						...(index < 5 ? { second: true } : {}),
 						...(index < 2 ? { kind: 'keep' } : {}),
 					},
-				} as CachedMetadata;
+				};
 			},
 		);
 

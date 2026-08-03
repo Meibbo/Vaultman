@@ -195,7 +195,7 @@ export class VaultmanPerformanceMonitor {
 						this.longTaskCount += 1;
 						this.longTaskMs += entry.duration;
 					}
-				}) as LongTaskObserver;
+				});
 				this.observer.observe({ entryTypes: ['longtask'] });
 			} catch {
 				this.observer = null;

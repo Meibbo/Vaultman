@@ -32,12 +32,13 @@ export interface PropertyConflict {
 function describeConflictValue(value: unknown): string {
 	if (typeof value === 'object') {
 		try {
-			return JSON.stringify(value) ?? String(value as null);
+			return JSON.stringify(value) ?? Object.prototype.toString.call(value);
 		} catch {
 			return Object.prototype.toString.call(value);
 		}
 	}
-	return String(value as string | number | boolean | symbol | bigint);
+	// eslint-disable-next-line @typescript-eslint/no-base-to-string -- Allow default stringification
+	return String(value);
 }
 
 export function checkPropertyValueConflict(

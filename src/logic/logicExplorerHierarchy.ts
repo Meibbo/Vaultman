@@ -172,7 +172,7 @@ export function sortFlatProjection<TMeta>(
 	return nodes
 		.map((node, index) => ({ node, index }))
 		.sort((a, b) => {
-			let result = 0;
+			let result: number;
 			if (sortBy === 'parent') {
 				result = parent(a.node).localeCompare(parent(b.node), undefined, {
 					numeric: true,

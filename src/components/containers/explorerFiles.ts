@@ -3457,7 +3457,7 @@ export class FilesExplorerPanel extends Component {
 			const state = targetCreated
 				? `Partial copy retained at "${targetRoot}".`
 				: `Could not create copy at "${targetRoot}".`;
-			throw new Error(`${state}${detail}`);
+			throw new Error(`${state}${detail}`, { cause: error });
 		}
 		this.plugin.filterService.applyFilters();
 		this._refreshFromFilterService();

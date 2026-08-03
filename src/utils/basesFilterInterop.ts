@@ -74,7 +74,7 @@ export async function importBaseFile(
 	closePopup: () => void = () => undefined,
 ): Promise<void> {
 	const content = await plugin.app.vault.cachedRead(file);
-	let parsed: BasesFile | null = null;
+	let parsed: BasesFile | null;
 	try {
 		parsed = parseYaml(content) as BasesFile | null;
 	} catch {

@@ -41,7 +41,7 @@ const collision: AddToFilesOutcome = { status: 'collision', frontmatter: null };
  */
 function scalarText(value: unknown): string | null {
 	if (value === null || typeof value === 'object') return null;
-	return String(value as string | number | boolean | bigint);
+	return `${value as string | number | boolean}`;
 }
 
 function asStringList(raw: unknown): string[] {

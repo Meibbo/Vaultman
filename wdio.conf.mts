@@ -8,20 +8,23 @@ const desktopVersions = await parseObsidianVersions(
 	{ cacheDir },
 );
 
+/* global WebdriverIO -- Injected by test runner */
 export const config: WebdriverIO.Config = {
 	runner: 'local',
 	framework: 'mocha',
 	specs: ['./test/e2e/**/*.e2e.ts'],
 	maxInstances: Number(env.WDIO_MAX_INSTANCES || 1),
-	capabilities: desktopVersions.map<WebdriverIO.Capabilities>(([appVersion, installerVersion]) => ({
-		browserName: 'obsidian',
-		'wdio:obsidianOptions': {
-			appVersion,
-			installerVersion,
-			plugins: ['.'],
-			vault: 'test/vaults/e2e',
-		},
-	})),
+	capabilities: desktopVersions.map<WebdriverIO.Capabilities>(
+		([appVersion, installerVersion]) => ({
+			browserName: 'obsidian',
+			'wdio:obsidianOptions': {
+				appVersion,
+				installerVersion,
+				plugins: ['.'],
+				vault: 'test/vaults/e2e',
+			},
+		}),
+	),
 	services: ['obsidian'],
 	reporters: ['obsidian'],
 	mochaOpts: {

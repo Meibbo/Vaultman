@@ -47,7 +47,7 @@ import { seedDefaultViewCompositions } from './logic/logicViewCompositions';
 import { normalizeGlyphColorChoice } from './logic/logicGlyphColor';
 
 export class VaultmanPlugin extends Plugin {
-	settings!: VaultmanSettings;
+	declare settings: VaultmanSettings;
 	private settingsChangeListeners = new Set<() => void>();
 
 	// Core services — public so components/modals can access them
@@ -540,17 +540,17 @@ export class VaultmanPlugin extends Plugin {
 	}
 
 	private showUpdatesNotice(version: string): void {
-		const fragment = activeDocument.createDocumentFragment();
-		const message = activeDocument.createElement('div');
+		const fragment = createFragment();
+		const message = createDiv();
 		message.textContent = translate('updates.notice', { version });
 		fragment.appendChild(message);
 
-		const bulletinButton = activeDocument.createElement('button');
+		const bulletinButton = createEl('button');
 		bulletinButton.className = 'mod-cta';
 		bulletinButton.textContent = translate('updates.view_bulletin');
 		fragment.appendChild(bulletinButton);
 
-		const dismissButton = activeDocument.createElement('button');
+		const dismissButton = createEl('button');
 		dismissButton.textContent = translate('updates.dismiss');
 		fragment.appendChild(dismissButton);
 
@@ -590,7 +590,7 @@ export class VaultmanPlugin extends Plugin {
 	/** Open a frame and reveal it. Never closes one. */
 	private async openVaultmanView(): Promise<WorkspaceLeaf | null> {
 		const { workspace } = this.app;
-		const mode = normalizeOpenMode(this.settings.openMode as string);
+		const mode = normalizeOpenMode(this.settings.openMode);
 		const leaf =
 			mode === 'sidebar'
 				? workspace.getLeftLeaf(false) || workspace.getRightLeaf(false)
@@ -611,7 +611,7 @@ export class VaultmanPlugin extends Plugin {
 		);
 		if (
 			shouldToggleCloseFrame(
-				this.settings.openMode as string,
+				this.settings.openMode,
 				existingLeaves.length,
 			)
 		) {

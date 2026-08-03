@@ -765,7 +765,7 @@ describe('UnifiedTreeView behavior', () => {
 		});
 		const firstLabel = container.querySelector(
 			'.vaultman-tree-label',
-		) as unknown as TinyElement | null;
+		);
 
 		view.render({
 			...options,
@@ -781,7 +781,7 @@ describe('UnifiedTreeView behavior', () => {
 		});
 		const secondLabel = container.querySelector(
 			'.vaultman-tree-label',
-		) as unknown as TinyElement | null;
+		);
 
 		expect(firstLabel?.style.color).toBe('#111111');
 		expect(secondLabel?.style.color).toBe('#222222');

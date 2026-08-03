@@ -103,7 +103,7 @@ export function compareFilesForExplorer(
 ): number {
 	const normalizedSortBy = normalizeExplorerSortBy(sortBy);
 	const dir = direction === 'asc' ? 1 : -1;
-	let result = 0;
+	let result: number;
 
 	if (normalizedSortBy === 'path') {
 		result = compareExplorerText(a.path, b.path);

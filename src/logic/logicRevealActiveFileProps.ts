@@ -40,7 +40,7 @@ const NOT_A_PROPERTY = new Set(['position']);
 function textOf(value: unknown): string {
 	if (value == null) return '';
 	if (typeof value === 'object') return JSON.stringify(value) ?? '';
-	return String(value as string | number | boolean | bigint);
+	return `${value as string | number | boolean}`;
 }
 
 function valuesOf(raw: unknown): string[] {

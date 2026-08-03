@@ -2,12 +2,7 @@
 	import { translate } from '../../i18n/index';
 
 	type FiltersTab =
-		| 'files'
-		| 'props'
-		| 'tags'
-		| 'content'
-		| 'snippets'
-		| 'plugins';
+		'files' | 'props' | 'tags' | 'content' | 'snippets' | 'plugins';
 
 	const TAB_ICONS: Record<FiltersTab, string> = {
 		files: 'lucide-folder',

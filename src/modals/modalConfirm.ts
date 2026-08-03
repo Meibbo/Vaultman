@@ -33,15 +33,15 @@ export class ConfirmModal extends Modal {
 
 		contentEl.createEl('h2', { text: this.title, cls: 'dialog-title' });
 		
-		const messageEl = contentEl.createEl('div', { cls: 'dialog-text' });
+		const messageEl = contentEl.createDiv({ cls: 'dialog-text' });
 		messageEl.setText(this.message);
 
 		if (this.warningLabel) {
-			const warningEl = contentEl.createEl('div', { cls: 'dialog-warning' });
+			const warningEl = contentEl.createDiv({ cls: 'dialog-warning' });
 			warningEl.setText(this.warningLabel);
 		}
 
-		const buttonContainer = contentEl.createEl('div', { cls: 'modal-button-container' });
+		const buttonContainer = contentEl.createDiv({ cls: 'modal-button-container' });
 
 		const btnCancel = buttonContainer.createEl('button', { text: translate('updates.dismiss') }); // TODO: proper translate
 		btnCancel.addEventListener('click', () => {

@@ -113,5 +113,6 @@ export default tseslint.config(
 		'.worktrees',
 		'.claude',
 		'.agents',
+		'.svelte-check',
 	]),
 );
