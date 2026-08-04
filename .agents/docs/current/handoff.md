@@ -17,20 +17,16 @@ dateCreated: 2026-05-04T01:36:20
 Compact handoff after archiving the oversized current handoff:
 [[docs/archive/pkm-ai/active-docs/2026-05-11T080321-current-handoff|2026-05-11 handoff archive]].
 
-## NEXT AGENT START HERE — U121-003: shard 08 (8.1–8.3) cerrado, faltan 8.4–8.6, 09 y 06 (2026-08-02)
-
-**Prompt de arranque, listo para copiar:**
-[[docs/work/polish/plans/2026-07-30-u121-navbar-panel-widget/plan-2026-08-02-corrective-primitives/next-agent-prompt-2026-08-02-evening|next-agent prompt 2026-08-02 evening]].
-Ese archivo es el estado vigente; los dos prompts anteriores del mismo día quedan como historia.
+## NEXT AGENT START HERE — U121-003: shard 09 task 9.3 cerrada; siguiente 9.4 (mutación queued) (2026-08-03)
 
 **Entorno:** worktree `.claude/worktrees/u121-030-033-maintenance`, rama
-**`claude/u121-030-033-maintenance`** @ **`27ee0170`** (FF de la tarde absorbió `claude/u121-029-panel-widget`, que apunta al mismo commit). El worker paralelo fue **detenido por el dev**; su WIP sin commitear (8 archivos de mantenimiento U121-030..033) sigue en ese worktree, `tsc` limpio, **no tocarlo sin preguntar**.
+**`claude/u121-030-033-maintenance`** @ **`52c46cc6`** (9.3 en `52c46cc6`; la rama trae además 8.1–8.3, 9.1–9.2 y los fixes de la tarde del 02). Worktree limpio.
 
-**Cerrado hoy:** el defecto de tipo de propiedad (toda edición inline escribía `String(newValue)` y Obsidian re-inferí­a el tipo; afectaba checkbox, number y el Rename del menú) · deuda de ESLint de `853d8900` · shard 08 tasks 8.1 (`Include as filter`), 8.2 (`Add to files` como operación con conteo de destino y la rama node_value que no existía) y 8.3 (tipo derivado visible como tipo actual).
+**Cerrado en esta tanda (shard 09, task 9.3):** Tree renderiza la anatomía Core de file-properties cuando reveal-this-file está activo. `CoreMetadataTreeView` (nuevo `viewCoreMetadataTree.ts`) usa las clases que Core ya declara (`metadata-container`, `metadata-properties-heading/title`, `metadata-property-key/value`, `metadata-add-button`) sin copiarlas a `styles.css` (invariante 9 de spec shard 01). Value renderer **compartido** con el cell_format de shard 07 (`renderPropertyValue` publica ahora `data-property-type`/`data-property-key` en `propertyAttributeContainer` para todos los llamadores); Table y Cards conservan sus Cells sin clon de `metadata-property`; drag reorder solo en Tree (icono draggable solo si la anatomía provee `onReorderStart`); VIECO y NAVCO intactos en los tres engines. Guard de shard 07 re-apuntado al renderer (nuevo dueño de la publicación).
 
-**Suite completa 1438/1441.** Los 3 rojos son guards del refactor de `VaultmanFrame` del worker detenido (`navigateToDataTab` ya no es `async`: publica por `sceneController.begin(tab)`); re-apuntarlos es la primera tarea del siguiente agente.
+**Gates:** `check` 0/0 · `lint` 0 errors (12 warnings pre-existentes) · `stylelint` clean · `format:check` clean · `test:unit` **1545/1545** (205 files) · `build:plugin` OK · `test:scorecard` 18/18.
 
-**Pendiente:** plan 08 part 2 (`Move to prop...`, 8.4–8.6) · plan 09 (reveal, 9.1–9.4) · plan 06 (gates integrados, build exacto, matriz viva y smoke del dev). El `PropertyValueInteractionPort` sigue sin llamadores: la task 5.2 no terminó su extracción.
+**Pendiente:** **9.4** (política de mutación: queued semantics con `PropertyValueInteractionPort`, value-entry input propio no gateado por `nested`, adversarial tests, `REORDER_ALL` como única ruta live) · **6.4** (matriz viva) · **6.5** (review + aceptación del dev + smoke vivo del build). El `PropertyValueInteractionPort` sigue sin llamadores: la task 5.2 no terminó su extracción; 9.4 es el consumidor que la activa.
 
 ## NEXT AGENT START HERE — 1.2.0-beta.6 PUBLICADA; resolviendo P2 hacia v1.2.0 (2026-07-21)
 

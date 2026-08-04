@@ -92,18 +92,19 @@ over an index that keeps its own lifecycle.
 - [x] Re-run focused tests, confirm GREEN; run the Svelte autofixer on every
   changed `.svelte`.
 
-## Task 9.3 — Tree renders Core's file-properties anatomy
+## Task 9.3 — Tree renders Core's file-properties anatomy ✅
 
 **Files:**
 
 - Modify: `src/components/layout/viewTree.ts`
 - Modify: `src/utils/renderPropertyValue.ts`
 - Modify: `styles.css`
+- Create: `src/components/layout/viewCoreMetadataTree.ts`
 - Create: `test/unit/revealTreeAnatomy.test.ts`
 
-- [ ] Read `C:\Users\vic_A\Desktop\obsidian-web-lab\obsidian\app.css` and `app.js`
+- [x] Read `C:\Users\vic_A\Desktop\obsidian-web-lab\obsidian\app.css` and `app.js`
   for the anatomy before writing markup. Do not reconstruct Core from memory.
-- [ ] Add DOM tests for the recorded structure:
+- [x] Add DOM tests for the recorded structure:
 
 ```text
 div.metadata-container
@@ -115,21 +116,21 @@ div.metadata-container
   div.metadata-add-button
 ```
 
-- [ ] Add a test proving the value renderer is **shared** with the `cell_format`
+- [x] Add a test proving the value renderer is **shared** with the `cell_format`
   work of shard 07, not duplicated: `.metadata-property-value` is the ancestor
   that shard 06 of the spec already requires for the `data-property-type`
   variable mapping, so the two agree on one anatomy.
-- [ ] Add tests proving Table and Cards render the same dataset through their own
+- [x] Add tests proving Table and Cards render the same dataset through their own
   columns/Cells and expose **no** `metadata-property` recreation. Core has one
   file-properties layout; inventing it for engines Core does not have would break
   the "do not recreate Core" rule.
-- [ ] Add tests proving drag reorder exists in Tree only, and that in Table and
+- [x] Add tests proving drag reorder exists in Tree only, and that in Table and
   Cards the order is NAVCO's sort with reorder unavailable rather than silently
   ignored.
-- [ ] Run the suites and confirm RED.
-- [ ] Implement the Tree anatomy and the engine split; confirm VIECO and NAVCO
+- [x] Run the suites and confirm RED.
+- [x] Implement the Tree anatomy and the engine split; confirm VIECO and NAVCO
   options still apply in all three.
-- [ ] Re-run focused tests plus Stylelint, confirm GREEN.
+- [x] Re-run focused tests plus Stylelint, confirm GREEN.
 
 ## Task 9.4 — Mutation policy: queued semantics, live order
 

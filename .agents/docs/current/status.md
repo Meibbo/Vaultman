@@ -28,6 +28,14 @@ Compact route index after archiving the oversized current status:
 
 - Active initiative: [[docs/work/hardening/index|Hardening]].
 - **Pendientes consolidados (dev-facing)**: [[docs/current/pendientes|pendientes]] — HITL · Codex · spine · researches · infra (creado 2026-07-09, mantener al cerrar/abrir ítems).
+- **LATEST (2026-08-03, pi-agent): U121-003 shard 9.3 Core file-properties Tree anatomy cerrada.**
+  Rama `claude/u121-030-033-maintenance` @ **`52c46cc6`** (worktree `.claude/worktrees/u121-030-033-maintenance`).
+  `CoreMetadataTreeView` renderiza la anatomía grabada de Core (metadata-container,
+  heading, metadata-property rows, add-button). Value renderer compartido con shard 07;
+  Table/Cards sin clon de metadata-property; drag reorder solo en Tree; VIECO/NAVCO
+  intactos. Suite: **1545/1545** (205 files), check 0/0, lint 0 errors, build OK,
+  scorecard 18/18.
+  Pendiente: 9.4 (mutación queued), 6.4 (matriz viva), 6.5 (review + smoke del dev).
 - **LATEST (2026-08-02, claude-opus-5-root): U121-003 shard 08 tasks 8.1–8.3 cerradas; planes 08/08-part-2/09 escritos.**
   Rama de integración **`claude/u121-030-033-maintenance`** @ **`27ee0170`** (worktree `.claude/worktrees/u121-030-033-maintenance`; `claude/u121-029-panel-widget` apunta al mismo commit tras el FF de la tarde). Suite completa **1438/1441**; los 3 rojos son guards del refactor de `VaultmanFrame` del worker detenido y quedan como primera tarea del siguiente agente. Prompt de arranque:
   [[docs/work/polish/plans/2026-07-30-u121-navbar-panel-widget/plan-2026-08-02-corrective-primitives/next-agent-prompt-2026-08-02-evening|next-agent prompt 2026-08-02 evening]].

@@ -3158,3 +3158,37 @@ gates that.
   plugin-dev desde `f29fab4c`: main.js 5A479280…, styles.css 79E3746C…,
   manifest.json AE221D67…, los tres verificados. LA GEOMETRÍA NO LA PRUEBA
   NINGÚN GATE: hace falta el smoke vivo.
+
+## 2026-08-03 · pi-agent · implement · U121-003 shard 9.3 Core file-properties Tree anatomy closed
+
+**Entrada:** worktree `.claude/worktrees/u121-030-033-maintenance`, rama
+`claude/u121-030-033-maintenance`, commit `52c46cc6`.
+
+**Trabajo heredado:** gpt-5.6 (agente sin entrada en session-log) dejó 7 archivos
+sin commitear en el worktree: `viewCoreMetadataTree.ts` (345 líneas, clase
+`CoreMetadataTreeView`), `revealTreeAnatomy.test.ts` (427 líneas, 7 tests),
+modificaciones en `viewTree.ts`, `explorerProps.ts`, `renderPropertyValue.ts`,
+`styles.css`. La implementación seguía la anatomía grabada por claude-opus-5 en
+`09-core-anatomy-web-lab-2026-08-02.md` y cubría todo el checklist de 9.3.
+
+**Lo que faltaba:** el refactor movió la publicación de `data-property-type`/
+`data-property-key` de `explorerProps._renderPropertyValueLabel` al renderer
+central (`renderPropertyValue.ts`), pero el guard de shard 07
+(`propertyValueWidgetsSource.test.ts`) seguía buscando los literales en el sitio
+viejo → 1 test rojo. Se re-apuntó al renderer (nuevo dueño del contrato) sin
+debilitar, añadiendo aserción extra de que el adapter pasa `propertyKey`.
+
+**Gates:**
+- `pnpm run check`: 0/0
+- `pnpm run lint`: 0 errors, 12 pre-existing warnings
+- `pnpm run stylelint`: clean
+- `pnpm run format:check`: clean
+- `pnpm run test:unit`: 1545/1545 (205 files)
+- `pnpm run build:plugin`: exit 0
+- `pnpm run test:scorecard`: 18/18
+
+**Checkboxes de 9.3 marcados como [x] en el shard 09.**
+
+**Pendiente U121-003:** 9.4 (política de mutación: queued semantics, live order),
+6.4 (matriz viva), 6.5 (review + aceptación del dev). U121-003 no cierra hasta
+que el dev acepte un smoke vivo del build.
