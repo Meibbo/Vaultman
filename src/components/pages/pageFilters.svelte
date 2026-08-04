@@ -247,9 +247,11 @@
 		) => void;
 	} = $props();
 
-	const textSearchRuleId = sceneInstanceId
-		? `vaultman-search-content-${sceneInstanceId}`
-		: 'vaultman-search-content';
+	const textSearchRuleId = $derived(
+		sceneInstanceId
+			? `vaultman-search-content-${sceneInstanceId}`
+			: 'vaultman-search-content',
+	);
 
 	export function setShowToolbar(val: boolean): void {
 		localShowToolbar = val;
@@ -1141,7 +1143,12 @@
 			return;
 		}
 		if (!validateContentSearch()) {
-			plugin.filterService.setContentSearchRule(textSearchRuleId, '', [], false);
+			plugin.filterService.setContentSearchRule(
+				textSearchRuleId,
+				'',
+				[],
+				false,
+			);
 			onContentFilterChanged?.();
 			return;
 		}
@@ -1170,9 +1177,18 @@
 				// never told to stop, because `stopSearch()` lives in `cancel()`.
 				nativeSearchAdapter.cancel();
 				if (isExclusion) {
-					plugin.filterService.setContentSearchRule(textSearchRuleId, find, matched, true);
+					plugin.filterService.setContentSearchRule(
+						textSearchRuleId,
+						find,
+						matched,
+						true,
+					);
 				} else {
-					plugin.filterService.setContentSearchRule(textSearchRuleId, find, matched);
+					plugin.filterService.setContentSearchRule(
+						textSearchRuleId,
+						find,
+						matched,
+					);
 				}
 				onContentFilterChanged?.();
 			}
@@ -1233,7 +1249,11 @@
 			// full blank/repopulate flash.
 			if (!resuming) {
 				if (isExclusion) {
-					plugin.filterService.setContentSearchPending(textSearchRuleId, find, true);
+					plugin.filterService.setContentSearchPending(
+						textSearchRuleId,
+						find,
+						true,
+					);
 				} else {
 					plugin.filterService.setContentSearchPending(textSearchRuleId, find);
 				}
@@ -1276,9 +1296,18 @@
 							const matched =
 								result.matchedFiles ?? result.files.map((entry) => entry.file);
 							if (isExclusion) {
-								plugin.filterService.setContentSearchRule(textSearchRuleId, find, matched, true);
+								plugin.filterService.setContentSearchRule(
+									textSearchRuleId,
+									find,
+									matched,
+									true,
+								);
 							} else {
-								plugin.filterService.setContentSearchRule(textSearchRuleId, find, matched);
+								plugin.filterService.setContentSearchRule(
+									textSearchRuleId,
+									find,
+									matched,
+								);
 							}
 							onContentFilterChanged?.();
 						}
@@ -1569,7 +1598,10 @@
 					? invocation.payload.event
 					: new MouseEvent('click');
 			if (invocation.actionId.startsWith('header:')) {
-				const action = [...contentHeaderActions, ...valueMoveHeaderActions].find(
+				const action = [
+					...contentHeaderActions,
+					...valueMoveHeaderActions,
+				].find(
 					(candidate) =>
 						candidate.id === invocation.actionId.slice('header:'.length),
 				);

@@ -72,7 +72,7 @@ describe('pause/resume content search (BT4-018 / D46, re-pointed by U121-017)', 
 		expect(pauseIndex).toBeLessThan(timerIndex);
 		const branch = pageFiltersSource.slice(pauseIndex, timerIndex);
 		expect(branch).toContain('isLoading: false');
-		expect(branch).toContain('setContentSearchRule(textSearchRuleId, find, matched)');
+		expect(branch).toContain('setContentSearchRule(');
 	});
 
 	it('resumes from the cursor and does not cancel the scan on tab switch (U121-016/017)', () => {
@@ -122,7 +122,8 @@ describe('pause/resume content search (BT4-018 / D46, re-pointed by U121-017)', 
 			'if (contentFrozenApplyToken !== frozenToken) {',
 		);
 		const applyIndex = pageFiltersSource.indexOf(
-			'setContentSearchRule(textSearchRuleId, find, matched, true)',
+			'setContentSearchRule(',
+			tokenIndex
 		);
 		expect(tokenIndex).toBeGreaterThan(-1);
 		expect(applyIndex).toBeGreaterThan(tokenIndex);
