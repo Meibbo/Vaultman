@@ -424,12 +424,12 @@
 					{@const pendingRename = queuedRenameBadge(fileResult.file.path)}
 					<div
 						class="tree-item search-result"
-						class:is-active={activeContentFilePath === fileResult.file.path}
 						data-vm-content-path={fileResult.file.path}
 						tabindex="-1"
 					>
 						<div
 							class="tree-item-self search-result-file-title is-clickable"
+							class:is-active={activeContentFilePath === fileResult.file.path}
 							role="button"
 							tabindex="0"
 							onclick={() => {
@@ -499,16 +499,6 @@
 											use:iconAction={pendingRename.icon ?? 'lucide-pencil'}
 										></span>
 									</span>
-								{/if}
-								{#if activeContentFilePath === fileResult.file.path}
-									<!-- U121-019 #51: the note currently open, as a cell rather
-									     than only a row state — reveal takes you to it, this says
-									     you are already there. -->
-									<span
-										class="tree-item-flair vaultman-cell-highlight-current"
-										aria-label={translate('content.current_note')}
-										title={translate('content.current_note')}
-									></span>
 								{/if}
 								<span class="tree-item-flair">{fileResult.matchCount}</span>
 							</div>

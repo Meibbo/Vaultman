@@ -1364,8 +1364,6 @@ export class VaultmanSettingsTab extends PluginSettingTab {
 					}),
 			);
 
-		// eslint-disable-next-line @typescript-eslint/no-this-alias -- context for inner class
-		const tab = this;
 		const kind = this.contextMenuKind;
 		new Setting(containerEl)
 			.setName(translate(`settings.context_menu_kind.${kind}`))
