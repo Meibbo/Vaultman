@@ -35,6 +35,12 @@ import {
 	LongPressGesture,
 } from '../../utils/longPressGesture';
 import { renderIconValue } from '../../utils/renderIconValue';
+import {
+	CoreMetadataTreeView,
+	type CoreMetadataTreeAnatomy,
+} from './viewCoreMetadataTree';
+
+export type { CoreMetadataTreeAnatomy } from './viewCoreMetadataTree';
 
 export interface TreeViewOptions {
 	nodes: TreeNode[];
@@ -93,6 +99,11 @@ export interface TreeViewOptions {
 	prepareNode?: (node: TreeNode) => void;
 	renderLabel?: (container: HTMLElement, node: TreeNode) => boolean;
 	/**
+	 * U121-003: delegate Tree to Core's file-properties layout. Table and Cards
+	 * have no corresponding option and therefore keep their own Cell anatomy.
+	 */
+	coreMetadata?: CoreMetadataTreeAnatomy;
+	/**
 	 * BT5-015: when a node reserves a caret slot it cannot use, put its icon
 	 * there instead of leaving a dimmed placeholder plus a separate icon.
 	 * Expandable nodes are untouched — their caret keeps its affordance.
@@ -129,6 +140,7 @@ export class UnifiedTreeView {
 	private _activeId: string | null = null;
 	private readonly _overscan = 24;
 	private readonly _recursiveExpandGesture = new LongPressGesture();
+	private readonly _coreMetadataView: CoreMetadataTreeView;
 	private readonly _onScroll = () => {
 		if (this._hasVisibleRenderedRows()) {
 			this._scheduleWindowRender();
@@ -140,6 +152,7 @@ export class UnifiedTreeView {
 
 	constructor(containerEl: HTMLElement) {
 		this.containerEl = containerEl;
+		this._coreMetadataView = new CoreMetadataTreeView(containerEl, this.rowEls);
 	}
 
 	render(opts: TreeViewOptions): void {
@@ -177,9 +190,9 @@ export class UnifiedTreeView {
 		this.containerEl.dataset.vaultmanTreeOwner = this._ownerId;
 		this.containerEl.toggleClass(
 			'vaultman-tree-nested-guides',
-			opts.visibleCells?.has('nested') ?? true,
+			!opts.coreMetadata && (opts.visibleCells?.has('nested') ?? true),
 		);
-		this._markStructureAnimationIfNeeded(opts.expandedIds);
+		if (!opts.coreMetadata) this._markStructureAnimationIfNeeded(opts.expandedIds);
 		if (this._pendingRaf !== null) {
 			cancelAnimationFrame(this._pendingRaf);
 			this._pendingRaf = null;
@@ -188,6 +201,26 @@ export class UnifiedTreeView {
 			window.clearTimeout(this._pendingScrollTimer);
 			this._pendingScrollTimer = null;
 		}
+		if (opts.coreMetadata) {
+			this.containerEl.removeEventListener('scroll', this._onScroll);
+			this.containerEl.removeClass('vaultman-tree-virtual-viewport');
+			this._spacerEl = null;
+			this._contentEl = null;
+			this._rows = opts.nodes;
+			this._indexById = this._buildIndex(opts.nodes);
+			const renderStarted = performance.now();
+			this._coreMetadataView.render({ ...opts, coreMetadata: opts.coreMetadata });
+			vaultmanPerfMonitor.record(
+				'tree.render.metadata',
+				performance.now() - renderStarted,
+				{ rows: opts.nodes.length },
+			);
+			vaultmanPerfMonitor.recordAction('tree', 'render.metadata', {
+				rows: opts.nodes.length,
+			});
+			return;
+		}
+		this._coreMetadataView.destroy();
 
 		const scrollTop = this.containerEl.scrollTop;
 		const rowHeight = this.rowHeight();
@@ -244,6 +277,7 @@ export class UnifiedTreeView {
 
 	destroy(): void {
 		this._recursiveExpandGesture.cancel();
+		this._coreMetadataView.destroy();
 		if (this._pendingRaf !== null) {
 			cancelAnimationFrame(this._pendingRaf);
 			this._pendingRaf = null;

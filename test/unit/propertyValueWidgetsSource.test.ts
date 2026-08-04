@@ -45,10 +45,16 @@ describe('U121-003 shard 07 third-party decoration bridge', () => {
 	// `a.tag`. Emitting Core's Bases anatomy is the whole bridge: rendering the
 	// file-properties `.multi-select-pill` instead left those values undecorated
 	// in the explorer while the same plugin decorated them everywhere else.
+	// U121-003 shard 9.3 re-pointed this pair, and did not weaken it: the
+	// renderer now owns publishing on `propertyAttributeContainer` (the Cell
+	// root for Cells, `.metadata-property-value` for the reveal anatomy), so
+	// every caller publishes instead of just this one. The Props adapter still
+	// has to pass the key through for the attribute to appear.
 	it('publishes both attributes those plugins select on', () => {
 		expect(propsExplorerSource).toContain('resolveCorePropertyWidget');
-		expect(propsExplorerSource).toContain("'data-property-type'");
-		expect(propsExplorerSource).toContain("'data-property-key'");
+		expect(rendererSource).toContain("'data-property-type'");
+		expect(rendererSource).toContain("'data-property-key'");
+		expect(propsExplorerSource).toContain('propertyKey: node.meta.propName');
 	});
 
 	it('renders the Bases value anatomy, not the file-properties one', () => {
