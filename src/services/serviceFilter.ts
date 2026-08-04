@@ -17,7 +17,6 @@ const FILE_SEARCH_RULE_IDS: Record<FileSearchRuleType, string> = {
 	file_name: 'vaultman-search-file-name',
 	file_folder: 'vaultman-search-file-folder',
 };
-const CONTENT_SEARCH_RULE_ID = 'vaultman-search-content';
 const METADATA_FILTER_TYPES = new Set<FilterType>([
 	'has_property',
 	'missing_property',
@@ -65,7 +64,7 @@ export class FilterService extends Component {
 		string,
 		{ signature: string; files: TFile[] }
 	>();
-	private contentSearchPaths: Set<string> | null = null;
+	private contentSearchPaths = new Map<string, Set<string>>();
 	private sortCacheRevision = 0;
 	/** BT5-088: the whole vault in basename order, rebuilt only when it changes. */
 	private fullOrderRevision = -1;
@@ -209,7 +208,7 @@ export class FilterService extends Component {
 		};
 		this._searchName = '';
 		this._searchFolder = '';
-		this.contentSearchPaths = null;
+		this.contentSearchPaths.clear();
 		this.applyFilters();
 	}
 
@@ -381,24 +380,29 @@ export class FilterService extends Component {
 	 * applyFilters read file contents. The expensive search runs in the Content
 	 * tab; this service only intersects with the matched file paths.
 	 */
-	setContentSearchPending(value: string, exclude: boolean = false): void {
+	setContentSearchPending(
+		ruleId: string,
+		value: string,
+		exclude: boolean = false,
+	): void {
 		const term = value.trim();
 		let changed = false;
 		if (!term) {
-			this.setContentSearchRule('', [], false);
+			this.setContentSearchRule(ruleId, '', [], false);
 			return;
 		}
 
-		if (this.contentSearchPaths !== null) {
-			this.contentSearchPaths = null;
+		if (this.contentSearchPaths.has(ruleId)) {
+			this.contentSearchPaths.delete(ruleId);
 			changed = true;
 		}
 
-		changed = this.upsertContentSearchRootRule(term, exclude) || changed;
+		changed = this.upsertContentSearchRootRule(ruleId, term, exclude) || changed;
 		if (changed) this.applyFilters();
 	}
 
 	setContentSearchRule(
+		ruleId: string,
 		value: string,
 		files: TFile[],
 		exclude: boolean = false,
@@ -407,19 +411,20 @@ export class FilterService extends Component {
 		let changed = false;
 
 		if (!term) {
-			this.contentSearchPaths = null;
-			changed = this.removeRootRuleById(CONTENT_SEARCH_RULE_ID) || changed;
+			this.contentSearchPaths.delete(ruleId);
+			changed = this.removeRootRuleById(ruleId) || changed;
 			if (changed) this.applyFilters();
 			return;
 		}
 
 		const nextPaths = new Set(files.map((file) => file.path));
-		if (!this.samePathSet(this.contentSearchPaths, nextPaths)) {
-			this.contentSearchPaths = nextPaths;
+		const currentPaths = this.contentSearchPaths.get(ruleId) ?? null;
+		if (!this.samePathSet(currentPaths, nextPaths)) {
+			this.contentSearchPaths.set(ruleId, nextPaths);
 			changed = true;
 		}
 
-		changed = this.upsertContentSearchRootRule(term, exclude) || changed;
+		changed = this.upsertContentSearchRootRule(ruleId, term, exclude) || changed;
 		if (changed) this.applyFilters();
 	}
 
@@ -616,7 +621,7 @@ export class FilterService extends Component {
 			return false;
 		};
 		if (walk(this.activeFilter)) {
-			if (id === CONTENT_SEARCH_RULE_ID) this.contentSearchPaths = null;
+			this.contentSearchPaths.delete(id);
 			this.applyFilters();
 		}
 	}
@@ -829,19 +834,28 @@ export class FilterService extends Component {
 
 	private applyContentSearch(files: TFile[]): TFile[] {
 		if (!this.hasEnabledContentSearchRule()) return files;
-		if (this.contentSearchPaths === null) return files;
-		const paths = this.contentSearchPaths;
-		// The Text tab always hands over the files that *do* contain the term and
-		// states the polarity separately. The polarity used to reach the rule and
-		// stop there, so it renamed the chip to "Not text …" while this
-		// intersection went on keeping the matches — "doesn't have text" listed
-		// exactly the files that have it.
-		const exclude =
-			this.findRootRuleById(CONTENT_SEARCH_RULE_ID)?.filterType ===
-			'content_search_exclude';
-		return exclude
-			? files.filter((file) => !paths.has(file.path))
-			: files.filter((file) => paths.has(file.path));
+		
+		const rules = this.activeFilter.children.filter(
+			(node): node is FilterRule => 
+				node.type === 'rule' && 
+				(node.filterType === 'content_search' || node.filterType === 'content_search_exclude') &&
+				node.enabled !== false
+		);
+		
+		if (rules.length === 0) return files;
+
+		let result = files;
+		for (const rule of rules) {
+			if (!rule.id) continue;
+			const paths = this.contentSearchPaths.get(rule.id);
+			if (!paths) continue;
+			
+			const exclude = rule.filterType === 'content_search_exclude';
+			result = exclude
+				? result.filter((file) => !paths.has(file.path))
+				: result.filter((file) => paths.has(file.path));
+		}
+		return result;
 	}
 
 	private applyLegacySearch(files: TFile[]): TFile[] {
@@ -892,13 +906,15 @@ export class FilterService extends Component {
 	}
 
 	private filterStateSignature(): string {
+		const sortedPaths: Record<string, string[]> = {};
+		for (const [key, set] of this.contentSearchPaths.entries()) {
+			sortedPaths[key] = Array.from(set).sort();
+		}
 		return JSON.stringify({
 			searchName: this._searchName,
 			searchFolder: this._searchFolder,
 			activeFilter: this.activeFilter,
-			contentSearchPaths: this.contentSearchPaths
-				? Array.from(this.contentSearchPaths).sort()
-				: null,
+			contentSearchPaths: Object.keys(sortedPaths).length > 0 ? sortedPaths : null,
 		});
 	}
 
@@ -906,7 +922,10 @@ export class FilterService extends Component {
 		return {
 			...this.activeFilter,
 			children: this.activeFilter.children.filter(
-				(node) => node.id !== CONTENT_SEARCH_RULE_ID,
+				(node) =>
+					node.type !== 'rule' ||
+					(node.filterType !== 'content_search' &&
+						node.filterType !== 'content_search_exclude'),
 			),
 		};
 	}
@@ -928,11 +947,12 @@ export class FilterService extends Component {
 	}
 
 	hasEnabledContentSearchRule(): boolean {
-		const rule = this.findRootRuleById(CONTENT_SEARCH_RULE_ID);
-		return (
-			(rule?.filterType === 'content_search' ||
-				rule?.filterType === 'content_search_exclude') &&
-			rule.enabled !== false
+		return this.activeFilter.children.some(
+			(node) =>
+				node.type === 'rule' &&
+				(node.filterType === 'content_search' ||
+					node.filterType === 'content_search_exclude') &&
+				node.enabled !== false,
 		);
 	}
 
@@ -964,10 +984,11 @@ export class FilterService extends Component {
 	}
 
 	private upsertContentSearchRootRule(
+		ruleId: string,
 		term: string,
 		exclude: boolean = false,
 	): boolean {
-		const existing = this.findRootRuleById(CONTENT_SEARCH_RULE_ID);
+		const existing = this.findRootRuleById(ruleId);
 		const targetType = exclude ? 'content_search_exclude' : 'content_search';
 		if (existing) {
 			if (
@@ -989,7 +1010,7 @@ export class FilterService extends Component {
 			filterType: targetType,
 			property: '',
 			values: [term],
-			id: CONTENT_SEARCH_RULE_ID,
+			id: ruleId,
 			enabled: true,
 		});
 		return true;

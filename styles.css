@@ -7160,6 +7160,14 @@ button.vaultman-content-scope-hint:focus-visible {
   inset-inline-start: var(--size-4-2);
 }
 
+.vaultman-tree-row:has(> .vaultman-selection-checkbox--start) > .tree-item-icon.collapse-icon {
+  position: static;
+}
+
+.vaultman-tree-row > .vaultman-selection-checkbox--start {
+  margin-inline-start: calc(-1 * var(--vaultman-tree-caret-offset, 14px));
+}
+
 .vaultman-selection-checkbox--end {
   inset-inline-end: var(--size-4-2);
 }

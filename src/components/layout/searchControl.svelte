@@ -5,6 +5,7 @@
 		value,
 		placeholder,
 		ownRow = false,
+		styleOrder = undefined,
 		trailingActions = [],
 		clearLabel = 'Clear search',
 		categoryIcon,
@@ -20,6 +21,7 @@
 		value: string;
 		placeholder: string;
 		ownRow?: boolean;
+		styleOrder?: number;
 		trailingActions?: readonly PanelWidgetNode[];
 		clearLabel?: string;
 		categoryIcon?: string;
@@ -39,6 +41,7 @@
 	class:vaultman-filters-header-search-pill--row={ownRow}
 	class:vaultman-filters-header-search-pill--inline={!ownRow}
 	data-search-own-row={ownRow ? 'true' : undefined}
+	style:order={styleOrder}
 >
 	<input
 		class="vaultman-filters-search-input"

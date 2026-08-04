@@ -1650,6 +1650,7 @@
 		value={filtersSearch}
 		placeholder={translate('filter.search_placeholder')}
 		ownRow={variant === 'row'}
+		styleOrder={variant === 'inline' ? panelWidgetNodeOrder('search') : undefined}
 		clearLabel={translate('filter.search_clear')}
 		categoryIcon={CATEGORY_ICONS[activeTab].length > 1
 			? currentCategoryIcon

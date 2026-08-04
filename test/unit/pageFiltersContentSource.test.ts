@@ -43,7 +43,7 @@ describe('Page filters Content source guards', () => {
 	it('publishes the Content query as a pending filter before async search results settle', () => {
 		expect(pageFiltersSource).toContain('onContentFilterChanged');
 		expect(pageFiltersSource).toContain(
-			'plugin.filterService.setContentSearchPending(find)',
+			'plugin.filterService.setContentSearchPending(textSearchRuleId, find)',
 		);
 		expect(pageFiltersSource).toContain('onContentFilterChanged?.()');
 		expect(frameSource).toContain('onContentFilterChanged={refreshFiles}');
@@ -91,7 +91,7 @@ describe('Page filters Content source guards', () => {
 		expect(pageFiltersSource).toContain("contentFind = ''");
 		expect(pageFiltersSource).toContain("contentReplace = ''");
 		expect(pageFiltersSource).toContain(
-			'plugin.filterService.setContentSearchRule(\'\', [])',
+			'plugin.filterService.setContentSearchRule(textSearchRuleId, \'\', [])',
 		);
 		expect(frameSource).toContain('() => clearActiveFilters(),');
 	});

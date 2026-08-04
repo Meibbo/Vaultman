@@ -247,6 +247,10 @@
 		) => void;
 	} = $props();
 
+	const textSearchRuleId = sceneInstanceId
+		? `vaultman-search-content-${sceneInstanceId}`
+		: 'vaultman-search-content';
+
 	export function setShowToolbar(val: boolean): void {
 		localShowToolbar = val;
 	}
@@ -642,6 +646,12 @@
 		return filtersActiveTab === 'props'
 			? (propExplorer?.getValueMoveMode() ?? null)
 			: null;
+	});
+
+	$effect(() => {
+		if (valueMoveMode) {
+			panelWidgetSearchExpanded = true;
+		}
 	});
 
 	const searchTrailingActions = $derived(
@@ -1058,7 +1068,7 @@
 		contentIsExclusion = false;
 		collapsedContentFilePaths = [];
 		activeContentRevealPath = null;
-		plugin.filterService.setContentSearchRule('', []);
+		plugin.filterService.setContentSearchRule(textSearchRuleId, '', []);
 		onContentFilterChanged?.();
 	}
 
@@ -1126,12 +1136,12 @@
 			contentPreviewResult = null;
 			contentRegexError = '';
 			collapsedContentFilePaths = [];
-			plugin.filterService.setContentSearchRule('', []);
+			plugin.filterService.setContentSearchRule(textSearchRuleId, '', []);
 			onContentFilterChanged?.();
 			return;
 		}
 		if (!validateContentSearch()) {
-			plugin.filterService.setContentSearchRule('', [], false);
+			plugin.filterService.setContentSearchRule(textSearchRuleId, '', [], false);
 			onContentFilterChanged?.();
 			return;
 		}
@@ -1160,9 +1170,9 @@
 				// never told to stop, because `stopSearch()` lives in `cancel()`.
 				nativeSearchAdapter.cancel();
 				if (isExclusion) {
-					plugin.filterService.setContentSearchRule(find, matched, true);
+					plugin.filterService.setContentSearchRule(textSearchRuleId, find, matched, true);
 				} else {
-					plugin.filterService.setContentSearchRule(find, matched);
+					plugin.filterService.setContentSearchRule(textSearchRuleId, find, matched);
 				}
 				onContentFilterChanged?.();
 			}
@@ -1223,9 +1233,9 @@
 			// full blank/repopulate flash.
 			if (!resuming) {
 				if (isExclusion) {
-					plugin.filterService.setContentSearchPending(find, true);
+					plugin.filterService.setContentSearchPending(textSearchRuleId, find, true);
 				} else {
-					plugin.filterService.setContentSearchPending(find);
+					plugin.filterService.setContentSearchPending(textSearchRuleId, find);
 				}
 				onContentFilterChanged?.();
 			}
@@ -1266,9 +1276,9 @@
 							const matched =
 								result.matchedFiles ?? result.files.map((entry) => entry.file);
 							if (isExclusion) {
-								plugin.filterService.setContentSearchRule(find, matched, true);
+								plugin.filterService.setContentSearchRule(textSearchRuleId, find, matched, true);
 							} else {
-								plugin.filterService.setContentSearchRule(find, matched);
+								plugin.filterService.setContentSearchRule(textSearchRuleId, find, matched);
 							}
 							onContentFilterChanged?.();
 						}
@@ -1559,7 +1569,7 @@
 					? invocation.payload.event
 					: new MouseEvent('click');
 			if (invocation.actionId.startsWith('header:')) {
-				const action = contentHeaderActions.find(
+				const action = [...contentHeaderActions, ...valueMoveHeaderActions].find(
 					(candidate) =>
 						candidate.id === invocation.actionId.slice('header:'.length),
 				);

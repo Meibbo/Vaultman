@@ -309,7 +309,7 @@ describe('FilterService vault-wide Files filtering', () => {
 		});
 		const scopeSignatureBeforeContent =
 			service.getContentSearchScopeSignature();
-		service.setContentSearchRule('birthday', [first]);
+		service.setContentSearchRule('vaultman-search-content', 'birthday', [first]);
 
 		expect(service.filteredFiles.map((file) => file.path)).toEqual([
 			'People/Birthday.md',
@@ -351,7 +351,7 @@ describe('FilterService vault-wide Files filtering', () => {
 			service.getFilesIgnoringContentSearch(true).map((file) => file.path),
 		).toEqual(['Projects/Alpha.md', 'Projects/Alpha.base']);
 
-		service.setContentSearchRule('newes', [note]);
+		service.setContentSearchRule('vaultman-search-content', 'newes', [note]);
 
 		expect(service.filteredVaultFiles.map((file) => file.path)).toEqual([
 			'Projects/Alpha.md',
@@ -380,7 +380,7 @@ describe('FilterService vault-wide Files filtering', () => {
 			values: ['alpha'],
 		});
 
-		service.setContentSearchPending('newes');
+		service.setContentSearchPending('vaultman-search-content', 'newes');
 
 		expect(service.filteredVaultFiles.map((file) => file.path)).toEqual([
 			'Projects/Alpha.md',
@@ -393,7 +393,7 @@ describe('FilterService vault-wide Files filtering', () => {
 			['Has text', 'newes'],
 		]);
 
-		service.setContentSearchRule('newes', [note]);
+		service.setContentSearchRule('vaultman-search-content', 'newes', [note]);
 
 		expect(service.filteredVaultFiles.map((file) => file.path)).toEqual([
 			'Projects/Alpha.md',
@@ -446,7 +446,7 @@ describe("content search exclusion (U121-017: \"doesn't have text\")", () => {
 
 	it('keeps only the matched files when the rule is inclusive', () => {
 		const { files, service } = serviceWithFiles();
-		service.setContentSearchRule('needle', [files[0], files[2]]);
+		service.setContentSearchRule('vaultman-search-content', 'needle', [files[0], files[2]]);
 
 		expect(service.filteredFiles.map((f) => f.basename)).toEqual([
 			'alpha',
@@ -460,7 +460,7 @@ describe("content search exclusion (U121-017: \"doesn't have text\")", () => {
 		// filter scene read "Not text …" — while the files scene kept doing the
 		// intersection, so "doesn't have text" showed exactly the files that do.
 		const { files, service } = serviceWithFiles();
-		service.setContentSearchRule('needle', [files[0], files[2]], true);
+		service.setContentSearchRule('vaultman-search-content', 'needle', [files[0], files[2]], true);
 
 		expect(service.filteredFiles.map((f) => f.basename)).toEqual(['beta']);
 	});
@@ -469,7 +469,7 @@ describe("content search exclusion (U121-017: \"doesn't have text\")", () => {
 		// A file the scan never matched has to survive the exclusion. Filtering
 		// the matched set by "not in the matched set" would return nothing.
 		const { files, service } = serviceWithFiles();
-		service.setContentSearchRule('needle', [files[1]], true);
+		service.setContentSearchRule('vaultman-search-content', 'needle', [files[1]], true);
 
 		expect(service.filteredFiles.map((f) => f.basename)).toEqual([
 			'alpha',
