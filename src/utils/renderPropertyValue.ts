@@ -26,6 +26,12 @@ export {
 
 export interface PropertyValueRenderContext {
 	container: HTMLElement;
+	/**
+	 * Core's file-properties layout stores the type variables on the enclosing
+	 * `.metadata-property-value`; ordinary Cells store them on their own root.
+	 */
+	propertyAttributeContainer?: HTMLElement;
+	propertyKey?: string;
 	raw: string;
 	type: string;
 	app: App;
@@ -304,6 +310,12 @@ const RENDER_MAP: Readonly<Record<CorePropertyWidget, PropertyValueRenderer>> = 
 
 export function renderPropertyValue(context: PropertyValueRenderContext): void {
 	const widget = resolveCorePropertyWidget(context.type);
+	const propertyAttributeContainer =
+		context.propertyAttributeContainer ?? context.container;
+	propertyAttributeContainer.setAttribute('data-property-type', widget);
+	if (context.propertyKey) {
+		propertyAttributeContainer.setAttribute('data-property-key', context.propertyKey);
+	}
 	RENDER_MAP[widget](context);
 
 	if (!context.onRemoveValue) return;

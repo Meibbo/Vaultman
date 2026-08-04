@@ -1499,6 +1499,8 @@ export class PropsExplorerPanel extends Component {
 				: null;
 
 		const sorted = this._applySort(tree);
+		const coreMetadataReveal =
+			this.viewMode === 'tree' && this.isRevealingActiveFile();
 		let nodesWithIcons = this._resolveIcons(
 			sorted,
 			warningIds,
@@ -1506,7 +1508,7 @@ export class PropsExplorerPanel extends Component {
 			searchFunc,
 			this.plugin.queueService.queue,
 		);
-		if (!this._nestedEnabled()) {
+		if (!this._nestedEnabled() && !coreMetadataReveal) {
 			nodesWithIcons = this._sortFlat(
 				flattenPropertyValues(nodesWithIcons, {
 					showParent: this.visibleCells.has('parent'),
@@ -1588,6 +1590,26 @@ export class PropsExplorerPanel extends Component {
 			filterBubbleLabel: translate('filter.active_descendant'),
 			renderLabel: (container, node) =>
 				this._renderPropertyValueLabel(container, node as TreeNode<PropMeta>),
+			coreMetadata: coreMetadataReveal
+				? {
+						heading: translate('filter.prop_browser.title'),
+						addButtonLabel: translate('ops.add_property'),
+						propertyKey: (node: TreeNode) =>
+							(node.meta as PropMeta).propName,
+						propertyType: (node: TreeNode) =>
+							resolveCorePropertyWidget((node.meta as PropMeta).propType),
+						renderValue: (
+							container: HTMLElement,
+							node: TreeNode,
+							propertyAttributeContainer: HTMLElement,
+						) =>
+							this._renderPropertyValueLabel(
+								container,
+								node as TreeNode<PropMeta>,
+								propertyAttributeContainer,
+							),
+					}
+				: undefined,
 			iconInCaretSlot: this.plugin.settings?.iconInCaretSlot === true,
 			highlightIds: {
 				inclusive: activeFilterIds,
@@ -1639,6 +1661,7 @@ export class PropsExplorerPanel extends Component {
 	private _renderPropertyValueLabel(
 		container: HTMLElement,
 		node: TreeNode<PropMeta>,
+		propertyAttributeContainer?: HTMLElement,
 	): boolean {
 		if (!node.meta.isValueNode || !this.visibleCells.has('format')) return false;
 		if (node.meta.flatLabelPrefix) {
@@ -1657,10 +1680,10 @@ export class PropsExplorerPanel extends Component {
 		// and `[data-property-key]` — to find values worth decorating. Publishing
 		// them is what lets their decorations reach the explorer instead of
 		// stopping at Bases and the file-properties panel.
-		label.setAttribute('data-property-type', resolveCorePropertyWidget(propType));
-		label.setAttribute('data-property-key', node.meta.propName);
 		renderPropertyValue({
 			container: label,
+			propertyAttributeContainer: propertyAttributeContainer ?? label,
+			propertyKey: node.meta.propName,
 			raw: rawValue,
 			type: propType,
 			app: this.plugin.app,

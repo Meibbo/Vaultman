@@ -7115,6 +7115,35 @@ button.vaultman-content-scope-hint:focus-visible {
 	text-overflow: clip;
 }
 
+/* U121-003: Tree delegates reveal-this-file to Core's metadata anatomy. These
+   rules only adapt that native block to an explorer viewport; app.css remains
+   the owner of property geometry, theme variables, focus and narrow-width
+   stacking. */
+.vaultman-core-metadata-tree {
+	box-sizing: border-box;
+	width: 100%;
+	max-width: none;
+	margin-block-end: 0;
+	overflow-y: auto;
+}
+
+.vaultman-core-metadata-tree .metadata-content,
+.vaultman-core-metadata-tree .metadata-property-value,
+.vaultman-core-metadata-tree .metadata-property-value-item {
+	min-width: 0;
+}
+
+.vaultman-core-metadata-tree .metadata-property-value-item {
+	display: inline-flex;
+	align-items: center;
+	flex: 0 1 auto;
+}
+
+.vaultman-core-metadata-tree .metadata-add-button[aria-disabled='true'] {
+	pointer-events: none;
+	opacity: var(--icon-opacity, 0.5);
+}
+
 .vaultman-selection-checkbox {
   flex: 0 0 auto;
   margin: 0 var(--size-2-2);
