@@ -68,9 +68,9 @@ export class RelativeTimeCutoffsModal extends Modal {
 			.setDesc("Hides the 'ago' / 'hace' wording from relative timestamps (e.g. '5 minutes').")
 			.addToggle((toggle) => 
 				toggle
-					.setValue(this.host.settings[hidePredicateKey] as boolean)
+					.setValue(this.host.settings[hidePredicateKey])
 					.onChange(async (value) => {
-						(this.host.settings[hidePredicateKey] as boolean) = value;
+						(this.host.settings[hidePredicateKey]) = value;
 						await this.host.saveSettings();
 					})
 			);

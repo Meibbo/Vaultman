@@ -319,9 +319,9 @@ export class PropsExplorerPanel extends Component {
 			icon: 'lucide-pencil',
 			when: (ctx) => !(ctx.node.meta as PropMeta).isValueNode,
 			run: (ctx) => {
-				if (ctx.invokeRename) ctx.invokeRename(ctx.node.id as string);
+				if (ctx.invokeRename) ctx.invokeRename(ctx.node.id);
 				else {
-					this._editingId = ctx.node.id as string;
+					this._editingId = ctx.node.id;
 					void this._render();
 				}
 			},

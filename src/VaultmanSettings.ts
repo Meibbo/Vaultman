@@ -983,10 +983,14 @@ export class VaultmanSettingsTab extends PluginSettingTab {
 						'end',
 						translate('settings.selection_checkbox_position.end'),
 					)
+					.addOption(
+						'hidden',
+						translate('settings.selection_checkbox_position.hidden'),
+					)
 					.setValue(this.plugin.settings.selectionCheckboxPosition ?? 'start')
 					.onChange(async (value) => {
 						this.plugin.settings.selectionCheckboxPosition =
-							value === 'end' ? 'end' : 'start';
+							value as 'start' | 'end' | 'hidden';
 						await this.plugin.saveSettings();
 					}),
 			);

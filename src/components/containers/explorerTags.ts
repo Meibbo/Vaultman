@@ -208,9 +208,9 @@ export class TagsExplorerPanel extends Component {
 			label: 'Rename',
 			icon: 'lucide-pencil',
 			run: (ctx: MenuCtx) => {
-				if (ctx.invokeRename) ctx.invokeRename(ctx.node.id as string);
+				if (ctx.invokeRename) ctx.invokeRename(ctx.node.id);
 				else {
-					this.editingId = ctx.node.id as string;
+					this.editingId = ctx.node.id;
 					this._render();
 				}
 			},

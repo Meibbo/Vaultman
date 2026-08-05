@@ -378,9 +378,9 @@ export class FilesExplorerPanel extends Component {
 			run: (ctx: MenuCtx) => {
 				const meta = ctx.node.meta as FileMeta;
 				if (!meta.file) return;
-				if (ctx.invokeRename) ctx.invokeRename(ctx.node.id as string);
+				if (ctx.invokeRename) ctx.invokeRename(ctx.node.id);
 				else {
-					this._editingId = ctx.node.id as string;
+					this._editingId = ctx.node.id;
 					this._render();
 				}
 			},
